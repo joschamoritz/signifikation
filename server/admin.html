@@ -56,27 +56,71 @@
     button:disabled { opacity: 0.4; cursor: not-allowed; }
 
     .status { font-size: 0.88rem; padding: 10px 14px; border-radius: 8px; display: none; }
-    .status.ok    { background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; display: block; }
-    .status.error { background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; display: block; }
+    .status.ok      { background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; display: block; }
+    .status.error   { background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; display: block; }
     .status.loading { background: #faf9f7; color: var(--muted); border: 1px solid var(--border); display: block; }
 
-    .kalender { display: flex; flex-direction: column; gap: 6px; }
-    .kalender-row {
-      display: flex; justify-content: space-between; align-items: flex-start;
-      padding: 8px 12px; background: var(--bg); border-radius: 6px;
-      font-size: 0.88rem; gap: 8px;
+    /* ── Kalender ── */
+    .cal-nav {
+      display: flex; align-items: center; justify-content: space-between;
     }
-    .kalender-info { display: flex; flex-direction: column; gap: 2px; flex: 1; }
-    .kalender-actions { display: flex; gap: 4px; flex-shrink: 0; padding-top: 2px; }
-    .kalender-datum { font-weight: 600; color: var(--primary); }
-    .kalender-ids   { color: var(--muted); }
-    .kalender-notizen { font-size: 0.78rem; color: var(--muted); font-style: italic; }
-    .del-btn {
-      background: none; color: var(--muted); padding: 2px 8px;
-      border: 1px solid var(--border); border-radius: 4px; font-size: 0.8rem;
+    .cal-nav-btn {
+      background: none; color: var(--primary); padding: 4px 10px;
+      border: 1.5px solid var(--border); border-radius: 6px;
+      font-size: 1.1rem; font-weight: 700; line-height: 1;
     }
-    .del-btn:hover { color: var(--primary); border-color: var(--primary); opacity: 1; }
-    .empty { color: var(--muted); font-size: 0.88rem; font-style: italic; }
+    .cal-nav-btn:hover { background: #fef2f2; opacity: 1; }
+    .cal-title { font-weight: 600; font-size: 0.95rem; }
+
+    .cal-grid {
+      display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px;
+    }
+    .cal-dow {
+      text-align: center; font-size: 0.72rem; font-weight: 600;
+      color: var(--muted); padding: 4px 0;
+    }
+    .cal-day {
+      aspect-ratio: 1; display: flex; flex-direction: column;
+      align-items: center; justify-content: center; gap: 3px;
+      border-radius: 6px; font-size: 0.82rem; cursor: default;
+      border: 1.5px solid transparent;
+      transition: border-color 0.15s, background 0.15s;
+    }
+    .cal-day.empty-slot { /* padding cell */ }
+    .cal-day.no-entry { color: var(--muted); }
+    .cal-day.no-entry:hover { background: #fef2f2; border-color: var(--border); cursor: pointer; }
+    .cal-day.has-entry {
+      background: #fef2f2; color: var(--primary); font-weight: 600; cursor: pointer;
+    }
+    .cal-day.has-entry:hover { background: #fecaca; border-color: var(--primary); }
+    .cal-day.is-today { border-color: var(--primary) !important; }
+    .cal-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--primary); }
+
+    .cal-legend {
+      display: flex; gap: 16px; font-size: 0.78rem; color: var(--muted);
+      align-items: center;
+    }
+    .cal-legend-item { display: flex; align-items: center; gap: 5px; }
+    .cal-legend-box {
+      width: 14px; height: 14px; border-radius: 4px; flex-shrink: 0;
+    }
+    .cal-legend-box.filled { background: #fef2f2; border: 1.5px solid var(--primary); }
+    .cal-legend-box.empty  { border: 1.5px solid var(--border); }
+    .cal-legend-box.today  { border: 1.5px solid var(--primary); }
+
+    /* ── Spielmodus-Toggle ── */
+    .mode-toggle {
+      display: flex; align-items: center; justify-content: space-between;
+      width: 100%; background: var(--bg); border: 1.5px solid var(--border);
+      border-radius: 8px; padding: 12px 16px; font-family: inherit;
+      font-size: 0.95rem; font-weight: 600; color: var(--text);
+      cursor: pointer; transition: border-color 0.15s;
+    }
+    .mode-toggle:hover { border-color: var(--primary); opacity: 1; }
+    .mode-toggle.active { border-color: var(--primary); background: #fef2f2; color: var(--primary); }
+    .toggle-arrow { display: inline-block; transition: transform 0.2s; font-style: normal; font-weight: 400; }
+    .toggle-arrow.open { transform: rotate(90deg); }
+    .mode-body { display: flex; flex-direction: column; gap: 10px; padding-top: 4px; }
   </style>
 </head>
 <body>
@@ -88,13 +132,16 @@
 
   <!-- Neuer Eintrag -->
   <div class="card">
-    <h2>Neuer Tageseintrag</h2>
+    <h2 id="form-title">Neuer Tageseintrag</h2>
     <div>
       <label for="datum">Datum</label>
       <input type="date" id="datum">
     </div>
-    <div>
-      <label>Lemmata (3 Wörter) + optionale Notiz + optionaler Link</label>
+    <button class="mode-toggle" id="koll-toggle" onclick="toggleMode('koll')">
+      <span>Kollokationen</span>
+      <span class="toggle-arrow" id="koll-arrow">›</span>
+    </button>
+    <div class="mode-body" id="koll-body" style="display:none">
       <div class="woerter">
         <div class="wort-row">
           <span class="wort-badge">Wort 1</span>
@@ -123,11 +170,19 @@
     <button id="save-btn" onclick="saveTag()">Speichern &amp; DWDS abrufen</button>
   </div>
 
-  <!-- Kalender-Übersicht -->
+  <!-- Kalender -->
   <div class="card">
-    <h2>Gespeicherte Einträge</h2>
-    <div id="kalender" class="kalender">
-      <p class="empty">Wird geladen …</p>
+    <h2>Kalender</h2>
+    <div class="cal-nav">
+      <button class="cal-nav-btn" onclick="changeMonth(-1)">‹</button>
+      <span class="cal-title" id="cal-title"></span>
+      <button class="cal-nav-btn" onclick="changeMonth(1)">›</button>
+    </div>
+    <div class="cal-grid" id="cal-grid"></div>
+    <div class="cal-legend">
+      <div class="cal-legend-item"><div class="cal-legend-box filled"></div> Gefüllt</div>
+      <div class="cal-legend-item"><div class="cal-legend-box empty"></div> Leer</div>
+      <div class="cal-legend-item"><div class="cal-legend-box today"></div> Heute</div>
     </div>
   </div>
 </div>
@@ -135,10 +190,28 @@
 <script>
   const KEY = new URLSearchParams(location.search).get('key') || ''
 
+  function toggleMode(id) {
+    const body   = document.getElementById(`${id}-body`)
+    const arrow  = document.getElementById(`${id}-arrow`)
+    const toggle = document.getElementById(`${id}-toggle`)
+    const open   = body.style.display !== 'none' && body.style.display !== ''
+    body.style.display  = open ? 'none' : 'flex'
+    arrow.classList.toggle('open', !open)
+    toggle.classList.toggle('active', !open)
+  }
+  let kalenderData = {}
+  let calYear, calMonth
+
+  // Init: aktueller Monat
+  const now = new Date()
+  calYear  = now.getFullYear()
+  calMonth = now.getMonth() // 0-based
+
   // Datum-Feld auf heute vorbelegen
-  const today = new Date()
-  document.getElementById('datum').value =
-    today.toISOString().slice(0,10)
+  document.getElementById('datum').value = now.toISOString().slice(0, 10)
+
+  const MONTHS_DE = ['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember']
+  const DAYS_DE   = ['Mo','Di','Mi','Do','Fr','Sa','So']
 
   function setStatus(msg, type) {
     const el = document.getElementById('status')
@@ -146,29 +219,91 @@
     el.className = `status ${type}`
   }
 
+  function renderCalendar() {
+    const title = document.getElementById('cal-title')
+    const grid  = document.getElementById('cal-grid')
+    title.textContent = `${MONTHS_DE[calMonth]} ${calYear}`
+
+    // Wochentag-Header
+    let html = DAYS_DE.map(d => `<div class="cal-dow">${d}</div>`).join('')
+
+    // Erster Tag des Monats (0=So … 6=Sa → umrechnen auf Mo=0)
+    const firstDate = new Date(calYear, calMonth, 1)
+    const firstDow  = (firstDate.getDay() + 6) % 7  // Mo=0
+    const daysInMonth = new Date(calYear, calMonth + 1, 0).getDate()
+
+    // Leer-Zellen am Anfang
+    for (let i = 0; i < firstDow; i++) {
+      html += `<div class="cal-day empty-slot"></div>`
+    }
+
+    const todayStr = `${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`
+    const todayYear = now.getFullYear()
+
+    for (let d = 1; d <= daysInMonth; d++) {
+      const mm   = String(calMonth + 1).padStart(2, '0')
+      const dd   = String(d).padStart(2, '0')
+      const key  = `${mm}-${dd}`
+      const isTodayCell = (calYear === todayYear && key === todayStr)
+      const hasFill = !!kalenderData[key]
+
+      const classes = [
+        'cal-day',
+        hasFill  ? 'has-entry' : 'no-entry',
+        isTodayCell ? 'is-today' : '',
+      ].filter(Boolean).join(' ')
+
+      const dot = hasFill ? '<div class="cal-dot"></div>' : ''
+      const action = hasFill
+        ? `onclick="editTag('${key}')"`
+        : `onclick="prefillDate('${calYear}-${mm}-${dd}')"`
+
+      html += `<div class="${classes}" ${action}>${d}${dot}</div>`
+    }
+
+    grid.innerHTML = html
+  }
+
+  function changeMonth(delta) {
+    calMonth += delta
+    if (calMonth > 11) { calMonth = 0;  calYear++ }
+    if (calMonth < 0)  { calMonth = 11; calYear-- }
+    renderCalendar()
+  }
+
+  function prefillDate(isoDate) {
+    document.getElementById('datum').value = isoDate
+    ;['w1','w2','w3','n1','n2','n3','l1','l2','l3'].forEach(id => document.getElementById(id).value = '')
+    document.getElementById('p1').value = 'Substantiv'
+    document.getElementById('p2').value = 'Substantiv'
+    document.getElementById('p3').value = 'Substantiv'
+    document.getElementById('form-title').textContent = 'Neuer Tageseintrag'
+    document.getElementById('save-btn').textContent   = 'Speichern & DWDS abrufen'
+    document.getElementById('status').className = 'status'
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
   async function saveTag() {
-    const datum   = document.getElementById('datum').value  // YYYY-MM-DD
-    const w1      = document.getElementById('w1').value.trim()
-    const w2      = document.getElementById('w2').value.trim()
-    const w3      = document.getElementById('w3').value.trim()
-    const p1      = document.getElementById('p1').value
-    const p2      = document.getElementById('p2').value
-    const p3      = document.getElementById('p3').value
-    const n1      = document.getElementById('n1').value.trim()
-    const n2      = document.getElementById('n2').value.trim()
-    const n3      = document.getElementById('n3').value.trim()
-    const l1      = document.getElementById('l1').value.trim()
-    const l2      = document.getElementById('l2').value.trim()
-    const l3      = document.getElementById('l3').value.trim()
+    const datum = document.getElementById('datum').value
+    const w1 = document.getElementById('w1').value.trim()
+    const w2 = document.getElementById('w2').value.trim()
+    const w3 = document.getElementById('w3').value.trim()
+    const p1 = document.getElementById('p1').value
+    const p2 = document.getElementById('p2').value
+    const p3 = document.getElementById('p3').value
+    const n1 = document.getElementById('n1').value.trim()
+    const n2 = document.getElementById('n2').value.trim()
+    const n3 = document.getElementById('n3').value.trim()
+    const l1 = document.getElementById('l1').value.trim()
+    const l2 = document.getElementById('l2').value.trim()
+    const l3 = document.getElementById('l3').value.trim()
 
     if (!datum || !w1 || !w2 || !w3) {
       return setStatus('Bitte Datum und alle drei Wörter ausfüllen.', 'error')
     }
 
-    // Datum zu MM-DD konvertieren
-    const mmdd = datum.slice(5)  // "YYYY-MM-DD" → "MM-DD"
-
-    const btn = document.getElementById('save-btn')
+    const mmdd = datum.slice(5)
+    const btn  = document.getElementById('save-btn')
     btn.disabled = true
     setStatus(`Rufe DWDS-Daten für „${w1}", „${w2}", „${w3}" ab …`, 'loading')
 
@@ -181,7 +316,7 @@
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`)
       setStatus(`Gespeichert: ${mmdd} → ${data.ids.join(', ')}`, 'ok')
-      loadKalender()
+      await loadKalender()
     } catch (err) {
       setStatus(`Fehler: ${err.message}`, 'error')
     } finally {
@@ -193,7 +328,6 @@
     const res  = await fetch(`/admin/tag/${datum}`, { headers: { 'x-admin-key': KEY } })
     const data = await res.json()
     if (!res.ok) return alert(`Fehler: ${data.error}`)
-    // Datum: "MM-DD" → YYYY-MM-DD (aktuelles Jahr)
     const year = new Date().getFullYear()
     document.getElementById('datum').value = `${year}-${datum}`
     document.getElementById('w1').value = data.woerter[0] || ''
@@ -208,49 +342,20 @@
     document.getElementById('l1').value = data.links[0] || ''
     document.getElementById('l2').value = data.links[1] || ''
     document.getElementById('l3').value = data.links[2] || ''
-    document.querySelector('.card h2').textContent = `Eintrag bearbeiten: ${datum}`
+    document.getElementById('form-title').textContent = `Eintrag bearbeiten: ${datum}`
     document.getElementById('save-btn').textContent = 'Aktualisieren & DWDS abrufen'
     window.scrollTo({ top: 0, behavior: 'smooth' })
     setStatus(`Eintrag ${datum} geladen – Änderungen vornehmen und speichern.`, 'loading')
   }
 
-  async function deleteTag(datum) {
-    if (!confirm(`Eintrag für ${datum} löschen?`)) return
-    await fetch(`/admin/tag/${datum}`, {
-      method: 'DELETE',
-      headers: { 'x-admin-key': KEY },
-    })
-    loadKalender()
-  }
-
   async function loadKalender() {
-    const el = document.getElementById('kalender')
     try {
       const res  = await fetch('/admin/kalender', { headers: { 'x-admin-key': KEY } })
-      const data = await res.json()
-      const entries = Object.entries(data).sort(([a], [b]) => a.localeCompare(b))
-      if (!entries.length) {
-        el.innerHTML = '<p class="empty">Noch keine Einträge.</p>'
-        return
-      }
-      el.innerHTML = entries.map(([datum, lemmata]) => {
-        const woerter = lemmata.map(l => l.lemma).join(' · ')
-        const notizen = lemmata.filter(l => l.notiz).map(l => `<em>${l.lemma}:</em> ${l.notiz}`).join(' &nbsp;·&nbsp; ')
-        return `
-        <div class="kalender-row">
-          <div class="kalender-info">
-            <span class="kalender-datum">${datum}</span>
-            <span class="kalender-ids">${woerter}</span>
-            ${notizen ? `<span class="kalender-notizen">${notizen}</span>` : ''}
-          </div>
-          <div class="kalender-actions">
-            <button class="del-btn" onclick="editTag('${datum}')">✎</button>
-            <button class="del-btn" onclick="deleteTag('${datum}')">✕</button>
-          </div>
-        </div>`
-      }).join('')
+      kalenderData = await res.json()
+      renderCalendar()
     } catch {
-      el.innerHTML = '<p class="empty">Fehler beim Laden.</p>'
+      kalenderData = {}
+      renderCalendar()
     }
   }
 
