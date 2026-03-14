@@ -3,11 +3,17 @@ import Home from './components/Home'
 import LemmaSelection from './components/LemmaSelection'
 import Quiz from './components/Quiz'
 import Results from './components/Results'
+import Zeitreise from './components/Zeitreise'
 import { getMedal, getDailyMedal } from './utils/gameLogic'
 
 function todayKey() {
   const d = new Date()
   return `sig_${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`
+}
+
+function todayZRKey() {
+  const d = new Date()
+  return `sig_zr_${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`
 }
 
 function todayDateStr() {
@@ -20,6 +26,11 @@ function getPlayedToday() {
   if (!raw) return []
   const val = JSON.parse(raw)
   return Array.isArray(val) ? val : []
+}
+
+function getZRToday() {
+  const raw = localStorage.getItem(todayZRKey())
+  return raw ? JSON.parse(raw) : null
 }
 
 function saveToHistory(date, medal, total, maxTotal) {
@@ -49,12 +60,16 @@ function savePlayedGame(lemmaId, lemmaName, total, medal, lemmataLength) {
 export default function App() {
   const [lemmata, setLemmata]   = useState(null)
   const [apiError, setApiError] = useState(null)
+  const [zeitreise, setZeitreise] = useState(null)   // DiaCollo data for today
 
   const [phase, setPhase]            = useState('home')
   const [selectedLemma, setSelected] = useState(null)
   const [currentRound, setRound]     = useState(0)
   const [roundScores, setScores]     = useState([])
-  const [bonusQuestion, setBonusQ]   = useState(null) // { correct, options, relName } | null
+  const [bonusQuestion, setBonusQ]   = useState(null)
+
+  // Force home re-render after Zeitreise finish (to refresh zrPlayed)
+  const [zrVersion, setZRVersion] = useState(0)
 
   useEffect(() => {
     fetch('/api/heute')
@@ -63,7 +78,14 @@ export default function App() {
       .catch(err => setApiError(err.message))
   }, [])
 
-  // Ergebnis in localStorage speichern
+  useEffect(() => {
+    fetch('/api/zeitreise')
+      .then(r => r.ok ? r.json() : null)
+      .then(data => { if (data) setZeitreise(data) })
+      .catch(() => {}) // Zeitreise ist optional
+  }, [])
+
+  // Ergebnis in localStorage speichern (Kollokationen)
   useEffect(() => {
     if (phase !== 'results' || !selectedLemma || roundScores.length === 0) return
     const total = roundScores.reduce((a, b) => a + b, 0)
@@ -83,7 +105,6 @@ export default function App() {
     setScores(prev => {
       const next = [...prev, score]
       if (next.length === 3) {
-        // Hauptrunden fertig → Bonus holen
         fetch(`/api/bonus?id=${selectedLemma?.id}`)
           .then(r => r.json())
           .then(bonus => {
@@ -112,9 +133,22 @@ export default function App() {
     setPhase('home')
   }, [])
 
+  // Zeitreise Ergebnis speichern
+  const handleZeitreiseFinish = useCallback((score) => {
+    if (!zeitreise) return
+    const medal = getMedal(score).label
+    localStorage.setItem(todayZRKey(), JSON.stringify({
+      lemma: zeitreise.lemma,
+      total: score,
+      medal,
+    }))
+    setZRVersion(v => v + 1) // trigger re-render so zrPlayed updates
+  }, [zeitreise])
+
   const playedGames = getPlayedToday()
   const playedIds   = playedGames.map(g => g.id)
   const allPlayed   = lemmata && lemmata.every(l => playedIds.includes(l.id))
+  const zrPlayed    = getZRToday() // re-reads localStorage on render (zrVersion dependency)
 
   return (
     <div className="app">
@@ -125,6 +159,9 @@ export default function App() {
           error={apiError}
           playedGames={playedGames}
           allPlayed={!!allPlayed}
+          zeitreise={zeitreise}
+          zrPlayed={zrPlayed}
+          onPlayZeitreise={() => setPhase('zeitreise')}
         />
       )}
       {phase === 'selection' && lemmata && (
@@ -150,6 +187,13 @@ export default function App() {
           roundScores={roundScores}
           onRestart={handleRestart}
           onToSelection={() => setPhase('selection')}
+        />
+      )}
+      {phase === 'zeitreise' && zeitreise && (
+        <Zeitreise
+          data={zeitreise}
+          onBack={() => setPhase('home')}
+          onFinish={handleZeitreiseFinish}
         />
       )}
     </div>
