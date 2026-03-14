@@ -1,0 +1,217 @@
+[
+  {
+    "id": "demokratie",
+    "lemma": "Demokratie",
+    "wortart": "Nomen",
+    "runden": {
+      "nomen": [
+        { "wort": "Volksherrschaft",  "log_dice": 11.7, "rang": 1 },
+        { "wort": "Parlamentarismus", "log_dice": 10.9, "rang": 2 },
+        { "wort": "Rechtsstaat",      "log_dice": 9.8,  "rang": 3 },
+        { "wort": "Verfassung",       "log_dice": 7.6,  "rang": 4 },
+        { "wort": "Meinungsfreiheit", "log_dice": 6.9,  "rang": 5 },
+        { "wort": "Pluralismus",      "log_dice": 6.1,  "rang": 6 },
+        { "wort": "Grundgesetz",      "log_dice": 5.7,  "rang": 7 },
+        { "wort": "Bürgerrechte",     "log_dice": 5.3,  "rang": 8 },
+        { "wort": "Gewaltenteilung",  "log_dice": 4.8,  "rang": 9 },
+        { "wort": "Pressefreiheit",   "log_dice": 4.5,  "rang": 10 }
+      ],
+      "verben": [
+        { "wort": "stärken",      "log_dice": 13.1, "rang": 1 },
+        { "wort": "gefährden",    "log_dice": 12.5, "rang": 2 },
+        { "wort": "fördern",      "log_dice": 11.2, "rang": 3 },
+        { "wort": "verteidigen",  "log_dice": 8.9,  "rang": 4 },
+        { "wort": "abschaffen",   "log_dice": 7.8,  "rang": 5 },
+        { "wort": "erschüttern",  "log_dice": 6.9,  "rang": 6 },
+        { "wort": "etablieren",   "log_dice": 6.2,  "rang": 7 },
+        { "wort": "bedrohen",     "log_dice": 5.8,  "rang": 8 },
+        { "wort": "aufbauen",     "log_dice": 5.3,  "rang": 9 },
+        { "wort": "entwickeln",   "log_dice": 4.9,  "rang": 10 }
+      ],
+      "adjektive": [
+        { "wort": "parlamentarisch", "log_dice": 12.4, "rang": 1 },
+        { "wort": "direkt",          "log_dice": 11.8, "rang": 2 },
+        { "wort": "liberal",         "log_dice": 10.9, "rang": 3 },
+        { "wort": "sozial",          "log_dice": 8.7,  "rang": 4 },
+        { "wort": "repräsentativ",   "log_dice": 7.2,  "rang": 5 },
+        { "wort": "westlich",        "log_dice": 6.8,  "rang": 6 },
+        { "wort": "freiheitlich",    "log_dice": 6.1,  "rang": 7 },
+        { "wort": "deliberativ",     "log_dice": 5.4,  "rang": 8 },
+        { "wort": "konstitutionell", "log_dice": 5.1,  "rang": 9 },
+        { "wort": "stabil",          "log_dice": 4.8,  "rang": 10 }
+      ]
+    }
+  },
+  {
+    "id": "sprache",
+    "lemma": "Sprache",
+    "wortart": "Nomen",
+    "runden": {
+      "nomen": [
+        { "wort": "Grammatik",    "log_dice": 12.8, "rang": 1 },
+        { "wort": "Wortschatz",   "log_dice": 12.1, "rang": 2 },
+        { "wort": "Dialekt",      "log_dice": 11.3, "rang": 3 },
+        { "wort": "Aussprache",   "log_dice": 9.0,  "rang": 4 },
+        { "wort": "Syntax",       "log_dice": 8.1,  "rang": 5 },
+        { "wort": "Idiom",        "log_dice": 7.2,  "rang": 6 },
+        { "wort": "Semantik",     "log_dice": 6.6,  "rang": 7 },
+        { "wort": "Satzbau",      "log_dice": 6.0,  "rang": 8 },
+        { "wort": "Vokabular",    "log_dice": 5.0,  "rang": 9 },
+        { "wort": "Phonetik",     "log_dice": 4.6,  "rang": 10 }
+      ],
+      "verben": [
+        { "wort": "sprechen",    "log_dice": 14.1, "rang": 1 },
+        { "wort": "lernen",      "log_dice": 13.5, "rang": 2 },
+        { "wort": "beherrschen", "log_dice": 12.2, "rang": 3 },
+        { "wort": "pflegen",     "log_dice": 9.4,  "rang": 4 },
+        { "wort": "erlernen",    "log_dice": 8.5,  "rang": 5 },
+        { "wort": "verwenden",   "log_dice": 7.6,  "rang": 6 },
+        { "wort": "entwickeln",  "log_dice": 6.3,  "rang": 7 },
+        { "wort": "fördern",     "log_dice": 5.7,  "rang": 8 },
+        { "wort": "verstehen",   "log_dice": 5.2,  "rang": 9 },
+        { "wort": "übersetzen",  "log_dice": 4.4,  "rang": 10 }
+      ],
+      "adjektive": [
+        { "wort": "gesprochen",   "log_dice": 13.2, "rang": 1 },
+        { "wort": "deutsch",      "log_dice": 12.6, "rang": 2 },
+        { "wort": "geschrieben",  "log_dice": 11.4, "rang": 3 },
+        { "wort": "mündlich",     "log_dice": 9.1,  "rang": 4 },
+        { "wort": "schriftlich",  "log_dice": 8.2,  "rang": 5 },
+        { "wort": "fremd",        "log_dice": 7.3,  "rang": 6 },
+        { "wort": "natürlich",    "log_dice": 6.7,  "rang": 7 },
+        { "wort": "formell",      "log_dice": 6.1,  "rang": 8 },
+        { "wort": "poetisch",     "log_dice": 5.2,  "rang": 9 },
+        { "wort": "bildhaft",     "log_dice": 4.8,  "rang": 10 }
+      ]
+    }
+  },
+  {
+    "id": "zeit",
+    "lemma": "Zeit",
+    "wortart": "Nomen",
+    "runden": {
+      "nomen": [
+        { "wort": "Moment",      "log_dice": 12.3, "rang": 1 },
+        { "wort": "Epoche",      "log_dice": 11.6, "rang": 2 },
+        { "wort": "Periode",     "log_dice": 10.8, "rang": 3 },
+        { "wort": "Phase",       "log_dice": 8.5,  "rang": 4 },
+        { "wort": "Zeitraum",    "log_dice": 7.6,  "rang": 5 },
+        { "wort": "Abschnitt",   "log_dice": 6.7,  "rang": 6 },
+        { "wort": "Ära",         "log_dice": 6.0,  "rang": 7 },
+        { "wort": "Augenblick",  "log_dice": 5.4,  "rang": 8 },
+        { "wort": "Zeitspanne",  "log_dice": 4.9,  "rang": 9 },
+        { "wort": "Zeitpunkt",   "log_dice": 4.1,  "rang": 10 }
+      ],
+      "verben": [
+        { "wort": "verbringen",   "log_dice": 14.5, "rang": 1 },
+        { "wort": "haben",        "log_dice": 13.8, "rang": 2 },
+        { "wort": "brauchen",     "log_dice": 12.9, "rang": 3 },
+        { "wort": "verlieren",    "log_dice": 10.2, "rang": 4 },
+        { "wort": "sparen",       "log_dice": 9.3,  "rang": 5 },
+        { "wort": "nutzen",       "log_dice": 8.4,  "rang": 6 },
+        { "wort": "investieren",  "log_dice": 7.7,  "rang": 7 },
+        { "wort": "verschwenden", "log_dice": 7.1,  "rang": 8 },
+        { "wort": "gewinnen",     "log_dice": 6.5,  "rang": 9 },
+        { "wort": "stehlen",      "log_dice": 5.4,  "rang": 10 }
+      ],
+      "adjektive": [
+        { "wort": "frei",         "log_dice": 13.8, "rang": 1 },
+        { "wort": "lang",         "log_dice": 13.1, "rang": 2 },
+        { "wort": "kurz",         "log_dice": 12.4, "rang": 3 },
+        { "wort": "begrenzt",     "log_dice": 9.8,  "rang": 4 },
+        { "wort": "kostbar",      "log_dice": 8.9,  "rang": 5 },
+        { "wort": "verloren",     "log_dice": 7.8,  "rang": 6 },
+        { "wort": "ausreichend",  "log_dice": 7.1,  "rang": 7 },
+        { "wort": "wertvoll",     "log_dice": 6.5,  "rang": 8 },
+        { "wort": "vergangen",    "log_dice": 5.9,  "rang": 9 },
+        { "wort": "knapp",        "log_dice": 5.0,  "rang": 10 }
+      ]
+    }
+  },
+  {
+    "id": "arbeit",
+    "lemma": "Arbeit",
+    "wortart": "Nomen",
+    "runden": {
+      "nomen": [
+        { "wort": "Lohn",          "log_dice": 13.0, "rang": 1 },
+        { "wort": "Stelle",        "log_dice": 12.3, "rang": 2 },
+        { "wort": "Beruf",         "log_dice": 11.5, "rang": 3 },
+        { "wort": "Gehalt",        "log_dice": 9.2,  "rang": 4 },
+        { "wort": "Aufgabe",       "log_dice": 8.3,  "rang": 5 },
+        { "wort": "Karriere",      "log_dice": 7.4,  "rang": 6 },
+        { "wort": "Beschäftigung", "log_dice": 6.7,  "rang": 7 },
+        { "wort": "Einkommen",     "log_dice": 6.1,  "rang": 8 },
+        { "wort": "Tätigkeit",     "log_dice": 5.6,  "rang": 9 },
+        { "wort": "Arbeitsmarkt",  "log_dice": 4.7,  "rang": 10 }
+      ],
+      "verben": [
+        { "wort": "suchen",      "log_dice": 14.2, "rang": 1 },
+        { "wort": "finden",      "log_dice": 13.6, "rang": 2 },
+        { "wort": "verlieren",   "log_dice": 12.8, "rang": 3 },
+        { "wort": "aufnehmen",   "log_dice": 10.1, "rang": 4 },
+        { "wort": "kündigen",    "log_dice": 9.2,  "rang": 5 },
+        { "wort": "leisten",     "log_dice": 8.3,  "rang": 6 },
+        { "wort": "verrichten",  "log_dice": 7.6,  "rang": 7 },
+        { "wort": "erledigen",   "log_dice": 7.0,  "rang": 8 },
+        { "wort": "übernehmen",  "log_dice": 5.8,  "rang": 9 },
+        { "wort": "niederlegen", "log_dice": 4.9,  "rang": 10 }
+      ],
+      "adjektive": [
+        { "wort": "wissenschaftlich", "log_dice": 13.5, "rang": 1 },
+        { "wort": "körperlich",       "log_dice": 12.9, "rang": 2 },
+        { "wort": "sozial",           "log_dice": 12.1, "rang": 3 },
+        { "wort": "ehrenamtlich",     "log_dice": 9.7,  "rang": 4 },
+        { "wort": "geistig",          "log_dice": 8.8,  "rang": 5 },
+        { "wort": "kreativ",          "log_dice": 7.9,  "rang": 6 },
+        { "wort": "handwerklich",     "log_dice": 7.2,  "rang": 7 },
+        { "wort": "freiwillig",       "log_dice": 6.6,  "rang": 8 },
+        { "wort": "intellektuell",    "log_dice": 6.0,  "rang": 9 },
+        { "wort": "bezahlt",          "log_dice": 5.0,  "rang": 10 }
+      ]
+    }
+  },
+  {
+    "id": "wasser",
+    "lemma": "Wasser",
+    "wortart": "Nomen",
+    "runden": {
+      "nomen": [
+        { "wort": "Quelle",     "log_dice": 13.1, "rang": 1 },
+        { "wort": "Fluss",      "log_dice": 12.4, "rang": 2 },
+        { "wort": "See",        "log_dice": 11.6, "rang": 3 },
+        { "wort": "Bach",       "log_dice": 9.3,  "rang": 4 },
+        { "wort": "Meer",       "log_dice": 8.4,  "rang": 5 },
+        { "wort": "Teich",      "log_dice": 7.5,  "rang": 6 },
+        { "wort": "Brunnen",    "log_dice": 6.8,  "rang": 7 },
+        { "wort": "Reservoir",  "log_dice": 6.2,  "rang": 8 },
+        { "wort": "Strom",      "log_dice": 5.7,  "rang": 9 },
+        { "wort": "Kanal",      "log_dice": 4.8,  "rang": 10 }
+      ],
+      "verben": [
+        { "wort": "trinken",      "log_dice": 14.3, "rang": 1 },
+        { "wort": "kochen",       "log_dice": 13.6, "rang": 2 },
+        { "wort": "sparen",       "log_dice": 12.8, "rang": 3 },
+        { "wort": "filtern",      "log_dice": 10.1, "rang": 4 },
+        { "wort": "erhitzen",     "log_dice": 9.2,  "rang": 5 },
+        { "wort": "abkochen",     "log_dice": 8.3,  "rang": 6 },
+        { "wort": "aufbereiten",  "log_dice": 7.6,  "rang": 7 },
+        { "wort": "verbrauchen",  "log_dice": 7.0,  "rang": 8 },
+        { "wort": "verschmutzen", "log_dice": 6.4,  "rang": 9 },
+        { "wort": "messen",       "log_dice": 5.0,  "rang": 10 }
+      ],
+      "adjektive": [
+        { "wort": "fließend",    "log_dice": 13.6, "rang": 1 },
+        { "wort": "kalt",        "log_dice": 12.9, "rang": 2 },
+        { "wort": "sauber",      "log_dice": 12.2, "rang": 3 },
+        { "wort": "warm",        "log_dice": 9.5,  "rang": 4 },
+        { "wort": "tief",        "log_dice": 8.6,  "rang": 5 },
+        { "wort": "stehend",     "log_dice": 7.7,  "rang": 6 },
+        { "wort": "trinkbar",    "log_dice": 7.0,  "rang": 7 },
+        { "wort": "frisch",      "log_dice": 6.4,  "rang": 8 },
+        { "wort": "verschmutzt", "log_dice": 5.8,  "rang": 9 },
+        { "wort": "salzig",      "log_dice": 4.9,  "rang": 10 }
+      ]
+    }
+  }
+]

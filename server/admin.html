@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Signifikation – Admin</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0 }
+    :root {
+      --bg:      #faf9f7;
+      --surface: #ffffff;
+      --border:  #e5e2de;
+      --primary: #9b1c1c;
+      --text:    #1c1917;
+      --muted:   #78716c;
+      --radius:  10px;
+    }
+    body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; padding: 40px 16px; }
+    .container { max-width: 520px; margin: 0 auto; display: flex; flex-direction: column; gap: 24px; }
+    h1 { font-family: 'Playfair Display', serif; font-size: 2rem; color: var(--primary); }
+    .subtitle { color: var(--muted); font-size: 0.85rem; margin-top: 4px; }
+
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; display: flex; flex-direction: column; gap: 16px; }
+    .card h2 { font-size: 1rem; font-weight: 600; }
+
+    label { font-size: 0.85rem; font-weight: 500; color: var(--muted); display: block; margin-bottom: 5px; }
+    input[type="date"], input[type="text"] {
+      width: 100%; padding: 10px 12px; border: 1.5px solid var(--border);
+      border-radius: 8px; font-family: inherit; font-size: 0.95rem;
+      color: var(--text); background: var(--bg); outline: none;
+      transition: border-color 0.15s;
+    }
+    input:focus { border-color: var(--primary); }
+
+    .woerter { display: flex; flex-direction: column; gap: 10px; }
+    .wort-row { display: flex; gap: 8px; align-items: center; }
+    .wort-badge { font-size: 0.75rem; color: var(--muted); width: 60px; flex-shrink: 0; }
+    select {
+      padding: 10px 10px; border: 1.5px solid var(--border); border-radius: 8px;
+      font-family: inherit; font-size: 0.88rem; color: var(--muted);
+      background: var(--bg); outline: none; cursor: pointer;
+    }
+    select:focus { border-color: var(--primary); }
+    .notiz-input { margin-left: 68px; font-size: 0.82rem; color: var(--muted); border-color: var(--border); }
+    .notiz-input::placeholder { font-style: italic; }
+
+    button {
+      font-family: inherit; cursor: pointer; border: none;
+      background: var(--primary); color: #fff;
+      padding: 12px 24px; border-radius: 8px; font-size: 0.95rem; font-weight: 600;
+      transition: opacity 0.15s;
+    }
+    button:hover { opacity: 0.85; }
+    button:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    .status { font-size: 0.88rem; padding: 10px 14px; border-radius: 8px; display: none; }
+    .status.ok    { background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; display: block; }
+    .status.error { background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; display: block; }
+    .status.loading { background: #faf9f7; color: var(--muted); border: 1px solid var(--border); display: block; }
+
+    .kalender { display: flex; flex-direction: column; gap: 6px; }
+    .kalender-row {
+      display: flex; justify-content: space-between; align-items: flex-start;
+      padding: 8px 12px; background: var(--bg); border-radius: 6px;
+      font-size: 0.88rem; gap: 8px;
+    }
+    .kalender-info { display: flex; flex-direction: column; gap: 2px; flex: 1; }
+    .kalender-actions { display: flex; gap: 4px; flex-shrink: 0; padding-top: 2px; }
+    .kalender-datum { font-weight: 600; color: var(--primary); }
+    .kalender-ids   { color: var(--muted); }
+    .kalender-notizen { font-size: 0.78rem; color: var(--muted); font-style: italic; }
+    .del-btn {
+      background: none; color: var(--muted); padding: 2px 8px;
+      border: 1px solid var(--border); border-radius: 4px; font-size: 0.8rem;
+    }
+    .del-btn:hover { color: var(--primary); border-color: var(--primary); opacity: 1; }
+    .empty { color: var(--muted); font-size: 0.88rem; font-style: italic; }
+  </style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <h1>Signifikation</h1>
+    <p class="subtitle">Admin · Tageseinträge verwalten</p>
+  </header>
+
+  <!-- Neuer Eintrag -->
+  <div class="card">
+    <h2>Neuer Tageseintrag</h2>
+    <div>
+      <label for="datum">Datum</label>
+      <input type="date" id="datum">
+    </div>
+    <div>
+      <label>Lemmata (3 Wörter) + optionale Notiz + optionaler Link</label>
+      <div class="woerter">
+        <div class="wort-row">
+          <span class="wort-badge">Wort 1</span>
+          <input type="text" id="w1" placeholder="z.B. Frühling">
+          <select id="p1"><option value="Substantiv">Substantiv</option><option value="Verb">Verb</option><option value="Adjektiv">Adjektiv</option></select>
+        </div>
+        <input type="text" id="n1" class="notiz-input" placeholder="Notiz (optional)">
+        <input type="url"  id="l1" class="notiz-input" placeholder="Link (optional), z.B. https://de.wikipedia.org/…">
+        <div class="wort-row">
+          <span class="wort-badge">Wort 2</span>
+          <input type="text" id="w2" placeholder="z.B. Musik">
+          <select id="p2"><option value="Substantiv">Substantiv</option><option value="Verb">Verb</option><option value="Adjektiv">Adjektiv</option></select>
+        </div>
+        <input type="text" id="n2" class="notiz-input" placeholder="Notiz (optional)">
+        <input type="url"  id="l2" class="notiz-input" placeholder="Link (optional)">
+        <div class="wort-row">
+          <span class="wort-badge">Wort 3</span>
+          <input type="text" id="w3" placeholder="z.B. Liebe">
+          <select id="p3"><option value="Substantiv">Substantiv</option><option value="Verb">Verb</option><option value="Adjektiv">Adjektiv</option></select>
+        </div>
+        <input type="text" id="n3" class="notiz-input" placeholder="Notiz (optional)">
+        <input type="url"  id="l3" class="notiz-input" placeholder="Link (optional)">
+      </div>
+    </div>
+    <div id="status" class="status"></div>
+    <button id="save-btn" onclick="saveTag()">Speichern &amp; DWDS abrufen</button>
+  </div>
+
+  <!-- Kalender-Übersicht -->
+  <div class="card">
+    <h2>Gespeicherte Einträge</h2>
+    <div id="kalender" class="kalender">
+      <p class="empty">Wird geladen …</p>
+    </div>
+  </div>
+</div>
+
+<script>
+  const KEY = new URLSearchParams(location.search).get('key') || ''
+
+  // Datum-Feld auf heute vorbelegen
+  const today = new Date()
+  document.getElementById('datum').value =
+    today.toISOString().slice(0,10)
+
+  function setStatus(msg, type) {
+    const el = document.getElementById('status')
+    el.textContent = msg
+    el.className = `status ${type}`
+  }
+
+  async function saveTag() {
+    const datum   = document.getElementById('datum').value  // YYYY-MM-DD
+    const w1      = document.getElementById('w1').value.trim()
+    const w2      = document.getElementById('w2').value.trim()
+    const w3      = document.getElementById('w3').value.trim()
+    const p1      = document.getElementById('p1').value
+    const p2      = document.getElementById('p2').value
+    const p3      = document.getElementById('p3').value
+    const n1      = document.getElementById('n1').value.trim()
+    const n2      = document.getElementById('n2').value.trim()
+    const n3      = document.getElementById('n3').value.trim()
+    const l1      = document.getElementById('l1').value.trim()
+    const l2      = document.getElementById('l2').value.trim()
+    const l3      = document.getElementById('l3').value.trim()
+
+    if (!datum || !w1 || !w2 || !w3) {
+      return setStatus('Bitte Datum und alle drei Wörter ausfüllen.', 'error')
+    }
+
+    // Datum zu MM-DD konvertieren
+    const mmdd = datum.slice(5)  // "YYYY-MM-DD" → "MM-DD"
+
+    const btn = document.getElementById('save-btn')
+    btn.disabled = true
+    setStatus(`Rufe DWDS-Daten für „${w1}", „${w2}", „${w3}" ab …`, 'loading')
+
+    try {
+      const res = await fetch('/admin/tag', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-admin-key': KEY },
+        body: JSON.stringify({ datum: mmdd, woerter: [w1, w2, w3], positionen: [p1, p2, p3], notizen: [n1, n2, n3], links: [l1, l2, l3] }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`)
+      setStatus(`Gespeichert: ${mmdd} → ${data.ids.join(', ')}`, 'ok')
+      loadKalender()
+    } catch (err) {
+      setStatus(`Fehler: ${err.message}`, 'error')
+    } finally {
+      btn.disabled = false
+    }
+  }
+
+  async function editTag(datum) {
+    const res  = await fetch(`/admin/tag/${datum}`, { headers: { 'x-admin-key': KEY } })
+    const data = await res.json()
+    if (!res.ok) return alert(`Fehler: ${data.error}`)
+    // Datum: "MM-DD" → YYYY-MM-DD (aktuelles Jahr)
+    const year = new Date().getFullYear()
+    document.getElementById('datum').value = `${year}-${datum}`
+    document.getElementById('w1').value = data.woerter[0] || ''
+    document.getElementById('w2').value = data.woerter[1] || ''
+    document.getElementById('w3').value = data.woerter[2] || ''
+    document.getElementById('p1').value = data.positionen?.[0] || 'Substantiv'
+    document.getElementById('p2').value = data.positionen?.[1] || 'Substantiv'
+    document.getElementById('p3').value = data.positionen?.[2] || 'Substantiv'
+    document.getElementById('n1').value = data.notizen[0] || ''
+    document.getElementById('n2').value = data.notizen[1] || ''
+    document.getElementById('n3').value = data.notizen[2] || ''
+    document.getElementById('l1').value = data.links[0] || ''
+    document.getElementById('l2').value = data.links[1] || ''
+    document.getElementById('l3').value = data.links[2] || ''
+    document.querySelector('.card h2').textContent = `Eintrag bearbeiten: ${datum}`
+    document.getElementById('save-btn').textContent = 'Aktualisieren & DWDS abrufen'
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+    setStatus(`Eintrag ${datum} geladen – Änderungen vornehmen und speichern.`, 'loading')
+  }
+
+  async function deleteTag(datum) {
+    if (!confirm(`Eintrag für ${datum} löschen?`)) return
+    await fetch(`/admin/tag/${datum}`, {
+      method: 'DELETE',
+      headers: { 'x-admin-key': KEY },
+    })
+    loadKalender()
+  }
+
+  async function loadKalender() {
+    const el = document.getElementById('kalender')
+    try {
+      const res  = await fetch('/admin/kalender', { headers: { 'x-admin-key': KEY } })
+      const data = await res.json()
+      const entries = Object.entries(data).sort(([a], [b]) => a.localeCompare(b))
+      if (!entries.length) {
+        el.innerHTML = '<p class="empty">Noch keine Einträge.</p>'
+        return
+      }
+      el.innerHTML = entries.map(([datum, lemmata]) => {
+        const woerter = lemmata.map(l => l.lemma).join(' · ')
+        const notizen = lemmata.filter(l => l.notiz).map(l => `<em>${l.lemma}:</em> ${l.notiz}`).join(' &nbsp;·&nbsp; ')
+        return `
+        <div class="kalender-row">
+          <div class="kalender-info">
+            <span class="kalender-datum">${datum}</span>
+            <span class="kalender-ids">${woerter}</span>
+            ${notizen ? `<span class="kalender-notizen">${notizen}</span>` : ''}
+          </div>
+          <div class="kalender-actions">
+            <button class="del-btn" onclick="editTag('${datum}')">✎</button>
+            <button class="del-btn" onclick="deleteTag('${datum}')">✕</button>
+          </div>
+        </div>`
+      }).join('')
+    } catch {
+      el.innerHTML = '<p class="empty">Fehler beim Laden.</p>'
+    }
+  }
+
+  loadKalender()
+</script>
+</body>
+</html>

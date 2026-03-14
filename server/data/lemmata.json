@@ -1,0 +1,1164 @@
+[
+  {
+    "id": "schnitzel",
+    "lemma": "Schnitzel",
+    "pos": "Substantiv",
+    "wortart": "Substantiv",
+    "rundenInfo": [
+      {
+        "key": "nomen",
+        "label": "Nomen",
+        "relCode": "KON",
+        "desc": "ist koordiniert mit"
+      },
+      {
+        "key": "verben",
+        "label": "Verben",
+        "relCode": "~OBJ",
+        "desc": "ist Objekt von"
+      },
+      {
+        "key": "adjektive",
+        "label": "Adjektive",
+        "relCode": "ATTR",
+        "desc": "hat Adjektivattribut"
+      }
+    ],
+    "runden": {
+      "nomen": [
+        {
+          "wort": "Pommes",
+          "log_dice": 6.5,
+          "rang": 1
+        },
+        {
+          "wort": "Steak",
+          "log_dice": 6.4,
+          "rang": 2
+        },
+        {
+          "wort": "Kotelett",
+          "log_dice": 6.2,
+          "rang": 3
+        },
+        {
+          "wort": "Wurst",
+          "log_dice": 4.7,
+          "rang": 4
+        },
+        {
+          "wort": "Kaiserschmarrn",
+          "log_dice": 6.1,
+          "rang": 5
+        },
+        {
+          "wort": "Gulasch",
+          "log_dice": 5,
+          "rang": 6
+        },
+        {
+          "wort": "Bratkartoffel",
+          "log_dice": 5.4,
+          "rang": 7
+        },
+        {
+          "wort": "Schweinebraten",
+          "log_dice": 5.1,
+          "rang": 8
+        },
+        {
+          "wort": "Apfelstrudel",
+          "log_dice": 4.8,
+          "rang": 9
+        },
+        {
+          "wort": "Burger",
+          "log_dice": 4.8,
+          "rang": 10
+        }
+      ],
+      "verben": [
+        {
+          "wort": "braten",
+          "log_dice": 7.4,
+          "rang": 1
+        },
+        {
+          "wort": "essen",
+          "log_dice": 6.2,
+          "rang": 2
+        },
+        {
+          "wort": "panieren",
+          "log_dice": 6.2,
+          "rang": 3
+        },
+        {
+          "wort": "kloppen",
+          "log_dice": 3.6,
+          "rang": 4
+        },
+        {
+          "wort": "zubereiten",
+          "log_dice": 4.6,
+          "rang": 5
+        },
+        {
+          "wort": "bestellen",
+          "log_dice": 4.7,
+          "rang": 6
+        },
+        {
+          "wort": "verspeisen",
+          "log_dice": 4.8,
+          "rang": 7
+        },
+        {
+          "wort": "schneiden",
+          "log_dice": 3.4,
+          "rang": 8
+        },
+        {
+          "wort": "ordern",
+          "log_dice": 2.9,
+          "rang": 9
+        },
+        {
+          "wort": "klopfen",
+          "log_dice": 4.3,
+          "rang": 10
+        }
+      ],
+      "adjektive": [
+        {
+          "wort": "wiener",
+          "log_dice": 9,
+          "rang": 1
+        },
+        {
+          "wort": "paniert",
+          "log_dice": 8.8,
+          "rang": 2
+        },
+        {
+          "wort": "vegan",
+          "log_dice": 6.3,
+          "rang": 3
+        },
+        {
+          "wort": "knusprig",
+          "log_dice": 4.4,
+          "rang": 4
+        },
+        {
+          "wort": "geklopft",
+          "log_dice": 3.8,
+          "rang": 5
+        },
+        {
+          "wort": "tellergroß",
+          "log_dice": 4.9,
+          "rang": 6
+        },
+        {
+          "wort": "fleischlos",
+          "log_dice": 4.2,
+          "rang": 7
+        },
+        {
+          "wort": "lecker",
+          "log_dice": 4.4,
+          "rang": 8
+        },
+        {
+          "wort": "roh",
+          "log_dice": 3.3,
+          "rang": 9
+        },
+        {
+          "wort": "saftig",
+          "log_dice": 4.2,
+          "rang": 10
+        }
+      ]
+    },
+    "notiz": "Seit 2002 gibt es den SchniBlo-Tag. Ins Leben gerufen durch die YouTuber Y-TITTY als Gegenentwurf des Valentinstags 4 Wochen zuvor.  Die Idee ist, dass der Partner/die Partnerin ein Schnitzel (oder Steak) zubereitet und einen Blowjob schenkt.",
+    "link": "https://www.youtube.com/watch?v=JbTFrQGEFo0"
+  },
+  {
+    "id": "rechnen",
+    "lemma": "rechnen",
+    "pos": "Verb",
+    "wortart": "Verb",
+    "rundenInfo": [
+      {
+        "key": "objekte",
+        "label": "Objekte",
+        "relCode": "OBJ",
+        "desc": "hat als Objekt"
+      },
+      {
+        "key": "verben",
+        "label": "Verben",
+        "relCode": "KON",
+        "desc": "ist koordiniert mit"
+      },
+      {
+        "key": "adverbien",
+        "label": "Adverbien",
+        "relCode": "ADV",
+        "desc": "wird begleitet durch"
+      }
+    ],
+    "runden": {
+      "objekte": [
+        {
+          "wort": "Kosten",
+          "log_dice": 1.6,
+          "rang": 1
+        },
+        {
+          "wort": "Zahl",
+          "log_dice": 1.2,
+          "rang": 2
+        },
+        {
+          "wort": "Euro",
+          "log_dice": 1.1,
+          "rang": 3
+        },
+        {
+          "wort": "Stunde",
+          "log_dice": 1.1,
+          "rang": 4
+        },
+        {
+          "wort": "Haushalt",
+          "log_dice": 0,
+          "rang": 5
+        },
+        {
+          "wort": "Mark",
+          "log_dice": 1,
+          "rang": 6
+        },
+        {
+          "wort": "Einnahme",
+          "log_dice": 0.2,
+          "rang": 7
+        },
+        {
+          "wort": "Aufgabe",
+          "log_dice": 0.5,
+          "rang": 8
+        },
+        {
+          "wort": "Chance",
+          "log_dice": 0.2,
+          "rang": 9
+        },
+        {
+          "wort": "Moment",
+          "log_dice": 0.7,
+          "rang": 10
+        }
+      ],
+      "verben": [
+        {
+          "wort": "erwarten",
+          "log_dice": 3.2,
+          "rang": 1
+        },
+        {
+          "wort": "hoffen",
+          "log_dice": 3.2,
+          "rang": 2
+        },
+        {
+          "wort": "rechnen",
+          "log_dice": 2.6,
+          "rang": 3
+        },
+        {
+          "wort": "lesen",
+          "log_dice": 1.3,
+          "rang": 4
+        },
+        {
+          "wort": "verweisen",
+          "log_dice": 1.1,
+          "rang": 5
+        },
+        {
+          "wort": "einstellen",
+          "log_dice": 1.7,
+          "rang": 6
+        },
+        {
+          "wort": "empfehlen",
+          "log_dice": 1.5,
+          "rang": 7
+        },
+        {
+          "wort": "glauben",
+          "log_dice": 1.4,
+          "rang": 8
+        },
+        {
+          "wort": "planen",
+          "log_dice": 1.5,
+          "rang": 9
+        },
+        {
+          "wort": "halten",
+          "log_dice": 1.2,
+          "rang": 10
+        }
+      ],
+      "adverbien": [
+        {
+          "wort": "fest",
+          "log_dice": 7.4,
+          "rang": 1
+        },
+        {
+          "wort": "frühestens",
+          "log_dice": 6.8,
+          "rang": 2
+        },
+        {
+          "wort": "allerdings",
+          "log_dice": 6.7,
+          "rang": 3
+        },
+        {
+          "wort": "womit",
+          "log_dice": 6,
+          "rang": 4
+        },
+        {
+          "wort": "nun",
+          "log_dice": 6.2,
+          "rang": 5
+        },
+        {
+          "wort": "jedoch",
+          "log_dice": 6.3,
+          "rang": 6
+        },
+        {
+          "wort": "mittelfristig",
+          "log_dice": 5.8,
+          "rang": 7
+        },
+        {
+          "wort": "bald",
+          "log_dice": 5.9,
+          "rang": 8
+        },
+        {
+          "wort": "wohl",
+          "log_dice": 6.3,
+          "rang": 9
+        },
+        {
+          "wort": "zwar",
+          "log_dice": 5.9,
+          "rang": 10
+        }
+      ]
+    },
+    "notiz": "ganz schön schwer",
+    "link": ""
+  },
+  {
+    "id": "pi",
+    "lemma": "PI",
+    "wortart": "Nomen",
+    "runden": {
+      "nomen": [],
+      "verben": [],
+      "adjektive": []
+    }
+  },
+  {
+    "id": "mathematik",
+    "lemma": "Mathematik",
+    "wortart": "Nomen",
+    "runden": {
+      "nomen": [
+        {
+          "wort": "Naturwissenschaft",
+          "log_dice": 9.3,
+          "rang": 1
+        },
+        {
+          "wort": "Physik",
+          "log_dice": 9,
+          "rang": 2
+        },
+        {
+          "wort": "Informatik",
+          "log_dice": 7.8,
+          "rang": 3
+        },
+        {
+          "wort": "Ingenieurwissenschaft",
+          "log_dice": 5,
+          "rang": 4
+        },
+        {
+          "wort": "Philosophie",
+          "log_dice": 5.4,
+          "rang": 5
+        },
+        {
+          "wort": "Technik",
+          "log_dice": 6.8,
+          "rang": 6
+        },
+        {
+          "wort": "Wirtschaftswissenschaft",
+          "log_dice": 4.4,
+          "rang": 7
+        },
+        {
+          "wort": "Fremdsprache",
+          "log_dice": 5.9,
+          "rang": 8
+        },
+        {
+          "wort": "Astronomie",
+          "log_dice": 6.2,
+          "rang": 9
+        },
+        {
+          "wort": "Lesen",
+          "log_dice": 4.7,
+          "rang": 10
+        }
+      ],
+      "verben": [
+        {
+          "wort": "studieren",
+          "log_dice": 7.6,
+          "rang": 1
+        },
+        {
+          "wort": "unterrichten",
+          "log_dice": 6.3,
+          "rang": 2
+        },
+        {
+          "wort": "lehren",
+          "log_dice": 5,
+          "rang": 3
+        },
+        {
+          "wort": "begreifen",
+          "log_dice": 2.1,
+          "rang": 4
+        },
+        {
+          "wort": "anwenden",
+          "log_dice": 2.8,
+          "rang": 5
+        },
+        {
+          "wort": "lernen",
+          "log_dice": 2.9,
+          "rang": 6
+        },
+        {
+          "wort": "belegen",
+          "log_dice": 1.9,
+          "rang": 7
+        },
+        {
+          "wort": "pauken",
+          "log_dice": 3.8,
+          "rang": 8
+        },
+        {
+          "wort": "beherrschen",
+          "log_dice": 3.1,
+          "rang": 9
+        },
+        {
+          "wort": "revolutionieren",
+          "log_dice": 1.8,
+          "rang": 10
+        }
+      ],
+      "adjektive": [
+        {
+          "wort": "angewandt",
+          "log_dice": 7.7,
+          "rang": 1
+        },
+        {
+          "wort": "diskret",
+          "log_dice": 5.5,
+          "rang": 2
+        },
+        {
+          "wort": "numerisch",
+          "log_dice": 5.3,
+          "rang": 3
+        },
+        {
+          "wort": "anwendungsorientiert",
+          "log_dice": 2.6,
+          "rang": 4
+        },
+        {
+          "wort": "hoeher",
+          "log_dice": 2.5,
+          "rang": 5
+        },
+        {
+          "wort": "modern",
+          "log_dice": 2.9,
+          "rang": 6
+        },
+        {
+          "wort": "kompliziert",
+          "log_dice": 2.3,
+          "rang": 7
+        },
+        {
+          "wort": "fraktal",
+          "log_dice": 3.7,
+          "rang": 8
+        },
+        {
+          "wort": "elementar",
+          "log_dice": 2.6,
+          "rang": 9
+        },
+        {
+          "wort": "pur",
+          "log_dice": 2.9,
+          "rang": 10
+        }
+      ]
+    },
+    "notiz": "Heute ist der Internationale Tag der Mathematik.",
+    "link": "https://zfm.education/tdm/"
+  },
+  {
+    "id": "kreiszahl",
+    "lemma": "Kreiszahl",
+    "wortart": "Nomen",
+    "runden": {
+      "nomen": [],
+      "verben": [
+        {
+          "wort": "berechnen",
+          "log_dice": 0.9,
+          "rang": 1
+        }
+      ],
+      "adjektive": [
+        {
+          "wort": "unendlich",
+          "log_dice": 1.8,
+          "rang": 1
+        }
+      ]
+    },
+    "notiz": "3/14 ist die Schreibweise des heutigen Datums in den USA.",
+    "link": "https://www.mypiday.com/"
+  },
+  {
+    "id": "ungarn",
+    "lemma": "Ungarn",
+    "wortart": "Nomen",
+    "runden": {
+      "nomen": [],
+      "verben": [],
+      "adjektive": [
+        {
+          "wort": "gebürtig",
+          "log_dice": 2.1,
+          "rang": 1
+        }
+      ]
+    },
+    "notiz": "Nationalfeiertag (Beginn der Revolution)"
+  },
+  {
+    "id": "verschwoerung",
+    "lemma": "Verschwörung",
+    "wortart": "Nomen",
+    "runden": {
+      "nomen": [
+        {
+          "wort": "Falschaussage",
+          "log_dice": 4.8,
+          "rang": 1
+        },
+        {
+          "wort": "Selbstermächtigung",
+          "log_dice": 4.4,
+          "rang": 2
+        },
+        {
+          "wort": "Verschwörung",
+          "log_dice": 4.3,
+          "rang": 3
+        },
+        {
+          "wort": "Komplott",
+          "log_dice": 4.2,
+          "rang": 4
+        },
+        {
+          "wort": "Intrige",
+          "log_dice": 4,
+          "rang": 5
+        },
+        {
+          "wort": "Anstiftung",
+          "log_dice": 4.1,
+          "rang": 6
+        },
+        {
+          "wort": "Gegenverschwörung",
+          "log_dice": 3.1,
+          "rang": 7
+        },
+        {
+          "wort": "Falschangabe",
+          "log_dice": 3,
+          "rang": 8
+        },
+        {
+          "wort": "Sabotage",
+          "log_dice": 2.8,
+          "rang": 9
+        },
+        {
+          "wort": "Meineid",
+          "log_dice": 3.3,
+          "rang": 10
+        }
+      ],
+      "verben": [
+        {
+          "wort": "wittern",
+          "log_dice": 9.1,
+          "rang": 1
+        },
+        {
+          "wort": "aufdecken",
+          "log_dice": 7,
+          "rang": 2
+        },
+        {
+          "wort": "anzetteln",
+          "log_dice": 6.8,
+          "rang": 3
+        },
+        {
+          "wort": "zerschmettern",
+          "log_dice": 2.7,
+          "rang": 4
+        },
+        {
+          "wort": "insinuieren",
+          "log_dice": 2.5,
+          "rang": 5
+        },
+        {
+          "wort": "unterstellen",
+          "log_dice": 2.8,
+          "rang": 6
+        },
+        {
+          "wort": "wähnen",
+          "log_dice": 3.7,
+          "rang": 7
+        },
+        {
+          "wort": "anprangern",
+          "log_dice": 2.5,
+          "rang": 8
+        },
+        {
+          "wort": "zerschlagen",
+          "log_dice": 3.1,
+          "rang": 9
+        },
+        {
+          "wort": "aushecken",
+          "log_dice": 4.3,
+          "rang": 10
+        }
+      ],
+      "adjektive": [
+        {
+          "wort": "bourne",
+          "log_dice": 8,
+          "rang": 1
+        },
+        {
+          "wort": "aufrührerisch",
+          "log_dice": 5.9,
+          "rang": 2
+        },
+        {
+          "wort": "kriminell",
+          "log_dice": 5.8,
+          "rang": 3
+        },
+        {
+          "wort": "großangelegt",
+          "log_dice": 5,
+          "rang": 4
+        },
+        {
+          "wort": "imperialistisch",
+          "log_dice": 5.3,
+          "rang": 5
+        },
+        {
+          "wort": "konterrevolutionär",
+          "log_dice": 5.2,
+          "rang": 6
+        },
+        {
+          "wort": "faschistisch",
+          "log_dice": 4.5,
+          "rang": 7
+        },
+        {
+          "wort": "kommunistisch",
+          "log_dice": 4.9,
+          "rang": 8
+        },
+        {
+          "wort": "weitverzweigt",
+          "log_dice": 4.5,
+          "rang": 9
+        },
+        {
+          "wort": "finster",
+          "log_dice": 5.8,
+          "rang": 10
+        }
+      ]
+    },
+    "notiz": "Die Iden des März (Ermordung von Julius Ceasar)"
+  },
+  {
+    "id": "drucken",
+    "lemma": "Drucken",
+    "wortart": "Nomen",
+    "runden": {
+      "nomen": [
+        {
+          "wort": "Setzen",
+          "log_dice": 11.3,
+          "rang": 1
+        },
+        {
+          "wort": "Scannen",
+          "log_dice": 6.5,
+          "rang": 2
+        },
+        {
+          "wort": "Kopieren",
+          "log_dice": 6.1,
+          "rang": 3
+        },
+        {
+          "wort": "Speichern",
+          "log_dice": 4.9,
+          "rang": 4
+        },
+        {
+          "wort": "Binden",
+          "log_dice": 5.7,
+          "rang": 5
+        },
+        {
+          "wort": "Verteilen",
+          "log_dice": 4.9,
+          "rang": 6
+        },
+        {
+          "wort": "Werben",
+          "log_dice": 3.4,
+          "rang": 7
+        },
+        {
+          "wort": "Fax",
+          "log_dice": 2.6,
+          "rang": 8
+        }
+      ],
+      "verben": [
+        {
+          "wort": "beibringen",
+          "log_dice": 1.9,
+          "rang": 1
+        },
+        {
+          "wort": "ermöglichen",
+          "log_dice": 0.3,
+          "rang": 2
+        }
+      ],
+      "adjektive": [
+        {
+          "wort": "kabellos",
+          "log_dice": 5.3,
+          "rang": 1
+        },
+        {
+          "wort": "drahtlos",
+          "log_dice": 4.2,
+          "rang": 2
+        },
+        {
+          "wort": "dreidimensional",
+          "log_dice": 4.1,
+          "rang": 3
+        },
+        {
+          "wort": "experimentell",
+          "log_dice": 2.4,
+          "rang": 4
+        },
+        {
+          "wort": "digital",
+          "log_dice": 0.9,
+          "rang": 5
+        }
+      ]
+    },
+    "notiz": "Bundesweiter Tag der Druckkunst"
+  },
+  {
+    "id": "spieltag",
+    "lemma": "Spieltag",
+    "wortart": "Nomen",
+    "runden": {
+      "nomen": [
+        {
+          "wort": "Anstoßzeit",
+          "log_dice": 1.6,
+          "rang": 1
+        },
+        {
+          "wort": "Niederlage",
+          "log_dice": 1,
+          "rang": 2
+        },
+        {
+          "wort": "Spieltag",
+          "log_dice": 0.8,
+          "rang": 3
+        },
+        {
+          "wort": "Punkt",
+          "log_dice": 0.1,
+          "rang": 4
+        }
+      ],
+      "verben": [
+        {
+          "wort": "tippen",
+          "log_dice": 5.5,
+          "rang": 1
+        },
+        {
+          "wort": "terminieren",
+          "log_dice": 3.7,
+          "rang": 2
+        },
+        {
+          "wort": "absagen",
+          "log_dice": 3,
+          "rang": 3
+        },
+        {
+          "wort": "ansetzen",
+          "log_dice": 1.8,
+          "rang": 4
+        },
+        {
+          "wort": "absolvieren",
+          "log_dice": 2.6,
+          "rang": 5
+        },
+        {
+          "wort": "abschließen",
+          "log_dice": 0.8,
+          "rang": 6
+        },
+        {
+          "wort": "durchziehen",
+          "log_dice": 0.7,
+          "rang": 7
+        },
+        {
+          "wort": "austragen",
+          "log_dice": 1.8,
+          "rang": 8
+        },
+        {
+          "wort": "verpassen",
+          "log_dice": 0.7,
+          "rang": 9
+        },
+        {
+          "wort": "überstehen",
+          "log_dice": 1.2,
+          "rang": 10
+        }
+      ],
+      "adjektive": [
+        {
+          "wort": "vorletzt",
+          "log_dice": 7.9,
+          "rang": 1
+        },
+        {
+          "wort": "letzt",
+          "log_dice": 7.4,
+          "rang": 2
+        },
+        {
+          "wort": "achte",
+          "log_dice": 6.7,
+          "rang": 3
+        },
+        {
+          "wort": "verbleibend",
+          "log_dice": 4.4,
+          "rang": 4
+        },
+        {
+          "wort": "zwölfte",
+          "log_dice": 5.7,
+          "rang": 5
+        },
+        {
+          "wort": "sechste",
+          "log_dice": 6.7,
+          "rang": 6
+        },
+        {
+          "wort": "final",
+          "log_dice": 4,
+          "rang": 7
+        },
+        {
+          "wort": "fünfte",
+          "log_dice": 6.7,
+          "rang": 8
+        },
+        {
+          "wort": "ausstehend",
+          "log_dice": 4.3,
+          "rang": 9
+        },
+        {
+          "wort": "zweite",
+          "log_dice": 5.5,
+          "rang": 10
+        }
+      ]
+    },
+    "notiz": "Jeden Samstag 15:30 Uhr startet die Bundesliga.",
+    "link": ""
+  },
+  {
+    "id": "schnell",
+    "lemma": "schnell",
+    "pos": "Adjektiv",
+    "wortart": "Adjektiv",
+    "rundenInfo": [
+      {
+        "key": "nomen",
+        "label": "Nomen",
+        "relCode": "~ATTR",
+        "desc": "ist Attribut bei"
+      },
+      {
+        "key": "verben",
+        "label": "Verben",
+        "relCode": "~ADV",
+        "desc": "ist Adverbialbestimmung von"
+      },
+      {
+        "key": "adjektive",
+        "label": "Adjektive",
+        "relCode": "KON",
+        "desc": "ist koordiniert mit"
+      }
+    ],
+    "runden": {
+      "nomen": [
+        {
+          "wort": "Lösung",
+          "log_dice": 6.4,
+          "rang": 1
+        },
+        {
+          "wort": "Internet",
+          "log_dice": 6.3,
+          "rang": 2
+        },
+        {
+          "wort": "Eingreiftruppe",
+          "log_dice": 6.1,
+          "rang": 3
+        },
+        {
+          "wort": "Weg",
+          "log_dice": 5.2,
+          "rang": 4
+        },
+        {
+          "wort": "Handeln",
+          "log_dice": 5.6,
+          "rang": 5
+        },
+        {
+          "wort": "Erholung",
+          "log_dice": 4.9,
+          "rang": 6
+        },
+        {
+          "wort": "Wechsel",
+          "log_dice": 4.9,
+          "rang": 7
+        },
+        {
+          "wort": "Erfolg",
+          "log_dice": 5.5,
+          "rang": 8
+        },
+        {
+          "wort": "Geld",
+          "log_dice": 5.2,
+          "rang": 9
+        },
+        {
+          "wort": "Runde",
+          "log_dice": 5.5,
+          "rang": 10
+        }
+      ],
+      "verben": [
+        {
+          "wort": "wachsen",
+          "log_dice": 8.4,
+          "rang": 1
+        },
+        {
+          "wort": "gehen",
+          "log_dice": 8.2,
+          "rang": 2
+        },
+        {
+          "wort": "reagieren",
+          "log_dice": 7.9,
+          "rang": 3
+        },
+        {
+          "wort": "vergessen",
+          "log_dice": 7.5,
+          "rang": 4
+        },
+        {
+          "wort": "erholen",
+          "log_dice": 6.4,
+          "rang": 5
+        },
+        {
+          "wort": "steigen",
+          "log_dice": 6.6,
+          "rang": 6
+        },
+        {
+          "wort": "finden",
+          "log_dice": 6.8,
+          "rang": 7
+        },
+        {
+          "wort": "vorankommen",
+          "log_dice": 6.4,
+          "rang": 8
+        },
+        {
+          "wort": "merken",
+          "log_dice": 7,
+          "rang": 9
+        },
+        {
+          "wort": "erkennen",
+          "log_dice": 6.5,
+          "rang": 10
+        }
+      ],
+      "adjektive": [
+        {
+          "wort": "unbürokratisch",
+          "log_dice": 5.7,
+          "rang": 1
+        },
+        {
+          "wort": "effizient",
+          "log_dice": 5.2,
+          "rang": 2
+        },
+        {
+          "wort": "billig",
+          "log_dice": 5,
+          "rang": 3
+        },
+        {
+          "wort": "hart",
+          "log_dice": 3.6,
+          "rang": 4
+        },
+        {
+          "wort": "zuverlässig",
+          "log_dice": 4.5,
+          "rang": 5
+        },
+        {
+          "wort": "einfach",
+          "log_dice": 4.7,
+          "rang": 6
+        },
+        {
+          "wort": "effektiv",
+          "log_dice": 4.8,
+          "rang": 7
+        },
+        {
+          "wort": "stark",
+          "log_dice": 3.4,
+          "rang": 8
+        },
+        {
+          "wort": "bequem",
+          "log_dice": 4.2,
+          "rang": 9
+        },
+        {
+          "wort": "unkompliziert",
+          "log_dice": 4.9,
+          "rang": 10
+        }
+      ]
+    },
+    "notiz": "Heute ist der Internationale Tag der Mathematik.",
+    "link": "https://zfm.education/tdm/"
+  }
+]

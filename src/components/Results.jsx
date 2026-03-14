@@ -1,0 +1,176 @@
+import { useState } from 'react'
+import { getMedal, getRundInfo } from '../utils/gameLogic'
+
+function BelegeSatz({ tokens }) {
+  return (
+    <p className="beleg-satz">
+      {tokens.map((t, i) => (
+        <span key={i}>
+          {t.hl ? <strong>{t.w}</strong> : t.w}
+          {t.ws && i < tokens.length - 1 ? ' ' : ''}
+        </span>
+      ))}
+    </p>
+  )
+}
+
+export default function Results({ lemma, roundScores, onRestart }) {
+  const total     = roundScores.reduce((a, b) => a + b, 0)
+  const hasBonus  = roundScores.length >= 4
+  const maxPoints = hasBonus ? 10 : 9
+  const medal     = getMedal(total)
+
+  const [logDiceOpen,   setLogDiceOpen]   = useState(false)
+  const [belegeInfoOpen, setBelegeInfoOpen] = useState(false)
+  const [openBeleg,     setOpenBeleg]     = useState(null)   // cacheKey
+  const [belegeCache,   setBelegeCache]   = useState({})
+  const [belegeLoading, setBelegeLoading] = useState(false)
+
+  const thresholds = [
+    { min: 10, label: 'Perfekt' },
+    { min: 8,  label: 'Sehr gut' },
+    { min: 6,  label: 'Gut' },
+    { min: 4,  label: 'Solide' },
+  ]
+
+  async function loadBelege(roundKey, rel, collocate) {
+    const cacheKey = `${roundKey}-${collocate}`
+    // Schon offen → schließen
+    if (openBeleg === cacheKey) { setOpenBeleg(null); return }
+    // Im Cache → direkt öffnen
+    if (belegeCache[cacheKey] !== undefined) { setOpenBeleg(cacheKey); return }
+
+    setOpenBeleg(cacheKey)
+    setBelegeLoading(true)
+    try {
+      const r = await fetch(
+        `/api/belege?collocate=${encodeURIComponent(collocate)}&lemma=${encodeURIComponent(lemma.lemma)}&rel=${rel}`
+      )
+      const data = await r.json()
+      setBelegeCache(prev => ({ ...prev, [cacheKey]: Array.isArray(data) ? data : [] }))
+    } catch {
+      setBelegeCache(prev => ({ ...prev, [cacheKey]: [] }))
+    } finally {
+      setBelegeLoading(false)
+    }
+  }
+
+  return (
+    <div className="screen results-screen">
+      <header className="results-header">
+        <p className="lemma-played-title">{lemma.lemma}</p>
+        <p className="total-score">{total} / {maxPoints} Punkte</p>
+        <p className="result-feedback">{medal.label}</p>
+      </header>
+
+      <div className="round-scores-card">
+        {roundScores.slice(0, 3).map((score, i) => (
+          <div key={i} className="score-row">
+            <span className="score-row-label">R{i + 1} {getRundInfo(lemma)[i]?.label}</span>
+            <div className="bar-track">
+              <div className="bar-fill" style={{ width: `${(score / 3) * 100}%` }} />
+            </div>
+            <span className="score-row-value">{score}/3</span>
+          </div>
+        ))}
+        {hasBonus && (
+          <div className="score-row">
+            <span className="score-row-label score-row-label--bonus">Bonus</span>
+            <div className="bar-track">
+              <div className="bar-fill bar-fill--bonus" style={{ width: `${roundScores[3] * 100}%` }} />
+            </div>
+            <span className="score-row-value">{roundScores[3]}/1</span>
+          </div>
+        )}
+      </div>
+
+      <div className="wortprofil-card">
+        <div className="wortprofil-header">
+          <p className="wortprofil-title">Wortprofil · {lemma.lemma}</p>
+          <button className="logdice-toggle" onClick={() => setLogDiceOpen(o => !o)}>
+            Was bedeutet logDice?
+            <span className={`toggle-arrow ${logDiceOpen ? 'toggle-arrow--open' : ''}`}>›</span>
+          </button>
+          {logDiceOpen && (
+            <div className="logdice-explanation">
+              <p>Der <strong>logDice-Wert</strong> misst, wie stark zwei Wörter miteinander assoziiert sind. Je höher der Wert, desto typischer ist die Wortverbindung im DWDS-Korpus. Der Maximalwert beträgt 14.</p>
+              <p>Grundlage: Pavel Rychlý, <em>A Lexicographer-Friendly Association Score</em> (2008).</p>
+            </div>
+          )}
+          <button className="logdice-toggle" onClick={() => setBelegeInfoOpen(o => !o)}>
+            Belege anzeigen lassen
+            <span className={`toggle-arrow ${belegeInfoOpen ? 'toggle-arrow--open' : ''}`}>›</span>
+          </button>
+          {belegeInfoOpen && (
+            <div className="logdice-explanation">
+              <p>Klicke auf ein <strong>Kollokat</strong> (eines der Wörter unten), um echte Beispielsätze aus dem DWDS-Korpus zu sehen. Die Belege sind die fünf aktuellsten Treffer, in denen beide Wörter als Phrase vorkommen – gesucht wird direkt im Zeitungskorpus des DWDS.</p>
+            </div>
+          )}
+        </div>
+
+        {getRundInfo(lemma).map(({ key, label, relCode, desc }) => {
+          const top3 = (lemma.runden[key] || [])
+            .filter(k => k.rang <= 3)
+            .sort((a, b) => a.rang - b.rang)
+          const activeItem  = top3.find(k => openBeleg === `${key}-${k.wort}`)
+          const belegData   = activeItem ? belegeCache[`${key}-${activeItem.wort}`] : null
+
+          return (
+            <div key={key} className="wortprofil-row">
+              <span className="wortprofil-label">{label}</span>
+              <span className="wortprofil-desc">{desc}</span>
+              <div className="wortprofil-items">
+                {top3.map(k => {
+                  const isActive = openBeleg === `${key}-${k.wort}`
+                  return (
+                    <button
+                      key={k.wort}
+                      className={`wortprofil-item${isActive ? ' wortprofil-item--active' : ''}`}
+                      onClick={() => loadBelege(key, relCode, k.wort)}
+                      title="Korpusbelege anzeigen"
+                    >
+                      {k.wort}
+                      <span className="logdice">{k.log_dice}</span>
+                    </button>
+                  )
+                })}
+              </div>
+
+              {activeItem && (
+                <div className="belege-panel">
+                  <p className="belege-panel-title">
+                    Belege: <em>{lemma.lemma}</em> + <em>{activeItem.wort}</em>
+                  </p>
+                  {belegeLoading && !belegData ? (
+                    <p className="belege-status">Lade Belege …</p>
+                  ) : belegData?.length ? (
+                    belegData.map((b, bi) => (
+                      <div key={bi} className="beleg-item">
+                        <BelegeSatz tokens={b.tokens} />
+                        <p className="beleg-quelle">{b.quelle}</p>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="belege-status">Keine Belege gefunden.</p>
+                  )}
+                </div>
+              )}
+            </div>
+          )
+        })}
+      </div>
+
+      <div className="thresholds">
+        {thresholds.map(t => (
+          <span key={t.min} className={`threshold${total >= t.min ? ' reached' : ''}`}>
+            {t.label} {t.min}+
+          </span>
+        ))}
+      </div>
+
+      <button className="btn-primary btn-full" onClick={onRestart}>
+        Zurück zur Startseite
+      </button>
+    </div>
+  )
+}
