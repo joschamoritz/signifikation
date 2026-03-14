@@ -149,6 +149,7 @@ export default function App() {
           lemma={selectedLemma}
           roundScores={roundScores}
           onRestart={handleRestart}
+          onToSelection={() => setPhase('selection')}
         />
       )}
     </div>

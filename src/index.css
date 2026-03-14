@@ -69,6 +69,24 @@ button { font-family: inherit; cursor: pointer; border: none }
 .btn-primary:hover:not(:disabled) { background: var(--primary-hi) }
 .btn-primary:disabled { opacity: 0.35; cursor: not-allowed }
 .btn-full { width: 100% }
+.btn-secondary {
+  background: transparent;
+  color: var(--primary);
+  border: 1.5px solid var(--primary);
+  padding: 12px 20px;
+  border-radius: 10px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  transition: background 0.15s;
+}
+.btn-secondary:hover { background: #fef2f2 }
+.results-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 4px;
+}
+.results-actions .btn-primary,
+.results-actions .btn-secondary { flex: 1 }
 
 /* ============================================================
    HOME SCREEN
@@ -394,6 +412,14 @@ button { font-family: inherit; cursor: pointer; border: none }
   flex-shrink: 0;
 }
 .lemma-notiz-link:hover { text-decoration: underline }
+
+.results-notiz {
+  margin-top: 10px;
+  font-size: 0.88rem;
+  color: var(--text-secondary);
+  text-align: center;
+  justify-content: center;
+}
 
 .lemma-info { flex: 1; display: flex; flex-direction: column; gap: 6px }
 .lemma-name  {

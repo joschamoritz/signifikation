@@ -14,7 +14,7 @@ function BelegeSatz({ tokens }) {
   )
 }
 
-export default function Results({ lemma, roundScores, onRestart }) {
+export default function Results({ lemma, roundScores, onRestart, onToSelection }) {
   const total     = roundScores.reduce((a, b) => a + b, 0)
   const hasBonus  = roundScores.length >= 4
   const maxPoints = hasBonus ? 10 : 9
@@ -61,6 +61,16 @@ export default function Results({ lemma, roundScores, onRestart }) {
         <p className="lemma-played-title">{lemma.lemma}</p>
         <p className="total-score">{total} / {maxPoints} Punkte</p>
         <p className="result-feedback">{medal.label}</p>
+        {lemma.notiz && (
+          <div className="lemma-notiz results-notiz">
+            <span>{lemma.notiz}</span>
+            {lemma.link && (
+              <a href={lemma.link} target="_blank" rel="noopener noreferrer" className="lemma-notiz-link">
+                Mehr →
+              </a>
+            )}
+          </div>
+        )}
       </header>
 
       <div className="round-scores-card">
@@ -168,9 +178,14 @@ export default function Results({ lemma, roundScores, onRestart }) {
         ))}
       </div>
 
-      <button className="btn-primary btn-full" onClick={onRestart}>
-        Zurück zur Startseite
-      </button>
+      <div className="results-actions">
+        <button className="btn-secondary" onClick={onToSelection}>
+          Alle Wörter ansehen
+        </button>
+        <button className="btn-primary" onClick={onRestart}>
+          Zur Startseite
+        </button>
+      </div>
     </div>
   )
 }
