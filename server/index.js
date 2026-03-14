@@ -3,6 +3,7 @@ import { readFileSync, writeFileSync, mkdirSync } from 'fs'
 import { fileURLToPath } from 'url'
 import { dirname, join }  from 'path'
 import { fetchLemma, fetchBonusQuestion } from './dwds.js'
+import { fetchZeitreise } from './diacollo.js'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const DATA      = join(__dirname, 'data')
@@ -17,6 +18,7 @@ app.use(express.json())
 // ── Helpers ─────────────────────────────────────────────────
 function load(file)       { return JSON.parse(readFileSync(join(DATA, file), 'utf8')) }
 function save(file, data) { writeFileSync(join(DATA, file), JSON.stringify(data, null, 2)) }
+function loadZeitreise()  { try { return load('zeitreise.json') } catch { return {} } }
 
 function requireAuth(req, res, next) {
   const key = req.headers['x-admin-key'] || req.query.key
@@ -48,6 +50,19 @@ app.get('/api/heute', (req, res) => {
   }
 })
 
+/** GET /api/zeitreise → Zeitreise-Eintrag des Tages */
+app.get('/api/zeitreise', (req, res) => {
+  try {
+    const datum    = req.query.datum || todayDatum()
+    const zeitreise = loadZeitreise()
+    const entry    = zeitreise[datum]
+    if (!entry) return res.status(404).json({ error: `Kein Zeitreise-Eintrag für ${datum}` })
+    res.json(entry)
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
 /** GET /api/belege – Korpusbelege für ein Kollokationspaar */
 app.get('/api/belege', async (req, res) => {
   const { collocate, lemma, rel } = req.query
@@ -70,16 +85,13 @@ app.get('/api/belege', async (req, res) => {
   try {
     const cap = s => s.charAt(0).toUpperCase() + s.slice(1)
 
-    // Je nach Relation unterschiedliche Phrasen-Varianten probieren
     let queries
     if (rel === 'OBJ') {
-      // Verb-Objekt: lemma=Verb, collocate=Nomen
       queries = [
         `"${lemma} ${collocate}"`,
         `"${collocate} ${lemma}"`,
       ]
     } else if (rel === 'KON') {
-      // Koordination: typischerweise mit "und"/"oder" verbunden
       queries = [
         `"${collocate} und ${lemma}"`,
         `"${lemma} und ${collocate}"`,
@@ -87,8 +99,6 @@ app.get('/api/belege', async (req, res) => {
         `"${lemma} oder ${collocate}"`,
       ]
     } else if (rel === '~ATTR') {
-      // Adjektiv attributiv vor Nomen: lemma=Adjektiv, collocate=Nomen
-      // Adjektiv flektiert vor dem Nomen → mehrere Endungen versuchen
       queries = [
         `"${lemma}e ${collocate}"`,
         `"${lemma}en ${collocate}"`,
@@ -96,19 +106,16 @@ app.get('/api/belege', async (req, res) => {
         `"${lemma} ${collocate}"`,
       ]
     } else if (rel === '~ADV') {
-      // Adjektiv als Adverb zu einem Verb: lemma=Adjektiv, collocate=Verb
       queries = [
         `"${lemma} ${collocate}"`,
         `"${collocate} ${lemma}"`,
       ]
     } else if (rel === 'ADV') {
-      // Verb + Adverb: lemma=Verb, collocate=Adverb
       queries = [
         `"${collocate} ${lemma}"`,
         `"${lemma} ${collocate}"`,
       ]
     } else {
-      // ATTR: Adjektiv vor Nomen (lemma=Nomen, collocate=Adjektiv) – auch großgeschrieben versuchen
       queries = [
         `"${collocate} ${lemma}"`,
         `"${cap(collocate)} ${lemma}"`,
@@ -127,7 +134,7 @@ app.get('/api/belege', async (req, res) => {
   }
 })
 
-/** GET /api/bonus – Bonusfrage für ein Lemma (PRED-Relation) */
+/** GET /api/bonus – Bonusfrage für ein Lemma */
 app.get('/api/bonus', async (req, res) => {
   const { id } = req.query
   if (!id) return res.status(400).json({ error: 'id erforderlich' })
@@ -144,11 +151,9 @@ app.get('/api/bonus', async (req, res) => {
 
 // ── Admin API ────────────────────────────────────────────────
 
-/** POST /admin/tag – Tageseintrag anlegen/überschreiben
- *  Body: { datum: "MM-DD", woerter: ["Wort1", "Wort2", "Wort3"] }
- */
+/** POST /admin/tag – Tageseintrag anlegen/überschreiben */
 app.post('/admin/tag', requireAuth, async (req, res) => {
-  const { datum, woerter, notizen = [], links = [], positionen = [] } = req.body
+  const { datum, woerter, notizen = [], links = [], positionen = [], zeitreise_lemma = '' } = req.body
   if (!datum || !Array.isArray(woerter) || woerter.length !== 3) {
     return res.status(400).json({ error: 'datum (MM-DD) und woerter (3 Einträge) erforderlich' })
   }
@@ -174,24 +179,50 @@ app.post('/admin/tag', requireAuth, async (req, res) => {
     save('lemmata.json', lemmataDB)
     save('kalender.json', kalender)
 
+    // Zeitreise optional
+    let zeitreiseOk = null
+    if (zeitreise_lemma.trim()) {
+      console.log(`  Lade DiaCollo-Daten für „${zeitreise_lemma}" …`)
+      try {
+        const zr = await fetchZeitreise(zeitreise_lemma.trim())
+        const zeitreise = loadZeitreise()
+        if (zr) {
+          zeitreise[datum] = zr
+          save('zeitreise.json', zeitreise)
+          zeitreiseOk = true
+          console.log(`  Zeitreise gespeichert: ${zr.paare.map(p => `${p.jahrzehnt}:${p.kollokat}`).join(', ')}`)
+        } else {
+          zeitreiseOk = false
+          console.warn(`  Zeitreise: nicht genügend DiaCollo-Daten für „${zeitreise_lemma}"`)
+        }
+      } catch (err) {
+        zeitreiseOk = false
+        console.error(`  Zeitreise-Fehler: ${err.message}`)
+      }
+    }
+
     console.log(`Eintrag gespeichert: ${datum} → ${ids.join(', ')}`)
-    res.json({ ok: true, datum, ids })
+    res.json({ ok: true, datum, ids, zeitreiseOk })
   } catch (err) {
     console.error(err)
     res.status(500).json({ error: err.message })
   }
 })
 
-/** GET /admin/kalender – alle Einträge anzeigen (angereichert mit Lemma-Daten) */
+/** GET /admin/kalender – alle Einträge (inkl. Zeitreise-Status) */
 app.get('/admin/kalender', requireAuth, (req, res) => {
   const kalender  = load('kalender.json')
   const lemmataDB = load('lemmata.json')
+  const zeitreise = loadZeitreise()
   const result = {}
   for (const [datum, ids] of Object.entries(kalender)) {
-    result[datum] = ids.map(id => {
-      const l = lemmataDB.find(l => l.id === id)
-      return { id, lemma: l?.lemma || id, notiz: l?.notiz || '' }
-    })
+    result[datum] = {
+      lemmata:     ids.map(id => {
+        const l = lemmataDB.find(l => l.id === id)
+        return { id, lemma: l?.lemma || id, notiz: l?.notiz || '' }
+      }),
+      hasZeitreise: !!zeitreise[datum],
+    }
   }
   res.json(result)
 })
@@ -200,23 +231,28 @@ app.get('/admin/kalender', requireAuth, (req, res) => {
 app.get('/admin/tag/:datum', requireAuth, (req, res) => {
   const kalender  = load('kalender.json')
   const lemmataDB = load('lemmata.json')
+  const zeitreise = loadZeitreise()
   const ids = kalender[req.params.datum]
   if (!ids) return res.status(404).json({ error: 'Kein Eintrag' })
   const lemmata = ids.map(id => lemmataDB.find(l => l.id === id)).filter(Boolean)
   res.json({
-    datum:      req.params.datum,
-    woerter:    lemmata.map(l => l.lemma),
-    positionen: lemmata.map(l => l.pos || 'Substantiv'),
-    notizen:    lemmata.map(l => l.notiz || ''),
-    links:      lemmata.map(l => l.link  || ''),
+    datum:           req.params.datum,
+    woerter:         lemmata.map(l => l.lemma),
+    positionen:      lemmata.map(l => l.pos || 'Substantiv'),
+    notizen:         lemmata.map(l => l.notiz || ''),
+    links:           lemmata.map(l => l.link  || ''),
+    zeitreise_lemma: zeitreise[req.params.datum]?.lemma || '',
   })
 })
 
 /** DELETE /admin/tag/:datum – Eintrag löschen */
 app.delete('/admin/tag/:datum', requireAuth, (req, res) => {
-  const kalender = load('kalender.json')
+  const kalender  = load('kalender.json')
+  const zeitreise = loadZeitreise()
   delete kalender[req.params.datum]
+  delete zeitreise[req.params.datum]
   save('kalender.json', kalender)
+  save('zeitreise.json', zeitreise)
   res.json({ ok: true })
 })
 

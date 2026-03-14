@@ -15,7 +15,8 @@ function getHistory() {
   return JSON.parse(localStorage.getItem('sig_history') || '[]')
 }
 
-export default function Home({ onStart, loading, error, playedGames = [], allPlayed = false }) {
+export default function Home({ onStart, loading, error, playedGames = [], allPlayed = false,
+                              zeitreise = null, zrPlayed = null, onPlayZeitreise }) {
   const [infoOpen, setInfoOpen] = useState(false)
 
   const history     = getHistory().slice(0, 14).reverse() // älteste zuerst → neueste rechts
@@ -106,6 +107,33 @@ export default function Home({ onStart, loading, error, playedGames = [], allPla
            : 'Quiz starten'}
         </button>
       </div>
+
+      {/* Zeitreise-Spielkarte */}
+      {zeitreise && (
+        <div className="game-card">
+          <div className="game-card-head">
+            <span className="game-card-title">Zeitreise</span>
+            <span className="game-card-meta">5 Perioden · max. 10 Punkte · DTA 1460–1900</span>
+          </div>
+
+          {zrPlayed ? (
+            <div className="game-played-entry">
+              <span className="game-played-word">{zrPlayed.lemma}</span>
+              <span className="game-played-score">{zrPlayed.total}/10 · {zrPlayed.medal}</span>
+            </div>
+          ) : (
+            <p className="game-card-empty">Heute noch nicht gespielt</p>
+          )}
+
+          <button
+            className="btn-primary btn-full"
+            onClick={onPlayZeitreise}
+            disabled={!!zrPlayed}
+          >
+            {zrPlayed ? 'Bereits gespielt' : 'Zeitreise starten'}
+          </button>
+        </div>
+      )}
 
       <p className="feedback-hint">
         Fehler oder Anregungen?{' '}
