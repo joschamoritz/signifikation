@@ -230,7 +230,7 @@ import { existsSync } from 'fs'
 const DIST = join(__dirname, '../dist')
 if (existsSync(DIST)) {
   app.use(express.static(DIST))
-  app.get('*', (req, res) => res.sendFile(join(DIST, 'index.html')))
+  app.use((req, res) => res.sendFile(join(DIST, 'index.html')))
 }
 
 // ── Start ────────────────────────────────────────────────────
