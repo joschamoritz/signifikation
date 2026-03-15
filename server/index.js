@@ -348,6 +348,12 @@ if (existsSync(DIST)) {
   app.use((req, res) => res.sendFile(join(DIST, 'index.html')))
 }
 
+// ── Globaler Fehler-Handler ───────────────────────────────────
+app.use((err, req, res, _next) => {
+  console.error('Unbehandelter Fehler:', err)
+  res.status(500).json({ error: err.message || 'Interner Serverfehler' })
+})
+
 // ── Start ────────────────────────────────────────────────────
 app.listen(PORT, () => {
   console.log(`Signifikation-Server läuft auf http://localhost:${PORT}`)

@@ -116,7 +116,7 @@ export async function fetchZeitreise(lemma) {
  */
 const POS_RANK = { NN: 0, ADJA: 0, ADJD: 0, NE: 1 }  // Verben/Sonstiges = 2
 
-function getBestCollokat(profile, lemmaLower) {
+function getBestCollokat(profile, lemmaLower, usedWords = new Set()) {
   const valid = Object.entries(profile.ld)
     .map(([key, score]) => {
       const [wort, pos = ''] = key.split('\t')
@@ -125,7 +125,8 @@ function getBestCollokat(profile, lemmaLower) {
     .filter(c =>
       c.wort.toLowerCase() !== lemmaLower &&
       !c.wort.includes(' ') &&
-      c.wort.length > 2
+      c.wort.length > 2 &&
+      !usedWords.has(c.wort.toLowerCase())
     )
     .sort((a, b) => {
       const ra = POS_RANK[a.pos] ?? 2
@@ -170,12 +171,14 @@ function extractPaare(lemma, raw) {
   const selected = [0, 1, 2, 3, 4].map(i => profiles[Math.round(i * step)])
 
   const paare = []
+  const usedWords = new Set()
   for (const profile of selected) {
-    const best = getBestCollokat(profile, lemmaLower)
+    const best = getBestCollokat(profile, lemmaLower, usedWords)
     if (!best) {
       console.warn(`  DiaCollo: Keine gültigen Kollokatoren für ${profile.label} [${profile._korpus}]`)
       return null
     }
+    usedWords.add(best.wort.toLowerCase())
     paare.push({ jahrzehnt: profile.label, kollokat: best.wort, korpus: profile._korpus, score: best.score })
   }
 

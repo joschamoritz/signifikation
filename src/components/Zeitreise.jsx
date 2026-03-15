@@ -229,8 +229,8 @@ export default function Zeitreise({ data, onBack, onFinish }) {
     }
   }
 
-  // For HTML5 DnD — track which chip is being dragged
-  const draggingRef = useRef(null)
+  // Pointer-drag state (works on touch + mouse)
+  const pointerDragRef = useRef(null)
 
   // ── Derived state ────────────────────────────────────────────
   const placedSet  = new Set(Object.values(placements))
@@ -287,27 +287,54 @@ export default function Zeitreise({ data, onBack, onFinish }) {
     pickUpFromZone(jahrzehnt)
   }
 
-  // ── HTML5 Drag & Drop (desktop) ───────────────────────────────
-  function handleDragStart(e, chip) {
-    draggingRef.current = chip
-    e.dataTransfer.setData('text/plain', chip)
-    e.dataTransfer.effectAllowed = 'move'
+  // ── Pointer Drag (touch + mouse) ─────────────────────────────
+  function onChipPointerDown(e, chip) {
+    if (revealed) return
+    // Only left-button for mouse; all pointers for touch/pen
+    if (e.pointerType === 'mouse' && e.button !== 0) return
+    e.currentTarget.setPointerCapture(e.pointerId)
+    const rect = e.currentTarget.getBoundingClientRect()
+    const ghost = document.createElement('div')
+    ghost.className = 'zr-chip zr-chip--ghost'
+    ghost.textContent = chip
+    ghost.style.cssText = `position:fixed;left:${rect.left}px;top:${rect.top}px;` +
+      `width:${rect.width}px;pointer-events:none;z-index:9999;opacity:.88;transform:scale(1.06);`
+    document.body.appendChild(ghost)
+    pointerDragRef.current = {
+      chip, ghost, pointerId: e.pointerId,
+      startX: e.clientX, startY: e.clientY,
+      offsetX: e.clientX - rect.left, offsetY: e.clientY - rect.top,
+      moved: false,
+    }
   }
 
-  function handleDragEnd() {
-    draggingRef.current = null
+  function onChipPointerMove(e) {
+    const s = pointerDragRef.current
+    if (!s || s.pointerId !== e.pointerId) return
+    if (!s.moved && Math.hypot(e.clientX - s.startX, e.clientY - s.startY) > 6) s.moved = true
+    if (s.moved) {
+      s.ghost.style.left = `${e.clientX - s.offsetX}px`
+      s.ghost.style.top  = `${e.clientY - s.offsetY}px`
+    }
   }
 
-  function handleZoneDragOver(e) {
-    e.preventDefault()
-    e.dataTransfer.dropEffect = 'move'
+  function onChipPointerUp(e) {
+    const s = pointerDragRef.current
+    if (!s || s.pointerId !== e.pointerId) return
+    s.ghost.remove()
+    const moved = s.moved
+    pointerDragRef.current = null
+    if (!moved) return  // tap → click handler takes over
+    const target = document.elementFromPoint(e.clientX, e.clientY)
+    const zone = target?.closest('[data-jahrzehnt]')
+    if (zone) placeChip(s.chip, zone.dataset.jahrzehnt)
   }
 
-  function handleZoneDrop(e, jahrzehnt) {
-    e.preventDefault()
-    const chip = e.dataTransfer.getData('text/plain') || draggingRef.current
-    if (chip) placeChip(chip, jahrzehnt)
-    draggingRef.current = null
+  function onChipPointerCancel(e) {
+    const s = pointerDragRef.current
+    if (!s || s.pointerId !== e.pointerId) return
+    s.ghost.remove()
+    pointerDragRef.current = null
   }
 
   // ── Evaluate ──────────────────────────────────────────────────
@@ -343,9 +370,10 @@ export default function Zeitreise({ data, onBack, onFinish }) {
             <button
               key={chip}
               className={`zr-chip${selected === chip ? ' zr-chip--selected' : ''}`}
-              draggable
-              onDragStart={e => handleDragStart(e, chip)}
-              onDragEnd={handleDragEnd}
+              onPointerDown={e => onChipPointerDown(e, chip)}
+              onPointerMove={onChipPointerMove}
+              onPointerUp={onChipPointerUp}
+              onPointerCancel={onChipPointerCancel}
               onClick={() => handlePoolChipClick(chip)}
             >
               {chip}
@@ -381,8 +409,7 @@ export default function Zeitreise({ data, onBack, onFinish }) {
                   isWrong   ? 'zr-zone--wrong'   : '',
                   isMissed  ? 'zr-zone--missed'  : '',
                 ].filter(Boolean).join(' ')}
-                onDragOver={handleZoneDragOver}
-                onDrop={e => handleZoneDrop(e, p.jahrzehnt)}
+                data-jahrzehnt={p.jahrzehnt}
                 onClick={() => handleZoneClick(p.jahrzehnt)}
               >
                 <span className="zr-zone-period">{formatPeriod(p.jahrzehnt)}</span>
@@ -395,9 +422,10 @@ export default function Zeitreise({ data, onBack, onFinish }) {
                         isRight  ? 'zr-chip--right'  : '',
                         isWrong  ? 'zr-chip--wrong'   : '',
                       ].filter(Boolean).join(' ')}
-                      draggable={!revealed}
-                      onDragStart={revealed ? undefined : e => handleDragStart(e, placed)}
-                      onDragEnd={handleDragEnd}
+                      onPointerDown={revealed ? undefined : e => onChipPointerDown(e, placed)}
+                      onPointerMove={onChipPointerMove}
+                      onPointerUp={onChipPointerUp}
+                      onPointerCancel={onChipPointerCancel}
                       onClick={e => handlePlacedChipClick(e, p.jahrzehnt)}
                       disabled={revealed}
                     >
