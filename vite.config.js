@@ -7,6 +7,29 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
+      workbox: {
+        globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
+        runtimeCaching: [
+          {
+            // Tagesdaten – StaleWhileRevalidate: sofort aus Cache, im Hintergrund aktualisieren
+            urlPattern: /^\/api\/lemmata/,
+            handler: 'StaleWhileRevalidate',
+            options: {
+              cacheName: 'api-lemmata',
+              expiration: { maxEntries: 10, maxAgeSeconds: 60 * 60 * 24 },
+            },
+          },
+          {
+            // Zeitreise-Daten – gleiche Strategie
+            urlPattern: /^\/api\/zeitreise/,
+            handler: 'StaleWhileRevalidate',
+            options: {
+              cacheName: 'api-zeitreise',
+              expiration: { maxEntries: 10, maxAgeSeconds: 60 * 60 * 24 },
+            },
+          },
+        ],
+      },
       manifest: {
         name: 'Signifikation',
         short_name: 'Signifikation',
