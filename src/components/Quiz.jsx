@@ -4,6 +4,8 @@ import {
   getRoundOptions,
   calculateScore,
 } from '../utils/gameLogic'
+import { API_BASE } from '../config'
+import BelegeSatz from './BelegeSatz'
 
 // ── Freier Bonuspunkt (kein Wortprofil verfügbar) ─────────────
 const FREE_BONUS_TEXTS = [
@@ -28,14 +30,12 @@ function FreeBonusRound({ onComplete }) {
   return (
     <div className="screen quiz-screen">
       <header className="quiz-header">
-        <div className="quiz-meta">
-          <span className="bonus-tag">Bonus</span>
-        </div>
+        <span className="quiz-game-badge">Kollokationen</span>
         <div className="round-progress">
           {[0, 1, 2].map(i => <span key={i} className="round-dot done" />)}
           <span className="round-dot round-dot--bonus active" />
         </div>
-        <h2 className="round-title">Bonus · Freier Punkt</h2>
+        <p className="round-title"><span className="bonus-tag">Bonus</span> · Freier Punkt</p>
       </header>
 
       <div className="free-bonus-card">
@@ -79,19 +79,15 @@ function BonusRound({ bonus, lemma, onComplete }) {
   return (
     <div className="screen quiz-screen">
       <header className="quiz-header">
-        <div className="quiz-meta">
-          <span className="lemma-tag">{lemma.lemma}</span>
-          <span className="bonus-tag">Bonus</span>
-        </div>
-
+        <span className="quiz-game-badge">Kollokationen</span>
+        <h1 className="quiz-lemma-word">{lemma.lemma}</h1>
         <div className="round-progress">
           {[0, 1, 2].map(i => (
             <span key={i} className="round-dot done" />
           ))}
           <span className="round-dot round-dot--bonus active" />
         </div>
-
-        <h2 className="round-title">Bonus · {bonus.label}</h2>
+        <p className="round-title"><span className="bonus-tag">Bonus</span> · {bonus.label}</p>
         <p className="quiz-instruction">{bonus.question}</p>
       </header>
 
@@ -159,6 +155,9 @@ export default function Quiz({ lemma, currentRound, bonusQuestion, onRoundComple
 
   const [selected, setSelected]   = useState([])
   const [submitted, setSubmitted] = useState(false)
+  const [openBeleg,     setOpenBeleg]     = useState(null)
+  const [belegeCache,   setBelegeCache]   = useState({})
+  const [belegeLoading, setBelegeLoading] = useState(false)
 
   const rundInfo     = getRundInfo(lemma)
   const roundInfo    = rundInfo[currentRound]
@@ -192,25 +191,43 @@ export default function Quiz({ lemma, currentRound, bonusQuestion, onRoundComple
     )
   }
 
-  function optionClass(word) {
-    if (!submitted) return selected.includes(word) ? 'option selected' : 'option'
-    const k          = kollokatoren.find(k => k.wort === word)
+  // 'correct' | 'wrong' | 'missed' | 'selected' | ''
+  function getOptionState(word) {
+    if (!submitted) return selected.includes(word) ? 'selected' : ''
+    const k = kollokatoren.find(k => k.wort === word)
     const isSelected = selected.includes(word)
-    const isTop3     = k && k.rang <= 3
+    const isTop3 = k && k.rang <= 3
+    if (isSelected && isTop3)  return 'correct'
+    if (isSelected && !isTop3) return 'wrong'
+    if (!isSelected && isTop3) return 'missed'
+    return ''
+  }
 
-    if (isSelected && isTop3)  return 'option correct'
-    if (isSelected && !isTop3) return 'option wrong'
-    if (!isSelected && isTop3) return 'option missed'
-    return 'option'
+  const STATE_ICON = { correct: '✓', wrong: '✗', missed: '→' }
+
+  async function loadBelege(collocate) {
+    if (openBeleg === collocate) { setOpenBeleg(null); return }
+    if (belegeCache[collocate] !== undefined) { setOpenBeleg(collocate); return }
+    setOpenBeleg(collocate)
+    setBelegeLoading(true)
+    try {
+      const r = await fetch(
+        `${API_BASE}/api/belege?collocate=${encodeURIComponent(collocate)}&lemma=${encodeURIComponent(lemma.lemma)}&rel=${roundInfo?.relCode || ''}`
+      )
+      const data = await r.json()
+      setBelegeCache(prev => ({ ...prev, [collocate]: Array.isArray(data) ? data : [] }))
+    } catch {
+      setBelegeCache(prev => ({ ...prev, [collocate]: [] }))
+    } finally {
+      setBelegeLoading(false)
+    }
   }
 
   return (
     <div className="screen quiz-screen">
       <header className="quiz-header">
-        <div className="quiz-meta">
-          <span className="lemma-tag">{lemma.lemma}</span>
-        </div>
-
+        <span className="quiz-game-badge">Kollokationen</span>
+        <h1 className="quiz-lemma-word">{lemma.lemma}</h1>
         <div className="round-progress">
           {[0, 1, 2].map(i => (
             <span
@@ -220,8 +237,7 @@ export default function Quiz({ lemma, currentRound, bonusQuestion, onRoundComple
           ))}
           <span className="round-dot round-dot--bonus" />
         </div>
-
-        <h2 className="round-title">Runde {currentRound + 1} · {roundLabel}</h2>
+        <p className="round-title">Runde {currentRound + 1} · {roundLabel}</p>
         <p className="quiz-instruction">
           Wähle die 3 stärksten Kollokate von <strong>{lemma.lemma}</strong> – in der richtigen Reihenfolge
         </p>
@@ -229,15 +245,20 @@ export default function Quiz({ lemma, currentRound, bonusQuestion, onRoundComple
 
       <div className="options-grid">
         {options.map((opt, i) => {
-          const rank = selectedRank(opt.wort)
+          const rank  = selectedRank(opt.wort)
+          const state = getOptionState(opt.wort)
+          const isActive = submitted && openBeleg === opt.wort
           return (
             <button
               key={opt.wort}
-              className={optionClass(opt.wort)}
+              className={`option${state ? ' ' + state : ''}${isActive ? ' option--beleg-active' : ''}`}
               style={{ animationDelay: submitted ? '0ms' : `${i * 35}ms` }}
-              onClick={() => toggleWord(opt.wort)}
+              onClick={() => submitted ? loadBelege(opt.wort) : toggleWord(opt.wort)}
             >
-              {rank && !submitted && <span className="option-rank" aria-label={`Rang ${rank}`}>{rank}</span>}
+              {submitted && STATE_ICON[state] && (
+                <span className="option-icon" aria-hidden="true">{STATE_ICON[state]}</span>
+              )}
+              {!submitted && rank && <span className="option-rank" aria-label={`Rang ${rank}`}>{rank}</span>}
               {opt.wort}
               {submitted && opt.log_dice != null && (
                 <span className="logdice">{opt.log_dice}</span>
@@ -247,6 +268,26 @@ export default function Quiz({ lemma, currentRound, bonusQuestion, onRoundComple
         })}
       </div>
 
+      {submitted && openBeleg && (
+        <div className="belege-panel">
+          <p className="belege-panel-title">
+            Belege: <em>{lemma.lemma}</em> + <em>{openBeleg}</em>
+          </p>
+          {belegeLoading && belegeCache[openBeleg] === undefined ? (
+            <p className="belege-status">Lade Belege …</p>
+          ) : belegeCache[openBeleg]?.length ? (
+            belegeCache[openBeleg].map((b, bi) => (
+              <div key={bi} className="beleg-item">
+                <BelegeSatz tokens={b.tokens} />
+                <p className="beleg-quelle">{b.quelle}</p>
+              </div>
+            ))
+          ) : (
+            <p className="belege-status">Keine Belege gefunden.</p>
+          )}
+        </div>
+      )}
+
       {submitted && (
         <div className="round-feedback">
           <div className="round-feedback-score">
@@ -254,12 +295,11 @@ export default function Quiz({ lemma, currentRound, bonusQuestion, onRoundComple
             <span className="round-score-label">
               {roundScore === 3 && 'Perfekt!'}
               {roundScore === 2 && 'Gut gemacht!'}
-              {roundScore === 1 && 'Fast!'}
+              {roundScore === 1 && 'Einen dabei'}
               {roundScore === 0 && 'Weiter üben'}
             </span>
           </div>
           <div className="round-feedback-answer">
-            <span className="feedback-label">Top-3: </span>
             {kollokatoren
               .filter(k => k.rang <= 3)
               .sort((a, b) => a.rang - b.rang)

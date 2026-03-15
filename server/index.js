@@ -89,7 +89,7 @@ app.get('/api/belege', async (req, res) => {
   }
 
   async function tryQuery(q, extra = '') {
-    const url = `https://www.dwds.de/r/?q=${encodeURIComponent(q)}&view=json&limit=5${extra}`
+    const url = `https://www.dwds.de/r/?q=${encodeURIComponent(q)}&view=json&limit=10${extra}`
     const r = await fetch(url)
     if (!r.ok) throw new Error(`DWDS HTTP ${r.status}`)
     const data = await r.json()
@@ -110,13 +110,20 @@ app.get('/api/belege', async (req, res) => {
       queries = [
         `"${lemma} ${collocate}"`,
         `"${collocate} ${lemma}"`,
+        `${collocate} #10 ${lemma}`,
+        `${lemma} #10 ${collocate}`,
       ]
     } else if (rel === 'KON') {
+      // KON = Koordination: die Wörter müssen nicht direkt nebeneinander stehen
       queries = [
         `"${collocate} und ${lemma}"`,
         `"${lemma} und ${collocate}"`,
         `"${collocate} oder ${lemma}"`,
         `"${lemma} oder ${collocate}"`,
+        `${collocate} #15 ${lemma}`,   // Koordination in Listen/Aufzählungen
+        `${lemma} #15 ${collocate}`,
+        `${collocate} #30 ${lemma}`,
+        `${lemma} #30 ${collocate}`,
       ]
     } else if (rel === '~ATTR') {
       queries = [
@@ -124,16 +131,29 @@ app.get('/api/belege', async (req, res) => {
         `"${lemma}en ${collocate}"`,
         `"${lemma}er ${collocate}"`,
         `"${lemma} ${collocate}"`,
+        `${collocate} #5 ${lemma}`,
+        `${lemma} #5 ${collocate}`,
+      ]
+    } else if (rel === '~OBJ') {
+      queries = [
+        `"${lemma} ${collocate}"`,
+        `"${collocate} ${lemma}"`,
+        `${collocate} #10 ${lemma}`,
+        `${lemma} #10 ${collocate}`,
       ]
     } else if (rel === '~ADV') {
       queries = [
         `"${lemma} ${collocate}"`,
         `"${collocate} ${lemma}"`,
+        `${collocate} #5 ${lemma}`,
+        `${lemma} #5 ${collocate}`,
       ]
     } else if (rel === 'ADV') {
       queries = [
         `"${collocate} ${lemma}"`,
         `"${lemma} ${collocate}"`,
+        `${collocate} #5 ${lemma}`,
+        `${lemma} #5 ${collocate}`,
       ]
     } else {
       // Zeitreise: kein fester Relationstyp – Kollokation = Co-Vorkommen im Kontextfenster,
@@ -175,7 +195,10 @@ app.get('/api/belege', async (req, res) => {
         if (results.length >= 2) break
       }
     }
-    res.json(results.slice(0, 5).map(parseItem))
+    // Prefer non-Wikipedia sources; fall back if too few results
+    const noWiki = results.filter(item => !(item.bibl_string || '').toLowerCase().includes('wikipedia'))
+    const final  = noWiki.length >= 2 ? noWiki : results
+    res.json(final.slice(0, 5).map(parseItem))
   } catch (err) {
     console.error('Belege-Fehler:', err.message)
     res.status(500).json({ error: err.message })

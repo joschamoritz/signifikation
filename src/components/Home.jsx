@@ -152,7 +152,6 @@ export default function Home({ onStart, loading, error, playedGames = [], allPla
       <div className="game-card">
         <div className="game-card-head">
           <span className="game-card-title">Kollokationen</span>
-          <span className="game-card-meta">3 Runden + Bonus · max. 10 Punkte</span>
         </div>
 
         {playedGames.length > 0 && (
@@ -202,7 +201,6 @@ export default function Home({ onStart, loading, error, playedGames = [], allPla
         <div className="game-card">
           <div className="game-card-head">
             <span className="game-card-title">Zeitreise</span>
-            <span className="game-card-meta">5 Perioden · max. 10 Punkte · {Math.min(...zeitreise.paare.map(p => Number(p.jahrzehnt)))}–{Math.max(...zeitreise.paare.map(p => Number(p.jahrzehnt)))}</span>
           </div>
 
           {zrPlayed ? (
