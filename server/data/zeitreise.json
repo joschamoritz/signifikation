@@ -1,182 +1,170 @@
 {
   "03-15": {
-    "lemma": "Mord",
+    "lemma": "Sonntag",
     "paare": [
       {
-        "jahrzehnt": "1500",
-        "kollokat": "Dieberei",
+        "jahrzehnt": "1450",
+        "kollokat": "Pfingsttag",
         "korpus": "dta",
-        "score": 8.79054663437105
+        "score": 9.70079198161272
       },
       {
-        "jahrzehnt": "1800",
-        "kollokat": "Totschlag",
+        "jahrzehnt": "1750",
+        "kollokat": "Sonnabend",
         "korpus": "dta",
-        "score": 7.07002579127844
+        "score": 6.79779171666415
       },
       {
-        "jahrzehnt": "1900",
-        "kollokat": "versucht",
+        "jahrzehnt": "1890",
+        "kollokat": "Stunde",
+        "korpus": "reichstag",
+        "score": 7.85519611131055
+      },
+      {
+        "jahrzehnt": "1940",
+        "kollokat": "Uhr",
         "korpus": "kern",
-        "score": 7.1353185944274
+        "score": 7.69025582076579
       },
       {
-        "jahrzehnt": "1950",
-        "kollokat": "Totschlag",
+        "jahrzehnt": "2000",
+        "kollokat": "Feiertag",
         "korpus": "bundestag",
-        "score": 8.7847829027367
-      },
-      {
-        "jahrzehnt": "2010",
-        "kollokat": "millionenfach",
-        "korpus": "politische_reden",
-        "score": 7.49749965947082
+        "score": 7.62865484198021
       }
     ],
     "perioden": [
       {
-        "jahrzehnt": "1500",
-        "kollokat": "Dieberei",
+        "jahrzehnt": "1450",
+        "kollokat": "Pfingsttag",
         "korpus": "dta",
-        "score": 8.79054663437105
+        "score": 9.70079198161272
       },
       {
         "jahrzehnt": "1550",
-        "kollokat": "Ehebruch",
+        "kollokat": "Feiertag",
         "korpus": "dta",
-        "score": 8.18978542380315
+        "score": 9.04226705142591
       },
       {
         "jahrzehnt": "1600",
-        "kollokat": "Raub",
+        "kollokat": "Markt",
         "korpus": "dta",
-        "score": 8.62251135972319
+        "score": 7.05795474008395
       },
       {
         "jahrzehnt": "1650",
-        "kollokat": "Totschlag",
+        "kollokat": "Trinitatis",
         "korpus": "dta",
-        "score": 8.07692397665054
+        "score": 6.88681597247382
       },
       {
         "jahrzehnt": "1700",
-        "kollokat": "Totschlag",
+        "kollokat": "Trinitatis",
         "korpus": "dta",
-        "score": 7.32446631377451
+        "score": 6.82661114325412
       },
       {
         "jahrzehnt": "1750",
-        "kollokat": "Oberst",
+        "kollokat": "Sonnabend",
         "korpus": "dta",
-        "score": 8.64192290163967
+        "score": 6.79779171666415
       },
       {
         "jahrzehnt": "1800",
-        "kollokat": "Totschlag",
+        "kollokat": "Dienstag",
         "korpus": "dta",
-        "score": 7.07002579127844
+        "score": 7.27851673785635
       },
       {
         "jahrzehnt": "1850",
-        "kollokat": "Totschlag",
+        "kollokat": "Montag",
         "korpus": "dta",
-        "score": 7.33162149109121
+        "score": 6.23318832486882
       },
       {
         "jahrzehnt": "1860",
-        "kollokat": "Widersetzung",
+        "kollokat": "Abend",
         "korpus": "reichstag",
-        "score": 9.50814690367033
+        "score": 7.54261912092746
       },
       {
         "jahrzehnt": "1870",
-        "kollokat": "Totschlag",
+        "kollokat": "Feiertag",
         "korpus": "reichstag",
-        "score": 8.28138928977248
+        "score": 7.64079951486637
       },
       {
         "jahrzehnt": "1880",
-        "kollokat": "Mordversuch",
+        "kollokat": "Uhr",
         "korpus": "reichstag",
-        "score": 8.89546364539072
+        "score": 7.73369184202321
       },
       {
         "jahrzehnt": "1890",
-        "kollokat": "Totschlag",
+        "kollokat": "Stunde",
         "korpus": "reichstag",
-        "score": 9.13210353600735
+        "score": 7.85519611131055
       },
       {
         "jahrzehnt": "1900",
-        "kollokat": "versucht",
-        "korpus": "kern",
-        "score": 7.1353185944274
+        "kollokat": "Sonnabend",
+        "korpus": "reichstag",
+        "score": 7.63245027352078
       },
       {
         "jahrzehnt": "1910",
-        "kollokat": "Totschlag",
+        "kollokat": "Feiertag",
         "korpus": "reichstag",
-        "score": 7.95064645657278
+        "score": 7.35969163048721
       },
       {
         "jahrzehnt": "1920",
-        "kollokat": "Totschlag",
-        "korpus": "reichstag",
-        "score": 7.72322027105295
+        "kollokat": "Sonnabend",
+        "korpus": "kern",
+        "score": 7.20507651778283
       },
       {
         "jahrzehnt": "1930",
-        "kollokat": "Femefall",
+        "kollokat": "Sonnabend",
         "korpus": "reichstag",
-        "score": 7.41316021203817
+        "score": 9.84687024110067
       },
       {
         "jahrzehnt": "1940",
-        "kollokat": "Totschlag",
+        "kollokat": "Uhr",
         "korpus": "kern",
-        "score": 7.38497016141949
+        "score": 7.69025582076579
       },
       {
         "jahrzehnt": "1950",
-        "kollokat": "Totschlag",
+        "kollokat": "Samstag",
         "korpus": "bundestag",
-        "score": 8.7847829027367
+        "score": 8.17552955310893
       },
       {
         "jahrzehnt": "1960",
-        "kollokat": "versucht",
+        "kollokat": "Sonnabend",
         "korpus": "kern",
-        "score": 7.6545947532822
+        "score": 6.92639395942506
       },
       {
         "jahrzehnt": "1970",
-        "kollokat": "Gefängnis",
+        "kollokat": "Sonnabend",
         "korpus": "ddr",
-        "score": 8.81677817594423
+        "score": 8.1031630690554
       },
       {
         "jahrzehnt": "1980",
-        "kollokat": "Totschlag",
+        "kollokat": "Sonnabend",
         "korpus": "kern",
-        "score": 7.45851613594572
-      },
-      {
-        "jahrzehnt": "1990",
-        "kollokat": "Vertreibung",
-        "korpus": "politische_reden",
-        "score": 7.78530726919044
+        "score": 6.48672792003542
       },
       {
         "jahrzehnt": "2000",
-        "kollokat": "Totschlag",
+        "kollokat": "Feiertag",
         "korpus": "bundestag",
-        "score": 8.51758302032986
-      },
-      {
-        "jahrzehnt": "2010",
-        "kollokat": "millionenfach",
-        "korpus": "politische_reden",
-        "score": 7.49749965947082
+        "score": 7.62865484198021
       }
     ]
   },

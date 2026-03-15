@@ -1,19 +1,7 @@
 import { useState, useEffect } from 'react'
 import { getMedal, getRundInfo } from '../utils/gameLogic'
 import { API_BASE } from '../config'
-
-function BelegeSatz({ tokens }) {
-  return (
-    <p className="beleg-satz">
-      {tokens.map((t, i) => (
-        <span key={i}>
-          {t.hl ? <strong>{t.w}</strong> : t.w}
-          {t.ws && i < tokens.length - 1 ? ' ' : ''}
-        </span>
-      ))}
-    </p>
-  )
-}
+import BelegeSatz from './BelegeSatz'
 
 const THRESHOLDS = [
   { min: 10, label: 'Perfekt' },

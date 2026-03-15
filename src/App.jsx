@@ -99,7 +99,7 @@ export default function App() {
     const total = roundScores.reduce((a, b) => a + b, 0)
     const medal = getMedal(total).label
     savePlayedGame(selectedLemma.id, selectedLemma.lemma, total, medal, lemmata?.length)
-  }, [phase])
+  }, [phase, selectedLemma, roundScores, lemmata])
 
   const handleLemmaSelect = useCallback((lemma) => {
     setSelected(lemma)
@@ -152,7 +152,7 @@ export default function App() {
 
   const playedGames = getPlayedToday()
   const playedIds   = playedGames.map(g => g.id)
-  const allPlayed   = lemmata && lemmata.every(l => playedIds.includes(l.id))
+  const allPlayed   = lemmata?.length > 0 && lemmata.every(l => playedIds.includes(l.id))
 
   return (
     <ErrorBoundary>
