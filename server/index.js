@@ -3,7 +3,7 @@ import { readFileSync, writeFileSync, mkdirSync } from 'fs'
 import { fileURLToPath } from 'url'
 import { dirname, join }  from 'path'
 import { fetchLemma, fetchBonusQuestion } from './dwds.js'
-import { fetchZeitreise } from './diacollo.js'
+import { fetchZeitreise, debugDiaCollo } from './diacollo.js'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const DATA      = join(__dirname, 'data')
@@ -65,11 +65,22 @@ app.get('/api/zeitreise', (req, res) => {
 
 /** GET /api/belege – Korpusbelege für ein Kollokationspaar */
 app.get('/api/belege', async (req, res) => {
-  const { collocate, lemma, rel } = req.query
+  const { collocate, lemma, rel, corpus, year } = req.query
   if (!collocate || !lemma) return res.status(400).json({ error: 'collocate und lemma erforderlich' })
 
-  async function tryQuery(q) {
-    const url = `https://www.dwds.de/r/?q=${encodeURIComponent(q)}&view=json&limit=5`
+  // Build optional corpus + date suffix for DWDS search
+  function corpusSuffix() {
+    let s = ''
+    if (corpus) s += `&corpus=${encodeURIComponent(corpus)}`
+    if (year) {
+      const y = parseInt(year)
+      if (!isNaN(y)) s += `&date=${Math.max(y - 20, 1000)}:${y + 60}`
+    }
+    return s
+  }
+
+  async function tryQuery(q, extra = '') {
+    const url = `https://www.dwds.de/r/?q=${encodeURIComponent(q)}&view=json&limit=5${extra}`
     const r = await fetch(url)
     if (!r.ok) throw new Error(`DWDS HTTP ${r.status}`)
     const data = await r.json()
@@ -116,16 +127,44 @@ app.get('/api/belege', async (req, res) => {
         `"${lemma} ${collocate}"`,
       ]
     } else {
+      // Zeitreise: kein fester Relationstyp – Kollokation = Co-Vorkommen im Kontextfenster,
+      // nicht notwendigerweise direkt nebeneinander.
+      // Reihenfolge: exakte Phrase → Nähe (#10 = innerhalb 10 Wörter) → loose AND
       queries = [
-        `"${collocate} ${lemma}"`,
-        `"${cap(collocate)} ${lemma}"`,
+        `"${collocate} ${lemma}"`,              // direkt benachbart
+        `"${lemma} ${collocate}"`,
+        `${collocate} #10 ${lemma}`,            // DDC: innerhalb 10 Wörter
+        `${lemma} #10 ${collocate}`,
+        `${cap(collocate)} #10 ${lemma}`,
+        `${lemma} #10 ${cap(collocate)}`,
+        `${collocate} #20 ${lemma}`,            // etwas weiter
+        `${lemma} #20 ${collocate}`,
       ]
     }
 
+    const extra = corpusSuffix()
+    const corpusOnly = corpus ? `&corpus=${encodeURIComponent(corpus)}` : ''
     let results = []
-    for (const q of queries) {
-      results = await tryQuery(q)
-      if (results.length >= 2) break
+
+    // Zeitreise: nur im Ziel-Korpus suchen – kein Fallback auf moderne Korpora
+    if (corpus) {
+      for (const q of queries) {
+        results = await tryQuery(q, extra)           // mit Datum + Korpus
+        if (results.length >= 2) break
+      }
+      if (results.length === 0 && year) {
+        for (const q of queries) {
+          results = await tryQuery(q, corpusOnly)    // Korpus ohne Datumsfilter
+          if (results.length >= 2) break
+        }
+      }
+      // Kein weiterer Fallback: lieber "Keine Belege" als falsche Epoche
+    } else {
+      // Normaler Kollokationen-Modus: alle Queries durchlaufen
+      for (const q of queries) {
+        results = await tryQuery(q, extra)
+        if (results.length >= 2) break
+      }
     }
     res.json(results.slice(0, 5).map(parseItem))
   } catch (err) {
@@ -150,6 +189,46 @@ app.get('/api/bonus', async (req, res) => {
 })
 
 // ── Admin API ────────────────────────────────────────────────
+
+/** GET /admin/diacollo-config – Korpus-Konfiguration laden */
+app.get('/admin/diacollo-config', requireAuth, (req, res) => {
+  try {
+    const cfg = JSON.parse(readFileSync(join(DATA, 'diacollo-config.json'), 'utf8'))
+    res.json(cfg)
+  } catch {
+    res.status(404).json({ error: 'Keine Konfiguration gefunden' })
+  }
+})
+
+/** POST /admin/diacollo-config – Korpus-Konfiguration speichern */
+app.post('/admin/diacollo-config', requireAuth, (req, res) => {
+  const { corpora } = req.body
+  if (!Array.isArray(corpora)) return res.status(400).json({ error: 'corpora-Array erforderlich' })
+  try {
+    const cfg = JSON.parse(readFileSync(join(DATA, 'diacollo-config.json'), 'utf8'))
+    // Nur enabled-Flag übernehmen, Rest (label, zeitraum, slice) bleibt erhalten
+    for (const item of corpora) {
+      const entry = cfg.corpora.find(c => c.id === item.id)
+      if (entry) entry.enabled = !!item.enabled
+    }
+    writeFileSync(join(DATA, 'diacollo-config.json'), JSON.stringify(cfg, null, 2))
+    res.json({ ok: true, active: cfg.corpora.filter(c => c.enabled).map(c => c.id) })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+/** GET /admin/debug-diacollo?q=Wort – roher DiaCollo-Test */
+app.get('/admin/debug-diacollo', requireAuth, async (req, res) => {
+  const q = req.query.q
+  if (!q) return res.status(400).json({ error: 'q= erforderlich' })
+  try {
+    const result = await debugDiaCollo(q)
+    res.json({ q, ...result })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
 
 /** POST /admin/tag – Tageseintrag anlegen/überschreiben */
 app.post('/admin/tag', requireAuth, async (req, res) => {

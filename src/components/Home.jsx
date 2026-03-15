@@ -15,11 +15,37 @@ function getHistory() {
   return JSON.parse(localStorage.getItem('sig_history') || '[]')
 }
 
+/** Berechnet den aktuellen Streak (aufeinanderfolgende Tage mit abgeschlossenem Spiel). */
+function computeStreak(history) {
+  if (!history.length) return 0
+  const dateSet = new Set(history.map(h => h.date))
+  const msDay = 86_400_000
+  const today = new Date(); today.setHours(0, 0, 0, 0)
+  const todayStr     = today.toISOString().slice(0, 10)
+  const yesterdayStr = new Date(today - msDay).toISOString().slice(0, 10)
+  // Kein Streak mehr falls weder heute noch gestern gespielt
+  if (!dateSet.has(todayStr) && !dateSet.has(yesterdayStr)) return 0
+  let d = dateSet.has(todayStr) ? new Date(today) : new Date(today - msDay)
+  let streak = 0
+  while (dateSet.has(d.toISOString().slice(0, 10))) {
+    streak++
+    d = new Date(d - msDay)
+  }
+  return streak
+}
+
+function streakFlames(n) {
+  if (n >= 30) return '🔥🔥🔥'
+  if (n >= 7)  return '🔥🔥'
+  return '🔥'
+}
+
 export default function Home({ onStart, loading, error, playedGames = [], allPlayed = false,
                               zeitreise = null, zrPlayed = null, onPlayZeitreise }) {
   const [infoOpen, setInfoOpen] = useState(false)
 
   const history     = getHistory().slice(0, 14).reverse() // älteste zuerst → neueste rechts
+  const streak      = computeStreak(getHistory())
   const totalPoints = playedGames.reduce((s, g) => s + g.total, 0)
   const maxPoints   = playedGames.length * 10
   const dailyMedal  = allPlayed ? getDailyMedal(totalPoints) : null
@@ -32,6 +58,16 @@ export default function Home({ onStart, loading, error, playedGames = [], allPla
       </header>
 
       <p className="home-date">{todayLabel()}</p>
+
+      {streak > 0 && (
+        <div className="streak-pill">
+          <span className="streak-flames">{streakFlames(streak)}</span>
+          <div className="streak-text">
+            <span className="streak-count">{streak}</span>
+            <span className="streak-label">{streak === 1 ? 'Tag' : 'Tage'} am Stück</span>
+          </div>
+        </div>
+      )}
 
       <div className="home-card">
         <button className="home-card-toggle" onClick={() => setInfoOpen(o => !o)}>
@@ -113,7 +149,7 @@ export default function Home({ onStart, loading, error, playedGames = [], allPla
         <div className="game-card">
           <div className="game-card-head">
             <span className="game-card-title">Zeitreise</span>
-            <span className="game-card-meta">5 Perioden · max. 10 Punkte · DTA 1460–1900</span>
+            <span className="game-card-meta">5 Perioden · max. 10 Punkte · {Math.min(...zeitreise.paare.map(p => Number(p.jahrzehnt)))}–{Math.max(...zeitreise.paare.map(p => Number(p.jahrzehnt)))}</span>
           </div>
 
           {zrPlayed ? (

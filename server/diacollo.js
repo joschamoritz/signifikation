@@ -1,75 +1,184 @@
-// ── DiaCollo API (DTA-Korpus, öffentlich) ────────────────────
-// Korpus: Deutsches Textarchiv, ca. 1460–1900
-// Endpoint: https://kaskade.dwds.de/dstar/dta/diacollo/
+// ── DiaCollo API – öffentlich zugängliche DWDS-Korpora ───────
+// JSON-Endpunkt: ddc.dwds.de/dstar/<korpus>/diacollo/profile.perl?fmt=json
+// Die Haupt-URL (diacollo/) gibt nur HTML zurück – immer profile.perl direkt nutzen!
+// Aktive Korpora werden aus server/data/diacollo-config.json gelesen.
 
-const DIACOLLO_BASE = 'https://kaskade.dwds.de/dstar/dta/diacollo/'
+import { readFileSync } from 'fs'
+import { fileURLToPath } from 'url'
+import { dirname, join }  from 'path'
 
-/**
- * Holt 5 Kollokat-Periode-Paare für ein Lemma aus dem DTA-Korpus.
- * Wählt 5 gleichmäßig über die Zeitspanne verteilte Perioden (je 50 Jahre).
- * Pro Periode den top-1 Kollokator (log Dice), der in keiner anderen Periode
- * bereits vergeben ist.
- *
- * Gibt null zurück, wenn nicht genügend Daten vorhanden sind.
- */
-export async function fetchZeitreise(lemma) {
-  const url = `${DIACOLLO_BASE}?${new URLSearchParams({
-    q:      lemma,
-    slice:  '50',
-    kbest:  '20',
-    format: 'json',
-  })}`
+const DATA = join(dirname(fileURLToPath(import.meta.url)), 'data')
 
-  const r = await fetch(url)
-  if (!r.ok) throw new Error(`DiaCollo HTTP ${r.status}`)
-  const data = await r.json()
+const BASE = 'https://ddc.dwds.de/dstar'
 
-  return extractPaare(lemma, data)
+// Fallback falls Config-Datei fehlt
+const CORPORA_DEFAULT = [
+  { id: 'dta',              slice: 50 },
+  { id: 'kern',             slice: 20 },
+  { id: 'ddr',              slice: 10 },
+  { id: 'politische_reden', slice: 10 },
+]
+
+function getActiveCorpora() {
+  try {
+    const cfg = JSON.parse(readFileSync(join(DATA, 'diacollo-config.json'), 'utf8'))
+    const active = cfg.corpora.filter(c => c.enabled)
+    return active.length ? active : CORPORA_DEFAULT
+  } catch {
+    return CORPORA_DEFAULT
+  }
 }
 
-function extractPaare(lemma, data) {
-  // Perioden mit ausreichend Belegen, chronologisch sortiert
-  const profiles = (data.profiles || [])
-    .filter(p => p.f1 >= 5 && p.ld && Object.keys(p.ld).length >= 3)
-    .sort((a, b) => Number(a.label) - Number(b.label))
+/** Ruft ein einzelnes Korpus ab und taggt jedes Profil mit `_korpus`. */
+async function fetchKorpus({ id, slice }, lemma) {
+  const qs  = `q=${encodeURIComponent(lemma)}&slice=${slice}&kbest=20&fmt=json`
+  const url = `${BASE}/${id}/diacollo/profile.perl?${qs}`
+  const res = await fetch(url)
+  if (!res.ok) throw new Error(`DiaCollo/${id} HTTP ${res.status}`)
+  const data = await res.json()
+  return (data.profiles || []).map(p => ({ ...p, _korpus: id }))
+}
+
+/**
+ * Holt alle aktiven Korpora parallel, merged die Profile chronologisch.
+ * Bei gleichem Jahres-Label gewinnt das Profil mit höherem f1 (mehr Daten).
+ */
+async function fetchAllProfiles(lemma) {
+  const results = await Promise.allSettled(getActiveCorpora().map(k => fetchKorpus(k, lemma)))
+  const byYear  = new Map()
+  for (const r of results) {
+    if (r.status === 'rejected') {
+      console.warn(' DiaCollo:', r.reason.message)
+      continue
+    }
+    for (const p of r.value) {
+      const existing = byYear.get(p.label)
+      if (!existing || p.f1 > existing.f1) byYear.set(p.label, p)
+    }
+  }
+  return [...byYear.values()].sort((a, b) => Number(a.label) - Number(b.label))
+}
+
+/** Debug-Endpunkt: zeigt alle aktiven Korpora + merged Timeline für ein Lemma. */
+export async function debugDiaCollo(lemma) {
+  const activeCorpora = getActiveCorpora()
+  // Einzelne Korpora-Infos
+  const settled = await Promise.allSettled(activeCorpora.map(k => fetchKorpus(k, lemma)))
+  const corpora = {}
+  for (let i = 0; i < activeCorpora.length; i++) {
+    const r = settled[i]
+    if (r.status === 'rejected') { corpora[activeCorpora[i].id] = { error: r.reason.message }; continue }
+    const profiles = r.value
+    corpora[activeCorpora[i].id] = {
+      total:   profiles.length,
+      passing: profiles.filter(p => p.f1 >= 5 && p.ld && Object.keys(p.ld).length >= 3).length,
+      labels:  profiles.map(p => p.label),
+    }
+  }
+
+  // Merged Timeline
+  const byYear = new Map()
+  for (const r of settled) {
+    if (r.status === 'rejected') continue
+    for (const p of r.value) {
+      const existing = byYear.get(p.label)
+      if (!existing || p.f1 > existing.f1) byYear.set(p.label, p)
+    }
+  }
+  const merged  = [...byYear.values()].sort((a, b) => Number(a.label) - Number(b.label))
+  const summary = merged.map(p => ({
+    label:   p.label,
+    korpus:  p._korpus,
+    f1:      p.f1,
+    ldCount: p.ld ? Object.keys(p.ld).length : 0,
+    pass:    !!(p.f1 >= 5 && p.ld && Object.keys(p.ld).length >= 3),
+    top: p.ld
+      ? Object.entries(p.ld)
+          .map(([k, v]) => ({ wort: k.split('\t')[0], pos: k.split('\t')[1] || '', score: Number(v) }))
+          .sort((a, b) => b.score - a.score)
+          .slice(0, 8)
+      : [],
+  }))
+  const passing = summary.filter(s => s.pass).length
+  return { corpora, total: merged.length, passing, ok: passing >= 5, summary }
+}
+
+/** Produktiv-Funktion: gibt 5 Kollokat-Periode-Paare zurück oder null. */
+export async function fetchZeitreise(lemma) {
+  const profiles = await fetchAllProfiles(lemma)
+  return extractPaare(lemma, profiles)
+}
+
+/**
+ * Nomen und Adjektive bevorzugen – semantisch informativer als Verben.
+ * Duplikate sind erlaubt: dominiert dasselbe Wort mehrere Perioden, ist das
+ * ein legitimes Ergebnis (geringe lexikalische Variation in dem Bereich).
+ */
+const POS_RANK = { NN: 0, ADJA: 0, ADJD: 0, NE: 1 }  // Verben/Sonstiges = 2
+
+function getBestCollokat(profile, lemmaLower) {
+  const valid = Object.entries(profile.ld)
+    .map(([key, score]) => {
+      const [wort, pos = ''] = key.split('\t')
+      return { wort, pos, score: Number(score) }
+    })
+    .filter(c =>
+      c.wort.toLowerCase() !== lemmaLower &&
+      !c.wort.includes(' ') &&
+      c.wort.length > 2
+    )
+    .sort((a, b) => {
+      const ra = POS_RANK[a.pos] ?? 2
+      const rb = POS_RANK[b.pos] ?? 2
+      if (ra !== rb) return ra - rb
+      return b.score - a.score
+    })
+  return valid[0] || null
+}
+
+/**
+ * Wählt 5 gleichmäßig verteilte Perioden aus dem gemergten Profil-Array.
+ * Gibt alle passenden Perioden als `perioden` zurück (für Visualisierung)
+ * sowie die 5 ausgewählten Spielperioden als `paare`.
+ * Gibt null zurück, wenn nicht genügend Daten vorhanden sind.
+ */
+function extractPaare(lemma, raw) {
+  console.log(`  DiaCollo: ${raw.length} Perioden total für „${lemma}" (${raw[0]?._korpus}…${raw.at(-1)?._korpus})`)
+
+  const profiles = raw.filter(p => p.f1 >= 5 && p.ld && Object.keys(p.ld).length >= 3)
+  console.log(`  DiaCollo: ${profiles.length} Perioden nach Filter (brauche ≥5)`)
+
+  raw.forEach(p => {
+    const ldCount = p.ld ? Object.keys(p.ld).length : 0
+    if (p.f1 < 5 || ldCount < 3)
+      console.log(`    Gefiltert: ${p.label} [${p._korpus}]  f1=${p.f1}  ld=${ldCount}`)
+  })
 
   if (profiles.length < 5) return null
 
-  // 5 gleichmäßig verteilte Perioden auswählen
+  const lemmaLower = lemma.toLowerCase()
+
+  // perioden: ALLE passenden Perioden mit bestem Kollokator (für Visualisierung)
+  const perioden = profiles.flatMap(profile => {
+    const best = getBestCollokat(profile, lemmaLower)
+    if (!best) return []
+    return [{ jahrzehnt: profile.label, kollokat: best.wort, korpus: profile._korpus, score: best.score }]
+  })
+
+  // paare: 5 gleichmäßig verteilte Perioden für das Spiel
   const step     = (profiles.length - 1) / 4
   const selected = [0, 1, 2, 3, 4].map(i => profiles[Math.round(i * step)])
 
-  const lemmaLower = lemma.toLowerCase()
-  const usedWords  = new Set()
-  const paare      = []
-
+  const paare = []
   for (const profile of selected) {
-    // Kollokatoren nach log Dice absteigend, Lemma selbst und Mehrwörter ausschließen
-    const allValid = Object.entries(profile.ld)
-      .map(([key, score]) => ({
-        wort:  key.split('\t')[0],
-        score: Number(score),
-      }))
-      .filter(c =>
-        c.wort.toLowerCase() !== lemmaLower &&
-        !c.wort.includes(' ') &&
-        c.wort.length > 2
-      )
-      .sort((a, b) => b.score - a.score)
-
-    if (!allValid.length) {
-      console.warn(`  DiaCollo: Keine gültigen Kollokatoren für Periode ${profile.label}`)
+    const best = getBestCollokat(profile, lemmaLower)
+    if (!best) {
+      console.warn(`  DiaCollo: Keine gültigen Kollokatoren für ${profile.label} [${profile._korpus}]`)
       return null
     }
-
-    // Einzigartigen Kollokator bevorzugen, Fallback auf besten verfügbaren
-    const unique = allValid.filter(c => !usedWords.has(c.wort.toLowerCase()))
-    const best   = unique.length ? unique[0] : allValid[0]
-
-    usedWords.add(best.wort.toLowerCase())
-    paare.push({ jahrzehnt: profile.label, kollokat: best.wort })
+    paare.push({ jahrzehnt: profile.label, kollokat: best.wort, korpus: profile._korpus, score: best.score })
   }
 
   if (paare.length < 5) return null
-  return { lemma, paare }
+  return { lemma, paare, perioden }
 }

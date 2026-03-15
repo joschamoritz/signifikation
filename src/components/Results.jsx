@@ -96,7 +96,14 @@ export default function Results({ lemma, roundScores, onRestart, onToSelection }
 
       <div className="wortprofil-card">
         <div className="wortprofil-header">
-          <p className="wortprofil-title">Wortprofil · {lemma.lemma}</p>
+          <div className="wortprofil-title-row">
+            <p className="wortprofil-title">Wortprofil · {lemma.lemma}</p>
+            <a
+              className="dwds-link"
+              href={`https://www.dwds.de/wb/${encodeURIComponent(lemma.lemma)}`}
+              target="_blank" rel="noopener noreferrer"
+            >Mehr erfahren ↗</a>
+          </div>
           <button className="logdice-toggle" onClick={() => setLogDiceOpen(o => !o)}>
             Was bedeutet logDice?
             <span className={`toggle-arrow ${logDiceOpen ? 'toggle-arrow--open' : ''}`}>›</span>
