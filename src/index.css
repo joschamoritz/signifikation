@@ -157,22 +157,21 @@ button { font-family: inherit; cursor: pointer; border: none }
 }
 .streak-text {
   display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  line-height: 1.2;
+  flex-direction: row;
+  align-items: baseline;
+  gap: 5px;
 }
 .streak-count {
   font-family: 'Playfair Display', serif;
-  font-size: 1.6rem;
+  font-size: 1.3rem;
   font-weight: 800;
   color: #c2410c;
   line-height: 1;
 }
 .streak-label {
-  font-size: 0.72rem;
+  font-size: 0.8rem;
   font-weight: 600;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  letter-spacing: 0.03em;
   color: #92400e;
   opacity: 0.8;
 }
