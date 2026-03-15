@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import {
   getRundInfo,
   getRoundOptions,
@@ -160,11 +160,20 @@ export default function Quiz({ lemma, currentRound, bonusQuestion, onRoundComple
   const [submitted, setSubmitted] = useState(false)
 
   const rundInfo     = getRundInfo(lemma)
-  const roundKey     = rundInfo[currentRound].key
-  const roundLabel   = rundInfo[currentRound].label
-  const kollokatoren = lemma.runden[roundKey]
+  const roundInfo    = rundInfo[currentRound]
+  const roundKey     = roundInfo?.key
+  const roundLabel   = roundInfo?.label ?? ''
+  const kollokatoren = (roundKey && lemma.runden[roundKey]) ?? []
 
-  const options    = useMemo(() => getRoundOptions(kollokatoren), []) // eslint-disable-line
+  const options = useMemo(() => getRoundOptions(kollokatoren), []) // eslint-disable-line
+
+  // Keine Daten für diese Runde → einmalig überspringen (0 Punkte)
+  const shouldSkip = !kollokatoren.length && !!roundKey
+  useEffect(() => {
+    if (shouldSkip) onRoundComplete(0)
+  }, [shouldSkip]) // eslint-disable-line
+
+  if (shouldSkip) return null
   const roundScore = submitted ? calculateScore(selected, kollokatoren) : null
 
   // Rang des gewählten Wortes (Position im selected-Array, 1-basiert)
