@@ -11,6 +11,7 @@ mkdirSync(DATA, { recursive: true })
 
 const ADMIN_KEY = process.env.ADMIN_KEY || 'signifikation-admin'
 const PORT      = process.env.PORT      || 3001
+if (!process.env.ADMIN_KEY) console.warn('⚠️  ADMIN_KEY nicht gesetzt – Standard-Passwort aktiv!')
 
 const app = express()
 app.use(express.json())
@@ -357,5 +358,5 @@ app.use((err, req, res, _next) => {
 // ── Start ────────────────────────────────────────────────────
 app.listen(PORT, () => {
   console.log(`Signifikation-Server läuft auf http://localhost:${PORT}`)
-  console.log(`Admin: http://localhost:${PORT}/admin?key=${ADMIN_KEY}`)
+  console.log(`Admin: http://localhost:${PORT}/admin`)
 })

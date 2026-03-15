@@ -144,17 +144,7 @@ function getBestCollokat(profile, lemmaLower, usedWords = new Set()) {
  * Gibt null zurück, wenn nicht genügend Daten vorhanden sind.
  */
 function extractPaare(lemma, raw) {
-  console.log(`  DiaCollo: ${raw.length} Perioden total für „${lemma}" (${raw[0]?._korpus}…${raw.at(-1)?._korpus})`)
-
   const profiles = raw.filter(p => p.f1 >= 5 && p.ld && Object.keys(p.ld).length >= 3)
-  console.log(`  DiaCollo: ${profiles.length} Perioden nach Filter (brauche ≥5)`)
-
-  raw.forEach(p => {
-    const ldCount = p.ld ? Object.keys(p.ld).length : 0
-    if (p.f1 < 5 || ldCount < 3)
-      console.log(`    Gefiltert: ${p.label} [${p._korpus}]  f1=${p.f1}  ld=${ldCount}`)
-  })
-
   if (profiles.length < 5) return null
 
   const lemmaLower = lemma.toLowerCase()
