@@ -68,8 +68,7 @@ export default function App() {
   const [roundScores, setScores]     = useState([])
   const [bonusQuestion, setBonusQ]   = useState(null)
 
-  // Force home re-render after Zeitreise finish (to refresh zrPlayed)
-  const [zrVersion, setZRVersion] = useState(0)
+  const [zrPlayed, setZrPlayed] = useState(() => getZRToday())
 
   useEffect(() => {
     fetch('/api/heute')
@@ -137,18 +136,14 @@ export default function App() {
   const handleZeitreiseFinish = useCallback((score) => {
     if (!zeitreise) return
     const medal = getMedal(score).label
-    localStorage.setItem(todayZRKey(), JSON.stringify({
-      lemma: zeitreise.lemma,
-      total: score,
-      medal,
-    }))
-    setZRVersion(v => v + 1) // trigger re-render so zrPlayed updates
+    const entry = { lemma: zeitreise.lemma, total: score, medal }
+    localStorage.setItem(todayZRKey(), JSON.stringify(entry))
+    setZrPlayed(entry)
   }, [zeitreise])
 
   const playedGames = getPlayedToday()
   const playedIds   = playedGames.map(g => g.id)
   const allPlayed   = lemmata && lemmata.every(l => playedIds.includes(l.id))
-  const zrPlayed    = getZRToday() // re-reads localStorage on render (zrVersion dependency)
 
   return (
     <div className="app">

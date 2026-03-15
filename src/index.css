@@ -1062,10 +1062,24 @@ button { font-family: inherit; cursor: pointer; border: none }
   padding: 6px 14px;
   cursor: grab;
   user-select: none;
+  touch-action: none;
   transition: border-color 0.12s, background 0.12s, transform 0.1s;
   white-space: nowrap;
 }
 .zr-chip:active { cursor: grabbing; transform: scale(0.96) }
+.zr-chip--ghost {
+  border-radius: 20px;
+  padding: 6px 14px;
+  font-family: var(--font-sans);
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text);
+  background: var(--surface);
+  border: 2px solid #3b82f6;
+  box-shadow: 0 6px 20px rgba(0,0,0,.18);
+  transform: scale(1.06);
+  cursor: grabbing;
+}
 .zr-chip:hover  { border-color: #93c5fd; background: #f0f9ff }
 
 .zr-chip--selected {
