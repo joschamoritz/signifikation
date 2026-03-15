@@ -95,7 +95,7 @@ app.get('/api/belege', async (req, res) => {
   async function tryQuery(q, extra = '') {
     const url = `https://www.dwds.de/r/?q=${encodeURIComponent(q)}&view=json&limit=10${extra}`
     const r = await fetch(url)
-    if (!r.ok) throw new Error(`DWDS HTTP ${r.status}`)
+    if (!r.ok) return []  // ungültiger Korpus (z.B. 404 für reichstag) → leer statt Exception
     const data = await r.json()
     return Array.isArray(data) ? data.filter(item => Array.isArray(item.ctx_?.[1])) : []
   }
@@ -206,7 +206,14 @@ app.get('/api/belege', async (req, res) => {
       }
       if (results.length === 0 && y) {
         for (const q of queries) {
-          results = await tryQuery(q, dateWide)      // Datum-only ±40 (letzter Ausweg)
+          results = await tryQuery(q, dateWide)      // Datum-only ±40
+          if (results.length >= 2) break
+        }
+      }
+      if (results.length === 0) {
+        // Korpus nicht in /r/ verfügbar (z.B. reichstag) → global ohne Einschränkung
+        for (const q of queries) {
+          results = await tryQuery(q, '')
           if (results.length >= 2) break
         }
       }
