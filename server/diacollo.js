@@ -170,6 +170,8 @@ function extractPaare(lemma, raw) {
 
   // paare: 5 Quintile – innerhalb jedes Quintils die Periode mit dem höchsten logDice-Score
   const n = profiles.length
+  const paare = []
+  const usedWords = new Set()
   const selected = [0, 1, 2, 3, 4].map(i => {
     const from = Math.round(i * (n - 1) / 4)
     const to   = Math.round((i + 1) * (n - 1) / 4)
@@ -184,9 +186,6 @@ function extractPaare(lemma, raw) {
     }
     return best ?? profiles[Math.round(i * (n - 1) / 4)]  // Fallback auf mittlere Position
   })
-
-  const paare = []
-  const usedWords = new Set()
   for (const profile of selected) {
     const best = getBestCollokat(profile, lemmaLower, usedWords)
     if (!best) {
