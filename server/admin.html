@@ -608,9 +608,37 @@
       return
     }
 
-    // Gleichmäßig verteilte 5 Perioden (wie extractPaare)
-    const step = (passing.length - 1) / 4
-    const selectedLabels = new Set([0,1,2,3,4].map(i => passing[Math.round(i * step)]?.label))
+    // Quintil-Selektion mit Lemmafilter (identisch zu extractPaare in diacollo.js)
+    const wordLower = word.toLowerCase()
+    const wordStamm = wordLower.slice(0, 4)
+    function bestFilteredCollokat(period) {
+      if (!period?.top) return null
+      return period.top.find(c => {
+        const w = c.wort.toLowerCase().trim()
+        return w !== wordLower && !w.startsWith(wordStamm) &&
+               !c.wort.includes(' ') && !c.wort.endsWith('-') && c.wort.length > 2
+      }) || null
+    }
+    const n = passing.length
+    const selectedLabels = new Set()
+    const usedInSelection = new Set()
+    for (let i = 0; i < 5; i++) {
+      const from = Math.round(i * (n - 1) / 4)
+      const to   = Math.round((i + 1) * (n - 1) / 4)
+      let bestLabel = null, bestScore = -Infinity
+      for (let j = from; j <= to; j++) {
+        const col = bestFilteredCollokat(passing[j])
+        if (col && col.score > bestScore && !usedInSelection.has(col.wort.toLowerCase())) {
+          bestScore = col.score
+          bestLabel = passing[j].label
+        }
+      }
+      if (bestLabel) {
+        selectedLabels.add(bestLabel)
+        const col = bestFilteredCollokat(passing.find(p => p.label === bestLabel))
+        if (col) usedInSelection.add(col.wort.toLowerCase())
+      }
+    }
 
     // Corpus-Übersicht für Meta-Zeile
     const corpusSummary = Object.entries(data.corpora)
@@ -648,14 +676,15 @@
       }
     }
 
-    // ★-Punkte als eigenes Overlay-Dataset (weißer Ring)
+    // ★-Punkte als eigenes Overlay-Dataset (weißer Ring) – gefilterten Kollokator nutzen
     const starData = passing
-      .filter(s => selectedLabels.has(s.label) && s.top[0])
+      .filter(s => selectedLabels.has(s.label))
       .map(s => {
-        const col = s.top[0]
+        const col = bestFilteredCollokat(s)
+        if (!col) return null
         const baseR = 4 + Math.round((col.score / maxScore) * 13) + 2
         return { x: parseInt(s.label), y: col.score, r: baseR + 3, wort: col.wort, periode: s.label }
-      })
+      }).filter(Boolean)
 
     // HTML aufbauen
     container.innerHTML = `
@@ -684,7 +713,8 @@
     for (const s of data.summary) {
       if (!s.pass) continue
       const isSelected = selectedLabels.has(s.label)
-      const top = s.top[0]
+      // Für ★-Perioden den gefilterten Kollokator zeigen (wie im Spiel), sonst top[0]
+      const top = isSelected ? (bestFilteredCollokat(s) || s.top[0]) : s.top[0]
       if (!top) continue
       const barPct  = Math.round((top.score / maxScore) * 100)
       const color   = korpusColor(s.korpus)

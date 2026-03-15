@@ -403,7 +403,7 @@ button { font-family: inherit; cursor: pointer; border: none }
   padding-block: 32px;
 }
 
-.selection-header { display: flex; flex-direction: column; gap: 12px }
+.selection-header { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 12px }
 
 .back-btn {
   background: none;
@@ -1310,15 +1310,19 @@ button { font-family: inherit; cursor: pointer; border: none }
   overflow: visible;
 }
 .zr-bubble-popover {
-  margin-top: 6px;
+  margin-top: 8px;
   padding: 10px 12px;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 8px;
   font-size: 0.82rem;
   line-height: 1.5;
-  min-height: 38px;
-  animation: fadeIn 0.12s ease;
+  min-height: 64px;
+}
+.zr-bubble-popover-hint {
+  color: var(--muted);
+  font-size: 0.78rem;
+  margin: 0;
 }
 .zr-bubble-popover-header {
   font-size: 0.78rem;

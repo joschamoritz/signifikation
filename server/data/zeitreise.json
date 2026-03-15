@@ -169,171 +169,286 @@
     ]
   },
   "03-16": {
-    "lemma": "Information",
+    "lemma": "Wehrpflicht",
     "paare": [
       {
-        "jahrzehnt": "1600",
-        "kollokat": "ausführlich",
+        "jahrzehnt": "1800",
+        "kollokat": "Waffenrecht",
         "korpus": "dta",
-        "score": 7.30452311799086
+        "score": 8.64244799538192
       },
       {
-        "jahrzehnt": "1850",
-        "kollokat": "beiläufig",
-        "korpus": "dta",
-        "score": 5.31964047648629
-      },
-      {
-        "jahrzehnt": "1910",
-        "kollokat": "Marokkoangelegenheit",
+        "jahrzehnt": "1880",
+        "kollokat": "Änderung",
         "korpus": "reichstag",
-        "score": 5.56571928411755
+        "score": 5.99977459650905
+      },
+      {
+        "jahrzehnt": "1920",
+        "kollokat": "Abschaffung",
+        "korpus": "reichstag",
+        "score": 7.79509161988182
       },
       {
         "jahrzehnt": "1960",
-        "kollokat": "genetisch",
+        "kollokat": "Ableistung",
         "korpus": "kern",
-        "score": 7.45799469989051
+        "score": 7.3417885172482
       },
       {
         "jahrzehnt": "2010",
-        "kollokat": "Zugang",
+        "kollokat": "Zivildienst",
         "korpus": "politische_reden",
-        "score": 6.30245319448032
+        "score": 9.15630323087868
       }
     ],
     "perioden": [
       {
-        "jahrzehnt": "1600",
-        "kollokat": "ausführlich",
-        "korpus": "dta",
-        "score": 7.30452311799086
-      },
-      {
-        "jahrzehnt": "1650",
-        "kollokat": "einseitig",
-        "korpus": "dta",
-        "score": 5.63149353849231
-      },
-      {
-        "jahrzehnt": "1700",
-        "kollokat": "katechetisch",
-        "korpus": "dta",
-        "score": 6.32454696533094
-      },
-      {
-        "jahrzehnt": "1750",
-        "kollokat": "Stipendium",
-        "korpus": "dta",
-        "score": 6.88886432976529
-      },
-      {
         "jahrzehnt": "1800",
-        "kollokat": "Preis-Verzeichnis",
+        "kollokat": "Waffenrecht",
         "korpus": "dta",
-        "score": 8.29678853260885
+        "score": 8.64244799538192
       },
       {
         "jahrzehnt": "1850",
-        "kollokat": "beiläufig",
+        "kollokat": "Untertanenpflicht",
         "korpus": "dta",
-        "score": 5.31964047648629
+        "score": 6.47980227797636
       },
       {
         "jahrzehnt": "1860",
-        "kollokat": "Commission",
+        "kollokat": "Mennonit",
         "korpus": "reichstag",
-        "score": 6.2823235769336
+        "score": 7.70663286020178
       },
       {
         "jahrzehnt": "1870",
-        "kollokat": "Prozeßgebühr",
+        "kollokat": "untauglich",
         "korpus": "reichstag",
-        "score": 7.19948070819189
+        "score": 7.57253749094028
       },
       {
         "jahrzehnt": "1880",
-        "kollokat": "Quelle",
+        "kollokat": "Änderung",
         "korpus": "reichstag",
-        "score": 5.04548054143373
+        "score": 5.99977459650905
       },
       {
         "jahrzehnt": "1890",
-        "kollokat": "zuverlässig",
+        "kollokat": "Theologe",
         "korpus": "reichstag",
-        "score": 4.91386377497269
+        "score": 7.51590632712843
       },
       {
         "jahrzehnt": "1900",
-        "kollokat": "zugegehen",
+        "kollokat": "afrikanisch",
         "korpus": "reichstag",
-        "score": 5.40325116807224
+        "score": 7.13638995400203
       },
       {
         "jahrzehnt": "1910",
-        "kollokat": "Marokkoangelegenheit",
+        "kollokat": "Reichsmilitärgesetz",
         "korpus": "reichstag",
-        "score": 5.56571928411755
+        "score": 8.51844271929141
       },
       {
         "jahrzehnt": "1920",
-        "kollokat": "Privatgeschäft",
+        "kollokat": "Abschaffung",
         "korpus": "reichstag",
-        "score": 4.86900051046601
+        "score": 7.79509161988182
       },
       {
         "jahrzehnt": "1930",
-        "kollokat": "unzureichend",
+        "kollokat": "Verleitung",
         "korpus": "reichstag",
-        "score": 7.09160737922625
+        "score": 9.13581385534572
       },
       {
         "jahrzehnt": "1940",
-        "kollokat": "Austausch",
+        "kollokat": "Wiedereinführung",
         "korpus": "kern",
-        "score": 7.18517537584124
+        "score": 8.31249933756641
       },
       {
         "jahrzehnt": "1950",
-        "kollokat": "Austausch",
+        "kollokat": "Wehrdienst",
         "korpus": "bundestag",
-        "score": 6.33558688551664
+        "score": 7.37846268208256
       },
       {
         "jahrzehnt": "1960",
-        "kollokat": "genetisch",
+        "kollokat": "Ableistung",
         "korpus": "kern",
-        "score": 7.45799469989051
-      },
-      {
-        "jahrzehnt": "1970",
-        "kollokat": "Verhalten",
-        "korpus": "ddr",
-        "score": 7.52995127398867
+        "score": 7.3417885172482
       },
       {
         "jahrzehnt": "1980",
-        "kollokat": "Mitteilung",
+        "kollokat": "Freiwilligendienst",
         "korpus": "kern",
-        "score": 6.79637190928988
+        "score": 6.57793523382719
       },
       {
         "jahrzehnt": "1990",
-        "kollokat": "Wissen",
+        "kollokat": "Landesverteidigung",
         "korpus": "politische_reden",
-        "score": 6.90297118205966
+        "score": 8.06336206099743
       },
       {
         "jahrzehnt": "2000",
-        "kollokat": "Zugang",
+        "kollokat": "Aussetzung",
         "korpus": "bundestag",
-        "score": 6.47579199538574
+        "score": 8.1549513894284
       },
       {
         "jahrzehnt": "2010",
-        "kollokat": "Zugang",
+        "kollokat": "Zivildienst",
         "korpus": "politische_reden",
-        "score": 6.30245319448032
+        "score": 9.15630323087868
+      }
+    ]
+  },
+  "03-17": {
+    "lemma": "irisch",
+    "paare": [
+      {
+        "jahrzehnt": "1700",
+        "kollokat": "Kork",
+        "korpus": "dta",
+        "score": 7.43775757577893
+      },
+      {
+        "jahrzehnt": "1870",
+        "kollokat": "Gefängnis-System",
+        "korpus": "reichstag",
+        "score": 8.03037364904352
+      },
+      {
+        "jahrzehnt": "1920",
+        "kollokat": "Freistaat",
+        "korpus": "kern",
+        "score": 9.19147453423446
+      },
+      {
+        "jahrzehnt": "1960",
+        "kollokat": "Abstammung",
+        "korpus": "kern",
+        "score": 6.98978980139778
+      },
+      {
+        "jahrzehnt": "2000",
+        "kollokat": "Tochter",
+        "korpus": "bundestag",
+        "score": 5.84737713167479
+      }
+    ],
+    "perioden": [
+      {
+        "jahrzehnt": "1700",
+        "kollokat": "Kork",
+        "korpus": "dta",
+        "score": 7.43775757577893
+      },
+      {
+        "jahrzehnt": "1750",
+        "kollokat": "Pair",
+        "korpus": "dta",
+        "score": 7.80032765516364
+      },
+      {
+        "jahrzehnt": "1800",
+        "kollokat": "Municipalreformbill",
+        "korpus": "dta",
+        "score": 6.42761556535831
+      },
+      {
+        "jahrzehnt": "1850",
+        "kollokat": "Grafschaft",
+        "korpus": "dta",
+        "score": 6.91414159328189
+      },
+      {
+        "jahrzehnt": "1870",
+        "kollokat": "Gefängnis-System",
+        "korpus": "reichstag",
+        "score": 8.03037364904352
+      },
+      {
+        "jahrzehnt": "1880",
+        "kollokat": "Mörder",
+        "korpus": "reichstag",
+        "score": 7.03133320680479
+      },
+      {
+        "jahrzehnt": "1890",
+        "kollokat": "Gefährlichkeit",
+        "korpus": "reichstag",
+        "score": 5.52224173355611
+      },
+      {
+        "jahrzehnt": "1900",
+        "kollokat": "Heldensage",
+        "korpus": "dta",
+        "score": 6.84923725564458
+      },
+      {
+        "jahrzehnt": "1910",
+        "kollokat": "Grundherr",
+        "korpus": "reichstag",
+        "score": 7.25180715041054
+      },
+      {
+        "jahrzehnt": "1920",
+        "kollokat": "Freistaat",
+        "korpus": "kern",
+        "score": 9.19147453423446
+      },
+      {
+        "jahrzehnt": "1930",
+        "kollokat": "Freistaat",
+        "korpus": "reichstag",
+        "score": 10.4896631652389
+      },
+      {
+        "jahrzehnt": "1940",
+        "kollokat": "Ostertafel",
+        "korpus": "kern",
+        "score": 7.46602142799765
+      },
+      {
+        "jahrzehnt": "1950",
+        "kollokat": "Pfund",
+        "korpus": "bundestag",
+        "score": 8.31627090885694
+      },
+      {
+        "jahrzehnt": "1960",
+        "kollokat": "Abstammung",
+        "korpus": "kern",
+        "score": 6.98978980139778
+      },
+      {
+        "jahrzehnt": "1970",
+        "kollokat": "Squaw",
+        "korpus": "ddr",
+        "score": 9.60768257722124
+      },
+      {
+        "jahrzehnt": "1980",
+        "kollokat": "Druide",
+        "korpus": "kern",
+        "score": 6.51820056833425
+      },
+      {
+        "jahrzehnt": "1990",
+        "kollokat": "Präsidentschaft",
+        "korpus": "politische_reden",
+        "score": 6.81079316540298
+      },
+      {
+        "jahrzehnt": "2000",
+        "kollokat": "Tochter",
+        "korpus": "bundestag",
+        "score": 5.84737713167479
       }
     ]
   }
