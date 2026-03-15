@@ -122,17 +122,24 @@ export async function fetchZeitreise(lemma) {
 const POS_RANK = { NN: 0, ADJA: 0, ADJD: 0, NE: 1 }  // Verben/Sonstiges = 2
 
 function getBestCollokat(profile, lemmaLower, usedWords = new Set()) {
+  // Stamm des Lemmas (erste 4 Zeichen) für Stammvarianten-Filter
+  const lemmaStamm = lemmaLower.slice(0, 4)
   const valid = Object.entries(profile.ld)
     .map(([key, score]) => {
       const [wort, pos = ''] = key.split('\t')
       return { wort, pos, score: Number(score) }
     })
-    .filter(c =>
-      c.wort.toLowerCase() !== lemmaLower &&
-      !c.wort.includes(' ') &&
-      c.wort.length > 2 &&
-      !usedWords.has(c.wort.toLowerCase())
-    )
+    .filter(c => {
+      const w = c.wort.toLowerCase().trim()
+      return (
+        w !== lemmaLower &&                      // Lemma selbst
+        !w.startsWith(lemmaStamm) &&             // Stammvarianten (z.B. „irisch" bei Lemma „irisch")
+        !c.wort.includes(' ') &&                 // keine Phrasen
+        !c.wort.endsWith('-') &&                 // keine abgeschnittenen Formen (z.B. „schott-")
+        c.wort.length > 2 &&
+        !usedWords.has(w)
+      )
+    })
     .sort((a, b) => {
       const ra = POS_RANK[a.pos] ?? 2
       const rb = POS_RANK[b.pos] ?? 2
@@ -161,9 +168,22 @@ function extractPaare(lemma, raw) {
     return [{ jahrzehnt: profile.label, kollokat: best.wort, korpus: profile._korpus, score: best.score }]
   })
 
-  // paare: 5 gleichmäßig verteilte Perioden für das Spiel
-  const step     = (profiles.length - 1) / 4
-  const selected = [0, 1, 2, 3, 4].map(i => profiles[Math.round(i * step)])
+  // paare: 5 Quintile – innerhalb jedes Quintils die Periode mit dem höchsten logDice-Score
+  const n = profiles.length
+  const selected = [0, 1, 2, 3, 4].map(i => {
+    const from = Math.round(i * (n - 1) / 4)
+    const to   = Math.round((i + 1) * (n - 1) / 4)
+    // Alle Perioden im Quintil, bestes logDice (des gefilterten Top-Kollokatoren) gewinnt
+    let best = null, bestScore = -Infinity
+    for (let j = from; j <= to; j++) {
+      const candidate = getBestCollokat(profiles[j], lemmaLower, usedWords)
+      if (candidate && candidate.score > bestScore) {
+        bestScore = candidate.score
+        best = profiles[j]
+      }
+    }
+    return best ?? profiles[Math.round(i * (n - 1) / 4)]  // Fallback auf mittlere Position
+  })
 
   const paare = []
   const usedWords = new Set()

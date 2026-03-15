@@ -7,7 +7,8 @@ export default function LemmaSelection({ lemmata, playedIds = [], onSelect, onBa
     <div className="screen selection-screen">
       <header className="selection-header">
         <button className="back-btn" onClick={onBack}>← Zurück</button>
-        <p className="selection-prompt">Wähle ein Wort für das heutige Quiz:</p>
+        <span className="quiz-game-badge">Kollokationen</span>
+        <p className="quiz-instruction">Wähle ein Wort und finde seine stärksten Kollokate</p>
       </header>
 
       <div className="lemma-cards">
@@ -53,7 +54,6 @@ export default function LemmaSelection({ lemmata, playedIds = [], onSelect, onBa
         })}
       </div>
 
-      <p className="selection-hint">3 Runden + Bonus · max. 10 Punkte</p>
     </div>
   )
 }

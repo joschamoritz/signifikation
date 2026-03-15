@@ -77,13 +77,17 @@ app.get('/api/belege', async (req, res) => {
   const { collocate, lemma, rel, corpus, year } = req.query
   if (!collocate || !lemma) return res.status(400).json({ error: 'collocate und lemma erforderlich' })
 
+  // Korpora die DWDS /r/ als Filter akzeptiert (DiaCollo-IDs ≠ /r/-IDs für manche)
+  const VALID_R_CORPORA = new Set(['kern', 'dta', 'dtae', 'dtak', 'ddr', 'politische_reden', 'bundestag', 'reichstag'])
+  const corpusForR = corpus && VALID_R_CORPORA.has(corpus) ? corpus : null
+
   // Build optional corpus + date suffix for DWDS search
   function corpusSuffix() {
     let s = ''
-    if (corpus) s += `&corpus=${encodeURIComponent(corpus)}`
+    if (corpusForR) s += `&corpus=${encodeURIComponent(corpusForR)}`
     if (year) {
       const y = parseInt(year)
-      if (!isNaN(y)) s += `&date=${Math.max(y - 20, 1000)}:${y + 60}`
+      if (!isNaN(y)) s += `&date=${y - 15}:${y + 15}`  // ±15 Jahre um das Jahrzehnt
     }
     return s
   }
@@ -105,25 +109,29 @@ app.get('/api/belege', async (req, res) => {
   try {
     const cap = s => s.charAt(0).toUpperCase() + s.slice(1)
 
+    // @Wort = Lemmasuche (alle Flexionsformen), wichtig für flektierte Formen im Korpus
+    const L = `@${lemma}`
+    const C = `@${collocate}`
+
     let queries
     if (rel === 'OBJ') {
       queries = [
         `"${lemma} ${collocate}"`,
         `"${collocate} ${lemma}"`,
-        `${collocate} #10 ${lemma}`,
-        `${lemma} #10 ${collocate}`,
+        `${C} #10 ${L}`,
+        `${L} #10 ${C}`,
       ]
     } else if (rel === 'KON') {
-      // KON = Koordination: die Wörter müssen nicht direkt nebeneinander stehen
+      // KON = Koordination: Flexionsformen über @ matchen, weites Fenster für Listenkoordination
       queries = [
         `"${collocate} und ${lemma}"`,
         `"${lemma} und ${collocate}"`,
         `"${collocate} oder ${lemma}"`,
         `"${lemma} oder ${collocate}"`,
-        `${collocate} #15 ${lemma}`,   // Koordination in Listen/Aufzählungen
-        `${lemma} #15 ${collocate}`,
-        `${collocate} #30 ${lemma}`,
-        `${lemma} #30 ${collocate}`,
+        `${C} #15 ${L}`,
+        `${L} #15 ${C}`,
+        `${C} #30 ${L}`,
+        `${L} #30 ${C}`,
       ]
     } else if (rel === '~ATTR') {
       queries = [
@@ -131,29 +139,29 @@ app.get('/api/belege', async (req, res) => {
         `"${lemma}en ${collocate}"`,
         `"${lemma}er ${collocate}"`,
         `"${lemma} ${collocate}"`,
-        `${collocate} #5 ${lemma}`,
-        `${lemma} #5 ${collocate}`,
+        `${C} #5 ${L}`,
+        `${L} #5 ${C}`,
       ]
     } else if (rel === '~OBJ') {
       queries = [
         `"${lemma} ${collocate}"`,
         `"${collocate} ${lemma}"`,
-        `${collocate} #10 ${lemma}`,
-        `${lemma} #10 ${collocate}`,
+        `${C} #10 ${L}`,
+        `${L} #10 ${C}`,
       ]
     } else if (rel === '~ADV') {
       queries = [
         `"${lemma} ${collocate}"`,
         `"${collocate} ${lemma}"`,
-        `${collocate} #5 ${lemma}`,
-        `${lemma} #5 ${collocate}`,
+        `${C} #5 ${L}`,
+        `${L} #5 ${C}`,
       ]
     } else if (rel === 'ADV') {
       queries = [
         `"${collocate} ${lemma}"`,
         `"${lemma} ${collocate}"`,
-        `${collocate} #5 ${lemma}`,
-        `${lemma} #5 ${collocate}`,
+        `${C} #5 ${L}`,
+        `${L} #5 ${C}`,
       ]
     } else {
       // Zeitreise: kein fester Relationstyp – Kollokation = Co-Vorkommen im Kontextfenster,
@@ -162,32 +170,36 @@ app.get('/api/belege', async (req, res) => {
       queries = [
         `"${collocate} ${lemma}"`,              // direkt benachbart
         `"${lemma} ${collocate}"`,
-        `${collocate} #10 ${lemma}`,            // DDC: innerhalb 10 Wörter
-        `${lemma} #10 ${collocate}`,
-        `${cap(collocate)} #10 ${lemma}`,
-        `${lemma} #10 ${cap(collocate)}`,
-        `${collocate} #20 ${lemma}`,            // etwas weiter
-        `${lemma} #20 ${collocate}`,
+        `${C} #10 ${L}`,                        // Lemmasuche, innerhalb 10 Wörter
+        `${L} #10 ${C}`,
+        `${C} #20 ${L}`,                        // etwas weiter
+        `${L} #20 ${C}`,
       ]
     }
 
     const extra = corpusSuffix()
-    const corpusOnly = corpus ? `&corpus=${encodeURIComponent(corpus)}` : ''
+    const corpusOnly = corpusForR ? `&corpus=${encodeURIComponent(corpusForR)}` : ''
+    const dateOnly   = year ? `&date=${parseInt(year)}:${parseInt(year) + 30}` : ''
     let results = []
 
-    // Zeitreise: nur im Ziel-Korpus suchen – kein Fallback auf moderne Korpora
+    // Zeitreise: Korpus + Datum → Korpus-only → Datum-only (Fallback für nicht-/r/-Korpora)
     if (corpus) {
       for (const q of queries) {
-        results = await tryQuery(q, extra)           // mit Datum + Korpus
+        results = await tryQuery(q, extra)           // Korpus + Datum
         if (results.length >= 2) break
       }
-      if (results.length === 0 && year) {
+      if (results.length === 0 && corpusForR) {
         for (const q of queries) {
-          results = await tryQuery(q, corpusOnly)    // Korpus ohne Datumsfilter
+          results = await tryQuery(q, corpusOnly)    // Korpus ohne Datum
           if (results.length >= 2) break
         }
       }
-      // Kein weiterer Fallback: lieber "Keine Belege" als falsche Epoche
+      if (results.length === 0 && year) {
+        for (const q of queries) {
+          results = await tryQuery(q, dateOnly)      // Datum-only (Korpus nicht verfügbar in /r/)
+          if (results.length >= 2) break
+        }
+      }
     } else {
       // Normaler Kollokationen-Modus: alle Queries durchlaufen
       for (const q of queries) {

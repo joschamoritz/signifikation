@@ -68,8 +68,8 @@ function ZrBubbleChart({ paare, perioden, placements, lemma }) {
   const bgPerioden = allPerioden.filter(p => !paareMap.has(p.jahrzehnt))
 
   return (
-    <div className="zr-bubble-wrap" onMouseLeave={() => setHovered(null)}>
-      <svg viewBox={`0 0 ${W} ${H}`} className="zr-bubble-svg">
+    <div className="zr-bubble-wrap">
+      <svg viewBox={`0 0 ${W} ${H}`} className="zr-bubble-svg" onMouseLeave={() => setHovered(null)}>
         {/* Rasterlinien */}
         {[0.25, 0.5, 0.75, 1].map(f => {
           const gy = PAD.top + innerH * (1 - f)
@@ -137,25 +137,29 @@ function ZrBubbleChart({ paare, perioden, placements, lemma }) {
         })}
       </svg>
 
-      {/* Hover-Popover unterhalb des Charts */}
-      {hovered && (
-        <div className="zr-bubble-popover">
-          <div className="zr-bubble-popover-header">
-            <strong>{hovered.kollokat}</strong>
-            <span className="zr-bubble-popover-meta"> · um {hovered.jahrzehnt}</span>
-            {hovered.score != null && (
-              <span className="zr-bubble-popover-score"> · logDice {Number(hovered.score).toFixed(1)}</span>
-            )}
-          </div>
-          {belegeLoading && hovBeleg === undefined ? (
-            <p className="belege-status">Lade Beleg …</p>
-          ) : hovBeleg?.length ? (
-            <BelegeSatz tokens={hovBeleg[0].tokens} />
-          ) : hovBeleg !== undefined ? (
-            <p className="belege-status">Keine Belege gefunden.</p>
-          ) : null}
-        </div>
-      )}
+      {/* Fester Container unterhalb des Charts – immer vorhanden, kein Layout-Shift */}
+      <div className="zr-bubble-popover">
+        {hovered ? (
+          <>
+            <div className="zr-bubble-popover-header">
+              <strong>{hovered.kollokat}</strong>
+              <span className="zr-bubble-popover-meta"> · um {hovered.jahrzehnt}</span>
+              {hovered.score != null && (
+                <span className="zr-bubble-popover-score"> · logDice {Number(hovered.score).toFixed(1)}</span>
+              )}
+            </div>
+            {belegeLoading && hovBeleg === undefined ? (
+              <p className="belege-status">Lade Beleg …</p>
+            ) : hovBeleg?.length ? (
+              <BelegeSatz tokens={hovBeleg[0].tokens} />
+            ) : hovBeleg !== undefined ? (
+              <p className="belege-status">Keine Belege gefunden.</p>
+            ) : null}
+          </>
+        ) : (
+          <p className="zr-bubble-popover-hint">Bewege die Maus über eine Blase</p>
+        )}
+      </div>
     </div>
   )
 }
