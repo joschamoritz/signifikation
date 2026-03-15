@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { getMedal, getRundInfo } from '../utils/gameLogic'
 import { API_BASE } from '../config'
 
@@ -15,24 +15,30 @@ function BelegeSatz({ tokens }) {
   )
 }
 
+const THRESHOLDS = [
+  { min: 10, label: 'Perfekt' },
+  { min: 8,  label: 'Sehr gut' },
+  { min: 6,  label: 'Gut' },
+  { min: 4,  label: 'Solide' },
+]
+
 export default function Results({ lemma, roundScores, onRestart, onToSelection }) {
   const total     = roundScores.reduce((a, b) => a + b, 0)
   const hasBonus  = roundScores.length >= 4
   const maxPoints = hasBonus ? 10 : 9
   const medal     = getMedal(total)
 
+  const [barsVisible, setBarsVisible] = useState(false)
+  useEffect(() => {
+    const id = requestAnimationFrame(() => setBarsVisible(true))
+    return () => cancelAnimationFrame(id)
+  }, [])
+
   const [logDiceOpen,   setLogDiceOpen]   = useState(false)
   const [belegeInfoOpen, setBelegeInfoOpen] = useState(false)
   const [openBeleg,     setOpenBeleg]     = useState(null)   // cacheKey
   const [belegeCache,   setBelegeCache]   = useState({})
   const [belegeLoading, setBelegeLoading] = useState(false)
-
-  const thresholds = [
-    { min: 10, label: 'Perfekt' },
-    { min: 8,  label: 'Sehr gut' },
-    { min: 6,  label: 'Gut' },
-    { min: 4,  label: 'Solide' },
-  ]
 
   async function loadBelege(roundKey, rel, collocate) {
     const cacheKey = `${roundKey}-${collocate}`
@@ -79,7 +85,7 @@ export default function Results({ lemma, roundScores, onRestart, onToSelection }
           <div key={i} className="score-row">
             <span className="score-row-label">R{i + 1} {getRundInfo(lemma)[i]?.label}</span>
             <div className="bar-track">
-              <div className="bar-fill" style={{ width: `${(score / 3) * 100}%` }} />
+              <div className="bar-fill" style={{ width: barsVisible ? `${(score / 3) * 100}%` : '0%' }} />
             </div>
             <span className="score-row-value">{score}/3</span>
           </div>
@@ -88,7 +94,7 @@ export default function Results({ lemma, roundScores, onRestart, onToSelection }
           <div className="score-row">
             <span className="score-row-label score-row-label--bonus">Bonus</span>
             <div className="bar-track">
-              <div className="bar-fill bar-fill--bonus" style={{ width: `${roundScores[3] * 100}%` }} />
+              <div className="bar-fill bar-fill--bonus" style={{ width: barsVisible ? `${roundScores[3] * 100}%` : '0%' }} />
             </div>
             <span className="score-row-value">{roundScores[3]}/1</span>
           </div>
@@ -105,9 +111,9 @@ export default function Results({ lemma, roundScores, onRestart, onToSelection }
               target="_blank" rel="noopener noreferrer"
             >Mehr erfahren ↗</a>
           </div>
-          <button className="logdice-toggle" onClick={() => setLogDiceOpen(o => !o)}>
+          <button className="logdice-toggle" onClick={() => setLogDiceOpen(o => !o)} aria-expanded={logDiceOpen}>
             Was bedeutet logDice?
-            <span className={`toggle-arrow ${logDiceOpen ? 'toggle-arrow--open' : ''}`}>›</span>
+            <span className={`toggle-arrow ${logDiceOpen ? 'toggle-arrow--open' : ''}`} aria-hidden="true">›</span>
           </button>
           {logDiceOpen && (
             <div className="logdice-explanation">
@@ -115,9 +121,9 @@ export default function Results({ lemma, roundScores, onRestart, onToSelection }
               <p>Grundlage: Pavel Rychlý, <em>A Lexicographer-Friendly Association Score</em> (2008).</p>
             </div>
           )}
-          <button className="logdice-toggle" onClick={() => setBelegeInfoOpen(o => !o)}>
+          <button className="logdice-toggle" onClick={() => setBelegeInfoOpen(o => !o)} aria-expanded={belegeInfoOpen}>
             Belege anzeigen lassen
-            <span className={`toggle-arrow ${belegeInfoOpen ? 'toggle-arrow--open' : ''}`}>›</span>
+            <span className={`toggle-arrow ${belegeInfoOpen ? 'toggle-arrow--open' : ''}`} aria-hidden="true">›</span>
           </button>
           {belegeInfoOpen && (
             <div className="logdice-explanation">
@@ -179,7 +185,7 @@ export default function Results({ lemma, roundScores, onRestart, onToSelection }
       </div>
 
       <div className="thresholds">
-        {thresholds.map(t => (
+        {THRESHOLDS.map(t => (
           <span key={t.min} className={`threshold${total >= t.min ? ' reached' : ''}`}>
             {t.label} {t.min}+
           </span>

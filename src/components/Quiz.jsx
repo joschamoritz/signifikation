@@ -96,10 +96,11 @@ function BonusRound({ bonus, lemma, onComplete }) {
       </header>
 
       <div className="bonus-options">
-        {bonus.options.map(opt => (
+        {bonus.options.map((opt, i) => (
           <button
             key={opt}
             className={optionClass(opt)}
+            style={{ animationDelay: submitted ? '0ms' : `${i * 80}ms` }}
             onClick={() => !submitted && setSelected(opt)}
           >
             {opt}
@@ -227,15 +228,16 @@ export default function Quiz({ lemma, currentRound, bonusQuestion, onRoundComple
       </header>
 
       <div className="options-grid">
-        {options.map(opt => {
+        {options.map((opt, i) => {
           const rank = selectedRank(opt.wort)
           return (
             <button
               key={opt.wort}
               className={optionClass(opt.wort)}
+              style={{ animationDelay: submitted ? '0ms' : `${i * 35}ms` }}
               onClick={() => toggleWord(opt.wort)}
             >
-              {rank && !submitted && <span className="option-rank">{rank}</span>}
+              {rank && !submitted && <span className="option-rank" aria-label={`Rang ${rank}`}>{rank}</span>}
               {opt.wort}
               {submitted && opt.log_dice != null && (
                 <span className="logdice">{opt.log_dice}</span>
