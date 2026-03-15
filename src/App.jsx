@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect } from 'react'
+import { API_BASE } from './config'
 import Home from './components/Home'
 import LemmaSelection from './components/LemmaSelection'
 import Quiz from './components/Quiz'
@@ -71,14 +72,14 @@ export default function App() {
   const [zrPlayed, setZrPlayed] = useState(() => getZRToday())
 
   useEffect(() => {
-    fetch('/api/heute')
+    fetch(`${API_BASE}/api/heute`)
       .then(r => r.ok ? r.json() : r.json().then(d => Promise.reject(new Error(d.error || `HTTP ${r.status}`))))
       .then(setLemmata)
       .catch(err => setApiError(err.message))
   }, [])
 
   useEffect(() => {
-    fetch('/api/zeitreise')
+    fetch(`${API_BASE}/api/zeitreise`)
       .then(r => r.ok ? r.json() : null)
       .then(data => { if (data) setZeitreise(data) })
       .catch(() => {}) // Zeitreise ist optional
@@ -104,7 +105,7 @@ export default function App() {
     setScores(prev => {
       const next = [...prev, score]
       if (next.length === 3) {
-        fetch(`/api/bonus?id=${selectedLemma?.id}`)
+        fetch(`${API_BASE}/api/bonus?id=${selectedLemma?.id}`)
           .then(r => r.json())
           .then(bonus => {
             if (bonus && bonus.options) {

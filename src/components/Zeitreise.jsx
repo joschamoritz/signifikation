@@ -1,5 +1,6 @@
 import { useState, useRef } from 'react'
 import { getMedal } from '../utils/gameLogic'
+import { API_BASE } from '../config'
 
 // ── Bubble-Chart für die Ergebnisseite ──────────────────────
 const KORPUS_COLOR = {
@@ -45,7 +46,7 @@ function ZrBubbleChart({ paare, perioden, placements, lemma }) {
         ...(resolvedCorpus && { corpus: resolvedCorpus }),
         ...(paar.jahrzehnt  && { year:   paar.jahrzehnt  }),
       })
-      const r = await fetch(`/api/belege?${params}`)
+      const r = await fetch(`${API_BASE}/api/belege?${params}`)
       const d = await r.json()
       setBelegeCache(prev => ({ ...prev, [key]: Array.isArray(d) ? d : [] }))
     } catch {
@@ -219,7 +220,7 @@ export default function Zeitreise({ data, onBack, onFinish }) {
         ...(resolvedCorpus && { corpus: resolvedCorpus }),
         ...(jahrzehnt      && { year:   jahrzehnt }),
       })
-      const r = await fetch(`/api/belege?${params}`)
+      const r = await fetch(`${API_BASE}/api/belege?${params}`)
       const d = await r.json()
       setBelegeCache(prev => ({ ...prev, [kollokat]: Array.isArray(d) ? d : [] }))
     } catch {
