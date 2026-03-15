@@ -138,6 +138,45 @@ button { font-family: inherit; cursor: pointer; border: none }
   font-weight: 500;
 }
 
+/* Streak */
+.streak-pill {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  background: linear-gradient(135deg, #fff7ed 0%, #fef3c7 100%);
+  border: 1.5px solid #fcd34d;
+  border-radius: 16px;
+  padding: 10px 20px;
+  animation: fadeIn 0.3s ease;
+}
+.streak-flames {
+  font-size: 1.8rem;
+  line-height: 1;
+  filter: drop-shadow(0 1px 3px rgba(234,88,12,0.35));
+}
+.streak-text {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  line-height: 1.2;
+}
+.streak-count {
+  font-family: 'Playfair Display', serif;
+  font-size: 1.6rem;
+  font-weight: 800;
+  color: #c2410c;
+  line-height: 1;
+}
+.streak-label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #92400e;
+  opacity: 0.8;
+}
+
 .home-card {
   background: var(--surface);
   border: 1px solid var(--border);
@@ -481,8 +520,8 @@ button { font-family: inherit; cursor: pointer; border: none }
 }
 .round-dot.done   { background: var(--success) }
 .round-dot.active { background: var(--primary); width: 24px; border-radius: 4px }
-.round-dot--bonus { background: #fde68a }
-.round-dot--bonus.active { background: #d97706; width: 24px; border-radius: 4px }
+.round-dot--bonus         { background: #fde68a; opacity: 0.5 }
+.round-dot--bonus.active  { background: #d97706; width: 24px; border-radius: 4px; opacity: 1 }
 
 .round-title {
   font-family: var(--font-serif);
@@ -541,6 +580,7 @@ button { font-family: inherit; cursor: pointer; border: none }
   border-color: var(--success);
   opacity: 0.45;
 }
+.option .logdice { margin-left: auto; }
 
 /* Feedback strip */
 .round-feedback {
@@ -578,12 +618,33 @@ button { font-family: inherit; cursor: pointer; border: none }
   color: var(--muted);
 }
 .feedback-word {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   background: var(--success-bg);
   color: var(--success);
   border: 1px solid #bbf7d0;
   border-radius: 4px;
   padding: 2px 8px;
   font-weight: 600;
+}
+
+/* Rang-Badge im Feedback (#1 / #2 / #3) */
+.feedback-rang {
+  font-size: 0.68rem; font-weight: 700;
+  border-radius: 3px; padding: 0 4px; line-height: 1.4;
+}
+.feedback-rang--ok   { background: var(--success); color: #fff; }
+.feedback-rang--off  { background: #fef08a; color: #713f12; }
+.feedback-rang--miss { background: var(--border); color: var(--muted); }
+
+/* Rang-Zahl auf gewählten Buttons (vor Auswertung) */
+.option-rank {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 18px; height: 18px; border-radius: 50%;
+  background: var(--primary); color: #fff;
+  font-size: 0.68rem; font-weight: 700;
+  margin-right: 4px; flex-shrink: 0;
 }
 
 /* Footer */
@@ -1129,6 +1190,42 @@ button { font-family: inherit; cursor: pointer; border: none }
   flex-shrink: 0;
 }
 
+/* Bubble-Chart */
+.zr-bubble-wrap {
+  width: 100%;
+  margin: 10px 0 4px;
+}
+.zr-bubble-svg {
+  width: 100%;
+  height: auto;
+  display: block;
+  overflow: visible;
+}
+.zr-bubble-popover {
+  margin-top: 6px;
+  padding: 10px 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 0.82rem;
+  line-height: 1.5;
+  min-height: 38px;
+  animation: fadeIn 0.12s ease;
+}
+.zr-bubble-popover-header {
+  font-size: 0.78rem;
+  margin-bottom: 5px;
+  color: var(--text-secondary);
+}
+.zr-bubble-popover-header strong {
+  color: var(--text-primary);
+  font-size: 0.84rem;
+}
+.zr-bubble-popover-score {
+  opacity: 0.7;
+  font-size: 0.76rem;
+}
+
 /* Results */
 .zr-results {
   display: flex;
@@ -1137,6 +1234,56 @@ button { font-family: inherit; cursor: pointer; border: none }
   gap: 8px;
   padding-top: 8px;
 }
+
+/* Zeitleiste in den Ergebnissen – alternierend oben/unten */
+.zr-timeline {
+  width: 100%;
+  padding: 52px 4px;
+  margin: 6px 0 2px;
+}
+.zr-tl-track {
+  position: relative;
+  height: 3px;
+  background: var(--border);
+  border-radius: 2px;
+}
+/* Jeder Stop absolut auf der Linie – transform kommt per inline-style */
+.zr-tl-stop {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+/* Oben: column-reverse → Punkt (DOM-zuerst) erscheint visuell unten */
+.zr-tl-stop--top {
+  flex-direction: column-reverse;
+  bottom: -5px;   /* zentriert 13px-Punkt auf 3px-Linie */
+  text-align: center;
+}
+/* Unten: column → Punkt oben, Jahr + Wort wachsen nach unten */
+.zr-tl-stop--bot {
+  flex-direction: column;
+  top: -5px;
+  text-align: center;
+}
+.zr-tl-dot {
+  width: 13px; height: 13px;
+  border-radius: 50%;
+  border: 2.5px solid;
+  flex-shrink: 0;
+}
+.zr-tl-dot--ok   { background: var(--success); border-color: var(--success); }
+.zr-tl-dot--miss { background: var(--error-bg); border-color: var(--error); }
+.zr-tl-year {
+  font-size: 0.67rem; color: var(--muted); font-weight: 600;
+  line-height: 1; white-space: nowrap;
+}
+.zr-tl-word {
+  font-size: 0.8rem; font-weight: 700;
+  line-height: 1; white-space: nowrap;
+}
+.zr-tl-word--ok   { color: var(--success); }
+.zr-tl-word--miss { color: var(--error); }
 
 .zr-results-score {
   display: flex;
@@ -1172,3 +1319,26 @@ button { font-family: inherit; cursor: pointer; border: none }
 }
 
 .zr-results .btn-primary { width: 100%; margin-top: 4px }
+
+/* Zone wrapper (hält Zone + Belege-Panel zusammen) */
+.zr-zone-wrapper { display: flex; flex-direction: column; }
+
+/* Belege-Button innerhalb der Zone */
+.zr-beleg-btn {
+  background: none; border: none; padding: 0 0 0 4px;
+  font-size: 0.72rem; color: var(--muted); cursor: pointer; white-space: nowrap; flex-shrink: 0;
+}
+.zr-beleg-btn:hover { color: var(--primary); }
+
+/* DWDS-Link (geteilt von Zeitreise + Kollokationen) */
+.dwds-link {
+  display: block; font-size: 0.78rem; color: var(--primary);
+  text-decoration: none; text-align: center; margin: 4px 0 8px;
+}
+.dwds-link:hover { text-decoration: underline; }
+
+/* Kollokationen Results: Titel + DWDS-Link nebeneinander */
+.wortprofil-title-row {
+  display: flex; align-items: baseline; justify-content: space-between; gap: 8px;
+}
+.wortprofil-title-row .dwds-link { display: inline; text-align: right; margin: 0; font-size: 0.75rem; }

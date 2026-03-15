@@ -6,6 +6,7 @@
   <title>Signifikation – Admin</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0 }
     :root {
@@ -26,7 +27,7 @@
     .card h2 { font-size: 1rem; font-weight: 600; }
 
     label { font-size: 0.85rem; font-weight: 500; color: var(--muted); display: block; margin-bottom: 5px; }
-    input[type="date"], input[type="text"] {
+    input[type="date"], input[type="text"], input[type="url"] {
       width: 100%; padding: 10px 12px; border: 1.5px solid var(--border);
       border-radius: 8px; font-family: inherit; font-size: 0.95rem;
       color: var(--text); background: var(--bg); outline: none;
@@ -61,9 +62,7 @@
     .status.loading { background: #faf9f7; color: var(--muted); border: 1px solid var(--border); display: block; }
 
     /* ── Kalender ── */
-    .cal-nav {
-      display: flex; align-items: center; justify-content: space-between;
-    }
+    .cal-nav { display: flex; align-items: center; justify-content: space-between; }
     .cal-nav-btn {
       background: none; color: var(--primary); padding: 4px 10px;
       border: 1.5px solid var(--border); border-radius: 6px;
@@ -72,41 +71,106 @@
     .cal-nav-btn:hover { background: #fef2f2; opacity: 1; }
     .cal-title { font-weight: 600; font-size: 0.95rem; }
 
-    .cal-grid {
-      display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px;
-    }
-    .cal-dow {
-      text-align: center; font-size: 0.72rem; font-weight: 600;
-      color: var(--muted); padding: 4px 0;
-    }
+    .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+    .cal-dow { text-align: center; font-size: 0.72rem; font-weight: 600; color: var(--muted); padding: 4px 0; }
     .cal-day {
       aspect-ratio: 1; display: flex; flex-direction: column;
-      align-items: center; justify-content: center; gap: 3px;
+      align-items: center; justify-content: center; gap: 2px;
       border-radius: 6px; font-size: 0.82rem; cursor: default;
       border: 1.5px solid transparent;
       transition: border-color 0.15s, background 0.15s;
     }
-    .cal-day.empty-slot { /* padding cell */ }
-    .cal-day.no-entry { color: var(--muted); }
+    .cal-day.empty-slot { }
+    .cal-day.no-entry   { color: var(--muted); }
     .cal-day.no-entry:hover { background: #fef2f2; border-color: var(--border); cursor: pointer; }
-    .cal-day.has-entry {
-      background: #fef2f2; color: var(--primary); font-weight: 600; cursor: pointer;
-    }
-    .cal-day.has-entry:hover { background: #fecaca; border-color: var(--primary); }
-    .cal-day.is-today { border-color: var(--primary) !important; }
-    .cal-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--primary); }
+    /* Nur Kollokationen */
+    .cal-day.has-koll   { background: #fef2f2; color: var(--primary); font-weight: 600; cursor: pointer; }
+    .cal-day.has-koll:hover { background: #fecaca; border-color: var(--primary); }
+    /* Nur Zeitreise */
+    .cal-day.has-zeit   { background: #eff6ff; color: #1d4ed8; font-weight: 600; cursor: pointer; }
+    .cal-day.has-zeit:hover { background: #dbeafe; border-color: #1d4ed8; }
+    /* Beide */
+    .cal-day.has-both   { background: #f0fdf4; color: #166534; font-weight: 600; cursor: pointer; }
+    .cal-day.has-both:hover { background: #bbf7d0; border-color: #166534; }
 
-    .cal-legend {
-      display: flex; gap: 16px; font-size: 0.78rem; color: var(--muted);
-      align-items: center;
-    }
+    .cal-day.is-today { border-color: var(--primary) !important; }
+    .cal-dots { display: flex; gap: 2px; }
+    .cal-dot  { width: 5px; height: 5px; border-radius: 50%; }
+    .cal-dot.koll { background: var(--primary); }
+    .cal-dot.zeit { background: #1d4ed8; }
+
+    .cal-legend { display: flex; flex-wrap: wrap; gap: 10px 16px; font-size: 0.78rem; color: var(--muted); align-items: center; }
     .cal-legend-item { display: flex; align-items: center; gap: 5px; }
-    .cal-legend-box {
-      width: 14px; height: 14px; border-radius: 4px; flex-shrink: 0;
+    .cal-legend-box  { width: 14px; height: 14px; border-radius: 4px; flex-shrink: 0; }
+    .cal-legend-box.koll  { background: #fef2f2; border: 1.5px solid var(--primary); }
+    .cal-legend-box.zeit  { background: #eff6ff; border: 1.5px solid #1d4ed8; }
+    .cal-legend-box.both  { background: #f0fdf4; border: 1.5px solid #166534; }
+    .cal-legend-box.empty { border: 1.5px solid var(--border); }
+    .cal-legend-box.today { border: 1.5px solid var(--primary); }
+
+    /* ── Korpus-Einstellungen ── */
+    .korpus-list { display: flex; flex-direction: column; gap: 6px; }
+    .korpus-item {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 10px 14px; border: 1.5px solid var(--border);
+      border-radius: 8px; gap: 10px; cursor: pointer;
+      transition: border-color 0.15s, background 0.15s;
     }
-    .cal-legend-box.filled { background: #fef2f2; border: 1.5px solid var(--primary); }
-    .cal-legend-box.empty  { border: 1.5px solid var(--border); }
-    .cal-legend-box.today  { border: 1.5px solid var(--primary); }
+    .korpus-item:hover { border-color: var(--primary); background: #fef2f2; }
+    .korpus-item.enabled { border-color: var(--primary); background: #fef2f2; }
+    .korpus-item input[type="checkbox"] { accent-color: var(--primary); width: 16px; height: 16px; cursor: pointer; flex-shrink: 0; }
+    .korpus-info { flex: 1; }
+    .korpus-name { font-size: 0.9rem; font-weight: 500; }
+    .korpus-meta { font-size: 0.78rem; color: var(--muted); margin-top: 2px; }
+    .korpus-badge {
+      font-size: 0.72rem; font-weight: 600; padding: 2px 8px;
+      border-radius: 12px; background: #e7e5e4; color: var(--muted); white-space: nowrap;
+    }
+    .korpus-badge.enabled { background: #fecaca; color: var(--primary); }
+    .cfg-actions { display: flex; gap: 10px; align-items: center; }
+    .cfg-save-btn { flex: 1; }
+    .cfg-status { font-size: 0.82rem; color: var(--muted); text-align: right; }
+
+    /* ── DiaCollo Visualisierung ── */
+    .viz-search { display: flex; gap: 8px; }
+    .viz-search input { flex: 1; }
+    .viz-search button { flex-shrink: 0; padding: 10px 18px; font-size: 0.9rem; }
+    .viz-meta { font-size: 0.8rem; color: var(--muted); display: flex; gap: 12px; flex-wrap: wrap; }
+    .viz-meta b { color: var(--text); }
+    .viz-timeline { display: flex; flex-direction: column; gap: 2px; margin-top: 4px; }
+    .viz-row {
+      display: grid;
+      grid-template-columns: 52px 52px 1fr;
+      gap: 6px; align-items: center;
+      padding: 5px 8px; border-radius: 6px;
+      transition: background 0.1s;
+    }
+    .viz-row:hover { background: var(--bg); }
+    .viz-row.viz-row--dim { opacity: 0.35; }
+    .viz-row.viz-row--selected { background: #fef2f2; }
+    .viz-year { font-size: 0.82rem; font-weight: 600; color: var(--text); }
+    .viz-korpus-badge {
+      font-size: 0.65rem; font-weight: 700; padding: 2px 6px;
+      border-radius: 10px; color: #fff; text-align: center;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .viz-bar-col { display: flex; flex-direction: column; gap: 3px; }
+    .viz-bar-row { display: flex; align-items: center; gap: 6px; }
+    .viz-bar-wrap { flex: 1; height: 8px; background: var(--border); border-radius: 4px; overflow: hidden; }
+    .viz-bar-fill { height: 100%; border-radius: 4px; transition: width 0.4s ease; }
+    .viz-bar-label { font-size: 0.82rem; font-weight: 600; min-width: 80px; }
+    .viz-score { font-size: 0.72rem; color: var(--muted); min-width: 30px; text-align: right; }
+    .viz-more { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 1px; }
+    .viz-chip {
+      font-size: 0.72rem; color: var(--muted); background: var(--bg);
+      border: 1px solid var(--border); border-radius: 10px; padding: 1px 7px;
+    }
+    .viz-divider { height: 1px; background: var(--border); margin: 4px 0; opacity: 0.5; }
+    .viz-canvas-wrap { position: relative; width: 100%; margin-top: 12px; }
+    .viz-corpus-legend { display: flex; flex-wrap: wrap; gap: 8px 14px; margin-top: 10px; }
+    .viz-corpus-dot { display: inline-flex; align-items: center; gap: 5px; font-size: 0.78rem; color: var(--muted); }
+    .viz-corpus-dot b { width: 10px; height: 10px; border-radius: 50%; display: inline-block; flex-shrink: 0; }
+    .viz-star-note { font-size: 0.73rem; color: var(--muted); margin-top: 6px; }
 
     /* ── Spielmodus-Toggle ── */
     .mode-toggle {
@@ -137,6 +201,8 @@
       <label for="datum">Datum</label>
       <input type="date" id="datum">
     </div>
+
+    <!-- Kollokationen -->
     <button class="mode-toggle" id="koll-toggle" onclick="toggleMode('koll')">
       <span>Kollokationen</span>
       <span class="toggle-arrow" id="koll-arrow">›</span>
@@ -166,8 +232,52 @@
         <input type="url"  id="l3" class="notiz-input" placeholder="Link (optional)">
       </div>
     </div>
+
+    <!-- Zeitreise -->
+    <button class="mode-toggle" id="zeit-toggle" onclick="toggleMode('zeit')">
+      <span>Zeitreise</span>
+      <span class="toggle-arrow" id="zeit-arrow">›</span>
+    </button>
+    <div class="mode-body" id="zeit-body" style="display:none">
+      <div>
+        <label for="zr">Wort des Tages (DiaCollo – aktive Korpora)</label>
+        <input type="text" id="zr" placeholder="z.B. Wasser">
+      </div>
+      <p style="font-size:0.8rem;color:var(--muted);font-style:italic">
+        5 Kollokatoren aus 5 verschiedenen Perioden werden automatisch über DiaCollo abgerufen.
+      </p>
+    </div>
+
     <div id="status" class="status"></div>
-    <button id="save-btn" onclick="saveTag()">Speichern &amp; DWDS abrufen</button>
+    <button id="save-btn" onclick="saveTag()">Speichern &amp; APIs abrufen</button>
+  </div>
+
+  <!-- DiaCollo Korpora -->
+  <div class="card">
+    <button class="mode-toggle" id="korpus-toggle" onclick="toggleMode('korpus')">
+      <span>DiaCollo – Korpora</span>
+      <span class="toggle-arrow" id="korpus-arrow">›</span>
+    </button>
+    <div class="mode-body" id="korpus-body" style="display:none">
+      <p style="font-size:0.82rem;color:var(--muted)">Wähle die Korpora aus, die beim Abrufen der Zeitreise-Daten genutzt werden. Änderungen gelten ab dem nächsten Speichern eines Tageseintrags.</p>
+      <div class="korpus-list" id="korpus-list">
+        <div style="color:var(--muted);font-size:0.85rem">Lade…</div>
+      </div>
+      <div class="cfg-actions">
+        <button class="cfg-save-btn" onclick="saveKorpusConfig()">Auswahl speichern</button>
+        <span class="cfg-status" id="cfg-status"></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- DiaCollo Visualisierung -->
+  <div class="card">
+    <h2>DiaCollo – Wortanalyse</h2>
+    <div class="viz-search">
+      <input type="text" id="viz-input" placeholder="Wort eingeben…" onkeydown="if(event.key==='Enter')analyzeWord()">
+      <button onclick="analyzeWord()">Analysieren</button>
+    </div>
+    <div id="viz-output"></div>
   </div>
 
   <!-- Kalender -->
@@ -180,7 +290,9 @@
     </div>
     <div class="cal-grid" id="cal-grid"></div>
     <div class="cal-legend">
-      <div class="cal-legend-item"><div class="cal-legend-box filled"></div> Gefüllt</div>
+      <div class="cal-legend-item"><div class="cal-legend-box both"></div> Beide</div>
+      <div class="cal-legend-item"><div class="cal-legend-box koll"></div> Nur Kollokationen</div>
+      <div class="cal-legend-item"><div class="cal-legend-box zeit"></div> Nur Zeitreise</div>
       <div class="cal-legend-item"><div class="cal-legend-box empty"></div> Leer</div>
       <div class="cal-legend-item"><div class="cal-legend-box today"></div> Heute</div>
     </div>
@@ -199,15 +311,14 @@
     arrow.classList.toggle('open', !open)
     toggle.classList.toggle('active', !open)
   }
+
   let kalenderData = {}
   let calYear, calMonth
 
-  // Init: aktueller Monat
   const now = new Date()
   calYear  = now.getFullYear()
-  calMonth = now.getMonth() // 0-based
+  calMonth = now.getMonth()
 
-  // Datum-Feld auf heute vorbelegen
   document.getElementById('datum').value = now.toISOString().slice(0, 10)
 
   const MONTHS_DE = ['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember']
@@ -224,41 +335,44 @@
     const grid  = document.getElementById('cal-grid')
     title.textContent = `${MONTHS_DE[calMonth]} ${calYear}`
 
-    // Wochentag-Header
     let html = DAYS_DE.map(d => `<div class="cal-dow">${d}</div>`).join('')
 
-    // Erster Tag des Monats (0=So … 6=Sa → umrechnen auf Mo=0)
-    const firstDate = new Date(calYear, calMonth, 1)
-    const firstDow  = (firstDate.getDay() + 6) % 7  // Mo=0
+    const firstDate   = new Date(calYear, calMonth, 1)
+    const firstDow    = (firstDate.getDay() + 6) % 7
     const daysInMonth = new Date(calYear, calMonth + 1, 0).getDate()
 
-    // Leer-Zellen am Anfang
-    for (let i = 0; i < firstDow; i++) {
-      html += `<div class="cal-day empty-slot"></div>`
-    }
+    for (let i = 0; i < firstDow; i++) html += `<div class="cal-day empty-slot"></div>`
 
-    const todayStr = `${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`
+    const todayStr  = `${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`
     const todayYear = now.getFullYear()
 
     for (let d = 1; d <= daysInMonth; d++) {
       const mm   = String(calMonth + 1).padStart(2, '0')
       const dd   = String(d).padStart(2, '0')
       const key  = `${mm}-${dd}`
+      const entry       = kalenderData[key]
+      const hasKoll     = !!(entry?.lemmata?.length)
+      const hasZeit     = !!(entry?.hasZeitreise)
       const isTodayCell = (calYear === todayYear && key === todayStr)
-      const hasFill = !!kalenderData[key]
 
-      const classes = [
-        'cal-day',
-        hasFill  ? 'has-entry' : 'no-entry',
-        isTodayCell ? 'is-today' : '',
-      ].filter(Boolean).join(' ')
+      let stateClass
+      if (hasKoll && hasZeit) stateClass = 'has-both'
+      else if (hasKoll)       stateClass = 'has-koll'
+      else if (hasZeit)       stateClass = 'has-zeit'
+      else                    stateClass = 'no-entry'
 
-      const dot = hasFill ? '<div class="cal-dot"></div>' : ''
-      const action = hasFill
+      const classes = ['cal-day', stateClass, isTodayCell ? 'is-today' : ''].filter(Boolean).join(' ')
+
+      let dots = ''
+      if (hasKoll || hasZeit) {
+        dots = `<div class="cal-dots">${hasKoll ? '<div class="cal-dot koll"></div>' : ''}${hasZeit ? '<div class="cal-dot zeit"></div>' : ''}</div>`
+      }
+
+      const action = (hasKoll || hasZeit)
         ? `onclick="editTag('${key}')"`
         : `onclick="prefillDate('${calYear}-${mm}-${dd}')"`
 
-      html += `<div class="${classes}" ${action}>${d}${dot}</div>`
+      html += `<div class="${classes}" ${action}>${d}${dots}</div>`
     }
 
     grid.innerHTML = html
@@ -273,49 +387,64 @@
 
   function prefillDate(isoDate) {
     document.getElementById('datum').value = isoDate
-    ;['w1','w2','w3','n1','n2','n3','l1','l2','l3'].forEach(id => document.getElementById(id).value = '')
+    ;['w1','w2','w3','n1','n2','n3','l1','l2','l3','zr'].forEach(id => document.getElementById(id).value = '')
     document.getElementById('p1').value = 'Substantiv'
     document.getElementById('p2').value = 'Substantiv'
     document.getElementById('p3').value = 'Substantiv'
     document.getElementById('form-title').textContent = 'Neuer Tageseintrag'
-    document.getElementById('save-btn').textContent   = 'Speichern & DWDS abrufen'
+    document.getElementById('save-btn').textContent   = 'Speichern & APIs abrufen'
     document.getElementById('status').className = 'status'
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
   async function saveTag() {
     const datum = document.getElementById('datum').value
-    const w1 = document.getElementById('w1').value.trim()
-    const w2 = document.getElementById('w2').value.trim()
-    const w3 = document.getElementById('w3').value.trim()
-    const p1 = document.getElementById('p1').value
-    const p2 = document.getElementById('p2').value
-    const p3 = document.getElementById('p3').value
-    const n1 = document.getElementById('n1').value.trim()
-    const n2 = document.getElementById('n2').value.trim()
-    const n3 = document.getElementById('n3').value.trim()
-    const l1 = document.getElementById('l1').value.trim()
-    const l2 = document.getElementById('l2').value.trim()
-    const l3 = document.getElementById('l3').value.trim()
+    const w1    = document.getElementById('w1').value.trim()
+    const w2    = document.getElementById('w2').value.trim()
+    const w3    = document.getElementById('w3').value.trim()
+    const p1    = document.getElementById('p1').value
+    const p2    = document.getElementById('p2').value
+    const p3    = document.getElementById('p3').value
+    const n1    = document.getElementById('n1').value.trim()
+    const n2    = document.getElementById('n2').value.trim()
+    const n3    = document.getElementById('n3').value.trim()
+    const l1    = document.getElementById('l1').value.trim()
+    const l2    = document.getElementById('l2').value.trim()
+    const l3    = document.getElementById('l3').value.trim()
+    const zr    = document.getElementById('zr').value.trim()
 
     if (!datum || !w1 || !w2 || !w3) {
-      return setStatus('Bitte Datum und alle drei Wörter ausfüllen.', 'error')
+      return setStatus('Bitte Datum und alle drei Kollokations-Wörter ausfüllen.', 'error')
     }
 
     const mmdd = datum.slice(5)
     const btn  = document.getElementById('save-btn')
     btn.disabled = true
-    setStatus(`Rufe DWDS-Daten für „${w1}", „${w2}", „${w3}" ab …`, 'loading')
+
+    const statusParts = [`DWDS für „${w1}", „${w2}", „${w3}"`]
+    if (zr) statusParts.push(`DiaCollo für „${zr}"`)
+    setStatus(`Rufe ab: ${statusParts.join(' · ')} …`, 'loading')
 
     try {
       const res = await fetch('/admin/tag', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'x-admin-key': KEY },
-        body: JSON.stringify({ datum: mmdd, woerter: [w1, w2, w3], positionen: [p1, p2, p3], notizen: [n1, n2, n3], links: [l1, l2, l3] }),
+        body: JSON.stringify({
+          datum: mmdd, woerter: [w1, w2, w3], positionen: [p1, p2, p3],
+          notizen: [n1, n2, n3], links: [l1, l2, l3],
+          zeitreise_lemma: zr,
+        }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`)
-      setStatus(`Gespeichert: ${mmdd} → ${data.ids.join(', ')}`, 'ok')
+
+      let msg = `Gespeichert: ${mmdd} → ${data.ids.join(', ')}`
+      if (zr) {
+        msg += data.zeitreiseOk === true  ? ' · Zeitreise: OK'
+             : data.zeitreiseOk === false ? ' · Zeitreise: keine ausreichenden DiaCollo-Daten'
+             : ''
+      }
+      setStatus(msg, data.zeitreiseOk === false ? 'error' : 'ok')
       await loadKalender()
     } catch (err) {
       setStatus(`Fehler: ${err.message}`, 'error')
@@ -342,8 +471,9 @@
     document.getElementById('l1').value = data.links[0] || ''
     document.getElementById('l2').value = data.links[1] || ''
     document.getElementById('l3').value = data.links[2] || ''
+    document.getElementById('zr').value = data.zeitreise_lemma || ''
     document.getElementById('form-title').textContent = `Eintrag bearbeiten: ${datum}`
-    document.getElementById('save-btn').textContent = 'Aktualisieren & DWDS abrufen'
+    document.getElementById('save-btn').textContent   = 'Aktualisieren & APIs abrufen'
     window.scrollTo({ top: 0, behavior: 'smooth' })
     setStatus(`Eintrag ${datum} geladen – Änderungen vornehmen und speichern.`, 'loading')
   }
@@ -360,6 +490,277 @@
   }
 
   loadKalender()
+
+  // ── DiaCollo Korpus-Einstellungen ───────────────────────────
+  let korpusConfig = []
+
+  async function loadKorpusConfig() {
+    try {
+      const res = await fetch('/admin/diacollo-config', { headers: { 'x-admin-key': KEY } })
+      const data = await res.json()
+      korpusConfig = data.corpora || []
+      renderKorpusList()
+    } catch {
+      document.getElementById('korpus-list').innerHTML =
+        '<div style="color:var(--muted);font-size:0.85rem">Fehler beim Laden der Konfiguration.</div>'
+    }
+  }
+
+  function renderKorpusList() {
+    const list = document.getElementById('korpus-list')
+    list.innerHTML = korpusConfig.map(c => `
+      <label class="korpus-item ${c.enabled ? 'enabled' : ''}" id="ki-${c.id}" onclick="toggleKorpus('${c.id}')">
+        <input type="checkbox" id="kc-${c.id}" ${c.enabled ? 'checked' : ''} onclick="event.stopPropagation();toggleKorpus('${c.id}')">
+        <div class="korpus-info">
+          <div class="korpus-name">${c.label}</div>
+          <div class="korpus-meta">${c.zeitraum} · slice=${c.slice}</div>
+        </div>
+        <span class="korpus-badge ${c.enabled ? 'enabled' : ''}" id="kb-${c.id}">
+          ${c.enabled ? 'aktiv' : 'inaktiv'}
+        </span>
+      </label>
+    `).join('')
+  }
+
+  function toggleKorpus(id) {
+    const c = korpusConfig.find(x => x.id === id)
+    if (!c) return
+    c.enabled = !c.enabled
+    const item = document.getElementById(`ki-${id}`)
+    const cb   = document.getElementById(`kc-${id}`)
+    const badge = document.getElementById(`kb-${id}`)
+    item.classList.toggle('enabled', c.enabled)
+    cb.checked = c.enabled
+    badge.textContent = c.enabled ? 'aktiv' : 'inaktiv'
+    badge.className = `korpus-badge ${c.enabled ? 'enabled' : ''}`
+  }
+
+  async function saveKorpusConfig() {
+    const statusEl = document.getElementById('cfg-status')
+    statusEl.textContent = 'Speichern…'
+    try {
+      const res = await fetch('/admin/diacollo-config', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-admin-key': KEY },
+        body: JSON.stringify({ corpora: korpusConfig.map(c => ({ id: c.id, enabled: c.enabled })) }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error)
+      const n = data.active.length
+      statusEl.textContent = `Gespeichert · ${n} aktiv: ${data.active.join(', ')}`
+    } catch (err) {
+      statusEl.textContent = `Fehler: ${err.message}`
+    }
+  }
+
+  loadKorpusConfig()
+
+  // ── DiaCollo Visualisierung ─────────────────────────────
+  const KORPUS_COLORS = {
+    dta:              '#9b1c1c',
+    dtae:             '#b45309',
+    dtak:             '#c2410c',
+    'dta+dwds':       '#92400e',
+    tevo:             '#15803d',
+    kern:             '#1d4ed8',
+    ddr:              '#0891b2',
+    bundestag:        '#4f46e5',
+    bundestagdrs:     '#6d28d9',
+    bundestagprt:     '#7c3aed',
+    reichstag:        '#a21caf',
+    politische_reden: '#d97706',
+    gei_digital:      '#0f766e',
+    bsbvaria:         '#b45309',
+    default:          '#78716c',
+  }
+
+  function korpusColor(id) { return KORPUS_COLORS[id] || KORPUS_COLORS.default }
+  function korpusShort(id) {
+    const map = {
+      dta: 'DTA', dtae: 'DTAe', dtak: 'DTAk', 'dta+dwds': 'DTA+',
+      kern: 'KERN', ddr: 'DDR', bundestag: 'BT', bundestagdrs: 'BT-D',
+      bundestagprt: 'BT-P', reichstag: 'RT', politische_reden: 'POLI',
+      tevo: 'TEVO', gei_digital: 'GEI', bsbvaria: 'BSB',
+    }
+    return map[id] || id.slice(0, 4).toUpperCase()
+  }
+
+  async function analyzeWord() {
+    const word = document.getElementById('viz-input').value.trim()
+    if (!word) return
+    const out = document.getElementById('viz-output')
+    out.innerHTML = '<div class="status loading">Lade DiaCollo-Daten…</div>'
+    try {
+      const res  = await fetch(`/admin/debug-diacollo?q=${encodeURIComponent(word)}`, { headers: { 'x-admin-key': KEY } })
+      const data = await res.json()
+      renderViz(word, data, out)
+    } catch (e) {
+      out.innerHTML = `<div class="status error">Fehler: ${e.message}</div>`
+    }
+  }
+
+  let vizChart = null
+
+  function renderViz(word, data, container) {
+    const passing = data.summary.filter(s => s.pass)
+    if (!passing.length) {
+      container.innerHTML = `<div class="status error">Keine ausreichenden Daten für „${word}".</div>`
+      return
+    }
+
+    // Gleichmäßig verteilte 5 Perioden (wie extractPaare)
+    const step = (passing.length - 1) / 4
+    const selectedLabels = new Set([0,1,2,3,4].map(i => passing[Math.round(i * step)]?.label))
+
+    // Corpus-Übersicht für Meta-Zeile
+    const corpusSummary = Object.entries(data.corpora)
+      .map(([id, c]) => c.error ? null : `${korpusShort(id)}: ${c.passing}/${c.total}`)
+      .filter(Boolean).join(' · ')
+
+    // Bubble-Daten: Top-4 pro Periode, gruppiert nach Korpus
+    const maxScore = Math.max(...passing.flatMap(s => s.top.slice(0,4).map(t => t.score)))
+    const corpusDatasets = {}
+    for (const period of passing) {
+      const isSelected = selectedLabels.has(period.label)
+      for (const [rank, col] of period.top.slice(0, 4).entries()) {
+        const k = period.korpus
+        if (!corpusDatasets[k]) {
+          corpusDatasets[k] = {
+            label: korpusShort(k),
+            data: [],
+            backgroundColor: korpusColor(k) + 'aa',
+            borderColor:     korpusColor(k),
+            borderWidth: 1,
+            hoverBorderWidth: 2,
+          }
+        }
+        // Größte Blase = Rang 1, kleiner nach unten
+        const baseR = 4 + Math.round((col.score / maxScore) * 13)
+        corpusDatasets[k].data.push({
+          x:    parseInt(period.label),
+          y:    col.score,
+          r:    rank === 0 ? baseR + 2 : Math.max(3, baseR - rank * 2),
+          wort: col.wort,
+          rank: rank + 1,
+          periode: period.label,
+          selected: isSelected && rank === 0,
+        })
+      }
+    }
+
+    // ★-Punkte als eigenes Overlay-Dataset (weißer Ring)
+    const starData = passing
+      .filter(s => selectedLabels.has(s.label) && s.top[0])
+      .map(s => {
+        const col = s.top[0]
+        const baseR = 4 + Math.round((col.score / maxScore) * 13) + 2
+        return { x: parseInt(s.label), y: col.score, r: baseR + 3, wort: col.wort, periode: s.label }
+      })
+
+    // HTML aufbauen
+    container.innerHTML = `
+      <div class="viz-meta" style="margin-top:8px">
+        <span>„<b>${word}</b>"</span>
+        <span><b>${passing.length}</b> Perioden (von ${data.total})</span>
+        <span style="color:${data.ok ? '#166534' : '#991b1b'};font-weight:600">
+          ${data.ok ? '✓ Zeitreise möglich' : '✗ Zu wenig Daten'}
+        </span>
+      </div>
+      <div class="viz-meta" style="margin-top:2px;font-size:0.73rem">${corpusSummary}</div>
+      <div class="viz-canvas-wrap"><canvas id="viz-canvas"></canvas></div>
+      <div class="viz-corpus-legend" id="viz-legend"></div>
+      <p class="viz-star-note">⭐ = käme ins Zeitreise-Spiel · Blase = Top-4 Kollokat · Größe = logDice</p>
+      <div class="viz-timeline" id="viz-list" style="margin-top:16px"></div>`
+
+    // Legende
+    const legendEl = document.getElementById('viz-legend')
+    for (const [id, ds] of Object.entries(corpusDatasets)) {
+      legendEl.innerHTML += `<span class="viz-corpus-dot"><b style="background:${korpusColor(id)}"></b>${ds.label}</span>`
+    }
+
+    // Alte Listen-Ansicht aufbauen
+    const listEl = document.getElementById('viz-list')
+    let lastKorpus = null
+    for (const s of data.summary) {
+      if (!s.pass) continue
+      const isSelected = selectedLabels.has(s.label)
+      const top = s.top[0]
+      if (!top) continue
+      const barPct  = Math.round((top.score / maxScore) * 100)
+      const color   = korpusColor(s.korpus)
+      if (lastKorpus && lastKorpus !== s.korpus) {
+        listEl.innerHTML += `<div class="viz-divider"></div>`
+      }
+      lastKorpus = s.korpus
+      const rest = s.top.slice(1, 5).map(c =>
+        `<span class="viz-chip">${c.wort} <span style="opacity:.6">${c.score.toFixed(1)}</span></span>`
+      ).join('')
+      listEl.innerHTML += `
+        <div class="viz-row ${isSelected ? 'viz-row--selected' : ''}">
+          <span class="viz-year">${isSelected ? '★ ' : ''}${s.label}</span>
+          <span class="viz-korpus-badge" style="background:${color}">${korpusShort(s.korpus)}</span>
+          <div class="viz-bar-col">
+            <div class="viz-bar-row">
+              <span class="viz-bar-label">${top.wort}</span>
+              <div class="viz-bar-wrap"><div class="viz-bar-fill" style="width:${barPct}%;background:${color}"></div></div>
+              <span class="viz-score">${top.score.toFixed(1)}</span>
+            </div>
+            ${rest ? `<div class="viz-more">${rest}</div>` : ''}
+          </div>
+        </div>`
+    }
+
+    // Alten Chart zerstören
+    if (vizChart) { vizChart.destroy(); vizChart = null }
+
+    const ctx = document.getElementById('viz-canvas').getContext('2d')
+    vizChart = new Chart(ctx, {
+      type: 'bubble',
+      data: {
+        datasets: [
+          // ★-Overlay: weißer Ring über den Spiel-Blasen
+          {
+            label: '★ Spielauswahl',
+            data: starData,
+            backgroundColor: 'transparent',
+            borderColor: '#d97706',
+            borderWidth: 2.5,
+            borderDash: [],
+            hoverBackgroundColor: 'transparent',
+            order: 0,
+          },
+          ...Object.values(corpusDatasets).map(ds => ({ ...ds, order: 1 })),
+        ]
+      },
+      options: {
+        responsive: true,
+        animation: { duration: 400 },
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            filter: item => item.dataset.label !== '★ Spielauswahl',
+            callbacks: {
+              label: ctx => {
+                const d = ctx.raw
+                return ` ${d.wort}  logDice ${d.y.toFixed(2)}  (${d.periode}, Rang ${d.rank})`
+              }
+            }
+          }
+        },
+        scales: {
+          x: {
+            title: { display: true, text: 'Jahrzehnt', font: { size: 11 } },
+            ticks: { font: { size: 10 } },
+          },
+          y: {
+            title: { display: true, text: 'logDice', font: { size: 11 } },
+            min: 0,
+            ticks: { font: { size: 10 } },
+          }
+        }
+      }
+    })
+  }
 </script>
 </body>
 </html>

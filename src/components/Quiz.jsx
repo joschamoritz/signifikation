@@ -167,6 +167,12 @@ export default function Quiz({ lemma, currentRound, bonusQuestion, onRoundComple
   const options    = useMemo(() => getRoundOptions(kollokatoren), []) // eslint-disable-line
   const roundScore = submitted ? calculateScore(selected, kollokatoren) : null
 
+  // Rang des gewählten Wortes (Position im selected-Array, 1-basiert)
+  function selectedRank(word) {
+    const i = selected.indexOf(word)
+    return i >= 0 ? i + 1 : null
+  }
+
   function toggleWord(word) {
     if (submitted) return
     setSelected(prev =>
@@ -202,24 +208,32 @@ export default function Quiz({ lemma, currentRound, bonusQuestion, onRoundComple
               className={`round-dot${i < currentRound ? ' done' : i === currentRound ? ' active' : ''}`}
             />
           ))}
+          <span className="round-dot round-dot--bonus" />
         </div>
 
         <h2 className="round-title">Runde {currentRound + 1} · {roundLabel}</h2>
         <p className="quiz-instruction">
-          Wähle genau 3 Kollokate von <strong>{lemma.lemma}</strong>
+          Wähle die 3 stärksten Kollokate von <strong>{lemma.lemma}</strong> – in der richtigen Reihenfolge
         </p>
       </header>
 
       <div className="options-grid">
-        {options.map(opt => (
-          <button
-            key={opt.wort}
-            className={optionClass(opt.wort)}
-            onClick={() => toggleWord(opt.wort)}
-          >
-            {opt.wort}
-          </button>
-        ))}
+        {options.map(opt => {
+          const rank = selectedRank(opt.wort)
+          return (
+            <button
+              key={opt.wort}
+              className={optionClass(opt.wort)}
+              onClick={() => toggleWord(opt.wort)}
+            >
+              {rank && !submitted && <span className="option-rank">{rank}</span>}
+              {opt.wort}
+              {submitted && opt.log_dice != null && (
+                <span className="logdice">{opt.log_dice}</span>
+              )}
+            </button>
+          )
+        })}
       </div>
 
       {submitted && (
@@ -238,9 +252,19 @@ export default function Quiz({ lemma, currentRound, bonusQuestion, onRoundComple
             {kollokatoren
               .filter(k => k.rang <= 3)
               .sort((a, b) => a.rang - b.rang)
-              .map(k => (
-                <span key={k.wort} className="feedback-word">{k.wort}</span>
-              ))
+              .map(k => {
+                const guessedRank = selectedRank(k.wort)
+                const rankOk = guessedRank === k.rang
+                return (
+                  <span key={k.wort} className="feedback-word">
+                    <span className={`feedback-rang ${rankOk ? 'feedback-rang--ok' : guessedRank ? 'feedback-rang--off' : 'feedback-rang--miss'}`}>
+                      #{k.rang}
+                    </span>
+                    {k.wort}
+                    <span className="logdice">{k.log_dice}</span>
+                  </span>
+                )
+              })
             }
           </div>
         </div>

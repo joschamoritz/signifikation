@@ -1,8 +1,178 @@
 import { useState, useRef } from 'react'
 import { getMedal } from '../utils/gameLogic'
 
+// ── Bubble-Chart für die Ergebnisseite ──────────────────────
+const KORPUS_COLOR = {
+  dta: '#9b1c1c', dtae: '#b45309', dtak: '#c2410c',
+  kern: '#1d4ed8', ddr: '#0891b2', bundestag: '#4f46e5',
+  reichstag: '#a21caf', politische_reden: '#d97706',
+}
+function korpusCol(k) { return KORPUS_COLOR[k] || '#78716c' }
+
+function ZrBubbleChart({ paare, perioden, placements, lemma }) {
+  const [hovered,      setHovered]      = useState(null)
+  const [belegeCache,  setBelegeCache]  = useState({})
+  const [belegeLoading,setBelegeLoading]= useState(false)
+
+  // Alle anzuzeigenden Perioden (Fallback: nur Spielpaare)
+  const allPerioden = perioden?.length ? perioden : paare
+  const paareMap    = new Map(paare.map(p => [p.jahrzehnt, p]))
+
+  const W = 520, H = 200
+  const PAD = { top: 40, right: 24, bottom: 30, left: 36 }
+  const innerW = W - PAD.left - PAD.right
+  const innerH = H - PAD.top  - PAD.bottom
+
+  const allYears  = allPerioden.map(p => Number(p.jahrzehnt))
+  const allScores = allPerioden.map(p => p.score || 8)
+  const minY = Math.min(...allYears), maxY = Math.max(...allYears)
+  const minS = 0,                     maxS = Math.max(...allScores) * 1.18
+
+  const cx  = y => PAD.left + ((y - minY) / (maxY - minY || 1)) * innerW
+  const cy  = s => PAD.top  + innerH - ((s - minS) / (maxS - minS || 1)) * innerH
+  const crB = s => Math.max(4, 4 + Math.round((s / (maxS / 1.18)) * 7))  // Hintergrundblase
+  const crG = s => Math.max(7, 7 + Math.round((s / (maxS / 1.18)) * 9))  // Spielblase
+
+  async function fetchBeleg(paar) {
+    const key = `${paar.jahrzehnt}_${paar.kollokat}`
+    if (belegeCache[key] !== undefined) return
+    setBelegeLoading(true)
+    try {
+      const y = parseInt(paar.jahrzehnt)
+      const resolvedCorpus = paar.korpus || (y <= 1900 ? 'dta' : y <= 1990 ? 'kern' : null)
+      const params = new URLSearchParams({
+        collocate: paar.kollokat, lemma, rel: '',
+        ...(resolvedCorpus && { corpus: resolvedCorpus }),
+        ...(paar.jahrzehnt  && { year:   paar.jahrzehnt  }),
+      })
+      const r = await fetch(`/api/belege?${params}`)
+      const d = await r.json()
+      setBelegeCache(prev => ({ ...prev, [key]: Array.isArray(d) ? d : [] }))
+    } catch {
+      setBelegeCache(prev => ({ ...prev, [key]: [] }))
+    } finally {
+      setBelegeLoading(false)
+    }
+  }
+
+  function handleEnter(paar) {
+    setHovered(paar)
+    fetchBeleg(paar)
+  }
+
+  const hovKey   = hovered ? `${hovered.jahrzehnt}_${hovered.kollokat}` : null
+  const hovBeleg = hovKey ? belegeCache[hovKey] : undefined
+
+  const bgPerioden = allPerioden.filter(p => !paareMap.has(p.jahrzehnt))
+
+  return (
+    <div className="zr-bubble-wrap" onMouseLeave={() => setHovered(null)}>
+      <svg viewBox={`0 0 ${W} ${H}`} className="zr-bubble-svg">
+        {/* Rasterlinien */}
+        {[0.25, 0.5, 0.75, 1].map(f => {
+          const gy = PAD.top + innerH * (1 - f)
+          return <line key={f} x1={PAD.left} x2={W - PAD.right} y1={gy} y2={gy}
+                       stroke="#e5e2de" strokeWidth="1" />
+        })}
+        {/* X-Achse */}
+        <line x1={PAD.left} x2={W - PAD.right} y1={PAD.top + innerH} y2={PAD.top + innerH}
+              stroke="#a8a29e" strokeWidth="1.5" />
+        {/* Y-Achse Label */}
+        <text x={10} y={PAD.top + innerH / 2} textAnchor="middle" fontSize="8" fill="#78716c"
+              fontFamily="DM Sans,sans-serif" transform={`rotate(-90,10,${PAD.top + innerH / 2})`}>
+          logDice
+        </text>
+
+        {/* Hintergrund-Perioden (grau, klein) */}
+        {bgPerioden.map(p => {
+          const x = cx(Number(p.jahrzehnt)), y = cy(p.score || 8), r = crB(p.score || 8)
+          const isHov = hovered?.jahrzehnt === p.jahrzehnt
+          return (
+            <g key={`bg_${p.jahrzehnt}`} style={{ cursor: 'pointer' }}
+               onMouseEnter={() => handleEnter(p)}>
+              <circle cx={x} cy={y} r={r + (isHov ? 3 : 0)}
+                fill={isHov ? '#a8a29e' : '#d6d3cf'}
+                stroke={isHov ? '#78716c' : '#c4bfbc'} strokeWidth="1" />
+              {/* Jahreszahl unter Achse */}
+              <text x={x} y={H - 3} textAnchor="middle" fontSize="7.5" fill="#a8a29e"
+                    fontFamily="DM Sans,sans-serif">{p.jahrzehnt}</text>
+              {/* Hover-Label in der Blase */}
+              {isHov && (
+                <text x={x} y={y + 3} textAnchor="middle" fontSize="7.5" fill="#44403c"
+                      fontFamily="DM Sans,sans-serif" fontWeight="600">{p.kollokat}</text>
+              )}
+            </g>
+          )
+        })}
+
+        {/* Spielpaare (groß, farbig, beschriftet) */}
+        {paare.map(p => {
+          const correct = placements[p.jahrzehnt] === p.kollokat
+          const x = cx(Number(p.jahrzehnt)), y = cy(p.score || 8)
+          const r = crG(p.score || 8)
+          const col = korpusCol(p.korpus)
+          const isHov = hovered?.jahrzehnt === p.jahrzehnt
+          return (
+            <g key={`gm_${p.jahrzehnt}`} style={{ cursor: 'pointer' }}
+               onMouseEnter={() => handleEnter(p)}>
+              {/* Glow-Ring beim Hover */}
+              {isHov && <circle cx={x} cy={y} r={r + 5} fill="none" stroke={col} strokeWidth="1.5" opacity="0.35" />}
+              <circle cx={x} cy={y} r={r}
+                fill={col + (correct ? 'dd' : '44')}
+                stroke={correct ? col : '#dc2626'}
+                strokeWidth={isHov ? 2.5 : (correct ? 1.5 : 2)} />
+              {/* ✓ / ✗ */}
+              <text x={x} y={y + 3.5} textAnchor="middle" fontSize="9" fill="#fff" fontWeight="700"
+                    fontFamily="DM Sans,sans-serif">{correct ? '✓' : '✗'}</text>
+              {/* Wort-Label über der Blase */}
+              <text x={x} y={y - r - 5} textAnchor="middle" fontSize="10" fontWeight="700"
+                    fill={correct ? col : '#dc2626'} fontFamily="DM Sans,sans-serif">{p.kollokat}</text>
+              {/* Jahreszahl unter Achse (farbig) */}
+              <text x={x} y={H - 3} textAnchor="middle" fontSize="8.5" fill={col}
+                    fontFamily="DM Sans,sans-serif" fontWeight="600">{p.jahrzehnt}</text>
+            </g>
+          )
+        })}
+      </svg>
+
+      {/* Hover-Popover unterhalb des Charts */}
+      {hovered && (
+        <div className="zr-bubble-popover">
+          <div className="zr-bubble-popover-header">
+            <strong>{hovered.kollokat}</strong>
+            <span className="zr-bubble-popover-meta"> · um {hovered.jahrzehnt}</span>
+            {hovered.score != null && (
+              <span className="zr-bubble-popover-score"> · logDice {Number(hovered.score).toFixed(1)}</span>
+            )}
+          </div>
+          {belegeLoading && hovBeleg === undefined ? (
+            <p className="belege-status">Lade Beleg …</p>
+          ) : hovBeleg?.length ? (
+            <BelegeSatz tokens={hovBeleg[0].tokens} />
+          ) : hovBeleg !== undefined ? (
+            <p className="belege-status">Keine Belege gefunden.</p>
+          ) : null}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function BelegeSatz({ tokens }) {
+  return (
+    <p className="beleg-satz">
+      {tokens.map((t, i) => (
+        <span key={i}>
+          {t.hl ? <strong>{t.w}</strong> : t.w}
+          {t.ws && i < tokens.length - 1 ? ' ' : ''}
+        </span>
+      ))}
+    </p>
+  )
+}
+
 function formatPeriod(label) {
-  return `${label}–${Number(label) + 49}`
+  return `um ${label}`
 }
 
 function shuffle(arr) {
@@ -26,6 +196,38 @@ export default function Zeitreise({ data, onBack, onFinish }) {
   const [selected, setSelected]     = useState(null)  // currently selected chip
   const [revealed, setRevealed]     = useState(false)
   const [score, setScore]           = useState(null)
+
+  // Belege
+  const [openBeleg,     setOpenBeleg]     = useState(null)
+  const [belegeCache,   setBelegeCache]   = useState({})
+  const [belegeLoading, setBelegeLoading] = useState(false)
+
+  async function loadZrBelege(paar) {
+    const { kollokat, jahrzehnt, korpus } = paar
+    if (openBeleg === kollokat) { setOpenBeleg(null); return }
+    if (belegeCache[kollokat] !== undefined) { setOpenBeleg(kollokat); return }
+    setOpenBeleg(kollokat)
+    setBelegeLoading(true)
+    try {
+      // Korpus ableiten falls in alten Daten nicht gespeichert
+      const y = parseInt(jahrzehnt)
+      const resolvedCorpus = korpus || (y <= 1900 ? 'dta' : y <= 1990 ? 'kern' : null)
+      const params = new URLSearchParams({
+        collocate: kollokat,
+        lemma: data.lemma,
+        rel: '',
+        ...(resolvedCorpus && { corpus: resolvedCorpus }),
+        ...(jahrzehnt      && { year:   jahrzehnt }),
+      })
+      const r = await fetch(`/api/belege?${params}`)
+      const d = await r.json()
+      setBelegeCache(prev => ({ ...prev, [kollokat]: Array.isArray(d) ? d : [] }))
+    } catch {
+      setBelegeCache(prev => ({ ...prev, [kollokat]: [] }))
+    } finally {
+      setBelegeLoading(false)
+    }
+  }
 
   // For HTML5 DnD — track which chip is being dragged
   const draggingRef = useRef(null)
@@ -165,51 +367,83 @@ export default function Zeitreise({ data, onBack, onFinish }) {
           const isRight  = revealed && placed === p.kollokat
           const isWrong  = revealed && placed && placed !== p.kollokat
           const isMissed = revealed && !placed
+          const belegOpen = revealed && openBeleg === p.kollokat
+          const belegData = belegeCache[p.kollokat]
 
           return (
-            <div
-              key={p.jahrzehnt}
-              className={[
-                'zr-zone',
-                placed    ? 'zr-zone--filled' : '',
-                selected && !revealed ? 'zr-zone--droppable' : '',
-                isRight   ? 'zr-zone--right'  : '',
-                isWrong   ? 'zr-zone--wrong'   : '',
-                isMissed  ? 'zr-zone--missed'  : '',
-              ].filter(Boolean).join(' ')}
-              onDragOver={handleZoneDragOver}
-              onDrop={e => handleZoneDrop(e, p.jahrzehnt)}
-              onClick={() => handleZoneClick(p.jahrzehnt)}
-            >
-              <span className="zr-zone-period">{formatPeriod(p.jahrzehnt)}</span>
+            <div key={p.jahrzehnt} className="zr-zone-wrapper">
+              <div
+                className={[
+                  'zr-zone',
+                  placed    ? 'zr-zone--filled' : '',
+                  selected && !revealed ? 'zr-zone--droppable' : '',
+                  isRight   ? 'zr-zone--right'  : '',
+                  isWrong   ? 'zr-zone--wrong'   : '',
+                  isMissed  ? 'zr-zone--missed'  : '',
+                ].filter(Boolean).join(' ')}
+                onDragOver={handleZoneDragOver}
+                onDrop={e => handleZoneDrop(e, p.jahrzehnt)}
+                onClick={() => handleZoneClick(p.jahrzehnt)}
+              >
+                <span className="zr-zone-period">{formatPeriod(p.jahrzehnt)}</span>
 
-              <div className="zr-zone-slot">
-                {placed ? (
+                <div className="zr-zone-slot">
+                  {placed ? (
+                    <button
+                      className={[
+                        'zr-chip zr-chip--placed',
+                        isRight  ? 'zr-chip--right'  : '',
+                        isWrong  ? 'zr-chip--wrong'   : '',
+                      ].filter(Boolean).join(' ')}
+                      draggable={!revealed}
+                      onDragStart={revealed ? undefined : e => handleDragStart(e, placed)}
+                      onDragEnd={handleDragEnd}
+                      onClick={e => handlePlacedChipClick(e, p.jahrzehnt)}
+                      disabled={revealed}
+                    >
+                      {placed}
+                      {isRight  && <span className="zr-icon">✓</span>}
+                      {isWrong  && <span className="zr-icon">✗</span>}
+                    </button>
+                  ) : (
+                    <span className="zr-zone-empty">
+                      {isMissed ? p.kollokat : '—'}
+                    </span>
+                  )}
+                </div>
+
+                {isWrong && (
+                  <span className="zr-zone-answer">→ {p.kollokat}</span>
+                )}
+
+                {revealed && (
                   <button
-                    className={[
-                      'zr-chip zr-chip--placed',
-                      isRight  ? 'zr-chip--right'  : '',
-                      isWrong  ? 'zr-chip--wrong'   : '',
-                    ].filter(Boolean).join(' ')}
-                    draggable={!revealed}
-                    onDragStart={revealed ? undefined : e => handleDragStart(e, placed)}
-                    onDragEnd={handleDragEnd}
-                    onClick={e => handlePlacedChipClick(e, p.jahrzehnt)}
-                    disabled={revealed}
+                    className="zr-beleg-btn"
+                    onClick={e => { e.stopPropagation(); loadZrBelege(p) }}
                   >
-                    {placed}
-                    {isRight  && <span className="zr-icon">✓</span>}
-                    {isWrong  && <span className="zr-icon">✗</span>}
+                    {belegOpen ? 'Belege ▲' : 'Belege ▼'}
                   </button>
-                ) : (
-                  <span className="zr-zone-empty">
-                    {isMissed ? p.kollokat : '—'}
-                  </span>
                 )}
               </div>
 
-              {isWrong && (
-                <span className="zr-zone-answer">→ {p.kollokat}</span>
+              {belegOpen && (
+                <div className="belege-panel">
+                  <p className="belege-panel-title">
+                    Belege: <em>{data.lemma}</em> + <em>{p.kollokat}</em>
+                  </p>
+                  {belegeLoading && !belegData ? (
+                    <p className="belege-status">Lade Belege …</p>
+                  ) : belegData?.length ? (
+                    belegData.map((b, bi) => (
+                      <div key={bi} className="beleg-item">
+                        <BelegeSatz tokens={b.tokens} />
+                        <p className="beleg-quelle">{b.quelle}</p>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="belege-status">Keine Belege gefunden.</p>
+                  )}
+                </div>
               )}
             </div>
           )
@@ -235,9 +469,19 @@ export default function Zeitreise({ data, onBack, onFinish }) {
             <span className="zr-score-max">/10 Punkte</span>
           </div>
           <p className="zr-results-medal">{medal?.label}</p>
+
+          {/* Bubble-Chart – SVG, kein externes Package */}
+          <ZrBubbleChart paare={paare} perioden={data.perioden} placements={placements} lemma={data.lemma} />
+
           <p className="zr-results-info">
-            Daten aus dem Deutschen Textarchiv (ca. 1460–1900)
+            Daten aus den DWDS-Korpora
+            ({Math.min(...paare.map(p => Number(p.jahrzehnt)))}–{Math.max(...paare.map(p => Number(p.jahrzehnt)))})
           </p>
+          <a
+            className="dwds-link"
+            href={`https://www.dwds.de/wb/${encodeURIComponent(data.lemma)}`}
+            target="_blank" rel="noopener noreferrer"
+          >Mehr über „{data.lemma}" auf dwds.de ↗</a>
           <button className="btn-primary btn-full" onClick={onBack}>
             Zur Startseite
           </button>
