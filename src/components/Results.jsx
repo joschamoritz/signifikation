@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { getMedal, getRundInfo } from '../utils/gameLogic'
+import { API_BASE } from '../config'
 
 function BelegeSatz({ tokens }) {
   return (
@@ -44,7 +45,7 @@ export default function Results({ lemma, roundScores, onRestart, onToSelection }
     setBelegeLoading(true)
     try {
       const r = await fetch(
-        `/api/belege?collocate=${encodeURIComponent(collocate)}&lemma=${encodeURIComponent(lemma.lemma)}&rel=${rel}`
+        `${API_BASE}/api/belege?collocate=${encodeURIComponent(collocate)}&lemma=${encodeURIComponent(lemma.lemma)}&rel=${rel}`
       )
       const data = await r.json()
       setBelegeCache(prev => ({ ...prev, [cacheKey]: Array.isArray(data) ? data : [] }))
