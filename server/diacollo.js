@@ -19,21 +19,26 @@ const CORPORA_DEFAULT = [
   { id: 'politische_reden', slice: 10 },
 ]
 
+let _corporaCache = null
+export function clearCorporaCache() { _corporaCache = null }
+
 function getActiveCorpora() {
+  if (_corporaCache) return _corporaCache
   try {
     const cfg = JSON.parse(readFileSync(join(DATA, 'diacollo-config.json'), 'utf8'))
     const active = cfg.corpora.filter(c => c.enabled)
-    return active.length ? active : CORPORA_DEFAULT
+    _corporaCache = active.length ? active : CORPORA_DEFAULT
   } catch {
-    return CORPORA_DEFAULT
+    _corporaCache = CORPORA_DEFAULT
   }
+  return _corporaCache
 }
 
 /** Ruft ein einzelnes Korpus ab und taggt jedes Profil mit `_korpus`. */
 async function fetchKorpus({ id, slice }, lemma) {
   const qs  = `q=${encodeURIComponent(lemma)}&slice=${slice}&kbest=20&fmt=json`
   const url = `${BASE}/${id}/diacollo/profile.perl?${qs}`
-  const res = await fetch(url)
+  const res = await fetch(url, { signal: AbortSignal.timeout(10000) })
   if (!res.ok) throw new Error(`DiaCollo/${id} HTTP ${res.status}`)
   const data = await res.json()
   return (data.profiles || []).map(p => ({ ...p, _korpus: id }))
