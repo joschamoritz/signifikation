@@ -9,6 +9,7 @@ export default defineConfig({
       registerType: 'autoUpdate',
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
+        navigateFallbackDenylist: [/^\/admin/],
         runtimeCaching: [
           {
             // Tagesdaten – StaleWhileRevalidate: sofort aus Cache, im Hintergrund aktualisieren

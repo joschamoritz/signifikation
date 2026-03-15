@@ -5,27 +5,178 @@
       {
         "jahrzehnt": "1500",
         "kollokat": "Dieberei",
-        "korpus": "dta"
+        "korpus": "dta",
+        "score": 8.79054663437105
       },
       {
         "jahrzehnt": "1800",
         "kollokat": "Totschlag",
-        "korpus": "dta"
+        "korpus": "dta",
+        "score": 7.07002579127844
       },
       {
         "jahrzehnt": "1900",
         "kollokat": "versucht",
-        "korpus": "kern"
+        "korpus": "kern",
+        "score": 7.1353185944274
       },
       {
         "jahrzehnt": "1950",
-        "kollokat": "Volkermord",
-        "korpus": "bundestag"
+        "kollokat": "Totschlag",
+        "korpus": "bundestag",
+        "score": 8.7847829027367
       },
       {
         "jahrzehnt": "2010",
         "kollokat": "millionenfach",
-        "korpus": "politische_reden"
+        "korpus": "politische_reden",
+        "score": 7.49749965947082
+      }
+    ],
+    "perioden": [
+      {
+        "jahrzehnt": "1500",
+        "kollokat": "Dieberei",
+        "korpus": "dta",
+        "score": 8.79054663437105
+      },
+      {
+        "jahrzehnt": "1550",
+        "kollokat": "Ehebruch",
+        "korpus": "dta",
+        "score": 8.18978542380315
+      },
+      {
+        "jahrzehnt": "1600",
+        "kollokat": "Raub",
+        "korpus": "dta",
+        "score": 8.62251135972319
+      },
+      {
+        "jahrzehnt": "1650",
+        "kollokat": "Totschlag",
+        "korpus": "dta",
+        "score": 8.07692397665054
+      },
+      {
+        "jahrzehnt": "1700",
+        "kollokat": "Totschlag",
+        "korpus": "dta",
+        "score": 7.32446631377451
+      },
+      {
+        "jahrzehnt": "1750",
+        "kollokat": "Oberst",
+        "korpus": "dta",
+        "score": 8.64192290163967
+      },
+      {
+        "jahrzehnt": "1800",
+        "kollokat": "Totschlag",
+        "korpus": "dta",
+        "score": 7.07002579127844
+      },
+      {
+        "jahrzehnt": "1850",
+        "kollokat": "Totschlag",
+        "korpus": "dta",
+        "score": 7.33162149109121
+      },
+      {
+        "jahrzehnt": "1860",
+        "kollokat": "Widersetzung",
+        "korpus": "reichstag",
+        "score": 9.50814690367033
+      },
+      {
+        "jahrzehnt": "1870",
+        "kollokat": "Totschlag",
+        "korpus": "reichstag",
+        "score": 8.28138928977248
+      },
+      {
+        "jahrzehnt": "1880",
+        "kollokat": "Mordversuch",
+        "korpus": "reichstag",
+        "score": 8.89546364539072
+      },
+      {
+        "jahrzehnt": "1890",
+        "kollokat": "Totschlag",
+        "korpus": "reichstag",
+        "score": 9.13210353600735
+      },
+      {
+        "jahrzehnt": "1900",
+        "kollokat": "versucht",
+        "korpus": "kern",
+        "score": 7.1353185944274
+      },
+      {
+        "jahrzehnt": "1910",
+        "kollokat": "Totschlag",
+        "korpus": "reichstag",
+        "score": 7.95064645657278
+      },
+      {
+        "jahrzehnt": "1920",
+        "kollokat": "Totschlag",
+        "korpus": "reichstag",
+        "score": 7.72322027105295
+      },
+      {
+        "jahrzehnt": "1930",
+        "kollokat": "Femefall",
+        "korpus": "reichstag",
+        "score": 7.41316021203817
+      },
+      {
+        "jahrzehnt": "1940",
+        "kollokat": "Totschlag",
+        "korpus": "kern",
+        "score": 7.38497016141949
+      },
+      {
+        "jahrzehnt": "1950",
+        "kollokat": "Totschlag",
+        "korpus": "bundestag",
+        "score": 8.7847829027367
+      },
+      {
+        "jahrzehnt": "1960",
+        "kollokat": "versucht",
+        "korpus": "kern",
+        "score": 7.6545947532822
+      },
+      {
+        "jahrzehnt": "1970",
+        "kollokat": "Gefängnis",
+        "korpus": "ddr",
+        "score": 8.81677817594423
+      },
+      {
+        "jahrzehnt": "1980",
+        "kollokat": "Totschlag",
+        "korpus": "kern",
+        "score": 7.45851613594572
+      },
+      {
+        "jahrzehnt": "1990",
+        "kollokat": "Vertreibung",
+        "korpus": "politische_reden",
+        "score": 7.78530726919044
+      },
+      {
+        "jahrzehnt": "2000",
+        "kollokat": "Totschlag",
+        "korpus": "bundestag",
+        "score": 8.51758302032986
+      },
+      {
+        "jahrzehnt": "2010",
+        "kollokat": "millionenfach",
+        "korpus": "politische_reden",
+        "score": 7.49749965947082
       }
     ]
   },
