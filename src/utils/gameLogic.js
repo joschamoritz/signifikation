@@ -1,6 +1,3 @@
-export const ROUND_KEYS   = ['nomen', 'verben', 'adjektive']
-export const ROUND_LABELS = ['Nomen', 'Verben', 'Adjektive']
-
 /** Gibt rundenInfo zurück – aus dem Lemma-Objekt oder als Fallback für alte Substantiv-Einträge */
 export function getRundInfo(lemma) {
   if (lemma?.rundenInfo?.length) return lemma.rundenInfo
@@ -12,18 +9,19 @@ export function getRundInfo(lemma) {
   ]
 }
 
-/** Fisher-Yates shuffle – mutates and returns the array */
-function shuffle(arr) {
-  for (let i = arr.length - 1; i > 0; i--) {
+/** Fisher-Yates shuffle – returns a new shuffled array */
+export function shuffle(arr) {
+  const a = [...arr]
+  for (let i = a.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
-    [arr[i], arr[j]] = [arr[j], arr[i]]
+    [a[i], a[j]] = [a[j], a[i]]
   }
-  return arr
+  return a
 }
 
 /** Pick `count` random items from `arr` without mutation */
 export function getRandomItems(arr, count) {
-  return shuffle([...arr]).slice(0, count)
+  return shuffle(arr).slice(0, count)
 }
 
 /**
@@ -31,7 +29,7 @@ export function getRandomItems(arr, count) {
  * (Top-3 and 7 distractors are already fixed in the data.)
  */
 export function getRoundOptions(kollokatoren) {
-  return shuffle([...kollokatoren])
+  return shuffle(kollokatoren)
 }
 
 /**

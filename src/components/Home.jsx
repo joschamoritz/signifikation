@@ -92,8 +92,9 @@ export default function Home({ onStart, loading, error, playedGames = [], allPla
     } catch {}
   }
 
-  const history     = getHistory().slice(0, 14).reverse() // älteste zuerst → neueste rechts
-  const streak      = computeStreak(getHistory())
+  const allHistory  = getHistory()
+  const history     = allHistory.slice(0, 14).reverse() // älteste zuerst → neueste rechts
+  const streak      = computeStreak(allHistory)
   const totalPoints = playedGames.reduce((s, g) => s + g.total, 0)
   const maxPoints   = playedGames.length * 10
   const dailyMedal  = allPlayed ? getDailyMedal(totalPoints) : null

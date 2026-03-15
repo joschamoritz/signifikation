@@ -1,6 +1,7 @@
-import { useState, useRef } from 'react'
-import { getMedal } from '../utils/gameLogic'
+import { useState, useRef, useEffect } from 'react'
+import { getMedal, shuffle } from '../utils/gameLogic'
 import { API_BASE } from '../config'
+import BelegeSatz from './BelegeSatz'
 
 // ── Bubble-Chart für die Ergebnisseite ──────────────────────
 const KORPUS_COLOR = {
@@ -159,30 +160,8 @@ function ZrBubbleChart({ paare, perioden, placements, lemma }) {
   )
 }
 
-function BelegeSatz({ tokens }) {
-  return (
-    <p className="beleg-satz">
-      {tokens.map((t, i) => (
-        <span key={i}>
-          {t.hl ? <strong>{t.w}</strong> : t.w}
-          {t.ws && i < tokens.length - 1 ? ' ' : ''}
-        </span>
-      ))}
-    </p>
-  )
-}
-
 function formatPeriod(label) {
   return `um ${label}`
-}
-
-function shuffle(arr) {
-  const a = [...arr]
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [a[i], a[j]] = [a[j], a[i]]
-  }
-  return a
 }
 
 export default function Zeitreise({ data, onBack, onFinish }) {
@@ -232,6 +211,11 @@ export default function Zeitreise({ data, onBack, onFinish }) {
 
   // Pointer-drag state (works on touch + mouse)
   const pointerDragRef = useRef(null)
+
+  // Ghost-Div cleanup bei Unmount während aktivem Drag
+  useEffect(() => {
+    return () => { pointerDragRef.current?.ghost?.remove() }
+  }, [])
 
   // ── Derived state ────────────────────────────────────────────
   const placedSet  = new Set(Object.values(placements))
@@ -495,7 +479,7 @@ export default function Zeitreise({ data, onBack, onFinish }) {
         <div className="zr-results">
           <div className="zr-results-score">
             <span className="zr-score-num">{score}</span>
-            <span className="zr-score-max">/10 Punkte</span>
+            <span className="zr-score-max">/{paare.length * 2} Punkte</span>
           </div>
           <p className="zr-results-medal">{medal?.label}</p>
 

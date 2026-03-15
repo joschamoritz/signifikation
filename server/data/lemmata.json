@@ -1762,33 +1762,33 @@
           "rang": 3
         },
         {
-          "wort": "Bösewicht",
-          "log_dice": 2.6,
-          "rang": 4
-        },
-        {
-          "wort": "Blutsäufer",
-          "log_dice": 3.6,
-          "rang": 5
-        },
-        {
-          "wort": "Sklave",
-          "log_dice": 2.4,
-          "rang": 6
-        },
-        {
-          "wort": "Mörder",
-          "log_dice": 2.7,
-          "rang": 7
-        },
-        {
           "wort": "Diktator",
           "log_dice": 3.7,
-          "rang": 8
+          "rang": 4
         },
         {
           "wort": "Unterdrücker",
           "log_dice": 3.9,
+          "rang": 5
+        },
+        {
+          "wort": "Regime",
+          "log_dice": 0.2,
+          "rang": 6
+        },
+        {
+          "wort": "Herrscher",
+          "log_dice": 1.4,
+          "rang": 7
+        },
+        {
+          "wort": "Bösewicht",
+          "log_dice": 2.6,
+          "rang": 8
+        },
+        {
+          "wort": "Usurpator",
+          "log_dice": 3.7,
           "rang": 9
         },
         {
@@ -1814,38 +1814,38 @@
           "rang": 3
         },
         {
-          "wort": "hassen",
-          "log_dice": 1.8,
-          "rang": 4
-        },
-        {
           "wort": "besiegen",
           "log_dice": 2,
-          "rang": 5
-        },
-        {
-          "wort": "beseitigen",
-          "log_dice": 2.5,
-          "rang": 6
+          "rang": 4
         },
         {
           "wort": "vertreiben",
           "log_dice": 1.7,
-          "rang": 7
+          "rang": 5
         },
         {
-          "wort": "dulden",
-          "log_dice": 1.8,
-          "rang": 8
+          "wort": "erschlagen",
+          "log_dice": 2.2,
+          "rang": 6
+        },
+        {
+          "wort": "zähmen",
+          "log_dice": 3.1,
+          "rang": 7
         },
         {
           "wort": "weisen",
           "log_dice": 1.5,
+          "rang": 8
+        },
+        {
+          "wort": "umbringen",
+          "log_dice": 1.3,
           "rang": 9
         },
         {
-          "wort": "heranziehen",
-          "log_dice": 1.3,
+          "wort": "töten",
+          "log_dice": 2.2,
           "rang": 10
         }
       ],
@@ -1866,38 +1866,38 @@
           "rang": 3
         },
         {
-          "wort": "cholerisch",
-          "log_dice": 3.8,
+          "wort": "skrupellos",
+          "log_dice": 4.6,
           "rang": 4
         },
         {
-          "wort": "pervers",
-          "log_dice": 3.9,
-          "rang": 5
-        },
-        {
-          "wort": "mörderisch",
-          "log_dice": 4.3,
-          "rang": 6
-        },
-        {
-          "wort": "größenwahnsinnig",
+          "wort": "cholerisch",
           "log_dice": 3.8,
-          "rang": 7
-        },
-        {
-          "wort": "grausamst",
-          "log_dice": 3.9,
-          "rang": 8
-        },
-        {
-          "wort": "finster",
-          "log_dice": 3.9,
-          "rang": 9
+          "rang": 5
         },
         {
           "wort": "abscheulich",
           "log_dice": 4.1,
+          "rang": 6
+        },
+        {
+          "wort": "machtbesessen",
+          "log_dice": 4.3,
+          "rang": 7
+        },
+        {
+          "wort": "verhasst",
+          "log_dice": 4,
+          "rang": 8
+        },
+        {
+          "wort": "sadistisch",
+          "log_dice": 3.8,
+          "rang": 9
+        },
+        {
+          "wort": "syrakusisch",
+          "log_dice": 3.9,
           "rang": 10
         }
       ]
@@ -1948,38 +1948,38 @@
           "rang": 3
         },
         {
-          "wort": "Fahrer",
+          "wort": "Land",
           "log_dice": 3.8,
           "rang": 4
         },
         {
-          "wort": "Konzentrationslager",
-          "log_dice": 4.3,
+          "wort": "Hund",
+          "log_dice": 3.7,
           "rang": 5
         },
         {
-          "wort": "Tier",
-          "log_dice": 4.3,
+          "wort": "Mensch",
+          "log_dice": 3.7,
           "rang": 6
+        },
+        {
+          "wort": "Gebiet",
+          "log_dice": 4.2,
+          "rang": 7
         },
         {
           "wort": "Geist",
           "log_dice": 3.7,
-          "rang": 7
-        },
-        {
-          "wort": "Prinzessin",
-          "log_dice": 4,
           "rang": 8
         },
         {
-          "wort": "Junge",
+          "wort": "Fahrer",
           "log_dice": 3.8,
           "rang": 9
         },
         {
-          "wort": "Mädchen",
-          "log_dice": 4.3,
+          "wort": "Volk",
+          "log_dice": 4.7,
           "rang": 10
         }
       ],
@@ -2000,28 +2000,28 @@
           "rang": 3
         },
         {
-          "wort": "verschaffen",
-          "log_dice": 2.4,
+          "wort": "fliehen",
+          "log_dice": 3.2,
           "rang": 4
         },
         {
-          "wort": "zurückgeben",
-          "log_dice": 2.9,
+          "wort": "erlösen",
+          "log_dice": 2.6,
           "rang": 5
         },
         {
-          "wort": "retten",
-          "log_dice": 3.2,
+          "wort": "bringen",
+          "log_dice": 3,
           "rang": 6
         },
         {
-          "wort": "reinigen",
-          "log_dice": 2.4,
+          "wort": "säubern",
+          "log_dice": 2.5,
           "rang": 7
         },
         {
-          "wort": "verhelfen",
-          "log_dice": 2.5,
+          "wort": "befreien",
+          "log_dice": 3.1,
           "rang": 8
         },
         {
@@ -2030,8 +2030,8 @@
           "rang": 9
         },
         {
-          "wort": "entlasten",
-          "log_dice": 2.5,
+          "wort": "verschaffen",
+          "log_dice": 2.4,
           "rang": 10
         }
       ],
@@ -2052,38 +2052,38 @@
           "rang": 3
         },
         {
-          "wort": "gewaltsam",
-          "log_dice": 5.1,
+          "wort": "wenigstens",
+          "log_dice": 3.9,
           "rang": 4
         },
         {
-          "wort": "vollständig",
-          "log_dice": 5,
+          "wort": "lebend",
+          "log_dice": 3.9,
           "rang": 5
         },
         {
-          "wort": "allmählich",
+          "wort": "komplett",
           "log_dice": 4.2,
           "rang": 6
         },
         {
-          "wort": "endgültig",
-          "log_dice": 5.1,
+          "wort": "mühsam",
+          "log_dice": 4.3,
           "rang": 7
         },
         {
-          "wort": "wenigstens",
-          "log_dice": 3.9,
+          "wort": "rechtzeitig",
+          "log_dice": 4.2,
           "rang": 8
         },
         {
-          "wort": "daraus",
-          "log_dice": 5.4,
+          "wort": "vollständig",
+          "log_dice": 5,
           "rang": 9
         },
         {
-          "wort": "davon",
-          "log_dice": 5.3,
+          "wort": "allmählich",
+          "log_dice": 4.2,
           "rang": 10
         }
       ]
@@ -2134,38 +2134,38 @@
           "rang": 3
         },
         {
-          "wort": "Enzyklopädie",
-          "log_dice": 5.4,
+          "wort": "Form",
+          "log_dice": 5.7,
           "rang": 4
         },
         {
-          "wort": "Magazin",
+          "wort": "Broschüre",
           "log_dice": 5.5,
           "rang": 5
         },
         {
-          "wort": "BILD-Zeitung",
-          "log_dice": 6,
+          "wort": "Fassung",
+          "log_dice": 6.3,
           "rang": 6
-        },
-        {
-          "wort": "Katalog",
-          "log_dice": 5.9,
-          "rang": 7
         },
         {
           "wort": "Handbuch",
           "log_dice": 6.2,
-          "rang": 8
+          "rang": 7
         },
         {
-          "wort": "Form",
-          "log_dice": 5.7,
-          "rang": 9
+          "wort": "Version",
+          "log_dice": 6.1,
+          "rang": 8
         },
         {
           "wort": "Text",
           "log_dice": 5.4,
+          "rang": 9
+        },
+        {
+          "wort": "Magazin",
+          "log_dice": 5.5,
           "rang": 10
         }
       ],
@@ -2186,38 +2186,38 @@
           "rang": 3
         },
         {
-          "wort": "dastehen",
-          "log_dice": 0.9,
+          "wort": "verbreitet",
+          "log_dice": 0.4,
           "rang": 4
         },
         {
-          "wort": "erhältlich",
-          "log_dice": 1.6,
+          "wort": "dastehen",
+          "log_dice": 0.9,
           "rang": 5
-        },
-        {
-          "wort": "stehen",
-          "log_dice": 0.2,
-          "rang": 6
-        },
-        {
-          "wort": "wiederfinden",
-          "log_dice": 1.3,
-          "rang": 7
         },
         {
           "wort": "sehen",
           "log_dice": 1.4,
+          "rang": 6
+        },
+        {
+          "wort": "lesen",
+          "log_dice": 1.5,
+          "rang": 7
+        },
+        {
+          "wort": "nachlesen",
+          "log_dice": 1.5,
           "rang": 8
         },
         {
-          "wort": "erscheinen",
-          "log_dice": 1.4,
+          "wort": "erschienen",
+          "log_dice": 0.6,
           "rang": 9
         },
         {
-          "wort": "beiliegen",
-          "log_dice": 1.6,
+          "wort": "stehen",
+          "log_dice": 0.2,
           "rang": 10
         }
       ],
@@ -2238,38 +2238,38 @@
           "rang": 3
         },
         {
-          "wort": "kopiert",
-          "log_dice": 2.6,
+          "wort": "gelesen",
+          "log_dice": 2.3,
           "rang": 4
-        },
-        {
-          "wort": "online",
-          "log_dice": 2.4,
-          "rang": 5
-        },
-        {
-          "wort": "kommentiert",
-          "log_dice": 3.2,
-          "rang": 6
         },
         {
           "wort": "handgeschrieben",
           "log_dice": 2.9,
-          "rang": 7
-        },
-        {
-          "wort": "gelesen",
-          "log_dice": 2.3,
-          "rang": 8
+          "rang": 5
         },
         {
           "wort": "verteilt",
           "log_dice": 2.4,
+          "rang": 6
+        },
+        {
+          "wort": "online",
+          "log_dice": 2.4,
+          "rang": 7
+        },
+        {
+          "wort": "geheftet",
+          "log_dice": 2.3,
+          "rang": 8
+        },
+        {
+          "wort": "geschrieben",
+          "log_dice": 3.3,
           "rang": 9
         },
         {
-          "wort": "digital",
-          "log_dice": 4.2,
+          "wort": "kopiert",
+          "log_dice": 2.6,
           "rang": 10
         }
       ]
