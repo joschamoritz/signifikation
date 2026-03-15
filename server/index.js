@@ -3,7 +3,7 @@ import { readFileSync, writeFileSync, mkdirSync } from 'fs'
 import { fileURLToPath } from 'url'
 import { dirname, join }  from 'path'
 import { fetchLemma, fetchBonusQuestion } from './dwds.js'
-import { fetchZeitreise, debugDiaCollo } from './diacollo.js'
+import { fetchZeitreise, debugDiaCollo, clearCorporaCache } from './diacollo.js'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const DATA      = join(__dirname, 'data')
@@ -17,12 +17,20 @@ const app = express()
 app.use(express.json())
 
 // ── Helpers ─────────────────────────────────────────────────
-function load(file)       { return JSON.parse(readFileSync(join(DATA, file), 'utf8')) }
-function save(file, data) { writeFileSync(join(DATA, file), JSON.stringify(data, null, 2)) }
+const fileCache = {}
+function load(file) {
+  if (!fileCache[file]) fileCache[file] = JSON.parse(readFileSync(join(DATA, file), 'utf8'))
+  return fileCache[file]
+}
+function save(file, data) {
+  writeFileSync(join(DATA, file), JSON.stringify(data, null, 2))
+  fileCache[file] = data
+}
 function loadZeitreise()  { try { return load('zeitreise.json') } catch { return {} } }
 
 function requireAuth(req, res, next) {
-  const key = req.headers['x-admin-key'] || req.query.key
+  // API-Calls nutzen Header; nur GET /admin (Browser) akzeptiert zusätzlich query.key
+  const key = req.headers['x-admin-key'] || (req.path === '/admin' ? req.query.key : undefined)
   if (key !== ADMIN_KEY) return res.status(401).json({ error: 'Nicht autorisiert' })
   next()
 }
@@ -213,6 +221,7 @@ app.post('/admin/diacollo-config', requireAuth, (req, res) => {
       if (entry) entry.enabled = !!item.enabled
     }
     writeFileSync(join(DATA, 'diacollo-config.json'), JSON.stringify(cfg, null, 2))
+    clearCorporaCache()
     res.json({ ok: true, active: cfg.corpora.filter(c => c.enabled).map(c => c.id) })
   } catch (err) {
     res.status(500).json({ error: err.message })

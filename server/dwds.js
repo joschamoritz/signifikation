@@ -59,7 +59,7 @@ async function fetchRelation(lemma, pos, relCode) {
     limit: 20, by: 'logDice', minstat: 0, minfreq: 5, mwe: 0,
     lemma, lemmaId: '', pos, posId: pos, wanted: 'lemma',
   })
-  const res = await fetch(`${BASE}?${params}`)
+  const res = await fetch(`${BASE}?${params}`, { signal: AbortSignal.timeout(8000) })
   if (!res.ok) throw new Error(`DWDS HTTP ${res.status} für ${relCode}`)
   const data = await res.json()
   if (!Array.isArray(data)) throw new Error(`Unerwartetes Format für ${relCode}`)
@@ -115,11 +115,15 @@ export async function fetchBonusQuestion(lemma, pos = 'Substantiv') {
 }
 
 export async function fetchLemma(lemma, pos = 'Substantiv') {
-  const rounds = POS_ROUNDS[pos] ?? POS_ROUNDS.Substantiv
+  const rounds  = POS_ROUNDS[pos] ?? POS_ROUNDS.Substantiv
+  const results = await Promise.allSettled(
+    rounds.map(round => fetchRelation(lemma, pos, round.relCode))
+  )
   const runden = {}
-  for (const round of rounds) {
-    const items = await fetchRelation(lemma, pos, round.relCode)
-    runden[round.key] = buildOptions(items)
+  for (let i = 0; i < rounds.length; i++) {
+    const r = results[i]
+    runden[rounds[i].key] = r.status === 'fulfilled' ? buildOptions(r.value) : []
+    if (r.status === 'rejected') console.warn(`fetchLemma: Relation ${rounds[i].relCode} fehlgeschlagen:`, r.reason.message)
   }
   return {
     id:         toId(lemma),
