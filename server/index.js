@@ -164,28 +164,32 @@ app.get('/api/belege', async (req, res) => {
         `${L} #5 ${C}`,
       ]
     } else {
-      // Zeitreise: kein fester Relationstyp – Kollokation = Co-Vorkommen im Kontextfenster,
-      // nicht notwendigerweise direkt nebeneinander.
-      // Reihenfolge: exakte Phrase → Nähe (#10 = innerhalb 10 Wörter) → loose AND
+      // Zeitreise: kein fester Relationstyp – sowohl @ (Lemmasuche) als auch Grundform
       queries = [
-        `"${collocate} ${lemma}"`,              // direkt benachbart
+        `"${collocate} ${lemma}"`,              // exakt benachbart
         `"${lemma} ${collocate}"`,
-        `${C} #10 ${L}`,                        // Lemmasuche, innerhalb 10 Wörter
+        `${C} #10 ${L}`,                        // Lemmasuche ±10
         `${L} #10 ${C}`,
-        `${C} #20 ${L}`,                        // etwas weiter
+        `${collocate} #10 ${lemma}`,            // Grundform ±10 (Fallback falls @ nicht greift)
+        `${lemma} #10 ${collocate}`,
+        `${C} #20 ${L}`,                        // Lemmasuche ±20
         `${L} #20 ${C}`,
+        `${collocate} #20 ${lemma}`,            // Grundform ±20
+        `${lemma} #20 ${collocate}`,
       ]
     }
 
-    const extra = corpusSuffix()
+    const y = year ? parseInt(year) : null
+    const extra      = corpusSuffix()
     const corpusOnly = corpusForR ? `&corpus=${encodeURIComponent(corpusForR)}` : ''
-    const dateOnly   = year ? `&date=${parseInt(year)}:${parseInt(year) + 30}` : ''
+    const dateOnly   = y ? `&date=${y - 15}:${y + 15}` : ''
+    const dateWide   = y ? `&date=${y - 40}:${y + 40}` : ''
     let results = []
 
-    // Zeitreise: Korpus + Datum → Korpus-only → Datum-only (Fallback für nicht-/r/-Korpora)
+    // Zeitreise: Korpus+Datum → Korpus-only → Datum-only → Datum-weit
     if (corpus) {
       for (const q of queries) {
-        results = await tryQuery(q, extra)           // Korpus + Datum
+        results = await tryQuery(q, extra)           // Korpus + Datum (±15)
         if (results.length >= 2) break
       }
       if (results.length === 0 && corpusForR) {
@@ -194,9 +198,15 @@ app.get('/api/belege', async (req, res) => {
           if (results.length >= 2) break
         }
       }
-      if (results.length === 0 && year) {
+      if (results.length === 0 && y) {
         for (const q of queries) {
-          results = await tryQuery(q, dateOnly)      // Datum-only (Korpus nicht verfügbar in /r/)
+          results = await tryQuery(q, dateOnly)      // Datum-only ±15
+          if (results.length >= 2) break
+        }
+      }
+      if (results.length === 0 && y) {
+        for (const q of queries) {
+          results = await tryQuery(q, dateWide)      // Datum-only ±40 (letzter Ausweg)
           if (results.length >= 2) break
         }
       }
