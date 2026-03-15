@@ -4,6 +4,41 @@ import { getDailyMedal } from '../utils/gameLogic'
 const WEEKDAYS = ['Sonntag','Montag','Dienstag','Mittwoch','Donnerstag','Freitag','Samstag']
 const MONTHS   = ['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember']
 
+function buildShareText(playedGames, zrPlayed) {
+  const d = new Date()
+  const dateStr = `${d.getDate()}. ${MONTHS[d.getMonth()]}`
+
+  function blocks(score) {
+    const filled = Math.round((score / 10) * 5)
+    return '█'.repeat(filled) + '░'.repeat(5 - filled)
+  }
+
+  const lines = [`📖 Signifikation · ${dateStr}`, '']
+
+  if (playedGames.length > 0) {
+    lines.push('Kollokationen erkundet:')
+    for (const g of playedGames) {
+      lines.push(`${blocks(g.total)}  ${g.total}/10 · ${g.medal}`)
+    }
+    lines.push('')
+  }
+
+  if (zrPlayed) {
+    lines.push('Zeitreise durch 500 Jahre:')
+    lines.push(`${blocks(zrPlayed.total)}  ${zrPlayed.total}/10 · ${zrPlayed.medal}`)
+    lines.push('')
+  }
+
+  if (playedGames.length > 0) {
+    const kollTotal = playedGames.reduce((s, g) => s + g.total, 0)
+    const daily = getDailyMedal(kollTotal)
+    lines.push(`🏅 ${daily.label}`)
+  }
+
+  lines.push('signifikation.de')
+  return lines.join('\n')
+}
+
 function todayLabel() {
   const d = new Date()
   return `${WEEKDAYS[d.getDay()]}, ${d.getDate()}. ${MONTHS[d.getMonth()]} ${d.getFullYear()}`
@@ -43,6 +78,19 @@ function streakFlames(n) {
 export default function Home({ onStart, loading, error, playedGames = [], allPlayed = false,
                               zeitreise = null, zrPlayed = null, onPlayZeitreise }) {
   const [infoOpen, setInfoOpen] = useState(false)
+  const [copied, setCopied] = useState(false)
+
+  async function shareResult() {
+    const text = buildShareText(playedGames, zrPlayed)
+    if (navigator.share) {
+      try { await navigator.share({ text }); return } catch {}
+    }
+    try {
+      await navigator.clipboard.writeText(text)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2200)
+    } catch {}
+  }
 
   const history     = getHistory().slice(0, 14).reverse() // älteste zuerst → neueste rechts
   const streak      = computeStreak(getHistory())
@@ -70,9 +118,13 @@ export default function Home({ onStart, loading, error, playedGames = [], allPla
       )}
 
       <div className="home-card">
-        <button className="home-card-toggle" onClick={() => setInfoOpen(o => !o)}>
+        <button
+          className="home-card-toggle"
+          onClick={() => setInfoOpen(o => !o)}
+          aria-expanded={infoOpen}
+        >
           <span>Was ist eine Kollokation?</span>
-          <span className={`toggle-arrow ${infoOpen ? 'toggle-arrow--open' : ''}`}>›</span>
+          <span className={`toggle-arrow ${infoOpen ? 'toggle-arrow--open' : ''}`} aria-hidden="true">›</span>
         </button>
         {infoOpen && (
           <div className="home-card-body">
@@ -171,19 +223,30 @@ export default function Home({ onStart, loading, error, playedGames = [], allPla
         </div>
       )}
 
+      {playedGames.length > 0 && (
+        <button
+          className={`btn-share${copied ? ' btn-share--copied' : ''}`}
+          onClick={shareResult}
+          aria-label="Ergebnis teilen oder kopieren"
+        >
+          {copied ? '✓ Kopiert!' : '↗ Ergebnis teilen'}
+        </button>
+      )}
+
       <p className="feedback-hint">
-        Fehler oder Anregungen?{' '}
-        <a className="feedback-link" href="mailto:">Schreib uns.</a>
+        Fehler oder Anregungen? Schreib uns.
       </p>
 
       {history.length > 0 && (
         <div className="history-strip">
           <span className="history-label">Verlauf</span>
-          <div className="history-dots">
+          <div className="history-dots" role="list" aria-label="Spielverlauf der letzten Tage">
             {history.map((h, i) => (
               <span
                 key={i}
+                role="listitem"
                 className={`history-dot history-dot--${MEDAL_CLASS[h.medal] ?? 'ueben'}`}
+                aria-label={`${h.date}: ${h.medal}, ${h.total} von ${h.maxTotal} Punkten`}
                 title={`${h.date}: ${h.medal} · ${h.total}/${h.maxTotal} Punkte`}
               />
             ))}

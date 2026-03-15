@@ -1,11 +1,13 @@
-import { useState, useCallback, useEffect } from 'react'
+import { useState, useCallback, useEffect, Suspense, lazy, useRef } from 'react'
 import { API_BASE } from './config'
 import Home from './components/Home'
 import LemmaSelection from './components/LemmaSelection'
 import Quiz from './components/Quiz'
 import Results from './components/Results'
-import Zeitreise from './components/Zeitreise'
+import ErrorBoundary from './components/ErrorBoundary'
 import { getMedal, getDailyMedal } from './utils/gameLogic'
+
+const Zeitreise = lazy(() => import('./components/Zeitreise'))
 
 function todayKey() {
   const d = new Date()
@@ -70,6 +72,12 @@ export default function App() {
   const [bonusQuestion, setBonusQ]   = useState(null)
 
   const [zrPlayed, setZrPlayed] = useState(() => getZRToday())
+  const appRef = useRef(null)
+
+  // Fokus bei Screen-Wechsel an Anfang der neuen Seite setzen
+  useEffect(() => {
+    appRef.current?.focus()
+  }, [phase])
 
   useEffect(() => {
     fetch(`${API_BASE}/api/heute`)
@@ -147,7 +155,8 @@ export default function App() {
   const allPlayed   = lemmata && lemmata.every(l => playedIds.includes(l.id))
 
   return (
-    <div className="app">
+    <ErrorBoundary>
+    <div className="app" ref={appRef} tabIndex={-1} style={{ outline: 'none' }}>
       {phase === 'home' && (
         <Home
           onStart={() => setPhase(lemmata && !apiError ? 'selection' : 'home')}
@@ -186,12 +195,15 @@ export default function App() {
         />
       )}
       {phase === 'zeitreise' && zeitreise && (
-        <Zeitreise
-          data={zeitreise}
-          onBack={() => setPhase('home')}
-          onFinish={handleZeitreiseFinish}
-        />
+        <Suspense fallback={<div className="screen" style={{ justifyContent: 'center', alignItems: 'center' }}><p style={{ color: 'var(--muted)' }}>Lade …</p></div>}>
+          <Zeitreise
+            data={zeitreise}
+            onBack={() => setPhase('home')}
+            onFinish={handleZeitreiseFinish}
+          />
+        </Suspense>
       )}
     </div>
+    </ErrorBoundary>
   )
 }

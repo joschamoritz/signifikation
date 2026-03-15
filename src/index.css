@@ -54,6 +54,48 @@ body {
   flex-direction: column;
 }
 
+/* ── Animationen ──────────────────────────────────────────── */
+@keyframes fadeIn {
+  from { opacity: 0 }
+  to   { opacity: 1 }
+}
+@keyframes screenIn {
+  from { opacity: 0; transform: translateY(8px) }
+  to   { opacity: 1; transform: translateY(0) }
+}
+@keyframes optionIn {
+  from { opacity: 0; transform: translateX(-4px) }
+  to   { opacity: 1; transform: translateX(0) }
+}
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(6px) }
+  to   { opacity: 1; transform: translateY(0) }
+}
+
+.screen { animation: screenIn 0.22s ease both }
+
+@media (prefers-reduced-motion: reduce) {
+  .screen,
+  .option,
+  .bonus-option,
+  .round-feedback,
+  .streak-pill,
+  .zr-bubble-popover {
+    animation: none !important;
+  }
+  .bar-fill,
+  .btn-primary,
+  .btn-secondary,
+  .btn-share,
+  .option,
+  .bonus-option,
+  .toggle-arrow,
+  .zr-chip,
+  .zr-zone {
+    transition: none !important;
+  }
+}
+
 /* ── Buttons ──────────────────────────────────────────────── */
 button { font-family: inherit; cursor: pointer; border: none }
 
@@ -552,6 +594,7 @@ button { font-family: inherit; cursor: pointer; border: none }
   align-items: center;
   transition: border-color 0.12s, background 0.12s, color 0.12s;
   word-break: break-word;
+  animation: optionIn 0.18s ease both;
 }
 .option:hover:not(:disabled) { border-color: var(--primary) }
 
@@ -590,6 +633,7 @@ button { font-family: inherit; cursor: pointer; border: none }
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   padding: 12px 16px;
+  animation: slideUp 0.2s ease both;
 }
 .round-feedback-score {
   display: flex;
@@ -688,6 +732,7 @@ button { font-family: inherit; cursor: pointer; border: none }
   text-align: left;
   cursor: pointer;
   transition: border-color 0.12s, background 0.12s;
+  animation: optionIn 0.2s ease both;
 }
 .bonus-option:hover:not(:disabled) { border-color: var(--primary) }
 .bonus-option.selected {
@@ -1355,3 +1400,26 @@ button { font-family: inherit; cursor: pointer; border: none }
   display: flex; align-items: baseline; justify-content: space-between; gap: 8px;
 }
 .wortprofil-title-row .dwds-link { display: inline; text-align: right; margin: 0; font-size: 0.75rem; }
+
+/* ── Share-Button ─────────────────────────────────────────── */
+.btn-share {
+  background: transparent;
+  color: var(--text);
+  border: 1.5px solid var(--border);
+  padding: 12px 20px;
+  border-radius: var(--radius-sm);
+  font-size: 0.9rem;
+  font-weight: 600;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+.btn-share:hover { background: var(--surface2); border-color: var(--muted) }
+.btn-share--copied {
+  color: var(--success);
+  border-color: var(--success);
+  background: var(--success-bg);
+}
