@@ -1,1 +1,201 @@
-{}
+{
+  "03-15": {
+    "lemma": "Mord",
+    "paare": [
+      {
+        "jahrzehnt": "1500",
+        "kollokat": "Dieberei",
+        "korpus": "dta"
+      },
+      {
+        "jahrzehnt": "1800",
+        "kollokat": "Totschlag",
+        "korpus": "dta"
+      },
+      {
+        "jahrzehnt": "1900",
+        "kollokat": "versucht",
+        "korpus": "kern"
+      },
+      {
+        "jahrzehnt": "1950",
+        "kollokat": "Volkermord",
+        "korpus": "bundestag"
+      },
+      {
+        "jahrzehnt": "2010",
+        "kollokat": "millionenfach",
+        "korpus": "politische_reden"
+      }
+    ]
+  },
+  "03-16": {
+    "lemma": "Information",
+    "paare": [
+      {
+        "jahrzehnt": "1600",
+        "kollokat": "ausführlich",
+        "korpus": "dta",
+        "score": 7.30452311799086
+      },
+      {
+        "jahrzehnt": "1850",
+        "kollokat": "beiläufig",
+        "korpus": "dta",
+        "score": 5.31964047648629
+      },
+      {
+        "jahrzehnt": "1910",
+        "kollokat": "Marokkoangelegenheit",
+        "korpus": "reichstag",
+        "score": 5.56571928411755
+      },
+      {
+        "jahrzehnt": "1960",
+        "kollokat": "genetisch",
+        "korpus": "kern",
+        "score": 7.45799469989051
+      },
+      {
+        "jahrzehnt": "2010",
+        "kollokat": "Zugang",
+        "korpus": "politische_reden",
+        "score": 6.30245319448032
+      }
+    ],
+    "perioden": [
+      {
+        "jahrzehnt": "1600",
+        "kollokat": "ausführlich",
+        "korpus": "dta",
+        "score": 7.30452311799086
+      },
+      {
+        "jahrzehnt": "1650",
+        "kollokat": "einseitig",
+        "korpus": "dta",
+        "score": 5.63149353849231
+      },
+      {
+        "jahrzehnt": "1700",
+        "kollokat": "katechetisch",
+        "korpus": "dta",
+        "score": 6.32454696533094
+      },
+      {
+        "jahrzehnt": "1750",
+        "kollokat": "Stipendium",
+        "korpus": "dta",
+        "score": 6.88886432976529
+      },
+      {
+        "jahrzehnt": "1800",
+        "kollokat": "Preis-Verzeichnis",
+        "korpus": "dta",
+        "score": 8.29678853260885
+      },
+      {
+        "jahrzehnt": "1850",
+        "kollokat": "beiläufig",
+        "korpus": "dta",
+        "score": 5.31964047648629
+      },
+      {
+        "jahrzehnt": "1860",
+        "kollokat": "Commission",
+        "korpus": "reichstag",
+        "score": 6.2823235769336
+      },
+      {
+        "jahrzehnt": "1870",
+        "kollokat": "Prozeßgebühr",
+        "korpus": "reichstag",
+        "score": 7.19948070819189
+      },
+      {
+        "jahrzehnt": "1880",
+        "kollokat": "Quelle",
+        "korpus": "reichstag",
+        "score": 5.04548054143373
+      },
+      {
+        "jahrzehnt": "1890",
+        "kollokat": "zuverlässig",
+        "korpus": "reichstag",
+        "score": 4.91386377497269
+      },
+      {
+        "jahrzehnt": "1900",
+        "kollokat": "zugegehen",
+        "korpus": "reichstag",
+        "score": 5.40325116807224
+      },
+      {
+        "jahrzehnt": "1910",
+        "kollokat": "Marokkoangelegenheit",
+        "korpus": "reichstag",
+        "score": 5.56571928411755
+      },
+      {
+        "jahrzehnt": "1920",
+        "kollokat": "Privatgeschäft",
+        "korpus": "reichstag",
+        "score": 4.86900051046601
+      },
+      {
+        "jahrzehnt": "1930",
+        "kollokat": "unzureichend",
+        "korpus": "reichstag",
+        "score": 7.09160737922625
+      },
+      {
+        "jahrzehnt": "1940",
+        "kollokat": "Austausch",
+        "korpus": "kern",
+        "score": 7.18517537584124
+      },
+      {
+        "jahrzehnt": "1950",
+        "kollokat": "Austausch",
+        "korpus": "bundestag",
+        "score": 6.33558688551664
+      },
+      {
+        "jahrzehnt": "1960",
+        "kollokat": "genetisch",
+        "korpus": "kern",
+        "score": 7.45799469989051
+      },
+      {
+        "jahrzehnt": "1970",
+        "kollokat": "Verhalten",
+        "korpus": "ddr",
+        "score": 7.52995127398867
+      },
+      {
+        "jahrzehnt": "1980",
+        "kollokat": "Mitteilung",
+        "korpus": "kern",
+        "score": 6.79637190928988
+      },
+      {
+        "jahrzehnt": "1990",
+        "kollokat": "Wissen",
+        "korpus": "politische_reden",
+        "score": 6.90297118205966
+      },
+      {
+        "jahrzehnt": "2000",
+        "kollokat": "Zugang",
+        "korpus": "bundestag",
+        "score": 6.47579199538574
+      },
+      {
+        "jahrzehnt": "2010",
+        "kollokat": "Zugang",
+        "korpus": "politische_reden",
+        "score": 6.30245319448032
+      }
+    ]
+  }
+}
