@@ -53,11 +53,12 @@ function savePlayedGame(lemmaId, lemmaName, total, medal, lemmataLength) {
   else played.push(entry)
   localStorage.setItem(todayKey(), JSON.stringify(played))
 
-  // Immer History schreiben → Streak sofort nach erstem Spiel sichtbar
-  const dailyTotal = played.reduce((s, g) => s + g.total, 0)
-  const maxTotal   = (lemmataLength ?? played.length) * 10
-  const dailyMedal = getDailyMedal(dailyTotal)
-  saveToHistory(todayDateStr(), dailyMedal.label, dailyTotal, maxTotal)
+  // History nur schreiben wenn alle Wörter gespielt → Streak erscheint am selben Tag (nicht erst am nächsten)
+  if (lemmataLength && played.length >= lemmataLength) {
+    const dailyTotal = played.reduce((s, g) => s + g.total, 0)
+    const dailyMedal = getDailyMedal(dailyTotal)
+    saveToHistory(todayDateStr(), dailyMedal.label, dailyTotal, played.length * 10)
+  }
 }
 
 export default function App() {
