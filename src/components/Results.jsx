@@ -115,7 +115,7 @@ export default function Results({ lemma, roundScores, onRestart, onToSelection }
           </button>
           {belegeInfoOpen && (
             <div className="logdice-explanation">
-              <p>Klicke auf ein <strong>Kollokat</strong> (eines der Wörter unten), um echte Beispielsätze aus dem DWDS-Korpus zu sehen. Die Belege sind die fünf aktuellsten Treffer, in denen beide Wörter als Phrase vorkommen – gesucht wird direkt im Zeitungskorpus des DWDS.</p>
+              <p>Klicke auf ein <strong>Kollokat</strong> (eines der Wörter unten), um echte Beispielsätze aus dem DWDS-Korpus zu sehen. Gesucht wird in mehreren Korpora — Tageszeitungen, Kernkorpus, Parlamentsdebatten u.&thinsp;a. — bevorzugt ohne Wikipedia-Artikel. Es werden bis zu fünf Treffer angezeigt, in denen beide Wörter im Satz nah beieinander stehen.</p>
             </div>
           )}
         </div>

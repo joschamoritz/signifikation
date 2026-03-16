@@ -67,13 +67,35 @@ function FreeBonusRound({ onComplete }) {
 function BonusRound({ bonus, lemma, onComplete }) {
   const [selected, setSelected]   = useState(null)
   const [submitted, setSubmitted] = useState(false)
+  const [openBeleg,     setOpenBeleg]     = useState(null)
+  const [belegeCache,   setBelegeCache]   = useState({})
+  const [belegeLoading, setBelegeLoading] = useState(false)
   const isCorrect = submitted && selected === bonus.correct
 
   function optionClass(opt) {
     if (!submitted) return `bonus-option${selected === opt ? ' selected' : ''}`
-    if (opt === bonus.correct) return 'bonus-option correct'
-    if (opt === selected)      return 'bonus-option wrong'
-    return 'bonus-option'
+    const isActive = submitted && openBeleg === opt
+    if (opt === bonus.correct) return `bonus-option correct${isActive ? ' option--beleg-active' : ''}`
+    if (opt === selected)      return `bonus-option wrong${isActive ? ' option--beleg-active' : ''}`
+    return `bonus-option${isActive ? ' option--beleg-active' : ''}`
+  }
+
+  async function loadBelege(opt) {
+    if (openBeleg === opt) { setOpenBeleg(null); return }
+    if (belegeCache[opt] !== undefined) { setOpenBeleg(opt); return }
+    setOpenBeleg(opt)
+    setBelegeLoading(true)
+    try {
+      const r = await fetch(
+        `${API_BASE}/api/belege?collocate=${encodeURIComponent(opt)}&lemma=${encodeURIComponent(lemma.lemma)}&rel=`
+      )
+      const data = await r.json()
+      setBelegeCache(prev => ({ ...prev, [opt]: Array.isArray(data) ? data : [] }))
+    } catch {
+      setBelegeCache(prev => ({ ...prev, [opt]: [] }))
+    } finally {
+      setBelegeLoading(false)
+    }
   }
 
   return (
@@ -97,12 +119,32 @@ function BonusRound({ bonus, lemma, onComplete }) {
             key={opt}
             className={optionClass(opt)}
             style={{ animationDelay: submitted ? '0ms' : `${i * 80}ms` }}
-            onClick={() => !submitted && setSelected(opt)}
+            onClick={() => submitted ? loadBelege(opt) : setSelected(opt)}
           >
             {opt}
           </button>
         ))}
       </div>
+
+      {submitted && openBeleg && (
+        <div className="belege-panel">
+          <p className="belege-panel-title">
+            Belege: <em>{lemma.lemma}</em> + <em>{openBeleg}</em>
+          </p>
+          {belegeLoading && belegeCache[openBeleg] === undefined ? (
+            <p className="belege-status">Lade Belege …</p>
+          ) : belegeCache[openBeleg]?.length ? (
+            belegeCache[openBeleg].map((b, bi) => (
+              <div key={bi} className="beleg-item">
+                <BelegeSatz tokens={b.tokens} />
+                <p className="beleg-quelle">{b.quelle}</p>
+              </div>
+            ))
+          ) : (
+            <p className="belege-status">Keine Belege gefunden.</p>
+          )}
+        </div>
+      )}
 
       {submitted && (
         <div className="round-feedback">
@@ -158,6 +200,9 @@ export default function Quiz({ lemma, currentRound, bonusQuestion, onRoundComple
   const [openBeleg,     setOpenBeleg]     = useState(null)
   const [belegeCache,   setBelegeCache]   = useState({})
   const [belegeLoading, setBelegeLoading] = useState(false)
+  const [showBelegHint, setShowBelegHint] = useState(
+    () => !localStorage.getItem('sig_beleg_hint')
+  )
 
   const rundInfo     = getRundInfo(lemma)
   const roundInfo    = rundInfo[currentRound]
@@ -206,6 +251,10 @@ export default function Quiz({ lemma, currentRound, bonusQuestion, onRoundComple
   const STATE_ICON = { correct: '✓', wrong: '✗', missed: '→' }
 
   async function loadBelege(collocate) {
+    if (showBelegHint) {
+      setShowBelegHint(false)
+      localStorage.setItem('sig_beleg_hint', '1')
+    }
     if (openBeleg === collocate) { setOpenBeleg(null); return }
     if (belegeCache[collocate] !== undefined) { setOpenBeleg(collocate); return }
     setOpenBeleg(collocate)
@@ -239,7 +288,7 @@ export default function Quiz({ lemma, currentRound, bonusQuestion, onRoundComple
         </div>
         <p className="round-title">Runde {currentRound + 1} · {roundLabel}</p>
         <p className="quiz-instruction">
-          Wähle die 3 stärksten Kollokate von <strong>{lemma.lemma}</strong> – in der richtigen Reihenfolge
+          Wähle die 3 stärksten Kollokate von <strong>{lemma.lemma}</strong>
         </p>
       </header>
 
@@ -267,6 +316,12 @@ export default function Quiz({ lemma, currentRound, bonusQuestion, onRoundComple
           )
         })}
       </div>
+
+      {submitted && showBelegHint && (
+        <div className="beleg-hint" onClick={() => { setShowBelegHint(false); localStorage.setItem('sig_beleg_hint', '1') }}>
+          💡 Tipp: Klicke auf ein Wort, um Beispielsätze aus dem DWDS-Korpus zu sehen.
+        </div>
+      )}
 
       {submitted && openBeleg && (
         <div className="belege-panel">

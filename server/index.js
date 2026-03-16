@@ -102,6 +102,23 @@ app.get('/api/belege', async (req, res) => {
     return Array.isArray(data) ? data.filter(item => Array.isArray(item.ctx_?.[1])) : []
   }
 
+  function noWiki(items) {
+    return items.filter(item => !(item.bibl_string || '').toLowerCase().includes('wikipedia'))
+  }
+
+  /** Durchläuft alle Queries, bricht ab sobald ≥2 Non-Wiki-Treffer gefunden wurden.
+   *  Fallback: erste Query mit ≥2 Treffern (inkl. Wikipedia). */
+  async function runQueries(queries, extra) {
+    let fallback = []
+    for (const q of queries) {
+      const r  = await tryQuery(q, extra)
+      const nw = noWiki(r)
+      if (nw.length >= 2) return nw          // Ideal: non-Wiki-Treffer
+      if (r.length >= 2 && !fallback.length) fallback = r  // speichere ersten brauchbaren Fallback
+    }
+    return fallback
+  }
+
   function parseItem(item) {
     const raw = item.ctx_[1]
     const tokens = raw.map(t => ({ w: t.w, ws: t.ws === '1', hl: t.hl_ === 1 }))
@@ -188,47 +205,23 @@ app.get('/api/belege', async (req, res) => {
     const dateWide   = y ? `&date=${y - 40}:${y + 40}` : ''
     let results = []
 
-    // Zeitreise: Korpus+Datum → Korpus-only → Datum-only → Datum-weit
+    // Zeitreise: Korpus+Datum → Korpus-only → Datum-only → Datum-weit → global
     if (corpus) {
-      for (const q of queries) {
-        results = await tryQuery(q, extra)           // Korpus + Datum (±15)
-        if (results.length >= 2) break
-      }
-      if (results.length === 0 && corpusForR) {
-        for (const q of queries) {
-          results = await tryQuery(q, corpusOnly)    // Korpus ohne Datum
-          if (results.length >= 2) break
-        }
-      }
-      if (results.length === 0 && y) {
-        for (const q of queries) {
-          results = await tryQuery(q, dateOnly)      // Datum-only ±15
-          if (results.length >= 2) break
-        }
-      }
-      if (results.length === 0 && y) {
-        for (const q of queries) {
-          results = await tryQuery(q, dateWide)      // Datum-only ±40
-          if (results.length >= 2) break
-        }
-      }
-      if (results.length === 0) {
-        // Korpus nicht in /r/ verfügbar (z.B. reichstag) → global ohne Einschränkung
-        for (const q of queries) {
-          results = await tryQuery(q, '')
-          if (results.length >= 2) break
-        }
-      }
+      results = await runQueries(queries, extra)                              // Korpus + Datum (±15)
+      if (!results.length && corpusForR)
+        results = await runQueries(queries, corpusOnly)                       // Korpus ohne Datum
+      if (!results.length && y)
+        results = await runQueries(queries, dateOnly)                         // Datum-only ±15
+      if (!results.length && y)
+        results = await runQueries(queries, dateWide)                         // Datum-only ±40
+      if (!results.length)
+        results = await runQueries(queries, '')                               // global (kein Korpus/Datum)
     } else {
-      // Normaler Kollokationen-Modus: alle Queries durchlaufen
-      for (const q of queries) {
-        results = await tryQuery(q, extra)
-        if (results.length >= 2) break
-      }
+      // Normaler Kollokationen-Modus
+      results = await runQueries(queries, extra)
     }
-    // Prefer non-Wikipedia sources; fall back if too few results
-    const noWiki = results.filter(item => !(item.bibl_string || '').toLowerCase().includes('wikipedia'))
-    const final  = noWiki.length >= 2 ? noWiki : results
+    // runQueries liefert bevorzugt non-Wiki; falls nur Wikipedia übrig bleibt, trotzdem anzeigen
+    const final = results.length ? results : []
     res.json(final.slice(0, 5).map(parseItem))
   } catch (err) {
     console.error('Belege-Fehler:', err.message)
