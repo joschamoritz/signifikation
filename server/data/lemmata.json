@@ -3401,38 +3401,38 @@
           "rang": 3
         },
         {
-          "wort": "Elfenbeinturm",
-          "log_dice": 2.7,
+          "wort": "Panzer",
+          "log_dice": 0.8,
           "rang": 4
-        },
-        {
-          "wort": "Zelt",
-          "log_dice": 2.4,
-          "rang": 5
-        },
-        {
-          "wort": "Polizist",
-          "log_dice": 0.3,
-          "rang": 6
-        },
-        {
-          "wort": "Wasserwerfer",
-          "log_dice": 2.4,
-          "rang": 7
-        },
-        {
-          "wort": "Zeltlager",
-          "log_dice": 2.5,
-          "rang": 8
-        },
-        {
-          "wort": "Mauer",
-          "log_dice": 0.2,
-          "rang": 9
         },
         {
           "wort": "Straßenschlacht",
           "log_dice": 2.7,
+          "rang": 5
+        },
+        {
+          "wort": "Schuss",
+          "log_dice": 0.2,
+          "rang": 6
+        },
+        {
+          "wort": "Kontrollpunkt",
+          "log_dice": 2.9,
+          "rang": 7
+        },
+        {
+          "wort": "Wasserwerfer",
+          "log_dice": 2.4,
+          "rang": 8
+        },
+        {
+          "wort": "Demonstrant",
+          "log_dice": 0.6,
+          "rang": 9
+        },
+        {
+          "wort": "Zeltlager",
+          "log_dice": 2.5,
           "rang": 10
         }
       ],
@@ -3458,33 +3458,33 @@
           "rang": 4
         },
         {
-          "wort": "niederreißen",
-          "log_dice": 5,
+          "wort": "niederwalzen",
+          "log_dice": 3.3,
           "rang": 5
         },
         {
-          "wort": "bewachen",
-          "log_dice": 2.9,
+          "wort": "aufschichten",
+          "log_dice": 3.1,
           "rang": 6
-        },
-        {
-          "wort": "stürmen",
-          "log_dice": 4.3,
-          "rang": 7
         },
         {
           "wort": "erstürmen",
           "log_dice": 3.1,
+          "rang": 7
+        },
+        {
+          "wort": "abbauen",
+          "log_dice": 3.6,
           "rang": 8
         },
         {
-          "wort": "erklimmen",
-          "log_dice": 3.9,
+          "wort": "bemannen",
+          "log_dice": 2.9,
           "rang": 9
         },
         {
-          "wort": "auftürmen",
-          "log_dice": 3.8,
+          "wort": "bewachen",
+          "log_dice": 2.9,
           "rang": 10
         }
       ],
@@ -3505,38 +3505,38 @@
           "rang": 3
         },
         {
-          "wort": "verkohlt",
-          "log_dice": 2.6,
+          "wort": "aufgestellt",
+          "log_dice": 2.2,
           "rang": 4
         },
         {
-          "wort": "hölzern",
-          "log_dice": 2.1,
+          "wort": "aufgetürmt",
+          "log_dice": 4,
           "rang": 5
+        },
+        {
+          "wort": "behelfsmäßig",
+          "log_dice": 2.8,
+          "rang": 6
         },
         {
           "wort": "aufgebaut",
           "log_dice": 3.5,
-          "rang": 6
+          "rang": 7
         },
         {
-          "wort": "improvisiert",
-          "log_dice": 3.7,
-          "rang": 7
+          "wort": "bürokratisch",
+          "log_dice": 1.6,
+          "rang": 8
         },
         {
           "wort": "kiewer",
           "log_dice": 2.7,
-          "rang": 8
-        },
-        {
-          "wort": "stählern",
-          "log_dice": 2.4,
           "rang": 9
         },
         {
-          "wort": "aufgeschichtet",
-          "log_dice": 2.9,
+          "wort": "pariser",
+          "log_dice": 2.6,
           "rang": 10
         }
       ]
@@ -3587,18 +3587,18 @@
           "rang": 3
         },
         {
-          "wort": "Wurf",
-          "log_dice": 5,
+          "wort": "Befreiungsschlag",
+          "log_dice": 4.1,
           "rang": 4
         },
         {
-          "wort": "Flop",
+          "wort": "Überraschungserfolg",
           "log_dice": 4,
           "rang": 5
         },
         {
-          "wort": "Überraschungscoup",
-          "log_dice": 4.6,
+          "wort": "Saisonsieg",
+          "log_dice": 3.5,
           "rang": 6
         },
         {
@@ -3607,13 +3607,13 @@
           "rang": 7
         },
         {
-          "wort": "Sieg",
-          "log_dice": 5.4,
+          "wort": "Scoop",
+          "log_dice": 3.6,
           "rang": 8
         },
         {
-          "wort": "Befreiungsschlag",
-          "log_dice": 4.1,
+          "wort": "Wurf",
+          "log_dice": 5,
           "rang": 9
         },
         {
@@ -3639,18 +3639,18 @@
           "rang": 3
         },
         {
-          "wort": "fahren",
-          "log_dice": 2.1,
+          "wort": "rollen",
+          "log_dice": 1.6,
           "rang": 4
         },
         {
-          "wort": "verbrennen",
-          "log_dice": 2.5,
+          "wort": "bleiben",
+          "log_dice": 1.5,
           "rang": 5
         },
         {
-          "wort": "bringen",
-          "log_dice": 1.7,
+          "wort": "weiterfliegen",
+          "log_dice": 1.9,
           "rang": 6
         },
         {
@@ -3664,13 +3664,13 @@
           "rang": 8
         },
         {
-          "wort": "landen",
-          "log_dice": 1.8,
+          "wort": "abholen",
+          "log_dice": 1.7,
           "rang": 9
         },
         {
-          "wort": "abholen",
-          "log_dice": 1.7,
+          "wort": "verschwinden",
+          "log_dice": 2.1,
           "rang": 10
         }
       ],
@@ -3691,23 +3691,23 @@
           "rang": 3
         },
         {
-          "wort": "direkt",
-          "log_dice": 5.6,
+          "wort": "dort",
+          "log_dice": 5.8,
           "rang": 4
         },
         {
-          "wort": "spät",
-          "log_dice": 5.3,
+          "wort": "direkt",
+          "log_dice": 5.6,
           "rang": 5
         },
         {
-          "wort": "wo",
+          "wort": "wieder",
           "log_dice": 5.7,
           "rang": 6
         },
         {
-          "wort": "sicher",
-          "log_dice": 5.8,
+          "wort": "wo",
+          "log_dice": 5.7,
           "rang": 7
         },
         {
@@ -3721,8 +3721,8 @@
           "rang": 9
         },
         {
-          "wort": "irgendwo",
-          "log_dice": 5.8,
+          "wort": "vorne",
+          "log_dice": 6.1,
           "rang": 10
         }
       ]
@@ -3773,38 +3773,38 @@
           "rang": 3
         },
         {
-          "wort": "Landrecht",
-          "log_dice": 7.6,
+          "wort": "Herrenhaus",
+          "log_dice": 6.7,
           "rang": 4
         },
         {
-          "wort": "Kronprinz",
-          "log_dice": 6.6,
+          "wort": "Landtag",
+          "log_dice": 6.4,
           "rang": 5
         },
         {
-          "wort": "Junker",
-          "log_dice": 7,
+          "wort": "Militarismus",
+          "log_dice": 7.8,
           "rang": 6
+        },
+        {
+          "wort": "Baumeister",
+          "log_dice": 6.4,
+          "rang": 7
         },
         {
           "wort": "Reformer",
           "log_dice": 6.5,
-          "rang": 7
+          "rang": 8
         },
         {
-          "wort": "Königshaus",
-          "log_dice": 6.4,
-          "rang": 8
+          "wort": "Gesandte",
+          "log_dice": 6.8,
+          "rang": 9
         },
         {
           "wort": "Offizier",
           "log_dice": 7.1,
-          "rang": 9
-        },
-        {
-          "wort": "Adler",
-          "log_dice": 6.7,
           "rang": 10
         }
       ],
@@ -3825,38 +3825,38 @@
           "rang": 3
         },
         {
-          "wort": "besetzt",
-          "log_dice": 1.6,
+          "wort": "sparsam",
+          "log_dice": 1.4,
           "rang": 4
         },
         {
-          "wort": "verwaltet",
-          "log_dice": 1,
+          "wort": "nennend",
+          "log_dice": 2.2,
           "rang": 5
         },
         {
-          "wort": "beherrscht",
-          "log_dice": 1.5,
+          "wort": "geworden",
+          "log_dice": 2,
           "rang": 6
-        },
-        {
-          "wort": "blau",
-          "log_dice": 1.1,
-          "rang": 7
-        },
-        {
-          "wort": "anmutend",
-          "log_dice": 2.1,
-          "rang": 8
         },
         {
           "wort": "protestantisch",
           "log_dice": 1.2,
+          "rang": 7
+        },
+        {
+          "wort": "beherrscht",
+          "log_dice": 1.5,
+          "rang": 8
+        },
+        {
+          "wort": "erzogen",
+          "log_dice": 2.5,
           "rang": 9
         },
         {
-          "wort": "diszipliniert",
-          "log_dice": 2.8,
+          "wort": "pünktlich",
+          "log_dice": 1.5,
           "rang": 10
         }
       ],
@@ -3877,38 +3877,38 @@
           "rang": 3
         },
         {
-          "wort": "gesamtdeutsch",
-          "log_dice": 1,
+          "wort": "hessisch",
+          "log_dice": 0.4,
           "rang": 4
         },
         {
-          "wort": "nationalsozialistisch",
-          "log_dice": 1.4,
+          "wort": "badisch",
+          "log_dice": 1.2,
           "rang": 5
+        },
+        {
+          "wort": "gesamtdeutsch",
+          "log_dice": 1,
+          "rang": 6
+        },
+        {
+          "wort": "russisch",
+          "log_dice": 0.5,
+          "rang": 7
         },
         {
           "wort": "brandenburgisch",
           "log_dice": 0.7,
-          "rang": 6
-        },
-        {
-          "wort": "hessisch",
-          "log_dice": 0.4,
-          "rang": 7
-        },
-        {
-          "wort": "reichsdeutsch",
-          "log_dice": 1.9,
           "rang": 8
-        },
-        {
-          "wort": "süddeutsch",
-          "log_dice": 1.3,
-          "rang": 9
         },
         {
           "wort": "bayerisch",
           "log_dice": 1.9,
+          "rang": 9
+        },
+        {
+          "wort": "württembergisch",
+          "log_dice": 1.6,
           "rang": 10
         }
       ]
@@ -4456,23 +4456,23 @@
           "rang": 3
         },
         {
-          "wort": "Fruchtbarkeit",
-          "log_dice": 1.1,
+          "wort": "Frühsommer",
+          "log_dice": 5.2,
           "rang": 4
-        },
-        {
-          "wort": "Spätsommer",
-          "log_dice": 2,
-          "rang": 5
-        },
-        {
-          "wort": "Spätherbst",
-          "log_dice": 2.3,
-          "rang": 6
         },
         {
           "wort": "Einmarsch",
           "log_dice": 2.1,
+          "rang": 5
+        },
+        {
+          "wort": "Occupy-Bewegung",
+          "log_dice": 1.6,
+          "rang": 6
+        },
+        {
+          "wort": "Frühling",
+          "log_dice": 3.9,
           "rang": 7
         },
         {
@@ -4481,13 +4481,13 @@
           "rang": 8
         },
         {
-          "wort": "Occupy-Bewegung",
-          "log_dice": 1.6,
+          "wort": "Sturz",
+          "log_dice": 0.8,
           "rang": 9
         },
         {
-          "wort": "Frühling",
-          "log_dice": 3.9,
+          "wort": "Fruchtbarkeit",
+          "log_dice": 1.1,
           "rang": 10
         }
       ],
@@ -4508,33 +4508,33 @@
           "rang": 3
         },
         {
-          "wort": "verbringen",
-          "log_dice": 2.4,
-          "rang": 4
-        },
-        {
-          "wort": "spüren",
-          "log_dice": 3.2,
-          "rang": 5
-        },
-        {
-          "wort": "symbolisieren",
-          "log_dice": 2.4,
-          "rang": 6
-        },
-        {
           "wort": "feiern",
           "log_dice": 2.6,
-          "rang": 7
+          "rang": 4
         },
         {
           "wort": "durchleben",
           "log_dice": 2.5,
+          "rang": 5
+        },
+        {
+          "wort": "herbeisehnen",
+          "log_dice": 3.2,
+          "rang": 6
+        },
+        {
+          "wort": "besingen",
+          "log_dice": 3,
+          "rang": 7
+        },
+        {
+          "wort": "verheißen",
+          "log_dice": 2.3,
           "rang": 8
         },
         {
-          "wort": "ausrufen",
-          "log_dice": 2.5,
+          "wort": "verbringen",
+          "log_dice": 2.4,
           "rang": 9
         },
         {
@@ -4560,28 +4560,28 @@
           "rang": 3
         },
         {
-          "wort": "vergangen",
-          "log_dice": 3.8,
+          "wort": "beginnend",
+          "log_dice": 4.9,
           "rang": 4
         },
         {
-          "wort": "kroatisch",
-          "log_dice": 4,
+          "wort": "panisch",
+          "log_dice": 4.1,
           "rang": 5
+        },
+        {
+          "wort": "kommend",
+          "log_dice": 5,
+          "rang": 6
         },
         {
           "wort": "pekinger",
           "log_dice": 4.6,
-          "rang": 6
+          "rang": 7
         },
         {
           "wort": "nahend",
           "log_dice": 5.3,
-          "rang": 7
-        },
-        {
-          "wort": "ewig",
-          "log_dice": 5.8,
           "rang": 8
         },
         {
@@ -4596,8 +4596,8 @@
         }
       ]
     },
-    "notiz": "Am 20. März beginnt astronomisch der Frühling: Tag und Nacht sind gleich lang – ein Naturphänomen, das Menschen seit Jahrtausenden fasziniert.",
-    "link": "https://www.wetteronline.de/"
+    "notiz": "Der 21.03. markiert oft den astronomischen Frühlingsanfang auf der Nordhalbkugel.",
+    "link": "wetteronline.de/"
   },
   {
     "id": "ratifizieren",
@@ -5121,5 +5121,377 @@
     },
     "notiz": "1993 wurde Henry Maske an diesem Tag erstmals Box-Weltmeister.",
     "link": "https://de.wikipedia.org/wiki/Henry_Maske"
+  },
+  {
+    "id": "diskriminieren",
+    "lemma": "diskriminieren",
+    "pos": "Verb",
+    "wortart": "Verb",
+    "rundenInfo": [
+      {
+        "key": "objekte",
+        "label": "Objekte",
+        "relCode": "OBJ",
+        "desc": "hat als Objekt"
+      },
+      {
+        "key": "verben",
+        "label": "Verben",
+        "relCode": "KON",
+        "desc": "ist koordiniert mit"
+      },
+      {
+        "key": "adverbien",
+        "label": "Adverbien",
+        "relCode": "ADV",
+        "desc": "wird begleitet durch"
+      }
+    ],
+    "runden": {
+      "objekte": [
+        {
+          "wort": "Homosexuelle",
+          "log_dice": 6,
+          "rang": 1
+        },
+        {
+          "wort": "Minderheit",
+          "log_dice": 5.3,
+          "rang": 2
+        },
+        {
+          "wort": "Schwule",
+          "log_dice": 4.9,
+          "rang": 3
+        },
+        {
+          "wort": "Volksgruppe",
+          "log_dice": 3.2,
+          "rang": 4
+        },
+        {
+          "wort": "EU-Bürger",
+          "log_dice": 4.8,
+          "rang": 5
+        },
+        {
+          "wort": "Schwarze",
+          "log_dice": 4,
+          "rang": 6
+        },
+        {
+          "wort": "Randgruppe",
+          "log_dice": 3.2,
+          "rang": 7
+        },
+        {
+          "wort": "Religionsgemeinschaft",
+          "log_dice": 3.4,
+          "rang": 8
+        },
+        {
+          "wort": "Muslim",
+          "log_dice": 3.9,
+          "rang": 9
+        },
+        {
+          "wort": "Mitbürger",
+          "log_dice": 3.2,
+          "rang": 10
+        }
+      ],
+      "verben": [
+        {
+          "wort": "ausgrenzen",
+          "log_dice": 6.2,
+          "rang": 1
+        },
+        {
+          "wort": "stigmatisieren",
+          "log_dice": 5.3,
+          "rang": 2
+        },
+        {
+          "wort": "benachteiligen",
+          "log_dice": 5,
+          "rang": 3
+        },
+        {
+          "wort": "erniedrigen",
+          "log_dice": 2.9,
+          "rang": 4
+        },
+        {
+          "wort": "schikanieren",
+          "log_dice": 4.5,
+          "rang": 5
+        },
+        {
+          "wort": "enteignen",
+          "log_dice": 2.9,
+          "rang": 6
+        },
+        {
+          "wort": "verstoßen",
+          "log_dice": 3.5,
+          "rang": 7
+        },
+        {
+          "wort": "kriminalisieren",
+          "log_dice": 4.7,
+          "rang": 8
+        },
+        {
+          "wort": "anfeinden",
+          "log_dice": 3.7,
+          "rang": 9
+        },
+        {
+          "wort": "unterdrücken",
+          "log_dice": 4.2,
+          "rang": 10
+        }
+      ],
+      "adverbien": [
+        {
+          "wort": "systematisch",
+          "log_dice": 5.8,
+          "rang": 1
+        },
+        {
+          "wort": "rassistisch",
+          "log_dice": 4.9,
+          "rang": 2
+        },
+        {
+          "wort": "pauschal",
+          "log_dice": 4.4,
+          "rang": 3
+        },
+        {
+          "wort": "regelrecht",
+          "log_dice": 2.7,
+          "rang": 4
+        },
+        {
+          "wort": "weder",
+          "log_dice": 2.8,
+          "rang": 5
+        },
+        {
+          "wort": "rassisch",
+          "log_dice": 3.9,
+          "rang": 6
+        },
+        {
+          "wort": "jahrhundertelang",
+          "log_dice": 3.4,
+          "rang": 7
+        },
+        {
+          "wort": "tagtäglich",
+          "log_dice": 2.7,
+          "rang": 8
+        },
+        {
+          "wort": "willkürlich",
+          "log_dice": 2.7,
+          "rang": 9
+        },
+        {
+          "wort": "jahrzehntelang",
+          "log_dice": 2.8,
+          "rang": 10
+        }
+      ]
+    },
+    "notiz": "Die Vereinten Nationen riefen den 21. März zum Internationalen Tag zur Beseitigung der Rassendiskriminierung aus und haben bisher drei Weltkonferenzen gegen Rassismus (1978, 1983, 2001) durchgeführt.",
+    "link": "https://www.bpb.de/kurz-knapp/taegliche-dosis-politik/560662/21-maerz-heute-ist-internationaler-tag-gegen-rassismus/"
+  },
+  {
+    "id": "religioes",
+    "lemma": "religiös",
+    "pos": "Adjektiv",
+    "wortart": "Adjektiv",
+    "rundenInfo": [
+      {
+        "key": "nomen",
+        "label": "Nomen",
+        "relCode": "~ATTR",
+        "desc": "ist Attribut bei"
+      },
+      {
+        "key": "verben",
+        "label": "Verben",
+        "relCode": "~ADV",
+        "desc": "ist Adverbialbestimmung von"
+      },
+      {
+        "key": "adjektive",
+        "label": "Adjektive",
+        "relCode": "KON",
+        "desc": "ist koordiniert mit"
+      }
+    ],
+    "runden": {
+      "nomen": [
+        {
+          "wort": "Minderheit",
+          "log_dice": 8.3,
+          "rang": 1
+        },
+        {
+          "wort": "Symbol",
+          "log_dice": 8.1,
+          "rang": 2
+        },
+        {
+          "wort": "Überzeugung",
+          "log_dice": 8.1,
+          "rang": 3
+        },
+        {
+          "wort": "Eiferer",
+          "log_dice": 7.1,
+          "rang": 4
+        },
+        {
+          "wort": "Extremismus",
+          "log_dice": 6.6,
+          "rang": 5
+        },
+        {
+          "wort": "Gefühl",
+          "log_dice": 7.2,
+          "rang": 6
+        },
+        {
+          "wort": "Toleranz",
+          "log_dice": 7.5,
+          "rang": 7
+        },
+        {
+          "wort": "Fanatismus",
+          "log_dice": 7.9,
+          "rang": 8
+        },
+        {
+          "wort": "Autorität",
+          "log_dice": 6.7,
+          "rang": 9
+        },
+        {
+          "wort": "Motiv",
+          "log_dice": 6.9,
+          "rang": 10
+        }
+      ],
+      "verben": [
+        {
+          "wort": "motiviert",
+          "log_dice": 8.3,
+          "rang": 1
+        },
+        {
+          "wort": "begründet",
+          "log_dice": 6.7,
+          "rang": 2
+        },
+        {
+          "wort": "geprägt",
+          "log_dice": 6.4,
+          "rang": 3
+        },
+        {
+          "wort": "aufgeladen",
+          "log_dice": 5,
+          "rang": 4
+        },
+        {
+          "wort": "neutral",
+          "log_dice": 4.8,
+          "rang": 5
+        },
+        {
+          "wort": "gefärbt",
+          "log_dice": 4.8,
+          "rang": 6
+        },
+        {
+          "wort": "motivieren",
+          "log_dice": 5.3,
+          "rang": 7
+        },
+        {
+          "wort": "konnotiert",
+          "log_dice": 3.9,
+          "rang": 8
+        },
+        {
+          "wort": "aufladen",
+          "log_dice": 4.1,
+          "rang": 9
+        },
+        {
+          "wort": "fundiert",
+          "log_dice": 5.1,
+          "rang": 10
+        }
+      ],
+      "adjektive": [
+        {
+          "wort": "ethnisch",
+          "log_dice": 7.1,
+          "rang": 1
+        },
+        {
+          "wort": "weltanschaulich",
+          "log_dice": 7.1,
+          "rang": 2
+        },
+        {
+          "wort": "kulturell",
+          "log_dice": 6.6,
+          "rang": 3
+        },
+        {
+          "wort": "säkular",
+          "log_dice": 5.1,
+          "rang": 4
+        },
+        {
+          "wort": "nationalistisch",
+          "log_dice": 4.4,
+          "rang": 5
+        },
+        {
+          "wort": "sittlich",
+          "log_dice": 4,
+          "rang": 6
+        },
+        {
+          "wort": "philosophisch",
+          "log_dice": 5,
+          "rang": 7
+        },
+        {
+          "wort": "spirituell",
+          "log_dice": 4.5,
+          "rang": 8
+        },
+        {
+          "wort": "ethisch",
+          "log_dice": 4.8,
+          "rang": 9
+        },
+        {
+          "wort": "weltlich",
+          "log_dice": 5.2,
+          "rang": 10
+        }
+      ]
+    },
+    "notiz": "Das Newrozfest wird jährlich als Neujahrs- oder Frühjahrsfest am 21. März u.a. von Aleviten, Schiiten und Kurden gefeiert.",
+    "link": "http://www.navend.de/publikationen/kurdistan-heute/kurdistan-heute-nr-03-dezember-1992-januar-1993/newroz-und-seine-bedeutung/"
   }
 ]
