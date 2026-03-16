@@ -26,9 +26,9 @@ export function FreeBonusRound({ onComplete }) {
     <div className="screen quiz-screen">
       <header className="quiz-header">
         <span className="quiz-game-badge">Kollokationen</span>
-        <div className="round-progress">
-          {[0, 1, 2].map(i => <span key={i} className="round-dot done" />)}
-          <span className="round-dot round-dot--bonus active" />
+        <div className="round-progress" role="img" aria-label="Bonusrunde, alle 3 Hauptrunden abgeschlossen">
+          {[0, 1, 2].map(i => <span key={i} aria-hidden="true" className="round-dot done" />)}
+          <span aria-hidden="true" className="round-dot round-dot--bonus active" />
         </div>
         <p className="round-title"><span className="bonus-tag">Bonus</span> · Freier Punkt</p>
       </header>
@@ -78,9 +78,9 @@ export function BonusRound({ bonus, lemma, onComplete }) {
       <header className="quiz-header">
         <span className="quiz-game-badge">Kollokationen</span>
         <h1 className="quiz-lemma-word">{lemma.lemma}</h1>
-        <div className="round-progress">
-          {[0, 1, 2].map(i => <span key={i} className="round-dot done" />)}
-          <span className="round-dot round-dot--bonus active" />
+        <div className="round-progress" role="img" aria-label="Bonusrunde, alle 3 Hauptrunden abgeschlossen">
+          {[0, 1, 2].map(i => <span key={i} aria-hidden="true" className="round-dot done" />)}
+          <span aria-hidden="true" className="round-dot round-dot--bonus active" />
         </div>
         <p className="round-title"><span className="bonus-tag">Bonus</span> · {bonus.label}</p>
         <p className="quiz-instruction">{bonus.question}</p>

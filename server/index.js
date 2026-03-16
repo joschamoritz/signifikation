@@ -1,6 +1,7 @@
 import express         from 'express'
+import cors            from 'cors'
 import rateLimit       from 'express-rate-limit'
-import { readFileSync, writeFileSync, mkdirSync } from 'fs'
+import { readFileSync, writeFileSync, renameSync, mkdirSync } from 'fs'
 import { fileURLToPath } from 'url'
 import { dirname, join }  from 'path'
 import { fetchLemma, fetchBonusQuestion } from './dwds.js'
@@ -20,6 +21,23 @@ if (!ADMIN_KEY) {
 if (!process.env.ADMIN_KEY) console.warn('⚠️  ADMIN_KEY nicht gesetzt – Dev-Fallback aktiv (nur lokal!)')
 
 const app = express()
+
+// ── CORS ─────────────────────────────────────────────────────
+// In Produktion nur eigene Domain erlauben; lokal offen für Vite-Dev-Server
+const ALLOWED_ORIGINS = process.env.ALLOWED_ORIGINS
+  ? process.env.ALLOWED_ORIGINS.split(',').map(s => s.trim())
+  : ['http://localhost:5173', 'http://localhost:3001']
+
+app.use(cors({
+  origin: IS_PROD
+    ? (origin, cb) => {
+        if (!origin || ALLOWED_ORIGINS.includes(origin)) cb(null, true)
+        else cb(new Error(`CORS: Unerlaubte Origin ${origin}`))
+      }
+    : true,   // lokal: alles erlauben
+  credentials: false,
+}))
+
 app.use(express.json())
 
 // ── Rate Limiting ────────────────────────────────────────────
@@ -49,7 +67,12 @@ function load(file) {
   return fileCache[file]
 }
 function save(file, data) {
-  writeFileSync(join(DATA, file), JSON.stringify(data, null, 2))
+  // Atomar: erst in temporäre Datei schreiben, dann umbenennen.
+  // Verhindert korrupte JSON-Dateien bei Serverabsturz mitten im Schreiben.
+  const target = join(DATA, file)
+  const tmp    = `${target}.tmp`
+  writeFileSync(tmp, JSON.stringify(data, null, 2))
+  renameSync(tmp, target)
   fileCache[file] = data
 }
 function loadZeitreise()  { try { return load('zeitreise.json') } catch { return {} } }
@@ -64,8 +87,8 @@ function requireAuth(req, res, next) {
 function todayDatum() {
   const d = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Berlin' }).format(new Date())
   // d = "2026-03-16"
-  const [, month, day] = d.split('-')
-  return `${month}-${day}`
+  const [year, month, day] = d.split('-')
+  return { mmdd: `${month}-${day}`, year: Number(year) }
 }
 
 // ── Public API ───────────────────────────────────────────────
@@ -73,7 +96,9 @@ function todayDatum() {
 /** GET /api/heute → die 3 Lemmata des Tages */
 app.get('/api/heute', (req, res) => {
   try {
-    const datum     = req.query.datum || todayDatum()
+    const today     = todayDatum()
+    const datum     = req.query.datum || today.mmdd
+    const year      = today.year
     const kalender  = load('kalender.json')
     const lemmataDB = load('lemmata.json')
 
@@ -81,7 +106,7 @@ app.get('/api/heute', (req, res) => {
     if (!ids) return res.status(404).json({ error: `Kein Eintrag für ${datum}` })
 
     const lemmata = ids.map(id => lemmataDB.find(l => l.id === id)).filter(Boolean)
-    res.json({ datum, lemmata })
+    res.json({ datum, year, lemmata })
   } catch (err) {
     res.status(500).json({ error: err.message })
   }
@@ -90,7 +115,7 @@ app.get('/api/heute', (req, res) => {
 /** GET /api/zeitreise → Zeitreise-Eintrag des Tages */
 app.get('/api/zeitreise', (req, res) => {
   try {
-    const datum    = req.query.datum || todayDatum()
+    const datum    = req.query.datum || todayDatum().mmdd
     const zeitreise = loadZeitreise()
     const entry    = zeitreise[datum]
     if (!entry) return res.status(404).json({ error: `Kein Zeitreise-Eintrag für ${datum}` })

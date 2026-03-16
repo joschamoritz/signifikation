@@ -69,7 +69,7 @@ function ZrBubbleChart({ paare, perioden, placements, lemma }) {
 
   return (
     <div className="zr-bubble-wrap">
-      <svg viewBox={`0 0 ${W} ${H}`} className="zr-bubble-svg" onMouseLeave={() => setHovered(null)}>
+      <svg viewBox={`0 0 ${W} ${H}`} className="zr-bubble-svg" aria-hidden="true" onMouseLeave={() => setHovered(null)}>
         {/* Rasterlinien */}
         {[0.25, 0.5, 0.75, 1].map(f => {
           const gy = PAD.top + innerH * (1 - f)
@@ -340,7 +340,7 @@ export default function Zeitreise({ data, onBack, onFinish }) {
 
   return (
     <div className="screen zeitreise-screen">
-      <button className="back-btn" onClick={onBack}>← Zurück</button>
+      <button className="back-btn" onClick={onBack} aria-label="Zurück zur Startseite">← Zurück</button>
 
       {/* Header */}
       <div className="zeitreise-header">
@@ -387,6 +387,10 @@ export default function Zeitreise({ data, onBack, onFinish }) {
           const belegOpen = revealed && openBeleg === p.kollokat
           const belegData = belegeCache[p.kollokat]
 
+          const zoneLabel = revealed
+            ? `${formatPeriod(p.jahrzehnt)}: ${placed || p.kollokat}${isRight ? ', richtig' : isWrong ? ', falsch' : isMissed ? ', nicht belegt' : ''}`
+            : `Zeitraum ${formatPeriod(p.jahrzehnt)}${placed ? `, belegt mit ${placed}` : ', leer'}`
+
           return (
             <div key={p.jahrzehnt} className="zr-zone-wrapper">
               <div
@@ -400,6 +404,15 @@ export default function Zeitreise({ data, onBack, onFinish }) {
                 ].filter(Boolean).join(' ')}
                 data-jahrzehnt={p.jahrzehnt}
                 onClick={() => handleZoneClick(p.jahrzehnt)}
+                tabIndex={revealed ? -1 : 0}
+                role="button"
+                aria-label={zoneLabel}
+                onKeyDown={e => {
+                  if (!revealed && (e.key === 'Enter' || e.key === ' ')) {
+                    e.preventDefault()
+                    handleZoneClick(p.jahrzehnt)
+                  }
+                }}
               >
                 <span className="zr-zone-period">{formatPeriod(p.jahrzehnt)}</span>
 

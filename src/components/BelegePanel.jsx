@@ -11,7 +11,7 @@ export default function BelegePanel({ lemma, collocate, data, loading }) {
         Belege: <em>{lemma}</em> + <em>{collocate}</em>
       </p>
       {loading && data === undefined ? (
-        <p className="belege-status">Lade Belege …</p>
+        <p className="belege-status" role="status" aria-live="polite">Lade Belege …</p>
       ) : data?.length ? (
         data.map((b, i) => (
           <div key={i} className="beleg-item">

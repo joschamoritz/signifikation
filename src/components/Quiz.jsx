@@ -72,14 +72,19 @@ export default function Quiz({ lemma, currentRound, onRoundComplete }) {
       <header className="quiz-header">
         <span className="quiz-game-badge">Kollokationen</span>
         <h1 className="quiz-lemma-word">{lemma.lemma}</h1>
-        <div className="round-progress">
+        <div
+          className="round-progress"
+          role="img"
+          aria-label={`Runde ${currentRound + 1} von 3, Bonusrunde folgt`}
+        >
           {[0, 1, 2].map(i => (
             <span
               key={i}
+              aria-hidden="true"
               className={`round-dot${i < currentRound ? ' done' : i === currentRound ? ' active' : ''}`}
             />
           ))}
-          <span className="round-dot round-dot--bonus" />
+          <span aria-hidden="true" className="round-dot round-dot--bonus" />
         </div>
         <p className="round-title">Runde {currentRound + 1} · {roundLabel}</p>
         <p className="quiz-instruction">
@@ -113,9 +118,14 @@ export default function Quiz({ lemma, currentRound, onRoundComplete }) {
       </div>
 
       {submitted && showBelegHint && (
-        <div className="beleg-hint" onClick={() => { setShowBelegHint(false); localStorage.setItem('sig_beleg_hint', '1') }}>
+        <button
+          type="button"
+          className="beleg-hint"
+          onClick={() => { setShowBelegHint(false); localStorage.setItem('sig_beleg_hint', '1') }}
+          aria-label="Tipp schließen: Klicke auf ein Wort, um Beispielsätze aus dem DWDS-Korpus zu sehen."
+        >
           💡 Tipp: Klicke auf ein Wort, um Beispielsätze aus dem DWDS-Korpus zu sehen.
-        </div>
+        </button>
       )}
 
       {submitted && openBeleg && (

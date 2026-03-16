@@ -108,7 +108,8 @@ export default function Home({ onStart, loading, error, playedGames = [], allPla
     <div className="screen home-screen">
       <header className="home-header">
         <img src="/logo.png" alt="Signifikation" className="app-logo" />
-        <span className="beta-badge">Beta</span>
+        <h1 className="sr-only">Signifikation</h1>
+        <span className="beta-badge" aria-label="Beta-Version">Beta</span>
       </header>
 
       <p className="home-date">{todayLabel()}</p>
