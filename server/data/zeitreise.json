@@ -475,5 +475,482 @@
         "score": 6.24917340219758
       }
     ]
+  },
+  "03-20": {
+    "lemma": "Schwergewicht",
+    "paare": [
+      {
+        "jahrzehnt": "1870",
+        "kollokat": "Ausgabebewilligung",
+        "korpus": "reichstag",
+        "score": 7.23181567522307
+      },
+      {
+        "jahrzehnt": "1880",
+        "kollokat": "Landarmee",
+        "korpus": "reichstag",
+        "score": 6.22028064485659
+      },
+      {
+        "jahrzehnt": "1940",
+        "kollokat": "stilisiert",
+        "korpus": "kern",
+        "score": 5.84265306463716
+      },
+      {
+        "jahrzehnt": "1980",
+        "kollokat": "Boxer",
+        "korpus": "kern",
+        "score": 6.86557367977907
+      },
+      {
+        "jahrzehnt": "2000",
+        "kollokat": "Investmentfondssektor",
+        "korpus": "bundestag",
+        "score": 5.64906081845357
+      }
+    ],
+    "perioden": [
+      {
+        "jahrzehnt": "1850",
+        "kollokat": "Aufnahmefähigkeit",
+        "korpus": "dta",
+        "score": 6.84012866322161
+      },
+      {
+        "jahrzehnt": "1860",
+        "kollokat": "Wein",
+        "korpus": "reichstag",
+        "score": 4.44493160866666
+      },
+      {
+        "jahrzehnt": "1870",
+        "kollokat": "Ausgabebewilligung",
+        "korpus": "reichstag",
+        "score": 7.23181567522307
+      },
+      {
+        "jahrzehnt": "1880",
+        "kollokat": "Landarmee",
+        "korpus": "reichstag",
+        "score": 6.22028064485659
+      },
+      {
+        "jahrzehnt": "1890",
+        "kollokat": "Waagschale",
+        "korpus": "reichstag",
+        "score": 5.44541114832236
+      },
+      {
+        "jahrzehnt": "1900",
+        "kollokat": "hinter",
+        "korpus": "reichstag",
+        "score": 5.67694523965835
+      },
+      {
+        "jahrzehnt": "1910",
+        "kollokat": "straferichterlich",
+        "korpus": "reichstag",
+        "score": 6.17504125947148
+      },
+      {
+        "jahrzehnt": "1920",
+        "kollokat": "Grenzeort",
+        "korpus": "reichstag",
+        "score": 5.70231945135931
+      },
+      {
+        "jahrzehnt": "1930",
+        "kollokat": "Verlegung",
+        "korpus": "reichstag",
+        "score": 5.7747925630565
+      },
+      {
+        "jahrzehnt": "1940",
+        "kollokat": "stilisiert",
+        "korpus": "kern",
+        "score": 5.84265306463716
+      },
+      {
+        "jahrzehnt": "1950",
+        "kollokat": "Wiedergewinnung",
+        "korpus": "bundestag",
+        "score": 3.59528417340337
+      },
+      {
+        "jahrzehnt": "1960",
+        "kollokat": "Produktionsgenossenschaft",
+        "korpus": "kern",
+        "score": 6.52156741943265
+      },
+      {
+        "jahrzehnt": "1980",
+        "kollokat": "Boxer",
+        "korpus": "kern",
+        "score": 6.86557367977907
+      },
+      {
+        "jahrzehnt": "2000",
+        "kollokat": "Investmentfondssektor",
+        "korpus": "bundestag",
+        "score": 5.64906081845357
+      }
+    ]
+  },
+  "03-21": {
+    "lemma": "Religion",
+    "paare": [
+      {
+        "jahrzehnt": "1700",
+        "kollokat": "christlich",
+        "korpus": "dta",
+        "score": 8.0033701207897
+      },
+      {
+        "jahrzehnt": "1860",
+        "kollokat": "römisch-katholisch",
+        "korpus": "reichstag",
+        "score": 8.30790762457243
+      },
+      {
+        "jahrzehnt": "1930",
+        "kollokat": "Kirche",
+        "korpus": "reichstag",
+        "score": 8.96026424775279
+      },
+      {
+        "jahrzehnt": "2000",
+        "kollokat": "Weltanschauung",
+        "korpus": "bundestag",
+        "score": 9.34181029196941
+      },
+      {
+        "jahrzehnt": "2010",
+        "kollokat": "Kultur",
+        "korpus": "politische_reden",
+        "score": 7.25276607037997
+      }
+    ],
+    "perioden": [
+      {
+        "jahrzehnt": "1550",
+        "kollokat": "Ware",
+        "korpus": "dta",
+        "score": 6.98199858057827
+      },
+      {
+        "jahrzehnt": "1600",
+        "kollokat": "katholisch",
+        "korpus": "dta",
+        "score": 7.49345155293307
+      },
+      {
+        "jahrzehnt": "1650",
+        "kollokat": "katholisch",
+        "korpus": "dta",
+        "score": 7.80280627663196
+      },
+      {
+        "jahrzehnt": "1700",
+        "kollokat": "christlich",
+        "korpus": "dta",
+        "score": 8.0033701207897
+      },
+      {
+        "jahrzehnt": "1750",
+        "kollokat": "christlich",
+        "korpus": "dta",
+        "score": 7.88040144812584
+      },
+      {
+        "jahrzehnt": "1800",
+        "kollokat": "christlich",
+        "korpus": "dta",
+        "score": 7.01928917109981
+      },
+      {
+        "jahrzehnt": "1850",
+        "kollokat": "christlich",
+        "korpus": "dta",
+        "score": 6.46400897683903
+      },
+      {
+        "jahrzehnt": "1860",
+        "kollokat": "römisch-katholisch",
+        "korpus": "reichstag",
+        "score": 8.30790762457243
+      },
+      {
+        "jahrzehnt": "1870",
+        "kollokat": "katholisch",
+        "korpus": "reichstag",
+        "score": 6.84625426094838
+      },
+      {
+        "jahrzehnt": "1880",
+        "kollokat": "evangelisch",
+        "korpus": "reichstag",
+        "score": 6.72462040374638
+      },
+      {
+        "jahrzehnt": "1890",
+        "kollokat": "Sitte",
+        "korpus": "reichstag",
+        "score": 7.92790681319157
+      },
+      {
+        "jahrzehnt": "1900",
+        "kollokat": "Philosophie",
+        "korpus": "kern",
+        "score": 6.66105659639769
+      },
+      {
+        "jahrzehnt": "1910",
+        "kollokat": "alt",
+        "korpus": "reichstag",
+        "score": 7.99320873866557
+      },
+      {
+        "jahrzehnt": "1920",
+        "kollokat": "Christentum",
+        "korpus": "kern",
+        "score": 5.63081163885259
+      },
+      {
+        "jahrzehnt": "1930",
+        "kollokat": "Kirche",
+        "korpus": "reichstag",
+        "score": 8.96026424775279
+      },
+      {
+        "jahrzehnt": "1940",
+        "kollokat": "Rasse",
+        "korpus": "kern",
+        "score": 6.5016493920704
+      },
+      {
+        "jahrzehnt": "1950",
+        "kollokat": "Rasse",
+        "korpus": "bundestag",
+        "score": 8.72126987633198
+      },
+      {
+        "jahrzehnt": "1960",
+        "kollokat": "christlich",
+        "korpus": "kern",
+        "score": 6.73145799969988
+      },
+      {
+        "jahrzehnt": "1970",
+        "kollokat": "Aufseher",
+        "korpus": "ddr",
+        "score": 8.67807190511264
+      },
+      {
+        "jahrzehnt": "1980",
+        "kollokat": "Moral",
+        "korpus": "kern",
+        "score": 6.69155261468078
+      },
+      {
+        "jahrzehnt": "1990",
+        "kollokat": "Kultur",
+        "korpus": "politische_reden",
+        "score": 6.42390473703307
+      },
+      {
+        "jahrzehnt": "2000",
+        "kollokat": "Weltanschauung",
+        "korpus": "bundestag",
+        "score": 9.34181029196941
+      },
+      {
+        "jahrzehnt": "2010",
+        "kollokat": "Kultur",
+        "korpus": "politische_reden",
+        "score": 7.25276607037997
+      }
+    ]
+  },
+  "03-18": {
+    "lemma": "Bürger",
+    "paare": [
+      {
+        "jahrzehnt": "1550",
+        "kollokat": "Inwohner",
+        "korpus": "dta",
+        "score": 7.84687024110067
+      },
+      {
+        "jahrzehnt": "1860",
+        "kollokat": "amerikanisch",
+        "korpus": "reichstag",
+        "score": 6.57268715586504
+      },
+      {
+        "jahrzehnt": "1930",
+        "kollokat": "Zwangsarbeiter",
+        "korpus": "reichstag",
+        "score": 7.1143036266606
+      },
+      {
+        "jahrzehnt": "2000",
+        "kollokat": "Erfüllungsaufwand",
+        "korpus": "bundestag",
+        "score": 8.85815646697783
+      },
+      {
+        "jahrzehnt": "2020",
+        "kollokat": "Freiheit",
+        "korpus": "politische_reden",
+        "score": 6.89881218474026
+      }
+    ],
+    "perioden": [
+      {
+        "jahrzehnt": "1550",
+        "kollokat": "Inwohner",
+        "korpus": "dta",
+        "score": 7.84687024110067
+      },
+      {
+        "jahrzehnt": "1600",
+        "kollokat": "Handelsmann",
+        "korpus": "dta",
+        "score": 6.58175206369436
+      },
+      {
+        "jahrzehnt": "1650",
+        "kollokat": "Bauer",
+        "korpus": "dta",
+        "score": 6.52199499670461
+      },
+      {
+        "jahrzehnt": "1700",
+        "kollokat": "Handelsmann",
+        "korpus": "dta",
+        "score": 7.2820752773545
+      },
+      {
+        "jahrzehnt": "1750",
+        "kollokat": "Staat",
+        "korpus": "dta",
+        "score": 6.73066788329122
+      },
+      {
+        "jahrzehnt": "1800",
+        "kollokat": "Soldat",
+        "korpus": "dta",
+        "score": 6.2820380361032
+      },
+      {
+        "jahrzehnt": "1850",
+        "kollokat": "Bauer",
+        "korpus": "dta",
+        "score": 6.17466353596596
+      },
+      {
+        "jahrzehnt": "1860",
+        "kollokat": "amerikanisch",
+        "korpus": "reichstag",
+        "score": 6.57268715586504
+      },
+      {
+        "jahrzehnt": "1870",
+        "kollokat": "friedlich",
+        "korpus": "reichstag",
+        "score": 5.58449294984935
+      },
+      {
+        "jahrzehnt": "1880",
+        "kollokat": "Angehörige",
+        "korpus": "reichstag",
+        "score": 5.48515446905099
+      },
+      {
+        "jahrzehnt": "1890",
+        "kollokat": "gleichberechtigt",
+        "korpus": "reichstag",
+        "score": 5.61485661010897
+      },
+      {
+        "jahrzehnt": "1900",
+        "kollokat": "Untertan",
+        "korpus": "reichstag",
+        "score": 6.22679972811593
+      },
+      {
+        "jahrzehnt": "1910",
+        "kollokat": "Untertan",
+        "korpus": "reichstag",
+        "score": 6.0874848551976
+      },
+      {
+        "jahrzehnt": "1920",
+        "kollokat": "athenisch",
+        "korpus": "kern",
+        "score": 6.17472316994513
+      },
+      {
+        "jahrzehnt": "1930",
+        "kollokat": "Zwangsarbeiter",
+        "korpus": "reichstag",
+        "score": 7.1143036266606
+      },
+      {
+        "jahrzehnt": "1940",
+        "kollokat": "Rechte",
+        "korpus": "kern",
+        "score": 5.65555934733471
+      },
+      {
+        "jahrzehnt": "1950",
+        "kollokat": "Staat",
+        "korpus": "bundestag",
+        "score": 5.99857753075533
+      },
+      {
+        "jahrzehnt": "1960",
+        "kollokat": "Rechte",
+        "korpus": "kern",
+        "score": 6.11421648371468
+      },
+      {
+        "jahrzehnt": "1970",
+        "kollokat": "Staat",
+        "korpus": "ddr",
+        "score": 6.65718453863881
+      },
+      {
+        "jahrzehnt": "1980",
+        "kollokat": "Staat",
+        "korpus": "kern",
+        "score": 6.28160231955531
+      },
+      {
+        "jahrzehnt": "1990",
+        "kollokat": "Staat",
+        "korpus": "politische_reden",
+        "score": 7.04103927398237
+      },
+      {
+        "jahrzehnt": "2000",
+        "kollokat": "Erfüllungsaufwand",
+        "korpus": "bundestag",
+        "score": 8.85815646697783
+      },
+      {
+        "jahrzehnt": "2010",
+        "kollokat": "Staat",
+        "korpus": "politische_reden",
+        "score": 7.22029280262106
+      },
+      {
+        "jahrzehnt": "2020",
+        "kollokat": "Freiheit",
+        "korpus": "politische_reden",
+        "score": 6.89881218474026
+      }
+    ]
   }
 }
