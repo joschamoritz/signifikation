@@ -1,4 +1,5 @@
 import express         from 'express'
+import rateLimit       from 'express-rate-limit'
 import { readFileSync, writeFileSync, mkdirSync } from 'fs'
 import { fileURLToPath } from 'url'
 import { dirname, join }  from 'path'
@@ -9,12 +10,37 @@ const __dirname = dirname(fileURLToPath(import.meta.url))
 const DATA      = join(__dirname, 'data')
 mkdirSync(DATA, { recursive: true })
 
-const ADMIN_KEY = process.env.ADMIN_KEY || 'signifikation-admin'
-const PORT      = process.env.PORT      || 3001
-if (!process.env.ADMIN_KEY) console.warn('⚠️  ADMIN_KEY nicht gesetzt – Standard-Passwort aktiv!')
+const IS_PROD   = process.env.NODE_ENV === 'production'
+const ADMIN_KEY = process.env.ADMIN_KEY || (IS_PROD ? null : 'dev-only')
+const PORT      = process.env.PORT || 3001
+if (!ADMIN_KEY) {
+  console.error('❌ ADMIN_KEY ist nicht gesetzt – in Produktion erforderlich. Server wird beendet.')
+  process.exit(1)
+}
+if (!process.env.ADMIN_KEY) console.warn('⚠️  ADMIN_KEY nicht gesetzt – Dev-Fallback aktiv (nur lokal!)')
 
 const app = express()
 app.use(express.json())
+
+// ── Rate Limiting ────────────────────────────────────────────
+const belegeLimiter = rateLimit({
+  windowMs: 60_000,           // 1 Minute
+  max: 30,                    // max 30 Belege-Requests pro IP pro Minute
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Zu viele Anfragen, bitte kurz warten.' },
+})
+
+// ── Server-seitiger Beleg-Cache (TTL 6h) ────────────────────
+const _belegeCache = new Map()
+const BELEG_TTL_MS = 6 * 60 * 60 * 1000
+function cacheGet(key) {
+  const entry = _belegeCache.get(key)
+  if (!entry) return null
+  if (Date.now() - entry.ts > BELEG_TTL_MS) { _belegeCache.delete(key); return null }
+  return entry.data
+}
+function cacheSet(key, data) { _belegeCache.set(key, { data, ts: Date.now() }) }
 
 // ── Helpers ─────────────────────────────────────────────────
 const fileCache = {}
@@ -55,7 +81,7 @@ app.get('/api/heute', (req, res) => {
     if (!ids) return res.status(404).json({ error: `Kein Eintrag für ${datum}` })
 
     const lemmata = ids.map(id => lemmataDB.find(l => l.id === id)).filter(Boolean)
-    res.json(lemmata)
+    res.json({ datum, lemmata })
   } catch (err) {
     res.status(500).json({ error: err.message })
   }
@@ -75,9 +101,14 @@ app.get('/api/zeitreise', (req, res) => {
 })
 
 /** GET /api/belege – Korpusbelege für ein Kollokationspaar */
-app.get('/api/belege', async (req, res) => {
+app.get('/api/belege', belegeLimiter, async (req, res) => {
   const { collocate, lemma, rel, corpus, year } = req.query
   if (!collocate || !lemma) return res.status(400).json({ error: 'collocate und lemma erforderlich' })
+
+  // Server-seitiger Cache: gleiche Parameter → gleicher Key
+  const cacheKey = `${lemma}|${collocate}|${rel||''}|${corpus||''}|${year||''}`
+  const cached = cacheGet(cacheKey)
+  if (cached) return res.json(cached)
 
   // Korpora die DWDS /r/ als Filter akzeptiert (DiaCollo-IDs ≠ /r/-IDs für manche)
   const VALID_R_CORPORA = new Set(['kern', 'dta', 'dtae', 'dtak', 'ddr', 'politische_reden', 'bundestag', 'reichstag'])
@@ -221,8 +252,9 @@ app.get('/api/belege', async (req, res) => {
       results = await runQueries(queries, extra)
     }
     // runQueries liefert bevorzugt non-Wiki; falls nur Wikipedia übrig bleibt, trotzdem anzeigen
-    const final = results.length ? results : []
-    res.json(final.slice(0, 5).map(parseItem))
+    const final = results.slice(0, 5).map(parseItem)
+    cacheSet(cacheKey, final)
+    res.json(final)
   } catch (err) {
     console.error('Belege-Fehler:', err.message)
     res.status(500).json({ error: err.message })

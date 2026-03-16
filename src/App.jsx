@@ -3,36 +3,32 @@ import { API_BASE } from './config'
 import Home from './components/Home'
 import LemmaSelection from './components/LemmaSelection'
 import Quiz from './components/Quiz'
+import { BonusRound, FreeBonusRound } from './components/BonusRound'
 import Results from './components/Results'
 import ErrorBoundary from './components/ErrorBoundary'
 import { getMedal, getDailyMedal } from './utils/gameLogic'
 
 const Zeitreise = lazy(() => import('./components/Zeitreise'))
 
-function todayKey() {
-  const d = new Date()
-  return `sig_${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`
+// ── localStorage-Schlüssel aus Server-Datum (verhindert Zeitzonen-Mismatch) ──
+function makeKeys(datum) {
+  // datum = "MM-DD" vom Server (Europe/Berlin), z.B. "03-16"
+  return {
+    todayKey:   `sig_${datum}`,
+    todayZRKey: `sig_zr_${datum}`,
+    dateStr:    `2026-${datum}`,   // für History (YYYY-MM-DD)
+  }
 }
 
-function todayZRKey() {
-  const d = new Date()
-  return `sig_zr_${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`
-}
-
-function todayDateStr() {
-  const d = new Date()
-  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`
-}
-
-function getPlayedToday() {
-  const raw = localStorage.getItem(todayKey())
+function getPlayedToday(key) {
+  const raw = localStorage.getItem(key)
   if (!raw) return []
   const val = JSON.parse(raw)
   return Array.isArray(val) ? val : []
 }
 
-function getZRToday() {
-  const raw = localStorage.getItem(todayZRKey())
+function getZRToday(key) {
+  const raw = localStorage.getItem(key)
   return raw ? JSON.parse(raw) : null
 }
 
@@ -45,45 +41,58 @@ function saveToHistory(date, medal, total, maxTotal) {
   localStorage.setItem('sig_history', JSON.stringify(history.slice(0, 365)))
 }
 
-function savePlayedGame(lemmaId, lemmaName, total, medal, lemmataLength) {
-  const played = getPlayedToday()
+function savePlayedGame(keys, lemmaId, lemmaName, total, medal, lemmataLength) {
+  const played = getPlayedToday(keys.todayKey)
   const idx    = played.findIndex(p => p.id === lemmaId)
   const entry  = { id: lemmaId, lemma: lemmaName, total, medal }
   if (idx >= 0) played[idx] = entry
   else played.push(entry)
-  localStorage.setItem(todayKey(), JSON.stringify(played))
+  localStorage.setItem(keys.todayKey, JSON.stringify(played))
 
-  // History nur schreiben wenn alle Wörter gespielt → Streak erscheint am selben Tag (nicht erst am nächsten)
+  // History nur schreiben wenn alle Wörter gespielt → Streak erscheint am selben Tag
   if (lemmataLength && played.length >= lemmataLength) {
     const dailyTotal = played.reduce((s, g) => s + g.total, 0)
     const dailyMedal = getDailyMedal(dailyTotal)
-    saveToHistory(todayDateStr(), dailyMedal.label, dailyTotal, played.length * 10)
+    saveToHistory(keys.dateStr, dailyMedal.label, dailyTotal, played.length * 10)
   }
 }
 
 export default function App() {
   const [lemmata, setLemmata]   = useState(null)
   const [apiError, setApiError] = useState(null)
-  const [zeitreise, setZeitreise] = useState(null)   // DiaCollo data for today
+  const [zeitreise, setZeitreise] = useState(null)
+  const [serverDatum, setServerDatum] = useState(null)  // "MM-DD" vom Server
 
-  const [phase, setPhase]            = useState('home')
+  const [phase, setPhase]         = useState('home')
   const [selectedLemma, setSelected] = useState(null)
-  const [currentRound, setRound]     = useState(0)
-  const [roundScores, setScores]     = useState([])
-  const [bonusQuestion, setBonusQ]   = useState(null)
+  const [currentRound, setRound]  = useState(0)
+  const [roundScores, setScores]  = useState([])
+  const [bonusQuestion, setBonusQ] = useState(null)
 
-  const [zrPlayed, setZrPlayed] = useState(() => getZRToday())
   const appRef = useRef(null)
 
-  // Fokus bei Screen-Wechsel an Anfang der neuen Seite setzen
-  useEffect(() => {
-    appRef.current?.focus()
-  }, [phase])
+  // Schlüssel aus Server-Datum ableiten (oder Fallback auf lokales Datum)
+  const keys = serverDatum
+    ? makeKeys(serverDatum)
+    : makeKeys(`${String(new Date().getMonth()+1).padStart(2,'0')}-${String(new Date().getDate()).padStart(2,'0')}`)
 
+  const [zrPlayed, setZrPlayed] = useState(() => getZRToday(`sig_zr_${
+    `${String(new Date().getMonth()+1).padStart(2,'0')}-${String(new Date().getDate()).padStart(2,'0')}`
+  }`))
+
+  // Fokus bei Screen-Wechsel
+  useEffect(() => { appRef.current?.focus() }, [phase])
+
+  // Lemmata + Server-Datum laden
   useEffect(() => {
     fetch(`${API_BASE}/api/heute`)
       .then(r => r.ok ? r.json() : r.json().then(d => Promise.reject(new Error(d.error || `HTTP ${r.status}`))))
-      .then(setLemmata)
+      .then(({ datum, lemmata }) => {
+        setServerDatum(datum)
+        setLemmata(lemmata)
+        // ZR-Key jetzt mit echtem Server-Datum prüfen
+        setZrPlayed(getZRToday(`sig_zr_${datum}`))
+      })
       .catch(err => setApiError(err.message))
   }, [])
 
@@ -91,7 +100,7 @@ export default function App() {
     fetch(`${API_BASE}/api/zeitreise`)
       .then(r => r.ok ? r.json() : null)
       .then(data => { if (data) setZeitreise(data) })
-      .catch(() => {}) // Zeitreise ist optional
+      .catch(() => {})
   }, [])
 
   // Ergebnis in localStorage speichern (Kollokationen)
@@ -99,8 +108,8 @@ export default function App() {
     if (phase !== 'results' || !selectedLemma || roundScores.length === 0) return
     const total = roundScores.reduce((a, b) => a + b, 0)
     const medal = getMedal(total).label
-    savePlayedGame(selectedLemma.id, selectedLemma.lemma, total, medal, lemmata?.length)
-  }, [phase, selectedLemma, roundScores, lemmata])
+    savePlayedGame(keys, selectedLemma.id, selectedLemma.lemma, total, medal, lemmata?.length)
+  }, [phase, selectedLemma, roundScores, lemmata]) // eslint-disable-line
 
   const handleLemmaSelect = useCallback((lemma) => {
     setSelected(lemma)
@@ -110,29 +119,29 @@ export default function App() {
     setPhase('quiz')
   }, [])
 
+  // Bonus-Fetch sauber in useEffect statt im State-Updater
+  const [fetchBonus, setFetchBonus] = useState(false)
+  useEffect(() => {
+    if (!fetchBonus || !selectedLemma) return
+    setFetchBonus(false)
+    fetch(`${API_BASE}/api/bonus?id=${selectedLemma.id}`)
+      .then(r => r.json())
+      .then(bonus => {
+        setBonusQ(bonus?.options ? bonus : { skipped: true })
+        setRound(3)
+      })
+      .catch(() => { setBonusQ({ skipped: true }); setRound(3) })
+  }, [fetchBonus, selectedLemma])
+
   const handleRoundComplete = useCallback((score) => {
     setScores(prev => {
       const next = [...prev, score]
-      if (next.length === 3) {
-        fetch(`${API_BASE}/api/bonus?id=${selectedLemma?.id}`)
-          .then(r => r.json())
-          .then(bonus => {
-            if (bonus && bonus.options) {
-              setBonusQ(bonus)
-            } else {
-              setBonusQ({ skipped: true })
-            }
-            setRound(3)
-          })
-          .catch(() => { setBonusQ({ skipped: true }); setRound(3) })
-      } else if (next.length === 4) {
-        setPhase('results')
-      } else {
-        setRound(r => r + 1)
-      }
+      if (next.length === 3) setFetchBonus(true)
+      else if (next.length === 4) setPhase('results')
+      else setRound(r => r + 1)
       return next
     })
-  }, [selectedLemma])
+  }, [])
 
   const handleRestart = useCallback(() => {
     setSelected(null)
@@ -142,18 +151,20 @@ export default function App() {
     setPhase('home')
   }, [])
 
-  // Zeitreise Ergebnis speichern
   const handleZeitreiseFinish = useCallback((score) => {
     if (!zeitreise) return
     const medal = getMedal(score).label
     const entry = { lemma: zeitreise.lemma, total: score, medal }
-    localStorage.setItem(todayZRKey(), JSON.stringify(entry))
+    localStorage.setItem(keys.todayZRKey, JSON.stringify(entry))
     setZrPlayed(entry)
-  }, [zeitreise])
+  }, [zeitreise, keys.todayZRKey])
 
-  const playedGames = getPlayedToday()
+  const playedGames = getPlayedToday(keys.todayKey)
   const playedIds   = playedGames.map(g => g.id)
   const allPlayed   = lemmata?.length > 0 && lemmata.every(l => playedIds.includes(l.id))
+
+  // Bonus-Phase: direkt in App rendern (kein Hooks-Verstoß in Quiz)
+  const isBonus = phase === 'quiz' && currentRound === 3 && bonusQuestion
 
   return (
     <ErrorBoundary>
@@ -178,14 +189,18 @@ export default function App() {
           onBack={() => setPhase('home')}
         />
       )}
-      {phase === 'quiz' && selectedLemma && (
+      {phase === 'quiz' && selectedLemma && !isBonus && (
         <Quiz
           key={currentRound}
           lemma={selectedLemma}
           currentRound={currentRound}
-          bonusQuestion={bonusQuestion}
           onRoundComplete={handleRoundComplete}
         />
+      )}
+      {isBonus && selectedLemma && (
+        bonusQuestion.skipped
+          ? <FreeBonusRound onComplete={handleRoundComplete} />
+          : <BonusRound bonus={bonusQuestion} lemma={selectedLemma} onComplete={handleRoundComplete} />
       )}
       {phase === 'results' && selectedLemma && (
         <Results
