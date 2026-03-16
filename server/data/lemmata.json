@@ -3959,13 +3959,13 @@
           "rang": 3
         },
         {
-          "wort": "Karikatur",
-          "log_dice": 3.4,
+          "wort": "Bildbearbeitung",
+          "log_dice": 3.8,
           "rang": 4
         },
         {
-          "wort": "Postkarte",
-          "log_dice": 3.3,
+          "wort": "Aquarell",
+          "log_dice": 3,
           "rang": 5
         },
         {
@@ -3974,23 +3974,23 @@
           "rang": 6
         },
         {
-          "wort": "Video",
-          "log_dice": 4.9,
+          "wort": "Postkarte",
+          "log_dice": 3.3,
           "rang": 7
         },
         {
-          "wort": "Illustration",
-          "log_dice": 3,
+          "wort": "Collage",
+          "log_dice": 4,
           "rang": 8
         },
         {
-          "wort": "Skulptur",
-          "log_dice": 4.8,
+          "wort": "Grafik",
+          "log_dice": 3.6,
           "rang": 9
         },
         {
-          "wort": "Aquarell",
-          "log_dice": 3,
+          "wort": "Video",
+          "log_dice": 4.9,
           "rang": 10
         }
       ],
@@ -4011,33 +4011,33 @@
           "rang": 3
         },
         {
-          "wort": "versammeln",
-          "log_dice": 3.5,
+          "wort": "sammeln",
+          "log_dice": 3.3,
           "rang": 4
         },
         {
-          "wort": "zusammentragen",
-          "log_dice": 3,
+          "wort": "zusammenstellen",
+          "log_dice": 2.5,
           "rang": 5
+        },
+        {
+          "wort": "revolutionieren",
+          "log_dice": 3.2,
+          "rang": 6
+        },
+        {
+          "wort": "aufhängen",
+          "log_dice": 2.6,
+          "rang": 7
         },
         {
           "wort": "verwenden",
           "log_dice": 2.7,
-          "rang": 6
-        },
-        {
-          "wort": "kombinieren",
-          "log_dice": 3.4,
-          "rang": 7
-        },
-        {
-          "wort": "entdecken",
-          "log_dice": 3,
           "rang": 8
         },
         {
-          "wort": "anschauen",
-          "log_dice": 3.1,
+          "wort": "anfertigen",
+          "log_dice": 3.5,
           "rang": 9
         },
         {
@@ -4063,38 +4063,38 @@
           "rang": 3
         },
         {
-          "wort": "experimentell",
-          "log_dice": 5.2,
+          "wort": "künstlerisch",
+          "log_dice": 5.6,
           "rang": 4
-        },
-        {
-          "wort": "übermalt",
-          "log_dice": 4.7,
-          "rang": 5
         },
         {
           "wort": "schwarzweiß",
           "log_dice": 5.2,
-          "rang": 6
+          "rang": 5
         },
         {
-          "wort": "ausgestellt",
-          "log_dice": 4.8,
-          "rang": 7
+          "wort": "dokumentarisch",
+          "log_dice": 6,
+          "rang": 6
         },
         {
           "wort": "analog",
           "log_dice": 6.5,
+          "rang": 7
+        },
+        {
+          "wort": "vergilbt",
+          "log_dice": 5.1,
           "rang": 8
         },
         {
-          "wort": "entstanden",
+          "wort": "gezeigt",
           "log_dice": 4.8,
           "rang": 9
         },
         {
-          "wort": "aufgenommen",
-          "log_dice": 4.5,
+          "wort": "experimentell",
+          "log_dice": 5.2,
           "rang": 10
         }
       ]
@@ -4146,13 +4146,13 @@
           "rang": 3
         },
         {
-          "wort": "aufgeben",
-          "log_dice": 1.8,
+          "wort": "übergeben",
+          "log_dice": 1.6,
           "rang": 4
         },
         {
-          "wort": "aussteigen",
-          "log_dice": 0.6,
+          "wort": "einstellen",
+          "log_dice": 0.4,
           "rang": 5
         },
         {
@@ -4161,22 +4161,22 @@
           "rang": 6
         },
         {
-          "wort": "eingestehen",
+          "wort": "unterwerfen",
           "log_dice": 1.2,
           "rang": 7
         },
         {
-          "wort": "einstellen",
-          "log_dice": 0.4,
+          "wort": "entlassen",
+          "log_dice": 0.1,
           "rang": 8
         },
         {
-          "wort": "zurücktreten",
-          "log_dice": 1.8,
+          "wort": "hinnehmen",
+          "log_dice": 0.2,
           "rang": 9
         },
         {
-          "wort": "unterwerfen",
+          "wort": "fliehen",
           "log_dice": 1.2,
           "rang": 10
         }
@@ -4198,38 +4198,38 @@
           "rang": 3
         },
         {
-          "wort": "widerstandslos",
-          "log_dice": 3.9,
+          "wort": "niemals",
+          "log_dice": 4.1,
           "rang": 4
         },
         {
-          "wort": "vorauseilen",
-          "log_dice": 3.1,
+          "wort": "widerstandslos",
+          "log_dice": 3.9,
           "rang": 5
-        },
-        {
-          "wort": "ehrenvoll",
-          "log_dice": 3.3,
-          "rang": 6
-        },
-        {
-          "wort": "vornherein",
-          "log_dice": 3,
-          "rang": 7
-        },
-        {
-          "wort": "davor",
-          "log_dice": 3.7,
-          "rang": 8
         },
         {
           "wort": "schließlich",
           "log_dice": 2.9,
-          "rang": 9
+          "rang": 6
         },
         {
           "wort": "reihenweise",
           "log_dice": 3.7,
+          "rang": 7
+        },
+        {
+          "wort": "vollends",
+          "log_dice": 3.1,
+          "rang": 8
+        },
+        {
+          "wort": "schliesslich",
+          "log_dice": 3.1,
+          "rang": 9
+        },
+        {
+          "wort": "längst",
+          "log_dice": 3.1,
           "rang": 10
         }
       ]
@@ -4280,38 +4280,38 @@
           "rang": 3
         },
         {
-          "wort": "Krieg",
-          "log_dice": 7.8,
-          "rang": 4
-        },
-        {
           "wort": "Geist",
           "log_dice": 8.7,
-          "rang": 5
+          "rang": 4
         },
         {
           "wort": "Zorn",
           "log_dice": 7.2,
+          "rang": 5
+        },
+        {
+          "wort": "Messe",
+          "log_dice": 8.6,
           "rang": 6
         },
         {
-          "wort": "Jungfrau",
-          "log_dice": 6.8,
+          "wort": "Krieg",
+          "log_dice": 7.8,
           "rang": 7
         },
         {
-          "wort": "Nacht",
-          "log_dice": 6.4,
+          "wort": "Berg",
+          "log_dice": 7.5,
           "rang": 8
         },
         {
-          "wort": "Grab",
-          "log_dice": 6.4,
+          "wort": "Halle",
+          "log_dice": 7.1,
           "rang": 9
         },
         {
-          "wort": "Krieger",
-          "log_dice": 6.7,
+          "wort": "Dreifaltigkeit",
+          "log_dice": 6.8,
           "rang": 10
         }
       ],
@@ -4332,18 +4332,18 @@
           "rang": 3
         },
         {
-          "wort": "schwören",
-          "log_dice": 0.1,
+          "wort": "verehrt",
+          "log_dice": 0.6,
           "rang": 4
         },
         {
-          "wort": "zugehen",
-          "log_dice": 0.5,
+          "wort": "schwören",
+          "log_dice": 0.1,
           "rang": 5
         },
         {
-          "wort": "verehrt",
-          "log_dice": 0.6,
+          "wort": "ernst",
+          "log_dice": 0.3,
           "rang": 6
         },
         {
@@ -4352,8 +4352,8 @@
           "rang": 7
         },
         {
-          "wort": "ernst",
-          "log_dice": 0.3,
+          "wort": "zugehen",
+          "log_dice": 0.5,
           "rang": 8
         }
       ],
@@ -4374,8 +4374,8 @@
           "rang": 3
         },
         {
-          "wort": "römisch",
-          "log_dice": 1,
+          "wort": "unauflöslich",
+          "log_dice": 0.3,
           "rang": 4
         },
         {
@@ -4384,28 +4384,28 @@
           "rang": 5
         },
         {
-          "wort": "ewig",
-          "log_dice": 0.5,
+          "wort": "gerecht",
+          "log_dice": 0.9,
           "rang": 6
         },
         {
-          "wort": "feierlich",
-          "log_dice": 0.3,
+          "wort": "scheinheilig",
+          "log_dice": 0.9,
           "rang": 7
         },
         {
-          "wort": "selig",
-          "log_dice": 0.5,
+          "wort": "sündig",
+          "log_dice": 0.7,
           "rang": 8
         },
         {
-          "wort": "heilend",
-          "log_dice": 0.6,
+          "wort": "bedürftig",
+          "log_dice": 0.3,
           "rang": 9
         },
         {
-          "wort": "unverletzlich",
-          "log_dice": 2.3,
+          "wort": "weltlich",
+          "log_dice": 1.3,
           "rang": 10
         }
       ]
@@ -5493,5 +5493,1882 @@
     },
     "notiz": "Das Newrozfest wird jährlich als Neujahrs- oder Frühjahrsfest am 21. März u.a. von Aleviten, Schiiten und Kurden gefeiert.",
     "link": "http://www.navend.de/publikationen/kurdistan-heute/kurdistan-heute-nr-03-dezember-1992-januar-1993/newroz-und-seine-bedeutung/"
+  },
+  {
+    "id": "widder",
+    "lemma": "Widder",
+    "pos": "Substantiv",
+    "wortart": "Substantiv",
+    "rundenInfo": [
+      {
+        "key": "nomen",
+        "label": "Nomen",
+        "relCode": "KON",
+        "desc": "ist koordiniert mit"
+      },
+      {
+        "key": "verben",
+        "label": "Verben",
+        "relCode": "~OBJ",
+        "desc": "ist Objekt von"
+      },
+      {
+        "key": "adjektive",
+        "label": "Adjektive",
+        "relCode": "ATTR",
+        "desc": "hat Adjektivattribut"
+      }
+    ],
+    "runden": {
+      "nomen": [
+        {
+          "wort": "Steinbock",
+          "log_dice": 4.8,
+          "rang": 1
+        },
+        {
+          "wort": "Stier",
+          "log_dice": 4,
+          "rang": 2
+        },
+        {
+          "wort": "Löwe",
+          "log_dice": 1.6,
+          "rang": 3
+        },
+        {
+          "wort": "Fisch",
+          "log_dice": 0.5,
+          "rang": 4
+        }
+      ],
+      "verben": [
+        {
+          "wort": "schlachten",
+          "log_dice": 4.2,
+          "rang": 1
+        },
+        {
+          "wort": "opfern",
+          "log_dice": 3.5,
+          "rang": 2
+        },
+        {
+          "wort": "umarmen",
+          "log_dice": 2.4,
+          "rang": 3
+        }
+      ],
+      "adjektive": [
+        {
+          "wort": "hydraulisch",
+          "log_dice": 6,
+          "rang": 1
+        },
+        {
+          "wort": "meißner",
+          "log_dice": 5.9,
+          "rang": 2
+        },
+        {
+          "wort": "feurig",
+          "log_dice": 3.5,
+          "rang": 3
+        },
+        {
+          "wort": "golden",
+          "log_dice": 1.5,
+          "rang": 4
+        },
+        {
+          "wort": "englisch",
+          "log_dice": 0.1,
+          "rang": 5
+        }
+      ]
+    },
+    "notiz": "Der heutige Tag liegt im Sternzeichen Widder und ist der frühestmögliche Ostertermin.",
+    "link": "https://www.brigitte.de/horoskop/sternzeichen/astrologie--sternzeichen-widder--spontan-und-leidenschaftlich-10221828.html"
+  },
+  {
+    "id": "trinken",
+    "lemma": "trinken",
+    "pos": "Verb",
+    "wortart": "Verb",
+    "rundenInfo": [
+      {
+        "key": "objekte",
+        "label": "Objekte",
+        "relCode": "OBJ",
+        "desc": "hat als Objekt"
+      },
+      {
+        "key": "verben",
+        "label": "Verben",
+        "relCode": "KON",
+        "desc": "ist koordiniert mit"
+      },
+      {
+        "key": "adverbien",
+        "label": "Adverbien",
+        "relCode": "ADV",
+        "desc": "wird begleitet durch"
+      }
+    ],
+    "runden": {
+      "objekte": [
+        {
+          "wort": "Bier",
+          "log_dice": 10.5,
+          "rang": 1
+        },
+        {
+          "wort": "Kaffee",
+          "log_dice": 10.3,
+          "rang": 2
+        },
+        {
+          "wort": "Alkohol",
+          "log_dice": 10,
+          "rang": 3
+        },
+        {
+          "wort": "Liter",
+          "log_dice": 7.8,
+          "rang": 4
+        },
+        {
+          "wort": "Tee",
+          "log_dice": 9.6,
+          "rang": 5
+        },
+        {
+          "wort": "Milch",
+          "log_dice": 7.4,
+          "rang": 6
+        },
+        {
+          "wort": "Wasser",
+          "log_dice": 7.6,
+          "rang": 7
+        },
+        {
+          "wort": "Tasse",
+          "log_dice": 7.8,
+          "rang": 8
+        },
+        {
+          "wort": "Glas",
+          "log_dice": 8.7,
+          "rang": 9
+        },
+        {
+          "wort": "Champagner",
+          "log_dice": 7.7,
+          "rang": 10
+        }
+      ],
+      "verben": [
+        {
+          "wort": "essen",
+          "log_dice": 7.2,
+          "rang": 1
+        },
+        {
+          "wort": "rauchen",
+          "log_dice": 7.1,
+          "rang": 2
+        },
+        {
+          "wort": "trinken",
+          "log_dice": 4.9,
+          "rang": 3
+        },
+        {
+          "wort": "verzehren",
+          "log_dice": 3.3,
+          "rang": 4
+        },
+        {
+          "wort": "kiffen",
+          "log_dice": 3.8,
+          "rang": 5
+        },
+        {
+          "wort": "plaudern",
+          "log_dice": 4.1,
+          "rang": 6
+        },
+        {
+          "wort": "genießen",
+          "log_dice": 3.4,
+          "rang": 7
+        },
+        {
+          "wort": "konsumieren",
+          "log_dice": 3.8,
+          "rang": 8
+        },
+        {
+          "wort": "singen",
+          "log_dice": 3.5,
+          "rang": 9
+        },
+        {
+          "wort": "reden",
+          "log_dice": 4.1,
+          "rang": 10
+        }
+      ],
+      "adverbien": [
+        {
+          "wort": "gern",
+          "log_dice": 6.6,
+          "rang": 1
+        },
+        {
+          "wort": "gerne",
+          "log_dice": 6.6,
+          "rang": 2
+        },
+        {
+          "wort": "abends",
+          "log_dice": 6.5,
+          "rang": 3
+        },
+        {
+          "wort": "gemütlich",
+          "log_dice": 5,
+          "rang": 4
+        },
+        {
+          "wort": "mal",
+          "log_dice": 5.6,
+          "rang": 5
+        },
+        {
+          "wort": "zusammen",
+          "log_dice": 5.4,
+          "rang": 6
+        },
+        {
+          "wort": "literweise",
+          "log_dice": 5,
+          "rang": 7
+        },
+        {
+          "wort": "miteinander",
+          "log_dice": 4.6,
+          "rang": 8
+        },
+        {
+          "wort": "ausreichend",
+          "log_dice": 4.8,
+          "rang": 9
+        },
+        {
+          "wort": "regelmäßig",
+          "log_dice": 5.5,
+          "rang": 10
+        }
+      ]
+    },
+    "notiz": "Heute ist der Weltwassertag!",
+    "link": "https://vivaconagua.org/"
+  },
+  {
+    "id": "durstig",
+    "lemma": "durstig",
+    "pos": "Adjektiv",
+    "wortart": "Adjektiv",
+    "rundenInfo": [
+      {
+        "key": "nomen",
+        "label": "Nomen",
+        "relCode": "~ATTR",
+        "desc": "ist Attribut bei"
+      },
+      {
+        "key": "verben",
+        "label": "Verben",
+        "relCode": "~ADV",
+        "desc": "ist Adverbialbestimmung von"
+      },
+      {
+        "key": "adjektive",
+        "label": "Adjektive",
+        "relCode": "KON",
+        "desc": "ist koordiniert mit"
+      }
+    ],
+    "runden": {
+      "nomen": [
+        {
+          "wort": "Kehle",
+          "log_dice": 8.6,
+          "rang": 1
+        },
+        {
+          "wort": "Wanderer",
+          "log_dice": 5.1,
+          "rang": 2
+        },
+        {
+          "wort": "Zecher",
+          "log_dice": 4.9,
+          "rang": 3
+        },
+        {
+          "wort": "Vampir",
+          "log_dice": 3.9,
+          "rang": 4
+        },
+        {
+          "wort": "Kegler",
+          "log_dice": 4.6,
+          "rang": 5
+        },
+        {
+          "wort": "Vogel",
+          "log_dice": 4.5,
+          "rang": 6
+        },
+        {
+          "wort": "Trinker",
+          "log_dice": 3.5,
+          "rang": 7
+        },
+        {
+          "wort": "Seele",
+          "log_dice": 2.4,
+          "rang": 8
+        },
+        {
+          "wort": "Meute",
+          "log_dice": 3.7,
+          "rang": 9
+        },
+        {
+          "wort": "Kundschaft",
+          "log_dice": 2.8,
+          "rang": 10
+        }
+      ],
+      "verben": [
+        {
+          "wort": "saugen",
+          "log_dice": 3.5,
+          "rang": 1
+        },
+        {
+          "wort": "leeren",
+          "log_dice": 2.5,
+          "rang": 2
+        },
+        {
+          "wort": "aufwachen",
+          "log_dice": 2,
+          "rang": 3
+        },
+        {
+          "wort": "trinken",
+          "log_dice": 1.4,
+          "rang": 4
+        }
+      ],
+      "adjektive": [
+        {
+          "wort": "hungrig",
+          "log_dice": 6.3,
+          "rang": 1
+        },
+        {
+          "wort": "müde",
+          "log_dice": 1.5,
+          "rang": 2
+        }
+      ]
+    },
+    "notiz": "Seit 1993 von den UN ausgerufen, gibt es den Weltwassertag um die Bedeutung von Wasser als essenzielle Ressource zu unterstreichen",
+    "link": "https://www.bundesumweltministerium.de/themen/wasser-und-binnengewaesser/gewaesserschutzpolitik/international/weltwassertag-am-22-maerz"
+  },
+  {
+    "id": "corona",
+    "lemma": "Corona",
+    "pos": "Substantiv",
+    "wortart": "Substantiv",
+    "rundenInfo": [
+      {
+        "key": "nomen",
+        "label": "Nomen",
+        "relCode": "KON",
+        "desc": "ist koordiniert mit"
+      },
+      {
+        "key": "verben",
+        "label": "Verben",
+        "relCode": "~OBJ",
+        "desc": "ist Objekt von"
+      },
+      {
+        "key": "adjektive",
+        "label": "Adjektive",
+        "relCode": "ATTR",
+        "desc": "hat Adjektivattribut"
+      }
+    ],
+    "runden": {
+      "nomen": [
+        {
+          "wort": "Grippe",
+          "log_dice": 3.2,
+          "rang": 1
+        },
+        {
+          "wort": "Psyche",
+          "log_dice": 3,
+          "rang": 2
+        }
+      ],
+      "verben": [
+        {
+          "wort": "bekämpfen",
+          "log_dice": 0.6,
+          "rang": 1
+        },
+        {
+          "wort": "kriegen",
+          "log_dice": 0.1,
+          "rang": 2
+        }
+      ],
+      "adjektive": [
+        {
+          "wort": "mexikanisch",
+          "log_dice": 1.5,
+          "rang": 1
+        }
+      ]
+    },
+    "notiz": "2020 beginnt während der Corona-Pandemie die Quarantäne für den Ort Neustadt am Rennsteig.",
+    "link": "https://www.mdr.de/geschichte/mitteldeutschland/jahrestage/kalenderblatt-willy-brandt-ruecktritt-raumstation-mir-absturz-hiter-ermaechtigungsgesetz100.html#sprung4"
+  },
+  {
+    "id": "ermaechtigen",
+    "lemma": "ermächtigen",
+    "pos": "Verb",
+    "wortart": "Verb",
+    "rundenInfo": [
+      {
+        "key": "objekte",
+        "label": "Objekte",
+        "relCode": "OBJ",
+        "desc": "hat als Objekt"
+      },
+      {
+        "key": "verben",
+        "label": "Verben",
+        "relCode": "KON",
+        "desc": "ist koordiniert mit"
+      },
+      {
+        "key": "adverbien",
+        "label": "Adverbien",
+        "relCode": "ADV",
+        "desc": "wird begleitet durch"
+      }
+    ],
+    "runden": {
+      "objekte": [
+        {
+          "wort": "Vorstand",
+          "log_dice": 5,
+          "rang": 1
+        },
+        {
+          "wort": "Mitgliedstaat",
+          "log_dice": 4.1,
+          "rang": 2
+        },
+        {
+          "wort": "UN-Generalsekretär",
+          "log_dice": 3.7,
+          "rang": 3
+        },
+        {
+          "wort": "Exekutive",
+          "log_dice": 3.6,
+          "rang": 4
+        },
+        {
+          "wort": "Magistrat",
+          "log_dice": 3.4,
+          "rang": 5
+        },
+        {
+          "wort": "Landesregierung",
+          "log_dice": 3.1,
+          "rang": 6
+        },
+        {
+          "wort": "Staatsorgan",
+          "log_dice": 3.4,
+          "rang": 7
+        },
+        {
+          "wort": "Krisenfonds",
+          "log_dice": 3.6,
+          "rang": 8
+        },
+        {
+          "wort": "Kreisausschuss",
+          "log_dice": 3.2,
+          "rang": 9
+        },
+        {
+          "wort": "Strafverfolgungsbehörde",
+          "log_dice": 3.2,
+          "rang": 10
+        }
+      ],
+      "verben": [
+        {
+          "wort": "ermuntern",
+          "log_dice": 2.4,
+          "rang": 1
+        },
+        {
+          "wort": "verpflichten",
+          "log_dice": 2.3,
+          "rang": 2
+        },
+        {
+          "wort": "beauftragen",
+          "log_dice": 0.9,
+          "rang": 3
+        }
+      ],
+      "adverbien": [
+        {
+          "wort": "ausdrücklich",
+          "log_dice": 5,
+          "rang": 1
+        },
+        {
+          "wort": "ferner",
+          "log_dice": 4.9,
+          "rang": 2
+        },
+        {
+          "wort": "hierzu",
+          "log_dice": 4.3,
+          "rang": 3
+        },
+        {
+          "wort": "sodann",
+          "log_dice": 2.3,
+          "rang": 4
+        },
+        {
+          "wort": "pauschal",
+          "log_dice": 2.1,
+          "rang": 5
+        },
+        {
+          "wort": "fern",
+          "log_dice": 3.9,
+          "rang": 6
+        },
+        {
+          "wort": "überdies",
+          "log_dice": 2.6,
+          "rang": 7
+        },
+        {
+          "wort": "vorsorglich",
+          "log_dice": 3.4,
+          "rang": 8
+        },
+        {
+          "wort": "hiermit",
+          "log_dice": 3.7,
+          "rang": 9
+        },
+        {
+          "wort": "gleichzeitig",
+          "log_dice": 1.9,
+          "rang": 10
+        }
+      ]
+    },
+    "notiz": "Bedeutend ist dieser Tag vor allem durch die Verabschiedung des Ermächtigungsgesetzes 1933, welches die Abschaffung der Demokratie und Beginn der NS-Diktatur in Deutschland markierte",
+    "link": "https://www1.wdr.de/radio/wdr5/sendungen/zeitzeichen/ermaechtigungsgesetz102.html"
+  },
+  {
+    "id": "physikalisch",
+    "lemma": "physikalisch",
+    "pos": "Adjektiv",
+    "wortart": "Adjektiv",
+    "rundenInfo": [
+      {
+        "key": "nomen",
+        "label": "Nomen",
+        "relCode": "~ATTR",
+        "desc": "ist Attribut bei"
+      },
+      {
+        "key": "verben",
+        "label": "Verben",
+        "relCode": "~ADV",
+        "desc": "ist Adverbialbestimmung von"
+      },
+      {
+        "key": "adjektive",
+        "label": "Adjektive",
+        "relCode": "KON",
+        "desc": "ist koordiniert mit"
+      }
+    ],
+    "runden": {
+      "nomen": [
+        {
+          "wort": "Eigenschaft",
+          "log_dice": 7.8,
+          "rang": 1
+        },
+        {
+          "wort": "Gesetzmäßigkeit",
+          "log_dice": 7.7,
+          "rang": 2
+        },
+        {
+          "wort": "Chemie",
+          "log_dice": 7.7,
+          "rang": 3
+        },
+        {
+          "wort": "Größe",
+          "log_dice": 5.2,
+          "rang": 4
+        },
+        {
+          "wort": "Parameter",
+          "log_dice": 6,
+          "rang": 5
+        },
+        {
+          "wort": "Beschaffenheit",
+          "log_dice": 5.7,
+          "rang": 6
+        },
+        {
+          "wort": "Therapie",
+          "log_dice": 6.4,
+          "rang": 7
+        },
+        {
+          "wort": "Gleichung",
+          "log_dice": 5.2,
+          "rang": 8
+        },
+        {
+          "wort": "Gesetz",
+          "log_dice": 5.9,
+          "rang": 9
+        },
+        {
+          "wort": "Adressraum",
+          "log_dice": 5.1,
+          "rang": 10
+        }
+      ],
+      "verben": [
+        {
+          "wort": "gesehen",
+          "log_dice": 5,
+          "rang": 1
+        },
+        {
+          "wort": "messbar",
+          "log_dice": 4.9,
+          "rang": 2
+        },
+        {
+          "wort": "erklärbar",
+          "log_dice": 4.8,
+          "rang": 3
+        },
+        {
+          "wort": "bedingen",
+          "log_dice": 3.4,
+          "rang": 4
+        },
+        {
+          "wort": "definiert",
+          "log_dice": 3,
+          "rang": 5
+        },
+        {
+          "wort": "machbar",
+          "log_dice": 4.1,
+          "rang": 6
+        },
+        {
+          "wort": "beschreibbar",
+          "log_dice": 4.5,
+          "rang": 7
+        },
+        {
+          "wort": "meßbar",
+          "log_dice": 4.5,
+          "rang": 8
+        },
+        {
+          "wort": "formatieren",
+          "log_dice": 3,
+          "rang": 9
+        },
+        {
+          "wort": "bestimmbar",
+          "log_dice": 3,
+          "rang": 10
+        }
+      ],
+      "adjektive": [
+        {
+          "wort": "chemisch",
+          "log_dice": 7.5,
+          "rang": 1
+        },
+        {
+          "wort": "biologisch",
+          "log_dice": 5.8,
+          "rang": 2
+        },
+        {
+          "wort": "rehabilitativ",
+          "log_dice": 5.3,
+          "rang": 3
+        },
+        {
+          "wort": "technisch",
+          "log_dice": 2,
+          "rang": 4
+        },
+        {
+          "wort": "psychologisch",
+          "log_dice": 2.9,
+          "rang": 5
+        },
+        {
+          "wort": "mathematisch",
+          "log_dice": 5,
+          "rang": 6
+        },
+        {
+          "wort": "medizinisch",
+          "log_dice": 1.3,
+          "rang": 7
+        },
+        {
+          "wort": "philosophisch",
+          "log_dice": 3,
+          "rang": 8
+        },
+        {
+          "wort": "geologisch",
+          "log_dice": 3.6,
+          "rang": 9
+        },
+        {
+          "wort": "mechanisch",
+          "log_dice": 3.1,
+          "rang": 10
+        }
+      ]
+    },
+    "notiz": "Heute wird international der Welttag der Meteorologie begangen.",
+    "link": "https://www.dwd.de/DE/service/lexikon/Functions/glossar.html?lv3=101744&lv2=101640#:~:text=Meteorologie%20ist%20die%20Lehre%20von,%22%20Physik%20der%20Atmosph%C3%A4re%22%20bezeichnet."
+  },
+  {
+    "id": "frau",
+    "lemma": "Frau",
+    "pos": "Substantiv",
+    "wortart": "Substantiv",
+    "rundenInfo": [
+      {
+        "key": "nomen",
+        "label": "Nomen",
+        "relCode": "KON",
+        "desc": "ist koordiniert mit"
+      },
+      {
+        "key": "verben",
+        "label": "Verben",
+        "relCode": "~OBJ",
+        "desc": "ist Objekt von"
+      },
+      {
+        "key": "adjektive",
+        "label": "Adjektive",
+        "relCode": "ATTR",
+        "desc": "hat Adjektivattribut"
+      }
+    ],
+    "runden": {
+      "nomen": [
+        {
+          "wort": "Mann",
+          "log_dice": 8.4,
+          "rang": 1
+        },
+        {
+          "wort": "Kind",
+          "log_dice": 7.9,
+          "rang": 2
+        },
+        {
+          "wort": "Tochter",
+          "log_dice": 6.4,
+          "rang": 3
+        },
+        {
+          "wort": "Paar",
+          "log_dice": 2.4,
+          "rang": 4
+        },
+        {
+          "wort": "Sohn",
+          "log_dice": 5.9,
+          "rang": 5
+        },
+        {
+          "wort": "Familie",
+          "log_dice": 3.8,
+          "rang": 6
+        },
+        {
+          "wort": "Baby",
+          "log_dice": 2.5,
+          "rang": 7
+        },
+        {
+          "wort": "Frau",
+          "log_dice": 3.9,
+          "rang": 8
+        },
+        {
+          "wort": "Herr",
+          "log_dice": 4.3,
+          "rang": 9
+        },
+        {
+          "wort": "Jugendliche",
+          "log_dice": 3,
+          "rang": 10
+        }
+      ],
+      "verben": [
+        {
+          "wort": "kennenlernen",
+          "log_dice": 5.6,
+          "rang": 1
+        },
+        {
+          "wort": "töten",
+          "log_dice": 5.5,
+          "rang": 2
+        },
+        {
+          "wort": "vergewaltigen",
+          "log_dice": 5.5,
+          "rang": 3
+        },
+        {
+          "wort": "sehen",
+          "log_dice": 5.2,
+          "rang": 4
+        },
+        {
+          "wort": "lieben",
+          "log_dice": 5.2,
+          "rang": 5
+        },
+        {
+          "wort": "ansprechen",
+          "log_dice": 4.3,
+          "rang": 6
+        },
+        {
+          "wort": "suchen",
+          "log_dice": 4.9,
+          "rang": 7
+        },
+        {
+          "wort": "lassen",
+          "log_dice": 4.5,
+          "rang": 8
+        },
+        {
+          "wort": "helfen",
+          "log_dice": 4.2,
+          "rang": 9
+        },
+        {
+          "wort": "erschießen",
+          "log_dice": 4.2,
+          "rang": 10
+        }
+      ],
+      "adjektive": [
+        {
+          "wort": "jung",
+          "log_dice": 9.8,
+          "rang": 1
+        },
+        {
+          "wort": "alt",
+          "log_dice": 7.9,
+          "rang": 2
+        },
+        {
+          "wort": "schön",
+          "log_dice": 6.9,
+          "rang": 3
+        },
+        {
+          "wort": "verheiratet",
+          "log_dice": 4.9,
+          "rang": 4
+        },
+        {
+          "wort": "erste",
+          "log_dice": 6.5,
+          "rang": 5
+        },
+        {
+          "wort": "betroffen",
+          "log_dice": 5.4,
+          "rang": 6
+        },
+        {
+          "wort": "zierlich",
+          "log_dice": 5.1,
+          "rang": 7
+        },
+        {
+          "wort": "schwanger",
+          "log_dice": 6.5,
+          "rang": 8
+        },
+        {
+          "wort": "vergewaltigt",
+          "log_dice": 5.4,
+          "rang": 9
+        },
+        {
+          "wort": "wenig",
+          "log_dice": 5.2,
+          "rang": 10
+        }
+      ]
+    },
+    "notiz": "1921: Eröffnung der ersten Olympischen Frauenspiele in Monte Carlo.",
+    "link": "https://www.deutschlandfunk.de/vor-100-jahren-in-monte-carlo-als-die-ersten-olympischen-100.html"
+  },
+  {
+    "id": "abstuerzen",
+    "lemma": "abstürzen",
+    "pos": "Verb",
+    "wortart": "Verb",
+    "rundenInfo": [
+      {
+        "key": "objekte",
+        "label": "Objekte",
+        "relCode": "OBJ",
+        "desc": "hat als Objekt"
+      },
+      {
+        "key": "verben",
+        "label": "Verben",
+        "relCode": "KON",
+        "desc": "ist koordiniert mit"
+      },
+      {
+        "key": "adverbien",
+        "label": "Adverbien",
+        "relCode": "ADV",
+        "desc": "wird begleitet durch"
+      }
+    ],
+    "runden": {
+      "objekte": [
+        {
+          "wort": "Kleinflugzeug",
+          "log_dice": 2.4,
+          "rang": 1
+        },
+        {
+          "wort": "Helikopter",
+          "log_dice": 2.1,
+          "rang": 2
+        },
+        {
+          "wort": "Bergsteiger",
+          "log_dice": 1.1,
+          "rang": 3
+        },
+        {
+          "wort": "Flugzeug",
+          "log_dice": 0.9,
+          "rang": 4
+        },
+        {
+          "wort": "Meter",
+          "log_dice": 0.5,
+          "rang": 5
+        }
+      ],
+      "verben": [
+        {
+          "wort": "zerschellen",
+          "log_dice": 4.9,
+          "rang": 1
+        },
+        {
+          "wort": "verglühen",
+          "log_dice": 4.3,
+          "rang": 2
+        },
+        {
+          "wort": "reißen",
+          "log_dice": 4.3,
+          "rang": 3
+        },
+        {
+          "wort": "sterben",
+          "log_dice": 2.8,
+          "rang": 4
+        },
+        {
+          "wort": "explodieren",
+          "log_dice": 3.7,
+          "rang": 5
+        },
+        {
+          "wort": "ausbrennen",
+          "log_dice": 4.2,
+          "rang": 6
+        },
+        {
+          "wort": "erliegen",
+          "log_dice": 2.5,
+          "rang": 7
+        },
+        {
+          "wort": "erholen",
+          "log_dice": 4.1,
+          "rang": 8
+        },
+        {
+          "wort": "landen",
+          "log_dice": 2.8,
+          "rang": 9
+        },
+        {
+          "wort": "mitreißen",
+          "log_dice": 2.9,
+          "rang": 10
+        }
+      ],
+      "adverbien": [
+        {
+          "wort": "regelrecht",
+          "log_dice": 6.5,
+          "rang": 1
+        },
+        {
+          "wort": "jäh",
+          "log_dice": 6.1,
+          "rang": 2
+        },
+        {
+          "wort": "zeitweise",
+          "log_dice": 6,
+          "rang": 3
+        },
+        {
+          "wort": "kurz",
+          "log_dice": 3.8,
+          "rang": 4
+        },
+        {
+          "wort": "böse",
+          "log_dice": 4.6,
+          "rang": 5
+        },
+        {
+          "wort": "brennend",
+          "log_dice": 5.1,
+          "rang": 6
+        },
+        {
+          "wort": "absichtlich",
+          "log_dice": 3.6,
+          "rang": 7
+        },
+        {
+          "wort": "prompt",
+          "log_dice": 3.7,
+          "rang": 8
+        },
+        {
+          "wort": "unkontrolliert",
+          "log_dice": 4.5,
+          "rang": 9
+        },
+        {
+          "wort": "tief",
+          "log_dice": 4.5,
+          "rang": 10
+        }
+      ]
+    },
+    "notiz": "Absturz der Germanwings-Maschine 4U9525 in den französischen Alpen während der (meiner) Abitur Mottowoche. Aus der Nachbarstadt Haltern am See sterben 16 Schüler und zwei Lehrerinnen einer Schulklasse.",
+    "link": "https://elena-bless-stiftung.de/"
+  },
+  {
+    "id": "krank",
+    "lemma": "krank",
+    "pos": "Adjektiv",
+    "wortart": "Adjektiv",
+    "rundenInfo": [
+      {
+        "key": "nomen",
+        "label": "Nomen",
+        "relCode": "~ATTR",
+        "desc": "ist Attribut bei"
+      },
+      {
+        "key": "verben",
+        "label": "Verben",
+        "relCode": "~ADV",
+        "desc": "ist Adverbialbestimmung von"
+      },
+      {
+        "key": "adjektive",
+        "label": "Adjektive",
+        "relCode": "KON",
+        "desc": "ist koordiniert mit"
+      }
+    ],
+    "runden": {
+      "nomen": [
+        {
+          "wort": "Straftäter",
+          "log_dice": 7.4,
+          "rang": 1
+        },
+        {
+          "wort": "Patient",
+          "log_dice": 6.5,
+          "rang": 2
+        },
+        {
+          "wort": "Tier",
+          "log_dice": 6.3,
+          "rang": 3
+        },
+        {
+          "wort": "Mensch",
+          "log_dice": 5.9,
+          "rang": 4
+        },
+        {
+          "wort": "Rind",
+          "log_dice": 4.4,
+          "rang": 5
+        },
+        {
+          "wort": "Herz",
+          "log_dice": 5,
+          "rang": 6
+        },
+        {
+          "wort": "Häftling",
+          "log_dice": 4.5,
+          "rang": 7
+        },
+        {
+          "wort": "Vater",
+          "log_dice": 4.7,
+          "rang": 8
+        },
+        {
+          "wort": "Hirn",
+          "log_dice": 5.3,
+          "rang": 9
+        },
+        {
+          "wort": "Baum",
+          "log_dice": 5.7,
+          "rang": 10
+        }
+      ],
+      "verben": [
+        {
+          "wort": "melden",
+          "log_dice": 7.2,
+          "rang": 1
+        },
+        {
+          "wort": "schreiben",
+          "log_dice": 4.7,
+          "rang": 2
+        },
+        {
+          "wort": "abmelden",
+          "log_dice": 4,
+          "rang": 3
+        },
+        {
+          "wort": "zurückkommen",
+          "log_dice": 2.9,
+          "rang": 4
+        },
+        {
+          "wort": "ausfallen",
+          "log_dice": 2.4,
+          "rang": 5
+        },
+        {
+          "wort": "liegen",
+          "log_dice": 3.3,
+          "rang": 6
+        },
+        {
+          "wort": "lachen",
+          "log_dice": 2.7,
+          "rang": 7
+        },
+        {
+          "wort": "gemeldet",
+          "log_dice": 3,
+          "rang": 8
+        },
+        {
+          "wort": "daniederliegen",
+          "log_dice": 1.8,
+          "rang": 9
+        },
+        {
+          "wort": "darniederliegen",
+          "log_dice": 3.1,
+          "rang": 10
+        }
+      ],
+      "adjektive": [
+        {
+          "wort": "behindert",
+          "log_dice": 6.7,
+          "rang": 1
+        },
+        {
+          "wort": "verletzt",
+          "log_dice": 5.4,
+          "rang": 2
+        },
+        {
+          "wort": "gesund",
+          "log_dice": 5.3,
+          "rang": 3
+        },
+        {
+          "wort": "hilfsbedürftig",
+          "log_dice": 3.4,
+          "rang": 4
+        },
+        {
+          "wort": "schuldunfähig",
+          "log_dice": 3.1,
+          "rang": 5
+        },
+        {
+          "wort": "gebrechlich",
+          "log_dice": 4.2,
+          "rang": 6
+        },
+        {
+          "wort": "arbeitsunfähig",
+          "log_dice": 3.7,
+          "rang": 7
+        },
+        {
+          "wort": "erschöpft",
+          "log_dice": 3.2,
+          "rang": 8
+        },
+        {
+          "wort": "arbeitslos",
+          "log_dice": 3.6,
+          "rang": 9
+        },
+        {
+          "wort": "depressiv",
+          "log_dice": 3.5,
+          "rang": 10
+        }
+      ]
+    },
+    "notiz": "Robert Koch gibt 1882 die Entdeckung des Tuberkulose-Erregers bekannt.",
+    "link": "https://flexikon.doccheck.com/de/Tuberkulose"
+  },
+  {
+    "id": "unabhaengigkeit",
+    "lemma": "Unabhängigkeit",
+    "pos": "Substantiv",
+    "wortart": "Substantiv",
+    "rundenInfo": [
+      {
+        "key": "nomen",
+        "label": "Nomen",
+        "relCode": "KON",
+        "desc": "ist koordiniert mit"
+      },
+      {
+        "key": "verben",
+        "label": "Verben",
+        "relCode": "~OBJ",
+        "desc": "ist Objekt von"
+      },
+      {
+        "key": "adjektive",
+        "label": "Adjektive",
+        "relCode": "ATTR",
+        "desc": "hat Adjektivattribut"
+      }
+    ],
+    "runden": {
+      "nomen": [
+        {
+          "wort": "Souveränität",
+          "log_dice": 6.8,
+          "rang": 1
+        },
+        {
+          "wort": "Integrität",
+          "log_dice": 6.7,
+          "rang": 2
+        },
+        {
+          "wort": "Neutralität",
+          "log_dice": 5.6,
+          "rang": 3
+        },
+        {
+          "wort": "Selbstbestimmung",
+          "log_dice": 4.4,
+          "rang": 4
+        },
+        {
+          "wort": "Eigenständigkeit",
+          "log_dice": 4.3,
+          "rang": 5
+        },
+        {
+          "wort": "Freiheit",
+          "log_dice": 5.1,
+          "rang": 6
+        },
+        {
+          "wort": "Unparteilichkeit",
+          "log_dice": 4.9,
+          "rang": 7
+        },
+        {
+          "wort": "Nichteinmischung",
+          "log_dice": 4,
+          "rang": 8
+        },
+        {
+          "wort": "Blockfreiheit",
+          "log_dice": 3.3,
+          "rang": 9
+        },
+        {
+          "wort": "Glaubwürdigkeit",
+          "log_dice": 4.5,
+          "rang": 10
+        }
+      ],
+      "verben": [
+        {
+          "wort": "erlangen",
+          "log_dice": 7.6,
+          "rang": 1
+        },
+        {
+          "wort": "bewahren",
+          "log_dice": 7.2,
+          "rang": 2
+        },
+        {
+          "wort": "wahren",
+          "log_dice": 7,
+          "rang": 3
+        },
+        {
+          "wort": "proklamieren",
+          "log_dice": 6,
+          "rang": 4
+        },
+        {
+          "wort": "verteidigen",
+          "log_dice": 5.8,
+          "rang": 5
+        },
+        {
+          "wort": "erkämpfen",
+          "log_dice": 6.3,
+          "rang": 6
+        },
+        {
+          "wort": "stärken",
+          "log_dice": 5.5,
+          "rang": 7
+        },
+        {
+          "wort": "anerkennen",
+          "log_dice": 6.8,
+          "rang": 8
+        },
+        {
+          "wort": "untergraben",
+          "log_dice": 5.4,
+          "rang": 9
+        },
+        {
+          "wort": "respektieren",
+          "log_dice": 5.9,
+          "rang": 10
+        }
+      ],
+      "adjektive": [
+        {
+          "wort": "richterlich",
+          "log_dice": 8.4,
+          "rang": 1
+        },
+        {
+          "wort": "journalistisch",
+          "log_dice": 7.8,
+          "rang": 2
+        },
+        {
+          "wort": "redaktionell",
+          "log_dice": 6.8,
+          "rang": 3
+        },
+        {
+          "wort": "finanziell",
+          "log_dice": 6.1,
+          "rang": 4
+        },
+        {
+          "wort": "parteipolitisch",
+          "log_dice": 4.8,
+          "rang": 5
+        },
+        {
+          "wort": "garantiert",
+          "log_dice": 4.9,
+          "rang": 6
+        },
+        {
+          "wort": "wirtschaftlich",
+          "log_dice": 5.3,
+          "rang": 7
+        },
+        {
+          "wort": "überwacht",
+          "log_dice": 5.1,
+          "rang": 8
+        },
+        {
+          "wort": "voll",
+          "log_dice": 5,
+          "rang": 9
+        },
+        {
+          "wort": "staatlich",
+          "log_dice": 6.1,
+          "rang": 10
+        }
+      ]
+    },
+    "notiz": "Der Griechische Unabhängigkeitstag. Dieser wird am 25. März begangen, dem Tag, der als Beginn des erfolgreichen Kampfes des griechischen Volkes gegen das Osmanische Reich (1821 – 1830) gilt und der in der Etablierung eines unabhängigen Staates kulminierte.",
+    "link": "https://du-bist-grieche.de/nationaler-unabhaengigkeitstag-in-griechenland-25-3"
+  },
+  {
+    "id": "konstituieren",
+    "lemma": "konstituieren",
+    "pos": "Verb",
+    "wortart": "Verb",
+    "rundenInfo": [
+      {
+        "key": "objekte",
+        "label": "Objekte",
+        "relCode": "OBJ",
+        "desc": "hat als Objekt"
+      },
+      {
+        "key": "verben",
+        "label": "Verben",
+        "relCode": "KON",
+        "desc": "ist koordiniert mit"
+      },
+      {
+        "key": "adverbien",
+        "label": "Adverbien",
+        "relCode": "ADV",
+        "desc": "wird begleitet durch"
+      }
+    ],
+    "runden": {
+      "objekte": [
+        {
+          "wort": "Subjekt",
+          "log_dice": 4,
+          "rang": 1
+        },
+        {
+          "wort": "Gegenstandsbereich",
+          "log_dice": 3.4,
+          "rang": 2
+        },
+        {
+          "wort": "Versicherungsfall",
+          "log_dice": 3.3,
+          "rang": 3
+        },
+        {
+          "wort": "Gegenstand",
+          "log_dice": 2.1,
+          "rang": 4
+        },
+        {
+          "wort": "Wesen",
+          "log_dice": 1.8,
+          "rang": 5
+        },
+        {
+          "wort": "Gemeinwesen",
+          "log_dice": 2.5,
+          "rang": 6
+        },
+        {
+          "wort": "Gedächtnis",
+          "log_dice": 1.3,
+          "rang": 7
+        },
+        {
+          "wort": "Individuum",
+          "log_dice": 1.2,
+          "rang": 8
+        },
+        {
+          "wort": "Sphäre",
+          "log_dice": 2.1,
+          "rang": 9
+        },
+        {
+          "wort": "Arbeitsgruppe",
+          "log_dice": 1.3,
+          "rang": 10
+        }
+      ],
+      "verben": [
+        {
+          "wort": "zusammentreten",
+          "log_dice": 3.1,
+          "rang": 1
+        },
+        {
+          "wort": "reproduzieren",
+          "log_dice": 2.9,
+          "rang": 2
+        },
+        {
+          "wort": "wählen",
+          "log_dice": 2.9,
+          "rang": 3
+        },
+        {
+          "wort": "organisieren",
+          "log_dice": 0,
+          "rang": 4
+        },
+        {
+          "wort": "auflösen",
+          "log_dice": 0,
+          "rang": 5
+        },
+        {
+          "wort": "ernennen",
+          "log_dice": 0.9,
+          "rang": 6
+        },
+        {
+          "wort": "konstituieren",
+          "log_dice": 2.8,
+          "rang": 7
+        },
+        {
+          "wort": "vereidigen",
+          "log_dice": 2.4,
+          "rang": 8
+        },
+        {
+          "wort": "tagen",
+          "log_dice": 1.9,
+          "rang": 9
+        },
+        {
+          "wort": "bilden",
+          "log_dice": 0,
+          "rang": 10
+        }
+      ],
+      "adverbien": [
+        {
+          "wort": "allererst",
+          "log_dice": 4.9,
+          "rang": 1
+        },
+        {
+          "wort": "formell",
+          "log_dice": 3.7,
+          "rang": 2
+        },
+        {
+          "wort": "wesenhaft",
+          "log_dice": 3.4,
+          "rang": 3
+        },
+        {
+          "wort": "förmlich",
+          "log_dice": 2,
+          "rang": 4
+        },
+        {
+          "wort": "abend",
+          "log_dice": 1.8,
+          "rang": 5
+        },
+        {
+          "wort": "gewissermaßen",
+          "log_dice": 1.7,
+          "rang": 6
+        },
+        {
+          "wort": "zeitnah",
+          "log_dice": 2.1,
+          "rang": 7
+        },
+        {
+          "wort": "nunmehr",
+          "log_dice": 1.6,
+          "rang": 8
+        },
+        {
+          "wort": "demnächst",
+          "log_dice": 1.8,
+          "rang": 9
+        },
+        {
+          "wort": "selber",
+          "log_dice": 2.2,
+          "rang": 10
+        }
+      ]
+    },
+    "notiz": "Vor einem Jahr konstituierte sich an diesem Tag der 21. Bundestag, wobei Gregor Gisi die Sitzung eröffnete und Julia Klöckner zur Präsidentin gewählt wurde.",
+    "link": "https://www.tagesschau.de/inland/innenpolitik/bundestag-konstituierende-sitzung-102.html"
+  },
+  {
+    "id": "wahllos",
+    "lemma": "wahllos",
+    "pos": "Adjektiv",
+    "wortart": "Adjektiv",
+    "rundenInfo": [
+      {
+        "key": "nomen",
+        "label": "Nomen",
+        "relCode": "~ATTR",
+        "desc": "ist Attribut bei"
+      },
+      {
+        "key": "verben",
+        "label": "Verben",
+        "relCode": "~ADV",
+        "desc": "ist Adverbialbestimmung von"
+      },
+      {
+        "key": "adjektive",
+        "label": "Adjektive",
+        "relCode": "KON",
+        "desc": "ist koordiniert mit"
+      }
+    ],
+    "runden": {
+      "nomen": [
+        {
+          "wort": "Töten",
+          "log_dice": 5.9,
+          "rang": 1
+        },
+        {
+          "wort": "Bombardierung",
+          "log_dice": 5.6,
+          "rang": 2
+        },
+        {
+          "wort": "Morden",
+          "log_dice": 5.2,
+          "rang": 3
+        },
+        {
+          "wort": "Bombardement",
+          "log_dice": 5,
+          "rang": 4
+        },
+        {
+          "wort": "Aneinanderreihung",
+          "log_dice": 4.3,
+          "rang": 5
+        },
+        {
+          "wort": "Erschießung",
+          "log_dice": 4.9,
+          "rang": 6
+        },
+        {
+          "wort": "Schießerei",
+          "log_dice": 3.5,
+          "rang": 7
+        },
+        {
+          "wort": "Sexualkontakt",
+          "log_dice": 3.5,
+          "rang": 8
+        },
+        {
+          "wort": "Abschlachten",
+          "log_dice": 5.1,
+          "rang": 9
+        },
+        {
+          "wort": "Verhaftung",
+          "log_dice": 3.5,
+          "rang": 10
+        }
+      ],
+      "verben": [
+        {
+          "wort": "einstechen",
+          "log_dice": 8.5,
+          "rang": 1
+        },
+        {
+          "wort": "herausgreifen",
+          "log_dice": 7.3,
+          "rang": 2
+        },
+        {
+          "wort": "feuern",
+          "log_dice": 7.3,
+          "rang": 3
+        },
+        {
+          "wort": "zustechen",
+          "log_dice": 5.3,
+          "rang": 4
+        },
+        {
+          "wort": "zusammengestellt",
+          "log_dice": 5.7,
+          "rang": 5
+        },
+        {
+          "wort": "aneinanderreihen",
+          "log_dice": 5.5,
+          "rang": 6
+        },
+        {
+          "wort": "morden",
+          "log_dice": 6.3,
+          "rang": 7
+        },
+        {
+          "wort": "einprügeln",
+          "log_dice": 7,
+          "rang": 8
+        },
+        {
+          "wort": "zusammenwürfeln",
+          "log_dice": 5.3,
+          "rang": 9
+        },
+        {
+          "wort": "schießen",
+          "log_dice": 6.8,
+          "rang": 10
+        }
+      ],
+      "adjektive": [
+        {
+          "wort": "planlos",
+          "log_dice": 3.5,
+          "rang": 1
+        },
+        {
+          "wort": "willkürlich",
+          "log_dice": 3.4,
+          "rang": 2
+        },
+        {
+          "wort": "ungenau",
+          "log_dice": 2.8,
+          "rang": 3
+        },
+        {
+          "wort": "brutal",
+          "log_dice": 0.8,
+          "rang": 4
+        },
+        {
+          "wort": "zufällig",
+          "log_dice": 0.7,
+          "rang": 5
+        },
+        {
+          "wort": "unverhältnismäßig",
+          "log_dice": 2.6,
+          "rang": 6
+        },
+        {
+          "wort": "massenhaft",
+          "log_dice": 2.1,
+          "rang": 7
+        },
+        {
+          "wort": "gezielt",
+          "log_dice": 1.9,
+          "rang": 8
+        }
+      ]
+    },
+    "notiz": "...tauchen auch hier mal Wörter auf.",
+    "link": ""
   }
 ]

@@ -31,14 +31,15 @@ export default function Results({ lemma, roundScores, onRestart, onToSelection }
   return (
     <div className="screen results-screen">
       <header className="results-header">
-        <p className="lemma-played-title">{lemma.lemma}</p>
+        <h1 className="lemma-played-title">{lemma.lemma}</h1>
         <p className="total-score">{total} / {maxPoints} Punkte</p>
         <p className="result-feedback">{medal.label}</p>
         {lemma.notiz && (
           <div className="lemma-notiz results-notiz">
             <span>{lemma.notiz}</span>
             {lemma.link && (
-              <a href={lemma.link} target="_blank" rel="noopener noreferrer" className="lemma-notiz-link">
+              <a href={lemma.link} target="_blank" rel="noopener noreferrer" className="lemma-notiz-link"
+                aria-label={`Mehr über ${lemma.lemma} erfahren (öffnet externen Link)`}>
                 Mehr →
               </a>
             )}
@@ -75,6 +76,7 @@ export default function Results({ lemma, roundScores, onRestart, onToSelection }
               className="dwds-link"
               href={`https://www.dwds.de/wb/${encodeURIComponent(lemma.lemma)}`}
               target="_blank" rel="noopener noreferrer"
+              aria-label={`Mehr über „${lemma.lemma}" auf dwds.de erfahren (öffnet externen Link)`}
             >Mehr erfahren ↗</a>
           </div>
           <button className="logdice-toggle" onClick={() => setLogDiceOpen(o => !o)} aria-expanded={logDiceOpen}>

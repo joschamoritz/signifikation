@@ -952,5 +952,718 @@
         "score": 6.89881218474026
       }
     ]
+  },
+  "03-19": {
+    "lemma": "Kultur",
+    "paare": [
+      {
+        "jahrzehnt": "1700",
+        "kollokat": "Rechts-Gelehrsamkeit",
+        "korpus": "dta",
+        "score": 7.56120814742174
+      },
+      {
+        "jahrzehnt": "1860",
+        "kollokat": "Wohlstand",
+        "korpus": "reichstag",
+        "score": 7.26698467831404
+      },
+      {
+        "jahrzehnt": "1950",
+        "kollokat": "Kunst",
+        "korpus": "bundestag",
+        "score": 7.84949693469347
+      },
+      {
+        "jahrzehnt": "2000",
+        "kollokat": "Medien",
+        "korpus": "bundestag",
+        "score": 9.29407394044195
+      },
+      {
+        "jahrzehnt": "2010",
+        "kollokat": "Sprache",
+        "korpus": "politische_reden",
+        "score": 7.58433646684677
+      }
+    ],
+    "perioden": [
+      {
+        "jahrzehnt": "1650",
+        "kollokat": "günstig",
+        "korpus": "dta",
+        "score": 4.39962244689216
+      },
+      {
+        "jahrzehnt": "1700",
+        "kollokat": "Rechts-Gelehrsamkeit",
+        "korpus": "dta",
+        "score": 7.56120814742174
+      },
+      {
+        "jahrzehnt": "1750",
+        "kollokat": "Aufklärung",
+        "korpus": "dta",
+        "score": 6.37967234572152
+      },
+      {
+        "jahrzehnt": "1800",
+        "kollokat": "Boden",
+        "korpus": "dta",
+        "score": 5.36645667536196
+      },
+      {
+        "jahrzehnt": "1850",
+        "kollokat": "Zivilisation",
+        "korpus": "dta",
+        "score": 5.95841796483922
+      },
+      {
+        "jahrzehnt": "1860",
+        "kollokat": "Wohlstand",
+        "korpus": "reichstag",
+        "score": 7.26698467831404
+      },
+      {
+        "jahrzehnt": "1870",
+        "kollokat": "Gesittung",
+        "korpus": "reichstag",
+        "score": 6.18822394467334
+      },
+      {
+        "jahrzehnt": "1880",
+        "kollokat": "Zivilisation",
+        "korpus": "reichstag",
+        "score": 6.08661189279156
+      },
+      {
+        "jahrzehnt": "1890",
+        "kollokat": "Zivilisation",
+        "korpus": "reichstag",
+        "score": 6.75857290929922
+      },
+      {
+        "jahrzehnt": "1900",
+        "kollokat": "Zivilisation",
+        "korpus": "reichstag",
+        "score": 6.33700802328312
+      },
+      {
+        "jahrzehnt": "1910",
+        "kollokat": "tropisch",
+        "korpus": "reichstag",
+        "score": 6.10320187256381
+      },
+      {
+        "jahrzehnt": "1920",
+        "kollokat": "Zivilisation",
+        "korpus": "kern",
+        "score": 6.5926962237477
+      },
+      {
+        "jahrzehnt": "1930",
+        "kollokat": "Kampfbund",
+        "korpus": "reichstag",
+        "score": 7.46416920660972
+      },
+      {
+        "jahrzehnt": "1940",
+        "kollokat": "Wissenschaft",
+        "korpus": "kern",
+        "score": 6.15886330344958
+      },
+      {
+        "jahrzehnt": "1950",
+        "kollokat": "Kunst",
+        "korpus": "bundestag",
+        "score": 7.84949693469347
+      },
+      {
+        "jahrzehnt": "1960",
+        "kollokat": "Wissenschaft",
+        "korpus": "kern",
+        "score": 7.71938920049005
+      },
+      {
+        "jahrzehnt": "1970",
+        "kollokat": "Sklavenhalterordnung",
+        "korpus": "ddr",
+        "score": 7.58637207097583
+      },
+      {
+        "jahrzehnt": "1980",
+        "kollokat": "Ministerium",
+        "korpus": "kern",
+        "score": 6.76815660398782
+      },
+      {
+        "jahrzehnt": "1990",
+        "kollokat": "Dialog",
+        "korpus": "politische_reden",
+        "score": 7.84878991901142
+      },
+      {
+        "jahrzehnt": "2000",
+        "kollokat": "Medien",
+        "korpus": "bundestag",
+        "score": 9.29407394044195
+      },
+      {
+        "jahrzehnt": "2010",
+        "kollokat": "Kunst",
+        "korpus": "politische_reden",
+        "score": 8.42611270656101
+      }
+    ]
+  },
+  "03-22": {
+    "lemma": "Wasser",
+    "paare": [
+      {
+        "jahrzehnt": "1450",
+        "kollokat": "Trinken",
+        "korpus": "dta",
+        "score": 8.95748072826198
+      },
+      {
+        "jahrzehnt": "1860",
+        "kollokat": "fließend",
+        "korpus": "reichstag",
+        "score": 7.97689253299949
+      },
+      {
+        "jahrzehnt": "1930",
+        "kollokat": "Gas",
+        "korpus": "reichstag",
+        "score": 9.50228119777081
+      },
+      {
+        "jahrzehnt": "1950",
+        "kollokat": "Luft",
+        "korpus": "bundestag",
+        "score": 8.26416867941032
+      },
+      {
+        "jahrzehnt": "2010",
+        "kollokat": "sauber",
+        "korpus": "politische_reden",
+        "score": 7.36738078210798
+      }
+    ],
+    "perioden": [
+      {
+        "jahrzehnt": "1450",
+        "kollokat": "Trinken",
+        "korpus": "dta",
+        "score": 8.95748072826198
+      },
+      {
+        "jahrzehnt": "1500",
+        "kollokat": "Schiff",
+        "korpus": "dta",
+        "score": 7.45251220469751
+      },
+      {
+        "jahrzehnt": "1550",
+        "kollokat": "Salz",
+        "korpus": "dta",
+        "score": 7.60329449305947
+      },
+      {
+        "jahrzehnt": "1600",
+        "kollokat": "Feuer",
+        "korpus": "dta",
+        "score": 6.85956240321128
+      },
+      {
+        "jahrzehnt": "1650",
+        "kollokat": "Feuer",
+        "korpus": "dta",
+        "score": 6.89263539118775
+      },
+      {
+        "jahrzehnt": "1700",
+        "kollokat": "Feuer",
+        "korpus": "dta",
+        "score": 6.96657699846255
+      },
+      {
+        "jahrzehnt": "1750",
+        "kollokat": "Luft",
+        "korpus": "dta",
+        "score": 7.61759546570639
+      },
+      {
+        "jahrzehnt": "1800",
+        "kollokat": "Luft",
+        "korpus": "dta",
+        "score": 7.16703605265868
+      },
+      {
+        "jahrzehnt": "1850",
+        "kollokat": "Luft",
+        "korpus": "dta",
+        "score": 6.775323071651
+      },
+      {
+        "jahrzehnt": "1860",
+        "kollokat": "fließend",
+        "korpus": "reichstag",
+        "score": 7.97689253299949
+      },
+      {
+        "jahrzehnt": "1870",
+        "kollokat": "Wind",
+        "korpus": "reichstag",
+        "score": 7.30099603753311
+      },
+      {
+        "jahrzehnt": "1880",
+        "kollokat": "Dampf",
+        "korpus": "reichstag",
+        "score": 7.05835458808517
+      },
+      {
+        "jahrzehnt": "1890",
+        "kollokat": "Schlag",
+        "korpus": "reichstag",
+        "score": 6.99909859725847
+      },
+      {
+        "jahrzehnt": "1900",
+        "kollokat": "kalt",
+        "korpus": "kern",
+        "score": 7.28876656763581
+      },
+      {
+        "jahrzehnt": "1910",
+        "kollokat": "Gas",
+        "korpus": "reichstag",
+        "score": 6.92820247771579
+      },
+      {
+        "jahrzehnt": "1920",
+        "kollokat": "kalt",
+        "korpus": "kern",
+        "score": 6.84793060775478
+      },
+      {
+        "jahrzehnt": "1930",
+        "kollokat": "Gas",
+        "korpus": "reichstag",
+        "score": 9.50228119777081
+      },
+      {
+        "jahrzehnt": "1940",
+        "kollokat": "heiß",
+        "korpus": "kern",
+        "score": 6.97248888369559
+      },
+      {
+        "jahrzehnt": "1950",
+        "kollokat": "Luft",
+        "korpus": "bundestag",
+        "score": 8.26416867941032
+      },
+      {
+        "jahrzehnt": "1960",
+        "kollokat": "Salz",
+        "korpus": "kern",
+        "score": 7.78438482226424
+      },
+      {
+        "jahrzehnt": "1970",
+        "kollokat": "kalt",
+        "korpus": "ddr",
+        "score": 7.75989014873918
+      },
+      {
+        "jahrzehnt": "1980",
+        "kollokat": "Luft",
+        "korpus": "kern",
+        "score": 6.83361806628479
+      },
+      {
+        "jahrzehnt": "1990",
+        "kollokat": "knapp",
+        "korpus": "politische_reden",
+        "score": 7.15686408888865
+      },
+      {
+        "jahrzehnt": "2000",
+        "kollokat": "Luft",
+        "korpus": "bundestag",
+        "score": 7.81333800688756
+      },
+      {
+        "jahrzehnt": "2010",
+        "kollokat": "sauber",
+        "korpus": "politische_reden",
+        "score": 7.36738078210798
+      }
+    ]
+  },
+  "03-23": {
+    "lemma": "Gleichschaltung",
+    "paare": [
+      {
+        "jahrzehnt": "1900",
+        "kollokat": "Koordination",
+        "korpus": "bundestag",
+        "score": 9.97763218697155
+      },
+      {
+        "jahrzehnt": "1940",
+        "kollokat": "Multiplikation",
+        "korpus": "kern",
+        "score": 7.35134282396145
+      },
+      {
+        "jahrzehnt": "1950",
+        "kollokat": "nichte-kooperationswillig",
+        "korpus": "bundestag",
+        "score": 5.23098867890299
+      },
+      {
+        "jahrzehnt": "1960",
+        "kollokat": "monopolistisch",
+        "korpus": "kern",
+        "score": 8.47643804394299
+      },
+      {
+        "jahrzehnt": "2000",
+        "kollokat": "Wehrmachts-Apologet",
+        "korpus": "bundestag",
+        "score": 7.53647562672882
+      }
+    ],
+    "perioden": [
+      {
+        "jahrzehnt": "1900",
+        "kollokat": "Koordination",
+        "korpus": "bundestag",
+        "score": 9.97763218697155
+      },
+      {
+        "jahrzehnt": "1920",
+        "kollokat": "Säuberung",
+        "korpus": "kern",
+        "score": 6.64244799538192
+      },
+      {
+        "jahrzehnt": "1930",
+        "kollokat": "vorläufig",
+        "korpus": "reichstag",
+        "score": 5.43204392458453
+      },
+      {
+        "jahrzehnt": "1940",
+        "kollokat": "Multiplikation",
+        "korpus": "kern",
+        "score": 7.35134282396145
+      },
+      {
+        "jahrzehnt": "1950",
+        "kollokat": "nichte-kooperationswillig",
+        "korpus": "bundestag",
+        "score": 5.23098867890299
+      },
+      {
+        "jahrzehnt": "1960",
+        "kollokat": "monopolistisch",
+        "korpus": "kern",
+        "score": 8.47643804394299
+      },
+      {
+        "jahrzehnt": "1980",
+        "kollokat": "Reichskommissar",
+        "korpus": "kern",
+        "score": 6.68409569274041
+      },
+      {
+        "jahrzehnt": "2000",
+        "kollokat": "Wehrmachts-Apologet",
+        "korpus": "bundestag",
+        "score": 7.53647562672882
+      }
+    ]
+  },
+  "03-24": {
+    "lemma": "Flugzeug",
+    "paare": [
+      {
+        "jahrzehnt": "1910",
+        "kollokat": "Lenkballon",
+        "korpus": "reichstag",
+        "score": 8.83007499855769
+      },
+      {
+        "jahrzehnt": "1940",
+        "kollokat": "feindlich",
+        "korpus": "kern",
+        "score": 9.25741993495049
+      },
+      {
+        "jahrzehnt": "1970",
+        "kollokat": "abgeschießen",
+        "korpus": "ddr",
+        "score": 7.9739377034138
+      },
+      {
+        "jahrzehnt": "1980",
+        "kollokat": "Bombe",
+        "korpus": "kern",
+        "score": 8.48561469031796
+      },
+      {
+        "jahrzehnt": "2010",
+        "kollokat": "Referendum",
+        "korpus": "politische_reden",
+        "score": 5.98989154652571
+      }
+    ],
+    "perioden": [
+      {
+        "jahrzehnt": "1900",
+        "kollokat": "Luftkampf",
+        "korpus": "kern",
+        "score": 8.15576501224125
+      },
+      {
+        "jahrzehnt": "1910",
+        "kollokat": "Lenkballon",
+        "korpus": "reichstag",
+        "score": 8.83007499855769
+      },
+      {
+        "jahrzehnt": "1920",
+        "kollokat": "Bombe",
+        "korpus": "kern",
+        "score": 5.87587868817081
+      },
+      {
+        "jahrzehnt": "1930",
+        "kollokat": "Tank",
+        "korpus": "reichstag",
+        "score": 8.59249617340656
+      },
+      {
+        "jahrzehnt": "1940",
+        "kollokat": "feindlich",
+        "korpus": "kern",
+        "score": 9.25741993495049
+      },
+      {
+        "jahrzehnt": "1950",
+        "kollokat": "Hubschrauber",
+        "korpus": "bundestag",
+        "score": 7.24346255898292
+      },
+      {
+        "jahrzehnt": "1960",
+        "kollokat": "Schiff",
+        "korpus": "kern",
+        "score": 6.52807081235831
+      },
+      {
+        "jahrzehnt": "1970",
+        "kollokat": "abgeschießen",
+        "korpus": "ddr",
+        "score": 7.9739377034138
+      },
+      {
+        "jahrzehnt": "1980",
+        "kollokat": "Bombe",
+        "korpus": "kern",
+        "score": 8.48561469031796
+      },
+      {
+        "jahrzehnt": "2000",
+        "kollokat": "Hubschrauber",
+        "korpus": "bundestag",
+        "score": 6.80637812505671
+      },
+      {
+        "jahrzehnt": "2010",
+        "kollokat": "Referendum",
+        "korpus": "politische_reden",
+        "score": 5.98989154652571
+      }
+    ]
+  },
+  "03-25": {
+    "lemma": "griechisch",
+    "paare": [
+      {
+        "jahrzehnt": "1500",
+        "kollokat": "Latein",
+        "korpus": "dta",
+        "score": 9.25853301359885
+      },
+      {
+        "jahrzehnt": "1880",
+        "kollokat": "Exportartikel",
+        "korpus": "reichstag",
+        "score": 6.81388576045836
+      },
+      {
+        "jahrzehnt": "1930",
+        "kollokat": "deutsch-griechisch",
+        "korpus": "reichstag",
+        "score": 9.89147554322183
+      },
+      {
+        "jahrzehnt": "1970",
+        "kollokat": "Philosophin",
+        "korpus": "ddr",
+        "score": 8.18621880878296
+      },
+      {
+        "jahrzehnt": "2010",
+        "kollokat": "Regierung",
+        "korpus": "politische_reden",
+        "score": 6.23661590081271
+      }
+    ],
+    "perioden": [
+      {
+        "jahrzehnt": "1500",
+        "kollokat": "Latein",
+        "korpus": "dta",
+        "score": 9.25853301359885
+      },
+      {
+        "jahrzehnt": "1550",
+        "kollokat": "unbekannt",
+        "korpus": "dta",
+        "score": 7.56120814742174
+      },
+      {
+        "jahrzehnt": "1600",
+        "kollokat": "Käser",
+        "korpus": "dta",
+        "score": 6.26529037977416
+      },
+      {
+        "jahrzehnt": "1650",
+        "kollokat": "Sprache",
+        "korpus": "dta",
+        "score": 6.51221083605022
+      },
+      {
+        "jahrzehnt": "1700",
+        "kollokat": "lateinisch",
+        "korpus": "dta",
+        "score": 7.06267750817752
+      },
+      {
+        "jahrzehnt": "1750",
+        "kollokat": "lateinisch",
+        "korpus": "dta",
+        "score": 6.92174653491725
+      },
+      {
+        "jahrzehnt": "1800",
+        "kollokat": "lateinisch",
+        "korpus": "dta",
+        "score": 6.51882154974527
+      },
+      {
+        "jahrzehnt": "1850",
+        "kollokat": "römisch",
+        "korpus": "dta",
+        "score": 6.48900847322643
+      },
+      {
+        "jahrzehnt": "1860",
+        "kollokat": "Tonne",
+        "korpus": "reichstag",
+        "score": 6.64244799538192
+      },
+      {
+        "jahrzehnt": "1870",
+        "kollokat": "Tempel",
+        "korpus": "reichstag",
+        "score": 6.73204291559716
+      },
+      {
+        "jahrzehnt": "1880",
+        "kollokat": "Exportartikel",
+        "korpus": "reichstag",
+        "score": 6.81388576045836
+      },
+      {
+        "jahrzehnt": "1890",
+        "kollokat": "Tokajer",
+        "korpus": "reichstag",
+        "score": 6.37794818054362
+      },
+      {
+        "jahrzehnt": "1900",
+        "kollokat": "lateinisch",
+        "korpus": "kern",
+        "score": 7.2438203391824
+      },
+      {
+        "jahrzehnt": "1910",
+        "kollokat": "Testament",
+        "korpus": "reichstag",
+        "score": 7.60082890618018
+      },
+      {
+        "jahrzehnt": "1920",
+        "kollokat": "lateinisch",
+        "korpus": "kern",
+        "score": 6.71586994807655
+      },
+      {
+        "jahrzehnt": "1930",
+        "kollokat": "deutsch-griechisch",
+        "korpus": "reichstag",
+        "score": 9.89147554322183
+      },
+      {
+        "jahrzehnt": "1940",
+        "kollokat": "Front",
+        "korpus": "kern",
+        "score": 6.28925001308121
+      },
+      {
+        "jahrzehnt": "1950",
+        "kollokat": "italienisch",
+        "korpus": "bundestag",
+        "score": 6.21910124297041
+      },
+      {
+        "jahrzehnt": "1960",
+        "kollokat": "türkisch",
+        "korpus": "kern",
+        "score": 7.53925743621036
+      },
+      {
+        "jahrzehnt": "1970",
+        "kollokat": "Philosophin",
+        "korpus": "ddr",
+        "score": 8.18621880878296
+      },
+      {
+        "jahrzehnt": "1980",
+        "kollokat": "Philosophie",
+        "korpus": "kern",
+        "score": 6.18324488629462
+      },
+      {
+        "jahrzehnt": "2000",
+        "kollokat": "italienisch",
+        "korpus": "bundestag",
+        "score": 6.82092543629252
+      },
+      {
+        "jahrzehnt": "2010",
+        "kollokat": "Regierung",
+        "korpus": "politische_reden",
+        "score": 6.23661590081271
+      }
+    ]
   }
 }

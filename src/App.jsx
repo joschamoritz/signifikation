@@ -11,12 +11,12 @@ import { getMedal, getDailyMedal } from './utils/gameLogic'
 const Zeitreise = lazy(() => import('./components/Zeitreise'))
 
 // ── localStorage-Schlüssel aus Server-Datum (verhindert Zeitzonen-Mismatch) ──
-function makeKeys(datum) {
+function makeKeys(datum, year = new Date().getFullYear()) {
   // datum = "MM-DD" vom Server (Europe/Berlin), z.B. "03-16"
   return {
     todayKey:   `sig_${datum}`,
     todayZRKey: `sig_zr_${datum}`,
-    dateStr:    `2026-${datum}`,   // für History (YYYY-MM-DD)
+    dateStr:    `${year}-${datum}`,   // für History (YYYY-MM-DD)
   }
 }
 
@@ -62,6 +62,7 @@ export default function App() {
   const [apiError, setApiError] = useState(null)
   const [zeitreise, setZeitreise] = useState(null)
   const [serverDatum, setServerDatum] = useState(null)  // "MM-DD" vom Server
+  const [serverYear,  setServerYear]  = useState(null)  // Jahreszahl vom Server
 
   const [phase, setPhase]         = useState('home')
   const [selectedLemma, setSelected] = useState(null)
@@ -71,9 +72,9 @@ export default function App() {
 
   const appRef = useRef(null)
 
-  // Schlüssel aus Server-Datum ableiten (oder Fallback auf lokales Datum)
+  // Schlüssel aus Server-Datum ableiten (oder Fallback auf lokales Datum + Jahr)
   const keys = serverDatum
-    ? makeKeys(serverDatum)
+    ? makeKeys(serverDatum, serverYear ?? new Date().getFullYear())
     : makeKeys(`${String(new Date().getMonth()+1).padStart(2,'0')}-${String(new Date().getDate()).padStart(2,'0')}`)
 
   const [zrPlayed, setZrPlayed] = useState(() => getZRToday(`sig_zr_${
@@ -87,8 +88,9 @@ export default function App() {
   useEffect(() => {
     fetch(`${API_BASE}/api/heute`)
       .then(r => r.ok ? r.json() : r.json().then(d => Promise.reject(new Error(d.error || `HTTP ${r.status}`))))
-      .then(({ datum, lemmata }) => {
+      .then(({ datum, year, lemmata }) => {
         setServerDatum(datum)
+        if (year) setServerYear(year)
         setLemmata(lemmata)
         // ZR-Key jetzt mit echtem Server-Datum prüfen
         setZrPlayed(getZRToday(`sig_zr_${datum}`))

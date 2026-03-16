@@ -6,8 +6,9 @@ export default function LemmaSelection({ lemmata, playedIds = [], onSelect, onBa
   return (
     <div className="screen selection-screen">
       <header className="selection-header">
-        <button className="back-btn" onClick={onBack}>← Zurück</button>
+        <button className="back-btn" onClick={onBack} aria-label="Zurück zur Startseite">← Zurück</button>
         <span className="quiz-game-badge">Kollokationen</span>
+        <h1 className="sr-only">Wortauswahl</h1>
         <p className="quiz-instruction">Wähle ein Wort und finde seine stärksten Kollokate</p>
       </header>
 
@@ -45,6 +46,7 @@ export default function LemmaSelection({ lemmata, playedIds = [], onSelect, onBa
                     target="_blank"
                     rel="noopener noreferrer"
                     className="lemma-notiz-link"
+                    aria-label={`Mehr über ${lemma.lemma} erfahren (öffnet externen Link)`}
                   >Mehr →</a>
                 )}
               </div>
