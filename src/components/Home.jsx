@@ -50,19 +50,24 @@ function getHistory() {
   return JSON.parse(localStorage.getItem('sig_history') || '[]')
 }
 
+/** Lokales Datum als YYYY-MM-DD (keine UTC-Verschiebung). */
+function localDateStr(d) {
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`
+}
+
 /** Berechnet den aktuellen Streak (aufeinanderfolgende Tage mit abgeschlossenem Spiel). */
 function computeStreak(history) {
   if (!history.length) return 0
   const dateSet = new Set(history.map(h => h.date))
   const msDay = 86_400_000
   const today = new Date(); today.setHours(0, 0, 0, 0)
-  const todayStr     = today.toISOString().slice(0, 10)
-  const yesterdayStr = new Date(today - msDay).toISOString().slice(0, 10)
+  const todayStr     = localDateStr(today)
+  const yesterdayStr = localDateStr(new Date(today - msDay))
   // Kein Streak mehr falls weder heute noch gestern gespielt
   if (!dateSet.has(todayStr) && !dateSet.has(yesterdayStr)) return 0
   let d = dateSet.has(todayStr) ? new Date(today) : new Date(today - msDay)
   let streak = 0
-  while (dateSet.has(d.toISOString().slice(0, 10))) {
+  while (dateSet.has(localDateStr(d))) {
     streak++
     d = new Date(d - msDay)
   }
