@@ -4642,13 +4642,13 @@
           "rang": 3
         },
         {
-          "wort": "Vertragswerk",
-          "log_dice": 6.8,
+          "wort": "Abkommen",
+          "log_dice": 7.4,
           "rang": 4
         },
         {
-          "wort": "Verfassungsvertrag",
-          "log_dice": 6.2,
+          "wort": "EU-Verfassung",
+          "log_dice": 6.7,
           "rang": 5
         },
         {
@@ -4657,18 +4657,18 @@
           "rang": 6
         },
         {
-          "wort": "Protokoll",
-          "log_dice": 6.9,
+          "wort": "Verfassungsvertrag",
+          "log_dice": 6.2,
           "rang": 7
         },
         {
-          "wort": "Fiskalpakt",
-          "log_dice": 6.4,
+          "wort": "Vertragswerk",
+          "log_dice": 6.8,
           "rang": 8
         },
         {
-          "wort": "EU-Vertrag",
-          "log_dice": 6.3,
+          "wort": "Lissabon-Vertrag",
+          "log_dice": 5.9,
           "rang": 9
         },
         {
@@ -4694,38 +4694,38 @@
           "rang": 3
         },
         {
-          "wort": "anwenden",
-          "log_dice": 1.4,
+          "wort": "ratifizieren",
+          "log_dice": 2.3,
           "rang": 4
-        },
-        {
-          "wort": "verpflichten",
-          "log_dice": 2,
-          "rang": 5
-        },
-        {
-          "wort": "unterschreiben",
-          "log_dice": 1,
-          "rang": 6
-        },
-        {
-          "wort": "gedenken",
-          "log_dice": 1,
-          "rang": 7
         },
         {
           "wort": "unterzeichnen",
           "log_dice": 2.8,
-          "rang": 8
-        },
-        {
-          "wort": "billigen",
-          "log_dice": 2.3,
-          "rang": 9
+          "rang": 5
         },
         {
           "wort": "austauschen",
           "log_dice": 1.7,
+          "rang": 6
+        },
+        {
+          "wort": "repräsentieren",
+          "log_dice": 0.8,
+          "rang": 7
+        },
+        {
+          "wort": "abdecken",
+          "log_dice": 0.8,
+          "rang": 8
+        },
+        {
+          "wort": "unterschreiben",
+          "log_dice": 1,
+          "rang": 9
+        },
+        {
+          "wort": "freimachen",
+          "log_dice": 2.3,
           "rang": 10
         }
       ],
@@ -4746,33 +4746,33 @@
           "rang": 3
         },
         {
-          "wort": "schnellstmöglich",
-          "log_dice": 3.1,
+          "wort": "bisher",
+          "log_dice": 3.5,
           "rang": 4
         },
         {
-          "wort": "diskussionslos",
-          "log_dice": 2.7,
+          "wort": "unverzüglich",
+          "log_dice": 3.3,
           "rang": 5
         },
         {
-          "wort": "bisher",
-          "log_dice": 3.5,
+          "wort": "voraussichtlich",
+          "log_dice": 2.5,
           "rang": 6
+        },
+        {
+          "wort": "anschließend",
+          "log_dice": 2.9,
+          "rang": 7
+        },
+        {
+          "wort": "baldmöglichst",
+          "log_dice": 2.9,
+          "rang": 8
         },
         {
           "wort": "dahin",
           "log_dice": 2.6,
-          "rang": 7
-        },
-        {
-          "wort": "formell",
-          "log_dice": 3.4,
-          "rang": 8
-        },
-        {
-          "wort": "rasch",
-          "log_dice": 3.1,
           "rang": 9
         },
         {
@@ -4828,23 +4828,23 @@
           "rang": 3
         },
         {
-          "wort": "Politik",
-          "log_dice": 7,
+          "wort": "Ebene",
+          "log_dice": 7.3,
           "rang": 4
         },
         {
-          "wort": "Organisation",
-          "log_dice": 8.4,
+          "wort": "Beziehung",
+          "log_dice": 7.5,
           "rang": 5
         },
         {
-          "wort": "Recht",
-          "log_dice": 7.3,
+          "wort": "Handel",
+          "log_dice": 6.8,
           "rang": 6
         },
         {
-          "wort": "Raumstation",
-          "log_dice": 7.6,
+          "wort": "Standard",
+          "log_dice": 7.3,
           "rang": 7
         },
         {
@@ -4853,13 +4853,13 @@
           "rang": 8
         },
         {
-          "wort": "Geschäft",
-          "log_dice": 7.1,
+          "wort": "Haftbefehl",
+          "log_dice": 6.9,
           "rang": 9
         },
         {
-          "wort": "Zusammenarbeit",
-          "log_dice": 7.4,
+          "wort": "Bühne",
+          "log_dice": 6.8,
           "rang": 10
         }
       ],
@@ -4880,28 +4880,28 @@
           "rang": 3
         },
         {
-          "wort": "ausgerichtet",
-          "log_dice": 5.6,
+          "wort": "beachtet",
+          "log_dice": 5,
           "rang": 4
-        },
-        {
-          "wort": "erfahren",
-          "log_dice": 4.9,
-          "rang": 5
         },
         {
           "wort": "wettbewerbsfähig",
           "log_dice": 5.6,
+          "rang": 5
+        },
+        {
+          "wort": "anerkennen",
+          "log_dice": 5.3,
           "rang": 6
         },
         {
-          "wort": "renommiert",
-          "log_dice": 6.8,
+          "wort": "erfolgreich",
+          "log_dice": 5.7,
           "rang": 7
         },
         {
-          "wort": "führend",
-          "log_dice": 5.7,
+          "wort": "spielen",
+          "log_dice": 4.6,
           "rang": 8
         },
         {
@@ -4910,8 +4910,8 @@
           "rang": 9
         },
         {
-          "wort": "üblich",
-          "log_dice": 5.2,
+          "wort": "agierend",
+          "log_dice": 6.2,
           "rang": 10
         }
       ],
@@ -4932,28 +4932,28 @@
           "rang": 3
         },
         {
-          "wort": "global",
-          "log_dice": 0.2,
+          "wort": "deutsch",
+          "log_dice": 0.7,
           "rang": 4
-        },
-        {
-          "wort": "weltoffen",
-          "log_dice": 0.1,
-          "rang": 5
-        },
-        {
-          "wort": "bilateral",
-          "log_dice": 1.3,
-          "rang": 6
-        },
-        {
-          "wort": "einheimisch",
-          "log_dice": 0.6,
-          "rang": 7
         },
         {
           "wort": "supranational",
           "log_dice": 0.1,
+          "rang": 5
+        },
+        {
+          "wort": "einheimisch",
+          "log_dice": 0.6,
+          "rang": 6
+        },
+        {
+          "wort": "weltoffen",
+          "log_dice": 0.1,
+          "rang": 7
+        },
+        {
+          "wort": "lokal",
+          "log_dice": 2,
           "rang": 8
         },
         {
@@ -4962,7 +4962,7 @@
           "rang": 9
         },
         {
-          "wort": "lokal",
+          "wort": "interdisziplinär",
           "log_dice": 2,
           "rang": 10
         }
@@ -4970,5 +4970,156 @@
     },
     "notiz": "Die UN begehen am 20. März den Weltglückstag – ein Anlass, der zeigt, wie unterschiedlich Glück international definiert wird.",
     "link": "https://www.geo.de/wissen/gesundheit/weltglueckstag-fuenf-ueberraschende-dinge-die-uns-gluecklich-machen-30173802.html"
+  },
+  {
+    "id": "boxen",
+    "lemma": "Boxen",
+    "pos": "Substantiv",
+    "wortart": "Substantiv",
+    "rundenInfo": [
+      {
+        "key": "nomen",
+        "label": "Nomen",
+        "relCode": "KON",
+        "desc": "ist koordiniert mit"
+      },
+      {
+        "key": "verben",
+        "label": "Verben",
+        "relCode": "~OBJ",
+        "desc": "ist Objekt von"
+      },
+      {
+        "key": "adjektive",
+        "label": "Adjektive",
+        "relCode": "ATTR",
+        "desc": "hat Adjektivattribut"
+      }
+    ],
+    "runden": {
+      "nomen": [
+        {
+          "wort": "Gewichtheben",
+          "log_dice": 4.3,
+          "rang": 1
+        },
+        {
+          "wort": "Ringen",
+          "log_dice": 3.9,
+          "rang": 2
+        },
+        {
+          "wort": "Judo",
+          "log_dice": 3.8,
+          "rang": 3
+        },
+        {
+          "wort": "Boxer",
+          "log_dice": 2,
+          "rang": 4
+        },
+        {
+          "wort": "Fußball",
+          "log_dice": 0.1,
+          "rang": 5
+        },
+        {
+          "wort": "Tennis",
+          "log_dice": 1,
+          "rang": 6
+        }
+      ],
+      "verben": [
+        {
+          "wort": "verlernen",
+          "log_dice": 3.7,
+          "rang": 1
+        },
+        {
+          "wort": "beibringen",
+          "log_dice": 3.7,
+          "rang": 2
+        },
+        {
+          "wort": "erlernen",
+          "log_dice": 2.4,
+          "rang": 3
+        },
+        {
+          "wort": "verbieten",
+          "log_dice": 0.9,
+          "rang": 4
+        },
+        {
+          "wort": "hassen",
+          "log_dice": 1.7,
+          "rang": 5
+        },
+        {
+          "wort": "aufgeben",
+          "log_dice": 1.1,
+          "rang": 6
+        },
+        {
+          "wort": "vermissen",
+          "log_dice": 0.1,
+          "rang": 7
+        },
+        {
+          "wort": "trainieren",
+          "log_dice": 0,
+          "rang": 8
+        },
+        {
+          "wort": "entdecken",
+          "log_dice": 0.1,
+          "rang": 9
+        },
+        {
+          "wort": "lernen",
+          "log_dice": 0.9,
+          "rang": 10
+        }
+      ],
+      "adjektive": [
+        {
+          "wort": "olympisch",
+          "log_dice": 4.3,
+          "rang": 1
+        },
+        {
+          "wort": "hochklassig",
+          "log_dice": 3.4,
+          "rang": 2
+        },
+        {
+          "wort": "authentisch",
+          "log_dice": 1.3,
+          "rang": 3
+        },
+        {
+          "wort": "sauber",
+          "log_dice": 0.7,
+          "rang": 4
+        },
+        {
+          "wort": "professionell",
+          "log_dice": 1.1,
+          "rang": 5
+        },
+        {
+          "wort": "anspruchsvoll",
+          "log_dice": 0.7,
+          "rang": 6
+        },
+        {
+          "wort": "klassisch",
+          "log_dice": 1,
+          "rang": 7
+        }
+      ]
+    },
+    "notiz": "1993 wurde Henry Maske an diesem Tag erstmals Box-Weltmeister.",
+    "link": "https://de.wikipedia.org/wiki/Henry_Maske"
   }
 ]

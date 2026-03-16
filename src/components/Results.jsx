@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { getMedal, getRundInfo } from '../utils/gameLogic'
-import { API_BASE } from '../config'
-import BelegeSatz from './BelegeSatz'
+import { useBelege } from '../hooks/useBelege'
+import BelegePanel from './BelegePanel'
 
 const THRESHOLDS = [
   { min: 10, label: 'Perfekt' },
@@ -22,33 +22,11 @@ export default function Results({ lemma, roundScores, onRestart, onToSelection }
     return () => cancelAnimationFrame(id)
   }, [])
 
-  const [logDiceOpen,   setLogDiceOpen]   = useState(false)
+  const [logDiceOpen,    setLogDiceOpen]    = useState(false)
   const [belegeInfoOpen, setBelegeInfoOpen] = useState(false)
-  const [openBeleg,     setOpenBeleg]     = useState(null)   // cacheKey
-  const [belegeCache,   setBelegeCache]   = useState({})
-  const [belegeLoading, setBelegeLoading] = useState(false)
 
-  async function loadBelege(roundKey, rel, collocate) {
-    const cacheKey = `${roundKey}-${collocate}`
-    // Schon offen → schließen
-    if (openBeleg === cacheKey) { setOpenBeleg(null); return }
-    // Im Cache → direkt öffnen
-    if (belegeCache[cacheKey] !== undefined) { setOpenBeleg(cacheKey); return }
-
-    setOpenBeleg(cacheKey)
-    setBelegeLoading(true)
-    try {
-      const r = await fetch(
-        `${API_BASE}/api/belege?collocate=${encodeURIComponent(collocate)}&lemma=${encodeURIComponent(lemma.lemma)}&rel=${rel}`
-      )
-      const data = await r.json()
-      setBelegeCache(prev => ({ ...prev, [cacheKey]: Array.isArray(data) ? data : [] }))
-    } catch {
-      setBelegeCache(prev => ({ ...prev, [cacheKey]: [] }))
-    } finally {
-      setBelegeLoading(false)
-    }
-  }
+  // useBelege mit cacheKey = "<rundKey>-<wort>" für eindeutige Zuordnung per Runde
+  const { openBeleg, belegeCache, belegeLoading, loadBelege } = useBelege(lemma.lemma)
 
   return (
     <div className="screen results-screen">
@@ -124,8 +102,8 @@ export default function Results({ lemma, roundScores, onRestart, onToSelection }
           const top3 = (lemma.runden[key] || [])
             .filter(k => k.rang <= 3)
             .sort((a, b) => a.rang - b.rang)
-          const activeItem  = top3.find(k => openBeleg === `${key}-${k.wort}`)
-          const belegData   = activeItem ? belegeCache[`${key}-${activeItem.wort}`] : null
+          // cacheKey = "<rundKey>-<wort>" damit verschiedene Runden nicht kollidieren
+          const activeItem = top3.find(k => openBeleg === `${key}-${k.wort}`)
 
           return (
             <div key={key} className="wortprofil-row">
@@ -133,12 +111,13 @@ export default function Results({ lemma, roundScores, onRestart, onToSelection }
               <span className="wortprofil-desc">{desc}</span>
               <div className="wortprofil-items">
                 {top3.map(k => {
-                  const isActive = openBeleg === `${key}-${k.wort}`
+                  const cacheKey = `${key}-${k.wort}`
+                  const isActive = openBeleg === cacheKey
                   return (
                     <button
                       key={k.wort}
                       className={`wortprofil-item${isActive ? ' wortprofil-item--active' : ''}`}
-                      onClick={() => loadBelege(key, relCode, k.wort)}
+                      onClick={() => loadBelege(k.wort, cacheKey, { rel: relCode })}
                       title="Korpusbelege anzeigen"
                     >
                       {k.wort}
@@ -149,23 +128,12 @@ export default function Results({ lemma, roundScores, onRestart, onToSelection }
               </div>
 
               {activeItem && (
-                <div className="belege-panel">
-                  <p className="belege-panel-title">
-                    Belege: <em>{lemma.lemma}</em> + <em>{activeItem.wort}</em>
-                  </p>
-                  {belegeLoading && !belegData ? (
-                    <p className="belege-status">Lade Belege …</p>
-                  ) : belegData?.length ? (
-                    belegData.map((b, bi) => (
-                      <div key={bi} className="beleg-item">
-                        <BelegeSatz tokens={b.tokens} />
-                        <p className="beleg-quelle">{b.quelle}</p>
-                      </div>
-                    ))
-                  ) : (
-                    <p className="belege-status">Keine Belege gefunden.</p>
-                  )}
-                </div>
+                <BelegePanel
+                  lemma={lemma.lemma}
+                  collocate={activeItem.wort}
+                  data={belegeCache[`${key}-${activeItem.wort}`]}
+                  loading={belegeLoading}
+                />
               )}
             </div>
           )
