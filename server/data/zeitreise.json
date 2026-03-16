@@ -9,28 +9,28 @@
         "score": 9.70079198161272
       },
       {
-        "jahrzehnt": "1750",
-        "kollokat": "Sonnabend",
-        "korpus": "dta",
-        "score": 6.79779171666415
-      },
-      {
-        "jahrzehnt": "1890",
-        "kollokat": "Stunde",
-        "korpus": "reichstag",
-        "score": 7.85519611131055
-      },
-      {
-        "jahrzehnt": "1940",
+        "jahrzehnt": "1880",
         "kollokat": "Uhr",
-        "korpus": "kern",
-        "score": 7.69025582076579
+        "korpus": "reichstag",
+        "score": 7.73369184202321
+      },
+      {
+        "jahrzehnt": "1930",
+        "kollokat": "Feiertag",
+        "korpus": "reichstag",
+        "score": 8.9875834814306
+      },
+      {
+        "jahrzehnt": "1950",
+        "kollokat": "Samstag",
+        "korpus": "bundestag",
+        "score": 8.17552955310893
       },
       {
         "jahrzehnt": "2000",
-        "kollokat": "Feiertag",
+        "kollokat": "Bild",
         "korpus": "bundestag",
-        "score": 7.62865484198021
+        "score": 6.28387735703248
       }
     ],
     "perioden": [
@@ -66,9 +66,9 @@
       },
       {
         "jahrzehnt": "1750",
-        "kollokat": "Sonnabend",
+        "kollokat": "Präsenttat",
         "korpus": "dta",
-        "score": 6.79779171666415
+        "score": 5.92195185691872
       },
       {
         "jahrzehnt": "1800",
@@ -108,9 +108,9 @@
       },
       {
         "jahrzehnt": "1900",
-        "kollokat": "Sonnabend",
+        "kollokat": "Gottesdienst",
         "korpus": "reichstag",
-        "score": 7.63245027352078
+        "score": 7.07178214268992
       },
       {
         "jahrzehnt": "1910",
@@ -120,15 +120,15 @@
       },
       {
         "jahrzehnt": "1920",
-        "kollokat": "Sonnabend",
+        "kollokat": "Uhr",
         "korpus": "kern",
-        "score": 7.20507651778283
+        "score": 6.68167005808303
       },
       {
         "jahrzehnt": "1930",
-        "kollokat": "Sonnabend",
+        "kollokat": "Feiertag",
         "korpus": "reichstag",
-        "score": 9.84687024110067
+        "score": 8.9875834814306
       },
       {
         "jahrzehnt": "1940",
@@ -144,21 +144,21 @@
       },
       {
         "jahrzehnt": "1960",
-        "kollokat": "Sonnabend",
+        "kollokat": "Feiertag",
         "korpus": "kern",
-        "score": 6.92639395942506
+        "score": 6.25314981690195
       },
       {
         "jahrzehnt": "1970",
-        "kollokat": "Sonnabend",
+        "kollokat": "Feiertag",
         "korpus": "ddr",
-        "score": 8.1031630690554
+        "score": 7.7663803232403
       },
       {
         "jahrzehnt": "1980",
-        "kollokat": "Sonnabend",
+        "kollokat": "Samstag",
         "korpus": "kern",
-        "score": 6.48672792003542
+        "score": 6.43470747941898
       },
       {
         "jahrzehnt": "2000",
@@ -178,22 +178,22 @@
         "score": 8.64244799538192
       },
       {
-        "jahrzehnt": "1880",
-        "kollokat": "Änderung",
+        "jahrzehnt": "1910",
+        "kollokat": "Reichsmilitärgesetz",
         "korpus": "reichstag",
-        "score": 5.99977459650905
+        "score": 8.51844271929141
       },
       {
-        "jahrzehnt": "1920",
-        "kollokat": "Abschaffung",
+        "jahrzehnt": "1930",
+        "kollokat": "Verleitung",
         "korpus": "reichstag",
-        "score": 7.79509161988182
+        "score": 9.13581385534572
       },
       {
-        "jahrzehnt": "1960",
-        "kollokat": "Ableistung",
-        "korpus": "kern",
-        "score": 7.3417885172482
+        "jahrzehnt": "2000",
+        "kollokat": "Aussetzung",
+        "korpus": "bundestag",
+        "score": 8.1549513894284
       },
       {
         "jahrzehnt": "2010",
@@ -271,9 +271,9 @@
       },
       {
         "jahrzehnt": "1950",
-        "kollokat": "Wehrdienst",
+        "kollokat": "Abschaffung",
         "korpus": "bundestag",
-        "score": 7.37846268208256
+        "score": 6.02945321358343
       },
       {
         "jahrzehnt": "1960",
@@ -308,147 +308,171 @@
     ]
   },
   "03-17": {
-    "lemma": "irisch",
+    "lemma": "Topf",
     "paare": [
       {
-        "jahrzehnt": "1700",
-        "kollokat": "Kork",
+        "jahrzehnt": "1550",
+        "kollokat": "Quart",
         "korpus": "dta",
-        "score": 7.43775757577893
+        "score": 8.41933763671247
       },
       {
-        "jahrzehnt": "1870",
-        "kollokat": "Gefängnis-System",
+        "jahrzehnt": "1860",
+        "kollokat": "tönern",
         "korpus": "reichstag",
-        "score": 8.03037364904352
+        "score": 8.88105892727649
       },
       {
-        "jahrzehnt": "1920",
-        "kollokat": "Freistaat",
+        "jahrzehnt": "1940",
+        "kollokat": "Topheide",
         "korpus": "kern",
-        "score": 9.19147453423446
+        "score": 9.12792369516318
       },
       {
-        "jahrzehnt": "1960",
-        "kollokat": "Abstammung",
-        "korpus": "kern",
-        "score": 6.98978980139778
+        "jahrzehnt": "1970",
+        "kollokat": "Holzlöffel",
+        "korpus": "ddr",
+        "score": 9.01257806607947
       },
       {
         "jahrzehnt": "2000",
-        "kollokat": "Tochter",
+        "kollokat": "Herd",
         "korpus": "bundestag",
-        "score": 5.84737713167479
+        "score": 6.24917340219758
       }
     ],
     "perioden": [
       {
-        "jahrzehnt": "1700",
-        "kollokat": "Kork",
+        "jahrzehnt": "1550",
+        "kollokat": "Quart",
         "korpus": "dta",
-        "score": 7.43775757577893
+        "score": 8.41933763671247
+      },
+      {
+        "jahrzehnt": "1600",
+        "kollokat": "Kessel",
+        "korpus": "dta",
+        "score": 6.88625783395081
+      },
+      {
+        "jahrzehnt": "1650",
+        "kollokat": "Ofen",
+        "korpus": "dta",
+        "score": 6.10768817559307
+      },
+      {
+        "jahrzehnt": "1700",
+        "kollokat": "Eierdotter",
+        "korpus": "dta",
+        "score": 7.03841876285807
       },
       {
         "jahrzehnt": "1750",
-        "kollokat": "Pair",
+        "kollokat": "irden",
         "korpus": "dta",
-        "score": 7.80032765516364
+        "score": 6.97948298265949
       },
       {
         "jahrzehnt": "1800",
-        "kollokat": "Municipalreformbill",
+        "kollokat": "irden",
         "korpus": "dta",
-        "score": 6.42761556535831
+        "score": 7.08209092614702
       },
       {
         "jahrzehnt": "1850",
-        "kollokat": "Grafschaft",
+        "kollokat": "irden",
         "korpus": "dta",
-        "score": 6.91414159328189
+        "score": 7.03009960686568
+      },
+      {
+        "jahrzehnt": "1860",
+        "kollokat": "tönern",
+        "korpus": "reichstag",
+        "score": 8.88105892727649
       },
       {
         "jahrzehnt": "1870",
-        "kollokat": "Gefängnis-System",
+        "kollokat": "Tafelchen",
         "korpus": "reichstag",
-        "score": 8.03037364904352
+        "score": 8.3275746580285
       },
       {
         "jahrzehnt": "1880",
-        "kollokat": "Mörder",
+        "kollokat": "weh",
         "korpus": "reichstag",
-        "score": 7.03133320680479
+        "score": 7.54173987557315
       },
       {
         "jahrzehnt": "1890",
-        "kollokat": "Gefährlichkeit",
+        "kollokat": "Huhn",
         "korpus": "reichstag",
-        "score": 5.52224173355611
+        "score": 7.74379131147261
       },
       {
         "jahrzehnt": "1900",
-        "kollokat": "Heldensage",
-        "korpus": "dta",
-        "score": 6.84923725564458
+        "kollokat": "Schaufensterchen",
+        "korpus": "kern",
+        "score": 5.62496056865308
       },
       {
         "jahrzehnt": "1910",
-        "kollokat": "Grundherr",
+        "kollokat": "Pellkartoffel",
         "korpus": "reichstag",
-        "score": 7.25180715041054
+        "score": 6.72387559472576
       },
       {
         "jahrzehnt": "1920",
-        "kollokat": "Freistaat",
+        "kollokat": "glasiert",
         "korpus": "kern",
-        "score": 9.19147453423446
+        "score": 5.72853697209563
       },
       {
         "jahrzehnt": "1930",
-        "kollokat": "Freistaat",
+        "kollokat": "Milliarde",
         "korpus": "reichstag",
-        "score": 10.4896631652389
+        "score": 2.74482386254028
       },
       {
         "jahrzehnt": "1940",
-        "kollokat": "Ostertafel",
+        "kollokat": "Topheide",
         "korpus": "kern",
-        "score": 7.46602142799765
+        "score": 9.12792369516318
       },
       {
         "jahrzehnt": "1950",
-        "kollokat": "Pfund",
+        "kollokat": "Korbflasche",
         "korpus": "bundestag",
-        "score": 8.31627090885694
+        "score": 6.11125675110174
       },
       {
         "jahrzehnt": "1960",
-        "kollokat": "Abstammung",
+        "kollokat": "Flamme",
         "korpus": "kern",
-        "score": 6.98978980139778
+        "score": 7.07547023917629
       },
       {
         "jahrzehnt": "1970",
-        "kollokat": "Squaw",
+        "kollokat": "Holzlöffel",
         "korpus": "ddr",
-        "score": 9.60768257722124
+        "score": 9.01257806607947
       },
       {
         "jahrzehnt": "1980",
-        "kollokat": "Druide",
+        "kollokat": "Schüssel",
         "korpus": "kern",
-        "score": 6.51820056833425
+        "score": 6.15262939909452
       },
       {
         "jahrzehnt": "1990",
-        "kollokat": "Präsidentschaft",
+        "kollokat": "Rente",
         "korpus": "politische_reden",
-        "score": 6.81079316540298
+        "score": 7.31450030188286
       },
       {
         "jahrzehnt": "2000",
-        "kollokat": "Tochter",
+        "kollokat": "Herd",
         "korpus": "bundestag",
-        "score": 5.84737713167479
+        "score": 6.24917340219758
       }
     ]
   }

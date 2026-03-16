@@ -1762,33 +1762,33 @@
           "rang": 3
         },
         {
-          "wort": "Diktator",
-          "log_dice": 3.7,
+          "wort": "Bösewicht",
+          "log_dice": 2.6,
           "rang": 4
+        },
+        {
+          "wort": "Mörder",
+          "log_dice": 2.7,
+          "rang": 5
+        },
+        {
+          "wort": "Sklave",
+          "log_dice": 2.4,
+          "rang": 6
+        },
+        {
+          "wort": "Tyrann",
+          "log_dice": 2.9,
+          "rang": 7
+        },
+        {
+          "wort": "Blutsäufer",
+          "log_dice": 3.6,
+          "rang": 8
         },
         {
           "wort": "Unterdrücker",
           "log_dice": 3.9,
-          "rang": 5
-        },
-        {
-          "wort": "Regime",
-          "log_dice": 0.2,
-          "rang": 6
-        },
-        {
-          "wort": "Herrscher",
-          "log_dice": 1.4,
-          "rang": 7
-        },
-        {
-          "wort": "Bösewicht",
-          "log_dice": 2.6,
-          "rang": 8
-        },
-        {
-          "wort": "Usurpator",
-          "log_dice": 3.7,
           "rang": 9
         },
         {
@@ -1814,38 +1814,38 @@
           "rang": 3
         },
         {
-          "wort": "besiegen",
-          "log_dice": 2,
+          "wort": "dulden",
+          "log_dice": 1.8,
           "rang": 4
+        },
+        {
+          "wort": "beseitigen",
+          "log_dice": 2.5,
+          "rang": 5
         },
         {
           "wort": "vertreiben",
           "log_dice": 1.7,
-          "rang": 5
+          "rang": 6
         },
         {
-          "wort": "erschlagen",
-          "log_dice": 2.2,
-          "rang": 6
+          "wort": "hassen",
+          "log_dice": 1.8,
+          "rang": 7
+        },
+        {
+          "wort": "loswerden",
+          "log_dice": 3.3,
+          "rang": 8
         },
         {
           "wort": "zähmen",
           "log_dice": 3.1,
-          "rang": 7
-        },
-        {
-          "wort": "weisen",
-          "log_dice": 1.5,
-          "rang": 8
-        },
-        {
-          "wort": "umbringen",
-          "log_dice": 1.3,
           "rang": 9
         },
         {
-          "wort": "töten",
-          "log_dice": 2.2,
+          "wort": "ermorden",
+          "log_dice": 2.7,
           "rang": 10
         }
       ],
@@ -1866,8 +1866,8 @@
           "rang": 3
         },
         {
-          "wort": "skrupellos",
-          "log_dice": 4.6,
+          "wort": "verhasst",
+          "log_dice": 4,
           "rang": 4
         },
         {
@@ -1881,23 +1881,23 @@
           "rang": 6
         },
         {
-          "wort": "machtbesessen",
-          "log_dice": 4.3,
+          "wort": "skrupellos",
+          "log_dice": 4.6,
           "rang": 7
         },
         {
-          "wort": "verhasst",
-          "log_dice": 4,
+          "wort": "grausamst",
+          "log_dice": 3.9,
           "rang": 8
         },
         {
-          "wort": "sadistisch",
+          "wort": "launisch",
           "log_dice": 3.8,
           "rang": 9
         },
         {
-          "wort": "syrakusisch",
-          "log_dice": 3.9,
+          "wort": "machtbesessen",
+          "log_dice": 4.3,
           "rang": 10
         }
       ]
@@ -1948,38 +1948,38 @@
           "rang": 3
         },
         {
-          "wort": "Land",
-          "log_dice": 3.8,
+          "wort": "Insasse",
+          "log_dice": 4.6,
           "rang": 4
         },
         {
-          "wort": "Hund",
-          "log_dice": 3.7,
+          "wort": "Junge",
+          "log_dice": 3.8,
           "rang": 5
-        },
-        {
-          "wort": "Mensch",
-          "log_dice": 3.7,
-          "rang": 6
-        },
-        {
-          "wort": "Gebiet",
-          "log_dice": 4.2,
-          "rang": 7
-        },
-        {
-          "wort": "Geist",
-          "log_dice": 3.7,
-          "rang": 8
         },
         {
           "wort": "Fahrer",
           "log_dice": 3.8,
+          "rang": 6
+        },
+        {
+          "wort": "Menschheit",
+          "log_dice": 5.2,
+          "rang": 7
+        },
+        {
+          "wort": "Tier",
+          "log_dice": 4.3,
+          "rang": 8
+        },
+        {
+          "wort": "Verletzte",
+          "log_dice": 3.7,
           "rang": 9
         },
         {
-          "wort": "Volk",
-          "log_dice": 4.7,
+          "wort": "Konzentrationslager",
+          "log_dice": 4.3,
           "rang": 10
         }
       ],
@@ -2000,17 +2000,17 @@
           "rang": 3
         },
         {
-          "wort": "fliehen",
-          "log_dice": 3.2,
+          "wort": "öffnen",
+          "log_dice": 2.4,
           "rang": 4
         },
         {
-          "wort": "erlösen",
-          "log_dice": 2.6,
+          "wort": "wiederherstellen",
+          "log_dice": 2.4,
           "rang": 5
         },
         {
-          "wort": "bringen",
+          "wort": "rufen",
           "log_dice": 3,
           "rang": 6
         },
@@ -2020,17 +2020,17 @@
           "rang": 7
         },
         {
-          "wort": "befreien",
-          "log_dice": 3.1,
+          "wort": "bringen",
+          "log_dice": 3,
           "rang": 8
         },
         {
-          "wort": "rufen",
-          "log_dice": 3,
+          "wort": "retten",
+          "log_dice": 3.2,
           "rang": 9
         },
         {
-          "wort": "verschaffen",
+          "wort": "besiegen",
           "log_dice": 2.4,
           "rang": 10
         }
@@ -2052,38 +2052,38 @@
           "rang": 3
         },
         {
-          "wort": "wenigstens",
-          "log_dice": 3.9,
+          "wort": "endgültig",
+          "log_dice": 5.1,
           "rang": 4
         },
         {
-          "wort": "lebend",
-          "log_dice": 3.9,
+          "wort": "dadurch",
+          "log_dice": 4.3,
           "rang": 5
         },
         {
-          "wort": "komplett",
-          "log_dice": 4.2,
+          "wort": "schließlich",
+          "log_dice": 4.3,
           "rang": 6
         },
         {
-          "wort": "mühsam",
+          "wort": "unversehrt",
           "log_dice": 4.3,
           "rang": 7
         },
         {
-          "wort": "rechtzeitig",
+          "wort": "komplett",
           "log_dice": 4.2,
           "rang": 8
         },
         {
-          "wort": "vollständig",
-          "log_dice": 5,
+          "wort": "davon",
+          "log_dice": 5.3,
           "rang": 9
         },
         {
-          "wort": "allmählich",
-          "log_dice": 4.2,
+          "wort": "gewaltsam",
+          "log_dice": 5.1,
           "rang": 10
         }
       ]
@@ -2134,28 +2134,28 @@
           "rang": 3
         },
         {
-          "wort": "Form",
-          "log_dice": 5.7,
+          "wort": "Buchstabe",
+          "log_dice": 5.3,
           "rang": 4
         },
         {
-          "wort": "Broschüre",
-          "log_dice": 5.5,
+          "wort": "Form",
+          "log_dice": 5.7,
           "rang": 5
         },
         {
-          "wort": "Fassung",
-          "log_dice": 6.3,
+          "wort": "Heft",
+          "log_dice": 6,
           "rang": 6
         },
         {
-          "wort": "Handbuch",
-          "log_dice": 6.2,
+          "wort": "Buch",
+          "log_dice": 6.1,
           "rang": 7
         },
         {
-          "wort": "Version",
-          "log_dice": 6.1,
+          "wort": "Zeitung",
+          "log_dice": 6.5,
           "rang": 8
         },
         {
@@ -2164,8 +2164,8 @@
           "rang": 9
         },
         {
-          "wort": "Magazin",
-          "log_dice": 5.5,
+          "wort": "Fassung",
+          "log_dice": 6.3,
           "rang": 10
         }
       ],
@@ -2186,38 +2186,38 @@
           "rang": 3
         },
         {
-          "wort": "verbreitet",
-          "log_dice": 0.4,
+          "wort": "stehen",
+          "log_dice": 0.2,
           "rang": 4
         },
         {
-          "wort": "dastehen",
-          "log_dice": 0.9,
+          "wort": "herauskommen",
+          "log_dice": 0.5,
           "rang": 5
-        },
-        {
-          "wort": "sehen",
-          "log_dice": 1.4,
-          "rang": 6
         },
         {
           "wort": "lesen",
           "log_dice": 1.5,
+          "rang": 6
+        },
+        {
+          "wort": "zugänglich",
+          "log_dice": 0,
           "rang": 7
         },
         {
-          "wort": "nachlesen",
-          "log_dice": 1.5,
+          "wort": "erhältlich",
+          "log_dice": 1.6,
           "rang": 8
         },
         {
-          "wort": "erschienen",
-          "log_dice": 0.6,
+          "wort": "beiliegen",
+          "log_dice": 1.6,
           "rang": 9
         },
         {
-          "wort": "stehen",
-          "log_dice": 0.2,
+          "wort": "dastehen",
+          "log_dice": 0.9,
           "rang": 10
         }
       ],
@@ -2238,8 +2238,8 @@
           "rang": 3
         },
         {
-          "wort": "gelesen",
-          "log_dice": 2.3,
+          "wort": "verlegt",
+          "log_dice": 2.5,
           "rang": 4
         },
         {
@@ -2248,28 +2248,28 @@
           "rang": 5
         },
         {
-          "wort": "verteilt",
-          "log_dice": 2.4,
+          "wort": "geheftet",
+          "log_dice": 2.3,
           "rang": 6
         },
         {
-          "wort": "online",
-          "log_dice": 2.4,
+          "wort": "gelesen",
+          "log_dice": 2.3,
           "rang": 7
         },
         {
-          "wort": "geheftet",
-          "log_dice": 2.3,
+          "wort": "gesprochen",
+          "log_dice": 4,
           "rang": 8
         },
         {
-          "wort": "geschrieben",
-          "log_dice": 3.3,
+          "wort": "gesendet",
+          "log_dice": 4.7,
           "rang": 9
         },
         {
-          "wort": "kopiert",
-          "log_dice": 2.6,
+          "wort": "handschriftlich",
+          "log_dice": 3,
           "rang": 10
         }
       ]
@@ -2320,38 +2320,38 @@
           "rang": 3
         },
         {
-          "wort": "Vorsorgeuntersuchung",
-          "log_dice": 3.8,
+          "wort": "Immunisierung",
+          "log_dice": 2.7,
           "rang": 4
         },
         {
-          "wort": "Medikament",
-          "log_dice": 3.9,
+          "wort": "Vorsorgeuntersuchung",
+          "log_dice": 3.8,
           "rang": 5
         },
         {
-          "wort": "Impfung",
-          "log_dice": 3.4,
+          "wort": "Autismus",
+          "log_dice": 4.1,
           "rang": 6
         },
         {
-          "wort": "Prophylaxe",
-          "log_dice": 2.9,
+          "wort": "Negativtest",
+          "log_dice": 2.7,
           "rang": 7
         },
         {
-          "wort": "Antibiotikum",
-          "log_dice": 3.2,
+          "wort": "Schnelltest",
+          "log_dice": 2.9,
           "rang": 8
-        },
-        {
-          "wort": "Booster",
-          "log_dice": 3.5,
-          "rang": 9
         },
         {
           "wort": "Therapie",
           "log_dice": 3.8,
+          "rang": 9
+        },
+        {
+          "wort": "Heilmittel",
+          "log_dice": 3.2,
           "rang": 10
         }
       ],
@@ -2372,23 +2372,23 @@
           "rang": 3
         },
         {
-          "wort": "vorschreiben",
-          "log_dice": 3.5,
+          "wort": "nachholen",
+          "log_dice": 4.5,
           "rang": 4
         },
         {
-          "wort": "organisieren",
-          "log_dice": 2.7,
+          "wort": "anbieten",
+          "log_dice": 3.7,
           "rang": 5
         },
         {
-          "wort": "vertragen",
-          "log_dice": 4.5,
+          "wort": "befürworten",
+          "log_dice": 4,
           "rang": 6
         },
         {
-          "wort": "erhalten",
-          "log_dice": 4.4,
+          "wort": "ermöglichen",
+          "log_dice": 3,
           "rang": 7
         },
         {
@@ -2397,13 +2397,13 @@
           "rang": 8
         },
         {
-          "wort": "nachweisen",
-          "log_dice": 4.1,
+          "wort": "aussetzen",
+          "log_dice": 3.6,
           "rang": 9
         },
         {
-          "wort": "nachholen",
-          "log_dice": 4.5,
+          "wort": "durchführen",
+          "log_dice": 4.4,
           "rang": 10
         }
       ],
@@ -2424,38 +2424,38 @@
           "rang": 3
         },
         {
-          "wort": "vorsorglich",
-          "log_dice": 4.1,
+          "wort": "therapeutisch",
+          "log_dice": 4.6,
           "rang": 4
         },
         {
-          "wort": "zweimalig",
-          "log_dice": 4.6,
+          "wort": "vorsorglich",
+          "log_dice": 4.1,
           "rang": 5
-        },
-        {
-          "wort": "vollständig",
-          "log_dice": 5.4,
-          "rang": 6
-        },
-        {
-          "wort": "vierte",
-          "log_dice": 5.4,
-          "rang": 7
-        },
-        {
-          "wort": "zweite",
-          "log_dice": 4,
-          "rang": 8
-        },
-        {
-          "wort": "zweifach",
-          "log_dice": 4.6,
-          "rang": 9
         },
         {
           "wort": "passiv",
           "log_dice": 4.4,
+          "rang": 6
+        },
+        {
+          "wort": "prophylaktisch",
+          "log_dice": 4.2,
+          "rang": 7
+        },
+        {
+          "wort": "zweimalig",
+          "log_dice": 4.6,
+          "rang": 8
+        },
+        {
+          "wort": "zweite",
+          "log_dice": 4,
+          "rang": 9
+        },
+        {
+          "wort": "vorgeschrieben",
+          "log_dice": 4.3,
           "rang": 10
         }
       ]
@@ -2506,38 +2506,38 @@
           "rang": 3
         },
         {
-          "wort": "Verhandlung",
-          "log_dice": 0.4,
-          "rang": 4
-        },
-        {
-          "wort": "Prozent-Hürde",
-          "log_dice": 0.6,
-          "rang": 5
-        },
-        {
           "wort": "Rettung",
           "log_dice": 0.1,
-          "rang": 6
-        },
-        {
-          "wort": "Experiment",
-          "log_dice": 0.3,
-          "rang": 7
-        },
-        {
-          "wort": "Abwahl",
-          "log_dice": 0.1,
-          "rang": 8
-        },
-        {
-          "wort": "Hürde",
-          "log_dice": 0.5,
-          "rang": 9
+          "rang": 4
         },
         {
           "wort": "Tarifrund",
           "log_dice": 0.2,
+          "rang": 5
+        },
+        {
+          "wort": "Ehe",
+          "log_dice": 0.5,
+          "rang": 6
+        },
+        {
+          "wort": "Präsidentenwahl",
+          "log_dice": 0.2,
+          "rang": 7
+        },
+        {
+          "wort": "Hürde",
+          "log_dice": 0.5,
+          "rang": 8
+        },
+        {
+          "wort": "Abwahl",
+          "log_dice": 0.1,
+          "rang": 9
+        },
+        {
+          "wort": "Klage",
+          "log_dice": 0.3,
           "rang": 10
         }
       ],
@@ -2558,38 +2558,38 @@
           "rang": 3
         },
         {
-          "wort": "beenden",
-          "log_dice": 1.3,
-          "rang": 4
-        },
-        {
-          "wort": "hinterlassen",
-          "log_dice": 1.3,
-          "rang": 5
-        },
-        {
-          "wort": "zurückziehen",
+          "wort": "landen",
           "log_dice": 1.7,
-          "rang": 6
-        },
-        {
-          "wort": "verzögern",
-          "log_dice": 1.4,
-          "rang": 7
-        },
-        {
-          "wort": "antreten",
-          "log_dice": 1.3,
-          "rang": 8
+          "rang": 4
         },
         {
           "wort": "vertreten",
           "log_dice": 1.3,
+          "rang": 5
+        },
+        {
+          "wort": "verzögern",
+          "log_dice": 1.4,
+          "rang": 6
+        },
+        {
+          "wort": "zurückziehen",
+          "log_dice": 1.7,
+          "rang": 7
+        },
+        {
+          "wort": "gelingen",
+          "log_dice": 1.5,
+          "rang": 8
+        },
+        {
+          "wort": "verfehlen",
+          "log_dice": 1.8,
           "rang": 9
         },
         {
-          "wort": "zurückkehren",
-          "log_dice": 1.5,
+          "wort": "beenden",
+          "log_dice": 1.3,
           "rang": 10
         }
       ],
@@ -2610,18 +2610,18 @@
           "rang": 3
         },
         {
-          "wort": "erneut",
-          "log_dice": 6.1,
+          "wort": "damit",
+          "log_dice": 5.9,
           "rang": 4
         },
         {
-          "wort": "zuvor",
-          "log_dice": 6.2,
+          "wort": "grandios",
+          "log_dice": 6.7,
           "rang": 5
         },
         {
-          "wort": "jedoch",
-          "log_dice": 6.6,
+          "wort": "krachend",
+          "log_dice": 6.7,
           "rang": 6
         },
         {
@@ -2630,18 +2630,18 @@
           "rang": 7
         },
         {
-          "wort": "vorerst",
-          "log_dice": 7.3,
+          "wort": "aber",
+          "log_dice": 6.1,
           "rang": 8
         },
         {
-          "wort": "dreimal",
-          "log_dice": 5.6,
+          "wort": "zweimal",
+          "log_dice": 6.6,
           "rang": 9
         },
         {
-          "wort": "krachend",
-          "log_dice": 6.7,
+          "wort": "zuvor",
+          "log_dice": 6.2,
           "rang": 10
         }
       ]
@@ -2692,38 +2692,38 @@
           "rang": 3
         },
         {
-          "wort": "Gremium",
-          "log_dice": 6.4,
+          "wort": "Medium",
+          "log_dice": 6.6,
           "rang": 4
         },
         {
-          "wort": "Jury",
-          "log_dice": 6.1,
+          "wort": "Institution",
+          "log_dice": 6.3,
           "rang": 5
         },
         {
-          "wort": "Beobachter",
-          "log_dice": 6.9,
+          "wort": "Untersuchung",
+          "log_dice": 7,
           "rang": 6
-        },
-        {
-          "wort": "Sachverständige",
-          "log_dice": 6.1,
-          "rang": 7
         },
         {
           "wort": "Journalismus",
           "log_dice": 6.1,
+          "rang": 7
+        },
+        {
+          "wort": "Gutachter",
+          "log_dice": 6.8,
           "rang": 8
         },
         {
-          "wort": "Untersuchungskommission",
+          "wort": "Instanz",
           "log_dice": 6.1,
           "rang": 9
         },
         {
-          "wort": "Fachleute",
-          "log_dice": 6,
+          "wort": "Sachverständige",
+          "log_dice": 6.1,
           "rang": 10
         }
       ],
@@ -2744,37 +2744,37 @@
           "rang": 3
         },
         {
-          "wort": "agierend",
+          "wort": "entwickeln",
           "log_dice": 4.4,
           "rang": 4
         },
         {
-          "wort": "entstehen",
-          "log_dice": 3.9,
+          "wort": "existieren",
+          "log_dice": 4.9,
           "rang": 5
+        },
+        {
+          "wort": "bestehen",
+          "log_dice": 4.1,
+          "rang": 6
         },
         {
           "wort": "gelten",
           "log_dice": 5.2,
-          "rang": 6
+          "rang": 7
         },
         {
-          "wort": "erfolgen",
-          "log_dice": 4.9,
-          "rang": 7
+          "wort": "funktionieren",
+          "log_dice": 4.6,
+          "rang": 8
         },
         {
           "wort": "prüfen",
           "log_dice": 4.1,
-          "rang": 8
-        },
-        {
-          "wort": "entscheiden",
-          "log_dice": 4.5,
           "rang": 9
         },
         {
-          "wort": "operieren",
+          "wort": "entscheiden",
           "log_dice": 4.5,
           "rang": 10
         }
@@ -2796,38 +2796,38 @@
           "rang": 3
         },
         {
-          "wort": "selbständig",
-          "log_dice": 3,
+          "wort": "frei",
+          "log_dice": 2.8,
           "rang": 4
         },
         {
-          "wort": "glaubwürdig",
-          "log_dice": 2.3,
+          "wort": "überparteilich",
+          "log_dice": 3.2,
           "rang": 5
         },
         {
-          "wort": "demokratisch",
-          "log_dice": 3,
+          "wort": "abhängig",
+          "log_dice": 1.8,
           "rang": 6
-        },
-        {
-          "wort": "objektiv",
-          "log_dice": 2.9,
-          "rang": 7
         },
         {
           "wort": "eigenständig",
           "log_dice": 2.8,
+          "rang": 7
+        },
+        {
+          "wort": "blockfrei",
+          "log_dice": 2.2,
           "rang": 8
         },
         {
-          "wort": "autonom",
+          "wort": "glaubwürdig",
           "log_dice": 2.3,
           "rang": 9
         },
         {
-          "wort": "lebensfähig",
-          "log_dice": 1.7,
+          "wort": "selbständig",
+          "log_dice": 3,
           "rang": 10
         }
       ]
@@ -2878,23 +2878,23 @@
           "rang": 3
         },
         {
-          "wort": "Schildkröte",
-          "log_dice": 4.2,
+          "wort": "Frosch",
+          "log_dice": 3.4,
           "rang": 4
         },
         {
-          "wort": "Vogelspinne",
-          "log_dice": 3.1,
+          "wort": "Wartezeit",
+          "log_dice": 3.6,
           "rang": 5
         },
         {
-          "wort": "Reptil",
-          "log_dice": 3.6,
+          "wort": "Schildkröte",
+          "log_dice": 4.2,
           "rang": 6
         },
         {
-          "wort": "Kröte",
-          "log_dice": 3.3,
+          "wort": "Insekt",
+          "log_dice": 3.2,
           "rang": 7
         },
         {
@@ -2903,13 +2903,13 @@
           "rang": 8
         },
         {
-          "wort": "Eidechse",
-          "log_dice": 4.3,
+          "wort": "Getier",
+          "log_dice": 2.4,
           "rang": 9
         },
         {
-          "wort": "Leguan",
-          "log_dice": 2.6,
+          "wort": "Vogelspinne",
+          "log_dice": 3.1,
           "rang": 10
         }
       ],
@@ -2930,8 +2930,8 @@
           "rang": 3
         },
         {
-          "wort": "züchten",
-          "log_dice": 2.3,
+          "wort": "erschlagen",
+          "log_dice": 2.5,
           "rang": 4
         },
         {
@@ -2940,28 +2940,28 @@
           "rang": 5
         },
         {
-          "wort": "zertreten",
-          "log_dice": 2.4,
+          "wort": "fressen",
+          "log_dice": 3,
           "rang": 6
         },
         {
-          "wort": "erschlagen",
-          "log_dice": 2.5,
+          "wort": "entdecken",
+          "log_dice": 3.4,
           "rang": 7
         },
         {
-          "wort": "bändigen",
-          "log_dice": 2.4,
+          "wort": "anfassen",
+          "log_dice": 2.6,
           "rang": 8
         },
         {
-          "wort": "fressen",
-          "log_dice": 3,
+          "wort": "zertreten",
+          "log_dice": 2.4,
           "rang": 9
         },
         {
-          "wort": "streicheln",
-          "log_dice": 2.3,
+          "wort": "fangen",
+          "log_dice": 3.7,
           "rang": 10
         }
       ],
@@ -2982,38 +2982,38 @@
           "rang": 3
         },
         {
-          "wort": "lang",
-          "log_dice": 6.7,
+          "wort": "meterlang",
+          "log_dice": 5.2,
           "rang": 4
-        },
-        {
-          "wort": "gewunden",
-          "log_dice": 3,
-          "rang": 5
-        },
-        {
-          "wort": "riesig",
-          "log_dice": 4.3,
-          "rang": 6
-        },
-        {
-          "wort": "lebend",
-          "log_dice": 3.7,
-          "rang": 7
         },
         {
           "wort": "ehern",
           "log_dice": 4.5,
-          "rang": 8
+          "rang": 5
+        },
+        {
+          "wort": "gefiedert",
+          "log_dice": 5.6,
+          "rang": 6
         },
         {
           "wort": "wollend",
           "log_dice": 3.2,
+          "rang": 7
+        },
+        {
+          "wort": "wartend",
+          "log_dice": 3.8,
+          "rang": 8
+        },
+        {
+          "wort": "eingelegt",
+          "log_dice": 4.1,
           "rang": 9
         },
         {
-          "wort": "zweiköpfig",
-          "log_dice": 3.8,
+          "wort": "lebend",
+          "log_dice": 3.7,
           "rang": 10
         }
       ]
@@ -3081,38 +3081,38 @@
           "rang": 3
         },
         {
-          "wort": "reparieren",
-          "log_dice": 0.9,
+          "wort": "besetzen",
+          "log_dice": 0.5,
           "rang": 4
         },
         {
-          "wort": "stillstehen",
-          "log_dice": 1.8,
+          "wort": "verweigern",
+          "log_dice": 0.8,
           "rang": 5
         },
         {
-          "wort": "merken",
-          "log_dice": 0.4,
+          "wort": "protestieren",
+          "log_dice": 3.5,
           "rang": 6
         },
         {
-          "wort": "blockieren",
-          "log_dice": 2.8,
+          "wort": "niederlegen",
+          "log_dice": 2.1,
           "rang": 7
         },
         {
-          "wort": "drohen",
-          "log_dice": 0.3,
+          "wort": "streiken",
+          "log_dice": 3.8,
           "rang": 8
         },
         {
-          "wort": "zwingen",
+          "wort": "ausfallen",
           "log_dice": 0.4,
           "rang": 9
         },
         {
-          "wort": "durcheinanderbringen",
-          "log_dice": 2.1,
+          "wort": "zufügen",
+          "log_dice": 1.7,
           "rang": 10
         }
       ],
@@ -3133,37 +3133,37 @@
           "rang": 3
         },
         {
-          "wort": "erneut",
-          "log_dice": 3.9,
+          "wort": "wann",
+          "log_dice": 3.2,
           "rang": 4
-        },
-        {
-          "wort": "sechsmal",
-          "log_dice": 3.4,
-          "rang": 5
-        },
-        {
-          "wort": "zwölfmal",
-          "log_dice": 3.4,
-          "rang": 6
         },
         {
           "wort": "flächendeckend",
           "log_dice": 3.8,
-          "rang": 7
+          "rang": 5
         },
         {
-          "wort": "stundenweise",
-          "log_dice": 3.1,
-          "rang": 8
+          "wort": "wofür",
+          "log_dice": 3.4,
+          "rang": 6
+        },
+        {
+          "wort": "wogegen",
+          "log_dice": 3.4,
+          "rang": 7
         },
         {
           "wort": "punktuell",
           "log_dice": 3.3,
+          "rang": 8
+        },
+        {
+          "wort": "bundesweit",
+          "log_dice": 3.9,
           "rang": 9
         },
         {
-          "wort": "gestern",
+          "wort": "stundenweise",
           "log_dice": 3.1,
           "rang": 10
         }
@@ -3215,23 +3215,23 @@
           "rang": 3
         },
         {
-          "wort": "Zweig",
-          "log_dice": 7,
+          "wort": "Welle",
+          "log_dice": 6.9,
           "rang": 4
         },
         {
-          "wort": "Lunge",
+          "wort": "Oase",
           "log_dice": 7.2,
           "rang": 5
         },
         {
-          "wort": "Gentechnik",
-          "log_dice": 7.9,
+          "wort": "Punkt",
+          "log_dice": 6.5,
           "rang": 6
         },
         {
-          "wort": "Soße",
-          "log_dice": 7.7,
+          "wort": "Rasen",
+          "log_dice": 7.2,
           "rang": 7
         },
         {
@@ -3240,13 +3240,13 @@
           "rang": 8
         },
         {
-          "wort": "Bundestagsabgeordnete",
-          "log_dice": 6.8,
+          "wort": "Soße",
+          "log_dice": 7.7,
           "rang": 9
         },
         {
-          "wort": "Klee",
-          "log_dice": 6.6,
+          "wort": "Trikot",
+          "log_dice": 7.8,
           "rang": 10
         }
       ],
@@ -3267,23 +3267,23 @@
           "rang": 3
         },
         {
-          "wort": "angehaucht",
-          "log_dice": 3.8,
+          "wort": "wählen",
+          "log_dice": 4.5,
           "rang": 4
         },
         {
-          "wort": "gestrichen",
-          "log_dice": 4.5,
+          "wort": "regiert",
+          "log_dice": 4,
           "rang": 5
         },
         {
-          "wort": "geführt",
-          "log_dice": 4.7,
+          "wort": "lackiert",
+          "log_dice": 4,
           "rang": 6
         },
         {
-          "wort": "schimmern",
-          "log_dice": 3.8,
+          "wort": "fluoreszierend",
+          "log_dice": 3.2,
           "rang": 7
         },
         {
@@ -3292,13 +3292,13 @@
           "rang": 8
         },
         {
-          "wort": "schimmernd",
-          "log_dice": 4.2,
+          "wort": "geführt",
+          "log_dice": 4.7,
           "rang": 9
         },
         {
-          "wort": "regiert",
-          "log_dice": 4,
+          "wort": "streichen",
+          "log_dice": 3.3,
           "rang": 10
         }
       ],
@@ -3319,38 +3319,38 @@
           "rang": 3
         },
         {
-          "wort": "violett",
-          "log_dice": 2.8,
+          "wort": "orangefarben",
+          "log_dice": 1.9,
           "rang": 4
         },
         {
-          "wort": "weiß",
-          "log_dice": 3.8,
+          "wort": "liberal",
+          "log_dice": 2.4,
           "rang": 5
         },
         {
-          "wort": "orangefarben",
-          "log_dice": 1.9,
+          "wort": "bunt",
+          "log_dice": 2,
           "rang": 6
-        },
-        {
-          "wort": "nachhaltig",
-          "log_dice": 3.1,
-          "rang": 7
         },
         {
           "wort": "schwarz",
           "log_dice": 3.6,
+          "rang": 7
+        },
+        {
+          "wort": "rosa",
+          "log_dice": 1.9,
           "rang": 8
         },
         {
-          "wort": "lebenswert",
-          "log_dice": 1.9,
+          "wort": "sauber",
+          "log_dice": 1.7,
           "rang": 9
         },
         {
-          "wort": "orange",
-          "log_dice": 2.3,
+          "wort": "sozialdemokratisch",
+          "log_dice": 2.8,
           "rang": 10
         }
       ]

@@ -168,32 +168,29 @@ function extractPaare(lemma, raw) {
     return [{ jahrzehnt: profile.label, kollokat: best.wort, korpus: profile._korpus, score: best.score }]
   })
 
-  // paare: 5 Quintile – innerhalb jedes Quintils die Periode mit dem höchsten logDice-Score
+  // paare: 5 Quintile – Auswahl und Extraktion in einem Durchlauf (usedWords wächst mit)
   const n = profiles.length
   const paare = []
   const usedWords = new Set()
-  const selected = [0, 1, 2, 3, 4].map(i => {
+  for (let i = 0; i < 5; i++) {
     const from = Math.round(i * (n - 1) / 4)
-    const to   = Math.round((i + 1) * (n - 1) / 4)
-    // Alle Perioden im Quintil, bestes logDice (des gefilterten Top-Kollokatoren) gewinnt
-    let best = null, bestScore = -Infinity
+    // Nicht-überlappend: letztes Quintil bekommt exklusiv den letzten Index
+    const to   = i < 4 ? Math.round((i + 1) * (n - 1) / 4) - 1 : n - 1
+    let bestCollokat = null, bestScore = -Infinity, bestProfile = null
     for (let j = from; j <= to; j++) {
       const candidate = getBestCollokat(profiles[j], lemmaLower, usedWords)
       if (candidate && candidate.score > bestScore) {
         bestScore = candidate.score
-        best = profiles[j]
+        bestCollokat = candidate
+        bestProfile = profiles[j]
       }
     }
-    return best ?? profiles[Math.round(i * (n - 1) / 4)]  // Fallback auf mittlere Position
-  })
-  for (const profile of selected) {
-    const best = getBestCollokat(profile, lemmaLower, usedWords)
-    if (!best) {
-      console.warn(`  DiaCollo: Keine gültigen Kollokatoren für ${profile.label} [${profile._korpus}]`)
+    if (!bestCollokat) {
+      console.warn(`  DiaCollo: Kein gültiger Kollokator für Quintil ${i + 1} [${lemma}]`)
       return null
     }
-    usedWords.add(best.wort.toLowerCase())
-    paare.push({ jahrzehnt: profile.label, kollokat: best.wort, korpus: profile._korpus, score: best.score })
+    usedWords.add(bestCollokat.wort.toLowerCase())
+    paare.push({ jahrzehnt: bestProfile.label, kollokat: bestCollokat.wort, korpus: bestProfile._korpus, score: bestCollokat.score })
   }
 
   if (paare.length < 5) return null

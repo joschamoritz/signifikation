@@ -36,8 +36,10 @@ function requireAuth(req, res, next) {
 }
 
 function todayDatum() {
-  const d = new Date()
-  return `${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+  const d = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Berlin' }).format(new Date())
+  // d = "2026-03-16"
+  const [, month, day] = d.split('-')
+  return `${month}-${day}`
 }
 
 // ── Public API ───────────────────────────────────────────────
