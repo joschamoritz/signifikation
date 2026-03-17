@@ -3,6 +3,10 @@ import { getMedal, getRundInfo } from '../utils/gameLogic'
 import { useBelege } from '../hooks/useBelege'
 import BelegePanel from './BelegePanel'
 
+function getKollHistory() {
+  return JSON.parse(localStorage.getItem('sig_koll_history') || '[]').slice(0, 14).reverse()
+}
+
 const THRESHOLDS = [
   { min: 10, label: 'Perfekt' },
   { min: 8,  label: 'Sehr gut' },
@@ -11,6 +15,7 @@ const THRESHOLDS = [
 ]
 
 export default function Results({ lemma, roundScores, onRestart, onToSelection }) {
+  const kollHistory = getKollHistory()
   const total     = roundScores.reduce((a, b) => a + b, 0)
   const hasBonus  = roundScores.length >= 4
   const maxPoints = hasBonus ? 10 : 9
@@ -158,6 +163,20 @@ export default function Results({ lemma, roundScores, onRestart, onToSelection }
           Zur Startseite
         </button>
       </div>
+
+      {kollHistory.length > 0 && (
+        <div className="history-strip">
+          <span className="history-label">Dein Verlauf · Kollokationen</span>
+          <div className="history-emojis" role="list" aria-label="Verlauf Kollokationen">
+            {kollHistory.map((h, i) => (
+              <span key={i} role="listitem" className="history-emoji"
+                    title={`${h.date}: ${h.medal}`} aria-label={`${h.date}: ${h.medal}`}>
+                {h.emoji}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   )
 }

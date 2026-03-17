@@ -6,7 +6,7 @@ import Quiz from './components/Quiz'
 import { BonusRound, FreeBonusRound } from './components/BonusRound'
 import Results from './components/Results'
 import ErrorBoundary from './components/ErrorBoundary'
-import { getMedal, getDailyMedal } from './utils/gameLogic'
+import { getMedal, getDailyMedal, getZRMedal } from './utils/gameLogic'
 
 const Zeitreise = lazy(() => import('./components/Zeitreise'))
 
@@ -32,13 +32,29 @@ function getZRToday(key) {
   return raw ? JSON.parse(raw) : null
 }
 
-function saveToHistory(date, medal, total, maxTotal) {
-  const history = JSON.parse(localStorage.getItem('sig_history') || '[]')
-  const idx = history.findIndex(h => h.date === date)
-  const entry = { date, medal, total, maxTotal }
+function markActivity(dateStr) {
+  const activity = JSON.parse(localStorage.getItem('sig_activity') || '[]')
+  if (!activity.includes(dateStr)) {
+    localStorage.setItem('sig_activity', JSON.stringify([dateStr, ...activity].slice(0, 365)))
+  }
+}
+
+function saveKollHistory(dateStr, medal, emoji) {
+  const history = JSON.parse(localStorage.getItem('sig_koll_history') || '[]')
+  const idx = history.findIndex(h => h.date === dateStr)
+  const entry = { date: dateStr, medal, emoji }
   if (idx >= 0) history[idx] = entry
   else history.unshift(entry)
-  localStorage.setItem('sig_history', JSON.stringify(history.slice(0, 365)))
+  localStorage.setItem('sig_koll_history', JSON.stringify(history.slice(0, 365)))
+}
+
+function saveZRHistory(dateStr, medal, emoji) {
+  const history = JSON.parse(localStorage.getItem('sig_zr_history') || '[]')
+  const idx = history.findIndex(h => h.date === dateStr)
+  const entry = { date: dateStr, medal, emoji }
+  if (idx >= 0) history[idx] = entry
+  else history.unshift(entry)
+  localStorage.setItem('sig_zr_history', JSON.stringify(history.slice(0, 365)))
 }
 
 function savePlayedGame(keys, lemmaId, lemmaName, total, medal, lemmataLength) {
@@ -49,11 +65,14 @@ function savePlayedGame(keys, lemmaId, lemmaName, total, medal, lemmataLength) {
   else played.push(entry)
   localStorage.setItem(keys.todayKey, JSON.stringify(played))
 
-  // History nur schreiben wenn alle Wörter gespielt → Streak erscheint am selben Tag
+  // Jedes einzelne gespielte Spiel zählt für den Streak
+  markActivity(keys.dateStr)
+
+  // Koll-History erst wenn alle Wörter gespielt
   if (lemmataLength && played.length >= lemmataLength) {
     const dailyTotal = played.reduce((s, g) => s + g.total, 0)
     const dailyMedal = getDailyMedal(dailyTotal)
-    saveToHistory(keys.dateStr, dailyMedal.label, dailyTotal, played.length * 10)
+    saveKollHistory(keys.dateStr, dailyMedal.label, dailyMedal.emoji)
   }
 }
 
@@ -155,11 +174,14 @@ export default function App() {
 
   const handleZeitreiseFinish = useCallback((score) => {
     if (!zeitreise) return
-    const medal = getMedal(score).label
-    const entry = { lemma: zeitreise.lemma, total: score, medal }
+    const max   = zeitreise.paare.length * 2
+    const zrMed = getZRMedal(score, max)
+    const entry = { lemma: zeitreise.lemma, total: score, medal: zrMed.label }
     localStorage.setItem(keys.todayZRKey, JSON.stringify(entry))
     setZrPlayed(entry)
-  }, [zeitreise, keys.todayZRKey])
+    markActivity(keys.dateStr)
+    saveZRHistory(keys.dateStr, zrMed.label, zrMed.emoji)
+  }, [zeitreise, keys.todayZRKey, keys.dateStr])
 
   const playedGames = getPlayedToday(keys.todayKey)
   const playedIds   = playedGames.map(g => g.id)

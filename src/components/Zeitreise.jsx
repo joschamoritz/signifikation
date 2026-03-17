@@ -1,5 +1,9 @@
 import { useState, useRef, useEffect } from 'react'
 import { getMedal, shuffle } from '../utils/gameLogic'
+
+function getZRHistory() {
+  return JSON.parse(localStorage.getItem('sig_zr_history') || '[]').slice(0, 14).reverse()
+}
 import { API_BASE } from '../config'
 import BelegeSatz from './BelegeSatz'
 
@@ -335,6 +339,7 @@ export default function Zeitreise({ data, onBack, onFinish }) {
     onFinish(s)
   }
 
+  const zrHistory = getZRHistory()
   const medal = score !== null ? getMedal(score) : null
   const remaining = paare.length - Object.keys(placements).length
 
@@ -512,6 +517,20 @@ export default function Zeitreise({ data, onBack, onFinish }) {
             href={`https://www.dwds.de/wb/${encodeURIComponent(data.lemma)}`}
             target="_blank" rel="noopener noreferrer"
           >Mehr über „{data.lemma}" auf dwds.de ↗</a>
+          {zrHistory.length > 0 && (
+            <div className="history-strip">
+              <span className="history-label">Dein Verlauf · Zeitreise</span>
+              <div className="history-emojis" role="list" aria-label="Verlauf Zeitreise">
+                {zrHistory.map((h, i) => (
+                  <span key={i} role="listitem" className="history-emoji"
+                        title={`${h.date}: ${h.medal}`} aria-label={`${h.date}: ${h.medal}`}>
+                    {h.emoji}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
           <button className="btn-primary btn-full" onClick={onBack}>
             Zur Startseite
           </button>

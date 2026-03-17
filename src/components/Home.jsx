@@ -44,26 +44,23 @@ function todayLabel() {
   return `${WEEKDAYS[d.getDay()]}, ${d.getDate()}. ${MONTHS[d.getMonth()]} ${d.getFullYear()}`
 }
 
-const MEDAL_CLASS = { 'Gold': 'gold', 'Silber': 'silber', 'Bronze': 'bronze', 'Weiter üben!': 'ueben' }
-
-function getHistory() {
-  return JSON.parse(localStorage.getItem('sig_history') || '[]')
-}
-
 /** Lokales Datum als YYYY-MM-DD (keine UTC-Verschiebung). */
 function localDateStr(d) {
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`
 }
 
-/** Berechnet den aktuellen Streak (aufeinanderfolgende Tage mit abgeschlossenem Spiel). */
-function computeStreak(history) {
-  if (!history.length) return 0
-  const dateSet = new Set(history.map(h => h.date))
+/** Berechnet den aktuellen Streak anhand von sig_activity (beliebiges Spiel).
+ *  Fallback: sig_history für Nutzer mit alten Daten. */
+function computeStreak() {
+  const activity = JSON.parse(localStorage.getItem('sig_activity') || '[]')
+  // Backwards-compat: alte sig_history-Einträge einbeziehen
+  const legacy   = JSON.parse(localStorage.getItem('sig_history') || '[]').map(h => h.date)
+  const dateSet  = new Set([...activity, ...legacy])
+  if (!dateSet.size) return 0
   const msDay = 86_400_000
   const today = new Date(); today.setHours(0, 0, 0, 0)
   const todayStr     = localDateStr(today)
   const yesterdayStr = localDateStr(new Date(today - msDay))
-  // Kein Streak mehr falls weder heute noch gestern gespielt
   if (!dateSet.has(todayStr) && !dateSet.has(yesterdayStr)) return 0
   let d = dateSet.has(todayStr) ? new Date(today) : new Date(today - msDay)
   let streak = 0
@@ -97,9 +94,7 @@ export default function Home({ onStart, loading, error, playedGames = [], allPla
     } catch {}
   }
 
-  const allHistory  = getHistory()
-  const history     = allHistory.slice(0, 14).reverse() // älteste zuerst → neueste rechts
-  const streak      = computeStreak(allHistory)
+  const streak      = computeStreak()
   const totalPoints = playedGames.reduce((s, g) => s + g.total, 0)
   const maxPoints   = playedGames.length * 10
   const dailyMedal  = allPlayed ? getDailyMedal(totalPoints) : null
@@ -228,6 +223,16 @@ export default function Home({ onStart, loading, error, playedGames = [], allPla
         </div>
       )}
 
+      {/* Teaser: kommendes Spiel */}
+      <div className="game-card game-card--coming-soon" aria-hidden="true">
+        <div className="game-card-head">
+          <span className="game-card-title">???</span>
+          <span className="game-card-meta">In Arbeit</span>
+        </div>
+        <p className="game-card-empty">Demnächst verfügbar</p>
+        <button className="btn-primary btn-full" disabled>Bald verfügbar</button>
+      </div>
+
       {playedGames.length > 0 && (
         <button
           className={`btn-share${copied ? ' btn-share--copied' : ''}`}
@@ -242,22 +247,17 @@ export default function Home({ onStart, loading, error, playedGames = [], allPla
         Fehler oder Anregungen? Schreib uns.
       </p>
 
-      {history.length > 0 && (
-        <div className="history-strip">
-          <span className="history-label">Verlauf</span>
-          <div className="history-dots" role="list" aria-label="Spielverlauf der letzten Tage">
-            {history.map((h, i) => (
-              <span
-                key={i}
-                role="listitem"
-                className={`history-dot history-dot--${MEDAL_CLASS[h.medal] ?? 'ueben'}`}
-                aria-label={`${h.date}: ${h.medal}, ${h.total} von ${h.maxTotal} Punkten`}
-                title={`${h.date}: ${h.medal} · ${h.total}/${h.maxTotal} Punkte`}
-              />
-            ))}
-          </div>
-        </div>
-      )}
+      <footer className="legal-footer">
+        <nav className="legal-links" aria-label="Rechtliche Links">
+          <a href="/impressum.html">Impressum</a>
+          <a href="/datenschutz.html">Datenschutz</a>
+          <a href="/nutzungsbedingungen.html">Nutzungsbedingungen</a>
+        </nav>
+        <p className="build-info">
+          v{__APP_VERSION__} · {__BUILD_DATE__}
+        </p>
+      </footer>
+
     </div>
   )
 }

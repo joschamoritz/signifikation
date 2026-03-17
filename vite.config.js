@@ -1,18 +1,30 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
+import pkg from './package.json' with { type: 'json' }
 
 export default defineConfig({
+  define: {
+    __APP_VERSION__: JSON.stringify(pkg.version),
+    __BUILD_DATE__: JSON.stringify(new Date().toISOString().slice(0, 10)),
+  },
   plugins: [
     react(),
     VitePWA({
       registerType: 'autoUpdate',
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
-        navigateFallbackDenylist: [/^\/admin/],
+        navigateFallbackDenylist: [/^\/admin/, /^\/impressum/, /^\/datenschutz/, /^\/nutzungsbedingungen/],
         runtimeCaching: [
           {
-            // Tagesdaten – StaleWhileRevalidate: sofort aus Cache, im Hintergrund aktualisieren
+            urlPattern: /^\/api\/heute/,
+            handler: 'StaleWhileRevalidate',
+            options: {
+              cacheName: 'api-heute',
+              expiration: { maxEntries: 5, maxAgeSeconds: 60 * 60 * 24 },
+            },
+          },
+          {
             urlPattern: /^\/api\/lemmata/,
             handler: 'StaleWhileRevalidate',
             options: {
@@ -21,7 +33,6 @@ export default defineConfig({
             },
           },
           {
-            // Zeitreise-Daten – gleiche Strategie
             urlPattern: /^\/api\/zeitreise/,
             handler: 'StaleWhileRevalidate',
             options: {
@@ -45,22 +56,34 @@ export default defineConfig({
             src: 'icon-192.png',
             sizes: '192x192',
             type: 'image/png',
-            purpose: 'any maskable'
+            purpose: 'any',
+          },
+          {
+            src: 'icon-192.png',
+            sizes: '192x192',
+            type: 'image/png',
+            purpose: 'maskable',
           },
           {
             src: 'icon-512.png',
             sizes: '512x512',
             type: 'image/png',
-            purpose: 'any maskable'
-          }
-        ]
-      }
-    })
+            purpose: 'any',
+          },
+          {
+            src: 'icon-512.png',
+            sizes: '512x512',
+            type: 'image/png',
+            purpose: 'maskable',
+          },
+        ],
+      },
+    }),
   ],
   server: {
     proxy: {
       '/api':   'http://localhost:3001',
       '/admin': 'http://localhost:3001',
-    }
-  }
+    },
+  },
 })

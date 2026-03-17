@@ -181,6 +181,32 @@ button { font-family: inherit; cursor: pointer; border: none }
   color: var(--muted);
   margin-top: 8px;
 }
+.legal-footer {
+  margin-top: 24px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+.legal-links {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.legal-links a {
+  font-size: 0.78rem;
+  color: var(--muted);
+  text-decoration: none;
+}
+.legal-links a:hover { text-decoration: underline }
+.build-info {
+  font-size: 0.72rem;
+  color: var(--muted);
+  opacity: 0.6;
+}
 
 .feedback-link {
   color: var(--muted);
@@ -344,6 +370,12 @@ button { font-family: inherit; cursor: pointer; border: none }
   font-size: 0.85rem;
   color: var(--muted);
 }
+.game-card--coming-soon {
+  opacity: 0.45;
+  pointer-events: none;
+  user-select: none;
+  filter: grayscale(0.25);
+}
 .game-played-list {
   display: flex;
   flex-direction: column;
@@ -381,8 +413,9 @@ button { font-family: inherit; cursor: pointer; border: none }
 /* Verlauf-Strip */
 .history-strip {
   display: flex;
-  align-items: center;
-  gap: 10px;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 8px;
 }
 .history-label {
   font-size: 0.72rem;
@@ -390,7 +423,16 @@ button { font-family: inherit; cursor: pointer; border: none }
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--muted);
-  flex-shrink: 0;
+}
+.history-emojis {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+.history-emoji {
+  font-size: 1.25rem;
+  line-height: 1;
+  cursor: default;
 }
 .history-dots {
   display: flex;
