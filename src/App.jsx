@@ -57,10 +57,10 @@ function saveZRHistory(dateStr, medal, emoji) {
   localStorage.setItem('sig_zr_history', JSON.stringify(history.slice(0, 365)))
 }
 
-function savePlayedGame(keys, lemmaId, lemmaName, total, medal, lemmataLength, scores) {
+function savePlayedGame(keys, lemmaId, lemmaName, lemmaPos, total, medal, lemmataLength, scores) {
   const played = getPlayedToday(keys.todayKey)
   const idx    = played.findIndex(p => p.id === lemmaId)
-  const entry  = { id: lemmaId, lemma: lemmaName, total, medal, scores }
+  const entry  = { id: lemmaId, lemma: lemmaName, pos: lemmaPos, total, medal, scores }
   if (idx >= 0) played[idx] = entry
   else played.push(entry)
   localStorage.setItem(keys.todayKey, JSON.stringify(played))
@@ -130,7 +130,7 @@ export default function App() {
     if (phase !== 'results' || !selectedLemma || roundScores.length === 0) return
     const total = roundScores.reduce((a, b) => a + b, 0)
     const medal = getMedal(total).label
-    savePlayedGame(keys, selectedLemma.id, selectedLemma.lemma, total, medal, lemmata?.length, roundScores)
+    savePlayedGame(keys, selectedLemma.id, selectedLemma.lemma, selectedLemma.pos || 'Substantiv', total, medal, lemmata?.length, roundScores)
   }, [phase, selectedLemma, roundScores, lemmata]) // eslint-disable-line
 
   const handleLemmaSelect = useCallback((lemma) => {
