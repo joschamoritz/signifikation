@@ -7,7 +7,7 @@ const BASE = 'https://www.dwds.de/wp/single_relation'
 // Rundenstruktur je Wortart.
 // desc: wird in Results.jsx als Beschreibung der Relation angezeigt
 // relCode: Relationscode für die DWDS-API
-const POS_ROUNDS = {
+export const POS_ROUNDS = {
   Substantiv: [
     { key: 'nomen',     relCode: 'KON',   label: 'Nomen',     desc: 'ist koordiniert mit' },
     { key: 'verben',    relCode: '~OBJ',  label: 'Verben',    desc: 'ist Objekt von' },
@@ -52,7 +52,7 @@ function buildRelationId(lemma, pos, relCode) {
   return `${lemma}-${pos}${suffix}`
 }
 
-async function fetchRelation(lemma, pos, relCode) {
+export async function fetchRelation(lemma, pos, relCode) {
   const params = new URLSearchParams({
     relation: buildRelationId(lemma, pos, relCode),
     relName:  relCode,   // muss exakt dem Relationscode entsprechen

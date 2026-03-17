@@ -6,6 +6,7 @@ import { fileURLToPath } from 'url'
 import { dirname, join }  from 'path'
 import { fetchLemma, fetchBonusQuestion } from './dwds.js'
 import { fetchZeitreise, debugDiaCollo, clearCorporaCache } from './diacollo.js'
+import { fetchWortZwilling } from './wortzwilling.js'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const DATA      = join(__dirname, 'data')
@@ -75,7 +76,8 @@ function save(file, data) {
   renameSync(tmp, target)
   fileCache[file] = data
 }
-function loadZeitreise()  { try { return load('zeitreise.json') } catch { return {} } }
+function loadZeitreise()    { try { return load('zeitreise.json')    } catch { return {} } }
+function loadWortZwilling() { try { return load('wortzwilling.json') } catch { return {} } }
 
 function requireAuth(req, res, next) {
   // API-Calls nutzen Header; nur GET /admin (Browser) akzeptiert zusätzlich query.key
@@ -121,6 +123,24 @@ app.get('/api/zeitreise', (req, res) => {
     const entry    = zeitreise[datum]
     if (!entry) return res.status(404).json({ error: `Kein Zeitreise-Eintrag für ${datum}` })
     res.json(entry)
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+/** GET /api/wortzwilling → Wort-Zwilling-Eintrag des Tages (ohne Scores) */
+app.get('/api/wortzwilling', (req, res) => {
+  try {
+    const datum = req.query.datum || todayDatum().mmdd
+    const wz    = loadWortZwilling()
+    const entry = wz[datum]
+    if (!entry) return res.status(404).json({ error: `Kein Wort-Zwilling-Eintrag für ${datum}` })
+    // Scores nicht ans Frontend senden (spielrelevante Antworten sind zuordnung-Felder)
+    const safe = {
+      ...entry,
+      kollokatoren: entry.kollokatoren.map(({ wort, zuordnung }) => ({ wort, zuordnung })),
+    }
+    res.json(safe)
   } catch (err) {
     res.status(500).json({ error: err.message })
   }
@@ -347,7 +367,8 @@ app.get('/admin/debug-diacollo', requireAuth, async (req, res) => {
 
 /** POST /admin/tag – Tageseintrag anlegen/überschreiben */
 app.post('/admin/tag', requireAuth, async (req, res) => {
-  const { datum, woerter, notizen = [], links = [], positionen = [], zeitreise_lemma = '' } = req.body
+  const { datum, woerter, notizen = [], links = [], positionen = [], zeitreise_lemma = '',
+          zwilling_paar = null, zwilling_pos = 'Substantiv' } = req.body
   if (!datum || !Array.isArray(woerter) || woerter.length !== 3) {
     return res.status(400).json({ error: 'datum (MM-DD) und woerter (3 Einträge) erforderlich' })
   }
@@ -395,27 +416,50 @@ app.post('/admin/tag', requireAuth, async (req, res) => {
       }
     }
 
+    // Wort-Zwilling optional
+    let zwillingOk = null
+    if (Array.isArray(zwilling_paar) && zwilling_paar.length === 2 && zwilling_paar[0] && zwilling_paar[1]) {
+      console.log(`  Lade Wort-Zwilling-Daten für „${zwilling_paar[0]}" / „${zwilling_paar[1]}" …`)
+      try {
+        const wz = await fetchWortZwilling(zwilling_paar[0].trim(), zwilling_paar[1].trim(), zwilling_pos)
+        const wortzwilling = loadWortZwilling()
+        if (wz) {
+          wortzwilling[datum] = wz
+          save('wortzwilling.json', wortzwilling)
+          zwillingOk = true
+        } else {
+          zwillingOk = false
+          console.warn(`  Wort-Zwilling: nicht genug distinkte Kollokatoren für „${zwilling_paar.join(' / ')}"`)
+        }
+      } catch (err) {
+        zwillingOk = false
+        console.error(`  Wort-Zwilling-Fehler: ${err.message}`)
+      }
+    }
+
     console.log(`Eintrag gespeichert: ${datum} → ${ids.join(', ')}`)
-    res.json({ ok: true, datum, ids, zeitreiseOk })
+    res.json({ ok: true, datum, ids, zeitreiseOk, zwillingOk })
   } catch (err) {
     console.error(err)
     res.status(500).json({ error: err.message })
   }
 })
 
-/** GET /admin/kalender – alle Einträge (inkl. Zeitreise-Status) */
+/** GET /admin/kalender – alle Einträge (inkl. Zeitreise- und Wort-Zwilling-Status) */
 app.get('/admin/kalender', requireAuth, (req, res) => {
-  const kalender  = load('kalender.json')
-  const lemmataDB = load('lemmata.json')
-  const zeitreise = loadZeitreise()
+  const kalender     = load('kalender.json')
+  const lemmataDB    = load('lemmata.json')
+  const zeitreise    = loadZeitreise()
+  const wortzwilling = loadWortZwilling()
   const result = {}
   for (const [datum, ids] of Object.entries(kalender)) {
     result[datum] = {
-      lemmata:     ids.map(id => {
+      lemmata:      ids.map(id => {
         const l = lemmataDB.find(l => l.id === id)
         return { id, lemma: l?.lemma || id, notiz: l?.notiz || '' }
       }),
-      hasZeitreise: !!zeitreise[datum],
+      hasZeitreise:    !!zeitreise[datum],
+      hasWortZwilling: !!wortzwilling[datum],
     }
   }
   res.json(result)
@@ -429,6 +473,7 @@ app.get('/admin/tag/:datum', requireAuth, (req, res) => {
   const ids = kalender[req.params.datum]
   if (!ids) return res.status(404).json({ error: 'Kein Eintrag' })
   const lemmata = ids.map(id => lemmataDB.find(l => l.id === id)).filter(Boolean)
+  const wz = loadWortZwilling()[req.params.datum]
   res.json({
     datum:           req.params.datum,
     woerter:         lemmata.map(l => l.lemma),
@@ -436,17 +481,22 @@ app.get('/admin/tag/:datum', requireAuth, (req, res) => {
     notizen:         lemmata.map(l => l.notiz || ''),
     links:           lemmata.map(l => l.link  || ''),
     zeitreise_lemma: zeitreise[req.params.datum]?.lemma || '',
+    zwilling_paar:   wz ? [wz.wortA, wz.wortB] : [],
+    zwilling_pos:    wz?.pos || 'Substantiv',
   })
 })
 
 /** DELETE /admin/tag/:datum – Eintrag löschen */
 app.delete('/admin/tag/:datum', requireAuth, (req, res) => {
-  const kalender  = load('kalender.json')
-  const zeitreise = loadZeitreise()
+  const kalender     = load('kalender.json')
+  const zeitreise    = loadZeitreise()
+  const wortzwilling = loadWortZwilling()
   delete kalender[req.params.datum]
   delete zeitreise[req.params.datum]
+  delete wortzwilling[req.params.datum]
   save('kalender.json', kalender)
   save('zeitreise.json', zeitreise)
+  save('wortzwilling.json', wortzwilling)
   res.json({ ok: true })
 })
 
