@@ -3,6 +3,7 @@ import { getDailyMedal } from '../utils/gameLogic'
 
 const WEEKDAYS = ['Sonntag','Montag','Dienstag','Mittwoch','Donnerstag','Freitag','Samstag']
 const MONTHS   = ['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember']
+const POS_LABEL = { 'Substantiv': 'Nomen', 'Verb': 'Verb', 'Adjektiv': 'Adj' }
 
 function buildShareText(playedGames, zrPlayed) {
   const d = new Date()
@@ -15,27 +16,19 @@ function buildShareText(playedGames, zrPlayed) {
 
   const lines = [`📖 Signifikation · ${dateStr}`, '']
 
-  if (playedGames.length > 0) {
-    lines.push('Kollokationen erkundet:')
-    for (const g of playedGames) {
-      lines.push(`${blocks(g.total)}  ${g.total}/10 · ${g.medal}`)
-    }
-    lines.push('')
+  for (const g of playedGames) {
+    const lbl = POS_LABEL[g.pos] || 'Wort'
+    lines.push(`[${lbl}] ${g.lemma}  ${blocks(g.total)}  ${g.total}/10`)
   }
+
+  if (playedGames.length > 0) lines.push('')
 
   if (zrPlayed) {
-    lines.push('Zeitreise durch 500 Jahre:')
-    lines.push(`${blocks(zrPlayed.total)}  ${zrPlayed.total}/10 · ${zrPlayed.medal}`)
+    lines.push(`[500 Jahre] ${zrPlayed.lemma}  ${blocks(zrPlayed.total)}  ${zrPlayed.total}/10`)
     lines.push('')
   }
 
-  if (playedGames.length > 0) {
-    const kollTotal = playedGames.reduce((s, g) => s + g.total, 0)
-    const daily = getDailyMedal(kollTotal)
-    lines.push(`🏅 ${daily.label}`)
-  }
-
-  lines.push('signifikation.de')
+  lines.push('Schaffst du es besser? → signifikation.de')
   return lines.join('\n')
 }
 
