@@ -92,6 +92,7 @@ function todayDatum() {
 }
 
 // ── Public API ───────────────────────────────────────────────
+app.get('/health', (_req, res) => res.json({ status: 'ok', uptime: process.uptime() }))
 
 /** GET /api/heute → die 3 Lemmata des Tages */
 app.get('/api/heute', (req, res) => {

@@ -188,10 +188,10 @@ export default function Home({ onStart, loading, error, playedGames = [], allPla
         <button
           className="btn-primary btn-full"
           onClick={onStart}
-          disabled={!!loading || !!error || allPlayed}
+          disabled={!!loading || !!error}
         >
-          {loading   ? 'Lade …'
-           : allPlayed ? 'Alle Wörter heute gespielt'
+          {loading     ? 'Lade …'
+           : allPlayed ? 'Wörter ansehen'
            : playedGames.length > 0 ? 'Weiteres Wort spielen'
            : 'Quiz starten'}
         </button>
