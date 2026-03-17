@@ -4,7 +4,18 @@ import { useBelege } from '../hooks/useBelege'
 import BelegePanel from './BelegePanel'
 
 function getKollHistory() {
-  return JSON.parse(localStorage.getItem('sig_koll_history') || '[]').slice(0, 14).reverse()
+  const newHistory = JSON.parse(localStorage.getItem('sig_koll_history') || '[]')
+  const medalToEmoji = { 'Gold': '🥇', 'Silber': '🥈', 'Bronze': '🥉' }
+  const oldHistory = JSON.parse(localStorage.getItem('sig_history') || '[]')
+    .filter(h => !newHistory.find(n => n.date === h.date))
+    .map(h => ({
+      date: h.date,
+      medal: h.medal === 'Weiter üben!' ? 'Teilgenommen' : h.medal,
+      emoji: medalToEmoji[h.medal] ?? '🌱',
+    }))
+  return [...newHistory, ...oldHistory]
+    .sort((a, b) => a.date < b.date ? -1 : 1)
+    .slice(-14)
 }
 
 const THRESHOLDS = [

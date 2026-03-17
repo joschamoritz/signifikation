@@ -78,7 +78,7 @@ function streakFlames(n) {
 }
 
 export default function Home({ onStart, loading, error, playedGames = [], allPlayed = false,
-                              zeitreise = null, zrPlayed = null, onPlayZeitreise }) {
+                              zeitreise = null, zrPlayed = null, onPlayZeitreise, onViewZeitreise }) {
   const [infoOpen, setInfoOpen] = useState(false)
   const [copied, setCopied] = useState(false)
 
@@ -215,10 +215,9 @@ export default function Home({ onStart, loading, error, playedGames = [], allPla
 
           <button
             className="btn-primary btn-full"
-            onClick={onPlayZeitreise}
-            disabled={!!zrPlayed}
+            onClick={zrPlayed ? onViewZeitreise : onPlayZeitreise}
           >
-            {zrPlayed ? 'Bereits gespielt' : 'Zeitreise starten'}
+            {zrPlayed ? 'Ergebnis ansehen' : 'Zeitreise starten'}
           </button>
         </div>
       )}

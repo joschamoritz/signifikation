@@ -172,7 +172,7 @@ function formatPeriod(label) {
   return `um ${label}`
 }
 
-export default function Zeitreise({ data, onBack, onFinish }) {
+export default function Zeitreise({ data, onBack, onFinish, savedResult }) {
   // data: { lemma, paare: [{jahrzehnt, kollokat}] } — paare sorted chronologically
   const paare = data.paare
 
@@ -342,6 +342,46 @@ export default function Zeitreise({ data, onBack, onFinish }) {
   const zrHistory = getZRHistory()
   const medal = score !== null ? getMedal(score) : null
   const remaining = paare.length - Object.keys(placements).length
+
+  if (savedResult) {
+    return (
+      <div className="screen zeitreise-screen">
+        <button className="back-btn" onClick={onBack} aria-label="Zurück zur Startseite">← Zurück</button>
+        <div className="zeitreise-header">
+          <span className="zeitreise-badge">Zeitreise</span>
+          <h1 className="zeitreise-word">{data.lemma}</h1>
+        </div>
+        <div className="zr-results">
+          <div className="zr-results-score">
+            <span className="zr-score-num">{savedResult.total}</span>
+            <span className="zr-score-max">/{data.paare.length * 2} Punkte</span>
+          </div>
+          <p className="zr-results-medal">{savedResult.medal}</p>
+          {zrHistory.length > 0 && (
+            <div className="history-strip">
+              <span className="history-label">Dein Verlauf · Zeitreise</span>
+              <div className="history-emojis" role="list" aria-label="Verlauf Zeitreise">
+                {zrHistory.map((h, i) => (
+                  <span key={i} role="listitem" className="history-emoji"
+                        title={`${h.date}: ${h.medal}`} aria-label={`${h.date}: ${h.medal}`}>
+                    {h.emoji}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+          <a
+            className="dwds-link"
+            href={`https://www.dwds.de/wb/${encodeURIComponent(data.lemma)}`}
+            target="_blank" rel="noopener noreferrer"
+          >Mehr über „{data.lemma}" auf dwds.de ↗</a>
+          <button className="btn-primary btn-full" onClick={onBack}>
+            Zur Startseite
+          </button>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="screen zeitreise-screen">

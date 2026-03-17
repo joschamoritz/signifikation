@@ -1,6 +1,6 @@
 import { useState } from 'react'
 
-export default function LemmaSelection({ lemmata, playedIds = [], onSelect, onBack }) {
+export default function LemmaSelection({ lemmata, playedIds = [], onSelect, onViewResult, onBack }) {
   const [openNotiz, setOpenNotiz] = useState(null)
 
   return (
@@ -20,14 +20,13 @@ export default function LemmaSelection({ lemmata, playedIds = [], onSelect, onBa
             <div className={`lemma-card${played ? ' lemma-card--played' : ''}`}>
               <button
                 className="lemma-card-main"
-                onClick={() => !played && onSelect(lemma)}
-                disabled={played}
+                onClick={() => played ? onViewResult?.(lemma.id) : onSelect(lemma)}
               >
                 <div className="lemma-info">
                   <span className="lemma-name">{lemma.lemma}</span>
                   <span className="lemma-wortart-chip">{lemma.wortart}</span>
                 </div>
-                <span className="lemma-arrow">{played ? '✓' : '›'}</span>
+                <span className="lemma-arrow">{played ? '›' : '›'}</span>
               </button>
               {lemma.notiz && (
                 <button
