@@ -96,6 +96,7 @@ export default function App() {
     ? makeKeys(serverDatum, serverYear ?? new Date().getFullYear())
     : makeKeys(`${String(new Date().getMonth()+1).padStart(2,'0')}-${String(new Date().getDate()).padStart(2,'0')}`)
 
+  const [zrViewOnly, setZrViewOnly] = useState(false)
   const [zrPlayed, setZrPlayed] = useState(() => getZRToday(`sig_zr_${
     `${String(new Date().getMonth()+1).padStart(2,'0')}-${String(new Date().getDate()).padStart(2,'0')}`
   }`))
@@ -212,8 +213,8 @@ export default function App() {
           allPlayed={!!allPlayed}
           zeitreise={zeitreise}
           zrPlayed={zrPlayed}
-          onPlayZeitreise={() => setPhase('zeitreise')}
-          onViewZeitreise={() => setPhase('zeitreise')}
+          onPlayZeitreise={() => { setZrViewOnly(false); setPhase('zeitreise') }}
+          onViewZeitreise={() => { setZrViewOnly(true); setPhase('zeitreise') }}
         />
       )}
       {phase === 'selection' && lemmata && (
@@ -252,7 +253,7 @@ export default function App() {
             data={zeitreise}
             onBack={() => setPhase('home')}
             onFinish={handleZeitreiseFinish}
-            savedResult={zrPlayed}
+            savedResult={zrViewOnly ? zrPlayed : null}
           />
         </Suspense>
       )}
