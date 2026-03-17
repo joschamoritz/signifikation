@@ -55,8 +55,17 @@ export function getMedal(total) {
 
 /** Tagesmedaille nach allen 3 Spielen (max 30 Punkte). */
 export function getDailyMedal(total) {
-  if (total >= 27) return { label: 'Gold',         min: 27 }
-  if (total >= 21) return { label: 'Silber',        min: 21 }
-  if (total >= 15) return { label: 'Bronze',        min: 15 }
-  return                   { label: 'Weiter üben!', min: 0  }
+  if (total >= 27) return { label: 'Gold',         emoji: '🥇', min: 27 }
+  if (total >= 21) return { label: 'Silber',        emoji: '🥈', min: 21 }
+  if (total >= 15) return { label: 'Bronze',        emoji: '🥉', min: 15 }
+  return                   { label: 'Teilgenommen', emoji: '🌱', min: 0  }
+}
+
+/** Medaille für Zeitreise (prozentbasiert, max = paare.length × 2). */
+export function getZRMedal(score, max) {
+  const pct = score / (max || 1)
+  if (pct >= 0.8) return { label: 'Gold',         emoji: '🥇' }
+  if (pct >= 0.6) return { label: 'Silber',        emoji: '🥈' }
+  if (pct >= 0.4) return { label: 'Bronze',        emoji: '🥉' }
+  return                  { label: 'Teilgenommen', emoji: '🌱' }
 }
