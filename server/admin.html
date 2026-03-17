@@ -248,6 +248,35 @@
       </p>
     </div>
 
+    <!-- Wort-Zwilling -->
+    <button class="mode-toggle" id="wz-toggle" onclick="toggleMode('wz')">
+      <span>Wort-Zwilling</span>
+      <span class="toggle-arrow" id="wz-arrow">›</span>
+    </button>
+    <div class="mode-body" id="wz-body" style="display:none">
+      <div style="display:flex;gap:8px;align-items:flex-end">
+        <div style="flex:1">
+          <label for="wza">Wort A</label>
+          <input type="text" id="wza" placeholder="z.B. Angst">
+        </div>
+        <div style="flex:1">
+          <label for="wzb">Wort B</label>
+          <input type="text" id="wzb" placeholder="z.B. Furcht">
+        </div>
+        <div>
+          <label for="wzpos">Wortart</label>
+          <select id="wzpos">
+            <option value="Substantiv">Substantiv</option>
+            <option value="Verb">Verb</option>
+            <option value="Adjektiv">Adjektiv</option>
+          </select>
+        </div>
+      </div>
+      <p style="font-size:0.8rem;color:var(--muted);font-style:italic">
+        Beide Wortprofile werden über DWDS abgerufen; distinkte Kollokatoren automatisch ermittelt.
+      </p>
+    </div>
+
     <div id="status" class="status"></div>
     <button id="save-btn" onclick="saveTag()">Speichern &amp; APIs abrufen</button>
   </div>
@@ -388,9 +417,12 @@
   function prefillDate(isoDate) {
     document.getElementById('datum').value = isoDate
     ;['w1','w2','w3','n1','n2','n3','l1','l2','l3','zr'].forEach(id => document.getElementById(id).value = '')
-    document.getElementById('p1').value = 'Substantiv'
-    document.getElementById('p2').value = 'Substantiv'
-    document.getElementById('p3').value = 'Substantiv'
+    document.getElementById('p1').value    = 'Substantiv'
+    document.getElementById('p2').value    = 'Substantiv'
+    document.getElementById('p3').value    = 'Substantiv'
+    document.getElementById('wza').value   = ''
+    document.getElementById('wzb').value   = ''
+    document.getElementById('wzpos').value = 'Substantiv'
     document.getElementById('form-title').textContent = 'Neuer Tageseintrag'
     document.getElementById('save-btn').textContent   = 'Speichern & APIs abrufen'
     document.getElementById('status').className = 'status'
@@ -412,6 +444,9 @@
     const l2    = document.getElementById('l2').value.trim()
     const l3    = document.getElementById('l3').value.trim()
     const zr    = document.getElementById('zr').value.trim()
+    const wza   = document.getElementById('wza').value.trim()
+    const wzb   = document.getElementById('wzb').value.trim()
+    const wzpos = document.getElementById('wzpos').value
 
     if (!datum || !w1 || !w2 || !w3) {
       return setStatus('Bitte Datum und alle drei Kollokations-Wörter ausfüllen.', 'error')
@@ -423,6 +458,7 @@
 
     const statusParts = [`DWDS für „${w1}", „${w2}", „${w3}"`]
     if (zr) statusParts.push(`DiaCollo für „${zr}"`)
+    if (wza && wzb) statusParts.push(`Wort-Zwilling „${wza}" / „${wzb}"`)
     setStatus(`Rufe ab: ${statusParts.join(' · ')} …`, 'loading')
 
     try {
@@ -433,6 +469,8 @@
           datum: mmdd, woerter: [w1, w2, w3], positionen: [p1, p2, p3],
           notizen: [n1, n2, n3], links: [l1, l2, l3],
           zeitreise_lemma: zr,
+          zwilling_paar: wza && wzb ? [wza, wzb] : null,
+          zwilling_pos: wzpos,
         }),
       })
       const data = await res.json()
@@ -444,7 +482,13 @@
              : data.zeitreiseOk === false ? ' · Zeitreise: keine ausreichenden DiaCollo-Daten'
              : ''
       }
-      setStatus(msg, data.zeitreiseOk === false ? 'error' : 'ok')
+      if (wza && wzb) {
+        msg += data.zwillingOk === true  ? ' · Wort-Zwilling: OK'
+             : data.zwillingOk === false ? ' · Wort-Zwilling: nicht genug distinkte Kollokatoren'
+             : ''
+      }
+      const hasError = data.zeitreiseOk === false || data.zwillingOk === false
+      setStatus(msg, hasError ? 'error' : 'ok')
       await loadKalender()
     } catch (err) {
       setStatus(`Fehler: ${err.message}`, 'error')
@@ -471,7 +515,10 @@
     document.getElementById('l1').value = data.links[0] || ''
     document.getElementById('l2').value = data.links[1] || ''
     document.getElementById('l3').value = data.links[2] || ''
-    document.getElementById('zr').value = data.zeitreise_lemma || ''
+    document.getElementById('zr').value    = data.zeitreise_lemma || ''
+    document.getElementById('wza').value   = data.zwilling_paar?.[0] || ''
+    document.getElementById('wzb').value   = data.zwilling_paar?.[1] || ''
+    document.getElementById('wzpos').value = data.zwilling_pos || 'Substantiv'
     document.getElementById('form-title').textContent = `Eintrag bearbeiten: ${datum}`
     document.getElementById('save-btn').textContent   = 'Aktualisieren & APIs abrufen'
     window.scrollTo({ top: 0, behavior: 'smooth' })
