@@ -28,7 +28,7 @@ function buildShareText(playedGames, zrPlayed) {
     lines.push('')
   }
 
-  lines.push('Schaffst du es besser? → signifikation.de')
+  lines.push('💬 Schaffst du es besser? → signifikation.de')
   return lines.join('\n')
 }
 
