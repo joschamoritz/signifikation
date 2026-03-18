@@ -46,10 +46,13 @@ const ALLOWED_ORIGINS = process.env.ALLOWED_ORIGINS
   ? process.env.ALLOWED_ORIGINS.split(',').map(s => s.trim())
   : ['http://localhost:5173', 'http://localhost:3001']
 
+// Capacitor-WebView sendet immer capacitor://localhost als Origin
+const CAPACITOR_ORIGINS = ['capacitor://localhost', 'http://localhost']
+
 app.use(cors({
   origin: IS_PROD
     ? (origin, cb) => {
-        if (!origin || ALLOWED_ORIGINS.includes(origin)) cb(null, true)
+        if (!origin || ALLOWED_ORIGINS.includes(origin) || CAPACITOR_ORIGINS.includes(origin)) cb(null, true)
         else cb(new Error(`CORS: Unerlaubte Origin ${origin}`))
       }
     : true,   // lokal: alles erlauben
