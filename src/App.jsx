@@ -8,7 +8,8 @@ import Results from './components/Results'
 import ErrorBoundary from './components/ErrorBoundary'
 import { getMedal, getDailyMedal, getZRMedal } from './utils/gameLogic'
 
-const Zeitreise = lazy(() => import('./components/Zeitreise'))
+const Zeitreise    = lazy(() => import('./components/Zeitreise'))
+const WortZwilling = lazy(() => import('./components/WortZwilling'))
 
 // ── localStorage-Schlüssel aus Server-Datum (verhindert Zeitzonen-Mismatch) ──
 function makeKeys(datum, year = new Date().getFullYear()) {
@@ -28,6 +29,11 @@ function getPlayedToday(key) {
 }
 
 function getZRToday(key) {
+  const raw = localStorage.getItem(key)
+  return raw ? JSON.parse(raw) : null
+}
+
+function getWZToday(key) {
   const raw = localStorage.getItem(key)
   return raw ? JSON.parse(raw) : null
 }
@@ -102,6 +108,11 @@ export default function App() {
     `${String(new Date().getMonth()+1).padStart(2,'0')}-${String(new Date().getDate()).padStart(2,'0')}`
   }`))
 
+  const [wzViewOnly, setWzViewOnly] = useState(false)
+  const [wzPlayed, setWzPlayed] = useState(() => getWZToday(`sig_wz_${
+    `${String(new Date().getMonth()+1).padStart(2,'0')}-${String(new Date().getDate()).padStart(2,'0')}`
+  }`))
+
   // Fokus bei Screen-Wechsel
   useEffect(() => { appRef.current?.focus() }, [phase])
 
@@ -113,8 +124,9 @@ export default function App() {
         setServerDatum(datum)
         if (year) setServerYear(year)
         setLemmata(lemmata)
-        // ZR-Key jetzt mit echtem Server-Datum prüfen
+        // ZR- und WZ-Key jetzt mit echtem Server-Datum prüfen
         setZrPlayed(getZRToday(`sig_zr_${datum}`))
+        setWzPlayed(getWZToday(`sig_wz_${datum}`))
       })
       .catch(err => setApiError(err.message))
   }, [])
@@ -191,6 +203,23 @@ export default function App() {
     setPhase('home')
   }, [])
 
+  const handleWZFinish = useCallback(({ score, zoneA, zoneB }) => {
+    if (!wortzwilling || !serverDatum) return
+    const medal = getMedal(score).label
+    const entry = {
+      lemma:  `${wortzwilling.wortA} / ${wortzwilling.wortB}`,
+      total:  score,
+      medal,
+      wortA:  wortzwilling.wortA,
+      wortB:  wortzwilling.wortB,
+      zoneA,
+      zoneB,
+    }
+    localStorage.setItem(`sig_wz_${serverDatum}`, JSON.stringify(entry))
+    setWzPlayed(entry)
+    markActivity(keys.dateStr)
+  }, [wortzwilling, serverDatum, keys.dateStr])
+
   const handleZeitreiseFinish = useCallback((score) => {
     if (!zeitreise) return
     const max   = zeitreise.paare.length * 2
@@ -224,6 +253,9 @@ export default function App() {
           onPlayZeitreise={() => { setZrViewOnly(false); setPhase('zeitreise') }}
           onViewZeitreise={() => { setZrViewOnly(true); setPhase('zeitreise') }}
           wortzwilling={wortzwilling}
+          wzPlayed={wzPlayed}
+          onPlayWortzwilling={() => { setWzViewOnly(false); setPhase('wortzwilling') }}
+          onViewWortzwilling={() => { setWzViewOnly(true);  setPhase('wortzwilling') }}
         />
       )}
       {phase === 'selection' && lemmata && (
@@ -263,6 +295,16 @@ export default function App() {
             onBack={() => setPhase('home')}
             onFinish={handleZeitreiseFinish}
             savedResult={zrViewOnly ? zrPlayed : null}
+          />
+        </Suspense>
+      )}
+      {phase === 'wortzwilling' && wortzwilling && (
+        <Suspense fallback={<div className="screen" style={{ justifyContent: 'center', alignItems: 'center' }}><p style={{ color: 'var(--muted)' }}>Lade …</p></div>}>
+          <WortZwilling
+            data={wortzwilling}
+            onBack={() => setPhase('home')}
+            onFinish={handleWZFinish}
+            savedResult={wzViewOnly ? wzPlayed : null}
           />
         </Suspense>
       )}

@@ -72,7 +72,7 @@ function streakFlames(n) {
 
 export default function Home({ onStart, loading, error, playedGames = [], allPlayed = false,
                               zeitreise = null, zrPlayed = null, onPlayZeitreise, onViewZeitreise,
-                              wortzwilling = null }) {
+                              wortzwilling = null, wzPlayed = null, onPlayWortzwilling, onViewWortzwilling }) {
   const [infoOpen, setInfoOpen] = useState(false)
   const [copied, setCopied] = useState(false)
   const [logoSmall, setLogoSmall] = useState(false)
@@ -242,10 +242,24 @@ export default function Home({ onStart, loading, error, playedGames = [], allPla
         <div className="game-card">
           <div className="game-card-head">
             <span className="game-card-title">Wort-Zwilling</span>
-            <span className="game-card-meta">Welche Lesart steckt dahinter?</span>
+            <span className="game-card-meta">{wortzwilling.wortA} · {wortzwilling.wortB}</span>
           </div>
-          <p className="game-card-empty">Heute noch nicht gespielt</p>
-          <button className="btn-primary btn-full" disabled>Kommt bald</button>
+
+          {wzPlayed ? (
+            <div className="game-played-entry">
+              <span className="game-played-word">{wortzwilling.wortA} / {wortzwilling.wortB}</span>
+              <span className="game-played-score">{wzPlayed.total}/10 · {wzPlayed.medal}</span>
+            </div>
+          ) : (
+            <p className="game-card-empty">Heute noch nicht gespielt</p>
+          )}
+
+          <button
+            className="btn-primary btn-full"
+            onClick={wzPlayed ? onViewWortzwilling : onPlayWortzwilling}
+          >
+            {wzPlayed ? 'Ergebnis ansehen' : 'Wort-Zwilling starten'}
+          </button>
         </div>
       )}
 

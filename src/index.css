@@ -1568,6 +1568,158 @@ button { font-family: inherit; cursor: pointer; border: none }
 }
 .wortprofil-title-row .dwds-link { display: inline; text-align: right; margin: 0; font-size: 0.75rem; }
 
+/* ── Wort-Zwilling ────────────────────────────────────────── */
+.wz-screen {
+  gap: 16px;
+}
+.wz-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.wz-title {
+  font-family: var(--font-serif);
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: var(--text);
+}
+.wz-instruction {
+  font-size: 0.88rem;
+  color: var(--muted);
+  text-align: center;
+  line-height: 1.6;
+}
+.wz-hint {
+  font-size: 0.82rem;
+  color: var(--primary);
+  text-align: center;
+  font-weight: 500;
+  animation: wz-pulse 1s ease-in-out infinite alternate;
+}
+@keyframes wz-pulse {
+  from { opacity: 0.55 }
+  to   { opacity: 1 }
+}
+
+/* Wortbank */
+.wz-bank {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+  align-items: center;
+  padding: 14px 12px;
+  background: var(--surface);
+  border: 2px dashed var(--border);
+  border-radius: var(--radius);
+  min-height: 68px;
+  transition: border-color 0.15s, background 0.15s;
+}
+.wz-bank--over {
+  border-color: var(--primary);
+  background: #fef2f2;
+}
+.wz-bank-done {
+  font-size: 0.82rem;
+  color: var(--success);
+  font-weight: 500;
+}
+
+/* Chips */
+.wz-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 15px;
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  border-radius: 20px;
+  font-size: 0.88rem;
+  font-family: var(--font-sans);
+  font-weight: 500;
+  cursor: grab;
+  user-select: none;
+  transition: border-color 0.15s, background 0.15s, opacity 0.15s, transform 0.1s, box-shadow 0.15s;
+  white-space: nowrap;
+  -webkit-tap-highlight-color: transparent;
+}
+.wz-chip:active       { cursor: grabbing; transform: scale(0.95) }
+.wz-chip--selected    { border-color: var(--primary); background: #fef2f2; color: var(--primary); box-shadow: 0 0 0 3px #fecaca }
+.wz-chip--placed      { background: var(--surface2); border-color: #d4d0cc; cursor: pointer }
+.wz-chip--placed:hover { border-color: var(--muted) }
+.wz-chip--dragging    { opacity: 0.3 }
+.wz-chip--correct     { background: var(--success-bg); border-color: #86efac; color: var(--success); cursor: default }
+.wz-chip--wrong       { background: var(--error-bg);   border-color: #fca5a5; color: var(--error);   cursor: default }
+.wz-chip-icon         { font-size: 0.75rem; font-weight: 700 }
+
+/* Drop-Zonen */
+.wz-zones {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.wz-zone {
+  background: var(--surface);
+  border: 2px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 240px;
+  transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
+  cursor: default;
+}
+.wz-zone--over {
+  border-color: var(--primary);
+  background: #fff5f5;
+  box-shadow: 0 0 0 3px #fecaca;
+}
+.wz-zone--clickable {
+  cursor: pointer;
+  border-style: dashed;
+  border-color: var(--primary);
+}
+.wz-zone--result {
+  min-height: unset;
+}
+.wz-zone-label {
+  font-family: var(--font-serif);
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--text);
+  text-align: center;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+}
+.wz-zone-chips {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+}
+.wz-slot-empty {
+  height: 36px;
+  border: 1.5px dashed var(--border);
+  border-radius: 18px;
+  background: var(--surface2);
+  opacity: 0.55;
+}
+
+/* Ergebnis-Banner */
+.wz-result-banner {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 18px 20px;
+}
+.wz-result-medal  { font-size: 2.6rem; line-height: 1 }
+.wz-result-score  { font-family: var(--font-serif); font-size: 1.4rem; font-weight: 700; color: var(--text) }
+.wz-result-label  { font-size: 0.85rem; color: var(--muted); margin-top: 2px }
+
 /* ── Share-Button ─────────────────────────────────────────── */
 .btn-share {
   background: transparent;
