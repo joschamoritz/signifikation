@@ -124,20 +124,31 @@ export default function Home({ onStart, loading, error, playedGames = [], allPla
         {infoOpen && (
           <div className="home-card-body">
             <p className="home-card-text">
-              Kollokationen sind Wortverbindungen, die im Sprachgebrauch statistisch
-              besonders häufig gemeinsam auftreten — etwa <em>blondes Haar</em> oder{' '}
-              <em>eine Frage stellen</em>. Der logDice-Wert misst, wie stark zwei
-              Wörter miteinander assoziiert sind.
+              Kollokationen sind <strong>charakteristische syntagmatische Wortverbindungen</strong>,
+              in denen ein Element (die <strong>Basis</strong>) den anderen Bestandteil (den{' '}
+              <strong>Kollokator</strong>) semantisch selegiert. Man sagt <em>blondes Haar</em> und
+              nicht <em>gelbes Haar</em> — nicht weil Letzteres grammatisch falsch wäre, sondern
+              weil der konventionalisierte Sprachgebrauch <em>blond</em> als typischen Kollokator
+              von <em>Haar</em> fordert.<sup>1</sup>
             </p>
             <p className="home-card-text">
-              Wähle ein Wort und mutmaße, welche Nomen, Verben und Adjektive
-              statistisch stark mit ihm kollokkieren.
+              Kollokationen liegen zwischen freien Wortverbindungen (<em>rotes Auto</em>) und
+              Idiomen (<em>ins Gras beißen</em>): semantisch motiviert, aber lexikalisch
+              konventionalisiert.
             </p>
             <p className="home-card-text">
-              Die Kollokationsdaten stammen aus dem <strong>DWDS-Wortprofil</strong> (Version 2026),
-              das auf rund 7,5 Milliarden Wörtern aus großen Tageszeitungen (<em>FAZ</em>, <em>SZ</em>,{' '}
-              <em>Zeit</em>, <em>NZZ</em> u.&thinsp;a.) sowie dem DWDS-Kernkorpus basiert.
+              Der <strong>logDice-Wert</strong><sup>2</sup> misst die statistische Signifikanz
+              von Kookkurrenzen im Korpus — je höher der Wert, desto charakteristischer die
+              Verbindung. Die Daten stammen aus dem <strong>DWDS-Wortprofil</strong><sup>3</sup>{' '}
+              und dem <strong>DiaCollo</strong>-System<sup>4</sup>, basierend auf mehreren
+              Milliarden Textwörtern aus Tageszeitungen, Literatur und historischen Korpora.
             </p>
+            <ol className="home-card-footnotes">
+              <li>Hausmann, F.&thinsp;J. (2003): Was sind eigentlich Kollokationen? In: Steyer, K. (Hrsg.): <em>Wortverbindungen — mehr oder weniger fest</em>. de Gruyter, S.&thinsp;309–334.</li>
+              <li>Rychlý, P. (2008): A Lexicographer-Friendly Association Score. In: <em>Proceedings of RASLAN 2008</em>, S.&thinsp;6–9.</li>
+              <li>Berlin-Brandenburgische Akademie der Wissenschaften (BBAW): <em>Digitales Wörterbuch der deutschen Sprache</em>. dwds.de</li>
+              <li>Jurish, B. et&thinsp;al. (2014): DiaCollo: On the Trail of Diachronic Collocations. In: <em>Proceedings of DH 2014</em>.</li>
+            </ol>
           </div>
         )}
       </div>
@@ -241,6 +252,7 @@ export default function Home({ onStart, loading, error, playedGames = [], allPla
 
       <footer className="legal-footer">
         <nav className="legal-links" aria-label="Rechtliche Links">
+          <a href="/ueber.html">Über die App</a>
           <a href="/impressum.html">Impressum</a>
           <a href="/datenschutz.html">Datenschutz</a>
           <a href="/nutzungsbedingungen.html">Nutzungsbedingungen</a>

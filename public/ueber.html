@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Über die App – Signifikation</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0 }
+    body { font-family: 'DM Sans', sans-serif; background: #faf9f7; color: #1a1915; line-height: 1.75; padding: 32px 20px 80px; max-width: 680px; margin: 0 auto }
+    h1 { font-family: 'Playfair Display', serif; font-size: 2rem; color: #9b1c1c; margin-bottom: 4px }
+    h2 { font-family: 'Playfair Display', serif; font-size: 1.2rem; font-weight: 700; margin: 36px 0 8px; color: #1a1915 }
+    p  { margin-bottom: 12px; color: #444; font-size: 0.95rem }
+    em { font-style: italic }
+    a  { color: #9b1c1c; text-decoration: underline; text-underline-offset: 2px }
+    .back { display: inline-block; margin-bottom: 32px; color: #9b1c1c; text-decoration: none; font-size: 0.9rem }
+    .back:hover { opacity: 0.75 }
+    .subtitle { color: #78716c; font-size: 0.88rem; margin-bottom: 32px }
+    .footnotes { margin-top: 48px; padding-top: 24px; border-top: 1px solid #e5e2de }
+    .footnotes h3 { font-size: 0.85rem; font-weight: 600; color: #78716c; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.05em }
+    .footnotes ol { padding-left: 18px; display: flex; flex-direction: column; gap: 6px }
+    .footnotes li { font-size: 0.78rem; color: #78716c; line-height: 1.55 }
+    sup { font-size: 0.65rem; color: #9b1c1c; font-weight: 600; vertical-align: super }
+    .contact-link { display: inline-block; margin-top: 4px; font-weight: 500 }
+  </style>
+</head>
+<body>
+  <a class="back" href="/">← Zurück zur App</a>
+
+  <h1>Signifikation</h1>
+  <p class="subtitle">Über die App · Hintergründe · Quellen</p>
+
+  <h2>Warum Signifikation?</h2>
+  <p>
+    Der Name trägt zwei Bedeutungsebenen. In der Linguistik, Semiotik und Philosophie bezeichnet
+    <strong>Signifikation</strong> den Prozess der Bedeutungsgebung — das Verhältnis zwischen
+    einem sprachlichen Zeichen und dem, wofür es steht. Das Logo ist an Ferdinand de Saussures
+    dyadischem Zeichenmodell angelehnt, in dem <em>signifiant</em> (Lautbild) und <em>signifié</em>
+    (Vorstellung) untrennbar zusammengehören.<sup>5</sup>
+  </p>
+  <p>
+    Gleichzeitig steckt im Wort das Ende von <em>Kollokation</em>, und der zugrundeliegende
+    logDice-Wert misst eine statistische <strong>Signifikanz</strong> — eine bedeutsame,
+    nicht-zufällige Verbindung zwischen Wörtern.
+  </p>
+
+  <h2>Was ist eine Kollokation?</h2>
+  <p>
+    Kollokationen sind <strong>charakteristische syntagmatische Wortverbindungen</strong>, in
+    denen ein Element (die <strong>Basis</strong>) den anderen Bestandteil (den
+    <strong>Kollokator</strong>) semantisch selegiert. Man sagt <em>blondes Haar</em> und nicht
+    <em>gelbes Haar</em> — nicht weil Letzteres grammatisch falsch wäre, sondern weil der
+    konventionalisierte Sprachgebrauch <em>blond</em> als typischen Kollokator von <em>Haar</em>
+    fordert.<sup>1</sup>
+  </p>
+  <p>
+    Kollokationen liegen zwischen freien Wortverbindungen (<em>rotes Auto</em>) und Idiomen
+    (<em>ins Gras beißen</em>): semantisch motiviert, aber lexikalisch konventionalisiert.
+  </p>
+
+  <h2>Der logDice-Wert</h2>
+  <p>
+    Der <strong>logDice-Wert</strong><sup>2</sup> ist ein statistisches Assoziationsmaß für
+    Kookkurrenzen im Korpus. Er setzt die gemeinsamen Vorkommen zweier Wörter ins Verhältnis
+    zu ihren jeweiligen Einzelhäufigkeiten — je höher der Wert, desto charakteristischer und
+    nicht-zufälliger die Wortverbindung. Im Unterschied zu anderen Maßen wie dem
+    Pointwise Mutual Information-Score ist logDice robust gegenüber seltenen Wörtern.
+  </p>
+
+  <h2>Die Daten</h2>
+  <p>
+    Die Kollokationsdaten für das Hauptspiel stammen aus dem <strong>DWDS-Wortprofil</strong><sup>3</sup>
+    der Berlin-Brandenburgischen Akademie der Wissenschaften (BBAW), basierend auf rund
+    7,5 Milliarden Textwörtern aus großen Tageszeitungen (<em>FAZ</em>, <em>SZ</em>,
+    <em>Die Zeit</em>, <em>NZZ</em> u.&thinsp;a.) sowie dem DWDS-Kernkorpus.
+  </p>
+  <p>
+    Die historischen Daten für die <strong>Zeitreise</strong>-Runde entstammen dem
+    <strong>DiaCollo</strong>-System<sup>4</sup> desselben Instituts, das
+    Kollokationsverschiebungen über Jahrhunderte hinweg nachverfolgt — von frühneuhochdeutschen
+    Texten bis zur Gegenwartssprache.
+  </p>
+  <p>
+    Die Korpusbelege werden im Rahmen des Zitatrechts (§&thinsp;51 UrhG) unter Angabe der
+    jeweiligen Quelle angezeigt.
+  </p>
+
+  <h2>Das Projekt</h2>
+  <p>
+    Signifikation ist ein nicht-kommerzielles Bildungsprojekt, entwickelt von
+    <strong>Joscha Moritz Fresmann</strong>. Ziel ist es, linguistische Konzepte spielerisch
+    erfahrbar zu machen — für Sprachinteressierte, Studierende und alle, die Wörter lieben.
+  </p>
+  <p>
+    Fragen, Anregungen oder Fehler? <a class="contact-link" href="mailto:info@signifikation.de">info@signifikation.de</a>
+  </p>
+
+  <div class="footnotes">
+    <h3>Quellen</h3>
+    <ol>
+      <li>Hausmann, F.&thinsp;J. (2003): Was sind eigentlich Kollokationen? In: Steyer, K. (Hrsg.): <em>Wortverbindungen — mehr oder weniger fest</em>. Berlin/New York: de Gruyter, S.&thinsp;309–334.</li>
+      <li>Rychlý, P. (2008): A Lexicographer-Friendly Association Score. In: <em>Proceedings of Recent Advances in Slavonic Natural Language Processing (RASLAN 2008)</em>, S.&thinsp;6–9.</li>
+      <li>Berlin-Brandenburgische Akademie der Wissenschaften (BBAW): <em>Digitales Wörterbuch der deutschen Sprache (DWDS)</em>. Berlin 2024. <a href="https://www.dwds.de" target="_blank" rel="noopener">dwds.de</a></li>
+      <li>Jurish, B., Kdiciński, M., Lemnitzer, L. &amp; Wiegand, M. (2014): DiaCollo: On the Trail of Diachronic Collocations. In: <em>Proceedings of the Digital Humanities Conference (DH 2014)</em>. Lausanne.</li>
+      <li>Saussure, F. de (1916): <em>Cours de linguistique générale</em>. Hrsg. von C. Bally &amp; A. Sechehaye. Paris: Payot.</li>
+    </ol>
+  </div>
+</body>
+</html>
