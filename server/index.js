@@ -1,4 +1,5 @@
 import express         from 'express'
+import helmet          from 'helmet'
 import cors            from 'cors'
 import rateLimit       from 'express-rate-limit'
 import { readFileSync, writeFileSync, renameSync, mkdirSync } from 'fs'
@@ -22,6 +23,22 @@ if (!ADMIN_KEY) {
 if (!process.env.ADMIN_KEY) console.warn('⚠️  ADMIN_KEY nicht gesetzt – Dev-Fallback aktiv (nur lokal!)')
 
 const app = express()
+
+// ── Security Headers ─────────────────────────────────────────
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc:  ["'self'"],
+      scriptSrc:   ["'self'", "https://cdn.jsdelivr.net"],
+      styleSrc:    ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+      fontSrc:     ["'self'", "https://fonts.gstatic.com"],
+      imgSrc:      ["'self'", "data:"],
+      connectSrc:  ["'self'"],
+      frameAncestors: ["'none'"],
+    },
+  },
+  crossOriginEmbedderPolicy: false,
+}))
 
 // ── CORS ─────────────────────────────────────────────────────
 // In Produktion nur eigene Domain erlauben; lokal offen für Vite-Dev-Server
@@ -466,6 +483,7 @@ app.get('/admin/kalender', requireAuth, (req, res) => {
 
 /** GET /admin/tag/:datum – Eintrag zum Bearbeiten laden */
 app.get('/admin/tag/:datum', requireAuth, (req, res) => {
+  if (!/^\d{2}-\d{2}$/.test(req.params.datum)) return res.status(400).json({ error: 'Ungültiges Datumsformat' })
   const kalender  = load('kalender.json')
   const lemmataDB = load('lemmata.json')
   const zeitreise = loadZeitreise()
@@ -487,6 +505,7 @@ app.get('/admin/tag/:datum', requireAuth, (req, res) => {
 
 /** DELETE /admin/tag/:datum – Eintrag löschen */
 app.delete('/admin/tag/:datum', requireAuth, (req, res) => {
+  if (!/^\d{2}-\d{2}$/.test(req.params.datum)) return res.status(400).json({ error: 'Ungültiges Datumsformat' })
   const kalender     = load('kalender.json')
   const zeitreise    = loadZeitreise()
   const wortzwilling = loadWortZwilling()

@@ -375,6 +375,16 @@
 <script>
   let KEY = sessionStorage.getItem('admin_key') || ''
 
+  // ── XSS-Schutz ───────────────────────────────────────────
+  function esc(s) {
+    return String(s ?? '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#x27;')
+  }
+
   // ── Login / Logout ────────────────────────────────────────
   async function doLogin() {
     const input = document.getElementById('login-key')
@@ -658,13 +668,13 @@
   function renderKorpusList() {
     const list = document.getElementById('korpus-list')
     list.innerHTML = korpusConfig.map(c => `
-      <label class="korpus-item ${c.enabled ? 'enabled' : ''}" id="ki-${c.id}" onclick="toggleKorpus('${c.id}')">
-        <input type="checkbox" id="kc-${c.id}" ${c.enabled ? 'checked' : ''} onclick="event.stopPropagation();toggleKorpus('${c.id}')">
+      <label class="korpus-item ${c.enabled ? 'enabled' : ''}" id="ki-${esc(c.id)}" onclick="toggleKorpus('${esc(c.id)}')">
+        <input type="checkbox" id="kc-${esc(c.id)}" ${c.enabled ? 'checked' : ''} onclick="event.stopPropagation();toggleKorpus('${esc(c.id)}')">
         <div class="korpus-info">
-          <div class="korpus-name">${c.label}</div>
-          <div class="korpus-meta">${c.zeitraum} · slice=${c.slice}</div>
+          <div class="korpus-name">${esc(c.label)}</div>
+          <div class="korpus-meta">${esc(c.zeitraum)} · slice=${esc(c.slice)}</div>
         </div>
-        <span class="korpus-badge ${c.enabled ? 'enabled' : ''}" id="kb-${c.id}">
+        <span class="korpus-badge ${c.enabled ? 'enabled' : ''}" id="kb-${esc(c.id)}">
           ${c.enabled ? 'aktiv' : 'inaktiv'}
         </span>
       </label>
@@ -742,7 +752,7 @@
       const data = await res.json()
       renderViz(word, data, out)
     } catch (e) {
-      out.innerHTML = `<div class="status error">Fehler: ${e.message}</div>`
+      out.innerHTML = `<div class="status error">Fehler: ${esc(e.message)}</div>`
     }
   }
 
@@ -751,7 +761,7 @@
   function renderViz(word, data, container) {
     const passing = data.summary.filter(s => s.pass)
     if (!passing.length) {
-      container.innerHTML = `<div class="status error">Keine ausreichenden Daten für „${word}".</div>`
+      container.innerHTML = `<div class="status error">Keine ausreichenden Daten für „${esc(word)}".</div>`
       return
     }
 
@@ -851,7 +861,7 @@
     // Legende
     const legendEl = document.getElementById('viz-legend')
     for (const [id, ds] of Object.entries(corpusDatasets)) {
-      legendEl.innerHTML += `<span class="viz-corpus-dot"><b style="background:${korpusColor(id)}"></b>${ds.label}</span>`
+      legendEl.innerHTML += `<span class="viz-corpus-dot"><b style="background:${esc(korpusColor(id))}"></b>${esc(ds.label)}</span>`
     }
 
     // Alte Listen-Ansicht aufbauen
