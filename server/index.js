@@ -80,8 +80,7 @@ function loadZeitreise()    { try { return load('zeitreise.json')    } catch { r
 function loadWortZwilling() { try { return load('wortzwilling.json') } catch { return {} } }
 
 function requireAuth(req, res, next) {
-  // API-Calls nutzen Header; nur GET /admin (Browser) akzeptiert zusätzlich query.key
-  const key = req.headers['x-admin-key'] || (req.path === '/admin' ? req.query.key : undefined)
+  const key = req.headers['x-admin-key']
   if (key !== ADMIN_KEY) return res.status(401).json({ error: 'Nicht autorisiert' })
   next()
 }
@@ -500,8 +499,8 @@ app.delete('/admin/tag/:datum', requireAuth, (req, res) => {
   res.json({ ok: true })
 })
 
-/** GET /admin – Admin-Oberfläche */
-app.get('/admin', requireAuth, (req, res) => {
+/** GET /admin – Admin-Oberfläche (öffentlich – Login erfolgt clientseitig) */
+app.get('/admin', (req, res) => {
   res.sendFile(join(__dirname, 'admin.html'))
 })
 

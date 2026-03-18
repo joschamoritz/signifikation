@@ -172,6 +172,31 @@
     .viz-corpus-dot b { width: 10px; height: 10px; border-radius: 50%; display: inline-block; flex-shrink: 0; }
     .viz-star-note { font-size: 0.73rem; color: var(--muted); margin-top: 6px; }
 
+    /* ── Login-Screen ── */
+    .login-overlay {
+      position: fixed; inset: 0; z-index: 100;
+      background: var(--bg);
+      display: flex; align-items: center; justify-content: center;
+      padding: 24px;
+    }
+    .login-overlay.hidden { display: none; }
+    .login-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 32px 28px;
+      width: 100%; max-width: 360px;
+      display: flex; flex-direction: column; gap: 20px;
+    }
+    .login-card h2 { font-family: 'Playfair Display', serif; font-size: 1.5rem; color: var(--primary); }
+    .login-card p  { font-size: 0.85rem; color: var(--muted); margin-top: -12px; }
+    .login-error   { font-size: 0.85rem; color: #991b1b; background: #fef2f2;
+                     border: 1px solid #fecaca; border-radius: 8px; padding: 10px 14px; display: none; }
+    .logout-btn {
+      background: none; color: var(--muted); padding: 6px 12px;
+      border: 1.5px solid var(--border); border-radius: 6px;
+      font-size: 0.82rem; font-weight: 500;
+    }
+    .logout-btn:hover { color: var(--primary); border-color: var(--primary); opacity: 1; }
+
     /* ── Spielmodus-Toggle ── */
     .mode-toggle {
       display: flex; align-items: center; justify-content: space-between;
@@ -188,10 +213,29 @@
   </style>
 </head>
 <body>
-<div class="container">
-  <header>
-    <h1>Signifikation</h1>
-    <p class="subtitle">Admin · Tageseinträge verwalten</p>
+
+<!-- Login-Screen -->
+<div class="login-overlay" id="login-overlay">
+  <div class="login-card">
+    <h2>Signifikation</h2>
+    <p>Admin-Bereich · Passwort eingeben</p>
+    <div>
+      <label for="login-key">Admin-Passwort</label>
+      <input type="password" id="login-key" placeholder="••••••••"
+             onkeydown="if(event.key==='Enter')doLogin()">
+    </div>
+    <div class="login-error" id="login-error">Falsches Passwort.</div>
+    <button onclick="doLogin()" id="login-btn">Anmelden</button>
+  </div>
+</div>
+
+<div class="container" id="main-container" style="display:none">
+  <header style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px">
+    <div>
+      <h1>Signifikation</h1>
+      <p class="subtitle">Admin · Tageseinträge verwalten</p>
+    </div>
+    <button class="logout-btn" onclick="doLogout()">Abmelden</button>
   </header>
 
   <!-- Neuer Eintrag -->
@@ -329,7 +373,65 @@
 </div>
 
 <script>
-  const KEY = new URLSearchParams(location.search).get('key') || ''
+  let KEY = sessionStorage.getItem('admin_key') || ''
+
+  // ── Login / Logout ────────────────────────────────────────
+  async function doLogin() {
+    const input = document.getElementById('login-key')
+    const errEl = document.getElementById('login-error')
+    const btn   = document.getElementById('login-btn')
+    const candidate = input.value.trim()
+    if (!candidate) return
+    btn.disabled = true
+    btn.textContent = '…'
+    errEl.style.display = 'none'
+    try {
+      const r = await fetch('/admin/kalender', { headers: { 'x-admin-key': candidate } })
+      if (r.ok) {
+        sessionStorage.setItem('admin_key', candidate)
+        KEY = candidate
+        document.getElementById('login-overlay').classList.add('hidden')
+        document.getElementById('main-container').style.display = 'flex'
+        initDashboard()
+      } else {
+        errEl.style.display = 'block'
+        input.value = ''
+        input.focus()
+      }
+    } catch {
+      errEl.textContent = 'Verbindungsfehler.'
+      errEl.style.display = 'block'
+    }
+    btn.disabled = false
+    btn.textContent = 'Anmelden'
+  }
+
+  function doLogout() {
+    sessionStorage.removeItem('admin_key')
+    KEY = ''
+    document.getElementById('main-container').style.display = 'none'
+    document.getElementById('login-overlay').classList.remove('hidden')
+    document.getElementById('login-key').value = ''
+  }
+
+  // ── Beim Laden: Key prüfen ────────────────────────────────
+  if (KEY) {
+    fetch('/admin/kalender', { headers: { 'x-admin-key': KEY } }).then(r => {
+      if (r.ok) {
+        document.getElementById('login-overlay').classList.add('hidden')
+        document.getElementById('main-container').style.display = 'flex'
+        initDashboard()
+      } else {
+        sessionStorage.removeItem('admin_key')
+        KEY = ''
+      }
+    }).catch(() => { /* Netzwerkfehler → Login zeigen */ })
+  }
+
+  function initDashboard() {
+    renderCalendar()
+    loadKorpusConfig()
+  }
 
   function toggleMode(id) {
     const body   = document.getElementById(`${id}-body`)
@@ -599,8 +701,6 @@
       statusEl.textContent = `Fehler: ${err.message}`
     }
   }
-
-  loadKorpusConfig()
 
   // ── DiaCollo Visualisierung ─────────────────────────────
   const KORPUS_COLORS = {
