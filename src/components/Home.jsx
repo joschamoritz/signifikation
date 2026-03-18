@@ -236,7 +236,7 @@ export default function Home({ onStart, loading, error, playedGames = [], allPla
       )}
 
       <p className="feedback-hint">
-        Fehler oder Anregungen? Schreib uns.
+        Fehler oder Anregungen? <a href="mailto:info@signifikation.de">Schreib uns.</a>
       </p>
 
       <footer className="legal-footer">

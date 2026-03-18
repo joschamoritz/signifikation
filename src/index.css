@@ -181,6 +181,11 @@ button { font-family: inherit; cursor: pointer; border: none }
   color: var(--muted);
   margin-top: 8px;
 }
+.feedback-hint a {
+  color: var(--muted);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
 .legal-footer {
   margin-top: 24px;
   padding-top: 16px;
