@@ -306,6 +306,25 @@ button { font-family: inherit; cursor: pointer; border: none }
   color: var(--muted);
   line-height: 1.6;
 }
+.home-card-footnotes {
+  margin-top: 12px;
+  padding-left: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.home-card-footnotes li {
+  font-size: 0.72rem;
+  color: var(--muted);
+  line-height: 1.5;
+  opacity: 0.8;
+}
+.home-card-text sup {
+  font-size: 0.65rem;
+  vertical-align: super;
+  color: var(--primary);
+  font-weight: 600;
+}
 .home-card-text em {
   font-style: italic;
   color: var(--text);
