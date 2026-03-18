@@ -67,16 +67,31 @@ const belegeLimiter = rateLimit({
   message: { error: 'Zu viele Anfragen, bitte kurz warten.' },
 })
 
-// ── Server-seitiger Beleg-Cache (TTL 6h) ────────────────────
+const adminLimiter = rateLimit({
+  windowMs: 60_000,           // 1 Minute
+  max: 60,                    // max 60 Admin-Requests pro IP pro Minute
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Zu viele Admin-Anfragen, bitte kurz warten.' },
+})
+
+// ── Server-seitiger Beleg-Cache (TTL 6h, max 200 Einträge) ──
 const _belegeCache = new Map()
-const BELEG_TTL_MS = 6 * 60 * 60 * 1000
+const BELEG_TTL_MS  = 6 * 60 * 60 * 1000
+const BELEG_MAX     = 200
 function cacheGet(key) {
   const entry = _belegeCache.get(key)
   if (!entry) return null
   if (Date.now() - entry.ts > BELEG_TTL_MS) { _belegeCache.delete(key); return null }
   return entry.data
 }
-function cacheSet(key, data) { _belegeCache.set(key, { data, ts: Date.now() }) }
+function cacheSet(key, data) {
+  // LRU: ältesten Eintrag entfernen wenn Limit erreicht
+  if (_belegeCache.size >= BELEG_MAX) {
+    _belegeCache.delete(_belegeCache.keys().next().value)
+  }
+  _belegeCache.set(key, { data, ts: Date.now() })
+}
 
 // ── Helpers ─────────────────────────────────────────────────
 const fileCache = {}
@@ -95,6 +110,12 @@ function save(file, data) {
 }
 function loadZeitreise()    { try { return load('zeitreise.json')    } catch { return {} } }
 function loadWortZwilling() { try { return load('wortzwilling.json') } catch { return {} } }
+
+/** Fehlerausgabe: in Produktion keine internen Details preisgeben */
+function serverError(res, err) {
+  console.error('Server-Fehler:', err)
+  res.status(500).json({ error: IS_PROD ? 'Interner Serverfehler' : err.message })
+}
 
 function requireAuth(req, res, next) {
   const key = req.headers['x-admin-key']
@@ -127,7 +148,7 @@ app.get('/api/heute', (req, res) => {
     const lemmata = ids.map(id => lemmataDB.find(l => l.id === id)).filter(Boolean)
     res.json({ datum, year, lemmata })
   } catch (err) {
-    res.status(500).json({ error: err.message })
+    serverError(res, err)
   }
 })
 
@@ -140,7 +161,7 @@ app.get('/api/zeitreise', (req, res) => {
     if (!entry) return res.status(404).json({ error: `Kein Zeitreise-Eintrag für ${datum}` })
     res.json(entry)
   } catch (err) {
-    res.status(500).json({ error: err.message })
+    serverError(res, err)
   }
 })
 
@@ -158,7 +179,7 @@ app.get('/api/wortzwilling', (req, res) => {
     }
     res.json(safe)
   } catch (err) {
-    res.status(500).json({ error: err.message })
+    serverError(res, err)
   }
 })
 
@@ -319,7 +340,7 @@ app.get('/api/belege', belegeLimiter, async (req, res) => {
     res.json(final)
   } catch (err) {
     console.error('Belege-Fehler:', err.message)
-    res.status(500).json({ error: err.message })
+    serverError(res, err)
   }
 })
 
@@ -341,7 +362,7 @@ app.get('/api/bonus', async (req, res) => {
 // ── Admin API ────────────────────────────────────────────────
 
 /** GET /admin/diacollo-config – Korpus-Konfiguration laden */
-app.get('/admin/diacollo-config', requireAuth, (req, res) => {
+app.get('/admin/diacollo-config', adminLimiter, requireAuth, (req, res) => {
   try {
     const cfg = JSON.parse(readFileSync(join(DATA, 'diacollo-config.json'), 'utf8'))
     res.json(cfg)
@@ -351,7 +372,7 @@ app.get('/admin/diacollo-config', requireAuth, (req, res) => {
 })
 
 /** POST /admin/diacollo-config – Korpus-Konfiguration speichern */
-app.post('/admin/diacollo-config', requireAuth, (req, res) => {
+app.post('/admin/diacollo-config', adminLimiter, requireAuth, (req, res) => {
   const { corpora } = req.body
   if (!Array.isArray(corpora)) return res.status(400).json({ error: 'corpora-Array erforderlich' })
   try {
@@ -365,24 +386,24 @@ app.post('/admin/diacollo-config', requireAuth, (req, res) => {
     clearCorporaCache()
     res.json({ ok: true, active: cfg.corpora.filter(c => c.enabled).map(c => c.id) })
   } catch (err) {
-    res.status(500).json({ error: err.message })
+    serverError(res, err)
   }
 })
 
 /** GET /admin/debug-diacollo?q=Wort – roher DiaCollo-Test */
-app.get('/admin/debug-diacollo', requireAuth, async (req, res) => {
+app.get('/admin/debug-diacollo', adminLimiter, requireAuth, async (req, res) => {
   const q = req.query.q
   if (!q) return res.status(400).json({ error: 'q= erforderlich' })
   try {
     const result = await debugDiaCollo(q)
     res.json({ q, ...result })
   } catch (err) {
-    res.status(500).json({ error: err.message })
+    serverError(res, err)
   }
 })
 
 /** POST /admin/tag – Tageseintrag anlegen/überschreiben */
-app.post('/admin/tag', requireAuth, async (req, res) => {
+app.post('/admin/tag', adminLimiter, requireAuth, async (req, res) => {
   const { datum, woerter, notizen = [], links = [], positionen = [], zeitreise_lemma = '',
           zwilling_paar = null, zwilling_pos = 'Substantiv' } = req.body
   if (!datum || !Array.isArray(woerter) || woerter.length !== 3) {
@@ -457,12 +478,12 @@ app.post('/admin/tag', requireAuth, async (req, res) => {
     res.json({ ok: true, datum, ids, zeitreiseOk, zwillingOk })
   } catch (err) {
     console.error(err)
-    res.status(500).json({ error: err.message })
+    serverError(res, err)
   }
 })
 
 /** GET /admin/kalender – alle Einträge (inkl. Zeitreise- und Wort-Zwilling-Status) */
-app.get('/admin/kalender', requireAuth, (req, res) => {
+app.get('/admin/kalender', adminLimiter, requireAuth, (req, res) => {
   const kalender     = load('kalender.json')
   const lemmataDB    = load('lemmata.json')
   const zeitreise    = loadZeitreise()
@@ -482,7 +503,7 @@ app.get('/admin/kalender', requireAuth, (req, res) => {
 })
 
 /** GET /admin/tag/:datum – Eintrag zum Bearbeiten laden */
-app.get('/admin/tag/:datum', requireAuth, (req, res) => {
+app.get('/admin/tag/:datum', adminLimiter, requireAuth, (req, res) => {
   if (!/^\d{2}-\d{2}$/.test(req.params.datum)) return res.status(400).json({ error: 'Ungültiges Datumsformat' })
   const kalender  = load('kalender.json')
   const lemmataDB = load('lemmata.json')
@@ -504,7 +525,7 @@ app.get('/admin/tag/:datum', requireAuth, (req, res) => {
 })
 
 /** DELETE /admin/tag/:datum – Eintrag löschen */
-app.delete('/admin/tag/:datum', requireAuth, (req, res) => {
+app.delete('/admin/tag/:datum', adminLimiter, requireAuth, (req, res) => {
   if (!/^\d{2}-\d{2}$/.test(req.params.datum)) return res.status(400).json({ error: 'Ungültiges Datumsformat' })
   const kalender     = load('kalender.json')
   const zeitreise    = loadZeitreise()
@@ -534,7 +555,7 @@ if (existsSync(DIST)) {
 // ── Globaler Fehler-Handler ───────────────────────────────────
 app.use((err, req, res, _next) => {
   console.error('Unbehandelter Fehler:', err)
-  res.status(500).json({ error: err.message || 'Interner Serverfehler' })
+  res.status(500).json({ error: IS_PROD ? 'Interner Serverfehler' : (err.message || 'Interner Serverfehler') })
 })
 
 // ── Start ────────────────────────────────────────────────────
