@@ -80,6 +80,7 @@ export default function App() {
   const [lemmata, setLemmata]   = useState(null)
   const [apiError, setApiError] = useState(null)
   const [zeitreise, setZeitreise] = useState(null)
+  const [wortzwilling, setWortzwilling] = useState(null)
   const [serverDatum, setServerDatum] = useState(null)  // "MM-DD" vom Server
   const [serverYear,  setServerYear]  = useState(null)  // Jahreszahl vom Server
 
@@ -122,6 +123,13 @@ export default function App() {
     fetch(`${API_BASE}/api/zeitreise`)
       .then(r => r.ok ? r.json() : null)
       .then(data => { if (data) setZeitreise(data) })
+      .catch(() => {})
+  }, [])
+
+  useEffect(() => {
+    fetch(`${API_BASE}/api/wortzwilling`)
+      .then(r => r.ok ? r.json() : null)
+      .then(data => { if (data) setWortzwilling(data) })
       .catch(() => {})
   }, [])
 
@@ -215,6 +223,7 @@ export default function App() {
           zrPlayed={zrPlayed}
           onPlayZeitreise={() => { setZrViewOnly(false); setPhase('zeitreise') }}
           onViewZeitreise={() => { setZrViewOnly(true); setPhase('zeitreise') }}
+          wortzwilling={wortzwilling}
         />
       )}
       {phase === 'selection' && lemmata && (

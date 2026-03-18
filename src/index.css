@@ -402,6 +402,12 @@ button { font-family: inherit; cursor: pointer; border: none }
   font-size: 0.85rem;
   color: var(--muted);
 }
+.game-card--unavailable {
+  opacity: 0.4;
+  pointer-events: none;
+  user-select: none;
+  filter: grayscale(0.35);
+}
 .game-card--coming-soon {
   opacity: 0.45;
   pointer-events: none;
