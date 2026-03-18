@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { getDailyMedal } from '../utils/gameLogic'
 
 const WEEKDAYS = ['Sonntag','Montag','Dienstag','Mittwoch','Donnerstag','Freitag','Samstag']
@@ -74,6 +74,15 @@ export default function Home({ onStart, loading, error, playedGames = [], allPla
                               zeitreise = null, zrPlayed = null, onPlayZeitreise, onViewZeitreise }) {
   const [infoOpen, setInfoOpen] = useState(false)
   const [copied, setCopied] = useState(false)
+  const [logoSmall, setLogoSmall] = useState(false)
+
+  useEffect(() => {
+    const el = document.querySelector('.screen')
+    if (!el) return
+    const onScroll = () => setLogoSmall(el.scrollTop > 40)
+    el.addEventListener('scroll', onScroll, { passive: true })
+    return () => el.removeEventListener('scroll', onScroll)
+  }, [])
 
   async function shareResult() {
     const text = buildShareText(playedGames, zrPlayed)
@@ -95,7 +104,7 @@ export default function Home({ onStart, loading, error, playedGames = [], allPla
   return (
     <div className="screen home-screen">
       <header className="home-header">
-        <img src="/logo.png" alt="Signifikation" className="app-logo" />
+        <img src="/logo.png" alt="Signifikation" className={`app-logo${logoSmall ? ' app-logo--small' : ''}`} />
         <h1 className="sr-only">Signifikation</h1>
         <span className="beta-badge" aria-label="Beta-Version">Beta</span>
       </header>

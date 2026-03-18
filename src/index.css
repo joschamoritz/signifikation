@@ -159,6 +159,14 @@ button { font-family: inherit; cursor: pointer; border: none }
   height: auto;
   display: block;
   margin-inline: auto;
+  transition: width 0.3s ease;
+}
+.app-logo--small {
+  width: 130px;
+}
+@media (max-width: 480px) {
+  .app-logo { width: 170px; }
+  .app-logo--small { width: 110px; }
 }
 
 .beta-badge {
