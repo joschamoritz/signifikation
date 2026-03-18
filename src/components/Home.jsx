@@ -71,7 +71,8 @@ function streakFlames(n) {
 }
 
 export default function Home({ onStart, loading, error, playedGames = [], allPlayed = false,
-                              zeitreise = null, zrPlayed = null, onPlayZeitreise, onViewZeitreise }) {
+                              zeitreise = null, zrPlayed = null, onPlayZeitreise, onViewZeitreise,
+                              wortzwilling = null }) {
   const [infoOpen, setInfoOpen] = useState(false)
   const [copied, setCopied] = useState(false)
   const [logoSmall, setLogoSmall] = useState(false)
@@ -210,11 +211,12 @@ export default function Home({ onStart, loading, error, playedGames = [], allPla
         </button>
       </div>
 
-      {/* Zeitreise-Spielkarte */}
+      {/* Zeitreise-Spielkarte (aktiv) */}
       {zeitreise && (
         <div className="game-card">
           <div className="game-card-head">
             <span className="game-card-title">Zeitreise</span>
+            <span className="game-card-meta">500 Jahre Sprachgeschichte</span>
           </div>
 
           {zrPlayed ? (
@@ -232,6 +234,42 @@ export default function Home({ onStart, loading, error, playedGames = [], allPla
           >
             {zrPlayed ? 'Ergebnis ansehen' : 'Zeitreise starten'}
           </button>
+        </div>
+      )}
+
+      {/* Wort-Zwilling-Spielkarte (aktiv) */}
+      {wortzwilling && (
+        <div className="game-card">
+          <div className="game-card-head">
+            <span className="game-card-title">Wort-Zwilling</span>
+            <span className="game-card-meta">Welche Lesart steckt dahinter?</span>
+          </div>
+          <p className="game-card-empty">Heute noch nicht gespielt</p>
+          <button className="btn-primary btn-full" disabled>Kommt bald</button>
+        </div>
+      )}
+
+      {/* Zeitreise-Spielkarte (nicht verfügbar heute) */}
+      {!zeitreise && (
+        <div className="game-card game-card--unavailable" aria-hidden="true">
+          <div className="game-card-head">
+            <span className="game-card-title">Zeitreise</span>
+            <span className="game-card-meta">Heute nicht verfügbar</span>
+          </div>
+          <p className="game-card-empty">Kein Eintrag für heute</p>
+          <button className="btn-primary btn-full" disabled>Nicht verfügbar</button>
+        </div>
+      )}
+
+      {/* Wort-Zwilling-Spielkarte (nicht verfügbar heute) */}
+      {!wortzwilling && (
+        <div className="game-card game-card--unavailable" aria-hidden="true">
+          <div className="game-card-head">
+            <span className="game-card-title">Wort-Zwilling</span>
+            <span className="game-card-meta">Heute nicht verfügbar</span>
+          </div>
+          <p className="game-card-empty">Kein Eintrag für heute</p>
+          <button className="btn-primary btn-full" disabled>Nicht verfügbar</button>
         </div>
       )}
 
