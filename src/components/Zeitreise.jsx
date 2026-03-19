@@ -157,7 +157,7 @@ function ZrBubbleChart({ paare, perioden, placements, lemma }) {
             ) : hovBeleg?.length ? (
               <BelegeSatz tokens={hovBeleg[0].tokens} />
             ) : hovBeleg !== undefined ? (
-              <p className="belege-status">Keine Belege gefunden.</p>
+              <p className="belege-status">Belege konnten nicht geladen werden.</p>
             ) : null}
           </>
         ) : (
@@ -517,7 +517,7 @@ export default function Zeitreise({ data, onBack, onFinish, savedResult }) {
                       </div>
                     ))
                   ) : (
-                    <p className="belege-status">Keine Belege gefunden.</p>
+                    <p className="belege-status">Belege konnten nicht geladen werden.</p>
                   )}
                 </div>
               )}

@@ -20,7 +20,7 @@ export default function BelegePanel({ lemma, collocate, data, loading }) {
           </div>
         ))
       ) : (
-        <p className="belege-status">Keine Belege gefunden.</p>
+        <p className="belege-status">Belege konnten nicht geladen werden.</p>
       )}
     </div>
   )
