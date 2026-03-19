@@ -1562,6 +1562,15 @@ button { font-family: inherit; cursor: pointer; border: none }
 }
 .dwds-link:hover { text-decoration: underline; }
 
+.dwds-quelle {
+  font-size: 0.72rem;
+  color: var(--muted);
+  text-align: center;
+  line-height: 1.5;
+  margin-top: 4px;
+}
+.dwds-quelle a { color: var(--muted); text-decoration: underline; }
+
 /* Kollokationen Results: Titel + DWDS-Link nebeneinander */
 .wortprofil-title-row {
   display: flex; align-items: baseline; justify-content: space-between; gap: 8px;

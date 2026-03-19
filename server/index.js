@@ -223,17 +223,17 @@ app.get('/api/belege', belegeLimiter, async (req, res) => {
     return items.filter(item => !(item.bibl_string || '').toLowerCase().includes('wikipedia'))
   }
 
-  /** Durchläuft alle Queries, bricht ab sobald ≥2 Non-Wiki-Treffer gefunden wurden.
-   *  Fallback: erste Query mit ≥2 Treffern (inkl. Wikipedia). */
+  /** Durchläuft alle Queries, gibt beste Non-Wiki-Treffer zurück.
+   *  Kein Wikipedia-Fallback – lieber leer als falsche Quelle. */
   async function runQueries(queries, extra) {
-    let fallback = []
+    let best = []
     for (const q of queries) {
       const r  = await tryQuery(q, extra)
       const nw = noWiki(r)
-      if (nw.length >= 2) return nw          // Ideal: non-Wiki-Treffer
-      if (r.length >= 2 && !fallback.length) fallback = r  // speichere ersten brauchbaren Fallback
+      if (nw.length >= 2) return nw       // Ideal: ≥2 echte Belege
+      if (nw.length > best.length) best = nw  // merke bisher bestes Ergebnis (0 oder 1)
     }
-    return fallback
+    return best  // 0 oder 1 Non-Wiki-Beleg – kein Wikipedia-Fallback
   }
 
   function parseItem(item) {
