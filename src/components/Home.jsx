@@ -126,12 +126,12 @@ export default function Home({ onStart, loading, error, playedGames = [], allPla
           onClick={() => setInfoOpen(o => !o)}
           aria-expanded={infoOpen}
         >
-          <span>Was ist eine Kollokation?</span>
+          <span>Was ist eine Kollokation <span className="lautschrift">[kɔlokaˈtsi̯oːn]</span>?</span>
           <span className={`toggle-arrow ${infoOpen ? 'toggle-arrow--open' : ''}`} aria-hidden="true">›</span>
         </button>
         {infoOpen && (
           <div className="home-card-body">
-            <p className="home-card-text">
+            <p className="home-card-text home-card-text--dropcap">
               Kollokationen sind <strong>charakteristische syntagmatische Wortverbindungen</strong>,
               in denen ein Element (die <strong>Basis</strong>) den anderen Bestandteil (den{' '}
               <strong>Kollokator</strong>) semantisch selegiert. Man sagt <em>blondes Haar</em> und
