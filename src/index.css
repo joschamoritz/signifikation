@@ -24,6 +24,7 @@
   --radius-sm:   8px;
   --font-serif:  'Playfair Display', Georgia, serif;
   --font-sans:   'DM Sans', system-ui, -apple-system, sans-serif;
+  --font-ipa:    'Gentium Plus', 'Gentium', Georgia, serif;
 }
 
 html { font-size: 16px; -webkit-text-size-adjust: 100% }
@@ -326,8 +327,8 @@ button { font-family: inherit; cursor: pointer; border: none }
 
 /* Lautschrift */
 .lautschrift {
-  font-family: var(--font-serif);
-  font-size: 0.8em;
+  font-family: var(--font-ipa);
+  font-size: 0.78em;
   font-weight: 400;
   color: var(--muted);
   letter-spacing: 0.01em;

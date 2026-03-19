@@ -73,7 +73,7 @@ function streakFlames(n) {
 export default function Home({ onStart, loading, error, playedGames = [], allPlayed = false,
                               zeitreise = null, zrPlayed = null, onPlayZeitreise, onViewZeitreise,
                               wortzwilling = null, wzPlayed = null, onPlayWortzwilling, onViewWortzwilling }) {
-  const [infoOpen, setInfoOpen] = useState(true)
+  const [infoOpen, setInfoOpen] = useState(false)
   const [copied, setCopied] = useState(false)
   const [logoSmall, setLogoSmall] = useState(false)
 
@@ -126,7 +126,7 @@ export default function Home({ onStart, loading, error, playedGames = [], allPla
           onClick={() => setInfoOpen(o => !o)}
           aria-expanded={infoOpen}
         >
-          <span>Was ist eine Kollokation <span className="lautschrift">[kɔlokaˈtsi̯oːn]</span>?</span>
+          <span>Was ist eine Kollokation?</span>
           <span className={`toggle-arrow ${infoOpen ? 'toggle-arrow--open' : ''}`} aria-hidden="true">›</span>
         </button>
         {infoOpen && (
@@ -164,7 +164,7 @@ export default function Home({ onStart, loading, error, playedGames = [], allPla
       {/* Kollokationen-Spielkarte */}
       <div className="game-card">
         <div className="game-card-head">
-          <span className="game-card-title">Kollokationen</span>
+          <span className="game-card-title">Kollokationen <span className="lautschrift">[kɔlokaˈtsi̯oːnən]</span></span>
         </div>
 
         {playedGames.length > 0 && (
@@ -213,7 +213,7 @@ export default function Home({ onStart, loading, error, playedGames = [], allPla
       {zeitreise && (
         <div className="game-card">
           <div className="game-card-head">
-            <span className="game-card-title">Zeitreise</span>
+            <span className="game-card-title">Zeitreise <span className="lautschrift">[ˈtsaɪ̯tˌʁaɪ̯zə]</span></span>
             <span className="game-card-meta">500 Jahre Sprachgeschichte</span>
           </div>
 
@@ -239,7 +239,7 @@ export default function Home({ onStart, loading, error, playedGames = [], allPla
       {wortzwilling && (
         <div className="game-card">
           <div className="game-card-head">
-            <span className="game-card-title">Wort-Zwilling</span>
+            <span className="game-card-title">Wort-Zwilling <span className="lautschrift">[ˈvɔʁtˌtsvɪlɪŋ]</span></span>
             <span className="game-card-meta">{wortzwilling.wortA} · {wortzwilling.wortB}</span>
           </div>
 
@@ -265,7 +265,7 @@ export default function Home({ onStart, loading, error, playedGames = [], allPla
       {!zeitreise && (
         <div className="game-card game-card--unavailable" aria-hidden="true">
           <div className="game-card-head">
-            <span className="game-card-title">Zeitreise</span>
+            <span className="game-card-title">Zeitreise <span className="lautschrift">[ˈtsaɪ̯tˌʁaɪ̯zə]</span></span>
             <span className="game-card-meta">Heute nicht verfügbar</span>
           </div>
           <p className="game-card-empty">Kein Eintrag für heute</p>
@@ -277,7 +277,7 @@ export default function Home({ onStart, loading, error, playedGames = [], allPla
       {!wortzwilling && (
         <div className="game-card game-card--unavailable" aria-hidden="true">
           <div className="game-card-head">
-            <span className="game-card-title">Wort-Zwilling</span>
+            <span className="game-card-title">Wort-Zwilling <span className="lautschrift">[ˈvɔʁtˌtsvɪlɪŋ]</span></span>
             <span className="game-card-meta">Heute nicht verfügbar</span>
           </div>
           <p className="game-card-empty">Kein Eintrag für heute</p>
@@ -288,7 +288,7 @@ export default function Home({ onStart, loading, error, playedGames = [], allPla
       {/* Teaser: kommendes Spiel */}
       <div className="game-card game-card--coming-soon" aria-hidden="true">
         <div className="game-card-head">
-          <span className="game-card-title">???</span>
+          <span className="game-card-title">??? <span className="lautschrift">[???]</span></span>
           <span className="game-card-meta">In Arbeit</span>
         </div>
         <p className="game-card-empty">Demnächst verfügbar</p>

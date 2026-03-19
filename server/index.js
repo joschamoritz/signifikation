@@ -14,7 +14,7 @@ const DATA      = join(__dirname, 'data')
 mkdirSync(DATA, { recursive: true })
 
 const IS_PROD   = process.env.NODE_ENV === 'production'
-const ADMIN_KEY = process.env.ADMIN_KEY || (IS_PROD ? null : 'dev-only')
+const ADMIN_KEY = (process.env.ADMIN_KEY || (IS_PROD ? null : 'dev-only'))?.trim()
 const PORT      = process.env.PORT || 3001
 if (!ADMIN_KEY) {
   console.error('❌ ADMIN_KEY ist nicht gesetzt – in Produktion erforderlich. Server wird beendet.')
