@@ -378,6 +378,7 @@ export default function Zeitreise({ data, onBack, onFinish, savedResult }) {
           <button className="btn-primary btn-full" onClick={onBack}>
             Zur Startseite
           </button>
+          <p className="dwds-quelle">Kollokationsdaten: DiaCollo / DWDS-Korpora, Digitales Wörterbuch der deutschen Sprache (BBAW). <a href="https://www.dwds.de/d/zitieren" target="_blank" rel="noopener noreferrer">Zitierregeln ↗</a></p>
         </div>
       </div>
     )
@@ -574,6 +575,7 @@ export default function Zeitreise({ data, onBack, onFinish, savedResult }) {
           <button className="btn-primary btn-full" onClick={onBack}>
             Zur Startseite
           </button>
+          <p className="dwds-quelle">Kollokationsdaten: DiaCollo / DWDS-Korpora, Digitales Wörterbuch der deutschen Sprache (BBAW). <a href="https://www.dwds.de/d/zitieren" target="_blank" rel="noopener noreferrer">Zitierregeln ↗</a></p>
         </div>
       )}
     </div>

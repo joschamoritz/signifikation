@@ -73,16 +73,14 @@ function streakFlames(n) {
 export default function Home({ onStart, loading, error, playedGames = [], allPlayed = false,
                               zeitreise = null, zrPlayed = null, onPlayZeitreise, onViewZeitreise,
                               wortzwilling = null, wzPlayed = null, onPlayWortzwilling, onViewWortzwilling }) {
-  const [infoOpen, setInfoOpen] = useState(false)
+  const [infoOpen, setInfoOpen] = useState(true)
   const [copied, setCopied] = useState(false)
   const [logoSmall, setLogoSmall] = useState(false)
 
   useEffect(() => {
-    const el = document.querySelector('.screen')
-    if (!el) return
-    const onScroll = () => setLogoSmall(el.scrollTop > 40)
-    el.addEventListener('scroll', onScroll, { passive: true })
-    return () => el.removeEventListener('scroll', onScroll)
+    const onScroll = () => setLogoSmall(window.scrollY > 40)
+    window.addEventListener('scroll', onScroll, { passive: true })
+    return () => window.removeEventListener('scroll', onScroll)
   }, [])
 
   async function shareResult() {
@@ -156,8 +154,8 @@ export default function Home({ onStart, loading, error, playedGames = [], allPla
             <ol className="home-card-footnotes">
               <li>Hausmann, F.&thinsp;J. (2003): Was sind eigentlich Kollokationen? In: Steyer, K. (Hrsg.): <em>Wortverbindungen — mehr oder weniger fest</em>. de Gruyter, S.&thinsp;309–334.</li>
               <li>Rychlý, P. (2008): A Lexicographer-Friendly Association Score. In: <em>Proceedings of RASLAN 2008</em>, S.&thinsp;6–9.</li>
-              <li>Berlin-Brandenburgische Akademie der Wissenschaften (BBAW): <em>Digitales Wörterbuch der deutschen Sprache</em>. dwds.de</li>
-              <li>Jurish, B. et&thinsp;al. (2014): DiaCollo: On the Trail of Diachronic Collocations. In: <em>Proceedings of DH 2014</em>.</li>
+              <li>DWDS-Wortprofil, erstellt durch das Digitale Wörterbuch der deutschen Sprache, Berlin-Brandenburgische Akademie der Wissenschaften (BBAW). <a href="https://www.dwds.de/d/zitieren" target="_blank" rel="noopener">Zitierregeln</a></li>
+              <li>Jurish, B. et&thinsp;al. (2014): DiaCollo: On the Trail of Diachronic Collocations. In: <em>Proceedings of DH 2014</em>. <a href="https://www.dwds.de/d/zitieren" target="_blank" rel="noopener">Zitierregeln</a></li>
             </ol>
           </div>
         )}
