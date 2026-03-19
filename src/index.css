@@ -314,6 +314,24 @@ button { font-family: inherit; cursor: pointer; border: none }
   color: var(--muted);
   line-height: 1.6;
 }
+.home-card-text--dropcap::first-letter {
+  font-family: var(--font-serif);
+  font-size: 2.8em;
+  font-weight: 700;
+  line-height: 0.85;
+  float: left;
+  margin-right: 4px;
+  color: var(--text);
+}
+
+/* Lautschrift */
+.lautschrift {
+  font-family: var(--font-serif);
+  font-size: 0.8em;
+  font-weight: 400;
+  color: var(--muted);
+  letter-spacing: 0.01em;
+}
 .home-card-footnotes {
   margin-top: 12px;
   padding-left: 16px;
