@@ -1,3 +1,8 @@
+// DEAKTIVIERT: Korpusbelege dürfen laut DWDS-Nutzungsbedingungen nicht extern veröffentlicht werden.
+// Reaktivieren sobald schriftliche Genehmigung der BBAW vorliegt.
+// In Results.jsx: useBelege-Import + useBelege()-Aufruf + BelegePanel einkommentieren,
+//                 onClick der wortprofil-item buttons auf loadBelege umstellen.
+
 import { useState } from 'react'
 import { API_BASE } from '../config'
 
