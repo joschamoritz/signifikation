@@ -164,7 +164,7 @@ export default function Home({
                   <span className="test-entry-category">täglich</span>
                 </div>
                 <p className="test-definition">
-                  Finde die stärksten Kollokate zu den Wörtern des Tages. Welche Ausdrücke gehören wirklich zusammen?
+                  Welche Wörter treten am häufigsten gemeinsam auf? Bestimme die stärksten Kollokate des Tages aus den DWDS-Korpusdaten.
                 </p>
 
                 {/* Gespielte Wörter */}
@@ -224,7 +224,7 @@ export default function Home({
                   <span className="test-entry-category">historisch</span>
                 </div>
                 <p className="test-definition">
-                  Entdecke, wie sich die Sprache über 500 Jahre verändert hat. Welche Kollokate waren üblich — damals, heute?
+                  Wie verändern sich Kollokationsmuster über Jahrhunderte? Vergleiche historische und gegenwärtige Belege aus fünf Jahrhunderten Sprachgeschichte.
                 </p>
 
                 {zrPlayed && (
@@ -274,7 +274,7 @@ export default function Home({
                   <span className="test-entry-category">komparativ</span>
                 </div>
                 <p className="test-definition">
-                  Ordne zehn Kollokate den richtigen Zwillingswörtern zu. Zwei verwandte Wörter — aber welches Kollokat gehört wohin?
+                  Zwei bedeutungsnahe Wörter — zwei unterschiedliche Kollokationsprofile. Ordne zehn Kollokate dem richtigen Lemma zu.
                 </p>
 
                 {wzPlayed && wortzwilling && (

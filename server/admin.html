@@ -91,15 +91,19 @@
     /* Nur Zeitreise */
     .cal-day.has-zeit   { background: #eff6ff; color: #1d4ed8; font-weight: 600; cursor: pointer; }
     .cal-day.has-zeit:hover { background: #dbeafe; border-color: #1d4ed8; }
-    /* Beide */
+    /* Koll + Zeitreise */
     .cal-day.has-both   { background: #f0fdf4; color: #166534; font-weight: 600; cursor: pointer; }
     .cal-day.has-both:hover { background: #bbf7d0; border-color: #166534; }
+    /* Alle drei */
+    .cal-day.has-all    { background: #dcfce7; color: #14532d; font-weight: 700; cursor: pointer; }
+    .cal-day.has-all:hover { background: #bbf7d0; border-color: #14532d; }
 
     .cal-day.is-today { border-color: var(--primary) !important; }
     .cal-dots { display: flex; gap: 2px; }
     .cal-dot  { width: 5px; height: 5px; border-radius: 50%; }
     .cal-dot.koll { background: var(--primary); }
     .cal-dot.zeit { background: #1d4ed8; }
+    .cal-dot.wz   { background: var(--accent-dk); }
 
     .cal-legend { display: flex; flex-wrap: wrap; gap: 10px 16px; font-size: 0.78rem; color: var(--muted); align-items: center; }
     .cal-legend-item { display: flex; align-items: center; gap: 5px; }
@@ -107,6 +111,7 @@
     .cal-legend-box.koll  { background: #fef2f2; border: 1.5px solid var(--primary); }
     .cal-legend-box.zeit  { background: #eff6ff; border: 1.5px solid #1d4ed8; }
     .cal-legend-box.both  { background: #f0fdf4; border: 1.5px solid #166534; }
+    .cal-legend-box.all   { background: #dcfce7; border: 1.5px solid #14532d; }
     .cal-legend-box.empty { border: 1.5px solid var(--border); }
     .cal-legend-box.today { border: 1.5px solid var(--primary); }
 
@@ -173,6 +178,15 @@
     .viz-corpus-dot { display: inline-flex; align-items: center; gap: 5px; font-size: 0.78rem; color: var(--muted); }
     .viz-corpus-dot b { width: 10px; height: 10px; border-radius: 50%; display: inline-block; flex-shrink: 0; }
     .viz-star-note { font-size: 0.73rem; color: var(--muted); margin-top: 6px; }
+
+    /* ── Statistik ── */
+    .stats-tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+    .stats-tile { background: var(--bg); border: 1.5px solid var(--border); border-radius: var(--radius); padding: 12px 14px; }
+    .stats-tile-title { font-size: 0.72rem; font-weight: 600; text-transform: uppercase; letter-spacing: .07em; color: var(--muted); margin-bottom: 6px; }
+    .stats-tile-num { font-size: 1.8rem; font-weight: 700; font-family: 'Gentium Plus', serif; color: var(--text); line-height: 1; }
+    .stats-tile-sub { font-size: 0.78rem; color: var(--muted); margin-top: 5px; }
+    .stats-section-title { font-size: 0.78rem; font-weight: 600; text-transform: uppercase; letter-spacing: .07em; color: var(--muted); margin: 16px 0 8px; }
+    .stats-chart-wrap { position: relative; }
 
     /* ── Login-Screen ── */
     .login-overlay {
@@ -327,6 +341,15 @@
     <button id="save-btn" onclick="saveTag()">Speichern &amp; APIs abrufen</button>
   </div>
 
+  <!-- Statistik -->
+  <div class="card">
+    <div style="display:flex;align-items:center;justify-content:space-between">
+      <h2>Statistik</h2>
+      <button onclick="loadStats()" style="font-size:0.8rem;padding:6px 12px">↺ Laden</button>
+    </div>
+    <div id="stats-output"><div style="color:var(--muted);font-size:0.85rem">Noch nicht geladen.</div></div>
+  </div>
+
   <!-- DiaCollo Korpora -->
   <div class="card">
     <button class="mode-toggle" id="korpus-toggle" onclick="toggleMode('korpus')">
@@ -404,7 +427,8 @@
     </div>
     <div class="cal-grid" id="cal-grid"></div>
     <div class="cal-legend">
-      <div class="cal-legend-item"><div class="cal-legend-box both"></div> Beide</div>
+      <div class="cal-legend-item"><div class="cal-legend-box all"></div> Alle drei</div>
+      <div class="cal-legend-item"><div class="cal-legend-box both"></div> Koll + Zeitreise</div>
       <div class="cal-legend-item"><div class="cal-legend-box koll"></div> Nur Kollokationen</div>
       <div class="cal-legend-item"><div class="cal-legend-box zeit"></div> Nur Zeitreise</div>
       <div class="cal-legend-item"><div class="cal-legend-box empty"></div> Leer</div>
@@ -482,6 +506,7 @@
   function initDashboard() {
     renderCalendar()
     loadKorpusConfig()
+    loadStats()
   }
 
   function toggleMode(id) {
@@ -556,22 +581,24 @@
       const entry       = kalenderData[key]
       const hasKoll     = !!(entry?.lemmata?.length)
       const hasZeit     = !!(entry?.hasZeitreise)
+      const hasWZ       = !!(entry?.hasWortZwilling)
       const isTodayCell = (calYear === todayYear && key === todayStr)
 
       let stateClass
-      if (hasKoll && hasZeit) stateClass = 'has-both'
-      else if (hasKoll)       stateClass = 'has-koll'
-      else if (hasZeit)       stateClass = 'has-zeit'
-      else                    stateClass = 'no-entry'
+      if (hasKoll && hasZeit && hasWZ) stateClass = 'has-all'
+      else if (hasKoll && hasZeit)     stateClass = 'has-both'
+      else if (hasKoll)                stateClass = 'has-koll'
+      else if (hasZeit)                stateClass = 'has-zeit'
+      else                             stateClass = 'no-entry'
 
       const classes = ['cal-day', stateClass, isTodayCell ? 'is-today' : ''].filter(Boolean).join(' ')
 
       let dots = ''
-      if (hasKoll || hasZeit) {
-        dots = `<div class="cal-dots">${hasKoll ? '<div class="cal-dot koll"></div>' : ''}${hasZeit ? '<div class="cal-dot zeit"></div>' : ''}</div>`
+      if (hasKoll || hasZeit || hasWZ) {
+        dots = `<div class="cal-dots">${hasKoll ? '<div class="cal-dot koll"></div>' : ''}${hasZeit ? '<div class="cal-dot zeit"></div>' : ''}${hasWZ ? '<div class="cal-dot wz"></div>' : ''}</div>`
       }
 
-      const action = (hasKoll || hasZeit)
+      const action = (hasKoll || hasZeit || hasWZ)
         ? `onclick="editTag('${key}')"`
         : `onclick="prefillDate('${calYear}-${mm}-${dd}')"`
 
@@ -1070,6 +1097,123 @@
     }
 
     out.innerHTML = html
+  }
+
+  // ── Statistik ─────────────────────────────────────────────
+  let statsChartTrend = null
+  let statsChartDist  = null
+
+  const STAT_KEYS   = ['kollokationen', 'zeitreise', 'wortzwilling']
+  const STAT_LABELS = { kollokationen: 'Kollokationen', zeitreise: 'Zeitreise', wortzwilling: 'Wort-Zwilling' }
+  const STAT_COLORS = { kollokationen: '#9b1c1c', zeitreise: '#1d4ed8', wortzwilling: '#15803d' }
+
+  async function loadStats() {
+    const out = document.getElementById('stats-output')
+    out.innerHTML = '<div style="color:var(--muted);font-size:0.85rem">Lade…</div>'
+    try {
+      const r    = await fetch('/admin/stats?days=30', { headers: { 'x-admin-key': KEY } })
+      const data = await r.json()
+      if (!r.ok) throw new Error(data.error || `HTTP ${r.status}`)
+      renderStats(data, out)
+    } catch (e) {
+      out.innerHTML = `<div class="status error">Fehler: ${esc(e.message)}</div>`
+    }
+  }
+
+  function renderStats(data, out) {
+    if (!data.length) {
+      out.innerHTML = '<div style="color:var(--muted);font-size:0.85rem">Noch keine Statistik vorhanden.</div>'
+      return
+    }
+
+    const todayStr   = `${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`
+    const todayEntry = data.find(d => d.datum === todayStr) || null
+    const last7      = data.slice(-7)
+
+    function fmtAvg(entry) {
+      if (!entry || !entry.plays) return '–'
+      return (entry.scoreSum / entry.maxSum * 10).toFixed(1)
+    }
+
+    // Heute-Tiles
+    let html = '<div class="stats-section-title" style="margin-top:0">Heute</div><div class="stats-tiles">'
+    for (const key of STAT_KEYS) {
+      const e = todayEntry?.[key]
+      html += `<div class="stats-tile">
+        <div class="stats-tile-title">${esc(STAT_LABELS[key])}</div>
+        <div class="stats-tile-num">${e?.plays || 0}</div>
+        <div class="stats-tile-sub">Ø ${fmtAvg(e)} / 10</div>
+      </div>`
+    }
+    html += '</div>'
+
+    html += '<div class="stats-section-title">Plays letzte 7 Tage</div>'
+    html += '<div class="stats-chart-wrap" style="height:160px"><canvas id="stats-trend-canvas"></canvas></div>'
+    html += '<div class="stats-section-title">Score-Verteilung heute (0–10)</div>'
+    html += '<div class="stats-chart-wrap" style="height:130px" id="stats-dist-wrap"><canvas id="stats-dist-canvas"></canvas></div>'
+
+    out.innerHTML = html
+
+    // Alte Charts zerstören
+    if (statsChartTrend) { statsChartTrend.destroy(); statsChartTrend = null }
+    if (statsChartDist)  { statsChartDist.destroy();  statsChartDist  = null }
+
+    // Trend-Chart
+    const trendLabels = last7.map(d => { const [mm, dd] = d.datum.split('-'); return `${dd}.${mm}.` })
+    statsChartTrend = new Chart(document.getElementById('stats-trend-canvas').getContext('2d'), {
+      type: 'line',
+      data: {
+        labels: trendLabels,
+        datasets: STAT_KEYS.map(key => ({
+          label: STAT_LABELS[key],
+          data: last7.map(d => d[key]?.plays || 0),
+          borderColor: STAT_COLORS[key],
+          backgroundColor: STAT_COLORS[key] + '18',
+          tension: 0.3,
+          pointRadius: 4,
+          fill: false,
+        }))
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { position: 'bottom', labels: { font: { size: 10 }, boxWidth: 10, padding: 10 } } },
+        scales: {
+          y: { beginAtZero: true, ticks: { stepSize: 1, font: { size: 10 } }, grid: { color: '#e7e5e0' } },
+          x: { ticks: { font: { size: 10 } }, grid: { display: false } }
+        },
+        animation: { duration: 300 }
+      }
+    })
+
+    // Verteilungs-Chart
+    if (todayEntry && STAT_KEYS.some(k => todayEntry[k]?.plays)) {
+      statsChartDist = new Chart(document.getElementById('stats-dist-canvas').getContext('2d'), {
+        type: 'bar',
+        data: {
+          labels: ['0','1','2','3','4','5','6','7','8','9','10'],
+          datasets: STAT_KEYS.map(key => ({
+            label: STAT_LABELS[key],
+            data: todayEntry[key]?.dist || Array(11).fill(0),
+            backgroundColor: STAT_COLORS[key] + 'aa',
+            borderColor: STAT_COLORS[key],
+            borderWidth: 1,
+            borderRadius: 2,
+          }))
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          plugins: { legend: { position: 'bottom', labels: { font: { size: 10 }, boxWidth: 10, padding: 10 } } },
+          scales: {
+            x: { title: { display: true, text: 'Score', font: { size: 10 } }, ticks: { font: { size: 10 } }, grid: { display: false } },
+            y: { beginAtZero: true, ticks: { stepSize: 1, font: { size: 10 } }, grid: { color: '#e7e5e0' } }
+          },
+          animation: { duration: 300 }
+        }
+      })
+    } else {
+      document.getElementById('stats-dist-wrap').innerHTML =
+        '<div style="color:var(--muted);font-size:0.85rem;padding:12px 0">Noch keine Daten für heute.</div>'
+    }
   }
 
   // ── Wort-Zwilling – Paaranalyse ───────────────────────────

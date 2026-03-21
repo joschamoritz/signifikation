@@ -78,6 +78,14 @@ const adminLimiter = rateLimit({
   message: { error: 'Zu viele Admin-Anfragen, bitte kurz warten.' },
 })
 
+const statsLimiter = rateLimit({
+  windowMs: 60_000,           // 1 Minute
+  max: 10,                    // max 10 Stats-Requests pro IP pro Minute
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Zu viele Anfragen.' },
+})
+
 // ── Server-seitiger Beleg-Cache (TTL 6h, max 200 Einträge) ──
 const _belegeCache = new Map()
 const BELEG_TTL_MS  = 6 * 60 * 60 * 1000
@@ -113,6 +121,7 @@ function save(file, data) {
 }
 function loadZeitreise()    { try { return load('zeitreise.json')    } catch { return {} } }
 function loadWortZwilling() { try { return load('wortzwilling.json') } catch { return {} } }
+function loadStats()        { try { return load('stats.json')        } catch { return {} } }
 
 /** Fehlerausgabe: in Produktion keine internen Details preisgeben */
 function serverError(res, err) {
@@ -363,6 +372,30 @@ app.get('/api/belege', belegeLimiter, async (req, res) => {
   }
 })
 
+/** POST /api/stats – anonyme Spielstatistik erfassen */
+app.post('/api/stats', statsLimiter, (req, res) => {
+  const { game, datum, score, max } = req.body || {}
+  const VALID_GAMES = ['kollokationen', 'zeitreise', 'wortzwilling']
+  if (!game || !VALID_GAMES.includes(game) || !datum || typeof score !== 'number' || typeof max !== 'number') {
+    return res.status(400).json({ error: 'game, datum, score, max erforderlich' })
+  }
+  if (!/^\d{2}-\d{2}$/.test(datum)) return res.status(400).json({ error: 'Ungültiges datum-Format (MM-DD)' })
+  if (max <= 0) return res.status(400).json({ error: 'max muss > 0 sein' })
+  try {
+    const stats = loadStats()
+    if (!stats[datum]) stats[datum] = {}
+    if (!stats[datum][game]) stats[datum][game] = { plays: 0, scoreSum: 0, maxSum: 0, dist: Array(11).fill(0) }
+    const entry = stats[datum][game]
+    entry.plays++
+    entry.scoreSum += Math.max(0, score)
+    entry.maxSum   += max
+    const normalized = Math.min(10, Math.round(score / max * 10))
+    entry.dist[normalized]++
+    save('stats.json', stats)
+    res.json({ ok: true })
+  } catch (err) { serverError(res, err) }
+})
+
 /** POST /api/feedback – Nutzerfeedback speichern */
 app.post('/api/feedback', (req, res) => {
   const { game, emoji, text } = req.body || {}
@@ -375,6 +408,17 @@ app.post('/api/feedback', (req, res) => {
     list.unshift(entry)
     writeFileSync(file, JSON.stringify(list, null, 2))
     res.json({ ok: true })
+  } catch (err) { serverError(res, err) }
+})
+
+/** GET /admin/stats – Spielstatistik der letzten N Tage */
+app.get('/admin/stats', adminLimiter, requireAuth, (req, res) => {
+  const days = Math.min(90, Math.max(1, parseInt(req.query.days) || 30))
+  try {
+    const stats = loadStats()
+    const sorted = Object.keys(stats).sort()
+    const result = sorted.slice(-days).map(datum => ({ datum, ...stats[datum] }))
+    res.json(result)
   } catch (err) { serverError(res, err) }
 })
 
