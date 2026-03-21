@@ -1,53 +1,25 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { getDailyMedal } from '../utils/gameLogic'
+import '../test.css'
 
 const WEEKDAYS = ['Sonntag','Montag','Dienstag','Mittwoch','Donnerstag','Freitag','Samstag']
 const MONTHS   = ['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember']
-const POS_LABEL = { 'Substantiv': 'Nomen', 'Verb': 'Verb', 'Adjektiv': 'Adj' }
 
-function buildShareText(playedGames, zrPlayed) {
-  const d = new Date()
-  const dateStr = `${d.getDate()}. ${MONTHS[d.getMonth()]}`
-
-  function blocks(score) {
-    const filled = Math.round((score / 10) * 5)
-    return '█'.repeat(filled) + '░'.repeat(5 - filled)
-  }
-
-  const lines = [`📖 Signifikation · ${dateStr}`, '']
-
-  for (const g of playedGames) {
-    const lbl = POS_LABEL[g.pos] || 'Wort'
-    lines.push(`[${lbl}] ${g.lemma}  ${blocks(g.total)}  ${g.total}/10`)
-  }
-
-  if (playedGames.length > 0) lines.push('')
-
-  if (zrPlayed) {
-    lines.push(`[500 Jahre] ${zrPlayed.lemma}  ${blocks(zrPlayed.total)}  ${zrPlayed.total}/10`)
-    lines.push('')
-  }
-
-  lines.push('💬 Schaffst du es besser? → signifikation.de')
-  return lines.join('\n')
-}
-
-function todayLabel() {
-  const d = new Date()
-  return `${WEEKDAYS[d.getDay()]}, ${d.getDate()}. ${MONTHS[d.getMonth()]} ${d.getFullYear()}`
-}
-
-/** Lokales Datum als YYYY-MM-DD (keine UTC-Verschiebung). */
 function localDateStr(d) {
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`
 }
 
-/** Berechnet den aktuellen Streak anhand von sig_activity (beliebiges Spiel).
- *  Fallback: sig_history für Nutzer mit alten Daten. */
+function getISOWeek(d) {
+  const date = new Date(d)
+  date.setHours(0, 0, 0, 0)
+  date.setDate(date.getDate() + 3 - (date.getDay() + 6) % 7)
+  const week1 = new Date(date.getFullYear(), 0, 4)
+  return 1 + Math.round(((date - week1) / 86400000 - 3 + (week1.getDay() + 6) % 7) / 7)
+}
+
 function computeStreak() {
   const activity = JSON.parse(localStorage.getItem('sig_activity') || '[]')
-  // Backwards-compat: alte sig_history-Einträge einbeziehen
-  const legacy   = JSON.parse(localStorage.getItem('sig_history') || '[]').map(h => h.date)
+  const legacy   = JSON.parse(localStorage.getItem('sig_history')  || '[]').map(h => h.date)
   const dateSet  = new Set([...activity, ...legacy])
   if (!dateSet.size) return 0
   const msDay = 86_400_000
@@ -57,10 +29,7 @@ function computeStreak() {
   if (!dateSet.has(todayStr) && !dateSet.has(yesterdayStr)) return 0
   let d = dateSet.has(todayStr) ? new Date(today) : new Date(today - msDay)
   let streak = 0
-  while (dateSet.has(localDateStr(d))) {
-    streak++
-    d = new Date(d - msDay)
-  }
+  while (dateSet.has(localDateStr(d))) { streak++; d = new Date(d - msDay) }
   return streak
 }
 
@@ -70,24 +39,55 @@ function streakFlames(n) {
   return '🔥'
 }
 
-export default function Home({ onStart, loading, error, playedGames = [], allPlayed = false,
-                              zeitreise = null, zrPlayed = null, onPlayZeitreise, onViewZeitreise,
-                              wortzwilling = null, wzPlayed = null, onPlayWortzwilling, onViewWortzwilling }) {
-  const [infoOpen, setInfoOpen] = useState(false)
-  const [copied, setCopied] = useState(false)
-  const [logoSmall, setLogoSmall] = useState(false)
+const POS_LABEL = { 'Substantiv': 'Nomen', 'Verb': 'Verb', 'Adjektiv': 'Adj' }
 
-  useEffect(() => {
-    const onScroll = () => setLogoSmall(window.scrollY > 40)
-    window.addEventListener('scroll', onScroll, { passive: true })
-    return () => window.removeEventListener('scroll', onScroll)
-  }, [])
+function buildShareText(playedGames, zrPlayed, wzPlayed, wortzwilling) {
+  const d = new Date()
+  const dateStr = `${d.getDate()}. ${MONTHS[d.getMonth()]}`
+  function blocks(score) {
+    const filled = Math.round((score / 10) * 5)
+    return '█'.repeat(filled) + '░'.repeat(5 - filled)
+  }
+  const lines = [`📖 Signifikation · ${dateStr}`, '']
+  for (const g of playedGames) {
+    const lbl = POS_LABEL[g.pos] || 'Wort'
+    lines.push(`[${lbl}] ${g.lemma}  ${blocks(g.total)}  ${g.total}/10`)
+  }
+  if (playedGames.length > 0) lines.push('')
+  if (zrPlayed) {
+    lines.push(`[500 Jahre] ${zrPlayed.lemma}  ${blocks(zrPlayed.total)}  ${zrPlayed.total}/10`)
+    lines.push('')
+  }
+  if (wzPlayed && wortzwilling) {
+    lines.push(`[Wort-Zwilling] ${wortzwilling.wortA}/${wortzwilling.wortB}  ${blocks(wzPlayed.total)}  ${wzPlayed.total}/10`)
+    lines.push('')
+  }
+  lines.push('💬 Schaffst du es besser? → signifikation.de')
+  return lines.join('\n')
+}
+
+export default function Home({
+  onStart, loading, error, lemmata = [],
+  playedGames = [], allPlayed = false,
+  zeitreise = null, zrPlayed = null, onPlayZeitreise, onViewZeitreise,
+  wortzwilling = null, wzPlayed = null, onPlayWortzwilling, onViewWortzwilling,
+}) {
+  const [infoOpen, setInfoOpen] = useState(false)
+  const [copied, setCopied]     = useState(false)
+
+  const streak     = computeStreak()
+  const today      = new Date()
+  const dateStr    = localDateStr(today)
+  const kw         = getISOWeek(today)
+  const hasPlayed  = playedGames.length > 0 || !!zrPlayed || !!wzPlayed
+
+  const totalPoints = playedGames.reduce((s, g) => s + g.total, 0)
+  const maxPoints   = playedGames.length * 10
+  const dailyMedal  = allPlayed ? getDailyMedal(totalPoints) : null
 
   async function shareResult() {
-    const text = buildShareText(playedGames, zrPlayed)
-    if (navigator.share) {
-      try { await navigator.share({ text }); return } catch {}
-    }
+    const text = buildShareText(playedGames, zrPlayed, wzPlayed, wortzwilling)
+    if (navigator.share) { try { await navigator.share({ text }); return } catch {} }
     try {
       await navigator.clipboard.writeText(text)
       setCopied(true)
@@ -95,42 +95,267 @@ export default function Home({ onStart, loading, error, playedGames = [], allPla
     } catch {}
   }
 
-  const streak      = computeStreak()
-  const totalPoints = playedGames.reduce((s, g) => s + g.total, 0)
-  const maxPoints   = playedGames.length * 10
-  const dailyMedal  = allPlayed ? getDailyMedal(totalPoints) : null
+  /* ── CTA-Text & Handler für Kollokationen ─────────────────── */
+  const kollCtaText = loading     ? 'Lade …'
+                    : allPlayed   ? 'Wörter ansehen'
+                    : playedGames.length > 0 ? 'Weiteres Wort spielen'
+                    : 'Quiz starten'
 
   return (
-    <div className="screen home-screen">
-      <header className="home-header">
-        <img src="/logo.png" alt="Signifikation" className={`app-logo${logoSmall ? ' app-logo--small' : ''}`} />
-        <h1 className="sr-only">Signifikation</h1>
-        <span className="beta-badge" aria-label="Beta-Version">Beta</span>
-      </header>
+    <div className="test-page" lang="de">
+      <div className="test-wrapper">
 
-      <p className="home-date">{todayLabel()}</p>
+        {/* ── Titelseite ───────────────────────────────────── */}
+        <header className="test-title-section" role="banner">
+          <p className="test-overline">Tägliches Wortspiel · Linguistik</p>
+          <h1 className="test-title">Signifikation</h1>
+          <p className="test-subtitle">
+            <time dateTime={dateStr}>
+              {`${WEEKDAYS[today.getDay()]}, ${today.getDate()}. ${MONTHS[today.getMonth()]} ${today.getFullYear()}`}
+            </time>
+          </p>
+        </header>
 
-      {streak > 0 && (
-        <div className="streak-pill">
-          <span className="streak-flames">{streakFlames(streak)}</span>
-          <div className="streak-text">
-            <span className="streak-count">{streak}</span>
-            <span className="streak-label">{streak === 1 ? 'Tag' : 'Tage'} am Stück</span>
+        {/* ── Streak ───────────────────────────────────────── */}
+        {streak > 0 && (
+          <div className="test-streak">
+            <span className="test-streak-inner">
+              {streakFlames(streak)} {streak} {streak === 1 ? 'Tag' : 'Tage'} am Stück
+            </span>
           </div>
-        </div>
-      )}
+        )}
 
-      <div className="home-card">
-        <button
-          className="home-card-toggle"
-          onClick={() => setInfoOpen(o => !o)}
-          aria-expanded={infoOpen}
-        >
-          <span>Was ist eine Kollokation?</span>
-          <span className={`toggle-arrow ${infoOpen ? 'toggle-arrow--open' : ''}`} aria-hidden="true">›</span>
-        </button>
-        {infoOpen && (
-          <div className="home-card-body">
+        {/* ── Raster: Wörter des Tages ─────────────────────── */}
+        <nav className="test-raster" aria-label="Wörter des Tages">
+          <span className="test-raster-label" aria-hidden="true">Wörter des Tages</span>
+          <div className="test-raster-words">
+            {lemmata.length > 0
+              ? lemmata.map(l => <span key={l.id} className="test-raster-word">{l.lemma}</span>)
+              : <span className="test-raster-word" style={{ color: 'var(--t-disabled)' }}>—</span>
+            }
+          </div>
+          <span className="test-raster-folio" aria-hidden="true">KW {kw} · {today.getFullYear()}</span>
+        </nav>
+
+        {/* ── Doppellinie ───────────────────────────────────── */}
+        <div className="test-rule--double" role="separator" aria-hidden="true" />
+
+        {/* ── Einträge ─────────────────────────────────────── */}
+        <p className="test-section-label" aria-hidden="true">Spielmodi</p>
+
+        <main>
+          <ol className="test-entries" aria-label="Spielmodi">
+
+            {/* ── ① Kollokationen ─────────────────────────── */}
+            <li className={`test-entry test-drop-cap${allPlayed ? ' test-entry--done' : ''}`}>
+              <div className="test-entry-number" aria-hidden="true">
+                <span className="test-entry-num-glyph">①</span>
+                <span className="test-entry-marginalia">KOLLOKT.</span>
+              </div>
+              <div className="test-entry-body">
+                <div className="test-entry-head">
+                  <h2 className="test-headword">Kollokationen</h2>
+                  <span className="test-ipa" aria-label="Aussprache: [kɔlokaˈtsi̯oːnən]">[kɔlokaˈtsi̯oːnən]</span>
+                </div>
+                <div className="test-entry-grammar" aria-hidden="true">
+                  <span className="test-pos">Wortspiel</span>
+                  <span className="test-pos-rule" />
+                  <span className="test-entry-category">täglich</span>
+                </div>
+                <p className="test-definition">
+                  Finde die stärksten Kollokate zu den Wörtern des Tages. Welche Ausdrücke gehören wirklich zusammen?
+                </p>
+
+                {/* Gespielte Wörter */}
+                {error && (
+                  <p className="test-game-error">Kein Eintrag für heute verfügbar.</p>
+                )}
+                {!error && playedGames.length > 0 && (
+                  <ul className="test-played-list">
+                    {playedGames.map(g => (
+                      <li key={g.id} className="test-played-entry">
+                        <span className="test-played-word">{g.lemma}</span>
+                        <span className="test-played-score">{g.total}/10 · {g.medal}</span>
+                      </li>
+                    ))}
+                    {allPlayed && dailyMedal && (
+                      <li className="test-played-total">
+                        <strong>{dailyMedal.label}</strong> · {totalPoints}/{maxPoints} Punkte
+                      </li>
+                    )}
+                  </ul>
+                )}
+
+                <div className="test-entry-footer">
+                  <span className={`test-status${allPlayed ? ' test-status--done' : ''}`}>
+                    {allPlayed ? 'Alle Wörter gespielt.' : playedGames.length > 0
+                      ? `${playedGames.length} von ${lemmata.length || 3} Wörtern gespielt.`
+                      : 'Noch nicht gespielt.'}
+                  </span>
+                  <button
+                    className="test-cta"
+                    type="button"
+                    onClick={onStart}
+                    disabled={!!loading || !!error}
+                    aria-label={`${kollCtaText}: Kollokationen`}
+                  >
+                    {kollCtaText}
+                    {!loading && !error && <span className="test-cta-arrow" aria-hidden="true"> →</span>}
+                  </button>
+                </div>
+              </div>
+            </li>
+
+            {/* ── ② Zeitreise ──────────────────────────────── */}
+            <li className={`test-entry${!zeitreise ? ' test-entry--disabled' : ''}${zrPlayed ? ' test-entry--done' : ''}`}>
+              <div className="test-entry-number" aria-hidden="true">
+                <span className="test-entry-num-glyph">②</span>
+                <span className="test-entry-marginalia">HIST.</span>
+              </div>
+              <div className="test-entry-body">
+                <div className="test-entry-head">
+                  <h2 className="test-headword">Zeitreise</h2>
+                  <span className="test-ipa" aria-label="Aussprache: [ˈtsaɪ̯tˌʁaɪ̯zə]">[ˈtsaɪ̯tˌʁaɪ̯zə]</span>
+                </div>
+                <div className="test-entry-grammar" aria-hidden="true">
+                  <span className="test-pos">Wortspiel</span>
+                  <span className="test-pos-rule" />
+                  <span className="test-entry-category">historisch</span>
+                </div>
+                <p className="test-definition">
+                  Entdecke, wie sich die Sprache über 500 Jahre verändert hat. Welche Kollokate waren üblich — damals, heute?
+                </p>
+
+                {zrPlayed && (
+                  <ul className="test-played-list">
+                    <li className="test-played-entry">
+                      <span className="test-played-word">{zrPlayed.lemma}</span>
+                      <span className="test-played-score">{zrPlayed.total}/10 · {zrPlayed.medal}</span>
+                    </li>
+                  </ul>
+                )}
+
+                <div className="test-entry-footer">
+                  <span className={`test-status${zrPlayed ? ' test-status--done' : ''}`}>
+                    {!zeitreise ? 'Heute nicht verfügbar.' : zrPlayed ? 'Gespielt.' : 'Noch nicht gespielt.'}
+                  </span>
+                  {zeitreise ? (
+                    <button
+                      className="test-cta"
+                      type="button"
+                      onClick={zrPlayed ? onViewZeitreise : onPlayZeitreise}
+                      aria-label={zrPlayed ? 'Ergebnis ansehen: Zeitreise' : 'Zeitreise starten'}
+                    >
+                      {zrPlayed ? 'Ergebnis ansehen' : 'Zeitreise starten'}
+                      <span className="test-cta-arrow" aria-hidden="true"> →</span>
+                    </button>
+                  ) : (
+                    <span className="test-cta test-cta--disabled" aria-hidden="true">—</span>
+                  )}
+                </div>
+              </div>
+            </li>
+
+            {/* ── ③ Wort-Zwilling ──────────────────────────── */}
+            <li className={`test-entry${!wortzwilling ? ' test-entry--disabled' : ''}${wzPlayed ? ' test-entry--done' : ''}`}>
+              <div className="test-entry-number" aria-hidden="true">
+                <span className="test-entry-num-glyph">③</span>
+                <span className="test-entry-marginalia">KOMPAR.</span>
+              </div>
+              <div className="test-entry-body">
+                <div className="test-entry-head">
+                  <h2 className="test-headword">Wort-Zwilling</h2>
+                  <span className="test-ipa" aria-label="Aussprache: [ˈvɔʁtˌtsvɪlɪŋ]">[ˈvɔʁtˌtsvɪlɪŋ]</span>
+                </div>
+                <div className="test-entry-grammar" aria-hidden="true">
+                  <span className="test-pos">Wortspiel</span>
+                  <span className="test-pos-rule" />
+                  <span className="test-entry-category">komparativ</span>
+                  {wortzwilling && (
+                    <span className="test-entry-category" style={{ marginLeft: '6px', fontStyle: 'italic' }}>
+                      · {wortzwilling.wortA} / {wortzwilling.wortB}
+                    </span>
+                  )}
+                </div>
+                <p className="test-definition">
+                  Ordne zehn Kollokate den richtigen Zwillingswörtern zu. Zwei verwandte Wörter — aber welches Kollokat gehört wohin?
+                </p>
+
+                {wzPlayed && wortzwilling && (
+                  <ul className="test-played-list">
+                    <li className="test-played-entry">
+                      <span className="test-played-word">{wortzwilling.wortA} / {wortzwilling.wortB}</span>
+                      <span className="test-played-score">{wzPlayed.total}/10 · {wzPlayed.medal}</span>
+                    </li>
+                  </ul>
+                )}
+
+                <div className="test-entry-footer">
+                  <span className={`test-status${wzPlayed ? ' test-status--done' : ''}`}>
+                    {!wortzwilling ? 'Heute nicht verfügbar.' : wzPlayed ? 'Gespielt.' : 'Noch nicht gespielt.'}
+                  </span>
+                  {wortzwilling ? (
+                    <button
+                      className="test-cta"
+                      type="button"
+                      onClick={wzPlayed ? onViewWortzwilling : onPlayWortzwilling}
+                      aria-label={wzPlayed ? 'Ergebnis ansehen: Wort-Zwilling' : 'Wort-Zwilling starten'}
+                    >
+                      {wzPlayed ? 'Ergebnis ansehen' : 'Wort-Zwilling starten'}
+                      <span className="test-cta-arrow" aria-hidden="true"> →</span>
+                    </button>
+                  ) : (
+                    <span className="test-cta test-cta--disabled" aria-hidden="true">—</span>
+                  )}
+                </div>
+              </div>
+            </li>
+
+            {/* ── ④ Demnächst ──────────────────────────────── */}
+            <li className="test-entry test-entry--disabled" aria-hidden="true">
+              <div className="test-entry-number">
+                <span className="test-entry-num-glyph">④</span>
+                <span className="test-entry-marginalia">i.V.</span>
+              </div>
+              <div className="test-entry-body">
+                <div className="test-entry-head">
+                  <h2 className="test-headword">???</h2>
+                  <span className="test-ipa">[ˈfʁaːɡəˌtsaɪ̯çən]</span>
+                </div>
+                <div className="test-entry-grammar" aria-hidden="true">
+                  <span className="test-pos">Wortspiel</span>
+                  <span className="test-pos-rule" />
+                  <span className="test-entry-category">in Arbeit</span>
+                </div>
+                <p className="test-definition">Ein neues Wortspiel befindet sich in Entwicklung. Bald mehr.</p>
+                <div className="test-entry-footer">
+                  <span className="test-status">Demnächst verfügbar.</span>
+                  <span className="test-cta test-cta--disabled" aria-hidden="true">—</span>
+                </div>
+              </div>
+            </li>
+
+          </ol>
+        </main>
+
+        {/* ── Was ist eine Kollokation? ─────────────────────── */}
+        <section className="test-footnote" aria-label="Anmerkung: Was ist eine Kollokation?">
+          <button
+            className="test-footnote-toggle"
+            type="button"
+            onClick={() => setInfoOpen(v => !v)}
+            aria-expanded={infoOpen}
+            aria-controls="home-kollokation-note"
+          >
+            <span className="test-footnote-label" aria-hidden="true">Anm.</span>
+            <span className="test-footnote-title">Was ist eine Kollokation?</span>
+            <span className="test-footnote-chevron" aria-hidden="true">▾</span>
+          </button>
+          <div
+            id="home-kollokation-note"
+            className={`test-footnote-body${infoOpen ? ' open' : ''}`}
+            role="region"
+          >
             <p className="home-card-text home-card-text--dropcap">
               Kollokationen sind <strong>charakteristische syntagmatische Wortverbindungen</strong>,
               in denen ein Element (die <strong>Basis</strong>) den anderen Bestandteil (den{' '}
@@ -158,168 +383,39 @@ export default function Home({ onStart, loading, error, playedGames = [], allPla
               <li>Jurish, B. et&thinsp;al. (2014): DiaCollo: On the Trail of Diachronic Collocations. In: <em>Proceedings of DH 2014</em>. <a href="https://www.dwds.de/d/zitieren" target="_blank" rel="noopener">Zitierregeln</a></li>
             </ol>
           </div>
-        )}
-      </div>
+        </section>
 
-      {/* Kollokationen-Spielkarte */}
-      <div className="game-card">
-        <div className="game-card-head">
-          <span className="game-card-title">Kollokationen <span className="lautschrift">[kɔlokaˈtsi̯oːnən]</span></span>
-        </div>
-
-        {playedGames.length > 0 && (
-          <div className="game-played-list">
-            {playedGames.map(g => (
-              <div key={g.id} className="game-played-entry">
-                <span className="game-played-word">{g.lemma}</span>
-                <span className="game-played-score">{g.total}/10 · {g.medal}</span>
-              </div>
-            ))}
-            {playedGames.length > 1 && (
-              <div className={`game-played-total${dailyMedal ? ' game-played-total--medal' : ''}`}>
-                {dailyMedal
-                  ? <><strong>{dailyMedal.label}</strong> · {totalPoints} / {maxPoints} Punkte</>
-                  : <>Gesamt: {totalPoints} / {maxPoints} Punkte · noch {3 - playedGames.length} Wort{3 - playedGames.length !== 1 ? 'e' : ''} übrig</>
-                }
-              </div>
-            )}
+        {/* ── Teilen ───────────────────────────────────────── */}
+        {hasPlayed && (
+          <div className="test-share-row">
+            <button
+              className={`btn-share${copied ? ' btn-share--copied' : ''}`}
+              onClick={shareResult}
+              aria-label="Ergebnis teilen oder kopieren"
+            >
+              {copied ? '✓ Kopiert!' : '↗ Ergebnis teilen'}
+            </button>
           </div>
         )}
 
-        {playedGames.length === 0 && !error && (
-          <p className="game-card-empty">Heute noch nicht gespielt</p>
-        )}
-
-        {error && (
-          <p className="home-error">
-            Kein Eintrag für heute verfügbar.<br/>
-            <small>{error}</small>
+        {/* ── Kolophon ─────────────────────────────────────── */}
+        <footer className="test-colophon" role="contentinfo">
+          <span className="test-colophon-ornament" aria-hidden="true">· · ·</span>
+          <p className="feedback-hint" style={{ marginBottom: '16px' }}>
+            Fehler oder Anregungen? <a href="mailto:info@signifikation.de">Schreib uns.</a>
           </p>
-        )}
+          <nav className="legal-links" aria-label="Rechtliche Links">
+            <a href="/ueber.html">Über die App</a>
+            <a href="/impressum.html">Impressum</a>
+            <a href="/datenschutz.html">Datenschutz</a>
+            <a href="/nutzungsbedingungen.html">Nutzungsbedingungen</a>
+          </nav>
+          <p className="test-colophon-edition">
+            v{__APP_VERSION__} · {__BUILD_DATE__}
+          </p>
+        </footer>
 
-        <button
-          className="btn-primary btn-full"
-          onClick={onStart}
-          disabled={!!loading || !!error}
-        >
-          {loading     ? 'Lade …'
-           : allPlayed ? 'Wörter ansehen'
-           : playedGames.length > 0 ? 'Weiteres Wort spielen'
-           : 'Quiz starten'}
-        </button>
       </div>
-
-      {/* Zeitreise-Spielkarte (aktiv) */}
-      {zeitreise && (
-        <div className="game-card">
-          <div className="game-card-head">
-            <span className="game-card-title">Zeitreise <span className="lautschrift">[ˈtsaɪ̯tˌʁaɪ̯zə]</span></span>
-          </div>
-
-          {zrPlayed ? (
-            <div className="game-played-entry">
-              <span className="game-played-word">{zrPlayed.lemma}</span>
-              <span className="game-played-score">{zrPlayed.total}/10 · {zrPlayed.medal}</span>
-            </div>
-          ) : (
-            <p className="game-card-empty">Heute noch nicht gespielt</p>
-          )}
-
-          <button
-            className="btn-primary btn-full"
-            onClick={zrPlayed ? onViewZeitreise : onPlayZeitreise}
-          >
-            {zrPlayed ? 'Ergebnis ansehen' : 'Zeitreise starten'}
-          </button>
-        </div>
-      )}
-
-      {/* Wort-Zwilling-Spielkarte (aktiv) */}
-      {wortzwilling && (
-        <div className="game-card">
-          <div className="game-card-head">
-            <span className="game-card-title">Wort-Zwilling <span className="lautschrift">[ˈvɔʁtˌtsvɪlɪŋ]</span></span>
-            <span className="game-card-meta">{wortzwilling.wortA} · {wortzwilling.wortB}</span>
-          </div>
-
-          {wzPlayed ? (
-            <div className="game-played-entry">
-              <span className="game-played-word">{wortzwilling.wortA} / {wortzwilling.wortB}</span>
-              <span className="game-played-score">{wzPlayed.total}/10 · {wzPlayed.medal}</span>
-            </div>
-          ) : (
-            <p className="game-card-empty">Heute noch nicht gespielt</p>
-          )}
-
-          <button
-            className="btn-primary btn-full"
-            onClick={wzPlayed ? onViewWortzwilling : onPlayWortzwilling}
-          >
-            {wzPlayed ? 'Ergebnis ansehen' : 'Wort-Zwilling starten'}
-          </button>
-        </div>
-      )}
-
-      {/* Zeitreise-Spielkarte (nicht verfügbar heute) */}
-      {!zeitreise && (
-        <div className="game-card game-card--unavailable" aria-hidden="true">
-          <div className="game-card-head">
-            <span className="game-card-title">Zeitreise <span className="lautschrift">[ˈtsaɪ̯tˌʁaɪ̯zə]</span></span>
-            <span className="game-card-meta">Heute nicht verfügbar</span>
-          </div>
-          <p className="game-card-empty">Kein Eintrag für heute</p>
-          <button className="btn-primary btn-full" disabled>Nicht verfügbar</button>
-        </div>
-      )}
-
-      {/* Wort-Zwilling-Spielkarte (nicht verfügbar heute) */}
-      {!wortzwilling && (
-        <div className="game-card game-card--unavailable" aria-hidden="true">
-          <div className="game-card-head">
-            <span className="game-card-title">Wort-Zwilling <span className="lautschrift">[ˈvɔʁtˌtsvɪlɪŋ]</span></span>
-            <span className="game-card-meta">Heute nicht verfügbar</span>
-          </div>
-          <p className="game-card-empty">Kein Eintrag für heute</p>
-          <button className="btn-primary btn-full" disabled>Nicht verfügbar</button>
-        </div>
-      )}
-
-      {/* Teaser: kommendes Spiel */}
-      <div className="game-card game-card--coming-soon" aria-hidden="true">
-        <div className="game-card-head">
-          <span className="game-card-title">??? <span className="lautschrift">[ˈfʁaːɡəˌtsaɪ̯çən]</span></span>
-          <span className="game-card-meta">In Arbeit</span>
-        </div>
-        <p className="game-card-empty">Demnächst verfügbar</p>
-        <button className="btn-primary btn-full" disabled>Bald verfügbar</button>
-      </div>
-
-      {playedGames.length > 0 && (
-        <button
-          className={`btn-share${copied ? ' btn-share--copied' : ''}`}
-          onClick={shareResult}
-          aria-label="Ergebnis teilen oder kopieren"
-        >
-          {copied ? '✓ Kopiert!' : '↗ Ergebnis teilen'}
-        </button>
-      )}
-
-      <p className="feedback-hint">
-        Fehler oder Anregungen? <a href="mailto:info@signifikation.de">Schreib uns.</a>
-      </p>
-
-      <footer className="legal-footer">
-        <nav className="legal-links" aria-label="Rechtliche Links">
-          <a href="/ueber.html">Über die App</a>
-          <a href="/impressum.html">Impressum</a>
-          <a href="/datenschutz.html">Datenschutz</a>
-          <a href="/nutzungsbedingungen.html">Nutzungsbedingungen</a>
-        </nav>
-        <p className="build-info">
-          v{__APP_VERSION__} · {__BUILD_DATE__}
-        </p>
-      </footer>
-
     </div>
   )
 }

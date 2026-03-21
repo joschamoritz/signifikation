@@ -504,15 +504,6 @@
   white-space: nowrap;
 }
 
-/* ── Logo im Header ────────────────────────────────────────── */
-.test-saussure-logo {
-  display: block;
-  width: 72px;
-  height: auto;
-  margin: 18px auto 14px;
-  color: var(--t-text);
-  opacity: 0.72;
-}
 
 /* ── Tagesnavigation (Pager) ───────────────────────────────── */
 .test-pager {
@@ -554,6 +545,56 @@
   text-transform: uppercase;
   color: var(--t-muted);
   text-align: center;
+}
+
+/* ── Gespielte Wörter (in Einträgen) ──────────────────────── */
+.test-played-list {
+  list-style: none;
+  margin: 0 0 10px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.test-played-entry {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-family: var(--t-serif);
+  font-size: 0.85rem;
+  color: var(--t-text);
+  padding: 2px 0;
+  border-bottom: 1px dotted var(--t-rule-lt);
+}
+
+.test-played-word {
+  font-style: italic;
+}
+
+.test-played-score {
+  font-family: var(--t-sans);
+  font-size: 0.78rem;
+  color: var(--t-muted);
+  letter-spacing: 0.02em;
+}
+
+.test-played-total {
+  font-family: var(--t-serif);
+  font-size: 0.8rem;
+  color: var(--t-accent-dk);
+  padding-top: 4px;
+}
+
+.test-entry--done .test-headword {
+  color: var(--t-accent-dk);
+}
+
+.test-game-error {
+  font-family: var(--t-sans);
+  font-size: 0.82rem;
+  color: var(--t-red);
+  margin-bottom: 10px;
 }
 
 /* ── Share-Zeile ───────────────────────────────────────────── */
