@@ -75,15 +75,17 @@ function ResultsView({ data, zoneA, zoneB, onBack }) {
               {zone.map(w => {
                 const correct = zuordnungMap[w] === z
                 return (
-                  <div
+                  <button
                     key={w}
                     className={`wz-chip wz-chip--${correct ? 'correct' : 'wrong'}${openBeleg === w ? ' wz-chip--beleg-active' : ''}`}
                     onClick={() => loadWZBeleg(w)}
                     title="Belege anzeigen"
+                    aria-label={`${w} – Belege anzeigen`}
+                    aria-pressed={openBeleg === w}
                   >
                     <span>{w}</span>
-                    <span className="wz-chip-icon">{correct ? '✓' : '✗'}</span>
-                  </div>
+                    <span className="wz-chip-icon" aria-hidden="true">{correct ? '✓' : '✗'}</span>
+                  </button>
                 )
               })}
             </div>
@@ -242,11 +244,15 @@ export default function WortZwilling({ data, onBack, onFinish, savedResult = nul
           ? bank.map(w => (
               <div
                 key={w}
+                role="button"
+                tabIndex={0}
                 className={`wz-chip${selected === w ? ' wz-chip--selected' : ''}${dragging === w ? ' wz-chip--dragging' : ''}`}
                 draggable
                 onDragStart={e => onDragStart(e, w)}
                 onDragEnd={onDragEnd}
                 onClick={() => onChipClick(w)}
+                onKeyDown={e => (e.key === 'Enter' || e.key === ' ') && onChipClick(w)}
+                aria-label={selected === w ? `${w} ausgewählt – Tippe auf eine Zone` : w}
               >
                 {w}
               </div>
@@ -284,11 +290,15 @@ export default function WortZwilling({ data, onBack, onFinish, savedResult = nul
                 {zone.map(w => (
                   <div
                     key={w}
+                    role="button"
+                    tabIndex={0}
                     className={`wz-chip wz-chip--placed${dragging === w ? ' wz-chip--dragging' : ''}`}
                     draggable
                     onDragStart={e => onDragStart(e, w)}
                     onDragEnd={onDragEnd}
                     onClick={e => { e.stopPropagation(); onChipClick(w) }}
+                    onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.stopPropagation(); onChipClick(w) } }}
+                    aria-label={`${w} zurück in Bank legen`}
                   >
                     {w}
                   </div>

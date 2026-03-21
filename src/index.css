@@ -93,7 +93,8 @@ body {
   .round-feedback,
   .streak-pill,
   .zr-bubble-popover,
-  .zr-hint {
+  .zr-hint,
+  .lemma-ipa-skeleton {
     animation: none !important;
   }
   .bar-fill,
@@ -137,6 +138,7 @@ button { font-family: inherit; cursor: pointer; border: none }
   transition: background 0.15s, opacity 0.15s;
 }
 .btn-primary:hover:not(:disabled) { background: var(--primary-hi) }
+.btn-primary:active:not(:disabled) { opacity: 0.85 }
 .btn-primary:disabled { opacity: 0.35; cursor: not-allowed }
 .btn-full { width: 100% }
 .btn-secondary {
@@ -151,6 +153,7 @@ button { font-family: inherit; cursor: pointer; border: none }
   transition: background 0.15s;
 }
 .btn-secondary:hover { background: #fef2f2 }
+.btn-secondary:active { opacity: 0.8 }
 .results-actions {
   display: flex;
   gap: 10px;
@@ -368,29 +371,6 @@ button { font-family: inherit; cursor: pointer; border: none }
   opacity: 0.8;
 }
 
-.home-card {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 20px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-.home-card-toggle {
-  background: none;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  width: 100%;
-  padding: 0;
-  font-family: var(--font-serif);
-  font-size: 1rem;
-  font-weight: 700;
-  color: var(--primary);
-  text-align: left;
-}
-.home-card-toggle:hover { opacity: 0.8 }
 .toggle-arrow {
   font-size: 1.2rem;
   color: var(--muted);
@@ -398,14 +378,6 @@ button { font-family: inherit; cursor: pointer; border: none }
   display: inline-block;
 }
 .toggle-arrow--open { transform: rotate(90deg) }
-.home-card-body {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding-top: 4px;
-  border-top: 1px solid var(--border);
-  margin-top: 4px;
-}
 .home-card-text {
   font-size: 0.875rem;
   color: var(--muted);
@@ -451,30 +423,6 @@ button { font-family: inherit; cursor: pointer; border: none }
 .home-card-text em {
   font-style: italic;
   color: var(--text);
-}
-
-.home-status {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 12px 16px;
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--border);
-  background: var(--surface2);
-}
-.home-status--played {
-  border-color: #bbf7d0;
-  background: var(--success-bg);
-}
-.home-status-label {
-  font-size: 0.85rem;
-  color: var(--muted);
-}
-.home-status--played .home-status-label { color: var(--success) }
-.home-status-score {
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: var(--success);
 }
 
 .home-error {
@@ -719,7 +667,21 @@ button { font-family: inherit; cursor: pointer; border: none }
   color: var(--text);
   letter-spacing: 0.01em;
 }
-.lemma-ipa { font-size: 0.85rem; color: var(--text-muted); }
+.lemma-ipa { font-size: 0.85rem; color: var(--muted); }
+.lemma-ipa-skeleton {
+  display: inline-block;
+  width: 72px;
+  height: 0.75em;
+  border-radius: 4px;
+  background: linear-gradient(90deg, var(--border) 25%, var(--surface2) 50%, var(--border) 75%);
+  background-size: 200% 100%;
+  animation: skeletonShimmer 1.2s ease-in-out infinite;
+  vertical-align: middle;
+}
+@keyframes skeletonShimmer {
+  0%   { background-position: 200% 0 }
+  100% { background-position: -200% 0 }
+}
 
 .lemma-wortart-chip {
   display: inline-block;
@@ -837,6 +799,7 @@ button { font-family: inherit; cursor: pointer; border: none }
   animation: optionIn 0.18s ease both;
 }
 .option:hover:not(:disabled) { border-color: var(--primary) }
+.option:active:not(:disabled) { transform: scale(0.985) }
 
 .option.selected {
   border-color: var(--primary);
@@ -1003,6 +966,7 @@ button { font-family: inherit; cursor: pointer; border: none }
   animation: optionIn 0.2s ease both;
 }
 .bonus-option:hover:not(:disabled) { border-color: var(--primary) }
+.bonus-option:active:not(:disabled) { transform: scale(0.985) }
 .bonus-option.selected {
   border-color: var(--primary);
   background: #fef2f2;

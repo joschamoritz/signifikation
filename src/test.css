@@ -18,7 +18,7 @@
   --t-serif:     'Gentium Plus', 'Playfair Display', Georgia, 'Times New Roman', serif;
   --t-sans:      'DM Sans', system-ui, -apple-system, sans-serif;
   --t-mono:      'Courier New', 'Courier', monospace;
-  --t-disabled:  #b8b0a0;
+  --t-disabled:  #9a9287;
   --t-red:       #9b1c1c;
   --t-red-hi:    #b91c1c;
 
@@ -354,6 +354,7 @@
   border-bottom-color: var(--t-accent);
   outline: none;
 }
+.test-cta:active { opacity: 0.75 }
 
 .test-cta-arrow {
   font-style: normal;
@@ -508,48 +509,6 @@
   white-space: nowrap;
 }
 
-
-/* ── Tagesnavigation (Pager) ───────────────────────────────── */
-.test-pager {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 24px 0 8px;
-  border-top: 1px solid var(--t-rule);
-  margin-top: 16px;
-  gap: 12px;
-}
-.test-pager-btn {
-  background: none;
-  border: none;
-  font-family: var(--t-serif);
-  font-size: 0.8rem;
-  color: var(--t-muted);
-  cursor: pointer;
-  padding: 4px 0;
-  border-bottom: 1px solid transparent;
-  transition: color 0.15s, border-color 0.15s;
-  display: flex;
-  align-items: center;
-  gap: 5px;
-}
-.test-pager-btn:hover:not(:disabled) {
-  color: var(--t-text);
-  border-bottom-color: var(--t-rule);
-}
-.test-pager-btn:disabled {
-  opacity: 0.3;
-  cursor: default;
-}
-.test-pager-folio {
-  font-family: var(--t-sans);
-  font-size: 9px;
-  font-weight: 600;
-  letter-spacing: 0.2em;
-  text-transform: uppercase;
-  color: var(--t-muted);
-  text-align: center;
-}
 
 /* ── Gespielte Wörter (in Einträgen) ──────────────────────── */
 .test-played-list {

@@ -11,14 +11,24 @@ import { getMedal, getDailyMedal, getZRMedal } from './utils/gameLogic'
 
 const FEEDBACK_INTERVAL = 30 * 24 * 60 * 60 * 1000 // 30 Tage
 
+function lsGet(key) {
+  try { return localStorage.getItem(key) } catch { return null }
+}
+function lsSet(key, value) {
+  try { localStorage.setItem(key, value) } catch (err) { console.error('localStorage write:', err) }
+}
+function lsParse(raw, fallback) {
+  try { return raw ? JSON.parse(raw) : fallback } catch { return fallback }
+}
+
 function shouldShowFeedback(game) {
-  const last = localStorage.getItem(`sig_fb_${game}`)
+  const last = lsGet(`sig_fb_${game}`)
   if (!last) return true
   return Date.now() - parseInt(last) > FEEDBACK_INTERVAL
 }
 
 function markFeedbackShown(game) {
-  localStorage.setItem(`sig_fb_${game}`, Date.now().toString())
+  lsSet(`sig_fb_${game}`, Date.now().toString())
 }
 
 const Zeitreise    = lazy(() => import('./components/Zeitreise'))
@@ -35,45 +45,41 @@ function makeKeys(datum, year = new Date().getFullYear()) {
 }
 
 function getPlayedToday(key) {
-  const raw = localStorage.getItem(key)
-  if (!raw) return []
-  const val = JSON.parse(raw)
+  const val = lsParse(lsGet(key), [])
   return Array.isArray(val) ? val : []
 }
 
 function getZRToday(key) {
-  const raw = localStorage.getItem(key)
-  return raw ? JSON.parse(raw) : null
+  return lsParse(lsGet(key), null)
 }
 
 function getWZToday(key) {
-  const raw = localStorage.getItem(key)
-  return raw ? JSON.parse(raw) : null
+  return lsParse(lsGet(key), null)
 }
 
 function markActivity(dateStr) {
-  const activity = JSON.parse(localStorage.getItem('sig_activity') || '[]')
+  const activity = lsParse(lsGet('sig_activity'), [])
   if (!activity.includes(dateStr)) {
-    localStorage.setItem('sig_activity', JSON.stringify([dateStr, ...activity].slice(0, 365)))
+    lsSet('sig_activity', JSON.stringify([dateStr, ...activity].slice(0, 365)))
   }
 }
 
 function saveKollHistory(dateStr, medal, emoji) {
-  const history = JSON.parse(localStorage.getItem('sig_koll_history') || '[]')
+  const history = lsParse(lsGet('sig_koll_history'), [])
   const idx = history.findIndex(h => h.date === dateStr)
   const entry = { date: dateStr, medal, emoji }
   if (idx >= 0) history[idx] = entry
   else history.unshift(entry)
-  localStorage.setItem('sig_koll_history', JSON.stringify(history.slice(0, 365)))
+  lsSet('sig_koll_history', JSON.stringify(history.slice(0, 365)))
 }
 
 function saveZRHistory(dateStr, medal, emoji) {
-  const history = JSON.parse(localStorage.getItem('sig_zr_history') || '[]')
+  const history = lsParse(lsGet('sig_zr_history'), [])
   const idx = history.findIndex(h => h.date === dateStr)
   const entry = { date: dateStr, medal, emoji }
   if (idx >= 0) history[idx] = entry
   else history.unshift(entry)
-  localStorage.setItem('sig_zr_history', JSON.stringify(history.slice(0, 365)))
+  lsSet('sig_zr_history', JSON.stringify(history.slice(0, 365)))
 }
 
 function savePlayedGame(keys, lemmaId, lemmaName, lemmaPos, total, medal, lemmataLength, scores) {
@@ -82,7 +88,7 @@ function savePlayedGame(keys, lemmaId, lemmaName, lemmaPos, total, medal, lemmat
   const entry  = { id: lemmaId, lemma: lemmaName, pos: lemmaPos, total, medal, scores }
   if (idx >= 0) played[idx] = entry
   else played.push(entry)
-  localStorage.setItem(keys.todayKey, JSON.stringify(played))
+  lsSet(keys.todayKey, JSON.stringify(played))
 
   // Jedes einzelne gespielte Spiel zählt für den Streak
   markActivity(keys.dateStr)
@@ -124,14 +130,16 @@ export default function App() {
     : makeKeys(`${String(new Date().getMonth()+1).padStart(2,'0')}-${String(new Date().getDate()).padStart(2,'0')}`)
 
   const [zrViewOnly, setZrViewOnly] = useState(false)
-  const [zrPlayed, setZrPlayed] = useState(() => getZRToday(`sig_zr_${
-    `${String(new Date().getMonth()+1).padStart(2,'0')}-${String(new Date().getDate()).padStart(2,'0')}`
-  }`))
+  const [zrPlayed, setZrPlayed] = useState(() => {
+    const d = `${String(new Date().getMonth()+1).padStart(2,'0')}-${String(new Date().getDate()).padStart(2,'0')}`
+    return getZRToday(`sig_zr_${d}`)
+  })
 
   const [wzViewOnly, setWzViewOnly] = useState(false)
-  const [wzPlayed, setWzPlayed] = useState(() => getWZToday(`sig_wz_${
-    `${String(new Date().getMonth()+1).padStart(2,'0')}-${String(new Date().getDate()).padStart(2,'0')}`
-  }`))
+  const [wzPlayed, setWzPlayed] = useState(() => {
+    const d = `${String(new Date().getMonth()+1).padStart(2,'0')}-${String(new Date().getDate()).padStart(2,'0')}`
+    return getWZToday(`sig_wz_${d}`)
+  })
 
   // Fokus bei Screen-Wechsel
   useEffect(() => { appRef.current?.focus() }, [phase])
@@ -155,14 +163,14 @@ export default function App() {
     fetch(`${API_BASE}/api/zeitreise`)
       .then(r => r.ok ? r.json() : null)
       .then(data => { if (data) setZeitreise(data) })
-      .catch(() => {})
+      .catch(err => console.error('Zeitreise fetch:', err))
   }, [])
 
   useEffect(() => {
     fetch(`${API_BASE}/api/wortzwilling`)
       .then(r => r.ok ? r.json() : null)
       .then(data => { if (data) setWortzwilling(data) })
-      .catch(() => {})
+      .catch(err => console.error('WortZwilling fetch:', err))
   }, [])
 
   // Ergebnis in localStorage speichern (Kollokationen)
@@ -235,7 +243,7 @@ export default function App() {
       zoneA,
       zoneB,
     }
-    localStorage.setItem(`sig_wz_${serverDatum}`, JSON.stringify(entry))
+    lsSet(`sig_wz_${serverDatum}`, JSON.stringify(entry))
     setWzPlayed(entry)
     markActivity(keys.dateStr)
     triggerFeedback('wortzwilling')
@@ -246,7 +254,7 @@ export default function App() {
     const max   = zeitreise.paare.length * 2
     const zrMed = getZRMedal(score, max)
     const entry = { lemma: zeitreise.lemma, total: score, medal: zrMed.label, placements }
-    localStorage.setItem(keys.todayZRKey, JSON.stringify(entry))
+    lsSet(keys.todayZRKey, JSON.stringify(entry))
     setZrPlayed(entry)
     markActivity(keys.dateStr)
     saveZRHistory(keys.dateStr, zrMed.label, zrMed.emoji)
