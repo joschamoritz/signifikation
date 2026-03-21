@@ -223,17 +223,17 @@ app.get('/api/belege', belegeLimiter, async (req, res) => {
     return items.filter(item => !(item.bibl_string || '').toLowerCase().includes('wikipedia'))
   }
 
-  /** Durchläuft alle Queries, gibt beste Non-Wiki-Treffer zurück.
-   *  Kein Wikipedia-Fallback – lieber leer als falsche Quelle. */
-  async function runQueries(queries, extra) {
+  /** Durchläuft alle Queries, gibt beste Treffer zurück.
+   *  filterWiki=true (default) schließt Wikipedia aus. */
+  async function runQueries(queries, extra, filterWiki = true) {
     let best = []
     for (const q of queries) {
-      const r  = await tryQuery(q, extra)
-      const nw = noWiki(r)
-      if (nw.length >= 2) return nw       // Ideal: ≥2 echte Belege
-      if (nw.length > best.length) best = nw  // merke bisher bestes Ergebnis (0 oder 1)
+      const r        = await tryQuery(q, extra)
+      const filtered = filterWiki ? noWiki(r) : r
+      if (filtered.length >= 2) return filtered
+      if (filtered.length > best.length) best = filtered
     }
-    return best  // 0 oder 1 Non-Wiki-Beleg – kein Wikipedia-Fallback
+    return best
   }
 
   function parseItem(item) {
@@ -333,14 +333,25 @@ app.get('/api/belege', belegeLimiter, async (req, res) => {
       if (!results.length && y)
         results = await runQueries(queries, dateWide)                         // Datum-only ±40
     } else {
-      // Normaler Kollokationen-Modus: Non-Wiki bevorzugt, Wikipedia als letzter Ausweg
-      results = await runQueries(queries, extra)
+      // Kollokationen-Modus: Prioritätenfolge, kein Zeitfilter
+      // Prio 1: kern (1900–1999) + kern21 (2000–2010) — hochwertig, kein Wikipedia
+      results = await runQueries(queries, '&corpus=kern')
+      if (results.length < 2) {
+        const r21 = await runQueries(queries, '&corpus=kern21')
+        if (r21.length > results.length) results = r21
+      }
+      // Prio 2: DTA Kernkorpus + DTA erweitert — historische Texte
       if (!results.length) {
-        // Letzter Ausweg: Wikipedia-Belege erlauben wenn sonst nichts gefunden
-        for (const q of queries) {
-          const r = await tryQuery(q, '')
-          if (r.length >= 1) { results = r; break }
-        }
+        results = await runQueries(queries, '&corpus=dtak')
+        if (!results.length) results = await runQueries(queries, '&corpus=dtae')
+      }
+      // Prio 3: dwdsxl ohne Wikipedia
+      if (!results.length) {
+        results = await runQueries(queries, '&corpus=dwdsxl')
+      }
+      // Prio 4: dwdsxl mit Wikipedia (letzter Ausweg)
+      if (!results.length) {
+        results = await runQueries(queries, '&corpus=dwdsxl', false)
       }
     }
     const final = results.slice(0, 5).map(parseItem)
