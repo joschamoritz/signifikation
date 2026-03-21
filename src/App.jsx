@@ -268,6 +268,7 @@ export default function App() {
           onStart={() => setPhase(lemmata && !apiError ? 'selection' : 'home')}
           loading={!lemmata && !apiError}
           error={apiError}
+          lemmata={lemmata || []}
           playedGames={playedGames}
           allPlayed={!!allPlayed}
           zeitreise={zeitreise}
