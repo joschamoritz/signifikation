@@ -118,6 +118,7 @@ export default function TestPage() {
     const d = new Date(); d.setHours(0, 0, 0, 0); return d
   })
   const [lemmata, setLemmata] = useState([])
+  const [direction, setDirection] = useState('none')
   const streak = computeStreak()
 
   const today = new Date(); today.setHours(0, 0, 0, 0)
@@ -126,21 +127,23 @@ export default function TestPage() {
   const dateStr = localDateStr(currentDate)
 
   useEffect(() => {
+    setLemmata([])
     const url = isToday ? '/api/heute' : `/api/archiv?date=${dateStr}`
     fetch(url)
       .then(r => r.ok ? r.json() : null)
-      .then(data => {
-        if (data?.lemmata) setLemmata(data.lemmata)
-        else if (Array.isArray(data?.lemmata)) setLemmata([])
-      })
+      .then(data => { if (data?.lemmata) setLemmata(data.lemmata) })
       .catch(() => {})
   }, [dateStr])
 
   function goBack() {
+    setDirection('right')
     setCurrentDate(d => { const nd = new Date(d); nd.setDate(nd.getDate() - 1); return nd })
   }
   function goForward() {
-    if (!isToday) setCurrentDate(d => { const nd = new Date(d); nd.setDate(nd.getDate() + 1); return nd })
+    if (!isToday) {
+      setDirection('left')
+      setCurrentDate(d => { const nd = new Date(d); nd.setDate(nd.getDate() + 1); return nd })
+    }
   }
 
   const mmdd = `${String(currentDate.getMonth() + 1).padStart(2, '0')}-${String(currentDate.getDate()).padStart(2, '0')}`
@@ -169,29 +172,30 @@ export default function TestPage() {
           </p>
         </header>
 
-        {/* ── Streak ─────────────────────────────────────── */}
-        {streak > 0 && (
-          <div className="test-streak">
-            <span className="test-streak-inner">
-              {streakFlames(streak)} {streak} {streak === 1 ? 'Tag' : 'Tage'} am Stück
-            </span>
-          </div>
-        )}
+        {/* ── Animierter Tages-Block (Streak + Raster) ────── */}
+        <div key={dateStr} className={`test-page-flip test-page-flip--${direction}`}>
 
-        {/* ── Laufzeile / Raster ─────────────────────────── */}
-        <nav
-          className="test-raster"
-          aria-label="Wörter des Tages"
-        >
-          <span className="test-raster-label" aria-hidden="true">Wörter des Tages</span>
-          <div className="test-raster-words">
-            {lemmata.length > 0
-              ? lemmata.map(l => <span key={l.id} className="test-raster-word">{l.lemma}</span>)
-              : <span className="test-raster-word" style={{color: 'var(--t-disabled)'}}>—</span>
-            }
-          </div>
-          <span className="test-raster-folio" aria-hidden="true">KW {kw} · {currentDate.getFullYear()}</span>
-        </nav>
+          {streak > 0 && (
+            <div className="test-streak">
+              <span className="test-streak-inner">
+                {streakFlames(streak)} {streak} {streak === 1 ? 'Tag' : 'Tage'} am Stück
+              </span>
+            </div>
+          )}
+
+          {/* ── Laufzeile / Raster ───────────────────────── */}
+          <nav className="test-raster" aria-label="Wörter des Tages">
+            <span className="test-raster-label" aria-hidden="true">Wörter des Tages</span>
+            <div className="test-raster-words">
+              {lemmata.length > 0
+                ? lemmata.map(l => <span key={l.id} className="test-raster-word">{l.lemma}</span>)
+                : <span className="test-raster-word" style={{color: 'var(--t-disabled)'}}>—</span>
+              }
+            </div>
+            <span className="test-raster-folio" aria-hidden="true">KW {kw} · {currentDate.getFullYear()}</span>
+          </nav>
+
+        </div>
 
         {/* ── Doppellinie vor den Einträgen ──────────────── */}
         <div className="test-rule--double" role="separator" aria-hidden="true" />
@@ -341,7 +345,7 @@ export default function TestPage() {
         {/* ── Kolophon ───────────────────────────────────── */}
         <footer className="test-colophon" role="contentinfo">
           <span className="test-colophon-ornament" aria-hidden="true">· · ·</span>
-          <p className="feedback-hint">
+          <p className="feedback-hint" style={{ marginBottom: '16px' }}>
             Fehler oder Anregungen? <a href="mailto:info@signifikation.de">Schreib uns.</a>
           </p>
           <nav className="legal-links" aria-label="Rechtliche Links">
