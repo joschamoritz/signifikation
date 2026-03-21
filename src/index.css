@@ -622,6 +622,8 @@ button { font-family: inherit; cursor: pointer; border: none }
   font-weight: 700;
   color: var(--text);
 }
+.lemma-ipa { font-size: 0.85rem; color: var(--text-muted); }
+
 .lemma-wortart-chip {
   display: inline-block;
   font-size: 0.72rem;
