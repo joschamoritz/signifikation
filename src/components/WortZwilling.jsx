@@ -1,5 +1,7 @@
 import { useState } from 'react'
+import { API_BASE } from '../config'
 import { getMedal } from '../utils/gameLogic'
+import BelegePanel from './BelegePanel'
 
 function shuffle(arr) {
   const a = [...arr]
@@ -22,6 +24,32 @@ function ResultsView({ data, zoneA, zoneB, onBack }) {
   const zuordnungMap = Object.fromEntries(data.kollokatoren.map(k => [k.wort, k.zuordnung]))
   const score  = computeScore(zoneA, zoneB, zuordnungMap)
   const medal  = getMedal(score)
+
+  const [openBeleg,     setOpenBeleg]     = useState(null)
+  const [belegeCache,   setBelegeCache]   = useState({})
+  const [belegeLoading, setBelegeLoading] = useState(false)
+
+  async function loadWZBeleg(word) {
+    if (openBeleg === word) { setOpenBeleg(null); return }
+    if (belegeCache[word] !== undefined) { setOpenBeleg(word); return }
+    setOpenBeleg(word)
+    setBelegeLoading(true)
+    const lemma = zuordnungMap[word] === 'A' ? data.wortA : data.wortB
+    try {
+      const params = new URLSearchParams({ collocate: word, lemma, rel: '' })
+      const r = await fetch(`${API_BASE}/api/belege?${params}`)
+      const d = await r.json()
+      setBelegeCache(prev => ({ ...prev, [word]: Array.isArray(d) ? d : [] }))
+    } catch {
+      setBelegeCache(prev => ({ ...prev, [word]: [] }))
+    } finally {
+      setBelegeLoading(false)
+    }
+  }
+
+  const activeLemma = openBeleg
+    ? (zuordnungMap[openBeleg] === 'A' ? data.wortA : data.wortB)
+    : null
 
   return (
     <div className="screen wz-screen">
@@ -47,7 +75,12 @@ function ResultsView({ data, zoneA, zoneB, onBack }) {
               {zone.map(w => {
                 const correct = zuordnungMap[w] === z
                 return (
-                  <div key={w} className={`wz-chip wz-chip--${correct ? 'correct' : 'wrong'}`}>
+                  <div
+                    key={w}
+                    className={`wz-chip wz-chip--${correct ? 'correct' : 'wrong'}${openBeleg === w ? ' wz-chip--beleg-active' : ''}`}
+                    onClick={() => loadWZBeleg(w)}
+                    title="Belege anzeigen"
+                  >
                     <span>{w}</span>
                     <span className="wz-chip-icon">{correct ? '✓' : '✗'}</span>
                   </div>
@@ -58,9 +91,21 @@ function ResultsView({ data, zoneA, zoneB, onBack }) {
         ))}
       </div>
 
+      {openBeleg && (
+        <BelegePanel
+          lemma={activeLemma}
+          collocate={openBeleg}
+          data={belegeCache[openBeleg]}
+          loading={belegeLoading}
+        />
+      )}
+
+      <p className="wz-beleg-hint">Tippe auf ein Kollokat, um Belege aus dem DWDS-Korpus zu sehen.</p>
+
       <button className="btn-primary btn-full" onClick={onBack}>
         Zurück zur Übersicht
       </button>
+      <p className="dwds-quelle">Kollokationsdaten: DWDS-Wortprofil, Digitales Wörterbuch der deutschen Sprache (BBAW).</p>
     </div>
   )
 }

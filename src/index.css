@@ -706,7 +706,7 @@ button { font-family: inherit; cursor: pointer; border: none }
 .results-notiz {
   margin-top: 10px;
   font-size: 0.88rem;
-  color: var(--text-secondary);
+  color: var(--muted);
   text-align: center;
   justify-content: center;
 }
@@ -1034,14 +1034,14 @@ button { font-family: inherit; cursor: pointer; border: none }
   padding: 0 0 0 1rem;
   border-left: 3px solid var(--primary);
   font-style: italic;
-  color: var(--text-secondary);
+  color: var(--muted);
 }
 .free-bonus-quote p { margin: 0 0 .25rem; font-size: .95rem; }
 .free-bonus-quote footer { font-size: .8rem; font-style: normal; }
 .free-bonus-text {
   margin: 0;
   font-size: .9rem;
-  color: var(--text-secondary);
+  color: var(--muted);
   line-height: 1.5;
 }
 
@@ -1565,7 +1565,7 @@ button { font-family: inherit; cursor: pointer; border: none }
 .zr-bubble-popover-header {
   font-size: 0.78rem;
   margin-bottom: 5px;
-  color: var(--text-secondary);
+  color: var(--muted);
 }
 .zr-bubble-popover-header strong {
   color: var(--text-primary);
@@ -1799,8 +1799,9 @@ button { font-family: inherit; cursor: pointer; border: none }
 .wz-chip--placed      { background: var(--surface2); border-color: #d4d0cc; cursor: pointer }
 .wz-chip--placed:hover { border-color: var(--muted) }
 .wz-chip--dragging    { opacity: 0.3 }
-.wz-chip--correct     { background: var(--success-bg); border-color: #86efac; color: var(--success); cursor: default }
-.wz-chip--wrong       { background: var(--error-bg);   border-color: #fca5a5; color: var(--error);   cursor: default }
+.wz-chip--correct     { background: var(--success-bg); border-color: #86efac; color: var(--success); cursor: pointer }
+.wz-chip--wrong       { background: var(--error-bg);   border-color: #fca5a5; color: var(--error);   cursor: pointer }
+.wz-chip--beleg-active { outline: 2px solid var(--primary); outline-offset: 1px }
 .wz-chip-icon         { font-size: 0.75rem; font-weight: 700 }
 
 /* Drop-Zonen */
@@ -1870,6 +1871,12 @@ button { font-family: inherit; cursor: pointer; border: none }
 .wz-result-medal  { font-size: 2.6rem; line-height: 1 }
 .wz-result-score  { font-family: var(--font-serif); font-size: 1.4rem; font-weight: 700; color: var(--text) }
 .wz-result-label  { font-size: 0.85rem; color: var(--muted); margin-top: 2px }
+.wz-beleg-hint {
+  font-size: 0.8rem;
+  color: var(--muted);
+  text-align: center;
+  font-style: italic;
+}
 
 /* ── Share-Button ─────────────────────────────────────────── */
 .btn-share {
