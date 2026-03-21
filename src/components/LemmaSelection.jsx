@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react'
 export default function LemmaSelection({ lemmata, playedIds = [], onSelect, onViewResult, onBack }) {
   const [closedNotiz, setClosedNotiz] = useState(new Set())
   const [ipaMap, setIpaMap] = useState({})
+  const [ipaLoading, setIpaLoading] = useState(new Set(lemmata.map(l => l.lemma)))
 
   useEffect(() => {
     lemmata.forEach(async l => {
@@ -10,7 +11,11 @@ export default function LemmaSelection({ lemmata, playedIds = [], onSelect, onVi
         const r = await fetch(`/api/ipa?q=${encodeURIComponent(l.lemma)}`)
         const data = await r.json()
         if (data[0]?.ipa) setIpaMap(m => ({ ...m, [l.lemma]: data[0].ipa }))
-      } catch {}
+      } catch (err) {
+        console.error('IPA fetch:', err)
+      } finally {
+        setIpaLoading(s => { const n = new Set(s); n.delete(l.lemma); return n })
+      }
     })
   }, [lemmata])
 
@@ -35,9 +40,10 @@ export default function LemmaSelection({ lemmata, playedIds = [], onSelect, onVi
               >
                 <div className="lemma-info">
                   <span className="lemma-name">{lemma.lemma}</span>
-                  {ipaMap[lemma.lemma] && (
-                    <span className="lautschrift lemma-ipa">[{ipaMap[lemma.lemma]}]</span>
-                  )}
+                  {ipaMap[lemma.lemma]
+                    ? <span className="lautschrift lemma-ipa">[{ipaMap[lemma.lemma]}]</span>
+                    : ipaLoading.has(lemma.lemma) && <span className="lemma-ipa-skeleton" aria-hidden="true" />
+                  }
                   <span className="lemma-wortart-chip">{lemma.wortart}</span>
                 </div>
                 <span className="lemma-arrow">{played ? '›' : '›'}</span>

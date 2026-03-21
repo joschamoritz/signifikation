@@ -20,7 +20,7 @@ export default function Quiz({ lemma, currentRound, onRoundComplete }) {
 
   const { openBeleg, belegeCache, belegeLoading, loadBelege } = useBelege(lemma.lemma, relCode)
 
-  const options = useMemo(() => getRoundOptions(kollokatoren), []) // eslint-disable-line
+  const options = useMemo(() => getRoundOptions(kollokatoren), [kollokatoren])
 
   // Keine Daten für diese Runde → überspringen (0 Punkte)
   const shouldSkip = !kollokatoren.length && !!roundKey
