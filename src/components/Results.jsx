@@ -175,6 +175,8 @@ export default function Results({ lemma, roundScores, onRestart, onToSelection }
         </button>
       </div>
 
+      <p className="dwds-quelle">Kollokationsdaten: DWDS-Wortprofil, Digitales Wörterbuch der deutschen Sprache (BBAW).</p>
+
       {kollHistory.length > 0 && (
         <div className="history-strip">
           <span className="history-label">Dein Verlauf · Kollokationen</span>

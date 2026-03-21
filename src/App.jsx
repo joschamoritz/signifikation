@@ -241,11 +241,11 @@ export default function App() {
     triggerFeedback('wortzwilling')
   }, [wortzwilling, serverDatum, keys.dateStr]) // eslint-disable-line
 
-  const handleZeitreiseFinish = useCallback((score) => {
+  const handleZeitreiseFinish = useCallback((score, placements) => {
     if (!zeitreise) return
     const max   = zeitreise.paare.length * 2
     const zrMed = getZRMedal(score, max)
-    const entry = { lemma: zeitreise.lemma, total: score, medal: zrMed.label }
+    const entry = { lemma: zeitreise.lemma, total: score, medal: zrMed.label, placements }
     localStorage.setItem(keys.todayZRKey, JSON.stringify(entry))
     setZrPlayed(entry)
     markActivity(keys.dateStr)
