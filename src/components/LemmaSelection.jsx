@@ -1,7 +1,18 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 
 export default function LemmaSelection({ lemmata, playedIds = [], onSelect, onViewResult, onBack }) {
   const [closedNotiz, setClosedNotiz] = useState(new Set())
+  const [ipaMap, setIpaMap] = useState({})
+
+  useEffect(() => {
+    lemmata.forEach(async l => {
+      try {
+        const r = await fetch(`/api/ipa?q=${encodeURIComponent(l.lemma)}`)
+        const data = await r.json()
+        if (data[0]?.ipa) setIpaMap(m => ({ ...m, [l.lemma]: data[0].ipa }))
+      } catch {}
+    })
+  }, [lemmata])
 
   return (
     <div className="screen selection-screen">
@@ -24,6 +35,9 @@ export default function LemmaSelection({ lemmata, playedIds = [], onSelect, onVi
               >
                 <div className="lemma-info">
                   <span className="lemma-name">{lemma.lemma}</span>
+                  {ipaMap[lemma.lemma] && (
+                    <span className="lautschrift lemma-ipa">[{ipaMap[lemma.lemma]}]</span>
+                  )}
                   <span className="lemma-wortart-chip">{lemma.wortart}</span>
                 </div>
                 <span className="lemma-arrow">{played ? '›' : '›'}</span>

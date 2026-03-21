@@ -363,6 +363,17 @@ app.get('/api/belege', belegeLimiter, async (req, res) => {
   }
 })
 
+/** GET /api/ipa – IPA-Aussprache via DWDS-API */
+app.get('/api/ipa', async (req, res) => {
+  const { q } = req.query
+  if (!q) return res.status(400).json({ error: 'q erforderlich' })
+  try {
+    const r = await fetch(`https://www.dwds.de/api/ipa?q=${encodeURIComponent(q)}`)
+    if (!r.ok) return res.json([])
+    res.json(await r.json())
+  } catch (err) { serverError(res, err) }
+})
+
 /** GET /api/bonus – Bonusfrage für ein Lemma */
 app.get('/api/bonus', async (req, res) => {
   const { id } = req.query
