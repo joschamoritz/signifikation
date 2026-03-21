@@ -214,7 +214,6 @@ export default function Home({ onStart, loading, error, playedGames = [], allPla
         <div className="game-card">
           <div className="game-card-head">
             <span className="game-card-title">Zeitreise <span className="lautschrift">[ˈtsaɪ̯tˌʁaɪ̯zə]</span></span>
-            <span className="game-card-meta">500 Jahre Sprachgeschichte</span>
           </div>
 
           {zrPlayed ? (
@@ -288,7 +287,7 @@ export default function Home({ onStart, loading, error, playedGames = [], allPla
       {/* Teaser: kommendes Spiel */}
       <div className="game-card game-card--coming-soon" aria-hidden="true">
         <div className="game-card-head">
-          <span className="game-card-title">??? <span className="lautschrift">[???]</span></span>
+          <span className="game-card-title">??? <span className="lautschrift">[ˈfʁaːɡəˌtsaɪ̯çən]</span></span>
           <span className="game-card-meta">In Arbeit</span>
         </div>
         <p className="game-card-empty">Demnächst verfügbar</p>

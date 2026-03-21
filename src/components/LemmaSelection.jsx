@@ -1,7 +1,7 @@
 import { useState } from 'react'
 
 export default function LemmaSelection({ lemmata, playedIds = [], onSelect, onViewResult, onBack }) {
-  const [openNotiz, setOpenNotiz] = useState(null)
+  const [closedNotiz, setClosedNotiz] = useState(new Set())
 
   return (
     <div className="screen selection-screen">
@@ -30,13 +30,17 @@ export default function LemmaSelection({ lemmata, playedIds = [], onSelect, onVi
               </button>
               {lemma.notiz && (
                 <button
-                  className={`lemma-info-btn ${openNotiz === lemma.id ? 'lemma-info-btn--active' : ''}`}
-                  onClick={() => setOpenNotiz(o => o === lemma.id ? null : lemma.id)}
+                  className={`lemma-info-btn ${!closedNotiz.has(lemma.id) ? 'lemma-info-btn--active' : ''}`}
+                  onClick={() => setClosedNotiz(s => {
+                    const n = new Set(s)
+                    n.has(lemma.id) ? n.delete(lemma.id) : n.add(lemma.id)
+                    return n
+                  })}
                   aria-label="Hinweis anzeigen"
                 >i</button>
               )}
             </div>
-            {openNotiz === lemma.id && lemma.notiz && (
+            {!closedNotiz.has(lemma.id) && lemma.notiz && (
               <div className="lemma-notiz">
                 <span>{lemma.notiz}</span>
                 {lemma.link && (
