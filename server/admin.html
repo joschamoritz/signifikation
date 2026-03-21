@@ -353,6 +353,39 @@
     <div id="viz-output"></div>
   </div>
 
+  <!-- Kollokation – Wortanalyse -->
+  <div class="card">
+    <h2>Kollokation – Wortanalyse</h2>
+    <p style="font-size:0.82rem;color:var(--muted);margin-bottom:8px">Prüfe, ob ein Wort als Kollokationswort geeignet ist. Zeigt Top 10 pro Runde, Top 3 gesamt und die Bonusfrage.</p>
+    <div class="viz-search">
+      <input type="text" id="koll-input" placeholder="Wort eingeben…" onkeydown="if(event.key==='Enter')analyzeKollokation()" style="flex:1">
+      <select id="koll-pos">
+        <option value="Substantiv">Substantiv</option>
+        <option value="Verb">Verb</option>
+        <option value="Adjektiv">Adjektiv</option>
+      </select>
+      <button onclick="analyzeKollokation()">Analysieren</button>
+    </div>
+    <div id="koll-output"></div>
+  </div>
+
+  <!-- Wort-Zwilling – Paaranalyse -->
+  <div class="card">
+    <h2>Wort-Zwilling – Paaranalyse</h2>
+    <p style="font-size:0.82rem;color:var(--muted);margin-bottom:8px">Prüfe, ob zwei Wörter als Wort-Zwilling geeignet sind. Zeigt die 10 distinktiven Kollokatoren (5 pro Seite).</p>
+    <div class="viz-search" style="flex-wrap:wrap;gap:8px">
+      <input type="text" id="wza-input" placeholder="Wort A…" onkeydown="if(event.key==='Enter')analyzeWortZwilling()" style="flex:1;min-width:120px">
+      <input type="text" id="wzb-input" placeholder="Wort B…" onkeydown="if(event.key==='Enter')analyzeWortZwilling()" style="flex:1;min-width:120px">
+      <select id="wzana-pos">
+        <option value="Substantiv">Substantiv</option>
+        <option value="Verb">Verb</option>
+        <option value="Adjektiv">Adjektiv</option>
+      </select>
+      <button onclick="analyzeWortZwilling()">Analysieren</button>
+    </div>
+    <div id="wz-ana-output"></div>
+  </div>
+
   <!-- Kalender -->
   <div class="card">
     <h2>Kalender</h2>
@@ -947,6 +980,105 @@
         }
       }
     })
+  }
+
+  // ── Kollokation – Wortanalyse ─────────────────────────────
+  async function analyzeKollokation() {
+    const lemma = document.getElementById('koll-input').value.trim()
+    const pos   = document.getElementById('koll-pos').value
+    const out   = document.getElementById('koll-output')
+    if (!lemma) return
+    out.innerHTML = '<div class="status loading">Analysiere …</div>'
+    try {
+      const res  = await fetch(`/admin/analyze-kollokation?q=${encodeURIComponent(lemma)}&pos=${encodeURIComponent(pos)}`, { headers: { 'x-admin-key': KEY } })
+      const data = await res.json()
+      if (!res.ok) { out.innerHTML = `<div class="status error">Fehler: ${esc(data.error)}</div>`; return }
+      renderKollAnalyse(data, out)
+    } catch (e) { out.innerHTML = `<div class="status error">Netzwerkfehler: ${esc(e.message)}</div>` }
+  }
+
+  function renderKollAnalyse(data, out) {
+    const badge = data.usable
+      ? '<span style="color:#166534;font-weight:700">✓ Geeignet als Kollokationswort</span>'
+      : '<span style="color:#991b1b;font-weight:700">✗ Nicht geeignet (zu wenig Kollokatoren)</span>'
+
+    let html = `<div style="margin:12px 0 16px">${badge}</div>`
+
+    // Top 3
+    if (data.top3?.length) {
+      html += `<div style="margin-bottom:16px"><strong style="font-size:0.82rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)">Top 3 gesamt</strong><div style="display:flex;gap:8px;margin-top:6px;flex-wrap:wrap">`
+      for (const it of data.top3) {
+        html += `<div style="background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:6px 12px;font-size:0.88rem"><strong>${esc(it.wort)}</strong> <span style="color:var(--muted);font-size:0.8em">${it.logDice}</span></div>`
+      }
+      html += `</div></div>`
+    }
+
+    // Runden
+    html += `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px">`
+    for (const runde of data.runden) {
+      const ok = runde.usable
+      html += `<div style="border:1.5px solid ${ok ? '#bbf7d0' : '#fca5a5'};border-radius:8px;padding:12px">`
+      html += `<div style="font-weight:600;font-size:0.85rem;margin-bottom:6px">${esc(runde.label)} <span style="color:var(--muted);font-weight:400;font-size:0.78rem">(${runde.count || 0} Treffer)</span></div>`
+      if (runde.error) { html += `<div style="color:#991b1b;font-size:0.8rem">${esc(runde.error)}</div>` }
+      else if (runde.items?.length) {
+        html += `<ol style="padding-left:16px;font-size:0.82rem;display:flex;flex-direction:column;gap:3px">`
+        for (const it of runde.items) {
+          html += `<li>${esc(it.wort)} <span style="color:var(--muted);font-size:0.78em">${it.logDice}</span></li>`
+        }
+        html += `</ol>`
+      } else { html += `<div style="color:var(--muted);font-size:0.82rem">Keine Ergebnisse</div>` }
+      html += `</div>`
+    }
+    html += `</div>`
+
+    // Bonus
+    if (data.bonus) {
+      html += `<div style="margin-top:14px;padding:10px 14px;background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;font-size:0.82rem">`
+      html += `<strong>Bonusfrage (${esc(data.bonus.label)}):</strong> ${esc(data.bonus.question)}<br>`
+      html += `<span style="color:var(--muted)">Antwort: <strong>${esc(data.bonus.correct)}</strong> · Optionen: ${data.bonus.options.map(o => esc(o)).join(', ')}</span></div>`
+    } else {
+      html += `<div style="margin-top:14px;font-size:0.82rem;color:var(--muted)">Keine Bonusfrage verfügbar.</div>`
+    }
+
+    out.innerHTML = html
+  }
+
+  // ── Wort-Zwilling – Paaranalyse ───────────────────────────
+  async function analyzeWortZwilling() {
+    const wortA = document.getElementById('wza-input').value.trim()
+    const wortB = document.getElementById('wzb-input').value.trim()
+    const pos   = document.getElementById('wzana-pos').value
+    const out   = document.getElementById('wz-ana-output')
+    if (!wortA || !wortB) return
+    out.innerHTML = '<div class="status loading">Analysiere …</div>'
+    try {
+      const res  = await fetch(`/admin/analyze-wortzwilling?a=${encodeURIComponent(wortA)}&b=${encodeURIComponent(wortB)}&pos=${encodeURIComponent(pos)}`, { headers: { 'x-admin-key': KEY } })
+      const data = await res.json()
+      if (!res.ok) { out.innerHTML = `<div class="status error">Fehler: ${esc(data.error)}</div>`; return }
+      renderWZAnalyse(data, out)
+    } catch (e) { out.innerHTML = `<div class="status error">Netzwerkfehler: ${esc(e.message)}</div>` }
+  }
+
+  function renderWZAnalyse(data, out) {
+    if (!data.usable) {
+      out.innerHTML = `<div style="margin-top:12px"><span style="color:#991b1b;font-weight:700">✗ Nicht geeignet</span><br><span style="color:var(--muted);font-size:0.85rem">${esc(data.reason || '')}</span></div>`
+      return
+    }
+    const kA = data.kollokatoren.filter(k => k.zuordnung === 'A')
+    const kB = data.kollokatoren.filter(k => k.zuordnung === 'B')
+    let html = `<div style="margin:12px 0 16px"><span style="color:#166534;font-weight:700">✓ Geeignet als Wort-Zwilling</span></div>`
+    html += `<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">`
+    for (const [label, items] of [[data.wortA, kA], [data.wortB, kB]]) {
+      html += `<div style="border:1.5px solid #bbf7d0;border-radius:8px;padding:12px">`
+      html += `<div style="font-weight:700;font-size:0.9rem;margin-bottom:8px;font-family:'Playfair Display',serif">${esc(label)}</div>`
+      html += `<ol style="padding-left:16px;font-size:0.85rem;display:flex;flex-direction:column;gap:4px">`
+      for (const it of items) {
+        html += `<li>${esc(it.wort)} <span style="color:var(--muted);font-size:0.78em">A:${it.scoreA?.toFixed(1)} B:${it.scoreB?.toFixed(1)}</span></li>`
+      }
+      html += `</ol></div>`
+    }
+    html += `</div>`
+    out.innerHTML = html
   }
 </script>
 </body>
