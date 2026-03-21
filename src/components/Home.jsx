@@ -154,7 +154,8 @@ export default function Home({
               </div>
               <div className="test-entry-body">
                 <div className="test-entry-head">
-                  <h2 className="test-headword">Kollokationen</h2>
+                  <span className="test-dropcap-k" aria-hidden="true">K</span>
+                  <h2 className="test-headword" aria-label="Kollokationen">ollokationen</h2>
                   <span className="test-ipa" aria-label="Aussprache: [kɔlokaˈtsi̯oːnən]">[kɔlokaˈtsi̯oːnən]</span>
                 </div>
                 <div className="test-entry-grammar" aria-hidden="true">
@@ -374,8 +375,8 @@ export default function Home({
             <ol className="home-card-footnotes">
               <li>Hausmann, F.&thinsp;J. (2003): Was sind eigentlich Kollokationen? In: Steyer, K. (Hrsg.): <em>Wortverbindungen — mehr oder weniger fest</em>. de Gruyter, S.&thinsp;309–334.</li>
               <li>Rychlý, P. (2008): A Lexicographer-Friendly Association Score. In: <em>Proceedings of RASLAN 2008</em>, S.&thinsp;6–9.</li>
-              <li>DWDS-Wortprofil, erstellt durch das Digitale Wörterbuch der deutschen Sprache, Berlin-Brandenburgische Akademie der Wissenschaften (BBAW). <a href="https://www.dwds.de/d/zitieren" target="_blank" rel="noopener">Zitierregeln</a></li>
-              <li>Jurish, B. et&thinsp;al. (2014): DiaCollo: On the Trail of Diachronic Collocations. In: <em>Proceedings of DH 2014</em>. <a href="https://www.dwds.de/d/zitieren" target="_blank" rel="noopener">Zitierregeln</a></li>
+              <li>DWDS-Wortprofil, erstellt durch das Digitale Wörterbuch der deutschen Sprache, Berlin-Brandenburgische Akademie der Wissenschaften (BBAW).</li>
+              <li>Jurish, B. et&thinsp;al. (2014): DiaCollo: On the Trail of Diachronic Collocations. In: <em>Proceedings of DH 2014</em>.</li>
             </ol>
           </div>
         </section>

@@ -163,7 +163,7 @@
   border: none;
   height: 4px;
   background:
-    linear-gradient(var(--t-text) 0, var(--t-text) 1px, transparent 1px, transparent 2px, var(--t-rule) 2px, var(--t-rule) 3px) top / 100% 3px no-repeat;
+    linear-gradient(var(--t-accent-dk) 0, var(--t-accent-dk) 1px, transparent 1px, transparent 2px, var(--t-rule) 2px, var(--t-rule) 3px) top / 100% 3px no-repeat;
   margin-bottom: 2px;
 }
 
@@ -201,10 +201,10 @@
 
 .test-entry-num-glyph {
   font-family: var(--t-serif);
-  font-size: 0.8rem;
+  font-size: 1.1rem;
   color: var(--t-accent);
   font-weight: 700;
-  line-height: 1.8;
+  line-height: 1.4;
   user-select: none;
 }
 
@@ -374,17 +374,17 @@
 
 /* ── Drop Cap ──────────────────────────────────────────────── */
 .test-drop-cap .test-entry-head {
-  align-items: flex-start;
+  align-items: baseline;
 }
 
-.test-drop-cap .test-headword::first-letter {
-  float: left;
-  font-size: 3.2em;
-  line-height: 0.82;
-  padding-right: 4px;
-  padding-top: 6px;
+.test-dropcap-k {
+  font-family: var(--t-serif);
+  font-size: 3.8rem;
   font-weight: 700;
   color: var(--t-red);
+  line-height: 1;
+  flex-shrink: 0;
+  letter-spacing: 0.01em;
 }
 
 /* ── Abschnitt-Titel ───────────────────────────────────────── */
