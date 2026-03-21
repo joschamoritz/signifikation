@@ -49,6 +49,11 @@ body {
   flex-direction: column;
 }
 
+.app--home {
+  max-width: none;
+  padding: 0;
+}
+
 .screen {
   flex: 1;
   display: flex;
