@@ -3,65 +3,81 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="robots" content="noindex" />
+  <meta name="robots" content="noindex, nofollow" />
   <title>Datenschutzerklärung – Signifikation</title>
-  <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0 }
-    body { font-family: system-ui, sans-serif; background: #faf9f7; color: #1a1915; line-height: 1.7; padding: 32px 20px 64px; max-width: 640px; margin: 0 auto }
-    h1 { font-size: 1.6rem; font-weight: 700; margin-bottom: 8px }
-    h2 { font-size: 1.05rem; font-weight: 600; margin: 28px 0 6px }
-    p  { margin-bottom: 10px; color: #444 }
-    ul { padding-left: 20px; margin-bottom: 10px; color: #444 }
-    li { margin-bottom: 4px }
-    a  { color: #5c6e3e }
-    .back { display: inline-block; margin-bottom: 28px; color: #5c6e3e; text-decoration: none; font-size: 0.9rem }
-    .chip { display: inline-block; background: #eef2e6; color: #4a5e2a; border-radius: 4px; padding: 1px 7px; font-size: 0.8rem; font-weight: 600; margin-right: 4px }
-    .chip--no { background: #f5f0eb; color: #888 }
-  </style>
+  <link rel="stylesheet" href="/static.css" />
 </head>
 <body>
+<div class="wrapper">
+
   <a class="back" href="/">← Zurück zur App</a>
-  <h1>Datenschutzerklärung</h1>
-  <p style="color:#888;font-size:0.85rem">Stand: März 2026</p>
+
+  <header>
+    <p class="overline">Rechtliche Angaben</p>
+    <h1>Datenschutz</h1>
+    <p class="subtitle">Stand: März 2026</p>
+  </header>
+
+  <hr class="rule-double" />
 
   <h2>Verantwortlicher</h2>
-  <p>Joscha Moritz Fresmann, Recklinghausen – Kontakt: <a href="/impressum.html">siehe Impressum</a></p>
+  <p>Joscha Moritz Fresmann, Recklinghausen — <a href="/impressum.html">Kontakt siehe Impressum</a></p>
 
   <h2>Kurzübersicht</h2>
-  <p>
-    <span class="chip">Keine Cookies</span>
-    <span class="chip">Kein Tracking</span>
-    <span class="chip">Keine Werbung</span>
-    <span class="chip--no chip">Kein Login</span>
-    <span class="chip--no chip">Keine Weitergabe</span>
-  </p>
+  <div class="badges">
+    <span class="badge">Keine Cookies</span>
+    <span class="badge">Kein Tracking</span>
+    <span class="badge">Keine Werbung</span>
+    <span class="badge badge--no">Kein Login</span>
+    <span class="badge badge--no">Keine Weitergabe</span>
+  </div>
 
   <h2>Welche Daten werden verarbeitet?</h2>
 
-  <p><strong>Server-Logs (Hosting)</strong><br />
-  Beim Aufruf der Website übermittelt dein Browser automatisch technische Daten an den
-  Hosting-Anbieter: IP-Adresse, Datum/Uhrzeit, aufgerufene URL, Browser-Typ. Diese Daten
-  werden für den technischen Betrieb benötigt und nach spätestens 30 Tagen gelöscht.
-  Rechtsgrundlage: Art. 6 Abs. 1 lit. f DSGVO (berechtigtes Interesse am sicheren Betrieb).</p>
+  <p>
+    <strong>Server-Logs (Hosting)</strong><br />
+    Beim Aufruf der Website übermittelt dein Browser automatisch technische Daten an den
+    Hosting-Anbieter: IP-Adresse, Datum/Uhrzeit, aufgerufene URL, Browser-Typ. Diese Daten
+    werden für den technischen Betrieb benötigt und nach spätestens 30 Tagen gelöscht.
+    Rechtsgrundlage: Art. 6 Abs. 1 lit. f DSGVO (berechtigtes Interesse am sicheren Betrieb).
+  </p>
 
-  <p><strong>Lokaler Spielstand (localStorage)</strong><br />
-  Spielstände, Streaks und Verlauf werden ausschließlich lokal in deinem Browser gespeichert
-  (<code>localStorage</code>). Diese Daten werden nicht an uns oder Dritte übertragen.
-  Du kannst sie jederzeit über die Browser-Einstellungen löschen. Es werden keine
-  Cookies gesetzt.</p>
+  <p>
+    <strong>Lokaler Spielstand (localStorage)</strong><br />
+    Spielstände, Streaks und Verlauf werden ausschließlich lokal in deinem Browser gespeichert
+    (<code>localStorage</code>). Diese Daten werden nicht an uns oder Dritte übertragen.
+    Du kannst sie jederzeit über die Browser-Einstellungen löschen. Es werden keine
+    Cookies gesetzt.
+  </p>
 
-  <p><strong>API-Anfragen</strong><br />
-  Die App lädt täglich Spieldaten von unserem Backend-Server (ebenfalls auf Railway).
-  Dabei wird deine IP-Adresse an Railway übermittelt (siehe Server-Logs oben). Es werden
-  keine personenbezogenen Daten in den Anfragen mitgesendet.</p>
+  <p>
+    <strong>API-Anfragen</strong><br />
+    Die App lädt täglich Spieldaten von unserem Backend-Server. Dabei wird deine IP-Adresse
+    an den Hosting-Anbieter übermittelt (siehe Server-Logs oben). Es werden keine
+    personenbezogenen Daten in den Anfragen mitgesendet.
+  </p>
 
-  <h2>Was wir NICHT tun</h2>
+  <p>
+    <strong>Optionales Feedback</strong><br />
+    Nach dem Spielen kann freiwillig eine kurze Rückmeldung (Emoji-Reaktion + optionaler Text)
+    abgegeben werden. Diese Daten werden ohne Personenbezug auf dem Server gespeichert und
+    ausschließlich zur Verbesserung der App verwendet.
+  </p>
+
+  <h2>Was wir nicht tun</h2>
   <ul>
-    <li>Keine Analyse- oder Tracking-Tools (kein Google Analytics, Matomo o. Ä.)</li>
+    <li>Keine Analyse- oder Tracking-Tools (kein Google Analytics, Matomo o.&thinsp;Ä.)</li>
     <li>Keine Nutzerkonten, keine Registrierung</li>
     <li>Keine Weitergabe von Daten an Dritte zu Werbezwecken</li>
-    <li>Keine Drittanbieter-Schriften oder -Ressourcen – Schriftarten werden lokal ausgeliefert</li>
+    <li>Keine Drittanbieter-Ressourcen außer Google Fonts (Schriftarten)</li>
   </ul>
+
+  <h2>Google Fonts</h2>
+  <p>
+    Diese App lädt Schriftarten über Google Fonts. Dabei wird deine IP-Adresse an Google
+    übermittelt. Rechtsgrundlage: Art. 6 Abs. 1 lit. f DSGVO.
+    Weitere Informationen: <a href="https://policies.google.com/privacy" target="_blank" rel="noopener">policies.google.com/privacy</a>
+  </p>
 
   <h2>Hosting</h2>
   <p>
@@ -71,13 +87,28 @@
   </p>
 
   <h2>Deine Rechte</h2>
-  <p>Du hast das Recht auf Auskunft, Berichtigung, Löschung und Einschränkung der
-  Verarbeitung deiner personenbezogenen Daten sowie ein Widerspruchsrecht.
-  Da wir keine personenbezogenen Daten dauerhaft speichern (außer transienten Server-Logs
-  beim Hoster), ist eine Kontaktaufnahme in der Regel nicht erforderlich. Bei Fragen:
-  <a href="/impressum.html">Kontakt über Impressum</a>.</p>
+  <p>
+    Du hast das Recht auf Auskunft, Berichtigung, Löschung und Einschränkung der
+    Verarbeitung deiner personenbezogenen Daten sowie ein Widerspruchsrecht.
+    Da wir keine personenbezogenen Daten dauerhaft speichern (außer transienten Server-Logs
+    beim Hoster), ist eine Kontaktaufnahme in der Regel nicht erforderlich.
+    Bei Fragen: <a href="/impressum.html">Kontakt über Impressum</a>.
+  </p>
+  <p>
+    Du hast außerdem das Recht, dich bei einer Datenschutz-Aufsichtsbehörde zu beschweren,
+    z.&thinsp;B. dem Landesbeauftragten für Datenschutz in deinem Bundesland.
+  </p>
 
-  <p>Du hast außerdem das Recht, dich bei einer Datenschutz-Aufsichtsbehörde zu beschweren,
-  z. B. dem Landesbeauftragten für Datenschutz in deinem Bundesland.</p>
+  <footer>
+    <span class="ornament">· · ·</span>
+    <nav class="legal">
+      <a href="/">Zur App</a>
+      <a href="/ueber.html">Über die App</a>
+      <a href="/impressum.html">Impressum</a>
+      <a href="/nutzungsbedingungen.html">Nutzungsbedingungen</a>
+    </nav>
+  </footer>
+
+</div>
 </body>
 </html>

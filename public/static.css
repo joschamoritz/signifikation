@@ -1,0 +1,299 @@
+/* ============================================================
+   SIGNIFIKATION – Statische Seiten (Impressum, Datenschutz etc.)
+   Wörterbuch-Design, konsistent mit Home.jsx / test.css
+   ============================================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=Gentium+Plus:ital,wght@0,400;0,700;1,400;1,700&family=DM+Sans:wght@400;500;600&display=swap');
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0 }
+
+html { scroll-behavior: smooth }
+
+body {
+  font-family: 'Gentium Plus', Georgia, 'Times New Roman', serif;
+  background-color: #faf9f7;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+  color: #1a1a18;
+  line-height: 1.7;
+  min-height: 100dvh;
+}
+
+.wrapper {
+  max-width: 680px;
+  margin: 0 auto;
+  padding: 0 24px 80px;
+}
+
+/* ── Zurück-Link ──────────────────────────────────────────── */
+.back {
+  display: inline-block;
+  padding: 20px 0 0;
+  font-family: 'DM Sans', system-ui, sans-serif;
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: #9b1c1c;
+  text-decoration: none;
+  letter-spacing: 0.01em;
+}
+.back:hover { opacity: 0.75 }
+
+/* ── Header ───────────────────────────────────────────────── */
+header {
+  padding: 40px 0 28px;
+  text-align: center;
+  position: relative;
+}
+header::after {
+  content: '';
+  display: block;
+  margin: 20px auto 0;
+  width: 60px;
+  border-top: 2px solid #c9a84c;
+}
+
+.overline {
+  font-family: 'DM Sans', system-ui, sans-serif;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  color: #8a7f6e;
+  margin-bottom: 10px;
+}
+
+h1 {
+  font-family: 'Gentium Plus', serif;
+  font-size: clamp(1.8rem, 6vw, 3rem);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #1a1a18;
+  line-height: 1.05;
+  margin: 0;
+}
+
+.ipa {
+  font-size: 0.55em;
+  font-style: normal;
+  font-weight: 400;
+  color: #8a7f6e;
+  letter-spacing: 0.01em;
+  text-transform: none;
+}
+
+.subtitle {
+  font-family: 'Gentium Plus', serif;
+  font-style: italic;
+  font-size: 0.95rem;
+  color: #8a7f6e;
+  margin-top: 10px;
+  letter-spacing: 0.02em;
+}
+
+/* ── Doppellinie ──────────────────────────────────────────── */
+.rule-double {
+  border: none;
+  margin: 32px 0 24px;
+}
+.rule-double::before {
+  content: '';
+  display: block;
+  border-top: 1.5px solid #d4c9b0;
+  margin-bottom: 3px;
+}
+.rule-double::after {
+  content: '';
+  display: block;
+  border-top: 0.5px solid #d4c9b0;
+}
+
+/* ── Abschnitt-Label ──────────────────────────────────────── */
+.section-label {
+  font-family: 'DM Sans', system-ui, sans-serif;
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  color: #8a7f6e;
+  margin-bottom: 24px;
+}
+
+/* ── Inhalt ───────────────────────────────────────────────── */
+h2 {
+  font-family: 'Gentium Plus', serif;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #1a1a18;
+  margin: 36px 0 8px;
+  padding-bottom: 5px;
+  border-bottom: 0.5px solid #e8e2d8;
+}
+
+h2:first-of-type { margin-top: 0 }
+
+p {
+  font-size: 0.93rem;
+  color: #1a1a18;
+  margin-bottom: 12px;
+}
+
+strong { font-weight: 700 }
+em { font-style: italic }
+
+code {
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 0.85em;
+  color: #5a5248;
+  background: #f0ede8;
+  padding: 0 3px;
+  border-radius: 2px;
+}
+
+a { color: #9b1c1c; text-underline-offset: 2px }
+a:hover { color: #b91c1c }
+
+sup {
+  font-size: 0.65em;
+  color: #9b1c1c;
+  font-weight: 600;
+  vertical-align: super;
+}
+
+/* ── Listen ───────────────────────────────────────────────── */
+ul {
+  list-style: none;
+  margin-bottom: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+ul li {
+  font-size: 0.93rem;
+  color: #1a1a18;
+  padding-left: 18px;
+  position: relative;
+}
+
+ul li::before {
+  content: '—';
+  position: absolute;
+  left: 0;
+  color: #c9a84c;
+  font-weight: 700;
+}
+
+ol.numbered {
+  padding-left: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+ol.numbered li {
+  font-size: 0.93rem;
+  color: #1a1a18;
+}
+
+/* ── Badges (Datenschutz) ─────────────────────────────────── */
+.badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+
+.badge {
+  font-family: 'DM Sans', system-ui, sans-serif;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  border: 0.5px solid #c9a84c;
+  color: #a07830;
+  padding: 2px 8px;
+  border-radius: 2px;
+}
+
+.badge--no {
+  border-color: #d4c9b0;
+  color: #8a7f6e;
+}
+
+/* ── Fußnoten ─────────────────────────────────────────────── */
+.footnotes {
+  margin-top: 48px;
+  padding-top: 20px;
+  border-top: 0.5px solid #d4c9b0;
+}
+
+.footnotes-label {
+  font-family: 'DM Sans', system-ui, sans-serif;
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  color: #8a7f6e;
+  margin-bottom: 16px;
+}
+
+.footnotes ol {
+  padding-left: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.footnotes li {
+  font-size: 0.77rem;
+  color: #8a7f6e;
+  line-height: 1.55;
+}
+
+/* ── Kolophon / Footer ────────────────────────────────────── */
+footer {
+  margin-top: 56px;
+  padding-top: 24px;
+  border-top: 0.5px solid #d4c9b0;
+  text-align: center;
+}
+
+.ornament {
+  display: block;
+  font-size: 0.9rem;
+  color: #d4c9b0;
+  letter-spacing: 0.5em;
+  margin-bottom: 18px;
+}
+
+footer p {
+  font-family: 'DM Sans', system-ui, sans-serif;
+  font-size: 0.8rem;
+  color: #8a7f6e;
+  margin-bottom: 14px;
+}
+
+nav.legal {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 4px 16px;
+  font-family: 'DM Sans', system-ui, sans-serif;
+  font-size: 0.78rem;
+  margin-bottom: 16px;
+}
+
+nav.legal a {
+  color: #8a7f6e;
+  text-decoration: none;
+}
+
+nav.legal a:hover { color: #9b1c1c }
+
+.edition {
+  font-family: 'DM Sans', system-ui, sans-serif;
+  font-size: 0.72rem;
+  color: #b8b0a0;
+  letter-spacing: 0.04em;
+}
