@@ -544,6 +544,16 @@ app.delete('/admin/tag/:datum', adminLimiter, requireAuth, (req, res) => {
 
 /** GET /admin – Admin-Oberfläche (öffentlich – Login erfolgt clientseitig) */
 app.get('/admin', (req, res) => {
+  // Eigene CSP für admin.html: 'unsafe-inline' für Skripte nötig (inline onclick-Handler)
+  res.setHeader('Content-Security-Policy',
+    "default-src 'self'; " +
+    "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; " +
+    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " +
+    "font-src 'self' https://fonts.gstatic.com; " +
+    "img-src 'self' data:; " +
+    "connect-src 'self'; " +
+    "frame-ancestors 'none';"
+  )
   res.sendFile(join(__dirname, 'admin.html'))
 })
 
