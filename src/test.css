@@ -1,0 +1,598 @@
+/* ============================================================
+   SIGNIFIKATION – /test – Wörterbuch-Redesign
+   Typografie-first, klassisches Duden-Ästhetik
+   ============================================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=Gentium+Plus:ital,wght@0,400;0,700;1,400;1,700&display=swap');
+
+/* ── CSS-Variablen ─────────────────────────────────────────── */
+.test-page {
+  --t-bg:        #faf9f7;
+  --t-surface:   #f3f1ed;
+  --t-text:      #1a1a18;
+  --t-muted:     #8a7f6e;
+  --t-accent:    #c9a84c;
+  --t-accent-dk: #a07830;
+  --t-rule:      #d4c9b0;
+  --t-rule-lt:   #e8e2d8;
+  --t-serif:     'Gentium Plus', 'Playfair Display', Georgia, 'Times New Roman', serif;
+  --t-sans:      'DM Sans', system-ui, -apple-system, sans-serif;
+  --t-mono:      'Courier New', 'Courier', monospace;
+  --t-disabled:  #b8b0a0;
+
+  font-family: var(--t-serif);
+  background-color: var(--t-bg);
+  color: var(--t-text);
+  min-height: 100dvh;
+  line-height: 1.6;
+
+  /* Ganz feines Papier-Körnung via SVG-Filter */
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+}
+
+/* ── Wrapper ───────────────────────────────────────────────── */
+.test-wrapper {
+  max-width: 680px;
+  margin-inline: auto;
+  padding: 0 24px env(safe-area-inset-bottom, 24px);
+}
+
+/* ── Titelseite ────────────────────────────────────────────── */
+.test-title-section {
+  padding: 52px 0 28px;
+  text-align: center;
+  position: relative;
+}
+
+.test-title-section::after {
+  content: '';
+  display: block;
+  margin: 24px auto 0;
+  width: 80px;
+  border-top: 2px solid var(--t-accent);
+}
+
+.test-overline {
+  font-family: var(--t-sans);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  color: var(--t-muted);
+  margin-bottom: 10px;
+}
+
+.test-title {
+  font-family: var(--t-serif);
+  font-size: clamp(2.8rem, 8vw, 4.8rem);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  line-height: 1.05;
+  color: var(--t-text);
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.test-subtitle {
+  font-family: var(--t-serif);
+  font-style: italic;
+  font-size: 0.95rem;
+  color: var(--t-muted);
+  margin-top: 10px;
+  letter-spacing: 0.02em;
+}
+
+/* ── Laufzeile / Raster ────────────────────────────────────── */
+.test-raster {
+  background: var(--t-surface);
+  border-top: 1px solid var(--t-rule);
+  border-bottom: 1px solid var(--t-rule);
+  padding: 10px 24px;
+  margin: 0 -24px 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  overflow: hidden;
+}
+
+.test-raster-label {
+  font-family: var(--t-sans);
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--t-muted);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.test-raster-words {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  flex: 1;
+  justify-content: center;
+  flex-wrap: wrap;
+  row-gap: 4px;
+}
+
+.test-raster-word {
+  font-family: var(--t-serif);
+  font-variant: small-caps;
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: var(--t-text);
+  padding: 0 12px;
+  position: relative;
+}
+
+.test-raster-word + .test-raster-word::before {
+  content: '·';
+  position: absolute;
+  left: -2px;
+  color: var(--t-accent);
+  font-style: normal;
+}
+
+.test-raster-folio {
+  font-family: var(--t-sans);
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  color: var(--t-muted);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* ── Sektion-Trennlinie ────────────────────────────────────── */
+.test-rule {
+  border: none;
+  border-top: 1px solid var(--t-rule);
+  margin: 0;
+}
+
+.test-rule--thick {
+  border-top-width: 2px;
+  border-color: var(--t-text);
+}
+
+.test-rule--double {
+  border: none;
+  height: 4px;
+  background:
+    linear-gradient(var(--t-text) 0, var(--t-text) 1px, transparent 1px, transparent 2px, var(--t-rule) 2px, var(--t-rule) 3px) top / 100% 3px no-repeat;
+  margin-bottom: 2px;
+}
+
+/* ── Eintrags-Abschnitt ────────────────────────────────────── */
+.test-entries {
+  padding: 4px 0 32px;
+}
+
+.test-entry {
+  display: grid;
+  grid-template-columns: 28px 1fr;
+  gap: 0 20px;
+  padding: 28px 0 24px;
+  border-bottom: 1px solid var(--t-rule-lt);
+  position: relative;
+}
+
+.test-entry:last-child {
+  border-bottom: none;
+}
+
+.test-entry--disabled {
+  opacity: 0.6;
+}
+
+/* ── Randnotiz (Ziffer) ────────────────────────────────────── */
+.test-entry-number {
+  grid-column: 1;
+  grid-row: 1 / 4;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding-top: 4px;
+}
+
+.test-entry-num-glyph {
+  font-family: var(--t-serif);
+  font-size: 0.8rem;
+  color: var(--t-accent);
+  font-weight: 700;
+  line-height: 1.8;
+  user-select: none;
+}
+
+.test-entry-marginalia {
+  font-family: var(--t-sans);
+  font-size: 8px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--t-disabled);
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  margin-top: 12px;
+  line-height: 1;
+}
+
+/* ── Eintrags-Inhalt ───────────────────────────────────────── */
+.test-entry-body {
+  grid-column: 2;
+}
+
+/* Stichwort-Zeile */
+.test-entry-head {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  margin-bottom: 4px;
+}
+
+.test-headword {
+  font-family: var(--t-serif);
+  font-size: 1.45rem;
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--t-text);
+  letter-spacing: 0.01em;
+}
+
+.test-entry--disabled .test-headword {
+  color: var(--t-disabled);
+}
+
+.test-ipa {
+  font-family: var(--t-serif);
+  font-size: 0.82rem;
+  color: var(--t-muted);
+  font-style: normal;
+  letter-spacing: 0.01em;
+  font-weight: 400;
+}
+
+/* Grammatik-Zeile */
+.test-entry-grammar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.test-pos {
+  font-family: var(--t-serif);
+  font-style: italic;
+  font-size: 0.78rem;
+  color: var(--t-muted);
+}
+
+.test-pos-rule {
+  flex: 1;
+  height: 1px;
+  background: var(--t-rule);
+  min-width: 20px;
+  max-width: 160px;
+}
+
+.test-entry-category {
+  font-family: var(--t-sans);
+  font-size: 8.5px;
+  font-weight: 600;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--t-accent-dk);
+  background: transparent;
+  border: 1px solid var(--t-accent);
+  padding: 1px 6px;
+  border-radius: 2px;
+}
+
+.test-entry--disabled .test-entry-category {
+  color: var(--t-disabled);
+  border-color: var(--t-rule);
+}
+
+/* Definitions-Text */
+.test-definition {
+  font-family: var(--t-serif);
+  font-size: 0.925rem;
+  line-height: 1.65;
+  color: var(--t-text);
+  margin-bottom: 12px;
+}
+
+.test-entry--disabled .test-definition {
+  color: var(--t-muted);
+}
+
+/* Status & CTA-Zeile */
+.test-entry-footer {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.test-status {
+  font-family: var(--t-serif);
+  font-style: italic;
+  font-size: 0.8rem;
+  color: var(--t-muted);
+}
+
+.test-status--done {
+  color: var(--t-accent-dk);
+}
+
+.test-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-family: var(--t-serif);
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--t-accent-dk);
+  background: none;
+  border: none;
+  padding: 4px 0;
+  cursor: pointer;
+  letter-spacing: 0.01em;
+  text-decoration: none;
+  transition: color 0.15s;
+  border-bottom: 1px solid transparent;
+}
+
+.test-cta:hover,
+.test-cta:focus-visible {
+  color: var(--t-text);
+  border-bottom-color: var(--t-accent);
+  outline: none;
+}
+
+.test-cta-arrow {
+  font-style: normal;
+  font-family: var(--t-serif);
+  transition: transform 0.15s;
+}
+
+.test-cta:hover .test-cta-arrow {
+  transform: translateX(3px);
+}
+
+.test-cta--disabled {
+  color: var(--t-disabled);
+  cursor: default;
+  pointer-events: none;
+  border-bottom-color: transparent;
+}
+
+/* ── Drop Cap ──────────────────────────────────────────────── */
+.test-drop-cap .test-headword::first-letter {
+  float: left;
+  font-size: 3.2em;
+  line-height: 0.82;
+  padding-right: 4px;
+  padding-top: 6px;
+  font-weight: 700;
+  color: var(--t-accent);
+}
+
+/* ── Abschnitt-Titel ───────────────────────────────────────── */
+.test-section-label {
+  font-family: var(--t-sans);
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: var(--t-muted);
+  padding: 20px 0 8px;
+}
+
+/* ── Fußnote / Anmerkung ───────────────────────────────────── */
+.test-footnote {
+  border-top: 2px solid var(--t-text);
+  margin: 8px 0 0;
+  padding: 0;
+}
+
+.test-footnote-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  background: none;
+  border: none;
+  padding: 16px 0;
+  cursor: pointer;
+  gap: 12px;
+  border-bottom: 1px solid var(--t-rule-lt);
+  text-align: left;
+}
+
+.test-footnote-toggle:focus-visible {
+  outline: 2px solid var(--t-accent);
+  outline-offset: 2px;
+}
+
+.test-footnote-label {
+  font-family: var(--t-sans);
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--t-muted);
+  flex-shrink: 0;
+}
+
+.test-footnote-title {
+  font-family: var(--t-serif);
+  font-style: italic;
+  font-size: 0.9rem;
+  color: var(--t-text);
+  flex: 1;
+}
+
+.test-footnote-chevron {
+  color: var(--t-muted);
+  font-size: 0.75rem;
+  transition: transform 0.2s;
+  flex-shrink: 0;
+}
+
+.test-footnote-toggle[aria-expanded='true'] .test-footnote-chevron {
+  transform: rotate(180deg);
+}
+
+.test-footnote-body {
+  display: none;
+  padding: 16px 0 20px;
+  border-bottom: 1px solid var(--t-rule-lt);
+}
+
+.test-footnote-body.open {
+  display: block;
+  animation: testFadeIn 0.2s ease both;
+}
+
+.test-footnote-body p {
+  font-family: var(--t-serif);
+  font-size: 0.875rem;
+  line-height: 1.7;
+  color: var(--t-text);
+  margin-bottom: 0.9em;
+}
+
+.test-footnote-body p:last-child {
+  margin-bottom: 0;
+}
+
+.test-footnote-body em {
+  font-style: italic;
+  color: var(--t-accent-dk);
+}
+
+/* ── Kolophon (Footer) ─────────────────────────────────────── */
+.test-colophon {
+  padding: 24px 0 40px;
+  text-align: center;
+}
+
+.test-colophon-ornament {
+  font-size: 1.2rem;
+  color: var(--t-accent);
+  letter-spacing: 0.3em;
+  margin-bottom: 14px;
+  display: block;
+  user-select: none;
+}
+
+.test-colophon-links {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  flex-wrap: wrap;
+  list-style: none;
+  padding: 0;
+  margin: 0 0 10px;
+}
+
+.test-colophon-links li {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.test-colophon-links li + li::before {
+  content: '·';
+  color: var(--t-rule);
+  font-size: 0.9rem;
+}
+
+.test-colophon-links a {
+  font-family: var(--t-sans);
+  font-size: 0.7rem;
+  letter-spacing: 0.05em;
+  color: var(--t-muted);
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.test-colophon-links a:hover {
+  color: var(--t-text);
+  border-bottom-color: var(--t-rule);
+}
+
+.test-colophon-edition {
+  font-family: var(--t-serif);
+  font-style: italic;
+  font-size: 0.72rem;
+  color: var(--t-disabled);
+  letter-spacing: 0.03em;
+}
+
+/* ── Animation ─────────────────────────────────────────────── */
+@keyframes testFadeIn {
+  from { opacity: 0; transform: translateY(4px) }
+  to   { opacity: 1; transform: translateY(0) }
+}
+
+.test-page {
+  animation: testFadeIn 0.3s ease both;
+}
+
+/* ── Responsive ────────────────────────────────────────────── */
+@media (min-width: 560px) {
+  .test-wrapper {
+    padding-inline: 40px;
+  }
+
+  .test-raster {
+    margin-inline: -40px;
+    padding-inline: 40px;
+  }
+
+  .test-title {
+    letter-spacing: 0.08em;
+  }
+
+  .test-entry {
+    grid-template-columns: 36px 1fr;
+    gap: 0 28px;
+  }
+
+  .test-headword {
+    font-size: 1.6rem;
+  }
+}
+
+@media (min-width: 720px) {
+  .test-wrapper {
+    padding-inline: 56px;
+  }
+
+  .test-raster {
+    margin-inline: -56px;
+    padding-inline: 56px;
+  }
+
+  .test-entry {
+    grid-template-columns: 44px 1fr;
+    gap: 0 32px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .test-page,
+  .test-footnote-body,
+  .test-cta-arrow,
+  .test-footnote-chevron {
+    animation: none;
+    transition: none;
+  }
+}
