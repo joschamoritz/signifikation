@@ -363,6 +363,31 @@ app.get('/api/belege', belegeLimiter, async (req, res) => {
   }
 })
 
+/** POST /api/feedback – Nutzerfeedback speichern */
+app.post('/api/feedback', (req, res) => {
+  const { game, emoji, text } = req.body || {}
+  if (!game || !emoji) return res.status(400).json({ error: 'game und emoji erforderlich' })
+  const entry = { game, emoji, text: (text || '').slice(0, 500), ts: new Date().toISOString() }
+  try {
+    const file = join(DATA, 'feedback.json')
+    let list = []
+    try { list = JSON.parse(readFileSync(file, 'utf8')) } catch {}
+    list.unshift(entry)
+    writeFileSync(file, JSON.stringify(list, null, 2))
+    res.json({ ok: true })
+  } catch (err) { serverError(res, err) }
+})
+
+/** GET /admin/feedback – Feedbackliste */
+app.get('/admin/feedback', adminLimiter, requireAuth, (req, res) => {
+  try {
+    const file = join(DATA, 'feedback.json')
+    let list = []
+    try { list = JSON.parse(readFileSync(file, 'utf8')) } catch {}
+    res.json(list)
+  } catch (err) { serverError(res, err) }
+})
+
 /** GET /api/ipa – IPA-Aussprache via DWDS-API */
 app.get('/api/ipa', async (req, res) => {
   const { q } = req.query

@@ -6,7 +6,20 @@ import Quiz from './components/Quiz'
 import { BonusRound, FreeBonusRound } from './components/BonusRound'
 import Results from './components/Results'
 import ErrorBoundary from './components/ErrorBoundary'
+import FeedbackModal from './components/FeedbackModal'
 import { getMedal, getDailyMedal, getZRMedal } from './utils/gameLogic'
+
+const FEEDBACK_INTERVAL = 30 * 24 * 60 * 60 * 1000 // 30 Tage
+
+function shouldShowFeedback(game) {
+  const last = localStorage.getItem(`sig_fb_${game}`)
+  if (!last) return true
+  return Date.now() - parseInt(last) > FEEDBACK_INTERVAL
+}
+
+function markFeedbackShown(game) {
+  localStorage.setItem(`sig_fb_${game}`, Date.now().toString())
+}
 
 const Zeitreise    = lazy(() => import('./components/Zeitreise'))
 const WortZwilling = lazy(() => import('./components/WortZwilling'))
@@ -97,6 +110,13 @@ export default function App() {
   const [bonusQuestion, setBonusQ] = useState(null)
 
   const appRef = useRef(null)
+  const [feedbackGame, setFeedbackGame] = useState(null)
+
+  function triggerFeedback(game) {
+    if (!shouldShowFeedback(game)) return
+    markFeedbackShown(game)
+    setTimeout(() => setFeedbackGame(game), 900)
+  }
 
   // Schlüssel aus Server-Datum ableiten (oder Fallback auf lokales Datum + Jahr)
   const keys = serverDatum
@@ -179,7 +199,7 @@ export default function App() {
     setScores(prev => {
       const next = [...prev, score]
       if (next.length === 3) setFetchBonus(true)
-      else if (next.length === 4) setPhase('results')
+      else if (next.length === 4) { setPhase('results'); triggerFeedback('kollokation') }
       else setRound(r => r + 1)
       return next
     })
@@ -218,7 +238,8 @@ export default function App() {
     localStorage.setItem(`sig_wz_${serverDatum}`, JSON.stringify(entry))
     setWzPlayed(entry)
     markActivity(keys.dateStr)
-  }, [wortzwilling, serverDatum, keys.dateStr])
+    triggerFeedback('wortzwilling')
+  }, [wortzwilling, serverDatum, keys.dateStr]) // eslint-disable-line
 
   const handleZeitreiseFinish = useCallback((score) => {
     if (!zeitreise) return
@@ -229,7 +250,8 @@ export default function App() {
     setZrPlayed(entry)
     markActivity(keys.dateStr)
     saveZRHistory(keys.dateStr, zrMed.label, zrMed.emoji)
-  }, [zeitreise, keys.todayZRKey, keys.dateStr])
+    triggerFeedback('zeitreise')
+  }, [zeitreise, keys.todayZRKey, keys.dateStr]) // eslint-disable-line
 
   const playedGames = getPlayedToday(keys.todayKey)
   const playedIds   = playedGames.map(g => g.id)
@@ -307,6 +329,9 @@ export default function App() {
             savedResult={wzViewOnly ? wzPlayed : null}
           />
         </Suspense>
+      )}
+      {feedbackGame && (
+        <FeedbackModal game={feedbackGame} onClose={() => setFeedbackGame(null)} />
       )}
     </div>
     </ErrorBoundary>
