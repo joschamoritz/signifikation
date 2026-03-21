@@ -373,6 +373,10 @@
 }
 
 /* ── Drop Cap ──────────────────────────────────────────────── */
+.test-drop-cap .test-entry-head {
+  align-items: flex-start;
+}
+
 .test-drop-cap .test-headword::first-letter {
   float: left;
   font-size: 3.2em;
@@ -586,9 +590,6 @@
   padding-top: 4px;
 }
 
-.test-entry--done .test-headword {
-  color: var(--t-accent-dk);
-}
 
 .test-game-error {
   font-family: var(--t-sans);

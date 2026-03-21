@@ -271,11 +271,6 @@ export default function Home({
                   <span className="test-pos">Wortspiel</span>
                   <span className="test-pos-rule" />
                   <span className="test-entry-category">komparativ</span>
-                  {wortzwilling && (
-                    <span className="test-entry-category" style={{ marginLeft: '6px', fontStyle: 'italic' }}>
-                      · {wortzwilling.wortA} / {wortzwilling.wortB}
-                    </span>
-                  )}
                 </div>
                 <p className="test-definition">
                   Ordne zehn Kollokate den richtigen Zwillingswörtern zu. Zwei verwandte Wörter — aber welches Kollokat gehört wohin?
