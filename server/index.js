@@ -322,7 +322,8 @@ app.get('/api/belege', belegeLimiter, async (req, res) => {
     const dateWide   = y ? `&date=${y - 40}:${y + 40}` : ''
     let results = []
 
-    // Zeitreise: Korpus+Datum → Korpus-only → Datum-only → Datum-weit → global
+    // Zeitreise: Korpus+Datum → Korpus-only → Datum-only → Datum-weit
+    // Kein globaler Fallback: lieber leer als Belege aus falscher Zeit (z.B. 2025 statt 1850)
     if (corpus) {
       results = await runQueries(queries, extra)                              // Korpus + Datum (±15)
       if (!results.length && corpusForR)
@@ -331,13 +332,17 @@ app.get('/api/belege', belegeLimiter, async (req, res) => {
         results = await runQueries(queries, dateOnly)                         // Datum-only ±15
       if (!results.length && y)
         results = await runQueries(queries, dateWide)                         // Datum-only ±40
-      if (!results.length)
-        results = await runQueries(queries, '')                               // global (kein Korpus/Datum)
     } else {
-      // Normaler Kollokationen-Modus
+      // Normaler Kollokationen-Modus: Non-Wiki bevorzugt, Wikipedia als letzter Ausweg
       results = await runQueries(queries, extra)
+      if (!results.length) {
+        // Letzter Ausweg: Wikipedia-Belege erlauben wenn sonst nichts gefunden
+        for (const q of queries) {
+          const r = await tryQuery(q, '')
+          if (r.length >= 1) { results = r; break }
+        }
+      }
     }
-    // runQueries liefert bevorzugt non-Wiki; falls nur Wikipedia übrig bleibt, trotzdem anzeigen
     const final = results.slice(0, 5).map(parseItem)
     cacheSet(cacheKey, final)
     res.json(final)
