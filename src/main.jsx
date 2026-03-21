@@ -7,9 +7,12 @@ import '@fontsource/dm-sans/500.css'
 import '@fontsource/dm-sans/600.css'
 import './index.css'
 import App from './App.jsx'
+import TestPage from './TestPage.jsx'
+
+const isTest = window.location.pathname === '/test'
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
-    <App />
+    {isTest ? <TestPage /> : <App />}
   </StrictMode>,
 )
