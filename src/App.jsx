@@ -117,6 +117,7 @@ export default function App() {
   const [bonusQuestion, setBonusQ] = useState(null)
 
   const appRef = useRef(null)
+  const freshKollRef = useRef(false)
   const [feedbackGame, setFeedbackGame] = useState(null)
 
   function triggerFeedback(game) {
@@ -180,6 +181,14 @@ export default function App() {
     const total = roundScores.reduce((a, b) => a + b, 0)
     const medal = getMedal(total).label
     savePlayedGame(keys, selectedLemma.id, selectedLemma.lemma, selectedLemma.pos || 'Substantiv', total, medal, lemmata?.length, roundScores)
+    if (freshKollRef.current && serverDatum) {
+      freshKollRef.current = false
+      fetch(`${API_BASE}/api/stats`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ game: 'kollokationen', datum: serverDatum, score: total, max: 10 }),
+      }).catch(() => {})
+    }
   }, [phase, selectedLemma, roundScores, lemmata]) // eslint-disable-line
 
   const handleLemmaSelect = useCallback((lemma) => {
@@ -208,7 +217,7 @@ export default function App() {
     setScores(prev => {
       const next = [...prev, score]
       if (next.length === 3) setFetchBonus(true)
-      else if (next.length === 4) { setPhase('results'); triggerFeedback('kollokation') }
+      else if (next.length === 4) { freshKollRef.current = true; setPhase('results'); triggerFeedback('kollokation') }
       else setRound(r => r + 1)
       return next
     })
@@ -247,6 +256,11 @@ export default function App() {
     lsSet(`sig_wz_${serverDatum}`, JSON.stringify(entry))
     setWzPlayed(entry)
     markActivity(keys.dateStr)
+    fetch(`${API_BASE}/api/stats`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ game: 'wortzwilling', datum: serverDatum, score, max: 10 }),
+    }).catch(() => {})
     triggerFeedback('wortzwilling')
   }, [wortzwilling, serverDatum, keys.dateStr]) // eslint-disable-line
 
@@ -259,6 +273,11 @@ export default function App() {
     setZrPlayed(entry)
     markActivity(keys.dateStr)
     saveZRHistory(keys.dateStr, zrMed.label, zrMed.emoji)
+    fetch(`${API_BASE}/api/stats`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ game: 'zeitreise', datum: serverDatum, score, max }),
+    }).catch(() => {})
     triggerFeedback('zeitreise')
   }, [zeitreise, keys.todayZRKey, keys.dateStr]) // eslint-disable-line
 
