@@ -4,41 +4,29 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Über die App – Signifikation</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
-  <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0 }
-    body { font-family: 'DM Sans', sans-serif; background: #faf9f7; color: #1a1915; line-height: 1.75; padding: 32px 20px 80px; max-width: 680px; margin: 0 auto }
-    h1 { font-family: 'Playfair Display', serif; font-size: 2rem; color: #9b1c1c; margin-bottom: 4px }
-    h2 { font-family: 'Playfair Display', serif; font-size: 1.2rem; font-weight: 700; margin: 36px 0 8px; color: #1a1915 }
-    p  { margin-bottom: 12px; color: #444; font-size: 0.95rem }
-    em { font-style: italic }
-    a  { color: #9b1c1c; text-decoration: underline; text-underline-offset: 2px }
-    .back { display: inline-block; margin-bottom: 32px; color: #9b1c1c; text-decoration: none; font-size: 0.9rem }
-    .back:hover { opacity: 0.75 }
-    .subtitle { color: #78716c; font-size: 0.88rem; margin-bottom: 32px }
-    .lautschrift { font-family: 'Playfair Display', serif; font-size: 0.65em; font-weight: 400; color: #78716c; letter-spacing: 0.01em }
-    .footnotes { margin-top: 48px; padding-top: 24px; border-top: 1px solid #e5e2de }
-    .footnotes h3 { font-size: 0.85rem; font-weight: 600; color: #78716c; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.05em }
-    .footnotes ol { padding-left: 18px; display: flex; flex-direction: column; gap: 6px }
-    .footnotes li { font-size: 0.78rem; color: #78716c; line-height: 1.55 }
-    sup { font-size: 0.65rem; color: #9b1c1c; font-weight: 600; vertical-align: super }
-    .contact-link { display: inline-block; margin-top: 4px; font-weight: 500 }
-  </style>
+  <link rel="stylesheet" href="/static.css" />
 </head>
 <body>
+<div class="wrapper">
+
   <a class="back" href="/">← Zurück zur App</a>
 
-  <h1>Signifikation <span class="lautschrift">[zɪɡnɪfɪkaˈtsi̯oːn]</span></h1>
-  <p class="subtitle">Über die App · Hintergründe · Quellen</p>
+  <header>
+    <p class="overline">Tägliches Wortspiel · Linguistik</p>
+    <h1>Signifikation <span class="ipa">[zɪɡnɪfɪkaˈtsi̯oːn]</span></h1>
+    <p class="subtitle">Über die App · Hintergründe · Quellen</p>
+  </header>
+
+  <hr class="rule-double" />
+  <p class="section-label">Zur App</p>
 
   <h2>Warum Signifikation?</h2>
   <p>
     Der Name trägt zwei Bedeutungsebenen. In der Linguistik, Semiotik und Philosophie bezeichnet
     <strong>Signifikation</strong> den Prozess der Bedeutungsgebung — das Verhältnis zwischen
-    einem sprachlichen Zeichen und dem, wofür es steht. Das Logo ist an Ferdinand de Saussures
-    dyadischem Zeichenmodell angelehnt, in dem <em>signifiant</em> (Lautbild) und <em>signifié</em>
-    (Vorstellung) untrennbar zusammengehören.<sup>5</sup>
+    einem sprachlichen Zeichen und dem, wofür es steht. Ferdinand de Saussures dyadisches
+    Zeichenmodell, in dem <em>signifiant</em> (Lautbild) und <em>signifié</em>
+    (Vorstellung) untrennbar zusammengehören, stand Pate für das Konzept der App.<sup>5</sup>
   </p>
   <p>
     Gleichzeitig steckt im Wort das Ende von <em>Kollokation</em>, und der zugrundeliegende
@@ -94,11 +82,11 @@
     erfahrbar zu machen — für Sprachinteressierte, Studierende und alle, die Wörter lieben.
   </p>
   <p>
-    Fragen, Anregungen oder Fehler? <a class="contact-link" href="mailto:info@signifikation.de">info@signifikation.de</a>
+    Fragen, Anregungen oder Fehler? <a href="mailto:info@signifikation.de">info@signifikation.de</a>
   </p>
 
   <div class="footnotes">
-    <h3>Quellen</h3>
+    <p class="footnotes-label">Quellen</p>
     <ol>
       <li>Hausmann, F.&thinsp;J. (2003): Was sind eigentlich Kollokationen? In: Steyer, K. (Hrsg.): <em>Wortverbindungen — mehr oder weniger fest</em>. Berlin/New York: de Gruyter, S.&thinsp;309–334.</li>
       <li>Rychlý, P. (2008): A Lexicographer-Friendly Association Score. In: <em>Proceedings of Recent Advances in Slavonic Natural Language Processing (RASLAN 2008)</em>, S.&thinsp;6–9.</li>
@@ -107,5 +95,18 @@
       <li>Saussure, F. de (1916): <em>Cours de linguistique générale</em>. Hrsg. von C. Bally &amp; A. Sechehaye. Paris: Payot.</li>
     </ol>
   </div>
+
+  <footer>
+    <span class="ornament">· · ·</span>
+    <p>Fehler oder Anregungen? <a href="mailto:info@signifikation.de">Schreib uns.</a></p>
+    <nav class="legal">
+      <a href="/">Zur App</a>
+      <a href="/impressum.html">Impressum</a>
+      <a href="/datenschutz.html">Datenschutz</a>
+      <a href="/nutzungsbedingungen.html">Nutzungsbedingungen</a>
+    </nav>
+  </footer>
+
+</div>
 </body>
 </html>
