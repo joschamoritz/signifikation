@@ -25,9 +25,10 @@ function ResultsView({ data, zoneA, zoneB, onBack }) {
 
   return (
     <div className="screen wz-screen">
+      <button className="back-btn" onClick={onBack}>← Zurück</button>
       <header className="wz-header">
-        <button className="btn-back" onClick={onBack}>← Zurück</button>
-        <h2 className="wz-title">Wort-Zwilling</h2>
+        <span className="wz-badge">Wort-Zwilling</span>
+        <h1 className="wz-title">{data.wortA} · {data.wortB}</h1>
       </header>
 
       <div className="wz-result-banner">
@@ -175,14 +176,14 @@ export default function WortZwilling({ data, onBack, onFinish, savedResult = nul
 
   return (
     <div className="screen wz-screen">
+      <button className="back-btn" onClick={onBack}>← Zurück</button>
       <header className="wz-header">
-        <button className="btn-back" onClick={onBack}>← Zurück</button>
-        <h2 className="wz-title">Wort-Zwilling</h2>
+        <span className="wz-badge">Wort-Zwilling</span>
+        <h1 className="wz-title">{data.wortA} · {data.wortB}</h1>
       </header>
 
       <p className="wz-instruction">
-        Welche Wörter passen zu <strong>{data.wortA}</strong> —{' '}
-        welche zu <strong>{data.wortB}</strong>?
+        Ordne die Kollokate dem richtigen Wort zu.
       </p>
 
       {/* Wortbank */}

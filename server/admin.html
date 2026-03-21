@@ -5,22 +5,24 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Signifikation – Admin</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Gentium+Plus:ital,wght@0,400;0,700;1,400&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0 }
     :root {
-      --bg:      #faf9f7;
-      --surface: #ffffff;
-      --border:  #e5e2de;
-      --primary: #9b1c1c;
-      --text:    #1c1917;
-      --muted:   #78716c;
-      --radius:  10px;
+      --bg:        #faf9f7;
+      --surface:   #ffffff;
+      --border:    #d4c9b0;
+      --primary:   #9b1c1c;
+      --text:      #1a1a18;
+      --muted:     #8a7f6e;
+      --radius:    4px;
+      --accent:    #c9a84c;
+      --accent-dk: #a07830;
     }
     body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; padding: 40px 16px; }
     .container { max-width: 520px; margin: 0 auto; display: flex; flex-direction: column; gap: 24px; }
-    h1 { font-family: 'Playfair Display', serif; font-size: 2rem; color: var(--primary); }
+    h1 { font-family: 'Gentium Plus', serif; font-size: 2rem; color: var(--primary); }
     .subtitle { color: var(--muted); font-size: 0.85rem; margin-top: 4px; }
 
     .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; display: flex; flex-direction: column; gap: 16px; }
@@ -29,7 +31,7 @@
     label { font-size: 0.85rem; font-weight: 500; color: var(--muted); display: block; margin-bottom: 5px; }
     input[type="date"], input[type="text"], input[type="url"] {
       width: 100%; padding: 10px 12px; border: 1.5px solid var(--border);
-      border-radius: 8px; font-family: inherit; font-size: 0.95rem;
+      border-radius: 4px; font-family: inherit; font-size: 0.95rem;
       color: var(--text); background: var(--bg); outline: none;
       transition: border-color 0.15s;
     }
@@ -39,7 +41,7 @@
     .wort-row { display: flex; gap: 8px; align-items: center; }
     .wort-badge { font-size: 0.75rem; color: var(--muted); width: 60px; flex-shrink: 0; }
     select {
-      padding: 10px 10px; border: 1.5px solid var(--border); border-radius: 8px;
+      padding: 10px 10px; border: 1.5px solid var(--border); border-radius: 4px;
       font-family: inherit; font-size: 0.88rem; color: var(--muted);
       background: var(--bg); outline: none; cursor: pointer;
     }
@@ -50,13 +52,13 @@
     button {
       font-family: inherit; cursor: pointer; border: none;
       background: var(--primary); color: #fff;
-      padding: 12px 24px; border-radius: 8px; font-size: 0.95rem; font-weight: 600;
+      padding: 12px 24px; border-radius: 4px; font-size: 0.95rem; font-weight: 600;
       transition: opacity 0.15s;
     }
     button:hover { opacity: 0.85; }
     button:disabled { opacity: 0.4; cursor: not-allowed; }
 
-    .status { font-size: 0.88rem; padding: 10px 14px; border-radius: 8px; display: none; }
+    .status { font-size: 0.88rem; padding: 10px 14px; border-radius: 4px; display: none; }
     .status.ok      { background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; display: block; }
     .status.error   { background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; display: block; }
     .status.loading { background: #faf9f7; color: var(--muted); border: 1px solid var(--border); display: block; }
@@ -65,7 +67,7 @@
     .cal-nav { display: flex; align-items: center; justify-content: space-between; }
     .cal-nav-btn {
       background: none; color: var(--primary); padding: 4px 10px;
-      border: 1.5px solid var(--border); border-radius: 6px;
+      border: 1.5px solid var(--border); border-radius: 4px;
       font-size: 1.1rem; font-weight: 700; line-height: 1;
     }
     .cal-nav-btn:hover { background: #fef2f2; opacity: 1; }
@@ -76,7 +78,7 @@
     .cal-day {
       aspect-ratio: 1; display: flex; flex-direction: column;
       align-items: center; justify-content: center; gap: 2px;
-      border-radius: 6px; font-size: 0.82rem; cursor: default;
+      border-radius: 4px; font-size: 0.82rem; cursor: default;
       border: 1.5px solid transparent;
       transition: border-color 0.15s, background 0.15s;
     }
@@ -113,7 +115,7 @@
     .korpus-item {
       display: flex; align-items: center; justify-content: space-between;
       padding: 10px 14px; border: 1.5px solid var(--border);
-      border-radius: 8px; gap: 10px; cursor: pointer;
+      border-radius: 4px; gap: 10px; cursor: pointer;
       transition: border-color 0.15s, background 0.15s;
     }
     .korpus-item:hover { border-color: var(--primary); background: #fef2f2; }
@@ -124,9 +126,9 @@
     .korpus-meta { font-size: 0.78rem; color: var(--muted); margin-top: 2px; }
     .korpus-badge {
       font-size: 0.72rem; font-weight: 600; padding: 2px 8px;
-      border-radius: 12px; background: #e7e5e4; color: var(--muted); white-space: nowrap;
+      border-radius: 4px; background: #e7e5e4; color: var(--muted); white-space: nowrap;
     }
-    .korpus-badge.enabled { background: #fecaca; color: var(--primary); }
+    .korpus-badge.enabled { background: #fdf8ee; color: var(--accent-dk); border: 1px solid var(--accent); }
     .cfg-actions { display: flex; gap: 10px; align-items: center; }
     .cfg-save-btn { flex: 1; }
     .cfg-status { font-size: 0.82rem; color: var(--muted); text-align: right; }
@@ -142,7 +144,7 @@
       display: grid;
       grid-template-columns: 52px 52px 1fr;
       gap: 6px; align-items: center;
-      padding: 5px 8px; border-radius: 6px;
+      padding: 5px 8px; border-radius: 4px;
       transition: background 0.1s;
     }
     .viz-row:hover { background: var(--bg); }
@@ -151,7 +153,7 @@
     .viz-year { font-size: 0.82rem; font-weight: 600; color: var(--text); }
     .viz-korpus-badge {
       font-size: 0.65rem; font-weight: 700; padding: 2px 6px;
-      border-radius: 10px; color: #fff; text-align: center;
+      border-radius: 4px; color: #fff; text-align: center;
       white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     }
     .viz-bar-col { display: flex; flex-direction: column; gap: 3px; }
@@ -163,7 +165,7 @@
     .viz-more { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 1px; }
     .viz-chip {
       font-size: 0.72rem; color: var(--muted); background: var(--bg);
-      border: 1px solid var(--border); border-radius: 10px; padding: 1px 7px;
+      border: 1px solid var(--border); border-radius: 4px; padding: 1px 7px;
     }
     .viz-divider { height: 1px; background: var(--border); margin: 4px 0; opacity: 0.5; }
     .viz-canvas-wrap { position: relative; width: 100%; margin-top: 12px; }
@@ -186,13 +188,13 @@
       width: 100%; max-width: 360px;
       display: flex; flex-direction: column; gap: 20px;
     }
-    .login-card h2 { font-family: 'Playfair Display', serif; font-size: 1.5rem; color: var(--primary); }
+    .login-card h2 { font-family: 'Gentium Plus', serif; font-size: 1.5rem; color: var(--primary); }
     .login-card p  { font-size: 0.85rem; color: var(--muted); margin-top: -12px; }
     .login-error   { font-size: 0.85rem; color: #991b1b; background: #fef2f2;
-                     border: 1px solid #fecaca; border-radius: 8px; padding: 10px 14px; display: none; }
+                     border: 1px solid #fecaca; border-radius: 4px; padding: 10px 14px; display: none; }
     .logout-btn {
       background: none; color: var(--muted); padding: 6px 12px;
-      border: 1.5px solid var(--border); border-radius: 6px;
+      border: 1.5px solid var(--border); border-radius: 4px;
       font-size: 0.82rem; font-weight: 500;
     }
     .logout-btn:hover { color: var(--primary); border-color: var(--primary); opacity: 1; }
@@ -201,7 +203,7 @@
     .mode-toggle {
       display: flex; align-items: center; justify-content: space-between;
       width: 100%; background: var(--bg); border: 1.5px solid var(--border);
-      border-radius: 8px; padding: 12px 16px; font-family: inherit;
+      border-radius: 4px; padding: 12px 16px; font-family: inherit;
       font-size: 0.95rem; font-weight: 600; color: var(--text);
       cursor: pointer; transition: border-color 0.15s;
     }
