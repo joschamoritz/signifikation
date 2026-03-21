@@ -8,6 +8,7 @@ import Results from './components/Results'
 import ErrorBoundary from './components/ErrorBoundary'
 import FeedbackModal from './components/FeedbackModal'
 import { getMedal, getDailyMedal, getZRMedal } from './utils/gameLogic'
+import { fetchWithRetry } from './utils/fetchWithRetry'
 
 const FEEDBACK_INTERVAL = 30 * 24 * 60 * 60 * 1000 // 30 Tage
 
@@ -146,7 +147,7 @@ export default function App() {
 
   // Lemmata + Server-Datum laden
   useEffect(() => {
-    fetch(`${API_BASE}/api/heute`)
+    fetchWithRetry(`${API_BASE}/api/heute`)
       .then(r => r.ok ? r.json() : r.json().then(d => Promise.reject(new Error(d.error || `HTTP ${r.status}`))))
       .then(({ datum, year, lemmata }) => {
         setServerDatum(datum)
@@ -160,14 +161,14 @@ export default function App() {
   }, [])
 
   useEffect(() => {
-    fetch(`${API_BASE}/api/zeitreise`)
+    fetchWithRetry(`${API_BASE}/api/zeitreise`)
       .then(r => r.ok ? r.json() : null)
       .then(data => { if (data) setZeitreise(data) })
       .catch(err => console.error('Zeitreise fetch:', err))
   }, [])
 
   useEffect(() => {
-    fetch(`${API_BASE}/api/wortzwilling`)
+    fetchWithRetry(`${API_BASE}/api/wortzwilling`)
       .then(r => r.ok ? r.json() : null)
       .then(data => { if (data) setWortzwilling(data) })
       .catch(err => console.error('WortZwilling fetch:', err))

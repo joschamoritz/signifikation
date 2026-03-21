@@ -50,7 +50,7 @@ body {
   min-height: 100dvh;
   max-width: 480px;
   margin-inline: auto;
-  padding: 20px 16px env(safe-area-inset-bottom, 16px);
+  padding: 20px max(16px, env(safe-area-inset-right, 0px)) env(safe-area-inset-bottom, 16px) max(16px, env(safe-area-inset-left, 0px));
   display: flex;
   flex-direction: column;
 }
