@@ -1,6 +1,7 @@
 /**
  * dwds.js – DWDS-Wortprofil-Abfrage als wiederverwendbares Modul
  */
+import logger from './logger.js'
 
 const BASE = 'https://www.dwds.de/wp/single_relation'
 
@@ -123,7 +124,7 @@ export async function fetchLemma(lemma, pos = 'Substantiv') {
   for (let i = 0; i < rounds.length; i++) {
     const r = results[i]
     runden[rounds[i].key] = r.status === 'fulfilled' ? buildOptions(r.value) : []
-    if (r.status === 'rejected') console.warn(`fetchLemma: Relation ${rounds[i].relCode} fehlgeschlagen:`, r.reason.message)
+    if (r.status === 'rejected') logger.warn({ err: r.reason }, `fetchLemma: Relation ${rounds[i].relCode} fehlgeschlagen`)
   }
   return {
     id:         toId(lemma),

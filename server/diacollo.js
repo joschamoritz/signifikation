@@ -2,6 +2,7 @@
 // JSON-Endpunkt: ddc.dwds.de/dstar/<korpus>/diacollo/profile.perl?fmt=json
 // Die Haupt-URL (diacollo/) gibt nur HTML zurück – immer profile.perl direkt nutzen!
 // Aktive Korpora werden aus server/data/diacollo-config.json gelesen.
+import logger from './logger.js'
 
 import { readFileSync } from 'fs'
 import { fileURLToPath } from 'url'
@@ -53,7 +54,7 @@ async function fetchAllProfiles(lemma) {
   const byYear  = new Map()
   for (const r of results) {
     if (r.status === 'rejected') {
-      console.warn(' DiaCollo:', r.reason.message)
+      logger.warn({ err: r.reason }, 'DiaCollo-Korpus fehlgeschlagen')
       continue
     }
     for (const p of r.value) {
@@ -186,7 +187,7 @@ function extractPaare(lemma, raw) {
       }
     }
     if (!bestCollokat) {
-      console.warn(`  DiaCollo: Kein gültiger Kollokator für Quintil ${i + 1} [${lemma}]`)
+      logger.warn(`DiaCollo: Kein gültiger Kollokator für Quintil ${i + 1} [${lemma}]`)
       return null
     }
     usedWords.add(bestCollokat.wort.toLowerCase())

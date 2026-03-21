@@ -8,6 +8,7 @@ import { dirname, join }  from 'path'
 import { fetchLemma, fetchBonusQuestion, fetchRelation, POS_ROUNDS } from './dwds.js'
 import { fetchZeitreise, debugDiaCollo, clearCorporaCache } from './diacollo.js'
 import { fetchWortZwilling } from './wortzwilling.js'
+import logger from './logger.js'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const DATA      = join(__dirname, 'data')
@@ -17,10 +18,10 @@ const IS_PROD   = process.env.NODE_ENV === 'production'
 const ADMIN_KEY = (process.env.ADMIN_KEY || (IS_PROD ? null : 'dev-only'))?.trim()
 const PORT      = process.env.PORT || 3001
 if (!ADMIN_KEY) {
-  console.error('❌ ADMIN_KEY ist nicht gesetzt – in Produktion erforderlich. Server wird beendet.')
+  logger.fatal('ADMIN_KEY ist nicht gesetzt – in Produktion erforderlich. Server wird beendet.')
   process.exit(1)
 }
-if (!process.env.ADMIN_KEY) console.warn('⚠️  ADMIN_KEY nicht gesetzt – Dev-Fallback aktiv (nur lokal!)')
+if (!process.env.ADMIN_KEY) logger.warn('ADMIN_KEY nicht gesetzt – Dev-Fallback aktiv (nur lokal!)')
 
 const app = express()
 
@@ -60,6 +61,12 @@ app.use(cors({
 }))
 
 app.use(express.json())
+
+// ── Request-Correlation-ID ───────────────────────────────────
+app.use((req, _res, next) => {
+  req.id = req.headers['x-request-id'] || crypto.randomUUID()
+  next()
+})
 
 // ── Rate Limiting ────────────────────────────────────────────
 const belegeLimiter = rateLimit({
@@ -125,7 +132,7 @@ function loadStats()        { try { return load('stats.json')        } catch { r
 
 /** Fehlerausgabe: in Produktion keine internen Details preisgeben */
 function serverError(res, err) {
-  console.error('Server-Fehler:', err)
+  logger.error({ err }, 'Server-Fehler')
   res.status(500).json({ error: IS_PROD ? 'Interner Serverfehler' : err.message })
 }
 
@@ -143,7 +150,21 @@ function todayDatum() {
 }
 
 // ── Public API ───────────────────────────────────────────────
-app.get('/health', (_req, res) => res.json({ status: 'ok', uptime: process.uptime() }))
+app.get('/health', (_req, res) => {
+  let lastEntry = null
+  try {
+    const kalender = load('kalender.json')
+    const keys = Object.keys(kalender).sort()
+    lastEntry = keys[keys.length - 1] || null
+  } catch { /* ignorieren */ }
+  res.json({
+    status:    'ok',
+    uptime:    Math.floor(process.uptime()),
+    env:       IS_PROD ? 'production' : 'development',
+    lastEntry,
+    memMb:     Math.round(process.memoryUsage().rss / 1024 / 1024),
+  })
+})
 
 /** GET /api/heute → die 3 Lemmata des Tages */
 app.get('/api/heute', (req, res) => {
@@ -367,7 +388,7 @@ app.get('/api/belege', belegeLimiter, async (req, res) => {
     cacheSet(cacheKey, final)
     res.json(final)
   } catch (err) {
-    console.error('Belege-Fehler:', err.message)
+    logger.error({ err }, 'Belege-Fehler')
     serverError(res, err)
   }
 })
@@ -581,7 +602,7 @@ app.post('/admin/tag', adminLimiter, requireAuth, async (req, res) => {
 
     for (const [i, wort] of woerter.entries()) {
       const pos = (positionen?.[i] || 'Substantiv')
-      console.log(`  Lade DWDS-Daten für „${wort}" (${pos}) …`)
+      logger.info(`Lade DWDS-Daten für „${wort}" (${pos}) …`)
       const entry   = await fetchLemma(wort, pos)
       entry.notiz   = notizen[i] || ''
       entry.link    = links[i]   || ''
@@ -598,7 +619,7 @@ app.post('/admin/tag', adminLimiter, requireAuth, async (req, res) => {
     // Zeitreise optional
     let zeitreiseOk = null
     if (zeitreise_lemma.trim()) {
-      console.log(`  Lade DiaCollo-Daten für „${zeitreise_lemma}" …`)
+      logger.info(`Lade DiaCollo-Daten für „${zeitreise_lemma}" …`)
       try {
         const zr = await fetchZeitreise(zeitreise_lemma.trim())
         const zeitreise = loadZeitreise()
@@ -606,21 +627,21 @@ app.post('/admin/tag', adminLimiter, requireAuth, async (req, res) => {
           zeitreise[datum] = zr
           save('zeitreise.json', zeitreise)
           zeitreiseOk = true
-          console.log(`  Zeitreise gespeichert: ${zr.paare.map(p => `${p.jahrzehnt}:${p.kollokat}`).join(', ')}`)
+          logger.info(`Zeitreise gespeichert: ${zr.paare.map(p => `${p.jahrzehnt}:${p.kollokat}`).join(', ')}`)
         } else {
           zeitreiseOk = false
-          console.warn(`  Zeitreise: nicht genügend DiaCollo-Daten für „${zeitreise_lemma}"`)
+          logger.warn(`Zeitreise: nicht genügend DiaCollo-Daten für „${zeitreise_lemma}"`)
         }
       } catch (err) {
         zeitreiseOk = false
-        console.error(`  Zeitreise-Fehler: ${err.message}`)
+        logger.error({ err }, 'Zeitreise-Fehler')
       }
     }
 
     // Wort-Zwilling optional
     let zwillingOk = null
     if (Array.isArray(zwilling_paar) && zwilling_paar.length === 2 && zwilling_paar[0] && zwilling_paar[1]) {
-      console.log(`  Lade Wort-Zwilling-Daten für „${zwilling_paar[0]}" / „${zwilling_paar[1]}" …`)
+      logger.info(`Lade Wort-Zwilling-Daten für „${zwilling_paar[0]}" / „${zwilling_paar[1]}" …`)
       try {
         const wz = await fetchWortZwilling(zwilling_paar[0].trim(), zwilling_paar[1].trim(), zwilling_pos)
         const wortzwilling = loadWortZwilling()
@@ -630,18 +651,17 @@ app.post('/admin/tag', adminLimiter, requireAuth, async (req, res) => {
           zwillingOk = true
         } else {
           zwillingOk = false
-          console.warn(`  Wort-Zwilling: nicht genug distinkte Kollokatoren für „${zwilling_paar.join(' / ')}"`)
+          logger.warn(`Wort-Zwilling: nicht genug distinkte Kollokatoren für „${zwilling_paar.join(' / ')}"`)
         }
       } catch (err) {
         zwillingOk = false
-        console.error(`  Wort-Zwilling-Fehler: ${err.message}`)
+        logger.error({ err }, 'Wort-Zwilling-Fehler')
       }
     }
 
-    console.log(`Eintrag gespeichert: ${datum} → ${ids.join(', ')}`)
+    logger.info(`Eintrag gespeichert: ${datum} → ${ids.join(', ')}`)
     res.json({ ok: true, datum, ids, zeitreiseOk, zwillingOk })
   } catch (err) {
-    console.error(err)
     serverError(res, err)
   }
 })
@@ -703,6 +723,19 @@ app.delete('/admin/tag/:datum', adminLimiter, requireAuth, (req, res) => {
   res.json({ ok: true })
 })
 
+/** GET /admin/backup – alle JSON-Daten als ZIP-ähnliches JSON-Bundle */
+app.get('/admin/backup', adminLimiter, requireAuth, (req, res) => {
+  try {
+    const files = ['kalender.json', 'lemmata.json', 'zeitreise.json', 'wortzwilling.json', 'stats.json', 'feedback.json', 'diacollo-config.json']
+    const bundle = {}
+    for (const f of files) {
+      try { bundle[f] = load(f) } catch { bundle[f] = null }
+    }
+    res.setHeader('Content-Disposition', `attachment; filename="signifikation-backup-${new Date().toISOString().slice(0,10)}.json"`)
+    res.json({ exportedAt: new Date().toISOString(), files: bundle })
+  } catch (err) { serverError(res, err) }
+})
+
 /** GET /admin – Admin-Oberfläche (öffentlich – Login erfolgt clientseitig) */
 app.get('/admin', (req, res) => {
   // Eigene CSP für admin.html: 'unsafe-inline' für Skripte nötig (inline onclick-Handler)
@@ -728,12 +761,12 @@ if (existsSync(DIST)) {
 
 // ── Globaler Fehler-Handler ───────────────────────────────────
 app.use((err, req, res, _next) => {
-  console.error('Unbehandelter Fehler:', err)
+  logger.error({ err }, 'Unbehandelter Fehler')
   res.status(500).json({ error: IS_PROD ? 'Interner Serverfehler' : (err.message || 'Interner Serverfehler') })
 })
 
 // ── Start ────────────────────────────────────────────────────
 app.listen(PORT, () => {
-  console.log(`Signifikation-Server läuft auf http://localhost:${PORT}`)
-  console.log(`Admin: http://localhost:${PORT}/admin`)
+  logger.info(`Signifikation-Server läuft auf http://localhost:${PORT}`)
+  logger.info(`Admin: http://localhost:${PORT}/admin`)
 })
