@@ -2,7 +2,7 @@ import express         from 'express'
 import helmet          from 'helmet'
 import cors            from 'cors'
 import rateLimit       from 'express-rate-limit'
-import { readFileSync, writeFileSync, renameSync, mkdirSync, readdirSync, statSync } from 'fs'
+import { readFileSync, writeFileSync, renameSync, mkdirSync } from 'fs'
 import { fileURLToPath } from 'url'
 import { dirname, join }  from 'path'
 import { fetchLemma, fetchBonusQuestion, fetchRelation, POS_ROUNDS } from './dwds.js'
@@ -393,16 +393,6 @@ app.post('/admin/diacollo-config', adminLimiter, requireAuth, (req, res) => {
   }
 })
 
-/** GET /admin/debug-files – zeigt Inhalt des Data-Ordners zur Diagnose */
-app.get('/admin/debug-files', adminLimiter, requireAuth, (req, res) => {
-  try {
-    const files = readdirSync(DATA).map(f => {
-      const s = statSync(join(DATA, f))
-      return { name: f, size: s.size, modified: s.mtime }
-    })
-    res.json({ dataPath: DATA, files })
-  } catch (err) { serverError(res, err) }
-})
 
 /** GET /admin/debug-diacollo?q=Wort – roher DiaCollo-Test */
 app.get('/admin/debug-diacollo', adminLimiter, requireAuth, async (req, res) => {
