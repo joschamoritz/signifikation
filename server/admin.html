@@ -94,6 +94,15 @@
     /* Koll + Zeitreise */
     .cal-day.has-both   { background: #f0fdf4; color: #166534; font-weight: 600; cursor: pointer; }
     .cal-day.has-both:hover { background: #bbf7d0; border-color: #166534; }
+    /* Koll + WZ */
+    .cal-day.has-koll-wz { background: #fff7ed; color: #9a3412; font-weight: 600; cursor: pointer; }
+    .cal-day.has-koll-wz:hover { background: #fed7aa; border-color: #9a3412; }
+    /* Zeit + WZ */
+    .cal-day.has-zeit-wz { background: #f0fdfa; color: #0f766e; font-weight: 600; cursor: pointer; }
+    .cal-day.has-zeit-wz:hover { background: #99f6e4; border-color: #0f766e; }
+    /* Nur WZ */
+    .cal-day.has-wz     { background: #fefce8; color: var(--accent-dk); font-weight: 600; cursor: pointer; }
+    .cal-day.has-wz:hover { background: #fef9c3; border-color: var(--accent-dk); }
     /* Alle drei */
     .cal-day.has-all    { background: #dcfce7; color: #14532d; font-weight: 700; cursor: pointer; }
     .cal-day.has-all:hover { background: #bbf7d0; border-color: #14532d; }
@@ -251,7 +260,10 @@
       <h1>Signifikation</h1>
       <p class="subtitle">Admin · Tageseinträge verwalten</p>
     </div>
-    <button class="logout-btn" onclick="doLogout()">Abmelden</button>
+    <div style="display:flex;gap:8px;align-items:center">
+      <button class="logout-btn" onclick="downloadBackup()">⬇ Backup</button>
+      <button class="logout-btn" onclick="doLogout()">Abmelden</button>
+    </div>
   </header>
 
   <!-- Neuer Eintrag -->
@@ -428,9 +440,12 @@
     <div class="cal-grid" id="cal-grid"></div>
     <div class="cal-legend">
       <div class="cal-legend-item"><div class="cal-legend-box all"></div> Alle drei</div>
-      <div class="cal-legend-item"><div class="cal-legend-box both"></div> Koll + Zeitreise</div>
-      <div class="cal-legend-item"><div class="cal-legend-box koll"></div> Nur Kollokationen</div>
-      <div class="cal-legend-item"><div class="cal-legend-box zeit"></div> Nur Zeitreise</div>
+      <div class="cal-legend-item"><div class="cal-legend-box both"></div> Koll + Zeit</div>
+      <div class="cal-legend-item"><div class="cal-legend-box" style="background:#fff7ed;border:1.5px solid #9a3412"></div> Koll + WZ</div>
+      <div class="cal-legend-item"><div class="cal-legend-box" style="background:#f0fdfa;border:1.5px solid #0f766e"></div> Zeit + WZ</div>
+      <div class="cal-legend-item"><div class="cal-legend-box koll"></div> Nur Koll</div>
+      <div class="cal-legend-item"><div class="cal-legend-box zeit"></div> Nur Zeit</div>
+      <div class="cal-legend-item"><div class="cal-legend-box" style="background:#fefce8;border:1.5px solid var(--accent-dk)"></div> Nur WZ</div>
       <div class="cal-legend-item"><div class="cal-legend-box empty"></div> Leer</div>
       <div class="cal-legend-item"><div class="cal-legend-box today"></div> Heute</div>
     </div>
@@ -479,6 +494,18 @@
     }
     btn.disabled = false
     btn.textContent = 'Anmelden'
+  }
+
+  async function downloadBackup() {
+    const r = await fetch('/admin/backup', { headers: { 'x-admin-key': KEY } })
+    if (!r.ok) { alert('Backup fehlgeschlagen.'); return }
+    const blob = await r.blob()
+    const url  = URL.createObjectURL(blob)
+    const a    = document.createElement('a')
+    a.href     = url
+    a.download = `signifikation-backup-${new Date().toISOString().slice(0,10)}.json`
+    a.click()
+    URL.revokeObjectURL(url)
   }
 
   function doLogout() {
@@ -585,11 +612,14 @@
       const isTodayCell = (calYear === todayYear && key === todayStr)
 
       let stateClass
-      if (hasKoll && hasZeit && hasWZ) stateClass = 'has-all'
-      else if (hasKoll && hasZeit)     stateClass = 'has-both'
-      else if (hasKoll)                stateClass = 'has-koll'
-      else if (hasZeit)                stateClass = 'has-zeit'
-      else                             stateClass = 'no-entry'
+      if      (hasKoll && hasZeit && hasWZ) stateClass = 'has-all'
+      else if (hasKoll && hasZeit)          stateClass = 'has-both'
+      else if (hasKoll && hasWZ)            stateClass = 'has-koll-wz'
+      else if (hasZeit && hasWZ)            stateClass = 'has-zeit-wz'
+      else if (hasKoll)                     stateClass = 'has-koll'
+      else if (hasZeit)                     stateClass = 'has-zeit'
+      else if (hasWZ)                       stateClass = 'has-wz'
+      else                                  stateClass = 'no-entry'
 
       const classes = ['cal-day', stateClass, isTodayCell ? 'is-today' : ''].filter(Boolean).join(' ')
 

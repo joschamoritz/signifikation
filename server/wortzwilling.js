@@ -5,7 +5,7 @@
  * Hohe positive Differenz (A - B) → charakteristisch für Wort A.
  * Hohe negative Differenz → charakteristisch für Wort B.
  */
-
+import logger from './logger.js'
 import { fetchRelation, POS_ROUNDS } from './dwds.js'
 
 /** Aggregiert alle Relationen eines Wortes zu einem collocate→maxLogDice Map. */
@@ -18,7 +18,7 @@ async function buildProfile(lemma, pos) {
   for (let i = 0; i < rounds.length; i++) {
     const r = results[i]
     if (r.status !== 'fulfilled') {
-      console.warn(`WortZwilling: Relation ${rounds[i].relCode} fehlgeschlagen für ${lemma}:`, r.reason?.message)
+      logger.warn({ err: r.reason }, `WortZwilling: Relation ${rounds[i].relCode} fehlgeschlagen für ${lemma}`)
       continue
     }
     for (const item of r.value) {
@@ -88,7 +88,7 @@ export async function fetchWortZwilling(wortA, wortB, pos = 'Substantiv') {
   }
 
   if (top5A.length < 5 || top5B.length < 5) {
-    console.warn(`WortZwilling: Nicht genug distinkte Kollokatoren für „${wortA}" / „${wortB}" (A: ${top5A.length}/5, B: ${top5B.length}/5)`)
+    logger.warn(`WortZwilling: Nicht genug distinkte Kollokatoren für „${wortA}" / „${wortB}" (A: ${top5A.length}/5, B: ${top5B.length}/5)`)
     return null
   }
 
@@ -97,6 +97,6 @@ export async function fetchWortZwilling(wortA, wortB, pos = 'Substantiv') {
     ...top5B.map(c => ({ wort: c.wort, zuordnung: 'B', scoreA: c.scoreA, scoreB: c.scoreB })),
   ]
 
-  console.log(`  WortZwilling ${wortA}/${wortB}: A=[${top5A.map(c=>c.wort).join(',')}] B=[${top5B.map(c=>c.wort).join(',')}]`)
+  logger.info(`WortZwilling ${wortA}/${wortB}: A=[${top5A.map(c=>c.wort).join(',')}] B=[${top5B.map(c=>c.wort).join(',')}]`)
   return { wortA, wortB, pos, kollokatoren }
 }
