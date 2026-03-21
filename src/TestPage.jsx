@@ -162,9 +162,33 @@ export default function TestPage() {
 
         {/* ── Titelseite ─────────────────────────────────── */}
         <header className="test-title-section" role="banner">
-          <img src="/logo.png" alt="" className="test-logo" aria-hidden="true" />
-          <p className="test-overline">Tägliches Wortspiel · Experimentell</p>
+          <p className="test-overline">Tägliches Wortspiel · Linguistik</p>
           <h1 className="test-title">Signifikation</h1>
+
+          {/* Saussure-Emblem */}
+          <svg
+            className="test-saussure-logo"
+            viewBox="0 0 88 76"
+            aria-label="Saussures dyadisches Zeichenmodell: Signifié und Signifiant"
+            role="img"
+          >
+            {/* Doppelte Oval-Linie */}
+            <ellipse cx="44" cy="38" rx="41" ry="35" fill="none" stroke="currentColor" strokeWidth="0.9"/>
+            <ellipse cx="44" cy="38" rx="37.5" ry="31.5" fill="none" stroke="currentColor" strokeWidth="0.45"/>
+            {/* Horizontalteiler */}
+            <line x1="6.5" y1="38" x2="81.5" y2="38" stroke="currentColor" strokeWidth="0.6"/>
+            {/* Pfeil ↑ links der Mitte */}
+            <line x1="40" y1="45" x2="40" y2="31" stroke="currentColor" strokeWidth="0.75"/>
+            <polyline points="37.5,34 40,31 42.5,34" fill="none" stroke="currentColor" strokeWidth="0.75" strokeLinejoin="round" strokeLinecap="round"/>
+            {/* Pfeil ↓ rechts der Mitte */}
+            <line x1="48" y1="31" x2="48" y2="45" stroke="currentColor" strokeWidth="0.75"/>
+            <polyline points="45.5,42 48,45 50.5,42" fill="none" stroke="currentColor" strokeWidth="0.75" strokeLinejoin="round" strokeLinecap="round"/>
+            {/* Signifié oben */}
+            <text x="44" y="25" textAnchor="middle" fontFamily="Gentium Plus, Georgia, serif" fontStyle="italic" fontSize="7.5" fill="currentColor">Signifié</text>
+            {/* Signifiant unten */}
+            <text x="44" y="53" textAnchor="middle" fontFamily="Gentium Plus, Georgia, serif" fontStyle="italic" fontSize="7.5" fill="currentColor">Signifiant</text>
+          </svg>
+
           <p className="test-subtitle">
             <time dateTime={dateStr}>
               {`${WEEKDAYS[currentDate.getDay()]}, ${currentDate.getDate()}. ${MONTHS[currentDate.getMonth()]} ${currentDate.getFullYear()}`}
