@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, memo } from 'react'
 import { getMedal, shuffle } from '../utils/gameLogic'
 
 function getZRHistory() {
@@ -15,7 +15,7 @@ const KORPUS_COLOR = {
 }
 function korpusCol(k) { return KORPUS_COLOR[k] || '#78716c' }
 
-function ZrBubbleChart({ paare, perioden, placements, lemma }) {
+const ZrBubbleChart = memo(function ZrBubbleChart({ paare, perioden, placements, lemma }) {
   const [hovered,      setHovered]      = useState(null)
   const [belegeCache,  setBelegeCache]  = useState({})
   const [belegeLoading,setBelegeLoading]= useState(false)
@@ -166,7 +166,7 @@ function ZrBubbleChart({ paare, perioden, placements, lemma }) {
       </div>
     </div>
   )
-}
+})
 
 function formatPeriod(label) {
   return `um ${label}`
