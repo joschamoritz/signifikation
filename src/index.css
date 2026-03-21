@@ -1,30 +1,36 @@
 /* ============================================================
    SIGNIFIKATION – global styles
-   Mobile-first, light theme, Lexikon-CD
+   Mobile-first, Wörterbuch-CD
    ============================================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=Gentium+Plus:ital,wght@0,400;0,700;1,400;1,700&family=DM+Sans:wght@400;500;600&display=swap');
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0 }
 
 :root {
   --bg:          #faf9f7;
   --surface:     #ffffff;
-  --surface2:    #f5f4f2;
-  --border:      #e5e2de;
+  --surface2:    #f3f1ed;
+  --border:      #d4c9b0;
+  --border-lt:   #e8e2d8;
   --primary:     #9b1c1c;
   --primary-hi:  #b91c1c;
+  --accent:      #c9a84c;
+  --accent-dk:   #a07830;
   --success:     #166534;
   --success-bg:  #f0fdf4;
   --warn:        #92400e;
   --warn-bg:     #fffbeb;
   --error:       #991b1b;
   --error-bg:    #fef2f2;
-  --text:        #1c1917;
-  --muted:       #78716c;
-  --radius:      12px;
-  --radius-sm:   8px;
-  --font-serif:  'Playfair Display', Georgia, serif;
+  --text:        #1a1a18;
+  --muted:       #8a7f6e;
+  --disabled:    #b8b0a0;
+  --radius:      4px;
+  --radius-sm:   2px;
+  --font-serif:  'Gentium Plus', Georgia, 'Times New Roman', serif;
   --font-sans:   'DM Sans', system-ui, -apple-system, sans-serif;
-  --font-ipa:    'Gentium Plus', 'Gentium', Georgia, serif;
+  --font-ipa:    'Gentium Plus', Georgia, serif;
 }
 
 html { font-size: 16px; -webkit-text-size-adjust: 100% }
@@ -122,10 +128,12 @@ button { font-family: inherit; cursor: pointer; border: none }
 .btn-primary {
   background: var(--primary);
   color: #fff;
-  border-radius: var(--radius-sm);
-  padding: 13px 24px;
-  font-size: 1rem;
+  border-radius: var(--radius);
+  padding: 12px 24px;
+  font-family: var(--font-sans);
+  font-size: 0.9rem;
   font-weight: 600;
+  letter-spacing: 0.02em;
   transition: background 0.15s, opacity 0.15s;
 }
 .btn-primary:hover:not(:disabled) { background: var(--primary-hi) }
@@ -134,10 +142,11 @@ button { font-family: inherit; cursor: pointer; border: none }
 .btn-secondary {
   background: transparent;
   color: var(--primary);
-  border: 1.5px solid var(--primary);
-  padding: 12px 20px;
-  border-radius: 10px;
-  font-size: 0.95rem;
+  border: 1px solid var(--primary);
+  padding: 11px 20px;
+  border-radius: var(--radius);
+  font-family: var(--font-sans);
+  font-size: 0.88rem;
   font-weight: 600;
   transition: background 0.15s;
 }
@@ -607,14 +616,16 @@ button { font-family: inherit; cursor: pointer; border: none }
 
 .back-btn {
   background: none;
-  color: var(--muted);
-  font-size: 0.85rem;
+  color: var(--primary);
+  font-family: var(--font-sans);
+  font-size: 0.82rem;
+  font-weight: 500;
   padding: 8px 0;
   min-height: 44px;
   align-self: flex-start;
-  transition: color 0.15s;
+  transition: opacity 0.15s;
 }
-.back-btn:hover { color: var(--primary) }
+.back-btn:hover { opacity: 0.7 }
 
 .selection-prompt {
   font-size: 0.95rem;
@@ -633,15 +644,13 @@ button { font-family: inherit; cursor: pointer; border: none }
   border: 1px solid var(--border);
   border-radius: var(--radius);
   overflow: hidden;
-  transition: border-color 0.15s, box-shadow 0.15s, transform 0.1s;
+  transition: border-color 0.15s;
 }
 .lemma-card:has(.lemma-card-main:hover),
 .lemma-card:has(.lemma-card-main:focus-visible) {
   border-color: var(--primary);
-  box-shadow: 0 2px 8px rgba(155,28,28,0.08);
-  transform: translateY(-1px);
 }
-.lemma-card:has(.lemma-card-main:active) { transform: translateY(0) }
+.lemma-card:has(.lemma-card-main:active) { opacity: 0.85 }
 
 .lemma-card-main {
   flex: 1;
@@ -705,23 +714,25 @@ button { font-family: inherit; cursor: pointer; border: none }
 .lemma-info { flex: 1; display: flex; flex-direction: column; gap: 6px }
 .lemma-name  {
   font-family: var(--font-serif);
-  font-size: 1.2rem;
+  font-size: 1.3rem;
   font-weight: 700;
   color: var(--text);
+  letter-spacing: 0.01em;
 }
 .lemma-ipa { font-size: 0.85rem; color: var(--text-muted); }
 
 .lemma-wortart-chip {
   display: inline-block;
-  font-size: 0.72rem;
+  font-family: var(--font-sans);
+  font-size: 0.68rem;
   font-weight: 600;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--primary);
-  background: #fef2f2;
-  border: 1px solid #fecaca;
-  border-radius: 4px;
-  padding: 2px 8px;
+  color: var(--accent-dk);
+  background: none;
+  border: 0.5px solid var(--accent);
+  border-radius: 2px;
+  padding: 1px 7px;
   align-self: flex-start;
 }
 
@@ -754,23 +765,24 @@ button { font-family: inherit; cursor: pointer; border: none }
 
 .quiz-game-badge {
   display: inline-block;
-  font-size: 0.7rem;
-  font-weight: 700;
-  letter-spacing: 0.1em;
+  font-family: var(--font-sans);
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.25em;
   text-transform: uppercase;
-  color: var(--primary);
-  background: #fef2f2;
-  border: 1px solid #fecaca;
-  border-radius: 4px;
-  padding: 2px 10px;
+  color: var(--muted);
+  background: none;
+  border: none;
+  padding: 0;
 }
 
 .quiz-lemma-word {
   font-family: var(--font-serif);
-  font-size: 2.2rem;
-  font-weight: 800;
+  font-size: 2.4rem;
+  font-weight: 700;
   color: var(--text);
-  line-height: 1.1;
+  line-height: 1.05;
+  letter-spacing: 0.01em;
 }
 
 .round-progress { display: flex; gap: 6px; align-items: center }
@@ -808,10 +820,11 @@ button { font-family: inherit; cursor: pointer; border: none }
 
 .option {
   background: var(--surface);
-  border: 1.5px solid var(--border);
-  border-radius: var(--radius-sm);
-  padding: 10px 14px;
-  font-size: 0.9rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 9px 13px;
+  font-family: var(--font-serif);
+  font-size: 0.95rem;
   color: var(--text);
   text-align: left;
   line-height: 1.3;
@@ -955,14 +968,15 @@ button { font-family: inherit; cursor: pointer; border: none }
 
 /* Bonus-Tag im Quiz-Header */
 .bonus-tag {
-  font-size: 0.72rem;
-  font-weight: 700;
-  letter-spacing: 0.06em;
+  font-family: var(--font-sans);
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.25em;
   text-transform: uppercase;
-  color: #92400e;
-  background: #fef3c7;
-  border: 1px solid #fcd34d;
-  border-radius: 4px;
+  color: var(--accent-dk);
+  background: none;
+  border: 0.5px solid var(--accent);
+  border-radius: 2px;
   padding: 2px 8px;
 }
 
@@ -975,11 +989,11 @@ button { font-family: inherit; cursor: pointer; border: none }
 }
 .bonus-option {
   background: var(--surface);
-  border: 2px solid var(--border);
+  border: 1px solid var(--border);
   border-radius: var(--radius);
-  padding: 18px 20px;
+  padding: 16px 20px;
   font-size: 1.05rem;
-  font-weight: 600;
+  font-weight: 700;
   font-family: var(--font-serif);
   color: var(--text);
   text-align: left;
@@ -1008,7 +1022,7 @@ button { font-family: inherit; cursor: pointer; border: none }
 .free-bonus-card {
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: var(--radius);
   padding: 1.5rem;
   display: flex;
   flex-direction: column;
@@ -1042,9 +1056,10 @@ button { font-family: inherit; cursor: pointer; border: none }
 .results-header { text-align: center }
 .lemma-played-title {
   font-family: var(--font-serif);
-  font-size: 2rem;
-  font-weight: 800;
+  font-size: 2.2rem;
+  font-weight: 700;
   color: var(--text);
+  letter-spacing: 0.01em;
 }
 .total-score    { font-size: 1.15rem; color: var(--primary); font-weight: 700; margin-top: 4px }
 .result-feedback { font-size: 0.9rem; color: var(--muted); margin-top: 2px }
@@ -1099,11 +1114,12 @@ button { font-family: inherit; cursor: pointer; border: none }
   flex-wrap: wrap;
 }
 .threshold {
-  font-size: 0.8rem;
+  font-family: var(--font-sans);
+  font-size: 0.75rem;
   color: var(--muted);
-  padding: 5px 12px;
-  border-radius: 20px;
-  border: 1px solid var(--border);
+  padding: 4px 10px;
+  border-radius: var(--radius);
+  border: 0.5px solid var(--border);
   transition: all 0.2s;
 }
 .threshold.reached {
@@ -1156,14 +1172,15 @@ button { font-family: inherit; cursor: pointer; border: none }
   align-items: center;
   gap: 5px;
   background: var(--surface2);
-  border: 1px solid var(--border);
-  border-radius: 4px;
+  border: 0.5px solid var(--border);
+  border-radius: var(--radius);
   padding: 3px 10px;
-  font-size: 0.85rem;
-  font-weight: 600;
+  font-size: 0.88rem;
+  font-weight: 400;
+  font-style: italic;
   color: var(--text);
   cursor: pointer;
-  font-family: var(--font-sans);
+  font-family: var(--font-serif);
   transition: background 0.15s, border-color 0.15s;
 }
 .wortprofil-item:hover {
@@ -1840,11 +1857,12 @@ button { font-family: inherit; cursor: pointer; border: none }
 /* ── Share-Button ─────────────────────────────────────────── */
 .btn-share {
   background: transparent;
-  color: var(--text);
-  border: 1.5px solid var(--border);
-  padding: 12px 20px;
-  border-radius: var(--radius-sm);
-  font-size: 0.9rem;
+  color: var(--primary);
+  border: 1px solid var(--primary);
+  padding: 11px 20px;
+  border-radius: var(--radius);
+  font-family: var(--font-sans);
+  font-size: 0.88rem;
   font-weight: 600;
   width: 100%;
   display: flex;
@@ -1853,7 +1871,7 @@ button { font-family: inherit; cursor: pointer; border: none }
   gap: 8px;
   transition: background 0.15s, border-color 0.15s, color 0.15s;
 }
-.btn-share:hover { background: var(--surface2); border-color: var(--muted) }
+.btn-share:hover { background: #fef2f2 }
 .btn-share--copied {
   color: var(--success);
   border-color: var(--success);
