@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import './test.css'
 
 const WEEKDAYS = ['Sonntag','Montag','Dienstag','Mittwoch','Donnerstag','Freitag','Samstag']
@@ -35,10 +35,12 @@ function streakFlames(n) {
   return '🔥'
 }
 
-/* ── Statische Demodaten ──────────────────────────────────── */
-const HEUTE = {
-  datum: todayLabel(),
-  woerter: ['Frühling', 'Wandel', 'Aufbruch'],
+function getISOWeek(d) {
+  const date = new Date(d)
+  date.setHours(0, 0, 0, 0)
+  date.setDate(date.getDate() + 3 - (date.getDay() + 6) % 7)
+  const week1 = new Date(date.getFullYear(), 0, 4)
+  return 1 + Math.round(((date - week1) / 86400000 - 3 + (week1.getDay() + 6) % 7) / 7)
 }
 
 const EINTRAEGE = [
@@ -112,10 +114,41 @@ const EINTRAEGE = [
 export default function TestPage() {
   const [footnoteOpen, setFootnoteOpen] = useState(false)
   const [copied, setCopied] = useState(false)
+  const [currentDate, setCurrentDate] = useState(() => {
+    const d = new Date(); d.setHours(0, 0, 0, 0); return d
+  })
+  const [lemmata, setLemmata] = useState([])
   const streak = computeStreak()
 
+  const today = new Date(); today.setHours(0, 0, 0, 0)
+  const isToday = currentDate.getTime() === today.getTime()
+  const kw = getISOWeek(currentDate)
+  const dateStr = localDateStr(currentDate)
+
+  useEffect(() => {
+    const url = isToday ? '/api/heute' : `/api/archiv?date=${dateStr}`
+    fetch(url)
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        if (data?.lemmata) setLemmata(data.lemmata)
+        else if (Array.isArray(data?.lemmata)) setLemmata([])
+      })
+      .catch(() => {})
+  }, [dateStr])
+
+  function goBack() {
+    setCurrentDate(d => { const nd = new Date(d); nd.setDate(nd.getDate() - 1); return nd })
+  }
+  function goForward() {
+    if (!isToday) setCurrentDate(d => { const nd = new Date(d); nd.setDate(nd.getDate() + 1); return nd })
+  }
+
+  const mmdd = `${String(currentDate.getMonth() + 1).padStart(2, '0')}-${String(currentDate.getDate()).padStart(2, '0')}`
+  const playedToday = JSON.parse(localStorage.getItem(`sig_${mmdd}`) || '[]')
+  const hasPlayed = playedToday.length > 0
+
   async function shareResult() {
-    const text = `📖 Signifikation · ${new Date().getDate()}. ${MONTHS[new Date().getMonth()]}\n\n💬 Schaffst du es besser? → signifikation.de`
+    const text = `📖 Signifikation · ${currentDate.getDate()}. ${MONTHS[currentDate.getMonth()]}\n\n💬 Schaffst du es besser? → signifikation.de`
     if (navigator.share) { try { await navigator.share({ text }); return } catch {} }
     try { await navigator.clipboard.writeText(text); setCopied(true); setTimeout(() => setCopied(false), 2200) } catch {}
   }
@@ -126,21 +159,22 @@ export default function TestPage() {
 
         {/* ── Titelseite ─────────────────────────────────── */}
         <header className="test-title-section" role="banner">
+          <img src="/logo.png" alt="" className="test-logo" aria-hidden="true" />
           <p className="test-overline">Tägliches Wortspiel · Experimentell</p>
           <h1 className="test-title">Signifikation</h1>
           <p className="test-subtitle">
-            <time dateTime="2026-03-21">{HEUTE.datum}</time>
+            <time dateTime={dateStr}>
+              {`${WEEKDAYS[currentDate.getDay()]}, ${currentDate.getDate()}. ${MONTHS[currentDate.getMonth()]} ${currentDate.getFullYear()}`}
+            </time>
           </p>
         </header>
 
         {/* ── Streak ─────────────────────────────────────── */}
         {streak > 0 && (
-          <div className="streak-pill">
-            <span className="streak-flames">{streakFlames(streak)}</span>
-            <div className="streak-text">
-              <span className="streak-count">{streak}</span>
-              <span className="streak-label">{streak === 1 ? 'Tag' : 'Tage'} am Stück</span>
-            </div>
+          <div className="test-streak">
+            <span className="test-streak-inner">
+              {streakFlames(streak)} {streak} {streak === 1 ? 'Tag' : 'Tage'} am Stück
+            </span>
           </div>
         )}
 
@@ -151,11 +185,12 @@ export default function TestPage() {
         >
           <span className="test-raster-label" aria-hidden="true">Wörter des Tages</span>
           <div className="test-raster-words">
-            {HEUTE.woerter.map((w) => (
-              <span key={w} className="test-raster-word">{w}</span>
-            ))}
+            {lemmata.length > 0
+              ? lemmata.map(l => <span key={l.id} className="test-raster-word">{l.lemma}</span>)
+              : <span className="test-raster-word" style={{color: 'var(--t-disabled)'}}>—</span>
+            }
           </div>
-          <span className="test-raster-folio" aria-hidden="true">Nr. 80 · 2026</span>
+          <span className="test-raster-folio" aria-hidden="true">KW {kw} · {currentDate.getFullYear()}</span>
         </nav>
 
         {/* ── Doppellinie vor den Einträgen ──────────────── */}
@@ -278,15 +313,30 @@ export default function TestPage() {
         </section>
 
         {/* ── Teilen ─────────────────────────────────────── */}
-        <div className="test-share-row">
-          <button
-            className={`btn-share${copied ? ' btn-share--copied' : ''}`}
-            onClick={shareResult}
-            aria-label="Ergebnis teilen oder kopieren"
-          >
-            {copied ? '✓ Kopiert!' : '↗ Ergebnis teilen'}
+        {hasPlayed && (
+          <div className="test-share-row">
+            <button
+              className={`btn-share${copied ? ' btn-share--copied' : ''}`}
+              onClick={shareResult}
+              aria-label="Ergebnis teilen oder kopieren"
+            >
+              {copied ? '✓ Kopiert!' : '↗ Ergebnis teilen'}
+            </button>
+          </div>
+        )}
+
+        {/* ── Tagesnavigation ────────────────────────────── */}
+        <nav className="test-pager" aria-label="Tagesnavigation">
+          <button className="test-pager-btn" onClick={goBack} aria-label="Vorheriger Tag">
+            ← {(() => { const d = new Date(currentDate); d.setDate(d.getDate() - 1); return `${d.getDate()}. ${MONTHS[d.getMonth()]}` })()}
           </button>
-        </div>
+          <span className="test-pager-folio">
+            {currentDate.getDate()}. {MONTHS[currentDate.getMonth()]}
+          </span>
+          <button className="test-pager-btn" onClick={goForward} disabled={isToday} aria-label="Nächster Tag">
+            {(() => { const d = new Date(currentDate); d.setDate(d.getDate() + 1); return `${d.getDate()}. ${MONTHS[d.getMonth()]}` })()} →
+          </button>
+        </nav>
 
         {/* ── Kolophon ───────────────────────────────────── */}
         <footer className="test-colophon" role="contentinfo">
