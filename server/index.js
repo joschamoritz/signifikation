@@ -5,7 +5,7 @@ import rateLimit       from 'express-rate-limit'
 import { readFileSync, writeFileSync, renameSync, mkdirSync } from 'fs'
 import { fileURLToPath } from 'url'
 import { dirname, join }  from 'path'
-import { fetchLemma, fetchBonusQuestion } from './dwds.js'
+import { fetchLemma, fetchBonusQuestion, fetchRelation, POS_ROUNDS } from './dwds.js'
 import { fetchZeitreise, debugDiaCollo, clearCorporaCache } from './diacollo.js'
 import { fetchWortZwilling } from './wortzwilling.js'
 
@@ -403,6 +403,49 @@ app.get('/admin/debug-diacollo', adminLimiter, requireAuth, async (req, res) => 
   } catch (err) {
     serverError(res, err)
   }
+})
+
+/** GET /admin/analyze-kollokation?q=Wort&pos=Substantiv – Kollokationswort analysieren */
+app.get('/admin/analyze-kollokation', adminLimiter, requireAuth, async (req, res) => {
+  const { q: lemma, pos = 'Substantiv' } = req.query
+  if (!lemma) return res.status(400).json({ error: 'q= erforderlich' })
+  const rounds = POS_ROUNDS[pos] ?? POS_ROUNDS.Substantiv
+  try {
+    const [roundResults, bonusQ] = await Promise.all([
+      Promise.allSettled(rounds.map(r => fetchRelation(lemma, pos, r.relCode))),
+      fetchBonusQuestion(lemma, pos).catch(() => null),
+    ])
+    const runden = rounds.map((round, i) => {
+      const r = roundResults[i]
+      if (r.status === 'rejected') return { ...round, items: [], count: 0, usable: false, error: r.reason.message }
+      const items = r.value.filter(it => !it.lemma.includes(' ') && it.lemma.length > 1)
+      return {
+        ...round,
+        items:  items.slice(0, 10).map(it => ({ wort: it.lemma, logDice: parseFloat(parseFloat(it.logDice).toFixed(2)) })),
+        count:  items.length,
+        usable: items.length >= 5,
+      }
+    })
+    const allItems = runden.flatMap(r => r.items)
+    const seen = new Set()
+    const top3 = allItems
+      .sort((a, b) => b.logDice - a.logDice)
+      .filter(it => { if (seen.has(it.wort)) return false; seen.add(it.wort); return true })
+      .slice(0, 3)
+    const usable = runden.every(r => r.usable)
+    res.json({ lemma, pos, runden, top3, bonus: bonusQ, usable })
+  } catch (err) { serverError(res, err) }
+})
+
+/** GET /admin/analyze-wortzwilling?a=WortA&b=WortB&pos=Substantiv – Wortpaar analysieren */
+app.get('/admin/analyze-wortzwilling', adminLimiter, requireAuth, async (req, res) => {
+  const { a: wortA, b: wortB, pos = 'Substantiv' } = req.query
+  if (!wortA || !wortB) return res.status(400).json({ error: 'a= und b= erforderlich' })
+  try {
+    const result = await fetchWortZwilling(wortA.trim(), wortB.trim(), pos)
+    if (!result) return res.json({ usable: false, wortA, wortB, reason: 'Nicht genug distinkte Kollokatoren (mind. 5 pro Seite nötig)' })
+    res.json({ ...result, usable: true })
+  } catch (err) { serverError(res, err) }
 })
 
 /** POST /admin/tag – Tageseintrag anlegen/überschreiben */
