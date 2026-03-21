@@ -180,10 +180,10 @@ export default function Zeitreise({ data, onBack, onFinish, savedResult }) {
   const [chips] = useState(() => shuffle(paare.map(p => p.kollokat)))
 
   // placements: { [jahrzehnt]: kollokat }
-  const [placements, setPlacements] = useState({})
+  const [placements, setPlacements] = useState(() => savedResult?.placements ?? {})
   const [selected, setSelected]     = useState(null)  // currently selected chip
-  const [revealed, setRevealed]     = useState(false)
-  const [score, setScore]           = useState(null)
+  const [revealed, setRevealed]     = useState(() => savedResult !== null)
+  const [score, setScore]           = useState(() => savedResult?.total ?? null)
 
   // Belege
   const [openBeleg,     setOpenBeleg]     = useState(null)
@@ -336,53 +336,12 @@ export default function Zeitreise({ data, onBack, onFinish, savedResult }) {
       sum + (placements[p.jahrzehnt] === p.kollokat ? 2 : 0), 0)
     setScore(s)
     setRevealed(true)
-    onFinish(s)
+    onFinish(s, placements)
   }
 
   const zrHistory = getZRHistory()
   const medal = score !== null ? getMedal(score) : null
   const remaining = paare.length - Object.keys(placements).length
-
-  if (savedResult) {
-    return (
-      <div className="screen zeitreise-screen">
-        <button className="back-btn" onClick={onBack} aria-label="Zurück zur Startseite">← Zurück</button>
-        <div className="zeitreise-header">
-          <span className="zeitreise-badge">Zeitreise</span>
-          <h1 className="zeitreise-word">{data.lemma}</h1>
-        </div>
-        <div className="zr-results">
-          <div className="zr-results-score">
-            <span className="zr-score-num">{savedResult.total}</span>
-            <span className="zr-score-max">/{data.paare.length * 2} Punkte</span>
-          </div>
-          <p className="zr-results-medal">{savedResult.medal}</p>
-          {zrHistory.length > 0 && (
-            <div className="history-strip">
-              <span className="history-label">Dein Verlauf · Zeitreise</span>
-              <div className="history-emojis" role="list" aria-label="Verlauf Zeitreise">
-                {zrHistory.map((h, i) => (
-                  <span key={i} role="listitem" className="history-emoji"
-                        title={`${h.date}: ${h.medal}`} aria-label={`${h.date}: ${h.medal}`}>
-                    {h.emoji}
-                  </span>
-                ))}
-              </div>
-            </div>
-          )}
-          <a
-            className="dwds-link"
-            href={`https://www.dwds.de/wb/${encodeURIComponent(data.lemma)}`}
-            target="_blank" rel="noopener noreferrer"
-          >Mehr über „{data.lemma}" auf dwds.de ↗</a>
-          <button className="btn-primary btn-full" onClick={onBack}>
-            Zur Startseite
-          </button>
-          <p className="dwds-quelle">Kollokationsdaten: DiaCollo / DWDS-Korpora, Digitales Wörterbuch der deutschen Sprache (BBAW). <a href="https://www.dwds.de/d/zitieren" target="_blank" rel="noopener noreferrer">Zitierregeln ↗</a></p>
-        </div>
-      </div>
-    )
-  }
 
   return (
     <div className="screen zeitreise-screen">
@@ -575,7 +534,7 @@ export default function Zeitreise({ data, onBack, onFinish, savedResult }) {
           <button className="btn-primary btn-full" onClick={onBack}>
             Zur Startseite
           </button>
-          <p className="dwds-quelle">Kollokationsdaten: DiaCollo / DWDS-Korpora, Digitales Wörterbuch der deutschen Sprache (BBAW). <a href="https://www.dwds.de/d/zitieren" target="_blank" rel="noopener noreferrer">Zitierregeln ↗</a></p>
+          <p className="dwds-quelle">Kollokationsdaten: DiaCollo / DWDS-Korpora, Digitales Wörterbuch der deutschen Sprache (BBAW).</p>
         </div>
       )}
     </div>
