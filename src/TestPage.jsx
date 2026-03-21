@@ -1,9 +1,43 @@
 import { useState } from 'react'
 import './test.css'
 
+const WEEKDAYS = ['Sonntag','Montag','Dienstag','Mittwoch','Donnerstag','Freitag','Samstag']
+const MONTHS   = ['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember']
+
+function todayLabel() {
+  const d = new Date()
+  return `${WEEKDAYS[d.getDay()]}, ${d.getDate()}. ${MONTHS[d.getMonth()]} ${d.getFullYear()}`
+}
+
+function localDateStr(d) {
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`
+}
+
+function computeStreak() {
+  const activity = JSON.parse(localStorage.getItem('sig_activity') || '[]')
+  const legacy   = JSON.parse(localStorage.getItem('sig_history') || '[]').map(h => h.date)
+  const dateSet  = new Set([...activity, ...legacy])
+  if (!dateSet.size) return 0
+  const msDay = 86_400_000
+  const today = new Date(); today.setHours(0, 0, 0, 0)
+  const todayStr     = localDateStr(today)
+  const yesterdayStr = localDateStr(new Date(today - msDay))
+  if (!dateSet.has(todayStr) && !dateSet.has(yesterdayStr)) return 0
+  let d = dateSet.has(todayStr) ? new Date(today) : new Date(today - msDay)
+  let streak = 0
+  while (dateSet.has(localDateStr(d))) { streak++; d = new Date(d - msDay) }
+  return streak
+}
+
+function streakFlames(n) {
+  if (n >= 30) return '🔥🔥🔥'
+  if (n >= 7)  return '🔥🔥'
+  return '🔥'
+}
+
 /* ── Statische Demodaten ──────────────────────────────────── */
 const HEUTE = {
-  datum: '21. März 2026',
+  datum: todayLabel(),
   woerter: ['Frühling', 'Wandel', 'Aufbruch'],
 }
 
@@ -77,6 +111,14 @@ const EINTRAEGE = [
 /* ── Komponente ───────────────────────────────────────────── */
 export default function TestPage() {
   const [footnoteOpen, setFootnoteOpen] = useState(false)
+  const [copied, setCopied] = useState(false)
+  const streak = computeStreak()
+
+  async function shareResult() {
+    const text = `📖 Signifikation · ${new Date().getDate()}. ${MONTHS[new Date().getMonth()]}\n\n💬 Schaffst du es besser? → signifikation.de`
+    if (navigator.share) { try { await navigator.share({ text }); return } catch {} }
+    try { await navigator.clipboard.writeText(text); setCopied(true); setTimeout(() => setCopied(false), 2200) } catch {}
+  }
 
   return (
     <div className="test-page" lang="de">
@@ -90,6 +132,17 @@ export default function TestPage() {
             <time dateTime="2026-03-21">{HEUTE.datum}</time>
           </p>
         </header>
+
+        {/* ── Streak ─────────────────────────────────────── */}
+        {streak > 0 && (
+          <div className="streak-pill">
+            <span className="streak-flames">{streakFlames(streak)}</span>
+            <div className="streak-text">
+              <span className="streak-count">{streak}</span>
+              <span className="streak-label">{streak === 1 ? 'Tag' : 'Tage'} am Stück</span>
+            </div>
+          </div>
+        )}
 
         {/* ── Laufzeile / Raster ─────────────────────────── */}
         <nav
@@ -195,40 +248,60 @@ export default function TestPage() {
             className={`test-footnote-body${footnoteOpen ? ' open' : ''}`}
             role="region"
           >
-            <p>
-              Eine <em>Kollokation</em> ist eine typische, statistisch bevorzugte Verbindung zweier Wörter —
-              zum Beispiel <em>»blinder Fleck«</em> oder <em>»Fehler begehen«</em>. Solche Verbindungen
-              klingen für Muttersprachler selbstverständlich, obwohl es meist keine grammatische
-              Notwendigkeit gibt, gerade diese Wörter zusammenzustellen.
+            <p className="home-card-text home-card-text--dropcap">
+              Kollokationen sind <strong>charakteristische syntagmatische Wortverbindungen</strong>,
+              in denen ein Element (die <strong>Basis</strong>) den anderen Bestandteil (den{' '}
+              <strong>Kollokator</strong>) semantisch selegiert. Man sagt <em>blondes Haar</em> und
+              nicht <em>gelbes Haar</em> — nicht weil Letzteres grammatisch falsch wäre, sondern
+              weil der konventionalisierte Sprachgebrauch <em>blond</em> als typischen Kollokator
+              von <em>Haar</em> fordert.<sup>1</sup>
             </p>
-            <p>
-              Im Deutschen werden Kollokationen aus großen Textkorpora wie dem DWDS-Kernkorpus
-              gewonnen — Millionen von Texten, die zeigen, welche Wörter einander besonders häufig
-              begleiten. Signifikation nutzt diese Daten für seine täglichen Wortspiele.
+            <p className="home-card-text">
+              Kollokationen liegen zwischen freien Wortverbindungen (<em>rotes Auto</em>) und
+              Idiomen (<em>ins Gras beißen</em>): semantisch motiviert, aber lexikalisch
+              konventionalisiert.
             </p>
+            <p className="home-card-text">
+              Der <strong>logDice-Wert</strong><sup>2</sup> misst die statistische Signifikanz
+              von Kookkurrenzen im Korpus — je höher der Wert, desto charakteristischer die
+              Verbindung. Die Daten stammen aus dem <strong>DWDS-Wortprofil</strong><sup>3</sup>{' '}
+              und dem <strong>DiaCollo</strong>-System<sup>4</sup>, basierend auf mehreren
+              Milliarden Textwörtern aus Tageszeitungen, Literatur und historischen Korpora.
+            </p>
+            <ol className="home-card-footnotes">
+              <li>Hausmann, F.&thinsp;J. (2003): Was sind eigentlich Kollokationen? In: Steyer, K. (Hrsg.): <em>Wortverbindungen — mehr oder weniger fest</em>. de Gruyter, S.&thinsp;309–334.</li>
+              <li>Rychlý, P. (2008): A Lexicographer-Friendly Association Score. In: <em>Proceedings of RASLAN 2008</em>, S.&thinsp;6–9.</li>
+              <li>DWDS-Wortprofil, erstellt durch das Digitale Wörterbuch der deutschen Sprache, Berlin-Brandenburgische Akademie der Wissenschaften (BBAW). <a href="https://www.dwds.de/d/zitieren" target="_blank" rel="noopener">Zitierregeln</a></li>
+              <li>Jurish, B. et&thinsp;al. (2014): DiaCollo: On the Trail of Diachronic Collocations. In: <em>Proceedings of DH 2014</em>. <a href="https://www.dwds.de/d/zitieren" target="_blank" rel="noopener">Zitierregeln</a></li>
+            </ol>
           </div>
         </section>
+
+        {/* ── Teilen ─────────────────────────────────────── */}
+        <div className="test-share-row">
+          <button
+            className={`btn-share${copied ? ' btn-share--copied' : ''}`}
+            onClick={shareResult}
+            aria-label="Ergebnis teilen oder kopieren"
+          >
+            {copied ? '✓ Kopiert!' : '↗ Ergebnis teilen'}
+          </button>
+        </div>
 
         {/* ── Kolophon ───────────────────────────────────── */}
         <footer className="test-colophon" role="contentinfo">
           <span className="test-colophon-ornament" aria-hidden="true">· · ·</span>
-          <nav aria-label="Rechtliches">
-            <ul className="test-colophon-links">
-              <li><a href="/impressum">Impressum</a></li>
-              <li><a href="/datenschutz">Datenschutz</a></li>
-              <li>
-                <a
-                  href="https://www.dwds.de"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  Daten: DWDS
-                </a>
-              </li>
-            </ul>
+          <p className="feedback-hint">
+            Fehler oder Anregungen? <a href="mailto:info@signifikation.de">Schreib uns.</a>
+          </p>
+          <nav className="legal-links" aria-label="Rechtliche Links">
+            <a href="/ueber.html">Über die App</a>
+            <a href="/impressum.html">Impressum</a>
+            <a href="/datenschutz.html">Datenschutz</a>
+            <a href="/nutzungsbedingungen.html">Nutzungsbedingungen</a>
           </nav>
           <p className="test-colophon-edition">
-            Signifikation · Experimentelles Design · 2026
+            v{__APP_VERSION__} · {__BUILD_DATE__}
           </p>
         </footer>
 
