@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react'
 import { getMedal, getRundInfo } from '../utils/gameLogic'
-import { useBelege } from '../hooks/useBelege'
-import BelegePanel from './BelegePanel'
+// useBelege + BelegePanel sind deaktiviert (Urheberrecht Korpustexte).
+// Reaktivieren sobald schriftliche Genehmigung der BBAW vorliegt:
+// import { useBelege } from '../hooks/useBelege'
+// import BelegePanel from './BelegePanel'
 
 function getKollHistory() {
   const newHistory = JSON.parse(localStorage.getItem('sig_koll_history') || '[]')
@@ -40,9 +42,6 @@ export default function Results({ lemma, roundScores, onRestart, onToSelection }
 
   const [logDiceOpen,    setLogDiceOpen]    = useState(false)
   const [belegeInfoOpen, setBelegeInfoOpen] = useState(false)
-
-  // useBelege mit cacheKey = "<rundKey>-<wort>" für eindeutige Zuordnung per Runde
-  const { openBeleg, belegeCache, belegeLoading, loadBelege } = useBelege(lemma.lemma)
 
   return (
     <div className="screen results-screen">
@@ -106,53 +105,41 @@ export default function Results({ lemma, roundScores, onRestart, onToSelection }
             </div>
           )}
           <button className="logdice-toggle" onClick={() => setBelegeInfoOpen(o => !o)} aria-expanded={belegeInfoOpen}>
-            Belege anzeigen lassen
+            Belege auf DWDS ansehen
             <span className={`toggle-arrow ${belegeInfoOpen ? 'toggle-arrow--open' : ''}`} aria-hidden="true">›</span>
           </button>
           {belegeInfoOpen && (
             <div className="logdice-explanation">
-              <p>Klicke auf ein <strong>Kollokat</strong> (eines der Wörter unten), um echte Beispielsätze aus dem DWDS-Korpus zu sehen. Gesucht wird in mehreren Korpora — Tageszeitungen, Kernkorpus, Parlamentsdebatten u.&thinsp;a. — bevorzugt ohne Wikipedia-Artikel. Es werden bis zu fünf Treffer angezeigt, in denen beide Wörter im Satz nah beieinander stehen.</p>
+              <p>Klicke auf ein <strong>Kollokat</strong>, um Korpusbelege direkt auf <strong>dwds.de</strong> zu suchen. Die Suche zeigt Textstellen, in denen beide Wörter gemeinsam vorkommen.</p>
             </div>
           )}
         </div>
 
-        {getRundInfo(lemma).map(({ key, label, relCode, desc }) => {
+        {getRundInfo(lemma).map(({ key, label, desc }) => {
           const top3 = (lemma.runden[key] || [])
             .filter(k => k.rang <= 3)
             .sort((a, b) => a.rang - b.rang)
-          // cacheKey = "<rundKey>-<wort>" damit verschiedene Runden nicht kollidieren
-          const activeItem = top3.find(k => openBeleg === `${key}-${k.wort}`)
 
           return (
             <div key={key} className="wortprofil-row">
               <span className="wortprofil-label">{label}</span>
               <span className="wortprofil-desc">{desc}</span>
               <div className="wortprofil-items">
-                {top3.map(k => {
-                  const cacheKey = `${key}-${k.wort}`
-                  const isActive = openBeleg === cacheKey
-                  return (
-                    <button
-                      key={k.wort}
-                      className={`wortprofil-item${isActive ? ' wortprofil-item--active' : ''}`}
-                      onClick={() => loadBelege(k.wort, cacheKey, { rel: relCode })}
-                      title="Korpusbelege anzeigen"
-                    >
-                      {k.wort}
-                      <span className="logdice">{k.log_dice}</span>
-                    </button>
-                  )
-                })}
+                {top3.map(k => (
+                  <button
+                    key={k.wort}
+                    className="wortprofil-item"
+                    onClick={() => window.open(
+                      `https://www.dwds.de/r/?q=%22${encodeURIComponent(lemma.lemma)}%22+%26%26+%22${encodeURIComponent(k.wort)}%22`,
+                      '_blank', 'noopener,noreferrer'
+                    )}
+                    title="Belege auf DWDS ansehen ↗"
+                  >
+                    {k.wort}
+                    <span className="logdice">{k.log_dice}</span>
+                  </button>
+                ))}
               </div>
-
-              {activeItem && (
-                <BelegePanel
-                  lemma={lemma.lemma}
-                  collocate={activeItem.wort}
-                  data={belegeCache[`${key}-${activeItem.wort}`]}
-                  loading={belegeLoading}
-                />
-              )}
             </div>
           )
         })}
