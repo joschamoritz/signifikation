@@ -388,6 +388,27 @@ app.get('/admin/feedback', adminLimiter, requireAuth, (req, res) => {
   } catch (err) { serverError(res, err) }
 })
 
+/** GET /api/archiv?date=YYYY-MM-DD – Tageseintrag für vergangene Tage */
+app.get('/api/archiv', async (req, res) => {
+  const { date } = req.query
+  if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date))
+    return res.status(400).json({ error: 'date als YYYY-MM-DD erforderlich' })
+  // Kein Zugriff auf Zukunft
+  const today = new Date(); today.setHours(0, 0, 0, 0)
+  const req_d = new Date(date); req_d.setHours(0, 0, 0, 0)
+  if (req_d > today) return res.status(403).json({ error: 'Zukünftige Einträge nicht verfügbar' })
+  try {
+    const mm   = date.slice(5, 7), dd = date.slice(8, 10)
+    const file = join(DATA, `koll-${mm}-${dd}.json`)
+    const raw  = JSON.parse(readFileSync(file, 'utf8'))
+    // Gleiche Struktur wie /api/heute zurückgeben
+    const lemmata = raw.lemmata || []
+    res.json({ datum: `${mm}-${dd}`, year: date.slice(0, 4), lemmata })
+  } catch {
+    res.json({ datum: date.slice(5), lemmata: [] })
+  }
+})
+
 /** GET /api/ipa – IPA-Aussprache via DWDS-API */
 app.get('/api/ipa', async (req, res) => {
   const { q } = req.query

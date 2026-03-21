@@ -19,6 +19,8 @@
   --t-sans:      'DM Sans', system-ui, -apple-system, sans-serif;
   --t-mono:      'Courier New', 'Courier', monospace;
   --t-disabled:  #b8b0a0;
+  --t-red:       #9b1c1c;
+  --t-red-hi:    #b91c1c;
 
   font-family: var(--t-serif);
   background-color: var(--t-bg);
@@ -378,7 +380,7 @@
   padding-right: 4px;
   padding-top: 6px;
   font-weight: 700;
-  color: var(--t-accent);
+  color: var(--t-red);
 }
 
 /* ── Abschnitt-Titel ───────────────────────────────────────── */
@@ -475,9 +477,93 @@
   color: var(--t-accent-dk);
 }
 
+/* ── Streak – Wörterbuchstil ───────────────────────────────── */
+.test-streak {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 10px 0 4px;
+  color: var(--t-muted);
+  font-family: var(--t-serif);
+  font-style: italic;
+  font-size: 0.82rem;
+}
+.test-streak::before,
+.test-streak::after {
+  content: '';
+  flex: 1;
+  max-width: 60px;
+  height: 1px;
+  background: var(--t-rule);
+}
+.test-streak-inner {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
+}
+
+/* ── Logo im Header ────────────────────────────────────────── */
+.test-logo {
+  width: 36px;
+  height: 36px;
+  object-fit: contain;
+  opacity: 0.85;
+  margin-bottom: 12px;
+}
+
+/* ── Tagesnavigation (Pager) ───────────────────────────────── */
+.test-pager {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 24px 0 8px;
+  border-top: 1px solid var(--t-rule);
+  margin-top: 16px;
+  gap: 12px;
+}
+.test-pager-btn {
+  background: none;
+  border: none;
+  font-family: var(--t-serif);
+  font-size: 0.8rem;
+  color: var(--t-muted);
+  cursor: pointer;
+  padding: 4px 0;
+  border-bottom: 1px solid transparent;
+  transition: color 0.15s, border-color 0.15s;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.test-pager-btn:hover:not(:disabled) {
+  color: var(--t-text);
+  border-bottom-color: var(--t-rule);
+}
+.test-pager-btn:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+.test-pager-folio {
+  font-family: var(--t-sans);
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--t-muted);
+  text-align: center;
+}
+
+/* ── Share-Zeile ───────────────────────────────────────────── */
+.test-share-row {
+  padding: 24px 0 8px;
+  text-align: center;
+}
+
 /* ── Kolophon (Footer) ─────────────────────────────────────── */
 .test-colophon {
-  padding: 24px 0 40px;
+  padding: 32px 0 40px;
   text-align: center;
 }
 
