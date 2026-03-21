@@ -337,20 +337,20 @@
   font-family: var(--t-serif);
   font-size: 0.85rem;
   font-weight: 700;
-  color: var(--t-accent-dk);
+  color: var(--t-red);
   background: none;
   border: none;
   padding: 4px 0;
   cursor: pointer;
   letter-spacing: 0.01em;
   text-decoration: none;
-  transition: color 0.15s;
+  transition: color 0.2s;
   border-bottom: 1px solid transparent;
 }
 
 .test-cta:hover,
 .test-cta:focus-visible {
-  color: var(--t-text);
+  color: var(--t-accent-dk);
   border-bottom-color: var(--t-accent);
   outline: none;
 }
@@ -506,11 +506,14 @@
 
 /* ── Logo im Header ────────────────────────────────────────── */
 .test-logo {
-  width: 36px;
-  height: 36px;
+  position: absolute;
+  top: 52px;
+  right: 0;
+  width: 40px;
+  height: 40px;
   object-fit: contain;
-  opacity: 0.85;
-  margin-bottom: 12px;
+  opacity: 0.45;
+  filter: sepia(0.3);
 }
 
 /* ── Tagesnavigation (Pager) ───────────────────────────────── */
@@ -571,7 +574,7 @@
   font-size: 1.2rem;
   color: var(--t-accent);
   letter-spacing: 0.3em;
-  margin-bottom: 14px;
+  margin-bottom: 24px;
   display: block;
   user-select: none;
 }
@@ -621,6 +624,21 @@
   color: var(--t-disabled);
   letter-spacing: 0.03em;
 }
+
+/* ── Seitenblätter-Animation ───────────────────────────────── */
+@keyframes pageFromRight {
+  0%   { opacity: 0; transform: perspective(1000px) rotateY(-10deg) translateX(28px); }
+  100% { opacity: 1; transform: perspective(1000px) rotateY(0deg)   translateX(0); }
+}
+@keyframes pageFromLeft {
+  0%   { opacity: 0; transform: perspective(1000px) rotateY(10deg)  translateX(-28px); }
+  100% { opacity: 1; transform: perspective(1000px) rotateY(0deg)   translateX(0); }
+}
+
+.test-page-flip { transform-origin: center center; }
+.test-page-flip--right { animation: pageFromRight 0.32s cubic-bezier(0.25, 0.46, 0.45, 0.94) both; }
+.test-page-flip--left  { animation: pageFromLeft  0.32s cubic-bezier(0.25, 0.46, 0.45, 0.94) both; }
+.test-page-flip--none  { /* kein Eintritt-Fade beim ersten Laden */ }
 
 /* ── Animation ─────────────────────────────────────────────── */
 @keyframes testFadeIn {
