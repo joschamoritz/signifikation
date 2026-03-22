@@ -429,6 +429,7 @@ async function analyzeWord() {
   try {
     const res  = await fetch(`/admin/debug-diacollo?q=${encodeURIComponent(word)}`, { headers: { 'x-admin-token': TOKEN } })
     const data = await res.json()
+    if (!res.ok) { out.innerHTML = `<div class="status error">Fehler: ${esc(data.error)}</div>`; return }
     renderViz(word, data, out)
   } catch (e) {
     out.innerHTML = `<div class="status error">Fehler: ${esc(e.message)}</div>`

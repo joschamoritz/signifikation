@@ -8,6 +8,12 @@ import { fetchWortZwilling } from '../wortzwilling.js'
 import { load, save, loadZeitreise, loadWortZwilling, loadStats, DATA } from '../store.js'
 import { adminLimiter } from '../middleware/rateLimiter.js'
 import { requireAuth, adminAuth, serverError } from '../middleware/auth.js'
+
+/** Admin-seitige Fehlerausgabe: zeigt immer den echten Fehler (hinter Auth) */
+function adminError(res, err) {
+  logger.error({ err }, 'Admin-Fehler')
+  res.status(500).json({ error: err.message || String(err) })
+}
 import { validate, adminTagSchema, diacolloConfigSchema, qQuerySchema, analyzeKollQuerySchema, analyzeWZQuerySchema } from '../middleware/validate.js'
 import logger from '../logger.js'
 
@@ -72,7 +78,7 @@ router.get('/admin/debug-diacollo', adminLimiter, requireAuth, validate(qQuerySc
     const result = await debugDiaCollo(q)
     res.json({ q, ...result })
   } catch (err) {
-    serverError(res, err)
+    adminError(res, err)
   }
 })
 
@@ -104,7 +110,7 @@ router.get('/admin/analyze-kollokation', adminLimiter, requireAuth, validate(ana
       .slice(0, 3)
     const usable = runden.every(r => r.usable)
     res.json({ lemma, pos, runden, top3, bonus: bonusQ, usable })
-  } catch (err) { serverError(res, err) }
+  } catch (err) { adminError(res, err) }
 })
 
 /** GET /admin/analyze-wortzwilling?a=WortA&b=WortB&pos=Substantiv – Wortpaar analysieren */
@@ -114,7 +120,7 @@ router.get('/admin/analyze-wortzwilling', adminLimiter, requireAuth, validate(an
     const result = await fetchWortZwilling(wortA.trim(), wortB.trim(), pos)
     if (!result) return res.json({ usable: false, wortA, wortB, reason: 'Nicht genug distinkte Kollokatoren (mind. 5 pro Seite nötig)' })
     res.json({ ...result, usable: true })
-  } catch (err) { serverError(res, err) }
+  } catch (err) { adminError(res, err) }
 })
 
 /** POST /admin/tag – Tageseintrag anlegen/überschreiben */
