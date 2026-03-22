@@ -75,9 +75,11 @@ if (existsSync(DIST)) {
 }
 
 // ── Globaler Fehler-Handler ───────────────────────────────────
-app.use((err, _req, res, _next) => {
+app.use((err, req, res, _next) => {
   logger.error({ err }, 'Unbehandelter Fehler')
-  res.status(500).json({ error: IS_PROD ? 'Interner Serverfehler' : (err.message || 'Interner Serverfehler') })
+  // Admin-Pfade liegen hinter Auth → echten Fehler immer anzeigen (hilft bei Diagnose)
+  const isAdmin = req.path?.startsWith('/admin')
+  res.status(500).json({ error: (!IS_PROD || isAdmin) ? (err.message || String(err)) : 'Interner Serverfehler' })
 })
 
 // ── Start ────────────────────────────────────────────────────

@@ -10,7 +10,13 @@ export function validate(schema, source = 'body') {
     if (!result.success) {
       return res.status(400).json({ error: result.error.errors[0].message })
     }
-    req[source] = result.data
+    // req.body kann direkt ersetzt werden; req.query/params sind in Express 5
+    // getter-only → bestehende Objekte per Object.assign mutieren.
+    if (source === 'body') {
+      req.body = result.data
+    } else {
+      Object.assign(req[source], result.data)
+    }
     next()
   }
 }
