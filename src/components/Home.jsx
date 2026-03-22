@@ -48,7 +48,7 @@ export default function Home({
         {/* ── Titelseite ───────────────────────────────────── */}
         <header className="test-title-section" role="banner">
           {/* Kollokationsnetz – dekorativer Hintergrund */}
-          <svg className="test-title-bg" viewBox="0 0 800 120" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+          <svg className="test-title-bg" viewBox="0 0 800 120" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
             {/* ── Graue Verbindungslinien (peripher) ── */}
             <line x1="45" y1="88" x2="100" y2="55" stroke="#a8a29e" strokeWidth="1.5"/>
             <line x1="100" y1="55" x2="158" y2="90" stroke="#a8a29e" strokeWidth="1.2"/>
