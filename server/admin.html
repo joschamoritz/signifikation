@@ -453,7 +453,7 @@
 </div>
 
 <script>
-  let KEY = sessionStorage.getItem('admin_key') || ''
+  let TOKEN = sessionStorage.getItem('admin_token') || ''
 
   // ── XSS-Schutz ───────────────────────────────────────────
   function esc(s) {
@@ -476,10 +476,15 @@
     btn.textContent = '…'
     errEl.style.display = 'none'
     try {
-      const r = await fetch('/admin/kalender', { headers: { 'x-admin-key': candidate } })
+      const r = await fetch('/admin/auth', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ key: candidate }),
+      })
       if (r.ok) {
-        sessionStorage.setItem('admin_key', candidate)
-        KEY = candidate
+        const { token } = await r.json()
+        sessionStorage.setItem('admin_token', token)
+        TOKEN = token
         document.getElementById('login-overlay').classList.add('hidden')
         document.getElementById('main-container').style.display = 'flex'
         initDashboard()
@@ -497,7 +502,7 @@
   }
 
   async function downloadBackup() {
-    const r = await fetch('/admin/backup', { headers: { 'x-admin-key': KEY } })
+    const r = await fetch('/admin/backup', { headers: { 'x-admin-token': TOKEN } })
     if (!r.ok) { alert('Backup fehlgeschlagen.'); return }
     const blob = await r.blob()
     const url  = URL.createObjectURL(blob)
@@ -509,23 +514,23 @@
   }
 
   function doLogout() {
-    sessionStorage.removeItem('admin_key')
-    KEY = ''
+    sessionStorage.removeItem('admin_token')
+    TOKEN = ''
     document.getElementById('main-container').style.display = 'none'
     document.getElementById('login-overlay').classList.remove('hidden')
     document.getElementById('login-key').value = ''
   }
 
   // ── Beim Laden: Key prüfen ────────────────────────────────
-  if (KEY) {
-    fetch('/admin/kalender', { headers: { 'x-admin-key': KEY } }).then(r => {
+  if (TOKEN) {
+    fetch('/admin/kalender', { headers: { 'x-admin-token': TOKEN } }).then(r => {
       if (r.ok) {
         document.getElementById('login-overlay').classList.add('hidden')
         document.getElementById('main-container').style.display = 'flex'
         initDashboard()
       } else {
-        sessionStorage.removeItem('admin_key')
-        KEY = ''
+        sessionStorage.removeItem('admin_token')
+        TOKEN = ''
       }
     }).catch(() => { /* Netzwerkfehler → Login zeigen */ })
   }
@@ -570,7 +575,7 @@
     const out = document.getElementById('feedback-list')
     out.textContent = 'Lade …'
     try {
-      const r = await fetch('/admin/feedback', { headers: { 'X-Admin-Key': adminKey } })
+      const r = await fetch('/admin/feedback', { headers: { 'x-admin-token': TOKEN } })
       const list = await r.json()
       if (!list.length) { out.textContent = 'Noch kein Feedback vorhanden.'; return }
       out.innerHTML = list.map(f => {
@@ -695,7 +700,7 @@
     try {
       const res = await fetch('/admin/tag', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-admin-key': KEY },
+        headers: { 'Content-Type': 'application/json', 'x-admin-token': TOKEN },
         body: JSON.stringify({
           datum: mmdd, woerter: [w1, w2, w3], positionen: [p1, p2, p3],
           notizen: [n1, n2, n3], links: [l1, l2, l3],
@@ -729,7 +734,7 @@
   }
 
   async function editTag(datum) {
-    const res  = await fetch(`/admin/tag/${datum}`, { headers: { 'x-admin-key': KEY } })
+    const res  = await fetch(`/admin/tag/${datum}`, { headers: { 'x-admin-token': TOKEN } })
     const data = await res.json()
     if (!res.ok) return alert(`Fehler: ${data.error}`)
     const year = new Date().getFullYear()
@@ -758,7 +763,7 @@
 
   async function loadKalender() {
     try {
-      const res  = await fetch('/admin/kalender', { headers: { 'x-admin-key': KEY } })
+      const res  = await fetch('/admin/kalender', { headers: { 'x-admin-token': TOKEN } })
       kalenderData = await res.json()
       renderCalendar()
     } catch {
@@ -774,7 +779,7 @@
 
   async function loadKorpusConfig() {
     try {
-      const res = await fetch('/admin/diacollo-config', { headers: { 'x-admin-key': KEY } })
+      const res = await fetch('/admin/diacollo-config', { headers: { 'x-admin-token': TOKEN } })
       const data = await res.json()
       korpusConfig = data.corpora || []
       renderKorpusList()
@@ -819,7 +824,7 @@
     try {
       const res = await fetch('/admin/diacollo-config', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-admin-key': KEY },
+        headers: { 'Content-Type': 'application/json', 'x-admin-token': TOKEN },
         body: JSON.stringify({ corpora: korpusConfig.map(c => ({ id: c.id, enabled: c.enabled })) }),
       })
       const data = await res.json()
@@ -867,7 +872,7 @@
     const out = document.getElementById('viz-output')
     out.innerHTML = '<div class="status loading">Lade DiaCollo-Daten…</div>'
     try {
-      const res  = await fetch(`/admin/debug-diacollo?q=${encodeURIComponent(word)}`, { headers: { 'x-admin-key': KEY } })
+      const res  = await fetch(`/admin/debug-diacollo?q=${encodeURIComponent(word)}`, { headers: { 'x-admin-token': TOKEN } })
       const data = await res.json()
       renderViz(word, data, out)
     } catch (e) {
@@ -1076,7 +1081,7 @@
     if (!lemma) return
     out.innerHTML = '<div class="status loading">Analysiere …</div>'
     try {
-      const res  = await fetch(`/admin/analyze-kollokation?q=${encodeURIComponent(lemma)}&pos=${encodeURIComponent(pos)}`, { headers: { 'x-admin-key': KEY } })
+      const res  = await fetch(`/admin/analyze-kollokation?q=${encodeURIComponent(lemma)}&pos=${encodeURIComponent(pos)}`, { headers: { 'x-admin-token': TOKEN } })
       const data = await res.json()
       if (!res.ok) { out.innerHTML = `<div class="status error">Fehler: ${esc(data.error)}</div>`; return }
       renderKollAnalyse(data, out)
@@ -1141,7 +1146,7 @@
     const out = document.getElementById('stats-output')
     out.innerHTML = '<div style="color:var(--muted);font-size:0.85rem">Lade…</div>'
     try {
-      const r    = await fetch('/admin/stats?days=30', { headers: { 'x-admin-key': KEY } })
+      const r    = await fetch('/admin/stats?days=30', { headers: { 'x-admin-token': TOKEN } })
       const data = await r.json()
       if (!r.ok) throw new Error(data.error || `HTTP ${r.status}`)
       renderStats(data, out)
@@ -1255,7 +1260,7 @@
     if (!wortA || !wortB) return
     out.innerHTML = '<div class="status loading">Analysiere …</div>'
     try {
-      const res  = await fetch(`/admin/analyze-wortzwilling?a=${encodeURIComponent(wortA)}&b=${encodeURIComponent(wortB)}&pos=${encodeURIComponent(pos)}`, { headers: { 'x-admin-key': KEY } })
+      const res  = await fetch(`/admin/analyze-wortzwilling?a=${encodeURIComponent(wortA)}&b=${encodeURIComponent(wortB)}&pos=${encodeURIComponent(pos)}`, { headers: { 'x-admin-token': TOKEN } })
       const data = await res.json()
       if (!res.ok) { out.innerHTML = `<div class="status error">Fehler: ${esc(data.error)}</div>`; return }
       renderWZAnalyse(data, out)

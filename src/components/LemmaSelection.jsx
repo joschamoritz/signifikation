@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { API } from '../config'
 
 export default function LemmaSelection({ lemmata, playedIds = [], onSelect, onViewResult, onBack }) {
   const [closedNotiz, setClosedNotiz] = useState(new Set())
@@ -8,7 +9,7 @@ export default function LemmaSelection({ lemmata, playedIds = [], onSelect, onVi
   useEffect(() => {
     lemmata.forEach(async l => {
       try {
-        const r = await fetch(`/api/ipa?q=${encodeURIComponent(l.lemma)}`)
+        const r = await fetch(`${API}/ipa?q=${encodeURIComponent(l.lemma)}`)
         const data = await r.json()
         if (data[0]?.ipa) setIpaMap(m => ({ ...m, [l.lemma]: data[0].ipa }))
       } catch (err) {

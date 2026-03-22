@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, Suspense, lazy, useRef } from 'react'
-import { API_BASE } from './config'
+import { API } from './config'
 import Home from './components/Home'
 import LemmaSelection from './components/LemmaSelection'
 import Quiz from './components/Quiz'
@@ -148,7 +148,7 @@ export default function App() {
 
   // Lemmata + Server-Datum laden
   useEffect(() => {
-    fetchWithRetry(`${API_BASE}/api/heute`)
+    fetchWithRetry(`${API}/heute`)
       .then(r => r.ok ? r.json() : r.json().then(d => Promise.reject(new Error(d.error || `HTTP ${r.status}`))))
       .then(({ datum, year, lemmata }) => {
         setServerDatum(datum)
@@ -162,14 +162,14 @@ export default function App() {
   }, [])
 
   useEffect(() => {
-    fetchWithRetry(`${API_BASE}/api/zeitreise`)
+    fetchWithRetry(`${API}/zeitreise`)
       .then(r => r.ok ? r.json() : null)
       .then(data => { if (data) setZeitreise(data) })
       .catch(err => console.error('Zeitreise fetch:', err))
   }, [])
 
   useEffect(() => {
-    fetchWithRetry(`${API_BASE}/api/wortzwilling`)
+    fetchWithRetry(`${API}/wortzwilling`)
       .then(r => r.ok ? r.json() : null)
       .then(data => { if (data) setWortzwilling(data) })
       .catch(err => console.error('WortZwilling fetch:', err))
@@ -183,7 +183,7 @@ export default function App() {
     savePlayedGame(keys, selectedLemma.id, selectedLemma.lemma, selectedLemma.pos || 'Substantiv', total, medal, lemmata?.length, roundScores)
     if (freshKollRef.current && serverDatum) {
       freshKollRef.current = false
-      fetch(`${API_BASE}/api/stats`, {
+      fetch(`${API}/stats`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ game: 'kollokationen', datum: serverDatum, score: total, max: 10 }),
@@ -204,7 +204,7 @@ export default function App() {
   useEffect(() => {
     if (!fetchBonus || !selectedLemma) return
     setFetchBonus(false)
-    fetch(`${API_BASE}/api/bonus?id=${selectedLemma.id}`)
+    fetch(`${API}/bonus?id=${selectedLemma.id}`)
       .then(r => r.json())
       .then(bonus => {
         setBonusQ(bonus?.options ? bonus : { skipped: true })
@@ -256,7 +256,7 @@ export default function App() {
     lsSet(`sig_wz_${serverDatum}`, JSON.stringify(entry))
     setWzPlayed(entry)
     markActivity(keys.dateStr)
-    fetch(`${API_BASE}/api/stats`, {
+    fetch(`${API}/stats`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ game: 'wortzwilling', datum: serverDatum, score, max: 10 }),
@@ -273,7 +273,7 @@ export default function App() {
     setZrPlayed(entry)
     markActivity(keys.dateStr)
     saveZRHistory(keys.dateStr, zrMed.label, zrMed.emoji)
-    fetch(`${API_BASE}/api/stats`, {
+    fetch(`${API}/stats`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ game: 'zeitreise', datum: serverDatum, score, max }),
