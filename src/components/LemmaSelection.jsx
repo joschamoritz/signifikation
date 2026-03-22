@@ -1,13 +1,6 @@
 import { useState, useEffect } from 'react'
 import { API } from '../config'
 
-const WORTART_ABBREV = {
-  'Substantiv': 'Subst.',
-  'Nomen':      'Subst.',
-  'Verb':       'V.',
-  'Adjektiv':   'Adj.',
-  'Adverb':     'Adv.',
-}
 
 export default function LemmaSelection({ lemmata, playedIds = [], onSelect, onViewResult, onBack }) {
   const [closedNotiz, setClosedNotiz] = useState(new Set())
@@ -60,9 +53,7 @@ export default function LemmaSelection({ lemmata, playedIds = [], onSelect, onVi
                       ? <span className="lautschrift lemma-ipa">[{ipaMap[lemma.lemma]}]</span>
                       : ipaLoading.has(lemma.lemma) && <span className="lemma-ipa-skeleton" aria-hidden="true" />
                     }
-                    <span className="lemma-wortart-abbrev">
-                      {WORTART_ABBREV[lemma.wortart] ?? lemma.wortart}
-                    </span>
+                    <span className="lemma-wortart-abbrev">{lemma.wortart}</span>
                   </div>
                   {lemma.definition && (
                     <span className="lemma-definition">{lemma.definition}</span>
