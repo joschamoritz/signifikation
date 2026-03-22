@@ -26,8 +26,8 @@ const VALID_GAMES = ['kollokationen', 'zeitreise', 'wortzwilling']
 export const statsSchema = z.object({
   game:  z.enum(VALID_GAMES),
   datum: DATUM_MMDD,
-  score: z.number(),
-  max:   z.number().positive('max muss > 0 sein'),
+  score: z.number().int().min(0).max(100),
+  max:   z.number().int().positive('max muss > 0 sein').max(100),
 })
 
 /** POST /api/feedback */
@@ -37,10 +37,12 @@ export const feedbackSchema = z.object({
   text:  z.string().max(500).optional().default(''),
 })
 
+const WORT_REGEX = /^[a-zA-ZäöüÄÖÜß\-]+$/
+
 /** GET /api/belege (query) */
 export const belegeQuerySchema = z.object({
-  lemma:     z.string().min(1, 'lemma erforderlich'),
-  collocate: z.string().min(1, 'collocate erforderlich'),
+  lemma:     z.string().min(1).max(100).regex(WORT_REGEX, 'lemma enthält ungültige Zeichen'),
+  collocate: z.string().min(1).max(100).regex(WORT_REGEX, 'collocate enthält ungültige Zeichen'),
   rel:       z.string().optional(),
   corpus:    z.string().optional(),
   year:      z.string().regex(/^\d{4}$/, 'year muss 4-stellig sein').optional(),

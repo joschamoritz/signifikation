@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { getDailyMedal } from '../utils/gameLogic'
+import { lsGet, lsParse } from '../utils/storage'
 import '../test.css'
 
 const WEEKDAYS = ['Sonntag','Montag','Dienstag','Mittwoch','Donnerstag','Freitag','Samstag']
@@ -18,8 +19,8 @@ function getISOWeek(d) {
 }
 
 function computeStreak() {
-  const activity = JSON.parse(localStorage.getItem('sig_activity') || '[]')
-  const legacy   = JSON.parse(localStorage.getItem('sig_history')  || '[]').map(h => h.date)
+  const activity = lsParse(lsGet('sig_activity'), [])
+  const legacy   = lsParse(lsGet('sig_history'), []).map(h => h.date)
   const dateSet  = new Set([...activity, ...legacy])
   if (!dateSet.size) return 0
   const msDay = 86_400_000
