@@ -273,8 +273,8 @@ router.get('/admin', (req, res) => {
   res.setHeader('Content-Security-Policy',
     "default-src 'self'; " +
     "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; " +
-    "style-src 'self' https://fonts.googleapis.com; " +
-    "font-src 'self' https://fonts.gstatic.com; " +
+    "style-src 'self'; " +
+    "font-src 'self'; " +
     "img-src 'self' data:; " +
     "connect-src 'self'; " +
     "frame-ancestors 'none';"
