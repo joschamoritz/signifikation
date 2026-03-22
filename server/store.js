@@ -14,7 +14,7 @@ const fileCache = {}
 
 export function load(file) {
   if (!fileCache[file]) fileCache[file] = JSON.parse(readFileSync(join(DATA, file), 'utf8'))
-  return fileCache[file]
+  return structuredClone(fileCache[file])
 }
 
 export function save(file, data) {

@@ -3,7 +3,7 @@ import { readFileSync } from 'fs'
 import { join }         from 'path'
 import { fetchBonusQuestion } from '../dwds.js'
 import { load, save, loadZeitreise, loadWortZwilling, loadStats, cacheGet, cacheSet, DATA } from '../store.js'
-import { belegeLimiter, statsLimiter } from '../middleware/rateLimiter.js'
+import { belegeLimiter, statsLimiter, feedbackLimiter } from '../middleware/rateLimiter.js'
 import { serverError } from '../middleware/auth.js'
 import { validate, statsSchema, feedbackSchema, belegeQuerySchema, archivQuerySchema, qQuerySchema, bonusQuerySchema } from '../middleware/validate.js'
 import logger from '../logger.js'
@@ -261,7 +261,7 @@ router.post('/api/v1/stats', statsLimiter, validate(statsSchema), (req, res) => 
 })
 
 /** POST /api/feedback – Nutzerfeedback speichern */
-router.post('/api/v1/feedback', validate(feedbackSchema), (req, res) => {
+router.post('/api/v1/feedback', feedbackLimiter, validate(feedbackSchema), (req, res) => {
   const { game, emoji, text } = req.body
   const entry = { game, emoji, text, ts: new Date().toISOString() }
   try {
@@ -277,9 +277,8 @@ router.post('/api/v1/feedback', validate(feedbackSchema), (req, res) => {
 /** GET /api/archiv?date=YYYY-MM-DD – Tageseintrag für vergangene Tage */
 router.get('/api/v1/archiv', validate(archivQuerySchema, 'query'), async (req, res) => {
   const { date } = req.query
-  const today = new Date(); today.setHours(0, 0, 0, 0)
-  const req_d = new Date(date); req_d.setHours(0, 0, 0, 0)
-  if (req_d > today) return res.status(403).json({ error: 'Zukünftige Einträge nicht verfügbar' })
+  const todayBerlin = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Berlin' }).format(new Date())
+  if (date > todayBerlin) return res.status(403).json({ error: 'Zukünftige Einträge nicht verfügbar' })
   try {
     const mm   = date.slice(5, 7), dd = date.slice(8, 10)
     const file = join(DATA, `koll-${mm}-${dd}.json`)

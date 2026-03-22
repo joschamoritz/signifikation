@@ -7,17 +7,22 @@ export default function LemmaSelection({ lemmata, playedIds = [], onSelect, onVi
   const [ipaLoading, setIpaLoading] = useState(new Set(lemmata.map(l => l.lemma)))
 
   useEffect(() => {
-    lemmata.forEach(async l => {
+    const controller = new AbortController()
+    const { signal } = controller
+
+    Promise.all(lemmata.map(async l => {
       try {
-        const r = await fetch(`${API}/ipa?q=${encodeURIComponent(l.lemma)}`)
+        const r = await fetch(`${API}/ipa?q=${encodeURIComponent(l.lemma)}`, { signal })
         const data = await r.json()
         if (data[0]?.ipa) setIpaMap(m => ({ ...m, [l.lemma]: data[0].ipa }))
       } catch (err) {
-        console.error('IPA fetch:', err)
+        if (err.name !== 'AbortError') console.error('IPA fetch:', err)
       } finally {
         setIpaLoading(s => { const n = new Set(s); n.delete(l.lemma); return n })
       }
-    })
+    }))
+
+    return () => controller.abort()
   }, [lemmata])
 
   return (
