@@ -267,12 +267,13 @@ router.get('/admin/backup', adminLimiter, requireAuth, (req, res) => {
 
 /** GET /admin – Admin-Oberfläche */
 router.get('/admin', (req, res) => {
-  // 'unsafe-inline' ist für admin.html nötig: Chart.js-Inline-Callbacks und onclick-Handler.
-  // TODO: Bei Refactor admin.html → React/Vue durch Nonce-basierte CSP ersetzen.
+  // 'unsafe-inline' in script-src ist weiterhin nötig für onclick-Attribute im HTML.
+  // style-src benötigt kein 'unsafe-inline' mehr (CSS ist jetzt extern in /admin-assets/admin.css).
+  // TODO: onclick-Attribute entfernen und Event Listener nutzen → dann 'unsafe-inline' vollständig entfernen.
   res.setHeader('Content-Security-Policy',
     "default-src 'self'; " +
     "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; " +
-    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " +
+    "style-src 'self' https://fonts.googleapis.com; " +
     "font-src 'self' https://fonts.gstatic.com; " +
     "img-src 'self' data:; " +
     "connect-src 'self'; " +
