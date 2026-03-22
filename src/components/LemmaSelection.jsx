@@ -1,6 +1,14 @@
 import { useState, useEffect } from 'react'
 import { API } from '../config'
 
+const WORTART_ABBREV = {
+  'Substantiv': 'Subst.',
+  'Nomen':      'Subst.',
+  'Verb':       'V.',
+  'Adjektiv':   'Adj.',
+  'Adverb':     'Adv.',
+}
+
 export default function LemmaSelection({ lemmata, playedIds = [], onSelect, onViewResult, onBack }) {
   const [closedNotiz, setClosedNotiz] = useState(new Set())
   const [ipaMap, setIpaMap] = useState({})
@@ -46,12 +54,19 @@ export default function LemmaSelection({ lemmata, playedIds = [], onSelect, onVi
                 aria-label={played ? `${lemma.lemma} – Ergebnis ansehen` : `${lemma.lemma} spielen`}
               >
                 <div className="lemma-info">
-                  <span className="lemma-name">{lemma.lemma}</span>
-                  {ipaMap[lemma.lemma]
-                    ? <span className="lautschrift lemma-ipa">[{ipaMap[lemma.lemma]}]</span>
-                    : ipaLoading.has(lemma.lemma) && <span className="lemma-ipa-skeleton" aria-hidden="true" />
-                  }
-                  <span className="lemma-wortart-chip">{lemma.wortart}</span>
+                  <div className="lemma-header-row">
+                    <span className="lemma-name">{lemma.lemma}</span>
+                    {ipaMap[lemma.lemma]
+                      ? <span className="lautschrift lemma-ipa">[{ipaMap[lemma.lemma]}]</span>
+                      : ipaLoading.has(lemma.lemma) && <span className="lemma-ipa-skeleton" aria-hidden="true" />
+                    }
+                    <span className="lemma-wortart-abbrev">
+                      {WORTART_ABBREV[lemma.wortart] ?? lemma.wortart}
+                    </span>
+                  </div>
+                  {lemma.definition && (
+                    <span className="lemma-definition">{lemma.definition}</span>
+                  )}
                 </div>
                 <span className="lemma-arrow">{played ? '›' : '›'}</span>
               </button>

@@ -683,7 +683,15 @@ button { font-family: inherit; cursor: pointer; border: none }
   justify-content: center;
 }
 
-.lemma-info { flex: 1; display: flex; flex-direction: column; gap: 6px }
+.lemma-info { flex: 1; display: flex; flex-direction: column; gap: 4px }
+
+.lemma-header-row {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
 .lemma-name  {
   font-family: var(--font-serif);
   font-size: 1.3rem;
@@ -692,6 +700,14 @@ button { font-family: inherit; cursor: pointer; border: none }
   letter-spacing: 0.01em;
 }
 .lemma-ipa { font-size: 0.85rem; color: var(--muted); }
+
+.lemma-wortart-abbrev {
+  font-family: var(--font-serif);
+  font-size: 0.78rem;
+  font-style: italic;
+  color: var(--muted);
+  margin-left: auto;
+}
 .lemma-ipa-skeleton {
   display: inline-block;
   width: 72px;
@@ -720,6 +736,17 @@ button { font-family: inherit; cursor: pointer; border: none }
   border-radius: 2px;
   padding: 1px 7px;
   align-self: flex-start;
+}
+
+.lemma-definition {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+  font-family: var(--font-serif);
+  font-size: 0.82rem;
+  font-style: italic;
+  color: var(--muted);
+  line-height: 1.5;
 }
 
 .lemma-arrow { color: var(--muted); font-size: 1.4rem; flex-shrink: 0 }
