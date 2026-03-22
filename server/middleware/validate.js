@@ -69,6 +69,7 @@ export const adminTagSchema = z.object({
   woerter:         z.array(z.string().min(1)).length(3, 'genau 3 Wörter erforderlich'),
   notizen:         z.array(z.string()).optional().default([]),
   links:           z.array(z.string()).optional().default([]),
+  definitionen:    z.array(z.string()).optional().default([]),
   positionen:      z.array(POS).optional().default([]),
   zeitreise_lemma: z.string().optional().default(''),
   zwilling_paar:   z.union([z.array(z.string()).length(2), z.null()]).optional().default(null),
