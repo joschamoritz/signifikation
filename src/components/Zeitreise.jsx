@@ -202,9 +202,9 @@ export default function Zeitreise({ data, onBack, onFinish, savedResult }) {
           <h1 className="zeitreise-word">{data.lemma}</h1>
           <div className="dict-entry-meta">
             {ipa && <span className="lautschrift">[{ipa}]</span>}
-            {data.wortart && <span className="dict-entry-wortart">{data.wortart}</span>}
+            {(data.pos || data.wortart) && <span className="dict-entry-wortart">{data.pos || data.wortart}</span>}
           </div>
-          {(ipa || data.wortart) && <hr className="dict-entry-rule" aria-hidden="true" />}
+          {(ipa || data.pos || data.wortart) && <hr className="dict-entry-rule" aria-hidden="true" />}
         </div>
         <p className="zeitreise-desc">
           Ordne jeden Kollokator dem Zeitraum zu, in dem er besonders
