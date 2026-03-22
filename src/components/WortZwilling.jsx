@@ -34,12 +34,13 @@ export default function WortZwilling({ data, onBack, onFinish, savedResult = nul
   useEffect(() => {
     const controller = new AbortController()
     const { signal } = controller
-    Promise.all([
-      fetch(`${API}/ipa?q=${encodeURIComponent(data.wortA)}`, { signal })
-        .then(r => r.json()).then(d => { if (d[0]?.ipa) setIpaA(d[0].ipa) }),
-      fetch(`${API}/ipa?q=${encodeURIComponent(data.wortB)}`, { signal })
-        .then(r => r.json()).then(d => { if (d[0]?.ipa) setIpaB(d[0].ipa) }),
-    ]).catch(err => { if (err.name !== 'AbortError') console.error('IPA fetch (WZ):', err) })
+    const fetchIpa = (word, setter) =>
+      fetch(`${API}/ipa?q=${encodeURIComponent(word)}`, { signal })
+        .then(r => r.json())
+        .then(d => { if (d[0]?.ipa) setter(d[0].ipa) })
+        .catch(err => { if (err.name !== 'AbortError') console.error('IPA fetch (WZ):', err) })
+    fetchIpa(data.wortA, setIpaA)
+    fetchIpa(data.wortB, setIpaB)
     return () => controller.abort()
   }, [data.wortA, data.wortB])
 

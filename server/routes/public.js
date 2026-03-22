@@ -59,7 +59,10 @@ router.get('/api/v1/zeitreise', (req, res) => {
     const zeitreise = loadZeitreise()
     const entry     = zeitreise[datum]
     if (!entry) return res.status(404).json({ error: `Kein Zeitreise-Eintrag für ${datum}` })
-    res.json(entry)
+    // pos aus lemmata.json ergänzen, falls vorhanden
+    const lemmata   = load('lemmata.json')
+    const lemmaData = lemmata.find(l => l.lemma === entry.lemma)
+    res.json({ pos: lemmaData?.pos ?? null, ...entry })
   } catch (err) {
     serverError(res, err)
   }
