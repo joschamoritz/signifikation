@@ -265,6 +265,9 @@ export default function WortZwilling({ data, onBack, onFinish, savedResult = nul
           return (
             <div
               key={z}
+              role="button"
+              tabIndex={isClickable ? 0 : -1}
+              aria-label={`${label}${isFull ? ' – voll' : selected ? ` – ${selected} hier einordnen` : ''}`}
               className={[
                 'wz-zone',
                 isOver      ? 'wz-zone--over'      : '',
@@ -275,6 +278,7 @@ export default function WortZwilling({ data, onBack, onFinish, savedResult = nul
               onDragLeave={() => setDragOver(prev => prev === z ? null : prev)}
               onDrop={e => onDropZone(e, z)}
               onClick={() => onZoneClick(z)}
+              onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onZoneClick(z) } }}
             >
               <div className="wz-zone-label">{label}</div>
               <div className="wz-zone-chips">
@@ -289,7 +293,7 @@ export default function WortZwilling({ data, onBack, onFinish, savedResult = nul
                     onDragEnd={onDragEnd}
                     onClick={e => { e.stopPropagation(); onChipClick(w) }}
                     onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.stopPropagation(); onChipClick(w) } }}
-                    aria-label={`${w} zurück in Bank legen`}
+                    aria-label={`${w} – in Zone ${label}, zurück in Wortbank legen`}
                   >
                     {w}
                   </div>

@@ -67,10 +67,10 @@ export default function Results({ lemma, roundScores, onRestart, onToSelection }
         {roundScores.slice(0, 3).map((score, i) => (
           <div key={i} className="score-row">
             <span className="score-row-label">R{i + 1} {getRundInfo(lemma)[i]?.label}</span>
-            <div className="bar-track">
-              <div className="bar-fill" style={{ width: barsVisible ? `${(score / 3) * 100}%` : '0%' }} />
+            <div className="bar-track" role="img" aria-label={`${score} von 3 Punkten`}>
+              <div className="bar-fill" style={{ width: barsVisible ? `${(score / 3) * 100}%` : '0%' }} aria-hidden="true" />
             </div>
-            <span className="score-row-value">{score}/3</span>
+            <span className="score-row-value" aria-hidden="true">{score}/3</span>
           </div>
         ))}
         {hasBonus && (
@@ -134,10 +134,10 @@ export default function Results({ lemma, roundScores, onRestart, onToSelection }
                       `https://www.dwds.de/r/?q=%22${encodeURIComponent(lemma.lemma)}%22+%26%26+%22${encodeURIComponent(k.wort)}%22`,
                       '_blank', 'noopener,noreferrer'
                     )}
-                    title="Belege auf DWDS ansehen ↗"
+                    aria-label={`${k.wort} – Belege auf DWDS ansehen (öffnet neues Fenster)`}
                   >
                     {k.wort}
-                    <span className="logdice">{k.log_dice}</span>
+                    <span className="logdice" aria-hidden="true">{k.log_dice}</span>
                   </button>
                 ))}
               </div>

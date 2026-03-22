@@ -276,7 +276,7 @@ export default function App() {
 
   return (
     <ErrorBoundary>
-    <div className={`app${phase === 'home' ? ' app--home' : ''}`} ref={appRef} tabIndex={-1} style={{ outline: 'none' }}>
+    <div id="main-content" className={`app${phase === 'home' ? ' app--home' : ''}`} ref={appRef} tabIndex={-1} style={{ outline: 'none' }}>
       {phase === 'home' && (
         <Home
           onStart={() => setPhase(lemmata && !apiError ? 'selection' : 'home')}

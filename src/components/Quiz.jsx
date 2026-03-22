@@ -57,7 +57,8 @@ export default function Quiz({ lemma, currentRound, onRoundComplete }) {
     return ''
   }
 
-  const STATE_ICON = { correct: '✓', wrong: '✗', missed: '→' }
+  const STATE_ICON  = { correct: '✓', wrong: '✗', missed: '→' }
+  const STATE_LABEL = { correct: 'korrekt', wrong: 'falsch', missed: 'verpasst' }
 
   function handleLoadBelege(collocate) {
     if (showBelegHint) {
@@ -87,30 +88,39 @@ export default function Quiz({ lemma, currentRound, onRoundComplete }) {
           <span aria-hidden="true" className="round-dot round-dot--bonus" />
         </div>
         <p className="round-title">Runde {currentRound + 1} · {roundLabel}</p>
-        <p className="quiz-instruction">
+        <p id="quiz-instruction" className="quiz-instruction">
           Wähle die 3 stärksten Kollokate von <strong>{lemma.lemma}</strong>
         </p>
       </header>
 
-      <div className="options-grid">
+      <div className="options-grid" aria-describedby="quiz-instruction">
         {options.map((opt, i) => {
           const rank  = selectedRank(opt.wort)
           const state = getOptionState(opt.wort)
           const isActive = submitted && openBeleg === opt.wort
+
+          const ariaLabel = submitted
+            ? `${opt.wort} – ${STATE_LABEL[state] ?? ''}`
+            : rank
+              ? `${opt.wort} – Rang ${rank} gewählt`
+              : opt.wort
+
           return (
             <button
               key={opt.wort}
               className={`option${state ? ' ' + state : ''}${isActive ? ' option--beleg-active' : ''}`}
               style={{ animationDelay: submitted ? '0ms' : `${i * 35}ms` }}
               onClick={() => submitted ? handleLoadBelege(opt.wort) : toggleWord(opt.wort)}
+              aria-label={ariaLabel}
+              aria-pressed={!submitted ? selected.includes(opt.wort) : undefined}
             >
               {submitted && STATE_ICON[state] && (
                 <span className="option-icon" aria-hidden="true">{STATE_ICON[state]}</span>
               )}
-              {!submitted && rank && <span className="option-rank" aria-label={`Rang ${rank}`}>{rank}</span>}
+              {!submitted && rank && <span className="option-rank" aria-hidden="true">{rank}</span>}
               {opt.wort}
               {submitted && opt.log_dice != null && (
-                <span className="logdice">{opt.log_dice}</span>
+                <span className="logdice" aria-hidden="true">{opt.log_dice}</span>
               )}
             </button>
           )
@@ -138,7 +148,7 @@ export default function Quiz({ lemma, currentRound, onRoundComplete }) {
       )}
 
       {submitted && (
-        <div className="round-feedback">
+        <div className="round-feedback" aria-live="polite" aria-atomic="true">
           <div className="round-feedback-score">
             <span className="round-score-display">+{roundScore}</span>
             <span className="round-score-label">
@@ -173,7 +183,7 @@ export default function Quiz({ lemma, currentRound, onRoundComplete }) {
       <footer className="quiz-footer">
         {!submitted ? (
           <>
-            <span className="select-count">{selected.length} / 3 gewählt</span>
+            <span className="select-count" aria-live="polite" aria-atomic="true">{selected.length} / 3 gewählt</span>
             <button
               className="btn-primary"
               disabled={selected.length !== 3}

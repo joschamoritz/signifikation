@@ -1,18 +1,44 @@
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { API } from '../config'
 
 const EMOJIS = ['😕', '😐', '🙂', '😄', '🤩']
+const EMOJI_LABELS = {
+  '😕': 'Sehr schlecht',
+  '😐': 'Schlecht',
+  '🙂': 'Okay',
+  '😄': 'Gut',
+  '🤩': 'Sehr gut',
+}
 
 const GAME_LABELS = {
-  kollokation: 'Kollokationen',
-  zeitreise:   'Zeitreise',
-  wortzwilling: 'Wort-Zwilling',
+  kollokationen: 'Kollokationen',
+  zeitreise:     'Zeitreise',
+  wortzwilling:  'Wort-Zwilling',
 }
 
 export default function FeedbackModal({ game, onClose }) {
   const [emoji, setEmoji] = useState(null)
   const [text, setText]   = useState('')
   const [sent, setSent]   = useState(false)
+
+  const dialogRef   = useRef(null)
+  const firstBtnRef = useRef(null)
+
+  // Fokus beim Öffnen auf ersten Button, beim Schließen zurück
+  useEffect(() => {
+    const prev = document.activeElement
+    firstBtnRef.current?.focus()
+    return () => prev?.focus()
+  }, [])
+
+  // Escape schließt Modal
+  useEffect(() => {
+    function onKey(e) {
+      if (e.key === 'Escape') onClose()
+    }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [onClose])
 
   async function handleSend() {
     if (!emoji) return
@@ -29,21 +55,30 @@ export default function FeedbackModal({ game, onClose }) {
 
   return (
     <div className="feedback-overlay" onClick={onClose}>
-      <div className="feedback-sheet" onClick={e => e.stopPropagation()}>
+      <div
+        ref={dialogRef}
+        className="feedback-sheet"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="fb-title"
+        onClick={e => e.stopPropagation()}
+      >
         {sent ? (
           <p className="feedback-thanks">Danke für dein Feedback! 🙏</p>
         ) : (
           <>
-            <p className="feedback-question">
-              Wie hat dir <strong>{GAME_LABELS[game]}</strong> gefallen?
+            <p id="fb-title" className="feedback-question">
+              Wie hat dir <strong>{GAME_LABELS[game] ?? game}</strong> gefallen?
             </p>
-            <div className="feedback-emojis">
-              {EMOJIS.map(e => (
+            <div className="feedback-emojis" role="group" aria-label="Bewertung auswählen">
+              {EMOJIS.map((e, i) => (
                 <button
                   key={e}
+                  ref={i === 0 ? firstBtnRef : undefined}
                   className={`feedback-emoji${emoji === e ? ' feedback-emoji--selected' : ''}`}
                   onClick={() => setEmoji(e)}
-                  aria-label={e}
+                  aria-label={EMOJI_LABELS[e]}
+                  aria-pressed={emoji === e}
                 >{e}</button>
               ))}
             </div>

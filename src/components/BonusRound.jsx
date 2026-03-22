@@ -87,16 +87,25 @@ export function BonusRound({ bonus, lemma, onComplete }) {
       </header>
 
       <div className="bonus-options">
-        {bonus.options.map((opt, i) => (
-          <button
-            key={opt}
-            className={optionClass(opt)}
-            style={{ animationDelay: submitted ? '0ms' : `${i * 80}ms` }}
-            onClick={() => submitted ? loadBelege(opt) : setSelected(opt)}
-          >
-            {opt}
-          </button>
-        ))}
+        {bonus.options.map((opt, i) => {
+          const stateLabel = submitted
+            ? opt === bonus.correct ? `${opt} – richtig`
+              : opt === selected    ? `${opt} – falsch`
+              : opt
+            : opt
+          return (
+            <button
+              key={opt}
+              className={optionClass(opt)}
+              style={{ animationDelay: submitted ? '0ms' : `${i * 80}ms` }}
+              onClick={() => submitted ? loadBelege(opt) : setSelected(opt)}
+              aria-label={stateLabel}
+              aria-pressed={!submitted ? selected === opt : undefined}
+            >
+              {opt}
+            </button>
+          )
+        })}
       </div>
 
       {submitted && openBeleg && (
@@ -109,7 +118,7 @@ export function BonusRound({ bonus, lemma, onComplete }) {
       )}
 
       {submitted && (
-        <div className="round-feedback">
+        <div className="round-feedback" aria-live="polite" aria-atomic="true">
           <div className="round-feedback-score">
             <span className="round-score-display">{isCorrect ? '+1' : '+0'}</span>
             <span className="round-score-label">

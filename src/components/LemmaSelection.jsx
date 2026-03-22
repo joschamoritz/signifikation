@@ -43,6 +43,7 @@ export default function LemmaSelection({ lemmata, playedIds = [], onSelect, onVi
               <button
                 className="lemma-card-main"
                 onClick={() => played ? onViewResult?.(lemma.id) : onSelect(lemma)}
+                aria-label={played ? `${lemma.lemma} – Ergebnis ansehen` : `${lemma.lemma} spielen`}
               >
                 <div className="lemma-info">
                   <span className="lemma-name">{lemma.lemma}</span>
@@ -62,7 +63,8 @@ export default function LemmaSelection({ lemmata, playedIds = [], onSelect, onVi
                     n.has(lemma.id) ? n.delete(lemma.id) : n.add(lemma.id)
                     return n
                   })}
-                  aria-label="Hinweis anzeigen"
+                  aria-label={`Hinweis zu ${lemma.lemma} ${!closedNotiz.has(lemma.id) ? 'ausblenden' : 'anzeigen'}`}
+                  aria-expanded={!closedNotiz.has(lemma.id)}
                 >i</button>
               )}
             </div>
