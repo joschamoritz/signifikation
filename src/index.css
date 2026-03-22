@@ -751,6 +751,47 @@ button { font-family: inherit; cursor: pointer; border: none }
 
 .lemma-arrow { color: var(--muted); font-size: 1.4rem; flex-shrink: 0 }
 
+/* ── Gemeinsamer Wörterbuch-Eintrag-Header (Zeitreise, Wort-Zwilling) ── */
+.dict-entry-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+}
+.dict-entry-meta {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.dict-entry-wortart {
+  font-family: var(--font-serif);
+  font-size: 0.82rem;
+  font-style: italic;
+  color: var(--muted);
+}
+.dict-entry-rule {
+  border: none;
+  border-top: 1px solid var(--border);
+  width: 100px;
+  margin: 4px 0 0;
+}
+.wz-dict-pair {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.wz-dict-vs {
+  font-family: var(--font-serif);
+  font-size: 1.6rem;
+  color: var(--muted);
+  padding-top: 2px;
+  line-height: 1;
+}
+
 /* Gespielte Wortkarten */
 .lemma-card--played { opacity: 0.5 }
 .lemma-card--played .lemma-card-main { cursor: default }

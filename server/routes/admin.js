@@ -119,7 +119,7 @@ router.get('/admin/analyze-wortzwilling', adminLimiter, requireAuth, validate(an
 
 /** POST /admin/tag – Tageseintrag anlegen/überschreiben */
 router.post('/admin/tag', adminLimiter, requireAuth, validate(adminTagSchema), async (req, res) => {
-  const { datum, woerter, notizen, links, definitionen, positionen, zeitreise_lemma, zwilling_paar, zwilling_pos } = req.body
+  const { datum, woerter, notizen, links, definitionen, positionen, zeitreise_lemma, zeitreise_wortart, zwilling_paar, zwilling_pos } = req.body
 
   try {
     const lemmataDB = load('lemmata.json')
@@ -151,7 +151,7 @@ router.post('/admin/tag', adminLimiter, requireAuth, validate(adminTagSchema), a
         const zr = await fetchZeitreise(zeitreise_lemma.trim())
         const zeitreise = loadZeitreise()
         if (zr) {
-          zeitreise[datum] = zr
+          zeitreise[datum] = { ...zr, wortart: zeitreise_wortart?.trim() || 'Substantiv' }
           save('zeitreise.json', zeitreise)
           zeitreiseOk = true
           logger.info(`Zeitreise gespeichert: ${zr.paare.map(p => `${p.jahrzehnt}:${p.kollokat}`).join(', ')}`)
@@ -230,7 +230,8 @@ router.get('/admin/tag/:datum', adminLimiter, requireAuth, (req, res) => {
     notizen:         lemmata.map(l => l.notiz      || ''),
     links:           lemmata.map(l => l.link       || ''),
     definitionen:    lemmata.map(l => l.definition || ''),
-    zeitreise_lemma: zeitreise[req.params.datum]?.lemma || '',
+    zeitreise_lemma:   zeitreise[req.params.datum]?.lemma   || '',
+    zeitreise_wortart: zeitreise[req.params.datum]?.wortart || 'Substantiv',
     zwilling_paar:   wz ? [wz.wortA, wz.wortB] : [],
     zwilling_pos:    wz?.pos || 'Substantiv',
   })

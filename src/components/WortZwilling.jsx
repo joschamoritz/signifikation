@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { API } from '../config'
 import { getMedal, shuffle } from '../utils/gameLogic'
 import BelegePanel from './BelegePanel'
@@ -128,6 +128,21 @@ export default function WortZwilling({ data, onBack, onFinish, savedResult = nul
   const [dragOver, setDragOver] = useState(null) // 'A' | 'B' | 'bank' | null
   const [phase, setPhase]       = useState(savedResult ? 'results' : 'play')
 
+  // IPA für beide Wörter
+  const [ipaA, setIpaA] = useState(null)
+  const [ipaB, setIpaB] = useState(null)
+  useEffect(() => {
+    const controller = new AbortController()
+    const { signal } = controller
+    Promise.all([
+      fetch(`${API}/ipa?q=${encodeURIComponent(data.wortA)}`, { signal })
+        .then(r => r.json()).then(d => { if (d[0]?.ipa) setIpaA(d[0].ipa) }),
+      fetch(`${API}/ipa?q=${encodeURIComponent(data.wortB)}`, { signal })
+        .then(r => r.json()).then(d => { if (d[0]?.ipa) setIpaB(d[0].ipa) }),
+    ]).catch(err => { if (err.name !== 'AbortError') console.error('IPA fetch (WZ):', err) })
+    return () => controller.abort()
+  }, [data.wortA, data.wortB])
+
   const bank  = order.filter(w => locations[w] === 'bank')
   const zoneA = order.filter(w => locations[w] === 'A')
   const zoneB = order.filter(w => locations[w] === 'B')
@@ -217,7 +232,25 @@ export default function WortZwilling({ data, onBack, onFinish, savedResult = nul
       <button className="back-btn" onClick={onBack}>← Zurück</button>
       <header className="wz-header">
         <span className="wz-badge">Wort-Zwilling</span>
-        <h1 className="wz-title">{data.wortA} · {data.wortB}</h1>
+        <div className="wz-dict-pair">
+          <div className="dict-entry-header">
+            <h1 className="wz-title">{data.wortA}</h1>
+            <div className="dict-entry-meta">
+              {ipaA && <span className="lautschrift">[{ipaA}]</span>}
+              {data.pos && <span className="dict-entry-wortart">{data.pos}</span>}
+            </div>
+            {(ipaA || data.pos) && <hr className="dict-entry-rule" aria-hidden="true" />}
+          </div>
+          <span className="wz-dict-vs" aria-hidden="true">·</span>
+          <div className="dict-entry-header">
+            <h1 className="wz-title">{data.wortB}</h1>
+            <div className="dict-entry-meta">
+              {ipaB && <span className="lautschrift">[{ipaB}]</span>}
+              {data.pos && <span className="dict-entry-wortart">{data.pos}</span>}
+            </div>
+            {(ipaB || data.pos) && <hr className="dict-entry-rule" aria-hidden="true" />}
+          </div>
+        </div>
       </header>
 
       <p className="wz-instruction">
