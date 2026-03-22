@@ -121,7 +121,8 @@ export default function Home({
         {streak > 0 && (
           <div className="test-streak">
             <span className="test-streak-inner">
-              {streakFlames(streak)} {streak} {streak === 1 ? 'Tag' : 'Tage'} am Stück
+              <span aria-hidden="true">{streakFlames(streak)} </span>
+              {streak} {streak === 1 ? 'Tag' : 'Tage'} am Stück
             </span>
           </div>
         )}

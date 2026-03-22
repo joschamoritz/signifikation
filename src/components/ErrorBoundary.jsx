@@ -13,7 +13,7 @@ export default class ErrorBoundary extends Component {
   render() {
     if (this.state.error) {
       return (
-        <div className="screen" style={{ justifyContent: 'center', alignItems: 'center', gap: 16, padding: '32px 24px', textAlign: 'center' }}>
+        <div role="alert" className="screen" style={{ justifyContent: 'center', alignItems: 'center', gap: 16, padding: '32px 24px', textAlign: 'center' }}>
           <p style={{ fontSize: '2rem' }}>⚠️</p>
           <p style={{ fontFamily: 'var(--font-serif)', fontSize: '1.2rem', fontWeight: 700 }}>
             Etwas ist schiefgelaufen
