@@ -119,7 +119,7 @@ router.get('/admin/analyze-wortzwilling', adminLimiter, requireAuth, validate(an
 
 /** POST /admin/tag – Tageseintrag anlegen/überschreiben */
 router.post('/admin/tag', adminLimiter, requireAuth, validate(adminTagSchema), async (req, res) => {
-  const { datum, woerter, notizen, links, positionen, zeitreise_lemma, zwilling_paar, zwilling_pos } = req.body
+  const { datum, woerter, notizen, links, definitionen, positionen, zeitreise_lemma, zwilling_paar, zwilling_pos } = req.body
 
   try {
     const lemmataDB = load('lemmata.json')
@@ -130,8 +130,9 @@ router.post('/admin/tag', adminLimiter, requireAuth, validate(adminTagSchema), a
       const pos = (positionen?.[i] || 'Substantiv')
       logger.info(`Lade DWDS-Daten für „${wort}" (${pos}) …`)
       const entry   = await fetchLemma(wort, pos)
-      entry.notiz   = notizen[i] || ''
-      entry.link    = links[i]   || ''
+      entry.notiz       = notizen[i]      || ''
+      entry.link        = links[i]        || ''
+      entry.definition  = definitionen[i] || ''
       const idx     = lemmataDB.findIndex(l => l.id === entry.id)
       if (idx >= 0) lemmataDB[idx] = entry
       else lemmataDB.push(entry)
@@ -226,8 +227,9 @@ router.get('/admin/tag/:datum', adminLimiter, requireAuth, (req, res) => {
     datum:           req.params.datum,
     woerter:         lemmata.map(l => l.lemma),
     positionen:      lemmata.map(l => l.pos || 'Substantiv'),
-    notizen:         lemmata.map(l => l.notiz || ''),
-    links:           lemmata.map(l => l.link  || ''),
+    notizen:         lemmata.map(l => l.notiz      || ''),
+    links:           lemmata.map(l => l.link       || ''),
+    definitionen:    lemmata.map(l => l.definition || ''),
     zeitreise_lemma: zeitreise[req.params.datum]?.lemma || '',
     zwilling_paar:   wz ? [wz.wortA, wz.wortB] : [],
     zwilling_pos:    wz?.pos || 'Substantiv',

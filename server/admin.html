@@ -288,6 +288,7 @@
         </div>
         <input type="text" id="n1" class="notiz-input" placeholder="Notiz (optional)">
         <input type="url"  id="l1" class="notiz-input" placeholder="Link (optional), z.B. https://de.wikipedia.org/…">
+        <input type="text" id="d1" class="notiz-input" placeholder="Definition (optional), z.B. Zustand, in dem sich Kräfte aufheben.">
         <div class="wort-row">
           <span class="wort-badge">Wort 2</span>
           <input type="text" id="w2" placeholder="z.B. Musik">
@@ -295,6 +296,7 @@
         </div>
         <input type="text" id="n2" class="notiz-input" placeholder="Notiz (optional)">
         <input type="url"  id="l2" class="notiz-input" placeholder="Link (optional)">
+        <input type="text" id="d2" class="notiz-input" placeholder="Definition (optional)">
         <div class="wort-row">
           <span class="wort-badge">Wort 3</span>
           <input type="text" id="w3" placeholder="z.B. Liebe">
@@ -302,6 +304,7 @@
         </div>
         <input type="text" id="n3" class="notiz-input" placeholder="Notiz (optional)">
         <input type="url"  id="l3" class="notiz-input" placeholder="Link (optional)">
+        <input type="text" id="d3" class="notiz-input" placeholder="Definition (optional)">
       </div>
     </div>
 
@@ -704,6 +707,11 @@
         body: JSON.stringify({
           datum: mmdd, woerter: [w1, w2, w3], positionen: [p1, p2, p3],
           notizen: [n1, n2, n3], links: [l1, l2, l3],
+          definitionen: [
+            document.getElementById('d1').value.trim(),
+            document.getElementById('d2').value.trim(),
+            document.getElementById('d3').value.trim(),
+          ],
           zeitreise_lemma: zr,
           zwilling_paar: wza && wzb ? [wza, wzb] : null,
           zwilling_pos: wzpos,
@@ -751,6 +759,9 @@
     document.getElementById('l1').value = data.links[0] || ''
     document.getElementById('l2').value = data.links[1] || ''
     document.getElementById('l3').value = data.links[2] || ''
+    document.getElementById('d1').value = data.definitionen?.[0] || ''
+    document.getElementById('d2').value = data.definitionen?.[1] || ''
+    document.getElementById('d3').value = data.definitionen?.[2] || ''
     document.getElementById('zr').value    = data.zeitreise_lemma || ''
     document.getElementById('wza').value   = data.zwilling_paar?.[0] || ''
     document.getElementById('wzb').value   = data.zwilling_paar?.[1] || ''
