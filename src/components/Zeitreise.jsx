@@ -1,10 +1,11 @@
 import { useState, useRef, useEffect, memo } from 'react'
 import { getMedal, shuffle } from '../utils/gameLogic'
+import { API } from '../config'
+import { lsGet, lsParse } from '../utils/storage'
 
 function getZRHistory() {
-  return JSON.parse(localStorage.getItem('sig_zr_history') || '[]').slice(0, 14).reverse()
+  return lsParse(lsGet('sig_zr_history'), []).slice(0, 14).reverse()
 }
-import { API } from '../config'
 import BelegeSatz from './BelegeSatz'
 
 // ── Bubble-Chart für die Ergebnisseite ──────────────────────

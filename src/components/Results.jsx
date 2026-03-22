@@ -1,14 +1,15 @@
 import { useState, useEffect } from 'react'
 import { getMedal, getRundInfo } from '../utils/gameLogic'
+import { lsGet, lsParse } from '../utils/storage'
 // useBelege + BelegePanel sind deaktiviert (Urheberrecht Korpustexte).
 // Reaktivieren sobald schriftliche Genehmigung der BBAW vorliegt:
 // import { useBelege } from '../hooks/useBelege'
 // import BelegePanel from './BelegePanel'
 
 function getKollHistory() {
-  const newHistory = JSON.parse(localStorage.getItem('sig_koll_history') || '[]')
+  const newHistory = lsParse(lsGet('sig_koll_history'), [])
   const medalToEmoji = { 'Gold': '🥇', 'Silber': '🥈', 'Bronze': '🥉' }
-  const oldHistory = JSON.parse(localStorage.getItem('sig_history') || '[]')
+  const oldHistory = lsParse(lsGet('sig_history'), [])
     .filter(h => !newHistory.find(n => n.date === h.date))
     .map(h => ({
       date: h.date,

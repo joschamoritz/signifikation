@@ -33,15 +33,10 @@ export function adminAuth(req, res) {
   res.json(session)
 }
 
-/** Middleware: prüft x-admin-token Header (bevorzugt) oder x-admin-key (Legacy) */
+/** Middleware: prüft x-admin-token Header */
 export function requireAuth(req, res, next) {
   const token = req.headers['x-admin-token']
   if (token && sessionValid(token)) return next()
-
-  // Legacy-Fallback: direkter Key-Vergleich (für rückwärtskompatiblen Übergang)
-  const key = req.headers['x-admin-key']
-  if (key && key === ADMIN_KEY) return next()
-
   res.status(401).json({ error: 'Nicht autorisiert' })
 }
 

@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect, Suspense, lazy, useRef } from 'react'
 import { API } from './config'
+import { lsGet, lsSet, lsParse } from './utils/storage'
 import Home from './components/Home'
 import LemmaSelection from './components/LemmaSelection'
 import Quiz from './components/Quiz'
@@ -12,15 +13,6 @@ import { fetchWithRetry } from './utils/fetchWithRetry'
 
 const FEEDBACK_INTERVAL = 30 * 24 * 60 * 60 * 1000 // 30 Tage
 
-function lsGet(key) {
-  try { return localStorage.getItem(key) } catch { return null }
-}
-function lsSet(key, value) {
-  try { localStorage.setItem(key, value) } catch (err) { console.error('localStorage write:', err) }
-}
-function lsParse(raw, fallback) {
-  try { return raw ? JSON.parse(raw) : fallback } catch { return fallback }
-}
 
 function shouldShowFeedback(game) {
   const last = lsGet(`sig_fb_${game}`)
