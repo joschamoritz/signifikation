@@ -60,6 +60,9 @@ app.use((req, _res, next) => {
   next()
 })
 
+// ── Admin-Assets (CSS/JS für admin.html) ─────────────────────
+app.use('/admin-assets', express.static(join(__dirname, 'public')))
+
 // ── Routes ───────────────────────────────────────────────────
 app.use('/', publicRouter)
 app.use('/', adminRouter)
