@@ -1,16 +1,7 @@
 import { useState } from 'react'
 import { API } from '../config'
-import { getMedal } from '../utils/gameLogic'
+import { getMedal, shuffle } from '../utils/gameLogic'
 import BelegePanel from './BelegePanel'
-
-function shuffle(arr) {
-  const a = [...arr]
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1))
-    ;[a[i], a[j]] = [a[j], a[i]]
-  }
-  return a
-}
 
 function computeScore(zoneA, zoneB, zuordnungMap) {
   return [...zoneA, ...zoneB].filter(w =>

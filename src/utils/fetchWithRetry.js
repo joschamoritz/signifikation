@@ -1,5 +1,7 @@
 /**
  * Fetch with exponential backoff retry.
+ * Retries only on network errors (fetch throws), NOT on HTTP error responses (4xx/5xx).
+ * Callers must check r.ok themselves.
  * @param {string} url
  * @param {RequestInit} [options]
  * @param {number} [retries=2]   max retry attempts after first failure

@@ -203,7 +203,7 @@ export default function App() {
     setScores(prev => {
       const next = [...prev, score]
       if (next.length === 3) setFetchBonus(true)
-      else if (next.length === 4) { freshKollRef.current = true; setPhase('results'); triggerFeedback('kollokation') }
+      else if (next.length === 4) { freshKollRef.current = true; setPhase('results'); triggerFeedback('kollokationen') }
       else setRound(r => r + 1)
       return next
     })
