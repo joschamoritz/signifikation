@@ -124,16 +124,10 @@ export default function App() {
     : makeKeys(`${String(new Date().getMonth()+1).padStart(2,'0')}-${String(new Date().getDate()).padStart(2,'0')}`)
 
   const [zrViewOnly, setZrViewOnly] = useState(false)
-  const [zrPlayed, setZrPlayed] = useState(() => {
-    const d = `${String(new Date().getMonth()+1).padStart(2,'0')}-${String(new Date().getDate()).padStart(2,'0')}`
-    return getZRToday(`sig_zr_${d}`)
-  })
+  const [zrPlayed, setZrPlayed] = useState(null)
 
   const [wzViewOnly, setWzViewOnly] = useState(false)
-  const [wzPlayed, setWzPlayed] = useState(() => {
-    const d = `${String(new Date().getMonth()+1).padStart(2,'0')}-${String(new Date().getDate()).padStart(2,'0')}`
-    return getWZToday(`sig_wz_${d}`)
-  })
+  const [wzPlayed, setWzPlayed] = useState(null)
 
   // Fokus bei Screen-Wechsel
   useEffect(() => { appRef.current?.focus() }, [phase])

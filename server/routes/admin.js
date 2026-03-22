@@ -264,6 +264,8 @@ router.get('/admin/backup', adminLimiter, requireAuth, (req, res) => {
 
 /** GET /admin – Admin-Oberfläche */
 router.get('/admin', (req, res) => {
+  // 'unsafe-inline' ist für admin.html nötig: Chart.js-Inline-Callbacks und onclick-Handler.
+  // TODO: Bei Refactor admin.html → React/Vue durch Nonce-basierte CSP ersetzen.
   res.setHeader('Content-Security-Policy',
     "default-src 'self'; " +
     "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; " +
