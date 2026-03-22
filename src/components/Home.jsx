@@ -48,57 +48,67 @@ export default function Home({
         {/* ── Titelseite ───────────────────────────────────── */}
         <header className="test-title-section" role="banner">
           {/* Kollokationsnetz – dekorativer Hintergrund */}
-          <svg className="test-title-bg" viewBox="0 0 800 120" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+          <svg className="test-title-bg" viewBox="0 0 800 220" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
             {/* ── Graue Verbindungslinien (peripher) ── */}
-            <line x1="45" y1="88" x2="100" y2="55" stroke="#a8a29e" strokeWidth="1.5"/>
-            <line x1="100" y1="55" x2="158" y2="90" stroke="#a8a29e" strokeWidth="1.2"/>
-            <line x1="188" y1="20" x2="242" y2="42" stroke="#a8a29e" strokeWidth="1.2"/>
-            <line x1="312" y1="28" x2="242" y2="42" stroke="#a8a29e" strokeWidth="1.2"/>
-            <line x1="312" y1="28" x2="400" y2="68" stroke="#a8a29e" strokeWidth="1.2"/>
-            <line x1="316" y1="96" x2="400" y2="68" stroke="#a8a29e" strokeWidth="1.2"/>
-            <line x1="458" y1="18" x2="540" y2="42" stroke="#a8a29e" strokeWidth="1.2"/>
-            <line x1="462" y1="96" x2="400" y2="68" stroke="#a8a29e" strokeWidth="1.2"/>
-            <line x1="462" y1="96" x2="540" y2="42" stroke="#a8a29e" strokeWidth="1.2"/>
-            <line x1="598" y1="18" x2="540" y2="42" stroke="#a8a29e" strokeWidth="1.2"/>
-            <line x1="602" y1="84" x2="680" y2="62" stroke="#a8a29e" strokeWidth="1.2"/>
-            <line x1="748" y1="32" x2="680" y2="62" stroke="#a8a29e" strokeWidth="1.2"/>
-            <line x1="752" y1="90" x2="680" y2="62" stroke="#a8a29e" strokeWidth="1.2"/>
-            <line x1="748" y1="32" x2="752" y2="90" stroke="#a8a29e" strokeWidth="1"/>
+            <line x1="55"  y1="140" x2="120" y2="82"  stroke="#a8a29e" strokeWidth="1.5"/>
+            <line x1="85"  y1="42"  x2="120" y2="82"  stroke="#a8a29e" strokeWidth="1.2"/>
+            <line x1="120" y1="82"  x2="165" y2="188" stroke="#a8a29e" strokeWidth="1.2"/>
+            <line x1="238" y1="48"  x2="270" y2="150" stroke="#a8a29e" strokeWidth="1.2"/>
+            <line x1="270" y1="150" x2="308" y2="195" stroke="#a8a29e" strokeWidth="1.2"/>
+            <line x1="318" y1="32"  x2="400" y2="78"  stroke="#a8a29e" strokeWidth="1.2"/>
+            <line x1="392" y1="195" x2="400" y2="78"  stroke="#a8a29e" strokeWidth="1.2"/>
+            <line x1="455" y1="32"  x2="400" y2="78"  stroke="#a8a29e" strokeWidth="1.2"/>
+            <line x1="462" y1="195" x2="530" y2="148" stroke="#a8a29e" strokeWidth="1.2"/>
+            <line x1="588" y1="38"  x2="530" y2="148" stroke="#a8a29e" strokeWidth="1.2"/>
+            <line x1="658" y1="188" x2="680" y2="82"  stroke="#a8a29e" strokeWidth="1.2"/>
+            <line x1="740" y1="42"  x2="680" y2="82"  stroke="#a8a29e" strokeWidth="1.2"/>
+            <line x1="748" y1="152" x2="680" y2="82"  stroke="#a8a29e" strokeWidth="1.5"/>
+            <line x1="740" y1="42"  x2="748" y2="152" stroke="#a8a29e" strokeWidth="1"/>
+            <line x1="55"  y1="140" x2="165" y2="188" stroke="#a8a29e" strokeWidth="1"/>
 
-            {/* ── Rote Verbindungslinien (Hauptnetz) ── */}
-            <line x1="100" y1="55" x2="242" y2="42" stroke="#9b1c1c" strokeWidth="2" opacity="0.75"/>
-            <line x1="242" y1="42" x2="400" y2="68" stroke="#9b1c1c" strokeWidth="2" opacity="0.75"/>
-            <line x1="400" y1="68" x2="540" y2="42" stroke="#9b1c1c" strokeWidth="2" opacity="0.75"/>
-            <line x1="540" y1="42" x2="680" y2="62" stroke="#9b1c1c" strokeWidth="2" opacity="0.75"/>
+            {/* ── Rote Verbindungslinien (Hauptkette) ── */}
+            <line x1="120" y1="82"  x2="270" y2="150" stroke="#9b1c1c" strokeWidth="2"   opacity="0.75"/>
+            <line x1="270" y1="150" x2="400" y2="78"  stroke="#9b1c1c" strokeWidth="2"   opacity="0.75"/>
+            <line x1="400" y1="78"  x2="530" y2="148" stroke="#9b1c1c" strokeWidth="2"   opacity="0.75"/>
+            <line x1="530" y1="148" x2="680" y2="82"  stroke="#9b1c1c" strokeWidth="2"   opacity="0.75"/>
             {/* Querverbindungen */}
-            <line x1="100" y1="55" x2="312" y2="28" stroke="#9b1c1c" strokeWidth="1.5" opacity="0.45"/>
-            <line x1="242" y1="42" x2="458" y2="18" stroke="#9b1c1c" strokeWidth="1.5" opacity="0.40"/>
-            <line x1="400" y1="68" x2="598" y2="18" stroke="#9b1c1c" strokeWidth="1.5" opacity="0.40"/>
+            <line x1="120" y1="82"  x2="400" y2="78"  stroke="#9b1c1c" strokeWidth="1.5" opacity="0.38"/>
+            <line x1="400" y1="78"  x2="680" y2="82"  stroke="#9b1c1c" strokeWidth="1.5" opacity="0.38"/>
 
             {/* ── Goldene Verbindungslinien (Brücken) ── */}
-            <line x1="242" y1="42" x2="316" y2="96" stroke="#c9a84c" strokeWidth="1.8" opacity="0.65"/>
-            <line x1="540" y1="42" x2="602" y2="84" stroke="#c9a84c" strokeWidth="1.8" opacity="0.65"/>
-            <line x1="400" y1="68" x2="462" y2="96" stroke="#c9a84c" strokeWidth="1.5" opacity="0.55"/>
+            <line x1="120" y1="82"  x2="198" y2="55"  stroke="#c9a84c" strokeWidth="1.8" opacity="0.65"/>
+            <line x1="198" y1="55"  x2="400" y2="78"  stroke="#c9a84c" strokeWidth="1.8" opacity="0.65"/>
+            <line x1="270" y1="150" x2="338" y2="172" stroke="#c9a84c" strokeWidth="1.6" opacity="0.60"/>
+            <line x1="338" y1="172" x2="530" y2="148" stroke="#c9a84c" strokeWidth="1.6" opacity="0.60"/>
+            <line x1="530" y1="148" x2="610" y2="170" stroke="#c9a84c" strokeWidth="1.5" opacity="0.55"/>
+            <line x1="610" y1="170" x2="680" y2="82"  stroke="#c9a84c" strokeWidth="1.5" opacity="0.55"/>
 
             {/* ── Graue Knoten (peripher) ── */}
-            <circle cx="45"  cy="88" r="4.5" fill="#a8a29e"/>
-            <circle cx="158" cy="90" r="4"   fill="#a8a29e"/>
-            <circle cx="188" cy="20" r="4"   fill="#c4bfbc"/>
-            <circle cx="312" cy="28" r="4"   fill="#a8a29e"/>
-            <circle cx="316" cy="96" r="3.5" fill="#c9a84c" opacity="0.7"/>
-            <circle cx="458" cy="18" r="3.5" fill="#a8a29e"/>
-            <circle cx="462" cy="96" r="3.5" fill="#c9a84c" opacity="0.7"/>
-            <circle cx="598" cy="18" r="4"   fill="#a8a29e"/>
-            <circle cx="602" cy="84" r="4"   fill="#c9a84c" opacity="0.7"/>
-            <circle cx="748" cy="32" r="4"   fill="#a8a29e"/>
-            <circle cx="752" cy="90" r="3.5" fill="#c4bfbc"/>
+            <circle cx="55"  cy="140" r="4.5" fill="#a8a29e"/>
+            <circle cx="85"  cy="42"  r="3.5" fill="#c4bfbc"/>
+            <circle cx="165" cy="188" r="4"   fill="#a8a29e"/>
+            <circle cx="238" cy="48"  r="3.5" fill="#a8a29e"/>
+            <circle cx="308" cy="195" r="3.5" fill="#c4bfbc"/>
+            <circle cx="318" cy="32"  r="3.5" fill="#a8a29e"/>
+            <circle cx="392" cy="195" r="4"   fill="#a8a29e"/>
+            <circle cx="455" cy="32"  r="3.5" fill="#a8a29e"/>
+            <circle cx="462" cy="195" r="3.5" fill="#c4bfbc"/>
+            <circle cx="588" cy="38"  r="3.5" fill="#a8a29e"/>
+            <circle cx="658" cy="188" r="4"   fill="#a8a29e"/>
+            <circle cx="740" cy="42"  r="3.5" fill="#c4bfbc"/>
+            <circle cx="748" cy="152" r="4.5" fill="#a8a29e"/>
+
+            {/* ── Goldene Knoten (Brücken) ── */}
+            <circle cx="198" cy="55"  r="5"   fill="#c9a84c" opacity="0.8"/>
+            <circle cx="338" cy="172" r="4.5" fill="#c9a84c" opacity="0.75"/>
+            <circle cx="610" cy="170" r="4.5" fill="#c9a84c" opacity="0.75"/>
 
             {/* ── Rote Knoten (Hauptknoten) ── */}
-            <circle cx="100" cy="55" r="7.5" fill="#9b1c1c"/>
-            <circle cx="242" cy="42" r="8"   fill="#9b1c1c"/>
-            <circle cx="400" cy="68" r="9"   fill="#9b1c1c"/>
-            <circle cx="540" cy="42" r="7.5" fill="#9b1c1c"/>
-            <circle cx="680" cy="62" r="8"   fill="#9b1c1c"/>
+            <circle cx="120" cy="82"  r="8"   fill="#9b1c1c"/>
+            <circle cx="270" cy="150" r="9"   fill="#9b1c1c"/>
+            <circle cx="400" cy="78"  r="10"  fill="#9b1c1c"/>
+            <circle cx="530" cy="148" r="8.5" fill="#9b1c1c"/>
+            <circle cx="680" cy="82"  r="8"   fill="#9b1c1c"/>
           </svg>
 
           <p className="test-overline">Tägliches Wortspiel · Linguistik</p>
