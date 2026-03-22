@@ -1,107 +1,7 @@
 import { useState, useEffect } from 'react'
+import { shuffle } from '../utils/gameLogic'
 import { API } from '../config'
-import { getMedal, shuffle } from '../utils/gameLogic'
-import BelegePanel from './BelegePanel'
-
-function computeScore(zoneA, zoneB, zuordnungMap) {
-  return [...zoneA, ...zoneB].filter(w =>
-    (zoneA.includes(w) && zuordnungMap[w] === 'A') ||
-    (zoneB.includes(w) && zuordnungMap[w] === 'B')
-  ).length
-}
-
-/** Ergebnisansicht (nach Spielen oder beim Revisit) */
-function ResultsView({ data, zoneA, zoneB, onBack }) {
-  const zuordnungMap = Object.fromEntries(data.kollokatoren.map(k => [k.wort, k.zuordnung]))
-  const score  = computeScore(zoneA, zoneB, zuordnungMap)
-  const medal  = getMedal(score)
-
-  const [openBeleg,     setOpenBeleg]     = useState(null)
-  const [belegeCache,   setBelegeCache]   = useState({})
-  const [belegeLoading, setBelegeLoading] = useState(false)
-
-  async function loadWZBeleg(word) {
-    if (openBeleg === word) { setOpenBeleg(null); return }
-    if (belegeCache[word] !== undefined) { setOpenBeleg(word); return }
-    setOpenBeleg(word)
-    setBelegeLoading(true)
-    const lemma = zuordnungMap[word] === 'A' ? data.wortA : data.wortB
-    try {
-      const params = new URLSearchParams({ collocate: word, lemma, rel: '' })
-      const r = await fetch(`${API}/belege?${params}`)
-      const d = await r.json()
-      setBelegeCache(prev => ({ ...prev, [word]: Array.isArray(d) ? d : [] }))
-    } catch {
-      setBelegeCache(prev => ({ ...prev, [word]: [] }))
-    } finally {
-      setBelegeLoading(false)
-    }
-  }
-
-  const activeLemma = openBeleg
-    ? (zuordnungMap[openBeleg] === 'A' ? data.wortA : data.wortB)
-    : null
-
-  return (
-    <div className="screen wz-screen">
-      <button className="back-btn" onClick={onBack}>← Zurück</button>
-      <header className="wz-header">
-        <span className="wz-badge">Wort-Zwilling</span>
-        <h1 className="wz-title">{data.wortA} · {data.wortB}</h1>
-      </header>
-
-      <div className="wz-result-banner">
-        <span className="wz-result-medal">{medal.emoji}</span>
-        <div>
-          <p className="wz-result-score">{score} / 10 richtig</p>
-          <p className="wz-result-label">{medal.label}</p>
-        </div>
-      </div>
-
-      <div className="wz-zones">
-        {[['A', data.wortA, zoneA], ['B', data.wortB, zoneB]].map(([z, label, zone]) => (
-          <div key={z} className="wz-zone wz-zone--result">
-            <div className="wz-zone-label">{label}</div>
-            <div className="wz-zone-chips">
-              {zone.map(w => {
-                const correct = zuordnungMap[w] === z
-                return (
-                  <button
-                    key={w}
-                    className={`wz-chip wz-chip--${correct ? 'correct' : 'wrong'}${openBeleg === w ? ' wz-chip--beleg-active' : ''}`}
-                    onClick={() => loadWZBeleg(w)}
-                    title="Belege anzeigen"
-                    aria-label={`${w} – Belege anzeigen`}
-                    aria-pressed={openBeleg === w}
-                  >
-                    <span>{w}</span>
-                    <span className="wz-chip-icon" aria-hidden="true">{correct ? '✓' : '✗'}</span>
-                  </button>
-                )
-              })}
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {openBeleg && (
-        <BelegePanel
-          lemma={activeLemma}
-          collocate={openBeleg}
-          data={belegeCache[openBeleg]}
-          loading={belegeLoading}
-        />
-      )}
-
-      <p className="wz-beleg-hint">Tippe auf ein Kollokat, um Belege aus dem DWDS-Korpus zu sehen.</p>
-
-      <button className="btn-primary btn-full" onClick={onBack}>
-        Zurück zur Übersicht
-      </button>
-      <p className="dwds-quelle">Kollokationsdaten: DWDS-Wortprofil, Digitales Wörterbuch der deutschen Sprache (BBAW).</p>
-    </div>
-  )
-}
+import WzResultsView, { computeScore } from './WzResultsView'
 
 /** Hauptkomponente */
 export default function WortZwilling({ data, onBack, onFinish, savedResult = null }) {
@@ -221,7 +121,7 @@ export default function WortZwilling({ data, onBack, onFinish, savedResult = nul
 
   // ── Ergebnisansicht ───────────────────────────────────────
   if (phase === 'results') {
-    return <ResultsView data={data} zoneA={zoneA} zoneB={zoneB} onBack={onBack} />
+    return <WzResultsView data={data} zoneA={zoneA} zoneB={zoneB} onBack={onBack} />
   }
 
   // ── Spielansicht ──────────────────────────────────────────
