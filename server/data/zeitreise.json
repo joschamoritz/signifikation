@@ -166,7 +166,8 @@
         "korpus": "bundestag",
         "score": 7.62865484198021
       }
-    ]
+    ],
+    "wortart": "Substantiv"
   },
   "03-16": {
     "lemma": "Wehrpflicht",
@@ -305,7 +306,8 @@
         "korpus": "politische_reden",
         "score": 9.15630323087868
       }
-    ]
+    ],
+    "wortart": "Substantiv"
   },
   "03-17": {
     "lemma": "Topf",
@@ -474,7 +476,8 @@
         "korpus": "bundestag",
         "score": 6.24917340219758
       }
-    ]
+    ],
+    "wortart": "Substantiv"
   },
   "03-20": {
     "lemma": "Schwergewicht",
@@ -595,7 +598,8 @@
         "korpus": "bundestag",
         "score": 5.64906081845357
       }
-    ]
+    ],
+    "wortart": "Substantiv"
   },
   "03-21": {
     "lemma": "Religion",
@@ -770,7 +774,8 @@
         "korpus": "politische_reden",
         "score": 7.25276607037997
       }
-    ]
+    ],
+    "wortart": "Substantiv"
   },
   "03-18": {
     "lemma": "Bürger",
@@ -951,7 +956,8 @@
         "korpus": "politische_reden",
         "score": 6.89881218474026
       }
-    ]
+    ],
+    "wortart": "Substantiv"
   },
   "03-19": {
     "lemma": "Kultur",
@@ -1114,7 +1120,8 @@
         "korpus": "politische_reden",
         "score": 8.42611270656101
       }
-    ]
+    ],
+    "wortart": "Substantiv"
   },
   "03-22": {
     "lemma": "Wasser",
@@ -1301,7 +1308,8 @@
         "korpus": "politische_reden",
         "score": 7.36738078210798
       }
-    ]
+    ],
+    "wortart": "Substantiv"
   },
   "03-23": {
     "lemma": "Gleichschaltung",
@@ -1386,7 +1394,8 @@
         "korpus": "bundestag",
         "score": 7.53647562672882
       }
-    ]
+    ],
+    "wortart": "Substantiv"
   },
   "03-24": {
     "lemma": "Flugzeug",
@@ -1489,7 +1498,8 @@
         "korpus": "politische_reden",
         "score": 5.98989154652571
       }
-    ]
+    ],
+    "wortart": "Substantiv"
   },
   "03-25": {
     "lemma": "griechisch",
@@ -1664,6 +1674,7 @@
         "korpus": "politische_reden",
         "score": 6.23661590081271
       }
-    ]
+    ],
+    "wortart": "Adjektiv"
   }
 }
