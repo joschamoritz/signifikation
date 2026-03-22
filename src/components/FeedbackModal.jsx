@@ -84,7 +84,7 @@ export default function FeedbackModal({ game, onClose }) {
             </div>
             <textarea
               className="feedback-text"
-              placeholder="Was möchtest du uns sagen? (optional)"
+              placeholder="Was möchtest du uns sagen? (optional) – Bitte keine persönlichen Daten angeben."
               value={text}
               onChange={e => setText(e.target.value)}
               rows={2}
