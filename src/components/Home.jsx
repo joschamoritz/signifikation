@@ -47,6 +47,60 @@ export default function Home({
 
         {/* ── Titelseite ───────────────────────────────────── */}
         <header className="test-title-section" role="banner">
+          {/* Kollokationsnetz – dekorativer Hintergrund */}
+          <svg className="test-title-bg" viewBox="0 0 800 120" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+            {/* ── Graue Verbindungslinien (peripher) ── */}
+            <line x1="45" y1="88" x2="100" y2="55" stroke="#a8a29e" strokeWidth="1.5"/>
+            <line x1="100" y1="55" x2="158" y2="90" stroke="#a8a29e" strokeWidth="1.2"/>
+            <line x1="188" y1="20" x2="242" y2="42" stroke="#a8a29e" strokeWidth="1.2"/>
+            <line x1="312" y1="28" x2="242" y2="42" stroke="#a8a29e" strokeWidth="1.2"/>
+            <line x1="312" y1="28" x2="400" y2="68" stroke="#a8a29e" strokeWidth="1.2"/>
+            <line x1="316" y1="96" x2="400" y2="68" stroke="#a8a29e" strokeWidth="1.2"/>
+            <line x1="458" y1="18" x2="540" y2="42" stroke="#a8a29e" strokeWidth="1.2"/>
+            <line x1="462" y1="96" x2="400" y2="68" stroke="#a8a29e" strokeWidth="1.2"/>
+            <line x1="462" y1="96" x2="540" y2="42" stroke="#a8a29e" strokeWidth="1.2"/>
+            <line x1="598" y1="18" x2="540" y2="42" stroke="#a8a29e" strokeWidth="1.2"/>
+            <line x1="602" y1="84" x2="680" y2="62" stroke="#a8a29e" strokeWidth="1.2"/>
+            <line x1="748" y1="32" x2="680" y2="62" stroke="#a8a29e" strokeWidth="1.2"/>
+            <line x1="752" y1="90" x2="680" y2="62" stroke="#a8a29e" strokeWidth="1.2"/>
+            <line x1="748" y1="32" x2="752" y2="90" stroke="#a8a29e" strokeWidth="1"/>
+
+            {/* ── Rote Verbindungslinien (Hauptnetz) ── */}
+            <line x1="100" y1="55" x2="242" y2="42" stroke="#9b1c1c" strokeWidth="2" opacity="0.75"/>
+            <line x1="242" y1="42" x2="400" y2="68" stroke="#9b1c1c" strokeWidth="2" opacity="0.75"/>
+            <line x1="400" y1="68" x2="540" y2="42" stroke="#9b1c1c" strokeWidth="2" opacity="0.75"/>
+            <line x1="540" y1="42" x2="680" y2="62" stroke="#9b1c1c" strokeWidth="2" opacity="0.75"/>
+            {/* Querverbindungen */}
+            <line x1="100" y1="55" x2="312" y2="28" stroke="#9b1c1c" strokeWidth="1.5" opacity="0.45"/>
+            <line x1="242" y1="42" x2="458" y2="18" stroke="#9b1c1c" strokeWidth="1.5" opacity="0.40"/>
+            <line x1="400" y1="68" x2="598" y2="18" stroke="#9b1c1c" strokeWidth="1.5" opacity="0.40"/>
+
+            {/* ── Goldene Verbindungslinien (Brücken) ── */}
+            <line x1="242" y1="42" x2="316" y2="96" stroke="#c9a84c" strokeWidth="1.8" opacity="0.65"/>
+            <line x1="540" y1="42" x2="602" y2="84" stroke="#c9a84c" strokeWidth="1.8" opacity="0.65"/>
+            <line x1="400" y1="68" x2="462" y2="96" stroke="#c9a84c" strokeWidth="1.5" opacity="0.55"/>
+
+            {/* ── Graue Knoten (peripher) ── */}
+            <circle cx="45"  cy="88" r="4.5" fill="#a8a29e"/>
+            <circle cx="158" cy="90" r="4"   fill="#a8a29e"/>
+            <circle cx="188" cy="20" r="4"   fill="#c4bfbc"/>
+            <circle cx="312" cy="28" r="4"   fill="#a8a29e"/>
+            <circle cx="316" cy="96" r="3.5" fill="#c9a84c" opacity="0.7"/>
+            <circle cx="458" cy="18" r="3.5" fill="#a8a29e"/>
+            <circle cx="462" cy="96" r="3.5" fill="#c9a84c" opacity="0.7"/>
+            <circle cx="598" cy="18" r="4"   fill="#a8a29e"/>
+            <circle cx="602" cy="84" r="4"   fill="#c9a84c" opacity="0.7"/>
+            <circle cx="748" cy="32" r="4"   fill="#a8a29e"/>
+            <circle cx="752" cy="90" r="3.5" fill="#c4bfbc"/>
+
+            {/* ── Rote Knoten (Hauptknoten) ── */}
+            <circle cx="100" cy="55" r="7.5" fill="#9b1c1c"/>
+            <circle cx="242" cy="42" r="8"   fill="#9b1c1c"/>
+            <circle cx="400" cy="68" r="9"   fill="#9b1c1c"/>
+            <circle cx="540" cy="42" r="7.5" fill="#9b1c1c"/>
+            <circle cx="680" cy="62" r="8"   fill="#9b1c1c"/>
+          </svg>
+
           <p className="test-overline">Tägliches Wortspiel · Linguistik</p>
           <h1 className="test-title">Signifikation</h1>
           <p className="test-subtitle">
