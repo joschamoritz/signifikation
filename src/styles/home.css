@@ -1,0 +1,618 @@
+/* ============================================================
+   HOME SCREEN + FEEDBACK MODAL + SELECTION SCREEN + LEMMA CARDS
+   ============================================================ */
+.home-screen {
+  gap: 20px;
+  padding-block: 48px 32px;
+}
+
+.home-header { text-align: center }
+
+.app-logo {
+  width: 210px;
+  height: auto;
+  display: block;
+  margin-inline: auto;
+  transition: width 0.3s ease;
+}
+.app-logo--small {
+  width: 130px;
+}
+@media (max-width: 480px) {
+  .app-logo { width: 170px; }
+  .app-logo--small { width: 110px; }
+}
+
+.beta-badge {
+  display: inline-block;
+  margin-top: 8px;
+  padding: 2px 8px;
+  background: var(--primary);
+  color: #fff;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  border-radius: 4px;
+  opacity: 0.85;
+}
+
+/* ── Feedback-Modal ─────────────────────────────── */
+.feedback-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.35);
+  z-index: 200;
+  display: flex;
+  align-items: flex-end;
+}
+.feedback-sheet {
+  width: 100%;
+  background: var(--surface);
+  border-radius: 16px 16px 0 0;
+  padding: 24px 20px max(32px, env(safe-area-inset-bottom));
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  animation: slideUp 0.25s ease;
+}
+@keyframes slideUp {
+  from { transform: translateY(100%); }
+  to   { transform: translateY(0); }
+}
+.feedback-question {
+  font-family: var(--font-serif);
+  font-size: 1.05rem;
+  text-align: center;
+  color: var(--text);
+  margin: 0;
+}
+.feedback-emojis {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+}
+.feedback-emoji {
+  font-size: 1.9rem;
+  background: none;
+  border: 2px solid transparent;
+  border-radius: 50%;
+  padding: 6px;
+  cursor: pointer;
+  line-height: 1;
+  transition: transform 0.15s, border-color 0.15s;
+}
+.feedback-emoji--selected {
+  border-color: var(--accent);
+  transform: scale(1.2);
+}
+.feedback-text {
+  width: 100%;
+  border: 1.5px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-family: var(--font-sans);
+  font-size: 0.9rem;
+  resize: none;
+  background: var(--bg);
+  color: var(--text);
+  box-sizing: border-box;
+}
+.feedback-text:focus-visible { outline: 2px solid var(--primary); outline-offset: 0; border-color: var(--accent) }
+.feedback-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+}
+.btn-ghost {
+  background: none;
+  border: none;
+  color: var(--muted);
+  font-size: 0.9rem;
+  cursor: pointer;
+  padding: 8px 12px;
+}
+.btn-ghost:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; border-radius: 4px }
+.feedback-thanks {
+  text-align: center;
+  font-size: 1.1rem;
+  padding: 12px 0;
+  margin: 0;
+}
+
+.feedback-hint {
+  text-align: center;
+  font-size: 0.8rem;
+  color: var(--muted);
+  margin-top: 8px;
+}
+.feedback-hint a {
+  color: var(--muted);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.legal-footer {
+  margin-top: 24px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+.legal-links {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.legal-links a {
+  font-size: 0.78rem;
+  color: var(--muted);
+  text-decoration: none;
+}
+.legal-links a:hover { text-decoration: underline }
+.build-info {
+  font-size: 0.72rem;
+  color: var(--muted);
+  opacity: 0.6;
+}
+
+.feedback-link {
+  color: var(--muted);
+  text-decoration: underline;
+}
+
+.home-date {
+  text-align: center;
+  font-size: 0.88rem;
+  color: var(--muted);
+  font-weight: 500;
+}
+
+/* Streak */
+.streak-pill {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  background: linear-gradient(135deg, #fff7ed 0%, #fef3c7 100%);
+  border: 1.5px solid #fcd34d;
+  border-radius: 16px;
+  padding: 10px 20px;
+  animation: fadeIn 0.3s ease;
+}
+.streak-flames {
+  font-size: 1.8rem;
+  line-height: 1;
+  filter: drop-shadow(0 1px 3px rgba(234,88,12,0.35));
+}
+.streak-text {
+  display: flex;
+  flex-direction: row;
+  align-items: baseline;
+  gap: 5px;
+}
+.streak-count {
+  font-family: var(--font-serif);
+  font-size: 1.3rem;
+  font-weight: 800;
+  color: #c2410c;
+  line-height: 1;
+}
+.streak-label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  color: #92400e;
+  opacity: 0.8;
+}
+
+.toggle-arrow {
+  font-size: 1.2rem;
+  color: var(--muted);
+  transition: transform 0.2s;
+  display: inline-block;
+}
+.toggle-arrow--open { transform: rotate(90deg) }
+.home-card-text {
+  font-size: 0.875rem;
+  color: var(--muted);
+  line-height: 1.6;
+}
+.home-card-text--dropcap::first-letter {
+  font-family: var(--font-serif);
+  font-size: 2.8em;
+  font-weight: 700;
+  line-height: 0.85;
+  float: left;
+  margin-right: 4px;
+  color: var(--text);
+}
+
+/* Lautschrift */
+.lautschrift {
+  font-family: var(--font-ipa);
+  font-size: 0.78em;
+  font-weight: 400;
+  color: var(--muted);
+  letter-spacing: 0.01em;
+}
+.home-card-footnotes {
+  margin-top: 12px;
+  padding-left: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.home-card-footnotes li {
+  font-size: 0.72rem;
+  color: var(--muted);
+  line-height: 1.5;
+  opacity: 0.8;
+}
+.home-card-text sup {
+  font-size: 0.65rem;
+  vertical-align: super;
+  color: var(--primary);
+  font-weight: 600;
+}
+.home-card-text em {
+  font-style: italic;
+  color: var(--text);
+}
+
+.home-error {
+  font-size: 0.85rem;
+  color: var(--error);
+  text-align: center;
+  padding: 10px;
+  background: var(--error-bg);
+  border-radius: var(--radius-sm);
+  border: 1px solid #fecaca;
+}
+.home-error small { font-size: 0.75rem; color: var(--muted) }
+
+/* Spielkarte auf der Startseite */
+.game-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.game-card-head {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.game-card-title {
+  font-family: var(--font-serif);
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--text);
+}
+.game-card-meta {
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+.game-card-empty {
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+.game-card--unavailable {
+  opacity: 0.4;
+  pointer-events: none;
+  user-select: none;
+  filter: grayscale(0.35);
+}
+.game-card--coming-soon {
+  opacity: 0.45;
+  pointer-events: none;
+  user-select: none;
+  filter: grayscale(0.25);
+}
+.game-played-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.game-played-entry {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  background: var(--success-bg);
+  border: 1px solid #bbf7d0;
+  border-radius: var(--radius-sm);
+  font-size: 0.85rem;
+}
+.game-played-word { font-weight: 600; color: var(--text) }
+.game-played-score { color: var(--success); font-weight: 600; font-size: 0.82rem }
+.game-played-total {
+  font-size: 0.82rem;
+  color: var(--muted);
+  text-align: center;
+  padding-top: 4px;
+}
+.game-played-total--medal {
+  font-size: 0.95rem;
+  color: var(--primary);
+  font-weight: 600;
+  padding: 10px 12px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: var(--radius-sm);
+  text-align: center;
+}
+
+/* Verlauf-Strip */
+.history-strip {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 8px;
+}
+.history-label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.history-emojis {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+.history-emoji {
+  font-size: 1.25rem;
+  line-height: 1;
+  cursor: default;
+}
+.history-dots {
+  display: flex;
+  gap: 5px;
+  align-items: center;
+}
+.history-dot {
+  display: block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: 1.5px solid transparent;
+}
+.history-dot--gold    { background: #f59e0b; border-color: #d97706 }
+.history-dot--silber  { background: #9ca3af; border-color: #6b7280 }
+.history-dot--bronze  { background: #b45309; border-color: #92400e }
+.history-dot--ueben   { background: var(--surface2); border-color: var(--border) }
+
+/* ============================================================
+   SELECTION SCREEN + LEMMA CARDS
+   ============================================================ */
+.selection-screen {
+  gap: 20px;
+  padding-block: 32px;
+}
+
+.selection-header { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 12px }
+
+.back-btn {
+  background: none;
+  color: var(--primary);
+  font-family: var(--font-sans);
+  font-size: 0.82rem;
+  font-weight: 500;
+  padding: 8px 0;
+  min-height: 44px;
+  align-self: flex-start;
+  transition: opacity 0.15s;
+}
+.back-btn:hover { opacity: 0.7 }
+.back-btn:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; border-radius: 4px }
+
+.selection-prompt {
+  font-size: 0.95rem;
+  color: var(--text);
+  font-weight: 500;
+}
+
+.lemma-cards { display: flex; flex-direction: column; gap: 10px }
+
+.lemma-card-wrap { display: flex; flex-direction: column; gap: 0 }
+
+.lemma-card {
+  display: flex;
+  align-items: stretch;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  transition: border-color 0.15s;
+}
+.lemma-card:has(.lemma-card-main:hover),
+.lemma-card:has(.lemma-card-main:focus-visible) {
+  border-color: var(--primary);
+}
+.lemma-card:has(.lemma-card-main:active) { opacity: 0.85 }
+
+.lemma-card-main {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  background: none;
+  padding: 18px 20px;
+  text-align: left;
+  outline: none;
+}
+
+.lemma-info-btn {
+  background: none;
+  border-left: 1px solid var(--border);
+  padding: 0 14px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  font-style: italic;
+  color: var(--muted);
+  transition: background 0.15s, color 0.15s;
+  flex-shrink: 0;
+}
+.lemma-info-btn:hover,
+.lemma-info-btn--active { background: #fef2f2; color: var(--primary) }
+
+.lemma-notiz {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 0.82rem;
+  color: var(--muted);
+  font-style: italic;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-top: none;
+  border-radius: 0 0 var(--radius) var(--radius);
+  padding: 10px 16px;
+  line-height: 1.5;
+}
+.lemma-notiz-link {
+  font-style: normal;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--primary);
+  text-decoration: none;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.lemma-notiz-link:hover { text-decoration: underline }
+
+.results-notiz {
+  margin-top: 10px;
+  font-size: 0.88rem;
+  color: var(--muted);
+  text-align: center;
+  justify-content: center;
+}
+
+.lemma-info { flex: 1; display: flex; flex-direction: column; gap: 4px }
+
+.lemma-header-row {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.lemma-name  {
+  font-family: var(--font-serif);
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: 0.01em;
+}
+.lemma-ipa { font-size: 0.85rem; color: var(--muted); }
+
+.lemma-wortart-abbrev {
+  font-family: var(--font-serif);
+  font-size: 0.78rem;
+  font-style: italic;
+  color: var(--muted);
+  margin-left: auto;
+}
+.lemma-ipa-skeleton {
+  display: inline-block;
+  width: 72px;
+  height: 0.75em;
+  border-radius: 4px;
+  background: linear-gradient(90deg, var(--border) 25%, var(--surface2) 50%, var(--border) 75%);
+  background-size: 200% 100%;
+  animation: skeletonShimmer 1.2s ease-in-out infinite;
+  vertical-align: middle;
+}
+@keyframes skeletonShimmer {
+  0%   { background-position: 200% 0 }
+  100% { background-position: -200% 0 }
+}
+
+.lemma-wortart-chip {
+  display: inline-block;
+  font-family: var(--font-sans);
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent-dk);
+  background: none;
+  border: 0.5px solid var(--accent);
+  border-radius: 2px;
+  padding: 1px 7px;
+  align-self: flex-start;
+}
+
+.lemma-definition {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+  font-family: var(--font-serif);
+  font-size: 0.82rem;
+  font-style: italic;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.lemma-arrow { color: var(--muted); font-size: 1.4rem; flex-shrink: 0 }
+
+/* ── Gemeinsamer Wörterbuch-Eintrag-Header (Zeitreise, Wort-Zwilling) ── */
+.dict-entry-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+}
+.dict-entry-meta {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.dict-entry-wortart {
+  font-family: var(--font-serif);
+  font-size: 0.82rem;
+  font-style: italic;
+  color: var(--muted);
+}
+.dict-entry-rule {
+  border: none;
+  border-top: 1px solid var(--border);
+  width: 100px;
+  margin: 4px 0 0;
+}
+.wz-dict-pair {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.wz-dict-vs {
+  font-family: var(--font-serif);
+  font-size: 1.6rem;
+  color: var(--muted);
+  padding-top: 2px;
+  line-height: 1;
+}
+
+/* Gespielte Wortkarten */
+.lemma-card--played { opacity: 0.5 }
+.lemma-card--played .lemma-card-main { cursor: default }
+.lemma-card--played .lemma-arrow { color: var(--success); font-size: 1.1rem }
+
+.selection-hint {
+  text-align: center;
+  color: var(--muted);
+  font-size: 0.82rem;
+}
