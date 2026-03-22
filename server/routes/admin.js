@@ -273,13 +273,14 @@ router.get('/admin/backup', adminLimiter, requireAuth, (req, res) => {
 
 /** GET /admin – Admin-Oberfläche */
 router.get('/admin', (req, res) => {
-  // 'unsafe-inline' in script-src ist weiterhin nötig für onclick-Attribute im HTML.
-  // style-src benötigt kein 'unsafe-inline' mehr (CSS ist jetzt extern in /admin-assets/admin.css).
-  // TODO: onclick-Attribute entfernen und Event Listener nutzen → dann 'unsafe-inline' vollständig entfernen.
+  // 'unsafe-inline' in script-src und style-src ist weiterhin nötig:
+  // - script-src: onclick-Attribute im HTML (TODO: auf Event Listener umstellen)
+  // - style-src: dynamische style="…"-Attribute in den JS-Renderfunktionen
+  //   (Balkenbreiten, Korpusfarben, logDice-abhängige Werte – können nicht in externe CSS-Klassen).
   res.setHeader('Content-Security-Policy',
     "default-src 'self'; " +
     "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; " +
-    "style-src 'self'; " +
+    "style-src 'self' 'unsafe-inline'; " +
     "font-src 'self'; " +
     "img-src 'self' data:; " +
     "connect-src 'self'; " +
