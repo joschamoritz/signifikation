@@ -4,7 +4,7 @@
 //                 onClick der wortprofil-item buttons auf loadBelege umstellen.
 
 import { useState } from 'react'
-import { API_BASE } from '../config'
+import { API } from '../config'
 
 /**
  * Wiederverwendbarer Hook für Korpusbelege.
@@ -40,7 +40,7 @@ export function useBelege(lemmaWort, relCode = '') {
         ...(overrides.corpus && { corpus: overrides.corpus }),
         ...(overrides.year   && { year:   overrides.year   }),
       })
-      const r    = await fetch(`${API_BASE}/api/belege?${params}`)
+      const r    = await fetch(`${API}/belege?${params}`)
       const data = await r.json()
       setBelegeCache(prev => ({ ...prev, [key]: Array.isArray(data) ? data : [] }))
     } catch {

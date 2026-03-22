@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { API } from '../config'
 
 const EMOJIS = ['😕', '😐', '🙂', '😄', '🤩']
 
@@ -16,7 +17,7 @@ export default function FeedbackModal({ game, onClose }) {
   async function handleSend() {
     if (!emoji) return
     try {
-      await fetch('/api/feedback', {
+      await fetch(`${API}/feedback`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ game, emoji, text: text.trim() }),

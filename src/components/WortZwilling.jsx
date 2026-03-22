@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { API_BASE } from '../config'
+import { API } from '../config'
 import { getMedal } from '../utils/gameLogic'
 import BelegePanel from './BelegePanel'
 
@@ -37,7 +37,7 @@ function ResultsView({ data, zoneA, zoneB, onBack }) {
     const lemma = zuordnungMap[word] === 'A' ? data.wortA : data.wortB
     try {
       const params = new URLSearchParams({ collocate: word, lemma, rel: '' })
-      const r = await fetch(`${API_BASE}/api/belege?${params}`)
+      const r = await fetch(`${API}/belege?${params}`)
       const d = await r.json()
       setBelegeCache(prev => ({ ...prev, [word]: Array.isArray(d) ? d : [] }))
     } catch {

@@ -4,7 +4,7 @@ import { getMedal, shuffle } from '../utils/gameLogic'
 function getZRHistory() {
   return JSON.parse(localStorage.getItem('sig_zr_history') || '[]').slice(0, 14).reverse()
 }
-import { API_BASE } from '../config'
+import { API } from '../config'
 import BelegeSatz from './BelegeSatz'
 
 // ── Bubble-Chart für die Ergebnisseite ──────────────────────
@@ -51,7 +51,7 @@ const ZrBubbleChart = memo(function ZrBubbleChart({ paare, perioden, placements,
         ...(resolvedCorpus && { corpus: resolvedCorpus }),
         ...(paar.jahrzehnt  && { year:   paar.jahrzehnt  }),
       })
-      const r = await fetch(`${API_BASE}/api/belege?${params}`)
+      const r = await fetch(`${API}/belege?${params}`)
       const d = await r.json()
       setBelegeCache(prev => ({ ...prev, [key]: Array.isArray(d) ? d : [] }))
     } catch {
@@ -207,7 +207,7 @@ export default function Zeitreise({ data, onBack, onFinish, savedResult }) {
         ...(resolvedCorpus && { corpus: resolvedCorpus }),
         ...(jahrzehnt      && { year:   jahrzehnt }),
       })
-      const r = await fetch(`${API_BASE}/api/belege?${params}`)
+      const r = await fetch(`${API}/belege?${params}`)
       const d = await r.json()
       setBelegeCache(prev => ({ ...prev, [kollokat]: Array.isArray(d) ? d : [] }))
     } catch {
