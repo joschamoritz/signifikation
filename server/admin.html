@@ -314,9 +314,19 @@
       <span class="toggle-arrow" id="zeit-arrow">›</span>
     </button>
     <div class="mode-body" id="zeit-body" style="display:none">
-      <div>
-        <label for="zr">Wort des Tages (DiaCollo – aktive Korpora)</label>
-        <input type="text" id="zr" placeholder="z.B. Wasser">
+      <div style="display:flex;gap:8px;align-items:flex-end">
+        <div style="flex:1">
+          <label for="zr">Wort des Tages (DiaCollo – aktive Korpora)</label>
+          <input type="text" id="zr" placeholder="z.B. Wasser">
+        </div>
+        <div>
+          <label for="zr-wortart">Wortart</label>
+          <select id="zr-wortart">
+            <option value="Substantiv">Substantiv</option>
+            <option value="Verb">Verb</option>
+            <option value="Adjektiv">Adjektiv</option>
+          </select>
+        </div>
       </div>
       <p style="font-size:0.8rem;color:var(--muted);font-style:italic">
         5 Kollokatoren aus 5 verschiedenen Perioden werden automatisch über DiaCollo abgerufen.
@@ -712,7 +722,8 @@
             document.getElementById('d2').value.trim(),
             document.getElementById('d3').value.trim(),
           ],
-          zeitreise_lemma: zr,
+          zeitreise_lemma:   zr,
+          zeitreise_wortart: document.getElementById('zr-wortart').value,
           zwilling_paar: wza && wzb ? [wza, wzb] : null,
           zwilling_pos: wzpos,
         }),
@@ -762,7 +773,8 @@
     document.getElementById('d1').value = data.definitionen?.[0] || ''
     document.getElementById('d2').value = data.definitionen?.[1] || ''
     document.getElementById('d3').value = data.definitionen?.[2] || ''
-    document.getElementById('zr').value    = data.zeitreise_lemma || ''
+    document.getElementById('zr').value          = data.zeitreise_lemma   || ''
+    document.getElementById('zr-wortart').value  = data.zeitreise_wortart || 'Substantiv'
     document.getElementById('wza').value   = data.zwilling_paar?.[0] || ''
     document.getElementById('wzb').value   = data.zwilling_paar?.[1] || ''
     document.getElementById('wzpos').value = data.zwilling_pos || 'Substantiv'

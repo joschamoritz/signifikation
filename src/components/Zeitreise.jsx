@@ -182,6 +182,17 @@ export default function Zeitreise({ data, onBack, onFinish, savedResult }) {
   const [revealed, setRevealed]     = useState(() => savedResult !== null)
   const [score, setScore]           = useState(() => savedResult?.total ?? null)
 
+  // IPA
+  const [ipa, setIpa] = useState(null)
+  useEffect(() => {
+    const controller = new AbortController()
+    fetch(`${API}/ipa?q=${encodeURIComponent(data.lemma)}`, { signal: controller.signal })
+      .then(r => r.json())
+      .then(d => { if (d[0]?.ipa) setIpa(d[0].ipa) })
+      .catch(err => { if (err.name !== 'AbortError') console.error('IPA fetch (Zeitreise):', err) })
+    return () => controller.abort()
+  }, [data.lemma])
+
   // Belege
   const [openBeleg,     setOpenBeleg]     = useState(null)
   const [belegeCache,   setBelegeCache]   = useState({})
@@ -347,7 +358,14 @@ export default function Zeitreise({ data, onBack, onFinish, savedResult }) {
       {/* Header */}
       <div className="zeitreise-header">
         <span className="zeitreise-badge">Zeitreise</span>
-        <h1 className="zeitreise-word">{data.lemma}</h1>
+        <div className="dict-entry-header">
+          <h1 className="zeitreise-word">{data.lemma}</h1>
+          <div className="dict-entry-meta">
+            {ipa && <span className="lautschrift">[{ipa}]</span>}
+            {data.wortart && <span className="dict-entry-wortart">{data.wortart}</span>}
+          </div>
+          {(ipa || data.wortart) && <hr className="dict-entry-rule" aria-hidden="true" />}
+        </div>
         <p className="zeitreise-desc">
           Ordne jeden Kollokator dem Zeitraum zu, in dem er besonders
           häufig mit <em>{data.lemma}</em> aufgetreten ist.

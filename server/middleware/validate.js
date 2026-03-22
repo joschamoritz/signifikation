@@ -71,8 +71,9 @@ export const adminTagSchema = z.object({
   links:           z.array(z.string()).optional().default([]),
   definitionen:    z.array(z.string()).optional().default([]),
   positionen:      z.array(POS).optional().default([]),
-  zeitreise_lemma: z.string().optional().default(''),
-  zwilling_paar:   z.union([z.array(z.string()).length(2), z.null()]).optional().default(null),
+  zeitreise_lemma:   z.string().optional().default(''),
+  zeitreise_wortart: POS.optional().default('Substantiv'),
+  zwilling_paar:     z.union([z.array(z.string()).length(2), z.null()]).optional().default(null),
   zwilling_pos:    POS,
 })
 
