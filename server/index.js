@@ -4,6 +4,7 @@ import cors         from 'cors'
 import { existsSync } from 'fs'
 import { fileURLToPath } from 'url'
 import { dirname, join }  from 'path'
+import { randomUUID } from 'crypto'
 import logger       from './logger.js'
 import { ADMIN_KEY, IS_PROD } from './middleware/auth.js'
 import publicRouter from './routes/public.js'
@@ -56,7 +57,7 @@ app.use(express.json())
 
 // ── Correlation-ID ────────────────────────────────────────────
 app.use((req, _res, next) => {
-  req.id = req.headers['x-request-id'] || crypto.randomUUID()
+  req.id = req.headers['x-request-id'] || randomUUID()
   next()
 })
 
