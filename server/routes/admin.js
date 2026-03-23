@@ -4,7 +4,7 @@ import { dirname, join }  from 'path'
 import { fetchLemma, fetchBonusQuestion, fetchRelation, POS_ROUNDS } from '../dwds.js'
 import { fetchZeitreise, debugDiaCollo, clearCorporaCache } from '../diacollo.js'
 import { fetchWortZwilling } from '../wortzwilling.js'
-import { load, save, loadZeitreise, loadWortZwilling, loadStats, getLemmataIndex, DATA } from '../store.js'
+import { load, loadReadOnly, save, loadZeitreise, loadWortZwilling, loadStats, getLemmataIndex, DATA } from '../store.js'
 import { adminLimiter } from '../middleware/rateLimiter.js'
 import { requireAuth, adminAuth, serverError } from '../middleware/auth.js'
 
@@ -26,7 +26,7 @@ router.post('/admin/auth', adminLimiter, adminAuth)
 router.get('/admin/stats', adminLimiter, requireAuth, (req, res) => {
   const days = Math.min(90, Math.max(1, parseInt(req.query.days) || 30))
   try {
-    const stats  = loadStats()
+    const stats  = loadReadOnly('stats.json') ?? {}
     const sorted = Object.keys(stats).sort()
     const result = sorted.slice(-days).map(datum => ({ datum, ...stats[datum] }))
     res.json(result)
@@ -37,7 +37,7 @@ router.get('/admin/stats', adminLimiter, requireAuth, (req, res) => {
 router.get('/admin/feedback', adminLimiter, requireAuth, (req, res) => {
   try {
     let list = []
-    try { list = load('feedback.json') } catch {}
+    try { list = loadReadOnly('feedback.json') } catch {}
     res.json(list)
   } catch (err) { serverError(res, err) }
 })
@@ -205,10 +205,10 @@ router.post('/admin/tag', adminLimiter, requireAuth, validate(adminTagSchema), a
 
 /** GET /admin/kalender – alle Einträge (inkl. Zeitreise- und Wort-Zwilling-Status) */
 router.get('/admin/kalender', adminLimiter, requireAuth, (req, res) => {
-  const kalender     = load('kalender.json')
+  const kalender     = loadReadOnly('kalender.json')
   const { byId }     = getLemmataIndex()
-  const zeitreise    = loadZeitreise()
-  const wortzwilling = loadWortZwilling()
+  const zeitreise    = loadReadOnly('zeitreise.json') ?? {}
+  const wortzwilling = loadReadOnly('wortzwilling.json') ?? {}
   const result = {}
   for (const [datum, ids] of Object.entries(kalender)) {
     result[datum] = {
@@ -226,13 +226,13 @@ router.get('/admin/kalender', adminLimiter, requireAuth, (req, res) => {
 /** GET /admin/tag/:datum – Eintrag zum Bearbeiten laden */
 router.get('/admin/tag/:datum', adminLimiter, requireAuth, (req, res) => {
   if (!/^\d{2}-\d{2}$/.test(req.params.datum)) return res.status(400).json({ error: 'Ungültiges Datumsformat' })
-  const kalender     = load('kalender.json')
+  const kalender     = loadReadOnly('kalender.json')
   const { byId }     = getLemmataIndex()
-  const zeitreise    = loadZeitreise()
+  const zeitreise    = loadReadOnly('zeitreise.json') ?? {}
   const ids = kalender[req.params.datum]
   if (!ids) return res.status(404).json({ error: 'Kein Eintrag' })
   const lemmata = ids.map(id => byId.get(id)).filter(Boolean)
-  const wz = loadWortZwilling()[req.params.datum]
+  const wz = (loadReadOnly('wortzwilling.json') ?? {})[req.params.datum]
   res.json({
     datum:           req.params.datum,
     woerter:         lemmata.map(l => l.lemma),
@@ -268,7 +268,7 @@ router.get('/admin/backup', adminLimiter, requireAuth, (req, res) => {
     const files  = ['kalender.json', 'lemmata.json', 'zeitreise.json', 'wortzwilling.json', 'stats.json', 'feedback.json', 'diacollo-config.json']
     const bundle = {}
     for (const f of files) {
-      try { bundle[f] = load(f) } catch { bundle[f] = null }
+      try { bundle[f] = loadReadOnly(f) } catch { bundle[f] = null }
     }
     res.setHeader('Content-Disposition', `attachment; filename="signifikation-backup-${new Date().toISOString().slice(0, 10)}.json"`)
     res.json({ exportedAt: new Date().toISOString(), files: bundle })
