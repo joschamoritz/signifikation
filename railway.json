@@ -4,6 +4,7 @@
     "builder": "NIXPACKS"
   },
   "deploy": {
+    "startCommand": "node server/index.js",
     "cronJobs": [
       {
         "schedule": "0 2 * * *",
