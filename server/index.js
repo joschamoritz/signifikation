@@ -1,4 +1,5 @@
 import express      from 'express'
+import compression  from 'compression'
 import helmet       from 'helmet'
 import cors         from 'cors'
 import { existsSync } from 'fs'
@@ -20,6 +21,9 @@ if (!ADMIN_KEY) {
 if (!process.env.ADMIN_KEY) logger.warn('ADMIN_KEY nicht gesetzt – Dev-Fallback aktiv (nur lokal!)')
 
 const app = express()
+
+// ── Kompression (Gzip/Brotli) ─────────────────────────────────
+app.use(compression())
 
 // ── Security Headers ─────────────────────────────────────────
 app.use(helmet({
@@ -71,7 +75,17 @@ app.use('/', adminRouter)
 // ── Statisches Frontend (Produktions-Build) ──────────────────
 const DIST = join(__dirname, '../dist')
 if (existsSync(DIST)) {
-  app.use(express.static(DIST))
+  // Vite-Assets haben Content-Hashes im Dateinamen → 1 Jahr cachen (immutable)
+  // index.html bleibt auf no-cache damit neue Deployments sofort wirken
+  app.use(express.static(DIST, {
+    setHeaders(res, filePath) {
+      if (filePath.includes('/assets/')) {
+        res.setHeader('Cache-Control', 'public, max-age=31536000, immutable')
+      } else if (filePath.endsWith('index.html')) {
+        res.setHeader('Cache-Control', 'no-cache')
+      }
+    }
+  }))
   app.use((_req, res) => res.sendFile(join(DIST, 'index.html')))
 }
 
