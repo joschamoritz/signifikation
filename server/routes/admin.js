@@ -1,11 +1,10 @@
 import express          from 'express'
-import { readFileSync, writeFileSync } from 'fs'
 import { fileURLToPath } from 'url'
 import { dirname, join }  from 'path'
 import { fetchLemma, fetchBonusQuestion, fetchRelation, POS_ROUNDS } from '../dwds.js'
 import { fetchZeitreise, debugDiaCollo, clearCorporaCache } from '../diacollo.js'
 import { fetchWortZwilling } from '../wortzwilling.js'
-import { load, save, loadZeitreise, loadWortZwilling, loadStats, DATA } from '../store.js'
+import { load, save, loadZeitreise, loadWortZwilling, loadStats, getLemmataIndex, DATA } from '../store.js'
 import { adminLimiter } from '../middleware/rateLimiter.js'
 import { requireAuth, adminAuth, serverError } from '../middleware/auth.js'
 
@@ -38,7 +37,7 @@ router.get('/admin/stats', adminLimiter, requireAuth, (req, res) => {
 router.get('/admin/feedback', adminLimiter, requireAuth, (req, res) => {
   try {
     let list = []
-    try { list = JSON.parse(readFileSync(join(DATA, 'feedback.json'), 'utf8')) } catch {}
+    try { list = load('feedback.json') } catch {}
     res.json(list)
   } catch (err) { serverError(res, err) }
 })
@@ -46,7 +45,7 @@ router.get('/admin/feedback', adminLimiter, requireAuth, (req, res) => {
 /** GET /admin/diacollo-config – Korpus-Konfiguration laden */
 router.get('/admin/diacollo-config', adminLimiter, requireAuth, (req, res) => {
   try {
-    const cfg = JSON.parse(readFileSync(join(DATA, 'diacollo-config.json'), 'utf8'))
+    const cfg = load('diacollo-config.json')
     res.json(cfg)
   } catch {
     res.status(404).json({ error: 'Keine Konfiguration gefunden' })
@@ -57,13 +56,13 @@ router.get('/admin/diacollo-config', adminLimiter, requireAuth, (req, res) => {
 router.post('/admin/diacollo-config', adminLimiter, requireAuth, validate(diacolloConfigSchema), (req, res) => {
   const { corpora } = req.body
   try {
-    const cfg = JSON.parse(readFileSync(join(DATA, 'diacollo-config.json'), 'utf8'))
+    const cfg = load('diacollo-config.json')
     // Nur enabled-Flag übernehmen, Rest (label, zeitraum, slice) bleibt erhalten
     for (const item of corpora) {
       const entry = cfg.corpora.find(c => c.id === item.id)
       if (entry) entry.enabled = !!item.enabled
     }
-    writeFileSync(join(DATA, 'diacollo-config.json'), JSON.stringify(cfg, null, 2))
+    save('diacollo-config.json', cfg)
     clearCorporaCache()
     res.json({ ok: true, active: cfg.corpora.filter(c => c.enabled).map(c => c.id) })
   } catch (err) {
@@ -139,9 +138,14 @@ router.post('/admin/tag', adminLimiter, requireAuth, validate(adminTagSchema), a
       entry.notiz       = notizen[i]      || ''
       entry.link        = links[i]        || ''
       entry.definition  = definitionen[i] || ''
-      const idx     = lemmataDB.findIndex(l => l.id === entry.id)
-      if (idx >= 0) lemmataDB[idx] = entry
-      else lemmataDB.push(entry)
+      // Direkter Index-Lookup statt findIndex
+      const { byId } = getLemmataIndex()
+      if (byId.has(entry.id)) {
+        const idx = lemmataDB.findIndex(l => l.id === entry.id)
+        lemmataDB[idx] = entry
+      } else {
+        lemmataDB.push(entry)
+      }
       ids.push(entry.id)
     }
 
@@ -202,14 +206,14 @@ router.post('/admin/tag', adminLimiter, requireAuth, validate(adminTagSchema), a
 /** GET /admin/kalender – alle Einträge (inkl. Zeitreise- und Wort-Zwilling-Status) */
 router.get('/admin/kalender', adminLimiter, requireAuth, (req, res) => {
   const kalender     = load('kalender.json')
-  const lemmataDB    = load('lemmata.json')
+  const { byId }     = getLemmataIndex()
   const zeitreise    = loadZeitreise()
   const wortzwilling = loadWortZwilling()
   const result = {}
   for (const [datum, ids] of Object.entries(kalender)) {
     result[datum] = {
       lemmata:         ids.map(id => {
-        const l = lemmataDB.find(l => l.id === id)
+        const l = byId.get(id)
         return { id, lemma: l?.lemma || id, notiz: l?.notiz || '' }
       }),
       hasZeitreise:    !!zeitreise[datum],
@@ -222,12 +226,12 @@ router.get('/admin/kalender', adminLimiter, requireAuth, (req, res) => {
 /** GET /admin/tag/:datum – Eintrag zum Bearbeiten laden */
 router.get('/admin/tag/:datum', adminLimiter, requireAuth, (req, res) => {
   if (!/^\d{2}-\d{2}$/.test(req.params.datum)) return res.status(400).json({ error: 'Ungültiges Datumsformat' })
-  const kalender  = load('kalender.json')
-  const lemmataDB = load('lemmata.json')
-  const zeitreise = loadZeitreise()
+  const kalender     = load('kalender.json')
+  const { byId }     = getLemmataIndex()
+  const zeitreise    = loadZeitreise()
   const ids = kalender[req.params.datum]
   if (!ids) return res.status(404).json({ error: 'Kein Eintrag' })
-  const lemmata = ids.map(id => lemmataDB.find(l => l.id === id)).filter(Boolean)
+  const lemmata = ids.map(id => byId.get(id)).filter(Boolean)
   const wz = loadWortZwilling()[req.params.datum]
   res.json({
     datum:           req.params.datum,

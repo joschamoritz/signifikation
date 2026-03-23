@@ -17,6 +17,12 @@ export function load(file) {
   return structuredClone(fileCache[file])
 }
 
+/** Lese-Only-Zugriff ohne Deep-Clone – nur für Code, der die Daten nicht mutiert */
+export function loadReadOnly(file) {
+  if (!fileCache[file]) fileCache[file] = JSON.parse(readFileSync(join(DATA, file), 'utf8'))
+  return fileCache[file]
+}
+
 export function save(file, data) {
   // Atomar: erst in temporäre Datei schreiben, dann umbenennen.
   const target = join(DATA, file)
@@ -24,11 +30,33 @@ export function save(file, data) {
   writeFileSync(tmp, JSON.stringify(data, null, 2))
   renameSync(tmp, target)
   fileCache[file] = data
+  // Lemmata-Index invalidieren
+  if (file === 'lemmata.json') { _lemmataById = null; _lemmataByLemma = null }
 }
 
 export function loadZeitreise()    { try { return load('zeitreise.json')    } catch { return {} } }
 export function loadWortZwilling() { try { return load('wortzwilling.json') } catch { return {} } }
 export function loadStats()        { try { return load('stats.json')        } catch { return {} } }
+
+// ── Lemmata-Index (O(1)-Lookup statt linearem Array-Scan) ─────
+let _lemmataById    = null  // Map<id, lemma>
+let _lemmataByLemma = null  // Map<lemma, lemma>
+
+export function getLemmataIndex() {
+  if (_lemmataById) return { byId: _lemmataById, byLemma: _lemmataByLemma }
+  const list = loadReadOnly('lemmata.json')
+  _lemmataById    = new Map(list.map(l => [l.id, l]))
+  _lemmataByLemma = new Map(list.map(l => [l.lemma, l]))
+  return { byId: _lemmataById, byLemma: _lemmataByLemma }
+}
+
+// ── Stats-Mutex (serialisiert alle Write-Zugriffe auf stats.json) ─
+let _statsWriteLock = Promise.resolve()
+
+export function withStatsLock(fn) {
+  _statsWriteLock = _statsWriteLock.then(fn).catch(() => {})
+  return _statsWriteLock
+}
 
 // ── Beleg-Cache (TTL 6h, max 200 Einträge, LRU) ─────────────
 const _belegeCache = new Map()
