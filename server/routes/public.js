@@ -85,7 +85,29 @@ router.get('/api/v1/wortzwilling', (req, res) => {
   }
 })
 
-/** GET /api/belege – Korpusbelege für ein Kollokationspaar */
+/**
+ * GET /api/v1/belege – Korpusbelege für ein Kollokationspaar
+ *
+ * Sucht im DWDS-Korpus nach Belegsätzen, in denen lemma und collocate gemeinsam vorkommen.
+ * Die Suche verwendet eine Fallback-Strategie: Für jede syntaktische Relation (rel) werden
+ * mehrere Query-Varianten von spezifisch (exakte Phrase) bis generisch (Fenstersuche mit #N)
+ * nacheinander versucht. Sobald ≥2 Treffer gefunden wurden, wird abgebrochen.
+ *
+ * Wikipedia-Einträge werden herausgefiltert (noWiki), da sie häufig unnatürliche
+ * Kookkurrenzen enthalten und die Belegqualität verschlechtern.
+ *
+ * Korpora-Fallback-Reihenfolge: kern → kern21 → dtak → dtae → dwdsxl
+ * (von moderner Standardsprache zu historischen und Großkorpora)
+ *
+ * Query-Parameter:
+ *   lemma      string  Hauptlemma (z.B. 'Wasser')
+ *   collocate  string  Kollokat (z.B. 'trinken')
+ *   rel        string  Syntaktische Relation (OBJ, KON, ~ATTR, ~OBJ, SUBJA, SUBJP, ...)
+ *   corpus     string  Optional. Bevorzugtes Korpus (kern, dta, dtae, dtak, ...)
+ *   year       number  Optional. Zentraljahr für Zeitfenster ±15 Jahre
+ *
+ * Response 200: { belege: [{ tokens: [{ w, ws, hl }], quelle: string }] }
+ */
 router.get('/api/v1/belege', belegeLimiter, validate(belegeQuerySchema, 'query'), async (req, res) => {
   const { collocate, lemma, rel, corpus, year } = req.query
 

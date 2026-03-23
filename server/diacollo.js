@@ -120,7 +120,9 @@ export async function fetchZeitreise(lemma) {
  * Duplikate sind erlaubt: dominiert dasselbe Wort mehrere Perioden, ist das
  * ein legitimes Ergebnis (geringe lexikalische Variation in dem Bereich).
  */
-const POS_RANK = { NN: 0, ADJA: 0, ADJD: 0, NE: 1 }  // Verben/Sonstiges = 2
+// STTS-Tags (Stuttgart-Tübingen-Tagset): NN=Nomen, ADJA=attributives Adj., ADJD=adverbiales Adj., NE=Eigenname
+// Rang 0 = bevorzugt, Rang 1 = akzeptiert, Rang 2 (default) = Verben/Sonstiges, werden nachrangig behandelt
+const POS_RANK = { NN: 0, ADJA: 0, ADJD: 0, NE: 1 }
 
 function getBestCollokat(profile, lemmaLower, usedWords = new Set()) {
   // Stamm des Lemmas (erste 4 Zeichen) für Stammvarianten-Filter

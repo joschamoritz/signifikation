@@ -70,7 +70,7 @@ export async function runBackup() {
   return { gistId: created.id, date, deleted: toDelete.length }
 }
 
-// Direktaufruf via: node server/backup.js
+// Direktaufruf via: GITHUB_GIST_TOKEN=ghp_... node server/backup.js
 if (process.argv[1]?.endsWith('backup.js')) {
   runBackup()
     .then(r => { logger.info(r, 'Backup erfolgreich'); process.exit(0) })

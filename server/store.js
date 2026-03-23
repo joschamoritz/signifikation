@@ -1,5 +1,17 @@
 /**
  * store.js – Datei-I/O und In-Memory-Caches
+ *
+ * Alle Spieldaten liegen als JSON-Dateien in server/data/:
+ *   kalender.json       { "MM-DD": ["lemmaId1", "lemmaId2", "lemmaId3"] }
+ *   lemmata.json        Array von { id, lemma, pos, runden, rundenInfo }
+ *   zeitreise.json      { lemma, paare, perioden, wortart } pro Eintrag
+ *   wortzwilling.json   { wortA, wortB, pos, kollokatoren } pro Eintrag
+ *   stats.json          { "MM-DD": { [game]: { plays, scoreSum, maxSum, dist } } }
+ *   feedback.json       Array von { game, emoji, text, ts }
+ *   diacollo-config.json { corpora: [{ id, enabled, label, zeitraum, slice }] }
+ *
+ * Auf Railway liegen diese Dateien auf einem persistenten Volume (/app/server/data)
+ * und werden NICHT aus Git geladen.
  */
 import { readFileSync, writeFileSync, renameSync, mkdirSync } from 'fs'
 import { fileURLToPath } from 'url'
@@ -12,6 +24,12 @@ mkdirSync(DATA, { recursive: true })
 // ── File-Cache ────────────────────────────────────────────────
 const fileCache = {}
 
+/**
+ * Liest eine JSON-Datei aus DATA/ mit strukturellem Klon.
+ * Der Aufrufer darf das Ergebnis mutieren – der Cache bleibt unberührt.
+ * @param {string} file  Dateiname relativ zu server/data/ (z.B. 'lemmata.json')
+ * @returns {*} Geklonter Dateiinhalt
+ */
 export function load(file) {
   if (!fileCache[file]) fileCache[file] = JSON.parse(readFileSync(join(DATA, file), 'utf8'))
   return structuredClone(fileCache[file])
@@ -23,6 +41,11 @@ export function loadReadOnly(file) {
   return fileCache[file]
 }
 
+/**
+ * Schreibt data atomar in eine JSON-Datei (tmp → rename) und aktualisiert den Cache.
+ * @param {string} file  Dateiname relativ zu server/data/
+ * @param {*}      data  Zu speichernde Daten
+ */
 export function save(file, data) {
   // Atomar: erst in temporäre Datei schreiben, dann umbenennen.
   const target = join(DATA, file)
@@ -53,6 +76,11 @@ export function getLemmataIndex() {
 // ── Stats-Mutex (serialisiert alle Write-Zugriffe auf stats.json) ─
 let _statsWriteLock = Promise.resolve()
 
+/**
+ * Serialisiert alle Write-Zugriffe auf stats.json über eine Promise-Kette.
+ * Verhindert Race Conditions bei gleichzeitigen Spielabschlüssen.
+ * @param {() => Promise<void>} fn  Async-Funktion die stats.json liest und schreibt
+ */
 export function withStatsLock(fn) {
   _statsWriteLock = _statsWriteLock.then(fn).catch(() => {})
   return _statsWriteLock
@@ -63,6 +91,11 @@ const _belegeCache = new Map()
 const BELEG_TTL_MS = 6 * 60 * 60 * 1000
 const BELEG_MAX    = 200
 
+/**
+ * Gibt gecachten Beleg-Datensatz zurück oder null wenn nicht vorhanden/abgelaufen.
+ * @param {string} key  Cache-Schlüssel (z.B. 'lemma:relation:korpus')
+ * @returns {*|null}
+ */
 export function cacheGet(key) {
   const entry = _belegeCache.get(key)
   if (!entry) return null
@@ -70,6 +103,12 @@ export function cacheGet(key) {
   return entry.data
 }
 
+/**
+ * Speichert einen Beleg-Datensatz im Cache. Bei voller Kapazität wird der
+ * älteste Eintrag (LRU) entfernt.
+ * @param {string} key   Cache-Schlüssel
+ * @param {*}      data  Zu cachende Daten
+ */
 export function cacheSet(key, data) {
   if (_belegeCache.size >= BELEG_MAX) {
     _belegeCache.delete(_belegeCache.keys().next().value)
