@@ -1,8 +1,7 @@
 import express        from 'express'
-import { readFileSync } from 'fs'
 import { join }         from 'path'
 import { fetchBonusQuestion } from '../dwds.js'
-import { load, save, loadZeitreise, loadWortZwilling, loadStats, cacheGet, cacheSet, DATA } from '../store.js'
+import { load, save, loadZeitreise, loadWortZwilling, loadStats, withStatsLock, getLemmataIndex, cacheGet, cacheSet, DATA } from '../store.js'
 import { belegeLimiter, statsLimiter, feedbackLimiter } from '../middleware/rateLimiter.js'
 import { serverError } from '../middleware/auth.js'
 import { validate, statsSchema, feedbackSchema, belegeQuerySchema, archivQuerySchema, qQuerySchema, bonusQuerySchema } from '../middleware/validate.js'
@@ -39,13 +38,13 @@ router.get('/api/v1/heute', (req, res) => {
     const today     = todayDatum()
     const datum     = req.query.datum || today.mmdd
     const year      = today.year
-    const kalender  = load('kalender.json')
-    const lemmataDB = load('lemmata.json')
+    const kalender       = load('kalender.json')
+    const { byId }       = getLemmataIndex()
 
     const ids = kalender[datum]
     if (!ids) return res.status(404).json({ error: `Kein Eintrag für ${datum}` })
 
-    const lemmata = ids.map(id => lemmataDB.find(l => l.id === id)).filter(Boolean)
+    const lemmata = ids.map(id => byId.get(id)).filter(Boolean)
     res.json({ datum, year, lemmata })
   } catch (err) {
     serverError(res, err)
@@ -60,8 +59,8 @@ router.get('/api/v1/zeitreise', (req, res) => {
     const entry     = zeitreise[datum]
     if (!entry) return res.status(404).json({ error: `Kein Zeitreise-Eintrag für ${datum}` })
     // pos aus lemmata.json ergänzen, falls vorhanden
-    const lemmata   = load('lemmata.json')
-    const lemmaData = lemmata.find(l => l.lemma === entry.lemma)
+    const { byLemma } = getLemmataIndex()
+    const lemmaData   = byLemma.get(entry.lemma)
     res.json({ pos: lemmaData?.pos ?? null, ...entry })
   } catch (err) {
     serverError(res, err)
@@ -246,19 +245,21 @@ router.get('/api/v1/belege', belegeLimiter, validate(belegeQuerySchema, 'query')
 })
 
 /** POST /api/stats – anonyme Spielstatistik erfassen */
-router.post('/api/v1/stats', statsLimiter, validate(statsSchema), (req, res) => {
+router.post('/api/v1/stats', statsLimiter, validate(statsSchema), async (req, res) => {
   const { game, datum, score, max } = req.body
   try {
-    const stats = loadStats()
-    if (!stats[datum]) stats[datum] = {}
-    if (!stats[datum][game]) stats[datum][game] = { plays: 0, scoreSum: 0, maxSum: 0, dist: Array(11).fill(0) }
-    const entry = stats[datum][game]
-    entry.plays++
-    entry.scoreSum += Math.max(0, score)
-    entry.maxSum   += max
-    const normalized = Math.min(10, Math.round(score / max * 10))
-    entry.dist[normalized]++
-    save('stats.json', stats)
+    await withStatsLock(() => {
+      const stats = loadStats()
+      if (!stats[datum]) stats[datum] = {}
+      if (!stats[datum][game]) stats[datum][game] = { plays: 0, scoreSum: 0, maxSum: 0, dist: Array(11).fill(0) }
+      const entry = stats[datum][game]
+      entry.plays++
+      entry.scoreSum += Math.max(0, score)
+      entry.maxSum   += max
+      const normalized = Math.min(10, Math.round(score / max * 10))
+      entry.dist[normalized]++
+      save('stats.json', stats)
+    })
     res.json({ ok: true })
   } catch (err) { serverError(res, err) }
 })
@@ -268,9 +269,8 @@ router.post('/api/v1/feedback', feedbackLimiter, validate(feedbackSchema), (req,
   const { game, emoji, text } = req.body
   const entry = { game, emoji, text, ts: new Date().toISOString() }
   try {
-    const file = join(DATA, 'feedback.json')
     let list = []
-    try { list = JSON.parse(readFileSync(file, 'utf8')) } catch {}
+    try { list = load('feedback.json') } catch {}
     list.unshift(entry)
     save('feedback.json', list)
     res.json({ ok: true })
@@ -307,8 +307,8 @@ router.get('/api/v1/ipa', validate(qQuerySchema, 'query'), async (req, res) => {
 router.get('/api/v1/bonus', validate(bonusQuerySchema, 'query'), async (req, res) => {
   const { id } = req.query
   try {
-    const lemmataDB = load('lemmata.json')
-    const l = lemmataDB.find(l => l.id === id)
+    const { byId } = getLemmataIndex()
+    const l = byId.get(id)
     if (!l) return res.json(null)
     const bonus = await fetchBonusQuestion(l.lemma, l.pos || 'Substantiv')
     res.json(bonus)
