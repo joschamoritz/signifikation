@@ -49,7 +49,7 @@ export default defineConfig({
         name: 'Signifikation',
         short_name: 'Signifikation',
         description: 'Tägliches linguistisches Quiz basierend auf DWDS-Daten',
-        theme_color: '#faf9f7',
+        theme_color: '#9b1c1c',
         background_color: '#faf9f7',
         display: 'standalone',
         lang: 'de',
