@@ -266,6 +266,9 @@ router.get('/api/v1/belege', belegeLimiter, validate(belegeQuerySchema, 'query')
   }
 })
 
+/** GET /api/v1/stats – nicht unterstützt (nur POST) */
+router.get('/api/v1/stats', (_req, res) => res.status(405).json({ error: 'Method Not Allowed' }))
+
 /** POST /api/stats – anonyme Spielstatistik erfassen */
 router.post('/api/v1/stats', statsLimiter, validate(statsSchema), async (req, res) => {
   const { game, datum, score, max } = req.body
