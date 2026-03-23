@@ -1,7 +1,7 @@
 import express        from 'express'
 import { join }         from 'path'
 import { fetchBonusQuestion } from '../dwds.js'
-import { load, save, loadZeitreise, loadWortZwilling, loadStats, withStatsLock, getLemmataIndex, cacheGet, cacheSet, DATA } from '../store.js'
+import { load, loadReadOnly, save, loadZeitreise, loadWortZwilling, loadStats, withStatsLock, getLemmataIndex, cacheGet, cacheSet, DATA } from '../store.js'
 import { belegeLimiter, statsLimiter, feedbackLimiter } from '../middleware/rateLimiter.js'
 import { serverError } from '../middleware/auth.js'
 import { validate, statsSchema, feedbackSchema, belegeQuerySchema, archivQuerySchema, qQuerySchema, bonusQuerySchema } from '../middleware/validate.js'
@@ -19,7 +19,7 @@ function todayDatum() {
 router.get('/health', (_req, res) => {
   let lastEntry = null
   try {
-    const kalender = load('kalender.json')
+    const kalender = loadReadOnly('kalender.json')
     const keys = Object.keys(kalender).sort()
     lastEntry = keys[keys.length - 1] || null
   } catch { /* ignorieren */ }
@@ -38,7 +38,7 @@ router.get('/api/v1/heute', (req, res) => {
     const today     = todayDatum()
     const datum     = req.query.datum || today.mmdd
     const year      = today.year
-    const kalender       = load('kalender.json')
+    const kalender       = loadReadOnly('kalender.json')
     const { byId }       = getLemmataIndex()
 
     const ids = kalender[datum]
@@ -55,7 +55,7 @@ router.get('/api/v1/heute', (req, res) => {
 router.get('/api/v1/zeitreise', (req, res) => {
   try {
     const datum     = req.query.datum || todayDatum().mmdd
-    const zeitreise = loadZeitreise()
+    const zeitreise = loadReadOnly('zeitreise.json') ?? {}
     const entry     = zeitreise[datum]
     if (!entry) return res.status(404).json({ error: `Kein Zeitreise-Eintrag für ${datum}` })
     // pos aus lemmata.json ergänzen, falls vorhanden
@@ -71,7 +71,7 @@ router.get('/api/v1/zeitreise', (req, res) => {
 router.get('/api/v1/wortzwilling', (req, res) => {
   try {
     const datum = req.query.datum || todayDatum().mmdd
-    const wz    = loadWortZwilling()
+    const wz    = loadReadOnly('wortzwilling.json') ?? {}
     const entry = wz[datum]
     if (!entry) return res.status(404).json({ error: `Kein Wort-Zwilling-Eintrag für ${datum}` })
     // Scores nicht ans Frontend senden (spielrelevante Antworten sind zuordnung-Felder)
