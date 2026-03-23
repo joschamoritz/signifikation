@@ -262,6 +262,15 @@ router.delete('/admin/tag/:datum', adminLimiter, requireAuth, (req, res) => {
   res.json({ ok: true })
 })
 
+/** POST /admin/backup/gist – manuell Backup nach GitHub Gist anstoßen */
+router.post('/admin/backup/gist', adminLimiter, requireAuth, async (req, res) => {
+  try {
+    const { runBackup } = await import('../backup.js')
+    const result = await runBackup()
+    res.json({ ok: true, ...result })
+  } catch (err) { adminError(res, err) }
+})
+
 /** GET /admin/backup – alle JSON-Daten als Bundle */
 router.get('/admin/backup', adminLimiter, requireAuth, (req, res) => {
   try {
