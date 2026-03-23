@@ -1,3 +1,4 @@
+import { randomUUID } from 'crypto'
 import logger from '../logger.js'
 
 const IS_PROD   = process.env.NODE_ENV === 'production'
@@ -8,7 +9,7 @@ const SESSION_TTL_MS = 8 * 60 * 60 * 1000
 const sessions = new Map()   // token → expiresAt
 
 export function createSession() {
-  const token     = crypto.randomUUID()
+  const token     = randomUUID()
   const expiresAt = Date.now() + SESSION_TTL_MS
   sessions.set(token, expiresAt)
   return { token, expiresAt }
