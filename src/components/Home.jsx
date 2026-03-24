@@ -264,7 +264,7 @@ export default function Home({
                   <span className="test-pos-rule" />
                   <span className="test-entry-category">in Arbeit</span>
                 </div>
-                <p className="test-definition">Ein neues Wortspiel befindet sich in Entwicklung. Bald mehr.</p>
+                <p className="test-definition">noch nicht lemmatisiert. — Belege in Bearbeitung; Aufnahme in späteren Auflagen vorgesehen.</p>
                 <div className="test-entry-footer">
                   <span className="test-status">Demnächst verfügbar.</span>
                   <span className="test-cta test-cta--disabled" aria-hidden="true">—</span>
@@ -337,7 +337,11 @@ export default function Home({
 
         {/* ── Kolophon ─────────────────────────────────────── */}
         <footer className="test-colophon" role="contentinfo">
-          <span className="test-colophon-ornament" aria-hidden="true">· · ·</span>
+          <span className="test-colophon-ornament" aria-hidden="true">
+          {[playedGames.length > 0, !!zrPlayed, !!wzPlayed].map((played, i) =>
+            played ? '✦' : '·'
+          ).join(' ')}
+        </span>
           <p className="feedback-hint" style={{ marginBottom: '16px' }}>
             Fehler oder Anregungen? <a href="mailto:info@signifikation.de">Schreib uns.</a>
           </p>

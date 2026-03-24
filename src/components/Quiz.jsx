@@ -152,10 +152,17 @@ export default function Quiz({ lemma, currentRound, onRoundComplete }) {
           <div className="round-feedback-score">
             <span className="round-score-display">+{roundScore}</span>
             <span className="round-score-label">
-              {roundScore === 3 && 'Perfekt!'}
-              {roundScore === 2 && 'Gut gemacht!'}
-              {roundScore === 1 && 'Einen dabei'}
-              {roundScore === 0 && 'Weiter üben'}
+              {(() => {
+                const v = new Date().toISOString().slice(0,10).replace(/-/g,'')
+                const seed = (parseInt(v, 10) + currentRound) % 4
+                const labels = {
+                  3: ['treffend','präzise','belegt','nachgewiesen'],
+                  2: ['nahezu','weitgehend','annähernd','überwiegend'],
+                  1: ['bedingt','partiell','vereinzelt','ansatzweise'],
+                  0: ['nicht belegt','fraglich','abweichend','ungesichert'],
+                }
+                return <em>{labels[roundScore][seed]}</em>
+              })()}
             </span>
           </div>
           <div className="round-feedback-answer">
