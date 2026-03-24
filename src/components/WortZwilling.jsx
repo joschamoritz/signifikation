@@ -48,19 +48,24 @@ export default function WortZwilling({ data, onBack, onFinish, savedResult = nul
     jokerTimer.current = setTimeout(() => setJokerVisible(true), 20000)
   }
 
+  const [jokerMsg, setJokerMsg] = useState(null)
+
   function activateJoker() {
     if (jokerUsed || phase !== 'play') return
     setJokerUsed(true)
     setJokerVisible(false)
     clearTimeout(jokerTimer.current)
-    // Zwei Wörter aus derselben Gruppe heraussuchen (möglichst noch nicht korrekt zugeordnet)
     const groupA = data.kollokatoren.filter(k => k.zuordnung === 'A').map(k => k.wort)
     const groupB = data.kollokatoren.filter(k => k.zuordnung === 'B').map(k => k.wort)
     const wrongA = groupA.filter(w => locations[w] !== 'A')
     const wrongB = groupB.filter(w => locations[w] !== 'B')
     const pool = wrongA.length >= wrongB.length ? groupA : groupB
     const pair = shuffle([...pool]).slice(0, 2)
-    if (pair.length === 2) setJokerCluster(pair)
+    if (pair.length === 2) {
+      setJokerCluster(pair)
+      setJokerMsg(pair)
+      setTimeout(() => setJokerMsg(null), 4000)
+    }
   }
 
   // IPA für beide Wörter
@@ -223,6 +228,12 @@ export default function WortZwilling({ data, onBack, onFinish, savedResult = nul
           : <p className="wz-bank-done">Alle Wörter zugeordnet ✓</p>
         }
       </div>
+
+      {jokerMsg && (
+        <p className="wz-joker-msg" aria-live="polite">
+          <em><strong>{jokerMsg[0]}</strong> und <strong>{jokerMsg[1]}</strong> gehören demselben Wort zu.</em>
+        </p>
+      )}
 
       {selected && (
         <p className="wz-hint">Tippe auf eine Zone, um <strong>{selected}</strong> einzuordnen</p>
