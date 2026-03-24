@@ -3,7 +3,7 @@ import { API } from '../config'
 
 
 export default function LemmaSelection({ lemmata, playedIds = [], onSelect, onViewResult, onBack }) {
-  const [closedNotiz, setClosedNotiz] = useState(new Set())
+  const [closedNotiz, setClosedNotiz] = useState(() => new Set(lemmata.map(l => l.id)))
   const [ipaMap, setIpaMap] = useState({})
   const [ipaLoading, setIpaLoading] = useState(new Set(lemmata.map(l => l.lemma)))
 
