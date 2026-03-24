@@ -91,6 +91,11 @@ export default function Quiz({ lemma, currentRound, onRoundComplete }) {
         <p id="quiz-instruction" className="quiz-instruction">
           Wähle die 3 stärksten Kollokate von <strong>{lemma.lemma}</strong>
         </p>
+        {options.length < 10 && (
+          <p className="quiz-options-hint" aria-live="polite">
+            <em>{options.length} Kollokate verfügbar</em>
+          </p>
+        )}
       </header>
 
       <div className="options-grid" aria-describedby="quiz-instruction">
