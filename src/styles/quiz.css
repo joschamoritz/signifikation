@@ -60,6 +60,7 @@
 .quiz-instruction { font-size: 0.875rem; color: var(--muted); max-width: 340px }
 .quiz-instruction strong { color: var(--text) }
 .quiz-options-hint { font-size: 0.75rem; color: var(--muted); opacity: 0.7; margin-top: 4px }
+.option--grayed    { opacity: 0.28; pointer-events: none; text-decoration: line-through }
 
 /* Option list – single column */
 .options-grid {

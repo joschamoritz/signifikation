@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { shuffle } from '../utils/gameLogic'
 import { API } from '../config'
 import WzResultsView, { computeScore } from './WzResultsView'
@@ -27,6 +27,41 @@ export default function WortZwilling({ data, onBack, onFinish, savedResult = nul
   const [dragging, setDragging] = useState(null) // aktuell gezogenes Wort
   const [dragOver, setDragOver] = useState(null) // 'A' | 'B' | 'bank' | null
   const [phase, setPhase]       = useState(savedResult ? 'results' : 'play')
+
+  // ── Joker ────────────────────────────────────────────────────
+  const [jokerVisible, setJokerVisible] = useState(false)
+  const [jokerUsed,    setJokerUsed]    = useState(false)
+  const [jokerCluster, setJokerCluster] = useState(null) // [word1, word2] gleiche Gruppe
+  const jokerTimer = useRef(null)
+
+  useEffect(() => {
+    if (phase !== 'play' || jokerUsed) return
+    setJokerVisible(false)
+    jokerTimer.current = setTimeout(() => setJokerVisible(true), 20000)
+    return () => clearTimeout(jokerTimer.current)
+  }, [phase, jokerUsed])
+
+  function resetJokerTimer() {
+    if (jokerUsed || phase !== 'play') return
+    setJokerVisible(false)
+    clearTimeout(jokerTimer.current)
+    jokerTimer.current = setTimeout(() => setJokerVisible(true), 20000)
+  }
+
+  function activateJoker() {
+    if (jokerUsed || phase !== 'play') return
+    setJokerUsed(true)
+    setJokerVisible(false)
+    clearTimeout(jokerTimer.current)
+    // Zwei Wörter aus derselben Gruppe heraussuchen (möglichst noch nicht korrekt zugeordnet)
+    const groupA = data.kollokatoren.filter(k => k.zuordnung === 'A').map(k => k.wort)
+    const groupB = data.kollokatoren.filter(k => k.zuordnung === 'B').map(k => k.wort)
+    const wrongA = groupA.filter(w => locations[w] !== 'A')
+    const wrongB = groupB.filter(w => locations[w] !== 'B')
+    const pool = wrongA.length >= wrongB.length ? groupA : groupB
+    const pair = shuffle([...pool]).slice(0, 2)
+    if (pair.length === 2) setJokerCluster(pair)
+  }
 
   // IPA für beide Wörter
   const [ipaA, setIpaA] = useState(null)
@@ -129,7 +164,7 @@ export default function WortZwilling({ data, onBack, onFinish, savedResult = nul
   const remaining = 10 - zoneA.length - zoneB.length
 
   return (
-    <div className="screen wz-screen">
+    <div className="screen wz-screen" onClick={resetJokerTimer}>
       <button className="back-btn" onClick={onBack}>← Zurück</button>
       <header className="wz-header">
         <span className="wz-badge">Wort-Zwilling</span>
@@ -156,6 +191,9 @@ export default function WortZwilling({ data, onBack, onFinish, savedResult = nul
 
       <p className="wz-instruction">
         Ordne die Kollokate dem richtigen Wort zu.
+        {!jokerUsed && jokerVisible && (
+          <button className="joker-btn" onClick={e => { e.stopPropagation(); activateJoker() }} aria-label="Hinweis aktivieren" title="Hinweis"><em>i</em></button>
+        )}
       </p>
 
       {/* Wortbank */}
@@ -171,7 +209,7 @@ export default function WortZwilling({ data, onBack, onFinish, savedResult = nul
                 key={w}
                 role="button"
                 tabIndex={0}
-                className={`wz-chip${selected === w ? ' wz-chip--selected' : ''}${dragging === w ? ' wz-chip--dragging' : ''}`}
+                className={`wz-chip${selected === w ? ' wz-chip--selected' : ''}${dragging === w ? ' wz-chip--dragging' : ''}${jokerCluster?.includes(w) ? ' wz-chip--cluster' : ''}`}
                 draggable
                 onDragStart={e => onDragStart(e, w)}
                 onDragEnd={onDragEnd}
@@ -221,7 +259,7 @@ export default function WortZwilling({ data, onBack, onFinish, savedResult = nul
                     key={w}
                     role="button"
                     tabIndex={0}
-                    className={`wz-chip wz-chip--placed${dragging === w ? ' wz-chip--dragging' : ''}`}
+                    className={`wz-chip wz-chip--placed${dragging === w ? ' wz-chip--dragging' : ''}${jokerCluster?.includes(w) ? ' wz-chip--cluster' : ''}`}
                     draggable
                     onDragStart={e => onDragStart(e, w)}
                     onDragEnd={onDragEnd}

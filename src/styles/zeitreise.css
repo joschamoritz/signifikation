@@ -190,6 +190,11 @@
   border-color: var(--border);
   background: var(--surface2);
 }
+.zr-zone--blocked {
+  opacity: 0.35;
+  cursor: not-allowed;
+  pointer-events: none;
+}
 
 .zr-zone-period {
   font-size: 0.78rem;

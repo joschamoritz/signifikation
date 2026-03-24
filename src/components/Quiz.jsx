@@ -1,5 +1,5 @@
-import { useState, useMemo, useEffect } from 'react'
-import { getRundInfo, getRoundOptions, calculateScore } from '../utils/gameLogic'
+import { useState, useMemo, useEffect, useRef } from 'react'
+import { getRundInfo, getRoundOptions, calculateScore, shuffle } from '../utils/gameLogic'
 import { useBelege } from '../hooks/useBelege'
 import BelegePanel from './BelegePanel'
 
@@ -31,6 +31,39 @@ export default function Quiz({ lemma, currentRound, onRoundComplete }) {
   if (shouldSkip) return null
 
   const roundScore = submitted ? calculateScore(selected, kollokatoren) : null
+
+  // ── Joker ────────────────────────────────────────────────────
+  const [jokerVisible, setJokerVisible] = useState(false)
+  const [jokerUsed,    setJokerUsed]    = useState(false)
+  const [grayedWords,  setGrayedWords]  = useState(new Set())
+  const jokerTimer = useRef(null)
+
+  useEffect(() => {
+    if (submitted || jokerUsed) return
+    setJokerVisible(false)
+    jokerTimer.current = setTimeout(() => setJokerVisible(true), 15000)
+    return () => clearTimeout(jokerTimer.current)
+  }, [currentRound, submitted, jokerUsed])
+
+  function resetJokerTimer() {
+    if (jokerUsed || submitted) return
+    setJokerVisible(false)
+    clearTimeout(jokerTimer.current)
+    jokerTimer.current = setTimeout(() => setJokerVisible(true), 15000)
+  }
+
+  function activateJoker() {
+    if (jokerUsed || submitted) return
+    setJokerUsed(true)
+    setJokerVisible(false)
+    clearTimeout(jokerTimer.current)
+    const wrong = options.filter(opt => {
+      const k = kollokatoren.find(k => k.wort === opt.wort)
+      return (!k || k.rang > 3) && !selected.includes(opt.wort)
+    })
+    const toGray = new Set(shuffle([...wrong]).slice(0, 3).map(o => o.wort))
+    setGrayedWords(toGray)
+  }
 
   function selectedRank(word) {
     const i = selected.indexOf(word)
@@ -69,7 +102,7 @@ export default function Quiz({ lemma, currentRound, onRoundComplete }) {
   }
 
   return (
-    <div className="screen quiz-screen">
+    <div className="screen quiz-screen" onClick={resetJokerTimer}>
       <header className="quiz-header">
         <span className="quiz-game-badge">Kollokationen</span>
         <h1 className="quiz-lemma-word">{lemma.lemma}</h1>
@@ -87,7 +120,12 @@ export default function Quiz({ lemma, currentRound, onRoundComplete }) {
           ))}
           <span aria-hidden="true" className="round-dot round-dot--bonus" />
         </div>
-        <p className="round-title">Runde {currentRound + 1} · {roundLabel}</p>
+        <p className="round-title">
+          Runde {currentRound + 1} · {roundLabel}
+          {!submitted && !jokerUsed && jokerVisible && (
+            <button className="joker-btn" onClick={e => { e.stopPropagation(); activateJoker() }} aria-label="Hinweis aktivieren" title="Hinweis"><em>i</em></button>
+          )}
+        </p>
         <p id="quiz-instruction" className="quiz-instruction">
           Wähle die 3 stärksten Kollokate von <strong>{lemma.lemma}</strong>
         </p>
@@ -113,7 +151,8 @@ export default function Quiz({ lemma, currentRound, onRoundComplete }) {
           return (
             <button
               key={opt.wort}
-              className={`option${state ? ' ' + state : ''}${isActive ? ' option--beleg-active' : ''}`}
+              className={`option${state ? ' ' + state : ''}${isActive ? ' option--beleg-active' : ''}${!submitted && grayedWords.has(opt.wort) ? ' option--grayed' : ''}`}
+              disabled={!submitted && grayedWords.has(opt.wort) || undefined}
               style={{ animationDelay: submitted ? '0ms' : `${i * 35}ms` }}
               onClick={() => submitted ? handleLoadBelege(opt.wort) : toggleWord(opt.wort)}
               aria-label={ariaLabel}

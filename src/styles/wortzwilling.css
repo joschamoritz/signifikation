@@ -100,6 +100,7 @@
 .wz-chip--correct     { background: var(--success-bg); border-color: #86efac; color: var(--success); cursor: pointer }
 .wz-chip--wrong       { background: var(--error-bg);   border-color: #fca5a5; color: var(--error);   cursor: pointer }
 .wz-chip--beleg-active { outline: 2px solid var(--primary); outline-offset: 1px }
+.wz-chip--cluster      { border-bottom: 2px solid #c9a84c }
 .wz-chip-icon         { font-size: 0.75rem; font-weight: 700 }
 
 /* Drop-Zonen */
