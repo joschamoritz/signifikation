@@ -37,6 +37,21 @@
   text-align: center;
   line-height: 1.6;
 }
+.wz-joker-msg {
+  font-size: 0.82rem;
+  color: var(--muted);
+  text-align: center;
+  animation: jokerMsgFade 4s ease forwards;
+}
+.wz-joker-msg strong { color: var(--text) }
+
+@keyframes jokerMsgFade {
+  0%   { opacity: 0; transform: translateY(-4px) }
+  10%  { opacity: 1; transform: translateY(0) }
+  75%  { opacity: 1 }
+  100% { opacity: 0 }
+}
+
 .wz-hint {
   font-size: 0.82rem;
   color: var(--primary);
