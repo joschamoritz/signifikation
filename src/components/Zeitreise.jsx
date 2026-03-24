@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import { getMedal, shuffle } from '../utils/gameLogic'
 import { API } from '../config'
 import { lsGet, lsParse } from '../utils/storage'
@@ -65,6 +65,41 @@ export default function Zeitreise({ data, onBack, onFinish, savedResult }) {
     }
   }
 
+  // ── Joker ────────────────────────────────────────────────────
+  const [jokerVisible, setJokerVisible] = useState(false)
+  const [jokerUsed,    setJokerUsed]    = useState(false)
+  const [jokerBlock,   setJokerBlock]   = useState(null) // { chip, blockedJahrzehnt }
+  const jokerTimer = useRef(null)
+
+  useEffect(() => {
+    if (revealed || jokerUsed) return
+    setJokerVisible(false)
+    jokerTimer.current = setTimeout(() => setJokerVisible(true), 20000)
+    return () => clearTimeout(jokerTimer.current)
+  }, [revealed, jokerUsed])
+
+  function resetJokerTimer() {
+    if (jokerUsed || revealed) return
+    setJokerVisible(false)
+    clearTimeout(jokerTimer.current)
+    jokerTimer.current = setTimeout(() => setJokerVisible(true), 20000)
+  }
+
+  function activateJoker() {
+    if (jokerUsed || revealed) return
+    setJokerUsed(true)
+    setJokerVisible(false)
+    clearTimeout(jokerTimer.current)
+    // Wähle einen zufälligen noch nicht korrekt platzierten Chip
+    const candidates = paare.filter(p => placements[p.jahrzehnt] !== p.kollokat)
+    if (!candidates.length) return
+    const target = candidates[Math.floor(Math.random() * candidates.length)]
+    // Wähle eine zufällige falsche Periode zum Blockieren
+    const wrongPeriods = paare.map(p => p.jahrzehnt).filter(j => j !== target.jahrzehnt)
+    const blocked = wrongPeriods[Math.floor(Math.random() * wrongPeriods.length)]
+    setJokerBlock({ chip: target.kollokat, blockedJahrzehnt: blocked })
+  }
+
   // Pointer-drag state (works on touch + mouse)
   const pointerDragRef = useRef(null)
 
@@ -81,6 +116,7 @@ export default function Zeitreise({ data, onBack, onFinish, savedResult }) {
   // ── Core operation ───────────────────────────────────────────
   function placeChip(chip, jahrzehnt) {
     if (revealed) return
+    if (jokerBlock && jokerBlock.chip === chip && jokerBlock.blockedJahrzehnt === jahrzehnt) return
     setPlacements(prev => {
       const next = { ...prev }
       // Remove chip from any zone it currently occupies
@@ -192,7 +228,7 @@ export default function Zeitreise({ data, onBack, onFinish, savedResult }) {
   const remaining = paare.length - Object.keys(placements).length
 
   return (
-    <div className="screen zeitreise-screen">
+    <div className="screen zeitreise-screen" onClick={resetJokerTimer}>
       <button className="back-btn" onClick={onBack} aria-label="Zurück zur Startseite">← Zurück</button>
 
       {/* Header */}
@@ -209,6 +245,9 @@ export default function Zeitreise({ data, onBack, onFinish, savedResult }) {
         <p className="zeitreise-desc">
           Ordne jeden Kollokator dem Zeitraum zu, in dem er besonders
           häufig mit <em>{data.lemma}</em> aufgetreten ist.
+          {!revealed && !jokerUsed && jokerVisible && (
+            <button className="joker-btn" onClick={e => { e.stopPropagation(); activateJoker() }} aria-label="Hinweis aktivieren" title="Hinweis"><em>i</em></button>
+          )}
         </p>
       </div>
 
@@ -247,6 +286,8 @@ export default function Zeitreise({ data, onBack, onFinish, savedResult }) {
           const belegOpen = revealed && openBeleg === p.kollokat
           const belegData = belegeCache[p.kollokat]
 
+          const isJokerBlocked = jokerBlock && selected === jokerBlock.chip && p.jahrzehnt === jokerBlock.blockedJahrzehnt
+
           const zoneLabel = revealed
             ? `${formatPeriod(p.jahrzehnt)}: ${placed || p.kollokat}${isRight ? ', richtig' : isWrong ? ', falsch' : isMissed ? ', nicht belegt' : ''}`
             : `Zeitraum ${formatPeriod(p.jahrzehnt)}${placed ? `, belegt mit ${placed}` : ', leer'}`
@@ -257,7 +298,7 @@ export default function Zeitreise({ data, onBack, onFinish, savedResult }) {
                 className={[
                   'zr-zone',
                   placed    ? 'zr-zone--filled' : '',
-                  selected && !revealed ? 'zr-zone--droppable' : '',
+                  isJokerBlocked ? 'zr-zone--blocked' : selected && !revealed ? 'zr-zone--droppable' : '',
                   isRight   ? 'zr-zone--right'  : '',
                   isWrong   ? 'zr-zone--wrong'   : '',
                   isMissed  ? 'zr-zone--missed'  : '',
