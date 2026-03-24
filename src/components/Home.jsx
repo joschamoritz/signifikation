@@ -293,7 +293,7 @@ export default function Home({
             className={`test-footnote-body${infoOpen ? ' open' : ''}`}
             role="region"
           >
-            <p className="home-card-text home-card-text--dropcap">
+            <p>
               Kollokationen sind <strong>charakteristische syntagmatische Wortverbindungen</strong>,
               in denen ein Element (die <strong>Basis</strong>) den anderen Bestandteil (den{' '}
               <strong>Kollokator</strong>) semantisch selegiert. Man sagt <em>blondes Haar</em> und
@@ -301,19 +301,19 @@ export default function Home({
               weil der konventionalisierte Sprachgebrauch <em>blond</em> als typischen Kollokator
               von <em>Haar</em> fordert.<sup>1</sup>
             </p>
-            <p className="home-card-text">
+            <p>
               Kollokationen liegen zwischen freien Wortverbindungen (<em>rotes Auto</em>) und
               Idiomen (<em>ins Gras beißen</em>): semantisch motiviert, aber lexikalisch
               konventionalisiert.
             </p>
-            <p className="home-card-text">
+            <p>
               Der <strong>logDice-Wert</strong><sup>2</sup> misst die statistische Signifikanz
               von Kookkurrenzen im Korpus — je höher der Wert, desto charakteristischer die
               Verbindung. Die Daten stammen aus dem <strong>DWDS-Wortprofil</strong><sup>3</sup>{' '}
               und dem <strong>DiaCollo</strong>-System<sup>4</sup>, basierend auf mehreren
               Milliarden Textwörtern aus Tageszeitungen, Literatur und historischen Korpora.
             </p>
-            <ol className="home-card-footnotes">
+            <ol className="test-footnote-footnotes">
               <li>Hausmann, F.&thinsp;J. (2003): Was sind eigentlich Kollokationen? In: Steyer, K. (Hrsg.): <em>Wortverbindungen — mehr oder weniger fest</em>. de Gruyter, S.&thinsp;309–334.</li>
               <li>Rychlý, P. (2008): A Lexicographer-Friendly Association Score. In: <em>Proceedings of RASLAN 2008</em>, S.&thinsp;6–9.</li>
               <li>DWDS-Wortprofil, erstellt durch das Digitale Wörterbuch der deutschen Sprache, Berlin-Brandenburgische Akademie der Wissenschaften (BBAW).</li>

@@ -481,6 +481,28 @@
   color: var(--t-accent-dk);
 }
 
+.test-footnote-body sup {
+  font-size: 0.65rem;
+  vertical-align: super;
+  color: var(--t-accent);
+  font-weight: 600;
+}
+
+.test-footnote-footnotes {
+  margin-top: 12px;
+  padding-left: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.test-footnote-footnotes li {
+  font-size: 0.72rem;
+  color: var(--t-muted);
+  line-height: 1.5;
+  opacity: 0.8;
+}
+
 /* ── Streak – Wörterbuchstil ───────────────────────────────── */
 .test-streak {
   display: flex;
