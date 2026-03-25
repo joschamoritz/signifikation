@@ -274,28 +274,45 @@ def extrahiere_pol_reden() -> list[dict]:
 
 
 def extrahiere_german_commons() -> list[dict]:
-    """German Commons .txt: Dokumente durch Doppel-Newline getrennt."""
+    """German Commons .txt: HuggingFace-Dokumente durch Doppel-Newline getrennt.
+
+    Jedes HF-Dokument kann mehrere KB bis MB groß sein (z.B. eine vollständige
+    Reichstagssitzung). Um den spaCy-5000-Zeichen-Limit zu umgehen, werden
+    lange Dokumente zusätzlich in Absätze (~500–3000 Zeichen) aufgeteilt.
+    """
     print("\n── German Commons")
     basis = KORPORA / "german-commons"
     META = {
-        "reichtagsprotokolle.txt": ("pol_reden", "parlament",   "historisch"),
-        "dibiphil.txt":            ("dibilit",   "literatur",    "historisch"),
+        "reichtagsprotokolle.txt": ("reichtagsprotokolle", "parlament",  "historisch"),
+        "dibiphil.txt":            ("dibiphil",             "literatur",  "historisch"),
     }
+    CHUNK_MAX = 3000   # Absätze länger als dies werden nochmals geteilt
     eintraege = []
     for txt_datei in sorted(basis.glob("*.txt")):
         quelle, genre, epoche = META.get(txt_datei.name, ("german_commons", "diverses", "historisch"))
         inhalt = txt_datei.read_text(encoding="utf-8", errors="replace")
-        for i, abschnitt in enumerate(inhalt.split("\n\n")):
+        n = 0
+        for abschnitt in inhalt.split("\n\n"):
             text = bereinige_text(abschnitt)
-            if len(text) > 100:
-                eintraege.append({
-                    "id":     f"german_commons/{txt_datei.stem}/{i:06d}",
-                    "text":   text,
-                    "quelle": quelle,
-                    "genre":  genre,
-                    "epoche": epoche,
-                    "jahr":   None,
-                })
+            if len(text) < 100:
+                continue
+            # Lange HF-Dokumente weiter in Absätze splitten
+            teile = [text] if len(text) <= CHUNK_MAX else [
+                text[j:j + CHUNK_MAX] for j in range(0, len(text), CHUNK_MAX)
+            ]
+            for teil in teile:
+                teil = teil.strip()
+                if len(teil) >= 100:
+                    eintraege.append({
+                        "id":     f"german_commons/{txt_datei.stem}/{n:07d}",
+                        "text":   teil,
+                        "quelle": quelle,
+                        "genre":  genre,
+                        "epoche": epoche,
+                        "jahr":   None,
+                    })
+                    n += 1
+        print(f"  {txt_datei.name}: {n:,} Abschnitte")
     return eintraege
 
 

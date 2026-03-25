@@ -104,6 +104,29 @@ QUELLEN_META = {
         "Deutsches Textarchiv – DTA Soldatenbriefe. deutschestextarchiv.de",
         "CC BY-SA 4.0"
     ),
+    "humboldt-digital": (
+        "Deutsches Textarchiv – Edition Humboldt Digital. deutschestextarchiv.de",
+        "CC BY-SA 4.0"
+    ),
+    "dta-dingler": (
+        "Deutsches Textarchiv – Dinglers Polytechnisches Journal (1820–1931). "
+        "deutschestextarchiv.de",
+        "CC BY-SA 4.0"
+    ),
+    "dta-patiententexte": (
+        "Deutsches Textarchiv – Patiententexte. deutschestextarchiv.de",
+        "CC BY-SA 4.0"
+    ),
+    "reichtagsprotokolle": (
+        "Verhandlungen des Deutschen Reichstags (1867–1942). "
+        "German Commons Corpus, coral-nlp/german-commons. Zenodo",
+        "CC BY-SA 4.0"
+    ),
+    "dibiphil": (
+        "DiBiPhil – Digitale Bibliothek Philosophie. "
+        "German Commons Corpus, coral-nlp/german-commons. Zenodo",
+        "CC BY-SA 4.0"
+    ),
     "gei_digital": (
         "GEI-Digital, Leibniz-Institut für Bildungsmedien / Georg-Eckert-Institut. "
         "Zenodo. doi:10.5281/zenodo.15729290",
