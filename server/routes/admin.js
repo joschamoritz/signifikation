@@ -1,8 +1,8 @@
 import express          from 'express'
 import { fileURLToPath } from 'url'
 import { dirname, join }  from 'path'
-import { fetchLemma, fetchBonusQuestion, fetchRelation, POS_ROUNDS } from '../wortprofil.js'
-import { fetchZeitreise, debugDiaCollo, clearCorporaCache } from '../diacollo.js'
+import { fetchLemma, fetchBonusQuestion, fetchRelation, fetchZeitreise, POS_ROUNDS } from '../wortprofil.js'
+import { debugDiaCollo, clearCorporaCache } from '../diacollo.js'
 import { fetchWortZwilling } from '../wortzwilling.js'
 import { load, loadReadOnly, save, loadZeitreise, loadWortZwilling, loadStats, getLemmataIndex, DATA } from '../store.js'
 import { adminLimiter } from '../middleware/rateLimiter.js'
@@ -138,6 +138,7 @@ router.post('/admin/tag', adminLimiter, requireAuth, validate(adminTagSchema), a
       entry.notiz       = notizen[i]      || ''
       entry.link        = links[i]        || ''
       entry.definition  = definitionen[i] || ''
+      entry.bonusFrage  = await fetchBonusQuestion(wort, pos).catch(() => null)
       // Direkter Index-Lookup statt findIndex
       const { byId } = getLemmataIndex()
       if (byId.has(entry.id)) {

@@ -1,6 +1,5 @@
 import express        from 'express'
 import { join }         from 'path'
-import { fetchBonusQuestion } from '../wortprofil.js'
 import { fetchBelege, belegeVerfuegbar } from '../belege.js'
 import { load, loadReadOnly, save, loadZeitreise, loadWortZwilling, loadStats, withStatsLock, getLemmataIndex, cacheGet, cacheSet, DATA } from '../store.js'
 import { belegeLimiter, statsLimiter, feedbackLimiter } from '../middleware/rateLimiter.js'
@@ -192,15 +191,13 @@ router.get('/api/v1/ipa', validate(qQuerySchema, 'query'), async (req, res) => {
   } catch (err) { serverError(res, err) }
 })
 
-/** GET /api/bonus – Bonusfrage für ein Lemma */
-router.get('/api/v1/bonus', validate(bonusQuerySchema, 'query'), async (req, res) => {
+/** GET /api/bonus – Bonusfrage für ein Lemma (beim Admin-Eintrag vorberechnet) */
+router.get('/api/v1/bonus', validate(bonusQuerySchema, 'query'), (req, res) => {
   const { id } = req.query
   try {
     const { byId } = getLemmataIndex()
     const l = byId.get(id)
-    if (!l) return res.json(null)
-    const bonus = await fetchBonusQuestion(l.lemma, l.pos || 'Substantiv')
-    res.json(bonus)
+    res.json(l?.bonusFrage ?? null)
   } catch {
     res.json(null)
   }

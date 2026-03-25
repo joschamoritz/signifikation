@@ -195,6 +195,99 @@ export async function fetchLemma(lemma, pos = 'Substantiv') {
   }
 }
 
+// ── POS-Rang für Zeitreise (Substantiv/Adjektiv bevorzugt) ───────────────────
+const ZR_POS_RANK = { 'Substantiv': 0, 'Adjektiv': 0, 'Adverb': 1 }
+
+function zrBestCollokat(items, lemmaLower, lemmaStamm, usedWords) {
+  return items
+    .filter(it => {
+      const w = it.wort.toLowerCase()
+      return w !== lemmaLower && !w.startsWith(lemmaStamm) &&
+             !it.wort.includes(' ') && !it.wort.endsWith('-') &&
+             it.wort.length > 2 && !usedWords.has(w)
+    })
+    .sort((a, b) => {
+      const ra = ZR_POS_RANK[a.pos] ?? 2
+      const rb = ZR_POS_RANK[b.pos] ?? 2
+      if (ra !== rb) return ra - rb
+      return b.score - a.score
+    })[0] ?? null
+}
+
+/**
+ * Zeitreise-Daten aus zeitreise-Tabelle abrufen.
+ * Äquivalent zu diacollo.js fetchZeitreise() – gleiches Rückgabeformat.
+ * Gibt null zurück wenn nicht genügend Dekaden vorhanden.
+ */
+export async function fetchZeitreise(lemma) {
+  try {
+    const rows = stmt(`
+      SELECT dep_lemma, dep_pos, jahrzehnt, score
+      FROM zeitreise
+      WHERE lemma = ?
+      ORDER BY jahrzehnt ASC, score DESC
+    `).all(lemma.toLowerCase())
+
+    if (!rows.length) return null
+
+    const lemmaLower = lemma.toLowerCase()
+    const lemmaStamm = lemmaLower.slice(0, 4)
+
+    // Nach Jahrzehnt gruppieren
+    const byDecade = new Map()
+    for (const r of rows) {
+      if (!byDecade.has(r.jahrzehnt)) byDecade.set(r.jahrzehnt, [])
+      byDecade.get(r.jahrzehnt).push({ wort: r.dep_lemma, pos: r.dep_pos, score: r.score })
+    }
+
+    // Nur Dekaden mit mind. 3 gültigen Kollokatoren
+    const decades = [...byDecade.entries()]
+      .filter(([, items]) =>
+        items.filter(it => {
+          const w = it.wort.toLowerCase()
+          return w !== lemmaLower && !w.startsWith(lemmaStamm) && it.wort.length > 2
+        }).length >= 3
+      )
+      .sort(([a], [b]) => a - b)
+
+    if (decades.length < 5) return null
+
+    // perioden: alle Dekaden mit bestem Kollokator (für Visualisierung)
+    const perioden = []
+    for (const [jahrzehnt, items] of decades) {
+      const best = zrBestCollokat(items, lemmaLower, lemmaStamm, new Set())
+      if (best) perioden.push({ jahrzehnt: String(jahrzehnt), kollokat: best.wort, korpus: 'wortprofil', score: best.score })
+    }
+
+    // paare: 5 Quintile (gleichmäßig verteilt, kein Wort-Overlap)
+    const n = decades.length
+    const paare = []
+    const usedWords = new Set()
+    for (let i = 0; i < 5; i++) {
+      const from = Math.round(i * (n - 1) / 4)
+      const to   = i < 4 ? Math.round((i + 1) * (n - 1) / 4) - 1 : n - 1
+      let best = null, bestScore = -Infinity, bestDecade = null
+      for (let j = from; j <= to; j++) {
+        const [jahrzehnt, items] = decades[j]
+        const c = zrBestCollokat(items, lemmaLower, lemmaStamm, usedWords)
+        if (c && c.score > bestScore) {
+          best = c; bestScore = c.score; bestDecade = jahrzehnt
+        }
+      }
+      if (!best) {
+        logger.warn(`fetchZeitreise: Kein Kollokator für Quintil ${i + 1} [${lemma}]`)
+        return null
+      }
+      usedWords.add(best.wort.toLowerCase())
+      paare.push({ jahrzehnt: String(bestDecade), kollokat: best.wort, korpus: 'wortprofil', score: best.score })
+    }
+
+    return { lemma, paare, perioden }
+  } catch {
+    return null
+  }
+}
+
 /**
  * Bonusfrage abrufen – Äquivalent zu dwds.js fetchBonusQuestion().
  */
