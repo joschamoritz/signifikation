@@ -1,7 +1,7 @@
 import express          from 'express'
 import { fileURLToPath } from 'url'
 import { dirname, join }  from 'path'
-import { fetchLemma, fetchBonusQuestion, fetchRelation, POS_ROUNDS } from '../dwds.js'
+import { fetchLemma, fetchBonusQuestion, fetchRelation, POS_ROUNDS } from '../wortprofil.js'
 import { fetchZeitreise, debugDiaCollo, clearCorporaCache } from '../diacollo.js'
 import { fetchWortZwilling } from '../wortzwilling.js'
 import { load, loadReadOnly, save, loadZeitreise, loadWortZwilling, loadStats, getLemmataIndex, DATA } from '../store.js'

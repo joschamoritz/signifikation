@@ -140,3 +140,13 @@ vite.config.ts.timestamp-*
 .claude/
 LogoNetz.png
 server/check-diacollo-corpora.mjs
+
+# Wortprofil-Pipeline (Korpora, DBs und venv – zu groß für Git)
+wortprofil/01_download/korpora/
+wortprofil/wortprofil-env/
+wortprofil/02_parsed/
+wortprofil/03_deps/
+wortprofil/05_db/
+wortprofil/06_belege/belege.db
+wortprofil/00_setup/wordprofile-src
+wortprofil/**/__pycache__/

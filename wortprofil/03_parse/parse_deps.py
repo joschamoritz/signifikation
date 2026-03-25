@@ -1,0 +1,321 @@
+"""
+Phase 3 – Dependency Parsing & Kollokations-Extraktion
+Aufruf: python parse_deps.py [--only <key>] [--dry-run] [--workers N]
+
+Liest JSONL aus 02_parsed/, parst mit spaCy de_core_news_lg,
+schreibt Rohtriples in SQLite 03_deps/triples.db.
+
+Änderungen gegenüber v1:
+- PRON als erlaubter Dep-POS für SUBJA/OBJA (man, er, sie, …)
+- `jahr` (INT) aus JSONL-Metadaten in triples gespeichert
+- forms-Tabelle entfernt (war ungenutzt, form = dep_lemma direkt)
+"""
+
+import argparse
+import json
+import sqlite3
+import sys
+from pathlib import Path
+
+PARSED_DIR = Path(__file__).parent.parent / "02_parsed"
+DEPS_DIR   = Path(__file__).parent.parent / "03_deps"
+DEPS_DIR.mkdir(exist_ok=True)
+DB_PATH    = DEPS_DIR / "triples.db"
+PROGRESS   = DEPS_DIR / "progress.json"
+
+# Batch-Größe für nlp.pipe()
+BATCH_SIZE  = 500
+# Commit-Intervall (Anzahl Docs)
+COMMIT_EVERY = 100_000
+
+# ── Relation-Mapping TIGER-Labels → DWDS-Stil ─────────────────────────────
+# de_core_news_lg nutzt TIGER-Treebank-Labels (sb, oa, da, ag, nk, mo, cj, cd …)
+
+# POS-Tags → DWDS-Bezeichnung
+POS_MAP = {
+    "NOUN":  "Substantiv",
+    "PROPN": "Substantiv",
+    "VERB":  "Verb",
+    "AUX":   "Verb",
+    "ADJ":   "Adjektiv",
+    "ADV":   "Adverb",
+    "PRON":  "Pronomen",
+}
+
+NOUN_POS    = {"NOUN", "PROPN"}
+VERB_POS    = {"VERB", "AUX"}
+CONTENT_POS = NOUN_POS | VERB_POS | {"ADJ", "ADV"}
+
+# Für SUBJA/OBJA: Pronomen zusätzlich erlaubt (man, er, sie, es, …)
+SUBJ_DEP_POS = NOUN_POS | {"PRON"}
+
+# Min. Wortlänge (Zeichen) für Lemma
+MIN_LEN = 2
+
+
+def init_db(conn: sqlite3.Connection):
+    conn.execute("PRAGMA journal_mode=WAL")
+    conn.execute("PRAGMA synchronous=NORMAL")
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS triples (
+            head_lemma  TEXT    NOT NULL,
+            head_pos    TEXT    NOT NULL,
+            relation    TEXT    NOT NULL,
+            dep_lemma   TEXT    NOT NULL,
+            dep_pos     TEXT    NOT NULL,
+            prep        TEXT    NOT NULL DEFAULT '',
+            jahr        INTEGER NOT NULL DEFAULT 0,
+            count       INTEGER NOT NULL DEFAULT 1,
+            PRIMARY KEY (head_lemma, head_pos, relation, dep_lemma, dep_pos, prep, jahr)
+        )
+    """)
+    conn.commit()
+
+
+def load_progress() -> set:
+    if PROGRESS.exists():
+        return set(json.loads(PROGRESS.read_text(encoding="utf-8")))
+    return set()
+
+
+def save_progress(done: set):
+    PROGRESS.write_text(json.dumps(sorted(done)), encoding="utf-8")
+
+
+def _valid_lem(lem: str) -> bool:
+    return len(lem) >= MIN_LEN and lem.isalpha()
+
+
+def extrahiere_triples(doc) -> list[tuple]:
+    """
+    Extrahiert Rohtriples aus einem geparsten spaCy-Doc (TIGER-Labels).
+
+    Rückgabe: Liste von (head_lemma, head_pos_spacy, relation, dep_lemma, dep_pos_spacy, prep)
+    """
+    triples = []
+
+    for token in doc:
+        if token.is_space or not token.is_alpha:
+            continue
+        dep  = token.dep_
+        head = token.head
+        t_pos = token.pos_
+        h_pos = head.pos_
+
+        # ── SUBJA: Subjekt (sb) ────────────────────────────────────────────
+        if dep == "sb" and h_pos in VERB_POS and t_pos in SUBJ_DEP_POS:
+            hl = head.lemma_.lower()
+            dl = token.lemma_.lower()
+            if _valid_lem(hl) and _valid_lem(dl):
+                triples.append((hl, h_pos, "SUBJA", dl, t_pos, ""))
+
+        # ── OBJA: Akkusativobjekt (oa) ────────────────────────────────────
+        elif dep == "oa" and h_pos in VERB_POS and t_pos in SUBJ_DEP_POS:
+            hl = head.lemma_.lower()
+            dl = token.lemma_.lower()
+            if _valid_lem(hl) and _valid_lem(dl):
+                triples.append((hl, h_pos, "OBJA", dl, t_pos, ""))
+
+        # ── OBJD: Dativobjekt (da) ────────────────────────────────────────
+        elif dep == "da" and h_pos in VERB_POS and t_pos in NOUN_POS:
+            hl = head.lemma_.lower()
+            dl = token.lemma_.lower()
+            if _valid_lem(hl) and _valid_lem(dl):
+                triples.append((hl, h_pos, "OBJD", dl, t_pos, ""))
+
+        # ── GMOD: Genitivattribut (ag) ────────────────────────────────────
+        elif dep == "ag" and h_pos in NOUN_POS and t_pos in NOUN_POS:
+            hl = head.lemma_.lower()
+            dl = token.lemma_.lower()
+            if _valid_lem(hl) and _valid_lem(dl):
+                triples.append((hl, h_pos, "GMOD", dl, t_pos, ""))
+
+        # ── ATTR: Adjektivattribut (nk: ADJ→NOUN) ────────────────────────
+        elif dep == "nk" and h_pos in NOUN_POS and t_pos == "ADJ":
+            hl = head.lemma_.lower()
+            dl = token.lemma_.lower()
+            if _valid_lem(hl) and _valid_lem(dl):
+                triples.append((hl, h_pos, "ATTR", dl, "ADJ", ""))
+
+        # ── ADV: Adverbialbestimmung (mo: ADV→VERB) ───────────────────────
+        elif dep == "mo" and h_pos in VERB_POS and t_pos == "ADV":
+            hl = head.lemma_.lower()
+            dl = token.lemma_.lower()
+            if _valid_lem(hl) and _valid_lem(dl):
+                triples.append((hl, h_pos, "ADV", dl, "ADV", ""))
+
+        # ── PP: Präpositionalphrase (mo: ADP→VERB oder NOUN) ─────────────
+        # Struktur in TIGER: VERB/NOUN → mo → ADP, ADP → nk → NOUN
+        elif dep == "mo" and t_pos == "ADP" and h_pos in VERB_POS | NOUN_POS:
+            prep_lem = token.lemma_.lower()
+            hl = head.lemma_.lower()
+            if not _valid_lem(hl) or not prep_lem:
+                continue
+            for child in token.children:
+                if child.dep_ == "nk" and child.pos_ in NOUN_POS and child.is_alpha:
+                    dl = child.lemma_.lower()
+                    if _valid_lem(dl):
+                        triples.append((hl, h_pos, "PP", dl, child.pos_, prep_lem))
+
+        # ── KON: Koordination (cj) ────────────────────────────────────────
+        # Struktur: NOUN/VERB → cd → CCONJ → cj → NOUN/VERB
+        elif dep == "cj" and t_pos in CONTENT_POS:
+            if h_pos == "CCONJ" and head.head.pos_ == t_pos:
+                first = head.head
+                hl = first.lemma_.lower()
+                dl = token.lemma_.lower()
+                if _valid_lem(hl) and _valid_lem(dl) and hl != dl:
+                    triples.append((hl, t_pos, "KON", dl, t_pos, ""))
+
+        # ── PRED: Prädikativ (pd: NOUN/ADJ → AUX) ─────────────────────────
+        elif dep == "pd" and h_pos in VERB_POS and t_pos in NOUN_POS | {"ADJ"}:
+            hl = head.lemma_.lower()
+            dl = token.lemma_.lower()
+            if _valid_lem(hl) and _valid_lem(dl):
+                triples.append((hl, h_pos, "PRED", dl, t_pos, ""))
+
+    return triples
+
+
+def verarbeite_datei(jsonl_path: Path, nlp, conn: sqlite3.Connection,
+                     dry_run: bool, workers: int) -> int:
+    """Verarbeitet eine JSONL-Datei und schreibt Triples in die DB."""
+    print(f"\n── {jsonl_path.name}")
+
+    # Texte + Metadaten laden
+    eintraege = []
+    with jsonl_path.open(encoding="utf-8") as f:
+        for zeile in f:
+            zeile = zeile.strip()
+            if not zeile:
+                continue
+            try:
+                obj  = json.loads(zeile)
+                text = obj.get("text", "").strip()
+                if len(text) < 20:
+                    continue
+                jahr_raw = obj.get("jahr")
+                jahr = int(jahr_raw) if jahr_raw else 0
+                eintraege.append((text[:5000], {"jahr": jahr}))
+            except (json.JSONDecodeError, ValueError):
+                pass
+
+    print(f"  {len(eintraege):,} Dokumente geladen")
+    if dry_run:
+        print("  [dry-run] überspringe Parsing")
+        return 0
+
+    # Parsing & Extraktion
+    # key: (head_lem, head_pos, rel, dep_lem, dep_pos, prep, jahr)
+    batch_triples: dict[tuple, int] = {}
+    n_docs = 0
+
+    for doc, ctx in nlp.pipe(eintraege, as_tuples=True, batch_size=BATCH_SIZE,
+                              n_process=workers):
+        jahr = ctx["jahr"]
+        for triple in extrahiere_triples(doc):
+            hl, hp, rel, dl, dp, prep = triple
+            key = (hl, hp, rel, dl, dp, prep, jahr)
+            batch_triples[key] = batch_triples.get(key, 0) + 1
+        n_docs += 1
+        if n_docs % 10_000 == 0:
+            print(f"  {n_docs:,}/{len(eintraege):,} docs ...", flush=True)
+
+    # In DB schreiben
+    n_triples = 0
+    for (hl, hp, rel, dl, dp, prep, jahr), cnt in batch_triples.items():
+        h_pos_d = POS_MAP.get(hp, hp)
+        d_pos_d = POS_MAP.get(dp, dp)
+        conn.execute("""
+            INSERT INTO triples
+                (head_lemma, head_pos, relation, dep_lemma, dep_pos, prep, jahr, count)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT (head_lemma, head_pos, relation, dep_lemma, dep_pos, prep, jahr)
+            DO UPDATE SET count = count + excluded.count
+        """, (hl, h_pos_d, rel, dl, d_pos_d, prep, jahr, cnt))
+        n_triples += 1
+
+    conn.commit()
+    print(f"  [OK] {n_docs:,} Docs → {n_triples:,} unique Triples")
+    return n_triples
+
+
+# ── Konfig ─────────────────────────────────────────────────────────────────
+
+DATEIEN = [
+    "gesetze.jsonl",
+    "pol_reden.jsonl",
+    "bundestag_xml.jsonl",
+    "german_commons.jsonl",
+    "leipzig.jsonl",
+    "dibilit.jsonl",
+    "dta_kern.jsonl",
+    "dta_erweiterungen.jsonl",
+    "dta_github.jsonl",
+    "gei_digital.jsonl",
+    "ref_fnh.jsonl",
+    "ref_mhd.jsonl",
+    # Phase 2b – nachträglich extrahiert
+    "pitaval.jsonl",
+    "wikibooks.jsonl",
+    "wikivoyage.jsonl",
+    "bundestag_pdf.jsonl",
+]
+
+
+def main():
+    if hasattr(sys.stdout, "reconfigure"):
+        try:
+            sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+        except Exception:
+            pass
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--only",    help="Nur diese Datei verarbeiten (ohne .jsonl)")
+    parser.add_argument("--dry-run", action="store_true")
+    parser.add_argument("--workers", type=int, default=1,
+                        help="Anzahl spaCy-Prozesse (Standard: 1)")
+    parser.add_argument("--reset",   action="store_true",
+                        help="Datenbank und Fortschritt zurücksetzen")
+    args = parser.parse_args()
+
+    if args.reset:
+        DB_PATH.unlink(missing_ok=True)
+        PROGRESS.unlink(missing_ok=True)
+        print("[RESET] Datenbank und Fortschritt gelöscht.")
+
+    print("Lade spaCy-Modell de_core_news_lg ...")
+    import spacy
+    nlp = spacy.load("de_core_news_lg", disable=["ner"])
+    if "sentencizer" not in nlp.pipe_names and "senter" not in nlp.pipe_names:
+        nlp.add_pipe("sentencizer", first=True)
+    print(f"  Pipes: {nlp.pipe_names}")
+
+    conn = sqlite3.connect(DB_PATH)
+    init_db(conn)
+
+    erledigt = load_progress()
+    dateien  = DATEIEN if not args.only else [f"{args.only}.jsonl"]
+
+    gesamt = 0
+    for dateiname in dateien:
+        if dateiname in erledigt:
+            print(f"  [SKIP] {dateiname} (bereits verarbeitet)")
+            continue
+        pfad = PARSED_DIR / dateiname
+        if not pfad.exists():
+            print(f"  [SKIP] {pfad} nicht gefunden")
+            continue
+        n = verarbeite_datei(pfad, nlp, conn, args.dry_run, args.workers)
+        gesamt += n
+        if not args.dry_run:
+            erledigt.add(dateiname)
+            save_progress(erledigt)
+
+    conn.close()
+    print(f"\n=== Fertig. Gesamt: {gesamt:,} unique Triples ===")
+    print(f"Datenbank: {DB_PATH}")
+
+
+if __name__ == "__main__":
+    main()
