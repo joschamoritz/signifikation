@@ -1,6 +1,7 @@
 import express        from 'express'
 import { join }         from 'path'
-import { fetchBonusQuestion } from '../dwds.js'
+import { fetchBonusQuestion } from '../wortprofil.js'
+import { fetchBelege, belegeVerfuegbar } from '../belege.js'
 import { load, loadReadOnly, save, loadZeitreise, loadWortZwilling, loadStats, withStatsLock, getLemmataIndex, cacheGet, cacheSet, DATA } from '../store.js'
 import { belegeLimiter, statsLimiter, feedbackLimiter } from '../middleware/rateLimiter.js'
 import { serverError } from '../middleware/auth.js'
@@ -108,161 +109,24 @@ router.get('/api/v1/wortzwilling', (req, res) => {
  *
  * Response 200: { belege: [{ tokens: [{ w, ws, hl }], quelle: string }] }
  */
-router.get('/api/v1/belege', belegeLimiter, validate(belegeQuerySchema, 'query'), async (req, res) => {
-  const { collocate, lemma, rel, corpus, year } = req.query
+router.get('/api/v1/belege', belegeLimiter, validate(belegeQuerySchema, 'query'), (req, res) => {
+  const { collocate, lemma, year } = req.query
 
-  const cacheKey = `${lemma}|${collocate}|${rel||''}|${corpus||''}|${year||''}`
+  const cacheKey = `belege|${lemma}|${collocate}|${year||''}`
   const cached = cacheGet(cacheKey)
   if (cached) return res.json(cached)
 
-  const VALID_R_CORPORA = new Set(['kern', 'dta', 'dtae', 'dtak', 'ddr', 'politische_reden', 'bundestag', 'reichstag'])
-  const corpusForR = corpus && VALID_R_CORPORA.has(corpus) ? corpus : null
-
-  function corpusSuffix() {
-    let s = ''
-    if (corpusForR) s += `&corpus=${encodeURIComponent(corpusForR)}`
-    if (year) {
-      const y = parseInt(year)
-      if (!isNaN(y)) s += `&date=${y - 15}:${y + 15}`
-    }
-    return s
-  }
-
-  async function tryQuery(q, extra = '') {
-    const url = `https://www.dwds.de/r/?q=${encodeURIComponent(q)}&view=json&limit=10${extra}`
-    const r = await fetch(url)
-    if (!r.ok) return []
-    const data = await r.json()
-    return Array.isArray(data) ? data.filter(item => Array.isArray(item.ctx_?.[1])) : []
-  }
-
-  function noWiki(items) {
-    return items.filter(item => !(item.bibl_string || '').toLowerCase().includes('wikipedia'))
-  }
-
-  async function runQueries(queries, extra, filterWiki = true) {
-    let best = []
-    for (const q of queries) {
-      const r        = await tryQuery(q, extra)
-      const filtered = filterWiki ? noWiki(r) : r
-      if (filtered.length >= 2) return filtered
-      if (filtered.length > best.length) best = filtered
-    }
-    return best
-  }
-
-  function parseItem(item) {
-    const raw = item.ctx_[1]
-    const tokens = raw.map(t => ({ w: t.w, ws: t.ws === '1', hl: t.hl_ === 1 }))
-    return { tokens, quelle: item.bibl_string || '' }
+  if (!belegeVerfuegbar()) {
+    return res.json([])
   }
 
   try {
-    const L = `@${lemma}`
-    const C = `@${collocate}`
-
-    let queries
-    if (rel === 'OBJ') {
-      queries = [
-        `"${lemma} ${collocate}"`,
-        `"${collocate} ${lemma}"`,
-        `${C} #10 ${L}`,
-        `${L} #10 ${C}`,
-      ]
-    } else if (rel === 'KON') {
-      queries = [
-        `"${collocate} und ${lemma}"`,
-        `"${lemma} und ${collocate}"`,
-        `"${collocate} oder ${lemma}"`,
-        `"${lemma} oder ${collocate}"`,
-        `${C} #15 ${L}`,
-        `${L} #15 ${C}`,
-        `${C} #30 ${L}`,
-        `${L} #30 ${C}`,
-      ]
-    } else if (rel === '~ATTR') {
-      queries = [
-        `"${lemma}e ${collocate}"`,
-        `"${lemma}en ${collocate}"`,
-        `"${lemma}er ${collocate}"`,
-        `"${lemma} ${collocate}"`,
-        `${C} #5 ${L}`,
-        `${L} #5 ${C}`,
-      ]
-    } else if (rel === '~OBJ') {
-      queries = [
-        `"${lemma} ${collocate}"`,
-        `"${collocate} ${lemma}"`,
-        `${C} #10 ${L}`,
-        `${L} #10 ${C}`,
-      ]
-    } else if (rel === '~ADV') {
-      queries = [
-        `"${lemma} ${collocate}"`,
-        `"${collocate} ${lemma}"`,
-        `${C} #5 ${L}`,
-        `${L} #5 ${C}`,
-      ]
-    } else if (rel === 'ADV') {
-      queries = [
-        `"${collocate} ${lemma}"`,
-        `"${lemma} ${collocate}"`,
-        `${C} #5 ${L}`,
-        `${L} #5 ${C}`,
-      ]
-    } else {
-      queries = [
-        `"${collocate} ${lemma}"`,
-        `"${lemma} ${collocate}"`,
-        `${C} #10 ${L}`,
-        `${L} #10 ${C}`,
-        `${collocate} #10 ${lemma}`,
-        `${lemma} #10 ${collocate}`,
-        `${C} #20 ${L}`,
-        `${L} #20 ${C}`,
-        `${collocate} #20 ${lemma}`,
-        `${lemma} #20 ${collocate}`,
-      ]
-    }
-
-    const y          = year ? parseInt(year) : null
-    const extra      = corpusSuffix()
-    const corpusOnly = corpusForR ? `&corpus=${encodeURIComponent(corpusForR)}` : ''
-    const dateOnly   = y ? `&date=${y - 15}:${y + 15}` : ''
-    const dateWide   = y ? `&date=${y - 40}:${y + 40}` : ''
-    let results = []
-
-    if (corpus) {
-      results = await runQueries(queries, extra)
-      if (!results.length && corpusForR)
-        results = await runQueries(queries, corpusOnly)
-      if (!results.length && y)
-        results = await runQueries(queries, dateOnly)
-      if (!results.length && y)
-        results = await runQueries(queries, dateWide)
-    } else {
-      results = await runQueries(queries, '&corpus=kern')
-      if (results.length < 2) {
-        const r21 = await runQueries(queries, '&corpus=kern21')
-        if (r21.length > results.length) results = r21
-      }
-      if (!results.length) {
-        results = await runQueries(queries, '&corpus=dtak')
-        if (!results.length) results = await runQueries(queries, '&corpus=dtae')
-      }
-      if (!results.length) {
-        results = await runQueries(queries, '&corpus=dwdsxl')
-      }
-      if (!results.length) {
-        results = await runQueries(queries, '&corpus=dwdsxl', false)
-      }
-    }
-    const final = results.slice(0, 5).map(parseItem)
-    cacheSet(cacheKey, final)
-    res.json(final)
+    const results = fetchBelege(lemma, collocate, { limit: 5, year: year || null })
+    cacheSet(cacheKey, results)
+    res.json(results)
   } catch (err) {
     logger.error({ err }, 'Belege-Fehler')
-    serverError(res, err)
+    res.json([])
   }
 })
 

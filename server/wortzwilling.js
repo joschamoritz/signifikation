@@ -6,7 +6,7 @@
  * Hohe negative Differenz → charakteristisch für Wort B.
  */
 import logger from './logger.js'
-import { fetchRelation, POS_ROUNDS } from './dwds.js'
+import { fetchRelation, POS_ROUNDS } from './wortprofil.js'
 
 /** Aggregiert alle Relationen eines Wortes zu einem collocate→maxLogDice Map. */
 async function buildProfile(lemma, pos) {
