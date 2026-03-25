@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Über die App – Signifikation</title>
-  <meta name="description" content="Hintergründe zu Signifikation: Was sind Kollokationen, wie funktioniert der logDice-Wert und woher stammen die DWDS-Daten der BBAW?" />
+  <meta name="description" content="Hintergründe zu Signifikation: Was sind Kollokationen, wie funktioniert der logDice-Wert und wie wurden die Daten aus offenen Korpora gewonnen?" />
   <link rel="canonical" href="https://signifikation.de/ueber.html" />
   <script type="application/ld+json">
   {
@@ -32,7 +32,7 @@
         "name": "Woher stammen die Daten bei Signifikation?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "Die Kollokationsdaten stammen aus dem DWDS-Wortprofil der Berlin-Brandenburgischen Akademie der Wissenschaften (BBAW), basierend auf rund 7,5 Milliarden Textwörtern. Die historischen Daten für die Zeitreise-Runde entstammen dem DiaCollo-System desselben Instituts."
+          "text": "Die Kollokationsdaten werden mit einer eigenen Verarbeitungspipeline aus offen lizenzierten deutschen Korpora gewonnen. Das Sprachmodell spaCy de_core_news_lg analysiert die syntaktische Struktur der Texte; aus den gefundenen Abhängigkeitspaaren wird der logDice-Wert berechnet. Alle Korpora stehen unter offenen Lizenzen (CC BY, CC BY-SA, Gemeinfrei u.&thinsp;a.)."
         }
       },
       {
@@ -47,6 +47,15 @@
   }
   </script>
   <link rel="stylesheet" href="/static.css" />
+  <style>
+    .korpora-tabelle { width: 100%; border-collapse: collapse; font-size: 0.85rem; margin: 16px 0 12px; }
+    .korpora-tabelle th { font-family: 'DM Sans', system-ui, sans-serif; font-size: 9px; font-weight: 600; letter-spacing: 0.2em; text-transform: uppercase; color: #8a7f6e; border-bottom: 1.5px solid #d4c9b0; padding: 4px 8px 6px; text-align: left; }
+    .korpora-tabelle td { padding: 6px 8px; border-bottom: 0.5px solid #e8e2d8; color: #1a1a18; vertical-align: top; }
+    .korpora-tabelle tr:last-child td { border-bottom: none; }
+    .korpora-tabelle td:nth-child(3) { white-space: nowrap; }
+    .korpora-tabelle a { color: #9b1c1c; }
+    .lizenz-tag { display: inline-block; font-size: 0.75em; font-family: 'DM Sans', system-ui, sans-serif; font-weight: 600; letter-spacing: 0.05em; color: #5a5248; background: #f0ede8; padding: 1px 5px; border-radius: 3px; }
+  </style>
 </head>
 <body>
 <div class="wrapper">
@@ -68,7 +77,7 @@
     <strong>Signifikation</strong> den Prozess der Bedeutungsgebung — das Verhältnis zwischen
     einem sprachlichen Zeichen und dem, wofür es steht. Ferdinand de Saussures dyadisches
     Zeichenmodell, in dem <em>signifiant</em> (Lautbild) und <em>signifié</em>
-    (Vorstellung) untrennbar zusammengehören, stand Pate für das Konzept der App.<sup>5</sup>
+    (Vorstellung) untrennbar zusammengehören, stand Pate für das Konzept der App.<sup>3</sup>
   </p>
   <p>
     Gleichzeitig steckt im Wort das Ende von <em>Kollokation</em>, und der zugrundeliegende
@@ -101,21 +110,108 @@
 
   <h2>Die Daten</h2>
   <p>
-    Die Kollokationsdaten für das Hauptspiel stammen aus dem <strong>DWDS-Wortprofil</strong><sup>3</sup>
-    der Berlin-Brandenburgischen Akademie der Wissenschaften (BBAW), basierend auf rund
-    7,5 Milliarden Textwörtern aus großen Tageszeitungen (<em>FAZ</em>, <em>SZ</em>,
-    <em>Die Zeit</em>, <em>NZZ</em> u.&thinsp;a.) sowie dem DWDS-Kernkorpus.
+    Die Kollokationsdaten werden mit einer <strong>eigenen Verarbeitungspipeline</strong>
+    aus offen lizenzierten deutschen Korpora gewonnen. Das Sprachmodell
+    <a href="https://spacy.io" target="_blank" rel="noopener">spaCy</a>
+    <code>de_core_news_lg</code> analysiert die syntaktische Struktur jedes Satzes
+    (Dependenzparsing). Aus den dabei gefundenen Wortpaaren — Subjekt, Objekt,
+    Adjektivattribut, Adverbial, Koordination u.&thinsp;a. — werden
+    Kookkurrenzfrequenzen gezählt und daraus der logDice-Wert berechnet.
   </p>
   <p>
-    Die historischen Daten für die <strong>Zeitreise</strong>-Runde entstammen dem
-    <strong>DiaCollo</strong>-System<sup>4</sup> desselben Instituts, das
-    Kollokationsverschiebungen über Jahrhunderte hinweg nachverfolgt — von frühneuhochdeutschen
-    Texten bis zur Gegenwartssprache.
+    Dieselben Korpora liefern auch die historischen Daten für die
+    <strong>Zeitreise</strong>-Runde (Kollokationsveränderungen über Jahrzehnte) und
+    die <strong>Wort-Zwilling</strong>-Runde. Die angezeigten
+    <strong>Textbelege</strong> werden per Volltextsuche direkt aus den Originaltexten
+    abgerufen und mit vollständiger Quellenangabe und Lizenzhinweis dargestellt.
   </p>
-  <p>
-    Die Korpusbelege werden im Rahmen des Zitatrechts (§&thinsp;51 UrhG) unter Angabe der
-    jeweiligen Quelle angezeigt.
-  </p>
+
+  <p class="section-label" style="margin-top:28px;">Verwendete Korpora</p>
+
+  <table class="korpora-tabelle">
+    <thead>
+      <tr>
+        <th>Korpus</th>
+        <th>Inhalt</th>
+        <th>Lizenz</th>
+        <th>Quelle</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Gesetze im Internet</td>
+        <td>Bundesgesetze und -verordnungen</td>
+        <td><span class="lizenz-tag">Gemeinfrei</span> § 5 UrhG</td>
+        <td><a href="https://www.gesetze-im-internet.de" target="_blank" rel="noopener">gesetze-im-internet.de</a></td>
+      </tr>
+      <tr>
+        <td>German Political Speeches Corpus</td>
+        <td>Politische Reden (Bundesregierung, 1984–2019)</td>
+        <td><span class="lizenz-tag">CC BY-SA</span></td>
+        <td><a href="https://doi.org/10.5281/zenodo.3611246" target="_blank" rel="noopener">Zenodo 3611246</a></td>
+      </tr>
+      <tr>
+        <td>Bundestag-Protokolle (DIP)</td>
+        <td>Plenarprotokolle des Deutschen Bundestags</td>
+        <td><span class="lizenz-tag">Datenlizenz Deutschland BY 2.0</span></td>
+        <td><a href="https://dip.bundestag.de" target="_blank" rel="noopener">dip.bundestag.de</a></td>
+      </tr>
+      <tr>
+        <td>Wortschatz-Korpus Leipzig</td>
+        <td>Zeitungsnachrichten (deu_news, deu_newscrawl)</td>
+        <td><span class="lizenz-tag">CC BY</span></td>
+        <td><a href="https://wortschatz.uni-leipzig.de" target="_blank" rel="noopener">Universität Leipzig</a></td>
+      </tr>
+      <tr>
+        <td>DiBiLit</td>
+        <td>Digitale Bibliothek Literatur (Belletristik, 19.–20. Jh.)</td>
+        <td><span class="lizenz-tag">CC BY-SA 4.0</span></td>
+        <td><a href="https://doi.org/10.5281/zenodo.5786725" target="_blank" rel="noopener">Zenodo 5786725</a></td>
+      </tr>
+      <tr>
+        <td>Wikibooks auf Deutsch</td>
+        <td>Freie Lehr- und Sachbücher</td>
+        <td><span class="lizenz-tag">CC BY-SA 3.0</span></td>
+        <td><a href="https://doi.org/10.5281/zenodo.8081095" target="_blank" rel="noopener">Zenodo 8081095</a></td>
+      </tr>
+      <tr>
+        <td>Wikivoyage auf Deutsch</td>
+        <td>Freier Reiseführer</td>
+        <td><span class="lizenz-tag">CC BY-SA 3.0</span></td>
+        <td><a href="https://doi.org/10.5281/zenodo.7568517" target="_blank" rel="noopener">Zenodo 7568517</a></td>
+      </tr>
+      <tr>
+        <td>Der Neue Pitaval</td>
+        <td>Kriminalgeschichten (1842–1890)</td>
+        <td><span class="lizenz-tag">CC BY-SA 4.0</span></td>
+        <td><a href="https://doi.org/10.5281/zenodo.6682897" target="_blank" rel="noopener">Zenodo 6682897</a></td>
+      </tr>
+      <tr>
+        <td>Deutsches Textarchiv (DTA)</td>
+        <td>Kernkorpus, Erweiterungen und Sondersammlungen (16.–20. Jh.)</td>
+        <td><span class="lizenz-tag">CC BY-SA 4.0</span></td>
+        <td><a href="https://www.deutschestextarchiv.de" target="_blank" rel="noopener">deutschestextarchiv.de</a></td>
+      </tr>
+      <tr>
+        <td>GEI-Digital</td>
+        <td>Historische Schulbücher (17.–20. Jh.)</td>
+        <td><span class="lizenz-tag">Public Domain</span></td>
+        <td><a href="https://doi.org/10.5281/zenodo.15729290" target="_blank" rel="noopener">Zenodo 15729290</a></td>
+      </tr>
+      <tr>
+        <td>Referenzkorpus Frühneuhochdeutsch</td>
+        <td>Frühneuhochdeutsche Texte (1350–1650)</td>
+        <td><span class="lizenz-tag">CC BY-SA 4.0</span></td>
+        <td><a href="https://www.linguistics.ruhr-uni-bochum.de/ref/" target="_blank" rel="noopener">Ruhr-Universität Bochum</a></td>
+      </tr>
+      <tr>
+        <td>Referenzkorpus Mittelhochdeutsch</td>
+        <td>Mittelhochdeutsche Texte (1050–1350)</td>
+        <td><span class="lizenz-tag">CC BY-SA 4.0</span></td>
+        <td><a href="https://www.linguistics.ruhr-uni-bochum.de/rem/" target="_blank" rel="noopener">Ruhr-Universität Bochum</a></td>
+      </tr>
+    </tbody>
+  </table>
 
   <h2>Das Projekt</h2>
   <p>
@@ -128,12 +224,10 @@
   </p>
 
   <div class="footnotes">
-    <p class="footnotes-label">Quellen</p>
+    <p class="footnotes-label">Literatur</p>
     <ol>
       <li>Hausmann, F.&thinsp;J. (2003): Was sind eigentlich Kollokationen? In: Steyer, K. (Hrsg.): <em>Wortverbindungen — mehr oder weniger fest</em>. Berlin/New York: de Gruyter, S.&thinsp;309–334.</li>
       <li>Rychlý, P. (2008): A Lexicographer-Friendly Association Score. In: <em>Proceedings of Recent Advances in Slavonic Natural Language Processing (RASLAN 2008)</em>, S.&thinsp;6–9.</li>
-      <li>Berlin-Brandenburgische Akademie der Wissenschaften (BBAW): <em>Digitales Wörterbuch der deutschen Sprache (DWDS)</em>. Berlin 2024. <a href="https://www.dwds.de" target="_blank" rel="noopener">dwds.de</a></li>
-      <li>Jurish, B., Kdiciński, M., Lemnitzer, L. &amp; Wiegand, M. (2014): DiaCollo: On the Trail of Diachronic Collocations. In: <em>Proceedings of the Digital Humanities Conference (DH 2014)</em>. Lausanne.</li>
       <li>Saussure, F. de (1916): <em>Cours de linguistique générale</em>. Hrsg. von C. Bally &amp; A. Sechehaye. Paris: Payot.</li>
     </ol>
   </div>
