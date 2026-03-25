@@ -55,6 +55,10 @@
     .korpora-tabelle td:nth-child(3) { white-space: nowrap; }
     .korpora-tabelle a { color: #9b1c1c; }
     .lizenz-tag { display: inline-block; font-size: 0.75em; font-family: 'DM Sans', system-ui, sans-serif; font-weight: 600; letter-spacing: 0.05em; color: #5a5248; background: #f0ede8; padding: 1px 5px; border-radius: 3px; }
+    ol.pipeline { list-style: none; margin-bottom: 12px; counter-reset: pipeline-counter; display: flex; flex-direction: column; gap: 10px; }
+    ol.pipeline li { font-size: 0.93rem; color: #1a1a18; padding-left: 28px; position: relative; counter-increment: pipeline-counter; }
+    ol.pipeline li::before { content: counter(pipeline-counter); position: absolute; left: 0; top: 0; font-family: 'DM Sans', system-ui, sans-serif; font-size: 9px; font-weight: 700; color: #9b1c1c; background: #f0ede8; width: 16px; height: 16px; border-radius: 50%; display: flex; align-items: center; justify-content: center; line-height: 16px; text-align: center; margin-top: 2px; }
+    .formula-block { font-family: 'Courier New', Courier, monospace; font-size: 0.88rem; background: #f0ede8; padding: 10px 14px; border-radius: 4px; border-left: 3px solid #d4c9b0; color: #1a1a18; margin: 12px 0; }
   </style>
 </head>
 <body>
@@ -101,32 +105,104 @@
 
   <h2>Der logDice-Wert</h2>
   <p>
-    Der <strong>logDice-Wert</strong><sup>2</sup> ist ein statistisches Assoziationsmaß für
-    Kookkurrenzen im Korpus. Er setzt die gemeinsamen Vorkommen zweier Wörter ins Verhältnis
-    zu ihren jeweiligen Einzelhäufigkeiten — je höher der Wert, desto charakteristischer und
-    nicht-zufälliger die Wortverbindung. Im Unterschied zu anderen Maßen wie dem
-    Pointwise Mutual Information-Score ist logDice robust gegenüber seltenen Wörtern.
+    Der <strong>logDice-Wert</strong><sup>2</sup> ist ein statistisches Assoziationsmaß,
+    das quantifiziert, wie charakteristisch das gemeinsame Auftreten zweier Wörter im
+    Vergleich zu ihrer zufällig zu erwartenden Kookkurrenz ist. Die Formel lautet:
+  </p>
+  <p class="formula-block">
+    logDice(a, b) &nbsp;=&nbsp; 14 + log<sub>2</sub>( 2 · f<sub>ab</sub> / (f<sub>a</sub> + f<sub>b</sub>) )
+  </p>
+  <p>
+    Dabei bezeichnet f<sub>ab</sub> die Häufigkeit des gemeinsamen Vorkommens
+    (Paarfrequenz), f<sub>a</sub> und f<sub>b</sub> die jeweiligen Einzelhäufigkeiten
+    beider Wörter im Gesamtkorpus. Der Maximalwert 14 wird theoretisch erreicht, wenn
+    beide Wörter ausschließlich miteinander auftreten. Werte ≥ 0 signalisieren eine
+    überdurchschnittliche Assoziation; linguistisch aussagekräftige Kollokationen
+    liegen in der Praxis meist zwischen 5 und 12.
+  </p>
+  <p>
+    Im Vergleich zu anderen Maßen wie dem
+    <em>Pointwise Mutual Information</em>-Score (PMI) ist logDice robust gegenüber
+    seltenen Wörtern: Ein Hapax legomenon kann keinen künstlich hohen Score erzielen,
+    weil sein geringer f<sub>a</sub>-Wert den Quotienten deckelt.
+    Gegenüber der reinen Häufigkeit hat logDice den Vorteil, häufige Funktionswörter
+    (<em>sein</em>, <em>haben</em>, <em>und</em>) zugunsten semantisch gehaltvoller
+    Verbindungen zu benachteiligen.
   </p>
 
   <h2>Die Daten</h2>
   <p>
-    Die Kollokationsdaten werden mit einer <strong>eigenen Verarbeitungspipeline</strong>
-    aus offen lizenzierten deutschen Korpora gewonnen. Das Sprachmodell
-    <a href="https://spacy.io" target="_blank" rel="noopener">spaCy</a>
-    <code>de_core_news_lg</code> analysiert die syntaktische Struktur jedes Satzes
-    (Dependenzparsing). Aus den dabei gefundenen Wortpaaren — Subjekt, Objekt,
-    Adjektivattribut, Adverbial, Koordination u.&thinsp;a. — werden
-    Kookkurrenzfrequenzen gezählt und daraus der logDice-Wert berechnet.
+    Die Kollokationsdaten werden durch eine eigene mehrstufige
+    <strong>Extraktionspipeline</strong> aus offen lizenzierten deutschen Korpora
+    gewonnen. Die Schritte im Überblick:
   </p>
+  <ol class="pipeline">
+    <li>
+      <strong>Korpusauswahl.</strong> Recherche und Auswahl geeigneter Quellen —
+      ausschließlich Korpora unter offenen Lizenzen (CC BY, CC BY-SA, Gemeinfrei),
+      die eine Weiterverarbeitung und öffentliche Veröffentlichung der Ergebnisse
+      erlauben. Die Texte spannen einen Zeitraum vom Mittelhochdeutschen bis zur
+      Gegenwartssprache.
+    </li>
+    <li>
+      <strong>Normalisierung.</strong> Alle Quellen werden in ein einheitliches
+      JSONL-Format überführt und mit Metadaten angereichert:
+      <code>text, quelle, genre, epoche, jahr</code>. Das Entstehungsjahr jedes
+      Textes wird dabei bewahrt — Grundlage für die spätere Zeitreise-Auswertung
+      nach Jahrzehnten.
+    </li>
+    <li>
+      <strong>Relationen-Mapping.</strong> Das Sprachmodell
+      <a href="https://spacy.io" target="_blank" rel="noopener">spaCy</a>
+      <code>de_core_news_lg</code> verwendet das
+      <em>TIGER-Treebank</em>-Tagset. Dessen Abhängigkeitslabels werden auf
+      linguistisch interpretierbare Relationstypen abgebildet:
+      <code>sb</code>&thinsp;→&thinsp;Subjekt,
+      <code>oa</code>&thinsp;→&thinsp;Objekt,
+      <code>nk</code>&thinsp;→&thinsp;Adjektivattribut,
+      <code>mo</code>&thinsp;→&thinsp;Adverbial oder Präpositionalgruppe,
+      <code>cj</code>&thinsp;→&thinsp;Koordination u.&thinsp;a.
+    </li>
+    <li>
+      <strong>Dependenzanalyse und Tripel-Extraktion.</strong> Die Texte werden
+      batchweise durch das Modell geschickt. Für jede erkannte syntaktische
+      Abhängigkeit wird ein <em>Tripel</em>
+      (Kopfwort-Lemma, Relation, Dependens-Lemma) zusammen mit Wortart und
+      Entstehungsjahr in einer SQLite-Datenbank abgelegt. Ein
+      Checkpoint-Mechanismus protokolliert abgeschlossene Batches, sodass die
+      mehrtägige Verarbeitung bei Unterbrechungen ohne Datenverlust fortgesetzt
+      werden kann.
+    </li>
+    <li>
+      <strong>Frequenz-Aggregation.</strong> Aus der Tripel-Datenbank werden
+      Unigramm-Häufigkeiten f<sub>a</sub> und f<sub>b</sub> sowie
+      Paarfrequenzen f<sub>ab</sub> berechnet — getrennt nach Wortart und
+      Relationstyp, um lexikalische Ambiguität zu kontrollieren.
+    </li>
+    <li>
+      <strong>logDice-Berechnung und Ranking.</strong> Für jedes Kollokationspaar
+      wird der logDice-Score ermittelt (s.&thinsp;o.) und ein nach Assoziation
+      abgestuftes Ranking erstellt. Paare mit f<sub>ab</sub> ≥ 3 und positivem
+      logDice-Wert werden in der Lookup-Datenbank <code>wortprofil.db</code>
+      gespeichert und der App per SQLite-Query zur Verfügung gestellt.
+    </li>
+  </ol>
   <p>
-    Dieselben Korpora liefern auch die historischen Daten für die
-    <strong>Zeitreise</strong>-Runde (Kollokationsveränderungen über Jahrzehnte) und
-    die <strong>Wort-Zwilling</strong>-Runde. Die angezeigten
-    <strong>Textbelege</strong> werden per Volltextsuche direkt aus den Originaltexten
-    abgerufen und mit vollständiger Quellenangabe und Lizenzhinweis dargestellt.
+    Zusätzlich zur Kollokationsdatenbank entsteht aus denselben Korpora ein
+    <strong>Volltextindex</strong> (SQLite FTS5) für die Belegsuche: Beim Anklicken
+    einer Kollokation werden Originalsätze mit beiden Wörtern gesucht und mit
+    vollständiger Quellenangabe und Lizenzhinweis angezeigt. Für die
+    <strong>Zeitreise</strong>-Runde werden die Tripel nach Entstehungsjahrzehnt
+    gruppiert, sodass Verschiebungen im Kollokationsverhalten über Jahrhunderte
+    sichtbar werden. Die <strong>Wort-Zwilling</strong>-Runde vergleicht die
+    logDice-Profile zweier ähnlicher Wörter direkt gegeneinander.
   </p>
 
   <p class="section-label" style="margin-top:28px;">Verwendete Korpora</p>
+  <p style="font-size:0.82rem; color:#8a7f6e; margin-bottom:4px;">
+    Korpora ohne Sätze-Angabe fließen in das Wortprofil ein, werden aber nicht für
+    den Textbeleg-Index verwendet (historische Sprache für Spieler schwer zugänglich).
+  </p>
 
   <table class="korpora-tabelle">
     <thead>
@@ -134,84 +210,102 @@
         <th>Korpus</th>
         <th>Inhalt</th>
         <th>Lizenz</th>
+        <th style="text-align:right;">Sätze&thinsp;*</th>
         <th>Quelle</th>
       </tr>
     </thead>
     <tbody>
       <tr>
-        <td>Gesetze im Internet</td>
-        <td>Bundesgesetze und -verordnungen</td>
-        <td><span class="lizenz-tag">Gemeinfrei</span> § 5 UrhG</td>
-        <td><a href="https://www.gesetze-im-internet.de" target="_blank" rel="noopener">gesetze-im-internet.de</a></td>
+        <td>Wortschatz-Korpus Leipzig</td>
+        <td>Zeitungsnachrichten (deu_news, deu_newscrawl)</td>
+        <td><span class="lizenz-tag">CC BY</span></td>
+        <td style="text-align:right;">31,6 Mio.</td>
+        <td><a href="https://wortschatz.uni-leipzig.de" target="_blank" rel="noopener">Universität Leipzig</a></td>
+      </tr>
+      <tr>
+        <td>Bundestag-Protokolle (DIP)</td>
+        <td>Plenarprotokolle des Deutschen Bundestags (XML + PDF)</td>
+        <td><span class="lizenz-tag">Datenlizenz Deutschland BY 2.0</span></td>
+        <td style="text-align:right;">12,8 Mio.</td>
+        <td><a href="https://dip.bundestag.de" target="_blank" rel="noopener">dip.bundestag.de</a></td>
       </tr>
       <tr>
         <td>German Political Speeches Corpus</td>
         <td>Politische Reden (Bundesregierung, 1984–2019)</td>
         <td><span class="lizenz-tag">CC BY-SA</span></td>
+        <td style="text-align:right;">575.000</td>
         <td><a href="https://doi.org/10.5281/zenodo.3611246" target="_blank" rel="noopener">Zenodo 3611246</a></td>
       </tr>
       <tr>
-        <td>Bundestag-Protokolle (DIP)</td>
-        <td>Plenarprotokolle des Deutschen Bundestags</td>
-        <td><span class="lizenz-tag">Datenlizenz Deutschland BY 2.0</span></td>
-        <td><a href="https://dip.bundestag.de" target="_blank" rel="noopener">dip.bundestag.de</a></td>
-      </tr>
-      <tr>
-        <td>Wortschatz-Korpus Leipzig</td>
-        <td>Zeitungsnachrichten (deu_news, deu_newscrawl)</td>
-        <td><span class="lizenz-tag">CC BY</span></td>
-        <td><a href="https://wortschatz.uni-leipzig.de" target="_blank" rel="noopener">Universität Leipzig</a></td>
-      </tr>
-      <tr>
-        <td>DiBiLit</td>
-        <td>Digitale Bibliothek Literatur (Belletristik, 19.–20. Jh.)</td>
-        <td><span class="lizenz-tag">CC BY-SA 4.0</span></td>
-        <td><a href="https://doi.org/10.5281/zenodo.5786725" target="_blank" rel="noopener">Zenodo 5786725</a></td>
+        <td>Gesetze im Internet</td>
+        <td>Bundesgesetze und -verordnungen</td>
+        <td><span class="lizenz-tag">Gemeinfrei</span> § 5 UrhG</td>
+        <td style="text-align:right;">306.000</td>
+        <td><a href="https://www.gesetze-im-internet.de" target="_blank" rel="noopener">gesetze-im-internet.de</a></td>
       </tr>
       <tr>
         <td>Wikibooks auf Deutsch</td>
         <td>Freie Lehr- und Sachbücher</td>
         <td><span class="lizenz-tag">CC BY-SA 3.0</span></td>
+        <td style="text-align:right;">~1,3 Mio.</td>
         <td><a href="https://doi.org/10.5281/zenodo.8081095" target="_blank" rel="noopener">Zenodo 8081095</a></td>
       </tr>
       <tr>
         <td>Wikivoyage auf Deutsch</td>
         <td>Freier Reiseführer</td>
         <td><span class="lizenz-tag">CC BY-SA 3.0</span></td>
+        <td style="text-align:right;">–</td>
         <td><a href="https://doi.org/10.5281/zenodo.7568517" target="_blank" rel="noopener">Zenodo 7568517</a></td>
+      </tr>
+      <tr>
+        <td>DiBiLit</td>
+        <td>Digitale Bibliothek Literatur (Belletristik, 19.–20. Jh.)</td>
+        <td><span class="lizenz-tag">CC BY-SA 4.0</span></td>
+        <td style="text-align:right;">–</td>
+        <td><a href="https://doi.org/10.5281/zenodo.5786725" target="_blank" rel="noopener">Zenodo 5786725</a></td>
       </tr>
       <tr>
         <td>Der Neue Pitaval</td>
         <td>Kriminalgeschichten (1842–1890)</td>
         <td><span class="lizenz-tag">CC BY-SA 4.0</span></td>
+        <td style="text-align:right;">–</td>
         <td><a href="https://doi.org/10.5281/zenodo.6682897" target="_blank" rel="noopener">Zenodo 6682897</a></td>
       </tr>
       <tr>
         <td>Deutsches Textarchiv (DTA)</td>
-        <td>Kernkorpus, Erweiterungen und Sondersammlungen (16.–20. Jh.)</td>
+        <td>Kernkorpus, Erweiterungen und Sondersammlungen (16.–20. Jh.) · nur Wortprofil</td>
         <td><span class="lizenz-tag">CC BY-SA 4.0</span></td>
+        <td style="text-align:right;">–</td>
         <td><a href="https://www.deutschestextarchiv.de" target="_blank" rel="noopener">deutschestextarchiv.de</a></td>
       </tr>
       <tr>
         <td>GEI-Digital</td>
-        <td>Historische Schulbücher (17.–20. Jh.)</td>
+        <td>Historische Schulbücher (17.–20. Jh.) · nur Wortprofil</td>
         <td><span class="lizenz-tag">Public Domain</span></td>
+        <td style="text-align:right;">–</td>
         <td><a href="https://doi.org/10.5281/zenodo.15729290" target="_blank" rel="noopener">Zenodo 15729290</a></td>
       </tr>
       <tr>
         <td>Referenzkorpus Frühneuhochdeutsch</td>
-        <td>Frühneuhochdeutsche Texte (1350–1650)</td>
+        <td>Frühneuhochdeutsche Texte (1350–1650) · nur Wortprofil</td>
         <td><span class="lizenz-tag">CC BY-SA 4.0</span></td>
+        <td style="text-align:right;">–</td>
         <td><a href="https://www.linguistics.ruhr-uni-bochum.de/ref/" target="_blank" rel="noopener">Ruhr-Universität Bochum</a></td>
       </tr>
       <tr>
         <td>Referenzkorpus Mittelhochdeutsch</td>
-        <td>Mittelhochdeutsche Texte (1050–1350)</td>
+        <td>Mittelhochdeutsche Texte (1050–1350) · nur Wortprofil</td>
         <td><span class="lizenz-tag">CC BY-SA 4.0</span></td>
+        <td style="text-align:right;">–</td>
         <td><a href="https://www.linguistics.ruhr-uni-bochum.de/rem/" target="_blank" rel="noopener">Ruhr-Universität Bochum</a></td>
       </tr>
     </tbody>
   </table>
+  <p style="font-size:0.78rem; color:#8a7f6e; margin-top:6px;">
+    * Sätze im Belegeindex (30–400 Zeichen, automatisch segmentiert). Werte für
+    Wikivoyage, DiBiLit und Pitaval werden nach Abschluss der Indexierung ergänzt.
+    Bundestag-Sätze: XML-Protokolle (2,9 Mio.) + PDF-Protokolle (9,9 Mio.) zusammengefasst.
+  </p>
 
   <h2>Das Projekt</h2>
   <p>
