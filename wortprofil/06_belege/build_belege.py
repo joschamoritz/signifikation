@@ -180,6 +180,7 @@ def satz_split(text: str) -> list[str]:
 
 
 def init_db(conn: sqlite3.Connection):
+    conn.execute("PRAGMA page_size=16384")       # Größere Pages: weniger I/O
     conn.execute("PRAGMA journal_mode=WAL")
     conn.execute("PRAGMA synchronous=NORMAL")
     conn.execute("PRAGMA cache_size=-131072")

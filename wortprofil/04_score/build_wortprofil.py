@@ -60,6 +60,7 @@ INVERTIBLE = {"SUBJA", "OBJA", "OBJD", "ATTR", "GMOD", "ADV"}
 
 
 def init_wortprofil_db(conn: sqlite3.Connection):
+    conn.execute("PRAGMA page_size=16384")       # Größere Pages: weniger I/O
     conn.execute("PRAGMA journal_mode=WAL")
     conn.execute("PRAGMA synchronous=NORMAL")
     conn.execute("PRAGMA cache_size=-65536")   # 64 MB Cache
