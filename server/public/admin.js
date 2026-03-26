@@ -84,6 +84,41 @@ function initDashboard() {
   renderCalendar()
   loadKorpusConfig()
   loadStats()
+  loadHealth()
+}
+
+// ── System-Status ─────────────────────────────────────────────────────────────
+async function loadHealth() {
+  const container = document.getElementById('health-badges')
+  if (!container) return
+  try {
+    const r    = await fetch('/health')
+    const data = await r.json()
+
+    const dbOk   = s => s === 'ok'
+    const badge  = (label, ok, detail = '') => {
+      const color = ok ? '#166534' : '#991b1b'
+      const bg    = ok ? '#dcfce7' : '#fee2e2'
+      const icon  = ok ? '✓' : '✗'
+      return `<span style="display:inline-flex;align-items:center;gap:4px;
+        font-size:0.75rem;font-weight:500;padding:2px 8px;border-radius:99px;
+        background:${bg};color:${color}">
+        ${icon} ${esc(label)}${detail ? ` <span style="font-weight:400;opacity:.75">${esc(detail)}</span>` : ''}
+      </span>`
+    }
+
+    const upMin  = Math.floor(data.uptime / 60)
+    const uptime = upMin < 60 ? `${upMin} min` : `${Math.floor(upMin / 60)} h`
+
+    container.innerHTML = [
+      badge('Server', true, `${uptime} · ${data.memMb} MB`),
+      badge('wortprofil.db', dbOk(data.wortprofilDb), dbOk(data.wortprofilDb) ? '' : data.wortprofilDb),
+      badge('belege.db', dbOk(data.belegeDb), dbOk(data.belegeDb) ? '' : data.belegeDb),
+      `<span style="font-size:0.72rem;color:var(--muted)">${esc(data.env)}</span>`,
+    ].join('')
+  } catch (err) {
+    container.innerHTML = `<span style="font-size:0.8rem;color:#991b1b">Health-Check fehlgeschlagen: ${esc(err.message)}</span>`
+  }
 }
 
 function toggleMode(id) {
