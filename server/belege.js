@@ -23,6 +23,9 @@ function db() {
   if (!_db) {
     try {
       _db = new Database(DB_PATH, { readonly: true, fileMustExist: true })
+      _db.pragma('cache_size = -131072')   // 128 MB Page-Cache
+      _db.pragma('mmap_size = 2147483648') // 2 GB Memory-mapped I/O
+      _db.pragma('temp_store = MEMORY')
       logger.info(`Belege-DB geladen: ${DB_PATH}`)
     } catch (err) {
       logger.warn({ err }, `Belege-DB nicht verfügbar: ${DB_PATH}`)
