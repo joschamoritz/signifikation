@@ -41,6 +41,9 @@ function db() {
   if (!_db) {
     try {
       _db = new Database(DB_PATH, { readonly: true, fileMustExist: true })
+      _db.pragma('cache_size = -65536')    // 64 MB Page-Cache
+      _db.pragma('mmap_size = 536870912')  // 512 MB Memory-mapped I/O
+      _db.pragma('temp_store = MEMORY')
       logger.info(`Wortprofil-DB geladen: ${DB_PATH}`)
     } catch (err) {
       logger.error({ err }, `Wortprofil-DB nicht gefunden: ${DB_PATH}`)
