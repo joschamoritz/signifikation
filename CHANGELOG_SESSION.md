@@ -185,6 +185,7 @@ Review ergab Note **1- / A-**. Umgesetzte Verbesserungen:
 | `/health` prüft Wortprofil-DB und Belege-DB | `public.js` | MEDIUM |
 | `BELEGE_MMAP_MB`-Env-Variable für `mmap_size` | `belege.js` | MEDIUM |
 | `matchesLemma()`: Lemmata < 4 Zeichen exakt verglichen (kein False-Positive-Highlighting) | `belege.js` | LOW |
+| System-Status-Leiste im Admin-Panel (Badges: Server-Uptime, RAM, DB-Status) | `admin.html` + `admin.js` | MEDIUM |
 
 ---
 
@@ -231,7 +232,7 @@ BELEGE_DB=/app/server/data/belege.db
 
 ## 10. Offene Aufgaben
 
-- [ ] Parser (`de_zdl_lg`) abwarten (~20–24h Gesamtlaufzeit)
+- [ ] Parser (`de_zdl_lg`) abwarten (~20–24h Gesamtlaufzeit) — `gesetze.jsonl` ✅ fertig (1.416.398 Triples)
 - [ ] `build_wortprofil.py --reset` ausführen (nach Parser-Ende)
 - [ ] `build_zeitreise.py` ausführen
 - [ ] Neue `wortprofil.db` via `/admin/upload-db` auf Railway hochladen
