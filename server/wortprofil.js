@@ -101,6 +101,19 @@ const POS_BONUS = {
 
 // ── Interne Hilfs-Funktionen ─────────────────────────────────────────────────
 
+/** Normalisiert ein Ausgabe-Lemma: Substantive werden großgeschrieben. */
+function normalizeLemma(lemma, pos) {
+  if (pos === 'Substantiv' && lemma.length > 0)
+    return lemma.charAt(0).toUpperCase() + lemma.slice(1)
+  return lemma
+}
+
+const VALID_POS     = new Set(['Substantiv', 'Verb', 'Adjektiv', 'Adverb'])
+const VALID_RELCODE = new Set([
+  'SUBJA', 'OBJA', 'OBJD', 'ATTR', 'GMOD', 'KON', 'ADV', 'PRED', 'PP',
+  '~SUBJA', '~OBJA', '~OBJD', '~ATTR', '~GMOD', '~ADV',
+])
+
 const stmtCache = new Map()
 function stmt(sql) {
   if (!stmtCache.has(sql)) stmtCache.set(sql, db().prepare(sql))
@@ -108,7 +121,15 @@ function stmt(sql) {
 }
 
 function queryRelation(lemma, pos, relCode, limit = 20, minFreq = 5, minDice = 0) {
+  if (!VALID_POS.has(pos)) {
+    logger.warn({ lemma, pos, relCode }, 'queryRelation: unbekannte POS')
+    return []
+  }
   const rel = normalizeRel(relCode)
+  if (!VALID_RELCODE.has(rel)) {
+    logger.warn({ lemma, pos, relCode: rel }, 'queryRelation: unbekannter RelCode')
+    return []
+  }
   const rows = stmt(`
     SELECT form, dep_lemma, dep_pos, frequency, logDice, relation_full, relation_description
     FROM collocations
@@ -120,9 +141,7 @@ function queryRelation(lemma, pos, relCode, limit = 20, minFreq = 5, minDice = 0
 
   return rows.map(r => ({
     form:                 r.form,
-    lemma:                r.dep_pos === 'Substantiv'
-                            ? r.dep_lemma.charAt(0).toUpperCase() + r.dep_lemma.slice(1)
-                            : r.dep_lemma,
+    lemma:                normalizeLemma(r.dep_lemma, r.dep_pos),
     frequency:            r.frequency,
     logDice:              String(r.logDice.toFixed(4)),
     pos:                  r.dep_pos,
@@ -242,7 +261,7 @@ export async function fetchZeitreise(lemma) {
     const byDecade = new Map()
     for (const r of rows) {
       if (!byDecade.has(r.jahrzehnt)) byDecade.set(r.jahrzehnt, [])
-      byDecade.get(r.jahrzehnt).push({ wort: r.dep_lemma, pos: r.dep_pos, score: r.score })
+      byDecade.get(r.jahrzehnt).push({ wort: normalizeLemma(r.dep_lemma, r.dep_pos), pos: r.dep_pos, score: r.score })
     }
 
     // Nur Dekaden mit mind. 3 gültigen Kollokatoren
