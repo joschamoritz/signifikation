@@ -2,13 +2,24 @@
 Phase 3 – Dependency Parsing & Kollokations-Extraktion
 Aufruf: python parse_deps.py [--only <key>] [--dry-run] [--workers N]
 
-Liest JSONL aus 02_parsed/, parst mit spaCy de_core_news_lg,
+Liest JSONL aus 02_parsed/, parst mit spaCy de_zdl_lg (ZDL/BBAW),
 schreibt Rohtriples in SQLite 03_deps/triples.db.
 
-Änderungen gegenüber v1:
-- PRON als erlaubter Dep-POS für SUBJA/OBJA (man, er, sie, …)
-- `jahr` (INT) aus JSONL-Metadaten in triples gespeichert
-- forms-Tabelle entfernt (war ungenutzt, form = dep_lemma direkt)
+Modell: de_zdl_lg v4 (Universal Dependencies / HDT-Tagset)
+  - 98.62 % Lemmatisierungsgenauigkeit (DWDSmor-trainiert)
+  - UD-Dependency-Labels statt TIGER-Labels
+  - Korrekte Adjektiv-Lemmatisierung: hohen→hoch, warmherzigen→warmherzig
+
+UD-Label-Mapping:
+  nsubj / nsubj:pass → SUBJA
+  obj                → OBJA
+  iobj               → OBJD
+  nmod (NOUN→NOUN)   → GMOD
+  amod (ADJ→NOUN)    → ATTR
+  advmod (ADV→VERB)  → ADV
+  obl / obl:arg      → PP  (mit case-Kind als Präposition)
+  conj               → KON (direkte Koordination, bidirektional)
+  xcomp / cop-Pred   → PRED
 """
 
 import argparse
@@ -28,8 +39,8 @@ BATCH_SIZE  = 500
 # Commit-Intervall (Anzahl Docs)
 COMMIT_EVERY = 100_000
 
-# ── Relation-Mapping TIGER-Labels → DWDS-Stil ─────────────────────────────
-# de_core_news_lg nutzt TIGER-Treebank-Labels (sb, oa, da, ag, nk, mo, cj, cd …)
+# ── Relation-Mapping UD-Labels → eigene Bezeichnungen ────────────────────
+# de_zdl_lg nutzt Universal Dependencies / HDT-Labels (nsubj, obj, amod, conj …)
 
 # POS-Tags → DWDS-Bezeichnung
 POS_MAP = {
@@ -88,7 +99,8 @@ def _valid_lem(lem: str) -> bool:
 
 def extrahiere_triples(doc) -> list[tuple]:
     """
-    Extrahiert Rohtriples aus einem geparsten spaCy-Doc (TIGER-Labels).
+    Extrahiert Rohtriples aus einem geparsten spaCy-Doc (Universal Dependencies).
+    Modell: de_zdl_lg (ZDL/BBAW) – UD-Labels, DWDSmor-Lemmatisierung.
 
     Rückgabe: Liste von (head_lemma, head_pos_spacy, relation, dep_lemma, dep_pos_spacy, prep)
     """
@@ -97,78 +109,86 @@ def extrahiere_triples(doc) -> list[tuple]:
     for token in doc:
         if token.is_space or not token.is_alpha:
             continue
-        dep  = token.dep_
-        head = token.head
+        dep   = token.dep_
+        head  = token.head
         t_pos = token.pos_
         h_pos = head.pos_
 
-        # ── SUBJA: Subjekt (sb) ────────────────────────────────────────────
-        if dep == "sb" and h_pos in VERB_POS and t_pos in SUBJ_DEP_POS:
+        # ── SUBJA: Subjekt (nsubj, nsubj:pass) ────────────────────────────
+        if dep in ("nsubj", "nsubj:pass") and h_pos in VERB_POS and t_pos in SUBJ_DEP_POS:
             hl = head.lemma_.lower()
             dl = token.lemma_.lower()
             if _valid_lem(hl) and _valid_lem(dl):
                 triples.append((hl, h_pos, "SUBJA", dl, t_pos, ""))
 
-        # ── OBJA: Akkusativobjekt (oa) ────────────────────────────────────
-        elif dep == "oa" and h_pos in VERB_POS and t_pos in SUBJ_DEP_POS:
+        # ── OBJA: Akkusativobjekt (obj) ───────────────────────────────────
+        elif dep == "obj" and h_pos in VERB_POS and t_pos in SUBJ_DEP_POS:
             hl = head.lemma_.lower()
             dl = token.lemma_.lower()
             if _valid_lem(hl) and _valid_lem(dl):
                 triples.append((hl, h_pos, "OBJA", dl, t_pos, ""))
 
-        # ── OBJD: Dativobjekt (da) ────────────────────────────────────────
-        elif dep == "da" and h_pos in VERB_POS and t_pos in NOUN_POS:
+        # ── OBJD: Dativobjekt (iobj) ──────────────────────────────────────
+        elif dep == "iobj" and h_pos in VERB_POS and t_pos in NOUN_POS:
             hl = head.lemma_.lower()
             dl = token.lemma_.lower()
             if _valid_lem(hl) and _valid_lem(dl):
                 triples.append((hl, h_pos, "OBJD", dl, t_pos, ""))
 
-        # ── GMOD: Genitivattribut (ag) ────────────────────────────────────
-        elif dep == "ag" and h_pos in NOUN_POS and t_pos in NOUN_POS:
-            hl = head.lemma_.lower()
-            dl = token.lemma_.lower()
-            if _valid_lem(hl) and _valid_lem(dl):
-                triples.append((hl, h_pos, "GMOD", dl, t_pos, ""))
+        # ── GMOD: Genitivattribut (nmod: NOUN→NOUN) ───────────────────────
+        # In UD-Deutsch: Genitiv-NP als nmod, mit oder ohne Präposition
+        elif dep == "nmod" and h_pos in NOUN_POS and t_pos in NOUN_POS:
+            # Nur ohne Präposition (echtes Genitivattribut)
+            has_prep = any(c.dep_ == "case" and c.pos_ == "ADP" for c in token.children)
+            if not has_prep:
+                hl = head.lemma_.lower()
+                dl = token.lemma_.lower()
+                if _valid_lem(hl) and _valid_lem(dl):
+                    triples.append((hl, h_pos, "GMOD", dl, t_pos, ""))
 
-        # ── ATTR: Adjektivattribut (nk: ADJ→NOUN) ────────────────────────
-        elif dep == "nk" and h_pos in NOUN_POS and t_pos == "ADJ":
+        # ── ATTR: Adjektivattribut (amod: ADJ→NOUN) ──────────────────────
+        elif dep == "amod" and h_pos in NOUN_POS and t_pos == "ADJ":
             hl = head.lemma_.lower()
             dl = token.lemma_.lower()
             if _valid_lem(hl) and _valid_lem(dl):
                 triples.append((hl, h_pos, "ATTR", dl, "ADJ", ""))
 
-        # ── ADV: Adverbialbestimmung (mo: ADV→VERB) ───────────────────────
-        elif dep == "mo" and h_pos in VERB_POS and t_pos == "ADV":
+        # ── ADV: Adverbialbestimmung (advmod: ADV→VERB) ───────────────────
+        elif dep == "advmod" and h_pos in VERB_POS and t_pos == "ADV":
             hl = head.lemma_.lower()
             dl = token.lemma_.lower()
             if _valid_lem(hl) and _valid_lem(dl):
                 triples.append((hl, h_pos, "ADV", dl, "ADV", ""))
 
-        # ── PP: Präpositionalphrase (mo: ADP→VERB oder NOUN) ─────────────
-        # Struktur in TIGER: VERB/NOUN → mo → ADP, ADP → nk → NOUN
-        elif dep == "mo" and t_pos == "ADP" and h_pos in VERB_POS | NOUN_POS:
-            prep_lem = token.lemma_.lower()
-            hl = head.lemma_.lower()
-            if not _valid_lem(hl) or not prep_lem:
-                continue
-            for child in token.children:
-                if child.dep_ == "nk" and child.pos_ in NOUN_POS and child.is_alpha:
-                    dl = child.lemma_.lower()
-                    if _valid_lem(dl):
-                        triples.append((hl, h_pos, "PP", dl, child.pos_, prep_lem))
+        # ── PP: Präpositionalphrase (obl: NOUN→VERB mit case-Kind) ────────
+        # In UD: VERB → obl → NOUN, NOUN → case → ADP
+        elif dep in ("obl", "obl:arg") and h_pos in VERB_POS and t_pos in NOUN_POS:
+            prep_tok = next(
+                (c for c in token.children if c.dep_ == "case" and c.pos_ == "ADP"),
+                None
+            )
+            if prep_tok:
+                prep_lem = prep_tok.lemma_.lower()
+                hl = head.lemma_.lower()
+                dl = token.lemma_.lower()
+                if _valid_lem(hl) and _valid_lem(dl) and prep_lem:
+                    triples.append((hl, h_pos, "PP", dl, t_pos, prep_lem))
 
-        # ── KON: Koordination (cj) ────────────────────────────────────────
-        # Struktur: NOUN/VERB → cd → CCONJ → cj → NOUN/VERB
-        elif dep == "cj" and t_pos in CONTENT_POS:
-            if h_pos == "CCONJ" and head.head.pos_ == t_pos:
-                first = head.head
-                hl = first.lemma_.lower()
+        # ── KON: Koordination (conj: direkte UD-Struktur) ─────────────────
+        # In UD: VERB1/NOUN1 → conj → VERB2/NOUN2 (kein CCONJ-Zwischenknoten)
+        # Bidirektional: beide Richtungen als separate Triples
+        elif dep == "conj" and t_pos in CONTENT_POS and h_pos in CONTENT_POS:
+            # Gleiche Wortart (Verb-Verb, Noun-Noun, Adj-Adj)
+            if t_pos == h_pos or (t_pos in NOUN_POS and h_pos in NOUN_POS):
+                hl = head.lemma_.lower()
                 dl = token.lemma_.lower()
                 if _valid_lem(hl) and _valid_lem(dl) and hl != dl:
-                    triples.append((hl, t_pos, "KON", dl, t_pos, ""))
+                    triples.append((hl, h_pos, "KON", dl, t_pos, ""))
+                    triples.append((dl, t_pos, "KON", hl, h_pos, ""))
 
-        # ── PRED: Prädikativ (pd: NOUN/ADJ → AUX) ─────────────────────────
-        elif dep == "pd" and h_pos in VERB_POS and t_pos in NOUN_POS | {"ADJ"}:
+        # ── PRED: Prädikativ (xcomp: ADJ/NOUN → VERB) ─────────────────────
+        # z.B. "Er nennt ihn gefährlich" / "Sie ist Lehrerin"
+        elif dep == "xcomp" and h_pos in VERB_POS and t_pos in NOUN_POS | {"ADJ"}:
             hl = head.lemma_.lower()
             dl = token.lemma_.lower()
             if _valid_lem(hl) and _valid_lem(dl):
@@ -284,9 +304,9 @@ def main():
         PROGRESS.unlink(missing_ok=True)
         print("[RESET] Datenbank und Fortschritt gelöscht.")
 
-    print("Lade spaCy-Modell de_core_news_lg ...")
+    print("Lade spaCy-Modell de_zdl_lg (ZDL/BBAW, UD-Labels, DWDSmor-Lemmatisierung) ...")
     import spacy
-    nlp = spacy.load("de_core_news_lg", disable=["ner"])
+    nlp = spacy.load("de_zdl_lg", disable=["ner"])
     if "sentencizer" not in nlp.pipe_names and "senter" not in nlp.pipe_names:
         nlp.add_pipe("sentencizer", first=True)
     print(f"  Pipes: {nlp.pipe_names}")
