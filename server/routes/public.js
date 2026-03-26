@@ -1,6 +1,7 @@
 import express        from 'express'
 import { join }         from 'path'
 import { fetchBelege, belegeVerfuegbar } from '../belege.js'
+import { fetchRelation } from '../wortprofil.js'
 import { load, loadReadOnly, save, loadZeitreise, loadWortZwilling, loadStats, withStatsLock, getLemmataIndex, cacheGet, cacheSet, DATA } from '../store.js'
 import { belegeLimiter, statsLimiter, feedbackLimiter } from '../middleware/rateLimiter.js'
 import { serverError } from '../middleware/auth.js'
@@ -16,19 +17,30 @@ function todayDatum() {
 }
 
 /** GET /health */
-router.get('/health', (_req, res) => {
+router.get('/health', async (_req, res) => {
   let lastEntry = null
   try {
     const kalender = loadReadOnly('kalender.json')
     const keys = Object.keys(kalender).sort()
     lastEntry = keys[keys.length - 1] || null
   } catch { /* ignorieren */ }
+
+  // Wortprofil-DB: minimaler Smoke-Test (leere Abfrage reicht)
+  let wortprofilDb = 'ok'
+  try {
+    await fetchRelation('haus', 'Substantiv', 'ATTR')
+  } catch (err) {
+    wortprofilDb = `error: ${err.message}`
+  }
+
   res.json({
-    status:   'ok',
-    uptime:   Math.floor(process.uptime()),
-    env:      process.env.NODE_ENV === 'production' ? 'production' : 'development',
+    status:      'ok',
+    uptime:      Math.floor(process.uptime()),
+    env:         process.env.NODE_ENV === 'production' ? 'production' : 'development',
     lastEntry,
-    memMb:    Math.round(process.memoryUsage().rss / 1024 / 1024),
+    memMb:       Math.round(process.memoryUsage().rss / 1024 / 1024),
+    wortprofilDb,
+    belegeDb:    belegeVerfuegbar() ? 'ok' : 'nicht verfügbar',
   })
 })
 

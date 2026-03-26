@@ -22,6 +22,7 @@ import io
 import math
 import sqlite3
 import sys
+from datetime import datetime, timezone
 from pathlib import Path
 
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace")
@@ -80,13 +81,18 @@ def init_wortprofil_db(conn: sqlite3.Connection):
             logDice              REAL    NOT NULL
         )
     """)
+    # Covering Index für die Hot-Path-Query:
+    #   WHERE lemma=? AND pos=? AND relation=? AND frequency>=? AND logDice>=?
+    #   ORDER BY logDice DESC
     conn.execute("""
-        CREATE INDEX IF NOT EXISTS idx_lemma_pos
-            ON collocations (lemma, pos)
+        CREATE INDEX IF NOT EXISTS idx_collocations_lookup
+            ON collocations (lemma, pos, relation, logDice DESC)
     """)
     conn.execute("""
-        CREATE INDEX IF NOT EXISTS idx_relation_full
-            ON collocations (relation_full)
+        CREATE TABLE IF NOT EXISTS build_info (
+            key   TEXT PRIMARY KEY,
+            value TEXT NOT NULL
+        )
     """)
     conn.commit()
 
@@ -203,6 +209,19 @@ def main():
             print(f"  {n_ok:,} direkt + {n_inv:,} invers geschrieben ...", flush=True)
 
     flush()
+
+    # Build-Metadaten speichern
+    build_ts = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    dst.executemany("INSERT OR REPLACE INTO build_info (key, value) VALUES (?,?)", [
+        ("built_at",      build_ts),
+        ("min_count",     str(args.min_count)),
+        ("min_dice",      str(args.min_dice)),
+        ("n_direct",      str(n_ok)),
+        ("n_inverse",     str(n_inv)),
+        ("n_filtered",    str(n_skip)),
+    ])
+    dst.commit()
+
     src.close()
     dst.close()
 
@@ -210,6 +229,7 @@ def main():
     print(f"  Direkte Kollokationen:  {n_ok:,}")
     print(f"  Inverse Kollokationen:  {n_inv:,}")
     print(f"  Gefiltert:              {n_skip:,} (logDice < {args.min_dice})")
+    print(f"  Build-Zeit (UTC):       {build_ts}")
     print(f"  DB: {OUT_DB}")
 
 
