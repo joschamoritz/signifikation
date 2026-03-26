@@ -117,7 +117,9 @@ function queryRelation(lemma, pos, relCode, limit = 20, minFreq = 5, minDice = 0
 
   return rows.map(r => ({
     form:                 r.form,
-    lemma:                r.dep_lemma,
+    lemma:                r.dep_pos === 'Substantiv'
+                            ? r.dep_lemma.charAt(0).toUpperCase() + r.dep_lemma.slice(1)
+                            : r.dep_lemma,
     frequency:            r.frequency,
     logDice:              String(r.logDice.toFixed(4)),
     pos:                  r.dep_pos,
