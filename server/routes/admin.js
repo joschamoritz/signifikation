@@ -1,6 +1,7 @@
 import express          from 'express'
 import { fileURLToPath } from 'url'
 import { dirname, join }  from 'path'
+import { createWriteStream } from 'fs'
 import { fetchLemma, fetchBonusQuestion, fetchRelation, fetchZeitreise, POS_ROUNDS } from '../wortprofil.js'
 import { debugDiaCollo, clearCorporaCache } from '../diacollo.js'
 import { fetchWortZwilling } from '../wortzwilling.js'
@@ -283,6 +284,37 @@ router.get('/admin/backup', adminLimiter, requireAuth, (req, res) => {
     res.setHeader('Content-Disposition', `attachment; filename="signifikation-backup-${new Date().toISOString().slice(0, 10)}.json"`)
     res.json({ exportedAt: new Date().toISOString(), files: bundle })
   } catch (err) { serverError(res, err) }
+})
+
+/** POST /admin/upload-db — SQLite-DB direkt auf das Volume hochladen
+ *  Temporärer Endpoint für den initialen DB-Upload zu Railway.
+ *  Body: raw binary (application/octet-stream)
+ *  Query: ?name=wortprofil  oder  ?name=belege
+ */
+router.post('/admin/upload-db', adminLimiter, requireAuth, (req, res) => {
+  const name = req.query.name
+  if (!['wortprofil', 'belege'].includes(name)) {
+    return res.status(400).json({ error: 'name muss wortprofil oder belege sein' })
+  }
+  const envKey  = name === 'wortprofil' ? 'WORTPROFIL_DB' : 'BELEGE_DB'
+  const dbPath  = process.env[envKey] || join(__dirname, '..', 'data', `${name}.db`)
+  const tmpPath = dbPath + '.tmp'
+
+  const ws = createWriteStream(tmpPath)
+  req.pipe(ws)
+
+  ws.on('finish', () => {
+    import('fs').then(({ renameSync }) => {
+      try {
+        renameSync(tmpPath, dbPath)
+        logger.info(`upload-db: ${name}.db → ${dbPath}`)
+        res.json({ ok: true, path: dbPath })
+      } catch (err) {
+        adminError(res, err)
+      }
+    })
+  })
+  ws.on('error', err => adminError(res, err))
 })
 
 /** GET /admin – Admin-Oberfläche */
