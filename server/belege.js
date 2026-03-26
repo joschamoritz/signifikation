@@ -18,13 +18,17 @@ const __dirname = dirname(fileURLToPath(import.meta.url))
 const DB_PATH = process.env.BELEGE_DB
   ?? resolve(__dirname, '..', 'wortprofil', '06_belege', 'belege.db')
 
+// BELEGE_MMAP_MB: Memory-mapped I/O in MB (Standard: 2048 für DigitalOcean,
+// auf Instanzen mit wenig RAM auf z.B. 256 oder 512 reduzieren)
+const MMAP_BYTES = (parseInt(process.env.BELEGE_MMAP_MB ?? '2048', 10)) * 1024 * 1024
+
 let _db = null
 function db() {
   if (!_db) {
     try {
       _db = new Database(DB_PATH, { readonly: true, fileMustExist: true })
-      _db.pragma('cache_size = -131072')   // 128 MB Page-Cache
-      _db.pragma('mmap_size = 2147483648') // 2 GB Memory-mapped I/O
+      _db.pragma('cache_size = -131072')        // 128 MB Page-Cache
+      _db.pragma(`mmap_size = ${MMAP_BYTES}`)   // konfigurierbar per BELEGE_MMAP_MB
       _db.pragma('temp_store = MEMORY')
       logger.info(`Belege-DB geladen: ${DB_PATH}`)
     } catch (err) {
@@ -33,6 +37,18 @@ function db() {
     }
   }
   return _db
+}
+
+/**
+ * Prüft ob ein bereinigtes Wort zu einem Lemma gehört.
+ * Kurze Lemmata (< 4 Zeichen) werden exakt verglichen, um False Positives
+ * zu vermeiden ("er" würde sonst "erklären", "erhöhen" usw. markieren).
+ * Längere Lemmata nutzen startsWith für Flexionsformen ("Tisch" → "Tisches").
+ */
+function matchesLemma(wordLow, lemmaLow) {
+  if (!lemmaLow) return false
+  if (lemmaLow.length < 4) return wordLow === lemmaLow
+  return wordLow.startsWith(lemmaLow)
 }
 
 /**
@@ -55,9 +71,8 @@ function tokenize(sentence, lemma, collocate) {
     }
     if (!part) continue
 
-    // Wortanfang vergleichen (deckt Flexionsformen ab: "Tisch" → "Tisches")
     const wordLow = part.replace(/[.,;:!?"""''()[\]]/g, '').toLowerCase()
-    const hl = wordLow.startsWith(lemmaLow) || wordLow.startsWith(collocateLow)
+    const hl = matchesLemma(wordLow, lemmaLow) || matchesLemma(wordLow, collocateLow)
 
     tokens.push({ w: part, ws: expectWs, hl })
     expectWs = false
