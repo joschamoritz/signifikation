@@ -183,7 +183,17 @@
       ]
     },
     "notiz": "Seit 2002 gibt es den SchniBlo-Tag. Ins Leben gerufen durch die YouTuber Y-TITTY als Gegenentwurf des Valentinstags 4 Wochen zuvor.  Die Idee ist, dass der Partner/die Partnerin ein Schnitzel (oder Steak) zubereitet und einen Blowjob schenkt.",
-    "link": "https://www.youtube.com/watch?v=JbTFrQGEFo0"
+    "link": "https://www.youtube.com/watch?v=JbTFrQGEFo0",
+    "bonusFrage": {
+      "correct": "servieren",
+      "options": [
+        "stehen",
+        "servieren",
+        "bleiben"
+      ],
+      "label": "Subjekt-Verb",
+      "question": "Welches Verb verbindet sich mit „Schnitzel\" als Subjekt?"
+    }
   },
   {
     "id": "rechnen",
@@ -369,7 +379,17 @@
       ]
     },
     "notiz": "ganz schön schwer",
-    "link": ""
+    "link": "",
+    "bonusFrage": {
+      "correct": "Schnitt",
+      "options": [
+        "Schnitt",
+        "Gesamtjahr",
+        "Quartal"
+      ],
+      "label": "Präpositionalgruppe",
+      "question": "Welche Präpositionalgruppe passt zu „rechnen\"?"
+    }
   },
   {
     "id": "pi",
@@ -379,6 +399,16 @@
       "nomen": [],
       "verben": [],
       "adjektive": []
+    },
+    "bonusFrage": {
+      "correct": "anmelden",
+      "options": [
+        "nehmen",
+        "bitten",
+        "anmelden"
+      ],
+      "label": "Subjekt-Verb",
+      "question": "Welches Verb verbindet sich mit „PI\" als Subjekt?"
     }
   },
   {
@@ -544,7 +574,17 @@
       ]
     },
     "notiz": "Heute ist der Internationale Tag der Mathematik.",
-    "link": "https://zfm.education/tdm/"
+    "link": "https://zfm.education/tdm/",
+    "bonusFrage": {
+      "correct": "Teilgebiet",
+      "options": [
+        "Teilgebiet",
+        "Professor",
+        "Taschenbuch"
+      ],
+      "label": "Genitivattribut",
+      "question": "Von welchem Nomen ist „Mathematik\" oft ein Genitivattribut?"
+    }
   },
   {
     "id": "kreiszahl",
@@ -568,7 +608,8 @@
       ]
     },
     "notiz": "3/14 ist die Schreibweise des heutigen Datums in den USA.",
-    "link": "https://www.mypiday.com/"
+    "link": "https://www.mypiday.com/",
+    "bonusFrage": null
   },
   {
     "id": "ungarn",
@@ -585,7 +626,17 @@
         }
       ]
     },
-    "notiz": "Nationalfeiertag (Beginn der Revolution)"
+    "notiz": "Nationalfeiertag (Beginn der Revolution)",
+    "bonusFrage": {
+      "correct": "Regierungschef",
+      "options": [
+        "Beitritt",
+        "Regierungschef",
+        "Außenminister"
+      ],
+      "label": "Genitivattribut",
+      "question": "Von welchem Nomen ist „Ungarn\" oft ein Genitivattribut?"
+    }
   },
   {
     "id": "verschwoerung",
@@ -749,7 +800,17 @@
         }
       ]
     },
-    "notiz": "Die Iden des März (Ermordung von Julius Ceasar)"
+    "notiz": "Die Iden des März (Ermordung von Julius Ceasar)",
+    "bonusFrage": {
+      "correct": "Opfer",
+      "options": [
+        "Vorwurf",
+        "Ziel",
+        "Opfer"
+      ],
+      "label": "Genitivattribut",
+      "question": "Von welchem Nomen ist „Verschwörung\" oft ein Genitivattribut?"
+    }
   },
   {
     "id": "drucken",
@@ -838,7 +899,8 @@
         }
       ]
     },
-    "notiz": "Bundesweiter Tag der Druckkunst"
+    "notiz": "Bundesweiter Tag der Druckkunst",
+    "bonusFrage": null
   },
   {
     "id": "spieltag",
@@ -973,7 +1035,17 @@
       ]
     },
     "notiz": "Jeden Samstag 15:30 Uhr startet die Bundesliga.",
-    "link": ""
+    "link": "",
+    "bonusFrage": {
+      "correct": "austragen",
+      "options": [
+        "abschließen",
+        "absolvieren",
+        "austragen"
+      ],
+      "label": "Subjekt-Verb",
+      "question": "Welches Verb verbindet sich mit „Spieltag\" als Subjekt?"
+    }
   },
   {
     "id": "schnell",
@@ -1159,7 +1231,8 @@
       ]
     },
     "notiz": "Heute ist der Internationale Tag der Mathematik.",
-    "link": "https://zfm.education/tdm/"
+    "link": "https://zfm.education/tdm/",
+    "bonusFrage": null
   },
   {
     "id": "koalition",
@@ -1345,7 +1418,17 @@
       ]
     },
     "notiz": "Brandenburg: SPD und CDU haben heute ihren Koalitionsvertrag beschlossen – 96% der SPD-Delegierten und 83% der CDU-Mitglieder stimmten zu.",
-    "link": "https://www.tagesschau.de/inland/regional/brandenburg/koalitionsvertrag-brandenburg-102.html"
+    "link": "https://www.tagesschau.de/inland/regional/brandenburg/koalitionsvertrag-brandenburg-102.html",
+    "bonusFrage": {
+      "correct": "Neuauflage",
+      "options": [
+        "Plan",
+        "Neuauflage",
+        "Änderungsantrag"
+      ],
+      "label": "Genitivattribut",
+      "question": "Von welchem Nomen ist „Koalition\" oft ein Genitivattribut?"
+    }
   },
   {
     "id": "vermitteln",
@@ -1531,7 +1614,17 @@
       ]
     },
     "notiz": "Marcon versucht derzeit zwischen Israel und dem Libanon zu vermitteln, während der Iran-Krieg die Region destabilisiert.",
-    "link": "https://de.euronews.com/2026/03/14/macron-gesprache-israel-libanon-in-paris"
+    "link": "https://de.euronews.com/2026/03/14/macron-gesprache-israel-libanon-in-paris",
+    "bonusFrage": {
+      "correct": "Fertigkeit",
+      "options": [
+        "Kompetenz",
+        "Fertigkeit",
+        "Eindruck"
+      ],
+      "label": "Subjekt",
+      "question": "Welches Wort steht typisch als Subjekt von „vermitteln\"?"
+    }
   },
   {
     "id": "klimafreundlich",
@@ -1717,7 +1810,8 @@
       ]
     },
     "notiz": "Das Umweltbundesamt hat heute die Klimabilanz 2025 vorgelegt: Deutschland verfehlt das Klimaziel 2030 ohne weitere Maßnahmen.",
-    "link": "https://www.bundesumweltministerium.de/pressemitteilung/treibhausgasdaten-zeigen-klimaschutz-braucht-neuen-schub"
+    "link": "https://www.bundesumweltministerium.de/pressemitteilung/treibhausgasdaten-zeigen-klimaschutz-braucht-neuen-schub",
+    "bonusFrage": null
   },
   {
     "id": "tyrann",
@@ -1903,7 +1997,8 @@
       ]
     },
     "notiz": "An den Iden des März (15. März 44 v. Chr.) wurde Julius Caesar ermordet – als Tyrann galt er seinen Mördern als Bedrohung für die römische Republik.",
-    "link": "https://www.carnuntum.at/de/die-iden-des-maerz"
+    "link": "https://www.carnuntum.at/de/die-iden-des-maerz",
+    "bonusFrage": null
   },
   {
     "id": "befreien",
@@ -2089,7 +2184,17 @@
       ]
     },
     "notiz": "Ungarischer Nationalfeiertag: Am 15. März 1848 begann die ungarische Revolution – das Volk erhob sich, um sich von der Habsburger Herrschaft zu befreien.",
-    "link": "https://www.tagesschau.de/ausland/nationalfeiertag-ungarn-102.html"
+    "link": "https://www.tagesschau.de/ausland/nationalfeiertag-ungarn-102.html",
+    "bonusFrage": {
+      "correct": "Feuerwehr",
+      "options": [
+        "Insasse",
+        "Rettungskraft",
+        "Feuerwehr"
+      ],
+      "label": "Subjekt",
+      "question": "Welches Wort steht typisch als Subjekt von „befreien\"?"
+    }
   },
   {
     "id": "gedruckt",
@@ -2275,7 +2380,8 @@
       ]
     },
     "notiz": "Tag der Druckkunst: Gutenbergs Erfindung des Buchdrucks veränderte, was gedruckt werden konnte – und damit die gesamte Wissensverbreitung der Neuzeit.",
-    "link": "https://www.tag-der-druckkunst.de/"
+    "link": "https://www.tag-der-druckkunst.de/",
+    "bonusFrage": null
   },
   {
     "id": "impfung",
@@ -2461,7 +2567,17 @@
       ]
     },
     "notiz": "Am 14. Mai 1796 testete Edward Jenner erstmals seinen Pocken-Impfstoff – der 16. März gilt als Gedenktag seiner Forschungsarbeit. Ein Wort, das bis heute polarisiert.",
-    "link": "https://www.rki.de/DE/Themen/Infektionskrankheiten/Impfen/Staendige-Impfkommission/Empfehlungen-der-STIKO/Empfehlungen/Impfkalender.pdf?__blob=publicationFile&v=7"
+    "link": "https://www.rki.de/DE/Themen/Infektionskrankheiten/Impfen/Staendige-Impfkommission/Empfehlungen-der-STIKO/Empfehlungen/Impfkalender.pdf?__blob=publicationFile&v=7",
+    "bonusFrage": {
+      "correct": "Schutzkraft",
+      "options": [
+        "Nutz",
+        "Einführung",
+        "Schutzkraft"
+      ],
+      "label": "Genitivattribut",
+      "question": "Von welchem Nomen ist „Impfung\" oft ein Genitivattribut?"
+    }
   },
   {
     "id": "scheitern",
@@ -2647,7 +2763,17 @@
       ]
     },
     "notiz": "Nach der Niederlage bei Austerlitz (1805) musste Österreich den Frieden von Pressburg akzeptieren – ein Musterbeispiel dafür, wie Großmächte scheitern können.",
-    "link": "https://de.wikipedia.org/wiki/Friede_von_Pressburg#/media/Datei:Gros_-_Entrevue_-_1812.jpg"
+    "link": "https://de.wikipedia.org/wiki/Friede_von_Pressburg#/media/Datei:Gros_-_Entrevue_-_1812.jpg",
+    "bonusFrage": {
+      "correct": "Versuch",
+      "options": [
+        "Ehe",
+        "Versuch",
+        "Plan"
+      ],
+      "label": "Subjekt",
+      "question": "Welches Wort steht typisch als Subjekt von „scheitern\"?"
+    }
   },
   {
     "id": "unabhaengig",
@@ -2833,7 +2959,8 @@
       ]
     },
     "notiz": "Am 16. März 1917 erklärte Finnland erstmals seine Unabhängigkeit von Russland – ein Schritt, der die nordische Identität des Landes prägte.",
-    "link": "https://www1.wdr.de/stichtag/stichtag-finnland-unabhaengigkeit-100.html"
+    "link": "https://www1.wdr.de/stichtag/stichtag-finnland-unabhaengigkeit-100.html",
+    "bonusFrage": null
   },
   {
     "id": "schlange",
@@ -3019,7 +3146,17 @@
       ]
     },
     "notiz": "Der Legende nach vertrieb St. Patrick die Schlangen aus Irland – bis heute Symbol des Feiertags und der irischen Mythologie.",
-    "link": ""
+    "link": "",
+    "bonusFrage": {
+      "correct": "Oberherr",
+      "options": [
+        "Kopf",
+        "Ende",
+        "Oberherr"
+      ],
+      "label": "Genitivattribut",
+      "question": "Von welchem Nomen ist „Schlange\" oft ein Genitivattribut?"
+    }
   },
   {
     "id": "streiken",
@@ -3170,7 +3307,17 @@
       ]
     },
     "notiz": "Am 17. März 1902 begann in den USA ein großer Bergarbeiterstreik – einer der ersten organisierten Arbeitskämpfe der Industriegeschichte.",
-    "link": ""
+    "link": "",
+    "bonusFrage": {
+      "correct": "Nahverkehr",
+      "options": [
+        "Flughafen",
+        "Nahverkehr",
+        "Tarifkonflikt"
+      ],
+      "label": "Präpositionalgruppe",
+      "question": "Welche Präpositionalgruppe passt zu „streiken\"?"
+    }
   },
   {
     "id": "gruen",
@@ -3356,7 +3503,8 @@
       ]
     },
     "notiz": "St. Patrick's Day: Weltweit färben sich Flüsse, Bier und Kleidung grün – die Farbe ist heute untrennbar mit dem irischen Nationalfeiertag verbunden.",
-    "link": ""
+    "link": "",
+    "bonusFrage": null
   },
   {
     "id": "barrikade",
@@ -3542,7 +3690,8 @@
       ]
     },
     "notiz": "In der Nacht vom 18. März 1848 errichteten Berliner Bürger Barrikaden gegen preußisches Militär – Beginn der Märzrevolution.",
-    "link": "https://www.bundestag.de/dokumente/textarchiv/1848-03-18-buergerliche-revolution-937594"
+    "link": "https://www.bundestag.de/dokumente/textarchiv/1848-03-18-buergerliche-revolution-937594",
+    "bonusFrage": null
   },
   {
     "id": "landen",
@@ -3728,7 +3877,17 @@
       ]
     },
     "notiz": "Am 18. März 1965 führte Alexei Leonow den ersten Weltraumspaziergang durch – kurz danach musste die Kapsel notlanden.",
-    "link": "https://download.deutschlandfunk.de/file/dradio/2025/03/18/18031965_alexei_leonow_schwebt_als_erster_mensch_frei_im_dlf_20250318_0905_346b1f0b.mp3"
+    "link": "https://download.deutschlandfunk.de/file/dradio/2025/03/18/18031965_alexei_leonow_schwebt_als_erster_mensch_frei_im_dlf_20250318_0905_346b1f0b.mp3",
+    "bonusFrage": {
+      "correct": "Platz",
+      "options": [
+        "Dach",
+        "Straßengraben",
+        "Platz"
+      ],
+      "label": "Präpositionalgruppe",
+      "question": "Welche Präpositionalgruppe passt zu „landen\"?"
+    }
   },
   {
     "id": "preussisch",
@@ -3914,7 +4073,8 @@
       ]
     },
     "notiz": "Die Märzgefechte 1848 richteten sich gegen preußische Truppen – ein Adjektiv, das Macht, Disziplin und Widerstand zugleich evoziert.",
-    "link": "https://www.youtube.com/watch?v=gsAZU99Ij-c"
+    "link": "https://www.youtube.com/watch?v=gsAZU99Ij-c",
+    "bonusFrage": null
   },
   {
     "id": "fotografie",
@@ -4100,7 +4260,17 @@
       ]
     },
     "notiz": "Am 19. März 1765 wurde Joseph Niépce geboren, der als Erfinder der Fotografie gilt – ohne ihn kein Instagram, kein Passfoto, keine Bildberichterstattung.",
-    "link": "https://www.instagram.com/"
+    "link": "https://www.instagram.com/",
+    "bonusFrage": {
+      "correct": "Klassiker",
+      "options": [
+        "Klassiker",
+        "Ausstellung",
+        "Meister"
+      ],
+      "label": "Genitivattribut",
+      "question": "Von welchem Nomen ist „Fotografie\" oft ein Genitivattribut?"
+    }
   },
   {
     "id": "kapitulieren",
@@ -4235,7 +4405,17 @@
       ]
     },
     "notiz": "Deutsche Truppen kapitulieren 1945 in Düsseldorf – eines der frühen Zeichen des nahenden Kriegsendes.",
-    "link": "https://www.youtube.com/watch?v=69ih3eoNeDg"
+    "link": "https://www.youtube.com/watch?v=69ih3eoNeDg",
+    "bonusFrage": {
+      "correct": "Mai",
+      "options": [
+        "Mai",
+        "Problem",
+        "Ende"
+      ],
+      "label": "Präpositionalgruppe",
+      "question": "Welche Präpositionalgruppe passt zu „kapitulieren\"?"
+    }
   },
   {
     "id": "heilig",
@@ -4411,7 +4591,8 @@
       ]
     },
     "notiz": "Josefstag, 19. März: Namenstag des Heiligen Josef, in manchen Ländern ein Feiertag – ein Adjektiv mit langer religiöser und kultureller Geschichte.",
-    "link": "https://www.josefstag.de/"
+    "link": "https://www.josefstag.de/",
+    "bonusFrage": null
   },
   {
     "id": "fruehling",
@@ -4597,7 +4778,17 @@
       ]
     },
     "notiz": "Der 21.03. markiert oft den astronomischen Frühlingsanfang auf der Nordhalbkugel.",
-    "link": "wetteronline.de/"
+    "link": "wetteronline.de/",
+    "bonusFrage": {
+      "correct": "Niederschlagung",
+      "options": [
+        "Insel",
+        "Niederschlagung",
+        "Laufen"
+      ],
+      "label": "Genitivattribut",
+      "question": "Von welchem Nomen ist „Frühling\" oft ein Genitivattribut?"
+    }
   },
   {
     "id": "ratifizieren",
@@ -4783,7 +4974,17 @@
       ]
     },
     "notiz": "Am 20. März 1783 wurde der Vertrag von Paris ratifiziert, der den Amerikanischen Unabhängigkeitskrieg beendete – ein Verb, das Geschichte macht.",
-    "link": "https://www.europarl.europa.eu/about-parliament/de/in-the-past/the-parliament-and-the-treaties/treaty-of-paris"
+    "link": "https://www.europarl.europa.eu/about-parliament/de/in-the-past/the-parliament-and-the-treaties/treaty-of-paris",
+    "bonusFrage": {
+      "correct": "Abkommen",
+      "options": [
+        "Abkommen",
+        "Konvention",
+        "Friedensvertrag"
+      ],
+      "label": "Subjekt",
+      "question": "Welches Wort steht typisch als Subjekt von „ratifizieren\"?"
+    }
   },
   {
     "id": "international",
@@ -4969,7 +5170,8 @@
       ]
     },
     "notiz": "Die UN begehen am 20. März den Weltglückstag – ein Anlass, der zeigt, wie unterschiedlich Glück international definiert wird.",
-    "link": "https://www.geo.de/wissen/gesundheit/weltglueckstag-fuenf-ueberraschende-dinge-die-uns-gluecklich-machen-30173802.html"
+    "link": "https://www.geo.de/wissen/gesundheit/weltglueckstag-fuenf-ueberraschende-dinge-die-uns-gluecklich-machen-30173802.html",
+    "bonusFrage": null
   },
   {
     "id": "boxen",
@@ -5120,7 +5322,8 @@
       ]
     },
     "notiz": "1993 wurde Henry Maske an diesem Tag erstmals Box-Weltmeister.",
-    "link": "https://de.wikipedia.org/wiki/Henry_Maske"
+    "link": "https://de.wikipedia.org/wiki/Henry_Maske",
+    "bonusFrage": null
   },
   {
     "id": "diskriminieren",
@@ -5306,7 +5509,17 @@
       ]
     },
     "notiz": "Die Vereinten Nationen riefen den 21. März zum Internationalen Tag zur Beseitigung der Rassendiskriminierung aus und haben bisher drei Weltkonferenzen gegen Rassismus (1978, 1983, 2001) durchgeführt.",
-    "link": "https://www.bpb.de/kurz-knapp/taegliche-dosis-politik/560662/21-maerz-heute-ist-internationaler-tag-gegen-rassismus/"
+    "link": "https://www.bpb.de/kurz-knapp/taegliche-dosis-politik/560662/21-maerz-heute-ist-internationaler-tag-gegen-rassismus/",
+    "bonusFrage": {
+      "correct": "Hautfarbe",
+      "options": [
+        "Land",
+        "Geschlecht",
+        "Hautfarbe"
+      ],
+      "label": "Präpositionalgruppe",
+      "question": "Welche Präpositionalgruppe passt zu „diskriminieren\"?"
+    }
   },
   {
     "id": "religioes",
@@ -5492,7 +5705,8 @@
       ]
     },
     "notiz": "Das Newrozfest wird jährlich als Neujahrs- oder Frühjahrsfest am 21. März u.a. von Aleviten, Schiiten und Kurden gefeiert.",
-    "link": "http://www.navend.de/publikationen/kurdistan-heute/kurdistan-heute-nr-03-dezember-1992-januar-1993/newroz-und-seine-bedeutung/"
+    "link": "http://www.navend.de/publikationen/kurdistan-heute/kurdistan-heute-nr-03-dezember-1992-januar-1993/newroz-und-seine-bedeutung/",
+    "bonusFrage": null
   },
   {
     "id": "widder",
@@ -5588,7 +5802,8 @@
       ]
     },
     "notiz": "Der heutige Tag liegt im Sternzeichen Widder und ist der frühestmögliche Ostertermin.",
-    "link": "https://www.brigitte.de/horoskop/sternzeichen/astrologie--sternzeichen-widder--spontan-und-leidenschaftlich-10221828.html"
+    "link": "https://www.brigitte.de/horoskop/sternzeichen/astrologie--sternzeichen-widder--spontan-und-leidenschaftlich-10221828.html",
+    "bonusFrage": null
   },
   {
     "id": "trinken",
@@ -5774,7 +5989,17 @@
       ]
     },
     "notiz": "Heute ist der Weltwassertag!",
-    "link": "https://vivaconagua.org/"
+    "link": "https://vivaconagua.org/",
+    "bonusFrage": {
+      "correct": "Flasche",
+      "options": [
+        "Flasche",
+        "Café",
+        "Strohhalm"
+      ],
+      "label": "Präpositionalgruppe",
+      "question": "Welche Präpositionalgruppe passt zu „trinken\"?"
+    }
   },
   {
     "id": "durstig",
@@ -5890,7 +6115,8 @@
       ]
     },
     "notiz": "Seit 1993 von den UN ausgerufen, gibt es den Weltwassertag um die Bedeutung von Wasser als essenzielle Ressource zu unterstreichen",
-    "link": "https://www.bundesumweltministerium.de/themen/wasser-und-binnengewaesser/gewaesserschutzpolitik/international/weltwassertag-am-22-maerz"
+    "link": "https://www.bundesumweltministerium.de/themen/wasser-und-binnengewaesser/gewaesserschutzpolitik/international/weltwassertag-am-22-maerz",
+    "bonusFrage": null
   },
   {
     "id": "corona",
@@ -5951,7 +6177,17 @@
       ]
     },
     "notiz": "2020 beginnt während der Corona-Pandemie die Quarantäne für den Ort Neustadt am Rennsteig.",
-    "link": "https://www.mdr.de/geschichte/mitteldeutschland/jahrestage/kalenderblatt-willy-brandt-ruecktritt-raumstation-mir-absturz-hiter-ermaechtigungsgesetz100.html#sprung4"
+    "link": "https://www.mdr.de/geschichte/mitteldeutschland/jahrestage/kalenderblatt-willy-brandt-ruecktritt-raumstation-mir-absturz-hiter-ermaechtigungsgesetz100.html#sprung4",
+    "bonusFrage": {
+      "correct": "ausbremsen",
+      "options": [
+        "beschleunigen",
+        "ausbremsen",
+        "sein"
+      ],
+      "label": "Subjekt-Verb",
+      "question": "Welches Verb verbindet sich mit „Corona\" als Subjekt?"
+    }
   },
   {
     "id": "ermaechtigen",
@@ -6102,7 +6338,17 @@
       ]
     },
     "notiz": "Bedeutend ist dieser Tag vor allem durch die Verabschiedung des Ermächtigungsgesetzes 1933, welches die Abschaffung der Demokratie und Beginn der NS-Diktatur in Deutschland markierte",
-    "link": "https://www1.wdr.de/radio/wdr5/sendungen/zeitzeichen/ermaechtigungsgesetz102.html"
+    "link": "https://www1.wdr.de/radio/wdr5/sendungen/zeitzeichen/ermaechtigungsgesetz102.html",
+    "bonusFrage": {
+      "correct": "Bundesministerium",
+      "options": [
+        "Bundesminister",
+        "Bundesministerium",
+        "Bundesregierung"
+      ],
+      "label": "Subjekt",
+      "question": "Welches Wort steht typisch als Subjekt von „ermächtigen\"?"
+    }
   },
   {
     "id": "physikalisch",
@@ -6288,7 +6534,8 @@
       ]
     },
     "notiz": "Heute wird international der Welttag der Meteorologie begangen.",
-    "link": "https://www.dwd.de/DE/service/lexikon/Functions/glossar.html?lv3=101744&lv2=101640#:~:text=Meteorologie%20ist%20die%20Lehre%20von,%22%20Physik%20der%20Atmosph%C3%A4re%22%20bezeichnet."
+    "link": "https://www.dwd.de/DE/service/lexikon/Functions/glossar.html?lv3=101744&lv2=101640#:~:text=Meteorologie%20ist%20die%20Lehre%20von,%22%20Physik%20der%20Atmosph%C3%A4re%22%20bezeichnet.",
+    "bonusFrage": null
   },
   {
     "id": "frau",
@@ -6474,7 +6721,17 @@
       ]
     },
     "notiz": "1921: Eröffnung der ersten Olympischen Frauenspiele in Monte Carlo.",
-    "link": "https://www.deutschlandfunk.de/vor-100-jahren-in-monte-carlo-als-die-ersten-olympischen-100.html"
+    "link": "https://www.deutschlandfunk.de/vor-100-jahren-in-monte-carlo-als-die-ersten-olympischen-100.html",
+    "bonusFrage": {
+      "correct": "Tod",
+      "options": [
+        "Tod",
+        "Beschäftigung",
+        "Leiche"
+      ],
+      "label": "Genitivattribut",
+      "question": "Von welchem Nomen ist „Frau\" oft ein Genitivattribut?"
+    }
   },
   {
     "id": "abstuerzen",
@@ -6635,7 +6892,17 @@
       ]
     },
     "notiz": "Absturz der Germanwings-Maschine 4U9525 in den französischen Alpen während der (meiner) Abitur Mottowoche. Aus der Nachbarstadt Haltern am See sterben 16 Schüler und zwei Lehrerinnen einer Schulklasse.",
-    "link": "https://elena-bless-stiftung.de/"
+    "link": "https://elena-bless-stiftung.de/",
+    "bonusFrage": {
+      "correct": "Landeanflug",
+      "options": [
+        "Landeanflug",
+        "Bord",
+        "Böschung"
+      ],
+      "label": "Präpositionalgruppe",
+      "question": "Welche Präpositionalgruppe passt zu „abstürzen\"?"
+    }
   },
   {
     "id": "krank",
@@ -6821,7 +7088,8 @@
       ]
     },
     "notiz": "Robert Koch gibt 1882 die Entdeckung des Tuberkulose-Erregers bekannt.",
-    "link": "https://flexikon.doccheck.com/de/Tuberkulose"
+    "link": "https://flexikon.doccheck.com/de/Tuberkulose",
+    "bonusFrage": null
   },
   {
     "id": "unabhaengigkeit",
@@ -7007,7 +7275,17 @@
       ]
     },
     "notiz": "Der Griechische Unabhängigkeitstag. Dieser wird am 25. März begangen, dem Tag, der als Beginn des erfolgreichen Kampfes des griechischen Volkes gegen das Osmanische Reich (1821 – 1830) gilt und der in der Etablierung eines unabhängigen Staates kulminierte.",
-    "link": "https://du-bist-grieche.de/nationaler-unabhaengigkeitstag-in-griechenland-25-3"
+    "link": "https://du-bist-grieche.de/nationaler-unabhaengigkeitstag-in-griechenland-25-3",
+    "bonusFrage": {
+      "correct": "gewährleisten",
+      "options": [
+        "garantieren",
+        "gewährleisten",
+        "sichern"
+      ],
+      "label": "Subjekt-Verb",
+      "question": "Welches Verb verbindet sich mit „Unabhängigkeit\" als Subjekt?"
+    }
   },
   {
     "id": "konstituieren",
@@ -7193,7 +7471,17 @@
       ]
     },
     "notiz": "Vor einem Jahr konstituierte sich an diesem Tag der 21. Bundestag, wobei Gregor Gisi die Sitzung eröffnete und Julia Klöckner zur Präsidentin gewählt wurde.",
-    "link": "https://www.tagesschau.de/inland/innenpolitik/bundestag-konstituierende-sitzung-102.html"
+    "link": "https://www.tagesschau.de/inland/innenpolitik/bundestag-konstituierende-sitzung-102.html",
+    "bonusFrage": {
+      "correct": "Personalrat",
+      "options": [
+        "Personalrat",
+        "Untersuchungsausschuss",
+        "Verteidigungsausschuss"
+      ],
+      "label": "Subjekt",
+      "question": "Welches Wort steht typisch als Subjekt von „konstituieren\"?"
+    }
   },
   {
     "id": "wahllos",
@@ -7369,6 +7657,7 @@
       ]
     },
     "notiz": "...tauchen auch hier mal Wörter auf.",
-    "link": ""
+    "link": "",
+    "bonusFrage": null
   }
 ]
