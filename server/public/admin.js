@@ -301,7 +301,7 @@ async function saveTag() {
     let msg = `Gespeichert: ${mmdd} → ${data.ids.join(', ')}`
     if (zr) {
       msg += data.zeitreiseOk === true  ? ' · Zeitreise: OK'
-           : data.zeitreiseOk === false ? ' · Zeitreise: keine ausreichenden DiaCollo-Daten'
+           : data.zeitreiseOk === false ? ' · Zeitreise: nicht genug Daten (Wort trotzdem gespeichert)'
            : ''
     }
     if (wza && wzb) {
@@ -309,8 +309,8 @@ async function saveTag() {
            : data.zwillingOk === false ? ' · Wort-Zwilling: nicht genug distinkte Kollokatoren'
            : ''
     }
-    const hasError = data.zeitreiseOk === false || data.zwillingOk === false
-    setStatus(msg, hasError ? 'error' : 'ok')
+    const hasError = data.zwillingOk === false
+    setStatus(msg, hasError ? 'error' : data.zeitreiseOk === false ? 'warn' : 'ok')
     await loadKalender()
   } catch (err) {
     setStatus(`Fehler: ${err.message}`, 'error')
