@@ -286,33 +286,46 @@ router.get('/admin/backup', adminLimiter, requireAuth, (req, res) => {
   } catch (err) { serverError(res, err) }
 })
 
-/** POST /admin/upload-db — SQLite-DB direkt auf das Volume hochladen
- *  Temporärer Endpoint für den initialen DB-Upload zu Railway.
- *  Body: raw binary (application/octet-stream)
- *  Query: ?name=wortprofil  oder  ?name=belege
+/** POST /admin/upload-db-chunk — Chunked SQLite-DB Upload
+ *  Nimmt die Datei in Stücken an (umgeht Railway-Proxy-Timeout).
+ *  Query: ?name=wortprofil|belege  &index=0  &total=40
+ *  Body:  raw binary chunk (application/octet-stream)
+ *  Letzter Chunk (index === total-1) löst rename .tmp → .db aus.
  */
-router.post('/admin/upload-db', adminLimiter, requireAuth, (req, res) => {
-  const name = req.query.name
+router.post('/admin/upload-db-chunk', adminLimiter, requireAuth, (req, res) => {
+  const { name, index, total } = req.query
   if (!['wortprofil', 'belege'].includes(name)) {
     return res.status(400).json({ error: 'name muss wortprofil oder belege sein' })
   }
+  const chunkIdx  = parseInt(index)
+  const chunkTotal = parseInt(total)
+  if (isNaN(chunkIdx) || isNaN(chunkTotal) || chunkIdx < 0 || chunkIdx >= chunkTotal) {
+    return res.status(400).json({ error: 'Ungültige index/total Parameter' })
+  }
+
   const envKey  = name === 'wortprofil' ? 'WORTPROFIL_DB' : 'BELEGE_DB'
   const dbPath  = process.env[envKey] || join(__dirname, '..', 'data', `${name}.db`)
   const tmpPath = dbPath + '.tmp'
 
-  const ws = createWriteStream(tmpPath)
+  // Chunk anhängen (append bei index > 0, neu anlegen bei index === 0)
+  const flags = chunkIdx === 0 ? 'w' : 'a'
+  const ws = createWriteStream(tmpPath, { flags })
   req.pipe(ws)
 
   ws.on('finish', () => {
-    import('fs').then(({ renameSync }) => {
-      try {
-        renameSync(tmpPath, dbPath)
-        logger.info(`upload-db: ${name}.db → ${dbPath}`)
-        res.json({ ok: true, path: dbPath })
-      } catch (err) {
-        adminError(res, err)
-      }
-    })
+    // Letzter Chunk: tmp → db umbenennen
+    if (chunkIdx === chunkTotal - 1) {
+      import('fs').then(({ renameSync }) => {
+        try {
+          renameSync(tmpPath, dbPath)
+          logger.info(`upload-db-chunk: ${name}.db fertig → ${dbPath}`)
+          res.json({ ok: true, done: true, path: dbPath })
+        } catch (err) { adminError(res, err) }
+      })
+    } else {
+      logger.info(`upload-db-chunk: ${name} chunk ${chunkIdx + 1}/${chunkTotal}`)
+      res.json({ ok: true, done: false, chunk: chunkIdx })
+    }
   })
   ws.on('error', err => adminError(res, err))
 })
