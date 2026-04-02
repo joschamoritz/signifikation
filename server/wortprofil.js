@@ -317,19 +317,18 @@ export async function fetchZeitreise(lemma) {
  * Gibt null zurück wenn fetchZeitreise null liefert (nicht genug Dekaden).
  */
 export async function fetchZeitreiseAnalyze(lemma) {
-  const base = await fetchZeitreise(lemma)
-  if (!base) return null
-
   const lemmaLower = lemma.toLowerCase()
   const lemmaStamm = lemmaLower.slice(0, 4)
 
-  // Alle gefilterten Rows laden
+  // Alle Rows laden – unabhängig von Dekaden-Mindestanzahl
   const allRows = stmt(`
     SELECT dep_lemma, dep_pos, jahrzehnt, score
     FROM zeitreise
     WHERE lemma = ?
     ORDER BY jahrzehnt ASC, score DESC
-  `).all(lemma.toLowerCase())
+  `).all(lemmaLower)
+
+  if (!allRows.length) return null
 
   // Nach Jahrzehnt gruppieren, Top-4 gültige Kollokatoren
   const byDecade = new Map()
@@ -341,8 +340,11 @@ export async function fetchZeitreiseAnalyze(lemma) {
     if (arr.length < 4) arr.push({ wort: normalizeLemma(r.dep_lemma, r.dep_pos), score: r.score })
   }
 
-  // Quintil-Jahrzehnte als Set
-  const quintilSet = new Set(base.paare.map(p => String(p.jahrzehnt)))
+  if (!byDecade.size) return null
+
+  // Quintil-Paare nur wenn >=5 gültige Dekaden vorhanden (gleiche Logik wie fetchZeitreise)
+  const base = await fetchZeitreise(lemma)
+  const quintilSet = base ? new Set(base.paare.map(p => String(p.jahrzehnt))) : new Set()
 
   const perioden = [...byDecade.entries()]
     .sort(([a], [b]) => a - b)
@@ -352,7 +354,7 @@ export async function fetchZeitreiseAnalyze(lemma) {
       quintil: quintilSet.has(String(jahrzehnt)),
     }))
 
-  return { lemma: base.lemma, paare: base.paare, perioden }
+  return { lemma, usable: !!base, paare: base?.paare ?? null, perioden }
 }
 
 /**

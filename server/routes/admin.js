@@ -89,9 +89,9 @@ router.get('/admin/analyze-zeitreise', adminLimiter, requireAuth, validate(analy
   try {
     const result = await fetchZeitreiseAnalyze(lemma.trim())
     if (!result) {
-      return res.json({ usable: false, lemma, reason: 'Nicht genug Dekaden mit ≥3 gültigen Kollokatoren (mind. 5 Dekaden nötig).' })
+      return res.json({ usable: false, noData: true, lemma, reason: 'Keine Zeitreise-Daten für dieses Wort gefunden.' })
     }
-    res.json({ usable: true, lemma: result.lemma, decades: result.perioden.length, paare: result.paare, perioden: result.perioden })
+    res.json({ usable: result.usable, lemma: result.lemma, decades: result.perioden.length, paare: result.paare, perioden: result.perioden })
   } catch (err) { adminError(res, err) }
 })
 
