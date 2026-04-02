@@ -97,26 +97,39 @@ def init_wortprofil_db(conn: sqlite3.Connection):
     conn.commit()
 
 
-def lade_marginals(src: sqlite3.Connection) -> tuple[dict, dict]:
+def lade_triples_mit_marginals(src: sqlite3.Connection, min_count: int) -> tuple[list, dict, dict]:
     """
-    Berechnet Marginalfrequenzen (über alle Jahre aggregiert):
-      f_head[lemma, pos] = Summe aller Kookkurrenzen als Head
-      f_dep[lemma, pos]  = Summe aller Kookkurrenzen als Dep
+    Ein-Pass-Strategie: Liest alle gefilterten Triples aus triples.db und
+    berechnet dabei Marginalfrequenzen on-the-fly.
+
+    Nutzt den PRIMARY KEY (head_lemma, head_pos, relation, dep_lemma, dep_pos, prep, jahr)
+    als Index für die GROUP BY — kein separater Full-Table-Scan auf dep_lemma nötig.
+
+    Rückgabe:
+      rows    – Liste aller gefilterten aggregierten Triples
+      f_head  – Marginalfrequenzen für (head_lemma, head_pos)
+      f_dep   – Marginalfrequenzen für (dep_lemma, dep_pos)
     """
-    print("Berechne Marginalfrequenzen ...")
+    print("Lade Triples + berechne Marginals (ein Pass) ...")
+    rows   = []
     f_head: dict[tuple, int] = {}
     f_dep:  dict[tuple, int] = {}
 
-    for row in src.execute(
-        "SELECT head_lemma, head_pos, dep_lemma, dep_pos, SUM(count) "
-        "FROM triples GROUP BY head_lemma, head_pos, dep_lemma, dep_pos"
-    ):
-        hl, hp, dl, dp, cnt = row
+    for row in src.execute("""
+        SELECT head_lemma, head_pos, relation, dep_lemma, dep_pos, prep, SUM(count)
+        FROM triples
+        GROUP BY head_lemma, head_pos, relation, dep_lemma, dep_pos, prep
+        HAVING SUM(count) >= ?
+    """, (min_count,)):
+        hl, hp, rel, dl, dp, prep, cnt = row
+        rows.append(row)
         f_head[(hl, hp)] = f_head.get((hl, hp), 0) + cnt
         f_dep[(dl, dp)]  = f_dep.get((dl, dp),  0) + cnt
+        if len(rows) % 500_000 == 0:
+            print(f"  {len(rows):,} Triples geladen ...", flush=True)
 
-    print(f"  {len(f_head):,} Head-Lemmata, {len(f_dep):,} Dep-Lemmata")
-    return f_head, f_dep
+    print(f"  {len(rows):,} Triples | {len(f_head):,} Head-Lemmata | {len(f_dep):,} Dep-Lemmata")
+    return rows, f_head, f_dep
 
 
 def berechne_logdice(f_ab: int, f_a: int, f_b: int) -> float:
@@ -148,9 +161,10 @@ def main():
 
     init_wortprofil_db(dst)
 
-    f_head, f_dep = lade_marginals(src)
+    rows, f_head, f_dep = lade_triples_mit_marginals(src, args.min_count)
+    src.close()
 
-    print("Verarbeite Triples ...")
+    print("Berechne logDice + schreibe Kollokationen ...")
     n_ok = n_inv = n_skip = 0
     batch = []
     BATCH_SIZE = 50_000
@@ -166,12 +180,7 @@ def main():
             dst.commit()
             batch.clear()
 
-    for row in src.execute("""
-        SELECT head_lemma, head_pos, relation, dep_lemma, dep_pos, prep, SUM(count)
-        FROM triples
-        GROUP BY head_lemma, head_pos, relation, dep_lemma, dep_pos, prep
-        HAVING SUM(count) >= ?
-    """, (args.min_count,)):
+    for row in rows:
         hl, hp, rel, dl, dp, prep, cnt = row
 
         # ── Direkte Relation ──────────────────────────────────────────────
@@ -222,7 +231,6 @@ def main():
     ])
     dst.commit()
 
-    src.close()
     dst.close()
 
     print(f"\n=== Fertig ===")

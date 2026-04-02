@@ -313,6 +313,49 @@ export async function fetchZeitreise(lemma) {
 }
 
 /**
+ * Zeitreise-Analyse für den Admin: liefert Quintil-Paare + Top-4 Kollokatoren pro Dekade.
+ * Gibt null zurück wenn fetchZeitreise null liefert (nicht genug Dekaden).
+ */
+export async function fetchZeitreiseAnalyze(lemma) {
+  const base = await fetchZeitreise(lemma)
+  if (!base) return null
+
+  const lemmaLower = lemma.toLowerCase()
+  const lemmaStamm = lemmaLower.slice(0, 4)
+
+  // Alle gefilterten Rows laden
+  const allRows = stmt(`
+    SELECT dep_lemma, dep_pos, jahrzehnt, score
+    FROM zeitreise
+    WHERE lemma = ?
+    ORDER BY jahrzehnt ASC, score DESC
+  `).all(lemma.toLowerCase())
+
+  // Nach Jahrzehnt gruppieren, Top-4 gültige Kollokatoren
+  const byDecade = new Map()
+  for (const r of allRows) {
+    const w = normalizeLemma(r.dep_lemma, r.dep_pos).toLowerCase()
+    if (w === lemmaLower || w.startsWith(lemmaStamm) || w.length <= 2) continue
+    if (!byDecade.has(r.jahrzehnt)) byDecade.set(r.jahrzehnt, [])
+    const arr = byDecade.get(r.jahrzehnt)
+    if (arr.length < 4) arr.push({ wort: normalizeLemma(r.dep_lemma, r.dep_pos), score: r.score })
+  }
+
+  // Quintil-Jahrzehnte als Set
+  const quintilSet = new Set(base.paare.map(p => String(p.jahrzehnt)))
+
+  const perioden = [...byDecade.entries()]
+    .sort(([a], [b]) => a - b)
+    .map(([jahrzehnt, top]) => ({
+      jahrzehnt: String(jahrzehnt),
+      top,
+      quintil: quintilSet.has(String(jahrzehnt)),
+    }))
+
+  return { lemma: base.lemma, paare: base.paare, perioden }
+}
+
+/**
  * Bonusfrage abrufen – Äquivalent zu dwds.js fetchBonusQuestion().
  */
 export async function fetchBonusQuestion(lemma, pos = 'Substantiv') {

@@ -103,3 +103,8 @@ export const analyzeWZQuerySchema = z.object({
   b:   z.string().min(1, 'b= erforderlich'),
   pos: POS,
 })
+
+/** GET /admin/analyze-zeitreise (query) */
+export const analyzeZeitQuerySchema = z.object({
+  q: z.string().min(1, 'q= erforderlich'),
+})
