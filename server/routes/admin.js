@@ -260,30 +260,35 @@ router.get('/admin/backup', adminLimiter, requireAuth, (req, res) => {
 })
 
 
-/** POST /admin/upload-wortprofil – wortprofil.db in Chunks hochladen */
+/** POST /admin/upload-wortprofil – wortprofil.db in Chunks hochladen (raw binary) */
 router.post('/admin/upload-wortprofil', adminLimiter, requireAuth, (req, res) => {
-  const { chunk, index, total } = req.query
-  if (!chunk || !index || !total) return res.status(400).json({ error: 'chunk/index/total erforderlich' })
+  const { index, total } = req.query
+  if (index === undefined || !total) return res.status(400).json({ error: 'index/total erforderlich' })
   const dataDir = join(__dirname, '../data')
   const tmpPath = join(dataDir, 'wortprofil.db.upload')
-  try {
-    const buf = Buffer.from(req.body, 'base64')
-    const stream = createWriteStream(tmpPath, { flags: index === '0' ? 'w' : 'a' })
-    stream.write(buf)
-    stream.end()
-    stream.on('finish', () => {
-      if (parseInt(index) === parseInt(total) - 1) {
-        const dbPath   = join(dataDir, 'wortprofil.db')
-        const bakPath  = join(dataDir, 'wortprofil.db.bak')
-        if (existsSync(dbPath)) renameSync(dbPath, bakPath)
-        renameSync(tmpPath, dbPath)
-        logger.info('wortprofil.db Upload abgeschlossen und aktiviert')
-        res.json({ ok: true, done: true })
-      } else {
-        res.json({ ok: true, done: false, index: parseInt(index) })
-      }
-    })
-  } catch (err) { adminError(res, err) }
+  const chunks  = []
+  req.on('data', d => chunks.push(d))
+  req.on('end', () => {
+    try {
+      const buf    = Buffer.concat(chunks)
+      const stream = createWriteStream(tmpPath, { flags: index === '0' ? 'w' : 'a' })
+      stream.write(buf)
+      stream.end()
+      stream.on('finish', () => {
+        if (parseInt(index) === parseInt(total) - 1) {
+          const dbPath  = join(dataDir, 'wortprofil.db')
+          const bakPath = join(dataDir, 'wortprofil.db.bak')
+          if (existsSync(dbPath)) renameSync(dbPath, bakPath)
+          renameSync(tmpPath, dbPath)
+          logger.info('wortprofil.db Upload abgeschlossen und aktiviert')
+          res.json({ ok: true, done: true })
+        } else {
+          res.json({ ok: true, done: false, index: parseInt(index) })
+        }
+      })
+    } catch (err) { adminError(res, err) }
+  })
+  req.on('error', err => adminError(res, err))
 })
 
 /** GET /admin – Admin-Oberfläche */
