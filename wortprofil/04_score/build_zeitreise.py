@@ -86,18 +86,22 @@ def build_zeitreise(reset: bool = False):
 
     print(f"  {len(rows):,} Roh-Einträge gefunden")
 
-    # Normalisierungs-Nenner: Gesamt-Häufigkeit pro (head, jahrzehnt)
-    totals: dict[tuple, int] = {}
+    # Ein-Pass: f_head und f_dep pro Jahrzehnt gleichzeitig akkumulieren
+    import math
+    f_head: dict[tuple, int] = {}  # (head_lemma, head_pos, jahrzehnt)
+    f_dep:  dict[tuple, int] = {}  # (dep_lemma,  dep_pos,  jahrzehnt)
     for hl, hp, dl, dp, jz, freq in rows:
-        key = (hl, hp, jz)
-        totals[key] = totals.get(key, 0) + freq
+        f_head[(hl, hp, jz)] = f_head.get((hl, hp, jz), 0) + freq
+        f_dep[ (dl, dp, jz)] = f_dep.get( (dl, dp, jz), 0) + freq
 
-    # Normalisierter Score: relative Häufigkeit × 1000
+    # logDice pro Dekade: 14 + log2(2 * f_cooc / (f_head + f_dep))
+    # Gleiche Formel wie in build_wortprofil.py – Scores vergleichbar mit Kollokationsanalyse
     batch = []
     for hl, hp, dl, dp, jz, freq in rows:
-        total = totals.get((hl, hp, jz), 1)
-        score = round(freq / total * 1000, 4)
-        batch.append((hl, hp, dl, dp, jz, freq, score))
+        fh = f_head.get((hl, hp, jz), 1)
+        fd = f_dep.get( (dl, dp, jz), 1)
+        score = 14 + math.log2(2 * freq / (fh + fd)) if (fh + fd) > 0 else 0.0
+        batch.append((hl, hp, dl, dp, jz, freq, round(max(0.0, score), 4)))
 
     print(f"Schreibe {len(batch):,} Einträge …")
     CHUNK = 100_000
