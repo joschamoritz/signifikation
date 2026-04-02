@@ -107,13 +107,13 @@ def main():
             result = upload_chunk(token, args.name, chunk, i, total_chunks)
 
             if result.get("done"):
-                print(f" ✅ FERTIG")
+                print(f" FERTIG")
             else:
-                print(f" ✓")
+                print(f" OK")
 
     total_time = time.time() - start_time
-    print(f"\n🎉 Upload abgeschlossen in {total_time/60:.1f} Minuten.")
-    print(f"   DB liegt jetzt auf Railway unter: {args.name}.db")
+    print(f"\nUpload abgeschlossen in {total_time/60:.1f} Minuten.")
+    print(f"DB liegt jetzt auf Railway unter: {args.name}.db")
 
 
 if __name__ == "__main__":

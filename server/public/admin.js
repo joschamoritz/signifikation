@@ -456,16 +456,16 @@ function korpusShort(id) {
   return map[id] || id.slice(0, 4).toUpperCase()
 }
 
-async function analyzeWord() {
+async function analyzeZeitreiseViz() {
   const word = document.getElementById('viz-input').value.trim()
   if (!word) return
   const out = document.getElementById('viz-output')
-  out.innerHTML = '<div class="status loading">Lade DiaCollo-Daten…</div>'
+  out.innerHTML = '<div class="status loading">Analysiere…</div>'
   try {
-    const res  = await fetch(`/admin/debug-diacollo?q=${encodeURIComponent(word)}`, { headers: { 'x-admin-token': TOKEN } })
+    const res  = await fetch(`/admin/analyze-zeitreise?q=${encodeURIComponent(word)}`, { headers: { 'x-admin-token': TOKEN } })
     const data = await res.json()
     if (!res.ok) { out.innerHTML = `<div class="status error">Fehler: ${esc(data.error)}</div>`; return }
-    renderViz(word, data, out)
+    renderViz(data, out)
   } catch (e) {
     out.innerHTML = `<div class="status error">Fehler: ${esc(e.message)}</div>`
   }
@@ -473,130 +473,62 @@ async function analyzeWord() {
 
 let vizChart = null
 
-function renderViz(word, data, container) {
+function renderViz(data, container) {
+  if (!data.usable) {
+    container.innerHTML = `<div class="status error" style="margin-top:8px">✗ Nicht geeignet — ${esc(data.reason || '')}</div>`
+    return
+  }
+  const word = data.lemma
   const passing = data.summary.filter(s => s.pass)
   if (!passing.length) {
     container.innerHTML = `<div class="status error">Keine ausreichenden Daten für „${esc(word)}".</div>`
     return
   }
 
-  const wordLower = word.toLowerCase()
-  const wordStamm = wordLower.slice(0, 4)
-  function bestFilteredCollokat(period) {
-    if (!period?.top) return null
-    return period.top.find(c => {
-      const w = c.wort.toLowerCase().trim()
-      return w !== wordLower && !w.startsWith(wordStamm) &&
-             !c.wort.includes(' ') && !c.wort.endsWith('-') && c.wort.length > 2
-    }) || null
-  }
-  const n = passing.length
-  const selectedLabels = new Set()
-  const usedInSelection = new Set()
+  const COLOR = '#9b1c1c'
+  const maxScore = Math.max(...data.perioden.flatMap(p => p.top.map(t => t.score)), 1)
 
-  for (let i = 0; i < 5; i++) {
-    const from = Math.round(i * (n - 1) / 4)
-    const to   = Math.round((i + 1) * (n - 1) / 4)
-    let bestLabel = null, bestScore = -Infinity
-    for (let j = from; j <= to; j++) {
-      const col = bestFilteredCollokat(passing[j])
-      if (col && col.score > bestScore && !usedInSelection.has(col.wort.toLowerCase())) {
-        bestScore = col.score
-        bestLabel = passing[j].label
-      }
-    }
-    if (bestLabel) {
-      selectedLabels.add(bestLabel)
-      const col = bestFilteredCollokat(passing.find(p => p.label === bestLabel))
-      if (col) usedInSelection.add(col.wort.toLowerCase())
-    }
-  }
-
-  const corpusSummary = Object.entries(data.corpora)
-    .map(([id, c]) => c.error ? null : `${korpusShort(id)}: ${c.passing}/${c.total}`)
-    .filter(Boolean).join(' · ')
-
-  const maxScore = Math.max(...passing.flatMap(s => s.top.slice(0,4).map(t => t.score)))
-  const corpusDatasets = {}
-  for (const period of passing) {
-    const isSelected = selectedLabels.has(period.label)
-    for (const [rank, col] of period.top.slice(0, 4).entries()) {
-      const k = period.korpus
-      if (!corpusDatasets[k]) {
-        corpusDatasets[k] = {
-          label: korpusShort(k),
-          data: [],
-          backgroundColor: korpusColor(k) + 'aa',
-          borderColor:     korpusColor(k),
-          borderWidth: 1,
-          hoverBorderWidth: 2,
-        }
-      }
+  // Bubble-Chart Daten
+  const bubbleData = data.perioden.flatMap(p =>
+    p.top.map((col, rank) => {
       const baseR = 4 + Math.round((col.score / maxScore) * 13)
-      corpusDatasets[k].data.push({
-        x:    parseInt(period.label),
-        y:    col.score,
-        r:    rank === 0 ? baseR + 2 : Math.max(3, baseR - rank * 2),
-        wort: col.wort,
-        rank: rank + 1,
-        periode: period.label,
-        selected: isSelected && rank === 0,
-      })
-    }
-  }
-
-  const starData = passing
-    .filter(s => selectedLabels.has(s.label))
-    .map(s => {
-      const col = bestFilteredCollokat(s)
-      if (!col) return null
-      const baseR = 4 + Math.round((col.score / maxScore) * 13) + 2
-      return { x: parseInt(s.label), y: col.score, r: baseR + 3, wort: col.wort, periode: s.label }
-    }).filter(Boolean)
+      return { x: parseInt(p.jahrzehnt), y: col.score, r: rank === 0 ? baseR + 2 : Math.max(3, baseR - rank * 2),
+               wort: col.wort, rank: rank + 1, periode: p.jahrzehnt }
+    })
+  )
+  const starData = data.perioden
+    .filter(p => p.quintil && p.top[0])
+    .map(p => {
+      const baseR = 4 + Math.round((p.top[0].score / maxScore) * 13) + 2
+      return { x: parseInt(p.jahrzehnt), y: p.top[0].score, r: baseR + 3, wort: p.top[0].wort, periode: p.jahrzehnt }
+    })
 
   container.innerHTML = `
     <div class="viz-meta" style="margin-top:8px">
-      <span>„<b>${word}</b>"</span>
-      <span><b>${passing.length}</b> Perioden (von ${data.total})</span>
-      <span style="color:${data.ok ? '#166534' : '#991b1b'};font-weight:600">
-        ${data.ok ? '✓ Zeitreise möglich' : '✗ Zu wenig Daten'}
-      </span>
+      <span>„<b>${esc(word)}</b>"</span>
+      <span><b>${data.decades}</b> Dekaden</span>
+      <span style="color:#166534;font-weight:600">✓ Zeitreise möglich</span>
     </div>
-    <div class="viz-meta" style="margin-top:2px;font-size:0.73rem">${corpusSummary}</div>
     <div class="viz-canvas-wrap"><canvas id="viz-canvas"></canvas></div>
-    <div class="viz-corpus-legend" id="viz-legend"></div>
-    <p class="viz-star-note">⭐ = käme ins Zeitreise-Spiel · Blase = Top-4 Kollokat · Größe = logDice</p>
+    <p class="viz-star-note">★ = kommt ins Zeitreise-Spiel · Blase = Top-4 Kollokat · Größe = Score</p>
     <div class="viz-timeline" id="viz-list" style="margin-top:16px"></div>`
 
-  const legendEl = document.getElementById('viz-legend')
-  for (const [id, ds] of Object.entries(corpusDatasets)) {
-    legendEl.innerHTML += `<span class="viz-corpus-dot"><b style="background:${esc(korpusColor(id))}"></b>${esc(ds.label)}</span>`
-  }
-
   const listEl = document.getElementById('viz-list')
-  let lastKorpus = null
-  for (const s of data.summary) {
-    if (!s.pass) continue
-    const isSelected = selectedLabels.has(s.label)
-    const top = isSelected ? (bestFilteredCollokat(s) || s.top[0]) : s.top[0]
+  for (const p of data.perioden) {
+    const top = p.top[0]
     if (!top) continue
-    const barPct  = Math.round((top.score / maxScore) * 100)
-    const color   = korpusColor(s.korpus)
-    if (lastKorpus && lastKorpus !== s.korpus) {
-      listEl.innerHTML += `<div class="viz-divider"></div>`
-    }
-    lastKorpus = s.korpus
-    const rest = s.top.slice(1, 5).map(c =>
-      `<span class="viz-chip">${c.wort} <span style="opacity:.6">${c.score.toFixed(1)}</span></span>`
+    const barPct = Math.round((top.score / maxScore) * 100)
+    const rest = p.top.slice(1).map(c =>
+      `<span class="viz-chip">${esc(c.wort)} <span style="opacity:.6">${c.score.toFixed(1)}</span></span>`
     ).join('')
     listEl.innerHTML += `
-      <div class="viz-row ${isSelected ? 'viz-row--selected' : ''}">
-        <span class="viz-year">${isSelected ? '★ ' : ''}${s.label}</span>
-        <span class="viz-korpus-badge" style="background:${color}">${korpusShort(s.korpus)}</span>
+      <div class="viz-row ${p.quintil ? 'viz-row--selected' : ''}">
+        <span class="viz-year">${p.quintil ? '★ ' : ''}${esc(p.jahrzehnt)}</span>
+        <span class="viz-korpus-badge" style="background:${COLOR}">WP</span>
         <div class="viz-bar-col">
           <div class="viz-bar-row">
-            <span class="viz-bar-label">${top.wort}</span>
-            <div class="viz-bar-wrap"><div class="viz-bar-fill" style="width:${barPct}%;background:${color}"></div></div>
+            <span class="viz-bar-label">${esc(top.wort)}</span>
+            <div class="viz-bar-wrap"><div class="viz-bar-fill" style="width:${barPct}%;background:${COLOR}"></div></div>
             <span class="viz-score">${top.score.toFixed(1)}</span>
           </div>
           ${rest ? `<div class="viz-more">${rest}</div>` : ''}
@@ -605,23 +537,15 @@ function renderViz(word, data, container) {
   }
 
   if (vizChart) { vizChart.destroy(); vizChart = null }
-
   const ctx = document.getElementById('viz-canvas').getContext('2d')
   vizChart = new Chart(ctx, {
     type: 'bubble',
     data: {
       datasets: [
-        {
-          label: '★ Spielauswahl',
-          data: starData,
-          backgroundColor: 'transparent',
-          borderColor: '#d97706',
-          borderWidth: 2.5,
-          borderDash: [],
-          hoverBackgroundColor: 'transparent',
-          order: 0,
-        },
-        ...Object.values(corpusDatasets).map(ds => ({ ...ds, order: 1 })),
+        { label: '★ Spielauswahl', data: starData, backgroundColor: 'transparent',
+          borderColor: '#d97706', borderWidth: 2.5, hoverBackgroundColor: 'transparent', order: 0 },
+        { label: 'Wortprofil', data: bubbleData, backgroundColor: COLOR + 'aa',
+          borderColor: COLOR, borderWidth: 1, hoverBorderWidth: 2, order: 1 },
       ]
     },
     options: {
@@ -631,24 +555,12 @@ function renderViz(word, data, container) {
         legend: { display: false },
         tooltip: {
           filter: item => item.dataset.label !== '★ Spielauswahl',
-          callbacks: {
-            label: ctx => {
-              const d = ctx.raw
-              return ` ${d.wort}  logDice ${d.y.toFixed(2)}  (${d.periode}, Rang ${d.rank})`
-            }
-          }
+          callbacks: { label: c => ` ${c.raw.wort}  Score ${c.raw.y.toFixed(2)}  (${c.raw.periode}, Rang ${c.raw.rank})` }
         }
       },
       scales: {
-        x: {
-          title: { display: true, text: 'Jahrzehnt', font: { size: 11 } },
-          ticks: { font: { size: 10 } },
-        },
-        y: {
-          title: { display: true, text: 'logDice', font: { size: 11 } },
-          min: 0,
-          ticks: { font: { size: 10 } },
-        }
+        x: { title: { display: true, text: 'Jahrzehnt', font: { size: 11 } }, ticks: { font: { size: 10 } } },
+        y: { title: { display: true, text: 'Score', font: { size: 11 } }, min: 0, ticks: { font: { size: 10 } } }
       }
     }
   })

@@ -2,7 +2,7 @@ import express          from 'express'
 import { fileURLToPath } from 'url'
 import { dirname, join }  from 'path'
 import { createWriteStream } from 'fs'
-import { fetchLemma, fetchBonusQuestion, fetchRelation, fetchZeitreise, POS_ROUNDS } from '../wortprofil.js'
+import { fetchLemma, fetchBonusQuestion, fetchRelation, fetchZeitreise, fetchZeitreiseAnalyze, POS_ROUNDS } from '../wortprofil.js'
 import { debugDiaCollo, clearCorporaCache } from '../diacollo.js'
 import { fetchWortZwilling } from '../wortzwilling.js'
 import { load, loadReadOnly, save, loadZeitreise, loadWortZwilling, loadStats, getLemmataIndex, DATA } from '../store.js'
@@ -14,7 +14,7 @@ function adminError(res, err) {
   logger.error({ err }, 'Admin-Fehler')
   res.status(500).json({ error: err.message || String(err) })
 }
-import { validate, adminTagSchema, diacolloConfigSchema, qQuerySchema, analyzeKollQuerySchema, analyzeWZQuerySchema } from '../middleware/validate.js'
+import { validate, adminTagSchema, diacolloConfigSchema, qQuerySchema, analyzeKollQuerySchema, analyzeWZQuerySchema, analyzeZeitQuerySchema } from '../middleware/validate.js'
 import logger from '../logger.js'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
@@ -120,6 +120,18 @@ router.get('/admin/analyze-wortzwilling', adminLimiter, requireAuth, validate(an
     const result = await fetchWortZwilling(wortA.trim(), wortB.trim(), pos)
     if (!result) return res.json({ usable: false, wortA, wortB, reason: 'Nicht genug distinkte Kollokatoren (mind. 5 pro Seite nötig)' })
     res.json({ ...result, usable: true })
+  } catch (err) { adminError(res, err) }
+})
+
+/** GET /admin/analyze-zeitreise?q=Wort – Zeitreise-Eignung prüfen */
+router.get('/admin/analyze-zeitreise', adminLimiter, requireAuth, validate(analyzeZeitQuerySchema, 'query'), async (req, res) => {
+  const { q: lemma } = req.query
+  try {
+    const result = await fetchZeitreiseAnalyze(lemma.trim())
+    if (!result) {
+      return res.json({ usable: false, lemma, reason: 'Nicht genug Dekaden mit ≥3 gültigen Kollokatoren (mind. 5 Dekaden nötig).' })
+    }
+    res.json({ usable: true, lemma: result.lemma, decades: result.perioden.length, paare: result.paare, perioden: result.perioden })
   } catch (err) { adminError(res, err) }
 })
 
