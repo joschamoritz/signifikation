@@ -387,9 +387,8 @@ function renderViz(data, container) {
     return
   }
   const word = data.lemma
-  const passing = data.summary.filter(s => s.pass)
-  if (!passing.length) {
-    container.innerHTML = `<div class="status error">Keine ausreichenden Daten für „${esc(word)}".</div>`
+  if (!data.perioden?.length) {
+    container.innerHTML = `<div class="status error" style="margin-top:8px">Keine Daten — ${esc(data.reason || '')}</div>`
     return
   }
 
@@ -411,11 +410,15 @@ function renderViz(data, container) {
       return { x: parseInt(p.jahrzehnt), y: p.top[0].score, r: baseR + 3, wort: p.top[0].wort, periode: p.jahrzehnt }
     })
 
+  const usableBadge = data.usable
+    ? '<span style="color:#166534;font-weight:600">✓ Zeitreise möglich</span>'
+    : '<span style="color:#92400e;font-weight:600">⚠ Nicht genug Dekaden (mind. 5)</span>'
+
   container.innerHTML = `
     <div class="viz-meta" style="margin-top:8px">
       <span>„<b>${esc(word)}</b>"</span>
       <span><b>${data.decades}</b> Dekaden</span>
-      <span style="color:#166534;font-weight:600">✓ Zeitreise möglich</span>
+      ${usableBadge}
     </div>
     <div class="viz-canvas-wrap"><canvas id="viz-canvas"></canvas></div>
     <p class="viz-star-note">★ = kommt ins Zeitreise-Spiel · Blase = Top-4 Kollokat · Größe = Score</p>
