@@ -1,9 +1,7 @@
 import express          from 'express'
 import { fileURLToPath } from 'url'
 import { dirname, join }  from 'path'
-import { createWriteStream } from 'fs'
 import { fetchLemma, fetchBonusQuestion, fetchRelation, fetchZeitreise, fetchZeitreiseAnalyze, POS_ROUNDS } from '../wortprofil.js'
-import { debugDiaCollo, clearCorporaCache } from '../diacollo.js'
 import { fetchWortZwilling } from '../wortzwilling.js'
 import { load, loadReadOnly, save, loadZeitreise, loadWortZwilling, loadStats, getLemmataIndex, DATA } from '../store.js'
 import { adminLimiter } from '../middleware/rateLimiter.js'
@@ -14,7 +12,7 @@ function adminError(res, err) {
   logger.error({ err }, 'Admin-Fehler')
   res.status(500).json({ error: err.message || String(err) })
 }
-import { validate, adminTagSchema, diacolloConfigSchema, qQuerySchema, analyzeKollQuerySchema, analyzeWZQuerySchema, analyzeZeitQuerySchema } from '../middleware/validate.js'
+import { validate, adminTagSchema, analyzeKollQuerySchema, analyzeWZQuerySchema, analyzeZeitQuerySchema } from '../middleware/validate.js'
 import logger from '../logger.js'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
@@ -43,44 +41,6 @@ router.get('/admin/feedback', adminLimiter, requireAuth, (req, res) => {
   } catch (err) { serverError(res, err) }
 })
 
-/** GET /admin/diacollo-config – Korpus-Konfiguration laden */
-router.get('/admin/diacollo-config', adminLimiter, requireAuth, (req, res) => {
-  try {
-    const cfg = load('diacollo-config.json')
-    res.json(cfg)
-  } catch {
-    res.status(404).json({ error: 'Keine Konfiguration gefunden' })
-  }
-})
-
-/** POST /admin/diacollo-config – Korpus-Konfiguration speichern */
-router.post('/admin/diacollo-config', adminLimiter, requireAuth, validate(diacolloConfigSchema), (req, res) => {
-  const { corpora } = req.body
-  try {
-    const cfg = load('diacollo-config.json')
-    // Nur enabled-Flag übernehmen, Rest (label, zeitraum, slice) bleibt erhalten
-    for (const item of corpora) {
-      const entry = cfg.corpora.find(c => c.id === item.id)
-      if (entry) entry.enabled = !!item.enabled
-    }
-    save('diacollo-config.json', cfg)
-    clearCorporaCache()
-    res.json({ ok: true, active: cfg.corpora.filter(c => c.enabled).map(c => c.id) })
-  } catch (err) {
-    serverError(res, err)
-  }
-})
-
-/** GET /admin/debug-diacollo?q=Wort – roher DiaCollo-Test */
-router.get('/admin/debug-diacollo', adminLimiter, requireAuth, validate(qQuerySchema, 'query'), async (req, res) => {
-  const { q } = req.query
-  try {
-    const result = await debugDiaCollo(q)
-    res.json({ q, ...result })
-  } catch (err) {
-    adminError(res, err)
-  }
-})
 
 /** GET /admin/analyze-kollokation?q=Wort&pos=Substantiv – Kollokationswort analysieren */
 router.get('/admin/analyze-kollokation', adminLimiter, requireAuth, validate(analyzeKollQuerySchema, 'query'), async (req, res) => {
@@ -298,49 +258,6 @@ router.get('/admin/backup', adminLimiter, requireAuth, (req, res) => {
   } catch (err) { serverError(res, err) }
 })
 
-/** POST /admin/upload-db-chunk — Chunked SQLite-DB Upload
- *  Nimmt die Datei in Stücken an (umgeht Railway-Proxy-Timeout).
- *  Query: ?name=wortprofil|belege  &index=0  &total=40
- *  Body:  raw binary chunk (application/octet-stream)
- *  Letzter Chunk (index === total-1) löst rename .tmp → .db aus.
- */
-router.post('/admin/upload-db-chunk', adminLimiter, requireAuth, (req, res) => {
-  const { name, index, total } = req.query
-  if (!['wortprofil', 'belege'].includes(name)) {
-    return res.status(400).json({ error: 'name muss wortprofil oder belege sein' })
-  }
-  const chunkIdx  = parseInt(index)
-  const chunkTotal = parseInt(total)
-  if (isNaN(chunkIdx) || isNaN(chunkTotal) || chunkIdx < 0 || chunkIdx >= chunkTotal) {
-    return res.status(400).json({ error: 'Ungültige index/total Parameter' })
-  }
-
-  const envKey  = name === 'wortprofil' ? 'WORTPROFIL_DB' : 'BELEGE_DB'
-  const dbPath  = process.env[envKey] || join(__dirname, '..', 'data', `${name}.db`)
-  const tmpPath = dbPath + '.tmp'
-
-  // Chunk anhängen (append bei index > 0, neu anlegen bei index === 0)
-  const flags = chunkIdx === 0 ? 'w' : 'a'
-  const ws = createWriteStream(tmpPath, { flags })
-  req.pipe(ws)
-
-  ws.on('finish', () => {
-    // Letzter Chunk: tmp → db umbenennen
-    if (chunkIdx === chunkTotal - 1) {
-      import('fs').then(({ renameSync }) => {
-        try {
-          renameSync(tmpPath, dbPath)
-          logger.info(`upload-db-chunk: ${name}.db fertig → ${dbPath}`)
-          res.json({ ok: true, done: true, path: dbPath })
-        } catch (err) { adminError(res, err) }
-      })
-    } else {
-      logger.info(`upload-db-chunk: ${name} chunk ${chunkIdx + 1}/${chunkTotal}`)
-      res.json({ ok: true, done: false, chunk: chunkIdx })
-    }
-  })
-  ws.on('error', err => adminError(res, err))
-})
 
 /** GET /admin – Admin-Oberfläche */
 router.get('/admin', (req, res) => {

@@ -83,13 +83,6 @@ export const adminTagSchema = z.object({
   zwilling_pos:    POS,
 })
 
-/** POST /admin/diacollo-config */
-export const diacolloConfigSchema = z.object({
-  corpora: z.array(z.object({
-    id:      z.string(),
-    enabled: z.boolean(),
-  })).min(1, 'corpora-Array erforderlich'),
-})
 
 /** GET /admin/analyze-kollokation (query) */
 export const analyzeKollQuerySchema = z.object({
