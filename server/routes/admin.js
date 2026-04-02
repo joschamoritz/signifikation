@@ -1,6 +1,7 @@
 import express          from 'express'
 import { fileURLToPath } from 'url'
 import { dirname, join }  from 'path'
+import { createWriteStream, existsSync, renameSync, unlinkSync } from 'fs'
 import { fetchLemma, fetchBonusQuestion, fetchRelation, fetchZeitreise, fetchZeitreiseAnalyze, POS_ROUNDS } from '../wortprofil.js'
 import { fetchWortZwilling } from '../wortzwilling.js'
 import { load, loadReadOnly, save, loadZeitreise, loadWortZwilling, loadStats, getLemmataIndex, DATA } from '../store.js'
@@ -258,6 +259,32 @@ router.get('/admin/backup', adminLimiter, requireAuth, (req, res) => {
   } catch (err) { serverError(res, err) }
 })
 
+
+/** POST /admin/upload-wortprofil – wortprofil.db in Chunks hochladen */
+router.post('/admin/upload-wortprofil', adminLimiter, requireAuth, (req, res) => {
+  const { chunk, index, total } = req.query
+  if (!chunk || !index || !total) return res.status(400).json({ error: 'chunk/index/total erforderlich' })
+  const dataDir = join(__dirname, '../data')
+  const tmpPath = join(dataDir, 'wortprofil.db.upload')
+  try {
+    const buf = Buffer.from(req.body, 'base64')
+    const stream = createWriteStream(tmpPath, { flags: index === '0' ? 'w' : 'a' })
+    stream.write(buf)
+    stream.end()
+    stream.on('finish', () => {
+      if (parseInt(index) === parseInt(total) - 1) {
+        const dbPath   = join(dataDir, 'wortprofil.db')
+        const bakPath  = join(dataDir, 'wortprofil.db.bak')
+        if (existsSync(dbPath)) renameSync(dbPath, bakPath)
+        renameSync(tmpPath, dbPath)
+        logger.info('wortprofil.db Upload abgeschlossen und aktiviert')
+        res.json({ ok: true, done: true })
+      } else {
+        res.json({ ok: true, done: false, index: parseInt(index) })
+      }
+    })
+  } catch (err) { adminError(res, err) }
+})
 
 /** GET /admin – Admin-Oberfläche */
 router.get('/admin', (req, res) => {
