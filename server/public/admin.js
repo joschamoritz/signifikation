@@ -82,7 +82,6 @@ if (TOKEN) {
 
 function initDashboard() {
   renderCalendar()
-  loadKorpusConfig()
   loadStats()
   loadHealth()
 }
@@ -364,97 +363,6 @@ async function loadKalender() {
 
 loadKalender()
 
-// ── DiaCollo Korpus-Einstellungen ───────────────────────────
-let korpusConfig = []
-
-async function loadKorpusConfig() {
-  try {
-    const res = await fetch('/admin/diacollo-config', { headers: { 'x-admin-token': TOKEN } })
-    const data = await res.json()
-    korpusConfig = data.corpora || []
-    renderKorpusList()
-  } catch {
-    document.getElementById('korpus-list').innerHTML =
-      '<div style="color:var(--muted);font-size:0.85rem">Fehler beim Laden der Konfiguration.</div>'
-  }
-}
-
-function renderKorpusList() {
-  const list = document.getElementById('korpus-list')
-  list.innerHTML = korpusConfig.map(c => `
-    <label class="korpus-item ${c.enabled ? 'enabled' : ''}" id="ki-${esc(c.id)}" onclick="toggleKorpus('${esc(c.id)}')">
-      <input type="checkbox" id="kc-${esc(c.id)}" ${c.enabled ? 'checked' : ''} onclick="event.stopPropagation();toggleKorpus('${esc(c.id)}')">
-      <div class="korpus-info">
-        <div class="korpus-name">${esc(c.label)}</div>
-        <div class="korpus-meta">${esc(c.zeitraum)} · slice=${esc(c.slice)}</div>
-      </div>
-      <span class="korpus-badge ${c.enabled ? 'enabled' : ''}" id="kb-${esc(c.id)}">
-        ${c.enabled ? 'aktiv' : 'inaktiv'}
-      </span>
-    </label>
-  `).join('')
-}
-
-function toggleKorpus(id) {
-  const c = korpusConfig.find(x => x.id === id)
-  if (!c) return
-  c.enabled = !c.enabled
-  const item  = document.getElementById(`ki-${id}`)
-  const cb    = document.getElementById(`kc-${id}`)
-  const badge = document.getElementById(`kb-${id}`)
-  item.classList.toggle('enabled', c.enabled)
-  cb.checked = c.enabled
-  badge.textContent = c.enabled ? 'aktiv' : 'inaktiv'
-  badge.className = `korpus-badge ${c.enabled ? 'enabled' : ''}`
-}
-
-async function saveKorpusConfig() {
-  const statusEl = document.getElementById('cfg-status')
-  statusEl.textContent = 'Speichern…'
-  try {
-    const res = await fetch('/admin/diacollo-config', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-admin-token': TOKEN },
-      body: JSON.stringify({ corpora: korpusConfig.map(c => ({ id: c.id, enabled: c.enabled })) }),
-    })
-    const data = await res.json()
-    if (!res.ok) throw new Error(data.error)
-    const n = data.active.length
-    statusEl.textContent = `Gespeichert · ${n} aktiv: ${data.active.join(', ')}`
-  } catch (err) {
-    statusEl.textContent = `Fehler: ${err.message}`
-  }
-}
-
-// ── DiaCollo Visualisierung ─────────────────────────────
-const KORPUS_COLORS = {
-  dta:              '#9b1c1c',
-  dtae:             '#b45309',
-  dtak:             '#c2410c',
-  'dta+dwds':       '#92400e',
-  tevo:             '#15803d',
-  kern:             '#1d4ed8',
-  ddr:              '#0891b2',
-  bundestag:        '#4f46e5',
-  bundestagdrs:     '#6d28d9',
-  bundestagprt:     '#7c3aed',
-  reichstag:        '#a21caf',
-  politische_reden: '#d97706',
-  gei_digital:      '#0f766e',
-  bsbvaria:         '#b45309',
-  default:          '#78716c',
-}
-
-function korpusColor(id) { return KORPUS_COLORS[id] || KORPUS_COLORS.default }
-function korpusShort(id) {
-  const map = {
-    dta: 'DTA', dtae: 'DTAe', dtak: 'DTAk', 'dta+dwds': 'DTA+',
-    kern: 'KERN', ddr: 'DDR', bundestag: 'BT', bundestagdrs: 'BT-D',
-    bundestagprt: 'BT-P', reichstag: 'RT', politische_reden: 'POLI',
-    tevo: 'TEVO', gei_digital: 'GEI', bsbvaria: 'BSB',
-  }
-  return map[id] || id.slice(0, 4).toUpperCase()
-}
 
 async function analyzeZeitreiseViz() {
   const word = document.getElementById('viz-input').value.trim()
