@@ -5,6 +5,7 @@ import { createWriteStream, existsSync, renameSync, unlinkSync } from 'fs'
 import { fetchLemma, fetchBonusQuestion, fetchRelation, fetchZeitreise, fetchZeitreiseAnalyze, POS_ROUNDS } from '../wortprofil.js'
 import { fetchWortZwilling } from '../wortzwilling.js'
 import { load, loadReadOnly, save, loadZeitreise, loadWortZwilling, loadStats, getLemmataIndex, getCacheMetrics, DATA } from '../store.js'
+import { getCacheMetrics as getQueryCacheMetrics, clearCache as clearQueryCache } from '../query-cache.js'
 import { adminLimiter, uploadLimiter } from '../middleware/rateLimiter.js'
 import { requireAuth, adminAuth, adminLogout, adminError, serverError } from '../middleware/auth.js'
 import { validate, adminTagSchema, analyzeKollQuerySchema, analyzeWZQuerySchema, analyzeZeitQuerySchema } from '../middleware/validate.js'
@@ -33,8 +34,22 @@ router.get('/admin/stats', adminLimiter, requireAuth, (req, res) => {
 /** GET /admin/cache-metrics – Cache-Performance-Metriken */
 router.get('/admin/cache-metrics', adminLimiter, requireAuth, (req, res) => {
   try {
-    const metrics = getCacheMetrics()
-    res.json({ ...metrics, timestamp: new Date().toISOString() })
+    const belegeCache = getCacheMetrics()
+    const queryCache = getQueryCacheMetrics()
+    res.json({
+      belege: belegeCache,
+      queryResults: queryCache,
+      timestamp: new Date().toISOString()
+    })
+  } catch (err) { adminError(res, err) }
+})
+
+/** POST /admin/cache-clear – Alle Caches leeren */
+router.post('/admin/cache-clear', adminLimiter, requireAuth, (req, res) => {
+  try {
+    clearQueryCache()
+    logger.info('Alle Query-Caches geleert')
+    res.json({ ok: true, message: 'Query-Cache geleert' })
   } catch (err) { adminError(res, err) }
 })
 
@@ -130,8 +145,8 @@ router.post('/admin/tag', adminLimiter, requireAuth, validate(adminTagSchema), a
     }
 
     kalender[datum] = ids
-    save('lemmata.json', lemmataDB)
-    save('kalender.json', kalender)
+    await save('lemmata.json', lemmataDB)
+    await save('kalender.json', kalender)
 
     // Zeitreise optional
     let zeitreiseOk = null
@@ -142,7 +157,7 @@ router.post('/admin/tag', adminLimiter, requireAuth, validate(adminTagSchema), a
         const zeitreise = loadZeitreise()
         if (zr) {
           zeitreise[datum] = { ...zr, wortart: zeitreise_wortart?.trim() || 'Substantiv' }
-          save('zeitreise.json', zeitreise)
+          await save('zeitreise.json', zeitreise)
           zeitreiseOk = true
           logger.info(`Zeitreise gespeichert: ${zr.paare.map(p => `${p.jahrzehnt}:${p.kollokat}`).join(', ')}`)
         } else {
@@ -164,7 +179,7 @@ router.post('/admin/tag', adminLimiter, requireAuth, validate(adminTagSchema), a
         const wortzwilling = loadWortZwilling()
         if (wz) {
           wortzwilling[datum] = wz
-          save('wortzwilling.json', wortzwilling)
+          await save('wortzwilling.json', wortzwilling)
           zwillingOk = true
         } else {
           zwillingOk = false
@@ -236,9 +251,9 @@ router.delete('/admin/tag/:datum', adminLimiter, requireAuth, (req, res) => {
   delete kalender[req.params.datum]
   delete zeitreise[req.params.datum]
   delete wortzwilling[req.params.datum]
-  save('kalender.json', kalender)
-  save('zeitreise.json', zeitreise)
-  save('wortzwilling.json', wortzwilling)
+  await save('kalender.json', kalender)
+  await save('zeitreise.json', zeitreise)
+  await save('wortzwilling.json', wortzwilling)
   res.json({ ok: true })
 })
 

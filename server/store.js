@@ -16,14 +16,23 @@
 import { readFileSync, writeFileSync, renameSync, mkdirSync } from 'fs'
 import { fileURLToPath } from 'url'
 import { dirname, join }  from 'path'
+import AsyncLock from 'async-lock'
 import logger from './logger.js'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 export const DATA = join(__dirname, 'data')
 mkdirSync(DATA, { recursive: true })
 
-// ── File-Cache ────────────────────────────────────────────────
+// ── File-Cache & Locking ──────────────────────────────────────
 const fileCache = {}
+const fileLocks = new Map()  // file → AsyncLock
+
+function getLock(file) {
+  if (!fileLocks.has(file)) {
+    fileLocks.set(file, new AsyncLock())
+  }
+  return fileLocks.get(file)
+}
 
 /**
  * Liest eine JSON-Datei aus DATA/ mit strukturellem Klon.
@@ -44,18 +53,22 @@ export function loadReadOnly(file) {
 
 /**
  * Schreibt data atomar in eine JSON-Datei (tmp → rename) und aktualisiert den Cache.
+ * Mit Locking gegen Race Conditions bei concurrent writes.
  * @param {string} file  Dateiname relativ zu server/data/
  * @param {*}      data  Zu speichernde Daten
  */
 export function save(file, data) {
-  // Atomar: erst in temporäre Datei schreiben, dann umbenennen.
-  const target = join(DATA, file)
-  const tmp    = `${target}.tmp`
-  writeFileSync(tmp, JSON.stringify(data, null, 2))
-  renameSync(tmp, target)
-  fileCache[file] = data
-  // Lemmata-Index invalidieren
-  if (file === 'lemmata.json') { _lemmataById = null; _lemmataByLemma = null }
+  const lock = getLock(file)
+  return lock.acquire(file, () => {
+    // Atomar: erst in temporäre Datei schreiben, dann umbenennen.
+    const target = join(DATA, file)
+    const tmp    = `${target}.tmp`
+    writeFileSync(tmp, JSON.stringify(data, null, 2))
+    renameSync(tmp, target)
+    fileCache[file] = structuredClone(data)  // Clone um externe Mutations zu prevent
+    // Lemmata-Index invalidieren
+    if (file === 'lemmata.json') { _lemmataById = null; _lemmataByLemma = null }
+  })
 }
 
 export function loadZeitreise()    { try { return load('zeitreise.json')    } catch { return {} } }

@@ -29,6 +29,7 @@ import Database from 'better-sqlite3'
 import { fileURLToPath } from 'url'
 import { dirname, join, resolve } from 'path'
 import logger from './logger.js'
+import { getCachedQuery, invalidateCachePattern } from './query-cache.js'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 
@@ -183,10 +184,12 @@ export function toId(word) {
 /**
  * Einzelne Relation abrufen – Äquivalent zu dwds.js fetchRelation().
  * Gibt ein Promise zurück (gleiche Schnittstelle wie die async-Version in dwds.js).
+ * Ergebnis wird 1h gecacht um DB-Load zu reduzieren.
  */
 export async function fetchRelation(lemma, pos, relCode) {
   try {
-    const data = queryRelation(lemma, pos, relCode)
+    const cacheKey = `rel:${lemma}:${pos}:${relCode}`
+    const data = getCachedQuery(cacheKey, () => queryRelation(lemma, pos, relCode))
     if (!Array.isArray(data)) throw new Error(`Unerwartetes Format für ${relCode}`)
     return data
   } catch (err) {

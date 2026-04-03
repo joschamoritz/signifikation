@@ -159,7 +159,7 @@ router.post('/api/v1/stats', statsLimiter, validate(statsSchema), async (req, re
       entry.maxSum   += max
       const normalized = Math.min(10, Math.round(score / max * 10))
       entry.dist[normalized]++
-      save('stats.json', stats)
+      await save('stats.json', stats)
     })
     res.json({ ok: true })
   } catch (err) {
@@ -176,7 +176,7 @@ router.post('/api/v1/feedback', feedbackLimiter, validate(feedbackSchema), (req,
     let list = []
     try { list = load('feedback.json') } catch {}
     list.unshift(entry)
-    save('feedback.json', list)
+    await save('feedback.json', list)
     res.json({ ok: true })
   } catch (err) { serverError(res, err) }
 })
