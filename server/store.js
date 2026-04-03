@@ -97,6 +97,13 @@ const _belegeCache = new Map()
 const BELEG_TTL_MS = 6 * 60 * 60 * 1000
 const BELEG_MAX    = 200
 
+// Cache-Metriken
+const _cacheMetrics = {
+  hits: 0,
+  misses: 0,
+  evictions: 0,
+}
+
 /**
  * Gibt gecachten Beleg-Datensatz zurück oder null wenn nicht vorhanden/abgelaufen.
  * @param {string} key  Cache-Schlüssel (z.B. 'lemma:relation:korpus')
@@ -104,8 +111,16 @@ const BELEG_MAX    = 200
  */
 export function cacheGet(key) {
   const entry = _belegeCache.get(key)
-  if (!entry) return null
-  if (Date.now() - entry.ts > BELEG_TTL_MS) { _belegeCache.delete(key); return null }
+  if (!entry) {
+    _cacheMetrics.misses++
+    return null
+  }
+  if (Date.now() - entry.ts > BELEG_TTL_MS) {
+    _belegeCache.delete(key)
+    _cacheMetrics.misses++
+    return null
+  }
+  _cacheMetrics.hits++
   return entry.data
 }
 
@@ -118,6 +133,23 @@ export function cacheGet(key) {
 export function cacheSet(key, data) {
   if (_belegeCache.size >= BELEG_MAX) {
     _belegeCache.delete(_belegeCache.keys().next().value)
+    _cacheMetrics.evictions++
   }
   _belegeCache.set(key, { data, ts: Date.now() })
+}
+
+/**
+ * Gibt Cache-Metriken zurück (Hit-Rate, Evictions).
+ * Nützlich für Monitoring und Performance-Debugging.
+ */
+export function getCacheMetrics() {
+  const total = _cacheMetrics.hits + _cacheMetrics.misses
+  const hitRate = total > 0 ? (_cacheMetrics.hits / total * 100).toFixed(2) : 0
+  return {
+    hits: _cacheMetrics.hits,
+    misses: _cacheMetrics.misses,
+    hitRate: `${hitRate}%`,
+    evictions: _cacheMetrics.evictions,
+    size: _belegeCache.size,
+  }
 }
