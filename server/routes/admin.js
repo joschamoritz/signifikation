@@ -280,6 +280,7 @@ router.post('/admin/upload-wortprofil', adminLimiter, requireAuth, (req, res) =>
           const bakPath = join(dataDir, 'wortprofil.db.bak')
           if (existsSync(dbPath)) renameSync(dbPath, bakPath)
           renameSync(tmpPath, dbPath)
+          if (existsSync(bakPath)) { try { unlinkSync(bakPath) } catch (e) { logger.warn({ err: e }, 'Backup konnte nicht gelöscht werden') } }
           logger.info('wortprofil.db Upload abgeschlossen und aktiviert')
           res.json({ ok: true, done: true })
         } else {
