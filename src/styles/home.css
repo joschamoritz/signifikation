@@ -54,11 +54,18 @@
   display: flex;
   flex-direction: column;
   gap: 16px;
-  animation: slideUp 0.25s ease;
+  animation: slideUp 0.25s ease both;
+}
+.feedback-sheet--closing {
+  animation: slideDown 0.2s ease both;
 }
 @keyframes slideUp {
   from { transform: translateY(100%); }
   to   { transform: translateY(0); }
+}
+@keyframes slideDown {
+  from { transform: translateY(0); }
+  to   { transform: translateY(100%); }
 }
 .feedback-question {
   font-family: var(--font-serif);
@@ -171,6 +178,12 @@
 }
 
 /* Streak */
+@keyframes streakGlow {
+  0%   { box-shadow: none }
+  50%  { box-shadow: 0 0 10px rgba(234, 88, 12, 0.35) }
+  100% { box-shadow: none }
+}
+
 .streak-pill {
   display: flex;
   align-items: center;
@@ -180,7 +193,7 @@
   border: 1.5px solid #fcd34d;
   border-radius: 16px;
   padding: 10px 20px;
-  animation: fadeIn 0.3s ease;
+  animation: fadeIn 0.3s ease, streakGlow 700ms ease 300ms 1 forwards;
 }
 .streak-flames {
   font-size: 1.8rem;
@@ -383,7 +396,15 @@
   height: 10px;
   border-radius: 50%;
   border: 1.5px solid transparent;
+  animation: fadeIn 100ms ease-out both;
 }
+.history-dot:nth-child(1) { animation-delay: 0ms }
+.history-dot:nth-child(2) { animation-delay: 20ms }
+.history-dot:nth-child(3) { animation-delay: 40ms }
+.history-dot:nth-child(4) { animation-delay: 60ms }
+.history-dot:nth-child(5) { animation-delay: 80ms }
+.history-dot:nth-child(6) { animation-delay: 100ms }
+.history-dot:nth-child(7) { animation-delay: 120ms }
 .history-dot--gold    { background: #f59e0b; border-color: #d97706 }
 .history-dot--silber  { background: #9ca3af; border-color: #6b7280 }
 .history-dot--bronze  { background: #b45309; border-color: #92400e }
@@ -429,7 +450,15 @@
   counter-reset: lemma-entry;
 }
 
-.lemma-card-wrap { display: flex; flex-direction: column; gap: 0 }
+.lemma-card-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  animation: screenIn 0.2s ease-out both;
+}
+.lemma-card-wrap:nth-child(1) { animation-delay: 0ms }
+.lemma-card-wrap:nth-child(2) { animation-delay: 50ms }
+.lemma-card-wrap:nth-child(3) { animation-delay: 100ms }
 .lemma-card-wrap + .lemma-card-wrap { border-top: 1px solid var(--border-lt) }
 
 .lemma-card {
@@ -645,4 +674,14 @@
   text-align: center;
   color: var(--muted);
   font-size: 0.82rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .feedback-sheet,
+  .feedback-sheet--closing,
+  .streak-pill,
+  .history-dot,
+  .lemma-card-wrap {
+    animation: none !important;
+  }
 }

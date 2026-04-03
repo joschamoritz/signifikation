@@ -44,28 +44,21 @@ export function calculateScore(selectedWords, kollokatoren) {
   }).length
 }
 
-/** Feedback für ein einzelnes Spiel (max 10 Punkte). */
-export function getMedal(total) {
-  if (total >= 10) return { label: 'Perfekt!',    min: 10 }
-  if (total >= 8)  return { label: 'Sehr gut!',   min: 8  }
-  if (total >= 6)  return { label: 'Gut!',        min: 6  }
-  if (total >= 4)  return { label: 'Solide!',     min: 4  }
-  return                   { label: 'Weiter üben!', min: 0 }
-}
-
-/** Tagesmedaille nach allen 3 Spielen (max 30 Punkte). */
-export function getDailyMedal(total) {
-  if (total >= 27) return { label: 'Gold',         emoji: '🥇', min: 27 }
-  if (total >= 21) return { label: 'Silber',        emoji: '🥈', min: 21 }
-  if (total >= 15) return { label: 'Bronze',        emoji: '🥉', min: 15 }
-  return                   { label: 'Teilgenommen', emoji: '🌱', min: 0  }
-}
-
-/** Medaille für Zeitreise (prozentbasiert, max = paare.length × 2). */
-export function getZRMedal(score, max) {
+/** Einheitliche Medaille (prozentbasiert). */
+export function getMedal(score, max) {
   const pct = score / (max || 1)
   if (pct >= 0.8) return { label: 'Gold',         emoji: '🥇' }
   if (pct >= 0.6) return { label: 'Silber',        emoji: '🥈' }
   if (pct >= 0.4) return { label: 'Bronze',        emoji: '🥉' }
   return                  { label: 'Teilgenommen', emoji: '🌱' }
+}
+
+/** Tagesmedaille nach allen 3 Spielen (max 30 Punkte). */
+export function getDailyMedal(total) {
+  return getMedal(total, 30)
+}
+
+/** Medaille für Zeitreise (prozentbasiert, max = paare.length × 2). */
+export function getZRMedal(score, max) {
+  return getMedal(score, max)
 }

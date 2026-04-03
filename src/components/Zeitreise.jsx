@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { getMedal, shuffle } from '../utils/gameLogic'
+import { getMedal, getZRMedal, shuffle } from '../utils/gameLogic'
 import { API } from '../config'
 import { lsGet, lsParse } from '../utils/storage'
 import BelegeSatz from './BelegeSatz'
@@ -224,7 +224,7 @@ export default function Zeitreise({ data, onBack, onFinish, savedResult }) {
   }
 
   const [zrHistory] = useState(() => lsParse(lsGet('sig_zr_history'), []).slice(0, 14).reverse())
-  const medal = score !== null ? getMedal(score) : null
+  const medal = score !== null ? getZRMedal(score, paare.length * 2) : null
   const remaining = paare.length - Object.keys(placements).length
 
   return (
@@ -399,7 +399,7 @@ export default function Zeitreise({ data, onBack, onFinish, savedResult }) {
             <span className="zr-score-num">{score}</span>
             <span className="zr-score-max">/{paare.length * 2} Punkte</span>
           </div>
-          <p className="zr-results-medal">{medal?.label}</p>
+          <p className="zr-results-medal">{medal?.emoji} {medal?.label}</p>
 
           {/* Bubble-Chart – SVG, kein externes Package */}
           <ZrBubbleChart paare={paare} perioden={data.perioden} placements={placements} lemma={data.lemma} />

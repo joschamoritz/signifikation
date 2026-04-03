@@ -30,6 +30,7 @@
   font-weight: 700;
   color: var(--text);
   line-height: 1.1;
+  animation: inkFlow 200ms ease-out both;
 }
 .wz-instruction {
   font-size: 0.88rem;
@@ -57,7 +58,7 @@
   color: var(--primary);
   text-align: center;
   font-weight: 500;
-  animation: wz-pulse 1s ease-in-out infinite alternate;
+  animation: wz-pulse 1s ease-in-out 4 alternate;
 }
 @keyframes wz-pulse {
   from { opacity: 0.55 }
@@ -114,7 +115,7 @@
 .wz-chip--placed:hover { border-color: var(--muted) }
 .wz-chip--dragging    { opacity: 0.3 }
 .wz-chip--correct     { background: var(--success-bg); border-color: #86efac; color: var(--success); cursor: pointer }
-.wz-chip--wrong       { background: var(--error-bg);   border-color: #fca5a5; color: var(--error);   cursor: pointer }
+.wz-chip--wrong       { background: var(--error-bg);   border-color: #fca5a5; color: var(--error);   cursor: pointer; animation: wzReject 180ms ease both }
 .wz-chip--beleg-active { outline: 2px solid var(--primary); outline-offset: 1px }
 .wz-chip--cluster      { border-bottom: 2px solid #c9a84c }
 .wz-chip-icon         { font-size: 0.75rem; font-weight: 700 }
@@ -221,4 +222,5 @@
   color: var(--success);
   border-color: var(--success);
   background: var(--success-bg);
+  animation: confirmPop 150ms cubic-bezier(0.34, 1.56, 0.64, 1);
 }

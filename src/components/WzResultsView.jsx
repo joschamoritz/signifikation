@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { API } from '../config'
 import { getMedal } from '../utils/gameLogic'
+import { lsGet, lsParse } from '../utils/storage'
 import BelegePanel from './BelegePanel'
 
 export function computeScore(zoneA, zoneB, zuordnungMap) {
@@ -14,7 +15,8 @@ export function computeScore(zoneA, zoneB, zuordnungMap) {
 export default function WzResultsView({ data, zoneA, zoneB, onBack }) {
   const zuordnungMap = Object.fromEntries(data.kollokatoren.map(k => [k.wort, k.zuordnung]))
   const score  = computeScore(zoneA, zoneB, zuordnungMap)
-  const medal  = getMedal(score)
+  const medal  = getMedal(score, 10)
+  const wzHistory = lsParse(lsGet('sig_wz_history'), []).slice(0, 14).reverse()
 
   const [openBeleg,     setOpenBeleg]     = useState(null)
   const [belegeCache,   setBelegeCache]   = useState({})
@@ -94,6 +96,20 @@ export default function WzResultsView({ data, zoneA, zoneB, onBack }) {
       )}
 
       <p className="wz-beleg-hint">Tippe auf ein Kollokat, um Beispielsätze aus dem Korpus zu sehen.</p>
+
+      {wzHistory.length > 0 && (
+        <div className="history-strip">
+          <span className="history-label">Dein Verlauf · Wort-Zwilling</span>
+          <div className="history-emojis" role="list" aria-label="Verlauf Wort-Zwilling">
+            {wzHistory.map((h, i) => (
+              <span key={i} role="listitem" className="history-emoji"
+                    title={`${h.date}: ${h.medal}`} aria-label={`${h.date}: ${h.medal}`}>
+                {h.emoji}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
 
       <button className="btn-primary btn-full" onClick={onBack}>
         Zurück zur Übersicht

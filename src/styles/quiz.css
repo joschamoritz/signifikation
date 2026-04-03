@@ -33,6 +33,7 @@
   color: var(--text);
   line-height: 1.05;
   letter-spacing: 0.01em;
+  animation: inkFlow 200ms ease-out both;
 }
 
 .round-progress { display: flex; gap: 6px; align-items: center }
@@ -41,7 +42,7 @@
   width: 8px; height: 8px;
   border-radius: 50%;
   background: var(--border);
-  transition: background 0.2s;
+  transition: background 0.2s, width 0.15s ease-out, border-radius 0.15s ease-out;
 }
 .round-dot.done   { background: var(--success) }
 .round-dot.active { background: var(--primary); width: 24px; border-radius: 4px }

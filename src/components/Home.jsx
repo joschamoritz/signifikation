@@ -116,13 +116,13 @@ export default function Home({
                   <ul className="test-played-list">
                     {playedGames.map(g => (
                       <li key={g.id} className="test-played-entry">
-                        <span className="test-played-word">{g.lemma}</span>
-                        <span className="test-played-score">{g.total}/10 · {g.medal}</span>
+                        <span className="test-played-word">{g.medal?.emoji ?? ''} {g.lemma}</span>
+                        <span className="test-played-score">{g.total}/10</span>
                       </li>
                     ))}
                     {allPlayed && dailyMedal && (
                       <li className="test-played-total">
-                        <strong>{dailyMedal.label}</strong> · {totalPoints}/{maxPoints} Punkte
+                        <strong>{dailyMedal.emoji} {dailyMedal.label}</strong> · {totalPoints}/{maxPoints} Punkte
                       </li>
                     )}
                   </ul>
@@ -171,8 +171,8 @@ export default function Home({
                 {zrPlayed && (
                   <ul className="test-played-list">
                     <li className="test-played-entry">
-                      <span className="test-played-word">{zrPlayed.lemma}</span>
-                      <span className="test-played-score">{zrPlayed.total}/10 · {zrPlayed.medal}</span>
+                      <span className="test-played-word">{zrPlayed.medal?.emoji ?? ''} {zrPlayed.lemma}</span>
+                      <span className="test-played-score">{zrPlayed.total} Punkte</span>
                     </li>
                   </ul>
                 )}
@@ -221,8 +221,8 @@ export default function Home({
                 {wzPlayed && wortzwilling && (
                   <ul className="test-played-list">
                     <li className="test-played-entry">
-                      <span className="test-played-word">{wortzwilling.wortA} / {wortzwilling.wortB}</span>
-                      <span className="test-played-score">{wzPlayed.total}/10 · {wzPlayed.medal}</span>
+                      <span className="test-played-word">{wzPlayed.medal?.emoji ?? ''} {wortzwilling.wortA} / {wortzwilling.wortB}</span>
+                      <span className="test-played-score">{wzPlayed.total}/10</span>
                     </li>
                   </ul>
                 )}

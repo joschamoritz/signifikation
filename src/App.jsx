@@ -83,6 +83,15 @@ function saveZRHistory(dateStr, medal, emoji) {
   lsSet('sig_zr_history', JSON.stringify(history.slice(0, 365)))
 }
 
+function saveWZHistory(dateStr, medal, emoji) {
+  const history = lsParse(lsGet('sig_wz_history'), [])
+  const idx = history.findIndex(h => h.date === dateStr)
+  const entry = { date: dateStr, medal, emoji }
+  if (idx >= 0) history[idx] = entry
+  else history.unshift(entry)
+  lsSet('sig_wz_history', JSON.stringify(history.slice(0, 365)))
+}
+
 function savePlayedGame(keys, lemmaId, lemmaName, lemmaPos, total, medal, lemmataLength, scores) {
   const played = getPlayedToday(keys.todayKey)
   const idx    = played.findIndex(p => p.id === lemmaId)
@@ -173,7 +182,9 @@ export default function App() {
   useEffect(() => {
     if (phase !== 'results' || !selectedLemma || roundScores.length === 0) return
     const total = roundScores.reduce((a, b) => a + b, 0)
-    const medal = getMedal(total).label
+    const hasBonus = roundScores.length >= 4
+    const maxPoints = hasBonus ? 10 : 9
+    const medal = getMedal(total, maxPoints)
     savePlayedGame(keys, selectedLemma.id, selectedLemma.lemma, selectedLemma.pos || 'Substantiv', total, medal, lemmata?.length, roundScores)
     if (freshKollRef.current && serverDatum) {
       freshKollRef.current = false
@@ -249,7 +260,7 @@ export default function App() {
 
   const handleWZFinish = useCallback(({ score, zoneA, zoneB }) => {
     if (!wortzwilling || !serverDatum) return
-    const medal = getMedal(score).label
+    const medal = getMedal(score, 10)
     const entry = {
       lemma:  `${wortzwilling.wortA} / ${wortzwilling.wortB}`,
       total:  score,
@@ -262,6 +273,7 @@ export default function App() {
     lsSet(`sig_wz_${serverDatum}`, JSON.stringify(entry))
     setWzPlayed(entry)
     markActivity(keys.dateStr)
+    saveWZHistory(keys.dateStr, medal.label, medal.emoji)
     fetch(`${API}/stats`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -274,7 +286,7 @@ export default function App() {
     if (!zeitreise) return
     const max   = zeitreise.paare.length * 2
     const zrMed = getZRMedal(score, max)
-    const entry = { lemma: zeitreise.lemma, total: score, medal: zrMed.label, placements }
+    const entry = { lemma: zeitreise.lemma, total: score, medal: zrMed, placements }
     lsSet(keys.todayZRKey, JSON.stringify(entry))
     setZrPlayed(entry)
     markActivity(keys.dateStr)

@@ -83,6 +83,25 @@ body {
   to   { opacity: 1; transform: translateY(0) }
 }
 
+/* ── Animation 1: Tintenfluss-Eingang ────────────────────── */
+@keyframes inkFlow {
+  from { clip-path: inset(0 100% 0 0) }
+  to   { clip-path: inset(0 0% 0 0) }
+}
+
+/* ── Animation 8: Kopiert-Bestätigung ────────────────────── */
+@keyframes confirmPop {
+  from { transform: scale(0.94) }
+  to   { transform: scale(1) }
+}
+
+/* ── Animation 9: WZ-Chip Ablehnung ──────────────────────── */
+@keyframes wzReject {
+  0%   { transform: translateX(0) }
+  40%  { transform: translateX(-5px) }
+  100% { transform: translateX(0) }
+}
+
 /* View Transitions: screenIn als Fallback, VT übernimmt wenn vorhanden */
 .screen { animation: screenIn 0.22s ease both }
 
@@ -116,7 +135,16 @@ body {
   .streak-pill,
   .zr-bubble-popover,
   .zr-hint,
-  .lemma-ipa-skeleton {
+  .wz-hint,
+  .lemma-ipa-skeleton,
+  .quiz-lemma-word,
+  .zeitreise-word,
+  .wz-title,
+  .zr-tl-stop,
+  .history-dot,
+  .lemma-card-wrap,
+  .btn-share--copied,
+  .wz-chip--wrong {
     animation: none !important;
   }
   .bar-fill,
@@ -129,7 +157,8 @@ body {
   .zr-chip,
   .zr-zone,
   .wz-chip,
-  .wz-zone {
+  .wz-zone,
+  .round-dot {
     transition: none !important;
   }
   .zr-slot--active,

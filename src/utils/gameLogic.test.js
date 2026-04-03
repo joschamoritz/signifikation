@@ -43,51 +43,55 @@ describe('calculateScore', () => {
 
 // ── getMedal ────────────────────────────────────────────────
 describe('getMedal', () => {
-  it('gibt Perfekt bei 10', () => {
-    expect(getMedal(10).label).toBe('Perfekt!')
+  it('Gold bei ≥ 80%', () => {
+    expect(getMedal(8, 10).label).toBe('Gold')
+    expect(getMedal(10, 10).label).toBe('Gold')
   })
-  it('gibt Sehr gut bei 8', () => {
-    expect(getMedal(8).label).toBe('Sehr gut!')
+  it('Silber bei ≥ 60%', () => {
+    expect(getMedal(6, 10).label).toBe('Silber')
+    expect(getMedal(7, 10).label).toBe('Silber')
   })
-  it('gibt Sehr gut bei 9', () => {
-    expect(getMedal(9).label).toBe('Sehr gut!')
+  it('Bronze bei ≥ 40%', () => {
+    expect(getMedal(4, 10).label).toBe('Bronze')
+    expect(getMedal(5, 10).label).toBe('Bronze')
   })
-  it('gibt Gut bei 6', () => {
-    expect(getMedal(6).label).toBe('Gut!')
+  it('Teilgenommen unter 40%', () => {
+    expect(getMedal(3, 10).label).toBe('Teilgenommen')
+    expect(getMedal(0, 10).label).toBe('Teilgenommen')
   })
-  it('gibt Solide bei 4', () => {
-    expect(getMedal(4).label).toBe('Solide!')
+  it('hat emoji', () => {
+    expect(getMedal(10, 10).emoji).toBe('🥇')
+    expect(getMedal(6, 10).emoji).toBe('🥈')
+    expect(getMedal(4, 10).emoji).toBe('🥉')
+    expect(getMedal(0, 10).emoji).toBe('🌱')
   })
-  it('gibt Weiter üben bei 3', () => {
-    expect(getMedal(3).label).toBe('Weiter üben!')
-  })
-  it('gibt Weiter üben bei 0', () => {
-    expect(getMedal(0).label).toBe('Weiter üben!')
+  it('verarbeitet max=0 ohne Division durch null', () => {
+    expect(() => getMedal(0, 0)).not.toThrow()
   })
 })
 
 // ── getDailyMedal ───────────────────────────────────────────
 describe('getDailyMedal', () => {
-  it('Gold ab 27', () => {
-    expect(getDailyMedal(27).label).toBe('Gold')
+  it('Gold ab 80% (≥ 24 von 30)', () => {
+    expect(getDailyMedal(24).label).toBe('Gold')
     expect(getDailyMedal(30).label).toBe('Gold')
   })
-  it('Silber 21–26', () => {
-    expect(getDailyMedal(21).label).toBe('Silber')
-    expect(getDailyMedal(26).label).toBe('Silber')
+  it('Silber 60–79% (18–23 von 30)', () => {
+    expect(getDailyMedal(18).label).toBe('Silber')
+    expect(getDailyMedal(23).label).toBe('Silber')
   })
-  it('Bronze 15–20', () => {
-    expect(getDailyMedal(15).label).toBe('Bronze')
-    expect(getDailyMedal(20).label).toBe('Bronze')
+  it('Bronze 40–59% (12–17 von 30)', () => {
+    expect(getDailyMedal(12).label).toBe('Bronze')
+    expect(getDailyMedal(17).label).toBe('Bronze')
   })
-  it('Teilgenommen unter 15', () => {
-    expect(getDailyMedal(14).label).toBe('Teilgenommen')
+  it('Teilgenommen unter 40% (< 12 von 30)', () => {
+    expect(getDailyMedal(11).label).toBe('Teilgenommen')
     expect(getDailyMedal(0).label).toBe('Teilgenommen')
   })
   it('hat emoji', () => {
     expect(getDailyMedal(30).emoji).toBe('🥇')
-    expect(getDailyMedal(21).emoji).toBe('🥈')
-    expect(getDailyMedal(15).emoji).toBe('🥉')
+    expect(getDailyMedal(18).emoji).toBe('🥈')
+    expect(getDailyMedal(12).emoji).toBe('🥉')
     expect(getDailyMedal(0).emoji).toBe('🌱')
   })
 })

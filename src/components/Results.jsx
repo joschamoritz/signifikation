@@ -19,19 +19,12 @@ function getKollHistory() {
     .slice(-14)
 }
 
-const THRESHOLDS = [
-  { min: 10, label: 'Perfekt' },
-  { min: 8,  label: 'Sehr gut' },
-  { min: 6,  label: 'Gut' },
-  { min: 4,  label: 'Solide' },
-]
-
 export default function Results({ lemma, roundScores, onRestart, onToSelection }) {
   const kollHistory = getKollHistory()
   const total     = roundScores.reduce((a, b) => a + b, 0)
   const hasBonus  = roundScores.length >= 4
   const maxPoints = hasBonus ? 10 : 9
-  const medal     = getMedal(total)
+  const medal     = getMedal(total, maxPoints)
 
   const [barsVisible, setBarsVisible] = useState(false)
   useEffect(() => {
@@ -48,7 +41,7 @@ export default function Results({ lemma, roundScores, onRestart, onToSelection }
       <header className="results-header">
         <h1 className="lemma-played-title">{lemma.lemma}</h1>
         <p className="total-score">{total} / {maxPoints} Punkte</p>
-        <p className="result-feedback">{medal.label}</p>
+        <p className="result-feedback">{medal.emoji} {medal.label}</p>
         {lemma.notiz && (
           <div className="lemma-notiz results-notiz">
             <span>{lemma.notiz}</span>
@@ -142,14 +135,6 @@ export default function Results({ lemma, roundScores, onRestart, onToSelection }
             loading={belegeLoading}
           />
         )}
-      </div>
-
-      <div className="thresholds">
-        {THRESHOLDS.map(t => (
-          <span key={t.min} className={`threshold${total >= t.min ? ' reached' : ''}`}>
-            {t.label} {t.min}+
-          </span>
-        ))}
       </div>
 
       <div className="results-actions">
