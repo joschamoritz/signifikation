@@ -5,7 +5,7 @@ import { createWriteStream, existsSync, renameSync, unlinkSync } from 'fs'
 import { fetchLemma, fetchBonusQuestion, fetchRelation, fetchZeitreise, fetchZeitreiseAnalyze, POS_ROUNDS } from '../wortprofil.js'
 import { fetchWortZwilling } from '../wortzwilling.js'
 import { load, loadReadOnly, save, loadZeitreise, loadWortZwilling, loadStats, getLemmataIndex, DATA } from '../store.js'
-import { adminLimiter } from '../middleware/rateLimiter.js'
+import { adminLimiter, uploadLimiter } from '../middleware/rateLimiter.js'
 import { requireAuth, adminAuth, serverError } from '../middleware/auth.js'
 
 /** Admin-seitige Fehlerausgabe: zeigt immer den echten Fehler (hinter Auth) */
@@ -261,7 +261,7 @@ router.get('/admin/backup', adminLimiter, requireAuth, (req, res) => {
 
 
 /** POST /admin/upload-wortprofil – wortprofil.db in Chunks hochladen (raw binary) */
-router.post('/admin/upload-wortprofil', adminLimiter, requireAuth, (req, res) => {
+router.post('/admin/upload-wortprofil', uploadLimiter, requireAuth, (req, res) => {
   const { index, total } = req.query
   if (index === undefined || !total) return res.status(400).json({ error: 'index/total erforderlich' })
   const dataDir = join(__dirname, '../data')
