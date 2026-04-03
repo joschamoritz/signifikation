@@ -1,5 +1,5 @@
 import { execSync } from 'child_process'
-import { existsSync, unlinkSync } from 'fs'
+import { existsSync, unlinkSync, statSync } from 'fs'
 import logger from './logger.js'
 
 const IS_RAILWAY = !!process.env.RAILWAY_PROJECT_ID
@@ -16,7 +16,7 @@ export async function ensureWortprofilDb() {
 
   // Prüfe ob Datei existiert und gültig ist
   if (existsSync(DB_PATH)) {
-    const stats = require('fs').statSync(DB_PATH)
+    const stats = statSync(DB_PATH)
     // Wenn Datei > 100MB, nehmen wir an sie ist gültig
     if (stats.size > 100_000_000) {
       logger.info('wortprofil.db existiert und ist gültig, kein Download nötig')
@@ -24,7 +24,7 @@ export async function ensureWortprofilDb() {
     }
     // Sonst: Datei ist zu klein oder korrupt, löschen und neu laden
     logger.warn('wortprofil.db existiert aber ist zu klein oder korrupt, lösche...')
-    require('fs').unlinkSync(DB_PATH)
+    unlinkSync(DB_PATH)
   }
 
   logger.info('wortprofil.db nicht gefunden, lade von GitHub Release herunter...')
