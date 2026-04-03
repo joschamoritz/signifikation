@@ -1,4 +1,4 @@
-import { randomUUID } from 'crypto'
+import { randomUUID, timingSafeEqual } from 'crypto'
 import logger from '../logger.js'
 
 const IS_PROD   = process.env.NODE_ENV === 'production'
@@ -25,13 +25,47 @@ function sessionValid(token) {
 /** POST /admin/auth – tauscht Admin-Key gegen Session-Token */
 export function adminAuth(req, res) {
   const { key } = req.body || {}
-  if (!key || key !== ADMIN_KEY) {
-    logger.warn({ ip: req.ip }, 'Admin-Login fehlgeschlagen')
+  if (!key || !ADMIN_KEY) {
+    logger.warn({ ip: req.ip }, 'Admin-Login fehlgeschlagen (fehlender Key)')
+    return res.status(401).json({ error: 'Falscher Admin-Key' })
+  }
+  // Constant-Time-Vergleich gegen Timing-Attacks
+  try {
+    if (!timingSafeEqual(Buffer.from(key), Buffer.from(ADMIN_KEY))) {
+      logger.warn({ ip: req.ip }, 'Admin-Login fehlgeschlagen (falscher Key)')
+      return res.status(401).json({ error: 'Falscher Admin-Key' })
+    }
+  } catch (err) {
+    logger.warn({ ip: req.ip }, 'Admin-Login fehlgeschlagen (Längen-Mismatch)')
     return res.status(401).json({ error: 'Falscher Admin-Key' })
   }
   const session = createSession()
   logger.info({ ip: req.ip }, 'Admin eingeloggt')
   res.json(session)
+}
+
+/** POST /admin/logout – Session beenden */
+export function adminLogout(req, res) {
+  const token = req.headers['x-admin-token']
+  if (token) {
+    sessions.delete(token)
+    logger.info('Admin ausgeloggt')
+  }
+  res.json({ ok: true })
+}
+
+/** Middleware: CSRF-Schutz – verhindert Form-basierte CSRF-Angriffe */
+export function csrfProtect(req, res, next) {
+  if (['POST', 'PUT', 'DELETE'].includes(req.method)) {
+    const contentType = req.headers['content-type'] || ''
+    // Nur application/json und application/x-www-form-urlencoded mit x-admin-token sind erlaubt
+    // Dies blockiert einfache CSRF-Angriffe von fremden Seiten
+    if (!contentType.includes('application/json') && !contentType.includes('application/octet-stream')) {
+      logger.warn({ method: req.method, contentType }, 'CSRF-Schutz: falscher Content-Type')
+      return res.status(403).json({ error: 'Ungültiger Content-Type' })
+    }
+  }
+  next()
 }
 
 /** Middleware: prüft x-admin-token Header */

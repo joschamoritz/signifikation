@@ -1,5 +1,6 @@
 import express        from 'express'
-import { join }         from 'path'
+import { join, normalize } from 'path'
+import { readFileSync } from 'fs'
 import { fetchBelege, belegeVerfuegbar } from '../belege.js'
 import { fetchRelation } from '../wortprofil.js'
 import { load, loadReadOnly, save, loadZeitreise, loadWortZwilling, loadStats, withStatsLock, getLemmataIndex, cacheGet, cacheSet, DATA } from '../store.js'
@@ -185,10 +186,20 @@ router.get('/api/v1/archiv', validate(archivQuerySchema, 'query'), async (req, r
   try {
     const mm   = date.slice(5, 7), dd = date.slice(8, 10)
     const file = join(DATA, `koll-${mm}-${dd}.json`)
+
+    // Path-Traversal-Schutz: Sicherstellung, dass normalisierter Pfad im DATA-Verzeichnis bleibt
+    const normalized = normalize(file)
+    const normalizedData = normalize(DATA)
+    if (!normalized.startsWith(normalizedData)) {
+      logger.warn({ path: file }, 'Path-Traversal-Versuch blockiert')
+      return res.json({ datum: date.slice(5), lemmata: [] })
+    }
+
     const raw  = JSON.parse(readFileSync(file, 'utf8'))
     const lemmata = raw.lemmata || []
     res.json({ datum: `${mm}-${dd}`, year: date.slice(0, 4), lemmata })
-  } catch {
+  } catch (err) {
+    logger.warn({ err, date }, 'Archiv-Abruf fehlgeschlagen')
     res.json({ datum: date.slice(5), lemmata: [] })
   }
 })

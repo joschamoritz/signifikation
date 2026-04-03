@@ -6,7 +6,7 @@ import { fetchLemma, fetchBonusQuestion, fetchRelation, fetchZeitreise, fetchZei
 import { fetchWortZwilling } from '../wortzwilling.js'
 import { load, loadReadOnly, save, loadZeitreise, loadWortZwilling, loadStats, getLemmataIndex, DATA } from '../store.js'
 import { adminLimiter, uploadLimiter } from '../middleware/rateLimiter.js'
-import { requireAuth, adminAuth, serverError } from '../middleware/auth.js'
+import { requireAuth, adminAuth, adminLogout, serverError } from '../middleware/auth.js'
 
 /** Admin-seitige Fehlerausgabe: zeigt immer den echten Fehler (hinter Auth) */
 function adminError(res, err) {
@@ -21,6 +21,9 @@ const router = express.Router()
 
 /** POST /admin/auth – tauscht Admin-Key gegen Session-Token */
 router.post('/admin/auth', adminLimiter, adminAuth)
+
+/** POST /admin/logout – Session beenden */
+router.post('/admin/logout', adminLimiter, requireAuth, adminLogout)
 
 /** GET /admin/stats – Spielstatistik der letzten N Tage */
 router.get('/admin/stats', adminLimiter, requireAuth, (req, res) => {
