@@ -16,6 +16,7 @@
 import { readFileSync, writeFileSync, renameSync, mkdirSync } from 'fs'
 import { fileURLToPath } from 'url'
 import { dirname, join }  from 'path'
+import logger from './logger.js'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 export const DATA = join(__dirname, 'data')
@@ -82,7 +83,12 @@ let _statsWriteLock = Promise.resolve()
  * @param {() => Promise<void>} fn  Async-Funktion die stats.json liest und schreibt
  */
 export function withStatsLock(fn) {
-  _statsWriteLock = _statsWriteLock.then(fn).catch(() => {})
+  _statsWriteLock = _statsWriteLock
+    .then(fn)
+    .catch(err => {
+      logger.error({ err }, 'Stats-Fehler in withStatsLock')
+      throw err  // Re-throw damit Caller weiß, dass etwas schief gelaufen ist
+    })
   return _statsWriteLock
 }
 
