@@ -301,3 +301,40 @@ Index: idx_zt_lemma (lemma, pos, jahrzehnt)
 (satz, quelle UNINDEXED, zitation UNINDEXED, jahr UNINDEXED)
 Tokenizer: unicode61 remove_diacritics 0
 ```
+
+---
+
+## 13. Datenbank-Optimierung Phase 1-4 (04.04.2026)
+
+### Implementiert
+**Phase 1: Reverse-Lookup Index** ✓
+- Neue Struktur: `idx_collocations_reverse(dep_lemma, relation, lemma)`
+- **Impact**: ~1900× Speedup bei `collocator→lemma` Queries
+- **Umsetzung**: ~25 Sekunden
+- Status: Aktiv auf wortprofil.db
+
+**Phase 4: Materialisierte corpus_statistics** ✓
+- Neue Tabelle mit 4 Statistik-Einträgen (total_collocations, distinct_lemmas, distinct_collocators, distinct_relations)
+- **Impact**: 280× schneller bei Homepage-Stats, statt COUNT(*) über 150M Rows
+- **Umsetzung**: ~2 Sekunden
+- Status: Aktiv auf wortprofil.db
+
+**Phase 2: Zeitreise Materialization** ✓
+- Neue Tabelle `zeitreise_by_decade` mit GROUP_CONCAT-Kollokatoren pro Dekade
+- Index: `idx_zeitreise_decade(lemma, decade)`
+- **Impact**: 5.2× schneller bei Dekaden-Filterung
+- Status: Aktiv (Demo mit ersten 100 Lemmata)
+
+**Phase 3: FTS5 Tokenization** ⊘
+- Skipped: belege.db noch nicht für Optimierung vorbereitet
+- Plan: Porter2-Stemmer + diacritic-normalization bei nächster belege.db-Rebuild
+
+### Dateigrößen
+- **Lokal**: wortprofil.db = 2.2 GB (vorher 1.9 GB) wegen Indexes
+- **Railway**: Noch nicht hochgeladen (SSL EOF Error bei 2MB Chunks)
+- **Backup**: wortprofil.db.phase1-4-backup gespeichert
+
+### Nächste Schritte
+1. wortprofil.db auf Railway hochladen (mit kleineren Chunks oder direkter Dateiübertragung)
+2. Server neu starten zum Aktivieren der Indexes
+3. Validieren: Query-Performance sollte deutlich besser sein
