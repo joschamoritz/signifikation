@@ -105,10 +105,10 @@ export function withStatsLock(fn) {
   return _statsWriteLock
 }
 
-// ── Beleg-Cache (TTL 6h, max 200 Einträge, LRU) ─────────────
+// ── Beleg-Cache (TTL 6h, max 2000 Einträge, LRU) ─────────────
 const _belegeCache = new Map()
 const BELEG_TTL_MS = 6 * 60 * 60 * 1000
-const BELEG_MAX    = 200
+const BELEG_MAX    = 2000
 
 // Cache-Metriken
 const _cacheMetrics = {
@@ -164,5 +164,21 @@ export function getCacheMetrics() {
     hitRate: `${hitRate}%`,
     evictions: _cacheMetrics.evictions,
     size: _belegeCache.size,
+  }
+}
+
+// ── Startup-Initialization ─────────────────────────────────────
+/**
+ * Preloads critical indices on server startup.
+ * Ensures first requests don't incur index-building latency.
+ * Called from index.js after server starts.
+ */
+export function initializeIndices() {
+  try {
+    // Preload lemmata index
+    getLemmataIndex()
+    logger.info('Indices preloaded: lemmata')
+  } catch (err) {
+    logger.warn({ err }, 'Preload initialization incomplete – will lazy-load on demand')
   }
 }
