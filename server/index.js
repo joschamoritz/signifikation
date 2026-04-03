@@ -8,6 +8,7 @@ import { dirname, join }  from 'path'
 import { randomUUID } from 'crypto'
 import logger       from './logger.js'
 import { ADMIN_KEY, IS_PROD, csrfProtect } from './middleware/auth.js'
+import { initializeIndices } from './store.js'
 import publicRouter from './routes/public.js'
 import adminRouter  from './routes/admin.js'
 
@@ -100,6 +101,9 @@ app.use((err, req, res, _next) => {
   const isAdmin = req.path?.startsWith('/admin')
   res.status(500).json({ error: (!IS_PROD || isAdmin) ? (err.message || String(err)) : 'Interner Serverfehler' })
 })
+
+// ── Startup Initialization ──────────────────────────────────
+initializeIndices()
 
 // ── Start ────────────────────────────────────────────────────
 app.listen(PORT, () => {
