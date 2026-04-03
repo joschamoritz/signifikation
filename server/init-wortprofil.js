@@ -14,10 +14,17 @@ export async function ensureWortprofilDb() {
   // Nur auf Railway notwendig
   if (!IS_RAILWAY) return
 
-  // Wenn DB bereits existiert, alles ok
+  // Prüfe ob Datei existiert und gültig ist
   if (existsSync(DB_PATH)) {
-    logger.info('wortprofil.db existiert, kein Download nötig')
-    return
+    const stats = require('fs').statSync(DB_PATH)
+    // Wenn Datei > 100MB, nehmen wir an sie ist gültig
+    if (stats.size > 100_000_000) {
+      logger.info('wortprofil.db existiert und ist gültig, kein Download nötig')
+      return
+    }
+    // Sonst: Datei ist zu klein oder korrupt, löschen und neu laden
+    logger.warn('wortprofil.db existiert aber ist zu klein oder korrupt, lösche...')
+    require('fs').unlinkSync(DB_PATH)
   }
 
   logger.info('wortprofil.db nicht gefunden, lade von GitHub Release herunter...')
