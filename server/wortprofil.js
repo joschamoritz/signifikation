@@ -313,13 +313,13 @@ export async function fetchZeitreise(lemma) {
       })
     }
 
-    // Nur Dekaden mit mind. 3 gültigen Kollokatoren
+    // Nur Dekaden mit mind. 2 gültigen Kollokatoren
     const decades = [...byDecade.entries()]
       .filter(([, items]) =>
         items.filter(it => {
           const w = it.wort.toLowerCase()
           return w !== lemmaLower && !w.startsWith(lemmaStamm) && it.wort.length > 2
-        }).length >= 3
+        }).length >= 2
       )
       .sort(([a], [b]) => a - b)
 

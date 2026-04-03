@@ -24,8 +24,8 @@ WORTPROFIL_DB = Path(__file__).parent.parent / "05_db"  / "wortprofil.db"
 # Relationen, die für die Zeitreise berücksichtigt werden
 RELATIONS = ("ATTR", "SUBJA", "OBJA", "KON", "ADV", "PRED", "GMOD", "OBJD")
 
-MIN_FREQ   = 3  # Mindesthäufigkeit eines Kollokators pro Jahrzehnt
-MIN_COLLOC = 3  # Mindestanzahl gültiger Kollokatoren pro Jahrzehnt (für Dekaden-Filter)
+MIN_FREQ   = 2  # Mindesthäufigkeit eines Kollokators pro Jahrzehnt
+MIN_COLLOC = 2  # Mindestanzahl gültiger Kollokatoren pro Jahrzehnt (für Dekaden-Filter)
 
 
 def build_zeitreise(reset: bool = False):
