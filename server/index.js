@@ -10,6 +10,7 @@ import logger       from './logger.js'
 import { ADMIN_KEY, IS_PROD, csrfProtect } from './middleware/auth.js'
 import { initializeIndices } from './store.js'
 import { errorHandler } from './error-handling.js'
+import { ensureWortprofilDb } from './init-wortprofil.js'
 import publicRouter from './routes/public.js'
 import adminRouter  from './routes/admin.js'
 
@@ -101,10 +102,16 @@ app.use((err, req, res, next) => {
 })
 
 // ── Startup Initialization ──────────────────────────────────
-initializeIndices()
+;(async () => {
+  await ensureWortprofilDb()
+  initializeIndices()
 
-// ── Start ────────────────────────────────────────────────────
-app.listen(PORT, () => {
-  logger.info(`Signifikation-Server läuft auf http://localhost:${PORT}`)
-  logger.info(`Admin: http://localhost:${PORT}/admin`)
+  // ── Start ────────────────────────────────────────────────────
+  app.listen(PORT, () => {
+    logger.info(`Signifikation-Server läuft auf http://localhost:${PORT}`)
+    logger.info(`Admin: http://localhost:${PORT}/admin`)
+  })
+})().catch(err => {
+  logger.error({ err }, 'Startup-Fehler')
+  process.exit(1)
 })
