@@ -66,15 +66,19 @@
 .options-grid {
   display: flex;
   flex-direction: column;
-  gap: 5px;
+  gap: 0;
   flex: 1;
+  border-top: 2px solid var(--border);
+  border-bottom: 2px solid var(--border);
 }
 
 .option {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 9px 13px;
+  background: transparent;
+  border: none;
+  border-left: 3px solid transparent;
+  border-top: 1px solid var(--border-lt);
+  border-radius: 0;
+  padding: 10px 12px 10px 14px;
   font-family: var(--font-serif);
   font-size: 0.95rem;
   color: var(--text);
@@ -87,32 +91,36 @@
   word-break: break-word;
   animation: optionIn 0.18s ease both;
 }
-.option:hover:not(:disabled) { border-color: var(--primary) }
+.options-grid .option:first-child { border-top-color: transparent }
+.option:hover:not(:disabled) {
+  border-left-color: var(--primary);
+  background: color-mix(in srgb, var(--primary) 4%, transparent);
+}
 .option:active:not(:disabled) { transform: scale(0.985) }
 .option:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px }
 
 .option.selected {
-  border-color: var(--primary);
-  background: #fef2f2;
+  border-left-color: var(--primary);
+  background: color-mix(in srgb, var(--primary) 6%, transparent);
 }
 .option.correct {
-  border-color: var(--success);
+  border-left-color: var(--success);
   background: var(--success-bg);
   color: var(--success);
   font-weight: 600;
 }
 .option.partial {
-  border-color: var(--warn);
+  border-left-color: var(--warn);
   background: var(--warn-bg);
   color: var(--warn);
 }
 .option.wrong {
-  border-color: var(--error);
+  border-left-color: var(--error);
   background: var(--error-bg);
   color: var(--error);
 }
 .option.missed {
-  border-color: #d97706;
+  border-left-color: #d97706;
   background: #fffbeb;
   color: #92400e;
 }
@@ -238,37 +246,45 @@
 .bonus-options {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 0;
   flex: 1;
+  border-top: 2px solid var(--border);
+  border-bottom: 2px solid var(--border);
 }
 .bonus-option {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 16px 20px;
+  background: transparent;
+  border: none;
+  border-left: 3px solid transparent;
+  border-top: 1px solid var(--border-lt);
+  border-radius: 0;
+  padding: 14px 12px 14px 14px;
   font-size: 1.05rem;
-  font-weight: 700;
+  font-weight: 600;
   font-family: var(--font-serif);
   color: var(--text);
   text-align: left;
   cursor: pointer;
-  transition: border-color 0.12s, background 0.12s;
+  transition: border-left-color 0.12s, background 0.12s, color 0.12s;
   animation: optionIn 0.2s ease both;
 }
-.bonus-option:hover:not(:disabled) { border-color: var(--primary) }
+.bonus-options .bonus-option:first-child { border-top-color: transparent }
+.bonus-option:hover:not(:disabled) {
+  border-left-color: var(--primary);
+  background: color-mix(in srgb, var(--primary) 4%, transparent);
+}
 .bonus-option:active:not(:disabled) { transform: scale(0.985) }
 .bonus-option.selected {
-  border-color: var(--primary);
-  background: #fef2f2;
+  border-left-color: var(--primary);
+  background: color-mix(in srgb, var(--primary) 6%, transparent);
   color: var(--primary);
 }
 .bonus-option.correct {
-  border-color: var(--success);
+  border-left-color: var(--success);
   background: var(--success-bg);
   color: var(--success);
 }
 .bonus-option.wrong {
-  border-color: var(--error);
+  border-left-color: var(--error);
   background: var(--error-bg);
   color: var(--error);
 }
@@ -321,10 +337,12 @@
 .lemma-played   { font-size: 0.9rem; color: var(--muted); margin-top: 2px }
 
 .round-scores-card {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 20px;
+  background: transparent;
+  border: none;
+  border-top: 1.5px solid var(--border);
+  border-bottom: 1.5px solid var(--border);
+  border-radius: 0;
+  padding: 18px 0;
   display: flex;
   flex-direction: column;
   gap: 14px;
@@ -385,10 +403,12 @@
 
 /* Wortprofil-Karte in Results */
 .wortprofil-card {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 20px;
+  background: transparent;
+  border: none;
+  border-top: 2.5px double var(--border);
+  border-bottom: 2.5px double var(--border);
+  border-radius: 0;
+  padding: 18px 0;
   display: flex;
   flex-direction: column;
   gap: 14px;

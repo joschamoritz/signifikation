@@ -49,10 +49,12 @@
   flex-wrap: wrap;
   gap: 8px;
   justify-content: center;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 14px 12px;
+  background: transparent;
+  border: none;
+  border-top: 1.5px solid var(--border);
+  border-bottom: 1.5px solid var(--border);
+  border-radius: 0;
+  padding: 14px 0;
   min-height: 56px;
   align-items: center;
 }
@@ -81,14 +83,14 @@
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  font-family: var(--font-sans);
+  font-family: var(--font-serif);
   font-size: 0.9rem;
-  font-weight: 600;
+  font-weight: 500;
   color: var(--text);
   background: var(--surface);
   border: 1.5px solid var(--border);
-  border-radius: 20px;
-  padding: 6px 14px;
+  border-radius: 3px;
+  padding: 5px 12px;
   cursor: grab;
   user-select: none;
   touch-action: none;
@@ -98,25 +100,25 @@
 .zr-chip:active { cursor: grabbing; transform: scale(0.96) }
 .zr-chip:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px }
 .zr-chip--ghost {
-  border-radius: 20px;
-  padding: 6px 14px;
-  font-family: var(--font-sans);
+  border-radius: 3px;
+  padding: 5px 12px;
+  font-family: var(--font-serif);
   font-size: 0.9rem;
-  font-weight: 600;
+  font-weight: 500;
   color: var(--text);
   background: var(--surface);
-  border: 2px solid #3b82f6;
+  border: 2px solid var(--primary);
   box-shadow: 0 6px 20px rgba(0,0,0,.18);
   transform: scale(1.06);
   cursor: grabbing;
 }
-.zr-chip:hover  { border-color: #93c5fd; background: #f0f9ff }
+.zr-chip:hover  { border-color: var(--primary); background: color-mix(in srgb, var(--primary) 4%, transparent) }
 
 .zr-chip--selected {
-  border-color: #1d4ed8;
-  background: #eff6ff;
-  color: #1d4ed8;
-  box-shadow: 0 0 0 3px #bfdbfe;
+  border-color: var(--primary);
+  background: color-mix(in srgb, var(--primary) 6%, transparent);
+  color: var(--primary);
+  box-shadow: 0 0 0 2px #fecaca;
 }
 
 .zr-chip--placed {
@@ -147,48 +149,52 @@
 .zr-zones {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 0;
+  border-top: 1.5px solid var(--border);
+  border-bottom: 1.5px solid var(--border);
 }
+
+.zr-zone-wrapper + .zr-zone-wrapper > .zr-zone { border-top: 1px solid var(--border-lt) }
 
 .zr-zone {
   display: flex;
   align-items: center;
   gap: 12px;
-  background: var(--surface);
-  border: 1.5px dashed var(--border);
-  border-radius: var(--radius-sm);
-  padding: 10px 14px;
+  background: transparent;
+  border: none;
+  border-left: 3px solid transparent;
+  border-radius: 0;
+  padding: 10px 4px 10px 8px;
   cursor: pointer;
-  transition: border-color 0.12s, background 0.12s;
-  min-height: 52px;
+  transition: border-left-color 0.12s, background 0.12s;
+  min-height: 48px;
 }
 
 .zr-zone--droppable {
-  border-color: #93c5fd;
-  background: #f8fbff;
+  border-left-color: color-mix(in srgb, var(--primary) 50%, transparent);
+  background: color-mix(in srgb, var(--primary) 3%, transparent);
 }
 .zr-zone--droppable:hover {
-  border-color: #1d4ed8;
-  background: #eff6ff;
+  border-left-color: var(--primary);
+  background: color-mix(in srgb, var(--primary) 6%, transparent);
 }
 
 .zr-zone--filled {
-  border-style: solid;
-  border-color: var(--border);
+  border-left-color: transparent;
   cursor: default;
 }
 
 .zr-zone--right {
-  border-color: var(--success) !important;
+  border-left-color: var(--success) !important;
   background: var(--success-bg) !important;
 }
 .zr-zone--wrong {
-  border-color: var(--error) !important;
+  border-left-color: var(--error) !important;
   background: var(--error-bg) !important;
 }
 .zr-zone--missed {
-  border-color: var(--border);
-  background: var(--surface2);
+  border-left-color: transparent;
+  background: transparent;
 }
 .zr-zone--blocked {
   opacity: 0.35;
@@ -197,10 +203,12 @@
 }
 
 .zr-zone-period {
+  font-family: var(--font-serif);
   font-size: 0.78rem;
+  font-variant: small-caps;
   font-weight: 700;
   color: var(--muted);
-  letter-spacing: 0.03em;
+  letter-spacing: 0.04em;
   white-space: nowrap;
   width: 82px;
   flex-shrink: 0;
