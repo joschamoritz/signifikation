@@ -230,15 +230,17 @@ BELEGE_DB=/app/server/data/belege.db
 
 ---
 
-## 10. Offene Aufgaben
+## 10. Offene Aufgaben (Stand 03.04.2026)
 
-- [ ] Parser (`de_zdl_lg`) abwarten (~20–24h Gesamtlaufzeit) — `gesetze.jsonl` ✅ fertig (1.416.398 Triples)
-- [ ] `build_wortprofil.py --reset` ausführen (nach Parser-Ende)
-- [ ] `build_zeitreise.py` ausführen
-- [ ] Neue `wortprofil.db` via `/admin/upload-db` auf Railway hochladen
-- [ ] `railway run node scripts/backfill-bonus.mjs` ausführen
-- [ ] `POST /admin/upload-db` Endpoint entfernen (nach Abschluss aller Uploads)
-- [ ] Beim Wechsel zu DigitalOcean (GitHub Education): `belege.db` vollständig deployen
+- [x] Parser (`de_zdl_lg`) abgeschlossen → triples.db 8,5 GB, 77 Mio. Triples
+- [x] `build_wortprofil.py --reset` ausgeführt → wortprofil.db 1,9 GB
+- [x] `build_zeitreise.py --reset` ausgeführt (logDice-Scores) → 3,46 Mio. Einträge, 25 Dekaden
+- [x] `build_belege.py --reset` ausgeführt → belege.db 16 GB, 50,7 Mio. Sätze
+- [x] Neue `wortprofil.db` auf signifikation.de hochgeladen (948 × 2 MB Chunks)
+- [x] DiaCollo komplett entfernt (diacollo.js gelöscht, alle Endpoints/Karten)
+- [x] Admin-Panel: Zeitreise-Wortanalyse mit Bubble-Chart + Timeline-Rows
+- [x] `ueber.html`: Modell-Referenz auf `de_zdl_lg` / Universal Dependencies aktualisiert
+- [ ] `belege.db` (16 GB) auf Railway hochladen — Volume muss vergrößert oder externer Speicher genutzt werden
 
 ---
 
