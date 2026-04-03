@@ -382,10 +382,6 @@ async function analyzeZeitreiseViz() {
 let vizChart = null
 
 function renderViz(data, container) {
-  if (!data.usable) {
-    container.innerHTML = `<div class="status error" style="margin-top:8px">✗ Nicht geeignet — ${esc(data.reason || '')}</div>`
-    return
-  }
   const word = data.lemma
   if (!data.perioden?.length) {
     container.innerHTML = `<div class="status error" style="margin-top:8px">Keine Daten — ${esc(data.reason || '')}</div>`
@@ -421,7 +417,7 @@ function renderViz(data, container) {
       ${usableBadge}
     </div>
     <div class="viz-canvas-wrap"><canvas id="viz-canvas"></canvas></div>
-    <p class="viz-star-note">★ = kommt ins Zeitreise-Spiel · Blase = Top-4 Kollokat · Größe = Score</p>
+    <p class="viz-star-note">★ = kommt ins Zeitreise-Spiel · Blase = Top-4 Kollokat · Größe = logDice · Reihenfolge = temporale Distinktivität</p>
     <div class="viz-timeline" id="viz-list" style="margin-top:16px"></div>`
 
   const listEl = document.getElementById('viz-list')

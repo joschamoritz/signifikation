@@ -407,6 +407,7 @@ export default function Zeitreise({ data, onBack, onFinish, savedResult }) {
           <p className="zr-results-info">
             Daten aus den DWDS-Korpora
             ({Math.min(...paare.map(p => Number(p.jahrzehnt)))}–{Math.max(...paare.map(p => Number(p.jahrzehnt)))})
+            · Auswahl nach temporaler Distinktivität
           </p>
           <a
             className="dwds-link"

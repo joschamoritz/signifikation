@@ -235,6 +235,34 @@ export async function fetchLemma(lemma, pos = 'Substantiv') {
 // ── POS-Rang für Zeitreise (Substantiv/Adjektiv bevorzugt) ───────────────────
 const ZR_POS_RANK = { 'Substantiv': 0, 'Adjektiv': 0, 'Adverb': 1 }
 
+/**
+ * Temporale Distinktivität: berechnet für jedes Wort, wie charakteristisch
+ * es für eine bestimmte Dekade ist – im Vergleich zu seinem Durchschnitt über
+ * alle Dekaden und skaliert durch die Anzahl der Dekaden, in denen es vorkommt.
+ *
+ * distinctScore = (score / avgScore) / sqrt(n_Dekaden)
+ *
+ * Hohe Werte → Wort ist typisch für diese Epoche, nicht global dominant.
+ * Gibt eine Map zurück: `${dep_lemma}\t${dep_pos}` → { avgScore, n }
+ */
+function computeWordStats(rows) {
+  const stats = new Map()
+  for (const r of rows) {
+    const key = `${r.dep_lemma}\t${r.dep_pos}`
+    if (!stats.has(key)) stats.set(key, { totalScore: 0, n: 0 })
+    const s = stats.get(key)
+    s.totalScore += r.score
+    s.n++
+  }
+  for (const s of stats.values()) s.avgScore = s.totalScore / s.n
+  return stats
+}
+
+function calcDistinctScore(score, dep_lemma, dep_pos, wordStats) {
+  const ws = wordStats.get(`${dep_lemma}\t${dep_pos}`)
+  return ws ? (score / ws.avgScore) / Math.sqrt(ws.n) : score
+}
+
 function zrBestCollokat(items, lemmaLower, lemmaStamm, usedWords) {
   return items
     .filter(it => {
@@ -247,7 +275,7 @@ function zrBestCollokat(items, lemmaLower, lemmaStamm, usedWords) {
       const ra = ZR_POS_RANK[a.pos] ?? 2
       const rb = ZR_POS_RANK[b.pos] ?? 2
       if (ra !== rb) return ra - rb
-      return b.score - a.score
+      return (b.distinctScore ?? b.score) - (a.distinctScore ?? a.score)
     })[0] ?? null
 }
 
@@ -270,11 +298,19 @@ export async function fetchZeitreise(lemma) {
     const lemmaLower = lemma.toLowerCase()
     const lemmaStamm = lemmaLower.slice(0, 4)
 
+    // Temporale Distinktivität: Wortstatistiken über alle Dekaden berechnen
+    const wordStats = computeWordStats(rows)
+
     // Nach Jahrzehnt gruppieren
     const byDecade = new Map()
     for (const r of rows) {
       if (!byDecade.has(r.jahrzehnt)) byDecade.set(r.jahrzehnt, [])
-      byDecade.get(r.jahrzehnt).push({ wort: normalizeLemma(r.dep_lemma, r.dep_pos), pos: r.dep_pos, score: r.score })
+      byDecade.get(r.jahrzehnt).push({
+        wort: normalizeLemma(r.dep_lemma, r.dep_pos),
+        pos: r.dep_pos,
+        score: r.score,
+        distinctScore: calcDistinctScore(r.score, r.dep_lemma, r.dep_pos, wordStats),
+      })
     }
 
     // Nur Dekaden mit mind. 3 gültigen Kollokatoren
@@ -307,8 +343,8 @@ export async function fetchZeitreise(lemma) {
       for (let j = from; j <= to; j++) {
         const [jahrzehnt, items] = decades[j]
         const c = zrBestCollokat(items, lemmaLower, lemmaStamm, usedWords)
-        if (c && c.score > bestScore) {
-          best = c; bestScore = c.score; bestDecade = jahrzehnt
+        if (c && (c.distinctScore ?? c.score) > bestScore) {
+          best = c; bestScore = c.distinctScore ?? c.score; bestDecade = jahrzehnt
         }
       }
       if (!best) {
@@ -343,14 +379,26 @@ export async function fetchZeitreiseAnalyze(lemma) {
 
   if (!allRows.length) return null
 
-  // Nach Jahrzehnt gruppieren, Top-4 gültige Kollokatoren
-  const byDecade = new Map()
+  // Temporale Distinktivität: Wortstatistiken über alle Dekaden berechnen
+  const wordStats = computeWordStats(allRows)
+
+  // Nach Jahrzehnt gruppieren, alle gültigen Kollokatoren sammeln
+  const byDecadeAll = new Map()
   for (const r of allRows) {
     const w = normalizeLemma(r.dep_lemma, r.dep_pos).toLowerCase()
     if (w === lemmaLower || w.startsWith(lemmaStamm) || w.length <= 2) continue
-    if (!byDecade.has(r.jahrzehnt)) byDecade.set(r.jahrzehnt, [])
-    const arr = byDecade.get(r.jahrzehnt)
-    if (arr.length < 4) arr.push({ wort: normalizeLemma(r.dep_lemma, r.dep_pos), score: r.score })
+    if (!byDecadeAll.has(r.jahrzehnt)) byDecadeAll.set(r.jahrzehnt, [])
+    byDecadeAll.get(r.jahrzehnt).push({
+      wort: normalizeLemma(r.dep_lemma, r.dep_pos),
+      score: r.score,
+      distinctScore: calcDistinctScore(r.score, r.dep_lemma, r.dep_pos, wordStats),
+    })
+  }
+
+  // Top-4 nach temporaler Distinktivität sortieren
+  const byDecade = new Map()
+  for (const [jz, items] of byDecadeAll) {
+    byDecade.set(jz, items.sort((a, b) => b.distinctScore - a.distinctScore).slice(0, 4))
   }
 
   if (!byDecade.size) return null
