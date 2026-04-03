@@ -207,13 +207,21 @@ router.get('/api/v1/archiv', validate(archivQuerySchema, 'query'), async (req, r
   }
 })
 
-/** GET /api/ipa – IPA-Aussprache via DWDS-API */
+/** GET /api/ipa – IPA-Aussprache via Wiktionary */
 router.get('/api/v1/ipa', validate(qQuerySchema, 'query'), async (req, res) => {
   const { q } = req.query
   try {
-    const r = await fetch(`https://www.dwds.de/api/ipa?q=${encodeURIComponent(q)}`)
+    const url = `https://de.wiktionary.org/w/api.php?action=parse&page=${encodeURIComponent(q)}&prop=wikitext&format=json&formatversion=2`
+    const r = await fetch(url, {
+      signal: AbortSignal.timeout(5000),
+      headers: { 'User-Agent': 'Signifikation/1.0 (signifikation.de; Bildungsprojekt)' },
+    })
     if (!r.ok) return res.json([])
-    res.json(await r.json())
+    const data = await r.json()
+    const wikitext = data.parse?.wikitext ?? ''
+    const matches = [...wikitext.matchAll(/\{\{Lautschrift\|([^|}]+)\}\}/g)]
+    if (!matches.length) return res.json([])
+    res.json([{ ipa: matches[0][1], status: 'proved' }])
   } catch (err) { serverError(res, err) }
 })
 
