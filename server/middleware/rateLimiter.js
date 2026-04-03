@@ -75,7 +75,6 @@ export const belegeLimiter = rateLimit({
   store: belegeStore,
   standardHeaders: true, legacyHeaders: false,
   message: { error: 'Zu viele Anfragen, bitte kurz warten.' },
-  trustProxy: true,
 })
 
 export const adminLimiter = rateLimit({
@@ -83,7 +82,6 @@ export const adminLimiter = rateLimit({
   store: adminStore,
   standardHeaders: true, legacyHeaders: false,
   message: { error: 'Zu viele Admin-Anfragen, bitte kurz warten.' },
-  trustProxy: true,
 })
 
 export const statsLimiter = rateLimit({
@@ -91,7 +89,6 @@ export const statsLimiter = rateLimit({
   store: statsStore,
   standardHeaders: true, legacyHeaders: false,
   message: { error: 'Zu viele Anfragen.' },
-  trustProxy: true,
 })
 
 export const feedbackLimiter = rateLimit({
@@ -99,12 +96,10 @@ export const feedbackLimiter = rateLimit({
   store: feedbackStore,
   standardHeaders: true, legacyHeaders: false,
   message: { error: 'Zu viele Feedback-Anfragen, bitte kurz warten.' },
-  trustProxy: true,
 })
 
 export const uploadLimiter = rateLimit({
   windowMs: 10_000, max: 100,  // 100 Requests pro 10 Sekunden fuer Upload
   standardHeaders: true, legacyHeaders: false,
   message: { error: 'Upload-Rate-Limit ueberschritten, bitte warten.' },
-  trustProxy: true,
 })
