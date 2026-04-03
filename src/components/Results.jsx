@@ -1,10 +1,8 @@
 import { useState, useEffect } from 'react'
 import { getMedal, getRundInfo } from '../utils/gameLogic'
 import { lsGet, lsParse } from '../utils/storage'
-// useBelege + BelegePanel sind deaktiviert (Urheberrecht Korpustexte).
-// Reaktivieren sobald schriftliche Genehmigung der BBAW vorliegt:
-// import { useBelege } from '../hooks/useBelege'
-// import BelegePanel from './BelegePanel'
+import { useBelege } from '../hooks/useBelege'
+import BelegePanel from './BelegePanel'
 
 function getKollHistory() {
   const newHistory = lsParse(lsGet('sig_koll_history'), [])
@@ -41,8 +39,9 @@ export default function Results({ lemma, roundScores, onRestart, onToSelection }
     return () => cancelAnimationFrame(id)
   }, [])
 
-  const [logDiceOpen,    setLogDiceOpen]    = useState(false)
-  const [belegeInfoOpen, setBelegeInfoOpen] = useState(false)
+  const { openBeleg, belegeCache, belegeLoading, loadBelege } = useBelege(lemma.lemma)
+
+  const [logDiceOpen, setLogDiceOpen] = useState(false)
 
   return (
     <div className="screen results-screen">
@@ -105,18 +104,11 @@ export default function Results({ lemma, roundScores, onRestart, onToSelection }
               <p>Grundlage: Pavel Rychlý, <em>A Lexicographer-Friendly Association Score</em> (2008).</p>
             </div>
           )}
-          <button className="logdice-toggle" onClick={() => setBelegeInfoOpen(o => !o)} aria-expanded={belegeInfoOpen}>
-            Korpusbelege ansehen
-            <span className={`toggle-arrow ${belegeInfoOpen ? 'toggle-arrow--open' : ''}`} aria-hidden="true">›</span>
-          </button>
-          {belegeInfoOpen && (
-            <div className="logdice-explanation">
-              <p>Klicke auf ein <strong>Kollokat</strong>, um Beispielsätze aus dem Korpus zu sehen, in denen beide Wörter gemeinsam vorkommen.</p>
-            </div>
-          )}
+          <p className="belege-hint">Klicke auf ein Kollokat, um Beispielsätze anzuzeigen.</p>
         </div>
 
         {getRundInfo(lemma).map(({ key, label, desc }) => {
+          const relCode = lemma.rundenInfo?.find(r => r.key === key)?.relCode ?? ''
           const top3 = (lemma.runden[key] || [])
             .filter(k => k.rang <= 3)
             .sort((a, b) => a.rang - b.rang)
@@ -129,12 +121,10 @@ export default function Results({ lemma, roundScores, onRestart, onToSelection }
                 {top3.map(k => (
                   <button
                     key={k.wort}
-                    className="wortprofil-item"
-                    onClick={() => window.open(
-                      `https://www.dwds.de/r/?q=%22${encodeURIComponent(lemma.lemma)}%22+%26%26+%22${encodeURIComponent(k.wort)}%22`,
-                      '_blank', 'noopener,noreferrer'
-                    )}
-                    aria-label={`${k.wort} – Korpusbelege ansehen (öffnet neues Fenster)`}
+                    className={`wortprofil-item${openBeleg === k.wort ? ' option--beleg-active' : ''}`}
+                    onClick={() => loadBelege(k.wort, k.wort, { rel: relCode })}
+                    aria-label={`${k.wort} – Korpusbelege ansehen`}
+                    aria-pressed={openBeleg === k.wort}
                   >
                     {k.wort}
                     <span className="logdice" aria-hidden="true">{k.log_dice}</span>
@@ -144,6 +134,14 @@ export default function Results({ lemma, roundScores, onRestart, onToSelection }
             </div>
           )
         })}
+        {openBeleg && (
+          <BelegePanel
+            lemma={lemma.lemma}
+            collocate={openBeleg}
+            data={belegeCache[openBeleg]}
+            loading={belegeLoading}
+          />
+        )}
       </div>
 
       <div className="thresholds">

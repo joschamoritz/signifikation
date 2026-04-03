@@ -1,7 +1,5 @@
-// DEAKTIVIERT: Korpusbelege dürfen laut DWDS-Nutzungsbedingungen nicht extern veröffentlicht werden.
-// Reaktivieren sobald schriftliche Genehmigung der BBAW vorliegt.
-// In Results.jsx: useBelege-Import + useBelege()-Aufruf + BelegePanel einkommentieren,
-//                 onClick der wortprofil-item buttons auf loadBelege umstellen.
+// Belege aus eigener belege.db (CC BY-SA, kein DWDS).
+// Aktiviert sobald belege.db auf Railway Volume hochgeladen ist (BELEGE_DB=/data/belege.db).
 
 import { useState } from 'react'
 import { API } from '../config'
