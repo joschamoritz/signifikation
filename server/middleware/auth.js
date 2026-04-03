@@ -4,6 +4,24 @@ import logger from '../logger.js'
 const IS_PROD   = process.env.NODE_ENV === 'production'
 const ADMIN_KEY = (process.env.ADMIN_KEY || (IS_PROD ? null : 'dev-only'))?.trim()
 
+// Hilfsfunktion: Sensitive Felder aus Log-Objekten entfernen
+function sanitize(obj) {
+  if (!obj || typeof obj !== 'object') return obj
+  const copy = structuredClone(obj)
+  const sensitiveFields = ['key', 'token', 'password', 'ADMIN_KEY', 'x-admin-token', 'Authorization']
+  const walk = (o) => {
+    for (const k of Object.keys(o || {})) {
+      if (sensitiveFields.includes(k) || k.toLowerCase().includes('secret')) {
+        o[k] = '[REDACTED]'
+      } else if (typeof o[k] === 'object') {
+        walk(o[k])
+      }
+    }
+  }
+  walk(copy)
+  return copy
+}
+
 // ── Session-Token-Store (in-memory, TTL 8h) ──────────────────
 const SESSION_TTL_MS = 8 * 60 * 60 * 1000
 const sessions = new Map()   // token → expiresAt
@@ -83,7 +101,11 @@ export function serverError(res, err) {
 
 /** Admin-seitige Fehlerausgabe: zeigt immer den echten Fehler (hinter Auth) */
 export function adminError(res, err) {
-  logger.error({ err }, 'Admin-Fehler')
+  // Sanitize err object to avoid logging sensitive data
+  const safeErr = err instanceof Error
+    ? { message: err.message, stack: err.stack }
+    : err
+  logger.error({ err: sanitize(safeErr) }, 'Admin-Fehler')
   res.status(500).json({ error: err.message || String(err) })
 }
 
