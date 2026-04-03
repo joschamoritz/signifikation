@@ -77,6 +77,27 @@ router.get('/admin/feedback', adminLimiter, requireAuth, (req, res) => {
 })
 
 
+/** GET /admin/wiktionary-def?q=Wort – Definition aus Wiktionary abrufen */
+router.get('/admin/wiktionary-def', adminLimiter, requireAuth, validate(qQuerySchema, 'query'), async (req, res) => {
+  const { q } = req.query
+  try {
+    const url = `https://de.wiktionary.org/api/rest_v1/page/definition/${encodeURIComponent(q)}`
+    const r = await fetch(url, {
+      signal: AbortSignal.timeout(5000),
+      headers: { 'User-Agent': 'Signifikation/1.0 (signifikation.de; Bildungsprojekt)' },
+    })
+    if (!r.ok) return res.json({ definition: null })
+    const data = await r.json()
+    const defs = data.de?.[0]?.definitions ?? []
+    if (!defs.length) return res.json({ definition: null })
+    // HTML-Tags entfernen, numerierte Definitionen zusammenfügen
+    const clean = defs
+      .map(d => d.definition.replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim())
+      .join(' ')
+    res.json({ definition: clean })
+  } catch (err) { adminError(res, err) }
+})
+
 /** GET /admin/analyze-kollokation?q=Wort&pos=Substantiv – Kollokationswort analysieren */
 router.get('/admin/analyze-kollokation', adminLimiter, requireAuth, validate(analyzeKollQuerySchema, 'query'), async (req, res) => {
   const { q: lemma, pos } = req.query

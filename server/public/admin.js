@@ -84,6 +84,38 @@ function initDashboard() {
   renderCalendar()
   loadStats()
   loadHealth()
+  initWiktionaryAutofill()
+}
+
+// ── Wiktionary-Autofill für Definitions-Felder ────────────────────────────────
+function initWiktionaryAutofill() {
+  const pairs = [['w1','d1'], ['w2','d2'], ['w3','d3']]
+  const timers = {}
+  pairs.forEach(([wId, dId]) => {
+    const wInput = document.getElementById(wId)
+    const dInput = document.getElementById(dId)
+    if (!wInput || !dInput) return
+    wInput.addEventListener('input', () => {
+      clearTimeout(timers[wId])
+      const word = wInput.value.trim()
+      if (!word) return
+      timers[wId] = setTimeout(async () => {
+        // Nur autofüllen wenn das Feld noch leer ist
+        if (dInput.value.trim()) return
+        try {
+          const r = await fetch(`/admin/wiktionary-def?q=${encodeURIComponent(word)}`, {
+            headers: { 'x-admin-token': TOKEN },
+          })
+          const { definition } = await r.json()
+          if (definition && !dInput.value.trim()) {
+            dInput.value = definition
+            dInput.style.borderColor = '#c9a84c'
+            setTimeout(() => dInput.style.borderColor = '', 2000)
+          }
+        } catch {}
+      }, 800)
+    })
+  })
 }
 
 // ── System-Status ─────────────────────────────────────────────────────────────
@@ -231,10 +263,10 @@ function changeMonth(delta) {
 
 function prefillDate(isoDate) {
   document.getElementById('datum').value = isoDate
-  ;['w1','w2','w3','n1','n2','n3','l1','l2','l3','zr'].forEach(id => document.getElementById(id).value = '')
+  ;['w1','w2','w3','n1','n2','n3','l1','l2','l3','d1','d2','d3','zr'].forEach(id => document.getElementById(id).value = '')
   document.getElementById('p1').value    = 'Substantiv'
-  document.getElementById('p2').value    = 'Substantiv'
-  document.getElementById('p3').value    = 'Substantiv'
+  document.getElementById('p2').value    = 'Verb'
+  document.getElementById('p3').value    = 'Adjektiv'
   document.getElementById('wza').value   = ''
   document.getElementById('wzb').value   = ''
   document.getElementById('wzpos').value = 'Substantiv'
