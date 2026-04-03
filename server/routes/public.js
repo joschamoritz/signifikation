@@ -162,7 +162,10 @@ router.post('/api/v1/stats', statsLimiter, validate(statsSchema), async (req, re
       save('stats.json', stats)
     })
     res.json({ ok: true })
-  } catch (err) { serverError(res, err) }
+  } catch (err) {
+    logger.error({ err, game, datum }, 'Stats-Speicherung fehlgeschlagen')
+    serverError(res, err)
+  }
 })
 
 /** POST /api/feedback – Nutzerfeedback speichern */

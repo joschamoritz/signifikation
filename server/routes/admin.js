@@ -6,13 +6,7 @@ import { fetchLemma, fetchBonusQuestion, fetchRelation, fetchZeitreise, fetchZei
 import { fetchWortZwilling } from '../wortzwilling.js'
 import { load, loadReadOnly, save, loadZeitreise, loadWortZwilling, loadStats, getLemmataIndex, DATA } from '../store.js'
 import { adminLimiter, uploadLimiter } from '../middleware/rateLimiter.js'
-import { requireAuth, adminAuth, adminLogout, serverError } from '../middleware/auth.js'
-
-/** Admin-seitige Fehlerausgabe: zeigt immer den echten Fehler (hinter Auth) */
-function adminError(res, err) {
-  logger.error({ err }, 'Admin-Fehler')
-  res.status(500).json({ error: err.message || String(err) })
-}
+import { requireAuth, adminAuth, adminLogout, adminError, serverError } from '../middleware/auth.js'
 import { validate, adminTagSchema, analyzeKollQuerySchema, analyzeWZQuerySchema, analyzeZeitQuerySchema } from '../middleware/validate.js'
 import logger from '../logger.js'
 

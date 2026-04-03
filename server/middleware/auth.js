@@ -81,4 +81,10 @@ export function serverError(res, err) {
   res.status(500).json({ error: IS_PROD ? 'Interner Serverfehler' : err.message })
 }
 
+/** Admin-seitige Fehlerausgabe: zeigt immer den echten Fehler (hinter Auth) */
+export function adminError(res, err) {
+  logger.error({ err }, 'Admin-Fehler')
+  res.status(500).json({ error: err.message || String(err) })
+}
+
 export { ADMIN_KEY, IS_PROD }
