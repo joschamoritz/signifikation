@@ -64,12 +64,12 @@
     letter-spacing="2"
   >signifikation.de</text>
 
-  <!-- Unten: DWDS-Hinweis -->
+  <!-- Unten: Korpus-Hinweis -->
   <text
     x="100" y="524"
     font-family="'DM Sans', 'Arial', sans-serif"
     font-size="17"
     fill="#c4bfbc"
     letter-spacing="1"
-  >Basierend auf DWDS-Daten der Berlin-Brandenburgischen Akademie der Wissenschaften</text>
+  >Basierend auf offen lizenzierten deutschen Korpora (CC BY, CC BY-SA, Gemeinfrei)</text>
 </svg>
