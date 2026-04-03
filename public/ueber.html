@@ -32,7 +32,7 @@
         "name": "Woher stammen die Daten bei Signifikation?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "Die Kollokationsdaten werden mit einer eigenen Verarbeitungspipeline aus offen lizenzierten deutschen Korpora gewonnen. Das Sprachmodell spaCy de_core_news_lg analysiert die syntaktische Struktur der Texte; aus den gefundenen Abhängigkeitspaaren wird der logDice-Wert berechnet. Alle Korpora stehen unter offenen Lizenzen (CC BY, CC BY-SA, Gemeinfrei u.&thinsp;a.)."
+          "text": "Die Kollokationsdaten werden mit einer eigenen Verarbeitungspipeline aus offen lizenzierten deutschen Korpora gewonnen. Das Sprachmodell spaCy de_zdl_lg (ZDL/BBAW, Universal Dependencies) analysiert die syntaktische Struktur der Texte; aus den gefundenen Abhängigkeitspaaren wird der logDice-Wert berechnet. Alle Korpora stehen unter offenen Lizenzen (CC BY, CC BY-SA, Gemeinfrei u.&thinsp;a.)."
         }
       },
       {
@@ -154,14 +154,15 @@
     <li>
       <strong>Relationen-Mapping.</strong> Das Sprachmodell
       <a href="https://spacy.io" target="_blank" rel="noopener">spaCy</a>
-      <code>de_core_news_lg</code> verwendet das
-      <em>TIGER-Treebank</em>-Tagset. Dessen Abhängigkeitslabels werden auf
+      <code>de_zdl_lg</code> (ZDL/BBAW, trainiert auf dem HDT-Treebank mit
+      DWDSmor-Lemmatisierung) verwendet das
+      <em>Universal-Dependencies</em>-Tagset. Dessen Abhängigkeitslabels werden auf
       linguistisch interpretierbare Relationstypen abgebildet:
-      <code>sb</code>&thinsp;→&thinsp;Subjekt,
-      <code>oa</code>&thinsp;→&thinsp;Objekt,
-      <code>nk</code>&thinsp;→&thinsp;Adjektivattribut,
-      <code>mo</code>&thinsp;→&thinsp;Adverbial oder Präpositionalgruppe,
-      <code>cj</code>&thinsp;→&thinsp;Koordination u.&thinsp;a.
+      <code>nsubj</code>&thinsp;→&thinsp;Subjekt,
+      <code>obj</code>&thinsp;→&thinsp;Objekt,
+      <code>amod</code>&thinsp;→&thinsp;Adjektivattribut,
+      <code>obl</code>&thinsp;→&thinsp;Präpositionalgruppe,
+      <code>conj</code>&thinsp;→&thinsp;Koordination u.&thinsp;a.
     </li>
     <li>
       <strong>Dependenzanalyse und Tripel-Extraktion.</strong> Die Texte werden
@@ -191,7 +192,8 @@
     Zusätzlich zur Kollokationsdatenbank entsteht aus denselben Korpora ein
     <strong>Volltextindex</strong> (SQLite FTS5) für die Belegsuche: Beim Anklicken
     einer Kollokation werden Originalsätze mit beiden Wörtern gesucht und mit
-    vollständiger Quellenangabe und Lizenzhinweis angezeigt. Für die
+    vollständiger Quellenangabe und Lizenzhinweis angezeigt. Der Index umfasst
+    über 50&thinsp;Millionen Sätze aus neun Korpora. Für die
     <strong>Zeitreise</strong>-Runde werden die Tripel nach Entstehungsjahrzehnt
     gruppiert, sodass Verschiebungen im Kollokationsverhalten über Jahrhunderte
     sichtbar werden. Die <strong>Wort-Zwilling</strong>-Runde vergleicht die
