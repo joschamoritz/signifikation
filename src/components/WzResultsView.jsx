@@ -93,12 +93,12 @@ export default function WzResultsView({ data, zoneA, zoneB, onBack }) {
         />
       )}
 
-      <p className="wz-beleg-hint">Tippe auf ein Kollokat, um Belege aus dem DWDS-Korpus zu sehen.</p>
+      <p className="wz-beleg-hint">Tippe auf ein Kollokat, um Beispielsätze aus dem Korpus zu sehen.</p>
 
       <button className="btn-primary btn-full" onClick={onBack}>
         Zurück zur Übersicht
       </button>
-      <p className="dwds-quelle">Kollokationsdaten: DWDS-Wortprofil, Digitales Wörterbuch der deutschen Sprache (BBAW).</p>
+      <p className="quelle">Kollokationsdaten: Eigenes Wortprofil, berechnet aus freien deutschsprachigen Korpora (CC BY-SA).</p>
     </div>
   )
 }

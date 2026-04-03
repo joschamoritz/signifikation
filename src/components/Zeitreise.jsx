@@ -405,12 +405,11 @@ export default function Zeitreise({ data, onBack, onFinish, savedResult }) {
           <ZrBubbleChart paare={paare} perioden={data.perioden} placements={placements} lemma={data.lemma} />
 
           <p className="zr-results-info">
-            Daten aus den DWDS-Korpora
-            ({Math.min(...paare.map(p => Number(p.jahrzehnt)))}–{Math.max(...paare.map(p => Number(p.jahrzehnt)))})
+            Kollokatoren ({Math.min(...paare.map(p => Number(p.jahrzehnt)))}–{Math.max(...paare.map(p => Number(p.jahrzehnt)))})
             · Auswahl nach temporaler Distinktivität
           </p>
           <a
-            className="dwds-link"
+            className="extern-link"
             href={`https://www.dwds.de/wb/${encodeURIComponent(data.lemma)}`}
             target="_blank" rel="noopener noreferrer"
           >Mehr über „{data.lemma}" auf dwds.de ↗</a>
@@ -431,7 +430,7 @@ export default function Zeitreise({ data, onBack, onFinish, savedResult }) {
           <button className="btn-primary btn-full" onClick={onBack}>
             Zur Startseite
           </button>
-          <p className="dwds-quelle">Kollokationsdaten: DiaCollo / DWDS-Korpora, Digitales Wörterbuch der deutschen Sprache (BBAW).</p>
+          <p className="quelle">Kollokationsdaten: Eigenes Wortprofil, berechnet aus freien deutschsprachigen Korpora (CC BY-SA).</p>
         </div>
       )}
     </div>

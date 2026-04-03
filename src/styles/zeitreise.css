@@ -383,24 +383,24 @@
 }
 .zr-beleg-btn:hover { color: var(--primary); }
 
-/* DWDS-Link (geteilt von Zeitreise + Kollokationen) */
-.dwds-link {
+/* Externer Link (geteilt von Zeitreise + Kollokationen) */
+.extern-link {
   display: block; font-size: 0.78rem; color: var(--primary);
   text-decoration: none; text-align: center; margin: 4px 0 8px;
 }
-.dwds-link:hover { text-decoration: underline; }
+.extern-link:hover { text-decoration: underline; }
 
-.dwds-quelle {
+.quelle {
   font-size: 0.72rem;
   color: var(--muted);
   text-align: center;
   line-height: 1.5;
   margin-top: 4px;
 }
-.dwds-quelle a { color: var(--muted); text-decoration: underline; }
+.quelle a { color: var(--muted); text-decoration: underline; }
 
-/* Kollokationen Results: Titel + DWDS-Link nebeneinander */
+/* Kollokationen Results: Titel + Link nebeneinander */
 .wortprofil-title-row {
   display: flex; align-items: baseline; justify-content: space-between; gap: 8px;
 }
-.wortprofil-title-row .dwds-link { display: inline; text-align: right; margin: 0; font-size: 0.75rem; }
+.wortprofil-title-row .extern-link { display: inline; text-align: right; margin: 0; font-size: 0.75rem; }

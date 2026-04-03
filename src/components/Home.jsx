@@ -309,15 +309,13 @@ export default function Home({
             <p>
               Der <strong>logDice-Wert</strong><sup>2</sup> misst die statistische Signifikanz
               von Kookkurrenzen im Korpus — je höher der Wert, desto charakteristischer die
-              Verbindung. Die Daten stammen aus dem <strong>DWDS-Wortprofil</strong><sup>3</sup>{' '}
-              und dem <strong>DiaCollo</strong>-System<sup>4</sup>, basierend auf mehreren
-              Milliarden Textwörtern aus Tageszeitungen, Literatur und historischen Korpora.
+              Verbindung. Die Daten stammen aus einem eigenen Wortprofil<sup>3</sup>,
+              berechnet aus mehreren Milliarden Textwörtern freier deutschsprachiger Korpora.
             </p>
             <ol className="test-footnote-footnotes">
               <li>Hausmann, F.&thinsp;J. (2003): Was sind eigentlich Kollokationen? In: Steyer, K. (Hrsg.): <em>Wortverbindungen — mehr oder weniger fest</em>. de Gruyter, S.&thinsp;309–334.</li>
               <li>Rychlý, P. (2008): A Lexicographer-Friendly Association Score. In: <em>Proceedings of RASLAN 2008</em>, S.&thinsp;6–9.</li>
-              <li>DWDS-Wortprofil, erstellt durch das Digitale Wörterbuch der deutschen Sprache, Berlin-Brandenburgische Akademie der Wissenschaften (BBAW).</li>
-              <li>Jurish, B. et&thinsp;al. (2014): DiaCollo: On the Trail of Diachronic Collocations. In: <em>Proceedings of DH 2014</em>.</li>
+              <li>Eigenes Wortprofil, berechnet auf Basis freier deutschsprachiger Korpora (CC BY-SA), syntaktisch annotiert mit dem ZDL-Dependenzparser (BBAW).</li>
             </ol>
           </div>
         </section>

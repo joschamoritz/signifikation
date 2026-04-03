@@ -89,7 +89,7 @@ export default function Results({ lemma, roundScores, onRestart, onToSelection }
           <div className="wortprofil-title-row">
             <p className="wortprofil-title">Wortprofil · {lemma.lemma}</p>
             <a
-              className="dwds-link"
+              className="extern-link"
               href={`https://www.dwds.de/wb/${encodeURIComponent(lemma.lemma)}`}
               target="_blank" rel="noopener noreferrer"
               aria-label={`Mehr über „${lemma.lemma}" auf dwds.de erfahren (öffnet externen Link)`}
@@ -101,17 +101,17 @@ export default function Results({ lemma, roundScores, onRestart, onToSelection }
           </button>
           {logDiceOpen && (
             <div className="logdice-explanation">
-              <p>Der <strong>logDice-Wert</strong> misst, wie stark zwei Wörter miteinander assoziiert sind. Je höher der Wert, desto typischer ist die Wortverbindung im DWDS-Korpus. Der Maximalwert beträgt 14.</p>
+              <p>Der <strong>logDice-Wert</strong> misst, wie stark zwei Wörter miteinander assoziiert sind. Je höher der Wert, desto typischer ist die Wortverbindung im Korpus. Der Maximalwert beträgt 14.</p>
               <p>Grundlage: Pavel Rychlý, <em>A Lexicographer-Friendly Association Score</em> (2008).</p>
             </div>
           )}
           <button className="logdice-toggle" onClick={() => setBelegeInfoOpen(o => !o)} aria-expanded={belegeInfoOpen}>
-            Belege auf DWDS ansehen
+            Korpusbelege ansehen
             <span className={`toggle-arrow ${belegeInfoOpen ? 'toggle-arrow--open' : ''}`} aria-hidden="true">›</span>
           </button>
           {belegeInfoOpen && (
             <div className="logdice-explanation">
-              <p>Klicke auf ein <strong>Kollokat</strong>, um Korpusbelege direkt auf <strong>dwds.de</strong> zu suchen. Die Suche zeigt Textstellen, in denen beide Wörter gemeinsam vorkommen.</p>
+              <p>Klicke auf ein <strong>Kollokat</strong>, um Beispielsätze aus dem Korpus zu sehen, in denen beide Wörter gemeinsam vorkommen.</p>
             </div>
           )}
         </div>
@@ -134,7 +134,7 @@ export default function Results({ lemma, roundScores, onRestart, onToSelection }
                       `https://www.dwds.de/r/?q=%22${encodeURIComponent(lemma.lemma)}%22+%26%26+%22${encodeURIComponent(k.wort)}%22`,
                       '_blank', 'noopener,noreferrer'
                     )}
-                    aria-label={`${k.wort} – Belege auf DWDS ansehen (öffnet neues Fenster)`}
+                    aria-label={`${k.wort} – Korpusbelege ansehen (öffnet neues Fenster)`}
                   >
                     {k.wort}
                     <span className="logdice" aria-hidden="true">{k.log_dice}</span>
@@ -163,7 +163,7 @@ export default function Results({ lemma, roundScores, onRestart, onToSelection }
         </button>
       </div>
 
-      <p className="dwds-quelle">Kollokationsdaten: DWDS-Wortprofil, Digitales Wörterbuch der deutschen Sprache (BBAW).</p>
+      <p className="quelle">Kollokationsdaten: Eigenes Wortprofil, berechnet aus freien deutschsprachigen Korpora (CC BY-SA).</p>
 
       {kollHistory.length > 0 && (
         <div className="history-strip">

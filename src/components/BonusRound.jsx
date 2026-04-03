@@ -7,12 +7,12 @@ const FREE_BONUS_TEXTS = [
   {
     quote: 'You shall know a word by the company it keeps.',
     author: 'J. R. Firth (1957)',
-    text: 'Das DWDS-Wortprofil hat für diese Relation leider keine ausreichenden Belege geliefert. Da das Schweigen des Korpus kein Urteil über das Wort ist, bekommst du den Bonuspunkt.',
+    text: 'Das Wortprofil hat für diese Relation leider keine ausreichenden Daten geliefert. Da das Schweigen des Korpus kein Urteil über das Wort ist, bekommst du den Bonuspunkt.',
   },
   {
     quote: 'La langue est un système où tout se tient.',
     author: 'Ferdinand de Saussure',
-    text: 'Manchmal hält sich ein Wort so gut im System, dass keine Relation es statistisch fassen kann. Das DWDS schweigt – der Bonuspunkt spricht.',
+    text: 'Manchmal hält sich ein Wort so gut im System, dass keine Relation es statistisch fassen kann. Das Korpus schweigt – der Bonuspunkt spricht.',
   },
   {
     quote: null,
