@@ -48,8 +48,10 @@ export function adminAuth(req, res) {
     return res.status(401).json({ error: 'Falscher Admin-Key' })
   }
   // Constant-Time-Vergleich gegen Timing-Attacks
+  // Trimme beide Keys um Whitespace-Probleme zu vermeiden
+  const receivedKey = String(key).trim()
   try {
-    if (!timingSafeEqual(Buffer.from(key), Buffer.from(ADMIN_KEY))) {
+    if (!timingSafeEqual(Buffer.from(receivedKey), Buffer.from(ADMIN_KEY))) {
       logger.warn({ ip: req.ip }, 'Admin-Login fehlgeschlagen (falscher Key)')
       return res.status(401).json({ error: 'Falscher Admin-Key' })
     }
