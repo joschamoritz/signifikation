@@ -230,17 +230,35 @@ BELEGE_DB=/app/server/data/belege.db
 
 ---
 
-## 10. Offene Aufgaben (Stand 03.04.2026)
+## 10. Öffentliche Seiten – DWDS-Bereinigung (03.04.2026)
 
-- [x] Parser (`de_zdl_lg`) abgeschlossen → triples.db 8,5 GB, 77 Mio. Triples
-- [x] `build_wortprofil.py --reset` ausgeführt → wortprofil.db 1,9 GB
-- [x] `build_zeitreise.py --reset` ausgeführt (logDice-Scores) → 3,46 Mio. Einträge, 25 Dekaden
-- [x] `build_belege.py --reset` ausgeführt → belege.db 16 GB, 50,7 Mio. Sätze
-- [x] Neue `wortprofil.db` auf signifikation.de hochgeladen (948 × 2 MB Chunks)
-- [x] DiaCollo komplett entfernt (diacollo.js gelöscht, alle Endpoints/Karten)
-- [x] Admin-Panel: Zeitreise-Wortanalyse mit Bubble-Chart + Timeline-Rows
-- [x] `ueber.html`: Modell-Referenz auf `de_zdl_lg` / Universal Dependencies aktualisiert
-- [ ] `belege.db` (16 GB) auf Railway hochladen — Volume muss vergrößert oder externer Speicher genutzt werden
+Alle verbleibenden DWDS-Erwähnungen aus der App entfernt:
+
+| Datei | Änderung |
+|---|---|
+| `src/components/Home.jsx` | „DWDS-Korpusdaten" → „eigene Korpusdaten" |
+| `public/datenschutz.html` | DWDS-API-Absatz → Hinweis auf eigene lokale DB |
+| `public/impressum.html` | DWDS-Quellenangabe → offene Korpora + ueber.html-Link |
+| `public/nutzungsbedingungen.html` | „DWDS-Wortprofil (BBAW)" → eigene Extraktionspipeline |
+| `public/og-image.svg` | „DWDS-Daten der BBAW" → „offen lizenzierte Korpora (CC BY, …)" |
+| `public/ueber.html` | `de_core_news_lg`/TIGER → `de_zdl_lg`/Universal Dependencies; „50 Mio. Sätze" ergänzt |
+
+## 11. Technische Fixes (03.04.2026)
+
+- **Upload-Backup-Cleanup**: `POST /admin/upload-wortprofil` löscht `wortprofil.db.bak` nach erfolgreichem Upload automatisch → Railway Volume läuft nicht mehr voll
+- **Upload-Script**: `upload_wortprofil.py` mit `--start-from`-Flag für Resume bei Verbindungsabbruch; Retry auf 502/503/504
+
+## 12. Offene Aufgaben (Stand 03.04.2026)
+
+- [x] Parser (`de_zdl_lg`) → triples.db 8,5 GB, 77 Mio. Triples
+- [x] `build_wortprofil.py --reset` → wortprofil.db 1,9 GB
+- [x] `build_zeitreise.py --reset` (logDice) → 3,46 Mio. Einträge, 25 Dekaden
+- [x] `build_belege.py --reset` → belege.db 16 GB, 50,7 Mio. Sätze
+- [x] `wortprofil.db` auf signifikation.de hochgeladen (948 × 2 MB Chunks)
+- [x] DiaCollo entfernt (diacollo.js, alle Endpoints/Karten)
+- [x] Admin-Panel: Zeitreise-Wortanalyse (Bubble-Chart + Timeline-Rows)
+- [x] Alle DWDS-Erwähnungen aus öffentlichen Seiten entfernt
+- [ ] `belege.db` (16 GB) auf Railway hochladen — Railway Volume zu klein (4,4 GB), braucht größeres Volume oder externen Speicher
 
 ---
 
