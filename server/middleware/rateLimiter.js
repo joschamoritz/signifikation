@@ -15,7 +15,7 @@ class CleanupStore {
     const now = Date.now()
     let cleaned = 0
     for (const [key, data] of this.hits.entries()) {
-      if (now - data.resetTime > this.windowMs * 2) {
+      if (now - data.resetTime.getTime() > this.windowMs * 2) {
         this.hits.delete(key)
         cleaned++
       }
@@ -28,10 +28,10 @@ class CleanupStore {
   increment(key) {
     const now = Date.now()
     const data = this.hits.get(key)
-    if (!data || now - data.resetTime > this.windowMs) {
+    if (!data || now - data.resetTime.getTime() > this.windowMs) {
       // Neues Fenster oder erster Zugriff
-      this.hits.set(key, { totalHits: 1, resetTime: now })
-      return { totalHits: 1, resetTime: now }
+      this.hits.set(key, { totalHits: 1, resetTime: new Date() })
+      return { totalHits: 1, resetTime: new Date() }
     }
     data.totalHits++
     return data
