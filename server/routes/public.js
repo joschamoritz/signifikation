@@ -149,7 +149,7 @@ router.get('/api/v1/stats', (_req, res) => res.status(405).json({ error: 'Method
 router.post('/api/v1/stats', statsLimiter, validate(statsSchema), async (req, res) => {
   const { game, datum, score, max } = req.body
   try {
-    await withStatsLock(() => {
+    await withStatsLock(async () => {
       const stats = loadStats()
       if (!stats[datum]) stats[datum] = {}
       if (!stats[datum][game]) stats[datum][game] = { plays: 0, scoreSum: 0, maxSum: 0, dist: Array(11).fill(0) }
@@ -169,7 +169,7 @@ router.post('/api/v1/stats', statsLimiter, validate(statsSchema), async (req, re
 })
 
 /** POST /api/feedback – Nutzerfeedback speichern */
-router.post('/api/v1/feedback', feedbackLimiter, validate(feedbackSchema), (req, res) => {
+router.post('/api/v1/feedback', feedbackLimiter, validate(feedbackSchema), async (req, res) => {
   const { game, emoji, text } = req.body
   const entry = { game, emoji, text, ts: new Date().toISOString() }
   try {
