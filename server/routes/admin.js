@@ -4,7 +4,7 @@ import { dirname, join }  from 'path'
 import { createWriteStream, existsSync, renameSync, unlinkSync } from 'fs'
 import { fetchLemma, fetchBonusQuestion, fetchRelation, fetchZeitreise, fetchZeitreiseAnalyze, POS_ROUNDS } from '../wortprofil.js'
 import { fetchWortZwilling } from '../wortzwilling.js'
-import { load, loadReadOnly, save, loadZeitreise, loadWortZwilling, loadStats, getLemmataIndex, DATA } from '../store.js'
+import { load, loadReadOnly, save, loadZeitreise, loadWortZwilling, loadStats, getLemmataIndex, getCacheMetrics, DATA } from '../store.js'
 import { adminLimiter, uploadLimiter } from '../middleware/rateLimiter.js'
 import { requireAuth, adminAuth, adminLogout, adminError, serverError } from '../middleware/auth.js'
 import { validate, adminTagSchema, analyzeKollQuerySchema, analyzeWZQuerySchema, analyzeZeitQuerySchema } from '../middleware/validate.js'
@@ -28,6 +28,14 @@ router.get('/admin/stats', adminLimiter, requireAuth, (req, res) => {
     const result = sorted.slice(-days).map(datum => ({ datum, ...stats[datum] }))
     res.json(result)
   } catch (err) { serverError(res, err) }
+})
+
+/** GET /admin/cache-metrics – Cache-Performance-Metriken */
+router.get('/admin/cache-metrics', adminLimiter, requireAuth, (req, res) => {
+  try {
+    const metrics = getCacheMetrics()
+    res.json({ ...metrics, timestamp: new Date().toISOString() })
+  } catch (err) { adminError(res, err) }
 })
 
 /** GET /admin/feedback – Feedbackliste */
