@@ -62,6 +62,18 @@
 .quiz-options-hint { font-size: 0.75rem; color: var(--muted); opacity: 0.7; margin-top: 4px }
 .option--grayed    { opacity: 0.28; pointer-events: none; text-decoration: line-through }
 
+@keyframes shake {
+  0%, 100% { transform: translateX(0) }
+  20%       { transform: translateX(-6px) }
+  40%       { transform: translateX(5px) }
+  60%       { transform: translateX(-4px) }
+  80%       { transform: translateX(3px) }
+}
+@keyframes correctPulse {
+  0%, 100% { transform: scale(1) }
+  45%      { transform: scale(1.018) }
+}
+
 /* Option list – single column */
 .options-grid {
   display: flex;
@@ -91,7 +103,10 @@
   word-break: break-word;
   animation: optionIn 0.18s ease both;
 }
-.options-grid .option:first-child { border-top-color: transparent }
+.options-grid .option:first-child  { border-top-color: transparent }
+.options-grid .option:nth-child(2) { animation-delay: 30ms }
+.options-grid .option:nth-child(3) { animation-delay: 60ms }
+.options-grid .option:nth-child(4) { animation-delay: 90ms }
 .option:hover:not(:disabled) {
   border-left-color: var(--primary);
   background: color-mix(in srgb, var(--primary) 4%, transparent);
@@ -108,6 +123,7 @@
   background: var(--success-bg);
   color: var(--success);
   font-weight: 600;
+  animation: correctPulse 0.2s ease both;
 }
 .option.partial {
   border-left-color: var(--warn);
@@ -118,6 +134,7 @@
   border-left-color: var(--error);
   background: var(--error-bg);
   color: var(--error);
+  animation: shake 0.24s ease both;
 }
 .option.missed {
   border-left-color: #d97706;

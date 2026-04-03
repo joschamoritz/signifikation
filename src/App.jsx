@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect, Suspense, lazy, useRef } from 'react'
+import { flushSync } from 'react-dom'
 import { API } from './config'
 import { lsGet, lsSet, lsParse } from './utils/storage'
 import Home from './components/Home'
@@ -22,6 +23,13 @@ function shouldShowFeedback(game) {
 
 function markFeedbackShown(game) {
   lsSet(`sig_fb_${game}`, Date.now().toString())
+}
+
+function startVT(callback) {
+  if (typeof document === 'undefined' || !document.startViewTransition) {
+    callback(); return
+  }
+  document.startViewTransition(() => flushSync(callback))
 }
 
 const Zeitreise    = lazy(() => import('./components/Zeitreise'))
@@ -178,11 +186,13 @@ export default function App() {
   }, [phase, selectedLemma, roundScores, lemmata]) // eslint-disable-line
 
   const handleLemmaSelect = useCallback((lemma) => {
-    setSelected(lemma)
-    setRound(0)
-    setScores([])
-    setBonusQ(null)
-    setPhase('quiz')
+    startVT(() => {
+      setSelected(lemma)
+      setRound(0)
+      setScores([])
+      setBonusQ(null)
+      setPhase('quiz')
+    })
   }, [])
 
   // Bonus-Fetch sauber in useEffect statt im State-Updater
@@ -203,11 +213,19 @@ export default function App() {
     setScores(prev => {
       const next = [...prev, score]
       if (next.length === 3) setFetchBonus(true)
-      else if (next.length === 4) { freshKollRef.current = true; setPhase('results'); triggerFeedback('kollokationen') }
-      else setRound(r => r + 1)
+      else if (next.length < 4) setRound(r => r + 1)
       return next
     })
   }, [])
+
+  // Übergang zu Results nach Bonusrunde (außerhalb des setState-Updaters)
+  useEffect(() => {
+    if (roundScores.length === 4 && phase === 'quiz') {
+      freshKollRef.current = true
+      startVT(() => setPhase('results'))
+      triggerFeedback('kollokationen')
+    }
+  }, [roundScores.length]) // eslint-disable-line
 
   const handleViewResult = useCallback((lemmaId) => {
     const played = getPlayedToday(keys.todayKey).find(p => p.id === lemmaId)
@@ -220,11 +238,13 @@ export default function App() {
   }, [keys.todayKey, lemmata])
 
   const handleRestart = useCallback(() => {
-    setSelected(null)
-    setRound(0)
-    setScores([])
-    setBonusQ(null)
-    setPhase('home')
+    startVT(() => {
+      setSelected(null)
+      setRound(0)
+      setScores([])
+      setBonusQ(null)
+      setPhase('home')
+    })
   }, [])
 
   const handleWZFinish = useCallback(({ score, zoneA, zoneB }) => {
@@ -279,7 +299,7 @@ export default function App() {
     <div id="main-content" className={`app${phase === 'home' ? ' app--home' : ''}`} ref={appRef} tabIndex={-1} style={{ outline: 'none' }}>
       {phase === 'home' && (
         <Home
-          onStart={() => setPhase(lemmata && !apiError ? 'selection' : 'home')}
+          onStart={() => startVT(() => setPhase(lemmata && !apiError ? 'selection' : 'home'))}
           loading={!lemmata && !apiError}
           error={apiError}
           lemmata={lemmata || []}
@@ -287,12 +307,12 @@ export default function App() {
           allPlayed={!!allPlayed}
           zeitreise={zeitreise}
           zrPlayed={zrPlayed}
-          onPlayZeitreise={() => { setZrViewOnly(false); setPhase('zeitreise') }}
-          onViewZeitreise={() => { setZrViewOnly(true); setPhase('zeitreise') }}
+          onPlayZeitreise={() => startVT(() => { setZrViewOnly(false); setPhase('zeitreise') })}
+          onViewZeitreise={() => startVT(() => { setZrViewOnly(true); setPhase('zeitreise') })}
           wortzwilling={wortzwilling}
           wzPlayed={wzPlayed}
-          onPlayWortzwilling={() => { setWzViewOnly(false); setPhase('wortzwilling') }}
-          onViewWortzwilling={() => { setWzViewOnly(true);  setPhase('wortzwilling') }}
+          onPlayWortzwilling={() => startVT(() => { setWzViewOnly(false); setPhase('wortzwilling') })}
+          onViewWortzwilling={() => startVT(() => { setWzViewOnly(true);  setPhase('wortzwilling') })}
         />
       )}
       {phase === 'selection' && lemmata && (
@@ -301,7 +321,7 @@ export default function App() {
           playedIds={playedIds}
           onSelect={handleLemmaSelect}
           onViewResult={handleViewResult}
-          onBack={() => setPhase('home')}
+          onBack={() => startVT(() => setPhase('home'))}
         />
       )}
       {phase === 'quiz' && selectedLemma && !isBonus && (
@@ -322,14 +342,14 @@ export default function App() {
           lemma={selectedLemma}
           roundScores={roundScores}
           onRestart={handleRestart}
-          onToSelection={() => setPhase('selection')}
+          onToSelection={() => startVT(() => setPhase('selection'))}
         />
       )}
       {phase === 'zeitreise' && zeitreise && (
         <Suspense fallback={<div className="screen" style={{ justifyContent: 'center', alignItems: 'center' }}><p style={{ color: 'var(--muted)' }}>Lade …</p></div>}>
           <Zeitreise
             data={zeitreise}
-            onBack={() => setPhase('home')}
+            onBack={() => startVT(() => setPhase('home'))}
             onFinish={handleZeitreiseFinish}
             savedResult={zrViewOnly ? zrPlayed : null}
           />
@@ -339,7 +359,7 @@ export default function App() {
         <Suspense fallback={<div className="screen" style={{ justifyContent: 'center', alignItems: 'center' }}><p style={{ color: 'var(--muted)' }}>Lade …</p></div>}>
           <WortZwilling
             data={wortzwilling}
-            onBack={() => setPhase('home')}
+            onBack={() => startVT(() => setPhase('home'))}
             onFinish={handleWZFinish}
             savedResult={wzViewOnly ? wzPlayed : null}
           />
