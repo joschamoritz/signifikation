@@ -89,9 +89,9 @@ export default function Results({ lemma, roundScores, onRestart, onToSelection }
             <p className="wortprofil-title">Wortprofil · {lemma.lemma}</p>
             <a
               className="extern-link"
-              href={`https://www.dwds.de/wb/${encodeURIComponent(lemma.lemma)}`}
+              href={`https://de.wiktionary.org/wiki/${encodeURIComponent(lemma.lemma)}`}
               target="_blank" rel="noopener noreferrer"
-              aria-label={`Mehr über „${lemma.lemma}" auf dwds.de erfahren (öffnet externen Link)`}
+              aria-label={`Mehr über „${lemma.lemma}" auf Wiktionary erfahren (öffnet externen Link)`}
             >Mehr erfahren ↗</a>
           </div>
           <button className="logdice-toggle" onClick={() => setLogDiceOpen(o => !o)} aria-expanded={logDiceOpen}>

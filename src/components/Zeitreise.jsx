@@ -410,9 +410,9 @@ export default function Zeitreise({ data, onBack, onFinish, savedResult }) {
           </p>
           <a
             className="extern-link"
-            href={`https://www.dwds.de/wb/${encodeURIComponent(data.lemma)}`}
+            href={`https://de.wiktionary.org/wiki/${encodeURIComponent(data.lemma)}`}
             target="_blank" rel="noopener noreferrer"
-          >Mehr über „{data.lemma}" auf dwds.de ↗</a>
+          >Mehr über „{data.lemma}" auf Wiktionary ↗</a>
           {zrHistory.length > 0 && (
             <div className="history-strip">
               <span className="history-label">Dein Verlauf · Zeitreise</span>
