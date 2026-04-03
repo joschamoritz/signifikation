@@ -23,3 +23,9 @@ export const feedbackLimiter = rateLimit({
   standardHeaders: true, legacyHeaders: false,
   message: { error: 'Zu viele Feedback-Anfragen, bitte kurz warten.' },
 })
+
+export const uploadLimiter = rateLimit({
+  windowMs: 10_000, max: 100,  // 100 Requests pro 10 Sekunden fuer Upload
+  standardHeaders: true, legacyHeaders: false,
+  message: { error: 'Upload-Rate-Limit ueberschritten, bitte warten.' },
+})
