@@ -9,6 +9,7 @@ import { getCacheMetrics as getQueryCacheMetrics, clearCache as clearQueryCache 
 import { adminLimiter, uploadLimiter } from '../middleware/rateLimiter.js'
 import { requireAuth, adminAuth, adminLogout, adminError, serverError } from '../middleware/auth.js'
 import { validate, adminTagSchema, analyzeKollQuerySchema, analyzeWZQuerySchema, analyzeZeitQuerySchema } from '../middleware/validate.js'
+import { auditCreate, auditUpdate, auditDelete, getAuditLog } from '../audit.js'
 import logger from '../logger.js'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
@@ -50,6 +51,19 @@ router.post('/admin/cache-clear', adminLimiter, requireAuth, (req, res) => {
     clearQueryCache()
     logger.info('Alle Query-Caches geleert')
     res.json({ ok: true, message: 'Query-Cache geleert' })
+  } catch (err) { adminError(res, err) }
+})
+
+/** GET /admin/audit-log – Audit-Protokoll der letzten Admin-Änderungen */
+router.get('/admin/audit-log', adminLimiter, requireAuth, (req, res) => {
+  try {
+    const limit = Math.min(500, Math.max(10, parseInt(req.query.limit) || 100))
+    const entries = getAuditLog(limit)
+    res.json({
+      entries,
+      count: entries.length,
+      timestamp: new Date().toISOString()
+    })
   } catch (err) { adminError(res, err) }
 })
 
@@ -192,6 +206,13 @@ router.post('/admin/tag', adminLimiter, requireAuth, validate(adminTagSchema), a
     }
 
     logger.info(`Eintrag gespeichert: ${datum} → ${ids.join(', ')}`)
+
+    // Audit-Log für Create-Operation
+    auditCreate('kalender', datum, { ids, woerter, zeitreise: !!zeitreise_lemma, zwilling: !!zwilling_paar[0] }, {
+      adminKey: req.headers['x-admin-token'],
+      ip: req.ip,
+    })
+
     res.json({ ok: true, datum, ids, zeitreiseOk, zwillingOk })
   } catch (err) {
     serverError(res, err)
@@ -243,18 +264,39 @@ router.get('/admin/tag/:datum', adminLimiter, requireAuth, (req, res) => {
 })
 
 /** DELETE /admin/tag/:datum – Eintrag löschen */
-router.delete('/admin/tag/:datum', adminLimiter, requireAuth, (req, res) => {
+router.delete('/admin/tag/:datum', adminLimiter, requireAuth, async (req, res) => {
   if (!/^\d{2}-\d{2}$/.test(req.params.datum)) return res.status(400).json({ error: 'Ungültiges Datumsformat' })
-  const kalender     = load('kalender.json')
-  const zeitreise    = loadZeitreise()
-  const wortzwilling = loadWortZwilling()
-  delete kalender[req.params.datum]
-  delete zeitreise[req.params.datum]
-  delete wortzwilling[req.params.datum]
-  await save('kalender.json', kalender)
-  await save('zeitreise.json', zeitreise)
-  await save('wortzwilling.json', wortzwilling)
-  res.json({ ok: true })
+  try {
+    const kalender     = load('kalender.json')
+    const zeitreise    = loadZeitreise()
+    const wortzwilling = loadWortZwilling()
+    const datum        = req.params.datum
+
+    // Speichere Daten vor Löschung für Audit-Log
+    const deletedData = {
+      ids: kalender[datum],
+      zeitreise: zeitreise[datum],
+      wortzwilling: wortzwilling[datum],
+    }
+
+    delete kalender[datum]
+    delete zeitreise[datum]
+    delete wortzwilling[datum]
+
+    await save('kalender.json', kalender)
+    await save('zeitreise.json', zeitreise)
+    await save('wortzwilling.json', wortzwilling)
+
+    // Audit-Log für Delete-Operation
+    auditDelete('kalender', datum, deletedData, {
+      adminKey: req.headers['x-admin-token'],
+      ip: req.ip,
+    })
+
+    res.json({ ok: true })
+  } catch (err) {
+    serverError(res, err)
+  }
 })
 
 /** POST /admin/backup/gist – manuell Backup nach GitHub Gist anstoßen */
