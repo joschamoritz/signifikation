@@ -20,10 +20,10 @@ export async function ensureWortprofilDb() {
     return
   }
 
-  logger.info('wortprofil.db nicht gefunden, lade von GitHub herunter...')
+  logger.info('wortprofil.db nicht gefunden, lade von GitHub Release herunter...')
   try {
-    // Download der .gz-Datei von GitHub Raw Content
-    const downloadUrl = 'https://github.com/joschamoritz/signifikation/raw/main/wortprofil/05_db/wortprofil.db.gz'
+    // Download der .gz-Datei von GitHub Releases
+    const downloadUrl = 'https://github.com/joschamoritz/signifikation/releases/download/v1.0-wortprofil/wortprofil.db.gz'
 
     // Mit curl oder wget herunterladen
     if (process.platform === 'win32') {
