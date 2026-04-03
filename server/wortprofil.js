@@ -30,6 +30,7 @@ import { fileURLToPath } from 'url'
 import { dirname, join, resolve } from 'path'
 import logger from './logger.js'
 import { getCachedQuery, invalidateCachePattern } from './query-cache.js'
+import { SQLitePool } from './db-pool.js'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 
@@ -37,21 +38,28 @@ const __dirname = dirname(fileURLToPath(import.meta.url))
 const DB_PATH = process.env.WORTPROFIL_DB
   ?? resolve(__dirname, '..', 'wortprofil', '05_db', 'wortprofil.db')
 
-let _db = null
-function db() {
-  if (!_db) {
+let _pool = null
+function pool() {
+  if (!_pool) {
     try {
-      _db = new Database(DB_PATH, { readonly: true, fileMustExist: true })
-      _db.pragma('cache_size = -65536')    // 64 MB Page-Cache
-      _db.pragma('mmap_size = 536870912')  // 512 MB Memory-mapped I/O
-      _db.pragma('temp_store = MEMORY')
-      logger.info(`Wortprofil-DB geladen: ${DB_PATH}`)
+      _pool = new SQLitePool(DB_PATH, { poolSize: 4, readonly: true })
+      logger.info(`Wortprofil-DB Pool initialized: ${DB_PATH}`)
     } catch (err) {
       logger.error({ err }, `Wortprofil-DB nicht gefunden: ${DB_PATH}`)
       throw new Error(`Wortprofil-DB nicht gefunden: ${DB_PATH}`)
     }
   }
-  return _db
+  return _pool
+}
+
+// Hilfsfunktion: mit Connection-Pool arbeiten
+function withConnection(fn) {
+  const { db, release } = pool().acquire()
+  try {
+    return fn(db)
+  } finally {
+    release()
+  }
 }
 
 // ── RelCode-Mapping (DWDS → eigene DB) ───────────────────────────────────────
@@ -115,43 +123,45 @@ const VALID_RELCODE = new Set([
   '~SUBJA', '~OBJA', '~OBJD', '~ATTR', '~GMOD', '~ADV',
 ])
 
-const stmtCache = new Map()
-function stmt(sql) {
-  if (!stmtCache.has(sql)) stmtCache.set(sql, db().prepare(sql))
-  return stmtCache.get(sql)
+// Statement-Caching: better-sqlite3 cached prepare() intern pro Connection.
+// Keine globale Cache nötig, da jede Connection ihre eigenen Statements cached.
+function stmt(sql, db) {
+  return db.prepare(sql)
 }
 
 function queryRelation(lemma, pos, relCode, limit = 20, minFreq = 5, minDice = 0) {
-  if (!VALID_POS.has(pos)) {
-    logger.warn({ lemma, pos, relCode }, 'queryRelation: unbekannte POS')
-    return []
-  }
-  const rel = normalizeRel(relCode)
-  if (!VALID_RELCODE.has(rel)) {
-    logger.warn({ lemma, pos, relCode: rel }, 'queryRelation: unbekannter RelCode')
-    return []
-  }
-  const rows = stmt(`
-    SELECT form, dep_lemma, dep_pos, frequency, logDice, relation_full, relation_description
-    FROM collocations
-    WHERE lemma = ? AND pos = ? AND relation = ?
-      AND frequency >= ? AND logDice >= ?
-    ORDER BY logDice DESC
-    LIMIT ?
-  `).all(lemma.toLowerCase(), pos, rel, minFreq, minDice, limit)
+  return withConnection(db => {
+    if (!VALID_POS.has(pos)) {
+      logger.warn({ lemma, pos, relCode }, 'queryRelation: unbekannte POS')
+      return []
+    }
+    const rel = normalizeRel(relCode)
+    if (!VALID_RELCODE.has(rel)) {
+      logger.warn({ lemma, pos, relCode: rel }, 'queryRelation: unbekannter RelCode')
+      return []
+    }
+    const rows = stmt(`
+      SELECT form, dep_lemma, dep_pos, frequency, logDice, relation_full, relation_description
+      FROM collocations
+      WHERE lemma = ? AND pos = ? AND relation = ?
+        AND frequency >= ? AND logDice >= ?
+      ORDER BY logDice DESC
+      LIMIT ?
+    `, db).all(lemma.toLowerCase(), pos, rel, minFreq, minDice, limit)
 
-  return rows.map(r => ({
-    form:                 r.form,
-    lemma:                normalizeLemma(r.dep_lemma, r.dep_pos),
-    frequency:            r.frequency,
-    logDice:              String(r.logDice.toFixed(4)),
-    pos:                  r.dep_pos,
-    relation:             r.relation_full,
-    relation_description: r.relation_description,
-    concord_id:           null,
-    has_concord:          false,
-    has_mwe:              false,
-  }))
+    return rows.map(r => ({
+      form:                 r.form,
+      lemma:                normalizeLemma(r.dep_lemma, r.dep_pos),
+      frequency:            r.frequency,
+      logDice:              String(r.logDice.toFixed(4)),
+      pos:                  r.dep_pos,
+      relation:             r.relation_full,
+      relation_description: r.relation_description,
+      concord_id:           null,
+      has_concord:          false,
+      has_mwe:              false,
+    }))
+  })
 }
 
 function shuffle(arr) {
@@ -248,12 +258,12 @@ function zrBestCollokat(items, lemmaLower, lemmaStamm, usedWords) {
  */
 export async function fetchZeitreise(lemma) {
   try {
-    const rows = stmt(`
+    const rows = withConnection(db => stmt(`
       SELECT dep_lemma, dep_pos, jahrzehnt, score
       FROM zeitreise
       WHERE lemma = ?
       ORDER BY jahrzehnt ASC, score DESC
-    `).all(lemma.toLowerCase())
+    `, db).all(lemma.toLowerCase()))
 
     if (!rows.length) return null
 
@@ -324,12 +334,12 @@ export async function fetchZeitreiseAnalyze(lemma) {
   const lemmaStamm = lemmaLower.slice(0, 4)
 
   // Alle Rows laden – unabhängig von Dekaden-Mindestanzahl
-  const allRows = stmt(`
+  const allRows = withConnection(db => stmt(`
     SELECT dep_lemma, dep_pos, jahrzehnt, score
     FROM zeitreise
     WHERE lemma = ?
     ORDER BY jahrzehnt ASC, score DESC
-  `).all(lemmaLower)
+  `, db).all(lemmaLower))
 
   if (!allRows.length) return null
 
