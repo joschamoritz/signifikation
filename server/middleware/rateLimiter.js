@@ -74,37 +74,37 @@ export const belegeLimiter = rateLimit({
   windowMs: 60_000, max: 30,
   store: belegeStore,
   standardHeaders: true, legacyHeaders: false,
-  keyGenerator: getClientIp,
   message: { error: 'Zu viele Anfragen, bitte kurz warten.' },
+  trustProxy: true,
 })
 
 export const adminLimiter = rateLimit({
   windowMs: 60_000, max: 60,
   store: adminStore,
   standardHeaders: true, legacyHeaders: false,
-  keyGenerator: getClientIp,
   message: { error: 'Zu viele Admin-Anfragen, bitte kurz warten.' },
+  trustProxy: true,
 })
 
 export const statsLimiter = rateLimit({
   windowMs: 60_000, max: 10,
   store: statsStore,
   standardHeaders: true, legacyHeaders: false,
-  keyGenerator: getClientIp,
   message: { error: 'Zu viele Anfragen.' },
+  trustProxy: true,
 })
 
 export const feedbackLimiter = rateLimit({
   windowMs: 60_000, max: 5,
   store: feedbackStore,
   standardHeaders: true, legacyHeaders: false,
-  keyGenerator: getClientIp,
   message: { error: 'Zu viele Feedback-Anfragen, bitte kurz warten.' },
+  trustProxy: true,
 })
 
 export const uploadLimiter = rateLimit({
   windowMs: 10_000, max: 100,  // 100 Requests pro 10 Sekunden fuer Upload
   standardHeaders: true, legacyHeaders: false,
-  keyGenerator: getClientIp,
   message: { error: 'Upload-Rate-Limit ueberschritten, bitte warten.' },
+  trustProxy: true,
 })
