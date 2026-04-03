@@ -105,7 +105,7 @@ export default function Home({
                   <span className="test-entry-category">täglich</span>
                 </div>
                 <p className="test-definition">
-                  Welche Wörter treten am häufigsten gemeinsam auf? Bestimme die stärksten Kollokate des Tages aus den DWDS-Korpusdaten.
+                  Welche Wörter treten am häufigsten gemeinsam auf? Bestimme die stärksten Kollokate des Tages aus eigenen Korpusdaten.
                 </p>
 
                 {/* Gespielte Wörter */}
