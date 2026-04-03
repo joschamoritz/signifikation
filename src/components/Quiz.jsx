@@ -1,10 +1,10 @@
-import { useState, useMemo, useEffect, useRef } from 'react'
+import { useState, useMemo, useEffect, useRef, useCallback } from 'react'
 import { getRundInfo, getRoundOptions, calculateScore, shuffle } from '../utils/gameLogic'
 import { useBelege } from '../hooks/useBelege'
 import BelegePanel from './BelegePanel'
 
 // ── Haupt-Quiz (Runden 0–2) ───────────────────────────────────
-export default function Quiz({ lemma, currentRound, onRoundComplete }) {
+export default function Quiz({ lemma, currentRound, onRoundComplete, onBack }) {
   const [selected, setSelected]   = useState([])
   const [submitted, setSubmitted] = useState(false)
   const [showBelegHint, setShowBelegHint] = useState(
@@ -19,6 +19,21 @@ export default function Quiz({ lemma, currentRound, onRoundComplete }) {
   const kollokatoren = (roundKey && lemma.runden[roundKey]) ?? []
 
   const { openBeleg, belegeCache, belegeLoading, loadBelege } = useBelege(lemma.lemma, relCode)
+  const wrapRef = useRef(null)
+
+  const handleScroll = useCallback(() => {
+    const el = wrapRef.current
+    if (!el) return
+    const rect = el.getBoundingClientRect()
+    const atEnd = rect.bottom <= window.innerHeight + 4
+    el.classList.toggle('options-grid-wrap--scrolled-to-end', atEnd)
+  }, [])
+
+  useEffect(() => {
+    window.addEventListener('scroll', handleScroll, { passive: true })
+    handleScroll()
+    return () => window.removeEventListener('scroll', handleScroll)
+  }, [handleScroll])
 
   const options = useMemo(() => getRoundOptions(kollokatoren), [kollokatoren])
 
@@ -103,6 +118,11 @@ export default function Quiz({ lemma, currentRound, onRoundComplete }) {
 
   return (
     <div className="screen quiz-screen" onClick={resetJokerTimer}>
+      {onBack && !submitted && (
+        <button className="back-btn" onClick={onBack} aria-label="Zurück zur Wortauswahl">
+          <span className="back-btn-chevron">‹</span>Zurück
+        </button>
+      )}
       <header className="quiz-header">
         <span className="quiz-game-badge">Kollokationen</span>
         <h1 className="quiz-lemma-word">{lemma.lemma}</h1>
@@ -136,6 +156,7 @@ export default function Quiz({ lemma, currentRound, onRoundComplete }) {
         )}
       </header>
 
+      <div ref={wrapRef} className="options-grid-wrap">
       <div className="options-grid" aria-describedby="quiz-instruction">
         {options.map((opt, i) => {
           const rank  = selectedRank(opt.wort)
@@ -169,6 +190,7 @@ export default function Quiz({ lemma, currentRound, onRoundComplete }) {
             </button>
           )
         })}
+      </div>
       </div>
 
       {submitted && showBelegHint && (

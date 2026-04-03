@@ -9,8 +9,10 @@ import {
 export default function Home({
   onStart, loading, error, lemmata = [],
   playedGames = [], allPlayed = false,
-  zeitreise = null, zrPlayed = null, onPlayZeitreise, onViewZeitreise,
-  wortzwilling = null, wzPlayed = null, onPlayWortzwilling, onViewWortzwilling,
+  zeitreise = null, zeitreiseError = false, onRetryZeitreise,
+  zrPlayed = null, onPlayZeitreise, onViewZeitreise,
+  wortzwilling = null, wortzwillingError = false, onRetryWortzwilling,
+  wzPlayed = null, onPlayWortzwilling, onViewWortzwilling,
 }) {
   const [infoOpen, setInfoOpen] = useState(false)
   const [copied, setCopied]     = useState(false)
@@ -177,9 +179,18 @@ export default function Home({
                   </ul>
                 )}
 
+                {zeitreiseError && (
+                  <p className="test-game-error">
+                    Verbindungsfehler.{' '}
+                    <button className="test-game-error-retry" type="button" onClick={onRetryZeitreise}>
+                      Erneut versuchen
+                    </button>
+                  </p>
+                )}
+
                 <div className="test-entry-footer">
                   <span className={`test-status${zrPlayed ? ' test-status--done' : ''}`}>
-                    {!zeitreise ? 'Heute nicht verfügbar.' : zrPlayed ? 'Gespielt.' : 'Noch nicht gespielt.'}
+                    {zeitreiseError ? '' : !zeitreise ? 'Heute nicht verfügbar.' : zrPlayed ? 'Gespielt.' : 'Noch nicht gespielt.'}
                   </span>
                   {zeitreise ? (
                     <button
@@ -227,9 +238,18 @@ export default function Home({
                   </ul>
                 )}
 
+                {wortzwillingError && (
+                  <p className="test-game-error">
+                    Verbindungsfehler.{' '}
+                    <button className="test-game-error-retry" type="button" onClick={onRetryWortzwilling}>
+                      Erneut versuchen
+                    </button>
+                  </p>
+                )}
+
                 <div className="test-entry-footer">
                   <span className={`test-status${wzPlayed ? ' test-status--done' : ''}`}>
-                    {!wortzwilling ? 'Heute nicht verfügbar.' : wzPlayed ? 'Gespielt.' : 'Noch nicht gespielt.'}
+                    {wortzwillingError ? '' : !wortzwilling ? 'Heute nicht verfügbar.' : wzPlayed ? 'Gespielt.' : 'Noch nicht gespielt.'}
                   </span>
                   {wortzwilling ? (
                     <button

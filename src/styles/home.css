@@ -421,19 +421,6 @@
 
 .selection-header { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 12px }
 
-.back-btn {
-  background: none;
-  color: var(--primary);
-  font-family: var(--font-sans);
-  font-size: 0.82rem;
-  font-weight: 500;
-  padding: 8px 0;
-  min-height: 44px;
-  align-self: flex-start;
-  transition: opacity 0.15s;
-}
-.back-btn:hover { opacity: 0.7 }
-.back-btn:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; border-radius: 4px }
 
 .selection-prompt {
   font-size: 0.95rem;

@@ -27,6 +27,7 @@ export default function WortZwilling({ data, onBack, onFinish, savedResult = nul
   const [dragging, setDragging] = useState(null) // aktuell gezogenes Wort
   const [dragOver, setDragOver] = useState(null) // 'A' | 'B' | 'bank' | null
   const [phase, setPhase]       = useState(savedResult ? 'results' : 'play')
+  const [fullZone, setFullZone] = useState(null) // 'A' | 'B' — Zone gerade voll-geblockt
 
   // ── Joker ────────────────────────────────────────────────────
   const [jokerVisible, setJokerVisible] = useState(false)
@@ -93,7 +94,11 @@ export default function WortZwilling({ data, onBack, onFinish, savedResult = nul
   // ── Hilfsfunktionen ──────────────────────────────────────
   function moveTo(word, zone) {
     const target = zone === 'A' ? zoneA : zoneB
-    if (locations[word] !== zone && target.length >= 5) return // voll
+    if (locations[word] !== zone && target.length >= 5) {
+      setFullZone(zone)
+      setTimeout(() => setFullZone(null), 1500)
+      return
+    }
     setLocations(prev => ({ ...prev, [word]: zone }))
     setSelected(null)
   }
@@ -170,7 +175,7 @@ export default function WortZwilling({ data, onBack, onFinish, savedResult = nul
 
   return (
     <div className="screen wz-screen" onClick={resetJokerTimer}>
-      <button className="back-btn" onClick={onBack}>← Zurück</button>
+      <button className="back-btn" onClick={onBack} aria-label="Zurück zur Startseite"><span className="back-btn-chevron">‹</span>Zurück</button>
       <header className="wz-header">
         <span className="wz-badge">Wort-Zwilling</span>
         <div className="wz-dict-pair">
@@ -245,6 +250,7 @@ export default function WortZwilling({ data, onBack, onFinish, savedResult = nul
           const isOver      = dragOver === z
           const isFull      = zone.length >= 5
           const isClickable = !!selected && !isFull
+          const isShaking   = fullZone === z
           return (
             <div
               key={z}
@@ -256,6 +262,7 @@ export default function WortZwilling({ data, onBack, onFinish, savedResult = nul
                 isOver      ? 'wz-zone--over'      : '',
                 isClickable ? 'wz-zone--clickable'  : '',
                 isFull      ? 'wz-zone--full'       : '',
+                isShaking   ? 'wz-zone--shake'      : '',
               ].filter(Boolean).join(' ')}
               onDragOver={e => onDragOverZone(e, z)}
               onDragLeave={() => setDragOver(prev => prev === z ? null : prev)}
@@ -264,6 +271,7 @@ export default function WortZwilling({ data, onBack, onFinish, savedResult = nul
               onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onZoneClick(z) } }}
             >
               <div className="wz-zone-label">{label}</div>
+              {isShaking && <p className="wz-zone-full-msg" aria-live="polite">Zone voll</p>}
               <div className="wz-zone-chips">
                 {zone.map(w => (
                   <div

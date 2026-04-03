@@ -20,10 +20,15 @@ const FREE_BONUS_TEXTS = [
   },
 ]
 
-export function FreeBonusRound({ onComplete }) {
+export function FreeBonusRound({ onComplete, onBack }) {
   const msg = FREE_BONUS_TEXTS[Math.floor(Math.random() * FREE_BONUS_TEXTS.length)]
   return (
     <div className="screen quiz-screen">
+      {onBack && (
+        <button className="back-btn" onClick={onBack} aria-label="Zurück zur Wortauswahl">
+          <span className="back-btn-chevron">‹</span>Zurück
+        </button>
+      )}
       <header className="quiz-header">
         <span className="quiz-game-badge">Kollokationen</span>
         <div className="round-progress" role="img" aria-label="Bonusrunde, alle 3 Hauptrunden abgeschlossen">
@@ -59,7 +64,7 @@ export function FreeBonusRound({ onComplete }) {
 }
 
 // ── Bonus-Runde ───────────────────────────────────────────────
-export function BonusRound({ bonus, lemma, onComplete }) {
+export function BonusRound({ bonus, lemma, onComplete, onBack }) {
   const [selected, setSelected] = useState(null)
   const [submitted, setSubmitted] = useState(false)
   const { openBeleg, belegeCache, belegeLoading, loadBelege } = useBelege(lemma.lemma)
@@ -75,6 +80,11 @@ export function BonusRound({ bonus, lemma, onComplete }) {
 
   return (
     <div className="screen quiz-screen">
+      {onBack && !submitted && (
+        <button className="back-btn" onClick={onBack} aria-label="Zurück zur Wortauswahl">
+          <span className="back-btn-chevron">‹</span>Zurück
+        </button>
+      )}
       <header className="quiz-header">
         <span className="quiz-game-badge">Kollokationen</span>
         <h1 className="quiz-lemma-word">{lemma.lemma}</h1>

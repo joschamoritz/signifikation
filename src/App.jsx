@@ -115,7 +115,11 @@ export default function App() {
   const [lemmata, setLemmata]   = useState(null)
   const [apiError, setApiError] = useState(null)
   const [zeitreise, setZeitreise] = useState(null)
+  const [zeitreiseError, setZeitreiseError] = useState(false)
+  const [zeitreiseRetry, setZeitreiseRetry] = useState(0)
   const [wortzwilling, setWortzwilling] = useState(null)
+  const [wortzwillingError, setWortzwillingError] = useState(false)
+  const [wortzwillingRetry, setWortzwillingRetry] = useState(0)
   const [serverDatum, setServerDatum] = useState(null)  // "MM-DD" vom Server
   const [serverYear,  setServerYear]  = useState(null)  // Jahreszahl vom Server
 
@@ -165,17 +169,29 @@ export default function App() {
   }, [])
 
   useEffect(() => {
+    setZeitreiseError(false)
+    setZeitreise(null)
     fetchWithRetry(`${API}/zeitreise`)
-      .then(r => r.ok ? r.json() : null)
+      .then(r => r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`)))
       .then(data => { if (data) setZeitreise(data) })
-      .catch(err => console.error('Zeitreise fetch:', err))
-  }, [])
+      .catch(() => setZeitreiseError(true))
+  }, [zeitreiseRetry]) // eslint-disable-line
 
   useEffect(() => {
+    setWortzwillingError(false)
+    setWortzwilling(null)
     fetchWithRetry(`${API}/wortzwilling`)
-      .then(r => r.ok ? r.json() : null)
+      .then(r => r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`)))
       .then(data => { if (data) setWortzwilling(data) })
-      .catch(err => console.error('WortZwilling fetch:', err))
+      .catch(() => setWortzwillingError(true))
+  }, [wortzwillingRetry]) // eslint-disable-line
+
+  const retryZeitreise = useCallback(() => {
+    setZeitreiseRetry(n => n + 1)
+  }, [])
+
+  const retryWortzwilling = useCallback(() => {
+    setWortzwillingRetry(n => n + 1)
   }, [])
 
   // Ergebnis in localStorage speichern (Kollokationen)
@@ -318,10 +334,14 @@ export default function App() {
           playedGames={playedGames}
           allPlayed={!!allPlayed}
           zeitreise={zeitreise}
+          zeitreiseError={zeitreiseError}
+          onRetryZeitreise={retryZeitreise}
           zrPlayed={zrPlayed}
           onPlayZeitreise={() => startVT(() => { setZrViewOnly(false); setPhase('zeitreise') })}
           onViewZeitreise={() => startVT(() => { setZrViewOnly(true); setPhase('zeitreise') })}
           wortzwilling={wortzwilling}
+          wortzwillingError={wortzwillingError}
+          onRetryWortzwilling={retryWortzwilling}
           wzPlayed={wzPlayed}
           onPlayWortzwilling={() => startVT(() => { setWzViewOnly(false); setPhase('wortzwilling') })}
           onViewWortzwilling={() => startVT(() => { setWzViewOnly(true);  setPhase('wortzwilling') })}
@@ -342,12 +362,13 @@ export default function App() {
           lemma={selectedLemma}
           currentRound={currentRound}
           onRoundComplete={handleRoundComplete}
+          onBack={() => startVT(() => setPhase('selection'))}
         />
       )}
       {isBonus && selectedLemma && (
         bonusQuestion.skipped
-          ? <FreeBonusRound onComplete={handleRoundComplete} />
-          : <BonusRound bonus={bonusQuestion} lemma={selectedLemma} onComplete={handleRoundComplete} />
+          ? <FreeBonusRound onComplete={handleRoundComplete} onBack={() => startVT(() => setPhase('selection'))} />
+          : <BonusRound bonus={bonusQuestion} lemma={selectedLemma} onComplete={handleRoundComplete} onBack={() => startVT(() => setPhase('selection'))} />
       )}
       {phase === 'results' && selectedLemma && (
         <Results

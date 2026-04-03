@@ -3,24 +3,22 @@
    Typografie-first, klassisches Duden-Ästhetik
    ============================================================ */
 
-@import url('https://fonts.googleapis.com/css2?family=Gentium+Plus:ital,wght@0,400;0,700;1,400;1,700&display=swap');
-
 /* ── CSS-Variablen ─────────────────────────────────────────── */
 .test-page {
-  --t-bg:        #faf9f7;
-  --t-surface:   #f3f1ed;
-  --t-text:      #1a1a18;
-  --t-muted:     #8a7f6e;
-  --t-accent:    #c9a84c;
-  --t-accent-dk: #a07830;
-  --t-rule:      #d4c9b0;
-  --t-rule-lt:   #e8e2d8;
-  --t-serif:     'Gentium Plus', 'Playfair Display', Georgia, 'Times New Roman', serif;
-  --t-sans:      'DM Sans', system-ui, -apple-system, sans-serif;
+  --t-bg:        var(--bg);
+  --t-surface:   var(--surface2);
+  --t-text:      var(--text);
+  --t-muted:     var(--muted);
+  --t-accent:    var(--accent);
+  --t-accent-dk: var(--accent-dk);
+  --t-rule:      var(--border);
+  --t-rule-lt:   var(--border-lt);
+  --t-serif:     var(--font-serif);
+  --t-sans:      var(--font-sans);
   --t-mono:      'Courier New', 'Courier', monospace;
-  --t-disabled:  #9a9287;
-  --t-red:       #9b1c1c;
-  --t-red-hi:    #b91c1c;
+  --t-disabled:  var(--disabled);
+  --t-red:       var(--primary);
+  --t-red-hi:    var(--primary-hi);
 
   font-family: var(--t-serif);
   background-color: var(--t-bg);
@@ -577,6 +575,18 @@
   color: var(--t-red);
   margin-bottom: 10px;
 }
+.test-game-error-retry {
+  background: none;
+  border: none;
+  color: var(--t-red);
+  font-size: inherit;
+  font-family: inherit;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+  padding: 0;
+}
+.test-game-error-retry:hover { opacity: 0.7 }
 
 /* ── Share-Zeile ───────────────────────────────────────────── */
 .test-share-row {

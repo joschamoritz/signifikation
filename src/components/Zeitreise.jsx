@@ -229,7 +229,7 @@ export default function Zeitreise({ data, onBack, onFinish, savedResult }) {
 
   return (
     <div className="screen zeitreise-screen" onClick={resetJokerTimer}>
-      <button className="back-btn" onClick={onBack} aria-label="Zurück zur Startseite">← Zurück</button>
+      <button className="back-btn" onClick={onBack} aria-label="Zurück zur Startseite"><span className="back-btn-chevron">‹</span>Zurück</button>
 
       {/* Header */}
       <div className="zeitreise-header">

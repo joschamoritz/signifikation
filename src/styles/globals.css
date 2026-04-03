@@ -243,6 +243,38 @@ button { font-family: inherit; cursor: pointer; border: none }
 .results-actions .btn-primary,
 .results-actions .btn-secondary { flex: 1 }
 
+/* ── Zurück-Button ───────────────────────────────────────────── */
+.back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: none;
+  border: none;
+  color: var(--primary);
+  font-family: var(--font-sans);
+  font-size: 0.85rem;
+  font-weight: 500;
+  padding: 10px 4px 10px 0;
+  min-height: 44px;
+  min-width: 44px;
+  cursor: pointer;
+  align-self: flex-start;
+  transition: opacity 0.15s;
+  letter-spacing: 0.01em;
+}
+.back-btn:hover { opacity: 0.7 }
+.back-btn:active { opacity: 0.5 }
+.back-btn:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; border-radius: 4px }
+.back-btn-chevron {
+  font-size: 1.1rem;
+  line-height: 1;
+  margin-top: -1px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .back-btn { transition: none }
+}
+
 /* ── Joker-Button ────────────────────────────────────────────── */
 .joker-btn {
   display: inline-flex;
