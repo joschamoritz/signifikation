@@ -9,6 +9,7 @@ import { randomUUID } from 'crypto'
 import logger       from './logger.js'
 import { ADMIN_KEY, IS_PROD, csrfProtect } from './middleware/auth.js'
 import { initializeIndices } from './store.js'
+import { errorHandler } from './error-handling.js'
 import publicRouter from './routes/public.js'
 import adminRouter  from './routes/admin.js'
 
@@ -94,12 +95,9 @@ if (existsSync(DIST)) {
   app.use((_req, res) => res.sendFile(join(DIST, 'index.html')))
 }
 
-// ── Globaler Fehler-Handler ───────────────────────────────────
-app.use((err, req, res, _next) => {
-  logger.error({ err }, 'Unbehandelter Fehler')
-  // Admin-Pfade liegen hinter Auth → echten Fehler immer anzeigen (hilft bei Diagnose)
-  const isAdmin = req.path?.startsWith('/admin')
-  res.status(500).json({ error: (!IS_PROD || isAdmin) ? (err.message || String(err)) : 'Interner Serverfehler' })
+// ── Globaler Fehler-Handler (strukturiertes Error Handling) ────
+app.use((err, req, res, next) => {
+  errorHandler(err, req, res, next)
 })
 
 // ── Startup Initialization ──────────────────────────────────
