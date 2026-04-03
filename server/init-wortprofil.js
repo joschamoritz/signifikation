@@ -3,8 +3,8 @@ import { existsSync, unlinkSync } from 'fs'
 import logger from './logger.js'
 
 const IS_RAILWAY = !!process.env.RAILWAY_PROJECT_ID
-const DB_PATH = '/data/wortprofil.db'
-const GZ_PATH = '/data/wortprofil.db.gz'
+const DB_PATH = '/app/server/data/wortprofil.db'
+const GZ_PATH = '/app/server/data/wortprofil.db.gz'
 
 /**
  * Stellt sicher, dass wortprofil.db auf Railway existiert.
