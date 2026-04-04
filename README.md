@@ -1,6 +1,6 @@
 # Signifikation
 
-Tägliches linguistisches Quiz auf Basis von [DWDS](https://www.dwds.de/)-Korpusdaten.
+Tägliches linguistisches Quiz – korpusbasiert, wörterbuchästhetisch.
 Live: **[signifikation.de](https://signifikation.de)**
 
 ## Spielmodi
@@ -15,7 +15,7 @@ Live: **[signifikation.de](https://signifikation.de)**
 
 - **Frontend**: React 18 + Vite 6, Vanilla CSS
 - **Backend**: Express 5, Node ≥20, ESM
-- **Daten**: JSON-Dateien in `server/data/` (kein Datenbankserver)
+- **Daten**: JSON-Dateien in `server/data/` + SQLite (`wortprofil.db`) auf Railway Volume
 - **Deployment**: Railway (Auto-Deploy auf `main`), Railway Volume auf `/app/server/data`
 
 ## Lokale Entwicklung
@@ -44,7 +44,6 @@ npm run dev          # Vite Dev-Server (Frontend)
 npm run server       # Express-Server (Backend)
 npm run build        # Production Build
 npm run test         # Vitest (Unit-Tests)
-npm run lint         # ESLint
 ```
 
 ## Umgebungsvariablen
@@ -68,11 +67,10 @@ Alle Spieldaten liegen als JSON-Dateien in `server/data/`. Auf Railway werden si
 | Datei | Struktur |
 |---|---|
 | `kalender.json` | `{ "MM-DD": ["lemmaId1", "lemmaId2", "lemmaId3"] }` |
-| `lemmata.json` | Array von Lemma-Objekten mit `id`, `lemma`, `pos`, `runden`, `rundenInfo` |
+| `lemmata.json` | Array von Lemma-Objekten mit `id`, `lemma`, `pos`, `wortart`, `ipa`, `definitionen`, `runden`, `rundenInfo`, `notiz`, `link` |
 | `zeitreise.json` | `{ lemma, paare, perioden, wortart }` pro Eintrag |
 | `wortzwilling.json` | `{ wortA, wortB, pos, kollokatoren }` pro Eintrag |
 | `stats.json` | `{ "MM-DD": { [game]: { plays, scoreSum, maxSum, dist } } }` |
-| `feedback.json` | Array von `{ game, emoji, text, ts }` |
 | `diacollo-config.json` | `{ corpora: [{ id, enabled, label, zeitraum, slice }] }` |
 
 > **Wichtig:** JSON-Daten nur über das Admin-Panel eingeben – das Railway Volume hat Vorrang vor Git.
@@ -83,7 +81,12 @@ Alle Spieldaten liegen als JSON-Dateien in `server/data/`. Auf Railway werden si
 server/
 ├── index.js          # Express-Setup, Helmet, CORS, Router-Mounts
 ├── store.js          # File-I/O: load(), save() (atomar), Cache (TTL 6h, LRU 200)
+├── wortprofil.js     # Kollokations-Abfragen gegen lokale wortprofil.db (SQLite)
+├── wortzwilling.js   # Wort-Zwilling-Logik
+├── wiktionary.js     # Wiktionary-Fetch: IPA + Bedeutungen (gespeichert in lemmata.json)
+├── belege.js         # Korpusbelege-Abfragen
 ├── backup.js         # Automatisches GitHub-Gist-Backup (täglich 02:00 Uhr)
+├── audit.js          # Audit-Log für Admin-Aktionen
 ├── logger.js         # Pino-Logger
 ├── middleware/
 │   ├── auth.js       # Session-Token-Authentifizierung für Admin-Routen
