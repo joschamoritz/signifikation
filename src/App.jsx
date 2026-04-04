@@ -302,7 +302,7 @@ export default function App() {
     if (!zeitreise) return
     const max   = zeitreise.paare.length * 2
     const zrMed = getZRMedal(score, max)
-    const entry = { lemma: zeitreise.lemma, total: score, medal: zrMed, placements }
+    const entry = { lemma: zeitreise.lemma, total: score, max, medal: zrMed, placements }
     lsSet(keys.todayZRKey, JSON.stringify(entry))
     setZrPlayed(entry)
     markActivity(keys.dateStr)

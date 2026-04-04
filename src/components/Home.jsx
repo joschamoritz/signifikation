@@ -1,10 +1,12 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { getDailyMedal } from '../utils/gameLogic'
+import DayComplete from './DayComplete'
 import '../test.css'
 import {
   WEEKDAYS, MONTHS,
   localDateStr, getISOWeek, computeStreak, streakFlames, buildShareText,
 } from '../utils/homeUtils'
+import { lsGet, lsSet } from '../utils/storage'
 
 export default function Home({
   onStart, loading, error, lemmata = [],
@@ -14,8 +16,9 @@ export default function Home({
   wortzwilling = null, wortzwillingError = false, onRetryWortzwilling,
   wzPlayed = null, onPlayWortzwilling, onViewWortzwilling,
 }) {
-  const [infoOpen, setInfoOpen] = useState(false)
-  const [copied, setCopied]     = useState(false)
+  const [infoOpen,       setInfoOpen]       = useState(false)
+  const [copied,         setCopied]         = useState(false)
+  const [showDayComplete, setShowDayComplete] = useState(false)
 
   const streak     = computeStreak()
   const today      = new Date()
@@ -23,12 +26,22 @@ export default function Home({
   const kw         = getISOWeek(today)
   const hasPlayed  = playedGames.length > 0 || !!zrPlayed || !!wzPlayed
 
-  const totalPoints = playedGames.reduce((s, g) => s + g.total, 0)
-  const maxPoints   = playedGames.length * 10
-  const dailyMedal  = allPlayed ? getDailyMedal(totalPoints) : null
+  const totalPoints    = playedGames.reduce((s, g) => s + g.total, 0)
+  const maxPoints      = playedGames.length * 10
+  const dailyMedal     = allPlayed ? getDailyMedal(totalPoints) : null
+  const allThreePlayed = allPlayed && !!zrPlayed && !!wzPlayed
+
+  useEffect(() => {
+    if (!allThreePlayed) return
+    const key = `sig_day_complete_${localDateStr(new Date())}`
+    if (!lsGet(key)) {
+      lsSet(key, '1')
+      setShowDayComplete(true)
+    }
+  }, [allThreePlayed])
 
   async function shareResult() {
-    const text = buildShareText(playedGames, zrPlayed, wzPlayed, wortzwilling)
+    const text = buildShareText(playedGames, zrPlayed, wzPlayed, streak)
     if (navigator.share) { try { await navigator.share({ text }); return } catch {} }
     try {
       await navigator.clipboard.writeText(text)
@@ -45,6 +58,14 @@ export default function Home({
 
   return (
     <div className="test-page" lang="de">
+      {showDayComplete && (
+        <DayComplete
+          onClose={() => setShowDayComplete(false)}
+          playedGames={playedGames}
+          zrPlayed={zrPlayed}
+          wzPlayed={wzPlayed}
+        />
+      )}
       <div className="test-wrapper">
 
         {/* ── Titelseite ───────────────────────────────────── */}

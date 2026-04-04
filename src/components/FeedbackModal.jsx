@@ -17,12 +17,18 @@ const GAME_LABELS = {
 }
 
 export default function FeedbackModal({ game, onClose }) {
-  const [emoji, setEmoji] = useState(null)
-  const [text, setText]   = useState('')
-  const [sent, setSent]   = useState(false)
+  const [emoji, setEmoji]     = useState(null)
+  const [text, setText]       = useState('')
+  const [sent, setSent]       = useState(false)
+  const [closing, setClosing] = useState(false)
 
   const dialogRef   = useRef(null)
   const firstBtnRef = useRef(null)
+
+  function close() {
+    setClosing(true)
+    setTimeout(onClose, 200)
+  }
 
   // Fokus beim Öffnen auf ersten Button, beim Schließen zurück
   useEffect(() => {
@@ -34,7 +40,7 @@ export default function FeedbackModal({ game, onClose }) {
   // Escape schließt Modal
   useEffect(() => {
     function onKey(e) {
-      if (e.key === 'Escape') onClose()
+      if (e.key === 'Escape') close()
     }
     document.addEventListener('keydown', onKey)
     return () => document.removeEventListener('keydown', onKey)
@@ -50,14 +56,14 @@ export default function FeedbackModal({ game, onClose }) {
       })
     } catch {}
     setSent(true)
-    setTimeout(onClose, 1400)
+    setTimeout(close, 1400)
   }
 
   return (
-    <div className="feedback-overlay" onClick={onClose}>
+    <div className="feedback-overlay" onClick={close}>
       <div
         ref={dialogRef}
-        className="feedback-sheet"
+        className={`feedback-sheet${closing ? ' feedback-sheet--closing' : ''}`}
         role="dialog"
         aria-modal="true"
         aria-labelledby="fb-title"
@@ -90,7 +96,7 @@ export default function FeedbackModal({ game, onClose }) {
               rows={2}
             />
             <div className="feedback-actions">
-              <button className="btn-ghost" onClick={onClose}>Überspringen</button>
+              <button className="btn-ghost" onClick={close}>Überspringen</button>
               <button className="btn-primary" onClick={handleSend} disabled={!emoji}>Senden</button>
             </div>
           </>

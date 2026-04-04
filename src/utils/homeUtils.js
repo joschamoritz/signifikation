@@ -39,27 +39,33 @@ export function streakFlames(n) {
 
 export const POS_LABEL = { 'Substantiv': 'Nomen', 'Verb': 'Verb', 'Adjektiv': 'Adj' }
 
-export function buildShareText(playedGames, zrPlayed, wzPlayed, wortzwilling) {
+export function buildShareText(playedGames, zrPlayed, wzPlayed, streak) {
   const d = new Date()
   const dateStr = `${d.getDate()}. ${MONTHS[d.getMonth()]}`
-  function blocks(score) {
-    const filled = Math.round((score / 10) * 5)
+  const streakPart = streak > 0 ? ` · 🔥${streak}` : ''
+
+  function blocks(score, max) {
+    const filled = Math.min(5, Math.round((score / (max || 1)) * 5))
     return '█'.repeat(filled) + '░'.repeat(5 - filled)
   }
-  const lines = [`📖 Signifikation · ${dateStr}`, '']
-  for (const g of playedGames) {
-    const lbl = POS_LABEL[g.pos] || 'Wort'
-    lines.push(`[${lbl}] ${g.lemma}  ${blocks(g.total)}  ${g.total}/10`)
+
+  const lines = [`📖 Signifikation · ${dateStr}${streakPart}`, '']
+
+  if (playedGames.length > 0) {
+    const kollTotal = playedGames.reduce((s, g) => s + g.total, 0)
+    const kollMax   = playedGames.length * 10
+    const kollMedal = playedGames[playedGames.length - 1]?.medal?.emoji ?? ''
+    lines.push(`K  ${blocks(kollTotal, kollMax)}  ${kollTotal}/${kollMax}  ${kollMedal}`)
   }
-  if (playedGames.length > 0) lines.push('')
   if (zrPlayed) {
-    lines.push(`[500 Jahre] ${zrPlayed.lemma}  ${blocks(zrPlayed.total)}  ${zrPlayed.total}/10`)
-    lines.push('')
+    const zrMax = zrPlayed.max ?? 20
+    lines.push(`Z  ${blocks(zrPlayed.total, zrMax)}  ${zrPlayed.total}/${zrMax}  ${zrPlayed.medal?.emoji ?? ''}`)
   }
-  if (wzPlayed && wortzwilling) {
-    lines.push(`[Wort-Zwilling] ${wortzwilling.wortA}/${wortzwilling.wortB}  ${blocks(wzPlayed.total)}  ${wzPlayed.total}/10`)
-    lines.push('')
+  if (wzPlayed) {
+    lines.push(`W  ${blocks(wzPlayed.total, 10)}   ${wzPlayed.total}/10  ${wzPlayed.medal?.emoji ?? ''}`)
   }
-  lines.push('💬 Schaffst du es besser? → signifikation.de')
+
+  lines.push('')
+  lines.push('Schaffst du es besser? → signifikation.de')
   return lines.join('\n')
 }

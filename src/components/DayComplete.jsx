@@ -1,0 +1,92 @@
+import { useState } from 'react'
+import { WEEKDAYS, MONTHS, computeStreak, buildShareText } from '../utils/homeUtils'
+import { getMedal } from '../utils/gameLogic'
+
+export default function DayComplete({ onClose, playedGames = [], zrPlayed = null, wzPlayed = null }) {
+  const [closing, setClosing] = useState(false)
+  const [copied,  setCopied]  = useState(false)
+
+  const today   = new Date()
+  const weekday = WEEKDAYS[today.getDay()]
+  const date    = `${today.getDate()}. ${MONTHS[today.getMonth()]} ${today.getFullYear()}`
+  const streak  = computeStreak()
+
+  const kollTotal = playedGames.reduce((s, g) => s + g.total, 0)
+  const kollMax   = playedGames.length * 10
+  const kollMedal = getMedal(kollTotal, kollMax)
+
+  function close() {
+    setClosing(true)
+    setTimeout(onClose, 200)
+  }
+
+  async function share() {
+    const text = buildShareText(playedGames, zrPlayed, wzPlayed, streak)
+    if (navigator.share) { try { await navigator.share({ text }); return } catch {} }
+    try {
+      await navigator.clipboard.writeText(text)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2200)
+    } catch {}
+  }
+
+  return (
+    <div className="feedback-overlay" onClick={close}>
+      <div
+        className={`feedback-sheet dc-sheet${closing ? ' feedback-sheet--closing' : ''}`}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="dc-title"
+        onClick={e => e.stopPropagation()}
+      >
+        <div className="dc-grip" aria-hidden="true" />
+
+        <header className="dc-header">
+          <span className="dc-weekday">{weekday}</span>
+          <h2 className="dc-date" id="dc-title">{date}</h2>
+        </header>
+
+        <div className="dc-rule" />
+
+        <div className="dc-medals">
+          <div className="dc-medal-item">
+            <span className="dc-medal-emoji" aria-label={kollMedal.label}>{kollMedal.emoji}</span>
+            <span className="dc-medal-label">Kollokationen</span>
+          </div>
+          {zrPlayed && (
+            <div className="dc-medal-item">
+              <span className="dc-medal-emoji" aria-label={zrPlayed.medal?.label}>{zrPlayed.medal?.emoji}</span>
+              <span className="dc-medal-label">Zeitreise</span>
+            </div>
+          )}
+          {wzPlayed && (
+            <div className="dc-medal-item">
+              <span className="dc-medal-emoji" aria-label={wzPlayed.medal?.label}>{wzPlayed.medal?.emoji}</span>
+              <span className="dc-medal-label">Wort-Zwilling</span>
+            </div>
+          )}
+        </div>
+
+        <div className="dc-rule" />
+
+        <div className="dc-footer">
+          {streak > 0 && (
+            <p className="dc-streak">🔥 {streak} {streak === 1 ? 'Tag' : 'Tage'}</p>
+          )}
+          <p className="dc-ornament" aria-hidden="true">· · ·</p>
+          <p className="dc-colophon">Der Eintrag für diesen Tag ist beschlossen.</p>
+        </div>
+
+        <div className="dc-actions">
+          <button
+            className={`btn-ghost dc-share-btn${copied ? ' dc-share-btn--copied' : ''}`}
+            onClick={share}
+          >
+            {copied ? 'Kopiert ✓' : 'Ergebnis teilen'}
+          </button>
+          <button className="btn-ghost" onClick={close}>Schließen</button>
+        </div>
+      </div>
+    </div>
+  )
+}

@@ -304,3 +304,6 @@ button { font-family: inherit; cursor: pointer; border: none }
 @media (prefers-reduced-motion: reduce) {
   .joker-btn { animation: none; opacity: 1 }
 }
+@media (prefers-reduced-motion: reduce) {
+  .dc-date, .dc-colophon { animation: none; opacity: 1 }
+}
