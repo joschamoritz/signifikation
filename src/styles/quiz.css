@@ -532,6 +532,16 @@
 }
 .beleg-hint:hover { background: #fef3c7; }
 
+/* ── Mobile ───────────────────────────────────────────────── */
+@media (max-width: 499px) {
+  .quiz-screen          { gap: 10px; }
+  .quiz-lemma-word      { font-size: 2rem; }
+  .results-screen       { padding-block: 14px 20px; gap: 16px; }
+  .lemma-played-title   { font-size: 1.9rem; }
+  .round-scores-card    { padding: 12px 0; gap: 10px; }
+  .wortprofil-card      { padding: 12px 0; }
+}
+
 /* Belege-Panel */
 .belege-panel {
   margin-top: 8px;

@@ -249,3 +249,10 @@
 @media (prefers-reduced-motion: reduce) {
   .wz-zone--shake { animation: none !important }
 }
+
+/* ── Mobile ───────────────────────────────────────────────── */
+@media (max-width: 499px) {
+  .wz-screen  { gap: 10px; }
+  .wz-title   { font-size: 1.75rem; }
+  .wz-header  { gap: 6px; }
+}

@@ -418,6 +418,18 @@
 }
 .quelle a { color: var(--muted); text-decoration: underline; }
 
+/* ── Mobile ───────────────────────────────────────────────── */
+@media (max-width: 499px) {
+  .zeitreise-screen     { padding-block: 14px 20px; gap: 12px; }
+  .zeitreise-word       { font-size: 1.85rem; }
+  .zeitreise-desc       { font-size: 0.83rem; }
+  .zr-zone              { padding: 7px 4px 7px 8px; min-height: 44px; }
+  .zr-zone-period       { font-size: 0.75rem; width: 74px; }
+  .zr-results           { gap: 6px; }
+  .zr-score-num         { font-size: 2.5rem; }
+  .zr-results-medal     { font-size: 1.1rem; }
+}
+
 /* Kollokationen Results: Titel + Link nebeneinander */
 .wortprofil-title-row {
   display: flex; align-items: baseline; justify-content: space-between; gap: 8px;

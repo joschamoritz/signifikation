@@ -131,6 +131,7 @@ export default function App() {
 
   const appRef = useRef(null)
   const freshKollRef = useRef(false)
+  const inGameRef = useRef(false)
   const [feedbackGame, setFeedbackGame] = useState(null)
 
   function triggerFeedback(game) {
@@ -152,6 +153,33 @@ export default function App() {
 
   // Fokus bei Screen-Wechsel
   useEffect(() => { appRef.current?.focus() }, [phase])
+
+  // iOS/Browser Swipe-Back: ein History-Eintrag beim Verlassen von Home
+  useEffect(() => {
+    if (phase === 'home') {
+      inGameRef.current = false
+      return
+    }
+    if (!inGameRef.current) {
+      window.history.pushState({ sig: true }, '')
+      inGameRef.current = true
+    }
+  }, [phase])
+
+  useEffect(() => {
+    function onPop() {
+      inGameRef.current = false
+      startVT(() => {
+        setPhase('home')
+        setSelected(null)
+        setRound(0)
+        setScores([])
+        setBonusQ(null)
+      })
+    }
+    window.addEventListener('popstate', onPop)
+    return () => window.removeEventListener('popstate', onPop)
+  }, [])
 
   // Lemmata + Server-Datum laden
   useEffect(() => {

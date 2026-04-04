@@ -179,6 +179,15 @@ body {
 }
 
 /* ── Skip-to-main Link ────────────────────────────────────── */
+/* ── Mobile: kompakterer App-Rahmen ───────────────────────── */
+@media (max-width: 499px) {
+  .app {
+    padding-top: max(8px, env(safe-area-inset-top, 0px));
+    padding-inline: 16px;
+  }
+}
+
+/* ── Skip-to-main Link ────────────────────────────────────── */
 .skip-link {
   position: absolute;
   top: -100%;
