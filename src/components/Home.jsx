@@ -373,19 +373,18 @@ export default function Home({
           </ol>
         </main>
 
-        {/* ── Snap-Dots (nur mobil) ────────────────────────── */}
-        <div className="snap-dots" role="tablist" aria-label="Spielmodus-Navigation">
-          {['Kollokationen', 'Zeitreise', 'Wort-Zwilling', 'Demnächst'].map((label, i) => (
+        {/* ── Vertikale Badge-Navigation (nur mobil) ───────── */}
+        <nav className="snap-nav" aria-label="Spielmodus-Navigation">
+          {[['①','Kollokationen'],['②','Zeitreise'],['③','Wort-Zwilling'],['④','Demnächst']].map(([glyph, label], i) => (
             <button
               key={i}
-              className={`snap-dot${activeCard === i ? ' snap-dot--active' : ''}`}
-              role="tab"
-              aria-selected={activeCard === i}
+              className={`snap-nav-btn${activeCard === i ? ' snap-nav-btn--active' : ''}`}
               aria-label={label}
+              aria-current={activeCard === i ? 'true' : undefined}
               onClick={() => scrollToCard(i)}
-            >·</button>
+            >{glyph}</button>
           ))}
-        </div>
+        </nav>
 
         {/* ── Kompakter Mobile-Footer (nur mobil) ──────────── */}
         <div className="snap-footer">

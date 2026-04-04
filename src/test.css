@@ -755,6 +755,7 @@
 @media (min-width: 700px) {
   .snap-dots,
   .snap-footer,
+  .snap-nav,
   .test-title-streak { display: none; }
 }
 
@@ -767,10 +768,10 @@
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    animation: none; /* kein fade-in bei fixed layout */
+    animation: none;
   }
 
-  /* Wrapper: flex-Spalte, füllt restliche Höhe */
+  /* Wrapper: flex-Spalte */
   .test-wrapper {
     flex: 1;
     min-height: 0;
@@ -780,33 +781,47 @@
     max-width: 100%;
   }
 
-  /* ── Kompakter Header ──────────────────────────── */
+  /* ── Zweizeiliger kompakter Header ─────────────── */
   .test-title-section {
     flex-shrink: 0;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 0 20px;
-    height: 56px;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    grid-template-rows: auto auto;
+    column-gap: 12px;
+    align-items: baseline;
+    padding: 10px 20px 0;
     border-bottom: 2px solid var(--t-accent);
     text-align: left;
+    padding-bottom: 8px;
   }
   .test-title-section::after { display: none; }
-  .test-overline,
-  .test-subtitle { display: none; }
+  .test-overline { display: none; }
   .test-title {
     font-size: 1.35rem;
     letter-spacing: 0.1em;
     text-transform: uppercase;
     margin: 0;
+    grid-column: 1;
+    grid-row: 1;
   }
   .test-title-streak {
+    grid-column: 2;
+    grid-row: 1;
     font-family: var(--t-sans);
     font-size: 0.85rem;
     font-weight: 700;
     color: var(--t-red);
     white-space: nowrap;
-    flex-shrink: 0;
+    align-self: center;
+  }
+  .test-subtitle {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    font-family: var(--t-serif);
+    font-style: italic;
+    font-size: 0.78rem;
+    color: var(--t-muted);
+    margin: 2px 0 0;
   }
 
   /* Großes Streak-Block ausblenden */
@@ -863,49 +878,65 @@
     scroll-snap-stop: always;
     height: 100%;
     overflow-y: auto;
-    padding: 20px 20px 24px;
+    padding: 24px 20px 24px 44px; /* links Platz für snap-nav */
     border-bottom: none;
     box-sizing: border-box;
     scrollbar-width: none;
+    position: relative;
   }
   .test-entry::-webkit-scrollbar { display: none; }
   .test-entry:last-child { border-bottom: none; }
 
-  /* Fade-Maske: zeigt an wenn Karte mehr Inhalt hat */
-  .test-entry {
-    position: relative;
+  /* Große gedimmte Ziffer als Kartenhintergrund */
+  .test-entry-number .test-entry-num-glyph {
+    font-size: 4rem;
+    opacity: 0.06;
+    position: absolute;
+    bottom: 20px;
+    right: 20px;
+    pointer-events: none;
+    user-select: none;
   }
 
-  /* ── Dots-Indikator ────────────────────────────── */
-  .snap-dots {
+  /* ── Vertikale Badge-Navigation ────────────────── */
+  .snap-nav {
+    position: fixed;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 50;
     display: flex;
-    justify-content: center;
-    gap: 4px;
-    padding: 8px 0;
-    flex-shrink: 0;
-    background: var(--t-bg);
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    padding: 8px 4px;
   }
-  .snap-dot {
+  .snap-nav-btn {
     background: none;
     border: none;
-    padding: 4px 8px;
-    min-height: 36px;
-    cursor: pointer;
     font-family: var(--t-serif);
-    font-size: 1.1rem;
+    font-size: 1rem;
     color: var(--t-rule);
+    cursor: pointer;
+    padding: 4px 6px;
+    min-height: 40px;
+    min-width: 36px;
     line-height: 1;
-    transition: color 0.2s, font-size 0.15s;
+    transition: color 0.2s, transform 0.15s;
+    text-align: center;
   }
-  .snap-dot--active {
+  .snap-nav-btn--active {
     color: var(--t-accent);
-    font-size: 1.4rem;
+    transform: scale(1.25);
   }
-  .snap-dot:focus-visible {
+  .snap-nav-btn:focus-visible {
     outline: 2px solid var(--t-accent);
     outline-offset: 2px;
     border-radius: 2px;
   }
+
+  /* Dots ausblenden (ersetzt durch snap-nav) */
+  .snap-dots { display: none; }
 
   /* ── Kompakter Mobile-Footer ───────────────────── */
   .snap-footer {
