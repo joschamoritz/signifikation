@@ -68,15 +68,6 @@ router.get('/admin/audit-log', adminLimiter, requireAuth, (req, res) => {
   } catch (err) { adminError(res, err) }
 })
 
-/** GET /admin/feedback – Feedbackliste */
-router.get('/admin/feedback', adminLimiter, requireAuth, (req, res) => {
-  try {
-    let list = []
-    try { list = loadReadOnly('feedback.json') } catch {}
-    res.json(list)
-  } catch (err) { serverError(res, err) }
-})
-
 
 /** GET /admin/wiktionary-def?q=Wort – Definition aus Wiktionary abrufen */
 router.get('/admin/wiktionary-def', adminLimiter, requireAuth, validate(qQuerySchema, 'query'), async (req, res) => {
