@@ -167,7 +167,7 @@ export default function WortZwilling({ data, onBack, onFinish, savedResult = nul
 
   // ── Ergebnisansicht ───────────────────────────────────────
   if (phase === 'results') {
-    return <WzResultsView data={data} zoneA={zoneA} zoneB={zoneB} onBack={onBack} />
+    return <WzResultsView data={data} zoneA={zoneA} zoneB={zoneB} onBack={onBack} ipaA={ipaA} ipaB={ipaB} />
   }
 
   // ── Spielansicht ──────────────────────────────────────────

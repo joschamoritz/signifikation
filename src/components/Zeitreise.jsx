@@ -160,7 +160,11 @@ export default function Zeitreise({ data, onBack, onFinish, savedResult }) {
 
   function handlePlacedChipClick(e, jahrzehnt) {
     e.stopPropagation()
-    if (revealed) return
+    if (revealed) {
+      const paar = paare.find(p => p.jahrzehnt === jahrzehnt)
+      if (paar) loadZrBelege(paar)
+      return
+    }
     pickUpFromZone(jahrzehnt)
   }
 
@@ -272,9 +276,6 @@ export default function Zeitreise({ data, onBack, onFinish, savedResult }) {
         </div>
       )}
 
-      {selected && !revealed && (
-        <p className="zr-hint">Wähle jetzt einen Zeitraum ↓</p>
-      )}
 
       {/* Zones */}
       <div className="zr-zones">
@@ -324,13 +325,14 @@ export default function Zeitreise({ data, onBack, onFinish, savedResult }) {
                         'zr-chip zr-chip--placed',
                         isRight  ? 'zr-chip--right'  : '',
                         isWrong  ? 'zr-chip--wrong'   : '',
+                        belegOpen ? 'zr-chip--beleg-active' : '',
                       ].filter(Boolean).join(' ')}
                       onPointerDown={revealed ? undefined : e => onChipPointerDown(e, placed)}
                       onPointerMove={onChipPointerMove}
                       onPointerUp={onChipPointerUp}
                       onPointerCancel={onChipPointerCancel}
                       onClick={e => handlePlacedChipClick(e, p.jahrzehnt)}
-                      disabled={revealed}
+                      aria-expanded={revealed ? belegOpen : undefined}
                     >
                       {placed}
                       {isRight  && <span className="zr-icon">✓</span>}
@@ -347,14 +349,6 @@ export default function Zeitreise({ data, onBack, onFinish, savedResult }) {
                   <span className="zr-zone-answer">→ {p.kollokat}</span>
                 )}
 
-                {revealed && (
-                  <button
-                    className="zr-beleg-btn"
-                    onClick={e => { e.stopPropagation(); loadZrBelege(p) }}
-                  >
-                    {belegOpen ? 'Belege ▲' : 'Belege ▼'}
-                  </button>
-                )}
               </div>
 
               {belegOpen && (
@@ -404,15 +398,23 @@ export default function Zeitreise({ data, onBack, onFinish, savedResult }) {
           {/* Bubble-Chart – SVG, kein externes Package */}
           <ZrBubbleChart paare={paare} perioden={data.perioden} placements={placements} lemma={data.lemma} />
 
-          <p className="zr-results-info">
-            Kollokatoren ({Math.min(...paare.map(p => Number(p.jahrzehnt)))}–{Math.max(...paare.map(p => Number(p.jahrzehnt)))})
-            · Auswahl nach temporaler Distinktivität
-          </p>
-          <a
-            className="extern-link"
-            href={`https://de.wiktionary.org/wiki/${encodeURIComponent(data.lemma)}`}
-            target="_blank" rel="noopener noreferrer"
-          >Mehr über „{data.lemma}" auf Wiktionary ↗</a>
+          <div className="wortprofil-card">
+            <div className="wortprofil-header">
+              <div className="wortprofil-title-row">
+                <p className="wortprofil-title">Wortprofil · {data.lemma}</p>
+                <a
+                  className="extern-link"
+                  href={`https://de.wiktionary.org/wiki/${encodeURIComponent(data.lemma)}`}
+                  target="_blank" rel="noopener noreferrer"
+                  aria-label={`Mehr über „${data.lemma}" auf Wiktionary erfahren`}
+                >Mehr erfahren auf Wiktionary ↗</a>
+              </div>
+            </div>
+            <p className="zr-results-info">
+              Auswahl nach temporaler Distinktivität ·{' '}
+              <a href="/ueber.html#korpora" className="intern-link">Verwendete Korpora ↗</a>
+            </p>
+          </div>
           {zrHistory.length > 0 && (
             <div className="history-strip">
               <span className="history-label">Dein Verlauf · Zeitreise</span>
@@ -430,7 +432,6 @@ export default function Zeitreise({ data, onBack, onFinish, savedResult }) {
           <button className="btn-primary btn-full" onClick={onBack}>
             Zur Startseite
           </button>
-          <p className="quelle">Kollokationsdaten: Eigenes Wortprofil, berechnet aus freien deutschsprachigen Korpora (CC BY-SA).</p>
         </div>
       )}
     </div>

@@ -146,8 +146,6 @@ export default function Results({ lemma, roundScores, onRestart, onToSelection }
         </button>
       </div>
 
-      <p className="quelle">Kollokationsdaten: Eigenes Wortprofil, berechnet aus freien deutschsprachigen Korpora (CC BY-SA).</p>
-
       {kollHistory.length > 0 && (
         <div className="history-strip">
           <span className="history-label">Dein Verlauf · Kollokationen</span>

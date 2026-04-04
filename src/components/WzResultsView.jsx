@@ -12,7 +12,7 @@ export function computeScore(zoneA, zoneB, zuordnungMap) {
 }
 
 /** Ergebnisansicht (nach Spielen oder beim Revisit) */
-export default function WzResultsView({ data, zoneA, zoneB, onBack }) {
+export default function WzResultsView({ data, zoneA, zoneB, onBack, ipaA, ipaB }) {
   const zuordnungMap = Object.fromEntries(data.kollokatoren.map(k => [k.wort, k.zuordnung]))
   const score  = computeScore(zoneA, zoneB, zuordnungMap)
   const medal  = getMedal(score, 10)
@@ -46,19 +46,29 @@ export default function WzResultsView({ data, zoneA, zoneB, onBack }) {
 
   return (
     <div className="screen wz-screen">
-      <button className="back-btn" onClick={onBack}>← Zurück</button>
+      <button className="back-btn" onClick={onBack}><span className="back-btn-chevron">‹</span>Zurück</button>
       <header className="wz-header">
         <span className="wz-badge">Wort-Zwilling</span>
-        <h1 className="wz-title">{data.wortA} · {data.wortB}</h1>
-      </header>
-
-      <div className="wz-result-banner">
-        <span className="wz-result-medal">{medal.emoji}</span>
-        <div>
-          <p className="wz-result-score">{score} / 10 richtig</p>
-          <p className="wz-result-label">{medal.label}</p>
+        <div className="wz-dict-pair">
+          <div className="dict-entry-header">
+            <h1 className="wz-title">{data.wortA}</h1>
+            <div className="dict-entry-meta">
+              {ipaA && <span className="lautschrift">[{ipaA}]</span>}
+              {data.pos && <span className="dict-entry-wortart">{data.pos}</span>}
+            </div>
+            {(ipaA || data.pos) && <hr className="dict-entry-rule" aria-hidden="true" />}
+          </div>
+          <span className="wz-dict-vs" aria-hidden="true">·</span>
+          <div className="dict-entry-header">
+            <h1 className="wz-title">{data.wortB}</h1>
+            <div className="dict-entry-meta">
+              {ipaB && <span className="lautschrift">[{ipaB}]</span>}
+              {data.pos && <span className="dict-entry-wortart">{data.pos}</span>}
+            </div>
+            {(ipaB || data.pos) && <hr className="dict-entry-rule" aria-hidden="true" />}
+          </div>
         </div>
-      </div>
+      </header>
 
       <div className="wz-zones">
         {[['A', data.wortA, zoneA], ['B', data.wortB, zoneB]].map(([z, label, zone]) => (
@@ -97,6 +107,14 @@ export default function WzResultsView({ data, zoneA, zoneB, onBack }) {
 
       <p className="wz-beleg-hint">Tippe auf ein Kollokat, um Beispielsätze aus dem Korpus zu sehen.</p>
 
+      <div className="wz-result-banner">
+        <span className="wz-result-medal">{medal.emoji}</span>
+        <div>
+          <p className="wz-result-score">{score} / 10 richtig</p>
+          <p className="wz-result-label">{medal.label}</p>
+        </div>
+      </div>
+
       {wzHistory.length > 0 && (
         <div className="history-strip">
           <span className="history-label">Dein Verlauf · Wort-Zwilling</span>
@@ -112,9 +130,8 @@ export default function WzResultsView({ data, zoneA, zoneB, onBack }) {
       )}
 
       <button className="btn-primary btn-full" onClick={onBack}>
-        Zurück zur Übersicht
+        Zur Startseite
       </button>
-      <p className="quelle">Kollokationsdaten: Eigenes Wortprofil, berechnet aus freien deutschsprachigen Korpora (CC BY-SA).</p>
     </div>
   )
 }
