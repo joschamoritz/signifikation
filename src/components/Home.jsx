@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { getDailyMedal } from '../utils/gameLogic'
 import DayComplete from './DayComplete'
 import '../test.css'
@@ -16,9 +16,12 @@ export default function Home({
   wortzwilling = null, wortzwillingError = false, onRetryWortzwilling,
   wzPlayed = null, onPlayWortzwilling, onViewWortzwilling,
 }) {
-  const [infoOpen,       setInfoOpen]       = useState(false)
-  const [copied,         setCopied]         = useState(false)
+  const [infoOpen,        setInfoOpen]        = useState(false)
+  const [copied,          setCopied]          = useState(false)
   const [showDayComplete, setShowDayComplete] = useState(false)
+  const [activeCard,      setActiveCard]      = useState(0)
+
+  const entriesRef = useRef(null)
 
   const streak     = computeStreak()
   const today      = new Date()
@@ -39,6 +42,50 @@ export default function Home({
       setShowDayComplete(true)
     }
   }, [allThreePlayed])
+
+  const scrollToCard = useCallback((index) => {
+    const items = entriesRef.current?.querySelectorAll('.test-entry')
+    items?.[index]?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }, [])
+
+  // IntersectionObserver: aktive Karte tracken (nur mobil)
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 699px)')
+    if (!mq.matches) return
+    const container = entriesRef.current
+    if (!container) return
+    const items = container.querySelectorAll('.test-entry')
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting && entry.intersectionRatio >= 0.5) {
+            setActiveCard(Array.from(items).indexOf(entry.target))
+          }
+        })
+      },
+      { root: container, threshold: 0.5 }
+    )
+    items.forEach(item => observer.observe(item))
+    return () => observer.disconnect()
+  }, [])
+
+  // inert auf nicht-aktiven Karten setzen (nur mobil)
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 699px)')
+    if (!mq.matches) return
+    const items = entriesRef.current?.querySelectorAll('.test-entry')
+    items?.forEach((item, i) => {
+      if (i === activeCard) item.removeAttribute('inert')
+      else item.setAttribute('inert', '')
+    })
+  }, [activeCard])
+
+  // Pfeiltasten-Navigation (nur mobil)
+  const handleSnapKeyDown = useCallback((e) => {
+    if (!window.matchMedia('(max-width: 699px)').matches) return
+    if (e.key === 'ArrowDown') scrollToCard(Math.min(activeCard + 1, 3))
+    if (e.key === 'ArrowUp')   scrollToCard(Math.max(activeCard - 1, 0))
+  }, [activeCard, scrollToCard])
 
   async function shareResult() {
     const text = buildShareText(playedGames, zrPlayed, wzPlayed, streak)
@@ -77,6 +124,11 @@ export default function Home({
               {`${WEEKDAYS[today.getDay()]}, ${today.getDate()}. ${MONTHS[today.getMonth()]} ${today.getFullYear()}`}
             </time>
           </p>
+          {streak > 0 && (
+            <span className="test-title-streak" aria-label={`${streak} Tage Streak`}>
+              🔥 {streak}
+            </span>
+          )}
         </header>
 
         {/* ── Streak ───────────────────────────────────────── */}
@@ -108,7 +160,12 @@ export default function Home({
         <p className="test-section-label" aria-hidden="true">Spielmodi</p>
 
         <main>
-          <ol className="test-entries" aria-label="Spielmodi">
+          <ol
+            className="test-entries"
+            aria-label="Spielmodi"
+            ref={entriesRef}
+            onKeyDown={handleSnapKeyDown}
+          >
 
             {/* ── ① Kollokationen ─────────────────────────── */}
             <li className={`test-entry test-drop-cap${allPlayed ? ' test-entry--done' : ''}`}>
@@ -315,6 +372,39 @@ export default function Home({
 
           </ol>
         </main>
+
+        {/* ── Snap-Dots (nur mobil) ────────────────────────── */}
+        <div className="snap-dots" role="tablist" aria-label="Spielmodus-Navigation">
+          {['Kollokationen', 'Zeitreise', 'Wort-Zwilling', 'Demnächst'].map((label, i) => (
+            <button
+              key={i}
+              className={`snap-dot${activeCard === i ? ' snap-dot--active' : ''}`}
+              role="tab"
+              aria-selected={activeCard === i}
+              aria-label={label}
+              onClick={() => scrollToCard(i)}
+            >·</button>
+          ))}
+        </div>
+
+        {/* ── Kompakter Mobile-Footer (nur mobil) ──────────── */}
+        <div className="snap-footer">
+          {hasPlayed && (
+            <button
+              className={`btn-share snap-share-btn${copied ? ' btn-share--copied' : ''}`}
+              onClick={shareResult}
+              aria-label="Ergebnis teilen"
+            >
+              {copied ? '✓' : '↗ Teilen'}
+            </button>
+          )}
+          <nav className="snap-footer-links" aria-label="Rechtliche Links">
+            <a href="/ueber.html">Über</a>
+            <a href="/impressum.html">Impressum</a>
+            <a href="/datenschutz.html">Datenschutz</a>
+          </nav>
+          <span className="snap-footer-version">v{__APP_VERSION__}</span>
+        </div>
 
         {/* ── Was ist eine Kollokation? ─────────────────────── */}
         <section className="test-footnote" aria-label="Anmerkung: Was ist eine Kollokation?">
