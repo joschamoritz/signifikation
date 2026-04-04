@@ -9,7 +9,7 @@ Tauscht Admin-Key gegen Session-Token.
 
 **Request:**
 ```json
-{ "key": "waz6@8mliSIG" }
+{ "key": "<ADMIN_KEY>" }
 ```
 
 **Response:**
@@ -186,8 +186,13 @@ Spielstatistiken der letzten N Tage.
 
 ---
 
-### GET /admin/feedback
-Alle eingereichten Feedback-Einträge.
+### POST /admin/wiktionary-backfill
+Holt IPA + Definitionen aus Wiktionary für alle bestehenden Lemmata nach (einmalig nach Migration ausführen).
+
+**Response:**
+```json
+{ "ok": true, "updated": 42, "skipped": 8 }
+```
 
 ---
 
