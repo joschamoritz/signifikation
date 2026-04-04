@@ -1,4 +1,5 @@
 import { lsGet, lsParse } from './storage'
+import { getMedal } from './gameLogic'
 
 export const WEEKDAYS = ['Sonntag','Montag','Dienstag','Mittwoch','Donnerstag','Freitag','Samstag']
 export const MONTHS   = ['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember']
@@ -54,8 +55,8 @@ export function buildShareText(playedGames, zrPlayed, wzPlayed, streak) {
   if (playedGames.length > 0) {
     const kollTotal = playedGames.reduce((s, g) => s + g.total, 0)
     const kollMax   = playedGames.length * 10
-    const kollMedal = playedGames[playedGames.length - 1]?.medal?.emoji ?? ''
-    lines.push(`K  ${blocks(kollTotal, kollMax)}  ${kollTotal}/${kollMax}  ${kollMedal}`)
+    const kollMedal = getMedal(kollTotal, kollMax)
+    lines.push(`K  ${blocks(kollTotal, kollMax)}  ${kollTotal}/${kollMax}  ${kollMedal.emoji}`)
   }
   if (zrPlayed) {
     const zrMax = zrPlayed.max ?? 20
