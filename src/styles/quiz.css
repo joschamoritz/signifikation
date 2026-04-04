@@ -398,6 +398,24 @@
   color: var(--muted);
   margin: 0;
 }
+.results-definitionen {
+  width: 100%;
+  border-top: 1px solid var(--border);
+  padding-top: 10px;
+  margin-top: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  text-align: left;
+}
+.results-definition-item {
+  font-family: var(--font-serif);
+  font-size: 0.85rem;
+  font-style: italic;
+  color: var(--muted);
+  line-height: 1.55;
+  margin: 0;
+}
 
 /* Score-Banner (unten, einheitlich mit Zeitreise) */
 .results-score-banner {

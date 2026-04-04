@@ -24,9 +24,9 @@ export default function Results({ lemma, roundScores, onRestart, onToSelection }
   const kollHistory = getKollHistory()
   const total      = roundScores.reduce((a, b) => a + b, 0)
 
-  const [ipa, setIpa] = useState('')
+  const [ipa, setIpa] = useState(lemma.ipa || '')
   useEffect(() => {
-    if (!lemma?.lemma) return
+    if (lemma.ipa || !lemma?.lemma) return   // gespeicherte IPA vorhanden → kein Fetch nötig
     fetch(`${API}/ipa?q=${encodeURIComponent(lemma.lemma)}`)
       .then(r => r.ok ? r.json() : null)
       .then(d => { if (Array.isArray(d) && d[0]?.ipa) setIpa(d[0].ipa) })
@@ -50,6 +50,16 @@ export default function Results({ lemma, roundScores, onRestart, onToSelection }
         )}
         {lemma.wortart && (
           <p className="results-wortart">{lemma.wortart}</p>
+        )}
+        {(lemma.definitionen?.length > 0 || lemma.definition) && (
+          <div className="results-definitionen">
+            {(lemma.definitionen?.length > 0
+              ? lemma.definitionen
+              : [lemma.definition]
+            ).map((d, i) => (
+              <p key={i} className="results-definition-item">{d}</p>
+            ))}
+          </div>
         )}
         {lemma.notiz && (
           <div className="lemma-notiz results-notiz">

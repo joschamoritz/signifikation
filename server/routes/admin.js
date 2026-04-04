@@ -3,6 +3,7 @@ import { fileURLToPath } from 'url'
 import { dirname, join }  from 'path'
 import { createWriteStream, existsSync, renameSync, unlinkSync } from 'fs'
 import { fetchLemma, fetchBonusQuestion, fetchRelation, fetchZeitreise, fetchZeitreiseAnalyze, POS_ROUNDS } from '../wortprofil.js'
+import { fetchWiktionary } from '../wiktionary.js'
 import { fetchWortZwilling } from '../wortzwilling.js'
 import { load, loadReadOnly, save, loadZeitreise, loadWortZwilling, loadStats, getLemmataIndex, getCacheMetrics, DATA } from '../store.js'
 import { getCacheMetrics as getQueryCacheMetrics, clearCache as clearQueryCache } from '../query-cache.js'
@@ -168,6 +169,11 @@ router.post('/admin/tag', adminLimiter, requireAuth, validate(adminTagSchema), a
       entry.link        = links[i]        || ''
       entry.definition  = definitionen[i] || ''
       entry.bonusFrage  = await fetchBonusQuestion(wort, pos).catch(() => null)
+      // Wiktionary: IPA + Bedeutungen automatisch holen und lokal speichern
+      logger.info(`Lade Wiktionary-Daten für „${wort}" …`)
+      const wikt        = await fetchWiktionary(wort).catch(() => ({ ipa: '', definitionen: [] }))
+      entry.ipa         = wikt.ipa
+      entry.definitionen = wikt.definitionen
       // Direkter Index-Lookup statt findIndex
       const { byId } = getLemmataIndex()
       if (byId.has(entry.id)) {
@@ -238,6 +244,25 @@ router.post('/admin/tag', adminLimiter, requireAuth, validate(adminTagSchema), a
   } catch (err) {
     serverError(res, err)
   }
+})
+
+/** POST /admin/wiktionary-backfill – IPA + Definitionen für alle bestehenden Lemmata nachholen */
+router.post('/admin/wiktionary-backfill', adminLimiter, requireAuth, async (req, res) => {
+  try {
+    const lemmataDB = load('lemmata.json')
+    let updated = 0
+    let skipped = 0
+    for (const entry of lemmataDB) {
+      if (entry.ipa && entry.definitionen?.length) { skipped++; continue }
+      const wikt = await fetchWiktionary(entry.lemma).catch(() => ({ ipa: '', definitionen: [] }))
+      entry.ipa         = wikt.ipa
+      entry.definitionen = wikt.definitionen
+      updated++
+    }
+    await save('lemmata.json', lemmataDB)
+    logger.info(`Wiktionary-Backfill: ${updated} aktualisiert, ${skipped} bereits vorhanden`)
+    res.json({ ok: true, updated, skipped })
+  } catch (err) { adminError(res, err) }
 })
 
 /** GET /admin/kalender – alle Einträge (inkl. Zeitreise- und Wort-Zwilling-Status) */

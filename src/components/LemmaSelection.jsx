@@ -4,16 +4,24 @@ import { API } from '../config'
 
 export default function LemmaSelection({ lemmata, playedIds = [], onSelect, onViewResult, onBack }) {
   const [closedNotiz, setClosedNotiz] = useState(() => new Set(lemmata.map(l => l.id)))
-  const [ipaMap, setIpaMap] = useState({})
-  const [ipaLoading, setIpaLoading] = useState(new Set(lemmata.map(l => l.lemma)))
+  // Lemmata mit gespeicherter IPA direkt ins Map laden; Rest per API nachholen
+  const [ipaMap, setIpaMap] = useState(() =>
+    Object.fromEntries(lemmata.filter(l => l.ipa).map(l => [l.lemma, l.ipa]))
+  )
+  const [ipaLoading, setIpaLoading] = useState(
+    () => new Set(lemmata.filter(l => !l.ipa).map(l => l.lemma))
+  )
 
   useEffect(() => {
+    const toFetch = lemmata.filter(l => !l.ipa)
+    if (!toFetch.length) return
+
     const controller = new AbortController()
     const { signal } = controller
 
-    Promise.all(lemmata.map(async l => {
+    Promise.all(toFetch.map(async l => {
       try {
-        const r = await fetch(`${API}/ipa?q=${encodeURIComponent(l.lemma)}`, { signal })
+        const r    = await fetch(`${API}/ipa?q=${encodeURIComponent(l.lemma)}`, { signal })
         const data = await r.json()
         if (data[0]?.ipa) setIpaMap(m => ({ ...m, [l.lemma]: data[0].ipa }))
       } catch (err) {
@@ -55,8 +63,10 @@ export default function LemmaSelection({ lemmata, playedIds = [], onSelect, onVi
                     }
                     <span className="lemma-wortart-abbrev">{lemma.wortart}</span>
                   </div>
-                  {lemma.definition && (
-                    <span className="lemma-definition">{lemma.definition}</span>
+                  {(lemma.definitionen?.[0] || lemma.definition) && (
+                    <span className="lemma-definition">
+                      {lemma.definitionen?.[0] || lemma.definition}
+                    </span>
                   )}
                 </div>
                 <span className="lemma-arrow">{played ? '›' : '›'}</span>
