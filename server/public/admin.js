@@ -1,5 +1,3 @@
-let TOKEN = sessionStorage.getItem('admin_token') || ''
-
 // ── XSS-Schutz ───────────────────────────────────────────
 function esc(s) {
   return String(s ?? '')
@@ -27,9 +25,6 @@ async function doLogin() {
       body: JSON.stringify({ key: candidate }),
     })
     if (r.ok) {
-      const { token } = await r.json()
-      sessionStorage.setItem('admin_token', token)
-      TOKEN = token
       document.getElementById('login-overlay').classList.add('hidden')
       document.getElementById('main-container').style.display = 'flex'
       initDashboard()
@@ -47,7 +42,7 @@ async function doLogin() {
 }
 
 async function downloadBackup() {
-  const r = await fetch('/admin/backup', { headers: { 'x-admin-token': TOKEN } })
+  const r = await fetch('/admin/backup')
   if (!r.ok) { alert('Backup fehlgeschlagen.'); return }
   const blob = await r.blob()
   const url  = URL.createObjectURL(blob)
@@ -58,27 +53,21 @@ async function downloadBackup() {
   URL.revokeObjectURL(url)
 }
 
-function doLogout() {
-  sessionStorage.removeItem('admin_token')
-  TOKEN = ''
+async function doLogout() {
+  await fetch('/admin/logout', { method: 'POST', headers: { 'Content-Type': 'application/json' } }).catch(() => {})
   document.getElementById('main-container').style.display = 'none'
   document.getElementById('login-overlay').classList.remove('hidden')
   document.getElementById('login-key').value = ''
 }
 
-// ── Beim Laden: Token prüfen ──────────────────────────────
-if (TOKEN) {
-  fetch('/admin/kalender', { headers: { 'x-admin-token': TOKEN } }).then(r => {
-    if (r.ok) {
-      document.getElementById('login-overlay').classList.add('hidden')
-      document.getElementById('main-container').style.display = 'flex'
-      initDashboard()
-    } else {
-      sessionStorage.removeItem('admin_token')
-      TOKEN = ''
-    }
-  }).catch(() => { /* Netzwerkfehler → Login zeigen */ })
-}
+// ── Beim Laden: Cookie-Session prüfen ────────────────────
+fetch('/admin/kalender').then(r => {
+  if (r.ok) {
+    document.getElementById('login-overlay').classList.add('hidden')
+    document.getElementById('main-container').style.display = 'flex'
+    initDashboard()
+  }
+}).catch(() => { /* Netzwerkfehler → Login zeigen */ })
 
 function initDashboard() {
   renderCalendar()
@@ -103,9 +92,7 @@ function initWiktionaryAutofill() {
         // Nur autofüllen wenn das Feld noch leer ist
         if (dInput.value.trim()) return
         try {
-          const r = await fetch(`/admin/wiktionary-def?q=${encodeURIComponent(word)}`, {
-            headers: { 'x-admin-token': TOKEN },
-          })
+          const r = await fetch(`/admin/wiktionary-def?q=${encodeURIComponent(word)}`)
           const { definition } = await r.json()
           if (definition && !dInput.value.trim()) {
             dInput.value = definition
@@ -186,7 +173,7 @@ async function loadFeedback() {
   const out = document.getElementById('feedback-list')
   out.textContent = 'Lade …'
   try {
-    const r = await fetch('/admin/feedback', { headers: { 'x-admin-token': TOKEN } })
+    const r = await fetch('/admin/feedback', {})
     const list = await r.json()
     if (!list.length) { out.textContent = 'Noch kein Feedback vorhanden.'; return }
     out.innerHTML = list.map(f => {
@@ -311,7 +298,7 @@ async function saveTag() {
   try {
     const res = await fetch('/admin/tag', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-admin-token': TOKEN },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         datum: mmdd, woerter: [w1, w2, w3], positionen: [p1, p2, p3],
         notizen: [n1, n2, n3], links: [l1, l2, l3],
@@ -351,7 +338,7 @@ async function saveTag() {
 }
 
 async function editTag(datum) {
-  const res  = await fetch(`/admin/tag/${datum}`, { headers: { 'x-admin-token': TOKEN } })
+  const res  = await fetch(`/admin/tag/${datum}`, {})
   const data = await res.json()
   if (!res.ok) return alert(`Fehler: ${data.error}`)
   const year = new Date().getFullYear()
@@ -384,7 +371,7 @@ async function editTag(datum) {
 
 async function loadKalender() {
   try {
-    const res  = await fetch('/admin/kalender', { headers: { 'x-admin-token': TOKEN } })
+    const res  = await fetch('/admin/kalender', {})
     kalenderData = await res.json()
     renderCalendar()
   } catch {
@@ -402,7 +389,7 @@ async function analyzeZeitreiseViz() {
   const out = document.getElementById('viz-output')
   out.innerHTML = '<div class="status loading">Analysiere…</div>'
   try {
-    const res  = await fetch(`/admin/analyze-zeitreise?q=${encodeURIComponent(word)}`, { headers: { 'x-admin-token': TOKEN } })
+    const res  = await fetch(`/admin/analyze-zeitreise?q=${encodeURIComponent(word)}`, {})
     const data = await res.json()
     if (!res.ok) { out.innerHTML = `<div class="status error">Fehler: ${esc(data.error)}</div>`; return }
     renderViz(data, out)
@@ -513,7 +500,7 @@ async function analyzeKollokation() {
   if (!lemma) return
   out.innerHTML = '<div class="status loading">Analysiere …</div>'
   try {
-    const res  = await fetch(`/admin/analyze-kollokation?q=${encodeURIComponent(lemma)}&pos=${encodeURIComponent(pos)}`, { headers: { 'x-admin-token': TOKEN } })
+    const res  = await fetch(`/admin/analyze-kollokation?q=${encodeURIComponent(lemma)}&pos=${encodeURIComponent(pos)}`, {})
     const data = await res.json()
     if (!res.ok) { out.innerHTML = `<div class="status error">Fehler: ${esc(data.error)}</div>`; return }
     renderKollAnalyse(data, out)
@@ -575,7 +562,7 @@ async function loadStats() {
   const out = document.getElementById('stats-output')
   out.innerHTML = '<div style="color:var(--muted);font-size:0.85rem">Lade…</div>'
   try {
-    const r    = await fetch('/admin/stats?days=30', { headers: { 'x-admin-token': TOKEN } })
+    const r    = await fetch('/admin/stats?days=30', {})
     const data = await r.json()
     if (!r.ok) throw new Error(data.error || `HTTP ${r.status}`)
     renderStats(data, out)
@@ -684,7 +671,7 @@ async function analyzeWortZwilling() {
   if (!wortA || !wortB) return
   out.innerHTML = '<div class="status loading">Analysiere …</div>'
   try {
-    const res  = await fetch(`/admin/analyze-wortzwilling?a=${encodeURIComponent(wortA)}&b=${encodeURIComponent(wortB)}&pos=${encodeURIComponent(pos)}`, { headers: { 'x-admin-token': TOKEN } })
+    const res  = await fetch(`/admin/analyze-wortzwilling?a=${encodeURIComponent(wortA)}&b=${encodeURIComponent(wortB)}&pos=${encodeURIComponent(pos)}`, {})
     const data = await res.json()
     if (!res.ok) { out.innerHTML = `<div class="status error">Fehler: ${esc(data.error)}</div>`; return }
     renderWZAnalyse(data, out)

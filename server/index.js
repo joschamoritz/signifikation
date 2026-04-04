@@ -2,6 +2,7 @@ import express      from 'express'
 import compression  from 'compression'
 import helmet       from 'helmet'
 import cors         from 'cors'
+import cookieParser from 'cookie-parser'
 import { existsSync } from 'fs'
 import { fileURLToPath } from 'url'
 import { dirname, join }  from 'path'
@@ -47,7 +48,9 @@ app.use(helmet({
 // ── CORS ─────────────────────────────────────────────────────
 const ALLOWED_ORIGINS  = process.env.ALLOWED_ORIGINS
   ? process.env.ALLOWED_ORIGINS.split(',').map(s => s.trim())
-  : ['http://localhost:5173', 'http://localhost:3001']
+  : IS_PROD
+    ? ['https://signifikation.de']
+    : ['http://localhost:5173', 'http://localhost:3001']
 const CAPACITOR_ORIGINS = ['capacitor://localhost', 'http://localhost']
 
 app.use(cors({
@@ -60,6 +63,7 @@ app.use(cors({
   credentials: false,
 }))
 
+app.use(cookieParser())
 app.use(express.json())
 
 // ── Correlation-ID ────────────────────────────────────────────

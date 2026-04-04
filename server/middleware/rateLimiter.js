@@ -98,6 +98,16 @@ export const feedbackLimiter = rateLimit({
   message: { error: 'Zu viele Feedback-Anfragen, bitte kurz warten.' },
 })
 
+// Striktes Limit nur für Login-Endpunkt: 10 Versuche / 15 Minuten
+const loginStore = new CleanupStore(15 * 60_000)
+export const loginLimiter = rateLimit({
+  windowMs: 15 * 60_000, max: 10,
+  store: loginStore,
+  standardHeaders: true, legacyHeaders: false,
+  message: { error: 'Zu viele Anmeldeversuche. Bitte 15 Minuten warten.' },
+  skipSuccessfulRequests: true,
+})
+
 export const uploadLimiter = rateLimit({
   windowMs: 10_000, max: 100,  // 100 Requests pro 10 Sekunden fuer Upload
   standardHeaders: true, legacyHeaders: false,

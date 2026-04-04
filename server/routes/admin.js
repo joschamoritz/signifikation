@@ -6,7 +6,7 @@ import { fetchLemma, fetchBonusQuestion, fetchRelation, fetchZeitreise, fetchZei
 import { fetchWortZwilling } from '../wortzwilling.js'
 import { load, loadReadOnly, save, loadZeitreise, loadWortZwilling, loadStats, getLemmataIndex, getCacheMetrics, DATA } from '../store.js'
 import { getCacheMetrics as getQueryCacheMetrics, clearCache as clearQueryCache } from '../query-cache.js'
-import { adminLimiter, uploadLimiter } from '../middleware/rateLimiter.js'
+import { adminLimiter, loginLimiter, uploadLimiter } from '../middleware/rateLimiter.js'
 import { requireAuth, adminAuth, adminLogout, adminError, serverError } from '../middleware/auth.js'
 import { validate, qQuerySchema, adminTagSchema, analyzeKollQuerySchema, analyzeWZQuerySchema, analyzeZeitQuerySchema } from '../middleware/validate.js'
 import { auditCreate, auditUpdate, auditDelete, getAuditLog } from '../audit.js'
@@ -15,8 +15,8 @@ import logger from '../logger.js'
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const router = express.Router()
 
-/** POST /admin/auth – tauscht Admin-Key gegen Session-Token */
-router.post('/admin/auth', adminLimiter, adminAuth)
+/** POST /admin/auth – tauscht Admin-Key gegen Session-Cookie */
+router.post('/admin/auth', loginLimiter, adminAuth)
 
 /** POST /admin/logout – Session beenden */
 router.post('/admin/logout', adminLimiter, requireAuth, adminLogout)

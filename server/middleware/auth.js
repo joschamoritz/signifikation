@@ -40,7 +40,7 @@ function sessionValid(token) {
   return true
 }
 
-/** POST /admin/auth – tauscht Admin-Key gegen Session-Token */
+/** POST /admin/auth – tauscht Admin-Key gegen httpOnly-Session-Cookie */
 export function adminAuth(req, res) {
   const { key } = req.body || {}
   if (!key || !ADMIN_KEY) {
@@ -48,7 +48,6 @@ export function adminAuth(req, res) {
     return res.status(401).json({ error: 'Falscher Admin-Key' })
   }
   // Constant-Time-Vergleich gegen Timing-Attacks
-  // Trimme beide Keys um Whitespace-Probleme zu vermeiden
   const receivedKey = String(key).trim()
   try {
     if (!timingSafeEqual(Buffer.from(receivedKey), Buffer.from(ADMIN_KEY))) {
@@ -59,18 +58,25 @@ export function adminAuth(req, res) {
     logger.warn({ ip: req.ip }, 'Admin-Login fehlgeschlagen (Längen-Mismatch)')
     return res.status(401).json({ error: 'Falscher Admin-Key' })
   }
-  const session = createSession()
+  const { token, expiresAt } = createSession()
+  res.cookie('admin_token', token, {
+    httpOnly: true,
+    secure: IS_PROD,
+    sameSite: 'strict',
+    maxAge: SESSION_TTL_MS,
+  })
   logger.info({ ip: req.ip }, 'Admin eingeloggt')
-  res.json(session)
+  res.json({ ok: true, expiresAt })
 }
 
-/** POST /admin/logout – Session beenden */
+/** POST /admin/logout – Session beenden + Cookie löschen */
 export function adminLogout(req, res) {
-  const token = req.headers['x-admin-token']
+  const token = req.cookies?.admin_token
   if (token) {
     sessions.delete(token)
     logger.info('Admin ausgeloggt')
   }
+  res.clearCookie('admin_token', { httpOnly: true, secure: IS_PROD, sameSite: 'strict' })
   res.json({ ok: true })
 }
 
@@ -88,9 +94,9 @@ export function csrfProtect(req, res, next) {
   next()
 }
 
-/** Middleware: prüft x-admin-token Header */
+/** Middleware: prüft httpOnly-Cookie admin_token */
 export function requireAuth(req, res, next) {
-  const token = req.headers['x-admin-token']
+  const token = req.cookies?.admin_token
   if (token && sessionValid(token)) return next()
   res.status(401).json({ error: 'Nicht autorisiert' })
 }
