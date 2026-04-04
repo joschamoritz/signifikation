@@ -398,9 +398,9 @@ export default function Home({
             </button>
           )}
           <nav className="snap-footer-links" aria-label="Rechtliche Links">
-            <a href="/ueber.html">Über</a>
-            <a href="/impressum.html">Impressum</a>
-            <a href="/datenschutz.html">Datenschutz</a>
+            <a href="/ueber.html" target="_blank" rel="noopener">Über</a>
+            <a href="/impressum.html" target="_blank" rel="noopener">Impressum</a>
+            <a href="/datenschutz.html" target="_blank" rel="noopener">Datenschutz</a>
           </nav>
           <span className="snap-footer-version">v{__APP_VERSION__}</span>
         </div>

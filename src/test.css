@@ -827,26 +827,8 @@
   /* Großes Streak-Block ausblenden */
   .test-streak { display: none; }
 
-  /* ── Raster (kompakt) ──────────────────────────── */
-  .test-raster {
-    flex-shrink: 0;
-    padding: 7px 20px;
-    margin: 0;
-    border-bottom: 1px solid var(--t-rule-lt);
-    flex-wrap: nowrap;
-    overflow: hidden;
-  }
-  .test-raster-words {
-    flex: 1;
-    justify-content: flex-start;
-    flex-wrap: nowrap;
-    overflow: hidden;
-  }
-  .test-raster-word {
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
+  /* Raster auf Mobil ausblenden (nicht lesbar, Platz verschwendet) */
+  .test-raster { display: none; }
 
   /* Dekorative Trennelemente ausblenden */
   .test-rule--double,
