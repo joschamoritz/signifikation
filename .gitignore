@@ -40,6 +40,7 @@ vite.config.ts.timestamp-*
 .claude/
 .agents/
 .code-review-graph/
+memory/
 
 # Projektspezifisch
 LogoNetz.png
