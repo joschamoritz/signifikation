@@ -63,10 +63,13 @@ export default function LemmaSelection({ lemmata, playedIds = [], onSelect, onVi
                     }
                     <span className="lemma-wortart-abbrev">{lemma.wortart}</span>
                   </div>
-                  {(lemma.definitionen?.[0] || lemma.definition) && (
-                    <span className="lemma-definition">
-                      {lemma.definitionen?.[0] || lemma.definition}
-                    </span>
+                  {(lemma.definitionen?.length > 0 || lemma.definition) && (
+                    <div className="lemma-definition">
+                      {lemma.definitionen?.length > 0
+                        ? lemma.definitionen.slice(0, 3).map((d, i) => <p key={i}>{d}</p>)
+                        : <p>{lemma.definition}</p>
+                      }
+                    </div>
                   )}
                 </div>
                 <span className="lemma-arrow">{played ? '›' : '›'}</span>
