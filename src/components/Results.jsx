@@ -29,7 +29,7 @@ export default function Results({ lemma, roundScores, onRestart, onToSelection }
     if (!lemma?.lemma) return
     fetch(`${API}/ipa?q=${encodeURIComponent(lemma.lemma)}`)
       .then(r => r.ok ? r.json() : null)
-      .then(d => { if (d?.ipa) setIpa(d.ipa) })
+      .then(d => { if (Array.isArray(d) && d[0]?.ipa) setIpa(d[0].ipa) })
       .catch(() => {})
   }, [lemma?.lemma])
   const hasBonus   = roundScores.length >= 4
