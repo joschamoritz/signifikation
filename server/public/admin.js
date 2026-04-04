@@ -73,37 +73,9 @@ function initDashboard() {
   renderCalendar()
   loadStats()
   loadHealth()
-  initWiktionaryAutofill()
+
 }
 
-// ── Wiktionary-Autofill für Definitions-Felder ────────────────────────────────
-function initWiktionaryAutofill() {
-  const pairs = [['w1','d1'], ['w2','d2'], ['w3','d3']]
-  const timers = {}
-  pairs.forEach(([wId, dId]) => {
-    const wInput = document.getElementById(wId)
-    const dInput = document.getElementById(dId)
-    if (!wInput || !dInput) return
-    wInput.addEventListener('input', () => {
-      clearTimeout(timers[wId])
-      const word = wInput.value.trim()
-      if (!word) return
-      timers[wId] = setTimeout(async () => {
-        // Nur autofüllen wenn das Feld noch leer ist
-        if (dInput.value.trim()) return
-        try {
-          const r = await fetch(`/admin/wiktionary-def?q=${encodeURIComponent(word)}`)
-          const { definition } = await r.json()
-          if (definition && !dInput.value.trim()) {
-            dInput.value = definition
-            dInput.style.borderColor = '#c9a84c'
-            setTimeout(() => dInput.style.borderColor = '', 2000)
-          }
-        } catch {}
-      }, 800)
-    })
-  })
-}
 
 // ── System-Status ─────────────────────────────────────────────────────────────
 async function loadHealth() {
@@ -250,7 +222,7 @@ function changeMonth(delta) {
 
 function prefillDate(isoDate) {
   document.getElementById('datum').value = isoDate
-  ;['w1','w2','w3','n1','n2','n3','l1','l2','l3','d1','d2','d3','zr'].forEach(id => document.getElementById(id).value = '')
+  ;['w1','w2','w3','n1','n2','n3','l1','l2','l3','zr'].forEach(id => document.getElementById(id).value = '')
   document.getElementById('p1').value    = 'Substantiv'
   document.getElementById('p2').value    = 'Verb'
   document.getElementById('p3').value    = 'Adjektiv'
@@ -302,11 +274,7 @@ async function saveTag() {
       body: JSON.stringify({
         datum: mmdd, woerter: [w1, w2, w3], positionen: [p1, p2, p3],
         notizen: [n1, n2, n3], links: [l1, l2, l3],
-        definitionen: [
-          document.getElementById('d1').value.trim(),
-          document.getElementById('d2').value.trim(),
-          document.getElementById('d3').value.trim(),
-        ],
+        definitionen: ['', '', ''],
         zeitreise_lemma:   zr,
         zeitreise_wortart: document.getElementById('zr-wortart').value,
         zwilling_paar: wza && wzb ? [wza, wzb] : null,
@@ -355,9 +323,7 @@ async function editTag(datum) {
   document.getElementById('l1').value = data.links[0] || ''
   document.getElementById('l2').value = data.links[1] || ''
   document.getElementById('l3').value = data.links[2] || ''
-  document.getElementById('d1').value = data.definitionen?.[0] || ''
-  document.getElementById('d2').value = data.definitionen?.[1] || ''
-  document.getElementById('d3').value = data.definitionen?.[2] || ''
+
   document.getElementById('zr').value          = data.zeitreise_lemma   || ''
   document.getElementById('zr-wortart').value  = data.zeitreise_wortart || 'Substantiv'
   document.getElementById('wza').value   = data.zwilling_paar?.[0] || ''
