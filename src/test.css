@@ -756,6 +756,7 @@
   .snap-dots,
   .snap-footer,
   .snap-nav,
+  .snap-extras-ornament,
   .test-title-streak { display: none; }
 }
 
@@ -956,8 +957,24 @@
     white-space: nowrap;
   }
 
-  /* Desktop-Footer und Info-Sektion ausblenden */
-  .test-footnote,
+  /* Desktop-Footer und Teilen-Sektion ausblenden */
   .test-share-row,
   .test-colophon { display: none; }
+
+  /* Snap-Extras: Ornament + Anmerkung unterhalb der Karten */
+  .snap-extras {
+    flex-shrink: 0;
+    overflow-y: auto;
+    border-top: 1px solid var(--t-rule-lt);
+    background: var(--t-bg);
+    padding: 0 20px;
+  }
+  .snap-extras-ornament {
+    display: block;
+    text-align: center;
+    font-size: 0.9rem;
+    color: var(--t-accent);
+    letter-spacing: 0.4em;
+    padding: 8px 0 4px;
+  }
 }

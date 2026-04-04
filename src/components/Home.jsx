@@ -373,6 +373,60 @@ export default function Home({
           </ol>
         </main>
 
+        {/* ── Snap-Extras: Ornament + Anmerkung (mobil unter Karten) */}
+        <div className="snap-extras">
+          <span className="snap-extras-ornament" aria-hidden="true">
+            {[playedGames.length > 0, !!zrPlayed, !!wzPlayed].map((played, i) =>
+              played ? '✦' : '·'
+            ).join(' ')}
+          </span>
+
+          {/* ── Was ist eine Kollokation? ───────────────────── */}
+          <section className="test-footnote" aria-label="Anmerkung: Was ist eine Kollokation?">
+            <button
+              className="test-footnote-toggle"
+              type="button"
+              onClick={() => setInfoOpen(v => !v)}
+              aria-expanded={infoOpen}
+              aria-controls="home-kollokation-note"
+            >
+              <span className="test-footnote-label" aria-hidden="true">Anm.</span>
+              <span className="test-footnote-title">Was ist eine Kollokation?</span>
+              <span className="test-footnote-chevron" aria-hidden="true">▾</span>
+            </button>
+            <div
+              id="home-kollokation-note"
+              className={`test-footnote-body${infoOpen ? ' open' : ''}`}
+              role="region"
+            >
+              <p>
+                Kollokationen sind <strong>charakteristische syntagmatische Wortverbindungen</strong>,
+                in denen ein Element (die <strong>Basis</strong>) den anderen Bestandteil (den{' '}
+                <strong>Kollokator</strong>) semantisch selegiert. Man sagt <em>blondes Haar</em> und
+                nicht <em>gelbes Haar</em> — nicht weil Letzteres grammatisch falsch wäre, sondern
+                weil der konventionalisierte Sprachgebrauch <em>blond</em> als typischen Kollokator
+                von <em>Haar</em> fordert.<sup>1</sup>
+              </p>
+              <p>
+                Kollokationen liegen zwischen freien Wortverbindungen (<em>rotes Auto</em>) und
+                Idiomen (<em>ins Gras beißen</em>): semantisch motiviert, aber lexikalisch
+                konventionalisiert.
+              </p>
+              <p>
+                Der <strong>logDice-Wert</strong><sup>2</sup> misst die statistische Signifikanz
+                von Kookkurrenzen im Korpus — je höher der Wert, desto charakteristischer die
+                Verbindung. Die Daten stammen aus einem eigenen Wortprofil<sup>3</sup>,
+                berechnet aus mehreren Milliarden Textwörtern freier deutschsprachiger Korpora.
+              </p>
+              <ol className="test-footnote-footnotes">
+                <li>Hausmann, F.&thinsp;J. (2003): Was sind eigentlich Kollokationen? In: Steyer, K. (Hrsg.): <em>Wortverbindungen — mehr oder weniger fest</em>. de Gruyter, S.&thinsp;309–334.</li>
+                <li>Rychlý, P. (2008): A Lexicographer-Friendly Association Score. In: <em>Proceedings of RASLAN 2008</em>, S.&thinsp;6–9.</li>
+                <li>Eigenes Wortprofil, berechnet auf Basis freier deutschsprachiger Korpora (CC BY-SA), syntaktisch annotiert mit dem ZDL-Dependenzparser (BBAW).</li>
+              </ol>
+            </div>
+          </section>
+        </div>
+
         {/* ── Vertikale Badge-Navigation (nur mobil) ───────── */}
         <nav className="snap-nav" aria-label="Spielmodus-Navigation">
           {[['①','Kollokationen'],['②','Zeitreise'],['③','Wort-Zwilling'],['④','Demnächst']].map(([glyph, label], i) => (
@@ -404,51 +458,6 @@ export default function Home({
           </nav>
           <span className="snap-footer-version">v{__APP_VERSION__}</span>
         </div>
-
-        {/* ── Was ist eine Kollokation? ─────────────────────── */}
-        <section className="test-footnote" aria-label="Anmerkung: Was ist eine Kollokation?">
-          <button
-            className="test-footnote-toggle"
-            type="button"
-            onClick={() => setInfoOpen(v => !v)}
-            aria-expanded={infoOpen}
-            aria-controls="home-kollokation-note"
-          >
-            <span className="test-footnote-label" aria-hidden="true">Anm.</span>
-            <span className="test-footnote-title">Was ist eine Kollokation?</span>
-            <span className="test-footnote-chevron" aria-hidden="true">▾</span>
-          </button>
-          <div
-            id="home-kollokation-note"
-            className={`test-footnote-body${infoOpen ? ' open' : ''}`}
-            role="region"
-          >
-            <p>
-              Kollokationen sind <strong>charakteristische syntagmatische Wortverbindungen</strong>,
-              in denen ein Element (die <strong>Basis</strong>) den anderen Bestandteil (den{' '}
-              <strong>Kollokator</strong>) semantisch selegiert. Man sagt <em>blondes Haar</em> und
-              nicht <em>gelbes Haar</em> — nicht weil Letzteres grammatisch falsch wäre, sondern
-              weil der konventionalisierte Sprachgebrauch <em>blond</em> als typischen Kollokator
-              von <em>Haar</em> fordert.<sup>1</sup>
-            </p>
-            <p>
-              Kollokationen liegen zwischen freien Wortverbindungen (<em>rotes Auto</em>) und
-              Idiomen (<em>ins Gras beißen</em>): semantisch motiviert, aber lexikalisch
-              konventionalisiert.
-            </p>
-            <p>
-              Der <strong>logDice-Wert</strong><sup>2</sup> misst die statistische Signifikanz
-              von Kookkurrenzen im Korpus — je höher der Wert, desto charakteristischer die
-              Verbindung. Die Daten stammen aus einem eigenen Wortprofil<sup>3</sup>,
-              berechnet aus mehreren Milliarden Textwörtern freier deutschsprachiger Korpora.
-            </p>
-            <ol className="test-footnote-footnotes">
-              <li>Hausmann, F.&thinsp;J. (2003): Was sind eigentlich Kollokationen? In: Steyer, K. (Hrsg.): <em>Wortverbindungen — mehr oder weniger fest</em>. de Gruyter, S.&thinsp;309–334.</li>
-              <li>Rychlý, P. (2008): A Lexicographer-Friendly Association Score. In: <em>Proceedings of RASLAN 2008</em>, S.&thinsp;6–9.</li>
-              <li>Eigenes Wortprofil, berechnet auf Basis freier deutschsprachiger Korpora (CC BY-SA), syntaktisch annotiert mit dem ZDL-Dependenzparser (BBAW).</li>
-            </ol>
-          </div>
-        </section>
 
         {/* ── Teilen ───────────────────────────────────────── */}
         {hasPlayed && (
