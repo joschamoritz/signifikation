@@ -368,61 +368,70 @@
   padding-block: 32px;
 }
 
-.results-header { text-align: center }
+.results-header {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
 .lemma-played-title {
   font-family: var(--font-serif);
-  font-size: 2.2rem;
+  font-size: 2.4rem;
   font-weight: 700;
   color: var(--text);
   letter-spacing: 0.01em;
+  animation: inkFlow 200ms ease-out both;
 }
-.total-score    { font-size: 1.15rem; color: var(--primary); font-weight: 700; margin-top: 4px }
-.result-feedback { font-size: 0.9rem; color: var(--muted); margin-top: 2px }
-.lemma-played   { font-size: 0.9rem; color: var(--muted); margin-top: 2px }
+.results-ipa {
+  font-family: var(--font-serif);
+  font-size: 0.95rem;
+  font-style: italic;
+  color: var(--muted);
+  margin: 0;
+  letter-spacing: 0.02em;
+}
+.results-wortart {
+  font-family: var(--font-serif);
+  font-size: 0.9rem;
+  font-style: italic;
+  color: var(--muted);
+  margin: 0;
+}
 
-.round-scores-card {
-  background: transparent;
-  border: none;
-  border-top: 1.5px solid var(--border);
-  border-bottom: 1.5px solid var(--border);
-  border-radius: 0;
-  padding: 18px 0;
+/* Score-Banner (unten, einheitlich mit Zeitreise) */
+.results-score-banner {
   display: flex;
   flex-direction: column;
-  gap: 14px;
-}
-.score-row {
-  display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 4px;
+  border-top: 1.5px solid var(--border);
+  border-bottom: 1.5px solid var(--border);
+  padding: 16px 0;
 }
-.score-row-label {
-  font-size: 0.8rem;
+.results-score-row {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+}
+.results-score-num {
+  font-family: var(--font-serif);
+  font-size: 3rem;
+  font-weight: 800;
+  color: var(--primary);
+  line-height: 1;
+}
+.results-score-max {
+  font-size: 1rem;
   color: var(--muted);
-  width: 100px;
-  flex-shrink: 0;
 }
-.bar-track {
-  flex: 1;
-  height: 6px;
-  background: var(--surface2);
-  border-radius: 4px;
-  overflow: hidden;
+.results-medal {
+  font-family: var(--font-serif);
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--text);
+  margin: 0;
 }
-.bar-fill {
-  height: 100%;
-  background: var(--primary);
-  border-radius: 4px;
-  transition: width 0.7s cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-.score-row-value {
-  font-size: 0.85rem;
-  font-weight: 600;
-  width: 32px;
-  text-align: right;
-}
-.score-row-label--bonus { color: #92400e }
-.bar-fill--bonus { background: #d97706 }
 
 .thresholds {
   display: flex;
@@ -538,8 +547,8 @@
   .quiz-lemma-word      { font-size: 2rem; }
   .results-screen       { padding-block: 14px 20px; gap: 16px; }
   .lemma-played-title   { font-size: 1.9rem; }
-  .round-scores-card    { padding: 12px 0; gap: 10px; }
   .wortprofil-card      { padding: 12px 0; }
+  .results-score-num    { font-size: 2.5rem; }
 }
 
 /* Belege-Panel */
@@ -598,33 +607,4 @@
 }
 .wortprofil-header {
   margin-bottom: 12px;
-}
-.logdice-toggle {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  background: none;
-  border: none;
-  padding: 0;
-  font-size: 0.78rem;
-  color: var(--muted);
-  cursor: pointer;
-  margin-top: 6px;
-}
-.logdice-toggle:hover { color: var(--text) }
-.logdice-toggle:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; border-radius: 4px }
-.logdice-explanation {
-  margin-top: 8px;
-  padding: 10px 12px;
-  background: var(--bg);
-  border-radius: 6px;
-  font-size: 0.8rem;
-  color: var(--muted);
-  line-height: 1.55;
-}
-.logdice-explanation p {
-  margin: 0 0 6px;
-}
-.logdice-explanation p:last-child {
-  margin-bottom: 0;
 }

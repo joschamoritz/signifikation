@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react'
+import { useBelege } from '../hooks/useBelege'
 import { getMedal, getRundInfo } from '../utils/gameLogic'
 import { lsGet, lsParse } from '../utils/storage'
-import { useBelege } from '../hooks/useBelege'
+import { API } from '../config'
 import BelegePanel from './BelegePanel'
 
 function getKollHistory() {
@@ -21,32 +22,41 @@ function getKollHistory() {
 
 export default function Results({ lemma, roundScores, onRestart, onToSelection }) {
   const kollHistory = getKollHistory()
-  const total     = roundScores.reduce((a, b) => a + b, 0)
-  const hasBonus  = roundScores.length >= 4
-  const maxPoints = hasBonus ? 10 : 9
-  const medal     = getMedal(total, maxPoints)
+  const total      = roundScores.reduce((a, b) => a + b, 0)
 
-  const [barsVisible, setBarsVisible] = useState(false)
+  const [ipa, setIpa] = useState('')
   useEffect(() => {
-    const id = requestAnimationFrame(() => setBarsVisible(true))
-    return () => cancelAnimationFrame(id)
-  }, [])
+    if (!lemma?.lemma) return
+    fetch(`${API}/ipa?q=${encodeURIComponent(lemma.lemma)}`)
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (d?.ipa) setIpa(d.ipa) })
+      .catch(() => {})
+  }, [lemma?.lemma])
+  const hasBonus   = roundScores.length >= 4
+  const maxPoints  = hasBonus ? 10 : 9
+  const medal      = getMedal(total, maxPoints)
 
   const { openBeleg, belegeCache, belegeLoading, loadBelege } = useBelege(lemma.lemma)
 
-  const [logDiceOpen, setLogDiceOpen] = useState(false)
-
   return (
     <div className="screen results-screen">
+
+      {/* ── Kopf: Wort + Wortart + Notiz ── */}
       <header className="results-header">
+        <span className="quiz-game-badge">Kollokationen</span>
         <h1 className="lemma-played-title">{lemma.lemma}</h1>
-        <p className="total-score">{total} / {maxPoints} Punkte</p>
-        <p className="result-feedback">{medal.emoji} {medal.label}</p>
+        {ipa && (
+          <p className="results-ipa">[{ipa}]</p>
+        )}
+        {lemma.wortart && (
+          <p className="results-wortart">{lemma.wortart}</p>
+        )}
         {lemma.notiz && (
           <div className="lemma-notiz results-notiz">
             <span>{lemma.notiz}</span>
             {lemma.link && (
-              <a href={lemma.link} target="_blank" rel="noopener noreferrer" className="lemma-notiz-link"
+              <a href={lemma.link} target="_blank" rel="noopener noreferrer"
+                className="lemma-notiz-link"
                 aria-label={`Mehr über ${lemma.lemma} erfahren (öffnet externen Link)`}>
                 Mehr →
               </a>
@@ -55,27 +65,7 @@ export default function Results({ lemma, roundScores, onRestart, onToSelection }
         )}
       </header>
 
-      <div className="round-scores-card">
-        {roundScores.slice(0, 3).map((score, i) => (
-          <div key={i} className="score-row">
-            <span className="score-row-label">R{i + 1} {getRundInfo(lemma)[i]?.label}</span>
-            <div className="bar-track" role="img" aria-label={`${score} von 3 Punkten`}>
-              <div className="bar-fill" style={{ width: barsVisible ? `${(score / 3) * 100}%` : '0%' }} aria-hidden="true" />
-            </div>
-            <span className="score-row-value" aria-hidden="true">{score}/3</span>
-          </div>
-        ))}
-        {hasBonus && (
-          <div className="score-row">
-            <span className="score-row-label score-row-label--bonus">Bonus</span>
-            <div className="bar-track">
-              <div className="bar-fill bar-fill--bonus" style={{ width: barsVisible ? `${roundScores[3] * 100}%` : '0%' }} />
-            </div>
-            <span className="score-row-value">{roundScores[3]}/1</span>
-          </div>
-        )}
-      </div>
-
+      {/* ── Wortprofil ── */}
       <div className="wortprofil-card">
         <div className="wortprofil-header">
           <div className="wortprofil-title-row">
@@ -87,17 +77,6 @@ export default function Results({ lemma, roundScores, onRestart, onToSelection }
               aria-label={`Mehr über „${lemma.lemma}" auf Wiktionary erfahren (öffnet externen Link)`}
             >Mehr erfahren ↗</a>
           </div>
-          <button className="logdice-toggle" onClick={() => setLogDiceOpen(o => !o)} aria-expanded={logDiceOpen}>
-            Was bedeutet logDice?
-            <span className={`toggle-arrow ${logDiceOpen ? 'toggle-arrow--open' : ''}`} aria-hidden="true">›</span>
-          </button>
-          {logDiceOpen && (
-            <div className="logdice-explanation">
-              <p>Der <strong>logDice-Wert</strong> misst, wie stark zwei Wörter miteinander assoziiert sind. Je höher der Wert, desto typischer ist die Wortverbindung im Korpus. Der Maximalwert beträgt 14.</p>
-              <p>Grundlage: Pavel Rychlý, <em>A Lexicographer-Friendly Association Score</em> (2008).</p>
-            </div>
-          )}
-          <p className="belege-hint">Klicke auf ein Kollokat, um Beispielsätze anzuzeigen.</p>
         </div>
 
         {getRundInfo(lemma).map(({ key, label, desc }) => {
@@ -127,6 +106,7 @@ export default function Results({ lemma, roundScores, onRestart, onToSelection }
             </div>
           )
         })}
+
         {openBeleg && (
           <BelegePanel
             lemma={lemma.lemma}
@@ -137,6 +117,16 @@ export default function Results({ lemma, roundScores, onRestart, onToSelection }
         )}
       </div>
 
+      {/* ── Score-Banner (unten, wie Zeitreise) ── */}
+      <div className="results-score-banner">
+        <div className="results-score-row">
+          <span className="results-score-num">{total}</span>
+          <span className="results-score-max">/ {maxPoints} Punkte</span>
+        </div>
+        <p className="results-medal">{medal.emoji} {medal.label}</p>
+      </div>
+
+      {/* ── Aktionen ── */}
       <div className="results-actions">
         <button className="btn-secondary" onClick={onToSelection}>
           Alle Wörter ansehen
@@ -146,6 +136,7 @@ export default function Results({ lemma, roundScores, onRestart, onToSelection }
         </button>
       </div>
 
+      {/* ── Verlauf ── */}
       {kollHistory.length > 0 && (
         <div className="history-strip">
           <span className="history-label">Dein Verlauf · Kollokationen</span>
@@ -159,6 +150,7 @@ export default function Results({ lemma, roundScores, onRestart, onToSelection }
           </div>
         </div>
       )}
+
     </div>
   )
 }
