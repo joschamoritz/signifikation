@@ -139,26 +139,6 @@ function setStatus(msg, type) {
   el.className = `status ${type}`
 }
 
-// ── Feedback ───────────────────────────────────────────────
-const GAME_LABELS = { kollokation: 'Kollokationen', zeitreise: 'Zeitreise', wortzwilling: 'Wort-Zwilling' }
-async function loadFeedback() {
-  const out = document.getElementById('feedback-list')
-  out.textContent = 'Lade …'
-  try {
-    const r = await fetch('/admin/feedback', {})
-    const list = await r.json()
-    if (!list.length) { out.textContent = 'Noch kein Feedback vorhanden.'; return }
-    out.innerHTML = list.map(f => {
-      const d = new Date(f.ts).toLocaleString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
-      const label = GAME_LABELS[f.game] || f.game
-      return `<div style="border-bottom:1px solid #eee;padding:10px 0">
-        <span style="color:#999;font-size:0.8rem">${d} · ${label}</span><br>
-        <span style="font-size:1.4rem">${f.emoji}</span>
-        ${f.text ? `<span style="margin-left:8px">${f.text}</span>` : ''}
-      </div>`
-    }).join('')
-  } catch (e) { out.textContent = 'Fehler: ' + e.message }
-}
 
 function renderCalendar() {
   const title = document.getElementById('cal-title')
