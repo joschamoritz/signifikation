@@ -290,11 +290,12 @@ router.post('/admin/wiktionary-backfill', adminLimiter, requireAuth, async (req,
 
 /** GET /admin/kalender – alle Einträge (inkl. Zeitreise-, Wort-Zwilling- und Zeitenwende-Status) */
 router.get('/admin/kalender', adminLimiter, requireAuth, (req, res) => {
+  try {
   const kalender     = loadReadOnly('kalender.json')
   const { byId }     = getLemmataIndex()
-  const zeitreise    = loadReadOnly('zeitreise.json')    ?? {}
-  const wortzwilling = loadReadOnly('wortzwilling.json') ?? {}
-  const zeitenwende  = loadReadOnly('zeitenwende.json')  ?? {}
+  const zeitreise    = loadZeitreise()
+  const wortzwilling = loadWortZwilling()
+  const zeitenwende  = loadZeitenwende()
   const result = {}
   for (const [datum, ids] of Object.entries(kalender)) {
     result[datum] = {
@@ -308,6 +309,7 @@ router.get('/admin/kalender', adminLimiter, requireAuth, (req, res) => {
     }
   }
   res.json(result)
+  } catch (err) { adminError(res, err) }
 })
 
 /** GET /admin/tag/:datum – Eintrag zum Bearbeiten laden */
@@ -315,8 +317,8 @@ router.get('/admin/tag/:datum', adminLimiter, requireAuth, (req, res) => {
   if (!/^\d{2}-\d{2}$/.test(req.params.datum)) return res.status(400).json({ error: 'Ungültiges Datumsformat' })
   const kalender    = loadReadOnly('kalender.json')
   const { byId }    = getLemmataIndex()
-  const zeitreise   = loadReadOnly('zeitreise.json')    ?? {}
-  const zeitenwende = loadReadOnly('zeitenwende.json')  ?? {}
+  const zeitreise   = loadZeitreise()
+  const zeitenwende = loadZeitenwende()
   const ids = kalender[req.params.datum]
   if (!ids) return res.status(404).json({ error: 'Kein Eintrag' })
   const lemmata = ids.map(id => byId.get(id)).filter(Boolean)
