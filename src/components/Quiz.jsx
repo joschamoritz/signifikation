@@ -35,7 +35,13 @@ export default function Quiz({ lemma, currentRound, onRoundComplete, onBack }) {
     return () => window.removeEventListener('scroll', handleScroll)
   }, [handleScroll])
 
-  const options = useMemo(() => getRoundOptions(kollokatoren), [kollokatoren])
+  const options        = useMemo(() => getRoundOptions(kollokatoren), [kollokatoren])
+  const displayOptions = useMemo(
+    () => submitted
+      ? [...options].sort((a, b) => (b.log_dice ?? 0) - (a.log_dice ?? 0))
+      : options,
+    [options, submitted]
+  )
 
   // Keine Daten für diese Runde → überspringen (0 Punkte)
   const shouldSkip = !kollokatoren.length && !!roundKey
@@ -158,7 +164,7 @@ export default function Quiz({ lemma, currentRound, onRoundComplete, onBack }) {
 
       <div ref={wrapRef} className="options-grid-wrap">
       <div className="options-grid" aria-describedby="quiz-instruction">
-        {options.map((opt, i) => {
+        {displayOptions.map((opt, i) => {
           const rank  = selectedRank(opt.wort)
           const state = getOptionState(opt.wort)
           const isActive = submitted && openBeleg === opt.wort

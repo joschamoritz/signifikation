@@ -5,6 +5,30 @@ import { lsGet, lsParse } from '../utils/storage'
 import { API } from '../config'
 import BelegePanel from './BelegePanel'
 
+/**
+ * Filtert `definitionen`-Strings auf echte Bedeutungseinträge.
+ * Schließt aus: Synonymlisten, Beispielsätze, Oberbegriffe.
+ * Heuristik: Synonyme sind kommagetrennte Wortlisten oder Einzelwörter;
+ * Beispiele sind vollständige Sätze (Großbuchstabe + Satzzeichen am Ende oder Anführungszeichen).
+ */
+function filterDefinitionen(list) {
+  return (list ?? []).filter(text => {
+    const content = text.replace(/^\[\d+[a-z]?\]\s*/, '').trim()
+    // Direkte Zitate / Beispiele
+    if (content.startsWith('„') || content.startsWith('"')) return false
+    // Vollständige Sätze (Beispiele)
+    if (/^[A-ZÄÖÜ].*[.!?]$/.test(content)) return false
+    // Klammern herausnehmen für weitere Analyse
+    const noParens = content.replace(/\([^)]*\)/g, '').trim()
+    // Einzelwörter oder Schrägstrich-Varianten → Synonym/Oberbegriff
+    if (/^[\wäöüÄÖÜß/-]+$/.test(noParens)) return false
+    // Kommagetrennte Wortliste (je ≤ 2 Wörter pro Segment) → Synonyme
+    const parts = noParens.split(/,\s*/).filter(Boolean)
+    if (parts.length >= 2 && parts.every(p => p.trim().split(/\s+/).length <= 2)) return false
+    return true
+  })
+}
+
 function getKollHistory() {
   const newHistory = lsParse(lsGet('sig_koll_history'), [])
   const medalToEmoji = { 'Gold': '🥇', 'Silber': '🥈', 'Bronze': '🥉' }
@@ -51,16 +75,18 @@ export default function Results({ lemma, roundScores, onRestart, onToSelection }
         {lemma.wortart && (
           <p className="results-wortart">{lemma.wortart}</p>
         )}
-        {(lemma.definitionen?.length > 0 || lemma.definition) && (
-          <div className="results-definitionen">
-            {(lemma.definitionen?.length > 0
-              ? lemma.definitionen
-              : [lemma.definition]
-            ).map((d, i) => (
-              <p key={i} className="results-definition-item">{d}</p>
-            ))}
-          </div>
-        )}
+        {(lemma.definitionen?.length > 0 || lemma.definition) && (() => {
+          const defs = lemma.definitionen?.length > 0
+            ? filterDefinitionen(lemma.definitionen)
+            : [lemma.definition]
+          return defs.length > 0 ? (
+            <div className="results-definitionen">
+              {defs.map((d, i) => (
+                <p key={i} className="results-definition-item">{d}</p>
+              ))}
+            </div>
+          ) : null
+        })()}
         {lemma.notiz && (
           <div className="lemma-notiz results-notiz">
             <span>{lemma.notiz}</span>

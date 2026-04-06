@@ -48,9 +48,17 @@ export async function fetchWiktionary(lemma) {
     const ipa = ipaMatch?.[1] ?? ''
 
     // ── Bedeutungen ───────────────────────────────────────────────────────────
-    // Format im Wikitext: :[1] Erklärungstext, :[1a] Erklärungstext, etc.
+    // Nur Zeilen aus dem {{Bedeutungen}}-Block extrahieren —
+    // nicht aus {{Synonyme}}, {{Beispiele}}, {{Sinnverwandte Wörter}} etc.
     const definitionen = []
+    let inBedeutungen  = false
     for (const line of wikitext.split('\n')) {
+      // Abschnittsmarker: Zeile ist ein einzelnes {{Template}} oder === Überschrift ===
+      if (/^\{\{[^}]+\}\}\s*$/.test(line) || /^={2,}/.test(line)) {
+        inBedeutungen = /^\{\{Bedeutungen/.test(line.trim())
+        continue
+      }
+      if (!inBedeutungen) continue
       const m = line.match(/^:\[(\d+[a-z]?)\]\s*(.+)$/)
       if (!m) continue
       const text = cleanWikitext(m[2])

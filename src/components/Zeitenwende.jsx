@@ -3,6 +3,7 @@ import { lsGet, lsParse } from '../utils/storage'
 import '../styles/zeitenwende.css'
 
 const TOTAL = 10
+const API   = import.meta.env.VITE_API_URL ?? ''
 
 /** Berechnet Medal basierend auf Punktzahl */
 function getMedal(score) {
@@ -93,13 +94,48 @@ export default function Zeitenwende({ data, onBack, onFinish, savedResult = null
   const [feedback,  setFeedback]  = useState(null)   // null | 'correct' | 'wrong'
   const [chosen,    setChosen]    = useState(null)    // 'pre' | 'post'
   const [phase,     setPhase]     = useState(savedResult ? 'results' : 'play')
+  const [belege,    setBelege]    = useState(null)    // null = lädt | [] = leer/fehler | [...] = Ergebnisse
 
-  // Tastatur-Support (← = pre, → = post)
+  // Belege laden sobald Feedback erscheint
+  useEffect(() => {
+    if (feedback === null) { setBelege(null); return }
+    setBelege(null)
+    const word  = encodeURIComponent(words[round]?.wort ?? '')
+    const lem   = encodeURIComponent(lemma)
+    fetch(`${API}/api/v1/belege?collocate=${word}&lemma=${lem}`)
+      .then(r => r.ok ? r.json() : [])
+      .then(d  => setBelege(Array.isArray(d) ? d : []))
+      .catch(() => setBelege([]))
+  }, [feedback]) // eslint-disable-line
+
+  // Weiter-Funktion (manuell vom User ausgelöst)
+  const advanceRound = useCallback(() => {
+    if (feedback === null || chosen === null) return
+    const nextAnswers = [...answers, chosen]
+    setFeedback(null)
+    setChosen(null)
+    setBelege(null)
+    if (round + 1 >= TOTAL) {
+      const score = nextAnswers.filter((a, i) => a === words[i].periode).length
+      setAnswers(nextAnswers)
+      setPhase('results')
+      onFinish?.({ score, answers: nextAnswers })
+    } else {
+      setAnswers(nextAnswers)
+      setRound(r => r + 1)
+    }
+  }, [feedback, chosen, answers, round, words, onFinish])
+
+  // Tastatur-Support (← = pre, → = post; Enter/Space = Weiter)
   const handleKey = useCallback((e) => {
-    if (phase !== 'play' || feedback !== null) return
+    if (phase !== 'play') return
+    if (feedback !== null) {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); advanceRound() }
+      return
+    }
     if (e.key === 'ArrowLeft')  choose('pre')
     if (e.key === 'ArrowRight') choose('post')
-  }, [phase, feedback, round]) // eslint-disable-line
+  }, [phase, feedback, advanceRound]) // eslint-disable-line
 
   useEffect(() => {
     window.addEventListener('keydown', handleKey)
@@ -107,27 +143,11 @@ export default function Zeitenwende({ data, onBack, onFinish, savedResult = null
   }, [handleKey])
 
   function choose(periode) {
-    if (feedback !== null) return   // noch im Feedback-Modus
+    if (feedback !== null) return
     const correct = words[round].periode === periode
     setChosen(periode)
     setFeedback(correct ? 'correct' : 'wrong')
-
-    const nextAnswers = [...answers, periode]
-
-    setTimeout(() => {
-      setFeedback(null)
-      setChosen(null)
-      if (round + 1 >= TOTAL) {
-        // Spiel beendet
-        const score = nextAnswers.filter((a, i) => a === words[i].periode).length
-        setAnswers(nextAnswers)
-        setPhase('results')
-        onFinish?.({ score, answers: nextAnswers })
-      } else {
-        setAnswers(nextAnswers)
-        setRound(r => r + 1)
-      }
-    }, 900)
+    // kein setTimeout — User klickt manuell auf „Weiter"
   }
 
   if (phase === 'results') {
@@ -151,7 +171,7 @@ export default function Zeitenwende({ data, onBack, onFinish, savedResult = null
       <header className="zw-header">
         <span className="zw-badge">Zeitenwende</span>
         <div className="zw-lemma">{lemma}</div>
-        <p className="zw-subtitle">Vor oder nach der Jahrtausendwende?</p>
+        <p className="zw-subtitle">Wann war dieses Kollokat von <em>{lemma}</em> gebräuchlicher?</p>
       </header>
 
       {/* Fortschritt */}
@@ -187,7 +207,37 @@ export default function Zeitenwende({ data, onBack, onFinish, savedResult = null
           {feedback === 'correct' && '✓ Richtig'}
           {feedback === 'wrong'   && `✗ War ${currentWord.periode === 'pre' ? 'vor' : 'nach'} 2000`}
         </div>
+
+        {/* Belege (nur während Feedback) */}
+        {feedback !== null && (
+          <div className="zw-belege" aria-live="polite">
+            {belege === null && (
+              <p className="zw-belege-status">Belege werden geladen…</p>
+            )}
+            {belege !== null && belege.length === 0 && (
+              <p className="zw-belege-status">Keine Belege verfügbar</p>
+            )}
+            {belege !== null && belege.length > 0 && (
+              <ul className="zw-belege-list" aria-label="Korpusbelege">
+                {belege.slice(0, 3).map((b, i) => (
+                  <li key={i} className="zw-beleg-item">{b.text ?? b}</li>
+                ))}
+              </ul>
+            )}
+          </div>
+        )}
       </div>
+
+      {/* Weiter-Button (nur während Feedback) */}
+      {feedback !== null && (
+        <button
+          className="zw-weiter-btn"
+          onClick={advanceRound}
+          aria-label={round + 1 >= TOTAL ? 'Ergebnis anzeigen' : 'Nächstes Wort'}
+        >
+          {round + 1 >= TOTAL ? 'Ergebnis anzeigen' : 'Weiter'} →
+        </button>
+      )}
 
       {/* Entscheidungs-Buttons */}
       <div className="zw-choices">
@@ -220,7 +270,11 @@ export default function Zeitenwende({ data, onBack, onFinish, savedResult = null
         </button>
       </div>
 
-      <p className="zw-key-hint" aria-hidden="true">← Vor 2000 &nbsp;·&nbsp; Nach 2000 →</p>
+      <p className="zw-key-hint" aria-hidden="true">
+        {feedback !== null
+          ? 'Enter / Leertaste → Weiter'
+          : '← Vor 2000 \u00a0·\u00a0 Nach 2000 →'}
+      </p>
     </div>
   )
 }
