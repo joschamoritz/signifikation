@@ -83,7 +83,7 @@ export function adminAuth(req, res) {
     maxAge: SESSION_TTL_MS,
   })
   logger.info({ ip: req.ip }, 'Admin eingeloggt')
-  res.json({ ok: true, expiresAt })
+  res.json({ ok: true, expiresAt, token })
 }
 
 /** POST /admin/logout – Cookie löschen (kein Server-State nötig) */
@@ -107,9 +107,9 @@ export function csrfProtect(req, res, next) {
   next()
 }
 
-/** Middleware: prüft httpOnly-Cookie admin_token */
+/** Middleware: prüft X-Admin-Token-Header (primär) oder httpOnly-Cookie (Fallback) */
 export function requireAuth(req, res, next) {
-  const token = req.cookies?.admin_token
+  const token = req.headers['x-admin-token'] || req.cookies?.admin_token
   if (token && sessionValid(token)) return next()
   res.status(401).json({ error: 'Nicht autorisiert' })
 }

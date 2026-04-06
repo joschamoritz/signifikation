@@ -1,3 +1,22 @@
+// ── Auth-Token (sessionStorage) ──────────────────────────
+// sessionStorage überlebt F5, aber nicht Tab-Schließen – ideal für Admin.
+const TOKEN_KEY = 'sig_admin_token'
+function getToken()      { return sessionStorage.getItem(TOKEN_KEY) }
+function setToken(t)     { sessionStorage.setItem(TOKEN_KEY, t) }
+function clearToken()    { sessionStorage.removeItem(TOKEN_KEY) }
+
+// Fetch-Patch: X-Admin-Token-Header automatisch für alle /admin*- und /health-Anfragen
+;(function patchFetch() {
+  const orig = window.fetch.bind(window)
+  window.fetch = function(url, opts = {}) {
+    const token = getToken()
+    if (token && typeof url === 'string' && (url.startsWith('/admin') || url.startsWith('/health'))) {
+      opts = { ...opts, headers: { 'X-Admin-Token': token, ...(opts.headers || {}) } }
+    }
+    return orig(url, opts)
+  }
+})()
+
 // ── XSS-Schutz ───────────────────────────────────────────
 function esc(s) {
   return String(s ?? '')
@@ -25,6 +44,8 @@ async function doLogin() {
       body: JSON.stringify({ key: candidate }),
     })
     if (r.ok) {
+      const data = await r.json()
+      setToken(data.token)
       document.getElementById('login-overlay').classList.add('hidden')
       document.getElementById('main-container').style.display = 'flex'
       initDashboard()
@@ -54,20 +75,25 @@ async function downloadBackup() {
 }
 
 async function doLogout() {
+  clearToken()
   await fetch('/admin/logout', { method: 'POST', headers: { 'Content-Type': 'application/json' } }).catch(() => {})
   document.getElementById('main-container').style.display = 'none'
   document.getElementById('login-overlay').classList.remove('hidden')
   document.getElementById('login-key').value = ''
 }
 
-// ── Beim Laden: Cookie-Session prüfen ────────────────────
-fetch('/admin/kalender').then(r => {
-  if (r.ok) {
-    document.getElementById('login-overlay').classList.add('hidden')
-    document.getElementById('main-container').style.display = 'flex'
-    initDashboard()
-  }
-}).catch(() => { /* Netzwerkfehler → Login zeigen */ })
+// ── Beim Laden: Token aus sessionStorage prüfen ──────────
+if (getToken()) {
+  fetch('/admin/kalender').then(r => {
+    if (r.ok) {
+      document.getElementById('login-overlay').classList.add('hidden')
+      document.getElementById('main-container').style.display = 'flex'
+      initDashboard()
+    } else {
+      clearToken()   // Token abgelaufen oder ungültig
+    }
+  }).catch(() => { clearToken() })
+}
 
 function initDashboard() {
   loadKalender()
