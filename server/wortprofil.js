@@ -140,7 +140,7 @@ function queryRelationRaw(lemma, pos, rel, limit, minFreq, minDice, db) {
   `, db).all(lemma.toLowerCase(), pos, rel, minFreq, minDice, limit)
 }
 
-function queryRelation(lemma, pos, relCode, limit = 20, minFreq = 5, minDice = 0) {
+function queryRelation(lemma, pos, relCode, limit = 30, minFreq = 5, minDice = 0) {
   return withConnection(db => {
     if (!VALID_POS.has(pos)) {
       logger.warn({ lemma, pos, relCode }, 'queryRelation: unbekannte POS')
@@ -189,8 +189,22 @@ function shuffle(arr) {
 }
 
 function buildOptions(items) {
-  const top3        = items.slice(0, 3)
-  const distractors = shuffle(items.slice(3)).slice(0, 7)
+  const top3 = items.slice(0, 3)
+  // 4 zufällige Distraktoren aus Platz 4–12 (starke Kollokate, schwer zu unterscheiden)
+  const nearPool = shuffle(items.slice(3, 12))
+  // 3 zufällige Distraktoren aus Platz 13–25 (mittlere, etwas leichter erkennbar)
+  const midPool  = shuffle(items.slice(12, 25))
+
+  const nearCount = Math.min(4, nearPool.length)
+  const midCount  = Math.min(3, midPool.length)
+  // Fallback: fehlende Distraktoren aus dem jeweils anderen Pool auffüllen
+  const remaining = 7 - nearCount - midCount
+  const extra     = remaining > 0
+    ? shuffle([...nearPool.slice(nearCount), ...midPool.slice(midCount)]).slice(0, remaining)
+    : []
+
+  const distractors = [...nearPool.slice(0, nearCount), ...midPool.slice(0, midCount), ...extra]
+
   return [...top3, ...distractors].map((item, i) => ({
     wort:     item.lemma,
     log_dice: parseFloat(parseFloat(item.logDice).toFixed(1)),
