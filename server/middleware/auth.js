@@ -99,8 +99,18 @@ export function adminLogout(req, res) {
 export function csrfProtect(req, res, next) {
   if (['POST', 'PUT', 'DELETE'].includes(req.method)) {
     const contentType = req.headers['content-type'] || ''
-    // Nur application/json und application/x-www-form-urlencoded mit x-admin-token sind erlaubt
-    // Dies blockiert einfache CSRF-Angriffe von fremden Seiten
+    if (!contentType.includes('application/json')) {
+      logger.warn({ method: req.method, contentType }, 'CSRF-Schutz: falscher Content-Type')
+      return res.status(403).json({ error: 'Ungültiger Content-Type' })
+    }
+  }
+  next()
+}
+
+/** Middleware: CSRF-Schutz für Binary-Uploads (erlaubt zusätzlich application/octet-stream) */
+export function csrfProtectUpload(req, res, next) {
+  if (['POST', 'PUT', 'DELETE'].includes(req.method)) {
+    const contentType = req.headers['content-type'] || ''
     if (!contentType.includes('application/json') && !contentType.includes('application/octet-stream')) {
       logger.warn({ method: req.method, contentType }, 'CSRF-Schutz: falscher Content-Type')
       return res.status(403).json({ error: 'Ungültiger Content-Type' })

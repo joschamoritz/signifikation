@@ -8,7 +8,7 @@ import { fileURLToPath } from 'url'
 import { dirname, join }  from 'path'
 import { randomUUID } from 'crypto'
 import logger       from './logger.js'
-import { ADMIN_KEY, IS_PROD, csrfProtect } from './middleware/auth.js'
+import { ADMIN_KEY, IS_PROD, csrfProtect, csrfProtectUpload } from './middleware/auth.js'
 import { initializeIndices } from './store.js'
 import { errorHandler } from './error-handling.js'
 import { ensureWortprofilDb } from './init-wortprofil.js'
@@ -38,7 +38,7 @@ app.use(helmet({
   contentSecurityPolicy: {
     directives: {
       defaultSrc:     ["'self'"],
-      scriptSrc:      ["'self'", "https://cdn.jsdelivr.net"],
+      scriptSrc:      ["'self'"],
       styleSrc:       ["'self'", "'unsafe-inline'"],
       fontSrc:        ["'self'"],
       imgSrc:         ["'self'", "data:"],
@@ -68,7 +68,7 @@ app.use(cors({
 }))
 
 app.use(cookieParser())
-app.use(express.json())
+app.use(express.json({ limit: '16kb' }))
 
 // ── Correlation-ID ────────────────────────────────────────────
 app.use((req, _res, next) => {
@@ -76,7 +76,10 @@ app.use((req, _res, next) => {
   next()
 })
 
-// ── CSRF-Schutz für Admin-Endpoints ────────────────────────────
+// ── CSRF-Schutz ───────────────────────────────────────────────
+// Upload-Endpunkt erlaubt zusätzlich application/octet-stream
+app.use('/admin/upload-wortprofil', csrfProtectUpload)
+// Alle anderen Admin- und API-Endpoints: nur application/json
 app.use('/admin', csrfProtect)
 app.use('/api', csrfProtect)
 

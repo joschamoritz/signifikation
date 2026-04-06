@@ -17,32 +17,9 @@ function todayDatum() {
   return { mmdd: `${month}-${day}`, year: Number(year) }
 }
 
-/** GET /health */
-router.get('/health', async (_req, res) => {
-  let lastEntry = null
-  try {
-    const kalender = loadReadOnly('kalender.json')
-    const keys = Object.keys(kalender).sort()
-    lastEntry = keys[keys.length - 1] || null
-  } catch { /* ignorieren */ }
-
-  // Wortprofil-DB: minimaler Smoke-Test (leere Abfrage reicht)
-  let wortprofilDb = 'ok'
-  try {
-    await fetchRelation('haus', 'Substantiv', 'ATTR')
-  } catch (err) {
-    wortprofilDb = `error: ${err.message}`
-  }
-
-  res.json({
-    status:      'ok',
-    uptime:      Math.floor(process.uptime()),
-    env:         process.env.NODE_ENV === 'production' ? 'production' : 'development',
-    lastEntry,
-    memMb:       Math.round(process.memoryUsage().rss / 1024 / 1024),
-    wortprofilDb,
-    belegeDb:    belegeVerfuegbar() ? 'ok' : 'nicht verfügbar',
-  })
+/** GET /health – öffentlich: nur Status. Details über /admin/health. */
+router.get('/health', (_req, res) => {
+  res.json({ status: 'ok' })
 })
 
 /** GET /api/heute → die 3 Lemmata des Tages */

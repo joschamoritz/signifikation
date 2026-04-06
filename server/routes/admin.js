@@ -3,6 +3,7 @@ import { fileURLToPath } from 'url'
 import { dirname, join }  from 'path'
 import { createWriteStream, existsSync, renameSync, statSync, unlinkSync } from 'fs'
 import { fetchLemma, fetchBonusQuestion, fetchRelation, fetchZeitreise, fetchZeitreiseAnalyze, fetchZeitenwende, fetchZeitenwendeAnalyze, POS_ROUNDS } from '../wortprofil.js'
+import { belegeVerfuegbar } from '../belege.js'
 import { fetchWiktionary } from '../wiktionary.js'
 import { fetchWortZwilling } from '../wortzwilling.js'
 import { load, loadReadOnly, save, loadZeitreise, loadWortZwilling, loadZeitenwende, loadStats, getLemmataIndex, getCacheMetrics, DATA } from '../store.js'
@@ -31,6 +32,33 @@ router.get('/admin/stats', adminLimiter, requireAuth, (req, res) => {
     const result = sorted.slice(-days).map(datum => ({ datum, ...stats[datum] }))
     res.json(result)
   } catch (err) { serverError(res, err) }
+})
+
+/** GET /admin/health – Systemdetails (auth-required) */
+router.get('/admin/health', adminLimiter, requireAuth, async (_req, res) => {
+  let lastEntry = null
+  try {
+    const kalender = loadReadOnly('kalender.json')
+    const keys = Object.keys(kalender).sort()
+    lastEntry = keys[keys.length - 1] || null
+  } catch { /* ignorieren */ }
+
+  let wortprofilDb = 'ok'
+  try {
+    await fetchRelation('haus', 'Substantiv', 'ATTR')
+  } catch (err) {
+    wortprofilDb = `error: ${err.message}`
+  }
+
+  res.json({
+    status:      'ok',
+    uptime:      Math.floor(process.uptime()),
+    env:         process.env.NODE_ENV === 'production' ? 'production' : 'development',
+    lastEntry,
+    memMb:       Math.round(process.memoryUsage().rss / 1024 / 1024),
+    wortprofilDb,
+    belegeDb:    belegeVerfuegbar() ? 'ok' : 'nicht verfügbar',
+  })
 })
 
 /** GET /admin/cache-metrics – Cache-Performance-Metriken */
@@ -259,7 +287,7 @@ router.post('/admin/tag', adminLimiter, requireAuth, validate(adminTagSchema), a
 
     // Audit-Log für Create-Operation
     auditCreate('kalender', datum, { ids, woerter, zeitreise: !!zeitreise_lemma, zwilling: !!zwilling_paar?.[0], zeitenwende: !!zeitenwende_lemma }, {
-      adminKey: req.headers['x-admin-token'],
+      adminKey: req.headers['x-admin-token']?.split('.')[0] || 'cookie-auth',
       ip: req.ip,
     })
 
@@ -368,7 +396,7 @@ router.delete('/admin/tag/:datum', adminLimiter, requireAuth, async (req, res) =
 
     // Audit-Log für Delete-Operation
     auditDelete('kalender', datum, deletedData, {
-      adminKey: req.headers['x-admin-token'],
+      adminKey: req.headers['x-admin-token']?.split('.')[0] || 'cookie-auth',
       ip: req.ip,
     })
 
