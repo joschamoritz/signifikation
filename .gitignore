@@ -44,6 +44,7 @@ memory/
 
 # Projektspezifisch
 LogoNetz.png
+planning/
 
 server/check-diacollo-corpora.mjs
 
