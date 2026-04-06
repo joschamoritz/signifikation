@@ -52,41 +52,19 @@ function markActivity(dateStr) {
   }
 }
 
-function saveKollHistory(dateStr, medal, emoji) {
-  const history = lsParse(lsGet('sig_koll_history'), [])
+function saveHistory(storageKey, dateStr, medal, emoji) {
+  const history = lsParse(lsGet(storageKey), [])
   const idx = history.findIndex(h => h.date === dateStr)
   const entry = { date: dateStr, medal, emoji }
   if (idx >= 0) history[idx] = entry
   else history.unshift(entry)
-  lsSet('sig_koll_history', JSON.stringify(history.slice(0, 365)))
+  lsSet(storageKey, JSON.stringify(history.slice(0, 365)))
 }
 
-function saveZRHistory(dateStr, medal, emoji) {
-  const history = lsParse(lsGet('sig_zr_history'), [])
-  const idx = history.findIndex(h => h.date === dateStr)
-  const entry = { date: dateStr, medal, emoji }
-  if (idx >= 0) history[idx] = entry
-  else history.unshift(entry)
-  lsSet('sig_zr_history', JSON.stringify(history.slice(0, 365)))
-}
-
-function saveWZHistory(dateStr, medal, emoji) {
-  const history = lsParse(lsGet('sig_wz_history'), [])
-  const idx = history.findIndex(h => h.date === dateStr)
-  const entry = { date: dateStr, medal, emoji }
-  if (idx >= 0) history[idx] = entry
-  else history.unshift(entry)
-  lsSet('sig_wz_history', JSON.stringify(history.slice(0, 365)))
-}
-
-function saveZWHistory(dateStr, medal, emoji) {
-  const history = lsParse(lsGet('sig_zw_history'), [])
-  const idx = history.findIndex(h => h.date === dateStr)
-  const entry = { date: dateStr, medal, emoji }
-  if (idx >= 0) history[idx] = entry
-  else history.unshift(entry)
-  lsSet('sig_zw_history', JSON.stringify(history.slice(0, 365)))
-}
+const saveKollHistory = (dateStr, medal, emoji) => saveHistory('sig_koll_history', dateStr, medal, emoji)
+const saveZRHistory   = (dateStr, medal, emoji) => saveHistory('sig_zr_history',   dateStr, medal, emoji)
+const saveWZHistory   = (dateStr, medal, emoji) => saveHistory('sig_wz_history',   dateStr, medal, emoji)
+const saveZWHistory   = (dateStr, medal, emoji) => saveHistory('sig_zw_history',   dateStr, medal, emoji)
 
 function savePlayedGame(keys, lemmaId, lemmaName, lemmaPos, total, medal, lemmataLength, scores) {
   const played = getPlayedToday(keys.todayKey)

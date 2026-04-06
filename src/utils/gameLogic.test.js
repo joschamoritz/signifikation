@@ -6,7 +6,7 @@ import {
   getZRMedal,
   getRundInfo,
   shuffle,
-  getRandomItems,
+
   getRoundOptions,
 } from './gameLogic'
 
@@ -151,19 +151,6 @@ describe('shuffle', () => {
   })
   it('funktioniert mit leerem Array', () => {
     expect(shuffle([])).toEqual([])
-  })
-})
-
-// ── getRandomItems ──────────────────────────────────────────
-describe('getRandomItems', () => {
-  it('gibt die angeforderte Anzahl zurück', () => {
-    expect(getRandomItems([1, 2, 3, 4, 5], 3)).toHaveLength(3)
-  })
-  it('gibt maximal die Array-Länge zurück', () => {
-    expect(getRandomItems([1, 2], 5)).toHaveLength(2)
-  })
-  it('gibt leeres Array zurück bei count=0', () => {
-    expect(getRandomItems([1, 2, 3], 0)).toHaveLength(0)
   })
 })
 

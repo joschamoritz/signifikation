@@ -19,11 +19,6 @@ export function shuffle(arr) {
   return a
 }
 
-/** Pick `count` random items from `arr` without mutation */
-export function getRandomItems(arr, count) {
-  return shuffle(arr).slice(0, count)
-}
-
 /**
  * Shuffle the 10 pre-selected options for a round.
  * (Top-3 and 7 distractors are already fixed in the data.)

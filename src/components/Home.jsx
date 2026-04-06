@@ -491,7 +491,7 @@ export default function Home({
 
         {/* ── Vertikale Badge-Navigation (nur mobil) ───────── */}
         <nav className="snap-nav" aria-label="Spielmodus-Navigation">
-          {[['①','Kollokationen'],['②','Zeitreise'],['③','Wort-Zwilling'],['④','Demnächst']].map(([glyph, label], i) => (
+          {[['①','Kollokationen'],['②','Wort-Zwilling'],['③','Zeitenwende'],['④','Zeitreise'],['⑤','Demnächst']].map(([glyph, label], i) => (
             <button
               key={i}
               className={`snap-nav-btn${activeCard === i ? ' snap-nav-btn--active' : ''}`}
@@ -537,7 +537,7 @@ export default function Home({
         {/* ── Kolophon ─────────────────────────────────────── */}
         <footer className="test-colophon" role="contentinfo">
           <span className="test-colophon-ornament" aria-hidden="true">
-          {[playedGames.length > 0, !!zrPlayed, !!wzPlayed].map((played, i) =>
+          {[playedGames.length > 0, !!wzPlayed, !!zwPlayed, !!zrPlayed].map((played, i) =>
             played ? '✦' : '·'
           ).join(' ')}
         </span>

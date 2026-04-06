@@ -1,18 +1,10 @@
 import { useState, useEffect, useCallback } from 'react'
 import { lsGet, lsParse } from '../utils/storage'
+import { getMedal } from '../utils/gameLogic'
+import { API } from '../config'
 import '../styles/zeitenwende.css'
 
 const TOTAL = 10
-const API   = import.meta.env.VITE_API_URL ?? ''
-
-/** Berechnet Medal basierend auf Punktzahl */
-function getMedal(score) {
-  if (score === 10) return { emoji: '🥇', label: 'Perfekt' }
-  if (score >= 8)  return { emoji: '🥈', label: 'Sehr gut' }
-  if (score >= 6)  return { emoji: '🥉', label: 'Gut' }
-  if (score >= 4)  return { emoji: '📖', label: 'Solide' }
-  return { emoji: '📚', label: 'Weiter üben' }
-}
 
 function PeriodChip({ periode }) {
   return (
@@ -25,7 +17,7 @@ function PeriodChip({ periode }) {
 /** Ergebnisansicht */
 function ZWResults({ lemma, words, answers, onBack }) {
   const score   = answers.filter((a, i) => a === words[i].periode).length
-  const medal   = getMedal(score)
+  const medal   = getMedal(score, TOTAL)
   const zwHistory = lsParse(lsGet('sig_zw_history'), []).slice(0, 14).reverse()
 
   return (

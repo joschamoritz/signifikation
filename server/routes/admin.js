@@ -1,7 +1,7 @@
 import express          from 'express'
 import { fileURLToPath } from 'url'
 import { dirname, join }  from 'path'
-import { createWriteStream, existsSync, renameSync, unlinkSync } from 'fs'
+import { createWriteStream, existsSync, renameSync, statSync, unlinkSync } from 'fs'
 import { fetchLemma, fetchBonusQuestion, fetchRelation, fetchZeitreise, fetchZeitreiseAnalyze, fetchZeitenwende, fetchZeitenwendeAnalyze, POS_ROUNDS } from '../wortprofil.js'
 import { fetchWiktionary } from '../wiktionary.js'
 import { fetchWortZwilling } from '../wortzwilling.js'
@@ -258,7 +258,7 @@ router.post('/admin/tag', adminLimiter, requireAuth, validate(adminTagSchema), a
     logger.info(`Eintrag gespeichert: ${datum} → ${ids.join(', ')}`)
 
     // Audit-Log für Create-Operation
-    auditCreate('kalender', datum, { ids, woerter, zeitreise: !!zeitreise_lemma, zwilling: !!zwilling_paar[0], zeitenwende: !!zeitenwende_lemma }, {
+    auditCreate('kalender', datum, { ids, woerter, zeitreise: !!zeitreise_lemma, zwilling: !!zwilling_paar?.[0], zeitenwende: !!zeitenwende_lemma }, {
       adminKey: req.headers['x-admin-token'],
       ip: req.ip,
     })
@@ -402,21 +402,44 @@ router.get('/admin/backup', adminLimiter, requireAuth, (req, res) => {
 
 
 /** POST /admin/upload-wortprofil – wortprofil.db in Chunks hochladen (raw binary) */
+const UPLOAD_CHUNK_LIMIT = 10 * 1024 * 1024  // 10 MB pro Chunk
+const UPLOAD_TOTAL_LIMIT = 2.5 * 1024 * 1024 * 1024  // 2.5 GB gesamt (wortprofil.db ~1.9 GB)
+
 router.post('/admin/upload-wortprofil', uploadLimiter, requireAuth, (req, res) => {
-  const { index, total } = req.query
-  if (index === undefined || !total) return res.status(400).json({ error: 'index/total erforderlich' })
+  const idxRaw   = parseInt(req.query.index, 10)
+  const totalRaw = parseInt(req.query.total, 10)
+  if (!Number.isFinite(idxRaw) || !Number.isFinite(totalRaw) || totalRaw < 1)
+    return res.status(400).json({ error: 'index/total müssen gültige Zahlen sein' })
+
   const dataDir = join(__dirname, '../data')
   const tmpPath = join(dataDir, 'wortprofil.db.upload')
   const chunks  = []
-  req.on('data', d => chunks.push(d))
+  let   received = 0
+
+  req.on('data', d => {
+    received += d.length
+    if (received > UPLOAD_CHUNK_LIMIT) {
+      req.destroy(new Error('Chunk überschreitet Limit'))
+      return
+    }
+    chunks.push(d)
+  })
+
   req.on('end', () => {
     try {
+      // Gesamtgröße prüfen: vorhandene tmp-Datei + dieser Chunk
+      const existingSize = existsSync(tmpPath) ? statSync(tmpPath).size : 0
+      if (existingSize + received > UPLOAD_TOTAL_LIMIT) {
+        try { unlinkSync(tmpPath) } catch {}
+        return res.status(413).json({ error: 'Upload überschreitet Gesamtlimit' })
+      }
+
       const buf    = Buffer.concat(chunks)
-      const stream = createWriteStream(tmpPath, { flags: index === '0' ? 'w' : 'a' })
-      stream.write(buf)
-      stream.end()
-      stream.on('finish', () => {
-        if (parseInt(index) === parseInt(total) - 1) {
+      // Einzelnen Stream pro Chunk öffnen, sequenziell über 'finish' abwarten
+      const stream = createWriteStream(tmpPath, { flags: idxRaw === 0 ? 'w' : 'a' })
+      stream.once('error', err => adminError(res, err))
+      stream.once('finish', () => {
+        if (idxRaw === totalRaw - 1) {
           const dbPath  = join(dataDir, 'wortprofil.db')
           const bakPath = join(dataDir, 'wortprofil.db.bak')
           if (existsSync(dbPath)) renameSync(dbPath, bakPath)
@@ -425,12 +448,17 @@ router.post('/admin/upload-wortprofil', uploadLimiter, requireAuth, (req, res) =
           logger.info('wortprofil.db Upload abgeschlossen und aktiviert')
           res.json({ ok: true, done: true })
         } else {
-          res.json({ ok: true, done: false, index: parseInt(index) })
+          res.json({ ok: true, done: false, index: idxRaw })
         }
       })
+      stream.end(buf)
     } catch (err) { adminError(res, err) }
   })
-  req.on('error', err => adminError(res, err))
+
+  req.on('error', err => {
+    try { if (existsSync(tmpPath)) unlinkSync(tmpPath) } catch {}
+    adminError(res, err)
+  })
 })
 
 /** GET /admin – Admin-Oberfläche */

@@ -20,7 +20,7 @@ export class SQLitePool {
       const db = new Database(dbPath, {
         readonly,
         fileMustExist: true,
-        verbose: options.verbose ? console.log : undefined,
+        verbose: options.verbose ? (msg) => logger.debug(msg) : undefined,
       })
 
       // Pragmas für Performance
