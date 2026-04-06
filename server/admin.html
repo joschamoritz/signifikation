@@ -87,31 +87,6 @@
       </div>
     </div>
 
-    <!-- Zeitreise -->
-    <button class="mode-toggle" id="zeit-toggle" onclick="toggleMode('zeit')">
-      <span>Zeitreise</span>
-      <span class="toggle-arrow" id="zeit-arrow">›</span>
-    </button>
-    <div class="mode-body" id="zeit-body" style="display:none">
-      <div style="display:flex;gap:8px;align-items:flex-end">
-        <div style="flex:1">
-          <label for="zr">Wort des Tages (eigene Zeitreise-DB)</label>
-          <input type="text" id="zr" placeholder="Lemma">
-        </div>
-        <div>
-          <label for="zr-wortart">Wortart</label>
-          <select id="zr-wortart">
-            <option value="Substantiv">Substantiv</option>
-            <option value="Verb">Verb</option>
-            <option value="Adjektiv">Adjektiv</option>
-          </select>
-        </div>
-      </div>
-      <p style="font-size:0.8rem;color:var(--muted);font-style:italic">
-        5 Kollokatoren aus 5 verschiedenen Perioden werden automatisch aus der eigenen Zeitreise-DB abgerufen.
-      </p>
-    </div>
-
     <!-- Wort-Zwilling -->
     <button class="mode-toggle" id="wz-toggle" onclick="toggleMode('wz')">
       <span>Wort-Zwilling</span>
@@ -141,6 +116,31 @@
       </p>
     </div>
 
+    <!-- Zeitreise -->
+    <button class="mode-toggle" id="zeit-toggle" onclick="toggleMode('zeit')">
+      <span>Zeitreise</span>
+      <span class="toggle-arrow" id="zeit-arrow">›</span>
+    </button>
+    <div class="mode-body" id="zeit-body" style="display:none">
+      <div style="display:flex;gap:8px;align-items:flex-end">
+        <div style="flex:1">
+          <label for="zr">Wort des Tages (eigene Zeitreise-DB)</label>
+          <input type="text" id="zr" placeholder="Lemma">
+        </div>
+        <div>
+          <label for="zr-wortart">Wortart</label>
+          <select id="zr-wortart">
+            <option value="Substantiv">Substantiv</option>
+            <option value="Verb">Verb</option>
+            <option value="Adjektiv">Adjektiv</option>
+          </select>
+        </div>
+      </div>
+      <p style="font-size:0.8rem;color:var(--muted);font-style:italic">
+        5 Kollokatoren aus 5 verschiedenen Perioden werden automatisch aus der eigenen Zeitreise-DB abgerufen.
+      </p>
+    </div>
+
     <div id="status" class="status"></div>
     <button id="save-btn" onclick="saveTag()">Speichern &amp; APIs abrufen</button>
   </div>
@@ -152,16 +152,6 @@
       <button onclick="loadStats()" style="font-size:0.8rem;padding:6px 12px">↺ Laden</button>
     </div>
     <div id="stats-output"><div style="color:var(--muted);font-size:0.85rem">Noch nicht geladen.</div></div>
-  </div>
-
-  <!-- Zeitreise Visualisierung -->
-  <div class="card">
-    <h2>Zeitreise – Wortanalyse</h2>
-    <div class="viz-search">
-      <input type="text" id="viz-input" placeholder="Wort eingeben…" onkeydown="if(event.key==='Enter')analyzeZeitreiseViz()">
-      <button onclick="analyzeZeitreiseViz()">Analysieren</button>
-    </div>
-    <div id="viz-output"></div>
   </div>
 
   <!-- Kollokation – Wortanalyse -->
@@ -176,6 +166,7 @@
         <option value="Adjektiv">Adjektiv</option>
       </select>
       <button onclick="analyzeKollokation()">Analysieren</button>
+      <button onclick="document.getElementById('koll-output').innerHTML='';document.getElementById('koll-input').value=''" style="opacity:0.6">✕ Zurücksetzen</button>
     </div>
     <div id="koll-output"></div>
   </div>
@@ -193,8 +184,20 @@
         <option value="Adjektiv">Adjektiv</option>
       </select>
       <button onclick="analyzeWortZwilling()">Analysieren</button>
+      <button onclick="document.getElementById('wz-ana-output').innerHTML='';document.getElementById('wza-input').value='';document.getElementById('wzb-input').value=''" style="opacity:0.6">✕ Zurücksetzen</button>
     </div>
     <div id="wz-ana-output"></div>
+  </div>
+
+  <!-- Zeitreise Visualisierung -->
+  <div class="card">
+    <h2>Zeitreise – Wortanalyse</h2>
+    <div class="viz-search">
+      <input type="text" id="viz-input" placeholder="Wort eingeben…" onkeydown="if(event.key==='Enter')analyzeZeitreiseViz()">
+      <button onclick="analyzeZeitreiseViz()">Analysieren</button>
+      <button onclick="document.getElementById('viz-output').innerHTML='';document.getElementById('viz-input').value=''" style="opacity:0.6">✕ Zurücksetzen</button>
+    </div>
+    <div id="viz-output"></div>
   </div>
 
 

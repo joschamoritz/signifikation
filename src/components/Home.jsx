@@ -228,69 +228,10 @@ export default function Home({
               </div>
             </li>
 
-            {/* ── ② Zeitreise ──────────────────────────────── */}
-            <li className={`test-entry${!zeitreise ? ' test-entry--disabled' : ''}${zrPlayed ? ' test-entry--done' : ''}`}>
-              <div className="test-entry-number" aria-hidden="true">
-                <span className="test-entry-num-glyph">②</span>
-                <span className="test-entry-marginalia">HIST.</span>
-              </div>
-              <div className="test-entry-body">
-                <div className="test-entry-head">
-                  <h2 className="test-headword">Zeitreise</h2>
-                  <span className="test-ipa" aria-label="Aussprache: [ˈtsaɪ̯tˌʁaɪ̯zə]">[ˈtsaɪ̯tˌʁaɪ̯zə]</span>
-                </div>
-                <div className="test-entry-grammar" aria-hidden="true">
-                  <span className="test-pos">Wortspiel</span>
-                  <span className="test-pos-rule" />
-                  <span className="test-entry-category">historisch</span>
-                </div>
-                <p className="test-definition">
-                  Wie verändern sich Kollokationsmuster über Jahrhunderte? Vergleiche historische und gegenwärtige Belege aus fünf Jahrhunderten Sprachgeschichte.
-                </p>
-
-                {zrPlayed && (
-                  <ul className="test-played-list">
-                    <li className="test-played-entry">
-                      <span className="test-played-word">{zrPlayed.medal?.emoji ?? ''} {zrPlayed.lemma}</span>
-                      <span className="test-played-score">{zrPlayed.total} Punkte</span>
-                    </li>
-                  </ul>
-                )}
-
-                {zeitreiseError && (
-                  <p className="test-game-error">
-                    Verbindungsfehler.{' '}
-                    <button className="test-game-error-retry" type="button" onClick={onRetryZeitreise}>
-                      Erneut versuchen
-                    </button>
-                  </p>
-                )}
-
-                <div className="test-entry-footer">
-                  <span className={`test-status${zrPlayed ? ' test-status--done' : ''}`}>
-                    {zeitreiseError ? '' : !zeitreise ? 'Heute nicht verfügbar.' : zrPlayed ? 'Gespielt.' : 'Noch nicht gespielt.'}
-                  </span>
-                  {zeitreise ? (
-                    <button
-                      className="test-cta"
-                      type="button"
-                      onClick={zrPlayed ? onViewZeitreise : onPlayZeitreise}
-                      aria-label={zrPlayed ? 'Ergebnis ansehen: Zeitreise' : 'Zeitreise starten'}
-                    >
-                      {zrPlayed ? 'Ergebnis ansehen' : 'Zeitreise starten'}
-                      <span className="test-cta-arrow" aria-hidden="true"> →</span>
-                    </button>
-                  ) : (
-                    <span className="test-cta test-cta--disabled" aria-hidden="true">—</span>
-                  )}
-                </div>
-              </div>
-            </li>
-
-            {/* ── ③ Wort-Zwilling ──────────────────────────── */}
+            {/* ── ② Wort-Zwilling ──────────────────────────── */}
             <li className={`test-entry${!wortzwilling ? ' test-entry--disabled' : ''}${wzPlayed ? ' test-entry--done' : ''}`}>
               <div className="test-entry-number" aria-hidden="true">
-                <span className="test-entry-num-glyph">③</span>
+                <span className="test-entry-num-glyph">②</span>
                 <span className="test-entry-marginalia">KOMPAR.</span>
               </div>
               <div className="test-entry-body">
@@ -337,6 +278,65 @@ export default function Home({
                       aria-label={wzPlayed ? 'Ergebnis ansehen: Wort-Zwilling' : 'Wort-Zwilling starten'}
                     >
                       {wzPlayed ? 'Ergebnis ansehen' : 'Wort-Zwilling starten'}
+                      <span className="test-cta-arrow" aria-hidden="true"> →</span>
+                    </button>
+                  ) : (
+                    <span className="test-cta test-cta--disabled" aria-hidden="true">—</span>
+                  )}
+                </div>
+              </div>
+            </li>
+
+            {/* ── ③ Zeitreise ──────────────────────────────── */}
+            <li className={`test-entry${!zeitreise ? ' test-entry--disabled' : ''}${zrPlayed ? ' test-entry--done' : ''}`}>
+              <div className="test-entry-number" aria-hidden="true">
+                <span className="test-entry-num-glyph">③</span>
+                <span className="test-entry-marginalia">HIST.</span>
+              </div>
+              <div className="test-entry-body">
+                <div className="test-entry-head">
+                  <h2 className="test-headword">Zeitreise</h2>
+                  <span className="test-ipa" aria-label="Aussprache: [ˈtsaɪ̯tˌʁaɪ̯zə]">[ˈtsaɪ̯tˌʁaɪ̯zə]</span>
+                </div>
+                <div className="test-entry-grammar" aria-hidden="true">
+                  <span className="test-pos">Wortspiel</span>
+                  <span className="test-pos-rule" />
+                  <span className="test-entry-category">historisch</span>
+                </div>
+                <p className="test-definition">
+                  Wie verändern sich Kollokationsmuster über Jahrhunderte? Vergleiche historische und gegenwärtige Belege aus fünf Jahrhunderten Sprachgeschichte.
+                </p>
+
+                {zrPlayed && (
+                  <ul className="test-played-list">
+                    <li className="test-played-entry">
+                      <span className="test-played-word">{zrPlayed.medal?.emoji ?? ''} {zrPlayed.lemma}</span>
+                      <span className="test-played-score">{zrPlayed.total} Punkte</span>
+                    </li>
+                  </ul>
+                )}
+
+                {zeitreiseError && (
+                  <p className="test-game-error">
+                    Verbindungsfehler.{' '}
+                    <button className="test-game-error-retry" type="button" onClick={onRetryZeitreise}>
+                      Erneut versuchen
+                    </button>
+                  </p>
+                )}
+
+                <div className="test-entry-footer">
+                  <span className={`test-status${zrPlayed ? ' test-status--done' : ''}`}>
+                    {zeitreiseError ? '' : !zeitreise ? 'Heute nicht verfügbar.' : zrPlayed ? 'Gespielt.' : 'Noch nicht gespielt.'}
+                  </span>
+                  {zeitreise ? (
+                    <button
+                      className="test-cta"
+                      type="button"
+                      onClick={zrPlayed ? onViewZeitreise : onPlayZeitreise}
+                      aria-label={zrPlayed ? 'Ergebnis ansehen: Zeitreise' : 'Zeitreise starten'}
+                    >
+                      {zrPlayed ? 'Ergebnis ansehen' : 'Zeitreise starten'}
                       <span className="test-cta-arrow" aria-hidden="true"> →</span>
                     </button>
                   ) : (
