@@ -44,6 +44,7 @@ memory/
 
 # Projektspezifisch
 LogoNetz.png
+server/data/sessions.json
 server/check-diacollo-corpora.mjs
 
 # Wortprofil-Pipeline (Korpora, DBs, venv – zu groß für Git)

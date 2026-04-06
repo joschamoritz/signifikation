@@ -70,7 +70,7 @@ fetch('/admin/kalender').then(r => {
 }).catch(() => { /* Netzwerkfehler → Login zeigen */ })
 
 function initDashboard() {
-  renderCalendar()
+  loadKalender()
   loadStats()
   loadHealth()
 
@@ -335,7 +335,6 @@ async function loadKalender() {
   }
 }
 
-loadKalender()
 
 
 async function analyzeZeitreiseViz() {

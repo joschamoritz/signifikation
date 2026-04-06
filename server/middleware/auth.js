@@ -1,4 +1,7 @@
 import { randomUUID, timingSafeEqual } from 'crypto'
+import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'fs'
+import { join, dirname } from 'path'
+import { fileURLToPath } from 'url'
 import logger from '../logger.js'
 
 const IS_PROD   = process.env.NODE_ENV === 'production'
@@ -22,21 +25,51 @@ function sanitize(obj) {
   return copy
 }
 
-// ── Session-Token-Store (in-memory, TTL 8h) ──────────────────
+// ── Session-Token-Store (persistent, TTL 8h) ─────────────────
 const SESSION_TTL_MS = 8 * 60 * 60 * 1000
-const sessions = new Map()   // token → expiresAt
+const __dir          = dirname(fileURLToPath(import.meta.url))
+const SESSIONS_FILE  = join(__dir, '..', 'data', 'sessions.json')
+
+function loadSessionsFromDisk() {
+  try {
+    if (!existsSync(SESSIONS_FILE)) return new Map()
+    const raw = JSON.parse(readFileSync(SESSIONS_FILE, 'utf8'))
+    const now  = Date.now()
+    // Abgelaufene Einträge beim Laden wegfiltern
+    return new Map(Object.entries(raw).filter(([, exp]) => exp > now))
+  } catch {
+    return new Map()
+  }
+}
+
+function saveSessionsToDisk(map) {
+  try {
+    const dir = dirname(SESSIONS_FILE)
+    if (!existsSync(dir)) mkdirSync(dir, { recursive: true })
+    writeFileSync(SESSIONS_FILE, JSON.stringify(Object.fromEntries(map)), 'utf8')
+  } catch (err) {
+    logger.warn({ err }, 'Sessions konnten nicht gespeichert werden')
+  }
+}
+
+const sessions = loadSessionsFromDisk()   // token → expiresAt
 
 export function createSession() {
   const token     = randomUUID()
   const expiresAt = Date.now() + SESSION_TTL_MS
   sessions.set(token, expiresAt)
+  saveSessionsToDisk(sessions)
   return { token, expiresAt }
 }
 
 function sessionValid(token) {
   const exp = sessions.get(token)
   if (!exp) return false
-  if (Date.now() > exp) { sessions.delete(token); return false }
+  if (Date.now() > exp) {
+    sessions.delete(token)
+    saveSessionsToDisk(sessions)
+    return false
+  }
   return true
 }
 
@@ -74,6 +107,7 @@ export function adminLogout(req, res) {
   const token = req.cookies?.admin_token
   if (token) {
     sessions.delete(token)
+    saveSessionsToDisk(sessions)
     logger.info('Admin ausgeloggt')
   }
   res.clearCookie('admin_token', { httpOnly: true, secure: IS_PROD, sameSite: 'strict' })
