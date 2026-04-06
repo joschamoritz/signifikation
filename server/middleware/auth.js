@@ -1,7 +1,4 @@
-import { randomUUID, timingSafeEqual } from 'crypto'
-import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'fs'
-import { join, dirname } from 'path'
-import { fileURLToPath } from 'url'
+import { randomUUID, timingSafeEqual, createHmac } from 'crypto'
 import logger from '../logger.js'
 
 const IS_PROD   = process.env.NODE_ENV === 'production'
@@ -25,52 +22,39 @@ function sanitize(obj) {
   return copy
 }
 
-// ── Session-Token-Store (persistent, TTL 8h) ─────────────────
+// ── Signierte Session-Tokens (HMAC, kein Server-State) ───────
+// Format: <uuid>.<expiresAt>.<hmac>
+// Überlebt Server-Neustarts und Deploys ohne Datei-I/O.
 const SESSION_TTL_MS = 8 * 60 * 60 * 1000
-const __dir          = dirname(fileURLToPath(import.meta.url))
-const SESSIONS_FILE  = join(__dir, '..', 'data', 'sessions.json')
 
-function loadSessionsFromDisk() {
-  try {
-    if (!existsSync(SESSIONS_FILE)) return new Map()
-    const raw = JSON.parse(readFileSync(SESSIONS_FILE, 'utf8'))
-    const now  = Date.now()
-    // Abgelaufene Einträge beim Laden wegfiltern
-    return new Map(Object.entries(raw).filter(([, exp]) => exp > now))
-  } catch {
-    return new Map()
-  }
+function sign(payload) {
+  return createHmac('sha256', ADMIN_KEY ?? 'fallback').update(payload).digest('hex')
 }
-
-function saveSessionsToDisk(map) {
-  try {
-    const dir = dirname(SESSIONS_FILE)
-    if (!existsSync(dir)) mkdirSync(dir, { recursive: true })
-    writeFileSync(SESSIONS_FILE, JSON.stringify(Object.fromEntries(map)), 'utf8')
-  } catch (err) {
-    logger.warn({ err }, 'Sessions konnten nicht gespeichert werden')
-  }
-}
-
-const sessions = loadSessionsFromDisk()   // token → expiresAt
 
 export function createSession() {
-  const token     = randomUUID()
+  const uuid      = randomUUID()
   const expiresAt = Date.now() + SESSION_TTL_MS
-  sessions.set(token, expiresAt)
-  saveSessionsToDisk(sessions)
+  const payload   = `${uuid}.${expiresAt}`
+  const token     = `${payload}.${sign(payload)}`
   return { token, expiresAt }
 }
 
 function sessionValid(token) {
-  const exp = sessions.get(token)
-  if (!exp) return false
-  if (Date.now() > exp) {
-    sessions.delete(token)
-    saveSessionsToDisk(sessions)
+  if (!token || typeof token !== 'string') return false
+  const parts = token.split('.')
+  // Format: <uuid>.<expiresAt>.<hmac> → 3 Teile (UUID enthält nur Bindestriche)
+  if (parts.length !== 3) return false
+  const [uuid, expiresAtStr, hmac] = parts
+  const payload = `${uuid}.${expiresAtStr}`
+  // Konstanter Zeitvergleich gegen Timing-Attacks
+  try {
+    const expected = sign(payload)
+    if (!timingSafeEqual(Buffer.from(hmac, 'hex'), Buffer.from(expected, 'hex'))) return false
+  } catch {
     return false
   }
-  return true
+  const expiresAt = parseInt(expiresAtStr, 10)
+  return Number.isFinite(expiresAt) && Date.now() < expiresAt
 }
 
 /** POST /admin/auth – tauscht Admin-Key gegen httpOnly-Session-Cookie */
@@ -102,14 +86,9 @@ export function adminAuth(req, res) {
   res.json({ ok: true, expiresAt })
 }
 
-/** POST /admin/logout – Session beenden + Cookie löschen */
+/** POST /admin/logout – Cookie löschen (kein Server-State nötig) */
 export function adminLogout(req, res) {
-  const token = req.cookies?.admin_token
-  if (token) {
-    sessions.delete(token)
-    saveSessionsToDisk(sessions)
-    logger.info('Admin ausgeloggt')
-  }
+  logger.info('Admin ausgeloggt')
   res.clearCookie('admin_token', { httpOnly: true, secure: IS_PROD, sameSite: 'strict' })
   res.json({ ok: true })
 }
