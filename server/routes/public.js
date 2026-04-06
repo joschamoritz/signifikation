@@ -3,7 +3,7 @@ import { join, normalize } from 'path'
 import { readFileSync } from 'fs'
 import { fetchBelege, belegeVerfuegbar } from '../belege.js'
 import { fetchRelation } from '../wortprofil.js'
-import { load, loadReadOnly, save, loadZeitreise, loadWortZwilling, loadStats, withStatsLock, getLemmataIndex, cacheGet, cacheSet, DATA } from '../store.js'
+import { load, loadReadOnly, save, loadZeitreise, loadWortZwilling, loadZeitenwende, loadStats, withStatsLock, getLemmataIndex, cacheGet, cacheSet, DATA } from '../store.js'
 import { belegeLimiter, statsLimiter, feedbackLimiter } from '../middleware/rateLimiter.js'
 import { serverError } from '../middleware/auth.js'
 import { validate, statsSchema, feedbackSchema, belegeQuerySchema, archivQuerySchema, qQuerySchema, bonusQuerySchema } from '../middleware/validate.js'
@@ -93,6 +93,19 @@ router.get('/api/v1/wortzwilling', (req, res) => {
       kollokatoren: entry.kollokatoren.map(({ wort, zuordnung }) => ({ wort, zuordnung })),
     }
     res.json(safe)
+  } catch (err) {
+    serverError(res, err)
+  }
+})
+
+/** GET /api/zeitenwende → Zeitenwende-Eintrag des Tages */
+router.get('/api/v1/zeitenwende', (req, res) => {
+  try {
+    const datum = req.query.datum || todayDatum().mmdd
+    const zw    = loadReadOnly('zeitenwende.json') ?? {}
+    const entry = zw[datum]
+    if (!entry) return res.status(404).json({ error: `Kein Zeitenwende-Eintrag für ${datum}` })
+    res.json(entry)
   } catch (err) {
     serverError(res, err)
   }

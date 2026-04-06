@@ -24,7 +24,7 @@ export function validate(schema, source = 'body') {
 // ── Gemeinsame Basistypen ─────────────────────────────────────
 const DATUM_MMDD  = z.string().regex(/^\d{2}-\d{2}$/, 'Ungültiges datum-Format (MM-DD)')
 const POS         = z.enum(['Substantiv', 'Verb', 'Adjektiv']).default('Substantiv')
-const VALID_GAMES = ['kollokationen', 'zeitreise', 'wortzwilling']
+const VALID_GAMES = ['kollokationen', 'zeitreise', 'wortzwilling', 'zeitenwende']
 
 // ── Schemata ─────────────────────────────────────────────────
 
@@ -77,10 +77,11 @@ export const adminTagSchema = z.object({
   links:           z.array(z.string()).optional().default([]),
   definitionen:    z.array(z.string()).optional().default([]),
   positionen:      z.array(POS).optional().default([]),
-  zeitreise_lemma:   z.string().optional().default(''),
-  zeitreise_wortart: POS.optional().default('Substantiv'),
-  zwilling_paar:     z.union([z.array(z.string()).length(2), z.null()]).optional().default(null),
-  zwilling_pos:    POS,
+  zeitreise_lemma:    z.string().optional().default(''),
+  zeitreise_wortart:  POS.optional().default('Substantiv'),
+  zwilling_paar:      z.union([z.array(z.string()).length(2), z.null()]).optional().default(null),
+  zwilling_pos:       POS,
+  zeitenwende_lemma:  z.string().optional().default(''),
 })
 
 
@@ -99,5 +100,10 @@ export const analyzeWZQuerySchema = z.object({
 
 /** GET /admin/analyze-zeitreise (query) */
 export const analyzeZeitQuerySchema = z.object({
+  q: z.string().min(1, 'q= erforderlich'),
+})
+
+/** GET /admin/analyze-zeitenwende (query) */
+export const analyzeZWendeQuerySchema = z.object({
   q: z.string().min(1, 'q= erforderlich'),
 })

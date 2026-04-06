@@ -490,3 +490,147 @@ export async function fetchBonusQuestion(lemma, pos = 'Substantiv') {
   }
   return null
 }
+
+// ── Zeitenwende-Konstanten ────────────────────────────────────────────────────
+const ZW_MIN_JAHRZEHNT = 1950
+const ZW_CUTOFF        = 2000
+const ZW_MIN_LEN       = 5
+const ZW_MAX_LEN       = 14
+const ZW_MIN_SCORE     = 5
+const ZW_WORD_REGEX    = /^[a-zäöüß][a-zA-ZäöüÄÖÜß]*$/
+
+/**
+ * Zeitenwende-Datenabruf: distinktive Kollokatoren vor/nach 2000.
+ *
+ * Wertet die zeitreise-Tabelle aus und ermittelt Wörter, die entweder typisch
+ * für die Zeit vor 2000 oder typisch für die Zeit nach 2000 sind.
+ * Gibt { lemma, words: [{wort, periode}] } mit 10 gemischten Einträgen zurück,
+ * oder null wenn nicht genug distinkte Kollokatoren gefunden werden.
+ */
+export async function fetchZeitenwende(lemma) {
+  try {
+    const rows = withConnection(db => stmt(`
+      SELECT dep_lemma, dep_pos, jahrzehnt, score
+      FROM zeitreise
+      WHERE lemma = ?
+        AND jahrzehnt >= ?
+      ORDER BY dep_lemma
+    `, db).all(lemma.toLowerCase(), ZW_MIN_JAHRZEHNT))
+
+    if (!rows.length) return null
+
+    const lemmaLower = lemma.toLowerCase()
+    const lemmaStamm = lemmaLower.slice(0, 4)
+
+    // Scores nach dep_lemma gruppieren und pre/post trennen
+    const wordMap = new Map()
+    for (const r of rows) {
+      const key = r.dep_lemma.toLowerCase()
+      if (!wordMap.has(key)) wordMap.set(key, { dep_lemma: r.dep_lemma, dep_pos: r.dep_pos, pre: [], post: [] })
+      const bucket = r.jahrzehnt < ZW_CUTOFF ? 'pre' : 'post'
+      wordMap.get(key)[bucket].push(r.score)
+    }
+
+    // Für jedes Wort Distinktivitätsscore berechnen
+    const candidates = []
+    for (const [key, data] of wordMap) {
+      const wort = normalizeLemma(data.dep_lemma, data.dep_pos)
+      // Längen- und Regex-Filter
+      if (wort.length < ZW_MIN_LEN || wort.length > ZW_MAX_LEN) continue
+      if (!ZW_WORD_REGEX.test(data.dep_lemma)) continue
+      // Nicht das Lemma selbst oder eng verwandte Formen
+      if (key === lemmaLower || key.startsWith(lemmaStamm)) continue
+
+      const avgPre  = data.pre.length  ? data.pre.reduce((a, b)  => a + b, 0) / data.pre.length  : 0
+      const avgPost = data.post.length ? data.post.reduce((a, b) => a + b, 0) / data.post.length : 0
+
+      // Mindestens eine Periode muss ausreichend stark sein
+      if (avgPre < ZW_MIN_SCORE && avgPost < ZW_MIN_SCORE) continue
+
+      candidates.push({ wort, avgPre, avgPost, distPre: avgPre - avgPost, distPost: avgPost - avgPre })
+    }
+
+    // Pre-Pool: charakteristisch für die Zeit vor 2000
+    const prePool = candidates
+      .filter(c => c.distPre > 0 && c.avgPre >= ZW_MIN_SCORE)
+      .sort((a, b) => b.distPre - a.distPre)
+
+    // Post-Pool: charakteristisch für die Zeit nach 2000
+    const postPool = candidates
+      .filter(c => c.distPost > 0 && c.avgPost >= ZW_MIN_SCORE)
+      .sort((a, b) => b.distPost - a.distPost)
+
+    // Überlappungen aus beiden Pools entfernen (Top-15 jeweils prüfen)
+    const preSet  = new Set(prePool.slice(0, 15).map(c => c.wort))
+    const postSet = new Set(postPool.slice(0, 15).map(c => c.wort))
+    const overlap = new Set([...preSet].filter(w => postSet.has(w)))
+
+    const preFinal  = prePool.filter(c => !overlap.has(c.wort)).slice(0, 5)
+    const postFinal = postPool.filter(c => !overlap.has(c.wort)).slice(0, 5)
+
+    if (preFinal.length < 5 || postFinal.length < 5) return null
+
+    // Kombinieren und mischen
+    const words = [
+      ...preFinal.map(c  => ({ wort: c.wort,  periode: 'pre'  })),
+      ...postFinal.map(c => ({ wort: c.wort,  periode: 'post' })),
+    ]
+    for (let i = words.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [words[i], words[j]] = [words[j], words[i]]
+    }
+
+    return { lemma, words }
+  } catch (err) {
+    logger.warn({ err }, `fetchZeitenwende: Fehler bei „${lemma}"`)
+    return null
+  }
+}
+
+/**
+ * Zeitenwende-Analyse für den Admin: zeigt pre/post-Kandidaten mit Scores.
+ * Gibt { lemma, usable, preCandidates, postCandidates, words? } zurück.
+ */
+export async function fetchZeitenwendeAnalyze(lemma) {
+  const rows = withConnection(db => stmt(`
+    SELECT dep_lemma, dep_pos, jahrzehnt, score
+    FROM zeitreise
+    WHERE lemma = ?
+      AND jahrzehnt >= ?
+    ORDER BY dep_lemma
+  `, db).all(lemma.toLowerCase(), ZW_MIN_JAHRZEHNT))
+
+  if (!rows.length) return null
+
+  const lemmaLower = lemma.toLowerCase()
+  const lemmaStamm = lemmaLower.slice(0, 4)
+
+  const wordMap = new Map()
+  for (const r of rows) {
+    const key = r.dep_lemma.toLowerCase()
+    if (!wordMap.has(key)) wordMap.set(key, { dep_lemma: r.dep_lemma, dep_pos: r.dep_pos, pre: [], post: [] })
+    const bucket = r.jahrzehnt < ZW_CUTOFF ? 'pre' : 'post'
+    wordMap.get(key)[bucket].push(r.score)
+  }
+
+  const allCandidates = []
+  for (const [key, data] of wordMap) {
+    const wort = normalizeLemma(data.dep_lemma, data.dep_pos)
+    if (wort.length < ZW_MIN_LEN || wort.length > ZW_MAX_LEN) continue
+    if (!ZW_WORD_REGEX.test(data.dep_lemma)) continue
+    if (key === lemmaLower || key.startsWith(lemmaStamm)) continue
+
+    const avgPre  = data.pre.length  ? data.pre.reduce((a, b)  => a + b, 0) / data.pre.length  : 0
+    const avgPost = data.post.length ? data.post.reduce((a, b) => a + b, 0) / data.post.length : 0
+    if (avgPre < ZW_MIN_SCORE && avgPost < ZW_MIN_SCORE) continue
+
+    allCandidates.push({ wort, avgPre: +avgPre.toFixed(1), avgPost: +avgPost.toFixed(1),
+      distPre: +(avgPre - avgPost).toFixed(1), distPost: +(avgPost - avgPre).toFixed(1) })
+  }
+
+  const preCandidates  = allCandidates.filter(c => c.distPre  > 0 && c.avgPre  >= ZW_MIN_SCORE).sort((a, b) => b.distPre  - a.distPre).slice(0, 10)
+  const postCandidates = allCandidates.filter(c => c.distPost > 0 && c.avgPost >= ZW_MIN_SCORE).sort((a, b) => b.distPost - a.distPost).slice(0, 10)
+
+  const result = await fetchZeitenwende(lemma)
+  return { lemma, usable: !!result, preCandidates, postCandidates, words: result?.words ?? null }
+}

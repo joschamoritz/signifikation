@@ -40,7 +40,7 @@ export function streakFlames(n) {
 
 export const POS_LABEL = { 'Substantiv': 'Nomen', 'Verb': 'Verb', 'Adjektiv': 'Adj' }
 
-export function buildShareText(playedGames, zrPlayed, wzPlayed, streak) {
+export function buildShareText(playedGames, zrPlayed, wzPlayed, streak, zwPlayed = null) {
   const d = new Date()
   const dateStr = `${d.getDate()}. ${MONTHS[d.getMonth()]}`
   const streakPart = streak > 0 ? ` · 🔥${streak}` : ''
@@ -58,12 +58,15 @@ export function buildShareText(playedGames, zrPlayed, wzPlayed, streak) {
     const kollMedal = getMedal(kollTotal, kollMax)
     lines.push(`K  ${blocks(kollTotal, kollMax)}  ${kollTotal}/${kollMax}  ${kollMedal.emoji}`)
   }
+  if (wzPlayed) {
+    lines.push(`W  ${blocks(wzPlayed.total, 10)}   ${wzPlayed.total}/10  ${wzPlayed.medal?.emoji ?? ''}`)
+  }
+  if (zwPlayed) {
+    lines.push(`Zw ${blocks(zwPlayed.total, 10)}   ${zwPlayed.total}/10  ${zwPlayed.medal?.emoji ?? ''}`)
+  }
   if (zrPlayed) {
     const zrMax = zrPlayed.max ?? 20
     lines.push(`Z  ${blocks(zrPlayed.total, zrMax)}  ${zrPlayed.total}/${zrMax}  ${zrPlayed.medal?.emoji ?? ''}`)
-  }
-  if (wzPlayed) {
-    lines.push(`W  ${blocks(wzPlayed.total, 10)}   ${wzPlayed.total}/10  ${wzPlayed.medal?.emoji ?? ''}`)
   }
 
   lines.push('')

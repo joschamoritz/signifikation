@@ -116,6 +116,23 @@
       </p>
     </div>
 
+    <!-- Zeitenwende -->
+    <button class="mode-toggle" id="zw-toggle" onclick="toggleMode('zw')">
+      <span>Zeitenwende</span>
+      <span class="toggle-arrow" id="zw-arrow">›</span>
+    </button>
+    <div class="mode-body" id="zw-body" style="display:none">
+      <div style="display:flex;gap:8px;align-items:flex-end">
+        <div style="flex:1">
+          <label for="zw-lemma">Lemma (Zeitenwende)</label>
+          <input type="text" id="zw-lemma" placeholder="Lemma">
+        </div>
+      </div>
+      <p style="font-size:0.8rem;color:var(--muted);font-style:italic">
+        10 distinktive Kollokatoren (5 vor 2000, 5 nach 2000) werden automatisch aus der Zeitreise-DB ermittelt.
+      </p>
+    </div>
+
     <!-- Zeitreise -->
     <button class="mode-toggle" id="zeit-toggle" onclick="toggleMode('zeit')">
       <span>Zeitreise</span>
@@ -187,6 +204,18 @@
       <button onclick="document.getElementById('wz-ana-output').innerHTML='';document.getElementById('wza-input').value='';document.getElementById('wzb-input').value=''" style="opacity:0.6">✕ Zurücksetzen</button>
     </div>
     <div id="wz-ana-output"></div>
+  </div>
+
+  <!-- Zeitenwende Analyse -->
+  <div class="card">
+    <h2>Zeitenwende – Wortanalyse</h2>
+    <p style="font-size:0.82rem;color:var(--muted);margin-bottom:8px">Prüfe, ob ein Wort als Zeitenwende-Lemma geeignet ist. Zeigt distinktive Kollokatoren vor und nach 2000.</p>
+    <div class="viz-search">
+      <input type="text" id="zw-ana-input" placeholder="Wort eingeben…" onkeydown="if(event.key==='Enter')analyzeZeitenwende()" style="flex:1">
+      <button onclick="analyzeZeitenwende()">Analysieren</button>
+      <button onclick="document.getElementById('zw-ana-output').innerHTML='';document.getElementById('zw-ana-input').value=''" style="opacity:0.6">✕ Zurücksetzen</button>
+    </div>
+    <div id="zw-ana-output"></div>
   </div>
 
   <!-- Zeitreise Visualisierung -->

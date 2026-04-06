@@ -2,14 +2,14 @@ import express          from 'express'
 import { fileURLToPath } from 'url'
 import { dirname, join }  from 'path'
 import { createWriteStream, existsSync, renameSync, unlinkSync } from 'fs'
-import { fetchLemma, fetchBonusQuestion, fetchRelation, fetchZeitreise, fetchZeitreiseAnalyze, POS_ROUNDS } from '../wortprofil.js'
+import { fetchLemma, fetchBonusQuestion, fetchRelation, fetchZeitreise, fetchZeitreiseAnalyze, fetchZeitenwende, fetchZeitenwendeAnalyze, POS_ROUNDS } from '../wortprofil.js'
 import { fetchWiktionary } from '../wiktionary.js'
 import { fetchWortZwilling } from '../wortzwilling.js'
-import { load, loadReadOnly, save, loadZeitreise, loadWortZwilling, loadStats, getLemmataIndex, getCacheMetrics, DATA } from '../store.js'
+import { load, loadReadOnly, save, loadZeitreise, loadWortZwilling, loadZeitenwende, loadStats, getLemmataIndex, getCacheMetrics, DATA } from '../store.js'
 import { getCacheMetrics as getQueryCacheMetrics, clearCache as clearQueryCache } from '../query-cache.js'
 import { adminLimiter, loginLimiter, uploadLimiter } from '../middleware/rateLimiter.js'
 import { requireAuth, adminAuth, adminLogout, adminError, serverError } from '../middleware/auth.js'
-import { validate, qQuerySchema, adminTagSchema, analyzeKollQuerySchema, analyzeWZQuerySchema, analyzeZeitQuerySchema } from '../middleware/validate.js'
+import { validate, qQuerySchema, adminTagSchema, analyzeKollQuerySchema, analyzeWZQuerySchema, analyzeZeitQuerySchema, analyzeZWendeQuerySchema } from '../middleware/validate.js'
 import { auditCreate, auditUpdate, auditDelete, getAuditLog } from '../audit.js'
 import logger from '../logger.js'
 
@@ -143,9 +143,19 @@ router.get('/admin/analyze-zeitreise', adminLimiter, requireAuth, validate(analy
   } catch (err) { adminError(res, err) }
 })
 
+/** GET /admin/analyze-zeitenwende?q=Wort – Zeitenwende-Eignung prüfen */
+router.get('/admin/analyze-zeitenwende', adminLimiter, requireAuth, validate(analyzeZWendeQuerySchema, 'query'), async (req, res) => {
+  const { q: lemma } = req.query
+  try {
+    const result = await fetchZeitenwendeAnalyze(lemma.trim())
+    if (!result) return res.json({ usable: false, noData: true, lemma, reason: 'Keine Zeitenwende-Daten für dieses Wort gefunden.' })
+    res.json(result)
+  } catch (err) { adminError(res, err) }
+})
+
 /** POST /admin/tag – Tageseintrag anlegen/überschreiben */
 router.post('/admin/tag', adminLimiter, requireAuth, validate(adminTagSchema), async (req, res) => {
-  const { datum, woerter, notizen, links, definitionen, positionen, zeitreise_lemma, zeitreise_wortart, zwilling_paar, zwilling_pos } = req.body
+  const { datum, woerter, notizen, links, definitionen, positionen, zeitreise_lemma, zeitreise_wortart, zwilling_paar, zwilling_pos, zeitenwende_lemma } = req.body
 
   try {
     const lemmataDB = load('lemmata.json')
@@ -223,15 +233,37 @@ router.post('/admin/tag', adminLimiter, requireAuth, validate(adminTagSchema), a
       }
     }
 
+    // Zeitenwende optional
+    let zeitenwendeOk = null
+    if (zeitenwende_lemma?.trim()) {
+      logger.info(`Lade Zeitenwende-Daten für „${zeitenwende_lemma}" …`)
+      try {
+        const zw = await fetchZeitenwende(zeitenwende_lemma.trim())
+        const zeitenwende = loadZeitenwende()
+        if (zw) {
+          zeitenwende[datum] = zw
+          await save('zeitenwende.json', zeitenwende)
+          zeitenwendeOk = true
+          logger.info(`Zeitenwende gespeichert: ${zw.words.length} Wörter für „${zw.lemma}"`)
+        } else {
+          zeitenwendeOk = false
+          logger.warn(`Zeitenwende: nicht genug distinkte Kollokatoren für „${zeitenwende_lemma}"`)
+        }
+      } catch (err) {
+        zeitenwendeOk = false
+        logger.error({ err }, 'Zeitenwende-Fehler')
+      }
+    }
+
     logger.info(`Eintrag gespeichert: ${datum} → ${ids.join(', ')}`)
 
     // Audit-Log für Create-Operation
-    auditCreate('kalender', datum, { ids, woerter, zeitreise: !!zeitreise_lemma, zwilling: !!zwilling_paar[0] }, {
+    auditCreate('kalender', datum, { ids, woerter, zeitreise: !!zeitreise_lemma, zwilling: !!zwilling_paar[0], zeitenwende: !!zeitenwende_lemma }, {
       adminKey: req.headers['x-admin-token'],
       ip: req.ip,
     })
 
-    res.json({ ok: true, datum, ids, zeitreiseOk, zwillingOk })
+    res.json({ ok: true, datum, ids, zeitreiseOk, zwillingOk, zeitenwendeOk })
   } catch (err) {
     serverError(res, err)
   }
@@ -256,21 +288,23 @@ router.post('/admin/wiktionary-backfill', adminLimiter, requireAuth, async (req,
   } catch (err) { adminError(res, err) }
 })
 
-/** GET /admin/kalender – alle Einträge (inkl. Zeitreise- und Wort-Zwilling-Status) */
+/** GET /admin/kalender – alle Einträge (inkl. Zeitreise-, Wort-Zwilling- und Zeitenwende-Status) */
 router.get('/admin/kalender', adminLimiter, requireAuth, (req, res) => {
   const kalender     = loadReadOnly('kalender.json')
   const { byId }     = getLemmataIndex()
-  const zeitreise    = loadReadOnly('zeitreise.json') ?? {}
+  const zeitreise    = loadReadOnly('zeitreise.json')    ?? {}
   const wortzwilling = loadReadOnly('wortzwilling.json') ?? {}
+  const zeitenwende  = loadReadOnly('zeitenwende.json')  ?? {}
   const result = {}
   for (const [datum, ids] of Object.entries(kalender)) {
     result[datum] = {
-      lemmata:         ids.map(id => {
+      lemmata:           ids.map(id => {
         const l = byId.get(id)
         return { id, lemma: l?.lemma || id, notiz: l?.notiz || '' }
       }),
-      hasZeitreise:    !!zeitreise[datum],
-      hasWortZwilling: !!wortzwilling[datum],
+      hasZeitreise:      !!zeitreise[datum],
+      hasWortZwilling:   !!wortzwilling[datum],
+      hasZeitenwende:    !!zeitenwende[datum],
     }
   }
   res.json(result)
@@ -279,24 +313,26 @@ router.get('/admin/kalender', adminLimiter, requireAuth, (req, res) => {
 /** GET /admin/tag/:datum – Eintrag zum Bearbeiten laden */
 router.get('/admin/tag/:datum', adminLimiter, requireAuth, (req, res) => {
   if (!/^\d{2}-\d{2}$/.test(req.params.datum)) return res.status(400).json({ error: 'Ungültiges Datumsformat' })
-  const kalender     = loadReadOnly('kalender.json')
-  const { byId }     = getLemmataIndex()
-  const zeitreise    = loadReadOnly('zeitreise.json') ?? {}
+  const kalender    = loadReadOnly('kalender.json')
+  const { byId }    = getLemmataIndex()
+  const zeitreise   = loadReadOnly('zeitreise.json')    ?? {}
+  const zeitenwende = loadReadOnly('zeitenwende.json')  ?? {}
   const ids = kalender[req.params.datum]
   if (!ids) return res.status(404).json({ error: 'Kein Eintrag' })
   const lemmata = ids.map(id => byId.get(id)).filter(Boolean)
   const wz = (loadReadOnly('wortzwilling.json') ?? {})[req.params.datum]
   res.json({
-    datum:           req.params.datum,
-    woerter:         lemmata.map(l => l.lemma),
-    positionen:      lemmata.map(l => l.pos || 'Substantiv'),
-    notizen:         lemmata.map(l => l.notiz      || ''),
-    links:           lemmata.map(l => l.link       || ''),
-    definitionen:    lemmata.map(l => l.definition || ''),
-    zeitreise_lemma:   zeitreise[req.params.datum]?.lemma   || '',
-    zeitreise_wortart: zeitreise[req.params.datum]?.wortart || 'Substantiv',
-    zwilling_paar:   wz ? [wz.wortA, wz.wortB] : [],
-    zwilling_pos:    wz?.pos || 'Substantiv',
+    datum:              req.params.datum,
+    woerter:            lemmata.map(l => l.lemma),
+    positionen:         lemmata.map(l => l.pos || 'Substantiv'),
+    notizen:            lemmata.map(l => l.notiz      || ''),
+    links:              lemmata.map(l => l.link       || ''),
+    definitionen:       lemmata.map(l => l.definition || ''),
+    zeitreise_lemma:    zeitreise[req.params.datum]?.lemma   || '',
+    zeitreise_wortart:  zeitreise[req.params.datum]?.wortart || 'Substantiv',
+    zwilling_paar:      wz ? [wz.wortA, wz.wortB] : [],
+    zwilling_pos:       wz?.pos || 'Substantiv',
+    zeitenwende_lemma:  zeitenwende[req.params.datum]?.lemma || '',
   })
 })
 
@@ -307,22 +343,26 @@ router.delete('/admin/tag/:datum', adminLimiter, requireAuth, async (req, res) =
     const kalender     = load('kalender.json')
     const zeitreise    = loadZeitreise()
     const wortzwilling = loadWortZwilling()
+    const zeitenwende  = loadZeitenwende()
     const datum        = req.params.datum
 
     // Speichere Daten vor Löschung für Audit-Log
     const deletedData = {
-      ids: kalender[datum],
-      zeitreise: zeitreise[datum],
+      ids:          kalender[datum],
+      zeitreise:    zeitreise[datum],
       wortzwilling: wortzwilling[datum],
+      zeitenwende:  zeitenwende[datum],
     }
 
     delete kalender[datum]
     delete zeitreise[datum]
     delete wortzwilling[datum]
+    delete zeitenwende[datum]
 
     await save('kalender.json', kalender)
     await save('zeitreise.json', zeitreise)
     await save('wortzwilling.json', wortzwilling)
+    await save('zeitenwende.json', zeitenwende)
 
     // Audit-Log für Delete-Operation
     auditDelete('kalender', datum, deletedData, {
@@ -348,7 +388,7 @@ router.post('/admin/backup/gist', adminLimiter, requireAuth, async (req, res) =>
 /** GET /admin/backup – alle JSON-Daten als Bundle */
 router.get('/admin/backup', adminLimiter, requireAuth, (req, res) => {
   try {
-    const files  = ['kalender.json', 'lemmata.json', 'zeitreise.json', 'wortzwilling.json', 'stats.json', 'feedback.json', 'diacollo-config.json']
+    const files  = ['kalender.json', 'lemmata.json', 'zeitreise.json', 'wortzwilling.json', 'zeitenwende.json', 'stats.json', 'feedback.json', 'diacollo-config.json']
     const bundle = {}
     for (const f of files) {
       try { bundle[f] = loadReadOnly(f) } catch { bundle[f] = null }

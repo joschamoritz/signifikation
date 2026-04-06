@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { WEEKDAYS, MONTHS, computeStreak, buildShareText } from '../utils/homeUtils'
 import { getMedal } from '../utils/gameLogic'
 
-export default function DayComplete({ onClose, playedGames = [], zrPlayed = null, wzPlayed = null }) {
+export default function DayComplete({ onClose, playedGames = [], zrPlayed = null, wzPlayed = null, zwPlayed = null }) {
   const [closing, setClosing] = useState(false)
   const [copied,  setCopied]  = useState(false)
 
@@ -21,7 +21,7 @@ export default function DayComplete({ onClose, playedGames = [], zrPlayed = null
   }
 
   async function share() {
-    const text = buildShareText(playedGames, zrPlayed, wzPlayed, streak)
+    const text = buildShareText(playedGames, zrPlayed, wzPlayed, streak, zwPlayed)
     if (navigator.share) { try { await navigator.share({ text }); return } catch {} }
     try {
       await navigator.clipboard.writeText(text)
@@ -63,6 +63,12 @@ export default function DayComplete({ onClose, playedGames = [], zrPlayed = null
             <div className="dc-medal-item">
               <span className="dc-medal-emoji" aria-label={wzPlayed.medal?.label}>{wzPlayed.medal?.emoji}</span>
               <span className="dc-medal-label">Wort-Zwilling</span>
+            </div>
+          )}
+          {zwPlayed && (
+            <div className="dc-medal-item">
+              <span className="dc-medal-emoji" aria-label={zwPlayed.medal?.label}>{zwPlayed.medal?.emoji}</span>
+              <span className="dc-medal-label">Zeitenwende</span>
             </div>
           )}
         </div>

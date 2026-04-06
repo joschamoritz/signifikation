@@ -15,6 +15,8 @@ export default function Home({
   zrPlayed = null, onPlayZeitreise, onViewZeitreise,
   wortzwilling = null, wortzwillingError = false, onRetryWortzwilling,
   wzPlayed = null, onPlayWortzwilling, onViewWortzwilling,
+  zeitenwende = null, zeitenwendeError = false, onRetryZeitenwende,
+  zwPlayed = null, onPlayZeitenwende, onViewZeitenwende,
 }) {
   const [infoOpen,        setInfoOpen]        = useState(false)
   const [copied,          setCopied]          = useState(false)
@@ -27,12 +29,12 @@ export default function Home({
   const today      = new Date()
   const dateStr    = localDateStr(today)
   const kw         = getISOWeek(today)
-  const hasPlayed  = playedGames.length > 0 || !!zrPlayed || !!wzPlayed
+  const hasPlayed  = playedGames.length > 0 || !!zrPlayed || !!wzPlayed || !!zwPlayed
 
   const totalPoints    = playedGames.reduce((s, g) => s + g.total, 0)
   const maxPoints      = playedGames.length * 10
   const dailyMedal     = allPlayed ? getDailyMedal(totalPoints) : null
-  const allThreePlayed = allPlayed && !!zrPlayed && !!wzPlayed
+  const allThreePlayed = allPlayed && !!wzPlayed && (!zeitenwende || !!zwPlayed) && !!zrPlayed
 
   useEffect(() => {
     if (!allThreePlayed) return
@@ -83,12 +85,12 @@ export default function Home({
   // Pfeiltasten-Navigation (nur mobil)
   const handleSnapKeyDown = useCallback((e) => {
     if (!window.matchMedia('(max-width: 699px)').matches) return
-    if (e.key === 'ArrowDown') scrollToCard(Math.min(activeCard + 1, 3))
+    if (e.key === 'ArrowDown') scrollToCard(Math.min(activeCard + 1, 4))
     if (e.key === 'ArrowUp')   scrollToCard(Math.max(activeCard - 1, 0))
   }, [activeCard, scrollToCard])
 
   async function shareResult() {
-    const text = buildShareText(playedGames, zrPlayed, wzPlayed, streak)
+    const text = buildShareText(playedGames, zrPlayed, wzPlayed, streak, zwPlayed)
     if (navigator.share) { try { await navigator.share({ text }); return } catch {} }
     try {
       await navigator.clipboard.writeText(text)
@@ -111,6 +113,7 @@ export default function Home({
           playedGames={playedGames}
           zrPlayed={zrPlayed}
           wzPlayed={wzPlayed}
+          zwPlayed={zwPlayed}
         />
       )}
       <div className="test-wrapper">
@@ -287,10 +290,69 @@ export default function Home({
               </div>
             </li>
 
-            {/* ── ③ Zeitreise ──────────────────────────────── */}
-            <li className={`test-entry${!zeitreise ? ' test-entry--disabled' : ''}${zrPlayed ? ' test-entry--done' : ''}`}>
+            {/* ── ③ Zeitenwende ────────────────────────────── */}
+            <li className={`test-entry${!zeitenwende ? ' test-entry--disabled' : ''}${zwPlayed ? ' test-entry--done' : ''}`}>
               <div className="test-entry-number" aria-hidden="true">
                 <span className="test-entry-num-glyph">③</span>
+                <span className="test-entry-marginalia">DIACH.</span>
+              </div>
+              <div className="test-entry-body">
+                <div className="test-entry-head">
+                  <h2 className="test-headword">Zeitenwende</h2>
+                  <span className="test-ipa" aria-label="Aussprache: [ˈtsaɪ̯tənˌvɛndə]">[ˈtsaɪ̯tənˌvɛndə]</span>
+                </div>
+                <div className="test-entry-grammar" aria-hidden="true">
+                  <span className="test-pos">Wortspiel</span>
+                  <span className="test-pos-rule" />
+                  <span className="test-entry-category">diachron</span>
+                </div>
+                <p className="test-definition">
+                  Gehört dieses Wort eher in die Zeit vor oder nach der Jahrtausendwende? Entscheide für zehn Kollokate eines Lemmas.
+                </p>
+
+                {zwPlayed && zeitenwende && (
+                  <ul className="test-played-list">
+                    <li className="test-played-entry">
+                      <span className="test-played-word">{zwPlayed.medal?.emoji ?? ''} {zeitenwende.lemma}</span>
+                      <span className="test-played-score">{zwPlayed.total}/10</span>
+                    </li>
+                  </ul>
+                )}
+
+                {zeitenwendeError && (
+                  <p className="test-game-error">
+                    Verbindungsfehler.{' '}
+                    <button className="test-game-error-retry" type="button" onClick={onRetryZeitenwende}>
+                      Erneut versuchen
+                    </button>
+                  </p>
+                )}
+
+                <div className="test-entry-footer">
+                  <span className={`test-status${zwPlayed ? ' test-status--done' : ''}`}>
+                    {zeitenwendeError ? '' : !zeitenwende ? 'Heute nicht verfügbar.' : zwPlayed ? 'Gespielt.' : 'Noch nicht gespielt.'}
+                  </span>
+                  {zeitenwende ? (
+                    <button
+                      className="test-cta"
+                      type="button"
+                      onClick={zwPlayed ? onViewZeitenwende : onPlayZeitenwende}
+                      aria-label={zwPlayed ? 'Ergebnis ansehen: Zeitenwende' : 'Zeitenwende starten'}
+                    >
+                      {zwPlayed ? 'Ergebnis ansehen' : 'Zeitenwende starten'}
+                      <span className="test-cta-arrow" aria-hidden="true"> →</span>
+                    </button>
+                  ) : (
+                    <span className="test-cta test-cta--disabled" aria-hidden="true">—</span>
+                  )}
+                </div>
+              </div>
+            </li>
+
+            {/* ── ④ Zeitreise ──────────────────────────────── */}
+            <li className={`test-entry${!zeitreise ? ' test-entry--disabled' : ''}${zrPlayed ? ' test-entry--done' : ''}`}>
+              <div className="test-entry-number" aria-hidden="true">
+                <span className="test-entry-num-glyph">④</span>
                 <span className="test-entry-marginalia">HIST.</span>
               </div>
               <div className="test-entry-body">
@@ -346,10 +408,10 @@ export default function Home({
               </div>
             </li>
 
-            {/* ── ④ Demnächst ──────────────────────────────── */}
+            {/* ── ⑤ Demnächst ──────────────────────────────── */}
             <li className="test-entry test-entry--disabled" aria-hidden="true">
               <div className="test-entry-number">
-                <span className="test-entry-num-glyph">④</span>
+                <span className="test-entry-num-glyph">⑤</span>
                 <span className="test-entry-marginalia">i.V.</span>
               </div>
               <div className="test-entry-body">
@@ -376,7 +438,7 @@ export default function Home({
         {/* ── Snap-Extras: Ornament + Anmerkung (mobil unter Karten) */}
         <div className="snap-extras">
           <span className="snap-extras-ornament" aria-hidden="true">
-            {[playedGames.length > 0, !!zrPlayed, !!wzPlayed].map((played, i) =>
+            {[playedGames.length > 0, !!wzPlayed, !!zwPlayed, !!zrPlayed].map((played) =>
               played ? '✦' : '·'
             ).join(' ')}
           </span>

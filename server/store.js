@@ -73,6 +73,7 @@ export function save(file, data) {
 
 export function loadZeitreise()    { try { return load('zeitreise.json')    } catch { return {} } }
 export function loadWortZwilling() { try { return load('wortzwilling.json') } catch { return {} } }
+export function loadZeitenwende()  { try { return load('zeitenwende.json')  } catch { return {} } }
 export function loadStats()        { try { return load('stats.json')        } catch { return {} } }
 
 // ── Lemmata-Index (O(1)-Lookup statt linearem Array-Scan) ─────

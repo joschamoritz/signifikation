@@ -202,7 +202,7 @@ function changeMonth(delta) {
 
 function prefillDate(isoDate) {
   document.getElementById('datum').value = isoDate
-  ;['w1','w2','w3','n1','n2','n3','l1','l2','l3','zr'].forEach(id => document.getElementById(id).value = '')
+  ;['w1','w2','w3','n1','n2','n3','l1','l2','l3','zr','zw-lemma'].forEach(id => document.getElementById(id).value = '')
   document.getElementById('p1').value    = 'Substantiv'
   document.getElementById('p2').value    = 'Verb'
   document.getElementById('p3').value    = 'Adjektiv'
@@ -229,10 +229,11 @@ async function saveTag() {
   const l1    = document.getElementById('l1').value.trim()
   const l2    = document.getElementById('l2').value.trim()
   const l3    = document.getElementById('l3').value.trim()
-  const zr    = document.getElementById('zr').value.trim()
-  const wza   = document.getElementById('wza').value.trim()
-  const wzb   = document.getElementById('wzb').value.trim()
-  const wzpos = document.getElementById('wzpos').value
+  const zr        = document.getElementById('zr').value.trim()
+  const wza       = document.getElementById('wza').value.trim()
+  const wzb       = document.getElementById('wzb').value.trim()
+  const wzpos     = document.getElementById('wzpos').value
+  const zwLemma   = document.getElementById('zw-lemma').value.trim()
 
   if (!datum || !w1 || !w2 || !w3) {
     return setStatus('Bitte Datum und alle drei Kollokations-Wörter ausfüllen.', 'error')
@@ -245,6 +246,7 @@ async function saveTag() {
   const statusParts = [`DWDS für „${w1}", „${w2}", „${w3}"`]
   if (zr) statusParts.push(`DiaCollo für „${zr}"`)
   if (wza && wzb) statusParts.push(`Wort-Zwilling „${wza}" / „${wzb}"`)
+  if (zwLemma) statusParts.push(`Zeitenwende für „${zwLemma}"`)
   setStatus(`Rufe ab: ${statusParts.join(' · ')} …`, 'loading')
 
   try {
@@ -257,8 +259,9 @@ async function saveTag() {
         definitionen: ['', '', ''],
         zeitreise_lemma:   zr,
         zeitreise_wortart: document.getElementById('zr-wortart').value,
-        zwilling_paar: wza && wzb ? [wza, wzb] : null,
-        zwilling_pos: wzpos,
+        zwilling_paar:     wza && wzb ? [wza, wzb] : null,
+        zwilling_pos:      wzpos,
+        zeitenwende_lemma: zwLemma,
       }),
     })
     const data = await res.json()
@@ -275,7 +278,12 @@ async function saveTag() {
            : data.zwillingOk === false ? ' · Wort-Zwilling: nicht genug distinkte Kollokatoren'
            : ''
     }
-    const hasError = data.zwillingOk === false
+    if (zwLemma) {
+      msg += data.zeitenwendeOk === true  ? ' · Zeitenwende: OK'
+           : data.zeitenwendeOk === false ? ' · Zeitenwende: nicht genug distinkte Kollokatoren'
+           : ''
+    }
+    const hasError = data.zwillingOk === false || data.zeitenwendeOk === false
     setStatus(msg, hasError ? 'error' : data.zeitreiseOk === false ? 'warn' : 'ok')
     await loadKalender()
   } catch (err) {
@@ -306,9 +314,10 @@ async function editTag(datum) {
 
   document.getElementById('zr').value          = data.zeitreise_lemma   || ''
   document.getElementById('zr-wortart').value  = data.zeitreise_wortart || 'Substantiv'
-  document.getElementById('wza').value   = data.zwilling_paar?.[0] || ''
-  document.getElementById('wzb').value   = data.zwilling_paar?.[1] || ''
-  document.getElementById('wzpos').value = data.zwilling_pos || 'Substantiv'
+  document.getElementById('wza').value         = data.zwilling_paar?.[0] || ''
+  document.getElementById('wzb').value         = data.zwilling_paar?.[1] || ''
+  document.getElementById('wzpos').value       = data.zwilling_pos || 'Substantiv'
+  document.getElementById('zw-lemma').value    = data.zeitenwende_lemma || ''
   document.getElementById('form-title').textContent = `Eintrag bearbeiten: ${datum}`
   document.getElementById('save-btn').textContent   = 'Aktualisieren & APIs abrufen'
   window.scrollTo({ top: 0, behavior: 'smooth' })
@@ -643,5 +652,59 @@ function renderWZAnalyse(data, out) {
     html += `</ol></div>`
   }
   html += `</div>`
+  out.innerHTML = html
+}
+
+// ── Zeitenwende – Wortanalyse ─────────────────────────────
+async function analyzeZeitenwende() {
+  const lemma = document.getElementById('zw-ana-input').value.trim()
+  const out   = document.getElementById('zw-ana-output')
+  if (!lemma) return
+  out.innerHTML = '<div class="status loading">Analysiere …</div>'
+  try {
+    const res  = await fetch(`/admin/analyze-zeitenwende?q=${encodeURIComponent(lemma)}`, {})
+    const data = await res.json()
+    if (!res.ok) { out.innerHTML = `<div class="status error">Fehler: ${esc(data.error)}</div>`; return }
+    renderZWAnalyse(data, out)
+  } catch (e) { out.innerHTML = `<div class="status error">Netzwerkfehler: ${esc(e.message)}</div>` }
+}
+
+function renderZWAnalyse(data, out) {
+  if (!data.preCandidates && !data.postCandidates) {
+    out.innerHTML = `<div style="margin-top:12px"><span style="color:#991b1b;font-weight:700">✗ Keine Daten</span><br><span style="color:var(--muted);font-size:0.85rem">${esc(data.reason || '')}</span></div>`
+    return
+  }
+  const badge = data.usable
+    ? '<span style="color:#166534;font-weight:700">✓ Geeignet als Zeitenwende-Lemma</span>'
+    : '<span style="color:#991b1b;font-weight:700">✗ Nicht geeignet (zu wenig distinkte Kollokatoren)</span>'
+
+  let html = `<div style="margin:12px 0 16px">${badge}</div>`
+  html += `<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">`
+  for (const [title, items, bdColor] of [
+    ['← Vor 2000',  data.preCandidates,  '#93c5fd'],
+    ['Nach 2000 →', data.postCandidates, '#86efac'],
+  ]) {
+    html += `<div style="border:1.5px solid ${bdColor};border-radius:8px;padding:12px">`
+    html += `<div style="font-weight:700;font-size:0.85rem;margin-bottom:8px">${esc(title)}</div>`
+    if (!items?.length) { html += `<div style="color:var(--muted);font-size:0.82rem">Keine Kandidaten</div></div>`; continue }
+    html += `<ol style="padding-left:16px;font-size:0.82rem;display:flex;flex-direction:column;gap:3px">`
+    for (const it of items) {
+      const score = it.distPre > 0 ? it.distPre : it.distPost
+      html += `<li>${esc(it.wort)} <span style="color:var(--muted);font-size:0.78em">Δ${score}</span></li>`
+    }
+    html += `</ol></div>`
+  }
+  html += `</div>`
+
+  if (data.words) {
+    html += `<div style="margin-top:14px;padding:10px 14px;background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;font-size:0.82rem">`
+    html += `<strong>Spielauswahl (${data.words.length} Wörter):</strong><div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px">`
+    for (const w of data.words) {
+      const bg  = w.periode === 'pre' ? '#dbeafe' : '#dcfce7'
+      const bdr = w.periode === 'pre' ? '#3b82f6' : '#22c55e'
+      html += `<span style="background:${bg};border:1px solid ${bdr};border-radius:4px;padding:2px 8px;font-size:0.82rem">${esc(w.wort)}</span>`
+    }
+    html += `</div></div>`
+  }
   out.innerHTML = html
 }

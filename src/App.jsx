@@ -20,6 +20,7 @@ function startVT(callback) {
 
 const Zeitreise    = lazy(() => import('./components/Zeitreise'))
 const WortZwilling = lazy(() => import('./components/WortZwilling'))
+const Zeitenwende  = lazy(() => import('./components/Zeitenwende'))
 
 // ── localStorage-Schlüssel aus Server-Datum (verhindert Zeitzonen-Mismatch) ──
 function makeKeys(datum, year = new Date().getFullYear()) {
@@ -78,6 +79,15 @@ function saveWZHistory(dateStr, medal, emoji) {
   lsSet('sig_wz_history', JSON.stringify(history.slice(0, 365)))
 }
 
+function saveZWHistory(dateStr, medal, emoji) {
+  const history = lsParse(lsGet('sig_zw_history'), [])
+  const idx = history.findIndex(h => h.date === dateStr)
+  const entry = { date: dateStr, medal, emoji }
+  if (idx >= 0) history[idx] = entry
+  else history.unshift(entry)
+  lsSet('sig_zw_history', JSON.stringify(history.slice(0, 365)))
+}
+
 function savePlayedGame(keys, lemmaId, lemmaName, lemmaPos, total, medal, lemmataLength, scores) {
   const played = getPlayedToday(keys.todayKey)
   const idx    = played.findIndex(p => p.id === lemmaId)
@@ -106,6 +116,9 @@ export default function App() {
   const [wortzwilling, setWortzwilling] = useState(null)
   const [wortzwillingError, setWortzwillingError] = useState(false)
   const [wortzwillingRetry, setWortzwillingRetry] = useState(0)
+  const [zeitenwende, setZeitenwende] = useState(null)
+  const [zeitenwendeError, setZeitenwendeError] = useState(false)
+  const [zeitenwendeRetry, setZeitenwendeRetry] = useState(0)
   const [serverDatum, setServerDatum] = useState(null)  // "MM-DD" vom Server
   const [serverYear,  setServerYear]  = useState(null)  // Jahreszahl vom Server
 
@@ -129,6 +142,9 @@ export default function App() {
 
   const [wzViewOnly, setWzViewOnly] = useState(false)
   const [wzPlayed, setWzPlayed] = useState(null)
+
+  const [zwViewOnly, setZwViewOnly] = useState(false)
+  const [zwPlayed, setZwPlayed] = useState(null)
 
   // Fokus bei Screen-Wechsel
   useEffect(() => { appRef.current?.focus() }, [phase])
@@ -171,6 +187,7 @@ export default function App() {
         // ZR- und WZ-Key jetzt mit echtem Server-Datum prüfen
         setZrPlayed(getZRToday(`sig_zr_${datum}`))
         setWzPlayed(getWZToday(`sig_wz_${datum}`))
+        setZwPlayed(lsParse(lsGet(`sig_zw_${datum}`), null))
       })
       .catch(err => setApiError(err.message))
   }, [])
@@ -193,12 +210,25 @@ export default function App() {
       .catch(() => setWortzwillingError(true))
   }, [wortzwillingRetry]) // eslint-disable-line
 
+  useEffect(() => {
+    setZeitenwendeError(false)
+    setZeitenwende(null)
+    fetchWithRetry(`${API}/zeitenwende`)
+      .then(r => r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`)))
+      .then(data => { if (data) setZeitenwende(data) })
+      .catch(() => setZeitenwendeError(true))
+  }, [zeitenwendeRetry]) // eslint-disable-line
+
   const retryZeitreise = useCallback(() => {
     setZeitreiseRetry(n => n + 1)
   }, [])
 
   const retryWortzwilling = useCallback(() => {
     setWortzwillingRetry(n => n + 1)
+  }, [])
+
+  const retryZeitenwende = useCallback(() => {
+    setZeitenwendeRetry(n => n + 1)
   }, [])
 
   // Ergebnis in localStorage speichern (Kollokationen)
@@ -303,6 +333,21 @@ export default function App() {
     }).catch(() => {})
   }, [wortzwilling, serverDatum, keys.dateStr]) // eslint-disable-line
 
+  const handleZeitenwendeFinish = useCallback(({ score, answers }) => {
+    if (!zeitenwende || !serverDatum) return
+    const medal = getMedal(score, 10)
+    const entry = { lemma: zeitenwende.lemma, total: score, medal, answers }
+    lsSet(`sig_zw_${serverDatum}`, JSON.stringify(entry))
+    setZwPlayed(entry)
+    markActivity(keys.dateStr)
+    saveZWHistory(keys.dateStr, medal.label, medal.emoji)
+    fetch(`${API}/stats`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ game: 'zeitenwende', datum: serverDatum, score, max: 10 }),
+    }).catch(() => {})
+  }, [zeitenwende, serverDatum, keys.dateStr]) // eslint-disable-line
+
   const handleZeitreiseFinish = useCallback((score, placements) => {
     if (!zeitreise) return
     const max   = zeitreise.paare.length * 2
@@ -349,6 +394,12 @@ export default function App() {
           wzPlayed={wzPlayed}
           onPlayWortzwilling={() => startVT(() => { setWzViewOnly(false); setPhase('wortzwilling') })}
           onViewWortzwilling={() => startVT(() => { setWzViewOnly(true);  setPhase('wortzwilling') })}
+          zeitenwende={zeitenwende}
+          zeitenwendeError={zeitenwendeError}
+          onRetryZeitenwende={retryZeitenwende}
+          zwPlayed={zwPlayed}
+          onPlayZeitenwende={() => startVT(() => { setZwViewOnly(false); setPhase('zeitenwende') })}
+          onViewZeitenwende={() => startVT(() => { setZwViewOnly(true);  setPhase('zeitenwende') })}
         />
       )}
       {phase === 'selection' && lemmata && (
@@ -399,6 +450,16 @@ export default function App() {
             onBack={() => startVT(() => setPhase('home'))}
             onFinish={handleWZFinish}
             savedResult={wzViewOnly ? wzPlayed : null}
+          />
+        </Suspense>
+      )}
+      {phase === 'zeitenwende' && zeitenwende && (
+        <Suspense fallback={<div className="screen" style={{ justifyContent: 'center', alignItems: 'center' }}><p style={{ color: 'var(--muted)' }}>Lade …</p></div>}>
+          <Zeitenwende
+            data={zeitenwende}
+            onBack={() => startVT(() => setPhase('home'))}
+            onFinish={handleZeitenwendeFinish}
+            savedResult={zwViewOnly ? zwPlayed : null}
           />
         </Suspense>
       )}
