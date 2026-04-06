@@ -73,6 +73,7 @@ const feedbackStore = new CleanupStore(60_000)
 export const belegeLimiter = rateLimit({
   windowMs: 60_000, max: 30,
   store: belegeStore,
+  keyGenerator: getClientIp,
   standardHeaders: true, legacyHeaders: false,
   message: { error: 'Zu viele Anfragen, bitte kurz warten.' },
 })
@@ -80,6 +81,7 @@ export const belegeLimiter = rateLimit({
 export const adminLimiter = rateLimit({
   windowMs: 60_000, max: 60,
   store: adminStore,
+  keyGenerator: getClientIp,
   standardHeaders: true, legacyHeaders: false,
   message: { error: 'Zu viele Admin-Anfragen, bitte kurz warten.' },
 })
@@ -87,6 +89,7 @@ export const adminLimiter = rateLimit({
 export const statsLimiter = rateLimit({
   windowMs: 60_000, max: 10,
   store: statsStore,
+  keyGenerator: getClientIp,
   standardHeaders: true, legacyHeaders: false,
   message: { error: 'Zu viele Anfragen.' },
 })
@@ -94,6 +97,7 @@ export const statsLimiter = rateLimit({
 export const feedbackLimiter = rateLimit({
   windowMs: 60_000, max: 5,
   store: feedbackStore,
+  keyGenerator: getClientIp,
   standardHeaders: true, legacyHeaders: false,
   message: { error: 'Zu viele Feedback-Anfragen, bitte kurz warten.' },
 })
@@ -103,13 +107,16 @@ const loginStore = new CleanupStore(15 * 60_000)
 export const loginLimiter = rateLimit({
   windowMs: 15 * 60_000, max: 10,
   store: loginStore,
+  keyGenerator: getClientIp,
   standardHeaders: true, legacyHeaders: false,
   message: { error: 'Zu viele Anmeldeversuche. Bitte 15 Minuten warten.' },
   skipSuccessfulRequests: true,
 })
 
 export const uploadLimiter = rateLimit({
-  windowMs: 10_000, max: 100,  // 100 Requests pro 10 Sekunden fuer Upload
+  windowMs: 10_000, max: 100,
+  store: new CleanupStore(10_000),
+  keyGenerator: getClientIp,
   standardHeaders: true, legacyHeaders: false,
-  message: { error: 'Upload-Rate-Limit ueberschritten, bitte warten.' },
+  message: { error: 'Upload-Rate-Limit überschritten, bitte warten.' },
 })

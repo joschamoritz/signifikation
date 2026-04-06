@@ -1,21 +1,8 @@
-// ── Auth-Token (sessionStorage) ──────────────────────────
-// sessionStorage überlebt F5, aber nicht Tab-Schließen – ideal für Admin.
-const TOKEN_KEY = 'sig_admin_token'
-function getToken()      { return sessionStorage.getItem(TOKEN_KEY) }
-function setToken(t)     { sessionStorage.setItem(TOKEN_KEY, t) }
-function clearToken()    { sessionStorage.removeItem(TOKEN_KEY) }
-
-// Fetch-Patch: X-Admin-Token-Header automatisch für alle /admin*- und /health-Anfragen
-;(function patchFetch() {
-  const orig = window.fetch.bind(window)
-  window.fetch = function(url, opts = {}) {
-    const token = getToken()
-    if (token && typeof url === 'string' && (url.startsWith('/admin') || url.startsWith('/health'))) {
-      opts = { ...opts, headers: { 'X-Admin-Token': token, ...(opts.headers || {}) } }
-    }
-    return orig(url, opts)
-  }
-})()
+// ── Auth: httpOnly-Cookie ─────────────────────────────────
+// Token wird als httpOnly-Cookie gesetzt und vom Browser automatisch
+// bei jedem Request mitgesendet. Kein Token in sessionStorage nötig.
+// credentials: 'same-origin' ist der Browser-Standard für same-origin Requests.
+function clearToken() { /* noop – Cookie wird serverseitig via /admin/logout gelöscht */ }
 
 // ── XSS-Schutz ───────────────────────────────────────────
 function esc(s) {
@@ -44,8 +31,6 @@ async function doLogin() {
       body: JSON.stringify({ key: candidate }),
     })
     if (r.ok) {
-      const data = await r.json()
-      setToken(data.token)
       document.getElementById('login-overlay').classList.add('hidden')
       document.getElementById('main-container').style.display = 'flex'
       initDashboard()
@@ -82,18 +67,15 @@ async function doLogout() {
   document.getElementById('login-key').value = ''
 }
 
-// ── Beim Laden: Token aus sessionStorage prüfen ──────────
-if (getToken()) {
-  fetch('/admin/kalender').then(r => {
-    if (r.ok) {
-      document.getElementById('login-overlay').classList.add('hidden')
-      document.getElementById('main-container').style.display = 'flex'
-      initDashboard()
-    } else {
-      clearToken()   // Token abgelaufen oder ungültig
-    }
-  }).catch(() => { clearToken() })
-}
+// ── Beim Laden: Cookie prüfen (Browser sendet ihn automatisch) ──
+fetch('/admin/kalender').then(r => {
+  if (r.ok) {
+    document.getElementById('login-overlay').classList.add('hidden')
+    document.getElementById('main-container').style.display = 'flex'
+    initDashboard()
+  }
+  // Kein Cookie oder abgelaufen → Login-Overlay bleibt sichtbar
+}).catch(() => {})
 
 function initDashboard() {
   loadKalender()

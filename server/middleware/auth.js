@@ -28,7 +28,8 @@ function sanitize(obj) {
 const SESSION_TTL_MS = 8 * 60 * 60 * 1000
 
 function sign(payload) {
-  return createHmac('sha256', ADMIN_KEY ?? 'fallback').update(payload).digest('hex')
+  if (!ADMIN_KEY) throw new Error('ADMIN_KEY nicht konfiguriert')
+  return createHmac('sha256', ADMIN_KEY).update(payload).digest('hex')
 }
 
 export function createSession() {
@@ -83,7 +84,8 @@ export function adminAuth(req, res) {
     maxAge: SESSION_TTL_MS,
   })
   logger.info({ ip: req.ip }, 'Admin eingeloggt')
-  res.json({ ok: true, expiresAt, token })
+  // Token nur im httpOnly-Cookie — nicht im Response-Body (verhindert sessionStorage-XSS)
+  res.json({ ok: true, expiresAt })
 }
 
 /** POST /admin/logout – Cookie löschen (kein Server-State nötig) */
@@ -107,9 +109,9 @@ export function csrfProtect(req, res, next) {
   next()
 }
 
-/** Middleware: prüft X-Admin-Token-Header (primär) oder httpOnly-Cookie (Fallback) */
+/** Middleware: prüft httpOnly-Cookie (primär) oder X-Admin-Token-Header (Legacy-Fallback) */
 export function requireAuth(req, res, next) {
-  const token = req.headers['x-admin-token'] || req.cookies?.admin_token
+  const token = req.cookies?.admin_token || req.headers['x-admin-token']
   if (token && sessionValid(token)) return next()
   res.status(401).json({ error: 'Nicht autorisiert' })
 }
