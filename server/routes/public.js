@@ -100,15 +100,11 @@ router.get('/api/v1/wortzwilling', (req, res) => {
 
 /** GET /api/zeitenwende → Zeitenwende-Eintrag des Tages */
 router.get('/api/v1/zeitenwende', (req, res) => {
-  try {
-    const datum = req.query.datum || todayDatum().mmdd
-    const zw    = loadReadOnly('zeitenwende.json') ?? {}
-    const entry = zw[datum]
-    if (!entry) return res.status(404).json({ error: `Kein Zeitenwende-Eintrag für ${datum}` })
-    res.json(entry)
-  } catch (err) {
-    serverError(res, err)
-  }
+  const datum = req.query.datum || todayDatum().mmdd
+  const zw    = loadZeitenwende()   // gibt {} zurück wenn Datei fehlt
+  const entry = zw[datum]
+  if (!entry) return res.status(404).json({ error: `Kein Zeitenwende-Eintrag für ${datum}` })
+  res.json(entry)
 })
 
 /**

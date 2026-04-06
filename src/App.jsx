@@ -214,11 +214,7 @@ export default function App() {
     setZeitenwendeError(false)
     setZeitenwende(null)
     fetchWithRetry(`${API}/zeitenwende`)
-      .then(r => {
-        if (r.status === 404) return null          // kein Eintrag heute → kein Fehler
-        if (!r.ok) return Promise.reject(new Error(`HTTP ${r.status}`))
-        return r.json()
-      })
+      .then(r => r.ok ? r.json() : null)          // 404 oder 5xx → kein Eintrag heute
       .then(data => { if (data) setZeitenwende(data) })
       .catch(() => setZeitenwendeError(true))
   }, [zeitenwendeRetry]) // eslint-disable-line
