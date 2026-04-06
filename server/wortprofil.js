@@ -129,6 +129,17 @@ function stmt(sql, db) {
   return db.prepare(sql)
 }
 
+function queryRelationRaw(lemma, pos, rel, limit, minFreq, minDice, db) {
+  return stmt(`
+    SELECT form, dep_lemma, dep_pos, frequency, logDice, relation_full, relation_description
+    FROM collocations
+    WHERE lemma = ? AND pos = ? AND relation = ?
+      AND frequency >= ? AND logDice >= ?
+    ORDER BY logDice DESC
+    LIMIT ?
+  `, db).all(lemma.toLowerCase(), pos, rel, minFreq, minDice, limit)
+}
+
 function queryRelation(lemma, pos, relCode, limit = 20, minFreq = 5, minDice = 0) {
   return withConnection(db => {
     if (!VALID_POS.has(pos)) {
@@ -140,14 +151,18 @@ function queryRelation(lemma, pos, relCode, limit = 20, minFreq = 5, minDice = 0
       logger.warn({ lemma, pos, relCode: rel }, 'queryRelation: unbekannter RelCode')
       return []
     }
-    const rows = stmt(`
-      SELECT form, dep_lemma, dep_pos, frequency, logDice, relation_full, relation_description
-      FROM collocations
-      WHERE lemma = ? AND pos = ? AND relation = ?
-        AND frequency >= ? AND logDice >= ?
-      ORDER BY logDice DESC
-      LIMIT ?
-    `, db).all(lemma.toLowerCase(), pos, rel, minFreq, minDice, limit)
+
+    let rows = queryRelationRaw(lemma, pos, rel, limit, minFreq, minDice, db)
+
+    // Adaptiver Fallback: minFreq schrittweise senken wenn zu wenig Treffer
+    if (rows.length < 10 && minFreq > 1) {
+      rows = queryRelationRaw(lemma, pos, rel, limit, 2, minDice, db)
+      if (rows.length < 10) {
+        rows = queryRelationRaw(lemma, pos, rel, limit, 1, minDice, db)
+      }
+      if (rows.length > 0)
+        logger.debug({ lemma, pos, relCode: rel, count: rows.length }, 'queryRelation: minFreq-Fallback aktiv')
+    }
 
     return rows.map(r => ({
       form:                 r.form,
@@ -195,11 +210,31 @@ export function toId(word) {
  * Einzelne Relation abrufen – Äquivalent zu dwds.js fetchRelation().
  * Gibt ein Promise zurück (gleiche Schnittstelle wie die async-Version in dwds.js).
  * Ergebnis wird 1h gecacht um DB-Load zu reduzieren.
+ *
+ * Sonderfall ~ADV + Adjektiv: Adjektive in adverbialer Verwendung werden vom Parser
+ * manchmal als Adverb getaggt und landen in der DB unter pos='Adverb'. Deshalb
+ * werden bei weniger als 10 Treffern beide POS-Varianten zusammengeführt.
  */
 export async function fetchRelation(lemma, pos, relCode) {
   try {
     const cacheKey = `rel:${lemma}:${pos}:${relCode}`
-    const data = getCachedQuery(cacheKey, () => queryRelation(lemma, pos, relCode))
+    const data = getCachedQuery(cacheKey, () => {
+      let rows = queryRelation(lemma, pos, relCode)
+
+      // ~ADV für Adjektive: adverbial verwendete Adjektive können vom Parser als
+      // Adverb getaggt sein → beide POS-Varianten immer zusammenführen
+      if (pos === 'Adjektiv' && relCode === '~ADV') {
+        const adverbRows = queryRelation(lemma, 'Adverb', relCode)
+        if (adverbRows.length > 0) {
+          const seen = new Set(rows.map(r => r.lemma))
+          rows = [...rows, ...adverbRows.filter(r => !seen.has(r.lemma))]
+            .sort((a, b) => parseFloat(b.logDice) - parseFloat(a.logDice))
+            .slice(0, 20)
+        }
+      }
+
+      return rows
+    })
     if (!Array.isArray(data)) throw new Error(`Unerwartetes Format für ${relCode}`)
     return data
   } catch (err) {
