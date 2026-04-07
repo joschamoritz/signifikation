@@ -9,7 +9,7 @@ Live: **[signifikation.de](https://signifikation.de)**
 |---|---|
 | **Kollokationen** | Welche Wörter treten am häufigsten gemeinsam mit dem Tageswort auf? |
 | **Wort-Zwilling** | Zwei Wörter – welches hat die stärkeren Kollokationsüberschneidungen? |
-| **Zeitreise** | In welcher Epoche war ein Kollokat am gebräuchlichsten? |
+| **Zeitreise** | In welcher Epoche war eine Kollokation am gebräuchlichsten? |
 
 ## Stack
 

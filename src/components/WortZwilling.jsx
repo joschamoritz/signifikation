@@ -200,7 +200,7 @@ export default function WortZwilling({ data, onBack, onFinish, savedResult = nul
       </header>
 
       <p className="wz-instruction">
-        Ordne die Kollokate dem richtigen Wort zu.
+        Ordne die Kollokationen dem richtigen Wort zu.
         {!jokerUsed && jokerVisible && (
           <button className="joker-btn" onClick={e => { e.stopPropagation(); activateJoker() }} aria-label="Hinweis aktivieren" title="Hinweis"><em>i</em></button>
         )}

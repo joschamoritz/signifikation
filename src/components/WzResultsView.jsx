@@ -105,7 +105,7 @@ export default function WzResultsView({ data, zoneA, zoneB, onBack, ipaA, ipaB }
         />
       )}
 
-      <p className="wz-beleg-hint">Tippe auf ein Kollokat, um Beispielsätze aus dem Korpus zu sehen.</p>
+      <p className="wz-beleg-hint">Tippe auf eine Kollokation, um Beispielsätze aus dem Korpus zu sehen.</p>
 
       <div className="wz-result-banner">
         <span className="wz-result-medal">{medal.emoji}</span>

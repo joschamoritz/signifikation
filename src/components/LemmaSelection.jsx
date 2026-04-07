@@ -40,7 +40,7 @@ export default function LemmaSelection({ lemmata, playedIds = [], onSelect, onVi
         <button className="back-btn" onClick={onBack} aria-label="Zurück zur Startseite"><span className="back-btn-chevron">‹</span>Zurück</button>
         <span className="quiz-game-badge">Kollokationen</span>
         <h1 className="sr-only">Wortauswahl</h1>
-        <p className="quiz-instruction">Wähle ein Wort und finde seine stärksten Kollokate</p>
+        <p className="quiz-instruction">Wähle ein Wort und finde seine stärksten Kollokationen</p>
       </header>
 
       <div className="lemma-cards">

@@ -153,11 +153,11 @@ export default function Quiz({ lemma, currentRound, onRoundComplete, onBack }) {
           )}
         </p>
         <p id="quiz-instruction" className="quiz-instruction">
-          Wähle die 3 stärksten Kollokate von <strong>{lemma.lemma}</strong>
+          Wähle die 3 stärksten Kollokationen von <strong>{lemma.lemma}</strong>
         </p>
         {options.length < 10 && (
           <p className="quiz-options-hint" aria-live="polite">
-            <em>{options.length} Kollokate verfügbar</em>
+            <em>{options.length} Kollokationen verfügbar</em>
           </p>
         )}
       </header>

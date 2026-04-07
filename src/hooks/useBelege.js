@@ -17,8 +17,8 @@ export function useBelege(lemmaWort, relCode = '') {
   const [belegeLoading, setBelegeLoading] = useState(false)
 
   /**
-   * Lädt Belege für ein Kollokat.
-   * @param {string} collocate   – Das Kollokat (Suchwort)
+   * Lädt Belege für eine Kollokation.
+   * @param {string} collocate   – Die Kollokation (Suchwort)
    * @param {string} [cacheKey]  – Optionaler Cache-Key (Standard: collocate); nützlich wenn
    *                               dasselbe Wort in verschiedenen Runden/Kontexten vorkommt
    * @param {Object} [overrides] – Überschreibt Hook-weite Parameter (z.B. { rel: 'KON' })

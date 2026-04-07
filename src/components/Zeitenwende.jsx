@@ -260,7 +260,7 @@ export default function Zeitenwende({ data, onBack, onFinish, savedResult = null
           )}
           {ipa && <hr className="dict-entry-rule" aria-hidden="true" />}
         </div>
-        <p className="zw-subtitle">Wann war dieses Kollokat von <em>{lemma}</em> gebräuchlicher?</p>
+        <p className="zw-subtitle">Wann war diese Kollokation von <em>{lemma}</em> gebräuchlicher?</p>
       </header>
 
       {/* Fortschritt */}
@@ -285,7 +285,7 @@ export default function Zeitenwende({ data, onBack, onFinish, savedResult = null
           className={cardClass}
           style={cardStyle}
           aria-live="polite"
-          aria-label={`Kollokat: ${currentWord.wort}`}
+          aria-label={`Kollokation: ${currentWord.wort}`}
           onTouchStart={handleTouchStart}
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}

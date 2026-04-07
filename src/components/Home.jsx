@@ -188,7 +188,7 @@ export default function Home({
                   <span className="test-entry-category">täglich</span>
                 </div>
                 <p className="test-definition">
-                  Welche Wörter treten am häufigsten gemeinsam auf? Bestimme die stärksten Kollokate des Tages aus eigenen Korpusdaten.
+                  Welche Wörter treten am häufigsten gemeinsam auf? Bestimme die stärksten Kollokationen des Tages aus eigenen Korpusdaten.
                 </p>
 
                 {/* Gespielte Wörter */}
@@ -248,7 +248,7 @@ export default function Home({
                   <span className="test-entry-category">komparativ</span>
                 </div>
                 <p className="test-definition">
-                  Zwei bedeutungsnahe Wörter — zwei unterschiedliche Kollokationsprofile. Ordne zehn Kollokate dem richtigen Lemma zu.
+                  Zwei bedeutungsnahe Wörter — zwei unterschiedliche Kollokationsprofile. Ordne zehn Kollokationen dem richtigen Lemma zu.
                 </p>
 
                 {wzPlayed && wortzwilling && (
@@ -307,7 +307,7 @@ export default function Home({
                   <span className="test-entry-category">diachron</span>
                 </div>
                 <p className="test-definition">
-                  Gehört dieses Wort eher in die Zeit vor oder nach der Jahrtausendwende? Entscheide für zehn Kollokate eines Lemmas.
+                  Gehört dieses Wort eher in die Zeit vor oder nach der Jahrtausendwende? Entscheide für zehn Kollokationen eines Lemmas.
                 </p>
 
                 {zwPlayed && zeitenwende && (
