@@ -899,7 +899,7 @@
     border: none;
     font-family: var(--t-serif);
     font-size: 1rem;
-    color: var(--t-rule);
+    color: var(--t-muted);
     cursor: pointer;
     padding: 4px 6px;
     min-height: 40px;

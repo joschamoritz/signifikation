@@ -1,6 +1,13 @@
 /* ============================================================
    ZEITENWENDE SCREEN
    ============================================================ */
+:root {
+  --zw-accent:    #7c3aed;
+  --zw-accent-dk: #6d28d9;
+  --zw-bg:        #f5f3ff;
+  --zw-border:    #c4b5fd;
+}
+
 .zw-screen {
   gap: 0;
   padding-block: 32px;
@@ -22,9 +29,9 @@
   font-weight: 700;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: #7c3aed;
-  background: #f5f3ff;
-  border: 1px solid #c4b5fd;
+  color: var(--zw-accent);
+  background: var(--zw-bg);
+  border: 1px solid var(--zw-border);
   border-radius: 4px;
   padding: 2px 10px;
 }
@@ -62,7 +69,7 @@
 
 .zw-progress-fill {
   height: 100%;
-  background: #7c3aed;
+  background: var(--zw-accent);
   border-radius: 2px;
   transition: width 300ms ease;
 }
@@ -172,7 +179,7 @@
 .zw-weiter-btn {
   width: 100%;
   padding: 12px 16px;
-  background: #7c3aed;
+  background: var(--zw-accent);
   color: #fff;
   border: none;
   border-radius: 8px;
@@ -186,7 +193,7 @@
 }
 
 .zw-weiter-btn:hover {
-  background: #6d28d9;
+  background: var(--zw-accent-dk);
 }
 
 .zw-weiter-btn:active {
@@ -220,8 +227,8 @@
 }
 
 .zw-choice-btn:hover:not(:disabled) {
-  border-color: #7c3aed;
-  background: #f5f3ff;
+  border-color: var(--zw-accent);
+  background: var(--zw-bg);
 }
 
 .zw-choice-btn:active:not(:disabled) {
@@ -291,6 +298,12 @@
   font-weight: 700;
   color: var(--text);
   margin-top: 4px;
+}
+
+.zw-results-unit {
+  font-size: 1rem;
+  font-weight: 400;
+  color: var(--muted);
 }
 
 .zw-results-label {

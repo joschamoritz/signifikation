@@ -44,6 +44,9 @@
   color: var(--muted);
   margin-top: 8px;
 }
+.colophon-feedback {
+  margin-bottom: 16px;
+}
 .feedback-hint a {
   color: var(--muted);
   text-decoration: underline;
@@ -503,6 +506,7 @@
   background: none;
   border-left: 1px dotted var(--border);
   padding: 0 14px;
+  min-height: 44px;
   font-size: 0.78rem;
   font-weight: 700;
   font-style: italic;
@@ -670,7 +674,7 @@
 }
 
 /* Gespielte Wortkarten */
-.lemma-card--played { opacity: 0.45 }
+.lemma-card--played { opacity: 0.65 }
 .lemma-card--played .lemma-card-main { cursor: default }
 .lemma-card--played .lemma-card-main:hover .lemma-name { color: var(--text) }
 .lemma-card--played .lemma-arrow { color: var(--success); font-size: 1rem; transform: none !important }

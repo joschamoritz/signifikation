@@ -22,7 +22,7 @@ function ZWResults({ lemma, words, answers, onBack }) {
 
   return (
     <div className="screen zw-screen">
-      <button className="back-btn" onClick={onBack} aria-label="Zurück zur Startseite">
+      <button type="button" className="back-btn" onClick={onBack} aria-label="Zurück zur Startseite">
         <span className="back-btn-chevron">‹</span>Zurück
       </button>
 
@@ -34,7 +34,7 @@ function ZWResults({ lemma, words, answers, onBack }) {
       <div className="zw-results">
         <div className="zw-results-score">
           <div className="zw-results-medal" aria-hidden="true">{medal.emoji}</div>
-          <div className="zw-results-points">{score} / {TOTAL}</div>
+          <div className="zw-results-points">{score} / {TOTAL} <span className="zw-results-unit">Punkte</span></div>
           <div className="zw-results-label">{medal.label}</div>
         </div>
 
@@ -69,7 +69,7 @@ function ZWResults({ lemma, words, answers, onBack }) {
           </div>
         )}
 
-        <button className="btn-primary btn-full" onClick={onBack}>
+        <button type="button" className="btn-primary btn-full" onClick={onBack}>
           Zur Startseite
         </button>
       </div>
@@ -94,7 +94,7 @@ export default function Zeitenwende({ data, onBack, onFinish, savedResult = null
     setBelege(null)
     const word  = encodeURIComponent(words[round]?.wort ?? '')
     const lem   = encodeURIComponent(lemma)
-    fetch(`${API}/api/v1/belege?collocate=${word}&lemma=${lem}`)
+    fetch(`${API}/belege?collocate=${word}&lemma=${lem}`)
       .then(r => r.ok ? r.json() : [])
       .then(d  => setBelege(Array.isArray(d) ? d : []))
       .catch(() => setBelege([]))
@@ -122,7 +122,9 @@ export default function Zeitenwende({ data, onBack, onFinish, savedResult = null
   const handleKey = useCallback((e) => {
     if (phase !== 'play') return
     if (feedback !== null) {
-      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); advanceRound() }
+      if (e.key === 'Enter' || e.key === ' ' || e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+        e.preventDefault(); advanceRound()
+      }
       return
     }
     if (e.key === 'ArrowLeft')  choose('pre')
@@ -156,7 +158,7 @@ export default function Zeitenwende({ data, onBack, onFinish, savedResult = null
 
   return (
     <div className="screen zw-screen">
-      <button className="back-btn" onClick={onBack} aria-label="Zurück zur Startseite">
+      <button type="button" className="back-btn" onClick={onBack} aria-label="Zurück zur Startseite">
         <span className="back-btn-chevron">‹</span>Zurück
       </button>
 
@@ -223,6 +225,7 @@ export default function Zeitenwende({ data, onBack, onFinish, savedResult = null
       {/* Weiter-Button (nur während Feedback) */}
       {feedback !== null && (
         <button
+          type="button"
           className="zw-weiter-btn"
           onClick={advanceRound}
           aria-label={round + 1 >= TOTAL ? 'Ergebnis anzeigen' : 'Nächstes Wort'}
@@ -234,6 +237,7 @@ export default function Zeitenwende({ data, onBack, onFinish, savedResult = null
       {/* Entscheidungs-Buttons */}
       <div className="zw-choices">
         <button
+          type="button"
           className={[
             'zw-choice-btn',
             'zw-choice-btn--pre',
@@ -248,6 +252,7 @@ export default function Zeitenwende({ data, onBack, onFinish, savedResult = null
         </button>
 
         <button
+          type="button"
           className={[
             'zw-choice-btn',
             'zw-choice-btn--post',
@@ -264,7 +269,7 @@ export default function Zeitenwende({ data, onBack, onFinish, savedResult = null
 
       <p className="zw-key-hint" aria-hidden="true">
         {feedback !== null
-          ? 'Enter / Leertaste → Weiter'
+          ? 'Enter / ← / → → Weiter'
           : '← Vor 2000 \u00a0·\u00a0 Nach 2000 →'}
       </p>
     </div>

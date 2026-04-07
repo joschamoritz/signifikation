@@ -541,7 +541,7 @@ export default function Home({
             played ? '✦' : '·'
           ).join(' ')}
         </span>
-          <p className="feedback-hint" style={{ marginBottom: '16px' }}>
+          <p className="feedback-hint colophon-feedback">
             Fehler oder Anregungen? <a href="mailto:info@signifikation.de">Schreib uns.</a>
           </p>
           <nav className="legal-links" aria-label="Rechtliche Links">

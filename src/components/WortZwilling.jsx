@@ -230,9 +230,14 @@ export default function WortZwilling({ data, onBack, onFinish, savedResult = nul
                 {w}
               </div>
             ))
-          : <p className="wz-bank-done">Alle Wörter zugeordnet ✓</p>
+          : <p className="wz-bank-done">Alle Wörter zugeordnet <span aria-hidden="true">✓</span></p>
         }
       </div>
+
+      {/* Zugängliche Ankündigung für "Zone voll" (persistent aria-live region) */}
+      <p className="sr-only" aria-live="polite" aria-atomic="true">
+        {fullZone ? `Zone ${fullZone === 'A' ? data.wortA : data.wortB} ist voll` : ''}
+      </p>
 
       {jokerMsg && (
         <p className="wz-joker-msg" aria-live="polite">
