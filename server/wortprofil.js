@@ -405,7 +405,8 @@ export async function fetchZeitreise(lemma) {
     }
 
     return { lemma, paare, perioden }
-  } catch {
+  } catch (err) {
+    logger.warn({ err, lemma }, 'fetchZeitreise: Fehler bei Datenbankabfrage')
     return null
   }
 }

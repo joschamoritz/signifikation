@@ -72,10 +72,10 @@ export const bonusQuerySchema = z.object({
 /** POST /admin/tag */
 export const adminTagSchema = z.object({
   datum:           DATUM_MMDD,
-  woerter:         z.array(z.string().min(1)).length(3, 'genau 3 Wörter erforderlich'),
-  notizen:         z.array(z.string()).optional().default([]),
-  links:           z.array(z.string()).optional().default([]),
-  definitionen:    z.array(z.string()).optional().default([]),
+  woerter:         z.array(z.string().min(1).max(100)).length(3, 'genau 3 Wörter erforderlich'),
+  notizen:         z.array(z.string().max(500)).optional().default([]),
+  links:           z.array(z.string().max(500)).optional().default([]),
+  definitionen:    z.array(z.string().max(2000)).optional().default([]),
   positionen:      z.array(POS).optional().default([]),
   zeitreise_lemma:    z.string().optional().default(''),
   zeitreise_wortart:  POS.optional().default('Substantiv'),

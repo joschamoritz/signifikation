@@ -24,7 +24,7 @@ describe('calculateScore', () => {
     expect(calculateScore(['stark', 'groß', 'klein'], kollokatoren)).toBe(3)
   })
 
-  it('gibt 0 für keine Top-3-Treffer', () => {
+  it('gibt 1 für genau einen Top-3-Treffer', () => {
     expect(calculateScore(['weit', 'eng', 'stark'], kollokatoren)).toBe(1)
   })
 

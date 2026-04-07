@@ -41,13 +41,27 @@ function getLock(file) {
  * @returns {*} Geklonter Dateiinhalt
  */
 export function load(file) {
-  if (!fileCache[file]) fileCache[file] = JSON.parse(readFileSync(join(DATA, file), 'utf8'))
+  if (!fileCache[file]) {
+    try {
+      fileCache[file] = JSON.parse(readFileSync(join(DATA, file), 'utf8'))
+    } catch (err) {
+      logger.error({ err, file }, 'JSON-Datei konnte nicht geladen werden')
+      throw new Error(`Datei ${file} nicht lesbar oder korrumpiert`)
+    }
+  }
   return structuredClone(fileCache[file])
 }
 
 /** Lese-Only-Zugriff ohne Deep-Clone – nur für Code, der die Daten nicht mutiert */
 export function loadReadOnly(file) {
-  if (!fileCache[file]) fileCache[file] = JSON.parse(readFileSync(join(DATA, file), 'utf8'))
+  if (!fileCache[file]) {
+    try {
+      fileCache[file] = JSON.parse(readFileSync(join(DATA, file), 'utf8'))
+    } catch (err) {
+      logger.error({ err, file }, 'JSON-Datei konnte nicht geladen werden')
+      throw new Error(`Datei ${file} nicht lesbar oder korrumpiert`)
+    }
+  }
   return fileCache[file]
 }
 
@@ -82,9 +96,16 @@ let _lemmataByLemma = null  // Map<lemma, lemma>
 
 export function getLemmataIndex() {
   if (_lemmataById) return { byId: _lemmataById, byLemma: _lemmataByLemma }
-  const list = loadReadOnly('lemmata.json')
-  _lemmataById    = new Map(list.map(l => [l.id, l]))
-  _lemmataByLemma = new Map(list.map(l => [l.lemma, l]))
+  try {
+    const list = loadReadOnly('lemmata.json')
+    if (!Array.isArray(list)) throw new Error('lemmata.json ist kein Array')
+    _lemmataById    = new Map(list.map(l => [l.id, l]))
+    _lemmataByLemma = new Map(list.map(l => [l.lemma, l]))
+  } catch (err) {
+    logger.error({ err }, 'Lemmata-Index konnte nicht aufgebaut werden – leerer Fallback')
+    _lemmataById    = new Map()
+    _lemmataByLemma = new Map()
+  }
   return { byId: _lemmataById, byLemma: _lemmataByLemma }
 }
 

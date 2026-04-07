@@ -1,5 +1,5 @@
 import express        from 'express'
-import { join, normalize } from 'path'
+import { join, normalize, sep } from 'path'
 import { readFileSync } from 'fs'
 import { fetchBelege, belegeVerfuegbar } from '../belege.js'
 import { fetchRelation } from '../wortprofil.js'
@@ -110,7 +110,7 @@ router.get('/api/v1/zeitenwende', (req, res) => {
 router.get('/api/v1/belege', belegeLimiter, validate(belegeQuerySchema, 'query'), (req, res) => {
   const { collocate, lemma, year } = req.query
 
-  const cacheKey = `belege|${lemma}|${collocate}|${year||''}`
+  const cacheKey = `belege:${encodeURIComponent(lemma)}:${encodeURIComponent(collocate)}:${year || ''}`
   const cached = cacheGet(cacheKey)
   if (cached) return res.json(cached)
 
@@ -143,7 +143,7 @@ router.post('/api/v1/stats', statsLimiter, validate(statsSchema), async (req, re
       entry.plays++
       entry.scoreSum += Math.max(0, score)
       entry.maxSum   += max
-      const normalized = Math.min(10, Math.round(score / max * 10))
+      const normalized = Math.min(10, Math.max(0, Math.round((score || 0) / (max || 1) * 10)))
       entry.dist[normalized]++
       await save('stats.json', stats)
     })
@@ -176,9 +176,10 @@ router.get('/api/v1/archiv', validate(archivQuerySchema, 'query'), async (req, r
     const mm   = date.slice(5, 7), dd = date.slice(8, 10)
     const file = join(DATA, `koll-${mm}-${dd}.json`)
 
-    // Path-Traversal-Schutz: Sicherstellung, dass normalisierter Pfad im DATA-Verzeichnis bleibt
+    // Path-Traversal-Schutz: normalisierter Pfad muss innerhalb DATA bleiben.
+    // Separator-Check verhindert Matches wie /data-extra/... gegen /data/...
     const normalized = normalize(file)
-    const normalizedData = normalize(DATA)
+    const normalizedData = normalize(DATA) + sep
     if (!normalized.startsWith(normalizedData)) {
       logger.warn({ path: file }, 'Path-Traversal-Versuch blockiert')
       return res.json({ datum: date.slice(5), lemmata: [] })

@@ -1,0 +1,182 @@
+/**
+ * Tests für Zod-Validierungs-Schemas (validate.js)
+ */
+
+import { describe, it, expect } from 'vitest'
+import {
+  statsSchema,
+  feedbackSchema,
+  belegeQuerySchema,
+  archivQuerySchema,
+  qQuerySchema,
+  bonusQuerySchema,
+  adminTagSchema,
+} from './validate.js'
+
+// ── statsSchema ──────────────────────────────────────────────
+describe('statsSchema', () => {
+  const valid = { game: 'kollokationen', datum: '03-15', score: 8, max: 10 }
+
+  it('akzeptiert gültige Eingabe', () => {
+    expect(statsSchema.safeParse(valid).success).toBe(true)
+  })
+
+  it('lehnt ungültiges game ab', () => {
+    expect(statsSchema.safeParse({ ...valid, game: 'unbekannt' }).success).toBe(false)
+  })
+
+  it('akzeptiert alle gültigen games', () => {
+    for (const game of ['kollokationen', 'zeitreise', 'wortzwilling', 'zeitenwende']) {
+      expect(statsSchema.safeParse({ ...valid, game }).success).toBe(true)
+    }
+  })
+
+  it('lehnt ungültiges datum-Format ab', () => {
+    expect(statsSchema.safeParse({ ...valid, datum: '2024-03-15' }).success).toBe(false)
+    expect(statsSchema.safeParse({ ...valid, datum: '3-15' }).success).toBe(false)
+  })
+
+  it('lehnt negativen score ab', () => {
+    expect(statsSchema.safeParse({ ...valid, score: -1 }).success).toBe(false)
+  })
+
+  it('lehnt score > 100 ab', () => {
+    expect(statsSchema.safeParse({ ...valid, score: 101 }).success).toBe(false)
+  })
+
+  it('lehnt max = 0 ab', () => {
+    expect(statsSchema.safeParse({ ...valid, max: 0 }).success).toBe(false)
+  })
+
+  it('lehnt fehlende Felder ab', () => {
+    expect(statsSchema.safeParse({}).success).toBe(false)
+    expect(statsSchema.safeParse({ game: 'kollokationen' }).success).toBe(false)
+  })
+})
+
+// ── feedbackSchema ───────────────────────────────────────────
+describe('feedbackSchema', () => {
+  const valid = { game: 'kollokationen', emoji: '🙂', text: 'Gut!' }
+
+  it('akzeptiert gültige Eingabe', () => {
+    expect(feedbackSchema.safeParse(valid).success).toBe(true)
+  })
+
+  it('text ist optional', () => {
+    const { text, ...without } = valid
+    const result = feedbackSchema.safeParse(without)
+    expect(result.success).toBe(true)
+    expect(result.data.text).toBe('')
+  })
+
+  it('lehnt text > 500 Zeichen ab', () => {
+    expect(feedbackSchema.safeParse({ ...valid, text: 'x'.repeat(501) }).success).toBe(false)
+  })
+
+  it('lehnt leeres game ab', () => {
+    expect(feedbackSchema.safeParse({ ...valid, game: '' }).success).toBe(false)
+  })
+})
+
+// ── belegeQuerySchema ────────────────────────────────────────
+describe('belegeQuerySchema', () => {
+  const valid = { lemma: 'Wasser', collocate: 'trinken' }
+
+  it('akzeptiert gültige Eingabe', () => {
+    expect(belegeQuerySchema.safeParse(valid).success).toBe(true)
+  })
+
+  it('akzeptiert Umlaute', () => {
+    expect(belegeQuerySchema.safeParse({ lemma: 'Größe', collocate: 'ähnlich' }).success).toBe(true)
+  })
+
+  it('lehnt Leerzeichen im lemma ab', () => {
+    expect(belegeQuerySchema.safeParse({ ...valid, lemma: 'zwei Wörter' }).success).toBe(false)
+  })
+
+  it('lehnt SQL-ähnliche Zeichen ab', () => {
+    expect(belegeQuerySchema.safeParse({ ...valid, lemma: "drop'; table" }).success).toBe(false)
+  })
+
+  it('lehnt zu langes lemma (> 100) ab', () => {
+    expect(belegeQuerySchema.safeParse({ ...valid, lemma: 'a'.repeat(101) }).success).toBe(false)
+  })
+
+  it('year muss 4-stellig sein', () => {
+    expect(belegeQuerySchema.safeParse({ ...valid, year: '99' }).success).toBe(false)
+    expect(belegeQuerySchema.safeParse({ ...valid, year: '2000' }).success).toBe(true)
+  })
+})
+
+// ── archivQuerySchema ────────────────────────────────────────
+describe('archivQuerySchema', () => {
+  it('akzeptiert YYYY-MM-DD', () => {
+    expect(archivQuerySchema.safeParse({ date: '2024-03-15' }).success).toBe(true)
+  })
+
+  it('lehnt MM-DD ohne Jahr ab', () => {
+    expect(archivQuerySchema.safeParse({ date: '03-15' }).success).toBe(false)
+  })
+
+  it('lehnt fehlendes date ab', () => {
+    expect(archivQuerySchema.safeParse({}).success).toBe(false)
+  })
+})
+
+// ── qQuerySchema ─────────────────────────────────────────────
+describe('qQuerySchema', () => {
+  it('akzeptiert nicht-leeren String', () => {
+    expect(qQuerySchema.safeParse({ q: 'Wasser' }).success).toBe(true)
+  })
+
+  it('lehnt leeren String ab', () => {
+    expect(qQuerySchema.safeParse({ q: '' }).success).toBe(false)
+  })
+
+  it('lehnt fehlendes q ab', () => {
+    expect(qQuerySchema.safeParse({}).success).toBe(false)
+  })
+})
+
+// ── adminTagSchema ───────────────────────────────────────────
+describe('adminTagSchema', () => {
+  const valid = {
+    datum: '03-15',
+    woerter: ['wandern', 'heilig', 'grün'],
+    zwilling_pos: 'Substantiv',
+  }
+
+  it('akzeptiert minimale gültige Eingabe', () => {
+    expect(adminTagSchema.safeParse(valid).success).toBe(true)
+  })
+
+  it('woerter müssen genau 3 sein', () => {
+    expect(adminTagSchema.safeParse({ ...valid, woerter: ['nur-zwei', 'einträge'] }).success).toBe(false)
+    expect(adminTagSchema.safeParse({ ...valid, woerter: ['eins', 'zwei', 'drei', 'vier'] }).success).toBe(false)
+  })
+
+  it('woerter dürfen nicht länger als 100 Zeichen sein', () => {
+    expect(adminTagSchema.safeParse({
+      ...valid,
+      woerter: ['a'.repeat(101), 'b', 'c'],
+    }).success).toBe(false)
+  })
+
+  it('notizen-Einträge dürfen nicht länger als 500 Zeichen sein', () => {
+    expect(adminTagSchema.safeParse({
+      ...valid,
+      notizen: ['x'.repeat(501)],
+    }).success).toBe(false)
+  })
+
+  it('definitionen-Einträge dürfen nicht länger als 2000 Zeichen sein', () => {
+    expect(adminTagSchema.safeParse({
+      ...valid,
+      definitionen: ['x'.repeat(2001)],
+    }).success).toBe(false)
+  })
+
+  it('pos muss Enum-Wert sein', () => {
+    expect(adminTagSchema.safeParse({ ...valid, zwilling_pos: 'Adverb' }).success).toBe(false)
+  })
+})
