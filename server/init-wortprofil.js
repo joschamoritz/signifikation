@@ -38,7 +38,7 @@ export async function ensureWortprofilDb() {
         stdio: 'inherit',
       })
     } else {
-      execSync(`curl -L -o ${GZ_PATH} ${downloadUrl}`, { stdio: 'inherit' })
+      execSync(`curl -L --max-time 120 -o ${GZ_PATH} ${downloadUrl}`, { stdio: 'inherit' })
     }
 
     logger.info('Download abgeschlossen, entpacke...')

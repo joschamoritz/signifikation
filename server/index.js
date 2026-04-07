@@ -113,15 +113,38 @@ app.use((err, req, res, next) => {
 })
 
 // ── Startup Initialization ──────────────────────────────────
+const WORTPROFIL_TIMEOUT_MS = 130_000  // etwas mehr als curl --max-time 120
+
 ;(async () => {
-  await ensureWortprofilDb()
+  // ensureWortprofilDb kann bei Railway 2+ GB laden – Timeout verhindert infinites Hängen.
+  // Fehler sind nicht fatal: Server startet, Wortprofil-Queries liefern dann nur null.
+  await Promise.race([
+    ensureWortprofilDb(),
+    new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('Wortprofil-Download-Timeout')), WORTPROFIL_TIMEOUT_MS)
+    ),
+  ]).catch(err => logger.warn({ err }, 'Wortprofil-Init übersprungen – Server startet trotzdem'))
+
   initializeIndices()
 
   // ── Start ────────────────────────────────────────────────────
-  app.listen(PORT, () => {
+  const server = app.listen(PORT, () => {
     logger.info(`Signifikation-Server läuft auf http://localhost:${PORT}`)
     logger.info(`Admin: http://localhost:${PORT}/admin`)
   })
+
+  // ── Graceful Shutdown (D-21) ──────────────────────────────────
+  const shutdown = (signal) => {
+    logger.info(`${signal} empfangen – fahre herunter …`)
+    server.close(() => {
+      logger.info('HTTP-Server geschlossen')
+      process.exit(0)
+    })
+    // Force-Exit nach 30 s falls offene Verbindungen hängen
+    setTimeout(() => { logger.warn('Force-Exit nach Timeout'); process.exit(1) }, 30_000).unref()
+  }
+  process.on('SIGTERM', () => shutdown('SIGTERM'))
+  process.on('SIGINT',  () => shutdown('SIGINT'))
 })().catch(err => {
   logger.error({ err }, 'Startup-Fehler')
   process.exit(1)

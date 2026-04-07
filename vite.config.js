@@ -6,6 +6,17 @@ import pkg from './package.json' with { type: 'json' }
 export default defineConfig({
   test: {
     environment: 'node',
+    coverage: {
+      provider: 'v8',
+      reporter: ['text', 'json', 'html'],
+      exclude: [
+        'node_modules/**',
+        'server/public/**',
+        'dist/**',
+        '**/*.test.{js,ts}',
+        'vite.config.js',
+      ],
+    },
   },
   define: {
     __APP_VERSION__: JSON.stringify(pkg.version),

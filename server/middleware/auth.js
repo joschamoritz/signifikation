@@ -132,14 +132,16 @@ export function serverError(res, err) {
   res.status(500).json({ error: IS_PROD ? 'Interner Serverfehler' : err.message })
 }
 
-/** Admin-seitige Fehlerausgabe: zeigt immer den echten Fehler (hinter Auth) */
+/** Admin-seitige Fehlerausgabe: zeigt Fehlermeldung (hinter Auth), bereinigt Dateipfade */
 export function adminError(res, err) {
-  // Sanitize err object to avoid logging sensitive data
   const safeErr = err instanceof Error
     ? { message: err.message, stack: err.stack }
     : err
   logger.error({ err: sanitize(safeErr) }, 'Admin-Fehler')
-  res.status(500).json({ error: err.message || String(err) })
+  // Absolute Pfade aus Fehlermeldung entfernen (z.B. "/app/server/data/...")
+  const rawMsg = err.message || String(err)
+  const cleanMsg = rawMsg.replace(/(?:\/[\w.-]+)+/g, '[path]').replace(/(?:[A-Z]:\\[\w\\.-]+)/gi, '[path]')
+  res.status(500).json({ error: cleanMsg })
 }
 
 export { ADMIN_KEY, IS_PROD }

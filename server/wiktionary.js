@@ -4,6 +4,8 @@
  * Bedeutungs-Einträge strukturiert ausgelesen werden können.
  */
 
+import logger from './logger.js'
+
 const USER_AGENT = 'Signifikation/1.0 (signifikation.de; Bildungsprojekt)'
 
 /**
@@ -28,6 +30,9 @@ function cleanWikitext(text) {
  * @returns {Promise<{ ipa: string, definitionen: string[] }>}
  */
 export async function fetchWiktionary(lemma) {
+  if (!lemma || typeof lemma !== 'string' || lemma.trim().length === 0 || lemma.length > 200) {
+    return { ipa: '', definitionen: [] }
+  }
   try {
     const url =
       `https://de.wiktionary.org/w/api.php` +
@@ -66,7 +71,8 @@ export async function fetchWiktionary(lemma) {
     }
 
     return { ipa, definitionen }
-  } catch {
+  } catch (err) {
+    logger.warn({ err, lemma }, 'fetchWiktionary: Fehler beim Abrufen')
     return { ipa: '', definitionen: [] }
   }
 }

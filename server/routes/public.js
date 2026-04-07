@@ -11,8 +11,10 @@ import logger from '../logger.js'
 
 const router = express.Router()
 
+const TIMEZONE = process.env.TIMEZONE || 'Europe/Berlin'
+
 function todayDatum() {
-  const d = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Berlin' }).format(new Date())
+  const d = new Intl.DateTimeFormat('en-CA', { timeZone: TIMEZONE }).format(new Date())
   const [year, month, day] = d.split('-')
   return { mmdd: `${month}-${day}`, year: Number(year) }
 }
@@ -170,7 +172,7 @@ router.post('/api/v1/feedback', feedbackLimiter, validate(feedbackSchema), async
 /** GET /api/archiv?date=YYYY-MM-DD – Tageseintrag für vergangene Tage */
 router.get('/api/v1/archiv', validate(archivQuerySchema, 'query'), async (req, res) => {
   const { date } = req.query
-  const todayBerlin = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Berlin' }).format(new Date())
+  const todayBerlin = new Intl.DateTimeFormat('en-CA', { timeZone: TIMEZONE }).format(new Date())
   if (date > todayBerlin) return res.status(403).json({ error: 'Zukünftige Einträge nicht verfügbar' })
   try {
     const mm   = date.slice(5, 7), dd = date.slice(8, 10)

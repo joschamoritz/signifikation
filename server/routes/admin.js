@@ -9,7 +9,7 @@ import { fetchWortZwilling } from '../wortzwilling.js'
 import { load, loadReadOnly, save, loadZeitreise, loadWortZwilling, loadZeitenwende, loadStats, getLemmataIndex, getCacheMetrics, DATA } from '../store.js'
 import { getCacheMetrics as getQueryCacheMetrics, clearCache as clearQueryCache } from '../query-cache.js'
 import { adminLimiter, loginLimiter, uploadLimiter } from '../middleware/rateLimiter.js'
-import { requireAuth, adminAuth, adminLogout, adminError, serverError } from '../middleware/auth.js'
+import { requireAuth, adminAuth, adminLogout, adminError, serverError, createSession } from '../middleware/auth.js'
 import { validate, qQuerySchema, adminTagSchema, analyzeKollQuerySchema, analyzeWZQuerySchema, analyzeZeitQuerySchema, analyzeZWendeQuerySchema } from '../middleware/validate.js'
 import { auditCreate, auditUpdate, auditDelete, getAuditLog } from '../audit.js'
 import logger from '../logger.js'
@@ -22,6 +22,23 @@ router.post('/admin/auth', loginLimiter, adminAuth)
 
 /** POST /admin/logout – Session beenden */
 router.post('/admin/logout', adminLimiter, requireAuth, adminLogout)
+
+/** POST /admin/refresh – Session-Token erneuern (verhindert plötzlichen Logout nach 8h) */
+router.post('/admin/refresh', adminLimiter, requireAuth, (_req, res) => {
+  try {
+    const { token, expiresAt } = createSession()
+    const IS_PROD = process.env.NODE_ENV === 'production'
+    res.cookie('admin_token', token, {
+      httpOnly: true,
+      secure: IS_PROD,
+      sameSite: 'strict',
+      maxAge: 8 * 60 * 60 * 1000,
+    })
+    res.json({ ok: true, expiresAt })
+  } catch (err) {
+    adminError(res, err)
+  }
+})
 
 /** GET /admin/stats – Spielstatistik der letzten N Tage */
 router.get('/admin/stats', adminLimiter, requireAuth, (req, res) => {
