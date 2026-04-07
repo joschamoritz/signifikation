@@ -90,7 +90,7 @@ async function loadHealth() {
   const container = document.getElementById('health-badges')
   if (!container) return
   try {
-    const r    = await fetch('/health')
+    const r    = await fetch('/admin/health')
     const data = await r.json()
 
     const dbOk   = s => s === 'ok'
@@ -172,26 +172,27 @@ function renderCalendar() {
     const hasKoll     = !!(entry?.lemmata?.length)
     const hasZeit     = !!(entry?.hasZeitreise)
     const hasWZ       = !!(entry?.hasWortZwilling)
+    const hasZW       = !!(entry?.hasZeitenwende)
     const isTodayCell = (calYear === todayYear && key === todayStr)
 
-    let stateClass
-    if      (hasKoll && hasZeit && hasWZ) stateClass = 'has-all'
-    else if (hasKoll && hasZeit)          stateClass = 'has-both'
-    else if (hasKoll && hasWZ)            stateClass = 'has-koll-wz'
-    else if (hasZeit && hasWZ)            stateClass = 'has-zeit-wz'
-    else if (hasKoll)                     stateClass = 'has-koll'
-    else if (hasZeit)                     stateClass = 'has-zeit'
-    else if (hasWZ)                       stateClass = 'has-wz'
-    else                                  stateClass = 'no-entry'
+    // Vollständig = Kollokationen + mind. ein weiteres Spiel eingetragen
+    const hasAny      = hasKoll || hasZeit || hasWZ || hasZW
+    const isComplete  = hasKoll && (hasZeit || hasWZ || hasZW)
+    const stateClass  = isComplete ? 'is-complete' : hasAny ? 'has-entry' : 'no-entry'
 
     const classes = ['cal-day', stateClass, isTodayCell ? 'is-today' : ''].filter(Boolean).join(' ')
 
     let dots = ''
-    if (hasKoll || hasZeit || hasWZ) {
-      dots = `<div class="cal-dots">${hasKoll ? '<div class="cal-dot koll"></div>' : ''}${hasZeit ? '<div class="cal-dot zeit"></div>' : ''}${hasWZ ? '<div class="cal-dot wz"></div>' : ''}</div>`
+    if (hasAny) {
+      dots = `<div class="cal-dots">` +
+        (hasKoll ? '<div class="cal-dot koll"></div>' : '') +
+        (hasZeit ? '<div class="cal-dot zeit"></div>' : '') +
+        (hasWZ   ? '<div class="cal-dot wz"></div>'   : '') +
+        (hasZW   ? '<div class="cal-dot zw"></div>'   : '') +
+        `</div>`
     }
 
-    const action = (hasKoll || hasZeit || hasWZ)
+    const action = hasAny
       ? `onclick="editTag('${key}')"`
       : `onclick="prefillDate('${calYear}-${mm}-${dd}')"`
 
@@ -516,9 +517,9 @@ function renderKollAnalyse(data, out) {
 let statsChartTrend = null
 let statsChartDist  = null
 
-const STAT_KEYS   = ['kollokationen', 'zeitreise', 'wortzwilling']
-const STAT_LABELS = { kollokationen: 'Kollokationen', zeitreise: 'Zeitreise', wortzwilling: 'Wort-Zwilling' }
-const STAT_COLORS = { kollokationen: '#9b1c1c', zeitreise: '#1d4ed8', wortzwilling: '#15803d' }
+const STAT_KEYS   = ['kollokationen', 'zeitreise', 'wortzwilling', 'zeitenwende']
+const STAT_LABELS = { kollokationen: 'Kollokationen', zeitreise: 'Zeitreise', wortzwilling: 'Wort-Zwilling', zeitenwende: 'Zeitenwende' }
+const STAT_COLORS = { kollokationen: '#9b1c1c', zeitreise: '#1d4ed8', wortzwilling: '#15803d', zeitenwende: '#7c3aed' }
 
 async function loadStats() {
   const out = document.getElementById('stats-output')

@@ -53,17 +53,14 @@ export async function fetchWiktionary(lemma) {
     const ipa = ipaMatch?.[1] ?? ''
 
     // ── Bedeutungen ───────────────────────────────────────────────────────────
-    // Nur Zeilen aus dem {{Bedeutungen}}-Block extrahieren —
-    // nicht aus {{Synonyme}}, {{Beispiele}}, {{Sinnverwandte Wörter}} etc.
+    // Den {{Bedeutungen}}-Block per Regex herausschneiden, dann Einträge extrahieren.
+    // Robuster als ein Zeilenstatus-Automat: Template-Parameter und verschachtelte
+    // Templates in Sektionsmarkern führen nicht mehr zu falschen Treffern.
     const definitionen = []
-    let inBedeutungen  = false
-    for (const line of wikitext.split('\n')) {
-      // Abschnittsmarker: Zeile ist ein einzelnes {{Template}} oder === Überschrift ===
-      if (/^\{\{[^}]+\}\}\s*$/.test(line) || /^={2,}/.test(line)) {
-        inBedeutungen = /^\{\{Bedeutungen/.test(line.trim())
-        continue
-      }
-      if (!inBedeutungen) continue
+    const block = wikitext.match(
+      /\{\{Bedeutungen[^}]*\}\}([\s\S]*?)(?=\n\{\{[A-ZÄÖÜ\w]|\n={2,}|$)/
+    )?.[1] ?? ''
+    for (const line of block.split('\n')) {
       const m = line.match(/^:\[(\d+[a-z]?)\]\s*(.+)$/)
       if (!m) continue
       const text = cleanWikitext(m[2])

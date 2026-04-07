@@ -85,9 +85,9 @@ export const POS_ROUNDS = {
     { key: 'adverbien', relCode: 'ADV',    label: 'Adverbien', desc: 'wird begleitet durch' },
   ],
   Adjektiv: [
-    { key: 'nomen',     relCode: '~ATTR',  label: 'Nomen',     desc: 'ist Attribut bei' },
-    { key: 'verben',    relCode: '~ADV',   label: 'Verben',    desc: 'ist Adverbialbestimmung von' },
-    { key: 'adjektive', relCode: 'KON',    label: 'Adjektive', desc: 'ist koordiniert mit' },
+    { key: 'nomen',     relCode: '~ATTR',   label: 'Nomen',    desc: 'ist Attribut bei' },
+    { key: 'verben',    relCode: 'PRED_REV', label: 'Verben',   desc: 'wird prädikativ verwendet mit' },
+    { key: 'adjektive', relCode: 'KON',     label: 'Adjektive', desc: 'ist koordiniert mit' },
   ],
 }
 
@@ -121,6 +121,7 @@ const VALID_POS     = new Set(['Substantiv', 'Verb', 'Adjektiv', 'Adverb'])
 const VALID_RELCODE = new Set([
   'SUBJA', 'OBJA', 'OBJD', 'ATTR', 'GMOD', 'KON', 'ADV', 'PRED', 'PP',
   '~SUBJA', '~OBJA', '~OBJD', '~ATTR', '~GMOD', '~ADV',
+  'PRED_REV', // Pseudo-RelCode: Rückwärtssuche über PRED (dep_lemma = adjektiv)
 ])
 
 // Statement-Caching: better-sqlite3 cached prepare() intern pro Connection.
@@ -172,6 +173,49 @@ function queryRelation(lemma, pos, relCode, limit = 30, minFreq = 5, minDice = 0
       pos:                  r.dep_pos,
       relation:             r.relation_full,
       relation_description: r.relation_description,
+      concord_id:           null,
+      has_concord:          false,
+      has_mwe:              false,
+    }))
+  })
+}
+
+/**
+ * Rückwärtsabfrage: Verben die `lemma` als prädikatives Adjektiv verwenden.
+ * Nutzt den bestehenden Index auf (dep_lemma, relation, lemma).
+ * Ersetzt ~ADV für Adjektive, da PRED in build_wortprofil.py nicht invertiert wird.
+ */
+function queryRelationReverse(lemma, depPos, rel, limit = 30, minFreq = 5, minDice = 0) {
+  return withConnection(db => {
+    let rows = stmt(`
+      SELECT lemma AS dep_lemma, pos AS dep_pos, frequency, logDice
+      FROM collocations
+      WHERE dep_lemma = ? AND dep_pos = ? AND relation = ?
+        AND frequency >= ? AND logDice >= ?
+      ORDER BY logDice DESC
+      LIMIT ?
+    `, db).all(lemma.toLowerCase(), depPos, rel, minFreq, minDice, limit)
+
+    // Adaptiver Fallback
+    if (rows.length < 10 && minFreq > 1) {
+      rows = stmt(`
+        SELECT lemma AS dep_lemma, pos AS dep_pos, frequency, logDice
+        FROM collocations
+        WHERE dep_lemma = ? AND dep_pos = ? AND relation = ?
+          AND frequency >= ? AND logDice >= ?
+        ORDER BY logDice DESC
+        LIMIT ?
+      `, db).all(lemma.toLowerCase(), depPos, rel, 1, minDice, limit)
+    }
+
+    return rows.map(r => ({
+      form:                 r.dep_lemma,
+      lemma:                normalizeLemma(r.dep_lemma, r.dep_pos),
+      frequency:            r.frequency,
+      logDice:              String(r.logDice.toFixed(4)),
+      pos:                  r.dep_pos,
+      relation:             rel,
+      relation_description: 'prädikativ verwendet mit',
       concord_id:           null,
       has_concord:          false,
       has_mwe:              false,
@@ -233,21 +277,31 @@ export async function fetchRelation(lemma, pos, relCode) {
   try {
     const cacheKey = `rel:${lemma}:${pos}:${relCode}`
     const data = getCachedQuery(cacheKey, () => {
-      let rows = queryRelation(lemma, pos, relCode)
-
-      // ~ADV für Adjektive: adverbial verwendete Adjektive können vom Parser als
-      // Adverb getaggt sein → beide POS-Varianten immer zusammenführen
-      if (pos === 'Adjektiv' && relCode === '~ADV') {
-        const adverbRows = queryRelation(lemma, 'Adverb', relCode)
-        if (adverbRows.length > 0) {
-          const seen = new Set(rows.map(r => r.lemma))
-          rows = [...rows, ...adverbRows.filter(r => !seen.has(r.lemma))]
-            .sort((a, b) => parseFloat(b.logDice) - parseFloat(a.logDice))
-            .slice(0, 20)
+      // PRED_REV: Verben für Adjektive – kombiniert zwei Quellen:
+      // 1) ~ADV: Adjektiv als Adverbialbestimmung (z.B. „krank feiern")
+      // 2) PRED rückwärts: Adjektiv als Prädikativ (z.B. „sein/werden/machen + krank")
+      // PRED wurde in build_wortprofil.py nicht invertiert, daher Rückwärtsquery nötig.
+      // Beide immer zusammenführen – mehr Quellen = vollständigere Ergebnisse.
+      // PRED_REV: Verben für Adjektive – kombiniert drei Quellen:
+      // 1) ~ADV als Adjektiv: adverbiale Verwendung, Parser-Tag = Adjektiv
+      // 2) ~ADV als Adverb:   adverbiale Verwendung, Parser-Tag = Adverb (z.B. „krank feiern")
+      // 3) PRED rückwärts:    prädikative Verwendung (z.B. „sein/werden/machen + krank")
+      if (relCode === 'PRED_REV') {
+        const adjAdvRows  = queryRelation(lemma, 'Adjektiv', '~ADV')
+        const advAdvRows  = queryRelation(lemma, 'Adverb',   '~ADV')
+        const predRows    = queryRelationReverse(lemma, 'Adjektiv', 'PRED')
+        const seen        = new Set()
+        const merged      = []
+        for (const r of [...adjAdvRows, ...advAdvRows, ...predRows]) {
+          const key = r.lemma.toLowerCase()
+          if (!seen.has(key)) { seen.add(key); merged.push(r) }
         }
+        return merged
+          .sort((a, b) => parseFloat(b.logDice) - parseFloat(a.logDice))
+          .slice(0, 30)
       }
 
-      return rows
+      return queryRelation(lemma, pos, relCode)
     })
     if (!Array.isArray(data)) throw new Error(`Unerwartetes Format für ${relCode}`)
     return data
