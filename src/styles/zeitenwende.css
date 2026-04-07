@@ -50,6 +50,15 @@
   font-style: italic;
 }
 
+.zw-definition {
+  font-size: 0.8rem;
+  color: var(--muted);
+  text-align: center;
+  max-width: 320px;
+  line-height: 1.45;
+  margin: 0;
+}
+
 /* ── Fortschrittsbalken ──────────────────────────────────── */
 .zw-progress {
   width: 100%;

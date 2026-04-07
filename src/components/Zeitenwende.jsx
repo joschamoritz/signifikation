@@ -17,7 +17,7 @@ function PeriodChip({ periode }) {
 }
 
 /** Ergebnisansicht */
-function ZWResults({ lemma, words, answers, onBack }) {
+function ZWResults({ lemma, words, answers, onBack, ipa, definitionen }) {
   const score     = answers.filter((a, i) => a === words[i].periode).length
   const medal     = getMedal(score, TOTAL)
   const zwHistory = lsParse(lsGet('sig_zw_history'), []).slice(0, 14).reverse()
@@ -30,7 +30,15 @@ function ZWResults({ lemma, words, answers, onBack }) {
 
       <header className="zw-header">
         <span className="zw-badge">Zeitenwende</span>
-        <div className="zw-lemma">{lemma}</div>
+        <div className="dict-entry-header">
+          <div className="zw-lemma">{lemma}</div>
+          {ipa && (
+            <div className="dict-entry-meta">
+              <span className="lautschrift" aria-label={`Aussprache: [${ipa}]`}>[{ipa}]</span>
+            </div>
+          )}
+          {ipa && <hr className="dict-entry-rule" aria-hidden="true" />}
+        </div>
       </header>
 
       <div className="zw-results">
@@ -81,7 +89,7 @@ function ZWResults({ lemma, words, answers, onBack }) {
 
 /** Hauptkomponente */
 export default function Zeitenwende({ data, onBack, onFinish, savedResult = null }) {
-  const { lemma, words } = data
+  const { lemma, words, ipa = '', definitionen = [] } = data
 
   const [round,   setRound]   = useState(0)
   const [answers, setAnswers] = useState(savedResult?.answers ?? [])
@@ -201,7 +209,7 @@ export default function Zeitenwende({ data, onBack, onFinish, savedResult = null
   }, [feedback, advanceRound, choose])
 
   if (phase === 'results') {
-    return <ZWResults lemma={lemma} words={words} answers={answers} onBack={onBack} />
+    return <ZWResults lemma={lemma} words={words} answers={answers} onBack={onBack} ipa={ipa} definitionen={definitionen} />
   }
 
   const currentWord   = words[round]
@@ -233,7 +241,18 @@ export default function Zeitenwende({ data, onBack, onFinish, savedResult = null
 
       <header className="zw-header">
         <span className="zw-badge">Zeitenwende</span>
-        <div className="zw-lemma">{lemma}</div>
+        <div className="dict-entry-header">
+          <div className="zw-lemma">{lemma}</div>
+          {(ipa || definitionen.length > 0) && (
+            <div className="dict-entry-meta">
+              {ipa && <span className="lautschrift" aria-label={`Aussprache: [${ipa}]`}>[{ipa}]</span>}
+            </div>
+          )}
+          {definitionen.length > 0 && (
+            <p className="zw-definition">{definitionen[0]}</p>
+          )}
+          {(ipa || definitionen.length > 0) && <hr className="dict-entry-rule" aria-hidden="true" />}
+        </div>
         <p className="zw-subtitle">Wann war dieses Kollokat von <em>{lemma}</em> gebräuchlicher?</p>
       </header>
 

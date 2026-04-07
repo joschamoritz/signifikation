@@ -3,6 +3,7 @@ import { join, normalize, sep } from 'path'
 import { readFileSync } from 'fs'
 import { fetchBelege, belegeVerfuegbar } from '../belege.js'
 import { fetchRelation } from '../wortprofil.js'
+import { fetchWiktionary } from '../wiktionary.js'
 import { load, loadReadOnly, save, loadZeitreise, loadWortZwilling, loadZeitenwende, loadStats, withStatsLock, getLemmataIndex, cacheGet, cacheSet, DATA } from '../store.js'
 import { belegeLimiter, statsLimiter, feedbackLimiter } from '../middleware/rateLimiter.js'
 import { serverError } from '../middleware/auth.js'
@@ -77,13 +78,23 @@ router.get('/api/v1/wortzwilling', (req, res) => {
   }
 })
 
-/** GET /api/zeitenwende → Zeitenwende-Eintrag des Tages */
-router.get('/api/v1/zeitenwende', (req, res) => {
-  const datum = req.query.datum || todayDatum().mmdd
-  const zw    = loadZeitenwende()   // gibt {} zurück wenn Datei fehlt
-  const entry = zw[datum]
-  if (!entry) return res.status(404).json({ error: `Kein Zeitenwende-Eintrag für ${datum}` })
-  res.json(entry)
+/** GET /api/zeitenwende → Zeitenwende-Eintrag des Tages (inkl. IPA + Definitionen) */
+router.get('/api/v1/zeitenwende', async (req, res) => {
+  try {
+    const datum = req.query.datum || todayDatum().mmdd
+    const zw    = loadZeitenwende()
+    const entry = zw[datum]
+    if (!entry) return res.status(404).json({ error: `Kein Zeitenwende-Eintrag für ${datum}` })
+
+    const cacheKey = `wikt:${entry.lemma}`
+    let wikt = cacheGet(cacheKey)
+    if (!wikt) {
+      wikt = await fetchWiktionary(entry.lemma)
+      cacheSet(cacheKey, wikt)
+    }
+
+    res.json({ ...entry, ipa: wikt.ipa || '', definitionen: wikt.definitionen || [] })
+  } catch (err) { serverError(res, err) }
 })
 
 /**
