@@ -1,10 +1,12 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { lsGet, lsParse } from '../utils/storage'
 import { getMedal } from '../utils/gameLogic'
 import { API } from '../config'
 import '../styles/zeitenwende.css'
 
-const TOTAL = 10
+const TOTAL                   = 10
+const SWIPE_THRESHOLD         = 80   // px bis Entscheidung ausgelöst wird
+const SWIPE_FEEDBACK_THRESHOLD = 40  // px Wischen im Feedback-Modus → Weiter
 
 function PeriodChip({ periode }) {
   return (
@@ -16,8 +18,8 @@ function PeriodChip({ periode }) {
 
 /** Ergebnisansicht */
 function ZWResults({ lemma, words, answers, onBack }) {
-  const score   = answers.filter((a, i) => a === words[i].periode).length
-  const medal   = getMedal(score, TOTAL)
+  const score     = answers.filter((a, i) => a === words[i].periode).length
+  const medal     = getMedal(score, TOTAL)
   const zwHistory = lsParse(lsGet('sig_zw_history'), []).slice(0, 14).reverse()
 
   return (
@@ -81,26 +83,37 @@ function ZWResults({ lemma, words, answers, onBack }) {
 export default function Zeitenwende({ data, onBack, onFinish, savedResult = null }) {
   const { lemma, words } = data
 
-  const [round,     setRound]     = useState(0)
-  const [answers,   setAnswers]   = useState(savedResult?.answers ?? [])
-  const [feedback,  setFeedback]  = useState(null)   // null | 'correct' | 'wrong'
-  const [chosen,    setChosen]    = useState(null)    // 'pre' | 'post'
-  const [phase,     setPhase]     = useState(savedResult ? 'results' : 'play')
-  const [belege,    setBelege]    = useState(null)    // null = lädt | [] = leer/fehler | [...] = Ergebnisse
+  const [round,   setRound]   = useState(0)
+  const [answers, setAnswers] = useState(savedResult?.answers ?? [])
+  const [feedback, setFeedback] = useState(null)   // null | 'correct' | 'wrong'
+  const [chosen,   setChosen]   = useState(null)    // 'pre' | 'post'
+  const [phase,    setPhase]    = useState(savedResult ? 'results' : 'play')
+  const [belege,   setBelege]   = useState(null)
+
+  // Swipe-State
+  const [dragX,   setDragX]   = useState(0)
+  const [swiping, setSwiping] = useState(false)
+  const touchStartX   = useRef(null)
+  const touchCurrentX = useRef(null)
+
+  // Swipe-State bei neuem Wort zurücksetzen
+  useEffect(() => {
+    setDragX(0)
+    setSwiping(false)
+  }, [round])
 
   // Belege laden sobald Feedback erscheint
   useEffect(() => {
     if (feedback === null) { setBelege(null); return }
     setBelege(null)
-    const word  = encodeURIComponent(words[round]?.wort ?? '')
-    const lem   = encodeURIComponent(lemma)
+    const word = encodeURIComponent(words[round]?.wort ?? '')
+    const lem  = encodeURIComponent(lemma)
     fetch(`${API}/belege?collocate=${word}&lemma=${lem}`)
       .then(r => r.ok ? r.json() : [])
       .then(d  => setBelege(Array.isArray(d) ? d : []))
       .catch(() => setBelege([]))
   }, [feedback]) // eslint-disable-line
 
-  // Weiter-Funktion (manuell vom User ausgelöst)
   const advanceRound = useCallback(() => {
     if (feedback === null || chosen === null) return
     const nextAnswers = [...answers, chosen]
@@ -118,7 +131,14 @@ export default function Zeitenwende({ data, onBack, onFinish, savedResult = null
     }
   }, [feedback, chosen, answers, round, words, onFinish])
 
-  // Tastatur-Support (← = pre, → = post; Enter/Space = Weiter)
+  const choose = useCallback((periode) => {
+    if (feedback !== null) return
+    const correct = words[round].periode === periode
+    setChosen(periode)
+    setFeedback(correct ? 'correct' : 'wrong')
+  }, [feedback, words, round])
+
+  // Tastatur-Support (← = pre, → = post; Enter/Space/Pfeile = Weiter)
   const handleKey = useCallback((e) => {
     if (phase !== 'play') return
     if (feedback !== null) {
@@ -129,31 +149,80 @@ export default function Zeitenwende({ data, onBack, onFinish, savedResult = null
     }
     if (e.key === 'ArrowLeft')  choose('pre')
     if (e.key === 'ArrowRight') choose('post')
-  }, [phase, feedback, advanceRound]) // eslint-disable-line
+  }, [phase, feedback, advanceRound, choose])
 
   useEffect(() => {
     window.addEventListener('keydown', handleKey)
     return () => window.removeEventListener('keydown', handleKey)
   }, [handleKey])
 
-  function choose(periode) {
+  // Touch-Handler
+  const handleTouchStart = useCallback((e) => {
+    touchStartX.current   = e.touches[0].clientX
+    touchCurrentX.current = e.touches[0].clientX
+    if (feedback === null) setSwiping(true)
+  }, [feedback])
+
+  const handleTouchMove = useCallback((e) => {
+    if (touchStartX.current === null) return
+    touchCurrentX.current = e.touches[0].clientX
     if (feedback !== null) return
-    const correct = words[round].periode === periode
-    setChosen(periode)
-    setFeedback(correct ? 'correct' : 'wrong')
-    // kein setTimeout — User klickt manuell auf „Weiter"
-  }
+    const raw = e.touches[0].clientX - touchStartX.current
+    const dx  = raw * 0.85 // Widerstandsgefühl
+    // Haptik genau beim Einrasten der Schwelle
+    if (Math.abs(raw) >= SWIPE_THRESHOLD && Math.abs(dragX) < SWIPE_THRESHOLD * 0.85) {
+      navigator.vibrate?.(12)
+    }
+    setDragX(dx)
+  }, [feedback, dragX])
+
+  const handleTouchEnd = useCallback(() => {
+    if (touchStartX.current === null) return
+    const totalDx = (touchCurrentX.current ?? touchStartX.current) - touchStartX.current
+    touchStartX.current   = null
+    touchCurrentX.current = null
+
+    if (feedback !== null) {
+      // Im Feedback-Modus: jedes Wischen → Weiter
+      if (Math.abs(totalDx) > SWIPE_FEEDBACK_THRESHOLD) advanceRound()
+      return
+    }
+
+    setSwiping(false)
+    setDragX(0)
+
+    if (totalDx < -SWIPE_THRESHOLD) {
+      navigator.vibrate?.([8, 30, 8])
+      choose('pre')
+    } else if (totalDx > SWIPE_THRESHOLD) {
+      navigator.vibrate?.([8, 30, 8])
+      choose('post')
+    }
+  }, [feedback, advanceRound, choose])
 
   if (phase === 'results') {
     return <ZWResults lemma={lemma} words={words} answers={answers} onBack={onBack} />
   }
 
-  const currentWord  = words[round]
-  const progressPct  = (round / TOTAL) * 100
-  const cardClass    = [
+  const currentWord   = words[round]
+  const progressPct   = (round / TOTAL) * 100
+
+  // Swipe-Berechnungen für visuelle Effekte
+  const swipeProgress = swiping ? Math.min(1, Math.abs(dragX) / SWIPE_THRESHOLD) : 0
+  const preOpacity    = swiping ? Math.min(1, Math.max(0, (-dragX - 20) / 50)) : 0
+  const postOpacity   = swiping ? Math.min(1, Math.max(0, (dragX  - 20) / 50)) : 0
+  const cardStyle     = swiping ? {
+    transform:  `translateX(${dragX}px) rotate(${(dragX * 0.04).toFixed(2)}deg)`,
+    transition: 'none',
+    animation:  'none',
+    boxShadow:  `${(-dragX * 0.1).toFixed(1)}px 8px ${(16 + Math.abs(dragX) * 0.25).toFixed(1)}px rgba(0,0,0,${(0.08 + swipeProgress * 0.12).toFixed(3)})`,
+  } : {}
+
+  const cardClass = [
     'zw-word-card',
-    feedback === 'correct' ? 'zw-word-card--correct' : '',
-    feedback === 'wrong'   ? 'zw-word-card--wrong'   : '',
+    swiping                ? 'is-swiping'            : '',
+    feedback === 'correct' ? 'zw-word-card--correct'  : '',
+    feedback === 'wrong'   ? 'zw-word-card--wrong'    : '',
   ].filter(Boolean).join(' ')
 
   return (
@@ -178,14 +247,34 @@ export default function Zeitenwende({ data, onBack, onFinish, savedResult = null
         </span>
       </div>
 
-      {/* Wort-Karte */}
+      {/* Karten-Bereich */}
       <div className="zw-card-area">
+        {/* Deck-Karten im Hintergrund (Tinder-Stapel-Effekt) */}
+        <div className="zw-deck-card zw-deck-card--back2" aria-hidden="true" />
+        <div className="zw-deck-card zw-deck-card--back1" aria-hidden="true" />
+
+        {/* Aktive Wortkarte */}
         <div
-          key={round}  /* key erzwingt Re-Mount → Animation bei jedem neuen Wort */
+          key={round}
           className={cardClass}
+          style={cardStyle}
           aria-live="polite"
           aria-label={`Kollokat: ${currentWord.wort}`}
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
         >
+          {/* Richtungs-Indikatoren (Stempel-Stil) */}
+          <span
+            className="zw-swipe-label zw-swipe-label--pre"
+            style={{ opacity: preOpacity }}
+            aria-hidden="true"
+          >HISTORISCH</span>
+          <span
+            className="zw-swipe-label zw-swipe-label--post"
+            style={{ opacity: postOpacity }}
+            aria-hidden="true"
+          >MODERN</span>
           {currentWord.wort}
         </div>
 
@@ -269,8 +358,8 @@ export default function Zeitenwende({ data, onBack, onFinish, savedResult = null
 
       <p className="zw-key-hint" aria-hidden="true">
         {feedback !== null
-          ? 'Enter / ← / → → Weiter'
-          : '← Vor 2000 \u00a0·\u00a0 Nach 2000 →'}
+          ? 'Wischen oder Enter → Weiter'
+          : '← Wischen oder Klicken →'}
       </p>
     </div>
   )

@@ -94,6 +94,29 @@
   position: relative;
 }
 
+/* Deck-Hintergrundkarten (Tinder-Stapel-Illusion) */
+.zw-deck-card {
+  position: absolute;
+  width: 100%;
+  min-height: 120px;
+  border-radius: 8px;
+  background: var(--surface);
+  border: 2px solid var(--border);
+  pointer-events: none;
+}
+
+.zw-deck-card--back1 {
+  transform: translateY(6px) scale(0.97);
+  opacity: 0.65;
+  z-index: 0;
+}
+
+.zw-deck-card--back2 {
+  transform: translateY(12px) scale(0.94);
+  opacity: 0.35;
+  z-index: -1;
+}
+
 .zw-word-card {
   display: flex;
   align-items: center;
@@ -111,8 +134,54 @@
   text-align: center;
   animation: zwCardIn 200ms ease-out both;
   position: relative;
+  z-index: 1;
   user-select: none;
-  transition: border-color 200ms, background 200ms;
+  touch-action: pan-y;
+  cursor: grab;
+  transform-origin: center 120%;
+  transition: border-color 200ms, background 200ms, transform 300ms ease, box-shadow 200ms;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Swipe-Gummi-Stempel-Indikatoren */
+.zw-swipe-label {
+  position: absolute;
+  top: 16px;
+  font-size: 1rem;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  padding: 4px 10px;
+  border-width: 3px;
+  border-style: solid;
+  border-radius: 4px;
+  pointer-events: none;
+  transition: opacity 60ms linear;
+  font-family: var(--font-sans);
+}
+
+.zw-swipe-label--pre {
+  left: 14px;
+  color: #1d4ed8;
+  border-color: #1d4ed8;
+  transform: rotate(-14deg);
+  background: rgba(219,234,254,0.15);
+}
+
+.zw-swipe-label--post {
+  right: 14px;
+  color: #166534;
+  border-color: #166534;
+  transform: rotate(14deg);
+  background: rgba(220,252,231,0.15);
+}
+
+/* Während Swipe: grabbing-Cursor, keine Animation */
+.zw-word-card.is-swiping {
+  cursor: grabbing;
+  animation: none;
+  transition: none;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.12);
 }
 
 .zw-word-card--correct {
@@ -379,7 +448,10 @@
 
 /* ── Reduced motion ──────────────────────────────────────── */
 @media (prefers-reduced-motion: reduce) {
-  .zw-word-card      { animation: none }
+  .zw-word-card      { animation: none; transition: none }
   .zw-progress-fill  { transition: none }
   .zw-choice-btn     { transition: none }
+  .zw-swipe-label    { transition: none }
+  .zw-deck-card--back1,
+  .zw-deck-card--back2 { transform: none }
 }
