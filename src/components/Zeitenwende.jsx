@@ -196,17 +196,27 @@ export default function Zeitenwende({ data, onBack, onFinish, savedResult = null
       return
     }
 
-    setSwiping(false)
-    setDragX(0)
-
     if (totalDx < -SWIPE_THRESHOLD) {
+      // Schwelle erreicht: dragX auf 0 snappen WÄHREND is-swiping noch aktiv ist
+      // (transition:none) → kein Zurückgleiten, Feedback erscheint sofort
       navigator.vibrate?.([8, 30, 8])
+      setDragX(0)
       choose('pre')
     } else if (totalDx > SWIPE_THRESHOLD) {
       navigator.vibrate?.([8, 30, 8])
+      setDragX(0)
       choose('post')
+    } else {
+      // Unterhalb Schwelle → federnd zurückgleiten (Transition aktiv)
+      setSwiping(false)
+      setDragX(0)
     }
   }, [feedback, advanceRound, choose])
+
+  // is-swiping nach Entscheidung entfernen (nach dem Snap, nicht davor)
+  useEffect(() => {
+    if (feedback !== null && swiping) setSwiping(false)
+  }, [feedback, swiping])
 
   if (phase === 'results') {
     return <ZWResults lemma={lemma} words={words} answers={answers} onBack={onBack} ipa={ipa} definitionen={definitionen} />
@@ -243,15 +253,12 @@ export default function Zeitenwende({ data, onBack, onFinish, savedResult = null
         <span className="zw-badge">Zeitenwende</span>
         <div className="dict-entry-header">
           <div className="zw-lemma">{lemma}</div>
-          {(ipa || definitionen.length > 0) && (
+          {ipa && (
             <div className="dict-entry-meta">
-              {ipa && <span className="lautschrift" aria-label={`Aussprache: [${ipa}]`}>[{ipa}]</span>}
+              <span className="lautschrift" aria-label={`Aussprache: [${ipa}]`}>[{ipa}]</span>
             </div>
           )}
-          {definitionen.length > 0 && (
-            <p className="zw-definition">{definitionen[0]}</p>
-          )}
-          {(ipa || definitionen.length > 0) && <hr className="dict-entry-rule" aria-hidden="true" />}
+          {ipa && <hr className="dict-entry-rule" aria-hidden="true" />}
         </div>
         <p className="zw-subtitle">Wann war dieses Kollokat von <em>{lemma}</em> gebräuchlicher?</p>
       </header>
