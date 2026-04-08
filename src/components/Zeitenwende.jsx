@@ -103,6 +103,7 @@ export default function Zeitenwende({ data, onBack, onFinish, savedResult = null
   const [swiping, setSwiping] = useState(false)
   const touchStartX   = useRef(null)
   const touchCurrentX = useRef(null)
+  const mouseDownRef  = useRef(false)
 
   // Swipe-State bei neuem Wort zurücksetzen
   useEffect(() => {
@@ -184,21 +185,19 @@ export default function Zeitenwende({ data, onBack, onFinish, savedResult = null
     setDragX(dx)
   }, [feedback, dragX])
 
-  const handleTouchEnd = useCallback(() => {
+  // Gemeinsame Drag-End-Logik (Touch + Maus)
+  const finishDrag = useCallback(() => {
     if (touchStartX.current === null) return
     const totalDx = (touchCurrentX.current ?? touchStartX.current) - touchStartX.current
     touchStartX.current   = null
     touchCurrentX.current = null
 
     if (feedback !== null) {
-      // Im Feedback-Modus: jedes Wischen → Weiter
       if (Math.abs(totalDx) > SWIPE_FEEDBACK_THRESHOLD) advanceRound()
       return
     }
 
     if (totalDx < -SWIPE_THRESHOLD) {
-      // Schwelle erreicht: dragX auf 0 snappen WÄHREND is-swiping noch aktiv ist
-      // (transition:none) → kein Zurückgleiten, Feedback erscheint sofort
       navigator.vibrate?.([8, 30, 8])
       setDragX(0)
       choose('pre')
@@ -207,11 +206,44 @@ export default function Zeitenwende({ data, onBack, onFinish, savedResult = null
       setDragX(0)
       choose('post')
     } else {
-      // Unterhalb Schwelle → federnd zurückgleiten (Transition aktiv)
       setSwiping(false)
       setDragX(0)
     }
   }, [feedback, advanceRound, choose])
+
+  const handleTouchEnd = useCallback(() => finishDrag(), [finishDrag])
+
+  // Maus-Handler für Desktop-Wischen
+  const handleMouseDown = useCallback((e) => {
+    if (e.button !== 0) return
+    mouseDownRef.current  = true
+    touchStartX.current   = e.clientX
+    touchCurrentX.current = e.clientX
+    if (feedback === null) setSwiping(true)
+  }, [feedback])
+
+  const handleMouseMove = useCallback((e) => {
+    if (!mouseDownRef.current || touchStartX.current === null) return
+    touchCurrentX.current = e.clientX
+    if (feedback !== null) return
+    const raw = e.clientX - touchStartX.current
+    const dx  = raw * 0.85
+    if (Math.abs(raw) >= SWIPE_THRESHOLD && Math.abs(dragX) < SWIPE_THRESHOLD * 0.85) {
+      navigator.vibrate?.(12)
+    }
+    setDragX(dx)
+  }, [feedback, dragX])
+
+  // Globales mouseup: fängt Releases auch außerhalb der Karte ab
+  useEffect(() => {
+    const onMouseUp = () => {
+      if (!mouseDownRef.current) return
+      mouseDownRef.current = false
+      finishDrag()
+    }
+    window.addEventListener('mouseup', onMouseUp)
+    return () => window.removeEventListener('mouseup', onMouseUp)
+  }, [finishDrag])
 
   // is-swiping nach Entscheidung entfernen (nach dem Snap, nicht davor)
   useEffect(() => {
@@ -289,6 +321,8 @@ export default function Zeitenwende({ data, onBack, onFinish, savedResult = null
           onTouchStart={handleTouchStart}
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
+          onMouseDown={handleMouseDown}
+          onMouseMove={handleMouseMove}
         >
           {/* Richtungs-Indikatoren (Stempel-Stil) */}
           <span

@@ -174,7 +174,7 @@ export default function App() {
     setZeitreiseError(false)
     setZeitreise(null)
     fetchWithRetry(`${API}/zeitreise`)
-      .then(r => r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`)))
+      .then(r => { if (r.ok) return r.json(); if (r.status === 404) return null; return Promise.reject(new Error(`HTTP ${r.status}`)) })
       .then(data => { if (data) setZeitreise(data) })
       .catch(() => setZeitreiseError(true))
   }, [zeitreiseRetry]) // eslint-disable-line
@@ -183,7 +183,7 @@ export default function App() {
     setWortzwillingError(false)
     setWortzwilling(null)
     fetchWithRetry(`${API}/wortzwilling`)
-      .then(r => r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`)))
+      .then(r => { if (r.ok) return r.json(); if (r.status === 404) return null; return Promise.reject(new Error(`HTTP ${r.status}`)) })
       .then(data => { if (data) setWortzwilling(data) })
       .catch(() => setWortzwillingError(true))
   }, [wortzwillingRetry]) // eslint-disable-line
