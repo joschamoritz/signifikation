@@ -55,5 +55,8 @@ wortprofil/02_parsed/
 wortprofil/03_deps/
 wortprofil/05_db/
 wortprofil/06_belege/belege.db
+server/data/signifikation.db
+server/data/signifikation.db-wal
+server/data/signifikation.db-shm
 wortprofil/00_setup/wordprofile-src
 wortprofil/**/__pycache__/
