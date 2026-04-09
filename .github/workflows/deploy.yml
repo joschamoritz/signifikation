@@ -15,6 +15,7 @@ jobs:
           username: deploy
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
+            set -e
             export NVM_DIR="/opt/nvm"
             source "$NVM_DIR/nvm.sh"
             cd /opt/signifikation/app

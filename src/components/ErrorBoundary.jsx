@@ -10,6 +10,10 @@ export default class ErrorBoundary extends Component {
     return { error }
   }
 
+  componentDidCatch(error, info) {
+    console.error('[ErrorBoundary]', error, info)
+  }
+
   render() {
     if (this.state.error) {
       return (
@@ -20,6 +24,9 @@ export default class ErrorBoundary extends Component {
           </p>
           <p style={{ fontSize: '0.875rem', color: 'var(--muted)', maxWidth: 320 }}>
             Ein unerwarteter Fehler ist aufgetreten. Bitte lade die Seite neu.
+          </p>
+          <p style={{ fontSize: '0.7rem', color: 'var(--muted)', maxWidth: 320, fontFamily: 'monospace', wordBreak: 'break-all' }}>
+            {this.state.error.message}
           </p>
           <button
             className="btn-primary"
