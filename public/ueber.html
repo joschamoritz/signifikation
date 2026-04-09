@@ -339,7 +339,7 @@
     </details>
     <details class="pipeline-step">
       <summary><strong>Frequenz-Aggregation</strong></summary>
-      <div class="pipeline-step-body">Aus der Tripel-Datenbank werden Unigramm-Häufigkeiten f<sub>a</sub> und f<sub>b</sub> sowie Paarfrequenzen f<sub>ab</sub> berechnet — getrennt nach Wortart und Relationstyp, um lexikalische Ambiguität zu kontrollieren.</div>
+      <div class="pipeline-step-body">Aus der Tripel-Datenbank werden Unigramm-Häufigkeiten f<sub>a</sub> und f<sub>b</sub> sowie Paarfrequenzen f<sub>ab</sub> berechnet. Die Zählung erfolgt getrennt nach Wortart und Relationstyp — das ist entscheidend, um lexikalische Ambiguität zu kontrollieren: <em>laufen</em> (Verb) und <em>Laufen</em> (Substantiv) teilen dasselbe Lemma, haben aber grundlegend verschiedene Kollokationsprofile. Ohne diese Trennung würden ihre Frequenzen zusammengefasst, was den logDice-Score für beide verfälscht. Dasselbe gilt für syntaktische Rollen: Ein Wort, das typischerweise als Subjekt auftritt, kann als Objekt ein ganz anderes Kollokationsverhalten zeigen. Nur durch die kombinierte Kontrolle nach Wortart <em>und</em> Relation lassen sich sprachlich sinnvolle Assoziationsmaße berechnen.</div>
     </details>
     <details class="pipeline-step">
       <summary><strong>logDice-Berechnung und Ranking</strong></summary>
