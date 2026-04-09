@@ -294,6 +294,33 @@
   border-color: var(--t-rule);
 }
 
+.test-cta--locked {
+  background: transparent;
+  color: var(--t-accent);
+  border-color: var(--t-accent);
+  opacity: 1;
+}
+
+.test-cta--locked:hover,
+.test-cta--locked:focus-visible {
+  color: var(--t-accent-dk);
+  border-bottom-color: var(--t-accent);
+  background: transparent;
+  outline: none;
+}
+
+.test-entry-premium {
+  font-family: var(--t-sans);
+  font-size: 8.5px;
+  font-weight: 600;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--t-accent);
+  border: 1px solid var(--t-accent);
+  padding: 1px 6px;
+  border-radius: 2px;
+}
+
 /* Definitions-Text */
 .test-definition {
   font-family: var(--t-serif);

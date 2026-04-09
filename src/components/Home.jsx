@@ -8,6 +8,15 @@ import {
 } from '../utils/homeUtils'
 import { lsGet, lsSet } from '../utils/storage'
 
+function LockIcon() {
+  return (
+    <svg width="9" height="11" viewBox="0 0 9 11" fill="currentColor" aria-hidden="true" style={{ display: 'inline', verticalAlign: 'middle', marginRight: '4px', marginBottom: '1px' }}>
+      <rect x="0.5" y="4.5" width="8" height="6" rx="1" />
+      <path d="M2.5 4.5V3a2 2 0 0 1 4 0v1.5" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+    </svg>
+  )
+}
+
 export default function Home({
   onStart, loading, error, lemmata = [],
   playedGames = [], allPlayed = false,
@@ -18,10 +27,16 @@ export default function Home({
   zeitenwende = null, zeitenwendeError = false, onRetryZeitenwende,
   zwPlayed = null, onPlayZeitenwende, onViewZeitenwende,
 }) {
-  const [infoOpen,        setInfoOpen]        = useState(false)
-  const [copied,          setCopied]          = useState(false)
-  const [showDayComplete, setShowDayComplete] = useState(false)
-  const [activeCard,      setActiveCard]      = useState(0)
+  const [infoOpen,          setInfoOpen]          = useState(false)
+  const [copied,            setCopied]            = useState(false)
+  const [showDayComplete,   setShowDayComplete]   = useState(false)
+  const [activeCard,        setActiveCard]        = useState(0)
+  const [gesamtausgabe,     setGesamtausgabe]     = useState(() => !!lsGet('sig_gesamtausgabe'))
+
+  function unlockGesamtausgabe() {
+    lsSet('sig_gesamtausgabe', '1')
+    setGesamtausgabe(true)
+  }
 
   const entriesRef = useRef(null)
 
@@ -246,6 +261,7 @@ export default function Home({
                   <span className="test-pos">Wortspiel</span>
                   <span className="test-pos-rule" />
                   <span className="test-entry-category">komparativ</span>
+                  <span className="test-entry-premium">Gesamtausgabe</span>
                 </div>
                 <p className="test-definition">
                   Zwei bedeutungsnahe Wörter — zwei unterschiedliche Kollokationsprofile. Ordne zehn Kollokationen dem richtigen Lemma zu.
@@ -271,9 +287,13 @@ export default function Home({
 
                 <div className="test-entry-footer">
                   <span className={`test-status${wzPlayed ? ' test-status--done' : ''}`}>
-                    {wortzwillingError ? '' : !wortzwilling ? 'Heute nicht verfügbar.' : wzPlayed ? 'Gespielt.' : 'Noch nicht gespielt.'}
+                    {!gesamtausgabe ? 'Teil der Gesamtausgabe.' : wortzwillingError ? '' : !wortzwilling ? 'Heute nicht verfügbar.' : wzPlayed ? 'Gespielt.' : 'Noch nicht gespielt.'}
                   </span>
-                  {wortzwilling ? (
+                  {!gesamtausgabe ? (
+                    <button className="test-cta test-cta--locked" type="button" onClick={unlockGesamtausgabe} aria-label="Gesamtausgabe freischalten">
+                      <LockIcon /> Gesamtausgabe freischalten
+                    </button>
+                  ) : wortzwilling ? (
                     <button
                       className="test-cta"
                       type="button"
@@ -305,6 +325,7 @@ export default function Home({
                   <span className="test-pos">Wortspiel</span>
                   <span className="test-pos-rule" />
                   <span className="test-entry-category">diachron</span>
+                  <span className="test-entry-premium">Gesamtausgabe</span>
                 </div>
                 <p className="test-definition">
                   Gehört dieses Wort eher in die Zeit vor oder nach der Jahrtausendwende? Entscheide für zehn Kollokationen eines Lemmas.
@@ -330,9 +351,13 @@ export default function Home({
 
                 <div className="test-entry-footer">
                   <span className={`test-status${zwPlayed ? ' test-status--done' : ''}`}>
-                    {zeitenwendeError ? '' : !zeitenwende ? 'Heute nicht verfügbar.' : zwPlayed ? 'Gespielt.' : 'Noch nicht gespielt.'}
+                    {!gesamtausgabe ? 'Teil der Gesamtausgabe.' : zeitenwendeError ? '' : !zeitenwende ? 'Heute nicht verfügbar.' : zwPlayed ? 'Gespielt.' : 'Noch nicht gespielt.'}
                   </span>
-                  {zeitenwende ? (
+                  {!gesamtausgabe ? (
+                    <button className="test-cta test-cta--locked" type="button" onClick={unlockGesamtausgabe} aria-label="Gesamtausgabe freischalten">
+                      <LockIcon /> Gesamtausgabe freischalten
+                    </button>
+                  ) : zeitenwende ? (
                     <button
                       className="test-cta"
                       type="button"
@@ -364,6 +389,7 @@ export default function Home({
                   <span className="test-pos">Wortspiel</span>
                   <span className="test-pos-rule" />
                   <span className="test-entry-category">historisch</span>
+                  <span className="test-entry-premium">Gesamtausgabe</span>
                 </div>
                 <p className="test-definition">
                   Wie verändern sich Kollokationsmuster über Jahrhunderte? Vergleiche historische und gegenwärtige Belege aus fünf Jahrhunderten Sprachgeschichte.
@@ -389,9 +415,13 @@ export default function Home({
 
                 <div className="test-entry-footer">
                   <span className={`test-status${zrPlayed ? ' test-status--done' : ''}`}>
-                    {zeitreiseError ? '' : !zeitreise ? 'Heute nicht verfügbar.' : zrPlayed ? 'Gespielt.' : 'Noch nicht gespielt.'}
+                    {!gesamtausgabe ? 'Teil der Gesamtausgabe.' : zeitreiseError ? '' : !zeitreise ? 'Heute nicht verfügbar.' : zrPlayed ? 'Gespielt.' : 'Noch nicht gespielt.'}
                   </span>
-                  {zeitreise ? (
+                  {!gesamtausgabe ? (
+                    <button className="test-cta test-cta--locked" type="button" onClick={unlockGesamtausgabe} aria-label="Gesamtausgabe freischalten">
+                      <LockIcon /> Gesamtausgabe freischalten
+                    </button>
+                  ) : zeitreise ? (
                     <button
                       className="test-cta"
                       type="button"
