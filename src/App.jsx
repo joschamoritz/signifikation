@@ -373,7 +373,7 @@ export default function App() {
       tabIndex={-1}
       style={{ outline: 'none' }}
     >
-      {phase === 'home' && (
+      {phase === 'home' && activeTab === 'spielmodi' && (
         <Home
           onStart={() => startVT(() => setPhase(lemmata && !apiError ? 'selection' : 'home'))}
           loading={!lemmata && !apiError}
