@@ -36,12 +36,6 @@ export const statsSchema = z.object({
   max:   z.number().int().positive('max muss > 0 sein').max(100),
 })
 
-/** POST /api/feedback */
-export const feedbackSchema = z.object({
-  game:  z.string().min(1, 'game erforderlich'),
-  emoji: z.string().min(1, 'emoji erforderlich'),
-  text:  z.string().max(500).optional().default(''),
-})
 
 const WORT_REGEX = /^[a-zA-ZäöüÄÖÜß\-]+$/
 

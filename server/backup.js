@@ -10,7 +10,7 @@ import logger from './logger.js'
 const GIST_TOKEN  = process.env.GITHUB_GIST_TOKEN
 const KEEP_COUNT  = parseInt(process.env.BACKUP_KEEP ?? '5')
 const GIST_DESC   = 'Signifikation Backup'
-const FILES       = ['kalender.json', 'lemmata.json', 'zeitreise.json', 'wortzwilling.json', 'stats.json', 'feedback.json', 'diacollo-config.json']
+const FILES       = ['kalender.json', 'lemmata.json', 'zeitreise.json', 'wortzwilling.json', 'zeitenwende.json', 'stats.json']
 
 async function gistFetch(path, options = {}) {
   const res = await fetch(`https://api.github.com/gists${path}`, {

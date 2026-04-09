@@ -68,7 +68,6 @@ function getClientIp(req) {
 const belegeStore = new CleanupStore(60_000)
 const adminStore = new CleanupStore(60_000)
 const statsStore = new CleanupStore(60_000)
-const feedbackStore = new CleanupStore(60_000)
 
 export const belegeLimiter = rateLimit({
   windowMs: 60_000, max: 30,
@@ -94,13 +93,6 @@ export const statsLimiter = rateLimit({
   message: { error: 'Zu viele Anfragen.' },
 })
 
-export const feedbackLimiter = rateLimit({
-  windowMs: 60_000, max: 5,
-  store: feedbackStore,
-  keyGenerator: getClientIp,
-  standardHeaders: true, legacyHeaders: false,
-  message: { error: 'Zu viele Feedback-Anfragen, bitte kurz warten.' },
-})
 
 // Striktes Limit nur für Login-Endpunkt: 10 Versuche / 15 Minuten
 const loginStore = new CleanupStore(15 * 60_000)

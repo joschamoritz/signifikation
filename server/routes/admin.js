@@ -435,7 +435,7 @@ router.post('/admin/backup/gist', adminLimiter, requireAuth, async (req, res) =>
 /** GET /admin/backup – alle JSON-Daten als Bundle */
 router.get('/admin/backup', adminLimiter, requireAuth, (req, res) => {
   try {
-    const files  = ['kalender.json', 'lemmata.json', 'zeitreise.json', 'wortzwilling.json', 'zeitenwende.json', 'stats.json', 'feedback.json', 'diacollo-config.json']
+    const files  = ['kalender.json', 'lemmata.json', 'zeitreise.json', 'wortzwilling.json', 'zeitenwende.json', 'stats.json']
     const bundle = {}
     for (const f of files) {
       try { bundle[f] = loadReadOnly(f) } catch { bundle[f] = null }

@@ -5,7 +5,6 @@
 import { describe, it, expect } from 'vitest'
 import {
   statsSchema,
-  feedbackSchema,
   belegeQuerySchema,
   archivQuerySchema,
   qQuerySchema,
@@ -54,29 +53,6 @@ describe('statsSchema', () => {
   })
 })
 
-// ── feedbackSchema ───────────────────────────────────────────
-describe('feedbackSchema', () => {
-  const valid = { game: 'kollokationen', emoji: '🙂', text: 'Gut!' }
-
-  it('akzeptiert gültige Eingabe', () => {
-    expect(feedbackSchema.safeParse(valid).success).toBe(true)
-  })
-
-  it('text ist optional', () => {
-    const { text, ...without } = valid
-    const result = feedbackSchema.safeParse(without)
-    expect(result.success).toBe(true)
-    expect(result.data.text).toBe('')
-  })
-
-  it('lehnt text > 500 Zeichen ab', () => {
-    expect(feedbackSchema.safeParse({ ...valid, text: 'x'.repeat(501) }).success).toBe(false)
-  })
-
-  it('lehnt leeres game ab', () => {
-    expect(feedbackSchema.safeParse({ ...valid, game: '' }).success).toBe(false)
-  })
-})
 
 // ── belegeQuerySchema ────────────────────────────────────────
 describe('belegeQuerySchema', () => {

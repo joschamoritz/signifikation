@@ -5,9 +5,9 @@ import { fetchBelege, belegeVerfuegbar } from '../belege.js'
 import { fetchRelation } from '../wortprofil.js'
 import { fetchWiktionary } from '../wiktionary.js'
 import { load, loadReadOnly, save, loadZeitreise, loadWortZwilling, loadZeitenwende, loadStats, withStatsLock, getLemmataIndex, cacheGet, cacheSet, DATA } from '../store.js'
-import { belegeLimiter, statsLimiter, feedbackLimiter } from '../middleware/rateLimiter.js'
+import { belegeLimiter, statsLimiter } from '../middleware/rateLimiter.js'
 import { serverError } from '../middleware/auth.js'
-import { validate, statsSchema, feedbackSchema, belegeQuerySchema, archivQuerySchema, qQuerySchema, bonusQuerySchema } from '../middleware/validate.js'
+import { validate, statsSchema, belegeQuerySchema, archivQuerySchema, qQuerySchema, bonusQuerySchema } from '../middleware/validate.js'
 import logger from '../logger.js'
 
 const router = express.Router()
@@ -167,18 +167,6 @@ router.post('/api/v1/stats', statsLimiter, validate(statsSchema), async (req, re
   }
 })
 
-/** POST /api/feedback – Nutzerfeedback speichern */
-router.post('/api/v1/feedback', feedbackLimiter, validate(feedbackSchema), async (req, res) => {
-  const { game, emoji, text } = req.body
-  const entry = { game, emoji, text, ts: new Date().toISOString() }
-  try {
-    let list = []
-    try { list = load('feedback.json') } catch {}
-    list.unshift(entry)
-    await save('feedback.json', list)
-    res.json({ ok: true })
-  } catch (err) { serverError(res, err) }
-})
 
 /** GET /api/archiv?date=YYYY-MM-DD – Tageseintrag für vergangene Tage */
 router.get('/api/v1/archiv', validate(archivQuerySchema, 'query'), async (req, res) => {

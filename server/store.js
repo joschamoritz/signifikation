@@ -15,8 +15,7 @@
  *   initializeIndices()  – Preload beim Start
  *   DATA                 – Pfad zum data/-Verzeichnis (für Archiv-Endpunkt)
  *
- * feedback.json + diacollo-config.json werden weiterhin als JSON-Dateien gehalten
- * (keine Spieldaten, selten geändert).
+ * Keine weiteren JSON-Dateien mehr (feedback + diacollo-config entfernt).
  */
 import { readFileSync, writeFileSync, renameSync, mkdirSync } from 'fs'
 import { fileURLToPath } from 'url'
@@ -275,7 +274,7 @@ const SAVERS = {
 
 // ── JSON-Fallback für config/feedback ────────────────────────────
 
-const JSON_FILES = new Set(['diacollo-config.json', 'feedback.json'])
+const JSON_FILES = new Set()
 const _fileCache = {}
 const _fileLocks = new Map()
 
