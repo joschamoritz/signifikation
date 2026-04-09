@@ -1,0 +1,243 @@
+/* ── Tab Bar ────────────────────────────────────────────────── */
+.tab-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: calc(49px + env(safe-area-inset-bottom, 0px));
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  /* iOS-Material: Blur + semi-transparenter Pergament-Hintergrund */
+  background: rgba(250, 249, 247, 0.88);
+  backdrop-filter: blur(20px) saturate(1.8);
+  -webkit-backdrop-filter: blur(20px) saturate(1.8);
+  border-top: 0.5px solid rgba(0, 0, 0, 0.12);
+  display: flex;
+  z-index: 200;
+}
+
+/* Innerer Wrapper – zentriert Buttons auf breiten Screens */
+.tab-bar-inner {
+  display: flex;
+  width: 100%;
+  max-width: 680px;
+  margin: 0 auto;
+}
+
+.tab-bar-btn {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: rgba(80, 55, 45, 0.38);
+  padding: 0;
+  min-height: 49px;
+  transition: color 0.15s;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.tab-bar-btn--active {
+  color: var(--primary);
+}
+
+.tab-bar-btn:hover:not(.tab-bar-btn--active) {
+  color: rgba(80, 55, 45, 0.6);
+}
+
+.tab-bar-label {
+  font-family: var(--font-sans);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+}
+
+/* ── Offset für Seiten die Tab Bar zeigen ───────────────────── */
+.app--has-tabbar:not(.app--home) {
+  padding-bottom: calc(49px + env(safe-area-inset-bottom, 0px) + 16px);
+}
+
+/* Home: snap-layout Höhe anpassen, snap-footer ersetzen */
+@media (max-width: 699px) {
+  .app--has-tabbar .test-page {
+    height: calc(100dvh - 49px - env(safe-area-inset-bottom, 0px));
+  }
+  .app--has-tabbar .snap-footer {
+    display: none;
+  }
+}
+
+/* ── Placeholder-Screens ────────────────────────────────────── */
+.tab-placeholder {
+  min-height: calc(100dvh - 56px - env(safe-area-inset-bottom, 0px));
+  background: var(--bg);
+  display: flex;
+  flex-direction: column;
+}
+
+.tab-placeholder-inner {
+  max-width: 480px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 32px 20px 24px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.tab-placeholder-rule {
+  height: 3px;
+  background: var(--primary);
+  margin-bottom: 24px;
+  border: none;
+}
+
+.tab-placeholder-head {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin-bottom: 4px;
+}
+
+.tab-placeholder-title {
+  font-family: var(--font-serif);
+  font-size: 1.75rem;
+  font-weight: 400;
+  color: var(--text);
+  margin: 0;
+  line-height: 1.1;
+}
+
+.tab-placeholder-ipa {
+  font-family: var(--font-serif);
+  font-size: 0.8rem;
+  color: var(--muted);
+  font-style: italic;
+}
+
+.tab-placeholder-grammar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.tab-placeholder-pos {
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+
+.tab-placeholder-rule-line {
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+  min-width: 20px;
+  max-width: 160px;
+}
+
+.tab-placeholder-category {
+  font-family: var(--font-sans);
+  font-size: 8.5px;
+  font-weight: 600;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--accent-dk);
+  border: 1px solid var(--accent);
+  padding: 1px 6px;
+  border-radius: 2px;
+}
+
+.tab-placeholder-definition {
+  font-family: var(--font-serif);
+  font-size: 0.925rem;
+  line-height: 1.55;
+  color: var(--text);
+  margin: 0 0 20px;
+}
+
+.tab-placeholder-features {
+  list-style: none;
+  margin: 0 0 24px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.tab-placeholder-features li {
+  font-family: var(--font-sans);
+  font-size: 0.82rem;
+  color: var(--muted);
+  padding-left: 14px;
+  position: relative;
+  line-height: 1.4;
+}
+
+.tab-placeholder-features li::before {
+  content: '·';
+  position: absolute;
+  left: 0;
+  color: var(--border);
+  font-size: 1.1rem;
+  line-height: 1.1;
+}
+
+.tab-placeholder-footer {
+  margin-top: auto;
+  padding-top: 20px;
+  border-top: 1px solid var(--border-lt);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.tab-placeholder-status {
+  font-family: var(--font-sans);
+  font-size: 0.72rem;
+  color: var(--disabled);
+  font-style: italic;
+}
+
+.tab-placeholder-edition {
+  font-family: var(--font-serif);
+  font-size: 0.72rem;
+  color: var(--disabled);
+  font-style: italic;
+}
+
+/* Profil-spezifisch */
+.tab-placeholder-unlock-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 14px;
+  background: var(--surface2);
+  border-radius: 4px;
+  margin-bottom: 20px;
+  border: 1px solid var(--border-lt);
+}
+
+.tab-placeholder-unlock-check {
+  font-size: 0.75rem;
+  color: var(--accent-dk);
+  font-weight: 600;
+  font-family: var(--font-sans);
+}
+
+.tab-placeholder-unlock-label {
+  font-family: var(--font-sans);
+  font-size: 0.8rem;
+  color: var(--text);
+}
+
+.tab-placeholder-unlock-sub {
+  font-family: var(--font-sans);
+  font-size: 0.7rem;
+  color: var(--muted);
+  margin-left: auto;
+}

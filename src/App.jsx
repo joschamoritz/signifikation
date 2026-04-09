@@ -8,6 +8,8 @@ import Quiz from './components/Quiz'
 import { BonusRound, FreeBonusRound } from './components/BonusRound'
 import Results from './components/Results'
 import ErrorBoundary from './components/ErrorBoundary'
+import TabBar from './components/TabBar'
+import { KlassenraumTab, KursTab, ProfilTab } from './components/TabPlaceholders'
 import { getMedal, getDailyMedal, getZRMedal } from './utils/gameLogic'
 import { fetchWithRetry } from './utils/fetchWithRetry'
 
@@ -100,6 +102,7 @@ export default function App() {
   const [serverDatum, setServerDatum] = useState(null)  // "MM-DD" vom Server
   const [serverYear,  setServerYear]  = useState(null)  // Jahreszahl vom Server
 
+  const [activeTab, setActiveTab]  = useState('spielmodi')
   const [phase, setPhase]         = useState('home')
   const [selectedLemma, setSelected] = useState(null)
   const [currentRound, setRound]  = useState(0)
@@ -342,16 +345,34 @@ export default function App() {
     }).catch(() => {})
   }, [zeitreise, keys.todayZRKey, keys.dateStr]) // eslint-disable-line
 
+  const handleTabChange = useCallback((tab) => {
+    if (tab === activeTab) return
+    // Beim Verlassen von Spielmodi während eines Spiels: zurück zu Home
+    if (activeTab === 'spielmodi' && phase !== 'home') {
+      startVT(() => {
+        setSelected(null); setRound(0); setScores([]); setBonusQ(null); setPhase('home')
+      })
+    }
+    setActiveTab(tab)
+  }, [activeTab, phase])
+
   const playedGames = getPlayedToday(keys.todayKey)
   const playedIds   = playedGames.map(g => g.id)
   const allPlayed   = lemmata?.length > 0 && lemmata.every(l => playedIds.includes(l.id))
 
   // Bonus-Phase: direkt in App rendern (kein Hooks-Verstoß in Quiz)
   const isBonus = phase === 'quiz' && currentRound === 3 && bonusQuestion
+  const showTabBar = phase === 'home' || activeTab !== 'spielmodi'
 
   return (
     <ErrorBoundary>
-    <div id="main-content" className={`app${phase === 'home' ? ' app--home' : ''}`} ref={appRef} tabIndex={-1} style={{ outline: 'none' }}>
+    <div
+      id="main-content"
+      className={`app${phase === 'home' ? ' app--home' : ''}${showTabBar ? ' app--has-tabbar' : ''}`}
+      ref={appRef}
+      tabIndex={-1}
+      style={{ outline: 'none' }}
+    >
       {phase === 'home' && (
         <Home
           onStart={() => startVT(() => setPhase(lemmata && !apiError ? 'selection' : 'home'))}
@@ -441,7 +462,16 @@ export default function App() {
           />
         </Suspense>
       )}
+      {activeTab === 'klassenraum' && <KlassenraumTab />}
+      {activeTab === 'kurs'        && <KursTab />}
+      {activeTab === 'profil'      && (
+        <ProfilTab
+          gesamtausgabe={!!lsGet('sig_gesamtausgabe')}
+          onUnlock={() => { lsSet('sig_gesamtausgabe', '1'); setActiveTab('spielmodi') }}
+        />
+      )}
     </div>
+    {showTabBar && <TabBar activeTab={activeTab} onTabChange={handleTabChange} />}
     </ErrorBoundary>
   )
 }
