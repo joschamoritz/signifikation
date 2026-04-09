@@ -1,6 +1,6 @@
 # Signifikation
 
-Tägliches linguistisches Quiz basierend auf DWDS-Daten. Deployed auf Railway, Domain signifikation.de.
+Tägliches linguistisches Quiz – korpusbasiert, wörterbuchästhetisch. Deployed auf Hetzner (Nürnberg), Domain signifikation.de.
 
 ## Befehle
 
@@ -18,7 +18,7 @@ Server neu starten (Windows): `powershell.exe -Command "Get-Process node | Stop-
 - **Frontend**: React 18 + Vite 6, Vanilla CSS (`src/`)
 - **Backend**: Express 5, Node, ESM (`server/`)
 - **Daten**: JSON-Dateien in `server/data/` (kein Datenbankserver)
-- **Deployment**: Railway (Auto-Deploy auf main), Railway Volume auf `/app/server/data`
+- **Deployment**: Hetzner VPS (Nürnberg), PM2, nginx, GitHub Actions CI/CD, Daten unter `/opt/signifikation/app/server/data`
 
 ## Architektur
 
@@ -26,7 +26,7 @@ Server neu starten (Windows): `powershell.exe -Command "Get-Process node | Stop-
 - `server/routes/public.js` – alle `/api/v1/*` Routen
 - `server/routes/admin.js` – alle `/admin/*` Routen (auth-required)
 - `server/middleware/validate.js` – Zod-Validierung; **Express 5: `req.query` ist read-only** → `Object.assign(req[source], result.data)` statt `req[source] = result.data`
-- `server/store.js` – File-I/O: `load()`, `save()` (atomar), Beleg-Cache (TTL 6h, LRU 200)
+- `server/store.js` – File-I/O: `load()`, `save()` (atomar), Cache (TTL 6h, LRU 2000)
 - `src/components/Home.jsx` – Startseite (Wörterbuch-Design, importiert `test.css`)
 - `src/test.css` – alle Wörterbuch-Design-Stile
 
@@ -47,12 +47,11 @@ Server neu starten (Windows): `powershell.exe -Command "Get-Process node | Stop-
 - Wörterbuch-Ästhetik (Duden-Stil) – keine typische Quiz-App-Optik
 - max-width: 680px (Home/TestPage), 480px (Spielscreens)
 
-## Achtung
+## Hinweise
 
-- JSON-Daten **nur** über Admin-Panel eingeben – Railway Volume hat Vorrang vor Git
-- Admin-CSP benötigt `style-src 'unsafe-inline'` (dynamische `style=""`-Attribute in Render-Funktionen)
-- Belege-Datenbank (belege.db, ~19 GB) selbst erstellt aus CC-lizenzierten Korpora – keine Drittgenehmigung erforderlich
-- DiaCollo-Endpunkt: `fmt=json` (nicht `format=json`)
+- JSON-Daten **nur** über Admin-Panel eingeben – Hetzner-Volume hat Vorrang vor Git
+- Admin-CSP benötigt `style-src 'unsafe-inline'` (dynamische `style=""`-Attribute)
+- Belege-Datenbank (belege.db) auf Hetzner-Volume – FTS5-Index für Korpusbelege
 
 ## Arbeitsweise
 

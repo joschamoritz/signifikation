@@ -15,8 +15,8 @@ Live: **[signifikation.de](https://signifikation.de)**
 
 - **Frontend**: React 18 + Vite 6, Vanilla CSS
 - **Backend**: Express 5, Node ≥20, ESM
-- **Daten**: JSON-Dateien in `server/data/` + SQLite (`wortprofil.db`) auf Railway Volume
-- **Deployment**: Railway (Auto-Deploy auf `main`), Railway Volume auf `/app/server/data`
+- **Daten**: JSON-Dateien in `server/data/` + SQLite (`wortprofil.db`) auf Hetzner-Volume
+- **Deployment**: Hetzner VPS (Nürnberg), PM2, nginx, GitHub Actions CI/CD
 
 ## Lokale Entwicklung
 
@@ -62,7 +62,7 @@ Alle Variablen sind in `.env.example` dokumentiert.
 
 ## Datenmodell
 
-Alle Spieldaten liegen als JSON-Dateien in `server/data/`. Auf Railway werden sie auf einem persistenten Volume gespeichert und **nicht** aus Git geladen.
+Alle Spieldaten liegen als JSON-Dateien in `server/data/`. Auf dem Hetzner-Server werden sie auf einem persistenten Volume gespeichert und **nicht** aus Git geladen.
 
 | Datei | Struktur |
 |---|---|
@@ -73,14 +73,14 @@ Alle Spieldaten liegen als JSON-Dateien in `server/data/`. Auf Railway werden si
 | `stats.json` | `{ "MM-DD": { [game]: { plays, scoreSum, maxSum, dist } } }` |
 | `diacollo-config.json` | `{ corpora: [{ id, enabled, label, zeitraum, slice }] }` |
 
-> **Wichtig:** JSON-Daten nur über das Admin-Panel eingeben – das Railway Volume hat Vorrang vor Git.
+> **Wichtig:** JSON-Daten nur über das Admin-Panel eingeben – das Hetzner-Volume hat Vorrang vor Git.
 
 ## Architektur
 
 ```
 server/
 ├── index.js          # Express-Setup, Helmet, CORS, Router-Mounts
-├── store.js          # File-I/O: load(), save() (atomar), Cache (TTL 6h, LRU 200)
+├── store.js          # File-I/O: load(), save() (atomar), Cache (TTL 6h, LRU 2000)
 ├── wortprofil.js     # Kollokations-Abfragen gegen lokale wortprofil.db (SQLite)
 ├── wortzwilling.js   # Wort-Zwilling-Logik
 ├── wiktionary.js     # Wiktionary-Fetch: IPA + Bedeutungen (gespeichert in lemmata.json)
@@ -95,15 +95,15 @@ server/
 ├── routes/
 │   ├── public.js     # GET /api/v1/* (öffentliche Spielrouten)
 │   └── admin.js      # /admin/* (auth-required)
-└── data/             # JSON-Datendateien (auf Railway: Volume)
+└── data/             # JSON-Datendateien (auf Hetzner: Volume)
 ```
 
 ## Deployment
 
-Das Projekt deployed automatisch auf Railway bei jedem Push auf `main`.
+GitHub Actions deployed automatisch auf Hetzner bei jedem Push auf `main`.
 
 - **Build**: `npm run build` (Vite)
-- **Start**: `node server/index.js`
+- **Start**: PM2 (`node server/index.js`)
 - **Cron**: täglich 02:00 Uhr → `node server/backup.js`
 
 Admin-Panel: `signifikation.de/admin`
