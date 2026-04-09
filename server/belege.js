@@ -99,9 +99,21 @@ function buildFtsQuery(lemma, collocate) {
  * @param {object} opts      - { limit, year }
  * @returns {Array} - [{tokens, quelle}] im DWDS-kompatiblen Format
  */
+// Fisher-Yates-Shuffle für zufällige Auswahl aus Top-N-Pool
+function shuffle(arr) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]]
+  }
+  return arr
+}
+
 export function fetchBelege(lemma, collocate, { limit = 5, year = null } = {}) {
   const database = db()
   if (!database) return []
+
+  // Top-15 nach Relevanz holen, dann zufällig limit davon ziehen
+  const pool = limit * 3
 
   try {
     const ftsQuery = buildFtsQuery(lemma, collocate)
@@ -117,7 +129,7 @@ export function fetchBelege(lemma, collocate, { limit = 5, year = null } = {}) {
           AND jahr >= ? AND jahr <= ?
         ORDER BY rank
         LIMIT ?
-      `).all(ftsQuery, y - 15, y + 15, limit * 2)
+      `).all(ftsQuery, y - 15, y + 15, pool)
 
       // Zu wenige Treffer → ohne Jahres-Filter
       if (rows.length < 2) {
@@ -127,7 +139,7 @@ export function fetchBelege(lemma, collocate, { limit = 5, year = null } = {}) {
           WHERE belege MATCH ?
           ORDER BY rank
           LIMIT ?
-        `).all(ftsQuery, limit * 2)
+        `).all(ftsQuery, pool)
       }
     } else {
       rows = database.prepare(`
@@ -136,7 +148,7 @@ export function fetchBelege(lemma, collocate, { limit = 5, year = null } = {}) {
         WHERE belege MATCH ?
         ORDER BY rank
         LIMIT ?
-      `).all(ftsQuery, limit * 2)
+      `).all(ftsQuery, pool)
     }
 
     // Deduplizieren (gleicher Satz aus verschiedenen Quellen)
@@ -148,7 +160,8 @@ export function fetchBelege(lemma, collocate, { limit = 5, year = null } = {}) {
       return true
     })
 
-    return unique.slice(0, limit).map(r => ({
+    // Zufällig limit Belege aus dem Relevanz-Pool wählen
+    return shuffle(unique).slice(0, limit).map(r => ({
       tokens: tokenize(r.satz, lemma, collocate),
       // Vollständige Zitation aus build_belege.py (QUELLEN_META), z.B.:
       // "Barbaresi, A. (2019). German Political Speeches Corpus … · CC BY-SA"

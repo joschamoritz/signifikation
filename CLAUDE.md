@@ -51,7 +51,7 @@ Server neu starten (Windows): `powershell.exe -Command "Get-Process node | Stop-
 
 - JSON-Daten **nur** über Admin-Panel eingeben – Railway Volume hat Vorrang vor Git
 - Admin-CSP benötigt `style-src 'unsafe-inline'` (dynamische `style=""`-Attribute in Render-Funktionen)
-- Belege deaktiviert (Urheberrecht, BBAW-Genehmigung ausstehend)
+- Belege-Datenbank (belege.db, ~19 GB) selbst erstellt aus CC-lizenzierten Korpora – keine Drittgenehmigung erforderlich
 - DiaCollo-Endpunkt: `fmt=json` (nicht `format=json`)
 
 ## Arbeitsweise
