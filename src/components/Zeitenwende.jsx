@@ -308,9 +308,9 @@ export default function Zeitenwende({ data, onBack, onFinish, savedResult = null
 
       {/* Karten-Bereich */}
       <div className="zw-card-area">
-        {/* Deck-Karten im Hintergrund (Tinder-Stapel-Effekt) */}
-        <div className="zw-deck-card zw-deck-card--back2" aria-hidden="true" />
-        <div className="zw-deck-card zw-deck-card--back1" aria-hidden="true" />
+        {/* Deck-Karten im Hintergrund (Tinder-Stapel-Effekt, nur vor Feedback) */}
+        {feedback === null && <div className="zw-deck-card zw-deck-card--back2" aria-hidden="true" />}
+        {feedback === null && <div className="zw-deck-card zw-deck-card--back1" aria-hidden="true" />}
 
         {/* Aktive Wortkarte */}
         <div
