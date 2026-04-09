@@ -53,6 +53,12 @@
     .korpora-tabelle td { padding: 6px 8px; border-bottom: 0.5px solid #e8e2d8; color: #1a1a18; vertical-align: top; }
     .korpora-tabelle tr:last-child td { border-bottom: none; }
     .korpora-tabelle td:nth-child(3) { white-space: nowrap; }
+    @media (max-width: 600px) {
+      .korpora-tabelle th:nth-child(4),
+      .korpora-tabelle td:nth-child(4),
+      .korpora-tabelle th:nth-child(5),
+      .korpora-tabelle td:nth-child(5) { display: none; }
+    }
     .korpora-tabelle a { color: #9b1c1c; }
     .lizenz-tag { display: inline-block; font-size: 0.75em; font-family: 'DM Sans', system-ui, sans-serif; font-weight: 600; letter-spacing: 0.05em; color: #5a5248; background: #f0ede8; padding: 1px 5px; border-radius: 3px; }
     .pipeline { display: flex; flex-direction: column; gap: 4px; margin-bottom: 16px; counter-reset: pipeline-counter; }
