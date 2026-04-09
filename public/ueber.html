@@ -69,9 +69,115 @@
     .korpus-legend-label { flex: 1; color: #1a1a18; font-family: 'Gentium Plus', serif; }
     .korpus-legend-val { font-family: 'DM Sans', system-ui, sans-serif; font-size: 0.75em; color: #8a7f6e; white-space: nowrap; }
     .korpus-total { font-family: 'DM Sans', system-ui, sans-serif; font-size: 0.75rem; color: #8a7f6e; text-align: right; margin: 4px 0 0; }
+
+    /* ── Seiten-Layout mit Inhaltsverzeichnis ──────────────────── */
+    .page-layout {
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      gap: 48px;
+    }
+    .page-toc {
+      display: none;
+      width: 148px;
+      flex-shrink: 0;
+      position: sticky;
+      top: 32px;
+      align-self: flex-start;
+      padding-top: 24px;
+    }
+    @media (min-width: 940px) { .page-toc { display: block; } }
+    .toc-heading {
+      font-family: 'DM Sans', system-ui, sans-serif;
+      font-size: 9px;
+      font-weight: 600;
+      letter-spacing: 0.25em;
+      text-transform: uppercase;
+      color: #8a7f6e;
+      margin-bottom: 14px;
+    }
+    .toc-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+    }
+    .toc-list li { padding-left: 0; }
+    .toc-list li::before { display: none; }
+    .toc-item a {
+      font-family: 'DM Sans', system-ui, sans-serif;
+      text-decoration: none;
+      display: block;
+      line-height: 1.3;
+      color: #8a7f6e;
+      transition: color 0.15s;
+    }
+    .toc-item a:hover { color: #9b1c1c; }
+    .toc-section a {
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: #5a5248;
+      margin-top: 16px;
+      padding-bottom: 5px;
+      border-bottom: 0.5px solid #e8e2d8;
+    }
+    .toc-section:first-child a { margin-top: 0; }
+    .toc-sub a {
+      font-size: 0.78rem;
+      padding: 3px 0 3px 8px;
+      border-left: 2px solid transparent;
+    }
+    .toc-sub a:hover { border-left-color: #c9a84c; }
+
+    /* Wrapper innerhalb des Flex-Layouts ohne auto-margins */
+    .page-layout > .wrapper {
+      margin: 0;
+      flex: 1 1 auto;
+      min-width: 0;
+    }
+
+    /* Fußnoten-Links */
+    .footnote-ref {
+      color: #9b1c1c;
+      text-decoration: none;
+      font-size: 0.8em;
+      vertical-align: super;
+      line-height: 0;
+    }
+    .footnote-ref:hover { text-decoration: underline; }
+    .fn-back {
+      font-size: 0.78em;
+      color: #8a7f6e;
+      text-decoration: none;
+      margin-left: 5px;
+    }
+    .fn-back:hover { color: #9b1c1c; }
+    .footnotes ol li { margin-bottom: 8px; }
   </style>
 </head>
 <body>
+<div class="page-layout">
+
+<nav class="page-toc" aria-label="Inhaltsverzeichnis">
+  <p class="toc-heading">Inhalt</p>
+  <ul class="toc-list">
+    <li class="toc-item toc-section"><a href="#das-spiel">Das Spiel</a></li>
+    <li class="toc-item toc-sub"><a href="#projekt">Das Projekt</a></li>
+    <li class="toc-item toc-sub"><a href="#warum">Warum Signifikation?</a></li>
+    <li class="toc-item toc-sub"><a href="#kollokation">Kollokation</a></li>
+    <li class="toc-item toc-section"><a href="#methodik">Die Methodik</a></li>
+    <li class="toc-item toc-sub"><a href="#logdice">logDice</a></li>
+    <li class="toc-item toc-sub"><a href="#daten">Die Daten</a></li>
+    <li class="toc-item toc-section"><a href="#quellen">Die Quellen</a></li>
+    <li class="toc-item toc-sub"><a href="#korpora">Korpora</a></li>
+    <li class="toc-item toc-sub"><a href="#literatur">Literatur</a></li>
+  </ul>
+</nav>
+
 <div class="wrapper">
 
   <a class="back" href="/">← Zurück zur App</a>
@@ -83,39 +189,68 @@
   </header>
 
   <hr class="rule-double" />
-  <p class="section-label">Zur App</p>
+  <p class="section-label" id="das-spiel">Das Spiel</p>
 
-  <h2>Warum Signifikation?</h2>
+  <h2 id="projekt">Das Projekt</h2>
   <p>
-    Der Name trägt zwei Bedeutungsebenen. In der Linguistik, Semiotik und Philosophie bezeichnet
-    <strong>Signifikation</strong> den Prozess der Bedeutungsgebung — das Verhältnis zwischen
-    einem sprachlichen Zeichen und dem, wofür es steht. Ferdinand de Saussures dyadisches
-    Zeichenmodell, in dem <em>signifiant</em> (Lautbild) und <em>signifié</em>
-    (Vorstellung) untrennbar zusammengehören, bildet den konzeptuellen Ausgangspunkt der App.<sup>3</sup>
+    Signifikation ist ein Bildungsprojekt, entwickelt von
+    <strong>Joscha Moritz Fresmann</strong>. Die Idee entstand aus dem Interesse daran,
+    wie Sprache tatsächlich funktioniert und gebraucht wird: nicht nach offiziellen
+    Regelwerken, sondern praktisch und musterhaft. Und aus dem Wunsch, dieses Wissen
+    spielerisch zugänglich zu machen. Grundlage sind statistisch berechnete Kollokationen
+    aus über zwei Milliarden Tokens deutschsprachiger Texte
+    (s.&thinsp;<a href="#korpora">Verwendete Korpora</a>).
   </p>
   <p>
-    Gleichzeitig steckt im Wort das Ende von <em>Kollokation</em>, und der zugrundeliegende
-    logDice-Wert misst eine statistische <strong>Signifikanz</strong> — eine bedeutsame,
-    nicht-zufällige Verbindung zwischen Wörtern.
-  </p>
-
-  <h2>Was ist eine Kollokation?</h2>
-  <p>
-    Kollokationen sind <strong>charakteristische syntagmatische Wortverbindungen</strong>, in
-    denen ein Element (die <strong>Basis</strong>) den anderen Bestandteil (den
-    <strong>Kollokator</strong>) semantisch selegiert. Man sagt <em>blondes Haar</em> und nicht
-    <em>gelbes Haar</em> — nicht weil Letzteres grammatisch falsch wäre, sondern weil der
-    konventionalisierte Sprachgebrauch <em>blond</em> als typischen Kollokator von <em>Haar</em>
-    fordert.<sup>1</sup>
-  </p>
-  <p>
-    Kollokationen liegen zwischen freien Wortverbindungen (<em>rotes Auto</em>) und Idiomen
-    (<em>ins Gras beißen</em>): semantisch motiviert, aber lexikalisch konventionalisiert.
+    Ziel ist es, linguistische Konzepte kurzweilig zu erleben: für Sprachinteressierte,
+    Studierende, Schülerinnen und Schüler und alle, die Wörter lieben.
   </p>
 
-  <h2>Der logDice-Wert</h2>
+  <h2 id="warum">Warum Signifikation?</h2>
   <p>
-    Der <strong>logDice-Wert</strong><sup>2</sup> ist ein statistisches Assoziationsmaß,
+    <strong>Signifikation</strong> bezeichnet in Linguistik und Semiotik den Prozess der
+    Bedeutungsgebung: das Verhältnis zwischen einem Zeichen und dem, wofür es steht, die
+    Aktualisierung von Bedeutung im konkreten Sprachgebrauch. Im weitesten Sinne ist
+    Signifikation der Grundvorgang jedes Zeichenaustauschs: Ein Signal löst beim Empfänger
+    eine Interpretationsreaktion aus.<a href="#fn-1" id="ref-1" class="footnote-ref">1</a> Das Lateinische <em>sīgnificāre</em> trägt
+    diese Bedeutungen bereits in sich: anzeigen, andeuten, auf etwas hindeuten; meinen, bezeichnen.
+  </p>
+  <p>
+    Daneben steckt im Wort das Ende von <em>Kollokation</em>. Und der logDice-Wert, auf dem
+    die App beruht, misst genau das: eine statistische <strong>Signifikanz</strong> zwischen
+    Wörtern, eine bedeutsame, keine zufällige Verbindung.
+  </p>
+
+  <h2 id="kollokation">Was ist eine Kollokation?</h2>
+  <p>
+    Eine Kollokation ist eine Wortverbindung, bei der zwei oder mehr Wörter
+    <strong>überzufällig häufig</strong> gemeinsam auftreten, also häufiger als der bloße
+    Zufall erwarten ließe.<a href="#fn-2" id="ref-2" class="footnote-ref">2</a>
+  </p>
+  <p>
+    Der Begriff wird in der Linguistik in unterschiedlichen Bedeutungen gebraucht. Eine engere
+    Bestimmung geht auf F.&thinsp;J. Hausmann zurück: Kollokationen sind
+    <strong>charakteristische Wortpaare</strong>, bei denen ein Wort (die <strong>Basis</strong>)
+    ein bestimmtes anderes (den <strong>Kollokator</strong>) geradezu verlangt. Man sagt
+    <em>blondes Haar</em> und nicht <em>gelbes Haar</em>, nicht weil Letzteres falsch wäre,
+    sondern weil der Sprachgebrauch <em>blond</em> als den gewohnten Partner von <em>Haar</em>
+    einfordert.<a href="#fn-3" id="ref-3" class="footnote-ref">3</a> Kollokationen liegen damit zwischen ganz freien Verbindungen wie
+    <em>rotes Auto</em> und festen Idiomen wie <em>ins Gras beißen</em>: inhaltlich begründet,
+    aber sprachlich konventionalisiert.
+  </p>
+  <p>
+    Methodisch unterscheiden sich zwei Zugänge: Statistische Verfahren suchen nach häufigen
+    Nachbarschaften unabhängig von der Grammatik; syntaktische Ansätze beschränken sich auf
+    bestimmte Wortartkombinationen wie Substantiv-Adjektiv oder Verb-Objekt.<a href="#fn-4" id="ref-4" class="footnote-ref">4</a>
+    Signifikation folgt dem syntaktischen Weg: Alle Kollokationspaare entstammen syntaktischen
+    Abhängigkeitsrelationen (s.&thinsp;<a href="#daten">Die Daten</a>).
+  </p>
+
+  <p class="section-label" id="methodik">Die Methodik</p>
+
+  <h2 id="logdice">Der logDice-Wert</h2>
+  <p>
+    Der <strong>logDice-Wert</strong><a href="#fn-5" id="ref-5" class="footnote-ref">5</a> ist ein statistisches Assoziationsmaß,
     das quantifiziert, wie charakteristisch das gemeinsame Auftreten zweier Wörter im
     Vergleich zu ihrer zufällig zu erwartenden Kookkurrenz ist. Die Formel lautet:
   </p>
@@ -140,7 +275,7 @@
     Verbindungen zu benachteiligen.
   </p>
 
-  <h2>Die Daten</h2>
+  <h2 id="daten">Die Daten</h2>
   <p>
     Die Kollokationsdaten werden durch eine eigene mehrstufige
     <strong>Extraktionspipeline</strong> aus offen lizenzierten deutschen Korpora
@@ -209,7 +344,9 @@
     logDice-Profile zweier ähnlicher Wörter direkt gegeneinander.
   </p>
 
-  <h2 style="margin-top:36px;">Verwendete Korpora</h2>
+  <p class="section-label" id="quellen">Die Quellen</p>
+
+  <h2 id="korpora">Verwendete Korpora</h2>
   <p style="font-size:0.82rem; color:#8a7f6e; margin-bottom:4px;">
     Korpora ohne Belegeindex fließen in das Wortprofil ein, werden aber nicht für
     den Textbeleg-Index verwendet (historische Sprache für Spieler schwer zugänglich).
@@ -356,22 +493,14 @@
     Bundestag: XML-Protokolle (51 Mio.) + PDF-Protokolle (247 Mio.) zusammengefasst.
   </p>
 
-  <h2>Das Projekt</h2>
-  <p>
-    Signifikation ist ein nicht-kommerzielles Bildungsprojekt, entwickelt von
-    <strong>Joscha Moritz Fresmann</strong>. Ziel ist es, linguistische Konzepte spielerisch
-    erfahrbar zu machen — für Sprachinteressierte, Studierende und alle, die Wörter lieben.
-  </p>
-  <p>
-    Fragen, Anregungen oder Fehler? <a href="mailto:info@signifikation.de">info@signifikation.de</a>
-  </p>
-
-  <div class="footnotes">
+  <div class="footnotes" id="literatur">
     <p class="footnotes-label">Literatur</p>
     <ol>
-      <li>Hausmann, F.&thinsp;J. (2003): Was sind eigentlich Kollokationen? In: Steyer, K. (Hrsg.): <em>Wortverbindungen — mehr oder weniger fest</em>. Berlin/New York: de Gruyter, S.&thinsp;309–334.</li>
-      <li>Rychlý, P. (2008): A Lexicographer-Friendly Association Score. In: <em>Proceedings of Recent Advances in Slavonic Natural Language Processing (RASLAN 2008)</em>, S.&thinsp;6–9.</li>
-      <li>Saussure, F. de (1916): <em>Cours de linguistique générale</em>. Hrsg. von C. Bally &amp; A. Sechehaye. Paris: Payot.</li>
+      <li id="fn-1">Lewandowski, Th. (Hrsg.): <em>Linguistisches Wörterbuch</em>. Universität Magdeburg. Eintrag: Signifikation. Vgl. auch: Saussure, F. de (1916): <em>Cours de linguistique générale</em>. Paris: Payot; Eco, U. (1972): <em>Einführung in die Semiotik</em>. München: Fink.<a href="#ref-1" class="fn-back" aria-label="Zurück zum Text">↑</a></li>
+      <li id="fn-2">Perkuhn, R. / Keibel, H. / Kupietz, M. (2012): <em>Korpuslinguistik</em>. Fink, Paderborn, S.&thinsp;101.<a href="#ref-2" class="fn-back" aria-label="Zurück zum Text">↑</a></li>
+      <li id="fn-3">Hausmann, F.&thinsp;J. (2003): Was sind eigentlich Kollokationen? In: Steyer, K. (Hrsg.): <em>Wortverbindungen — mehr oder weniger fest</em>. Berlin/New York: de Gruyter, S.&thinsp;309–334.<a href="#ref-3" class="fn-back" aria-label="Zurück zum Text">↑</a></li>
+      <li id="fn-4">Carstensen, K.-U. u.&thinsp;a. (Hrsg.) (2010): <em>Computerlinguistik und Sprachtechnologie</em>. Spektrum, Heidelberg, S.&thinsp;490.<a href="#ref-4" class="fn-back" aria-label="Zurück zum Text">↑</a></li>
+      <li id="fn-5">Rychlý, P. (2008): A Lexicographer-Friendly Association Score. In: <em>Proceedings of Recent Advances in Slavonic Natural Language Processing (RASLAN 2008)</em>, S.&thinsp;6–9.<a href="#ref-5" class="fn-back" aria-label="Zurück zum Text">↑</a></li>
     </ol>
   </div>
 
@@ -386,6 +515,7 @@
     </nav>
   </footer>
 
+</div>
 </div>
 </body>
 </html>
