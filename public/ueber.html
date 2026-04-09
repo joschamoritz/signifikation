@@ -55,9 +55,48 @@
     .korpora-tabelle td:nth-child(3) { white-space: nowrap; }
     .korpora-tabelle a { color: #9b1c1c; }
     .lizenz-tag { display: inline-block; font-size: 0.75em; font-family: 'DM Sans', system-ui, sans-serif; font-weight: 600; letter-spacing: 0.05em; color: #5a5248; background: #f0ede8; padding: 1px 5px; border-radius: 3px; }
-    ol.pipeline { list-style: none; margin-bottom: 12px; counter-reset: pipeline-counter; display: flex; flex-direction: column; gap: 10px; }
-    ol.pipeline li { font-size: 0.93rem; color: #1a1a18; padding-left: 28px; position: relative; counter-increment: pipeline-counter; }
-    ol.pipeline li::before { content: counter(pipeline-counter); position: absolute; left: 0; top: 0; font-family: 'DM Sans', system-ui, sans-serif; font-size: 9px; font-weight: 700; color: #9b1c1c; background: #f0ede8; width: 16px; height: 16px; border-radius: 50%; display: flex; align-items: center; justify-content: center; line-height: 16px; text-align: center; margin-top: 2px; }
+    .pipeline { display: flex; flex-direction: column; gap: 4px; margin-bottom: 16px; counter-reset: pipeline-counter; }
+    .pipeline-step { counter-increment: pipeline-counter; border: 0.5px solid #e8e2d8; border-radius: 4px; background: #faf9f7; }
+    .pipeline-step summary {
+      list-style: none;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 9px 12px;
+      cursor: pointer;
+      font-size: 0.93rem;
+      color: #1a1a18;
+      user-select: none;
+    }
+    .pipeline-step summary::-webkit-details-marker { display: none; }
+    .pipeline-step summary::before {
+      content: counter(pipeline-counter);
+      flex-shrink: 0;
+      font-family: 'DM Sans', system-ui, sans-serif;
+      font-size: 9px;
+      font-weight: 700;
+      color: #9b1c1c;
+      background: #f0ede8;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      line-height: 16px;
+      text-align: center;
+    }
+    .pipeline-step summary::after {
+      content: '▸';
+      margin-left: auto;
+      font-size: 0.7rem;
+      color: #8a7f6e;
+      transition: transform 0.15s;
+    }
+    .pipeline-step[open] summary::after { transform: rotate(90deg); }
+    .pipeline-step[open] { background: #f7f5f0; }
+    .pipeline-step[open] summary { border-bottom: 0.5px solid #e8e2d8; }
+    .pipeline-step-body { padding: 10px 12px 10px 38px; font-size: 0.9rem; color: #1a1a18; line-height: 1.6; }
     .formula-block { font-family: 'Courier New', Courier, monospace; font-size: 0.88rem; background: #f0ede8; padding: 10px 14px; border-radius: 4px; border-left: 3px solid #d4c9b0; color: #1a1a18; margin: 12px 0; }
     .korpus-chart-wrap { margin: 16px 0 20px; }
     .korpus-bar { display: flex; height: 18px; border-radius: 3px; overflow: hidden; gap: 2px; }
@@ -281,57 +320,32 @@
     <strong>Extraktionspipeline</strong> aus offen lizenzierten deutschen Korpora
     gewonnen. Die Schritte im Überblick:
   </p>
-  <ol class="pipeline">
-    <li>
-      <strong>Korpusauswahl.</strong> Recherche und Auswahl geeigneter Quellen —
-      ausschließlich Korpora unter offenen Lizenzen (CC BY, CC BY-SA, Gemeinfrei),
-      die Weiterverarbeitung und Weitergabe der abgeleiteten Ergebnisse erlauben. Die Texte spannen einen Zeitraum vom Mittelhochdeutschen bis zur
-      Gegenwartssprache.
-    </li>
-    <li>
-      <strong>Normalisierung.</strong> Alle Quellen werden in ein einheitliches
-      JSONL-Format überführt und mit Metadaten angereichert:
-      <code>text, quelle, genre, epoche, jahr</code>. Das Entstehungsjahr jedes
-      Textes wird dabei bewahrt — Grundlage für die spätere Zeitreise-Auswertung
-      nach Jahrzehnten.
-    </li>
-    <li>
-      <strong>Relationen-Mapping.</strong> Das Sprachmodell
-      <a href="https://spacy.io" target="_blank" rel="noopener">spaCy</a>
-      <code>de_zdl_lg</code> (ZDL/BBAW, trainiert auf dem HDT-Treebank mit
-      DWDSmor-Lemmatisierung) verwendet das
-      <em>Universal-Dependencies</em>-Tagset. Dessen Abhängigkeitslabels werden auf
-      linguistisch interpretierbare Relationstypen abgebildet:
-      <code>nsubj</code>&thinsp;→&thinsp;Subjekt,
-      <code>obj</code>&thinsp;→&thinsp;Objekt,
-      <code>amod</code>&thinsp;→&thinsp;Adjektivattribut,
-      <code>obl</code>&thinsp;→&thinsp;Präpositionalgruppe,
-      <code>conj</code>&thinsp;→&thinsp;Koordination u.&thinsp;a.
-    </li>
-    <li>
-      <strong>Dependenzanalyse und Tripel-Extraktion.</strong> Die Texte werden
-      batchweise durch das Modell geschickt. Für jede erkannte syntaktische
-      Abhängigkeit wird ein <em>Tripel</em>
-      (Kopfwort-Lemma, Relation, Dependens-Lemma) zusammen mit Wortart und
-      Entstehungsjahr in einer SQLite-Datenbank abgelegt. Ein
-      Checkpoint-Mechanismus protokolliert abgeschlossene Batches, sodass die
-      mehrtägige Verarbeitung bei Unterbrechungen ohne Datenverlust fortgesetzt
-      werden kann.
-    </li>
-    <li>
-      <strong>Frequenz-Aggregation.</strong> Aus der Tripel-Datenbank werden
-      Unigramm-Häufigkeiten f<sub>a</sub> und f<sub>b</sub> sowie
-      Paarfrequenzen f<sub>ab</sub> berechnet — getrennt nach Wortart und
-      Relationstyp, um lexikalische Ambiguität zu kontrollieren.
-    </li>
-    <li>
-      <strong>logDice-Berechnung und Ranking.</strong> Für jedes Kollokationspaar
-      wird der logDice-Score ermittelt (s.&thinsp;o.) und ein nach Assoziation
-      abgestuftes Ranking erstellt. Paare mit f<sub>ab</sub> ≥ 3 und positivem
-      logDice-Wert werden in der Lookup-Datenbank <code>wortprofil.db</code>
-      gespeichert und der App per SQLite-Query zur Verfügung gestellt.
-    </li>
-  </ol>
+  <div class="pipeline">
+    <details class="pipeline-step">
+      <summary><strong>Korpusauswahl</strong></summary>
+      <div class="pipeline-step-body">Recherche und Auswahl geeigneter Quellen — ausschließlich Korpora unter offenen Lizenzen (CC BY, CC BY-SA, Gemeinfrei), die Weiterverarbeitung und Weitergabe der abgeleiteten Ergebnisse erlauben. Die Texte spannen einen Zeitraum vom Mittelhochdeutschen bis zur Gegenwartssprache.</div>
+    </details>
+    <details class="pipeline-step">
+      <summary><strong>Normalisierung</strong></summary>
+      <div class="pipeline-step-body">Alle Quellen werden in ein einheitliches JSONL-Format überführt und mit Metadaten angereichert: <code>text, quelle, genre, epoche, jahr</code>. Das Entstehungsjahr jedes Textes wird dabei bewahrt — Grundlage für die spätere Zeitreise-Auswertung nach Jahrzehnten.</div>
+    </details>
+    <details class="pipeline-step">
+      <summary><strong>Relationen-Mapping</strong></summary>
+      <div class="pipeline-step-body">Das Sprachmodell <a href="https://spacy.io" target="_blank" rel="noopener">spaCy</a> <code>de_zdl_lg</code> (ZDL/BBAW, trainiert auf dem HDT-Treebank mit DWDSmor-Lemmatisierung) verwendet das <em>Universal-Dependencies</em>-Tagset. Dessen Abhängigkeitslabels werden auf linguistisch interpretierbare Relationstypen abgebildet: <code>nsubj</code>&thinsp;→&thinsp;Subjekt, <code>obj</code>&thinsp;→&thinsp;Objekt, <code>amod</code>&thinsp;→&thinsp;Adjektivattribut, <code>obl</code>&thinsp;→&thinsp;Präpositionalgruppe, <code>conj</code>&thinsp;→&thinsp;Koordination u.&thinsp;a.</div>
+    </details>
+    <details class="pipeline-step">
+      <summary><strong>Dependenzanalyse und Tripel-Extraktion</strong></summary>
+      <div class="pipeline-step-body">Die Texte werden batchweise durch das Modell geschickt. Für jede erkannte syntaktische Abhängigkeit wird ein <em>Tripel</em> (Kopfwort-Lemma, Relation, Dependens-Lemma) zusammen mit Wortart und Entstehungsjahr in einer SQLite-Datenbank abgelegt. Ein Checkpoint-Mechanismus protokolliert abgeschlossene Batches, sodass die mehrtägige Verarbeitung bei Unterbrechungen ohne Datenverlust fortgesetzt werden kann.</div>
+    </details>
+    <details class="pipeline-step">
+      <summary><strong>Frequenz-Aggregation</strong></summary>
+      <div class="pipeline-step-body">Aus der Tripel-Datenbank werden Unigramm-Häufigkeiten f<sub>a</sub> und f<sub>b</sub> sowie Paarfrequenzen f<sub>ab</sub> berechnet — getrennt nach Wortart und Relationstyp, um lexikalische Ambiguität zu kontrollieren.</div>
+    </details>
+    <details class="pipeline-step">
+      <summary><strong>logDice-Berechnung und Ranking</strong></summary>
+      <div class="pipeline-step-body">Für jedes Kollokationspaar wird der logDice-Score ermittelt (s.&thinsp;o.) und ein nach Assoziation abgestuftes Ranking erstellt. Paare mit f<sub>ab</sub> ≥ 3 und positivem logDice-Wert werden in der Lookup-Datenbank <code>wortprofil.db</code> gespeichert und der App per SQLite-Query zur Verfügung gestellt.</div>
+    </details>
+  </div>
   <p>
     Zusätzlich zur Kollokationsdatenbank entsteht aus denselben Korpora ein
     <strong>Volltextindex</strong> (SQLite FTS5) für die Belegsuche: Beim Anklicken
