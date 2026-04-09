@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
+import BelegeSatz from './BelegeSatz'
 import { lsGet, lsParse } from '../utils/storage'
 import { getMedal } from '../utils/gameLogic'
 import { API } from '../config'
@@ -363,7 +364,10 @@ export default function Zeitenwende({ data, onBack, onFinish, savedResult = null
             {belege !== null && belege.length > 0 && (
               <ul className="zw-belege-list" aria-label="Korpusbelege">
                 {belege.slice(0, 3).map((b, i) => (
-                  <li key={i} className="zw-beleg-item">{b.text ?? b}</li>
+                  <li key={i} className="zw-beleg-item">
+                    <BelegeSatz tokens={b.tokens} />
+                    <p className="beleg-quelle">{b.quelle}</p>
+                  </li>
                 ))}
               </ul>
             )}
