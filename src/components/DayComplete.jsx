@@ -1,10 +1,13 @@
 import { useState } from 'react'
 import { WEEKDAYS, MONTHS, computeStreak, buildShareText } from '../utils/homeUtils'
 import { getMedal } from '../utils/gameLogic'
+import { shareAsImage } from '../utils/shareImage'
 
 export default function DayComplete({ onClose, playedGames = [], zrPlayed = null, wzPlayed = null, zwPlayed = null }) {
-  const [closing, setClosing] = useState(false)
-  const [copied,  setCopied]  = useState(false)
+  const [closing,  setClosing]  = useState(false)
+  const [copied,   setCopied]   = useState(false)
+  const [sharing,  setSharing]  = useState(false)
+  const [imgState, setImgState] = useState(null) // 'shared' | 'downloaded' | null
 
   const today   = new Date()
   const weekday = WEEKDAYS[today.getDay()]
@@ -28,6 +31,22 @@ export default function DayComplete({ onClose, playedGames = [], zrPlayed = null
       setCopied(true)
       setTimeout(() => setCopied(false), 2200)
     } catch {}
+  }
+
+  async function shareImg() {
+    if (sharing) return
+    setSharing(true)
+    try {
+      const result = await shareAsImage(playedGames, zrPlayed, wzPlayed, streak, zwPlayed)
+      if (result === 'shared' || result === 'downloaded') {
+        setImgState(result)
+        setTimeout(() => setImgState(null), 2500)
+      }
+    } catch {
+      // still show text fallback silently
+    } finally {
+      setSharing(false)
+    }
   }
 
   return (
@@ -85,10 +104,17 @@ export default function DayComplete({ onClose, playedGames = [], zrPlayed = null
 
         <div className="dc-actions">
           <button
+            className={`btn-ghost dc-share-btn${imgState ? ' dc-share-btn--copied' : ''}${sharing ? ' dc-share-btn--loading' : ''}`}
+            onClick={shareImg}
+            disabled={sharing}
+          >
+            {sharing ? 'Wird erstellt…' : imgState === 'shared' ? 'Geteilt ✓' : imgState === 'downloaded' ? 'Gespeichert ✓' : 'Als Bild teilen'}
+          </button>
+          <button
             className={`btn-ghost dc-share-btn${copied ? ' dc-share-btn--copied' : ''}`}
             onClick={share}
           >
-            {copied ? 'Kopiert ✓' : 'Ergebnis teilen'}
+            {copied ? 'Kopiert ✓' : 'Text kopieren'}
           </button>
           <button className="btn-ghost" onClick={close}>Schließen</button>
         </div>
