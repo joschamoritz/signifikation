@@ -19,6 +19,6 @@ jobs:
             source "$NVM_DIR/nvm.sh"
             cd /opt/signifikation/app
             git pull
-            npm install --omit=dev
+            npm install
             npm run build
             sudo -u signifikation pm2 restart signifikation
