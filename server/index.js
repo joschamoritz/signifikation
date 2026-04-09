@@ -26,7 +26,7 @@ if (!process.env.ADMIN_KEY) logger.warn('ADMIN_KEY nicht gesetzt – Dev-Fallbac
 
 const app = express()
 
-// ── Proxy-Trust (Railway stellt Requests über Reverse-Proxy zu) ──
+// ── Proxy-Trust (nginx als Reverse-Proxy vor Node) ────────────
 // Ohne dies liefert req.ip immer die Proxy-IP → Rate Limiting unwirksam.
 app.set('trust proxy', 1)
 
