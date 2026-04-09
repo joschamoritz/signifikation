@@ -258,7 +258,7 @@ function buildOptions(items) {
 
 // ── Öffentliche API (identisch mit dwds.js) ──────────────────────────────────
 
-export function toId(word) {
+function toId(word) {
   return word.toLowerCase()
     .replace(/ä/g, 'ae').replace(/ö/g, 'oe').replace(/ü/g, 'ue')
     .replace(/ß/g, 'ss').replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')

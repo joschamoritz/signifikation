@@ -19,7 +19,7 @@ import { fileURLToPath } from 'url'
 import logger from './logger.js'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
-export const DB_PATH = process.env.APP_DB || join(__dirname, 'data', 'signifikation.db')
+const DB_PATH = process.env.APP_DB || join(__dirname, 'data', 'signifikation.db')
 
 mkdirSync(dirname(DB_PATH), { recursive: true })
 

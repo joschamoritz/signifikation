@@ -38,8 +38,6 @@ export function streakFlames(n) {
   return '🔥'
 }
 
-export const POS_LABEL = { 'Substantiv': 'Nomen', 'Verb': 'Verb', 'Adjektiv': 'Adj' }
-
 export function buildShareText(playedGames, zrPlayed, wzPlayed, streak, zwPlayed = null) {
   const d = new Date()
   const dateStr = `${d.getDate()}. ${MONTHS[d.getMonth()]}`
