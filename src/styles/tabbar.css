@@ -73,9 +73,12 @@
   .app--has-tabbar .snap-footer {
     display: none;
   }
-  /* Puffer damit snap-extras nicht von der Tab Bar verdeckt wird */
-  .app--has-tabbar .snap-extras {
-    padding-bottom: 10px;
+}
+/* Auf Phones (< 500px) fügt globals.css padding-top: env(safe-area-inset-top) zum .app hinzu —
+   test-page muss diesen Offset kompensieren, sonst ragt snap-extras hinter die Tab Bar. */
+@media (max-width: 499px) {
+  .app--has-tabbar .test-page {
+    height: calc(100dvh - 49px - env(safe-area-inset-bottom, 0px) - max(8px, env(safe-area-inset-top, 0px)));
   }
 }
 

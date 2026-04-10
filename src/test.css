@@ -903,9 +903,9 @@
     scrollbar-width: none;
     position: relative;
   }
-  /* Platz für absolut positioniertes Gesamtausgabe-Badge */
-  .test-entry-body {
-    padding-right: 92px;
+  /* Gesamtausgabe-Badge mobil ausblenden */
+  .test-entry-premium {
+    display: none;
   }
   .test-entry::-webkit-scrollbar { display: none; }
   .test-entry:last-child { border-bottom: none; }
