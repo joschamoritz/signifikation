@@ -67,22 +67,22 @@ export function KursTab() {
   )
 }
 
-export function ProfilTab({ gesamtausgabe, onUnlock }) {
+export function KontoTab({ gesamtausgabe, onUnlock }) {
   return (
     <div className="tab-placeholder">
       <div className="tab-placeholder-inner">
         <hr className="tab-placeholder-rule" />
         <div className="tab-placeholder-head">
-          <h2 className="tab-placeholder-title">Profil</h2>
-          <span className="tab-placeholder-ipa">[pʁoˈfiːl]</span>
+          <h2 className="tab-placeholder-title">Konto</h2>
+          <span className="tab-placeholder-ipa">[ˈkɔnto]</span>
         </div>
         <div className="tab-placeholder-grammar">
           <span className="tab-placeholder-pos">Bereich</span>
           <span className="tab-placeholder-rule-line" />
-          <span className="tab-placeholder-category">Konto</span>
+          <span className="tab-placeholder-category">Einstellungen</span>
         </div>
         <p className="tab-placeholder-definition">
-          Dein Konto, dein Abonnement und dein Spielfortschritt. Login und geräteübergreifende Synchronisation erscheinen in einer späteren Auflage.
+          Dein Konto, dein Abonnement und deine Einstellungen. Login, Push-Benachrichtigungen und geräteübergreifende Synchronisation erscheinen in einer späteren Auflage.
         </p>
 
         <div className="tab-placeholder-unlock-status">
@@ -113,12 +113,21 @@ export function ProfilTab({ gesamtausgabe, onUnlock }) {
           <li>Gesamtausgabe-Abonnement verwalten und kündigen</li>
           <li>Spielhistorie der letzten 365 Tage</li>
           <li>Klassenraum-Sitzungen erstellen und verwalten</li>
+          <li>Push-Benachrichtigungen – tägliche Erinnerung zum Spielen</li>
+          <li>Erscheinungsbild und Sprache konfigurieren</li>
         </ul>
 
         <div className="tab-placeholder-footer">
           <span className="tab-placeholder-status">In Entwicklung.</span>
           <span className="tab-placeholder-edition">Erscheint in einer späteren Auflage.</span>
         </div>
+
+        <nav className="tab-profil-legal" aria-label="Rechtliche Links">
+          <a href="/ueber.html" target="_blank" rel="noopener">Über die App</a>
+          <a href="/impressum.html" target="_blank" rel="noopener">Impressum</a>
+          <a href="/datenschutz.html" target="_blank" rel="noopener">Datenschutz</a>
+          <a href="/nutzungsbedingungen.html" target="_blank" rel="noopener">Nutzungsbedingungen</a>
+        </nav>
       </div>
     </div>
   )

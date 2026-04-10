@@ -9,7 +9,7 @@ import { BonusRound, FreeBonusRound } from './components/BonusRound'
 import Results from './components/Results'
 import ErrorBoundary from './components/ErrorBoundary'
 import TabBar from './components/TabBar'
-import { KlassenraumTab, KursTab, ProfilTab } from './components/TabPlaceholders'
+import { KlassenraumTab, KursTab, KontoTab } from './components/TabPlaceholders'
 import { getMedal, getDailyMedal, getZRMedal } from './utils/gameLogic'
 import { fetchWithRetry } from './utils/fetchWithRetry'
 
@@ -465,7 +465,7 @@ export default function App() {
       {activeTab === 'klassenraum' && <KlassenraumTab />}
       {activeTab === 'kurs'        && <KursTab />}
       {activeTab === 'profil'      && (
-        <ProfilTab
+        <KontoTab
           gesamtausgabe={!!lsGet('sig_gesamtausgabe')}
           onUnlock={() => { lsSet('sig_gesamtausgabe', '1'); setActiveTab('spielmodi') }}
         />

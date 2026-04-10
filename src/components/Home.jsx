@@ -253,6 +253,7 @@ export default function Home({
                 <span className="test-entry-marginalia">KOMPAR.</span>
               </div>
               <div className="test-entry-body">
+                <span className="test-entry-premium" aria-label="Teil der Gesamtausgabe">Gesamtausgabe</span>
                 <div className="test-entry-head">
                   <h2 className="test-headword">Wort-Zwilling</h2>
                   <span className="test-ipa" aria-label="Aussprache: [ˈvɔʁtˌtsvɪlɪŋ]">[ˈvɔʁtˌtsvɪlɪŋ]</span>
@@ -261,7 +262,6 @@ export default function Home({
                   <span className="test-pos">Wortspiel</span>
                   <span className="test-pos-rule" />
                   <span className="test-entry-category">komparativ</span>
-                  <span className="test-entry-premium">Gesamtausgabe</span>
                 </div>
                 <p className="test-definition">
                   Zwei bedeutungsnahe Wörter — zwei unterschiedliche Kollokationsprofile. Ordne zehn Kollokationen dem richtigen Lemma zu.
@@ -317,6 +317,7 @@ export default function Home({
                 <span className="test-entry-marginalia">DIACH.</span>
               </div>
               <div className="test-entry-body">
+                <span className="test-entry-premium" aria-label="Teil der Gesamtausgabe">Gesamtausgabe</span>
                 <div className="test-entry-head">
                   <h2 className="test-headword">Zeitenwende</h2>
                   <span className="test-ipa" aria-label="Aussprache: [ˈtsaɪ̯tənˌvɛndə]">[ˈtsaɪ̯tənˌvɛndə]</span>
@@ -325,7 +326,6 @@ export default function Home({
                   <span className="test-pos">Wortspiel</span>
                   <span className="test-pos-rule" />
                   <span className="test-entry-category">diachron</span>
-                  <span className="test-entry-premium">Gesamtausgabe</span>
                 </div>
                 <p className="test-definition">
                   Gehört dieses Wort eher in die Zeit vor oder nach der Jahrtausendwende? Entscheide für zehn Kollokationen eines Lemmas.
@@ -381,6 +381,7 @@ export default function Home({
                 <span className="test-entry-marginalia">HIST.</span>
               </div>
               <div className="test-entry-body">
+                <span className="test-entry-premium" aria-label="Teil der Gesamtausgabe">Gesamtausgabe</span>
                 <div className="test-entry-head">
                   <h2 className="test-headword">Zeitreise</h2>
                   <span className="test-ipa" aria-label="Aussprache: [ˈtsaɪ̯tˌʁaɪ̯zə]">[ˈtsaɪ̯tˌʁaɪ̯zə]</span>
@@ -389,7 +390,6 @@ export default function Home({
                   <span className="test-pos">Wortspiel</span>
                   <span className="test-pos-rule" />
                   <span className="test-entry-category">historisch</span>
-                  <span className="test-entry-premium">Gesamtausgabe</span>
                 </div>
                 <p className="test-definition">
                   Wie verändern sich Kollokationsmuster über Jahrhunderte? Vergleiche historische und gegenwärtige Belege aus fünf Jahrhunderten Sprachgeschichte.

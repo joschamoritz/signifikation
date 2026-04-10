@@ -33,7 +33,7 @@ const TABS = [
   },
   {
     id: 'profil',
-    label: 'Profil',
+    label: 'Konto',
     icon: () => (
       <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
         <circle cx="12" cy="8" r="4"/>

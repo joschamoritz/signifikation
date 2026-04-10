@@ -60,6 +60,11 @@
   padding-bottom: calc(49px + env(safe-area-inset-bottom, 0px) + 16px);
 }
 
+/* Desktop: Kolophon-Footer braucht Abstand zur Tab Bar */
+.app--has-tabbar .test-colophon {
+  padding-bottom: calc(49px + env(safe-area-inset-bottom, 0px) + 24px);
+}
+
 /* Home: snap-layout Höhe anpassen, snap-footer ersetzen */
 @media (max-width: 699px) {
   .app--has-tabbar .test-page {
@@ -201,6 +206,26 @@
   font-size: 0.72rem;
   color: var(--disabled);
   font-style: italic;
+}
+
+.tab-profil-legal {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border-lt);
+}
+
+.tab-profil-legal a {
+  font-family: var(--font-sans);
+  font-size: 0.75rem;
+  color: var(--muted);
+  text-decoration: none;
+}
+
+.tab-profil-legal a:hover {
+  color: var(--text);
 }
 
 .tab-placeholder-edition {

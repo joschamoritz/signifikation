@@ -220,6 +220,7 @@
 /* ── Eintrags-Inhalt ───────────────────────────────────────── */
 .test-entry-body {
   grid-column: 2;
+  position: relative;
 }
 
 /* Stichwort-Zeile */
@@ -310,15 +311,23 @@
 }
 
 .test-entry-premium {
+  position: absolute;
+  top: 10px;
+  right: 0;
   font-family: var(--t-sans);
-  font-size: 8.5px;
-  font-weight: 600;
-  letter-spacing: 0.15em;
+  font-size: 7.5px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
   text-transform: uppercase;
   color: var(--t-accent);
-  border: 1px solid var(--t-accent);
-  padding: 1px 6px;
+  border: 1.5px solid var(--t-accent);
+  padding: 2px 7px;
   border-radius: 2px;
+  transform: rotate(-6deg);
+  transform-origin: top right;
+  opacity: 0.75;
+  pointer-events: none;
+  user-select: none;
 }
 
 /* Definitions-Text */
