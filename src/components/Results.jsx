@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react'
 import { useBelege } from '../hooks/useBelege'
 import { getMedal, getRundInfo } from '../utils/gameLogic'
 import { lsGet, lsParse } from '../utils/storage'
+import { computeStreak } from '../utils/homeUtils'
+import { shareAsImage } from '../utils/shareImage'
 import { API } from '../config'
 import BelegePanel from './BelegePanel'
 
@@ -59,6 +61,26 @@ export default function Results({ lemma, roundScores, onRestart, onToSelection }
   const hasBonus   = roundScores.length >= 4
   const maxPoints  = hasBonus ? 10 : 9
   const medal      = getMedal(total, maxPoints)
+
+  const [sharing,  setSharing]  = useState(false)
+  const [imgState, setImgState] = useState(null)
+
+  async function shareImg() {
+    if (sharing) return
+    setSharing(true)
+    try {
+      const result = await shareAsImage(
+        [{ total, max: maxPoints }],
+        null, null,
+        computeStreak()
+      )
+      if (result === 'shared' || result === 'downloaded') {
+        setImgState(result)
+        setTimeout(() => setImgState(null), 2500)
+      }
+    } catch {}
+    finally { setSharing(false) }
+  }
 
   const { openBeleg, belegeCache, belegeLoading, loadBelege } = useBelege(lemma.lemma)
 
@@ -166,6 +188,13 @@ export default function Results({ lemma, roundScores, onRestart, onToSelection }
       <div className="results-actions">
         <button className="btn-secondary" onClick={onToSelection}>
           Alle Wörter ansehen
+        </button>
+        <button
+          className={`btn-ghost dc-share-btn${imgState ? ' dc-share-btn--copied' : ''}${sharing ? ' dc-share-btn--loading' : ''}`}
+          onClick={shareImg}
+          disabled={sharing}
+        >
+          {sharing ? 'Wird erstellt…' : imgState === 'shared' ? 'Geteilt ✓' : imgState === 'downloaded' ? 'Gespeichert ✓' : 'Als Bild teilen'}
         </button>
         <button className="btn-primary" onClick={onRestart}>
           Zur Startseite

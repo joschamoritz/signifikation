@@ -2,6 +2,8 @@ import { useState } from 'react'
 import { API } from '../config'
 import { getMedal } from '../utils/gameLogic'
 import { lsGet, lsParse } from '../utils/storage'
+import { computeStreak } from '../utils/homeUtils'
+import { shareAsImage } from '../utils/shareImage'
 import BelegePanel from './BelegePanel'
 
 export function computeScore(zoneA, zoneB, zuordnungMap) {
@@ -21,6 +23,21 @@ export default function WzResultsView({ data, zoneA, zoneB, onBack, ipaA, ipaB }
   const [openBeleg,     setOpenBeleg]     = useState(null)
   const [belegeCache,   setBelegeCache]   = useState({})
   const [belegeLoading, setBelegeLoading] = useState(false)
+  const [sharing,       setSharing]       = useState(false)
+  const [imgState,      setImgState]      = useState(null)
+
+  async function shareImg() {
+    if (sharing) return
+    setSharing(true)
+    try {
+      const result = await shareAsImage([], null, { total: score, max: 10, medal }, computeStreak())
+      if (result === 'shared' || result === 'downloaded') {
+        setImgState(result)
+        setTimeout(() => setImgState(null), 2500)
+      }
+    } catch {}
+    finally { setSharing(false) }
+  }
 
   async function loadWZBeleg(word) {
     if (openBeleg === word) { setOpenBeleg(null); return }
@@ -129,6 +146,13 @@ export default function WzResultsView({ data, zoneA, zoneB, onBack, ipaA, ipaB }
         </div>
       )}
 
+      <button
+        className={`btn-ghost btn-full dc-share-btn${imgState ? ' dc-share-btn--copied' : ''}${sharing ? ' dc-share-btn--loading' : ''}`}
+        onClick={shareImg}
+        disabled={sharing}
+      >
+        {sharing ? 'Wird erstellt…' : imgState === 'shared' ? 'Geteilt ✓' : imgState === 'downloaded' ? 'Gespeichert ✓' : 'Als Bild teilen'}
+      </button>
       <button className="btn-primary btn-full" onClick={onBack}>
         Zur Startseite
       </button>

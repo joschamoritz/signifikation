@@ -2,6 +2,8 @@ import { useState, useRef, useEffect, useCallback } from 'react'
 import { getMedal, getZRMedal, shuffle } from '../utils/gameLogic'
 import { API } from '../config'
 import { lsGet, lsParse } from '../utils/storage'
+import { computeStreak } from '../utils/homeUtils'
+import { shareAsImage } from '../utils/shareImage'
 import BelegeSatz from './BelegeSatz'
 import ZrBubbleChart from './ZrBubbleChart'
 
@@ -21,6 +23,8 @@ export default function Zeitreise({ data, onBack, onFinish, savedResult }) {
   const [selected, setSelected]     = useState(null)  // currently selected chip
   const [revealed, setRevealed]     = useState(() => savedResult !== null)
   const [score, setScore]           = useState(() => savedResult?.total ?? null)
+  const [sharing,  setSharing]      = useState(false)
+  const [imgState, setImgState]     = useState(null)
 
   // IPA
   const [ipa, setIpa] = useState(null)
@@ -231,6 +235,22 @@ export default function Zeitreise({ data, onBack, onFinish, savedResult }) {
   const medal = score !== null ? getZRMedal(score, paare.length * 2) : null
   const remaining = paare.length - Object.keys(placements).length
 
+  async function shareImg() {
+    if (sharing || score === null) return
+    setSharing(true)
+    try {
+      const result = await shareAsImage(
+        [], { total: score, max: paare.length * 2, medal }, null,
+        computeStreak()
+      )
+      if (result === 'shared' || result === 'downloaded') {
+        setImgState(result)
+        setTimeout(() => setImgState(null), 2500)
+      }
+    } catch {}
+    finally { setSharing(false) }
+  }
+
   return (
     <div className="screen zeitreise-screen" onClick={resetJokerTimer}>
       <button className="back-btn" onClick={onBack} aria-label="Zurück zur Startseite"><span className="back-btn-chevron">‹</span>Zurück</button>
@@ -429,6 +449,13 @@ export default function Zeitreise({ data, onBack, onFinish, savedResult }) {
             </div>
           )}
 
+          <button
+            className={`btn-ghost btn-full dc-share-btn${imgState ? ' dc-share-btn--copied' : ''}${sharing ? ' dc-share-btn--loading' : ''}`}
+            onClick={shareImg}
+            disabled={sharing}
+          >
+            {sharing ? 'Wird erstellt…' : imgState === 'shared' ? 'Geteilt ✓' : imgState === 'downloaded' ? 'Gespeichert ✓' : 'Als Bild teilen'}
+          </button>
           <button className="btn-primary btn-full" onClick={onBack}>
             Zur Startseite
           </button>
