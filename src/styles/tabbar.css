@@ -73,6 +73,32 @@
   .app--has-tabbar .snap-footer {
     display: none;
   }
+  /* Puffer damit snap-extras nicht von der Tab Bar verdeckt wird */
+  .app--has-tabbar .snap-extras {
+    padding-bottom: 10px;
+  }
+}
+
+/* ── Tab-Bereich Header (überschreibt Gold → Rot) ───────────── */
+.tab-section-header-wrap {
+  max-width: 680px;
+  margin: 0 auto;
+  padding-inline: 24px;
+}
+
+@media (min-width: 560px) {
+  .tab-section-header-wrap { padding-inline: 40px; }
+}
+@media (min-width: 720px) {
+  .tab-section-header-wrap { padding-inline: 56px; }
+}
+
+.tab-section-header.test-title-section {
+  border-bottom-color: var(--primary);
+}
+/* Desktop-Linie ebenfalls rot */
+.tab-section-header.test-title-section::after {
+  border-top-color: var(--primary);
 }
 
 /* ── Placeholder-Screens ────────────────────────────────────── */
@@ -81,24 +107,34 @@
   background: var(--bg);
   display: flex;
   flex-direction: column;
+  /* --t-* Aliases: test.css-Klassen brauchen diese Variablen */
+  --t-bg:        var(--bg);
+  --t-surface:   var(--surface2);
+  --t-text:      var(--text);
+  --t-muted:     var(--muted);
+  --t-accent:    var(--accent);
+  --t-accent-dk: var(--accent-dk);
+  --t-rule:      var(--border);
+  --t-rule-lt:   var(--border-lt);
+  --t-serif:     var(--font-serif);
+  --t-sans:      var(--font-sans);
+  --t-disabled:  var(--disabled);
+  --t-red:       var(--primary);
+  font-family: var(--font-serif);
+  color: var(--text);
 }
 
 .tab-placeholder-inner {
   max-width: 480px;
   width: 100%;
   margin: 0 auto;
-  padding: 32px 20px 24px;
+  padding: 20px 20px 24px;
   flex: 1;
   display: flex;
   flex-direction: column;
+  position: relative; /* für absolut positioniertes Badge */
 }
 
-.tab-placeholder-rule {
-  height: 3px;
-  background: var(--primary);
-  margin-bottom: 24px;
-  border: none;
-}
 
 .tab-placeholder-head {
   display: flex;
@@ -110,7 +146,7 @@
 .tab-placeholder-title {
   font-family: var(--font-serif);
   font-size: 1.75rem;
-  font-weight: 400;
+  font-weight: 700;
   color: var(--text);
   margin: 0;
   line-height: 1.1;

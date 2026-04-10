@@ -1,10 +1,38 @@
+import {
+  WEEKDAYS, MONTHS,
+  localDateStr, computeStreak,
+} from '../utils/homeUtils'
 import { lsGet } from '../utils/storage'
+
+function TabHeader() {
+  const streak  = computeStreak()
+  const today   = new Date()
+  const dateStr = localDateStr(today)
+  return (
+    <div className="tab-section-header-wrap">
+      <header className="test-title-section tab-section-header" role="banner">
+        <p className="test-overline">Tägliches Wortspiel · Linguistik</p>
+        <h1 className="test-title">Signifikation</h1>
+        <p className="test-subtitle">
+          <time dateTime={dateStr}>
+            {`${WEEKDAYS[today.getDay()]}, ${today.getDate()}. ${MONTHS[today.getMonth()]} ${today.getFullYear()}`}
+          </time>
+        </p>
+        {streak > 0 && (
+          <span className="test-title-streak" aria-label={`${streak} Tage Streak`}>
+            🔥 {streak}
+          </span>
+        )}
+      </header>
+    </div>
+  )
+}
 
 function PlaceholderScreen({ title, ipa, category, isPremium = true, definition, features, footer, children }) {
   return (
     <div className="tab-placeholder">
+      <TabHeader />
       <div className="tab-placeholder-inner">
-        <hr className="tab-placeholder-rule" />
         <div className="tab-placeholder-head">
           <h2 className="tab-placeholder-title">{title}</h2>
           <span className="tab-placeholder-ipa">{ipa}</span>
@@ -70,8 +98,8 @@ export function KursTab() {
 export function KontoTab({ gesamtausgabe, onUnlock }) {
   return (
     <div className="tab-placeholder">
+      <TabHeader />
       <div className="tab-placeholder-inner">
-        <hr className="tab-placeholder-rule" />
         <div className="tab-placeholder-head">
           <h2 className="tab-placeholder-title">Konto</h2>
           <span className="tab-placeholder-ipa">[ˈkɔnto]</span>
