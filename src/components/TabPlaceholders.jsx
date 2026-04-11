@@ -9,8 +9,8 @@ function TabHeader() {
   const today   = new Date()
   const dateStr = localDateStr(today)
   return (
-    <div className="tab-section-header-wrap">
-      <header className="test-title-section tab-section-header" role="banner">
+    <>
+      <header className="test-title-section" role="banner">
         <p className="test-overline">Tägliches Wortspiel · Linguistik</p>
         <h1 className="test-title">Signifikation</h1>
         <p className="test-subtitle">
@@ -24,7 +24,7 @@ function TabHeader() {
           </span>
         )}
       </header>
-    </div>
+    </>
   )
 }
 

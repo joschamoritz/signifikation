@@ -96,14 +96,6 @@
   .tab-section-header-wrap { padding-inline: 56px; }
 }
 
-.tab-section-header.test-title-section {
-  border-bottom-color: var(--primary);
-}
-/* Desktop-Linie ebenfalls rot */
-.tab-section-header.test-title-section::after {
-  border-top-color: var(--primary);
-}
-
 /* ── Placeholder-Screens ────────────────────────────────────── */
 .tab-placeholder {
   min-height: calc(100dvh - 56px - env(safe-area-inset-bottom, 0px));
@@ -115,7 +107,7 @@
   --t-surface:   var(--surface2);
   --t-text:      var(--text);
   --t-muted:     var(--muted);
-  --t-accent:    var(--accent);
+  --t-accent:    var(--primary);  /* Rot statt Gold für Tab-Placeholders */
   --t-accent-dk: var(--accent-dk);
   --t-rule:      var(--border);
   --t-rule-lt:   var(--border-lt);
