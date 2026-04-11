@@ -9,6 +9,7 @@ import { BonusRound, FreeBonusRound } from './components/BonusRound'
 import Results from './components/Results'
 import ErrorBoundary from './components/ErrorBoundary'
 import TabBar from './components/TabBar'
+import TabTransition from './components/TabTransition'
 import { KlassenraumTab, KursTab, KontoTab } from './components/TabPlaceholders'
 import { getMedal, getDailyMedal, getZRMedal } from './utils/gameLogic'
 import { fetchWithRetry } from './utils/fetchWithRetry'
@@ -347,12 +348,14 @@ export default function App() {
 
   const handleTabChange = useCallback((tab) => {
     if (tab === activeTab) return
+    
     // Beim Verlassen von Spielmodi während eines Spiels: zurück zu Home
     if (activeTab === 'spielmodi' && phase !== 'home') {
       startVT(() => {
         setSelected(null); setRound(0); setScores([]); setBonusQ(null); setPhase('home')
       })
     }
+    
     setActiveTab(tab)
   }, [activeTab, phase])
 
@@ -373,34 +376,7 @@ export default function App() {
       tabIndex={-1}
       style={{ outline: 'none' }}
     >
-      {phase === 'home' && activeTab === 'spielmodi' && (
-        <Home
-          onStart={() => startVT(() => setPhase(lemmata && !apiError ? 'selection' : 'home'))}
-          loading={!lemmata && !apiError}
-          error={apiError}
-          lemmata={lemmata || []}
-          playedGames={playedGames}
-          allPlayed={!!allPlayed}
-          zeitreise={zeitreise}
-          zeitreiseError={zeitreiseError}
-          onRetryZeitreise={retryZeitreise}
-          zrPlayed={zrPlayed}
-          onPlayZeitreise={() => startVT(() => { setZrViewOnly(false); setPhase('zeitreise') })}
-          onViewZeitreise={() => startVT(() => { setZrViewOnly(true); setPhase('zeitreise') })}
-          wortzwilling={wortzwilling}
-          wortzwillingError={wortzwillingError}
-          onRetryWortzwilling={retryWortzwilling}
-          wzPlayed={wzPlayed}
-          onPlayWortzwilling={() => startVT(() => { setWzViewOnly(false); setPhase('wortzwilling') })}
-          onViewWortzwilling={() => startVT(() => { setWzViewOnly(true);  setPhase('wortzwilling') })}
-          zeitenwende={zeitenwende}
-          zeitenwendeError={zeitenwendeError}
-          onRetryZeitenwende={retryZeitenwende}
-          zwPlayed={zwPlayed}
-          onPlayZeitenwende={() => startVT(() => { setZwViewOnly(false); setPhase('zeitenwende') })}
-          onViewZeitenwende={() => startVT(() => { setZwViewOnly(true);  setPhase('zeitenwende') })}
-        />
-      )}
+      {/* Spielmodi-Screens (ohne TabTransition, haben eigene startVT-Logik) */}
       {phase === 'selection' && lemmata && (
         <LemmaSelection
           lemmata={lemmata}
@@ -462,14 +438,46 @@ export default function App() {
           />
         </Suspense>
       )}
-      {activeTab === 'klassenraum' && <KlassenraumTab />}
-      {activeTab === 'kurs'        && <KursTab />}
-      {activeTab === 'profil'      && (
-        <KontoTab
-          gesamtausgabe={!!lsGet('sig_gesamtausgabe')}
-          onUnlock={() => { lsSet('sig_gesamtausgabe', '1'); setActiveTab('spielmodi') }}
-        />
-      )}
+
+      {/* Tab-Screens (mit TabTransition für Umblätter-Effekt) */}
+      <TabTransition activeTab={activeTab}>
+        {phase === 'home' && activeTab === 'spielmodi' && (
+          <Home
+            onStart={() => startVT(() => setPhase(lemmata && !apiError ? 'selection' : 'home'))}
+            loading={!lemmata && !apiError}
+            error={apiError}
+            lemmata={lemmata || []}
+            playedGames={playedGames}
+            allPlayed={!!allPlayed}
+            zeitreise={zeitreise}
+            zeitreiseError={zeitreiseError}
+            onRetryZeitreise={retryZeitreise}
+            zrPlayed={zrPlayed}
+            onPlayZeitreise={() => startVT(() => { setZrViewOnly(false); setPhase('zeitreise') })}
+            onViewZeitreise={() => startVT(() => { setZrViewOnly(true); setPhase('zeitreise') })}
+            wortzwilling={wortzwilling}
+            wortzwillingError={wortzwillingError}
+            onRetryWortzwilling={retryWortzwilling}
+            wzPlayed={wzPlayed}
+            onPlayWortzwilling={() => startVT(() => { setWzViewOnly(false); setPhase('wortzwilling') })}
+            onViewWortzwilling={() => startVT(() => { setWzViewOnly(true);  setPhase('wortzwilling') })}
+            zeitenwende={zeitenwende}
+            zeitenwendeError={zeitenwendeError}
+            onRetryZeitenwende={retryZeitenwende}
+            zwPlayed={zwPlayed}
+            onPlayZeitenwende={() => startVT(() => { setZwViewOnly(false); setPhase('zeitenwende') })}
+            onViewZeitenwende={() => startVT(() => { setZwViewOnly(true);  setPhase('zeitenwende') })}
+          />
+        )}
+        {activeTab === 'klassenraum' && <KlassenraumTab />}
+        {activeTab === 'kurs'        && <KursTab />}
+        {activeTab === 'profil'      && (
+          <KontoTab
+            gesamtausgabe={!!lsGet('sig_gesamtausgabe')}
+            onUnlock={() => { lsSet('sig_gesamtausgabe', '1'); setActiveTab('spielmodi') }}
+          />
+        )}
+      </TabTransition>
     </div>
     {showTabBar && <TabBar activeTab={activeTab} onTabChange={handleTabChange} />}
     </ErrorBoundary>

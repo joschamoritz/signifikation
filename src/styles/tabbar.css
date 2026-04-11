@@ -305,3 +305,111 @@
   color: var(--muted);
   margin-left: auto;
 }
+
+/* ── Slide-Übergang (kein 3D) ─────────────────────────────── */
+
+.tab-transition-container {
+  position: relative;
+  overflow: hidden;
+  min-height: calc(100dvh - 49px - env(safe-area-inset-bottom, 0px));
+}
+
+.tab-screen {
+  width: 100%;
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+}
+
+/* Forward: alte Seite schiebt nach links raus */
+.tab-screen--exit-forward {
+  animation: slideOutLeft 350ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  z-index: 1;
+}
+
+/* Forward: neue Seite kommt von rechts rein */
+.tab-screen--enter-forward {
+  animation: slideInFromRight 350ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  z-index: 2;
+}
+
+/* Backward: alte Seite schiebt nach rechts raus */
+.tab-screen--exit-backward {
+  animation: slideOutRight 350ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  z-index: 1;
+}
+
+/* Backward: neue Seite kommt von links rein */
+.tab-screen--enter-backward {
+  animation: slideInFromLeft 350ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  z-index: 2;
+}
+
+/* Keyframes: einfacher horizontaler Slide */
+@keyframes slideOutLeft {
+  from {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateX(-100%);
+    opacity: 0.5;
+  }
+}
+
+@keyframes slideInFromRight {
+  from {
+    transform: translateX(100%);
+    opacity: 0.5;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideOutRight {
+  from {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateX(100%);
+    opacity: 0.5;
+  }
+}
+
+@keyframes slideInFromLeft {
+  from {
+    transform: translateX(-100%);
+    opacity: 0.5;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+/* prefers-reduced-motion: nur Crossfade */
+@media (prefers-reduced-motion: reduce) {
+  .tab-screen--exit-forward,
+  .tab-screen--exit-backward {
+    animation: fadeOut 200ms ease-out forwards;
+  }
+  
+  .tab-screen--enter-forward,
+  .tab-screen--enter-backward {
+    animation: fadeIn 200ms ease-in forwards;
+  }
+}
+
+@keyframes fadeOut {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
