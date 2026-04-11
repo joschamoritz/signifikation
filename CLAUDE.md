@@ -16,9 +16,9 @@ Server neu starten (Windows): `powershell.exe -Command "Get-Process node | Stop-
 ## Stack
 
 - **Frontend**: React 18 + Vite 6, Vanilla CSS (`src/`)
-- **Backend**: Express 5, Node, ESM (`server/`)
-- **Daten**: JSON-Dateien in `server/data/` (kein Datenbankserver)
-- **Deployment**: Hetzner VPS (Nürnberg), PM2, nginx, GitHub Actions CI/CD, Daten unter `/opt/signifikation/app/server/data`
+- **Backend**: Express 5, Node.js (ESM), better-sqlite3
+- **Datenbank**: SQLite (`signifikation.db`) – alle Spieldaten in einer Datei
+- **Deployment**: Hetzner VPS (Nürnberg), PM2, nginx, GitHub Actions CI/CD
 
 ## Architektur
 
@@ -26,9 +26,30 @@ Server neu starten (Windows): `powershell.exe -Command "Get-Process node | Stop-
 - `server/routes/public.js` – alle `/api/v1/*` Routen
 - `server/routes/admin.js` – alle `/admin/*` Routen (auth-required)
 - `server/middleware/validate.js` – Zod-Validierung; **Express 5: `req.query` ist read-only** → `Object.assign(req[source], result.data)` statt `req[source] = result.data`
-- `server/store.js` – File-I/O: `load()`, `save()` (atomar), Cache (TTL 6h, LRU 2000)
+- `server/db.js` – SQLite-Verbindung, Schema-Definition (WAL-Mode, Prepared Statements)
+- `server/store.js` – Datenzugriff-Layer: `load()`, `save()` (Legacy-API, intern SQLite), In-Memory-Caches
+- `server/migrate.js` – Einmaliges Migrations-Skript (JSON → SQLite, idempotent)
 - `src/components/Home.jsx` – Startseite (Wörterbuch-Design, importiert `test.css`)
 - `src/test.css` – alle Wörterbuch-Design-Stile
+
+## Datenbank (SQLite)
+
+**Pfad lokal**: `server/data/signifikation.db`  
+**Pfad Hetzner**: `/opt/signifikation/app/server/data/signifikation.db`
+
+**Tabellen**:
+- `lemmata` – Lemma-Objekte (id, lemma, pos, wortart, runden, rundenInfo, notiz, link, definition, bonusFrage, ipa, definitionen)
+- `kalender` – Tagesplanung (datum → ids als JSON-Array)
+- `zeitreise` – Zeitreise-Einträge (datum, lemma, paare, perioden, wortart)
+- `wortzwilling` – Wort-Zwilling-Einträge (datum, wortA, wortB, pos, kollokatoren)
+- `zeitenwende` – Zeitenwende-Einträge (datum, data als JSON)
+- `stats` – Spielstatistiken (datum, spiel, plays, scoreSum, maxSum, dist)
+
+**JSON-Felder**: Komplexe Datenstrukturen (Arrays, Objekte) werden als TEXT gespeichert und per `JSON.parse/stringify` konvertiert.
+
+**WAL-Mode**: Write-Ahead Logging für bessere Concurrency (`.db-shm`, `.db-wal` Dateien sind normal).
+
+**Alte JSON-Dateien**: `lemmata.json`, `kalender.json`, etc. sind veraltet und werden nicht mehr gelesen – können gelöscht werden.
 
 ## Konventionen
 
@@ -49,7 +70,7 @@ Server neu starten (Windows): `powershell.exe -Command "Get-Process node | Stop-
 
 ## Hinweise
 
-- JSON-Daten **nur** über Admin-Panel eingeben – Hetzner-Volume hat Vorrang vor Git
+- Daten **nur** über Admin-Panel eingeben – Hetzner-Volume hat Vorrang vor Git
 - Admin-CSP benötigt `style-src 'unsafe-inline'` (dynamische `style=""`-Attribute)
 - Belege-Datenbank (belege.db) auf Hetzner-Volume – FTS5-Index für Korpusbelege
 

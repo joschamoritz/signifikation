@@ -58,7 +58,7 @@ keine Verläufe, keine Schatten-Hierarchien.
 
 ---
 
-## 3. Typography
+## 3. Typographie
 
 ### Schriften
 
@@ -188,7 +188,7 @@ Einzige Ausnahme: Belege-Panel hat einen leichten `box-shadow: 0 1px 4px rgba(0,
 - CSS-Frameworks (kein Tailwind, kein Bootstrap)
 - Bunte Hintergrundflächen oder Verläufe
 - Mehr als 2 Schriftfamilien
-- Emojis außer: Streak 🔥 und Feedback 😕😐🙂😄🤩
+- Emojis außer: Streak 🔥
 - Schatten-Hierarchien (kein `elevation`-System)
 - Abgerundete Ecken > `4px` (außer Badges: `4px` bereits das Maximum)
 
