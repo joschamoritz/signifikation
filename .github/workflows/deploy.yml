@@ -19,7 +19,8 @@ jobs:
             export NVM_DIR="/opt/nvm"
             source "$NVM_DIR/nvm.sh"
             cd /opt/signifikation/app
-            git pull
+            git fetch origin
+            git reset --hard origin/main
             npm install
             npm run build
             sudo -u signifikation bash -c 'export NVM_DIR="/opt/nvm" && source "$NVM_DIR/nvm.sh" && pm2 restart signifikation'
