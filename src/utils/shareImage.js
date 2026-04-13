@@ -84,8 +84,8 @@ export async function generateShareImage(playedGames, zrPlayed, wzPlayed, streak
 
   // ── Overline ─────────────────────────────────────────────
   ctx.textAlign    = 'center'
-  ctx.fillStyle    = GOLD
-  ctx.font         = `500 26px ${SANS}`
+  ctx.fillStyle    = MUTED
+  ctx.font         = `400 26px ${SANS}`
   ctx.letterSpacing = '3px'
   ctx.fillText('TÄGLICHES WORTSPIEL · LINGUISTIK', W / 2, y + 26)
   ctx.letterSpacing = '0px'
@@ -124,17 +124,17 @@ export async function generateShareImage(playedGames, zrPlayed, wzPlayed, streak
   const medalX = W - PAD_X
 
   for (let i = 0; i < rows.length; i++) {
-    const row     = rows[i]
-    const baseline = y + 36
+    const row  = rows[i]
+    const midY = y + 38  // vertikale Mitte der Zeile
 
-    // Label
+    // Label (Baseline ~12px unterhalb Mittellinie)
     ctx.textAlign = 'left'
     ctx.fillStyle = TEXT
-    ctx.font      = `400 36px ${SANS}`
-    ctx.fillText(row.label, labelX, baseline)
+    ctx.font      = `400 34px ${SANS}`
+    ctx.fillText(row.label, labelX, midY + 12)
 
-    // Balken (18px unter Baseline)
-    const barTop = baseline + 18
+    // Balken (vertikal zentriert auf midY)
+    const barTop = midY - Math.round(barH / 2)
     ctx.fillStyle = BAR_EMPTY
     ctx.fillRect(barX, barTop, barW, barH)
     const filled = Math.round((row.total / (row.max || 1)) * barW)
@@ -144,13 +144,13 @@ export async function generateShareImage(playedGames, zrPlayed, wzPlayed, streak
     // Punktzahl
     ctx.textAlign = 'left'
     ctx.fillStyle = MUTED
-    ctx.font      = `400 30px ${SANS}`
-    ctx.fillText(`${row.total}/${row.max}`, scoreX, baseline)
+    ctx.font      = `400 28px ${SANS}`
+    ctx.fillText(`${row.total}/${row.max}`, scoreX, midY + 10)
 
     // Medaille
     ctx.textAlign = 'right'
-    ctx.font      = '38px sans-serif'
-    ctx.fillText(row.medal?.emoji ?? '', medalX, baseline)
+    ctx.font      = '36px sans-serif'
+    ctx.fillText(row.medal?.emoji ?? '', medalX, midY + 12)
 
     y += 76 + (i < rows.length - 1 ? 40 : 0)
   }
@@ -165,7 +165,7 @@ export async function generateShareImage(playedGames, zrPlayed, wzPlayed, streak
     ctx.textAlign = 'center'
     ctx.fillStyle = TEXT
     ctx.font      = `400 40px ${SANS}`
-    ctx.fillText(`🔥 ${streak} ${streak === 1 ? 'Tag' : 'Tage'} in Folge`, W / 2, y + 40)
+    ctx.fillText(`🔥 ${streak} ${streak === 1 ? 'Tag' : 'Tage'} am Stück`, W / 2, y + 40)
     y += 40 + 32
   }
 
