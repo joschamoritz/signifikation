@@ -6,6 +6,7 @@ import {
   WEEKDAYS, MONTHS,
   localDateStr, getISOWeek, computeStreak, streakFlames, buildShareText,
 } from '../utils/homeUtils'
+import { shareAsImage } from '../utils/shareImage'
 import { lsGet, lsSet } from '../utils/storage'
 
 function LockIcon() {
@@ -29,6 +30,8 @@ export default function Home({
 }) {
   const [infoOpen,          setInfoOpen]          = useState(false)
   const [copied,            setCopied]            = useState(false)
+  const [sharing,           setSharing]           = useState(false)
+  const [imgState,          setImgState]          = useState(null)
   const [showDayComplete,   setShowDayComplete]   = useState(false)
   const [activeCard,        setActiveCard]        = useState(0)
   const [gesamtausgabe,     setGesamtausgabe]     = useState(() => !!lsGet('sig_gesamtausgabe'))
@@ -103,6 +106,19 @@ export default function Home({
     if (e.key === 'ArrowDown') scrollToCard(Math.min(activeCard + 1, 4))
     if (e.key === 'ArrowUp')   scrollToCard(Math.max(activeCard - 1, 0))
   }, [activeCard, scrollToCard])
+
+  async function shareImg() {
+    if (sharing) return
+    setSharing(true)
+    try {
+      const result = await shareAsImage(playedGames, zrPlayed, wzPlayed, streak, zwPlayed)
+      if (result === 'shared' || result === 'downloaded') {
+        setImgState(result)
+        setTimeout(() => setImgState(null), 2500)
+      }
+    } catch {}
+    finally { setSharing(false) }
+  }
 
   async function shareResult() {
     const text = buildShareText(playedGames, zrPlayed, wzPlayed, streak, zwPlayed)
@@ -534,15 +550,23 @@ export default function Home({
 
         {/* ── Kompakter Mobile-Footer (nur mobil) ──────────── */}
         <div className="snap-footer">
-          {hasPlayed && (
+          {hasPlayed && (<>
+            <button
+              className={`btn-share snap-share-btn${imgState ? ' btn-share--copied' : ''}${sharing ? ' dc-share-btn--loading' : ''}`}
+              onClick={shareImg}
+              disabled={sharing}
+              aria-label="Ergebnis als Bild teilen"
+            >
+              {sharing ? '…' : imgState ? '✓' : '↗ Bild'}
+            </button>
             <button
               className={`btn-share snap-share-btn${copied ? ' btn-share--copied' : ''}`}
               onClick={shareResult}
               aria-label="Ergebnis teilen"
             >
-              {copied ? '✓' : '↗ Teilen'}
+              {copied ? '✓' : '↗ Text'}
             </button>
-          )}
+          </>)}
           <nav className="snap-footer-links" aria-label="Rechtliche Links">
             <a href="/ueber.html" target="_blank" rel="noopener">Über</a>
             <a href="/impressum.html" target="_blank" rel="noopener">Impressum</a>
@@ -554,6 +578,14 @@ export default function Home({
         {/* ── Teilen ───────────────────────────────────────── */}
         {hasPlayed && (
           <div className="test-share-row">
+            <button
+              className={`btn-share${imgState ? ' btn-share--copied' : ''}${sharing ? ' dc-share-btn--loading' : ''}`}
+              onClick={shareImg}
+              disabled={sharing}
+              aria-label="Ergebnis als Bild teilen"
+            >
+              {sharing ? 'Wird erstellt…' : imgState === 'shared' ? 'Geteilt ✓' : imgState === 'downloaded' ? 'Gespeichert ✓' : '↗ Als Bild teilen'}
+            </button>
             <button
               className={`btn-share${copied ? ' btn-share--copied' : ''}`}
               onClick={shareResult}

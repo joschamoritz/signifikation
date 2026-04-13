@@ -2,8 +2,6 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import BelegeSatz from './BelegeSatz'
 import { lsGet, lsParse } from '../utils/storage'
 import { getMedal } from '../utils/gameLogic'
-import { computeStreak } from '../utils/homeUtils'
-import { shareAsImage } from '../utils/shareImage'
 import { API } from '../config'
 import '../styles/zeitenwende.css'
 
@@ -24,22 +22,6 @@ function ZWResults({ lemma, words, answers, onBack, ipa, definitionen }) {
   const score     = answers.filter((a, i) => a === words[i].periode).length
   const medal     = getMedal(score, TOTAL)
   const zwHistory = lsParse(lsGet('sig_zw_history'), []).slice(0, 14).reverse()
-
-  const [sharing,  setSharing]  = useState(false)
-  const [imgState, setImgState] = useState(null)
-
-  async function shareImg() {
-    if (sharing) return
-    setSharing(true)
-    try {
-      const result = await shareAsImage([], null, null, computeStreak(), { total: score, max: TOTAL, medal })
-      if (result === 'shared' || result === 'downloaded') {
-        setImgState(result)
-        setTimeout(() => setImgState(null), 2500)
-      }
-    } catch {}
-    finally { setSharing(false) }
-  }
 
   return (
     <div className="screen zw-screen">
@@ -98,14 +80,6 @@ function ZWResults({ lemma, words, answers, onBack, ipa, definitionen }) {
           </div>
         )}
 
-        <button
-          type="button"
-          className={`btn-ghost btn-full dc-share-btn${imgState ? ' dc-share-btn--copied' : ''}${sharing ? ' dc-share-btn--loading' : ''}`}
-          onClick={shareImg}
-          disabled={sharing}
-        >
-          {sharing ? 'Wird erstellt…' : imgState === 'shared' ? 'Geteilt ✓' : imgState === 'downloaded' ? 'Gespeichert ✓' : 'Als Bild teilen'}
-        </button>
         <button type="button" className="btn-primary btn-full" onClick={onBack}>
           Zur Startseite
         </button>
