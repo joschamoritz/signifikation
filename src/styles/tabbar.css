@@ -65,20 +65,18 @@
   padding-bottom: calc(49px + env(safe-area-inset-bottom, 0px) + 24px);
 }
 
-/* Home: snap-layout Höhe anpassen, snap-footer ersetzen */
+/* Home: snap-layout als fixed Box — Viewport-Bounds direkt, kein Padding-Offset-Problem */
 @media (max-width: 699px) {
-  .app--has-tabbar .test-page {
-    height: calc(100dvh - 49px - env(safe-area-inset-bottom, 0px));
+  .app--has-tabbar.app--home .test-page {
+    position: fixed;
+    top: env(safe-area-inset-top, 0px);
+    left: 0;
+    right: 0;
+    bottom: calc(49px + env(safe-area-inset-bottom, 0px));
+    height: auto;
   }
   .app--has-tabbar .snap-footer {
     display: none;
-  }
-}
-/* Auf Phones (< 500px) fügt globals.css padding-top: env(safe-area-inset-top) zum .app hinzu —
-   test-page muss diesen Offset kompensieren, sonst ragt snap-extras hinter die Tab Bar. */
-@media (max-width: 499px) {
-  .app--has-tabbar .test-page {
-    height: calc(100dvh - 49px - env(safe-area-inset-bottom, 0px) - max(8px, env(safe-area-inset-top, 0px)));
   }
 }
 
