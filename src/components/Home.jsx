@@ -30,6 +30,7 @@ export default function Home({
 }) {
   const [sheetOpen,         setSheetOpen]         = useState(false)
   const [desktopInfoOpen,   setDesktopInfoOpen]   = useState(false)
+  const [shareSheetOpen,    setShareSheetOpen]    = useState(false)
   const [copied,            setCopied]            = useState(false)
   const [sharing,           setSharing]           = useState(false)
   const [imgState,          setImgState]          = useState(null)
@@ -160,11 +161,26 @@ export default function Home({
               {`${WEEKDAYS[today.getDay()]}, ${today.getDate()}. ${MONTHS[today.getMonth()]} ${today.getFullYear()}`}
             </time>
           </p>
-          {streak > 0 && (
-            <span className="test-title-streak" aria-label={`${streak} Tage Streak`}>
-              🔥 {streak}
-            </span>
-          )}
+          <div className="test-title-right">
+            {hasPlayed && (
+              <button
+                className="test-title-share"
+                type="button"
+                onClick={() => setShareSheetOpen(true)}
+                aria-label="Ergebnis mitteilen"
+              >
+                <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <rect x="1.5" y="3.5" width="12" height="9" rx="0.5"/>
+                  <path d="M1.5 4.5 7.5 9 13.5 4.5"/>
+                </svg>
+              </button>
+            )}
+            {streak > 0 && (
+              <span className="test-title-streak" aria-label={`${streak} Tage Streak`}>
+                🔥 {streak}
+              </span>
+            )}
+          </div>
         </header>
 
         {/* ── Streak ───────────────────────────────────────── */}
@@ -551,23 +567,6 @@ export default function Home({
 
         {/* ── Kompakter Mobile-Footer (nur mobil) ──────────── */}
         <div className="snap-footer">
-          {hasPlayed && (<>
-            <button
-              className={`btn-share snap-share-btn${imgState ? ' btn-share--copied' : ''}${sharing ? ' dc-share-btn--loading' : ''}`}
-              onClick={shareImg}
-              disabled={sharing}
-              aria-label="Ergebnis als Bild teilen"
-            >
-              {sharing ? '…' : imgState ? '✓' : '↗ Bild'}
-            </button>
-            <button
-              className={`btn-share snap-share-btn${copied ? ' btn-share--copied' : ''}`}
-              onClick={shareResult}
-              aria-label="Ergebnis teilen"
-            >
-              {copied ? '✓' : '↗ Text'}
-            </button>
-          </>)}
           <nav className="snap-footer-links" aria-label="Rechtliche Links">
             <a href="/ueber.html" target="_blank" rel="noopener">Über</a>
             <a href="/impressum.html" target="_blank" rel="noopener">Impressum</a>
@@ -575,27 +574,6 @@ export default function Home({
           </nav>
           <span className="snap-footer-version">v{__APP_VERSION__}</span>
         </div>
-
-        {/* ── Teilen ───────────────────────────────────────── */}
-        {hasPlayed && (
-          <div className="test-share-row">
-            <button
-              className={`btn-share${imgState ? ' btn-share--copied' : ''}${sharing ? ' dc-share-btn--loading' : ''}`}
-              onClick={shareImg}
-              disabled={sharing}
-              aria-label="Ergebnis als Bild teilen"
-            >
-              {sharing ? 'Wird erstellt…' : imgState === 'shared' ? 'Geteilt ✓' : imgState === 'downloaded' ? 'Gespeichert ✓' : '↗ Als Bild teilen'}
-            </button>
-            <button
-              className={`btn-share${copied ? ' btn-share--copied' : ''}`}
-              onClick={shareResult}
-              aria-label="Ergebnis teilen oder kopieren"
-            >
-              {copied ? '✓ Kopiert!' : '↗ Ergebnis teilen'}
-            </button>
-          </div>
-        )}
 
         {/* ── Kolophon ─────────────────────────────────────── */}
         <footer className="test-colophon" role="contentinfo">
@@ -663,6 +641,40 @@ export default function Home({
           <li>Eigenes Wortprofil, berechnet auf Basis freier deutschsprachiger Korpora (CC BY-SA), syntaktisch annotiert mit dem ZDL-Dependenzparser (BBAW).</li>
         </ol>
       </div>
+    </div>
+
+    {/* ── Share Bottom Sheet ───────────────────────────────── */}
+    {shareSheetOpen && (
+      <div className="info-sheet-backdrop" onClick={() => setShareSheetOpen(false)} aria-hidden="true" />
+    )}
+    <div
+      className={`share-sheet${shareSheetOpen ? ' share-sheet--open' : ''}`}
+      role="dialog"
+      aria-modal="true"
+      aria-label="Ergebnis mitteilen"
+      aria-hidden={!shareSheetOpen}
+    >
+      <div className="share-sheet-header">
+        <span className="share-sheet-label">Ergebnis mitteilen</span>
+        <button className="info-sheet-close" type="button" onClick={() => setShareSheetOpen(false)} aria-label="Schließen">✕</button>
+      </div>
+      <button
+        className="share-sheet-option"
+        type="button"
+        onClick={() => { shareImg(); setShareSheetOpen(false) }}
+        disabled={sharing}
+      >
+        <span className="share-sheet-option-glyph">↗</span>
+        <span>{sharing ? 'Wird erstellt…' : 'Als Bild mitteilen'}</span>
+      </button>
+      <button
+        className="share-sheet-option"
+        type="button"
+        onClick={() => { shareResult(); setShareSheetOpen(false) }}
+      >
+        <span className="share-sheet-option-glyph">↗</span>
+        <span>Als Text mitteilen</span>
+      </button>
     </div>
     </>
   )
