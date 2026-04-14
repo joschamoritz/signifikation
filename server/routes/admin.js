@@ -3,7 +3,7 @@ import { fileURLToPath } from 'url'
 import { dirname, join }  from 'path'
 import { createWriteStream, existsSync, renameSync, statSync, unlinkSync } from 'fs'
 import { fetchLemma, fetchBonusQuestion, fetchRelation, fetchZeitreise, fetchZeitreiseAnalyze, fetchZeitenwende, fetchZeitenwendeAnalyze, POS_ROUNDS } from '../wortprofil.js'
-import { belegeVerfuegbar } from '../belege.js'
+import { belegeVerfuegbar, fetchBelege } from '../belege.js'
 import { fetchWiktionary } from '../wiktionary.js'
 import { fetchWortZwilling } from '../wortzwilling.js'
 import { load, loadReadOnly, save, loadZeitreise, loadWortZwilling, loadZeitenwende, loadStats, getLemmataIndex, getCacheMetrics, DATA } from '../store.js'
@@ -504,6 +504,57 @@ router.post('/admin/upload-wortprofil', uploadLimiter, requireAuth, (req, res) =
     try { if (existsSync(tmpPath)) unlinkSync(tmpPath) } catch {}
     adminError(res, err)
   })
+})
+
+/** GET /admin/social-cards – Social Cards Generator */
+router.get('/admin/social-cards', (req, res) => {
+  res.setHeader('Content-Security-Policy',
+    "default-src 'self'; " +
+    "script-src 'self' 'unsafe-inline'; " +
+    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " +
+    "font-src 'self' https://fonts.gstatic.com; " +
+    "img-src 'self' data:; " +
+    "connect-src 'self' https://fonts.googleapis.com https://fonts.gstatic.com; " +
+    "frame-ancestors 'none';"
+  )
+  res.sendFile(join(__dirname, '../social-cards.html'))
+})
+
+/** GET /admin/social-cards/tagesdata?datum=MM-DD – Lemmata + WZ für ein Datum */
+router.get('/admin/social-cards/tagesdata', adminLimiter, requireAuth, (req, res) => {
+  const { datum } = req.query
+  if (!datum || !/^\d{2}-\d{2}$/.test(datum)) {
+    return res.status(400).json({ error: 'datum muss MM-DD sein' })
+  }
+  try {
+    const kalender     = loadReadOnly('kalender.json')
+    const { byId }     = getLemmataIndex()
+    const wortzwilling = loadWortZwilling()
+    const ids = kalender[datum] ?? []
+    const lemmata = ids.map(id => {
+      const l = byId.get(id)
+      if (!l) return null
+      return {
+        id:          l.id,
+        lemma:       l.lemma,
+        pos:         l.pos,
+        ipa:         l.ipa || '',
+        definitionen: Array.isArray(l.definitionen) ? l.definitionen : [],
+      }
+    }).filter(Boolean)
+    const wz = wortzwilling[datum] ?? null
+    res.json({ datum, lemmata, wortzwilling: wz })
+  } catch (err) { adminError(res, err) }
+})
+
+/** GET /admin/social-cards/belege?lemma=X&collocate=Y – Korpusbelege für ein Paar */
+router.get('/admin/social-cards/belege', adminLimiter, requireAuth, (req, res) => {
+  const { lemma, collocate } = req.query
+  if (!lemma || !collocate) return res.status(400).json({ error: 'lemma und collocate erforderlich' })
+  try {
+    const belege = fetchBelege(lemma, collocate, { limit: 5 })
+    res.json({ belege })
+  } catch (err) { adminError(res, err) }
 })
 
 /** GET /admin – Admin-Oberfläche */
