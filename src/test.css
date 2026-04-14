@@ -1004,7 +1004,6 @@
   /* Snap-Extras: Ornament + Anmerkung unterhalb der Karten */
   .snap-extras {
     flex-shrink: 0;
-    overflow-y: auto;
     border-top: 1px solid var(--t-rule-lt);
     background: var(--t-bg);
     padding: 0 20px;
