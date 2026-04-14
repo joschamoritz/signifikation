@@ -142,10 +142,7 @@ header h1{font-family:'Gentium Plus',serif;font-size:1.25rem;font-weight:400}
           <label>Köder 2 (Rang ~10)</label>
           <input id="dist2-input" placeholder="—">
         </div>
-        <div>
-          <label>Rel.-Beschreibung (kurz)</label>
-          <input id="rel-desc-input" placeholder="z.B. hat Adjektivattribut">
-        </div>
+
       </div>
 
       <!-- Format B -->
@@ -308,7 +305,7 @@ function initApp() {
   document.querySelectorAll('input[name=ratio]').forEach(r => r.addEventListener('change', renderCard))
   document.getElementById('b-show-options').addEventListener('change', renderCard)
   document.getElementById('reveal-toggle').addEventListener('change', renderCard)
-  ;['answer-input','dist1-input','dist2-input','rel-desc-input',
+  ;['answer-input','dist1-input','dist2-input',
     'wortA-input','wortB-input','kollA-input','kollB-input',
     'x-subtype','x-lemma','x-headline','x-body','b-quelle-input','beleg-preview'
   ].forEach(id => document.getElementById(id).addEventListener('input', renderCard))
@@ -393,7 +390,7 @@ function onRelChange() {
   document.getElementById('answer-input').value = items[0]?.wort || ''
   document.getElementById('dist1-input').value  = items[4]?.wort || items[1]?.wort || ''
   document.getElementById('dist2-input').value  = items[9]?.wort || items[2]?.wort || ''
-  document.getElementById('rel-desc-input').value = items[0]?.relation_description || rel
+
   renderCard()
 }
 
@@ -572,7 +569,7 @@ function contentHeightA() {
 }
 
 function drawFormatA(ctx, W, y, data) {
-  const { lemma, pos, ipa, answer, dist1, dist2, relDesc, reveal } = data
+  const { lemma, pos, ipa, answer, dist1, dist2, reveal } = data
 
   // Lemma box
   const boxW = W - PAD*2, boxH = 180, boxR = 12
@@ -592,7 +589,7 @@ function drawFormatA(ctx, W, y, data) {
 
   // Relation description
   ctx.textAlign = 'center'; ctx.fillStyle = MUTED_COL; ctx.font = `400 28px ${SANS}`
-  ctx.fillText(relDesc || '', W/2, y+28); y += 28+32
+  ctx.fillText('Häufigste Verbindung im Deutschen', W/2, y+28); y += 28+32
 
   if (reveal) {
     // Reveal: correct answer prominent, distractors dimmed
@@ -888,7 +885,7 @@ async function renderCard() {
       answer:  document.getElementById('answer-input').value,
       dist1:   document.getElementById('dist1-input').value,
       dist2:   document.getElementById('dist2-input').value,
-      relDesc: document.getElementById('rel-desc-input').value,
+
       reveal,
     })
   } else if (fmt === 'B') {
