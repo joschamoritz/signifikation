@@ -202,7 +202,22 @@ export default function Home({
               : <span className="test-raster-word" style={{ color: 'var(--t-disabled)' }}>—</span>
             }
           </div>
-          <span className="test-raster-folio" aria-hidden="true">KW {kw} · {today.getFullYear()}</span>
+          <div className="test-raster-end">
+            <span className="test-raster-folio" aria-hidden="true">KW {kw} · {today.getFullYear()}</span>
+            {hasPlayed && (
+              <button
+                className="test-title-share test-raster-share"
+                type="button"
+                onClick={() => setShareSheetOpen(true)}
+                aria-label="Ergebnis mitteilen"
+              >
+                <svg width="13" height="13" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <rect x="1.5" y="3.5" width="12" height="9" rx="0.5"/>
+                  <path d="M1.5 4.5 7.5 9 13.5 4.5"/>
+                </svg>
+              </button>
+            )}
+          </div>
         </nav>
 
         {/* ── Doppellinie ───────────────────────────────────── */}
