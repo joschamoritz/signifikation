@@ -925,14 +925,21 @@
   .snap-nav {
     position: fixed;
     left: 0;
-    top: 50%;
-    transform: translateY(-50%);
+    top: env(safe-area-inset-top, 0px);
+    bottom: calc(49px + env(safe-area-inset-bottom, 0px));
     z-index: 50;
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 2px;
     padding: 8px 4px;
+  }
+  .snap-nav-games {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
   }
   .snap-nav-btn {
     background: none;
@@ -953,6 +960,25 @@
     transform: scale(1.25);
   }
   .snap-nav-btn:focus-visible {
+    outline: 2px solid var(--t-accent);
+    outline-offset: 2px;
+    border-radius: 2px;
+  }
+  .snap-nav-info {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 1.1rem;
+    color: var(--t-red);
+    padding: 6px 6px 10px;
+    min-height: 36px;
+    min-width: 36px;
+    line-height: 1;
+    text-align: center;
+    -webkit-tap-highlight-color: transparent;
+    transition: opacity 0.15s;
+  }
+  .snap-nav-info:focus-visible {
     outline: 2px solid var(--t-accent);
     outline-offset: 2px;
     border-radius: 2px;
@@ -997,23 +1023,122 @@
     white-space: nowrap;
   }
 
-  /* Desktop-Footer und Teilen-Sektion ausblenden */
+  /* Desktop-Footer, Teilen-Sektion und Desktop-Fußnote ausblenden */
   .test-share-row,
-  .test-colophon { display: none; }
+  .test-colophon,
+  .desktop-footnote { display: none; }
 
-  /* Snap-Extras: Ornament + Anmerkung unterhalb der Karten */
-  .snap-extras {
-    flex-shrink: 0;
-    border-top: 1px solid var(--t-rule-lt);
-    background: var(--t-bg);
-    padding: 0 20px;
-  }
-  .snap-extras-ornament {
-    display: block;
-    text-align: center;
-    font-size: 0.9rem;
-    color: var(--t-accent);
-    letter-spacing: 0.4em;
-    padding: 8px 0 4px;
-  }
+}
+
+/* ── Info Bottom Sheet ─────────────────────────────────────── */
+.info-sheet-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(26, 26, 24, 0.4);
+  z-index: 249;
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+}
+
+.info-sheet {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  max-height: 80vh;
+  background: var(--bg);
+  border-top: 2px solid var(--text);
+  z-index: 250;
+  overflow-y: auto;
+  transform: translateY(100%);
+  transition: transform 0.32s cubic-bezier(0.4, 0, 0.2, 1);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+.info-sheet--open {
+  transform: translateY(0);
+}
+
+.info-sheet-header {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 16px 20px 12px;
+  border-bottom: 1px solid var(--border-lt);
+  position: sticky;
+  top: 0;
+  background: var(--bg);
+}
+
+.info-sheet-label {
+  font-family: var(--font-sans);
+  font-size: 9px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--primary);
+  flex-shrink: 0;
+}
+
+.info-sheet-title {
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-size: 0.95rem;
+  color: var(--text);
+  flex: 1;
+  font-weight: 400;
+}
+
+.info-sheet-close {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 0.8rem;
+  color: var(--muted);
+  padding: 4px 0 4px 12px;
+  flex-shrink: 0;
+  line-height: 1;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.info-sheet-body {
+  padding: 16px 20px 24px;
+}
+
+.info-sheet-body p {
+  font-family: var(--font-serif);
+  font-size: 0.875rem;
+  line-height: 1.7;
+  color: var(--text);
+  margin-bottom: 0.9em;
+}
+
+.info-sheet-body p:last-child { margin-bottom: 0; }
+
+.info-sheet-body em {
+  font-style: italic;
+  color: var(--accent-dk);
+}
+
+.info-sheet-body strong { font-weight: 600; }
+
+.info-sheet-body sup {
+  font-size: 0.65rem;
+  vertical-align: super;
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.info-sheet-footnotes {
+  margin-top: 12px;
+  padding-left: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.info-sheet-footnotes li {
+  font-size: 0.72rem;
+  color: var(--muted);
+  line-height: 1.5;
 }

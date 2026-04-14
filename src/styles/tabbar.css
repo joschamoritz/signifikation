@@ -78,10 +78,6 @@
   .app--has-tabbar .snap-footer {
     display: none;
   }
-  /* snap-extras hat immer feste Inhalte (Ornament + Toggle) — min-height sichert Sichtbarkeit */
-  .app--has-tabbar .snap-extras {
-    min-height: 82px;
-  }
 }
 
 /* ── Tab-Bereich Header (überschreibt Gold → Rot) ───────────── */
