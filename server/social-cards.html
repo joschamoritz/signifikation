@@ -10,12 +10,10 @@
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
   --bg:#1e1a16;--card:#2a2420;--border:#3a3028;--text:#f0ebe4;
-  --muted:#8a8070;--accent:#9b1c1c;--gold:#c9a84c;
-  --input-bg:#1a1510;
+  --muted:#8a8070;--accent:#9b1c1c;--gold:#c9a84c;--input-bg:#1a1510;
 }
 body{font-family:'DM Sans',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
 
-/* Login */
 .login-overlay{position:fixed;inset:0;background:#0d0b08;display:flex;align-items:center;justify-content:center;z-index:100}
 .login-card{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:40px 32px;width:340px;text-align:center}
 .login-card h2{font-family:'Gentium Plus',serif;font-size:1.6rem;margin-bottom:8px}
@@ -25,16 +23,14 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:var(--bg);color:var(-
 .login-card button:hover{background:#b22222}
 .login-error{color:#e55;font-size:.85rem;margin-bottom:12px;display:none}
 
-/* App layout */
-#app{display:none;padding:0}
+#app{display:none}
 header{display:flex;align-items:center;gap:16px;padding:16px 24px;border-bottom:1px solid var(--border)}
 header a{color:var(--muted);font-size:.85rem;text-decoration:none}
 header a:hover{color:var(--text)}
 header h1{font-family:'Gentium Plus',serif;font-size:1.25rem;font-weight:400}
 
-.main{display:grid;grid-template-columns:320px 1fr;gap:0;height:calc(100vh - 57px)}
+.main{display:grid;grid-template-columns:340px 1fr;height:calc(100vh - 57px)}
 
-/* Controls panel */
 .controls{border-right:1px solid var(--border);overflow-y:auto;padding:20px 16px;display:flex;flex-direction:column;gap:14px}
 .controls label{display:block;font-size:.78rem;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px}
 .controls input,.controls select,.controls textarea{
@@ -53,12 +49,15 @@ header h1{font-family:'Gentium Plus',serif;font-size:1.25rem;font-weight:400}
 .fmt-ctrl{display:flex;flex-direction:column;gap:10px}
 .fmt-ctrl.hidden{display:none}
 
+.check-row{display:flex;align-items:center;gap:8px;cursor:pointer}
+.check-row input[type=checkbox]{width:auto;accent-color:var(--gold);cursor:pointer}
+.check-row span{font-size:.88rem;color:var(--text);text-transform:none;letter-spacing:0}
+
 .ratio-row{display:flex;gap:16px;align-items:center}
 .ratio-row label{margin:0;text-transform:none;font-size:.88rem;color:var(--text);cursor:pointer;display:flex;align-items:center;gap:6px}
 .ratio-row input[type=radio]{accent-color:var(--gold)}
 
 .divider{height:1px;background:var(--border);margin:2px 0}
-
 .btn{background:var(--accent);border:none;border-radius:6px;color:#fff;cursor:pointer;font:500 .9rem 'DM Sans',sans-serif;padding:10px 16px;width:100%;transition:opacity .15s}
 .btn:hover{opacity:.85}
 .btn.secondary{background:var(--card);border:1px solid var(--border);color:var(--text)}
@@ -66,13 +65,20 @@ header h1{font-family:'Gentium Plus',serif;font-size:1.25rem;font-weight:400}
 .btn:disabled{opacity:.45;cursor:default}
 
 .beleg-preview{background:var(--input-bg);border:1px solid var(--border);border-radius:6px;color:var(--muted);font-size:.8rem;line-height:1.5;padding:10px;min-height:60px;white-space:pre-wrap}
-
 .info{color:var(--muted);font-size:.8rem;line-height:1.4;padding:8px 10px;background:var(--input-bg);border-radius:6px;border:1px solid var(--border)}
 
-/* Preview panel */
+/* WZ chip pool */
+.chip-pool{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}
+.chip-btn{background:var(--input-bg);border:1px solid var(--border);border-radius:20px;color:var(--text);cursor:pointer;font-size:.8rem;padding:4px 10px;transition:border-color .15s}
+.chip-btn:hover{border-color:var(--gold);color:var(--gold)}
+.pool-targets{display:flex;gap:8px;margin-top:8px}
+.pool-target{flex:1;border:none;border-radius:6px;padding:7px;cursor:pointer;font-size:.8rem;font-family:inherit;transition:background .15s}
+.pool-target.active{background:var(--accent);color:#fff}
+.pool-target.inactive{background:var(--input-bg);color:var(--muted);border:1px solid var(--border)}
+
 .preview{display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding:24px;overflow-y:auto;gap:16px}
 .canvas-wrap{box-shadow:0 8px 40px rgba(0,0,0,.6);border-radius:4px;overflow:hidden;line-height:0}
-#card-canvas{display:block;max-width:100%;max-height:calc(100vh - 160px)}
+#card-canvas{display:block}
 .preview-actions{display:flex;gap:10px}
 .preview-actions button{padding:10px 24px;font-size:.88rem}
 </style>
@@ -95,10 +101,10 @@ header h1{font-family:'Gentium Plus',serif;font-size:1.25rem;font-weight:400}
     <h1>Social Cards Generator</h1>
   </header>
   <div class="main">
-    <!-- ── Controls ── -->
+
     <div class="controls">
       <div>
-        <label>Datum (MM-TT)</label>
+        <label>Datum</label>
         <input type="date" id="datum-input">
       </div>
       <div>
@@ -108,7 +114,6 @@ header h1{font-family:'Gentium Plus',serif;font-size:1.25rem;font-weight:400}
 
       <div class="divider"></div>
 
-      <!-- Format-Tabs -->
       <div>
         <label>Format</label>
         <div class="tabs">
@@ -147,7 +152,7 @@ header h1{font-family:'Gentium Plus',serif;font-size:1.25rem;font-weight:400}
       <div id="ctrl-B" class="fmt-ctrl hidden">
         <div>
           <label>Kollokator</label>
-          <select id="collocate-sel" onchange="onCollocateChange()"><option value="">– Lemma + Relation wählen –</option></select>
+          <select id="collocate-sel" onchange="onCollocateChange()"><option value="">– Lemma wählen –</option></select>
         </div>
         <div>
           <label>Beleg</label>
@@ -158,6 +163,10 @@ header h1{font-family:'Gentium Plus',serif;font-size:1.25rem;font-weight:400}
           <label>Quelle (Kurzform für Karte)</label>
           <input id="b-quelle-input" placeholder="Dt. Bundestag · 2019">
         </div>
+        <label class="check-row">
+          <input type="checkbox" id="b-show-options">
+          <span>Antwortoptionen anzeigen (A / B / C)</span>
+        </label>
       </div>
 
       <!-- Format C -->
@@ -171,25 +180,39 @@ header h1{font-family:'Gentium Plus',serif;font-size:1.25rem;font-weight:400}
           <label>Wort B</label>
           <input id="wortB-input" placeholder="Vaterland">
         </div>
+        <div id="wz-pool-wrap" style="display:none">
+          <label>Verfügbare Kollokatoren</label>
+          <div class="chip-pool" id="wz-chip-pool"></div>
+          <div class="pool-targets">
+            <button class="pool-target active" id="pool-btn-A" onclick="setPoolTarget('A')">→ Wort A</button>
+            <button class="pool-target inactive" id="pool-btn-B" onclick="setPoolTarget('B')">→ Wort B</button>
+          </div>
+        </div>
         <div>
-          <label>Kollokatoren Wort A (2, Komma)</label>
+          <label>Kollokatoren Wort A (Komma)</label>
           <input id="kollA-input" placeholder="prägen, beschwören">
         </div>
         <div>
-          <label>Kollokatoren Wort B (2, Komma)</label>
+          <label>Kollokatoren Wort B (Komma)</label>
           <input id="kollB-input" placeholder="dienen, verteidigen">
         </div>
-        <div class="info">Auf der Karte erscheinen alle 4 Chips gemischt. Die Zuweisung muss erraten werden.</div>
+        <div class="info">Alle Chips erscheinen gemischt auf der Karte.</div>
       </div>
 
       <!-- Format X -->
       <div id="ctrl-X" class="fmt-ctrl hidden">
         <div>
           <label>Subtyp</label>
-          <select id="x-subtype">
-            <option value="Wortgeschichte">Wortgeschichte</option>
-            <option value="Korpusfakt">Korpusfakt</option>
-          </select>
+          <input id="x-subtype" list="x-subtype-list" placeholder="Wortgeschichte">
+          <datalist id="x-subtype-list">
+            <option value="Wortgeschichte">
+            <option value="Korpusfakt">
+            <option value="Sprachbeobachtung">
+            <option value="Etymologie">
+            <option value="Korpusanalyse">
+            <option value="Sprachvergleich">
+            <option value="Wort des Tages">
+          </datalist>
         </div>
         <div>
           <label>Lemma (Hauptwort der Karte)</label>
@@ -218,7 +241,6 @@ header h1{font-family:'Gentium Plus',serif;font-size:1.25rem;font-weight:400}
       <button class="btn secondary" onclick="renderCard()">↺ Vorschau</button>
     </div>
 
-    <!-- ── Preview ── -->
     <div class="preview">
       <div class="canvas-wrap">
         <canvas id="card-canvas" width="540" height="675"></canvas>
@@ -228,11 +250,12 @@ header h1{font-family:'Gentium Plus',serif;font-size:1.25rem;font-weight:400}
         <button class="btn" onclick="downloadCard()">⬇ Als PNG laden</button>
       </div>
     </div>
+
   </div>
 </div>
 
 <script>
-// ── Auth ─────────────────────────────────────────────────────────────────────
+// ── Auth ──────────────────────────────────────────────────────────────────────
 async function doLogin() {
   const key = document.getElementById('login-key').value
   const err = document.getElementById('login-error')
@@ -242,34 +265,25 @@ async function doLogin() {
     const r = await fetch('/admin/auth', {
       method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ key })
     })
-    if (r.ok) {
-      document.getElementById('login-overlay').style.display = 'none'
-      document.getElementById('app').style.display = 'block'
-      initApp()
-    } else {
-      err.style.display = 'block'; btn.disabled = false; btn.textContent = 'Anmelden'
-    }
+    if (r.ok) { document.getElementById('login-overlay').style.display = 'none'; document.getElementById('app').style.display = 'block'; initApp() }
+    else { err.style.display = 'block'; btn.disabled = false; btn.textContent = 'Anmelden' }
   } catch { err.style.display = 'block'; btn.disabled = false; btn.textContent = 'Anmelden' }
 }
-
 async function checkAuth() {
   try {
     const r = await fetch('/admin/health', { credentials: 'include' })
-    if (r.ok) {
-      document.getElementById('login-overlay').style.display = 'none'
-      document.getElementById('app').style.display = 'block'
-      initApp()
-    }
+    if (r.ok) { document.getElementById('login-overlay').style.display = 'none'; document.getElementById('app').style.display = 'block'; initApp() }
   } catch {}
 }
 checkAuth()
 
-// ── State ────────────────────────────────────────────────────────────────────
+// ── State ─────────────────────────────────────────────────────────────────────
 let currentFormat = 'A'
 let currentLemmata = []
-let currentCollocations = []   // { wort, logDice, relation, relation_description }
-let currentBelege = []         // { tokens, quelle }
+let currentCollocations = []
+let currentBelege = []
 let currentWz = null
+let poolTarget = 'A'
 
 function setFormat(fmt) {
   currentFormat = fmt
@@ -279,16 +293,15 @@ function setFormat(fmt) {
   renderCard()
 }
 
-// ── Init ─────────────────────────────────────────────────────────────────────
+// ── Init ──────────────────────────────────────────────────────────────────────
 function initApp() {
   const di = document.getElementById('datum-input')
   const today = new Date()
-  const mm = String(today.getMonth()+1).padStart(2,'0')
-  const dd = String(today.getDate()).padStart(2,'0')
-  di.value = `${today.getFullYear()}-${mm}-${dd}`
+  di.value = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`
   di.addEventListener('change', onDatumChange)
   document.getElementById('lemma-select').addEventListener('change', onLemmaChange)
   document.querySelectorAll('input[name=ratio]').forEach(r => r.addEventListener('change', renderCard))
+  document.getElementById('b-show-options').addEventListener('change', renderCard)
   ;['answer-input','dist1-input','dist2-input','rel-desc-input',
     'wortA-input','wortB-input','kollA-input','kollB-input',
     'x-subtype','x-lemma','x-headline','x-body','b-quelle-input'
@@ -296,12 +309,12 @@ function initApp() {
   onDatumChange()
 }
 
-// ── Data loading ─────────────────────────────────────────────────────────────
+// ── Data loading ──────────────────────────────────────────────────────────────
 async function onDatumChange() {
-  const val = document.getElementById('datum-input').value  // YYYY-MM-DD
+  const val = document.getElementById('datum-input').value
   if (!val) return
   const parts = val.split('-')
-  const datum = parts[1] + '-' + parts[2]  // MM-DD
+  const datum = parts[1] + '-' + parts[2]
 
   const r = await fetch(`/admin/social-cards/tagesdata?datum=${datum}`, {credentials:'include'})
   if (!r.ok) { alert('Fehler beim Laden der Tagesdaten'); return }
@@ -312,8 +325,7 @@ async function onDatumChange() {
   const sel = document.getElementById('lemma-select')
   sel.innerHTML = '<option value="">– Lemma wählen –</option>'
   currentLemmata.forEach(l => {
-    const o = document.createElement('option')
-    o.value = l.id; o.textContent = `${l.lemma} (${l.pos})`; sel.appendChild(o)
+    const o = document.createElement('option'); o.value = l.id; o.textContent = `${l.lemma} (${l.pos})`; sel.appendChild(o)
   })
   if (currentLemmata.length === 1) { sel.value = currentLemmata[0].id; onLemmaChange() }
 
@@ -322,17 +334,17 @@ async function onDatumChange() {
     const wz = currentWz
     document.getElementById('wortA-input').value = wz.wortA
     document.getElementById('wortB-input').value = wz.wortB
-    document.getElementById('wz-info').textContent = `Wort-Zwilling-Daten für ${wz.wortA} / ${wz.wortB} geladen.`
-    // Parse kollokatoren: [{wort, owner:'A'|'B'}]
+    document.getElementById('wz-info').textContent = `Wort-Zwilling: ${wz.wortA} / ${wz.wortB} geladen.`
     const kols = typeof wz.kollokatoren === 'string' ? JSON.parse(wz.kollokatoren) : wz.kollokatoren
+    populateWzChipPool(kols)
     const kollA = kols.filter(k => k.owner === 'A').slice(0,2).map(k => k.wort).join(', ')
     const kollB = kols.filter(k => k.owner === 'B').slice(0,2).map(k => k.wort).join(', ')
     document.getElementById('kollA-input').value = kollA
     document.getElementById('kollB-input').value = kollB
   } else {
     document.getElementById('wz-info').textContent = 'Kein Wort-Zwilling für dieses Datum. Manuell eingeben.'
+    document.getElementById('wz-pool-wrap').style.display = 'none'
   }
-
   renderCard()
 }
 
@@ -340,48 +352,29 @@ async function onLemmaChange() {
   const id = document.getElementById('lemma-select').value
   const lemma = currentLemmata.find(l => l.id === id)
   if (!lemma) return
-
   const r = await fetch(`/admin/analyze-kollokation?q=${encodeURIComponent(lemma.lemma)}&pos=${encodeURIComponent(lemma.pos)}`, {credentials:'include'})
   if (!r.ok) return
   const data = await r.json()
-
-  // Flatten all relation items into currentCollocations
   currentCollocations = (data.runden || []).flatMap(runde =>
-    (runde.items || []).map(it => ({
-      wort: it.wort,
-      logDice: it.logDice,
-      relation: runde.key,
-      relation_description: runde.desc,
-    }))
+    (runde.items || []).map(it => ({ wort: it.wort, logDice: it.logDice, relation: runde.key, relation_description: runde.desc }))
   )
-
   populateRelSelect()
   renderCard()
 }
 
 function populateRelSelect() {
-  const lemmaId = document.getElementById('lemma-select').value
-  const lemma = currentLemmata.find(l => l.id === lemmaId)
-  if (!lemma) return
-
-  // Get unique relations present in collocations
   const rels = [...new Set(currentCollocations.map(c => c.relation))]
-
   const relSel = document.getElementById('rel-select')
   relSel.innerHTML = ''
   rels.forEach(rel => {
     const desc = currentCollocations.find(c => c.relation === rel)?.relation_description || rel
     const o = document.createElement('option'); o.value = rel; o.textContent = desc; relSel.appendChild(o)
   })
-
   if (rels.length) onRelChange()
 
-  // Populate Format B collocate select too
   const collSel = document.getElementById('collocate-sel')
   collSel.innerHTML = '<option value="">– Kollokator wählen –</option>'
-  // Sort by logDice desc
-  const sorted = [...currentCollocations].sort((a,b) => b.logDice - a.logDice).slice(0, 20)
-  sorted.forEach(c => {
+  ;[...currentCollocations].sort((a,b) => b.logDice - a.logDice).slice(0, 25).forEach(c => {
     const o = document.createElement('option')
     o.value = c.wort; o.textContent = `${c.wort} (${c.relation}, logDice ${parseFloat(c.logDice).toFixed(1)})`
     collSel.appendChild(o)
@@ -394,8 +387,7 @@ function onRelChange() {
   document.getElementById('answer-input').value = items[0]?.wort || ''
   document.getElementById('dist1-input').value  = items[4]?.wort || items[1]?.wort || ''
   document.getElementById('dist2-input').value  = items[9]?.wort || items[2]?.wort || ''
-  const desc = items[0]?.relation_description || rel
-  document.getElementById('rel-desc-input').value = desc
+  document.getElementById('rel-desc-input').value = items[0]?.relation_description || rel
   renderCard()
 }
 
@@ -405,17 +397,14 @@ async function onCollocateChange() {
   const lemmaId = document.getElementById('lemma-select').value
   const lemma = currentLemmata.find(l => l.id === lemmaId)
   if (!lemma) return
-
   const r = await fetch(`/admin/social-cards/belege?lemma=${encodeURIComponent(lemma.lemma)}&collocate=${encodeURIComponent(collocate)}`, {credentials:'include'})
   if (!r.ok) { document.getElementById('beleg-preview').textContent = 'Keine Belege gefunden.'; return }
   const data = await r.json()
   currentBelege = data.belege || []
-
   const bSel = document.getElementById('beleg-sel')
   bSel.innerHTML = '<option value="">– Beleg wählen –</option>'
   currentBelege.forEach((b, i) => {
-    const o = document.createElement('option')
-    o.value = i; o.textContent = `Beleg ${i+1}: ${b.quelle}`; bSel.appendChild(o)
+    const o = document.createElement('option'); o.value = i; o.textContent = `Beleg ${i+1}: ${b.quelle}`; bSel.appendChild(o)
   })
   if (currentBelege.length) { bSel.value = '0'; onBelegChange() }
 }
@@ -424,10 +413,8 @@ function onBelegChange() {
   const idx = parseInt(document.getElementById('beleg-sel').value)
   const beleg = currentBelege[idx]
   if (!beleg) { document.getElementById('beleg-preview').textContent = '—'; return }
-
   const collocate = document.getElementById('collocate-sel').value
-  const text = tokensToText(beleg.tokens, collocate)
-  document.getElementById('beleg-preview').textContent = text
+  document.getElementById('beleg-preview').textContent = tokensToText(beleg.tokens, collocate)
   document.getElementById('b-quelle-input').value = beleg.quelle || ''
   renderCard()
 }
@@ -438,25 +425,43 @@ function tokensToText(tokens, collocate) {
   for (const t of tokens) {
     if (t.ws && text) text += ' '
     const wordLow = t.w.replace(/[.,;:!?"""''()\[\]]/g, '').toLowerCase()
-    if (t.hl && (wordLow === colLow || wordLow.startsWith(colLow))) {
-      text += '______'
-    } else {
-      text += t.w
-    }
+    if (t.hl && (wordLow === colLow || wordLow.startsWith(colLow))) text += '______'
+    else text += t.w
   }
   return text
 }
 
-function tokensToRaw(tokens) {
-  let text = ''
-  for (const t of tokens) {
-    if (t.ws && text) text += ' '
-    text += t.w
-  }
-  return text
+// ── WZ Chip Pool ──────────────────────────────────────────────────────────────
+function populateWzChipPool(kols) {
+  const pool = document.getElementById('wz-chip-pool')
+  const wrap = document.getElementById('wz-pool-wrap')
+  pool.innerHTML = ''
+  if (!kols || !kols.length) { wrap.style.display = 'none'; return }
+  wrap.style.display = 'block'
+  kols.forEach(k => {
+    const btn = document.createElement('button')
+    btn.textContent = k.wort
+    btn.className = 'chip-btn'
+    btn.title = `Zu Wort ${poolTarget} hinzufügen`
+    btn.onclick = () => addToKollInput(k.wort)
+    pool.appendChild(btn)
+  })
 }
 
-// ── Canvas constants ─────────────────────────────────────────────────────────
+function setPoolTarget(target) {
+  poolTarget = target
+  document.getElementById('pool-btn-A').className = 'pool-target ' + (target === 'A' ? 'active' : 'inactive')
+  document.getElementById('pool-btn-B').className = 'pool-target ' + (target === 'B' ? 'active' : 'inactive')
+}
+
+function addToKollInput(wort) {
+  const inputId = poolTarget === 'A' ? 'kollA-input' : 'kollB-input'
+  const input = document.getElementById(inputId)
+  const existing = input.value.split(',').map(s => s.trim()).filter(Boolean)
+  if (!existing.includes(wort)) { input.value = [...existing, wort].join(', '); renderCard() }
+}
+
+// ── Canvas constants ──────────────────────────────────────────────────────────
 const ACCENT    = '#9b1c1c'
 const GOLD      = '#c9a84c'
 const BG        = '#faf9f7'
@@ -464,15 +469,15 @@ const TEXT_COL  = '#1a1510'
 const MUTED_COL = '#8a8070'
 const SANS      = "'DM Sans', system-ui, sans-serif"
 const SERIF     = "'Gentium Plus', Georgia, serif"
+const PAD = 96, BORDER = 18
 
 function getCanvasDims() {
-  const is916 = document.querySelector('input[name=ratio]:checked')?.value === '9:16'
-  return is916 ? { W: 1080, H: 1920 } : { W: 1080, H: 1350 }
+  return document.querySelector('input[name=ratio]:checked')?.value === '9:16'
+    ? { W: 1080, H: 1920 } : { W: 1080, H: 1350 }
 }
 
-// ── Canvas helpers ───────────────────────────────────────────────────────────
+// ── Canvas helpers ────────────────────────────────────────────────────────────
 function drawRule(ctx, y, W) {
-  const PAD = 96
   const x1 = PAD, x2 = W - PAD
   ctx.strokeStyle = GOLD; ctx.lineWidth = 1.5
   ctx.beginPath(); ctx.moveTo(x1, Math.round(y)+.5); ctx.lineTo(x2, Math.round(y)+.5); ctx.stroke()
@@ -480,6 +485,7 @@ function drawRule(ctx, y, W) {
 }
 
 function wrapLines(ctx, text, maxW) {
+  if (!text) return []
   const words = text.split(' ')
   const lines = []
   let line = ''
@@ -501,165 +507,119 @@ function roundRect(ctx, x, y, w, h, r) {
   ctx.closePath()
 }
 
-// ── Shared header/footer ─────────────────────────────────────────────────────
-// Returns new y after drawing
+function drawOptions(ctx, W, y, opts) {
+  const optRowH = 72, optGap = 12
+  opts.forEach((opt, i) => {
+    const ry = y + i * (optRowH + optGap)
+    const midY = ry + optRowH / 2
+    if (i > 0) {
+      ctx.strokeStyle = '#e4ddd4'; ctx.lineWidth = 1
+      ctx.beginPath(); ctx.moveTo(PAD, ry - 1); ctx.lineTo(W-PAD, ry - 1); ctx.stroke()
+    }
+    // Letter badge
+    const badgeR = 22, badgeX = PAD + badgeR
+    ctx.fillStyle = '#ede8e0'
+    ctx.beginPath(); ctx.arc(badgeX, midY, badgeR, 0, Math.PI*2); ctx.fill()
+    ctx.fillStyle = TEXT_COL; ctx.font = `600 24px ${SANS}`; ctx.textAlign = 'center'
+    ctx.fillText(opt.letter, badgeX, midY + 9)
+    // Option text
+    ctx.textAlign = 'left'; ctx.fillStyle = TEXT_COL; ctx.font = `400 38px ${SERIF}`
+    ctx.fillText(opt.text, PAD + badgeR*2 + 20, midY + 14)
+    // Poll circle
+    ctx.strokeStyle = '#c8c0b4'; ctx.lineWidth = 2
+    ctx.beginPath(); ctx.arc(W - PAD - 20, midY, 18, 0, Math.PI*2); ctx.stroke()
+  })
+  return y + opts.length * (optRowH + optGap) - optGap
+}
+
+// ── Shared header / footer ────────────────────────────────────────────────────
+const HEADER_H = (26+24) + (100+44) + (8+36) + (36+44) + (8+52)
+const FOOTER_H = (8+52) + (44+48) + 28
+
 function drawHeader(ctx, W, yStart) {
-  const PAD = 96
   let y = yStart
-
-  // Overline
-  ctx.textAlign = 'center'; ctx.fillStyle = MUTED_COL
-  ctx.font = `400 26px ${SANS}`; ctx.letterSpacing = '3px'
-  ctx.fillText('TÄGLICHES WORTSPIEL · LINGUISTIK', W/2, y + 26)
-  ctx.letterSpacing = '0px'; y += 26 + 24
-
-  // Title
+  ctx.textAlign = 'center'; ctx.fillStyle = MUTED_COL; ctx.font = `400 26px ${SANS}`; ctx.letterSpacing = '3px'
+  ctx.fillText('TÄGLICHES WORTSPIEL · LINGUISTIK', W/2, y+26); ctx.letterSpacing = '0px'; y += 26+24
   ctx.fillStyle = TEXT_COL; ctx.font = `bold 100px ${SERIF}`; ctx.letterSpacing = '4px'
-  ctx.fillText('SIGNIFIKATION', W/2, y + 100)
-  ctx.letterSpacing = '0px'; y += 100 + 44
-
-  // Rule
-  drawRule(ctx, y, W); y += 8 + 36
-
-  // Date
+  ctx.fillText('SIGNIFIKATION', W/2, y+100); ctx.letterSpacing = '0px'; y += 100+44
+  drawRule(ctx, y, W); y += 8+36
   const d = new Date()
   const WDAYS = ['Sonntag','Montag','Dienstag','Mittwoch','Donnerstag','Freitag','Samstag']
   const MONS  = ['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember']
   ctx.fillStyle = MUTED_COL; ctx.font = `400 36px ${SANS}`
   ctx.fillText(`${WDAYS[d.getDay()]}, ${d.getDate()}. ${MONS[d.getMonth()]} ${d.getFullYear()}`, W/2, y+36)
-  y += 36 + 44
-
-  // Rule
-  drawRule(ctx, y, W); y += 8 + 52
-
+  y += 36+44; drawRule(ctx, y, W); y += 8+52
   return y
 }
 
 function drawFooter(ctx, W, y) {
-  // Rule
-  drawRule(ctx, y, W); y += 8 + 52
-
-  // Ornament
+  drawRule(ctx, y, W); y += 8+52
   ctx.textAlign = 'center'; ctx.fillStyle = GOLD; ctx.font = `italic 44px ${SERIF}`
-  ctx.fillText('· · ·', W/2, y+44); y += 44 + 48
-
-  // URL
+  ctx.fillText('· · ·', W/2, y+44); y += 44+48
   ctx.fillStyle = MUTED_COL; ctx.font = `400 28px ${SANS}`
   ctx.fillText('signifikation.de', W/2, y+28)
 }
 
-// Height of shared header (overline → last rule, exclusive of yStart)
-const HEADER_H = (26+24) + (100+44) + (8+36) + (36+44) + (8+52)  // = 378
-// Height of shared footer (rule → URL)
-const FOOTER_H = (8+52) + (44+48) + 28  // = 180
-
-// ── Format A ─────────────────────────────────────────────────────────────────
+// ── Format A ──────────────────────────────────────────────────────────────────
 function contentHeightA() {
-  return 38+24 + 180+48 + 28+32 + 3*(72+12)  // intro + box + reldesc + 3 options
+  return 180+48 + 28+32 + 3*(72+12)
 }
 
 function drawFormatA(ctx, W, y, data) {
-  const PAD = 96
   const { lemma, pos, ipa, answer, dist1, dist2, relDesc } = data
 
-  // Intro
-  ctx.textAlign = 'center'; ctx.fillStyle = MUTED_COL; ctx.font = `400 38px ${SANS}`
-  ctx.fillText('Welches Wort kombiniert sich mit …?', W/2, y+38); y += 38 + 24
-
   // Lemma box
-  const boxX = PAD, boxW = W - PAD*2, boxH = 180, boxR = 12
+  const boxW = W - PAD*2, boxH = 180, boxR = 12
   ctx.strokeStyle = ACCENT; ctx.lineWidth = 3
-  roundRect(ctx, boxX, y, boxW, boxH, boxR); ctx.stroke()
-  // Pos label
-  ctx.fillStyle = MUTED_COL; ctx.font = `400 22px ${SANS}`; ctx.letterSpacing = '2px'
+  roundRect(ctx, PAD, y, boxW, boxH, boxR); ctx.stroke()
+  ctx.fillStyle = MUTED_COL; ctx.font = `400 22px ${SANS}`; ctx.letterSpacing = '2px'; ctx.textAlign = 'center'
   ctx.fillText((pos || 'Substantiv').toUpperCase(), W/2, y+34); ctx.letterSpacing = '0px'
-  // Lemma
   ctx.fillStyle = TEXT_COL
-  const lemmaSize = lemma && lemma.length > 14 ? 58 : lemma && lemma.length > 10 ? 68 : 80
+  const lemmaSize = (lemma||'').length > 14 ? 52 : (lemma||'').length > 10 ? 64 : 76
   ctx.font = `bold ${lemmaSize}px ${SERIF}`
   ctx.fillText(lemma || 'LEMMA', W/2, y + boxH/2 + lemmaSize*0.36)
-  // IPA
   if (ipa) {
     ctx.fillStyle = MUTED_COL; ctx.font = `400 24px ${SANS}`
-    ctx.fillText(ipa, W/2, y + boxH - 20)
+    ctx.fillText(`[${ipa}]`, W/2, y + boxH - 20)
   }
   y += boxH + 48
 
   // Relation description
   ctx.textAlign = 'center'; ctx.fillStyle = MUTED_COL; ctx.font = `400 28px ${SANS}`
-  ctx.fillText(relDesc || '', W/2, y+28); y += 28 + 32
+  ctx.fillText(relDesc || '', W/2, y+28); y += 28+32
 
-  // Shuffle options: always show answer at random position
   const opts = [
     { letter: 'A', text: answer || '–' },
     { letter: 'B', text: dist1  || '–' },
     { letter: 'C', text: dist2  || '–' },
   ]
-  // Shuffle so answer isn't always A
-  ;[opts[0], opts[1], opts[2]] = (() => {
-    const arr = [...opts]; for (let i = arr.length-1; i>0; i--) {
-      const j = Math.floor(Math.random()*1); [arr[i],arr[j]]=[arr[j],arr[i]]
-    }; return arr
-  })()
-
-  const optRowH = 72, optGap = 12
-  opts.forEach((opt, i) => {
-    const ry = y + i * (optRowH + optGap)
-    const midY = ry + optRowH / 2
-
-    // Separator line
-    ctx.strokeStyle = '#e4ddd4'; ctx.lineWidth = 1
-    if (i > 0) { ctx.beginPath(); ctx.moveTo(PAD, ry - 1); ctx.lineTo(W-PAD, ry - 1); ctx.stroke() }
-
-    // Letter badge
-    const badgeR = 22, badgeX = PAD + badgeR, badgeY = midY
-    ctx.fillStyle = '#ede8e0'
-    ctx.beginPath(); ctx.arc(badgeX, badgeY, badgeR, 0, Math.PI*2); ctx.fill()
-    ctx.fillStyle = TEXT_COL; ctx.font = `600 24px ${SANS}`; ctx.textAlign = 'center'
-    ctx.fillText(opt.letter, badgeX, badgeY + 9)
-
-    // Option text
-    ctx.textAlign = 'left'; ctx.fillStyle = TEXT_COL; ctx.font = `400 38px ${SERIF}`
-    ctx.fillText(opt.text, PAD + badgeR*2 + 20, midY + 14)
-
-    // Poll circle
-    const pollX = W - PAD - 20
-    ctx.strokeStyle = '#c8c0b4'; ctx.lineWidth = 2
-    ctx.beginPath(); ctx.arc(pollX, midY, 18, 0, Math.PI*2); ctx.stroke()
-  })
-
-  y += opts.length * (optRowH + optGap) - optGap
-  return y
+  return drawOptions(ctx, W, y, opts)
 }
 
-// ── Format B ─────────────────────────────────────────────────────────────────
-function contentHeightB(quoteText, W) {
-  // estimate wrap height
-  const PAD = 96
-  const approxCharsPerLine = Math.floor((W - PAD*2 - 28) / 22)
+// ── Format B ──────────────────────────────────────────────────────────────────
+function contentHeightB(quoteText, W, showOpts) {
+  const approxCharsPerLine = Math.floor((W - PAD*2 - 32) / 22)
   const estLines = Math.ceil((quoteText||'').length / approxCharsPerLine) + 1
-  return 40 + estLines * 52 + 24 + 36 + 32 + 36
+  const quoteH = 40 + estLines * 54 + 32
+  const badgeH = 44 + 32
+  const qH = 34
+  const optsH = showOpts ? 32 + 3*(72+12) : 0
+  return quoteH + 32 + badgeH + qH + optsH
 }
 
 function drawFormatB(ctx, W, y, data) {
-  const PAD = 96
-  const { quoteText, quelle, collocate } = data
+  const { quoteText, quelle, showOptions, dist1, dist2 } = data
 
-  // Large opening quote mark
+  // Decorative opening „
   ctx.textAlign = 'left'; ctx.fillStyle = GOLD; ctx.font = `italic 160px ${SERIF}`
   ctx.fillText('\u201E', PAD, y + 100); y += 40
 
-  // Left red line
-  const lineX = PAD
-  const textX = PAD + 32
-  const maxW  = W - PAD*2 - 32
-
+  // Quote block with left red line
+  const textX = PAD + 32, maxW = W - PAD*2 - 32
   ctx.font = `italic 36px ${SERIF}`
-  const lines = wrapLines(ctx, quoteText || '„—"', maxW)
+  const lines = wrapLines(ctx, quoteText || '—', maxW)
   const blockH = lines.length * 54 + 32
-
-  ctx.fillStyle = ACCENT; ctx.fillRect(lineX, y, 4, blockH)
-
+  ctx.fillStyle = ACCENT; ctx.fillRect(PAD, y, 4, blockH)
   ctx.fillStyle = TEXT_COL; ctx.textAlign = 'left'
   lines.forEach((line, i) => ctx.fillText(line, textX, y + 42 + i * 54))
   y += blockH
@@ -668,140 +628,144 @@ function drawFormatB(ctx, W, y, data) {
   ctx.fillStyle = MUTED_COL; ctx.font = `italic 28px ${SANS}`
   ctx.fillText('[Hervorh. d. Red.]', textX, y + 32); y += 32 + 24
 
-  // Corpus badge pill
+  // Corpus badge – wraps if long
   const badgeTxt = quelle || 'Korpus CC BY-SA'
   ctx.font = `400 24px ${SANS}`
-  const badgeW = ctx.measureText(badgeTxt).width + 40
-  const badgeX = PAD, badgeY = y, badgeH = 44
+  const badgeMaxW = W - PAD*2
+  const badgeLines = wrapLines(ctx, badgeTxt, badgeMaxW - 40)
+  const badgeLineH = 34, badgePadV = 14
+  const badgeH = badgeLines.length * badgeLineH + badgePadV * 2
+  const badgeR = badgeLines.length > 1 ? 8 : badgeH / 2
   ctx.fillStyle = '#2a2218'
-  roundRect(ctx, badgeX, badgeY, badgeW, badgeH, 22); ctx.fill()
+  roundRect(ctx, PAD, y, badgeMaxW, badgeH, badgeR); ctx.fill()
   ctx.fillStyle = '#c8c0b4'; ctx.textAlign = 'left'
-  ctx.fillText(badgeTxt, badgeX + 20, badgeY + 30); y += badgeH + 32
+  badgeLines.forEach((l, i) => ctx.fillText(l, PAD + 20, y + badgePadV + badgeLineH * (i + 0.85)))
+  y += badgeH + 32
 
   // Question
   ctx.textAlign = 'center'; ctx.fillStyle = MUTED_COL; ctx.font = `400 34px ${SANS}`
   ctx.fillText('Welches Wort fehlt im Zitat?', W/2, y+34); y += 34
 
+  // Optional A/B/C options
+  if (showOptions) {
+    y += 32
+    const opts = [
+      { letter: 'A', text: data.collocate || '–' },
+      { letter: 'B', text: dist1 || '–' },
+      { letter: 'C', text: dist2 || '–' },
+    ]
+    y = drawOptions(ctx, W, y, opts)
+  }
+
   return y
 }
 
-// ── Format C ─────────────────────────────────────────────────────────────────
+// ── Format C ──────────────────────────────────────────────────────────────────
 function contentHeightC() {
-  return 120 + 40 + 12 + 70 + 32 + 38
+  return 120 + 40 + 12 + 60 + 32 + 38
 }
 
 function drawFormatC(ctx, W, y, data) {
-  const PAD = 96
   const { wortA, wortB, kollA, kollB } = data
-
-  // Two headword boxes
   const col = Math.floor((W - PAD*2 - 60) / 2)
   const boxH = 120, boxR = 10, boxY = y
 
-  // Box A
   ctx.strokeStyle = ACCENT; ctx.lineWidth = 2.5
   roundRect(ctx, PAD, boxY, col, boxH, boxR); ctx.stroke()
   ctx.textAlign = 'center'; ctx.fillStyle = TEXT_COL
-  const sizeA = (wortA||'').length > 10 ? 42 : 52
-  ctx.font = `bold ${sizeA}px ${SERIF}`
-  ctx.fillText(wortA || 'Wort A', PAD + col/2, boxY + boxH/2 + sizeA * 0.36)
+  const sA = (wortA||'').length > 10 ? 42 : 52; ctx.font = `bold ${sA}px ${SERIF}`
+  ctx.fillText(wortA || 'Wort A', PAD + col/2, boxY + boxH/2 + sA*0.36)
 
-  // Divider diamond
-  const diamX = PAD + col + 30, diamY = boxY + boxH/2
-  ctx.fillStyle = GOLD; ctx.font = `400 40px ${SANS}`; ctx.textAlign = 'center'
-  ctx.fillText('◆', diamX, diamY + 14)
+  ctx.fillStyle = GOLD; ctx.font = `400 40px ${SANS}`
+  ctx.fillText('◆', PAD + col + 30, boxY + boxH/2 + 14)
 
-  // Box B
   const boxBX = PAD + col + 60
   ctx.strokeStyle = ACCENT; ctx.lineWidth = 2.5
   roundRect(ctx, boxBX, boxY, col, boxH, boxR); ctx.stroke()
   ctx.fillStyle = TEXT_COL
-  const sizeB = (wortB||'').length > 10 ? 42 : 52
-  ctx.font = `bold ${sizeB}px ${SERIF}`
-  ctx.fillText(wortB || 'Wort B', boxBX + col/2, boxY + boxH/2 + sizeB * 0.36)
+  const sB = (wortB||'').length > 10 ? 42 : 52; ctx.font = `bold ${sB}px ${SERIF}`
+  ctx.fillText(wortB || 'Wort B', boxBX + col/2, boxY + boxH/2 + sB*0.36)
 
   y += boxH + 40
-
-  // Separator
   ctx.strokeStyle = '#ddd8ce'; ctx.lineWidth = 1
   ctx.beginPath(); ctx.moveTo(PAD, y); ctx.lineTo(W-PAD, y); ctx.stroke(); y += 12
 
-  // Kollokatoren chips (all 4, shuffled)
+  // Chips (shuffled)
   const chips = [
-    ...(kollA||'').split(',').map(s => s.trim()).filter(Boolean).slice(0,2).map(w => ({w, owner:'A'})),
-    ...(kollB||'').split(',').map(s => s.trim()).filter(Boolean).slice(0,2).map(w => ({w, owner:'B'})),
+    ...(kollA||'').split(',').map(s=>s.trim()).filter(Boolean).slice(0,4).map(w=>({w,owner:'A'})),
+    ...(kollB||'').split(',').map(s=>s.trim()).filter(Boolean).slice(0,4).map(w=>({w,owner:'B'})),
   ]
-  // shuffle
   for (let i = chips.length-1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i+1)); [chips[i], chips[j]] = [chips[j], chips[i]]
+    const j = Math.floor(Math.random()*(i+1)); [chips[i],chips[j]]=[chips[j],chips[i]]
   }
 
   ctx.font = `400 30px ${SANS}`
   const chipH = 52, chipPadX = 28, chipGap = 16
-  const totalChipW = chips.reduce((s, c) => s + ctx.measureText(c.w).width + chipPadX*2, 0) + chipGap*(chips.length-1)
-  let cx = (W - totalChipW) / 2
-
-  chips.forEach(chip => {
+  // Wrap chips to two rows if needed
+  const rows = [[]]
+  let rowW = 0
+  const maxRowW = W - PAD*2
+  for (const chip of chips) {
     const cw = ctx.measureText(chip.w).width + chipPadX*2
-    ctx.fillStyle = '#ede8e0'
-    roundRect(ctx, cx, y, cw, chipH, chipH/2); ctx.fill()
-    ctx.fillStyle = TEXT_COL; ctx.textAlign = 'center'
-    ctx.fillText(chip.w, cx + cw/2, y + chipH/2 + 11)
-    cx += cw + chipGap
+    if (rowW + cw + (rows[rows.length-1].length > 0 ? chipGap : 0) > maxRowW && rows[rows.length-1].length > 0) {
+      rows.push([chip]); rowW = cw
+    } else {
+      rows[rows.length-1].push(chip); rowW += cw + (rows[rows.length-1].length > 1 ? chipGap : 0)
+    }
+  }
+  rows.forEach(row => {
+    const totalW = row.reduce((s,c) => s + ctx.measureText(c.w).width + chipPadX*2, 0) + chipGap*(row.length-1)
+    let cx = (W - totalW) / 2
+    row.forEach(chip => {
+      const cw = ctx.measureText(chip.w).width + chipPadX*2
+      ctx.fillStyle = '#ede8e0'; roundRect(ctx, cx, y, cw, chipH, chipH/2); ctx.fill()
+      ctx.fillStyle = TEXT_COL; ctx.textAlign = 'center'; ctx.fillText(chip.w, cx+cw/2, y+chipH/2+11)
+      cx += cw + chipGap
+    })
+    y += chipH + 10
   })
-  y += chipH + 32
+  y += 22
 
-  // Question
   ctx.textAlign = 'center'; ctx.fillStyle = MUTED_COL; ctx.font = `400 34px ${SANS}`
   ctx.fillText('Welchem Wort gehört welcher Kollokator?', W/2, y+34); y += 34
-
   return y
 }
 
-// ── Format X ─────────────────────────────────────────────────────────────────
+// ── Format X ──────────────────────────────────────────────────────────────────
 function contentHeightX(headline, body, W) {
-  const PAD = 96
-  const estHLines = Math.ceil((headline||'').length / 25) + 1
-  const estBLines = Math.ceil((body||'').length / 45) + 1
-  return 50 + 32 + estHLines * 80 + 32 + estBLines * 52
+  const estH = Math.ceil((headline||'').length / 25) + 1
+  const estB = Math.ceil((body||'').length / 45) + 1
+  return 50+32 + estH*80 + 32 + estB*52
 }
 
 function drawFormatX(ctx, W, y, data) {
-  const PAD = 96
   const { subtype, xLemma, headline, body } = data
 
   // Subtype pill
   const pillTxt = (subtype || 'WORTGESCHICHTE').toUpperCase()
   ctx.font = `600 22px ${SANS}`
   const pillW = ctx.measureText(pillTxt).width + 40
-  ctx.fillStyle = ACCENT
-  roundRect(ctx, (W-pillW)/2, y, pillW, 40, 20); ctx.fill()
+  ctx.fillStyle = ACCENT; roundRect(ctx, (W-pillW)/2, y, pillW, 40, 20); ctx.fill()
   ctx.fillStyle = '#fff'; ctx.textAlign = 'center'; ctx.letterSpacing = '2px'
-  ctx.fillText(pillTxt, W/2, y+27); ctx.letterSpacing = '0px'; y += 40 + 32
+  ctx.fillText(pillTxt, W/2, y+27); ctx.letterSpacing = '0px'; y += 40+32
 
-  // Lemma (large)
   if (xLemma) {
-    ctx.fillStyle = TEXT_COL; ctx.font = `bold 80px ${SERIF}`
-    ctx.fillText(xLemma, W/2, y+80); y += 80 + 28
-    // Horizontal rule under lemma
+    ctx.fillStyle = TEXT_COL; ctx.font = `bold 80px ${SERIF}`; ctx.textAlign = 'center'
+    ctx.fillText(xLemma, W/2, y+80); y += 80+28
     ctx.strokeStyle = ACCENT; ctx.lineWidth = 1.5
-    ctx.beginPath(); ctx.moveTo(PAD, y+0.5); ctx.lineTo(W-PAD, y+0.5); ctx.stroke(); y += 1 + 32
+    ctx.beginPath(); ctx.moveTo(PAD, y+.5); ctx.lineTo(W-PAD, y+.5); ctx.stroke(); y += 1+32
   }
 
-  // Headline
   if (headline) {
-    ctx.fillStyle = TEXT_COL; ctx.font = `italic 48px ${SERIF}`
-    const hLines = wrapLines(ctx, headline, W - PAD*2)
-    hLines.forEach((l, i) => ctx.fillText(l, W/2, y + 48 + i * 60))
-    y += hLines.length * 60 + 24
+    ctx.fillStyle = TEXT_COL; ctx.font = `italic 48px ${SERIF}`; ctx.textAlign = 'center'
+    const hL = wrapLines(ctx, headline, W-PAD*2)
+    hL.forEach((l,i) => ctx.fillText(l, W/2, y+48+i*60)); y += hL.length*60+24
   }
 
-  // Body
   if (body) {
-    ctx.fillStyle = TEXT_COL; ctx.font = `400 36px ${SANS}`
-    const bLines = wrapLines(ctx, body, W - PAD*2)
-    bLines.forEach((l, i) => ctx.fillText(l, W/2, y + 36 + i * 50))
-    y += bLines.length * 50
+    ctx.fillStyle = TEXT_COL; ctx.font = `400 36px ${SANS}`; ctx.textAlign = 'center'
+    const bL = wrapLines(ctx, body, W-PAD*2)
+    bL.forEach((l,i) => ctx.fillText(l, W/2, y+36+i*50)); y += bL.length*50
   }
 
   return y
@@ -812,44 +776,30 @@ async function renderCard() {
   await document.fonts.ready
   const { W, H } = getCanvasDims()
   const canvas = document.getElementById('card-canvas')
-  canvas.width  = W
-  canvas.height = H
+  canvas.width = W; canvas.height = H
 
-  // Scale for display
-  const maxH = window.innerHeight - 160
-  const maxW = window.innerWidth - 360
-  const scaleH = maxH / H
-  const scaleW = maxW / W
-  const scale  = Math.min(scaleH, scaleW, 1)
-  canvas.style.width  = Math.round(W * scale) + 'px'
-  canvas.style.height = Math.round(H * scale) + 'px'
+  const maxH = window.innerHeight - 160, maxW = window.innerWidth - 380
+  const scale = Math.min(maxH/H, maxW/W, 1)
+  canvas.style.width  = Math.round(W*scale) + 'px'
+  canvas.style.height = Math.round(H*scale) + 'px'
 
   const ctx = canvas.getContext('2d')
   ctx.textBaseline = 'alphabetic'
-  const PAD = 96
-  const BORDER = 18
-
-  // Background
   ctx.fillStyle = BG; ctx.fillRect(0, 0, W, H)
-  // Borders
   ctx.fillStyle = ACCENT; ctx.fillRect(0, 0, W, BORDER); ctx.fillRect(0, H-BORDER, W, BORDER)
 
-  // Collect format data
   const fmt = currentFormat
   const lemmaId = document.getElementById('lemma-select').value
   const lemma = currentLemmata.find(l => l.id === lemmaId)
+  const showOpts = document.getElementById('b-show-options').checked
 
-  // Estimate content height for vertical centering
   let contentH = 400
   if (fmt === 'A') contentH = contentHeightA()
-  else if (fmt === 'B') contentH = contentHeightB(document.getElementById('beleg-preview').textContent, W)
+  else if (fmt === 'B') contentH = contentHeightB(document.getElementById('beleg-preview').textContent, W, showOpts)
   else if (fmt === 'C') contentH = contentHeightC()
   else if (fmt === 'X') contentH = contentHeightX(document.getElementById('x-headline').value, document.getElementById('x-body').value, W)
 
-  const totalH = HEADER_H + contentH + FOOTER_H
-  const usable = H - BORDER * 2
-  const yStart = BORDER + Math.max(60, Math.round((usable - totalH) / 2))
-
+  const yStart = BORDER + Math.max(60, Math.round((H - BORDER*2 - HEADER_H - contentH - FOOTER_H) / 2))
   let y = drawHeader(ctx, W, yStart)
 
   if (fmt === 'A') {
@@ -866,11 +816,16 @@ async function renderCard() {
     const belegIdx = parseInt(document.getElementById('beleg-sel').value)
     const beleg = currentBelege[belegIdx]
     const collocate = document.getElementById('collocate-sel').value
-    const quoteText = beleg ? tokensToText(beleg.tokens, collocate) : '—'
+    const distractors = currentCollocations
+      .filter(c => c.wort.toLowerCase() !== collocate.toLowerCase())
+      .sort((a,b) => b.logDice - a.logDice)
     y = drawFormatB(ctx, W, y, {
-      quoteText,
-      quelle:    document.getElementById('b-quelle-input').value,
+      quoteText:   beleg ? tokensToText(beleg.tokens, collocate) : '—',
+      quelle:      document.getElementById('b-quelle-input').value,
       collocate,
+      showOptions: showOpts,
+      dist1:       distractors[4]?.wort || distractors[1]?.wort || '',
+      dist2:       distractors[9]?.wort || distractors[2]?.wort || '',
     })
   } else if (fmt === 'C') {
     y = drawFormatC(ctx, W, y, {
@@ -882,7 +837,7 @@ async function renderCard() {
   } else if (fmt === 'X') {
     y = drawFormatX(ctx, W, y, {
       subtype:  document.getElementById('x-subtype').value,
-      xLemma:  document.getElementById('x-lemma').value,
+      xLemma:   document.getElementById('x-lemma').value,
       headline: document.getElementById('x-headline').value,
       body:     document.getElementById('x-body').value,
     })
@@ -893,15 +848,14 @@ async function renderCard() {
 
 function downloadCard() {
   const canvas = document.getElementById('card-canvas')
-  const fmt = currentFormat
   const link = document.createElement('a')
-  link.download = `signifikation-format${fmt.toLowerCase()}.png`
-  link.href = canvas.toDataURL('image/png')
-  link.click()
+  link.download = `signifikation-format${currentFormat.toLowerCase()}.png`
+  link.href = canvas.toDataURL('image/png'); link.click()
 }
 
-// Initial render
-window.addEventListener('load', () => { if (document.getElementById('app').style.display !== 'none') renderCard() })
+window.addEventListener('load', () => {
+  if (document.getElementById('app').style.display !== 'none') renderCard()
+})
 </script>
 </body>
 </html>
