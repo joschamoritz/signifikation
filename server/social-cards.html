@@ -158,7 +158,7 @@ header h1{font-family:'Gentium Plus',serif;font-size:1.25rem;font-weight:400}
           <label>Beleg</label>
           <select id="beleg-sel" onchange="onBelegChange()"><option value="">– Kollokator wählen –</option></select>
         </div>
-        <div class="beleg-preview" id="beleg-preview">—</div>
+        <textarea class="beleg-preview" id="beleg-preview" rows="5" placeholder="—" spellcheck="false"></textarea>
         <div>
           <label>Quelle (Kurzform für Karte)</label>
           <input id="b-quelle-input" placeholder="Dt. Bundestag · 2019">
@@ -238,6 +238,11 @@ header h1{font-family:'Gentium Plus',serif;font-size:1.25rem;font-weight:400}
         </div>
       </div>
 
+      <label class="check-row" id="reveal-toggle-row">
+        <input type="checkbox" id="reveal-toggle">
+        <span>Auflösung / Reveal-Modus</span>
+      </label>
+
       <button class="btn secondary" onclick="renderCard()">↺ Vorschau</button>
     </div>
 
@@ -302,9 +307,10 @@ function initApp() {
   document.getElementById('lemma-select').addEventListener('change', onLemmaChange)
   document.querySelectorAll('input[name=ratio]').forEach(r => r.addEventListener('change', renderCard))
   document.getElementById('b-show-options').addEventListener('change', renderCard)
+  document.getElementById('reveal-toggle').addEventListener('change', renderCard)
   ;['answer-input','dist1-input','dist2-input','rel-desc-input',
     'wortA-input','wortB-input','kollA-input','kollB-input',
-    'x-subtype','x-lemma','x-headline','x-body','b-quelle-input'
+    'x-subtype','x-lemma','x-headline','x-body','b-quelle-input','beleg-preview'
   ].forEach(id => document.getElementById(id).addEventListener('input', renderCard))
   onDatumChange()
 }
@@ -414,7 +420,7 @@ function onBelegChange() {
   const beleg = currentBelege[idx]
   if (!beleg) { document.getElementById('beleg-preview').textContent = '—'; return }
   const collocate = document.getElementById('collocate-sel').value
-  document.getElementById('beleg-preview').textContent = tokensToText(beleg.tokens, collocate)
+  document.getElementById('beleg-preview').value = tokensToText(beleg.tokens, collocate)
   document.getElementById('b-quelle-input').value = beleg.quelle || ''
   renderCard()
 }
@@ -566,7 +572,7 @@ function contentHeightA() {
 }
 
 function drawFormatA(ctx, W, y, data) {
-  const { lemma, pos, ipa, answer, dist1, dist2, relDesc } = data
+  const { lemma, pos, ipa, answer, dist1, dist2, relDesc, reveal } = data
 
   // Lemma box
   const boxW = W - PAD*2, boxH = 180, boxR = 12
@@ -588,6 +594,48 @@ function drawFormatA(ctx, W, y, data) {
   ctx.textAlign = 'center'; ctx.fillStyle = MUTED_COL; ctx.font = `400 28px ${SANS}`
   ctx.fillText(relDesc || '', W/2, y+28); y += 28+32
 
+  if (reveal) {
+    // Reveal: correct answer prominent, distractors dimmed
+    const optRowH = 72, optGap = 12
+    const revOpts = [
+      { letter: 'A', text: answer || '–', correct: true  },
+      { letter: 'B', text: dist1  || '–', correct: false },
+      { letter: 'C', text: dist2  || '–', correct: false },
+    ]
+    revOpts.forEach((opt, i) => {
+      const ry = y + i * (optRowH + optGap)
+      const midY = ry + optRowH / 2
+      if (i > 0) {
+        ctx.strokeStyle = '#e4ddd4'; ctx.lineWidth = 1
+        ctx.beginPath(); ctx.moveTo(PAD, ry-1); ctx.lineTo(W-PAD, ry-1); ctx.stroke()
+      }
+      ctx.globalAlpha = opt.correct ? 1 : 0.28
+      const badgeR = 22, badgeX = PAD + badgeR
+      ctx.fillStyle = opt.correct ? ACCENT : '#ede8e0'
+      ctx.beginPath(); ctx.arc(badgeX, midY, badgeR, 0, Math.PI*2); ctx.fill()
+      ctx.fillStyle = opt.correct ? '#fff' : TEXT_COL
+      ctx.font = `600 24px ${SANS}`; ctx.textAlign = 'center'
+      ctx.fillText(opt.letter, badgeX, midY+9)
+      ctx.textAlign = 'left'
+      ctx.fillStyle = opt.correct ? ACCENT : TEXT_COL
+      ctx.font = opt.correct ? `bold 40px ${SERIF}` : `400 38px ${SERIF}`
+      ctx.fillText(opt.text, PAD + badgeR*2 + 20, midY+14)
+      // Poll circle: filled with ✓ for correct, empty+dim for others
+      const pollX = W - PAD - 20
+      if (opt.correct) {
+        ctx.fillStyle = ACCENT
+        ctx.beginPath(); ctx.arc(pollX, midY, 20, 0, Math.PI*2); ctx.fill()
+        ctx.fillStyle = '#fff'; ctx.font = `600 26px ${SANS}`; ctx.textAlign = 'center'
+        ctx.fillText('✓', pollX, midY+9)
+      } else {
+        ctx.strokeStyle = '#c8c0b4'; ctx.lineWidth = 2
+        ctx.beginPath(); ctx.arc(pollX, midY, 18, 0, Math.PI*2); ctx.stroke()
+      }
+      ctx.globalAlpha = 1
+    })
+    return y + revOpts.length * (optRowH + optGap) - optGap
+  }
+
   const opts = [
     { letter: 'A', text: answer || '–' },
     { letter: 'B', text: dist1  || '–' },
@@ -608,7 +656,12 @@ function contentHeightB(quoteText, W, showOpts) {
 }
 
 function drawFormatB(ctx, W, y, data) {
-  const { quoteText, quelle, showOptions, dist1, dist2 } = data
+  const { quoteText, quelle, showOptions, dist1, dist2, collocate, reveal } = data
+
+  // In reveal mode: replace blank with the collocate word
+  const displayText = reveal
+    ? (quoteText || '—').replace(/______/g, collocate || '?')
+    : (quoteText || '—')
 
   // Decorative opening „
   ctx.textAlign = 'left'; ctx.fillStyle = GOLD; ctx.font = `italic 160px ${SERIF}`
@@ -617,7 +670,7 @@ function drawFormatB(ctx, W, y, data) {
   // Quote block with left red line
   const textX = PAD + 32, maxW = W - PAD*2 - 32
   ctx.font = `italic 36px ${SERIF}`
-  const lines = wrapLines(ctx, quoteText || '—', maxW)
+  const lines = wrapLines(ctx, displayText, maxW)
   const blockH = lines.length * 54 + 32
   ctx.fillStyle = ACCENT; ctx.fillRect(PAD, y, 4, blockH)
   ctx.fillStyle = TEXT_COL; ctx.textAlign = 'left'
@@ -642,19 +695,25 @@ function drawFormatB(ctx, W, y, data) {
   badgeLines.forEach((l, i) => ctx.fillText(l, PAD + 20, y + badgePadV + badgeLineH * (i + 0.85)))
   y += badgeH + 32
 
-  // Question
-  ctx.textAlign = 'center'; ctx.fillStyle = MUTED_COL; ctx.font = `400 34px ${SANS}`
-  ctx.fillText('Welches Wort fehlt im Zitat?', W/2, y+34); y += 34
-
-  // Optional A/B/C options
-  if (showOptions) {
-    y += 32
-    const opts = [
-      { letter: 'A', text: data.collocate || '–' },
-      { letter: 'B', text: dist1 || '–' },
-      { letter: 'C', text: dist2 || '–' },
-    ]
-    y = drawOptions(ctx, W, y, opts)
+  if (reveal) {
+    // Reveal: "Das gesuchte Wort:" + collocate prominent
+    ctx.textAlign = 'center'
+    ctx.fillStyle = MUTED_COL; ctx.font = `400 30px ${SANS}`
+    ctx.fillText('Das gesuchte Wort', W/2, y+30); y += 30 + 16
+    ctx.fillStyle = ACCENT; ctx.font = `bold 72px ${SERIF}`; ctx.letterSpacing = '2px'
+    ctx.fillText(collocate || '—', W/2, y+72); ctx.letterSpacing = '0px'; y += 72
+  } else {
+    // Question
+    ctx.textAlign = 'center'; ctx.fillStyle = MUTED_COL; ctx.font = `400 34px ${SANS}`
+    ctx.fillText('Welches Wort fehlt im Zitat?', W/2, y+34); y += 34
+    if (showOptions) {
+      y += 32
+      y = drawOptions(ctx, W, y, [
+        { letter: 'A', text: collocate || '–' },
+        { letter: 'B', text: dist1 || '–' },
+        { letter: 'C', text: dist2 || '–' },
+      ])
+    }
   }
 
   return y
@@ -690,13 +749,14 @@ function drawFormatC(ctx, W, y, data) {
   ctx.strokeStyle = '#ddd8ce'; ctx.lineWidth = 1
   ctx.beginPath(); ctx.moveTo(PAD, y); ctx.lineTo(W-PAD, y); ctx.stroke(); y += 12
 
-  // Chips (shuffled)
-  const chips = [
-    ...(kollA||'').split(',').map(s=>s.trim()).filter(Boolean).slice(0,4).map(w=>({w,owner:'A'})),
-    ...(kollB||'').split(',').map(s=>s.trim()).filter(Boolean).slice(0,4).map(w=>({w,owner:'B'})),
-  ]
-  for (let i = chips.length-1; i > 0; i--) {
-    const j = Math.floor(Math.random()*(i+1)); [chips[i],chips[j]]=[chips[j],chips[i]]
+  // Chips – shuffled in puzzle mode, grouped+colored in reveal mode
+  const chipsA = (kollA||'').split(',').map(s=>s.trim()).filter(Boolean).slice(0,4).map(w=>({w,owner:'A'}))
+  const chipsB = (kollB||'').split(',').map(s=>s.trim()).filter(Boolean).slice(0,4).map(w=>({w,owner:'B'}))
+  const chips = data.reveal ? [...chipsA, ...chipsB] : [...chipsA, ...chipsB]
+  if (!data.reveal) {
+    for (let i = chips.length-1; i > 0; i--) {
+      const j = Math.floor(Math.random()*(i+1)); [chips[i],chips[j]]=[chips[j],chips[i]]
+    }
   }
 
   ctx.font = `400 30px ${SANS}`
@@ -718,16 +778,33 @@ function drawFormatC(ctx, W, y, data) {
     let cx = (W - totalW) / 2
     row.forEach(chip => {
       const cw = ctx.measureText(chip.w).width + chipPadX*2
-      ctx.fillStyle = '#ede8e0'; roundRect(ctx, cx, y, cw, chipH, chipH/2); ctx.fill()
-      ctx.fillStyle = TEXT_COL; ctx.textAlign = 'center'; ctx.fillText(chip.w, cx+cw/2, y+chipH/2+11)
+      if (data.reveal) {
+        ctx.fillStyle = chip.owner === 'A' ? ACCENT : GOLD
+      } else {
+        ctx.fillStyle = '#ede8e0'
+      }
+      roundRect(ctx, cx, y, cw, chipH, chipH/2); ctx.fill()
+      ctx.fillStyle = data.reveal ? '#fff' : TEXT_COL
+      ctx.textAlign = 'center'; ctx.fillText(chip.w, cx+cw/2, y+chipH/2+11)
       cx += cw + chipGap
     })
     y += chipH + 10
   })
   y += 22
 
-  ctx.textAlign = 'center'; ctx.fillStyle = MUTED_COL; ctx.font = `400 34px ${SANS}`
-  ctx.fillText('Welchem Wort gehört welcher Kollokator?', W/2, y+34); y += 34
+  ctx.textAlign = 'center'; ctx.font = `400 34px ${SANS}`
+  if (data.reveal) {
+    // Legend: ■ Wort A  ■ Wort B
+    const legY = y + 34
+    ctx.fillStyle = ACCENT; ctx.fillText('■', W/2 - 140, legY)
+    ctx.fillStyle = TEXT_COL; ctx.fillText(` ${wortA || 'Wort A'}`, W/2 - 100, legY)
+    ctx.fillStyle = GOLD; ctx.fillText('■', W/2 + 80, legY)
+    ctx.fillStyle = TEXT_COL; ctx.fillText(` ${wortB || 'Wort B'}`, W/2 + 120, legY)
+  } else {
+    ctx.fillStyle = MUTED_COL
+    ctx.fillText('Welchem Wort gehört welcher Kollokator?', W/2, y+34)
+  }
+  y += 34
   return y
 }
 
@@ -792,6 +869,7 @@ async function renderCard() {
   const lemmaId = document.getElementById('lemma-select').value
   const lemma = currentLemmata.find(l => l.id === lemmaId)
   const showOpts = document.getElementById('b-show-options').checked
+  const reveal   = document.getElementById('reveal-toggle').checked
 
   let contentH = 400
   if (fmt === 'A') contentH = contentHeightA()
@@ -811,21 +889,22 @@ async function renderCard() {
       dist1:   document.getElementById('dist1-input').value,
       dist2:   document.getElementById('dist2-input').value,
       relDesc: document.getElementById('rel-desc-input').value,
+      reveal,
     })
   } else if (fmt === 'B') {
     const belegIdx = parseInt(document.getElementById('beleg-sel').value)
-    const beleg = currentBelege[belegIdx]
     const collocate = document.getElementById('collocate-sel').value
     const distractors = currentCollocations
       .filter(c => c.wort.toLowerCase() !== collocate.toLowerCase())
       .sort((a,b) => b.logDice - a.logDice)
     y = drawFormatB(ctx, W, y, {
-      quoteText:   beleg ? tokensToText(beleg.tokens, collocate) : '—',
+      quoteText:   document.getElementById('beleg-preview').value || '—',
       quelle:      document.getElementById('b-quelle-input').value,
       collocate,
       showOptions: showOpts,
       dist1:       distractors[4]?.wort || distractors[1]?.wort || '',
       dist2:       distractors[9]?.wort || distractors[2]?.wort || '',
+      reveal,
     })
   } else if (fmt === 'C') {
     y = drawFormatC(ctx, W, y, {
@@ -833,6 +912,7 @@ async function renderCard() {
       wortB: document.getElementById('wortB-input').value,
       kollA: document.getElementById('kollA-input').value,
       kollB: document.getElementById('kollB-input').value,
+      reveal,
     })
   } else if (fmt === 'X') {
     y = drawFormatX(ctx, W, y, {
