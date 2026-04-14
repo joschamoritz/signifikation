@@ -209,6 +209,7 @@ header h1{font-family:'Gentium Plus',serif;font-size:1.25rem;font-weight:400}
             <option value="Korpusanalyse">
             <option value="Sprachvergleich">
             <option value="Wort des Tages">
+            <option value="Zitat">
           </datalist>
         </div>
         <div>
@@ -223,6 +224,17 @@ header h1{font-family:'Gentium Plus',serif;font-size:1.25rem;font-weight:400}
           <label>Text (2–4 Sätze)</label>
           <textarea id="x-body" placeholder="Seit dem 18. Jahrhundert …"></textarea>
         </div>
+        <div class="divider"></div>
+        <div style="font-size:.78rem;color:var(--muted);text-transform:uppercase;letter-spacing:.05em">Aus Korpus befüllen</div>
+        <div>
+          <label>Kollokator</label>
+          <select id="x-zitat-collocate" onchange="onXZitatCollocateChange()"><option value="">– Lemma wählen –</option></select>
+        </div>
+        <div id="x-zitat-beleg-wrap" style="display:none">
+          <label>Beleg</label>
+          <select id="x-zitat-beleg-sel"></select>
+        </div>
+        <button class="btn secondary" onclick="fillXAsZitat()">Als Zitat übernehmen →</button>
       </div>
 
       <div class="divider"></div>
@@ -283,6 +295,7 @@ checkAuth()
 let currentFormat = 'A'
 let currentLemmata = []
 let currentCollocations = []
+let currentXZitatBelege = []
 let currentBelege = []
 let currentWz = null
 let poolTarget = 'A'
@@ -382,6 +395,14 @@ function populateRelSelect() {
     o.value = c.wort; o.textContent = `${c.wort} (${c.relation}, logDice ${parseFloat(c.logDice).toFixed(1)})`
     collSel.appendChild(o)
   })
+
+  const xZitatSel = document.getElementById('x-zitat-collocate')
+  xZitatSel.innerHTML = '<option value="">– Kollokator wählen –</option>'
+  ;[...currentCollocations].sort((a,b) => b.logDice - a.logDice).slice(0, 25).forEach(c => {
+    const o = document.createElement('option')
+    o.value = c.wort; o.textContent = `${c.wort} (${c.relation})`
+    xZitatSel.appendChild(o)
+  })
 }
 
 function onRelChange() {
@@ -419,6 +440,46 @@ function onBelegChange() {
   const collocate = document.getElementById('collocate-sel').value
   document.getElementById('beleg-preview').value = tokensToText(beleg.tokens, collocate)
   document.getElementById('b-quelle-input').value = beleg.quelle || ''
+  renderCard()
+}
+
+function tokensToFullText(tokens) {
+  let text = ''
+  for (const t of tokens) {
+    if (t.ws && text) text += ' '
+    text += t.w
+  }
+  return text
+}
+
+async function onXZitatCollocateChange() {
+  const collocate = document.getElementById('x-zitat-collocate').value
+  if (!collocate) return
+  const lemmaId = document.getElementById('lemma-select').value
+  const lemma = currentLemmata.find(l => l.id === lemmaId)
+  if (!lemma) return
+  const r = await fetch(`/admin/social-cards/belege?lemma=${encodeURIComponent(lemma.lemma)}&collocate=${encodeURIComponent(collocate)}`, {credentials:'include'})
+  if (!r.ok) return
+  const data = await r.json()
+  currentXZitatBelege = data.belege || []
+  const bSel = document.getElementById('x-zitat-beleg-sel')
+  bSel.innerHTML = ''
+  currentXZitatBelege.forEach((b, i) => {
+    const o = document.createElement('option'); o.value = i; o.textContent = `Beleg ${i+1}: ${b.quelle}`; bSel.appendChild(o)
+  })
+  document.getElementById('x-zitat-beleg-wrap').style.display = currentXZitatBelege.length ? '' : 'none'
+}
+
+function fillXAsZitat() {
+  const collocate = document.getElementById('x-zitat-collocate').value
+  const idx = parseInt(document.getElementById('x-zitat-beleg-sel').value) || 0
+  const beleg = currentXZitatBelege[idx]
+  if (!beleg || !collocate) return
+  document.getElementById('x-subtype').value = 'Zitat'
+  document.getElementById('x-body').value = tokensToFullText(beleg.tokens)
+  document.getElementById('x-headline').value = beleg.quelle || ''
+  document.getElementById('x-lemma').value = document.getElementById('x-lemma').value ||
+    (currentLemmata.find(l => l.id === document.getElementById('lemma-select').value)?.lemma || '')
   renderCard()
 }
 
@@ -806,7 +867,11 @@ function drawFormatC(ctx, W, y, data) {
 }
 
 // ── Format X ──────────────────────────────────────────────────────────────────
-function contentHeightX(headline, body, W) {
+function contentHeightX(headline, body, W, subtype) {
+  if (subtype === 'Zitat') {
+    const estLines = Math.ceil((body||'').length / 38) + 1
+    return 40+40 + 130 + estLines*58 + 40 + 60 + 40
+  }
   const estH = Math.ceil((headline||'').length / 25) + 1
   const estB = Math.ceil((body||'').length / 45) + 1
   return 50+32 + estH*80 + 32 + estB*52
@@ -814,6 +879,45 @@ function contentHeightX(headline, body, W) {
 
 function drawFormatX(ctx, W, y, data) {
   const { subtype, xLemma, headline, body } = data
+
+  if (subtype === 'Zitat') {
+    // Pill
+    const pillTxt = 'ZITAT'
+    ctx.font = `600 22px ${SANS}`
+    const pillW = ctx.measureText(pillTxt).width + 40
+    ctx.fillStyle = ACCENT; roundRect(ctx, (W-pillW)/2, y, pillW, 40, 20); ctx.fill()
+    ctx.fillStyle = '#fff'; ctx.textAlign = 'center'; ctx.letterSpacing = '2px'
+    ctx.fillText(pillTxt, W/2, y+27); ctx.letterSpacing = '0px'; y += 40+40
+
+    // Decorative opening quote
+    ctx.fillStyle = ACCENT; ctx.font = `bold 130px ${SERIF}`; ctx.textAlign = 'left'
+    ctx.fillText('„', PAD, y+90); y += 40
+
+    // Left red line + quote text
+    const lineX = PAD + 14
+    const textX = lineX + 26
+    const textW = W - textX - PAD
+    ctx.font = `italic 42px ${SERIF}`; ctx.fillStyle = TEXT_COL; ctx.textAlign = 'left'
+    const qLines = wrapLines(ctx, body || '—', textW)
+    const quoteH = qLines.length * 58
+    ctx.strokeStyle = ACCENT; ctx.lineWidth = 5
+    ctx.beginPath(); ctx.moveTo(lineX, y); ctx.lineTo(lineX, y + quoteH); ctx.stroke()
+    qLines.forEach((l, i) => ctx.fillText(l, textX, y + 42 + i * 58))
+    y += quoteH + 40
+
+    // Source
+    if (headline) {
+      ctx.fillStyle = MUTED_COL; ctx.font = `400 28px ${SANS}`; ctx.textAlign = 'right'
+      ctx.fillText('— ' + headline, W - PAD, y + 28); y += 28 + 28
+    }
+
+    // Lemma label
+    if (xLemma) {
+      ctx.fillStyle = MUTED_COL; ctx.font = `italic 30px ${SERIF}`; ctx.textAlign = 'center'
+      ctx.fillText(xLemma, W/2, y + 30); y += 30
+    }
+    return y
+  }
 
   // Subtype pill
   const pillTxt = (subtype || 'WORTGESCHICHTE').toUpperCase()
@@ -872,7 +976,7 @@ async function renderCard() {
   if (fmt === 'A') contentH = contentHeightA()
   else if (fmt === 'B') contentH = contentHeightB(document.getElementById('beleg-preview').textContent, W, showOpts)
   else if (fmt === 'C') contentH = contentHeightC()
-  else if (fmt === 'X') contentH = contentHeightX(document.getElementById('x-headline').value, document.getElementById('x-body').value, W)
+  else if (fmt === 'X') contentH = contentHeightX(document.getElementById('x-headline').value, document.getElementById('x-body').value, W, document.getElementById('x-subtype').value)
 
   const yStart = BORDER + Math.max(60, Math.round((H - BORDER*2 - HEADER_H - contentH - FOOTER_H) / 2))
   let y = drawHeader(ctx, W, yStart)
