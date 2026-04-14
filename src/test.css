@@ -41,17 +41,15 @@
 .test-title-section {
   padding: 52px 0 28px;
   text-align: center;
-  position: relative;
 }
 
-/* Share-Button + Streak — Desktop: oben rechts im Header */
+/* Share-Button + Streak — Desktop: unter dem Datum, rechtsbündig */
 .test-title-right {
-  position: absolute;
-  top: 20px;
-  right: 0;
   display: flex;
+  justify-content: flex-end;
   align-items: center;
   gap: 8px;
+  margin-top: 10px;
 }
 
 .test-title-share {
@@ -874,12 +872,13 @@
   }
   /* test-title-right übernimmt Grid-Position, enthält Share-Icon + Streak */
   .test-title-right {
-    position: static;
     grid-column: 2;
     grid-row: 1;
     display: flex;
     align-items: center;
+    justify-content: flex-end;
     gap: 6px;
+    margin-top: 0;
   }
 
   .test-title-share {
