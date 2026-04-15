@@ -27,6 +27,8 @@ export default function Home({
   wzPlayed = null, onPlayWortzwilling, onViewWortzwilling,
   zeitenwende = null, zeitenwendeError = false, onRetryZeitenwende,
   zwPlayed = null, onPlayZeitenwende, onViewZeitenwende,
+  gesamtausgabe = false,
+  onUnlockGesamtausgabe = () => {},
 }) {
   const [sheetOpen,         setSheetOpen]         = useState(false)
   const [desktopInfoOpen,   setDesktopInfoOpen]   = useState(false)
@@ -36,12 +38,6 @@ export default function Home({
   const [imgState,          setImgState]          = useState(null)
   const [showDayComplete,   setShowDayComplete]   = useState(false)
   const [activeCard,        setActiveCard]        = useState(0)
-  const [gesamtausgabe,     setGesamtausgabe]     = useState(() => !!lsGet('sig_gesamtausgabe'))
-
-  function unlockGesamtausgabe() {
-    lsSet('sig_gesamtausgabe', '1')
-    setGesamtausgabe(true)
-  }
 
   const entriesRef = useRef(null)
 
@@ -339,7 +335,7 @@ export default function Home({
                     {!gesamtausgabe ? 'Teil der Gesamtausgabe.' : wortzwillingError ? '' : !wortzwilling ? 'Heute nicht verfügbar.' : wzPlayed ? 'Gespielt.' : 'Noch nicht gespielt.'}
                   </span>
                   {!gesamtausgabe ? (
-                    <button className="test-cta test-cta--locked" type="button" onClick={unlockGesamtausgabe} aria-label="Gesamtausgabe freischalten">
+                    <button className="test-cta test-cta--locked" type="button" onClick={onUnlockGesamtausgabe} aria-label="Gesamtausgabe freischalten">
                       <LockIcon /> Gesamtausgabe freischalten
                     </button>
                   ) : wortzwilling ? (
@@ -403,7 +399,7 @@ export default function Home({
                     {!gesamtausgabe ? 'Teil der Gesamtausgabe.' : zeitenwendeError ? '' : !zeitenwende ? 'Heute nicht verfügbar.' : zwPlayed ? 'Gespielt.' : 'Noch nicht gespielt.'}
                   </span>
                   {!gesamtausgabe ? (
-                    <button className="test-cta test-cta--locked" type="button" onClick={unlockGesamtausgabe} aria-label="Gesamtausgabe freischalten">
+                    <button className="test-cta test-cta--locked" type="button" onClick={onUnlockGesamtausgabe} aria-label="Gesamtausgabe freischalten">
                       <LockIcon /> Gesamtausgabe freischalten
                     </button>
                   ) : zeitenwende ? (
@@ -467,7 +463,7 @@ export default function Home({
                     {!gesamtausgabe ? 'Teil der Gesamtausgabe.' : zeitreiseError ? '' : !zeitreise ? 'Heute nicht verfügbar.' : zrPlayed ? 'Gespielt.' : 'Noch nicht gespielt.'}
                   </span>
                   {!gesamtausgabe ? (
-                    <button className="test-cta test-cta--locked" type="button" onClick={unlockGesamtausgabe} aria-label="Gesamtausgabe freischalten">
+                    <button className="test-cta test-cta--locked" type="button" onClick={onUnlockGesamtausgabe} aria-label="Gesamtausgabe freischalten">
                       <LockIcon /> Gesamtausgabe freischalten
                     </button>
                   ) : zeitreise ? (

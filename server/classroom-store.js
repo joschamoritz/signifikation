@@ -1,0 +1,489 @@
+import { createHmac, randomUUID } from 'crypto'
+import db from './db.js'
+
+const TIMEZONE = process.env.TIMEZONE || 'Europe/Berlin'
+const JOIN_SECRET = (process.env.CLASSROOM_JOIN_SECRET || process.env.ADMIN_KEY || 'dev-classroom-secret').trim()
+const RETENTION_MS = 90 * 24 * 60 * 60 * 1000
+const CONNECTED_WINDOW_MS = 60 * 1000
+
+const stmts = {
+  insertSession: db.prepare(`
+    INSERT INTO classroom_sessions (
+      id, teacher_user_id, join_code_hash, state, datum, year, settings_json, created_at, expires_at
+    ) VALUES (
+      @id, @teacher_user_id, @join_code_hash, @state, @datum, @year, @settings_json, @created_at, @expires_at
+    )
+  `),
+  getSessionById: db.prepare('SELECT * FROM classroom_sessions WHERE id = ?'),
+  findActiveSessionByJoinHash: db.prepare(`
+    SELECT *
+    FROM classroom_sessions
+    WHERE join_code_hash = ?
+      AND state IN ('created','lobby','running')
+      AND expires_at > ?
+    ORDER BY created_at DESC
+    LIMIT 1
+  `),
+  countActiveByJoinHash: db.prepare(`
+    SELECT COUNT(1) AS c
+    FROM classroom_sessions
+    WHERE join_code_hash = ?
+      AND state IN ('created','lobby','running')
+      AND expires_at > ?
+  `),
+  updateSessionState: db.prepare(`
+    UPDATE classroom_sessions
+    SET state = @state,
+        settings_json = @settings_json,
+        started_at = @started_at,
+        finished_at = @finished_at
+    WHERE id = @id
+  `),
+  insertParticipant: db.prepare(`
+    INSERT INTO classroom_participants (
+      id, session_id, participant_token_hash, joined_at, last_seen_at
+    ) VALUES (
+      @id, @session_id, @participant_token_hash, @joined_at, @last_seen_at
+    )
+  `),
+  updateParticipantSeen: db.prepare(`
+    UPDATE classroom_participants
+    SET last_seen_at = @last_seen_at
+      , left_at = NULL
+    WHERE id = @id
+      AND session_id = @session_id
+      AND participant_token_hash = @participant_token_hash
+  `),
+  markParticipantLeft: db.prepare(`
+    UPDATE classroom_participants
+    SET left_at = @left_at
+    WHERE id = @id
+      AND session_id = @session_id
+      AND participant_token_hash = @participant_token_hash
+  `),
+  getParticipant: db.prepare(`
+    SELECT *
+    FROM classroom_participants
+    WHERE id = ?
+      AND session_id = ?
+      AND participant_token_hash = ?
+    LIMIT 1
+  `),
+  upsertSubmission: db.prepare(`
+    INSERT INTO classroom_submissions (
+      id, session_id, participant_id, round_no, payload_json, score, max_score, submitted_at
+    ) VALUES (
+      @id, @session_id, @participant_id, @round_no, @payload_json, @score, @max_score, @submitted_at
+    )
+    ON CONFLICT(session_id, participant_id, round_no) DO UPDATE SET
+      payload_json = excluded.payload_json,
+      score = excluded.score,
+      max_score = excluded.max_score,
+      submitted_at = excluded.submitted_at
+  `),
+  countParticipants: db.prepare('SELECT COUNT(1) AS c FROM classroom_participants WHERE session_id = ?'),
+  countConnectedParticipants: db.prepare(`
+    SELECT COUNT(1) AS c
+    FROM classroom_participants
+    WHERE session_id = ?
+      AND (left_at IS NULL)
+      AND last_seen_at >= ?
+  `),
+  countSubmittedParticipants: db.prepare(`
+    SELECT COUNT(DISTINCT participant_id) AS c
+    FROM classroom_submissions
+    WHERE session_id = ?
+  `),
+  avgScore: db.prepare(`
+    SELECT AVG(score * 1.0) AS avg_score
+    FROM classroom_submissions
+    WHERE session_id = ?
+  `),
+  listSubmissionScores: db.prepare(`
+    SELECT score, max_score
+    FROM classroom_submissions
+    WHERE session_id = ?
+  `),
+  insertExport: db.prepare(`
+    INSERT INTO classroom_exports (
+      id, session_id, type, status, created_at
+    ) VALUES (
+      @id, @session_id, @type, @status, @created_at
+    )
+  `),
+  getExportById: db.prepare('SELECT * FROM classroom_exports WHERE id = ? AND session_id = ?'),
+  updateExportStatus: db.prepare(`
+    UPDATE classroom_exports
+    SET status = @status,
+        file_ref = @file_ref,
+        error = @error,
+        finished_at = @finished_at
+    WHERE id = @id
+      AND session_id = @session_id
+  `),
+  listQueuedExports: db.prepare(`
+    SELECT *
+    FROM classroom_exports
+    WHERE status = 'queued'
+    ORDER BY created_at ASC
+    LIMIT ?
+  `),
+  listExportRowsForSession: db.prepare(`
+    SELECT
+      p.id AS participant_id,
+      p.joined_at,
+      p.last_seen_at,
+      p.left_at,
+      s.round_no,
+      s.score,
+      s.max_score,
+      s.submitted_at
+    FROM classroom_participants p
+    LEFT JOIN classroom_submissions s
+      ON s.session_id = p.session_id
+     AND s.participant_id = p.id
+    WHERE p.session_id = ?
+    ORDER BY p.joined_at ASC, s.round_no ASC
+  `),
+  listExpiredSessionIds: db.prepare(`
+    SELECT id
+    FROM classroom_sessions
+    WHERE expires_at < ?
+    ORDER BY expires_at ASC
+    LIMIT ?
+  `),
+  deleteSessionById: db.prepare('DELETE FROM classroom_sessions WHERE id = ?'),
+}
+
+function nowMs() {
+  return Date.now()
+}
+
+function todayDatum() {
+  const iso = new Intl.DateTimeFormat('en-CA', { timeZone: TIMEZONE }).format(new Date())
+  const [year, month, day] = iso.split('-')
+  return { datum: `${month}-${day}`, year: Number(year) }
+}
+
+function hashValue(input) {
+  return createHmac('sha256', JOIN_SECRET).update(input).digest('hex')
+}
+
+function normalizeSessionRow(row) {
+  if (!row) return null
+  return {
+    id: row.id,
+    teacherUserId: row.teacher_user_id,
+    state: row.state,
+    datum: row.datum,
+    year: row.year,
+    settings: JSON.parse(row.settings_json || '{}'),
+    createdAt: row.created_at,
+    startedAt: row.started_at,
+    finishedAt: row.finished_at,
+    expiresAt: row.expires_at,
+  }
+}
+
+function normalizeExportRow(row) {
+  if (!row) return null
+  return {
+    id: row.id,
+    sessionId: row.session_id,
+    type: row.type,
+    status: row.status,
+    fileRef: row.file_ref,
+    error: row.error,
+    createdAt: row.created_at,
+    finishedAt: row.finished_at,
+  }
+}
+
+function generateJoinCode(length = 6) {
+  const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
+  let out = ''
+  for (let i = 0; i < length; i += 1) {
+    out += alphabet[Math.floor(Math.random() * alphabet.length)]
+  }
+  return out
+}
+
+function resolveJoinCode() {
+  const now = nowMs()
+  for (let i = 0; i < 8; i += 1) {
+    const candidate = generateJoinCode(6)
+    const candidateHash = hashValue(candidate)
+    const row = stmts.countActiveByJoinHash.get(candidateHash, now)
+    if (!row || row.c === 0) {
+      return { joinCode: candidate, joinCodeHash: candidateHash }
+    }
+  }
+  throw new Error('Join-Code konnte nicht eindeutig erzeugt werden')
+}
+
+function mergeSettings(existingSettings, updates) {
+  return { ...(existingSettings || {}), ...(updates || {}) }
+}
+
+function buildDistribution(rows) {
+  const dist = Array(11).fill(0)
+  for (const row of rows) {
+    const maxScore = Number(row.max_score || 0)
+    const score = Number(row.score || 0)
+    const bucket = maxScore > 0 ? Math.round((score / maxScore) * 10) : 0
+    const clamped = Math.max(0, Math.min(10, bucket))
+    dist[clamped] += 1
+  }
+  return dist
+}
+
+export function createClassroomSession({ teacherUserId, datum, year, settings }) {
+  const now = nowMs()
+  const today = todayDatum()
+  const id = randomUUID()
+  const { joinCode, joinCodeHash } = resolveJoinCode()
+  const row = {
+    id,
+    teacher_user_id: teacherUserId,
+    join_code_hash: joinCodeHash,
+    state: 'lobby',
+    datum: datum || today.datum,
+    year: year || today.year,
+    settings_json: JSON.stringify(settings || {}),
+    created_at: now,
+    expires_at: now + RETENTION_MS,
+  }
+  stmts.insertSession.run(row)
+  return {
+    session: normalizeSessionRow(stmts.getSessionById.get(id)),
+    joinCode,
+  }
+}
+
+export function getSessionById({ sessionId }) {
+  return normalizeSessionRow(stmts.getSessionById.get(sessionId))
+}
+
+export function startClassroomSession({ sessionId, teacherUserId, allowLateJoin }) {
+  const raw = stmts.getSessionById.get(sessionId)
+  if (!raw) return { error: 'NOT_FOUND' }
+  if (raw.teacher_user_id !== teacherUserId) return { error: 'FORBIDDEN' }
+  if (!['created', 'lobby'].includes(raw.state)) return { error: 'INVALID_STATE' }
+
+  const startedAt = nowMs()
+  const settings = mergeSettings(JSON.parse(raw.settings_json || '{}'), { allowLateJoin: !!allowLateJoin })
+  stmts.updateSessionState.run({
+    id: sessionId,
+    state: 'running',
+    settings_json: JSON.stringify(settings),
+    started_at: startedAt,
+    finished_at: raw.finished_at,
+  })
+  return { session: normalizeSessionRow(stmts.getSessionById.get(sessionId)) }
+}
+
+export function finishClassroomSession({ sessionId, teacherUserId }) {
+  const raw = stmts.getSessionById.get(sessionId)
+  if (!raw) return { error: 'NOT_FOUND' }
+  if (raw.teacher_user_id !== teacherUserId) return { error: 'FORBIDDEN' }
+  if (!['running', 'lobby', 'created'].includes(raw.state)) return { error: 'INVALID_STATE' }
+
+  stmts.updateSessionState.run({
+    id: sessionId,
+    state: 'finished',
+    settings_json: raw.settings_json,
+    started_at: raw.started_at,
+    finished_at: nowMs(),
+  })
+  return { session: normalizeSessionRow(stmts.getSessionById.get(sessionId)) }
+}
+
+export function joinClassroomSession({ code }) {
+  const normalizedCode = String(code || '').trim().toUpperCase()
+  const raw = stmts.findActiveSessionByJoinHash.get(hashValue(normalizedCode), nowMs())
+  if (!raw) return { error: 'INVALID_CODE' }
+
+  const settings = JSON.parse(raw.settings_json || '{}')
+  if (raw.state === 'running' && !settings.allowLateJoin) {
+    return { error: 'LATE_JOIN_DISABLED' }
+  }
+  if (!['created', 'lobby', 'running'].includes(raw.state)) {
+    return { error: 'SESSION_NOT_JOINABLE' }
+  }
+
+  const participantId = randomUUID()
+  const participantToken = randomUUID()
+  const joinedAt = nowMs()
+  stmts.insertParticipant.run({
+    id: participantId,
+    session_id: raw.id,
+    participant_token_hash: hashValue(participantToken),
+    joined_at: joinedAt,
+    last_seen_at: joinedAt,
+  })
+
+  return {
+    session: normalizeSessionRow(raw),
+    participant: {
+      id: participantId,
+      token: participantToken,
+    },
+  }
+}
+
+export function markParticipantHeartbeat({ sessionId, participantId, participantToken }) {
+  const participantTokenHash = hashValue(participantToken)
+  const info = stmts.updateParticipantSeen.run({
+    session_id: sessionId,
+    id: participantId,
+    participant_token_hash: participantTokenHash,
+    last_seen_at: nowMs(),
+  })
+  if (!info.changes) return { error: 'PARTICIPANT_NOT_FOUND' }
+  return { ok: true }
+}
+
+export function markParticipantLeft({ sessionId, participantId, participantToken }) {
+  const participantTokenHash = hashValue(participantToken)
+  const info = stmts.markParticipantLeft.run({
+    session_id: sessionId,
+    id: participantId,
+    participant_token_hash: participantTokenHash,
+    left_at: nowMs(),
+  })
+  if (!info.changes) return { error: 'PARTICIPANT_NOT_FOUND' }
+  return { ok: true }
+}
+
+export function submitClassroomRound({ sessionId, participantId, participantToken, roundNo, payload, score, maxScore }) {
+  const participantTokenHash = hashValue(participantToken)
+  const participant = stmts.getParticipant.get(participantId, sessionId, participantTokenHash)
+  if (!participant) return { error: 'PARTICIPANT_NOT_FOUND' }
+
+  const session = stmts.getSessionById.get(sessionId)
+  if (!session) return { error: 'NOT_FOUND' }
+  if (session.state !== 'running') return { error: 'INVALID_STATE' }
+
+  stmts.upsertSubmission.run({
+    id: randomUUID(),
+    session_id: sessionId,
+    participant_id: participantId,
+    round_no: roundNo,
+    payload_json: JSON.stringify(payload || {}),
+    score: Math.max(0, Number(score || 0)),
+    max_score: Math.max(0, Number(maxScore || 0)),
+    submitted_at: nowMs(),
+  })
+
+  return { ok: true }
+}
+
+export function getClassroomDashboard({ sessionId, teacherUserId }) {
+  const raw = stmts.getSessionById.get(sessionId)
+  if (!raw) return { error: 'NOT_FOUND' }
+  if (raw.teacher_user_id !== teacherUserId) return { error: 'FORBIDDEN' }
+
+  const now = nowMs()
+  const totalParticipants = stmts.countParticipants.get(sessionId)?.c || 0
+  const connectedCount = stmts.countConnectedParticipants.get(sessionId, now - CONNECTED_WINDOW_MS)?.c || 0
+  const submittedCount = stmts.countSubmittedParticipants.get(sessionId)?.c || 0
+  const avg = stmts.avgScore.get(sessionId)?.avg_score
+  const rows = stmts.listSubmissionScores.all(sessionId)
+  const distribution = buildDistribution(rows)
+
+  return {
+    session: normalizeSessionRow(raw),
+    metrics: {
+      total_count: totalParticipants,
+      connected_count: connectedCount,
+      submitted_count: submittedCount,
+      avg_score: Number.isFinite(avg) ? Number(avg.toFixed(2)) : 0,
+      score_distribution: distribution,
+    },
+  }
+}
+
+export function createClassroomExportJob({ sessionId, teacherUserId, type }) {
+  const raw = stmts.getSessionById.get(sessionId)
+  if (!raw) return { error: 'NOT_FOUND' }
+  if (raw.teacher_user_id !== teacherUserId) return { error: 'FORBIDDEN' }
+  if (raw.state !== 'finished') return { error: 'INVALID_STATE' }
+
+  const exportId = randomUUID()
+  stmts.insertExport.run({
+    id: exportId,
+    session_id: sessionId,
+    type,
+    status: 'queued',
+    created_at: nowMs(),
+  })
+
+  return { exportJob: normalizeExportRow(stmts.getExportById.get(exportId, sessionId)) }
+}
+
+export function getClassroomExportJob({ sessionId, exportId, teacherUserId }) {
+  const session = stmts.getSessionById.get(sessionId)
+  if (!session) return { error: 'NOT_FOUND' }
+  if (session.teacher_user_id !== teacherUserId) return { error: 'FORBIDDEN' }
+
+  const exportRow = stmts.getExportById.get(exportId, sessionId)
+  if (!exportRow) return { error: 'NOT_FOUND' }
+
+  return { exportJob: normalizeExportRow(exportRow) }
+}
+
+export function listQueuedExports(limit = 10) {
+  return stmts.listQueuedExports.all(limit).map(normalizeExportRow)
+}
+
+export function markExportRunning({ sessionId, exportId }) {
+  stmts.updateExportStatus.run({
+    id: exportId,
+    session_id: sessionId,
+    status: 'running',
+    file_ref: null,
+    error: null,
+    finished_at: null,
+  })
+}
+
+export function markExportDone({ sessionId, exportId, fileRef }) {
+  stmts.updateExportStatus.run({
+    id: exportId,
+    session_id: sessionId,
+    status: 'done',
+    file_ref: fileRef,
+    error: null,
+    finished_at: nowMs(),
+  })
+}
+
+export function markExportFailed({ sessionId, exportId, errorMessage }) {
+  stmts.updateExportStatus.run({
+    id: exportId,
+    session_id: sessionId,
+    status: 'failed',
+    file_ref: null,
+    error: String(errorMessage || 'Unbekannter Exportfehler').slice(0, 1000),
+    finished_at: nowMs(),
+  })
+}
+
+export function getExportRowsForSession({ sessionId }) {
+  return stmts.listExportRowsForSession.all(sessionId)
+}
+
+export function cleanupExpiredSessions({ now = nowMs(), limit = 100 } = {}) {
+  const expiredIds = stmts.listExpiredSessionIds.all(now, limit).map(r => r.id)
+  if (!expiredIds.length) return { deletedSessions: 0, expiredIds: [] }
+  const tx = db.transaction(() => {
+    let deleted = 0
+    for (const id of expiredIds) {
+      const result = stmts.deleteSessionById.run(id)
+      deleted += result.changes
+    }
+    return deleted
+  })
+  const deletedSessions = tx()
+  return { deletedSessions, expiredIds }
+}

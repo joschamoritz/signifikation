@@ -102,6 +102,7 @@ export default function App() {
   const [zeitenwendeRetry, setZeitenwendeRetry] = useState(0)
   const [serverDatum, setServerDatum] = useState(null)  // "MM-DD" vom Server
   const [serverYear,  setServerYear]  = useState(null)  // Jahreszahl vom Server
+  const [gesamtausgabeUnlocked, setGesamtausgabeUnlocked] = useState(() => !!lsGet('sig_gesamtausgabe'))
 
   const [activeTab, setActiveTab]  = useState('spielmodi')
   const [phase, setPhase]         = useState('home')
@@ -127,6 +128,53 @@ export default function App() {
 
   const [zwViewOnly, setZwViewOnly] = useState(false)
   const [zwPlayed, setZwPlayed] = useState(null)
+
+  const syncEntitlementsFromResponse = useCallback((payload) => {
+    const serverUnlocked = !!payload?.gesamtausgabe?.unlocked
+    const localUnlocked = !!lsGet('sig_gesamtausgabe')
+    const unlocked = serverUnlocked || localUnlocked
+    if (unlocked) lsSet('sig_gesamtausgabe', '1')
+    setGesamtausgabeUnlocked(unlocked)
+  }, [])
+
+  const refreshEntitlements = useCallback(async () => {
+    try {
+      const res = await fetch(`${API}/account/entitlements`, {
+        credentials: 'include',
+      })
+      if (!res.ok) {
+        setGesamtausgabeUnlocked(!!lsGet('sig_gesamtausgabe'))
+        return
+      }
+      const payload = await res.json()
+      syncEntitlementsFromResponse(payload)
+    } catch {
+      setGesamtausgabeUnlocked(!!lsGet('sig_gesamtausgabe'))
+    }
+  }, [syncEntitlementsFromResponse])
+
+  const unlockGesamtausgabe = useCallback(async () => {
+    lsSet('sig_gesamtausgabe', '1')
+    setGesamtausgabeUnlocked(true)
+
+    try {
+      const res = await fetch(`${API}/account/entitlements/gesamtausgabe/unlock`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({}),
+      })
+      if (!res.ok) return
+      const payload = await res.json()
+      syncEntitlementsFromResponse(payload)
+    } catch {
+      // Lokaler Sofort-Unlock bleibt aktiv, auch wenn kein Konto/Netzwerk verfügbar ist.
+    }
+  }, [syncEntitlementsFromResponse])
+
+  useEffect(() => {
+    refreshEntitlements()
+  }, [refreshEntitlements])
 
   // Fokus bei Screen-Wechsel
   useEffect(() => { appRef.current?.focus() }, [phase])
@@ -467,14 +515,20 @@ export default function App() {
             zwPlayed={zwPlayed}
             onPlayZeitenwende={() => startVT(() => { setZwViewOnly(false); setPhase('zeitenwende') })}
             onViewZeitenwende={() => startVT(() => { setZwViewOnly(true);  setPhase('zeitenwende') })}
+            gesamtausgabe={gesamtausgabeUnlocked}
+            onUnlockGesamtausgabe={unlockGesamtausgabe}
           />
         )}
         {activeTab === 'klassenraum' && <KlassenraumTab />}
         {activeTab === 'kurs'        && <KursTab />}
         {activeTab === 'profil'      && (
           <KontoTab
-            gesamtausgabe={!!lsGet('sig_gesamtausgabe')}
-            onUnlock={() => { lsSet('sig_gesamtausgabe', '1'); setActiveTab('spielmodi') }}
+            gesamtausgabe={gesamtausgabeUnlocked}
+            onUnlock={() => {
+              unlockGesamtausgabe()
+              setActiveTab('spielmodi')
+            }}
+            onAuthStateChange={refreshEntitlements}
           />
         )}
       </TabTransition>

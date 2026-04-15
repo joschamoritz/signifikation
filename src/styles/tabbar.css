@@ -194,6 +194,260 @@
   margin: 0 0 20px;
 }
 
+.konto-auth-card {
+  border: 1px solid var(--border-lt);
+  border-radius: var(--radius);
+  background: var(--surface);
+  padding: 14px;
+  margin-bottom: 20px;
+}
+
+.konto-auth-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.konto-auth-title {
+  font-family: var(--font-sans);
+  font-size: 0.78rem;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin: 0;
+}
+
+.konto-auth-modes {
+  display: inline-flex;
+  gap: 4px;
+  border: 1px solid var(--border-lt);
+  border-radius: 4px;
+  padding: 2px;
+  background: var(--surface2);
+}
+
+.konto-auth-mode {
+  border: none;
+  background: transparent;
+  font-family: var(--font-sans);
+  font-size: 0.72rem;
+  color: var(--muted);
+  padding: 5px 9px;
+  border-radius: 2px;
+}
+
+.konto-auth-mode--active {
+  background: var(--surface);
+  color: var(--primary);
+}
+
+.konto-auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.konto-auth-form--reset {
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px dotted var(--border);
+}
+
+.konto-auth-field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.konto-auth-field span {
+  font-family: var(--font-sans);
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.konto-auth-field input {
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-sans);
+  font-size: 0.86rem;
+  padding: 10px 11px;
+}
+
+.konto-auth-field input:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.konto-auth-field input:disabled {
+  color: var(--disabled);
+}
+
+.konto-auth-field-error {
+  font-family: var(--font-sans);
+  font-size: 0.73rem;
+  color: var(--error);
+}
+
+.konto-auth-password-wrap {
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+}
+
+.konto-auth-password-wrap input {
+  flex: 1;
+}
+
+.konto-auth-password-toggle {
+  min-width: 84px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--surface2);
+  color: var(--muted);
+  font-family: var(--font-sans);
+  font-size: 0.72rem;
+  letter-spacing: 0.03em;
+  padding: 0 10px;
+}
+
+.konto-auth-password-toggle:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.konto-auth-password-toggle:disabled {
+  color: var(--disabled);
+}
+
+.konto-session-list {
+  margin: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 7px;
+  margin-bottom: 10px;
+}
+
+.konto-session-list div {
+  display: grid;
+  grid-template-columns: 118px minmax(0, 1fr);
+  gap: 8px;
+  align-items: baseline;
+}
+
+.konto-session-list dt {
+  font-family: var(--font-sans);
+  font-size: 0.7rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.konto-session-list dd {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: 0.84rem;
+  color: var(--text);
+  overflow-wrap: anywhere;
+}
+
+.konto-auth-note {
+  font-family: var(--font-sans);
+  font-size: 0.78rem;
+  margin-top: 10px;
+  color: var(--muted);
+}
+
+.konto-auth-note--error {
+  color: var(--error);
+}
+
+.konto-auth-note--success {
+  color: var(--success);
+}
+
+.konto-auth-inline-link {
+  border: none;
+  background: none;
+  color: var(--primary);
+  font-family: var(--font-sans);
+  font-size: 0.76rem;
+  text-align: left;
+  padding: 0;
+  margin-top: 4px;
+}
+
+.konto-auth-inline-link:disabled {
+  color: var(--disabled);
+}
+
+.konto-auth-socials {
+  margin-top: 8px;
+  padding-top: 12px;
+  border-top: 1px dotted var(--border);
+}
+
+.konto-auth-socials-label {
+  margin: 0 0 6px;
+  font-family: var(--font-sans);
+  font-size: 0.72rem;
+  color: var(--muted);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.konto-auth-socials-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.konto-auth-social-btn {
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--surface2);
+  color: var(--text);
+  font-family: var(--font-sans);
+  font-size: 0.78rem;
+  min-height: 36px;
+  padding: 0 12px;
+}
+
+.konto-auth-social-btn:disabled {
+  color: var(--disabled);
+}
+
+.konto-teacher-note {
+  border: 1px solid var(--accent);
+  background: #fdf8ee;
+  border-radius: 4px;
+  padding: 9px 10px;
+  margin-bottom: 10px;
+}
+
+.konto-teacher-note-title {
+  font-family: var(--font-sans);
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent-dk);
+  margin: 0 0 4px;
+}
+
+.konto-teacher-note-text {
+  font-family: var(--font-sans);
+  font-size: 0.8rem;
+  color: var(--text);
+  margin: 0;
+  line-height: 1.45;
+}
+
 .tab-placeholder-features {
   list-style: none;
   margin: 0 0 24px;
@@ -391,6 +645,18 @@
   .tab-screen--enter-forward,
   .tab-screen--enter-backward {
     animation: fadeIn 200ms ease-in forwards;
+  }
+}
+
+@media (max-width: 520px) {
+  .konto-auth-head {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .konto-session-list div {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 2px;
   }
 }
 

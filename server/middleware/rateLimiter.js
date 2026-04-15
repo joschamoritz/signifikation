@@ -68,6 +68,10 @@ function getClientIp(req) {
 const belegeStore = new CleanupStore(60_000)
 const adminStore = new CleanupStore(60_000)
 const statsStore = new CleanupStore(60_000)
+const classroomJoinStore = new CleanupStore(60_000)
+const classroomWriteStore = new CleanupStore(60_000)
+const classroomExportStore = new CleanupStore(60_000)
+const registerStore = new CleanupStore(15 * 60_000)
 
 export const belegeLimiter = rateLimit({
   windowMs: 60_000, max: 30,
@@ -105,10 +109,43 @@ export const loginLimiter = rateLimit({
   skipSuccessfulRequests: true,
 })
 
+export const registerLimiter = rateLimit({
+  windowMs: 15 * 60_000, max: 8,
+  store: registerStore,
+  keyGenerator: getClientIp,
+  standardHeaders: true, legacyHeaders: false,
+  message: { error: 'Zu viele Registrierungsversuche. Bitte 15 Minuten warten.' },
+  skipSuccessfulRequests: true,
+})
+
 export const uploadLimiter = rateLimit({
   windowMs: 10_000, max: 100,
   store: new CleanupStore(10_000),
   keyGenerator: getClientIp,
   standardHeaders: true, legacyHeaders: false,
   message: { error: 'Upload-Rate-Limit überschritten, bitte warten.' },
+})
+
+export const classroomJoinLimiter = rateLimit({
+  windowMs: 60_000, max: 40,
+  store: classroomJoinStore,
+  keyGenerator: getClientIp,
+  standardHeaders: true, legacyHeaders: false,
+  message: { error: 'Zu viele Join-Versuche. Bitte kurz warten.' },
+})
+
+export const classroomWriteLimiter = rateLimit({
+  windowMs: 60_000, max: 80,
+  store: classroomWriteStore,
+  keyGenerator: getClientIp,
+  standardHeaders: true, legacyHeaders: false,
+  message: { error: 'Zu viele Klassenraum-Aktionen. Bitte kurz warten.' },
+})
+
+export const classroomExportLimiter = rateLimit({
+  windowMs: 60_000, max: 20,
+  store: classroomExportStore,
+  keyGenerator: getClientIp,
+  standardHeaders: true, legacyHeaders: false,
+  message: { error: 'Zu viele Export-Anfragen. Bitte kurz warten.' },
 })

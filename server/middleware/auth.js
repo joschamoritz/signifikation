@@ -97,6 +97,9 @@ export function adminLogout(req, res) {
 
 /** Middleware: CSRF-Schutz – verhindert Form-basierte CSRF-Angriffe */
 export function csrfProtect(req, res, next) {
+  if (req.originalUrl?.startsWith('/api/v1/auth/')) {
+    return next()
+  }
   if (['POST', 'PUT', 'DELETE'].includes(req.method)) {
     const contentType = req.headers['content-type'] || ''
     if (!contentType.includes('application/json')) {

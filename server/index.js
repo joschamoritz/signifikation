@@ -7,16 +7,33 @@ import { existsSync } from 'fs'
 import { fileURLToPath } from 'url'
 import { dirname, join }  from 'path'
 import { randomUUID } from 'crypto'
+import { toNodeHandler } from 'better-auth/node'
 import logger       from './logger.js'
 import { ADMIN_KEY, IS_PROD, csrfProtect, csrfProtectUpload } from './middleware/auth.js'
+import { auth } from './auth/index.js'
+import { loginLimiter, registerLimiter } from './middleware/rateLimiter.js'
 import { initializeIndices } from './store.js'
 import { errorHandler } from './error-handling.js'
 import { ensureWortprofilDb } from './init-wortprofil.js'
 import publicRouter from './routes/public.js'
 import adminRouter  from './routes/admin.js'
+import accountRouter from './routes/account.js'
+import classroomRouter from './routes/classroom.js'
+import { initClassroomSocket } from './realtime/classroomSocket.js'
+import { processQueuedCsvExports } from './export/csvExport.js'
+import { processQueuedPdfExports } from './export/pdfExport.js'
+import { startClassroomRetentionJob } from './jobs/classroomRetention.js'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const PORT      = process.env.PORT || 3001
+const CLASSROOM_EXPORT_WORKER_ENABLED = process.env.CLASSROOM_EXPORT_WORKER_ENABLED !== 'false'
+const CLASSROOM_EXPORT_WORKER_INTERVAL_MS = Number(process.env.CLASSROOM_EXPORT_WORKER_INTERVAL_MS || 3000)
+const ALLOWED_ORIGINS  = process.env.ALLOWED_ORIGINS
+  ? process.env.ALLOWED_ORIGINS.split(',').map(s => s.trim())
+  : IS_PROD
+    ? ['https://signifikation.de']
+    : ['http://localhost:5173', 'http://localhost:3001']
+const CAPACITOR_ORIGINS = ['capacitor://localhost', 'http://localhost']
 
 if (!ADMIN_KEY) {
   logger.fatal('ADMIN_KEY ist nicht gesetzt – in Produktion erforderlich. Server wird beendet.')
@@ -42,7 +59,7 @@ app.use(helmet({
       styleSrc:       ["'self'", "'unsafe-inline'"],
       fontSrc:        ["'self'"],
       imgSrc:         ["'self'", "data:"],
-      connectSrc:     ["'self'"],
+      connectSrc:     ["'self'", ...ALLOWED_ORIGINS, ...CAPACITOR_ORIGINS],
       frameAncestors: ["'none'"],
     },
   },
@@ -50,13 +67,6 @@ app.use(helmet({
 }))
 
 // ── CORS ─────────────────────────────────────────────────────
-const ALLOWED_ORIGINS  = process.env.ALLOWED_ORIGINS
-  ? process.env.ALLOWED_ORIGINS.split(',').map(s => s.trim())
-  : IS_PROD
-    ? ['https://signifikation.de']
-    : ['http://localhost:5173', 'http://localhost:3001']
-const CAPACITOR_ORIGINS = ['capacitor://localhost', 'http://localhost']
-
 app.use(cors({
   origin: IS_PROD
     ? (origin, cb) => {
@@ -64,10 +74,13 @@ app.use(cors({
         else cb(new Error(`CORS: Unerlaubte Origin ${origin}`))
       }
     : true,
-  credentials: false,
+  credentials: true,
 }))
 
 app.use(cookieParser())
+app.post('/api/v1/auth/sign-in/email', loginLimiter)
+app.post('/api/v1/auth/sign-up/email', registerLimiter)
+app.all('/api/v1/auth/*splat', toNodeHandler(auth))
 app.use(express.json({ limit: '16kb' }))
 
 // ── Correlation-ID ────────────────────────────────────────────
@@ -89,6 +102,8 @@ app.use('/admin-assets', express.static(join(__dirname, 'public')))
 // ── Routes ───────────────────────────────────────────────────
 app.use('/', publicRouter)
 app.use('/', adminRouter)
+app.use('/', accountRouter)
+app.use('/', classroomRouter)
 
 // ── Statisches Frontend (Produktions-Build) ──────────────────
 const DIST = join(__dirname, '../dist')
@@ -133,9 +148,30 @@ const WORTPROFIL_TIMEOUT_MS = 130_000  // etwas mehr als curl --max-time 120
     logger.info(`Admin: http://localhost:${PORT}/admin`)
   })
 
+  const io = initClassroomSocket(server)
+  startClassroomRetentionJob()
+
+  let exportTimer = null
+  if (CLASSROOM_EXPORT_WORKER_ENABLED) {
+    exportTimer = setInterval(() => {
+      try {
+        processQueuedCsvExports(10)
+        processQueuedPdfExports(10)
+      } catch (err) {
+        logger.error({ err }, 'Classroom-Export-Worker Zyklus fehlgeschlagen')
+      }
+    }, CLASSROOM_EXPORT_WORKER_INTERVAL_MS)
+    exportTimer.unref()
+    logger.info({ intervalMs: CLASSROOM_EXPORT_WORKER_INTERVAL_MS }, 'Classroom-Export-Worker gestartet')
+  } else {
+    logger.info('Classroom-Export-Worker deaktiviert (CLASSROOM_EXPORT_WORKER_ENABLED=false)')
+  }
+
   // ── Graceful Shutdown (D-21) ──────────────────────────────────
   const shutdown = (signal) => {
     logger.info(`${signal} empfangen – fahre herunter …`)
+    if (exportTimer) clearInterval(exportTimer)
+    io.close()
     server.close(() => {
       logger.info('HTTP-Server geschlossen')
       process.exit(0)

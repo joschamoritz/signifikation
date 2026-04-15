@@ -101,3 +101,52 @@ export const analyzeZeitQuerySchema = z.object({
 export const analyzeZWendeQuerySchema = z.object({
   q: z.string().min(1, 'q= erforderlich'),
 })
+
+/** GET /admin/users (query) */
+export const adminUsersQuerySchema = z.object({
+  limit: z.coerce.number().int().min(1).max(200).optional().default(50),
+  role: z.enum(['user', 'teacher']).optional(),
+  q: z.string().trim().max(120).optional(),
+})
+
+/** POST /admin/users/:id/role */
+export const adminSetUserRoleSchema = z.object({
+  role: z.enum(['user', 'teacher']),
+})
+
+// ── Classroom Schemas ───────────────────────────────────────────
+
+const CLASSROOM_STATE = z.enum(['created', 'lobby', 'running', 'finished', 'archived'])
+
+/** POST /api/v1/classroom/sessions */
+export const classroomCreateSessionSchema = z.object({
+  datum: DATUM_MMDD.optional(),
+  year: z.number().int().min(2000).max(2100).optional(),
+  settings: z.record(z.any()).optional().default({}),
+})
+
+/** POST /api/v1/classroom/sessions/:id/start */
+export const classroomStartSessionSchema = z.object({
+  allowLateJoin: z.boolean().optional().default(false),
+})
+
+/** POST /api/v1/classroom/sessions/:id/finish */
+export const classroomFinishSessionSchema = z.object({
+  reason: z.string().max(120).optional(),
+})
+
+/** POST /api/v1/classroom/join */
+export const classroomJoinSchema = z.object({
+  code: z.string().trim().min(4, 'Join-Code zu kurz').max(16, 'Join-Code zu lang'),
+})
+
+/** POST /api/v1/classroom/sessions/:id/exports */
+export const classroomCreateExportSchema = z.object({
+  type: z.enum(['csv', 'pdf']),
+})
+
+/** GET /api/v1/classroom/sessions/:id/query */
+export const classroomListQuerySchema = z.object({
+  state: CLASSROOM_STATE.optional(),
+  limit: z.coerce.number().int().min(1).max(100).optional().default(20),
+})
