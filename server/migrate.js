@@ -139,9 +139,9 @@ console.log('Migration JSON → SQLite gestartet …\n')
 {
   const stats  = readJson('stats.json', {})
   const upsert = db.prepare(`
-    INSERT INTO stats (datum,spiel,plays,scoreSum,maxSum,dist)
-    VALUES (@datum,@spiel,@plays,@scoreSum,@maxSum,@dist)
-    ON CONFLICT(datum,spiel) DO UPDATE SET
+    INSERT INTO stats (datum,spiel,user_id,plays,scoreSum,maxSum,dist)
+    VALUES (@datum,@spiel,@user_id,@plays,@scoreSum,@maxSum,@dist)
+    ON CONFLICT(datum,spiel,user_id) DO UPDATE SET
       plays=excluded.plays, scoreSum=excluded.scoreSum,
       maxSum=excluded.maxSum, dist=excluded.dist
   `)
@@ -150,6 +150,7 @@ console.log('Migration JSON → SQLite gestartet …\n')
       for (const [spiel, v] of Object.entries(games)) {
         upsert.run({
           datum, spiel,
+          user_id: v.user_id ?? '',
           plays:    v.plays    ?? 0,
           scoreSum: v.scoreSum ?? 0,
           maxSum:   v.maxSum   ?? 0,

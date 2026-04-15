@@ -203,6 +203,9 @@ Exportiert alle JSON-Daten als Single Download.
 
 **Response:** JSON-Datei `signifikation-backup-YYYY-MM-DD.json`
 
+Enthaelt zusaetzlich `files["stats-rows.json"]` mit rohen Stats-Zeilen
+pro `(datum, spiel, user_id)` fuer verlustfreien Backup/Restore.
+
 ---
 
 ### POST /admin/backup/gist

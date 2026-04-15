@@ -6,16 +6,79 @@ import { fetchLemma, fetchBonusQuestion, fetchRelation, fetchZeitreise, fetchZei
 import { belegeVerfuegbar, fetchBelege } from '../belege.js'
 import { fetchWiktionary } from '../wiktionary.js'
 import { fetchWortZwilling } from '../wortzwilling.js'
-import { load, loadReadOnly, save, loadZeitreise, loadWortZwilling, loadZeitenwende, loadStats, getLemmataIndex, getCacheMetrics, DATA } from '../store.js'
+import { load, loadReadOnly, save, loadZeitreise, loadWortZwilling, loadZeitenwende, loadStats, loadStatsRows, getLemmataIndex, getCacheMetrics, DATA } from '../store.js'
 import { getCacheMetrics as getQueryCacheMetrics, clearCache as clearQueryCache } from '../query-cache.js'
 import { adminLimiter, loginLimiter, uploadLimiter } from '../middleware/rateLimiter.js'
 import { requireAuth, adminAuth, adminLogout, adminError, serverError, createSession } from '../middleware/auth.js'
-import { validate, qQuerySchema, adminTagSchema, analyzeKollQuerySchema, analyzeWZQuerySchema, analyzeZeitQuerySchema, analyzeZWendeQuerySchema } from '../middleware/validate.js'
+import { validate, qQuerySchema, adminTagSchema, analyzeKollQuerySchema, analyzeWZQuerySchema, analyzeZeitQuerySchema, analyzeZWendeQuerySchema, adminUsersQuerySchema, adminSetUserRoleSchema } from '../middleware/validate.js'
 import { auditCreate, auditUpdate, auditDelete, getAuditLog } from '../audit.js'
 import logger from '../logger.js'
+import db from '../db.js'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const router = express.Router()
+
+const countUsersStmt = db.prepare(`
+  SELECT COUNT(*) AS total
+  FROM user
+`)
+
+const countUsersByRoleStmt = db.prepare(`
+  SELECT
+    SUM(CASE WHEN COALESCE(up.role, 'user') = 'teacher' THEN 1 ELSE 0 END) AS teachers,
+    SUM(CASE WHEN COALESCE(up.role, 'user') != 'teacher' THEN 1 ELSE 0 END) AS users
+  FROM user u
+  LEFT JOIN user_profiles up ON up.user_id = u.id
+`)
+
+const listUsersStmt = db.prepare(`
+  SELECT
+    u.id,
+    u.name,
+    u.email,
+    u.emailVerified,
+    u.createdAt,
+    COALESCE(up.role, 'user') AS role
+  FROM user u
+  LEFT JOIN user_profiles up ON up.user_id = u.id
+  WHERE (
+    @q = ''
+    OR u.email LIKE @qLike
+    OR u.name LIKE @qLike
+  )
+  AND (
+    @role = ''
+    OR COALESCE(up.role, 'user') = @role
+  )
+  ORDER BY u.createdAt DESC
+  LIMIT @limit
+`)
+
+const ensureProfileStmt = db.prepare(`
+  INSERT INTO user_profiles (user_id, role, created_at, updated_at)
+  VALUES (?, 'user', ?, ?)
+  ON CONFLICT(user_id) DO NOTHING
+`)
+
+const setUserRoleStmt = db.prepare(`
+  INSERT INTO user_profiles (user_id, role, created_at, updated_at)
+  VALUES (?, ?, ?, ?)
+  ON CONFLICT(user_id)
+  DO UPDATE SET role = excluded.role, updated_at = excluded.updated_at
+`)
+
+const userExistsStmt = db.prepare(`
+  SELECT id
+  FROM user
+  WHERE id = ?
+`)
+
+const adminUsersStatsStmt = db.prepare(`
+  SELECT
+    SUM(CASE WHEN createdAt >= @fromIso THEN 1 ELSE 0 END) AS newLast7Days,
+    SUM(CASE WHEN createdAt >= @from30Iso THEN 1 ELSE 0 END) AS newLast30Days
+  FROM user
+`)
 
 /** POST /admin/auth – tauscht Admin-Key gegen Session-Cookie */
 router.post('/admin/auth', loginLimiter, adminAuth)
@@ -35,6 +98,69 @@ router.post('/admin/refresh', adminLimiter, requireAuth, (_req, res) => {
       maxAge: 8 * 60 * 60 * 1000,
     })
     res.json({ ok: true, expiresAt })
+  } catch (err) {
+    adminError(res, err)
+  }
+})
+
+/** GET /admin/users – Registrierte Nutzer inkl. Rollen */
+router.get('/admin/users', adminLimiter, requireAuth, validate(adminUsersQuerySchema, 'query'), (req, res) => {
+  const { limit, role, q } = req.query
+  try {
+    const search = (q || '').trim()
+    const rows = listUsersStmt.all({
+      limit,
+      role: role || '',
+      q: search,
+      qLike: `%${search}%`,
+    })
+
+    const total = countUsersStmt.get()?.total || 0
+    const roleCounts = countUsersByRoleStmt.get() || { teachers: 0, users: 0 }
+
+    const now = Date.now()
+    const from7 = new Date(now - 7 * 24 * 60 * 60 * 1000).toISOString()
+    const from30 = new Date(now - 30 * 24 * 60 * 60 * 1000).toISOString()
+    const growth = adminUsersStatsStmt.get({ fromIso: from7, from30Iso: from30 }) || { newLast7Days: 0, newLast30Days: 0 }
+
+    res.json({
+      summary: {
+        total,
+        users: Number(roleCounts.users || 0),
+        teachers: Number(roleCounts.teachers || 0),
+        newLast7Days: Number(growth.newLast7Days || 0),
+        newLast30Days: Number(growth.newLast30Days || 0),
+      },
+      users: rows.map((row) => ({
+        id: row.id,
+        name: row.name,
+        email: row.email,
+        emailVerified: !!row.emailVerified,
+        role: row.role,
+        createdAt: row.createdAt,
+      })),
+    })
+  } catch (err) {
+    adminError(res, err)
+  }
+})
+
+/** POST /admin/users/:id/role – Rolle setzen (user|teacher) */
+router.post('/admin/users/:id/role', adminLimiter, requireAuth, validate(adminSetUserRoleSchema), (req, res) => {
+  const userId = String(req.params.id || '').trim()
+  if (!userId) return res.status(400).json({ error: 'userId erforderlich' })
+
+  try {
+    if (!userExistsStmt.get(userId)) {
+      return res.status(404).json({ error: 'Nutzer nicht gefunden' })
+    }
+
+    const now = Date.now()
+    ensureProfileStmt.run(userId, now, now)
+    setUserRoleStmt.run(userId, req.body.role, now, now)
+
+    logger.info({ userId, role: req.body.role }, 'Nutzerrolle aktualisiert')
+    res.json({ ok: true, userId, role: req.body.role })
   } catch (err) {
     adminError(res, err)
   }
@@ -432,13 +558,17 @@ router.post('/admin/backup/gist', adminLimiter, requireAuth, async (req, res) =>
   } catch (err) { adminError(res, err) }
 })
 
-/** GET /admin/backup – alle JSON-Daten als Bundle */
+/** GET /admin/backup – alle Daten als Bundle */
 router.get('/admin/backup', adminLimiter, requireAuth, (req, res) => {
   try {
-    const files  = ['kalender.json', 'lemmata.json', 'zeitreise.json', 'wortzwilling.json', 'zeitenwende.json', 'stats.json']
+    const files  = ['kalender.json', 'lemmata.json', 'zeitreise.json', 'wortzwilling.json', 'zeitenwende.json', 'stats.json', 'stats-rows.json']
     const bundle = {}
     for (const f of files) {
-      try { bundle[f] = loadReadOnly(f) } catch { bundle[f] = null }
+      try {
+        bundle[f] = f === 'stats-rows.json' ? loadStatsRows() : loadReadOnly(f)
+      } catch {
+        bundle[f] = null
+      }
     }
     res.setHeader('Content-Disposition', `attachment; filename="signifikation-backup-${new Date().toISOString().slice(0, 10)}.json"`)
     res.json({ exportedAt: new Date().toISOString(), files: bundle })

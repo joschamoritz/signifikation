@@ -4,11 +4,13 @@ import { readFileSync } from 'fs'
 import { fetchBelege, belegeVerfuegbar } from '../belege.js'
 import { fetchRelation } from '../wortprofil.js'
 import { fetchWiktionary } from '../wiktionary.js'
-import { load, loadReadOnly, save, loadZeitreise, loadWortZwilling, loadZeitenwende, loadStats, withStatsLock, getLemmataIndex, cacheGet, cacheSet, DATA } from '../store.js'
+import { loadReadOnly, loadZeitreise, loadWortZwilling, loadZeitenwende, recordStat, getLemmataIndex, cacheGet, cacheSet, DATA } from '../store.js'
 import { belegeLimiter, statsLimiter } from '../middleware/rateLimiter.js'
+import { auth } from '../auth/index.js'
 import { serverError } from '../middleware/auth.js'
 import { validate, statsSchema, belegeQuerySchema, archivQuerySchema, qQuerySchema, bonusQuerySchema } from '../middleware/validate.js'
 import logger from '../logger.js'
+import { fromNodeHeaders } from 'better-auth/node'
 
 const router = express.Router()
 
@@ -144,22 +146,22 @@ router.get('/api/v1/belege', belegeLimiter, validate(belegeQuerySchema, 'query')
 /** GET /api/v1/stats – nicht unterstützt (nur POST) */
 router.get('/api/v1/stats', (_req, res) => res.status(405).json({ error: 'Method Not Allowed' }))
 
-/** POST /api/stats – anonyme Spielstatistik erfassen */
+/** POST /api/stats – Spielstatistik erfassen (mit Session optional user-gebunden) */
 router.post('/api/v1/stats', statsLimiter, validate(statsSchema), async (req, res) => {
   const { game, datum, score, max } = req.body
+  let userId = ''
+
   try {
-    await withStatsLock(async () => {
-      const stats = loadStats()
-      if (!stats[datum]) stats[datum] = {}
-      if (!stats[datum][game]) stats[datum][game] = { plays: 0, scoreSum: 0, maxSum: 0, dist: Array(11).fill(0) }
-      const entry = stats[datum][game]
-      entry.plays++
-      entry.scoreSum += Math.max(0, score)
-      entry.maxSum   += max
-      const normalized = Math.min(10, Math.max(0, Math.round((score || 0) / (max || 1) * 10)))
-      entry.dist[normalized]++
-      await save('stats.json', stats)
+    const session = await auth.api.getSession({
+      headers: fromNodeHeaders(req.headers),
     })
+    if (session?.user?.id) userId = String(session.user.id)
+  } catch (err) {
+    logger.debug({ err }, 'Stats: Session konnte nicht aufgeloest werden, speichere anonym')
+  }
+
+  try {
+    recordStat({ datum, spiel: game, userId, score, max })
     res.json({ ok: true })
   } catch (err) {
     logger.error({ err, game, datum }, 'Stats-Speicherung fehlgeschlagen')

@@ -29,6 +29,72 @@ db.pragma('synchronous = NORMAL')
 db.pragma('foreign_keys = ON')
 
 db.exec(`
+  CREATE TABLE IF NOT EXISTS user (
+    id            TEXT PRIMARY KEY,
+    name          TEXT NOT NULL,
+    email         TEXT NOT NULL UNIQUE,
+    emailVerified INTEGER NOT NULL DEFAULT 0,
+    image         TEXT,
+    createdAt     TEXT NOT NULL,
+    updatedAt     TEXT NOT NULL
+  );
+
+  CREATE TABLE IF NOT EXISTS session (
+    id         TEXT PRIMARY KEY,
+    userId     TEXT NOT NULL,
+    token      TEXT NOT NULL UNIQUE,
+    expiresAt  TEXT NOT NULL,
+    ipAddress  TEXT,
+    userAgent  TEXT,
+    createdAt  TEXT NOT NULL,
+    updatedAt  TEXT NOT NULL,
+    FOREIGN KEY (userId) REFERENCES user(id) ON DELETE CASCADE
+  );
+
+  CREATE TABLE IF NOT EXISTS account (
+    id                    TEXT PRIMARY KEY,
+    userId                TEXT NOT NULL,
+    accountId             TEXT NOT NULL,
+    providerId            TEXT NOT NULL,
+    accessToken           TEXT,
+    refreshToken          TEXT,
+    idToken               TEXT,
+    accessTokenExpiresAt  TEXT,
+    refreshTokenExpiresAt TEXT,
+    scope                 TEXT,
+    password              TEXT,
+    createdAt             TEXT NOT NULL,
+    updatedAt             TEXT NOT NULL,
+    FOREIGN KEY (userId) REFERENCES user(id) ON DELETE CASCADE,
+    UNIQUE (providerId, accountId)
+  );
+
+  CREATE TABLE IF NOT EXISTS verification (
+    id         TEXT PRIMARY KEY,
+    identifier TEXT NOT NULL,
+    value      TEXT NOT NULL,
+    expiresAt  TEXT NOT NULL,
+    createdAt  TEXT NOT NULL,
+    updatedAt  TEXT NOT NULL
+  );
+
+  CREATE TABLE IF NOT EXISTS user_profiles (
+    user_id    TEXT PRIMARY KEY,
+    role       TEXT NOT NULL DEFAULT 'user' CHECK (role IN ('user','teacher')),
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL
+  );
+
+  CREATE TABLE IF NOT EXISTS user_entitlements (
+    user_id                 TEXT PRIMARY KEY,
+    gesamtausgabe_unlocked  INTEGER NOT NULL DEFAULT 0,
+    unlocked_at             INTEGER,
+    source                  TEXT NOT NULL DEFAULT 'none',
+    created_at              INTEGER NOT NULL,
+    updated_at              INTEGER NOT NULL,
+    FOREIGN KEY (user_id) REFERENCES user(id) ON DELETE CASCADE
+  );
+
   CREATE TABLE IF NOT EXISTS lemmata (
     id          TEXT PRIMARY KEY,
     lemma       TEXT NOT NULL,
@@ -73,14 +139,154 @@ db.exec(`
   CREATE TABLE IF NOT EXISTS stats (
     datum    TEXT NOT NULL,
     spiel    TEXT NOT NULL,
+    user_id  TEXT NOT NULL DEFAULT '',
     plays    INTEGER NOT NULL DEFAULT 0,
     scoreSum INTEGER NOT NULL DEFAULT 0,
     maxSum   INTEGER NOT NULL DEFAULT 0,
     dist     TEXT NOT NULL DEFAULT '[]',
-    PRIMARY KEY (datum, spiel)
+    PRIMARY KEY (datum, spiel, user_id)
   );
+
+  CREATE TABLE IF NOT EXISTS classroom_sessions (
+    id             TEXT PRIMARY KEY,
+    teacher_user_id TEXT NOT NULL,
+    join_code_hash TEXT NOT NULL,
+    state          TEXT NOT NULL CHECK (state IN ('created','lobby','running','finished','archived')),
+    datum          TEXT NOT NULL,
+    year           INTEGER NOT NULL,
+    settings_json  TEXT NOT NULL DEFAULT '{}',
+    created_at     INTEGER NOT NULL,
+    started_at     INTEGER,
+    finished_at    INTEGER,
+    expires_at     INTEGER NOT NULL
+  );
+
+  CREATE TABLE IF NOT EXISTS classroom_participants (
+    id                    TEXT PRIMARY KEY,
+    session_id            TEXT NOT NULL,
+    participant_token_hash TEXT NOT NULL,
+    joined_at             INTEGER NOT NULL,
+    last_seen_at          INTEGER NOT NULL,
+    left_at               INTEGER,
+    FOREIGN KEY (session_id) REFERENCES classroom_sessions(id) ON DELETE CASCADE
+  );
+
+  CREATE TABLE IF NOT EXISTS classroom_submissions (
+    id             TEXT PRIMARY KEY,
+    session_id     TEXT NOT NULL,
+    participant_id TEXT NOT NULL,
+    round_no       INTEGER NOT NULL,
+    payload_json   TEXT NOT NULL,
+    score          INTEGER NOT NULL DEFAULT 0,
+    max_score      INTEGER NOT NULL DEFAULT 0,
+    submitted_at   INTEGER NOT NULL,
+    FOREIGN KEY (session_id) REFERENCES classroom_sessions(id) ON DELETE CASCADE,
+    FOREIGN KEY (participant_id) REFERENCES classroom_participants(id) ON DELETE CASCADE,
+    UNIQUE (session_id, participant_id, round_no)
+  );
+
+  CREATE TABLE IF NOT EXISTS classroom_exports (
+    id          TEXT PRIMARY KEY,
+    session_id  TEXT NOT NULL,
+    type        TEXT NOT NULL CHECK (type IN ('csv','pdf')),
+    status      TEXT NOT NULL CHECK (status IN ('queued','running','done','failed')),
+    file_ref    TEXT,
+    error       TEXT,
+    created_at  INTEGER NOT NULL,
+    finished_at INTEGER,
+    FOREIGN KEY (session_id) REFERENCES classroom_sessions(id) ON DELETE CASCADE
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_user_profiles_role
+    ON user_profiles(role);
+
+  CREATE INDEX IF NOT EXISTS idx_user_entitlements_unlocked
+    ON user_entitlements(gesamtausgabe_unlocked);
+
+  CREATE INDEX IF NOT EXISTS idx_user_email
+    ON user(email);
+
+  CREATE INDEX IF NOT EXISTS idx_user_createdAt
+    ON user(createdAt);
+
+  CREATE INDEX IF NOT EXISTS idx_session_userId
+    ON session(userId);
+
+  CREATE INDEX IF NOT EXISTS idx_account_userId
+    ON account(userId);
+
+  CREATE INDEX IF NOT EXISTS idx_verification_identifier
+    ON verification(identifier);
+
+  CREATE INDEX IF NOT EXISTS idx_classroom_sessions_teacher_created
+    ON classroom_sessions(teacher_user_id, created_at DESC);
+
+  CREATE INDEX IF NOT EXISTS idx_classroom_sessions_state_expires
+    ON classroom_sessions(state, expires_at);
+
+  CREATE INDEX IF NOT EXISTS idx_classroom_sessions_join_hash
+    ON classroom_sessions(join_code_hash);
+
+  CREATE INDEX IF NOT EXISTS idx_classroom_participants_session_joined
+    ON classroom_participants(session_id, joined_at);
+
+  CREATE INDEX IF NOT EXISTS idx_classroom_participants_session_seen
+    ON classroom_participants(session_id, last_seen_at);
+
+  CREATE INDEX IF NOT EXISTS idx_classroom_submissions_session_round
+    ON classroom_submissions(session_id, round_no);
+
+  CREATE INDEX IF NOT EXISTS idx_classroom_submissions_session_submitted
+    ON classroom_submissions(session_id, submitted_at);
+
+  CREATE INDEX IF NOT EXISTS idx_classroom_exports_session_created
+    ON classroom_exports(session_id, created_at DESC);
 `)
 
 logger.info({ path: DB_PATH }, 'signifikation.db bereit')
+
+function hasColumn(tableName, columnName) {
+  const rows = db.prepare(`PRAGMA table_info(${tableName})`).all()
+  return rows.some((row) => row.name === columnName)
+}
+
+if (!hasColumn('stats', 'user_id')) {
+  logger.info('Migriere Tabelle stats: fuege user_id hinzu')
+  try {
+    db.exec(`
+      BEGIN;
+      ALTER TABLE stats RENAME TO stats_legacy;
+
+      CREATE TABLE stats (
+        datum    TEXT NOT NULL,
+        spiel    TEXT NOT NULL,
+        user_id  TEXT NOT NULL DEFAULT '',
+        plays    INTEGER NOT NULL DEFAULT 0,
+        scoreSum INTEGER NOT NULL DEFAULT 0,
+        maxSum   INTEGER NOT NULL DEFAULT 0,
+        dist     TEXT NOT NULL DEFAULT '[]',
+        PRIMARY KEY (datum, spiel, user_id)
+      );
+
+      INSERT INTO stats (datum, spiel, user_id, plays, scoreSum, maxSum, dist)
+      SELECT datum, spiel, '', plays, scoreSum, maxSum, dist
+      FROM stats_legacy;
+
+      DROP TABLE stats_legacy;
+
+      COMMIT;
+    `)
+  } catch (err) {
+    db.exec('ROLLBACK;')
+    throw err
+  }
+}
+
+if (hasColumn('stats', 'user_id')) {
+  db.exec(`
+    CREATE INDEX IF NOT EXISTS idx_stats_user
+      ON stats(user_id);
+  `)
+}
 
 export default db

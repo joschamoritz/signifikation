@@ -39,6 +39,12 @@ export async function runBackup() {
     try { bundle.files[f] = loadReadOnly(f) } catch { bundle.files[f] = null }
   }
 
+  try {
+    bundle.files['stats-rows.json'] = loadReadOnly('stats-rows.json')
+  } catch {
+    bundle.files['stats-rows.json'] = null
+  }
+
   const date    = new Date().toISOString().slice(0, 10)
   const content = JSON.stringify(bundle, null, 2)
 

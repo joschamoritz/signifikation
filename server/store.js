@@ -9,6 +9,7 @@
  *   loadWortZwilling()   – Wort-Zwilling-Dict
  *   loadZeitenwende()    – Zeitenwende-Dict
  *   loadStats()          – Stats-Dict
+ *   loadStatsRows()      – rohe Stats-Zeilen (inkl. user_id)
  *   getLemmataIndex()    – Map<id, lemma> + Map<lemma, lemma>
  *   withStatsLock(fn)    – Serialisiert Stats-Writes (SQLite übernimmt Atomizität)
  *   cacheGet/cacheSet/getCacheMetrics – Beleg-Cache
@@ -17,10 +18,9 @@
  *
  * Keine weiteren JSON-Dateien mehr (feedback + diacollo-config entfernt).
  */
-import { readFileSync, writeFileSync, renameSync, mkdirSync } from 'fs'
+import { mkdirSync } from 'fs'
 import { fileURLToPath } from 'url'
 import { dirname, join } from 'path'
-import AsyncLock from 'async-lock'
 import logger from './logger.js'
 import db from './db.js'
 
@@ -71,13 +71,26 @@ const stmts = {
 
   // stats
   getAllStats:       db.prepare('SELECT * FROM stats'),
+  getStatsByKey:     db.prepare('SELECT * FROM stats WHERE datum = ? AND spiel = ? AND user_id = ?'),
   deleteAllStats:   db.prepare('DELETE FROM stats'),
   upsertStats:      db.prepare(`
-    INSERT INTO stats (datum,spiel,plays,scoreSum,maxSum,dist)
-    VALUES (@datum,@spiel,@plays,@scoreSum,@maxSum,@dist)
-    ON CONFLICT(datum,spiel) DO UPDATE SET
+    INSERT INTO stats (datum,spiel,user_id,plays,scoreSum,maxSum,dist)
+    VALUES (@datum,@spiel,@user_id,@plays,@scoreSum,@maxSum,@dist)
+    ON CONFLICT(datum,spiel,user_id) DO UPDATE SET
       plays=excluded.plays, scoreSum=excluded.scoreSum,
       maxSum=excluded.maxSum, dist=excluded.dist
+  `),
+
+  getStatsAggregated: db.prepare(`
+    SELECT
+      datum,
+      spiel,
+      SUM(plays) AS plays,
+      SUM(scoreSum) AS scoreSum,
+      SUM(maxSum) AS maxSum,
+      json_group_array(dist) AS dist_list
+    FROM stats
+    GROUP BY datum, spiel
   `),
 }
 
@@ -225,16 +238,61 @@ const _replaceZeitenwende = db.transaction(obj => {
 
 function _loadStats() {
   const result = {}
-  for (const row of stmts.getAllStats.all()) {
+  for (const row of stmts.getStatsAggregated.all()) {
     if (!result[row.datum]) result[row.datum] = {}
+
+    const distEntries = (() => {
+      try {
+        return JSON.parse(row.dist_list || '[]')
+      } catch {
+        return []
+      }
+    })()
+
+    const mergedDist = Array(11).fill(0)
+    for (const distRaw of distEntries) {
+      let dist = []
+      try {
+        dist = typeof distRaw === 'string' ? JSON.parse(distRaw) : distRaw
+      } catch {
+        dist = []
+      }
+      if (!Array.isArray(dist)) continue
+      for (let i = 0; i < 11; i += 1) {
+        mergedDist[i] += Number(dist[i] || 0)
+      }
+    }
+
     result[row.datum][row.spiel] = {
       plays:    row.plays,
       scoreSum: row.scoreSum,
       maxSum:   row.maxSum,
-      dist:     JSON.parse(row.dist ?? '[]'),
+      dist:     mergedDist,
     }
   }
   return result
+}
+
+function _loadStatsRows() {
+  return stmts.getAllStats.all().map((row) => {
+    let dist = []
+    try {
+      const parsed = JSON.parse(row.dist || '[]')
+      dist = Array.isArray(parsed) ? parsed : []
+    } catch {
+      dist = []
+    }
+
+    return {
+      datum: row.datum,
+      spiel: row.spiel,
+      user_id: row.user_id || '',
+      plays: Number(row.plays || 0),
+      scoreSum: Number(row.scoreSum || 0),
+      maxSum: Number(row.maxSum || 0),
+      dist,
+    }
+  })
 }
 
 const _replaceStats = db.transaction(obj => {
@@ -243,6 +301,7 @@ const _replaceStats = db.transaction(obj => {
     for (const [spiel, v] of Object.entries(games)) {
       stmts.upsertStats.run({
         datum, spiel,
+        user_id: v.user_id ?? '',
         plays:    v.plays    ?? 0,
         scoreSum: v.scoreSum ?? 0,
         maxSum:   v.maxSum   ?? 0,
@@ -251,6 +310,69 @@ const _replaceStats = db.transaction(obj => {
     }
   }
 })
+
+const _replaceStatsRows = db.transaction((rows) => {
+  stmts.deleteAllStats.run()
+  for (const row of rows) {
+    if (!row || typeof row !== 'object') continue
+
+    const datum = String(row.datum || '').trim()
+    const spiel = String(row.spiel || '').trim()
+    if (!datum || !spiel) continue
+
+    const safeDist = Array.isArray(row.dist) ? row.dist : []
+    const toNonNegativeInt = (value) => {
+      const parsed = Number.parseInt(String(value ?? 0), 10)
+      if (!Number.isFinite(parsed) || parsed < 0) return 0
+      return parsed
+    }
+
+    stmts.upsertStats.run({
+      datum,
+      spiel,
+      user_id: String(row.user_id || ''),
+      plays: toNonNegativeInt(row.plays),
+      scoreSum: toNonNegativeInt(row.scoreSum),
+      maxSum: toNonNegativeInt(row.maxSum),
+      dist: JSON.stringify(safeDist),
+    })
+  }
+})
+
+const _recordStatTx = db.transaction(({ datum, spiel, userId, score, max }) => {
+  const safeUserId = String(userId || '')
+  const existing = stmts.getStatsByKey.get(datum, spiel, safeUserId)
+
+  const dist = (() => {
+    if (!existing) return Array(11).fill(0)
+    try {
+      const parsed = JSON.parse(existing.dist || '[]')
+      if (!Array.isArray(parsed)) return Array(11).fill(0)
+      const out = Array(11).fill(0)
+      for (let i = 0; i < 11; i += 1) out[i] = Number(parsed[i] || 0)
+      return out
+    } catch {
+      return Array(11).fill(0)
+    }
+  })()
+
+  const normalized = Math.min(10, Math.max(0, Math.round((score || 0) / (max || 1) * 10)))
+  dist[normalized] += 1
+
+  stmts.upsertStats.run({
+    datum,
+    spiel,
+    user_id: safeUserId,
+    plays: (existing?.plays || 0) + 1,
+    scoreSum: (existing?.scoreSum || 0) + Math.max(0, Number(score || 0)),
+    maxSum: (existing?.maxSum || 0) + Number(max || 0),
+    dist: JSON.stringify(dist),
+  })
+})
+
+export function recordStat({ datum, spiel, userId = '', score = 0, max = 0 }) {
+  _recordStatTx({ datum, spiel, userId, score, max })
+}
 
 // ── Dispatcher-Map ────────────────────────────────────────────────
 
@@ -261,6 +383,7 @@ const LOADERS = {
   'wortzwilling.json': _loadWortzwilling,
   'zeitenwende.json':  _loadZeitenwende,
   'stats.json':        _loadStats,
+  'stats-rows.json':   _loadStatsRows,
 }
 
 const SAVERS = {
@@ -270,45 +393,12 @@ const SAVERS = {
   'wortzwilling.json': obj => _replaceWortzwilling(obj),
   'zeitenwende.json':  obj => _replaceZeitenwende(obj),
   'stats.json':        obj => _replaceStats(obj),
-}
-
-// ── JSON-Fallback für config/feedback ────────────────────────────
-
-const JSON_FILES = new Set()
-const _fileCache = {}
-const _fileLocks = new Map()
-
-function _getLock(file) {
-  if (!_fileLocks.has(file)) _fileLocks.set(file, new AsyncLock())
-  return _fileLocks.get(file)
-}
-
-function _loadJson(file) {
-  if (!_fileCache[file]) {
-    try {
-      _fileCache[file] = JSON.parse(readFileSync(join(DATA, file), 'utf8'))
-    } catch (err) {
-      logger.error({ err, file }, 'JSON-Datei konnte nicht geladen werden')
-      throw new Error(`Datei ${file} nicht lesbar oder korrumpiert`)
-    }
-  }
-  return structuredClone(_fileCache[file])
-}
-
-function _saveJson(file, data) {
-  return _getLock(file).acquire(file, () => {
-    const target = join(DATA, file)
-    const tmp    = `${target}.tmp`
-    writeFileSync(tmp, JSON.stringify(data, null, 2))
-    renameSync(tmp, target)
-    _fileCache[file] = structuredClone(data)
-  })
+  'stats-rows.json':   rows => _replaceStatsRows(Array.isArray(rows) ? rows : []),
 }
 
 // ── Öffentliche API ───────────────────────────────────────────────
 
 export function load(file) {
-  if (JSON_FILES.has(file)) return _loadJson(file)
   const loader = LOADERS[file]
   if (!loader) throw new Error(`Unbekannte Datei: ${file}`)
   return loader()
@@ -319,7 +409,6 @@ export function loadReadOnly(file) {
 }
 
 export function save(file, data) {
-  if (JSON_FILES.has(file)) return _saveJson(file, data)
   const saver = SAVERS[file]
   if (!saver) throw new Error(`Unbekannte Datei: ${file}`)
   saver(data)
@@ -332,6 +421,7 @@ export function loadZeitreise()    { return _loadZeitreise()    }
 export function loadWortZwilling() { return _loadWortzwilling() }
 export function loadZeitenwende()  { return _loadZeitenwende()  }
 export function loadStats()        { return _loadStats()        }
+export function loadStatsRows()    { return _loadStatsRows()    }
 
 // ── Lemmata-Index (O(1)-Lookup statt linearem Array-Scan) ─────────
 
