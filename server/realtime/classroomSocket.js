@@ -6,10 +6,15 @@ import {
   markParticipantLeft,
   submitClassroomRound,
   getClassroomDashboard,
+  finishClassroomSessionByHostTimeout,
 } from '../classroom-store.js'
 import logger from '../logger.js'
+import { normalizeJoinCode } from '../classroom/join-codes.js'
 
 const HEARTBEAT_TIMEOUT_MS = 45 * 1000
+const HOST_RECONNECT_WINDOW_MS = 2 * 60 * 1000
+
+const sessionRegistry = new Map()
 
 function roomName(sessionId) {
   return `classroom:${sessionId}`
@@ -18,11 +23,13 @@ function roomName(sessionId) {
 function mapSocketError(code) {
   switch (code) {
     case 'INVALID_CODE':
-      return { code, message: 'Join-Code ungueltig oder abgelaufen' }
+      return { code, message: 'Zugangscode ungueltig oder abgelaufen. Bitte Lehrkraft nach dem aktuellen Code fragen.' }
     case 'LATE_JOIN_DISABLED':
       return { code, message: 'Spaetbeitritt ist deaktiviert' }
     case 'SESSION_NOT_JOINABLE':
       return { code, message: 'Session ist nicht beitretbar' }
+    case 'SESSION_FULL':
+      return { code, message: 'Die Session ist voll (maximal 50 Teilnehmende)' }
     case 'PARTICIPANT_NOT_FOUND':
       return { code, message: 'Teilnehmer nicht gefunden' }
     case 'INVALID_STATE':
@@ -54,9 +61,9 @@ function parseJoinPayload(payload = {}) {
     if (!sessionId || !participantId || !participantToken) return { error: 'INVALID_PAYLOAD' }
     return { reconnect: { sessionId, participantId, participantToken } }
   }
-  const code = String(payload.code || '').trim().toUpperCase()
+  const code = String(payload.code || '').trim().toLowerCase()
   if (!code) return { error: 'INVALID_PAYLOAD' }
-  if (!/^[A-Z0-9]{4,16}$/.test(code)) return { error: 'INVALID_PAYLOAD' }
+  if (!/^[a-z-]{4,20}$/.test(code)) return { error: 'INVALID_PAYLOAD' }
   return { code }
 }
 
@@ -84,6 +91,63 @@ function emitMetrics(io, sessionId, teacherUserId) {
   io.to(roomName(sessionId)).emit('classroom:metrics', payload.metrics)
 }
 
+function getSessionRegistryEntry(sessionId) {
+  let entry = sessionRegistry.get(sessionId)
+  if (!entry) {
+    entry = {
+      teacherSockets: new Set(),
+      hostDisconnectSince: null,
+      hostTimeoutTimer: null,
+    }
+    sessionRegistry.set(sessionId, entry)
+  }
+  return entry
+}
+
+function clearHostTimeout(entry) {
+  if (entry.hostTimeoutTimer) {
+    clearTimeout(entry.hostTimeoutTimer)
+    entry.hostTimeoutTimer = null
+  }
+}
+
+function scheduleHostTimeout(io, sessionId, teacherUserId) {
+  const entry = getSessionRegistryEntry(sessionId)
+  if (entry.hostTimeoutTimer || entry.teacherSockets.size > 0) return
+  entry.hostDisconnectSince = Date.now()
+  entry.hostTimeoutTimer = setTimeout(() => {
+    entry.hostTimeoutTimer = null
+    if (entry.teacherSockets.size > 0) return
+    const session = getSessionById({ sessionId })
+    if (!session || session.state === 'finished' || session.state === 'archived') return
+    const finished = finishClassroomSessionByHostTimeout({ sessionId })
+    if (!finished.error && finished.session) {
+      emitState(io, finished.session)
+    }
+    io.to(roomName(sessionId)).emit('classroom:error', {
+      code: 'HOST_TIMEOUT',
+      message: 'Verbindung zur Lehrkraft unterbrochen. Session wird beendet.',
+    })
+  }, HOST_RECONNECT_WINDOW_MS)
+  entry.hostTimeoutTimer.unref()
+}
+
+function registerTeacherSocket(sessionId, socketId) {
+  const entry = getSessionRegistryEntry(sessionId)
+  entry.teacherSockets.add(socketId)
+  entry.hostDisconnectSince = null
+  clearHostTimeout(entry)
+}
+
+function unregisterTeacherSocket(io, sessionId, teacherUserId, socketId) {
+  const entry = sessionRegistry.get(sessionId)
+  if (!entry) return
+  entry.teacherSockets.delete(socketId)
+  if (entry.teacherSockets.size === 0) {
+    scheduleHostTimeout(io, sessionId, teacherUserId)
+  }
+}
+
 export function initClassroomSocket(httpServer) {
   const io = new Server(httpServer, {
     path: '/socket.io',
@@ -95,6 +159,30 @@ export function initClassroomSocket(httpServer) {
 
   io.on('connection', socket => {
     socket.data.classroom = null
+    socket.data.classroomTeacher = null
+
+    socket.on('classroom:teacher-join', payload => {
+      try {
+        const sessionId = String(payload?.sessionId || '')
+        const teacherUserId = String(payload?.teacherUserId || '')
+        if (!sessionId || !teacherUserId) {
+          socket.emit('classroom:error', { code: 'INVALID_PAYLOAD', message: 'Teacher-Join-Payload ist ungueltig' })
+          return
+        }
+        const session = getSessionById({ sessionId })
+        if (!session || session.teacherUserId !== teacherUserId) {
+          socket.emit('classroom:error', { code: 'FORBIDDEN', message: 'Keine Berechtigung fuer diese Session' })
+          return
+        }
+        socket.join(roomName(sessionId))
+        socket.data.classroomTeacher = { sessionId, teacherUserId }
+        registerTeacherSocket(sessionId, socket.id)
+        emitMetrics(io, sessionId, teacherUserId)
+      } catch (err) {
+        logger.error({ err }, 'Socket classroom:teacher-join fehlgeschlagen')
+        socket.emit('classroom:error', { code: 'INTERNAL', message: 'Interner Echtzeitfehler' })
+      }
+    })
 
     socket.on('classroom:join', payload => {
       try {
@@ -142,7 +230,7 @@ export function initClassroomSocket(httpServer) {
           return
         }
 
-        const code = parsed.code
+        const code = normalizeJoinCode(parsed.code)
 
         const joined = joinClassroomSession({ code })
         if (joined.error) {
@@ -234,6 +322,11 @@ export function initClassroomSocket(httpServer) {
     })
 
     socket.on('disconnect', () => {
+      const teacherData = socket.data.classroomTeacher
+      if (teacherData) {
+        unregisterTeacherSocket(io, teacherData.sessionId, teacherData.teacherUserId, socket.id)
+      }
+
       const data = socket.data.classroom
       if (!data) return
       const result = markParticipantLeft({

@@ -2,12 +2,16 @@ import Database from 'better-sqlite3'
 import { mkdtempSync, rmSync } from 'fs'
 import { join } from 'path'
 import { tmpdir } from 'os'
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 describe('DB stats migration', () => {
   const originalAppDb = process.env.APP_DB
   const openedDbs = []
   const tempDirs = []
+
+  beforeEach(() => {
+    vi.resetModules()
+  })
 
   afterEach(() => {
     for (const db of openedDbs.splice(0)) {
@@ -50,7 +54,7 @@ describe('DB stats migration', () => {
     let migratedDb
     try {
       process.env.APP_DB = dbPath
-      const mod = await import(`./db.js?stats-migration=${Date.now()}`)
+      const mod = await import('./db.js')
       migratedDb = mod.default
       openedDbs.push(migratedDb)
 

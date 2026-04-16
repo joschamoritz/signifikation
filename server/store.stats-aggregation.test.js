@@ -2,12 +2,16 @@ import Database from 'better-sqlite3'
 import { mkdtempSync, rmSync } from 'fs'
 import { join } from 'path'
 import { tmpdir } from 'os'
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 describe('Stats aggregation in store', () => {
   const originalAppDb = process.env.APP_DB
   const openedDbs = []
   const tempDirs = []
+
+  beforeEach(() => {
+    vi.resetModules()
+  })
 
   afterEach(() => {
     for (const db of openedDbs.splice(0)) {
@@ -32,11 +36,11 @@ describe('Stats aggregation in store', () => {
 
     process.env.APP_DB = dbPath
 
-    const dbMod = await import(`./db.js?store-agg-db=${Date.now()}`)
+    const dbMod = await import('./db.js')
     const db = dbMod.default
     openedDbs.push(db)
 
-    const storeMod = await import(`./store.js?store-agg-store=${Date.now()}`)
+    const storeMod = await import('./store.js')
 
     db.prepare(`
       INSERT INTO stats (datum, spiel, user_id, plays, scoreSum, maxSum, dist)
@@ -82,11 +86,11 @@ describe('Stats aggregation in store', () => {
 
     process.env.APP_DB = dbPath
 
-    const dbMod = await import(`./db.js?store-rows-db=${Date.now()}`)
+    const dbMod = await import('./db.js')
     const db = dbMod.default
     openedDbs.push(db)
 
-    const storeMod = await import(`./store.js?store-rows-store=${Date.now()}`)
+    const storeMod = await import('./store.js')
 
     db.prepare(`
       INSERT INTO stats (datum, spiel, user_id, plays, scoreSum, maxSum, dist)
@@ -113,11 +117,11 @@ describe('Stats aggregation in store', () => {
 
     process.env.APP_DB = dbPath
 
-    const dbMod = await import(`./db.js?store-import-db=${Date.now()}`)
+    const dbMod = await import('./db.js')
     const db = dbMod.default
     openedDbs.push(db)
 
-    const storeMod = await import(`./store.js?store-import-store=${Date.now()}`)
+    const storeMod = await import('./store.js')
 
     await storeMod.save('stats-rows.json', [
       {

@@ -59,24 +59,6 @@ function PlaceholderScreen({ title, ipa, category, isPremium = true, definition,
   )
 }
 
-export function KlassenraumTab() {
-  return (
-    <PlaceholderScreen
-      title="Klassenraum"
-      ipa="[ˈklasənˌʀaʊ̯m]"
-      category="Lehrkräfte"
-      definition="Gemeinsame Spielsitzungen für Gruppen und Klassen. Kollaboratives Lernen mit Echtzeit-Vergleich und didaktischer Auswertung."
-      features={[
-        'Spielsitzung per Code starten — Lernende treten per Link bei',
-        'Echtzeit-Vergleich der Gruppe während des Spiels',
-        'Auswertung nach Spielmodus und Wort',
-        'Export der Ergebnisse für Unterrichtsportfolio',
-        'Anpassbare Wortlisten für eigene Unterrichtseinheiten',
-      ]}
-    />
-  )
-}
-
 export function KursTab() {
   return (
     <PlaceholderScreen
