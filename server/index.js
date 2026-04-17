@@ -27,7 +27,7 @@ import { startClassroomRetentionJob } from './jobs/classroomRetention.js'
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const PORT      = process.env.PORT || 3001
 const CLASSROOM_EXPORT_WORKER_ENABLED = process.env.CLASSROOM_EXPORT_WORKER_ENABLED !== 'false'
-const CLASSROOM_EXPORT_WORKER_INTERVAL_MS = Number(process.env.CLASSROOM_EXPORT_WORKER_INTERVAL_MS || 3000)
+const CLASSROOM_EXPORT_WORKER_INTERVAL_MS = Number(process.env.CLASSROOM_EXPORT_WORKER_INTERVAL_MS || 10000)
 const ALLOWED_ORIGINS  = process.env.ALLOWED_ORIGINS
   ? process.env.ALLOWED_ORIGINS.split(',').map(s => s.trim())
   : IS_PROD
@@ -149,7 +149,7 @@ const WORTPROFIL_TIMEOUT_MS = 130_000  // etwas mehr als curl --max-time 120
   })
 
   const io = initClassroomSocket(server)
-  startClassroomRetentionJob()
+  const retentionHandle = startClassroomRetentionJob()
 
   let exportTimer = null
   if (CLASSROOM_EXPORT_WORKER_ENABLED) {
@@ -171,6 +171,8 @@ const WORTPROFIL_TIMEOUT_MS = 130_000  // etwas mehr als curl --max-time 120
   const shutdown = (signal) => {
     logger.info(`${signal} empfangen – fahre herunter …`)
     if (exportTimer) clearInterval(exportTimer)
+    if (retentionHandle?.clear) retentionHandle.clear()
+    else if (retentionHandle) clearInterval(retentionHandle)
     io.close()
     server.close(() => {
       logger.info('HTTP-Server geschlossen')

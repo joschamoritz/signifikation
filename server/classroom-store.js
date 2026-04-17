@@ -1,10 +1,12 @@
 import { createHmac, randomUUID } from 'crypto'
 import db from './db.js'
+import { generateJoinCode, normalizeJoinCode } from './classroom/join-codes.js'
 
 const TIMEZONE = process.env.TIMEZONE || 'Europe/Berlin'
 const JOIN_SECRET = (process.env.CLASSROOM_JOIN_SECRET || process.env.ADMIN_KEY || 'dev-classroom-secret').trim()
 const RETENTION_MS = 90 * 24 * 60 * 60 * 1000
-const CONNECTED_WINDOW_MS = 60 * 1000
+const CONNECTED_WINDOW_MS = 45 * 1000
+const SESSION_MAX_PARTICIPANTS = 50
 
 const stmts = {
   insertSession: db.prepare(`
@@ -15,6 +17,13 @@ const stmts = {
     )
   `),
   getSessionById: db.prepare('SELECT * FROM classroom_sessions WHERE id = ?'),
+  listTeacherSessions: db.prepare(`
+    SELECT *
+    FROM classroom_sessions
+    WHERE teacher_user_id = ?
+    ORDER BY created_at DESC
+    LIMIT ?
+  `),
   findActiveSessionByJoinHash: db.prepare(`
     SELECT *
     FROM classroom_sessions
@@ -112,6 +121,12 @@ const stmts = {
     )
   `),
   getExportById: db.prepare('SELECT * FROM classroom_exports WHERE id = ? AND session_id = ?'),
+  listExportsBySession: db.prepare(`
+    SELECT *
+    FROM classroom_exports
+    WHERE session_id = ?
+    ORDER BY created_at DESC
+  `),
   updateExportStatus: db.prepare(`
     UPDATE classroom_exports
     SET status = @status,
@@ -149,8 +164,21 @@ const stmts = {
     SELECT id
     FROM classroom_sessions
     WHERE expires_at < ?
+      AND state = 'archived'
     ORDER BY expires_at ASC
     LIMIT ?
+  `),
+  archiveExpiredSessions: db.prepare(`
+    UPDATE classroom_sessions
+    SET state = 'archived'
+    WHERE expires_at < ?
+      AND state != 'archived'
+  `),
+  listExportFileRefsForSession: db.prepare(`
+    SELECT file_ref
+    FROM classroom_exports
+    WHERE session_id = ?
+      AND file_ref IS NOT NULL
   `),
   deleteSessionById: db.prepare('DELETE FROM classroom_sessions WHERE id = ?'),
 }
@@ -199,20 +227,11 @@ function normalizeExportRow(row) {
   }
 }
 
-function generateJoinCode(length = 6) {
-  const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
-  let out = ''
-  for (let i = 0; i < length; i += 1) {
-    out += alphabet[Math.floor(Math.random() * alphabet.length)]
-  }
-  return out
-}
-
 function resolveJoinCode() {
   const now = nowMs()
-  for (let i = 0; i < 8; i += 1) {
-    const candidate = generateJoinCode(6)
-    const candidateHash = hashValue(candidate)
+  for (let i = 0; i < 40; i += 1) {
+    const candidate = generateJoinCode()
+    const candidateHash = hashValue(normalizeJoinCode(candidate))
     const row = stmts.countActiveByJoinHash.get(candidateHash, now)
     if (!row || row.c === 0) {
       return { joinCode: candidate, joinCodeHash: candidateHash }
@@ -249,7 +268,7 @@ export function createClassroomSession({ teacherUserId, datum, year, settings })
     state: 'lobby',
     datum: datum || today.datum,
     year: year || today.year,
-    settings_json: JSON.stringify(settings || {}),
+    settings_json: JSON.stringify(mergeSettings({ allowLateJoin: true }, settings || {})),
     created_at: now,
     expires_at: now + RETENTION_MS,
   }
@@ -264,6 +283,11 @@ export function getSessionById({ sessionId }) {
   return normalizeSessionRow(stmts.getSessionById.get(sessionId))
 }
 
+export function listTeacherSessions({ teacherUserId, limit = 10 }) {
+  const safeLimit = Math.max(1, Math.min(50, Number(limit) || 10))
+  return stmts.listTeacherSessions.all(teacherUserId, safeLimit).map(normalizeSessionRow)
+}
+
 export function startClassroomSession({ sessionId, teacherUserId, allowLateJoin }) {
   const raw = stmts.getSessionById.get(sessionId)
   if (!raw) return { error: 'NOT_FOUND' }
@@ -271,7 +295,12 @@ export function startClassroomSession({ sessionId, teacherUserId, allowLateJoin 
   if (!['created', 'lobby'].includes(raw.state)) return { error: 'INVALID_STATE' }
 
   const startedAt = nowMs()
-  const settings = mergeSettings(JSON.parse(raw.settings_json || '{}'), { allowLateJoin: !!allowLateJoin })
+  const existingSettings = JSON.parse(raw.settings_json || '{}')
+  const settings = mergeSettings(existingSettings, {
+    allowLateJoin: typeof allowLateJoin === 'boolean'
+      ? allowLateJoin
+      : (typeof existingSettings.allowLateJoin === 'boolean' ? existingSettings.allowLateJoin : true),
+  })
   stmts.updateSessionState.run({
     id: sessionId,
     state: 'running',
@@ -298,8 +327,24 @@ export function finishClassroomSession({ sessionId, teacherUserId }) {
   return { session: normalizeSessionRow(stmts.getSessionById.get(sessionId)) }
 }
 
+export function finishClassroomSessionByHostTimeout({ sessionId }) {
+  const raw = stmts.getSessionById.get(sessionId)
+  if (!raw) return { error: 'NOT_FOUND' }
+  if (!['running', 'lobby', 'created'].includes(raw.state)) return { error: 'INVALID_STATE' }
+
+  const settings = mergeSettings(JSON.parse(raw.settings_json || '{}'), { host_timeout: true })
+  stmts.updateSessionState.run({
+    id: sessionId,
+    state: 'finished',
+    settings_json: JSON.stringify(settings),
+    started_at: raw.started_at,
+    finished_at: nowMs(),
+  })
+  return { session: normalizeSessionRow(stmts.getSessionById.get(sessionId)) }
+}
+
 export function joinClassroomSession({ code }) {
-  const normalizedCode = String(code || '').trim().toUpperCase()
+  const normalizedCode = normalizeJoinCode(code)
   const raw = stmts.findActiveSessionByJoinHash.get(hashValue(normalizedCode), nowMs())
   if (!raw) return { error: 'INVALID_CODE' }
 
@@ -309,6 +354,11 @@ export function joinClassroomSession({ code }) {
   }
   if (!['created', 'lobby', 'running'].includes(raw.state)) {
     return { error: 'SESSION_NOT_JOINABLE' }
+  }
+
+  const currentParticipants = stmts.countParticipants.get(raw.id)?.c || 0
+  if (currentParticipants >= SESSION_MAX_PARTICIPANTS) {
+    return { error: 'SESSION_FULL' }
   }
 
   const participantId = randomUUID()
@@ -432,6 +482,15 @@ export function getClassroomExportJob({ sessionId, exportId, teacherUserId }) {
   return { exportJob: normalizeExportRow(exportRow) }
 }
 
+export function listClassroomExportJobs({ sessionId, teacherUserId }) {
+  const session = stmts.getSessionById.get(sessionId)
+  if (!session) return { error: 'NOT_FOUND' }
+  if (session.teacher_user_id !== teacherUserId) return { error: 'FORBIDDEN' }
+  return {
+    exportJobs: stmts.listExportsBySession.all(sessionId).map(normalizeExportRow),
+  }
+}
+
 export function listQueuedExports(limit = 10) {
   return stmts.listQueuedExports.all(limit).map(normalizeExportRow)
 }
@@ -474,16 +533,27 @@ export function getExportRowsForSession({ sessionId }) {
 }
 
 export function cleanupExpiredSessions({ now = nowMs(), limit = 100 } = {}) {
+  const archivedNow = stmts.archiveExpiredSessions.run(now).changes || 0
   const expiredIds = stmts.listExpiredSessionIds.all(now, limit).map(r => r.id)
-  if (!expiredIds.length) return { deletedSessions: 0, expiredIds: [] }
+  if (!expiredIds.length) return { deletedSessions: 0, archivedSessions: archivedNow, expiredIds: [], fileRefs: [] }
   const tx = db.transaction(() => {
     let deleted = 0
+    const fileRefs = []
     for (const id of expiredIds) {
+      const rows = stmts.listExportFileRefsForSession.all(id)
+      for (const row of rows) {
+        if (row?.file_ref) fileRefs.push(row.file_ref)
+      }
       const result = stmts.deleteSessionById.run(id)
       deleted += result.changes
     }
-    return deleted
+    return { deleted, fileRefs }
   })
-  const deletedSessions = tx()
-  return { deletedSessions, expiredIds }
+  const result = tx()
+  return {
+    deletedSessions: result.deleted,
+    archivedSessions: archivedNow,
+    expiredIds,
+    fileRefs: result.fileRefs,
+  }
 }

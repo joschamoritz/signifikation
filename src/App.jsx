@@ -10,7 +10,8 @@ import Results from './components/Results'
 import ErrorBoundary from './components/ErrorBoundary'
 import TabBar from './components/TabBar'
 import TabTransition from './components/TabTransition'
-import { KlassenraumTab, KursTab, KontoTab } from './components/TabPlaceholders'
+import ClassroomTab from './components/ClassroomTab'
+import { KursTab, KontoTab } from './components/TabPlaceholders'
 import { getMedal, getDailyMedal, getZRMedal } from './utils/gameLogic'
 import { fetchWithRetry } from './utils/fetchWithRetry'
 
@@ -519,7 +520,7 @@ export default function App() {
             onUnlockGesamtausgabe={unlockGesamtausgabe}
           />
         )}
-        {activeTab === 'klassenraum' && <KlassenraumTab />}
+        {activeTab === 'klassenraum' && <ClassroomTab />}
         {activeTab === 'kurs'        && <KursTab />}
         {activeTab === 'profil'      && (
           <KontoTab

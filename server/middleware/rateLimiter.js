@@ -68,7 +68,7 @@ function getClientIp(req) {
 const belegeStore = new CleanupStore(60_000)
 const adminStore = new CleanupStore(60_000)
 const statsStore = new CleanupStore(60_000)
-const classroomJoinStore = new CleanupStore(60_000)
+const classroomJoinStore = new CleanupStore(5 * 60_000)
 const classroomWriteStore = new CleanupStore(60_000)
 const classroomExportStore = new CleanupStore(60_000)
 const registerStore = new CleanupStore(15 * 60_000)
@@ -127,11 +127,11 @@ export const uploadLimiter = rateLimit({
 })
 
 export const classroomJoinLimiter = rateLimit({
-  windowMs: 60_000, max: 40,
+  windowMs: 5 * 60_000, max: 10,
   store: classroomJoinStore,
   keyGenerator: getClientIp,
   standardHeaders: true, legacyHeaders: false,
-  message: { error: 'Zu viele Join-Versuche. Bitte kurz warten.' },
+  message: { error: 'Zu viele Versuche. Bitte warte 5 Minuten.' },
 })
 
 export const classroomWriteLimiter = rateLimit({

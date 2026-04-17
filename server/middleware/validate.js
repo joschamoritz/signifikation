@@ -127,7 +127,7 @@ export const classroomCreateSessionSchema = z.object({
 
 /** POST /api/v1/classroom/sessions/:id/start */
 export const classroomStartSessionSchema = z.object({
-  allowLateJoin: z.boolean().optional().default(false),
+  allowLateJoin: z.boolean().optional().default(true),
 })
 
 /** POST /api/v1/classroom/sessions/:id/finish */
@@ -137,7 +137,7 @@ export const classroomFinishSessionSchema = z.object({
 
 /** POST /api/v1/classroom/join */
 export const classroomJoinSchema = z.object({
-  code: z.string().trim().min(4, 'Join-Code zu kurz').max(16, 'Join-Code zu lang'),
+  code: z.string().trim().toLowerCase().min(4, 'Join-Code zu kurz').max(20, 'Join-Code zu lang').regex(/^[a-z-]+$/, 'Join-Code enthaelt ungueltige Zeichen'),
 })
 
 /** POST /api/v1/classroom/sessions/:id/exports */
