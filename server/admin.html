@@ -4,8 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Signifikation – Admin</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Gentium+Plus:ital,wght@0,400;0,700;1,400&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/fonts/fonts.css">
   <link rel="stylesheet" href="/admin-assets/admin.css">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
 </head>
@@ -27,229 +26,584 @@
 </div>
 
 <div class="container" id="main-container" style="display:none">
-  <header style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px">
-    <div>
-      <h1>Signifikation</h1>
-      <p class="subtitle">Admin · Tageseinträge verwalten</p>
-    </div>
-    <div style="display:flex;gap:8px;align-items:center">
-      <button class="logout-btn" onclick="downloadBackup()">⬇ Backup</button>
-      <button class="logout-btn" onclick="doLogout()">Abmelden</button>
-    </div>
-  </header>
-
-  <!-- System-Status -->
-  <div class="card" id="health-card" style="padding:12px 16px">
-    <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap">
-      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap" id="health-badges">
-        <span style="font-size:0.8rem;color:var(--muted)">System-Status wird geladen…</span>
+  <div class="admin-shell">
+    <aside class="admin-sidebar">
+      <div class="admin-brand">
+        <h1>Signifikation</h1>
+        <p>Admin-Portal</p>
       </div>
-      <button onclick="loadHealth()" style="font-size:0.75rem;padding:4px 10px;opacity:0.7">↺</button>
-    </div>
-  </div>
 
-  <!-- Neuer Eintrag -->
-  <div class="card">
-    <h2 id="form-title">Neuer Tageseintrag</h2>
-    <div>
-      <label for="datum">Datum</label>
-      <input type="date" id="datum">
-    </div>
+      <nav class="admin-nav" aria-label="Admin-Bereiche">
+        <button class="nav-item active" data-page="dashboard" onclick="switchPage('dashboard')">Dashboard</button>
+        <button class="nav-item" data-page="entry" onclick="switchPage('entry')">Tageseinträge</button>
+        <button class="nav-item" data-page="stats" onclick="switchPage('stats')">Statistiken</button>
+        <button class="nav-item" data-page="analytics" onclick="switchPage('analytics')">Analysen</button>
+        <button class="nav-item" data-page="calendar" onclick="switchPage('calendar')">Kalender</button>
+        <button class="nav-item" data-page="users" onclick="switchPage('users')">Nutzer</button>
+        <button class="nav-item" data-page="system" onclick="switchPage('system')">System</button>
+        <a class="nav-item nav-link" href="/admin/social-cards">Social Cards</a>
+      </nav>
 
-    <!-- Kollokationen -->
-    <button class="mode-toggle" id="koll-toggle" onclick="toggleMode('koll')">
-      <span>Kollokationen</span>
-      <span class="toggle-arrow" id="koll-arrow">›</span>
-    </button>
-    <div class="mode-body" id="koll-body" style="display:none">
-      <div class="woerter">
-        <div class="wort-row">
-          <span class="wort-badge">Wort 1</span>
-          <input type="text" id="w1" placeholder="Wort 1">
-          <select id="p1"><option value="Substantiv" selected>Substantiv</option><option value="Verb">Verb</option><option value="Adjektiv">Adjektiv</option></select>
-        </div>
-        <input type="text" id="n1" class="notiz-input" placeholder="Notiz">
-        <input type="url"  id="l1" class="notiz-input" placeholder="Link">
-        <div class="wort-row">
-          <span class="wort-badge">Wort 2</span>
-          <input type="text" id="w2" placeholder="Wort 2">
-          <select id="p2"><option value="Substantiv">Substantiv</option><option value="Verb" selected>Verb</option><option value="Adjektiv">Adjektiv</option></select>
-        </div>
-        <input type="text" id="n2" class="notiz-input" placeholder="Notiz">
-        <input type="url"  id="l2" class="notiz-input" placeholder="Link">
-        <div class="wort-row">
-          <span class="wort-badge">Wort 3</span>
-          <input type="text" id="w3" placeholder="Wort 3">
-          <select id="p3"><option value="Substantiv">Substantiv</option><option value="Verb">Verb</option><option value="Adjektiv" selected>Adjektiv</option></select>
-        </div>
-        <input type="text" id="n3" class="notiz-input" placeholder="Notiz">
-        <input type="url"  id="l3" class="notiz-input" placeholder="Link">
+      <div class="sidebar-actions">
+        <button class="logout-btn" onclick="downloadBackup()">Backup</button>
+        <button class="logout-btn" onclick="doLogout()">Abmelden</button>
       </div>
-    </div>
+    </aside>
 
-    <!-- Wort-Zwilling -->
-    <button class="mode-toggle" id="wz-toggle" onclick="toggleMode('wz')">
-      <span>Wort-Zwilling</span>
-      <span class="toggle-arrow" id="wz-arrow">›</span>
-    </button>
-    <div class="mode-body" id="wz-body" style="display:none">
-      <div style="display:flex;gap:8px;align-items:flex-end">
-        <div style="flex:1">
-          <label for="wza">Wort A</label>
-          <input type="text" id="wza" placeholder="Wort A">
-        </div>
-        <div style="flex:1">
-          <label for="wzb">Wort B</label>
-          <input type="text" id="wzb" placeholder="Wort B">
-        </div>
+    <main class="admin-main">
+      <header class="admin-topbar">
         <div>
-          <label for="wzpos">Wortart</label>
-          <select id="wzpos">
-            <option value="Substantiv">Substantiv</option>
-            <option value="Verb">Verb</option>
-            <option value="Adjektiv">Adjektiv</option>
-          </select>
+          <h2 id="page-title">Dashboard</h2>
+          <p class="subtitle" id="page-subtitle">Übersicht mit Health, Tagesplanung und Schnellzugriff.</p>
         </div>
-      </div>
-      <p style="font-size:0.8rem;color:var(--muted);font-style:italic">
-        Beide Wortprofile werden über DWDS abgerufen; distinkte Kollokatoren automatisch ermittelt.
-      </p>
-    </div>
-
-    <!-- Zeitenwende -->
-    <button class="mode-toggle" id="zw-toggle" onclick="toggleMode('zw')">
-      <span>Zeitenwende</span>
-      <span class="toggle-arrow" id="zw-arrow">›</span>
-    </button>
-    <div class="mode-body" id="zw-body" style="display:none">
-      <div style="display:flex;gap:8px;align-items:flex-end">
-        <div style="flex:1">
-          <label for="zw-lemma">Lemma (Zeitenwende)</label>
-          <input type="text" id="zw-lemma" placeholder="Lemma">
+        <div class="top-actions">
+          <button class="ghost-btn" onclick="switchPage('entry')">Neuer Tag</button>
+          <a class="ghost-btn" href="/admin/social-cards">Social Cards</a>
+          <button class="ghost-btn" onclick="refreshDashboard()">Aktualisieren</button>
         </div>
-      </div>
-      <p style="font-size:0.8rem;color:var(--muted);font-style:italic">
-        10 distinktive Kollokatoren (5 vor 2000, 5 nach 2000) werden automatisch aus der Zeitreise-DB ermittelt.
-      </p>
-    </div>
+      </header>
 
-    <!-- Zeitreise -->
-    <button class="mode-toggle" id="zeit-toggle" onclick="toggleMode('zeit')">
-      <span>Zeitreise</span>
-      <span class="toggle-arrow" id="zeit-arrow">›</span>
-    </button>
-    <div class="mode-body" id="zeit-body" style="display:none">
-      <div style="display:flex;gap:8px;align-items:flex-end">
-        <div style="flex:1">
-          <label for="zr">Wort des Tages (eigene Zeitreise-DB)</label>
-          <input type="text" id="zr" placeholder="Lemma">
+      <section class="admin-page is-active" id="page-dashboard" data-title="Dashboard" data-subtitle="Übersicht mit Health, Tagesplanung und Schnellzugriff.">
+        <div class="dashboard-grid">
+          <article class="metric-card">
+            <span class="metric-label">Kalendereinträge</span>
+            <strong class="metric-value" id="metric-calendar-days">-</strong>
+            <span class="metric-sub">Tage geplant</span>
+          </article>
+          <article class="metric-card">
+            <span class="metric-label">Heute</span>
+            <strong class="metric-value" id="metric-today-status">-</strong>
+            <span class="metric-sub">Eintrag vorhanden?</span>
+          </article>
+          <article class="metric-card">
+            <span class="metric-label">Plays heute</span>
+            <strong class="metric-value" id="metric-plays-today">-</strong>
+            <span class="metric-sub" id="metric-score-today">Ø - / 10</span>
+          </article>
+          <article class="metric-card">
+            <span class="metric-label">System</span>
+            <strong class="metric-value" id="metric-health">-</strong>
+            <span class="metric-sub" id="metric-health-sub">Health nicht geladen</span>
+          </article>
         </div>
-        <div>
-          <label for="zr-wortart">Wortart</label>
-          <select id="zr-wortart">
-            <option value="Substantiv">Substantiv</option>
-            <option value="Verb">Verb</option>
-            <option value="Adjektiv">Adjektiv</option>
-          </select>
+
+        <div class="card" id="health-card" style="padding:12px 16px">
+          <h2>Health</h2>
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap">
+            <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap" id="health-badges">
+              <span style="font-size:0.8rem;color:var(--muted)">System-Status wird geladen…</span>
+            </div>
+            <button onclick="loadHealth()" style="font-size:0.75rem;padding:4px 10px;opacity:0.7">↺</button>
+          </div>
+          <div class="health-detail-grid" id="system-health-details">
+            <div class="health-detail-item"><span>Uptime</span><strong>-</strong></div>
+            <div class="health-detail-item"><span>Memory</span><strong>-</strong></div>
+            <div class="health-detail-item"><span>Environment</span><strong>-</strong></div>
+            <div class="health-detail-item"><span>Letzter Eintrag</span><strong>-</strong></div>
+          </div>
         </div>
-      </div>
-      <p style="font-size:0.8rem;color:var(--muted);font-style:italic">
-        5 Kollokatoren aus 5 verschiedenen Perioden werden automatisch aus der eigenen Zeitreise-DB abgerufen.
-      </p>
-    </div>
 
-    <div id="status" class="status"></div>
-    <button id="save-btn" onclick="saveTag()">Speichern &amp; APIs abrufen</button>
-  </div>
+        <div class="card">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap">
+            <h2>Kalender-Preview</h2>
+            <button onclick="switchPage('calendar')" style="font-size:0.78rem;padding:6px 12px">Kalender öffnen</button>
+          </div>
+          <div id="dashboard-calendar-preview" class="preview-list">
+            <div class="preview-empty">Kalender wird geladen …</div>
+          </div>
+        </div>
+      </section>
 
-  <!-- Statistik -->
-  <div class="card">
-    <div style="display:flex;align-items:center;justify-content:space-between">
-      <h2>Statistik</h2>
-      <button onclick="loadStats()" style="font-size:0.8rem;padding:6px 12px">↺ Laden</button>
-    </div>
-    <div id="stats-output"><div style="color:var(--muted);font-size:0.85rem">Noch nicht geladen.</div></div>
-  </div>
+      <section class="admin-page" id="page-entry" data-title="Tageseinträge" data-subtitle="Tagesinhalt planen und automatisch mit Datenquellen anreichern.">
+        <div class="card">
+          <h2 id="form-title">Neuer Tageseintrag</h2>
+          <div>
+            <label for="datum">Datum</label>
+            <input type="date" id="datum">
+          </div>
 
-  <!-- Kollokation – Wortanalyse -->
-  <div class="card">
-    <h2>Kollokation – Wortanalyse</h2>
-    <p style="font-size:0.82rem;color:var(--muted);margin-bottom:8px">Prüfe, ob ein Wort als Kollokationswort geeignet ist. Zeigt Top 10 pro Runde, Top 3 gesamt und die Bonusfrage.</p>
-    <div class="viz-search">
-      <input type="text" id="koll-input" placeholder="Wort eingeben…" onkeydown="if(event.key==='Enter')analyzeKollokation()" style="flex:1">
-      <select id="koll-pos">
-        <option value="Substantiv">Substantiv</option>
-        <option value="Verb">Verb</option>
-        <option value="Adjektiv">Adjektiv</option>
-      </select>
-      <button onclick="analyzeKollokation()">Analysieren</button>
-      <button onclick="document.getElementById('koll-output').innerHTML='';document.getElementById('koll-input').value=''" style="opacity:0.6">✕ Zurücksetzen</button>
-    </div>
-    <div id="koll-output"></div>
-  </div>
+          <button class="mode-toggle" id="koll-toggle" onclick="toggleMode('koll')">
+            <span>Kollokationen</span>
+            <span class="toggle-arrow" id="koll-arrow">›</span>
+          </button>
+          <div class="mode-body" id="koll-body" style="display:none">
+            <div class="woerter">
+              <div class="wort-row">
+                <span class="wort-badge">Wort 1</span>
+                <input type="text" id="w1" placeholder="Wort 1">
+                <select id="p1"><option value="Substantiv" selected>Substantiv</option><option value="Verb">Verb</option><option value="Adjektiv">Adjektiv</option></select>
+              </div>
+              <input type="text" id="n1" class="notiz-input" placeholder="Notiz">
+              <input type="url"  id="l1" class="notiz-input" placeholder="Link">
+              <div class="wort-row">
+                <span class="wort-badge">Wort 2</span>
+                <input type="text" id="w2" placeholder="Wort 2">
+                <select id="p2"><option value="Substantiv">Substantiv</option><option value="Verb" selected>Verb</option><option value="Adjektiv">Adjektiv</option></select>
+              </div>
+              <input type="text" id="n2" class="notiz-input" placeholder="Notiz">
+              <input type="url"  id="l2" class="notiz-input" placeholder="Link">
+              <div class="wort-row">
+                <span class="wort-badge">Wort 3</span>
+                <input type="text" id="w3" placeholder="Wort 3">
+                <select id="p3"><option value="Substantiv">Substantiv</option><option value="Verb">Verb</option><option value="Adjektiv" selected>Adjektiv</option></select>
+              </div>
+              <input type="text" id="n3" class="notiz-input" placeholder="Notiz">
+              <input type="url"  id="l3" class="notiz-input" placeholder="Link">
+            </div>
+          </div>
 
-  <!-- Wort-Zwilling – Paaranalyse -->
-  <div class="card">
-    <h2>Wort-Zwilling – Paaranalyse</h2>
-    <p style="font-size:0.82rem;color:var(--muted);margin-bottom:8px">Prüfe, ob zwei Wörter als Wort-Zwilling geeignet sind. Zeigt die 10 distinktiven Kollokatoren (5 pro Seite).</p>
-    <div class="viz-search" style="flex-wrap:wrap;gap:8px">
-      <input type="text" id="wza-input" placeholder="Wort A…" onkeydown="if(event.key==='Enter')analyzeWortZwilling()" style="flex:1;min-width:120px">
-      <input type="text" id="wzb-input" placeholder="Wort B…" onkeydown="if(event.key==='Enter')analyzeWortZwilling()" style="flex:1;min-width:120px">
-      <select id="wzana-pos">
-        <option value="Substantiv">Substantiv</option>
-        <option value="Verb">Verb</option>
-        <option value="Adjektiv">Adjektiv</option>
-      </select>
-      <button onclick="analyzeWortZwilling()">Analysieren</button>
-      <button onclick="document.getElementById('wz-ana-output').innerHTML='';document.getElementById('wza-input').value='';document.getElementById('wzb-input').value=''" style="opacity:0.6">✕ Zurücksetzen</button>
-    </div>
-    <div id="wz-ana-output"></div>
-  </div>
+          <button class="mode-toggle" id="wz-toggle" onclick="toggleMode('wz')">
+            <span>Wort-Zwilling</span>
+            <span class="toggle-arrow" id="wz-arrow">›</span>
+          </button>
+          <div class="mode-body" id="wz-body" style="display:none">
+            <div style="display:flex;gap:8px;align-items:flex-end">
+              <div style="flex:1">
+                <label for="wza">Wort A</label>
+                <input type="text" id="wza" placeholder="Wort A">
+              </div>
+              <div style="flex:1">
+                <label for="wzb">Wort B</label>
+                <input type="text" id="wzb" placeholder="Wort B">
+              </div>
+              <div>
+                <label for="wzpos">Wortart</label>
+                <select id="wzpos">
+                  <option value="Substantiv">Substantiv</option>
+                  <option value="Verb">Verb</option>
+                  <option value="Adjektiv">Adjektiv</option>
+                </select>
+              </div>
+            </div>
+            <p style="font-size:0.8rem;color:var(--muted);font-style:italic">
+              Beide Wortprofile werden über DWDS abgerufen; distinkte Kollokatoren automatisch ermittelt.
+            </p>
+          </div>
 
-  <!-- Zeitenwende Analyse -->
-  <div class="card">
-    <h2>Zeitenwende – Wortanalyse</h2>
-    <p style="font-size:0.82rem;color:var(--muted);margin-bottom:8px">Prüfe, ob ein Wort als Zeitenwende-Lemma geeignet ist. Zeigt distinktive Kollokatoren vor und nach 2000.</p>
-    <div class="viz-search">
-      <input type="text" id="zw-ana-input" placeholder="Wort eingeben…" onkeydown="if(event.key==='Enter')analyzeZeitenwende()" style="flex:1">
-      <button onclick="analyzeZeitenwende()">Analysieren</button>
-      <button onclick="document.getElementById('zw-ana-output').innerHTML='';document.getElementById('zw-ana-input').value=''" style="opacity:0.6">✕ Zurücksetzen</button>
-    </div>
-    <div id="zw-ana-output"></div>
-  </div>
+          <button class="mode-toggle" id="zw-toggle" onclick="toggleMode('zw')">
+            <span>Zeitenwende</span>
+            <span class="toggle-arrow" id="zw-arrow">›</span>
+          </button>
+          <div class="mode-body" id="zw-body" style="display:none">
+            <div style="display:flex;gap:8px;align-items:flex-end">
+              <div style="flex:1">
+                <label for="zw-lemma">Lemma (Zeitenwende)</label>
+                <input type="text" id="zw-lemma" placeholder="Lemma">
+              </div>
+            </div>
+            <p style="font-size:0.8rem;color:var(--muted);font-style:italic">
+              10 distinktive Kollokatoren (5 vor 2000, 5 nach 2000) werden automatisch aus der Zeitreise-DB ermittelt.
+            </p>
+          </div>
 
-  <!-- Zeitreise Visualisierung -->
-  <div class="card">
-    <h2>Zeitreise – Wortanalyse</h2>
-    <div class="viz-search">
-      <input type="text" id="viz-input" placeholder="Wort eingeben…" onkeydown="if(event.key==='Enter')analyzeZeitreiseViz()">
-      <button onclick="analyzeZeitreiseViz()">Analysieren</button>
-      <button onclick="document.getElementById('viz-output').innerHTML='';document.getElementById('viz-input').value=''" style="opacity:0.6">✕ Zurücksetzen</button>
-    </div>
-    <div id="viz-output"></div>
-  </div>
+          <button class="mode-toggle" id="zeit-toggle" onclick="toggleMode('zeit')">
+            <span>Zeitreise</span>
+            <span class="toggle-arrow" id="zeit-arrow">›</span>
+          </button>
+          <div class="mode-body" id="zeit-body" style="display:none">
+            <div style="display:flex;gap:8px;align-items:flex-end">
+              <div style="flex:1">
+                <label for="zr">Wort des Tages (eigene Zeitreise-DB)</label>
+                <input type="text" id="zr" placeholder="Lemma">
+              </div>
+              <div>
+                <label for="zr-wortart">Wortart</label>
+                <select id="zr-wortart">
+                  <option value="Substantiv">Substantiv</option>
+                  <option value="Verb">Verb</option>
+                  <option value="Adjektiv">Adjektiv</option>
+                </select>
+              </div>
+            </div>
+            <p style="font-size:0.8rem;color:var(--muted);font-style:italic">
+              5 Kollokatoren aus 5 verschiedenen Perioden werden automatisch aus der eigenen Zeitreise-DB abgerufen.
+            </p>
+          </div>
 
+          <div id="status" class="status"></div>
+          <div class="entry-preview-actions">
+            <button onclick="previewCurrentLemma()">Lemma-Vorschau</button>
+            <button onclick="previewCurrentDay()">Tages-Vorschau</button>
+          </div>
+          <div id="entry-preview-output" class="entry-preview-output">
+            <div class="users-empty">Noch keine Vorschau geladen.</div>
+          </div>
+          <div class="entry-form-actions">
+            <button id="save-btn" onclick="saveTag()">Speichern &amp; APIs abrufen</button>
+            <button id="delete-btn" class="danger-btn" onclick="deleteCurrentTag()" disabled>Eintrag löschen</button>
+          </div>
+        </div>
 
-  <!-- Kalender -->
-  <div class="card">
-    <h2>Kalender</h2>
-    <div class="cal-nav">
-      <button class="cal-nav-btn" onclick="changeMonth(-1)">‹</button>
-      <span class="cal-title" id="cal-title"></span>
-      <button class="cal-nav-btn" onclick="changeMonth(1)">›</button>
-    </div>
-    <div class="cal-grid" id="cal-grid"></div>
-    <div class="cal-legend">
-      <div class="cal-legend-item"><div class="cal-legend-box all"></div> Alle drei</div>
-      <div class="cal-legend-item"><div class="cal-legend-box both"></div> Koll + Zeit</div>
-      <div class="cal-legend-item"><div class="cal-legend-box" style="background:#fff7ed;border:1.5px solid #9a3412"></div> Koll + WZ</div>
-      <div class="cal-legend-item"><div class="cal-legend-box" style="background:#f0fdfa;border:1.5px solid #0f766e"></div> Zeit + WZ</div>
-      <div class="cal-legend-item"><div class="cal-legend-box koll"></div> Nur Koll</div>
-      <div class="cal-legend-item"><div class="cal-legend-box zeit"></div> Nur Zeit</div>
-      <div class="cal-legend-item"><div class="cal-legend-box" style="background:#fefce8;border:1.5px solid var(--accent-dk)"></div> Nur WZ</div>
-      <div class="cal-legend-item"><div class="cal-legend-box empty"></div> Leer</div>
-      <div class="cal-legend-item"><div class="cal-legend-box today"></div> Heute</div>
-    </div>
+        <div class="card">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap">
+            <h2>Geplante Einträge</h2>
+            <button onclick="loadKalender()" style="font-size:0.8rem;padding:6px 12px">↺ Laden</button>
+          </div>
+          <div class="entry-list-controls">
+            <input type="text" id="entry-search" placeholder="Nach Datum oder Lemma suchen …" oninput="renderEntryTable()">
+            <select id="entry-mode-filter" onchange="renderEntryTable()">
+              <option value="all">Alle Modi</option>
+              <option value="koll">Kollokation</option>
+              <option value="zeitreise">Zeitreise</option>
+              <option value="wortzwilling">Wort-Zwilling</option>
+              <option value="zeitenwende">Zeitenwende</option>
+            </select>
+            <button onclick="resetEntryFilters()" class="entry-filters-reset">Filter zurücksetzen</button>
+          </div>
+          <div class="entry-bulk-controls">
+            <span id="entry-bulk-count">0 ausgewählt</span>
+            <button class="entry-filters-reset" onclick="selectAllVisibleEntries()">Alle sichtbaren wählen</button>
+            <button class="entry-filters-reset" onclick="clearEntrySelection()">Auswahl leeren</button>
+            <button class="danger-btn" id="entry-bulk-delete-btn" onclick="bulkDeleteSelectedDates()" disabled>Ausgewählte löschen</button>
+          </div>
+          <div class="entry-table-wrap">
+            <table class="entry-table">
+              <thead>
+                <tr>
+                  <th>Auswahl</th>
+                  <th>Datum</th>
+                  <th>Lemmata</th>
+                  <th>Modi</th>
+                  <th>Aktion</th>
+                </tr>
+              </thead>
+              <tbody id="entry-table-body">
+                <tr><td colspan="5" class="entry-empty">Kalenderdaten werden geladen …</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <p class="entry-hint" id="entry-count">0 Einträge</p>
+        </div>
+      </section>
+
+      <section class="admin-page" id="page-stats" data-title="Statistiken" data-subtitle="Nutzeraktivität und Leistungswerte über alle Spielmodi hinweg.">
+        <div class="card">
+          <div style="display:flex;align-items:center;justify-content:space-between">
+            <h2>Statistik</h2>
+            <button onclick="loadStats()" style="font-size:0.8rem;padding:6px 12px">↺ Laden</button>
+          </div>
+
+          <div class="stats-toolbar">
+            <label for="stats-days">Zeitraum</label>
+            <select id="stats-days" onchange="loadStats()">
+              <option value="7">Letzte 7 Tage</option>
+              <option value="14">Letzte 14 Tage</option>
+              <option value="30" selected>Letzte 30 Tage</option>
+              <option value="60">Letzte 60 Tage</option>
+              <option value="90">Letzte 90 Tage</option>
+            </select>
+            <button class="entry-filters-reset" onclick="exportStats('csv')">CSV-Export</button>
+            <button class="entry-filters-reset" onclick="exportStats('json')">JSON-Export</button>
+          </div>
+
+          <div id="stats-summary-cards" class="stats-summary-cards">
+            <div class="users-empty">Statistikübersicht wird geladen …</div>
+          </div>
+
+          <div class="stats-top-users">
+            <h3>Top Nutzer (nach Plays)</h3>
+            <div class="users-table-wrap">
+              <table class="users-table">
+                <thead>
+                  <tr>
+                    <th>Name</th>
+                    <th>Rolle</th>
+                    <th>Plays</th>
+                    <th>Ø Score</th>
+                  </tr>
+                </thead>
+                <tbody id="stats-top-users-body">
+                  <tr><td colspan="4" class="users-empty">Noch keine Daten geladen.</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div id="stats-output"><div style="color:var(--muted);font-size:0.85rem">Noch nicht geladen.</div></div>
+        </div>
+
+        <div class="card">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap">
+            <h2>Performance</h2>
+            <button onclick="loadPerformance()" style="font-size:0.8rem;padding:6px 12px">↺ Laden</button>
+          </div>
+          <div id="performance-cards" class="performance-cards">
+            <div class="users-empty">Performance-Daten werden geladen …</div>
+          </div>
+          <pre id="performance-json" class="system-json">Noch keine Performance-Daten geladen.</pre>
+        </div>
+      </section>
+
+      <section class="admin-page" id="page-analytics" data-title="Analysen" data-subtitle="Eignungsprüfung für Kollokation, Zeitreise, Wort-Zwilling und Zeitenwende.">
+        <div class="card">
+          <h2>Kollokation – Wortanalyse</h2>
+          <p style="font-size:0.82rem;color:var(--muted);margin-bottom:8px">Prüfe, ob ein Wort als Kollokationswort geeignet ist. Zeigt Top 10 pro Runde, Top 3 gesamt und die Bonusfrage.</p>
+          <div class="viz-search">
+            <input type="text" id="koll-input" placeholder="Wort eingeben…" onkeydown="if(event.key==='Enter')analyzeKollokation()" style="flex:1">
+            <select id="koll-pos">
+              <option value="Substantiv">Substantiv</option>
+              <option value="Verb">Verb</option>
+              <option value="Adjektiv">Adjektiv</option>
+            </select>
+            <button onclick="analyzeKollokation()">Analysieren</button>
+            <button onclick="document.getElementById('koll-output').innerHTML='';document.getElementById('koll-input').value=''" style="opacity:0.6">✕ Zurücksetzen</button>
+          </div>
+          <div id="koll-output"></div>
+        </div>
+
+        <div class="card">
+          <h2>Wort-Zwilling – Paaranalyse</h2>
+          <p style="font-size:0.82rem;color:var(--muted);margin-bottom:8px">Prüfe, ob zwei Wörter als Wort-Zwilling geeignet sind. Zeigt die 10 distinktiven Kollokatoren (5 pro Seite).</p>
+          <div class="viz-search" style="flex-wrap:wrap;gap:8px">
+            <input type="text" id="wza-input" placeholder="Wort A…" onkeydown="if(event.key==='Enter')analyzeWortZwilling()" style="flex:1;min-width:120px">
+            <input type="text" id="wzb-input" placeholder="Wort B…" onkeydown="if(event.key==='Enter')analyzeWortZwilling()" style="flex:1;min-width:120px">
+            <select id="wzana-pos">
+              <option value="Substantiv">Substantiv</option>
+              <option value="Verb">Verb</option>
+              <option value="Adjektiv">Adjektiv</option>
+            </select>
+            <button onclick="analyzeWortZwilling()">Analysieren</button>
+            <button onclick="document.getElementById('wz-ana-output').innerHTML='';document.getElementById('wza-input').value='';document.getElementById('wzb-input').value=''" style="opacity:0.6">✕ Zurücksetzen</button>
+          </div>
+          <div id="wz-ana-output"></div>
+        </div>
+
+        <div class="card">
+          <h2>Zeitenwende – Wortanalyse</h2>
+          <p style="font-size:0.82rem;color:var(--muted);margin-bottom:8px">Prüfe, ob ein Wort als Zeitenwende-Lemma geeignet ist. Zeigt distinktive Kollokatoren vor und nach 2000.</p>
+          <div class="viz-search">
+            <input type="text" id="zw-ana-input" placeholder="Wort eingeben…" onkeydown="if(event.key==='Enter')analyzeZeitenwende()" style="flex:1">
+            <button onclick="analyzeZeitenwende()">Analysieren</button>
+            <button onclick="document.getElementById('zw-ana-output').innerHTML='';document.getElementById('zw-ana-input').value=''" style="opacity:0.6">✕ Zurücksetzen</button>
+          </div>
+          <div id="zw-ana-output"></div>
+        </div>
+
+        <div class="card">
+          <h2>Zeitreise – Wortanalyse</h2>
+          <div class="viz-search">
+            <input type="text" id="viz-input" placeholder="Wort eingeben…" onkeydown="if(event.key==='Enter')analyzeZeitreiseViz()">
+            <button onclick="analyzeZeitreiseViz()">Analysieren</button>
+            <button onclick="document.getElementById('viz-output').innerHTML='';document.getElementById('viz-input').value=''" style="opacity:0.6">✕ Zurücksetzen</button>
+          </div>
+          <div id="viz-output"></div>
+        </div>
+      </section>
+
+      <section class="admin-page" id="page-calendar" data-title="Kalender" data-subtitle="Monatsübersicht und schnelle Navigation zu geplanten Einträgen.">
+        <div class="card">
+          <h2>Kalender</h2>
+          <div class="cal-nav">
+            <button class="cal-nav-btn" onclick="changeMonth(-1)">‹</button>
+            <span class="cal-title" id="cal-title"></span>
+            <button class="cal-nav-btn" onclick="changeMonth(1)">›</button>
+          </div>
+          <div class="cal-grid" id="cal-grid"></div>
+          <div class="cal-legend">
+            <div class="cal-legend-item"><div class="cal-legend-box all"></div> Alle drei</div>
+            <div class="cal-legend-item"><div class="cal-legend-box both"></div> Koll + Zeit</div>
+            <div class="cal-legend-item"><div class="cal-legend-box" style="background:#fff7ed;border:1.5px solid #9a3412"></div> Koll + WZ</div>
+            <div class="cal-legend-item"><div class="cal-legend-box" style="background:#f0fdfa;border:1.5px solid #0f766e"></div> Zeit + WZ</div>
+            <div class="cal-legend-item"><div class="cal-legend-box koll"></div> Nur Koll</div>
+            <div class="cal-legend-item"><div class="cal-legend-box zeit"></div> Nur Zeit</div>
+            <div class="cal-legend-item"><div class="cal-legend-box" style="background:#fefce8;border:1.5px solid var(--accent-dk)"></div> Nur WZ</div>
+            <div class="cal-legend-item"><div class="cal-legend-box empty"></div> Leer</div>
+            <div class="cal-legend-item"><div class="cal-legend-box today"></div> Heute</div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap">
+            <h2>Tagesdetails</h2>
+            <button id="calendar-edit-btn" onclick="editSelectedCalendarDate()" disabled>Eintrag bearbeiten</button>
+          </div>
+          <div id="calendar-details" class="calendar-details">
+            <div class="calendar-detail-empty">Wähle einen Kalendertag mit Eintrag, um Details zu sehen.</div>
+          </div>
+        </div>
+      </section>
+
+      <section class="admin-page" id="page-users" data-title="Nutzer" data-subtitle="Aktuelle Nutzerübersicht inkl. Rollen (bestehende API).">
+        <div class="card">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap">
+            <h2>Nutzerübersicht</h2>
+            <button onclick="loadUsersOverview()" style="font-size:0.8rem;padding:6px 12px">↺ Laden</button>
+          </div>
+          <div class="users-bulk-controls">
+            <span id="users-bulk-count">0 ausgewählt</span>
+            <select id="users-bulk-action" onchange="updateUsersBulkState()">
+              <option value="setRole">Rolle setzen</option>
+              <option value="export">Export</option>
+              <option value="delete">Löschen</option>
+            </select>
+            <span id="users-bulk-role-wrap" class="users-bulk-role-wrap">
+              <label for="users-bulk-role">Rolle</label>
+              <select id="users-bulk-role">
+                <option value="user">User</option>
+                <option value="teacher">Teacher</option>
+              </select>
+            </span>
+            <span id="users-bulk-export-wrap" class="users-bulk-export-wrap" style="display:none">
+              <label for="users-bulk-format">Format</label>
+              <select id="users-bulk-format">
+                <option value="json">JSON</option>
+                <option value="csv">CSV</option>
+              </select>
+            </span>
+            <button class="entry-filters-reset" onclick="toggleAllUsersSelection(true)">Alle wählen</button>
+            <button class="entry-filters-reset" onclick="clearUsersBulkSelection()">Auswahl leeren</button>
+            <button id="users-bulk-run-btn" onclick="runUsersBulkAction()" disabled>Bulk ausführen</button>
+          </div>
+          <div class="users-controls">
+            <input type="text" id="users-search" placeholder="Suche nach Name oder E-Mail …" oninput="loadUsersOverview()">
+            <select id="users-role-filter" onchange="loadUsersOverview()">
+              <option value="">Alle Rollen</option>
+              <option value="user">User</option>
+              <option value="teacher">Teacher</option>
+            </select>
+            <button onclick="resetUsersFilters()" class="entry-filters-reset">Filter zurücksetzen</button>
+          </div>
+          <div id="users-summary" class="users-summary">Nutzerdaten werden geladen …</div>
+          <div class="users-table-wrap">
+            <table class="users-table">
+              <thead>
+                <tr>
+                  <th><input type="checkbox" id="users-select-all" onchange="toggleAllUsersSelection(this.checked)"></th>
+                  <th>Name</th>
+                  <th>E-Mail</th>
+                  <th>Rolle</th>
+                  <th>Registriert</th>
+                  <th>Aktion</th>
+                </tr>
+              </thead>
+              <tbody id="users-table-body">
+                <tr><td colspan="6" class="users-empty">Noch keine Daten geladen.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="card" id="users-detail-card">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap">
+            <h2>Nutzerdetails</h2>
+            <div class="user-detail-actions">
+              <select id="user-detail-role">
+                <option value="user">User</option>
+                <option value="teacher">Teacher</option>
+              </select>
+              <button id="user-role-save-btn" onclick="saveSelectedUserRole()">Rolle speichern</button>
+              <button id="user-delete-btn" class="danger-btn" onclick="deleteSelectedUser()" disabled>Nutzer löschen</button>
+            </div>
+          </div>
+          <div id="user-detail-empty" class="users-empty">Wähle einen Nutzer aus der Tabelle, um Details zu sehen.</div>
+          <div id="user-detail-content" class="user-detail-content" style="display:none">
+            <div class="user-detail-head">
+              <strong id="user-detail-title">–</strong>
+              <span id="user-detail-subtitle">–</span>
+            </div>
+            <div id="user-meta-grid" class="user-meta-grid"></div>
+
+            <div class="user-detail-section">
+              <h3>Spielstatistik nach Modus</h3>
+              <div id="user-game-stats" class="user-game-stats"></div>
+            </div>
+
+            <div class="user-detail-section">
+              <h3>Letzte Aktivität</h3>
+              <div class="users-table-wrap">
+                <table class="users-table">
+                  <thead>
+                    <tr>
+                      <th>Datum</th>
+                      <th>Modus</th>
+                      <th>Plays</th>
+                      <th>Ø Score</th>
+                    </tr>
+                  </thead>
+                  <tbody id="user-recent-body">
+                    <tr><td colspan="4" class="users-empty">Noch keine Aktivität.</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="admin-page" id="page-system" data-title="System" data-subtitle="Diagnose, Backup und technische Details.">
+        <div class="card">
+          <h2>Systemaktionen</h2>
+          <div class="system-actions">
+            <button onclick="loadHealth()">Health aktualisieren</button>
+            <button onclick="downloadBackup()">Backup herunterladen</button>
+            <a class="ghost-btn" href="/admin/social-cards">Social Cards öffnen</a>
+          </div>
+          <pre id="system-health-json" class="system-json">Health-Daten werden geladen …</pre>
+        </div>
+
+        <div class="card">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap">
+            <h2>Audit-Log</h2>
+            <button onclick="loadAuditLog()" style="font-size:0.8rem;padding:6px 12px">↺ Laden</button>
+          </div>
+          <div class="audit-controls">
+            <label for="audit-limit">Anzahl Einträge</label>
+            <select id="audit-limit" onchange="loadAuditLog()">
+              <option value="50">50</option>
+              <option value="100" selected>100</option>
+              <option value="200">200</option>
+              <option value="500">500</option>
+            </select>
+            <label for="audit-action">Aktion</label>
+            <select id="audit-action" onchange="loadAuditLog()">
+              <option value="">Alle</option>
+              <option value="CREATE">Create</option>
+              <option value="UPDATE">Update</option>
+              <option value="DELETE">Delete</option>
+            </select>
+            <label for="audit-resource">Ressource</label>
+            <select id="audit-resource" onchange="loadAuditLog()">
+              <option value="">Alle</option>
+              <option value="kalender">Kalender</option>
+              <option value="user">User</option>
+              <option value="lemmata">Lemmata</option>
+              <option value="zeitreise">Zeitreise</option>
+              <option value="wortzwilling">Wortzwilling</option>
+              <option value="zeitenwende">Zeitenwende</option>
+            </select>
+            <label for="audit-status">Status</label>
+            <select id="audit-status" onchange="loadAuditLog()">
+              <option value="">Alle</option>
+              <option value="SUCCESS">Success</option>
+              <option value="FAILED">Failed</option>
+            </select>
+            <label for="audit-from">Von</label>
+            <input type="date" id="audit-from" onchange="loadAuditLog()">
+            <label for="audit-to">Bis</label>
+            <input type="date" id="audit-to" onchange="loadAuditLog()">
+            <input type="text" id="audit-search" placeholder="Suche in Aktion/Entity/Changes …" oninput="loadAuditLog()">
+            <button class="entry-filters-reset" onclick="resetAuditFilters()">Filter zurücksetzen</button>
+          </div>
+          <p class="entry-hint" id="audit-count">0 Einträge</p>
+          <div class="users-table-wrap">
+            <table class="users-table audit-table">
+              <thead>
+                <tr>
+                  <th>Zeit</th>
+                  <th>Aktion</th>
+                  <th>Ressource</th>
+                  <th>Status</th>
+                  <th>Änderungen</th>
+                </tr>
+              </thead>
+              <tbody id="audit-table-body">
+                <tr><td colspan="5" class="users-empty">Audit-Log wird geladen …</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+    </main>
   </div>
 </div>
 

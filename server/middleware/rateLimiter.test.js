@@ -7,6 +7,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { ipKeyGenerator } from 'express-rate-limit'
 
 // ── CleanupStore als inline-Klasse dupliziert (identische Logik) ──
 // Grund: CleanupStore ist nicht exportiert; wir testen die Logik isoliert.
@@ -54,10 +55,7 @@ class CleanupStore {
 function getClientIp(req) {
   const forwarded = req.headers['x-forwarded-for']
   const ip = forwarded ? forwarded.split(',')[0].trim() : req.ip
-  if (ip && ip.includes(':') && !ip.startsWith('[')) {
-    return `[${ip}]`
-  }
-  return ip
+  return ipKeyGenerator(ip)
 }
 
 // ── CleanupStore Tests ─────────────────────────────────────────────
@@ -156,16 +154,12 @@ describe('getClientIp', () => {
     })).toBe('1.2.3.4')
   })
 
-  it('wrappt IPv6-Adressen in Klammern', () => {
-    expect(getClientIp({ headers: {}, ip: '::1' })).toBe('[::1]')
-    expect(getClientIp({ headers: {}, ip: '2001:db8::1' })).toBe('[2001:db8::1]')
+  it('normalisiert IPv6 per ipKeyGenerator auf /56-Praefix', () => {
+    expect(getClientIp({ headers: {}, ip: '::1' })).toBe('::/56')
+    expect(getClientIp({ headers: {}, ip: '2001:db8::1' })).toBe('2001:db8::/56')
   })
 
-  it('lässt bereits geklammerte IPv6 unverändert', () => {
-    expect(getClientIp({ headers: {}, ip: '[::1]' })).toBe('[::1]')
-  })
-
-  it('normale IPv4 bleibt unverändert', () => {
+  it('laesst IPv4-Adressen unveraendert', () => {
     expect(getClientIp({ headers: {}, ip: '192.168.1.1' })).toBe('192.168.1.1')
   })
 })

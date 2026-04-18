@@ -6,7 +6,7 @@
  * Erforderlich für Compliance und Forensics.
  */
 
-import { readFileSync, writeFileSync } from 'fs'
+import { writeFileSync, openSync, readSync, fstatSync, closeSync } from 'fs'
 import { join } from 'path'
 import { fileURLToPath } from 'url'
 import { dirname } from 'path'
@@ -109,21 +109,53 @@ export function auditDelete(resource, resourceId, data, { adminKey, ip }) {
 
 /**
  * Liest die letzten N Audit-Log-Einträge (für Admin-Dashboard).
+ * Liest die Datei rückwärts, um nur die neuesten Einträge zu laden.
  * @param {number} limit – Anzahl Einträge (default 100)
  * @returns {Array} – Audit-Log-Einträge (neueste zuerst)
  */
 export function getAuditLog(limit = 100) {
+  let fd
   try {
-    const content = readFileSync(AUDIT_LOG_FILE, 'utf8')
-    const lines = content.trim().split('\n')
-    const entries = lines
-      .filter(line => line.trim())
-      .map(line => JSON.parse(line))
-      .reverse() // neueste zuerst
-      .slice(0, limit)
+    fd = openSync(AUDIT_LOG_FILE, 'r')
+    const { size } = fstatSync(fd)
+    if (size === 0) { closeSync(fd); return [] }
+
+    const CHUNK = 64 * 1024
+    const buf = Buffer.alloc(CHUNK)
+    const entries = []
+    let pos = size
+    let tail = ''
+
+    while (pos > 0 && entries.length < limit) {
+      const readLen = Math.min(CHUNK, pos)
+      pos -= readLen
+      readSync(fd, buf, 0, readLen, pos)
+      const chunk = buf.toString('utf8', 0, readLen)
+      const lines = (chunk + tail).split('\n')
+
+      tail = lines[0]
+      for (let i = lines.length - 1; i >= 1; i--) {
+        const line = lines[i].trim()
+        if (!line) continue
+        try {
+          entries.push(JSON.parse(line))
+          if (entries.length >= limit) break
+        } catch { /* malformed line, skip */ }
+      }
+    }
+
+    if (tail && entries.length < limit) {
+      const line = tail.trim()
+      if (line) {
+        try { entries.push(JSON.parse(line)) } catch { /* skip */ }
+      }
+    }
+
+    closeSync(fd)
     return entries
   } catch (err) {
-    if (err.code === 'ENOENT') return [] // Datei existiert noch nicht
+    try { if (fd) closeSync(fd) } catch { /* ignore */ }
+    if (err.code === 'ENOENT') return []
     logger.warn({ err }, 'Audit log read failed')
     return []
   }

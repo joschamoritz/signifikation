@@ -98,6 +98,7 @@ app.use('/api', csrfProtect)
 
 // ── Admin-Assets (CSS/JS für admin.html) ─────────────────────
 app.use('/admin-assets', express.static(join(__dirname, 'public')))
+app.use('/fonts', express.static(join(__dirname, '../public/fonts')))
 
 // ── Routes ───────────────────────────────────────────────────
 app.use('/', publicRouter)

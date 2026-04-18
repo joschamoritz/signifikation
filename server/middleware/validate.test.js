@@ -10,6 +10,10 @@ import {
   qQuerySchema,
   bonusQuerySchema,
   adminTagSchema,
+  adminUsersBulkUpdateSchema,
+  adminBulkDeleteCalendarSchema,
+  adminPreviewLemmaSchema,
+  adminPreviewDayParamsSchema,
 } from './validate.js'
 
 // ── statsSchema ──────────────────────────────────────────────
@@ -154,5 +158,77 @@ describe('adminTagSchema', () => {
 
   it('pos muss Enum-Wert sein', () => {
     expect(adminTagSchema.safeParse({ ...valid, zwilling_pos: 'Adverb' }).success).toBe(false)
+  })
+})
+
+// ── Phase-5 Schemas ─────────────────────────────────────────
+describe('adminBulkDeleteCalendarSchema', () => {
+  it('akzeptiert gueltige Datumsliste', () => {
+    expect(adminBulkDeleteCalendarSchema.safeParse({ dates: ['03-15', '03-16'] }).success).toBe(true)
+  })
+
+  it('lehnt leere Listen ab', () => {
+    expect(adminBulkDeleteCalendarSchema.safeParse({ dates: [] }).success).toBe(false)
+  })
+
+  it('lehnt ungueltige Datumswerte ab', () => {
+    expect(adminBulkDeleteCalendarSchema.safeParse({ dates: ['2026-03-15'] }).success).toBe(false)
+  })
+})
+
+describe('adminPreviewLemmaSchema', () => {
+  it('akzeptiert lemma mit optionaler wortart', () => {
+    expect(adminPreviewLemmaSchema.safeParse({ lemma: 'haus', pos: 'Substantiv' }).success).toBe(true)
+  })
+
+  it('setzt Default-Wortart auf Substantiv', () => {
+    const parsed = adminPreviewLemmaSchema.parse({ lemma: 'laufen' })
+    expect(parsed.pos).toBe('Substantiv')
+  })
+
+  it('lehnt leeres lemma ab', () => {
+    expect(adminPreviewLemmaSchema.safeParse({ lemma: ' ' }).success).toBe(false)
+  })
+})
+
+describe('adminPreviewDayParamsSchema', () => {
+  it('akzeptiert MM-DD', () => {
+    expect(adminPreviewDayParamsSchema.safeParse({ datum: '03-15' }).success).toBe(true)
+  })
+
+  it('lehnt YYYY-MM-DD ab', () => {
+    expect(adminPreviewDayParamsSchema.safeParse({ datum: '2026-03-15' }).success).toBe(false)
+  })
+})
+
+describe('adminUsersBulkUpdateSchema', () => {
+  it('akzeptiert setRole mit role und IDs', () => {
+    expect(adminUsersBulkUpdateSchema.safeParse({
+      action: 'setRole',
+      role: 'teacher',
+      userIds: ['u1', 'u2'],
+    }).success).toBe(true)
+  })
+
+  it('lehnt setRole ohne role ab', () => {
+    expect(adminUsersBulkUpdateSchema.safeParse({
+      action: 'setRole',
+      userIds: ['u1'],
+    }).success).toBe(false)
+  })
+
+  it('akzeptiert delete ohne role', () => {
+    expect(adminUsersBulkUpdateSchema.safeParse({
+      action: 'delete',
+      userIds: ['u1'],
+    }).success).toBe(true)
+  })
+
+  it('setzt export-Format default auf json', () => {
+    const parsed = adminUsersBulkUpdateSchema.parse({
+      action: 'export',
+      userIds: ['u1'],
+    })
+    expect(parsed.format).toBe('json')
   })
 })

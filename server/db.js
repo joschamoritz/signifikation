@@ -284,8 +284,14 @@ if (!hasColumn('stats', 'user_id')) {
 
 if (hasColumn('stats', 'user_id')) {
   db.exec(`
-    CREATE INDEX IF NOT EXISTS idx_stats_user
-      ON stats(user_id);
+  CREATE INDEX IF NOT EXISTS idx_stats_user
+  ON stats(user_id);
+
+  CREATE INDEX IF NOT EXISTS idx_stats_datum_spiel
+  ON stats(datum, spiel);
+
+  CREATE INDEX IF NOT EXISTS idx_stats_datum
+  ON stats(datum);
   `)
 }
 

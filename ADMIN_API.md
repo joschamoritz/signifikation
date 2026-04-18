@@ -1,6 +1,9 @@
 # Admin API – Signifikation
 
-Alle Admin-Endpoints erfordern einen Session-Token im Header `x-admin-token`.
+Admin-Endpoints sind per Session geschützt.
+
+- Browser-UI nutzt standardmäßig das `admin_token`-Cookie.
+- Optional kann weiterhin `x-admin-token` gesetzt werden (z. B. für Skripte).
 
 ## Authentication
 
@@ -193,6 +196,111 @@ Holt IPA + Definitionen aus Wiktionary für alle bestehenden Lemmata nach (einma
 ```json
 { "ok": true, "updated": 42, "skipped": 8 }
 ```
+
+---
+
+## User Management, Audit & Preview
+
+### GET /admin/users
+Liste der Nutzer inklusive Rollen- und Summary-Daten.
+
+### GET /admin/users/:id
+Nutzerdetails inklusive aggregierter Spielstatistik.
+
+### PATCH /admin/users/:id/role
+Setzt Nutzerrolle (`user` oder `teacher`).
+
+### DELETE /admin/users/:id
+Löscht einen Nutzer.
+
+---
+
+### POST /admin/users/bulk-update
+Bulk-Aktionen für mehrere Nutzer.
+
+**Request Body (allgemein):**
+```json
+{
+  "action": "setRole",
+  "userIds": ["user-1", "user-2"]
+}
+```
+
+**Action `setRole`:**
+```json
+{
+  "action": "setRole",
+  "userIds": ["user-1", "user-2"],
+  "role": "teacher"
+}
+```
+
+**Action `delete`:**
+```json
+{
+  "action": "delete",
+  "userIds": ["user-1", "user-2"]
+}
+```
+
+**Action `export` (JSON):**
+```json
+{
+  "action": "export",
+  "userIds": ["user-1", "user-2"],
+  "format": "json"
+}
+```
+Antwort enthält `users`, `exportedCount`, `skipped`.
+
+**Action `export` (CSV):**
+```json
+{
+  "action": "export",
+  "userIds": ["user-1", "user-2"],
+  "format": "csv"
+}
+```
+Antwort ist `text/csv` mit Headern:
+- `X-Exported-Count`
+- `X-Skipped-Count`
+
+---
+
+### GET /admin/audit-log
+Audit-Log mit Filtern.
+
+**Query-Parameter (optional):**
+- `limit` (Default 100)
+- `action` (`CREATE`, `UPDATE`, `DELETE`)
+- `resource` (`lemma`, `user`, `calendar`, ...)
+- `status` (`SUCCESS`, `ERROR`)
+- `from` / `to` (ISO-Datum/Zeit)
+- `q` (Freitextsuche)
+
+Antwort enthält neben `entries` auch `totalMatches`.
+
+---
+
+### POST /admin/preview/lemma
+Lemma-Vorschau mit Spieldaten.
+
+**Request:**
+```json
+{
+  "lemma": "Haus",
+  "pos": "Substantiv"
+}
+```
+
+Antwort enthält u. a.:
+- `rundenInfo`
+- `rundenSummary`
+- `definitionen`
+- `bonusFrage`
+
+### GET /admin/preview/day/:datum
+Tages-Vorschau für einen Kalendertag (MM-DD) inklusive aktiver Modi.
 
 ---
 

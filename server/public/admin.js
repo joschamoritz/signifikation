@@ -14,6 +14,233 @@ function esc(s) {
     .replace(/'/g, '&#x27;')
 }
 
+let usersLoaded = false
+let selectedCalendarDate = ''
+let selectedUserId = ''
+const selectedEntryDates = new Set()
+
+function setPageMeta(pageEl) {
+  const titleEl = document.getElementById('page-title')
+  const subtitleEl = document.getElementById('page-subtitle')
+  if (!titleEl || !subtitleEl || !pageEl) return
+  titleEl.textContent = pageEl.dataset.title || 'Dashboard'
+  subtitleEl.textContent = pageEl.dataset.subtitle || ''
+}
+
+function switchPage(pageId) {
+  const pages = document.querySelectorAll('.admin-page')
+  pages.forEach((page) => {
+    const isActive = page.id === `page-${pageId}`
+    page.classList.toggle('is-active', isActive)
+    if (isActive) setPageMeta(page)
+  })
+
+  const navItems = document.querySelectorAll('.admin-nav .nav-item[data-page]')
+  navItems.forEach((item) => {
+    item.classList.toggle('active', item.dataset.page === pageId)
+  })
+
+  if (pageId === 'users' && !usersLoaded) {
+    loadUsersOverview()
+  }
+
+  if (pageId === 'system') {
+    loadAuditLog()
+  }
+}
+
+function refreshDashboard() {
+  loadHealth()
+  loadKalender()
+  loadStats()
+  loadPerformance()
+  if (usersLoaded) loadUsersOverview()
+}
+
+function formatIsoDate(iso) {
+  if (!iso) return ''
+  const [y, m, d] = iso.split('-').map(Number)
+  if (!y || !m || !d) return iso
+  return `${String(d).padStart(2, '0')}.${String(m).padStart(2, '0')}.${y}`
+}
+
+function toIsoFromMMDD(mmdd) {
+  const [mm, dd] = String(mmdd || '').split('-').map(Number)
+  if (!mm || !dd) return ''
+  const now = new Date()
+  const currentYear = now.getFullYear()
+  const candidate = new Date(currentYear, mm - 1, dd)
+  const today = new Date(currentYear, now.getMonth(), now.getDate())
+  const year = candidate.getTime() < today.getTime() ? currentYear + 1 : currentYear
+  return `${year}-${String(mm).padStart(2, '0')}-${String(dd).padStart(2, '0')}`
+}
+
+function parseCalendarDate(mmdd) {
+  const iso = toIsoFromMMDD(mmdd)
+  const [y, m, d] = iso.split('-').map(Number)
+  return new Date(y, m - 1, d)
+}
+
+function modeChips(entry) {
+  const chips = ['<span class="entry-chip mode-koll">Kollokation</span>']
+  if (entry?.hasZeitreise) chips.push('<span class="entry-chip mode-zeitreise">Zeitreise</span>')
+  if (entry?.hasWortZwilling) chips.push('<span class="entry-chip mode-wortzwilling">Wort-Zwilling</span>')
+  if (entry?.hasZeitenwende) chips.push('<span class="entry-chip mode-zeitenwende">Zeitenwende</span>')
+  return chips.join('')
+}
+
+function roleLabel(role) {
+  return role === 'teacher' ? 'Teacher' : 'User'
+}
+
+function getSelectedUserIdsFromTable() {
+  const boxes = document.querySelectorAll('.user-select-checkbox:checked')
+  return [...boxes].map((el) => String(el.dataset.userId || '').trim()).filter(Boolean)
+}
+
+function syncUsersSelectAllState() {
+  const master = document.getElementById('users-select-all')
+  if (!master) return
+
+  const boxes = [...document.querySelectorAll('.user-select-checkbox')]
+  if (!boxes.length) {
+    master.checked = false
+    master.indeterminate = false
+    master.disabled = true
+    return
+  }
+
+  const checkedCount = boxes.filter((box) => box.checked).length
+  master.disabled = false
+  master.checked = checkedCount === boxes.length
+  master.indeterminate = checkedCount > 0 && checkedCount < boxes.length
+}
+
+function updateUsersBulkState() {
+  const countEl = document.getElementById('users-bulk-count')
+  const actionSelect = document.getElementById('users-bulk-action')
+  const runBtn = document.getElementById('users-bulk-run-btn')
+  const roleWrap = document.getElementById('users-bulk-role-wrap')
+  const exportWrap = document.getElementById('users-bulk-export-wrap')
+  const selectedIds = getSelectedUserIdsFromTable()
+  const action = actionSelect?.value || 'setRole'
+
+  syncUsersSelectAllState()
+
+  if (countEl) countEl.textContent = `${selectedIds.length} ausgewählt`
+  if (runBtn) runBtn.disabled = selectedIds.length === 0
+  if (roleWrap) roleWrap.style.display = action === 'setRole' ? 'inline-flex' : 'none'
+  if (exportWrap) exportWrap.style.display = action === 'export' ? 'inline-flex' : 'none'
+}
+
+function toggleAllUsersSelection(checked) {
+  const boxes = document.querySelectorAll('.user-select-checkbox')
+  boxes.forEach((box) => {
+    box.checked = !!checked
+  })
+  updateUsersBulkState()
+}
+
+function clearUsersBulkSelection() {
+  const boxes = document.querySelectorAll('.user-select-checkbox')
+  boxes.forEach((box) => {
+    box.checked = false
+  })
+  updateUsersBulkState()
+}
+
+async function runUsersBulkAction() {
+  const ids = getSelectedUserIdsFromTable()
+  if (!ids.length) return
+
+  const actionSelect = document.getElementById('users-bulk-action')
+  const roleSelect = document.getElementById('users-bulk-role')
+  const formatSelect = document.getElementById('users-bulk-format')
+  const runBtn = document.getElementById('users-bulk-run-btn')
+  const summary = document.getElementById('users-summary')
+  const action = actionSelect?.value || 'setRole'
+  const role = roleSelect?.value || 'user'
+  const format = formatSelect?.value === 'csv' ? 'csv' : 'json'
+
+  const actionLabel = action === 'delete' ? 'löschen' : action === 'export' ? `als ${format.toUpperCase()} exportieren` : `auf Rolle ${role}`
+  const ok = window.confirm(`${ids.length} Nutzer wirklich ${actionLabel}?`)
+  if (!ok) return
+
+  if (runBtn) runBtn.disabled = true
+  try {
+    const payload = { action, userIds: ids }
+    if (action === 'setRole') payload.role = role
+    if (action === 'export') payload.format = format
+
+    const response = await fetch('/admin/users/bulk-update', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    })
+
+    let data = null
+    if (format === 'csv' && action === 'export') {
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.error || `HTTP ${response.status}`)
+      }
+      const csvText = await response.text()
+      const exportedHeader = Number.parseInt(response.headers.get('x-exported-count') || '', 10)
+      const skippedHeader = Number.parseInt(response.headers.get('x-skipped-count') || '', 10)
+      const csvLines = csvText.split(/\r?\n/).filter((line) => line.trim().length > 0)
+      const fallbackExported = Math.max(csvLines.length - 1, 0)
+      const exportedCount = Number.isFinite(exportedHeader) && exportedHeader >= 0 ? exportedHeader : fallbackExported
+      const skippedCount = Number.isFinite(skippedHeader) && skippedHeader >= 0 ? skippedHeader : 0
+      const blob = new Blob([csvText], { type: 'text/csv;charset=utf-8' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `signifikation-users-bulk-${new Date().toISOString().slice(0, 10)}.csv`
+      a.click()
+      URL.revokeObjectURL(url)
+      if (summary) summary.textContent = `${exportedCount} Nutzer als CSV exportiert (${skippedCount} übersprungen).`
+      data = {}
+    } else {
+      data = await response.json().catch(() => ({}))
+      if (!response.ok) throw new Error(data.error || `HTTP ${response.status}`)
+    }
+
+    if (action === 'export') {
+      if (format === 'json') {
+        const exportUsers = Array.isArray(data.users) ? data.users : []
+        const blob = new Blob([JSON.stringify(exportUsers, null, 2)], { type: 'application/json' })
+        const url = URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = `signifikation-users-bulk-${new Date().toISOString().slice(0, 10)}.json`
+        a.click()
+        URL.revokeObjectURL(url)
+        if (summary) summary.textContent = `${exportUsers.length} Nutzer exportiert (${data.skipped?.length || 0} übersprungen).`
+      }
+    } else if (action === 'delete') {
+      if (summary) summary.textContent = `${data.deletedCount || 0} Nutzer gelöscht (${data.skipped?.length || 0} übersprungen).`
+    } else {
+      if (summary) summary.textContent = `${data.changedCount || 0} Nutzer aktualisiert (${data.skipped?.length || 0} übersprungen).`
+    }
+
+    clearUsersBulkSelection()
+    await loadUsersOverview()
+  } catch (err) {
+    if (summary) summary.textContent = `Bulk-Aktion fehlgeschlagen: ${err.message}`
+  } finally {
+    if (runBtn) runBtn.disabled = getSelectedUserIdsFromTable().length === 0
+  }
+}
+
+function summarizeAuditChanges(changes) {
+  if (!changes || typeof changes !== 'object') return '—'
+  const beforeKeys = changes.before && typeof changes.before === 'object' ? Object.keys(changes.before) : []
+  const afterKeys = changes.after && typeof changes.after === 'object' ? Object.keys(changes.after) : []
+  const merged = [...new Set([...beforeKeys, ...afterKeys])]
+  if (!merged.length) return 'Keine Felder protokolliert'
+  return merged.slice(0, 6).join(', ')
+}
+
 // ── Login / Logout ────────────────────────────────────────
 async function doLogin() {
   const input = document.getElementById('login-key')
@@ -78,10 +305,12 @@ fetch('/admin/kalender').then(r => {
 }).catch(() => {})
 
 function initDashboard() {
+  switchPage('dashboard')
   loadKalender()
   loadStats()
+  loadPerformance()
   loadHealth()
-
+  loadUsersOverview()
 }
 
 
@@ -114,8 +343,37 @@ async function loadHealth() {
       badge('belege.db', dbOk(data.belegeDb), dbOk(data.belegeDb) ? '' : data.belegeDb),
       `<span style="font-size:0.72rem;color:var(--muted)">${esc(data.env)}</span>`,
     ].join('')
+
+    const metricHealth = document.getElementById('metric-health')
+    const metricHealthSub = document.getElementById('metric-health-sub')
+    if (metricHealth) metricHealth.textContent = dbOk(data.wortprofilDb) && dbOk(data.belegeDb) ? 'Stabil' : 'Warnung'
+    if (metricHealthSub) metricHealthSub.textContent = `${uptime} · ${data.memMb} MB`
+
+    const details = document.getElementById('system-health-details')
+    if (details) {
+      details.innerHTML = [
+        `<div class="health-detail-item"><span>Uptime</span><strong>${esc(uptime)}</strong></div>`,
+        `<div class="health-detail-item"><span>Memory</span><strong>${esc(String(data.memMb))} MB</strong></div>`,
+        `<div class="health-detail-item"><span>Environment</span><strong>${esc(data.env)}</strong></div>`,
+        `<div class="health-detail-item"><span>Letzter Eintrag</span><strong>${esc(data.lastEntry || '—')}</strong></div>`,
+      ].join('')
+    }
+
+    const systemJson = document.getElementById('system-health-json')
+    if (systemJson) {
+      systemJson.textContent = JSON.stringify(data, null, 2)
+    }
   } catch (err) {
     container.innerHTML = `<span style="font-size:0.8rem;color:#991b1b">Health-Check fehlgeschlagen: ${esc(err.message)}</span>`
+    const metricHealth = document.getElementById('metric-health')
+    const metricHealthSub = document.getElementById('metric-health-sub')
+    if (metricHealth) metricHealth.textContent = 'Fehler'
+    if (metricHealthSub) metricHealthSub.textContent = 'Health nicht erreichbar'
+
+    const systemJson = document.getElementById('system-health-json')
+    if (systemJson) {
+      systemJson.textContent = `Health-Check fehlgeschlagen: ${err.message}`
+    }
   }
 }
 
@@ -180,7 +438,8 @@ function renderCalendar() {
     const isComplete  = hasKoll && (hasZeit || hasWZ || hasZW)
     const stateClass  = isComplete ? 'is-complete' : hasAny ? 'has-entry' : 'no-entry'
 
-    const classes = ['cal-day', stateClass, isTodayCell ? 'is-today' : ''].filter(Boolean).join(' ')
+    const isSelected = key === selectedCalendarDate
+    const classes = ['cal-day', stateClass, isTodayCell ? 'is-today' : '', isSelected ? 'is-selected' : ''].filter(Boolean).join(' ')
 
     let dots = ''
     if (hasAny) {
@@ -193,13 +452,20 @@ function renderCalendar() {
     }
 
     const action = hasAny
-      ? `onclick="editTag('${key}')"`
+      ? `onclick="selectCalendarDate('${key}')"`
       : `onclick="prefillDate('${calYear}-${mm}-${dd}')"`
 
     html += `<div class="${classes}" ${action}>${d}${dots}</div>`
   }
 
   grid.innerHTML = html
+}
+
+function selectCalendarDate(datum) {
+  selectedCalendarDate = datum
+  switchPage('calendar')
+  renderCalendar()
+  updateCalendarDetails(datum)
 }
 
 function changeMonth(delta) {
@@ -210,6 +476,9 @@ function changeMonth(delta) {
 }
 
 function prefillDate(isoDate) {
+  switchPage('entry')
+  selectedCalendarDate = ''
+  renderCalendar()
   document.getElementById('datum').value = isoDate
   ;['w1','w2','w3','n1','n2','n3','l1','l2','l3','zr','zw-lemma'].forEach(id => document.getElementById(id).value = '')
   document.getElementById('p1').value    = 'Substantiv'
@@ -220,6 +489,8 @@ function prefillDate(isoDate) {
   document.getElementById('wzpos').value = 'Substantiv'
   document.getElementById('form-title').textContent = 'Neuer Tageseintrag'
   document.getElementById('save-btn').textContent   = 'Speichern & APIs abrufen'
+  const deleteBtn = document.getElementById('delete-btn')
+  if (deleteBtn) deleteBtn.disabled = true
   document.getElementById('status').className = 'status'
   window.scrollTo({ top: 0, behavior: 'smooth' })
 }
@@ -252,10 +523,10 @@ async function saveTag() {
   const btn  = document.getElementById('save-btn')
   btn.disabled = true
 
-  const statusParts = [`DWDS für „${w1}", „${w2}", „${w3}"`]
-  if (zr) statusParts.push(`DiaCollo für „${zr}"`)
-  if (wza && wzb) statusParts.push(`Wort-Zwilling „${wza}" / „${wzb}"`)
-  if (zwLemma) statusParts.push(`Zeitenwende für „${zwLemma}"`)
+  const statusParts = [`DWDS für „${w1}“, „${w2}“, „${w3}“`]
+  if (zr) statusParts.push(`DiaCollo für „${zr}“`)
+  if (wza && wzb) statusParts.push(`Wort-Zwilling „${wza}“ / „${wzb}“`)
+  if (zwLemma) statusParts.push(`Zeitenwende für „${zwLemma}“`)
   setStatus(`Rufe ab: ${statusParts.join(' · ')} …`, 'loading')
 
   try {
@@ -303,11 +574,12 @@ async function saveTag() {
 }
 
 async function editTag(datum) {
+  switchPage('entry')
+  selectedCalendarDate = datum
   const res  = await fetch(`/admin/tag/${datum}`, {})
   const data = await res.json()
   if (!res.ok) return alert(`Fehler: ${data.error}`)
-  const year = new Date().getFullYear()
-  document.getElementById('datum').value = `${year}-${datum}`
+  document.getElementById('datum').value = toIsoFromMMDD(datum)
   document.getElementById('w1').value = data.woerter[0] || ''
   document.getElementById('w2').value = data.woerter[1] || ''
   document.getElementById('w3').value = data.woerter[2] || ''
@@ -329,19 +601,406 @@ async function editTag(datum) {
   document.getElementById('zw-lemma').value    = data.zeitenwende_lemma || ''
   document.getElementById('form-title').textContent = `Eintrag bearbeiten: ${datum}`
   document.getElementById('save-btn').textContent   = 'Aktualisieren & APIs abrufen'
+  const deleteBtn = document.getElementById('delete-btn')
+  if (deleteBtn) deleteBtn.disabled = false
   window.scrollTo({ top: 0, behavior: 'smooth' })
   setStatus(`Eintrag ${datum} geladen – Änderungen vornehmen und speichern.`, 'loading')
+}
+
+async function deleteCurrentTag() {
+  if (!selectedCalendarDate) return
+  const ok = window.confirm(`Eintrag ${selectedCalendarDate} wirklich löschen?`)
+  if (!ok) return
+
+  const deleteBtn = document.getElementById('delete-btn')
+  if (deleteBtn) deleteBtn.disabled = true
+
+  try {
+    const res = await fetch(`/admin/tag/${selectedCalendarDate}`, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+    })
+    const data = await res.json().catch(() => ({}))
+    if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`)
+
+    selectedEntryDates.delete(selectedCalendarDate)
+    setStatus(`Eintrag ${selectedCalendarDate} gelöscht.`, 'ok')
+    const currentDate = document.getElementById('datum')?.value || new Date().toISOString().slice(0, 10)
+    prefillDate(currentDate)
+    await loadKalender()
+  } catch (err) {
+    setStatus(`Löschen fehlgeschlagen: ${err.message}`, 'error')
+  } finally {
+    if (deleteBtn && selectedCalendarDate) deleteBtn.disabled = false
+  }
 }
 
 async function loadKalender() {
   try {
     const res  = await fetch('/admin/kalender', {})
     kalenderData = await res.json()
+
+    for (const datum of [...selectedEntryDates]) {
+      if (!kalenderData[datum]) selectedEntryDates.delete(datum)
+    }
+
+    if (selectedCalendarDate && !kalenderData[selectedCalendarDate]) {
+      selectedCalendarDate = ''
+    }
+
     renderCalendar()
+    updateDashboardFromKalender()
+    renderEntryTable()
+    if (selectedCalendarDate) {
+      updateCalendarDetails(selectedCalendarDate)
+    } else {
+      updateCalendarDetails('')
+    }
   } catch {
     kalenderData = {}
+    selectedCalendarDate = ''
+    selectedEntryDates.clear()
     renderCalendar()
+    updateDashboardFromKalender()
+    renderEntryTable()
+    updateCalendarDetails('')
   }
+}
+
+function renderEntryTable() {
+  const tbody = document.getElementById('entry-table-body')
+  const countEl = document.getElementById('entry-count')
+  if (!tbody || !countEl) return
+
+  const search = (document.getElementById('entry-search')?.value || '').trim().toLowerCase()
+  const modeFilter = document.getElementById('entry-mode-filter')?.value || 'all'
+
+  const entries = Object.entries(kalenderData || {})
+    .map(([datum, entry]) => ({
+      datum,
+      iso: toIsoFromMMDD(datum),
+      dateObj: parseCalendarDate(datum),
+      entry,
+    }))
+    .sort((a, b) => a.dateObj - b.dateObj)
+
+  const filtered = entries.filter(({ datum, entry }) => {
+    const hasKoll = !!entry?.lemmata?.length
+    const lemmaText = (entry?.lemmata || []).map((item) => (item?.lemma || '')).join(' ').toLowerCase()
+    const matchesSearch = !search || datum.includes(search) || lemmaText.includes(search)
+    if (!matchesSearch) return false
+
+    if (modeFilter === 'all') return true
+    if (modeFilter === 'koll') return hasKoll
+    if (modeFilter === 'zeitreise') return !!entry?.hasZeitreise
+    if (modeFilter === 'wortzwilling') return !!entry?.hasWortZwilling
+    if (modeFilter === 'zeitenwende') return !!entry?.hasZeitenwende
+    return true
+  })
+
+  countEl.textContent = `${filtered.length} von ${entries.length} Einträgen`
+
+  if (!filtered.length) {
+    tbody.innerHTML = '<tr><td colspan="5" class="entry-empty">Keine Einträge für den aktuellen Filter.</td></tr>'
+    updateEntryBulkState([])
+    return
+  }
+
+  const visibleDates = filtered.map((item) => item.datum)
+  visibleDates.forEach((datum) => {
+    if (selectedEntryDates.has(datum) && !kalenderData[datum]) selectedEntryDates.delete(datum)
+  })
+
+  tbody.innerHTML = filtered.map(({ datum, iso, entry }) => {
+    const lemmata = entry?.lemmata || []
+    const lemmaList = lemmata.length
+      ? `<div class="entry-chip-wrap">${lemmata.map((item) => `<span class="entry-chip">${esc(item.lemma)}</span>`).join('')}</div>`
+      : '<span class="entry-empty">Keine Lemmata</span>'
+    const checked = selectedEntryDates.has(datum) ? 'checked' : ''
+
+    return `<tr>
+      <td class="entry-select-col"><input type="checkbox" ${checked} onchange="toggleEntrySelection('${datum}', this.checked)"></td>
+      <td><strong>${esc(datum)}</strong><br><span class="entry-hint">${esc(formatIsoDate(iso))}</span></td>
+      <td>${lemmaList}</td>
+      <td><div class="entry-chip-wrap">${modeChips(entry)}</div></td>
+      <td>
+        <div class="entry-row-actions">
+          <button class="entry-action-btn" onclick="editTag('${datum}')">Bearbeiten</button>
+          <button class="entry-action-btn" onclick="focusCalendarDate('${datum}')">Im Kalender</button>
+        </div>
+      </td>
+    </tr>`
+  }).join('')
+
+  updateEntryBulkState(visibleDates)
+}
+
+function resetEntryFilters() {
+  const searchInput = document.getElementById('entry-search')
+  const modeFilter = document.getElementById('entry-mode-filter')
+  if (searchInput) searchInput.value = ''
+  if (modeFilter) modeFilter.value = 'all'
+  renderEntryTable()
+}
+
+function updateEntryBulkState(visibleDates = []) {
+  const count = document.getElementById('entry-bulk-count')
+  const deleteBtn = document.getElementById('entry-bulk-delete-btn')
+  if (!count || !deleteBtn) return
+
+  for (const datum of [...selectedEntryDates]) {
+    if (!kalenderData[datum]) selectedEntryDates.delete(datum)
+  }
+
+  const visibleSelected = visibleDates.filter((datum) => selectedEntryDates.has(datum)).length
+  count.textContent = `${selectedEntryDates.size} ausgewählt${visibleDates.length ? ` (${visibleSelected} sichtbar)` : ''}`
+  deleteBtn.disabled = selectedEntryDates.size === 0
+}
+
+function toggleEntrySelection(datum, checked) {
+  if (!datum) return
+  if (checked) selectedEntryDates.add(datum)
+  else selectedEntryDates.delete(datum)
+
+  const rows = Object.keys(kalenderData || {})
+  updateEntryBulkState(rows)
+}
+
+function selectAllVisibleEntries() {
+  const search = (document.getElementById('entry-search')?.value || '').trim().toLowerCase()
+  const modeFilter = document.getElementById('entry-mode-filter')?.value || 'all'
+
+  const visible = Object.entries(kalenderData || {})
+    .filter(([datum, entry]) => {
+      const hasKoll = !!entry?.lemmata?.length
+      const lemmaText = (entry?.lemmata || []).map((item) => (item?.lemma || '')).join(' ').toLowerCase()
+      const matchesSearch = !search || datum.includes(search) || lemmaText.includes(search)
+      if (!matchesSearch) return false
+      if (modeFilter === 'all') return true
+      if (modeFilter === 'koll') return hasKoll
+      if (modeFilter === 'zeitreise') return !!entry?.hasZeitreise
+      if (modeFilter === 'wortzwilling') return !!entry?.hasWortZwilling
+      if (modeFilter === 'zeitenwende') return !!entry?.hasZeitenwende
+      return true
+    })
+    .map(([datum]) => datum)
+
+  visible.forEach((datum) => selectedEntryDates.add(datum))
+  renderEntryTable()
+}
+
+function clearEntrySelection() {
+  selectedEntryDates.clear()
+  renderEntryTable()
+}
+
+async function bulkDeleteSelectedDates() {
+  if (!selectedEntryDates.size) return
+
+  const dates = [...selectedEntryDates].sort()
+  const ok = window.confirm(`${dates.length} Einträge wirklich löschen? Diese Aktion kann nicht rückgängig gemacht werden.`)
+  if (!ok) return
+
+  const deleteBtn = document.getElementById('entry-bulk-delete-btn')
+  if (deleteBtn) deleteBtn.disabled = true
+
+  try {
+    const response = await fetch('/admin/kalender/bulk-delete', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ dates }),
+    })
+    const data = await response.json().catch(() => ({}))
+    if (!response.ok) throw new Error(data.error || `HTTP ${response.status}`)
+
+    selectedEntryDates.clear()
+    setStatus(`${data.removedCount || 0} Einträge gelöscht, ${data.skippedCount || 0} übersprungen.`, 'ok')
+    await loadKalender()
+  } catch (err) {
+    setStatus(`Bulk-Löschen fehlgeschlagen: ${err.message}`, 'error')
+    const rows = Object.keys(kalenderData || {})
+    updateEntryBulkState(rows)
+  } finally {
+    if (deleteBtn) deleteBtn.disabled = selectedEntryDates.size === 0
+  }
+}
+
+function focusCalendarDate(datum) {
+  const [mm] = datum.split('-').map(Number)
+  calYear = new Date().getFullYear()
+  calMonth = mm - 1
+  selectedCalendarDate = datum
+  renderCalendar()
+  switchPage('calendar')
+  updateCalendarDetails(datum)
+}
+
+function updateCalendarDetails(datum) {
+  const details = document.getElementById('calendar-details')
+  const editBtn = document.getElementById('calendar-edit-btn')
+  if (!details || !editBtn) return
+
+  if (!datum || !kalenderData[datum]) {
+    details.innerHTML = '<div class="calendar-detail-empty">Wähle einen Kalendertag mit Eintrag, um Details zu sehen.</div>'
+    editBtn.disabled = true
+    selectedCalendarDate = ''
+    return
+  }
+
+  selectedCalendarDate = datum
+  editBtn.disabled = false
+
+  const entry = kalenderData[datum]
+  const lemmata = entry.lemmata || []
+  const lemmaHtml = lemmata.length
+    ? lemmata.map((item) => `<span class="entry-chip">${esc(item.lemma)}</span>`).join('')
+    : '<span class="entry-chip">Keine Lemmata</span>'
+
+  details.innerHTML = `
+    <div class="calendar-detail-head">
+      <strong>${esc(datum)}</strong>
+      <span>${esc(formatIsoDate(toIsoFromMMDD(datum)))}</span>
+    </div>
+    <div class="calendar-detail-section">
+      <h3>Lemmata</h3>
+      <div class="calendar-detail-list">${lemmaHtml}</div>
+    </div>
+    <div class="calendar-detail-section">
+      <h3>Modi</h3>
+      <div class="calendar-detail-list">${modeChips(entry)}</div>
+    </div>
+  `
+}
+
+function editSelectedCalendarDate() {
+  if (!selectedCalendarDate) return
+  editTag(selectedCalendarDate)
+}
+
+function updateDashboardFromKalender() {
+  const days = Object.keys(kalenderData || {})
+  const metricDays = document.getElementById('metric-calendar-days')
+  if (metricDays) metricDays.textContent = String(days.length)
+
+  const today = new Date()
+  const todayKey = `${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
+  const todayEntry = kalenderData?.[todayKey]
+  const metricToday = document.getElementById('metric-today-status')
+  if (metricToday) metricToday.textContent = todayEntry ? 'Geplant' : 'Offen'
+
+  const preview = document.getElementById('dashboard-calendar-preview')
+  if (!preview) return
+  if (!days.length) {
+    preview.innerHTML = '<div class="preview-empty">Noch keine Kalendereinträge vorhanden.</div>'
+    return
+  }
+
+  const now = new Date()
+  const currentYear = now.getFullYear()
+  const nowTime = new Date(currentYear, now.getMonth(), now.getDate()).getTime()
+  const ordered = days
+    .map((datum) => {
+      const [mm, dd] = datum.split('-').map(Number)
+      const thisYear = new Date(currentYear, mm - 1, dd)
+      const nextYear = new Date(currentYear + 1, mm - 1, dd)
+      const dateObj = thisYear.getTime() >= nowTime ? thisYear : nextYear
+      const lemmata = kalenderData?.[datum]?.lemmata || []
+      const modeFlags = [
+        kalenderData?.[datum]?.hasZeitreise ? 'ZR' : '',
+        kalenderData?.[datum]?.hasWortZwilling ? 'WZ' : '',
+        kalenderData?.[datum]?.hasZeitenwende ? 'ZW' : '',
+      ].filter(Boolean)
+      return {
+        datum,
+        timestamp: dateObj.getTime(),
+        lemmata,
+        modeText: modeFlags.length ? modeFlags.join(' · ') : 'Kollokation',
+      }
+    })
+    .sort((a, b) => a.timestamp - b.timestamp)
+    .slice(0, 6)
+
+  preview.innerHTML = ordered.map((entry) => {
+    const lemmaLabel = entry.lemmata.length
+      ? entry.lemmata.slice(0, 2).map((item) => esc(item.lemma)).join(' · ')
+      : 'Keine Lemmata'
+    return `<div class="preview-item"><strong>${esc(entry.datum)}</strong><span>${lemmaLabel} · ${esc(entry.modeText)}</span></div>`
+  }).join('')
+}
+
+async function loadAuditLog() {
+  const tbody = document.getElementById('audit-table-body')
+  const limit = document.getElementById('audit-limit')?.value || '100'
+  const action = document.getElementById('audit-action')?.value || ''
+  const resource = document.getElementById('audit-resource')?.value || ''
+  const status = document.getElementById('audit-status')?.value || ''
+  const from = document.getElementById('audit-from')?.value || ''
+  const to = document.getElementById('audit-to')?.value || ''
+  const q = (document.getElementById('audit-search')?.value || '').trim()
+  const countEl = document.getElementById('audit-count')
+  if (!tbody) return
+
+  tbody.innerHTML = '<tr><td colspan="5" class="users-empty">Audit-Log wird geladen …</td></tr>'
+
+  try {
+    const params = new URLSearchParams({ limit })
+    if (action) params.set('action', action)
+    if (resource) params.set('resource', resource)
+    if (status) params.set('status', status)
+    if (from) params.set('from', from)
+    if (to) params.set('to', to)
+    if (q) params.set('q', q)
+
+    const response = await fetch(`/admin/audit-log?${params.toString()}`, {})
+    const data = await response.json().catch(() => ({}))
+    if (!response.ok) throw new Error(data.error || `HTTP ${response.status}`)
+
+    const entries = Array.isArray(data.entries) ? data.entries : []
+    if (countEl) {
+      const totalMatches = Number(data.totalMatches || entries.length || 0)
+      countEl.textContent = `${entries.length} Einträge angezeigt${totalMatches !== entries.length ? ` (insgesamt ${totalMatches} Treffer)` : ''}`
+    }
+    if (!entries.length) {
+      tbody.innerHTML = '<tr><td colspan="5" class="users-empty">Noch keine Audit-Einträge vorhanden.</td></tr>'
+      return
+    }
+
+    tbody.innerHTML = entries.map((entry) => {
+      const time = entry.timestamp ? new Date(entry.timestamp).toLocaleString('de-DE') : '—'
+      const action = entry.action || '—'
+      const resource = entry.resourceId ? `${entry.resource || '—'}:${entry.resourceId}` : (entry.resource || '—')
+      const status = entry.status || '—'
+      const changes = summarizeAuditChanges(entry.changes)
+      return `<tr>
+        <td>${esc(time)}</td>
+        <td>${esc(action)}</td>
+        <td>${esc(resource)}</td>
+        <td>${esc(status)}</td>
+        <td><span class="audit-change">${esc(changes)}</span></td>
+      </tr>`
+    }).join('')
+  } catch (err) {
+    if (countEl) countEl.textContent = 'Audit-Log konnte nicht geladen werden.'
+    tbody.innerHTML = `<tr><td colspan="5" class="users-empty">Audit-Log konnte nicht geladen werden: ${esc(err.message)}</td></tr>`
+  }
+}
+
+function resetAuditFilters() {
+  const action = document.getElementById('audit-action')
+  const resource = document.getElementById('audit-resource')
+  const status = document.getElementById('audit-status')
+  const from = document.getElementById('audit-from')
+  const to = document.getElementById('audit-to')
+  const search = document.getElementById('audit-search')
+
+  if (action) action.value = ''
+  if (resource) resource.value = ''
+  if (status) status.value = ''
+  if (from) from.value = ''
+  if (to) to.value = ''
+  if (search) search.value = ''
+
+  loadAuditLog()
 }
 
 
@@ -470,6 +1129,113 @@ async function analyzeKollokation() {
   } catch (e) { out.innerHTML = `<div class="status error">Netzwerkfehler: ${esc(e.message)}</div>` }
 }
 
+async function previewCurrentLemma() {
+  const out = document.getElementById('entry-preview-output')
+  const lemma = document.getElementById('w1')?.value?.trim() || ''
+  const pos = document.getElementById('p1')?.value || 'Substantiv'
+  if (!out) return
+
+  if (!lemma) {
+    out.innerHTML = '<div class="users-empty">Bitte zuerst Wort 1 ausfüllen, um eine Lemma-Vorschau zu laden.</div>'
+    return
+  }
+
+  out.innerHTML = '<div class="users-empty">Lemma-Vorschau wird geladen …</div>'
+  try {
+    const response = await fetch('/admin/preview/lemma', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ lemma, pos }),
+    })
+    const data = await response.json().catch(() => ({}))
+    if (!response.ok) throw new Error(data.error || `HTTP ${response.status}`)
+
+    const defs = Array.isArray(data.definitionen) && data.definitionen.length
+      ? data.definitionen.map((item) => `<li>${esc(item)}</li>`).join('')
+      : '<li>Keine Wiktionary-Bedeutungen vorhanden.</li>'
+
+    const roundSummary = Array.isArray(data.rundenSummary) && data.rundenSummary.length
+      ? data.rundenSummary.map((round) => `<li>${esc(round.label || round.key)}: ${esc(String(round.count || 0))}</li>`).join('')
+      : '<li>Keine Runden-Daten verfügbar.</li>'
+
+    const bonusHtml = data.bonusFrage
+      ? `<p><strong>${esc(data.bonusFrage.label || 'Bonusfrage')}:</strong> ${esc(data.bonusFrage.question || '—')}</p>`
+      : '<p>Keine Bonusfrage vorhanden.</p>'
+
+    out.innerHTML = `
+      <article class="entry-preview-card">
+        <h3>${esc(data.lemma || lemma)}</h3>
+        <div class="entry-preview-meta">Wortart: ${esc(data.pos || pos)} · IPA: ${esc(data.ipa || '—')}</div>
+        <div class="entry-preview-meta">Runden: ${esc(String(Array.isArray(data.rundenInfo) ? data.rundenInfo.length : 0))}</div>
+      </article>
+      <article class="entry-preview-card">
+        <h3>Rundenübersicht</h3>
+        <ul>${roundSummary}</ul>
+      </article>
+      <article class="entry-preview-card">
+        <h3>Bonus</h3>
+        ${bonusHtml}
+      </article>
+      <article class="entry-preview-card">
+        <h3>Bedeutungen</h3>
+        <ul>${defs}</ul>
+      </article>
+    `
+  } catch (err) {
+    out.innerHTML = `<div class="users-empty">Lemma-Vorschau fehlgeschlagen: ${esc(err.message)}</div>`
+  }
+}
+
+async function previewCurrentDay() {
+  const out = document.getElementById('entry-preview-output')
+  const iso = document.getElementById('datum')?.value || ''
+  if (!out) return
+
+  if (!iso) {
+    out.innerHTML = '<div class="users-empty">Bitte zuerst ein Datum wählen.</div>'
+    return
+  }
+
+  const [, mm, dd] = iso.split('-')
+  const datum = mm && dd ? `${mm}-${dd}` : ''
+  if (!datum) {
+    out.innerHTML = '<div class="users-empty">Ungültiges Datumsformat.</div>'
+    return
+  }
+
+  out.innerHTML = '<div class="users-empty">Tages-Vorschau wird geladen …</div>'
+  try {
+    const response = await fetch(`/admin/preview/day/${encodeURIComponent(datum)}`, {})
+    const data = await response.json().catch(() => ({}))
+    if (!response.ok) throw new Error(data.error || `HTTP ${response.status}`)
+
+    const lemmaList = Array.isArray(data.lemmata) && data.lemmata.length
+      ? data.lemmata.map((item) => `<span class="entry-chip">${esc(item.lemma)}</span>`).join('')
+      : '<span class="users-empty">Keine Lemmata vorhanden.</span>'
+
+    const modes = data.modes || {}
+    const modeChipsHtml = [
+      modes.kollokationen?.enabled ? '<span class="entry-chip mode-koll">Kollokation</span>' : '',
+      modes.zeitreise?.enabled ? '<span class="entry-chip mode-zeitreise">Zeitreise</span>' : '',
+      modes.wortzwilling?.enabled ? '<span class="entry-chip mode-wortzwilling">Wort-Zwilling</span>' : '',
+      modes.zeitenwende?.enabled ? '<span class="entry-chip mode-zeitenwende">Zeitenwende</span>' : '',
+    ].filter(Boolean).join('') || '<span class="users-empty">Keine Modi aktiv.</span>'
+
+    out.innerHTML = `
+      <article class="entry-preview-card">
+        <h3>Tages-Vorschau ${esc(data.datum || datum)}</h3>
+        <div class="entry-preview-list">${lemmaList}</div>
+      </article>
+      <article class="entry-preview-card">
+        <h3>Aktive Modi</h3>
+        <div class="entry-preview-list">${modeChipsHtml}</div>
+      </article>
+    `
+  } catch (err) {
+    out.innerHTML = `<div class="users-empty">Tages-Vorschau fehlgeschlagen: ${esc(err.message)}</div>`
+  }
+}
+
 function renderKollAnalyse(data, out) {
   const badge = data.usable
     ? '<span style="color:#166534;font-weight:700">✓ Geeignet als Kollokationswort</span>'
@@ -523,15 +1289,431 @@ const STAT_COLORS = { kollokationen: '#9b1c1c', zeitreise: '#1d4ed8', wortzwilli
 
 async function loadStats() {
   const out = document.getElementById('stats-output')
+  const days = document.getElementById('stats-days')?.value || '30'
   out.innerHTML = '<div style="color:var(--muted);font-size:0.85rem">Lade…</div>'
   try {
-    const r    = await fetch('/admin/stats?days=30', {})
+    const r    = await fetch(`/admin/stats?days=${encodeURIComponent(days)}`, {})
     const data = await r.json()
     if (!r.ok) throw new Error(data.error || `HTTP ${r.status}`)
     renderStats(data, out)
+    updateDashboardFromStats(data)
   } catch (e) {
     out.innerHTML = `<div class="status error">Fehler: ${esc(e.message)}</div>`
+    updateDashboardFromStats([])
+  } finally {
+    await loadStatsSummary(days)
   }
+}
+
+function updateDashboardFromStats(data) {
+  const metricPlays = document.getElementById('metric-plays-today')
+  const metricScore = document.getElementById('metric-score-today')
+  if (!metricPlays || !metricScore) return
+  if (!Array.isArray(data) || !data.length) {
+    metricPlays.textContent = '0'
+    metricScore.textContent = 'Ø - / 10'
+    return
+  }
+
+  const now = new Date()
+  const todayStr = `${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+  const todayEntry = data.find((item) => item.datum === todayStr)
+  if (!todayEntry) {
+    metricPlays.textContent = '0'
+    metricScore.textContent = 'Ø - / 10'
+    return
+  }
+
+  const keys = ['kollokationen', 'zeitreise', 'wortzwilling', 'zeitenwende']
+  let plays = 0
+  let scoreSum = 0
+  let maxSum = 0
+
+  keys.forEach((key) => {
+    const bucket = todayEntry[key]
+    if (!bucket) return
+    plays += Number(bucket.plays || 0)
+    scoreSum += Number(bucket.scoreSum || 0)
+    maxSum += Number(bucket.maxSum || 0)
+  })
+
+  metricPlays.textContent = String(plays)
+  metricScore.textContent = maxSum > 0 ? `Ø ${((scoreSum / maxSum) * 10).toFixed(1)} / 10` : 'Ø - / 10'
+}
+
+async function loadUsersOverview() {
+  const summary = document.getElementById('users-summary')
+  const tbody = document.getElementById('users-table-body')
+  if (!summary || !tbody) return
+
+  const search = (document.getElementById('users-search')?.value || '').trim()
+  const role = document.getElementById('users-role-filter')?.value || ''
+
+  const params = new URLSearchParams({ limit: '50' })
+  if (search) params.set('q', search)
+  if (role) params.set('role', role)
+
+  summary.textContent = 'Nutzerdaten werden geladen …'
+  tbody.innerHTML = '<tr><td colspan="5" class="users-empty">Lade …</td></tr>'
+
+  try {
+    const response = await fetch(`/admin/users?${params.toString()}`, {})
+    const data = await response.json()
+    if (!response.ok) throw new Error(data.error || `HTTP ${response.status}`)
+
+    const info = data.summary || {}
+    summary.textContent = `Gesamt: ${info.total || 0} · User: ${info.users || 0} · Teacher: ${info.teachers || 0} · Neu 30 Tage: ${info.newLast30Days || 0}`
+
+    const users = Array.isArray(data.users) ? data.users : []
+    if (!users.length) {
+      tbody.innerHTML = '<tr><td colspan="6" class="users-empty">Keine Nutzer gefunden.</td></tr>'
+      clearSelectedUser('Keine Nutzer ausgewählt.')
+    } else {
+      tbody.innerHTML = users.map((user) => {
+        const created = user.createdAt ? new Date(user.createdAt).toLocaleDateString('de-DE') : '—'
+        const isSelected = user.id === selectedUserId
+        const safeUserId = encodeURIComponent(String(user.id || ''))
+        const safeRawUserId = esc(String(user.id || ''))
+        return `<tr>
+          <td><input type="checkbox" class="user-select-checkbox" data-user-id="${safeRawUserId}" onchange="updateUsersBulkState()"></td>
+          <td>${esc(user.name || '—')}</td>
+          <td>${esc(user.email || '—')}</td>
+          <td>${esc(roleLabel(user.role || 'user'))}</td>
+          <td>${esc(created)}</td>
+          <td><button class="entry-action-btn" onclick="selectUser('${safeUserId}')">${isSelected ? 'Ausgewählt' : 'Details'}</button></td>
+        </tr>`
+      }).join('')
+
+      updateUsersBulkState()
+
+      if (selectedUserId && users.some((user) => user.id === selectedUserId)) {
+        await selectUser(selectedUserId, { keepScroll: true })
+      } else {
+        clearSelectedUser('Wähle einen Nutzer aus der Tabelle, um Details zu sehen.')
+      }
+    }
+
+    usersLoaded = true
+  } catch (err) {
+    summary.textContent = `Nutzer konnten nicht geladen werden: ${err.message}`
+    tbody.innerHTML = '<tr><td colspan="6" class="users-empty">Fehler beim Laden.</td></tr>'
+    clearSelectedUser('Nutzerdetails konnten nicht geladen werden.')
+    updateUsersBulkState()
+  } finally {
+    const roleBtn = document.getElementById('user-role-save-btn')
+    if (roleBtn) roleBtn.disabled = !selectedUserId
+  }
+}
+
+function resetUsersFilters() {
+  const searchInput = document.getElementById('users-search')
+  const roleFilter = document.getElementById('users-role-filter')
+  if (searchInput) searchInput.value = ''
+  if (roleFilter) roleFilter.value = ''
+  loadUsersOverview()
+}
+
+function clearSelectedUser(message) {
+  selectedUserId = ''
+  const empty = document.getElementById('user-detail-empty')
+  const content = document.getElementById('user-detail-content')
+  const roleBtn = document.getElementById('user-role-save-btn')
+  const roleSelect = document.getElementById('user-detail-role')
+  const userDeleteBtn = document.getElementById('user-delete-btn')
+  if (empty) {
+    empty.textContent = message
+    empty.style.display = 'block'
+  }
+  if (content) content.style.display = 'none'
+  if (roleBtn) roleBtn.disabled = true
+  if (roleSelect) roleSelect.value = 'user'
+  if (userDeleteBtn) userDeleteBtn.disabled = true
+}
+
+function renderUserStatsByGame(byGame) {
+  const target = document.getElementById('user-game-stats')
+  if (!target) return
+
+  if (!Array.isArray(byGame) || byGame.length === 0) {
+    target.innerHTML = '<div class="users-empty">Noch keine spielbezogenen Daten vorhanden.</div>'
+    return
+  }
+
+  target.innerHTML = byGame.map((gameRow) => {
+    const avg = Number(gameRow.maxSum || 0) > 0
+      ? ((Number(gameRow.scoreSum || 0) / Number(gameRow.maxSum || 0)) * 10).toFixed(1)
+      : '–'
+    const label = STAT_LABELS[gameRow.spiel] || gameRow.spiel
+    return `<div class="user-stat-chip"><strong>${esc(label)}</strong><span>${esc(String(gameRow.plays || 0))} Plays · Ø ${esc(avg)} / 10</span></div>`
+  }).join('')
+}
+
+function renderUserRecentStats(recent) {
+  const tbody = document.getElementById('user-recent-body')
+  if (!tbody) return
+
+  if (!Array.isArray(recent) || recent.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="4" class="users-empty">Noch keine Aktivität.</td></tr>'
+    return
+  }
+
+  tbody.innerHTML = recent.map((row) => {
+    const avg = Number(row.maxSum || 0) > 0
+      ? ((Number(row.scoreSum || 0) / Number(row.maxSum || 0)) * 10).toFixed(1)
+      : '–'
+    const label = STAT_LABELS[row.spiel] || row.spiel
+    return `<tr>
+      <td>${esc(row.datum)}</td>
+      <td>${esc(label)}</td>
+      <td>${esc(String(row.plays || 0))}</td>
+      <td>Ø ${esc(avg)} / 10</td>
+    </tr>`
+  }).join('')
+}
+
+function renderUserDetails(data) {
+  const empty = document.getElementById('user-detail-empty')
+  const content = document.getElementById('user-detail-content')
+  const title = document.getElementById('user-detail-title')
+  const subtitle = document.getElementById('user-detail-subtitle')
+  const roleSelect = document.getElementById('user-detail-role')
+  const userDeleteBtn = document.getElementById('user-delete-btn')
+
+  if (!empty || !content || !title || !subtitle || !roleSelect || !userDeleteBtn) return
+
+  const user = data?.user || {}
+  const stats = data?.stats || {}
+
+  selectedUserId = user.id || ''
+  title.textContent = user.name || 'Unbenannter Nutzer'
+  subtitle.textContent = user.email || 'Keine E-Mail'
+  roleSelect.value = user.role || 'user'
+  userDeleteBtn.disabled = !selectedUserId
+  const roleBtn = document.getElementById('user-role-save-btn')
+  if (roleBtn) roleBtn.disabled = !selectedUserId
+
+  const meta = document.getElementById('user-meta-grid')
+  if (meta) {
+    meta.innerHTML = [
+      `<div class="user-meta-item"><span>ID</span><strong>${esc(user.id || '—')}</strong></div>`,
+      `<div class="user-meta-item"><span>Rolle</span><strong>${esc(roleLabel(user.role || 'user'))}</strong></div>`,
+      `<div class="user-meta-item"><span>E-Mail verifiziert</span><strong>${user.emailVerified ? 'Ja' : 'Nein'}</strong></div>`,
+      `<div class="user-meta-item"><span>Registriert</span><strong>${esc(user.createdAt ? new Date(user.createdAt).toLocaleDateString('de-DE') : '—')}</strong></div>`,
+      `<div class="user-meta-item"><span>Plays gesamt</span><strong>${esc(String(stats.totals?.plays || 0))}</strong></div>`,
+      `<div class="user-meta-item"><span>Ø Score</span><strong>${Number(stats.totals?.maxSum || 0) > 0 ? `${((Number(stats.totals?.scoreSum || 0) / Number(stats.totals?.maxSum || 0)) * 10).toFixed(1)} / 10` : '—'}</strong></div>`,
+    ].join('')
+  }
+
+  renderUserStatsByGame(stats.byGame || [])
+  renderUserRecentStats(stats.recent || [])
+
+  empty.style.display = 'none'
+  content.style.display = 'grid'
+}
+
+async function selectUser(userId, options = {}) {
+  let normalizedUserId = String(userId || '').trim()
+  if (!normalizedUserId) return
+  try {
+    normalizedUserId = decodeURIComponent(normalizedUserId)
+  } catch {
+    // Falls der Wert nicht URL-encodiert ist, unveraendert nutzen.
+  }
+  if (!normalizedUserId) return
+
+  const { keepScroll = false } = options
+  const empty = document.getElementById('user-detail-empty')
+  const content = document.getElementById('user-detail-content')
+  if (empty) {
+    empty.textContent = 'Nutzerdetails werden geladen …'
+    empty.style.display = 'block'
+  }
+  if (content) content.style.display = 'none'
+
+  try {
+    const response = await fetch(`/admin/users/${encodeURIComponent(normalizedUserId)}`, {})
+    const data = await response.json()
+    if (!response.ok) throw new Error(data.error || `HTTP ${response.status}`)
+
+    renderUserDetails(data)
+    if (!keepScroll) {
+      const detailCard = document.getElementById('users-detail-card')
+      if (detailCard) detailCard.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }
+  } catch (err) {
+    clearSelectedUser(`Details konnten nicht geladen werden: ${err.message}`)
+  }
+}
+
+async function saveSelectedUserRole() {
+  if (!selectedUserId) return
+
+  const roleSelect = document.getElementById('user-detail-role')
+  const roleBtn = document.getElementById('user-role-save-btn')
+  if (!roleSelect || !roleBtn) return
+
+  roleBtn.disabled = true
+  const roleSelectInitial = roleSelect.value
+  try {
+    const response = await fetch(`/admin/users/${encodeURIComponent(selectedUserId)}/role`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ role: roleSelect.value }),
+    })
+    const data = await response.json().catch(() => ({}))
+    if (!response.ok) throw new Error(data.error || `HTTP ${response.status}`)
+
+    await loadUsersOverview()
+    await selectUser(selectedUserId, { keepScroll: true })
+  } catch (err) {
+    const empty = document.getElementById('user-detail-empty')
+    if (empty) {
+      empty.textContent = `Rollenänderung fehlgeschlagen: ${err.message}`
+      empty.style.display = 'block'
+    }
+  } finally {
+    roleBtn.disabled = !selectedUserId
+    if (!selectedUserId) roleSelect.value = roleSelectInitial
+  }
+}
+
+async function deleteSelectedUser() {
+  if (!selectedUserId) return
+
+  const ok = window.confirm('Nutzer wirklich löschen? Diese Aktion kann nicht rückgängig gemacht werden.')
+  if (!ok) return
+
+  const deleteBtn = document.getElementById('user-delete-btn')
+  if (deleteBtn) deleteBtn.disabled = true
+
+  try {
+    const response = await fetch(`/admin/users/${encodeURIComponent(selectedUserId)}`, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+    })
+    const data = await response.json().catch(() => ({}))
+    if (!response.ok) throw new Error(data.error || `HTTP ${response.status}`)
+
+    clearSelectedUser('Nutzer gelöscht. Wähle einen weiteren Nutzer aus der Tabelle.')
+    await loadUsersOverview()
+  } catch (err) {
+    const empty = document.getElementById('user-detail-empty')
+    if (empty) {
+      empty.textContent = `Löschen fehlgeschlagen: ${err.message}`
+      empty.style.display = 'block'
+    }
+  } finally {
+    if (deleteBtn) deleteBtn.disabled = !selectedUserId
+  }
+}
+
+function renderStatsSummary(summary) {
+  const cards = document.getElementById('stats-summary-cards')
+  if (!cards) return
+
+  if (!summary) {
+    cards.innerHTML = '<div class="users-empty">Keine Zusammenfassung verfügbar.</div>'
+    return
+  }
+
+  const avg = summary.totals?.avg10 == null ? '–' : `${Number(summary.totals.avg10).toFixed(2)} / 10`
+  cards.innerHTML = [
+    `<article class="stats-summary-card"><span>Zeitraum</span><strong>${esc(String(summary.window?.days || 0))} Tage</strong><small>${esc(summary.window?.from || '—')} bis ${esc(summary.window?.to || '—')}</small></article>`,
+    `<article class="stats-summary-card"><span>Plays gesamt</span><strong>${esc(String(summary.totals?.plays || 0))}</strong><small>Über alle Modi</small></article>`,
+    `<article class="stats-summary-card"><span>Ø Score</span><strong>${esc(avg)}</strong><small>Aggregiert</small></article>`,
+    `<article class="stats-summary-card"><span>Top Modus</span><strong>${esc(summary.byGame?.[0] ? (STAT_LABELS[summary.byGame[0].spiel] || summary.byGame[0].spiel) : '—')}</strong><small>${esc(String(summary.byGame?.[0]?.plays || 0))} Plays</small></article>`,
+  ].join('')
+}
+
+function renderTopUsers(topUsers) {
+  const tbody = document.getElementById('stats-top-users-body')
+  if (!tbody) return
+
+  if (!Array.isArray(topUsers) || !topUsers.length) {
+    tbody.innerHTML = '<tr><td colspan="4" class="users-empty">Keine identifizierten Nutzerstatistiken im Zeitraum.</td></tr>'
+    return
+  }
+
+  tbody.innerHTML = topUsers.map((user) => {
+    const avg = user.avg10 == null ? '–' : `${Number(user.avg10).toFixed(2)} / 10`
+    return `<tr>
+      <td>${esc(user.name || user.email || user.userId)}</td>
+      <td>${esc(roleLabel(user.role || 'user'))}</td>
+      <td>${esc(String(user.plays || 0))}</td>
+      <td>${esc(avg)}</td>
+    </tr>`
+  }).join('')
+}
+
+function renderPerformance(metrics) {
+  const cards = document.getElementById('performance-cards')
+  const json = document.getElementById('performance-json')
+  if (!cards || !json) return
+
+  if (!metrics) {
+    cards.innerHTML = '<div class="users-empty">Keine Performance-Daten verfügbar.</div>'
+    json.textContent = 'Keine Performance-Daten verfügbar.'
+    return
+  }
+
+  const dbMb = ((Number(metrics.db?.sizeBytes || 0)) / 1024 / 1024).toFixed(2)
+  const walMb = ((Number(metrics.db?.walBytes || 0)) / 1024 / 1024).toFixed(2)
+  const queryHitRate = metrics.cache?.query?.hitRate || '0%'
+  const belegeHitRate = metrics.cache?.belege?.hitRate || '0%'
+
+  cards.innerHTML = [
+    `<article class="performance-card"><span>Server</span><strong>${esc(String(metrics.rssMb || 0))} MB RAM</strong><small>Uptime ${esc(String(metrics.uptimeSec || 0))}s</small></article>`,
+    `<article class="performance-card"><span>Datenbank</span><strong>${esc(dbMb)} MB</strong><small>WAL ${esc(walMb)} MB</small></article>`,
+    `<article class="performance-card"><span>Stats</span><strong>${esc(String(metrics.rows?.statsRows || 0))} Zeilen</strong><small>${esc(String(metrics.rows?.totalPlays || 0))} Plays total</small></article>`,
+    `<article class="performance-card"><span>Cache Query</span><strong>${esc(queryHitRate)}</strong><small>${esc(String(metrics.cache?.query?.size || 0))} Keys</small></article>`,
+    `<article class="performance-card"><span>Cache Belege</span><strong>${esc(belegeHitRate)}</strong><small>${esc(String(metrics.cache?.belege?.size || 0))} Keys</small></article>`,
+    `<article class="performance-card"><span>Entitäten</span><strong>${esc(String(metrics.entities?.users || 0))} Nutzer</strong><small>${esc(String(metrics.entities?.classroomSessions || 0))} Klassen-Sessions</small></article>`,
+  ].join('')
+
+  json.textContent = JSON.stringify(metrics, null, 2)
+}
+
+async function loadPerformance() {
+  const cards = document.getElementById('performance-cards')
+  if (cards) cards.innerHTML = '<div class="users-empty">Performance-Daten werden geladen …</div>'
+
+  try {
+    const response = await fetch('/admin/performance', {})
+    const data = await response.json()
+    if (!response.ok) throw new Error(data.error || `HTTP ${response.status}`)
+    renderPerformance(data)
+  } catch (err) {
+    renderPerformance(null)
+    const json = document.getElementById('performance-json')
+    if (json) json.textContent = `Performance konnte nicht geladen werden: ${err.message}`
+  }
+}
+
+async function loadStatsSummary(daysOverride) {
+  const days = String(daysOverride ?? (document.getElementById('stats-days')?.value || '30'))
+  const topUsersBody = document.getElementById('stats-top-users-body')
+  if (topUsersBody) {
+    topUsersBody.innerHTML = '<tr><td colspan="4" class="users-empty">Lade Top-Nutzer …</td></tr>'
+  }
+
+  try {
+    const response = await fetch(`/admin/stats/summary?days=${encodeURIComponent(days)}&topUsers=10`, {})
+    const data = await response.json()
+    if (!response.ok) throw new Error(data.error || `HTTP ${response.status}`)
+    renderStatsSummary(data)
+    renderTopUsers(data.topUsers || [])
+  } catch (err) {
+    renderStatsSummary(null)
+    if (topUsersBody) {
+      topUsersBody.innerHTML = `<tr><td colspan="4" class="users-empty">Fehler: ${esc(err.message)}</td></tr>`
+    }
+  }
+}
+
+function exportStats(format) {
+  const days = document.getElementById('stats-days')?.value || '30'
+  const url = `/admin/stats/export?days=${encodeURIComponent(days)}&format=${encodeURIComponent(format)}`
+  window.open(url, '_blank', 'noopener')
 }
 
 function renderStats(data, out) {

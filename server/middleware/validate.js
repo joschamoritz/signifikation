@@ -114,6 +114,43 @@ export const adminSetUserRoleSchema = z.object({
   role: z.enum(['user', 'teacher']),
 })
 
+/** GET /admin/users/:id (params) */
+export const adminUserIdParamsSchema = z.object({
+  id: z.string().trim().min(1, 'id erforderlich'),
+})
+
+/** POST /admin/users/bulk-update */
+export const adminUsersBulkUpdateSchema = z.object({
+  action: z.enum(['setRole', 'delete', 'export']),
+  userIds: z.array(z.string().trim().min(1, 'userIds enthaelt leere IDs')).min(1, 'Mindestens ein Nutzer erforderlich').max(200, 'Maximal 200 Nutzer pro Aktion'),
+  role: z.enum(['user', 'teacher']).optional(),
+  format: z.enum(['json', 'csv']).optional().default('json'),
+}).superRefine((value, ctx) => {
+  if (value.action === 'setRole' && !value.role) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'role ist fuer setRole erforderlich',
+      path: ['role'],
+    })
+  }
+})
+
+/** POST /admin/kalender/bulk-delete */
+export const adminBulkDeleteCalendarSchema = z.object({
+  dates: z.array(DATUM_MMDD).min(1, 'Mindestens ein Datum erforderlich').max(180, 'Zu viele Datumswerte auf einmal'),
+})
+
+/** POST /admin/preview/lemma */
+export const adminPreviewLemmaSchema = z.object({
+  lemma: z.string().trim().min(1, 'lemma erforderlich').max(100, 'lemma zu lang'),
+  pos: POS.optional().default('Substantiv'),
+})
+
+/** GET /admin/preview/day/:datum */
+export const adminPreviewDayParamsSchema = z.object({
+  datum: DATUM_MMDD,
+})
+
 // ── Classroom Schemas ───────────────────────────────────────────
 
 const CLASSROOM_STATE = z.enum(['created', 'lobby', 'running', 'finished', 'archived'])

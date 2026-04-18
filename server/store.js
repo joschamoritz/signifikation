@@ -396,6 +396,35 @@ const SAVERS = {
   'stats-rows.json':   rows => _replaceStatsRows(Array.isArray(rows) ? rows : []),
 }
 
+// ── In-Memory-Cache für loadReadOnly ──────────────────────────────
+
+const _readOnlyCache = new Map()
+const READONLY_TTL_MS = 5 * 60 * 1000
+
+function _getCached(file) {
+  const entry = _readOnlyCache.get(file)
+  if (entry && Date.now() - entry.ts < READONLY_TTL_MS) return entry.data
+  return null
+}
+
+function _setCached(file, data) {
+  _readOnlyCache.set(file, { data, ts: Date.now() })
+}
+
+function _invalidateCached(file) {
+  _readOnlyCache.delete(file)
+  if (file === 'lemmata.json') {
+    _lemmataById = null
+    _lemmataByLemma = null
+  }
+}
+
+function _invalidateAllCached() {
+  _readOnlyCache.clear()
+  _lemmataById = null
+  _lemmataByLemma = null
+}
+
 // ── Öffentliche API ───────────────────────────────────────────────
 
 export function load(file) {
@@ -405,23 +434,33 @@ export function load(file) {
 }
 
 export function loadReadOnly(file) {
-  return load(file)
+  const cached = _getCached(file)
+  if (cached !== null) return cached
+  const data = load(file)
+  _setCached(file, data)
+  return data
 }
 
 export function save(file, data) {
   const saver = SAVERS[file]
   if (!saver) throw new Error(`Unbekannte Datei: ${file}`)
   saver(data)
+  _invalidateCached(file)
   return Promise.resolve()
 }
 
-// ── Convenience-Loader ────────────────────────────────────────────
+export function invalidateCache(file) {
+  if (file) _invalidateCached(file)
+  else _invalidateAllCached()
+}
 
-export function loadZeitreise()    { return _loadZeitreise()    }
-export function loadWortZwilling() { return _loadWortzwilling() }
-export function loadZeitenwende()  { return _loadZeitenwende()  }
-export function loadStats()        { return _loadStats()        }
-export function loadStatsRows()    { return _loadStatsRows()    }
+// ── Convenience-Loader (mit ReadOnly-Cache) ──────────────────────
+
+export function loadZeitreise() { return loadReadOnly('zeitreise.json') }
+export function loadWortZwilling() { return loadReadOnly('wortzwilling.json') }
+export function loadZeitenwende() { return loadReadOnly('zeitenwende.json') }
+export function loadStats() { return loadReadOnly('stats.json') }
+export function loadStatsRows() { return loadReadOnly('stats-rows.json') }
 
 // ── Lemmata-Index (O(1)-Lookup statt linearem Array-Scan) ─────────
 
@@ -498,3 +537,17 @@ export function initializeIndices() {
     logger.warn({ err }, 'Preload initialization incomplete – will lazy-load on demand')
   }
 }
+
+// ── Periodisches ReadOnly-Cache Cleanup (alle 5 Minuten) ────────
+
+setInterval(() => {
+  const now = Date.now()
+  let cleaned = 0
+  for (const [key, entry] of _readOnlyCache.entries()) {
+    if (now - entry.ts > READONLY_TTL_MS) {
+      _readOnlyCache.delete(key)
+      cleaned++
+    }
+  }
+  if (cleaned > 0) logger.debug({ cleaned }, 'ReadOnly-Cache Cleanup')
+}, 5 * 60 * 1000)

@@ -1,4 +1,4 @@
-import rateLimit from 'express-rate-limit'
+import rateLimit, { ipKeyGenerator } from 'express-rate-limit'
 import logger from '../logger.js'
 
 // Custom Store mit auto-cleanup für Memory-Leak-Prävention
@@ -57,11 +57,9 @@ function getClientIp(req) {
   const forwarded = req.headers['x-forwarded-for']
   const ip = forwarded ? forwarded.split(',')[0].trim() : req.ip
 
-  // IPv6-Adressen mit Klammern formatieren für express-rate-limit Kompatibilität
-  if (ip && ip.includes(':') && !ip.startsWith('[')) {
-    return `[${ip}]`
-  }
-  return ip
+  // express-rate-limit erwartet für IPv6 explizit ipKeyGenerator(),
+  // damit nicht durch IP-Rotation innerhalb eines /56-Präfixes umgangen wird.
+  return ipKeyGenerator(ip)
 }
 
 // Globale Store-Instanzen (teilen sich den Cleanup-Timer)
