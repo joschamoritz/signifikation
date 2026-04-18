@@ -112,6 +112,15 @@ export const auth = betterAuth({
   basePath: '/api/v1/auth',
   trustedOrigins,
   secret: AUTH_SECRET,
+  advanced: {
+    useSecureCookies: IS_PROD,
+    defaultCookieAttributes: {
+      sameSite: 'lax',
+      secure: IS_PROD,
+      httpOnly: true,
+      path: '/',
+    },
+  },
   database: db,
   session: {
     expiresIn: SESSION_EXPIRES_IN,
