@@ -343,7 +343,6 @@ function buildModeGroups({ lemmata = [], zeitreiseEntry = null, wortzwillingEntr
 
   const zeitenwendeItems = uniqueLabels([
     zeitenwendeEntry?.lemma,
-    ...(Array.isArray(zeitenwendeEntry?.words) ? zeitenwendeEntry.words.map((item) => item?.wort) : []),
   ])
   if (zeitenwendeItems.length) {
     groups.push({ key: 'zeitenwende', label: 'Zeitenwende', items: zeitenwendeItems })

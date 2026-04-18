@@ -17,6 +17,7 @@ function esc(s) {
 let usersLoaded = false
 let selectedCalendarDate = ''
 let selectedUserId = ''
+let dashboardWeekOffset = 0
 const selectedEntryDates = new Set()
 
 function setPageMeta(pageEl) {
@@ -79,6 +80,25 @@ function parseCalendarDate(mmdd) {
   const iso = toIsoFromMMDD(mmdd)
   const [y, m, d] = iso.split('-').map(Number)
   return new Date(y, m - 1, d)
+}
+
+function startOfDay(date) {
+  const value = new Date(date)
+  value.setHours(0, 0, 0, 0)
+  return value
+}
+
+function formatDayMonth(date) {
+  return date.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' })
+}
+
+function formatWeekRange(startDate, endDate) {
+  const startLabel = formatDayMonth(startDate)
+  const endLabel = formatDayMonth(endDate)
+  if (startDate.getFullYear() === endDate.getFullYear()) {
+    return `${startLabel} - ${endLabel}`
+  }
+  return `${startLabel} ${startDate.getFullYear()} - ${endLabel} ${endDate.getFullYear()}`
 }
 
 function modeChips(entry) {
@@ -923,15 +943,20 @@ async function bulkDeleteSelectedDates() {
   }
 }
 
-function focusCalendarDate(datum) {
-  const iso = toIsoFromMMDD(datum)
-  const [year, month] = iso.split('-').map(Number)
+function focusCalendarDate(datum, iso = '') {
+  const targetIso = iso || toIsoFromMMDD(datum)
+  const [year, month] = targetIso.split('-').map(Number)
   calYear = year || new Date().getFullYear()
   calMonth = (month || 1) - 1
   selectedCalendarDate = datum
   renderCalendar()
   switchPage('calendar')
   updateCalendarDetails(datum)
+}
+
+function changeDashboardWeek(delta) {
+  dashboardWeekOffset += delta
+  updateDashboardFromKalender()
 }
 
 function updateCalendarDetails(datum) {
@@ -976,9 +1001,11 @@ function editSelectedCalendarDate() {
 function updateDashboardFromKalender() {
   const entries = getCalendarEntries()
   const metricDays = document.getElementById('metric-calendar-days')
-  if (metricDays) metricDays.textContent = String(entries.length)
-
   const today = new Date()
+  const todayStart = startOfDay(today)
+  const futureEntries = entries.filter((entry) => entry.dateObj.getTime() >= todayStart.getTime())
+  if (metricDays) metricDays.textContent = String(futureEntries.length)
+
   const todayKey = `${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
   const todayEntry = kalenderData?.[todayKey]
   const metricToday = document.getElementById('metric-today-status')
@@ -996,9 +1023,16 @@ function updateDashboardFromKalender() {
     return
   }
 
+  const weekLabel = document.getElementById('dashboard-week-label')
+  const baseDate = startOfDay(today)
+  baseDate.setDate(baseDate.getDate() + (dashboardWeekOffset * 7))
   const startOfWeek = new Date(today)
   startOfWeek.setHours(0, 0, 0, 0)
-  startOfWeek.setDate(today.getDate() - ((today.getDay() + 6) % 7))
+  startOfWeek.setTime(baseDate.getTime())
+  startOfWeek.setDate(baseDate.getDate() - ((baseDate.getDay() + 6) % 7))
+  const endOfWeek = new Date(startOfWeek)
+  endOfWeek.setDate(startOfWeek.getDate() + 6)
+  if (weekLabel) weekLabel.textContent = formatWeekRange(startOfWeek, endOfWeek)
 
   const weekItems = Array.from({ length: 7 }, (_, index) => {
     const dateObj = new Date(startOfWeek)
@@ -1019,7 +1053,7 @@ function updateDashboardFromKalender() {
     const content = item.entry
       ? renderModeGroupSummary(item.entry, { emptyText: 'Keine Inhalte' })
       : '<span class="entry-empty">Kein Eintrag</span>'
-    return `<button class="week-preview-card ${item.isToday ? 'is-today' : ''} ${item.entry ? 'has-entry' : 'is-empty'}" onclick="${item.entry ? `selectCalendarDate('${item.datum}')` : `prefillDate('${item.iso}')`}">
+    return `<button class="week-preview-card ${item.isToday ? 'is-today' : ''} ${item.entry ? 'has-entry' : 'is-empty'}" onclick="${item.entry ? `focusCalendarDate('${item.datum}', '${item.iso}')` : `prefillDate('${item.iso}')`}">
       <span class="week-preview-day">${esc(item.label)}</span>
       <strong>${esc(item.dayNumber)}</strong>
       <span class="week-preview-meta">${item.entry ? `${groups.length} Modi` : 'Leer'}</span>

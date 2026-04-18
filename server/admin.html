@@ -104,9 +104,16 @@
         </div>
 
         <div class="card">
-          <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap">
-            <h2>Diese Woche</h2>
-            <button onclick="switchPage('calendar')" style="font-size:0.78rem;padding:6px 12px">Kalender öffnen</button>
+          <div class="week-preview-header">
+            <div>
+              <h2>Wochenansicht</h2>
+              <p class="week-preview-range" id="dashboard-week-label">Diese Woche wird geladen …</p>
+            </div>
+            <div class="week-preview-actions">
+              <button type="button" class="entry-filters-reset week-nav-btn" aria-label="Vorherige Woche" onclick="changeDashboardWeek(-1)">‹</button>
+              <button type="button" class="entry-filters-reset week-nav-btn" aria-label="Nächste Woche" onclick="changeDashboardWeek(1)">›</button>
+              <button onclick="switchPage('calendar')" style="font-size:0.78rem;padding:6px 12px">Kalender öffnen</button>
+            </div>
           </div>
           <div id="dashboard-calendar-preview" class="week-preview-grid">
             <div class="preview-empty">Wochenansicht wird geladen …</div>
