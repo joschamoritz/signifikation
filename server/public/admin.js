@@ -89,6 +89,45 @@ function modeChips(entry) {
   return chips.join('')
 }
 
+function sortCalendarEntries(entries) {
+  return [...entries].sort((a, b) => a.dateObj - b.dateObj)
+}
+
+function getCalendarEntries() {
+  return sortCalendarEntries(
+    Object.entries(kalenderData || {}).map(([datum, entry]) => ({
+      datum,
+      iso: toIsoFromMMDD(datum),
+      dateObj: parseCalendarDate(datum),
+      entry,
+    }))
+  )
+}
+
+function getModeGroups(entry) {
+  return Array.isArray(entry?.modeGroups) ? entry.modeGroups.filter((group) => Array.isArray(group?.items) && group.items.length) : []
+}
+
+function modeGroupKeyToClass(key) {
+  if (key === 'zeitreise') return 'mode-zeitreise'
+  if (key === 'wortzwilling') return 'mode-wortzwilling'
+  if (key === 'zeitenwende') return 'mode-zeitenwende'
+  return 'mode-koll'
+}
+
+function renderModeGroupSummary(entry, { emptyText = 'Keine Inhalte' } = {}) {
+  const groups = getModeGroups(entry)
+  if (!groups.length) return `<span class="entry-empty">${esc(emptyText)}</span>`
+
+  return groups.map((group) => {
+    const items = group.items.map((item) => `<span class="entry-chip">${esc(item)}</span>`).join('')
+    return `<div class="mode-summary-group">
+      <span class="entry-chip ${modeGroupKeyToClass(group.key)}">${esc(group.label)}</span>
+      <div class="entry-chip-wrap">${items}</div>
+    </div>`
+  }).join('')
+}
+
 function roleLabel(role) {
   return role === 'teacher' ? 'Teacher' : 'User'
 }
@@ -241,6 +280,12 @@ function summarizeAuditChanges(changes) {
   return merged.slice(0, 6).join(', ')
 }
 
+function showAuditEntryDetails(entry) {
+  const pre = document.getElementById('audit-detail-json')
+  if (!pre) return
+  pre.textContent = JSON.stringify(entry, null, 2)
+}
+
 // ── Login / Logout ────────────────────────────────────────
 async function doLogin() {
   const input = document.getElementById('login-key')
@@ -284,6 +329,67 @@ async function downloadBackup() {
   a.download = `signifikation-backup-${new Date().toISOString().slice(0,10)}.json`
   a.click()
   URL.revokeObjectURL(url)
+}
+
+function triggerBackupRestore() {
+  const input = document.getElementById('backup-restore-input')
+  if (input) input.click()
+}
+
+async function restoreBackupFile(event) {
+  const file = event?.target?.files?.[0]
+  if (!file) return
+
+  try {
+    const text = await file.text()
+    const payload = JSON.parse(text)
+    const ok = window.confirm('Backup wirklich wiederherstellen? Der aktuelle Datenbestand wird überschrieben.')
+    if (!ok) return
+
+    const response = await fetch('/admin/backup/restore', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    })
+    const data = await response.json().catch(() => ({}))
+    if (!response.ok) throw new Error(data.error || `HTTP ${response.status}`)
+
+    const restored = data.restored || {}
+    alert(`Backup wiederhergestellt: ${restored.lemmata || 0} Lemmata, ${restored.kalender || 0} Kalendertage.`)
+    refreshDashboard()
+  } catch (err) {
+    alert(`Backup-Restore fehlgeschlagen: ${err.message}`)
+  } finally {
+    event.target.value = ''
+  }
+}
+
+function triggerCalendarCsvImport() {
+  const input = document.getElementById('calendar-csv-input')
+  if (input) input.click()
+}
+
+async function importCalendarCsv(event) {
+  const file = event?.target?.files?.[0]
+  if (!file) return
+
+  try {
+    const csv = await file.text()
+    const response = await fetch('/admin/kalender/bulk-import', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ csv }),
+    })
+    const data = await response.json().catch(() => ({}))
+    if (!response.ok) throw new Error(data.error || `HTTP ${response.status}`)
+
+    setStatus(`${data.importedCount || 0} Einträge per CSV importiert, ${data.replacedCount || 0} ersetzt.`, 'ok')
+    await loadKalender()
+  } catch (err) {
+    setStatus(`CSV-Import fehlgeschlagen: ${err.message}`, 'error')
+  } finally {
+    event.target.value = ''
+  }
 }
 
 async function doLogout() {
@@ -675,19 +781,13 @@ function renderEntryTable() {
   const search = (document.getElementById('entry-search')?.value || '').trim().toLowerCase()
   const modeFilter = document.getElementById('entry-mode-filter')?.value || 'all'
 
-  const entries = Object.entries(kalenderData || {})
-    .map(([datum, entry]) => ({
-      datum,
-      iso: toIsoFromMMDD(datum),
-      dateObj: parseCalendarDate(datum),
-      entry,
-    }))
-    .sort((a, b) => a.dateObj - b.dateObj)
+  const entries = getCalendarEntries()
 
   const filtered = entries.filter(({ datum, entry }) => {
     const hasKoll = !!entry?.lemmata?.length
-    const lemmaText = (entry?.lemmata || []).map((item) => (item?.lemma || '')).join(' ').toLowerCase()
-    const matchesSearch = !search || datum.includes(search) || lemmaText.includes(search)
+    const groupedText = getModeGroups(entry).flatMap((group) => group.items || []).join(' ').toLowerCase()
+    const formattedDate = formatIsoDate(toIsoFromMMDD(datum)).toLowerCase()
+    const matchesSearch = !search || datum.includes(search) || formattedDate.includes(search) || groupedText.includes(search)
     if (!matchesSearch) return false
 
     if (modeFilter === 'all') return true
@@ -712,16 +812,13 @@ function renderEntryTable() {
   })
 
   tbody.innerHTML = filtered.map(({ datum, iso, entry }) => {
-    const lemmata = entry?.lemmata || []
-    const lemmaList = lemmata.length
-      ? `<div class="entry-chip-wrap">${lemmata.map((item) => `<span class="entry-chip">${esc(item.lemma)}</span>`).join('')}</div>`
-      : '<span class="entry-empty">Keine Lemmata</span>'
+    const summaryHtml = renderModeGroupSummary(entry)
     const checked = selectedEntryDates.has(datum) ? 'checked' : ''
 
     return `<tr>
       <td class="entry-select-col"><input type="checkbox" ${checked} onchange="toggleEntrySelection('${datum}', this.checked)"></td>
-      <td><strong>${esc(datum)}</strong><br><span class="entry-hint">${esc(formatIsoDate(iso))}</span></td>
-      <td>${lemmaList}</td>
+      <td><strong>${esc(formatIsoDate(iso))}</strong><br><span class="entry-hint">${esc(datum)}</span></td>
+      <td><div class="mode-summary-list">${summaryHtml}</div></td>
       <td><div class="entry-chip-wrap">${modeChips(entry)}</div></td>
       <td>
         <div class="entry-row-actions">
@@ -770,11 +867,12 @@ function selectAllVisibleEntries() {
   const search = (document.getElementById('entry-search')?.value || '').trim().toLowerCase()
   const modeFilter = document.getElementById('entry-mode-filter')?.value || 'all'
 
-  const visible = Object.entries(kalenderData || {})
-    .filter(([datum, entry]) => {
+  const visible = getCalendarEntries()
+    .filter(({ datum, entry }) => {
       const hasKoll = !!entry?.lemmata?.length
-      const lemmaText = (entry?.lemmata || []).map((item) => (item?.lemma || '')).join(' ').toLowerCase()
-      const matchesSearch = !search || datum.includes(search) || lemmaText.includes(search)
+      const groupedText = getModeGroups(entry).flatMap((group) => group.items || []).join(' ').toLowerCase()
+      const formattedDate = formatIsoDate(toIsoFromMMDD(datum)).toLowerCase()
+      const matchesSearch = !search || datum.includes(search) || formattedDate.includes(search) || groupedText.includes(search)
       if (!matchesSearch) return false
       if (modeFilter === 'all') return true
       if (modeFilter === 'koll') return hasKoll
@@ -783,7 +881,7 @@ function selectAllVisibleEntries() {
       if (modeFilter === 'zeitenwende') return !!entry?.hasZeitenwende
       return true
     })
-    .map(([datum]) => datum)
+    .map(({ datum }) => datum)
 
   visible.forEach((datum) => selectedEntryDates.add(datum))
   renderEntryTable()
@@ -826,9 +924,10 @@ async function bulkDeleteSelectedDates() {
 }
 
 function focusCalendarDate(datum) {
-  const [mm] = datum.split('-').map(Number)
-  calYear = new Date().getFullYear()
-  calMonth = mm - 1
+  const iso = toIsoFromMMDD(datum)
+  const [year, month] = iso.split('-').map(Number)
+  calYear = year || new Date().getFullYear()
+  calMonth = (month || 1) - 1
   selectedCalendarDate = datum
   renderCalendar()
   switchPage('calendar')
@@ -851,19 +950,16 @@ function updateCalendarDetails(datum) {
   editBtn.disabled = false
 
   const entry = kalenderData[datum]
-  const lemmata = entry.lemmata || []
-  const lemmaHtml = lemmata.length
-    ? lemmata.map((item) => `<span class="entry-chip">${esc(item.lemma)}</span>`).join('')
-    : '<span class="entry-chip">Keine Lemmata</span>'
+  const groupedHtml = renderModeGroupSummary(entry)
 
   details.innerHTML = `
     <div class="calendar-detail-head">
-      <strong>${esc(datum)}</strong>
-      <span>${esc(formatIsoDate(toIsoFromMMDD(datum)))}</span>
+      <strong>${esc(formatIsoDate(toIsoFromMMDD(datum)))}</strong>
+      <span>${esc(datum)}</span>
     </div>
     <div class="calendar-detail-section">
-      <h3>Lemmata</h3>
-      <div class="calendar-detail-list">${lemmaHtml}</div>
+      <h3>Inhalte nach Modus</h3>
+      <div class="mode-summary-list">${groupedHtml}</div>
     </div>
     <div class="calendar-detail-section">
       <h3>Modi</h3>
@@ -878,53 +974,57 @@ function editSelectedCalendarDate() {
 }
 
 function updateDashboardFromKalender() {
-  const days = Object.keys(kalenderData || {})
+  const entries = getCalendarEntries()
   const metricDays = document.getElementById('metric-calendar-days')
-  if (metricDays) metricDays.textContent = String(days.length)
+  if (metricDays) metricDays.textContent = String(entries.length)
 
   const today = new Date()
   const todayKey = `${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
   const todayEntry = kalenderData?.[todayKey]
   const metricToday = document.getElementById('metric-today-status')
+  const metricTodaySub = document.getElementById('metric-today-sub')
+  const metricTodayCard = document.getElementById('metric-today-card')
+  const todayModes = todayEntry ? getModeGroups(todayEntry).length : 0
   if (metricToday) metricToday.textContent = todayEntry ? 'Geplant' : 'Offen'
+  if (metricTodaySub) metricTodaySub.textContent = todayEntry ? `${todayModes} Spielmodi aktiv` : 'Noch nichts geplant'
+  if (metricTodayCard) metricTodayCard.classList.toggle('is-empty', !todayEntry)
 
   const preview = document.getElementById('dashboard-calendar-preview')
   if (!preview) return
-  if (!days.length) {
+  if (!entries.length) {
     preview.innerHTML = '<div class="preview-empty">Noch keine Kalendereinträge vorhanden.</div>'
     return
   }
 
-  const now = new Date()
-  const currentYear = now.getFullYear()
-  const nowTime = new Date(currentYear, now.getMonth(), now.getDate()).getTime()
-  const ordered = days
-    .map((datum) => {
-      const [mm, dd] = datum.split('-').map(Number)
-      const thisYear = new Date(currentYear, mm - 1, dd)
-      const nextYear = new Date(currentYear + 1, mm - 1, dd)
-      const dateObj = thisYear.getTime() >= nowTime ? thisYear : nextYear
-      const lemmata = kalenderData?.[datum]?.lemmata || []
-      const modeFlags = [
-        kalenderData?.[datum]?.hasZeitreise ? 'ZR' : '',
-        kalenderData?.[datum]?.hasWortZwilling ? 'WZ' : '',
-        kalenderData?.[datum]?.hasZeitenwende ? 'ZW' : '',
-      ].filter(Boolean)
-      return {
-        datum,
-        timestamp: dateObj.getTime(),
-        lemmata,
-        modeText: modeFlags.length ? modeFlags.join(' · ') : 'Kollokation',
-      }
-    })
-    .sort((a, b) => a.timestamp - b.timestamp)
-    .slice(0, 6)
+  const startOfWeek = new Date(today)
+  startOfWeek.setHours(0, 0, 0, 0)
+  startOfWeek.setDate(today.getDate() - ((today.getDay() + 6) % 7))
 
-  preview.innerHTML = ordered.map((entry) => {
-    const lemmaLabel = entry.lemmata.length
-      ? entry.lemmata.slice(0, 2).map((item) => esc(item.lemma)).join(' · ')
-      : 'Keine Lemmata'
-    return `<div class="preview-item"><strong>${esc(entry.datum)}</strong><span>${lemmaLabel} · ${esc(entry.modeText)}</span></div>`
+  const weekItems = Array.from({ length: 7 }, (_, index) => {
+    const dateObj = new Date(startOfWeek)
+    dateObj.setDate(startOfWeek.getDate() + index)
+    const datum = `${String(dateObj.getMonth() + 1).padStart(2, '0')}-${String(dateObj.getDate()).padStart(2, '0')}`
+    return {
+      datum,
+      iso: `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(2, '0')}-${String(dateObj.getDate()).padStart(2, '0')}`,
+      label: dateObj.toLocaleDateString('de-DE', { weekday: 'short' }),
+      dayNumber: dateObj.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' }),
+      isToday: datum === todayKey,
+      entry: kalenderData?.[datum] || null,
+    }
+  })
+
+  preview.innerHTML = weekItems.map((item) => {
+    const groups = item.entry ? getModeGroups(item.entry) : []
+    const content = item.entry
+      ? renderModeGroupSummary(item.entry, { emptyText: 'Keine Inhalte' })
+      : '<span class="entry-empty">Kein Eintrag</span>'
+    return `<button class="week-preview-card ${item.isToday ? 'is-today' : ''} ${item.entry ? 'has-entry' : 'is-empty'}" onclick="${item.entry ? `selectCalendarDate('${item.datum}')` : `prefillDate('${item.iso}')`}">
+      <span class="week-preview-day">${esc(item.label)}</span>
+      <strong>${esc(item.dayNumber)}</strong>
+      <span class="week-preview-meta">${item.entry ? `${groups.length} Modi` : 'Leer'}</span>
+      <div class="mode-summary-list">${content}</div>
+    </button>`
   }).join('')
 }
 
@@ -971,14 +1071,16 @@ async function loadAuditLog() {
       const resource = entry.resourceId ? `${entry.resource || '—'}:${entry.resourceId}` : (entry.resource || '—')
       const status = entry.status || '—'
       const changes = summarizeAuditChanges(entry.changes)
+      const detailPayload = esc(encodeURIComponent(JSON.stringify(entry)))
       return `<tr>
         <td>${esc(time)}</td>
         <td>${esc(action)}</td>
         <td>${esc(resource)}</td>
         <td>${esc(status)}</td>
-        <td><span class="audit-change">${esc(changes)}</span></td>
+        <td><button class="entry-action-btn" onclick="showAuditEntryDetails(JSON.parse(decodeURIComponent('${detailPayload}')))">${esc(changes)}</button></td>
       </tr>`
     }).join('')
+    showAuditEntryDetails(entries[0])
   } catch (err) {
     if (countEl) countEl.textContent = 'Audit-Log konnte nicht geladen werden.'
     tbody.innerHTML = `<tr><td colspan="5" class="users-empty">Audit-Log konnte nicht geladen werden: ${esc(err.message)}</td></tr>`
@@ -1209,10 +1311,6 @@ async function previewCurrentDay() {
     const data = await response.json().catch(() => ({}))
     if (!response.ok) throw new Error(data.error || `HTTP ${response.status}`)
 
-    const lemmaList = Array.isArray(data.lemmata) && data.lemmata.length
-      ? data.lemmata.map((item) => `<span class="entry-chip">${esc(item.lemma)}</span>`).join('')
-      : '<span class="users-empty">Keine Lemmata vorhanden.</span>'
-
     const modes = data.modes || {}
     const modeChipsHtml = [
       modes.kollokationen?.enabled ? '<span class="entry-chip mode-koll">Kollokation</span>' : '',
@@ -1221,10 +1319,17 @@ async function previewCurrentDay() {
       modes.zeitenwende?.enabled ? '<span class="entry-chip mode-zeitenwende">Zeitenwende</span>' : '',
     ].filter(Boolean).join('') || '<span class="users-empty">Keine Modi aktiv.</span>'
 
+    const grouped = Array.isArray(data.modeGroups)
+      ? data.modeGroups.map((group) => `<div class="mode-summary-group">
+          <span class="entry-chip ${modeGroupKeyToClass(group.key)}">${esc(group.label)}</span>
+          <div class="entry-chip-wrap">${(group.items || []).map((item) => `<span class="entry-chip">${esc(item)}</span>`).join('')}</div>
+        </div>`).join('')
+      : '<span class="users-empty">Keine Inhalte vorhanden.</span>'
+
     out.innerHTML = `
       <article class="entry-preview-card">
-        <h3>Tages-Vorschau ${esc(data.datum || datum)}</h3>
-        <div class="entry-preview-list">${lemmaList}</div>
+        <h3>Tages-Vorschau ${esc(formatIsoDate(toIsoFromMMDD(data.datum || datum)))}</h3>
+        <div class="mode-summary-list">${grouped}</div>
       </article>
       <article class="entry-preview-card">
         <h3>Aktive Modi</h3>

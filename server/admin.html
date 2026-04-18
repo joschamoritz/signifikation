@@ -68,12 +68,12 @@
           <article class="metric-card">
             <span class="metric-label">Kalendereinträge</span>
             <strong class="metric-value" id="metric-calendar-days">-</strong>
-            <span class="metric-sub">Tage geplant</span>
+            <span class="metric-sub">Zukünftige Tage geplant</span>
           </article>
-          <article class="metric-card">
+          <article class="metric-card metric-card--today" id="metric-today-card">
             <span class="metric-label">Heute</span>
             <strong class="metric-value" id="metric-today-status">-</strong>
-            <span class="metric-sub">Eintrag vorhanden?</span>
+            <span class="metric-sub" id="metric-today-sub">Noch nichts geplant</span>
           </article>
           <article class="metric-card">
             <span class="metric-label">Plays heute</span>
@@ -105,11 +105,11 @@
 
         <div class="card">
           <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap">
-            <h2>Kalender-Preview</h2>
+            <h2>Diese Woche</h2>
             <button onclick="switchPage('calendar')" style="font-size:0.78rem;padding:6px 12px">Kalender öffnen</button>
           </div>
-          <div id="dashboard-calendar-preview" class="preview-list">
-            <div class="preview-empty">Kalender wird geladen …</div>
+          <div id="dashboard-calendar-preview" class="week-preview-grid">
+            <div class="preview-empty">Wochenansicht wird geladen …</div>
           </div>
         </div>
       </section>
@@ -237,8 +237,12 @@
         <div class="card">
           <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap">
             <h2>Geplante Einträge</h2>
-            <button onclick="loadKalender()" style="font-size:0.8rem;padding:6px 12px">↺ Laden</button>
+            <div class="entry-top-actions">
+              <button class="entry-filters-reset" onclick="triggerCalendarCsvImport()">CSV-Import</button>
+              <button onclick="loadKalender()" style="font-size:0.8rem;padding:6px 12px">↺ Laden</button>
+            </div>
           </div>
+          <input type="file" id="calendar-csv-input" accept=".csv,text/csv" hidden onchange="importCalendarCsv(event)">
           <div class="entry-list-controls">
             <input type="text" id="entry-search" placeholder="Nach Datum oder Lemma suchen …" oninput="renderEntryTable()">
             <select id="entry-mode-filter" onchange="renderEntryTable()">
@@ -262,7 +266,7 @@
                 <tr>
                   <th>Auswahl</th>
                   <th>Datum</th>
-                  <th>Lemmata</th>
+                  <th>Inhalte</th>
                   <th>Modi</th>
                   <th>Aktion</th>
                 </tr>
@@ -322,16 +326,6 @@
           <div id="stats-output"><div style="color:var(--muted);font-size:0.85rem">Noch nicht geladen.</div></div>
         </div>
 
-        <div class="card">
-          <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap">
-            <h2>Performance</h2>
-            <button onclick="loadPerformance()" style="font-size:0.8rem;padding:6px 12px">↺ Laden</button>
-          </div>
-          <div id="performance-cards" class="performance-cards">
-            <div class="users-empty">Performance-Daten werden geladen …</div>
-          </div>
-          <pre id="performance-json" class="system-json">Noch keine Performance-Daten geladen.</pre>
-        </div>
       </section>
 
       <section class="admin-page" id="page-analytics" data-title="Analysen" data-subtitle="Eignungsprüfung für Kollokation, Zeitreise, Wort-Zwilling und Zeitenwende.">
@@ -399,17 +393,6 @@
             <button class="cal-nav-btn" onclick="changeMonth(1)">›</button>
           </div>
           <div class="cal-grid" id="cal-grid"></div>
-          <div class="cal-legend">
-            <div class="cal-legend-item"><div class="cal-legend-box all"></div> Alle drei</div>
-            <div class="cal-legend-item"><div class="cal-legend-box both"></div> Koll + Zeit</div>
-            <div class="cal-legend-item"><div class="cal-legend-box" style="background:#fff7ed;border:1.5px solid #9a3412"></div> Koll + WZ</div>
-            <div class="cal-legend-item"><div class="cal-legend-box" style="background:#f0fdfa;border:1.5px solid #0f766e"></div> Zeit + WZ</div>
-            <div class="cal-legend-item"><div class="cal-legend-box koll"></div> Nur Koll</div>
-            <div class="cal-legend-item"><div class="cal-legend-box zeit"></div> Nur Zeit</div>
-            <div class="cal-legend-item"><div class="cal-legend-box" style="background:#fefce8;border:1.5px solid var(--accent-dk)"></div> Nur WZ</div>
-            <div class="cal-legend-item"><div class="cal-legend-box empty"></div> Leer</div>
-            <div class="cal-legend-item"><div class="cal-legend-box today"></div> Heute</div>
-          </div>
         </div>
 
         <div class="card">
@@ -536,9 +519,22 @@
           <div class="system-actions">
             <button onclick="loadHealth()">Health aktualisieren</button>
             <button onclick="downloadBackup()">Backup herunterladen</button>
+            <button class="entry-filters-reset" onclick="triggerBackupRestore()">Backup wiederherstellen</button>
             <a class="ghost-btn" href="/admin/social-cards">Social Cards öffnen</a>
           </div>
+          <input type="file" id="backup-restore-input" accept="application/json,.json" hidden onchange="restoreBackupFile(event)">
           <pre id="system-health-json" class="system-json">Health-Daten werden geladen …</pre>
+        </div>
+
+        <div class="card">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap">
+            <h2>Performance</h2>
+            <button onclick="loadPerformance()" style="font-size:0.8rem;padding:6px 12px">↺ Laden</button>
+          </div>
+          <div id="performance-cards" class="performance-cards">
+            <div class="users-empty">Performance-Daten werden geladen …</div>
+          </div>
+          <pre id="performance-json" class="system-json">Noch keine Performance-Daten geladen.</pre>
         </div>
 
         <div class="card">
@@ -601,6 +597,7 @@
               </tbody>
             </table>
           </div>
+          <pre id="audit-detail-json" class="system-json">Audit-Details werden nach Auswahl eines Eintrags angezeigt.</pre>
         </div>
       </section>
     </main>

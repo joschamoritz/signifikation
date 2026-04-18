@@ -198,6 +198,16 @@ body {
   gap: 2px;
 }
 
+.metric-card--today {
+  background: #fdf8ee;
+  border-color: var(--accent);
+}
+
+.metric-card--today.is-empty {
+  background: var(--surface);
+  border-color: var(--border);
+}
+
 .metric-label {
   font-size: 0.72rem;
   color: var(--muted);
@@ -245,29 +255,47 @@ body {
   line-height: 1.2;
 }
 
-.preview-list {
+.week-preview-grid {
   display: grid;
-  gap: 6px;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 8px;
 }
 
-.preview-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 10px;
+.week-preview-card {
+  display: grid;
+  gap: 6px;
+  align-content: start;
+  text-align: left;
+  min-height: 170px;
   border: 1px solid var(--border-lt);
   border-radius: var(--radius);
   background: var(--surface2);
-  padding: 8px 10px;
+  padding: 10px;
 }
 
-.preview-item strong {
-  font-size: 0.82rem;
+.week-preview-card.has-entry:hover,
+.week-preview-card.is-empty:hover {
+  border-color: var(--primary);
+  background: #fef2f2;
 }
 
-.preview-item span {
-  font-size: 0.76rem;
+.week-preview-card.is-today {
+  border-color: var(--accent);
+  background: #fdf8ee;
+}
+
+.week-preview-card strong {
+  font-family: var(--font-serif);
+  font-size: 1.05rem;
+  color: var(--primary);
+}
+
+.week-preview-day,
+.week-preview-meta {
+  font-size: 0.72rem;
   color: var(--muted);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
 .preview-empty {
@@ -437,6 +465,16 @@ body {
   display: flex;
   flex-wrap: wrap;
   gap: 4px;
+}
+
+.mode-summary-list {
+  display: grid;
+  gap: 8px;
+}
+
+.mode-summary-group {
+  display: grid;
+  gap: 6px;
 }
 
 .entry-chip {
@@ -1039,16 +1077,6 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
 .cal-dot.zeit { background: #1d4ed8; }
 .cal-dot.wz   { background: var(--accent-dk); }
 .cal-dot.zw   { background: #7c3aed; }
-.cal-legend { display: flex; flex-wrap: wrap; gap: 10px 16px; font-size: 0.78rem; color: var(--muted); align-items: center; }
-.cal-legend-item { display: flex; align-items: center; gap: 5px; }
-.cal-legend-box  { width: 14px; height: 14px; border-radius: var(--radius); flex-shrink: 0; }
-.cal-legend-box.koll  { background: #fef2f2; border: 1.5px solid var(--primary); }
-.cal-legend-box.zeit  { background: #eff6ff; border: 1.5px solid #1d4ed8; }
-.cal-legend-box.both  { background: #f0fdf4; border: 1.5px solid #166534; }
-.cal-legend-box.all   { background: #dcfce7; border: 1.5px solid #14532d; }
-.cal-legend-box.empty { border: 1.5px solid var(--border); }
-.cal-legend-box.today { border: 1.5px solid var(--primary); }
-
 /* ── Statistik ── */
 .stats-tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
 .stats-tile {
@@ -1237,7 +1265,8 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
   .dashboard-grid,
   .health-detail-grid,
   .stats-summary-cards,
-  .performance-cards {
+  .performance-cards,
+  .week-preview-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
@@ -1298,7 +1327,8 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
   .admin-nav,
   .sidebar-actions,
   .dashboard-grid,
-  .health-detail-grid {
+  .health-detail-grid,
+  .week-preview-grid {
     grid-template-columns: 1fr;
   }
 

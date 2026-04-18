@@ -5,6 +5,8 @@ import { createSession } from '../middleware/auth.js'
 import { loadReadOnly } from '../store.js'
 import db from '../db.js'
 
+const BACKUP_RESTORE_BODY_LIMIT = '10mb'
+
 const insertUserStmt = db.prepare(`
   INSERT INTO user (id, name, email, emailVerified, image, createdAt, updatedAt)
   VALUES (@id, @name, @email, @emailVerified, @image, @createdAt, @updatedAt)
@@ -74,6 +76,7 @@ describe('admin routes integration', () => {
   beforeAll(async () => {
     const app = express()
     app.set('trust proxy', 1)
+    app.use('/admin/backup/restore', express.json({ limit: BACKUP_RESTORE_BODY_LIMIT }))
     app.use(express.json())
     app.use('/', adminRouter)
 
@@ -154,6 +157,88 @@ describe('admin routes integration', () => {
       expect(entry.action).toBe('CREATE')
       expect(entry.status).toBe('SUCCESS')
     }
+  })
+
+  it('GET /admin/audit-log/:resource/:id liefert Detailhistorie für eine Entität', async () => {
+    const overview = await fetch(`${baseUrl}/admin/audit-log?limit=5`, {
+      headers: adminHeaders(token),
+    })
+    const overviewPayload = await overview.json()
+
+    expect(overview.status).toBe(200)
+    const first = overviewPayload.entries?.[0]
+    expect(first).toBeTruthy()
+
+    const response = await fetch(`${baseUrl}/admin/audit-log/${encodeURIComponent(first.resource)}/${encodeURIComponent(first.resourceId)}?limit=5`, {
+      headers: adminHeaders(token),
+    })
+    const payload = await response.json()
+
+    expect(response.status).toBe(200)
+    expect(payload.resource).toBe(first.resource)
+    expect(payload.resourceId).toBe(first.resourceId)
+    expect(Array.isArray(payload.entries)).toBe(true)
+  })
+
+  it('GET /admin/users/:id/stats liefert nur Statistikdaten', async () => {
+    const userId = createTestUser({ role: 'teacher' })
+    testUserIds.add(userId)
+
+    const response = await fetch(`${baseUrl}/admin/users/${encodeURIComponent(userId)}/stats`, {
+      headers: adminHeaders(token),
+    })
+    const payload = await response.json()
+
+    expect(response.status).toBe(200)
+    expect(payload.userId).toBe(userId)
+    expect(typeof payload.totals).toBe('object')
+    expect(Array.isArray(payload.byGame)).toBe(true)
+    expect(Array.isArray(payload.recent)).toBe(true)
+  })
+
+  it('POST /admin/kalender/bulk-import importiert CSV-Einträge', async () => {
+    const datum = `12-${String((Math.floor(Math.random() * 20) + 10)).padStart(2, '0')}`
+    const response = await fetch(`${baseUrl}/admin/kalender/bulk-import`, {
+      method: 'POST',
+      headers: adminHeaders(token),
+      body: JSON.stringify({
+        csv: `date,lemma1,lemma2,lemma3\n${datum},Haus,Baum,Wort`,
+      }),
+    })
+    const payload = await response.json()
+
+    expect(response.status).toBe(200)
+    expect(payload.importedCount).toBe(1)
+    expect(Array.isArray(payload.imported)).toBe(true)
+
+    const kalender = loadReadOnly('kalender.json')
+    expect(Array.isArray(kalender[datum])).toBe(true)
+    expect(kalender[datum]).toHaveLength(3)
+  })
+
+  it('POST /admin/backup/restore akzeptiert vorhandenes Backup-Format', async () => {
+    const backupResponse = await fetch(`${baseUrl}/admin/backup`, {
+      headers: adminHeaders(token),
+    })
+    const backupPayload = await backupResponse.json()
+    expect(backupResponse.status).toBe(200)
+
+    const response = await fetch(`${baseUrl}/admin/backup/restore`, {
+      method: 'POST',
+      headers: adminHeaders(token),
+      body: JSON.stringify(backupPayload),
+    })
+    const raw = await response.text()
+    let payload = null
+    try {
+      payload = JSON.parse(raw)
+    } catch {
+      payload = { raw }
+    }
+
+    expect(response.status).toBe(200)
+    expect(payload.ok).toBe(true)
+    expect(typeof payload.restored?.kalender).toBe('number')
   })
 
   it('POST /admin/users/bulk-update setzt Rollen fuer mehrere Nutzer', async () => {

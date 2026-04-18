@@ -10,7 +10,7 @@ import { load, loadReadOnly, save, loadZeitreise, loadWortZwilling, loadZeitenwe
 import { getCacheMetrics as getQueryCacheMetrics, clearCache as clearQueryCache } from '../query-cache.js'
 import { adminLimiter, loginLimiter, uploadLimiter } from '../middleware/rateLimiter.js'
 import { requireAuth, adminAuth, adminLogout, adminError, serverError, createSession } from '../middleware/auth.js'
-import { validate, qQuerySchema, adminTagSchema, analyzeKollQuerySchema, analyzeWZQuerySchema, analyzeZeitQuerySchema, analyzeZWendeQuerySchema, adminUsersQuerySchema, adminSetUserRoleSchema, adminUserIdParamsSchema, adminUsersBulkUpdateSchema, adminBulkDeleteCalendarSchema, adminPreviewLemmaSchema, adminPreviewDayParamsSchema } from '../middleware/validate.js'
+import { validate, qQuerySchema, adminTagSchema, analyzeKollQuerySchema, analyzeWZQuerySchema, analyzeZeitQuerySchema, analyzeZWendeQuerySchema, adminUsersQuerySchema, adminSetUserRoleSchema, adminUserIdParamsSchema, adminUsersBulkUpdateSchema, adminBulkDeleteCalendarSchema, adminBulkImportCalendarSchema, adminPreviewLemmaSchema, adminPreviewDayParamsSchema, adminAuditLogDetailParamsSchema, adminBackupRestoreSchema } from '../middleware/validate.js'
 import { auditCreate, auditUpdate, auditDelete, getAuditLog } from '../audit.js'
 import logger from '../logger.js'
 import db from '../db.js'
@@ -209,6 +209,80 @@ function normalizeDays(value, fallback = 30) {
   return Math.min(90, Math.max(1, parsed))
 }
 
+function mmddToIsoDate(mmdd) {
+  const value = String(mmdd || '').trim()
+  if (!/^\d{2}-\d{2}$/.test(value)) return null
+  const [month, day] = value.split('-').map(Number)
+  if (!month || !day) return null
+  const now = new Date()
+  const currentYear = now.getFullYear()
+  const today = new Date(currentYear, now.getMonth(), now.getDate()).getTime()
+  const candidateThisYear = new Date(currentYear, month - 1, day)
+  const candidateYear = candidateThisYear.getTime() < today ? currentYear + 1 : currentYear
+  return `${candidateYear}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+}
+
+function isoDateToMmdd(value) {
+  const normalized = String(value || '').trim()
+  const match = normalized.match(/^(\d{4})-(\d{2})-(\d{2})$/)
+  if (!match) return null
+  return `${match[2]}-${match[3]}`
+}
+
+function parseCalendarBulkImport(csv) {
+  const lines = String(csv || '')
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+
+  if (!lines.length) {
+    throw new Error('CSV enthält keine Daten')
+  }
+
+  const entries = []
+  for (const [index, line] of lines.entries()) {
+    if (index === 0 && /^date[,;\t]/i.test(line)) continue
+
+    const parts = line.split(/[;,\t]/).map((part) => part.trim())
+    if (parts.length < 2) {
+      throw new Error(`CSV-Zeile ${index + 1} ist unvollständig`)
+    }
+
+    const rawDate = parts[0]
+    const words = parts.slice(1).filter(Boolean)
+    if (words.length !== 3) {
+      throw new Error(`CSV-Zeile ${index + 1} benötigt genau 3 Lemmata`)
+    }
+
+    const mmdd = isoDateToMmdd(rawDate) || (/^\d{2}-\d{2}$/.test(rawDate) ? rawDate : null)
+    if (!mmdd) {
+      throw new Error(`CSV-Zeile ${index + 1} enthält ein ungültiges Datum`)
+    }
+
+    entries.push({ datum: mmdd, woerter: words })
+  }
+
+  return entries
+}
+
+function sanitizeBackupBundle(payload) {
+  if (!payload || typeof payload !== 'object' || !payload.files || typeof payload.files !== 'object') {
+    throw new Error('Ungültiges Backup-Format')
+  }
+
+  const files = payload.files
+  const lemmata = Array.isArray(files['lemmata.json']) ? files['lemmata.json'] : []
+  const kalender = files['kalender.json'] && typeof files['kalender.json'] === 'object' ? files['kalender.json'] : {}
+  const zeitreise = files['zeitreise.json'] && typeof files['zeitreise.json'] === 'object' ? files['zeitreise.json'] : {}
+  const wortzwilling = files['wortzwilling.json'] && typeof files['wortzwilling.json'] === 'object' ? files['wortzwilling.json'] : {}
+  const zeitenwende = files['zeitenwende.json'] && typeof files['zeitenwende.json'] === 'object' ? files['zeitenwende.json'] : {}
+  const statsRows = Array.isArray(files['stats-rows.json'])
+    ? files['stats-rows.json']
+    : Array.isArray(files['stats.json']) ? files['stats.json'] : []
+
+  return { lemmata, kalender, zeitreise, wortzwilling, zeitenwende, statsRows }
+}
+
 function sortDatumKeys(keys) {
   const now = new Date()
   const currentYear = now.getFullYear()
@@ -227,6 +301,55 @@ function sortDatumKeys(keys) {
       : new Date(currentYear + 1, (mb || 1) - 1, db_ || 1)
     return dateA - dateB
   })
+}
+
+function uniqueLabels(items) {
+  const seen = new Set()
+  const result = []
+  for (const item of items) {
+    const label = String(item || '').trim()
+    if (!label) continue
+    const key = label.toLowerCase()
+    if (seen.has(key)) continue
+    seen.add(key)
+    result.push(label)
+  }
+  return result
+}
+
+function buildModeGroups({ lemmata = [], zeitreiseEntry = null, wortzwillingEntry = null, zeitenwendeEntry = null }) {
+  const groups = []
+
+  const kollokationen = uniqueLabels(lemmata.map((item) => item?.lemma))
+  if (kollokationen.length) {
+    groups.push({ key: 'kollokationen', label: 'Kollokationen', items: kollokationen })
+  }
+
+  const zeitreiseItems = uniqueLabels([
+    zeitreiseEntry?.lemma,
+    ...(Array.isArray(zeitreiseEntry?.paare) ? zeitreiseEntry.paare.map((pair) => pair?.kollokat) : []),
+  ])
+  if (zeitreiseItems.length) {
+    groups.push({ key: 'zeitreise', label: 'Zeitreise', items: zeitreiseItems })
+  }
+
+  const wortzwillingItems = uniqueLabels([
+    wortzwillingEntry?.wortA,
+    wortzwillingEntry?.wortB,
+  ])
+  if (wortzwillingItems.length) {
+    groups.push({ key: 'wortzwilling', label: 'Wort-Zwilling', items: wortzwillingItems })
+  }
+
+  const zeitenwendeItems = uniqueLabels([
+    zeitenwendeEntry?.lemma,
+    ...(Array.isArray(zeitenwendeEntry?.words) ? zeitenwendeEntry.words.map((item) => item?.wort) : []),
+  ])
+  if (zeitenwendeItems.length) {
+    groups.push({ key: 'zeitenwende', label: 'Zeitenwende', items: zeitenwendeItems })
+  }
+
+  return groups
 }
 
 let _statsWindowCache = {
@@ -445,6 +568,48 @@ router.get('/admin/users/:id', adminLimiter, requireAuth, validate(adminUserIdPa
         byGame,
         recent,
       },
+    })
+  } catch (err) {
+    adminError(res, err)
+  }
+})
+
+/** GET /admin/users/:id/stats – Nutzerdetails nur als Statistik-Payload */
+router.get('/admin/users/:id/stats', adminLimiter, requireAuth, validate(adminUserIdParamsSchema, 'params'), (req, res) => {
+  const userId = String(req.params.id || '').trim()
+  if (!userId) return res.status(400).json({ error: 'userId erforderlich' })
+
+  try {
+    const user = getUserDetailsStmt.get(userId)
+    if (!user) return res.status(404).json({ error: 'Nutzer nicht gefunden' })
+
+    const byGame = getUserStatsByGameStmt.all(userId).map((row) => ({
+      spiel: row.spiel,
+      plays: Number(row.plays || 0),
+      scoreSum: Number(row.scoreSum || 0),
+      maxSum: Number(row.maxSum || 0),
+    }))
+
+    const totals = byGame.reduce((acc, row) => {
+      acc.plays += Number(row.plays || 0)
+      acc.scoreSum += Number(row.scoreSum || 0)
+      acc.maxSum += Number(row.maxSum || 0)
+      return acc
+    }, { plays: 0, scoreSum: 0, maxSum: 0 })
+
+    const recent = getUserRecentStatsStmt.all(userId).map((row) => ({
+      datum: row.datum,
+      spiel: row.spiel,
+      plays: Number(row.plays || 0),
+      scoreSum: Number(row.scoreSum || 0),
+      maxSum: Number(row.maxSum || 0),
+    }))
+
+    res.json({
+      userId,
+      totals,
+      byGame,
+      recent,
     })
   } catch (err) {
     adminError(res, err)
@@ -850,6 +1015,28 @@ router.get('/admin/audit-log', adminLimiter, requireAuth, (req, res) => {
   } catch (err) { adminError(res, err) }
 })
 
+/** GET /admin/audit-log/:resource/:id – Audit-Historie für eine konkrete Entität */
+router.get('/admin/audit-log/:resource/:id', adminLimiter, requireAuth, validate(adminAuditLogDetailParamsSchema, 'params'), (req, res) => {
+  try {
+    const resource = String(req.params.resource || '').trim().toLowerCase()
+    const resourceId = String(req.params.id || '').trim()
+    const limit = Math.min(200, Math.max(1, parseInt(req.query.limit) || 50))
+    const entries = getAuditLog(2000)
+      .filter((entry) => String(entry.resource || '').toLowerCase() === resource && String(entry.resourceId || '') === resourceId)
+      .slice(0, limit)
+
+    res.json({
+      resource,
+      resourceId,
+      entries,
+      count: entries.length,
+      timestamp: new Date().toISOString(),
+    })
+  } catch (err) {
+    adminError(res, err)
+  }
+})
+
 /** POST /admin/kalender/bulk-delete – mehrere Kalendereintraege gleichzeitig loeschen */
 router.post('/admin/kalender/bulk-delete', adminLimiter, requireAuth, validate(adminBulkDeleteCalendarSchema), async (req, res) => {
   const { dates } = req.body
@@ -896,6 +1083,56 @@ router.post('/admin/kalender/bulk-delete', adminLimiter, requireAuth, validate(a
     }
 
     res.json({ ok: true, removed, skipped, removedCount: removed.length, skippedCount: skipped.length })
+  } catch (err) {
+    adminError(res, err)
+  }
+})
+
+/** POST /admin/kalender/bulk-import – mehrere Kalendereinträge per CSV anlegen */
+router.post('/admin/kalender/bulk-import', adminLimiter, requireAuth, validate(adminBulkImportCalendarSchema), async (req, res) => {
+  try {
+    const entries = parseCalendarBulkImport(req.body.csv)
+    const kalender = load('kalender.json')
+    const imported = []
+    const replaced = []
+
+    for (const entry of entries) {
+      const ids = []
+      const lemmataDB = load('lemmata.json')
+
+      for (const wort of entry.woerter) {
+        const lemma = await fetchLemma(wort, 'Substantiv')
+        const { byId } = getLemmataIndex()
+        if (byId.has(lemma.id)) {
+          const idx = lemmataDB.findIndex((item) => item.id === lemma.id)
+          if (idx >= 0) lemmataDB[idx] = { ...lemmataDB[idx], ...lemma }
+        } else {
+          lemmataDB.push(lemma)
+        }
+        ids.push(lemma.id)
+      }
+
+      await save('lemmata.json', lemmataDB)
+      const existed = Array.isArray(kalender[entry.datum])
+      kalender[entry.datum] = ids
+      imported.push({ datum: entry.datum, ids, woerter: entry.woerter })
+      if (existed) replaced.push(entry.datum)
+
+      auditCreate('kalender', entry.datum, { ids, woerter: entry.woerter, importedVia: 'csv' }, {
+        adminKey: req.headers['x-admin-token']?.split('.')[0] || 'cookie-auth',
+        ip: req.ip,
+      })
+    }
+
+    await save('kalender.json', kalender)
+
+    res.json({
+      ok: true,
+      importedCount: imported.length,
+      replacedCount: replaced.length,
+      imported,
+      replaced,
+    })
   } catch (err) {
     adminError(res, err)
   }
@@ -964,14 +1201,25 @@ router.get('/admin/preview/day/:datum', adminLimiter, requireAuth, validate(admi
       }
     }).filter(Boolean)
 
+    const zeitreiseEntry = zeitreise[datum] || null
+    const wortzwillingEntry = wortzwilling[datum] || null
+    const zeitenwendeEntry = zeitenwende[datum] || null
+    const modeGroups = buildModeGroups({
+      lemmata,
+      zeitreiseEntry,
+      wortzwillingEntry,
+      zeitenwendeEntry,
+    })
+
     res.json({
       datum,
       lemmata,
+      modeGroups,
       modes: {
         kollokationen: { enabled: lemmata.length > 0, count: lemmata.length },
-        zeitreise: { enabled: !!zeitreise[datum], data: zeitreise[datum] || null },
-        wortzwilling: { enabled: !!wortzwilling[datum], data: wortzwilling[datum] || null },
-        zeitenwende: { enabled: !!zeitenwende[datum], data: zeitenwende[datum] || null },
+        zeitreise: { enabled: !!zeitreiseEntry, data: zeitreiseEntry },
+        wortzwilling: { enabled: !!wortzwillingEntry, data: wortzwillingEntry },
+        zeitenwende: { enabled: !!zeitenwendeEntry, data: zeitenwendeEntry },
       },
     })
   } catch (err) {
@@ -1209,14 +1457,24 @@ router.get('/admin/kalender', adminLimiter, requireAuth, (req, res) => {
   const zeitenwende  = loadZeitenwende()
   const result = {}
   for (const [datum, ids] of Object.entries(kalender)) {
+    const lemmata = ids.map(id => {
+      const l = byId.get(id)
+      return { id, lemma: l?.lemma || id, notiz: l?.notiz || '' }
+    })
+    const zeitreiseEntry = zeitreise[datum] || null
+    const wortzwillingEntry = wortzwilling[datum] || null
+    const zeitenwendeEntry = zeitenwende[datum] || null
     result[datum] = {
-      lemmata:           ids.map(id => {
-        const l = byId.get(id)
-        return { id, lemma: l?.lemma || id, notiz: l?.notiz || '' }
+      lemmata,
+      modeGroups: buildModeGroups({
+        lemmata,
+        zeitreiseEntry,
+        wortzwillingEntry,
+        zeitenwendeEntry,
       }),
-      hasZeitreise:      !!zeitreise[datum],
-      hasWortZwilling:   !!wortzwilling[datum],
-      hasZeitenwende:    !!zeitenwende[datum],
+      hasZeitreise:      !!zeitreiseEntry,
+      hasWortZwilling:   !!wortzwillingEntry,
+      hasZeitenwende:    !!zeitenwendeEntry,
     }
   }
   res.json(result)
@@ -1313,6 +1571,42 @@ router.get('/admin/backup', adminLimiter, requireAuth, (req, res) => {
     res.setHeader('Content-Disposition', `attachment; filename="signifikation-backup-${new Date().toISOString().slice(0, 10)}.json"`)
     res.json({ exportedAt: new Date().toISOString(), files: bundle })
   } catch (err) { serverError(res, err) }
+})
+
+/** POST /admin/backup/restore – JSON-Backup in den aktuellen Datenbestand zurückspielen */
+router.post('/admin/backup/restore', adminLimiter, requireAuth, validate(adminBackupRestoreSchema), async (req, res) => {
+  try {
+    const bundle = sanitizeBackupBundle(req.body)
+
+    await save('lemmata.json', bundle.lemmata)
+    await save('kalender.json', bundle.kalender)
+    await save('zeitreise.json', bundle.zeitreise)
+    await save('wortzwilling.json', bundle.wortzwilling)
+    await save('zeitenwende.json', bundle.zeitenwende)
+    await save('stats-rows.json', bundle.statsRows)
+
+    auditUpdate('backup', 'restore', null, {
+      exportedAt: req.body.exportedAt || null,
+      files: Object.keys(req.body.files || {}),
+    }, {
+      adminKey: req.headers['x-admin-token']?.split('.')[0] || 'cookie-auth',
+      ip: req.ip,
+    })
+
+    res.json({
+      ok: true,
+      restored: {
+        lemmata: Array.isArray(bundle.lemmata) ? bundle.lemmata.length : 0,
+        kalender: Object.keys(bundle.kalender || {}).length,
+        zeitreise: Object.keys(bundle.zeitreise || {}).length,
+        wortzwilling: Object.keys(bundle.wortzwilling || {}).length,
+        zeitenwende: Object.keys(bundle.zeitenwende || {}).length,
+        statsRows: Array.isArray(bundle.statsRows) ? bundle.statsRows.length : 0,
+      },
+    })
+  } catch (err) {
+    adminError(res, err)
+  }
 })
 
 

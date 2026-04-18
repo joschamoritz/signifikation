@@ -28,6 +28,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url))
 const PORT      = process.env.PORT || 3001
 const CLASSROOM_EXPORT_WORKER_ENABLED = process.env.CLASSROOM_EXPORT_WORKER_ENABLED !== 'false'
 const CLASSROOM_EXPORT_WORKER_INTERVAL_MS = Number(process.env.CLASSROOM_EXPORT_WORKER_INTERVAL_MS || 10000)
+const BACKUP_RESTORE_BODY_LIMIT = '10mb'
 const ALLOWED_ORIGINS  = process.env.ALLOWED_ORIGINS
   ? process.env.ALLOWED_ORIGINS.split(',').map(s => s.trim())
   : IS_PROD
@@ -81,6 +82,7 @@ app.use(cookieParser())
 app.post('/api/v1/auth/sign-in/email', loginLimiter)
 app.post('/api/v1/auth/sign-up/email', registerLimiter)
 app.all('/api/v1/auth/*splat', toNodeHandler(auth))
+app.use('/admin/backup/restore', express.json({ limit: BACKUP_RESTORE_BODY_LIMIT }))
 app.use(express.json({ limit: '16kb' }))
 
 // ── Correlation-ID ────────────────────────────────────────────

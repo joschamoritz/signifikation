@@ -282,6 +282,19 @@ Antwort enthält neben `entries` auch `totalMatches`.
 
 ---
 
+### GET /admin/audit-log/:resource/:id
+Audit-Historie für eine konkrete Entität.
+
+**Beispiel:** `/admin/audit-log/kalender/04-21`
+
+Antwort enthält:
+- `resource`
+- `resourceId`
+- `entries`
+- `count`
+
+---
+
 ### POST /admin/preview/lemma
 Lemma-Vorschau mit Spieldaten.
 
@@ -301,6 +314,35 @@ Antwort enthält u. a.:
 
 ### GET /admin/preview/day/:datum
 Tages-Vorschau für einen Kalendertag (MM-DD) inklusive aktiver Modi.
+
+---
+
+### POST /admin/kalender/bulk-import
+Importiert mehrere Kalendertage per CSV.
+
+**Request:**
+```json
+{
+  "csv": "date,lemma1,lemma2,lemma3\n04-21,Haus,Baum,Wort"
+}
+```
+
+Erlaubte Datumsformate in der CSV:
+- `MM-DD`
+- `YYYY-MM-DD`
+
+Jede Datenzeile benötigt genau 3 Lemmata.
+
+---
+
+### GET /admin/users/:id/stats
+Liefert nur den Statistikteil eines Nutzers.
+
+Antwort enthält:
+- `userId`
+- `totals`
+- `byGame`
+- `recent`
 
 ---
 
@@ -326,6 +368,29 @@ Triggert manuelles GitHub Gist Backup.
   "gistId": "abc123...",
   "url": "https://gist.github.com/...",
   "timestamp": "2026-04-03T10:30:00Z"
+}
+```
+
+---
+
+### POST /admin/backup/restore
+Spielt ein zuvor exportiertes Backup wieder ein.
+
+**Request:**
+- JSON-Objekt im selben Format wie `GET /admin/backup`
+
+**Response:**
+```json
+{
+  "ok": true,
+  "restored": {
+    "lemmata": 123,
+    "kalender": 40,
+    "zeitreise": 20,
+    "wortzwilling": 12,
+    "zeitenwende": 8,
+    "statsRows": 456
+  }
 }
 ```
 

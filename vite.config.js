@@ -6,6 +6,7 @@ import pkg from './package.json' with { type: 'json' }
 export default defineConfig({
   test: {
     environment: 'node',
+    exclude: ['e2e/**', 'node_modules/**', 'dist/**'],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],
