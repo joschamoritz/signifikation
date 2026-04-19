@@ -116,6 +116,7 @@ export default function App() {
   const appRef = useRef(null)
   const freshKollRef = useRef(false)
   const inGameRef = useRef(false)
+  const classroomSubmitRef = useRef(null)
 
   // Schlüssel aus Server-Datum ableiten (oder Fallback auf lokales Datum + Jahr)
   const keys = serverDatum
@@ -278,6 +279,7 @@ export default function App() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ game: 'kollokationen', datum: serverDatum, score: total, max: 10 }),
       }).catch(() => {})
+      classroomSubmitRef.current?.({ game: 'kollokationen', score: total, maxScore: maxPoints })
     }
   }, [phase, selectedLemma, roundScores, lemmata]) // eslint-disable-line
 
@@ -363,6 +365,7 @@ export default function App() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ game: 'wortzwilling', datum: serverDatum, score, max: 10 }),
     }).catch(() => {})
+    classroomSubmitRef.current?.({ game: 'wortzwilling', score, maxScore: 10 })
   }, [wortzwilling, serverDatum, keys.dateStr]) // eslint-disable-line
 
   const handleZeitenwendeFinish = useCallback(({ score, answers }) => {
@@ -378,6 +381,7 @@ export default function App() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ game: 'zeitenwende', datum: serverDatum, score, max: 10 }),
     }).catch(() => {})
+    classroomSubmitRef.current?.({ game: 'zeitenwende', score, maxScore: 10 })
   }, [zeitenwende, serverDatum, keys.dateStr]) // eslint-disable-line
 
   const handleZeitreiseFinish = useCallback((score, placements) => {
@@ -394,6 +398,7 @@ export default function App() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ game: 'zeitreise', datum: serverDatum, score, max }),
     }).catch(() => {})
+    classroomSubmitRef.current?.({ game: 'zeitreise', score, maxScore: max })
   }, [zeitreise, keys.todayZRKey, keys.dateStr]) // eslint-disable-line
 
   const handleTabChange = useCallback((tab) => {
@@ -521,7 +526,7 @@ export default function App() {
             onUnlockGesamtausgabe={unlockGesamtausgabe}
           />
         )}
-        {activeTab === 'klassenraum' && <ClassroomTab onLiveChange={setClassroomLive} />}
+        {activeTab === 'klassenraum' && <ClassroomTab onLiveChange={setClassroomLive} submitRef={classroomSubmitRef} />}
         {activeTab === 'kurs'        && <KursTab />}
         {activeTab === 'profil'      && (
           <KontoTab

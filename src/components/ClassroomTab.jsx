@@ -91,7 +91,16 @@ function humanizeJoinError(message) {
   return text || 'Beitritt fehlgeschlagen.'
 }
 
-export default function ClassroomTab({ onLiveChange = () => {} }) {
+const GAME_ROUND_NO = { kollokationen: 1, zeitreise: 2, wortzwilling: 3, zeitenwende: 4 }
+const ROUND_GAME_NAME = Object.fromEntries(Object.entries(GAME_ROUND_NO).map(([k, v]) => [v, k]))
+const GAME_LABELS = {
+  kollokationen: 'Kollokationen',
+  zeitreise: 'Zeitreise',
+  wortzwilling: 'Wort-Zwilling',
+  zeitenwende: 'Zeitenwende',
+}
+
+export default function ClassroomTab({ onLiveChange = () => {}, submitRef = null }) {
   const streak = computeStreak()
   const today = new Date()
   const dateStr = localDateStr(today)
@@ -127,15 +136,9 @@ export default function ClassroomTab({ onLiveChange = () => {} }) {
   const [participantInfo, setParticipantInfo] = useState(null)
   const [joining, setJoining] = useState(false)
 
-  const [submitRoundNo, setSubmitRoundNo] = useState(1)
-  const [submitScore, setSubmitScore] = useState(0)
-  const [submitMaxScore, setSubmitMaxScore] = useState(10)
-  const [submitNotice, setSubmitNotice] = useState('')
-  const [submitting, setSubmitting] = useState(false)
+  const [submittedGames, setSubmittedGames] = useState([])
 
   const [socketConnected, setSocketConnected] = useState(false)
-  const [socketState, setSocketState] = useState('')
-  const [socketMetrics, setSocketMetrics] = useState(null)
   const [socketError, setSocketError] = useState('')
   const [hostCountdown, setHostCountdown] = useState(0)
 
@@ -433,7 +436,6 @@ export default function ClassroomTab({ onLiveChange = () => {} }) {
       socket.on('connect', () => {
         setSocketConnected(true)
         setSocketError('')
-        setSocketState('Verbunden')
         socket.emit('classroom:join', {
           sessionId: joinedSession.id,
           participantId: participant.id,
@@ -445,17 +447,12 @@ export default function ClassroomTab({ onLiveChange = () => {} }) {
         setSocketConnected(false)
       })
 
-      socket.on('classroom:state', (payload) => {
-        setSocketState(`Session: ${mapSessionState(payload?.state)}`)
-      })
-
-      socket.on('classroom:metrics', (payload) => {
-        setSocketMetrics(payload || null)
-      })
+      socket.on('classroom:state', () => {})
 
       socket.on('classroom:results', (payload) => {
         if (payload?.accepted) {
-          setSubmitNotice(`Runde ${payload.roundNo}: übermittelt.`)
+          const game = ROUND_GAME_NAME[payload.roundNo]
+          if (game) setSubmittedGames(prev => [...prev.filter(g => g !== game), game])
         }
       })
 
@@ -538,10 +535,6 @@ export default function ClassroomTab({ onLiveChange = () => {} }) {
         )
       } catch {}
       setJoinNotice('Beitritt erfolgreich.')
-      setSubmitNotice('')
-      setSubmitRoundNo(1)
-      setSubmitScore(0)
-      setSubmitMaxScore(10)
       await setupSocket(joinedSession, participant)
     } catch {
       setJoinNotice('Netzwerkfehler beim Beitritt.')
@@ -549,46 +542,6 @@ export default function ClassroomTab({ onLiveChange = () => {} }) {
       setJoining(false)
     }
   }, [joinCodeInput, joining, setupSocket])
-
-  const submitRound = useCallback(async (event) => {
-    event.preventDefault()
-    if (!participantInfo || !participantSession || submitting) return
-    setSubmitting(true)
-    setSubmitNotice('')
-    try {
-      const payload = {
-        roundNo: Number(submitRoundNo),
-        score: Number(submitScore),
-        maxScore: Number(submitMaxScore),
-        payload: {},
-      }
-
-      const socket = socketRef.current
-      if (socket && socket.connected) {
-        socket.emit('classroom:submit', payload)
-      }
-
-      const res = await fetch(`${API}/classroom/heartbeat`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          sessionId: participantSession.id,
-          participantId: participantInfo.id,
-          participantToken: participantInfo.token,
-        }),
-      })
-      if (!res.ok) {
-        const e = await readJsonSafe(res)
-        setSubmitNotice(getErrorMessage(e, 'Heartbeat fehlgeschlagen.'))
-        return
-      }
-      setSubmitNotice(`Runde ${payload.roundNo}: gesendet.`)
-    } catch {
-      setSubmitNotice('Runde konnte nicht gesendet werden.')
-    } finally {
-      setSubmitting(false)
-    }
-  }, [participantInfo, participantSession, submitMaxScore, submitRoundNo, submitScore, submitting])
 
   useEffect(() => {
     activeSessionIdRef.current = activeSessionId
@@ -678,6 +631,26 @@ export default function ClassroomTab({ onLiveChange = () => {} }) {
     const t = setInterval(() => setTimerTick((n) => n + 1), 1000)
     return () => clearInterval(t)
   }, [activeSession?.startedAt])
+
+  // submitRef für App.jsx-Spielresultate → Klassenraum-Socket
+  useEffect(() => {
+    if (!submitRef) return
+    if (socketConnected && participantInfo) {
+      submitRef.current = ({ game, score, maxScore, payload = {} }) => {
+        const socket = socketRef.current
+        if (!socket?.connected) return
+        socket.emit('classroom:submit', {
+          roundNo: GAME_ROUND_NO[game] ?? 1,
+          score,
+          maxScore,
+          payload: { game, ...payload },
+        })
+      }
+    } else {
+      submitRef.current = null
+    }
+    return () => { if (submitRef) submitRef.current = null }
+  }, [socketConnected, participantInfo, submitRef])
 
   return (
     <div className="tab-placeholder classroom-tab">
@@ -954,54 +927,27 @@ export default function ClassroomTab({ onLiveChange = () => {} }) {
 
             {participantSession && participantInfo && (
               <div className="classroom-active-session">
-                <p className="classroom-active-label">Aktive Teilnahme · {mapSessionState(participantSession.state)}</p>
+                <p className="classroom-active-label">
+                  Aktive Teilnahme · {mapSessionState(participantSession.state)}
+                  {socketConnected && <span className="classroom-state-running"> · Verbunden</span>}
+                </p>
                 {socketError ? <p className="classroom-error">{socketError}</p> : null}
                 {hostCountdown > 0 ? (
                   <p className="classroom-error">Verbindung zur Lehrkraft unterbrochen. Sitzung endet in {hostCountdown}s.</p>
                 ) : null}
 
-                {socketMetrics && (
-                  <dl className="classroom-kv classroom-kv--metrics">
-                    <div><dt>Verbunden</dt><dd>{socketMetrics.connected_count}</dd></div>
-                    <div><dt>Abgegeben</dt><dd>{socketMetrics.submitted_count}</dd></div>
-                    <div><dt>Durchschnitt</dt><dd>{socketMetrics.avg_score}</dd></div>
-                  </dl>
+                {submittedGames.length === 0 ? (
+                  <p className="classroom-muted">Wechsel zum Tab „Spielmodi" und spiele eine Runde — das Ergebnis wird automatisch übertragen.</p>
+                ) : (
+                  <ul className="classroom-submitted-list">
+                    {submittedGames.map((game) => (
+                      <li key={game} className="classroom-submitted-item">
+                        <span className="classroom-submitted-check">✓</span>
+                        <span>{GAME_LABELS[game] ?? game}</span>
+                      </li>
+                    ))}
+                  </ul>
                 )}
-
-                <form className="classroom-submit-form" onSubmit={submitRound}>
-                  <label className="classroom-field">
-                    <span>Runde</span>
-                    <input
-                      type="number"
-                      min={1}
-                      max={10}
-                      value={submitRoundNo}
-                      onChange={(event) => setSubmitRoundNo(event.target.value)}
-                    />
-                  </label>
-                  <label className="classroom-field">
-                    <span>Score</span>
-                    <input
-                      type="number"
-                      min={0}
-                      max={100}
-                      value={submitScore}
-                      onChange={(event) => setSubmitScore(event.target.value)}
-                    />
-                  </label>
-                  <label className="classroom-field">
-                    <span>Max</span>
-                    <input
-                      type="number"
-                      min={1}
-                      max={100}
-                      value={submitMaxScore}
-                      onChange={(event) => setSubmitMaxScore(event.target.value)}
-                    />
-                  </label>
-                  <button className="test-cta" type="submit" disabled={submitting}>Runde senden</button>
-                </form>
-                {submitNotice ? <p className="classroom-note">{submitNotice}</p> : null}
               </div>
             )}
           </section>
