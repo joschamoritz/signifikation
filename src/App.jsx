@@ -106,6 +106,7 @@ export default function App() {
   const [gesamtausgabeUnlocked, setGesamtausgabeUnlocked] = useState(() => !!lsGet('sig_gesamtausgabe'))
 
   const [activeTab, setActiveTab]  = useState('spielmodi')
+  const [classroomLive, setClassroomLive] = useState(false)
   const [phase, setPhase]         = useState('home')
   const [selectedLemma, setSelected] = useState(null)
   const [currentRound, setRound]  = useState(0)
@@ -520,7 +521,7 @@ export default function App() {
             onUnlockGesamtausgabe={unlockGesamtausgabe}
           />
         )}
-        {activeTab === 'klassenraum' && <ClassroomTab />}
+        {activeTab === 'klassenraum' && <ClassroomTab onLiveChange={setClassroomLive} />}
         {activeTab === 'kurs'        && <KursTab />}
         {activeTab === 'profil'      && (
           <KontoTab
@@ -534,7 +535,7 @@ export default function App() {
         )}
       </TabTransition>
     </div>
-    {showTabBar && <TabBar activeTab={activeTab} onTabChange={handleTabChange} />}
+    {showTabBar && <TabBar activeTab={activeTab} onTabChange={handleTabChange} classroomLive={classroomLive} />}
     </ErrorBoundary>
   )
 }

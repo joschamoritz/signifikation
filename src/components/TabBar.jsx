@@ -43,7 +43,7 @@ const TABS = [
   },
 ]
 
-export default function TabBar({ activeTab, onTabChange }) {
+export default function TabBar({ activeTab, onTabChange, classroomLive = false }) {
   return (
     <nav className="tab-bar" aria-label="Hauptnavigation">
       <div className="tab-bar-inner">
@@ -52,11 +52,16 @@ export default function TabBar({ activeTab, onTabChange }) {
             key={id}
             className={`tab-bar-btn${activeTab === id ? ' tab-bar-btn--active' : ''}`}
             onClick={() => onTabChange(id)}
-            aria-label={label}
+            aria-label={id === 'klassenraum' && classroomLive ? `${label} – live verbunden` : label}
             aria-current={activeTab === id ? 'page' : undefined}
             type="button"
           >
-            <Icon />
+            <span className="tab-bar-icon-wrap">
+              <Icon />
+              {id === 'klassenraum' && classroomLive && (
+                <span className="tab-bar-live-dot" aria-hidden="true" />
+              )}
+            </span>
             <span className="tab-bar-label">{label}</span>
           </button>
         ))}

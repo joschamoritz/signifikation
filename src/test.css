@@ -433,6 +433,7 @@
   outline: none;
 }
 .test-cta:active { opacity: 0.75 }
+.test-cta:disabled { color: var(--disabled); cursor: default; pointer-events: none; }
 
 .test-cta-arrow {
   font-style: normal;

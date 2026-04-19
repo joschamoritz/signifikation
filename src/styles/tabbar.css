@@ -55,6 +55,27 @@
   letter-spacing: 0.01em;
 }
 
+.tab-bar-icon-wrap {
+  position: relative;
+  display: inline-flex;
+}
+
+.tab-bar-live-dot {
+  position: absolute;
+  top: 1px;
+  right: -4px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--primary);
+  animation: livePulse 2.4s ease-in-out infinite;
+}
+
+@keyframes livePulse {
+  0%, 100% { opacity: 1; transform: scale(1) }
+  50% { opacity: 0.45; transform: scale(0.7) }
+}
+
 /* ── Offset für Seiten die Tab Bar zeigen ───────────────────── */
 .app--has-tabbar:not(.app--home) {
   padding-bottom: calc(49px + env(safe-area-inset-bottom, 0px) + 16px);
@@ -793,6 +814,58 @@
 .classroom-export-ref {
   color: var(--muted);
   overflow-wrap: anywhere;
+}
+
+.classroom-create-row {
+  display: flex;
+  gap: 12px;
+  align-items: flex-end;
+  margin-bottom: 4px;
+}
+
+.classroom-create-row .classroom-join-input {
+  flex: 1;
+}
+
+.classroom-timer {
+  font-family: var(--font-serif);
+  font-size: 2rem;
+  color: var(--text);
+  letter-spacing: 0.04em;
+  line-height: 1.1;
+  margin: 4px 0 2px;
+}
+
+.classroom-timer-label {
+  font-family: var(--font-sans);
+  font-size: 0.68rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  margin: 0;
+}
+
+.classroom-distribution-title {
+  font-family: var(--font-sans);
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin: 0 0 6px;
+}
+
+.classroom-exports {
+  border-top: 1px solid var(--border-lt);
+  padding-top: 14px;
+  margin-top: 4px;
+}
+
+.classroom-exports-label {
+  font-family: var(--font-sans);
+  font-size: 0.68rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin: 0 0 6px;
 }
 
 /* ── Lernende: Beitritt ─────────────────────────────────────── */

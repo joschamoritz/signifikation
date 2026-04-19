@@ -47,6 +47,16 @@ function getErrorMessage(payload, fallback) {
   return fallback
 }
 
+function formatElapsed(startedAt) {
+  if (!startedAt) return '—'
+  const total = Math.max(0, Math.floor((Date.now() - startedAt) / 1000))
+  const h = Math.floor(total / 3600)
+  const m = Math.floor((total % 3600) / 60)
+  const s = total % 60
+  if (h > 0) return `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
+  return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
+}
+
 function makeDistributionBuckets(values) {
   if (!Array.isArray(values)) return []
   return values.map((count, idx) => ({
@@ -81,7 +91,7 @@ function humanizeJoinError(message) {
   return text || 'Beitritt fehlgeschlagen.'
 }
 
-export default function ClassroomTab() {
+export default function ClassroomTab({ onLiveChange = () => {} }) {
   const streak = computeStreak()
   const today = new Date()
   const dateStr = localDateStr(today)
@@ -98,6 +108,9 @@ export default function ClassroomTab() {
   const [createNotice, setCreateNotice] = useState('')
   const [lastJoinCode, setLastJoinCode] = useState('')
   const [codeCopied, setCodeCopied] = useState(false)
+  const [sessionNameInput, setSessionNameInput] = useState('')
+
+  const [timerTick, setTimerTick] = useState(0)
 
   const [dashboard, setDashboard] = useState(null)
   const [loadingDashboard, setLoadingDashboard] = useState(false)
@@ -310,7 +323,7 @@ export default function ClassroomTab() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({}),
+        body: JSON.stringify({ settings: { name: sessionNameInput.trim() || undefined } }),
       })
       const payload = await readJsonSafe(res)
       if (!res.ok) {
@@ -521,7 +534,7 @@ export default function ClassroomTab() {
       try {
         localStorage.setItem(
           parseStorageKey(joinedSession.id),
-          JSON.stringify({ id: participant.id, token: participant.token, sessionId: joinedSession.id }),
+          JSON.stringify({ id: participant.id, token: participant.token, sessionId: joinedSession.id, session: joinedSession }),
         )
       } catch {}
       setJoinNotice('Beitritt erfolgreich.')
@@ -601,11 +614,14 @@ export default function ClassroomTab() {
     if (!isTeacher || !activeSessionId) return
     const timer = setInterval(() => {
       loadDashboard(activeSessionId)
-      loadExports(activeSessionId)
+      const current = sessions.find((s) => s.id === activeSessionId)
+      if (current?.state !== 'running' && current?.state !== 'lobby') {
+        loadExports(activeSessionId)
+      }
     }, 5000)
     timer.unref?.()
     return () => clearInterval(timer)
-  }, [activeSessionId, isTeacher, loadDashboard, loadExports])
+  }, [activeSessionId, isTeacher, loadDashboard, loadExports, sessions])
 
   useEffect(() => {
     if (participantInfo || sessions.length === 0) return
@@ -628,6 +644,40 @@ export default function ClassroomTab() {
     clearParticipantRuntime()
     teardownSocket()
   }, [clearParticipantRuntime, teardownSocket])
+
+  // Schüler-Restore: läuft wenn kein Lehrer, scannt localStorage direkt
+  useEffect(() => {
+    if (loadingAccount || isTeacher || participantInfo) return
+    try {
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i)
+        if (!key?.startsWith('sig_classroom_join_')) continue
+        const raw = localStorage.getItem(key)
+        if (!raw) continue
+        const parsed = JSON.parse(raw)
+        if (parsed?.sessionId && parsed?.id && parsed?.token && parsed?.session) {
+          setParticipantSession(parsed.session)
+          setParticipantInfo({ id: parsed.id, token: parsed.token, sessionId: parsed.sessionId })
+          setupSocket(parsed.session, { id: parsed.id, token: parsed.token })
+          break
+        }
+      }
+    } catch {}
+  }, [loadingAccount, isTeacher, participantInfo, setupSocket])
+
+  // Live-Indikator nach oben propagieren
+  const isLive = socketConnected || (isTeacher && activeSession?.state === 'running')
+  useEffect(() => {
+    onLiveChange(isLive)
+    return () => onLiveChange(false)
+  }, [isLive, onLiveChange])
+
+  // Timer-Tick für laufende Sessions
+  useEffect(() => {
+    if (!activeSession?.startedAt) return
+    const t = setInterval(() => setTimerTick((n) => n + 1), 1000)
+    return () => clearInterval(t)
+  }, [activeSession?.startedAt])
 
   return (
     <div className="tab-placeholder classroom-tab">
@@ -678,15 +728,23 @@ export default function ClassroomTab() {
 
         {isTeacher && (
           <section className="classroom-panel">
-            <div className="classroom-panel-head">
-              <h3 className="classroom-panel-title">Lehrkraft-Dashboard</h3>
+            <p className="classroom-panel-title">Lehrkraft-Dashboard</p>
+            <div className="classroom-create-row">
+              <input
+                className="classroom-join-input"
+                value={sessionNameInput}
+                onChange={(e) => setSessionNameInput(e.target.value)}
+                placeholder="Klasse oder Kurs (optional)"
+                maxLength={60}
+                aria-label="Name der Session"
+              />
               <button
                 className="test-cta"
                 type="button"
                 onClick={createSession}
                 disabled={creating}
               >
-                Session erstellen
+                Erstellen
               </button>
             </div>
 
@@ -713,7 +771,7 @@ export default function ClassroomTab() {
 
             <div className="classroom-grid">
               <article className="classroom-card">
-                <h4 className="classroom-card-title">Session-Historie (letzte 10)</h4>
+                <h4 className="classroom-card-title">Sitzungen</h4>
                 {loadingSessions ? <p className="classroom-muted">Lädt …</p> : null}
                 {!loadingSessions && sessions.length === 0 ? <p className="classroom-muted">Noch keine Sessions.</p> : null}
                 {sessions.length > 0 && (
@@ -725,7 +783,7 @@ export default function ClassroomTab() {
                           className={`classroom-session-btn${activeSessionId === s.id ? ' classroom-session-btn--active' : ''}`}
                           onClick={() => setActiveSessionId(s.id)}
                         >
-                          <span>{s.datum}/{s.year}</span>
+                          <span>{s.settings?.name || `${s.datum}/${s.year}`}</span>
                           <span className={s.state === 'running' ? 'classroom-state-running' : ''}>
                             {mapSessionState(s.state)}
                           </span>
@@ -742,7 +800,7 @@ export default function ClassroomTab() {
                 {activeSession && (
                   <>
                     <dl className="classroom-kv">
-                      <div><dt>Status</dt><dd>{mapSessionState(activeSession.state)}</dd></div>
+                      <div><dt>Status</dt><dd className={activeSession.state === 'running' ? 'classroom-state-running' : ''}>{mapSessionState(activeSession.state)}</dd></div>
                       <div><dt>Erstellt</dt><dd>{formatDateTime(activeSession.createdAt)}</dd></div>
                       <div><dt>Gestartet</dt><dd>{formatDateTime(activeSession.startedAt)}</dd></div>
                       <div><dt>Beendet</dt><dd>{formatDateTime(activeSession.finishedAt)}</dd></div>
@@ -781,49 +839,68 @@ export default function ClassroomTab() {
                       <div><dt>Durchschnitt</dt><dd>{dashboard.metrics.avg_score}</dd></div>
                       <div><dt>Gesamt</dt><dd>{dashboard.metrics.total_count}</dd></div>
                     </dl>
-                    <div className="classroom-distribution" aria-label="Score-Verteilung">
-                      {makeDistributionBuckets(dashboard.metrics.score_distribution).map((bucket, idx) => (
-                        <div key={`${bucket.label}-${idx}`} className="classroom-distribution-row">
-                          <span className="classroom-distribution-label">{bucket.label}</span>
-                          <span className="classroom-distribution-bar-wrap">
-                            <span
-                              className="classroom-distribution-bar"
-                              style={{ width: `${Math.min(100, bucket.count * 12)}%` }}
-                            />
-                          </span>
-                          <span className="classroom-distribution-count">{bucket.count}</span>
-                        </div>
-                      ))}
-                    </div>
+                    {makeDistributionBuckets(dashboard.metrics.score_distribution).some((b) => b.count > 0) && (
+                      <div className="classroom-distribution" aria-label="Punkteverteilung der Abgaben">
+                        <p className="classroom-distribution-title">Punkteverteilung</p>
+                        {makeDistributionBuckets(dashboard.metrics.score_distribution)
+                          .filter((b) => b.count > 0)
+                          .map((bucket, idx) => (
+                            <div key={`${bucket.label}-${idx}`} className="classroom-distribution-row">
+                              <span className="classroom-distribution-label">{bucket.label}</span>
+                              <span className="classroom-distribution-bar-wrap">
+                                <span
+                                  className="classroom-distribution-bar"
+                                  style={{ width: `${Math.min(100, bucket.count * 12)}%` }}
+                                />
+                              </span>
+                              <span className="classroom-distribution-count">{bucket.count}</span>
+                            </div>
+                          ))}
+                      </div>
+                    )}
                   </>
                 )}
               </article>
 
-              <article className="classroom-card classroom-card--full">
-                <h4 className="classroom-card-title">Exporte</h4>
+              <article className="classroom-card">
+                <h4 className="classroom-card-title">Sitzungsdauer</h4>
+                {!activeSession?.startedAt ? (
+                  <p className="classroom-muted">Noch nicht gestartet.</p>
+                ) : (
+                  <>
+                    <p className="classroom-timer" aria-live="polite" aria-atomic="true">
+                      {timerTick >= 0 && formatElapsed(activeSession.startedAt)}
+                    </p>
+                    {activeSession.state === 'running' && (
+                      <p className="classroom-timer-label classroom-state-running">läuft</p>
+                    )}
+                  </>
+                )}
+              </article>
+            </div>
+
+            {activeSession?.state === 'finished' && (
+              <div className="classroom-exports">
+                <p className="classroom-exports-label">Ergebnisse exportieren</p>
                 <div className="classroom-actions">
                   <button
                     className="test-cta"
                     type="button"
                     onClick={() => requestExport('csv')}
-                    disabled={!activeSession || activeSession.state !== 'finished' || requestingExport === 'csv'}
+                    disabled={requestingExport === 'csv'}
                   >
-                    CSV erzeugen
+                    CSV
                   </button>
                   <button
                     className="test-cta"
                     type="button"
                     onClick={() => requestExport('pdf')}
-                    disabled={!activeSession || activeSession.state !== 'finished' || requestingExport === 'pdf'}
+                    disabled={requestingExport === 'pdf'}
                   >
-                    PDF erzeugen
+                    PDF
                   </button>
                 </div>
-                {loadingExports ? <p className="classroom-muted">Lädt …</p> : null}
                 {exportsError ? <p className="classroom-error">{exportsError}</p> : null}
-                {!loadingExports && exportsList.length === 0 ? (
-                  <p className="classroom-muted">Noch keine Exportjobs.</p>
-                ) : null}
                 {exportsList.length > 0 && (
                   <ul className="classroom-export-list">
                     {exportsList.map((e) => (
@@ -846,8 +923,8 @@ export default function ClassroomTab() {
                     ))}
                   </ul>
                 )}
-              </article>
-            </div>
+              </div>
+            )}
           </section>
         )}
 
