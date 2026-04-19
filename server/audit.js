@@ -6,7 +6,7 @@
  * Erforderlich für Compliance und Forensics.
  */
 
-import { writeFileSync, openSync, readSync, fstatSync, closeSync } from 'fs'
+import { appendFile, openSync, readSync, fstatSync, closeSync } from 'fs'
 import { join } from 'path'
 import { fileURLToPath } from 'url'
 import { dirname } from 'path'
@@ -55,13 +55,14 @@ export function auditLog(entry) {
     logger.info(sanitizedEntry, `AUDIT: ${entry.action} on ${entry.resource}/${entry.resourceId}`)
   }
 
-  // Schreibe in Audit-Log (Append-only, JSONL-Format)
+  // Schreibe in Audit-Log (Append-only, JSONL-Format, async)
   try {
     const line = JSON.stringify(sanitizedEntry) + '\n'
-    writeFileSync(AUDIT_LOG_FILE, line, { flag: 'a' })
+    appendFile(AUDIT_LOG_FILE, line, (err) => {
+      if (err) logger.error({ err }, 'Audit log write failed')
+    })
   } catch (err) {
     logger.error({ err }, 'Audit log write failed')
-    // Audit-Fehler sind nicht kritisch, aber loggen
   }
 }
 

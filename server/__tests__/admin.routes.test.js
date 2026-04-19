@@ -1,4 +1,5 @@
 import express from 'express'
+import cookieParser from 'cookie-parser'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import adminRouter from '../routes/admin.js'
 import { createSession } from '../middleware/auth.js'
@@ -62,7 +63,7 @@ function createTestUser({ role } = {}) {
 function adminHeaders(token, ip = '198.51.100.50') {
   return {
     'content-type': 'application/json',
-    'x-admin-token': token,
+    cookie: `admin_token=${token}`,
     'x-forwarded-for': ip,
   }
 }
@@ -74,10 +75,11 @@ describe('admin routes integration', () => {
   const testUserIds = new Set()
 
   beforeAll(async () => {
-    const app = express()
-    app.set('trust proxy', 1)
-    app.use('/admin/backup/restore', express.json({ limit: BACKUP_RESTORE_BODY_LIMIT }))
-    app.use(express.json())
+  const app = express()
+  app.set('trust proxy', 1)
+  app.use(cookieParser())
+  app.use('/admin/backup/restore', express.json({ limit: BACKUP_RESTORE_BODY_LIMIT }))
+  app.use(express.json())
     app.use('/', adminRouter)
 
     await new Promise((resolve) => {
@@ -226,7 +228,7 @@ describe('admin routes integration', () => {
     const response = await fetch(`${baseUrl}/admin/backup/restore`, {
       method: 'POST',
       headers: adminHeaders(token),
-      body: JSON.stringify(backupPayload),
+      body: JSON.stringify({ ...backupPayload, confirm: true }),
     })
     const raw = await response.text()
     let payload = null

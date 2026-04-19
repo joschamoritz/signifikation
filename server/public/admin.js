@@ -369,7 +369,7 @@ async function restoreBackupFile(event) {
     const response = await fetch('/admin/backup/restore', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
+      body: JSON.stringify({ ...payload, confirm: true }),
     })
     const data = await response.json().catch(() => ({}))
     if (!response.ok) throw new Error(data.error || `HTTP ${response.status}`)

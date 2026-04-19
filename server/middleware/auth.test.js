@@ -142,14 +142,14 @@ describe('Auth-Middleware', () => {
       expect(next).toHaveBeenCalledOnce()
     })
 
-    test('gültiger X-Admin-Token-Header → next() (Legacy-Fallback)', () => {
-      const { token } = createSession()
-      const req  = mockReq({ cookies: {}, headers: { 'x-admin-token': token } })
-      const res  = mockRes()
-      const next = vi.fn()
-      requireAuth(req, res, next)
-      expect(next).toHaveBeenCalledOnce()
-    })
+  test('X-Admin-Token-Header wird ignoriert (Legacy entfernt)', () => {
+    const { token } = createSession()
+    const req = mockReq({ cookies: {}, headers: { 'x-admin-token': token } })
+    const res = mockRes()
+    const next = vi.fn()
+    requireAuth(req, res, next)
+    expect(res.status).toHaveBeenCalledWith(401)
+  })
 
     test('kein Token → 401', () => {
       const req  = mockReq({ cookies: {} })

@@ -10,7 +10,7 @@ import { load, loadReadOnly, save, loadZeitreise, loadWortZwilling, loadZeitenwe
 import { getCacheMetrics as getQueryCacheMetrics, clearCache as clearQueryCache } from '../query-cache.js'
 import { adminLimiter, loginLimiter, uploadLimiter } from '../middleware/rateLimiter.js'
 import { requireAuth, adminAuth, adminLogout, adminError, serverError, createSession } from '../middleware/auth.js'
-import { validate, qQuerySchema, adminTagSchema, analyzeKollQuerySchema, analyzeWZQuerySchema, analyzeZeitQuerySchema, analyzeZWendeQuerySchema, adminUsersQuerySchema, adminSetUserRoleSchema, adminUserIdParamsSchema, adminUsersBulkUpdateSchema, adminBulkDeleteCalendarSchema, adminBulkImportCalendarSchema, adminPreviewLemmaSchema, adminPreviewDayParamsSchema, adminAuditLogDetailParamsSchema, adminBackupRestoreSchema } from '../middleware/validate.js'
+import { validate, qQuerySchema, adminTagSchema, analyzeKollQuerySchema, analyzeWZQuerySchema, analyzeZeitQuerySchema, analyzeZWendeQuerySchema, adminUsersQuerySchema, adminSetUserRoleSchema, adminUserIdParamsSchema, adminUsersBulkUpdateSchema, adminBulkDeleteCalendarSchema, adminBulkImportCalendarSchema, adminPreviewLemmaSchema, adminPreviewDayParamsSchema, adminAuditLogDetailParamsSchema, adminBackupRestoreSchema, adminStatsQuerySchema, adminStatsSummaryQuerySchema, adminStatsExportQuerySchema, adminAuditLogQuerySchema, adminSocialCardsTagesdataSchema, adminSocialCardsBelegeSchema } from '../middleware/validate.js'
 import { auditCreate, auditUpdate, auditDelete, getAuditLog } from '../audit.js'
 import logger from '../logger.js'
 import db from '../db.js'
@@ -203,11 +203,8 @@ const topUsersByDatesStmt = db.prepare(`
   LIMIT ?
 `)
 
-function normalizeDays(value, fallback = 30) {
-  const parsed = Number.parseInt(String(value ?? fallback), 10)
-  if (!Number.isFinite(parsed)) return fallback
-  return Math.min(90, Math.max(1, parsed))
-}
+
+
 
 function mmddToIsoDate(mmdd) {
   const value = String(mmdd || '').trim()
@@ -630,7 +627,7 @@ const setUserRoleHandler = (req, res) => {
     setUserRoleStmt.run(userId, req.body.role, now, now)
 
     auditUpdate('user', userId, null, { role: req.body.role }, {
-      adminKey: req.headers['x-admin-token']?.split('.')[0] || 'cookie-auth',
+      adminKey: req.adminSessionId || 'unknown',
       ip: req.ip,
     })
 
@@ -659,7 +656,7 @@ router.delete('/admin/users/:id', adminLimiter, requireAuth, validate(adminUserI
       email: existing.email,
       role: existing.role,
     }, {
-      adminKey: req.headers['x-admin-token']?.split('.')[0] || 'cookie-auth',
+      adminKey: req.adminSessionId || 'unknown',
       ip: req.ip,
     })
 
@@ -690,7 +687,7 @@ router.post('/admin/users/bulk-update', adminLimiter, requireAuth, validate(admi
         setUserRoleStmt.run(user.id, role, now, now)
         updated.push(user.id)
         auditUpdate('user', user.id, { role: user.role }, { role }, {
-          adminKey: req.headers['x-admin-token']?.split('.')[0] || 'cookie-auth',
+          adminKey: req.adminSessionId || 'unknown',
           ip: req.ip,
         })
       }
@@ -712,7 +709,7 @@ router.post('/admin/users/bulk-update', adminLimiter, requireAuth, validate(admi
         deleteUserTx(user.id)
         deleted.push(user.id)
         auditDelete('user', user.id, { email: user.email, role: user.role }, {
-          adminKey: req.headers['x-admin-token']?.split('.')[0] || 'cookie-auth',
+          adminKey: req.adminSessionId || 'unknown',
           ip: req.ip,
         })
       }
@@ -776,9 +773,8 @@ router.post('/admin/users/bulk-update', adminLimiter, requireAuth, validate(admi
 })
 
 /** GET /admin/stats/summary – Aggregierte Stats + Top-Nutzer */
-router.get('/admin/stats/summary', adminLimiter, requireAuth, (req, res) => {
-  const days = normalizeDays(req.query.days, 30)
-  const topUsersLimit = Math.min(50, Math.max(3, Number.parseInt(String(req.query.topUsers ?? '10'), 10) || 10))
+router.get('/admin/stats/summary', adminLimiter, requireAuth, validate(adminStatsSummaryQuerySchema, 'query'), (req, res) => {
+  const { days, topUsers: topUsersLimit } = req.query
 
   try {
     const windowStats = aggregateStatsWindow(days)
@@ -817,9 +813,8 @@ router.get('/admin/stats/summary', adminLimiter, requireAuth, (req, res) => {
 })
 
 /** GET /admin/stats/export – CSV/JSON Export aggregierter Stats */
-router.get('/admin/stats/export', adminLimiter, requireAuth, (req, res) => {
-  const days = normalizeDays(req.query.days, 30)
-  const format = String(req.query.format || 'csv').toLowerCase()
+router.get('/admin/stats/export', adminLimiter, requireAuth, validate(adminStatsExportQuerySchema, 'query'), (req, res) => {
+  const { days, format } = req.query
 
   try {
     const windowStats = aggregateStatsWindow(days)
@@ -888,8 +883,8 @@ router.get('/admin/performance', adminLimiter, requireAuth, (req, res) => {
 })
 
 /** GET /admin/stats – Spielstatistik der letzten N Tage */
-router.get('/admin/stats', adminLimiter, requireAuth, (req, res) => {
-  const days = Math.min(90, Math.max(1, parseInt(req.query.days) || 30))
+router.get('/admin/stats', adminLimiter, requireAuth, validate(adminStatsQuerySchema, 'query'), (req, res) => {
+  const { days } = req.query
   try {
     const stats  = loadReadOnly('stats.json') ?? {}
     const sorted = Object.keys(stats).sort()
@@ -948,33 +943,13 @@ router.post('/admin/cache-clear', adminLimiter, requireAuth, (req, res) => {
 })
 
 /** GET /admin/audit-log – Audit-Protokoll der letzten Admin-Änderungen */
-router.get('/admin/audit-log', adminLimiter, requireAuth, (req, res) => {
+router.get('/admin/audit-log', adminLimiter, requireAuth, validate(adminAuditLogQuerySchema, 'query'), (req, res) => {
   try {
+    const { action, resource, status, q, from: fromRaw, to: toRaw } = req.query
+
     const limit = Math.min(500, Math.max(10, parseInt(req.query.limit) || 100))
-    const action = String(req.query.action || '').trim().toUpperCase()
-    const resource = String(req.query.resource || '').trim().toLowerCase()
-    const status = String(req.query.status || '').trim().toUpperCase()
-    const q = String(req.query.q || '').trim().toLowerCase()
-    const fromRaw = String(req.query.from || '').trim()
-    const toRaw = String(req.query.to || '').trim()
-
-    const allowedActions = new Set(['', 'CREATE', 'UPDATE', 'DELETE'])
-    const allowedStatus = new Set(['', 'SUCCESS', 'FAILED'])
-    if (!allowedActions.has(action)) {
-      return res.status(400).json({ error: 'Ungueltiger action-Filter' })
-    }
-    if (!allowedStatus.has(status)) {
-      return res.status(400).json({ error: 'Ungueltiger status-Filter' })
-    }
-
     const from = fromRaw ? new Date(fromRaw) : null
     const to = toRaw ? new Date(toRaw) : null
-    if (from && Number.isNaN(from.getTime())) {
-      return res.status(400).json({ error: 'Ungueltiges from-Datum' })
-    }
-    if (to && Number.isNaN(to.getTime())) {
-      return res.status(400).json({ error: 'Ungueltiges to-Datum' })
-    }
 
     // Groesseres Fenster laden und danach filtern, damit Filter wirklich greifen.
     const source = getAuditLog(2000)
@@ -1069,7 +1044,7 @@ router.post('/admin/kalender/bulk-delete', adminLimiter, requireAuth, validate(a
       removed.push(datum)
 
       auditDelete('kalender', datum, deletedData, {
-        adminKey: req.headers['x-admin-token']?.split('.')[0] || 'cookie-auth',
+        adminKey: req.adminSessionId || 'unknown',
         ip: req.ip,
       })
     }
@@ -1118,7 +1093,7 @@ router.post('/admin/kalender/bulk-import', adminLimiter, requireAuth, validate(a
       if (existed) replaced.push(entry.datum)
 
       auditCreate('kalender', entry.datum, { ids, woerter: entry.woerter, importedVia: 'csv' }, {
-        adminKey: req.headers['x-admin-token']?.split('.')[0] || 'cookie-auth',
+        adminKey: req.adminSessionId || 'unknown',
         ip: req.ip,
       })
     }
@@ -1417,7 +1392,7 @@ router.post('/admin/tag', adminLimiter, requireAuth, validate(adminTagSchema), a
 
     // Audit-Log für Create-Operation
     auditCreate('kalender', datum, { ids, woerter, zeitreise: !!zeitreise_lemma, zwilling: !!zwilling_paar?.[0], zeitenwende: !!zeitenwende_lemma }, {
-      adminKey: req.headers['x-admin-token']?.split('.')[0] || 'cookie-auth',
+      adminKey: req.adminSessionId || 'unknown',
       ip: req.ip,
     })
 
@@ -1536,7 +1511,7 @@ router.delete('/admin/tag/:datum', adminLimiter, requireAuth, async (req, res) =
 
     // Audit-Log für Delete-Operation
     auditDelete('kalender', datum, deletedData, {
-      adminKey: req.headers['x-admin-token']?.split('.')[0] || 'cookie-auth',
+      adminKey: req.adminSessionId || 'unknown',
       ip: req.ip,
     })
 
@@ -1588,7 +1563,7 @@ router.post('/admin/backup/restore', adminLimiter, requireAuth, validate(adminBa
       exportedAt: req.body.exportedAt || null,
       files: Object.keys(req.body.files || {}),
     }, {
-      adminKey: req.headers['x-admin-token']?.split('.')[0] || 'cookie-auth',
+      adminKey: req.adminSessionId || 'unknown',
       ip: req.ip,
     })
 
@@ -1670,7 +1645,7 @@ router.post('/admin/upload-wortprofil', uploadLimiter, requireAuth, (req, res) =
 })
 
 /** GET /admin/social-cards – Social Cards Generator */
-router.get('/admin/social-cards', (req, res) => {
+router.get('/admin/social-cards', requireAuth, (req, res) => {
   res.setHeader('Content-Security-Policy',
     "default-src 'self'; " +
     "script-src 'self' 'unsafe-inline'; " +
@@ -1684,11 +1659,8 @@ router.get('/admin/social-cards', (req, res) => {
 })
 
 /** GET /admin/social-cards/tagesdata?datum=MM-DD – Lemmata + WZ für ein Datum */
-router.get('/admin/social-cards/tagesdata', adminLimiter, requireAuth, (req, res) => {
+router.get('/admin/social-cards/tagesdata', adminLimiter, requireAuth, validate(adminSocialCardsTagesdataSchema, 'query'), (req, res) => {
   const { datum } = req.query
-  if (!datum || !/^\d{2}-\d{2}$/.test(datum)) {
-    return res.status(400).json({ error: 'datum muss MM-DD sein' })
-  }
   try {
     const kalender     = loadReadOnly('kalender.json')
     const { byId }     = getLemmataIndex()
@@ -1711,9 +1683,8 @@ router.get('/admin/social-cards/tagesdata', adminLimiter, requireAuth, (req, res
 })
 
 /** GET /admin/social-cards/belege?lemma=X&collocate=Y – Korpusbelege für ein Paar */
-router.get('/admin/social-cards/belege', adminLimiter, requireAuth, (req, res) => {
+router.get('/admin/social-cards/belege', adminLimiter, requireAuth, validate(adminSocialCardsBelegeSchema, 'query'), (req, res) => {
   const { lemma, collocate } = req.query
-  if (!lemma || !collocate) return res.status(400).json({ error: 'lemma und collocate erforderlich' })
   try {
     const belege = fetchBelege(lemma, collocate, { limit: 5 })
     res.json({ belege })

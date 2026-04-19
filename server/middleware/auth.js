@@ -67,13 +67,22 @@ export function adminAuth(req, res) {
   }
   // Constant-Time-Vergleich gegen Timing-Attacks
   const receivedKey = String(key).trim()
+  const receivedBuf = Buffer.from(receivedKey)
+  const adminBuf = Buffer.from(ADMIN_KEY)
+  if (receivedBuf.length !== adminBuf.length) {
+    const paddedReceived = Buffer.alloc(adminBuf.length)
+    receivedBuf.copy(paddedReceived)
+    try { timingSafeEqual(paddedReceived, adminBuf) } catch {}
+    logger.warn({ ip: req.ip }, 'Admin-Login fehlgeschlagen')
+    return res.status(401).json({ error: 'Falscher Admin-Key' })
+  }
   try {
-    if (!timingSafeEqual(Buffer.from(receivedKey), Buffer.from(ADMIN_KEY))) {
-      logger.warn({ ip: req.ip }, 'Admin-Login fehlgeschlagen (falscher Key)')
+    if (!timingSafeEqual(receivedBuf, adminBuf)) {
+      logger.warn({ ip: req.ip }, 'Admin-Login fehlgeschlagen')
       return res.status(401).json({ error: 'Falscher Admin-Key' })
     }
-  } catch (err) {
-    logger.warn({ ip: req.ip }, 'Admin-Login fehlgeschlagen (Längen-Mismatch)')
+  } catch {
+    logger.warn({ ip: req.ip }, 'Admin-Login fehlgeschlagen')
     return res.status(401).json({ error: 'Falscher Admin-Key' })
   }
   const { token, expiresAt } = createSession()
@@ -122,10 +131,13 @@ export function csrfProtectUpload(req, res, next) {
   next()
 }
 
-/** Middleware: prüft httpOnly-Cookie (primär) oder X-Admin-Token-Header (Legacy-Fallback) */
+/** Middleware: prüft httpOnly-Cookie */
 export function requireAuth(req, res, next) {
-  const token = req.cookies?.admin_token || req.headers['x-admin-token']
-  if (token && sessionValid(token)) return next()
+  const token = req.cookies?.admin_token
+  if (token && sessionValid(token)) {
+    req.adminSessionId = token.split('.')[0]
+    return next()
+  }
   res.status(401).json({ error: 'Nicht autorisiert' })
 }
 
@@ -135,13 +147,9 @@ export function serverError(res, err) {
   res.status(500).json({ error: IS_PROD ? 'Interner Serverfehler' : err.message })
 }
 
-/** Admin-seitige Fehlerausgabe: zeigt Fehlermeldung (hinter Auth), bereinigt Dateipfade */
+/** Admin-seitige Fehlerausgabe: bereinigt Dateipfade, kein Stack an Client */
 export function adminError(res, err) {
-  const safeErr = err instanceof Error
-    ? { message: err.message, stack: err.stack }
-    : err
-  logger.error({ err: sanitize(safeErr) }, 'Admin-Fehler')
-  // Absolute Pfade aus Fehlermeldung entfernen (z.B. "/app/server/data/...")
+  logger.error({ err: sanitize(err instanceof Error ? { message: err.message, stack: err.stack } : err) }, 'Admin-Fehler')
   const rawMsg = err.message || String(err)
   const cleanMsg = rawMsg.replace(/(?:\/[\w.-]+)+/g, '[path]').replace(/(?:[A-Z]:\\[\w\\.-]+)/gi, '[path]')
   res.status(500).json({ error: cleanMsg })

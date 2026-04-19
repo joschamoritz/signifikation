@@ -164,8 +164,47 @@ export const adminAuditLogDetailParamsSchema = z.object({
 
 /** POST /admin/backup/restore */
 export const adminBackupRestoreSchema = z.object({
+  confirm: z.literal(true),
   exportedAt: z.string().optional(),
   files: z.record(z.any()),
+})
+
+/** GET /admin/stats (query) */
+export const adminStatsQuerySchema = z.object({
+  days: z.coerce.number().int().min(1).max(365).optional().default(30),
+})
+
+/** GET /admin/stats/summary (query) */
+export const adminStatsSummaryQuerySchema = z.object({
+  days: z.coerce.number().int().min(1).max(365).optional().default(30),
+  topUsers: z.coerce.number().int().min(1).max(50).optional().default(10),
+})
+
+/** GET /admin/stats/export (query) */
+export const adminStatsExportQuerySchema = z.object({
+  format: z.enum(['json', 'csv']).optional().default('json'),
+  days: z.coerce.number().int().min(1).max(365).optional().default(30),
+})
+
+/** GET /admin/audit-log (query) */
+export const adminAuditLogQuerySchema = z.object({
+  action: z.enum(['CREATE', 'UPDATE', 'DELETE']).optional(),
+  resource: z.string().trim().max(80).optional(),
+  status: z.enum(['SUCCESS', 'FAILED']).optional(),
+  from: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'from als YYYY-MM-DD').optional(),
+  to: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'to als YYYY-MM-DD').optional(),
+  q: z.string().trim().max(120).optional(),
+})
+
+/** GET /admin/social-cards/tagesdata (query) */
+export const adminSocialCardsTagesdataSchema = z.object({
+  datum: DATUM_MMDD,
+})
+
+/** GET /admin/social-cards/belege (query) */
+export const adminSocialCardsBelegeSchema = z.object({
+  lemma: z.string().min(1).max(100),
+  collocate: z.string().min(1).max(100),
 })
 
 // ── Classroom Schemas ───────────────────────────────────────────
