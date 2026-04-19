@@ -72,8 +72,8 @@ function sanitizeJoinCodeInput(value) {
 
 function humanizeJoinError(message) {
   const text = String(message || '')
-  if (text.includes('ungueltig') || text.includes('abgelaufen')) {
-    return 'Zugangscode ungueltig oder abgelaufen. Bitte Lehrkraft nach dem aktuellen Code fragen.'
+  if (text.includes('ungueltig') || text.includes('abgelaufen') || text.includes('ungültig')) {
+    return 'Zugangscode ungültig oder abgelaufen. Bitte die Lehrkraft nach dem aktuellen Code fragen.'
   }
   if (text.includes('Zu viele Versuche')) {
     return 'Zu viele Versuche. Bitte 5 Minuten warten und dann erneut eingeben.'
@@ -97,6 +97,7 @@ export default function ClassroomTab() {
   const [creating, setCreating] = useState(false)
   const [createNotice, setCreateNotice] = useState('')
   const [lastJoinCode, setLastJoinCode] = useState('')
+  const [codeCopied, setCodeCopied] = useState(false)
 
   const [dashboard, setDashboard] = useState(null)
   const [loadingDashboard, setLoadingDashboard] = useState(false)
@@ -167,18 +168,13 @@ export default function ClassroomTab() {
       const res = await fetch(`${API}/account/me`, { credentials: 'include' })
       if (!res.ok) {
         setAccount(null)
-        if (res.status === 401) {
-          setTeacherError('Der Klassenraum ist fuer Lehrkraft-Konten der Gesamtausgabe verfuegbar. Im Konto-Tab anmelden und freischalten.')
-        } else {
+        if (res.status !== 401) {
           setTeacherError('Konto konnte nicht geladen werden.')
         }
         return
       }
       const payload = await res.json()
       setAccount(payload)
-      if (payload?.role !== 'teacher') {
-        setTeacherError('Der Klassenraum ist fuer Lehrkraft-Konten der Gesamtausgabe vorgesehen.')
-      }
     } catch {
       setAccount(null)
       setTeacherError('Netzwerkfehler beim Laden des Kontos.')
@@ -446,7 +442,7 @@ export default function ClassroomTab() {
 
       socket.on('classroom:results', (payload) => {
         if (payload?.accepted) {
-          setSubmitNotice(`Runde ${payload.roundNo}: uebermittelt.`)
+          setSubmitNotice(`Runde ${payload.roundNo}: übermittelt.`)
         }
       })
 
@@ -471,7 +467,7 @@ export default function ClassroomTab() {
           hostCountdownTimerRef.current.unref?.()
         }
         if (payload?.code === 'INVALID_CODE') {
-          setJoinNotice('Zugangscode ungueltig oder abgelaufen. Bitte Lehrkraft nach dem aktuellen Code fragen.')
+          setJoinNotice('Zugangscode ungültig oder abgelaufen. Bitte die Lehrkraft nach dem aktuellen Code fragen.')
         }
       })
 
@@ -651,6 +647,8 @@ export default function ClassroomTab() {
       </header>
 
       <div className="tab-placeholder-inner classroom-inner">
+        <span className="test-entry-premium" aria-label="Teil der Gesamtausgabe">Gesamtausgabe</span>
+
         <div className="tab-placeholder-head">
           <h2 className="tab-placeholder-title">Klassenraum</h2>
           <span className="tab-placeholder-ipa">[ˈklasənˌʀaʊ̯m]</span>
@@ -658,18 +656,18 @@ export default function ClassroomTab() {
         <div className="tab-placeholder-grammar">
           <span className="tab-placeholder-pos">Bereich</span>
           <span className="tab-placeholder-rule-line" />
-          <span className="tab-placeholder-category">Lehrkraefte</span>
+          <span className="tab-placeholder-category">Lehrkräfte</span>
         </div>
 
         <p className="tab-placeholder-definition">
-          Gemeinsame Spielsitzungen fuer Gruppen und Klassen. Kollaboratives Lernen mit Echtzeit-Vergleich und didaktischer Auswertung.
+          Gemeinsame Spielsitzungen für Gruppen und Klassen. Kollaboratives Lernen mit Echtzeit-Vergleich und didaktischer Auswertung.
         </p>
 
         <ul className="tab-placeholder-features classroom-features">
           <li>Lehrkraft erstellt Sitzungen, startet und beendet im eigenen Takt.</li>
           <li>Lernende treten anonym mit Zugangscode bei und spielen gleichzeitig.</li>
           <li>Live-Kennzahlen zeigen Beteiligung, Abgaben und Punktverteilung.</li>
-          <li>Ergebnisse koennen als CSV oder PDF fuer Nachbereitung exportiert werden.</li>
+          <li>Ergebnisse können als CSV oder PDF für die Nachbereitung exportiert werden.</li>
         </ul>
 
         {loadingAccount ? (
@@ -694,15 +692,29 @@ export default function ClassroomTab() {
 
             {createNotice && <p className="classroom-note">{createNotice}</p>}
             {lastJoinCode && (
-              <p className="classroom-join-code" aria-live="polite">
-                Zugangscode: <strong>{lastJoinCode}</strong>
-              </p>
+              <div className="classroom-code-display" aria-live="polite">
+                <p className="classroom-active-label">Zugangscode für Lernende</p>
+                <div className="classroom-code-row">
+                  <span className="classroom-code-value">{lastJoinCode}</span>
+                  <button
+                    type="button"
+                    className="classroom-code-copy"
+                    onClick={() => {
+                      navigator.clipboard.writeText(lastJoinCode)
+                      setCodeCopied(true)
+                      setTimeout(() => setCodeCopied(false), 2000)
+                    }}
+                  >
+                    {codeCopied ? 'Kopiert' : 'Kopieren'}
+                  </button>
+                </div>
+              </div>
             )}
 
             <div className="classroom-grid">
               <article className="classroom-card">
                 <h4 className="classroom-card-title">Session-Historie (letzte 10)</h4>
-                {loadingSessions ? <p className="classroom-muted">Laedt …</p> : null}
+                {loadingSessions ? <p className="classroom-muted">Lädt …</p> : null}
                 {!loadingSessions && sessions.length === 0 ? <p className="classroom-muted">Noch keine Sessions.</p> : null}
                 {sessions.length > 0 && (
                   <ul className="classroom-session-list">
@@ -714,7 +726,9 @@ export default function ClassroomTab() {
                           onClick={() => setActiveSessionId(s.id)}
                         >
                           <span>{s.datum}/{s.year}</span>
-                          <span>{mapSessionState(s.state)}</span>
+                          <span className={s.state === 'running' ? 'classroom-state-running' : ''}>
+                            {mapSessionState(s.state)}
+                          </span>
                         </button>
                       </li>
                     ))}
@@ -724,7 +738,7 @@ export default function ClassroomTab() {
 
               <article className="classroom-card">
                 <h4 className="classroom-card-title">Aktive Session</h4>
-                {!activeSession ? <p className="classroom-muted">Keine Session ausgewaehlt.</p> : null}
+                {!activeSession ? <p className="classroom-muted">Keine Session ausgewählt.</p> : null}
                 {activeSession && (
                   <>
                     <dl className="classroom-kv">
@@ -757,7 +771,7 @@ export default function ClassroomTab() {
 
               <article className="classroom-card">
                 <h4 className="classroom-card-title">Live-Metriken</h4>
-                {loadingDashboard ? <p className="classroom-muted">Laedt …</p> : null}
+                {loadingDashboard ? <p className="classroom-muted">Lädt …</p> : null}
                 {dashboardError ? <p className="classroom-error">{dashboardError}</p> : null}
                 {dashboard?.metrics && (
                   <>
@@ -805,7 +819,7 @@ export default function ClassroomTab() {
                     PDF erzeugen
                   </button>
                 </div>
-                {loadingExports ? <p className="classroom-muted">Laedt …</p> : null}
+                {loadingExports ? <p className="classroom-muted">Lädt …</p> : null}
                 {exportsError ? <p className="classroom-error">{exportsError}</p> : null}
                 {!loadingExports && exportsList.length === 0 ? (
                   <p className="classroom-muted">Noch keine Exportjobs.</p>
@@ -837,93 +851,87 @@ export default function ClassroomTab() {
           </section>
         )}
 
-        <section className="classroom-panel classroom-panel--participant">
-          <div className="classroom-panel-head">
-            <h3 className="classroom-panel-title">Lernende-Beitritt (anonym)</h3>
-          </div>
-          <form
-            className="classroom-join-form"
-            onSubmit={(event) => {
-              event.preventDefault()
-              joinSession()
-            }}
-          >
-            <label className="classroom-field">
-              <span>Zugangscode</span>
+        {!isTeacher && (
+          <section className="classroom-join-section">
+            <p className="test-overline">Für Lernende</p>
+            <h3 className="classroom-join-heading">Mit Zugangscode beitreten</h3>
+            <form
+              className="classroom-join-form"
+              onSubmit={(event) => {
+                event.preventDefault()
+                joinSession()
+              }}
+            >
               <input
+                className="classroom-join-input"
                 value={joinCodeInput}
                 onChange={(event) => setJoinCodeInput(sanitizeJoinCodeInput(event.target.value))}
-                placeholder="zugangscode eingeben"
+                placeholder="zugangscode"
                 maxLength={20}
                 autoComplete="off"
+                aria-label="Zugangscode"
               />
-            </label>
-            <button className="test-cta" type="submit" disabled={joining}>Beitreten</button>
-          </form>
-          {joinNotice ? <p className="classroom-note">{joinNotice}</p> : null}
+              <button className="test-cta" type="submit" disabled={joining}>Beitreten</button>
+            </form>
+            {joinNotice ? <p className="classroom-note">{joinNotice}</p> : null}
 
-          {participantSession && participantInfo && (
-            <div className="classroom-participant-box classroom-margin-note">
-              <p className="classroom-margin-title">Randnotiz</p>
-              <p className="classroom-note classroom-margin-line">
-                Teilnahme aktiv: <strong>{participantLabel(0)}</strong> · Sitzung {participantSession.id}
-              </p>
-              <p className="classroom-muted classroom-margin-line">Status: {mapSessionState(participantSession.state)} · Socket: {socketConnected ? 'online' : 'offline'}</p>
-              {socketState ? <p className="classroom-muted classroom-margin-line">{socketState}</p> : null}
-              {socketError ? <p className="classroom-error classroom-margin-line">{socketError}</p> : null}
-              {hostCountdown > 0 ? (
-                <p className="classroom-error classroom-margin-line">Verbindung zur Lehrkraft unterbrochen. Sitzung endet in {hostCountdown}s.</p>
-              ) : null}
+            {participantSession && participantInfo && (
+              <div className="classroom-active-session">
+                <p className="classroom-active-label">Aktive Teilnahme · {mapSessionState(participantSession.state)}</p>
+                {socketError ? <p className="classroom-error">{socketError}</p> : null}
+                {hostCountdown > 0 ? (
+                  <p className="classroom-error">Verbindung zur Lehrkraft unterbrochen. Sitzung endet in {hostCountdown}s.</p>
+                ) : null}
 
-              {socketMetrics && (
-                <dl className="classroom-kv classroom-kv--metrics">
-                  <div><dt>Verbunden</dt><dd>{socketMetrics.connected_count}</dd></div>
-                  <div><dt>Abgegeben</dt><dd>{socketMetrics.submitted_count}</dd></div>
-                  <div><dt>Durchschnitt</dt><dd>{socketMetrics.avg_score}</dd></div>
-                </dl>
-              )}
+                {socketMetrics && (
+                  <dl className="classroom-kv classroom-kv--metrics">
+                    <div><dt>Verbunden</dt><dd>{socketMetrics.connected_count}</dd></div>
+                    <div><dt>Abgegeben</dt><dd>{socketMetrics.submitted_count}</dd></div>
+                    <div><dt>Durchschnitt</dt><dd>{socketMetrics.avg_score}</dd></div>
+                  </dl>
+                )}
 
-              <form className="classroom-submit-form" onSubmit={submitRound}>
-                <label className="classroom-field">
-                  <span>Runde</span>
-                  <input
-                    type="number"
-                    min={1}
-                    max={10}
-                    value={submitRoundNo}
-                    onChange={(event) => setSubmitRoundNo(event.target.value)}
-                  />
-                </label>
-                <label className="classroom-field">
-                  <span>Score</span>
-                  <input
-                    type="number"
-                    min={0}
-                    max={100}
-                    value={submitScore}
-                    onChange={(event) => setSubmitScore(event.target.value)}
-                  />
-                </label>
-                <label className="classroom-field">
-                  <span>Max</span>
-                  <input
-                    type="number"
-                    min={1}
-                    max={100}
-                    value={submitMaxScore}
-                    onChange={(event) => setSubmitMaxScore(event.target.value)}
-                  />
-                </label>
-                <button className="test-cta" type="submit" disabled={submitting}>Runde senden</button>
-              </form>
-              {submitNotice ? <p className="classroom-note">{submitNotice}</p> : null}
-            </div>
-          )}
-        </section>
+                <form className="classroom-submit-form" onSubmit={submitRound}>
+                  <label className="classroom-field">
+                    <span>Runde</span>
+                    <input
+                      type="number"
+                      min={1}
+                      max={10}
+                      value={submitRoundNo}
+                      onChange={(event) => setSubmitRoundNo(event.target.value)}
+                    />
+                  </label>
+                  <label className="classroom-field">
+                    <span>Score</span>
+                    <input
+                      type="number"
+                      min={0}
+                      max={100}
+                      value={submitScore}
+                      onChange={(event) => setSubmitScore(event.target.value)}
+                    />
+                  </label>
+                  <label className="classroom-field">
+                    <span>Max</span>
+                    <input
+                      type="number"
+                      min={1}
+                      max={100}
+                      value={submitMaxScore}
+                      onChange={(event) => setSubmitMaxScore(event.target.value)}
+                    />
+                  </label>
+                  <button className="test-cta" type="submit" disabled={submitting}>Runde senden</button>
+                </form>
+                {submitNotice ? <p className="classroom-note">{submitNotice}</p> : null}
+              </div>
+            )}
+          </section>
+        )}
 
         <div className="tab-placeholder-footer">
-          <span className="tab-placeholder-status">In Entwicklung.</span>
-          <span className="tab-placeholder-edition">Beta-Modus fuer Unterrichtssitzungen.</span>
+          <span className="tab-placeholder-edition">Für Unterrichtssitzungen und Lerngruppen.</span>
         </div>
       </div>
     </div>
