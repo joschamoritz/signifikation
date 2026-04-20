@@ -573,6 +573,24 @@ export default function ClassroomTab({ onLiveChange = () => {}, submitRef = null
     participantSessionRef.current = participantSession
   }, [participantSession])
 
+  // Lobby-Fallback-Poll: alle 12s classroom:join re-emittieren damit der
+  // Server den aktuellen State zurücksendet – verhindert, dass Schüler
+  // in "Warte auf Start" hängen wenn das classroom:state-Event verpasst wurde.
+  useEffect(() => {
+    if (!socketConnected || !participantInfo) return
+    if (participantSession?.state !== 'lobby' && participantSession?.state !== 'created') return
+    const timer = setInterval(() => {
+      const sock = socketRef.current
+      if (!sock?.connected) return
+      sock.emit('classroom:join', {
+        sessionId: participantInfo.sessionId,
+        participantId: participantInfo.id,
+        participantToken: participantInfo.token,
+      })
+    }, 12000)
+    return () => clearInterval(timer)
+  }, [socketConnected, participantInfo, participantSession?.state])
+
   useEffect(() => {
     loadAccount()
   }, [loadAccount])
@@ -957,7 +975,22 @@ export default function ClassroomTab({ onLiveChange = () => {}, submitRef = null
                         </span>
                       </p>
                       {(participantSession?.state === 'lobby' || participantSession?.state === 'created') && socketConnected && (
-                        <p className="cr-hint">Warte auf den Start durch die Lehrkraft.</p>
+                        <p className="cr-hint">
+                          Warte auf den Start durch die Lehrkraft.{' '}
+                          <button
+                            type="button"
+                            className="cr-refresh-btn"
+                            onClick={() => {
+                              const sock = socketRef.current
+                              if (!sock?.connected) return
+                              sock.emit('classroom:join', {
+                                sessionId: participantInfo.sessionId,
+                                participantId: participantInfo.id,
+                                participantToken: participantInfo.token,
+                              })
+                            }}
+                          >Aktualisieren</button>
+                        </p>
                       )}
                       {socketError && <p className="cr-error">{socketError}</p>}
                       {hostCountdown > 0 && (

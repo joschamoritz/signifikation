@@ -1064,16 +1064,17 @@
 }
 
 /* ── Klassenraum: Desktop Raster-Leiste ─────────────────────── */
+/* Äußerer Wrapper: auf Inhaltsbreite begrenzt, nicht viewport-breit */
 .cr-raster {
+  max-width: 680px;
+  margin: 0 auto;
   background: var(--surface2);
   border-top: 1px solid var(--border);
   border-bottom: 1px solid var(--border);
 }
 
-/* Innerer Wrapper — gleiche Breite & Padding wie classroom-inner */
+/* Innerer Wrapper — Padding-Abstufung wie classroom-inner */
 .cr-raster-content {
-  max-width: 680px;
-  margin: 0 auto;
   padding: 10px 24px;
   display: flex;
   align-items: center;
@@ -1137,6 +1138,22 @@
   white-space: nowrap;
   flex-shrink: 0;
 }
+
+/* ── Klassenraum: Aktualisieren (Lobby-Hint) ────────────────── */
+.cr-refresh-btn {
+  border: none;
+  background: none;
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-size: inherit;
+  color: var(--muted);
+  cursor: pointer;
+  padding: 0;
+  text-decoration: underline;
+  text-decoration-style: dotted;
+  text-underline-offset: 2px;
+}
+.cr-refresh-btn:hover { color: var(--primary); }
 
 /* ── Klassenraum: Sitzung verlassen ─────────────────────────── */
 .cr-leave-btn {
