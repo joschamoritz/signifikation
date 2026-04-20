@@ -25,7 +25,7 @@ function mapSessionState(state) {
     case 'running':
       return 'Laufend'
     case 'lobby':
-      return 'Lobby'
+      return 'Wartend'
     case 'finished':
       return 'Beendet'
     case 'archived':
@@ -135,11 +135,14 @@ export default function ClassroomTab({ onLiveChange = () => {}, submitRef = null
 
   const [submittedGames, setSubmittedGames] = useState([])
 
+  const [activeCard, setActiveCard] = useState(0)
+
   const [socketConnected, setSocketConnected] = useState(false)
   const [socketError, setSocketError] = useState('')
   const [hostCountdown, setHostCountdown] = useState(0)
 
   const socketRef = useRef(null)
+  const entriesRef = useRef(null)
   const heartbeatTimerRef = useRef(null)
   const hostTimeoutTimerRef = useRef(null)
   const hostCountdownTimerRef = useRef(null)
@@ -630,6 +633,50 @@ export default function ClassroomTab({ onLiveChange = () => {}, submitRef = null
     return () => clearInterval(t)
   }, [activeSession?.startedAt, activeSession?.state])
 
+  // ── Mobile Snap-Navigation ──────────────────────────────────
+  const scrollToCard = useCallback((index) => {
+    const items = entriesRef.current?.querySelectorAll('.test-entry')
+    items?.[index]?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }, [])
+
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 699px)')
+    if (!mq.matches) return
+    const container = entriesRef.current
+    if (!container) return
+    const items = container.querySelectorAll('.test-entry')
+    if (!items.length) return
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting && entry.intersectionRatio >= 0.5) {
+            setActiveCard(Array.from(items).indexOf(entry.target))
+          }
+        })
+      },
+      { root: container, threshold: 0.5 },
+    )
+    items.forEach((item) => observer.observe(item))
+    return () => observer.disconnect()
+  }, [loadingAccount, isTeacher])
+
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 699px)')
+    if (!mq.matches) return
+    const items = entriesRef.current?.querySelectorAll('.test-entry')
+    items?.forEach((item, i) => {
+      if (i === activeCard) item.removeAttribute('inert')
+      else item.setAttribute('inert', '')
+    })
+  }, [activeCard, isTeacher])
+
+  const handleSnapKeyDown = useCallback((e) => {
+    if (!window.matchMedia('(max-width: 699px)').matches) return
+    const maxCard = isTeacher ? 3 : 2
+    if (e.key === 'ArrowDown') scrollToCard(Math.min(activeCard + 1, maxCard))
+    if (e.key === 'ArrowUp') scrollToCard(Math.max(activeCard - 1, 0))
+  }, [activeCard, isTeacher, scrollToCard])
+
   // submitRef für App.jsx-Spielresultate → Klassenraum-Socket
   useEffect(() => {
     if (!submitRef) return
@@ -667,11 +714,22 @@ export default function ClassroomTab({ onLiveChange = () => {}, submitRef = null
         )}
       </header>
 
+      {/* Raster-Leiste — nur Desktop */}
+      <nav className="cr-raster" aria-label="Klassenraum-Übersicht">
+        <span className="cr-raster-label" aria-hidden="true">Klassenraum</span>
+        <div className="cr-raster-words">
+          {['Sitzung', 'Beitritt', 'Echtzeit', 'Protokoll'].map((w) => (
+            <span key={w} className="cr-raster-word">{w}</span>
+          ))}
+        </div>
+        <span className="cr-raster-folio" aria-hidden="true">①②③④</span>
+      </nav>
+
       <div className="tab-placeholder-inner classroom-inner">
         {loadingAccount && <p className="cr-loading">Konto wird geladen …</p>}
         {!loadingAccount && teacherError && <p className="cr-error">{teacherError}</p>}
 
-        <ul className="classroom-entries">
+        <ul className="classroom-entries" ref={entriesRef} onKeyDown={handleSnapKeyDown}>
 
           {/* ① Klassenraum – Erklärung */}
           <li className="test-entry">
@@ -752,28 +810,6 @@ export default function ClassroomTab({ onLiveChange = () => {}, submitRef = null
                           {codeCopied ? 'Kopiert' : 'Kopieren'}
                         </button>
                       </div>
-                    </div>
-                  )}
-
-                  {sessions.length > 0 && (
-                    <div className="cr-session-section">
-                      <span className="cr-section-label">Sitzungen</span>
-                      <ul className="cr-session-list">
-                        {sessions.map((s) => (
-                          <li key={s.id}>
-                            <button
-                              type="button"
-                              className={`cr-session-row${activeSessionId === s.id ? ' cr-session-row--active' : ''}`}
-                              onClick={() => setActiveSessionId(s.id)}
-                            >
-                              <span className="cr-session-name">{s.settings?.name || formatDateTime(s.createdAt)}</span>
-                              <span className={`cr-session-state${s.state === 'running' ? ' cr-state-running' : ''}`}>
-                                {mapSessionState(s.state)}
-                              </span>
-                            </button>
-                          </li>
-                        ))}
-                      </ul>
                     </div>
                   )}
 
@@ -903,7 +939,7 @@ export default function ClassroomTab({ onLiveChange = () => {}, submitRef = null
             <li className={`test-entry${!participantInfo ? ' test-entry--disabled' : ''}`}>
               <div className="test-entry-number" aria-hidden="true">
                 <span className="test-entry-num-glyph">③</span>
-                <span className="test-entry-marginalia">LIVE</span>
+                <span className="test-entry-marginalia">ABGB.</span>
               </div>
               <div className="test-entry-body">
                 <div className="test-entry-head">
@@ -1017,6 +1053,24 @@ export default function ClassroomTab({ onLiveChange = () => {}, submitRef = null
           <span className="tab-placeholder-edition">Für Unterrichtssitzungen und Lerngruppen.</span>
         </div>
       </div>
+
+      {/* Snap-Navigation — nur mobil (position: fixed via test.css) */}
+      <nav className="snap-nav" aria-label="Klassenraum-Navigation">
+        <div className="snap-nav-games">
+          {(isTeacher
+            ? [['①', 'Klassenraum'], ['②', 'Sitzung'], ['③', 'Live'], ['④', 'Protokoll']]
+            : [['①', 'Klassenraum'], ['②', 'Beitritt'], ['③', 'Abgaben']]
+          ).map(([glyph, label], i) => (
+            <button
+              key={i}
+              className={`snap-nav-btn${activeCard === i ? ' snap-nav-btn--active' : ''}`}
+              aria-label={label}
+              aria-current={activeCard === i ? 'true' : undefined}
+              onClick={() => scrollToCard(i)}
+            >{glyph}</button>
+          ))}
+        </div>
+      </nav>
     </div>
   )
 }

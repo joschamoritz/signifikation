@@ -540,7 +540,7 @@
 }
 
 .classroom-inner {
-  max-width: 480px;
+  max-width: 680px;
 }
 
 /* ── Klassenraum: Eintrags-Liste ───────────────────────────── */
@@ -992,6 +992,132 @@
   }
 
   .cr-export-date {
+    display: none;
+  }
+}
+
+/* ── Klassenraum: Kategorie-Badges → Rot statt Gold ─────────── */
+.classroom-entries .test-entry-category {
+  color: var(--primary);
+}
+
+/* ── Klassenraum: Desktop Raster-Leiste ─────────────────────── */
+.cr-raster {
+  background: var(--surface2);
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  padding: 10px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  overflow: hidden;
+}
+
+.cr-raster-label {
+  font-family: var(--font-sans);
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--muted);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.cr-raster-words {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  flex: 1;
+  justify-content: center;
+  flex-wrap: wrap;
+  row-gap: 4px;
+}
+
+.cr-raster-word {
+  font-family: var(--font-serif);
+  font-variant: small-caps;
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: var(--text);
+  padding: 0 12px;
+  position: relative;
+}
+
+.cr-raster-word + .cr-raster-word::before {
+  content: '·';
+  position: absolute;
+  left: -2px;
+  color: var(--primary);
+  font-style: normal;
+}
+
+.cr-raster-folio {
+  font-family: var(--font-serif);
+  font-size: 0.75rem;
+  letter-spacing: 0.1em;
+  color: var(--muted);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* ── Klassenraum: Mobiles Snap-Layout ───────────────────────── */
+@media (max-width: 699px) {
+  /* Vollbild — wie .test-page auf der Startseite */
+  .app--has-tabbar .classroom-tab {
+    position: fixed;
+    top: env(safe-area-inset-top, 0px);
+    left: 0;
+    right: 0;
+    bottom: calc(49px + env(safe-area-inset-bottom, 0px));
+    height: auto;
+    min-height: unset;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* Raster auf Mobil ausblenden */
+  .cr-raster {
+    display: none;
+  }
+
+  /* Inner: flex-Spalte (wie .test-wrapper mobil) */
+  .classroom-tab .classroom-inner {
+    flex: 1;
+    min-height: 0;
+    max-width: 100%;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  /* Lade-/Fehlermeldungen kompakt */
+  .classroom-tab .cr-loading,
+  .classroom-tab .cr-error {
+    flex-shrink: 0;
+    padding: 6px 20px;
+  }
+
+  /* Snap-Container (wie .test-entries) */
+  .classroom-tab .classroom-entries {
+    flex: 1;
+    height: 100%;
+    overflow-y: scroll;
+    scroll-snap-type: y mandatory;
+    overscroll-behavior-y: contain;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    margin: 0;
+    padding: 0;
+  }
+  .classroom-tab .classroom-entries::-webkit-scrollbar { display: none; }
+
+  /* Footer ausblenden */
+  .classroom-tab .tab-placeholder-footer {
     display: none;
   }
 }
