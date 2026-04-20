@@ -97,7 +97,7 @@ const GAME_LABELS = {
   zeitenwende: 'Zeitenwende',
 }
 
-export default function ClassroomTab({ onLiveChange = () => {}, submitRef = null, onInSessionChange = () => {} }) {
+export default function ClassroomTab({ onLiveChange = () => {}, submitRef = null, onInSessionChange = () => {}, getRetroResultsRef = null }) {
   const streak = computeStreak()
   const today = new Date()
   const dateStr = localDateStr(today)
@@ -149,6 +149,8 @@ export default function ClassroomTab({ onLiveChange = () => {}, submitRef = null
   const activeSessionIdRef = useRef('')
   const pendingSubmitsRef = useRef([])
   const participantSessionRef = useRef(null)
+  const isFreshJoinRef = useRef(false)
+  const joinCodeRef = useRef('')
 
   const isTeacher = account?.role === 'teacher'
   const activeSession = useMemo(() => sessions.find((s) => s.id === activeSessionId) || null, [sessions, activeSessionId])
@@ -443,6 +445,30 @@ export default function ClassroomTab({ onLiveChange = () => {}, submitRef = null
           participantId: participant.id,
           participantToken: participant.token,
         })
+        // ③ Retro-Submit: bereits gespielte Ergebnisse in Pending-Queue einstellen
+        if (isFreshJoinRef.current) {
+          isFreshJoinRef.current = false
+          const retroResults = getRetroResultsRef?.current?.()
+          if (retroResults?.length) {
+            for (const { game, score, maxScore } of retroResults) {
+              pendingSubmitsRef.current.push({
+                roundNo: GAME_ROUND_NO[game] ?? 1,
+                score,
+                maxScore,
+                payload: { game },
+              })
+            }
+            setSubmittedGames(prev => {
+              const next = [...prev]
+              for (const { game, score, maxScore } of retroResults) {
+                const idx = next.findIndex(s => s.game === game)
+                if (idx >= 0) next[idx] = { game, score, maxScore }
+                else next.push({ game, score, maxScore })
+              }
+              return next
+            })
+          }
+        }
       })
 
       socket.on('disconnect', () => {
@@ -496,6 +522,13 @@ export default function ClassroomTab({ onLiveChange = () => {}, submitRef = null
             finishedAt: payload.session.finishedAt ?? prev.finishedAt,
           }
         })
+        // ③ Pending-Flush: Session läuft bereits → Retro-Abgaben sofort senden
+        if (payload.session.state === 'running' && pendingSubmitsRef.current.length > 0) {
+          const pending = pendingSubmitsRef.current.splice(0)
+          for (const sub of pending) {
+            socket.emit('classroom:submit', sub)
+          }
+        }
       })
 
       socket.on('classroom:error', (payload) => {
@@ -551,10 +584,39 @@ export default function ClassroomTab({ onLiveChange = () => {}, submitRef = null
     setJoinNotice('')
     setSocketError('')
     try {
+      const code = joinCodeInput.trim().toLowerCase()
+      joinCodeRef.current = code
+      const ssKey = `sig_cr_${code}`
+
+      // ④ Reconnect-Guard: gleichen Teilnehmer wiederverwenden statt neu anlegen
+      let existingCreds = null
+      try {
+        const stored = sessionStorage.getItem(ssKey)
+        if (stored) existingCreds = JSON.parse(stored)
+      } catch {}
+
+      if (existingCreds?.sessionId && existingCreds?.participantId && existingCreds?.token && existingCreds?.session) {
+        const savedState = existingCreds.session?.state
+        if (savedState === 'finished' || savedState === 'archived') {
+          // Abgelaufene Session aus SessionStorage entfernen, dann normal beitreten
+          try { sessionStorage.removeItem(ssKey) } catch {}
+          existingCreds = null
+        } else {
+          // Teilnehmer-Credentials wiederverwenden – kein neuer HTTP-Join nötig
+          setParticipantSession(existingCreds.session)
+          setParticipantInfo({ id: existingCreds.participantId, token: existingCreds.token, sessionId: existingCreds.sessionId })
+          setJoinNotice('Wieder verbunden.')
+          isFreshJoinRef.current = true  // ③ Retro-Submit auch bei Reconnect
+          await setupSocket(existingCreds.session, { id: existingCreds.participantId, token: existingCreds.token })
+          return
+        }
+      }
+
+      // Normaler Beitritt via HTTP
       const res = await fetch(`${API}/classroom/join`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code: joinCodeInput.trim().toLowerCase() }),
+        body: JSON.stringify({ code }),
       })
       const payload = await readJsonSafe(res)
       if (!res.ok) {
@@ -579,7 +641,17 @@ export default function ClassroomTab({ onLiveChange = () => {}, submitRef = null
           JSON.stringify({ id: participant.id, token: participant.token, sessionId: joinedSession.id, session: joinedSession }),
         )
       } catch {}
+      // ④ Code → SessionStorage, damit spätere Reconnects denselben Teilnehmer wiederverwenden
+      try {
+        sessionStorage.setItem(ssKey, JSON.stringify({
+          sessionId: joinedSession.id,
+          participantId: participant.id,
+          token: participant.token,
+          session: joinedSession,
+        }))
+      } catch {}
       setJoinNotice('Beitritt erfolgreich.')
+      isFreshJoinRef.current = true  // ③ Retro-Submit beim Socket-Connect
       await setupSocket(joinedSession, participant)
     } catch {
       setJoinNotice('Netzwerkfehler beim Beitritt.')
@@ -1052,6 +1124,8 @@ export default function ClassroomTab({ onLiveChange = () => {}, submitRef = null
                           className="test-cta"
                           onClick={() => {
                             if (participantSession) {
+                              // localStorage entfernen (Auto-Restore verhindert)
+                              // sessionStorage BEHALTEN → gleicher Code reconnected als selben Teilnehmer (④)
                               try { localStorage.removeItem(parseStorageKey(participantSession.id)) } catch {}
                             }
                             teardownSocket()

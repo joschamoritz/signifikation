@@ -118,6 +118,7 @@ export default function App() {
   const freshKollRef = useRef(false)
   const inGameRef = useRef(false)
   const classroomSubmitRef = useRef(null)
+  const getRetroResultsRef = useRef(null)
 
   // Schlüssel aus Server-Datum ableiten (oder Fallback auf lokales Datum + Jahr)
   const keys = serverDatum
@@ -419,6 +420,31 @@ export default function App() {
   const playedIds   = playedGames.map(g => g.id)
   const allPlayed   = lemmata?.length > 0 && lemmata.every(l => playedIds.includes(l.id))
 
+  // ③ Retro-Submit: aktuelle Spielstände für nachträglichen Klassenraum-Beitritt bereitstellen
+  useEffect(() => {
+    getRetroResultsRef.current = () => {
+      const results = []
+      // Kollokationen: alle gespielten Lemmata des Tages (letztes überschreibt wie Live-Submit)
+      const played = getPlayedToday(keys.todayKey)
+      for (const g of played) {
+        if (g.total != null) {
+          const maxScore = Array.isArray(g.scores) && g.scores.length >= 4 ? 10 : 9
+          results.push({ game: 'kollokationen', score: g.total, maxScore })
+        }
+      }
+      if (zrPlayed?.total != null) {
+        results.push({ game: 'zeitreise', score: zrPlayed.total, maxScore: zrPlayed.max ?? 10 })
+      }
+      if (wzPlayed?.total != null) {
+        results.push({ game: 'wortzwilling', score: wzPlayed.total, maxScore: 10 })
+      }
+      if (zwPlayed?.total != null) {
+        results.push({ game: 'zeitenwende', score: zwPlayed.total, maxScore: 10 })
+      }
+      return results
+    }
+  }, [keys.todayKey, zrPlayed, wzPlayed, zwPlayed])
+
   // Bonus-Phase: direkt in App rendern (kein Hooks-Verstoß in Quiz)
   const isBonus = phase === 'quiz' && currentRound === 3 && bonusQuestion
   const showTabBar = phase === 'home' || activeTab !== 'spielmodi'
@@ -550,7 +576,7 @@ export default function App() {
         aria-hidden={activeTab !== 'klassenraum' ? 'true' : undefined}
         style={activeTab !== 'klassenraum' ? { display: 'none' } : undefined}
       >
-        <ClassroomTab onLiveChange={setClassroomLive} onInSessionChange={setClassroomInSession} submitRef={classroomSubmitRef} />
+        <ClassroomTab onLiveChange={setClassroomLive} onInSessionChange={setClassroomInSession} submitRef={classroomSubmitRef} getRetroResultsRef={getRetroResultsRef} />
       </div>
     </div>
     {showTabBar && <TabBar activeTab={activeTab} onTabChange={handleTabChange} classroomLive={classroomLive} />}
