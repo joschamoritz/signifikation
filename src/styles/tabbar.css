@@ -884,6 +884,14 @@
   font-family: var(--font-serif);
   font-size: 0.9rem;
   color: var(--text);
+  flex: 1;
+}
+
+.cr-submitted-score {
+  font-family: var(--font-sans);
+  font-size: 0.72rem;
+  color: var(--muted);
+  white-space: nowrap;
 }
 
 /* ③ Live: Abgaben je Spielmodus */
@@ -899,7 +907,7 @@
 
 .cr-live-row {
   display: grid;
-  grid-template-columns: 110px minmax(0, 1fr) 28px;
+  grid-template-columns: 110px minmax(0, 1fr) 28px 44px;
   gap: 8px;
   align-items: center;
 }
@@ -933,9 +941,17 @@
   text-align: right;
 }
 
+.cr-live-avg {
+  font-family: var(--font-sans);
+  font-size: 0.69rem;
+  color: var(--muted);
+  text-align: right;
+  opacity: 0.7;
+}
+
 @media (max-width: 480px) {
   .cr-live-row {
-    grid-template-columns: 90px minmax(0, 1fr) 24px;
+    grid-template-columns: 90px minmax(0, 1fr) 24px 36px;
   }
 }
 
@@ -1073,13 +1089,13 @@
   border-bottom: 1px solid var(--border);
 }
 
-/* Innerer Wrapper — Padding-Abstufung wie classroom-inner */
+/* Innerer Wrapper — 3-spaltiges Grid: Label | Status | Metriken */
 .cr-raster-content {
-  padding: 10px 24px;
-  display: flex;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
   align-items: center;
-  justify-content: space-between;
-  gap: 12px;
+  gap: 16px;
+  padding: 9px 24px;
   overflow: hidden;
 }
 
@@ -1098,45 +1114,33 @@
   text-transform: uppercase;
   color: var(--muted);
   white-space: nowrap;
-  flex-shrink: 0;
 }
 
-.cr-raster-words {
-  display: flex;
-  align-items: center;
-  gap: 0;
-  flex: 1;
-  justify-content: center;
-  flex-wrap: wrap;
-  row-gap: 4px;
-}
-
-.cr-raster-word {
+/* Mitte: Status-Label (State) */
+.cr-raster-center {
   font-family: var(--font-serif);
   font-variant: small-caps;
   font-size: 0.82rem;
   font-weight: 700;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.08em;
   color: var(--text);
-  padding: 0 12px;
-  position: relative;
-}
-
-.cr-raster-word + .cr-raster-word::before {
-  content: '·';
-  position: absolute;
-  left: -2px;
-  color: var(--primary);
-  font-style: normal;
-}
-
-.cr-raster-folio {
-  font-family: var(--font-serif);
-  font-size: 0.75rem;
-  letter-spacing: 0.1em;
-  color: var(--muted);
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
   white-space: nowrap;
-  flex-shrink: 0;
+}
+
+.cr-raster-center--running {
+  color: var(--success);
+}
+
+/* Rechts: Metriken */
+.cr-raster-right {
+  font-family: var(--font-sans);
+  font-size: 0.72rem;
+  color: var(--muted);
+  text-align: right;
+  white-space: nowrap;
 }
 
 /* ── Klassenraum: Aktualisieren (Lobby-Hint) ────────────────── */

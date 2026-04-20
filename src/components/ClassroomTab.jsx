@@ -97,7 +97,7 @@ const GAME_LABELS = {
   zeitenwende: 'Zeitenwende',
 }
 
-export default function ClassroomTab({ onLiveChange = () => {}, submitRef = null }) {
+export default function ClassroomTab({ onLiveChange = () => {}, submitRef = null, onInSessionChange = () => {} }) {
   const streak = computeStreak()
   const today = new Date()
   const dateStr = localDateStr(today)
@@ -474,11 +474,34 @@ export default function ClassroomTab({ onLiveChange = () => {}, submitRef = null
       socket.on('classroom:results', (payload) => {
         if (payload?.accepted) {
           const game = ROUND_GAME_NAME[payload.roundNo]
-          if (game) setSubmittedGames(prev => [...prev.filter(g => g !== game), game])
+          // Nur als Safety-Net: optimistisches Update in submitRef.current war schneller.
+          // Falls das Spiel noch nicht in der Liste ist (z.B. Flush aus Pending), eintragen.
+          if (game) {
+            setSubmittedGames(prev => {
+              if (prev.some(s => s.game === game)) return prev
+              return [...prev, { game, score: 0, maxScore: 0 }]
+            })
+          }
         }
       })
 
+      socket.on('classroom:ready', (payload) => {
+        if (!payload?.session) return
+        setParticipantSession(prev => {
+          if (!prev) return prev
+          return {
+            ...prev,
+            state: payload.session.state ?? prev.state,
+            startedAt: payload.session.startedAt ?? prev.startedAt,
+            finishedAt: payload.session.finishedAt ?? prev.finishedAt,
+          }
+        })
+      })
+
       socket.on('classroom:error', (payload) => {
+        // NOT_JOINED ist ein transientes Echo kurz nach Reconnect —
+        // classroom:join ist bereits unterwegs, kein echter Fehler.
+        if (payload?.code === 'NOT_JOINED') return
         const message = payload?.message || 'Socket-Fehler'
         setSocketError(humanizeJoinError(message))
         if (payload?.code === 'HOST_TIMEOUT') {
@@ -677,6 +700,11 @@ export default function ClassroomTab({ onLiveChange = () => {}, submitRef = null
     return () => onLiveChange(false)
   }, [isLive, onLiveChange])
 
+  // Schüler: App.jsx informieren wenn eine Sitzung beigetreten/verlassen wird
+  useEffect(() => {
+    onInSessionChange(!!participantInfo)
+  }, [participantInfo, onInSessionChange])
+
   // Timer-Tick für laufende Sessions (stoppt wenn beendet)
   useEffect(() => {
     if (!activeSession?.startedAt) return
@@ -729,9 +757,10 @@ export default function ClassroomTab({ onLiveChange = () => {}, submitRef = null
     if (e.key === 'ArrowUp') scrollToCard(Math.max(activeCard - 1, 0))
   }, [activeCard, isTeacher, scrollToCard])
 
-  // submitRef für App.jsx-Spielresultate → Klassenraum-Socket
-  // Wenn Session noch nicht läuft, wird das Ergebnis zwischengespeichert
-  // und automatisch übertragen sobald die Session startet.
+  // submitRef für App.jsx-Spielresultate → Klassenraum-Socket.
+  // Score/maxScore werden sofort optimistisch in submittedGames eingetragen.
+  // Wenn Session noch nicht läuft, wird die Abgabe zwischengespeichert
+  // und beim classroom:state(running)-Event automatisch nachgereicht.
   useEffect(() => {
     if (!submitRef) return
     if (socketConnected && participantInfo) {
@@ -744,6 +773,11 @@ export default function ClassroomTab({ onLiveChange = () => {}, submitRef = null
           maxScore,
           payload: { game, ...payload },
         }
+        // Optimistisches UI-Update — zeigt Score sofort
+        setSubmittedGames(prev => {
+          const filtered = prev.filter(s => s.game !== game)
+          return [...filtered, { game, score, maxScore }]
+        })
         if (participantSessionRef.current?.state === 'running') {
           sock.emit('classroom:submit', sub)
         } else {
@@ -756,28 +790,37 @@ export default function ClassroomTab({ onLiveChange = () => {}, submitRef = null
     return () => { if (submitRef) submitRef.current = null }
   }, [socketConnected, participantInfo, submitRef])
 
-  // Dynamische Raster-Statuszeile
-  const rasterWords = useMemo(() => {
-    if (loadingAccount) return ['Wird geladen …']
+  // Raster-Statuszeile: { center, isRunning, right }
+  const rasterStatus = useMemo(() => {
+    if (loadingAccount) return { center: '', isRunning: false, right: '' }
     if (isTeacher) {
-      if (!activeSession) return ['Neue Sitzung unter ② anlegen']
+      if (!activeSession) return { center: 'Neue Sitzung anlegen', isRunning: false, right: 'unter ②' }
       const isIdle = activeSession.state === 'finished' || activeSession.state === 'archived'
+      const stateName = mapSessionState(activeSession.state)
+      const sessionName = activeSession.settings?.name
       if (isIdle) {
-        if (activeSession.settings?.name) return [activeSession.settings.name, 'Beendet', 'Neu anlegen → ②']
-        return ['Letzte Sitzung beendet', 'Neu anlegen → ②']
-      }
-      const parts = []
-      if (activeSession.settings?.name) parts.push(activeSession.settings.name)
-      parts.push(mapSessionState(activeSession.state))
-      if (dashboard?.metrics && (activeSession.state === 'running' || activeSession.state === 'lobby')) {
-        parts.push(`${dashboard.metrics.connected_count} verbunden`)
-        if (activeSession.state === 'running') {
-          parts.push(`${dashboard.metrics.submitted_count}\u202f/\u202f${dashboard.metrics.total_count} abgegeben`)
+        return {
+          center: sessionName ? `${sessionName} – ${stateName}` : stateName,
+          isRunning: false,
+          right: 'Neu anlegen → ②',
         }
       }
-      return parts
+      const isRunning = activeSession.state === 'running'
+      const isActive = isRunning || activeSession.state === 'lobby'
+      let right = ''
+      if (dashboard?.metrics && isActive) {
+        right = `${dashboard.metrics.connected_count} verbunden`
+        if (isRunning) {
+          right += `\u202f·\u202f${dashboard.metrics.submitted_count}\u202f/\u202f${dashboard.metrics.total_count} abgegeben`
+        }
+      }
+      return {
+        center: sessionName ? `${sessionName} – ${stateName}` : stateName,
+        isRunning,
+        right,
+      }
     }
-    if (!participantSession || !participantInfo) return ['Code unter ② eingeben']
+    if (!participantSession || !participantInfo) return { center: 'Code unter ② eingeben', isRunning: false, right: '' }
     const stateLabel = (() => {
       if (!socketConnected) return mapSessionState(participantSession.state)
       if (participantSession.state === 'running') return 'Läuft'
@@ -785,11 +828,15 @@ export default function ClassroomTab({ onLiveChange = () => {}, submitRef = null
       if (participantSession.state === 'finished' || participantSession.state === 'archived') return 'Beendet'
       return 'Verbunden'
     })()
-    const parts = []
-    if (participantSession.settings?.name) parts.push(participantSession.settings.name)
-    parts.push(stateLabel)
-    if (submittedGames.length > 0) parts.push(`${submittedGames.length}\u202f${submittedGames.length === 1 ? 'Spiel' : 'Spiele'} abgegeben`)
-    return parts
+    const sessionName = participantSession.settings?.name
+    const right = submittedGames.length > 0
+      ? `${submittedGames.length}\u202f${submittedGames.length === 1 ? 'Spiel' : 'Spiele'} abgegeben`
+      : ''
+    return {
+      center: sessionName ? `${sessionName} – ${stateLabel}` : stateLabel,
+      isRunning: participantSession.state === 'running',
+      right,
+    }
   }, [loadingAccount, isTeacher, activeSession, dashboard, participantSession, participantInfo, socketConnected, submittedGames])
 
   return (
@@ -813,11 +860,14 @@ export default function ClassroomTab({ onLiveChange = () => {}, submitRef = null
       <nav className="cr-raster" aria-label="Klassenraum-Übersicht">
         <div className="cr-raster-content">
           <span className="cr-raster-label" aria-hidden="true">Klassenraum</span>
-          <div className="cr-raster-words" aria-live="polite" aria-atomic="true">
-            {rasterWords.map((w, i) => (
-              <span key={i} className="cr-raster-word">{w}</span>
-            ))}
-          </div>
+          <span
+            className={`cr-raster-center${rasterStatus.isRunning ? ' cr-raster-center--running' : ''}`}
+            aria-live="polite"
+            aria-atomic="true"
+          >
+            {rasterStatus.center}
+          </span>
+          <span className="cr-raster-right">{rasterStatus.right}</span>
         </div>
       </nav>
 
@@ -1084,6 +1134,11 @@ export default function ClassroomTab({ onLiveChange = () => {}, submitRef = null
                                 />
                               </span>
                               <span className="cr-live-num">{count}</span>
+                              <span className="cr-live-avg">
+                                {gameData && count > 0
+                                  ? `⌀\u202f${gameData.avgScore}`
+                                  : '—'}
+                              </span>
                             </li>
                           )
                         })}
@@ -1117,10 +1172,11 @@ export default function ClassroomTab({ onLiveChange = () => {}, submitRef = null
                   <>
                     {submittedGames.length > 0 ? (
                       <ul className="cr-submitted-list">
-                        {submittedGames.map((game) => (
+                        {submittedGames.map(({ game, score, maxScore }) => (
                           <li key={game} className="cr-submitted-item">
                             <span className="cr-submitted-check">✓</span>
                             <span className="cr-submitted-name">{GAME_LABELS[game] ?? game}</span>
+                            {maxScore > 0 && <span className="cr-submitted-score">{score}&thinsp;/&thinsp;{maxScore}</span>}
                           </li>
                         ))}
                       </ul>
@@ -1132,10 +1188,11 @@ export default function ClassroomTab({ onLiveChange = () => {}, submitRef = null
                   <p className="cr-hint">Wechsel zu „Spielmodi" und spiele — dein Ergebnis wird automatisch übertragen.</p>
                 ) : (
                   <ul className="cr-submitted-list">
-                    {submittedGames.map((game) => (
+                    {submittedGames.map(({ game, score, maxScore }) => (
                       <li key={game} className="cr-submitted-item">
                         <span className="cr-submitted-check">✓</span>
                         <span className="cr-submitted-name">{GAME_LABELS[game] ?? game}</span>
+                        {maxScore > 0 && <span className="cr-submitted-score">{score}&thinsp;/&thinsp;{maxScore}</span>}
                       </li>
                     ))}
                   </ul>

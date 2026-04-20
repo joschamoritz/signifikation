@@ -107,6 +107,7 @@ export default function App() {
 
   const [activeTab, setActiveTab]  = useState('spielmodi')
   const [classroomLive, setClassroomLive] = useState(false)
+  const [classroomInSession, setClassroomInSession] = useState(false)
   const [phase, setPhase]         = useState('home')
   const [selectedLemma, setSelected] = useState(null)
   const [currentRound, setRound]  = useState(0)
@@ -522,7 +523,7 @@ export default function App() {
             zwPlayed={zwPlayed}
             onPlayZeitenwende={() => startVT(() => { setZwViewOnly(false); setPhase('zeitenwende') })}
             onViewZeitenwende={() => startVT(() => { setZwViewOnly(true);  setPhase('zeitenwende') })}
-            gesamtausgabe={gesamtausgabeUnlocked}
+            gesamtausgabe={gesamtausgabeUnlocked || classroomInSession}
             onUnlockGesamtausgabe={unlockGesamtausgabe}
           />
         )}
@@ -549,7 +550,7 @@ export default function App() {
         aria-hidden={activeTab !== 'klassenraum' ? 'true' : undefined}
         style={activeTab !== 'klassenraum' ? { display: 'none' } : undefined}
       >
-        <ClassroomTab onLiveChange={setClassroomLive} submitRef={classroomSubmitRef} />
+        <ClassroomTab onLiveChange={setClassroomLive} onInSessionChange={setClassroomInSession} submitRef={classroomSubmitRef} />
       </div>
     </div>
     {showTabBar && <TabBar activeTab={activeTab} onTabChange={handleTabChange} classroomLive={classroomLive} />}
