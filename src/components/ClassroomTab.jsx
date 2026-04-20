@@ -447,7 +447,21 @@ export default function ClassroomTab({ onLiveChange = () => {}, submitRef = null
         setSocketConnected(false)
       })
 
-      socket.on('classroom:state', () => {})
+      socket.on('classroom:state', (payload) => {
+        if (!payload) return
+        setParticipantSession((prev) => {
+          if (!prev) return prev
+          return {
+            ...prev,
+            state: payload.state ?? prev.state,
+            startedAt: payload.startedAt ?? prev.startedAt,
+            finishedAt: payload.finishedAt ?? prev.finishedAt,
+          }
+        })
+        if (payload.state === 'finished' || payload.state === 'archived') {
+          try { localStorage.removeItem(parseStorageKey(payload.sessionId)) } catch {}
+        }
+      })
 
       socket.on('classroom:results', (payload) => {
         if (payload?.accepted) {
@@ -608,18 +622,23 @@ export default function ClassroomTab({ onLiveChange = () => {}, submitRef = null
         const raw = localStorage.getItem(key)
         if (!raw) continue
         const parsed = JSON.parse(raw)
-        if (parsed?.sessionId && parsed?.id && parsed?.token && parsed?.session) {
-          setParticipantSession(parsed.session)
-          setParticipantInfo({ id: parsed.id, token: parsed.token, sessionId: parsed.sessionId })
-          setupSocket(parsed.session, { id: parsed.id, token: parsed.token })
-          break
+        if (!parsed?.sessionId || !parsed?.id || !parsed?.token || !parsed?.session) continue
+        // Abgelaufene/beendete Sessions nicht wiederherstellen
+        const savedState = parsed.session?.state
+        if (savedState === 'finished' || savedState === 'archived') {
+          try { localStorage.removeItem(key) } catch {}
+          continue
         }
+        setParticipantSession(parsed.session)
+        setParticipantInfo({ id: parsed.id, token: parsed.token, sessionId: parsed.sessionId })
+        setupSocket(parsed.session, { id: parsed.id, token: parsed.token })
+        break
       }
     } catch {}
   }, [loadingAccount, isTeacher, participantInfo, setupSocket])
 
-  // Live-Indikator nach oben propagieren
-  const isLive = socketConnected || (isTeacher && activeSession?.state === 'running')
+  // Live-Indikator: Schüler nur live wenn Socket verbunden UND Session läuft
+  const isLive = (socketConnected && participantSession?.state === 'running') || (isTeacher && activeSession?.state === 'running')
   useEffect(() => {
     onLiveChange(isLive)
     return () => onLiveChange(false)
@@ -697,6 +716,35 @@ export default function ClassroomTab({ onLiveChange = () => {}, submitRef = null
     return () => { if (submitRef) submitRef.current = null }
   }, [socketConnected, participantInfo, submitRef])
 
+  // Dynamische Raster-Statuszeile
+  const rasterWords = useMemo(() => {
+    if (loadingAccount) return ['Wird geladen …']
+    if (isTeacher) {
+      if (!activeSession) return ['Keine aktive Sitzung']
+      const parts = []
+      if (activeSession.settings?.name) parts.push(activeSession.settings.name)
+      parts.push(mapSessionState(activeSession.state))
+      if (dashboard?.metrics && (activeSession.state === 'running' || activeSession.state === 'lobby')) {
+        parts.push(`${dashboard.metrics.connected_count} verbunden`)
+        if (activeSession.state === 'running') {
+          parts.push(`${dashboard.metrics.submitted_count}\u202f/\u202f${dashboard.metrics.total_count} abgegeben`)
+        }
+      }
+      return parts
+    }
+    if (!participantSession || !participantInfo) return ['Zugangscode eingeben zum Beitreten']
+    const parts = []
+    if (participantSession.settings?.name) parts.push(participantSession.settings.name)
+    const stateLabel = participantSession.state === 'running'
+      ? 'Läuft'
+      : participantSession.state === 'lobby' || participantSession.state === 'created'
+        ? 'Warte auf Start'
+        : mapSessionState(participantSession.state)
+    parts.push(socketConnected ? stateLabel : mapSessionState(participantSession.state))
+    if (submittedGames.length > 0) parts.push(`${submittedGames.length}\u202f${submittedGames.length === 1 ? 'Spiel' : 'Spiele'} abgegeben`)
+    return parts
+  }, [loadingAccount, isTeacher, activeSession, dashboard, participantSession, participantInfo, socketConnected, submittedGames])
+
   return (
     <div className="tab-placeholder classroom-tab">
       <header className="test-title-section" role="banner">
@@ -718,9 +766,9 @@ export default function ClassroomTab({ onLiveChange = () => {}, submitRef = null
       <nav className="cr-raster" aria-label="Klassenraum-Übersicht">
         <div className="cr-raster-content">
           <span className="cr-raster-label" aria-hidden="true">Klassenraum</span>
-          <div className="cr-raster-words">
-            {['Sitzung', 'Beitritt', 'Echtzeit', 'Protokoll'].map((w) => (
-              <span key={w} className="cr-raster-word">{w}</span>
+          <div className="cr-raster-words" aria-live="polite" aria-atomic="true">
+            {rasterWords.map((w, i) => (
+              <span key={i} className="cr-raster-word">{w}</span>
             ))}
           </div>
           <span className="cr-raster-folio" aria-hidden="true">①②③④</span>

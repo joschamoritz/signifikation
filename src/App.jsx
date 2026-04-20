@@ -526,9 +526,8 @@ export default function App() {
             onUnlockGesamtausgabe={unlockGesamtausgabe}
           />
         )}
-        {activeTab === 'klassenraum' && <ClassroomTab onLiveChange={setClassroomLive} submitRef={classroomSubmitRef} />}
-        {activeTab === 'kurs'        && <KursTab />}
-        {activeTab === 'profil'      && (
+        {activeTab === 'kurs'   && <KursTab />}
+        {activeTab === 'profil' && (
           <KontoTab
             gesamtausgabe={gesamtausgabeUnlocked}
             onUnlock={() => {
@@ -539,6 +538,19 @@ export default function App() {
           />
         )}
       </TabTransition>
+
+      {/*
+        ClassroomTab: IMMER gemountet — nie unmounten.
+        Grund: Socket-Verbindung, submitRef und Teilnehmer-State
+        müssen Tab-Wechsel überleben. display:none versteckt
+        den Tab visuell, lässt aber den React-Tree intakt.
+      */}
+      <div
+        aria-hidden={activeTab !== 'klassenraum' ? 'true' : undefined}
+        style={activeTab !== 'klassenraum' ? { display: 'none' } : undefined}
+      >
+        <ClassroomTab onLiveChange={setClassroomLive} submitRef={classroomSubmitRef} />
+      </div>
     </div>
     {showTabBar && <TabBar activeTab={activeTab} onTabChange={handleTabChange} classroomLive={classroomLive} />}
     </ErrorBoundary>
