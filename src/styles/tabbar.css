@@ -1155,21 +1155,6 @@
 }
 .cr-refresh-btn:hover { color: var(--primary); }
 
-/* ── Klassenraum: Sitzung verlassen ─────────────────────────── */
-.cr-leave-btn {
-  border: none;
-  background: none;
-  font-family: var(--font-sans);
-  font-size: 0.72rem;
-  color: var(--muted);
-  cursor: pointer;
-  padding: 0;
-  margin-top: 10px;
-  text-decoration: underline;
-  text-underline-offset: 2px;
-  display: block;
-}
-.cr-leave-btn:hover { color: var(--primary); }
 
 /* ── Klassenraum: Mobiles Snap-Layout ───────────────────────── */
 @media (max-width: 699px) {

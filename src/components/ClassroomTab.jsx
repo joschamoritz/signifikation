@@ -996,25 +996,27 @@ export default function ClassroomTab({ onLiveChange = () => {}, submitRef = null
                       {hostCountdown > 0 && (
                         <p className="cr-error">Verbindung unterbrochen. Sitzung endet in {hostCountdown}s.</p>
                       )}
-                      <button
-                        type="button"
-                        className="cr-leave-btn"
-                        onClick={() => {
-                          if (participantSession) {
-                            try { localStorage.removeItem(parseStorageKey(participantSession.id)) } catch {}
-                          }
-                          teardownSocket()
-                          clearParticipantRuntime()
-                          setParticipantInfo(null)
-                          setParticipantSession(null)
-                          setSubmittedGames([])
-                          setSocketError('')
-                          setJoinNotice('')
-                          setJoinCodeInput('')
-                        }}
-                      >
-                        Anderen Code eingeben
-                      </button>
+                      <p className="cr-action-row" style={{ marginTop: '12px' }}>
+                        <button
+                          type="button"
+                          className="test-cta"
+                          onClick={() => {
+                            if (participantSession) {
+                              try { localStorage.removeItem(parseStorageKey(participantSession.id)) } catch {}
+                            }
+                            teardownSocket()
+                            clearParticipantRuntime()
+                            setParticipantInfo(null)
+                            setParticipantSession(null)
+                            setSubmittedGames([])
+                            setSocketError('')
+                            setJoinNotice('')
+                            setJoinCodeInput('')
+                          }}
+                        >
+                          Sitzung verlassen
+                        </button>
+                      </p>
                     </div>
                   )}
                 </div>
