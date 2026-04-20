@@ -6,7 +6,7 @@ import { fetchLemma, fetchBonusQuestion, fetchRelation, fetchZeitreise, fetchZei
 import { belegeVerfuegbar, fetchBelege } from '../belege.js'
 import { fetchWiktionary } from '../wiktionary.js'
 import { fetchWortZwilling } from '../wortzwilling.js'
-import { load, loadReadOnly, save, loadZeitreise, loadWortZwilling, loadZeitenwende, loadStats, loadStatsRows, getLemmataIndex, getCacheMetrics, DATA } from '../store.js'
+import { load, loadReadOnly, save, loadZeitreise, loadWortZwilling, loadZeitenwende, loadStats, loadStatsRows, getLemmataIndex, getCacheMetrics, DATA, stmts, lemmaToRow } from '../store.js'
 import { getCacheMetrics as getQueryCacheMetrics, clearCache as clearQueryCache } from '../query-cache.js'
 import { adminLimiter, loginLimiter, uploadLimiter } from '../middleware/rateLimiter.js'
 import { requireAuth, adminAuth, adminLogout, adminError, serverError, createSession } from '../middleware/auth.js'
@@ -1291,36 +1291,29 @@ router.post('/admin/tag', adminLimiter, requireAuth, validate(adminTagSchema), a
   const { datum, woerter, notizen, links, definitionen, positionen, zeitreise_lemma, zeitreise_wortart, zwilling_paar, zwilling_pos, zeitenwende_lemma } = req.body
 
   try {
-    const lemmataDB = load('lemmata.json')
-    const kalender  = load('kalender.json')
-    const ids       = []
+    const kalender = load('kalender.json')
+    const ids = []
 
     for (const [i, wort] of woerter.entries()) {
       const pos = (positionen?.[i] || 'Substantiv')
       logger.info(`Lade DWDS-Daten für „${wort}" (${pos}) …`)
-      const entry   = await fetchLemma(wort, pos)
-      entry.notiz       = notizen[i]      || ''
-      entry.link        = links[i]        || ''
-      entry.definition  = definitionen[i] || ''
-      entry.bonusFrage  = await fetchBonusQuestion(wort, pos).catch(() => null)
+      const entry = await fetchLemma(wort, pos)
+      entry.notiz = notizen[i] || ''
+      entry.link = links[i] || ''
+      entry.definition = definitionen[i] || ''
+      entry.bonusFrage = await fetchBonusQuestion(wort, pos).catch(() => null)
       // Wiktionary: IPA + Bedeutungen automatisch holen und lokal speichern
       logger.info(`Lade Wiktionary-Daten für „${wort}" …`)
-      const wikt        = await fetchWiktionary(wort).catch(() => ({ ipa: '', definitionen: [] }))
-      entry.ipa         = wikt.ipa
+      const wikt = await fetchWiktionary(wort).catch(() => ({ ipa: '', definitionen: [] }))
+      entry.ipa = wikt.ipa
       entry.definitionen = wikt.definitionen
-      // Direkter Index-Lookup statt findIndex
-      const { byId } = getLemmataIndex()
-      if (byId.has(entry.id)) {
-        const idx = lemmataDB.findIndex(l => l.id === entry.id)
-        lemmataDB[idx] = entry
-      } else {
-        lemmataDB.push(entry)
-      }
+      
+      // Direkt in DB schreiben statt Full-Load/Mutate/Full-Save
+      stmts.upsertLemma.run(lemmaToRow(entry))
       ids.push(entry.id)
     }
 
     kalender[datum] = ids
-    await save('lemmata.json', lemmataDB)
     await save('kalender.json', kalender)
 
     // Zeitreise optional

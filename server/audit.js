@@ -1,120 +1,85 @@
 /**
  * audit.js – Audit Logging für Admin-Changes
  *
- * Protokolliert alle Admin-Operationen (Erstellen, Aktualisieren, Löschen)
- * mit Timestamp, User-Identifikation und Change-Details.
- * Erforderlich für Compliance und Forensics.
+ * Neue Einträge werden in SQLite gespeichert.
+ * Bestehende JSONL-Einträge aus server/data/audit.log werden einmalig, idempotent importiert.
  */
 
-import { appendFile, openSync, readSync, fstatSync, closeSync } from 'fs'
-import { join } from 'path'
+import { createHash } from 'crypto'
+import { existsSync, openSync, readSync, fstatSync, closeSync } from 'fs'
+import { join, dirname } from 'path'
 import { fileURLToPath } from 'url'
-import { dirname } from 'path'
+import db from './db.js'
 import logger from './logger.js'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
-const DATA = join(__dirname, 'data')
-const AUDIT_LOG_FILE = join(DATA, 'audit.log')
+const AUDIT_LOG_FILE = join(__dirname, 'data', 'audit.log')
 
-/**
- * Audit Log Entry Format:
- * {
- *   timestamp: ISO 8601,
- *   action: 'CREATE' | 'UPDATE' | 'DELETE',
- *   resource: 'lemmata' | 'kalender' | 'zeitreise' | etc,
- *   resourceId: string (z.B. lemma ID),
- *   changes: { before: any, after: any },
- *   adminKey: string (last 4 chars only, für Sicherheit),
- *   ip: string,
- *   status: 'SUCCESS' | 'FAILED',
- *   error: string (optional, nur bei FAILED),
- * }
- */
+const stmts = {
+  insert: db.prepare(`
+    INSERT OR IGNORE INTO audit_log (
+      timestamp, action, resource, resource_id, changes_json,
+      admin_key_last4, ip, status, error, entry_hash
+    ) VALUES (
+      @timestamp, @action, @resource, @resource_id, @changes_json,
+      @admin_key_last4, @ip, @status, @error, @entry_hash
+    )
+  `),
+  latest: db.prepare(`
+    SELECT timestamp, action, resource, resource_id AS resourceId, changes_json,
+           admin_key_last4 AS adminKeyLast4, ip, status, error
+    FROM audit_log
+    ORDER BY timestamp DESC, id DESC
+    LIMIT ?
+  `),
+  byResource: db.prepare(`
+    SELECT timestamp, action, resource, resource_id AS resourceId, changes_json,
+           admin_key_last4 AS adminKeyLast4, ip, status, error
+    FROM audit_log
+    WHERE resource = ?
+    ORDER BY timestamp DESC, id DESC
+    LIMIT ?
+  `),
+}
 
-/**
- * Schreibt einen Audit-Log-Eintrag.
- * @param {Object} entry – Audit-Eintrag
- */
-export function auditLog(entry) {
-  const sanitizedEntry = {
-    timestamp: new Date().toISOString(),
-    action: entry.action,      // CREATE, UPDATE, DELETE
-    resource: entry.resource,  // Ressourcentyp (lemmata, kalender, etc)
-    resourceId: entry.resourceId,
-    changes: entry.changes,    // { before?, after? }
-    adminKeyLast4: entry.adminKey ? entry.adminKey.slice(-4) : 'unknown',
-    ip: entry.ip,
+function toEntryHash(entry) {
+  return createHash('sha256').update(JSON.stringify(entry)).digest('hex')
+}
+
+function normalizeRow(entry) {
+  const normalized = {
+    timestamp: entry.timestamp || new Date().toISOString(),
+    action: entry.action,
+    resource: entry.resource,
+    resource_id: entry.resourceId,
+    changes_json: JSON.stringify(entry.changes || {}),
+    admin_key_last4: entry.adminKeyLast4 || 'unknown',
+    ip: entry.ip || null,
     status: entry.status || 'SUCCESS',
-    error: entry.error || undefined,
+    error: entry.error || null,
   }
-
-  // Nur bei Fehlern Details loggen
-  if (sanitizedEntry.error) {
-    logger.warn(sanitizedEntry, `AUDIT FAILED: ${entry.action} on ${entry.resource}`)
-  } else {
-    logger.info(sanitizedEntry, `AUDIT: ${entry.action} on ${entry.resource}/${entry.resourceId}`)
-  }
-
-  // Schreibe in Audit-Log (Append-only, JSONL-Format, async)
-  try {
-    const line = JSON.stringify(sanitizedEntry) + '\n'
-    appendFile(AUDIT_LOG_FILE, line, (err) => {
-      if (err) logger.error({ err }, 'Audit log write failed')
-    })
-  } catch (err) {
-    logger.error({ err }, 'Audit log write failed')
+  return {
+    ...normalized,
+    entry_hash: toEntryHash(normalized),
   }
 }
 
-/**
- * Kurz-Wrapper für CREATE-Operationen.
- */
-export function auditCreate(resource, resourceId, data, { adminKey, ip }) {
-  auditLog({
-    action: 'CREATE',
-    resource,
-    resourceId,
-    changes: { after: data },
-    adminKey,
-    ip,
-  })
+function parseRow(row) {
+  return {
+    timestamp: row.timestamp,
+    action: row.action,
+    resource: row.resource,
+    resourceId: row.resourceId,
+    changes: JSON.parse(row.changes_json || '{}'),
+    adminKeyLast4: row.adminKeyLast4,
+    ip: row.ip,
+    status: row.status,
+    error: row.error || undefined,
+  }
 }
 
-/**
- * Kurz-Wrapper für UPDATE-Operationen.
- */
-export function auditUpdate(resource, resourceId, before, after, { adminKey, ip }) {
-  auditLog({
-    action: 'UPDATE',
-    resource,
-    resourceId,
-    changes: { before, after },
-    adminKey,
-    ip,
-  })
-}
-
-/**
- * Kurz-Wrapper für DELETE-Operationen.
- */
-export function auditDelete(resource, resourceId, data, { adminKey, ip }) {
-  auditLog({
-    action: 'DELETE',
-    resource,
-    resourceId,
-    changes: { before: data },
-    adminKey,
-    ip,
-  })
-}
-
-/**
- * Liest die letzten N Audit-Log-Einträge (für Admin-Dashboard).
- * Liest die Datei rückwärts, um nur die neuesten Einträge zu laden.
- * @param {number} limit – Anzahl Einträge (default 100)
- * @returns {Array} – Audit-Log-Einträge (neueste zuerst)
- */
-export function getAuditLog(limit = 100) {
+function readLegacyJsonl(limit = Infinity) {
+  if (!existsSync(AUDIT_LOG_FILE)) return []
   let fd
   try {
     fd = openSync(AUDIT_LOG_FILE, 'r')
@@ -153,20 +118,79 @@ export function getAuditLog(limit = 100) {
     }
 
     closeSync(fd)
-    return entries
+    return entries.reverse()
   } catch (err) {
     try { if (fd) closeSync(fd) } catch { /* ignore */ }
-    if (err.code === 'ENOENT') return []
-    logger.warn({ err }, 'Audit log read failed')
+    logger.warn({ err }, 'Legacy audit log read failed')
     return []
   }
 }
 
-/**
- * Filter-Funktion für Audit-Log-Abfragen (z.B. nach Resource oder Admin).
- * @param {string} resource – Filter nach Ressourcentyp
- * @returns {Array}
- */
+function importLegacyAuditLog() {
+  const entries = readLegacyJsonl()
+  if (!entries.length) return
+  const insertMany = db.transaction((list) => {
+    for (const entry of list) {
+      stmts.insert.run(normalizeRow({
+        timestamp: entry.timestamp,
+        action: entry.action,
+        resource: entry.resource,
+        resourceId: entry.resourceId,
+        changes: entry.changes,
+        adminKeyLast4: entry.adminKeyLast4,
+        ip: entry.ip,
+        status: entry.status,
+        error: entry.error,
+      }))
+    }
+  })
+  insertMany(entries)
+}
+
+importLegacyAuditLog()
+
+export function auditLog(entry) {
+  const sanitizedEntry = {
+    timestamp: new Date().toISOString(),
+    action: entry.action,
+    resource: entry.resource,
+    resourceId: entry.resourceId,
+    changes: entry.changes,
+    adminKeyLast4: entry.adminKey ? entry.adminKey.slice(-4) : 'unknown',
+    ip: entry.ip,
+    status: entry.status || 'SUCCESS',
+    error: entry.error || undefined,
+  }
+
+  if (sanitizedEntry.error) {
+    logger.warn(sanitizedEntry, `AUDIT FAILED: ${entry.action} on ${entry.resource}`)
+  } else {
+    logger.info(sanitizedEntry, `AUDIT: ${entry.action} on ${entry.resource}/${entry.resourceId}`)
+  }
+
+  try {
+    stmts.insert.run(normalizeRow(sanitizedEntry))
+  } catch (err) {
+    logger.error({ err }, 'Audit log write failed')
+  }
+}
+
+export function auditCreate(resource, resourceId, data, { adminKey, ip }) {
+  auditLog({ action: 'CREATE', resource, resourceId, changes: { after: data }, adminKey, ip })
+}
+
+export function auditUpdate(resource, resourceId, before, after, { adminKey, ip }) {
+  auditLog({ action: 'UPDATE', resource, resourceId, changes: { before, after }, adminKey, ip })
+}
+
+export function auditDelete(resource, resourceId, data, { adminKey, ip }) {
+  auditLog({ action: 'DELETE', resource, resourceId, changes: { before: data }, adminKey, ip })
+}
+
+export function getAuditLog(limit = 100) {
+  return stmts.latest.all(limit).map(parseRow)
+}
+
 export function getAuditLogByResource(resource, limit = 50) {
-  return getAuditLog(200).filter(e => e.resource === resource).slice(0, limit)
+  return stmts.byResource.all(resource, limit).map(parseRow)
 }

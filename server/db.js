@@ -147,6 +147,20 @@ db.exec(`
     PRIMARY KEY (datum, spiel, user_id)
   );
 
+  CREATE TABLE IF NOT EXISTS audit_log (
+    id             INTEGER PRIMARY KEY AUTOINCREMENT,
+    timestamp      TEXT NOT NULL,
+    action         TEXT NOT NULL,
+    resource       TEXT NOT NULL,
+    resource_id    TEXT NOT NULL,
+    changes_json   TEXT NOT NULL DEFAULT '{}',
+    admin_key_last4 TEXT NOT NULL DEFAULT 'unknown',
+    ip             TEXT,
+    status         TEXT NOT NULL DEFAULT 'SUCCESS',
+    error          TEXT,
+    entry_hash     TEXT NOT NULL UNIQUE
+  );
+
   CREATE TABLE IF NOT EXISTS classroom_sessions (
     id             TEXT PRIMARY KEY,
     teacher_user_id TEXT NOT NULL,
@@ -241,6 +255,15 @@ db.exec(`
 
   CREATE INDEX IF NOT EXISTS idx_classroom_exports_session_created
     ON classroom_exports(session_id, created_at DESC);
+
+  CREATE INDEX IF NOT EXISTS idx_audit_log_timestamp
+    ON audit_log(timestamp DESC);
+
+  CREATE INDEX IF NOT EXISTS idx_audit_log_resource_id
+    ON audit_log(resource, resource_id, timestamp DESC);
+
+  CREATE INDEX IF NOT EXISTS idx_audit_log_action_status
+    ON audit_log(action, status, timestamp DESC);
 `)
 
 logger.info({ path: DB_PATH }, 'signifikation.db bereit')

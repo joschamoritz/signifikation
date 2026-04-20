@@ -30,7 +30,7 @@ mkdirSync(DATA, { recursive: true })
 
 // ── Prepared Statements ───────────────────────────────────────────
 
-const stmts = {
+export const stmts = {
   // lemmata
   getAllLemmata:     db.prepare('SELECT * FROM lemmata'),
   upsertLemma:      db.prepare(`
@@ -113,7 +113,7 @@ function rowToLemma(row) {
   }
 }
 
-function lemmaToRow(l) {
+export function lemmaToRow(l) {
   return {
     id:           l.id,
     lemma:        l.lemma,
