@@ -161,6 +161,17 @@ describe('admin routes integration', () => {
   })
 
   it('GET /admin/audit-log/:resource/:id liefert Detailhistorie für eine Entität', async () => {
+    const datum = `12-${String((Math.floor(Math.random() * 20) + 10)).padStart(2, '0')}`
+    await save('kalender.json', { ...loadReadOnly('kalender.json'), [datum]: ['haus', 'baum', 'wort'] })
+
+    const seedResponse = await fetch(`${baseUrl}/admin/kalender/bulk-delete`, {
+      method: 'POST',
+      headers: adminHeaders(token),
+      body: JSON.stringify({ dates: [datum] }),
+    })
+
+    expect(seedResponse.status).toBe(200)
+
     const overview = await fetch(`${baseUrl}/admin/audit-log?limit=5`, {
       headers: adminHeaders(token),
     })
