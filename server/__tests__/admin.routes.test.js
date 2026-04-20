@@ -3,7 +3,7 @@ import cookieParser from 'cookie-parser'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import adminRouter from '../routes/admin.js'
 import { createSession } from '../middleware/auth.js'
-import { loadReadOnly } from '../store.js'
+import { loadReadOnly, save } from '../store.js'
 import db from '../db.js'
 
 const BACKUP_RESTORE_BODY_LIMIT = '10mb'
@@ -131,9 +131,8 @@ describe('admin routes integration', () => {
   })
 
   it('GET /admin/preview/day/:datum liefert Tagesdaten fuer vorhandenen Eintrag', async () => {
-    const kalender = loadReadOnly('kalender.json')
-    const datum = Object.keys(kalender)[0]
-    expect(datum).toBeTruthy()
+    const datum = '10-15'
+    await save('kalender.json', { ...loadReadOnly('kalender.json'), [datum]: ['haus', 'baum', 'wort'] })
 
     const response = await fetch(`${baseUrl}/admin/preview/day/${encodeURIComponent(datum)}`, {
       headers: adminHeaders(token),
@@ -241,6 +240,94 @@ describe('admin routes integration', () => {
     expect(response.status).toBe(200)
     expect(payload.ok).toBe(true)
     expect(typeof payload.restored?.kalender).toBe('number')
+  })
+
+  it('POST /admin/tag entfernt optionale Modi, wenn Felder geleert werden', async () => {
+    const datum = `11-${String((Math.floor(Math.random() * 20) + 10)).padStart(2, '0')}`
+
+    const firstResponse = await fetch(`${baseUrl}/admin/tag`, {
+      method: 'POST',
+      headers: adminHeaders(token),
+      body: JSON.stringify({
+        datum,
+        woerter: ['Haus', 'Baum', 'Wort'],
+        positionen: ['Substantiv', 'Verb', 'Adjektiv'],
+        notizen: ['', '', ''],
+        links: ['', '', ''],
+        definitionen: ['', '', ''],
+        zeitreise_lemma: 'Haus',
+        zeitreise_wortart: 'Substantiv',
+        zwilling_paar: ['Tag', 'Nacht'],
+        zwilling_pos: 'Substantiv',
+        zeitenwende_lemma: 'Zeit',
+      }),
+    })
+    expect(firstResponse.status).toBe(200)
+
+    const secondResponse = await fetch(`${baseUrl}/admin/tag`, {
+      method: 'POST',
+      headers: adminHeaders(token),
+      body: JSON.stringify({
+        datum,
+        woerter: ['Haus', 'Baum', 'Wort'],
+        positionen: ['Substantiv', 'Verb', 'Adjektiv'],
+        notizen: ['', '', ''],
+        links: ['', '', ''],
+        definitionen: ['', '', ''],
+        zeitreise_lemma: '',
+        zeitreise_wortart: 'Substantiv',
+        zwilling_paar: null,
+        zwilling_pos: 'Substantiv',
+        zeitenwende_lemma: '',
+      }),
+    })
+    expect(secondResponse.status).toBe(200)
+
+    const zeitreise = loadReadOnly('zeitreise.json')
+    const wortzwilling = loadReadOnly('wortzwilling.json')
+    const zeitenwende = loadReadOnly('zeitenwende.json')
+
+    expect(zeitreise[datum]).toBeUndefined()
+    expect(wortzwilling[datum]).toBeUndefined()
+    expect(zeitenwende[datum]).toBeUndefined()
+  })
+
+  it('POST /admin/backup/restore bleibt bei Fehlern atomisch', async () => {
+    const originalKalender = loadReadOnly('kalender.json')
+    const originalLemmata = loadReadOnly('lemmata.json')
+    const markerDatum = '10-31'
+    const markerId = 'restore-atomic-marker'
+
+    await save('kalender.json', { ...originalKalender, [markerDatum]: [markerId] })
+
+    const invalidBundle = {
+      exportedAt: new Date().toISOString(),
+      confirm: true,
+      files: {
+        'kalender.json': {},
+        'lemmata.json': originalLemmata,
+        'zeitreise.json': {},
+        'wortzwilling.json': {},
+        'zeitenwende.json': {},
+        'stats-rows.json': [null],
+      },
+    }
+
+    const response = await fetch(`${baseUrl}/admin/backup/restore`, {
+      method: 'POST',
+      headers: adminHeaders(token),
+      body: JSON.stringify(invalidBundle),
+    })
+
+    expect(response.status).toBe(500)
+
+    const kalenderAfter = loadReadOnly('kalender.json')
+    const lemmataAfter = loadReadOnly('lemmata.json')
+
+    expect(kalenderAfter[markerDatum]).toEqual([markerId])
+    expect(lemmataAfter.some((entry) => entry.id === markerId)).toBe(false)
+
+    await save('kalender.json', originalKalender)
   })
 
   it('POST /admin/users/bulk-update setzt Rollen fuer mehrere Nutzer', async () => {

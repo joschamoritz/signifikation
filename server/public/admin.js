@@ -19,6 +19,43 @@ let selectedCalendarDate = ''
 let selectedUserId = ''
 let dashboardWeekOffset = 0
 const selectedEntryDates = new Set()
+let sessionRefreshTimer = null
+let usersSearchTimer = null
+let usersOverviewAbortController = null
+let currentAuditEntries = []
+
+function getCurrentDate() {
+  return new Date()
+}
+
+function getTodayIso() {
+  return getCurrentDate().toISOString().slice(0, 10)
+}
+
+function getTodayMmdd() {
+  const now = getCurrentDate()
+  return `${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+}
+
+function scheduleSessionRefresh() {
+  if (sessionRefreshTimer) {
+    window.clearTimeout(sessionRefreshTimer)
+    sessionRefreshTimer = null
+  }
+
+  sessionRefreshTimer = window.setTimeout(async () => {
+    try {
+      const response = await fetch('/admin/refresh', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      })
+      if (!response.ok) throw new Error(`HTTP ${response.status}`)
+      scheduleSessionRefresh()
+    } catch {
+      doLogout()
+    }
+  }, 7 * 60 * 60 * 1000)
+}
 
 function setPageMeta(pageEl) {
   const titleEl = document.getElementById('page-title')
@@ -68,7 +105,7 @@ function formatIsoDate(iso) {
 function toIsoFromMMDD(mmdd) {
   const [mm, dd] = String(mmdd || '').split('-').map(Number)
   if (!mm || !dd) return ''
-  const now = new Date()
+  const now = getCurrentDate()
   const currentYear = now.getFullYear()
   const candidate = new Date(currentYear, mm - 1, dd)
   const today = new Date(currentYear, now.getMonth(), now.getDate())
@@ -306,6 +343,12 @@ function showAuditEntryDetails(entry) {
   pre.textContent = JSON.stringify(entry, null, 2)
 }
 
+function showAuditEntryDetailsByIndex(index) {
+  const entry = currentAuditEntries[index]
+  if (!entry) return
+  showAuditEntryDetails(entry)
+}
+
 // ── Login / Logout ────────────────────────────────────────
 async function doLogin() {
   const input = document.getElementById('login-key')
@@ -325,6 +368,7 @@ async function doLogin() {
     if (r.ok) {
       document.getElementById('login-overlay').classList.add('hidden')
       document.getElementById('main-container').style.display = 'flex'
+      scheduleSessionRefresh()
       initDashboard()
     } else {
       errEl.style.display = 'block'
@@ -413,6 +457,10 @@ async function importCalendarCsv(event) {
 }
 
 async function doLogout() {
+  if (sessionRefreshTimer) {
+    window.clearTimeout(sessionRefreshTimer)
+    sessionRefreshTimer = null
+  }
   clearToken()
   await fetch('/admin/logout', { method: 'POST', headers: { 'Content-Type': 'application/json' } }).catch(() => {})
   document.getElementById('main-container').style.display = 'none'
@@ -425,6 +473,7 @@ fetch('/admin/kalender').then(r => {
   if (r.ok) {
     document.getElementById('login-overlay').classList.add('hidden')
     document.getElementById('main-container').style.display = 'flex'
+    scheduleSessionRefresh()
     initDashboard()
   }
   // Kein Cookie oder abgelaufen → Login-Overlay bleibt sichtbar
@@ -516,11 +565,11 @@ function toggleMode(id) {
 let kalenderData = {}
 let calYear, calMonth
 
-const now = new Date()
-calYear  = now.getFullYear()
-calMonth = now.getMonth()
+const initialNow = getCurrentDate()
+calYear  = initialNow.getFullYear()
+calMonth = initialNow.getMonth()
 
-document.getElementById('datum').value = now.toISOString().slice(0, 10)
+document.getElementById('datum').value = getTodayIso()
 
 const MONTHS_DE = ['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember']
 const DAYS_DE   = ['Mo','Di','Mi','Do','Fr','Sa','So']
@@ -545,8 +594,9 @@ function renderCalendar() {
 
   for (let i = 0; i < firstDow; i++) html += `<div class="cal-day empty-slot"></div>`
 
-  const todayStr  = `${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`
-  const todayYear = now.getFullYear()
+  const today = getCurrentDate()
+  const todayStr  = getTodayMmdd()
+  const todayYear = today.getFullYear()
 
   for (let d = 1; d <= daysInMonth; d++) {
     const mm   = String(calMonth + 1).padStart(2, '0')
@@ -577,11 +627,10 @@ function renderCalendar() {
         `</div>`
     }
 
-    const action = hasAny
-      ? `onclick="selectCalendarDate('${key}')"`
-      : `onclick="prefillDate('${calYear}-${mm}-${dd}')"`
+    const action = hasAny ? 'select-calendar-date' : 'prefill-date'
+    const actionValue = hasAny ? key : `${calYear}-${mm}-${dd}`
 
-    html += `<div class="${classes}" ${action}>${d}${dots}</div>`
+    html += `<button type="button" class="${classes}" data-action="${action}" data-value="${esc(actionValue)}" aria-label="${hasAny ? `Eintrag ${formatIsoDate(`${calYear}-${mm}-${dd}`)} öffnen` : `Datum ${formatIsoDate(`${calYear}-${mm}-${dd}`)} vorausfüllen`}">${d}${dots}</button>`
   }
 
   grid.innerHTML = html
@@ -618,7 +667,9 @@ function prefillDate(isoDate) {
   const deleteBtn = document.getElementById('delete-btn')
   if (deleteBtn) deleteBtn.disabled = true
   document.getElementById('status').className = 'status'
-  window.scrollTo({ top: 0, behavior: 'smooth' })
+  if (typeof window.scrollTo === 'function') {
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
 }
 
 async function saveTag() {
@@ -691,6 +742,7 @@ async function saveTag() {
     }
     const hasError = data.zwillingOk === false || data.zeitenwendeOk === false
     setStatus(msg, hasError ? 'error' : data.zeitreiseOk === false ? 'warn' : 'ok')
+    selectedCalendarDate = mmdd
     await loadKalender()
   } catch (err) {
     setStatus(`Fehler: ${err.message}`, 'error')
@@ -729,7 +781,9 @@ async function editTag(datum) {
   document.getElementById('save-btn').textContent   = 'Aktualisieren & APIs abrufen'
   const deleteBtn = document.getElementById('delete-btn')
   if (deleteBtn) deleteBtn.disabled = false
-  window.scrollTo({ top: 0, behavior: 'smooth' })
+  if (typeof window.scrollTo === 'function') {
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
   setStatus(`Eintrag ${datum} geladen – Änderungen vornehmen und speichern.`, 'loading')
 }
 
@@ -836,14 +890,14 @@ function renderEntryTable() {
     const checked = selectedEntryDates.has(datum) ? 'checked' : ''
 
     return `<tr>
-      <td class="entry-select-col"><input type="checkbox" ${checked} onchange="toggleEntrySelection('${datum}', this.checked)"></td>
+      <td class="entry-select-col"><input type="checkbox" ${checked} data-action="toggle-entry-selection" data-datum="${datum}"></td>
       <td><strong>${esc(formatIsoDate(iso))}</strong><br><span class="entry-hint">${esc(datum)}</span></td>
       <td><div class="mode-summary-list">${summaryHtml}</div></td>
       <td><div class="entry-chip-wrap">${modeChips(entry)}</div></td>
       <td>
         <div class="entry-row-actions">
-          <button class="entry-action-btn" onclick="editTag('${datum}')">Bearbeiten</button>
-          <button class="entry-action-btn" onclick="focusCalendarDate('${datum}')">Im Kalender</button>
+          <button class="entry-action-btn" data-action="edit-tag" data-datum="${datum}">Bearbeiten</button>
+          <button class="entry-action-btn" data-action="focus-calendar-date" data-value="${datum}">Im Kalender</button>
         </div>
       </td>
     </tr>`
@@ -1001,12 +1055,12 @@ function editSelectedCalendarDate() {
 function updateDashboardFromKalender() {
   const entries = getCalendarEntries()
   const metricDays = document.getElementById('metric-calendar-days')
-  const today = new Date()
+  const today = getCurrentDate()
   const todayStart = startOfDay(today)
   const futureEntries = entries.filter((entry) => entry.dateObj.getTime() >= todayStart.getTime())
   if (metricDays) metricDays.textContent = String(futureEntries.length)
 
-  const todayKey = `${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
+  const todayKey = getTodayMmdd()
   const todayEntry = kalenderData?.[todayKey]
   const metricToday = document.getElementById('metric-today-status')
   const metricTodaySub = document.getElementById('metric-today-sub')
@@ -1053,7 +1107,10 @@ function updateDashboardFromKalender() {
     const content = item.entry
       ? renderModeGroupSummary(item.entry, { emptyText: 'Keine Inhalte' })
       : '<span class="entry-empty">Kein Eintrag</span>'
-    return `<button class="week-preview-card ${item.isToday ? 'is-today' : ''} ${item.entry ? 'has-entry' : 'is-empty'}" onclick="${item.entry ? `focusCalendarDate('${item.datum}', '${item.iso}')` : `prefillDate('${item.iso}')`}">
+    const action = item.entry ? 'focus-calendar-date' : 'prefill-date'
+    const actionValue = item.entry ? item.datum : item.iso
+    const extraIso = item.entry ? ` data-iso="${esc(item.iso)}"` : ''
+    return `<button type="button" class="week-preview-card ${item.isToday ? 'is-today' : ''} ${item.entry ? 'has-entry' : 'is-empty'}" data-action="${action}" data-value="${esc(actionValue)}"${extraIso}>
       <span class="week-preview-day">${esc(item.label)}</span>
       <strong>${esc(item.dayNumber)}</strong>
       <span class="week-preview-meta">${item.entry ? `${groups.length} Modi` : 'Leer'}</span>
@@ -1090,6 +1147,7 @@ async function loadAuditLog() {
     if (!response.ok) throw new Error(data.error || `HTTP ${response.status}`)
 
     const entries = Array.isArray(data.entries) ? data.entries : []
+    currentAuditEntries = entries
     if (countEl) {
       const totalMatches = Number(data.totalMatches || entries.length || 0)
       countEl.textContent = `${entries.length} Einträge angezeigt${totalMatches !== entries.length ? ` (insgesamt ${totalMatches} Treffer)` : ''}`
@@ -1099,19 +1157,18 @@ async function loadAuditLog() {
       return
     }
 
-    tbody.innerHTML = entries.map((entry) => {
+    tbody.innerHTML = entries.map((entry, index) => {
       const time = entry.timestamp ? new Date(entry.timestamp).toLocaleString('de-DE') : '—'
       const action = entry.action || '—'
       const resource = entry.resourceId ? `${entry.resource || '—'}:${entry.resourceId}` : (entry.resource || '—')
       const status = entry.status || '—'
       const changes = summarizeAuditChanges(entry.changes)
-      const detailPayload = esc(encodeURIComponent(JSON.stringify(entry)))
       return `<tr>
         <td>${esc(time)}</td>
         <td>${esc(action)}</td>
         <td>${esc(resource)}</td>
         <td>${esc(status)}</td>
-        <td><button class="entry-action-btn" onclick="showAuditEntryDetails(JSON.parse(decodeURIComponent('${detailPayload}')))">${esc(changes)}</button></td>
+        <td><button class="entry-action-btn" data-action="show-audit-entry-details" data-index="${index}">${esc(changes)}</button></td>
       </tr>`
     }).join('')
     showAuditEntryDetails(entries[0])
@@ -1485,6 +1542,11 @@ async function loadUsersOverview() {
   const tbody = document.getElementById('users-table-body')
   if (!summary || !tbody) return
 
+  if (usersOverviewAbortController) {
+    usersOverviewAbortController.abort()
+  }
+  usersOverviewAbortController = new AbortController()
+
   const search = (document.getElementById('users-search')?.value || '').trim()
   const role = document.getElementById('users-role-filter')?.value || ''
 
@@ -1493,10 +1555,10 @@ async function loadUsersOverview() {
   if (role) params.set('role', role)
 
   summary.textContent = 'Nutzerdaten werden geladen …'
-  tbody.innerHTML = '<tr><td colspan="5" class="users-empty">Lade …</td></tr>'
+  tbody.innerHTML = '<tr><td colspan="6" class="users-empty">Lade …</td></tr>'
 
   try {
-    const response = await fetch(`/admin/users?${params.toString()}`, {})
+    const response = await fetch(`/admin/users?${params.toString()}`, { signal: usersOverviewAbortController.signal })
     const data = await response.json()
     if (!response.ok) throw new Error(data.error || `HTTP ${response.status}`)
 
@@ -1514,12 +1576,12 @@ async function loadUsersOverview() {
         const safeUserId = encodeURIComponent(String(user.id || ''))
         const safeRawUserId = esc(String(user.id || ''))
         return `<tr>
-          <td><input type="checkbox" class="user-select-checkbox" data-user-id="${safeRawUserId}" onchange="updateUsersBulkState()"></td>
+          <td><input type="checkbox" class="user-select-checkbox" data-user-id="${safeRawUserId}"></td>
           <td>${esc(user.name || '—')}</td>
           <td>${esc(user.email || '—')}</td>
           <td>${esc(roleLabel(user.role || 'user'))}</td>
           <td>${esc(created)}</td>
-          <td><button class="entry-action-btn" onclick="selectUser('${safeUserId}')">${isSelected ? 'Ausgewählt' : 'Details'}</button></td>
+          <td><button class="entry-action-btn" data-action="select-user" data-user-id="${safeUserId}">${isSelected ? 'Ausgewählt' : 'Details'}</button></td>
         </tr>`
       }).join('')
 
@@ -1534,14 +1596,25 @@ async function loadUsersOverview() {
 
     usersLoaded = true
   } catch (err) {
+    if (err.name === 'AbortError') return
     summary.textContent = `Nutzer konnten nicht geladen werden: ${err.message}`
     tbody.innerHTML = '<tr><td colspan="6" class="users-empty">Fehler beim Laden.</td></tr>'
     clearSelectedUser('Nutzerdetails konnten nicht geladen werden.')
     updateUsersBulkState()
   } finally {
+    usersOverviewAbortController = null
     const roleBtn = document.getElementById('user-role-save-btn')
     if (roleBtn) roleBtn.disabled = !selectedUserId
   }
+}
+
+function scheduleUsersOverviewLoad() {
+  if (usersSearchTimer) {
+    window.clearTimeout(usersSearchTimer)
+  }
+  usersSearchTimer = window.setTimeout(() => {
+    loadUsersOverview()
+  }, 250)
 }
 
 function resetUsersFilters() {
@@ -1627,6 +1700,7 @@ function renderUserDetails(data) {
   title.textContent = user.name || 'Unbenannter Nutzer'
   subtitle.textContent = user.email || 'Keine E-Mail'
   roleSelect.value = user.role || 'user'
+  roleSelect.dataset.currentRole = user.role || 'user'
   userDeleteBtn.disabled = !selectedUserId
   const roleBtn = document.getElementById('user-role-save-btn')
   if (roleBtn) roleBtn.disabled = !selectedUserId
@@ -1692,12 +1766,13 @@ async function saveSelectedUserRole() {
   if (!roleSelect || !roleBtn) return
 
   roleBtn.disabled = true
-  const roleSelectInitial = roleSelect.value
+  const roleSelectInitial = roleSelect.dataset.currentRole || roleSelect.value
+  const nextRole = roleSelect.value
   try {
     const response = await fetch(`/admin/users/${encodeURIComponent(selectedUserId)}/role`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ role: roleSelect.value }),
+      body: JSON.stringify({ role: nextRole }),
     })
     const data = await response.json().catch(() => ({}))
     if (!response.ok) throw new Error(data.error || `HTTP ${response.status}`)
@@ -1705,6 +1780,7 @@ async function saveSelectedUserRole() {
     await loadUsersOverview()
     await selectUser(selectedUserId, { keepScroll: true })
   } catch (err) {
+    roleSelect.value = roleSelectInitial
     const empty = document.getElementById('user-detail-empty')
     if (empty) {
       empty.textContent = `Rollenänderung fehlgeschlagen: ${err.message}`
@@ -1861,7 +1937,7 @@ function renderStats(data, out) {
     return
   }
 
-  const todayStr   = `${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`
+  const todayStr   = getTodayMmdd()
   const todayEntry = data.find(d => d.datum === todayStr) || null
   const last7      = data.slice(-7)
 
@@ -1983,6 +2059,132 @@ function renderWZAnalyse(data, out) {
   html += `</div>`
   out.innerHTML = html
 }
+
+function resetKollokationAnalysis() {
+  const output = document.getElementById('koll-output')
+  const input = document.getElementById('koll-input')
+  if (output) output.innerHTML = ''
+  if (input) input.value = ''
+}
+
+function resetWortZwillingAnalysis() {
+  const output = document.getElementById('wz-ana-output')
+  const inputA = document.getElementById('wza-input')
+  const inputB = document.getElementById('wzb-input')
+  if (output) output.innerHTML = ''
+  if (inputA) inputA.value = ''
+  if (inputB) inputB.value = ''
+}
+
+function resetZeitenwendeAnalysis() {
+  const output = document.getElementById('zw-ana-output')
+  const input = document.getElementById('zw-ana-input')
+  if (output) output.innerHTML = ''
+  if (input) input.value = ''
+}
+
+function resetZeitreiseViz() {
+  const output = document.getElementById('viz-output')
+  const input = document.getElementById('viz-input')
+  if (output) output.innerHTML = ''
+  if (input) input.value = ''
+}
+
+function handleDocumentClick(event) {
+  const target = event.target.closest('[data-action]')
+  if (!target) return
+
+  const { action } = target.dataset
+  if (action === 'login') return void doLogin()
+  if (action === 'download-backup') return void downloadBackup()
+  if (action === 'logout') return void doLogout()
+  if (action === 'switch-page') return void switchPage(target.dataset.page)
+  if (action === 'refresh-dashboard') return void refreshDashboard()
+  if (action === 'load-health') return void loadHealth()
+  if (action === 'dashboard-week') return void changeDashboardWeek(Number(target.dataset.delta || 0))
+  if (action === 'toggle-mode') return void toggleMode(target.dataset.mode)
+  if (action === 'preview-current-lemma') return void previewCurrentLemma()
+  if (action === 'preview-current-day') return void previewCurrentDay()
+  if (action === 'save-tag') return void saveTag()
+  if (action === 'delete-current-tag') return void deleteCurrentTag()
+  if (action === 'trigger-calendar-csv-import') return void triggerCalendarCsvImport()
+  if (action === 'load-kalender') return void loadKalender()
+  if (action === 'reset-entry-filters') return void resetEntryFilters()
+  if (action === 'select-all-visible-entries') return void selectAllVisibleEntries()
+  if (action === 'clear-entry-selection') return void clearEntrySelection()
+  if (action === 'bulk-delete-selected-dates') return void bulkDeleteSelectedDates()
+  if (action === 'load-stats') return void loadStats()
+  if (action === 'export-stats') return void exportStats(target.dataset.format || 'json')
+  if (action === 'analyze-kollokation') return void analyzeKollokation()
+  if (action === 'reset-kollokation-analysis') return void resetKollokationAnalysis()
+  if (action === 'analyze-wort-zwilling') return void analyzeWortZwilling()
+  if (action === 'reset-wort-zwilling-analysis') return void resetWortZwillingAnalysis()
+  if (action === 'analyze-zeitenwende') return void analyzeZeitenwende()
+  if (action === 'reset-zeitenwende-analysis') return void resetZeitenwendeAnalysis()
+  if (action === 'analyze-zeitreise-viz') return void analyzeZeitreiseViz()
+  if (action === 'reset-zeitreise-viz') return void resetZeitreiseViz()
+  if (action === 'change-month') return void changeMonth(Number(target.dataset.delta || 0))
+  if (action === 'edit-selected-calendar-date') return void editSelectedCalendarDate()
+  if (action === 'load-users-overview') return void loadUsersOverview()
+  if (action === 'select-all-users') return void toggleAllUsersSelection(true)
+  if (action === 'clear-users-selection') return void clearUsersBulkSelection()
+  if (action === 'run-users-bulk-action') return void runUsersBulkAction()
+  if (action === 'reset-users-filters') return void resetUsersFilters()
+  if (action === 'save-selected-user-role') return void saveSelectedUserRole()
+  if (action === 'delete-selected-user') return void deleteSelectedUser()
+  if (action === 'trigger-backup-restore') return void triggerBackupRestore()
+  if (action === 'load-performance') return void loadPerformance()
+  if (action === 'load-audit-log') return void loadAuditLog()
+  if (action === 'reset-audit-filters') return void resetAuditFilters()
+  if (action === 'prefill-date') return void prefillDate(target.dataset.value || '')
+  if (action === 'select-calendar-date') return void selectCalendarDate(target.dataset.value || '')
+  if (action === 'focus-calendar-date') return void focusCalendarDate(target.dataset.value || '', target.dataset.iso || '')
+  if (action === 'edit-tag') return void editTag(target.dataset.datum || '')
+  if (action === 'select-user') return void selectUser(target.dataset.userId || '')
+  if (action === 'show-audit-entry-details') return void showAuditEntryDetailsByIndex(Number(target.dataset.index || -1))
+}
+
+function handleDocumentChange(event) {
+  const target = event.target
+  if (target.id === 'calendar-csv-input') return void importCalendarCsv(event)
+  if (target.id === 'backup-restore-input') return void restoreBackupFile(event)
+  if (target.id === 'entry-mode-filter') return void renderEntryTable()
+  if (target.id === 'stats-days') return void loadStats()
+  if (target.id === 'users-bulk-action') return void updateUsersBulkState()
+  if (target.id === 'users-role-filter') return void loadUsersOverview()
+  if (target.id === 'users-select-all') return void toggleAllUsersSelection(target.checked)
+  if (target.matches('.user-select-checkbox')) return void updateUsersBulkState()
+  if (target.dataset.action === 'toggle-entry-selection') return void toggleEntrySelection(target.dataset.datum || '', target.checked)
+  if (target.id === 'audit-limit' || target.id === 'audit-action' || target.id === 'audit-resource' || target.id === 'audit-status' || target.id === 'audit-from' || target.id === 'audit-to') return void loadAuditLog()
+}
+
+function handleDocumentInput(event) {
+  const target = event.target
+  if (target.id === 'entry-search') return void renderEntryTable()
+  if (target.id === 'users-search') return void scheduleUsersOverviewLoad()
+  if (target.id === 'audit-search') return void loadAuditLog()
+}
+
+function handleDocumentKeydown(event) {
+  const target = event.target
+  if (!(target instanceof HTMLElement)) return
+  if (event.key !== 'Enter') return
+
+  const action = target.dataset.enterAction
+  if (!action) return
+  event.preventDefault()
+
+  if (action === 'login') return void doLogin()
+  if (action === 'analyze-kollokation') return void analyzeKollokation()
+  if (action === 'analyze-wort-zwilling') return void analyzeWortZwilling()
+  if (action === 'analyze-zeitenwende') return void analyzeZeitenwende()
+  if (action === 'analyze-zeitreise-viz') return void analyzeZeitreiseViz()
+}
+
+document.addEventListener('click', handleDocumentClick)
+document.addEventListener('change', handleDocumentChange)
+document.addEventListener('input', handleDocumentInput)
+document.addEventListener('keydown', handleDocumentKeydown)
 
 // ── Zeitenwende – Wortanalyse ─────────────────────────────
 async function analyzeZeitenwende() {

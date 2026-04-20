@@ -6,7 +6,7 @@ import { fetchLemma, fetchBonusQuestion, fetchRelation, fetchZeitreise, fetchZei
 import { belegeVerfuegbar, fetchBelege } from '../belege.js'
 import { fetchWiktionary } from '../wiktionary.js'
 import { fetchWortZwilling } from '../wortzwilling.js'
-import { load, loadReadOnly, save, loadZeitreise, loadWortZwilling, loadZeitenwende, loadStats, loadStatsRows, getLemmataIndex, getCacheMetrics, DATA, stmts, lemmaToRow } from '../store.js'
+import { load, loadReadOnly, save, loadZeitreise, loadWortZwilling, loadZeitenwende, loadStats, loadStatsRows, getLemmataIndex, getCacheMetrics, DATA, stmts, lemmaToRow, replaceAllAdminData } from '../store.js'
 import { getCacheMetrics as getQueryCacheMetrics, clearCache as clearQueryCache } from '../query-cache.js'
 import { adminLimiter, loginLimiter, uploadLimiter } from '../middleware/rateLimiter.js'
 import { requireAuth, adminAuth, adminLogout, adminError, serverError, createSession } from '../middleware/auth.js'
@@ -1292,6 +1292,9 @@ router.post('/admin/tag', adminLimiter, requireAuth, validate(adminTagSchema), a
 
   try {
     const kalender = load('kalender.json')
+    const zeitreise = loadZeitreise()
+    const wortzwilling = loadWortZwilling()
+    const zeitenwende = loadZeitenwende()
     const ids = []
 
     for (const [i, wort] of woerter.entries()) {
@@ -1318,14 +1321,13 @@ router.post('/admin/tag', adminLimiter, requireAuth, validate(adminTagSchema), a
 
     // Zeitreise optional
     let zeitreiseOk = null
+    delete zeitreise[datum]
     if (zeitreise_lemma.trim()) {
       logger.info(`Lade DiaCollo-Daten für „${zeitreise_lemma}" …`)
       try {
         const zr = await fetchZeitreise(zeitreise_lemma.trim())
-        const zeitreise = loadZeitreise()
         if (zr) {
           zeitreise[datum] = { ...zr, wortart: zeitreise_wortart?.trim() || 'Substantiv' }
-          await save('zeitreise.json', zeitreise)
           zeitreiseOk = true
           logger.info(`Zeitreise gespeichert: ${zr.paare.map(p => `${p.jahrzehnt}:${p.kollokat}`).join(', ')}`)
         } else {
@@ -1337,17 +1339,17 @@ router.post('/admin/tag', adminLimiter, requireAuth, validate(adminTagSchema), a
         logger.error({ err }, 'Zeitreise-Fehler')
       }
     }
+    await save('zeitreise.json', zeitreise)
 
     // Wort-Zwilling optional
     let zwillingOk = null
+    delete wortzwilling[datum]
     if (Array.isArray(zwilling_paar) && zwilling_paar.length === 2 && zwilling_paar[0] && zwilling_paar[1]) {
       logger.info(`Lade Wort-Zwilling-Daten für „${zwilling_paar[0]}" / „${zwilling_paar[1]}" …`)
       try {
         const wz = await fetchWortZwilling(zwilling_paar[0].trim(), zwilling_paar[1].trim(), zwilling_pos)
-        const wortzwilling = loadWortZwilling()
         if (wz) {
           wortzwilling[datum] = wz
-          await save('wortzwilling.json', wortzwilling)
           zwillingOk = true
         } else {
           zwillingOk = false
@@ -1358,17 +1360,17 @@ router.post('/admin/tag', adminLimiter, requireAuth, validate(adminTagSchema), a
         logger.error({ err }, 'Wort-Zwilling-Fehler')
       }
     }
+    await save('wortzwilling.json', wortzwilling)
 
     // Zeitenwende optional
     let zeitenwendeOk = null
+    delete zeitenwende[datum]
     if (zeitenwende_lemma?.trim()) {
       logger.info(`Lade Zeitenwende-Daten für „${zeitenwende_lemma}" …`)
       try {
         const zw = await fetchZeitenwende(zeitenwende_lemma.trim())
-        const zeitenwende = loadZeitenwende()
         if (zw) {
           zeitenwende[datum] = zw
-          await save('zeitenwende.json', zeitenwende)
           zeitenwendeOk = true
           logger.info(`Zeitenwende gespeichert: ${zw.words.length} Wörter für „${zw.lemma}"`)
         } else {
@@ -1380,6 +1382,7 @@ router.post('/admin/tag', adminLimiter, requireAuth, validate(adminTagSchema), a
         logger.error({ err }, 'Zeitenwende-Fehler')
       }
     }
+    await save('zeitenwende.json', zeitenwende)
 
     logger.info(`Eintrag gespeichert: ${datum} → ${ids.join(', ')}`)
 
@@ -1545,12 +1548,7 @@ router.post('/admin/backup/restore', adminLimiter, requireAuth, validate(adminBa
   try {
     const bundle = sanitizeBackupBundle(req.body)
 
-    await save('lemmata.json', bundle.lemmata)
-    await save('kalender.json', bundle.kalender)
-    await save('zeitreise.json', bundle.zeitreise)
-    await save('wortzwilling.json', bundle.wortzwilling)
-    await save('zeitenwende.json', bundle.zeitenwende)
-    await save('stats-rows.json', bundle.statsRows)
+    await replaceAllAdminData(bundle)
 
     auditUpdate('backup', 'restore', null, {
       exportedAt: req.body.exportedAt || null,
@@ -1686,13 +1684,9 @@ router.get('/admin/social-cards/belege', adminLimiter, requireAuth, validate(adm
 
 /** GET /admin – Admin-Oberfläche */
 router.get('/admin', (req, res) => {
-  // 'unsafe-inline' in script-src und style-src ist weiterhin nötig:
-  // - script-src: onclick-Attribute im HTML (TODO: auf Event Listener umstellen)
-  // - style-src: dynamische style="…"-Attribute in den JS-Renderfunktionen
-  //   (Balkenbreiten, Korpusfarben, logDice-abhängige Werte – können nicht in externe CSS-Klassen).
   res.setHeader('Content-Security-Policy',
     "default-src 'self'; " +
-    "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; " +
+    "script-src 'self' https://cdn.jsdelivr.net; " +
     "style-src 'self' 'unsafe-inline'; " +
     "font-src 'self'; " +
     "img-src 'self' data:; " +

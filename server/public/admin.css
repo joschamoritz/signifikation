@@ -77,13 +77,14 @@ body {
 .nav-item {
   width: 100%;
   text-align: left;
-  padding: 9px 12px;
+  padding: 11px 12px;
   border: 1px solid transparent;
   border-radius: var(--radius);
   background: transparent;
   color: var(--text);
   font-size: 0.86rem;
   font-weight: 500;
+  min-height: 44px;
 }
 
 .nav-item:hover {
@@ -449,9 +450,10 @@ body {
   color: var(--muted);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  padding: 8px 12px;
+  padding: 10px 12px;
   font-size: 0.8rem;
   font-weight: 500;
+  min-height: 44px;
 }
 
 .entry-filters-reset:hover {
@@ -554,7 +556,8 @@ body {
   background: transparent;
   color: var(--primary);
   font-size: 0.74rem;
-  padding: 5px 8px;
+  padding: 8px 10px;
+  min-height: 44px;
 }
 
 .entry-action-btn:hover {
@@ -960,9 +963,10 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
   background: transparent;
   color: var(--muted);
   border: 1.5px solid var(--border);
-  padding: 7px 14px;
+  padding: 10px 14px;
   font-size: 0.82rem;
   font-weight: 500;
+  min-height: 44px;
 }
 .logout-btn:hover { color: var(--primary); border-color: var(--primary); background: #fef2f2; }
 
@@ -972,10 +976,12 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
   color: var(--primary);
   border: 1.5px solid var(--border);
   border-radius: var(--radius);
-  padding: 4px 12px;
+  padding: 10px 12px;
   font-size: 1.1rem;
   font-weight: 700;
   line-height: 1;
+  min-height: 44px;
+  min-width: 44px;
 }
 .cal-nav-btn:hover { background: #fef2f2; border-color: var(--primary); }
 
@@ -1081,6 +1087,7 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
 .cal-dow { text-align: center; font-size: 0.72rem; font-weight: 600; color: var(--muted); padding: 4px 0; }
 .cal-day {
   aspect-ratio: 1;
+  width: 100%;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -1091,6 +1098,16 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
   cursor: default;
   border: 1.5px solid transparent;
   transition: border-color 0.15s, background 0.15s;
+  font-family: inherit;
+}
+.cal-day:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+.cal-day.empty-slot {
+  border: none;
+  background: transparent;
+  pointer-events: none;
 }
 .cal-day.no-entry  { color: var(--muted); }
 .cal-day.no-entry:hover { background: #fafafa; border-color: var(--border); cursor: pointer; }

@@ -33,6 +33,7 @@ mkdirSync(DATA, { recursive: true })
 export const stmts = {
   // lemmata
   getAllLemmata:     db.prepare('SELECT * FROM lemmata'),
+  deleteAllLemmata:  db.prepare('DELETE FROM lemmata'),
   upsertLemma:      db.prepare(`
     INSERT INTO lemmata (id,lemma,pos,wortart,runden,rundenInfo,notiz,link,definition,bonusFrage,ipa,definitionen)
     VALUES (@id,@lemma,@pos,@wortart,@runden,@rundenInfo,@notiz,@link,@definition,@bonusFrage,@ipa,@definitionen)
@@ -94,6 +95,15 @@ export const stmts = {
   `),
 }
 
+const _replaceAllAdminDataTx = db.transaction(({ lemmata, kalender, zeitreise, wortzwilling, zeitenwende, statsRows }) => {
+  _replaceKalender(kalender)
+  _replaceZeitreise(zeitreise)
+  _replaceWortzwilling(wortzwilling)
+  _replaceZeitenwende(zeitenwende)
+  _replaceStatsRows(statsRows)
+  _saveLemmata(lemmata)
+})
+
 // ── Lemmata ───────────────────────────────────────────────────────
 
 function rowToLemma(row) {
@@ -134,12 +144,13 @@ function _loadLemmata() {
   return stmts.getAllLemmata.all().map(rowToLemma)
 }
 
-const _upsertLemmataMany = db.transaction(list => {
+const _replaceLemmata = db.transaction(list => {
+  stmts.deleteAllLemmata.run()
   for (const l of list) stmts.upsertLemma.run(lemmaToRow(l))
 })
 
 function _saveLemmata(arr) {
-  _upsertLemmataMany(arr)
+  _replaceLemmata(arr)
   _lemmataById    = null
   _lemmataByLemma = null
 }
@@ -314,11 +325,15 @@ const _replaceStats = db.transaction(obj => {
 const _replaceStatsRows = db.transaction((rows) => {
   stmts.deleteAllStats.run()
   for (const row of rows) {
-    if (!row || typeof row !== 'object') continue
+    if (!row || typeof row !== 'object') {
+      throw new Error('Ungueltige Stats-Zeile im Backup')
+    }
 
     const datum = String(row.datum || '').trim()
     const spiel = String(row.spiel || '').trim()
-    if (!datum || !spiel) continue
+    if (!datum || !spiel) {
+      throw new Error('Stats-Zeile ohne datum oder spiel im Backup')
+    }
 
     const safeDist = Array.isArray(row.dist) ? row.dist : []
     const toNonNegativeInt = (value) => {
@@ -446,6 +461,12 @@ export function save(file, data) {
   if (!saver) throw new Error(`Unbekannte Datei: ${file}`)
   saver(data)
   _invalidateCached(file)
+  return Promise.resolve()
+}
+
+export function replaceAllAdminData(bundle) {
+  _replaceAllAdminDataTx(bundle)
+  _invalidateAllCached()
   return Promise.resolve()
 }
 
