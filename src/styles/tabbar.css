@@ -541,6 +541,15 @@
 
 .classroom-inner {
   max-width: 680px;
+  padding-inline: 24px;
+}
+
+@media (min-width: 560px) {
+  .classroom-inner { padding-inline: 40px; }
+}
+
+@media (min-width: 720px) {
+  .classroom-inner { padding-inline: 56px; }
 }
 
 /* ── Klassenraum: Eintrags-Liste ───────────────────────────── */
@@ -877,6 +886,59 @@
   color: var(--text);
 }
 
+/* ③ Live: Abgaben je Spielmodus */
+
+.cr-live-list {
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.cr-live-row {
+  display: grid;
+  grid-template-columns: 110px minmax(0, 1fr) 28px;
+  gap: 8px;
+  align-items: center;
+}
+
+.cr-live-game {
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-size: 0.82rem;
+  color: var(--muted);
+}
+
+.cr-live-bar-wrap {
+  display: block;
+  height: 3px;
+  background: var(--border-lt);
+  overflow: hidden;
+}
+
+.cr-live-bar {
+  display: block;
+  height: 100%;
+  background: var(--primary);
+  opacity: 0.55;
+  transition: width 0.6s ease;
+}
+
+.cr-live-num {
+  font-family: var(--font-sans);
+  font-size: 0.72rem;
+  color: var(--muted);
+  text-align: right;
+}
+
+@media (max-width: 480px) {
+  .cr-live-row {
+    grid-template-columns: 90px minmax(0, 1fr) 24px;
+  }
+}
+
 /* ④ Protokoll: Spielmodus-Auswertung */
 
 .cr-per-game {
@@ -1006,12 +1068,25 @@
   background: var(--surface2);
   border-top: 1px solid var(--border);
   border-bottom: 1px solid var(--border);
+}
+
+/* Innerer Wrapper — gleiche Breite & Padding wie classroom-inner */
+.cr-raster-content {
+  max-width: 680px;
+  margin: 0 auto;
   padding: 10px 24px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
   overflow: hidden;
+}
+
+@media (min-width: 560px) {
+  .cr-raster-content { padding-inline: 40px; }
+}
+@media (min-width: 720px) {
+  .cr-raster-content { padding-inline: 56px; }
 }
 
 .cr-raster-label {

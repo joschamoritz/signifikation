@@ -716,13 +716,15 @@ export default function ClassroomTab({ onLiveChange = () => {}, submitRef = null
 
       {/* Raster-Leiste — nur Desktop */}
       <nav className="cr-raster" aria-label="Klassenraum-Übersicht">
-        <span className="cr-raster-label" aria-hidden="true">Klassenraum</span>
-        <div className="cr-raster-words">
-          {['Sitzung', 'Beitritt', 'Echtzeit', 'Protokoll'].map((w) => (
-            <span key={w} className="cr-raster-word">{w}</span>
-          ))}
+        <div className="cr-raster-content">
+          <span className="cr-raster-label" aria-hidden="true">Klassenraum</span>
+          <div className="cr-raster-words">
+            {['Sitzung', 'Beitritt', 'Echtzeit', 'Protokoll'].map((w) => (
+              <span key={w} className="cr-raster-word">{w}</span>
+            ))}
+          </div>
+          <span className="cr-raster-folio" aria-hidden="true">①②③④</span>
         </div>
-        <span className="cr-raster-folio" aria-hidden="true">①②③④</span>
       </nav>
 
       <div className="tab-placeholder-inner classroom-inner">
@@ -930,6 +932,28 @@ export default function ClassroomTab({ onLiveChange = () => {}, submitRef = null
                       <p className="cr-stagnation">
                         Letzte Abgabe {formatStagnation(dashboard.metrics.last_submission_at)}
                       </p>
+                    )}
+                    {activeSession.startedAt && dashboard && (
+                      <ul className="cr-live-list" aria-label="Abgaben je Spielmodus">
+                        {[1, 2, 3, 4].map((roundNo) => {
+                          const gameKey = ROUND_GAME_NAME[roundNo]
+                          const gameData = dashboard.perGame?.find((g) => g.roundNo === roundNo)
+                          const count = gameData?.participantCount ?? 0
+                          const total = dashboard.metrics?.total_count ?? 0
+                          return (
+                            <li key={roundNo} className="cr-live-row">
+                              <span className="cr-live-game">{GAME_LABELS[gameKey] ?? `Modus ${roundNo}`}</span>
+                              <span className="cr-live-bar-wrap" aria-hidden="true">
+                                <span
+                                  className="cr-live-bar"
+                                  style={{ width: total > 0 ? `${Math.round((count / total) * 100)}%` : '0%' }}
+                                />
+                              </span>
+                              <span className="cr-live-num">{count}</span>
+                            </li>
+                          )
+                        })}
+                      </ul>
                     )}
                   </div>
                 )}
