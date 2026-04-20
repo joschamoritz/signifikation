@@ -426,7 +426,7 @@ export default function App() {
     <ErrorBoundary>
     <div
       id="main-content"
-      className={`app${phase === 'home' ? ' app--home' : ''}${showTabBar ? ' app--has-tabbar' : ''}`}
+      className={`app${phase === 'home' ? ' app--home' : ''}${showTabBar ? ' app--has-tabbar' : ''}${activeTab === 'klassenraum' ? ' app--tab-klassenraum' : ''}`}
       ref={appRef}
       tabIndex={-1}
       style={{ outline: 'none' }}

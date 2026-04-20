@@ -1138,6 +1138,22 @@
   flex-shrink: 0;
 }
 
+/* ── Klassenraum: Sitzung verlassen ─────────────────────────── */
+.cr-leave-btn {
+  border: none;
+  background: none;
+  font-family: var(--font-sans);
+  font-size: 0.72rem;
+  color: var(--muted);
+  cursor: pointer;
+  padding: 0;
+  margin-top: 10px;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  display: block;
+}
+.cr-leave-btn:hover { color: var(--primary); }
+
 /* ── Klassenraum: Mobiles Snap-Layout ───────────────────────── */
 @media (max-width: 699px) {
   /* Vollbild — wie .test-page auf der Startseite */
@@ -1235,6 +1251,12 @@
   position: relative;
   overflow: hidden;
   min-height: calc(100dvh - 49px - env(safe-area-inset-bottom, 0px));
+}
+
+/* Klassenraum-Tab ist immer außerhalb TabTransition gemountet — Container kollabiert */
+.app--tab-klassenraum .tab-transition-container {
+  min-height: 0;
+  height: 0;
 }
 
 .tab-screen {

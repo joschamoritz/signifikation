@@ -720,7 +720,12 @@ export default function ClassroomTab({ onLiveChange = () => {}, submitRef = null
   const rasterWords = useMemo(() => {
     if (loadingAccount) return ['Wird geladen …']
     if (isTeacher) {
-      if (!activeSession) return ['Keine aktive Sitzung']
+      if (!activeSession) return ['Neue Sitzung unter ② anlegen']
+      const isIdle = activeSession.state === 'finished' || activeSession.state === 'archived'
+      if (isIdle) {
+        if (activeSession.settings?.name) return [activeSession.settings.name, 'Beendet', 'Neu anlegen → ②']
+        return ['Letzte Sitzung beendet', 'Neu anlegen → ②']
+      }
       const parts = []
       if (activeSession.settings?.name) parts.push(activeSession.settings.name)
       parts.push(mapSessionState(activeSession.state))
@@ -732,15 +737,17 @@ export default function ClassroomTab({ onLiveChange = () => {}, submitRef = null
       }
       return parts
     }
-    if (!participantSession || !participantInfo) return ['Zugangscode eingeben zum Beitreten']
+    if (!participantSession || !participantInfo) return ['Code unter ② eingeben']
+    const stateLabel = (() => {
+      if (!socketConnected) return mapSessionState(participantSession.state)
+      if (participantSession.state === 'running') return 'Läuft'
+      if (participantSession.state === 'lobby' || participantSession.state === 'created') return 'Warte auf Start'
+      if (participantSession.state === 'finished' || participantSession.state === 'archived') return 'Beendet'
+      return 'Verbunden'
+    })()
     const parts = []
     if (participantSession.settings?.name) parts.push(participantSession.settings.name)
-    const stateLabel = participantSession.state === 'running'
-      ? 'Läuft'
-      : participantSession.state === 'lobby' || participantSession.state === 'created'
-        ? 'Warte auf Start'
-        : mapSessionState(participantSession.state)
-    parts.push(socketConnected ? stateLabel : mapSessionState(participantSession.state))
+    parts.push(stateLabel)
     if (submittedGames.length > 0) parts.push(`${submittedGames.length}\u202f${submittedGames.length === 1 ? 'Spiel' : 'Spiele'} abgegeben`)
     return parts
   }, [loadingAccount, isTeacher, activeSession, dashboard, participantSession, participantInfo, socketConnected, submittedGames])
@@ -771,7 +778,6 @@ export default function ClassroomTab({ onLiveChange = () => {}, submitRef = null
               <span key={i} className="cr-raster-word">{w}</span>
             ))}
           </div>
-          <span className="cr-raster-folio" aria-hidden="true">①②③④</span>
         </div>
       </nav>
 
@@ -900,37 +906,60 @@ export default function ClassroomTab({ onLiveChange = () => {}, submitRef = null
                 </div>
               ) : (
                 <div className="cr-section">
-                  <form className="cr-join-form" onSubmit={(e) => { e.preventDefault(); joinSession() }}>
-                    <input
-                      className="cr-input"
-                      value={joinCodeInput}
-                      onChange={(e) => setJoinCodeInput(sanitizeJoinCodeInput(e.target.value))}
-                      placeholder="zugangscode"
-                      maxLength={20}
-                      autoComplete="off"
-                      aria-label="Zugangscode"
-                    />
-                    <button className="test-cta" type="submit" disabled={joining}>Beitreten →</button>
-                  </form>
-                  {joinNotice && <p className="cr-note">{joinNotice}</p>}
-
-                  {participantSession && participantInfo && (
+                  {!participantInfo ? (
+                    <>
+                      <form className="cr-join-form" onSubmit={(e) => { e.preventDefault(); joinSession() }}>
+                        <input
+                          className="cr-input"
+                          value={joinCodeInput}
+                          onChange={(e) => setJoinCodeInput(sanitizeJoinCodeInput(e.target.value))}
+                          placeholder="zugangscode"
+                          maxLength={20}
+                          autoComplete="off"
+                          aria-label="Zugangscode"
+                        />
+                        <button className="test-cta" type="submit" disabled={joining}>Beitreten →</button>
+                      </form>
+                      {joinNotice && <p className="cr-note">{joinNotice}</p>}
+                    </>
+                  ) : (
                     <div className="cr-joined-status">
                       <p className="cr-session-meta">
-                        {participantSession.settings?.name && (
+                        {participantSession?.settings?.name && (
                           <><span className="cr-session-name-it">{participantSession.settings.name}</span><span className="cr-meta-sep">·</span></>
                         )}
-                        <span className={socketConnected ? 'cr-state-running' : ''}>
-                          {socketConnected ? 'Verbunden' : mapSessionState(participantSession.state)}
+                        <span className={participantSession?.state === 'running' ? 'cr-state-running' : ''}>
+                          {socketConnected
+                            ? (participantSession?.state === 'running' ? 'Läuft' : 'Verbunden')
+                            : mapSessionState(participantSession?.state || '')}
                         </span>
                       </p>
-                      {(participantSession.state === 'lobby' || participantSession.state === 'created') && (
+                      {(participantSession?.state === 'lobby' || participantSession?.state === 'created') && socketConnected && (
                         <p className="cr-hint">Warte auf den Start durch die Lehrkraft.</p>
                       )}
                       {socketError && <p className="cr-error">{socketError}</p>}
                       {hostCountdown > 0 && (
                         <p className="cr-error">Verbindung unterbrochen. Sitzung endet in {hostCountdown}s.</p>
                       )}
+                      <button
+                        type="button"
+                        className="cr-leave-btn"
+                        onClick={() => {
+                          if (participantSession) {
+                            try { localStorage.removeItem(parseStorageKey(participantSession.id)) } catch {}
+                          }
+                          teardownSocket()
+                          clearParticipantRuntime()
+                          setParticipantInfo(null)
+                          setParticipantSession(null)
+                          setSubmittedGames([])
+                          setSocketError('')
+                          setJoinNotice('')
+                          setJoinCodeInput('')
+                        }}
+                      >
+                        Anderen Code eingeben
+                      </button>
                     </div>
                   )}
                 </div>
@@ -1025,6 +1054,23 @@ export default function ClassroomTab({ onLiveChange = () => {}, submitRef = null
                 </div>
                 {!participantInfo ? (
                   <p className="cr-hint">Tritt einer Sitzung unter ② bei, um zu spielen.</p>
+                ) : (participantSession?.state === 'lobby' || participantSession?.state === 'created') ? (
+                  <p className="cr-hint">Die Sitzung hat noch nicht begonnen. Dein Ergebnis wird nach dem Start automatisch übertragen.</p>
+                ) : (participantSession?.state === 'finished' || participantSession?.state === 'archived') ? (
+                  <>
+                    {submittedGames.length > 0 ? (
+                      <ul className="cr-submitted-list">
+                        {submittedGames.map((game) => (
+                          <li key={game} className="cr-submitted-item">
+                            <span className="cr-submitted-check">✓</span>
+                            <span className="cr-submitted-name">{GAME_LABELS[game] ?? game}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p className="cr-hint">Sitzung beendet.</p>
+                    )}
+                  </>
                 ) : submittedGames.length === 0 ? (
                   <p className="cr-hint">Wechsel zu „Spielmodi" und spiele — dein Ergebnis wird automatisch übertragen.</p>
                 ) : (
