@@ -147,6 +147,8 @@ export default function ClassroomTab({ onLiveChange = () => {}, submitRef = null
   const hostTimeoutTimerRef = useRef(null)
   const hostCountdownTimerRef = useRef(null)
   const activeSessionIdRef = useRef('')
+  const pendingSubmitsRef = useRef([])
+  const participantSessionRef = useRef(null)
 
   const isTeacher = account?.role === 'teacher'
   const activeSession = useMemo(() => sessions.find((s) => s.id === activeSessionId) || null, [sessions, activeSessionId])
@@ -461,6 +463,12 @@ export default function ClassroomTab({ onLiveChange = () => {}, submitRef = null
         if (payload.state === 'finished' || payload.state === 'archived') {
           try { localStorage.removeItem(parseStorageKey(payload.sessionId)) } catch {}
         }
+        if (payload.state === 'running' && pendingSubmitsRef.current.length > 0) {
+          const pending = pendingSubmitsRef.current.splice(0)
+          for (const sub of pending) {
+            socket.emit('classroom:submit', sub)
+          }
+        }
       })
 
       socket.on('classroom:results', (payload) => {
@@ -562,6 +570,10 @@ export default function ClassroomTab({ onLiveChange = () => {}, submitRef = null
   }, [activeSessionId])
 
   useEffect(() => {
+    participantSessionRef.current = participantSession
+  }, [participantSession])
+
+  useEffect(() => {
     loadAccount()
   }, [loadAccount])
 
@@ -579,10 +591,13 @@ export default function ClassroomTab({ onLiveChange = () => {}, submitRef = null
 
   useEffect(() => {
     if (!isTeacher || !activeSessionId) return
+    const current = sessions.find((s) => s.id === activeSessionId)
+    // Kein Polling für beendete/archivierte Sessions
+    if (!current || current.state === 'finished' || current.state === 'archived') return
     const timer = setInterval(() => {
       loadDashboard(activeSessionId)
-      const current = sessions.find((s) => s.id === activeSessionId)
-      if (current?.state !== 'running' && current?.state !== 'lobby') {
+      const curr = sessions.find((s) => s.id === activeSessionId)
+      if (curr?.state !== 'running' && curr?.state !== 'lobby') {
         loadExports(activeSessionId)
       }
     }, 5000)
@@ -697,18 +712,25 @@ export default function ClassroomTab({ onLiveChange = () => {}, submitRef = null
   }, [activeCard, isTeacher, scrollToCard])
 
   // submitRef für App.jsx-Spielresultate → Klassenraum-Socket
+  // Wenn Session noch nicht läuft, wird das Ergebnis zwischengespeichert
+  // und automatisch übertragen sobald die Session startet.
   useEffect(() => {
     if (!submitRef) return
     if (socketConnected && participantInfo) {
       submitRef.current = ({ game, score, maxScore, payload = {} }) => {
-        const socket = socketRef.current
-        if (!socket?.connected) return
-        socket.emit('classroom:submit', {
+        const sock = socketRef.current
+        if (!sock?.connected) return
+        const sub = {
           roundNo: GAME_ROUND_NO[game] ?? 1,
           score,
           maxScore,
           payload: { game, ...payload },
-        })
+        }
+        if (participantSessionRef.current?.state === 'running') {
+          sock.emit('classroom:submit', sub)
+        } else {
+          pendingSubmitsRef.current.push(sub)
+        }
       }
     } else {
       submitRef.current = null
