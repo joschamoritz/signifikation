@@ -32,7 +32,7 @@ export default defineConfig({
         navigateFallbackDenylist: [/^\/admin/, /^\/impressum/, /^\/datenschutz/, /^\/nutzungsbedingungen/],
         runtimeCaching: [
           {
-            urlPattern: /^\/api\/heute/,
+            urlPattern: /^\/api\/v1\/heute/,
             handler: 'StaleWhileRevalidate',
             options: {
               cacheName: 'api-heute',
@@ -40,18 +40,26 @@ export default defineConfig({
             },
           },
           {
-            urlPattern: /^\/api\/lemmata/,
+            urlPattern: /^\/api\/v1\/zeitreise/,
             handler: 'StaleWhileRevalidate',
             options: {
-              cacheName: 'api-lemmata',
+              cacheName: 'api-zeitreise',
               expiration: { maxEntries: 10, maxAgeSeconds: 60 * 60 * 24 },
             },
           },
           {
-            urlPattern: /^\/api\/zeitreise/,
+            urlPattern: /^\/api\/v1\/wortzwilling/,
             handler: 'StaleWhileRevalidate',
             options: {
-              cacheName: 'api-zeitreise',
+              cacheName: 'api-wortzwilling',
+              expiration: { maxEntries: 10, maxAgeSeconds: 60 * 60 * 24 },
+            },
+          },
+          {
+            urlPattern: /^\/api\/v1\/zeitenwende/,
+            handler: 'StaleWhileRevalidate',
+            options: {
+              cacheName: 'api-zeitenwende',
               expiration: { maxEntries: 10, maxAgeSeconds: 60 * 60 * 24 },
             },
           },

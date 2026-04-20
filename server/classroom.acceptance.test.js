@@ -151,4 +151,118 @@ describe('Classroom-Akzeptanz: 20 gleichzeitige Teilnehmende', () => {
     expect(dashboardPayload?.metrics?.total_count).toBe(20)
     expect(dashboardPayload?.metrics?.submitted_count).toBe(20)
   })
+
+  it('blockiert gefaelschte Teacher-Joins ohne serverseitig signiertes Token', async () => {
+    const teacherId = `teacher-socket-forgery-${Date.now()}`
+    const { session } = await createSession(baseUrl, teacherId)
+
+    const socket = ioClient(baseUrl, {
+      path: '/socket.io',
+      transports: ['websocket'],
+      timeout: 5000,
+    })
+
+    try {
+      await new Promise((resolve, reject) => {
+        let settled = false
+        const timeout = setTimeout(() => {
+          if (settled) return
+          settled = true
+          reject(new Error('Socket forgery timeout'))
+        }, 5000)
+
+        socket.on('connect_error', (err) => {
+          if (settled) return
+          settled = true
+          clearTimeout(timeout)
+          reject(err)
+        })
+
+        socket.on('connect', () => {
+          socket.emit('classroom:teacher-join', {
+            sessionId: session.id,
+            teacherUserId: teacherId,
+          })
+        })
+
+        socket.on('classroom:error', (payload) => {
+          if (settled) return
+          settled = true
+          clearTimeout(timeout)
+          expect(payload?.code).toBe('INVALID_PAYLOAD')
+          resolve()
+        })
+
+        socket.on('classroom:metrics', () => {
+          if (settled) return
+          settled = true
+          clearTimeout(timeout)
+          reject(new Error('Forged teacher join unexpectedly received metrics'))
+        })
+      })
+    } finally {
+      try { socket.close() } catch {}
+    }
+  })
+
+  it('erlaubt Teacher-Join nur mit serverseitig signiertem Token', async () => {
+    const teacherId = `teacher-socket-valid-${Date.now()}`
+    const { session } = await createSession(baseUrl, teacherId)
+
+    const authResponse = await fetch(`${baseUrl}/api/v1/classroom/sessions/${session.id}/teacher-socket-auth`, {
+      method: 'POST',
+      headers: teacherHeaders(teacherId),
+    })
+    expect(authResponse.status).toBe(200)
+    const authPayload = await parseJsonSafe(authResponse)
+    expect(typeof authPayload?.token).toBe('string')
+
+    const socket = ioClient(baseUrl, {
+      path: '/socket.io',
+      transports: ['websocket'],
+      timeout: 5000,
+    })
+
+    try {
+      await new Promise((resolve, reject) => {
+        let settled = false
+        const timeout = setTimeout(() => {
+          if (settled) return
+          settled = true
+          reject(new Error('Socket teacher auth timeout'))
+        }, 5000)
+
+        socket.on('connect_error', (err) => {
+          if (settled) return
+          settled = true
+          clearTimeout(timeout)
+          reject(err)
+        })
+
+        socket.on('connect', () => {
+          socket.emit('classroom:teacher-join', {
+            sessionId: session.id,
+            token: authPayload.token,
+          })
+        })
+
+        socket.on('classroom:error', (payload) => {
+          if (settled) return
+          settled = true
+          clearTimeout(timeout)
+          reject(new Error(`Teacher join rejected: ${payload?.code || 'unknown'}`))
+        })
+
+        socket.on('classroom:metrics', (payload) => {
+          if (settled) return
+          settled = true
+          clearTimeout(timeout)
+          expect(payload).toBeTruthy()
+          resolve()
+        })
+      })
+    } finally {
+      try { socket.close() } catch {}
+    }
+  })
 })

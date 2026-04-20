@@ -2,12 +2,15 @@ import { useState, useEffect, useRef } from 'react'
 
 const TAB_ORDER = ['spielmodi', 'klassenraum', 'kurs', 'profil']
 
-export default function TabTransition({ activeTab, children }) {
+export default function TabTransition({ activeTab, tabs }) {
   const [displayTab, setDisplayTab] = useState(activeTab)
   const [prevTab, setPrevTab] = useState(null)
   const [isTransitioning, setIsTransitioning] = useState(false)
   const [direction, setDirection] = useState(null)
   const prevTabRef = useRef(activeTab)
+
+  const currentScreen = tabs[displayTab] ?? null
+  const previousScreen = prevTab ? (tabs[prevTab] ?? null) : null
 
   useEffect(() => {
     if (activeTab === prevTabRef.current) return
@@ -37,9 +40,9 @@ export default function TabTransition({ activeTab, children }) {
   return (
     <div className="tab-transition-container">
       {/* Alte Seite (exit-Animation, nur während Transition sichtbar) */}
-      {isTransitioning && prevTab && (
+      {isTransitioning && previousScreen && (
         <div className={`tab-screen tab-screen--exit-${direction}`} key={prevTab}>
-          {children}
+          {previousScreen}
         </div>
       )}
       
@@ -49,7 +52,7 @@ export default function TabTransition({ activeTab, children }) {
         style={!isTransitioning ? { position: 'relative' } : undefined}
         key={displayTab}
       >
-        {children}
+        {currentScreen}
       </div>
     </div>
   )

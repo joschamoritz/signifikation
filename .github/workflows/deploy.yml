@@ -5,9 +5,31 @@ on:
     branches: [main]
   workflow_dispatch:
 
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
 jobs:
-  deploy:
+  verify:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npm run verify
+
+  deploy:
+    needs: verify
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+    permissions:
+      contents: read
     steps:
       - uses: appleboy/ssh-action@v1
         with:
@@ -20,7 +42,8 @@ jobs:
             source "$NVM_DIR/nvm.sh"
             cd /opt/signifikation/app
             git fetch origin
-            git reset --hard origin/main
-            npm install
+            git checkout main
+            git pull --ff-only origin main
+            npm ci
             npm run build
             sudo -u signifikation bash -c 'export NVM_DIR="/opt/nvm" && source "$NVM_DIR/nvm.sh" && pm2 restart signifikation'

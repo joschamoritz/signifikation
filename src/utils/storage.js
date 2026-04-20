@@ -3,7 +3,12 @@ export function lsGet(key) {
 }
 
 export function lsSet(key, value) {
-  try { localStorage.setItem(key, value) } catch (err) { console.error('localStorage write:', err) }
+  try {
+    localStorage.setItem(key, value)
+    return true
+  } catch {
+    return false
+  }
 }
 
 export function lsParse(raw, fallback) {

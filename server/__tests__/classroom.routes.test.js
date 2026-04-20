@@ -167,4 +167,27 @@ describe('classroom routes integration', () => {
     const payload = await exportRes.json()
     expect(payload).toEqual({ error: 'Session ist in diesem Zustand nicht gueltig' })
   })
+
+  it('teacher socket auth: liefert signiertes Kurzzeit-Token statt roher Teacher-ID', async () => {
+    const teacherId = `teacher-socket-auth-${Date.now()}`
+    const createRes = await fetch(`${baseUrl}/api/v1/classroom/sessions`, {
+      method: 'POST',
+      headers: teacherHeaders(teacherId),
+      body: JSON.stringify({}),
+    })
+    expect(createRes.status).toBe(201)
+    const created = await createRes.json()
+
+    const authRes = await fetch(`${baseUrl}/api/v1/classroom/sessions/${created.session.id}/teacher-socket-auth`, {
+      method: 'POST',
+      headers: teacherHeaders(teacherId),
+    })
+    expect(authRes.status).toBe(200)
+    const payload = await authRes.json()
+
+    expect(payload.sessionId).toBe(created.session.id)
+    expect(typeof payload.token).toBe('string')
+    expect(payload.token.length).toBeGreaterThan(20)
+    expect(payload.teacherUserId).toBeUndefined()
+  })
 })

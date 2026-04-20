@@ -22,6 +22,7 @@ import {
   getClassroomExportJob,
   listClassroomExportJobs,
 } from '../classroom-store.js'
+import { createTeacherSocketToken } from '../classroom/teacher-socket-auth.js'
 import logger from '../logger.js'
 import {
   classroomJoinLimiter,
@@ -162,7 +163,10 @@ router.post('/api/v1/classroom/sessions/:id/teacher-socket-auth', requireTeacher
   }
   return res.json({
     sessionId: req.params.id,
-    teacherUserId: req.user.id,
+    token: createTeacherSocketToken({
+      sessionId: req.params.id,
+      teacherUserId: req.user.id,
+    }),
   })
 })
 

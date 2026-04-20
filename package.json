@@ -15,6 +15,7 @@
     "preview": "vite preview",
     "start": "node server/index.js",
     "test": "vitest run",
+    "verify": "npm run test && npm run build",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "test:e2e": "playwright test",

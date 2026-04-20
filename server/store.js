@@ -483,6 +483,108 @@ export function loadZeitenwende() { return loadReadOnly('zeitenwende.json') }
 export function loadStats() { return loadReadOnly('stats.json') }
 export function loadStatsRows() { return loadReadOnly('stats-rows.json') }
 
+let _statsWindowCache = {
+  key: null,
+  value: null,
+  ts: 0,
+}
+
+const STATS_WINDOW_CACHE_TTL_MS = 30 * 1000
+
+function sortMmddKeys(keys) {
+  const now = new Date()
+  const currentYear = now.getFullYear()
+  const today = new Date(currentYear, now.getMonth(), now.getDate()).getTime()
+
+  return [...keys].sort((a, b) => {
+    const [ma, da] = String(a).split('-').map(Number)
+    const [mb, db_] = String(b).split('-').map(Number)
+    const dateAThisYear = new Date(currentYear, (ma || 1) - 1, da || 1)
+    const dateBThisYear = new Date(currentYear, (mb || 1) - 1, db_ || 1)
+    const dateA = dateAThisYear.getTime() >= today
+      ? dateAThisYear
+      : new Date(currentYear + 1, (ma || 1) - 1, da || 1)
+    const dateB = dateBThisYear.getTime() >= today
+      ? dateBThisYear
+      : new Date(currentYear + 1, (mb || 1) - 1, db_ || 1)
+    return dateA - dateB
+  })
+}
+
+export function getStatsWindow(days) {
+  const stats = loadStats()
+  const statsKeys = Object.keys(stats || {})
+  const cacheKey = `${days}|${statsKeys.length}|${statsKeys.join(',')}`
+  if (_statsWindowCache.key === cacheKey && Date.now() - _statsWindowCache.ts < STATS_WINDOW_CACHE_TTL_MS) {
+    return _statsWindowCache.value
+  }
+
+  const orderedDates = sortMmddKeys(statsKeys)
+  const selectedDates = orderedDates.slice(-days)
+
+  const byGameMap = new Map()
+  const scoreDistribution = Array(11).fill(0)
+  let totalPlays = 0
+  let totalScoreSum = 0
+  let totalMaxSum = 0
+  const rows = []
+
+  for (const datum of selectedDates) {
+    const games = stats[datum] || {}
+    for (const [spiel, bucket] of Object.entries(games)) {
+      const plays = Number(bucket?.plays || 0)
+      const scoreSum = Number(bucket?.scoreSum || 0)
+      const maxSum = Number(bucket?.maxSum || 0)
+      const dist = Array.isArray(bucket?.dist) ? bucket.dist : []
+
+      totalPlays += plays
+      totalScoreSum += scoreSum
+      totalMaxSum += maxSum
+
+      for (let i = 0; i <= 10; i += 1) {
+        scoreDistribution[i] += Number(dist[i] || 0)
+      }
+
+      const prev = byGameMap.get(spiel) || { spiel, plays: 0, scoreSum: 0, maxSum: 0 }
+      prev.plays += plays
+      prev.scoreSum += scoreSum
+      prev.maxSum += maxSum
+      byGameMap.set(spiel, prev)
+
+      rows.push({ datum, spiel, plays, scoreSum, maxSum })
+    }
+  }
+
+  const byGame = [...byGameMap.values()]
+    .map((row) => ({
+      ...row,
+      avg10: row.maxSum > 0 ? Number(((row.scoreSum / row.maxSum) * 10).toFixed(2)) : null,
+    }))
+    .sort((a, b) => b.plays - a.plays)
+
+  const result = {
+    days,
+    selectedDates,
+    rows,
+    totals: {
+      plays: totalPlays,
+      scoreSum: totalScoreSum,
+      maxSum: totalMaxSum,
+      avg10: totalMaxSum > 0 ? Number(((totalScoreSum / totalMaxSum) * 10).toFixed(2)) : null,
+    },
+    byGame,
+    scoreDistribution,
+  }
+
+  _statsWindowCache = {
+    key: cacheKey,
+    value: result,
+    ts: Date.now(),
+  }
+
+  return result
+}
+
 // ── Lemmata-Index (O(1)-Lookup statt linearem Array-Scan) ─────────
 
 let _lemmataById    = null

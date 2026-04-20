@@ -6,7 +6,7 @@ import { fetchLemma, fetchBonusQuestion, fetchRelation, fetchZeitreise, fetchZei
 import { belegeVerfuegbar, fetchBelege } from '../belege.js'
 import { fetchWiktionary } from '../wiktionary.js'
 import { fetchWortZwilling } from '../wortzwilling.js'
-import { load, loadReadOnly, save, loadZeitreise, loadWortZwilling, loadZeitenwende, loadStats, loadStatsRows, getLemmataIndex, getCacheMetrics, DATA, stmts, lemmaToRow, replaceAllAdminData } from '../store.js'
+import { load, loadReadOnly, save, loadZeitreise, loadWortZwilling, loadZeitenwende, loadStatsRows, getLemmataIndex, getCacheMetrics, DATA, stmts, lemmaToRow, replaceAllAdminData, getStatsWindow } from '../store.js'
 import { getCacheMetrics as getQueryCacheMetrics, clearCache as clearQueryCache } from '../query-cache.js'
 import { adminLimiter, loginLimiter, uploadLimiter } from '../middleware/rateLimiter.js'
 import { requireAuth, adminAuth, adminLogout, adminError, serverError, createSession } from '../middleware/auth.js'
@@ -14,6 +14,9 @@ import { validate, qQuerySchema, adminTagSchema, analyzeKollQuerySchema, analyze
 import { auditCreate, auditUpdate, auditDelete, getAuditLog } from '../audit.js'
 import logger from '../logger.js'
 import db from '../db.js'
+import { createAdminAuditRouter } from './admin-audit.js'
+import { createAdminUsersRouter } from './admin-users.js'
+import { createAdminBackupRouter } from './admin-backup.js'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const router = express.Router()
@@ -348,89 +351,6 @@ function buildModeGroups({ lemmata = [], zeitreiseEntry = null, wortzwillingEntr
   return groups
 }
 
-let _statsWindowCache = {
-  key: null,
-  value: null,
-  ts: 0,
-}
-
-const STATS_WINDOW_CACHE_TTL_MS = 30 * 1000
-
-function aggregateStatsWindow(days) {
-  const stats = loadReadOnly('stats.json') ?? {}
-  const statsKeys = Object.keys(stats)
-  const cacheKey = `${days}|${statsKeys.length}|${statsKeys.join(',')}`
-  if (_statsWindowCache.key === cacheKey && Date.now() - _statsWindowCache.ts < STATS_WINDOW_CACHE_TTL_MS) {
-    return _statsWindowCache.value
-  }
-
-  const orderedDates = sortDatumKeys(statsKeys)
-  const selectedDates = orderedDates.slice(-days)
-
-  const byGameMap = new Map()
-  const scoreDistribution = Array(11).fill(0)
-  let totalPlays = 0
-  let totalScoreSum = 0
-  let totalMaxSum = 0
-
-  const rows = []
-
-  for (const datum of selectedDates) {
-    const games = stats[datum] || {}
-    for (const [spiel, bucket] of Object.entries(games)) {
-      const plays = Number(bucket?.plays || 0)
-      const scoreSum = Number(bucket?.scoreSum || 0)
-      const maxSum = Number(bucket?.maxSum || 0)
-      const dist = Array.isArray(bucket?.dist) ? bucket.dist : []
-
-      totalPlays += plays
-      totalScoreSum += scoreSum
-      totalMaxSum += maxSum
-
-      for (let i = 0; i <= 10; i += 1) {
-        scoreDistribution[i] += Number(dist[i] || 0)
-      }
-
-      const prev = byGameMap.get(spiel) || { spiel, plays: 0, scoreSum: 0, maxSum: 0 }
-      prev.plays += plays
-      prev.scoreSum += scoreSum
-      prev.maxSum += maxSum
-      byGameMap.set(spiel, prev)
-
-      rows.push({ datum, spiel, plays, scoreSum, maxSum })
-    }
-  }
-
-  const byGame = [...byGameMap.values()]
-    .map((row) => ({
-      ...row,
-      avg10: row.maxSum > 0 ? Number(((row.scoreSum / row.maxSum) * 10).toFixed(2)) : null,
-    }))
-    .sort((a, b) => b.plays - a.plays)
-
-  const result = {
-    days,
-    selectedDates,
-    rows,
-    totals: {
-      plays: totalPlays,
-      scoreSum: totalScoreSum,
-      maxSum: totalMaxSum,
-      avg10: totalMaxSum > 0 ? Number(((totalScoreSum / totalMaxSum) * 10).toFixed(2)) : null,
-    },
-    byGame,
-    scoreDistribution,
-  }
-
-  _statsWindowCache = {
-    key: cacheKey,
-    value: result,
-    ts: Date.now(),
-  }
-
-  return result
-}
-
 function toCsvCell(value) {
   const s = String(value ?? '')
   if (/[",\n]/.test(s)) return `"${s.replace(/"/g, '""')}"`
@@ -477,307 +397,39 @@ router.post('/admin/refresh', adminLimiter, requireAuth, (_req, res) => {
   }
 })
 
-/** GET /admin/users – Registrierte Nutzer inkl. Rollen */
-router.get('/admin/users', adminLimiter, requireAuth, validate(adminUsersQuerySchema, 'query'), (req, res) => {
-  const { limit, role, q } = req.query
-  try {
-    const search = (q || '').trim()
-    const rows = listUsersStmt.all({
-      limit,
-      role: role || '',
-      q: search,
-      qLike: `%${search}%`,
-    })
-
-    const total = countUsersStmt.get()?.total || 0
-    const roleCounts = countUsersByRoleStmt.get() || { teachers: 0, users: 0 }
-
-    const now = Date.now()
-    const from7 = new Date(now - 7 * 24 * 60 * 60 * 1000).toISOString()
-    const from30 = new Date(now - 30 * 24 * 60 * 60 * 1000).toISOString()
-    const growth = adminUsersStatsStmt.get({ fromIso: from7, from30Iso: from30 }) || { newLast7Days: 0, newLast30Days: 0 }
-
-    res.json({
-      summary: {
-        total,
-        users: Number(roleCounts.users || 0),
-        teachers: Number(roleCounts.teachers || 0),
-        newLast7Days: Number(growth.newLast7Days || 0),
-        newLast30Days: Number(growth.newLast30Days || 0),
-      },
-      users: rows.map((row) => ({
-        id: row.id,
-        name: row.name,
-        email: row.email,
-        emailVerified: !!row.emailVerified,
-        role: row.role,
-        createdAt: row.createdAt,
-      })),
-    })
-  } catch (err) {
-    adminError(res, err)
-  }
-})
-
-/** GET /admin/users/:id – Nutzerdetails inkl. Spielstatistik */
-router.get('/admin/users/:id', adminLimiter, requireAuth, validate(adminUserIdParamsSchema, 'params'), (req, res) => {
-  const userId = String(req.params.id || '').trim()
-  if (!userId) return res.status(400).json({ error: 'userId erforderlich' })
-
-  try {
-    const user = getUserDetailsStmt.get(userId)
-    if (!user) return res.status(404).json({ error: 'Nutzer nicht gefunden' })
-
-    const byGame = getUserStatsByGameStmt.all(userId).map((row) => ({
-      spiel: row.spiel,
-      plays: Number(row.plays || 0),
-      scoreSum: Number(row.scoreSum || 0),
-      maxSum: Number(row.maxSum || 0),
-    }))
-
-    const totals = byGame.reduce((acc, row) => {
-      acc.plays += Number(row.plays || 0)
-      acc.scoreSum += Number(row.scoreSum || 0)
-      acc.maxSum += Number(row.maxSum || 0)
-      return acc
-    }, { plays: 0, scoreSum: 0, maxSum: 0 })
-
-    const recent = getUserRecentStatsStmt.all(userId).map((row) => ({
-      datum: row.datum,
-      spiel: row.spiel,
-      plays: Number(row.plays || 0),
-      scoreSum: Number(row.scoreSum || 0),
-      maxSum: Number(row.maxSum || 0),
-    }))
-
-    res.json({
-      user: {
-        id: user.id,
-        name: user.name,
-        email: user.email,
-        emailVerified: !!user.emailVerified,
-        role: user.role,
-        createdAt: user.createdAt,
-      },
-      stats: {
-        totals,
-        byGame,
-        recent,
-      },
-    })
-  } catch (err) {
-    adminError(res, err)
-  }
-})
-
-/** GET /admin/users/:id/stats – Nutzerdetails nur als Statistik-Payload */
-router.get('/admin/users/:id/stats', adminLimiter, requireAuth, validate(adminUserIdParamsSchema, 'params'), (req, res) => {
-  const userId = String(req.params.id || '').trim()
-  if (!userId) return res.status(400).json({ error: 'userId erforderlich' })
-
-  try {
-    const user = getUserDetailsStmt.get(userId)
-    if (!user) return res.status(404).json({ error: 'Nutzer nicht gefunden' })
-
-    const byGame = getUserStatsByGameStmt.all(userId).map((row) => ({
-      spiel: row.spiel,
-      plays: Number(row.plays || 0),
-      scoreSum: Number(row.scoreSum || 0),
-      maxSum: Number(row.maxSum || 0),
-    }))
-
-    const totals = byGame.reduce((acc, row) => {
-      acc.plays += Number(row.plays || 0)
-      acc.scoreSum += Number(row.scoreSum || 0)
-      acc.maxSum += Number(row.maxSum || 0)
-      return acc
-    }, { plays: 0, scoreSum: 0, maxSum: 0 })
-
-    const recent = getUserRecentStatsStmt.all(userId).map((row) => ({
-      datum: row.datum,
-      spiel: row.spiel,
-      plays: Number(row.plays || 0),
-      scoreSum: Number(row.scoreSum || 0),
-      maxSum: Number(row.maxSum || 0),
-    }))
-
-    res.json({
-      userId,
-      totals,
-      byGame,
-      recent,
-    })
-  } catch (err) {
-    adminError(res, err)
-  }
-})
-
-/** PATCH /admin/users/:id/role – Rolle setzen (user|teacher) */
-const setUserRoleHandler = (req, res) => {
-  const userId = String(req.params.id || '').trim()
-  if (!userId) return res.status(400).json({ error: 'userId erforderlich' })
-
-  try {
-    if (!userExistsStmt.get(userId)) {
-      return res.status(404).json({ error: 'Nutzer nicht gefunden' })
-    }
-
-    const now = Date.now()
-    ensureProfileStmt.run(userId, now, now)
-    setUserRoleStmt.run(userId, req.body.role, now, now)
-
-    auditUpdate('user', userId, null, { role: req.body.role }, {
-      adminKey: req.adminSessionId || 'unknown',
-      ip: req.ip,
-    })
-
-    logger.info({ userId, role: req.body.role }, 'Nutzerrolle aktualisiert')
-    res.json({ ok: true, userId, role: req.body.role })
-  } catch (err) {
-    adminError(res, err)
-  }
-}
-
-router.patch('/admin/users/:id/role', adminLimiter, requireAuth, validate(adminSetUserRoleSchema), setUserRoleHandler)
-router.post('/admin/users/:id/role', adminLimiter, requireAuth, validate(adminSetUserRoleSchema), setUserRoleHandler)
-
-/** DELETE /admin/users/:id – Nutzer löschen */
-router.delete('/admin/users/:id', adminLimiter, requireAuth, validate(adminUserIdParamsSchema, 'params'), (req, res) => {
-  const userId = String(req.params.id || '').trim()
-  if (!userId) return res.status(400).json({ error: 'userId erforderlich' })
-
-  try {
-    const existing = getUserDetailsStmt.get(userId)
-    if (!existing) return res.status(404).json({ error: 'Nutzer nicht gefunden' })
-
-    deleteUserTx(userId)
-
-    auditDelete('user', userId, {
-      email: existing.email,
-      role: existing.role,
-    }, {
-      adminKey: req.adminSessionId || 'unknown',
-      ip: req.ip,
-    })
-
-    logger.info({ userId }, 'Nutzer geloescht')
-    res.json({ ok: true, userId })
-  } catch (err) {
-    adminError(res, err)
-  }
-})
-
-/** POST /admin/users/bulk-update – Bulk-Aktionen fuer Nutzer */
-router.post('/admin/users/bulk-update', adminLimiter, requireAuth, validate(adminUsersBulkUpdateSchema), (req, res) => {
-  const { action, userIds, role, format } = req.body
-  try {
-    const uniqueIds = [...new Set(userIds.map((id) => String(id).trim()).filter(Boolean))]
-    if (!uniqueIds.length) return res.status(400).json({ error: 'Keine gueltigen userIds uebergeben' })
-
-    const users = getUsersByIdsStmt.all(JSON.stringify(uniqueIds))
-    const byId = new Map(users.map((user) => [user.id, user]))
-    const foundIds = new Set(users.map((user) => user.id))
-    const skipped = uniqueIds.filter((id) => !foundIds.has(id))
-
-    if (action === 'setRole') {
-      const now = Date.now()
-      const updated = []
-      for (const user of users) {
-        ensureProfileStmt.run(user.id, now, now)
-        setUserRoleStmt.run(user.id, role, now, now)
-        updated.push(user.id)
-        auditUpdate('user', user.id, { role: user.role }, { role }, {
-          adminKey: req.adminSessionId || 'unknown',
-          ip: req.ip,
-        })
-      }
-
-      return res.json({
-        ok: true,
-        action,
-        role,
-        requestedCount: uniqueIds.length,
-        changedCount: updated.length,
-        changed: updated,
-        skipped,
-      })
-    }
-
-    if (action === 'delete') {
-      const deleted = []
-      for (const user of users) {
-        deleteUserTx(user.id)
-        deleted.push(user.id)
-        auditDelete('user', user.id, { email: user.email, role: user.role }, {
-          adminKey: req.adminSessionId || 'unknown',
-          ip: req.ip,
-        })
-      }
-
-      return res.json({
-        ok: true,
-        action,
-        requestedCount: uniqueIds.length,
-        deletedCount: deleted.length,
-        deleted,
-        skipped,
-      })
-    }
-
-    if (action === 'export') {
-      const exportRows = users.map((user) => ({
-        id: user.id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-        emailVerified: !!user.emailVerified,
-        createdAt: user.createdAt,
-      }))
-
-      if (format === 'csv') {
-        const header = ['id', 'name', 'email', 'role', 'emailVerified', 'createdAt']
-        const csvLines = [header.join(',')]
-        for (const row of exportRows) {
-          csvLines.push([
-            toCsvCell(row.id),
-            toCsvCell(row.name || ''),
-            toCsvCell(row.email || ''),
-            toCsvCell(row.role || 'user'),
-            toCsvCell(row.emailVerified ? '1' : '0'),
-            toCsvCell(row.createdAt || ''),
-          ].join(','))
-        }
-
-        const csv = csvLines.join('\n')
-        res.setHeader('Content-Type', 'text/csv; charset=utf-8')
-        res.setHeader('Content-Disposition', `attachment; filename="signifikation-users-bulk-${new Date().toISOString().slice(0, 10)}.csv"`)
-        res.setHeader('X-Exported-Count', String(exportRows.length))
-        res.setHeader('X-Skipped-Count', String(skipped.length))
-        return res.send(csv)
-      }
-
-      return res.json({
-        ok: true,
-        action,
-        requestedCount: uniqueIds.length,
-        exportedCount: exportRows.length,
-        users: exportRows,
-        skipped,
-      })
-    }
-
-    return res.status(400).json({ error: 'Unbekannte Bulk-Aktion' })
-  } catch (err) {
-    adminError(res, err)
-  }
-})
+router.use(createAdminUsersRouter({
+  adminLimiter,
+  requireAuth,
+  validate,
+  adminUsersQuerySchema,
+  adminSetUserRoleSchema,
+  adminUserIdParamsSchema,
+  adminUsersBulkUpdateSchema,
+  countUsersStmt,
+  countUsersByRoleStmt,
+  listUsersStmt,
+  getUserDetailsStmt,
+  getUserStatsByGameStmt,
+  getUserRecentStatsStmt,
+  ensureProfileStmt,
+  setUserRoleStmt,
+  userExistsStmt,
+  getUsersByIdsStmt,
+  deleteUserTx,
+  adminUsersStatsStmt,
+  toCsvCell,
+  auditUpdate,
+  auditDelete,
+  adminError,
+  logger,
+}))
 
 /** GET /admin/stats/summary – Aggregierte Stats + Top-Nutzer */
 router.get('/admin/stats/summary', adminLimiter, requireAuth, validate(adminStatsSummaryQuerySchema, 'query'), (req, res) => {
   const { days, topUsers: topUsersLimit } = req.query
 
   try {
-    const windowStats = aggregateStatsWindow(days)
+    const windowStats = getStatsWindow(days)
 
     const topUserRows = topUsersByDatesStmt.all(
       JSON.stringify(windowStats.selectedDates),
@@ -817,7 +469,7 @@ router.get('/admin/stats/export', adminLimiter, requireAuth, validate(adminStats
   const { days, format } = req.query
 
   try {
-    const windowStats = aggregateStatsWindow(days)
+    const windowStats = getStatsWindow(days)
     if (format === 'json') {
       res.setHeader('Content-Disposition', `attachment; filename="signifikation-stats-${days}d.json"`)
       return res.json(windowStats)
@@ -943,73 +595,15 @@ router.post('/admin/cache-clear', adminLimiter, requireAuth, (req, res) => {
 })
 
 /** GET /admin/audit-log – Audit-Protokoll der letzten Admin-Änderungen */
-router.get('/admin/audit-log', adminLimiter, requireAuth, validate(adminAuditLogQuerySchema, 'query'), (req, res) => {
-  try {
-    const { action, resource, status, q, from: fromRaw, to: toRaw } = req.query
-
-    const limit = Math.min(500, Math.max(10, parseInt(req.query.limit) || 100))
-    const from = fromRaw ? new Date(fromRaw) : null
-    const to = toRaw ? new Date(toRaw) : null
-
-    // Groesseres Fenster laden und danach filtern, damit Filter wirklich greifen.
-    const source = getAuditLog(2000)
-    const filtered = source.filter((entry) => {
-      if (action && entry.action !== action) return false
-      if (resource && String(entry.resource || '').toLowerCase() !== resource) return false
-      if (status && entry.status !== status) return false
-
-      if (from || to) {
-        const ts = new Date(entry.timestamp || '')
-        if (Number.isNaN(ts.getTime())) return false
-        if (from && ts < from) return false
-        if (to && ts > to) return false
-      }
-
-      if (q) {
-        const haystack = [
-          entry.action,
-          entry.resource,
-          entry.resourceId,
-          entry.status,
-          JSON.stringify(entry.changes || {}),
-        ].join(' ').toLowerCase()
-        if (!haystack.includes(q)) return false
-      }
-
-      return true
-    })
-
-    const entries = filtered.slice(0, limit)
-    res.json({
-      entries,
-      count: entries.length,
-      totalMatches: filtered.length,
-      timestamp: new Date().toISOString()
-    })
-  } catch (err) { adminError(res, err) }
-})
-
-/** GET /admin/audit-log/:resource/:id – Audit-Historie für eine konkrete Entität */
-router.get('/admin/audit-log/:resource/:id', adminLimiter, requireAuth, validate(adminAuditLogDetailParamsSchema, 'params'), (req, res) => {
-  try {
-    const resource = String(req.params.resource || '').trim().toLowerCase()
-    const resourceId = String(req.params.id || '').trim()
-    const limit = Math.min(200, Math.max(1, parseInt(req.query.limit) || 50))
-    const entries = getAuditLog(2000)
-      .filter((entry) => String(entry.resource || '').toLowerCase() === resource && String(entry.resourceId || '') === resourceId)
-      .slice(0, limit)
-
-    res.json({
-      resource,
-      resourceId,
-      entries,
-      count: entries.length,
-      timestamp: new Date().toISOString(),
-    })
-  } catch (err) {
-    adminError(res, err)
-  }
-})
+router.use(createAdminAuditRouter({
+  adminLimiter,
+  requireAuth,
+  validate,
+  adminAuditLogQuerySchema,
+  adminAuditLogDetailParamsSchema,
+  getAuditLog,
+  adminError,
+}))
 
 /** POST /admin/kalender/bulk-delete – mehrere Kalendereintraege gleichzeitig loeschen */
 router.post('/admin/kalender/bulk-delete', adminLimiter, requireAuth, validate(adminBulkDeleteCalendarSchema), async (req, res) => {
@@ -1517,62 +1111,19 @@ router.delete('/admin/tag/:datum', adminLimiter, requireAuth, async (req, res) =
   }
 })
 
-/** POST /admin/backup/gist – manuell Backup nach GitHub Gist anstoßen */
-router.post('/admin/backup/gist', adminLimiter, requireAuth, async (req, res) => {
-  try {
-    const { runBackup } = await import('../backup.js')
-    const result = await runBackup()
-    res.json({ ok: true, ...result })
-  } catch (err) { adminError(res, err) }
-})
-
-/** GET /admin/backup – alle Daten als Bundle */
-router.get('/admin/backup', adminLimiter, requireAuth, (req, res) => {
-  try {
-    const files  = ['kalender.json', 'lemmata.json', 'zeitreise.json', 'wortzwilling.json', 'zeitenwende.json', 'stats.json', 'stats-rows.json']
-    const bundle = {}
-    for (const f of files) {
-      try {
-        bundle[f] = f === 'stats-rows.json' ? loadStatsRows() : loadReadOnly(f)
-      } catch {
-        bundle[f] = null
-      }
-    }
-    res.setHeader('Content-Disposition', `attachment; filename="signifikation-backup-${new Date().toISOString().slice(0, 10)}.json"`)
-    res.json({ exportedAt: new Date().toISOString(), files: bundle })
-  } catch (err) { serverError(res, err) }
-})
-
-/** POST /admin/backup/restore – JSON-Backup in den aktuellen Datenbestand zurückspielen */
-router.post('/admin/backup/restore', adminLimiter, requireAuth, validate(adminBackupRestoreSchema), async (req, res) => {
-  try {
-    const bundle = sanitizeBackupBundle(req.body)
-
-    await replaceAllAdminData(bundle)
-
-    auditUpdate('backup', 'restore', null, {
-      exportedAt: req.body.exportedAt || null,
-      files: Object.keys(req.body.files || {}),
-    }, {
-      adminKey: req.adminSessionId || 'unknown',
-      ip: req.ip,
-    })
-
-    res.json({
-      ok: true,
-      restored: {
-        lemmata: Array.isArray(bundle.lemmata) ? bundle.lemmata.length : 0,
-        kalender: Object.keys(bundle.kalender || {}).length,
-        zeitreise: Object.keys(bundle.zeitreise || {}).length,
-        wortzwilling: Object.keys(bundle.wortzwilling || {}).length,
-        zeitenwende: Object.keys(bundle.zeitenwende || {}).length,
-        statsRows: Array.isArray(bundle.statsRows) ? bundle.statsRows.length : 0,
-      },
-    })
-  } catch (err) {
-    adminError(res, err)
-  }
-})
+router.use(createAdminBackupRouter({
+  adminLimiter,
+  requireAuth,
+  validate,
+  adminBackupRestoreSchema,
+  loadReadOnly,
+  loadStatsRows,
+  replaceAllAdminData,
+  sanitizeBackupBundle,
+  auditUpdate,
+  adminError,
+  serverError,
+}))
 
 
 /** POST /admin/upload-wortprofil – wortprofil.db in Chunks hochladen (raw binary) */

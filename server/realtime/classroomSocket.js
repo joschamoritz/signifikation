@@ -10,6 +10,7 @@ import {
 } from '../classroom-store.js'
 import logger from '../logger.js'
 import { normalizeJoinCode } from '../classroom/join-codes.js'
+import { verifyTeacherSocketToken } from '../classroom/teacher-socket-auth.js'
 
 const HEARTBEAT_TIMEOUT_MS = 45 * 1000
 const HOST_RECONNECT_WINDOW_MS = 2 * 60 * 1000
@@ -164,11 +165,17 @@ export function initClassroomSocket(httpServer) {
     socket.on('classroom:teacher-join', payload => {
       try {
         const sessionId = String(payload?.sessionId || '')
-        const teacherUserId = String(payload?.teacherUserId || '')
-        if (!sessionId || !teacherUserId) {
+        const token = String(payload?.token || '')
+        if (!sessionId || !token) {
           socket.emit('classroom:error', { code: 'INVALID_PAYLOAD', message: 'Teacher-Join-Payload ist ungueltig' })
           return
         }
+        const auth = verifyTeacherSocketToken(token)
+        if (auth.error || auth.sessionId !== sessionId) {
+          socket.emit('classroom:error', { code: 'FORBIDDEN', message: 'Keine Berechtigung fuer diese Session' })
+          return
+        }
+        const teacherUserId = auth.teacherUserId
         const session = getSessionById({ sessionId })
         if (!session || session.teacherUserId !== teacherUserId) {
           socket.emit('classroom:error', { code: 'FORBIDDEN', message: 'Keine Berechtigung fuer diese Session' })
