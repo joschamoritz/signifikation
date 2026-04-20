@@ -57,16 +57,13 @@ function formatElapsed(startedAt) {
   return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
 }
 
-function makeDistributionBuckets(values) {
-  if (!Array.isArray(values)) return []
-  return values.map((count, idx) => ({
-    label: `${idx * 10}-${idx * 10 + 9}`,
-    count: Number(count || 0),
-  }))
-}
-
-function participantLabel(index) {
-  return `Teilnehmende ${index + 1}`
+function formatStagnation(lastAt) {
+  if (!lastAt) return null
+  const mins = Math.floor((Date.now() - lastAt) / 60000)
+  if (mins < 1) return 'gerade eben'
+  if (mins === 1) return 'vor 1 Minute'
+  if (mins < 60) return `vor ${mins} Minuten`
+  return 'vor über einer Stunde'
 }
 
 function parseStorageKey(sessionId) {
@@ -625,12 +622,13 @@ export default function ClassroomTab({ onLiveChange = () => {}, submitRef = null
     return () => onLiveChange(false)
   }, [isLive, onLiveChange])
 
-  // Timer-Tick für laufende Sessions
+  // Timer-Tick für laufende Sessions (stoppt wenn beendet)
   useEffect(() => {
     if (!activeSession?.startedAt) return
+    if (activeSession.state === 'finished' || activeSession.state === 'archived') return
     const t = setInterval(() => setTimerTick((n) => n + 1), 1000)
     return () => clearInterval(t)
-  }, [activeSession?.startedAt])
+  }, [activeSession?.startedAt, activeSession?.state])
 
   // submitRef für App.jsx-Spielresultate → Klassenraum-Socket
   useEffect(() => {
@@ -670,288 +668,350 @@ export default function ClassroomTab({ onLiveChange = () => {}, submitRef = null
       </header>
 
       <div className="tab-placeholder-inner classroom-inner">
-        <span className="test-entry-premium" aria-label="Teil der Gesamtausgabe">Gesamtausgabe</span>
+        {loadingAccount && <p className="cr-loading">Konto wird geladen …</p>}
+        {!loadingAccount && teacherError && <p className="cr-error">{teacherError}</p>}
 
-        <div className="tab-placeholder-head">
-          <h2 className="tab-placeholder-title">Klassenraum</h2>
-          <span className="tab-placeholder-ipa">[ˈklasənˌʀaʊ̯m]</span>
-        </div>
-        <div className="tab-placeholder-grammar">
-          <span className="tab-placeholder-pos">Bereich</span>
-          <span className="tab-placeholder-rule-line" />
-          <span className="tab-placeholder-category">Lehrkräfte</span>
-        </div>
+        <ul className="classroom-entries">
 
-        <p className="tab-placeholder-definition">
-          Gemeinsame Spielsitzungen für Gruppen und Klassen. Kollaboratives Lernen mit Echtzeit-Vergleich und didaktischer Auswertung.
-        </p>
-
-        <ul className="tab-placeholder-features classroom-features">
-          <li>Lehrkraft erstellt Sitzungen, startet und beendet im eigenen Takt.</li>
-          <li>Lernende treten anonym mit Zugangscode bei und spielen gleichzeitig.</li>
-          <li>Live-Kennzahlen zeigen Beteiligung, Abgaben und Punktverteilung.</li>
-          <li>Ergebnisse können als CSV oder PDF für die Nachbereitung exportiert werden.</li>
-        </ul>
-
-        {loadingAccount ? (
-          <p className="tab-placeholder-definition">Konto wird geladen …</p>
-        ) : teacherError ? (
-          <p className="classroom-error">{teacherError}</p>
-        ) : null}
-
-        {isTeacher && (
-          <section className="classroom-panel">
-            <p className="classroom-panel-title">Lehrkraft-Dashboard</p>
-            <div className="classroom-create-row">
-              <input
-                className="classroom-join-input"
-                value={sessionNameInput}
-                onChange={(e) => setSessionNameInput(e.target.value)}
-                placeholder="Klasse oder Kurs (optional)"
-                maxLength={60}
-                aria-label="Name der Session"
-              />
-              <button
-                className="test-cta"
-                type="button"
-                onClick={createSession}
-                disabled={creating}
-              >
-                Erstellen
-              </button>
+          {/* ① Klassenraum – Erklärung */}
+          <li className="test-entry">
+            <div className="test-entry-number" aria-hidden="true">
+              <span className="test-entry-num-glyph">①</span>
+              <span className="test-entry-marginalia">ERKL.</span>
             </div>
-
-            {createNotice && <p className="classroom-note">{createNotice}</p>}
-            {lastJoinCode && (
-              <div className="classroom-code-display" aria-live="polite">
-                <p className="classroom-active-label">Zugangscode für Lernende</p>
-                <div className="classroom-code-row">
-                  <span className="classroom-code-value">{lastJoinCode}</span>
-                  <button
-                    type="button"
-                    className="classroom-code-copy"
-                    onClick={() => {
-                      navigator.clipboard.writeText(lastJoinCode)
-                      setCodeCopied(true)
-                      setTimeout(() => setCodeCopied(false), 2000)
-                    }}
-                  >
-                    {codeCopied ? 'Kopiert' : 'Kopieren'}
-                  </button>
-                </div>
+            <div className="test-entry-body">
+              <div className="test-entry-head">
+                <span className="test-headword">Klassenraum</span>
+                <span className="test-ipa">[ˈklasənˌʀaʊ̯m]</span>
               </div>
-            )}
+              <div className="test-entry-grammar">
+                <span className="test-pos">Bereich</span>
+                <span className="test-pos-rule" />
+                <span className="test-entry-category">Lehrkräfte</span>
+              </div>
+              <p className="cr-definition">
+                Kollaborative Spielsitzungen für Gruppen und Schulklassen. Lehrkräfte öffnen eine Sitzung und steuern den Ablauf im eigenen Takt — Lernende treten anonym mit einem Zugangscode bei und spielen gleichzeitig auf ihrem Gerät.
+              </p>
+              <ul className="cr-feature-list">
+                <li>Echtzeit-Überblick über Beteiligung und Abgaben während der Sitzung.</li>
+                <li>Spielergebnisse aller vier Modi werden automatisch übertragen.</li>
+                <li>Nach der Sitzung: Auswertung nach Spielmodus, Export als CSV oder PDF.</li>
+              </ul>
+              <span className="test-entry-premium" aria-label="Teil der Gesamtausgabe">Gesamtausgabe</span>
+            </div>
+          </li>
 
-            <div className="classroom-grid">
-              <article className="classroom-card">
-                <h4 className="classroom-card-title">Sitzungen</h4>
-                {loadingSessions ? <p className="classroom-muted">Lädt …</p> : null}
-                {!loadingSessions && sessions.length === 0 ? <p className="classroom-muted">Noch keine Sessions.</p> : null}
-                {sessions.length > 0 && (
-                  <ul className="classroom-session-list">
-                    {sessions.map((s) => (
-                      <li key={s.id}>
+          {/* ② Sitzung (Lehrer) / Beitritt (Schüler) */}
+          <li className="test-entry">
+            <div className="test-entry-number" aria-hidden="true">
+              <span className="test-entry-num-glyph">②</span>
+              <span className="test-entry-marginalia">{isTeacher ? 'SITZG.' : 'BEITR.'}</span>
+            </div>
+            <div className="test-entry-body">
+              <div className="test-entry-head">
+                <span className="test-headword">{isTeacher ? 'Sitzung' : 'Beitritt'}</span>
+                <span className="test-ipa">{isTeacher ? '[ˈzɪt͡sʊŋ]' : '[ˈbaɪ̯tʁɪt]'}</span>
+              </div>
+              <div className="test-entry-grammar">
+                <span className="test-pos">{isTeacher ? 'Verwaltung' : 'Teilnahme'}</span>
+                <span className="test-pos-rule" />
+                <span className="test-entry-category">Vorbereitung</span>
+              </div>
+
+              {isTeacher ? (
+                <div className="cr-section">
+                  <div className="cr-create-row">
+                    <input
+                      className="cr-input"
+                      value={sessionNameInput}
+                      onChange={(e) => setSessionNameInput(e.target.value)}
+                      placeholder="Klasse oder Kurs (optional)"
+                      maxLength={60}
+                      aria-label="Name der Session"
+                    />
+                    <button className="test-cta" type="button" onClick={createSession} disabled={creating}>
+                      Erstellen →
+                    </button>
+                  </div>
+                  {createNotice && <p className="cr-note">{createNotice}</p>}
+
+                  {lastJoinCode && (
+                    <div className="cr-code-block" aria-live="polite">
+                      <span className="cr-section-label">Zugangscode</span>
+                      <div className="cr-code-row">
+                        <span className="cr-code-value">{lastJoinCode}</span>
                         <button
                           type="button"
-                          className={`classroom-session-btn${activeSessionId === s.id ? ' classroom-session-btn--active' : ''}`}
-                          onClick={() => setActiveSessionId(s.id)}
+                          className="cr-code-copy"
+                          onClick={() => {
+                            navigator.clipboard.writeText(lastJoinCode)
+                            setCodeCopied(true)
+                            setTimeout(() => setCodeCopied(false), 2000)
+                          }}
                         >
-                          <span>{s.settings?.name || `${s.datum}/${s.year}`}</span>
-                          <span className={s.state === 'running' ? 'classroom-state-running' : ''}>
-                            {mapSessionState(s.state)}
-                          </span>
+                          {codeCopied ? 'Kopiert' : 'Kopieren'}
                         </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {sessions.length > 0 && (
+                    <div className="cr-session-section">
+                      <span className="cr-section-label">Sitzungen</span>
+                      <ul className="cr-session-list">
+                        {sessions.map((s) => (
+                          <li key={s.id}>
+                            <button
+                              type="button"
+                              className={`cr-session-row${activeSessionId === s.id ? ' cr-session-row--active' : ''}`}
+                              onClick={() => setActiveSessionId(s.id)}
+                            >
+                              <span className="cr-session-name">{s.settings?.name || formatDateTime(s.createdAt)}</span>
+                              <span className={`cr-session-state${s.state === 'running' ? ' cr-state-running' : ''}`}>
+                                {mapSessionState(s.state)}
+                              </span>
+                            </button>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {activeSession && (
+                    <div className="cr-active-controls">
+                      <p className="cr-session-meta">
+                        <span className={activeSession.state === 'running' ? 'cr-state-running' : ''}>
+                          {mapSessionState(activeSession.state)}
+                        </span>
+                        {activeSession.startedAt && (
+                          <><span className="cr-meta-sep">·</span><span>gestartet {formatDateTime(activeSession.startedAt)}</span></>
+                        )}
+                        {activeSession.finishedAt && (
+                          <><span className="cr-meta-sep">·</span><span>beendet {formatDateTime(activeSession.finishedAt)}</span></>
+                        )}
+                      </p>
+                      <p className="cr-action-row">
+                        <button
+                          className="test-cta"
+                          type="button"
+                          onClick={() => updateSessionState('start')}
+                          disabled={activeSession.state === 'running' || activeSession.state === 'finished' || activeSession.state === 'archived'}
+                        >
+                          Starten
+                        </button>
+                        <span className="cr-action-sep">·</span>
+                        <button
+                          className="test-cta"
+                          type="button"
+                          onClick={() => updateSessionState('finish')}
+                          disabled={activeSession.state === 'finished' || activeSession.state === 'archived'}
+                        >
+                          Beenden
+                        </button>
+                      </p>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="cr-section">
+                  <form className="cr-join-form" onSubmit={(e) => { e.preventDefault(); joinSession() }}>
+                    <input
+                      className="cr-input"
+                      value={joinCodeInput}
+                      onChange={(e) => setJoinCodeInput(sanitizeJoinCodeInput(e.target.value))}
+                      placeholder="zugangscode"
+                      maxLength={20}
+                      autoComplete="off"
+                      aria-label="Zugangscode"
+                    />
+                    <button className="test-cta" type="submit" disabled={joining}>Beitreten →</button>
+                  </form>
+                  {joinNotice && <p className="cr-note">{joinNotice}</p>}
+
+                  {participantSession && participantInfo && (
+                    <div className="cr-joined-status">
+                      <p className="cr-session-meta">
+                        {participantSession.settings?.name && (
+                          <><span className="cr-session-name-it">{participantSession.settings.name}</span><span className="cr-meta-sep">·</span></>
+                        )}
+                        <span className={socketConnected ? 'cr-state-running' : ''}>
+                          {socketConnected ? 'Verbunden' : mapSessionState(participantSession.state)}
+                        </span>
+                      </p>
+                      {(participantSession.state === 'lobby' || participantSession.state === 'created') && (
+                        <p className="cr-hint">Warte auf den Start durch die Lehrkraft.</p>
+                      )}
+                      {socketError && <p className="cr-error">{socketError}</p>}
+                      {hostCountdown > 0 && (
+                        <p className="cr-error">Verbindung unterbrochen. Sitzung endet in {hostCountdown}s.</p>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </li>
+
+          {/* ③ Live */}
+          {isTeacher ? (
+            <li className={`test-entry${!activeSession || activeSession.state === 'created' ? ' test-entry--disabled' : ''}`}>
+              <div className="test-entry-number" aria-hidden="true">
+                <span className="test-entry-num-glyph">③</span>
+                <span className="test-entry-marginalia">LIVE</span>
+              </div>
+              <div className="test-entry-body">
+                <div className="test-entry-head">
+                  <span className="test-headword">Live</span>
+                  <span className="test-ipa">[laɪ̯f]</span>
+                </div>
+                <div className="test-entry-grammar">
+                  <span className="test-pos">Echtzeit</span>
+                  <span className="test-pos-rule" />
+                  <span className="test-entry-category">Durchführung</span>
+                </div>
+                {!activeSession || activeSession.state === 'created' ? (
+                  <p className="cr-hint">Starte eine Sitzung unter ②.</p>
+                ) : (
+                  <div className="cr-section">
+                    {activeSession.startedAt && (
+                      <p className="cr-timer" aria-live="polite" aria-atomic="true">
+                        {timerTick >= 0 && formatElapsed(activeSession.startedAt)}
+                        {activeSession.state === 'running' && <span className="cr-timer-running"> läuft</span>}
+                      </p>
+                    )}
+                    {dashboard?.metrics && (
+                      <p className="cr-metric-line">
+                        <span className="cr-metric-value">{dashboard.metrics.submitted_count}</span>
+                        <span className="cr-metric-of"> von </span>
+                        <span className="cr-metric-value">{dashboard.metrics.total_count}</span>
+                        <span className="cr-metric-label"> abgegeben</span>
+                        <span className="cr-metric-dot"> · </span>
+                        <span className="cr-metric-value">{dashboard.metrics.connected_count}</span>
+                        <span className="cr-metric-label"> verbunden</span>
+                      </p>
+                    )}
+                    {dashboard?.metrics?.last_submission_at && activeSession.state === 'running' && (
+                      <p className="cr-stagnation">
+                        Letzte Abgabe {formatStagnation(dashboard.metrics.last_submission_at)}
+                      </p>
+                    )}
+                  </div>
+                )}
+              </div>
+            </li>
+          ) : (
+            <li className={`test-entry${!participantInfo ? ' test-entry--disabled' : ''}`}>
+              <div className="test-entry-number" aria-hidden="true">
+                <span className="test-entry-num-glyph">③</span>
+                <span className="test-entry-marginalia">LIVE</span>
+              </div>
+              <div className="test-entry-body">
+                <div className="test-entry-head">
+                  <span className="test-headword">Abgaben</span>
+                  <span className="test-ipa">[ˈapˌɡaːbən]</span>
+                </div>
+                <div className="test-entry-grammar">
+                  <span className="test-pos">Ergebnisse</span>
+                  <span className="test-pos-rule" />
+                  <span className="test-entry-category">Durchführung</span>
+                </div>
+                {!participantInfo ? (
+                  <p className="cr-hint">Tritt einer Sitzung unter ② bei, um zu spielen.</p>
+                ) : submittedGames.length === 0 ? (
+                  <p className="cr-hint">Wechsel zu „Spielmodi" und spiele — dein Ergebnis wird automatisch übertragen.</p>
+                ) : (
+                  <ul className="cr-submitted-list">
+                    {submittedGames.map((game) => (
+                      <li key={game} className="cr-submitted-item">
+                        <span className="cr-submitted-check">✓</span>
+                        <span className="cr-submitted-name">{GAME_LABELS[game] ?? game}</span>
                       </li>
                     ))}
                   </ul>
                 )}
-              </article>
+              </div>
+            </li>
+          )}
 
-              <article className="classroom-card">
-                <h4 className="classroom-card-title">Aktive Session</h4>
-                {!activeSession ? <p className="classroom-muted">Keine Session ausgewählt.</p> : null}
-                {activeSession && (
-                  <>
-                    <dl className="classroom-kv">
-                      <div><dt>Status</dt><dd className={activeSession.state === 'running' ? 'classroom-state-running' : ''}>{mapSessionState(activeSession.state)}</dd></div>
-                      <div><dt>Erstellt</dt><dd>{formatDateTime(activeSession.createdAt)}</dd></div>
-                      <div><dt>Gestartet</dt><dd>{formatDateTime(activeSession.startedAt)}</dd></div>
-                      <div><dt>Beendet</dt><dd>{formatDateTime(activeSession.finishedAt)}</dd></div>
-                    </dl>
-                    <div className="classroom-actions">
-                      <button
-                        className="test-cta"
-                        type="button"
-                        onClick={() => updateSessionState('start')}
-                        disabled={activeSession.state === 'running' || activeSession.state === 'finished' || activeSession.state === 'archived'}
-                      >
-                        Starten
-                      </button>
-                      <button
-                        className="test-cta"
-                        type="button"
-                        onClick={() => updateSessionState('finish')}
-                        disabled={activeSession.state === 'finished' || activeSession.state === 'archived'}
-                      >
-                        Beenden
-                      </button>
-                    </div>
-                  </>
-                )}
-              </article>
-
-              <article className="classroom-card">
-                <h4 className="classroom-card-title">Live-Metriken</h4>
-                {loadingDashboard ? <p className="classroom-muted">Lädt …</p> : null}
-                {dashboardError ? <p className="classroom-error">{dashboardError}</p> : null}
-                {dashboard?.metrics && (
-                  <>
-                    <dl className="classroom-kv classroom-kv--metrics">
-                      <div><dt>Verbunden</dt><dd>{dashboard.metrics.connected_count}</dd></div>
-                      <div><dt>Abgegeben</dt><dd>{dashboard.metrics.submitted_count}</dd></div>
-                      <div><dt>Durchschnitt</dt><dd>{dashboard.metrics.avg_score}</dd></div>
-                      <div><dt>Gesamt</dt><dd>{dashboard.metrics.total_count}</dd></div>
-                    </dl>
-                    {makeDistributionBuckets(dashboard.metrics.score_distribution).some((b) => b.count > 0) && (
-                      <div className="classroom-distribution" aria-label="Punkteverteilung der Abgaben">
-                        <p className="classroom-distribution-title">Punkteverteilung</p>
-                        {makeDistributionBuckets(dashboard.metrics.score_distribution)
-                          .filter((b) => b.count > 0)
-                          .map((bucket, idx) => (
-                            <div key={`${bucket.label}-${idx}`} className="classroom-distribution-row">
-                              <span className="classroom-distribution-label">{bucket.label}</span>
-                              <span className="classroom-distribution-bar-wrap">
+          {/* ④ Protokoll – Lehrer only */}
+          {isTeacher && (
+            <li className={`test-entry${activeSession?.state !== 'finished' ? ' test-entry--disabled' : ''}`}>
+              <div className="test-entry-number" aria-hidden="true">
+                <span className="test-entry-num-glyph">④</span>
+                <span className="test-entry-marginalia">PROT.</span>
+              </div>
+              <div className="test-entry-body">
+                <div className="test-entry-head">
+                  <span className="test-headword">Protokoll</span>
+                  <span className="test-ipa">[pʁotoˈkɔl]</span>
+                </div>
+                <div className="test-entry-grammar">
+                  <span className="test-pos">Auswertung</span>
+                  <span className="test-pos-rule" />
+                  <span className="test-entry-category">Nachbereitung</span>
+                </div>
+                {activeSession?.state !== 'finished' ? (
+                  <p className="cr-hint">Verfügbar nach Abschluss der Sitzung unter ②.</p>
+                ) : (
+                  <div className="cr-section">
+                    {dashboard?.perGame?.length > 0 && (
+                      <div className="cr-per-game">
+                        <span className="cr-section-label">Spielmodus-Auswertung</span>
+                        <ul className="cr-per-game-list">
+                          {dashboard.perGame.map((g) => (
+                            <li key={g.roundNo} className="cr-per-game-row">
+                              <span className="cr-per-game-name">{g.label}</span>
+                              <span className="cr-per-game-bar-wrap">
                                 <span
-                                  className="classroom-distribution-bar"
-                                  style={{ width: `${Math.min(100, bucket.count * 12)}%` }}
+                                  className="cr-per-game-bar"
+                                  style={{ width: `${Math.round((g.avgScore / Math.max(g.avgMaxScore, 1)) * 100)}%` }}
                                 />
                               </span>
-                              <span className="classroom-distribution-count">{bucket.count}</span>
-                            </div>
+                              <span className="cr-per-game-score">{g.avgScore}&thinsp;/&thinsp;{g.avgMaxScore}</span>
+                              <span className="cr-per-game-count">{g.participantCount} Abg.</span>
+                            </li>
                           ))}
+                        </ul>
                       </div>
                     )}
-                  </>
-                )}
-              </article>
 
-              <article className="classroom-card">
-                <h4 className="classroom-card-title">Sitzungsdauer</h4>
-                {!activeSession?.startedAt ? (
-                  <p className="classroom-muted">Noch nicht gestartet.</p>
-                ) : (
-                  <>
-                    <p className="classroom-timer" aria-live="polite" aria-atomic="true">
-                      {timerTick >= 0 && formatElapsed(activeSession.startedAt)}
-                    </p>
-                    {activeSession.state === 'running' && (
-                      <p className="classroom-timer-label classroom-state-running">läuft</p>
-                    )}
-                  </>
-                )}
-              </article>
-            </div>
-
-            {activeSession?.state === 'finished' && (
-              <div className="classroom-exports">
-                <p className="classroom-exports-label">Ergebnisse exportieren</p>
-                <div className="classroom-actions">
-                  <button
-                    className="test-cta"
-                    type="button"
-                    onClick={() => requestExport('csv')}
-                    disabled={requestingExport === 'csv'}
-                  >
-                    CSV
-                  </button>
-                  <button
-                    className="test-cta"
-                    type="button"
-                    onClick={() => requestExport('pdf')}
-                    disabled={requestingExport === 'pdf'}
-                  >
-                    PDF
-                  </button>
-                </div>
-                {exportsError ? <p className="classroom-error">{exportsError}</p> : null}
-                {exportsList.length > 0 && (
-                  <ul className="classroom-export-list">
-                    {exportsList.map((e) => (
-                      <li key={e.id}>
-                        <span>{e.type.toUpperCase()}</span>
-                        <span>{e.status}</span>
-                        <span>{formatDateTime(e.createdAt)}</span>
-                        <span className="classroom-export-ref">
-                          {e.status === 'done' ? (
-                            <a
-                              href={`${API}/classroom/sessions/${activeSessionId}/exports/${e.id}/download`}
-                              target="_blank"
-                              rel="noreferrer"
-                            >
-                              Download
-                            </a>
-                          ) : (e.fileRef || '—')}
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
+                    <div className="cr-export-block">
+                      <span className="cr-section-label">Exportieren</span>
+                      <p className="cr-action-row">
+                        <button className="test-cta" type="button" onClick={() => requestExport('csv')} disabled={requestingExport === 'csv'}>CSV</button>
+                        <span className="cr-action-sep">·</span>
+                        <button className="test-cta" type="button" onClick={() => requestExport('pdf')} disabled={requestingExport === 'pdf'}>PDF</button>
+                      </p>
+                      {exportsError && <p className="cr-error">{exportsError}</p>}
+                      {exportsList.length > 0 && (
+                        <ul className="cr-export-list">
+                          {exportsList.map((e) => (
+                            <li key={e.id} className="cr-export-item">
+                              <span className="cr-export-type">{e.type.toUpperCase()}</span>
+                              <span className="cr-export-status">{e.status}</span>
+                              <span className="cr-export-date">{formatDateTime(e.createdAt)}</span>
+                              {e.status === 'done' && (
+                                <a
+                                  className="cr-export-link"
+                                  href={`${API}/classroom/sessions/${activeSessionId}/exports/${e.id}/download`}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                >
+                                  Download
+                                </a>
+                              )}
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </div>
+                  </div>
                 )}
               </div>
-            )}
-          </section>
-        )}
+            </li>
+          )}
 
-        {!isTeacher && (
-          <section className="classroom-join-section">
-            <p className="test-overline">Für Lernende</p>
-            <h3 className="classroom-join-heading">Mit Zugangscode beitreten</h3>
-            <form
-              className="classroom-join-form"
-              onSubmit={(event) => {
-                event.preventDefault()
-                joinSession()
-              }}
-            >
-              <input
-                className="classroom-join-input"
-                value={joinCodeInput}
-                onChange={(event) => setJoinCodeInput(sanitizeJoinCodeInput(event.target.value))}
-                placeholder="zugangscode"
-                maxLength={20}
-                autoComplete="off"
-                aria-label="Zugangscode"
-              />
-              <button className="test-cta" type="submit" disabled={joining}>Beitreten</button>
-            </form>
-            {joinNotice ? <p className="classroom-note">{joinNotice}</p> : null}
-
-            {participantSession && participantInfo && (
-              <div className="classroom-active-session">
-                <p className="classroom-active-label">
-                  Aktive Teilnahme · {mapSessionState(participantSession.state)}
-                  {socketConnected && <span className="classroom-state-running"> · Verbunden</span>}
-                </p>
-                {socketError ? <p className="classroom-error">{socketError}</p> : null}
-                {hostCountdown > 0 ? (
-                  <p className="classroom-error">Verbindung zur Lehrkraft unterbrochen. Sitzung endet in {hostCountdown}s.</p>
-                ) : null}
-
-                {submittedGames.length === 0 ? (
-                  <p className="classroom-muted">Wechsel zum Tab „Spielmodi" und spiele eine Runde — das Ergebnis wird automatisch übertragen.</p>
-                ) : (
-                  <ul className="classroom-submitted-list">
-                    {submittedGames.map((game) => (
-                      <li key={game} className="classroom-submitted-item">
-                        <span className="classroom-submitted-check">✓</span>
-                        <span>{GAME_LABELS[game] ?? game}</span>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </div>
-            )}
-          </section>
-        )}
+        </ul>
 
         <div className="tab-placeholder-footer">
           <span className="tab-placeholder-edition">Für Unterrichtssitzungen und Lerngruppen.</span>

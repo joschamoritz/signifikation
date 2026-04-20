@@ -113,6 +113,21 @@ const stmts = {
     FROM classroom_submissions
     WHERE session_id = ?
   `),
+  lastSubmissionAt: db.prepare(`
+    SELECT MAX(submitted_at) AS last_at
+    FROM classroom_submissions
+    WHERE session_id = ?
+  `),
+  perGameStats: db.prepare(`
+    SELECT round_no,
+           COUNT(DISTINCT participant_id) AS participant_count,
+           AVG(score * 1.0)              AS avg_score,
+           AVG(max_score * 1.0)          AS avg_max_score
+    FROM classroom_submissions
+    WHERE session_id = ?
+    GROUP BY round_no
+    ORDER BY round_no
+  `),
   insertExport: db.prepare(`
     INSERT INTO classroom_exports (
       id, session_id, type, status, created_at
@@ -433,6 +448,9 @@ export function getClassroomDashboard({ sessionId, teacherUserId }) {
   if (!raw) return { error: 'NOT_FOUND' }
   if (raw.teacher_user_id !== teacherUserId) return { error: 'FORBIDDEN' }
 
+  const ROUND_GAME = { 1: 'kollokationen', 2: 'zeitreise', 3: 'wortzwilling', 4: 'zeitenwende' }
+  const GAME_LABEL = { kollokationen: 'Kollokationen', zeitreise: 'Zeitreise', wortzwilling: 'Wort-Zwilling', zeitenwende: 'Zeitenwende' }
+
   const now = nowMs()
   const totalParticipants = stmts.countParticipants.get(sessionId)?.c || 0
   const connectedCount = stmts.countConnectedParticipants.get(sessionId, now - CONNECTED_WINDOW_MS)?.c || 0
@@ -440,6 +458,17 @@ export function getClassroomDashboard({ sessionId, teacherUserId }) {
   const avg = stmts.avgScore.get(sessionId)?.avg_score
   const rows = stmts.listSubmissionScores.all(sessionId)
   const distribution = buildDistribution(rows)
+  const lastAt = stmts.lastSubmissionAt.get(sessionId)?.last_at || null
+  const perGameRows = stmts.perGameStats.all(sessionId)
+
+  const perGame = perGameRows.map((r) => ({
+    roundNo: r.round_no,
+    game: ROUND_GAME[r.round_no] || `runde-${r.round_no}`,
+    label: GAME_LABEL[ROUND_GAME[r.round_no]] || `Runde ${r.round_no}`,
+    participantCount: r.participant_count,
+    avgScore: Number.isFinite(r.avg_score) ? Number(r.avg_score.toFixed(1)) : 0,
+    avgMaxScore: Number.isFinite(r.avg_max_score) ? Number(r.avg_max_score.toFixed(1)) : 10,
+  }))
 
   return {
     session: normalizeSessionRow(raw),
@@ -449,7 +478,9 @@ export function getClassroomDashboard({ sessionId, teacherUserId }) {
       submitted_count: submittedCount,
       avg_score: Number.isFinite(avg) ? Number(avg.toFixed(2)) : 0,
       score_distribution: distribution,
+      last_submission_at: lastAt,
     },
+    perGame,
   }
 }
 
