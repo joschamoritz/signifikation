@@ -1,121 +1,29 @@
-import { useMemo, useRef } from 'react'
-import { API } from '../config'
-import {
-  WEEKDAYS, MONTHS,
-  localDateStr, computeStreak,
-} from '../utils/homeUtils'
-import {
-  ClassroomExplanationCard,
-  TeacherSessionCard,
-  StudentJoinCard,
-  TeacherLiveCard,
-  StudentSubmissionsCard,
-  TeacherProtocolCard,
-} from './classroom/ClassroomCards'
-import {
-  GAME_LABELS,
-  ROUND_GAME_NAME,
-  formatDateTime,
-  formatElapsed,
-  formatStagnation,
-  mapSessionState,
-  sanitizeJoinCodeInput,
-} from './classroom/classroomUtils'
+import ClassroomHeader from './classroom/ClassroomHeader'
+import ClassroomEntries from './classroom/ClassroomEntries'
 import ClassroomSnapNav from './classroom/ClassroomSnapNav'
-import { useClassroomAccount } from './classroom/useClassroomAccount'
-import { getClassroomRasterStatus } from './classroom/classroomViewModel'
-import { useClassroomSnapNav } from './classroom/useClassroomSnapNav'
-import { useTeacherClassroom } from './classroom/useTeacherClassroom'
-import { useStudentClassroom } from './classroom/useStudentClassroom'
+import { useClassroomTabState } from './classroom/useClassroomTabState'
 
 export default function ClassroomTab({ onLiveChange = () => {}, submitRef = null, onInSessionChange = () => {}, getRetroResultsRef = null }) {
-  const streak = computeStreak()
-  const today = new Date()
-  const dateStr = localDateStr(today)
-  const entriesRef = useRef(null)
-
-  const { account, loadingAccount, teacherError, setTeacherError } = useClassroomAccount()
-  const isTeacher = account?.role === 'teacher'
-
   const {
-    sessions,
-    activeSessionId,
-    creating,
-    createNotice,
-    lastJoinCode,
-    codeCopied,
-    sessionNameInput,
-    setSessionNameInput,
-    timerTick,
-    dashboard,
-    exportsList,
-    exportsError,
-    requestingExport,
-    activeSession,
-    createSession,
-    updateSessionState,
-    requestExport,
-    copyJoinCode,
-  } = useTeacherClassroom({ isTeacher, setTeacherError })
-
-  const {
-    joinCodeInput,
-    setJoinCodeInput,
-    joinNotice,
-    participantSession,
-    participantInfo,
-    joining,
-    submittedGames,
-    socketConnected,
-    socketError,
-    hostCountdown,
-    joinSession,
-    requestJoinRefresh,
-    leaveSession,
-  } = useStudentClassroom({
-    sessions,
-    loadingAccount,
-    isTeacher,
-    submitRef,
-    getRetroResultsRef,
-    onLiveChange,
-    onInSessionChange,
-    activeSession,
-  })
-
-  const { activeCard, scrollToCard, handleSnapKeyDown } = useClassroomSnapNav({
     entriesRef,
     isTeacher,
     loadingAccount,
+    teacherError,
+    rasterStatus,
+    api,
+    teacherState,
+    studentState,
+    snapNav,
+  } = useClassroomTabState({
+    onLiveChange,
+    submitRef,
+    onInSessionChange,
+    getRetroResultsRef,
   })
-
-  const rasterStatus = useMemo(() => getClassroomRasterStatus({
-    loadingAccount,
-    isTeacher,
-    activeSession,
-    dashboard,
-    participantSession,
-    participantInfo,
-    socketConnected,
-    submittedGames,
-  }), [loadingAccount, isTeacher, activeSession, dashboard, participantSession, participantInfo, socketConnected, submittedGames])
 
   return (
     <div className="tab-placeholder classroom-tab">
-      <header className="test-title-section" role="banner">
-        <p className="test-overline">Tägliches Wortspiel · Linguistik</p>
-        <h1 className="test-title">Signifikation</h1>
-        <p className="test-subtitle">
-          <time dateTime={dateStr}>
-            {`${WEEKDAYS[today.getDay()]}, ${today.getDate()}. ${MONTHS[today.getMonth()]} ${today.getFullYear()}`}
-          </time>
-        </p>
-        {streak > 0 && (
-          <span className="test-title-streak" aria-label={`${streak} Tage Streak`}>
-            🔥 {streak}
-          </span>
-        )}
-      </header>
+      <ClassroomHeader />
 
       <nav className="cr-raster" aria-label="Klassenraum-Übersicht">
         <div className="cr-raster-content">
@@ -135,82 +43,49 @@ export default function ClassroomTab({ onLiveChange = () => {}, submitRef = null
         {loadingAccount && <p className="cr-loading">Konto wird geladen …</p>}
         {!loadingAccount && teacherError && <p className="cr-error">{teacherError}</p>}
 
-        <ul className="classroom-entries" ref={entriesRef} onKeyDown={handleSnapKeyDown}>
-          <ClassroomExplanationCard />
-
-          {isTeacher ? (
-            <TeacherSessionCard
-              sessionNameInput={sessionNameInput}
-              setSessionNameInput={setSessionNameInput}
-              createSession={createSession}
-              creating={creating}
-              createNotice={createNotice}
-              lastJoinCode={lastJoinCode}
-              codeCopied={codeCopied}
-              onCopyJoinCode={copyJoinCode}
-              activeSession={activeSession}
-              mapSessionState={mapSessionState}
-              formatDateTime={formatDateTime}
-              updateSessionState={updateSessionState}
-            />
-          ) : (
-            <StudentJoinCard
-              participantInfo={participantInfo}
-              joinSession={joinSession}
-              joining={joining}
-              joinCodeInput={joinCodeInput}
-              setJoinCodeInput={setJoinCodeInput}
-              sanitizeJoinCodeInput={sanitizeJoinCodeInput}
-              joinNotice={joinNotice}
-              participantSession={participantSession}
-              socketConnected={socketConnected}
-              requestJoinRefresh={requestJoinRefresh}
-              socketError={socketError}
-              hostCountdown={hostCountdown}
-              leaveSession={leaveSession}
-            />
-          )}
-
-          {isTeacher ? (
-            <TeacherLiveCard
-              activeSession={activeSession}
-              timerTick={timerTick}
-              formatElapsed={formatElapsed}
-              dashboard={dashboard}
-              formatStagnation={formatStagnation}
-              roundGameName={ROUND_GAME_NAME}
-              gameLabels={GAME_LABELS}
-            />
-          ) : (
-            <StudentSubmissionsCard
-              participantInfo={participantInfo}
-              participantSession={participantSession}
-              submittedGames={submittedGames}
-              gameLabels={GAME_LABELS}
-            />
-          )}
-
-          {isTeacher && (
-            <TeacherProtocolCard
-              activeSession={activeSession}
-              dashboard={dashboard}
-              requestingExport={requestingExport}
-              requestExport={requestExport}
-              exportsError={exportsError}
-              exportsList={exportsList}
-              formatDateTime={formatDateTime}
-              activeSessionId={activeSessionId}
-              api={API}
-            />
-          )}
-        </ul>
+        <ClassroomEntries
+          entriesRef={entriesRef}
+          handleSnapKeyDown={snapNav.handleSnapKeyDown}
+          isTeacher={isTeacher}
+          sessionNameInput={teacherState.sessionNameInput}
+          setSessionNameInput={teacherState.setSessionNameInput}
+          createSession={teacherState.createSession}
+          creating={teacherState.creating}
+          createNotice={teacherState.createNotice}
+          lastJoinCode={teacherState.lastJoinCode}
+          codeCopied={teacherState.codeCopied}
+          copyJoinCode={teacherState.copyJoinCode}
+          activeSession={teacherState.activeSession}
+          updateSessionState={teacherState.updateSessionState}
+          participantInfo={studentState.participantInfo}
+          joinSession={studentState.joinSession}
+          joining={studentState.joining}
+          joinCodeInput={studentState.joinCodeInput}
+          setJoinCodeInput={studentState.setJoinCodeInput}
+          joinNotice={studentState.joinNotice}
+          participantSession={studentState.participantSession}
+          socketConnected={studentState.socketConnected}
+          requestJoinRefresh={studentState.requestJoinRefresh}
+          socketError={studentState.socketError}
+          hostCountdown={studentState.hostCountdown}
+          leaveSession={studentState.leaveSession}
+          timerTick={teacherState.timerTick}
+          dashboard={teacherState.dashboard}
+          submittedGames={studentState.submittedGames}
+          requestingExport={teacherState.requestingExport}
+          requestExport={teacherState.requestExport}
+          exportsError={teacherState.exportsError}
+          exportsList={teacherState.exportsList}
+          activeSessionId={teacherState.activeSessionId}
+          api={api}
+        />
 
         <div className="tab-placeholder-footer">
           <span className="tab-placeholder-edition">Für Unterrichtssitzungen und Lerngruppen.</span>
         </div>
       </div>
 
-      <ClassroomSnapNav isTeacher={isTeacher} activeCard={activeCard} onSelect={scrollToCard} />
+      <ClassroomSnapNav isTeacher={isTeacher} activeCard={snapNav.activeCard} onSelect={snapNav.scrollToCard} />
     </div>
   )
 }

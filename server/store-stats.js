@@ -1,0 +1,195 @@
+function parseJson(value, fallback) {
+  try {
+    return JSON.parse(value)
+  } catch {
+    return fallback
+  }
+}
+
+export function createEmptyDistribution() {
+  return Array(11).fill(0)
+}
+
+export function normalizeDistribution(distRaw) {
+  const parsed = typeof distRaw === 'string' ? parseJson(distRaw, []) : distRaw
+  if (!Array.isArray(parsed)) return []
+
+  const dist = createEmptyDistribution()
+  for (let i = 0; i < 11; i += 1) {
+    dist[i] = Number(parsed[i] || 0)
+  }
+  return dist
+}
+
+export function aggregateStatsRows(rows) {
+  const result = {}
+
+  for (const row of rows) {
+    if (!result[row.datum]) result[row.datum] = {}
+
+    const distEntries = parseJson(row.dist_list || '[]', [])
+    const mergedDist = createEmptyDistribution()
+
+    for (const distRaw of distEntries) {
+      const dist = normalizeDistribution(distRaw)
+      for (let i = 0; i < 11; i += 1) {
+        mergedDist[i] += Number(dist[i] || 0)
+      }
+    }
+
+    result[row.datum][row.spiel] = {
+      plays: row.plays,
+      scoreSum: row.scoreSum,
+      maxSum: row.maxSum,
+      dist: mergedDist,
+    }
+  }
+
+  return result
+}
+
+export function mapStatsRows(rows) {
+  return rows.map((row) => ({
+    datum: row.datum,
+    spiel: row.spiel,
+    user_id: row.user_id || '',
+    plays: Number(row.plays || 0),
+    scoreSum: Number(row.scoreSum || 0),
+    maxSum: Number(row.maxSum || 0),
+    dist: normalizeDistribution(row.dist || '[]'),
+  }))
+}
+
+export function toNonNegativeInt(value) {
+  const parsed = Number.parseInt(String(value ?? 0), 10)
+  if (!Number.isFinite(parsed) || parsed < 0) return 0
+  return parsed
+}
+
+export function sanitizeStatsRow(row) {
+  if (!row || typeof row !== 'object') {
+    throw new Error('Ungueltige Stats-Zeile im Backup')
+  }
+
+  const datum = String(row.datum || '').trim()
+  const spiel = String(row.spiel || '').trim()
+  if (!datum || !spiel) {
+    throw new Error('Stats-Zeile ohne datum oder spiel im Backup')
+  }
+
+  return {
+    datum,
+    spiel,
+    user_id: String(row.user_id || ''),
+    plays: toNonNegativeInt(row.plays),
+    scoreSum: toNonNegativeInt(row.scoreSum),
+    maxSum: toNonNegativeInt(row.maxSum),
+    dist: JSON.stringify(Array.isArray(row.dist) ? row.dist : []),
+  }
+}
+
+export function getNormalizedScoreBucket(score, max) {
+  return Math.min(10, Math.max(0, Math.round((score || 0) / (max || 1) * 10)))
+}
+
+export function sortMmddKeys(keys, now = new Date()) {
+  const currentYear = now.getFullYear()
+  const today = new Date(currentYear, now.getMonth(), now.getDate()).getTime()
+
+  return [...keys].sort((a, b) => {
+    const [ma, da] = String(a).split('-').map(Number)
+    const [mb, db] = String(b).split('-').map(Number)
+    const dateAThisYear = new Date(currentYear, (ma || 1) - 1, da || 1)
+    const dateBThisYear = new Date(currentYear, (mb || 1) - 1, db || 1)
+    const dateA = dateAThisYear.getTime() >= today
+      ? dateAThisYear
+      : new Date(currentYear + 1, (ma || 1) - 1, da || 1)
+    const dateB = dateBThisYear.getTime() >= today
+      ? dateBThisYear
+      : new Date(currentYear + 1, (mb || 1) - 1, db || 1)
+    return dateA - dateB
+  })
+}
+
+export function buildStatsWindow(stats, days) {
+  const orderedDates = sortMmddKeys(Object.keys(stats || {}))
+  const selectedDates = orderedDates.slice(-days)
+
+  const byGameMap = new Map()
+  const scoreDistribution = createEmptyDistribution()
+  let totalPlays = 0
+  let totalScoreSum = 0
+  let totalMaxSum = 0
+  const rows = []
+
+  for (const datum of selectedDates) {
+    const games = stats[datum] || {}
+    for (const [spiel, bucket] of Object.entries(games)) {
+      const plays = Number(bucket?.plays || 0)
+      const scoreSum = Number(bucket?.scoreSum || 0)
+      const maxSum = Number(bucket?.maxSum || 0)
+      const dist = Array.isArray(bucket?.dist) ? bucket.dist : []
+
+      totalPlays += plays
+      totalScoreSum += scoreSum
+      totalMaxSum += maxSum
+
+      for (let i = 0; i < 11; i += 1) {
+        scoreDistribution[i] += Number(dist[i] || 0)
+      }
+
+      const prev = byGameMap.get(spiel) || { spiel, plays: 0, scoreSum: 0, maxSum: 0 }
+      prev.plays += plays
+      prev.scoreSum += scoreSum
+      prev.maxSum += maxSum
+      byGameMap.set(spiel, prev)
+
+      rows.push({ datum, spiel, plays, scoreSum, maxSum })
+    }
+  }
+
+  const byGame = [...byGameMap.values()]
+    .map((row) => ({
+      ...row,
+      avg10: row.maxSum > 0 ? Number(((row.scoreSum / row.maxSum) * 10).toFixed(2)) : null,
+    }))
+    .sort((a, b) => b.plays - a.plays)
+
+  return {
+    days,
+    selectedDates,
+    rows,
+    totals: {
+      plays: totalPlays,
+      scoreSum: totalScoreSum,
+      maxSum: totalMaxSum,
+      avg10: totalMaxSum > 0 ? Number(((totalScoreSum / totalMaxSum) * 10).toFixed(2)) : null,
+    },
+    byGame,
+    scoreDistribution,
+  }
+}
+
+export function createStatsWindowCache(ttlMs) {
+  return {
+    ttlMs,
+    key: null,
+    value: null,
+    ts: 0,
+  }
+}
+
+export function getCachedStatsWindow(cache, stats, days) {
+  const statsKeys = Object.keys(stats || {})
+  const cacheKey = `${days}|${statsKeys.length}|${statsKeys.join(',')}`
+
+  if (cache.key === cacheKey && Date.now() - cache.ts < cache.ttlMs) {
+    return cache.value
+  }
+
+  const result = buildStatsWindow(stats, days)
+  cache.key = cacheKey
+  cache.value = result
+  cache.ts = Date.now()
+  return result
+}

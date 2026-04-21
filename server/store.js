@@ -23,6 +23,29 @@ import { fileURLToPath } from 'url'
 import { dirname, join } from 'path'
 import logger from './logger.js'
 import db from './db.js'
+import { buildLemmataIndex, lemmaToRow as lemmaToRowInternal, rowToLemma } from './store-lemmata.js'
+import { createReadOnlyCache } from './store-readonly-cache.js'
+import { createBelegeCache } from './store-belege-cache.js'
+import {
+  getKalenderEntries,
+  loadKalenderRows,
+  loadWortzwillingRows,
+  loadZeitreiseRows,
+  loadZeitenwendeRows,
+  toWortzwillingRow,
+  toZeitreiseRow,
+  toZeitenwendeRow,
+} from './store-daily-content.js'
+import {
+  aggregateStatsRows,
+  createEmptyDistribution,
+  createStatsWindowCache,
+  getCachedStatsWindow,
+  getNormalizedScoreBucket,
+  mapStatsRows,
+  normalizeDistribution,
+  sanitizeStatsRow,
+} from './store-stats.js'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 export const DATA = join(__dirname, 'data')
@@ -104,45 +127,11 @@ const _replaceAllAdminDataTx = db.transaction(({ lemmata, kalender, zeitreise, w
   _saveLemmata(lemmata)
 })
 
-// ── Lemmata ───────────────────────────────────────────────────────
-
-function rowToLemma(row) {
-  return {
-    id:           row.id,
-    lemma:        row.lemma,
-    pos:          row.pos,
-    wortart:      row.wortart,
-    runden:       JSON.parse(row.runden     || '{}'),
-    rundenInfo:   JSON.parse(row.rundenInfo || '[]'),
-    notiz:        row.notiz,
-    link:         row.link,
-    definition:   row.definition,
-    bonusFrage:   row.bonusFrage ? JSON.parse(row.bonusFrage) : null,
-    ipa:          row.ipa,
-    definitionen: JSON.parse(row.definitionen || '[]'),
-  }
-}
-
-export function lemmaToRow(l) {
-  return {
-    id:           l.id,
-    lemma:        l.lemma,
-    pos:          l.pos          ?? '',
-    wortart:      l.wortart      ?? '',
-    runden:       JSON.stringify(l.runden      ?? {}),
-    rundenInfo:   JSON.stringify(l.rundenInfo  ?? []),
-    notiz:        l.notiz        ?? '',
-    link:         l.link         ?? '',
-    definition:   l.definition   ?? '',
-    bonusFrage:   l.bonusFrage ? JSON.stringify(l.bonusFrage) : null,
-    ipa:          l.ipa          ?? '',
-    definitionen: JSON.stringify(l.definitionen ?? []),
-  }
-}
-
 function _loadLemmata() {
   return stmts.getAllLemmata.all().map(rowToLemma)
 }
+
+export const lemmaToRow = lemmaToRowInternal
 
 const _replaceLemmata = db.transaction(list => {
   stmts.deleteAllLemmata.run()
@@ -158,16 +147,12 @@ function _saveLemmata(arr) {
 // ── Kalender ──────────────────────────────────────────────────────
 
 function _loadKalender() {
-  const result = {}
-  for (const row of stmts.getAllKalender.all()) {
-    result[row.datum] = JSON.parse(row.ids)
-  }
-  return result
+  return loadKalenderRows(stmts.getAllKalender.all())
 }
 
 const _replaceKalender = db.transaction(obj => {
   stmts.deleteAllKalender.run()
-  for (const [datum, ids] of Object.entries(obj)) {
+  for (const [datum, ids] of getKalenderEntries(obj)) {
     stmts.upsertKalender.run({ datum, ids: JSON.stringify(ids) })
   }
 })
@@ -175,135 +160,50 @@ const _replaceKalender = db.transaction(obj => {
 // ── Zeitreise ─────────────────────────────────────────────────────
 
 function _loadZeitreise() {
-  const result = {}
-  for (const row of stmts.getAllZeitreise.all()) {
-    result[row.datum] = {
-      lemma:    row.lemma,
-      paare:    JSON.parse(row.paare),
-      perioden: JSON.parse(row.perioden),
-      wortart:  row.wortart,
-    }
-  }
-  return result
+  return loadZeitreiseRows(stmts.getAllZeitreise.all())
 }
 
 const _replaceZeitreise = db.transaction(obj => {
   stmts.deleteAllZeitreise.run()
   for (const [datum, v] of Object.entries(obj)) {
-    stmts.upsertZeitreise.run({
-      datum,
-      lemma:    v.lemma    ?? '',
-      paare:    JSON.stringify(v.paare    ?? []),
-      perioden: JSON.stringify(v.perioden ?? []),
-      wortart:  v.wortart  ?? 'Substantiv',
-    })
+    stmts.upsertZeitreise.run(toZeitreiseRow(datum, v))
   }
 })
 
 // ── Wortzwilling ──────────────────────────────────────────────────
 
 function _loadWortzwilling() {
-  const result = {}
-  for (const row of stmts.getAllWortzwilling.all()) {
-    result[row.datum] = {
-      wortA:        row.wortA,
-      wortB:        row.wortB,
-      pos:          row.pos,
-      kollokatoren: JSON.parse(row.kollokatoren),
-    }
-  }
-  return result
+  return loadWortzwillingRows(stmts.getAllWortzwilling.all())
 }
 
 const _replaceWortzwilling = db.transaction(obj => {
   stmts.deleteAllWortzwilling.run()
   for (const [datum, v] of Object.entries(obj)) {
-    stmts.upsertWortzwilling.run({
-      datum,
-      wortA:        v.wortA        ?? '',
-      wortB:        v.wortB        ?? '',
-      pos:          v.pos          ?? 'Substantiv',
-      kollokatoren: JSON.stringify(v.kollokatoren ?? []),
-    })
+    stmts.upsertWortzwilling.run(toWortzwillingRow(datum, v))
   }
 })
 
 // ── Zeitenwende ───────────────────────────────────────────────────
 
 function _loadZeitenwende() {
-  const result = {}
-  for (const row of stmts.getAllZeitenwende.all()) {
-    result[row.datum] = JSON.parse(row.data)
-  }
-  return result
+  return loadZeitenwendeRows(stmts.getAllZeitenwende.all())
 }
 
 const _replaceZeitenwende = db.transaction(obj => {
   stmts.deleteAllZeitenwende.run()
   for (const [datum, v] of Object.entries(obj)) {
-    stmts.upsertZeitenwende.run({ datum, data: JSON.stringify(v) })
+    stmts.upsertZeitenwende.run(toZeitenwendeRow(datum, v))
   }
 })
 
 // ── Stats ─────────────────────────────────────────────────────────
 
 function _loadStats() {
-  const result = {}
-  for (const row of stmts.getStatsAggregated.all()) {
-    if (!result[row.datum]) result[row.datum] = {}
-
-    const distEntries = (() => {
-      try {
-        return JSON.parse(row.dist_list || '[]')
-      } catch {
-        return []
-      }
-    })()
-
-    const mergedDist = Array(11).fill(0)
-    for (const distRaw of distEntries) {
-      let dist = []
-      try {
-        dist = typeof distRaw === 'string' ? JSON.parse(distRaw) : distRaw
-      } catch {
-        dist = []
-      }
-      if (!Array.isArray(dist)) continue
-      for (let i = 0; i < 11; i += 1) {
-        mergedDist[i] += Number(dist[i] || 0)
-      }
-    }
-
-    result[row.datum][row.spiel] = {
-      plays:    row.plays,
-      scoreSum: row.scoreSum,
-      maxSum:   row.maxSum,
-      dist:     mergedDist,
-    }
-  }
-  return result
+  return aggregateStatsRows(stmts.getStatsAggregated.all())
 }
 
 function _loadStatsRows() {
-  return stmts.getAllStats.all().map((row) => {
-    let dist = []
-    try {
-      const parsed = JSON.parse(row.dist || '[]')
-      dist = Array.isArray(parsed) ? parsed : []
-    } catch {
-      dist = []
-    }
-
-    return {
-      datum: row.datum,
-      spiel: row.spiel,
-      user_id: row.user_id || '',
-      plays: Number(row.plays || 0),
-      scoreSum: Number(row.scoreSum || 0),
-      maxSum: Number(row.maxSum || 0),
-      dist,
-    }
-  })
+  return mapStatsRows(stmts.getAllStats.all())
 }
 
 const _replaceStats = db.transaction(obj => {
@@ -325,32 +225,7 @@ const _replaceStats = db.transaction(obj => {
 const _replaceStatsRows = db.transaction((rows) => {
   stmts.deleteAllStats.run()
   for (const row of rows) {
-    if (!row || typeof row !== 'object') {
-      throw new Error('Ungueltige Stats-Zeile im Backup')
-    }
-
-    const datum = String(row.datum || '').trim()
-    const spiel = String(row.spiel || '').trim()
-    if (!datum || !spiel) {
-      throw new Error('Stats-Zeile ohne datum oder spiel im Backup')
-    }
-
-    const safeDist = Array.isArray(row.dist) ? row.dist : []
-    const toNonNegativeInt = (value) => {
-      const parsed = Number.parseInt(String(value ?? 0), 10)
-      if (!Number.isFinite(parsed) || parsed < 0) return 0
-      return parsed
-    }
-
-    stmts.upsertStats.run({
-      datum,
-      spiel,
-      user_id: String(row.user_id || ''),
-      plays: toNonNegativeInt(row.plays),
-      scoreSum: toNonNegativeInt(row.scoreSum),
-      maxSum: toNonNegativeInt(row.maxSum),
-      dist: JSON.stringify(safeDist),
-    })
+    stmts.upsertStats.run(sanitizeStatsRow(row))
   }
 })
 
@@ -358,20 +233,9 @@ const _recordStatTx = db.transaction(({ datum, spiel, userId, score, max }) => {
   const safeUserId = String(userId || '')
   const existing = stmts.getStatsByKey.get(datum, spiel, safeUserId)
 
-  const dist = (() => {
-    if (!existing) return Array(11).fill(0)
-    try {
-      const parsed = JSON.parse(existing.dist || '[]')
-      if (!Array.isArray(parsed)) return Array(11).fill(0)
-      const out = Array(11).fill(0)
-      for (let i = 0; i < 11; i += 1) out[i] = Number(parsed[i] || 0)
-      return out
-    } catch {
-      return Array(11).fill(0)
-    }
-  })()
+  const dist = existing ? normalizeDistribution(existing.dist || '[]') : createEmptyDistribution()
 
-  const normalized = Math.min(10, Math.max(0, Math.round((score || 0) / (max || 1) * 10)))
+  const normalized = getNormalizedScoreBucket(score, max)
   dist[normalized] += 1
 
   stmts.upsertStats.run({
@@ -413,32 +277,18 @@ const SAVERS = {
 
 // ── In-Memory-Cache für loadReadOnly ──────────────────────────────
 
-const _readOnlyCache = new Map()
 const READONLY_TTL_MS = 5 * 60 * 1000
-
-function _getCached(file) {
-  const entry = _readOnlyCache.get(file)
-  if (entry && Date.now() - entry.ts < READONLY_TTL_MS) return entry.data
-  return null
-}
-
-function _setCached(file, data) {
-  _readOnlyCache.set(file, { data, ts: Date.now() })
-}
-
-function _invalidateCached(file) {
-  _readOnlyCache.delete(file)
-  if (file === 'lemmata.json') {
-    _lemmataById = null
-    _lemmataByLemma = null
-  }
-}
-
-function _invalidateAllCached() {
-  _readOnlyCache.clear()
-  _lemmataById = null
-  _lemmataByLemma = null
-}
+const _readOnlyCache = createReadOnlyCache({
+  ttlMs: READONLY_TTL_MS,
+  logger,
+  onInvalidate(file) {
+    if (!file || file === 'lemmata.json') {
+      _lemmataById = null
+      _lemmataByLemma = null
+    }
+  },
+})
+_readOnlyCache.startCleanup(5 * 60 * 1000)
 
 // ── Öffentliche API ───────────────────────────────────────────────
 
@@ -449,10 +299,10 @@ export function load(file) {
 }
 
 export function loadReadOnly(file) {
-  const cached = _getCached(file)
+  const cached = _readOnlyCache.get(file)
   if (cached !== null) return cached
   const data = load(file)
-  _setCached(file, data)
+  _readOnlyCache.set(file, data)
   return data
 }
 
@@ -460,19 +310,19 @@ export function save(file, data) {
   const saver = SAVERS[file]
   if (!saver) throw new Error(`Unbekannte Datei: ${file}`)
   saver(data)
-  _invalidateCached(file)
+  _readOnlyCache.invalidate(file)
   return Promise.resolve()
 }
 
 export function replaceAllAdminData(bundle) {
   _replaceAllAdminDataTx(bundle)
-  _invalidateAllCached()
+  _readOnlyCache.invalidateAll()
   return Promise.resolve()
 }
 
 export function invalidateCache(file) {
-  if (file) _invalidateCached(file)
-  else _invalidateAllCached()
+  if (file) _readOnlyCache.invalidate(file)
+  else _readOnlyCache.invalidateAll()
 }
 
 // ── Convenience-Loader (mit ReadOnly-Cache) ──────────────────────
@@ -484,105 +334,12 @@ export function loadStats() { return loadReadOnly('stats.json') }
 export function loadStatsRows() { return loadReadOnly('stats-rows.json') }
 
 let _statsWindowCache = {
-  key: null,
-  value: null,
-  ts: 0,
-}
-
-const STATS_WINDOW_CACHE_TTL_MS = 30 * 1000
-
-function sortMmddKeys(keys) {
-  const now = new Date()
-  const currentYear = now.getFullYear()
-  const today = new Date(currentYear, now.getMonth(), now.getDate()).getTime()
-
-  return [...keys].sort((a, b) => {
-    const [ma, da] = String(a).split('-').map(Number)
-    const [mb, db_] = String(b).split('-').map(Number)
-    const dateAThisYear = new Date(currentYear, (ma || 1) - 1, da || 1)
-    const dateBThisYear = new Date(currentYear, (mb || 1) - 1, db_ || 1)
-    const dateA = dateAThisYear.getTime() >= today
-      ? dateAThisYear
-      : new Date(currentYear + 1, (ma || 1) - 1, da || 1)
-    const dateB = dateBThisYear.getTime() >= today
-      ? dateBThisYear
-      : new Date(currentYear + 1, (mb || 1) - 1, db_ || 1)
-    return dateA - dateB
-  })
+  ...createStatsWindowCache(30 * 1000),
 }
 
 export function getStatsWindow(days) {
   const stats = loadStats()
-  const statsKeys = Object.keys(stats || {})
-  const cacheKey = `${days}|${statsKeys.length}|${statsKeys.join(',')}`
-  if (_statsWindowCache.key === cacheKey && Date.now() - _statsWindowCache.ts < STATS_WINDOW_CACHE_TTL_MS) {
-    return _statsWindowCache.value
-  }
-
-  const orderedDates = sortMmddKeys(statsKeys)
-  const selectedDates = orderedDates.slice(-days)
-
-  const byGameMap = new Map()
-  const scoreDistribution = Array(11).fill(0)
-  let totalPlays = 0
-  let totalScoreSum = 0
-  let totalMaxSum = 0
-  const rows = []
-
-  for (const datum of selectedDates) {
-    const games = stats[datum] || {}
-    for (const [spiel, bucket] of Object.entries(games)) {
-      const plays = Number(bucket?.plays || 0)
-      const scoreSum = Number(bucket?.scoreSum || 0)
-      const maxSum = Number(bucket?.maxSum || 0)
-      const dist = Array.isArray(bucket?.dist) ? bucket.dist : []
-
-      totalPlays += plays
-      totalScoreSum += scoreSum
-      totalMaxSum += maxSum
-
-      for (let i = 0; i <= 10; i += 1) {
-        scoreDistribution[i] += Number(dist[i] || 0)
-      }
-
-      const prev = byGameMap.get(spiel) || { spiel, plays: 0, scoreSum: 0, maxSum: 0 }
-      prev.plays += plays
-      prev.scoreSum += scoreSum
-      prev.maxSum += maxSum
-      byGameMap.set(spiel, prev)
-
-      rows.push({ datum, spiel, plays, scoreSum, maxSum })
-    }
-  }
-
-  const byGame = [...byGameMap.values()]
-    .map((row) => ({
-      ...row,
-      avg10: row.maxSum > 0 ? Number(((row.scoreSum / row.maxSum) * 10).toFixed(2)) : null,
-    }))
-    .sort((a, b) => b.plays - a.plays)
-
-  const result = {
-    days,
-    selectedDates,
-    rows,
-    totals: {
-      plays: totalPlays,
-      scoreSum: totalScoreSum,
-      maxSum: totalMaxSum,
-      avg10: totalMaxSum > 0 ? Number(((totalScoreSum / totalMaxSum) * 10).toFixed(2)) : null,
-    },
-    byGame,
-    scoreDistribution,
-  }
-
-  _statsWindowCache = {
-    key: cacheKey,
-    value: result,
-    ts: Date.now(),
-  }
-
-  return result
+  return getCachedStatsWindow(_statsWindowCache, stats, days)
 }
 
 // ── Lemmata-Index (O(1)-Lookup statt linearem Array-Scan) ─────────
@@ -595,8 +352,9 @@ export function getLemmataIndex() {
   try {
     const list = _loadLemmata()
     if (!Array.isArray(list)) throw new Error('lemmata ist kein Array')
-    _lemmataById    = new Map(list.map(l => [l.id, l]))
-    _lemmataByLemma = new Map(list.map(l => [l.lemma, l]))
+    const index = buildLemmataIndex(list)
+    _lemmataById = index.byId
+    _lemmataByLemma = index.byLemma
   } catch (err) {
     logger.error({ err }, 'Lemmata-Index konnte nicht aufgebaut werden – leerer Fallback')
     _lemmataById    = new Map()
@@ -613,41 +371,20 @@ export function withStatsLock(fn) {
 
 // ── Beleg-Cache (TTL 6h, max 2000 Einträge, LRU) ─────────────────
 
-const _belegeCache  = new Map()
 const BELEG_TTL_MS  = 6 * 60 * 60 * 1000
 const BELEG_MAX     = 2000
-const _cacheMetrics = { hits: 0, misses: 0, evictions: 0 }
+const _belegeCache = createBelegeCache({ ttlMs: BELEG_TTL_MS, maxEntries: BELEG_MAX })
 
 export function cacheGet(key) {
-  const entry = _belegeCache.get(key)
-  if (!entry) { _cacheMetrics.misses++; return null }
-  if (Date.now() - entry.ts > BELEG_TTL_MS) {
-    _belegeCache.delete(key)
-    _cacheMetrics.misses++
-    return null
-  }
-  _cacheMetrics.hits++
-  return entry.data
+  return _belegeCache.get(key)
 }
 
 export function cacheSet(key, data) {
-  if (_belegeCache.size >= BELEG_MAX) {
-    _belegeCache.delete(_belegeCache.keys().next().value)
-    _cacheMetrics.evictions++
-  }
-  _belegeCache.set(key, { data, ts: Date.now() })
+  _belegeCache.set(key, data)
 }
 
 export function getCacheMetrics() {
-  const total   = _cacheMetrics.hits + _cacheMetrics.misses
-  const hitRate = total > 0 ? (_cacheMetrics.hits / total * 100).toFixed(2) : 0
-  return {
-    hits:      _cacheMetrics.hits,
-    misses:    _cacheMetrics.misses,
-    hitRate:   `${hitRate}%`,
-    evictions: _cacheMetrics.evictions,
-    size:      _belegeCache.size,
-  }
+  return _belegeCache.getMetrics()
 }
 
 // ── Startup-Initialisierung ───────────────────────────────────────
@@ -660,17 +397,3 @@ export function initializeIndices() {
     logger.warn({ err }, 'Preload initialization incomplete – will lazy-load on demand')
   }
 }
-
-// ── Periodisches ReadOnly-Cache Cleanup (alle 5 Minuten) ────────
-
-setInterval(() => {
-  const now = Date.now()
-  let cleaned = 0
-  for (const [key, entry] of _readOnlyCache.entries()) {
-    if (now - entry.ts > READONLY_TTL_MS) {
-      _readOnlyCache.delete(key)
-      cleaned++
-    }
-  }
-  if (cleaned > 0) logger.debug({ cleaned }, 'ReadOnly-Cache Cleanup')
-}, 5 * 60 * 1000)

@@ -1,6 +1,6 @@
 import Home from './Home'
 import KontoTab from './KontoTab'
-import { KursTab } from './TabPlaceholders'
+import KursTab from './KursTab'
 
 export default function AppTabScreens({
   phase,

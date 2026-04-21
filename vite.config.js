@@ -6,6 +6,7 @@ import pkg from './package.json' with { type: 'json' }
 export default defineConfig({
   test: {
     environment: 'node',
+    fileParallelism: false,
     exclude: ['e2e/**', 'node_modules/**', 'dist/**'],
     coverage: {
       provider: 'v8',
@@ -27,8 +28,9 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
+      includeAssets: ['favicon.svg', 'favicon.png'],
       workbox: {
-        globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
+        globPatterns: ['**/*.{js,css,html,woff2}'],
         navigateFallbackDenylist: [/^\/admin/, /^\/impressum/, /^\/datenschutz/, /^\/nutzungsbedingungen/],
         runtimeCaching: [
           {
