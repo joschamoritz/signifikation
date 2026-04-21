@@ -25,7 +25,7 @@ const countUsersStmt = db.prepare(`
 export function createAdminOpsRouter({
   adminLimiter,
   requireAuth,
-  loadReadOnly,
+  loadKalender,
   getCacheMetrics,
   getQueryCacheMetrics,
   clearQueryCache,
@@ -89,7 +89,7 @@ export function createAdminOpsRouter({
   router.get('/admin/health', adminLimiter, requireAuth, async (_req, res) => {
     let lastEntry = null
     try {
-      const kalender = loadReadOnly('kalender.json')
+      const kalender = loadKalender()
       const keys = Object.keys(kalender).sort()
       lastEntry = keys[keys.length - 1] || null
     } catch {

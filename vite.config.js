@@ -30,9 +30,26 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.svg', 'favicon.png'],
       workbox: {
-        globPatterns: ['**/*.{js,css,html,woff2}'],
+        globPatterns: ['**/*.{css,html,webmanifest}'],
+        maximumFileSizeToCacheInBytes: 256 * 1024,
         navigateFallbackDenylist: [/^\/admin/, /^\/impressum/, /^\/datenschutz/, /^\/nutzungsbedingungen/],
         runtimeCaching: [
+          {
+            urlPattern: /^\/assets\/.*\.js$/,
+            handler: 'StaleWhileRevalidate',
+            options: {
+              cacheName: 'app-scripts',
+              expiration: { maxEntries: 12, maxAgeSeconds: 60 * 60 * 24 * 7 },
+            },
+          },
+          {
+            urlPattern: ({ request }) => request.destination === 'font',
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'app-fonts',
+              expiration: { maxEntries: 12, maxAgeSeconds: 60 * 60 * 24 * 30 },
+            },
+          },
           {
             urlPattern: /^\/api\/v1\/heute/,
             handler: 'StaleWhileRevalidate',
@@ -65,6 +82,14 @@ export default defineConfig({
               expiration: { maxEntries: 10, maxAgeSeconds: 60 * 60 * 24 },
             },
           },
+          {
+            urlPattern: /\.(?:png|svg)$/,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'static-images',
+              expiration: { maxEntries: 12, maxAgeSeconds: 60 * 60 * 24 * 30 },
+            },
+          },
         ],
       },
       manifest: {
@@ -76,6 +101,7 @@ export default defineConfig({
         display: 'standalone',
         lang: 'de',
         start_url: '/',
+        scope: '/',
         icons: [
           {
             src: 'icon-192.png',

@@ -52,6 +52,10 @@ date: 2026-04-20
 - neues `src/components/KontoTab.jsx` als klarer Zielort fuer Konto-/Auth-UI angelegt
 - `src/components/TabPlaceholders.jsx` entsprechend entschlackt
 - `src/components/TabTransition.jsx` weiter vereinfacht, damit Tab-Wechsel klarer getrennt bleiben
+- `src/components/KontoTab.jsx` weiter auf Seitenkomposition reduziert
+- komplette Konto-Auth-Logik in `src/hooks/useKontoAuth.js` ausgelagert
+- Konto-Auth-UI in `src/components/konto/KontoAuthCard.jsx` extrahiert
+- gemeinsame Wörterbuch-Kopfzeile als `src/components/TabHeader.jsx` zentralisiert und in Konto-, Klassenraum- und Placeholder-Screens wiederverwendet
 
 ### Frontend-Bootstrap und Runtime vereinfacht
 
@@ -59,6 +63,8 @@ date: 2026-04-20
 - Frontend-Bootstrap damit von `App.jsx` in fokussiertere Hooks verschoben
 - `src/utils/storage.js` bereinigt
 - `vite.config.js` ueberarbeitet, um die bisherige Runtime-/PWA-Konfiguration sauberer abzubilden
+- `src/components/TabTransition.jsx` technisch korrigiert: beim Tab-Wechsel werden alter und neuer Screen jetzt wirklich getrennt gerendert, statt nur denselben Tree umzuschichten
+- zugehoerige Transition-CSS in `src/styles/tabbar.css` auf explizite Enter-/Exit-Zustaende umgestellt, inklusive reduziertem Bewegungsmodus
 
 ### Weitere Entflechtung von Store, Admin und Classroom
 
@@ -115,6 +121,16 @@ date: 2026-04-20
   - `server/classroom.acceptance.test.js`
 - `package.json` angepasst
 - `.github/workflows/deploy.yml` angepasst, um den Deploy-Pfad mit dem aufgeraeumten Stand konsistent zu halten
+- neuer `.github/workflows/verify.yml` als separates Verify-Gate ergaenzt
+- PWA-Precache in `vite.config.js` auf kleine Shell-Artefakte reduziert; Scripts laufen ueber Runtime-Cache
+- Socket- und HTTP-Origin-Pruefung auf gemeinsame Config in `server/config/origins.js` ausgerichtet
+- `server/routes/admin-stats.js` auf explizite Store-Timeline statt direkten `stats.json`-Zugriff umgestellt
+- Tagescontent-CRUD in `server/store-daily-content.js` als eigenes Store-Modul gekapselt; `server/store.js` delegiert Kalender-/Zeitreise-/Wortzwilling-/Zeitenwende-Operationen jetzt dorthin
+- Admin-Aufrufer (`admin-calendar`, `admin-ops`, `admin-social-cards`) auf explizite Store-Helfer wie `loadKalender()`, `loadDailyContentMaps()` und `loadMutableDailyContentMaps()` umgestellt statt verstreuter direkter Dateinamen-Zugriffe
+- `server/routes/public.js` und `server/backup.js` ebenfalls auf explizitere Store-Helfer umgestellt (`loadKalender()`, `loadZeitreise()`, `loadWortZwilling()`, `loadStatsRows()`)
+- Klassenraum-Hintergrundarbeit in `server/workers/classroomWorker.js` gekapselt und als separater PM2-Prozess startbar gemacht
+- PM2-Beispielkonfiguration in `ecosystem.config.cjs` und nginx-Beispiel in `ops/nginx-signifikation.conf.example` angelegt
+- Deploy-Workflow auf `pm2 startOrRestart ecosystem.config.cjs` umgestellt, damit der neue Worker nicht von manuell vorab angelegten PM2-Prozessen abhaengt
 
 ## Verifikation
 
@@ -131,6 +147,8 @@ date: 2026-04-20
 - `src/components/ClassroomTab.jsx`
 - `src/components/PersistentClassroomTab.jsx`
 - `src/components/KontoTab.jsx`
+- `src/components/TabHeader.jsx`
+- `src/components/konto/KontoAuthCard.jsx`
 - `src/components/classroom/`
 - `src/hooks/useDailyContent.js`
 - `src/hooks/useEntitlements.js`
@@ -140,9 +158,12 @@ date: 2026-04-20
 - `src/hooks/useAppNavigation.js`
 - `src/hooks/useAppTabScreens.js`
 - `src/hooks/useAppGameScreens.js`
+- `src/hooks/useKontoAuth.js`
+- `src/components/TabTransition.jsx`
 - `src/utils/dailyProgress.js`
 - `src/utils/viewTransition.js`
 - `src/utils/storage.js`
+- `src/styles/tabbar.css`
 - `server/routes/admin.js`
 - `server/routes/admin-audit.js`
 - `server/routes/admin-backup.js`
@@ -157,6 +178,9 @@ date: 2026-04-20
 - `server/routes/admin-social-cards.js`
 - `server/classroom/teacher-socket-auth.js`
 - `server/realtime/classroomSocket.js`
+- `server/config/origins.js`
+- `server/jobs/classroomRetention.js`
+- `server/workers/classroomWorker.js`
 - `server/store.js`
 - `server/store-stats.js`
 - `server/store-daily-content.js`
@@ -166,7 +190,9 @@ date: 2026-04-20
 - `server/store-belege-cache.js`
 - `OPS.md`
 - `PERFORMANCE.md`
+- `ecosystem.config.cjs`
 - `.github/workflows/deploy.yml`
+- `.github/workflows/verify.yml`
 
 ## Naechster sinnvoller Schritt
 

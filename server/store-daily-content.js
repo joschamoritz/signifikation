@@ -78,3 +78,52 @@ export function toZeitenwendeRow(datum, value) {
     data: JSON.stringify(value),
   }
 }
+
+export function createDailyContentStore({ db, stmts }) {
+  const replaceKalender = db.transaction((obj) => {
+    stmts.deleteAllKalender.run()
+    for (const [datum, ids] of getKalenderEntries(obj)) {
+      stmts.upsertKalender.run({ datum, ids: JSON.stringify(ids) })
+    }
+  })
+
+  const replaceZeitreise = db.transaction((obj) => {
+    stmts.deleteAllZeitreise.run()
+    for (const [datum, value] of Object.entries(obj)) {
+      stmts.upsertZeitreise.run(toZeitreiseRow(datum, value))
+    }
+  })
+
+  const replaceWortzwilling = db.transaction((obj) => {
+    stmts.deleteAllWortzwilling.run()
+    for (const [datum, value] of Object.entries(obj)) {
+      stmts.upsertWortzwilling.run(toWortzwillingRow(datum, value))
+    }
+  })
+
+  const replaceZeitenwende = db.transaction((obj) => {
+    stmts.deleteAllZeitenwende.run()
+    for (const [datum, value] of Object.entries(obj)) {
+      stmts.upsertZeitenwende.run(toZeitenwendeRow(datum, value))
+    }
+  })
+
+  return {
+    loadKalender() {
+      return loadKalenderRows(stmts.getAllKalender.all())
+    },
+    loadZeitreise() {
+      return loadZeitreiseRows(stmts.getAllZeitreise.all())
+    },
+    loadWortzwilling() {
+      return loadWortzwillingRows(stmts.getAllWortzwilling.all())
+    },
+    loadZeitenwende() {
+      return loadZeitenwendeRows(stmts.getAllZeitenwende.all())
+    },
+    replaceKalender,
+    replaceZeitreise,
+    replaceWortzwilling,
+    replaceZeitenwende,
+  }
+}

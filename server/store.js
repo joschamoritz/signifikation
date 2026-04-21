@@ -28,24 +28,10 @@ import { createReadOnlyCache } from './store-readonly-cache.js'
 import { createLoaders, createSavers } from './store-readers.js'
 import { createBelegeCache } from './store-belege-cache.js'
 import {
-  getKalenderEntries,
-  loadKalenderRows,
-  loadWortzwillingRows,
-  loadZeitreiseRows,
-  loadZeitenwendeRows,
-  toWortzwillingRow,
-  toZeitreiseRow,
-  toZeitenwendeRow,
+  createDailyContentStore,
 } from './store-daily-content.js'
 import {
-  aggregateStatsRows,
-  createEmptyDistribution,
-  createStatsWindowCache,
-  getCachedStatsWindow,
-  getNormalizedScoreBucket,
-  mapStatsRows,
-  normalizeDistribution,
-  sanitizeStatsRow,
+  createStatsStore,
 } from './store-stats.js'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
@@ -120,11 +106,11 @@ export const stmts = {
 }
 
 const _replaceAllAdminDataTx = db.transaction(({ lemmata, kalender, zeitreise, wortzwilling, zeitenwende, statsRows }) => {
-  _replaceKalender(kalender)
-  _replaceZeitreise(zeitreise)
-  _replaceWortzwilling(wortzwilling)
-  _replaceZeitenwende(zeitenwende)
-  _replaceStatsRows(statsRows)
+  _dailyContentStore.replaceKalender(kalender)
+  _dailyContentStore.replaceZeitreise(zeitreise)
+  _dailyContentStore.replaceWortzwilling(wortzwilling)
+  _dailyContentStore.replaceZeitenwende(zeitenwende)
+  _statsStore.replaceStatsRows(statsRows)
   _saveLemmata(lemmata)
 })
 
@@ -144,136 +130,7 @@ function _saveLemmata(arr) {
   _lemmataIndexStore.invalidate()
 }
 
-// ── Kalender ──────────────────────────────────────────────────────
-
-function _loadKalender() {
-  return loadKalenderRows(stmts.getAllKalender.all())
-}
-
-const _replaceKalender = db.transaction(obj => {
-  stmts.deleteAllKalender.run()
-  for (const [datum, ids] of getKalenderEntries(obj)) {
-    stmts.upsertKalender.run({ datum, ids: JSON.stringify(ids) })
-  }
-})
-
-// ── Zeitreise ─────────────────────────────────────────────────────
-
-function _loadZeitreise() {
-  return loadZeitreiseRows(stmts.getAllZeitreise.all())
-}
-
-const _replaceZeitreise = db.transaction(obj => {
-  stmts.deleteAllZeitreise.run()
-  for (const [datum, v] of Object.entries(obj)) {
-    stmts.upsertZeitreise.run(toZeitreiseRow(datum, v))
-  }
-})
-
-// ── Wortzwilling ──────────────────────────────────────────────────
-
-function _loadWortzwilling() {
-  return loadWortzwillingRows(stmts.getAllWortzwilling.all())
-}
-
-const _replaceWortzwilling = db.transaction(obj => {
-  stmts.deleteAllWortzwilling.run()
-  for (const [datum, v] of Object.entries(obj)) {
-    stmts.upsertWortzwilling.run(toWortzwillingRow(datum, v))
-  }
-})
-
-// ── Zeitenwende ───────────────────────────────────────────────────
-
-function _loadZeitenwende() {
-  return loadZeitenwendeRows(stmts.getAllZeitenwende.all())
-}
-
-const _replaceZeitenwende = db.transaction(obj => {
-  stmts.deleteAllZeitenwende.run()
-  for (const [datum, v] of Object.entries(obj)) {
-    stmts.upsertZeitenwende.run(toZeitenwendeRow(datum, v))
-  }
-})
-
 // ── Stats ─────────────────────────────────────────────────────────
-
-function _loadStats() {
-  return aggregateStatsRows(stmts.getStatsAggregated.all())
-}
-
-function _loadStatsRows() {
-  return mapStatsRows(stmts.getAllStats.all())
-}
-
-const _replaceStats = db.transaction(obj => {
-  stmts.deleteAllStats.run()
-  for (const [datum, games] of Object.entries(obj)) {
-    for (const [spiel, v] of Object.entries(games)) {
-      stmts.upsertStats.run({
-        datum, spiel,
-        user_id: v.user_id ?? '',
-        plays:    v.plays    ?? 0,
-        scoreSum: v.scoreSum ?? 0,
-        maxSum:   v.maxSum   ?? 0,
-        dist:     JSON.stringify(v.dist ?? []),
-      })
-    }
-  }
-})
-
-const _replaceStatsRows = db.transaction((rows) => {
-  stmts.deleteAllStats.run()
-  for (const row of rows) {
-    stmts.upsertStats.run(sanitizeStatsRow(row))
-  }
-})
-
-const _recordStatTx = db.transaction(({ datum, spiel, userId, score, max }) => {
-  const safeUserId = String(userId || '')
-  const existing = stmts.getStatsByKey.get(datum, spiel, safeUserId)
-
-  const dist = existing ? normalizeDistribution(existing.dist || '[]') : createEmptyDistribution()
-
-  const normalized = getNormalizedScoreBucket(score, max)
-  dist[normalized] += 1
-
-  stmts.upsertStats.run({
-    datum,
-    spiel,
-    user_id: safeUserId,
-    plays: (existing?.plays || 0) + 1,
-    scoreSum: (existing?.scoreSum || 0) + Math.max(0, Number(score || 0)),
-    maxSum: (existing?.maxSum || 0) + Number(max || 0),
-    dist: JSON.stringify(dist),
-  })
-})
-
-export function recordStat({ datum, spiel, userId = '', score = 0, max = 0 }) {
-  _recordStatTx({ datum, spiel, userId, score, max })
-}
-
-// ── Dispatcher-Map ────────────────────────────────────────────────
-
-const LOADERS = createLoaders({
-  loadLemmata: _loadLemmata,
-  loadKalender: _loadKalender,
-  loadZeitreise: _loadZeitreise,
-  loadWortzwilling: _loadWortzwilling,
-  loadZeitenwende: _loadZeitenwende,
-  loadStats: _loadStats,
-  loadStatsRows: _loadStatsRows,
-})
-
-const SAVERS = createSavers({
-  saveLemmata: _saveLemmata,
-  replaceKalender: _replaceKalender,
-  replaceZeitreise: _replaceZeitreise,
-  replaceWortzwilling: _replaceWortzwilling,
-  replaceZeitenwende: _replaceZeitenwende,
-  replaceStats: _replaceStats,
-  replaceStatsRows: _replaceStatsRows,
-})
 
 // ── In-Memory-Cache für loadReadOnly ──────────────────────────────
 
@@ -286,6 +143,38 @@ const _readOnlyCache = createReadOnlyCache({
   },
 })
 _readOnlyCache.startCleanup(5 * 60 * 1000)
+
+const _statsStore = createStatsStore({
+  db,
+  stmts,
+  loadReadOnly(file) {
+    return loadReadOnly(file)
+  },
+})
+
+const _dailyContentStore = createDailyContentStore({ db, stmts })
+
+// ── Dispatcher-Map ────────────────────────────────────────────────
+
+const LOADERS = createLoaders({
+  loadLemmata: _loadLemmata,
+  loadKalender: _dailyContentStore.loadKalender,
+  loadZeitreise: _dailyContentStore.loadZeitreise,
+  loadWortzwilling: _dailyContentStore.loadWortzwilling,
+  loadZeitenwende: _dailyContentStore.loadZeitenwende,
+  loadStats: _statsStore.loadStats,
+  loadStatsRows: _statsStore.loadStatsRows,
+})
+
+const SAVERS = createSavers({
+  saveLemmata: _saveLemmata,
+  replaceKalender: _dailyContentStore.replaceKalender,
+  replaceZeitreise: _dailyContentStore.replaceZeitreise,
+  replaceWortzwilling: _dailyContentStore.replaceWortzwilling,
+  replaceZeitenwende: _dailyContentStore.replaceZeitenwende,
+  replaceStats: _statsStore.replaceStats,
+  replaceStatsRows: _statsStore.replaceStatsRows,
+})
 
 // ── Öffentliche API ───────────────────────────────────────────────
 
@@ -302,6 +191,8 @@ export function loadReadOnly(file) {
   _readOnlyCache.set(file, data)
   return data
 }
+
+export function loadKalender() { return loadReadOnly('kalender.json') }
 
 export function save(file, data) {
   const saver = SAVERS[file]
@@ -329,14 +220,27 @@ export function loadWortZwilling() { return loadReadOnly('wortzwilling.json') }
 export function loadZeitenwende() { return loadReadOnly('zeitenwende.json') }
 export function loadStats() { return loadReadOnly('stats.json') }
 export function loadStatsRows() { return loadReadOnly('stats-rows.json') }
+export function loadDailyContentMaps() {
+  return {
+    kalender: loadKalender(),
+    zeitreise: loadZeitreise(),
+    wortzwilling: loadWortZwilling(),
+    zeitenwende: loadZeitenwende(),
+  }
+}
+export function loadMutableDailyContentMaps() {
+  return {
+    kalender: load('kalender.json'),
+    zeitreise: load('zeitreise.json'),
+    wortzwilling: load('wortzwilling.json'),
+    zeitenwende: load('zeitenwende.json'),
+  }
+}
+export function recordStat(args) { return _statsStore.recordStat(args) }
+export function getStatsWindow(days) { return _statsStore.getStatsWindow(days) }
+export function getStatsTimeline(days) { return _statsStore.getStatsTimeline(days) }
 
 const _lemmataIndexStore = createLemmataIndexStore(_loadLemmata, logger)
-const _statsWindowCache = createStatsWindowCache(30 * 1000)
-
-export function getStatsWindow(days) {
-  const stats = loadStats()
-  return getCachedStatsWindow(_statsWindowCache, stats, days)
-}
 
 export function getLemmataIndex() {
   return _lemmataIndexStore.get()

@@ -5,7 +5,7 @@ import { fetchLemma, fetchBonusQuestion, fetchRelation, fetchZeitreise, fetchZei
 import { belegeVerfuegbar, fetchBelege } from '../belege.js'
 import { fetchWiktionary } from '../wiktionary.js'
 import { fetchWortZwilling } from '../wortzwilling.js'
-import { load, loadReadOnly, save, loadZeitreise, loadWortZwilling, loadZeitenwende, loadStatsRows, getLemmataIndex, getCacheMetrics, DATA, stmts, lemmaToRow, replaceAllAdminData, getStatsWindow } from '../store.js'
+import { load, loadReadOnly, loadKalender, loadDailyContentMaps, loadMutableDailyContentMaps, save, loadZeitreise, loadWortZwilling, loadZeitenwende, loadStatsRows, getLemmataIndex, getCacheMetrics, DATA, stmts, lemmaToRow, replaceAllAdminData, getStatsWindow, getStatsTimeline } from '../store.js'
 import { getCacheMetrics as getQueryCacheMetrics, clearCache as clearQueryCache } from '../query-cache.js'
 import { adminLimiter, loginLimiter, uploadLimiter } from '../middleware/rateLimiter.js'
 import { requireAuth, adminAuth, adminLogout, adminError, serverError, createSession } from '../middleware/auth.js'
@@ -90,7 +90,7 @@ router.use(createAdminStatsRouter({
   adminStatsSummaryQuerySchema,
   adminStatsExportQuerySchema,
   getStatsWindow,
-  loadReadOnly,
+  getStatsTimeline,
   adminError,
   serverError,
 }))
@@ -98,7 +98,7 @@ router.use(createAdminStatsRouter({
 router.use(createAdminOpsRouter({
   adminLimiter,
   requireAuth,
-  loadReadOnly,
+  loadKalender,
   getCacheMetrics,
   getQueryCacheMetrics,
   clearQueryCache,
@@ -123,7 +123,9 @@ router.use(createAdminCalendarRouter({
   adminPreviewLemmaSchema,
   adminPreviewDayParamsSchema,
   load,
-  loadReadOnly,
+  loadKalender,
+  loadDailyContentMaps,
+  loadMutableDailyContentMaps,
   save,
   loadZeitreise,
   loadWortZwilling,
@@ -182,7 +184,7 @@ router.use(createAdminSocialCardsRouter({
   validate,
   adminSocialCardsTagesdataSchema,
   adminSocialCardsBelegeSchema,
-  loadReadOnly,
+  loadKalender,
   loadWortZwilling,
   getLemmataIndex,
   fetchBelege,

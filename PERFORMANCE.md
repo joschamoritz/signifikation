@@ -8,16 +8,18 @@ Repo-nahe Kurzreferenz fuer den aktuell bekannten Performance-Stand nach den Aud
 
 Letzte verifizierte lokale Messbasis in dieser Arbeitsphase:
 
+- `npm.cmd test`
 - `npm.cmd run build`
+- Tests erfolgreich
 - Build erfolgreich
-- Build-Zeit: ca. `1.19s`
-- PWA-Precache: `36 entries (1000.08 KiB)`
+- Build-Zeit: ca. `1.42s`
+- PWA-Precache: `15` Eintraege / `146.88 KiB`; Scripts, Fonts und Bilder laufen ueber Runtime-Caches
 
 ## Relevante Build-Artefakte
 
-- Haupt-JS-Chunk: `dist/assets/index-CcQSN3iD.js` -> `272.86 kB` raw, `80.07 kB` gzip
+- Haupt-JS-Chunk: `dist/assets/index-DHqbEcE5.js` -> `277.17 kB` raw, `81.90 kB` gzip
 - Zweiter JS-Chunk: `dist/assets/index-DTyze2dP.js` -> `42.53 kB` raw, `13.31 kB` gzip
-- Haupt-CSS: `dist/assets/index-B-1qRPsG.css` -> `86.76 kB` raw, `15.33 kB` gzip
+- Haupt-CSS: `dist/assets/index--XcRNP7_.css` -> `87.14 kB` raw, `15.37 kB` gzip
 - Lazy-Chunks weiter klein:
   - `Zeitreise` ca. `13.22 kB`
   - `WortZwilling` ca. `10.11 kB`
@@ -25,7 +27,9 @@ Letzte verifizierte lokale Messbasis in dieser Arbeitsphase:
 
 ## Gegenueber dem Audit verbessert
 
-- Precache wurde bereits von ca. `2.83 MiB` auf ca. `1.00 MiB` reduziert.
+- Precache wurde von einem uebergrossen JS-lastigen Stand auf einen kleinen App-Shell-Precache reduziert.
+- Fonts und statische Bilder werden nicht mehr pauschal mit in den Installations-Precache gezogen.
+- Haupt-JS laeuft jetzt bewusst ueber Runtime-Caching statt ueber den Installations-Precache.
 - Der App-Kern ist strukturell weiter zerlegt worden:
   - `App.jsx` kleiner
   - `admin.js` kleiner

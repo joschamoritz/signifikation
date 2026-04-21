@@ -57,7 +57,7 @@ export function createAdminStatsRouter({
   adminStatsSummaryQuerySchema,
   adminStatsExportQuerySchema,
   getStatsWindow,
-  loadReadOnly,
+  getStatsTimeline,
   adminError,
   serverError,
 }) {
@@ -124,10 +124,7 @@ export function createAdminStatsRouter({
   router.get('/admin/stats', adminLimiter, requireAuth, validate(adminStatsQuerySchema, 'query'), (req, res) => {
     const { days } = req.query
     try {
-      const stats = loadReadOnly('stats.json') ?? {}
-      const sorted = Object.keys(stats).sort()
-      const result = sorted.slice(-days).map((datum) => ({ datum, ...stats[datum] }))
-      res.json(result)
+      res.json(getStatsTimeline(days))
     } catch (err) {
       serverError(res, err)
     }

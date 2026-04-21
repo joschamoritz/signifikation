@@ -1,7 +1,9 @@
 name: Deploy
 
 on:
-  push:
+  workflow_run:
+    workflows: ['Verify']
+    types: [completed]
     branches: [main]
   workflow_dispatch:
 
@@ -10,21 +12,8 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  verify:
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: npm
-      - run: npm ci
-      - run: npm run verify
-
   deploy:
-    needs: verify
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     environment:
       name: production
@@ -45,5 +34,5 @@ jobs:
             git checkout main
             git pull --ff-only origin main
             npm ci
-            npm run build
-            sudo -u signifikation bash -c 'export NVM_DIR="/opt/nvm" && source "$NVM_DIR/nvm.sh" && pm2 restart signifikation'
+            npm run verify
+            sudo -u signifikation bash -c 'export NVM_DIR="/opt/nvm" && source "$NVM_DIR/nvm.sh" && pm2 startOrRestart ecosystem.config.cjs'

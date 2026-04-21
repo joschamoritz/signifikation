@@ -11,6 +11,7 @@ import {
 import logger from '../logger.js'
 import { normalizeJoinCode } from '../classroom/join-codes.js'
 import { verifyTeacherSocketToken } from '../classroom/teacher-socket-auth.js'
+import { isAllowedOrigin } from '../config/origins.js'
 
 const HEARTBEAT_TIMEOUT_MS = 45 * 1000
 const HOST_RECONNECT_WINDOW_MS = 2 * 60 * 1000
@@ -153,7 +154,10 @@ export function initClassroomSocket(httpServer) {
   const io = new Server(httpServer, {
     path: '/socket.io',
     cors: {
-      origin: true,
+      origin: (origin, callback) => {
+        if (isAllowedOrigin(origin)) callback(null, true)
+        else callback(new Error(`Socket-CORS: Unerlaubte Origin ${origin}`))
+      },
       credentials: true,
     },
   })

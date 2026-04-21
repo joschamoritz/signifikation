@@ -19,6 +19,7 @@ export function useAppTabScreens({
   wzPlayed,
   zeitenwende,
   zeitenwendeError,
+  zeitenwendeMissing,
   retryZeitenwende,
   zwPlayed,
   gesamtausgabeUnlocked,
@@ -68,6 +69,7 @@ export function useAppTabScreens({
     }),
     zeitenwende,
     zeitenwendeError,
+    zeitenwendeMissing,
     onRetryZeitenwende: retryZeitenwende,
     zwPlayed,
     onPlayZeitenwende: {
@@ -104,6 +106,7 @@ export function useAppTabScreens({
     wzPlayed,
     zeitenwende,
     zeitenwendeError,
+    zeitenwendeMissing,
     retryZeitenwende,
     zwPlayed,
     gesamtausgabeUnlocked,

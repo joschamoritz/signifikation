@@ -9,6 +9,7 @@ export function sanitizeBackupBundle(payload) {
   const zeitreise = files['zeitreise.json'] && typeof files['zeitreise.json'] === 'object' ? files['zeitreise.json'] : {}
   const wortzwilling = files['wortzwilling.json'] && typeof files['wortzwilling.json'] === 'object' ? files['wortzwilling.json'] : {}
   const zeitenwende = files['zeitenwende.json'] && typeof files['zeitenwende.json'] === 'object' ? files['zeitenwende.json'] : {}
+
   const statsRows = Array.isArray(files['stats-rows.json'])
     ? files['stats-rows.json']
     : Array.isArray(files['stats.json']) ? files['stats.json'] : []

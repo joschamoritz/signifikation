@@ -22,6 +22,7 @@ export default function AppTabScreens({
   onViewWortzwilling,
   zeitenwende,
   zeitenwendeError,
+  zeitenwendeMissing,
   onRetryZeitenwende,
   zwPlayed,
   onPlayZeitenwende,
@@ -55,6 +56,7 @@ export default function AppTabScreens({
         onViewWortzwilling={onViewWortzwilling}
         zeitenwende={zeitenwende}
         zeitenwendeError={zeitenwendeError}
+        zeitenwendeMissing={zeitenwendeMissing}
         onRetryZeitenwende={onRetryZeitenwende}
         zwPlayed={zwPlayed}
         onPlayZeitenwende={onPlayZeitenwende.play}

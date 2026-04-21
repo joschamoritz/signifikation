@@ -26,7 +26,7 @@ export function useDailyContent() {
   const [wortzwillingRetry, setWortzwillingRetry] = useState(0)
 
   const [zeitenwende, setZeitenwende] = useState(null)
-  const [zeitenwendeError, setZeitenwendeError] = useState(false)
+  const [zeitenwendeStatus, setZeitenwendeStatus] = useState('idle')
   const [zeitenwendeRetry, setZeitenwendeRetry] = useState(0)
 
   const [zrPlayed, setZrPlayed] = useState(null)
@@ -74,16 +74,24 @@ export function useDailyContent() {
   }, [wortzwillingRetry])
 
   useEffect(() => {
-    setZeitenwendeError(false)
+    setZeitenwendeStatus('loading')
     setZeitenwende(null)
     fetchWithRetry(`${API}/zeitenwende`)
       .then((r) => {
         if (r.ok) return r.json()
-        if (r.status === 404) return null
+        if (r.status === 404) {
+          setZeitenwendeStatus('missing')
+          return null
+        }
         return Promise.reject(new Error(`HTTP ${r.status}`))
       })
-      .then((data) => { if (data) setZeitenwende(data) })
-      .catch(() => setZeitenwendeError(true))
+      .then((data) => {
+        if (data) {
+          setZeitenwende(data)
+          setZeitenwendeStatus('ready')
+        }
+      })
+      .catch(() => setZeitenwendeStatus('error'))
   }, [zeitenwendeRetry])
 
   const retryZeitreise = useCallback(() => {
@@ -110,7 +118,8 @@ export function useDailyContent() {
     wortzwillingError,
     retryWortzwilling,
     zeitenwende,
-    zeitenwendeError,
+    zeitenwendeError: zeitenwendeStatus === 'error',
+    zeitenwendeMissing: zeitenwendeStatus === 'missing',
     retryZeitenwende,
     zrPlayed,
     setZrPlayed,

@@ -6,7 +6,7 @@ export function createAdminSocialCardsRouter({
   validate,
   adminSocialCardsTagesdataSchema,
   adminSocialCardsBelegeSchema,
-  loadReadOnly,
+  loadKalender,
   loadWortZwilling,
   getLemmataIndex,
   fetchBelege,
@@ -31,7 +31,7 @@ export function createAdminSocialCardsRouter({
   router.get('/admin/social-cards/tagesdata', adminLimiter, requireAuth, validate(adminSocialCardsTagesdataSchema, 'query'), (req, res) => {
     const { datum } = req.query
     try {
-      const kalender = loadReadOnly('kalender.json')
+      const kalender = loadKalender()
       const { byId } = getLemmataIndex()
       const wortzwilling = loadWortZwilling()
       const ids = kalender[datum] ?? []

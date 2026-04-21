@@ -4,7 +4,7 @@ import { readFileSync } from 'fs'
 import { fetchBelege, belegeVerfuegbar } from '../belege.js'
 import { fetchRelation } from '../wortprofil.js'
 import { fetchWiktionary } from '../wiktionary.js'
-import { loadReadOnly, loadZeitreise, loadWortZwilling, loadZeitenwende, recordStat, getLemmataIndex, cacheGet, cacheSet, DATA } from '../store.js'
+import { loadKalender, loadZeitreise, loadWortZwilling, loadZeitenwende, recordStat, getLemmataIndex, cacheGet, cacheSet, DATA } from '../store.js'
 import { belegeLimiter, statsLimiter } from '../middleware/rateLimiter.js'
 import { auth } from '../auth/index.js'
 import { serverError } from '../middleware/auth.js'
@@ -33,7 +33,7 @@ router.get('/api/v1/heute', (req, res) => {
     const today     = todayDatum()
     const datum     = req.query.datum || today.mmdd
     const year      = today.year
-    const kalender       = loadReadOnly('kalender.json')
+    const kalender       = loadKalender()
     const { byId }       = getLemmataIndex()
 
     const ids = kalender[datum]
@@ -50,7 +50,7 @@ router.get('/api/v1/heute', (req, res) => {
 router.get('/api/v1/zeitreise', (req, res) => {
   try {
     const datum     = req.query.datum || todayDatum().mmdd
-    const zeitreise = loadReadOnly('zeitreise.json') ?? {}
+    const zeitreise = loadZeitreise() ?? {}
     const entry     = zeitreise[datum]
     if (!entry) return res.status(404).json({ error: `Kein Zeitreise-Eintrag für ${datum}` })
     // pos aus lemmata.json ergänzen, falls vorhanden
@@ -66,7 +66,7 @@ router.get('/api/v1/zeitreise', (req, res) => {
 router.get('/api/v1/wortzwilling', (req, res) => {
   try {
     const datum = req.query.datum || todayDatum().mmdd
-    const wz    = loadReadOnly('wortzwilling.json') ?? {}
+    const wz    = loadWortZwilling() ?? {}
     const entry = wz[datum]
     if (!entry) return res.status(404).json({ error: `Kein Wort-Zwilling-Eintrag für ${datum}` })
     // Scores nicht ans Frontend senden (spielrelevante Antworten sind zuordnung-Felder)
@@ -96,7 +96,10 @@ router.get('/api/v1/zeitenwende', async (req, res) => {
     }
 
     res.json({ ...entry, ipa: wikt.ipa || '', definitionen: wikt.definitionen || [] })
-  } catch (err) { serverError(res, err) }
+  } catch (err) {
+    logger.error({ err }, 'Zeitenwende-Abruf fehlgeschlagen')
+    serverError(res, err)
+  }
 })
 
 /**

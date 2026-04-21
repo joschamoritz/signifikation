@@ -25,7 +25,7 @@ export default function Home({
   zrPlayed = null, onPlayZeitreise, onViewZeitreise,
   wortzwilling = null, wortzwillingError = false, onRetryWortzwilling,
   wzPlayed = null, onPlayWortzwilling, onViewWortzwilling,
-  zeitenwende = null, zeitenwendeError = false, onRetryZeitenwende,
+  zeitenwende = null, zeitenwendeError = false, zeitenwendeMissing = false, onRetryZeitenwende,
   zwPlayed = null, onPlayZeitenwende, onViewZeitenwende,
   gesamtausgabe = false,
   onUnlockGesamtausgabe = () => {},
@@ -396,7 +396,7 @@ export default function Home({
 
                 <div className="test-entry-footer">
                   <span className={`test-status${zwPlayed ? ' test-status--done' : ''}`}>
-                    {!gesamtausgabe ? 'Teil der Gesamtausgabe.' : zeitenwendeError ? '' : !zeitenwende ? 'Heute nicht verfügbar.' : zwPlayed ? 'Gespielt.' : 'Noch nicht gespielt.'}
+                    {!gesamtausgabe ? 'Teil der Gesamtausgabe.' : zeitenwendeError ? 'Der Eintrag konnte gerade nicht geladen werden.' : zeitenwendeMissing || !zeitenwende ? 'Heute nicht verfügbar.' : zwPlayed ? 'Gespielt.' : 'Noch nicht gespielt.'}
                   </span>
                   {!gesamtausgabe ? (
                     <button className="test-cta test-cta--locked" type="button" onClick={onUnlockGesamtausgabe} aria-label="Gesamtausgabe freischalten">

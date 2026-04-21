@@ -193,3 +193,100 @@ export function getCachedStatsWindow(cache, stats, days) {
   cache.ts = Date.now()
   return result
 }
+
+export function createStatsStore({ db, stmts, loadReadOnly }) {
+  const statsWindowCache = createStatsWindowCache(30 * 1000)
+
+  const replaceStats = db.transaction((obj) => {
+    stmts.deleteAllStats.run()
+    for (const [datum, games] of Object.entries(obj)) {
+      for (const [spiel, value] of Object.entries(games)) {
+        stmts.upsertStats.run({
+          datum,
+          spiel,
+          user_id: value.user_id ?? '',
+          plays: value.plays ?? 0,
+          scoreSum: value.scoreSum ?? 0,
+          maxSum: value.maxSum ?? 0,
+          dist: JSON.stringify(value.dist ?? []),
+        })
+      }
+    }
+    invalidateStatsWindowCache(statsWindowCache)
+  })
+
+  const replaceStatsRows = db.transaction((rows) => {
+    stmts.deleteAllStats.run()
+    for (const row of rows) {
+      stmts.upsertStats.run(sanitizeStatsRow(row))
+    }
+    invalidateStatsWindowCache(statsWindowCache)
+  })
+
+  const recordStatTx = db.transaction(({ datum, spiel, userId, score, max }) => {
+    const safeUserId = String(userId || '')
+    const existing = stmts.getStatsByKey.get(datum, spiel, safeUserId)
+
+    const dist = existing ? normalizeDistribution(existing.dist || '[]') : createEmptyDistribution()
+    const normalized = getNormalizedScoreBucket(score, max)
+    dist[normalized] += 1
+
+    stmts.upsertStats.run({
+      datum,
+      spiel,
+      user_id: safeUserId,
+      plays: (existing?.plays || 0) + 1,
+      scoreSum: (existing?.scoreSum || 0) + Math.max(0, Number(score || 0)),
+      maxSum: (existing?.maxSum || 0) + Number(max || 0),
+      dist: JSON.stringify(dist),
+    })
+
+    invalidateStatsWindowCache(statsWindowCache)
+  })
+
+  function loadStats() {
+    return aggregateStatsRows(stmts.getStatsAggregated.all())
+  }
+
+  function loadStatsRows() {
+    return mapStatsRows(stmts.getAllStats.all())
+  }
+
+  function recordStat({ datum, spiel, userId = '', score = 0, max = 0 }) {
+    recordStatTx({ datum, spiel, userId, score, max })
+  }
+
+  function getStatsWindow(days) {
+    const stats = loadReadOnly('stats.json')
+    return getCachedStatsWindow(statsWindowCache, stats, days)
+  }
+
+  function getStatsTimeline(days) {
+    const stats = loadReadOnly('stats.json')
+    return buildStatsTimeline(stats, days)
+  }
+
+  return {
+    loadStats,
+    loadStatsRows,
+    replaceStats,
+    replaceStatsRows,
+    recordStat,
+    getStatsWindow,
+    getStatsTimeline,
+    invalidateWindowCache() {
+      invalidateStatsWindowCache(statsWindowCache)
+    },
+  }
+}
+
+export function buildStatsTimeline(stats, days) {
+  const orderedDates = sortMmddKeys(Object.keys(stats || {}))
+  return orderedDates.slice(-days).map((datum) => ({ datum, ...(stats[datum] || {}) }))
+}
+
+function invalidateStatsWindowCache(cache) {
+  cache.key = null
+  cache.value = null
+  cache.ts = 0
+}

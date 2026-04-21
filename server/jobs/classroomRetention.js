@@ -45,7 +45,7 @@ function delayToNext3am(now = new Date()) {
   return next.getTime() - now.getTime()
 }
 
-export function startClassroomRetentionJob(intervalMs = DEFAULT_INTERVAL_MS, runAt3am = true) {
+export function startClassroomRetentionJob(intervalMs = DEFAULT_INTERVAL_MS, runAt3am = true, keepProcessAlive = false) {
   const run = () => {
     try {
       runClassroomRetention()
@@ -56,7 +56,7 @@ export function startClassroomRetentionJob(intervalMs = DEFAULT_INTERVAL_MS, run
 
   if (!runAt3am) {
     const timer = setInterval(run, intervalMs)
-    timer.unref()
+    if (!keepProcessAlive) timer.unref()
     logger.info({ intervalMs }, 'Classroom-Retention Job gestartet')
     return timer
   }
@@ -66,7 +66,7 @@ export function startClassroomRetentionJob(intervalMs = DEFAULT_INTERVAL_MS, run
 
   const scheduleDaily = () => {
     dailyTimer = setInterval(run, 24 * 60 * 60 * 1000)
-    dailyTimer.unref()
+    if (!keepProcessAlive) dailyTimer.unref()
   }
 
   const firstDelay = delayToNext3am()
@@ -75,7 +75,7 @@ export function startClassroomRetentionJob(intervalMs = DEFAULT_INTERVAL_MS, run
     run()
     scheduleDaily()
   }, firstDelay)
-  firstRunTimer.unref()
+  if (!keepProcessAlive) firstRunTimer.unref()
 
   logger.info({ cron: '0 3 * * *', firstRunInMs: firstDelay }, 'Classroom-Retention Job geplant')
 

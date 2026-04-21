@@ -4,7 +4,7 @@
  * Hält die letzten KEEP_COUNT Gists (Standard: 5).
  * Wird täglich via Railway Cron aufgerufen: node server/backup.js
  */
-import { loadReadOnly } from './store.js'
+import { loadReadOnly, loadStatsRows } from './store.js'
 import logger from './logger.js'
 
 const GIST_TOKEN  = process.env.GITHUB_GIST_TOKEN
@@ -40,7 +40,7 @@ export async function runBackup() {
   }
 
   try {
-    bundle.files['stats-rows.json'] = loadReadOnly('stats-rows.json')
+    bundle.files['stats-rows.json'] = loadStatsRows()
   } catch {
     bundle.files['stats-rows.json'] = null
   }
