@@ -49,6 +49,15 @@ planning/
 cookies.txt
 test-results/
 
+# Interne Doku / Arbeitsdateien (nur lokal)
+CLAUDE.md
+ADMIN_API.md
+DESIGN.md
+OPS.md
+PERFORMANCE.md
+wortprofil/CLAUDE.md
+wortprofil/KORPORA.md
+
 server/check-diacollo-corpora.mjs
 
 # Wortprofil-Pipeline (Korpora, DBs, venv – zu groß für Git)
