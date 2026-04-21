@@ -34,5 +34,5 @@ jobs:
             git checkout main
             git pull --ff-only origin main
             npm ci
-            npm run verify
+            npm run build
             sudo -u signifikation bash -c 'export NVM_DIR="/opt/nvm" && source "$NVM_DIR/nvm.sh" && pm2 startOrRestart ecosystem.config.cjs'
