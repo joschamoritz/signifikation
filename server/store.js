@@ -25,7 +25,6 @@ import logger from './logger.js'
 import db from './db.js'
 import { createLemmataIndexStore, lemmaToRow as lemmaToRowInternal, rowToLemma } from './store-lemmata.js'
 import { createReadOnlyCache } from './store-readonly-cache.js'
-import { createLoaders, createSavers } from './store-readers.js'
 import { createBelegeCache } from './store-belege-cache.js'
 import {
   createDailyContentStore,
@@ -156,25 +155,25 @@ const _dailyContentStore = createDailyContentStore({ db, stmts })
 
 // ── Dispatcher-Map ────────────────────────────────────────────────
 
-const LOADERS = createLoaders({
-  loadLemmata: _loadLemmata,
-  loadKalender: _dailyContentStore.loadKalender,
-  loadZeitreise: _dailyContentStore.loadZeitreise,
-  loadWortzwilling: _dailyContentStore.loadWortzwilling,
-  loadZeitenwende: _dailyContentStore.loadZeitenwende,
-  loadStats: _statsStore.loadStats,
-  loadStatsRows: _statsStore.loadStatsRows,
-})
+const LOADERS = {
+  'lemmata.json': _loadLemmata,
+  'kalender.json': _dailyContentStore.loadKalender,
+  'zeitreise.json': _dailyContentStore.loadZeitreise,
+  'wortzwilling.json': _dailyContentStore.loadWortzwilling,
+  'zeitenwende.json': _dailyContentStore.loadZeitenwende,
+  'stats.json': _statsStore.loadStats,
+  'stats-rows.json': _statsStore.loadStatsRows,
+}
 
-const SAVERS = createSavers({
-  saveLemmata: _saveLemmata,
-  replaceKalender: _dailyContentStore.replaceKalender,
-  replaceZeitreise: _dailyContentStore.replaceZeitreise,
-  replaceWortzwilling: _dailyContentStore.replaceWortzwilling,
-  replaceZeitenwende: _dailyContentStore.replaceZeitenwende,
-  replaceStats: _statsStore.replaceStats,
-  replaceStatsRows: _statsStore.replaceStatsRows,
-})
+const SAVERS = {
+  'lemmata.json': _saveLemmata,
+  'kalender.json': _dailyContentStore.replaceKalender,
+  'zeitreise.json': _dailyContentStore.replaceZeitreise,
+  'wortzwilling.json': _dailyContentStore.replaceWortzwilling,
+  'zeitenwende.json': _dailyContentStore.replaceZeitenwende,
+  'stats.json': _statsStore.replaceStats,
+  'stats-rows.json': (rows) => _statsStore.replaceStatsRows(Array.isArray(rows) ? rows : []),
+}
 
 // ── Öffentliche API ───────────────────────────────────────────────
 

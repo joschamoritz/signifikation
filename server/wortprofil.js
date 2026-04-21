@@ -27,9 +27,9 @@
 
 import Database from 'better-sqlite3'
 import { fileURLToPath } from 'url'
-import { dirname, join, resolve } from 'path'
+import { dirname, resolve } from 'path'
 import logger from './logger.js'
-import { getCachedQuery, invalidateCachePattern } from './query-cache.js'
+import { getCachedQuery } from './query-cache.js'
 import { SQLitePool } from './db-pool.js'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))

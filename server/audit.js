@@ -32,14 +32,6 @@ const stmts = {
     ORDER BY timestamp DESC, id DESC
     LIMIT ?
   `),
-  byResource: db.prepare(`
-    SELECT timestamp, action, resource, resource_id AS resourceId, changes_json,
-           admin_key_last4 AS adminKeyLast4, ip, status, error
-    FROM audit_log
-    WHERE resource = ?
-    ORDER BY timestamp DESC, id DESC
-    LIMIT ?
-  `),
 }
 
 function toEntryHash(entry) {
@@ -149,7 +141,7 @@ function importLegacyAuditLog() {
 
 importLegacyAuditLog()
 
-export function auditLog(entry) {
+function auditLog(entry) {
   const sanitizedEntry = {
     timestamp: new Date().toISOString(),
     action: entry.action,
@@ -189,8 +181,4 @@ export function auditDelete(resource, resourceId, data, { adminKey, ip }) {
 
 export function getAuditLog(limit = 100) {
   return stmts.latest.all(limit).map(parseRow)
-}
-
-export function getAuditLogByResource(resource, limit = 50) {
-  return stmts.byResource.all(resource, limit).map(parseRow)
 }

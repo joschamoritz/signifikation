@@ -1,5 +1,5 @@
-import { useState, useRef, useEffect, useCallback } from 'react'
-import { getMedal, getZRMedal, shuffle } from '../utils/gameLogic'
+import { useState, useRef, useEffect } from 'react'
+import { getZRMedal, shuffle } from '../utils/gameLogic'
 import { API } from '../config'
 import { lsGet, lsParse } from '../utils/storage'
 import BelegeSatz from './BelegeSatz'

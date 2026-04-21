@@ -1,14 +1,27 @@
 import { createHmac, timingSafeEqual } from 'crypto'
+import logger from '../logger.js'
 
 const TEACHER_SOCKET_TOKEN_TTL_MS = 60 * 1000
-const TEACHER_SOCKET_SECRET = (
+const IS_PROD = process.env.NODE_ENV === 'production'
+
+const configuredSecret = (
   process.env.CLASSROOM_SOCKET_SECRET
   || process.env.CLASSROOM_JOIN_SECRET
   || process.env.BETTER_AUTH_SECRET
   || process.env.AUTH_SECRET
   || process.env.ADMIN_KEY
-  || 'dev-classroom-socket-secret'
+  || ''
 ).trim()
+
+if (IS_PROD && !configuredSecret) {
+  throw new Error('Teacher-Socket-Secret ist nicht gesetzt (CLASSROOM_SOCKET_SECRET/CLASSROOM_JOIN_SECRET/BETTER_AUTH_SECRET/AUTH_SECRET/ADMIN_KEY)')
+}
+
+if (!IS_PROD && !configuredSecret) {
+  logger.warn('Teacher-Socket-Secret nicht gesetzt – Dev-Fallback aktiv (nur lokal!)')
+}
+
+const TEACHER_SOCKET_SECRET = configuredSecret || 'dev-classroom-socket-secret'
 
 function sign(payload) {
   return createHmac('sha256', TEACHER_SOCKET_SECRET).update(payload).digest('hex')

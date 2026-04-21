@@ -1,9 +1,21 @@
 import { createHmac, randomUUID } from 'crypto'
 import db from './db.js'
+import logger from './logger.js'
 import { generateJoinCode, normalizeJoinCode } from './classroom/join-codes.js'
 
 const TIMEZONE = process.env.TIMEZONE || 'Europe/Berlin'
-const JOIN_SECRET = (process.env.CLASSROOM_JOIN_SECRET || process.env.ADMIN_KEY || 'dev-classroom-secret').trim()
+const IS_PROD = process.env.NODE_ENV === 'production'
+const configuredJoinSecret = (process.env.CLASSROOM_JOIN_SECRET || process.env.ADMIN_KEY || '').trim()
+
+if (IS_PROD && !configuredJoinSecret) {
+  throw new Error('Classroom-Join-Secret ist nicht gesetzt (CLASSROOM_JOIN_SECRET/ADMIN_KEY)')
+}
+
+if (!IS_PROD && !configuredJoinSecret) {
+  logger.warn('Classroom-Join-Secret nicht gesetzt – Dev-Fallback aktiv (nur lokal!)')
+}
+
+const JOIN_SECRET = configuredJoinSecret || 'dev-classroom-secret'
 const RETENTION_MS = 90 * 24 * 60 * 60 * 1000
 const CONNECTED_WINDOW_MS = 45 * 1000
 const SESSION_MAX_PARTICIPANTS = 50
