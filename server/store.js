@@ -202,6 +202,36 @@ export function save(file, data) {
   return Promise.resolve()
 }
 
+export function saveDailyContentMaps({ kalender, zeitreise, wortzwilling, zeitenwende }) {
+  const files = {
+    'kalender.json': kalender,
+    'zeitreise.json': zeitreise,
+    'wortzwilling.json': wortzwilling,
+    'zeitenwende.json': zeitenwende,
+  }
+
+  for (const [file, data] of Object.entries(files)) {
+    const saver = SAVERS[file]
+    if (!saver) throw new Error(`Unbekannte Datei: ${file}`)
+    saver(data)
+    _readOnlyCache.invalidate(file)
+  }
+
+  return Promise.resolve()
+}
+
+export function loadBackupFiles() {
+  return {
+    'lemmata.json': loadReadOnly('lemmata.json'),
+    'kalender.json': loadKalender(),
+    'zeitreise.json': loadZeitreise(),
+    'wortzwilling.json': loadWortZwilling(),
+    'zeitenwende.json': loadZeitenwende(),
+    'stats.json': loadStats(),
+    'stats-rows.json': loadStatsRows(),
+  }
+}
+
 export function replaceAllAdminData(bundle) {
   _replaceAllAdminDataTx(bundle)
   _readOnlyCache.invalidateAll()

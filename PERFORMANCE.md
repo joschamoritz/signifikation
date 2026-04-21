@@ -50,3 +50,62 @@ Letzte verifizierte lokale Messbasis in dieser Arbeitsphase:
 1. Browser-basierte Messung gegen laufende Instanz dokumentieren
 2. Bootstrap-Request-Muster weiter reduzieren
 3. Kritischen App-Shell-Pfad weiter von seltenen Flows trennen
+
+## Browser-CWV-Messung
+
+Ziel:
+
+- echte Browser-Messwerte fuer `LCP`, `INP` und `CLS` gegen eine laufende Instanz festhalten
+- Build-/Bundle-Befunde aus dieser Datei um Runtime-Werte ergaenzen
+
+Empfohlene Messumgebung:
+
+- Chrome oder Edge im Inkognito-Fenster
+- DevTools geoeffnet
+- Network-Throttling: `Fast 4G`
+- CPU-Throttling: `4x slowdown`
+- Browser-Cache zwischen Messreihen leeren
+- Messung mindestens fuer:
+  - `/`
+  - ersten App-Start mit Tagesinhalt
+  - einen Wechsel in einen Spielmodus
+
+Empfohlenes Vorgehen:
+
+1. Produktions- oder Staging-URL aufrufen
+2. DevTools `Performance` oder `Lighthouse` starten
+3. Startseite einmal als Cold-Load messen
+4. Danach eine zweite Warm-Load-Messung aufnehmen
+5. Werte fuer `LCP`, `INP`, `CLS`, `TTFB` und groesste Requests notieren
+6. Auffaellige Requests oder Layout-Shifts kurz beschreiben
+
+Messprotokoll-Vorlage:
+
+```text
+Datum:
+Umgebung:
+URL:
+Profil: Cold / Warm
+Netzwerk: Fast 4G
+CPU: 4x slowdown
+
+LCP:
+INP:
+CLS:
+TTFB:
+
+Auffaellige Requests:
+-
+
+Auffaellige Layout-Shifts:
+-
+
+Kurzfazit:
+-
+```
+
+Interpretation fuer dieses Repo:
+
+- Hohe `LCP`-Werte deuten hier zuerst auf App-Shell, Fonts, CSS oder Start-Requests hin
+- Hohe `INP`-Werte deuten eher auf Start-Orchestrierung, Tab-Wechsel oder Classroom-/Home-Interaktionen hin
+- `CLS` sollte im Woerterbuch-Layout vor allem durch Bilder, Fonts oder spaet einlaufende Tagesdaten beobachtet werden

@@ -128,9 +128,18 @@ date: 2026-04-20
 - Tagescontent-CRUD in `server/store-daily-content.js` als eigenes Store-Modul gekapselt; `server/store.js` delegiert Kalender-/Zeitreise-/Wortzwilling-/Zeitenwende-Operationen jetzt dorthin
 - Admin-Aufrufer (`admin-calendar`, `admin-ops`, `admin-social-cards`) auf explizite Store-Helfer wie `loadKalender()`, `loadDailyContentMaps()` und `loadMutableDailyContentMaps()` umgestellt statt verstreuter direkter Dateinamen-Zugriffe
 - `server/routes/public.js` und `server/backup.js` ebenfalls auf explizitere Store-Helfer umgestellt (`loadKalender()`, `loadZeitreise()`, `loadWortZwilling()`, `loadStatsRows()`)
+- wiederholte Multi-Saves fuer Daily-Content in `server/store.js` als `saveDailyContentMaps()` gebuendelt, damit Admin-Routen nicht mehr vier Dateinamen parallel koordinieren muessen
+- `/admin/tag` in `server/routes/admin-calendar.js` ebenfalls auf den gebuendelten Daily-Content-Speicherpfad umgestellt statt Kalender/Zeitreise/Wortzwilling/Zeitenwende nacheinander einzeln zu persistieren
 - Klassenraum-Hintergrundarbeit in `server/workers/classroomWorker.js` gekapselt und als separater PM2-Prozess startbar gemacht
 - PM2-Beispielkonfiguration in `ecosystem.config.cjs` und nginx-Beispiel in `ops/nginx-signifikation.conf.example` angelegt
 - Deploy-Workflow auf `pm2 startOrRestart ecosystem.config.cjs` umgestellt, damit der neue Worker nicht von manuell vorab angelegten PM2-Prozessen abhaengt
+- nginx-Beispiel auf produktionsnaehere TLS-/Redirect-Konfiguration mit ACME-Challenge, HTTPS-Canonical-Redirect und sauberen Proxy-/Socket-Headern erweitert
+- `OPS.md` um den jetzt repo-nah dokumentierten HTTPS-/TLS-/Proxy-Stand ergaenzt und den offenen Ops-Restpunkt auf echte Browser-CWV-Messung fokussiert
+- verbleibende Backup-/Export-Aufraeumung als naechster kleiner Audit-Rest identifiziert, damit auch dort keine verstreuten Dateilisten und generischen `loadReadOnly()`-Schleifen mehr im Job-/Routencode bleiben
+- Backup-/Export-Pfad ueber `loadBackupFiles()` in `server/store.js` gebuendelt, damit `server/backup.js` und `server/routes/admin-backup.js` denselben expliziten Export-Snapshot nutzen
+- letzter direkter Kalender-Save im Bulk-Import auf den konsistenten Daily-Content-Helfer umgestellt; `admin-calendar` nutzt damit fuer die Daily-Maps keinen isolierten `save('kalender.json', ...)`-Pfad mehr
+- Browser-CWV-Messung repo-nah in `PERFORMANCE.md` dokumentiert: Messumgebung, Schrittfolge, Protokollvorlage und repo-spezifische Interpretation fuer `LCP`/`INP`/`CLS`
+- `OPS.md` um einen wiederkehrenden Performance-/CWV-Ops-Check ergaenzt, damit die noch offene Audit-Messung kuenftig als klarer Betriebsablauf nach groesseren Frontend-Aenderungen nachgezogen werden kann
 
 ## Verifikation
 
@@ -182,6 +191,7 @@ date: 2026-04-20
 - `server/jobs/classroomRetention.js`
 - `server/workers/classroomWorker.js`
 - `server/store.js`
+- `ops/nginx-signifikation.conf.example`
 - `server/store-stats.js`
 - `server/store-daily-content.js`
 - `server/store-lemmata.js`

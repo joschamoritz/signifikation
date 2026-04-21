@@ -5,8 +5,7 @@ export function createAdminBackupRouter({
   requireAuth,
   validate,
   adminBackupRestoreSchema,
-  loadReadOnly,
-  loadStatsRows,
+  loadBackupFiles,
   replaceAllAdminData,
   sanitizeBackupBundle,
   auditUpdate,
@@ -25,17 +24,8 @@ export function createAdminBackupRouter({
 
   router.get('/admin/backup', adminLimiter, requireAuth, (req, res) => {
     try {
-      const files = ['kalender.json', 'lemmata.json', 'zeitreise.json', 'wortzwilling.json', 'zeitenwende.json', 'stats.json', 'stats-rows.json']
-      const bundle = {}
-      for (const f of files) {
-        try {
-          bundle[f] = f === 'stats-rows.json' ? loadStatsRows() : loadReadOnly(f)
-        } catch {
-          bundle[f] = null
-        }
-      }
       res.setHeader('Content-Disposition', `attachment; filename="signifikation-backup-${new Date().toISOString().slice(0, 10)}.json"`)
-      res.json({ exportedAt: new Date().toISOString(), files: bundle })
+      res.json({ exportedAt: new Date().toISOString(), files: loadBackupFiles() })
     } catch (err) { serverError(res, err) }
   })
 

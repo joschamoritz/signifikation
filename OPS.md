@@ -43,6 +43,7 @@ Knappe, repo-nahe Referenz fuer den aktuellen Produktionsbetrieb von Signifikati
 - Die PM2-Beispielkonfiguration startet `signifikation` und optional `signifikation-worker` getrennt.
 - PM2-/nginx-Konfigurationen sind repo-nah als Beispiel dokumentiert, bleiben aber umgebungsspezifisch.
 - Vollstaendige Browser-basierte CWV-Messungen fehlen noch.
+- Das nginx-Beispiel deckt jetzt HTTP->HTTPS-Redirect, ACME-Challenge, TLS-Zertifikatspfade, Proxy-Header und Socket-Upgrades ab.
 
 ## Health und Beobachtbarkeit
 
@@ -68,6 +69,16 @@ Knappe, repo-nahe Referenz fuer den aktuellen Produktionsbetrieb von Signifikati
 
 ## Noch offene Betriebsarbeiten aus dem Audit
 
-1. Browser-basierte CWV-Messung und Baseline festhalten
+1. Browser-basierte CWV-Messung gegen laufende Instanz ausfuehren und Werte eintragen
 2. Entscheiden, ob der Classroom-Worker in Produktion dauerhaft getrennt laufen soll oder nur optional
-3. nginx-Routing um produktive TLS-/Redirect-Regeln ergänzen
+
+## Wiederkehrender Ops-Check
+
+- Nach groesseren Frontend-, PWA- oder Bootstrap-Aenderungen eine Browser-CWV-Messung fahren
+- Messvorgehen und Protokollvorlage stehen in `PERFORMANCE.md`
+- Mindestens festhalten:
+  - `LCP`
+  - `INP`
+  - `CLS`
+  - groesste Requests
+  - auffaellige Layout-Shifts

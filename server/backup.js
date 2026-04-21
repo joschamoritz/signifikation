@@ -4,14 +4,12 @@
  * Hält die letzten KEEP_COUNT Gists (Standard: 5).
  * Wird täglich via Railway Cron aufgerufen: node server/backup.js
  */
-import { loadReadOnly, loadStatsRows } from './store.js'
+import { loadBackupFiles } from './store.js'
 import logger from './logger.js'
 
 const GIST_TOKEN  = process.env.GITHUB_GIST_TOKEN
 const KEEP_COUNT  = parseInt(process.env.BACKUP_KEEP ?? '5')
 const GIST_DESC   = 'Signifikation Backup'
-const FILES       = ['kalender.json', 'lemmata.json', 'zeitreise.json', 'wortzwilling.json', 'zeitenwende.json', 'stats.json']
-
 async function gistFetch(path, options = {}) {
   const res = await fetch(`https://api.github.com/gists${path}`, {
     ...options,
@@ -34,16 +32,7 @@ export async function runBackup() {
   if (!GIST_TOKEN) throw new Error('GITHUB_GIST_TOKEN nicht gesetzt')
 
   // Bundle bauen
-  const bundle = { exportedAt: new Date().toISOString(), files: {} }
-  for (const f of FILES) {
-    try { bundle.files[f] = loadReadOnly(f) } catch { bundle.files[f] = null }
-  }
-
-  try {
-    bundle.files['stats-rows.json'] = loadStatsRows()
-  } catch {
-    bundle.files['stats-rows.json'] = null
-  }
+  const bundle = { exportedAt: new Date().toISOString(), files: loadBackupFiles() }
 
   const date    = new Date().toISOString().slice(0, 10)
   const content = JSON.stringify(bundle, null, 2)

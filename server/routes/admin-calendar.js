@@ -19,6 +19,7 @@ export function createAdminCalendarRouter({
   loadDailyContentMaps,
   loadMutableDailyContentMaps,
   save,
+  saveDailyContentMaps,
   loadZeitreise,
   loadWortZwilling,
   loadZeitenwende,
@@ -80,10 +81,7 @@ export function createAdminCalendarRouter({
       }
 
       if (removed.length > 0) {
-        await save('kalender.json', kalender)
-        await save('zeitreise.json', zeitreise)
-        await save('wortzwilling.json', wortzwilling)
-        await save('zeitenwende.json', zeitenwende)
+        await saveDailyContentMaps({ kalender, zeitreise, wortzwilling, zeitenwende })
       }
 
       res.json({ ok: true, removed, skipped, removedCount: removed.length, skippedCount: skipped.length })
@@ -127,7 +125,12 @@ export function createAdminCalendarRouter({
         })
       }
 
-      await save('kalender.json', kalender)
+      await saveDailyContentMaps({
+        kalender,
+        zeitreise: loadZeitreise(),
+        wortzwilling: loadWortZwilling(),
+        zeitenwende: loadZeitenwende(),
+      })
 
       res.json({
         ok: true,
@@ -342,7 +345,6 @@ export function createAdminCalendarRouter({
       }
 
       kalender[datum] = ids
-      await save('kalender.json', kalender)
 
       let zeitreiseOk = null
       delete zeitreise[datum]
@@ -363,7 +365,6 @@ export function createAdminCalendarRouter({
           logger.error({ err }, 'Zeitreise-Fehler')
         }
       }
-      await save('zeitreise.json', zeitreise)
 
       let zwillingOk = null
       delete wortzwilling[datum]
@@ -383,7 +384,6 @@ export function createAdminCalendarRouter({
           logger.error({ err }, 'Wort-Zwilling-Fehler')
         }
       }
-      await save('wortzwilling.json', wortzwilling)
 
       let zeitenwendeOk = null
       delete zeitenwende[datum]
@@ -404,7 +404,7 @@ export function createAdminCalendarRouter({
           logger.error({ err }, 'Zeitenwende-Fehler')
         }
       }
-      await save('zeitenwende.json', zeitenwende)
+      await saveDailyContentMaps({ kalender, zeitreise, wortzwilling, zeitenwende })
 
       logger.info(`Eintrag gespeichert: ${datum} → ${ids.join(', ')}`)
 
@@ -512,10 +512,7 @@ export function createAdminCalendarRouter({
       delete wortzwilling[datum]
       delete zeitenwende[datum]
 
-      await save('kalender.json', kalender)
-      await save('zeitreise.json', zeitreise)
-      await save('wortzwilling.json', wortzwilling)
-      await save('zeitenwende.json', zeitenwende)
+      await saveDailyContentMaps({ kalender, zeitreise, wortzwilling, zeitenwende })
 
       auditDelete('kalender', datum, deletedData, {
         adminKey: req.adminSessionId || 'unknown',
