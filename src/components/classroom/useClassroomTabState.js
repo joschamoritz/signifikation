@@ -57,14 +57,22 @@ export function useClassroomTabState({
   ])
 
   return {
-    entriesRef,
     isTeacher,
     loadingAccount,
     teacherError,
     rasterStatus,
-    api: API,
-    teacherState,
-    studentState,
-    snapNav,
+    entriesProps: {
+      entriesRef,
+      handleSnapKeyDown: snapNav.handleSnapKeyDown,
+      isTeacher,
+      teacherState,
+      studentState,
+      api: API,
+    },
+    snapNavProps: {
+      isTeacher,
+      activeCard: snapNav.activeCard,
+      onSelect: snapNav.scrollToCard,
+    },
   }
 }

@@ -38,3 +38,31 @@ export function buildLemmataIndex(list) {
     byLemma: new Map(list.map((lemma) => [lemma.lemma, lemma])),
   }
 }
+
+export function createLemmataIndexStore(loadLemmata, logger) {
+  let byId = null
+  let byLemma = null
+
+  return {
+    get() {
+      if (byId) return { byId, byLemma }
+      try {
+        const list = loadLemmata()
+        if (!Array.isArray(list)) throw new Error('lemmata ist kein Array')
+        const index = buildLemmataIndex(list)
+        byId = index.byId
+        byLemma = index.byLemma
+      } catch (err) {
+        logger.error({ err }, 'Lemmata-Index konnte nicht aufgebaut werden – leerer Fallback')
+        byId = new Map()
+        byLemma = new Map()
+      }
+      return { byId, byLemma }
+    },
+
+    invalidate() {
+      byId = null
+      byLemma = null
+    },
+  }
+}

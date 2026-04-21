@@ -23,8 +23,9 @@ import { fileURLToPath } from 'url'
 import { dirname, join } from 'path'
 import logger from './logger.js'
 import db from './db.js'
-import { buildLemmataIndex, lemmaToRow as lemmaToRowInternal, rowToLemma } from './store-lemmata.js'
+import { createLemmataIndexStore, lemmaToRow as lemmaToRowInternal, rowToLemma } from './store-lemmata.js'
 import { createReadOnlyCache } from './store-readonly-cache.js'
+import { createLoaders, createSavers } from './store-readers.js'
 import { createBelegeCache } from './store-belege-cache.js'
 import {
   getKalenderEntries,
@@ -140,8 +141,7 @@ const _replaceLemmata = db.transaction(list => {
 
 function _saveLemmata(arr) {
   _replaceLemmata(arr)
-  _lemmataById    = null
-  _lemmataByLemma = null
+  _lemmataIndexStore.invalidate()
 }
 
 // ── Kalender ──────────────────────────────────────────────────────
@@ -255,25 +255,25 @@ export function recordStat({ datum, spiel, userId = '', score = 0, max = 0 }) {
 
 // ── Dispatcher-Map ────────────────────────────────────────────────
 
-const LOADERS = {
-  'lemmata.json':      _loadLemmata,
-  'kalender.json':     _loadKalender,
-  'zeitreise.json':    _loadZeitreise,
-  'wortzwilling.json': _loadWortzwilling,
-  'zeitenwende.json':  _loadZeitenwende,
-  'stats.json':        _loadStats,
-  'stats-rows.json':   _loadStatsRows,
-}
+const LOADERS = createLoaders({
+  loadLemmata: _loadLemmata,
+  loadKalender: _loadKalender,
+  loadZeitreise: _loadZeitreise,
+  loadWortzwilling: _loadWortzwilling,
+  loadZeitenwende: _loadZeitenwende,
+  loadStats: _loadStats,
+  loadStatsRows: _loadStatsRows,
+})
 
-const SAVERS = {
-  'lemmata.json':      _saveLemmata,
-  'kalender.json':     obj => _replaceKalender(obj),
-  'zeitreise.json':    obj => _replaceZeitreise(obj),
-  'wortzwilling.json': obj => _replaceWortzwilling(obj),
-  'zeitenwende.json':  obj => _replaceZeitenwende(obj),
-  'stats.json':        obj => _replaceStats(obj),
-  'stats-rows.json':   rows => _replaceStatsRows(Array.isArray(rows) ? rows : []),
-}
+const SAVERS = createSavers({
+  saveLemmata: _saveLemmata,
+  replaceKalender: _replaceKalender,
+  replaceZeitreise: _replaceZeitreise,
+  replaceWortzwilling: _replaceWortzwilling,
+  replaceZeitenwende: _replaceZeitenwende,
+  replaceStats: _replaceStats,
+  replaceStatsRows: _replaceStatsRows,
+})
 
 // ── In-Memory-Cache für loadReadOnly ──────────────────────────────
 
@@ -282,10 +282,7 @@ const _readOnlyCache = createReadOnlyCache({
   ttlMs: READONLY_TTL_MS,
   logger,
   onInvalidate(file) {
-    if (!file || file === 'lemmata.json') {
-      _lemmataById = null
-      _lemmataByLemma = null
-    }
+    if (!file || file === 'lemmata.json') _lemmataIndexStore.invalidate()
   },
 })
 _readOnlyCache.startCleanup(5 * 60 * 1000)
@@ -333,34 +330,16 @@ export function loadZeitenwende() { return loadReadOnly('zeitenwende.json') }
 export function loadStats() { return loadReadOnly('stats.json') }
 export function loadStatsRows() { return loadReadOnly('stats-rows.json') }
 
-let _statsWindowCache = {
-  ...createStatsWindowCache(30 * 1000),
-}
+const _lemmataIndexStore = createLemmataIndexStore(_loadLemmata, logger)
+const _statsWindowCache = createStatsWindowCache(30 * 1000)
 
 export function getStatsWindow(days) {
   const stats = loadStats()
   return getCachedStatsWindow(_statsWindowCache, stats, days)
 }
 
-// ── Lemmata-Index (O(1)-Lookup statt linearem Array-Scan) ─────────
-
-let _lemmataById    = null
-let _lemmataByLemma = null
-
 export function getLemmataIndex() {
-  if (_lemmataById) return { byId: _lemmataById, byLemma: _lemmataByLemma }
-  try {
-    const list = _loadLemmata()
-    if (!Array.isArray(list)) throw new Error('lemmata ist kein Array')
-    const index = buildLemmataIndex(list)
-    _lemmataById = index.byId
-    _lemmataByLemma = index.byLemma
-  } catch (err) {
-    logger.error({ err }, 'Lemmata-Index konnte nicht aufgebaut werden – leerer Fallback')
-    _lemmataById    = new Map()
-    _lemmataByLemma = new Map()
-  }
-  return { byId: _lemmataById, byLemma: _lemmataByLemma }
+  return _lemmataIndexStore.get()
 }
 
 // ── Stats-Lock (SQLite-Transaktionen übernehmen Atomizität) ───────
@@ -371,9 +350,7 @@ export function withStatsLock(fn) {
 
 // ── Beleg-Cache (TTL 6h, max 2000 Einträge, LRU) ─────────────────
 
-const BELEG_TTL_MS  = 6 * 60 * 60 * 1000
-const BELEG_MAX     = 2000
-const _belegeCache = createBelegeCache({ ttlMs: BELEG_TTL_MS, maxEntries: BELEG_MAX })
+const _belegeCache = createBelegeCache({ ttlMs: 6 * 60 * 60 * 1000, maxEntries: 2000 })
 
 export function cacheGet(key) {
   return _belegeCache.get(key)

@@ -6,36 +6,8 @@ export default function ClassroomEntries({
   entriesRef,
   handleSnapKeyDown,
   isTeacher,
-  sessionNameInput,
-  setSessionNameInput,
-  createSession,
-  creating,
-  createNotice,
-  lastJoinCode,
-  codeCopied,
-  copyJoinCode,
-  activeSession,
-  updateSessionState,
-  participantInfo,
-  joinSession,
-  joining,
-  joinCodeInput,
-  setJoinCodeInput,
-  joinNotice,
-  participantSession,
-  socketConnected,
-  requestJoinRefresh,
-  socketError,
-  hostCountdown,
-  leaveSession,
-  timerTick,
-  dashboard,
-  submittedGames,
-  requestingExport,
-  requestExport,
-  exportsError,
-  exportsList,
-  activeSessionId,
+  teacherState,
+  studentState,
   api,
 }) {
   return (
@@ -44,40 +16,40 @@ export default function ClassroomEntries({
 
       {isTeacher ? (
         <TeacherClassroomEntries
-          sessionNameInput={sessionNameInput}
-          setSessionNameInput={setSessionNameInput}
-          createSession={createSession}
-          creating={creating}
-          createNotice={createNotice}
-          lastJoinCode={lastJoinCode}
-          codeCopied={codeCopied}
-          copyJoinCode={copyJoinCode}
-          activeSession={activeSession}
-          updateSessionState={updateSessionState}
-          timerTick={timerTick}
-          dashboard={dashboard}
-          requestingExport={requestingExport}
-          requestExport={requestExport}
-          exportsError={exportsError}
-          exportsList={exportsList}
-          activeSessionId={activeSessionId}
+          sessionNameInput={teacherState.sessionNameInput}
+          setSessionNameInput={teacherState.setSessionNameInput}
+          createSession={teacherState.createSession}
+          creating={teacherState.creating}
+          createNotice={teacherState.createNotice}
+          lastJoinCode={teacherState.lastJoinCode}
+          codeCopied={teacherState.codeCopied}
+          copyJoinCode={teacherState.copyJoinCode}
+          activeSession={teacherState.activeSession}
+          updateSessionState={teacherState.updateSessionState}
+          timerTick={teacherState.timerTick}
+          dashboard={teacherState.dashboard}
+          requestingExport={teacherState.requestingExport}
+          requestExport={teacherState.requestExport}
+          exportsError={teacherState.exportsError}
+          exportsList={teacherState.exportsList}
+          activeSessionId={teacherState.activeSessionId}
           api={api}
         />
       ) : (
         <StudentClassroomEntries
-          participantInfo={participantInfo}
-          joinSession={joinSession}
-          joining={joining}
-          joinCodeInput={joinCodeInput}
-          setJoinCodeInput={setJoinCodeInput}
-          joinNotice={joinNotice}
-          participantSession={participantSession}
-          socketConnected={socketConnected}
-          requestJoinRefresh={requestJoinRefresh}
-          socketError={socketError}
-          hostCountdown={hostCountdown}
-          leaveSession={leaveSession}
-          submittedGames={submittedGames}
+          participantInfo={studentState.participantInfo}
+          joinSession={studentState.joinSession}
+          joining={studentState.joining}
+          joinCodeInput={studentState.joinCodeInput}
+          setJoinCodeInput={studentState.setJoinCodeInput}
+          joinNotice={studentState.joinNotice}
+          participantSession={studentState.participantSession}
+          socketConnected={studentState.socketConnected}
+          requestJoinRefresh={studentState.requestJoinRefresh}
+          socketError={studentState.socketError}
+          hostCountdown={studentState.hostCountdown}
+          leaveSession={studentState.leaveSession}
+          submittedGames={studentState.submittedGames}
         />
       )}
     </ul>

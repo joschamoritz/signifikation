@@ -18,7 +18,16 @@ date: 2026-04-20
 - Render-Logik fuer Spielscreens in `src/components/AppGameScreens.jsx` ausgelagert
 - Nebenmodus-/Tab-Orchestrierung in `src/hooks/useAppTabScreens.js` ausgelagert
 - Game-Screen-Transitions und Screen-Aktionen in `src/hooks/useAppGameScreens.js` gebuendelt
+- weitere App-Shell-Entlastung ueber dedizierte Model-/Effects-/Daily-State-Hooks:
+  - `src/hooks/useAppModel.js`
+  - `src/hooks/useAppEffects.js`
+  - `src/hooks/useAppDailyState.js`
+  - `src/hooks/useAppNavigation.js`
+- `src/App.jsx` auf eine kleine Shell-Datei mit Model-Konsum reduziert
 - Tagesfortschritt- und Local-Storage-Helfer nach `src/utils/dailyProgress.js` verschoben
+- View-Transition-Helfer nach `src/utils/viewTransition.js` ausgelagert
+- Lazy-Imports der Spielscreens nach `src/components/AppLazyScreens.js` verschoben
+- `src/components/AppShell.jsx` und `src/components/PersistentClassroomTab.jsx` als eigene Shell-Bausteine eingefuehrt
 - `src/App.jsx` damit deutlich staerker auf Navigation, State-Orchestrierung und API-Flows reduziert
 - `src/App.jsx` von ungenutzten Imports bereinigt und die Reihenfolge der abgeleiteten Tagesdaten gegen eine fragile Nutzung vor Deklaration korrigiert
 
@@ -33,6 +42,9 @@ date: 2026-04-20
 - abgeleitete Anzeigezustande nach `src/components/classroom/classroomViewModel.js` extrahiert
 - gemeinsame Hilfen nach `src/components/classroom/classroomUtils.js` verschoben
 - Karten-/Praesentationsbausteine weiter in `src/components/classroom/` gebuendelt
+- Klassenraum-Status-/Rasterleiste nach `src/components/classroom/ClassroomRaster.jsx` ausgelagert
+- `ClassroomEntries.jsx` auf aggregierte `teacherState`-/`studentState`-Props reduziert, um die Prop-Flaeche weiter zu verkleinern
+- `useClassroomTabState.js` liefert aggregierte `entriesProps` und `snapNavProps`, damit `ClassroomTab.jsx` nahezu nur noch Layout zusammensteckt
 
 ### Tab- und Konto-Struktur bereinigt
 
@@ -54,8 +66,11 @@ date: 2026-04-20
   - `server/store-stats.js`
   - `server/store-daily-content.js`
   - `server/store-lemmata.js`
+  - `server/store-readers.js`
   - `server/store-readonly-cache.js`
   - `server/store-belege-cache.js`
+- Lemmata-Index-Cache nach `server/store-lemmata.js` verschoben (`createLemmataIndexStore`)
+- Reader-/Saver-Dispatcher aus `server/store.js` nach `server/store-readers.js` ausgelagert
 - Admin-Router weiter entlang fachlicher Rollen entkoppelt:
   - `server/routes/admin-core.js`
   - `server/routes/admin-users-data.js`
@@ -110,15 +125,23 @@ date: 2026-04-20
 
 - `src/App.jsx`
 - `src/components/AppGameScreens.jsx`
+- `src/components/AppLazyScreens.js`
+- `src/components/AppShell.jsx`
 - `src/components/AppTabScreens.jsx`
 - `src/components/ClassroomTab.jsx`
+- `src/components/PersistentClassroomTab.jsx`
 - `src/components/KontoTab.jsx`
 - `src/components/classroom/`
 - `src/hooks/useDailyContent.js`
 - `src/hooks/useEntitlements.js`
+- `src/hooks/useAppModel.js`
+- `src/hooks/useAppEffects.js`
+- `src/hooks/useAppDailyState.js`
+- `src/hooks/useAppNavigation.js`
 - `src/hooks/useAppTabScreens.js`
 - `src/hooks/useAppGameScreens.js`
 - `src/utils/dailyProgress.js`
+- `src/utils/viewTransition.js`
 - `src/utils/storage.js`
 - `server/routes/admin.js`
 - `server/routes/admin-audit.js`
@@ -138,6 +161,7 @@ date: 2026-04-20
 - `server/store-stats.js`
 - `server/store-daily-content.js`
 - `server/store-lemmata.js`
+- `server/store-readers.js`
 - `server/store-readonly-cache.js`
 - `server/store-belege-cache.js`
 - `OPS.md`
