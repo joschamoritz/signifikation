@@ -1259,6 +1259,11 @@
   min-height: calc(100dvh - 49px - env(safe-area-inset-bottom, 0px));
 }
 
+.tab-transition-container--empty {
+  min-height: 0;
+  height: 0;
+}
+
 /* Klassenraum-Tab ist immer außerhalb TabTransition gemountet — Container kollabiert */
 .app--tab-klassenraum .tab-transition-container {
   min-height: 0;
@@ -1273,14 +1278,31 @@
   right: 0;
 }
 
-/* Forward: aktueller Screen kommt von rechts rein */
-.tab-screen--shift-forward {
-  animation: slideInFromRight 350ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+/* Statischer Zustand: genau ein aktiver Screen im normalen Flow */
+.tab-screen--static {
+  position: relative;
 }
 
-/* Backward: aktueller Screen kommt von links rein */
-.tab-screen--shift-backward {
+/* Forward: neuer Screen kommt von rechts rein */
+.tab-screen--enter-forward {
+  animation: slideInFromRight 350ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  z-index: 2;
+}
+
+/* Backward: neuer Screen kommt von links rein */
+.tab-screen--enter-backward {
   animation: slideInFromLeft 350ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  z-index: 2;
+}
+
+.tab-screen--exit-forward {
+  animation: slideOutLeft 350ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  z-index: 1;
+}
+
+.tab-screen--exit-backward {
+  animation: slideOutRight 350ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  z-index: 1;
 }
 
 /* Keyframes: einfacher horizontaler Slide */
@@ -1330,9 +1352,14 @@
 
 /* prefers-reduced-motion: nur Crossfade */
 @media (prefers-reduced-motion: reduce) {
-  .tab-screen--shift-forward,
-  .tab-screen--shift-backward {
+  .tab-screen--enter-forward,
+  .tab-screen--enter-backward {
     animation: fadeIn 200ms ease-in forwards;
+  }
+
+  .tab-screen--exit-forward,
+  .tab-screen--exit-backward {
+    animation: fadeOut 200ms ease-out forwards;
   }
 }
 
