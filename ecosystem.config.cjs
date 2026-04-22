@@ -8,11 +8,11 @@ module.exports = {
       exec_mode: 'fork',
       autorestart: true,
       watch: false,
-      node_args: '--env-file=/opt/signifikation/app/.env',
       env: {
         NODE_ENV: 'production',
         PORT: 3001,
         CLASSROOM_EXPORT_WORKER_ENABLED: 'false',
+        DOTENV_CONFIG_PATH: '/opt/signifikation/app/.env',
       },
     },
     {
@@ -23,9 +23,9 @@ module.exports = {
       exec_mode: 'fork',
       autorestart: true,
       watch: false,
-      node_args: '--env-file=/opt/signifikation/app/.env',
       env: {
         NODE_ENV: 'production',
+        DOTENV_CONFIG_PATH: '/opt/signifikation/app/.env',
       },
     },
   ],
