@@ -39,7 +39,9 @@ export default function Home({
   const [showDayComplete,   setShowDayComplete]   = useState(false)
   const [activeCard,        setActiveCard]        = useState(0)
 
-  const entriesRef = useRef(null)
+  const entriesRef  = useRef(null)
+  const swipeStartY = useRef(null)
+  const swipeEl     = useRef(null)
 
   const streak     = computeStreak()
   const today      = new Date()
@@ -104,6 +106,35 @@ export default function Home({
     if (e.key === 'ArrowDown') scrollToCard(Math.min(activeCard + 1, 4))
     if (e.key === 'ArrowUp')   scrollToCard(Math.max(activeCard - 1, 0))
   }, [activeCard, scrollToCard])
+
+  function handleSheetTouchStart(e) {
+    swipeStartY.current = e.touches[0].clientY
+    swipeEl.current = e.currentTarget
+    swipeEl.current.style.transition = 'none'
+  }
+
+  function handleSheetTouchMove(e) {
+    if (swipeStartY.current === null) return
+    const delta = e.touches[0].clientY - swipeStartY.current
+    if (delta > 0 && swipeEl.current) {
+      swipeEl.current.style.transform = `translateY(${delta}px)`
+    }
+  }
+
+  function handleSheetTouchEnd(e) {
+    if (swipeStartY.current === null) return
+    const delta = e.changedTouches[0].clientY - swipeStartY.current
+    swipeStartY.current = null
+    if (swipeEl.current) {
+      swipeEl.current.style.transition = ''
+      swipeEl.current.style.transform = ''
+    }
+    swipeEl.current = null
+    if (delta > 80) {
+      setSheetOpen(false)
+      setShareSheetOpen(false)
+    }
+  }
 
   async function shareImg() {
     if (sharing) return
@@ -219,9 +250,6 @@ export default function Home({
         {/* ── Doppellinie ───────────────────────────────────── */}
         <div className="test-rule--double" role="separator" aria-hidden="true" />
 
-        {/* ── Einträge ─────────────────────────────────────── */}
-        <p className="test-section-label" aria-hidden="true">Spielmodi</p>
-
         <main>
           <ol
             className="test-entries"
@@ -296,9 +324,9 @@ export default function Home({
               <div className="test-entry-number" aria-hidden="true">
                 <span className="test-entry-num-glyph">②</span>
                 <span className="test-entry-marginalia">KOMPAR.</span>
+                <span className="test-entry-premium" aria-label="Teil der Gesamtausgabe">Gesamtausgabe</span>
               </div>
               <div className="test-entry-body">
-                <span className="test-entry-premium" aria-label="Teil der Gesamtausgabe">Gesamtausgabe</span>
                 <div className="test-entry-head">
                   <h2 className="test-headword">Wort-Zwilling</h2>
                   <span className="test-ipa" aria-label="Aussprache: [ˈvɔʁtˌtsvɪlɪŋ]">[ˈvɔʁtˌtsvɪlɪŋ]</span>
@@ -360,9 +388,9 @@ export default function Home({
               <div className="test-entry-number" aria-hidden="true">
                 <span className="test-entry-num-glyph">③</span>
                 <span className="test-entry-marginalia">DIACH.</span>
+                <span className="test-entry-premium" aria-label="Teil der Gesamtausgabe">Gesamtausgabe</span>
               </div>
               <div className="test-entry-body">
-                <span className="test-entry-premium" aria-label="Teil der Gesamtausgabe">Gesamtausgabe</span>
                 <div className="test-entry-head">
                   <h2 className="test-headword">Zeitenwende</h2>
                   <span className="test-ipa" aria-label="Aussprache: [ˈtsaɪ̯tənˌvɛndə]">[ˈtsaɪ̯tənˌvɛndə]</span>
@@ -424,9 +452,9 @@ export default function Home({
               <div className="test-entry-number" aria-hidden="true">
                 <span className="test-entry-num-glyph">④</span>
                 <span className="test-entry-marginalia">HIST.</span>
+                <span className="test-entry-premium" aria-label="Teil der Gesamtausgabe">Gesamtausgabe</span>
               </div>
               <div className="test-entry-body">
-                <span className="test-entry-premium" aria-label="Teil der Gesamtausgabe">Gesamtausgabe</span>
                 <div className="test-entry-head">
                   <h2 className="test-headword">Zeitreise</h2>
                   <span className="test-ipa" aria-label="Aussprache: [ˈtsaɪ̯tˌʁaɪ̯zə]">[ˈtsaɪ̯tˌʁaɪ̯zə]</span>
@@ -620,6 +648,9 @@ export default function Home({
       aria-modal="true"
       aria-label="Was ist eine Kollokation?"
       aria-hidden={!sheetOpen}
+      onTouchStart={handleSheetTouchStart}
+      onTouchMove={handleSheetTouchMove}
+      onTouchEnd={handleSheetTouchEnd}
     >
       <div className="info-sheet-header">
         <span className="info-sheet-label" aria-hidden="true">Anm.</span>
@@ -664,6 +695,9 @@ export default function Home({
       aria-modal="true"
       aria-label="Ergebnis mitteilen"
       aria-hidden={!shareSheetOpen}
+      onTouchStart={handleSheetTouchStart}
+      onTouchMove={handleSheetTouchMove}
+      onTouchEnd={handleSheetTouchEnd}
     >
       <div className="share-sheet-header">
         <span className="share-sheet-label">Ergebnis mitteilen</span>

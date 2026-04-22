@@ -963,9 +963,16 @@
     scrollbar-width: none;
     position: relative;
   }
-  /* Gesamtausgabe-Badge mobil ausblenden */
+  /* Gesamtausgabe-Badge: vertikal unter Marginalie */
   .test-entry-premium {
-    display: none;
+    display: block;
+    position: static;
+    writing-mode: vertical-rl;
+    transform: rotate(180deg);
+    transform-origin: center;
+    opacity: 0.75;
+    margin-top: 10px;
+    align-self: flex-start;
   }
   .test-entry::-webkit-scrollbar { display: none; }
   .test-entry:last-child { border-bottom: none; }
@@ -973,6 +980,7 @@
   /* Große gedimmte Ziffer als Kartenhintergrund */
   .test-entry-number .test-entry-num-glyph {
     font-size: 4rem;
+    color: var(--t-text);
     opacity: 0.06;
     position: absolute;
     bottom: 20px;
@@ -1111,12 +1119,15 @@
   z-index: 250;
   overflow-y: auto;
   transform: translateY(100%);
-  transition: transform 0.32s cubic-bezier(0.4, 0, 0.2, 1);
+  visibility: hidden;
+  transition: transform 0.32s cubic-bezier(0.4, 0, 0.2, 1), visibility 0s 0.32s;
   padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
 .info-sheet--open {
   transform: translateY(0);
+  visibility: visible;
+  transition: transform 0.32s cubic-bezier(0.4, 0, 0.2, 1), visibility 0s;
 }
 
 .info-sheet-header {
@@ -1213,12 +1224,15 @@
   border-top: 2px solid var(--text);
   z-index: 250;
   transform: translateY(100%);
-  transition: transform 0.32s cubic-bezier(0.4, 0, 0.2, 1);
+  visibility: hidden;
+  transition: transform 0.32s cubic-bezier(0.4, 0, 0.2, 1), visibility 0s 0.32s;
   padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
 .share-sheet--open {
   transform: translateY(0);
+  visibility: visible;
+  transition: transform 0.32s cubic-bezier(0.4, 0, 0.2, 1), visibility 0s;
 }
 
 .share-sheet-header {

@@ -23,6 +23,7 @@ export default function ClassroomTab({ onLiveChange = () => {}, submitRef = null
       <ClassroomHeader />
 
       <ClassroomRaster rasterStatus={rasterStatus} />
+      <div className="test-rule--double" role="separator" aria-hidden="true" />
 
       <div className="tab-placeholder-inner classroom-inner">
         {loadingAccount && <p className="cr-loading">Konto wird geladen …</p>}

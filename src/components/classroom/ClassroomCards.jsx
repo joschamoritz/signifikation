@@ -4,6 +4,7 @@ export function ClassroomExplanationCard() {
       <div className="test-entry-number" aria-hidden="true">
         <span className="test-entry-num-glyph">①</span>
         <span className="test-entry-marginalia">ERKL.</span>
+        <span className="test-entry-premium" aria-label="Teil der Gesamtausgabe">Gesamtausgabe</span>
       </div>
       <div className="test-entry-body">
         <div className="test-entry-head">
@@ -23,7 +24,6 @@ export function ClassroomExplanationCard() {
           <li>Spielergebnisse aller vier Modi werden automatisch übertragen.</li>
           <li>Nach der Sitzung: Auswertung nach Spielmodus, Export als CSV oder PDF.</li>
         </ul>
-        <span className="test-entry-premium" aria-label="Teil der Gesamtausgabe">Gesamtausgabe</span>
       </div>
     </li>
   )
