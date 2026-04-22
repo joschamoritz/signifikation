@@ -1,5 +1,14 @@
 import { randomUUID, timingSafeEqual, createHmac } from 'crypto'
+import { fileURLToPath } from 'url'
+import { dirname, join } from 'path'
+import { config as _loadEnv } from 'dotenv'
 import logger from '../logger.js'
+
+// Load .env relative to this file — works regardless of PM2 cwd or process.env.DOTENV_CONFIG_PATH
+_loadEnv({
+  path: join(dirname(fileURLToPath(import.meta.url)), '../../.env'),
+  override: false,
+})
 
 const IS_PROD   = process.env.NODE_ENV === 'production'
 const ADMIN_KEY = (process.env.ADMIN_KEY || (IS_PROD ? null : 'dev-only'))?.trim()
