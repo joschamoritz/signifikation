@@ -19,17 +19,19 @@ export default function ClassroomTab({ onLiveChange = () => {}, submitRef = null
   })
 
   return (
-    <div className="tab-placeholder classroom-tab">
-      <ClassroomHeader />
+    <div className="test-page classroom-tab">
+      <div className="test-wrapper">
+        <ClassroomHeader />
 
-      <ClassroomRaster rasterStatus={rasterStatus} />
-      <div className="test-rule--double" role="separator" aria-hidden="true" />
+        <ClassroomRaster rasterStatus={rasterStatus} />
+        <div className="test-rule--double" role="separator" aria-hidden="true" />
 
-      <div className="tab-placeholder-inner classroom-inner">
-        {loadingAccount && <p className="cr-loading">Konto wird geladen …</p>}
-        {!loadingAccount && teacherError && <p className="cr-error">{teacherError}</p>}
+        <main className="classroom-inner">
+          {loadingAccount && <p className="cr-loading">Konto wird geladen …</p>}
+          {!loadingAccount && teacherError && <p className="cr-error">{teacherError}</p>}
 
-        <ClassroomEntries {...entriesProps} />
+          <ClassroomEntries {...entriesProps} />
+        </main>
 
         <div className="tab-placeholder-footer">
           <span className="tab-placeholder-edition">Für Unterrichtssitzungen und Lerngruppen.</span>

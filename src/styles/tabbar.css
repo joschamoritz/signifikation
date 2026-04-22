@@ -216,11 +216,9 @@
 }
 
 .konto-auth-card {
-  border: 1px solid var(--border-lt);
-  border-radius: var(--radius);
-  background: var(--surface);
-  padding: 14px;
-  margin-bottom: 20px;
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border-lt);
 }
 
 .konto-auth-head {
@@ -228,13 +226,14 @@
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  margin-bottom: 10px;
+  margin-bottom: 12px;
 }
 
 .konto-auth-title {
   font-family: var(--font-sans);
-  font-size: 0.78rem;
-  letter-spacing: 0.11em;
+  font-size: 8.5px;
+  font-weight: 600;
+  letter-spacing: 0.15em;
   text-transform: uppercase;
   color: var(--muted);
   margin: 0;
@@ -242,68 +241,66 @@
 
 .konto-auth-modes {
   display: inline-flex;
-  gap: 4px;
-  border: 1px solid var(--border-lt);
-  border-radius: 4px;
-  padding: 2px;
-  background: var(--surface2);
+  gap: 12px;
 }
 
 .konto-auth-mode {
   border: none;
   background: transparent;
-  font-family: var(--font-sans);
-  font-size: 0.72rem;
+  font-family: var(--font-serif);
+  font-size: 0.88rem;
+  font-style: italic;
   color: var(--muted);
-  padding: 5px 9px;
-  border-radius: 2px;
+  padding: 0 0 2px;
+  border-bottom: 1px solid transparent;
 }
 
 .konto-auth-mode--active {
-  background: var(--surface);
   color: var(--primary);
+  border-bottom-color: var(--primary);
 }
 
 .konto-auth-form {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 12px;
 }
 
 .konto-auth-form--reset {
-  margin-top: 16px;
-  padding-top: 14px;
-  border-top: 1px dotted var(--border);
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border-lt);
 }
 
 .konto-auth-field {
   display: flex;
   flex-direction: column;
-  gap: 5px;
+  gap: 4px;
 }
 
 .konto-auth-field span {
   font-family: var(--font-sans);
-  font-size: 0.72rem;
-  letter-spacing: 0.06em;
+  font-size: 8.5px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--muted);
 }
 
 .konto-auth-field input {
   width: 100%;
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  background: var(--bg);
+  border: none;
+  border-bottom: 1.5px solid var(--border);
+  background: transparent;
   color: var(--text);
-  font-family: var(--font-sans);
-  font-size: 0.86rem;
-  padding: 10px 11px;
+  font-family: var(--font-serif);
+  font-size: 0.95rem;
+  padding: 8px 0;
 }
 
 .konto-auth-field input:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 1px;
+  outline: none;
+  border-bottom-color: var(--primary);
 }
 
 .konto-auth-field input:disabled {
@@ -328,19 +325,19 @@
 
 .konto-auth-password-toggle {
   min-width: 84px;
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  background: var(--surface2);
-  color: var(--muted);
-  font-family: var(--font-sans);
+  border: none;
+  border-bottom: 1px solid var(--border);
+  background: transparent;
+  color: var(--primary);
+  font-family: var(--font-serif);
   font-size: 0.72rem;
-  letter-spacing: 0.03em;
-  padding: 0 10px;
+  font-style: italic;
+  padding: 0 6px 2px;
 }
 
 .konto-auth-password-toggle:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 1px;
+  outline: none;
+  border-bottom-color: var(--primary);
 }
 
 .konto-auth-password-toggle:disabled {
@@ -379,9 +376,10 @@
 }
 
 .konto-auth-note {
-  font-family: var(--font-sans);
-  font-size: 0.78rem;
-  margin-top: 10px;
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-size: 0.82rem;
+  margin-top: 12px;
   color: var(--muted);
 }
 
@@ -397,11 +395,12 @@
   border: none;
   background: none;
   color: var(--primary);
-  font-family: var(--font-sans);
-  font-size: 0.76rem;
+  font-family: var(--font-serif);
+  font-size: 0.82rem;
+  font-style: italic;
   text-align: left;
   padding: 0;
-  margin-top: 4px;
+  margin-top: 6px;
 }
 
 .konto-auth-inline-link:disabled {
@@ -409,9 +408,9 @@
 }
 
 .konto-auth-socials {
-  margin-top: 8px;
+  margin-top: 10px;
   padding-top: 12px;
-  border-top: 1px dotted var(--border);
+  border-top: 1px solid var(--border-lt);
 }
 
 .konto-auth-socials-label {
@@ -431,10 +430,10 @@
 
 .konto-auth-social-btn {
   border: 1px solid var(--border);
-  border-radius: 4px;
-  background: var(--surface2);
+  border-radius: 2px;
+  background: transparent;
   color: var(--text);
-  font-family: var(--font-sans);
+  font-family: var(--font-serif);
   font-size: 0.78rem;
   min-height: 36px;
   padding: 0 12px;
@@ -445,11 +444,9 @@
 }
 
 .konto-teacher-note {
-  border: 1px solid var(--accent);
-  background: #fdf8ee;
-  border-radius: 4px;
-  padding: 9px 10px;
-  margin-bottom: 10px;
+  border-left: 2px solid var(--accent);
+  padding: 2px 0 2px 12px;
+  margin: 14px 0 10px;
 }
 
 .konto-teacher-note-title {
@@ -540,16 +537,11 @@
 }
 
 .classroom-inner {
-  max-width: 680px;
-  padding-inline: 24px;
-}
-
-@media (min-width: 560px) {
-  .classroom-inner { padding-inline: 40px; }
-}
-
-@media (min-width: 720px) {
-  .classroom-inner { padding-inline: 56px; }
+  width: 100%;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  position: relative;
 }
 
 /* ── Klassenraum: Eintrags-Liste ───────────────────────────── */
@@ -1077,69 +1069,20 @@
 /* ── Klassenraum: Kategorie-Badges → Rot statt Gold ─────────── */
 .classroom-entries .test-entry-category {
   color: var(--primary);
+  border-color: var(--primary);
 }
 
 /* ── Klassenraum: Desktop Raster-Leiste ─────────────────────── */
-.cr-raster {
-  background: var(--surface2);
-  border-top: 1px solid var(--border);
-  border-bottom: 1px solid var(--border);
-}
-
-/* Innerer Wrapper — 3-spaltiges Grid: Label | Status | Metriken */
-.cr-raster-content {
-  max-width: 680px;
-  margin: 0 auto;
-  display: grid;
-  grid-template-columns: auto 1fr auto;
-  align-items: center;
-  gap: 16px;
-  padding: 10px 24px;
-  overflow: hidden;
-}
-
-@media (min-width: 560px) {
-  .cr-raster-content { padding-inline: 40px; }
-}
-@media (min-width: 720px) {
-  .cr-raster-content { padding-inline: 56px; }
-}
-
-.cr-raster-label {
-  font-family: var(--font-sans);
-  font-size: 9px;
-  font-weight: 600;
-  letter-spacing: 0.2em;
-  text-transform: uppercase;
-  color: var(--muted);
-  white-space: nowrap;
-}
-
-/* Mitte: Status-Label (State) */
 .cr-raster-center {
-  font-family: var(--font-serif);
-  font-variant: small-caps;
-  font-size: 0.82rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
   color: var(--text);
-  text-align: center;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .cr-raster-center--running {
   color: var(--success);
 }
 
-/* Rechts: Metriken */
 .cr-raster-right {
-  font-family: var(--font-sans);
-  font-size: 0.72rem;
   color: var(--muted);
-  text-align: right;
-  white-space: nowrap;
 }
 
 /* ── Klassenraum: Aktualisieren (Lobby-Hint) ────────────────── */

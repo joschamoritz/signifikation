@@ -1283,58 +1283,64 @@
   width: 16px;
 }
 
+/* ── Konto Tab: Kategorie-Badges → Rot statt Gold ─────────── */
+.konto-tab .test-entry-category {
+  color: var(--t-red);
+  border-color: var(--t-red);
+}
+
 /* ── Konto Tab ─────────────────────────────────────────────── */
 
-/* Subscription Status */
+/* Abonnement-Status – Wörterbuch-Lemma-Stil statt Karten */
 .konto-subscription-status {
   margin-top: 20px;
-  padding: 16px;
-  background: var(--surface);
-  border: 1px solid var(--border-lt);
-  border-radius: 4px;
+  padding-top: 16px;
+  border-top: 1px solid var(--t-rule-lt);
 }
 
 .konto-subscription-header {
   display: flex;
-  align-items: center;
+  align-items: baseline;
   justify-content: space-between;
   margin-bottom: 8px;
 }
 
 .konto-subscription-label {
-  font-family: var(--font-sans);
-  font-size: 0.75rem;
+  font-family: var(--t-sans);
+  font-size: 8.5px;
   font-weight: 600;
+  letter-spacing: 0.15em;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--muted);
+  color: var(--t-muted);
 }
 
 .konto-subscription-badge {
-  font-family: var(--font-sans);
-  font-size: 0.7rem;
+  font-family: var(--t-sans);
+  font-size: 8.5px;
   font-weight: 600;
-  padding: 3px 8px;
-  border-radius: 3px;
+  letter-spacing: 0.15em;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  padding: 1px 6px;
+  border-radius: 2px;
 }
 
 .konto-subscription-badge--active {
-  background: var(--accent-lt);
-  color: var(--accent-dk);
+  color: var(--t-red);
+  background: transparent;
+  border: 1px solid var(--t-red);
 }
 
 .konto-subscription-badge--locked {
-  background: var(--surface2);
-  color: var(--muted);
+  color: var(--t-disabled);
+  background: transparent;
+  border: 1px solid var(--t-rule);
 }
 
 .konto-subscription-note {
-  font-family: var(--font-serif);
+  font-family: var(--t-serif);
   font-size: 0.85rem;
-  line-height: 1.5;
-  color: var(--text);
+  line-height: 1.6;
+  color: var(--t-text);
   margin: 0;
 }
 
@@ -1346,24 +1352,22 @@
   margin-top: 12px;
 }
 
-/* Placeholder für nicht eingeloggte Nutzer */
+/* Placeholder – kursiv wie Wörterbuch-Verweis */
 .konto-placeholder {
-  padding: 24px 16px;
-  text-align: center;
-  background: var(--surface);
-  border: 1px solid var(--border-lt);
-  border-radius: 4px;
   margin-top: 16px;
+  padding: 12px 0;
+  border-top: 1px solid var(--t-rule-lt);
 }
 
 .konto-placeholder-text {
-  font-family: var(--font-serif);
+  font-family: var(--t-serif);
   font-size: 0.875rem;
-  color: var(--muted);
+  font-style: italic;
+  color: var(--t-muted);
   margin: 0;
 }
 
-/* Statistiken */
+/* Statistiken – Lemma-Zeilen statt Karten */
 .konto-stats-content {
   margin-top: 16px;
 }
@@ -1371,58 +1375,67 @@
 .konto-stats-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 12px;
-  margin-bottom: 24px;
+  gap: 0;
+  margin-bottom: 0;
+  border-top: 1px solid var(--t-rule-lt);
 }
 
 .konto-stat-card {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  padding: 14px;
-  background: var(--surface);
-  border: 1px solid var(--border-lt);
-  border-radius: 4px;
+  gap: 4px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--t-rule-lt);
+}
+
+.konto-stat-card:nth-child(odd) {
+  padding-right: 16px;
+  border-right: 1px solid var(--t-rule-lt);
+}
+
+.konto-stat-card:nth-child(even) {
+  padding-left: 16px;
 }
 
 .konto-stat-label {
-  font-family: var(--font-sans);
-  font-size: 0.7rem;
+  font-family: var(--t-sans);
+  font-size: 8.5px;
   font-weight: 600;
+  letter-spacing: 0.15em;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--muted);
+  color: var(--t-muted);
 }
 
 .konto-stat-value {
-  font-family: var(--font-serif);
-  font-size: 1.25rem;
-  font-weight: 600;
-  color: var(--text);
+  font-family: var(--t-serif);
+  font-size: 1.15rem;
+  font-weight: 400;
+  color: var(--t-text);
+  font-variant-numeric: oldstyle-nums;
 }
 
 .konto-history-section {
   margin-top: 24px;
-  padding-top: 20px;
-  border-top: 1px solid var(--border-lt);
+  padding-top: 16px;
+  border-top: 1px solid var(--t-rule-lt);
 }
 
 .konto-section-title {
-  font-family: var(--font-sans);
-  font-size: 0.75rem;
+  font-family: var(--t-sans);
+  font-size: 8.5px;
   font-weight: 600;
+  letter-spacing: 0.15em;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--muted);
+  color: var(--t-muted);
   margin: 0 0 12px 0;
 }
 
-/* Einstellungen */
+/* Einstellungen – Lemma-Zeilen statt Karten */
 .konto-settings-content {
   margin-top: 16px;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  border-top: 1px solid var(--t-rule-lt);
 }
 
 .konto-setting-item {
@@ -1430,37 +1443,39 @@
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  padding: 14px;
-  background: var(--surface);
-  border: 1px solid var(--border-lt);
-  border-radius: 4px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--t-rule-lt);
 }
 
 .konto-setting-info {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 2px;
   flex: 1;
 }
 
 .konto-setting-label {
-  font-family: var(--font-serif);
+  font-family: var(--t-serif);
   font-size: 0.9rem;
-  font-weight: 500;
-  color: var(--text);
+  font-weight: 400;
+  color: var(--t-text);
 }
 
 .konto-setting-desc {
-  font-family: var(--font-sans);
-  font-size: 0.75rem;
-  color: var(--muted);
+  font-family: var(--t-sans);
+  font-size: 8.5px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--t-muted);
 }
 
+/* Toggle-Switch – dezent, Pergament-Hintergrund */
 .konto-toggle {
   position: relative;
   display: inline-block;
-  width: 44px;
-  height: 24px;
+  width: 36px;
+  height: 20px;
   flex-shrink: 0;
 }
 
@@ -1477,76 +1492,84 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background: var(--surface2);
-  border: 1px solid var(--border-lt);
-  border-radius: 12px;
-  transition: background 0.2s;
+  background: var(--t-surface);
+  border: 1px solid var(--t-rule);
+  border-radius: 10px;
+  transition: background 0.2s, border-color 0.2s;
 }
 
 .konto-toggle-slider::before {
   position: absolute;
   content: "";
-  height: 16px;
-  width: 16px;
+  height: 12px;
+  width: 12px;
   left: 3px;
   bottom: 3px;
-  background: var(--bg);
+  background: var(--t-text);
   border-radius: 50%;
   transition: transform 0.2s;
 }
 
 .konto-toggle input:checked + .konto-toggle-slider {
-  background: var(--accent);
-  border-color: var(--accent);
+  background: var(--t-red);
+  border-color: var(--t-red);
 }
 
 .konto-toggle input:checked + .konto-toggle-slider::before {
-  transform: translateX(20px);
+  transform: translateX(16px);
+  background: var(--t-bg);
 }
 
 .konto-toggle input:disabled + .konto-toggle-slider {
-  opacity: 0.5;
+  opacity: 0.4;
   cursor: not-allowed;
+}
+
+.konto-toggle input:disabled + .konto-toggle-slider::before {
+  background: var(--t-muted);
 }
 
 .konto-select {
-  font-family: var(--font-serif);
-  font-size: 0.875rem;
-  padding: 6px 10px;
-  background: var(--bg);
-  border: 1px solid var(--border-lt);
-  border-radius: 4px;
-  color: var(--text);
+  font-family: var(--t-serif);
+  font-size: 0.85rem;
+  padding: 4px 8px;
+  background: var(--t-bg);
+  border: 1px solid var(--t-rule);
+  border-radius: 2px;
+  color: var(--t-text);
   cursor: pointer;
   flex-shrink: 0;
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='5'%3E%3Cpath d='M0 0l4 5 4-5' fill='%239b1c1c'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 8px center;
+  padding-right: 24px;
 }
 
 .konto-select:disabled {
-  opacity: 0.5;
+  opacity: 0.4;
   cursor: not-allowed;
 }
 
-/* Rechtliche Links */
+/* Rechtliche Links – Verweis-Zeilen wie Querverweise im Wörterbuch */
 .konto-legal-links {
   display: flex;
   flex-direction: column;
-  gap: 0;
   margin-top: 16px;
-  border: 1px solid var(--border-lt);
-  border-radius: 4px;
-  overflow: hidden;
+  border-top: 1px solid var(--t-rule-lt);
 }
 
 .konto-legal-link {
   display: flex;
-  align-items: center;
+  align-items: baseline;
   justify-content: space-between;
-  padding: 14px 16px;
-  background: var(--surface);
-  border-bottom: 1px solid var(--border-lt);
+  padding: 10px 0;
+  border-bottom: 1px solid var(--t-rule-lt);
   text-decoration: none;
-  color: var(--text);
-  transition: background 0.12s;
+  color: var(--t-text);
+  transition: color 0.12s;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .konto-legal-link:last-child {
@@ -1554,23 +1577,35 @@
 }
 
 .konto-legal-link:hover {
-  background: var(--surface2);
+  color: var(--t-red);
 }
 
 .konto-legal-link-text {
-  font-family: var(--font-serif);
-  font-size: 0.9rem;
+  font-family: var(--t-serif);
+  font-size: 0.875rem;
+  font-style: italic;
 }
 
 .konto-legal-link-arrow {
-  font-family: var(--font-sans);
-  font-size: 0.9rem;
-  color: var(--primary);
+  font-family: var(--t-sans);
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--t-red);
   flex-shrink: 0;
+  letter-spacing: 0.05em;
 }
 
 @media (min-width: 700px) {
   .konto-stats-grid {
     grid-template-columns: repeat(4, 1fr);
+  }
+
+  .konto-stat-card:nth-child(odd) {
+    padding-right: 20px;
+    border-right: 1px solid var(--t-rule-lt);
+  }
+
+  .konto-stat-card:nth-child(even) {
+    padding-left: 20px;
   }
 }

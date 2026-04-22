@@ -11,22 +11,22 @@ export default function KontoTab({ gesamtausgabe, onUnlock, onAuthStateChange = 
   const entriesRef = useRef(null)
 
   return (
-    <div className="tab-placeholder konto-tab">
-      <TabHeader />
+    <div className="test-page konto-tab">
+      <div className="test-wrapper">
+        <TabHeader />
 
-      <div className="test-raster" aria-label="Konto-Übersicht">
-        <span className="test-raster-label" aria-hidden="true">Konto</span>
-        <div className="test-raster-words">
-          <span className="test-raster-word">Profil</span>
-        </div>
-        <div className="test-raster-end">
-          <span className="test-raster-folio" aria-hidden="true">Einstellungen</span>
-        </div>
-      </div>
+        <nav className="test-raster" aria-label="Konto-Übersicht">
+          <span className="test-raster-label" aria-hidden="true">Konto</span>
+          <div className="test-raster-words">
+            <span className="test-raster-word">Profil</span>
+          </div>
+          <div className="test-raster-end">
+            <span className="test-raster-folio" aria-hidden="true">Einstellungen</span>
+          </div>
+        </nav>
 
-      <div className="test-rule--double" role="separator" aria-hidden="true" />
+        <div className="test-rule--double" role="separator" aria-hidden="true" />
 
-      <div className="tab-placeholder-inner">
         <main>
           <ol className="test-entries" aria-label="Konto-Bereiche" ref={entriesRef}>
             
