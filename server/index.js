@@ -10,7 +10,7 @@ import { dirname, join }  from 'path'
 import { randomUUID } from 'crypto'
 import { toNodeHandler } from 'better-auth/node'
 import logger       from './logger.js'
-import { ADMIN_KEY, IS_PROD, csrfProtect, csrfProtectUpload } from './middleware/auth.js'
+import { IS_PROD, getAdminKey, csrfProtect, csrfProtectUpload } from './middleware/auth.js'
 import { auth } from './auth/index.js'
 import { loginLimiter, registerLimiter } from './middleware/rateLimiter.js'
 import { initializeIndices } from './store.js'
@@ -28,7 +28,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url))
 const PORT      = process.env.PORT || 3001
 const BACKUP_RESTORE_BODY_LIMIT = '10mb'
 
-if (!ADMIN_KEY) {
+if (!getAdminKey()) {
   logger.fatal('ADMIN_KEY ist nicht gesetzt – in Produktion erforderlich. Server wird beendet.')
   process.exit(1)
 }

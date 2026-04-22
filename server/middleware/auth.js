@@ -10,8 +10,11 @@ _loadEnv({
   override: false,
 })
 
-const IS_PROD   = process.env.NODE_ENV === 'production'
-const ADMIN_KEY = (process.env.ADMIN_KEY || (IS_PROD ? null : 'dev-only'))?.trim()
+const IS_PROD = process.env.NODE_ENV === 'production'
+
+function getAdminKey() {
+  return (process.env.ADMIN_KEY || (IS_PROD ? null : 'dev-only'))?.trim()
+}
 
 // Hilfsfunktion: Sensitive Felder aus Log-Objekten entfernen
 function sanitize(obj) {
@@ -37,8 +40,9 @@ function sanitize(obj) {
 const SESSION_TTL_MS = 8 * 60 * 60 * 1000
 
 function sign(payload) {
-  if (!ADMIN_KEY) throw new Error('ADMIN_KEY nicht konfiguriert')
-  return createHmac('sha256', ADMIN_KEY).update(payload).digest('hex')
+  const adminKey = getAdminKey()
+  if (!adminKey) throw new Error('ADMIN_KEY nicht konfiguriert')
+  return createHmac('sha256', adminKey).update(payload).digest('hex')
 }
 
 export function createSession() {
@@ -70,17 +74,18 @@ function sessionValid(token) {
 /** POST /admin/auth – tauscht Admin-Key gegen httpOnly-Session-Cookie */
 export function adminAuth(req, res) {
   const { key } = req.body || {}
+  const adminKey = getAdminKey()
   if (!key) {
     return res.status(400).json({ error: 'DIAG: kein Key im Body' })
   }
-  if (!ADMIN_KEY) {
+  if (!adminKey) {
     logger.error('ADMIN_KEY nicht geladen im Prozess!')
     return res.status(500).json({ error: 'DIAG: ADMIN_KEY im Server nicht geladen (dotenv-Problem)' })
   }
   // Constant-Time-Vergleich gegen Timing-Attacks
   const receivedKey = String(key).trim()
   const receivedBuf = Buffer.from(receivedKey)
-  const adminBuf = Buffer.from(ADMIN_KEY)
+  const adminBuf = Buffer.from(adminKey)
   if (receivedBuf.length !== adminBuf.length) {
     const paddedReceived = Buffer.alloc(adminBuf.length)
     receivedBuf.copy(paddedReceived)
@@ -167,4 +172,4 @@ export function adminError(res, err) {
   res.status(500).json({ error: cleanMsg })
 }
 
-export { ADMIN_KEY, IS_PROD }
+export { IS_PROD, getAdminKey }
