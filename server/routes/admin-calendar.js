@@ -335,10 +335,20 @@ export function createAdminCalendarRouter({
         entry.link = links[i] || ''
         entry.definition = definitionen[i] || ''
         entry.bonusFrage = await fetchBonusQuestion(wort, pos).catch(() => null)
-        logger.info(`Lade Wiktionary-Daten für „${wort}" …`)
-        const wikt = await fetchWiktionary(wort).catch(() => ({ ipa: '', definitionen: [] }))
-        entry.ipa = wikt.ipa
-        entry.definitionen = wikt.definitionen
+        
+        // Wiktionary-Daten nur holen, wenn noch nicht vorhanden
+        const { byId } = getLemmataIndex()
+        const existing = byId.get(entry.id)
+        if (!existing || !existing.ipa || !existing.definitionen?.length) {
+          logger.info(`Lade Wiktionary-Daten für „${wort}" …`)
+          const wikt = await fetchWiktionary(wort).catch(() => ({ ipa: '', definitionen: [] }))
+          entry.ipa = wikt.ipa
+          entry.definitionen = wikt.definitionen
+        } else {
+          // Vorhandene Wiktionary-Daten beibehalten
+          entry.ipa = existing.ipa
+          entry.definitionen = existing.definitionen
+        }
 
         stmts.upsertLemma.run(lemmaToRow(entry))
         ids.push(entry.id)
@@ -421,17 +431,25 @@ export function createAdminCalendarRouter({
 
   router.post('/admin/wiktionary-backfill', adminLimiter, requireAuth, async (_req, res) => {
     try {
-      const lemmataDB = load('lemmata.json')
+      const { byId } = getLemmataIndex()
       let updated = 0
       let skipped = 0
-      for (const entry of lemmataDB) {
-        if (entry.ipa && entry.definitionen?.length) { skipped++; continue }
+      
+      for (const entry of byId.values()) {
+        if (entry.ipa && entry.definitionen?.length) { 
+          skipped++
+          continue 
+        }
+        
+        logger.info(`Backfill: Lade Wiktionary-Daten für „${entry.lemma}" …`)
         const wikt = await fetchWiktionary(entry.lemma).catch(() => ({ ipa: '', definitionen: [] }))
         entry.ipa = wikt.ipa
         entry.definitionen = wikt.definitionen
+        
+        stmts.upsertLemma.run(lemmaToRow(entry))
         updated++
       }
-      await save('lemmata.json', lemmataDB)
+      
       logger.info(`Wiktionary-Backfill: ${updated} aktualisiert, ${skipped} bereits vorhanden`)
       res.json({ ok: true, updated, skipped })
     } catch (err) {
