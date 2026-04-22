@@ -8,7 +8,7 @@ module.exports = {
       exec_mode: 'fork',
       autorestart: true,
       watch: false,
-      env_file: '/opt/signifikation/app/.env',
+      node_args: '--env-file=/opt/signifikation/app/.env',
       env: {
         NODE_ENV: 'production',
         PORT: 3001,
@@ -23,7 +23,7 @@ module.exports = {
       exec_mode: 'fork',
       autorestart: true,
       watch: false,
-      env_file: '/opt/signifikation/app/.env',
+      node_args: '--env-file=/opt/signifikation/app/.env',
       env: {
         NODE_ENV: 'production',
       },
