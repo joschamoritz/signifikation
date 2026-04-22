@@ -1282,3 +1282,295 @@
   flex-shrink: 0;
   width: 16px;
 }
+
+/* ── Konto Tab ─────────────────────────────────────────────── */
+
+/* Subscription Status */
+.konto-subscription-status {
+  margin-top: 20px;
+  padding: 16px;
+  background: var(--surface);
+  border: 1px solid var(--border-lt);
+  border-radius: 4px;
+}
+
+.konto-subscription-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.konto-subscription-label {
+  font-family: var(--font-sans);
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+}
+
+.konto-subscription-badge {
+  font-family: var(--font-sans);
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 3px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.konto-subscription-badge--active {
+  background: var(--accent-lt);
+  color: var(--accent-dk);
+}
+
+.konto-subscription-badge--locked {
+  background: var(--surface2);
+  color: var(--muted);
+}
+
+.konto-subscription-note {
+  font-family: var(--font-serif);
+  font-size: 0.85rem;
+  line-height: 1.5;
+  color: var(--text);
+  margin: 0;
+}
+
+.konto-subscription-unlock {
+  margin-top: 12px;
+}
+
+.konto-subscription-unlock .test-cta {
+  margin-top: 12px;
+}
+
+/* Placeholder für nicht eingeloggte Nutzer */
+.konto-placeholder {
+  padding: 24px 16px;
+  text-align: center;
+  background: var(--surface);
+  border: 1px solid var(--border-lt);
+  border-radius: 4px;
+  margin-top: 16px;
+}
+
+.konto-placeholder-text {
+  font-family: var(--font-serif);
+  font-size: 0.875rem;
+  color: var(--muted);
+  margin: 0;
+}
+
+/* Statistiken */
+.konto-stats-content {
+  margin-top: 16px;
+}
+
+.konto-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.konto-stat-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 14px;
+  background: var(--surface);
+  border: 1px solid var(--border-lt);
+  border-radius: 4px;
+}
+
+.konto-stat-label {
+  font-family: var(--font-sans);
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+}
+
+.konto-stat-value {
+  font-family: var(--font-serif);
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.konto-history-section {
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border-lt);
+}
+
+.konto-section-title {
+  font-family: var(--font-sans);
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  margin: 0 0 12px 0;
+}
+
+/* Einstellungen */
+.konto-settings-content {
+  margin-top: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.konto-setting-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px;
+  background: var(--surface);
+  border: 1px solid var(--border-lt);
+  border-radius: 4px;
+}
+
+.konto-setting-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+}
+
+.konto-setting-label {
+  font-family: var(--font-serif);
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--text);
+}
+
+.konto-setting-desc {
+  font-family: var(--font-sans);
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
+.konto-toggle {
+  position: relative;
+  display: inline-block;
+  width: 44px;
+  height: 24px;
+  flex-shrink: 0;
+}
+
+.konto-toggle input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.konto-toggle-slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: var(--surface2);
+  border: 1px solid var(--border-lt);
+  border-radius: 12px;
+  transition: background 0.2s;
+}
+
+.konto-toggle-slider::before {
+  position: absolute;
+  content: "";
+  height: 16px;
+  width: 16px;
+  left: 3px;
+  bottom: 3px;
+  background: var(--bg);
+  border-radius: 50%;
+  transition: transform 0.2s;
+}
+
+.konto-toggle input:checked + .konto-toggle-slider {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.konto-toggle input:checked + .konto-toggle-slider::before {
+  transform: translateX(20px);
+}
+
+.konto-toggle input:disabled + .konto-toggle-slider {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.konto-select {
+  font-family: var(--font-serif);
+  font-size: 0.875rem;
+  padding: 6px 10px;
+  background: var(--bg);
+  border: 1px solid var(--border-lt);
+  border-radius: 4px;
+  color: var(--text);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.konto-select:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Rechtliche Links */
+.konto-legal-links {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  margin-top: 16px;
+  border: 1px solid var(--border-lt);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.konto-legal-link {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border-lt);
+  text-decoration: none;
+  color: var(--text);
+  transition: background 0.12s;
+}
+
+.konto-legal-link:last-child {
+  border-bottom: none;
+}
+
+.konto-legal-link:hover {
+  background: var(--surface2);
+}
+
+.konto-legal-link-text {
+  font-family: var(--font-serif);
+  font-size: 0.9rem;
+}
+
+.konto-legal-link-arrow {
+  font-family: var(--font-sans);
+  font-size: 0.9rem;
+  color: var(--primary);
+  flex-shrink: 0;
+}
+
+@media (min-width: 700px) {
+  .konto-stats-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
