@@ -76,11 +76,12 @@ export function adminAuth(req, res) {
   const { key } = req.body || {}
   const adminKey = getAdminKey()
   if (!key) {
-    return res.status(400).json({ error: 'DIAG: kein Key im Body' })
+    logger.warn({ ip: req.ip }, 'Admin-Login fehlgeschlagen (fehlender Key)')
+    return res.status(401).json({ error: 'Falscher Admin-Key' })
   }
   if (!adminKey) {
     logger.error('ADMIN_KEY nicht geladen im Prozess!')
-    return res.status(500).json({ error: 'DIAG: ADMIN_KEY im Server nicht geladen (dotenv-Problem)' })
+    return res.status(500).json({ error: 'Interner Serverfehler' })
   }
   // Constant-Time-Vergleich gegen Timing-Attacks
   const receivedKey = String(key).trim()
@@ -90,17 +91,17 @@ export function adminAuth(req, res) {
     const paddedReceived = Buffer.alloc(adminBuf.length)
     receivedBuf.copy(paddedReceived)
     try { timingSafeEqual(paddedReceived, adminBuf) } catch {}
-    logger.warn({ ip: req.ip, gotLen: receivedBuf.length, expLen: adminBuf.length }, 'Admin-Login: Länge falsch')
-    return res.status(401).json({ error: `DIAG: Länge falsch — eingegeben: ${receivedBuf.length} Zeichen, im .env: ${adminBuf.length} Zeichen` })
+    logger.warn({ ip: req.ip }, 'Admin-Login fehlgeschlagen')
+    return res.status(401).json({ error: 'Falscher Admin-Key' })
   }
   try {
     if (!timingSafeEqual(receivedBuf, adminBuf)) {
-      logger.warn({ ip: req.ip }, 'Admin-Login: Bytes unterschiedlich')
-      return res.status(401).json({ error: 'DIAG: Länge ok, aber Bytes stimmen nicht — .env hat anderen Wert als eingegeben' })
+      logger.warn({ ip: req.ip }, 'Admin-Login fehlgeschlagen')
+      return res.status(401).json({ error: 'Falscher Admin-Key' })
     }
   } catch {
     logger.warn({ ip: req.ip }, 'Admin-Login fehlgeschlagen (timingSafeEqual-Fehler)')
-    return res.status(401).json({ error: 'DIAG: Fehler beim Byte-Vergleich' })
+    return res.status(401).json({ error: 'Falscher Admin-Key' })
   }
   const { token, expiresAt } = createSession()
   res.cookie('admin_token', token, {

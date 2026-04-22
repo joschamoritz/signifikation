@@ -513,6 +513,7 @@ async function loadHealth() {
 
     const upMin  = Math.floor(data.uptime / 60)
     const uptime = upMin < 60 ? `${upMin} min` : `${Math.floor(upMin / 60)} h`
+    const processLabel = data.process?.pid ? `PID ${data.process.pid}` : 'PID -'
 
     container.innerHTML = [
       badge('Server', true, `${uptime} · ${data.memMb} MB`),
@@ -524,13 +525,14 @@ async function loadHealth() {
     const metricHealth = document.getElementById('metric-health')
     const metricHealthSub = document.getElementById('metric-health-sub')
     if (metricHealth) metricHealth.textContent = dbOk(data.wortprofilDb) && dbOk(data.belegeDb) ? 'Stabil' : 'Warnung'
-    if (metricHealthSub) metricHealthSub.textContent = `${uptime} · ${data.memMb} MB`
+    if (metricHealthSub) metricHealthSub.textContent = `${uptime} · ${data.memMb} MB · ${processLabel}`
 
     const details = document.getElementById('system-health-details')
     if (details) {
       details.innerHTML = [
         `<div class="health-detail-item"><span>Uptime</span><strong>${esc(uptime)}</strong></div>`,
         `<div class="health-detail-item"><span>Memory</span><strong>${esc(String(data.memMb))} MB</strong></div>`,
+        `<div class="health-detail-item"><span>Prozess</span><strong>${esc(processLabel)}</strong></div>`,
         `<div class="health-detail-item"><span>Environment</span><strong>${esc(data.env)}</strong></div>`,
         `<div class="health-detail-item"><span>Letzter Eintrag</span><strong>${esc(data.lastEntry || '—')}</strong></div>`,
       ].join('')

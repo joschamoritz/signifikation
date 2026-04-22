@@ -4,6 +4,14 @@ import { join } from 'path'
 import db from '../db.js'
 import { belegeVerfuegbar } from '../belege.js'
 
+function getProcessFingerprint() {
+  return {
+    pid: process.pid,
+    startedAt: new Date(Date.now() - Math.floor(process.uptime() * 1000)).toISOString(),
+    appVersion: process.env.npm_package_version || null,
+  }
+}
+
 const countStatsRowsStmt = db.prepare(`
   SELECT
     COUNT(*) AS totalRows,
@@ -61,6 +69,7 @@ export function createAdminOpsRouter({
       res.json({
         uptimeSec: Math.floor(process.uptime()),
         rssMb: Math.round(process.memoryUsage().rss / 1024 / 1024),
+        process: getProcessFingerprint(),
         db: {
           path: join(DATA, 'signifikation.db'),
           sizeBytes: dbSizeBytes,
@@ -107,6 +116,7 @@ export function createAdminOpsRouter({
       status: 'ok',
       uptime: Math.floor(process.uptime()),
       env: process.env.NODE_ENV === 'production' ? 'production' : 'development',
+      process: getProcessFingerprint(),
       lastEntry,
       memMb: Math.round(process.memoryUsage().rss / 1024 / 1024),
       wortprofilDb,
