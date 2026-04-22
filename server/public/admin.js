@@ -371,6 +371,8 @@ async function doLogin() {
       scheduleSessionRefresh()
       initDashboard()
     } else {
+      const body = await r.json().catch(() => ({}))
+      errEl.textContent = body.error ? `${body.error} (${r.status})` : `Login fehlgeschlagen (${r.status})`
       errEl.style.display = 'block'
       input.value = ''
       input.focus()
