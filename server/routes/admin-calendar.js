@@ -24,6 +24,7 @@ export function createAdminCalendarRouter({
   loadWortZwilling,
   loadZeitenwende,
   getLemmataIndex,
+  invalidateCache,
   stmts,
   lemmaToRow,
   fetchLemma,
@@ -354,6 +355,7 @@ export function createAdminCalendarRouter({
         ids.push(entry.id)
       }
 
+      invalidateCache('lemmata.json')
       kalender[datum] = ids
 
       let zeitreiseOk = null

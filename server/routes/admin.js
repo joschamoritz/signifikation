@@ -5,7 +5,7 @@ import { fetchLemma, fetchBonusQuestion, fetchRelation, fetchZeitreise, fetchZei
 import { fetchBelege } from '../belege.js'
 import { fetchWiktionary } from '../wiktionary.js'
 import { fetchWortZwilling } from '../wortzwilling.js'
-import { load, loadKalender, loadDailyContentMaps, loadMutableDailyContentMaps, save, saveDailyContentMaps, loadZeitreise, loadWortZwilling, loadZeitenwende, getLemmataIndex, getCacheMetrics, DATA, stmts, lemmaToRow, replaceAllAdminData, getStatsWindow, getStatsTimeline, loadBackupFiles } from '../store.js'
+import { load, loadKalender, loadDailyContentMaps, loadMutableDailyContentMaps, save, saveDailyContentMaps, loadZeitreise, loadWortZwilling, loadZeitenwende, getLemmataIndex, invalidateCache, getCacheMetrics, DATA, stmts, lemmaToRow, replaceAllAdminData, getStatsWindow, getStatsTimeline, loadBackupFiles } from '../store.js'
 import { getCacheMetrics as getQueryCacheMetrics, clearCache as clearQueryCache } from '../query-cache.js'
 import { adminLimiter, loginLimiter, uploadLimiter } from '../middleware/rateLimiter.js'
 import { requireAuth, adminAuth, adminLogout, adminError, serverError, createSession } from '../middleware/auth.js'
@@ -132,6 +132,7 @@ router.use(createAdminCalendarRouter({
   loadWortZwilling,
   loadZeitenwende,
   getLemmataIndex,
+  invalidateCache,
   stmts,
   lemmaToRow,
   fetchLemma,
