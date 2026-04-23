@@ -224,8 +224,8 @@ describe('admin routes integration', () => {
     expect(Array.isArray(payload.imported)).toBe(true)
 
     const kalender = loadReadOnly('kalender.json')
-    expect(Array.isArray(kalender[datum])).toBe(true)
-    expect(kalender[datum]).toHaveLength(3)
+    expect(Array.isArray(kalender[datum]?.ids)).toBe(true)
+    expect(kalender[datum]?.ids).toHaveLength(3)
   })
 
   it('POST /admin/backup/restore akzeptiert vorhandenes Backup-Format', async () => {
@@ -335,7 +335,7 @@ describe('admin routes integration', () => {
     const kalenderAfter = loadReadOnly('kalender.json')
     const lemmataAfter = loadReadOnly('lemmata.json')
 
-    expect(kalenderAfter[markerDatum]).toEqual([markerId])
+    expect(kalenderAfter[markerDatum]).toEqual({ ids: [markerId], thema: '' })
     expect(lemmataAfter.some((entry) => entry.id === markerId)).toBe(false)
 
     await save('kalender.json', originalKalender)
