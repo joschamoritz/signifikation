@@ -56,20 +56,20 @@ export const stmts = {
   // kalender
   getAllKalender:    db.prepare('SELECT * FROM kalender'),
   deleteAllKalender: db.prepare('DELETE FROM kalender'),
-  upsertKalender:   db.prepare('INSERT OR REPLACE INTO kalender (datum, ids) VALUES (@datum, @ids)'),
+  upsertKalender:   db.prepare('INSERT OR REPLACE INTO kalender (datum, ids, thema) VALUES (@datum, @ids, @thema)'),
 
   // zeitreise
   getAllZeitreise:   db.prepare('SELECT * FROM zeitreise'),
   deleteAllZeitreise: db.prepare('DELETE FROM zeitreise'),
   upsertZeitreise:  db.prepare(
-    'INSERT OR REPLACE INTO zeitreise (datum,lemma,paare,perioden,wortart) VALUES (@datum,@lemma,@paare,@perioden,@wortart)'
+    'INSERT OR REPLACE INTO zeitreise (datum,lemma,paare,perioden,wortart,notiz,link) VALUES (@datum,@lemma,@paare,@perioden,@wortart,@notiz,@link)'
   ),
 
   // wortzwilling
   getAllWortzwilling:  db.prepare('SELECT * FROM wortzwilling'),
   deleteAllWortzwilling: db.prepare('DELETE FROM wortzwilling'),
   upsertWortzwilling: db.prepare(
-    'INSERT OR REPLACE INTO wortzwilling (datum,wortA,wortB,pos,kollokatoren) VALUES (@datum,@wortA,@wortB,@pos,@kollokatoren)'
+    'INSERT OR REPLACE INTO wortzwilling (datum,wortA,wortB,pos,kollokatoren,notiz,link) VALUES (@datum,@wortA,@wortB,@pos,@kollokatoren,@notiz,@link)'
   ),
 
   // zeitenwende

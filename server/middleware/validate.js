@@ -65,17 +65,24 @@ export const bonusQuerySchema = z.object({
 
 /** POST /admin/tag */
 export const adminTagSchema = z.object({
-  datum:           DATUM_MMDD,
-  woerter:         z.array(z.string().min(1).max(100)).length(3, 'genau 3 Wörter erforderlich'),
-  notizen:         z.array(z.string().max(500)).optional().default([]),
-  links:           z.array(z.string().max(500)).optional().default([]),
-  definitionen:    z.array(z.string().max(2000)).optional().default([]),
-  positionen:      z.array(POS).optional().default([]),
-  zeitreise_lemma:    z.string().optional().default(''),
-  zeitreise_wortart:  POS.optional().default('Substantiv'),
-  zwilling_paar:      z.union([z.array(z.string()).length(2), z.null()]).optional().default(null),
-  zwilling_pos:       POS,
-  zeitenwende_lemma:  z.string().optional().default(''),
+  datum:                DATUM_MMDD,
+  woerter:              z.array(z.string().min(1).max(100)).length(3, 'genau 3 Wörter erforderlich'),
+  notizen:              z.array(z.string().max(500)).optional().default([]),
+  links:                z.array(z.string().max(500)).optional().default([]),
+  definitionen:         z.array(z.string().max(2000)).optional().default([]),
+  positionen:           z.array(POS).optional().default([]),
+  thema:                z.string().max(200).optional().default(''),
+  zeitreise_lemma:      z.string().optional().default(''),
+  zeitreise_wortart:    POS.optional().default('Substantiv'),
+  zeitreise_notiz:      z.string().max(500).optional().default(''),
+  zeitreise_link:       z.string().max(500).optional().default(''),
+  zwilling_paar:        z.union([z.array(z.string()).length(2), z.null()]).optional().default(null),
+  zwilling_pos:         POS,
+  zwilling_notiz:       z.string().max(500).optional().default(''),
+  zwilling_link:        z.string().max(500).optional().default(''),
+  zeitenwende_lemma:    z.string().optional().default(''),
+  zeitenwende_notiz:    z.string().max(500).optional().default(''),
+  zeitenwende_link:     z.string().max(500).optional().default(''),
 })
 
 

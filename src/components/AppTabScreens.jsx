@@ -6,6 +6,7 @@ export default function AppTabScreens({
   phase,
   lemmata,
   apiError,
+  thema,
   playedGames,
   allPlayed,
   zeitreise,
@@ -40,6 +41,7 @@ export default function AppTabScreens({
         loading={!lemmata && !apiError}
         error={apiError}
         lemmata={lemmata || []}
+        thema={thema || ''}
         playedGames={playedGames}
         allPlayed={!!allPlayed}
         zeitreise={zeitreise}

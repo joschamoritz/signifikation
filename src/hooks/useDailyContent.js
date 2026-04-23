@@ -16,6 +16,7 @@ export function useDailyContent() {
   const [apiError, setApiError] = useState(null)
   const [serverDatum, setServerDatum] = useState(null)
   const [serverYear, setServerYear] = useState(null)
+  const [thema, setThema] = useState('')
 
   const [zeitreise, setZeitreise] = useState(null)
   const [zeitreiseError, setZeitreiseError] = useState(false)
@@ -36,10 +37,11 @@ export function useDailyContent() {
   useEffect(() => {
     fetchWithRetry(`${API}/heute`)
       .then((r) => r.ok ? r.json() : r.json().then((d) => Promise.reject(new Error(d.error || `HTTP ${r.status}`))))
-      .then(({ datum, year, lemmata }) => {
+      .then(({ datum, year, lemmata, thema }) => {
         setServerDatum(datum)
         if (year) setServerYear(year)
         setLemmata(lemmata)
+        if (thema) setThema(thema)
         setZrPlayed(getZRToday(`sig_zr_${datum}`))
         setWzPlayed(getWZToday(`sig_wz_${datum}`))
         setZwPlayed(lsParse(lsGet(`sig_zw_${datum}`), null))
@@ -111,6 +113,7 @@ export function useDailyContent() {
     apiError,
     serverDatum,
     serverYear,
+    thema,
     zeitreise,
     zeitreiseError,
     retryZeitreise,

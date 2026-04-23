@@ -128,6 +128,11 @@
             <input type="date" id="datum">
           </div>
 
+          <div>
+            <label for="thema">Tagesthema <span style="font-weight:400;color:var(--muted);font-size:0.8rem">(erscheint im Header der App)</span></label>
+            <input type="text" id="thema" placeholder="z.B. Tag der Arbeit, Walpurgisnacht …">
+          </div>
+
           <button class="mode-toggle" id="koll-toggle" data-action="toggle-mode" data-mode="koll">
             <span>Kollokationen</span>
             <span class="toggle-arrow" id="koll-arrow">›</span>
@@ -181,6 +186,8 @@
                 </select>
               </div>
             </div>
+            <input type="text" id="wz-notiz" class="notiz-input" placeholder="Notiz (erscheint auf der Auswahlseite)">
+            <input type="url"  id="wz-link"  class="notiz-input" placeholder="Link">
             <p style="font-size:0.8rem;color:var(--muted);font-style:italic">
               Beide Wortprofile werden über DWDS abgerufen; distinkte Kollokatoren automatisch ermittelt.
             </p>
@@ -197,6 +204,8 @@
                 <input type="text" id="zw-lemma" placeholder="Lemma">
               </div>
             </div>
+            <input type="text" id="zw-notiz" class="notiz-input" placeholder="Notiz (erscheint auf der Auswahlseite)">
+            <input type="url"  id="zw-link"  class="notiz-input" placeholder="Link">
             <p style="font-size:0.8rem;color:var(--muted);font-style:italic">
               10 distinktive Kollokatoren (5 vor 2000, 5 nach 2000) werden automatisch aus der Zeitreise-DB ermittelt.
             </p>
@@ -221,6 +230,8 @@
                 </select>
               </div>
             </div>
+            <input type="text" id="zr-notiz" class="notiz-input" placeholder="Notiz (erscheint auf der Auswahlseite)">
+            <input type="url"  id="zr-link"  class="notiz-input" placeholder="Link">
             <p style="font-size:0.8rem;color:var(--muted);font-style:italic">
               5 Kollokatoren aus 5 verschiedenen Perioden werden automatisch aus der eigenen Zeitreise-DB abgerufen.
             </p>

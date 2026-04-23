@@ -1,3 +1,5 @@
+import { normalizeKalenderShape } from '../store-daily-content.js'
+
 export function sanitizeBackupBundle(payload) {
   if (!payload || typeof payload !== 'object' || !payload.files || typeof payload.files !== 'object') {
     throw new Error('Ungültiges Backup-Format')
@@ -5,7 +7,9 @@ export function sanitizeBackupBundle(payload) {
 
   const files = payload.files
   const lemmata = Array.isArray(files['lemmata.json']) ? files['lemmata.json'] : []
-  const kalender = files['kalender.json'] && typeof files['kalender.json'] === 'object' ? files['kalender.json'] : {}
+  const rawKalender = files['kalender.json'] && typeof files['kalender.json'] === 'object' ? files['kalender.json'] : {}
+  // Alte Backup-Formate (datum → id[]) auf neue Shape (datum → { ids, thema }) normalisieren
+  const kalender = normalizeKalenderShape(rawKalender)
   const zeitreise = files['zeitreise.json'] && typeof files['zeitreise.json'] === 'object' ? files['zeitreise.json'] : {}
   const wortzwilling = files['wortzwilling.json'] && typeof files['wortzwilling.json'] === 'object' ? files['wortzwilling.json'] : {}
   const zeitenwende = files['zeitenwende.json'] && typeof files['zeitenwende.json'] === 'object' ? files['zeitenwende.json'] : {}

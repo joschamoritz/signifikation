@@ -17,6 +17,10 @@ export function useAppGameScreens({
     onRestart: () => startVT(() => handleRestart()),
     onWortzwillingBack: () => startVT(() => setPhase('home')),
     onZeitenwendeBack: () => startVT(() => backToHome()),
+    // Back-Handler für Selection-Screens (gehen zurück zur Startseite)
+    onZeitreiseSelectionBack: () => startVT(() => setPhase('home')),
+    onWortzwillingSelectionBack: () => startVT(() => setPhase('home')),
+    onZeitenwendeSelectionBack: () => startVT(() => setPhase('home')),
   }), [
     backToHome,
     backToSelection,

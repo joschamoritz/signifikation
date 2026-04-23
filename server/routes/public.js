@@ -35,11 +35,13 @@ router.get('/api/v1/heute', (req, res) => {
     const kalender       = loadKalender()
     const { byId }       = getLemmataIndex()
 
-    const ids = kalender[datum]
-    if (!ids) return res.status(404).json({ error: `Kein Eintrag für ${datum}` })
+    const entry = kalender[datum]
+    if (!entry) return res.status(404).json({ error: `Kein Eintrag für ${datum}` })
 
+    const ids     = Array.isArray(entry) ? entry : (entry.ids ?? [])
+    const thema   = Array.isArray(entry) ? '' : (entry.thema ?? '')
     const lemmata = ids.map(id => byId.get(id)).filter(Boolean)
-    res.json({ datum, year, lemmata })
+    res.json({ datum, year, lemmata, thema })
   } catch (err) {
     serverError(res, err)
   }
@@ -52,10 +54,10 @@ router.get('/api/v1/zeitreise', (req, res) => {
     const zeitreise = loadZeitreise() ?? {}
     const entry     = zeitreise[datum]
     if (!entry) return res.status(404).json({ error: `Kein Zeitreise-Eintrag für ${datum}` })
-    // pos aus lemmata.json ergänzen, falls vorhanden
+    // pos aus lemmata-Index ergänzen, falls vorhanden
     const { byLemma } = getLemmataIndex()
     const lemmaData   = byLemma.get(entry.lemma)
-    res.json({ pos: lemmaData?.pos ?? null, ...entry })
+    res.json({ pos: lemmaData?.pos ?? null, notiz: entry.notiz ?? '', link: entry.link ?? '', ...entry })
   } catch (err) {
     serverError(res, err)
   }
@@ -72,6 +74,8 @@ router.get('/api/v1/wortzwilling', (req, res) => {
     const safe = {
       ...entry,
       kollokatoren: entry.kollokatoren.map(({ wort, zuordnung }) => ({ wort, zuordnung })),
+      notiz: entry.notiz ?? '',
+      link:  entry.link  ?? '',
     }
     res.json(safe)
   } catch (err) {
@@ -94,7 +98,7 @@ router.get('/api/v1/zeitenwende', async (req, res) => {
       cacheSet(cacheKey, wikt)
     }
 
-    res.json({ ...entry, ipa: wikt.ipa || '', definitionen: wikt.definitionen || [] })
+    res.json({ ...entry, ipa: wikt.ipa || '', definitionen: wikt.definitionen || [], notiz: entry.notiz ?? '', link: entry.link ?? '' })
   } catch (err) {
     logger.error({ err }, 'Zeitenwende-Abruf fehlgeschlagen')
     serverError(res, err)

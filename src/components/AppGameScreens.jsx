@@ -1,5 +1,8 @@
 import { Suspense } from 'react'
 import LemmaSelection from './LemmaSelection'
+import ZeitreiseSelection from './ZeitreiseSelection'
+import WortZwillingSelection from './WortZwillingSelection'
+import ZeitenwendeSelection from './ZeitenwendeSelection'
 import Quiz from './Quiz'
 import { BonusRound, FreeBonusRound } from './BonusRound'
 import Results from './Results'
@@ -14,6 +17,7 @@ function ScreenFallback() {
 
 export default function AppGameScreens({
   phase,
+  thema,
   lemmata,
   playedIds,
   handleLemmaSelect,
@@ -29,18 +33,24 @@ export default function AppGameScreens({
   handleRestart,
   zeitreise,
   onZeitreiseBack,
+  onZeitreiseSelectionBack,
+  onZeitreisePlay,
   handleZeitreiseFinish,
   zrViewOnly,
   zrPlayed,
   Zeitreise,
   wortzwilling,
   onWortzwillingBack,
+  onWortzwillingSelectionBack,
+  onWortzwillingPlay,
   handleWZFinish,
   wzViewOnly,
   wzPlayed,
   WortZwilling,
   zeitenwende,
   onZeitenwendeBack,
+  onZeitenwendeSelectionBack,
+  onZeitenwendePlay,
   handleZeitenwendeFinish,
   zwViewOnly,
   zwPlayed,
@@ -51,10 +61,35 @@ export default function AppGameScreens({
       {phase === 'selection' && lemmata && (
         <LemmaSelection
           lemmata={lemmata}
+          thema={thema}
           playedIds={playedIds}
           onSelect={handleLemmaSelect}
           onViewResult={handleViewResult}
           onBack={onBackToHome}
+        />
+      )}
+      {phase === 'zeitreise-selection' && zeitreise && (
+        <ZeitreiseSelection
+          data={zeitreise}
+          thema={thema}
+          onPlay={onZeitreisePlay}
+          onBack={onZeitreiseSelectionBack}
+        />
+      )}
+      {phase === 'wortzwilling-selection' && wortzwilling && (
+        <WortZwillingSelection
+          data={wortzwilling}
+          thema={thema}
+          onPlay={onWortzwillingPlay}
+          onBack={onWortzwillingSelectionBack}
+        />
+      )}
+      {phase === 'zeitenwende-selection' && zeitenwende && (
+        <ZeitenwendeSelection
+          data={zeitenwende}
+          thema={thema}
+          onPlay={onZeitenwendePlay}
+          onBack={onZeitenwendeSelectionBack}
         />
       )}
       {phase === 'quiz' && selectedLemma && !isBonus && (

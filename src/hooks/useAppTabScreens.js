@@ -7,6 +7,7 @@ export function useAppTabScreens({
   setPhase,
   lemmata,
   apiError,
+  thema,
   playedGames,
   allPlayed,
   zeitreise,
@@ -36,6 +37,7 @@ export function useAppTabScreens({
     phase,
     lemmata,
     apiError,
+    thema,
     playedGames,
     allPlayed,
     zeitreise,
@@ -46,7 +48,7 @@ export function useAppTabScreens({
       homeStart: () => startVT(() => setPhase(lemmata && !apiError ? 'selection' : 'home')),
       play: () => startVT(() => {
         setZrViewOnly(false)
-        setPhase('zeitreise')
+        setPhase('zeitreise-selection')
       }),
     },
     onViewZeitreise: () => startVT(() => {
@@ -60,7 +62,7 @@ export function useAppTabScreens({
     onPlayWortzwilling: {
       play: () => startVT(() => {
         setWzViewOnly(false)
-        setPhase('wortzwilling')
+        setPhase('wortzwilling-selection')
       }),
     },
     onViewWortzwilling: () => startVT(() => {
@@ -75,7 +77,7 @@ export function useAppTabScreens({
     onPlayZeitenwende: {
       play: () => startVT(() => {
         setZwViewOnly(false)
-        setPhase('zeitenwende')
+        setPhase('zeitenwende-selection')
       }),
     },
     onViewZeitenwende: () => startVT(() => {
@@ -94,6 +96,7 @@ export function useAppTabScreens({
     phase,
     lemmata,
     apiError,
+    thema,
     playedGames,
     allPlayed,
     zeitreise,
@@ -122,11 +125,29 @@ export function useAppTabScreens({
     startVT(() => setPhase('home'))
   }, [setPhase, startVT])
 
+  const goToZeitreiseGame = useCallback(() => startVT(() => {
+    setZrViewOnly(false)
+    setPhase('zeitreise')
+  }), [setPhase, startVT])
+
+  const goToWortzwillingGame = useCallback(() => startVT(() => {
+    setWzViewOnly(false)
+    setPhase('wortzwilling')
+  }), [setPhase, startVT])
+
+  const goToZeitenwendeGame = useCallback(() => startVT(() => {
+    setZwViewOnly(false)
+    setPhase('zeitenwende')
+  }), [setPhase, startVT])
+
   return {
     tabScreens,
     zrViewOnly,
     wzViewOnly,
     zwViewOnly,
     goToZeitreise,
+    goToZeitreiseGame,
+    goToWortzwillingGame,
+    goToZeitenwendeGame,
   }
 }

@@ -62,7 +62,7 @@ export function createAdminCalendarRouter({
         }
 
         const deletedData = {
-          ids: kalender[datum],
+          kalender: kalender[datum],
           zeitreise: zeitreise[datum],
           wortzwilling: wortzwilling[datum],
           zeitenwende: zeitenwende[datum],
@@ -115,8 +115,8 @@ export function createAdminCalendarRouter({
         }
 
         await save('lemmata.json', lemmataDB)
-        const existed = Array.isArray(kalender[entry.datum])
-        kalender[entry.datum] = ids
+        const existed = !!kalender[entry.datum]
+        kalender[entry.datum] = { ids, thema: '' }
         imported.push({ datum: entry.datum, ids, woerter: entry.woerter })
         if (existed) replaced.push(entry.datum)
 
@@ -182,8 +182,9 @@ export function createAdminCalendarRouter({
     const { datum } = req.params
     try {
       const { kalender, zeitreise, wortzwilling, zeitenwende } = loadDailyContentMaps()
-      const ids = kalender[datum]
-      if (!ids) return res.status(404).json({ error: 'Kein Eintrag fuer dieses Datum' })
+      const kalEintrag = kalender[datum]
+      if (!kalEintrag) return res.status(404).json({ error: 'Kein Eintrag fuer dieses Datum' })
+      const ids = Array.isArray(kalEintrag) ? kalEintrag : (kalEintrag.ids ?? [])
 
       const { byId } = getLemmataIndex()
 
@@ -322,7 +323,13 @@ export function createAdminCalendarRouter({
   })
 
   router.post('/admin/tag', adminLimiter, requireAuth, validate(adminTagSchema), async (req, res) => {
-    const { datum, woerter, notizen, links, definitionen, positionen, zeitreise_lemma, zeitreise_wortart, zwilling_paar, zwilling_pos, zeitenwende_lemma } = req.body
+    const {
+      datum, woerter, notizen, links, definitionen, positionen,
+      thema,
+      zeitreise_lemma, zeitreise_wortart, zeitreise_notiz, zeitreise_link,
+      zwilling_paar, zwilling_pos, zwilling_notiz, zwilling_link,
+      zeitenwende_lemma, zeitenwende_notiz, zeitenwende_link,
+    } = req.body
 
     try {
       const { kalender, zeitreise, wortzwilling, zeitenwende } = loadMutableDailyContentMaps()
@@ -356,7 +363,7 @@ export function createAdminCalendarRouter({
       }
 
       invalidateCache('lemmata.json')
-      kalender[datum] = ids
+      kalender[datum] = { ids, thema: thema || '' }
 
       let zeitreiseOk = null
       delete zeitreise[datum]
@@ -365,7 +372,7 @@ export function createAdminCalendarRouter({
         try {
           const zr = await fetchZeitreise(zeitreise_lemma.trim())
           if (zr) {
-            zeitreise[datum] = { ...zr, wortart: zeitreise_wortart?.trim() || 'Substantiv' }
+            zeitreise[datum] = { ...zr, wortart: zeitreise_wortart?.trim() || 'Substantiv', notiz: zeitreise_notiz || '', link: zeitreise_link || '' }
             zeitreiseOk = true
             logger.info(`Zeitreise gespeichert: ${zr.paare.map((p) => `${p.jahrzehnt}:${p.kollokat}`).join(', ')}`)
           } else {
@@ -385,7 +392,7 @@ export function createAdminCalendarRouter({
         try {
           const wz = await fetchWortZwilling(zwilling_paar[0].trim(), zwilling_paar[1].trim(), zwilling_pos)
           if (wz) {
-            wortzwilling[datum] = wz
+            wortzwilling[datum] = { ...wz, notiz: zwilling_notiz || '', link: zwilling_link || '' }
             zwillingOk = true
           } else {
             zwillingOk = false
@@ -404,7 +411,7 @@ export function createAdminCalendarRouter({
         try {
           const zw = await fetchZeitenwende(zeitenwende_lemma.trim())
           if (zw) {
-            zeitenwende[datum] = zw
+            zeitenwende[datum] = { ...zw, notiz: zeitenwende_notiz || '', link: zeitenwende_link || '' }
             zeitenwendeOk = true
             logger.info(`Zeitenwende gespeichert: ${zw.words.length} Wörter für „${zw.lemma}"`)
           } else {
@@ -464,7 +471,8 @@ export function createAdminCalendarRouter({
       const { kalender, zeitreise, wortzwilling, zeitenwende } = loadDailyContentMaps()
       const { byId } = getLemmataIndex()
       const result = {}
-      for (const [datum, ids] of Object.entries(kalender)) {
+      for (const [datum, eintrag] of Object.entries(kalender)) {
+        const ids = Array.isArray(eintrag) ? eintrag : (eintrag.ids ?? [])
         const lemmata = ids.map((id) => {
           const l = byId.get(id)
           return { id, lemma: l?.lemma || id, notiz: l?.notiz || '' }
@@ -495,22 +503,33 @@ export function createAdminCalendarRouter({
     if (!/^\d{2}-\d{2}$/.test(req.params.datum)) return res.status(400).json({ error: 'Ungültiges Datumsformat' })
     const { kalender, zeitreise, wortzwilling, zeitenwende } = loadDailyContentMaps()
     const { byId } = getLemmataIndex()
-    const ids = kalender[req.params.datum]
-    if (!ids) return res.status(404).json({ error: 'Kein Eintrag' })
+    const kalEintrag = kalender[req.params.datum]
+    if (!kalEintrag) return res.status(404).json({ error: 'Kein Eintrag' })
+    const ids = Array.isArray(kalEintrag) ? kalEintrag : (kalEintrag.ids ?? [])
+    const thema = Array.isArray(kalEintrag) ? '' : (kalEintrag.thema ?? '')
     const lemmata = ids.map((id) => byId.get(id)).filter(Boolean)
     const wz = wortzwilling[req.params.datum]
+    const zr = zeitreise[req.params.datum]
+    const ze = zeitenwende[req.params.datum]
     res.json({
       datum: req.params.datum,
+      thema,
       woerter: lemmata.map((l) => l.lemma),
       positionen: lemmata.map((l) => l.pos || 'Substantiv'),
       notizen: lemmata.map((l) => l.notiz || ''),
       links: lemmata.map((l) => l.link || ''),
       definitionen: lemmata.map((l) => l.definition || ''),
-      zeitreise_lemma: zeitreise[req.params.datum]?.lemma || '',
-      zeitreise_wortart: zeitreise[req.params.datum]?.wortart || 'Substantiv',
+      zeitreise_lemma: zr?.lemma || '',
+      zeitreise_wortart: zr?.wortart || 'Substantiv',
+      zeitreise_notiz: zr?.notiz || '',
+      zeitreise_link: zr?.link || '',
       zwilling_paar: wz ? [wz.wortA, wz.wortB] : [],
       zwilling_pos: wz?.pos || 'Substantiv',
-      zeitenwende_lemma: zeitenwende[req.params.datum]?.lemma || '',
+      zwilling_notiz: wz?.notiz || '',
+      zwilling_link: wz?.link || '',
+      zeitenwende_lemma: ze?.lemma || '',
+      zeitenwende_notiz: ze?.notiz || '',
+      zeitenwende_link: ze?.link || '',
     })
   })
 

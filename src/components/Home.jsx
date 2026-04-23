@@ -20,6 +20,7 @@ function LockIcon() {
 
 export default function Home({
   onStart, loading, error, lemmata = [],
+  thema = '',
   playedGames = [], allPlayed = false,
   zeitreise = null, zeitreiseError = false, onRetryZeitreise,
   zrPlayed = null, onPlayZeitreise, onViewZeitreise,
@@ -220,15 +221,19 @@ export default function Home({
           </div>
         )}
 
-        {/* ── Raster: Wörter des Tages ─────────────────────── */}
-        <nav className="test-raster" aria-label="Wörter des Tages">
-          <span className="test-raster-label" aria-hidden="true">Wörter des Tages</span>
-          <div className="test-raster-words">
-            {lemmata.length > 0
-              ? lemmata.map(l => <span key={l.id} className="test-raster-word">{l.lemma}</span>)
-              : <span className="test-raster-word" style={{ color: 'var(--t-disabled)' }}>—</span>
-            }
-          </div>
+        {/* ── Raster: Thema / Wörter des Tages ────────────── */}
+        <nav className="test-raster" aria-label={thema ? 'Thema des Tages' : 'Wörter des Tages'}>
+          <span className="test-raster-label" aria-hidden="true">{thema ? 'Thema des Tages' : 'Wörter des Tages'}</span>
+          {thema ? (
+            <div className="test-raster-thema">{thema}</div>
+          ) : (
+            <div className="test-raster-words">
+              {lemmata.length > 0
+                ? lemmata.map(l => <span key={l.id} className="test-raster-word">{l.lemma}</span>)
+                : <span className="test-raster-word" style={{ color: 'var(--t-disabled)' }}>—</span>
+              }
+            </div>
+          )}
           <div className="test-raster-end">
             <span className="test-raster-folio" aria-hidden="true">KW {kw} · {today.getFullYear()}</span>
             {hasPlayed && (

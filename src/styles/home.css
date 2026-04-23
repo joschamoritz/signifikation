@@ -442,6 +442,66 @@
 
 .selection-header { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 12px }
 
+/* Thema-Zeile auf Auswahlseiten */
+.selection-thema {
+  font-family: var(--font-sans);
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--red);
+  opacity: 0.85;
+}
+
+/* Thema im Raster (Home) — ersetzt test-raster-words wenn Thema vorhanden */
+.test-raster-thema {
+  font-family: var(--font-serif);
+  font-size: 0.9rem;
+  font-style: italic;
+  color: var(--text);
+  flex: 1;
+  line-height: 1.3;
+  padding-inline: 6px;
+}
+
+/* Einzelkarte für sekundäre Spielmodi (Zeitreise, Wort-Zwilling, Zeitenwende) */
+.secondary-selection-card {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  border-top: 2.5px double var(--border);
+  border-bottom: 2.5px double var(--border);
+  padding: 24px 0;
+  animation: screenIn 0.2s ease-out both;
+}
+
+.secondary-selection-description {
+  font-size: 0.875rem;
+  color: var(--muted);
+  line-height: 1.55;
+  margin-top: 10px;
+}
+
+.secondary-selection-notiz {
+  font-size: 0.875rem;
+  color: var(--text);
+  line-height: 1.55;
+  padding: 10px 0 0;
+  border-top: 1px solid var(--border);
+  margin-top: 4px;
+}
+
+.secondary-selection-footer {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 4px;
+}
+
+.secondary-selection-play-btn {
+  min-width: 180px;
+  text-align: center;
+  justify-content: center;
+}
 
 .selection-prompt {
   font-size: 0.95rem;

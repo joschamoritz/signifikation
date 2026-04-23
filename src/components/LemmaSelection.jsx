@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { API } from '../config'
 
 
-export default function LemmaSelection({ lemmata, playedIds = [], onSelect, onViewResult, onBack }) {
+export default function LemmaSelection({ lemmata, thema, playedIds = [], onSelect, onViewResult, onBack }) {
   const [closedNotiz, setClosedNotiz] = useState(() => new Set(lemmata.map(l => l.id)))
   // Lemmata mit gespeicherter IPA direkt ins Map laden; Rest per API nachholen
   const [ipaMap, setIpaMap] = useState(() =>
@@ -40,6 +40,7 @@ export default function LemmaSelection({ lemmata, playedIds = [], onSelect, onVi
         <button className="back-btn" onClick={onBack} aria-label="Zurück zur Startseite"><span className="back-btn-chevron">‹</span>Zurück</button>
         <span className="quiz-game-badge">Kollokationen</span>
         <h1 className="sr-only">Wortauswahl</h1>
+        {thema && <p className="selection-thema">{thema}</p>}
         <p className="quiz-instruction">Wähle ein Wort und finde seine stärksten Kollokationen</p>
       </header>
 

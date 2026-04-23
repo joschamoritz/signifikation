@@ -273,6 +273,24 @@ function hasColumn(tableName, columnName) {
   return rows.some((row) => row.name === columnName)
 }
 
+// ── Migrationen für neue Spalten ─────────────────────────────────
+if (!hasColumn('kalender', 'thema')) {
+  logger.info('Migration: kalender.thema hinzufügen')
+  db.exec(`ALTER TABLE kalender ADD COLUMN thema TEXT NOT NULL DEFAULT ''`)
+}
+
+if (!hasColumn('zeitreise', 'notiz')) {
+  logger.info('Migration: zeitreise.notiz + zeitreise.link hinzufügen')
+  db.exec(`ALTER TABLE zeitreise ADD COLUMN notiz TEXT NOT NULL DEFAULT ''`)
+  db.exec(`ALTER TABLE zeitreise ADD COLUMN link  TEXT NOT NULL DEFAULT ''`)
+}
+
+if (!hasColumn('wortzwilling', 'notiz')) {
+  logger.info('Migration: wortzwilling.notiz + wortzwilling.link hinzufügen')
+  db.exec(`ALTER TABLE wortzwilling ADD COLUMN notiz TEXT NOT NULL DEFAULT ''`)
+  db.exec(`ALTER TABLE wortzwilling ADD COLUMN link  TEXT NOT NULL DEFAULT ''`)
+}
+
 if (!hasColumn('stats', 'user_id')) {
   logger.info('Migriere Tabelle stats: fuege user_id hinzu')
   try {
