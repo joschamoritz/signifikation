@@ -203,6 +203,15 @@ router.get('/api/v1/archiv', validate(archivQuerySchema, 'query'), async (req, r
   }
 })
 
+/** GET /api/v1/wiktionary – IPA + Definitionen via Wiktionary */
+router.get('/api/v1/wiktionary', validate(qQuerySchema, 'query'), async (req, res) => {
+  const { q } = req.query
+  try {
+    const result = await fetchWiktionary(q)
+    res.json(result)
+  } catch (err) { serverError(res, err) }
+})
+
 /** GET /api/ipa – IPA-Aussprache via Wiktionary */
 router.get('/api/v1/ipa', validate(qQuerySchema, 'query'), async (req, res) => {
   const { q } = req.query

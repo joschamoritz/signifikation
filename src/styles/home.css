@@ -476,20 +476,24 @@
   animation: screenIn 0.2s ease-out both;
 }
 
-.secondary-selection-description {
-  font-size: 0.875rem;
-  color: var(--muted);
-  line-height: 1.55;
-  margin-top: 10px;
+/* i-Button + aufklappbarer Hinweis auf Auswahlseiten der sekundären Modi */
+.secondary-selection-notiz-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
 }
 
-.secondary-selection-notiz {
-  font-size: 0.875rem;
-  color: var(--text);
-  line-height: 1.55;
-  padding: 10px 0 0;
+.secondary-selection-notiz-panel {
+  margin: 0;
+  width: 100%;
+}
+
+/* Trennlinie zwischen den zwei Wort-Zwilling-Einträgen */
+.wz-selection-divider {
+  border: none;
   border-top: 1px solid var(--border);
-  margin-top: 4px;
+  margin: 0;
 }
 
 .secondary-selection-footer {
