@@ -469,32 +469,38 @@
 .secondary-selection-card {
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: 0;
   border-top: 2.5px double var(--border);
   border-bottom: 2.5px double var(--border);
-  padding: 24px 0;
   animation: screenIn 0.2s ease-out both;
 }
 
-/* i-Button + aufklappbarer Hinweis auf Auswahlseiten der sekundären Modi */
-.secondary-selection-notiz-wrap {
+/* Kein Zähler innerhalb der sekundären Karten */
+.secondary-selection-card .lemma-card-main::before { content: none }
+/* Keine Doppelkante zwischen gestapelten Einträgen (Wort-Zwilling) */
+.secondary-selection-card .lemma-card-wrap + .lemma-card-wrap { border-top: none }
+
+/* vs.-Trennlinie Wort-Zwilling */
+.wz-selection-vs {
   display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 8px;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--font-sans);
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--accent);
+  padding: 0 4px;
+}
+.wz-selection-vs::before,
+.wz-selection-vs::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border-lt);
 }
 
-.secondary-selection-notiz-panel {
-  margin: 0;
-  width: 100%;
-}
-
-/* Trennlinie zwischen den zwei Wort-Zwilling-Einträgen */
-.wz-selection-divider {
-  border: none;
-  border-top: 1px solid var(--border);
-  margin: 0;
-}
 
 .secondary-selection-footer {
   display: flex;
