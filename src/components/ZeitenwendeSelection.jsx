@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useWiktionary } from '../hooks/useWiktionary'
+import SelectionThema from './SelectionThema'
 
 export default function ZeitenwendeSelection({ data, thema, onPlay, onBack }) {
   const { lemma, ipa: savedIpa, definitionen: savedDefs, notiz, link } = data ?? {}
@@ -18,7 +19,7 @@ export default function ZeitenwendeSelection({ data, thema, onPlay, onBack }) {
         </button>
         <span className="quiz-game-badge">Zeitenwende</span>
         <h1 className="sr-only">Zeitenwende – Wortvorschau</h1>
-        {thema && <p className="selection-thema">{thema}</p>}
+        <SelectionThema thema={thema} />
       </header>
 
       <div className="secondary-selection-card">

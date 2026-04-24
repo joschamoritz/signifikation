@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { API } from '../config'
+import SelectionThema from './SelectionThema'
 
 
 export default function LemmaSelection({ lemmata, thema, playedIds = [], onSelect, onViewResult, onBack }) {
@@ -40,8 +41,7 @@ export default function LemmaSelection({ lemmata, thema, playedIds = [], onSelec
         <button className="back-btn" onClick={onBack} aria-label="Zurück zur Startseite"><span className="back-btn-chevron">‹</span>Zurück</button>
         <span className="quiz-game-badge">Kollokationen</span>
         <h1 className="sr-only">Wortauswahl</h1>
-        {thema && <p className="selection-thema">{thema}</p>}
-        <p className="quiz-instruction">Wähle ein Wort und finde seine stärksten Kollokationen</p>
+        <SelectionThema thema={thema} />
       </header>
 
       <div className="lemma-cards">

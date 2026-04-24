@@ -442,15 +442,39 @@
 
 .selection-header { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 12px }
 
-/* Thema-Zeile auf Auswahlseiten */
-.selection-thema {
+/* Thema-Block auf Auswahlseiten */
+.selection-thema-block {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+}
+
+.selection-thema-label {
   font-family: var(--font-sans);
-  font-size: 0.78rem;
+  font-size: 0.6rem;
   font-weight: 600;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.18em;
   text-transform: uppercase;
-  color: var(--red);
-  opacity: 0.85;
+  color: var(--muted);
+  margin: 0;
+}
+
+.selection-thema-rule {
+  width: 28px;
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 0;
+}
+
+.selection-thema {
+  font-family: var(--font-serif);
+  font-size: 0.9rem;
+  font-style: italic;
+  color: var(--text);
+  margin: 0;
+  text-align: center;
 }
 
 /* Thema im Raster (Home) — ersetzt test-raster-words wenn Thema vorhanden */

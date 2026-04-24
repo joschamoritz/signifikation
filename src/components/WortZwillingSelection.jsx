@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useWiktionary } from '../hooks/useWiktionary'
+import SelectionThema from './SelectionThema'
 
 function ZwillingEntry({ lemma, pos, onPlay }) {
   const { ipa, definitionen, loading } = useWiktionary({ lemma })
@@ -43,7 +44,7 @@ export default function WortZwillingSelection({ data, thema, onPlay, onBack }) {
         </button>
         <span className="quiz-game-badge">Wort-Zwilling</span>
         <h1 className="sr-only">Wort-Zwilling – Wortvorschau</h1>
-        {thema && <p className="selection-thema">{thema}</p>}
+        <SelectionThema thema={thema} />
       </header>
 
       <div className="secondary-selection-card">
