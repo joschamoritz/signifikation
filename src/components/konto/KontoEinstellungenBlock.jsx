@@ -1,6 +1,6 @@
-export default function KontoEinstellungenBlock({ isLoggedIn }) {
+export default function KontoEinstellungenBlock() {
   return (
-    <li className={`test-entry${!isLoggedIn ? ' test-entry--disabled' : ''}`}>
+    <li className="test-entry">
       <div className="test-entry-number" aria-hidden="true">
         <span className="test-entry-num-glyph">③</span>
         <span className="test-entry-marginalia">EINST.</span>
@@ -19,49 +19,41 @@ export default function KontoEinstellungenBlock({ isLoggedIn }) {
           Push-Benachrichtigungen, Erscheinungsbild und Sprache konfigurieren.
         </p>
 
-        {!isLoggedIn ? (
-          <div className="konto-placeholder">
-            <p className="konto-placeholder-text">
-              Melde dich an, um Einstellungen zu verwalten.
-            </p>
+        <div className="konto-settings-content">
+          <div className="konto-setting-item">
+            <div className="konto-setting-info">
+              <span className="konto-setting-label">Push-Benachrichtigungen</span>
+              <span className="konto-setting-desc">Tägliche Erinnerung zum Spielen</span>
+            </div>
+            <label className="konto-toggle">
+              <input type="checkbox" disabled />
+              <span className="konto-toggle-slider" />
+            </label>
           </div>
-        ) : (
-          <div className="konto-settings-content">
-            <div className="konto-setting-item">
-              <div className="konto-setting-info">
-                <span className="konto-setting-label">Push-Benachrichtigungen</span>
-                <span className="konto-setting-desc">Tägliche Erinnerung zum Spielen</span>
-              </div>
-              <label className="konto-toggle">
-                <input type="checkbox" disabled />
-                <span className="konto-toggle-slider" />
-              </label>
-            </div>
 
-            <div className="konto-setting-item">
-              <div className="konto-setting-info">
-                <span className="konto-setting-label">Erscheinungsbild</span>
-                <span className="konto-setting-desc">Hell, Dunkel oder Automatisch</span>
-              </div>
-              <select className="konto-select" disabled>
-                <option>Hell</option>
-                <option>Dunkel</option>
-                <option>Automatisch</option>
-              </select>
+          <div className="konto-setting-item">
+            <div className="konto-setting-info">
+              <span className="konto-setting-label">Erscheinungsbild</span>
+              <span className="konto-setting-desc">Hell, Dunkel oder Automatisch</span>
             </div>
-
-            <div className="konto-setting-item">
-              <div className="konto-setting-info">
-                <span className="konto-setting-label">Sprache</span>
-                <span className="konto-setting-desc">Oberflächensprache der App</span>
-              </div>
-              <select className="konto-select" disabled>
-                <option>Deutsch</option>
-                <option>English</option>
-              </select>
-            </div>
+            <select className="konto-select" disabled>
+              <option>Hell</option>
+              <option>Dunkel</option>
+              <option>Automatisch</option>
+            </select>
           </div>
-        )}
+
+          <div className="konto-setting-item">
+            <div className="konto-setting-info">
+              <span className="konto-setting-label">Sprache</span>
+              <span className="konto-setting-desc">Oberflächensprache der App</span>
+            </div>
+            <select className="konto-select" disabled>
+              <option>Deutsch</option>
+              <option>English</option>
+            </select>
+          </div>
+        </div>
 
         <div className="test-entry-footer">
           <span className="test-status">In Entwicklung</span>

@@ -18,10 +18,16 @@ export default function KontoTab({ gesamtausgabe, onUnlock, onAuthStateChange = 
         <nav className="test-raster" aria-label="Konto-Übersicht">
           <span className="test-raster-label" aria-hidden="true">Konto</span>
           <div className="test-raster-words">
-            <span className="test-raster-word">Profil</span>
+            <span className="test-raster-word">
+              {auth.isLoggedIn
+                ? (auth.sessionData?.user?.name?.split(' ')[0] || 'Angemeldet')
+                : 'Gast'}
+            </span>
           </div>
           <div className="test-raster-end">
-            <span className="test-raster-folio" aria-hidden="true">Einstellungen</span>
+            <span className="test-raster-folio" aria-hidden="true">
+              {gesamtausgabe ? 'Gesamtausgabe' : 'Basis'}
+            </span>
           </div>
         </nav>
 
@@ -43,9 +49,7 @@ export default function KontoTab({ gesamtausgabe, onUnlock, onAuthStateChange = 
             />
 
             {/* ③ Einstellungen */}
-            <KontoEinstellungenBlock 
-              isLoggedIn={auth.isLoggedIn}
-            />
+            <KontoEinstellungenBlock />
 
             {/* ④ Rechtliches & Info */}
             <KontoRechtlichesBlock />

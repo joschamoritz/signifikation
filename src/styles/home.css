@@ -462,6 +462,7 @@
   flex: 1;
   line-height: 1.3;
   padding-inline: 6px;
+  text-align: center;
 }
 
 /* Einzelkarte für sekundäre Spielmodi (Zeitreise, Wort-Zwilling, Zeitenwende) */

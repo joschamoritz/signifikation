@@ -403,6 +403,14 @@
   margin-top: 6px;
 }
 
+.konto-auth-inline-link--secondary {
+  margin-top: 24px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border-lt);
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
 .konto-auth-inline-link:disabled {
   color: var(--disabled);
 }
@@ -456,6 +464,18 @@
   text-transform: uppercase;
   color: var(--accent-dk);
   margin: 0 0 4px;
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+}
+
+.konto-teacher-note-symbol {
+  font-family: var(--font-serif);
+  font-size: 0.95rem;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--accent);
+  line-height: 1;
 }
 
 .konto-teacher-note-text {

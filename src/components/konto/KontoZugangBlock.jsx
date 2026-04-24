@@ -9,7 +9,7 @@ export default function KontoZugangBlock({ auth, gesamtausgabe, onUnlock }) {
       </div>
       <div className="test-entry-body">
         <div className="test-entry-head">
-          <h2 className="test-headword">Zugang & Abonnement</h2>
+          <h2 className="test-headword">Zugang</h2>
           <span className="test-ipa">[ˈt͡suːɡaŋ]</span>
         </div>
         <div className="test-entry-grammar">

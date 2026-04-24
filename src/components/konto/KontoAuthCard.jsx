@@ -207,7 +207,10 @@ export default function KontoAuthCard({
 
           {accountData?.role === 'teacher' && (
             <div className="konto-teacher-note" role="status">
-              <p className="konto-teacher-note-title">Lehrkraftkonto aktiv</p>
+              <p className="konto-teacher-note-title">
+                <span className="konto-teacher-note-symbol" aria-hidden="true">§</span>
+                Klassenraum aktiv
+              </p>
               <p className="konto-teacher-note-text">
                 Du kannst im Tab Klassenraum Sitzungen erstellen, starten, exportieren und Ergebnisse live verfolgen.
               </p>
@@ -225,12 +228,12 @@ export default function KontoAuthCard({
           </button>
 
           <button
-            className="konto-auth-inline-link"
+            className="konto-auth-inline-link konto-auth-inline-link--secondary"
             type="button"
             onClick={() => switchMode('reset')}
             disabled={isBusy}
           >
-            Passwort zuruecksetzen
+            Passwort zurücksetzen
           </button>
         </div>
       ) : (
