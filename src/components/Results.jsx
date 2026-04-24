@@ -60,6 +60,14 @@ export default function Results({ lemma, roundScores, onRestart, onToSelection }
   const maxPoints  = hasBonus ? 10 : 9
   const medal      = getMedal(total, maxPoints)
 
+  const isPerfect  = total === maxPoints
+  const [showSine, setShowSine] = useState(isPerfect)
+  useEffect(() => {
+    if (!isPerfect) return
+    const t = setTimeout(() => setShowSine(false), 1500)
+    return () => clearTimeout(t)
+  }, [isPerfect])
+
   const { openBeleg, belegeCache, belegeLoading, loadBelege } = useBelege(lemma.lemma)
 
   return (
@@ -68,7 +76,16 @@ export default function Results({ lemma, roundScores, onRestart, onToSelection }
       {/* ── Kopf: Wort + Wortart + Notiz ── */}
       <header className="results-header">
         <span className="quiz-game-badge">Kollokationen</span>
-        <h1 className="lemma-played-title">{lemma.lemma}</h1>
+        <div className="results-title-wrap">
+          {isPerfect && (
+            <p className={`sine-errore${showSine ? '' : ' sine-errore--out'}`} aria-hidden="true">
+              sine errore
+            </p>
+          )}
+          <h1 className={`lemma-played-title${showSine ? ' lemma-played-title--veiled' : ''}`}>
+            {lemma.lemma}
+          </h1>
+        </div>
         {ipa && (
           <p className="results-ipa">[{ipa}]</p>
         )}
