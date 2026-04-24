@@ -2,32 +2,24 @@ import { useState } from 'react'
 import { useWiktionary } from '../hooks/useWiktionary'
 import SelectionThema from './SelectionThema'
 
-function ZwillingEntry({ lemma, pos, onPlay }) {
+function WZEntry({ lemma, pos }) {
   const { ipa, definitionen, loading } = useWiktionary({ lemma })
-
   return (
-    <button
-      className="lemma-card-main"
-      onClick={onPlay}
-      aria-label={`${lemma} – Wort-Zwilling starten`}
-    >
-      <div className="lemma-info">
-        <div className="lemma-header-row">
-          <span className="lemma-name">{lemma}</span>
-          {ipa
-            ? <span className="lautschrift lemma-ipa">[{ipa}]</span>
-            : loading && <span className="lemma-ipa-skeleton" aria-hidden="true" />
-          }
-          <span className="lemma-wortart-abbrev">{pos}</span>
-        </div>
-        {definitionen.length > 0 && (
-          <div className="lemma-definition">
-            {definitionen.slice(0, 2).map((d, i) => <p key={i}>{d}</p>)}
-          </div>
-        )}
+    <div className="lemma-info">
+      <div className="lemma-header-row">
+        <span className="lemma-name">{lemma}</span>
+        {ipa
+          ? <span className="lautschrift lemma-ipa">[{ipa}]</span>
+          : loading && <span className="lemma-ipa-skeleton" aria-hidden="true" />
+        }
+        <span className="lemma-wortart-abbrev">{pos}</span>
       </div>
-      <span className="lemma-arrow" aria-hidden="true">›</span>
-    </button>
+      {definitionen.length > 0 && (
+        <div className="lemma-definition">
+          {definitionen.slice(0, 2).map((d, i) => <p key={i}>{d}</p>)}
+        </div>
+      )}
+    </div>
   )
 }
 
@@ -48,20 +40,42 @@ export default function WortZwillingSelection({ data, thema, onPlay, onBack }) {
       </header>
 
       <div className="secondary-selection-card">
+        <div className="wz-pair-card">
 
-        {/* Eintrag A mit i-Button */}
-        <div className="lemma-card-wrap">
+          {/* Eintrag A */}
           <div className="lemma-card">
-            <ZwillingEntry lemma={wortA} pos={wortart} onPlay={onPlay} />
+            <button className="lemma-card-main" onClick={onPlay}
+              aria-label={`${wortA} vs. ${wortB} – Wort-Zwilling starten`}>
+              <WZEntry lemma={wortA} pos={wortart} />
+              <span className="lemma-arrow" aria-hidden="true">›</span>
+            </button>
+          </div>
+
+          {/* vs.-Trennlinie mit i-Button */}
+          <div className="wz-selection-vs">
+            <span className="wz-vs-line" aria-hidden="true" />
+            <span className="wz-vs-label" aria-hidden="true">vs.</span>
+            <span className="wz-vs-line" aria-hidden="true" />
             {notiz && (
               <button
-                className={`lemma-info-btn${notizOpen ? ' lemma-info-btn--active' : ''}`}
+                className={`lemma-info-btn wz-vs-info-btn${notizOpen ? ' lemma-info-btn--active' : ''}`}
                 onClick={() => setNotizOpen(o => !o)}
                 aria-label={`Hinweis ${notizOpen ? 'ausblenden' : 'anzeigen'}`}
                 aria-expanded={notizOpen}
               >i</button>
             )}
           </div>
+
+          {/* Eintrag B */}
+          <div className="lemma-card">
+            <button className="lemma-card-main" onClick={onPlay}
+              aria-label={`${wortA} vs. ${wortB} – Wort-Zwilling starten`}>
+              <WZEntry lemma={wortB} pos={wortart} />
+              <span className="lemma-arrow" aria-hidden="true">›</span>
+            </button>
+          </div>
+
+          {/* Notiz-Panel */}
           {notizOpen && notiz && (
             <div className="lemma-notiz">
               <span>{notiz}</span>
@@ -73,18 +87,8 @@ export default function WortZwillingSelection({ data, thema, onPlay, onBack }) {
               )}
             </div>
           )}
+
         </div>
-
-        {/* vs.-Trennlinie */}
-        <div className="wz-selection-vs" aria-hidden="true">vs.</div>
-
-        {/* Eintrag B */}
-        <div className="lemma-card-wrap">
-          <div className="lemma-card">
-            <ZwillingEntry lemma={wortB} pos={wortart} onPlay={onPlay} />
-          </div>
-        </div>
-
       </div>
     </div>
   )

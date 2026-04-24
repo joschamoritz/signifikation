@@ -504,25 +504,55 @@
 /* Keine Doppelkante zwischen gestapelten Einträgen (Wort-Zwilling) */
 .secondary-selection-card .lemma-card-wrap + .lemma-card-wrap { border-top: none }
 
-/* vs.-Trennlinie Wort-Zwilling */
+/* Wort-Zwilling: gemeinsamer Hover-Wrapper */
+.wz-pair-card {
+  display: flex;
+  flex-direction: column;
+  transition: background 0.12s;
+}
+/* Hover eines der beiden Buttons → beide Einträge highlighten */
+.wz-pair-card:has(.lemma-card-main:hover),
+.wz-pair-card:has(.lemma-card-main:focus-visible) {
+  background: color-mix(in srgb, var(--primary) 4%, transparent);
+}
+.wz-pair-card:has(.lemma-card-main:active) { opacity: 0.85 }
+/* Beide Namen + Pfeile zusammen färben */
+.wz-pair-card:has(.lemma-card-main:hover) .lemma-name,
+.wz-pair-card:has(.lemma-card-main:focus-visible) .lemma-name { color: var(--primary) }
+.wz-pair-card:has(.lemma-card-main:hover) .lemma-arrow,
+.wz-pair-card:has(.lemma-card-main:focus-visible) .lemma-arrow { color: var(--primary); transform: translateX(2px) }
+/* Individuellen Karten-Hover unterdrücken (Wrapper übernimmt) */
+.wz-pair-card .lemma-card:has(.lemma-card-main:hover),
+.wz-pair-card .lemma-card:has(.lemma-card-main:focus-visible) { background: transparent }
+.wz-pair-card .lemma-card-main:hover .lemma-name { color: var(--text) }
+.wz-pair-card .lemma-card-main:hover .lemma-arrow { color: var(--border); transform: none }
+
+/* vs.-Trennlinie mit i-Button */
 .wz-selection-vs {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
+  padding: 0 4px;
+}
+.wz-vs-line {
+  flex: 1;
+  height: 1px;
+  background: var(--border-lt);
+}
+.wz-vs-label {
   font-family: var(--font-sans);
   font-size: 0.65rem;
   font-weight: 700;
   letter-spacing: 0.15em;
   text-transform: uppercase;
   color: var(--accent);
-  padding: 0 4px;
+  flex-shrink: 0;
 }
-.wz-selection-vs::before,
-.wz-selection-vs::after {
-  content: '';
-  flex: 1;
-  height: 1px;
-  background: var(--border-lt);
+/* i-Button direkt am vs.-Streifen, kein linker Rahmen */
+.wz-vs-info-btn {
+  border-left: none;
+  padding: 0 8px;
+  min-height: 28px;
 }
 
 
