@@ -55,7 +55,7 @@ export async function adminAuth(req, res) {
 
     if (!profile || profile.role !== 'admin') {
       logger.warn({ ip: req.ip, email: emailLower, userId: user.id }, 'Admin-Login fehlgeschlagen (keine Admin-Role)')
-      return res.status(403).json({ error: 'Nicht berechtigt' })
+      return res.status(401).json({ error: 'Email oder Passwort falsch' })
     }
 
     // Validiere Passwort (bcryptjs-Hash)
@@ -205,6 +205,9 @@ export function serverError(res, err) {
 /** Admin-seitige Fehlerausgabe: bereinigt Dateipfade, kein Stack an Client */
 export function adminError(res, err) {
   logger.error({ err: sanitize(err instanceof Error ? { message: err.message, stack: err.stack } : err) }, 'Admin-Fehler')
+  if (IS_PROD) {
+    return res.status(500).json({ error: 'Interner Admin-Fehler' })
+  }
   const rawMsg = err.message || String(err)
   const cleanMsg = rawMsg.replace(/(?:\/[\w.-]+)+/g, '[path]').replace(/(?:[A-Z]:\\[\w\\.-]+)/gi, '[path]')
   res.status(500).json({ error: cleanMsg })
