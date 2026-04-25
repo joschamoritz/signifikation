@@ -22,6 +22,33 @@ function question(prompt) {
   })
 }
 
+function questionHidden(prompt) {
+  return new Promise((resolve) => {
+    process.stdout.write(prompt)
+    const stdin = process.stdin
+    stdin.setRawMode(true)
+    stdin.resume()
+    stdin.setEncoding('utf8')
+    let value = ''
+    function onData(char) {
+      if (char === '\n' || char === '\r' || char === '') {
+        stdin.setRawMode(false)
+        stdin.pause()
+        stdin.removeListener('data', onData)
+        process.stdout.write('\n')
+        resolve(value)
+      } else if (char === '') {
+        process.exit()
+      } else if (char === '') {
+        value = value.slice(0, -1)
+      } else {
+        value += char
+      }
+    }
+    stdin.on('data', onData)
+  })
+}
+
 async function main() {
   try {
     let email = process.argv[2]
@@ -33,7 +60,7 @@ async function main() {
     }
 
     if (!password) {
-      password = await question('Admin-Passwort: ')
+      password = await questionHidden('Admin-Passwort: ')
     }
 
     if (!email || !password) {
