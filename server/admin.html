@@ -14,12 +14,16 @@
 <div class="login-overlay" id="login-overlay">
   <div class="login-card">
     <h2>Signifikation</h2>
-    <p>Admin-Bereich · Passwort eingeben</p>
+    <p>Admin-Bereich · Anmelden</p>
     <div>
-      <label for="login-key">Admin-Passwort</label>
-      <input type="password" id="login-key" placeholder="••••••••" data-enter-action="login">
+      <label for="login-email">Admin-Email</label>
+      <input type="email" id="login-email" placeholder="admin@example.com" data-enter-action="login">
     </div>
-    <div class="login-error" id="login-error">Falsches Passwort.</div>
+    <div>
+      <label for="login-password">Passwort</label>
+      <input type="password" id="login-password" placeholder="••••••••" data-enter-action="login">
+    </div>
+    <div class="login-error" id="login-error">Email oder Passwort falsch.</div>
       <button id="login-btn" data-action="login">Anmelden</button>
   </div>
 </div>

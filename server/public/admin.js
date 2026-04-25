@@ -351,19 +351,25 @@ function showAuditEntryDetailsByIndex(index) {
 
 // ── Login / Logout ────────────────────────────────────────
 async function doLogin() {
-  const input = document.getElementById('login-key')
+  const emailInput = document.getElementById('login-email')
+  const passwordInput = document.getElementById('login-password')
   const errEl = document.getElementById('login-error')
-  const btn   = document.getElementById('login-btn')
-  const candidate = input.value.trim()
-  if (!candidate) return
+  const btn = document.getElementById('login-btn')
+
+  const email = emailInput.value.trim()
+  const password = passwordInput.value.trim()
+
+  if (!email || !password) return
+
   btn.disabled = true
   btn.textContent = '…'
   errEl.style.display = 'none'
+
   try {
     const r = await fetch('/admin/auth', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ key: candidate }),
+      body: JSON.stringify({ email, password }),
     })
     if (r.ok) {
       document.getElementById('login-overlay').classList.add('hidden')
@@ -372,10 +378,10 @@ async function doLogin() {
       initDashboard()
     } else {
       const body = await r.json().catch(() => ({}))
-      errEl.textContent = body.error ? `${body.error} (${r.status})` : `Login fehlgeschlagen (${r.status})`
+      errEl.textContent = body.error || `Login fehlgeschlagen (${r.status})`
       errEl.style.display = 'block'
-      input.value = ''
-      input.focus()
+      passwordInput.value = ''
+      passwordInput.focus()
     }
   } catch {
     errEl.textContent = 'Verbindungsfehler.'

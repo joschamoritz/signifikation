@@ -1,8 +1,9 @@
-import { randomUUID, timingSafeEqual, createHmac } from 'crypto'
 import { fileURLToPath } from 'url'
 import { dirname, join } from 'path'
 import { config as _loadEnv } from 'dotenv'
 import logger from '../logger.js'
+import { auth } from '../auth/index.js'
+import db from '../db.js'
 
 // Load .env relative to this file — works regardless of PM2 cwd or process.env.DOTENV_CONFIG_PATH
 _loadEnv({
@@ -11,10 +12,6 @@ _loadEnv({
 })
 
 const IS_PROD = process.env.NODE_ENV === 'production'
-
-function getAdminKey() {
-  return (process.env.ADMIN_KEY || (IS_PROD ? null : 'dev-only'))?.trim()
-}
 
 // Hilfsfunktion: Sensitive Felder aus Log-Objekten entfernen
 function sanitize(obj) {
@@ -34,92 +31,93 @@ function sanitize(obj) {
   return copy
 }
 
-// ── Signierte Session-Tokens (HMAC, kein Server-State) ───────
-// Format: <uuid>.<expiresAt>.<hmac>
-// Überlebt Server-Neustarts und Deploys ohne Datei-I/O.
-const SESSION_TTL_MS = 8 * 60 * 60 * 1000
+/** POST /admin/auth – Email+Password-Login für Admin */
+export async function adminAuth(req, res) {
+  const { email, password } = req.body || {}
 
-function sign(payload) {
-  const adminKey = getAdminKey()
-  if (!adminKey) throw new Error('ADMIN_KEY nicht konfiguriert')
-  return createHmac('sha256', adminKey).update(payload).digest('hex')
-}
+  if (!email || !password) {
+    logger.warn({ ip: req.ip }, 'Admin-Login fehlgeschlagen (fehlende Daten)')
+    return res.status(400).json({ error: 'Email und Passwort erforderlich' })
+  }
 
-export function createSession() {
-  const uuid      = randomUUID()
-  const expiresAt = Date.now() + SESSION_TTL_MS
-  const payload   = `${uuid}.${expiresAt}`
-  const token     = `${payload}.${sign(payload)}`
-  return { token, expiresAt }
-}
-
-function sessionValid(token) {
-  if (!token || typeof token !== 'string') return false
-  const parts = token.split('.')
-  // Format: <uuid>.<expiresAt>.<hmac> → 3 Teile (UUID enthält nur Bindestriche)
-  if (parts.length !== 3) return false
-  const [uuid, expiresAtStr, hmac] = parts
-  const payload = `${uuid}.${expiresAtStr}`
-  // Konstanter Zeitvergleich gegen Timing-Attacks
   try {
-    const expected = sign(payload)
-    if (!timingSafeEqual(Buffer.from(hmac, 'hex'), Buffer.from(expected, 'hex'))) return false
-  } catch {
-    return false
-  }
-  const expiresAt = parseInt(expiresAtStr, 10)
-  return Number.isFinite(expiresAt) && Date.now() < expiresAt
-}
+    const emailLower = String(email).trim().toLowerCase()
 
-/** POST /admin/auth – tauscht Admin-Key gegen httpOnly-Session-Cookie */
-export function adminAuth(req, res) {
-  const { key } = req.body || {}
-  const adminKey = getAdminKey()
-  if (!key) {
-    logger.warn({ ip: req.ip }, 'Admin-Login fehlgeschlagen (fehlender Key)')
-    return res.status(401).json({ error: 'Falscher Admin-Key' })
-  }
-  if (!adminKey) {
-    logger.error('ADMIN_KEY nicht geladen im Prozess!')
-    return res.status(500).json({ error: 'Interner Serverfehler' })
-  }
-  // Constant-Time-Vergleich gegen Timing-Attacks
-  const receivedKey = String(key).trim()
-  const receivedBuf = Buffer.from(receivedKey)
-  const adminBuf = Buffer.from(adminKey)
-  if (receivedBuf.length !== adminBuf.length) {
-    const paddedReceived = Buffer.alloc(adminBuf.length)
-    receivedBuf.copy(paddedReceived)
-    try { timingSafeEqual(paddedReceived, adminBuf) } catch {}
-    logger.warn({ ip: req.ip }, 'Admin-Login fehlgeschlagen')
-    return res.status(401).json({ error: 'Falscher Admin-Key' })
-  }
-  try {
-    if (!timingSafeEqual(receivedBuf, adminBuf)) {
-      logger.warn({ ip: req.ip }, 'Admin-Login fehlgeschlagen')
-      return res.status(401).json({ error: 'Falscher Admin-Key' })
+    // Finde User
+    const user = db.prepare('SELECT id FROM user WHERE email = ?').get(emailLower)
+
+    if (!user) {
+      logger.warn({ ip: req.ip, email: emailLower }, 'Admin-Login fehlgeschlagen (User nicht gefunden)')
+      return res.status(401).json({ error: 'Email oder Passwort falsch' })
     }
-  } catch {
-    logger.warn({ ip: req.ip }, 'Admin-Login fehlgeschlagen (timingSafeEqual-Fehler)')
-    return res.status(401).json({ error: 'Falscher Admin-Key' })
+
+    // Prüfe Admin-Role zuerst (fail-fast)
+    const profile = db.prepare('SELECT role FROM user_profiles WHERE user_id = ?').get(user.id)
+
+    if (!profile || profile.role !== 'admin') {
+      logger.warn({ ip: req.ip, email: emailLower, userId: user.id }, 'Admin-Login fehlgeschlagen (keine Admin-Role)')
+      return res.status(403).json({ error: 'Nicht berechtigt' })
+    }
+
+    // Validiere Passwort (bcryptjs-Hash)
+    const account = db.prepare('SELECT password FROM account WHERE userId = ? AND providerId = ?').get(user.id, 'credential')
+
+    if (!account || !account.password) {
+      logger.warn({ ip: req.ip, email: emailLower, userId: user.id }, 'Admin-Login fehlgeschlagen (kein Passwort)')
+      return res.status(401).json({ error: 'Email oder Passwort falsch' })
+    }
+
+    // Timing-safe Passwort-Vergleich
+    const { default: bcryptjs } = await import('bcryptjs')
+    const passwordMatch = await bcryptjs.compare(String(password), account.password)
+    if (!passwordMatch) {
+      logger.warn({ ip: req.ip, email: emailLower, userId: user.id }, 'Admin-Login fehlgeschlagen (Passwort falsch)')
+      return res.status(401).json({ error: 'Email oder Passwort falsch' })
+    }
+
+    // Erstelle betterAuth Session direkt in der DB
+    const { randomUUID } = await import('crypto')
+    const sessionId = randomUUID()
+    const sessionToken = randomUUID()
+    const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString() // 30 Tage
+    const now = new Date().toISOString()
+
+    db.prepare(`
+      INSERT INTO session (id, userId, token, expiresAt, ipAddress, userAgent, createdAt, updatedAt)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(sessionId, user.id, sessionToken, expiresAt, req.ip, req.headers['user-agent'] || '', now, now)
+
+    // Setze Session-Cookie (httpOnly, secure, sameSite)
+    res.cookie('better-auth.session_token', sessionToken, {
+      httpOnly: true,
+      secure: IS_PROD,
+      sameSite: 'lax',
+      maxAge: 30 * 24 * 60 * 60 * 1000, // 30 Tage
+    })
+
+    logger.info({ ip: req.ip, email: emailLower, userId: user.id }, 'Admin eingeloggt')
+    res.json({ ok: true })
+  } catch (err) {
+    logger.error({ err: sanitize(err), ip: req.ip }, 'Admin-Auth-Fehler')
+    res.status(500).json({ error: IS_PROD ? 'Interner Fehler' : err.message })
   }
-  const { token, expiresAt } = createSession()
-  res.cookie('admin_token', token, {
-    httpOnly: true,
-    secure: IS_PROD,
-    sameSite: 'strict',
-    maxAge: SESSION_TTL_MS,
-  })
-  logger.info({ ip: req.ip }, 'Admin eingeloggt')
-  // Token nur im httpOnly-Cookie — nicht im Response-Body (verhindert sessionStorage-XSS)
-  res.json({ ok: true, expiresAt })
 }
 
-/** POST /admin/logout – Cookie löschen (kein Server-State nötig) */
-export function adminLogout(req, res) {
-  logger.info('Admin ausgeloggt')
-  res.clearCookie('admin_token', { httpOnly: true, secure: IS_PROD, sameSite: 'strict' })
-  res.json({ ok: true })
+/** POST /admin/logout – Session beenden */
+export async function adminLogout(req, res) {
+  try {
+    // Lösche Session aus DB (optional – Cookie-Expiry reicht auch)
+    if (req.session?.id) {
+      db.prepare('DELETE FROM session WHERE id = ?').run(req.session.id)
+    }
+
+    logger.info({ userId: req.session?.userId }, 'Admin ausgeloggt')
+    res.clearCookie('better-auth.session_token', { httpOnly: true, secure: IS_PROD, sameSite: 'lax' })
+    res.json({ ok: true })
+  } catch (err) {
+    logger.error({ err: sanitize(err) }, 'Admin-Logout-Fehler')
+    res.status(500).json({ error: IS_PROD ? 'Interner Fehler' : err.message })
+  }
 }
 
 /** Middleware: CSRF-Schutz – verhindert Form-basierte CSRF-Angriffe */
@@ -149,14 +147,54 @@ export function csrfProtectUpload(req, res, next) {
   next()
 }
 
-/** Middleware: prüft httpOnly-Cookie */
-export function requireAuth(req, res, next) {
-  const token = req.cookies?.admin_token
-  if (token && sessionValid(token)) {
-    req.adminSessionId = token.split('.')[0]
-    return next()
+/** Middleware: prüft betterAuth Session (Admin muss role=admin haben) */
+export async function requireAuth(req, res, next) {
+  try {
+    // Hole Session-Token aus Cookie oder betterAuth req.session
+    let sessionId, userId, sessionToken
+
+    if (req.session?.userId) {
+      // betterAuth setzt req.session automatisch (für /api/v1/auth routes)
+      sessionId = req.session.id
+      userId = req.session.userId
+    } else {
+      // Manuell validieren für /admin routes
+      sessionToken = req.cookies['better-auth.session_token']
+      if (!sessionToken) {
+        logger.warn({ ip: req.ip }, 'Admin-Zugriff ohne Session-Token')
+        return res.status(401).json({ error: 'Nicht autorisiert' })
+      }
+
+      // Finde Session in DB
+      const session = db.prepare('SELECT id, userId FROM session WHERE token = ? AND expiresAt > ?').get(
+        sessionToken,
+        new Date().toISOString()
+      )
+
+      if (!session) {
+        logger.warn({ ip: req.ip }, 'Admin-Zugriff mit ungültigem Session-Token')
+        return res.status(401).json({ error: 'Nicht autorisiert' })
+      }
+
+      sessionId = session.id
+      userId = session.userId
+    }
+
+    // Prüfe Admin-Role
+    const profile = db.prepare('SELECT role FROM user_profiles WHERE user_id = ?').get(userId)
+
+    if (!profile || profile.role !== 'admin') {
+      logger.warn({ ip: req.ip, userId }, 'Admin-Zugriff ohne Admin-Role')
+      return res.status(403).json({ error: 'Nicht berechtigt' })
+    }
+
+    req.adminSessionId = sessionId
+    req.session = { id: sessionId, userId }
+    next()
+  } catch (err) {
+    logger.error({ err: sanitize(err), ip: req.ip }, 'requireAuth-Fehler')
+    res.status(500).json({ error: IS_PROD ? 'Interner Fehler' : err.message })
   }
-  res.status(401).json({ error: 'Nicht autorisiert' })
 }
 
 /** Fehlerausgabe: in Produktion keine internen Details preisgeben */
@@ -173,4 +211,4 @@ export function adminError(res, err) {
   res.status(500).json({ error: cleanMsg })
 }
 
-export { IS_PROD, getAdminKey }
+export { IS_PROD }

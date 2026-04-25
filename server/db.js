@@ -80,7 +80,7 @@ db.exec(`
 
   CREATE TABLE IF NOT EXISTS user_profiles (
     user_id    TEXT PRIMARY KEY,
-    role       TEXT NOT NULL DEFAULT 'user' CHECK (role IN ('user','premium')),
+    role       TEXT NOT NULL DEFAULT 'user' CHECK (role IN ('user','premium','admin')),
     created_at INTEGER NOT NULL,
     updated_at INTEGER NOT NULL
   );
@@ -347,7 +347,7 @@ if (hasColumn('stats', 'user_id')) {
 
         CREATE TABLE user_profiles_new (
           user_id    TEXT PRIMARY KEY,
-          role       TEXT NOT NULL DEFAULT 'user' CHECK (role IN ('user','premium')),
+          role       TEXT NOT NULL DEFAULT 'user' CHECK (role IN ('user','premium','admin')),
           created_at INTEGER NOT NULL,
           updated_at INTEGER NOT NULL
         );

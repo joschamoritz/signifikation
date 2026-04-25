@@ -10,7 +10,6 @@ export function createAdminCoreRouter({
   adminAuth,
   adminLogout,
   adminError,
-  createSession,
   logger,
   adminHtmlPath,
   dataDir,
@@ -25,19 +24,9 @@ export function createAdminCoreRouter({
   router.post('/admin/logout', adminLimiter, requireAuth, adminLogout)
 
   router.post('/admin/refresh', adminLimiter, requireAuth, (_req, res) => {
-    try {
-      const { token, expiresAt } = createSession()
-      const isProd = process.env.NODE_ENV === 'production'
-      res.cookie('admin_token', token, {
-        httpOnly: true,
-        secure: isProd,
-        sameSite: 'strict',
-        maxAge: 8 * 60 * 60 * 1000,
-      })
-      res.json({ ok: true, expiresAt })
-    } catch (err) {
-      adminError(res, err)
-    }
+    // Bei betterAuth: Session ist bereits validiert (requireAuth-Middleware)
+    // Cookies werden von betterAuth automatisch gesetzt – nichts mehr zu tun
+    res.json({ ok: true })
   })
 
   router.post('/admin/upload-wortprofil', uploadLimiter, requireAuth, (req, res) => {
