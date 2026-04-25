@@ -186,7 +186,9 @@ function renderModeGroupSummary(entry, { emptyText = 'Keine Inhalte' } = {}) {
 }
 
 function roleLabel(role) {
-  return role === 'premium' ? 'Premium' : 'User'
+  if (role === 'admin') return 'Admin'
+  if (role === 'premium') return 'Premium'
+  return 'User'
 }
 
 function getSelectedUserIdsFromTable() {
