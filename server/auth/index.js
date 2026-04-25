@@ -22,6 +22,8 @@ const GOOGLE_CLIENT_ID = process.env.BETTER_AUTH_GOOGLE_CLIENT_ID?.trim()
 const GOOGLE_CLIENT_SECRET = process.env.BETTER_AUTH_GOOGLE_CLIENT_SECRET?.trim()
 const APPLE_CLIENT_ID = process.env.BETTER_AUTH_APPLE_CLIENT_ID?.trim()
 const APPLE_CLIENT_SECRET = process.env.BETTER_AUTH_APPLE_CLIENT_SECRET?.trim()
+const GITHUB_CLIENT_ID = process.env.BETTER_AUTH_GITHUB_CLIENT_ID?.trim()
+const GITHUB_CLIENT_SECRET = process.env.BETTER_AUTH_GITHUB_CLIENT_SECRET?.trim()
 
 const socialProviders = {}
 if (GOOGLE_CLIENT_ID && GOOGLE_CLIENT_SECRET) {
@@ -38,10 +40,18 @@ if (APPLE_CLIENT_ID && APPLE_CLIENT_SECRET) {
   }
 }
 
+if (GITHUB_CLIENT_ID && GITHUB_CLIENT_SECRET) {
+  socialProviders.github = {
+    clientId: GITHUB_CLIENT_ID,
+    clientSecret: GITHUB_CLIENT_SECRET,
+  }
+}
+
 const PASSWORD_RESET_DELIVERY = (process.env.PASSWORD_RESET_DELIVERY || (IS_PROD ? 'disabled' : 'log')).trim().toLowerCase()
 const PASSWORD_RESET_WEBHOOK_URL = process.env.PASSWORD_RESET_WEBHOOK_URL?.trim()
 const PASSWORD_RESET_ENABLED = PASSWORD_RESET_DELIVERY === 'log'
   || (PASSWORD_RESET_DELIVERY === 'webhook' && !!PASSWORD_RESET_WEBHOOK_URL)
+
 
 async function sendPasswordReset({ user, url }) {
   if (PASSWORD_RESET_DELIVERY === 'webhook' && PASSWORD_RESET_WEBHOOK_URL) {
@@ -68,6 +78,7 @@ async function sendPasswordReset({ user, url }) {
 
   logger.warn({ email: user.email }, 'Password-Reset angefragt, aber kein Versand konfiguriert')
 }
+
 
 const ALLOWED_ORIGINS = process.env.ALLOWED_ORIGINS
   ? process.env.ALLOWED_ORIGINS.split(',').map((value) => value.trim()).filter(Boolean)
@@ -100,9 +111,11 @@ if (IS_PROD && PASSWORD_RESET_DELIVERY === 'log') {
   logger.warn('PASSWORD_RESET_DELIVERY=log ist fuer Produktion nicht empfohlen')
 }
 
+
 export const authFeatureFlags = {
   googleEnabled: !!socialProviders.google,
   appleEnabled: !!socialProviders.apple,
+  githubEnabled: !!socialProviders.github,
   passwordResetEnabled: PASSWORD_RESET_ENABLED,
 }
 

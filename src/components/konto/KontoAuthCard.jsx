@@ -318,7 +318,7 @@ export default function KontoAuthCard({
             Passwort vergessen?
           </button>
 
-          {(authOptions.googleEnabled || authOptions.appleEnabled) && (
+          {(authOptions.googleEnabled || authOptions.appleEnabled || authOptions.githubEnabled) && (
             <div className="konto-auth-socials">
               <p className="konto-auth-socials-label">oder mit</p>
               <div className="konto-auth-socials-actions">
@@ -342,9 +342,20 @@ export default function KontoAuthCard({
                     Apple
                   </button>
                 )}
+                {authOptions.githubEnabled && (
+                  <button
+                    className="konto-auth-social-btn"
+                    type="button"
+                    onClick={() => handleSocialSignIn('github')}
+                    disabled={isBusy}
+                  >
+                    GitHub
+                  </button>
+                )}
               </div>
             </div>
           )}
+
         </form>
       )}
 

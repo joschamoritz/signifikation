@@ -216,43 +216,65 @@
 }
 
 .konto-auth-card {
-  margin-top: 18px;
-  padding-top: 16px;
+  margin-top: 28px;
+  padding-top: 0;
+  border-top: none;
+}
+
+.konto-auth-card::before {
+  content: '· · ·';
+  display: block;
+  font-family: var(--font-serif);
+  font-size: 0.8rem;
+  letter-spacing: 0.35em;
+  color: var(--border);
+  text-align: center;
+  padding: 18px 0 22px;
   border-top: 1px solid var(--border-lt);
 }
 
 .konto-auth-head {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 12px;
+  gap: 10px;
+  margin-bottom: 24px;
 }
 
 .konto-auth-title {
-  font-family: var(--font-sans);
-  font-size: 8.5px;
-  font-weight: 600;
-  letter-spacing: 0.15em;
-  text-transform: uppercase;
-  color: var(--muted);
+  font-family: var(--font-serif);
+  font-size: 1rem;
+  font-weight: 400;
+  font-style: italic;
+  letter-spacing: 0.04em;
+  text-transform: none;
+  color: var(--text);
   margin: 0;
 }
 
 .konto-auth-modes {
   display: inline-flex;
-  gap: 12px;
+  align-items: baseline;
+  gap: 0;
 }
 
 .konto-auth-mode {
   border: none;
   background: transparent;
   font-family: var(--font-serif);
-  font-size: 0.88rem;
+  font-size: 0.82rem;
   font-style: italic;
   color: var(--muted);
-  padding: 0 0 2px;
+  padding: 0 10px 2px;
   border-bottom: 1px solid transparent;
+}
+
+.konto-auth-mode + .konto-auth-mode::before {
+  content: '·';
+  color: var(--border);
+  margin-right: 10px;
+  font-style: normal;
+  pointer-events: none;
 }
 
 .konto-auth-mode--active {
@@ -345,32 +367,40 @@
 }
 
 .konto-session-list {
-  margin: 0;
+  margin: 0 0 14px;
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  gap: 7px;
-  margin-bottom: 10px;
+  gap: 0;
+  border: 1px solid var(--border-lt);
+  border-radius: var(--radius);
 }
 
 .konto-session-list div {
   display: grid;
-  grid-template-columns: 118px minmax(0, 1fr);
+  grid-template-columns: 100px minmax(0, 1fr);
   gap: 8px;
   align-items: baseline;
+  padding: 7px 12px;
+  border-bottom: 1px solid var(--border-lt);
+}
+
+.konto-session-list div:last-child {
+  border-bottom: none;
 }
 
 .konto-session-list dt {
   font-family: var(--font-sans);
-  font-size: 0.7rem;
-  letter-spacing: 0.08em;
+  font-size: 0.68rem;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--muted);
 }
 
 .konto-session-list dd {
   margin: 0;
-  font-family: var(--font-sans);
-  font-size: 0.84rem;
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-size: 0.88rem;
   color: var(--text);
   overflow-wrap: anywhere;
 }
@@ -1326,11 +1356,6 @@
 }
 
 @media (max-width: 520px) {
-  .konto-auth-head {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-
   .konto-session-list div {
     grid-template-columns: minmax(0, 1fr);
     gap: 2px;
