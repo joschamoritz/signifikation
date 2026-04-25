@@ -36,3 +36,18 @@ jobs:
             npm ci
             npm run build
             sudo -u signifikation bash -c 'export NVM_DIR="/opt/nvm" && source "$NVM_DIR/nvm.sh" && cd /opt/signifikation/app && pm2 delete signifikation signifikation-worker 2>/dev/null; pm2 start ecosystem.config.cjs && pm2 save'
+      - name: Health check
+        run: |
+          echo "Warte auf Server-Start …"
+          sleep 8
+          for i in 1 2 3 4 5; do
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" https://signifikation.de/health)
+            if [ "$STATUS" = "200" ]; then
+              echo "Server ist up (HTTP $STATUS)"
+              exit 0
+            fi
+            echo "Versuch $i: HTTP $STATUS – warte 5s …"
+            sleep 5
+          done
+          echo "Health check fehlgeschlagen – Deploy prüfen!"
+          exit 1

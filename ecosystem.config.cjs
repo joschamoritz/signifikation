@@ -10,7 +10,6 @@ module.exports = {
       watch: false,
       env: {
         NODE_ENV: 'production',
-        PORT: 3001,
         CLASSROOM_EXPORT_WORKER_ENABLED: 'false',
         DOTENV_CONFIG_PATH: '/opt/signifikation/app/.env',
       },
