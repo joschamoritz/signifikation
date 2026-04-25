@@ -139,7 +139,11 @@ function importLegacyAuditLog() {
   insertMany(entries)
 }
 
-importLegacyAuditLog()
+try {
+  importLegacyAuditLog()
+} catch (err) {
+  logger.warn({ err }, 'Legacy audit log import fehlgeschlagen – wird übersprungen')
+}
 
 function auditLog(entry) {
   const sanitizedEntry = {
