@@ -1,8 +1,8 @@
 import express from 'express'
 import cookieParser from 'cookie-parser'
+import { randomUUID } from 'crypto'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import adminRouter from '../routes/admin.js'
-import { createSession } from '../middleware/auth.js'
 import { loadReadOnly, save } from '../store.js'
 import db from '../db.js'
 
@@ -29,6 +29,13 @@ const deleteUserStmt = db.prepare(`
   DELETE FROM user
   WHERE id = ?
 `)
+
+const insertSessionStmt = db.prepare(`
+  INSERT INTO session (id, userId, token, expiresAt, ipAddress, userAgent, createdAt, updatedAt)
+  VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+`)
+
+const deleteSessionStmt = db.prepare(`DELETE FROM session WHERE id = ?`)
 
 const cleanupUsersTx = db.transaction((userIds) => {
   for (const userId of userIds) {
@@ -63,7 +70,7 @@ function createTestUser({ role } = {}) {
 function adminHeaders(token, ip = '198.51.100.50') {
   return {
     'content-type': 'application/json',
-    cookie: `admin_token=${token}`,
+    cookie: `better-auth.session_token=${token}`,
     'x-forwarded-for': ip,
   }
 }
@@ -72,14 +79,15 @@ describe('admin routes integration', () => {
   let server
   let baseUrl
   let token
+  let testSessionId
   const testUserIds = new Set()
 
   beforeAll(async () => {
-  const app = express()
-  app.set('trust proxy', 1)
-  app.use(cookieParser())
-  app.use('/admin/backup/restore', express.json({ limit: BACKUP_RESTORE_BODY_LIMIT }))
-  app.use(express.json())
+    const app = express()
+    app.set('trust proxy', 1)
+    app.use(cookieParser())
+    app.use('/admin/backup/restore', express.json({ limit: BACKUP_RESTORE_BODY_LIMIT }))
+    app.use(express.json())
     app.use('/', adminRouter)
 
     await new Promise((resolve) => {
@@ -89,10 +97,19 @@ describe('admin routes integration', () => {
     const address = server.address()
     const port = typeof address === 'object' && address ? address.port : 0
     baseUrl = `http://127.0.0.1:${port}`
-    token = createSession().token
+
+    // Admin-User + Session in DB anlegen
+    const adminUserId = createTestUser({ role: 'admin' })
+    testUserIds.add(adminUserId)
+    testSessionId = randomUUID()
+    token = randomUUID()
+    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
+    const now = new Date().toISOString()
+    insertSessionStmt.run(testSessionId, adminUserId, token, expiresAt, '127.0.0.1', 'test-agent', now, now)
   })
 
   afterAll(async () => {
+    if (testSessionId) deleteSessionStmt.run(testSessionId)
     cleanupUsersTx([...testUserIds])
 
     if (!server) return

@@ -2,7 +2,6 @@ import { fileURLToPath } from 'url'
 import { dirname, join } from 'path'
 import { config as _loadEnv } from 'dotenv'
 import logger from '../logger.js'
-import { auth } from '../auth/index.js'
 import db from '../db.js'
 
 // Load .env relative to this file — works regardless of PM2 cwd or process.env.DOTENV_CONFIG_PATH

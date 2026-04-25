@@ -3,8 +3,18 @@
  */
 
 import { timingSafeEqual } from 'crypto'
-import { describe, test, expect, vi, beforeEach, afterEach } from 'vitest'
-import { createSession, csrfProtect, csrfProtectUpload, requireAuth } from './auth.js'
+import { describe, test, expect, vi, beforeEach } from 'vitest'
+
+// vi.hoisted ermöglicht Referenzierung der Mocks in vi.mock-Factory
+const { mockDbGet } = vi.hoisted(() => ({ mockDbGet: vi.fn() }))
+
+vi.mock('../db.js', () => ({
+  default: {
+    prepare: vi.fn(() => ({ get: mockDbGet, run: vi.fn() })),
+  },
+}))
+
+import { csrfProtect, csrfProtectUpload, requireAuth } from './auth.js'
 
 // ── Hilfsfunktion: minimales req/res/next-Mock ────────────────
 function mockReq(overrides = {}) {
@@ -18,31 +28,6 @@ function mockRes() {
 }
 
 describe('Auth-Middleware', () => {
-  // ── createSession ────────────────────────────────────────────
-  describe('createSession', () => {
-    test('erstellt Token mit korrektem Format (3 Teile)', () => {
-      const session = createSession()
-      expect(session.token).toBeDefined()
-      expect(session.expiresAt).toBeDefined()
-      expect(typeof session.token).toBe('string')
-      expect(session.token.split('.').length).toBe(3)
-    })
-
-    test('Token ist eindeutig', () => {
-      const s1 = createSession()
-      const s2 = createSession()
-      expect(s1.token).not.toBe(s2.token)
-    })
-
-    test('expiresAt liegt in der Zukunft (8h+)', () => {
-      const session = createSession()
-      const ttl = session.expiresAt - Date.now()
-      const eightHours = 8 * 60 * 60 * 1000
-      expect(ttl).toBeGreaterThan(eightHours - 1000)
-      expect(ttl).toBeLessThan(eightHours + 1000)
-    })
-  })
-
   // ── Timing-Safety ────────────────────────────────────────────
   describe('Constant-Time-Comparison', () => {
     test('timingSafeEqual vergleicht Inhalt constant-time (gleiche Länge)', () => {
@@ -133,62 +118,72 @@ describe('Auth-Middleware', () => {
 
   // ── requireAuth ──────────────────────────────────────────────
   describe('requireAuth', () => {
-    test('gültiger Cookie → next()', () => {
-      const { token } = createSession()
-      const req  = mockReq({ cookies: { admin_token: token } })
-      const res  = mockRes()
-      const next = vi.fn()
-      requireAuth(req, res, next)
-      expect(next).toHaveBeenCalledOnce()
+    beforeEach(() => {
+      vi.clearAllMocks()
     })
 
-  test('X-Admin-Token-Header wird ignoriert (Legacy entfernt)', () => {
-    const { token } = createSession()
-    const req = mockReq({ cookies: {}, headers: { 'x-admin-token': token } })
-    const res = mockRes()
-    const next = vi.fn()
-    requireAuth(req, res, next)
-    expect(res.status).toHaveBeenCalledWith(401)
-  })
-
-    test('kein Token → 401', () => {
+    test('kein Cookie → 401', async () => {
       const req  = mockReq({ cookies: {} })
       const res  = mockRes()
       const next = vi.fn()
-      requireAuth(req, res, next)
+      await requireAuth(req, res, next)
       expect(res.status).toHaveBeenCalledWith(401)
       expect(next).not.toHaveBeenCalled()
     })
 
-    test('ungültiger Token (manipuliertes HMAC) → 401', () => {
-      const { token } = createSession()
-      const parts = token.split('.')
-      const tampered = `${parts[0]}.${parts[1]}.deadbeefdeadbeef`
-      const req  = mockReq({ cookies: { admin_token: tampered } })
+    test('Token nicht in DB → 401', async () => {
+      mockDbGet.mockReturnValueOnce(null)
+      const req  = mockReq({ cookies: { 'better-auth.session_token': 'unbekanntes-token' } })
       const res  = mockRes()
       const next = vi.fn()
-      requireAuth(req, res, next)
+      await requireAuth(req, res, next)
       expect(res.status).toHaveBeenCalledWith(401)
+      expect(next).not.toHaveBeenCalled()
     })
 
-    test('falsches Token-Format (zu wenig Teile) → 401', () => {
-      const req  = mockReq({ cookies: { admin_token: 'nur-ein-teil' } })
+    test('gültige Session, kein Profil → 403', async () => {
+      mockDbGet
+        .mockReturnValueOnce({ id: 'sess-1', userId: 'user-1' })
+        .mockReturnValueOnce(null)
+      const req  = mockReq({ cookies: { 'better-auth.session_token': 'valid-token' } })
       const res  = mockRes()
       const next = vi.fn()
-      requireAuth(req, res, next)
-      expect(res.status).toHaveBeenCalledWith(401)
+      await requireAuth(req, res, next)
+      expect(res.status).toHaveBeenCalledWith(403)
+      expect(next).not.toHaveBeenCalled()
     })
 
-    test('abgelaufener Token → 401', () => {
-      const { token } = createSession()
-      const [uuid, , hmac] = token.split('.')
-      // Timestamp in der Vergangenheit
-      const expired = `${uuid}.${Date.now() - 1000}.${hmac}`
-      const req  = mockReq({ cookies: { admin_token: expired } })
+    test('gültige Session, role=user → 403', async () => {
+      mockDbGet
+        .mockReturnValueOnce({ id: 'sess-1', userId: 'user-1' })
+        .mockReturnValueOnce({ role: 'user' })
+      const req  = mockReq({ cookies: { 'better-auth.session_token': 'valid-token' } })
       const res  = mockRes()
       const next = vi.fn()
-      requireAuth(req, res, next)
-      expect(res.status).toHaveBeenCalledWith(401)
+      await requireAuth(req, res, next)
+      expect(res.status).toHaveBeenCalledWith(403)
+      expect(next).not.toHaveBeenCalled()
+    })
+
+    test('gültige Session, Admin-Profil → next()', async () => {
+      mockDbGet
+        .mockReturnValueOnce({ id: 'sess-1', userId: 'user-1' })
+        .mockReturnValueOnce({ role: 'admin' })
+      const req  = mockReq({ cookies: { 'better-auth.session_token': 'valid-token' } })
+      const res  = mockRes()
+      const next = vi.fn()
+      await requireAuth(req, res, next)
+      expect(next).toHaveBeenCalledOnce()
+      expect(res.status).not.toHaveBeenCalled()
+    })
+
+    test('req.session.userId gesetzt (betterAuth-Route) → direkte Role-Prüfung', async () => {
+      mockDbGet.mockReturnValueOnce({ role: 'admin' })
+      const req  = mockReq({ session: { id: 'sess-1', userId: 'user-1' }, cookies: {} })
+      const res  = mockRes()
+      const next = vi.fn()
+      await requireAuth(req, res, next)
+      expect(next).toHaveBeenCalledOnce()
     })
   })
 })
