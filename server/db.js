@@ -80,7 +80,7 @@ db.exec(`
 
   CREATE TABLE IF NOT EXISTS user_profiles (
     user_id    TEXT PRIMARY KEY,
-    role       TEXT NOT NULL DEFAULT 'user' CHECK (role IN ('user','teacher')),
+    role       TEXT NOT NULL DEFAULT 'user' CHECK (role IN ('user','premium')),
     created_at INTEGER NOT NULL,
     updated_at INTEGER NOT NULL
   );
@@ -334,6 +334,44 @@ if (hasColumn('stats', 'user_id')) {
   CREATE INDEX IF NOT EXISTS idx_stats_datum
   ON stats(datum);
   `)
+}
+
+// ── Migration: user_profiles.role 'teacher' → 'premium' ─────────
+{
+  const upRow = db.prepare(`SELECT sql FROM sqlite_master WHERE type='table' AND name='user_profiles'`).get()
+  if (upRow?.sql?.includes("'teacher'")) {
+    logger.info("Migration: user_profiles.role 'teacher' → 'premium'")
+    try {
+      db.exec(`
+        BEGIN;
+
+        CREATE TABLE user_profiles_new (
+          user_id    TEXT PRIMARY KEY,
+          role       TEXT NOT NULL DEFAULT 'user' CHECK (role IN ('user','premium')),
+          created_at INTEGER NOT NULL,
+          updated_at INTEGER NOT NULL
+        );
+
+        INSERT INTO user_profiles_new (user_id, role, created_at, updated_at)
+        SELECT
+          user_id,
+          CASE WHEN role = 'teacher' THEN 'premium' ELSE role END,
+          created_at,
+          updated_at
+        FROM user_profiles;
+
+        DROP TABLE user_profiles;
+        ALTER TABLE user_profiles_new RENAME TO user_profiles;
+
+        CREATE INDEX IF NOT EXISTS idx_user_profiles_role ON user_profiles(role);
+
+        COMMIT;
+      `)
+    } catch (err) {
+      db.exec('ROLLBACK;')
+      throw err
+    }
+  }
 }
 
 export default db

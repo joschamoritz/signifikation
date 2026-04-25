@@ -5,7 +5,7 @@ import classroomRouter from '../routes/classroom.js'
 function teacherHeaders(id = `teacher-${Date.now()}`) {
   return {
     'x-dev-user-id': id,
-    'x-dev-user-role': 'teacher',
+    'x-dev-user-role': 'premium',
     'content-type': 'application/json',
   }
 }
@@ -106,14 +106,14 @@ describe('classroom routes integration', () => {
     const payload = await parseJsonSafe(response)
 
     expect(response.status).toBe(403)
-    expect(payload).toEqual({ error: 'Lehrkraft-Berechtigung erforderlich' })
+    expect(payload).toEqual({ error: 'Premium-Berechtigung erforderlich' })
   })
 
   it('auth: laesst Lehrkraft durch und liefert route-spezifische Antwort', async () => {
     const response = await fetch(`${baseUrl}/api/v1/classroom/sessions/does-not-exist/dashboard`, {
       headers: {
         'x-dev-user-id': 'test-teacher',
-        'x-dev-user-role': 'teacher',
+        'x-dev-user-role': 'premium',
       },
     })
     const payload = await parseJsonSafe(response)

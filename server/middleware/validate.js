@@ -112,13 +112,13 @@ export const analyzeZWendeQuerySchema = z.object({
 /** GET /admin/users (query) */
 export const adminUsersQuerySchema = z.object({
   limit: z.coerce.number().int().min(1).max(200).optional().default(50),
-  role: z.enum(['user', 'teacher']).optional(),
+  role: z.enum(['user', 'premium']).optional(),
   q: z.string().trim().max(120).optional(),
 })
 
 /** POST /admin/users/:id/role */
 export const adminSetUserRoleSchema = z.object({
-  role: z.enum(['user', 'teacher']),
+  role: z.enum(['user', 'premium']),
 })
 
 /** GET /admin/users/:id (params) */
@@ -130,7 +130,7 @@ export const adminUserIdParamsSchema = z.object({
 export const adminUsersBulkUpdateSchema = z.object({
   action: z.enum(['setRole', 'delete', 'export']),
   userIds: z.array(z.string().trim().min(1, 'userIds enthaelt leere IDs')).min(1, 'Mindestens ein Nutzer erforderlich').max(200, 'Maximal 200 Nutzer pro Aktion'),
-  role: z.enum(['user', 'teacher']).optional(),
+  role: z.enum(['user', 'premium']).optional(),
   format: z.enum(['json', 'csv']).optional().default('json'),
 }).superRefine((value, ctx) => {
   if (value.action === 'setRole' && !value.role) {

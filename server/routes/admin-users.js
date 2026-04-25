@@ -104,7 +104,7 @@ export function createAdminUsersRouter(deps) {
       })
 
       const total = countUsersStmt.get()?.total || 0
-      const roleCounts = countUsersByRoleStmt.get() || { teachers: 0, users: 0 }
+      const roleCounts = countUsersByRoleStmt.get() || { premium: 0, users: 0 }
 
       const now = Date.now()
       const from7 = new Date(now - 7 * 24 * 60 * 60 * 1000).toISOString()
@@ -115,7 +115,7 @@ export function createAdminUsersRouter(deps) {
         summary: {
           total,
           users: Number(roleCounts.users || 0),
-          teachers: Number(roleCounts.teachers || 0),
+          premium: Number(roleCounts.premium || 0),
           newLast7Days: Number(growth.newLast7Days || 0),
           newLast30Days: Number(growth.newLast30Days || 0),
         },

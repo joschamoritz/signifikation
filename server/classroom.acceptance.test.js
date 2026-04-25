@@ -12,7 +12,7 @@ function parseJsonSafe(response) {
 function teacherHeaders(id = 'teacher-acc') {
   return {
     'x-dev-user-id': id,
-    'x-dev-user-role': 'teacher',
+    'x-dev-user-role': 'premium',
     'content-type': 'application/json',
   }
 }
@@ -142,7 +142,7 @@ describe('Classroom-Akzeptanz: 20 gleichzeitige Teilnehmende', () => {
     const dashboardResponse = await fetch(`${baseUrl}/api/v1/classroom/sessions/${session.id}/dashboard`, {
       headers: {
         'x-dev-user-id': 'teacher-acc',
-        'x-dev-user-role': 'teacher',
+        'x-dev-user-role': 'premium',
       },
     })
     expect(dashboardResponse.status).toBe(200)

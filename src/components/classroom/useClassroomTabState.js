@@ -15,7 +15,7 @@ export function useClassroomTabState({
   const entriesRef = useRef(null)
 
   const { account, loadingAccount, teacherError, setTeacherError } = useClassroomAccount()
-  const isTeacher = account?.role === 'teacher'
+  const isTeacher = account?.role === 'premium'
 
   const teacherState = useTeacherClassroom({ isTeacher, setTeacherError })
 

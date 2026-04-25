@@ -205,7 +205,7 @@ describe('adminUsersBulkUpdateSchema', () => {
   it('akzeptiert setRole mit role und IDs', () => {
     expect(adminUsersBulkUpdateSchema.safeParse({
       action: 'setRole',
-      role: 'teacher',
+      role: 'premium',
       userIds: ['u1', 'u2'],
     }).success).toBe(true)
   })

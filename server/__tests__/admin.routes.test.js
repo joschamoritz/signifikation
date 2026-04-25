@@ -193,7 +193,7 @@ describe('admin routes integration', () => {
   })
 
   it('GET /admin/users/:id/stats liefert nur Statistikdaten', async () => {
-    const userId = createTestUser({ role: 'teacher' })
+    const userId = createTestUser({ role: 'premium' })
     testUserIds.add(userId)
 
     const response = await fetch(`${baseUrl}/admin/users/${encodeURIComponent(userId)}/stats`, {
@@ -354,7 +354,7 @@ describe('admin routes integration', () => {
       body: JSON.stringify({
         action: 'setRole',
         userIds: [firstUserId, secondUserId, missingUserId],
-        role: 'teacher',
+        role: 'premium',
       }),
     })
     const payload = await response.json()
@@ -370,14 +370,14 @@ describe('admin routes integration', () => {
     })
     expect(firstUserDetailsRes.status).toBe(200)
     const firstUserDetails = await firstUserDetailsRes.json()
-    expect(firstUserDetails.user.role).toBe('teacher')
+    expect(firstUserDetails.user.role).toBe('premium')
 
     const secondUserDetailsRes = await fetch(`${baseUrl}/admin/users/${encodeURIComponent(secondUserId)}`, {
       headers: adminHeaders(token),
     })
     expect(secondUserDetailsRes.status).toBe(200)
     const secondUserDetails = await secondUserDetailsRes.json()
-    expect(secondUserDetails.user.role).toBe('teacher')
+    expect(secondUserDetails.user.role).toBe('premium')
   })
 
   it('POST /admin/users/bulk-update validiert fehlende role bei setRole', async () => {
@@ -399,7 +399,7 @@ describe('admin routes integration', () => {
   })
 
   it('POST /admin/users/bulk-update loescht mehrere Nutzer', async () => {
-    const firstUserId = createTestUser({ role: 'teacher' })
+    const firstUserId = createTestUser({ role: 'premium' })
     const secondUserId = createTestUser({ role: 'user' })
     testUserIds.add(firstUserId)
     testUserIds.add(secondUserId)
@@ -436,7 +436,7 @@ describe('admin routes integration', () => {
   })
 
   it('POST /admin/users/bulk-update exportiert Nutzer als JSON', async () => {
-    const firstUserId = createTestUser({ role: 'teacher' })
+    const firstUserId = createTestUser({ role: 'premium' })
     const secondUserId = createTestUser()
     testUserIds.add(firstUserId)
     testUserIds.add(secondUserId)
@@ -462,7 +462,7 @@ describe('admin routes integration', () => {
 
     for (const row of payload.users) {
       expect(typeof row.email).toBe('string')
-      expect(['user', 'teacher']).toContain(row.role)
+      expect(['user', 'premium']).toContain(row.role)
       expect(typeof row.emailVerified).toBe('boolean')
     }
   })

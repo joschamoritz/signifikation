@@ -186,7 +186,7 @@ function renderModeGroupSummary(entry, { emptyText = 'Keine Inhalte' } = {}) {
 }
 
 function roleLabel(role) {
-  return role === 'teacher' ? 'Teacher' : 'User'
+  return role === 'premium' ? 'Premium' : 'User'
 }
 
 function getSelectedUserIdsFromTable() {
@@ -1588,7 +1588,7 @@ async function loadUsersOverview() {
     if (!response.ok) throw new Error(data.error || `HTTP ${response.status}`)
 
     const info = data.summary || {}
-    summary.textContent = `Gesamt: ${info.total || 0} · User: ${info.users || 0} · Teacher: ${info.teachers || 0} · Neu 30 Tage: ${info.newLast30Days || 0}`
+    summary.textContent = `Gesamt: ${info.total || 0} · User: ${info.users || 0} · Premium: ${info.premium || 0} · Neu 30 Tage: ${info.newLast30Days || 0}`
 
     const users = Array.isArray(data.users) ? data.users : []
     if (!users.length) {

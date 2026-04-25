@@ -9,7 +9,7 @@ import {
   classroomListQuerySchema,
   validate,
 } from '../middleware/validate.js'
-import { requireTeacher } from '../middleware/userAuth.js'
+import { requirePremium } from '../middleware/userAuth.js'
 import {
   createClassroomSession,
   startClassroomSession,
@@ -55,7 +55,7 @@ function mapError(errCode) {
   }
 }
 
-router.post('/api/v1/classroom/sessions', classroomWriteLimiter, requireTeacher, validate(classroomCreateSessionSchema), (req, res) => {
+router.post('/api/v1/classroom/sessions', classroomWriteLimiter, requirePremium, validate(classroomCreateSessionSchema), (req, res) => {
   try {
     const { datum, year, settings } = req.body
     const { session, joinCode } = createClassroomSession({
@@ -71,7 +71,7 @@ router.post('/api/v1/classroom/sessions', classroomWriteLimiter, requireTeacher,
   }
 })
 
-router.post('/api/v1/classroom/sessions/:id/start', classroomWriteLimiter, requireTeacher, validate(classroomStartSessionSchema), (req, res) => {
+router.post('/api/v1/classroom/sessions/:id/start', classroomWriteLimiter, requirePremium, validate(classroomStartSessionSchema), (req, res) => {
   try {
     const result = startClassroomSession({
       sessionId: req.params.id,
@@ -89,7 +89,7 @@ router.post('/api/v1/classroom/sessions/:id/start', classroomWriteLimiter, requi
   }
 })
 
-router.post('/api/v1/classroom/sessions/:id/finish', classroomWriteLimiter, requireTeacher, validate(classroomFinishSessionSchema), (req, res) => {
+router.post('/api/v1/classroom/sessions/:id/finish', classroomWriteLimiter, requirePremium, validate(classroomFinishSessionSchema), (req, res) => {
   try {
     const result = finishClassroomSession({
       sessionId: req.params.id,
@@ -140,7 +140,7 @@ router.post('/api/v1/classroom/heartbeat', classroomJoinLimiter, (req, res) => {
   }
 })
 
-router.get('/api/v1/classroom/sessions/:id/dashboard', requireTeacher, (req, res) => {
+router.get('/api/v1/classroom/sessions/:id/dashboard', requirePremium, (req, res) => {
   try {
     const result = getClassroomDashboard({
       sessionId: req.params.id,
@@ -157,7 +157,7 @@ router.get('/api/v1/classroom/sessions/:id/dashboard', requireTeacher, (req, res
   }
 })
 
-router.post('/api/v1/classroom/sessions/:id/teacher-socket-auth', requireTeacher, (req, res) => {
+router.post('/api/v1/classroom/sessions/:id/teacher-socket-auth', requirePremium, (req, res) => {
   if (String(req.params.id || '').trim() === '') {
     return res.status(400).json({ error: 'sessionId erforderlich' })
   }
@@ -170,7 +170,7 @@ router.post('/api/v1/classroom/sessions/:id/teacher-socket-auth', requireTeacher
   })
 })
 
-router.get('/api/v1/classroom/sessions', requireTeacher, validate(classroomListQuerySchema, 'query'), (req, res) => {
+router.get('/api/v1/classroom/sessions', requirePremium, validate(classroomListQuerySchema, 'query'), (req, res) => {
   try {
     const sessions = listTeacherSessions({
       teacherUserId: req.user.id,
@@ -187,7 +187,7 @@ router.get('/api/v1/classroom/sessions', requireTeacher, validate(classroomListQ
   }
 })
 
-router.post('/api/v1/classroom/sessions/:id/exports', classroomExportLimiter, requireTeacher, validate(classroomCreateExportSchema), (req, res) => {
+router.post('/api/v1/classroom/sessions/:id/exports', classroomExportLimiter, requirePremium, validate(classroomCreateExportSchema), (req, res) => {
   try {
     const result = createClassroomExportJob({
       sessionId: req.params.id,
@@ -205,7 +205,7 @@ router.post('/api/v1/classroom/sessions/:id/exports', classroomExportLimiter, re
   }
 })
 
-router.get('/api/v1/classroom/sessions/:id/exports/:exportId', requireTeacher, (req, res) => {
+router.get('/api/v1/classroom/sessions/:id/exports/:exportId', requirePremium, (req, res) => {
   try {
     const result = getClassroomExportJob({
       sessionId: req.params.id,
@@ -223,7 +223,7 @@ router.get('/api/v1/classroom/sessions/:id/exports/:exportId', requireTeacher, (
   }
 })
 
-router.get('/api/v1/classroom/sessions/:id/exports/:exportId/download', requireTeacher, (req, res) => {
+router.get('/api/v1/classroom/sessions/:id/exports/:exportId/download', requirePremium, (req, res) => {
   try {
     const result = getClassroomExportJob({
       sessionId: req.params.id,
@@ -250,7 +250,7 @@ router.get('/api/v1/classroom/sessions/:id/exports/:exportId/download', requireT
   }
 })
 
-router.get('/api/v1/classroom/sessions/:id/exports', requireTeacher, (req, res) => {
+router.get('/api/v1/classroom/sessions/:id/exports', requirePremium, (req, res) => {
   try {
     const result = listClassroomExportJobs({
       sessionId: req.params.id,

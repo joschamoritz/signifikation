@@ -7,8 +7,8 @@ export const countUsersStmt = db.prepare(`
 
 export const countUsersByRoleStmt = db.prepare(`
   SELECT
-    SUM(CASE WHEN COALESCE(up.role, 'user') = 'teacher' THEN 1 ELSE 0 END) AS teachers,
-    SUM(CASE WHEN COALESCE(up.role, 'user') != 'teacher' THEN 1 ELSE 0 END) AS users
+    SUM(CASE WHEN COALESCE(up.role, 'user') = 'premium' THEN 1 ELSE 0 END) AS premium,
+    SUM(CASE WHEN COALESCE(up.role, 'user') != 'premium' THEN 1 ELSE 0 END) AS users
   FROM user u
   LEFT JOIN user_profiles up ON up.user_id = u.id
 `)

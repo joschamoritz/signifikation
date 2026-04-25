@@ -201,11 +201,11 @@ export default function KontoAuthCard({
             </div>
             <div>
               <dt>Rolle</dt>
-              <dd>{accountData?.role === 'teacher' ? 'Lehrkraft' : 'Nutzer'}</dd>
+              <dd>{accountData?.role === 'premium' ? 'Premium' : 'Basis'}</dd>
             </div>
           </dl>
 
-          {accountData?.role === 'teacher' && (
+          {accountData?.role === 'premium' && (
             <div className="konto-teacher-note" role="status">
               <p className="konto-teacher-note-title">
                 <span className="konto-teacher-note-symbol" aria-hidden="true">§</span>
