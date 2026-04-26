@@ -78,7 +78,7 @@ router.post('/api/v1/payments/checkout', requireAuthUser, async (req, res) => {
     const payment = await client.payments.create({
       amount: { currency: 'EUR', value: GESAMTAUSGABE_PRICE },
       description: 'Gesamtausgabe – Signifikation',
-      redirectUrl: `${BASE_URL}/konto?payment=success`,
+      redirectUrl: `${BASE_URL}/?payment=success`,
       webhookUrl: `${BASE_URL}/api/v1/payments/webhook`,
       metadata: {
         userId: req.user.id,
@@ -86,8 +86,14 @@ router.post('/api/v1/payments/checkout', requireAuthUser, async (req, res) => {
       },
     })
 
+    const checkoutUrl = payment.getCheckoutUrl()
+    if (!checkoutUrl) {
+      logger.error({ userId: req.user.id, paymentId: payment.id }, 'Mollie lieferte keine Checkout-URL')
+      return res.status(500).json({ error: 'Zahlung konnte nicht gestartet werden.' })
+    }
+
     logger.info({ userId: req.user.id, paymentId: payment.id }, 'Mollie-Checkout erstellt')
-    res.json({ checkoutUrl: payment._links.checkout.href })
+    res.json({ checkoutUrl })
   } catch (err) {
     logger.error({ err, userId: req.user.id }, 'Checkout-Erstellung fehlgeschlagen')
     res.status(500).json({ error: 'Zahlung konnte nicht gestartet werden' })
