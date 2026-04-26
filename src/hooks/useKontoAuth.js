@@ -177,6 +177,15 @@ export function useKontoAuth({ onAuthStateChange = () => {} }) {
     }
   }, [readJsonSafe])
 
+  const loadActiveSessions = useCallback(async () => {
+    try {
+      const res = await fetch(`${API}/account/sessions`, { credentials: 'include' })
+      if (!res.ok) return
+      const data = await readJsonSafe(res)
+      setActiveSessions(data?.sessions ?? [])
+    } catch { /* ignorieren */ }
+  }, [readJsonSafe])
+
   useEffect(() => {
     loadSession()
   }, [loadSession])
@@ -463,19 +472,11 @@ export function useKontoAuth({ onAuthStateChange = () => {} }) {
     }
   }, [getErrorMessage, isBusy, onAuthStateChange])
 
-  const loadActiveSessions = useCallback(async () => {
-    try {
-      const res = await fetch(`${API}/account/sessions`, { credentials: 'include' })
-      if (!res.ok) return
-      const data = await readJsonSafe(res)
-      setActiveSessions(data?.sessions ?? [])
-    } catch { /* ignorieren */ }
-  }, [readJsonSafe])
-
   const revokeSession = useCallback(async (sessionId) => {
     try {
       const res = await fetch(`${API}/account/sessions/${sessionId}`, {
         method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
       })
       if (res.ok) setActiveSessions((prev) => prev.filter((s) => s.id !== sessionId))
@@ -489,6 +490,7 @@ export function useKontoAuth({ onAuthStateChange = () => {} }) {
     try {
       const response = await fetch(`${API}/account/me`, {
         method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
       })
       if (!response.ok) {
