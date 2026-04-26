@@ -4,7 +4,6 @@ import AppGameScreens from './components/AppGameScreens'
 import PersistentClassroomTab from './components/PersistentClassroomTab'
 import TabBar from './components/TabBar'
 import TabTransition from './components/TabTransition'
-import PaywallModal from './components/PaywallModal'
 import { useAppModel } from './hooks/useAppModel'
 
 export default function App() {
@@ -18,8 +17,6 @@ export default function App() {
     tabScreens,
     appGameScreensProps,
     persistentClassroomProps,
-    isPaywallOpen,
-    closePaywall,
   } = useAppModel()
 
   return (
@@ -30,7 +27,6 @@ export default function App() {
         <PersistentClassroomTab {...persistentClassroomProps} />
       </AppShell>
       {showTabBar && <TabBar activeTab={activeTab} onTabChange={handleTabChange} classroomLive={classroomLive} />}
-      {isPaywallOpen && <PaywallModal onClose={closePaywall} />}
     </ErrorBoundary>
   )
 }

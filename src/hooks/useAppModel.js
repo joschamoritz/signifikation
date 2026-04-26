@@ -38,7 +38,7 @@ export function useAppModel() {
     setZwPlayed,
   } = useDailyContent()
   const { gesamtausgabeUnlocked, refreshEntitlements, unlockGesamtausgabe } = useEntitlements()
-  const { isPaywallOpen, openPaywall, closePaywall } = usePaywall({ refreshEntitlements })
+  usePaywall({ refreshEntitlements })
 
   const appRef = useRef(null)
   const classroomSubmitRef = useRef(null)
@@ -120,8 +120,6 @@ export function useAppModel() {
     zwPlayed,
     gesamtausgabeUnlocked,
     classroomInSession: navigation.classroomInSession,
-    unlockGesamtausgabe,
-    openPaywall,
     refreshEntitlements,
     setActiveTab: navigation.setActiveTab,
   })
@@ -147,9 +145,6 @@ export function useAppModel() {
 
   return {
     appRef,
-    isPaywallOpen,
-    openPaywall,
-    closePaywall,
     activeTab: navigation.activeTab,
     classroomLive: navigation.classroomLive,
     handleTabChange: navigation.handleTabChange,

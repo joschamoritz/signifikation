@@ -6,7 +6,7 @@ import KontoStatistikenBlock from './konto/KontoStatistikenBlock'
 import KontoEinstellungenBlock from './konto/KontoEinstellungenBlock'
 import KontoRechtlichesBlock from './konto/KontoRechtlichesBlock'
 
-export default function KontoTab({ gesamtausgabe, onUnlock, onAuthStateChange = () => {} }) {
+export default function KontoTab({ gesamtausgabe, onAuthStateChange = () => {} }) {
   const auth = useKontoAuth({ onAuthStateChange })
   const entriesRef = useRef(null)
 
@@ -37,10 +37,9 @@ export default function KontoTab({ gesamtausgabe, onUnlock, onAuthStateChange = 
           <ol className="test-entries" aria-label="Konto-Bereiche" ref={entriesRef}>
             
             {/* ① Zugang & Abonnement */}
-            <KontoZugangBlock 
+            <KontoZugangBlock
               auth={auth}
               gesamtausgabe={gesamtausgabe}
-              onUnlock={onUnlock}
             />
 
             {/* ② Statistiken */}

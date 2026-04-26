@@ -30,9 +30,8 @@ export default function AppTabScreens({
   onViewZeitenwende,
   gesamtausgabeUnlocked,
   classroomInSession,
-  unlockGesamtausgabe,
+  onNavigateToKonto,
   refreshEntitlements,
-  onProfilUnlock,
 }) {
   return {
     spielmodi: phase === 'home' ? (
@@ -64,14 +63,13 @@ export default function AppTabScreens({
         onPlayZeitenwende={onPlayZeitenwende.play}
         onViewZeitenwende={onViewZeitenwende}
         gesamtausgabe={gesamtausgabeUnlocked || classroomInSession}
-        onUnlockGesamtausgabe={unlockGesamtausgabe}
+        onUnlockGesamtausgabe={onNavigateToKonto}
       />
     ) : null,
     kurs: <KursTab />,
     profil: (
       <KontoTab
         gesamtausgabe={gesamtausgabeUnlocked}
-        onUnlock={onProfilUnlock}
         onAuthStateChange={refreshEntitlements}
       />
     ),

@@ -1,14 +1,12 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useEffect } from 'react'
 
+// Erkennt erfolgreiche Rückkehr von Mollie (?payment=success),
+// bereinigt die URL und lädt Entitlements neu.
 export function usePaywall({ refreshEntitlements }) {
-  const [isOpen, setIsOpen] = useState(false)
-
-  // Rückkehr von Mollie nach erfolgreicher Zahlung: ?payment=success
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
     if (params.get('payment') !== 'success') return
 
-    // URL bereinigen
     params.delete('payment')
     const nextSearch = params.toString()
     window.history.replaceState(
@@ -17,12 +15,6 @@ export function usePaywall({ refreshEntitlements }) {
       `${window.location.pathname}${nextSearch ? `?${nextSearch}` : ''}`
     )
 
-    // Entitlements vom Server neu laden (Mollie-Webhook hat Unlock bereits geschrieben)
     refreshEntitlements()
   }, [refreshEntitlements])
-
-  const openPaywall = useCallback(() => setIsOpen(true), [])
-  const closePaywall = useCallback(() => setIsOpen(false), [])
-
-  return { isPaywallOpen: isOpen, openPaywall, closePaywall }
 }
