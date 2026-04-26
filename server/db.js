@@ -147,6 +147,20 @@ db.exec(`
     PRIMARY KEY (datum, spiel, user_id)
   );
 
+  CREATE TABLE IF NOT EXISTS payments (
+    id           TEXT PRIMARY KEY,
+    user_id      TEXT NOT NULL,
+    amount       TEXT NOT NULL,
+    currency     TEXT NOT NULL DEFAULT 'EUR',
+    status       TEXT NOT NULL,
+    product      TEXT NOT NULL,
+    processed_at INTEGER NOT NULL,
+    FOREIGN KEY (user_id) REFERENCES user(id) ON DELETE CASCADE
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_payments_user_product
+    ON payments(user_id, product, status);
+
   CREATE TABLE IF NOT EXISTS audit_log (
     id             INTEGER PRIMARY KEY AUTOINCREMENT,
     timestamp      TEXT NOT NULL,

@@ -26,6 +26,7 @@ export function useAppTabScreens({
   gesamtausgabeUnlocked,
   classroomInSession,
   unlockGesamtausgabe,
+  openPaywall,
   refreshEntitlements,
   setActiveTab,
 }) {
@@ -86,12 +87,9 @@ export function useAppTabScreens({
     }),
     gesamtausgabeUnlocked,
     classroomInSession,
-    unlockGesamtausgabe,
+    unlockGesamtausgabe: openPaywall,
     refreshEntitlements,
-    onProfilUnlock: () => {
-      unlockGesamtausgabe()
-      setActiveTab('spielmodi')
-    },
+    onProfilUnlock: openPaywall,
   }), [
     phase,
     lemmata,
@@ -115,6 +113,7 @@ export function useAppTabScreens({
     gesamtausgabeUnlocked,
     classroomInSession,
     unlockGesamtausgabe,
+    openPaywall,
     refreshEntitlements,
     setActiveTab,
     setPhase,

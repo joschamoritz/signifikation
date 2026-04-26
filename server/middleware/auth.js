@@ -124,6 +124,11 @@ export function csrfProtect(req, res, next) {
   if (req.originalUrl?.startsWith('/api/v1/auth/')) {
     return next()
   }
+  // Mollie-Webhook sendet application/x-www-form-urlencoded – kein CSRF nötig,
+  // da kein Browser-Cookie beteiligt ist (Server→Server-Aufruf)
+  if (req.originalUrl?.startsWith('/api/v1/payments/webhook')) {
+    return next()
+  }
   if (['POST', 'PUT', 'DELETE'].includes(req.method)) {
     const contentType = req.headers['content-type'] || ''
     if (!contentType.includes('application/json')) {

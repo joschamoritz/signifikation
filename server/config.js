@@ -6,6 +6,7 @@ const IS_PROD = process.env.NODE_ENV === 'production'
 const REQUIRED_IN_PROD = [
   'BETTER_AUTH_SECRET',
   'CLASSROOM_JOIN_SECRET',
+  'MOLLIE_API_KEY',
 ]
 
 const missing = REQUIRED_IN_PROD.filter((key) => !process.env[key]?.trim())

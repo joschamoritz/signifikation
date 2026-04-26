@@ -21,6 +21,7 @@ import publicRouter from './routes/public.js'
 import adminRouter  from './routes/admin.js'
 import accountRouter from './routes/account.js'
 import classroomRouter from './routes/classroom.js'
+import paymentsRouter from './routes/payments.js'
 import { initClassroomSocket } from './realtime/classroomSocket.js'
 import { startClassroomWorker } from './workers/classroomWorker.js'
 import { ALLOWED_ORIGINS, CAPACITOR_ORIGINS, isAllowedOrigin } from './config/origins.js'
@@ -96,6 +97,7 @@ app.use('/', publicRouter)
 app.use('/', adminRouter)
 app.use('/', accountRouter)
 app.use('/', classroomRouter)
+app.use('/', paymentsRouter)
 
 // ── Statisches Frontend (Produktions-Build) ──────────────────
 const DIST = join(__dirname, '../dist')

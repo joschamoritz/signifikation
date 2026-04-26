@@ -5,6 +5,7 @@ import { useAppEffects } from './useAppEffects'
 import { useAppGameScreens } from './useAppGameScreens'
 import { useAppNavigation } from './useAppNavigation'
 import { useEntitlements } from './useEntitlements'
+import { usePaywall } from './usePaywall'
 import { useDailyContent } from './useDailyContent'
 import { useAppTabScreens } from './useAppTabScreens'
 import { useKollokationenGame } from './useKollokationenGame'
@@ -37,6 +38,7 @@ export function useAppModel() {
     setZwPlayed,
   } = useDailyContent()
   const { gesamtausgabeUnlocked, refreshEntitlements, unlockGesamtausgabe } = useEntitlements()
+  const { isPaywallOpen, openPaywall, closePaywall } = usePaywall({ refreshEntitlements })
 
   const appRef = useRef(null)
   const classroomSubmitRef = useRef(null)
@@ -119,6 +121,7 @@ export function useAppModel() {
     gesamtausgabeUnlocked,
     classroomInSession: navigation.classroomInSession,
     unlockGesamtausgabe,
+    openPaywall,
     refreshEntitlements,
     setActiveTab: navigation.setActiveTab,
   })
@@ -144,6 +147,9 @@ export function useAppModel() {
 
   return {
     appRef,
+    isPaywallOpen,
+    openPaywall,
+    closePaywall,
     activeTab: navigation.activeTab,
     classroomLive: navigation.classroomLive,
     handleTabChange: navigation.handleTabChange,
