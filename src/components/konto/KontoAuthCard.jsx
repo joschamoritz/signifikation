@@ -38,8 +38,20 @@ export default function KontoAuthCard({ auth }) {
     handleSocialSignIn,
     handleSignOut,
     handleDeleteAccount,
+    activeSessions,
+    revokeSession,
     switchMode,
   } = auth
+
+  function labelFromUA(ua) {
+    if (!ua) return 'Unbekanntes Gerät'
+    if (/iPhone|iPad|iPod/i.test(ua)) return 'iOS'
+    if (/Android/i.test(ua)) return 'Android'
+    if (/Windows/i.test(ua)) return 'Windows'
+    if (/Mac OS/i.test(ua)) return 'Mac'
+    if (/Linux/i.test(ua)) return 'Linux'
+    return 'Unbekanntes Gerät'
+  }
 
   const [confirmDelete, setConfirmDelete] = useState(false)
 
@@ -48,12 +60,11 @@ export default function KontoAuthCard({ auth }) {
       <header className="konto-auth-head">
         <h3 className="konto-auth-title">Zugang</h3>
         {!isLoggedIn && !isResetMode && (
-          <div className="konto-auth-modes" role="tablist" aria-label="Anmeldeart">
+          <div className="konto-auth-modes">
             <button
               className={`konto-auth-mode${mode === 'login' ? ' konto-auth-mode--active' : ''}`}
               type="button"
-              role="tab"
-              aria-selected={mode === 'login'}
+              aria-current={mode === 'login' ? 'true' : undefined}
               onClick={() => switchMode('login')}
             >
               Anmelden
@@ -61,8 +72,7 @@ export default function KontoAuthCard({ auth }) {
             <button
               className={`konto-auth-mode${mode === 'register' ? ' konto-auth-mode--active' : ''}`}
               type="button"
-              role="tab"
-              aria-selected={mode === 'register'}
+              aria-current={mode === 'register' ? 'true' : undefined}
               onClick={() => switchMode('register')}
             >
               Registrieren
@@ -259,6 +269,28 @@ export default function KontoAuthCard({ auth }) {
           >
             Passwort zurücksetzen
           </button>
+
+          {activeSessions.length > 0 && (
+            <div className="konto-sessions">
+              <p className="konto-sessions-label">Aktive Sitzungen</p>
+              <ul className="konto-sessions-list">
+                {activeSessions.map((s) => (
+                  <li key={s.id} className="konto-sessions-item">
+                    <span className="konto-sessions-device">{labelFromUA(s.userAgent)}</span>
+                    <span className="konto-sessions-ip">{s.ipAddress || '—'}</span>
+                    <button
+                      className="konto-sessions-revoke"
+                      type="button"
+                      onClick={() => revokeSession(s.id)}
+                      disabled={isBusy}
+                    >
+                      Beenden
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
 
           {confirmDelete ? (
             <div className="konto-auth-delete-confirm">

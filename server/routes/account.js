@@ -101,6 +101,32 @@ router.post('/api/v1/account/entitlements/gesamtausgabe/unlock', requireAuthUser
   }
 })
 
+router.get('/api/v1/account/sessions', requireAuthUser, (req, res) => {
+  try {
+    const rows = db.prepare(`
+      SELECT id, createdAt, ipAddress, userAgent, expiresAt
+      FROM session
+      WHERE userId = ? AND expiresAt > ?
+      ORDER BY createdAt DESC
+    `).all(req.user.id, new Date().toISOString())
+    res.json({ sessions: rows })
+  } catch {
+    res.status(500).json({ error: 'Interner Serverfehler' })
+  }
+})
+
+router.delete('/api/v1/account/sessions/:id', requireAuthUser, (req, res) => {
+  try {
+    const result = db.prepare(
+      'DELETE FROM session WHERE id = ? AND userId = ?'
+    ).run(req.params.id, req.user.id)
+    if (result.changes === 0) return res.status(404).json({ error: 'Session nicht gefunden' })
+    res.json({ ok: true })
+  } catch {
+    res.status(500).json({ error: 'Interner Serverfehler' })
+  }
+})
+
 router.delete('/api/v1/account/me', requireAuthUser, (req, res) => {
   try {
     const userId = req.user.id

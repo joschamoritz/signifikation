@@ -58,6 +58,7 @@ async function sendPasswordReset({ user, url }) {
     const response = await fetch(PASSWORD_RESET_WEBHOOK_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
+      signal: AbortSignal.timeout(10_000),
       body: JSON.stringify({
         type: 'password_reset',
         email: user.email,

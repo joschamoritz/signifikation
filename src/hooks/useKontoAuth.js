@@ -4,6 +4,26 @@ import { API } from '../config'
 const EMPTY_FIELD_ERRORS = { name: '', email: '', password: '' }
 const EMPTY_RESET_ERRORS = { email: '', token: '', password: '', confirm: '' }
 
+const AUTH_FALLBACK_MESSAGES = {
+  register: 'Registrierung fehlgeschlagen.',
+  logout: 'Abmeldung fehlgeschlagen.',
+  'reset-request': 'Zurücksetzen konnte nicht angefragt werden.',
+  'reset-complete': 'Passwort konnte nicht geändert werden.',
+}
+
+function validateEmail(value) {
+  const clean = value.trim().toLowerCase()
+  if (!clean) return 'Bitte eine E-Mail eingeben.'
+  if (!/^\S+@\S+\.\S+$/.test(clean)) return 'Bitte eine gültige E-Mail eingeben.'
+  return null
+}
+
+function validatePassword(value) {
+  if (!value) return 'Bitte ein Passwort eingeben.'
+  if (value.length < 8) return 'Passwort muss mindestens 8 Zeichen haben.'
+  return null
+}
+
 export function useKontoAuth({ onAuthStateChange = () => {} }) {
   const [mode, setMode] = useState('login')
   const [name, setName] = useState('')
@@ -28,6 +48,7 @@ export function useKontoAuth({ onAuthStateChange = () => {} }) {
   const [isBusy, setIsBusy] = useState(false)
   const [isChecking, setIsChecking] = useState(true)
   const [notice, setNotice] = useState(null)
+  const [activeSessions, setActiveSessions] = useState([])
 
   const isLoggedIn = !!sessionData?.user?.email
   const showNameField = mode === 'register'
@@ -42,15 +63,7 @@ export function useKontoAuth({ onAuthStateChange = () => {} }) {
   }, [])
 
   const translateAuthError = useCallback((rawMessage, authMode) => {
-    const fallback = authMode === 'register'
-      ? 'Registrierung fehlgeschlagen.'
-      : authMode === 'logout'
-        ? 'Abmeldung fehlgeschlagen.'
-        : authMode === 'reset-request'
-          ? 'Zuruecksetzen konnte nicht angefragt werden.'
-          : authMode === 'reset-complete'
-            ? 'Passwort konnte nicht geaendert werden.'
-            : 'Anmeldung fehlgeschlagen.'
+    const fallback = AUTH_FALLBACK_MESSAGES[authMode] ?? 'Anmeldung fehlgeschlagen.'
 
     if (!rawMessage) return fallback
 
@@ -169,6 +182,11 @@ export function useKontoAuth({ onAuthStateChange = () => {} }) {
   }, [loadSession])
 
   useEffect(() => {
+    if (isLoggedIn) loadActiveSessions()
+    else setActiveSessions([])
+  }, [isLoggedIn, loadActiveSessions])
+
+  useEffect(() => {
     let active = true
 
     fetch(`${API}/account/auth-options`)
@@ -210,17 +228,8 @@ export function useKontoAuth({ onAuthStateChange = () => {} }) {
       nextErrors.name = 'Bitte einen Namen eingeben.'
     }
 
-    if (!cleanEmail) {
-      nextErrors.email = 'Bitte eine E-Mail eingeben.'
-    } else if (!/^\S+@\S+\.\S+$/.test(cleanEmail)) {
-      nextErrors.email = 'Bitte eine gueltige E-Mail eingeben.'
-    }
-
-    if (!password) {
-      nextErrors.password = 'Bitte ein Passwort eingeben.'
-    } else if (password.length < 8) {
-      nextErrors.password = 'Passwort muss mindestens 8 Zeichen haben.'
-    }
+    nextErrors.email = validateEmail(cleanEmail) ?? ''
+    nextErrors.password = validatePassword(password) ?? ''
 
     if (nextErrors.name || nextErrors.email || nextErrors.password) {
       setFieldErrors(nextErrors)
@@ -281,11 +290,7 @@ export function useKontoAuth({ onAuthStateChange = () => {} }) {
     const cleanEmail = resetEmail.trim().toLowerCase()
     const nextErrors = { ...EMPTY_RESET_ERRORS }
 
-    if (!cleanEmail) {
-      nextErrors.email = 'Bitte eine E-Mail eingeben.'
-    } else if (!/^\S+@\S+\.\S+$/.test(cleanEmail)) {
-      nextErrors.email = 'Bitte eine gueltige E-Mail eingeben.'
-    }
+    nextErrors.email = validateEmail(cleanEmail) ?? ''
 
     if (nextErrors.email) {
       setResetErrors(nextErrors)
@@ -458,6 +463,25 @@ export function useKontoAuth({ onAuthStateChange = () => {} }) {
     }
   }, [getErrorMessage, isBusy, onAuthStateChange])
 
+  const loadActiveSessions = useCallback(async () => {
+    try {
+      const res = await fetch(`${API}/account/sessions`, { credentials: 'include' })
+      if (!res.ok) return
+      const data = await readJsonSafe(res)
+      setActiveSessions(data?.sessions ?? [])
+    } catch { /* ignorieren */ }
+  }, [readJsonSafe])
+
+  const revokeSession = useCallback(async (sessionId) => {
+    try {
+      const res = await fetch(`${API}/account/sessions/${sessionId}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      })
+      if (res.ok) setActiveSessions((prev) => prev.filter((s) => s.id !== sessionId))
+    } catch { /* ignorieren */ }
+  }, [])
+
   const handleDeleteAccount = useCallback(async () => {
     if (isBusy) return
     setIsBusy(true)
@@ -538,6 +562,8 @@ export function useKontoAuth({ onAuthStateChange = () => {} }) {
     handleSocialSignIn,
     handleSignOut,
     handleDeleteAccount,
+    activeSessions,
+    revokeSession,
     switchMode,
   }
 }
