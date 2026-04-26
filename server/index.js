@@ -24,6 +24,7 @@ import classroomRouter from './routes/classroom.js'
 import { initClassroomSocket } from './realtime/classroomSocket.js'
 import { startClassroomWorker } from './workers/classroomWorker.js'
 import { ALLOWED_ORIGINS, CAPACITOR_ORIGINS, isAllowedOrigin } from './config/origins.js'
+import { startSessionCleanup } from './auth/session-cleanup.js'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const PORT      = process.env.PORT || 3001
@@ -132,6 +133,7 @@ const WORTPROFIL_TIMEOUT_MS = 130_000  // etwas mehr als curl --max-time 120
   ]).catch(err => logger.warn({ err }, 'Wortprofil-Init übersprungen – Server startet trotzdem'))
 
   initializeIndices()
+  startSessionCleanup()
 
   // ── Start ────────────────────────────────────────────────────
   const server = app.listen(PORT, () => {

@@ -1,45 +1,50 @@
-export default function KontoAuthCard({
-  mode,
-  name,
-  email,
-  password,
-  showPassword,
-  authOptions,
-  resetEmail,
-  resetToken,
-  resetPassword,
-  resetPasswordConfirm,
-  showResetPassword,
-  fieldErrors,
-  resetErrors,
-  sessionData,
-  accountData,
-  isBusy,
-  isChecking,
-  notice,
-  isLoggedIn,
-  showNameField,
-  isResetMode,
-  setName,
-  setEmail,
-  setPassword,
-  setShowPassword,
-  setResetEmail,
-  setResetToken,
-  setResetPassword,
-  setResetPasswordConfirm,
-  setShowResetPassword,
-  clearFieldError,
-  clearResetError,
-  handleAuthSubmit,
-  handlePasswordResetRequest,
-  handlePasswordResetComplete,
-  handleSocialSignIn,
-  handleSignOut,
-  switchMode,
-}) {
+import { useState } from 'react'
+
+export default function KontoAuthCard({ auth }) {
+  const {
+    mode,
+    name,
+    email,
+    password,
+    showPassword,
+    authOptions,
+    resetEmail,
+    resetPassword,
+    resetPasswordConfirm,
+    showResetPassword,
+    fieldErrors,
+    resetErrors,
+    sessionData,
+    accountData,
+    isBusy,
+    isChecking,
+    notice,
+    isLoggedIn,
+    showNameField,
+    isResetMode,
+    setName,
+    setEmail,
+    setPassword,
+    setShowPassword,
+    setResetEmail,
+    setResetPassword,
+    setResetPasswordConfirm,
+    setShowResetPassword,
+    clearFieldError,
+    clearResetError,
+    handleAuthSubmit,
+    handlePasswordResetRequest,
+    handlePasswordResetComplete,
+    handleSocialSignIn,
+    handleSignOut,
+    handleDeleteAccount,
+    switchMode,
+  } = auth
+
+  const [confirmDelete, setConfirmDelete] = useState(false)
+
   return (
-    <section className="konto-auth-card" aria-live="polite">
+    <section className="konto-auth-card">
       <header className="konto-auth-head">
         <h3 className="konto-auth-title">Zugang</h3>
         {!isLoggedIn && !isResetMode && (
@@ -68,12 +73,13 @@ export default function KontoAuthCard({
 
       {isChecking ? (
         <p className="konto-auth-note">Kontostand wird geladen …</p>
-      ) : isResetMode ? (
+      ) : mode === 'reset-request' ? (
         <>
           <form className="konto-auth-form" onSubmit={handlePasswordResetRequest}>
             <label className="konto-auth-field">
               <span>E-Mail (Passwort-Link)</span>
               <input
+                id="konto-reset-req-email"
                 type="email"
                 autoComplete="email"
                 value={resetEmail}
@@ -83,9 +89,14 @@ export default function KontoAuthCard({
                 }}
                 disabled={isBusy || !authOptions.passwordResetEnabled}
                 aria-invalid={resetErrors.email ? 'true' : 'false'}
+                aria-describedby={resetErrors.email ? 'konto-reset-req-email-error' : undefined}
                 required
               />
-              {resetErrors.email && <span className="konto-auth-field-error">{resetErrors.email}</span>}
+              {resetErrors.email && (
+                <span id="konto-reset-req-email-error" className="konto-auth-field-error">
+                  {resetErrors.email}
+                </span>
+              )}
             </label>
 
             <button
@@ -96,29 +107,31 @@ export default function KontoAuthCard({
               Passwort-Link senden
               <span className="test-cta-arrow" aria-hidden="true">→</span>
             </button>
+
+            {!authOptions.passwordResetEnabled && (
+              <p className="konto-auth-note konto-auth-note--error">
+                Passwort-Zurücksetzen ist derzeit nicht konfiguriert.
+              </p>
+            )}
           </form>
 
+          <button
+            className="konto-auth-inline-link"
+            type="button"
+            onClick={() => switchMode('login')}
+            disabled={isBusy}
+          >
+            Zurück zur Anmeldung
+          </button>
+        </>
+      ) : mode === 'reset-complete' ? (
+        <>
           <form className="konto-auth-form konto-auth-form--reset" onSubmit={handlePasswordResetComplete}>
-            <label className="konto-auth-field">
-              <span>Reset-Token</span>
-              <input
-                type="text"
-                value={resetToken}
-                onChange={(event) => {
-                  setResetToken(event.target.value)
-                  clearResetError('token')
-                }}
-                disabled={isBusy || !authOptions.passwordResetEnabled}
-                aria-invalid={resetErrors.token ? 'true' : 'false'}
-                required
-              />
-              {resetErrors.token && <span className="konto-auth-field-error">{resetErrors.token}</span>}
-            </label>
-
             <label className="konto-auth-field">
               <span>Neues Passwort</span>
               <div className="konto-auth-password-wrap">
                 <input
+                  id="konto-reset-password"
                   type={showResetPassword ? 'text' : 'password'}
                   autoComplete="new-password"
                   minLength={8}
@@ -129,6 +142,7 @@ export default function KontoAuthCard({
                   }}
                   disabled={isBusy || !authOptions.passwordResetEnabled}
                   aria-invalid={resetErrors.password ? 'true' : 'false'}
+                  aria-describedby={resetErrors.password ? 'konto-reset-password-error' : undefined}
                   required
                 />
                 <button
@@ -142,12 +156,17 @@ export default function KontoAuthCard({
                   {showResetPassword ? 'Verbergen' : 'Anzeigen'}
                 </button>
               </div>
-              {resetErrors.password && <span className="konto-auth-field-error">{resetErrors.password}</span>}
+              {resetErrors.password && (
+                <span id="konto-reset-password-error" className="konto-auth-field-error">
+                  {resetErrors.password}
+                </span>
+              )}
             </label>
 
             <label className="konto-auth-field">
               <span>Neues Passwort wiederholen</span>
               <input
+                id="konto-reset-confirm"
                 type={showResetPassword ? 'text' : 'password'}
                 autoComplete="new-password"
                 minLength={8}
@@ -158,9 +177,14 @@ export default function KontoAuthCard({
                 }}
                 disabled={isBusy || !authOptions.passwordResetEnabled}
                 aria-invalid={resetErrors.confirm ? 'true' : 'false'}
+                aria-describedby={resetErrors.confirm ? 'konto-reset-confirm-error' : undefined}
                 required
               />
-              {resetErrors.confirm && <span className="konto-auth-field-error">{resetErrors.confirm}</span>}
+              {resetErrors.confirm && (
+                <span id="konto-reset-confirm-error" className="konto-auth-field-error">
+                  {resetErrors.confirm}
+                </span>
+              )}
             </label>
 
             <button
@@ -174,7 +198,7 @@ export default function KontoAuthCard({
 
             {!authOptions.passwordResetEnabled && (
               <p className="konto-auth-note konto-auth-note--error">
-                Passwort-Zuruecksetzen ist derzeit nicht konfiguriert.
+                Passwort-Zurücksetzen ist derzeit nicht konfiguriert.
               </p>
             )}
           </form>
@@ -185,7 +209,7 @@ export default function KontoAuthCard({
             onClick={() => switchMode('login')}
             disabled={isBusy}
           >
-            Zurueck zur Anmeldung
+            Zurück zur Anmeldung
           </button>
         </>
       ) : isLoggedIn ? (
@@ -230,11 +254,45 @@ export default function KontoAuthCard({
           <button
             className="konto-auth-inline-link konto-auth-inline-link--secondary"
             type="button"
-            onClick={() => switchMode('reset')}
+            onClick={() => { setConfirmDelete(false); switchMode('reset-request') }}
             disabled={isBusy}
           >
             Passwort zurücksetzen
           </button>
+
+          {confirmDelete ? (
+            <div className="konto-auth-delete-confirm">
+              <p className="konto-auth-note konto-auth-note--error">
+                Konto wirklich löschen? Alle Daten werden unwiderruflich entfernt.
+              </p>
+              <button
+                className="konto-auth-inline-link konto-auth-inline-link--danger"
+                type="button"
+                onClick={handleDeleteAccount}
+                disabled={isBusy}
+              >
+                Ja, Konto löschen
+              </button>
+              {' '}
+              <button
+                className="konto-auth-inline-link"
+                type="button"
+                onClick={() => setConfirmDelete(false)}
+                disabled={isBusy}
+              >
+                Abbrechen
+              </button>
+            </div>
+          ) : (
+            <button
+              className="konto-auth-inline-link konto-auth-inline-link--danger"
+              type="button"
+              onClick={() => setConfirmDelete(true)}
+              disabled={isBusy}
+            >
+              Konto löschen
+            </button>
+          )}
         </div>
       ) : (
         <form className="konto-auth-form" onSubmit={handleAuthSubmit}>
@@ -242,6 +300,7 @@ export default function KontoAuthCard({
             <label className="konto-auth-field">
               <span>Name</span>
               <input
+                id="konto-name"
                 type="text"
                 autoComplete="name"
                 value={name}
@@ -251,15 +310,19 @@ export default function KontoAuthCard({
                 }}
                 disabled={isBusy}
                 aria-invalid={fieldErrors.name ? 'true' : 'false'}
+                aria-describedby={fieldErrors.name ? 'konto-name-error' : undefined}
                 required
               />
-              {fieldErrors.name && <span className="konto-auth-field-error">{fieldErrors.name}</span>}
+              {fieldErrors.name && (
+                <span id="konto-name-error" className="konto-auth-field-error">{fieldErrors.name}</span>
+              )}
             </label>
           )}
 
           <label className="konto-auth-field">
             <span>E-Mail</span>
             <input
+              id="konto-email"
               type="email"
               autoComplete="email"
               value={email}
@@ -269,15 +332,19 @@ export default function KontoAuthCard({
               }}
               disabled={isBusy}
               aria-invalid={fieldErrors.email ? 'true' : 'false'}
+              aria-describedby={fieldErrors.email ? 'konto-email-error' : undefined}
               required
             />
-            {fieldErrors.email && <span className="konto-auth-field-error">{fieldErrors.email}</span>}
+            {fieldErrors.email && (
+              <span id="konto-email-error" className="konto-auth-field-error">{fieldErrors.email}</span>
+            )}
           </label>
 
           <label className="konto-auth-field">
             <span>Passwort</span>
             <div className="konto-auth-password-wrap">
               <input
+                id="konto-password"
                 type={showPassword ? 'text' : 'password'}
                 autoComplete={showNameField ? 'new-password' : 'current-password'}
                 minLength={8}
@@ -288,6 +355,7 @@ export default function KontoAuthCard({
                 }}
                 disabled={isBusy}
                 aria-invalid={fieldErrors.password ? 'true' : 'false'}
+                aria-describedby={fieldErrors.password ? 'konto-password-error' : undefined}
                 required
               />
               <button
@@ -301,7 +369,9 @@ export default function KontoAuthCard({
                 {showPassword ? 'Verbergen' : 'Anzeigen'}
               </button>
             </div>
-            {fieldErrors.password && <span className="konto-auth-field-error">{fieldErrors.password}</span>}
+            {fieldErrors.password && (
+              <span id="konto-password-error" className="konto-auth-field-error">{fieldErrors.password}</span>
+            )}
           </label>
 
           <button className="test-cta" type="submit" disabled={isBusy}>
@@ -312,7 +382,7 @@ export default function KontoAuthCard({
           <button
             className="konto-auth-inline-link"
             type="button"
-            onClick={() => switchMode('reset')}
+            onClick={() => switchMode('reset-request')}
             disabled={isBusy}
           >
             Passwort vergessen?
@@ -355,12 +425,13 @@ export default function KontoAuthCard({
               </div>
             </div>
           )}
-
         </form>
       )}
 
       {notice && (
-        <p className={`konto-auth-note konto-auth-note--${notice.type}`}>{notice.text}</p>
+        <p aria-live="polite" className={`konto-auth-note konto-auth-note--${notice.type}`}>
+          {notice.text}
+        </p>
       )}
     </section>
   )

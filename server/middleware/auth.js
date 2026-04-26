@@ -111,7 +111,7 @@ export async function adminLogout(req, res) {
     }
 
     logger.info({ userId: req.session?.userId }, 'Admin ausgeloggt')
-    res.clearCookie('better-auth.session_token', { httpOnly: true, secure: IS_PROD, sameSite: 'lax' })
+    res.clearCookie('better-auth.session_token', { httpOnly: true, secure: IS_PROD, sameSite: 'lax', path: '/' })
     res.json({ ok: true })
   } catch (err) {
     logger.error({ err: sanitize(err) }, 'Admin-Logout-Fehler')

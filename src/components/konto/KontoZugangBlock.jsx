@@ -21,7 +21,7 @@ export default function KontoZugangBlock({ auth, gesamtausgabe, onUnlock }) {
           Melde dich an oder erstelle ein Konto, um deinen Spielfortschritt geräteübergreifend zu synchronisieren und die Gesamtausgabe freizuschalten.
         </p>
 
-        <KontoAuthCard {...auth} />
+        <KontoAuthCard auth={auth} />
 
         {/* Gesamtausgabe-Status */}
         {auth.isLoggedIn && (

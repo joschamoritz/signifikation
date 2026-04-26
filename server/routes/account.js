@@ -1,7 +1,10 @@
 import express from 'express'
 import { requireAuthUser } from '../middleware/userAuth.js'
 import { authFeatureFlags } from '../auth/index.js'
+import { IS_PROD } from '../middleware/auth.js'
+import { deleteUserTx } from './admin-users-data.js'
 import db from '../db.js'
+import logger from '../logger.js'
 
 const router = express.Router()
 
@@ -94,6 +97,24 @@ router.post('/api/v1/account/entitlements/gesamtausgabe/unlock', requireAuthUser
     })
     res.json({ ok: true, ...readEntitlements(req.user.id) })
   } catch {
+    res.status(500).json({ error: 'Interner Serverfehler' })
+  }
+})
+
+router.delete('/api/v1/account/me', requireAuthUser, (req, res) => {
+  try {
+    const userId = req.user.id
+    // Alle User-Daten löschen (Profile, Entitlements, Stats, Classroom-Sessions, User-Row)
+    deleteUserTx(userId)
+    // betterAuth-Tabellen manuell bereinigen (kein Cascade in SQLite ohne PRAGMA)
+    db.prepare('DELETE FROM session WHERE userId = ?').run(userId)
+    db.prepare('DELETE FROM account WHERE userId = ?').run(userId)
+    // Session-Cookie löschen
+    res.clearCookie('better-auth.session_token', { httpOnly: true, secure: IS_PROD, sameSite: 'lax', path: '/' })
+    logger.info({ userId }, 'Account gelöscht')
+    res.json({ ok: true })
+  } catch (err) {
+    logger.error({ err }, 'Account-Löschung fehlgeschlagen')
     res.status(500).json({ error: 'Interner Serverfehler' })
   }
 })

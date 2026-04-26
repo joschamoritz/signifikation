@@ -31,7 +31,7 @@ export function useKontoAuth({ onAuthStateChange = () => {} }) {
 
   const isLoggedIn = !!sessionData?.user?.email
   const showNameField = mode === 'register'
-  const isResetMode = mode === 'reset'
+  const isResetMode = mode === 'reset-request' || mode === 'reset-complete'
 
   const readJsonSafe = useCallback(async (response) => {
     try {
@@ -194,7 +194,7 @@ export function useKontoAuth({ onAuthStateChange = () => {} }) {
     const token = params.get('token')
     if (!token) return
 
-    setMode('reset')
+    setMode('reset-complete')
     setResetToken(token)
     setNotice({ type: 'success', text: 'Bitte neues Passwort setzen.' })
   }, [])
@@ -458,6 +458,30 @@ export function useKontoAuth({ onAuthStateChange = () => {} }) {
     }
   }, [getErrorMessage, isBusy, onAuthStateChange])
 
+  const handleDeleteAccount = useCallback(async () => {
+    if (isBusy) return
+    setIsBusy(true)
+    setNotice(null)
+    try {
+      const response = await fetch(`${API}/account/me`, {
+        method: 'DELETE',
+        credentials: 'include',
+      })
+      if (!response.ok) {
+        setNotice({ type: 'error', text: 'Konto konnte nicht gelöscht werden.' })
+        return
+      }
+      setSessionData(null)
+      setAccountData(null)
+      setNotice({ type: 'success', text: 'Konto wurde gelöscht.' })
+      onAuthStateChange()
+    } catch {
+      setNotice({ type: 'error', text: 'Netzwerkfehler. Bitte erneut versuchen.' })
+    } finally {
+      setIsBusy(false)
+    }
+  }, [isBusy, onAuthStateChange])
+
   const switchMode = useCallback((nextMode) => {
     if (isBusy || mode === nextMode) return
     setMode(nextMode)
@@ -472,7 +496,7 @@ export function useKontoAuth({ onAuthStateChange = () => {} }) {
     setResetPassword('')
     setResetPasswordConfirm('')
     setShowResetPassword(false)
-    if (nextMode !== 'reset') setResetToken('')
+    if (nextMode !== 'reset-complete') setResetToken('')
   }, [isBusy, mode])
 
   return {
@@ -513,6 +537,7 @@ export function useKontoAuth({ onAuthStateChange = () => {} }) {
     handlePasswordResetComplete,
     handleSocialSignIn,
     handleSignOut,
+    handleDeleteAccount,
     switchMode,
   }
 }
