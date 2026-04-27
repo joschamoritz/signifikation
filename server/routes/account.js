@@ -67,15 +67,17 @@ function checkFreeAccess() {
   return { active: false, reason: null, label: null }
 }
 
-function readEntitlements(userId) {
+function readEntitlements(userId, userRole) {
   const now = Date.now()
   ensureEntitlementStmt.run(userId, now, now)
   const row = getEntitlementStmt.get(userId)
+  const unlockedByPayment = !!row?.gesamtausgabe_unlocked
+  const unlockedByRole = userRole === 'premium'
   return {
     gesamtausgabe: {
-      unlocked: !!row?.gesamtausgabe_unlocked,
+      unlocked: unlockedByPayment || unlockedByRole,
       unlockedAt: row?.unlocked_at || null,
-      source: row?.source || 'none',
+      source: unlockedByPayment ? (row?.source || 'none') : unlockedByRole ? 'admin-role' : 'none',
     },
   }
 }
@@ -105,7 +107,7 @@ router.get('/api/v1/account/entitlements', optionalAuthUser, (req, res) => {
       })
     }
     res.json({
-      ...readEntitlements(req.user.id),
+      ...readEntitlements(req.user.id, req.user.role),
       freeAccessToday: freeAccess.active,
       freeAccessReason: freeAccess.reason,
       freeAccessLabel: freeAccess.label,
@@ -124,7 +126,7 @@ router.post('/api/v1/account/entitlements/gesamtausgabe/unlock', requireAuthUser
       now,
       source: 'instant-unlock',
     })
-    res.json({ ok: true, ...readEntitlements(req.user.id) })
+    res.json({ ok: true, ...readEntitlements(req.user.id, req.user.role) })
   } catch {
     res.status(500).json({ error: 'Interner Serverfehler' })
   }
