@@ -236,18 +236,6 @@ const [confirmDelete, setConfirmDelete] = useState(false)
             </div>
           </dl>
 
-          {accountData?.role === 'premium' && (
-            <div className="konto-teacher-note" role="status">
-              <p className="konto-teacher-note-title">
-                <span className="konto-teacher-note-symbol" aria-hidden="true">§</span>
-                Klassenraum aktiv
-              </p>
-              <p className="konto-teacher-note-text">
-                Du kannst im Tab Klassenraum Sitzungen erstellen, starten, exportieren und Ergebnisse live verfolgen.
-              </p>
-            </div>
-          )}
-
           <button
             className="konto-session-signout"
             type="button"

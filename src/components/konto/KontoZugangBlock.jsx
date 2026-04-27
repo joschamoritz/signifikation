@@ -77,9 +77,20 @@ export default function KontoZugangBlock({ auth, gesamtausgabe, gesamtausgabePer
             </div>
 
             {gesamtausgabePermanent ? (
-              <p className="konto-subscription-note">
-                Zugriff auf alle Spielmodi und Funktionen.
-              </p>
+              <>
+                <p className="konto-subscription-note">
+                  Zugriff auf alle Spielmodi und Funktionen.
+                </p>
+                <div className="konto-teacher-note" role="status">
+                  <p className="konto-teacher-note-title">
+                    <span className="konto-teacher-note-symbol" aria-hidden="true">§</span>
+                    Klassenraum aktiv
+                  </p>
+                  <p className="konto-teacher-note-text">
+                    Du kannst im Tab Klassenraum Sitzungen erstellen, starten, exportieren und Ergebnisse live verfolgen.
+                  </p>
+                </div>
+              </>
             ) : freeAccessToday ? (
               <p className="konto-subscription-note">
                 Heute kostenlos{freeAccessLabel ? ` – ${freeAccessLabel}` : ''}. Du hast Zugriff auf alle Spielmodi.
