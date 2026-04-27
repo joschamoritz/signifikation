@@ -11,6 +11,10 @@ export function lsSet(key, value) {
   }
 }
 
+export function lsRemove(key) {
+  try { localStorage.removeItem(key) } catch { /* ignore */ }
+}
+
 export function lsParse(raw, fallback) {
   try { return raw ? JSON.parse(raw) : fallback } catch { return fallback }
 }

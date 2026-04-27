@@ -30,22 +30,6 @@ const getEntitlementStmt = db.prepare(`
   WHERE user_id = ?
 `)
 
-const unlockEntitlementStmt = db.prepare(`
-  UPDATE user_entitlements
-  SET
-    gesamtausgabe_unlocked = 1,
-    unlocked_at = CASE
-      WHEN unlocked_at IS NULL THEN @now
-      ELSE unlocked_at
-    END,
-    source = CASE
-      WHEN gesamtausgabe_unlocked = 1 THEN source
-      ELSE @source
-    END,
-    updated_at = @now
-  WHERE user_id = @userId
-`)
-
 const getUserCreatedAtStmt = db.prepare(`
   SELECT createdAt
   FROM user
@@ -112,21 +96,6 @@ router.get('/api/v1/account/entitlements', optionalAuthUser, (req, res) => {
       freeAccessReason: freeAccess.reason,
       freeAccessLabel: freeAccess.label,
     })
-  } catch {
-    res.status(500).json({ error: 'Interner Serverfehler' })
-  }
-})
-
-router.post('/api/v1/account/entitlements/gesamtausgabe/unlock', requireAuthUser, (req, res) => {
-  try {
-    const now = Date.now()
-    ensureEntitlementStmt.run(req.user.id, now, now)
-    unlockEntitlementStmt.run({
-      userId: req.user.id,
-      now,
-      source: 'instant-unlock',
-    })
-    res.json({ ok: true, ...readEntitlements(req.user.id, req.user.role) })
   } catch {
     res.status(500).json({ error: 'Interner Serverfehler' })
   }

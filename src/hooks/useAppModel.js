@@ -37,7 +37,7 @@ export function useAppModel() {
     zwPlayed,
     setZwPlayed,
   } = useDailyContent()
-  const { gesamtausgabeUnlocked, gesamtausgabePermanent, freeAccessToday, freeAccessLabel, refreshEntitlements, unlockGesamtausgabe } = useEntitlements()
+  const { gesamtausgabeUnlocked, gesamtausgabePermanent, freeAccessToday, freeAccessLabel, refreshEntitlements } = useEntitlements()
   usePaywall({ refreshEntitlements })
 
   const appRef = useRef(null)

@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react'
 import { API } from '../config'
-import { lsGet, lsSet } from '../utils/storage'
+import { lsGet, lsSet, lsRemove } from '../utils/storage'
 
 export function useEntitlements() {
   const [gesamtausgabeUnlocked, setGesamtausgabeUnlocked] = useState(() => !!lsGet('sig_gesamtausgabe'))
@@ -8,12 +8,14 @@ export function useEntitlements() {
   const [freeAccessLabel, setFreeAccessLabel] = useState(null)
 
   const syncEntitlementsFromResponse = useCallback((payload) => {
-    // Permanenter Unlock (bezahlt oder lokal gecacht)
+    // Server-Antwort ist maßgeblich – localStorage nur als Offline-Fallback (catch-Block)
     const serverUnlocked = !!payload?.gesamtausgabe?.unlocked
-    const localUnlocked = !!lsGet('sig_gesamtausgabe')
-    const unlocked = serverUnlocked || localUnlocked
-    if (unlocked) lsSet('sig_gesamtausgabe', '1')
-    setGesamtausgabeUnlocked(unlocked)
+    if (serverUnlocked) {
+      lsSet('sig_gesamtausgabe', '1')
+    } else {
+      lsRemove('sig_gesamtausgabe')
+    }
+    setGesamtausgabeUnlocked(serverUnlocked)
 
     // Temporärer Free-Access (Sonntag / Freitag) – nicht in localStorage
     const free = !!payload?.freeAccessToday
@@ -33,26 +35,8 @@ export function useEntitlements() {
       const payload = await res.json()
       syncEntitlementsFromResponse(payload)
     } catch {
+      // Server nicht erreichbar – gecachten Wert beibehalten
       setGesamtausgabeUnlocked(!!lsGet('sig_gesamtausgabe'))
-    }
-  }, [syncEntitlementsFromResponse])
-
-  const unlockGesamtausgabe = useCallback(async () => {
-    lsSet('sig_gesamtausgabe', '1')
-    setGesamtausgabeUnlocked(true)
-
-    try {
-      const res = await fetch(`${API}/account/entitlements/gesamtausgabe/unlock`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({}),
-      })
-      if (!res.ok) return
-      const payload = await res.json()
-      syncEntitlementsFromResponse(payload)
-    } catch {
-      // Lokaler Sofort-Unlock bleibt aktiv, auch wenn kein Konto/Netzwerk verfügbar ist.
     }
   }, [syncEntitlementsFromResponse])
 
@@ -62,6 +46,5 @@ export function useEntitlements() {
     freeAccessToday,
     freeAccessLabel,
     refreshEntitlements,
-    unlockGesamtausgabe,
   }
 }
