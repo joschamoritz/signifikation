@@ -43,13 +43,13 @@ export default function KontoGeraeteBlock({ isLoggedIn, gesamtausgabePermanent }
   const [removing, setRemoving] = useState(null)
 
   useEffect(() => {
-    if (!isLoggedIn || !gesamtausgabePermanent) {
+    if (!isLoggedIn) {
       setLoading(false)
       return
     }
-    
+
     fetchDevices()
-  }, [isLoggedIn, gesamtausgabePermanent])
+  }, [isLoggedIn])
 
   async function fetchDevices() {
     setLoading(true)
@@ -91,10 +91,7 @@ export default function KontoGeraeteBlock({ isLoggedIn, gesamtausgabePermanent }
     }
   }
 
-  // Nur anzeigen wenn eingeloggt UND Gesamtausgabe freigeschaltet
-  if (!isLoggedIn || !gesamtausgabePermanent) {
-    return null
-  }
+  if (!isLoggedIn) return null
 
   return (
     <li className="test-entry">
@@ -113,8 +110,9 @@ export default function KontoGeraeteBlock({ isLoggedIn, gesamtausgabePermanent }
           <span className="test-entry-category">Verwaltung</span>
         </div>
         <p className="test-definition">
-          Du kannst die Gesamtausgabe auf bis zu {maxDevices} Geräten nutzen. 
-          Entferne alte Geräte, um neue hinzuzufügen.
+          {gesamtausgabePermanent
+            ? `Du kannst die Gesamtausgabe auf bis zu ${maxDevices} Geräten nutzen. Entferne alte Geräte, um neue hinzuzufügen.`
+            : 'Geräte werden registriert, sobald die Gesamtausgabe freigeschaltet ist.'}
         </p>
 
         {loading ? (

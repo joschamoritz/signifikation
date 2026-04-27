@@ -495,6 +495,49 @@
   font-size: 0.78rem;
 }
 
+/* Dezente Fußzeile für Passwort-Reset + Konto-löschen */
+.konto-session-meta {
+  margin-top: 20px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border-lt);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.konto-session-meta-link {
+  font-family: var(--font-sans);
+  font-size: 0.68rem;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  transition: color 100ms ease;
+}
+
+.konto-session-meta-link:hover:not(:disabled) {
+  color: var(--text);
+}
+
+.konto-session-meta-link--danger:hover:not(:disabled) {
+  color: var(--error);
+}
+
+.konto-session-meta-link:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.konto-session-meta-sep {
+  font-family: var(--font-serif);
+  font-size: 0.72rem;
+  color: var(--border);
+  line-height: 1;
+  user-select: none;
+}
+
 .konto-auth-inline-link--danger {
   color: var(--error);
   margin-top: 20px;

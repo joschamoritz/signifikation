@@ -257,15 +257,6 @@ const [confirmDelete, setConfirmDelete] = useState(false)
             Abmelden
           </button>
 
-          <button
-            className="konto-auth-inline-link konto-auth-inline-link--secondary"
-            type="button"
-            onClick={() => { setConfirmDelete(false); switchMode('reset-request') }}
-            disabled={isBusy}
-          >
-            Passwort zurücksetzen
-          </button>
-
           {confirmDelete ? (
             <div className="konto-auth-delete-confirm">
               <p className="konto-auth-note konto-auth-note--error">
@@ -289,14 +280,25 @@ const [confirmDelete, setConfirmDelete] = useState(false)
               </button>
             </div>
           ) : (
-            <button
-              className="konto-auth-inline-link konto-auth-inline-link--danger"
-              type="button"
-              onClick={() => setConfirmDelete(true)}
-              disabled={isBusy}
-            >
-              Konto löschen
-            </button>
+            <div className="konto-session-meta">
+              <button
+                className="konto-session-meta-link"
+                type="button"
+                onClick={() => switchMode('reset-request')}
+                disabled={isBusy}
+              >
+                Passwort zurücksetzen
+              </button>
+              <span className="konto-session-meta-sep" aria-hidden="true">·</span>
+              <button
+                className="konto-session-meta-link konto-session-meta-link--danger"
+                type="button"
+                onClick={() => setConfirmDelete(true)}
+                disabled={isBusy}
+              >
+                Konto löschen
+              </button>
+            </div>
           )}
         </div>
       ) : (
