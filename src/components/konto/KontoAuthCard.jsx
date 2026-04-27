@@ -249,7 +249,7 @@ const [confirmDelete, setConfirmDelete] = useState(false)
           )}
 
           <button
-            className="test-cta"
+            className="konto-session-signout"
             type="button"
             onClick={handleSignOut}
             disabled={isBusy}

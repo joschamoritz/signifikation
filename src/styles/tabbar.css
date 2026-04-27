@@ -395,8 +395,28 @@
   width: 100%;
 }
 
-.konto-session > .test-cta {
-  align-self: stretch;
+.konto-session-signout {
+  font-family: var(--font-sans);
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--primary);
+  background: none;
+  border: 1px solid var(--border-lt);
+  border-radius: var(--radius, 2px);
+  padding: 6px 16px;
+  cursor: pointer;
+  transition: border-color 120ms ease, color 120ms ease;
+  margin-bottom: 2px;
+}
+
+.konto-session-signout:hover:not(:disabled) {
+  border-color: var(--primary);
+}
+
+.konto-session-signout:disabled {
+  color: var(--disabled);
+  cursor: default;
 }
 
 .konto-session-list {
@@ -477,7 +497,16 @@
 
 .konto-auth-inline-link--danger {
   color: var(--error);
-  margin-top: 10px;
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border-lt);
+}
+
+/* Im Löschen-Dialog selbst: kein erneuter Trenner */
+.konto-auth-delete-confirm .konto-auth-inline-link--danger {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: none;
 }
 
 .konto-auth-inline-link:disabled {

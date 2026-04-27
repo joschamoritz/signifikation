@@ -126,6 +126,12 @@ export default function KontoZugangBlock({ auth, gesamtausgabe, gesamtausgabePer
                   </p>
                 )}
 
+                {!agreed && !checkoutError && (
+                  <p className="konto-checkout-hint">
+                    Bitte Zustimmung oben bestätigen.
+                  </p>
+                )}
+
                 <button
                   className="test-cta"
                   type="button"

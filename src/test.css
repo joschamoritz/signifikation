@@ -1293,9 +1293,9 @@
 
 /* Abonnement-Status – Wörterbuch-Lemma-Stil statt Karten */
 .konto-subscription-status {
-  margin-top: 20px;
-  padding-top: 16px;
-  border-top: 1px solid var(--t-rule-lt);
+  margin-top: 32px;
+  padding-top: 20px;
+  border-top: 1px solid var(--t-rule);
 }
 
 .konto-subscription-header {
@@ -1331,9 +1331,9 @@
 }
 
 .konto-subscription-badge--locked {
-  color: var(--t-disabled);
+  color: var(--t-muted);
   background: transparent;
-  border: 1px solid var(--t-rule);
+  border: 1px solid var(--t-rule-lt);
 }
 
 .konto-subscription-badge--free {
@@ -1381,8 +1381,8 @@
 
 .konto-checkout-features {
   list-style: none;
-  padding: 10px 0;
-  margin: 0 0 16px;
+  padding: 10px 0 14px;
+  margin: 0 0 14px;
   border-top: 1px solid var(--t-rule-lt);
   border-bottom: 1px solid var(--t-rule-lt);
 }
@@ -1414,7 +1414,7 @@
 
 .konto-checkout-amount {
   font-family: var(--t-serif);
-  font-size: 1.6rem;
+  font-size: 1.3rem;
   font-weight: 400;
   color: var(--t-red);
 }
@@ -1445,15 +1445,22 @@
 
 .konto-checkout-legal-text {
   font-family: var(--t-serif);
-  font-size: 0.8rem;
+  font-size: 0.78rem;
   line-height: 1.6;
-  color: var(--t-text);
+  color: var(--t-muted);
 }
 
 .konto-checkout-legal-text a {
   color: var(--t-red);
   text-decoration: underline;
   text-underline-offset: 2px;
+}
+
+.konto-checkout-hint {
+  font-family: var(--t-sans);
+  font-size: 0.72rem;
+  color: var(--t-muted);
+  margin: 6px 0 4px;
 }
 
 .konto-checkout-error {
