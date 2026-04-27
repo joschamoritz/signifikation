@@ -47,6 +47,7 @@
         <button class="nav-item" data-action="switch-page" data-page="analytics">Analysen</button>
         <button class="nav-item" data-action="switch-page" data-page="calendar">Kalender</button>
         <button class="nav-item" data-action="switch-page" data-page="users">Nutzer</button>
+        <button class="nav-item" data-action="switch-page" data-page="freedays">Freitage</button>
         <button class="nav-item" data-action="switch-page" data-page="system">System</button>
         <a class="nav-item nav-link" href="/admin/social-cards">Social Cards</a>
       </nav>
@@ -534,6 +535,37 @@
                 </table>
               </div>
             </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="admin-page" id="page-freedays" data-title="Freitage" data-subtitle="Tage mit kostenlosem Gesamtausgabe-Zugang (zusätzlich zu Sonntagen).">
+        <div class="card">
+          <h2>Neuer Freitag</h2>
+          <p style="font-size:0.85rem;color:var(--muted);margin:0 0 14px">
+            An eingetragenen Tagen haben alle Nutzer – auch ohne Zahlung – Zugriff auf die Gesamtausgabe. Sonntage sind automatisch immer frei.
+          </p>
+          <div style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap">
+            <div>
+              <label for="freeday-date">Datum</label>
+              <input type="date" id="freeday-date">
+            </div>
+            <div style="flex:1;min-width:160px">
+              <label for="freeday-label">Bezeichnung <span style="font-weight:400;color:var(--muted);font-size:0.8rem">(optional, z.&nbsp;B. »Tag der Deutschen Einheit«)</span></label>
+              <input type="text" id="freeday-label" placeholder="z.B. Schulstart, WM-Finale …" maxlength="100">
+            </div>
+            <button data-action="add-free-day" style="white-space:nowrap">Hinzufügen</button>
+          </div>
+          <p class="entry-hint" id="freeday-msg" style="display:none"></p>
+        </div>
+
+        <div class="card">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap">
+            <h2>Eingetragene Freitage</h2>
+            <button data-action="load-free-days" style="font-size:0.8rem;padding:6px 12px">↺ Laden</button>
+          </div>
+          <div id="freedays-list">
+            <div class="users-empty">Wird geladen …</div>
           </div>
         </div>
       </section>

@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { API } from '../../config'
 import KontoAuthCard from './KontoAuthCard'
 
-export default function KontoZugangBlock({ auth, gesamtausgabe }) {
+export default function KontoZugangBlock({ auth, gesamtausgabe, gesamtausgabePermanent, freeAccessToday, freeAccessLabel }) {
   const [agreed, setAgreed] = useState(false)
   const [isBusy, setIsBusy] = useState(false)
   const [checkoutError, setCheckoutError] = useState(null)
@@ -61,9 +61,13 @@ export default function KontoZugangBlock({ auth, gesamtausgabe }) {
           <div className="konto-subscription-status">
             <div className="konto-subscription-header">
               <span className="konto-subscription-label">Gesamtausgabe</span>
-              {gesamtausgabe ? (
+              {gesamtausgabePermanent ? (
                 <span className="konto-subscription-badge konto-subscription-badge--active">
                   ✓ Freigeschaltet
+                </span>
+              ) : freeAccessToday ? (
+                <span className="konto-subscription-badge konto-subscription-badge--free">
+                  Heute kostenlos
                 </span>
               ) : (
                 <span className="konto-subscription-badge konto-subscription-badge--locked">
@@ -72,9 +76,13 @@ export default function KontoZugangBlock({ auth, gesamtausgabe }) {
               )}
             </div>
 
-            {gesamtausgabe ? (
+            {gesamtausgabePermanent ? (
               <p className="konto-subscription-note">
                 Zugriff auf alle Spielmodi und Funktionen.
+              </p>
+            ) : freeAccessToday ? (
+              <p className="konto-subscription-note">
+                Heute kostenlos{freeAccessLabel ? ` – ${freeAccessLabel}` : ''}. Du hast Zugriff auf alle Spielmodi.
               </p>
             ) : (
               <div className="konto-checkout">

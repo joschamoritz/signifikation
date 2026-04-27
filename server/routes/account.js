@@ -1,5 +1,5 @@
 import express from 'express'
-import { requireAuthUser } from '../middleware/userAuth.js'
+import { requireAuthUser, optionalAuthUser } from '../middleware/userAuth.js'
 import { authFeatureFlags } from '../auth/index.js'
 import { IS_PROD } from '../middleware/auth.js'
 import { deleteUserTx } from './admin-users-data.js'
@@ -52,6 +52,21 @@ const getUserCreatedAtStmt = db.prepare(`
   WHERE id = ?
 `)
 
+const getFreeDayStmt = db.prepare(`SELECT label FROM free_days WHERE date = ?`)
+
+function getTodayBerlin() {
+  return new Date().toLocaleDateString('en-CA', { timeZone: 'Europe/Berlin' }) // YYYY-MM-DD
+}
+
+function checkFreeAccess() {
+  const day = new Date().toLocaleString('en-US', { timeZone: 'Europe/Berlin', weekday: 'short' })
+  if (day === 'Sun') return { active: true, reason: 'sunday', label: 'Sonntag' }
+  const today = getTodayBerlin()
+  const row = getFreeDayStmt.get(today)
+  if (row) return { active: true, reason: 'free_day', label: row.label || 'Freier Tag' }
+  return { active: false, reason: null, label: null }
+}
+
 function readEntitlements(userId) {
   const now = Date.now()
   ensureEntitlementStmt.run(userId, now, now)
@@ -78,9 +93,23 @@ router.get('/api/v1/account/auth-options', (_req, res) => {
   res.json(authFeatureFlags)
 })
 
-router.get('/api/v1/account/entitlements', requireAuthUser, (req, res) => {
+router.get('/api/v1/account/entitlements', optionalAuthUser, (req, res) => {
   try {
-    res.json(readEntitlements(req.user.id))
+    const freeAccess = checkFreeAccess()
+    if (!req.user) {
+      return res.json({
+        gesamtausgabe: { unlocked: false, unlockedAt: null, source: 'none' },
+        freeAccessToday: freeAccess.active,
+        freeAccessReason: freeAccess.reason,
+        freeAccessLabel: freeAccess.label,
+      })
+    }
+    res.json({
+      ...readEntitlements(req.user.id),
+      freeAccessToday: freeAccess.active,
+      freeAccessReason: freeAccess.reason,
+      freeAccessLabel: freeAccess.label,
+    })
   } catch {
     res.status(500).json({ error: 'Interner Serverfehler' })
   }

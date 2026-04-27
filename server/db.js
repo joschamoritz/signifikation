@@ -147,6 +147,11 @@ db.exec(`
     PRIMARY KEY (datum, spiel, user_id)
   );
 
+  CREATE TABLE IF NOT EXISTS free_days (
+    date  TEXT PRIMARY KEY,
+    label TEXT NOT NULL DEFAULT ''
+  );
+
   CREATE TABLE IF NOT EXISTS payments (
     id           TEXT PRIMARY KEY,
     user_id      TEXT NOT NULL,

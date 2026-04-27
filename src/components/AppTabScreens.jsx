@@ -29,6 +29,9 @@ export default function AppTabScreens({
   onPlayZeitenwende,
   onViewZeitenwende,
   gesamtausgabeUnlocked,
+  gesamtausgabePermanent,
+  freeAccessToday,
+  freeAccessLabel,
   classroomInSession,
   onNavigateToKonto,
   refreshEntitlements,
@@ -70,6 +73,9 @@ export default function AppTabScreens({
     profil: (
       <KontoTab
         gesamtausgabe={gesamtausgabeUnlocked}
+        gesamtausgabePermanent={gesamtausgabePermanent}
+        freeAccessToday={freeAccessToday}
+        freeAccessLabel={freeAccessLabel}
         onAuthStateChange={refreshEntitlements}
       />
     ),

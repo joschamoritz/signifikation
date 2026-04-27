@@ -82,6 +82,23 @@ export async function requireAuthUser(req, res, next) {
   }
 }
 
+export async function optionalAuthUser(req, res, next) {
+  try {
+    const sessionUser = await getAuthUserFromSession(req)
+    const user = sessionUser || getAuthUser(req)
+    if (user) {
+      req.user = user
+      if (user.source === 'dev-header') {
+        logger.debug({ userId: user.id, role: user.role }, 'Dev-Header-Auth verwendet')
+      }
+    }
+    return next()
+  } catch (err) {
+    logger.warn({ err }, 'Optionale Session-Auflösung fehlgeschlagen – fahre ohne User fort')
+    return next()
+  }
+}
+
 export async function requirePremium(req, res, next) {
   try {
     const sessionUser = await getAuthUserFromSession(req)

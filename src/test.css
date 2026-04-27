@@ -1336,6 +1336,12 @@
   border: 1px solid var(--t-rule);
 }
 
+.konto-subscription-badge--free {
+  color: #c9a84c;
+  background: transparent;
+  border: 1px solid #c9a84c;
+}
+
 .konto-subscription-note {
   font-family: var(--t-serif);
   font-size: 0.85rem;

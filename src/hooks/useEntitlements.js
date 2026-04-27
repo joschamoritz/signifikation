@@ -4,13 +4,21 @@ import { lsGet, lsSet } from '../utils/storage'
 
 export function useEntitlements() {
   const [gesamtausgabeUnlocked, setGesamtausgabeUnlocked] = useState(() => !!lsGet('sig_gesamtausgabe'))
+  const [freeAccessToday, setFreeAccessToday] = useState(false)
+  const [freeAccessLabel, setFreeAccessLabel] = useState(null)
 
   const syncEntitlementsFromResponse = useCallback((payload) => {
+    // Permanenter Unlock (bezahlt oder lokal gecacht)
     const serverUnlocked = !!payload?.gesamtausgabe?.unlocked
     const localUnlocked = !!lsGet('sig_gesamtausgabe')
     const unlocked = serverUnlocked || localUnlocked
     if (unlocked) lsSet('sig_gesamtausgabe', '1')
     setGesamtausgabeUnlocked(unlocked)
+
+    // Temporärer Free-Access (Sonntag / Freitag) – nicht in localStorage
+    const free = !!payload?.freeAccessToday
+    setFreeAccessToday(free)
+    setFreeAccessLabel(free ? (payload?.freeAccessLabel ?? null) : null)
   }, [])
 
   const refreshEntitlements = useCallback(async () => {
@@ -49,7 +57,10 @@ export function useEntitlements() {
   }, [syncEntitlementsFromResponse])
 
   return {
-    gesamtausgabeUnlocked,
+    gesamtausgabeUnlocked: gesamtausgabeUnlocked || freeAccessToday,
+    gesamtausgabePermanent: gesamtausgabeUnlocked,
+    freeAccessToday,
+    freeAccessLabel,
     refreshEntitlements,
     unlockGesamtausgabe,
   }

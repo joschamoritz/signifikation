@@ -85,6 +85,10 @@ function switchPage(pageId) {
   if (pageId === 'system') {
     loadAuditLog()
   }
+
+  if (pageId === 'freedays') {
+    loadFreeDays()
+  }
 }
 
 function refreshDashboard() {
@@ -2123,6 +2127,72 @@ function resetZeitreiseViz() {
   if (input) input.value = ''
 }
 
+// ── Freitage ──────────────────────────────────────────────
+async function loadFreeDays() {
+  const listEl = document.getElementById('freedays-list')
+  if (!listEl) return
+  listEl.innerHTML = '<div class="users-empty">Wird geladen …</div>'
+  try {
+    const res = await fetch('/admin/free-days')
+    if (!res.ok) throw new Error(`HTTP ${res.status}`)
+    const { days } = await res.json()
+    if (!days.length) {
+      listEl.innerHTML = '<div class="users-empty">Keine Freitage eingetragen.</div>'
+      return
+    }
+    const rows = days.map(({ date, label }) => `
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 0;border-bottom:1px solid var(--border-lt)">
+        <div>
+          <strong style="font-size:0.9rem">${esc(formatIsoDate(date))}</strong>
+          ${label ? `<span style="color:var(--muted);font-size:0.82rem;margin-left:8px">${esc(label)}</span>` : ''}
+        </div>
+        <button class="entry-filters-reset" data-action="delete-free-day" data-date="${esc(date)}" style="font-size:0.78rem;padding:3px 10px">Entfernen</button>
+      </div>`).join('')
+    listEl.innerHTML = `<div style="padding:4px 0">${rows}</div>`
+  } catch (err) {
+    listEl.innerHTML = `<div class="users-empty" style="color:#991b1b">Fehler: ${esc(err.message)}</div>`
+  }
+}
+
+async function addFreeDay() {
+  const dateInput = document.getElementById('freeday-date')
+  const labelInput = document.getElementById('freeday-label')
+  const msgEl = document.getElementById('freeday-msg')
+  const date = dateInput?.value?.trim()
+  const label = labelInput?.value?.trim() || ''
+  if (!date) {
+    if (msgEl) { msgEl.textContent = 'Bitte ein Datum auswählen.'; msgEl.style.display = 'block' }
+    return
+  }
+  try {
+    const res = await fetch('/admin/free-days', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ date, label }),
+    })
+    const data = await res.json().catch(() => ({}))
+    if (!res.ok) {
+      if (msgEl) { msgEl.textContent = data.error || 'Fehler beim Hinzufügen.'; msgEl.style.display = 'block' }
+      return
+    }
+    if (dateInput) dateInput.value = ''
+    if (labelInput) labelInput.value = ''
+    if (msgEl) { msgEl.textContent = `${formatIsoDate(date)} wurde eingetragen.`; msgEl.style.display = 'block' }
+    await loadFreeDays()
+  } catch {
+    if (msgEl) { msgEl.textContent = 'Netzwerkfehler.'; msgEl.style.display = 'block' }
+  }
+}
+
+async function deleteFreeDay(date) {
+  if (!date) return
+  try {
+    const res = await fetch(`/admin/free-days/${encodeURIComponent(date)}`, { method: 'DELETE' })
+    if (!res.ok) return
+    await loadFreeDays()
+  } catch { /* ignore */ }
+}
+
 function handleDocumentClick(event) {
   const target = event.target.closest('[data-action]')
   if (!target) return
@@ -2175,6 +2245,9 @@ function handleDocumentClick(event) {
   if (action === 'edit-tag') return void editTag(target.dataset.datum || '')
   if (action === 'select-user') return void selectUser(target.dataset.userId || '')
   if (action === 'show-audit-entry-details') return void showAuditEntryDetailsByIndex(Number(target.dataset.index || -1))
+  if (action === 'load-free-days') return void loadFreeDays()
+  if (action === 'add-free-day') return void addFreeDay()
+  if (action === 'delete-free-day') return void deleteFreeDay(target.dataset.date || '')
 }
 
 function handleDocumentChange(event) {

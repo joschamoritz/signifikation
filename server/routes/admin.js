@@ -20,6 +20,7 @@ import { createAdminOpsRouter } from './admin-ops.js'
 import { createAdminCalendarRouter } from './admin-calendar.js'
 import { createAdminSocialCardsRouter } from './admin-social-cards.js'
 import { createAdminCoreRouter } from './admin-core.js'
+import freeDaysRouter from './admin-free-days.js'
 import {
   countUsersStmt,
   countUsersByRoleStmt,
@@ -191,5 +192,7 @@ router.use(createAdminSocialCardsRouter({
   adminError,
   socialCardsPath: join(__dirname, '../social-cards.html'),
 }))
+
+router.use(freeDaysRouter)
 
 export default router

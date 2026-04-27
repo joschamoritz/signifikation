@@ -37,7 +37,7 @@ export function useAppModel() {
     zwPlayed,
     setZwPlayed,
   } = useDailyContent()
-  const { gesamtausgabeUnlocked, refreshEntitlements, unlockGesamtausgabe } = useEntitlements()
+  const { gesamtausgabeUnlocked, gesamtausgabePermanent, freeAccessToday, freeAccessLabel, refreshEntitlements, unlockGesamtausgabe } = useEntitlements()
   usePaywall({ refreshEntitlements })
 
   const appRef = useRef(null)
@@ -119,6 +119,9 @@ export function useAppModel() {
     retryZeitenwende,
     zwPlayed,
     gesamtausgabeUnlocked,
+    gesamtausgabePermanent,
+    freeAccessToday,
+    freeAccessLabel,
     classroomInSession: navigation.classroomInSession,
     refreshEntitlements,
     setActiveTab: navigation.setActiveTab,

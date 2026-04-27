@@ -6,7 +6,7 @@ import KontoStatistikenBlock from './konto/KontoStatistikenBlock'
 import KontoEinstellungenBlock from './konto/KontoEinstellungenBlock'
 import KontoRechtlichesBlock from './konto/KontoRechtlichesBlock'
 
-export default function KontoTab({ gesamtausgabe, onAuthStateChange = () => {} }) {
+export default function KontoTab({ gesamtausgabe, gesamtausgabePermanent, freeAccessToday, freeAccessLabel, onAuthStateChange = () => {} }) {
   const auth = useKontoAuth({ onAuthStateChange })
   const entriesRef = useRef(null)
 
@@ -40,6 +40,9 @@ export default function KontoTab({ gesamtausgabe, onAuthStateChange = () => {} }
             <KontoZugangBlock
               auth={auth}
               gesamtausgabe={gesamtausgabe}
+              gesamtausgabePermanent={gesamtausgabePermanent}
+              freeAccessToday={freeAccessToday}
+              freeAccessLabel={freeAccessLabel}
             />
 
             {/* ② Statistiken */}
