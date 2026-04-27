@@ -1483,6 +1483,62 @@
   margin: 12px 0 0;
 }
 
+/* ── Konto Preis-Selector ────────────────────────────────── */
+
+.konto-price-selector-wrap {
+  margin-bottom: 16px;
+}
+
+.konto-price-selector-intro {
+  font-family: var(--t-sans);
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  color: var(--t-muted);
+  margin: 0 0 8px;
+}
+
+.konto-price-selector {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.konto-price-option {
+  flex: 1;
+  padding: 10px 6px;
+  border: 1px solid var(--t-rule);
+  background: var(--t-bg);
+  cursor: pointer;
+  text-align: center;
+  color: var(--t-text);
+  transition: border-color 0.15s, color 0.15s;
+}
+
+.konto-price-option:hover {
+  border-color: var(--t-muted);
+}
+
+.konto-price-option--selected {
+  border-color: var(--t-red);
+  color: var(--t-red);
+}
+
+.konto-price-option-amount {
+  display: block;
+  font-family: var(--t-serif);
+  font-size: 1.05rem;
+}
+
+.konto-price-option-label {
+  display: block;
+  font-family: var(--t-sans);
+  font-size: 0.62rem;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  margin-top: 2px;
+  opacity: 0.65;
+}
+
 /* Statistiken – Lemma-Zeilen statt Karten */
 .konto-stats-content {
   margin-top: 16px;

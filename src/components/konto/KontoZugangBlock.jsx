@@ -2,10 +2,19 @@ import { useState } from 'react'
 import { API } from '../../config'
 import KontoAuthCard from './KontoAuthCard'
 
+const PRICE_OPTIONS = [
+  { value: '6.99', label: '6,99 €', sub: 'Petit' },
+  { value: '9.99', label: '9,99 €', sub: 'Korpus' },
+  { value: '14.99', label: '14,99 €', sub: 'Cicero' },
+]
+
 export default function KontoZugangBlock({ auth, gesamtausgabe, gesamtausgabePermanent, freeAccessToday, freeAccessLabel }) {
   const [agreed, setAgreed] = useState(false)
   const [isBusy, setIsBusy] = useState(false)
   const [checkoutError, setCheckoutError] = useState(null)
+  const [selectedPrice, setSelectedPrice] = useState('6.99')
+
+  const selectedOption = PRICE_OPTIONS.find(o => o.value === selectedPrice)
 
   async function handleCheckout() {
     if (!agreed || isBusy) return
@@ -16,6 +25,7 @@ export default function KontoZugangBlock({ auth, gesamtausgabe, gesamtausgabePer
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
+        body: JSON.stringify({ price: selectedPrice }),
       })
       const data = await res.json().catch(() => ({}))
       if (res.status === 409) {
@@ -104,9 +114,23 @@ export default function KontoZugangBlock({ auth, gesamtausgabe, gesamtausgabePer
                   <li>Klassenraum – Gemeinsam spielen (für Lehrkräfte)</li>
                 </ul>
 
-                <div className="konto-checkout-price" aria-label="Preis: 4 Euro 99, einmalig">
-                  <span className="konto-checkout-amount">4,99 €</span>
-                  <span className="konto-checkout-once">Einmalig · kein Abo</span>
+                <div className="konto-price-selector-wrap">
+                  <p className="konto-price-selector-intro">Du entscheidest, wie viel du beiträgst:</p>
+                  <div className="konto-price-selector" role="group" aria-label="Betrag wählen">
+                    {PRICE_OPTIONS.map(opt => (
+                      <button
+                        key={opt.value}
+                        className={`konto-price-option${selectedPrice === opt.value ? ' konto-price-option--selected' : ''}`}
+                        type="button"
+                        onClick={() => setSelectedPrice(opt.value)}
+                        aria-pressed={selectedPrice === opt.value}
+                      >
+                        <span className="konto-price-option-amount">{opt.label}</span>
+                        <span className="konto-price-option-label">{opt.sub}</span>
+                      </button>
+                    ))}
+                  </div>
+                  <p className="konto-checkout-once">Einmalig · kein Abo</p>
                 </div>
 
                 <label className="konto-checkout-legal-label">
@@ -149,7 +173,7 @@ export default function KontoZugangBlock({ auth, gesamtausgabe, gesamtausgabePer
                   onClick={handleCheckout}
                   disabled={!agreed || isBusy}
                 >
-                  {isBusy ? 'Weiterleitung …' : 'Jetzt freischalten – 4,99 €'}
+                  {isBusy ? 'Weiterleitung …' : `Jetzt freischalten – ${selectedOption.label}`}
                   {!isBusy && <span className="test-cta-arrow" aria-hidden="true"> →</span>}
                 </button>
 

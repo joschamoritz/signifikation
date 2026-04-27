@@ -19,7 +19,10 @@ function getTransporter() {
   return _transporter
 }
 
-export async function sendPurchaseConfirmation({ to, purchaseDate }) {
+export async function sendPurchaseConfirmation({ to, purchaseDate, amount }) {
+  const amountFormatted = amount
+    ? `${parseFloat(amount).toFixed(2).replace('.', ',')} €`
+    : '–'
   const dateFormatted = new Date(purchaseDate).toLocaleDateString('de-DE', {
     day: '2-digit', month: '2-digit', year: 'numeric',
     hour: '2-digit', minute: '2-digit',
@@ -42,7 +45,7 @@ export async function sendPurchaseConfirmation({ to, purchaseDate }) {
     </tr>
     <tr style="border-bottom:1px solid #e2ddd6">
       <td style="padding:10px 0;color:#7a6e65">Betrag</td>
-      <td style="padding:10px 0;text-align:right;color:#1a1310">4,99&nbsp;€</td>
+      <td style="padding:10px 0;text-align:right;color:#1a1310">${amountFormatted}</td>
     </tr>
     <tr style="border-bottom:1px solid #e2ddd6">
       <td style="padding:10px 0;color:#7a6e65">Datum</td>
@@ -79,7 +82,7 @@ Gesamtausgabe freigeschaltet
 Vielen Dank für deinen Kauf.
 
 Produkt:       Gesamtausgabe – Signifikation
-Betrag:        4,99 €
+Betrag:        ${amountFormatted}
 Datum:         ${dateFormatted} Uhr
 Umsatzsteuer:  Keine (§ 19 UStG)
 

@@ -30,8 +30,7 @@ function isValidMollieIP(ip) {
   return MOLLIE_IP_RANGES.some(range => isIpInRange(ip, range))
 }
 
-// Preis als benannte Konstante – hier ändern wenn nötig
-const GESAMTAUSGABE_PRICE = '4.99'
+const VALID_PRICES = ['6.99', '9.99', '14.99']
 const GESAMTAUSGABE_PRODUCT = 'gesamtausgabe'
 
 const BASE_URL = IS_PROD
@@ -99,6 +98,11 @@ const setPremiumRoleStmt = db.prepare(`
 
 router.post('/api/v1/payments/checkout', requireAuthUser, async (req, res) => {
   try {
+    const { price } = req.body ?? {}
+    if (!price || !VALID_PRICES.includes(price)) {
+      return res.status(400).json({ error: 'Ungültiger Preis.' })
+    }
+
     // Bereits bezahlt?
     const existing = getPaidPaymentStmt.get(req.user.id, GESAMTAUSGABE_PRODUCT)
     if (existing) {
@@ -107,7 +111,7 @@ router.post('/api/v1/payments/checkout', requireAuthUser, async (req, res) => {
 
     const client = getMollie()
     const payment = await client.payments.create({
-      amount: { currency: 'EUR', value: GESAMTAUSGABE_PRICE },
+      amount: { currency: 'EUR', value: price },
       description: 'Gesamtausgabe – Signifikation',
       redirectUrl: `${BASE_URL}/?payment=success`,
       webhookUrl: `${BASE_URL}/api/v1/payments/webhook`,
@@ -236,7 +240,7 @@ router.post(
       if (newlyUnlocked) {
         const userRow = getUserEmailStmt.get(userId)
         if (userRow?.email) {
-          sendPurchaseConfirmation({ to: userRow.email, purchaseDate: Date.now() })
+          sendPurchaseConfirmation({ to: userRow.email, purchaseDate: Date.now(), amount: payment.amount.value })
         }
       }
 
