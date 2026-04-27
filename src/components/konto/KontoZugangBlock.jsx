@@ -121,7 +121,7 @@ export default function KontoZugangBlock({ auth, gesamtausgabe, gesamtausgabePer
                     und mein <strong>Widerrufsrecht damit erlischt</strong> (§&nbsp;356 Abs.&nbsp;5 BGB).
                     Ich habe die{' '}
                     <a href="/nutzungsbedingungen.html" target="_blank" rel="noopener noreferrer">
-                      AGB
+                      Nutzungsbedingungen
                     </a>{' '}
                     und das{' '}
                     <a href="/impressum.html" target="_blank" rel="noopener noreferrer">

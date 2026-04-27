@@ -15,7 +15,7 @@
   <header>
     <p class="overline">Rechtliche Angaben</p>
     <h1>Datenschutz <span class="ipa">[ˈdaːtn̩ˌʃʊt͡s]</span></h1>
-    <p class="subtitle">Stand: März 2026</p>
+    <p class="subtitle">Stand: April 2026</p>
   </header>
 
   <hr class="rule-double" />
@@ -23,89 +23,137 @@
   <h2>Verantwortlicher</h2>
   <p>Joscha Moritz Fresmann, Recklinghausen — <a href="/impressum.html">Kontakt siehe Impressum</a></p>
 
+  <p>
+    Diese Datenschutzerklärung gilt für die Web-App unter signifikation.de sowie
+    für die Android-App „Signifikation". In beiden Versionen werden dieselben
+    Datenkategorien verarbeitet. Es werden keine gerätespezifischen Kennungen
+    (z.&thinsp;B. Android Advertising ID) erhoben.
+  </p>
+
   <h2>Kurzübersicht</h2>
   <div class="badges">
-    <span class="badge">Keine Cookies</span>
     <span class="badge">Kein Tracking</span>
     <span class="badge">Keine Werbung</span>
-    <span class="badge badge--no">Kein Login</span>
-    <span class="badge badge--no">Keine Weitergabe</span>
-    <span class="badge">Keine externen Ressourcen</span>
+    <span class="badge">Keine Analyse-Tools</span>
+    <span class="badge">Server in Deutschland</span>
+    <span class="badge badge--no">Keine Datenweitergabe zu Werbezwecken</span>
   </div>
 
   <h2>Welche Daten werden verarbeitet?</h2>
 
   <p>
     <strong>Server-Logs (Hosting)</strong><br />
-    Beim Aufruf der Website übermittelt dein Browser automatisch technische Daten an den
-    Hosting-Anbieter: IP-Adresse, Datum/Uhrzeit, aufgerufene URL, Browser-Typ. Diese Daten
-    werden für den technischen Betrieb benötigt und nach spätestens 30 Tagen gelöscht.
-    Rechtsgrundlage: Art. 6 Abs. 1 lit. f DSGVO (berechtigtes Interesse am sicheren Betrieb).
+    Beim Aufruf der Website übermittelt dein Browser automatisch technische Daten:
+    IP-Adresse, Datum/Uhrzeit, aufgerufene URL, Browser-Typ. Diese werden für den
+    technischen Betrieb benötigt und nach spätestens 30 Tagen gelöscht.
+    Rechtsgrundlage: Art.&nbsp;6 Abs.&nbsp;1 lit.&nbsp;f DSGVO (berechtigtes Interesse
+    am sicheren Betrieb).
   </p>
 
   <p>
-    <strong>Lokaler Spielstand (localStorage)</strong><br />
-    Spielstände, Streaks und Verlauf werden ausschließlich lokal in deinem Browser gespeichert
-    (<code>localStorage</code>). Diese Daten werden nicht an uns oder Dritte übertragen.
-    Du kannst sie jederzeit über die Browser-Einstellungen löschen. Es werden keine
-    Cookies gesetzt.
+    <strong>Nutzerkonten</strong><br />
+    Die Erstellung eines Nutzerkontos ist freiwillig. Bei Registrierung speichern wir:
+    E-Mail-Adresse, Name, Passwort (als bcrypt-Hash, nicht im Klartext), Konto-Rolle
+    und Registrierungsdatum. Diese Daten werden bis zur Kontolöschung gespeichert und
+    anschließend vollständig entfernt. Das Konto kann jederzeit direkt in der App
+    gelöscht werden.
+    Rechtsgrundlage: Art.&nbsp;6 Abs.&nbsp;1 lit.&nbsp;b DSGVO (Vertragserfüllung).
   </p>
 
   <p>
-    <strong>API-Anfragen</strong><br />
-    Die App lädt täglich Spieldaten von unserem Backend-Server. Dabei wird deine IP-Adresse
-    an den Hosting-Anbieter übermittelt (siehe Server-Logs oben). Es werden keine
-    personenbezogenen Daten in den Anfragen mitgesendet.
+    <strong>Session-Cookie</strong><br />
+    Nach dem Einloggen wird ein technisch notwendiger Session-Cookie gesetzt
+    (<code>better-auth.session_token</code>, httpOnly, SameSite=Lax). Er dient
+    ausschließlich der Authentifizierung, enthält keine Tracking- oder Analysedaten
+    und wird nach dem Ausloggen oder Ablauf der Sitzung gelöscht. Da dieser Cookie
+    technisch für die Bereitstellung des Dienstes zwingend erforderlich ist, bedarf
+    er keiner gesonderten Einwilligung (§&nbsp;25 Abs.&nbsp;2 Nr.&nbsp;2 TDDDG).
+    Weitere Cookies werden nicht gesetzt.
+    Rechtsgrundlage: Art.&nbsp;6 Abs.&nbsp;1 lit.&nbsp;b DSGVO.
+  </p>
+
+  <p>
+    <strong>Spielfortschritt</strong><br />
+    Spielstände, Streaks und Verlauf werden lokal in deinem Browser gespeichert
+    (<code>localStorage</code>). Bei eingeloggten Nutzern werden diese Daten
+    zusätzlich auf dem Server gespeichert, um geräteübergreifende Synchronisation
+    zu ermöglichen. Sie sind an das Konto gebunden und werden bei Kontolöschung
+    vollständig entfernt.
+    Rechtsgrundlage: Art.&nbsp;6 Abs.&nbsp;1 lit.&nbsp;b DSGVO.
+  </p>
+
+  <p>
+    <strong>Gerätefingerabdruck (nur bei Gesamtausgabe)</strong><br />
+    Zur Durchsetzung des 3-Geräte-Limits wird bei Nutzern der Gesamtausgabe ein
+    technischer Fingerabdruck des verwendeten Geräts als SHA-256-Hashwert gespeichert –
+    gebildet aus Browser-Typ, Spracheinstellung und Kodierungspräferenz. Der Rohwert
+    wird nicht gespeichert. Dieser Hashwert wird für die Dauer des aktiven Nutzerkontos
+    gespeichert und bei Kontolöschung vollständig entfernt. Einzelne Geräte können
+    jederzeit im Konto-Bereich der App entfernt werden.
+    Rechtsgrundlage: Art.&nbsp;6 Abs.&nbsp;1 lit.&nbsp;b DSGVO (Vertragserfüllung).
+  </p>
+
+  <p>
+    <strong>Zahlungsabwicklung (Mollie)</strong><br />
+    Beim Erwerb der Gesamtausgabe wirst du zur Zahlungsseite von
+    <strong>Mollie B.V.</strong> (Keizersgracht 126, 1015 CW Amsterdam, Niederlande)
+    weitergeleitet. Mollie verarbeitet deine Zahlungsdaten eigenverantwortlich gemäß
+    ihrer Datenschutzerklärung. Wir erhalten ausschließlich den Zahlungsstatus und
+    eine Zahlungs-ID – keine Kreditkarten- oder Bankdaten.
+    Datenschutzhinweise von Mollie:
+    <a href="https://www.mollie.com/de/privacy" target="_blank" rel="noopener noreferrer">mollie.com/de/privacy</a>.<br />
+    Der Zahlungsstatus und die Zahlungs-ID werden als Lizenznachweis gespeichert und
+    zur Erfüllung steuerrechtlicher Aufbewahrungspflichten für <strong>10 Jahre</strong>
+    aufbewahrt (§&nbsp;147 AO).
+    Rechtsgrundlage: Art.&nbsp;6 Abs.&nbsp;1 lit.&nbsp;b und lit.&nbsp;c DSGVO.
   </p>
 
   <p>
     <strong>Optionales Feedback</strong><br />
-    Nach dem Spielen kann freiwillig eine kurze Rückmeldung (Emoji-Reaktion + optionaler Text)
-    abgegeben werden. Diese Daten werden ohne Personenbezug auf dem Server gespeichert und
-    ausschließlich zur Verbesserung der App verwendet. Bitte gib keine personenbezogenen
-    Daten im Freitextfeld an.
-    Rechtsgrundlage: Art. 6 Abs. 1 lit. f DSGVO (berechtigtes Interesse an der Verbesserung des Angebots).
-  </p>
-
-  <p>
-    <strong>Korpusdaten</strong><br />
-    Die Kollokationsdaten und Belegsätze werden vollständig aus einer eigenen,
-    lokal gespeicherten SQLite-Datenbank abgerufen. Es findet keine Übermittlung
-    personenbezogener Daten an Dritte im Zusammenhang mit Sprachdaten statt.
+    Nach dem Spielen kann freiwillig eine Rückmeldung (Emoji-Reaktion und optionaler
+    Freitext) abgegeben werden. Die Emoji-Reaktion und der Freitext werden ohne
+    Zuweisung zu einem Nutzerkonto oder einer IP-Adresse gespeichert. Sofern du im
+    Freitext keine personenbezogenen Daten angibst, enthalten diese Rückmeldungen
+    keinen Personenbezug. Bitte gib keine personenbezogenen Daten in das Freitextfeld
+    ein. Soweit dennoch personenbezogene Daten übermittelt werden, erfolgt die
+    Verarbeitung auf Grundlage von Art.&nbsp;6 Abs.&nbsp;1 lit.&nbsp;f DSGVO
+    (berechtigtes Interesse an der Verbesserung des Angebots).
   </p>
 
   <h2>Was wir nicht tun</h2>
   <ul>
     <li>Keine Analyse- oder Tracking-Tools (kein Google Analytics, Matomo o.&thinsp;Ä.)</li>
-    <li>Keine Nutzerkonten, keine Registrierung</li>
     <li>Keine Weitergabe von Daten an Dritte zu Werbezwecken</li>
     <li>Keine externen Schrift- oder Drittanbieter-Ressourcen</li>
+    <li>Keine Werbeanzeigen</li>
   </ul>
 
   <h2>Hosting</h2>
   <p>
-    Der Server wird durch <strong>Hetzner Online GmbH (Industriestr. 25, 91710 Gunzenhausen, Deutschland)</strong>
-    in einem Rechenzentrum in Nürnberg, Deutschland betrieben.
-    Datenschutzhinweise: <a href="https://www.hetzner.com/legal/privacy-policy" target="_blank" rel="noopener">hetzner.com/legal/privacy-policy</a>.
-    Es findet keine Weitergabe an Dritte zu anderen Zwecken statt. Alle Schriftarten werden
-    vom eigenen Server ausgeliefert – es findet keine Verbindung zu externen Schriftdiensten statt.
+    Der Server wird durch <strong>Hetzner Online GmbH</strong> (Industriestr. 25,
+    91710 Gunzenhausen, Deutschland) in einem Rechenzentrum in Nürnberg betrieben.
+    Mit Hetzner Online GmbH besteht ein Auftragsverarbeitungsvertrag gemäß
+    Art.&nbsp;28 DSGVO. Datenschutzhinweise:
+    <a href="https://www.hetzner.com/legal/privacy-policy" target="_blank" rel="noopener noreferrer">hetzner.com/legal/privacy-policy</a>.
+    Alle Schriftarten werden vom eigenen Server ausgeliefert – es besteht keine
+    Verbindung zu externen Schriftdiensten.
   </p>
 
   <h2>Deine Rechte</h2>
   <p>
-    Du hast das Recht auf Auskunft, Berichtigung, Löschung und Einschränkung der
-    Verarbeitung deiner personenbezogenen Daten sowie ein Widerspruchsrecht.
-    Da wir keine personenbezogenen Daten dauerhaft speichern (außer transienten Server-Logs
-    beim Hoster), ist eine Kontaktaufnahme in der Regel nicht erforderlich.
-    Bei Fragen: <a href="/impressum.html">Kontakt über Impressum</a>.
+    Du hast das Recht auf Auskunft (Art.&nbsp;15), Berichtigung (Art.&nbsp;16),
+    Löschung (Art.&nbsp;17), Einschränkung der Verarbeitung (Art.&nbsp;18),
+    Datenübertragbarkeit (Art.&nbsp;20) sowie ein Widerspruchsrecht (Art.&nbsp;21 DSGVO).
+    Dein Konto und alle gespeicherten Daten kannst du jederzeit direkt in der App
+    löschen. Bei weiteren Fragen wende dich an
+    <a href="mailto:info@signifikation.de">info@signifikation.de</a>.
   </p>
   <p>
-    Du hast außerdem das Recht, dich bei einer Datenschutz-Aufsichtsbehörde zu beschweren.
-    Die für den Verantwortlichen zuständige Aufsichtsbehörde ist:<br />
+    Du hast außerdem das Recht, dich bei einer Datenschutz-Aufsichtsbehörde zu
+    beschweren. Die für den Verantwortlichen zuständige Aufsichtsbehörde ist:<br />
     <strong>Landesbeauftragte für Datenschutz und Informationsfreiheit NRW (LDI NRW)</strong><br />
     Kavalleriestraße 2–4, 40213 Düsseldorf<br />
-    <a href="https://www.ldi.nrw.de" target="_blank" rel="noopener">www.ldi.nrw.de</a><br />
-    Du kannst dich nach Art. 77 DSGVO auch bei der Aufsichtsbehörde deines Wohnsitzlandes beschweren.
+    <a href="https://www.ldi.nrw.de" target="_blank" rel="noopener noreferrer">www.ldi.nrw.de</a>
   </p>
 
   <footer>
