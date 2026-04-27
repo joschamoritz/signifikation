@@ -62,6 +62,14 @@ const unlockEntitlementStmt = db.prepare(`
   WHERE user_id = ?
 `)
 
+const setPremiumRoleStmt = db.prepare(`
+  INSERT INTO user_profiles (user_id, role, created_at, updated_at)
+  VALUES (?, 'premium', ?, ?)
+  ON CONFLICT(user_id) DO UPDATE SET
+    role = 'premium',
+    updated_at = excluded.updated_at
+`)
+
 // ── POST /api/v1/payments/checkout ───────────────────────────
 // Erstellt eine Mollie-Zahlung und gibt die Checkout-URL zurück.
 // Erfordert eingeloggten Nutzer.
@@ -149,9 +157,10 @@ router.post(
         const now = Date.now()
         ensureEntitlementStmt.run(userId, now, now)
         unlockEntitlementStmt.run(now, now, userId)
+        setPremiumRoleStmt.run(userId, now, now)
         insertPaymentStmt.run(paymentId, userId, payment.amount.value, 'paid', product, now)
 
-        logger.info({ paymentId, userId }, 'Gesamtausgabe freigeschaltet via Mollie')
+        logger.info({ paymentId, userId }, 'Gesamtausgabe freigeschaltet und Rolle auf premium gesetzt via Mollie')
       })()
 
       res.status(200).end()
