@@ -35,6 +35,10 @@ jobs:
             git pull --ff-only origin main
             npm ci
             npm run build
+            # Orphan-Prozesse auf dem App-Port killen (verhindert Port-Konflikte bei PM2-Restart)
+            APP_PORT=$(grep -oP '(?<=^PORT=)\d+' /opt/signifikation/app/.env 2>/dev/null || echo 3000)
+            sudo /usr/bin/fuser -k "${APP_PORT}/tcp" 2>/dev/null || true
+            sleep 1
             sudo -u signifikation bash -c 'export NVM_DIR="/opt/nvm" && source "$NVM_DIR/nvm.sh" && cd /opt/signifikation/app && pm2 delete signifikation signifikation-worker 2>/dev/null; pm2 start ecosystem.config.cjs && pm2 save'
       - name: Health check
         run: |

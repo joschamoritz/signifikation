@@ -1,4 +1,11 @@
 import 'dotenv/config'
+
+// Verhindert versehentliche Root-Starts (würden den Port für andere User blockieren)
+if (process.getuid?.() === 0) {
+  console.error('FEHLER: Server darf nicht als root gestartet werden.')
+  process.exit(1)
+}
+
 import './config.js'
 import express      from 'express'
 import compression  from 'compression'
