@@ -143,8 +143,8 @@ router.get('/api/v1/account/entitlements', optionalAuthUser, (req, res) => {
 
     const entitlements = readEntitlements(req.user.id, req.user.role)
     
-    // ── Gerätelimit prüfen (nur bei bezahlten Accounts) ───────
-    if (entitlements.gesamtausgabe.unlocked && entitlements.gesamtausgabe.source !== 'admin-role') {
+    // ── Gerätelimit prüfen ────────────────────────────────────
+    if (entitlements.gesamtausgabe.unlocked) {
       const deviceHash = getDeviceFingerprint(req)
       
       // Ist dieses Gerät bereits registriert?
