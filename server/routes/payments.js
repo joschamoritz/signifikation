@@ -3,6 +3,7 @@ import { createMollieClient } from '@mollie/api-client'
 import { requireAuthUser } from '../middleware/userAuth.js'
 import db from '../db.js'
 import logger from '../logger.js'
+import { sendPurchaseConfirmation } from '../mailer.js'
 
 const IS_PROD = process.env.NODE_ENV === 'production'
 const MOLLIE_API_KEY = process.env.MOLLIE_API_KEY?.trim()
@@ -155,6 +156,8 @@ const deleteWebhookRetryStmt = db.prepare(`
   DELETE FROM webhook_retries WHERE payment_id = ?
 `)
 
+const getUserEmailStmt = db.prepare(`SELECT email FROM user WHERE id = ?`)
+
 // ── POST /api/v1/payments/webhook ────────────────────────────
 // Mollie ruft diesen Endpunkt auf, wenn sich der Zahlungsstatus ändert.
 // Sicherheit: IP-Whitelist + Payment-ID-Verifizierung via Mollie-API
@@ -211,6 +214,7 @@ router.post(
       }
 
       // Transaktion: Idempotenz-Check + Entitlement-Unlock + Payment-Eintrag
+      let newlyUnlocked = false
       db.transaction(() => {
         const alreadyProcessed = getPaymentByIdStmt.get(paymentId)
         if (alreadyProcessed) {
@@ -224,8 +228,17 @@ router.post(
         setPremiumRoleStmt.run(userId, now, now)
         insertPaymentStmt.run(paymentId, userId, payment.amount.value, 'paid', product, now)
 
+        newlyUnlocked = true
         logger.info({ paymentId, userId }, 'Gesamtausgabe freigeschaltet und Rolle auf premium gesetzt via Mollie')
       })()
+
+      // Bestellbestätigung senden (nur bei neuem Kauf, nicht bei Webhook-Retry)
+      if (newlyUnlocked) {
+        const userRow = getUserEmailStmt.get(userId)
+        if (userRow?.email) {
+          sendPurchaseConfirmation({ to: userRow.email, purchaseDate: Date.now() })
+        }
+      }
 
       // Erfolg → Retry-Counter löschen
       deleteWebhookRetryStmt.run(paymentId)
