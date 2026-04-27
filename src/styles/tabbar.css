@@ -238,7 +238,7 @@
   flex-direction: column;
   align-items: center;
   gap: 10px;
-  margin-bottom: 24px;
+  margin-bottom: 20px;
 }
 
 .konto-auth-title {
@@ -267,6 +267,13 @@
   color: var(--muted);
   padding: 0 10px 2px;
   border-bottom: 1px solid transparent;
+  cursor: pointer;
+}
+
+.konto-auth-mode:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 3px;
+  border-radius: 1px;
 }
 
 .konto-auth-mode + .konto-auth-mode::before {
@@ -280,12 +287,23 @@
 .konto-auth-mode--active {
   color: var(--primary);
   border-bottom-color: var(--primary);
+  letter-spacing: 0.02em;
 }
 
 .konto-auth-form {
   display: flex;
   flex-direction: column;
   gap: 12px;
+}
+
+/* CTA-Button im Formular: mehr Luft nach oben als gap allein gibt */
+.konto-auth-form > .test-cta {
+  margin-top: 8px;
+}
+
+/* "Passwort vergessen?" klar vom CTA trennen */
+.konto-auth-form > .konto-auth-inline-link:first-of-type {
+  margin-top: 10px;
 }
 
 .konto-auth-form--reset {
@@ -357,6 +375,10 @@
   padding: 0 6px 2px;
 }
 
+.konto-auth-password-toggle:hover:not(:disabled) {
+  color: var(--accent-dk, #9b6e1c);
+}
+
 .konto-auth-password-toggle:focus-visible {
   outline: none;
   border-bottom-color: var(--primary);
@@ -366,7 +388,19 @@
   color: var(--disabled);
 }
 
+.konto-session {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  width: 100%;
+}
+
+.konto-session > .test-cta {
+  align-self: stretch;
+}
+
 .konto-session-list {
+  width: 100%;
   margin: 0 0 14px;
   display: grid;
   grid-template-columns: minmax(0, 1fr);
@@ -441,28 +475,48 @@
   font-size: 0.78rem;
 }
 
+.konto-auth-inline-link--danger {
+  color: var(--error);
+  margin-top: 10px;
+}
+
 .konto-auth-inline-link:disabled {
   color: var(--disabled);
 }
 
-.konto-auth-socials {
+.konto-auth-delete-confirm {
   margin-top: 10px;
-  padding-top: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+}
+
+/* Im Löschen-Dialog: Abbrechen-Button soll kein übertriebenes margin-top bekommen */
+.konto-auth-delete-confirm .konto-auth-inline-link--secondary {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: none;
+}
+
+.konto-auth-socials {
+  margin-top: 12px;
+  padding-top: 14px;
   border-top: 1px solid var(--border-lt);
 }
 
 .konto-auth-socials-label {
-  margin: 0 0 6px;
+  margin: 0 0 8px;
   font-family: var(--font-sans);
-  font-size: 0.72rem;
+  font-size: 0.68rem;
   color: var(--muted);
-  letter-spacing: 0.05em;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
 }
 
 .konto-auth-socials-actions {
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: column;
   gap: 8px;
 }
 
@@ -479,6 +533,47 @@
 
 .konto-auth-social-btn:disabled {
   color: var(--disabled);
+}
+
+/* GitHub OAuth-Button – ins Wörterbuch-Design eingepasst */
+.konto-auth-github-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 36px;
+  padding: 0 12px;
+  background: transparent;
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  font-family: var(--font-serif);
+  font-size: 0.82rem;
+  font-style: italic;
+  cursor: pointer;
+  transition: border-color 120ms ease;
+}
+
+.konto-auth-github-btn:hover:not(:disabled) {
+  border-color: var(--text);
+}
+
+.konto-auth-github-btn:active:not(:disabled) {
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+.konto-auth-github-btn:disabled {
+  color: var(--disabled);
+  border-color: var(--border-lt);
+  cursor: default;
+}
+
+.konto-auth-github-btn svg {
+  flex-shrink: 0;
+  color: var(--muted);
+  opacity: 0.7;
 }
 
 .konto-teacher-note {
