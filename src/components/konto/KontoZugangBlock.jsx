@@ -145,11 +145,6 @@ export default function KontoZugangBlock({ auth, gesamtausgabe, gesamtausgabePer
           </div>
         )}
 
-        {!auth.isLoggedIn && (
-          <div className="test-entry-footer">
-            <span className="test-status">Nicht angemeldet</span>
-          </div>
-        )}
       </div>
     </li>
   )

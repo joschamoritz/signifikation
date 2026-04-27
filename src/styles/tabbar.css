@@ -216,7 +216,7 @@
 }
 
 .konto-auth-card {
-  margin-top: 28px;
+  margin-top: 16px;
   padding-top: 0;
   border-top: none;
 }
@@ -229,7 +229,7 @@
   letter-spacing: 0.35em;
   color: var(--border);
   text-align: center;
-  padding: 18px 0 22px;
+  padding: 12px 0 16px;
   border-top: 1px solid var(--border-lt);
 }
 

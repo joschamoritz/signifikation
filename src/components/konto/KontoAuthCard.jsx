@@ -384,14 +384,16 @@ const [confirmDelete, setConfirmDelete] = useState(false)
             <span className="test-cta-arrow" aria-hidden="true">→</span>
           </button>
 
-          <button
-            className="konto-auth-inline-link"
-            type="button"
-            onClick={() => switchMode('reset-request')}
-            disabled={isBusy}
-          >
-            Passwort vergessen?
-          </button>
+          {mode === 'login' && (
+            <button
+              className="konto-auth-inline-link"
+              type="button"
+              onClick={() => switchMode('reset-request')}
+              disabled={isBusy}
+            >
+              Passwort vergessen?
+            </button>
+          )}
 
           {(authOptions.googleEnabled || authOptions.appleEnabled || authOptions.githubEnabled) && (
             <div className="konto-auth-socials">
