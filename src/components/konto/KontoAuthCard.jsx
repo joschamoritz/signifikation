@@ -37,23 +37,11 @@ export default function KontoAuthCard({ auth }) {
     handlePasswordResetComplete,
     handleSocialSignIn,
     handleSignOut,
-    handleDeleteAccount,
-    activeSessions,
-    revokeSession,
-    switchMode,
-  } = auth
+  handleDeleteAccount,
+  switchMode,
+} = auth
 
-  function labelFromUA(ua) {
-    if (!ua) return 'Unbekanntes Gerät'
-    if (/iPhone|iPad|iPod/i.test(ua)) return 'iOS'
-    if (/Android/i.test(ua)) return 'Android'
-    if (/Windows/i.test(ua)) return 'Windows'
-    if (/Mac OS/i.test(ua)) return 'Mac'
-    if (/Linux/i.test(ua)) return 'Linux'
-    return 'Unbekanntes Gerät'
-  }
-
-  const [confirmDelete, setConfirmDelete] = useState(false)
+const [confirmDelete, setConfirmDelete] = useState(false)
 
   return (
     <section className="konto-auth-card">
@@ -269,28 +257,6 @@ export default function KontoAuthCard({ auth }) {
           >
             Passwort zurücksetzen
           </button>
-
-          {activeSessions.length > 0 && (
-            <div className="konto-sessions">
-              <p className="konto-sessions-label">Aktive Sitzungen</p>
-              <ul className="konto-sessions-list">
-                {activeSessions.map((s) => (
-                  <li key={s.id} className="konto-sessions-item">
-                    <span className="konto-sessions-device">{labelFromUA(s.userAgent)}</span>
-                    <span className="konto-sessions-ip">{s.ipAddress || '—'}</span>
-                    <button
-                      className="konto-sessions-revoke"
-                      type="button"
-                      onClick={() => revokeSession(s.id)}
-                      disabled={isBusy}
-                    >
-                      Beenden
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
 
           {confirmDelete ? (
             <div className="konto-auth-delete-confirm">

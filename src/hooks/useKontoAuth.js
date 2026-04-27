@@ -48,7 +48,6 @@ export function useKontoAuth({ onAuthStateChange = () => {} }) {
   const [isBusy, setIsBusy] = useState(false)
   const [isChecking, setIsChecking] = useState(true)
   const [notice, setNotice] = useState(null)
-  const [activeSessions, setActiveSessions] = useState([])
 
   const isLoggedIn = !!sessionData?.user?.email
   const showNameField = mode === 'register'
@@ -177,23 +176,9 @@ export function useKontoAuth({ onAuthStateChange = () => {} }) {
     }
   }, [readJsonSafe])
 
-  const loadActiveSessions = useCallback(async () => {
-    try {
-      const res = await fetch(`${API}/account/sessions`, { credentials: 'include' })
-      if (!res.ok) return
-      const data = await readJsonSafe(res)
-      setActiveSessions(data?.sessions ?? [])
-    } catch { /* ignorieren */ }
-  }, [readJsonSafe])
-
   useEffect(() => {
     loadSession()
   }, [loadSession])
-
-  useEffect(() => {
-    if (isLoggedIn) loadActiveSessions()
-    else setActiveSessions([])
-  }, [isLoggedIn, loadActiveSessions])
 
   useEffect(() => {
     let active = true
@@ -472,17 +457,6 @@ export function useKontoAuth({ onAuthStateChange = () => {} }) {
     }
   }, [getErrorMessage, isBusy, onAuthStateChange])
 
-  const revokeSession = useCallback(async (sessionId) => {
-    try {
-      const res = await fetch(`${API}/account/sessions/${sessionId}`, {
-        method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-      })
-      if (res.ok) setActiveSessions((prev) => prev.filter((s) => s.id !== sessionId))
-    } catch { /* ignorieren */ }
-  }, [])
-
   const handleDeleteAccount = useCallback(async () => {
     if (isBusy) return
     setIsBusy(true)
@@ -564,8 +538,6 @@ export function useKontoAuth({ onAuthStateChange = () => {} }) {
     handleSocialSignIn,
     handleSignOut,
     handleDeleteAccount,
-    activeSessions,
-    revokeSession,
     switchMode,
   }
 }
