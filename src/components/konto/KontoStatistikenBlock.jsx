@@ -2,7 +2,7 @@ export default function KontoStatistikenBlock({ isLoggedIn }) {
   return (
     <li className={`test-entry${!isLoggedIn ? ' test-entry--disabled' : ''}`}>
       <div className="test-entry-number" aria-hidden="true">
-        <span className="test-entry-num-glyph">②</span>
+        <span className="test-entry-num-glyph">③</span>
         <span className="test-entry-marginalia">STATS</span>
       </div>
       <div className="test-entry-body">

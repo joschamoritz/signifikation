@@ -166,6 +166,28 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_payments_user_product
     ON payments(user_id, product, status);
 
+  CREATE TABLE IF NOT EXISTS webhook_retries (
+    payment_id TEXT PRIMARY KEY,
+    attempts   INTEGER NOT NULL DEFAULT 0,
+    last_retry INTEGER NOT NULL
+  );
+
+  CREATE TABLE IF NOT EXISTS device_registrations (
+    id          TEXT PRIMARY KEY,
+    user_id     TEXT NOT NULL,
+    device_hash TEXT NOT NULL UNIQUE,
+    user_agent  TEXT,
+    last_seen   INTEGER NOT NULL,
+    created_at  INTEGER NOT NULL,
+    FOREIGN KEY (user_id) REFERENCES user(id) ON DELETE CASCADE
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_device_user
+    ON device_registrations(user_id);
+
+  CREATE INDEX IF NOT EXISTS idx_device_hash
+    ON device_registrations(device_hash);
+
   CREATE TABLE IF NOT EXISTS audit_log (
     id             INTEGER PRIMARY KEY AUTOINCREMENT,
     timestamp      TEXT NOT NULL,

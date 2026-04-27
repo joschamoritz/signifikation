@@ -2,7 +2,7 @@ export default function KontoRechtlichesBlock() {
   return (
     <li className="test-entry">
       <div className="test-entry-number" aria-hidden="true">
-        <span className="test-entry-num-glyph">④</span>
+        <span className="test-entry-num-glyph">⑤</span>
         <span className="test-entry-marginalia">INFO</span>
       </div>
       <div className="test-entry-body">

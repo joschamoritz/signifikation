@@ -2,6 +2,7 @@ import { useRef } from 'react'
 import TabHeader from './TabHeader'
 import { useKontoAuth } from '../hooks/useKontoAuth'
 import KontoZugangBlock from './konto/KontoZugangBlock'
+import KontoGeraeteBlock from './konto/KontoGeraeteBlock'
 import KontoStatistikenBlock from './konto/KontoStatistikenBlock'
 import KontoEinstellungenBlock from './konto/KontoEinstellungenBlock'
 import KontoRechtlichesBlock from './konto/KontoRechtlichesBlock'
@@ -45,15 +46,21 @@ export default function KontoTab({ gesamtausgabe, gesamtausgabePermanent, freeAc
               freeAccessLabel={freeAccessLabel}
             />
 
-            {/* ② Statistiken */}
+            {/* ② Registrierte Geräte */}
+            <KontoGeraeteBlock
+              isLoggedIn={auth.isLoggedIn}
+              gesamtausgabePermanent={gesamtausgabePermanent}
+            />
+
+            {/* ③ Statistiken */}
             <KontoStatistikenBlock 
               isLoggedIn={auth.isLoggedIn}
             />
 
-            {/* ③ Einstellungen */}
+            {/* ④ Einstellungen */}
             <KontoEinstellungenBlock />
 
-            {/* ④ Rechtliches & Info */}
+            {/* ⑤ Rechtliches & Info */}
             <KontoRechtlichesBlock />
 
           </ol>
