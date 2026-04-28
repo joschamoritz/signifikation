@@ -1286,6 +1286,63 @@
   width: 16px;
 }
 
+/* ── Checkout Bottom Sheet ─────────────────────────────────── */
+.checkout-sheet {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  max-height: 90vh;
+  background: var(--bg);
+  border-top: 2px solid var(--text);
+  z-index: 250;
+  overflow-y: auto;
+  transform: translateY(100%);
+  visibility: hidden;
+  transition: transform 0.32s cubic-bezier(0.4, 0, 0.2, 1), visibility 0s 0.32s;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+.checkout-sheet--open {
+  transform: translateY(0);
+  visibility: visible;
+  transition: transform 0.32s cubic-bezier(0.4, 0, 0.2, 1), visibility 0s;
+}
+
+.checkout-sheet-header {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 16px 20px 12px;
+  border-bottom: 1px solid var(--border-lt);
+  position: sticky;
+  top: 0;
+  background: var(--bg);
+}
+
+.checkout-sheet-label {
+  font-family: var(--font-sans);
+  font-size: 9px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--primary);
+  flex-shrink: 0;
+}
+
+.checkout-sheet-title {
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-size: 0.95rem;
+  color: var(--text);
+  flex: 1;
+  font-weight: 400;
+}
+
+.checkout-sheet-body {
+  padding: 16px 20px 24px;
+}
+
 /* ── Konto Tab: Kategorie-Badges → Rot statt Gold ─────────── */
 .konto-tab .test-entry-category {
   color: var(--t-red);

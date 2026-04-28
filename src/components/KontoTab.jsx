@@ -1,6 +1,7 @@
-import { useRef } from 'react'
+import { useRef, useCallback } from 'react'
 import TabHeader from './TabHeader'
 import { useKontoAuth } from '../hooks/useKontoAuth'
+import { useActiveSnapCard } from '../hooks/useActiveSnapCard'
 import KontoZugangBlock from './konto/KontoZugangBlock'
 import KontoGeraeteBlock from './konto/KontoGeraeteBlock'
 import KontoStatistikenBlock from './konto/KontoStatistikenBlock'
@@ -10,6 +11,12 @@ import KontoRechtlichesBlock from './konto/KontoRechtlichesBlock'
 export default function KontoTab({ gesamtausgabe, gesamtausgabePermanent, freeAccessToday, freeAccessLabel, onAuthStateChange = () => {} }) {
   const auth = useKontoAuth({ onAuthStateChange })
   const entriesRef = useRef(null)
+  const activeCard = useActiveSnapCard(entriesRef)
+
+  const scrollToCard = useCallback((index) => {
+    const items = entriesRef.current?.querySelectorAll('.test-entry')
+    items?.[index]?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }, [])
 
   return (
     <div className="test-page konto-tab">
@@ -64,6 +71,21 @@ export default function KontoTab({ gesamtausgabe, gesamtausgabePermanent, freeAc
             <KontoRechtlichesBlock />
 
           </ol>
+
+          {/* ── Vertikale Badge-Navigation (nur mobil) ───────── */}
+          <nav className="snap-nav" aria-label="Konto-Navigation">
+            <div className="snap-nav-games">
+              {['①','②','③','④','⑤'].map((glyph, i) => (
+                <button
+                  key={i}
+                  className={`snap-nav-btn${activeCard === i ? ' snap-nav-btn--active' : ''}`}
+                  aria-label={`Sektion ${i + 1}`}
+                  aria-current={activeCard === i ? 'true' : undefined}
+                  onClick={() => scrollToCard(i)}
+                >{glyph}</button>
+              ))}
+            </div>
+          </nav>
         </main>
 
         <div className="tab-placeholder-footer">

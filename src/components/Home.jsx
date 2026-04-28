@@ -8,6 +8,7 @@ import {
 } from '../utils/homeUtils'
 import { shareAsImage } from '../utils/shareImage'
 import { lsGet, lsSet } from '../utils/storage'
+import { useActiveSnapCard } from '../hooks/useActiveSnapCard'
 
 function LockIcon() {
   return (
@@ -69,37 +70,7 @@ export default function Home({
     items?.[index]?.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }, [])
 
-  // IntersectionObserver: aktive Karte tracken (nur mobil)
-  useEffect(() => {
-    const mq = window.matchMedia('(max-width: 699px)')
-    if (!mq.matches) return
-    const container = entriesRef.current
-    if (!container) return
-    const items = container.querySelectorAll('.test-entry')
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach(entry => {
-          if (entry.isIntersecting && entry.intersectionRatio >= 0.5) {
-            setActiveCard(Array.from(items).indexOf(entry.target))
-          }
-        })
-      },
-      { root: container, threshold: 0.5 }
-    )
-    items.forEach(item => observer.observe(item))
-    return () => observer.disconnect()
-  }, [])
-
-  // inert auf nicht-aktiven Karten setzen (nur mobil)
-  useEffect(() => {
-    const mq = window.matchMedia('(max-width: 699px)')
-    if (!mq.matches) return
-    const items = entriesRef.current?.querySelectorAll('.test-entry')
-    items?.forEach((item, i) => {
-      if (i === activeCard) item.removeAttribute('inert')
-      else item.setAttribute('inert', '')
-    })
-  }, [activeCard])
+  const activeCard = useActiveSnapCard(entriesRef)
 
   // Pfeiltasten-Navigation (nur mobil)
   const handleSnapKeyDown = useCallback((e) => {
