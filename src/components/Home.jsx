@@ -39,7 +39,6 @@ export default function Home({
   const [sharing,           setSharing]           = useState(false)
   const [imgState,          setImgState]          = useState(null)
   const [showDayComplete,   setShowDayComplete]   = useState(false)
-  const [activeCard,        setActiveCard]        = useState(0)
 
   const entriesRef  = useRef(null)
   const swipeStartY = useRef(null)

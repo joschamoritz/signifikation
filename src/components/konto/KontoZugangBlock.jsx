@@ -89,7 +89,7 @@ export default function KontoZugangBlock({ auth, gesamtausgabe, gesamtausgabePer
                 type="button"
                 onClick={() => setCheckoutOpen(true)}
               >
-                Kaufen
+                Gesamtausgabe freischalten
                 <span className="test-cta-arrow" aria-hidden="true">→</span>
               </button>
             )}
