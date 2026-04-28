@@ -957,6 +957,7 @@
     scroll-snap-stop: always;
     height: 100%;
     overflow-y: auto;
+    overscroll-behavior-y: none;
     padding: 24px 20px 24px 44px; /* links Platz für snap-nav */
     border-bottom: none;
     box-sizing: border-box;
@@ -972,7 +973,7 @@
     transform-origin: center;
     opacity: 0.75;
     margin-top: 10px;
-    align-self: flex-start;
+    align-self: center;
   }
   .test-entry::-webkit-scrollbar { display: none; }
   .test-entry:last-child { border-bottom: none; }
@@ -983,8 +984,10 @@
     color: var(--t-text);
     opacity: 0.06;
     position: absolute;
-    bottom: 20px;
+    bottom: auto;
     right: 20px;
+    top: 50%;
+    transform: translateY(-50%);
     pointer-events: none;
     user-select: none;
   }
@@ -1039,8 +1042,8 @@
     font-size: 1.1rem;
     color: var(--t-red);
     padding: 6px 6px 10px;
-    min-height: 36px;
-    min-width: 36px;
+    min-height: 44px;
+    min-width: 44px;
     line-height: 1;
     text-align: center;
     -webkit-tap-highlight-color: transparent;
@@ -1858,4 +1861,13 @@
   .konto-stat-card:nth-child(even) {
     padding-left: 20px;
   }
+}
+
+/* Touch-Target Accessibility Fixes */
+.konto-auth-mode {
+  min-height: 44px;
+}
+
+.konto-session-meta-link {
+  min-height: 44px;
 }

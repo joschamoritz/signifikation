@@ -89,6 +89,8 @@ const [confirmDelete, setConfirmDelete] = useState(false)
                 id="konto-reset-req-email"
                 type="email"
                 autoComplete="email"
+                autoCorrect="off"
+                autoCapitalize="off"
                 value={resetEmail}
                 onChange={(event) => {
                   setResetEmail(event.target.value)
@@ -141,6 +143,8 @@ const [confirmDelete, setConfirmDelete] = useState(false)
                   id="konto-reset-password"
                   type={showResetPassword ? 'text' : 'password'}
                   autoComplete="new-password"
+                  autoCorrect="off"
+                  autoCapitalize="off"
                   minLength={8}
                   value={resetPassword}
                   onChange={(event) => {
@@ -176,6 +180,8 @@ const [confirmDelete, setConfirmDelete] = useState(false)
                 id="konto-reset-confirm"
                 type={showResetPassword ? 'text' : 'password'}
                 autoComplete="new-password"
+                autoCorrect="off"
+                autoCapitalize="off"
                 minLength={8}
                 value={resetPasswordConfirm}
                 onChange={(event) => {
@@ -320,6 +326,8 @@ const [confirmDelete, setConfirmDelete] = useState(false)
               id="konto-email"
               type="email"
               autoComplete="email"
+              autoCorrect="off"
+              autoCapitalize="off"
               value={email}
               onChange={(event) => {
                 setEmail(event.target.value)
@@ -342,6 +350,8 @@ const [confirmDelete, setConfirmDelete] = useState(false)
                 id="konto-password"
                 type={showPassword ? 'text' : 'password'}
                 autoComplete={showNameField ? 'new-password' : 'current-password'}
+                autoCorrect="off"
+                autoCapitalize="off"
                 minLength={8}
                 value={password}
                 onChange={(event) => {
