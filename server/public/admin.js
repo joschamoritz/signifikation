@@ -2187,7 +2187,7 @@ async function addFreeDay() {
 async function deleteFreeDay(date) {
   if (!date) return
   try {
-    const res = await fetch(`/admin/free-days/${encodeURIComponent(date)}`, { method: 'DELETE' })
+    const res = await fetch(`/admin/free-days/${encodeURIComponent(date)}`, { method: 'DELETE', headers: { 'Content-Type': 'application/json' } })
     if (!res.ok) return
     await loadFreeDays()
   } catch { /* ignore */ }

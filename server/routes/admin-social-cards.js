@@ -34,7 +34,8 @@ export function createAdminSocialCardsRouter({
       const kalender = loadKalender()
       const { byId } = getLemmataIndex()
       const wortzwilling = loadWortZwilling()
-      const ids = kalender[datum] ?? []
+      const entry = kalender[datum]
+      const ids = entry?.ids ?? (Array.isArray(entry) ? entry : [])
       const lemmata = ids.map((id) => {
         const l = byId.get(id)
         if (!l) return null
