@@ -1279,6 +1279,21 @@
 
 /* ── Checkout Bottom Sheet ─────────────────────────────────── */
 .checkout-sheet {
+  /* --t-* Aliasse: Portal rendert außerhalb .test-page, daher hier neu definieren */
+  --t-bg:        var(--bg);
+  --t-surface:   var(--surface2);
+  --t-text:      var(--text);
+  --t-muted:     var(--muted);
+  --t-accent:    var(--accent);
+  --t-accent-dk: var(--accent-dk);
+  --t-rule:      var(--border);
+  --t-rule-lt:   var(--border-lt);
+  --t-serif:     var(--font-serif);
+  --t-sans:      var(--font-sans);
+  --t-disabled:  var(--disabled);
+  --t-red:       var(--primary);
+  --t-red-hi:    var(--primary-hi);
+
   position: fixed;
   left: 0;
   right: 0;
