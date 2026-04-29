@@ -30,6 +30,8 @@ export default function Home({
   zeitenwende = null, zeitenwendeError = false, zeitenwendeMissing = false, onRetryZeitenwende,
   zwPlayed = null, onPlayZeitenwende, onViewZeitenwende,
   gesamtausgabe = false,
+  freeAccessToday = false,
+  freeAccessLabel = null,
   onUnlockGesamtausgabe = () => {},
 }) {
   const [sheetOpen,         setSheetOpen]         = useState(false)
@@ -181,6 +183,15 @@ export default function Home({
           </div>
         </header>
 
+        {freeAccessToday && (
+          <div className="free-day-banner" role="status">
+            <span className="free-day-banner-icon" aria-hidden="true">✦</span>
+            <span className="free-day-banner-text">
+              Heute kostenlos spielbar{freeAccessLabel ? ` – ${freeAccessLabel}` : ''}
+            </span>
+          </div>
+        )}
+
         {/* ── Streak ───────────────────────────────────────── */}
         {streak > 0 && (
           <div className="test-streak">
@@ -299,7 +310,7 @@ export default function Home({
               <div className="test-entry-number" aria-hidden="true">
                 <span className="test-entry-num-glyph">②</span>
                 <span className="test-entry-marginalia">KOMPAR.</span>
-                <span className="test-entry-premium" aria-label="Teil der Gesamtausgabe">Gesamtausgabe</span>
+                <span className={`test-entry-premium${freeAccessToday ? ' test-entry-premium--free' : ''}`} aria-label={freeAccessToday ? 'Heute kostenlos' : 'Teil der Gesamtausgabe'}>{freeAccessToday ? '✦ Heute kostenlos' : 'Gesamtausgabe'}</span>
               </div>
               <div className="test-entry-body">
                 <div className="test-entry-head">
@@ -363,7 +374,7 @@ export default function Home({
               <div className="test-entry-number" aria-hidden="true">
                 <span className="test-entry-num-glyph">③</span>
                 <span className="test-entry-marginalia">DIACH.</span>
-                <span className="test-entry-premium" aria-label="Teil der Gesamtausgabe">Gesamtausgabe</span>
+                <span className={`test-entry-premium${freeAccessToday ? ' test-entry-premium--free' : ''}`} aria-label={freeAccessToday ? 'Heute kostenlos' : 'Teil der Gesamtausgabe'}>{freeAccessToday ? '✦ Heute kostenlos' : 'Gesamtausgabe'}</span>
               </div>
               <div className="test-entry-body">
                 <div className="test-entry-head">
@@ -427,7 +438,7 @@ export default function Home({
               <div className="test-entry-number" aria-hidden="true">
                 <span className="test-entry-num-glyph">④</span>
                 <span className="test-entry-marginalia">HIST.</span>
-                <span className="test-entry-premium" aria-label="Teil der Gesamtausgabe">Gesamtausgabe</span>
+                <span className={`test-entry-premium${freeAccessToday ? ' test-entry-premium--free' : ''}`} aria-label={freeAccessToday ? 'Heute kostenlos' : 'Teil der Gesamtausgabe'}>{freeAccessToday ? '✦ Heute kostenlos' : 'Gesamtausgabe'}</span>
               </div>
               <div className="test-entry-body">
                 <div className="test-entry-head">

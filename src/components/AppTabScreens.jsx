@@ -66,6 +66,8 @@ export default function AppTabScreens({
         onPlayZeitenwende={onPlayZeitenwende.play}
         onViewZeitenwende={onViewZeitenwende}
         gesamtausgabe={gesamtausgabeUnlocked || classroomInSession}
+        freeAccessToday={freeAccessToday}
+        freeAccessLabel={freeAccessLabel}
         onUnlockGesamtausgabe={onNavigateToKonto}
       />
     ) : null,

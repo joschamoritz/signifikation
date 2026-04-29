@@ -80,7 +80,8 @@ export default function KontoZugangBlock({ auth, gesamtausgabe, gesamtausgabePer
                 </div>
               </>
             ) : freeAccessToday ? (
-              <p className="konto-subscription-note">
+              <p className="konto-subscription-note konto-subscription-note--free">
+                <span className="konto-free-star" aria-hidden="true">✦</span>
                 Heute kostenlos{freeAccessLabel ? ` – ${freeAccessLabel}` : ''}. Du hast Zugriff auf alle Spielmodi.
               </p>
             ) : (
