@@ -91,10 +91,8 @@ export default function KontoGeraeteBlock({ isLoggedIn, gesamtausgabePermanent }
     }
   }
 
-  if (!isLoggedIn) return null
-
   return (
-    <li className="test-entry">
+    <li className={`test-entry${!isLoggedIn ? ' test-entry--disabled' : ''}`}>
       <div className="test-entry-number" aria-hidden="true">
         <span className="test-entry-num-glyph">②</span>
         <span className="test-entry-marginalia">GERÄTE</span>
@@ -115,7 +113,13 @@ export default function KontoGeraeteBlock({ isLoggedIn, gesamtausgabePermanent }
             : 'Geräte werden registriert, sobald die Gesamtausgabe freigeschaltet ist.'}
         </p>
 
-        {loading ? (
+        {!isLoggedIn ? (
+          <div className="konto-placeholder">
+            <p className="konto-placeholder-text">
+              Melde dich an, um deine Geräte zu verwalten.
+            </p>
+          </div>
+        ) : loading ? (
           <p className="konto-devices-loading">Lade Geräte …</p>
         ) : error ? (
           <p className="konto-devices-error" role="alert">{error}</p>

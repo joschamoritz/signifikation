@@ -978,18 +978,9 @@
   .test-entry::-webkit-scrollbar { display: none; }
   .test-entry:last-child { border-bottom: none; }
 
-  /* Große gedimmte Ziffer als Kartenhintergrund */
+  /* Ziffer auf Mobile ausblenden (snap-nav übernimmt die Orientierung) */
   .test-entry-number .test-entry-num-glyph {
-    font-size: 4rem;
-    color: var(--t-text);
-    opacity: 0.06;
-    position: absolute;
-    bottom: auto;
-    right: 20px;
-    top: 50%;
-    transform: translateY(-50%);
-    pointer-events: none;
-    user-select: none;
+    display: none;
   }
 
   /* ── Vertikale Badge-Navigation ────────────────── */
