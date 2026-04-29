@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { createPortal } from 'react-dom'
 import { API } from '../../config'
 
 const PRICE_OPTIONS = [
@@ -43,7 +44,7 @@ export default function CheckoutModal({ isOpen, onClose, onTouchStart, onTouchMo
     }
   }
 
-  return (
+  return createPortal(
     <>
       {isOpen && (
         <div className="info-sheet-backdrop" onClick={onClose} aria-hidden="true" />
@@ -140,6 +141,7 @@ export default function CheckoutModal({ isOpen, onClose, onTouchStart, onTouchMo
           </p>
         </div>
       </div>
-    </>
+    </>,
+    document.body
   )
 }
