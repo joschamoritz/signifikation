@@ -477,6 +477,32 @@
   text-align: center;
 }
 
+.selection-thema-kurz {
+  font-family: var(--font-sans);
+  font-size: 0.75rem;
+  color: var(--muted);
+  margin: 0;
+  text-align: center;
+  line-height: 1.5;
+}
+
+.selection-thema-quelle {
+  font-family: var(--font-sans);
+  font-size: 0.65rem;
+  color: var(--muted);
+  margin: 0;
+  text-align: center;
+}
+
+.selection-thema-quelle a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.selection-thema-quelle a:hover {
+  text-decoration: underline;
+}
+
 /* Thema im Raster (Home) — ersetzt test-raster-words wenn Thema vorhanden */
 .test-raster-thema {
   font-family: var(--font-serif);

@@ -325,7 +325,7 @@ export function createAdminCalendarRouter({
   router.post('/admin/tag', adminLimiter, requireAuth, validate(adminTagSchema), async (req, res) => {
     const {
       datum, woerter, notizen, links, definitionen, positionen,
-      thema,
+      thema, thema_kurz, thema_quelle,
       zeitreise_lemma, zeitreise_wortart, zeitreise_notiz, zeitreise_link,
       zwilling_paar, zwilling_pos, zwilling_notiz, zwilling_link,
       zeitenwende_lemma, zeitenwende_notiz, zeitenwende_link,
@@ -363,7 +363,7 @@ export function createAdminCalendarRouter({
       }
 
       invalidateCache('lemmata.json')
-      kalender[datum] = { ids, thema: thema || '' }
+      kalender[datum] = { ids, thema: thema || '', thema_kurz: thema_kurz || '', thema_quelle: thema_quelle || '' }
 
       let zeitreiseOk = null
       delete zeitreise[datum]
@@ -506,7 +506,9 @@ export function createAdminCalendarRouter({
     const kalEintrag = kalender[req.params.datum]
     if (!kalEintrag) return res.status(404).json({ error: 'Kein Eintrag' })
     const ids = Array.isArray(kalEintrag) ? kalEintrag : (kalEintrag.ids ?? [])
-    const thema = Array.isArray(kalEintrag) ? '' : (kalEintrag.thema ?? '')
+    const thema        = Array.isArray(kalEintrag) ? '' : (kalEintrag.thema ?? '')
+    const thema_kurz   = Array.isArray(kalEintrag) ? '' : (kalEintrag.thema_kurz ?? '')
+    const thema_quelle = Array.isArray(kalEintrag) ? '' : (kalEintrag.thema_quelle ?? '')
     const lemmata = ids.map((id) => byId.get(id)).filter(Boolean)
     const wz = wortzwilling[req.params.datum]
     const zr = zeitreise[req.params.datum]
@@ -514,6 +516,8 @@ export function createAdminCalendarRouter({
     res.json({
       datum: req.params.datum,
       thema,
+      thema_kurz,
+      thema_quelle,
       woerter: lemmata.map((l) => l.lemma),
       positionen: lemmata.map((l) => l.pos || 'Substantiv'),
       notizen: lemmata.map((l) => l.notiz || ''),

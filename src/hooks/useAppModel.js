@@ -20,6 +20,8 @@ export function useAppModel() {
     serverDatum,
     serverYear,
     thema,
+    themaKurz,
+    themaQuelle,
     zeitreise,
     zeitreiseError,
     retryZeitreise,
@@ -157,6 +159,8 @@ export function useAppModel() {
     appGameScreensProps: {
       phase,
       thema,
+      themaKurz,
+      themaQuelle,
       lemmata,
       playedIds,
       handleLemmaSelect: gameScreenActions.onLemmaSelect,

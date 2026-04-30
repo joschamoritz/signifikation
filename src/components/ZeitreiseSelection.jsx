@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useWiktionary } from '../hooks/useWiktionary'
 import SelectionThema from './SelectionThema'
 
-export default function ZeitreiseSelection({ data, thema, onPlay, onBack }) {
+export default function ZeitreiseSelection({ data, thema, themaKurz, themaQuelle, onPlay, onBack }) {
   const { lemma, wortart, notiz, link } = data ?? {}
   const [notizOpen, setNotizOpen] = useState(false)
   const { ipa, definitionen, loading } = useWiktionary({ lemma })
@@ -15,7 +15,7 @@ export default function ZeitreiseSelection({ data, thema, onPlay, onBack }) {
         </button>
         <span className="quiz-game-badge">Zeitreise</span>
         <h1 className="sr-only">Zeitreise – Wortvorschau</h1>
-        <SelectionThema thema={thema} />
+        <SelectionThema thema={thema} themaKurz={themaKurz} themaQuelle={themaQuelle} />
       </header>
 
       <div className="secondary-selection-card">

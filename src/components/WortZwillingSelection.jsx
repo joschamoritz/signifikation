@@ -23,7 +23,7 @@ function WZEntry({ lemma, pos }) {
   )
 }
 
-export default function WortZwillingSelection({ data, thema, onPlay, onBack }) {
+export default function WortZwillingSelection({ data, thema, themaKurz, themaQuelle, onPlay, onBack }) {
   const { wortA, wortB, pos, notiz, link } = data ?? {}
   const [notizOpen, setNotizOpen] = useState(false)
   const wortart = pos || 'Substantiv'
@@ -36,7 +36,7 @@ export default function WortZwillingSelection({ data, thema, onPlay, onBack }) {
         </button>
         <span className="quiz-game-badge">Wort-Zwilling</span>
         <h1 className="sr-only">Wort-Zwilling – Wortvorschau</h1>
-        <SelectionThema thema={thema} />
+        <SelectionThema thema={thema} themaKurz={themaKurz} themaQuelle={themaQuelle} />
       </header>
 
       <div className="secondary-selection-card">

@@ -671,7 +671,7 @@ function prefillDate(isoDate) {
   selectedCalendarDate = ''
   renderCalendar()
   document.getElementById('datum').value = isoDate
-  ;['w1','w2','w3','n1','n2','n3','l1','l2','l3','thema','zr','zr-notiz','zr-link','zw-lemma','zw-notiz','zw-link','wz-notiz','wz-link'].forEach(id => { const el = document.getElementById(id); if (el) el.value = '' })
+  ;['w1','w2','w3','n1','n2','n3','l1','l2','l3','thema','thema-kurz','thema-quelle','zr','zr-notiz','zr-link','zw-lemma','zw-notiz','zw-link','wz-notiz','wz-link'].forEach(id => { const el = document.getElementById(id); if (el) el.value = '' })
   document.getElementById('p1').value    = 'Substantiv'
   document.getElementById('p2').value    = 'Verb'
   document.getElementById('p3').value    = 'Adjektiv'
@@ -702,8 +702,10 @@ async function saveTag() {
   const l1    = document.getElementById('l1').value.trim()
   const l2    = document.getElementById('l2').value.trim()
   const l3    = document.getElementById('l3').value.trim()
-  const thema     = document.getElementById('thema').value.trim()
-  const zr        = document.getElementById('zr').value.trim()
+  const thema       = document.getElementById('thema').value.trim()
+  const themaKurz   = document.getElementById('thema-kurz').value.trim()
+  const themaQuelle = document.getElementById('thema-quelle').value.trim()
+  const zr          = document.getElementById('zr').value.trim()
   const zrNotiz   = document.getElementById('zr-notiz').value.trim()
   const zrLink    = document.getElementById('zr-link').value.trim()
   const wza       = document.getElementById('wza').value.trim()
@@ -738,6 +740,8 @@ async function saveTag() {
         notizen: [n1, n2, n3], links: [l1, l2, l3],
         definitionen: ['', '', ''],
         thema,
+        thema_kurz:    themaKurz,
+        thema_quelle:  themaQuelle,
         zeitreise_lemma:   zr,
         zeitreise_wortart: document.getElementById('zr-wortart').value,
         zeitreise_notiz:   zrNotiz,
@@ -802,6 +806,8 @@ async function editTag(datum) {
   document.getElementById('l3').value = data.links[2] || ''
 
   document.getElementById('thema').value        = data.thema || ''
+  document.getElementById('thema-kurz').value  = data.thema_kurz || ''
+  document.getElementById('thema-quelle').value = data.thema_quelle || ''
   document.getElementById('zr').value          = data.zeitreise_lemma   || ''
   document.getElementById('zr-wortart').value  = data.zeitreise_wortart || 'Substantiv'
   document.getElementById('zr-notiz').value    = data.zeitreise_notiz || ''

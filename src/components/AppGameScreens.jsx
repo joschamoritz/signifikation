@@ -18,6 +18,8 @@ function ScreenFallback() {
 export default function AppGameScreens({
   phase,
   thema,
+  themaKurz,
+  themaQuelle,
   lemmata,
   playedIds,
   handleLemmaSelect,
@@ -62,6 +64,8 @@ export default function AppGameScreens({
         <LemmaSelection
           lemmata={lemmata}
           thema={thema}
+          themaKurz={themaKurz}
+          themaQuelle={themaQuelle}
           playedIds={playedIds}
           onSelect={handleLemmaSelect}
           onViewResult={handleViewResult}
@@ -72,6 +76,8 @@ export default function AppGameScreens({
         <ZeitreiseSelection
           data={zeitreise}
           thema={thema}
+          themaKurz={themaKurz}
+          themaQuelle={themaQuelle}
           onPlay={onZeitreisePlay}
           onBack={onZeitreiseSelectionBack}
         />
@@ -80,6 +86,8 @@ export default function AppGameScreens({
         <WortZwillingSelection
           data={wortzwilling}
           thema={thema}
+          themaKurz={themaKurz}
+          themaQuelle={themaQuelle}
           onPlay={onWortzwillingPlay}
           onBack={onWortzwillingSelectionBack}
         />
@@ -88,6 +96,8 @@ export default function AppGameScreens({
         <ZeitenwendeSelection
           data={zeitenwende}
           thema={thema}
+          themaKurz={themaKurz}
+          themaQuelle={themaQuelle}
           onPlay={onZeitenwendePlay}
           onBack={onZeitenwendeSelectionBack}
         />

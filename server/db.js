@@ -320,6 +320,16 @@ if (!hasColumn('kalender', 'thema')) {
   db.exec(`ALTER TABLE kalender ADD COLUMN thema TEXT NOT NULL DEFAULT ''`)
 }
 
+if (!hasColumn('kalender', 'thema_kurz')) {
+  logger.info('Migration: kalender.thema_kurz hinzufügen')
+  db.exec(`ALTER TABLE kalender ADD COLUMN thema_kurz TEXT NOT NULL DEFAULT ''`)
+}
+
+if (!hasColumn('kalender', 'thema_quelle')) {
+  logger.info('Migration: kalender.thema_quelle hinzufügen')
+  db.exec(`ALTER TABLE kalender ADD COLUMN thema_quelle TEXT NOT NULL DEFAULT ''`)
+}
+
 if (!hasColumn('zeitreise', 'notiz')) {
   logger.info('Migration: zeitreise.notiz + zeitreise.link hinzufügen')
   db.exec(`ALTER TABLE zeitreise ADD COLUMN notiz TEXT NOT NULL DEFAULT ''`)

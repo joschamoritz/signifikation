@@ -1,10 +1,15 @@
 // ── Kalender ──────────────────────────────────────────────────────
-// Shape: { [datum]: { ids: string[], thema: string } }
+// Shape: { [datum]: { ids: string[], thema: string, thema_kurz: string, thema_quelle: string } }
 
 export function loadKalenderRows(rows) {
   const result = {}
   for (const row of rows) {
-    result[row.datum] = { ids: JSON.parse(row.ids), thema: row.thema ?? '' }
+    result[row.datum] = {
+      ids: JSON.parse(row.ids),
+      thema: row.thema ?? '',
+      thema_kurz: row.thema_kurz ?? '',
+      thema_quelle: row.thema_quelle ?? '',
+    }
   }
   return result
 }
@@ -13,14 +18,19 @@ export function getKalenderEntries(obj) {
   return Object.entries(obj || {})
 }
 
-/** Normalisiert alte Backups (datum→array) auf neue Shape (datum→{ids,thema}) */
+/** Normalisiert alte Backups (datum→array) auf neue Shape */
 export function normalizeKalenderShape(raw) {
   const result = {}
   for (const [datum, value] of Object.entries(raw || {})) {
     if (Array.isArray(value)) {
-      result[datum] = { ids: value, thema: '' }
+      result[datum] = { ids: value, thema: '', thema_kurz: '', thema_quelle: '' }
     } else if (value && typeof value === 'object' && Array.isArray(value.ids)) {
-      result[datum] = { ids: value.ids, thema: value.thema ?? '' }
+      result[datum] = {
+        ids: value.ids,
+        thema: value.thema ?? '',
+        thema_kurz: value.thema_kurz ?? '',
+        thema_quelle: value.thema_quelle ?? '',
+      }
     }
   }
   return result
@@ -116,9 +126,11 @@ export function createDailyContentStore({ db, stmts }) {
   const replaceKalender = db.transaction((obj) => {
     stmts.deleteAllKalender.run()
     for (const [datum, entry] of getKalenderEntries(obj)) {
-      const ids   = Array.isArray(entry) ? entry : (entry.ids ?? [])
-      const thema = Array.isArray(entry) ? '' : (entry.thema ?? '')
-      stmts.upsertKalender.run({ datum, ids: JSON.stringify(ids), thema })
+      const ids         = Array.isArray(entry) ? entry : (entry.ids ?? [])
+      const thema       = Array.isArray(entry) ? '' : (entry.thema ?? '')
+      const thema_kurz  = Array.isArray(entry) ? '' : (entry.thema_kurz ?? '')
+      const thema_quelle = Array.isArray(entry) ? '' : (entry.thema_quelle ?? '')
+      stmts.upsertKalender.run({ datum, ids: JSON.stringify(ids), thema, thema_kurz, thema_quelle })
     }
   })
 

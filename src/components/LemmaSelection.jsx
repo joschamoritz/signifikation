@@ -3,7 +3,7 @@ import { API } from '../config'
 import SelectionThema from './SelectionThema'
 
 
-export default function LemmaSelection({ lemmata, thema, playedIds = [], onSelect, onViewResult, onBack }) {
+export default function LemmaSelection({ lemmata, thema, themaKurz, themaQuelle, playedIds = [], onSelect, onViewResult, onBack }) {
   const [closedNotiz, setClosedNotiz] = useState(() => new Set(lemmata.map(l => l.id)))
   // Lemmata mit gespeicherter IPA direkt ins Map laden; Rest per API nachholen
   const [ipaMap, setIpaMap] = useState(() =>
@@ -41,7 +41,7 @@ export default function LemmaSelection({ lemmata, thema, playedIds = [], onSelec
         <button className="back-btn" onClick={onBack} aria-label="Zurück zur Startseite"><span className="back-btn-chevron">‹</span>Zurück</button>
         <span className="quiz-game-badge">Kollokationen</span>
         <h1 className="sr-only">Wortauswahl</h1>
-        <SelectionThema thema={thema} />
+        <SelectionThema thema={thema} themaKurz={themaKurz} themaQuelle={themaQuelle} />
       </header>
 
       <div className="lemma-cards">

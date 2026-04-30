@@ -72,6 +72,8 @@ export const adminTagSchema = z.object({
   definitionen:         z.array(z.string().max(2000)).optional().default([]),
   positionen:           z.array(POS).optional().default([]),
   thema:                z.string().max(200).optional().default(''),
+  thema_kurz:           z.string().max(300).optional().default(''),
+  thema_quelle:         z.string().max(500).optional().default(''),
   zeitreise_lemma:      z.string().optional().default(''),
   zeitreise_wortart:    POS.optional().default('Substantiv'),
   zeitreise_notiz:      z.string().max(500).optional().default(''),

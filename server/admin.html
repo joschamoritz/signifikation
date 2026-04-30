@@ -138,8 +138,16 @@
           </div>
 
           <div>
-            <label for="thema">Tagesthema <span style="font-weight:400;color:var(--muted);font-size:0.8rem">(erscheint im Header der App)</span></label>
+            <label for="thema">Tagesthema <span style="font-weight:400;color:var(--muted);font-size:0.8rem">(erscheint auf Startseite &amp; Spielseiten)</span></label>
             <input type="text" id="thema" placeholder="z.B. Tag der Arbeit, Walpurgisnacht …">
+          </div>
+          <div>
+            <label for="thema-kurz">Kurzbeschreibung <span style="font-weight:400;color:var(--muted);font-size:0.8rem">(optional · erscheint auf Spielseiten)</span></label>
+            <input type="text" id="thema-kurz" placeholder="z.B. Heute ist Internationaler Arbeitstag.">
+          </div>
+          <div>
+            <label for="thema-quelle">Quelle / Link <span style="font-weight:400;color:var(--muted);font-size:0.8rem">(optional · wird als Link angezeigt wenn URL)</span></label>
+            <input type="text" id="thema-quelle" placeholder="z.B. https://www.dwds.de/… oder DWDS-Korpus">
           </div>
 
           <button class="mode-toggle" id="koll-toggle" data-action="toggle-mode" data-mode="koll">
