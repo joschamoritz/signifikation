@@ -470,19 +470,6 @@
   line-height: 1;
   flex-shrink: 0;
   letter-spacing: 0.01em;
-  animation: dropcapReveal 450ms cubic-bezier(0.16, 1, 0.3, 1) both;
-  animation-delay: 60ms;
-}
-
-@keyframes dropcapReveal {
-  from {
-    opacity: 0;
-    transform: translateY(8px) scale(0.92);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
 }
 
 /* ── Abschnitt-Titel ───────────────────────────────────────── */
@@ -845,8 +832,7 @@
   .test-page,
   .test-footnote-body,
   .test-cta-arrow,
-  .test-footnote-chevron,
-  .test-dropcap-k {
+  .test-footnote-chevron {
     animation: none;
     transition: none;
   }
