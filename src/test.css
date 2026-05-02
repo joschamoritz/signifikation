@@ -1682,6 +1682,68 @@
   margin: 0 0 12px 0;
 }
 
+/* Heatmap – 365-Tage-Spielhistorie */
+.konto-heatmap-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.konto-heatmap-grid {
+  display: grid;
+  grid-template-rows: repeat(7, 10px);
+  grid-auto-flow: column;
+  grid-auto-columns: 10px;
+  gap: 2px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+
+.konto-heatmap-cell {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  background: #e8e4de;
+}
+
+.konto-heatmap-cell--pad {
+  background: transparent;
+}
+
+.konto-heatmap-cell--gespielt {
+  background: rgba(155, 28, 28, 0.18);
+}
+
+.konto-heatmap-cell--bronze {
+  background: rgba(155, 28, 28, 0.42);
+}
+
+.konto-heatmap-cell--silber {
+  background: rgba(155, 28, 28, 0.68);
+}
+
+.konto-heatmap-cell--gold {
+  background: #9b1c1c;
+}
+
+.konto-heatmap-legend {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-family: var(--t-sans);
+  font-size: 8px;
+  letter-spacing: 0.05em;
+  color: var(--t-muted);
+}
+
+.konto-heatmap-legend .konto-heatmap-cell {
+  flex-shrink: 0;
+}
+
+.konto-heatmap-legend span + .konto-heatmap-cell {
+  margin-left: 4px;
+}
+
 /* Einstellungen – Lemma-Zeilen statt Karten */
 .konto-settings-content {
   margin-top: 16px;

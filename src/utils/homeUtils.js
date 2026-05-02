@@ -32,6 +32,27 @@ export function computeStreak() {
   return streak
 }
 
+export function computeLongestStreak() {
+  const activity = lsParse(lsGet('sig_activity'), [])
+  const legacy   = lsParse(lsGet('sig_history'), []).map(h => h.date)
+  const dates    = [...new Set([...activity, ...legacy])].sort()
+  if (!dates.length) return 0
+  const msDay = 86_400_000
+  let longest = 1, current = 1
+  for (let i = 1; i < dates.length; i++) {
+    const diff = (new Date(dates[i]) - new Date(dates[i - 1])) / msDay
+    if (diff === 1) { current++; if (current > longest) longest = current }
+    else current = 1
+  }
+  return longest
+}
+
+export function computePlayedDays() {
+  const activity = lsParse(lsGet('sig_activity'), [])
+  const legacy   = lsParse(lsGet('sig_history'), []).map(h => h.date)
+  return new Set([...activity, ...legacy]).size
+}
+
 export function streakFlames(n) {
   if (n >= 30) return '🔥🔥🔥'
   if (n >= 7)  return '🔥🔥'
