@@ -964,17 +964,12 @@
     box-sizing: border-box;
     scrollbar-width: none;
     position: relative;
+    grid-template-columns: 16px 1fr;
+    gap: 0 12px;
   }
-  /* Gesamtausgabe-Badge: vertikal unter Marginalie */
+  /* Gesamtausgabe-Badge auf Mobile ausblenden */
   .test-entry-premium {
-    display: block;
-    position: static;
-    writing-mode: vertical-rl;
-    transform: rotate(180deg);
-    transform-origin: center;
-    opacity: 0.75;
-    margin-top: 10px;
-    align-self: center;
+    display: none;
   }
   .test-entry::-webkit-scrollbar { display: none; }
   .test-entry:last-child { border-bottom: none; }
