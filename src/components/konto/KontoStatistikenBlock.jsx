@@ -23,14 +23,9 @@ function buildHeatmapData() {
 }
 
 function Heatmap({ days }) {
-  const firstDayOfWeek = (new Date(days[0].dateStr).getDay() + 6) % 7
   return (
     <div className="konto-heatmap-wrapper">
-      <div className="konto-heatmap-scroll">
       <div className="konto-heatmap-grid">
-        {Array.from({ length: firstDayOfWeek }, (_, i) => (
-          <div key={`p${i}`} className="konto-heatmap-cell konto-heatmap-cell--pad" />
-        ))}
         {days.map(day => (
           <div
             key={day.dateStr}
@@ -38,7 +33,6 @@ function Heatmap({ days }) {
             title={day.dateStr}
           />
         ))}
-      </div>
       </div>
       <div className="konto-heatmap-legend">
         <div className="konto-heatmap-cell" />
