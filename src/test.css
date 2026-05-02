@@ -433,7 +433,11 @@
   border-bottom-color: var(--t-accent);
   outline: none;
 }
-.test-cta:active { opacity: 0.75 }
+.test-cta:active:not(:disabled) {
+  transform: scale(0.96);
+  opacity: 0.82;
+  transition: transform 80ms ease-out, opacity 80ms ease-out;
+}
 .test-cta:disabled { color: var(--disabled); cursor: default; pointer-events: none; }
 
 .test-cta-arrow {
@@ -466,6 +470,19 @@
   line-height: 1;
   flex-shrink: 0;
   letter-spacing: 0.01em;
+  animation: dropcapReveal 450ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation-delay: 60ms;
+}
+
+@keyframes dropcapReveal {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.92);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
 /* ── Abschnitt-Titel ───────────────────────────────────────── */
@@ -828,8 +845,16 @@
   .test-page,
   .test-footnote-body,
   .test-cta-arrow,
-  .test-footnote-chevron {
+  .test-footnote-chevron,
+  .test-dropcap-k {
     animation: none;
+    transition: none;
+  }
+
+  .test-cta:active:not(:disabled),
+  .snap-nav-btn:active {
+    transform: none;
+    opacity: 0.75;
     transition: none;
   }
 }
@@ -971,6 +996,12 @@
   .test-entry-premium {
     display: none;
   }
+
+  /* Konto-Tab: Subscription-Status kompakter */
+  .konto-subscription-status {
+    margin-top: 16px;
+    padding-top: 12px;
+  }
   .test-entry::-webkit-scrollbar { display: none; }
   .test-entry:last-child { border-bottom: none; }
 
@@ -1010,12 +1041,19 @@
     min-height: 40px;
     min-width: 36px;
     line-height: 1;
-    transition: color 0.2s, transform 0.15s;
+    transition: color 0.22s ease,
+                transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1);
     text-align: center;
+    -webkit-tap-highlight-color: transparent;
   }
   .snap-nav-btn--active {
     color: var(--t-accent);
     transform: scale(1.25);
+  }
+  .snap-nav-btn:active {
+    transform: scale(0.82);
+    opacity: 0.7;
+    transition: transform 60ms ease-out, opacity 60ms ease-out;
   }
   .snap-nav-btn:focus-visible {
     outline: 2px solid var(--t-accent);
@@ -1040,6 +1078,12 @@
     outline: 2px solid var(--t-accent);
     outline-offset: 2px;
     border-radius: 2px;
+  }
+
+  .snap-nav-spacer {
+    min-height: 44px;
+    min-width: 44px;
+    flex-shrink: 0;
   }
 
   /* Dots ausblenden (ersetzt durch snap-nav) */

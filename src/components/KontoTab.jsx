@@ -83,6 +83,7 @@ export default function KontoTab({ gesamtausgabe, gesamtausgabePermanent, freeAc
                 >{glyph}</button>
               ))}
             </div>
+            <div className="snap-nav-spacer" aria-hidden="true" />
           </nav>
         </main>
 

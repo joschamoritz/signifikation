@@ -16,6 +16,7 @@ export default function ClassroomSnapNav({ isTeacher, activeCard, onSelect }) {
           >{glyph}</button>
         ))}
       </div>
+      <div className="snap-nav-spacer" aria-hidden="true" />
     </nav>
   )
 }
