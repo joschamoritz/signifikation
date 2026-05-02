@@ -10,12 +10,6 @@ import { serverError } from '../middleware/auth.js'
 import { validate, statsSchema, belegeQuerySchema, archivQuerySchema, qQuerySchema, bonusQuerySchema } from '../middleware/validate.js'
 import logger from '../logger.js'
 import { fromNodeHeaders } from 'better-auth/node'
-import db from '../db.js'
-
-const myStatsStmt = db.prepare(`
-  SELECT SUM(scoreSum) AS totalScore, SUM(plays) AS totalPlays
-  FROM stats WHERE user_id = ?
-`)
 
 const router = express.Router()
 
@@ -160,21 +154,6 @@ router.get('/api/v1/belege', belegeLimiter, validate(belegeQuerySchema, 'query')
 /** GET /api/v1/stats – nicht unterstützt (nur POST) */
 router.get('/api/v1/stats', (_req, res) => res.status(405).json({ error: 'Method Not Allowed' }))
 
-/** GET /api/v1/stats/me – Gesamtpunktestand des eingeloggten Users */
-router.get('/api/v1/stats/me', async (req, res) => {
-  try {
-    const session = await auth.api.getSession({ headers: fromNodeHeaders(req.headers) })
-    if (!session?.user?.id) return res.status(401).json({ error: 'Nicht angemeldet' })
-    const row = myStatsStmt.get(String(session.user.id))
-    res.json({
-      totalScore: Number(row?.totalScore || 0),
-      totalPlays: Number(row?.totalPlays || 0),
-    })
-  } catch (err) {
-    logger.error({ err }, 'Stats/me Fehler')
-    serverError(res, err)
-  }
-})
 
 /** POST /api/stats – Spielstatistik erfassen (mit Session optional user-gebunden) */
 router.post('/api/v1/stats', statsLimiter, validate(statsSchema), async (req, res) => {

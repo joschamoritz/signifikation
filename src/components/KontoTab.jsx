@@ -60,9 +60,7 @@ export default function KontoTab({ gesamtausgabe, gesamtausgabePermanent, freeAc
             />
 
             {/* ③ Statistiken */}
-            <KontoStatistikenBlock 
-              isLoggedIn={auth.isLoggedIn}
-            />
+            <KontoStatistikenBlock />
 
             {/* ④ Einstellungen */}
             <KontoEinstellungenBlock />

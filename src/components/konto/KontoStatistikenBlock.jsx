@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useMemo } from 'react'
 import { computeStreak, computeLongestStreak, computePlayedDays, localDateStr } from '../../utils/homeUtils'
 import { lsGet, lsParse } from '../../utils/storage'
 
@@ -52,28 +52,20 @@ function Heatmap({ days }) {
   )
 }
 
-export default function KontoStatistikenBlock({ isLoggedIn }) {
+export default function KontoStatistikenBlock() {
   const streak     = useMemo(() => computeStreak(), [])
   const longest    = useMemo(() => computeLongestStreak(), [])
   const playedDays = useMemo(() => computePlayedDays(), [])
   const heatmap    = useMemo(() => buildHeatmapData(), [])
+  const goldMedals = useMemo(() => {
+    const history = lsParse(lsGet('sig_koll_history'), [])
+    return history.filter(h => h.medal === 'Gold').length
+  }, [])
 
-  const [totalScore, setTotalScore]   = useState(null)
-  const [scoreLoading, setScoreLoading] = useState(false)
+  const streakLabel  = streak > 0  ? `🔥 ${streak} ${streak === 1 ? 'Tag' : 'Tage'}` : '–'
+  const longestLabel = longest > 0 ? `${longest} ${longest === 1 ? 'Tag' : 'Tage'}`  : '–'
 
-  useEffect(() => {
-    if (!isLoggedIn) return
-    setScoreLoading(true)
-    fetch('/api/v1/stats/me')
-      .then(r => r.ok ? r.json() : null)
-      .then(data => { if (data) setTotalScore(data.totalScore) })
-      .catch(() => {})
-      .finally(() => setScoreLoading(false))
-  }, [isLoggedIn])
-
-  const streakLabel  = streak > 0  ? `🔥 ${streak} ${streak === 1 ? 'Tag' : 'Tage'}`   : '–'
-  const longestLabel = longest > 0 ? `${longest} ${longest === 1 ? 'Tag' : 'Tage'}`    : '–'
-  const scoreLabel   = !isLoggedIn ? '–' : scoreLoading ? '…' : totalScore !== null ? String(totalScore) : '–'
+  const goldLabel = goldMedals > 0 ? `🥇 ${goldMedals}` : '–'
 
   return (
     <li className="test-entry">
@@ -110,8 +102,8 @@ export default function KontoStatistikenBlock({ isLoggedIn }) {
               <span className="konto-stat-value">{playedDays || '–'}</span>
             </div>
             <div className="konto-stat-card">
-              <span className="konto-stat-label">Gesamtpunkte</span>
-              <span className="konto-stat-value">{scoreLabel}</span>
+              <span className="konto-stat-label">Gold-Medaillen</span>
+              <span className="konto-stat-value">{goldLabel}</span>
             </div>
           </div>
 
