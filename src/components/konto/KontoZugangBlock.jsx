@@ -23,14 +23,15 @@ export default function KontoZugangBlock({ auth, gesamtausgabe, gesamtausgabePer
   }
 
   return (
-    <li className="test-entry">
+    <li className="test-entry test-drop-cap">
       <div className="test-entry-number" aria-hidden="true">
         <span className="test-entry-num-glyph">①</span>
         <span className="test-entry-marginalia">ZUGANG</span>
       </div>
       <div className="test-entry-body">
         <div className="test-entry-head">
-          <h2 className="test-headword">Zugang</h2>
+          <span className="test-dropcap-k" aria-hidden="true">Z</span>
+          <h2 className="test-headword" aria-label="Zugang">ugang</h2>
           <span className="test-ipa">[ˈt͡suːɡaŋ]</span>
         </div>
         <div className="test-entry-grammar">

@@ -1,6 +1,6 @@
 export function ClassroomExplanationCard() {
   return (
-    <li className="test-entry">
+    <li className="test-entry test-drop-cap">
       <div className="test-entry-number" aria-hidden="true">
         <span className="test-entry-num-glyph">①</span>
         <span className="test-entry-marginalia">ERKL.</span>
@@ -8,7 +8,8 @@ export function ClassroomExplanationCard() {
       </div>
       <div className="test-entry-body">
         <div className="test-entry-head">
-          <span className="test-headword">Klassenraum</span>
+          <span className="test-dropcap-k" aria-hidden="true">K</span>
+          <span className="test-headword" aria-label="Klassenraum">lassenraum</span>
           <span className="test-ipa">[ˈklasənˌʀaʊ̯m]</span>
         </div>
         <div className="test-entry-grammar">

@@ -1,12 +1,15 @@
 import TabHeader from './TabHeader'
 
 function PlaceholderScreen({ title, ipa, category, isPremium = true, definition, features, footer, children }) {
+  const dropcap = title[0]
+  const rest = title.slice(1)
   return (
     <div className="tab-placeholder">
       <TabHeader />
       <div className="tab-placeholder-inner">
         <div className="tab-placeholder-head">
-          <h2 className="tab-placeholder-title">{title}</h2>
+          <span className="test-dropcap-k" aria-hidden="true">{dropcap}</span>
+          <h2 className="tab-placeholder-title" aria-label={title}>{rest}</h2>
           <span className="tab-placeholder-ipa">{ipa}</span>
         </div>
         <div className="tab-placeholder-grammar">
