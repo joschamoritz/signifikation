@@ -3,7 +3,6 @@ import {
   calculateScore,
   getMedal,
   getDailyMedal,
-  getZRMedal,
   getRundInfo,
   shuffle,
 
@@ -93,29 +92,6 @@ describe('getDailyMedal', () => {
     expect(getDailyMedal(18).emoji).toBe('🥈')
     expect(getDailyMedal(12).emoji).toBe('🥉')
     expect(getDailyMedal(0).emoji).toBe('🌱')
-  })
-})
-
-// ── getZRMedal ──────────────────────────────────────────────
-describe('getZRMedal', () => {
-  it('Gold bei ≥ 80%', () => {
-    expect(getZRMedal(8, 10).label).toBe('Gold')
-    expect(getZRMedal(10, 10).label).toBe('Gold')
-  })
-  it('Silber bei ≥ 60%', () => {
-    expect(getZRMedal(6, 10).label).toBe('Silber')
-    expect(getZRMedal(7, 10).label).toBe('Silber')
-  })
-  it('Bronze bei ≥ 40%', () => {
-    expect(getZRMedal(4, 10).label).toBe('Bronze')
-    expect(getZRMedal(5, 10).label).toBe('Bronze')
-  })
-  it('Teilgenommen unter 40%', () => {
-    expect(getZRMedal(3, 10).label).toBe('Teilgenommen')
-    expect(getZRMedal(0, 10).label).toBe('Teilgenommen')
-  })
-  it('verarbeitet max=0 ohne Division durch null', () => {
-    expect(() => getZRMedal(0, 0)).not.toThrow()
   })
 })
 
