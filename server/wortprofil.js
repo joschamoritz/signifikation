@@ -346,8 +346,8 @@ export async function fetchLemma(lemma, pos = 'Substantiv') {
     if (r.status === 'rejected')
       logger.warn({ err: r.reason }, `fetchLemma: Relation ${rounds[i].relCode} fehlgeschlagen`)
   }
-  // Gemischte Runde: stärkste Kollokate über alle Wortarten
-  runden.gemischt = buildMixedRound(allItems)
+  // Kollokationen-Runde: stärkste Kollokate über alle Wortarten
+  runden.kollokatoren = buildMixedRound(allItems)
   return {
     id:         toId(lemma),
     lemma,

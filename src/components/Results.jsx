@@ -56,9 +56,7 @@ export default function Results({ lemma, roundScores, onRestart, onToSelection }
       .then(d => { if (Array.isArray(d) && d[0]?.ipa) setIpa(d[0].ipa) })
       .catch(() => {})
   }, [lemma?.lemma])
-  const isGemischt = !!lemma?.runden?.gemischt
-  const hasBonus   = !isGemischt && roundScores.length >= 4
-  const maxPoints  = (isGemischt || hasBonus) ? 10 : 9
+  const maxPoints = 10
   const medal      = getMedal(total, maxPoints)
 
   const isPerfect  = total === maxPoints

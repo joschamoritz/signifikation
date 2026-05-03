@@ -3,7 +3,6 @@ import LemmaSelection from './LemmaSelection'
 import WortZwillingSelection from './WortZwillingSelection'
 import ZeitenwendeSelection from './ZeitenwendeSelection'
 import Quiz from './Quiz'
-import { BonusRound, FreeBonusRound } from './BonusRound'
 import Results from './Results'
 
 function ScreenFallback() {
@@ -25,11 +24,8 @@ export default function AppGameScreens({
   handleViewResult,
   onBackToHome,
   selectedLemma,
-  currentRound,
-  isBonus,
   handleRoundComplete,
   onBackToSelection,
-  bonusQuestion,
   roundScores,
   handleRestart,
   wortzwilling,
@@ -83,19 +79,13 @@ export default function AppGameScreens({
           onBack={onZeitenwendeSelectionBack}
         />
       )}
-      {phase === 'quiz' && selectedLemma && !isBonus && (
+      {phase === 'quiz' && selectedLemma && (
         <Quiz
-          key={currentRound}
           lemma={selectedLemma}
-          currentRound={currentRound}
+          currentRound={0}
           onRoundComplete={handleRoundComplete}
           onBack={onBackToSelection}
         />
-      )}
-      {isBonus && selectedLemma && (
-        bonusQuestion.skipped
-          ? <FreeBonusRound onComplete={handleRoundComplete} onBack={onBackToSelection} />
-          : <BonusRound bonus={bonusQuestion} lemma={selectedLemma} onComplete={handleRoundComplete} onBack={onBackToSelection} />
       )}
       {phase === 'results' && selectedLemma && (
         <Results
