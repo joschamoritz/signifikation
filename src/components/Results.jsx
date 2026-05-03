@@ -121,7 +121,15 @@ export default function Results({ lemma, roundScores, onRestart, onToSelection }
       {/* ── Wortprofil ── */}
       <div className="wortprofil-card">
         <div className="wortprofil-header">
-          <p className="wortprofil-title">Wortprofil · {lemma.lemma}</p>
+          <p className="wortprofil-title">
+            Wortprofil · {lemma.lemma}
+            <a
+              className="wortprofil-extern"
+              href={`https://de.wiktionary.org/wiki/${encodeURIComponent(lemma.lemma)}`}
+              target="_blank" rel="noopener noreferrer"
+              aria-label={`${lemma.lemma} auf Wiktionary nachschlagen (öffnet externen Link)`}
+            >↗</a>
+          </p>
         </div>
 
         <div className="wortprofil-row">

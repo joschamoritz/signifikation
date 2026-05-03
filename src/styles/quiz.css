@@ -686,3 +686,12 @@
 .wortprofil-header {
   margin-bottom: 12px;
 }
+.wortprofil-extern {
+  margin-left: 6px;
+  font-size: 0.65rem;
+  color: var(--muted);
+  text-decoration: none;
+  opacity: 0.6;
+  vertical-align: super;
+}
+.wortprofil-extern:hover { opacity: 1; }
