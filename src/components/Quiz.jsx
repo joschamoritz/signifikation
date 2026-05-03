@@ -1,9 +1,9 @@
 import { useState, useMemo, useEffect, useRef, useCallback } from 'react'
-import { getRundInfo, getRoundOptions, calculateScore, shuffle } from '../utils/gameLogic'
+import { getRundInfo, getRoundOptions, calculateScore, calculateMixedScore, shuffle } from '../utils/gameLogic'
 import { useBelege } from '../hooks/useBelege'
 import BelegePanel from './BelegePanel'
 
-// ── Haupt-Quiz (Runden 0–2) ───────────────────────────────────
+// ── Haupt-Quiz (Runden 0–2 oder gemischte Einzelrunde) ────────
 export default function Quiz({ lemma, currentRound, onRoundComplete, onBack }) {
   const [selected, setSelected]   = useState([])
   const [submitted, setSubmitted] = useState(false)
@@ -11,12 +11,17 @@ export default function Quiz({ lemma, currentRound, onRoundComplete, onBack }) {
     () => !localStorage.getItem('sig_beleg_hint')
   )
 
+  // ── Modus-Erkennung ──────────────────────────────────────────
+  const isGemischt = !!lemma.runden?.gemischt
+
   const rundInfo     = getRundInfo(lemma)
   const roundInfo    = rundInfo[currentRound]
   const roundKey     = roundInfo?.key
   const roundLabel   = roundInfo?.label ?? ''
-  const relCode      = roundInfo?.relCode ?? ''
-  const kollokatoren = (roundKey && lemma.runden[roundKey]) ?? []
+  const relCode      = isGemischt ? '' : (roundInfo?.relCode ?? '')
+  const kollokatoren = isGemischt
+    ? (lemma.runden.gemischt ?? [])
+    : ((roundKey && lemma.runden[roundKey]) ?? [])
 
   const { openBeleg, belegeCache, belegeLoading, loadBelege } = useBelege(lemma.lemma, relCode)
   const wrapRef = useRef(null)
@@ -44,14 +49,16 @@ export default function Quiz({ lemma, currentRound, onRoundComplete, onBack }) {
   )
 
   // Keine Daten für diese Runde → überspringen (0 Punkte)
-  const shouldSkip = !kollokatoren.length && !!roundKey
+  const shouldSkip = !kollokatoren.length && (isGemischt ? false : !!roundKey)
   useEffect(() => {
     if (shouldSkip) onRoundComplete(0)
   }, [shouldSkip]) // eslint-disable-line
 
   if (shouldSkip) return null
 
-  const roundScore = submitted ? calculateScore(selected, kollokatoren) : null
+  const roundScore = submitted
+    ? (isGemischt ? calculateMixedScore(selected, kollokatoren) : calculateScore(selected, kollokatoren))
+    : null
 
   // ── Joker ────────────────────────────────────────────────────
   const [jokerVisible, setJokerVisible] = useState(false)
@@ -132,22 +139,28 @@ export default function Quiz({ lemma, currentRound, onRoundComplete, onBack }) {
       <header className="quiz-header">
         <span className="quiz-game-badge">Kollokationen</span>
         <h1 className="quiz-lemma-word">{lemma.lemma}</h1>
-        <div
-          className="round-progress"
-          role="img"
-          aria-label={`Runde ${currentRound + 1} von 3, Bonusrunde folgt`}
-        >
-          {[0, 1, 2].map(i => (
-            <span
-              key={i}
-              aria-hidden="true"
-              className={`round-dot${i < currentRound ? ' done' : i === currentRound ? ' active' : ''}`}
-            />
-          ))}
-          <span aria-hidden="true" className="round-dot round-dot--bonus" />
-        </div>
+        {isGemischt ? (
+          <div className="round-progress" role="img" aria-label="Einzelrunde">
+            <span aria-hidden="true" className={`round-dot${submitted ? ' done' : ' active'}`} />
+          </div>
+        ) : (
+          <div
+            className="round-progress"
+            role="img"
+            aria-label={`Runde ${currentRound + 1} von 3, Bonusrunde folgt`}
+          >
+            {[0, 1, 2].map(i => (
+              <span
+                key={i}
+                aria-hidden="true"
+                className={`round-dot${i < currentRound ? ' done' : i === currentRound ? ' active' : ''}`}
+              />
+            ))}
+            <span aria-hidden="true" className="round-dot round-dot--bonus" />
+          </div>
+        )}
         <p className="round-title">
-          Runde {currentRound + 1} · {roundLabel}
+          {isGemischt ? 'Gemischt' : `Runde ${currentRound + 1} · ${roundLabel}`}
           {!submitted && !jokerUsed && jokerVisible && (
             <button className="joker-btn" onClick={e => { e.stopPropagation(); activateJoker() }} aria-label="Hinweis aktivieren" title="Hinweis"><em>i</em></button>
           )}
@@ -227,23 +240,28 @@ export default function Quiz({ lemma, currentRound, onRoundComplete, onBack }) {
               {(() => {
                 const v = new Date().toISOString().slice(0,10).replace(/-/g,'')
                 const seed = (parseInt(v, 10) + currentRound) % 4
-                const labels = {
+                const labelGroups = {
                   3: ['treffend','präzise','belegt','nachgewiesen'],
                   2: ['nahezu','weitgehend','annähernd','überwiegend'],
                   1: ['bedingt','partiell','vereinzelt','ansatzweise'],
                   0: ['nicht belegt','fraglich','abweichend','ungesichert'],
                 }
-                return <em>{labels[roundScore][seed]}</em>
+                const cat = isGemischt
+                  ? (roundScore >= 9 ? 3 : roundScore >= 6 ? 2 : roundScore >= 3 ? 1 : 0)
+                  : roundScore
+                return <em>{labelGroups[cat][seed]}</em>
               })()}
             </span>
           </div>
           <div className="round-feedback-answer">
+            {/* Top-3: immer anzeigen */}
             {kollokatoren
               .filter(k => k.rang <= 3)
               .sort((a, b) => a.rang - b.rang)
               .map(k => {
                 const guessedRank = selectedRank(k.wort)
                 const rankOk = guessedRank === k.rang
+                const pts = isGemischt && guessedRank ? (rankOk ? 3 : 2) : null
                 return (
                   <span key={k.wort} className="feedback-word">
                     <span className={`feedback-rang ${rankOk ? 'feedback-rang--ok' : guessedRank ? 'feedback-rang--off' : 'feedback-rang--miss'}`}>
@@ -251,10 +269,34 @@ export default function Quiz({ lemma, currentRound, onRoundComplete, onBack }) {
                     </span>
                     {k.wort}
                     <span className="logdice">{k.log_dice}</span>
+                    {pts !== null && <span className="feedback-pts">+{pts}</span>}
                   </span>
                 )
               })
             }
+            {/* Gemischt: Nahe-Treffer (Rang 4–5) die gewählt wurden */}
+            {isGemischt && selected
+              .map(word => kollokatoren.find(k => k.wort === word))
+              .filter(k => k && k.rang >= 4 && k.rang <= 5)
+              .map(k => (
+                <span key={k.wort} className="feedback-word">
+                  <span className="feedback-rang feedback-rang--off">#{k.rang}</span>
+                  {k.wort}
+                  <span className="logdice">{k.log_dice}</span>
+                  <span className="feedback-pts">+1</span>
+                </span>
+              ))
+            }
+            {/* Gemischt: Bonus-Indikator */}
+            {isGemischt && selected.length === 3 && selected.every(word => {
+              const k = kollokatoren.find(k => k.wort === word)
+              return k && k.rang <= 3
+            }) && (
+              <span className="feedback-word feedback-bonus">
+                Alle Top-3 gewählt
+                <span className="feedback-pts">+1</span>
+              </span>
+            )}
           </div>
         </div>
       )}
@@ -276,7 +318,7 @@ export default function Quiz({ lemma, currentRound, onRoundComplete, onBack }) {
             className="btn-primary btn-full"
             onClick={() => onRoundComplete(roundScore)}
           >
-            {currentRound < 2 ? 'Nächste Runde →' : 'Weiter →'}
+            {!isGemischt && currentRound < 2 ? 'Nächste Runde →' : 'Weiter →'}
           </button>
         )}
       </footer>

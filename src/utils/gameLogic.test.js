@@ -1,11 +1,11 @@
 import { describe, it, expect } from 'vitest'
 import {
   calculateScore,
+  calculateMixedScore,
   getMedal,
   getDailyMedal,
   getRundInfo,
   shuffle,
-
   getRoundOptions,
 } from './gameLogic'
 
@@ -37,6 +37,68 @@ describe('calculateScore', () => {
 
   it('ignoriert unbekannte Wörter', () => {
     expect(calculateScore(['unbekannt', 'groß', 'klein'], kollokatoren)).toBe(2)
+  })
+})
+
+// ── calculateMixedScore ─────────────────────────────────────
+describe('calculateMixedScore', () => {
+  const koll = [
+    { wort: 'stark', rang: 1 },
+    { wort: 'groß',  rang: 2 },
+    { wort: 'klein', rang: 3 },
+    { wort: 'weit',  rang: 4 },
+    { wort: 'eng',   rang: 5 },
+    { wort: 'lang',  rang: 6 },
+  ]
+
+  it('gibt 10 für alle Top-3 + richtiger Rang', () => {
+    // stark(1)→Pos1=3, groß(2)→Pos2=3, klein(3)→Pos3=3, Bonus+1 = 10
+    expect(calculateMixedScore(['stark', 'groß', 'klein'], koll)).toBe(10)
+  })
+
+  it('gibt 7 für alle Top-3, falscher Rang (2+2+2+Bonus)', () => {
+    // stark als Pos2 → 2, groß als Pos1 → 2, klein als Pos3=3 aber... klein Pos3=3 → richtige Pos → 3
+    // ['groß','stark','klein']: groß(rang2,pick1)→2, stark(rang1,pick2)→2, klein(rang3,pick3)→3, Bonus+1 = 8
+    expect(calculateMixedScore(['groß', 'stark', 'klein'], koll)).toBe(8)
+  })
+
+  it('gibt 6 für Top-3 alle falsche Positionen', () => {
+    // ['klein','stark','groß']: klein(rang3,pick1)→2, stark(rang1,pick2)→2, groß(rang2,pick3)→2, Bonus+1=7
+    expect(calculateMixedScore(['klein', 'stark', 'groß'], koll)).toBe(7)
+  })
+
+  it('addiert 1 für Rang-4-Treffer', () => {
+    // stark(Pos1)=3, groß(Pos2)=3, weit(Rang4)=1, kein Bonus = 7
+    expect(calculateMixedScore(['stark', 'groß', 'weit'], koll)).toBe(7)
+  })
+
+  it('addiert 1 für Rang-5-Treffer', () => {
+    // stark(Pos1)=3, groß(Pos2)=3, eng(Rang5)=1, kein Bonus = 7
+    expect(calculateMixedScore(['stark', 'groß', 'eng'], koll)).toBe(7)
+  })
+
+  it('gibt 0 für Rang-6-Treffer', () => {
+    expect(calculateMixedScore(['lang', 'stark', 'groß'], koll)).toBe(
+      // lang(Rang6)=0, stark(Pos2,Rang1)→2, groß(Pos3,Rang2)→2 = 4
+      4
+    )
+  })
+
+  it('gibt 0 für unbekannte Wörter', () => {
+    expect(calculateMixedScore(['unbekannt', 'stark', 'groß'], koll)).toBe(
+      // unbekannt=0, stark(Pos2,Rang1)→2, groß(Pos3,Rang2)→2 = 4
+      4
+    )
+  })
+
+  it('kein Bonus wenn nicht alle 3 in Top-3', () => {
+    const score = calculateMixedScore(['stark', 'groß', 'weit'], koll)
+    // stark(1,Pos1)=3, groß(2,Pos2)=3, weit(4)=1 → 7, kein Bonus
+    expect(score).toBe(7)
+  })
+
+  it('gibt 0 für leere Auswahl', () => {
+    expect(calculateMixedScore([], koll)).toBe(0)
   })
 })
 

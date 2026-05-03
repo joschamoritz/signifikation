@@ -39,6 +39,32 @@ export function calculateScore(selectedWords, kollokatoren) {
   }).length
 }
 
+/**
+ * Score for the mixed single round:
+ *   Richtiges Wort + richtiger Rang:  3 Punkte
+ *   Richtiges Wort + falscher Rang:   2 Punkte
+ *   Rang 4–5 (naher Treffer):         1 Punkt
+ *   Rang 6+:                          0 Punkte
+ *   +1 Bonus wenn alle 3 Picks in Top-3
+ * Max 10 Punkte (3×3 + 1 Bonus)
+ */
+export function calculateMixedScore(selectedWords, kollokatoren) {
+  let score = 0
+  let top3Count = 0
+  selectedWords.forEach((word, pickIndex) => {
+    const k = kollokatoren.find(k => k.wort === word)
+    if (!k) return
+    if (k.rang <= 3) {
+      top3Count++
+      score += (k.rang === pickIndex + 1) ? 3 : 2
+    } else if (k.rang <= 5) {
+      score += 1
+    }
+  })
+  if (top3Count === 3) score += 1
+  return score
+}
+
 /** Einheitliche Medaille (prozentbasiert). */
 export function getMedal(score, max) {
   const pct = score / (max || 1)

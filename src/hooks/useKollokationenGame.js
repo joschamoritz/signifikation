@@ -56,18 +56,24 @@ export function useKollokationenGame({ keys, serverDatum, lemmata }) {
   }, [fetchBonus, selectedLemma])
 
   useEffect(() => {
-    if (roundScores.length === 4 && phase === 'quiz') {
+    if (phase !== 'quiz') return
+    const isGemischt = !!selectedLemma?.runden?.gemischt
+    if (isGemischt && roundScores.length === 1) {
+      freshKollRef.current = true
+      setPhase('results')
+    } else if (!isGemischt && roundScores.length === 4) {
       freshKollRef.current = true
       setPhase('results')
     }
-  }, [phase, roundScores.length])
+  }, [phase, roundScores.length, selectedLemma])
 
   const persistResults = useCallback((submitRetro) => {
     if (phase !== 'results' || !selectedLemma || roundScores.length === 0) return
 
     const total = roundScores.reduce((sum, value) => sum + value, 0)
-    const hasBonus = roundScores.length >= 4
-    const maxPoints = hasBonus ? 10 : 9
+    const isGemischt = !!selectedLemma?.runden?.gemischt
+    const hasBonus   = !isGemischt && roundScores.length >= 4
+    const maxPoints  = (isGemischt || hasBonus) ? 10 : 9
     const medal = getMedal(total, maxPoints)
 
     savePlayedGame({
@@ -104,11 +110,14 @@ export function useKollokationenGame({ keys, serverDatum, lemmata }) {
   const handleRoundComplete = useCallback((score) => {
     setRoundScores((prev) => {
       const next = [...prev, score]
-      if (next.length === 3) setFetchBonus(true)
-      else if (next.length < 4) setCurrentRound((round) => round + 1)
+      const isGemischt = !!selectedLemma?.runden?.gemischt
+      if (!isGemischt) {
+        if (next.length === 3) setFetchBonus(true)
+        else if (next.length < 4) setCurrentRound((round) => round + 1)
+      }
       return next
     })
-  }, [])
+  }, [selectedLemma])
 
   const handleViewResult = useCallback(() => {}, [])
 
@@ -138,7 +147,7 @@ export function useKollokationenGame({ keys, serverDatum, lemmata }) {
     currentRound,
     roundScores,
     bonusQuestion,
-    isBonus: phase === 'quiz' && currentRound === 3 && !!bonusQuestion,
+    isBonus: phase === 'quiz' && currentRound === 3 && !!bonusQuestion && !selectedLemma?.runden?.gemischt,
     persistResults,
     handleLemmaSelect,
     handleRoundComplete,

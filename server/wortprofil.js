@@ -256,6 +256,25 @@ function buildOptions(items) {
   }))
 }
 
+/**
+ * Gemischte Runde: Alle Relationen zusammenführen, nach logDice deduplizieren und
+ * die stärksten 3 Kollokate (über alle Wortarten) als Top-3 verwenden.
+ * Gibt 10 Optionen zurück (Top-3 + 7 Distraktoren), genau wie buildOptions().
+ */
+function buildMixedRound(allItems) {
+  // Deduplizieren nach lemma (lowercase), höchstes logDice gewinnt
+  const seen = new Map()
+  for (const item of allItems) {
+    const key = item.lemma.toLowerCase()
+    const existing = seen.get(key)
+    if (!existing || parseFloat(item.logDice) > parseFloat(existing.logDice)) {
+      seen.set(key, item)
+    }
+  }
+  const sorted = [...seen.values()].sort((a, b) => parseFloat(b.logDice) - parseFloat(a.logDice))
+  return buildOptions(sorted)
+}
+
 // ── Öffentliche API (identisch mit dwds.js) ──────────────────────────────────
 
 function toId(word) {
@@ -318,13 +337,17 @@ export async function fetchLemma(lemma, pos = 'Substantiv') {
   const results = await Promise.allSettled(
     rounds.map(round => fetchRelation(lemma, pos, round.relCode))
   )
-  const runden = {}
+  const runden   = {}
+  const allItems = []
   for (let i = 0; i < rounds.length; i++) {
     const r = results[i]
     runden[rounds[i].key] = r.status === 'fulfilled' ? buildOptions(r.value) : []
+    if (r.status === 'fulfilled') allItems.push(...r.value)
     if (r.status === 'rejected')
       logger.warn({ err: r.reason }, `fetchLemma: Relation ${rounds[i].relCode} fehlgeschlagen`)
   }
+  // Gemischte Runde: stärkste Kollokate über alle Wortarten
+  runden.gemischt = buildMixedRound(allItems)
   return {
     id:         toId(lemma),
     lemma,

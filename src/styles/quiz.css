@@ -253,6 +253,24 @@
 .feedback-rang--off  { background: #fef08a; color: #713f12; }
 .feedback-rang--miss { background: var(--border); color: var(--muted); }
 
+/* Punkte-Badge im Gemischt-Feedback (+2, +3 usw.) */
+.feedback-pts {
+  margin-left: auto;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--success);
+  min-width: 22px;
+  text-align: right;
+}
+
+/* Bonus-Zeile im Gemischt-Feedback */
+.feedback-bonus {
+  font-style: italic;
+  background: var(--success-bg);
+  border-color: #86efac;
+  color: var(--success);
+}
+
 /* Rang-Zahl auf gewählten Buttons (vor Auswertung) */
 .option-rank {
   display: inline-flex; align-items: center; justify-content: center;
