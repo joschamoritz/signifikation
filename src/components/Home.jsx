@@ -111,7 +111,7 @@ export default function Home({
     if (sharing) return
     setSharing(true)
     try {
-      const result = await shareAsImage(playedGames, zrPlayed, wzPlayed, streak, zwPlayed)
+      const result = await shareAsImage(playedGames, wzPlayed, streak, zwPlayed)
       if (result === 'shared' || result === 'downloaded') {
         setImgState(result)
         setTimeout(() => setImgState(null), 2500)
@@ -121,7 +121,7 @@ export default function Home({
   }
 
   async function shareResult() {
-    const text = buildShareText(playedGames, zrPlayed, wzPlayed, streak, zwPlayed)
+    const text = buildShareText(playedGames, wzPlayed, streak, zwPlayed)
     if (navigator.share) { try { await navigator.share({ text }); return } catch {} }
     try {
       await navigator.clipboard.writeText(text)
@@ -536,7 +536,7 @@ export default function Home({
         {/* ── Kolophon ─────────────────────────────────────── */}
         <footer className="test-colophon" role="contentinfo">
           <span className="test-colophon-ornament" aria-hidden="true">
-          {[playedGames.length > 0, !!wzPlayed, !!zwPlayed, !!zrPlayed].map((played, i) =>
+          {[playedGames.length > 0, !!wzPlayed, !!zwPlayed].map((played, i) =>
             played ? '✦' : '·'
           ).join(' ')}
         </span>
