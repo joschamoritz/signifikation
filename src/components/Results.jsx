@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useBelege } from '../hooks/useBelege'
-import { getMedal, getRundInfo } from '../utils/gameLogic'
+import { getMedal } from '../utils/gameLogic'
 import { lsGet, lsParse } from '../utils/storage'
 import { API } from '../config'
 import BelegePanel from './BelegePanel'
@@ -131,33 +131,27 @@ export default function Results({ lemma, roundScores, onRestart, onToSelection }
           </div>
         </div>
 
-        {getRundInfo(lemma).map(({ key, label, desc }) => {
-          const relCode = lemma.rundenInfo?.find(r => r.key === key)?.relCode ?? ''
-          const top3 = (lemma.runden[key] || [])
-            .filter(k => k.rang <= 3)
-            .sort((a, b) => a.rang - b.rang)
-
-          return (
-            <div key={key} className="wortprofil-row">
-              <span className="wortprofil-label">{label}</span>
-              <span className="wortprofil-desc">{desc}</span>
-              <div className="wortprofil-items">
-                {top3.map(k => (
-                  <button
-                    key={k.wort}
-                    className={`wortprofil-item${openBeleg === k.wort ? ' option--beleg-active' : ''}`}
-                    onClick={() => loadBelege(k.wort, k.wort, { rel: relCode })}
-                    aria-label={`${k.wort} – Korpusbelege ansehen`}
-                    aria-pressed={openBeleg === k.wort}
-                  >
-                    {k.wort}
-                    <span className="logdice" aria-hidden="true">{k.log_dice}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-          )
-        })}
+        <div className="wortprofil-row">
+          <span className="wortprofil-desc">stärkste Kollokationen</span>
+          <div className="wortprofil-items">
+            {(lemma.runden?.kollokatoren ?? [])
+              .filter(k => k.rang <= 3)
+              .sort((a, b) => a.rang - b.rang)
+              .map(k => (
+                <button
+                  key={k.wort}
+                  className={`wortprofil-item${openBeleg === k.wort ? ' option--beleg-active' : ''}`}
+                  onClick={() => loadBelege(k.wort)}
+                  aria-label={`${k.wort} – Korpusbelege ansehen`}
+                  aria-pressed={openBeleg === k.wort}
+                >
+                  {k.wort}
+                  <span className="logdice" aria-hidden="true">{k.log_dice}</span>
+                </button>
+              ))
+            }
+          </div>
+        </div>
 
         {openBeleg && (
           <BelegePanel
