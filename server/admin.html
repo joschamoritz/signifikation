@@ -224,33 +224,7 @@
             <input type="text" id="zw-notiz" class="notiz-input" placeholder="Notiz (erscheint auf der Auswahlseite)">
             <input type="url"  id="zw-link"  class="notiz-input" placeholder="Link">
             <p style="font-size:0.8rem;color:var(--muted);font-style:italic">
-              10 distinktive Kollokatoren (5 vor 2000, 5 nach 2000) werden automatisch aus der Zeitreise-DB ermittelt.
-            </p>
-          </div>
-
-          <button class="mode-toggle" id="zeit-toggle" data-action="toggle-mode" data-mode="zeit">
-            <span>Zeitreise</span>
-            <span class="toggle-arrow" id="zeit-arrow">›</span>
-          </button>
-          <div class="mode-body" id="zeit-body" style="display:none">
-            <div style="display:flex;gap:8px;align-items:flex-end">
-              <div style="flex:1">
-                <label for="zr">Wort des Tages (eigene Zeitreise-DB)</label>
-                <input type="text" id="zr" placeholder="Lemma">
-              </div>
-              <div>
-                <label for="zr-wortart">Wortart</label>
-                <select id="zr-wortart">
-                  <option value="Substantiv">Substantiv</option>
-                  <option value="Verb">Verb</option>
-                  <option value="Adjektiv">Adjektiv</option>
-                </select>
-              </div>
-            </div>
-            <input type="text" id="zr-notiz" class="notiz-input" placeholder="Notiz (erscheint auf der Auswahlseite)">
-            <input type="url"  id="zr-link"  class="notiz-input" placeholder="Link">
-            <p style="font-size:0.8rem;color:var(--muted);font-style:italic">
-              5 Kollokatoren aus 5 verschiedenen Perioden werden automatisch aus der eigenen Zeitreise-DB abgerufen.
+              10 distinktive Kollokatoren (5 vor 2000, 5 nach 2000) werden automatisch ermittelt.
             </p>
           </div>
 
@@ -282,7 +256,6 @@
             <select id="entry-mode-filter">
               <option value="all">Alle Modi</option>
               <option value="koll">Kollokation</option>
-              <option value="zeitreise">Zeitreise</option>
               <option value="wortzwilling">Wort-Zwilling</option>
               <option value="zeitenwende">Zeitenwende</option>
             </select>
@@ -362,7 +335,7 @@
 
       </section>
 
-      <section class="admin-page" id="page-analytics" data-title="Analysen" data-subtitle="Eignungsprüfung für Kollokation, Zeitreise, Wort-Zwilling und Zeitenwende.">
+      <section class="admin-page" id="page-analytics" data-title="Analysen" data-subtitle="Eignungsprüfung für Kollokation, Wort-Zwilling und Zeitenwende.">
         <div class="card">
           <h2>Kollokation – Wortanalyse</h2>
           <p style="font-size:0.82rem;color:var(--muted);margin-bottom:8px">Prüfe, ob ein Wort als Kollokationswort geeignet ist. Zeigt Top 10 pro Runde, Top 3 gesamt und die Bonusfrage.</p>
@@ -407,15 +380,6 @@
           <div id="zw-ana-output"></div>
         </div>
 
-        <div class="card">
-          <h2>Zeitreise – Wortanalyse</h2>
-          <div class="viz-search">
-            <input type="text" id="viz-input" placeholder="Wort eingeben…" data-enter-action="analyze-zeitreise-viz">
-            <button data-action="analyze-zeitreise-viz">Analysieren</button>
-            <button data-action="reset-zeitreise-viz" style="opacity:0.6">✕ Zurücksetzen</button>
-          </div>
-          <div id="viz-output"></div>
-        </div>
       </section>
 
       <section class="admin-page" id="page-calendar" data-title="Kalender" data-subtitle="Monatsübersicht und schnelle Navigation zu geplanten Einträgen.">
@@ -628,7 +592,6 @@
               <option value="kalender">Kalender</option>
               <option value="user">User</option>
               <option value="lemmata">Lemmata</option>
-              <option value="zeitreise">Zeitreise</option>
               <option value="wortzwilling">Wortzwilling</option>
               <option value="zeitenwende">Zeitenwende</option>
             </select>

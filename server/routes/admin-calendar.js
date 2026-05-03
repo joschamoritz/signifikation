@@ -8,7 +8,6 @@ export function createAdminCalendarRouter({
   adminTagSchema,
   analyzeKollQuerySchema,
   analyzeWZQuerySchema,
-  analyzeZeitQuerySchema,
   analyzeZWendeQuerySchema,
   adminBulkDeleteCalendarSchema,
   adminBulkImportCalendarSchema,
@@ -20,7 +19,6 @@ export function createAdminCalendarRouter({
   loadMutableDailyContentMaps,
   save,
   saveDailyContentMaps,
-  loadZeitreise,
   loadWortZwilling,
   loadZeitenwende,
   getLemmataIndex,
@@ -30,8 +28,6 @@ export function createAdminCalendarRouter({
   fetchLemma,
   fetchBonusQuestion,
   fetchRelation,
-  fetchZeitreise,
-  fetchZeitreiseAnalyze,
   fetchZeitenwende,
   fetchZeitenwendeAnalyze,
   fetchWiktionary,
@@ -50,7 +46,7 @@ export function createAdminCalendarRouter({
   router.post('/admin/kalender/bulk-delete', adminLimiter, requireAuth, validate(adminBulkDeleteCalendarSchema), async (req, res) => {
     const { dates } = req.body
     try {
-      const { kalender, zeitreise, wortzwilling, zeitenwende } = loadMutableDailyContentMaps()
+      const { kalender, wortzwilling, zeitenwende } = loadMutableDailyContentMaps()
 
       const removed = []
       const skipped = []
@@ -63,13 +59,11 @@ export function createAdminCalendarRouter({
 
         const deletedData = {
           kalender: kalender[datum],
-          zeitreise: zeitreise[datum],
           wortzwilling: wortzwilling[datum],
           zeitenwende: zeitenwende[datum],
         }
 
         delete kalender[datum]
-        delete zeitreise[datum]
         delete wortzwilling[datum]
         delete zeitenwende[datum]
 
@@ -82,7 +76,7 @@ export function createAdminCalendarRouter({
       }
 
       if (removed.length > 0) {
-        await saveDailyContentMaps({ kalender, zeitreise, wortzwilling, zeitenwende })
+        await saveDailyContentMaps({ kalender, wortzwilling, zeitenwende })
       }
 
       res.json({ ok: true, removed, skipped, removedCount: removed.length, skippedCount: skipped.length })
@@ -128,7 +122,6 @@ export function createAdminCalendarRouter({
 
       await saveDailyContentMaps({
         kalender,
-        zeitreise: loadZeitreise(),
         wortzwilling: loadWortZwilling(),
         zeitenwende: loadZeitenwende(),
       })
@@ -181,7 +174,7 @@ export function createAdminCalendarRouter({
   router.get('/admin/preview/day/:datum', adminLimiter, requireAuth, validate(adminPreviewDayParamsSchema, 'params'), (req, res) => {
     const { datum } = req.params
     try {
-      const { kalender, zeitreise, wortzwilling, zeitenwende } = loadDailyContentMaps()
+      const { kalender, wortzwilling, zeitenwende } = loadDailyContentMaps()
       const kalEintrag = kalender[datum]
       if (!kalEintrag) return res.status(404).json({ error: 'Kein Eintrag fuer dieses Datum' })
       const ids = Array.isArray(kalEintrag) ? kalEintrag : (kalEintrag.ids ?? [])
@@ -204,12 +197,10 @@ export function createAdminCalendarRouter({
         }
       }).filter(Boolean)
 
-      const zeitreiseEntry = zeitreise[datum] || null
       const wortzwillingEntry = wortzwilling[datum] || null
       const zeitenwendeEntry = zeitenwende[datum] || null
       const modeGroups = buildModeGroups({
         lemmata,
-        zeitreiseEntry,
         wortzwillingEntry,
         zeitenwendeEntry,
       })
@@ -220,7 +211,6 @@ export function createAdminCalendarRouter({
         modeGroups,
         modes: {
           kollokationen: { enabled: lemmata.length > 0, count: lemmata.length },
-          zeitreise: { enabled: !!zeitreiseEntry, data: zeitreiseEntry },
           wortzwilling: { enabled: !!wortzwillingEntry, data: wortzwillingEntry },
           zeitenwende: { enabled: !!zeitenwendeEntry, data: zeitenwendeEntry },
         },
@@ -298,19 +288,6 @@ export function createAdminCalendarRouter({
     }
   })
 
-  router.get('/admin/analyze-zeitreise', adminLimiter, requireAuth, validate(analyzeZeitQuerySchema, 'query'), async (req, res) => {
-    const { q: lemma } = req.query
-    try {
-      const result = await fetchZeitreiseAnalyze(lemma.trim())
-      if (!result) {
-        return res.json({ usable: false, noData: true, lemma, reason: 'Keine Zeitreise-Daten für dieses Wort gefunden.' })
-      }
-      res.json({ usable: result.usable, lemma: result.lemma, decades: result.perioden.length, paare: result.paare, perioden: result.perioden })
-    } catch (err) {
-      adminError(res, err)
-    }
-  })
-
   router.get('/admin/analyze-zeitenwende', adminLimiter, requireAuth, validate(analyzeZWendeQuerySchema, 'query'), async (req, res) => {
     const { q: lemma } = req.query
     try {
@@ -326,13 +303,12 @@ export function createAdminCalendarRouter({
     const {
       datum, woerter, notizen, links, definitionen, positionen,
       thema, thema_kurz, thema_quelle,
-      zeitreise_lemma, zeitreise_wortart, zeitreise_notiz, zeitreise_link,
       zwilling_paar, zwilling_pos, zwilling_notiz, zwilling_link,
       zeitenwende_lemma, zeitenwende_notiz, zeitenwende_link,
     } = req.body
 
     try {
-      const { kalender, zeitreise, wortzwilling, zeitenwende } = loadMutableDailyContentMaps()
+      const { kalender, wortzwilling, zeitenwende } = loadMutableDailyContentMaps()
       const ids = []
 
       for (const [i, wort] of woerter.entries()) {
@@ -364,26 +340,6 @@ export function createAdminCalendarRouter({
 
       invalidateCache('lemmata.json')
       kalender[datum] = { ids, thema: thema || '', thema_kurz: thema_kurz || '', thema_quelle: thema_quelle || '' }
-
-      let zeitreiseOk = null
-      delete zeitreise[datum]
-      if (zeitreise_lemma.trim()) {
-        logger.info(`Lade DiaCollo-Daten für „${zeitreise_lemma}" …`)
-        try {
-          const zr = await fetchZeitreise(zeitreise_lemma.trim())
-          if (zr) {
-            zeitreise[datum] = { ...zr, wortart: zeitreise_wortart?.trim() || 'Substantiv', notiz: zeitreise_notiz || '', link: zeitreise_link || '' }
-            zeitreiseOk = true
-            logger.info(`Zeitreise gespeichert: ${zr.paare.map((p) => `${p.jahrzehnt}:${p.kollokat}`).join(', ')}`)
-          } else {
-            zeitreiseOk = false
-            logger.warn(`Zeitreise: nicht genügend DiaCollo-Daten für „${zeitreise_lemma}"`)
-          }
-        } catch (err) {
-          zeitreiseOk = false
-          logger.error({ err }, 'Zeitreise-Fehler')
-        }
-      }
 
       let zwillingOk = null
       delete wortzwilling[datum]
@@ -423,16 +379,16 @@ export function createAdminCalendarRouter({
           logger.error({ err }, 'Zeitenwende-Fehler')
         }
       }
-      await saveDailyContentMaps({ kalender, zeitreise, wortzwilling, zeitenwende })
+      await saveDailyContentMaps({ kalender, wortzwilling, zeitenwende })
 
       logger.info(`Eintrag gespeichert: ${datum} → ${ids.join(', ')}`)
 
-      auditCreate('kalender', datum, { ids, woerter, zeitreise: !!zeitreise_lemma, zwilling: !!zwilling_paar?.[0], zeitenwende: !!zeitenwende_lemma }, {
+      auditCreate('kalender', datum, { ids, woerter, zwilling: !!zwilling_paar?.[0], zeitenwende: !!zeitenwende_lemma }, {
         adminKey: req.adminSessionId || 'unknown',
         ip: req.ip,
       })
 
-      res.json({ ok: true, datum, ids, zeitreiseOk, zwillingOk, zeitenwendeOk })
+      res.json({ ok: true, datum, ids, zwillingOk, zeitenwendeOk })
     } catch (err) {
       serverError(res, err)
     }
@@ -468,7 +424,7 @@ export function createAdminCalendarRouter({
 
   router.get('/admin/kalender', adminLimiter, requireAuth, (_req, res) => {
     try {
-      const { kalender, zeitreise, wortzwilling, zeitenwende } = loadDailyContentMaps()
+      const { kalender, wortzwilling, zeitenwende } = loadDailyContentMaps()
       const { byId } = getLemmataIndex()
       const result = {}
       for (const [datum, eintrag] of Object.entries(kalender)) {
@@ -477,18 +433,15 @@ export function createAdminCalendarRouter({
           const l = byId.get(id)
           return { id, lemma: l?.lemma || id, notiz: l?.notiz || '' }
         })
-        const zeitreiseEntry = zeitreise[datum] || null
         const wortzwillingEntry = wortzwilling[datum] || null
         const zeitenwendeEntry = zeitenwende[datum] || null
         result[datum] = {
           lemmata,
           modeGroups: buildModeGroups({
             lemmata,
-            zeitreiseEntry,
             wortzwillingEntry,
             zeitenwendeEntry,
           }),
-          hasZeitreise: !!zeitreiseEntry,
           hasWortZwilling: !!wortzwillingEntry,
           hasZeitenwende: !!zeitenwendeEntry,
         }
@@ -501,7 +454,7 @@ export function createAdminCalendarRouter({
 
   router.get('/admin/tag/:datum', adminLimiter, requireAuth, (req, res) => {
     if (!/^\d{2}-\d{2}$/.test(req.params.datum)) return res.status(400).json({ error: 'Ungültiges Datumsformat' })
-    const { kalender, zeitreise, wortzwilling, zeitenwende } = loadDailyContentMaps()
+    const { kalender, wortzwilling, zeitenwende } = loadDailyContentMaps()
     const { byId } = getLemmataIndex()
     const kalEintrag = kalender[req.params.datum]
     if (!kalEintrag) return res.status(404).json({ error: 'Kein Eintrag' })
@@ -511,7 +464,6 @@ export function createAdminCalendarRouter({
     const thema_quelle = Array.isArray(kalEintrag) ? '' : (kalEintrag.thema_quelle ?? '')
     const lemmata = ids.map((id) => byId.get(id)).filter(Boolean)
     const wz = wortzwilling[req.params.datum]
-    const zr = zeitreise[req.params.datum]
     const ze = zeitenwende[req.params.datum]
     res.json({
       datum: req.params.datum,
@@ -523,10 +475,6 @@ export function createAdminCalendarRouter({
       notizen: lemmata.map((l) => l.notiz || ''),
       links: lemmata.map((l) => l.link || ''),
       definitionen: lemmata.map((l) => l.definition || ''),
-      zeitreise_lemma: zr?.lemma || '',
-      zeitreise_wortart: zr?.wortart || 'Substantiv',
-      zeitreise_notiz: zr?.notiz || '',
-      zeitreise_link: zr?.link || '',
       zwilling_paar: wz ? [wz.wortA, wz.wortB] : [],
       zwilling_pos: wz?.pos || 'Substantiv',
       zwilling_notiz: wz?.notiz || '',
@@ -540,22 +488,20 @@ export function createAdminCalendarRouter({
   router.delete('/admin/tag/:datum', adminLimiter, requireAuth, async (req, res) => {
     if (!/^\d{2}-\d{2}$/.test(req.params.datum)) return res.status(400).json({ error: 'Ungültiges Datumsformat' })
     try {
-      const { kalender, zeitreise, wortzwilling, zeitenwende } = loadMutableDailyContentMaps()
+      const { kalender, wortzwilling, zeitenwende } = loadMutableDailyContentMaps()
       const datum = req.params.datum
 
       const deletedData = {
         ids: kalender[datum],
-        zeitreise: zeitreise[datum],
         wortzwilling: wortzwilling[datum],
         zeitenwende: zeitenwende[datum],
       }
 
       delete kalender[datum]
-      delete zeitreise[datum]
       delete wortzwilling[datum]
       delete zeitenwende[datum]
 
-      await saveDailyContentMaps({ kalender, zeitreise, wortzwilling, zeitenwende })
+      await saveDailyContentMaps({ kalender, wortzwilling, zeitenwende })
 
       auditDelete('kalender', datum, deletedData, {
         adminKey: req.adminSessionId || 'unknown',

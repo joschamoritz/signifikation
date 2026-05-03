@@ -48,7 +48,6 @@ export function createAdminBackupRouter({
         restored: {
           lemmata: Array.isArray(bundle.lemmata) ? bundle.lemmata.length : 0,
           kalender: Object.keys(bundle.kalender || {}).length,
-          zeitreise: Object.keys(bundle.zeitreise || {}).length,
           wortzwilling: Object.keys(bundle.wortzwilling || {}).length,
           zeitenwende: Object.keys(bundle.zeitenwende || {}).length,
           statsRows: Array.isArray(bundle.statsRows) ? bundle.statsRows.length : 0,

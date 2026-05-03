@@ -45,7 +45,7 @@ function contentHeight(rows, streak) {
   )
 }
 
-export async function generateShareImage(playedGames, zrPlayed, wzPlayed, streak, zwPlayed = null) {
+export async function generateShareImage(playedGames, wzPlayed, streak, zwPlayed = null) {
   await document.fonts.ready
 
   // Zeilen aufbauen
@@ -57,7 +57,6 @@ export async function generateShareImage(playedGames, zrPlayed, wzPlayed, streak
   }
   if (wzPlayed) rows.push({ label: 'Wort-Zwilling', total: wzPlayed.total, max: wzPlayed.max ?? 10,  medal: wzPlayed.medal })
   if (zwPlayed) rows.push({ label: 'Zeitenwende',   total: zwPlayed.total, max: zwPlayed.max ?? 10,  medal: zwPlayed.medal })
-  if (zrPlayed) rows.push({ label: 'Zeitreise',     total: zrPlayed.total, max: zrPlayed.max ?? 20, medal: zrPlayed.medal })
 
   // Startposition: Inhalt vertikal zentrieren
   const cH     = contentHeight(rows, streak)
@@ -184,8 +183,8 @@ export async function generateShareImage(playedGames, zrPlayed, wzPlayed, streak
   return canvas
 }
 
-export async function shareAsImage(playedGames, zrPlayed, wzPlayed, streak, zwPlayed = null) {
-  const canvas = await generateShareImage(playedGames, zrPlayed, wzPlayed, streak, zwPlayed)
+export async function shareAsImage(playedGames, wzPlayed, streak, zwPlayed = null) {
+  const canvas = await generateShareImage(playedGames, wzPlayed, streak, zwPlayed)
 
   return new Promise((resolve, reject) => {
     canvas.toBlob(async (blob) => {

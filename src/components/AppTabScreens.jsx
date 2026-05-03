@@ -9,12 +9,7 @@ export default function AppTabScreens({
   thema,
   playedGames,
   allPlayed,
-  zeitreise,
-  zeitreiseError,
-  onRetryZeitreise,
-  zrPlayed,
-  onPlayZeitreise,
-  onViewZeitreise,
+  onStart,
   wortzwilling,
   wortzwillingError,
   onRetryWortzwilling,
@@ -39,19 +34,13 @@ export default function AppTabScreens({
   return {
     spielmodi: phase === 'home' ? (
       <Home
-        onStart={onPlayZeitreise.homeStart}
+        onStart={onStart}
         loading={!lemmata && !apiError}
         error={apiError}
         lemmata={lemmata || []}
         thema={thema || ''}
         playedGames={playedGames}
         allPlayed={!!allPlayed}
-        zeitreise={zeitreise}
-        zeitreiseError={zeitreiseError}
-        onRetryZeitreise={onRetryZeitreise}
-        zrPlayed={zrPlayed}
-        onPlayZeitreise={onPlayZeitreise.play}
-        onViewZeitreise={onViewZeitreise}
         wortzwilling={wortzwilling}
         wortzwillingError={wortzwillingError}
         onRetryWortzwilling={onRetryWortzwilling}

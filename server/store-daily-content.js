@@ -36,39 +36,6 @@ export function normalizeKalenderShape(raw) {
   return result
 }
 
-// ── Zeitreise ────────────────────────────────────────────────────
-
-export function normalizeZeitreiseEntry(row) {
-  return {
-    lemma:   row.lemma,
-    paare:   JSON.parse(row.paare),
-    perioden: JSON.parse(row.perioden),
-    wortart: row.wortart,
-    notiz:   row.notiz ?? '',
-    link:    row.link  ?? '',
-  }
-}
-
-export function loadZeitreiseRows(rows) {
-  const result = {}
-  for (const row of rows) {
-    result[row.datum] = normalizeZeitreiseEntry(row)
-  }
-  return result
-}
-
-export function toZeitreiseRow(datum, value) {
-  return {
-    datum,
-    lemma:   value.lemma    ?? '',
-    paare:   JSON.stringify(value.paare    ?? []),
-    perioden: JSON.stringify(value.perioden ?? []),
-    wortart: value.wortart  ?? 'Substantiv',
-    notiz:   value.notiz    ?? '',
-    link:    value.link     ?? '',
-  }
-}
-
 // ── Wort-Zwilling ────────────────────────────────────────────────
 
 export function normalizeWortzwillingEntry(row) {
@@ -134,13 +101,6 @@ export function createDailyContentStore({ db, stmts }) {
     }
   })
 
-  const replaceZeitreise = db.transaction((obj) => {
-    stmts.deleteAllZeitreise.run()
-    for (const [datum, value] of Object.entries(obj)) {
-      stmts.upsertZeitreise.run(toZeitreiseRow(datum, value))
-    }
-  })
-
   const replaceWortzwilling = db.transaction((obj) => {
     stmts.deleteAllWortzwilling.run()
     for (const [datum, value] of Object.entries(obj)) {
@@ -157,11 +117,9 @@ export function createDailyContentStore({ db, stmts }) {
 
   return {
     loadKalender()    { return loadKalenderRows(stmts.getAllKalender.all()) },
-    loadZeitreise()   { return loadZeitreiseRows(stmts.getAllZeitreise.all()) },
     loadWortzwilling(){ return loadWortzwillingRows(stmts.getAllWortzwilling.all()) },
     loadZeitenwende() { return loadZeitenwendeRows(stmts.getAllZeitenwende.all()) },
     replaceKalender,
-    replaceZeitreise,
     replaceWortzwilling,
     replaceZeitenwende,
   }

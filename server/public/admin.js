@@ -144,7 +144,6 @@ function formatWeekRange(startDate, endDate) {
 
 function modeChips(entry) {
   const chips = ['<span class="entry-chip mode-koll">Kollokation</span>']
-  if (entry?.hasZeitreise) chips.push('<span class="entry-chip mode-zeitreise">Zeitreise</span>')
   if (entry?.hasWortZwilling) chips.push('<span class="entry-chip mode-wortzwilling">Wort-Zwilling</span>')
   if (entry?.hasZeitenwende) chips.push('<span class="entry-chip mode-zeitenwende">Zeitenwende</span>')
   return chips.join('')
@@ -170,7 +169,6 @@ function getModeGroups(entry) {
 }
 
 function modeGroupKeyToClass(key) {
-  if (key === 'zeitreise') return 'mode-zeitreise'
   if (key === 'wortzwilling') return 'mode-wortzwilling'
   if (key === 'zeitenwende') return 'mode-zeitenwende'
   return 'mode-koll'
@@ -620,14 +618,13 @@ function renderCalendar() {
     const key  = `${mm}-${dd}`
     const entry       = kalenderData[key]
     const hasKoll     = !!(entry?.lemmata?.length)
-    const hasZeit     = !!(entry?.hasZeitreise)
     const hasWZ       = !!(entry?.hasWortZwilling)
     const hasZW       = !!(entry?.hasZeitenwende)
     const isTodayCell = (calYear === todayYear && key === todayStr)
 
     // Vollständig = Kollokationen + mind. ein weiteres Spiel eingetragen
-    const hasAny      = hasKoll || hasZeit || hasWZ || hasZW
-    const isComplete  = hasKoll && (hasZeit || hasWZ || hasZW)
+    const hasAny      = hasKoll || hasWZ || hasZW
+    const isComplete  = hasKoll && (hasWZ || hasZW)
     const stateClass  = isComplete ? 'is-complete' : hasAny ? 'has-entry' : 'no-entry'
 
     const isSelected = key === selectedCalendarDate
@@ -637,7 +634,6 @@ function renderCalendar() {
     if (hasAny) {
       dots = `<div class="cal-dots">` +
         (hasKoll ? '<div class="cal-dot koll"></div>' : '') +
-        (hasZeit ? '<div class="cal-dot zeit"></div>' : '') +
         (hasWZ   ? '<div class="cal-dot wz"></div>'   : '') +
         (hasZW   ? '<div class="cal-dot zw"></div>'   : '') +
         `</div>`
@@ -705,9 +701,6 @@ async function saveTag() {
   const thema       = document.getElementById('thema').value.trim()
   const themaKurz   = document.getElementById('thema-kurz').value.trim()
   const themaQuelle = document.getElementById('thema-quelle').value.trim()
-  const zr          = document.getElementById('zr').value.trim()
-  const zrNotiz   = document.getElementById('zr-notiz').value.trim()
-  const zrLink    = document.getElementById('zr-link').value.trim()
   const wza       = document.getElementById('wza').value.trim()
   const wzb       = document.getElementById('wzb').value.trim()
   const wzpos     = document.getElementById('wzpos').value
@@ -725,9 +718,8 @@ async function saveTag() {
   const btn  = document.getElementById('save-btn')
   btn.disabled = true
 
-  const statusParts = [`DWDS für „${w1}“, „${w2}“, „${w3}“`]
-  if (zr) statusParts.push(`DiaCollo für „${zr}“`)
-  if (wza && wzb) statusParts.push(`Wort-Zwilling „${wza}“ / „${wzb}“`)
+  const statusParts = [`DWDS für „${w1}”, „${w2}”, „${w3}”`]
+  if (wza && wzb) statusParts.push(`Wort-Zwilling „${wza}” / „${wzb}”`)
   if (zwLemma) statusParts.push(`Zeitenwende für „${zwLemma}“`)
   setStatus(`Rufe ab: ${statusParts.join(' · ')} …`, 'loading')
 
@@ -742,10 +734,6 @@ async function saveTag() {
         thema,
         thema_kurz:    themaKurz,
         thema_quelle:  themaQuelle,
-        zeitreise_lemma:   zr,
-        zeitreise_wortart: document.getElementById('zr-wortart').value,
-        zeitreise_notiz:   zrNotiz,
-        zeitreise_link:    zrLink,
         zwilling_paar:     wza && wzb ? [wza, wzb] : null,
         zwilling_pos:      wzpos,
         zwilling_notiz:    wzNotiz,
@@ -759,11 +747,6 @@ async function saveTag() {
     if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`)
 
     let msg = `Gespeichert: ${mmdd} → ${data.ids.join(', ')}`
-    if (zr) {
-      msg += data.zeitreiseOk === true  ? ' · Zeitreise: OK'
-           : data.zeitreiseOk === false ? ' · Zeitreise: nicht genug Daten (Wort trotzdem gespeichert)'
-           : ''
-    }
     if (wza && wzb) {
       msg += data.zwillingOk === true  ? ' · Wort-Zwilling: OK'
            : data.zwillingOk === false ? ' · Wort-Zwilling: nicht genug distinkte Kollokatoren'
@@ -775,7 +758,7 @@ async function saveTag() {
            : ''
     }
     const hasError = data.zwillingOk === false || data.zeitenwendeOk === false
-    setStatus(msg, hasError ? 'error' : data.zeitreiseOk === false ? 'warn' : 'ok')
+    setStatus(msg, hasError ? 'error' : 'ok')
     selectedCalendarDate = mmdd
     await loadKalender()
   } catch (err) {
@@ -808,10 +791,6 @@ async function editTag(datum) {
   document.getElementById('thema').value        = data.thema || ''
   document.getElementById('thema-kurz').value  = data.thema_kurz || ''
   document.getElementById('thema-quelle').value = data.thema_quelle || ''
-  document.getElementById('zr').value          = data.zeitreise_lemma   || ''
-  document.getElementById('zr-wortart').value  = data.zeitreise_wortart || 'Substantiv'
-  document.getElementById('zr-notiz').value    = data.zeitreise_notiz || ''
-  document.getElementById('zr-link').value     = data.zeitreise_link  || ''
   document.getElementById('wza').value         = data.zwilling_paar?.[0] || ''
   document.getElementById('wzb').value         = data.zwilling_paar?.[1] || ''
   document.getElementById('wzpos').value       = data.zwilling_pos || 'Substantiv'
@@ -909,7 +888,6 @@ function renderEntryTable() {
 
     if (modeFilter === 'all') return true
     if (modeFilter === 'koll') return hasKoll
-    if (modeFilter === 'zeitreise') return !!entry?.hasZeitreise
     if (modeFilter === 'wortzwilling') return !!entry?.hasWortZwilling
     if (modeFilter === 'zeitenwende') return !!entry?.hasZeitenwende
     return true
@@ -993,7 +971,6 @@ function selectAllVisibleEntries() {
       if (!matchesSearch) return false
       if (modeFilter === 'all') return true
       if (modeFilter === 'koll') return hasKoll
-      if (modeFilter === 'zeitreise') return !!entry?.hasZeitreise
       if (modeFilter === 'wortzwilling') return !!entry?.hasWortZwilling
       if (modeFilter === 'zeitenwende') return !!entry?.hasZeitenwende
       return true
@@ -1241,114 +1218,6 @@ function resetAuditFilters() {
 
 
 
-async function analyzeZeitreiseViz() {
-  const word = document.getElementById('viz-input').value.trim()
-  if (!word) return
-  const out = document.getElementById('viz-output')
-  out.innerHTML = '<div class="status loading">Analysiere…</div>'
-  try {
-    const res  = await fetch(`/admin/analyze-zeitreise?q=${encodeURIComponent(word)}`, {})
-    const data = await res.json()
-    if (!res.ok) { out.innerHTML = `<div class="status error">Fehler: ${esc(data.error)}</div>`; return }
-    renderViz(data, out)
-  } catch (e) {
-    out.innerHTML = `<div class="status error">Fehler: ${esc(e.message)}</div>`
-  }
-}
-
-let vizChart = null
-
-function renderViz(data, container) {
-  const word = data.lemma
-  if (!data.perioden?.length) {
-    container.innerHTML = `<div class="status error" style="margin-top:8px">Keine Daten — ${esc(data.reason || '')}</div>`
-    return
-  }
-
-  const COLOR = '#9b1c1c'
-  const maxScore = Math.max(...data.perioden.flatMap(p => p.top.map(t => t.score)), 1)
-
-  // Bubble-Chart Daten
-  const bubbleData = data.perioden.flatMap(p =>
-    p.top.map((col, rank) => {
-      const baseR = 4 + Math.round((col.score / maxScore) * 13)
-      return { x: parseInt(p.jahrzehnt), y: col.score, r: rank === 0 ? baseR + 2 : Math.max(3, baseR - rank * 2),
-               wort: col.wort, rank: rank + 1, periode: p.jahrzehnt }
-    })
-  )
-  const starData = data.perioden
-    .filter(p => p.quintil && p.top[0])
-    .map(p => {
-      const baseR = 4 + Math.round((p.top[0].score / maxScore) * 13) + 2
-      return { x: parseInt(p.jahrzehnt), y: p.top[0].score, r: baseR + 3, wort: p.top[0].wort, periode: p.jahrzehnt }
-    })
-
-  const usableBadge = data.usable
-    ? '<span style="color:#166534;font-weight:600">✓ Zeitreise möglich</span>'
-    : '<span style="color:#92400e;font-weight:600">⚠ Nicht genug Dekaden (mind. 5)</span>'
-
-  container.innerHTML = `
-    <div class="viz-meta" style="margin-top:8px">
-      <span>„<b>${esc(word)}</b>"</span>
-      <span><b>${data.decades}</b> Dekaden</span>
-      ${usableBadge}
-    </div>
-    <div class="viz-canvas-wrap"><canvas id="viz-canvas"></canvas></div>
-    <p class="viz-star-note">★ = kommt ins Zeitreise-Spiel · Blase = Top-4 Kollokat · Größe = logDice · Reihenfolge = temporale Distinktivität</p>
-    <div class="viz-timeline" id="viz-list" style="margin-top:16px"></div>`
-
-  const listEl = document.getElementById('viz-list')
-  for (const p of data.perioden) {
-    const top = p.top[0]
-    if (!top) continue
-    const barPct = Math.round((top.score / maxScore) * 100)
-    const rest = p.top.slice(1).map(c =>
-      `<span class="viz-chip">${esc(c.wort)} <span style="opacity:.6">${c.score.toFixed(1)}</span></span>`
-    ).join('')
-    listEl.innerHTML += `
-      <div class="viz-row ${p.quintil ? 'viz-row--selected' : ''}">
-        <span class="viz-year">${p.quintil ? '★ ' : ''}${esc(p.jahrzehnt)}</span>
-        <span class="viz-korpus-badge" style="background:${COLOR}">WP</span>
-        <div class="viz-bar-col">
-          <div class="viz-bar-row">
-            <span class="viz-bar-label">${esc(top.wort)}</span>
-            <div class="viz-bar-wrap"><div class="viz-bar-fill" style="width:${barPct}%;background:${COLOR}"></div></div>
-            <span class="viz-score">${top.score.toFixed(1)}</span>
-          </div>
-          ${rest ? `<div class="viz-more">${rest}</div>` : ''}
-        </div>
-      </div>`
-  }
-
-  if (vizChart) { vizChart.destroy(); vizChart = null }
-  const ctx = document.getElementById('viz-canvas').getContext('2d')
-  vizChart = new Chart(ctx, {
-    type: 'bubble',
-    data: {
-      datasets: [
-        { label: '★ Spielauswahl', data: starData, backgroundColor: 'transparent',
-          borderColor: '#d97706', borderWidth: 2.5, hoverBackgroundColor: 'transparent', order: 0 },
-        { label: 'Wortprofil', data: bubbleData, backgroundColor: COLOR + 'aa',
-          borderColor: COLOR, borderWidth: 1, hoverBorderWidth: 2, order: 1 },
-      ]
-    },
-    options: {
-      responsive: true,
-      animation: { duration: 400 },
-      plugins: {
-        legend: { display: false },
-        tooltip: {
-          filter: item => item.dataset.label !== '★ Spielauswahl',
-          callbacks: { label: c => ` ${c.raw.wort}  Score ${c.raw.y.toFixed(2)}  (${c.raw.periode}, Rang ${c.raw.rank})` }
-        }
-      },
-      scales: {
-        x: { title: { display: true, text: 'Jahrzehnt', font: { size: 11 } }, ticks: { font: { size: 10 } } },
-        y: { title: { display: true, text: 'Score', font: { size: 11 } }, min: 0, ticks: { font: { size: 10 } } }
-      }
-    }
-  })
-}
 
 // ── Kollokation – Wortanalyse ─────────────────────────────
 async function analyzeKollokation() {
@@ -1448,7 +1317,6 @@ async function previewCurrentDay() {
     const modes = data.modes || {}
     const modeChipsHtml = [
       modes.kollokationen?.enabled ? '<span class="entry-chip mode-koll">Kollokation</span>' : '',
-      modes.zeitreise?.enabled ? '<span class="entry-chip mode-zeitreise">Zeitreise</span>' : '',
       modes.wortzwilling?.enabled ? '<span class="entry-chip mode-wortzwilling">Wort-Zwilling</span>' : '',
       modes.zeitenwende?.enabled ? '<span class="entry-chip mode-zeitenwende">Zeitenwende</span>' : '',
     ].filter(Boolean).join('') || '<span class="users-empty">Keine Modi aktiv.</span>'
@@ -1522,9 +1390,9 @@ function renderKollAnalyse(data, out) {
 let statsChartTrend = null
 let statsChartDist  = null
 
-const STAT_KEYS   = ['kollokationen', 'zeitreise', 'wortzwilling', 'zeitenwende']
-const STAT_LABELS = { kollokationen: 'Kollokationen', zeitreise: 'Zeitreise', wortzwilling: 'Wort-Zwilling', zeitenwende: 'Zeitenwende' }
-const STAT_COLORS = { kollokationen: '#9b1c1c', zeitreise: '#1d4ed8', wortzwilling: '#15803d', zeitenwende: '#7c3aed' }
+const STAT_KEYS   = ['kollokationen', 'wortzwilling', 'zeitenwende']
+const STAT_LABELS = { kollokationen: 'Kollokationen', wortzwilling: 'Wort-Zwilling', zeitenwende: 'Zeitenwende' }
+const STAT_COLORS = { kollokationen: '#9b1c1c', wortzwilling: '#15803d', zeitenwende: '#7c3aed' }
 
 async function loadStats() {
   const out = document.getElementById('stats-output')
@@ -1563,7 +1431,7 @@ function updateDashboardFromStats(data) {
     return
   }
 
-  const keys = ['kollokationen', 'zeitreise', 'wortzwilling', 'zeitenwende']
+  const keys = ['kollokationen', 'wortzwilling', 'zeitenwende']
   let plays = 0
   let scoreSum = 0
   let maxSum = 0
@@ -2126,13 +1994,6 @@ function resetZeitenwendeAnalysis() {
   if (input) input.value = ''
 }
 
-function resetZeitreiseViz() {
-  const output = document.getElementById('viz-output')
-  const input = document.getElementById('viz-input')
-  if (output) output.innerHTML = ''
-  if (input) input.value = ''
-}
-
 // ── Freitage ──────────────────────────────────────────────
 async function loadFreeDays() {
   const listEl = document.getElementById('freedays-list')
@@ -2230,8 +2091,6 @@ function handleDocumentClick(event) {
   if (action === 'reset-wort-zwilling-analysis') return void resetWortZwillingAnalysis()
   if (action === 'analyze-zeitenwende') return void analyzeZeitenwende()
   if (action === 'reset-zeitenwende-analysis') return void resetZeitenwendeAnalysis()
-  if (action === 'analyze-zeitreise-viz') return void analyzeZeitreiseViz()
-  if (action === 'reset-zeitreise-viz') return void resetZeitreiseViz()
   if (action === 'change-month') return void changeMonth(Number(target.dataset.delta || 0))
   if (action === 'edit-selected-calendar-date') return void editSelectedCalendarDate()
   if (action === 'load-users-overview') return void loadUsersOverview()
@@ -2290,7 +2149,6 @@ function handleDocumentKeydown(event) {
   if (action === 'analyze-kollokation') return void analyzeKollokation()
   if (action === 'analyze-wort-zwilling') return void analyzeWortZwilling()
   if (action === 'analyze-zeitenwende') return void analyzeZeitenwende()
-  if (action === 'analyze-zeitreise-viz') return void analyzeZeitreiseViz()
 }
 
 document.addEventListener('click', handleDocumentClick)

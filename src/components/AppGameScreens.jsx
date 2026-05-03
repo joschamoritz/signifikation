@@ -1,6 +1,5 @@
 import { Suspense } from 'react'
 import LemmaSelection from './LemmaSelection'
-import ZeitreiseSelection from './ZeitreiseSelection'
 import WortZwillingSelection from './WortZwillingSelection'
 import ZeitenwendeSelection from './ZeitenwendeSelection'
 import Quiz from './Quiz'
@@ -33,14 +32,6 @@ export default function AppGameScreens({
   bonusQuestion,
   roundScores,
   handleRestart,
-  zeitreise,
-  onZeitreiseBack,
-  onZeitreiseSelectionBack,
-  onZeitreisePlay,
-  handleZeitreiseFinish,
-  zrViewOnly,
-  zrPlayed,
-  Zeitreise,
   wortzwilling,
   onWortzwillingBack,
   onWortzwillingSelectionBack,
@@ -70,16 +61,6 @@ export default function AppGameScreens({
           onSelect={handleLemmaSelect}
           onViewResult={handleViewResult}
           onBack={onBackToHome}
-        />
-      )}
-      {phase === 'zeitreise-selection' && zeitreise && (
-        <ZeitreiseSelection
-          data={zeitreise}
-          thema={thema}
-          themaKurz={themaKurz}
-          themaQuelle={themaQuelle}
-          onPlay={onZeitreisePlay}
-          onBack={onZeitreiseSelectionBack}
         />
       )}
       {phase === 'wortzwilling-selection' && wortzwilling && (
@@ -123,16 +104,6 @@ export default function AppGameScreens({
           onRestart={handleRestart}
           onToSelection={onBackToSelection}
         />
-      )}
-      {phase === 'zeitreise' && zeitreise && (
-        <Suspense fallback={<ScreenFallback />}>
-          <Zeitreise
-            data={zeitreise}
-            onBack={onZeitreiseBack}
-            onFinish={handleZeitreiseFinish}
-            savedResult={zrViewOnly ? zrPlayed : null}
-          />
-        </Suspense>
       )}
       {phase === 'wortzwilling' && wortzwilling && (
         <Suspense fallback={<ScreenFallback />}>

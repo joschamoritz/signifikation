@@ -59,7 +59,7 @@ export function streakFlames(n) {
   return '🔥'
 }
 
-export function buildShareText(playedGames, zrPlayed, wzPlayed, streak, zwPlayed = null) {
+export function buildShareText(playedGames, wzPlayed, streak, zwPlayed = null) {
   const d = new Date()
   const dateStr = `${d.getDate()}. ${MONTHS[d.getMonth()]}`
   const streakPart = streak > 0 ? ` · 🔥${streak}` : ''
@@ -82,10 +82,6 @@ export function buildShareText(playedGames, zrPlayed, wzPlayed, streak, zwPlayed
   }
   if (zwPlayed) {
     lines.push(`Zw ${blocks(zwPlayed.total, 10)}   ${zwPlayed.total}/10  ${zwPlayed.medal?.emoji ?? ''}`)
-  }
-  if (zrPlayed) {
-    const zrMax = zrPlayed.max ?? 20
-    lines.push(`Z  ${blocks(zrPlayed.total, zrMax)}  ${zrPlayed.total}/${zrMax}  ${zrPlayed.medal?.emoji ?? ''}`)
   }
 
   lines.push('')

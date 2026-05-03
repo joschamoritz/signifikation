@@ -59,14 +59,6 @@ export default defineConfig({
             },
           },
           {
-            urlPattern: /^\/api\/v1\/zeitreise/,
-            handler: 'StaleWhileRevalidate',
-            options: {
-              cacheName: 'api-zeitreise',
-              expiration: { maxEntries: 10, maxAgeSeconds: 60 * 60 * 24 },
-            },
-          },
-          {
             urlPattern: /^\/api\/v1\/wortzwilling/,
             handler: 'StaleWhileRevalidate',
             options: {

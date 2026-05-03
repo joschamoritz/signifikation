@@ -283,8 +283,6 @@ describe('admin routes integration', () => {
         notizen: ['', '', ''],
         links: ['', '', ''],
         definitionen: ['', '', ''],
-        zeitreise_lemma: 'Haus',
-        zeitreise_wortart: 'Substantiv',
         zwilling_paar: ['Tag', 'Nacht'],
         zwilling_pos: 'Substantiv',
         zeitenwende_lemma: 'Zeit',
@@ -302,8 +300,6 @@ describe('admin routes integration', () => {
         notizen: ['', '', ''],
         links: ['', '', ''],
         definitionen: ['', '', ''],
-        zeitreise_lemma: '',
-        zeitreise_wortart: 'Substantiv',
         zwilling_paar: null,
         zwilling_pos: 'Substantiv',
         zeitenwende_lemma: '',
@@ -311,11 +307,9 @@ describe('admin routes integration', () => {
     })
     expect(secondResponse.status).toBe(200)
 
-    const zeitreise = loadReadOnly('zeitreise.json')
     const wortzwilling = loadReadOnly('wortzwilling.json')
     const zeitenwende = loadReadOnly('zeitenwende.json')
 
-    expect(zeitreise[datum]).toBeUndefined()
     expect(wortzwilling[datum]).toBeUndefined()
     expect(zeitenwende[datum]).toBeUndefined()
   })
@@ -334,7 +328,6 @@ describe('admin routes integration', () => {
       files: {
         'kalender.json': {},
         'lemmata.json': originalLemmata,
-        'zeitreise.json': {},
         'wortzwilling.json': {},
         'zeitenwende.json': {},
         'stats-rows.json': [null],

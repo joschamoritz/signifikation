@@ -1,19 +1,16 @@
 import { useCallback, useEffect } from 'react'
 import { API } from '../config'
 import { lsSet } from '../utils/storage'
-import { getMedal, getZRMedal } from '../utils/gameLogic'
-import { getPlayedToday, markActivity, saveWZHistory, saveZRHistory, saveZWHistory } from '../utils/dailyProgress'
+import { getMedal } from '../utils/gameLogic'
+import { getPlayedToday, markActivity, saveWZHistory, saveZWHistory } from '../utils/dailyProgress'
 
 export function useSecondaryGameResults({
   keys,
   serverDatum,
-  zeitreise,
   wortzwilling,
   zeitenwende,
-  zrPlayed,
   wzPlayed,
   zwPlayed,
-  setZrPlayed,
   setWzPlayed,
   setZwPlayed,
   classroomSubmitRef,
@@ -63,25 +60,6 @@ export function useSecondaryGameResults({
     classroomSubmitRef.current?.({ game: 'zeitenwende', score, maxScore: 10 })
   }, [classroomSubmitRef, keys.dateStr, serverDatum, setZwPlayed, zeitenwende])
 
-  const handleZeitreiseFinish = useCallback((score, placements) => {
-    if (!zeitreise) return
-
-    const max = zeitreise.paare.length * 2
-    const medal = getZRMedal(score, max)
-    const entry = { lemma: zeitreise.lemma, total: score, max, medal, placements }
-
-    lsSet(keys.todayZRKey, JSON.stringify(entry))
-    setZrPlayed(entry)
-    markActivity(keys.dateStr)
-    saveZRHistory(keys.dateStr, medal.label, medal.emoji)
-    fetch(`${API}/stats`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ game: 'zeitreise', datum: serverDatum, score, max }),
-    }).catch(() => {})
-    classroomSubmitRef.current?.({ game: 'zeitreise', score, maxScore: max })
-  }, [classroomSubmitRef, keys.dateStr, keys.todayZRKey, serverDatum, setZrPlayed, zeitreise])
-
   useEffect(() => {
     getRetroResultsRef.current = () => {
       const results = []
@@ -94,17 +72,15 @@ export function useSecondaryGameResults({
         }
       }
 
-      if (zrPlayed?.total != null) results.push({ game: 'zeitreise', score: zrPlayed.total, maxScore: zrPlayed.max ?? 10 })
       if (wzPlayed?.total != null) results.push({ game: 'wortzwilling', score: wzPlayed.total, maxScore: 10 })
       if (zwPlayed?.total != null) results.push({ game: 'zeitenwende', score: zwPlayed.total, maxScore: 10 })
 
       return results
     }
-  }, [getRetroResultsRef, keys.todayKey, zrPlayed, wzPlayed, zwPlayed])
+  }, [getRetroResultsRef, keys.todayKey, wzPlayed, zwPlayed])
 
   return {
     handleWZFinish,
     handleZeitenwendeFinish,
-    handleZeitreiseFinish,
   }
 }

@@ -1,10 +1,9 @@
 /* ============================================================
    SIGNIFIKATION – style entry point
-   Import-Reihenfolge: globals → home → quiz → zeitreise → wortzwilling
+   Import-Reihenfolge: globals → home → quiz → wortzwilling
    ============================================================ */
 
 @import './styles/globals.css';
 @import './styles/home.css';
 @import './styles/quiz.css';
-@import './styles/zeitreise.css';
 @import './styles/wortzwilling.css';

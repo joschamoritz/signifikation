@@ -1,5 +1,5 @@
 import { useRef } from 'react'
-import { WortZwillingScreen, ZeitenwendeScreen, ZeitreiseScreen } from '../components/AppLazyScreens'
+import { WortZwillingScreen, ZeitenwendeScreen } from '../components/AppLazyScreens'
 import { useAppDailyState } from './useAppDailyState'
 import { useAppEffects } from './useAppEffects'
 import { useAppGameScreens } from './useAppGameScreens'
@@ -22,9 +22,6 @@ export function useAppModel() {
     thema,
     themaKurz,
     themaQuelle,
-    zeitreise,
-    zeitreiseError,
-    retryZeitreise,
     wortzwilling,
     wortzwillingError,
     retryWortzwilling,
@@ -32,8 +29,6 @@ export function useAppModel() {
     zeitenwendeError,
     zeitenwendeMissing,
     retryZeitenwende,
-    zrPlayed,
-    setZrPlayed,
     wzPlayed,
     setWzPlayed,
     zwPlayed,
@@ -76,17 +71,13 @@ export function useAppModel() {
   const {
     handleWZFinish,
     handleZeitenwendeFinish,
-    handleZeitreiseFinish,
   } = useSecondaryGameResults({
     keys,
     serverDatum,
-    zeitreise,
     wortzwilling,
     zeitenwende,
-    zrPlayed,
     wzPlayed,
     zwPlayed,
-    setZrPlayed,
     setWzPlayed,
     setZwPlayed,
     classroomSubmitRef,
@@ -107,10 +98,6 @@ export function useAppModel() {
     thema,
     playedGames,
     allPlayed,
-    zeitreise,
-    zeitreiseError,
-    retryZeitreise,
-    zrPlayed,
     wortzwilling,
     wortzwillingError,
     retryWortzwilling,
@@ -174,14 +161,6 @@ export function useAppModel() {
       bonusQuestion,
       roundScores,
       handleRestart: gameScreenActions.onRestart,
-      zeitreise,
-      onZeitreiseBack: tabState.goToZeitreise,
-      onZeitreiseSelectionBack: gameScreenActions.onZeitreiseSelectionBack,
-      onZeitreisePlay: tabState.goToZeitreiseGame,
-      handleZeitreiseFinish,
-      zrViewOnly: tabState.zrViewOnly,
-      zrPlayed,
-      Zeitreise: ZeitreiseScreen,
       wortzwilling,
       onWortzwillingBack: gameScreenActions.onWortzwillingBack,
       onWortzwillingSelectionBack: gameScreenActions.onWortzwillingSelectionBack,

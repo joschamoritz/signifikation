@@ -55,20 +55,12 @@ function uniqueLabels(items) {
   return result
 }
 
-export function buildModeGroups({ lemmata = [], zeitreiseEntry = null, wortzwillingEntry = null, zeitenwendeEntry = null }) {
+export function buildModeGroups({ lemmata = [], wortzwillingEntry = null, zeitenwendeEntry = null }) {
   const groups = []
 
   const kollokationen = uniqueLabels(lemmata.map((item) => item?.lemma))
   if (kollokationen.length) {
     groups.push({ key: 'kollokationen', label: 'Kollokationen', items: kollokationen })
-  }
-
-  const zeitreiseItems = uniqueLabels([
-    zeitreiseEntry?.lemma,
-    ...(Array.isArray(zeitreiseEntry?.paare) ? zeitreiseEntry.paare.map((pair) => pair?.kollokat) : []),
-  ])
-  if (zeitreiseItems.length) {
-    groups.push({ key: 'zeitreise', label: 'Zeitreise', items: zeitreiseItems })
   }
 
   const wortzwillingItems = uniqueLabels([

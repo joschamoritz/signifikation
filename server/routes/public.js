@@ -3,7 +3,7 @@ import { join, normalize, sep } from 'path'
 import { readFileSync } from 'fs'
 import { fetchBelege, belegeVerfuegbar } from '../belege.js'
 import { fetchWiktionary } from '../wiktionary.js'
-import { loadKalender, loadZeitreise, loadWortZwilling, loadZeitenwende, recordStat, getLemmataIndex, cacheGet, cacheSet, DATA } from '../store.js'
+import { loadKalender, loadWortZwilling, loadZeitenwende, recordStat, getLemmataIndex, cacheGet, cacheSet, DATA } from '../store.js'
 import { belegeLimiter, statsLimiter } from '../middleware/rateLimiter.js'
 import { auth } from '../auth/index.js'
 import { serverError } from '../middleware/auth.js'
@@ -44,22 +44,6 @@ router.get('/api/v1/heute', (req, res) => {
     const thema_quelle = Array.isArray(entry) ? '' : (entry.thema_quelle ?? '')
     const lemmata      = ids.map(id => byId.get(id)).filter(Boolean)
     res.json({ datum, year, lemmata, thema, thema_kurz, thema_quelle })
-  } catch (err) {
-    serverError(res, err)
-  }
-})
-
-/** GET /api/zeitreise → Zeitreise-Eintrag des Tages */
-router.get('/api/v1/zeitreise', (req, res) => {
-  try {
-    const datum     = req.query.datum || todayDatum().mmdd
-    const zeitreise = loadZeitreise() ?? {}
-    const entry     = zeitreise[datum]
-    if (!entry) return res.status(404).json({ error: `Kein Zeitreise-Eintrag für ${datum}` })
-    // pos aus lemmata-Index ergänzen, falls vorhanden
-    const { byLemma } = getLemmataIndex()
-    const lemmaData   = byLemma.get(entry.lemma)
-    res.json({ pos: lemmaData?.pos ?? null, notiz: entry.notiz ?? '', link: entry.link ?? '', ...entry })
   } catch (err) {
     serverError(res, err)
   }

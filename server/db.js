@@ -4,7 +4,6 @@
  * Tabellen:
  *   lemmata      – Lemma-Objekte (Kollokationsspiel)
  *   kalender     – Tagesplanung { datum → [id1, id2, id3] }
- *   zeitreise    – Zeitreise-Einträge pro Datum
  *   wortzwilling – Wort-Zwilling-Einträge pro Datum
  *   zeitenwende  – Zeitenwende-Einträge pro Datum
  *   stats        – Spielstatistiken pro Datum + Spielmodus
@@ -113,14 +112,6 @@ db.exec(`
   CREATE TABLE IF NOT EXISTS kalender (
     datum TEXT PRIMARY KEY,
     ids   TEXT NOT NULL DEFAULT '[]'
-  );
-
-  CREATE TABLE IF NOT EXISTS zeitreise (
-    datum    TEXT PRIMARY KEY,
-    lemma    TEXT NOT NULL DEFAULT '',
-    paare    TEXT NOT NULL DEFAULT '[]',
-    perioden TEXT NOT NULL DEFAULT '[]',
-    wortart  TEXT NOT NULL DEFAULT 'Substantiv'
   );
 
   CREATE TABLE IF NOT EXISTS wortzwilling (
@@ -328,12 +319,6 @@ if (!hasColumn('kalender', 'thema_kurz')) {
 if (!hasColumn('kalender', 'thema_quelle')) {
   logger.info('Migration: kalender.thema_quelle hinzufügen')
   db.exec(`ALTER TABLE kalender ADD COLUMN thema_quelle TEXT NOT NULL DEFAULT ''`)
-}
-
-if (!hasColumn('zeitreise', 'notiz')) {
-  logger.info('Migration: zeitreise.notiz + zeitreise.link hinzufügen')
-  db.exec(`ALTER TABLE zeitreise ADD COLUMN notiz TEXT NOT NULL DEFAULT ''`)
-  db.exec(`ALTER TABLE zeitreise ADD COLUMN link  TEXT NOT NULL DEFAULT ''`)
 }
 
 if (!hasColumn('wortzwilling', 'notiz')) {

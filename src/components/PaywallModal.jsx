@@ -78,7 +78,6 @@ export default function PaywallModal({ onClose }) {
         <ul className="paywall-features" aria-label="Enthaltene Inhalte">
           <li>Wort-Zwilling – Bedeutungsverwandtschaft entdecken</li>
           <li>Zeitenwende – Semantischen Wandel verstehen</li>
-          <li>Zeitreise – Wortgeschichten erkunden</li>
           <li>Klassenraum – Gemeinsam spielen (für Lehrkräfte)</li>
         </ul>
 

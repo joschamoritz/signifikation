@@ -94,14 +94,14 @@ describe('Stats aggregation in store', () => {
 
     db.prepare(`
       INSERT INTO stats (datum, spiel, user_id, plays, scoreSum, maxSum, dist)
-      VALUES ('04-16', 'zeitreise', 'teacher-42', 4, 27, 40, '[0,0,0,0,0,0,0,1,2,1,0]')
+      VALUES ('04-16', 'wortzwilling', 'teacher-42', 4, 27, 40, '[0,0,0,0,0,0,0,1,2,1,0]')
     `).run()
 
     const rows = storeMod.loadReadOnly('stats-rows.json')
     expect(Array.isArray(rows)).toBe(true)
     expect(rows).toContainEqual({
       datum: '04-16',
-      spiel: 'zeitreise',
+      spiel: 'wortzwilling',
       user_id: 'teacher-42',
       plays: 4,
       scoreSum: 27,

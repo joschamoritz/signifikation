@@ -5,7 +5,6 @@
  *   load(file)           – Daten lesen (deep clone)
  *   loadReadOnly(file)   – Daten lesen (kein extra clone nötig, frisches Objekt)
  *   save(file, data)     – Daten schreiben (gibt Promise zurück)
- *   loadZeitreise()      – Zeitreise-Dict
  *   loadWortZwilling()   – Wort-Zwilling-Dict
  *   loadZeitenwende()    – Zeitenwende-Dict
  *   loadStats()          – Stats-Dict
@@ -58,13 +57,6 @@ export const stmts = {
   deleteAllKalender: db.prepare('DELETE FROM kalender'),
   upsertKalender:   db.prepare('INSERT OR REPLACE INTO kalender (datum, ids, thema, thema_kurz, thema_quelle) VALUES (@datum, @ids, @thema, @thema_kurz, @thema_quelle)'),
 
-  // zeitreise
-  getAllZeitreise:   db.prepare('SELECT * FROM zeitreise'),
-  deleteAllZeitreise: db.prepare('DELETE FROM zeitreise'),
-  upsertZeitreise:  db.prepare(
-    'INSERT OR REPLACE INTO zeitreise (datum,lemma,paare,perioden,wortart,notiz,link) VALUES (@datum,@lemma,@paare,@perioden,@wortart,@notiz,@link)'
-  ),
-
   // wortzwilling
   getAllWortzwilling:  db.prepare('SELECT * FROM wortzwilling'),
   deleteAllWortzwilling: db.prepare('DELETE FROM wortzwilling'),
@@ -104,9 +96,8 @@ export const stmts = {
   `),
 }
 
-const _replaceAllAdminDataTx = db.transaction(({ lemmata, kalender, zeitreise, wortzwilling, zeitenwende, statsRows }) => {
+const _replaceAllAdminDataTx = db.transaction(({ lemmata, kalender, wortzwilling, zeitenwende, statsRows }) => {
   _dailyContentStore.replaceKalender(kalender)
-  _dailyContentStore.replaceZeitreise(zeitreise)
   _dailyContentStore.replaceWortzwilling(wortzwilling)
   _dailyContentStore.replaceZeitenwende(zeitenwende)
   _statsStore.replaceStatsRows(statsRows)
@@ -158,7 +149,6 @@ const _dailyContentStore = createDailyContentStore({ db, stmts })
 const LOADERS = {
   'lemmata.json': _loadLemmata,
   'kalender.json': _dailyContentStore.loadKalender,
-  'zeitreise.json': _dailyContentStore.loadZeitreise,
   'wortzwilling.json': _dailyContentStore.loadWortzwilling,
   'zeitenwende.json': _dailyContentStore.loadZeitenwende,
   'stats.json': _statsStore.loadStats,
@@ -168,7 +158,6 @@ const LOADERS = {
 const SAVERS = {
   'lemmata.json': _saveLemmata,
   'kalender.json': _dailyContentStore.replaceKalender,
-  'zeitreise.json': _dailyContentStore.replaceZeitreise,
   'wortzwilling.json': _dailyContentStore.replaceWortzwilling,
   'zeitenwende.json': _dailyContentStore.replaceZeitenwende,
   'stats.json': _statsStore.replaceStats,
@@ -201,10 +190,9 @@ export function save(file, data) {
   return Promise.resolve()
 }
 
-export function saveDailyContentMaps({ kalender, zeitreise, wortzwilling, zeitenwende }) {
+export function saveDailyContentMaps({ kalender, wortzwilling, zeitenwende }) {
   const files = {
     'kalender.json': kalender,
-    'zeitreise.json': zeitreise,
     'wortzwilling.json': wortzwilling,
     'zeitenwende.json': zeitenwende,
   }
@@ -223,7 +211,6 @@ export function loadBackupFiles() {
   return {
     'lemmata.json': loadReadOnly('lemmata.json'),
     'kalender.json': loadKalender(),
-    'zeitreise.json': loadZeitreise(),
     'wortzwilling.json': loadWortZwilling(),
     'zeitenwende.json': loadZeitenwende(),
     'stats.json': loadStats(),
@@ -244,7 +231,6 @@ export function invalidateCache(file) {
 
 // ── Convenience-Loader (mit ReadOnly-Cache) ──────────────────────
 
-export function loadZeitreise() { return loadReadOnly('zeitreise.json') }
 export function loadWortZwilling() { return loadReadOnly('wortzwilling.json') }
 export function loadZeitenwende() { return loadReadOnly('zeitenwende.json') }
 export function loadStats() { return loadReadOnly('stats.json') }
@@ -252,7 +238,6 @@ export function loadStatsRows() { return loadReadOnly('stats-rows.json') }
 export function loadDailyContentMaps() {
   return {
     kalender: loadKalender(),
-    zeitreise: loadZeitreise(),
     wortzwilling: loadWortZwilling(),
     zeitenwende: loadZeitenwende(),
   }
@@ -260,7 +245,6 @@ export function loadDailyContentMaps() {
 export function loadMutableDailyContentMaps() {
   return {
     kalender: load('kalender.json'),
-    zeitreise: load('zeitreise.json'),
     wortzwilling: load('wortzwilling.json'),
     zeitenwende: load('zeitenwende.json'),
   }

@@ -23,8 +23,6 @@ export default function Home({
   onStart, loading, error, lemmata = [],
   thema = '',
   playedGames = [], allPlayed = false,
-  zeitreise = null, zeitreiseError = false, onRetryZeitreise,
-  zrPlayed = null, onPlayZeitreise, onViewZeitreise,
   wortzwilling = null, wortzwillingError = false, onRetryWortzwilling,
   wzPlayed = null, onPlayWortzwilling, onViewWortzwilling,
   zeitenwende = null, zeitenwendeError = false, zeitenwendeMissing = false, onRetryZeitenwende,
@@ -50,12 +48,12 @@ export default function Home({
   const today      = new Date()
   const dateStr    = localDateStr(today)
   const kw         = getISOWeek(today)
-  const hasPlayed  = playedGames.length > 0 || !!zrPlayed || !!wzPlayed || !!zwPlayed
+  const hasPlayed  = playedGames.length > 0 || !!wzPlayed || !!zwPlayed
 
   const totalPoints    = playedGames.reduce((s, g) => s + g.total, 0)
   const maxPoints      = playedGames.length * 10
   const dailyMedal     = allPlayed ? getDailyMedal(totalPoints) : null
-  const allThreePlayed = allPlayed && !!wzPlayed && (!zeitenwende || !!zwPlayed) && !!zrPlayed
+  const allThreePlayed = allPlayed && !!wzPlayed && (!zeitenwende || !!zwPlayed)
 
   useEffect(() => {
     if (!allThreePlayed) return
@@ -145,7 +143,6 @@ export default function Home({
         <DayComplete
           onClose={() => setShowDayComplete(false)}
           playedGames={playedGames}
-          zrPlayed={zrPlayed}
           wzPlayed={wzPlayed}
           zwPlayed={zwPlayed}
         />
@@ -433,74 +430,10 @@ export default function Home({
               </div>
             </li>
 
-            {/* ── ④ Zeitreise ──────────────────────────────── */}
-            <li className={`test-entry${!zeitreise ? ' test-entry--disabled' : ''}${zrPlayed ? ' test-entry--done' : ''}`}>
-              <div className="test-entry-number" aria-hidden="true">
-                <span className="test-entry-num-glyph">④</span>
-                <span className="test-entry-marginalia">HIST.</span>
-                <span className={`test-entry-premium${freeAccessToday ? ' test-entry-premium--free' : ''}`} aria-label={freeAccessToday ? 'Heute kostenlos' : 'Teil der Gesamtausgabe'}>{freeAccessToday ? '✦ Heute kostenlos' : 'Gesamtausgabe'}</span>
-              </div>
-              <div className="test-entry-body">
-                <div className="test-entry-head">
-                  <h2 className="test-headword">Zeitreise</h2>
-                  <span className="test-ipa" aria-label="Aussprache: [ˈtsaɪ̯tˌʁaɪ̯zə]">[ˈtsaɪ̯tˌʁaɪ̯zə]</span>
-                </div>
-                <div className="test-entry-grammar" aria-hidden="true">
-                  <span className="test-pos">Wortspiel</span>
-                  <span className="test-pos-rule" />
-                  <span className="test-entry-category">historisch</span>
-                </div>
-                <p className="test-definition">
-                  Wie verändern sich Kollokationsmuster über Jahrhunderte? Vergleiche historische und gegenwärtige Belege aus fünf Jahrhunderten Sprachgeschichte.
-                </p>
-
-                {zrPlayed && (
-                  <ul className="test-played-list">
-                    <li className="test-played-entry">
-                      <span className="test-played-word">{zrPlayed.medal?.emoji ?? ''} {zrPlayed.lemma}</span>
-                      <span className="test-played-score">{zrPlayed.total} Punkte</span>
-                    </li>
-                  </ul>
-                )}
-
-                {zeitreiseError && (
-                  <p className="test-game-error">
-                    Verbindungsfehler.{' '}
-                    <button className="test-game-error-retry" type="button" onClick={onRetryZeitreise}>
-                      Erneut versuchen
-                    </button>
-                  </p>
-                )}
-
-                <div className="test-entry-footer">
-                  <span className={`test-status${zrPlayed ? ' test-status--done' : ''}`}>
-                    {!gesamtausgabe ? 'Teil der Gesamtausgabe.' : zeitreiseError ? '' : !zeitreise ? 'Heute nicht verfügbar.' : zrPlayed ? 'Gespielt.' : 'Noch nicht gespielt.'}
-                  </span>
-                  {!gesamtausgabe ? (
-                    <button className="test-cta test-cta--locked" type="button" onClick={onUnlockGesamtausgabe} aria-label="Gesamtausgabe freischalten">
-                      <LockIcon /> Gesamtausgabe freischalten
-                    </button>
-                  ) : zeitreise ? (
-                    <button
-                      className="test-cta"
-                      type="button"
-                      onClick={zrPlayed ? onViewZeitreise : onPlayZeitreise}
-                      aria-label={zrPlayed ? 'Ergebnis ansehen: Zeitreise' : 'Zeitreise starten'}
-                    >
-                      {zrPlayed ? 'Ergebnis ansehen' : 'Zeitreise starten'}
-                      <span className="test-cta-arrow" aria-hidden="true"> →</span>
-                    </button>
-                  ) : (
-                    <span className="test-cta test-cta--disabled" aria-hidden="true">—</span>
-                  )}
-                </div>
-              </div>
-            </li>
-
-            {/* ── ⑤ Demnächst ──────────────────────────────── */}
+            {/* ── ④ Demnächst ──────────────────────────────── */}
             <li className="test-entry test-entry--disabled" aria-hidden="true">
               <div className="test-entry-number">
-                <span className="test-entry-num-glyph">⑤</span>
+                <span className="test-entry-num-glyph">④</span>
                 <span className="test-entry-marginalia">i.V.</span>
               </div>
               <div className="test-entry-body">
@@ -572,7 +505,7 @@ export default function Home({
         {/* ── Vertikale Badge-Navigation (nur mobil) ───────── */}
         <nav className="snap-nav" aria-label="Spielmodus-Navigation">
           <div className="snap-nav-games">
-            {[['①','Kollokationen'],['②','Wort-Zwilling'],['③','Zeitenwende'],['④','Zeitreise'],['⑤','Demnächst']].map(([glyph, label], i) => (
+            {[['①','Kollokationen'],['②','Wort-Zwilling'],['③','Zeitenwende'],['④','Demnächst']].map(([glyph, label], i) => (
               <button
                 key={i}
                 className={`snap-nav-btn${activeCard === i ? ' snap-nav-btn--active' : ''}`}

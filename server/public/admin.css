@@ -527,11 +527,6 @@ body {
   color: var(--primary);
 }
 
-.entry-chip.mode-zeitreise {
-  background: #eff6ff;
-  border-color: #bfdbfe;
-  color: #1d4ed8;
-}
 
 .entry-chip.mode-wortzwilling {
   background: #fdf8ee;
@@ -1190,7 +1185,6 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
 .cal-dots { display: flex; gap: 2px; }
 .cal-dot  { width: 5px; height: 5px; border-radius: 50%; }
 .cal-dot.koll { background: var(--primary); }
-.cal-dot.zeit { background: #1d4ed8; }
 .cal-dot.wz   { background: var(--accent-dk); }
 .cal-dot.zw   { background: #7c3aed; }
 /* ── Statistik ── */

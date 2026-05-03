@@ -1,15 +1,15 @@
 import express          from 'express'
 import { fileURLToPath } from 'url'
 import { dirname, join }  from 'path'
-import { fetchLemma, fetchBonusQuestion, fetchRelation, fetchZeitreise, fetchZeitreiseAnalyze, fetchZeitenwende, fetchZeitenwendeAnalyze, POS_ROUNDS } from '../wortprofil.js'
+import { fetchLemma, fetchBonusQuestion, fetchRelation, fetchZeitenwende, fetchZeitenwendeAnalyze, POS_ROUNDS } from '../wortprofil.js'
 import { fetchBelege } from '../belege.js'
 import { fetchWiktionary } from '../wiktionary.js'
 import { fetchWortZwilling } from '../wortzwilling.js'
-import { load, loadKalender, loadDailyContentMaps, loadMutableDailyContentMaps, save, saveDailyContentMaps, loadZeitreise, loadWortZwilling, loadZeitenwende, getLemmataIndex, invalidateCache, getCacheMetrics, DATA, stmts, lemmaToRow, replaceAllAdminData, getStatsWindow, getStatsTimeline, loadBackupFiles } from '../store.js'
+import { load, loadKalender, loadDailyContentMaps, loadMutableDailyContentMaps, save, saveDailyContentMaps, loadWortZwilling, loadZeitenwende, getLemmataIndex, invalidateCache, getCacheMetrics, DATA, stmts, lemmaToRow, replaceAllAdminData, getStatsWindow, getStatsTimeline, loadBackupFiles } from '../store.js'
 import { getCacheMetrics as getQueryCacheMetrics, clearCache as clearQueryCache } from '../query-cache.js'
 import { adminLimiter, loginLimiter, uploadLimiter } from '../middleware/rateLimiter.js'
 import { requireAuth, adminAuth, adminLogout, adminError, serverError } from '../middleware/auth.js'
-import { validate, qQuerySchema, adminTagSchema, analyzeKollQuerySchema, analyzeWZQuerySchema, analyzeZeitQuerySchema, analyzeZWendeQuerySchema, adminUsersQuerySchema, adminSetUserRoleSchema, adminUserIdParamsSchema, adminUsersBulkUpdateSchema, adminBulkDeleteCalendarSchema, adminBulkImportCalendarSchema, adminPreviewLemmaSchema, adminPreviewDayParamsSchema, adminAuditLogDetailParamsSchema, adminBackupRestoreSchema, adminStatsQuerySchema, adminStatsSummaryQuerySchema, adminStatsExportQuerySchema, adminAuditLogQuerySchema, adminSocialCardsTagesdataSchema, adminSocialCardsBelegeSchema } from '../middleware/validate.js'
+import { validate, qQuerySchema, adminTagSchema, analyzeKollQuerySchema, analyzeWZQuerySchema, analyzeZWendeQuerySchema, adminUsersQuerySchema, adminSetUserRoleSchema, adminUserIdParamsSchema, adminUsersBulkUpdateSchema, adminBulkDeleteCalendarSchema, adminBulkImportCalendarSchema, adminPreviewLemmaSchema, adminPreviewDayParamsSchema, adminAuditLogDetailParamsSchema, adminBackupRestoreSchema, adminStatsQuerySchema, adminStatsSummaryQuerySchema, adminStatsExportQuerySchema, adminAuditLogQuerySchema, adminSocialCardsTagesdataSchema, adminSocialCardsBelegeSchema } from '../middleware/validate.js'
 import { auditCreate, auditUpdate, auditDelete, getAuditLog } from '../audit.js'
 import logger from '../logger.js'
 import { createAdminAuditRouter } from './admin-audit.js'
@@ -116,7 +116,6 @@ router.use(createAdminCalendarRouter({
   adminTagSchema,
   analyzeKollQuerySchema,
   analyzeWZQuerySchema,
-  analyzeZeitQuerySchema,
   analyzeZWendeQuerySchema,
   adminBulkDeleteCalendarSchema,
   adminBulkImportCalendarSchema,
@@ -128,7 +127,6 @@ router.use(createAdminCalendarRouter({
   loadMutableDailyContentMaps,
   save,
   saveDailyContentMaps,
-  loadZeitreise,
   loadWortZwilling,
   loadZeitenwende,
   getLemmataIndex,
@@ -138,8 +136,6 @@ router.use(createAdminCalendarRouter({
   fetchLemma,
   fetchBonusQuestion,
   fetchRelation,
-  fetchZeitreise,
-  fetchZeitreiseAnalyze,
   fetchZeitenwende,
   fetchZeitenwendeAnalyze,
   fetchWiktionary,

@@ -29,7 +29,7 @@ describe('statsSchema', () => {
   })
 
   it('akzeptiert alle gültigen games', () => {
-    for (const game of ['kollokationen', 'zeitreise', 'wortzwilling', 'zeitenwende']) {
+    for (const game of ['kollokationen', 'wortzwilling', 'zeitenwende']) {
       expect(statsSchema.safeParse({ ...valid, game }).success).toBe(true)
     }
   })

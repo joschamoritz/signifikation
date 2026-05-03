@@ -460,8 +460,8 @@ export function getClassroomDashboard({ sessionId, teacherUserId }) {
   if (!raw) return { error: 'NOT_FOUND' }
   if (raw.teacher_user_id !== teacherUserId) return { error: 'FORBIDDEN' }
 
-  const ROUND_GAME = { 1: 'kollokationen', 2: 'zeitreise', 3: 'wortzwilling', 4: 'zeitenwende' }
-  const GAME_LABEL = { kollokationen: 'Kollokationen', zeitreise: 'Zeitreise', wortzwilling: 'Wort-Zwilling', zeitenwende: 'Zeitenwende' }
+  const ROUND_GAME = { 1: 'kollokationen', 2: 'wortzwilling', 3: 'zeitenwende' }
+  const GAME_LABEL = { kollokationen: 'Kollokationen', wortzwilling: 'Wort-Zwilling', zeitenwende: 'Zeitenwende' }
 
   const now = nowMs()
   const totalParticipants = stmts.countParticipants.get(sessionId)?.c || 0

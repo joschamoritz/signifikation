@@ -3,10 +3,6 @@ import { API } from '../config'
 import { lsGet, lsParse } from '../utils/storage'
 import { fetchWithRetry } from '../utils/fetchWithRetry'
 
-function getZRToday(key) {
-  return lsParse(lsGet(key), null)
-}
-
 function getWZToday(key) {
   return lsParse(lsGet(key), null)
 }
@@ -20,10 +16,6 @@ export function useDailyContent() {
   const [themaKurz, setThemaKurz] = useState('')
   const [themaQuelle, setThemaQuelle] = useState('')
 
-  const [zeitreise, setZeitreise] = useState(null)
-  const [zeitreiseError, setZeitreiseError] = useState(false)
-  const [zeitreiseRetry, setZeitreiseRetry] = useState(0)
-
   const [wortzwilling, setWortzwilling] = useState(null)
   const [wortzwillingError, setWortzwillingError] = useState(false)
   const [wortzwillingRetry, setWortzwillingRetry] = useState(0)
@@ -32,7 +24,6 @@ export function useDailyContent() {
   const [zeitenwendeStatus, setZeitenwendeStatus] = useState('idle')
   const [zeitenwendeRetry, setZeitenwendeRetry] = useState(0)
 
-  const [zrPlayed, setZrPlayed] = useState(null)
   const [wzPlayed, setWzPlayed] = useState(null)
   const [zwPlayed, setZwPlayed] = useState(null)
 
@@ -46,25 +37,11 @@ export function useDailyContent() {
         if (thema) setThema(thema)
         if (thema_kurz) setThemaKurz(thema_kurz)
         if (thema_quelle) setThemaQuelle(thema_quelle)
-        setZrPlayed(getZRToday(`sig_zr_${datum}`))
         setWzPlayed(getWZToday(`sig_wz_${datum}`))
         setZwPlayed(lsParse(lsGet(`sig_zw_${datum}`), null))
       })
       .catch((err) => setApiError(err.message))
   }, [])
-
-  useEffect(() => {
-    setZeitreiseError(false)
-    setZeitreise(null)
-    fetchWithRetry(`${API}/zeitreise`)
-      .then((r) => {
-        if (r.ok) return r.json()
-        if (r.status === 404) return null
-        return Promise.reject(new Error(`HTTP ${r.status}`))
-      })
-      .then((data) => { if (data) setZeitreise(data) })
-      .catch(() => setZeitreiseError(true))
-  }, [zeitreiseRetry])
 
   useEffect(() => {
     setWortzwillingError(false)
@@ -100,10 +77,6 @@ export function useDailyContent() {
       .catch(() => setZeitenwendeStatus('error'))
   }, [zeitenwendeRetry])
 
-  const retryZeitreise = useCallback(() => {
-    setZeitreiseRetry((n) => n + 1)
-  }, [])
-
   const retryWortzwilling = useCallback(() => {
     setWortzwillingRetry((n) => n + 1)
   }, [])
@@ -120,9 +93,6 @@ export function useDailyContent() {
     thema,
     themaKurz,
     themaQuelle,
-    zeitreise,
-    zeitreiseError,
-    retryZeitreise,
     wortzwilling,
     wortzwillingError,
     retryWortzwilling,
@@ -130,8 +100,6 @@ export function useDailyContent() {
     zeitenwendeError: zeitenwendeStatus === 'error',
     zeitenwendeMissing: zeitenwendeStatus === 'missing',
     retryZeitenwende,
-    zrPlayed,
-    setZrPlayed,
     wzPlayed,
     setWzPlayed,
     zwPlayed,

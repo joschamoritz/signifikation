@@ -53,7 +53,3 @@ export function getDailyMedal(total) {
   return getMedal(total, 30)
 }
 
-/** Medaille für Zeitreise (prozentbasiert, max = paare.length × 2). */
-export function getZRMedal(score, max) {
-  return getMedal(score, max)
-}
