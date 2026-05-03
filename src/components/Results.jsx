@@ -85,11 +85,12 @@ export default function Results({ lemma, roundScores, onRestart, onToSelection }
             {lemma.lemma}
           </h1>
         </div>
-        {ipa && (
-          <p className="results-ipa">[{ipa}]</p>
-        )}
-        {lemma.wortart && (
-          <p className="results-wortart">{lemma.wortart}</p>
+        {(ipa || lemma.wortart) && (
+          <p className="results-meta">
+            {ipa && <span>[{ipa}]</span>}
+            {ipa && lemma.wortart && <span className="results-meta-sep"> · </span>}
+            {lemma.wortart && <span>{lemma.wortart}</span>}
+          </p>
         )}
         {(lemma.definitionen?.length > 0 || lemma.definition) && (() => {
           const defs = lemma.definitionen?.length > 0
@@ -132,23 +133,27 @@ export default function Results({ lemma, roundScores, onRestart, onToSelection }
         </div>
 
         <div className="wortprofil-row">
-          <span className="wortprofil-desc">stärkste Kollokationen</span>
           <div className="wortprofil-items">
             {(lemma.runden?.kollokatoren ?? [])
               .filter(k => k.rang <= 3)
               .sort((a, b) => a.rang - b.rang)
-              .map(k => (
-                <button
-                  key={k.wort}
-                  className={`wortprofil-item${openBeleg === k.wort ? ' option--beleg-active' : ''}`}
-                  onClick={() => loadBelege(k.wort)}
-                  aria-label={`${k.wort} – Korpusbelege ansehen`}
-                  aria-pressed={openBeleg === k.wort}
-                >
-                  {k.wort}
-                  <span className="logdice" aria-hidden="true">{k.log_dice}</span>
-                </button>
-              ))
+              .map((k, i) => {
+                const strength = Math.min(100, Math.round((k.log_dice / 14) * 100))
+                return (
+                  <button
+                    key={k.wort}
+                    className={`wortprofil-item${openBeleg === k.wort ? ' option--beleg-active' : ''}`}
+                    onClick={() => loadBelege(k.wort)}
+                    aria-label={`${k.wort} – Korpusbelege ansehen`}
+                    aria-pressed={openBeleg === k.wort}
+                  >
+                    <span className="wortprofil-item-rank" aria-hidden="true">{i + 1}.</span>
+                    <span className="wortprofil-item-word">{k.wort}</span>
+                    <span className="wortprofil-item-bar" style={{ '--str': `${strength}%` }} aria-hidden="true" />
+                    <span className="logdice" aria-hidden="true">{k.log_dice}</span>
+                  </button>
+                )
+              })
             }
           </div>
         </div>
@@ -163,13 +168,13 @@ export default function Results({ lemma, roundScores, onRestart, onToSelection }
         )}
       </div>
 
-      {/* ── Score-Banner (unten, wie Zeitreise) ── */}
+      {/* ── Score-Banner ── */}
       <div className="results-score-banner">
         <div className="results-score-row">
           <span className="results-score-num">{total}</span>
           <span className="results-score-max">/ {maxPoints} Punkte</span>
         </div>
-        <p className="results-medal">{medal.emoji} {medal.label}</p>
+        <p className="results-medal">{medal.emoji}&thinsp;{medal.label}</p>
       </div>
 
       {/* ── Aktionen ── */}

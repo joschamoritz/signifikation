@@ -391,7 +391,8 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
+  padding-bottom: 4px;
 }
 .results-title-wrap {
   position: relative;
@@ -425,26 +426,23 @@
   pointer-events: none;
 }
 .sine-errore--out { opacity: 0; }
-.results-ipa {
-  font-family: var(--font-serif);
-  font-size: 0.95rem;
-  font-style: italic;
-  color: var(--muted);
-  margin: 0;
-  letter-spacing: 0.02em;
-}
-.results-wortart {
+.results-meta {
   font-family: var(--font-serif);
   font-size: 0.9rem;
   font-style: italic;
   color: var(--muted);
   margin: 0;
+  letter-spacing: 0.02em;
+}
+.results-meta-sep {
+  color: var(--border);
+  font-style: normal;
 }
 .results-definitionen {
   width: 100%;
-  border-top: 1px solid var(--border);
-  padding-top: 10px;
-  margin-top: 4px;
+  border-top: 1px solid var(--border-lt);
+  padding-top: 12px;
+  margin-top: 12px;
   display: flex;
   flex-direction: column;
   gap: 4px;
@@ -459,37 +457,39 @@
   margin: 0;
 }
 
-/* Score-Banner (unten, einheitlich mit Zeitreise) */
+/* Score-Banner – Kolophon-Stil */
 .results-score-banner {
   display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
   border-top: 1.5px solid var(--border);
-  border-bottom: 1.5px solid var(--border);
-  padding: 16px 0;
+  padding-top: 14px;
 }
 .results-score-row {
   display: flex;
   align-items: baseline;
-  gap: 4px;
+  gap: 5px;
 }
 .results-score-num {
   font-family: var(--font-serif);
-  font-size: 3rem;
-  font-weight: 800;
+  font-size: 2rem;
+  font-weight: 700;
   color: var(--primary);
   line-height: 1;
 }
 .results-score-max {
-  font-size: 1rem;
+  font-family: var(--font-sans);
+  font-size: 0.85rem;
   color: var(--muted);
 }
 .results-medal {
-  font-family: var(--font-serif);
-  font-size: 1.1rem;
-  font-weight: 700;
-  color: var(--text);
+  font-family: var(--font-sans);
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+  text-align: right;
   margin: 0;
 }
 
@@ -516,26 +516,26 @@
 
 /* Wortprofil-Karte in Results */
 .wortprofil-card {
-  background: transparent;
-  border: none;
-  border-top: 2.5px double var(--border);
-  border-bottom: 2.5px double var(--border);
-  border-radius: 0;
-  padding: 18px 0;
+  background: var(--surface2);
+  border: 1px solid var(--border-lt);
+  border-left: 3px solid var(--accent);
+  border-radius: var(--radius);
+  padding: 14px 16px;
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 0;
 }
 .wortprofil-title {
-  font-family: var(--font-serif);
-  font-size: 0.95rem;
+  font-family: var(--font-sans);
+  font-size: 0.7rem;
   font-weight: 700;
-  color: var(--primary);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--accent-dk);
 }
 .wortprofil-row {
   display: flex;
   flex-direction: column;
-  gap: 5px;
 }
 .wortprofil-label {
   font-size: 0.78rem;
@@ -544,44 +544,62 @@
   text-transform: uppercase;
   letter-spacing: 0.06em;
 }
-.wortprofil-desc {
-  font-size: 0.75rem;
-  color: var(--muted);
-  font-style: italic;
-}
+.wortprofil-desc { display: none; }
 .wortprofil-items {
   display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin-top: 2px;
+  flex-direction: column;
+  gap: 0;
+  margin-top: 10px;
 }
 .wortprofil-item {
-  display: inline-flex;
+  display: grid;
+  grid-template-columns: 1.4rem 1fr 40px auto;
   align-items: center;
-  gap: 5px;
-  background: var(--surface2);
-  border: 0.5px solid var(--border);
-  border-radius: var(--radius);
-  padding: 3px 10px;
-  font-size: 0.88rem;
-  font-weight: 400;
+  gap: 10px;
+  width: 100%;
+  padding: 8px 6px;
+  border-radius: var(--radius-sm);
+  border: none;
+  border-bottom: 1px solid var(--border-lt);
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.12s;
+}
+.wortprofil-item:last-child { border-bottom: none; }
+.wortprofil-item:hover,
+.wortprofil-item.option--beleg-active {
+  background: var(--surface);
+}
+.wortprofil-item-rank {
+  font-family: var(--font-sans);
+  font-size: 0.7rem;
+  color: var(--muted);
+  line-height: 1;
+}
+.wortprofil-item-word {
+  font-family: var(--font-serif);
+  font-size: 1rem;
   font-style: italic;
   color: var(--text);
-  cursor: pointer;
-  font-family: var(--font-serif);
-  transition: background 0.15s, border-color 0.15s;
 }
-.wortprofil-item:hover {
-  background: var(--border);
-  border-color: var(--muted);
+.wortprofil-item-bar {
+  display: block;
+  height: 3px;
+  border-radius: 2px;
+  background: linear-gradient(
+    to right,
+    var(--accent) var(--str, 50%),
+    var(--border-lt) var(--str, 50%)
+  );
 }
-.wortprofil-item--active {
-  background: #fef2f2;
-  border-color: var(--primary);
-  color: var(--primary);
-}
-.wortprofil-item--active .logdice {
-  background: #fee2e2;
+.wortprofil-item .logdice {
+  background: transparent;
+  padding: 0;
+  font-size: 0.72rem;
+  color: var(--muted);
+  text-align: right;
+  min-width: 2rem;
 }
 
 /* Einmaliger Belege-Hinweis nach erster Auswertung */
@@ -607,8 +625,8 @@
   .quiz-lemma-word      { font-size: 2rem; }
   .results-screen       { padding-block: 14px 20px; gap: 16px; }
   .lemma-played-title   { font-size: 1.9rem; }
-  .wortprofil-card      { padding: 12px 0; }
-  .results-score-num    { font-size: 2.5rem; }
+  .wortprofil-card      { padding: 12px 14px; }
+  .results-score-num    { font-size: 1.75rem; }
 }
 
 /* Belege-Panel */
