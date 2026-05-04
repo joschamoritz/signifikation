@@ -63,6 +63,7 @@ body {
   flex: 1;
   display: flex;
   flex-direction: column;
+  position: relative;
 }
 
 /* ── Animationen ──────────────────────────────────────────── */
@@ -292,21 +293,26 @@ button { font-family: inherit; cursor: pointer; border: none }
 }
 
 /* ── Zurück-Button ───────────────────────────────────────────── */
+/* Absolut positioniert: nimmt keinen Platz im Flex-Flow ein,     */
+/* sitzt oben links auf gleicher Höhe wie der erste Inhaltsblock. */
 .back-btn {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 1;
   display: inline-flex;
   align-items: center;
-  gap: 5px;
+  gap: 4px;
   background: none;
   border: none;
   color: var(--primary);
   font-family: var(--font-sans);
-  font-size: 0.85rem;
+  font-size: 0.82rem;
   font-weight: 500;
-  padding: 10px 4px 10px 0;
+  padding: 6px 6px 6px 0;
   min-height: 44px;
   min-width: 44px;
   cursor: pointer;
-  align-self: flex-start;
   transition: opacity 0.15s;
   letter-spacing: 0.01em;
 }
@@ -314,9 +320,8 @@ button { font-family: inherit; cursor: pointer; border: none }
 .back-btn:active { opacity: 0.5 }
 .back-btn:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; border-radius: 4px }
 .back-btn-chevron {
-  font-size: 1.1rem;
+  font-size: 1.05rem;
   line-height: 1;
-  margin-top: -1px;
 }
 
 @media (prefers-reduced-motion: reduce) {

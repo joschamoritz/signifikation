@@ -970,7 +970,7 @@
     height: 100%;
     overflow-y: auto;
     overscroll-behavior-y: none;
-    padding: 24px 20px 24px 44px; /* links Platz für snap-nav */
+    padding: 14px 20px 24px 44px; /* links Platz für snap-nav, weniger Abstand oben */
     border-bottom: none;
     box-sizing: border-box;
     scrollbar-width: none;
