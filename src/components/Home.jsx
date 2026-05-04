@@ -474,7 +474,7 @@ export default function Home({
                     <button
                       className="test-cta"
                       type="button"
-                      onClick={lfPlayed ? onViewLueckenfueller : onPlayLueckenfueller?.play}
+                      onClick={lfPlayed ? onViewLueckenfueller : onPlayLueckenfueller}
                       aria-label={lfPlayed ? 'Ergebnis ansehen: Lückenfüller' : 'Lückenfüller starten'}
                     >
                       {lfPlayed ? 'Ergebnis ansehen' : 'Lückenfüller starten'}
@@ -538,7 +538,7 @@ export default function Home({
         {/* ── Vertikale Badge-Navigation (nur mobil) ───────── */}
         <nav className="snap-nav" aria-label="Spielmodus-Navigation">
           <div className="snap-nav-games">
-            {[['①','Kollokationen'],['②','Wort-Zwilling'],['③','Zeitenwende'],['④','Demnächst']].map(([glyph, label], i) => (
+            {[['①','Kollokationen'],['②','Wort-Zwilling'],['③','Zeitenwende'],['④','Lückenfüller']].map(([glyph, label], i) => (
               <button
                 key={i}
                 className={`snap-nav-btn${activeCard === i ? ' snap-nav-btn--active' : ''}`}
