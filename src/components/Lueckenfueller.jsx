@@ -1,121 +1,479 @@
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { getMedal } from '../utils/gameLogic'
 import '../styles/lueckenfueller.css'
 
-function SatzMitLuecke({ satzMitLuecke, submitted, kollokator }) {
+// ── Hilfsfunktion: Satz mit Lücke(n) rendern ──────────────
+function SatzMitLuecke({ satzMitLuecke, submitted, kollokator, isCorrect }) {
   const parts = satzMitLuecke.split('_____')
   if (parts.length < 2) return <span>{satzMitLuecke}</span>
   return (
     <>
       {parts[0]}
-      <span className={`lf-blank${submitted ? ' lf-blank--revealed' : ''}`}>
-        {submitted ? kollokator : '_____'}
+      <span className={[
+        'lf-blank',
+        submitted ? (isCorrect ? 'lf-blank--correct' : 'lf-blank--wrong') : '',
+      ].filter(Boolean).join(' ')}>
+        {submitted ? kollokator : ''}
       </span>
       {parts[1]}
     </>
   )
 }
 
-export default function Lueckenfueller({ data, lemmaName, onBack, onFinish, savedResult }) {
-  const [phase, setPhase] = useState(savedResult ? 'results' : 'play')
-  const [round, setRound] = useState(0)
-  const [selected, setSelected] = useState(null)
-  const [submitted, setSubmitted] = useState(false)
-  const [scores, setScores] = useState([])
+// ── Double-Runde: Satz mit zuzuweisendem Wort ─────────────
+function DoubleSatz({ sentence, assignedWord, isActive, submitted }) {
+  const parts = sentence.satzMitLuecke.split('_____')
+  if (parts.length < 2) return <span>{sentence.satzMitLuecke}</span>
 
-  const MAX_POINTS = 10
+  const correct = submitted && assignedWord === sentence.kollokator
 
-  if (phase === 'results') {
-    const resultScores = savedResult ? savedResult.scores : scores
-    const total = resultScores.reduce((s, p) => s + p, 0)
-    const medal = getMedal(total, MAX_POINTS)
+  return (
+    <>
+      {parts[0]}
+      <span className={[
+        'lf-blank',
+        isActive && !assignedWord ? 'lf-blank--active' : '',
+        assignedWord && !submitted ? 'lf-blank--filled' : '',
+        submitted ? (correct ? 'lf-blank--correct' : 'lf-blank--wrong') : '',
+      ].filter(Boolean).join(' ')}>
+        {assignedWord || ''}
+      </span>
+      {parts[1]}
+    </>
+  )
+}
 
-    return (
-      <div className="screen lf-screen">
-        <header className="lf-header">
-          <span className="quiz-game-badge">Lückenfüller</span>
-          <div className="round-progress" aria-label="Alle 3 Runden abgeschlossen">
-            {[0, 1, 2].map(i => (
-              <span key={i} className="round-dot done" />
+// ── Ergebnisseite ─────────────────────────────────────────
+function ResultsScreen({ data, scores, onBack }) {
+  const maxPoints = data.reduce((s, r) => s + r.punkte, 0)
+  const total  = scores.reduce((s, p) => s + p, 0)
+  const medal  = getMedal(total, maxPoints)
+
+  function renderRoundSummary(r, i) {
+    const pts = scores[i] ?? 0
+
+    if (r.type === 'double') {
+      const scoreA = scores[i] >= 1 ? 1 : 0  // simplified: show as combined
+      return (
+        <div key={i} className="lf-result-round">
+          <div className="lf-result-left">
+            <span className="lf-result-badge">Doppellücke</span>
+            {r.sentences.map((s, j) => (
+              <span key={j} className="lf-result-satz">
+                {s.satzMitLuecke.replace('_____', `[${s.kollokator}]`)}
+              </span>
             ))}
           </div>
-          <h1 className="quiz-lemma-word">{lemmaName}</h1>
-        </header>
-
-        <div className="lf-results-rounds">
-          {data.map((r, i) => {
-            const pts = resultScores[i] ?? 0
-            const correct = pts > 0
-            return (
-              <div key={i} className="lf-result-round">
-                <div className="lf-result-left">
-                  <span className="lf-result-satz">
-                    {r.satzMitLuecke.replace('_____', `[${r.kollokator}]`)}
-                  </span>
-                  <span className={`lf-result-kollokator${correct ? ' lf-result-kollokator--correct' : ' lf-result-kollokator--wrong'}`}>
-                    {correct ? '✓' : '✗'} {r.kollokator}
-                    <span className="logdice" style={{ marginLeft: '6px' }}>{r.logDice}</span>
-                  </span>
-                </div>
-                <span className={`lf-result-pts${pts === 0 ? ' lf-result-pts--zero' : ''}`}>
-                  {pts > 0 ? `+${pts}` : '0'}
-                </span>
-              </div>
-            )
-          })}
+          <span className={`lf-result-pts${pts === 0 ? ' lf-result-pts--zero' : ''}`}>
+            {pts > 0 ? `+${pts}` : '0'}
+          </span>
         </div>
+      )
+    }
 
-        <div className="results-score-banner">
-          <div className="results-score-row">
-            <span className="results-score-num">{total}</span>
-            <span className="results-score-max">/ {MAX_POINTS}</span>
+    if (r.type === 'free') {
+      return (
+        <div key={i} className="lf-result-round">
+          <div className="lf-result-left">
+            <span className="lf-result-badge">Freie Eingabe</span>
+            <span className="lf-result-satz">
+              {r.satzMitLuecke.replace('_____', `[${r.kollokator}]`)}
+            </span>
+            <span className={`lf-result-kollokator${pts > 0 ? ' lf-result-kollokator--correct' : ' lf-result-kollokator--wrong'}`}>
+              {pts > 0 ? '✓' : '✗'} {r.kollokator}
+            </span>
           </div>
-          <p className="results-medal">{medal.emoji} {medal.label}</p>
+          <span className={`lf-result-pts${pts === 0 ? ' lf-result-pts--zero' : ''}`}>
+            {pts > 0 ? `+${pts}` : '0'}
+          </span>
         </div>
+      )
+    }
 
-        <button className="btn-primary btn-full" onClick={onBack}>
-          Zurück
-        </button>
+    // type === 'choice'
+    return (
+      <div key={i} className="lf-result-round">
+        <div className="lf-result-left">
+          <span className="lf-result-satz">
+            {r.satzMitLuecke.replace('_____', `[${r.kollokator}]`)}
+          </span>
+          <span className={`lf-result-kollokator${pts > 0 ? ' lf-result-kollokator--correct' : ' lf-result-kollokator--wrong'}`}>
+            {pts > 0 ? '✓' : '✗'} {r.kollokator}
+          </span>
+        </div>
+        <span className={`lf-result-pts${pts === 0 ? ' lf-result-pts--zero' : ''}`}>
+          {pts > 0 ? `+${pts}` : '0'}
+        </span>
       </div>
     )
   }
 
-  const currentRound = data[round]
-  const isLastRound = round === data.length - 1
+  return (
+    <div className="screen lf-screen">
+      <header className="lf-header">
+        <span className="quiz-game-badge">Lückenfüller</span>
+        <div className="round-progress" aria-label={`Alle ${data.length} Runden abgeschlossen`}>
+          {data.map((_, i) => <span key={i} className="round-dot done" />)}
+        </div>
+      </header>
+
+      <div className="lf-results-rounds">
+        {data.map((r, i) => renderRoundSummary(r, i))}
+      </div>
+
+      <div className="results-score-banner">
+        <div className="results-score-row">
+          <span className="results-score-num">{total}</span>
+          <span className="results-score-max">/ {maxPoints}</span>
+        </div>
+        <p className="results-medal">{medal.emoji} {medal.label}</p>
+      </div>
+
+      <button className="btn-primary btn-full" onClick={onBack}>Zurück</button>
+    </div>
+  )
+}
+
+// ── Choice-Runde ──────────────────────────────────────────
+function ChoiceRound({ round, roundIdx, totalRounds, onScore, onBack }) {
+  const [selected,  setSelected]  = useState(null)
+  const [submitted, setSubmitted] = useState(false)
+  const [pts,       setPts]       = useState(0)
+
+  const isCorrect = submitted && selected === round.kollokator
+
+  function handleSubmit() {
+    if (!selected || submitted) return
+    const p = selected === round.kollokator ? round.punkte : 0
+    setPts(p)
+    setSubmitted(true)
+  }
 
   function handleSelect(opt) {
     if (submitted) return
     setSelected(opt)
   }
 
+  return (
+    <>
+      <div className="lf-satz-card">
+        <p className="lf-satz-text">
+          <SatzMitLuecke
+            satzMitLuecke={round.satzMitLuecke}
+            submitted={submitted}
+            kollokator={round.kollokator}
+            isCorrect={isCorrect}
+          />
+        </p>
+        {submitted && <p className="lf-quelle">{round.quelle}</p>}
+      </div>
+
+      {submitted && (
+        <div className={`lf-feedback ${isCorrect ? 'lf-feedback--correct' : 'lf-feedback--wrong'}`}>
+          <span className="lf-feedback-icon">{isCorrect ? '✓' : '✗'}</span>
+          <span className="lf-feedback-text">
+            {isCorrect ? `Richtig! +${round.punkte}` : `Richtig wäre: ${round.kollokator}`}
+          </span>
+        </div>
+      )}
+
+      <div className="lf-options-grid">
+        {round.optionen.map((opt) => {
+          let cls = 'lf-option-btn'
+          if (submitted) {
+            if (opt === round.kollokator) cls += ' correct'
+            else if (opt === selected)   cls += ' wrong'
+            else                          cls += ' muted'
+          } else if (opt === selected) {
+            cls += ' selected'
+          }
+          return (
+            <button
+              key={opt}
+              className={cls}
+              onClick={() => submitted ? null : handleSelect(opt)}
+              onDoubleClick={() => { if (!submitted && selected === opt) handleSubmit() }}
+              disabled={submitted}
+              aria-pressed={selected === opt && !submitted}
+            >
+              {opt}
+            </button>
+          )
+        })}
+      </div>
+
+      <footer className="quiz-footer">
+        {!submitted ? (
+          <>
+            <button className="btn-secondary" onClick={onBack}>Abbruch</button>
+            <button className="btn-primary" disabled={!selected} onClick={handleSubmit}>
+              Auswerten
+            </button>
+          </>
+        ) : (
+          <button className="btn-primary btn-full" onClick={() => onScore(pts)}>
+            {totalRounds - 1 === roundIdx ? 'Ergebnis ansehen' : 'Weiter →'}
+          </button>
+        )}
+      </footer>
+    </>
+  )
+}
+
+// ── Double-Runde ──────────────────────────────────────────
+function DoubleRound({ round, onScore, onBack }) {
+  const [answers,   setAnswers]   = useState([null, null])
+  const [submitted, setSubmitted] = useState(false)
+
+  const bothFilled = answers[0] !== null && answers[1] !== null
+  const activeSlot = answers[0] === null ? 0 : answers[1] === null ? 1 : null
+
+  function handleOptionClick(opt) {
+    if (submitted) return
+    const assignedAt = answers.indexOf(opt)
+    if (assignedAt !== -1) {
+      // Zuweisung aufheben
+      const next = [...answers]
+      next[assignedAt] = null
+      setAnswers(next)
+      return
+    }
+    if (activeSlot === null) return
+    const next = [...answers]
+    next[activeSlot] = opt
+    setAnswers(next)
+  }
+
+  const [pts, setPts] = useState(0)
+
   function handleSubmit() {
-    if (!selected || submitted) return
-    const pts = selected === currentRound.kollokator ? currentRound.punkte : 0
-    setScores(prev => [...prev, pts])
+    if (!bothFilled || submitted) return
+    const correctA = answers[0] === round.sentences[0].kollokator
+    const correctB = answers[1] === round.sentences[1].kollokator
+    const p = (correctA ? 1 : 0) + (correctB ? 1 : 0)
+    setPts(p)
     setSubmitted(true)
   }
 
-  function handleNext() {
+  return (
+    <>
+      <div className="lf-double-card">
+        {round.sentences.map((s, i) => {
+          const isActive    = activeSlot === i
+          const isSubmitted = submitted
+          return (
+            <div key={i} className={`lf-double-sentence${isActive && !answers[i] ? ' lf-double-sentence--active' : ''}`}>
+              <span className="lf-double-label">Lücke {i + 1}</span>
+              <p className="lf-satz-text">
+                <DoubleSatz
+                  sentence={s}
+                  assignedWord={answers[i]}
+                  isActive={isActive}
+                  submitted={submitted}
+                />
+              </p>
+              {submitted && <p className="lf-quelle">{s.quelle}</p>}
+            </div>
+          )
+        })}
+      </div>
+
+      {submitted && (
+        <div className={`lf-feedback ${answers[0] === round.sentences[0].kollokator && answers[1] === round.sentences[1].kollokator ? 'lf-feedback--correct' : 'lf-feedback--wrong'}`}>
+          <span className="lf-feedback-text">
+            {round.sentences.map((s, i) => (
+              <span key={i} className="lf-double-result-line">
+                {answers[i] === s.kollokator ? '✓' : '✗'} {s.kollokator}
+              </span>
+            ))}
+          </span>
+        </div>
+      )}
+
+      <div className="lf-options-grid">
+        {round.optionen.map((opt) => {
+          const assignedAt = answers.indexOf(opt)
+          let cls = 'lf-option-btn'
+          if (submitted) {
+            const isKoll = round.sentences.some(s => s.kollokator === opt)
+            if (assignedAt !== -1) {
+              const correct = answers[assignedAt] === round.sentences[assignedAt]?.kollokator
+              cls += correct ? ' correct' : ' wrong'
+            } else if (isKoll) {
+              cls += ' correct'
+            } else {
+              cls += ' muted'
+            }
+          } else if (assignedAt !== -1) {
+            cls += ` assigned assigned-${assignedAt}`
+          }
+          return (
+            <button
+              key={opt}
+              className={cls}
+              onClick={() => handleOptionClick(opt)}
+              disabled={submitted}
+            >
+              {assignedAt !== -1 && !submitted && (
+                <span className="lf-slot-badge">{assignedAt + 1}</span>
+              )}
+              {opt}
+            </button>
+          )
+        })}
+      </div>
+
+      <footer className="quiz-footer">
+        {!submitted ? (
+          <>
+            <button className="btn-secondary" onClick={onBack}>Abbruch</button>
+            <button className="btn-primary" disabled={!bothFilled} onClick={handleSubmit}>
+              Auswerten
+            </button>
+          </>
+        ) : (
+          <button className="btn-primary btn-full" onClick={() => onScore(pts)}>
+            Weiter →
+          </button>
+        )}
+      </footer>
+    </>
+  )
+}
+
+// ── Free-Runde ────────────────────────────────────────────
+function FreeRound({ round, onScore, onBack }) {
+  const [input,     setInput]     = useState('')
+  const [submitted, setSubmitted] = useState(false)
+  const [pts,       setPts]       = useState(0)
+  const inputRef = useRef(null)
+
+  useEffect(() => { inputRef.current?.focus() }, [])
+
+  function handleSubmit() {
+    if (!input.trim() || submitted) return
+    const val     = input.trim().toLowerCase()
+    const correct = val === round.kollokator.toLowerCase() || val === (round.token || '').toLowerCase()
+    const p       = correct ? round.punkte : 0
+    setPts(p)
+    setSubmitted(true)
+  }
+
+  function handleKeyDown(e) {
+    if (e.key === 'Enter') handleSubmit()
+  }
+
+  const isCorrect = submitted && (
+    input.trim().toLowerCase() === round.kollokator.toLowerCase() ||
+    input.trim().toLowerCase() === (round.token || '').toLowerCase()
+  )
+
+  return (
+    <>
+      <div className="lf-satz-card">
+        <p className="lf-satz-text">
+          <SatzMitLuecke
+            satzMitLuecke={round.satzMitLuecke}
+            submitted={submitted}
+            kollokator={round.token || round.kollokator}
+            isCorrect={isCorrect}
+          />
+        </p>
+        {submitted && <p className="lf-quelle">{round.quelle}</p>}
+      </div>
+
+      {submitted && (
+        <div className={`lf-feedback ${isCorrect ? 'lf-feedback--correct' : 'lf-feedback--wrong'}`}>
+          <span className="lf-feedback-icon">{isCorrect ? '✓' : '✗'}</span>
+          <span className="lf-feedback-text">
+            {isCorrect ? `Richtig! +${round.punkte}` : `Richtig wäre: ${round.kollokator}`}
+          </span>
+        </div>
+      )}
+
+      {!submitted && (
+        <div className="lf-free-wrap">
+          <input
+            ref={inputRef}
+            className="lf-free-input"
+            type="text"
+            value={input}
+            onChange={e => setInput(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder="Wort eingeben …"
+            autoComplete="off"
+            autoCorrect="off"
+            spellCheck={false}
+            disabled={submitted}
+          />
+        </div>
+      )}
+
+      <footer className="quiz-footer">
+        {!submitted ? (
+          <>
+            <button className="btn-secondary" onClick={onBack}>Abbruch</button>
+            <button className="btn-primary" disabled={!input.trim()} onClick={handleSubmit}>
+              Auswerten
+            </button>
+          </>
+        ) : (
+          <button className="btn-primary btn-full" onClick={() => onScore(pts)}>
+            Ergebnis ansehen
+          </button>
+        )}
+      </footer>
+    </>
+  )
+}
+
+// ── Hauptkomponente ───────────────────────────────────────
+export default function Lueckenfueller({ data, lemmaName, onBack, onFinish, savedResult }) {
+  const [phase,  setPhase]  = useState(savedResult ? 'results' : 'play')
+  const [round,  setRound]  = useState(0)
+  const [scores, setScores] = useState([])
+
+  if (phase === 'results') {
+    return (
+      <ResultsScreen
+        data={data}
+        scores={savedResult ? savedResult.scores : scores}
+        onBack={onBack}
+      />
+    )
+  }
+
+  const currentRound = data[round]
+  const totalRounds  = data.length
+  const isLastRound  = round === totalRounds - 1
+
+  function handleScore(pts) {
+    const newScores = [...scores, pts]
+    setScores(newScores)
     if (isLastRound) {
-      const finalScores = scores
-      const total = finalScores.reduce((s, p) => s + p, 0)
-      onFinish({ score: total, scores: finalScores })
+      const total = newScores.reduce((s, p) => s + p, 0)
+      onFinish({ score: total, scores: newScores })
       setPhase('results')
     } else {
       setRound(r => r + 1)
-      setSelected(null)
-      setSubmitted(false)
     }
   }
 
-  const isCorrect = submitted && selected === currentRound.kollokator
+  const typeLabel = {
+    choice: 'Auswahl',
+    double: 'Doppellücke',
+    free:   'Freie Eingabe',
+  }[currentRound.type] ?? 'Auswahl'
 
   return (
     <div className="screen lf-screen">
       <header className="lf-header">
-        <span className="quiz-game-badge">Lückenfüller</span>
-        <div className="round-progress" aria-label={`Runde ${round + 1} von 3`}>
-          {[0, 1, 2].map(i => (
+        <div className="lf-header-top">
+          <span className="quiz-game-badge">Lückenfüller</span>
+          <span className="lf-type-label">{typeLabel}</span>
+        </div>
+        <div className="round-progress" aria-label={`Runde ${round + 1} von ${totalRounds}`}>
+          {Array.from({ length: totalRounds }, (_, i) => (
             <span
               key={i}
               className={`round-dot${i < round ? ' done' : ''}${i === round ? ' active' : ''}`}
@@ -125,81 +483,34 @@ export default function Lueckenfueller({ data, lemmaName, onBack, onFinish, save
         <h1 className="quiz-lemma-word">{lemmaName}</h1>
       </header>
 
-      <div className="lf-satz-card">
-        <p>
-          <SatzMitLuecke
-            satzMitLuecke={currentRound.satzMitLuecke}
-            submitted={submitted}
-            kollokator={currentRound.kollokator}
-          />
-        </p>
-        {submitted && <p className="lf-quelle">{currentRound.quelle}</p>}
-      </div>
-
-      <div className="options-grid-wrap">
-        <div className="options-grid">
-          {currentRound.optionen.map((opt, i) => {
-            let cls = 'option'
-            if (submitted) {
-              if (opt === currentRound.kollokator) cls += ' correct'
-              else if (opt === selected) cls += ' wrong'
-            } else if (opt === selected) {
-              cls += ' selected'
-            }
-            return (
-              <button
-                key={opt}
-                className={cls}
-                style={{ animationDelay: `${i * 30}ms` }}
-                onClick={() => handleSelect(opt)}
-                disabled={submitted}
-              >
-                {submitted && opt === currentRound.kollokator && (
-                  <span className="option-icon">✓</span>
-                )}
-                {submitted && opt === selected && opt !== currentRound.kollokator && (
-                  <span className="option-icon">✗</span>
-                )}
-                {opt}
-              </button>
-            )
-          })}
-        </div>
-      </div>
-
-      {submitted && (
-        <div className="round-feedback">
-          <div className="round-feedback-score">
-            <span className="round-score-display">
-              {isCorrect ? `+${currentRound.punkte}` : '+0'}
-            </span>
-            <span className="round-score-label">
-              {isCorrect
-                ? 'Richtig!'
-                : `Richtig wäre: ${currentRound.kollokator}`}
-            </span>
-          </div>
-        </div>
+      {currentRound.type === 'choice' && (
+        <ChoiceRound
+          key={round}
+          round={currentRound}
+          roundIdx={round}
+          totalRounds={totalRounds}
+          onScore={handleScore}
+          onBack={onBack}
+        />
       )}
 
-      <footer className="quiz-footer">
-        {!submitted ? (
-          <>
-            <button className="btn-secondary" onClick={onBack}>Abbruch</button>
-            <button
-              className="btn-primary"
-              disabled={!selected}
-              onClick={handleSubmit}
-            >
-              Auswerten
-            </button>
-          </>
-        ) : (
-          <button className="btn-primary btn-full" onClick={handleNext}>
-            {isLastRound ? 'Ergebnis ansehen' : 'Weiter →'}
-          </button>
-        )}
-      </footer>
+      {currentRound.type === 'double' && (
+        <DoubleRound
+          key={round}
+          round={currentRound}
+          onScore={handleScore}
+          onBack={onBack}
+        />
+      )}
+
+      {currentRound.type === 'free' && (
+        <FreeRound
+          key={round}
+          round={currentRound}
+          onScore={handleScore}
+          onBack={onBack}
+        />
+      )}
     </div>
   )
 }
