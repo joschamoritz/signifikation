@@ -75,7 +75,7 @@ export default function Home({
   // Pfeiltasten-Navigation (nur mobil)
   const handleSnapKeyDown = useCallback((e) => {
     if (!window.matchMedia('(max-width: 699px)').matches) return
-    if (e.key === 'ArrowDown') scrollToCard(Math.min(activeCard + 1, 4))
+    if (e.key === 'ArrowDown') scrollToCard(Math.min(activeCard + 1, 5))
     if (e.key === 'ArrowUp')   scrollToCard(Math.max(activeCard - 1, 0))
   }, [activeCard, scrollToCard])
 
@@ -487,6 +487,30 @@ export default function Home({
               </div>
             </li>
 
+            {/* ── ⑤ Platzhalter (i.V.) ─────────────────────── */}
+            <li className="test-entry test-entry--disabled test-entry--forthcoming">
+              <div className="test-entry-number" aria-hidden="true">
+                <span className="test-entry-num-glyph">⑤</span>
+                <span className="test-entry-marginalia">I.&thinsp;V.</span>
+              </div>
+              <div className="test-entry-body">
+                <div className="test-entry-head">
+                  <h2 className="test-headword test-headword--redacted" aria-label="Neuer Spielmodus in Vorbereitung">??? ??????</h2>
+                </div>
+                <div className="test-entry-grammar" aria-hidden="true">
+                  <span className="test-pos">Wortspiel</span>
+                  <span className="test-pos-rule" />
+                  <span className="test-entry-category">in Vorbereitung</span>
+                </div>
+                <p className="test-definition test-definition--redacted" aria-hidden="true">
+                  ????? ????? ???????? ???????? — ?????? ????????? ??? ????? ??????? ?????????? ??? ???? ??????.
+                </p>
+                <div className="test-entry-footer">
+                  <span className="test-status">Noch nicht lemmatisiert — Belege in Bearbeitung.</span>
+                </div>
+              </div>
+            </li>
+
           </ol>
         </main>
 
@@ -538,7 +562,7 @@ export default function Home({
         {/* ── Vertikale Badge-Navigation (nur mobil) ───────── */}
         <nav className="snap-nav" aria-label="Spielmodus-Navigation">
           <div className="snap-nav-games">
-            {[['①','Kollokationen'],['②','Wort-Zwilling'],['③','Zeitenwende'],['④','Lückenfüller']].map(([glyph, label], i) => (
+            {[['①','Kollokationen'],['②','Wort-Zwilling'],['③','Zeitenwende'],['④','Lückenfüller'],['⑤','In Vorbereitung']].map(([glyph, label], i) => (
               <button
                 key={i}
                 className={`snap-nav-btn${activeCard === i ? ' snap-nav-btn--active' : ''}`}

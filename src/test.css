@@ -389,6 +389,14 @@
   color: var(--t-muted);
 }
 
+.test-headword--redacted,
+.test-definition--redacted {
+  color: transparent;
+  text-shadow: 0 0 8px var(--t-disabled);
+  user-select: none;
+  letter-spacing: 0.05em;
+}
+
 /* Status & CTA-Zeile */
 .test-entry-footer {
   display: flex;
