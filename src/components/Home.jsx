@@ -491,19 +491,22 @@ export default function Home({
             <li className="test-entry test-entry--disabled" aria-hidden="true">
               <div className="test-entry-number">
                 <span className="test-entry-num-glyph">⑤</span>
-                <span className="test-entry-marginalia">I.&thinsp;V.</span>
+                <span className="test-entry-marginalia">i.V.</span>
               </div>
               <div className="test-entry-body">
                 <div className="test-entry-head">
-                  <h2 className="test-headword">— —</h2>
+                  <h2 className="test-headword">???</h2>
+                  <span className="test-ipa">[ˈfʁaːɡəˌtsaɪ̯çən]</span>
                 </div>
-                <div className="test-entry-grammar">
+                <div className="test-entry-grammar" aria-hidden="true">
                   <span className="test-pos">Wortspiel</span>
                   <span className="test-pos-rule" />
-                  <span className="test-entry-category">in Vorbereitung</span>
+                  <span className="test-entry-category">in Arbeit</span>
                 </div>
+                <p className="test-definition">noch nicht lemmatisiert. — Belege in Bearbeitung; Aufnahme in späteren Auflagen vorgesehen.</p>
                 <div className="test-entry-footer">
-                  <span className="test-status">Noch nicht lemmatisiert — Belege in Bearbeitung.</span>
+                  <span className="test-status">Demnächst verfügbar.</span>
+                  <span className="test-cta test-cta--disabled" aria-hidden="true">—</span>
                 </div>
               </div>
             </li>

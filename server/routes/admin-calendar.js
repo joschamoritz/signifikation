@@ -482,9 +482,10 @@ export function createAdminCalendarRouter({
     const kalEintrag = kalender[req.params.datum]
     if (!kalEintrag) return res.status(404).json({ error: 'Kein Eintrag' })
     const ids = Array.isArray(kalEintrag) ? kalEintrag : (kalEintrag.ids ?? [])
-    const thema        = Array.isArray(kalEintrag) ? '' : (kalEintrag.thema ?? '')
-    const thema_kurz   = Array.isArray(kalEintrag) ? '' : (kalEintrag.thema_kurz ?? '')
-    const thema_quelle = Array.isArray(kalEintrag) ? '' : (kalEintrag.thema_quelle ?? '')
+    const thema             = Array.isArray(kalEintrag) ? '' : (kalEintrag.thema ?? '')
+    const thema_kurz        = Array.isArray(kalEintrag) ? '' : (kalEintrag.thema_kurz ?? '')
+    const thema_quelle      = Array.isArray(kalEintrag) ? '' : (kalEintrag.thema_quelle ?? '')
+    const lueckenfueller_id = Array.isArray(kalEintrag) ? '' : (kalEintrag.lueckenfueller_id ?? '')
     const lemmata = ids.map((id) => byId.get(id)).filter(Boolean)
     const wz = wortzwilling[req.params.datum]
     const ze = zeitenwende[req.params.datum]
@@ -505,6 +506,7 @@ export function createAdminCalendarRouter({
       zeitenwende_lemma: ze?.lemma || '',
       zeitenwende_notiz: ze?.notiz || '',
       zeitenwende_link: ze?.link || '',
+      lueckenfueller_id,
     })
   })
 

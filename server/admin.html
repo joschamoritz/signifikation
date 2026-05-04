@@ -228,6 +228,22 @@
             </p>
           </div>
 
+          <button class="mode-toggle" type="button" data-toggle="lf-body" aria-expanded="false">
+            <span>Lückenfüller</span>
+            <span class="toggle-arrow" id="lf-arrow">›</span>
+          </button>
+          <div class="mode-body" id="lf-body" style="display:none">
+            <div style="display:flex;gap:8px;align-items:flex-end">
+              <div style="flex:1">
+                <label for="lf-id">Lemma-ID (Lückenfüller)</label>
+                <input type="text" id="lf-id" placeholder="Lemma-ID aus der Datenbank">
+              </div>
+            </div>
+            <p style="font-size:0.8rem;color:var(--muted);font-style:italic">
+              Gibt an, welches Lemma heute für den Lückenfüller-Modus verwendet wird. Die Lückenfüller-Daten müssen vorab per „Generieren"-Button im Lemma-Detail erzeugt worden sein.
+            </p>
+          </div>
+
           <div id="status" class="status"></div>
           <div class="entry-preview-actions">
             <button data-action="preview-current-lemma">Lemma-Vorschau</button>

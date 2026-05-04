@@ -345,7 +345,7 @@ describe('admin routes integration', () => {
     const kalenderAfter = loadReadOnly('kalender.json')
     const lemmataAfter = loadReadOnly('lemmata.json')
 
-    expect(kalenderAfter[markerDatum]).toEqual({ ids: [markerId], thema: '', thema_kurz: '', thema_quelle: '' })
+    expect(kalenderAfter[markerDatum]).toEqual({ ids: [markerId], thema: '', thema_kurz: '', thema_quelle: '', lueckenfueller_id: '' })
     expect(lemmataAfter.some((entry) => entry.id === markerId)).toBe(false)
 
     await save('kalender.json', originalKalender)

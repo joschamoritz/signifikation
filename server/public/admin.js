@@ -667,7 +667,7 @@ function prefillDate(isoDate) {
   selectedCalendarDate = ''
   renderCalendar()
   document.getElementById('datum').value = isoDate
-  ;['w1','w2','w3','n1','n2','n3','l1','l2','l3','thema','thema-kurz','thema-quelle','zr','zr-notiz','zr-link','zw-lemma','zw-notiz','zw-link','wz-notiz','wz-link'].forEach(id => { const el = document.getElementById(id); if (el) el.value = '' })
+  ;['w1','w2','w3','n1','n2','n3','l1','l2','l3','thema','thema-kurz','thema-quelle','zr','zr-notiz','zr-link','zw-lemma','zw-notiz','zw-link','wz-notiz','wz-link','lf-id'].forEach(id => { const el = document.getElementById(id); if (el) el.value = '' })
   document.getElementById('p1').value    = 'Substantiv'
   document.getElementById('p2').value    = 'Verb'
   document.getElementById('p3').value    = 'Adjektiv'
@@ -709,6 +709,7 @@ async function saveTag() {
   const zwLemma   = document.getElementById('zw-lemma').value.trim()
   const zwNotiz   = document.getElementById('zw-notiz').value.trim()
   const zwLink    = document.getElementById('zw-link').value.trim()
+  const lfId      = document.getElementById('lf-id').value.trim()
 
   if (!datum || !w1 || !w2 || !w3) {
     return setStatus('Bitte Datum und alle drei Kollokations-Wörter ausfüllen.', 'error')
@@ -741,6 +742,7 @@ async function saveTag() {
         zeitenwende_lemma: zwLemma,
         zeitenwende_notiz: zwNotiz,
         zeitenwende_link:  zwLink,
+        lueckenfueller_id: lfId,
       }),
     })
     const data = await res.json()
@@ -799,6 +801,7 @@ async function editTag(datum) {
   document.getElementById('zw-lemma').value    = data.zeitenwende_lemma || ''
   document.getElementById('zw-notiz').value    = data.zeitenwende_notiz || ''
   document.getElementById('zw-link').value     = data.zeitenwende_link  || ''
+  document.getElementById('lf-id').value       = data.lueckenfueller_id || ''
   document.getElementById('form-title').textContent = `Eintrag bearbeiten: ${datum}`
   document.getElementById('save-btn').textContent   = 'Aktualisieren & APIs abrufen'
   const deleteBtn = document.getElementById('delete-btn')
