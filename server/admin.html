@@ -235,12 +235,14 @@
           <div class="mode-body" id="lf-body" style="display:none">
             <div style="display:flex;gap:8px;align-items:flex-end">
               <div style="flex:1">
-                <label for="lf-id">Lemma-ID (Lückenfüller)</label>
-                <input type="text" id="lf-id" placeholder="Lemma-ID aus der Datenbank">
+                <label for="lf-id">Lemma (Lückenfüller)</label>
+                <input type="text" id="lf-id" placeholder="z.B. Film">
               </div>
+              <button type="button" data-action="generate-lueckenfueller" style="white-space:nowrap">Generieren</button>
             </div>
-            <p style="font-size:0.8rem;color:var(--muted);font-style:italic">
-              Gibt an, welches Lemma heute für den Lückenfüller-Modus verwendet wird. Die Lückenfüller-Daten müssen vorab per „Generieren"-Button im Lemma-Detail erzeugt worden sein.
+            <p id="lf-generate-status" style="font-size:0.82rem;margin-top:6px;display:none"></p>
+            <p style="font-size:0.8rem;color:var(--muted);font-style:italic;margin-top:4px">
+              Lemma-Namen aus der Datenbank eintragen, dann „Generieren" klicken – das erzeugt die Korpussätze für das Spiel. Danach Eintrag speichern.
             </p>
           </div>
 

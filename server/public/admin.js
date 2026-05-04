@@ -1997,6 +1997,29 @@ function resetZeitenwendeAnalysis() {
   if (input) input.value = ''
 }
 
+// ── Lückenfüller – Generieren ─────────────────────────────
+async function generateLueckenfueller() {
+  const lemmaName = (document.getElementById('lf-id')?.value || '').trim()
+  const statusEl  = document.getElementById('lf-generate-status')
+  if (!lemmaName) { alert('Bitte zuerst einen Lemma-Namen eingeben.'); return }
+  if (statusEl) { statusEl.style.display = 'block'; statusEl.style.color = 'var(--muted)'; statusEl.textContent = `Generiere Lückenfüller für „${lemmaName}" …` }
+  try {
+    const res  = await fetch('/admin/lueckenfueller/generate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ lemmaName }) })
+    const data = await res.json()
+    if (!res.ok) {
+      if (statusEl) { statusEl.style.color = 'var(--danger, #c0392b)'; statusEl.textContent = `Fehler: ${data.error || 'Unbekannter Fehler'}` }
+      return
+    }
+    if (!data.ok) {
+      if (statusEl) { statusEl.style.color = 'var(--danger, #c0392b)'; statusEl.textContent = `Nicht möglich: ${data.reason || 'Kein Material verfügbar'}` }
+      return
+    }
+    if (statusEl) { statusEl.style.color = 'var(--success, #27ae60)'; statusEl.textContent = `✓ Lückenfüller generiert für „${data.lemma}" – ${data.rounds} Runden` }
+  } catch (err) {
+    if (statusEl) { statusEl.style.color = 'var(--danger, #c0392b)'; statusEl.textContent = `Fehler: ${err.message}` }
+  }
+}
+
 // ── Freitage ──────────────────────────────────────────────
 async function loadFreeDays() {
   const listEl = document.getElementById('freedays-list')
@@ -2094,6 +2117,7 @@ function handleDocumentClick(event) {
   if (action === 'reset-wort-zwilling-analysis') return void resetWortZwillingAnalysis()
   if (action === 'analyze-zeitenwende') return void analyzeZeitenwende()
   if (action === 'reset-zeitenwende-analysis') return void resetZeitenwendeAnalysis()
+  if (action === 'generate-lueckenfueller') return void generateLueckenfueller()
   if (action === 'change-month') return void changeMonth(Number(target.dataset.delta || 0))
   if (action === 'edit-selected-calendar-date') return void editSelectedCalendarDate()
   if (action === 'load-users-overview') return void loadUsersOverview()

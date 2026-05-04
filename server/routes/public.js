@@ -33,7 +33,7 @@ router.get('/api/v1/heute', (req, res) => {
     const datum     = req.query.datum || today.mmdd
     const year      = today.year
     const kalender       = loadKalender()
-    const { byId }       = getLemmataIndex()
+    const { byId, byLemma } = getLemmataIndex()
 
     const entry = kalender[datum]
     if (!entry) return res.status(404).json({ error: `Kein Eintrag für ${datum}` })
@@ -45,7 +45,7 @@ router.get('/api/v1/heute', (req, res) => {
     const lueckenfueller_id = Array.isArray(entry) ? '' : (entry.lueckenfueller_id ?? '')
     const lemmata          = ids.map(id => byId.get(id)).filter(Boolean)
     const lueckenfuellerLemma = lueckenfueller_id
-      ? (byId.get(lueckenfueller_id) ?? null)
+      ? (byId.get(lueckenfueller_id) ?? byLemma.get(lueckenfueller_id) ?? null)
       : null
     res.json({ datum, year, lemmata, thema, thema_kurz, thema_quelle, lueckenfuellerLemma })
   } catch (err) {

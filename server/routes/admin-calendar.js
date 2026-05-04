@@ -445,6 +445,29 @@ export function createAdminCalendarRouter({
     }
   })
 
+  router.post('/admin/lueckenfueller/generate', adminLimiter, requireAuth, async (req, res) => {
+    const { lemmaName } = req.body
+    if (!lemmaName || typeof lemmaName !== 'string' || !lemmaName.trim()) {
+      return res.status(400).json({ error: 'lemmaName fehlt' })
+    }
+    try {
+      const { byLemma } = getLemmataIndex()
+      const entry = byLemma.get(lemmaName.trim())
+      if (!entry) return res.status(404).json({ error: `Lemma „${lemmaName}" nicht in der Datenbank gefunden` })
+
+      const result = await buildLueckenfueller(entry.lemma, entry.pos)
+      if (!result) return res.json({ ok: false, reason: 'Nicht genug Material (Pool zu klein oder keine blankbaren Sätze)' })
+
+      stmts.upsertLemma.run(lemmaToRow({ ...entry, lueckenfueller: result }))
+      invalidateCache('lemmata.json')
+
+      logger.info(`Lückenfüller generiert für „${entry.lemma}" (${entry.id}): ${result.length} Runden`)
+      res.json({ ok: true, lemma: entry.lemma, id: entry.id, rounds: result.length })
+    } catch (err) {
+      serverError(res, err)
+    }
+  })
+
   router.get('/admin/kalender', adminLimiter, requireAuth, (_req, res) => {
     try {
       const { kalender, wortzwilling, zeitenwende } = loadDailyContentMaps()
