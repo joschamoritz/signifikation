@@ -74,7 +74,7 @@
   font-size: 0.72rem;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: var(--text-muted);
+  color: var(--muted);
   margin-bottom: 4px;
 }
 .dc-date {
@@ -108,7 +108,7 @@
 .dc-medal-label {
   font-family: var(--font-sans);
   font-size: 0.68rem;
-  color: var(--text-muted);
+  color: var(--muted);
   text-align: center;
 }
 .dc-footer {
@@ -135,7 +135,7 @@
   font-family: var(--font-serif);
   font-style: italic;
   font-size: 0.9rem;
-  color: var(--text-muted);
+  color: var(--muted);
   margin: 0;
   animation: fadeInSlow 600ms ease-in 600ms both;
 }

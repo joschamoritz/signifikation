@@ -7,7 +7,7 @@ import { loadKalender, loadWortZwilling, loadZeitenwende, recordStat, getLemmata
 import { belegeLimiter, statsLimiter } from '../middleware/rateLimiter.js'
 import { auth } from '../auth/index.js'
 import { serverError } from '../middleware/auth.js'
-import { validate, statsSchema, belegeQuerySchema, archivQuerySchema, qQuerySchema, bonusQuerySchema } from '../middleware/validate.js'
+import { validate, statsSchema, belegeQuerySchema, archivQuerySchema, qQuerySchema, bonusQuerySchema, datumQuerySchema } from '../middleware/validate.js'
 import logger from '../logger.js'
 import { fromNodeHeaders } from 'better-auth/node'
 
@@ -27,7 +27,7 @@ router.get('/health', (_req, res) => {
 })
 
 /** GET /api/heute → die 3 Lemmata des Tages */
-router.get('/api/v1/heute', (req, res) => {
+router.get('/api/v1/heute', validate(datumQuerySchema, 'query'), (req, res) => {
   try {
     const today     = todayDatum()
     const datum     = req.query.datum || today.mmdd
@@ -54,7 +54,7 @@ router.get('/api/v1/heute', (req, res) => {
 })
 
 /** GET /api/wortzwilling → Wort-Zwilling-Eintrag des Tages (ohne Scores) */
-router.get('/api/v1/wortzwilling', (req, res) => {
+router.get('/api/v1/wortzwilling', validate(datumQuerySchema, 'query'), (req, res) => {
   try {
     const datum = req.query.datum || todayDatum().mmdd
     const wz    = loadWortZwilling() ?? {}
@@ -74,7 +74,7 @@ router.get('/api/v1/wortzwilling', (req, res) => {
 })
 
 /** GET /api/zeitenwende → Zeitenwende-Eintrag des Tages (inkl. IPA + Definitionen) */
-router.get('/api/v1/zeitenwende', async (req, res) => {
+router.get('/api/v1/zeitenwende', validate(datumQuerySchema, 'query'), async (req, res) => {
   try {
     const datum = req.query.datum || todayDatum().mmdd
     const zw    = loadZeitenwende()

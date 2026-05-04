@@ -21,11 +21,11 @@ const FREE_BONUS_TEXTS = [
 ]
 
 export function FreeBonusRound({ onComplete, onBack }) {
-  const msg = FREE_BONUS_TEXTS[Math.floor(Math.random() * FREE_BONUS_TEXTS.length)]
+  const [msg] = useState(() => FREE_BONUS_TEXTS[Math.floor(Math.random() * FREE_BONUS_TEXTS.length)])
   return (
     <div className="screen quiz-screen">
       {onBack && (
-        <button className="back-btn" onClick={onBack} aria-label="Zurück zur Wortauswahl">
+        <button className="back-btn" type="button" onClick={onBack} aria-label="Zurück zur Wortauswahl">
           <span className="back-btn-chevron">‹</span>Zurück
         </button>
       )}
@@ -55,7 +55,7 @@ export function FreeBonusRound({ onComplete, onBack }) {
       </div>
 
       <footer className="quiz-footer">
-        <button className="btn-primary btn-full" onClick={() => onComplete(1)}>
+        <button className="btn-primary btn-full" type="button" onClick={() => onComplete(1)}>
           Ergebnis →
         </button>
       </footer>
@@ -79,9 +79,9 @@ export function BonusRound({ bonus, lemma, onComplete, onBack }) {
   }
 
   return (
-    <div className="screen quiz-screen">
+      <div className="screen quiz-screen">
       {onBack && !submitted && (
-        <button className="back-btn" onClick={onBack} aria-label="Zurück zur Wortauswahl">
+        <button className="back-btn" type="button" onClick={onBack} aria-label="Zurück zur Wortauswahl">
           <span className="back-btn-chevron">‹</span>Zurück
         </button>
       )}
@@ -107,6 +107,7 @@ export function BonusRound({ bonus, lemma, onComplete, onBack }) {
             <button
               key={opt}
               className={optionClass(opt)}
+              type="button"
               style={{ animationDelay: submitted ? '0ms' : `${i * 80}ms` }}
               onClick={() => submitted ? loadBelege(opt) : setSelected(opt)}
               aria-label={stateLabel}
@@ -148,12 +149,12 @@ export function BonusRound({ bonus, lemma, onComplete, onBack }) {
         {!submitted ? (
           <>
             <span className="select-count">{selected ? '1 / 1 gewählt' : '0 / 1 gewählt'}</span>
-            <button className="btn-primary" disabled={!selected} onClick={() => setSubmitted(true)}>
+            <button className="btn-primary" type="button" disabled={!selected} onClick={() => setSubmitted(true)}>
               Auswerten
             </button>
           </>
         ) : (
-          <button className="btn-primary btn-full" onClick={() => onComplete(isCorrect ? 1 : 0)}>
+          <button className="btn-primary btn-full" type="button" onClick={() => onComplete(isCorrect ? 1 : 0)}>
             Ergebnis →
           </button>
         )}

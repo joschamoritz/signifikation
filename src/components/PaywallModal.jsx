@@ -1,18 +1,44 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { API } from '../config'
 
 export default function PaywallModal({ onClose }) {
   const [agreed, setAgreed] = useState(false)
   const [isBusy, setIsBusy] = useState(false)
   const [error, setError] = useState(null)
+  const modalRef = useRef(null)
+  const closeButtonRef = useRef(null)
 
-  // ESC-Taste schließt Modal
   useEffect(() => {
+    const previousFocus = document.activeElement
+    closeButtonRef.current?.focus()
+
     function onKey(e) {
       if (e.key === 'Escape') onClose()
+
+      if (e.key !== 'Tab' || !modalRef.current) return
+
+      const focusable = modalRef.current.querySelectorAll(
+        'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+      )
+      if (!focusable.length) return
+
+      const first = focusable[0]
+      const last = focusable[focusable.length - 1]
+
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault()
+        last.focus()
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault()
+        first.focus()
+      }
     }
+
     document.addEventListener('keydown', onKey)
-    return () => document.removeEventListener('keydown', onKey)
+    return () => {
+      document.removeEventListener('keydown', onKey)
+      previousFocus?.focus?.()
+    }
   }, [onClose])
 
   const handleOverlayClick = useCallback((e) => {
@@ -56,10 +82,12 @@ export default function PaywallModal({ onClose }) {
       role="dialog"
       aria-modal="true"
       aria-labelledby="paywall-title"
+      aria-describedby="paywall-description paywall-price"
       onClick={handleOverlayClick}
     >
-      <div className="paywall-modal">
+      <div ref={modalRef} className="paywall-modal">
         <button
+          ref={closeButtonRef}
           className="paywall-close"
           type="button"
           onClick={onClose}
@@ -75,14 +103,14 @@ export default function PaywallModal({ onClose }) {
           </h2>
         </header>
 
-        <ul className="paywall-features" aria-label="Enthaltene Inhalte">
+        <ul id="paywall-description" className="paywall-features" aria-label="Enthaltene Inhalte">
           <li>Wort-Zwilling – Bedeutungsverwandtschaft entdecken</li>
           <li>Zeitenwende – Semantischen Wandel verstehen</li>
           <li>Lückenfüller – Korpussätze mit Lücken füllen</li>
           <li>Klassenraum – Gemeinsam spielen (für Lehrkräfte)</li>
         </ul>
 
-        <div className="paywall-price" aria-label="Preis: 4 Euro 99, einmalig">
+        <div id="paywall-price" className="paywall-price" aria-label="Preis: 4 Euro 99, einmalig">
           <span className="paywall-amount">4,99 €</span>
           <span className="paywall-once">Einmalig · kein Abo</span>
         </div>

@@ -28,11 +28,20 @@ export function useDailyContent() {
   const [wzPlayed, setWzPlayed] = useState(null)
   const [zwPlayed, setZwPlayed] = useState(null)
   const [lfPlayed, setLfPlayed] = useState(null)
+  const [contentRequestId, setContentRequestId] = useState(0)
+
+  const triggerContentReload = useCallback(() => {
+    setContentRequestId((n) => n + 1)
+  }, [])
 
   useEffect(() => {
-    fetchWithRetry(`${API}/heute`)
+    let cancelled = false
+    const controller = new AbortController()
+
+    fetchWithRetry(`${API}/heute`, { signal: controller.signal })
       .then((r) => r.ok ? r.json() : r.json().then((d) => Promise.reject(new Error(d.error || `HTTP ${r.status}`))))
       .then(({ datum, year, lemmata, thema, thema_kurz, thema_quelle, lueckenfuellerLemma: lfLemma }) => {
+        if (cancelled) return
         setServerDatum(datum)
         if (year) setServerYear(year)
         setLemmata(lemmata)
@@ -44,41 +53,77 @@ export function useDailyContent() {
         setZwPlayed(lsParse(lsGet(`sig_zw_${datum}`), null))
         setLfPlayed(lsParse(lsGet(`sig_lf_${datum}`), null))
       })
-      .catch((err) => setApiError(err.message))
-  }, [])
+      .catch((err) => {
+        if (cancelled || err?.name === 'AbortError') return
+        setApiError(err.message)
+      })
+
+    return () => {
+      cancelled = true
+      controller.abort()
+    }
+  }, [contentRequestId])
 
   useEffect(() => {
+    let cancelled = false
+    const controller = new AbortController()
+
     setWortzwillingError(false)
     setWortzwilling(null)
-    fetchWithRetry(`${API}/wortzwilling`)
+    fetchWithRetry(`${API}/wortzwilling`, { signal: controller.signal })
       .then((r) => {
         if (r.ok) return r.json()
         if (r.status === 404) return null
         return Promise.reject(new Error(`HTTP ${r.status}`))
       })
-      .then((data) => { if (data) setWortzwilling(data) })
-      .catch(() => setWortzwillingError(true))
+      .then((data) => {
+        if (cancelled) return
+        if (data) setWortzwilling(data)
+      })
+      .catch((err) => {
+        if (cancelled || err?.name === 'AbortError') return
+        setWortzwillingError(true)
+      })
+
+    return () => {
+      cancelled = true
+      controller.abort()
+    }
   }, [wortzwillingRetry])
 
   useEffect(() => {
+    let cancelled = false
+    const controller = new AbortController()
+
     setZeitenwendeStatus('loading')
     setZeitenwende(null)
-    fetchWithRetry(`${API}/zeitenwende`)
+    fetchWithRetry(`${API}/zeitenwende`, { signal: controller.signal })
       .then((r) => {
         if (r.ok) return r.json()
         if (r.status === 404) {
-          setZeitenwendeStatus('missing')
+          if (!cancelled) setZeitenwendeStatus('missing')
           return null
         }
         return Promise.reject(new Error(`HTTP ${r.status}`))
       })
       .then((data) => {
+        if (cancelled) return
         if (data) {
           setZeitenwende(data)
           setZeitenwendeStatus('ready')
+        } else {
+          setZeitenwende(null)
         }
       })
-      .catch(() => setZeitenwendeStatus('error'))
+      .catch((err) => {
+        if (cancelled || err?.name === 'AbortError') return
+        setZeitenwendeStatus('error')
+      })
+
+    return () => {
+      cancelled = true
+      controller.abort()
+    }
   }, [zeitenwendeRetry])
 
   const retryWortzwilling = useCallback(() => {
@@ -88,6 +133,11 @@ export function useDailyContent() {
   const retryZeitenwende = useCallback(() => {
     setZeitenwendeRetry((n) => n + 1)
   }, [])
+
+  const retryDailyContent = useCallback(() => {
+    setApiError(null)
+    triggerContentReload()
+  }, [triggerContentReload])
 
   return {
     lemmata,
@@ -105,6 +155,7 @@ export function useDailyContent() {
     zeitenwendeError: zeitenwendeStatus === 'error',
     zeitenwendeMissing: zeitenwendeStatus === 'missing',
     retryZeitenwende,
+    retryDailyContent,
     wzPlayed,
     setWzPlayed,
     zwPlayed,

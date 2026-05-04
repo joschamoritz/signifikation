@@ -106,7 +106,7 @@ const _replaceAllAdminDataTx = db.transaction(({ lemmata, kalender, wortzwilling
 })
 
 function _loadLemmata() {
-  return stmts.getAllLemmata.all().map(rowToLemma)
+  return stmts.getAllLemmata.all().map((row) => rowToLemma(row, logger))
 }
 
 export const lemmaToRow = lemmaToRowInternal
@@ -143,7 +143,7 @@ const _statsStore = createStatsStore({
   },
 })
 
-const _dailyContentStore = createDailyContentStore({ db, stmts })
+const _dailyContentStore = createDailyContentStore({ db, stmts, logger })
 
 // ── Dispatcher-Map ────────────────────────────────────────────────
 

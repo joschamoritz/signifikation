@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { shuffle } from '../utils/gameLogic'
 import { API } from '../config'
 import WzResultsView, { computeScore } from './WzResultsView'
+import { logError } from '../utils/logError'
 
 /** Hauptkomponente */
 export default function WortZwilling({ data, onBack, onFinish, savedResult = null }) {
@@ -34,6 +35,8 @@ export default function WortZwilling({ data, onBack, onFinish, savedResult = nul
   const [jokerUsed,    setJokerUsed]    = useState(false)
   const [jokerCluster, setJokerCluster] = useState(null) // [word1, word2] gleiche Gruppe
   const jokerTimer = useRef(null)
+  const jokerMsgTimer = useRef(null)
+  const fullZoneTimer = useRef(null)
 
   useEffect(() => {
     if (phase !== 'play' || jokerUsed) return
@@ -41,6 +44,11 @@ export default function WortZwilling({ data, onBack, onFinish, savedResult = nul
     jokerTimer.current = setTimeout(() => setJokerVisible(true), 20000)
     return () => clearTimeout(jokerTimer.current)
   }, [phase, jokerUsed])
+
+  useEffect(() => () => {
+    clearTimeout(jokerMsgTimer.current)
+    clearTimeout(fullZoneTimer.current)
+  }, [])
 
   function resetJokerTimer() {
     if (jokerUsed || phase !== 'play') return
@@ -65,7 +73,8 @@ export default function WortZwilling({ data, onBack, onFinish, savedResult = nul
     if (pair.length === 2) {
       setJokerCluster(pair)
       setJokerMsg(pair)
-      setTimeout(() => setJokerMsg(null), 4000)
+      clearTimeout(jokerMsgTimer.current)
+      jokerMsgTimer.current = setTimeout(() => setJokerMsg(null), 4000)
     }
   }
 
@@ -79,7 +88,7 @@ export default function WortZwilling({ data, onBack, onFinish, savedResult = nul
       fetch(`${API}/ipa?q=${encodeURIComponent(word)}`, { signal })
         .then(r => r.json())
         .then(d => { if (d[0]?.ipa) setter(d[0].ipa) })
-        .catch(err => { if (err.name !== 'AbortError') console.error('IPA fetch (WZ):', err) })
+        .catch(err => { if (err.name !== 'AbortError') logError('IPA fetch (WZ) fehlgeschlagen', err, { word }) })
     fetchIpa(data.wortA, setIpaA)
     fetchIpa(data.wortB, setIpaB)
     return () => controller.abort()
@@ -96,7 +105,8 @@ export default function WortZwilling({ data, onBack, onFinish, savedResult = nul
     const target = zone === 'A' ? zoneA : zoneB
     if (locations[word] !== zone && target.length >= 5) {
       setFullZone(zone)
-      setTimeout(() => setFullZone(null), 1500)
+      clearTimeout(fullZoneTimer.current)
+      fullZoneTimer.current = setTimeout(() => setFullZone(null), 1500)
       return
     }
     setLocations(prev => ({ ...prev, [word]: zone }))
@@ -175,7 +185,7 @@ export default function WortZwilling({ data, onBack, onFinish, savedResult = nul
 
   return (
     <div className="screen wz-screen" onClick={resetJokerTimer}>
-      <button className="back-btn" onClick={onBack} aria-label="Zurück zur Startseite"><span className="back-btn-chevron">‹</span>Zurück</button>
+      <button className="back-btn" type="button" onClick={onBack} aria-label="Zurück zur Startseite"><span className="back-btn-chevron">‹</span>Zurück</button>
       <header className="wz-header">
         <span className="wz-badge">Wort-Zwilling</span>
         <div className="wz-dict-pair">
@@ -202,7 +212,7 @@ export default function WortZwilling({ data, onBack, onFinish, savedResult = nul
       <p className="wz-instruction">
         Ordne die Kollokationen dem richtigen Wort zu.
         {!jokerUsed && jokerVisible && (
-          <button className="joker-btn" onClick={e => { e.stopPropagation(); activateJoker() }} aria-label="Hinweis aktivieren" title="Hinweis"><em>i</em></button>
+          <button className="joker-btn" type="button" onClick={e => { e.stopPropagation(); activateJoker() }} aria-label="Hinweis aktivieren" title="Hinweis"><em>i</em></button>
         )}
       </p>
 
@@ -305,6 +315,7 @@ export default function WortZwilling({ data, onBack, onFinish, savedResult = nul
 
       <button
         className="btn-primary btn-full"
+        type="button"
         onClick={handleSubmit}
         disabled={!canSubmit}
       >

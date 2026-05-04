@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { API } from '../config'
 import SelectionThema from './SelectionThema'
+import { logError } from '../utils/logError'
 
 
 export default function LemmaSelection({ lemmata, thema, themaKurz, themaQuelle, playedIds = [], onSelect, onViewResult, onBack }) {
@@ -26,7 +27,7 @@ export default function LemmaSelection({ lemmata, thema, themaKurz, themaQuelle,
         const data = await r.json()
         if (data[0]?.ipa) setIpaMap(m => ({ ...m, [l.lemma]: data[0].ipa }))
       } catch (err) {
-        if (err.name !== 'AbortError') console.error('IPA fetch:', err)
+        if (err.name !== 'AbortError') logError('IPA fetch fehlgeschlagen', err, { lemma: l.lemma })
       } finally {
         setIpaLoading(s => { const n = new Set(s); n.delete(l.lemma); return n })
       }
@@ -38,7 +39,7 @@ export default function LemmaSelection({ lemmata, thema, themaKurz, themaQuelle,
   return (
     <div className="screen selection-screen">
       <header className="selection-header">
-        <button className="back-btn" onClick={onBack} aria-label="Zurück zur Startseite"><span className="back-btn-chevron">‹</span>Zurück</button>
+        <button className="back-btn" type="button" onClick={onBack} aria-label="Zurück zur Startseite"><span className="back-btn-chevron">‹</span>Zurück</button>
         <span className="quiz-game-badge">Kollokationen</span>
         <h1 className="sr-only">Wortauswahl</h1>
         <SelectionThema thema={thema} themaKurz={themaKurz} themaQuelle={themaQuelle} />
@@ -52,6 +53,7 @@ export default function LemmaSelection({ lemmata, thema, themaKurz, themaQuelle,
             <div className={`lemma-card${played ? ' lemma-card--played' : ''}`}>
               <button
                 className="lemma-card-main"
+                type="button"
                 onClick={() => played ? onViewResult?.(lemma.id) : onSelect(lemma)}
                 aria-label={played ? `${lemma.lemma} – Ergebnis ansehen` : `${lemma.lemma} spielen`}
               >

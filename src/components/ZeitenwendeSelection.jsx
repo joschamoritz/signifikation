@@ -14,7 +14,7 @@ export default function ZeitenwendeSelection({ data, thema, themaKurz, themaQuel
   return (
     <div className="screen selection-screen">
       <header className="selection-header">
-        <button className="back-btn" onClick={onBack} aria-label="Zurück zur Startseite">
+        <button className="back-btn" type="button" onClick={onBack} aria-label="Zurück zur Startseite">
           <span className="back-btn-chevron">‹</span>Zurück
         </button>
         <span className="quiz-game-badge">Zeitenwende</span>
@@ -25,11 +25,12 @@ export default function ZeitenwendeSelection({ data, thema, themaKurz, themaQuel
       <div className="secondary-selection-card">
         <div className="lemma-card-wrap">
           <div className="lemma-card">
-            <button
-              className="lemma-card-main"
-              onClick={onPlay}
-              aria-label={`${lemma} – Zeitenwende starten`}
-            >
+              <button
+                className="lemma-card-main"
+                type="button"
+                onClick={onPlay}
+                aria-label={`${lemma} – Zeitenwende starten`}
+              >
               <div className="lemma-info">
                 <div className="lemma-header-row">
                   <span className="lemma-name">{lemma}</span>
@@ -47,6 +48,7 @@ export default function ZeitenwendeSelection({ data, thema, themaKurz, themaQuel
             {notiz && (
               <button
                 className={`lemma-info-btn${notizOpen ? ' lemma-info-btn--active' : ''}`}
+                type="button"
                 onClick={() => setNotizOpen(o => !o)}
                 aria-label={`Hinweis ${notizOpen ? 'ausblenden' : 'anzeigen'}`}
                 aria-expanded={notizOpen}

@@ -6,8 +6,16 @@
 import db from './db.js'
 import logger from './logger.js'
 
+function printInfo(message) {
+  process.stdout.write(`${message}\n`)
+}
+
+function printError(message) {
+  process.stderr.write(`${message}\n`)
+}
+
 try {
-  console.log('🔄 Migrating user_profiles table...')
+  printInfo('Migrating user_profiles table...')
 
   // Erstelle neue Tabelle mit korrektem Schema
   db.exec(`
@@ -27,10 +35,10 @@ try {
     COMMIT;
   `)
 
-  console.log('✅ Migration complete – admin role added to user_profiles')
+  printInfo('Migration complete - admin role added to user_profiles')
   db.close()
 } catch (err) {
   logger.error({ err }, 'Migration-Fehler')
-  console.error(`❌ Fehler: ${err.message}`)
+  printError(`Fehler: ${err.message}`)
   process.exit(1)
 }

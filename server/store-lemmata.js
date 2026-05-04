@@ -1,18 +1,28 @@
-export function rowToLemma(row) {
+function parseJsonSafe(value, fallback, logger, context) {
+  if (!value) return fallback
+  try {
+    return JSON.parse(value)
+  } catch (err) {
+    logger?.warn?.({ err, context }, 'Ungueltiges JSON in Lemma-Datensatz – Fallback verwendet')
+    return fallback
+  }
+}
+
+export function rowToLemma(row, logger) {
   return {
     id: row.id,
     lemma: row.lemma,
     pos: row.pos,
     wortart: row.wortart,
-    runden: JSON.parse(row.runden || '{}'),
-    rundenInfo: JSON.parse(row.rundenInfo || '[]'),
+    runden: parseJsonSafe(row.runden, {}, logger, { lemmaId: row.id, field: 'runden' }),
+    rundenInfo: parseJsonSafe(row.rundenInfo, [], logger, { lemmaId: row.id, field: 'rundenInfo' }),
     notiz: row.notiz,
     link: row.link,
     definition: row.definition,
-    bonusFrage: row.bonusFrage ? JSON.parse(row.bonusFrage) : null,
+    bonusFrage: parseJsonSafe(row.bonusFrage, null, logger, { lemmaId: row.id, field: 'bonusFrage' }),
     ipa: row.ipa,
-    definitionen: JSON.parse(row.definitionen || '[]'),
-    lueckenfueller: row.lueckenfueller ? JSON.parse(row.lueckenfueller) : null,
+    definitionen: parseJsonSafe(row.definitionen, [], logger, { lemmaId: row.id, field: 'definitionen' }),
+    lueckenfueller: parseJsonSafe(row.lueckenfueller, null, logger, { lemmaId: row.id, field: 'lueckenfueller' }),
   }
 }
 

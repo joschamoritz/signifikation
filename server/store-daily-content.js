@@ -1,11 +1,21 @@
+function parseJsonSafe(value, fallback, logger, context) {
+  if (!value) return fallback
+  try {
+    return JSON.parse(value)
+  } catch (err) {
+    logger?.warn?.({ err, context }, 'Ungueltiges JSON in Tagesinhalt – Fallback verwendet')
+    return fallback
+  }
+}
+
 // ── Kalender ──────────────────────────────────────────────────────
 // Shape: { [datum]: { ids: string[], thema: string, thema_kurz: string, thema_quelle: string } }
 
-export function loadKalenderRows(rows) {
+export function loadKalenderRows(rows, logger) {
   const result = {}
   for (const row of rows) {
     result[row.datum] = {
-      ids: JSON.parse(row.ids),
+      ids: parseJsonSafe(row.ids, [], logger, { datum: row.datum, field: 'kalender.ids' }),
       thema: row.thema ?? '',
       thema_kurz: row.thema_kurz ?? '',
       thema_quelle: row.thema_quelle ?? '',
@@ -40,21 +50,21 @@ export function normalizeKalenderShape(raw) {
 
 // ── Wort-Zwilling ────────────────────────────────────────────────
 
-export function normalizeWortzwillingEntry(row) {
+export function normalizeWortzwillingEntry(row, logger) {
   return {
     wortA:       row.wortA,
     wortB:       row.wortB,
     pos:         row.pos,
-    kollokatoren: JSON.parse(row.kollokatoren),
+    kollokatoren: parseJsonSafe(row.kollokatoren, [], logger, { datum: row.datum, field: 'wortzwilling.kollokatoren' }),
     notiz:       row.notiz ?? '',
     link:        row.link  ?? '',
   }
 }
 
-export function loadWortzwillingRows(rows) {
+export function loadWortzwillingRows(rows, logger) {
   const result = {}
   for (const row of rows) {
-    result[row.datum] = normalizeWortzwillingEntry(row)
+    result[row.datum] = normalizeWortzwillingEntry(row, logger)
   }
   return result
 }
@@ -74,10 +84,10 @@ export function toWortzwillingRow(datum, value) {
 // ── Zeitenwende ──────────────────────────────────────────────────
 // notiz/link werden im JSON-blob (data) gespeichert
 
-export function loadZeitenwendeRows(rows) {
+export function loadZeitenwendeRows(rows, logger) {
   const result = {}
   for (const row of rows) {
-    result[row.datum] = JSON.parse(row.data)
+    result[row.datum] = parseJsonSafe(row.data, null, logger, { datum: row.datum, field: 'zeitenwende.data' })
   }
   return result
 }
@@ -91,7 +101,7 @@ export function toZeitenwendeRow(datum, value) {
 
 // ── Factory ──────────────────────────────────────────────────────
 
-export function createDailyContentStore({ db, stmts }) {
+export function createDailyContentStore({ db, stmts, logger }) {
   const replaceKalender = db.transaction((obj) => {
     stmts.deleteAllKalender.run()
     for (const [datum, entry] of getKalenderEntries(obj)) {
@@ -119,9 +129,9 @@ export function createDailyContentStore({ db, stmts }) {
   })
 
   return {
-    loadKalender()    { return loadKalenderRows(stmts.getAllKalender.all()) },
-    loadWortzwilling(){ return loadWortzwillingRows(stmts.getAllWortzwilling.all()) },
-    loadZeitenwende() { return loadZeitenwendeRows(stmts.getAllZeitenwende.all()) },
+    loadKalender()    { return loadKalenderRows(stmts.getAllKalender.all(), logger) },
+    loadWortzwilling(){ return loadWortzwillingRows(stmts.getAllWortzwilling.all(), logger) },
+    loadZeitenwende() { return loadZeitenwendeRows(stmts.getAllZeitenwende.all(), logger) },
     replaceKalender,
     replaceWortzwilling,
     replaceZeitenwende,

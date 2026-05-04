@@ -10,6 +10,7 @@
   --bg:          #faf9f7;
   --surface:     #ffffff;
   --surface2:    #f3f1ed;
+  --surface-warm: #fdf8ee;
   --border:      #d4c9b0;
   --border-lt:   #e8e2d8;
   --primary:     #9b1c1c;
@@ -27,6 +28,8 @@
   --disabled:    #b8b0a0;
   --radius:      4px;
   --radius-sm:   2px;
+  --overlay-scrim: rgba(0, 0, 0, 0.35);
+  --shadow-soft: 0 2px 10px rgba(0, 0, 0, 0.06);
   --font-serif:  'Gentium Plus', Georgia, 'Times New Roman', serif;
   --font-sans:   'DM Sans', system-ui, -apple-system, sans-serif;
   --font-ipa:    'Gentium Plus', Georgia, serif;
@@ -265,7 +268,7 @@ button { font-family: inherit; cursor: pointer; border: none }
 .feedback-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.35);
+  background: var(--overlay-scrim);
   z-index: 200;
   display: flex;
   align-items: flex-end;

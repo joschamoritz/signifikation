@@ -31,7 +31,7 @@ export default function WortZwillingSelection({ data, thema, themaKurz, themaQue
   return (
     <div className="screen selection-screen">
       <header className="selection-header">
-        <button className="back-btn" onClick={onBack} aria-label="Zurück zur Startseite">
+        <button className="back-btn" type="button" onClick={onBack} aria-label="Zurück zur Startseite">
           <span className="back-btn-chevron">‹</span>Zurück
         </button>
         <span className="quiz-game-badge">Wort-Zwilling</span>
@@ -44,7 +44,7 @@ export default function WortZwillingSelection({ data, thema, themaKurz, themaQue
 
           {/* Eintrag A */}
           <div className="lemma-card">
-            <button className="lemma-card-main" onClick={onPlay}
+            <button className="lemma-card-main" type="button" onClick={onPlay}
               aria-label={`${wortA} vs. ${wortB} – Wort-Zwilling starten`}>
               <WZEntry lemma={wortA} pos={wortart} />
               <span className="lemma-arrow" aria-hidden="true">›</span>
@@ -59,6 +59,7 @@ export default function WortZwillingSelection({ data, thema, themaKurz, themaQue
             {notiz && (
               <button
                 className={`lemma-info-btn wz-vs-info-btn${notizOpen ? ' lemma-info-btn--active' : ''}`}
+                type="button"
                 onClick={() => setNotizOpen(o => !o)}
                 aria-label={`Hinweis ${notizOpen ? 'ausblenden' : 'anzeigen'}`}
                 aria-expanded={notizOpen}
@@ -68,7 +69,7 @@ export default function WortZwillingSelection({ data, thema, themaKurz, themaQue
 
           {/* Eintrag B */}
           <div className="lemma-card">
-            <button className="lemma-card-main" onClick={onPlay}
+            <button className="lemma-card-main" type="button" onClick={onPlay}
               aria-label={`${wortA} vs. ${wortB} – Wort-Zwilling starten`}>
               <WZEntry lemma={wortB} pos={wortart} />
               <span className="lemma-arrow" aria-hidden="true">›</span>

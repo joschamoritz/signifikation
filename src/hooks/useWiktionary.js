@@ -12,10 +12,19 @@ export function useWiktionary({ lemma, initialIpa = '', initialDefinitionen = []
   const [loading, setLoading]       = useState(!initialIpa || !initialDefinitionen.length)
 
   useEffect(() => {
-    if (!lemma) return
+    let cancelled = false
+
+    setIpa(initialIpa)
+    setDefinitionen(initialDefinitionen)
+    setLoading(!initialIpa || !initialDefinitionen.length)
+
+    if (!lemma) return () => { cancelled = true }
     const needsIpa  = !initialIpa
     const needsDefs = !initialDefinitionen.length
-    if (!needsIpa && !needsDefs) { setLoading(false); return }
+    if (!needsIpa && !needsDefs) {
+      setLoading(false)
+      return () => { cancelled = true }
+    }
 
     const controller = new AbortController()
     const { signal } = controller
@@ -23,14 +32,20 @@ export function useWiktionary({ lemma, initialIpa = '', initialDefinitionen = []
     fetch(`${API}/wiktionary?q=${encodeURIComponent(lemma)}`, { signal })
       .then(r => r.json())
       .then(data => {
-        if (needsIpa  && data.ipa)          setIpa(data.ipa)
+        if (cancelled) return
+        if (needsIpa  && data.ipa) setIpa(data.ipa)
         if (needsDefs && data.definitionen?.length) setDefinitionen(data.definitionen)
       })
-      .catch(err => { if (err.name !== 'AbortError') console.error('Wiktionary fetch:', err) })
-      .finally(() => setLoading(false))
+      .catch(() => {})
+      .finally(() => {
+        if (!cancelled) setLoading(false)
+      })
 
-    return () => controller.abort()
-  }, [lemma]) // eslint-disable-line react-hooks/exhaustive-deps
+    return () => {
+      cancelled = true
+      controller.abort()
+    }
+  }, [lemma, initialDefinitionen, initialIpa])
 
   return { ipa, definitionen, loading }
 }

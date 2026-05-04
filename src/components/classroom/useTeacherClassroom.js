@@ -195,11 +195,15 @@ export function useTeacherClassroom({ isTeacher, setTeacherError }) {
     }
   }, [isTeacher, loadExports, requestingExport])
 
-  const copyJoinCode = useCallback(() => {
+  const copyJoinCode = useCallback(async () => {
     if (!lastJoinCode) return
-    navigator.clipboard.writeText(lastJoinCode)
-    setCodeCopied(true)
-    setTimeout(() => setCodeCopied(false), 2000)
+    try {
+      await navigator.clipboard.writeText(lastJoinCode)
+      setCodeCopied(true)
+      setTimeout(() => setCodeCopied(false), 2000)
+    } catch {
+      setCreateNotice('Zugangscode konnte nicht in die Zwischenablage kopiert werden.')
+    }
   }, [lastJoinCode])
 
   useEffect(() => {

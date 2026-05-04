@@ -45,7 +45,7 @@ export default function WzResultsView({ data, zoneA, zoneB, onBack, ipaA, ipaB }
 
   return (
     <div className="screen wz-screen">
-      <button className="back-btn" onClick={onBack}><span className="back-btn-chevron">‹</span>Zurück</button>
+      <button className="back-btn" type="button" onClick={onBack}><span className="back-btn-chevron">‹</span>Zurück</button>
       <header className="wz-header">
         <span className="wz-badge">Wort-Zwilling</span>
         <div className="wz-dict-pair">

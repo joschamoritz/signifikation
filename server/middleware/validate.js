@@ -63,6 +63,11 @@ export const bonusQuerySchema = z.object({
   id: z.string().min(1, 'id erforderlich'),
 })
 
+/** GET /api/v1/heute, /api/v1/wortzwilling, /api/v1/zeitenwende (query: datum=MM-DD) */
+export const datumQuerySchema = z.object({
+  datum: DATUM_MMDD.optional(),
+})
+
 /** POST /admin/tag */
 export const adminTagSchema = z.object({
   datum:                DATUM_MMDD,

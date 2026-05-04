@@ -102,7 +102,7 @@ export function useSecondaryGameResults({
 
       return results
     }
-  }, [getRetroResultsRef, keys.todayKey, wzPlayed, zwPlayed])
+  }, [getRetroResultsRef, keys.todayKey, wzPlayed, zwPlayed, lfPlayed])
 
   return {
     handleWZFinish,

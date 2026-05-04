@@ -14,24 +14,33 @@ import { join, dirname } from 'path'
 import { fileURLToPath } from 'url'
 import db from './db.js'
 
+function printInfo(message = '') {
+  process.stdout.write(`${message}\n`)
+}
+
+function printError(message) {
+  process.stderr.write(`${message}\n`)
+}
+
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const DATA = join(__dirname, 'data')
 
 function readJson(file, fallback) {
   const path = join(DATA, file)
   if (!existsSync(path)) {
-    console.log(`  ⚠ ${file} nicht gefunden – übersprungen`)
+    printInfo(`  WARN ${file} nicht gefunden - uebersprungen`)
     return fallback
   }
   try {
     return JSON.parse(readFileSync(path, 'utf8'))
   } catch (err) {
-    console.error(`  ✗ ${file} konnte nicht gelesen werden:`, err.message)
+    printError(`  ERROR ${file} konnte nicht gelesen werden: ${err.message}`)
     return fallback
   }
 }
 
-console.log('Migration JSON → SQLite gestartet …\n')
+printInfo('Migration JSON -> SQLite gestartet ...')
+printInfo('')
 
 // ── Lemmata ───────────────────────────────────────────────────────
 {
@@ -64,7 +73,7 @@ console.log('Migration JSON → SQLite gestartet …\n')
     }
   })
   run(lemmata)
-  console.log(`✓ lemmata: ${lemmata.length} Einträge`)
+  printInfo(`OK lemmata: ${lemmata.length} Eintraege`)
 }
 
 // ── Kalender ──────────────────────────────────────────────────────
@@ -77,7 +86,7 @@ console.log('Migration JSON → SQLite gestartet …\n')
     }
   })
   run(kalender)
-  console.log(`✓ kalender: ${Object.keys(kalender).length} Einträge`)
+  printInfo(`OK kalender: ${Object.keys(kalender).length} Eintraege`)
 }
 
 // ── Zeitreise ─────────────────────────────────────────────────────
@@ -98,7 +107,7 @@ console.log('Migration JSON → SQLite gestartet …\n')
     }
   })
   run(zeitreise)
-  console.log(`✓ zeitreise: ${Object.keys(zeitreise).length} Einträge`)
+  printInfo(`OK zeitreise: ${Object.keys(zeitreise).length} Eintraege`)
 }
 
 // ── Wortzwilling ──────────────────────────────────────────────────
@@ -119,7 +128,7 @@ console.log('Migration JSON → SQLite gestartet …\n')
     }
   })
   run(wz)
-  console.log(`✓ wortzwilling: ${Object.keys(wz).length} Einträge`)
+  printInfo(`OK wortzwilling: ${Object.keys(wz).length} Eintraege`)
 }
 
 // ── Zeitenwende ───────────────────────────────────────────────────
@@ -132,7 +141,7 @@ console.log('Migration JSON → SQLite gestartet …\n')
     }
   })
   run(zw)
-  console.log(`✓ zeitenwende: ${Object.keys(zw).length} Einträge`)
+  printInfo(`OK zeitenwende: ${Object.keys(zw).length} Eintraege`)
 }
 
 // ── Stats ─────────────────────────────────────────────────────────
@@ -161,8 +170,9 @@ console.log('Migration JSON → SQLite gestartet …\n')
   })
   const totalEntries = Object.values(stats).reduce((n, g) => n + Object.keys(g).length, 0)
   run(stats)
-  console.log(`✓ stats: ${Object.keys(stats).length} Tage, ${totalEntries} Spieleinträge`)
+  printInfo(`OK stats: ${Object.keys(stats).length} Tage, ${totalEntries} Spieleintraege`)
 }
 
-console.log('\nMigration abgeschlossen.')
+printInfo('')
+printInfo('Migration abgeschlossen.')
 db.close()

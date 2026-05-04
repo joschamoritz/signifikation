@@ -39,7 +39,7 @@
   border: 1px solid var(--border-lt);
   border-radius: var(--radius);
   padding: 20px 18px 16px;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.06);
+  box-shadow: var(--shadow-soft);
 }
 
 .lf-satz-text {
@@ -63,7 +63,7 @@
 .lf-blank {
   display: inline-block;
   background: var(--accent);
-  color: var(--accent);       /* unsichtbarer Text bis revealed */
+  color: transparent;
   border-radius: 3px;
   padding: 1px 18px;
   min-width: 52px;
@@ -226,7 +226,7 @@
   border: 1px solid var(--border-lt);
   border-radius: var(--radius);
   overflow: hidden;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.06);
+  box-shadow: var(--shadow-soft);
 }
 
 .lf-double-sentence {
@@ -374,4 +374,11 @@
   .lf-option-btn   { padding: 14px 8px; font-size: 0.97rem; min-height: 52px }
   .lf-free-input   { font-size: 1rem; padding: 12px 14px }
   .lf-double-card  { gap: 0 }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lf-blank--active,
+  .lf-next-hint {
+    animation: none !important;
+  }
 }

@@ -20,6 +20,16 @@ const RETENTION_MS = 90 * 24 * 60 * 60 * 1000
 const CONNECTED_WINDOW_MS = 45 * 1000
 const SESSION_MAX_PARTICIPANTS = 50
 
+function parseJsonSafe(value, fallback, loggerInstance, context) {
+  if (!value) return fallback
+  try {
+    return JSON.parse(value)
+  } catch (err) {
+    loggerInstance?.warn?.({ err, context }, 'Ungueltiges JSON in Classroom-Session – Fallback verwendet')
+    return fallback
+  }
+}
+
 const stmts = {
   insertSession: db.prepare(`
     INSERT INTO classroom_sessions (
@@ -102,7 +112,17 @@ const stmts = {
       max_score = excluded.max_score,
       submitted_at = excluded.submitted_at
   `),
-  countParticipants: db.prepare('SELECT COUNT(1) AS c FROM classroom_participants WHERE session_id = ?'),
+  countActiveParticipants: db.prepare(`
+    SELECT COUNT(1) AS c
+    FROM classroom_participants
+    WHERE session_id = ?
+      AND left_at IS NULL
+  `),
+  countParticipants: db.prepare(`
+    SELECT COUNT(1) AS c
+    FROM classroom_participants
+    WHERE session_id = ?
+  `),
   countConnectedParticipants: db.prepare(`
     SELECT COUNT(1) AS c
     FROM classroom_participants
@@ -232,7 +252,7 @@ function normalizeSessionRow(row) {
     state: row.state,
     datum: row.datum,
     year: row.year,
-    settings: JSON.parse(row.settings_json || '{}'),
+    settings: parseJsonSafe(row.settings_json, {}, logger, { sessionId: row.id, field: 'settings_json' }),
     createdAt: row.created_at,
     startedAt: row.started_at,
     finishedAt: row.finished_at,
@@ -322,7 +342,7 @@ export function startClassroomSession({ sessionId, teacherUserId, allowLateJoin 
   if (!['created', 'lobby'].includes(raw.state)) return { error: 'INVALID_STATE' }
 
   const startedAt = nowMs()
-  const existingSettings = JSON.parse(raw.settings_json || '{}')
+  const existingSettings = parseJsonSafe(raw.settings_json, {}, logger, { sessionId, field: 'settings_json' })
   const settings = mergeSettings(existingSettings, {
     allowLateJoin: typeof allowLateJoin === 'boolean'
       ? allowLateJoin
@@ -359,7 +379,7 @@ export function finishClassroomSessionByHostTimeout({ sessionId }) {
   if (!raw) return { error: 'NOT_FOUND' }
   if (!['running', 'lobby', 'created'].includes(raw.state)) return { error: 'INVALID_STATE' }
 
-  const settings = mergeSettings(JSON.parse(raw.settings_json || '{}'), { host_timeout: true })
+  const settings = mergeSettings(parseJsonSafe(raw.settings_json, {}, logger, { sessionId, field: 'settings_json' }), { host_timeout: true })
   stmts.updateSessionState.run({
     id: sessionId,
     state: 'finished',
@@ -375,7 +395,7 @@ export function joinClassroomSession({ code }) {
   const raw = stmts.findActiveSessionByJoinHash.get(hashValue(normalizedCode), nowMs())
   if (!raw) return { error: 'INVALID_CODE' }
 
-  const settings = JSON.parse(raw.settings_json || '{}')
+  const settings = parseJsonSafe(raw.settings_json, {}, logger, { sessionId: raw.id, field: 'settings_json' })
   if (raw.state === 'running' && !settings.allowLateJoin) {
     return { error: 'LATE_JOIN_DISABLED' }
   }
@@ -383,7 +403,7 @@ export function joinClassroomSession({ code }) {
     return { error: 'SESSION_NOT_JOINABLE' }
   }
 
-  const currentParticipants = stmts.countParticipants.get(raw.id)?.c || 0
+  const currentParticipants = stmts.countActiveParticipants.get(raw.id)?.c || 0
   if (currentParticipants >= SESSION_MAX_PARTICIPANTS) {
     return { error: 'SESSION_FULL' }
   }

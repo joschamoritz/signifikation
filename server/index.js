@@ -1,8 +1,10 @@
 import 'dotenv/config'
 
+import logger from './logger.js'
+
 // Verhindert versehentliche Root-Starts (würden den Port für andere User blockieren)
 if (process.getuid?.() === 0) {
-  console.error('FEHLER: Server darf nicht als root gestartet werden.')
+  logger.error('Server darf nicht als root gestartet werden')
   process.exit(1)
 }
 
@@ -17,7 +19,6 @@ import { fileURLToPath } from 'url'
 import { dirname, join }  from 'path'
 import { randomUUID } from 'crypto'
 import { toNodeHandler } from 'better-auth/node'
-import logger       from './logger.js'
 import { IS_PROD, csrfProtect, csrfProtectUpload } from './middleware/auth.js'
 import { auth } from './auth/index.js'
 import { loginLimiter, registerLimiter } from './middleware/rateLimiter.js'

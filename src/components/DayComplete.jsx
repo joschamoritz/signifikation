@@ -20,7 +20,6 @@ export default function DayComplete({ onClose, playedGames = [], wzPlayed = null
 
   function close() {
     setClosing(true)
-    setTimeout(onClose, 200)
   }
 
   async function share() {
@@ -56,6 +55,9 @@ export default function DayComplete({ onClose, playedGames = [], wzPlayed = null
         role="dialog"
         aria-modal="true"
         aria-labelledby="dc-title"
+        onAnimationEnd={(e) => {
+          if (closing && e.target === e.currentTarget) onClose()
+        }}
         onClick={e => e.stopPropagation()}
       >
         <div className="dc-grip" aria-hidden="true" />
@@ -105,6 +107,7 @@ export default function DayComplete({ onClose, playedGames = [], wzPlayed = null
         <div className="dc-actions">
           <button
             className={`btn-ghost dc-share-btn${imgState ? ' dc-share-btn--copied' : ''}${sharing ? ' dc-share-btn--loading' : ''}`}
+            type="button"
             onClick={shareImg}
             disabled={sharing}
           >
@@ -112,11 +115,12 @@ export default function DayComplete({ onClose, playedGames = [], wzPlayed = null
           </button>
           <button
             className={`btn-ghost dc-share-btn${copied ? ' dc-share-btn--copied' : ''}`}
+            type="button"
             onClick={share}
           >
             {copied ? 'Kopiert ✓' : 'Text kopieren'}
           </button>
-          <button className="btn-ghost" onClick={close}>Schließen</button>
+          <button className="btn-ghost" type="button" onClick={close}>Schließen</button>
         </div>
       </div>
     </div>

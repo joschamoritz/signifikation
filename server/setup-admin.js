@@ -22,6 +22,14 @@ function question(prompt) {
   })
 }
 
+function printInfo(message = '') {
+  process.stdout.write(`${message}\n`)
+}
+
+function printError(message) {
+  process.stderr.write(`${message}\n`)
+}
+
 function questionHidden(prompt) {
   return new Promise((resolve) => {
     process.stdout.write(prompt)
@@ -55,7 +63,9 @@ async function main() {
     let password = process.argv[3]
 
     if (!email) {
-      console.log('\n🔐 Admin-User Setup für Signifikation\n')
+      printInfo('')
+      printInfo('Admin-User Setup fuer Signifikation')
+      printInfo('')
       email = await question('Admin-Email: ')
     }
 
@@ -64,14 +74,14 @@ async function main() {
     }
 
     if (!email || !password) {
-      console.error('❌ Email und Passwort sind erforderlich.')
+      printError('Email und Passwort sind erforderlich.')
       process.exit(1)
     }
 
     // Prüfe ob User schon existiert
     const existing = db.prepare('SELECT id FROM user WHERE email = ?').get(email)
     if (existing) {
-      console.error(`❌ User mit Email "${email}" existiert bereits.`)
+      printError(`User mit Email "${email}" existiert bereits.`)
       process.exit(1)
     }
 
@@ -101,15 +111,19 @@ async function main() {
       VALUES (?, 'admin', ?, ?)
     `).run(userId, timestamp, timestamp)
 
-    console.log(`\n✅ Admin-User erstellt:`)
-    console.log(`   Email: ${email}`)
-    console.log(`   User ID: ${userId}`)
-    console.log(`\n📝 Merke dir das Passwort – es wird nicht angezeigt.`)
-    console.log(`\n🔑 Login: Gehe zu /admin.html und melde dich an.\n`)
+    printInfo('')
+    printInfo('Admin-User erstellt:')
+    printInfo(`  Email: ${email}`)
+    printInfo(`  User ID: ${userId}`)
+    printInfo('')
+    printInfo('Merke dir das Passwort - es wird nicht angezeigt.')
+    printInfo('')
+    printInfo('Login: Gehe zu /admin.html und melde dich an.')
+    printInfo('')
 
   } catch (err) {
     logger.error({ err }, 'Setup-Fehler')
-    console.error(`❌ Fehler: ${err.message}`)
+    printError(`Fehler: ${err.message}`)
     process.exit(1)
   } finally {
     rl.close()
@@ -117,4 +131,8 @@ async function main() {
   }
 }
 
-main().catch(console.error)
+main().catch((err) => {
+  logger.error({ err }, 'Setup-Fehler ausserhalb von main')
+  printError(`Fehler: ${err?.message || err}`)
+  process.exit(1)
+})

@@ -120,7 +120,7 @@ export default function Quiz({ lemma, currentRound, onRoundComplete, onBack }) {
   return (
     <div className="screen quiz-screen" onClick={resetJokerTimer}>
       {onBack && !submitted && (
-        <button className="back-btn" onClick={onBack} aria-label="Zurück zur Wortauswahl">
+        <button className="back-btn" type="button" onClick={onBack} aria-label="Zurück zur Wortauswahl">
           <span className="back-btn-chevron">‹</span>Zurück
         </button>
       )}
@@ -130,7 +130,7 @@ export default function Quiz({ lemma, currentRound, onRoundComplete, onBack }) {
         <p id="quiz-instruction" className="quiz-instruction">
           Wähle die 3 stärksten Kollokationen von <strong>{lemma.lemma}</strong>
           {!submitted && !jokerUsed && jokerVisible && (
-            <button className="joker-btn" onClick={e => { e.stopPropagation(); activateJoker() }} aria-label="Hinweis aktivieren" title="Hinweis"><em>i</em></button>
+            <button className="joker-btn" type="button" onClick={e => { e.stopPropagation(); activateJoker() }} aria-label="Hinweis aktivieren" title="Hinweis"><em>i</em></button>
           )}
         </p>
         {options.length < 10 && (
@@ -157,6 +157,7 @@ export default function Quiz({ lemma, currentRound, onRoundComplete, onBack }) {
             <button
               key={opt.wort}
               className={`option${state ? ' ' + state : ''}${isActive ? ' option--beleg-active' : ''}${!submitted && grayedWords.has(opt.wort) ? ' option--grayed' : ''}`}
+              type="button"
               disabled={!submitted && grayedWords.has(opt.wort) || undefined}
               style={{ animationDelay: submitted ? '0ms' : `${i * 35}ms` }}
               onClick={() => submitted ? handleLoadBelege(opt.wort) : toggleWord(opt.wort)}
@@ -270,6 +271,7 @@ export default function Quiz({ lemma, currentRound, onRoundComplete, onBack }) {
             <span className="select-count" aria-live="polite" aria-atomic="true">{selected.length} / 3 gewählt</span>
             <button
               className="btn-primary"
+              type="button"
               disabled={selected.length !== 3}
               onClick={() => setSubmitted(true)}
             >
@@ -279,6 +281,7 @@ export default function Quiz({ lemma, currentRound, onRoundComplete, onBack }) {
         ) : (
           <button
             className="btn-primary btn-full"
+            type="button"
             onClick={() => onRoundComplete(roundScore)}
           >
             Weiter →
