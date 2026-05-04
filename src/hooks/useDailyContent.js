@@ -16,6 +16,7 @@ export function useDailyContent() {
   const [themaKurz, setThemaKurz] = useState('')
   const [themaQuelle, setThemaQuelle] = useState('')
 
+  const [lueckenfuellerLemma, setLueckenfuellerLemma] = useState(null)
   const [wortzwilling, setWortzwilling] = useState(null)
   const [wortzwillingError, setWortzwillingError] = useState(false)
   const [wortzwillingRetry, setWortzwillingRetry] = useState(0)
@@ -31,13 +32,14 @@ export function useDailyContent() {
   useEffect(() => {
     fetchWithRetry(`${API}/heute`)
       .then((r) => r.ok ? r.json() : r.json().then((d) => Promise.reject(new Error(d.error || `HTTP ${r.status}`))))
-      .then(({ datum, year, lemmata, thema, thema_kurz, thema_quelle }) => {
+      .then(({ datum, year, lemmata, thema, thema_kurz, thema_quelle, lueckenfuellerLemma: lfLemma }) => {
         setServerDatum(datum)
         if (year) setServerYear(year)
         setLemmata(lemmata)
         if (thema) setThema(thema)
         if (thema_kurz) setThemaKurz(thema_kurz)
         if (thema_quelle) setThemaQuelle(thema_quelle)
+        setLueckenfuellerLemma(lfLemma ?? null)
         setWzPlayed(getWZToday(`sig_wz_${datum}`))
         setZwPlayed(lsParse(lsGet(`sig_zw_${datum}`), null))
         setLfPlayed(lsParse(lsGet(`sig_lf_${datum}`), null))
@@ -95,6 +97,7 @@ export function useDailyContent() {
     thema,
     themaKurz,
     themaQuelle,
+    lueckenfuellerLemma,
     wortzwilling,
     wortzwillingError,
     retryWortzwilling,

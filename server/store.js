@@ -56,7 +56,7 @@ export const stmts = {
   // kalender
   getAllKalender:    db.prepare('SELECT * FROM kalender'),
   deleteAllKalender: db.prepare('DELETE FROM kalender'),
-  upsertKalender:   db.prepare('INSERT OR REPLACE INTO kalender (datum, ids, thema, thema_kurz, thema_quelle) VALUES (@datum, @ids, @thema, @thema_kurz, @thema_quelle)'),
+  upsertKalender:   db.prepare('INSERT OR REPLACE INTO kalender (datum, ids, thema, thema_kurz, thema_quelle, lueckenfueller_id) VALUES (@datum, @ids, @thema, @thema_kurz, @thema_quelle, @lueckenfueller_id)'),
 
   // wortzwilling
   getAllWortzwilling:  db.prepare('SELECT * FROM wortzwilling'),

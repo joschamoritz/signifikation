@@ -81,6 +81,7 @@ export const adminTagSchema = z.object({
   zeitenwende_lemma:    z.string().optional().default(''),
   zeitenwende_notiz:    z.string().max(500).optional().default(''),
   zeitenwende_link:     z.string().max(500).optional().default(''),
+  lueckenfueller_id:    z.string().max(120).optional().default(''),
 })
 
 

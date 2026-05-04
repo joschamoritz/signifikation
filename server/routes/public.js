@@ -38,12 +38,16 @@ router.get('/api/v1/heute', (req, res) => {
     const entry = kalender[datum]
     if (!entry) return res.status(404).json({ error: `Kein Eintrag für ${datum}` })
 
-    const ids          = Array.isArray(entry) ? entry : (entry.ids ?? [])
-    const thema        = Array.isArray(entry) ? '' : (entry.thema ?? '')
-    const thema_kurz   = Array.isArray(entry) ? '' : (entry.thema_kurz ?? '')
-    const thema_quelle = Array.isArray(entry) ? '' : (entry.thema_quelle ?? '')
-    const lemmata      = ids.map(id => byId.get(id)).filter(Boolean)
-    res.json({ datum, year, lemmata, thema, thema_kurz, thema_quelle })
+    const ids              = Array.isArray(entry) ? entry : (entry.ids ?? [])
+    const thema            = Array.isArray(entry) ? '' : (entry.thema ?? '')
+    const thema_kurz       = Array.isArray(entry) ? '' : (entry.thema_kurz ?? '')
+    const thema_quelle     = Array.isArray(entry) ? '' : (entry.thema_quelle ?? '')
+    const lueckenfueller_id = Array.isArray(entry) ? '' : (entry.lueckenfueller_id ?? '')
+    const lemmata          = ids.map(id => byId.get(id)).filter(Boolean)
+    const lueckenfuellerLemma = lueckenfueller_id
+      ? (byId.get(lueckenfueller_id) ?? null)
+      : null
+    res.json({ datum, year, lemmata, thema, thema_kurz, thema_quelle, lueckenfuellerLemma })
   } catch (err) {
     serverError(res, err)
   }

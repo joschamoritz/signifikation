@@ -9,6 +9,7 @@ export function loadKalenderRows(rows) {
       thema: row.thema ?? '',
       thema_kurz: row.thema_kurz ?? '',
       thema_quelle: row.thema_quelle ?? '',
+      lueckenfueller_id: row.lueckenfueller_id ?? '',
     }
   }
   return result
@@ -30,6 +31,7 @@ export function normalizeKalenderShape(raw) {
         thema: value.thema ?? '',
         thema_kurz: value.thema_kurz ?? '',
         thema_quelle: value.thema_quelle ?? '',
+        lueckenfueller_id: value.lueckenfueller_id ?? '',
       }
     }
   }
@@ -93,11 +95,12 @@ export function createDailyContentStore({ db, stmts }) {
   const replaceKalender = db.transaction((obj) => {
     stmts.deleteAllKalender.run()
     for (const [datum, entry] of getKalenderEntries(obj)) {
-      const ids         = Array.isArray(entry) ? entry : (entry.ids ?? [])
-      const thema       = Array.isArray(entry) ? '' : (entry.thema ?? '')
-      const thema_kurz  = Array.isArray(entry) ? '' : (entry.thema_kurz ?? '')
-      const thema_quelle = Array.isArray(entry) ? '' : (entry.thema_quelle ?? '')
-      stmts.upsertKalender.run({ datum, ids: JSON.stringify(ids), thema, thema_kurz, thema_quelle })
+      const ids              = Array.isArray(entry) ? entry : (entry.ids ?? [])
+      const thema            = Array.isArray(entry) ? '' : (entry.thema ?? '')
+      const thema_kurz       = Array.isArray(entry) ? '' : (entry.thema_kurz ?? '')
+      const thema_quelle     = Array.isArray(entry) ? '' : (entry.thema_quelle ?? '')
+      const lueckenfueller_id = Array.isArray(entry) ? '' : (entry.lueckenfueller_id ?? '')
+      stmts.upsertKalender.run({ datum, ids: JSON.stringify(ids), thema, thema_kurz, thema_quelle, lueckenfueller_id })
     }
   })
 

@@ -35,9 +35,8 @@ export function useAppModel() {
     setZwPlayed,
     lfPlayed,
     setLfPlayed,
+    lueckenfuellerLemma,
   } = useDailyContent()
-
-  const lueckenfuellerLemma = lemmata?.find(l => l.lueckenfueller) ?? null
   const { gesamtausgabeUnlocked, gesamtausgabePermanent, freeAccessToday, freeAccessLabel, refreshEntitlements } = useEntitlements()
   usePaywall({ refreshEntitlements })
 

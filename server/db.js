@@ -321,6 +321,11 @@ if (!hasColumn('kalender', 'thema_quelle')) {
   db.exec(`ALTER TABLE kalender ADD COLUMN thema_quelle TEXT NOT NULL DEFAULT ''`)
 }
 
+if (!hasColumn('kalender', 'lueckenfueller_id')) {
+  logger.info('Migration: kalender.lueckenfueller_id hinzufügen')
+  db.exec(`ALTER TABLE kalender ADD COLUMN lueckenfueller_id TEXT NOT NULL DEFAULT ''`)
+}
+
 if (!hasColumn('wortzwilling', 'notiz')) {
   logger.info('Migration: wortzwilling.notiz + wortzwilling.link hinzufügen')
   db.exec(`ALTER TABLE wortzwilling ADD COLUMN notiz TEXT NOT NULL DEFAULT ''`)

@@ -307,6 +307,7 @@ export function createAdminCalendarRouter({
       thema, thema_kurz, thema_quelle,
       zwilling_paar, zwilling_pos, zwilling_notiz, zwilling_link,
       zeitenwende_lemma, zeitenwende_notiz, zeitenwende_link,
+      lueckenfueller_id,
     } = req.body
 
     try {
@@ -341,7 +342,7 @@ export function createAdminCalendarRouter({
       }
 
       invalidateCache('lemmata.json')
-      kalender[datum] = { ids, thema: thema || '', thema_kurz: thema_kurz || '', thema_quelle: thema_quelle || '' }
+      kalender[datum] = { ids, thema: thema || '', thema_kurz: thema_kurz || '', thema_quelle: thema_quelle || '', lueckenfueller_id: lueckenfueller_id || '' }
 
       let zwillingOk = null
       delete wortzwilling[datum]
@@ -390,7 +391,7 @@ export function createAdminCalendarRouter({
         ip: req.ip,
       })
 
-      res.json({ ok: true, datum, ids, zwillingOk, zeitenwendeOk })
+      res.json({ ok: true, datum, ids, zwillingOk, zeitenwendeOk, lueckenfuellerId: lueckenfueller_id || null })
     } catch (err) {
       serverError(res, err)
     }

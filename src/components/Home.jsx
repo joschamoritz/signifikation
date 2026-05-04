@@ -488,23 +488,20 @@ export default function Home({
             </li>
 
             {/* ── ⑤ Platzhalter (i.V.) ─────────────────────── */}
-            <li className="test-entry test-entry--disabled test-entry--forthcoming">
-              <div className="test-entry-number" aria-hidden="true">
+            <li className="test-entry test-entry--disabled" aria-hidden="true">
+              <div className="test-entry-number">
                 <span className="test-entry-num-glyph">⑤</span>
                 <span className="test-entry-marginalia">I.&thinsp;V.</span>
               </div>
               <div className="test-entry-body">
                 <div className="test-entry-head">
-                  <h2 className="test-headword test-headword--redacted" aria-label="Neuer Spielmodus in Vorbereitung">??? ??????</h2>
+                  <h2 className="test-headword">— —</h2>
                 </div>
-                <div className="test-entry-grammar" aria-hidden="true">
+                <div className="test-entry-grammar">
                   <span className="test-pos">Wortspiel</span>
                   <span className="test-pos-rule" />
                   <span className="test-entry-category">in Vorbereitung</span>
                 </div>
-                <p className="test-definition test-definition--redacted" aria-hidden="true">
-                  ????? ????? ???????? ???????? — ?????? ????????? ??? ????? ??????? ?????????? ??? ???? ??????.
-                </p>
                 <div className="test-entry-footer">
                   <span className="test-status">Noch nicht lemmatisiert — Belege in Bearbeitung.</span>
                 </div>
