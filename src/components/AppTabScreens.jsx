@@ -60,7 +60,7 @@ export default function AppTabScreens({
         onViewZeitenwende={onViewZeitenwende}
         lueckenfuellerLemma={lueckenfuellerLemma}
         lfPlayed={lfPlayed}
-        onPlayLueckenfueller={onPlayLueckenfueller}
+        onPlayLueckenfueller={onPlayLueckenfueller?.play}
         onViewLueckenfueller={onViewLueckenfueller}
         gesamtausgabe={gesamtausgabeUnlocked || classroomInSession}
         freeAccessToday={freeAccessToday}
