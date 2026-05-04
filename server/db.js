@@ -372,6 +372,11 @@ if (hasColumn('stats', 'user_id')) {
   `)
 }
 
+if (!hasColumn('lemmata', 'lueckenfueller')) {
+  logger.info('Migration: lemmata.lueckenfueller hinzufügen')
+  db.exec(`ALTER TABLE lemmata ADD COLUMN lueckenfueller TEXT`)
+}
+
 // ── Migration: user_profiles.role 'teacher' → 'premium' ─────────
 {
   const upRow = db.prepare(`SELECT sql FROM sqlite_master WHERE type='table' AND name='user_profiles'`).get()

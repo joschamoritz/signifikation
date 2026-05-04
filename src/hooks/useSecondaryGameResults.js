@@ -2,17 +2,20 @@ import { useCallback, useEffect } from 'react'
 import { API } from '../config'
 import { lsSet } from '../utils/storage'
 import { getMedal } from '../utils/gameLogic'
-import { getPlayedToday, markActivity, saveWZHistory, saveZWHistory } from '../utils/dailyProgress'
+import { getPlayedToday, markActivity, saveWZHistory, saveZWHistory, saveLFHistory } from '../utils/dailyProgress'
 
 export function useSecondaryGameResults({
   keys,
   serverDatum,
   wortzwilling,
   zeitenwende,
+  lueckenfuellerLemma,
   wzPlayed,
   zwPlayed,
+  lfPlayed,
   setWzPlayed,
   setZwPlayed,
+  setLfPlayed,
   classroomSubmitRef,
   getRetroResultsRef,
 }) {
@@ -41,6 +44,27 @@ export function useSecondaryGameResults({
     }).catch(() => {})
     classroomSubmitRef.current?.({ game: 'wortzwilling', score, maxScore: 10 })
   }, [classroomSubmitRef, keys.dateStr, serverDatum, setWzPlayed, wortzwilling])
+
+  const handleLFFinish = useCallback(({ score, scores }) => {
+    if (!serverDatum) return
+    const medal = getMedal(score, 10)
+    const entry = {
+      lemma: lueckenfuellerLemma?.lemma ?? '',
+      total: score,
+      scores,
+      medal,
+    }
+    lsSet(`sig_lf_${serverDatum}`, JSON.stringify(entry))
+    setLfPlayed(entry)
+    markActivity(keys.dateStr)
+    saveLFHistory(keys.dateStr, medal.label, medal.emoji)
+    fetch(`${API}/stats`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ game: 'lueckenfueller', datum: serverDatum, score, max: 10 }),
+    }).catch(() => {})
+    classroomSubmitRef.current?.({ game: 'lueckenfueller', score, maxScore: 10 })
+  }, [classroomSubmitRef, keys.dateStr, lueckenfuellerLemma, serverDatum, setLfPlayed])
 
   const handleZeitenwendeFinish = useCallback(({ score, answers }) => {
     if (!zeitenwende || !serverDatum) return
@@ -74,6 +98,7 @@ export function useSecondaryGameResults({
 
       if (wzPlayed?.total != null) results.push({ game: 'wortzwilling', score: wzPlayed.total, maxScore: 10 })
       if (zwPlayed?.total != null) results.push({ game: 'zeitenwende', score: zwPlayed.total, maxScore: 10 })
+      if (lfPlayed?.total != null) results.push({ game: 'lueckenfueller', score: lfPlayed.total, maxScore: 10 })
 
       return results
     }
@@ -82,5 +107,6 @@ export function useSecondaryGameResults({
   return {
     handleWZFinish,
     handleZeitenwendeFinish,
+    handleLFFinish,
   }
 }

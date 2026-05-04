@@ -3,7 +3,7 @@ import { WEEKDAYS, MONTHS, computeStreak, buildShareText } from '../utils/homeUt
 import { getMedal } from '../utils/gameLogic'
 import { shareAsImage } from '../utils/shareImage'
 
-export default function DayComplete({ onClose, playedGames = [], wzPlayed = null, zwPlayed = null }) {
+export default function DayComplete({ onClose, playedGames = [], wzPlayed = null, zwPlayed = null, lfPlayed = null }) {
   const [closing,  setClosing]  = useState(false)
   const [copied,   setCopied]   = useState(false)
   const [sharing,  setSharing]  = useState(false)
@@ -24,7 +24,7 @@ export default function DayComplete({ onClose, playedGames = [], wzPlayed = null
   }
 
   async function share() {
-    const text = buildShareText(playedGames, wzPlayed, streak, zwPlayed)
+    const text = buildShareText(playedGames, wzPlayed, streak, zwPlayed, lfPlayed)
     if (navigator.share) { try { await navigator.share({ text }); return } catch {} }
     try {
       await navigator.clipboard.writeText(text)
@@ -37,7 +37,7 @@ export default function DayComplete({ onClose, playedGames = [], wzPlayed = null
     if (sharing) return
     setSharing(true)
     try {
-      const result = await shareAsImage(playedGames, wzPlayed, streak, zwPlayed)
+      const result = await shareAsImage(playedGames, wzPlayed, streak, zwPlayed, lfPlayed)
       if (result === 'shared' || result === 'downloaded') {
         setImgState(result)
         setTimeout(() => setImgState(null), 2500)
@@ -82,6 +82,12 @@ export default function DayComplete({ onClose, playedGames = [], wzPlayed = null
             <div className="dc-medal-item">
               <span className="dc-medal-emoji" aria-label={zwPlayed.medal?.label}>{zwPlayed.medal?.emoji}</span>
               <span className="dc-medal-label">Zeitenwende</span>
+            </div>
+          )}
+          {lfPlayed && (
+            <div className="dc-medal-item">
+              <span className="dc-medal-emoji" aria-label={lfPlayed.medal?.label}>{lfPlayed.medal?.emoji}</span>
+              <span className="dc-medal-label">Lückenfüller</span>
             </div>
           )}
         </div>

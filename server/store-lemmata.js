@@ -12,6 +12,7 @@ export function rowToLemma(row) {
     bonusFrage: row.bonusFrage ? JSON.parse(row.bonusFrage) : null,
     ipa: row.ipa,
     definitionen: JSON.parse(row.definitionen || '[]'),
+    lueckenfueller: row.lueckenfueller ? JSON.parse(row.lueckenfueller) : null,
   }
 }
 
@@ -29,6 +30,7 @@ export function lemmaToRow(lemma) {
     bonusFrage: lemma.bonusFrage ? JSON.stringify(lemma.bonusFrage) : null,
     ipa: lemma.ipa ?? '',
     definitionen: JSON.stringify(lemma.definitionen ?? []),
+    lueckenfueller: lemma.lueckenfueller ? JSON.stringify(lemma.lueckenfueller) : null,
   }
 }
 

@@ -43,13 +43,14 @@ export const stmts = {
   getAllLemmata:     db.prepare('SELECT * FROM lemmata'),
   deleteAllLemmata:  db.prepare('DELETE FROM lemmata'),
   upsertLemma:      db.prepare(`
-    INSERT INTO lemmata (id,lemma,pos,wortart,runden,rundenInfo,notiz,link,definition,bonusFrage,ipa,definitionen)
-    VALUES (@id,@lemma,@pos,@wortart,@runden,@rundenInfo,@notiz,@link,@definition,@bonusFrage,@ipa,@definitionen)
+    INSERT INTO lemmata (id,lemma,pos,wortart,runden,rundenInfo,notiz,link,definition,bonusFrage,ipa,definitionen,lueckenfueller)
+    VALUES (@id,@lemma,@pos,@wortart,@runden,@rundenInfo,@notiz,@link,@definition,@bonusFrage,@ipa,@definitionen,@lueckenfueller)
     ON CONFLICT(id) DO UPDATE SET
       lemma=excluded.lemma, pos=excluded.pos, wortart=excluded.wortart,
       runden=excluded.runden, rundenInfo=excluded.rundenInfo,
       notiz=excluded.notiz, link=excluded.link, definition=excluded.definition,
-      bonusFrage=excluded.bonusFrage, ipa=excluded.ipa, definitionen=excluded.definitionen
+      bonusFrage=excluded.bonusFrage, ipa=excluded.ipa, definitionen=excluded.definitionen,
+      lueckenfueller=excluded.lueckenfueller
   `),
 
   // kalender

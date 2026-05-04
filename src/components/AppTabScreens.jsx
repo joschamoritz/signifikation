@@ -23,6 +23,10 @@ export default function AppTabScreens({
   zwPlayed,
   onPlayZeitenwende,
   onViewZeitenwende,
+  lueckenfuellerLemma,
+  lfPlayed,
+  onPlayLueckenfueller,
+  onViewLueckenfueller,
   gesamtausgabeUnlocked,
   gesamtausgabePermanent,
   freeAccessToday,
@@ -54,6 +58,10 @@ export default function AppTabScreens({
         zwPlayed={zwPlayed}
         onPlayZeitenwende={onPlayZeitenwende.play}
         onViewZeitenwende={onViewZeitenwende}
+        lueckenfuellerLemma={lueckenfuellerLemma}
+        lfPlayed={lfPlayed}
+        onPlayLueckenfueller={onPlayLueckenfueller}
+        onViewLueckenfueller={onViewLueckenfueller}
         gesamtausgabe={gesamtausgabeUnlocked || classroomInSession}
         freeAccessToday={freeAccessToday}
         freeAccessLabel={freeAccessLabel}

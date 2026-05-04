@@ -55,7 +55,7 @@ function uniqueLabels(items) {
   return result
 }
 
-export function buildModeGroups({ lemmata = [], wortzwillingEntry = null, zeitenwendeEntry = null }) {
+export function buildModeGroups({ lemmata = [], wortzwillingEntry = null, zeitenwendeEntry = null, lueckenfuellerLemma = null }) {
   const groups = []
 
   const kollokationen = uniqueLabels(lemmata.map((item) => item?.lemma))
@@ -76,6 +76,14 @@ export function buildModeGroups({ lemmata = [], wortzwillingEntry = null, zeiten
   ])
   if (zeitenwendeItems.length) {
     groups.push({ key: 'zeitenwende', label: 'Zeitenwende', items: zeitenwendeItems })
+  }
+
+  // Lückenfüller ist in einem Lemma eingebettet; lueckenfuellerLemma ist der Lemma-Name (string) oder null
+  const lueckenfuellerItems = uniqueLabels([
+    typeof lueckenfuellerLemma === 'string' ? lueckenfuellerLemma : lueckenfuellerLemma?.lemma,
+  ])
+  if (lueckenfuellerItems.length) {
+    groups.push({ key: 'lueckenfueller', label: 'Lückenfüller', items: lueckenfuellerItems })
   }
 
   return groups

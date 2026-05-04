@@ -13,6 +13,7 @@ export function createAdminCalendarRouter({
   adminBulkImportCalendarSchema,
   adminPreviewLemmaSchema,
   adminPreviewDayParamsSchema,
+  adminLemmaIdParamsSchema,
   load,
   loadKalender,
   loadDailyContentMaps,
@@ -32,6 +33,7 @@ export function createAdminCalendarRouter({
   fetchZeitenwendeAnalyze,
   fetchWiktionary,
   fetchWortZwilling,
+  buildLueckenfueller,
   POS_ROUNDS,
   parseCalendarBulkImport,
   buildModeGroups,
@@ -319,7 +321,7 @@ export function createAdminCalendarRouter({
         entry.link = links[i] || ''
         entry.definition = definitionen[i] || ''
         entry.bonusFrage = await fetchBonusQuestion(wort, pos).catch(() => null)
-        
+
         // Wiktionary-Daten nur holen, wenn noch nicht vorhanden
         const { byId } = getLemmataIndex()
         const existing = byId.get(entry.id)
@@ -419,6 +421,26 @@ export function createAdminCalendarRouter({
       res.json({ ok: true, updated, skipped })
     } catch (err) {
       adminError(res, err)
+    }
+  })
+
+  router.post('/admin/lemma/:id/lueckenfueller', adminLimiter, requireAuth, validate(adminLemmaIdParamsSchema, 'params'), async (req, res) => {
+    const { id } = req.params
+    try {
+      const { byId } = getLemmataIndex()
+      const entry = byId.get(id)
+      if (!entry) return res.status(404).json({ error: 'Lemma nicht gefunden' })
+
+      const result = await buildLueckenfueller(entry.lemma, entry.pos)
+      if (!result) return res.json({ ok: false, reason: 'Nicht genug Material (Pool zu klein oder keine blankbaren Sätze)' })
+
+      stmts.upsertLemma.run(lemmaToRow({ ...entry, lueckenfueller: result }))
+      invalidateCache('lemmata.json')
+
+      logger.info(`Lückenfüller gespeichert für „${entry.lemma}" (${id}): ${result.length} Runden`)
+      res.json({ ok: true, lemma: entry.lemma, rounds: result.length, data: result })
+    } catch (err) {
+      serverError(res, err)
     }
   })
 

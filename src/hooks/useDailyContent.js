@@ -26,6 +26,7 @@ export function useDailyContent() {
 
   const [wzPlayed, setWzPlayed] = useState(null)
   const [zwPlayed, setZwPlayed] = useState(null)
+  const [lfPlayed, setLfPlayed] = useState(null)
 
   useEffect(() => {
     fetchWithRetry(`${API}/heute`)
@@ -39,6 +40,7 @@ export function useDailyContent() {
         if (thema_quelle) setThemaQuelle(thema_quelle)
         setWzPlayed(getWZToday(`sig_wz_${datum}`))
         setZwPlayed(lsParse(lsGet(`sig_zw_${datum}`), null))
+        setLfPlayed(lsParse(lsGet(`sig_lf_${datum}`), null))
       })
       .catch((err) => setApiError(err.message))
   }, [])
@@ -104,5 +106,7 @@ export function useDailyContent() {
     setWzPlayed,
     zwPlayed,
     setZwPlayed,
+    lfPlayed,
+    setLfPlayed,
   }
 }

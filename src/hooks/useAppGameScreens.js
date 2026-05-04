@@ -19,6 +19,7 @@ export function useAppGameScreens({
     onZeitenwendeBack: () => startVT(() => backToHome()),
     onWortzwillingSelectionBack: () => startVT(() => setPhase('home')),
     onZeitenwendeSelectionBack: () => startVT(() => setPhase('home')),
+    onLueckenfuellerBack: () => startVT(() => setPhase('home')),
   }), [
     backToHome,
     backToSelection,

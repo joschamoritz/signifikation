@@ -44,6 +44,12 @@ export default function AppGameScreens({
   zwViewOnly,
   zwPlayed,
   Zeitenwende,
+  lueckenfuellerLemma,
+  onLueckenfuellerBack,
+  handleLFFinish,
+  lfViewOnly,
+  lfPlayed,
+  Lueckenfueller,
 }) {
   return (
     <>
@@ -112,6 +118,17 @@ export default function AppGameScreens({
             onBack={onZeitenwendeBack}
             onFinish={handleZeitenwendeFinish}
             savedResult={zwViewOnly ? zwPlayed : null}
+          />
+        </Suspense>
+      )}
+      {phase === 'lueckenfueller' && lueckenfuellerLemma && (
+        <Suspense fallback={<ScreenFallback />}>
+          <Lueckenfueller
+            data={lueckenfuellerLemma.lueckenfueller}
+            lemmaName={lueckenfuellerLemma.lemma}
+            onBack={onLueckenfuellerBack}
+            onFinish={handleLFFinish}
+            savedResult={lfViewOnly ? lfPlayed : null}
           />
         </Suspense>
       )}

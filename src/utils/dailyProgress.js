@@ -46,6 +46,10 @@ export function saveZWHistory(dateStr, medal, emoji) {
   saveHistory('sig_zw_history', dateStr, medal, emoji)
 }
 
+export function saveLFHistory(dateStr, medal, emoji) {
+  saveHistory('sig_lf_history', dateStr, medal, emoji)
+}
+
 export function savePlayedGame({ keys, lemmaId, lemmaName, lemmaPos, total, medal, lemmataLength, scores }) {
   const played = getPlayedToday(keys.todayKey)
   const index = played.findIndex((entry) => entry.id === lemmaId)

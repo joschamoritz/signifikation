@@ -1,5 +1,5 @@
 import { useRef } from 'react'
-import { WortZwillingScreen, ZeitenwendeScreen } from '../components/AppLazyScreens'
+import { WortZwillingScreen, ZeitenwendeScreen, LueckenfuellerScreen } from '../components/AppLazyScreens'
 import { useAppDailyState } from './useAppDailyState'
 import { useAppEffects } from './useAppEffects'
 import { useAppGameScreens } from './useAppGameScreens'
@@ -33,7 +33,11 @@ export function useAppModel() {
     setWzPlayed,
     zwPlayed,
     setZwPlayed,
+    lfPlayed,
+    setLfPlayed,
   } = useDailyContent()
+
+  const lueckenfuellerLemma = lemmata?.find(l => l.lueckenfueller) ?? null
   const { gesamtausgabeUnlocked, gesamtausgabePermanent, freeAccessToday, freeAccessLabel, refreshEntitlements } = useEntitlements()
   usePaywall({ refreshEntitlements })
 
@@ -68,15 +72,19 @@ export function useAppModel() {
   const {
     handleWZFinish,
     handleZeitenwendeFinish,
+    handleLFFinish,
   } = useSecondaryGameResults({
     keys,
     serverDatum,
     wortzwilling,
     zeitenwende,
+    lueckenfuellerLemma,
     wzPlayed,
     zwPlayed,
+    lfPlayed,
     setWzPlayed,
     setZwPlayed,
+    setLfPlayed,
     classroomSubmitRef,
     getRetroResultsRef,
   })
@@ -104,6 +112,8 @@ export function useAppModel() {
     zeitenwendeMissing,
     retryZeitenwende,
     zwPlayed,
+    lueckenfuellerLemma,
+    lfPlayed,
     gesamtausgabeUnlocked,
     gesamtausgabePermanent,
     freeAccessToday,
@@ -171,6 +181,12 @@ export function useAppModel() {
       zwViewOnly: tabState.zwViewOnly,
       zwPlayed,
       Zeitenwende: ZeitenwendeScreen,
+      lueckenfuellerLemma,
+      onLueckenfuellerBack: gameScreenActions.onLueckenfuellerBack,
+      handleLFFinish,
+      lfViewOnly: tabState.lfViewOnly,
+      lfPlayed,
+      Lueckenfueller: LueckenfuellerScreen,
     },
     persistentClassroomProps: {
       activeTab: navigation.activeTab,

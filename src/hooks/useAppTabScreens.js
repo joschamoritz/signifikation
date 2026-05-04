@@ -19,6 +19,8 @@ export function useAppTabScreens({
   zeitenwendeMissing,
   retryZeitenwende,
   zwPlayed,
+  lueckenfuellerLemma,
+  lfPlayed,
   gesamtausgabeUnlocked,
   gesamtausgabePermanent,
   freeAccessToday,
@@ -29,6 +31,7 @@ export function useAppTabScreens({
 }) {
   const [wzViewOnly, setWzViewOnly] = useState(false)
   const [zwViewOnly, setZwViewOnly] = useState(false)
+  const [lfViewOnly, setLfViewOnly] = useState(false)
 
   const tabScreens = useMemo(() => AppTabScreens({
     phase,
@@ -67,6 +70,18 @@ export function useAppTabScreens({
       setZwViewOnly(true)
       setPhase('zeitenwende')
     }),
+    lueckenfuellerLemma,
+    lfPlayed,
+    onPlayLueckenfueller: lueckenfuellerLemma ? {
+      play: () => startVT(() => {
+        setLfViewOnly(false)
+        setPhase('lueckenfueller')
+      }),
+    } : null,
+    onViewLueckenfueller: () => startVT(() => {
+      setLfViewOnly(true)
+      setPhase('lueckenfueller')
+    }),
     gesamtausgabeUnlocked,
     gesamtausgabePermanent,
     freeAccessToday,
@@ -90,6 +105,8 @@ export function useAppTabScreens({
     zeitenwendeMissing,
     retryZeitenwende,
     zwPlayed,
+    lueckenfuellerLemma,
+    lfPlayed,
     gesamtausgabeUnlocked,
     gesamtausgabePermanent,
     freeAccessToday,
@@ -115,6 +132,7 @@ export function useAppTabScreens({
     tabScreens,
     wzViewOnly,
     zwViewOnly,
+    lfViewOnly,
     goToWortzwillingGame,
     goToZeitenwendeGame,
   }

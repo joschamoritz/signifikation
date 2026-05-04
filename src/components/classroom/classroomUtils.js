@@ -1,12 +1,13 @@
 export const HEARTBEAT_INTERVAL_MS = 15_000
 export const HOST_TIMEOUT_MS = 120_000
 
-export const GAME_ROUND_NO = { kollokationen: 1, wortzwilling: 2, zeitenwende: 3 }
+export const GAME_ROUND_NO = { kollokationen: 1, wortzwilling: 2, zeitenwende: 3, lueckenfueller: 4 }
 export const ROUND_GAME_NAME = Object.fromEntries(Object.entries(GAME_ROUND_NO).map(([k, v]) => [v, k]))
 export const GAME_LABELS = {
   kollokationen: 'Kollokationen',
   wortzwilling: 'Wort-Zwilling',
   zeitenwende: 'Zeitenwende',
+  lueckenfueller: 'Lückenfüller',
 }
 
 export function formatDateTime(ts) {

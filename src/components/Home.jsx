@@ -27,6 +27,7 @@ export default function Home({
   wzPlayed = null, onPlayWortzwilling, onViewWortzwilling,
   zeitenwende = null, zeitenwendeError = false, zeitenwendeMissing = false, onRetryZeitenwende,
   zwPlayed = null, onPlayZeitenwende, onViewZeitenwende,
+  lueckenfuellerLemma = null, lfPlayed = null, onPlayLueckenfueller, onViewLueckenfueller,
   gesamtausgabe = false,
   freeAccessToday = false,
   freeAccessLabel = null,
@@ -48,12 +49,12 @@ export default function Home({
   const today      = new Date()
   const dateStr    = localDateStr(today)
   const kw         = getISOWeek(today)
-  const hasPlayed  = playedGames.length > 0 || !!wzPlayed || !!zwPlayed
+  const hasPlayed  = playedGames.length > 0 || !!wzPlayed || !!zwPlayed || !!lfPlayed
 
   const totalPoints    = playedGames.reduce((s, g) => s + g.total, 0)
   const maxPoints      = playedGames.length * 10
   const dailyMedal     = allPlayed ? getDailyMedal(totalPoints) : null
-  const allThreePlayed = allPlayed && !!wzPlayed && (!zeitenwende || !!zwPlayed)
+  const allThreePlayed = allPlayed && !!wzPlayed && (!zeitenwende || !!zwPlayed) && (!lueckenfuellerLemma || !!lfPlayed)
 
   useEffect(() => {
     if (!allThreePlayed) return
@@ -111,7 +112,7 @@ export default function Home({
     if (sharing) return
     setSharing(true)
     try {
-      const result = await shareAsImage(playedGames, wzPlayed, streak, zwPlayed)
+      const result = await shareAsImage(playedGames, wzPlayed, streak, zwPlayed, lfPlayed)
       if (result === 'shared' || result === 'downloaded') {
         setImgState(result)
         setTimeout(() => setImgState(null), 2500)
@@ -121,7 +122,7 @@ export default function Home({
   }
 
   async function shareResult() {
-    const text = buildShareText(playedGames, wzPlayed, streak, zwPlayed)
+    const text = buildShareText(playedGames, wzPlayed, streak, zwPlayed, lfPlayed)
     if (navigator.share) { try { await navigator.share({ text }); return } catch {} }
     try {
       await navigator.clipboard.writeText(text)
@@ -145,6 +146,7 @@ export default function Home({
           playedGames={playedGames}
           wzPlayed={wzPlayed}
           zwPlayed={zwPlayed}
+          lfPlayed={lfPlayed}
         />
       )}
       <div className="test-wrapper">
@@ -430,26 +432,57 @@ export default function Home({
               </div>
             </li>
 
-            {/* ── ④ Demnächst ──────────────────────────────── */}
-            <li className="test-entry test-entry--disabled" aria-hidden="true">
-              <div className="test-entry-number">
+            {/* ── ④ Lückenfüller ───────────────────────────── */}
+            <li className={`test-entry${!lueckenfuellerLemma ? ' test-entry--disabled' : ''}${lfPlayed ? ' test-entry--done' : ''}`}>
+              <div className="test-entry-number" aria-hidden="true">
                 <span className="test-entry-num-glyph">④</span>
-                <span className="test-entry-marginalia">i.V.</span>
+                <span className="test-entry-marginalia">KONSTR.</span>
+                <span className={`test-entry-premium${freeAccessToday ? ' test-entry-premium--free' : ''}`} aria-label={freeAccessToday ? 'Heute kostenlos' : 'Teil der Gesamtausgabe'}>{freeAccessToday ? '✦ Heute kostenlos' : 'Gesamtausgabe'}</span>
               </div>
               <div className="test-entry-body">
                 <div className="test-entry-head">
-                  <h2 className="test-headword">???</h2>
-                  <span className="test-ipa">[ˈfʁaːɡəˌtsaɪ̯çən]</span>
+                  <h2 className="test-headword">Lückenfüller</h2>
+                  <span className="test-ipa" aria-label="Aussprache: [ˈlʏkənˌfʏlɐ]">[ˈlʏkənˌfʏlɐ]</span>
                 </div>
                 <div className="test-entry-grammar" aria-hidden="true">
                   <span className="test-pos">Wortspiel</span>
                   <span className="test-pos-rule" />
-                  <span className="test-entry-category">in Arbeit</span>
+                  <span className="test-entry-category">konstruktiv</span>
                 </div>
-                <p className="test-definition">noch nicht lemmatisiert. — Belege in Bearbeitung; Aufnahme in späteren Auflagen vorgesehen.</p>
+                <p className="test-definition">
+                  Ein echter Korpussatz mit fehlender Kollokation — welches Wort gehört in die Lücke? Drei Runden, vier Optionen, zehn Punkte.
+                </p>
+
+                {lfPlayed && lueckenfuellerLemma && (
+                  <ul className="test-played-list">
+                    <li className="test-played-entry">
+                      <span className="test-played-word">{lfPlayed.medal?.emoji ?? ''} {lueckenfuellerLemma.lemma}</span>
+                      <span className="test-played-score">{lfPlayed.total}/10</span>
+                    </li>
+                  </ul>
+                )}
+
                 <div className="test-entry-footer">
-                  <span className="test-status">Demnächst verfügbar.</span>
-                  <span className="test-cta test-cta--disabled" aria-hidden="true">—</span>
+                  <span className={`test-status${lfPlayed ? ' test-status--done' : ''}`}>
+                    {!gesamtausgabe ? 'Teil der Gesamtausgabe.' : !lueckenfuellerLemma ? 'Heute nicht verfügbar.' : lfPlayed ? 'Gespielt.' : 'Noch nicht gespielt.'}
+                  </span>
+                  {!gesamtausgabe ? (
+                    <button className="test-cta test-cta--locked" type="button" onClick={onUnlockGesamtausgabe} aria-label="Gesamtausgabe freischalten">
+                      <LockIcon /> Gesamtausgabe freischalten
+                    </button>
+                  ) : lueckenfuellerLemma ? (
+                    <button
+                      className="test-cta"
+                      type="button"
+                      onClick={lfPlayed ? onViewLueckenfueller : onPlayLueckenfueller?.play}
+                      aria-label={lfPlayed ? 'Ergebnis ansehen: Lückenfüller' : 'Lückenfüller starten'}
+                    >
+                      {lfPlayed ? 'Ergebnis ansehen' : 'Lückenfüller starten'}
+                      <span className="test-cta-arrow" aria-hidden="true"> →</span>
+                    </button>
+                  ) : (
+                    <span className="test-cta test-cta--disabled" aria-hidden="true">—</span>
+                  )}
                 </div>
               </div>
             </li>
@@ -536,7 +569,7 @@ export default function Home({
         {/* ── Kolophon ─────────────────────────────────────── */}
         <footer className="test-colophon" role="contentinfo">
           <span className="test-colophon-ornament" aria-hidden="true">
-          {[playedGames.length > 0, !!wzPlayed, !!zwPlayed].map((played, i) =>
+          {[playedGames.length > 0, !!wzPlayed, !!zwPlayed, !!lfPlayed].map((played) =>
             played ? '✦' : '·'
           ).join(' ')}
         </span>

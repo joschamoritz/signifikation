@@ -24,7 +24,7 @@ export function validate(schema, source = 'body') {
 // ── Gemeinsame Basistypen ─────────────────────────────────────
 const DATUM_MMDD  = z.string().regex(/^\d{2}-\d{2}$/, 'Ungültiges datum-Format (MM-DD)')
 const POS         = z.enum(['Substantiv', 'Verb', 'Adjektiv']).default('Substantiv')
-const VALID_GAMES = ['kollokationen', 'wortzwilling', 'zeitenwende']
+const VALID_GAMES = ['kollokationen', 'wortzwilling', 'zeitenwende', 'lueckenfueller']
 
 // ── Schemata ─────────────────────────────────────────────────
 
@@ -154,6 +154,11 @@ export const adminPreviewLemmaSchema = z.object({
 /** GET /admin/preview/day/:datum */
 export const adminPreviewDayParamsSchema = z.object({
   datum: DATUM_MMDD,
+})
+
+/** POST /admin/lemma/:id/lueckenfueller */
+export const adminLemmaIdParamsSchema = z.object({
+  id: z.string().trim().min(1, 'id erforderlich').max(120, 'id zu lang'),
 })
 
 /** GET /admin/audit-log/:resource/:id */

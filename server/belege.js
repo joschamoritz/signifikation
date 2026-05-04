@@ -176,6 +176,43 @@ export function fetchBelege(lemma, collocate, { limit = 5, year = null } = {}) {
   }
 }
 
+/**
+ * Gibt rohe Belegsätze zurück (ohne Tokenisierung) – für Lückenfüller-Vorverarbeitung.
+ * Gibt Sätze in Relevanz-Reihenfolge ohne Shuffle zurück, damit der Aufrufer
+ * iterativ das erste blankbare Exemplar finden kann.
+ */
+export function fetchBelegeRaw(lemma, collocate, { limit = 20 } = {}) {
+  const database = db()
+  if (!database) return []
+
+  try {
+    const ftsQuery = buildFtsQuery(lemma, collocate)
+    const rows = database.prepare(`
+      SELECT satz, zitation, jahr
+      FROM belege
+      WHERE belege MATCH ?
+      ORDER BY rank
+      LIMIT ?
+    `).all(ftsQuery, limit)
+
+    const seen = new Set()
+    return rows
+      .filter(r => {
+        const key = r.satz.trim().toLowerCase()
+        if (seen.has(key)) return false
+        seen.add(key)
+        return true
+      })
+      .map(r => ({
+        satz: r.satz,
+        quelle: r.jahr ? `${r.zitation} · ${r.jahr}` : r.zitation,
+      }))
+  } catch (err) {
+    logger.warn({ err }, `fetchBelegeRaw fehlgeschlagen: ${lemma}+${collocate}`)
+    return []
+  }
+}
+
 /** Gibt true zurück wenn die Belege-DB vorhanden und lesbar ist. */
 export function belegeVerfuegbar() {
   return db() !== null

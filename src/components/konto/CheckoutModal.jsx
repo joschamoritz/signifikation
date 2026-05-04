@@ -68,6 +68,7 @@ export default function CheckoutModal({ isOpen, onClose, onTouchStart, onTouchMo
           <ul className="konto-checkout-features" aria-label="Enthaltene Inhalte">
             <li>Wort-Zwilling – Bedeutungsverwandtschaft entdecken</li>
             <li>Zeitenwende – Semantischen Wandel verstehen</li>
+            <li>Lückenfüller – Korpussätze mit Lücken füllen</li>
             <li>Klassenraum – Gemeinsam spielen (für Lehrkräfte)</li>
           </ul>
 
