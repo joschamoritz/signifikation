@@ -121,7 +121,7 @@ export default function AppGameScreens({
           />
         </Suspense>
       )}
-      {phase === 'lueckenfueller' && lueckenfuellerLemma && (
+      {phase === 'lueckenfueller' && lueckenfuellerLemma?.lueckenfueller && (
         <Suspense fallback={<ScreenFallback />}>
           <Lueckenfueller
             data={lueckenfuellerLemma.lueckenfueller}

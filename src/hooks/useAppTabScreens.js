@@ -72,7 +72,7 @@ export function useAppTabScreens({
     }),
     lueckenfuellerLemma,
     lfPlayed,
-    onPlayLueckenfueller: lueckenfuellerLemma ? {
+    onPlayLueckenfueller: lueckenfuellerLemma?.lueckenfueller ? {
       play: () => startVT(() => {
         setLfViewOnly(false)
         setPhase('lueckenfueller')

@@ -195,7 +195,12 @@ router.get('/api/v1/archiv', validate(archivQuerySchema, 'query'), async (req, r
 router.get('/api/v1/wiktionary', validate(qQuerySchema, 'query'), async (req, res) => {
   const { q } = req.query
   try {
-    const result = await fetchWiktionary(q)
+    const cacheKey = `wikt:${q}`
+    let result = cacheGet(cacheKey)
+    if (!result) {
+      result = await fetchWiktionary(q)
+      cacheSet(cacheKey, result)
+    }
     res.json(result)
   } catch (err) { serverError(res, err) }
 })
