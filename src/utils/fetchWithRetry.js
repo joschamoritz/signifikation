@@ -17,6 +17,9 @@ export async function fetchWithRetry(url, options, retries = 2, baseDelay = 400)
       const r = await fetch(url, options)
       return r
     } catch (err) {
+      if (err?.name === 'AbortError' || err?.code === 'ABORT_ERR') {
+        throw err
+      }
       lastErr = err
     }
   }

@@ -4,6 +4,18 @@ import { VitePWA } from 'vite-plugin-pwa'
 import pkg from './package.json' with { type: 'json' }
 
 export default defineConfig({
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (!id.includes('node_modules')) return undefined
+          if (id.includes('react') || id.includes('scheduler')) return 'react-vendor'
+          if (id.includes('socket.io-client') || id.includes('engine.io-client')) return 'realtime-vendor'
+          return 'vendor'
+        },
+      },
+    },
+  },
   test: {
     environment: 'node',
     fileParallelism: false,

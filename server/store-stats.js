@@ -257,12 +257,12 @@ export function createStatsStore({ db, stmts, loadReadOnly }) {
   }
 
   function getStatsWindow(days) {
-    const stats = loadReadOnly('stats.json')
+    const stats = loadStats()
     return getCachedStatsWindow(statsWindowCache, stats, days)
   }
 
   function getStatsTimeline(days) {
-    const stats = loadReadOnly('stats.json')
+    const stats = loadStats()
     return buildStatsTimeline(stats, days)
   }
 

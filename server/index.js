@@ -107,6 +107,10 @@ app.use('/', accountRouter)
 app.use('/', classroomRouter)
 app.use('/', paymentsRouter)
 
+app.use('/api', (_req, res) => {
+  res.status(404).json({ error: 'Endpoint nicht gefunden' })
+})
+
 // ── Statisches Frontend (Produktions-Build) ──────────────────
 const DIST = join(__dirname, '../dist')
 if (existsSync(DIST)) {

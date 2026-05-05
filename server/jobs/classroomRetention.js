@@ -21,7 +21,7 @@ function deleteExportFiles(fileRefs = []) {
 }
 
 export function runClassroomRetention() {
-  const result = cleanupExpiredSessions()
+  const result = cleanupExpiredSessions({ limit: 500 })
   const deletedFiles = deleteExportFiles(result.fileRefs)
   if ((result.archivedSessions || 0) > 0 || result.deletedSessions > 0 || deletedFiles > 0) {
     logger.info(

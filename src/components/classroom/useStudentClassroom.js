@@ -142,7 +142,7 @@ export function useStudentClassroom({
           }
         })
         if (payload.state === 'finished' || payload.state === 'archived') {
-          try { localStorage.removeItem(parseStorageKey(payload.sessionId)) } catch {}
+          try { sessionStorage.removeItem(parseStorageKey(payload.sessionId)) } catch {}
         }
         if (payload.state === 'running' && pendingSubmitsRef.current.length > 0) {
           const pending = pendingSubmitsRef.current.splice(0)
@@ -285,7 +285,7 @@ export function useStudentClassroom({
         sessionId: joinedSession.id,
       })
       try {
-        localStorage.setItem(
+        sessionStorage.setItem(
           parseStorageKey(joinedSession.id),
           JSON.stringify({ id: participant.id, token: participant.token, sessionId: joinedSession.id, session: joinedSession }),
         )
@@ -320,7 +320,7 @@ export function useStudentClassroom({
 
   const leaveSession = useCallback(() => {
     if (participantSession) {
-      try { localStorage.removeItem(parseStorageKey(participantSession.id)) } catch {}
+      try { sessionStorage.removeItem(parseStorageKey(participantSession.id)) } catch {}
     }
     teardownSocket()
     clearParticipantRuntime()
@@ -355,7 +355,7 @@ export function useStudentClassroom({
     if (participantInfo || sessions.length === 0) return
     for (const session of sessions) {
       try {
-        const raw = localStorage.getItem(parseStorageKey(session.id))
+        const raw = sessionStorage.getItem(parseStorageKey(session.id))
         if (!raw) continue
         const parsed = JSON.parse(raw)
         if (parsed?.sessionId === session.id && parsed?.id && parsed?.token) {
@@ -374,18 +374,29 @@ export function useStudentClassroom({
   }, [clearParticipantRuntime, teardownSocket])
 
   useEffect(() => {
+    try {
+      for (let i = localStorage.length - 1; i >= 0; i--) {
+        const key = localStorage.key(i)
+        if (key?.startsWith('sig_classroom_join_')) {
+          localStorage.removeItem(key)
+        }
+      }
+    } catch {}
+  }, [])
+
+  useEffect(() => {
     if (loadingAccount || isTeacher || participantInfo) return
     try {
-      for (let i = 0; i < localStorage.length; i++) {
-        const key = localStorage.key(i)
+      for (let i = 0; i < sessionStorage.length; i++) {
+        const key = sessionStorage.key(i)
         if (!key?.startsWith('sig_classroom_join_')) continue
-        const raw = localStorage.getItem(key)
+        const raw = sessionStorage.getItem(key)
         if (!raw) continue
         const parsed = JSON.parse(raw)
         if (!parsed?.sessionId || !parsed?.id || !parsed?.token || !parsed?.session) continue
         const savedState = parsed.session?.state
         if (savedState === 'finished' || savedState === 'archived') {
-          try { localStorage.removeItem(key) } catch {}
+          try { sessionStorage.removeItem(key) } catch {}
           continue
         }
         setParticipantSession(parsed.session)

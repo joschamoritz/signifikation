@@ -98,9 +98,12 @@ const setPremiumRoleStmt = db.prepare(`
 
 router.post('/api/v1/payments/checkout', requireAuthUser, async (req, res) => {
   try {
-    const { price } = req.body ?? {}
+    const { price, agreedToDigitalWaiver } = req.body ?? {}
     if (!price || !VALID_PRICES.includes(price)) {
       return res.status(400).json({ error: 'Ungültiger Preis.' })
+    }
+    if (agreedToDigitalWaiver !== true) {
+      return res.status(400).json({ error: 'Bitte Zustimmung zum sofortigen Beginn der digitalen Inhalte bestätigen.' })
     }
 
     // Bereits bezahlt?

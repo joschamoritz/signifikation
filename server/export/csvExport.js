@@ -70,7 +70,7 @@ function processOneJob(job) {
 }
 
 export function processQueuedCsvExports(limit = 10) {
-  const jobs = listQueuedExports(limit).filter(job => job.type === 'csv')
+  const jobs = listQueuedExports({ type: 'csv', limit })
   for (const job of jobs) processOneJob(job)
   return { processed: jobs.length }
 }

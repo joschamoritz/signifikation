@@ -1,7 +1,7 @@
 import express from 'express'
 import db from '../db.js'
 
-const getUserByIdBasicStmt = db.prepare(`
+const getUsersByIdsStmt = db.prepare(`
   SELECT
     u.id,
     u.name,
@@ -9,7 +9,7 @@ const getUserByIdBasicStmt = db.prepare(`
     COALESCE(up.role, 'user') AS role
   FROM user u
   LEFT JOIN user_profiles up ON up.user_id = u.id
-  WHERE u.id = ?
+  WHERE u.id IN (SELECT value FROM json_each(?))
 `)
 
 const topUsersByDatesStmt = db.prepare(`
@@ -74,8 +74,11 @@ export function createAdminStatsRouter({
         topUsersLimit
       )
 
+      const userRows = getUsersByIdsStmt.all(JSON.stringify(topUserRows.map((row) => row.userId)))
+      const usersById = new Map(userRows.map((row) => [row.id, row]))
+
       const topUsers = topUserRows.map((row) => {
-        const user = getUserByIdBasicStmt.get(row.userId)
+        const user = usersById.get(row.userId)
         return {
           userId: row.userId,
           name: user?.name || null,

@@ -55,11 +55,13 @@ export const stmts = {
 
   // kalender
   getAllKalender:    db.prepare('SELECT * FROM kalender'),
+  getKalenderByDatum: db.prepare('SELECT * FROM kalender WHERE datum = ?'),
   deleteAllKalender: db.prepare('DELETE FROM kalender'),
   upsertKalender:   db.prepare('INSERT OR REPLACE INTO kalender (datum, ids, thema, thema_kurz, thema_quelle, lueckenfueller_id) VALUES (@datum, @ids, @thema, @thema_kurz, @thema_quelle, @lueckenfueller_id)'),
 
   // wortzwilling
   getAllWortzwilling:  db.prepare('SELECT * FROM wortzwilling'),
+  getWortzwillingByDatum: db.prepare('SELECT * FROM wortzwilling WHERE datum = ?'),
   deleteAllWortzwilling: db.prepare('DELETE FROM wortzwilling'),
   upsertWortzwilling: db.prepare(
     'INSERT OR REPLACE INTO wortzwilling (datum,wortA,wortB,pos,kollokatoren,notiz,link) VALUES (@datum,@wortA,@wortB,@pos,@kollokatoren,@notiz,@link)'
@@ -67,6 +69,7 @@ export const stmts = {
 
   // zeitenwende
   getAllZeitenwende:  db.prepare('SELECT * FROM zeitenwende'),
+  getZeitenwendeByDatum: db.prepare('SELECT * FROM zeitenwende WHERE datum = ?'),
   deleteAllZeitenwende: db.prepare('DELETE FROM zeitenwende'),
   upsertZeitenwende: db.prepare(
     'INSERT OR REPLACE INTO zeitenwende (datum, data) VALUES (@datum, @data)'
@@ -182,6 +185,7 @@ export function loadReadOnly(file) {
 }
 
 export function loadKalender() { return loadReadOnly('kalender.json') }
+export function loadKalenderEntry(datum) { return _dailyContentStore.loadKalenderEntry(datum) }
 
 export function save(file, data) {
   const saver = SAVERS[file]
@@ -234,6 +238,8 @@ export function invalidateCache(file) {
 
 export function loadWortZwilling() { return loadReadOnly('wortzwilling.json') }
 export function loadZeitenwende() { return loadReadOnly('zeitenwende.json') }
+export function loadWortZwillingEntry(datum) { return _dailyContentStore.loadWortzwillingEntry(datum) }
+export function loadZeitenwendeEntry(datum) { return _dailyContentStore.loadZeitenwendeEntry(datum) }
 export function loadStats() { return loadReadOnly('stats.json') }
 export function loadStatsRows() { return loadReadOnly('stats-rows.json') }
 export function loadDailyContentMaps() {

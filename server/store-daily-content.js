@@ -132,6 +132,21 @@ export function createDailyContentStore({ db, stmts, logger }) {
     loadKalender()    { return loadKalenderRows(stmts.getAllKalender.all(), logger) },
     loadWortzwilling(){ return loadWortzwillingRows(stmts.getAllWortzwilling.all(), logger) },
     loadZeitenwende() { return loadZeitenwendeRows(stmts.getAllZeitenwende.all(), logger) },
+    loadKalenderEntry(datum) {
+      const row = stmts.getKalenderByDatum.get(datum)
+      if (!row) return null
+      return loadKalenderRows([row], logger)[datum] || null
+    },
+    loadWortzwillingEntry(datum) {
+      const row = stmts.getWortzwillingByDatum.get(datum)
+      if (!row) return null
+      return normalizeWortzwillingEntry(row, logger)
+    },
+    loadZeitenwendeEntry(datum) {
+      const row = stmts.getZeitenwendeByDatum.get(datum)
+      if (!row) return null
+      return parseJsonSafe(row.data, null, logger, { datum: row.datum, field: 'zeitenwende.data' })
+    },
     replaceKalender,
     replaceWortzwilling,
     replaceZeitenwende,

@@ -78,6 +78,7 @@ export default function KontoGeraeteBlock({ isLoggedIn, gesamtausgabePermanent }
     try {
       const res = await fetch(`${API}/account/devices/${deviceId}`, {
         method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
       })
       if (!res.ok) {

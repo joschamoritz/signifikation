@@ -183,10 +183,11 @@ const stmts = {
     WHERE id = @id
       AND session_id = @session_id
   `),
-  listQueuedExports: db.prepare(`
+  listQueuedExportsByType: db.prepare(`
     SELECT *
     FROM classroom_exports
     WHERE status = 'queued'
+      AND type = ?
     ORDER BY created_at ASC
     LIMIT ?
   `),
@@ -554,8 +555,8 @@ export function listClassroomExportJobs({ sessionId, teacherUserId }) {
   }
 }
 
-export function listQueuedExports(limit = 10) {
-  return stmts.listQueuedExports.all(limit).map(normalizeExportRow)
+export function listQueuedExports({ type, limit = 10 }) {
+  return stmts.listQueuedExportsByType.all(type, limit).map(normalizeExportRow)
 }
 
 export function markExportRunning({ sessionId, exportId }) {

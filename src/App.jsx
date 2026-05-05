@@ -11,6 +11,7 @@ export default function App() {
     appRef,
     activeTab,
     classroomLive,
+    classroomMounted,
     handleTabChange,
     showTabBar,
     phase,
@@ -24,7 +25,7 @@ export default function App() {
       <AppShell phase={phase} showTabBar={showTabBar} activeTab={activeTab} appRef={appRef}>
         <AppGameScreens {...appGameScreensProps} />
         <TabTransition activeTab={activeTab} tabs={tabScreens} />
-        <PersistentClassroomTab {...persistentClassroomProps} />
+        {classroomMounted ? <PersistentClassroomTab {...persistentClassroomProps} /> : null}
       </AppShell>
       {showTabBar && <TabBar activeTab={activeTab} onTabChange={handleTabChange} classroomLive={classroomLive} />}
     </ErrorBoundary>

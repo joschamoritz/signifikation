@@ -145,6 +145,8 @@ export function useAppModel() {
     appRef,
     activeTab: navigation.activeTab,
     classroomLive: navigation.classroomLive,
+    classroomMounted:
+      navigation.activeTab === 'klassenraum' || navigation.classroomInSession || navigation.classroomLive,
     handleTabChange: navigation.handleTabChange,
     showTabBar: navigation.showTabBar,
     phase,

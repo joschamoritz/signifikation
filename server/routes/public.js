@@ -3,7 +3,7 @@ import { join, normalize, sep } from 'path'
 import { readFileSync } from 'fs'
 import { fetchBelege, belegeVerfuegbar } from '../belege.js'
 import { fetchWiktionary } from '../wiktionary.js'
-import { loadKalender, loadWortZwilling, loadZeitenwende, recordStat, getLemmataIndex, cacheGet, cacheSet, DATA } from '../store.js'
+import { loadKalenderEntry, loadWortZwillingEntry, loadZeitenwendeEntry, recordStat, getLemmataIndex, cacheGet, cacheSet, DATA } from '../store.js'
 import { belegeLimiter, statsLimiter } from '../middleware/rateLimiter.js'
 import { auth } from '../auth/index.js'
 import { serverError } from '../middleware/auth.js'
@@ -32,10 +32,9 @@ router.get('/api/v1/heute', validate(datumQuerySchema, 'query'), (req, res) => {
     const today     = todayDatum()
     const datum     = req.query.datum || today.mmdd
     const year      = today.year
-    const kalender       = loadKalender()
     const { byId, byLemma } = getLemmataIndex()
 
-    const entry = kalender[datum]
+    const entry = loadKalenderEntry(datum)
     if (!entry) return res.status(404).json({ error: `Kein Eintrag für ${datum}` })
 
     const ids              = Array.isArray(entry) ? entry : (entry.ids ?? [])
@@ -57,8 +56,7 @@ router.get('/api/v1/heute', validate(datumQuerySchema, 'query'), (req, res) => {
 router.get('/api/v1/wortzwilling', validate(datumQuerySchema, 'query'), (req, res) => {
   try {
     const datum = req.query.datum || todayDatum().mmdd
-    const wz    = loadWortZwilling() ?? {}
-    const entry = wz[datum]
+    const entry = loadWortZwillingEntry(datum)
     if (!entry) return res.status(404).json({ error: `Kein Wort-Zwilling-Eintrag für ${datum}` })
     // Scores nicht ans Frontend senden (spielrelevante Antworten sind zuordnung-Felder)
     const safe = {
@@ -77,8 +75,7 @@ router.get('/api/v1/wortzwilling', validate(datumQuerySchema, 'query'), (req, re
 router.get('/api/v1/zeitenwende', validate(datumQuerySchema, 'query'), async (req, res) => {
   try {
     const datum = req.query.datum || todayDatum().mmdd
-    const zw    = loadZeitenwende()
-    const entry = zw[datum]
+    const entry = loadZeitenwendeEntry(datum)
     if (!entry) return res.status(404).json({ error: `Kein Zeitenwende-Eintrag für ${datum}` })
 
     const cacheKey = `wikt:${entry.lemma}`

@@ -181,7 +181,7 @@ function processOneJob(job) {
 }
 
 export function processQueuedPdfExports(limit = 10) {
-  const jobs = listQueuedExports(limit).filter(job => job.type === 'pdf')
+  const jobs = listQueuedExports({ type: 'pdf', limit })
   for (const job of jobs) processOneJob(job)
   return { processed: jobs.length }
 }

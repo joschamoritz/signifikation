@@ -67,6 +67,7 @@ const belegeStore = new CleanupStore(60_000)
 const adminStore = new CleanupStore(60_000)
 const statsStore = new CleanupStore(60_000)
 const classroomJoinStore = new CleanupStore(5 * 60_000)
+const classroomHeartbeatStore = new CleanupStore(60_000)
 const classroomWriteStore = new CleanupStore(60_000)
 const classroomExportStore = new CleanupStore(60_000)
 const registerStore = new CleanupStore(15 * 60_000)
@@ -130,6 +131,14 @@ export const classroomJoinLimiter = rateLimit({
   keyGenerator: getClientIp,
   standardHeaders: true, legacyHeaders: false,
   message: { error: 'Zu viele Versuche. Bitte warte 5 Minuten.' },
+})
+
+export const classroomHeartbeatLimiter = rateLimit({
+  windowMs: 60_000, max: 180,
+  store: classroomHeartbeatStore,
+  keyGenerator: getClientIp,
+  standardHeaders: true, legacyHeaders: false,
+  message: { error: 'Zu viele Heartbeats. Bitte kurz warten.' },
 })
 
 export const classroomWriteLimiter = rateLimit({

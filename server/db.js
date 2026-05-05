@@ -166,11 +166,12 @@ db.exec(`
   CREATE TABLE IF NOT EXISTS device_registrations (
     id          TEXT PRIMARY KEY,
     user_id     TEXT NOT NULL,
-    device_hash TEXT NOT NULL UNIQUE,
+    device_hash TEXT NOT NULL,
     user_agent  TEXT,
     last_seen   INTEGER NOT NULL,
     created_at  INTEGER NOT NULL,
-    FOREIGN KEY (user_id) REFERENCES user(id) ON DELETE CASCADE
+    FOREIGN KEY (user_id) REFERENCES user(id) ON DELETE CASCADE,
+    UNIQUE (user_id, device_hash)
   );
 
   CREATE INDEX IF NOT EXISTS idx_device_user
@@ -178,6 +179,9 @@ db.exec(`
 
   CREATE INDEX IF NOT EXISTS idx_device_hash
     ON device_registrations(device_hash);
+
+  CREATE INDEX IF NOT EXISTS idx_device_user_hash
+    ON device_registrations(user_id, device_hash);
 
   CREATE TABLE IF NOT EXISTS audit_log (
     id             INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -288,6 +292,9 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_classroom_exports_session_created
     ON classroom_exports(session_id, created_at DESC);
 
+  CREATE INDEX IF NOT EXISTS idx_classroom_exports_status_type_created
+    ON classroom_exports(status, type, created_at ASC);
+
   CREATE INDEX IF NOT EXISTS idx_audit_log_timestamp
     ON audit_log(timestamp DESC);
 
@@ -380,6 +387,50 @@ if (hasColumn('stats', 'user_id')) {
 if (!hasColumn('lemmata', 'lueckenfueller')) {
   logger.info('Migration: lemmata.lueckenfueller hinzufügen')
   db.exec(`ALTER TABLE lemmata ADD COLUMN lueckenfueller TEXT`)
+}
+
+{
+  const deviceTable = db.prepare(`SELECT sql FROM sqlite_master WHERE type='table' AND name='device_registrations'`).get()
+  if (deviceTable?.sql?.includes('device_hash TEXT NOT NULL UNIQUE')) {
+    logger.info('Migration: device_registrations UNIQUE(device_hash) → UNIQUE(user_id, device_hash)')
+    try {
+      db.exec(`
+        BEGIN;
+
+        CREATE TABLE device_registrations_new (
+          id          TEXT PRIMARY KEY,
+          user_id     TEXT NOT NULL,
+          device_hash TEXT NOT NULL,
+          user_agent  TEXT,
+          last_seen   INTEGER NOT NULL,
+          created_at  INTEGER NOT NULL,
+          FOREIGN KEY (user_id) REFERENCES user(id) ON DELETE CASCADE,
+          UNIQUE (user_id, device_hash)
+        );
+
+        INSERT INTO device_registrations_new (id, user_id, device_hash, user_agent, last_seen, created_at)
+        SELECT id, user_id, device_hash, user_agent, last_seen, created_at
+        FROM device_registrations;
+
+        DROP TABLE device_registrations;
+        ALTER TABLE device_registrations_new RENAME TO device_registrations;
+
+        CREATE INDEX IF NOT EXISTS idx_device_user
+          ON device_registrations(user_id);
+
+        CREATE INDEX IF NOT EXISTS idx_device_hash
+          ON device_registrations(device_hash);
+
+        CREATE INDEX IF NOT EXISTS idx_device_user_hash
+          ON device_registrations(user_id, device_hash);
+
+        COMMIT;
+      `)
+    } catch (err) {
+      db.exec('ROLLBACK;')
+      throw err
+    }
+  }
 }
 
 // ── Migration: user_profiles.role 'teacher' → 'premium' ─────────

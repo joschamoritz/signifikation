@@ -26,6 +26,7 @@ import { createTeacherSocketToken } from '../classroom/teacher-socket-auth.js'
 import logger from '../logger.js'
 import {
   classroomJoinLimiter,
+  classroomHeartbeatLimiter,
   classroomWriteLimiter,
   classroomExportLimiter,
 } from '../middleware/rateLimiter.js'
@@ -120,7 +121,7 @@ router.post('/api/v1/classroom/join', classroomJoinLimiter, validate(classroomJo
   }
 })
 
-router.post('/api/v1/classroom/heartbeat', classroomJoinLimiter, (req, res) => {
+router.post('/api/v1/classroom/heartbeat', classroomHeartbeatLimiter, (req, res) => {
   try {
     const sessionId = String(req.body?.sessionId || '')
     const participantId = String(req.body?.participantId || '')

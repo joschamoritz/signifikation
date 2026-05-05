@@ -25,7 +25,7 @@ export default function CheckoutModal({ isOpen, onClose, onTouchStart, onTouchMo
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ price: selectedPrice }),
+        body: JSON.stringify({ price: selectedPrice, agreedToDigitalWaiver: agreed }),
       })
       const data = await res.json().catch(() => ({}))
       if (res.status === 409) {
