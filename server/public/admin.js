@@ -1082,6 +1082,7 @@ function editSelectedCalendarDate() {
 function updateDashboardFromKalender() {
   const entries = getCalendarEntries()
   const metricDays = document.getElementById('metric-calendar-days')
+  const today = getCurrentDate()
   const todayKey = getTodayMmdd()
   const futureEntries = entries.filter((entry) => entry.datum >= todayKey)
   if (metricDays) metricDays.textContent = String(futureEntries.length)
