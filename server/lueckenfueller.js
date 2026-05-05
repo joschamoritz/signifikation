@@ -50,7 +50,7 @@ function blankCollocate(satz, depLemma) {
   const result = parts.map(part => {
     if (found || /^\s+$/.test(part)) return part
     const clean = part.replace(/^[.,;:!?„"""''()[\]–—»«‹›]+|[.,;:!?„"""''()[\]–—»«‹›]+$/g, '').toLowerCase()
-    if (clean === lower) {
+    if (clean === lower || (lower.length >= 4 && clean.startsWith(lower))) {
       found = true
       foundToken = part.replace(/^[.,;:!?„"""''()[\]–—»«‹›]+|[.,;:!?„"""''()[\]–—»«‹›]+$/g, '')
       return '_____'
