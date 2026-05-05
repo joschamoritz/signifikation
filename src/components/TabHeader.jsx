@@ -19,11 +19,13 @@ export default function TabHeader() {
           {`${WEEKDAYS[today.getDay()]}, ${today.getDate()}. ${MONTHS[today.getMonth()]} ${today.getFullYear()}`}
         </time>
       </p>
-      {streak > 0 && (
-        <span className="test-title-streak" aria-label={`${streak} Tage Streak`}>
-          🔥 {streak}
-        </span>
-      )}
+      <div className="test-title-right">
+        {streak > 0 && (
+          <span className="test-title-streak" aria-label={`${streak} Tage Streak`}>
+            🔥 {streak}
+          </span>
+        )}
+      </div>
     </header>
   )
 }

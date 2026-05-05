@@ -39,9 +39,11 @@ export default function KontoZugangBlock({ auth, gesamtausgabe, gesamtausgabePer
           <span className="test-pos-rule" />
           <span className="test-entry-category">Anmeldung</span>
         </div>
-        <p className="test-definition">
-          Melde dich an oder erstelle ein Konto, um deinen Spielfortschritt geräteübergreifend zu synchronisieren und die Gesamtausgabe freizuschalten.
-        </p>
+        {!auth.isLoggedIn && (
+          <p className="test-definition">
+            Melde dich an oder erstelle ein Konto, um deinen Spielfortschritt geräteübergreifend zu synchronisieren und die Gesamtausgabe freizuschalten.
+          </p>
+        )}
 
         <KontoAuthCard auth={auth} />
 
@@ -76,7 +78,7 @@ export default function KontoZugangBlock({ auth, gesamtausgabe, gesamtausgabePer
                     Klassenraum aktiv
                   </p>
                   <p className="konto-teacher-note-text">
-                    Du kannst im Tab Klassenraum Sitzungen erstellen, starten, exportieren und Ergebnisse live verfolgen.
+                    Sitzungen erstellen, starten und live verfolgen.
                   </p>
                 </div>
               </>

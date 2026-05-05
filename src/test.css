@@ -985,8 +985,8 @@
 
   /* Konto-Tab: Subscription-Status kompakter */
   .konto-subscription-status {
-    margin-top: 16px;
-    padding-top: 12px;
+    margin-top: 8px;
+    padding-top: 6px;
   }
   .test-entry::-webkit-scrollbar { display: none; }
   .test-entry:last-child { border-bottom: none; }
