@@ -85,7 +85,7 @@ jobs:
             set -e
             export NVM_DIR="/opt/nvm"
             source "$NVM_DIR/nvm.sh"
-            APP_PID=$(sudo -u signifikation bash -lc 'export PM2_HOME="/opt/signifikation/.pm2" && pm2 pid signifikation')
-            WORKER_PID=$(sudo -u signifikation bash -lc 'export PM2_HOME="/opt/signifikation/.pm2" && pm2 pid signifikation-worker')
+            APP_PID=$(sudo -u signifikation bash -lc 'export NVM_DIR="/opt/nvm" && source "$NVM_DIR/nvm.sh" && export PM2_HOME="/opt/signifikation/.pm2" && pm2 pid signifikation')
+            WORKER_PID=$(sudo -u signifikation bash -lc 'export NVM_DIR="/opt/nvm" && source "$NVM_DIR/nvm.sh" && export PM2_HOME="/opt/signifikation/.pm2" && pm2 pid signifikation-worker')
             test -n "$APP_PID" && test "$APP_PID" != "0"
             test -n "$WORKER_PID" && test "$WORKER_PID" != "0"
