@@ -54,7 +54,7 @@ export default function Home({
   const totalPoints    = playedGames.reduce((s, g) => s + g.total, 0)
   const maxPoints      = playedGames.length * 10
   const dailyMedal     = allPlayed ? getDailyMedal(totalPoints) : null
-  const allThreePlayed = allPlayed && !!wzPlayed && (!zeitenwende || !!zwPlayed) && (!lueckenfuellerLemma || !!lfPlayed)
+  const allThreePlayed = allPlayed && !!wzPlayed && (!zeitenwende || !!zwPlayed) && (!lueckenfuellerLemma?.lueckenfueller || !!lfPlayed)
 
   useEffect(() => {
     if (!allThreePlayed) return
@@ -433,7 +433,7 @@ export default function Home({
             </li>
 
             {/* ── ④ Lückenfüller ───────────────────────────── */}
-            <li className={`test-entry${!lueckenfuellerLemma ? ' test-entry--disabled' : ''}${lfPlayed ? ' test-entry--done' : ''}`}>
+            <li className={`test-entry${!lueckenfuellerLemma?.lueckenfueller ? ' test-entry--disabled' : ''}${lfPlayed ? ' test-entry--done' : ''}`}>
               <div className="test-entry-number" aria-hidden="true">
                 <span className="test-entry-num-glyph">④</span>
                 <span className="test-entry-marginalia">KONSTR.</span>
@@ -464,13 +464,13 @@ export default function Home({
 
                 <div className="test-entry-footer">
                   <span className={`test-status${lfPlayed ? ' test-status--done' : ''}`}>
-                    {!gesamtausgabe ? 'Teil der Gesamtausgabe.' : !lueckenfuellerLemma ? 'Heute nicht verfügbar.' : lfPlayed ? 'Gespielt.' : 'Noch nicht gespielt.'}
+                    {!gesamtausgabe ? 'Teil der Gesamtausgabe.' : !lueckenfuellerLemma?.lueckenfueller ? 'Heute nicht verfügbar.' : lfPlayed ? 'Gespielt.' : 'Noch nicht gespielt.'}
                   </span>
                   {!gesamtausgabe ? (
                     <button className="test-cta test-cta--locked" type="button" onClick={onUnlockGesamtausgabe} aria-label="Gesamtausgabe freischalten">
                       <LockIcon /> Gesamtausgabe freischalten
                     </button>
-                  ) : lueckenfuellerLemma ? (
+                  ) : lueckenfuellerLemma?.lueckenfueller ? (
                     <button
                       className="test-cta"
                       type="button"
