@@ -20,7 +20,13 @@ import { fetchBelegeRaw } from './belege.js'
 import logger from './logger.js'
 
 const LF_RELATIONS = {
-  Substantiv: ['~OBJA', '~SUBJA'],
+  // Substantiv: ATTR (Adjektiv-Attribute) + KON (koordinierte Nomen)
+  // Früher: ['~OBJA', '~SUBJA'] (Verb-Kollokate) – NICHT verwendbar, weil:
+  //   1. FTS5 findet nur Sätze mit exakter Infinitivform (unicode61-Tokenizer, kein Stemming)
+  //   2. blankCollocate/startsWith scheitert an konjugierten Formen (z.B. "gestaltet" ≠ startsWith("gestalten"))
+  // ATTR-Adjektive und KON-Nomen behalten ihren Stamm als Präfix bei der Flexion:
+  //   "spannende".startsWith("spannend") ✓   "Friedens".startsWith("Frieden") ✓
+  Substantiv: ['ATTR', 'KON'],
   Verb:       ['OBJA'],
   Adjektiv:   ['~ATTR'],
 }
@@ -94,7 +100,7 @@ function pickDistractors(roundIdx, target, pool, choiceTargets) {
  * Findet den ersten blankbaren Beleg für einen Kollokator.
  */
 function findBlankableSatz(lemma, target) {
-  const belege = fetchBelegeRaw(lemma, target.lemma, { limit: 30 })
+  const belege = fetchBelegeRaw(lemma, target.lemma, { limit: 30, prefixCollocate: true })
   for (const b of belege) {
     const blanked = blankCollocate(b.satz, target.lemma)
     if (blanked) return { satz: b.satz, quelle: b.quelle, ...blanked }

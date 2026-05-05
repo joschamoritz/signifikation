@@ -92,6 +92,21 @@ function buildFtsQuery(lemma, collocate) {
 }
 
 /**
+ * FTS5-Query mit Prefix-Matching für den Kollokator.
+ * Findet auch flektierte Formen: spannend* → spannende/spannenden/spannendem.
+ * Wird für den Lückenfüller-Modus verwendet, wo blankCollocate+startsWith
+ * die gefundenen Formen zuverlässig dem Lemma zuordnet.
+ *
+ * Mindestlänge 4 Zeichen, damit kurze Wörter nicht zu viele False Positives erzeugen.
+ */
+function buildFtsQueryPrefix(lemma, collocate) {
+  const esc = s => s.replace(/"/g, '""')
+  const collLow = collocate.toLowerCase()
+  const collPart = collLow.length >= 4 ? `${collLow}*` : `"${esc(collocate)}"`
+  return `"${esc(lemma)}" ${collPart}`
+}
+
+/**
  * Sucht bis zu `limit` Belegsätze für ein Kollokationspaar.
  *
  * @param {string} lemma     - Stichwort (z.B. "Tisch")
@@ -181,12 +196,14 @@ export function fetchBelege(lemma, collocate, { limit = 5, year = null } = {}) {
  * Gibt Sätze in Relevanz-Reihenfolge ohne Shuffle zurück, damit der Aufrufer
  * iterativ das erste blankbare Exemplar finden kann.
  */
-export function fetchBelegeRaw(lemma, collocate, { limit = 20 } = {}) {
+export function fetchBelegeRaw(lemma, collocate, { limit = 20, prefixCollocate = false } = {}) {
   const database = db()
   if (!database) return []
 
   try {
-    const ftsQuery = buildFtsQuery(lemma, collocate)
+    const ftsQuery = prefixCollocate
+      ? buildFtsQueryPrefix(lemma, collocate)
+      : buildFtsQuery(lemma, collocate)
     const rows = database.prepare(`
       SELECT satz, zitation, jahr
       FROM belege
