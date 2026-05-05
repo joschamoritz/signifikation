@@ -337,6 +337,11 @@ export function createAdminCalendarRouter({
           entry.definitionen = existing.definitionen
         }
 
+        // Vorhandene Lückenfüller-Daten beibehalten (fetchLemma liefert kein lueckenfueller-Feld)
+        if (existing?.lueckenfueller) {
+          entry.lueckenfueller = existing.lueckenfueller
+        }
+
         stmts.upsertLemma.run(lemmaToRow(entry))
         ids.push(entry.id)
       }
