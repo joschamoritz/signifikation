@@ -276,6 +276,7 @@
               <option value="koll">Kollokation</option>
               <option value="wortzwilling">Wort-Zwilling</option>
               <option value="zeitenwende">Zeitenwende</option>
+              <option value="lueckenfueller">Lückenfüller</option>
             </select>
             <button data-action="reset-entry-filters" class="entry-filters-reset">Filter zurücksetzen</button>
           </div>
@@ -396,6 +397,17 @@
             <button data-action="reset-zeitenwende-analysis" style="opacity:0.6">✕ Zurücksetzen</button>
           </div>
           <div id="zw-ana-output"></div>
+        </div>
+
+        <div class="card">
+          <h2>Lückenfüller – Eignungsanalyse</h2>
+          <p style="font-size:0.82rem;color:var(--muted);margin-bottom:8px">Prüfe, ob genug Material für den Lückenfüller vorhanden ist (Pool-Größe, blankbare Sätze, Runden). Speichert nichts.</p>
+          <div class="viz-search">
+            <input type="text" id="lf-ana-input" placeholder="Wort eingeben…" data-enter-action="analyze-lueckenfueller" style="flex:1">
+            <button data-action="analyze-lueckenfueller">Analysieren</button>
+            <button data-action="reset-lueckenfueller-analysis" style="opacity:0.6">✕ Zurücksetzen</button>
+          </div>
+          <div id="lf-ana-output"></div>
         </div>
 
       </section>

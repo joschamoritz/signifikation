@@ -146,11 +146,12 @@ function modeChips(entry) {
   const chips = ['<span class="entry-chip mode-koll">Kollokation</span>']
   if (entry?.hasWortZwilling) chips.push('<span class="entry-chip mode-wortzwilling">Wort-Zwilling</span>')
   if (entry?.hasZeitenwende) chips.push('<span class="entry-chip mode-zeitenwende">Zeitenwende</span>')
+  if (entry?.hasLueckenfueller) chips.push('<span class="entry-chip mode-lueckenfueller">Lückenfüller</span>')
   return chips.join('')
 }
 
 function sortCalendarEntries(entries) {
-  return [...entries].sort((a, b) => a.dateObj - b.dateObj)
+  return [...entries].sort((a, b) => a.datum.localeCompare(b.datum))
 }
 
 function getCalendarEntries() {
@@ -171,6 +172,7 @@ function getModeGroups(entry) {
 function modeGroupKeyToClass(key) {
   if (key === 'wortzwilling') return 'mode-wortzwilling'
   if (key === 'zeitenwende') return 'mode-zeitenwende'
+  if (key === 'lueckenfueller') return 'mode-lueckenfueller'
   return 'mode-koll'
 }
 
@@ -893,6 +895,7 @@ function renderEntryTable() {
     if (modeFilter === 'koll') return hasKoll
     if (modeFilter === 'wortzwilling') return !!entry?.hasWortZwilling
     if (modeFilter === 'zeitenwende') return !!entry?.hasZeitenwende
+    if (modeFilter === 'lueckenfueller') return !!entry?.hasLueckenfueller
     return true
   })
 
@@ -976,6 +979,7 @@ function selectAllVisibleEntries() {
       if (modeFilter === 'koll') return hasKoll
       if (modeFilter === 'wortzwilling') return !!entry?.hasWortZwilling
       if (modeFilter === 'zeitenwende') return !!entry?.hasZeitenwende
+      if (modeFilter === 'lueckenfueller') return !!entry?.hasLueckenfueller
       return true
     })
     .map(({ datum }) => datum)
@@ -1078,20 +1082,22 @@ function editSelectedCalendarDate() {
 function updateDashboardFromKalender() {
   const entries = getCalendarEntries()
   const metricDays = document.getElementById('metric-calendar-days')
-  const today = getCurrentDate()
-  const todayStart = startOfDay(today)
-  const futureEntries = entries.filter((entry) => entry.dateObj.getTime() >= todayStart.getTime())
+  const todayKey = getTodayMmdd()
+  const futureEntries = entries.filter((entry) => entry.datum >= todayKey)
   if (metricDays) metricDays.textContent = String(futureEntries.length)
 
-  const todayKey = getTodayMmdd()
   const todayEntry = kalenderData?.[todayKey]
   const metricToday = document.getElementById('metric-today-status')
   const metricTodaySub = document.getElementById('metric-today-sub')
   const metricTodayCard = document.getElementById('metric-today-card')
   const todayModes = todayEntry ? getModeGroups(todayEntry).length : 0
+  const todayComplete = todayModes >= 4
   if (metricToday) metricToday.textContent = todayEntry ? 'Geplant' : 'Offen'
   if (metricTodaySub) metricTodaySub.textContent = todayEntry ? `${todayModes} Spielmodi aktiv` : 'Noch nichts geplant'
-  if (metricTodayCard) metricTodayCard.classList.toggle('is-empty', !todayEntry)
+  if (metricTodayCard) {
+    metricTodayCard.classList.toggle('is-empty', !todayEntry)
+    metricTodayCard.classList.toggle('is-complete', !!todayComplete)
+  }
 
   const preview = document.getElementById('dashboard-calendar-preview')
   if (!preview) return
@@ -1353,37 +1359,49 @@ function renderKollAnalyse(data, out) {
 
   let html = `<div style="margin:12px 0 16px">${badge}</div>`
 
+  // Top 3 gesamt – primäre Anzeige (entspricht Spielmodus)
   if (data.top3?.length) {
-    html += `<div style="margin-bottom:16px"><strong style="font-size:0.82rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)">Top 3 gesamt</strong><div style="display:flex;gap:8px;margin-top:6px;flex-wrap:wrap">`
-    for (const it of data.top3) {
-      html += `<div style="background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:6px 12px;font-size:0.88rem"><strong>${esc(it.wort)}</strong> <span style="color:var(--muted);font-size:0.8em">${it.logDice}</span></div>`
-    }
+    html += `<div style="margin-bottom:16px">`
+    html += `<strong style="font-size:0.82rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)">Top 3 Kollokationen gesamt</strong>`
+    html += `<div style="display:flex;gap:10px;margin-top:8px;flex-wrap:wrap">`
+    data.top3.forEach((it, i) => {
+      html += `<div style="background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:8px 14px;font-size:0.9rem;min-width:80px;text-align:center">`
+      html += `<div style="font-size:0.72rem;color:var(--muted);margin-bottom:2px">Rang ${i + 1}</div>`
+      html += `<strong>${esc(it.wort)}</strong>`
+      html += `<div style="font-size:0.75rem;color:var(--muted);margin-top:2px">logDice ${it.logDice}</div>`
+      html += `</div>`
+    })
     html += `</div></div>`
+  } else {
+    html += `<div style="margin-bottom:16px;color:var(--muted);font-size:0.85rem">Keine Top-3-Kollokationen ermittelt.</div>`
   }
 
-  html += `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px">`
-  for (const runde of data.runden) {
-    const ok = runde.usable
-    html += `<div style="border:1.5px solid ${ok ? '#bbf7d0' : '#fca5a5'};border-radius:8px;padding:12px">`
-    html += `<div style="font-weight:600;font-size:0.85rem;margin-bottom:6px">${esc(runde.label)} <span style="color:var(--muted);font-weight:400;font-size:0.78rem">(${runde.count || 0} Treffer)</span></div>`
-    if (runde.error) { html += `<div style="color:#991b1b;font-size:0.8rem">${esc(runde.error)}</div>` }
-    else if (runde.items?.length) {
-      html += `<ol style="padding-left:16px;font-size:0.82rem;display:flex;flex-direction:column;gap:3px">`
-      for (const it of runde.items) {
-        html += `<li>${esc(it.wort)} <span style="color:var(--muted);font-size:0.78em">${it.logDice}</span></li>`
-      }
-      html += `</ol>`
-    } else { html += `<div style="color:var(--muted);font-size:0.82rem">Keine Ergebnisse</div>` }
-    html += `</div>`
-  }
-  html += `</div>`
-
+  // Bonusfrage
   if (data.bonus) {
-    html += `<div style="margin-top:14px;padding:10px 14px;background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;font-size:0.82rem">`
+    html += `<div style="margin-bottom:14px;padding:10px 14px;background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;font-size:0.82rem">`
     html += `<strong>Bonusfrage (${esc(data.bonus.label)}):</strong> ${esc(data.bonus.question)}<br>`
     html += `<span style="color:var(--muted)">Antwort: <strong>${esc(data.bonus.correct)}</strong> · Optionen: ${data.bonus.options.map(o => esc(o)).join(', ')}</span></div>`
-  } else {
-    html += `<div style="margin-top:14px;font-size:0.82rem;color:var(--muted)">Keine Bonusfrage verfügbar.</div>`
+  }
+
+  // Relationen-Detail – eingeklappt (für Diagnose)
+  if (data.runden?.length) {
+    html += `<details style="margin-top:4px"><summary style="cursor:pointer;font-size:0.8rem;color:var(--muted);padding:4px 0">Relationen-Detail (${data.runden.length} Relationen)</summary>`
+    html += `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;margin-top:10px">`
+    for (const runde of data.runden) {
+      const ok = runde.usable
+      html += `<div style="border:1.5px solid ${ok ? '#bbf7d0' : '#fca5a5'};border-radius:8px;padding:10px">`
+      html += `<div style="font-weight:600;font-size:0.82rem;margin-bottom:6px">${esc(runde.label)} <span style="color:var(--muted);font-weight:400;font-size:0.75rem">(${runde.count || 0})</span></div>`
+      if (runde.error) { html += `<div style="color:#991b1b;font-size:0.78rem">${esc(runde.error)}</div>` }
+      else if (runde.items?.length) {
+        html += `<ol style="padding-left:16px;font-size:0.8rem;display:flex;flex-direction:column;gap:3px">`
+        for (const it of runde.items) {
+          html += `<li>${esc(it.wort)} <span style="color:var(--muted);font-size:0.75em">${it.logDice}</span></li>`
+        }
+        html += `</ol>`
+      } else { html += `<div style="color:var(--muted);font-size:0.8rem">Keine Ergebnisse</div>` }
+      html += `</div>`
+    }
+    html += `</div></details>`
   }
 
   out.innerHTML = html
@@ -1997,6 +2015,48 @@ function resetZeitenwendeAnalysis() {
   if (input) input.value = ''
 }
 
+// ── Lückenfüller – Analyse ────────────────────────────────
+async function analyzeLueckenfueller() {
+  const lemma = document.getElementById('lf-ana-input')?.value.trim()
+  const out   = document.getElementById('lf-ana-output')
+  if (!lemma || !out) return
+  out.innerHTML = '<div class="status loading">Analysiere …</div>'
+  try {
+    const res  = await fetch(`/admin/analyze-lueckenfueller?q=${encodeURIComponent(lemma)}`, {})
+    const data = await res.json()
+    if (!res.ok) { out.innerHTML = `<div class="status error">Fehler: ${esc(data.error)}</div>`; return }
+
+    if (!data.usable) {
+      out.innerHTML = `<div style="margin:12px 0"><span style="color:#991b1b;font-weight:700">✗ Nicht geeignet</span><br><span style="color:var(--muted);font-size:0.85rem">${esc(data.reason || 'Kein Material verfügbar')}</span></div>`
+      return
+    }
+
+    const TYPE_LABELS = { choice: 'Auswahl', double: 'Doppel', free: 'Frei' }
+    const roundsHtml = (data.preview || []).map((r, i) => {
+      const typeLabel = TYPE_LABELS[r.type] || r.type
+      return `<div style="display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid var(--border-lt)">
+        <span style="font-size:0.75rem;color:var(--muted);min-width:50px">Runde ${i + 1}</span>
+        <span class="entry-chip">${esc(typeLabel)}</span>
+        <strong style="font-size:0.88rem">${esc(r.kollokator || '—')}</strong>
+        <span style="font-size:0.78rem;color:var(--muted);margin-left:auto">${r.punkte} Pkt.</span>
+      </div>`
+    }).join('')
+
+    out.innerHTML = `
+      <div style="margin:12px 0 16px"><span style="color:#166534;font-weight:700">✓ Geeignet – ${data.rounds} Runden generierbar</span></div>
+      <div style="font-size:0.82rem;color:var(--muted);margin-bottom:8px">Wortart: ${esc(data.pos || '—')}</div>
+      <div>${roundsHtml}</div>
+    `
+  } catch (e) { out.innerHTML = `<div class="status error">Netzwerkfehler: ${esc(e.message)}</div>` }
+}
+
+function resetLueckenfuellerAnalysis() {
+  const output = document.getElementById('lf-ana-output')
+  const input  = document.getElementById('lf-ana-input')
+  if (output) output.innerHTML = ''
+  if (input)  input.value = ''
+}
+
 // ── Lückenfüller – Generieren ─────────────────────────────
 async function generateLueckenfueller() {
   const lemmaName = (document.getElementById('lf-id')?.value || '').trim()
@@ -2117,6 +2177,8 @@ function handleDocumentClick(event) {
   if (action === 'reset-wort-zwilling-analysis') return void resetWortZwillingAnalysis()
   if (action === 'analyze-zeitenwende') return void analyzeZeitenwende()
   if (action === 'reset-zeitenwende-analysis') return void resetZeitenwendeAnalysis()
+  if (action === 'analyze-lueckenfueller') return void analyzeLueckenfueller()
+  if (action === 'reset-lueckenfueller-analysis') return void resetLueckenfuellerAnalysis()
   if (action === 'generate-lueckenfueller') return void generateLueckenfueller()
   if (action === 'change-month') return void changeMonth(Number(target.dataset.delta || 0))
   if (action === 'edit-selected-calendar-date') return void editSelectedCalendarDate()
@@ -2176,6 +2238,7 @@ function handleDocumentKeydown(event) {
   if (action === 'analyze-kollokation') return void analyzeKollokation()
   if (action === 'analyze-wort-zwilling') return void analyzeWortZwilling()
   if (action === 'analyze-zeitenwende') return void analyzeZeitenwende()
+  if (action === 'analyze-lueckenfueller') return void analyzeLueckenfueller()
 }
 
 document.addEventListener('click', handleDocumentClick)

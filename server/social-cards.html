@@ -127,7 +127,7 @@ header h1{font-family:'Gentium Plus',serif;font-size:1.25rem;font-weight:400}
       <!-- Format A -->
       <div id="ctrl-A" class="fmt-ctrl">
         <div>
-          <label>Relation</label>
+          <label>Kollokationen</label>
           <select id="rel-select" onchange="onRelChange()"><option value="">– Lemma wählen –</option></select>
         </div>
         <div>
@@ -371,47 +371,49 @@ async function onLemmaChange() {
   const r = await fetch(`/admin/analyze-kollokation?q=${encodeURIComponent(lemma.lemma)}&pos=${encodeURIComponent(lemma.pos)}`, {credentials:'include'})
   if (!r.ok) return
   const data = await r.json()
+
+  // Alle Kollokatoren für Format B / X (Beleg-Auswahl, x-Zitat)
   currentCollocations = (data.runden || []).flatMap(runde =>
     (runde.items || []).map(it => ({ wort: it.wort, logDice: it.logDice, relation: runde.key, relation_description: runde.desc }))
   )
-  populateRelSelect()
+
+  // Format A: top3 gesamt (wie im Spielmodus)
+  const top3 = Array.isArray(data.top3) ? data.top3 : []
+  const relSel = document.getElementById('rel-select')
+  relSel.innerHTML = '<option value="top3">Beste Kollokationen (gesamt)</option>'
+  // Richtige Antwort = Rang 1, Köder aus schwächerem Bereich
+  const allSorted = [...currentCollocations].sort((a, b) => b.logDice - a.logDice)
+  document.getElementById('answer-input').value = top3[0]?.wort || allSorted[0]?.wort || ''
+  document.getElementById('dist1-input').value  = allSorted[4]?.wort || allSorted[1]?.wort || ''
+  document.getElementById('dist2-input').value  = allSorted[9]?.wort || allSorted[2]?.wort || ''
+
+  populateCollSelects()
   renderCard()
 }
 
-function populateRelSelect() {
-  const rels = [...new Set(currentCollocations.map(c => c.relation))]
-  const relSel = document.getElementById('rel-select')
-  relSel.innerHTML = ''
-  rels.forEach(rel => {
-    const desc = currentCollocations.find(c => c.relation === rel)?.relation_description || rel
-    const o = document.createElement('option'); o.value = rel; o.textContent = desc; relSel.appendChild(o)
-  })
-  if (rels.length) onRelChange()
+function populateCollSelects() {
+  // Für Format B (Beleg-Auswahl) und Format X (Zitat-Kollokator)
+  const sorted = [...currentCollocations].sort((a,b) => b.logDice - a.logDice)
 
   const collSel = document.getElementById('collocate-sel')
   collSel.innerHTML = '<option value="">– Kollokator wählen –</option>'
-  ;[...currentCollocations].sort((a,b) => b.logDice - a.logDice).slice(0, 25).forEach(c => {
+  sorted.slice(0, 25).forEach(c => {
     const o = document.createElement('option')
-    o.value = c.wort; o.textContent = `${c.wort} (${c.relation}, logDice ${parseFloat(c.logDice).toFixed(1)})`
+    o.value = c.wort; o.textContent = `${c.wort} (logDice ${parseFloat(c.logDice).toFixed(1)})`
     collSel.appendChild(o)
   })
 
   const xZitatSel = document.getElementById('x-zitat-collocate')
   xZitatSel.innerHTML = '<option value="">– Kollokator wählen –</option>'
-  ;[...currentCollocations].sort((a,b) => b.logDice - a.logDice).slice(0, 25).forEach(c => {
+  sorted.slice(0, 25).forEach(c => {
     const o = document.createElement('option')
-    o.value = c.wort; o.textContent = `${c.wort} (${c.relation})`
+    o.value = c.wort; o.textContent = c.wort
     xZitatSel.appendChild(o)
   })
 }
 
+// Wird nicht mehr per Relation-Change ausgelöst, bleibt für eventuelle manuelle Auslösung
 function onRelChange() {
-  const rel = document.getElementById('rel-select').value
-  const items = currentCollocations.filter(c => c.relation === rel).sort((a,b) => b.logDice - a.logDice)
-  document.getElementById('answer-input').value = items[0]?.wort || ''
-  document.getElementById('dist1-input').value  = items[4]?.wort || items[1]?.wort || ''
-  document.getElementById('dist2-input').value  = items[9]?.wort || items[2]?.wort || ''
-
   renderCard()
 }
 

@@ -209,6 +209,16 @@ body {
   border-color: var(--border);
 }
 
+.metric-card--today.is-complete {
+  background: #f0fdf4;
+  border-color: #86efac;
+}
+
+.metric-card--today.is-complete .metric-value,
+.metric-card--today.is-complete .metric-sub {
+  color: #166534;
+}
+
 .metric-label {
   font-size: 0.72rem;
   color: var(--muted);
@@ -538,6 +548,12 @@ body {
   background: #f5f3ff;
   border-color: #ddd6fe;
   color: #6d28d9;
+}
+
+.entry-chip.mode-lueckenfueller {
+  background: #ecfdf5;
+  border-color: #6ee7b7;
+  color: #065f46;
 }
 
 .entry-row-actions {

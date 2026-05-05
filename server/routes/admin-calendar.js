@@ -473,6 +473,41 @@ export function createAdminCalendarRouter({
     }
   })
 
+  // Analyse-Endpunkt: prüft Eignung ohne zu speichern
+  router.get('/admin/analyze-lueckenfueller', adminLimiter, requireAuth, validate(qQuerySchema, 'query'), async (req, res) => {
+    const { q: lemmaName } = req.query
+    try {
+      const { byLemma } = getLemmataIndex()
+      const entry = byLemma.get(lemmaName.trim())
+      if (!entry) return res.status(404).json({ error: `Lemma „${lemmaName}" nicht in der Datenbank gefunden` })
+
+      const result = await buildLueckenfueller(entry.lemma, entry.pos)
+      if (!result) return res.json({
+        ok: false,
+        usable: false,
+        lemma: entry.lemma,
+        pos: entry.pos,
+        reason: 'Nicht genug Material (Pool zu klein oder keine blankbaren Sätze)',
+      })
+
+      res.json({
+        ok: true,
+        usable: true,
+        lemma: entry.lemma,
+        pos: entry.pos,
+        rounds: result.length,
+        roundTypes: result.map(r => r.type),
+        preview: result.map(r => ({
+          type: r.type,
+          kollokator: r.kollokator ?? r.sentences?.map(s => s.kollokator).join(' / '),
+          punkte: r.punkte,
+        })),
+      })
+    } catch (err) {
+      adminError(res, err)
+    }
+  })
+
   router.get('/admin/kalender', adminLimiter, requireAuth, (_req, res) => {
     try {
       const { kalender, wortzwilling, zeitenwende } = loadDailyContentMaps()
@@ -486,15 +521,22 @@ export function createAdminCalendarRouter({
         })
         const wortzwillingEntry = wortzwilling[datum] || null
         const zeitenwendeEntry = zeitenwende[datum] || null
+        const lueckenfuellerId = Array.isArray(eintrag) ? '' : (eintrag.lueckenfueller_id ?? '')
+        const lueckenfuellerLemma = lueckenfuellerId
+          ? (byId.get(lueckenfuellerId) ?? null)
+          : null
+        const hasLueckenfueller = !!(lueckenfuellerLemma?.lueckenfueller)
         result[datum] = {
           lemmata,
           modeGroups: buildModeGroups({
             lemmata,
             wortzwillingEntry,
             zeitenwendeEntry,
+            lueckenfuellerLemma: hasLueckenfueller ? lueckenfuellerLemma : null,
           }),
           hasWortZwilling: !!wortzwillingEntry,
           hasZeitenwende: !!zeitenwendeEntry,
+          hasLueckenfueller,
         }
       }
       res.json(result)
