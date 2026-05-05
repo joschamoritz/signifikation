@@ -185,7 +185,7 @@ export default function WortZwilling({ data, onBack, onFinish, savedResult = nul
 
   return (
     <div className="screen wz-screen" onClick={resetJokerTimer}>
-      <button className="back-btn" type="button" onClick={onBack} aria-label="Zurück zur Startseite"><span className="back-btn-chevron">‹</span>Zurück</button>
+      <button className="back-btn" type="button" onClick={onBack} aria-label="Zurück zur Startseite"><svg width="10" height="16" viewBox="0 0 10 16" fill="none" aria-hidden="true"><path d="M8.5 1L1.5 8L8.5 15" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg></button>
       <header className="wz-header">
         <span className="wz-badge">Wort-Zwilling</span>
         <div className="wz-dict-pair">

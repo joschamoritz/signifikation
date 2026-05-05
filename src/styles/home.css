@@ -436,7 +436,8 @@
    ============================================================ */
 .selection-screen {
   gap: 20px;
-  padding-block: 32px;
+  padding-top: 6px;
+  padding-bottom: 32px;
   padding-inline: 4px;
 }
 

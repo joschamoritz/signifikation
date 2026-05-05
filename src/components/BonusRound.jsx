@@ -25,9 +25,7 @@ export function FreeBonusRound({ onComplete, onBack }) {
   return (
     <div className="screen quiz-screen">
       {onBack && (
-        <button className="back-btn" type="button" onClick={onBack} aria-label="Zurück zur Wortauswahl">
-          <span className="back-btn-chevron">‹</span>Zurück
-        </button>
+        <button className="back-btn" type="button" onClick={onBack} aria-label="Zurück zur Wortauswahl"><svg width="10" height="16" viewBox="0 0 10 16" fill="none" aria-hidden="true"><path d="M8.5 1L1.5 8L8.5 15" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg></button>
       )}
       <header className="quiz-header">
         <span className="quiz-game-badge">Kollokationen</span>
@@ -81,9 +79,7 @@ export function BonusRound({ bonus, lemma, onComplete, onBack }) {
   return (
       <div className="screen quiz-screen">
       {onBack && !submitted && (
-        <button className="back-btn" type="button" onClick={onBack} aria-label="Zurück zur Wortauswahl">
-          <span className="back-btn-chevron">‹</span>Zurück
-        </button>
+        <button className="back-btn" type="button" onClick={onBack} aria-label="Zurück zur Wortauswahl"><svg width="10" height="16" viewBox="0 0 10 16" fill="none" aria-hidden="true"><path d="M8.5 1L1.5 8L8.5 15" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg></button>
       )}
       <header className="quiz-header">
         <span className="quiz-game-badge">Kollokationen</span>

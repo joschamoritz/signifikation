@@ -31,9 +31,7 @@ export default function WortZwillingSelection({ data, thema, themaKurz, themaQue
   return (
     <div className="screen selection-screen">
       <header className="selection-header">
-        <button className="back-btn" type="button" onClick={onBack} aria-label="Zurück zur Startseite">
-          <span className="back-btn-chevron">‹</span>Zurück
-        </button>
+        <button className="back-btn" type="button" onClick={onBack} aria-label="Zurück zur Startseite"><svg width="10" height="16" viewBox="0 0 10 16" fill="none" aria-hidden="true"><path d="M8.5 1L1.5 8L8.5 15" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg></button>
         <span className="quiz-game-badge">Wort-Zwilling</span>
         <h1 className="sr-only">Wort-Zwilling – Wortvorschau</h1>
         <SelectionThema thema={thema} themaKurz={themaKurz} themaQuelle={themaQuelle} />

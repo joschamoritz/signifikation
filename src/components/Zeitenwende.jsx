@@ -25,9 +25,7 @@ function ZWResults({ lemma, words, answers, onBack, ipa, definitionen }) {
 
   return (
     <div className="screen zw-screen">
-      <button type="button" className="back-btn" onClick={onBack} aria-label="Zurück zur Startseite">
-        <span className="back-btn-chevron">‹</span>Zurück
-      </button>
+      <button type="button" className="back-btn" onClick={onBack} aria-label="Zurück zur Startseite"><svg width="10" height="16" viewBox="0 0 10 16" fill="none" aria-hidden="true"><path d="M8.5 1L1.5 8L8.5 15" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg></button>
 
       <header className="zw-header">
         <span className="zw-badge">Zeitenwende</span>
@@ -278,9 +276,7 @@ export default function Zeitenwende({ data, onBack, onFinish, savedResult = null
 
   return (
     <div className="screen zw-screen">
-      <button type="button" className="back-btn" onClick={onBack} aria-label="Zurück zur Startseite">
-        <span className="back-btn-chevron">‹</span>Zurück
-      </button>
+      <button type="button" className="back-btn" onClick={onBack} aria-label="Zurück zur Startseite"><svg width="10" height="16" viewBox="0 0 10 16" fill="none" aria-hidden="true"><path d="M8.5 1L1.5 8L8.5 15" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg></button>
 
       <header className="zw-header">
         <span className="zw-badge">Zeitenwende</span>

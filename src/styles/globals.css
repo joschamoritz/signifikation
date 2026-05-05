@@ -305,27 +305,19 @@ button { font-family: inherit; cursor: pointer; border: none }
   z-index: 1;
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  justify-content: center;
   background: none;
   border: none;
   color: var(--primary);
-  font-family: var(--font-sans);
-  font-size: 0.82rem;
-  font-weight: 500;
-  padding: 6px 6px 6px 0;
+  padding: 10px 14px 10px 4px;
   min-height: 44px;
   min-width: 44px;
   cursor: pointer;
   transition: opacity 0.15s;
-  letter-spacing: 0.01em;
 }
-.back-btn:hover { opacity: 0.7 }
-.back-btn:active { opacity: 0.5 }
+.back-btn:hover { opacity: 0.65 }
+.back-btn:active { opacity: 0.4 }
 .back-btn:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; border-radius: 4px }
-.back-btn-chevron {
-  font-size: 1.05rem;
-  line-height: 1;
-}
 
 @media (prefers-reduced-motion: reduce) {
   .back-btn { transition: none }
