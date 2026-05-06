@@ -12,6 +12,7 @@ import {
   adminTagSchema,
   adminUsersBulkUpdateSchema,
   adminBulkDeleteCalendarSchema,
+  analyzeKollQuerySchema,
   adminPreviewLemmaSchema,
   adminPreviewDayParamsSchema,
 } from './validate.js'
@@ -188,6 +189,16 @@ describe('adminPreviewLemmaSchema', () => {
 
   it('lehnt leeres lemma ab', () => {
     expect(adminPreviewLemmaSchema.safeParse({ lemma: ' ' }).success).toBe(false)
+  })
+})
+
+describe('analyzeKollQuerySchema', () => {
+  it('akzeptiert q ohne wortart', () => {
+    expect(analyzeKollQuerySchema.safeParse({ q: 'haus' }).success).toBe(true)
+  })
+
+  it('akzeptiert q mit wortart', () => {
+    expect(analyzeKollQuerySchema.safeParse({ q: 'haus', pos: 'Substantiv' }).success).toBe(true)
   })
 })
 

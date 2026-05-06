@@ -93,7 +93,7 @@ export const adminTagSchema = z.object({
 /** GET /admin/analyze-kollokation (query) */
 export const analyzeKollQuerySchema = z.object({
   q:   z.string().min(1, 'q= erforderlich'),
-  pos: POS,
+  pos: POS.optional(),
 })
 
 /** GET /admin/analyze-wortzwilling (query) */

@@ -1298,12 +1298,11 @@ function resetAuditFilters() {
 // ── Kollokation – Wortanalyse ─────────────────────────────
 async function analyzeKollokation() {
   const lemma = document.getElementById('koll-input').value.trim()
-  const pos   = document.getElementById('koll-pos').value
   const out   = document.getElementById('koll-output')
   if (!lemma) return
   out.innerHTML = '<div class="status loading">Analysiere …</div>'
   try {
-    const res  = await fetch(`/admin/analyze-kollokation?q=${encodeURIComponent(lemma)}&pos=${encodeURIComponent(pos)}`, {})
+    const res  = await fetch(`/admin/analyze-kollokation?q=${encodeURIComponent(lemma)}`, {})
     const data = await res.json()
     if (!res.ok) { out.innerHTML = `<div class="status error">Fehler: ${esc(data.error)}</div>`; return }
     renderKollAnalyse(data, out)

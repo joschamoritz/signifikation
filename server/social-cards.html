@@ -368,7 +368,7 @@ async function onLemmaChange() {
   const id = document.getElementById('lemma-select').value
   const lemma = currentLemmata.find(l => l.id === id)
   if (!lemma) return
-  const r = await fetch(`/admin/analyze-kollokation?q=${encodeURIComponent(lemma.lemma)}&pos=${encodeURIComponent(lemma.pos)}`, {credentials:'include'})
+  const r = await fetch(`/admin/analyze-kollokation?q=${encodeURIComponent(lemma.lemma)}`, {credentials:'include'})
   if (!r.ok) return
   const data = await r.json()
 
