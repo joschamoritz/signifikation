@@ -148,7 +148,7 @@ describe('admin routes integration', () => {
   })
 
   it('GET /admin/preview/day/:datum liefert Tagesdaten fuer vorhandenen Eintrag', async () => {
-    const datum = '10-15'
+    const datum = '2026-10-15'
     await save('kalender.json', { ...loadReadOnly('kalender.json'), [datum]: ['haus', 'baum', 'wort'] })
 
     const response = await fetch(`${baseUrl}/admin/preview/day/${encodeURIComponent(datum)}`, {
@@ -178,7 +178,7 @@ describe('admin routes integration', () => {
   })
 
   it('GET /admin/audit-log/:resource/:id liefert Detailhistorie für eine Entität', async () => {
-    const datum = `12-${String((Math.floor(Math.random() * 20) + 10)).padStart(2, '0')}`
+    const datum = `2026-12-${String((Math.floor(Math.random() * 20) + 10)).padStart(2, '0')}`
     await save('kalender.json', { ...loadReadOnly('kalender.json'), [datum]: ['haus', 'baum', 'wort'] })
 
     const seedResponse = await fetch(`${baseUrl}/admin/kalender/bulk-delete`, {
@@ -226,7 +226,7 @@ describe('admin routes integration', () => {
   })
 
   it('POST /admin/kalender/bulk-import importiert CSV-Einträge', async () => {
-    const datum = `12-${String((Math.floor(Math.random() * 20) + 10)).padStart(2, '0')}`
+    const datum = `2026-12-${String((Math.floor(Math.random() * 20) + 10)).padStart(2, '0')}`
     const response = await fetch(`${baseUrl}/admin/kalender/bulk-import`, {
       method: 'POST',
       headers: adminHeaders(token),
@@ -271,7 +271,7 @@ describe('admin routes integration', () => {
   })
 
   it('POST /admin/tag entfernt optionale Modi, wenn Felder geleert werden', async () => {
-    const datum = `11-${String((Math.floor(Math.random() * 20) + 10)).padStart(2, '0')}`
+    const datum = `2026-11-${String((Math.floor(Math.random() * 20) + 10)).padStart(2, '0')}`
 
     const firstResponse = await fetch(`${baseUrl}/admin/tag`, {
       method: 'POST',
@@ -317,7 +317,7 @@ describe('admin routes integration', () => {
   it('POST /admin/backup/restore bleibt bei Fehlern atomisch', async () => {
     const originalKalender = loadReadOnly('kalender.json')
     const originalLemmata = loadReadOnly('lemmata.json')
-    const markerDatum = '10-31'
+    const markerDatum = '2026-10-31'
     const markerId = 'restore-atomic-marker'
 
     await save('kalender.json', { ...originalKalender, [markerDatum]: [markerId] })

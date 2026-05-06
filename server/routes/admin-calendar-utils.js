@@ -1,9 +1,4 @@
-export function isoDateToMmdd(value) {
-  const normalized = String(value || '').trim()
-  const match = normalized.match(/^(\d{4})-(\d{2})-(\d{2})$/)
-  if (!match) return null
-  return `${match[2]}-${match[3]}`
-}
+import { normalizeDatumToIso } from '../date-utils.js'
 
 export function parseCalendarBulkImport(csv) {
   const lines = String(csv || '')
@@ -30,12 +25,12 @@ export function parseCalendarBulkImport(csv) {
       throw new Error(`CSV-Zeile ${index + 1} benötigt genau 3 Lemmata`)
     }
 
-    const mmdd = isoDateToMmdd(rawDate) || (/^\d{2}-\d{2}$/.test(rawDate) ? rawDate : null)
-    if (!mmdd) {
+    const datum = normalizeDatumToIso(rawDate)
+    if (!datum) {
       throw new Error(`CSV-Zeile ${index + 1} enthält ein ungültiges Datum`)
     }
 
-    entries.push({ datum: mmdd, woerter: words })
+    entries.push({ datum, woerter: words })
   }
 
   return entries

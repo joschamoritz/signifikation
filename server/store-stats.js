@@ -1,3 +1,5 @@
+import { normalizeDatumToIso, sortDatumKeys } from './date-utils.js'
+
 function parseJson(value, fallback) {
   try {
     return JSON.parse(value)
@@ -77,8 +79,13 @@ export function sanitizeStatsRow(row) {
     throw new Error('Stats-Zeile ohne datum oder spiel im Backup')
   }
 
+  const isoDatum = normalizeDatumToIso(datum)
+  if (!isoDatum) {
+    throw new Error('Stats-Zeile mit ungueltigem datum im Backup')
+  }
+
   return {
-    datum,
+    datum: isoDatum,
     spiel,
     user_id: String(row.user_id || ''),
     plays: toNonNegativeInt(row.plays),
@@ -92,23 +99,8 @@ export function getNormalizedScoreBucket(score, max) {
   return Math.min(10, Math.max(0, Math.round((score || 0) / (max || 1) * 10)))
 }
 
-export function sortMmddKeys(keys, now = new Date()) {
-  const currentYear = now.getFullYear()
-  const today = new Date(currentYear, now.getMonth(), now.getDate()).getTime()
-
-  return [...keys].sort((a, b) => {
-    const [ma, da] = String(a).split('-').map(Number)
-    const [mb, db] = String(b).split('-').map(Number)
-    const dateAThisYear = new Date(currentYear, (ma || 1) - 1, da || 1)
-    const dateBThisYear = new Date(currentYear, (mb || 1) - 1, db || 1)
-    const dateA = dateAThisYear.getTime() >= today
-      ? dateAThisYear
-      : new Date(currentYear + 1, (ma || 1) - 1, da || 1)
-    const dateB = dateBThisYear.getTime() >= today
-      ? dateBThisYear
-      : new Date(currentYear + 1, (mb || 1) - 1, db || 1)
-    return dateA - dateB
-  })
+export function sortMmddKeys(keys) {
+  return sortDatumKeys(keys)
 }
 
 export function buildStatsWindow(stats, days) {

@@ -546,7 +546,7 @@ export function createAdminCalendarRouter({
   })
 
   router.get('/admin/tag/:datum', adminLimiter, requireAuth, (req, res) => {
-    if (!/^\d{2}-\d{2}$/.test(req.params.datum)) return res.status(400).json({ error: 'Ungültiges Datumsformat' })
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(req.params.datum)) return res.status(400).json({ error: 'Ungültiges Datumsformat' })
     const { kalender, wortzwilling, zeitenwende } = loadDailyContentMaps()
     const { byId } = getLemmataIndex()
     const kalEintrag = kalender[req.params.datum]
@@ -581,7 +581,7 @@ export function createAdminCalendarRouter({
   })
 
   router.delete('/admin/tag/:datum', adminLimiter, requireAuth, async (req, res) => {
-    if (!/^\d{2}-\d{2}$/.test(req.params.datum)) return res.status(400).json({ error: 'Ungültiges Datumsformat' })
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(req.params.datum)) return res.status(400).json({ error: 'Ungültiges Datumsformat' })
     try {
       const { kalender, wortzwilling, zeitenwende } = loadMutableDailyContentMaps()
       const datum = req.params.datum

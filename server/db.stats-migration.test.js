@@ -61,14 +61,15 @@ describe('DB stats migration', () => {
       const cols = migratedDb.prepare('PRAGMA table_info(stats)').all().map((row) => row.name)
       expect(cols).toContain('user_id')
 
+      const migratedDatum = `${new Date().getFullYear()}-04-15`
       const legacyRow = migratedDb.prepare(`
         SELECT datum, spiel, user_id, plays, scoreSum, maxSum, dist
         FROM stats
-        WHERE datum = '04-15' AND spiel = 'kollokationen' AND user_id = ''
-      `).get()
+        WHERE datum = ? AND spiel = 'kollokationen' AND user_id = ''
+      `).get(migratedDatum)
 
       expect(legacyRow).toEqual({
-        datum: '04-15',
+        datum: migratedDatum,
         spiel: 'kollokationen',
         user_id: '',
         plays: 2,
@@ -79,15 +80,15 @@ describe('DB stats migration', () => {
 
       migratedDb.prepare(`
         INSERT INTO stats (datum, spiel, user_id, plays, scoreSum, maxSum, dist)
-        VALUES ('04-15', 'kollokationen', 'user-1', 1, 6, 10, '[0,0,0,0,0,0,1,0,0,0,0]')
-      `).run()
+        VALUES (?, 'kollokationen', 'user-1', 1, 6, 10, '[0,0,0,0,0,0,1,0,0,0,0]')
+      `).run(migratedDatum)
 
       const rows = migratedDb.prepare(`
         SELECT user_id
         FROM stats
-        WHERE datum = '04-15' AND spiel = 'kollokationen'
+        WHERE datum = ? AND spiel = 'kollokationen'
         ORDER BY user_id ASC
-      `).all()
+      `).all(migratedDatum)
 
       expect(rows.map((row) => row.user_id)).toEqual(['', 'user-1'])
 

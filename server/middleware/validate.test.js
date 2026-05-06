@@ -18,7 +18,7 @@ import {
 
 // ── statsSchema ──────────────────────────────────────────────
 describe('statsSchema', () => {
-  const valid = { game: 'kollokationen', datum: '03-15', score: 8, max: 10 }
+  const valid = { game: 'kollokationen', datum: '2026-03-15', score: 8, max: 10 }
 
   it('akzeptiert gültige Eingabe', () => {
     expect(statsSchema.safeParse(valid).success).toBe(true)
@@ -35,7 +35,7 @@ describe('statsSchema', () => {
   })
 
   it('lehnt ungültiges datum-Format ab', () => {
-    expect(statsSchema.safeParse({ ...valid, datum: '2024-03-15' }).success).toBe(false)
+    expect(statsSchema.safeParse({ ...valid, datum: '03-15' }).success).toBe(false)
     expect(statsSchema.safeParse({ ...valid, datum: '3-15' }).success).toBe(false)
   })
 
@@ -121,7 +121,7 @@ describe('qQuerySchema', () => {
 // ── adminTagSchema ───────────────────────────────────────────
 describe('adminTagSchema', () => {
   const valid = {
-    datum: '03-15',
+    datum: '2026-03-15',
     woerter: ['wandern', 'heilig', 'grün'],
     zwilling_pos: 'Substantiv',
   }
@@ -164,7 +164,7 @@ describe('adminTagSchema', () => {
 // ── Phase-5 Schemas ─────────────────────────────────────────
 describe('adminBulkDeleteCalendarSchema', () => {
   it('akzeptiert gueltige Datumsliste', () => {
-    expect(adminBulkDeleteCalendarSchema.safeParse({ dates: ['03-15', '03-16'] }).success).toBe(true)
+    expect(adminBulkDeleteCalendarSchema.safeParse({ dates: ['2026-03-15', '2026-03-16'] }).success).toBe(true)
   })
 
   it('lehnt leere Listen ab', () => {
@@ -172,7 +172,7 @@ describe('adminBulkDeleteCalendarSchema', () => {
   })
 
   it('lehnt ungueltige Datumswerte ab', () => {
-    expect(adminBulkDeleteCalendarSchema.safeParse({ dates: ['2026-03-15'] }).success).toBe(false)
+    expect(adminBulkDeleteCalendarSchema.safeParse({ dates: ['03-15'] }).success).toBe(false)
   })
 })
 
@@ -192,12 +192,12 @@ describe('adminPreviewLemmaSchema', () => {
 })
 
 describe('adminPreviewDayParamsSchema', () => {
-  it('akzeptiert MM-DD', () => {
-    expect(adminPreviewDayParamsSchema.safeParse({ datum: '03-15' }).success).toBe(true)
+  it('akzeptiert YYYY-MM-DD', () => {
+    expect(adminPreviewDayParamsSchema.safeParse({ datum: '2026-03-15' }).success).toBe(true)
   })
 
-  it('lehnt YYYY-MM-DD ab', () => {
-    expect(adminPreviewDayParamsSchema.safeParse({ datum: '2026-03-15' }).success).toBe(false)
+  it('lehnt MM-DD ohne Jahr ab', () => {
+    expect(adminPreviewDayParamsSchema.safeParse({ datum: '03-15' }).success).toBe(false)
   })
 })
 
