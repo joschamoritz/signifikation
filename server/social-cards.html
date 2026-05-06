@@ -329,8 +329,7 @@ function initApp() {
 async function onDatumChange() {
   const val = document.getElementById('datum-input').value
   if (!val) return
-  const parts = val.split('-')
-  const datum = parts[1] + '-' + parts[2]
+  const datum = val
 
   const r = await fetch(`/admin/social-cards/tagesdata?datum=${datum}`, {credentials:'include'})
   if (!r.ok) { alert('Fehler beim Laden der Tagesdaten'); return }
