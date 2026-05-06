@@ -4,6 +4,20 @@
 // credentials: 'same-origin' ist der Browser-Standard für same-origin Requests.
 function clearToken() { /* noop – Cookie wird serverseitig via /admin/logout gelöscht */ }
 
+function showMainContainer() {
+  const container = document.getElementById('main-container')
+  if (!container) return
+  container.classList.remove('is-hidden')
+  container.style.display = 'flex'
+}
+
+function hideMainContainer() {
+  const container = document.getElementById('main-container')
+  if (!container) return
+  container.classList.add('is-hidden')
+  container.style.display = 'none'
+}
+
 // ── XSS-Schutz ───────────────────────────────────────────
 function esc(s) {
   return String(s ?? '')
@@ -386,7 +400,7 @@ async function doLogin() {
     })
     if (r.ok) {
       document.getElementById('login-overlay').classList.add('hidden')
-      document.getElementById('main-container').style.display = 'flex'
+      showMainContainer()
       scheduleSessionRefresh()
       initDashboard()
     } else {
@@ -484,7 +498,7 @@ async function doLogout() {
   }
   clearToken()
   await fetch('/admin/logout', { method: 'POST', headers: { 'Content-Type': 'application/json' } }).catch(() => {})
-  document.getElementById('main-container').style.display = 'none'
+  hideMainContainer()
   document.getElementById('login-overlay').classList.remove('hidden')
   const emailInput = document.getElementById('login-email')
   const passwordInput = document.getElementById('login-password')
@@ -498,7 +512,7 @@ async function doLogout() {
 fetch('/admin/kalender').then(r => {
   if (r.ok) {
     document.getElementById('login-overlay').classList.add('hidden')
-    document.getElementById('main-container').style.display = 'flex'
+    showMainContainer()
     scheduleSessionRefresh()
     initDashboard()
   }
