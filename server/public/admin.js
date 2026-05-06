@@ -38,6 +38,17 @@ let sessionRefreshTimer = null
 let usersSearchTimer = null
 let usersOverviewAbortController = null
 let currentAuditEntries = []
+let freeDaysData = []
+let entryFormSnapshot = null
+let entryFormDirty = false
+
+const ENTRY_FIELD_IDS = [
+  'datum', 'thema', 'thema-kurz', 'thema-quelle',
+  'w1', 'w2', 'w3', 'p1', 'p2', 'p3',
+  'n1', 'n2', 'n3', 'l1', 'l2', 'l3',
+  'wza', 'wzb', 'wzpos', 'wz-notiz', 'wz-link',
+  'zw-lemma', 'zw-notiz', 'zw-link', 'lf-id',
+]
 
 function getCurrentDate() {
   return new Date()
@@ -76,6 +87,12 @@ function setPageMeta(pageEl) {
 }
 
 function switchPage(pageId) {
+  const activePage = document.querySelector('.admin-page.is-active')
+  const activePageId = activePage?.id?.replace(/^page-/, '') || ''
+  if (activePageId === 'entry' && pageId !== 'entry' && !confirmDiscardEntryChanges('die Seite zu verlassen')) {
+    return
+  }
+
   const pages = document.querySelectorAll('.admin-page')
   pages.forEach((page) => {
     const isActive = page.id === `page-${pageId}`
@@ -104,9 +121,181 @@ function switchPage(pageId) {
 function refreshDashboard() {
   loadHealth()
   loadKalender()
+  loadFreeDays({ silent: true })
   loadStats()
   loadPerformance()
+  loadAdminActivity()
   if (usersLoaded) loadUsersOverview()
+}
+
+function normalizeText(value) {
+  return String(value ?? '').trim()
+}
+
+function readEntryFormState() {
+  return ENTRY_FIELD_IDS.reduce((acc, id) => {
+    const el = document.getElementById(id)
+    acc[id] = normalizeText(el?.value || '')
+    return acc
+  }, {})
+}
+
+function setEntryDirtyState(isDirty) {
+  entryFormDirty = !!isDirty
+  const indicator = document.getElementById('entry-dirty-indicator')
+  const resetBtn = document.getElementById('entry-reset-btn')
+  if (indicator) {
+    indicator.textContent = entryFormDirty ? 'Ungespeicherte Änderungen' : 'Alles gespeichert'
+    indicator.classList.toggle('is-dirty', entryFormDirty)
+  }
+  if (resetBtn) resetBtn.disabled = !entryFormDirty
+}
+
+function captureEntryFormSnapshot() {
+  entryFormSnapshot = readEntryFormState()
+  setEntryDirtyState(false)
+}
+
+function updateEntryDirtyState() {
+  if (!entryFormSnapshot) {
+    setEntryDirtyState(false)
+    return
+  }
+  const current = readEntryFormState()
+  const isDirty = ENTRY_FIELD_IDS.some((id) => current[id] !== entryFormSnapshot[id])
+  setEntryDirtyState(isDirty)
+}
+
+function clearInlineAnalysisOutputs() {
+  ;['entry-koll-analysis-output', 'entry-wz-analysis-output', 'entry-zw-analysis-output', 'entry-lf-analysis-output'].forEach((id) => {
+    const el = document.getElementById(id)
+    if (el) el.innerHTML = ''
+  })
+}
+
+function restoreEntryFormSnapshot() {
+  if (!entryFormSnapshot) return
+  ENTRY_FIELD_IDS.forEach((id) => {
+    const el = document.getElementById(id)
+    if (el) el.value = entryFormSnapshot[id] || ''
+  })
+  hideAllExtraFields()
+  if (entryFormSnapshot.n1 || entryFormSnapshot.l1) showExtraFields('koll-extras-1')
+  if (entryFormSnapshot.n2 || entryFormSnapshot.l2) showExtraFields('koll-extras-2')
+  if (entryFormSnapshot.n3 || entryFormSnapshot.l3) showExtraFields('koll-extras-3')
+  if (entryFormSnapshot['wz-notiz'] || entryFormSnapshot['wz-link']) showExtraFields('wz-extras')
+  if (entryFormSnapshot['zw-notiz'] || entryFormSnapshot['zw-link']) showExtraFields('zw-extras')
+  updateModeIndicators()
+  setEntryDirtyState(false)
+}
+
+function confirmDiscardEntryChanges(contextLabel = 'fortfahren') {
+  if (!entryFormDirty) return true
+  return window.confirm(`Es gibt ungespeicherte Änderungen. Wirklich ${contextLabel}?`)
+}
+
+function isSundayIso(iso) {
+  if (!iso) return false
+  const [year, month, day] = iso.split('-').map(Number)
+  const value = new Date(year, (month || 1) - 1, day || 1)
+  return value.getDay() === 0
+}
+
+function getFreeDayInfo(iso) {
+  if (!iso) return null
+  const explicit = freeDaysData.find((item) => item?.date === iso) || null
+  if (explicit) {
+    return {
+      date: iso,
+      label: explicit.label || '',
+      source: 'manual',
+      displayLabel: explicit.label ? `Freitag: ${explicit.label}` : 'Freitag eingetragen',
+    }
+  }
+  if (isSundayIso(iso)) {
+    return {
+      date: iso,
+      label: 'Sonntag',
+      source: 'sunday',
+      displayLabel: 'Sonntag: automatisch frei',
+    }
+  }
+  return null
+}
+
+function isFreeAccessDay(iso) {
+  return !!getFreeDayInfo(iso)
+}
+
+function buildConfirmList(items) {
+  if (!Array.isArray(items) || !items.length) return ''
+  return `\n\n${items.map((item) => `- ${item}`).join('\n')}`
+}
+
+function confirmAction(message, details = []) {
+  return window.confirm(`${message}${buildConfirmList(details)}`)
+}
+
+function createTemporaryDownload(blob, filename) {
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = filename
+  a.click()
+  URL.revokeObjectURL(url)
+}
+
+function setFreeDayMessage(message, tone = 'info') {
+  const msgEl = document.getElementById('freeday-msg')
+  if (!msgEl) return
+  msgEl.textContent = message || ''
+  msgEl.classList.remove('is-hidden', 'is-error', 'is-success')
+  if (!message) {
+    msgEl.classList.add('is-hidden')
+    return
+  }
+  if (tone === 'error') msgEl.classList.add('is-error')
+  if (tone === 'success') msgEl.classList.add('is-success')
+}
+
+function summarizeAuditEntry(entry) {
+  if (!entry) return 'Keine Aktivität verfügbar.'
+  const action = entry.action || 'Änderung'
+  const resource = entry.resource || 'Ressource'
+  const resourceId = entry.resourceId ? ` ${entry.resourceId}` : ''
+  const status = entry.status === 'FAILED' ? 'fehlgeschlagen' : 'erfolgreich'
+  return `${action} ${resource}${resourceId} · ${status}`
+}
+
+function renderAdminActivity(entries) {
+  const list = document.getElementById('dashboard-activity-list')
+  const hint = document.getElementById('dashboard-activity-hint')
+  if (!list || !hint) return
+
+  if (!Array.isArray(entries) || !entries.length) {
+    list.innerHTML = '<div class="users-empty">Noch keine Admin-Aktivität vorhanden.</div>'
+    hint.textContent = 'Keine Einträge im Audit-Log.'
+    return
+  }
+
+  hint.textContent = `${entries.length} letzte Änderungen aus dem Audit-Log`
+  list.innerHTML = entries.map((entry) => {
+    const time = entry.timestamp ? new Date(entry.timestamp).toLocaleString('de-DE', { dateStyle: 'short', timeStyle: 'short' }) : '—'
+    return `<article class="activity-item"><div class="activity-item-head"><strong>${esc(entry.resource || '—')}</strong><span>${esc(time)}</span></div><p>${esc(summarizeAuditEntry(entry))}</p></article>`
+  }).join('')
+}
+
+async function loadAdminActivity() {
+  try {
+    const response = await fetch('/admin/audit-log?limit=5', {})
+    const data = await response.json().catch(() => ({}))
+    if (!response.ok) throw new Error(data.error || `HTTP ${response.status}`)
+    renderAdminActivity(Array.isArray(data.entries) ? data.entries : [])
+  } catch (err) {
+    renderAdminActivity([])
+    const hint = document.getElementById('dashboard-activity-hint')
+    if (hint) hint.textContent = `Aktivität konnte nicht geladen werden: ${err.message}`
+  }
 }
 
 function formatIsoDate(iso) {
@@ -287,7 +476,10 @@ async function runUsersBulkAction() {
   const format = formatSelect?.value === 'csv' ? 'csv' : 'json'
 
   const actionLabel = action === 'delete' ? 'löschen' : action === 'export' ? `als ${format.toUpperCase()} exportieren` : `auf Rolle ${role}`
-  const ok = window.confirm(`${ids.length} Nutzer wirklich ${actionLabel}?`)
+  const ok = confirmAction(`${ids.length} Nutzer wirklich ${actionLabel}?`, [
+    `Auswahl: ${ids.length} Nutzer`,
+    action === 'setRole' ? `Neue Rolle: ${roleLabel(role)}` : `Aktion: ${actionLabel}`,
+  ])
   if (!ok) return
 
   if (runBtn) runBtn.disabled = true
@@ -316,12 +508,7 @@ async function runUsersBulkAction() {
       const exportedCount = Number.isFinite(exportedHeader) && exportedHeader >= 0 ? exportedHeader : fallbackExported
       const skippedCount = Number.isFinite(skippedHeader) && skippedHeader >= 0 ? skippedHeader : 0
       const blob = new Blob([csvText], { type: 'text/csv;charset=utf-8' })
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = `signifikation-users-bulk-${new Date().toISOString().slice(0, 10)}.csv`
-      a.click()
-      URL.revokeObjectURL(url)
+      createTemporaryDownload(blob, `signifikation-users-bulk-${new Date().toISOString().slice(0, 10)}.csv`)
       if (summary) summary.textContent = `${exportedCount} Nutzer als CSV exportiert (${skippedCount} übersprungen).`
       data = {}
     } else {
@@ -333,12 +520,7 @@ async function runUsersBulkAction() {
       if (format === 'json') {
         const exportUsers = Array.isArray(data.users) ? data.users : []
         const blob = new Blob([JSON.stringify(exportUsers, null, 2)], { type: 'application/json' })
-        const url = URL.createObjectURL(blob)
-        const a = document.createElement('a')
-        a.href = url
-        a.download = `signifikation-users-bulk-${new Date().toISOString().slice(0, 10)}.json`
-        a.click()
-        URL.revokeObjectURL(url)
+        createTemporaryDownload(blob, `signifikation-users-bulk-${new Date().toISOString().slice(0, 10)}.json`)
         if (summary) summary.textContent = `${exportUsers.length} Nutzer exportiert (${data.skipped?.length || 0} übersprungen).`
       }
     } else if (action === 'delete') {
@@ -423,12 +605,7 @@ async function downloadBackup() {
   const r = await fetch('/admin/backup')
   if (!r.ok) { alert('Backup fehlgeschlagen.'); return }
   const blob = await r.blob()
-  const url  = URL.createObjectURL(blob)
-  const a    = document.createElement('a')
-  a.href     = url
-  a.download = `signifikation-backup-${new Date().toISOString().slice(0,10)}.json`
-  a.click()
-  URL.revokeObjectURL(url)
+  createTemporaryDownload(blob, `signifikation-backup-${new Date().toISOString().slice(0,10)}.json`)
 }
 
 function triggerBackupRestore() {
@@ -443,7 +620,16 @@ async function restoreBackupFile(event) {
   try {
     const text = await file.text()
     const payload = JSON.parse(text)
-    const ok = window.confirm('Backup wirklich wiederherstellen? Der aktuelle Datenbestand wird überschrieben.')
+    const restoredCounts = [
+      ['Lemmata', payload?.lemmata?.length],
+      ['Kalender', payload?.kalender ? Object.keys(payload.kalender).length : 0],
+      ['Wortzwilling', payload?.wortzwilling ? Object.keys(payload.wortzwilling).length : 0],
+      ['Zeitenwende', payload?.zeitenwende ? Object.keys(payload.zeitenwende).length : 0],
+    ].filter(([, count]) => Number(count) > 0).map(([label, count]) => `${label}: ${count}`)
+    const ok = confirmAction('Backup wirklich wiederherstellen? Der aktuelle Datenbestand wird überschrieben.', [
+      `Datei: ${file.name}`,
+      ...restoredCounts,
+    ])
     if (!ok) return
 
     const response = await fetch('/admin/backup/restore', {
@@ -475,6 +661,14 @@ async function importCalendarCsv(event) {
 
   try {
     const csv = await file.text()
+    const lineCount = csv.split(/\r?\n/).filter((line) => line.trim().length > 0).length
+    const ok = confirmAction('CSV-Import jetzt ausführen?', [
+      `Datei: ${file.name}`,
+      `Zeilen erkannt: ${Math.max(lineCount - 1, 0)}`,
+      'Bestehende Einträge am selben Datum werden ersetzt.',
+    ])
+    if (!ok) return
+
     const response = await fetch('/admin/kalender/bulk-import', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -523,9 +717,11 @@ fetch('/admin/kalender').then(r => {
 function initDashboard() {
   switchPage('dashboard')
   loadKalender()
+  loadFreeDays({ silent: true })
   loadStats()
   loadPerformance()
   loadHealth()
+  loadAdminActivity()
   loadUsersOverview()
 }
 
@@ -697,10 +893,12 @@ function renderCalendar() {
     const dd  = String(d).padStart(2, '0')
     const key = `${calYear}-${mm}-${dd}`   // YYYY-MM-DD – direkte DB-Key
     const entry       = kalenderData[key]
+    const freeDayInfo = getFreeDayInfo(key)
     const hasKoll     = !!(entry?.lemmata?.length)
     const hasWZ       = !!(entry?.hasWortZwilling)
     const hasZW       = !!(entry?.hasZeitenwende)
     const isTodayCell = key === todayIso
+    const isFreeDay   = !!freeDayInfo
 
     // Vollständig = Kollokationen + mind. ein weiteres Spiel eingetragen
     const hasAny      = hasKoll || hasWZ || hasZW
@@ -708,19 +906,20 @@ function renderCalendar() {
     const stateClass  = isComplete ? 'is-complete' : hasAny ? 'has-entry' : 'no-entry'
 
     const isSelected = key === selectedCalendarDate
-    const classes = ['cal-day', stateClass, isTodayCell ? 'is-today' : '', isSelected ? 'is-selected' : ''].filter(Boolean).join(' ')
+    const classes = ['cal-day', stateClass, isTodayCell ? 'is-today' : '', isSelected ? 'is-selected' : '', isFreeDay ? 'is-free-day' : ''].filter(Boolean).join(' ')
 
     let dots = ''
-    if (hasAny) {
+    if (hasAny || isFreeDay) {
       dots = `<div class="cal-dots">` +
         (hasKoll ? '<div class="cal-dot koll"></div>' : '') +
         (hasWZ   ? '<div class="cal-dot wz"></div>'   : '') +
         (hasZW   ? '<div class="cal-dot zw"></div>'   : '') +
+        (isFreeDay ? '<div class="cal-dot free"></div>' : '') +
         `</div>`
     }
 
-    const action = hasAny ? 'select-calendar-date' : 'prefill-date'
-    html += `<button type="button" class="${classes}" data-action="${action}" data-value="${esc(key)}" aria-label="${hasAny ? `Eintrag ${formatIsoDate(key)} öffnen` : `Datum ${formatIsoDate(key)} vorausfüllen`}">${d}${dots}</button>`
+    const action = hasAny || isFreeDay ? 'select-calendar-date' : 'prefill-date'
+    html += `<button type="button" class="${classes}" data-action="${action}" data-value="${esc(key)}" aria-label="${hasAny || isFreeDay ? `Datum ${formatIsoDate(key)} öffnen` : `Datum ${formatIsoDate(key)} vorausfüllen`}">${d}${dots}</button>`
   }
 
   grid.innerHTML = html
@@ -740,7 +939,8 @@ function changeMonth(delta) {
   renderCalendar()
 }
 
-function prefillDate(isoDate) {
+function prefillDate(isoDate, options = {}) {
+  if (!options.force && !confirmDiscardEntryChanges('den Entwurf zu verwerfen')) return
   switchPage('entry')
   selectedCalendarDate = ''
   renderCalendar()
@@ -759,7 +959,9 @@ function prefillDate(isoDate) {
   document.getElementById('status').className = 'status'
   document.getElementById('status').textContent = ''
   hideAllExtraFields()
+  clearInlineAnalysisOutputs()
   updateModeIndicators()
+  captureEntryFormSnapshot()
   if (typeof window.scrollTo === 'function') {
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
@@ -843,6 +1045,7 @@ async function saveTag() {
     setStatus(msg, hasError ? 'error' : 'ok')
     selectedCalendarDate = datum
     await loadKalender()
+    captureEntryFormSnapshot()
   } catch (err) {
     setStatus(`Fehler: ${err.message}`, 'error')
   } finally {
@@ -851,6 +1054,7 @@ async function saveTag() {
 }
 
 async function editTag(datum) {
+  if (!confirmDiscardEntryChanges('den anderen Tag zu laden')) return
   switchPage('entry')
   selectedCalendarDate = datum
   const res  = await fetch(`/admin/tag/${datum}`, {})
@@ -895,6 +1099,8 @@ async function editTag(datum) {
   if (data.zwilling_notiz || data.zwilling_link) showExtraFields('wz-extras')
   if (data.zeitenwende_notiz || data.zeitenwende_link) showExtraFields('zw-extras')
   updateModeIndicators()
+  clearInlineAnalysisOutputs()
+  captureEntryFormSnapshot()
 
   if (typeof window.scrollTo === 'function') {
     window.scrollTo({ top: 0, behavior: 'smooth' })
@@ -904,7 +1110,10 @@ async function editTag(datum) {
 
 async function deleteCurrentTag() {
   if (!selectedCalendarDate) return
-  const ok = window.confirm(`Eintrag ${selectedCalendarDate} wirklich löschen?`)
+  const ok = confirmAction(`Eintrag ${selectedCalendarDate} wirklich löschen?`, [
+    `Datum: ${formatIsoDate(selectedCalendarDate)}`,
+    'Diese Aktion kann nicht rückgängig gemacht werden.',
+  ])
   if (!ok) return
 
   const deleteBtn = document.getElementById('delete-btn')
@@ -939,7 +1148,7 @@ async function loadKalender() {
       if (!kalenderData[datum]) selectedEntryDates.delete(datum)
     }
 
-    if (selectedCalendarDate && !kalenderData[selectedCalendarDate]) {
+    if (selectedCalendarDate && !kalenderData[selectedCalendarDate] && !isFreeAccessDay(selectedCalendarDate)) {
       selectedCalendarDate = ''
     }
 
@@ -1085,7 +1294,11 @@ async function bulkDeleteSelectedDates() {
   if (!selectedEntryDates.size) return
 
   const dates = [...selectedEntryDates].sort()
-  const ok = window.confirm(`${dates.length} Einträge wirklich löschen? Diese Aktion kann nicht rückgängig gemacht werden.`)
+  const ok = confirmAction(`${dates.length} Einträge wirklich löschen?`, [
+    `Erster Tag: ${formatIsoDate(dates[0])}`,
+    `Letzter Tag: ${formatIsoDate(dates[dates.length - 1])}`,
+    'Diese Aktion kann nicht rückgängig gemacht werden.',
+  ])
   if (!ok) return
 
   const deleteBtn = document.getElementById('entry-bulk-delete-btn')
@@ -1133,32 +1346,42 @@ function updateCalendarDetails(datum) {
   const editBtn = document.getElementById('calendar-edit-btn')
   if (!details || !editBtn) return
 
-  if (!datum || !kalenderData[datum]) {
+  if (!datum || (!kalenderData[datum] && !isFreeAccessDay(datum))) {
     details.innerHTML = '<div class="calendar-detail-empty">Wähle einen Kalendertag mit Eintrag, um Details zu sehen.</div>'
     editBtn.disabled = true
+    editBtn.textContent = 'Eintrag bearbeiten'
     selectedCalendarDate = ''
     return
   }
 
   selectedCalendarDate = datum
-  editBtn.disabled = false
-
   const entry = kalenderData[datum]
-  const groupedHtml = renderModeGroupSummary(entry)
+  const freeDayInfo = getFreeDayInfo(datum)
+  editBtn.disabled = false
+  editBtn.textContent = entry ? 'Eintrag bearbeiten' : 'Eintrag anlegen'
+
+  const groupedHtml = entry ? renderModeGroupSummary(entry) : ''
+  const freeDayHtml = freeDayInfo
+    ? `<div class="calendar-detail-free ${freeDayInfo.source === 'sunday' ? 'is-auto' : ''}"><strong>Freier Tag</strong><span>${esc(freeDayInfo.displayLabel)}</span></div>`
+    : ''
+  const contentHtml = entry
+    ? `<div class="calendar-detail-section">
+        <h3>Inhalte nach Modus</h3>
+        <div class="mode-summary-list">${groupedHtml}</div>
+      </div>
+      <div class="calendar-detail-section">
+        <h3>Modi</h3>
+        <div class="calendar-detail-list">${modeChips(entry)}</div>
+      </div>`
+    : '<div class="calendar-detail-empty">Für diesen Tag gibt es noch keinen Spieleintrag. Du kannst das Datum direkt vorausfüllen.</div>'
 
   details.innerHTML = `
     <div class="calendar-detail-head">
       <strong>${esc(formatIsoDate(datum))}</strong>
       <span>${esc(datum)}</span>
     </div>
-    <div class="calendar-detail-section">
-      <h3>Inhalte nach Modus</h3>
-      <div class="mode-summary-list">${groupedHtml}</div>
-    </div>
-    <div class="calendar-detail-section">
-      <h3>Modi</h3>
-      <div class="calendar-detail-list">${modeChips(entry)}</div>
-    </div>
+    ${freeDayHtml}
+    ${contentHtml}
   `
 }
 
@@ -1215,7 +1438,8 @@ function updateDashboardDayDetail(datum) {
 
 function editSelectedCalendarDate() {
   if (!selectedCalendarDate) return
-  editTag(selectedCalendarDate)
+  if (kalenderData[selectedCalendarDate]) editTag(selectedCalendarDate)
+  else prefillDate(selectedCalendarDate)
 }
 
 function updateDashboardFromKalender() {
@@ -1348,6 +1572,7 @@ async function loadAuditLog() {
       </tr>`
     }).join('')
     showAuditEntryDetails(entries[0])
+    renderAdminActivity(entries.slice(0, 5))
   } catch (err) {
     if (countEl) countEl.textContent = 'Audit-Log konnte nicht geladen werden.'
     tbody.innerHTML = `<tr><td colspan="5" class="users-empty">Audit-Log konnte nicht geladen werden: ${esc(err.message)}</td></tr>`
@@ -1387,6 +1612,38 @@ async function analyzeKollokation() {
     if (!res.ok) { out.innerHTML = `<div class="status error">Fehler: ${esc(data.error)}</div>`; return }
     renderKollAnalyse(data, out)
   } catch (e) { out.innerHTML = `<div class="status error">Netzwerkfehler: ${esc(e.message)}</div>` }
+}
+
+async function analyzeEntryKollokation() {
+  const out = document.getElementById('entry-koll-analysis-output')
+  if (!out) return
+  const lemmas = ['w1', 'w2', 'w3'].map((id) => normalizeText(document.getElementById(id)?.value || '')).filter(Boolean)
+
+  if (!lemmas.length) {
+    out.innerHTML = '<div class="users-empty">Trage mindestens ein Kollokationswort ein.</div>'
+    return
+  }
+
+  out.innerHTML = '<div class="status loading">Analysiere Wörter aus der Karte …</div>'
+  try {
+    const results = await Promise.all(lemmas.map(async (lemma) => {
+      const response = await fetch(`/admin/analyze-kollokation?q=${encodeURIComponent(lemma)}`, {})
+      const data = await response.json().catch(() => ({}))
+      if (!response.ok) throw new Error(data.error || `HTTP ${response.status}`)
+      return { lemma, data }
+    }))
+
+    out.innerHTML = results.map(({ lemma, data }) => {
+      const badgeClass = data.usable ? 'is-success' : 'is-error'
+      const badgeText = data.usable ? 'geeignet' : 'nicht geeignet'
+      const top3 = Array.isArray(data.top3) && data.top3.length
+        ? data.top3.map((item) => `<span class="entry-chip">${esc(item.wort)}</span>`).join('')
+        : '<span class="entry-empty">Keine Top-3-Daten</span>'
+      return `<article class="inline-analysis-card"><div class="inline-analysis-head"><strong>${esc(lemma)}</strong><span class="inline-analysis-badge ${badgeClass}">${esc(badgeText)}</span></div><div class="entry-chip-wrap">${top3}</div></article>`
+    }).join('')
+  } catch (err) {
+    out.innerHTML = `<div class="status error">Analyse fehlgeschlagen: ${esc(err.message)}</div>`
+  }
 }
 
 async function previewCurrentLemma() {
@@ -2116,6 +2373,27 @@ async function analyzeWortZwilling() {
   } catch (e) { out.innerHTML = `<div class="status error">Netzwerkfehler: ${esc(e.message)}</div>` }
 }
 
+async function analyzeEntryWortZwilling() {
+  const wortA = normalizeText(document.getElementById('wza')?.value || '')
+  const wortB = normalizeText(document.getElementById('wzb')?.value || '')
+  const pos = document.getElementById('wzpos')?.value || 'Substantiv'
+  const out = document.getElementById('entry-wz-analysis-output')
+  if (!out) return
+  if (!wortA || !wortB) {
+    out.innerHTML = '<div class="users-empty">Bitte Wort A und Wort B ausfüllen.</div>'
+    return
+  }
+  out.innerHTML = '<div class="status loading">Analysiere Wort-Zwilling …</div>'
+  try {
+    const res = await fetch(`/admin/analyze-wortzwilling?a=${encodeURIComponent(wortA)}&b=${encodeURIComponent(wortB)}&pos=${encodeURIComponent(pos)}`, {})
+    const data = await res.json().catch(() => ({}))
+    if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`)
+    renderWZAnalyse(data, out)
+  } catch (err) {
+    out.innerHTML = `<div class="status error">Analyse fehlgeschlagen: ${esc(err.message)}</div>`
+  }
+}
+
 function renderWZAnalyse(data, out) {
   if (!data.usable) {
     out.innerHTML = `<div style="margin-top:12px"><span style="color:#991b1b;font-weight:700">✗ Nicht geeignet</span><br><span style="color:var(--muted);font-size:0.85rem">${esc(data.reason || '')}</span></div>`
@@ -2196,6 +2474,48 @@ async function analyzeLueckenfueller() {
   } catch (e) { out.innerHTML = `<div class="status error">Netzwerkfehler: ${esc(e.message)}</div>` }
 }
 
+async function analyzeEntryZeitenwende() {
+  const lemma = normalizeText(document.getElementById('zw-lemma')?.value || '')
+  const out = document.getElementById('entry-zw-analysis-output')
+  if (!out) return
+  if (!lemma) {
+    out.innerHTML = '<div class="users-empty">Bitte zuerst ein Lemma eingeben.</div>'
+    return
+  }
+  out.innerHTML = '<div class="status loading">Analysiere Zeitenwende …</div>'
+  try {
+    const res = await fetch(`/admin/analyze-zeitenwende?q=${encodeURIComponent(lemma)}`, {})
+    const data = await res.json().catch(() => ({}))
+    if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`)
+    renderZWAnalyse(data, out)
+  } catch (err) {
+    out.innerHTML = `<div class="status error">Analyse fehlgeschlagen: ${esc(err.message)}</div>`
+  }
+}
+
+async function analyzeEntryLueckenfueller() {
+  const lemma = normalizeText(document.getElementById('lf-id')?.value || '')
+  const out = document.getElementById('entry-lf-analysis-output')
+  if (!out) return
+  if (!lemma) {
+    out.innerHTML = '<div class="users-empty">Bitte zuerst ein Lemma eingeben.</div>'
+    return
+  }
+  out.innerHTML = '<div class="status loading">Analysiere Lückenfüller …</div>'
+  try {
+    const res = await fetch(`/admin/analyze-lueckenfueller?q=${encodeURIComponent(lemma)}`, {})
+    const data = await res.json().catch(() => ({}))
+    if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`)
+    if (!data.usable) {
+      out.innerHTML = `<div class="status warn">${esc(data.reason || 'Nicht genug Material verfügbar.')}</div>`
+      return
+    }
+    out.innerHTML = `<article class="inline-analysis-card"><div class="inline-analysis-head"><strong>${esc(lemma)}</strong><span class="inline-analysis-badge is-success">${esc(String(data.rounds || 0))} Runden</span></div><p>Geeignet für Lückenfüller. Wortart: ${esc(data.pos || '—')}</p></article>`
+  } catch (err) {
+    out.innerHTML = `<div class="status error">Analyse fehlgeschlagen: ${esc(err.message)}</div>`
+  }
+}
+
 function resetLueckenfuellerAnalysis() {
   const output = document.getElementById('lf-ana-output')
   const input  = document.getElementById('lf-ana-input')
@@ -2227,29 +2547,35 @@ async function generateLueckenfueller() {
 }
 
 // ── Freitage ──────────────────────────────────────────────
-async function loadFreeDays() {
+async function loadFreeDays(options = {}) {
   const listEl = document.getElementById('freedays-list')
-  if (!listEl) return
-  listEl.innerHTML = '<div class="users-empty">Wird geladen …</div>'
+  if (listEl && !options.silent) listEl.innerHTML = '<div class="users-empty">Wird geladen …</div>'
   try {
     const res = await fetch('/admin/free-days')
     if (!res.ok) throw new Error(`HTTP ${res.status}`)
     const { days } = await res.json()
-    if (!days.length) {
+    freeDaysData = Array.isArray(days) ? days : []
+    renderCalendar()
+    if (selectedCalendarDate) updateCalendarDetails(selectedCalendarDate)
+    if (!listEl) return
+    if (!freeDaysData.length) {
       listEl.innerHTML = '<div class="users-empty">Keine Freitage eingetragen.</div>'
       return
     }
-    const rows = days.map(({ date, label }) => `
-      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 0;border-bottom:1px solid var(--border-lt)">
+    const rows = freeDaysData.map(({ date, label }) => `
+      <div class="freeday-row">
         <div>
-          <strong style="font-size:0.9rem">${esc(formatIsoDate(date))}</strong>
-          ${label ? `<span style="color:var(--muted);font-size:0.82rem;margin-left:8px">${esc(label)}</span>` : ''}
+          <strong>${esc(formatIsoDate(date))}</strong>
+          ${label ? `<span>${esc(label)}</span>` : ''}
         </div>
-        <button class="entry-filters-reset" data-action="delete-free-day" data-date="${esc(date)}" style="font-size:0.78rem;padding:3px 10px">Entfernen</button>
+        <button class="entry-filters-reset freeday-delete-btn" data-action="delete-free-day" data-date="${esc(date)}">Entfernen</button>
       </div>`).join('')
-    listEl.innerHTML = `<div style="padding:4px 0">${rows}</div>`
+    listEl.innerHTML = `<div class="freeday-list">${rows}</div>`
   } catch (err) {
-    listEl.innerHTML = `<div class="users-empty" style="color:#991b1b">Fehler: ${esc(err.message)}</div>`
+    freeDaysData = []
+    renderCalendar()
+    if (selectedCalendarDate) updateCalendarDetails(selectedCalendarDate)
+    if (listEl) listEl.innerHTML = `<div class="users-empty" style="color:#991b1b">Fehler: ${esc(err.message)}</div>`
   }
 }
 
@@ -2260,7 +2586,7 @@ async function addFreeDay() {
   const date = dateInput?.value?.trim()
   const label = labelInput?.value?.trim() || ''
   if (!date) {
-    if (msgEl) { msgEl.textContent = 'Bitte ein Datum auswählen.'; msgEl.style.display = 'block' }
+    if (msgEl) setFreeDayMessage('Bitte ein Datum auswählen.', 'error')
     return
   }
   try {
@@ -2271,23 +2597,30 @@ async function addFreeDay() {
     })
     const data = await res.json().catch(() => ({}))
     if (!res.ok) {
-      if (msgEl) { msgEl.textContent = data.error || 'Fehler beim Hinzufügen.'; msgEl.style.display = 'block' }
+      if (msgEl) setFreeDayMessage(data.error || 'Fehler beim Hinzufügen.', 'error')
       return
     }
     if (dateInput) dateInput.value = ''
     if (labelInput) labelInput.value = ''
-    if (msgEl) { msgEl.textContent = `${formatIsoDate(date)} wurde eingetragen.`; msgEl.style.display = 'block' }
+    if (msgEl) setFreeDayMessage(`${formatIsoDate(date)} wurde eingetragen.`, 'success')
     await loadFreeDays()
   } catch {
-    if (msgEl) { msgEl.textContent = 'Netzwerkfehler.'; msgEl.style.display = 'block' }
+    if (msgEl) setFreeDayMessage('Netzwerkfehler.', 'error')
   }
 }
 
 async function deleteFreeDay(date) {
   if (!date) return
+  const info = getFreeDayInfo(date)
+  const ok = confirmAction('Freitag wirklich entfernen?', [
+    `Datum: ${formatIsoDate(date)}`,
+    info?.label ? `Bezeichnung: ${info.label}` : 'Ohne Bezeichnung',
+  ])
+  if (!ok) return
   try {
     const res = await fetch(`/admin/free-days/${encodeURIComponent(date)}`, { method: 'DELETE', headers: { 'Content-Type': 'application/json' } })
     if (!res.ok) return
+    setFreeDayMessage(`${formatIsoDate(date)} wurde entfernt.`, 'success')
     await loadFreeDays()
   } catch { /* ignore */ }
 }
@@ -2312,8 +2645,13 @@ function handleDocumentClick(event) {
   if (action === 'toggle-extra-fields') return void toggleExtraFields(target.dataset.target || '')
   if (action === 'preview-current-lemma') return void previewCurrentLemma()
   if (action === 'preview-current-day') return void previewCurrentDay()
+  if (action === 'reset-entry-form') return void restoreEntryFormSnapshot()
   if (action === 'save-tag') return void saveTag()
   if (action === 'delete-current-tag') return void deleteCurrentTag()
+  if (action === 'analyze-entry-kollokation') return void analyzeEntryKollokation()
+  if (action === 'analyze-entry-wort-zwilling') return void analyzeEntryWortZwilling()
+  if (action === 'analyze-entry-zeitenwende') return void analyzeEntryZeitenwende()
+  if (action === 'analyze-entry-lueckenfueller') return void analyzeEntryLueckenfueller()
   if (action === 'trigger-calendar-csv-import') return void triggerCalendarCsvImport()
   if (action === 'load-kalender') return void loadKalender()
   if (action === 'reset-entry-filters') return void resetEntryFilters()
@@ -2374,6 +2712,10 @@ function handleDocumentInput(event) {
   if (target.id === 'entry-search') return void renderEntryTable()
   if (target.id === 'users-search') return void scheduleUsersOverviewLoad()
   if (target.id === 'audit-search') return void loadAuditLog()
+  if (ENTRY_FIELD_IDS.includes(target.id)) {
+    updateEntryDirtyState()
+    updateModeIndicators()
+  }
 }
 
 function handleDocumentKeydown(event) {

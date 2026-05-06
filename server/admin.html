@@ -168,6 +168,19 @@
                 <button class="ghost-btn quick-action-btn" data-action="refresh-dashboard">Aktualisieren</button>
               </div>
             </article>
+
+            <article class="card dashboard-panel dashboard-panel--secondary">
+              <div class="dashboard-panel-head dashboard-panel-head--stacked">
+                <div>
+                  <p class="section-label">Aktivität</p>
+                  <h2>Letzte Änderungen</h2>
+                  <p class="quick-actions-copy" id="dashboard-activity-hint">Audit-Log wird geladen …</p>
+                </div>
+              </div>
+              <div id="dashboard-activity-list" class="activity-list">
+                <div class="users-empty">Audit-Log wird geladen …</div>
+              </div>
+            </article>
           </aside>
         </div>
       </section>
@@ -179,6 +192,10 @@
               <p class="section-label">Planung</p>
               <h2 id="form-title">Neuer Tageseintrag</h2>
               <p class="entry-editor-copy">Kollokationen sind Pflicht. Die weiteren Modi kannst du gezielt ergänzen; externe Daten werden beim Speichern automatisch neu geladen.</p>
+            </div>
+            <div class="entry-editor-status">
+              <span id="entry-dirty-indicator" class="entry-dirty-indicator">Alles gespeichert</span>
+              <button type="button" id="entry-reset-btn" class="entry-filters-reset" data-action="reset-entry-form" disabled>Entwurf zurücksetzen</button>
             </div>
           </div>
 
@@ -264,6 +281,13 @@
                     </div>
                   </div>
                 </div>
+                <div class="mode-analysis-inline">
+                  <div class="mode-analysis-inline-head">
+                    <span>Analyse direkt an der Karte</span>
+                    <button type="button" class="entry-filters-reset" data-action="analyze-entry-kollokation">Prüfen</button>
+                  </div>
+                  <div id="entry-koll-analysis-output" class="analysis-output mode-analysis-inline-output"></div>
+                </div>
               </div>
 
               <div class="mode-card">
@@ -297,6 +321,13 @@
                   <input type="text" id="wz-notiz" placeholder="Notiz (erscheint auf der Auswahlseite)">
                   <input type="url" id="wz-link" placeholder="Link">
                 </div>
+                <div class="mode-analysis-inline">
+                  <div class="mode-analysis-inline-head">
+                    <span>Analyse direkt an der Karte</span>
+                    <button type="button" class="entry-filters-reset" data-action="analyze-entry-wort-zwilling">Prüfen</button>
+                  </div>
+                  <div id="entry-wz-analysis-output" class="analysis-output mode-analysis-inline-output"></div>
+                </div>
               </div>
 
               <div class="mode-card">
@@ -316,6 +347,13 @@
                   <input type="text" id="zw-notiz" placeholder="Notiz (erscheint auf der Auswahlseite)">
                   <input type="url" id="zw-link" placeholder="Link">
                 </div>
+                <div class="mode-analysis-inline">
+                  <div class="mode-analysis-inline-head">
+                    <span>Analyse direkt an der Karte</span>
+                    <button type="button" class="entry-filters-reset" data-action="analyze-entry-zeitenwende">Prüfen</button>
+                  </div>
+                  <div id="entry-zw-analysis-output" class="analysis-output mode-analysis-inline-output"></div>
+                </div>
               </div>
 
               <div class="mode-card">
@@ -334,6 +372,13 @@
                   </div>
                 </div>
                 <p id="lf-generate-status" class="mode-generate-status"></p>
+                <div class="mode-analysis-inline">
+                  <div class="mode-analysis-inline-head">
+                    <span>Analyse direkt an der Karte</span>
+                    <button type="button" class="entry-filters-reset" data-action="analyze-entry-lueckenfueller">Prüfen</button>
+                  </div>
+                  <div id="entry-lf-analysis-output" class="analysis-output mode-analysis-inline-output"></div>
+                </div>
               </div>
             </div>
           </div>
@@ -526,7 +571,10 @@
         <div class="card">
           <div class="card-head card-head--wrap">
             <h2>Tagesdetails</h2>
-            <button id="calendar-edit-btn" data-action="edit-selected-calendar-date" disabled>Eintrag bearbeiten</button>
+            <div class="calendar-detail-actions">
+              <button class="entry-filters-reset" data-action="switch-page" data-page="freedays">Freitage verwalten</button>
+              <button id="calendar-edit-btn" data-action="edit-selected-calendar-date" disabled>Eintrag bearbeiten</button>
+            </div>
           </div>
           <div id="calendar-details" class="calendar-details">
             <div class="calendar-detail-empty">Wähle einen Kalendertag mit Eintrag, um Details zu sehen.</div>
