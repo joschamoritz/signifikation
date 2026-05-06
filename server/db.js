@@ -389,6 +389,67 @@ if (!hasColumn('lemmata', 'lueckenfueller')) {
   db.exec(`ALTER TABLE lemmata ADD COLUMN lueckenfueller TEXT`)
 }
 
+// ── Migration: MM-DD → YYYY-MM-DD (Datum mit Jahr speichern) ────────────────
+// Alle vorhandenen MM-DD-Keys bekommen das aktuelle Jahr zugewiesen.
+// Idempotent: WHERE LENGTH(datum) = 5 trifft nur noch nicht migrierte Einträge.
+{
+  const hasMmddKalender = db.prepare(`SELECT COUNT(*) as n FROM kalender WHERE LENGTH(datum) = 5`).get()
+  if (hasMmddKalender?.n > 0) {
+    const year = new Date().getFullYear()
+    logger.info({ count: hasMmddKalender.n, year }, 'Migration: kalender MM-DD → YYYY-MM-DD')
+    db.exec(`
+      BEGIN;
+      INSERT OR IGNORE INTO kalender (datum, ids, thema, thema_kurz, thema_quelle, lueckenfueller_id)
+        SELECT '${year}-' || datum, ids, thema, thema_kurz, thema_quelle, lueckenfueller_id
+        FROM kalender WHERE LENGTH(datum) = 5;
+      DELETE FROM kalender WHERE LENGTH(datum) = 5;
+      COMMIT;
+    `)
+  }
+
+  const hasMmddWZ = db.prepare(`SELECT COUNT(*) as n FROM wortzwilling WHERE LENGTH(datum) = 5`).get()
+  if (hasMmddWZ?.n > 0) {
+    const year = new Date().getFullYear()
+    logger.info({ count: hasMmddWZ.n, year }, 'Migration: wortzwilling MM-DD → YYYY-MM-DD')
+    db.exec(`
+      BEGIN;
+      INSERT OR IGNORE INTO wortzwilling (datum, wortA, wortB, pos, kollokatoren, notiz, link)
+        SELECT '${year}-' || datum, wortA, wortB, pos, kollokatoren, notiz, link
+        FROM wortzwilling WHERE LENGTH(datum) = 5;
+      DELETE FROM wortzwilling WHERE LENGTH(datum) = 5;
+      COMMIT;
+    `)
+  }
+
+  const hasMmddZW = db.prepare(`SELECT COUNT(*) as n FROM zeitenwende WHERE LENGTH(datum) = 5`).get()
+  if (hasMmddZW?.n > 0) {
+    const year = new Date().getFullYear()
+    logger.info({ count: hasMmddZW.n, year }, 'Migration: zeitenwende MM-DD → YYYY-MM-DD')
+    db.exec(`
+      BEGIN;
+      INSERT OR IGNORE INTO zeitenwende (datum, data)
+        SELECT '${year}-' || datum, data
+        FROM zeitenwende WHERE LENGTH(datum) = 5;
+      DELETE FROM zeitenwende WHERE LENGTH(datum) = 5;
+      COMMIT;
+    `)
+  }
+
+  const hasMmddStats = db.prepare(`SELECT COUNT(*) as n FROM stats WHERE LENGTH(datum) = 5`).get()
+  if (hasMmddStats?.n > 0) {
+    const year = new Date().getFullYear()
+    logger.info({ count: hasMmddStats.n, year }, 'Migration: stats MM-DD → YYYY-MM-DD')
+    db.exec(`
+      BEGIN;
+      INSERT OR IGNORE INTO stats (datum, spiel, user_id, plays, scoreSum, maxSum, dist)
+        SELECT '${year}-' || datum, spiel, user_id, plays, scoreSum, maxSum, dist
+        FROM stats WHERE LENGTH(datum) = 5;
+      DELETE FROM stats WHERE LENGTH(datum) = 5;
+      COMMIT;
+    `)
+  }
+}
+
 {
   const deviceTable = db.prepare(`SELECT sql FROM sqlite_master WHERE type='table' AND name='device_registrations'`).get()
   if (deviceTable?.sql?.includes('device_hash TEXT NOT NULL UNIQUE')) {

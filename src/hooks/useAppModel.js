@@ -18,7 +18,6 @@ export function useAppModel() {
     lemmata,
     apiError,
     serverDatum,
-    serverYear,
     thema,
     themaKurz,
     themaQuelle,
@@ -45,8 +44,8 @@ export function useAppModel() {
   const getRetroResultsRef = useRef(null)
 
   const keys = serverDatum
-    ? makeDailyKeys(serverDatum, serverYear ?? new Date().getFullYear())
-    : makeDailyKeys(`${String(new Date().getMonth() + 1).padStart(2, '0')}-${String(new Date().getDate()).padStart(2, '0')}`)
+    ? makeDailyKeys(serverDatum)
+    : makeDailyKeys(new Intl.DateTimeFormat('en-CA').format(new Date()))
 
   const {
     phase,

@@ -114,10 +114,17 @@ function toIsoFromMMDD(mmdd) {
   return `${year}-${String(mm).padStart(2, '0')}-${String(dd).padStart(2, '0')}`
 }
 
-function formatMmdd(mmdd) {
-  // Zeigt MM-DD als DD.MM. ohne Jahr an (Datensatz ist jahreslos)
-  const [mm, dd] = String(mmdd || '').split('-').map(Number)
-  if (!mm || !dd) return mmdd || ''
+function formatMmdd(datum) {
+  // Akzeptiert YYYY-MM-DD oder MM-DD, gibt DD.MM.YYYY zurück
+  if (!datum) return ''
+  const parts = datum.split('-')
+  if (parts.length === 3) {
+    // YYYY-MM-DD
+    const [y, m, d] = parts.map(Number)
+    return `${String(d).padStart(2, '0')}.${String(m).padStart(2, '0')}.${y}`
+  }
+  // Fallback MM-DD (Legacy)
+  const [mm, dd] = parts.map(Number)
   return `${String(dd).padStart(2, '0')}.${String(mm).padStart(2, '0')}.`
 }
 
@@ -665,19 +672,17 @@ function renderCalendar() {
 
   for (let i = 0; i < firstDow; i++) html += `<div class="cal-day empty-slot"></div>`
 
-  const today = getCurrentDate()
-  const todayStr  = getTodayMmdd()
-  const todayYear = today.getFullYear()
+  const todayIso = getTodayIso()
 
   for (let d = 1; d <= daysInMonth; d++) {
-    const mm   = String(calMonth + 1).padStart(2, '0')
-    const dd   = String(d).padStart(2, '0')
-    const key  = `${mm}-${dd}`
+    const mm  = String(calMonth + 1).padStart(2, '0')
+    const dd  = String(d).padStart(2, '0')
+    const key = `${calYear}-${mm}-${dd}`   // YYYY-MM-DD – direkte DB-Key
     const entry       = kalenderData[key]
     const hasKoll     = !!(entry?.lemmata?.length)
     const hasWZ       = !!(entry?.hasWortZwilling)
     const hasZW       = !!(entry?.hasZeitenwende)
-    const isTodayCell = (calYear === todayYear && key === todayStr)
+    const isTodayCell = key === todayIso
 
     // Vollständig = Kollokationen + mind. ein weiteres Spiel eingetragen
     const hasAny      = hasKoll || hasWZ || hasZW
@@ -697,9 +702,7 @@ function renderCalendar() {
     }
 
     const action = hasAny ? 'select-calendar-date' : 'prefill-date'
-    const actionValue = hasAny ? key : `${calYear}-${mm}-${dd}`
-
-    html += `<button type="button" class="${classes}" data-action="${action}" data-value="${esc(actionValue)}" aria-label="${hasAny ? `Eintrag ${formatIsoDate(`${calYear}-${mm}-${dd}`)} öffnen` : `Datum ${formatIsoDate(`${calYear}-${mm}-${dd}`)} vorausfüllen`}">${d}${dots}</button>`
+    html += `<button type="button" class="${classes}" data-action="${action}" data-value="${esc(key)}" aria-label="${hasAny ? `Eintrag ${formatIsoDate(key)} öffnen` : `Datum ${formatIsoDate(key)} vorausfüllen`}">${d}${dots}</button>`
   }
 
   grid.innerHTML = html
@@ -774,13 +777,12 @@ async function saveTag() {
     return setStatus('Bitte Datum und alle drei Kollokations-Wörter ausfüllen.', 'error')
   }
 
-  const mmdd = datum.slice(5)
-  const btn  = document.getElementById('save-btn')
+  const btn = document.getElementById('save-btn')
   btn.disabled = true
 
   const statusParts = [`DWDS für „${w1}”, „${w2}”, „${w3}”`]
   if (wza && wzb) statusParts.push(`Wort-Zwilling „${wza}” / „${wzb}”`)
-  if (zwLemma) statusParts.push(`Zeitenwende für „${zwLemma}“`)
+  if (zwLemma) statusParts.push(`Zeitenwende für „${zwLemma}”`)
   setStatus(`Rufe ab: ${statusParts.join(' · ')} …`, 'loading')
 
   try {
@@ -788,7 +790,7 @@ async function saveTag() {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        datum: mmdd, woerter: [w1, w2, w3], positionen: [p1, p2, p3],
+        datum, woerter: [w1, w2, w3], positionen: [p1, p2, p3],
         notizen: [n1, n2, n3], links: [l1, l2, l3],
         definitionen: ['', '', ''],
         thema,
@@ -807,7 +809,7 @@ async function saveTag() {
     const data = await res.json()
     if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`)
 
-    let msg = `Gespeichert: ${mmdd} → ${data.ids.join(', ')}`
+    let msg = `Gespeichert: ${datum} → ${data.ids.join(', ')}`
     if (wza && wzb) {
       msg += data.zwillingOk === true  ? ' · Wort-Zwilling: OK'
            : data.zwillingOk === false ? ' · Wort-Zwilling: nicht genug distinkte Kollokatoren'
@@ -820,7 +822,7 @@ async function saveTag() {
     }
     const hasError = data.zwillingOk === false || data.zeitenwendeOk === false
     setStatus(msg, hasError ? 'error' : 'ok')
-    selectedCalendarDate = mmdd
+    selectedCalendarDate = datum
     await loadKalender()
   } catch (err) {
     setStatus(`Fehler: ${err.message}`, 'error')
@@ -835,7 +837,7 @@ async function editTag(datum) {
   const res  = await fetch(`/admin/tag/${datum}`, {})
   const data = await res.json()
   if (!res.ok) return alert(`Fehler: ${data.error}`)
-  document.getElementById('datum').value = toIsoFromMMDD(datum)
+  document.getElementById('datum').value = datum
   document.getElementById('w1').value = data.woerter[0] || ''
   document.getElementById('w2').value = data.woerter[1] || ''
   document.getElementById('w3').value = data.woerter[2] || ''
@@ -1091,9 +1093,9 @@ async function bulkDeleteSelectedDates() {
   }
 }
 
-function focusCalendarDate(datum, iso = '') {
-  const targetIso = iso || toIsoFromMMDD(datum)
-  const [year, month] = targetIso.split('-').map(Number)
+function focusCalendarDate(datum) {
+  // datum ist jetzt YYYY-MM-DD
+  const [year, month] = datum.split('-').map(Number)
   calYear = year || new Date().getFullYear()
   calMonth = (month || 1) - 1
   selectedCalendarDate = datum
@@ -1127,7 +1129,7 @@ function updateCalendarDetails(datum) {
 
   details.innerHTML = `
     <div class="calendar-detail-head">
-      <strong>${esc(formatIsoDate(toIsoFromMMDD(datum)))}</strong>
+      <strong>${esc(formatIsoDate(datum))}</strong>
       <span>${esc(datum)}</span>
     </div>
     <div class="calendar-detail-section">
@@ -1150,7 +1152,7 @@ function updateDashboardFromKalender() {
   const entries = getCalendarEntries()
   const metricDays = document.getElementById('metric-calendar-days')
   const today = getCurrentDate()
-  const todayKey = getTodayMmdd()
+  const todayKey = getTodayIso()
   const futureEntries = entries.filter((entry) => entry.datum >= todayKey)
   if (metricDays) metricDays.textContent = String(futureEntries.length)
 
@@ -1188,14 +1190,13 @@ function updateDashboardFromKalender() {
   const weekItems = Array.from({ length: 7 }, (_, index) => {
     const dateObj = new Date(startOfWeek)
     dateObj.setDate(startOfWeek.getDate() + index)
-    const datum = `${String(dateObj.getMonth() + 1).padStart(2, '0')}-${String(dateObj.getDate()).padStart(2, '0')}`
+    const iso = `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(2, '0')}-${String(dateObj.getDate()).padStart(2, '0')}`
     return {
-      datum,
-      iso: `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(2, '0')}-${String(dateObj.getDate()).padStart(2, '0')}`,
+      datum: iso,  // datum ist jetzt immer YYYY-MM-DD
       label: dateObj.toLocaleDateString('de-DE', { weekday: 'short' }),
       dayNumber: dateObj.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' }),
-      isToday: datum === todayKey,
-      entry: kalenderData?.[datum] || null,
+      isToday: iso === todayKey,
+      entry: kalenderData?.[iso] || null,
     }
   })
 
@@ -1205,9 +1206,7 @@ function updateDashboardFromKalender() {
       ? renderModeGroupSummary(item.entry, { emptyText: 'Keine Inhalte' })
       : '<span class="entry-empty">Kein Eintrag</span>'
     const action = item.entry ? 'focus-calendar-date' : 'prefill-date'
-    const actionValue = item.entry ? item.datum : item.iso
-    const extraIso = item.entry ? ` data-iso="${esc(item.iso)}"` : ''
-    return `<button type="button" class="week-preview-card ${item.isToday ? 'is-today' : ''} ${item.entry ? 'has-entry' : 'is-empty'}" data-action="${action}" data-value="${esc(actionValue)}"${extraIso}>
+    return `<button type="button" class="week-preview-card ${item.isToday ? 'is-today' : ''} ${item.entry ? 'has-entry' : 'is-empty'}" data-action="${action}" data-value="${esc(item.datum)}">
       <span class="week-preview-day">${esc(item.label)}</span>
       <strong>${esc(item.dayNumber)}</strong>
       <span class="week-preview-meta">${item.entry ? `${groups.length} Modi` : 'Leer'}</span>

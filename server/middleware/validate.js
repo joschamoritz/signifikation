@@ -22,7 +22,7 @@ export function validate(schema, source = 'body') {
 }
 
 // ── Gemeinsame Basistypen ─────────────────────────────────────
-const DATUM_MMDD  = z.string().regex(/^\d{2}-\d{2}$/, 'Ungültiges datum-Format (MM-DD)')
+const DATUM_ISO   = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Ungültiges datum-Format (YYYY-MM-DD)')
 const POS         = z.enum(['Substantiv', 'Verb', 'Adjektiv']).default('Substantiv')
 const VALID_GAMES = ['kollokationen', 'wortzwilling', 'zeitenwende', 'lueckenfueller']
 
@@ -31,7 +31,7 @@ const VALID_GAMES = ['kollokationen', 'wortzwilling', 'zeitenwende', 'lueckenfue
 /** POST /api/stats */
 export const statsSchema = z.object({
   game:  z.enum(VALID_GAMES),
-  datum: DATUM_MMDD,
+  datum: DATUM_ISO,
   score: z.number().int().min(0).max(100),
   max:   z.number().int().positive('max muss > 0 sein').max(100),
 })
@@ -63,14 +63,14 @@ export const bonusQuerySchema = z.object({
   id: z.string().min(1, 'id erforderlich'),
 })
 
-/** GET /api/v1/heute, /api/v1/wortzwilling, /api/v1/zeitenwende (query: datum=MM-DD) */
+/** GET /api/v1/heute, /api/v1/wortzwilling, /api/v1/zeitenwende (query: datum=YYYY-MM-DD) */
 export const datumQuerySchema = z.object({
-  datum: DATUM_MMDD.optional(),
+  datum: DATUM_ISO.optional(),
 })
 
 /** POST /admin/tag */
 export const adminTagSchema = z.object({
-  datum:                DATUM_MMDD,
+  datum:                DATUM_ISO,
   woerter:              z.array(z.string().min(1).max(100)).length(3, 'genau 3 Wörter erforderlich'),
   notizen:              z.array(z.string().max(500)).optional().default([]),
   links:                z.array(z.string().max(500)).optional().default([]),
@@ -143,7 +143,7 @@ export const adminUsersBulkUpdateSchema = z.object({
 
 /** POST /admin/kalender/bulk-delete */
 export const adminBulkDeleteCalendarSchema = z.object({
-  dates: z.array(DATUM_MMDD).min(1, 'Mindestens ein Datum erforderlich').max(180, 'Zu viele Datumswerte auf einmal'),
+  dates: z.array(DATUM_ISO).min(1, 'Mindestens ein Datum erforderlich').max(180, 'Zu viele Datumswerte auf einmal'),
 })
 
 /** POST /admin/kalender/bulk-import */
@@ -159,7 +159,7 @@ export const adminPreviewLemmaSchema = z.object({
 
 /** GET /admin/preview/day/:datum */
 export const adminPreviewDayParamsSchema = z.object({
-  datum: DATUM_MMDD,
+  datum: DATUM_ISO,
 })
 
 /** POST /admin/lemma/:id/lueckenfueller */
@@ -209,7 +209,7 @@ export const adminAuditLogQuerySchema = z.object({
 
 /** GET /admin/social-cards/tagesdata (query) */
 export const adminSocialCardsTagesdataSchema = z.object({
-  datum: DATUM_MMDD,
+  datum: DATUM_ISO,
 })
 
 /** GET /admin/social-cards/belege (query) */
@@ -224,8 +224,7 @@ const CLASSROOM_STATE = z.enum(['created', 'lobby', 'running', 'finished', 'arch
 
 /** POST /api/v1/classroom/sessions */
 export const classroomCreateSessionSchema = z.object({
-  datum: DATUM_MMDD.optional(),
-  year: z.number().int().min(2000).max(2100).optional(),
+  datum: DATUM_ISO.optional(),
   settings: z.record(z.any()).optional().default({}),
 })
 

@@ -1,11 +1,12 @@
 import { getDailyMedal } from './gameLogic'
 import { lsGet, lsParse, lsSet } from './storage'
 
-export function makeDailyKeys(datum, year = new Date().getFullYear()) {
+export function makeDailyKeys(datum) {
+  // datum ist YYYY-MM-DD
   return {
     todayKey: `sig_${datum}`,
     todayZRKey: `sig_zr_${datum}`,
-    dateStr: `${year}-${datum}`,
+    dateStr: datum,
   }
 }
 

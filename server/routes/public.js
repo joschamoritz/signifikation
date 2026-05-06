@@ -16,9 +16,8 @@ const router = express.Router()
 const TIMEZONE = process.env.TIMEZONE || 'Europe/Berlin'
 
 function todayDatum() {
-  const d = new Intl.DateTimeFormat('en-CA', { timeZone: TIMEZONE }).format(new Date())
-  const [year, month, day] = d.split('-')
-  return { mmdd: `${month}-${day}`, year: Number(year) }
+  // Gibt das heutige Datum als YYYY-MM-DD zurück (Berliner Zeit)
+  return new Intl.DateTimeFormat('en-CA', { timeZone: TIMEZONE }).format(new Date())
 }
 
 /** GET /health – öffentlich: nur Status. Details über /admin/health. */
@@ -29,9 +28,7 @@ router.get('/health', (_req, res) => {
 /** GET /api/heute → die 3 Lemmata des Tages */
 router.get('/api/v1/heute', validate(datumQuerySchema, 'query'), (req, res) => {
   try {
-    const today     = todayDatum()
-    const datum     = req.query.datum || today.mmdd
-    const year      = today.year
+    const datum = req.query.datum || todayDatum()
     const { byId, byLemma } = getLemmataIndex()
 
     const entry = loadKalenderEntry(datum)
@@ -46,7 +43,7 @@ router.get('/api/v1/heute', validate(datumQuerySchema, 'query'), (req, res) => {
     const lueckenfuellerLemma = lueckenfueller_id
       ? (byId.get(lueckenfueller_id) ?? byLemma.get(lueckenfueller_id) ?? null)
       : null
-    res.json({ datum, year, lemmata, thema, thema_kurz, thema_quelle, lueckenfuellerLemma })
+    res.json({ datum, lemmata, thema, thema_kurz, thema_quelle, lueckenfuellerLemma })
   } catch (err) {
     serverError(res, err)
   }
@@ -55,7 +52,7 @@ router.get('/api/v1/heute', validate(datumQuerySchema, 'query'), (req, res) => {
 /** GET /api/wortzwilling → Wort-Zwilling-Eintrag des Tages (ohne Scores) */
 router.get('/api/v1/wortzwilling', validate(datumQuerySchema, 'query'), (req, res) => {
   try {
-    const datum = req.query.datum || todayDatum().mmdd
+    const datum = req.query.datum || todayDatum()
     const entry = loadWortZwillingEntry(datum)
     if (!entry) return res.status(404).json({ error: `Kein Wort-Zwilling-Eintrag für ${datum}` })
     // Scores nicht ans Frontend senden (spielrelevante Antworten sind zuordnung-Felder)
@@ -74,7 +71,7 @@ router.get('/api/v1/wortzwilling', validate(datumQuerySchema, 'query'), (req, re
 /** GET /api/zeitenwende → Zeitenwende-Eintrag des Tages (inkl. IPA + Definitionen) */
 router.get('/api/v1/zeitenwende', validate(datumQuerySchema, 'query'), async (req, res) => {
   try {
-    const datum = req.query.datum || todayDatum().mmdd
+    const datum = req.query.datum || todayDatum()
     const entry = loadZeitenwendeEntry(datum)
     if (!entry) return res.status(404).json({ error: `Kein Zeitenwende-Eintrag für ${datum}` })
 

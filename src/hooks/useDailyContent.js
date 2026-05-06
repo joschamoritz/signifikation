@@ -11,7 +11,6 @@ export function useDailyContent() {
   const [lemmata, setLemmata] = useState(null)
   const [apiError, setApiError] = useState(null)
   const [serverDatum, setServerDatum] = useState(null)
-  const [serverYear, setServerYear] = useState(null)
   const [thema, setThema] = useState('')
   const [themaKurz, setThemaKurz] = useState('')
   const [themaQuelle, setThemaQuelle] = useState('')
@@ -40,10 +39,9 @@ export function useDailyContent() {
 
     fetchWithRetry(`${API}/heute`, { signal: controller.signal })
       .then((r) => r.ok ? r.json() : r.json().then((d) => Promise.reject(new Error(d.error || `HTTP ${r.status}`))))
-      .then(({ datum, year, lemmata, thema, thema_kurz, thema_quelle, lueckenfuellerLemma: lfLemma }) => {
+      .then(({ datum, lemmata, thema, thema_kurz, thema_quelle, lueckenfuellerLemma: lfLemma }) => {
         if (cancelled) return
         setServerDatum(datum)
-        if (year) setServerYear(year)
         setLemmata(lemmata)
         if (thema) setThema(thema)
         if (thema_kurz) setThemaKurz(thema_kurz)
@@ -143,7 +141,6 @@ export function useDailyContent() {
     lemmata,
     apiError,
     serverDatum,
-    serverYear,
     thema,
     themaKurz,
     themaQuelle,
