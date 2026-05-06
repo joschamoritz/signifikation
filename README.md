@@ -1,22 +1,38 @@
 # Signifikation
 
-Tägliches linguistisches Quiz – korpusbasiert, wörterbuchästhetisch.
+Tägliches linguistisches Quiz auf Basis von Kollokations- und Korpusdaten.
 Live: **[signifikation.de](https://signifikation.de)**
 
-## Spielmodi
+## Überblick
+
+Signifikation ist eine React-/Express-App mit Wörterbuch-Ästhetik. Die Tagesinhalte,
+Nutzerdaten und Statistiken liegen in einer SQLite-App-Datenbank; zusätzliche sprachliche
+Analysen kommen aus separaten SQLite-Datenbanken wie `wortprofil.db` und `belege.db`.
+
+## Aktuelle Spielmodi
 
 | Modus | Beschreibung |
 |---|---|
-| **Kollokationen** | Welche Wörter treten am häufigsten gemeinsam mit dem Tageswort auf? |
-| **Wort-Zwilling** | Zwei Wörter – welches hat die stärkeren Kollokationsüberschneidungen? |
-| **Zeitreise** | In welcher Epoche war eine Kollokation am gebräuchlichsten? |
+| **Kollokationen** | Die drei stärksten Kollokationen zum Tageswort in die richtige Reihenfolge bringen. |
+| **Wort-Zwilling** | Zwei ähnliche Wörter anhand ihrer Kollokationsüberschneidungen auseinanderhalten. |
+| **Zeitenwende** | Kollokationswandel über Zeitphasen erkennen. |
+| **Lückenfüller** | Echten Korpussatz mit fehlendem Kollokator aus mehreren Kandidaten ergänzen. |
+
+## Weitere Produktbereiche
+
+- **Admin-Portal** unter `/admin` für Tagesplanung, Analysen, Nutzerverwaltung, Backups, Social Cards und Systemdiagnose
+- **Account-/Entitlement-System** mit better-auth, Rollen (`user`, `premium`, `admin`) und Gerätegrenzen für Premium-Zugriff
+- **Mollie-Checkout** für die Gesamtausgabe
+- **Classroom-Modus** für Lehrkräfte mit Sessions, Join-Code, Live-Dashboard und Exportjobs
 
 ## Stack
 
-- **Frontend**: React 18 + Vite 6, Vanilla CSS
-- **Backend**: Express 5, Node ≥20, ESM
-- **Daten**: JSON-Dateien in `server/data/` + SQLite (`wortprofil.db`) auf Hetzner-Volume
-- **Deployment**: Hetzner VPS (Nürnberg), PM2, nginx, GitHub Actions CI/CD
+- **Frontend**: React 18, Vite 6, Vanilla CSS, PWA
+- **Backend**: Express 5, Node.js >= 20, ESM
+- **Authentifizierung**: better-auth mit SQLite-Adapter
+- **App-Datenbank**: SQLite `server/data/signifikation.db`
+- **Sprachdaten**: zusätzliche SQLite-Dateien wie `wortprofil.db` und `belege.db`
+- **Deployment**: Hetzner VPS (Nürnberg), PM2, nginx, GitHub Actions
 
 ## Lokale Entwicklung
 
@@ -24,86 +40,165 @@ Live: **[signifikation.de](https://signifikation.de)**
 # 1. Abhängigkeiten installieren
 npm install
 
-# 2. Umgebungsvariablen einrichten
+# 2. Umgebungsvariablen anlegen
 cp .env.example .env
-# ADMIN_KEY in .env setzen
 
-# 3. Frontend-Dev-Server starten
+# 3. Frontend starten
 npm run dev
 
-# 4. Backend-Server starten (separates Terminal)
+# 4. Backend separat starten
 npm run server
 ```
 
-Frontend läuft auf `http://localhost:5173`, Backend auf `http://localhost:3001`.
+Standardmäßig läuft:
 
-## Befehle
+- Frontend: `http://localhost:5173`
+- Backend: `http://localhost:3001`
+- Admin: `http://localhost:3001/admin`
+
+## Wichtige Befehle
 
 ```bash
-npm run dev          # Vite Dev-Server (Frontend)
-npm run server       # Express-Server (Backend)
-npm run build        # Production Build
-npm run test         # Vitest (Unit-Tests)
+npm run dev           # Vite-Dev-Server
+npm run server        # Express-Server
+npm run server:watch  # Express-Server mit --watch
+npm run build         # Production Build
+npm run test          # Vitest
+npm run verify        # test + build
+npm run test:e2e      # Playwright
 ```
 
-## Umgebungsvariablen
+## Umgebungskonfiguration
 
-Alle Variablen sind in `.env.example` dokumentiert.
+Alle Variablen sind in `.env.example` dokumentiert. Die wichtigsten:
 
 | Variable | Pflicht | Beschreibung |
 |---|---|---|
-| `ADMIN_KEY` | ja (Prod) | Passwort für das Admin-Panel |
-| `NODE_ENV` | nein | `production` aktiviert Prod-Modus |
-| `PORT` | nein | Server-Port (Standard: 3001) |
-| `ALLOWED_ORIGINS` | nein | Kommagetrennte CORS-Origins |
-| `GITHUB_GIST_TOKEN` | nein | PAT für automatisches Gist-Backup |
-| `BACKUP_KEEP` | nein | Anzahl beizubehaltender Backups (Standard: 5) |
-| `LOG_LEVEL` | nein | Pino-Log-Level (Standard: `info`) |
+| `PORT` | nein | Server-Port, Standard `3001` |
+| `NODE_ENV` | nein | `development` oder `production` |
+| `LOG_LEVEL` | nein | Pino-Log-Level |
+| `ALLOWED_ORIGINS` | ja für abweichende Setups | CORS-Origins, komma-separiert |
+| `BETTER_AUTH_URL` | ja | Basis-URL für better-auth |
+| `BETTER_AUTH_SECRET` | ja in Prod | Secret für Session-/Auth-Signierung |
+| `CLASSROOM_JOIN_SECRET` | ja für Classroom | Secret für Join-Code-/Session-Logik |
+| `MOLLIE_API_KEY` | ja für Payments | `test_...` oder `live_...` |
+| `GMAIL_USER` / `GMAIL_APP_PASSWORD` | optional | Bestellbestätigungen |
+| `APP_DB` | optional | alternativer Pfad für `signifikation.db` |
+| `BELEGE_DB` | optional | alternativer Pfad für `belege.db` |
+| `WORTPROFIL_DB` | optional | alternativer Pfad für `wortprofil.db` |
+| `GITHUB_GIST_TOKEN` | optional | aktiviert manuelles/automatisches Gist-Backup |
 
-## Datenmodell
+## Admin-Zugang lokal einrichten
 
-Alle Spieldaten liegen als JSON-Dateien in `server/data/`. Auf dem Hetzner-Server werden sie auf einem persistenten Volume gespeichert und **nicht** aus Git geladen.
+Das Admin-Portal nutzt **keinen** `ADMIN_KEY` mehr. Stattdessen gibt es einen echten Admin-Account.
 
-| Datei | Struktur |
-|---|---|
-| `kalender.json` | `{ "MM-DD": ["lemmaId1", "lemmaId2", "lemmaId3"] }` |
-| `lemmata.json` | Array von Lemma-Objekten mit `id`, `lemma`, `pos`, `wortart`, `ipa`, `definitionen`, `runden`, `rundenInfo`, `notiz`, `link` |
-| `zeitreise.json` | `{ lemma, paare, perioden, wortart }` pro Eintrag |
-| `wortzwilling.json` | `{ wortA, wortB, pos, kollokatoren }` pro Eintrag |
-| `stats.json` | `{ "MM-DD": { [game]: { plays, scoreSum, maxSum, dist } } }` |
-| `diacollo-config.json` | `{ corpora: [{ id, enabled, label, zeitraum, slice }] }` |
+```bash
+node server/setup-admin.js <email> <password>
+```
 
-> **Wichtig:** JSON-Daten nur über das Admin-Panel eingeben – das Hetzner-Volume hat Vorrang vor Git.
+Danach Login im Admin-Portal über `/admin` mit E-Mail und Passwort.
+
+## Datenhaltung
+
+### App-Datenbank
+
+Die zentrale App-Datenbank ist `server/data/signifikation.db`.
+
+Wichtige Tabellen:
+
+- `lemmata`
+- `kalender`
+- `wortzwilling`
+- `zeitenwende`
+- `stats`
+- `free_days`
+- `user`, `session`, `account`, `verification`
+- `user_profiles`, `user_entitlements`, `payments`, `device_registrations`
+- `audit_log`
+- `classroom_sessions`, `classroom_participants`, `classroom_submissions`, `classroom_exports`
+
+### Backup-Format
+
+Admin-Backups exportieren aktuell diese logischen Dateien:
+
+- `lemmata.json`
+- `kalender.json`
+- `wortzwilling.json`
+- `zeitenwende.json`
+- `stats.json`
+- `stats-rows.json`
+
+Diese Namen sind Teil des Backup-/Restore-Formats. Intern arbeitet die App trotzdem auf SQLite.
+
+### Datumsformat
+
+Für neue Laufzeitpfade und Admin-API gilt durchgehend:
+
+- `YYYY-MM-DD`
+
+Alte `MM-DD`-Annahmen sind historisch und sollten für neue Features nicht mehr verwendet werden.
 
 ## Architektur
 
-```
+```text
 server/
-├── index.js          # Express-Setup, Helmet, CORS, Router-Mounts
-├── store.js          # File-I/O: load(), save() (atomar), Cache (TTL 6h, LRU 2000)
-├── wortprofil.js     # Kollokations-Abfragen gegen lokale wortprofil.db (SQLite)
-├── wortzwilling.js   # Wort-Zwilling-Logik
-├── wiktionary.js     # Wiktionary-Fetch: IPA + Bedeutungen (gespeichert in lemmata.json)
-├── belege.js         # Korpusbelege-Abfragen
-├── backup.js         # Automatisches GitHub-Gist-Backup (täglich 02:00 Uhr)
-├── audit.js          # Audit-Log für Admin-Aktionen
-├── logger.js         # Pino-Logger
-├── middleware/
-│   ├── auth.js       # Session-Token-Authentifizierung für Admin-Routen
-│   ├── validate.js   # Zod-Validierungsmiddleware
-│   └── rateLimiter.js
+├── index.js                 # Express-Setup, Security, Router-Mounts, Startup
+├── db.js                    # SQLite-Verbindung und Schema
+├── store.js                 # zentraler Datenzugriff + Caches
+├── wortprofil.js            # Kollokations-/Zeitenwende-Abfragen
+├── belege.js                # Korpusbelege
+├── lueckenfueller.js        # Generierung für Lückenfüller
+├── auth/                    # better-auth-Integration
+├── middleware/              # Auth, Validierung, Rate Limits
 ├── routes/
-│   ├── public.js     # GET /api/v1/* (öffentliche Spielrouten)
-│   └── admin.js      # /admin/* (auth-required)
-└── data/             # JSON-Datendateien (auf Hetzner: Volume)
+│   ├── public.js            # öffentliche `/api/v1/*`-Routen
+│   ├── admin.js             # aggregiert alle `/admin/*`-Routen
+│   ├── account.js           # Account-/Entitlement-API
+│   ├── payments.js          # Mollie-Checkout/Webhook
+│   └── classroom.js         # Classroom-API
+└── workers/
+    └── classroomWorker.js   # Export-/Retention-Jobs
 ```
+
+## Öffentliche API (Auszug)
+
+- `GET /health`
+- `GET /api/v1/heute`
+- `GET /api/v1/wortzwilling`
+- `GET /api/v1/zeitenwende`
+- `GET /api/v1/belege`
+- `POST /api/v1/stats`
+- `GET /api/v1/archiv`
+- `GET /api/v1/wiktionary`
+- `GET /api/v1/ipa`
+- `GET /api/v1/bonus`
+- `GET /api/v1/account/*`
+- `POST /api/v1/payments/checkout`
+- `POST /api/v1/payments/webhook`
+- `POST /api/v1/classroom/*`
+
+## Admin-Portal
+
+Das Admin-Portal deckt aktuell ab:
+
+- Tagesplanung und Tageseinträge
+- Inline-Analysen für alle vier Modi
+- Kalender inklusive freie Tage
+- Bulk-Import und Bulk-Delete für Kalendereinträge
+- Nutzerverwaltung inklusive Bulk-Export
+- Audit-Log
+- Backup/Restore und Gist-Backup
+- Social-Cards-Generator
+- Health-, Performance- und Cache-Diagnose
+
+Siehe dazu auch `ADMIN_API.md`.
 
 ## Deployment
 
-GitHub Actions deployed automatisch auf Hetzner bei jedem Push auf `main`.
+- Zielbranch: `main`
+- Verify-Workflow vor Deploy
+- Build via `npm run build`
+- Start via PM2 (`ecosystem.config.cjs`)
+- Reverse Proxy via nginx
 
-- **Build**: `npm run build` (Vite)
-- **Start**: PM2 (`node server/index.js`)
-- **Cron**: täglich 02:00 Uhr → `node server/backup.js`
-
-Admin-Panel: `signifikation.de/admin`
+Zusätzliche Betriebsdetails stehen in `OPS.md`.
