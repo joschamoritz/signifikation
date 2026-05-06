@@ -1134,28 +1134,83 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
   padding: 2px 0;
 }
 
-/* ── Modus-Toggles ── */
-.mode-toggle {
+/* ── Modus-Karten (2×2-Grid) ── */
+.mode-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 8px;
+}
+.mode-card {
+  background: var(--surface2);
+  border: 1.5px solid var(--border-lt);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.mode-card-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  width: 100%;
-  background: var(--surface2);
-  border: 1.5px solid var(--border);
-  border-radius: var(--radius);
-  padding: 11px 16px;
-  font-family: var(--font-sans);
-  font-size: 0.88rem;
-  font-weight: 600;
-  color: var(--text);
-  cursor: pointer;
-  letter-spacing: 0.02em;
-  transition: border-color 0.15s, background 0.15s, color 0.15s;
+  gap: 8px;
 }
-.mode-toggle:hover { border-color: var(--primary); background: #fef2f2; color: var(--primary); }
-.mode-toggle.active { border-color: var(--primary); background: #fef2f2; color: var(--primary); }
-.toggle-arrow { display: inline-block; transition: transform 0.2s; font-style: normal; font-weight: 400; }
-.toggle-arrow.open { transform: rotate(90deg); }
+.mode-card-title {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.mode-indicator {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--border);
+  flex-shrink: 0;
+  transition: background 0.2s;
+}
+.mode-indicator.is-filled { background: #16a34a; }
+
+/* ── Wort-Gruppen (innerhalb Kollokation-Card) ── */
+.wort-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* ── Extra-Felder (Notiz / Link) ── */
+.extra-toggle {
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: 0.78rem;
+  color: var(--muted);
+  cursor: pointer;
+  text-align: left;
+  text-decoration: underline;
+  text-decoration-style: dotted;
+  text-underline-offset: 2px;
+  font-family: var(--font-sans);
+  transition: color 0.15s;
+}
+.extra-toggle:hover,
+.extra-toggle.is-open { color: var(--primary); }
+.extra-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.extra-fields input {
+  font-size: 0.85rem;
+  border-color: var(--border-lt);
+}
+.extra-fields input::placeholder { font-style: italic; }
+.extra-fields input:focus { border-color: var(--primary); }
+
+/* ── Legacy-Kompatibilität (falls noch irgendwo referenziert) ── */
+.mode-toggle { display: none; }
 .mode-body { display: flex; flex-direction: column; gap: 10px; padding-top: 4px; }
 
 /* ── Kalender ── */

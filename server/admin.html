@@ -150,110 +150,125 @@
             <input type="text" id="thema-quelle" placeholder="z.B. https://www.dwds.de/… oder DWDS-Korpus">
           </div>
 
-          <button class="mode-toggle" id="koll-toggle" data-action="toggle-mode" data-mode="koll">
-            <span>Kollokationen</span>
-            <span class="toggle-arrow" id="koll-arrow">›</span>
-          </button>
-          <div class="mode-body" id="koll-body" style="display:none">
-            <div class="woerter">
-              <div class="wort-row">
-                <span class="wort-badge">Wort 1</span>
-                <input type="text" id="w1" placeholder="Wort 1">
-                <select id="p1"><option value="Substantiv" selected>Substantiv</option><option value="Verb">Verb</option><option value="Adjektiv">Adjektiv</option></select>
-              </div>
-              <input type="text" id="n1" class="notiz-input" placeholder="Notiz">
-              <input type="url"  id="l1" class="notiz-input" placeholder="Link">
-              <div class="wort-row">
-                <span class="wort-badge">Wort 2</span>
-                <input type="text" id="w2" placeholder="Wort 2">
-                <select id="p2"><option value="Substantiv">Substantiv</option><option value="Verb" selected>Verb</option><option value="Adjektiv">Adjektiv</option></select>
-              </div>
-              <input type="text" id="n2" class="notiz-input" placeholder="Notiz">
-              <input type="url"  id="l2" class="notiz-input" placeholder="Link">
-              <div class="wort-row">
-                <span class="wort-badge">Wort 3</span>
-                <input type="text" id="w3" placeholder="Wort 3">
-                <select id="p3"><option value="Substantiv">Substantiv</option><option value="Verb">Verb</option><option value="Adjektiv" selected>Adjektiv</option></select>
-              </div>
-              <input type="text" id="n3" class="notiz-input" placeholder="Notiz">
-              <input type="url"  id="l3" class="notiz-input" placeholder="Link">
-            </div>
-          </div>
+          <div class="mode-grid">
 
-          <button class="mode-toggle" id="wz-toggle" data-action="toggle-mode" data-mode="wz">
-            <span>Wort-Zwilling</span>
-            <span class="toggle-arrow" id="wz-arrow">›</span>
-          </button>
-          <div class="mode-body" id="wz-body" style="display:none">
-            <div style="display:flex;gap:8px;align-items:flex-end">
-              <div style="flex:1">
-                <label for="wza">Wort A</label>
-                <input type="text" id="wza" placeholder="Wort A">
+            <!-- Kollokation -->
+            <div class="mode-card">
+              <div class="mode-card-header">
+                <span class="mode-card-title">Kollokationen</span>
+                <span class="mode-indicator" id="koll-indicator"></span>
               </div>
-              <div style="flex:1">
-                <label for="wzb">Wort B</label>
-                <input type="text" id="wzb" placeholder="Wort B">
+              <div class="woerter">
+                <div class="wort-group">
+                  <div class="wort-row">
+                    <span class="wort-badge">Wort 1</span>
+                    <input type="text" id="w1" placeholder="Wort 1">
+                    <select id="p1"><option value="Substantiv" selected>Substantiv</option><option value="Verb">Verb</option><option value="Adjektiv">Adjektiv</option></select>
+                  </div>
+                  <button type="button" class="extra-toggle" data-action="toggle-extra-fields" data-target="koll-extras-1">+ Notiz / Link</button>
+                  <div class="extra-fields" id="koll-extras-1" style="display:none">
+                    <input type="text" id="n1" placeholder="Notiz">
+                    <input type="url"  id="l1" placeholder="Link">
+                  </div>
+                </div>
+                <div class="wort-group">
+                  <div class="wort-row">
+                    <span class="wort-badge">Wort 2</span>
+                    <input type="text" id="w2" placeholder="Wort 2">
+                    <select id="p2"><option value="Substantiv">Substantiv</option><option value="Verb" selected>Verb</option><option value="Adjektiv">Adjektiv</option></select>
+                  </div>
+                  <button type="button" class="extra-toggle" data-action="toggle-extra-fields" data-target="koll-extras-2">+ Notiz / Link</button>
+                  <div class="extra-fields" id="koll-extras-2" style="display:none">
+                    <input type="text" id="n2" placeholder="Notiz">
+                    <input type="url"  id="l2" placeholder="Link">
+                  </div>
+                </div>
+                <div class="wort-group">
+                  <div class="wort-row">
+                    <span class="wort-badge">Wort 3</span>
+                    <input type="text" id="w3" placeholder="Wort 3">
+                    <select id="p3"><option value="Substantiv">Substantiv</option><option value="Verb">Verb</option><option value="Adjektiv" selected>Adjektiv</option></select>
+                  </div>
+                  <button type="button" class="extra-toggle" data-action="toggle-extra-fields" data-target="koll-extras-3">+ Notiz / Link</button>
+                  <div class="extra-fields" id="koll-extras-3" style="display:none">
+                    <input type="text" id="n3" placeholder="Notiz">
+                    <input type="url"  id="l3" placeholder="Link">
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Wort-Zwilling -->
+            <div class="mode-card">
+              <div class="mode-card-header">
+                <span class="mode-card-title">Wort-Zwilling</span>
+                <span class="mode-indicator" id="wz-indicator"></span>
+              </div>
+              <div style="display:flex;gap:8px;flex-wrap:wrap">
+                <div style="flex:1;min-width:90px">
+                  <label for="wza" style="font-size:0.78rem;color:var(--muted);display:block;margin-bottom:4px">Wort A</label>
+                  <input type="text" id="wza" placeholder="Wort A">
+                </div>
+                <div style="flex:1;min-width:90px">
+                  <label for="wzb" style="font-size:0.78rem;color:var(--muted);display:block;margin-bottom:4px">Wort B</label>
+                  <input type="text" id="wzb" placeholder="Wort B">
+                </div>
+                <div>
+                  <label for="wzpos" style="font-size:0.78rem;color:var(--muted);display:block;margin-bottom:4px">Wortart</label>
+                  <select id="wzpos">
+                    <option value="Substantiv">Substantiv</option>
+                    <option value="Verb">Verb</option>
+                    <option value="Adjektiv">Adjektiv</option>
+                  </select>
+                </div>
+              </div>
+              <button type="button" class="extra-toggle" data-action="toggle-extra-fields" data-target="wz-extras">+ Notiz / Link</button>
+              <div class="extra-fields" id="wz-extras" style="display:none">
+                <input type="text" id="wz-notiz" placeholder="Notiz (erscheint auf der Auswahlseite)">
+                <input type="url"  id="wz-link"  placeholder="Link">
+              </div>
+              <p style="font-size:0.78rem;color:var(--muted);font-style:italic">Beide Wortprofile über DWDS; distinkte Kollokatoren automatisch ermittelt.</p>
+            </div>
+
+            <!-- Zeitenwende -->
+            <div class="mode-card">
+              <div class="mode-card-header">
+                <span class="mode-card-title">Zeitenwende</span>
+                <span class="mode-indicator" id="zw-indicator"></span>
               </div>
               <div>
-                <label for="wzpos">Wortart</label>
-                <select id="wzpos">
-                  <option value="Substantiv">Substantiv</option>
-                  <option value="Verb">Verb</option>
-                  <option value="Adjektiv">Adjektiv</option>
-                </select>
-              </div>
-            </div>
-            <input type="text" id="wz-notiz" class="notiz-input" placeholder="Notiz (erscheint auf der Auswahlseite)">
-            <input type="url"  id="wz-link"  class="notiz-input" placeholder="Link">
-            <p style="font-size:0.8rem;color:var(--muted);font-style:italic">
-              Beide Wortprofile werden über DWDS abgerufen; distinkte Kollokatoren automatisch ermittelt.
-            </p>
-          </div>
-
-          <button class="mode-toggle" id="zw-toggle" data-action="toggle-mode" data-mode="zw">
-            <span>Zeitenwende</span>
-            <span class="toggle-arrow" id="zw-arrow">›</span>
-          </button>
-          <div class="mode-body" id="zw-body" style="display:none">
-            <div style="display:flex;gap:8px;align-items:flex-end">
-              <div style="flex:1">
-                <label for="zw-lemma">Lemma (Zeitenwende)</label>
+                <label for="zw-lemma" style="font-size:0.78rem;color:var(--muted);display:block;margin-bottom:4px">Lemma</label>
                 <input type="text" id="zw-lemma" placeholder="Lemma">
               </div>
-            </div>
-            <input type="text" id="zw-notiz" class="notiz-input" placeholder="Notiz (erscheint auf der Auswahlseite)">
-            <input type="url"  id="zw-link"  class="notiz-input" placeholder="Link">
-            <p style="font-size:0.8rem;color:var(--muted);font-style:italic">
-              10 distinktive Kollokatoren (5 vor 2000, 5 nach 2000) werden automatisch ermittelt.
-            </p>
-          </div>
-
-          <button class="mode-toggle" id="lf-toggle" data-action="toggle-mode" data-mode="lf">
-            <span>Lückenfüller</span>
-            <span class="toggle-arrow" id="lf-arrow">›</span>
-          </button>
-          <div class="mode-body" id="lf-body" style="display:none">
-            <div style="display:flex;gap:8px;align-items:flex-end">
-              <div style="flex:1">
-                <label for="lf-id">Lemma (Lückenfüller)</label>
-                <input type="text" id="lf-id" placeholder="z.B. Film">
+              <button type="button" class="extra-toggle" data-action="toggle-extra-fields" data-target="zw-extras">+ Notiz / Link</button>
+              <div class="extra-fields" id="zw-extras" style="display:none">
+                <input type="text" id="zw-notiz" placeholder="Notiz (erscheint auf der Auswahlseite)">
+                <input type="url"  id="zw-link"  placeholder="Link">
               </div>
-              <button type="button" data-action="generate-lueckenfueller" style="white-space:nowrap">Generieren</button>
+              <p style="font-size:0.78rem;color:var(--muted);font-style:italic">10 distinktive Kollokatoren (5 vor / 5 nach 2000) werden automatisch ermittelt.</p>
             </div>
-            <p id="lf-generate-status" style="font-size:0.82rem;margin-top:6px;display:none"></p>
-            <p style="font-size:0.8rem;color:var(--muted);font-style:italic;margin-top:4px">
-              Lemma-Namen aus der Datenbank eintragen, dann „Generieren" klicken – das erzeugt die Korpussätze für das Spiel. Danach Eintrag speichern.
-            </p>
+
+            <!-- Lückenfüller -->
+            <div class="mode-card">
+              <div class="mode-card-header">
+                <span class="mode-card-title">Lückenfüller</span>
+                <span class="mode-indicator" id="lf-indicator"></span>
+              </div>
+              <div>
+                <label for="lf-id" style="font-size:0.78rem;color:var(--muted);display:block;margin-bottom:4px">Lemma</label>
+                <div style="display:flex;gap:8px">
+                  <input type="text" id="lf-id" placeholder="z.B. Film" style="flex:1">
+                  <button type="button" data-action="generate-lueckenfueller" style="white-space:nowrap">Generieren</button>
+                </div>
+              </div>
+              <p id="lf-generate-status" style="font-size:0.82rem;display:none"></p>
+              <p style="font-size:0.78rem;color:var(--muted);font-style:italic">Lemma eingeben → „Generieren" → Eintrag speichern.</p>
+            </div>
+
           </div>
 
           <div id="status" class="status"></div>
-          <div class="entry-preview-actions">
-            <button data-action="preview-current-lemma">Lemma-Vorschau</button>
-            <button data-action="preview-current-day">Tages-Vorschau</button>
-          </div>
-          <div id="entry-preview-output" class="entry-preview-output">
-            <div class="users-empty">Noch keine Vorschau geladen.</div>
-          </div>
+
           <div class="entry-form-actions">
             <button id="save-btn" data-action="save-tag">Speichern &amp; APIs abrufen</button>
             <button id="delete-btn" class="danger-btn" data-action="delete-current-tag" disabled>Eintrag löschen</button>

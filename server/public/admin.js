@@ -569,13 +569,61 @@ async function loadHealth() {
 }
 
 function toggleMode(id) {
-  const body   = document.getElementById(`${id}-body`)
-  const arrow  = document.getElementById(`${id}-arrow`)
-  const toggle = document.getElementById(`${id}-toggle`)
-  const open   = body.style.display !== 'none' && body.style.display !== ''
-  body.style.display  = open ? 'none' : 'flex'
-  arrow.classList.toggle('open', !open)
-  toggle.classList.toggle('active', !open)
+  // Legacy – Accordion-Toggles existieren nicht mehr im neuen Design
+  const body = document.getElementById(`${id}-body`)
+  if (!body) return
+  const open = body.style.display !== 'none' && body.style.display !== ''
+  body.style.display = open ? 'none' : 'flex'
+}
+
+function toggleExtraFields(targetId) {
+  const el = document.getElementById(targetId)
+  if (!el) return
+  const open = el.style.display !== 'none' && el.style.display !== ''
+  el.style.display = open ? 'none' : 'flex'
+  const btn = document.querySelector(`[data-target="${targetId}"]`)
+  if (btn) {
+    btn.textContent = open ? '+ Notiz / Link' : '− Notiz / Link'
+    btn.classList.toggle('is-open', !open)
+  }
+}
+
+function showExtraFields(targetId) {
+  const el = document.getElementById(targetId)
+  if (!el) return
+  el.style.display = 'flex'
+  const btn = document.querySelector(`[data-target="${targetId}"]`)
+  if (btn) {
+    btn.textContent = '− Notiz / Link'
+    btn.classList.add('is-open')
+  }
+}
+
+function hideAllExtraFields() {
+  ;['koll-extras-1', 'koll-extras-2', 'koll-extras-3', 'wz-extras', 'zw-extras'].forEach((id) => {
+    const el = document.getElementById(id)
+    if (el) el.style.display = 'none'
+    const btn = document.querySelector(`[data-target="${id}"]`)
+    if (btn) {
+      btn.textContent = '+ Notiz / Link'
+      btn.classList.remove('is-open')
+    }
+  })
+}
+
+function updateModeIndicators() {
+  const w1 = document.getElementById('w1')?.value.trim()
+  const w2 = document.getElementById('w2')?.value.trim()
+  const w3 = document.getElementById('w3')?.value.trim()
+  const wza = document.getElementById('wza')?.value.trim()
+  const wzb = document.getElementById('wzb')?.value.trim()
+  const zwLemma = document.getElementById('zw-lemma')?.value.trim()
+  const lfId = document.getElementById('lf-id')?.value.trim()
+
+  document.getElementById('koll-indicator')?.classList.toggle('is-filled', !!(w1 && w2 && w3))
+  document.getElementById('wz-indicator')?.classList.toggle('is-filled', !!(wza && wzb))
+  document.getElementById('zw-indicator')?.classList.toggle('is-filled', !!zwLemma)
+  document.getElementById('lf-indicator')?.classList.toggle('is-filled', !!lfId)
 }
 
 let kalenderData = {}
@@ -586,6 +634,9 @@ calYear  = initialNow.getFullYear()
 calMonth = initialNow.getMonth()
 
 document.getElementById('datum').value = getTodayIso()
+
+// Indikatoren beim Tippen aktualisieren
+document.getElementById('page-entry')?.addEventListener('input', () => updateModeIndicators())
 
 const MONTHS_DE = ['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember']
 const DAYS_DE   = ['Mo','Di','Mi','Do','Fr','Sa','So']
@@ -681,6 +732,8 @@ function prefillDate(isoDate) {
   const deleteBtn = document.getElementById('delete-btn')
   if (deleteBtn) deleteBtn.disabled = true
   document.getElementById('status').className = 'status'
+  hideAllExtraFields()
+  updateModeIndicators()
   if (typeof window.scrollTo === 'function') {
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
@@ -808,6 +861,16 @@ async function editTag(datum) {
   document.getElementById('save-btn').textContent   = 'Aktualisieren & APIs abrufen'
   const deleteBtn = document.getElementById('delete-btn')
   if (deleteBtn) deleteBtn.disabled = false
+
+  // Extra-Felder aufklappen wenn Daten vorhanden
+  hideAllExtraFields()
+  if (data.notizen?.[0] || data.links?.[0]) showExtraFields('koll-extras-1')
+  if (data.notizen?.[1] || data.links?.[1]) showExtraFields('koll-extras-2')
+  if (data.notizen?.[2] || data.links?.[2]) showExtraFields('koll-extras-3')
+  if (data.zwilling_notiz || data.zwilling_link) showExtraFields('wz-extras')
+  if (data.zeitenwende_notiz || data.zeitenwende_link) showExtraFields('zw-extras')
+  updateModeIndicators()
+
   if (typeof window.scrollTo === 'function') {
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
@@ -2160,6 +2223,7 @@ function handleDocumentClick(event) {
   if (action === 'load-health') return void loadHealth()
   if (action === 'dashboard-week') return void changeDashboardWeek(Number(target.dataset.delta || 0))
   if (action === 'toggle-mode') return void toggleMode(target.dataset.mode)
+  if (action === 'toggle-extra-fields') return void toggleExtraFields(target.dataset.target || '')
   if (action === 'preview-current-lemma') return void previewCurrentLemma()
   if (action === 'preview-current-day') return void previewCurrentDay()
   if (action === 'save-tag') return void saveTag()
