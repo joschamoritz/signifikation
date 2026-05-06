@@ -32,7 +32,7 @@
   </div>
 </div>
 
-<div class="container" id="main-container" style="display:none">
+<div class="container is-hidden" id="main-container">
   <div class="admin-shell">
     <aside class="admin-sidebar">
       <div class="admin-brand">
@@ -41,15 +41,30 @@
       </div>
 
       <nav class="admin-nav" aria-label="Admin-Bereiche">
-        <button class="nav-item active" data-action="switch-page" data-page="dashboard">Dashboard</button>
-        <button class="nav-item" data-action="switch-page" data-page="entry">Tageseinträge</button>
-        <button class="nav-item" data-action="switch-page" data-page="stats">Statistiken</button>
-        <button class="nav-item" data-action="switch-page" data-page="analytics">Analysen</button>
-        <button class="nav-item" data-action="switch-page" data-page="calendar">Kalender</button>
-        <button class="nav-item" data-action="switch-page" data-page="users">Nutzer</button>
-        <button class="nav-item" data-action="switch-page" data-page="freedays">Freitage</button>
-        <button class="nav-item" data-action="switch-page" data-page="system">System</button>
-        <a class="nav-item nav-link" href="/admin/social-cards">Social Cards</a>
+        <div class="nav-group-block">
+          <p class="nav-group-label">Übersicht</p>
+          <div class="nav-group-items">
+            <button class="nav-item active" data-action="switch-page" data-page="dashboard">Dashboard</button>
+            <button class="nav-item" data-action="switch-page" data-page="entry">Tageseinträge</button>
+            <button class="nav-item" data-action="switch-page" data-page="calendar">Kalender</button>
+          </div>
+        </div>
+        <div class="nav-group-block">
+          <p class="nav-group-label">Inhalte</p>
+          <div class="nav-group-items">
+            <a class="nav-item nav-link" href="/admin/social-cards">Social Cards</a>
+            <button class="nav-item" data-action="switch-page" data-page="analytics">Analysen</button>
+            <button class="nav-item" data-action="switch-page" data-page="stats">Statistiken</button>
+          </div>
+        </div>
+        <div class="nav-group-block">
+          <p class="nav-group-label">System</p>
+          <div class="nav-group-items">
+            <button class="nav-item" data-action="switch-page" data-page="users">Nutzer</button>
+            <button class="nav-item" data-action="switch-page" data-page="freedays">Freitage</button>
+            <button class="nav-item" data-action="switch-page" data-page="system">System</button>
+          </div>
+        </div>
       </nav>
 
       <div class="sidebar-actions">
@@ -60,102 +75,151 @@
 
     <main class="admin-main">
       <header class="admin-topbar">
-        <div>
+        <div class="topbar-copy">
           <h2 id="page-title">Dashboard</h2>
           <p class="subtitle" id="page-subtitle">Übersicht mit Health, Tagesplanung und Schnellzugriff.</p>
         </div>
         <div class="top-actions">
-          <button class="ghost-btn" data-action="switch-page" data-page="entry">Neuer Tag</button>
-          <a class="ghost-btn" href="/admin/social-cards">Social Cards</a>
+          <button class="primary-btn" data-action="switch-page" data-page="entry">Neuer Tag</button>
           <button class="ghost-btn" data-action="refresh-dashboard">Aktualisieren</button>
+          <a class="text-btn" href="/admin/social-cards">Social Cards</a>
         </div>
       </header>
 
       <section class="admin-page is-active" id="page-dashboard" data-title="Dashboard" data-subtitle="Übersicht mit Health, Tagesplanung und Schnellzugriff.">
         <div class="dashboard-grid">
-          <article class="metric-card">
+          <article class="metric-card metric-card--today" id="metric-today-card">
+            <span class="metric-label">Heute geplant</span>
+            <strong class="metric-value" id="metric-today-status">-</strong>
+            <span class="metric-sub" id="metric-today-sub">Noch nichts geplant</span>
+          </article>
+          <article class="metric-card metric-card--support">
             <span class="metric-label">Kalendereinträge</span>
             <strong class="metric-value" id="metric-calendar-days">-</strong>
             <span class="metric-sub">Zukünftige Tage geplant</span>
           </article>
-          <article class="metric-card metric-card--today" id="metric-today-card">
-            <span class="metric-label">Heute</span>
-            <strong class="metric-value" id="metric-today-status">-</strong>
-            <span class="metric-sub" id="metric-today-sub">Noch nichts geplant</span>
-          </article>
-          <article class="metric-card">
+          <article class="metric-card metric-card--support">
             <span class="metric-label">Plays heute</span>
             <strong class="metric-value" id="metric-plays-today">-</strong>
             <span class="metric-sub" id="metric-score-today">Ø - / 10</span>
           </article>
-          <article class="metric-card">
-            <span class="metric-label">System</span>
+          <article class="metric-card metric-card--support">
+            <span class="metric-label">Systemstatus</span>
             <strong class="metric-value" id="metric-health">-</strong>
             <span class="metric-sub" id="metric-health-sub">Health nicht geladen</span>
           </article>
         </div>
 
-        <div class="card" id="health-card" style="padding:12px 16px">
-          <h2>Health</h2>
-          <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap">
-            <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap" id="health-badges">
-              <span style="font-size:0.8rem;color:var(--muted)">System-Status wird geladen…</span>
+        <div class="dashboard-main-grid">
+          <article class="card dashboard-panel dashboard-panel--primary">
+            <div class="dashboard-panel-head">
+              <div>
+                <p class="section-label">Planung</p>
+                <h2>Wochenansicht</h2>
+                <p class="week-preview-range" id="dashboard-week-label">Diese Woche wird geladen …</p>
+              </div>
+              <div class="week-preview-actions">
+                <button type="button" class="entry-filters-reset week-nav-btn" aria-label="Vorherige Woche" data-action="dashboard-week" data-delta="-1">‹</button>
+                <button type="button" class="entry-filters-reset week-nav-btn" aria-label="Nächste Woche" data-action="dashboard-week" data-delta="1">›</button>
+                <button class="ghost-btn ghost-btn--small" data-action="switch-page" data-page="calendar">Kalender öffnen</button>
+              </div>
             </div>
-            <button data-action="load-health" style="font-size:0.75rem;padding:4px 10px;opacity:0.7">↺</button>
-          </div>
-          <div class="health-detail-grid" id="system-health-details">
-            <div class="health-detail-item"><span>Uptime</span><strong>-</strong></div>
-            <div class="health-detail-item"><span>Memory</span><strong>-</strong></div>
-            <div class="health-detail-item"><span>Environment</span><strong>-</strong></div>
-            <div class="health-detail-item"><span>Letzter Eintrag</span><strong>-</strong></div>
-          </div>
-        </div>
+            <div id="dashboard-calendar-preview" class="week-preview-grid">
+              <div class="preview-empty">Wochenansicht wird geladen …</div>
+            </div>
+          </article>
 
-        <div class="card">
-          <div class="week-preview-header">
-            <div>
-              <h2>Wochenansicht</h2>
-              <p class="week-preview-range" id="dashboard-week-label">Diese Woche wird geladen …</p>
-            </div>
-            <div class="week-preview-actions">
-              <button type="button" class="entry-filters-reset week-nav-btn" aria-label="Vorherige Woche" data-action="dashboard-week" data-delta="-1">‹</button>
-              <button type="button" class="entry-filters-reset week-nav-btn" aria-label="Nächste Woche" data-action="dashboard-week" data-delta="1">›</button>
-              <button data-action="switch-page" data-page="calendar" style="font-size:0.78rem;padding:6px 12px">Kalender öffnen</button>
-            </div>
-          </div>
-          <div id="dashboard-calendar-preview" class="week-preview-grid">
-            <div class="preview-empty">Wochenansicht wird geladen …</div>
-          </div>
+          <aside class="dashboard-side-column">
+            <article class="card dashboard-panel dashboard-panel--secondary" id="health-card">
+              <div class="dashboard-panel-head dashboard-panel-head--stacked">
+                <div>
+                  <p class="section-label">Operations</p>
+                  <h2>Systemstatus</h2>
+                  <p class="health-summary" id="health-summary">System-Status wird geladen …</p>
+                </div>
+                <button class="icon-btn" data-action="load-health" aria-label="Systemstatus aktualisieren">↺</button>
+              </div>
+              <div class="health-status-row" id="health-badges">
+                <span class="health-status-placeholder">System-Status wird geladen …</span>
+              </div>
+              <div class="health-detail-grid" id="system-health-details">
+                <div class="health-detail-item"><span>Uptime</span><strong>-</strong></div>
+                <div class="health-detail-item"><span>Memory</span><strong>-</strong></div>
+                <div class="health-detail-item"><span>Environment</span><strong>-</strong></div>
+                <div class="health-detail-item"><span>Letzter Eintrag</span><strong>-</strong></div>
+              </div>
+            </article>
+
+            <article class="card dashboard-panel dashboard-panel--secondary dashboard-quick-actions">
+              <div class="dashboard-panel-head dashboard-panel-head--stacked">
+                <div>
+                  <p class="section-label">Schnellzugriff</p>
+                  <h2>Direkt weiterarbeiten</h2>
+                  <p class="quick-actions-copy">Häufige Admin-Aktionen ohne Umweg über die Navigation.</p>
+                </div>
+              </div>
+              <div class="quick-actions-grid">
+                <button class="ghost-btn quick-action-btn" data-action="switch-page" data-page="entry">Neuer Tag</button>
+                <button class="ghost-btn quick-action-btn" data-action="switch-page" data-page="calendar">Kalender</button>
+                <a class="ghost-btn quick-action-btn" href="/admin/social-cards">Social Cards</a>
+                <button class="ghost-btn quick-action-btn" data-action="refresh-dashboard">Aktualisieren</button>
+              </div>
+            </article>
+          </aside>
         </div>
       </section>
 
       <section class="admin-page" id="page-entry" data-title="Tageseinträge" data-subtitle="Tagesinhalt planen und automatisch mit Datenquellen anreichern.">
-        <div class="card">
-          <h2 id="form-title">Neuer Tageseintrag</h2>
-          <div>
-            <label for="datum">Datum</label>
-            <input type="date" id="datum">
+        <div class="card entry-editor-card">
+          <div class="entry-editor-head">
+            <div>
+              <p class="section-label">Planung</p>
+              <h2 id="form-title">Neuer Tageseintrag</h2>
+              <p class="entry-editor-copy">Kollokationen sind Pflicht. Die weiteren Modi kannst du gezielt ergänzen; externe Daten werden beim Speichern automatisch neu geladen.</p>
+            </div>
           </div>
 
-          <div>
-            <label for="thema">Tagesthema <span style="font-weight:400;color:var(--muted);font-size:0.8rem">(erscheint auf Startseite &amp; Spielseiten)</span></label>
-            <input type="text" id="thema" placeholder="z.B. Tag der Arbeit, Walpurgisnacht …">
-          </div>
-          <div>
-            <label for="thema-kurz">Kurzbeschreibung <span style="font-weight:400;color:var(--muted);font-size:0.8rem">(optional · erscheint auf Spielseiten)</span></label>
-            <input type="text" id="thema-kurz" placeholder="z.B. Heute ist Internationaler Arbeitstag.">
-          </div>
-          <div>
-            <label for="thema-quelle">Quelle / Link <span style="font-weight:400;color:var(--muted);font-size:0.8rem">(optional · wird als Link angezeigt wenn URL)</span></label>
-            <input type="text" id="thema-quelle" placeholder="z.B. https://www.dwds.de/… oder DWDS-Korpus">
+          <div class="entry-section">
+            <div class="entry-section-head">
+              <div>
+                <h3>Rahmendaten</h3>
+                <p class="form-helper">Datum und Themenzeile steuern Startseite und Spielseiten.</p>
+              </div>
+            </div>
+            <div class="entry-meta-grid">
+              <div class="entry-field entry-field--compact">
+                <label for="datum">Datum</label>
+                <input type="date" id="datum">
+              </div>
+              <div class="entry-field entry-field--span-2">
+                <label for="thema">Tagesthema <span class="label-hint">erscheint auf Startseite und Spielseiten</span></label>
+                <input type="text" id="thema" placeholder="z.B. Tag der Arbeit, Walpurgisnacht …">
+              </div>
+              <div class="entry-field">
+                <label for="thema-kurz">Kurzbeschreibung <span class="label-hint">optional</span></label>
+                <input type="text" id="thema-kurz" placeholder="z.B. Heute ist Internationaler Arbeitstag.">
+              </div>
+              <div class="entry-field">
+                <label for="thema-quelle">Quelle / Link <span class="label-hint">optional</span></label>
+                <input type="text" id="thema-quelle" placeholder="z.B. https://www.dwds.de/… oder DWDS-Korpus">
+              </div>
+            </div>
           </div>
 
-          <div class="mode-grid">
+          <div class="entry-section">
+            <div class="entry-section-head">
+              <div>
+                <h3>Pflichtmodus</h3>
+                <p class="form-helper">Für jeden Tag werden drei Kollokationswörter benötigt.</p>
+              </div>
+            </div>
 
-            <!-- Kollokation -->
-            <div class="mode-card">
+            <div class="mode-card mode-card--primary">
               <div class="mode-card-header">
-                <span class="mode-card-title">Kollokationen</span>
+                <div>
+                  <span class="mode-card-title">Kollokationen</span>
+                  <p class="mode-card-copy">Drei Wörter mit Wortart festlegen; Notizen und Links bleiben optional.</p>
+                </div>
                 <span class="mode-indicator" id="koll-indicator"></span>
               </div>
               <div class="woerter">
@@ -166,9 +230,9 @@
                     <select id="p1"><option value="Substantiv" selected>Substantiv</option><option value="Verb">Verb</option><option value="Adjektiv">Adjektiv</option></select>
                   </div>
                   <button type="button" class="extra-toggle" data-action="toggle-extra-fields" data-target="koll-extras-1">+ Notiz / Link</button>
-                  <div class="extra-fields" id="koll-extras-1" style="display:none">
+                  <div class="extra-fields is-hidden" id="koll-extras-1">
                     <input type="text" id="n1" placeholder="Notiz">
-                    <input type="url"  id="l1" placeholder="Link">
+                    <input type="url" id="l1" placeholder="Link">
                   </div>
                 </div>
                 <div class="wort-group">
@@ -178,9 +242,9 @@
                     <select id="p2"><option value="Substantiv">Substantiv</option><option value="Verb" selected>Verb</option><option value="Adjektiv">Adjektiv</option></select>
                   </div>
                   <button type="button" class="extra-toggle" data-action="toggle-extra-fields" data-target="koll-extras-2">+ Notiz / Link</button>
-                  <div class="extra-fields" id="koll-extras-2" style="display:none">
+                  <div class="extra-fields is-hidden" id="koll-extras-2">
                     <input type="text" id="n2" placeholder="Notiz">
-                    <input type="url"  id="l2" placeholder="Link">
+                    <input type="url" id="l2" placeholder="Link">
                   </div>
                 </div>
                 <div class="wort-group">
@@ -190,97 +254,111 @@
                     <select id="p3"><option value="Substantiv">Substantiv</option><option value="Verb">Verb</option><option value="Adjektiv" selected>Adjektiv</option></select>
                   </div>
                   <button type="button" class="extra-toggle" data-action="toggle-extra-fields" data-target="koll-extras-3">+ Notiz / Link</button>
-                  <div class="extra-fields" id="koll-extras-3" style="display:none">
+                  <div class="extra-fields is-hidden" id="koll-extras-3">
                     <input type="text" id="n3" placeholder="Notiz">
-                    <input type="url"  id="l3" placeholder="Link">
+                    <input type="url" id="l3" placeholder="Link">
                   </div>
                 </div>
               </div>
             </div>
+          </div>
 
-            <!-- Wort-Zwilling -->
-            <div class="mode-card">
-              <div class="mode-card-header">
-                <span class="mode-card-title">Wort-Zwilling</span>
-                <span class="mode-indicator" id="wz-indicator"></span>
-              </div>
-              <div style="display:flex;gap:8px;flex-wrap:wrap">
-                <div style="flex:1;min-width:90px">
-                  <label for="wza" style="font-size:0.78rem;color:var(--muted);display:block;margin-bottom:4px">Wort A</label>
-                  <input type="text" id="wza" placeholder="Wort A">
-                </div>
-                <div style="flex:1;min-width:90px">
-                  <label for="wzb" style="font-size:0.78rem;color:var(--muted);display:block;margin-bottom:4px">Wort B</label>
-                  <input type="text" id="wzb" placeholder="Wort B">
-                </div>
-                <div>
-                  <label for="wzpos" style="font-size:0.78rem;color:var(--muted);display:block;margin-bottom:4px">Wortart</label>
-                  <select id="wzpos">
-                    <option value="Substantiv">Substantiv</option>
-                    <option value="Verb">Verb</option>
-                    <option value="Adjektiv">Adjektiv</option>
-                  </select>
-                </div>
-              </div>
-              <button type="button" class="extra-toggle" data-action="toggle-extra-fields" data-target="wz-extras">+ Notiz / Link</button>
-              <div class="extra-fields" id="wz-extras" style="display:none">
-                <input type="text" id="wz-notiz" placeholder="Notiz (erscheint auf der Auswahlseite)">
-                <input type="url"  id="wz-link"  placeholder="Link">
-              </div>
-              <p style="font-size:0.78rem;color:var(--muted);font-style:italic">Beide Wortprofile über DWDS; distinkte Kollokatoren automatisch ermittelt.</p>
-            </div>
-
-            <!-- Zeitenwende -->
-            <div class="mode-card">
-              <div class="mode-card-header">
-                <span class="mode-card-title">Zeitenwende</span>
-                <span class="mode-indicator" id="zw-indicator"></span>
-              </div>
+          <div class="entry-section">
+            <div class="entry-section-head">
               <div>
-                <label for="zw-lemma" style="font-size:0.78rem;color:var(--muted);display:block;margin-bottom:4px">Lemma</label>
-                <input type="text" id="zw-lemma" placeholder="Lemma">
+                <h3>Optionale Modi</h3>
+                <p class="form-helper">Nur ausfüllen, wenn der Tag zusätzliche Spielmodi braucht.</p>
               </div>
-              <button type="button" class="extra-toggle" data-action="toggle-extra-fields" data-target="zw-extras">+ Notiz / Link</button>
-              <div class="extra-fields" id="zw-extras" style="display:none">
-                <input type="text" id="zw-notiz" placeholder="Notiz (erscheint auf der Auswahlseite)">
-                <input type="url"  id="zw-link"  placeholder="Link">
-              </div>
-              <p style="font-size:0.78rem;color:var(--muted);font-style:italic">10 distinktive Kollokatoren (5 vor / 5 nach 2000) werden automatisch ermittelt.</p>
             </div>
 
-            <!-- Lückenfüller -->
-            <div class="mode-card">
-              <div class="mode-card-header">
-                <span class="mode-card-title">Lückenfüller</span>
-                <span class="mode-indicator" id="lf-indicator"></span>
-              </div>
-              <div>
-                <label for="lf-id" style="font-size:0.78rem;color:var(--muted);display:block;margin-bottom:4px">Lemma</label>
-                <div style="display:flex;gap:8px">
-                  <input type="text" id="lf-id" placeholder="z.B. Film" style="flex:1">
-                  <button type="button" data-action="generate-lueckenfueller" style="white-space:nowrap">Generieren</button>
+            <div class="entry-secondary-grid">
+              <div class="mode-card">
+                <div class="mode-card-header">
+                  <div>
+                    <span class="mode-card-title">Wort-Zwilling</span>
+                    <p class="mode-card-copy">Zwei Wörter plus Wortart angeben; die distinkten Kollokatoren werden automatisch ermittelt.</p>
+                  </div>
+                  <span class="mode-indicator" id="wz-indicator"></span>
+                </div>
+                <div class="inline-field-grid inline-field-grid--triple">
+                  <div class="entry-field">
+                    <label for="wza">Wort A</label>
+                    <input type="text" id="wza" placeholder="Wort A">
+                  </div>
+                  <div class="entry-field">
+                    <label for="wzb">Wort B</label>
+                    <input type="text" id="wzb" placeholder="Wort B">
+                  </div>
+                  <div class="entry-field entry-field--compact">
+                    <label for="wzpos">Wortart</label>
+                    <select id="wzpos">
+                      <option value="Substantiv">Substantiv</option>
+                      <option value="Verb">Verb</option>
+                      <option value="Adjektiv">Adjektiv</option>
+                    </select>
+                  </div>
+                </div>
+                <button type="button" class="extra-toggle" data-action="toggle-extra-fields" data-target="wz-extras">+ Notiz / Link</button>
+                <div class="extra-fields is-hidden" id="wz-extras">
+                  <input type="text" id="wz-notiz" placeholder="Notiz (erscheint auf der Auswahlseite)">
+                  <input type="url" id="wz-link" placeholder="Link">
                 </div>
               </div>
-              <p id="lf-generate-status" style="font-size:0.82rem;display:none"></p>
-              <p style="font-size:0.78rem;color:var(--muted);font-style:italic">Lemma eingeben → „Generieren" → Eintrag speichern.</p>
-            </div>
 
+              <div class="mode-card">
+                <div class="mode-card-header">
+                  <div>
+                    <span class="mode-card-title">Zeitenwende</span>
+                    <p class="mode-card-copy">Ein Lemma reicht; die Kollokatoren werden vor und nach 2000 automatisch verglichen.</p>
+                  </div>
+                  <span class="mode-indicator" id="zw-indicator"></span>
+                </div>
+                <div class="entry-field">
+                  <label for="zw-lemma">Lemma</label>
+                  <input type="text" id="zw-lemma" placeholder="Lemma">
+                </div>
+                <button type="button" class="extra-toggle" data-action="toggle-extra-fields" data-target="zw-extras">+ Notiz / Link</button>
+                <div class="extra-fields is-hidden" id="zw-extras">
+                  <input type="text" id="zw-notiz" placeholder="Notiz (erscheint auf der Auswahlseite)">
+                  <input type="url" id="zw-link" placeholder="Link">
+                </div>
+              </div>
+
+              <div class="mode-card">
+                <div class="mode-card-header">
+                  <div>
+                    <span class="mode-card-title">Lückenfüller</span>
+                    <p class="mode-card-copy">Lemma eingeben, Runden generieren und erst dann den Tag speichern.</p>
+                  </div>
+                  <span class="mode-indicator" id="lf-indicator"></span>
+                </div>
+                <div class="entry-field">
+                  <label for="lf-id">Lemma</label>
+                  <div class="inline-action-row">
+                    <input type="text" id="lf-id" placeholder="z.B. Film">
+                    <button type="button" class="entry-filters-reset" data-action="generate-lueckenfueller">Generieren</button>
+                  </div>
+                </div>
+                <p id="lf-generate-status" class="mode-generate-status"></p>
+              </div>
+            </div>
           </div>
 
           <div id="status" class="status"></div>
 
           <div class="entry-form-actions">
+            <div class="entry-action-copy">Beim Speichern werden die Inhalte neu geladen und der Kalendereintrag direkt aktualisiert.</div>
             <button id="save-btn" data-action="save-tag">Speichern &amp; APIs abrufen</button>
             <button id="delete-btn" class="danger-btn" data-action="delete-current-tag" disabled>Eintrag löschen</button>
           </div>
         </div>
 
         <div class="card">
-          <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap">
+          <div class="card-head card-head--wrap">
             <h2>Geplante Einträge</h2>
             <div class="entry-top-actions">
               <button class="entry-filters-reset" data-action="trigger-calendar-csv-import">CSV-Import</button>
-              <button data-action="load-kalender" style="font-size:0.8rem;padding:6px 12px">↺ Laden</button>
+              <button class="entry-filters-reset" data-action="load-kalender">↺ Laden</button>
             </div>
           </div>
           <input type="file" id="calendar-csv-input" accept=".csv,text/csv" hidden>
@@ -323,9 +401,9 @@
 
       <section class="admin-page" id="page-stats" data-title="Statistiken" data-subtitle="Nutzeraktivität und Leistungswerte über alle Spielmodi hinweg.">
         <div class="card">
-          <div style="display:flex;align-items:center;justify-content:space-between">
+          <div class="card-head">
             <h2>Statistik</h2>
-            <button data-action="load-stats" style="font-size:0.8rem;padding:6px 12px">↺ Laden</button>
+            <button class="entry-filters-reset" data-action="load-stats">↺ Laden</button>
           </div>
 
           <div class="stats-toolbar">
@@ -364,60 +442,78 @@
             </div>
           </div>
 
-          <div id="stats-output"><div style="color:var(--muted);font-size:0.85rem">Noch nicht geladen.</div></div>
+          <div id="stats-output"><div class="panel-empty">Noch nicht geladen.</div></div>
         </div>
 
       </section>
 
       <section class="admin-page" id="page-analytics" data-title="Analysen" data-subtitle="Eignungsprüfung für Kollokation, Wort-Zwilling und Zeitenwende.">
-        <div class="card">
-          <h2>Kollokation – Wortanalyse</h2>
-          <p style="font-size:0.82rem;color:var(--muted);margin-bottom:8px">Prüfe, ob ein Wort als Kollokationswort geeignet ist. Zeigt Top 10 pro Runde, Top 3 gesamt und die Bonusfrage.</p>
-          <div class="viz-search">
-            <input type="text" id="koll-input" placeholder="Wort eingeben…" data-enter-action="analyze-kollokation" style="flex:1">
-            <button data-action="analyze-kollokation">Analysieren</button>
-            <button data-action="reset-kollokation-analysis" style="opacity:0.6">✕ Zurücksetzen</button>
+        <div class="analytics-grid">
+          <div class="card analysis-card">
+            <div class="analysis-card-head">
+              <div>
+                <h2>Kollokation</h2>
+                <p class="analysis-copy">Prüft ein Wort als Kollokationswort und zeigt Top 10 pro Runde, Top 3 gesamt und die Bonusfrage.</p>
+              </div>
+            </div>
+            <div class="viz-search">
+              <input type="text" id="koll-input" placeholder="Wort eingeben…" data-enter-action="analyze-kollokation">
+              <button data-action="analyze-kollokation">Analysieren</button>
+              <button class="entry-filters-reset button-soft" data-action="reset-kollokation-analysis">Zurücksetzen</button>
+            </div>
+            <div id="koll-output" class="analysis-output"></div>
           </div>
-          <div id="koll-output"></div>
-        </div>
 
-        <div class="card">
-          <h2>Wort-Zwilling – Paaranalyse</h2>
-          <p style="font-size:0.82rem;color:var(--muted);margin-bottom:8px">Prüfe, ob zwei Wörter als Wort-Zwilling geeignet sind. Zeigt die 10 distinktiven Kollokatoren (5 pro Seite).</p>
-          <div class="viz-search" style="flex-wrap:wrap;gap:8px">
-            <input type="text" id="wza-input" placeholder="Wort A…" data-enter-action="analyze-wort-zwilling" style="flex:1;min-width:120px">
-            <input type="text" id="wzb-input" placeholder="Wort B…" data-enter-action="analyze-wort-zwilling" style="flex:1;min-width:120px">
-            <select id="wzana-pos">
-              <option value="Substantiv">Substantiv</option>
-              <option value="Verb">Verb</option>
-              <option value="Adjektiv">Adjektiv</option>
-            </select>
-            <button data-action="analyze-wort-zwilling">Analysieren</button>
-            <button data-action="reset-wort-zwilling-analysis" style="opacity:0.6">✕ Zurücksetzen</button>
+          <div class="card analysis-card">
+            <div class="analysis-card-head">
+              <div>
+                <h2>Wort-Zwilling</h2>
+                <p class="analysis-copy">Prüft zwei Wörter als Paar und zeigt die 10 distinktiven Kollokatoren.</p>
+              </div>
+            </div>
+            <div class="viz-search viz-search--multi">
+              <input type="text" id="wza-input" placeholder="Wort A…" data-enter-action="analyze-wort-zwilling">
+              <input type="text" id="wzb-input" placeholder="Wort B…" data-enter-action="analyze-wort-zwilling">
+              <select id="wzana-pos">
+                <option value="Substantiv">Substantiv</option>
+                <option value="Verb">Verb</option>
+                <option value="Adjektiv">Adjektiv</option>
+              </select>
+              <button data-action="analyze-wort-zwilling">Analysieren</button>
+              <button class="entry-filters-reset button-soft" data-action="reset-wort-zwilling-analysis">Zurücksetzen</button>
+            </div>
+            <div id="wz-ana-output" class="analysis-output"></div>
           </div>
-          <div id="wz-ana-output"></div>
-        </div>
 
-        <div class="card">
-          <h2>Zeitenwende – Wortanalyse</h2>
-          <p style="font-size:0.82rem;color:var(--muted);margin-bottom:8px">Prüfe, ob ein Wort als Zeitenwende-Lemma geeignet ist. Zeigt distinktive Kollokatoren vor und nach 2000.</p>
-          <div class="viz-search">
-            <input type="text" id="zw-ana-input" placeholder="Wort eingeben…" data-enter-action="analyze-zeitenwende" style="flex:1">
-            <button data-action="analyze-zeitenwende">Analysieren</button>
-            <button data-action="reset-zeitenwende-analysis" style="opacity:0.6">✕ Zurücksetzen</button>
+          <div class="card analysis-card">
+            <div class="analysis-card-head">
+              <div>
+                <h2>Zeitenwende</h2>
+                <p class="analysis-copy">Prüft, ob ein Wort als Zeitenwende-Lemma geeignet ist, und vergleicht Kollokatoren vor und nach 2000.</p>
+              </div>
+            </div>
+            <div class="viz-search">
+              <input type="text" id="zw-ana-input" placeholder="Wort eingeben…" data-enter-action="analyze-zeitenwende">
+              <button data-action="analyze-zeitenwende">Analysieren</button>
+              <button class="entry-filters-reset button-soft" data-action="reset-zeitenwende-analysis">Zurücksetzen</button>
+            </div>
+            <div id="zw-ana-output" class="analysis-output"></div>
           </div>
-          <div id="zw-ana-output"></div>
-        </div>
 
-        <div class="card">
-          <h2>Lückenfüller – Eignungsanalyse</h2>
-          <p style="font-size:0.82rem;color:var(--muted);margin-bottom:8px">Prüfe, ob genug Material für den Lückenfüller vorhanden ist (Pool-Größe, blankbare Sätze, Runden). Speichert nichts.</p>
-          <div class="viz-search">
-            <input type="text" id="lf-ana-input" placeholder="Wort eingeben…" data-enter-action="analyze-lueckenfueller" style="flex:1">
-            <button data-action="analyze-lueckenfueller">Analysieren</button>
-            <button data-action="reset-lueckenfueller-analysis" style="opacity:0.6">✕ Zurücksetzen</button>
+          <div class="card analysis-card">
+            <div class="analysis-card-head">
+              <div>
+                <h2>Lückenfüller</h2>
+                <p class="analysis-copy">Prüft, ob genug Material für Pool-Größe, blankbare Sätze und Runden vorhanden ist. Speichert nichts.</p>
+              </div>
+            </div>
+            <div class="viz-search">
+              <input type="text" id="lf-ana-input" placeholder="Wort eingeben…" data-enter-action="analyze-lueckenfueller">
+              <button data-action="analyze-lueckenfueller">Analysieren</button>
+              <button class="entry-filters-reset button-soft" data-action="reset-lueckenfueller-analysis">Zurücksetzen</button>
+            </div>
+            <div id="lf-ana-output" class="analysis-output"></div>
           </div>
-          <div id="lf-ana-output"></div>
         </div>
 
       </section>
@@ -434,7 +530,7 @@
         </div>
 
         <div class="card">
-          <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap">
+          <div class="card-head card-head--wrap">
             <h2>Tagesdetails</h2>
             <button id="calendar-edit-btn" data-action="edit-selected-calendar-date" disabled>Eintrag bearbeiten</button>
           </div>
@@ -446,9 +542,9 @@
 
       <section class="admin-page" id="page-users" data-title="Nutzer" data-subtitle="Aktuelle Nutzerübersicht inkl. Rollen (bestehende API).">
         <div class="card">
-          <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap">
+          <div class="card-head card-head--wrap">
             <h2>Nutzerübersicht</h2>
-            <button data-action="load-users-overview" style="font-size:0.8rem;padding:6px 12px">↺ Laden</button>
+            <button class="entry-filters-reset" data-action="load-users-overview">↺ Laden</button>
           </div>
           <div class="users-bulk-controls">
             <span id="users-bulk-count">0 ausgewählt</span>
@@ -464,7 +560,7 @@
                 <option value="premium">Premium</option>
               </select>
             </span>
-            <span id="users-bulk-export-wrap" class="users-bulk-export-wrap" style="display:none">
+            <span id="users-bulk-export-wrap" class="users-bulk-export-wrap is-hidden">
               <label for="users-bulk-format">Format</label>
               <select id="users-bulk-format">
                 <option value="json">JSON</option>
@@ -505,7 +601,7 @@
         </div>
 
         <div class="card" id="users-detail-card">
-          <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap">
+          <div class="card-head card-head--wrap">
             <h2>Nutzerdetails</h2>
             <div class="user-detail-actions">
               <select id="user-detail-role">
@@ -517,7 +613,7 @@
             </div>
           </div>
           <div id="user-detail-empty" class="users-empty">Wähle einen Nutzer aus der Tabelle, um Details zu sehen.</div>
-          <div id="user-detail-content" class="user-detail-content" style="display:none">
+          <div id="user-detail-content" class="user-detail-content is-hidden">
             <div class="user-detail-head">
               <strong id="user-detail-title">–</strong>
               <span id="user-detail-subtitle">–</span>
@@ -554,27 +650,27 @@
       <section class="admin-page" id="page-freedays" data-title="Freitage" data-subtitle="Tage mit kostenlosem Gesamtausgabe-Zugang (zusätzlich zu Sonntagen).">
         <div class="card">
           <h2>Neuer Freitag</h2>
-          <p style="font-size:0.85rem;color:var(--muted);margin:0 0 14px">
+          <p class="section-copy">
             An eingetragenen Tagen haben alle Nutzer – auch ohne Zahlung – Zugriff auf die Gesamtausgabe. Sonntage sind automatisch immer frei.
           </p>
-          <div style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap">
-            <div>
+          <div class="freeday-form-row">
+            <div class="entry-field entry-field--compact">
               <label for="freeday-date">Datum</label>
               <input type="date" id="freeday-date">
             </div>
-            <div style="flex:1;min-width:160px">
-              <label for="freeday-label">Bezeichnung <span style="font-weight:400;color:var(--muted);font-size:0.8rem">(optional, z.&nbsp;B. »Tag der Deutschen Einheit«)</span></label>
+            <div class="entry-field freeday-field-grow">
+              <label for="freeday-label">Bezeichnung <span class="label-hint">optional, z.&nbsp;B. »Tag der Deutschen Einheit«</span></label>
               <input type="text" id="freeday-label" placeholder="z.B. Schulstart, WM-Finale …" maxlength="100">
             </div>
-            <button data-action="add-free-day" style="white-space:nowrap">Hinzufügen</button>
+            <button class="entry-filters-reset" data-action="add-free-day">Hinzufügen</button>
           </div>
-          <p class="entry-hint" id="freeday-msg" style="display:none"></p>
+          <p class="entry-hint is-hidden" id="freeday-msg"></p>
         </div>
 
         <div class="card">
-          <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap">
+          <div class="card-head card-head--wrap">
             <h2>Eingetragene Freitage</h2>
-            <button data-action="load-free-days" style="font-size:0.8rem;padding:6px 12px">↺ Laden</button>
+            <button class="entry-filters-reset" data-action="load-free-days">↺ Laden</button>
           </div>
           <div id="freedays-list">
             <div class="users-empty">Wird geladen …</div>
@@ -596,9 +692,9 @@
         </div>
 
         <div class="card">
-          <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap">
+          <div class="card-head card-head--wrap">
             <h2>Performance</h2>
-            <button data-action="load-performance" style="font-size:0.8rem;padding:6px 12px">↺ Laden</button>
+            <button class="entry-filters-reset" data-action="load-performance">↺ Laden</button>
           </div>
           <div id="performance-cards" class="performance-cards">
             <div class="users-empty">Performance-Daten werden geladen …</div>
@@ -607,9 +703,9 @@
         </div>
 
         <div class="card">
-          <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap">
+          <div class="card-head card-head--wrap">
             <h2>Audit-Log</h2>
-            <button data-action="load-audit-log" style="font-size:0.8rem;padding:6px 12px">↺ Laden</button>
+            <button class="entry-filters-reset" data-action="load-audit-log">↺ Laden</button>
           </div>
           <div class="audit-controls">
             <label for="audit-limit">Anzahl Einträge</label>

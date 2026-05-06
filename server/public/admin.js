@@ -32,11 +32,6 @@ function getTodayIso() {
   return getCurrentDate().toISOString().slice(0, 10)
 }
 
-function getTodayMmdd() {
-  const now = getCurrentDate()
-  return `${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
-}
-
 function scheduleSessionRefresh() {
   if (sessionRefreshTimer) {
     window.clearTimeout(sessionRefreshTimer)
@@ -107,6 +102,7 @@ function formatIsoDate(iso) {
 }
 
 function toIsoFromMMDD(mmdd) {
+  if (/^\d{4}-\d{2}-\d{2}$/.test(String(mmdd || ''))) return String(mmdd)
   // Verwendet immer das aktuelle Jahr – kein Vorwärts-Raten, da Einträge jahreslos sind
   const [mm, dd] = String(mmdd || '').split('-').map(Number)
   if (!mm || !dd) return ''
@@ -115,7 +111,7 @@ function toIsoFromMMDD(mmdd) {
 }
 
 function formatMmdd(datum) {
-  // Akzeptiert YYYY-MM-DD oder MM-DD, gibt DD.MM.YYYY zurück
+  // Akzeptiert YYYY-MM-DD oder MM-DD, gibt ein menschenlesbares Datum zurück
   if (!datum) return ''
   const parts = datum.split('-')
   if (parts.length === 3) {
@@ -490,7 +486,12 @@ async function doLogout() {
   await fetch('/admin/logout', { method: 'POST', headers: { 'Content-Type': 'application/json' } }).catch(() => {})
   document.getElementById('main-container').style.display = 'none'
   document.getElementById('login-overlay').classList.remove('hidden')
-  document.getElementById('login-key').value = ''
+  const emailInput = document.getElementById('login-email')
+  const passwordInput = document.getElementById('login-password')
+  const errorEl = document.getElementById('login-error')
+  if (emailInput) emailInput.value = ''
+  if (passwordInput) passwordInput.value = ''
+  if (errorEl) errorEl.style.display = 'none'
 }
 
 // ── Beim Laden: Cookie prüfen (Browser sendet ihn automatisch) ──
@@ -537,6 +538,7 @@ async function loadHealth() {
     const upMin  = Math.floor(data.uptime / 60)
     const uptime = upMin < 60 ? `${upMin} min` : `${Math.floor(upMin / 60)} h`
     const processLabel = data.process?.pid ? `PID ${data.process.pid}` : 'PID -'
+    const allStable = dbOk(data.wortprofilDb) && dbOk(data.belegeDb)
 
     container.innerHTML = [
       badge('Server', true, `${uptime} · ${data.memMb} MB`),
@@ -545,9 +547,16 @@ async function loadHealth() {
       `<span style="font-size:0.72rem;color:var(--muted)">${esc(data.env)}</span>`,
     ].join('')
 
+    const healthSummary = document.getElementById('health-summary')
+    if (healthSummary) {
+      healthSummary.textContent = allStable
+        ? 'Alle Systeme stabil und erreichbar.'
+        : 'Mindestens ein System braucht Aufmerksamkeit.'
+    }
+
     const metricHealth = document.getElementById('metric-health')
     const metricHealthSub = document.getElementById('metric-health-sub')
-    if (metricHealth) metricHealth.textContent = dbOk(data.wortprofilDb) && dbOk(data.belegeDb) ? 'Stabil' : 'Warnung'
+    if (metricHealth) metricHealth.textContent = allStable ? 'Stabil' : 'Warnung'
     if (metricHealthSub) metricHealthSub.textContent = `${uptime} · ${data.memMb} MB · ${processLabel}`
 
     const details = document.getElementById('system-health-details')
@@ -567,6 +576,8 @@ async function loadHealth() {
     }
   } catch (err) {
     container.innerHTML = `<span style="font-size:0.8rem;color:#991b1b">Health-Check fehlgeschlagen: ${esc(err.message)}</span>`
+    const healthSummary = document.getElementById('health-summary')
+    if (healthSummary) healthSummary.textContent = 'Systemstatus konnte nicht geladen werden.'
     const metricHealth = document.getElementById('metric-health')
     const metricHealthSub = document.getElementById('metric-health-sub')
     if (metricHealth) metricHealth.textContent = 'Fehler'
@@ -579,19 +590,11 @@ async function loadHealth() {
   }
 }
 
-function toggleMode(id) {
-  // Legacy – Accordion-Toggles existieren nicht mehr im neuen Design
-  const body = document.getElementById(`${id}-body`)
-  if (!body) return
-  const open = body.style.display !== 'none' && body.style.display !== ''
-  body.style.display = open ? 'none' : 'flex'
-}
-
 function toggleExtraFields(targetId) {
   const el = document.getElementById(targetId)
   if (!el) return
-  const open = el.style.display !== 'none' && el.style.display !== ''
-  el.style.display = open ? 'none' : 'flex'
+  const open = !el.classList.contains('is-hidden')
+  el.classList.toggle('is-hidden', open)
   const btn = document.querySelector(`[data-target="${targetId}"]`)
   if (btn) {
     btn.textContent = open ? '+ Notiz / Link' : '− Notiz / Link'
@@ -602,7 +605,7 @@ function toggleExtraFields(targetId) {
 function showExtraFields(targetId) {
   const el = document.getElementById(targetId)
   if (!el) return
-  el.style.display = 'flex'
+  el.classList.remove('is-hidden')
   const btn = document.querySelector(`[data-target="${targetId}"]`)
   if (btn) {
     btn.textContent = '− Notiz / Link'
@@ -613,7 +616,7 @@ function showExtraFields(targetId) {
 function hideAllExtraFields() {
   ;['koll-extras-1', 'koll-extras-2', 'koll-extras-3', 'wz-extras', 'zw-extras'].forEach((id) => {
     const el = document.getElementById(id)
-    if (el) el.style.display = 'none'
+    if (el) el.classList.add('is-hidden')
     const btn = document.querySelector(`[data-target="${id}"]`)
     if (btn) {
       btn.textContent = '+ Notiz / Link'
@@ -739,6 +742,7 @@ function prefillDate(isoDate) {
   const deleteBtn = document.getElementById('delete-btn')
   if (deleteBtn) deleteBtn.disabled = true
   document.getElementById('status').className = 'status'
+  document.getElementById('status').textContent = ''
   hideAllExtraFields()
   updateModeIndicators()
   if (typeof window.scrollTo === 'function') {
@@ -1935,7 +1939,7 @@ function renderStats(data, out) {
     return
   }
 
-  const todayStr   = getTodayMmdd()
+  const todayStr   = getTodayIso()
   const todayEntry = data.find(d => d.datum === todayStr) || null
   const last7      = data.slice(-7)
 
@@ -1964,7 +1968,7 @@ function renderStats(data, out) {
   if (statsChartTrend) { statsChartTrend.destroy(); statsChartTrend = null }
   if (statsChartDist)  { statsChartDist.destroy();  statsChartDist  = null }
 
-  const trendLabels = last7.map(d => { const [mm, dd] = d.datum.split('-'); return `${dd}.${mm}.` })
+  const trendLabels = last7.map((d) => formatIsoDate(d.datum))
   statsChartTrend = new Chart(document.getElementById('stats-trend-canvas').getContext('2d'), {
     type: 'line',
     data: {
@@ -2224,7 +2228,6 @@ function handleDocumentClick(event) {
   if (action === 'refresh-dashboard') return void refreshDashboard()
   if (action === 'load-health') return void loadHealth()
   if (action === 'dashboard-week') return void changeDashboardWeek(Number(target.dataset.delta || 0))
-  if (action === 'toggle-mode') return void toggleMode(target.dataset.mode)
   if (action === 'toggle-extra-fields') return void toggleExtraFields(target.dataset.target || '')
   if (action === 'preview-current-lemma') return void previewCurrentLemma()
   if (action === 'preview-current-day') return void previewCurrentDay()
