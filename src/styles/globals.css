@@ -57,6 +57,11 @@ body {
   flex-direction: column;
 }
 
+.app:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 4px;
+}
+
 .app--home {
   max-width: none;
   padding: 0;

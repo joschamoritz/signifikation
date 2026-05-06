@@ -26,7 +26,7 @@
         <label for="login-password">Passwort</label>
         <input type="password" id="login-password" placeholder="••••••••" data-enter-action="login">
       </div>
-      <div class="login-error" id="login-error">E-Mail oder Passwort falsch.</div>
+      <div class="login-error" id="login-error" role="alert" aria-live="assertive">E-Mail oder Passwort falsch.</div>
       <button id="login-btn" data-action="login">Anmelden</button>
     </div>
   </div>
@@ -138,7 +138,7 @@
                 <div>
                   <p class="section-label">Operations</p>
                   <h2>Systemstatus</h2>
-                  <p class="health-summary" id="health-summary">System-Status wird geladen …</p>
+                  <p class="health-summary" id="health-summary" aria-live="polite">System-Status wird geladen …</p>
                 </div>
                 <button class="icon-btn" data-action="load-health" aria-label="Systemstatus aktualisieren">↺</button>
               </div>
@@ -174,7 +174,7 @@
                 <div>
                   <p class="section-label">Aktivität</p>
                   <h2>Letzte Änderungen</h2>
-                  <p class="quick-actions-copy" id="dashboard-activity-hint">Audit-Log wird geladen …</p>
+                  <p class="quick-actions-copy" id="dashboard-activity-hint" aria-live="polite">Audit-Log wird geladen …</p>
                 </div>
               </div>
               <div id="dashboard-activity-list" class="activity-list">
@@ -286,7 +286,7 @@
                     <span>Analyse direkt an der Karte</span>
                     <button type="button" class="entry-filters-reset" data-action="analyze-entry-kollokation">Prüfen</button>
                   </div>
-                  <div id="entry-koll-analysis-output" class="analysis-output mode-analysis-inline-output"></div>
+                  <div id="entry-koll-analysis-output" class="analysis-output mode-analysis-inline-output" aria-live="polite"></div>
                 </div>
               </div>
 
@@ -326,7 +326,7 @@
                     <span>Analyse direkt an der Karte</span>
                     <button type="button" class="entry-filters-reset" data-action="analyze-entry-wort-zwilling">Prüfen</button>
                   </div>
-                  <div id="entry-wz-analysis-output" class="analysis-output mode-analysis-inline-output"></div>
+                  <div id="entry-wz-analysis-output" class="analysis-output mode-analysis-inline-output" aria-live="polite"></div>
                 </div>
               </div>
 
@@ -352,7 +352,7 @@
                     <span>Analyse direkt an der Karte</span>
                     <button type="button" class="entry-filters-reset" data-action="analyze-entry-zeitenwende">Prüfen</button>
                   </div>
-                  <div id="entry-zw-analysis-output" class="analysis-output mode-analysis-inline-output"></div>
+                  <div id="entry-zw-analysis-output" class="analysis-output mode-analysis-inline-output" aria-live="polite"></div>
                 </div>
               </div>
 
@@ -371,19 +371,19 @@
                     <button type="button" class="entry-filters-reset" data-action="generate-lueckenfueller">Generieren</button>
                   </div>
                 </div>
-                <p id="lf-generate-status" class="mode-generate-status"></p>
+                <p id="lf-generate-status" class="mode-generate-status" aria-live="polite"></p>
                 <div class="mode-analysis-inline">
                   <div class="mode-analysis-inline-head">
                     <span>Analyse direkt an der Karte</span>
                     <button type="button" class="entry-filters-reset" data-action="analyze-entry-lueckenfueller">Prüfen</button>
                   </div>
-                  <div id="entry-lf-analysis-output" class="analysis-output mode-analysis-inline-output"></div>
+                  <div id="entry-lf-analysis-output" class="analysis-output mode-analysis-inline-output" aria-live="polite"></div>
                 </div>
               </div>
             </div>
           </div>
 
-          <div id="status" class="status"></div>
+          <div id="status" class="status" role="status" aria-live="polite"></div>
 
           <div class="entry-form-actions">
             <div class="entry-action-copy">Beim Speichern werden die Inhalte neu geladen und der Kalendereintrag direkt aktualisiert.</div>
@@ -500,7 +500,7 @@
               <button data-action="analyze-kollokation">Analysieren</button>
               <button class="entry-filters-reset button-soft" data-action="reset-kollokation-analysis">Zurücksetzen</button>
             </div>
-            <div id="koll-output" class="analysis-output"></div>
+            <div id="koll-output" class="analysis-output" aria-live="polite"></div>
           </div>
 
           <div class="card analysis-card">
@@ -521,7 +521,7 @@
               <button data-action="analyze-wort-zwilling">Analysieren</button>
               <button class="entry-filters-reset button-soft" data-action="reset-wort-zwilling-analysis">Zurücksetzen</button>
             </div>
-            <div id="wz-ana-output" class="analysis-output"></div>
+            <div id="wz-ana-output" class="analysis-output" aria-live="polite"></div>
           </div>
 
           <div class="card analysis-card">
@@ -536,7 +536,7 @@
               <button data-action="analyze-zeitenwende">Analysieren</button>
               <button class="entry-filters-reset button-soft" data-action="reset-zeitenwende-analysis">Zurücksetzen</button>
             </div>
-            <div id="zw-ana-output" class="analysis-output"></div>
+            <div id="zw-ana-output" class="analysis-output" aria-live="polite"></div>
           </div>
 
           <div class="card analysis-card">
@@ -551,7 +551,7 @@
               <button data-action="analyze-lueckenfueller">Analysieren</button>
               <button class="entry-filters-reset button-soft" data-action="reset-lueckenfueller-analysis">Zurücksetzen</button>
             </div>
-            <div id="lf-ana-output" class="analysis-output"></div>
+            <div id="lf-ana-output" class="analysis-output" aria-live="polite"></div>
           </div>
         </div>
 
