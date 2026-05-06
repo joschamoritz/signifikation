@@ -43,7 +43,7 @@ body {
 
 .admin-sidebar {
   background: var(--surface);
-  border: 1px solid var(--border);
+  border: 1px solid rgba(212, 201, 176, 0.55);
   border-radius: var(--radius);
   padding: 18px 12px 14px;
   position: sticky;
@@ -107,14 +107,14 @@ body {
 }
 
 .nav-item:hover {
-  border-color: var(--border);
-  background: var(--surface2);
+  border-color: rgba(212, 201, 176, 0.45);
+  background: rgba(243, 241, 237, 0.75);
 }
 
 .nav-item.active {
-  border-color: #ead9aa;
-  background: #fdf8ee;
-  color: var(--accent-dk);
+  border-color: rgba(201, 168, 76, 0.5);
+  background: #f8f3e7;
+  color: var(--primary);
   font-weight: 600;
 }
 
@@ -138,7 +138,7 @@ body {
 
 .admin-topbar {
   background: var(--surface);
-  border: 1px solid var(--border);
+  border: 1px solid rgba(212, 201, 176, 0.55);
   border-radius: var(--radius);
   padding: 16px 18px;
   display: flex;
@@ -191,7 +191,7 @@ body {
   justify-content: center;
   background: transparent;
   color: var(--primary);
-  border: 1.5px solid var(--border);
+  border: 1px solid rgba(212, 201, 176, 0.75);
   border-radius: var(--radius);
   padding: 8px 12px;
   font-size: 0.8rem;
@@ -202,7 +202,7 @@ body {
 
 .ghost-btn:hover {
   border-color: var(--primary);
-  background: #fef2f2;
+  background: #fbf6f3;
 }
 
 .ghost-btn--small {
@@ -287,7 +287,7 @@ body {
 
 .metric-card {
   background: var(--surface);
-  border: 1px solid var(--border);
+  border: 1px solid rgba(212, 201, 176, 0.55);
   border-radius: var(--radius);
   padding: 14px 16px;
   display: flex;
@@ -360,6 +360,10 @@ body {
   background: #fbfaf8;
 }
 
+.dashboard-panel--primary {
+  background: #fcfbf8;
+}
+
 .dashboard-panel-head {
   display: flex;
   align-items: flex-start;
@@ -426,7 +430,7 @@ body {
 }
 
 .health-detail-item {
-  border: 1px solid var(--border-lt);
+  border: 1px solid rgba(232, 226, 216, 0.7);
   border-radius: var(--radius);
   padding: 10px 11px;
   background: var(--surface2);
@@ -449,7 +453,7 @@ body {
 .week-preview-grid {
   display: grid;
   grid-template-columns: repeat(7, minmax(0, 1fr));
-  gap: 10px;
+  gap: 8px;
 }
 
 .week-preview-range {
@@ -476,25 +480,31 @@ body {
 
 .week-preview-card {
   display: grid;
-  gap: 8px;
+  gap: 4px;
   align-content: start;
   text-align: left;
-  min-height: 198px;
-  border: 1px solid var(--border-lt);
+  min-height: 132px;
+  border: 1px solid rgba(212, 201, 176, 0.5);
   border-radius: var(--radius);
-  background: #f8f6f2;
-  padding: 12px;
+  background: #f7f4ef;
+  padding: 11px 10px;
 }
 
 .week-preview-card.has-entry:hover,
 .week-preview-card.is-empty:hover {
   border-color: var(--primary);
-  background: #fef2f2;
+  background: #fbf6f3;
 }
 
 .week-preview-card.is-today {
-  border-color: var(--accent);
+  border-color: rgba(201, 168, 76, 0.72);
   background: #fdf8ee;
+}
+
+.week-preview-card.is-selected {
+  border-color: rgba(155, 28, 28, 0.35);
+  background: #fffdfa;
+  box-shadow: inset 0 0 0 1px rgba(155, 28, 28, 0.08);
 }
 
 .week-preview-card strong {
@@ -509,6 +519,67 @@ body {
   color: var(--muted);
   letter-spacing: 0.08em;
   text-transform: uppercase;
+}
+
+.week-preview-hint {
+  font-size: 0.78rem;
+  color: var(--text);
+  line-height: 1.35;
+}
+
+.dashboard-day-detail {
+  margin-top: 12px;
+  padding-top: 14px;
+  border-top: 1px solid rgba(212, 201, 176, 0.45);
+  display: grid;
+  gap: 12px;
+}
+
+.dashboard-day-detail-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.dashboard-day-detail-label {
+  display: block;
+  margin-bottom: 3px;
+  font-size: 0.68rem;
+  color: var(--muted);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  font-weight: 700;
+}
+
+.dashboard-day-detail-head strong {
+  font-family: var(--font-serif);
+  font-size: 1.1rem;
+  color: var(--primary);
+}
+
+.dashboard-day-detail-meta {
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+
+.dashboard-day-group-list {
+  display: grid;
+  gap: 10px;
+}
+
+.dashboard-day-group {
+  display: grid;
+  gap: 6px;
+  padding: 10px 11px;
+  background: rgba(243, 241, 237, 0.65);
+  border-radius: var(--radius);
+}
+
+.dashboard-day-detail-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 
 .preview-empty {
@@ -541,6 +612,7 @@ body {
 
 .entry-editor-card {
   gap: 18px;
+  background: #fcfbf8;
 }
 
 .entry-editor-head {
@@ -606,12 +678,6 @@ body {
   letter-spacing: 0;
   text-transform: none;
   color: var(--muted);
-}
-
-.entry-secondary-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 10px;
 }
 
 .inline-field-grid {
@@ -1187,7 +1253,7 @@ header h1 {
 /* ── Cards ── */
 .card {
   background: var(--surface);
-  border: 1px solid var(--border);
+  border: 1px solid rgba(212, 201, 176, 0.5);
   border-radius: var(--radius);
   padding: 24px;
   display: flex;
@@ -1200,7 +1266,7 @@ header h1 {
   font-weight: 700;
   color: var(--text);
   padding-bottom: 10px;
-  border-bottom: 1px solid var(--border-lt);
+  border-bottom: 1px solid rgba(232, 226, 216, 0.75);
 }
 
 /* ── Labels & Inputs ── */
@@ -1478,8 +1544,8 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
   margin-top: 8px;
 }
 .mode-card {
-  background: var(--surface2);
-  border: 1.5px solid var(--border-lt);
+  background: rgba(243, 241, 237, 0.7);
+  border: 1px solid rgba(212, 201, 176, 0.45);
   border-radius: var(--radius);
   padding: 14px 16px;
   display: flex;
@@ -1487,13 +1553,9 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
   gap: 10px;
 }
 
-.mode-card--primary {
-  background: #f8f6f2;
-  border-color: var(--border);
-}
 .mode-card-header {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 8px;
 }
@@ -1804,10 +1866,6 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
     grid-column: span 1;
   }
 
-  .entry-secondary-grid {
-    grid-template-columns: 1fr;
-  }
-
   .dashboard-grid,
   .health-detail-grid,
   .stats-summary-cards,
@@ -1900,7 +1958,8 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
   .dashboard-grid,
   .health-detail-grid,
   .week-preview-grid,
-  .entry-meta-grid {
+  .entry-meta-grid,
+  .mode-grid {
     grid-template-columns: 1fr;
   }
 

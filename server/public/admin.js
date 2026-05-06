@@ -32,6 +32,7 @@ let usersLoaded = false
 let selectedCalendarDate = ''
 let selectedUserId = ''
 let dashboardWeekOffset = 0
+let selectedDashboardDate = ''
 const selectedEntryDates = new Set()
 let sessionRefreshTimer = null
 let usersSearchTimer = null
@@ -1161,6 +1162,57 @@ function updateCalendarDetails(datum) {
   `
 }
 
+function updateDashboardDayDetail(datum) {
+  const details = document.getElementById('dashboard-day-detail')
+  if (!details) return
+
+  if (!datum) {
+    details.innerHTML = '<div class="preview-empty">Wähle einen Tag, um die Inhalte im Detail zu sehen.</div>'
+    return
+  }
+
+  const entry = kalenderData?.[datum]
+  if (!entry) {
+    details.innerHTML = `
+      <div class="dashboard-day-detail-head">
+        <div>
+          <span class="dashboard-day-detail-label">Ausgewählter Tag</span>
+          <strong>${esc(formatIsoDate(datum))}</strong>
+        </div>
+        <span class="dashboard-day-detail-meta">Noch kein Eintrag</span>
+      </div>
+      <div class="preview-empty">Für diesen Tag liegt noch keine Planung vor.</div>
+    `
+    return
+  }
+
+  const groups = getModeGroups(entry)
+  const summary = groups.length
+    ? groups.map((group) => {
+      const items = (group.items || []).slice(0, 3).map((item) => `<span class="entry-chip">${esc(item)}</span>`).join('')
+      return `<div class="dashboard-day-group">
+        <span class="entry-chip ${modeGroupKeyToClass(group.key)}">${esc(group.label)}</span>
+        <div class="entry-chip-wrap">${items || '<span class="entry-empty">Keine Inhalte</span>'}</div>
+      </div>`
+    }).join('')
+    : '<div class="preview-empty">Keine Inhalte vorhanden.</div>'
+
+  details.innerHTML = `
+    <div class="dashboard-day-detail-head">
+      <div>
+        <span class="dashboard-day-detail-label">Aktiver Tag</span>
+        <strong>${esc(formatIsoDate(datum))}</strong>
+      </div>
+      <span class="dashboard-day-detail-meta">${groups.length} Modi aktiv</span>
+    </div>
+    <div class="dashboard-day-group-list">${summary}</div>
+    <div class="dashboard-day-detail-actions">
+      <button type="button" class="ghost-btn ghost-btn--small" data-action="edit-tag" data-value="${esc(datum)}">Tag bearbeiten</button>
+      <button type="button" class="ghost-btn ghost-btn--small" data-action="focus-calendar-date" data-value="${esc(datum)}">Im Kalender öffnen</button>
+    </div>
+  `
+}
+
 function editSelectedCalendarDate() {
   if (!selectedCalendarDate) return
   editTag(selectedCalendarDate)
@@ -1191,6 +1243,8 @@ function updateDashboardFromKalender() {
   if (!preview) return
   if (!entries.length) {
     preview.innerHTML = '<div class="preview-empty">Noch keine Kalendereinträge vorhanden.</div>'
+    selectedDashboardDate = ''
+    updateDashboardDayDetail('')
     return
   }
 
@@ -1218,19 +1272,27 @@ function updateDashboardFromKalender() {
     }
   })
 
+  const hasSelectedWeekDate = selectedDashboardDate && weekItems.some((item) => item.datum === selectedDashboardDate)
+  if (!hasSelectedWeekDate) {
+    const preferred = weekItems.find((item) => item.isToday && item.entry)
+      || weekItems.find((item) => item.entry)
+      || weekItems[0]
+    selectedDashboardDate = preferred?.datum || ''
+  }
+
   preview.innerHTML = weekItems.map((item) => {
     const groups = item.entry ? getModeGroups(item.entry) : []
-    const content = item.entry
-      ? renderModeGroupSummary(item.entry, { emptyText: 'Keine Inhalte' })
-      : '<span class="entry-empty">Kein Eintrag</span>'
-    const action = item.entry ? 'focus-calendar-date' : 'prefill-date'
-    return `<button type="button" class="week-preview-card ${item.isToday ? 'is-today' : ''} ${item.entry ? 'has-entry' : 'is-empty'}" data-action="${action}" data-value="${esc(item.datum)}">
+    const status = item.entry ? (groups.length ? `${groups.length} Modi` : 'Geplant') : 'Leer'
+    const hint = item.entry ? (groups[0]?.label || 'Eintrag vorhanden') : 'Kein Eintrag'
+    return `<button type="button" class="week-preview-card ${item.isToday ? 'is-today' : ''} ${item.datum === selectedDashboardDate ? 'is-selected' : ''} ${item.entry ? 'has-entry' : 'is-empty'}" data-action="select-dashboard-date" data-value="${esc(item.datum)}">
       <span class="week-preview-day">${esc(item.label)}</span>
       <strong>${esc(item.dayNumber)}</strong>
-      <span class="week-preview-meta">${item.entry ? `${groups.length} Modi` : 'Leer'}</span>
-      <div class="mode-summary-list">${content}</div>
+      <span class="week-preview-meta">${esc(status)}</span>
+      <span class="week-preview-hint">${esc(hint)}</span>
     </button>`
   }).join('')
+
+  updateDashboardDayDetail(selectedDashboardDate)
 }
 
 async function loadAuditLog() {
@@ -2242,6 +2304,11 @@ function handleDocumentClick(event) {
   if (action === 'refresh-dashboard') return void refreshDashboard()
   if (action === 'load-health') return void loadHealth()
   if (action === 'dashboard-week') return void changeDashboardWeek(Number(target.dataset.delta || 0))
+  if (action === 'select-dashboard-date') {
+    selectedDashboardDate = target.dataset.value || ''
+    updateDashboardFromKalender()
+    return
+  }
   if (action === 'toggle-extra-fields') return void toggleExtraFields(target.dataset.target || '')
   if (action === 'preview-current-lemma') return void previewCurrentLemma()
   if (action === 'preview-current-day') return void previewCurrentDay()
