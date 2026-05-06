@@ -107,14 +107,18 @@ function formatIsoDate(iso) {
 }
 
 function toIsoFromMMDD(mmdd) {
+  // Verwendet immer das aktuelle Jahr – kein Vorwärts-Raten, da Einträge jahreslos sind
   const [mm, dd] = String(mmdd || '').split('-').map(Number)
   if (!mm || !dd) return ''
-  const now = getCurrentDate()
-  const currentYear = now.getFullYear()
-  const candidate = new Date(currentYear, mm - 1, dd)
-  const today = new Date(currentYear, now.getMonth(), now.getDate())
-  const year = candidate.getTime() < today.getTime() ? currentYear + 1 : currentYear
+  const year = getCurrentDate().getFullYear()
   return `${year}-${String(mm).padStart(2, '0')}-${String(dd).padStart(2, '0')}`
+}
+
+function formatMmdd(mmdd) {
+  // Zeigt MM-DD als DD.MM. ohne Jahr an (Datensatz ist jahreslos)
+  const [mm, dd] = String(mmdd || '').split('-').map(Number)
+  if (!mm || !dd) return mmdd || ''
+  return `${String(dd).padStart(2, '0')}.${String(mm).padStart(2, '0')}.`
 }
 
 function parseCalendarDate(mmdd) {
@@ -981,7 +985,7 @@ function renderEntryTable() {
 
     return `<tr>
       <td class="entry-select-col"><input type="checkbox" ${checked} data-action="toggle-entry-selection" data-datum="${datum}"></td>
-      <td><strong>${esc(formatIsoDate(iso))}</strong><br><span class="entry-hint">${esc(datum)}</span></td>
+      <td><strong>${esc(formatMmdd(datum))}</strong><br><span class="entry-hint">${esc(datum)}</span></td>
       <td><div class="mode-summary-list">${summaryHtml}</div></td>
       <td><div class="entry-chip-wrap">${modeChips(entry)}</div></td>
       <td>
