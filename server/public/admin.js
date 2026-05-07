@@ -1636,10 +1636,10 @@ async function analyzeEntryKollokation() {
     out.innerHTML = results.map(({ lemma, data }) => {
       const badgeClass = data.usable ? 'is-success' : 'is-error'
       const badgeText = data.usable ? 'geeignet' : 'nicht geeignet'
-      const top3 = Array.isArray(data.top3) && data.top3.length
-        ? data.top3.map((item) => `<span class="entry-chip">${esc(item.wort)}</span>`).join('')
-        : '<span class="entry-empty">Keine Top-3-Daten</span>'
-      return `<article class="inline-analysis-card"><div class="inline-analysis-head"><strong>${esc(lemma)}</strong><span class="inline-analysis-badge ${badgeClass}">${esc(badgeText)}</span></div><div class="entry-chip-wrap">${top3}</div></article>`
+      const chips = Array.isArray(data.kollokatoren) && data.kollokatoren.length
+        ? data.kollokatoren.slice(0, 3).map((item) => `<span class="entry-chip">${esc(item.wort)}</span>`).join('')
+        : '<span class="entry-empty">Keine Kollokationsdaten</span>'
+      return `<article class="inline-analysis-card"><div class="inline-analysis-head"><strong>${esc(lemma)}</strong><span class="inline-analysis-badge ${badgeClass}">${esc(badgeText)}</span></div><div class="entry-chip-wrap">${chips}</div></article>`
     }).join('')
   } catch (err) {
     out.innerHTML = `<div class="status error">Analyse fehlgeschlagen: ${esc(err.message)}</div>`
@@ -1762,21 +1762,17 @@ function renderKollAnalyse(data, out) {
 
   let html = `<div style="margin:12px 0 16px">${badge}</div>`
 
-  // Top 3 gesamt – primäre Anzeige (entspricht Spielmodus)
-  if (data.top3?.length) {
+  // Kollokationen – sortierte Gesamtliste (alle Relationen zusammengeführt)
+  if (data.kollokatoren?.length) {
     html += `<div style="margin-bottom:16px">`
-    html += `<strong style="font-size:0.82rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)">Top 3 Kollokationen gesamt</strong>`
-    html += `<div style="display:flex;gap:10px;margin-top:8px;flex-wrap:wrap">`
-    data.top3.forEach((it, i) => {
-      html += `<div style="background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:8px 14px;font-size:0.9rem;min-width:80px;text-align:center">`
-      html += `<div style="font-size:0.72rem;color:var(--muted);margin-bottom:2px">Rang ${i + 1}</div>`
-      html += `<strong>${esc(it.wort)}</strong>`
-      html += `<div style="font-size:0.75rem;color:var(--muted);margin-top:2px">logDice ${it.logDice}</div>`
-      html += `</div>`
-    })
-    html += `</div></div>`
+    html += `<strong style="font-size:0.82rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)">Top ${data.kollokatoren.length} Kollokationen</strong>`
+    html += `<ol style="padding-left:20px;margin-top:8px;display:flex;flex-direction:column;gap:4px;font-size:0.88rem">`
+    for (const it of data.kollokatoren) {
+      html += `<li>${esc(it.wort)} <span style="color:var(--muted);font-size:0.8em">logDice ${it.logDice}</span></li>`
+    }
+    html += `</ol></div>`
   } else {
-    html += `<div style="margin-bottom:16px;color:var(--muted);font-size:0.85rem">Keine Top-3-Kollokationen ermittelt.</div>`
+    html += `<div style="margin-bottom:16px;color:var(--muted);font-size:0.85rem">Keine Kollokationen ermittelt.</div>`
   }
 
   // Bonusfrage
@@ -1784,27 +1780,6 @@ function renderKollAnalyse(data, out) {
     html += `<div style="margin-bottom:14px;padding:10px 14px;background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;font-size:0.82rem">`
     html += `<strong>Bonusfrage (${esc(data.bonus.label)}):</strong> ${esc(data.bonus.question)}<br>`
     html += `<span style="color:var(--muted)">Antwort: <strong>${esc(data.bonus.correct)}</strong> · Optionen: ${data.bonus.options.map(o => esc(o)).join(', ')}</span></div>`
-  }
-
-  // Relationen-Detail – eingeklappt (für Diagnose)
-  if (data.runden?.length) {
-    html += `<details style="margin-top:4px"><summary style="cursor:pointer;font-size:0.8rem;color:var(--muted);padding:4px 0">Relationen-Detail (${data.runden.length} Relationen)</summary>`
-    html += `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;margin-top:10px">`
-    for (const runde of data.runden) {
-      const ok = runde.usable
-      html += `<div style="border:1.5px solid ${ok ? '#bbf7d0' : '#fca5a5'};border-radius:8px;padding:10px">`
-      html += `<div style="font-weight:600;font-size:0.82rem;margin-bottom:6px">${esc(runde.label)} <span style="color:var(--muted);font-weight:400;font-size:0.75rem">(${runde.count || 0})</span></div>`
-      if (runde.error) { html += `<div style="color:#991b1b;font-size:0.78rem">${esc(runde.error)}</div>` }
-      else if (runde.items?.length) {
-        html += `<ol style="padding-left:16px;font-size:0.8rem;display:flex;flex-direction:column;gap:3px">`
-        for (const it of runde.items) {
-          html += `<li>${esc(it.wort)} <span style="color:var(--muted);font-size:0.75em">${it.logDice}</span></li>`
-        }
-        html += `</ol>`
-      } else { html += `<div style="color:var(--muted);font-size:0.8rem">Keine Ergebnisse</div>` }
-      html += `</div>`
-    }
-    html += `</div></details>`
   }
 
   out.innerHTML = html

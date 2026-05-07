@@ -68,32 +68,29 @@ function blankCollocate(satz, depLemma) {
 }
 
 /**
- * Wählt 3 Distraktoren je Rundenindex.
- * Schwierigkeit steigt dadurch, dass stärkere Kollokatoren (die vorher richtig waren)
- * in späteren Runden als Distraktoren eingesetzt werden.
+ * Wählt 3 Distraktoren für eine Runde.
+ * usedOptions enthält alle bisher gezeigten Optionen (richtig + falsch) –
+ * es werden ausschließlich frische, noch nie gezeigte Distraktoren gewählt,
+ * damit Spieler aus vorherigen Runden keine Rückschlüsse ziehen können.
  */
-function pickDistractors(roundIdx, target, pool, choiceTargets) {
-  const usedLemmas = new Set(choiceTargets.map(t => t.lemma))
+function pickDistractors(roundIdx, target, pool, choiceTargets, usedOptions) {
   const notTarget  = pool.filter(c => c.lemma !== target.lemma)
-  const weak       = notTarget.filter(c => pool.indexOf(c) >= 5)
-  const strong     = notTarget.filter(c => pool.indexOf(c) < 4 && !usedLemmas.has(c.lemma))
-  const prevRight  = choiceTargets.filter(t => t.lemma !== target.lemma) // vorherige richtige Antworten
+  const fresh      = notTarget.filter(c => !usedOptions.has(c.lemma))
+  const weakFresh  = fresh.filter(c => pool.indexOf(c) >= 5)
 
   function padTo3(preferred) {
     const result = [...preferred]
     const seen   = new Set(result.map(r => r.lemma))
-    for (const c of [...notTarget]) {
+    // Auffüllen: zuerst frische, dann beliebige verbleibende
+    for (const c of [...fresh, ...notTarget]) {
       if (result.length >= 3) break
       if (!seen.has(c.lemma)) { result.push(c); seen.add(c.lemma) }
     }
     return result.slice(0, 3)
   }
 
-  if (roundIdx === 0) return padTo3(weak.slice(0, 3))
-  if (roundIdx === 1) return padTo3(weak.slice(1, 4))
-  if (roundIdx === 2) return padTo3([...prevRight.slice(0, 2), ...strong.slice(0, 1)])
-  // roundIdx === 3: alle vorherigen richtigen Antworten sind Distraktoren
-  return padTo3(prevRight.slice(0, 3))
+  // Alle Runden: ausschließlich frische Distraktoren – keine vorherigen Optionen recyceln
+  return padTo3(weakFresh.slice(0, 3))
 }
 
 /**
@@ -156,14 +153,16 @@ export async function buildLueckenfueller(lemma, pos) {
   const rounds = []
 
   // ── Runden 1–4: Choice ────────────────────────────────
-  const choiceCount  = Math.min(4, targets.length - 2)
+  const choiceCount   = Math.min(4, targets.length - 2)
   const choiceTargets = targets.slice(0, choiceCount)
+  // Alle bisher als Option gezeigten Lemmas – verhindert Distraktoren-Wiederholung
+  const usedOptions = new Set()
 
   for (let i = 0; i < choiceTargets.length; i++) {
     const target = choiceTargets[i]
-    const distractors = pickDistractors(i, target, pool, choiceTargets.slice(0, i))
+    const distractors = pickDistractors(i, target, pool, choiceTargets.slice(0, i), usedOptions)
 
-    // Fehlende Distraktoren auffüllen
+    // Fehlende Distraktoren auffüllen (Fallback)
     const distSet = new Set([target.lemma, ...distractors.map(d => d.lemma)])
     while (distractors.length < 3) {
       const extra = pool.find(c => !distSet.has(c.lemma))
@@ -171,6 +170,10 @@ export async function buildLueckenfueller(lemma, pos) {
       distractors.push(extra)
       distSet.add(extra.lemma)
     }
+
+    // Alle gezeigten Optionen dieser Runde für Folgerunden merken
+    usedOptions.add(target.lemma)
+    for (const d of distractors) usedOptions.add(d.lemma)
 
     rounds.push({
       type:          'choice',

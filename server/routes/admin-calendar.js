@@ -52,42 +52,34 @@ export function createAdminCalendarRouter({
       fetchBonusQuestion(lemma, pos).catch(() => null),
     ])
 
-    const runden = rounds.map((round, i) => {
-      const r = roundResults[i]
-      if (r.status === 'rejected') return { ...round, items: [], count: 0, usable: false, error: r.reason.message }
-      const items = r.value.filter((it) => !it.lemma.includes(' ') && it.lemma.length > 1)
-      return {
-        ...round,
-        items: items.slice(0, 10).map((it) => ({ wort: it.lemma, logDice: parseFloat(parseFloat(it.logDice).toFixed(2)) })),
-        count: items.length,
-        usable: items.length >= 5,
+    // Alle Relationen zusammenführen, deduplizieren, nach logDice sortieren
+    const allRawItems = roundResults.flatMap((r) =>
+      r.status === 'fulfilled'
+        ? r.value.filter((it) => !it.lemma.includes(' ') && it.lemma.length > 1)
+        : []
+    )
+    const seen = new Map()
+    for (const it of allRawItems) {
+      const key = it.lemma.toLowerCase()
+      if (!seen.has(key) || parseFloat(it.logDice) > parseFloat(seen.get(key).logDice)) {
+        seen.set(key, it)
       }
-    })
+    }
+    const kollokatoren = [...seen.values()]
+      .sort((a, b) => parseFloat(b.logDice) - parseFloat(a.logDice))
+      .slice(0, 20)
+      .map((it) => ({ wort: it.lemma, logDice: parseFloat(parseFloat(it.logDice).toFixed(2)) }))
 
-    const allItems = runden.flatMap((r) => r.items)
-    const seen = new Set()
-    const top3 = allItems
-      .sort((a, b) => b.logDice - a.logDice)
-      .filter((it) => {
-        if (seen.has(it.wort)) return false
-        seen.add(it.wort)
-        return true
-      })
-      .slice(0, 3)
-
-    const usableRounds = runden.filter((r) => !r.error)
-    const usable = usableRounds.length > 0 && usableRounds.every((r) => r.usable)
+    const usable = kollokatoren.length >= 5
 
     return {
       lemma,
       pos,
-      runden,
-      top3,
+      kollokatoren,
       bonus: bonusQ,
       usable,
-      score: top3.reduce((sum, item) => sum + (Number(item.logDice) || 0), 0),
-      top3Count: top3.length,
-      usableRoundCount: usableRounds.filter((r) => r.usable).length,
+      score: kollokatoren.slice(0, 3).reduce((sum, it) => sum + it.logDice, 0),
+      kollCount: kollokatoren.length,
     }
   }
 
@@ -294,19 +286,18 @@ export function createAdminCalendarRouter({
     try {
       if (pos) {
         const result = await analyzeKollokationForPos(lemma, pos)
-        return res.json({ lemma: result.lemma, pos: result.pos, runden: result.runden, top3: result.top3, bonus: result.bonus, usable: result.usable })
+        return res.json({ lemma: result.lemma, pos: result.pos, kollokatoren: result.kollokatoren, bonus: result.bonus, usable: result.usable })
       }
 
       const posCandidates = ['Substantiv', 'Verb', 'Adjektiv']
       const analyses = await Promise.all(posCandidates.map((candidate) => analyzeKollokationForPos(lemma, candidate)))
       analyses.sort((a, b) => {
-        if (b.top3Count !== a.top3Count) return b.top3Count - a.top3Count
-        if (b.usableRoundCount !== a.usableRoundCount) return b.usableRoundCount - a.usableRoundCount
+        if (b.kollCount !== a.kollCount) return b.kollCount - a.kollCount
         return b.score - a.score
       })
 
       const best = analyses[0]
-      res.json({ lemma: best.lemma, pos: best.pos, runden: best.runden, top3: best.top3, bonus: best.bonus, usable: best.usable })
+      res.json({ lemma: best.lemma, pos: best.pos, kollokatoren: best.kollokatoren, bonus: best.bonus, usable: best.usable })
     } catch (err) {
       adminError(res, err)
     }

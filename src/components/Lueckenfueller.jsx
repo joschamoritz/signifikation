@@ -25,7 +25,7 @@ function DoubleSatz({ sentence, assignedWord, isActive, submitted }) {
   const parts = sentence.satzMitLuecke.split('_____')
   if (parts.length < 2) return <span>{sentence.satzMitLuecke}</span>
 
-  const correct = submitted && assignedWord === sentence.kollokator
+  const correct = submitted && (assignedWord === sentence.kollokator || assignedWord === sentence.token)
 
   return (
     <>
@@ -36,7 +36,7 @@ function DoubleSatz({ sentence, assignedWord, isActive, submitted }) {
         assignedWord && !submitted ? 'lf-blank--filled' : '',
         submitted ? (correct ? 'lf-blank--correct' : 'lf-blank--wrong') : '',
       ].filter(Boolean).join(' ')}>
-        {assignedWord || ''}
+        {submitted ? (sentence.token || sentence.kollokator) : (assignedWord || '')}
       </span>
       {parts[1]}
     </>
@@ -161,7 +161,7 @@ function ChoiceRound({ round, roundIdx, totalRounds, onScore, onBack }) {
           <SatzMitLuecke
             satzMitLuecke={round.satzMitLuecke}
             submitted={submitted}
-            kollokator={round.kollokator}
+            kollokator={round.token || round.kollokator}
             isCorrect={isCorrect}
           />
         </p>
