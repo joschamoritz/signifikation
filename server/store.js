@@ -98,6 +98,11 @@ export const stmts = {
     FROM stats
     GROUP BY datum, spiel
   `),
+
+  getStatsByDatumSpiel: db.prepare(`
+    SELECT SUM(plays) AS plays, json_group_array(dist) AS dist_list
+    FROM stats WHERE datum = ? AND spiel = ?
+  `),
 }
 
 const _replaceAllAdminDataTx = db.transaction(({ lemmata, kalender, wortzwilling, zeitenwende, statsRows }) => {
@@ -257,6 +262,7 @@ export function loadMutableDailyContentMaps() {
   }
 }
 export function recordStat(args) { return _statsStore.recordStat(args) }
+export function getPercentile(datum, spiel, score, max) { return _statsStore.getPercentile(datum, spiel, score, max) }
 export function getStatsWindow(days) { return _statsStore.getStatsWindow(days) }
 export function getStatsTimeline(days) { return _statsStore.getStatsTimeline(days) }
 

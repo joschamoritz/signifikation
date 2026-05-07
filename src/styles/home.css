@@ -111,6 +111,14 @@
   color: var(--muted);
   text-align: center;
 }
+.dc-percentile {
+  font-family: var(--font-sans);
+  font-size: 0.62rem;
+  font-style: italic;
+  color: var(--muted);
+  text-align: center;
+  opacity: 0.8;
+}
 .dc-footer {
   text-align: center;
   display: flex;

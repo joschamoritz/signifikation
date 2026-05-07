@@ -36,6 +36,14 @@ export const statsSchema = z.object({
   max:   z.number().int().positive('max muss > 0 sein').max(100),
 })
 
+/** GET /api/v1/percentile (query) */
+export const percentileQuerySchema = z.object({
+  datum: DATUM_ISO,
+  game:  z.enum(VALID_GAMES),
+  score: z.coerce.number().int().min(0).max(100),
+  max:   z.coerce.number().int().positive().max(100),
+})
+
 
 const WORT_REGEX = /^[a-zA-ZäöüÄÖÜß\-]+$/
 

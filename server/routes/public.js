@@ -3,11 +3,11 @@ import { join, normalize, sep } from 'path'
 import { readFileSync } from 'fs'
 import { fetchBelege, belegeVerfuegbar } from '../belege.js'
 import { fetchWiktionary } from '../wiktionary.js'
-import { loadKalenderEntry, loadWortZwillingEntry, loadZeitenwendeEntry, recordStat, getLemmataIndex, cacheGet, cacheSet, DATA } from '../store.js'
+import { loadKalenderEntry, loadWortZwillingEntry, loadZeitenwendeEntry, recordStat, getPercentile, getLemmataIndex, cacheGet, cacheSet, DATA } from '../store.js'
 import { belegeLimiter, statsLimiter } from '../middleware/rateLimiter.js'
 import { auth } from '../auth/index.js'
 import { serverError } from '../middleware/auth.js'
-import { validate, statsSchema, belegeQuerySchema, archivQuerySchema, qQuerySchema, bonusQuerySchema, datumQuerySchema } from '../middleware/validate.js'
+import { validate, statsSchema, percentileQuerySchema, belegeQuerySchema, archivQuerySchema, qQuerySchema, bonusQuerySchema, datumQuerySchema } from '../middleware/validate.js'
 import logger from '../logger.js'
 import { fromNodeHeaders } from 'better-auth/node'
 
@@ -135,6 +135,14 @@ router.get('/api/v1/belege', belegeLimiter, validate(belegeQuerySchema, 'query')
 
 /** GET /api/v1/stats – nicht unterstützt (nur POST) */
 router.get('/api/v1/stats', (_req, res) => res.status(405).json({ error: 'Method Not Allowed' }))
+
+/** GET /api/v1/percentile – Community-Percentile für einen Spielmodus */
+router.get('/api/v1/percentile', statsLimiter, validate(percentileQuerySchema, 'query'), (req, res) => {
+  const { datum, game, score, max } = req.query
+  const result = getPercentile(datum, game, score, max)
+  if (!result) return res.json({ available: false })
+  res.json({ available: true, percentile: result.percentile, plays: result.plays })
+})
 
 
 /** POST /api/stats – Spielstatistik erfassen (mit Session optional user-gebunden) */

@@ -1,15 +1,18 @@
-import { useState } from 'react'
-import { WEEKDAYS, MONTHS, computeStreak, buildShareText } from '../utils/homeUtils'
+import { useState, useEffect } from 'react'
+import { WEEKDAYS, MONTHS, computeStreak, buildShareText, localDateStr } from '../utils/homeUtils'
 import { getMedal } from '../utils/gameLogic'
 import { shareAsImage } from '../utils/shareImage'
+import { API } from '../config.js'
 
 export default function DayComplete({ onClose, playedGames = [], wzPlayed = null, zwPlayed = null, lfPlayed = null }) {
-  const [closing,  setClosing]  = useState(false)
-  const [copied,   setCopied]   = useState(false)
-  const [sharing,  setSharing]  = useState(false)
-  const [imgState, setImgState] = useState(null) // 'shared' | 'downloaded' | null
+  const [closing,    setClosing]    = useState(false)
+  const [copied,     setCopied]     = useState(false)
+  const [sharing,    setSharing]    = useState(false)
+  const [imgState,   setImgState]   = useState(null) // 'shared' | 'downloaded' | null
+  const [percentiles, setPercentiles] = useState({})
 
   const today   = new Date()
+  const datum   = localDateStr(today)
   const weekday = WEEKDAYS[today.getDay()]
   const date    = `${today.getDate()}. ${MONTHS[today.getMonth()]} ${today.getFullYear()}`
   const streak  = computeStreak()
@@ -17,6 +20,24 @@ export default function DayComplete({ onClose, playedGames = [], wzPlayed = null
   const kollTotal = playedGames.reduce((s, g) => s + g.total, 0)
   const kollMax   = playedGames.length * 10
   const kollMedal = getMedal(kollTotal, kollMax)
+
+  useEffect(() => {
+    const queries = []
+    if (playedGames.length > 0) queries.push({ game: 'kollokationen', score: kollTotal, max: kollMax })
+    if (wzPlayed)  queries.push({ game: 'wortzwilling',  score: wzPlayed.total,  max: 10 })
+    if (zwPlayed)  queries.push({ game: 'zeitenwende',   score: zwPlayed.total,  max: 10 })
+    if (lfPlayed)  queries.push({ game: 'lueckenfueller', score: lfPlayed.total, max: 10 })
+
+    Promise.all(queries.map(({ game, score, max }) =>
+      fetch(`${API}/percentile?datum=${datum}&game=${game}&score=${score}&max=${max}`)
+        .then(r => r.ok ? r.json() : null)
+        .then(data => [game, data?.available ? data.percentile : null])
+        .catch(() => [game, null])
+    )).then(results => {
+      setPercentiles(Object.fromEntries(results))
+    })
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   function close() {
     setClosing(true)
@@ -73,23 +94,35 @@ export default function DayComplete({ onClose, playedGames = [], wzPlayed = null
           <div className="dc-medal-item">
             <span className="dc-medal-emoji" aria-label={kollMedal.label}>{kollMedal.emoji}</span>
             <span className="dc-medal-label">Kollokationen</span>
+            {percentiles.kollokationen != null && (
+              <span className="dc-percentile">besser als {percentiles.kollokationen} %</span>
+            )}
           </div>
           {wzPlayed && (
             <div className="dc-medal-item">
               <span className="dc-medal-emoji" aria-label={wzPlayed.medal?.label}>{wzPlayed.medal?.emoji}</span>
               <span className="dc-medal-label">Wort-Zwilling</span>
+              {percentiles.wortzwilling != null && (
+                <span className="dc-percentile">besser als {percentiles.wortzwilling} %</span>
+              )}
             </div>
           )}
           {zwPlayed && (
             <div className="dc-medal-item">
               <span className="dc-medal-emoji" aria-label={zwPlayed.medal?.label}>{zwPlayed.medal?.emoji}</span>
               <span className="dc-medal-label">Zeitenwende</span>
+              {percentiles.zeitenwende != null && (
+                <span className="dc-percentile">besser als {percentiles.zeitenwende} %</span>
+              )}
             </div>
           )}
           {lfPlayed && (
             <div className="dc-medal-item">
               <span className="dc-medal-emoji" aria-label={lfPlayed.medal?.label}>{lfPlayed.medal?.emoji}</span>
               <span className="dc-medal-label">Lückenfüller</span>
+              {percentiles.lueckenfueller != null && (
+                <span className="dc-percentile">besser als {percentiles.lueckenfueller} %</span>
+              )}
             </div>
           )}
         </div>

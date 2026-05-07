@@ -258,6 +258,23 @@ export function createStatsStore({ db, stmts, loadReadOnly }) {
     return buildStatsTimeline(stats, days)
   }
 
+  function getPercentile(datum, spiel, score, max) {
+    const row = stmts.getStatsByDatumSpiel.get(datum, spiel)
+    const totalPlays = Number(row?.plays || 0)
+    if (totalPlays < 10) return null
+
+    const distEntries = parseJson(row.dist_list || '[]', [])
+    const merged = createEmptyDistribution()
+    for (const d of distEntries) {
+      const dist = normalizeDistribution(d)
+      for (let i = 0; i < 11; i += 1) merged[i] += Number(dist[i] || 0)
+    }
+
+    const bucket = getNormalizedScoreBucket(score, max)
+    const below = merged.slice(0, bucket).reduce((s, v) => s + v, 0)
+    return { percentile: Math.round((below / totalPlays) * 100), plays: totalPlays }
+  }
+
   return {
     loadStats,
     loadStatsRows,
@@ -266,6 +283,7 @@ export function createStatsStore({ db, stmts, loadReadOnly }) {
     recordStat,
     getStatsWindow,
     getStatsTimeline,
+    getPercentile,
     invalidateWindowCache() {
       invalidateStatsWindowCache(statsWindowCache)
     },
