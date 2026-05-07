@@ -2607,9 +2607,11 @@ function openJsonImportDialog() {
   if (!dialog) return
   document.getElementById('json-import-textarea').value = ''
   document.getElementById('json-import-error').textContent = ''
-  document.getElementById('json-import-day-wrap').style.display = 'none'
-  document.getElementById('json-import-day').innerHTML = ''
-  _jsonImportArray = null
+  // Keep array + dropdown if already loaded — user can immediately pick next day
+  if (!_jsonImportArray) {
+    document.getElementById('json-import-day-wrap').style.display = 'none'
+    document.getElementById('json-import-day').innerHTML = ''
+  }
   dialog.showModal()
 }
 
@@ -2643,31 +2645,53 @@ function onJsonImportInput() {
   }
 }
 
+function _populateJsonImportSelect(arr) {
+  const wrap = document.getElementById('json-import-day-wrap')
+  const selectEl = document.getElementById('json-import-day')
+  const wochentage = ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa']
+  selectEl.innerHTML = arr.map((entry, i) => {
+    let label = `Eintrag ${i + 1}`
+    if (entry.datum) {
+      const d = new Date(entry.datum)
+      const wt = isNaN(d) ? '' : wochentage[d.getUTCDay()] + ', '
+      label = wt + entry.datum + (entry.thema ? ' – ' + entry.thema : '')
+    }
+    return `<option value="${i}">${label}</option>`
+  }).join('')
+  wrap.style.display = 'block'
+}
+
 function runJsonImport() {
   const raw = document.getElementById('json-import-textarea').value.trim()
   const errEl = document.getElementById('json-import-error')
   errEl.textContent = ''
-
-  // Strip optional "--- ADMIN-JSON-EXPORT ---" header and trailing comma (copy-paste artifact from JSON arrays)
-  let jsonText = raw.replace(/^---[^\n]*---\s*/m, '').trim().replace(/,\s*$/, '')
   let data
 
-  if (_jsonImportArray) {
-    // Array was pasted — use selected index from dropdown
+  if (raw) {
+    // User pasted something — parse fresh (overrides any previous array)
+    const jsonText = raw.replace(/^---[^\n]*---\s*/m, '').trim().replace(/,\s*$/, '')
+    let parsed
+    try { parsed = JSON.parse(jsonText) } catch {
+      errEl.textContent = 'Ungültiges JSON – bitte nochmal prüfen.'
+      return
+    }
+    if (Array.isArray(parsed)) {
+      _jsonImportArray = parsed
+      _populateJsonImportSelect(parsed)
+      data = parsed[0]  // default to first entry
+    } else {
+      _jsonImportArray = null
+      document.getElementById('json-import-day-wrap').style.display = 'none'
+      data = parsed
+    }
+  } else if (_jsonImportArray) {
+    // Textarea is empty but array still loaded — use dropdown selection
     const idx = parseInt(document.getElementById('json-import-day').value, 10) || 0
     data = _jsonImportArray[idx]
     if (!data) { errEl.textContent = 'Kein gültiger Eintrag im Array.'; return }
   } else {
-    try {
-      data = JSON.parse(jsonText)
-    } catch {
-      errEl.textContent = 'Ungültiges JSON – bitte nochmal prüfen.'
-      return
-    }
-    if (Array.isArray(data)) {
-      errEl.textContent = 'Array erkannt, aber kein Tag ausgewählt. Bitte Textarea erneut eintippen.'
-      return
-    }
+    errEl.textContent = 'Kein JSON eingefügt.'
+    return
   }
 
   if (!Array.isArray(data.woerter) || data.woerter.length !== 3) {
@@ -2715,8 +2739,18 @@ function runJsonImport() {
   clearInlineAnalysisOutputs()
   updateEntryDirtyState()
 
+  const importLabel = data.datum ? ` (${data.datum})` : ''
   document.getElementById('json-import-dialog').close()
-  setStatus('JSON importiert – Formular befüllt. Bitte prüfen und speichern.', 'loading')
+  setStatus(`JSON importiert${importLabel} – Formular befüllt. Bitte prüfen und speichern.`, 'loading')
+
+  // Auto-advance dropdown to next day for quick consecutive imports
+  if (_jsonImportArray) {
+    const selectEl = document.getElementById('json-import-day')
+    const currentIdx = parseInt(selectEl.value, 10) || 0
+    if (currentIdx + 1 < _jsonImportArray.length) {
+      selectEl.value = String(currentIdx + 1)
+    }
+  }
 }
 
 function handleDocumentClick(event) {
