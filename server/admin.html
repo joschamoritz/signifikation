@@ -196,6 +196,7 @@
             <div class="entry-editor-status">
               <span id="entry-dirty-indicator" class="entry-dirty-indicator">Alles gespeichert</span>
               <button type="button" id="entry-reset-btn" class="entry-filters-reset" data-action="reset-entry-form" disabled>Entwurf zurücksetzen</button>
+              <button type="button" class="entry-filters-reset" data-action="open-json-import">JSON importieren</button>
             </div>
           </div>
 
@@ -811,5 +812,21 @@
 </div>
 
 <script src="/admin-assets/admin.js"></script>
+
+<dialog id="json-import-dialog" class="json-import-dialog">
+  <div class="json-import-dialog-head">
+    <h3>JSON importieren</h3>
+    <button type="button" class="text-btn" data-action="close-json-import" aria-label="Schließen">✕</button>
+  </div>
+  <div class="json-import-dialog-body">
+    <p>Füge den <strong>ADMIN-JSON-EXPORT</strong> aus der Claude-Session ein. Das Formular wird automatisch befüllt.</p>
+    <textarea id="json-import-textarea" class="json-import-textarea" placeholder="{ &quot;datum&quot;: &quot;2026-05-12&quot;, &quot;woerter&quot;: [...], ... }"></textarea>
+    <p id="json-import-error" class="json-import-error" role="alert"></p>
+    <div class="json-import-actions">
+      <button type="button" class="entry-filters-reset" data-action="close-json-import">Abbrechen</button>
+      <button type="button" class="primary-btn" data-action="confirm-json-import">Formular befüllen</button>
+    </div>
+  </div>
+</dialog>
 </body>
 </html>

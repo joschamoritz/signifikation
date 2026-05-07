@@ -2600,6 +2600,77 @@ async function deleteFreeDay(date) {
   } catch { /* ignore */ }
 }
 
+function openJsonImportDialog() {
+  const dialog = document.getElementById('json-import-dialog')
+  if (!dialog) return
+  document.getElementById('json-import-textarea').value = ''
+  document.getElementById('json-import-error').textContent = ''
+  dialog.showModal()
+}
+
+function runJsonImport() {
+  const raw = document.getElementById('json-import-textarea').value.trim()
+  const errEl = document.getElementById('json-import-error')
+  errEl.textContent = ''
+
+  const jsonText = raw.replace(/^---[^\n]*---\s*/m, '').trim()
+  let data
+  try {
+    data = JSON.parse(jsonText)
+  } catch {
+    errEl.textContent = 'Ungültiges JSON – bitte nochmal prüfen.'
+    return
+  }
+
+  if (!Array.isArray(data.woerter) || data.woerter.length !== 3) {
+    errEl.textContent = 'Pflichtfeld „woerter" fehlt oder enthält nicht genau 3 Einträge.'
+    return
+  }
+
+  const hasContent = document.getElementById('w1').value.trim() !== ''
+  if (hasContent && !window.confirm('Das Formular enthält bereits Daten. Beim Import werden alle Felder überschrieben. Fortfahren?')) return
+
+  document.getElementById('datum').value        = data.datum || ''
+  document.getElementById('w1').value           = data.woerter[0] || ''
+  document.getElementById('w2').value           = data.woerter[1] || ''
+  document.getElementById('w3').value           = data.woerter[2] || ''
+  document.getElementById('p1').value           = data.positionen?.[0] || 'Substantiv'
+  document.getElementById('p2').value           = data.positionen?.[1] || 'Verb'
+  document.getElementById('p3').value           = data.positionen?.[2] || 'Adjektiv'
+  document.getElementById('n1').value           = data.notizen?.[0] || ''
+  document.getElementById('n2').value           = data.notizen?.[1] || ''
+  document.getElementById('n3').value           = data.notizen?.[2] || ''
+  document.getElementById('l1').value           = data.links?.[0] || ''
+  document.getElementById('l2').value           = data.links?.[1] || ''
+  document.getElementById('l3').value           = data.links?.[2] || ''
+  document.getElementById('thema').value        = data.thema || ''
+  document.getElementById('thema-kurz').value   = data.thema_kurz || ''
+  document.getElementById('thema-quelle').value = data.thema_quelle || ''
+  document.getElementById('wza').value          = data.zwilling_paar?.[0] || ''
+  document.getElementById('wzb').value          = data.zwilling_paar?.[1] || ''
+  document.getElementById('wzpos').value        = data.zwilling_pos || 'Substantiv'
+  document.getElementById('wz-notiz').value     = data.zwilling_notiz || ''
+  document.getElementById('wz-link').value      = data.zwilling_link || ''
+  document.getElementById('zw-lemma').value     = data.zeitenwende_lemma || ''
+  document.getElementById('zw-notiz').value     = data.zeitenwende_notiz || ''
+  document.getElementById('zw-link').value      = data.zeitenwende_link || ''
+  document.getElementById('lf-id').value        = data.lueckenfueller_id || ''
+
+  hideAllExtraFields()
+  if (data.notizen?.[0] || data.links?.[0]) showExtraFields('koll-extras-1')
+  if (data.notizen?.[1] || data.links?.[1]) showExtraFields('koll-extras-2')
+  if (data.notizen?.[2] || data.links?.[2]) showExtraFields('koll-extras-3')
+  if (data.zwilling_notiz || data.zwilling_link) showExtraFields('wz-extras')
+  if (data.zeitenwende_notiz || data.zeitenwende_link) showExtraFields('zw-extras')
+
+  updateModeIndicators()
+  clearInlineAnalysisOutputs()
+  updateEntryDirtyState()
+
+  document.getElementById('json-import-dialog').close()
+  setStatus('JSON importiert – Formular befüllt. Bitte prüfen und speichern.', 'loading')
+}
+
 function handleDocumentClick(event) {
   const target = event.target.closest('[data-action]')
   if (!target) return
@@ -2621,6 +2692,9 @@ function handleDocumentClick(event) {
   if (action === 'preview-current-lemma') return void previewCurrentLemma()
   if (action === 'preview-current-day') return void previewCurrentDay()
   if (action === 'reset-entry-form') return void restoreEntryFormSnapshot()
+  if (action === 'open-json-import') return void openJsonImportDialog()
+  if (action === 'confirm-json-import') return void runJsonImport()
+  if (action === 'close-json-import') return void document.getElementById('json-import-dialog')?.close()
   if (action === 'save-tag') return void saveTag()
   if (action === 'delete-current-tag') return void deleteCurrentTag()
   if (action === 'analyze-entry-kollokation') return void analyzeEntryKollokation()
