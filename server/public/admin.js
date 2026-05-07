@@ -2600,12 +2600,47 @@ async function deleteFreeDay(date) {
   } catch { /* ignore */ }
 }
 
+let _jsonImportArray = null
+
 function openJsonImportDialog() {
   const dialog = document.getElementById('json-import-dialog')
   if (!dialog) return
   document.getElementById('json-import-textarea').value = ''
   document.getElementById('json-import-error').textContent = ''
+  document.getElementById('json-import-day-wrap').style.display = 'none'
+  document.getElementById('json-import-day').innerHTML = ''
+  _jsonImportArray = null
   dialog.showModal()
+}
+
+function onJsonImportInput() {
+  const raw = document.getElementById('json-import-textarea').value.trim()
+  const wrap = document.getElementById('json-import-day-wrap')
+  const selectEl = document.getElementById('json-import-day')
+  _jsonImportArray = null
+
+  if (!raw) { wrap.style.display = 'none'; return }
+
+  let jsonText = raw.replace(/^---[^\n]*---\s*/m, '').trim().replace(/,\s*$/, '')
+  let parsed
+  try { parsed = JSON.parse(jsonText) } catch { wrap.style.display = 'none'; return }
+
+  if (Array.isArray(parsed) && parsed.length > 0) {
+    _jsonImportArray = parsed
+    const wochentage = ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa']
+    selectEl.innerHTML = parsed.map((entry, i) => {
+      let label = `Eintrag ${i + 1}`
+      if (entry.datum) {
+        const d = new Date(entry.datum)
+        const wt = isNaN(d) ? '' : wochentage[d.getUTCDay()] + ', '
+        label = wt + entry.datum + (entry.thema ? ' – ' + entry.thema : '')
+      }
+      return `<option value="${i}">${label}</option>`
+    }).join('')
+    wrap.style.display = 'block'
+  } else {
+    wrap.style.display = 'none'
+  }
 }
 
 function runJsonImport() {
@@ -2616,20 +2651,23 @@ function runJsonImport() {
   // Strip optional "--- ADMIN-JSON-EXPORT ---" header and trailing comma (copy-paste artifact from JSON arrays)
   let jsonText = raw.replace(/^---[^\n]*---\s*/m, '').trim().replace(/,\s*$/, '')
   let data
-  try {
-    data = JSON.parse(jsonText)
-  } catch {
-    errEl.textContent = 'Ungültiges JSON – bitte nochmal prüfen.'
-    return
-  }
 
-  // If an entire array was pasted, take the first element
-  if (Array.isArray(data)) {
-    if (data.length === 0) {
-      errEl.textContent = 'Das eingefügte Array ist leer.'
+  if (_jsonImportArray) {
+    // Array was pasted — use selected index from dropdown
+    const idx = parseInt(document.getElementById('json-import-day').value, 10) || 0
+    data = _jsonImportArray[idx]
+    if (!data) { errEl.textContent = 'Kein gültiger Eintrag im Array.'; return }
+  } else {
+    try {
+      data = JSON.parse(jsonText)
+    } catch {
+      errEl.textContent = 'Ungültiges JSON – bitte nochmal prüfen.'
       return
     }
-    data = data[0]
+    if (Array.isArray(data)) {
+      errEl.textContent = 'Array erkannt, aber kein Tag ausgewählt. Bitte Textarea erneut eintippen.'
+      return
+    }
   }
 
   if (!Array.isArray(data.woerter) || data.woerter.length !== 3) {
@@ -2771,6 +2809,7 @@ function handleDocumentInput(event) {
   if (target.id === 'entry-search') return void renderEntryTable()
   if (target.id === 'users-search') return void scheduleUsersOverviewLoad()
   if (target.id === 'audit-search') return void loadAuditLog()
+  if (target.id === 'json-import-textarea') return void onJsonImportInput()
   if (ENTRY_FIELD_IDS.includes(target.id)) {
     updateEntryDirtyState()
     updateModeIndicators()
