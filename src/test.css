@@ -696,6 +696,23 @@
   user-select: none;
 }
 
+.test-colophon-ornament--link {
+  background: none;
+  border: none;
+  font-family: var(--t-serif);
+  cursor: pointer;
+  padding: 0;
+  transition: opacity 0.15s;
+}
+.test-colophon-ornament--link:hover {
+  opacity: 0.6;
+}
+.test-colophon-ornament--link:focus-visible {
+  outline: 2px solid #c9a84c;
+  outline-offset: 4px;
+  border-radius: 2px;
+}
+
 .test-colophon-links {
   display: flex;
   align-items: center;
@@ -1013,7 +1030,8 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: center;
+    justify-content: flex-start;
+    padding-top: 28%;
     gap: 2px;
   }
   .snap-nav-btn {
@@ -1070,6 +1088,14 @@
     min-height: 44px;
     min-width: 44px;
     flex-shrink: 0;
+  }
+
+  .snap-nav-btn--complete {
+    color: #c9a84c;
+    font-size: 1.15rem;
+    margin-top: 4px;
+    border-top: 0.5px solid rgba(201, 168, 76, 0.3);
+    padding-top: 8px;
   }
 
   /* Dots ausblenden (ersetzt durch snap-nav) */

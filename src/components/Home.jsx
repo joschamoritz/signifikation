@@ -572,6 +572,14 @@ export default function Home({
               >{glyph}</button>
             ))}
           </div>
+          {allThreePlayed && (
+            <button
+              className="snap-nav-btn snap-nav-btn--complete"
+              type="button"
+              onClick={() => setShowDayComplete(true)}
+              aria-label="Tagesabschluss ansehen"
+            >✦</button>
+          )}
           <button
             className="snap-nav-info"
             type="button"
@@ -592,11 +600,25 @@ export default function Home({
 
         {/* ── Kolophon ─────────────────────────────────────── */}
         <footer className="test-colophon" role="contentinfo">
-          <span className="test-colophon-ornament" aria-hidden="true">
-          {[playedGames.length > 0, !!wzPlayed, !!zwPlayed, !!lfPlayed].map((played) =>
-            played ? '✦' : '·'
-          ).join(' ')}
-        </span>
+          {allThreePlayed ? (
+            <button
+              className="test-colophon-ornament test-colophon-ornament--link"
+              type="button"
+              onClick={() => setShowDayComplete(true)}
+              aria-label="Tagesabschluss ansehen"
+              title="Tagesabschluss ansehen"
+            >
+              {[playedGames.length > 0, !!wzPlayed, !!zwPlayed, !!lfPlayed].map((played) =>
+                played ? '✦' : '·'
+              ).join(' ')}
+            </button>
+          ) : (
+            <span className="test-colophon-ornament" aria-hidden="true">
+              {[playedGames.length > 0, !!wzPlayed, !!zwPlayed, !!lfPlayed].map((played) =>
+                played ? '✦' : '·'
+              ).join(' ')}
+            </span>
+          )}
           <p className="feedback-hint colophon-feedback">
             Fehler oder Anregungen? <a href="mailto:info@signifikation.de">Schreib uns.</a>
           </p>
