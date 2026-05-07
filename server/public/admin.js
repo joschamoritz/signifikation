@@ -2613,13 +2613,23 @@ function runJsonImport() {
   const errEl = document.getElementById('json-import-error')
   errEl.textContent = ''
 
-  const jsonText = raw.replace(/^---[^\n]*---\s*/m, '').trim()
+  // Strip optional "--- ADMIN-JSON-EXPORT ---" header and trailing comma (copy-paste artifact from JSON arrays)
+  let jsonText = raw.replace(/^---[^\n]*---\s*/m, '').trim().replace(/,\s*$/, '')
   let data
   try {
     data = JSON.parse(jsonText)
   } catch {
     errEl.textContent = 'Ungültiges JSON – bitte nochmal prüfen.'
     return
+  }
+
+  // If an entire array was pasted, take the first element
+  if (Array.isArray(data)) {
+    if (data.length === 0) {
+      errEl.textContent = 'Das eingefügte Array ist leer.'
+      return
+    }
+    data = data[0]
   }
 
   if (!Array.isArray(data.woerter) || data.woerter.length !== 3) {
