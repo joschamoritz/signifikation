@@ -101,9 +101,11 @@ jobs:
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
         run: |
+          IPA_PATH=$(find $RUNNER_TEMP/export -name "*.ipa" | head -1)
+          echo "IPA found: $IPA_PATH"
           xcrun altool --upload-app \
             --type ios \
-            --file "$RUNNER_TEMP/export/Signifikation.ipa" \
+            --file "$IPA_PATH" \
             --username "$APPLE_ID" \
             --password "$APPLE_APP_SPECIFIC_PASSWORD" \
             --team-id ${{ secrets.APPLE_TEAM_ID }} \
