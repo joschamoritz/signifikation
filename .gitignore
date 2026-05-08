@@ -60,6 +60,11 @@ wortprofil/KORPORA.md
 
 server/check-diacollo-corpora.mjs
 
+# iOS Build-Artefakte
+ios/App/DerivedData/
+ios/App/build/
+ios/.DS_Store
+
 # Wortprofil-Pipeline (Korpora, DBs, venv – zu groß für Git)
 wortprofil/01_download/korpora/
 wortprofil/wortprofil-env/

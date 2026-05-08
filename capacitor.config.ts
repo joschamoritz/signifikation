@@ -10,6 +10,9 @@ const config: CapacitorConfig = {
       backgroundColor: '#faf9f7',
       showSpinner: false,
     },
+    Browser: {
+      windowScaleType: 'FitScreen',
+    },
   },
   ios: {
     contentInset: 'automatic',
