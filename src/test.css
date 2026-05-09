@@ -1031,7 +1031,7 @@
     flex-direction: column;
     align-items: center;
     justify-content: flex-start;
-    padding-top: 28%;
+    padding-top: clamp(60px, 22vh, 160px);
     gap: 2px;
   }
   .snap-nav-btn {
