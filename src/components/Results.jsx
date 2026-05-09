@@ -4,6 +4,7 @@ import { getMedal } from '../utils/gameLogic'
 import { lsGet, lsParse } from '../utils/storage'
 import { API } from '../config'
 import BelegePanel from './BelegePanel'
+import ExternalLink from './ExternalLink'
 
 /**
  * Filtert `definitionen`-Strings auf echte Bedeutungseinträge.
@@ -108,11 +109,11 @@ export default function Results({ lemma, roundScores, onRestart, onToSelection }
           <div className="lemma-notiz results-notiz">
             <span>{lemma.notiz}</span>
             {lemma.link && (
-              <a href={lemma.link} target="_blank" rel="noopener noreferrer"
+              <ExternalLink href={lemma.link}
                 className="lemma-notiz-link"
                 aria-label={`Mehr über ${lemma.lemma} erfahren (öffnet externen Link)`}>
                 Mehr →
-              </a>
+              </ExternalLink>
             )}
           </div>
         )}
@@ -123,12 +124,11 @@ export default function Results({ lemma, roundScores, onRestart, onToSelection }
         <div className="wortprofil-header">
           <p className="wortprofil-title">
             Wortprofil · {lemma.lemma}
-            <a
+            <ExternalLink
               className="wortprofil-extern"
               href={`https://de.wiktionary.org/wiki/${encodeURIComponent(lemma.lemma)}`}
-              target="_blank" rel="noopener noreferrer"
               aria-label={`${lemma.lemma} auf Wiktionary nachschlagen (öffnet externen Link)`}
-            >↗</a>
+            >↗</ExternalLink>
           </p>
         </div>
 

@@ -1,3 +1,5 @@
+import ExternalLink from './ExternalLink'
+
 function isUrl(str) {
   return str.startsWith('http://') || str.startsWith('https://')
 }
@@ -15,7 +17,7 @@ export default function SelectionThema({ thema, themaKurz, themaQuelle }) {
       {themaQuelle && (
         <p className="selection-thema-quelle">
           {isUrl(themaQuelle)
-            ? <a href={themaQuelle} target="_blank" rel="noopener noreferrer">{themaQuelle}</a>
+            ? <ExternalLink href={themaQuelle}>{themaQuelle}</ExternalLink>
             : themaQuelle
           }
         </p>

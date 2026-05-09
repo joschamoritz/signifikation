@@ -3,6 +3,22 @@ import { API } from '../config'
 import { lsGet, lsParse } from '../utils/storage'
 import { fetchWithRetry } from '../utils/fetchWithRetry'
 
+const CACHE_KEY = 'sig_cache_heute'
+
+function saveHeuteCache(data) {
+  try {
+    localStorage.setItem(CACHE_KEY, JSON.stringify({ ...data, cachedAt: new Date().toISOString() }))
+  } catch (_) {}
+}
+
+function loadHeuteCache() {
+  try {
+    return JSON.parse(localStorage.getItem(CACHE_KEY))
+  } catch (_) {
+    return null
+  }
+}
+
 function getWZToday(key) {
   return lsParse(lsGet(key), null)
 }
@@ -10,6 +26,7 @@ function getWZToday(key) {
 export function useDailyContent() {
   const [lemmata, setLemmata] = useState(null)
   const [apiError, setApiError] = useState(null)
+  const [isOfflineFallback, setIsOfflineFallback] = useState(false)
   const [serverDatum, setServerDatum] = useState(null)
   const [thema, setThema] = useState('')
   const [themaKurz, setThemaKurz] = useState('')
@@ -41,6 +58,7 @@ export function useDailyContent() {
       .then((r) => r.ok ? r.json() : r.json().then((d) => Promise.reject(new Error(d.error || `HTTP ${r.status}`))))
       .then(({ datum, lemmata, thema, thema_kurz, thema_quelle, lueckenfuellerLemma: lfLemma }) => {
         if (cancelled) return
+        setIsOfflineFallback(false)
         setServerDatum(datum)
         setLemmata(lemmata)
         if (thema) setThema(thema)
@@ -50,10 +68,25 @@ export function useDailyContent() {
         setWzPlayed(getWZToday(`sig_wz_${datum}`))
         setZwPlayed(lsParse(lsGet(`sig_zw_${datum}`), null))
         setLfPlayed(lsParse(lsGet(`sig_lf_${datum}`), null))
+        saveHeuteCache({ datum, lemmata, thema, thema_kurz, thema_quelle, lueckenfuellerLemma: lfLemma })
       })
       .catch((err) => {
         if (cancelled || err?.name === 'AbortError') return
-        setApiError(err.message)
+        const cached = loadHeuteCache()
+        if (cached?.datum && cached?.lemmata) {
+          setIsOfflineFallback(true)
+          setServerDatum(cached.datum)
+          setLemmata(cached.lemmata)
+          if (cached.thema) setThema(cached.thema)
+          if (cached.thema_kurz) setThemaKurz(cached.thema_kurz)
+          if (cached.thema_quelle) setThemaQuelle(cached.thema_quelle)
+          setLueckenfuellerLemma(cached.lueckenfuellerLemma ?? null)
+          setWzPlayed(getWZToday(`sig_wz_${cached.datum}`))
+          setZwPlayed(lsParse(lsGet(`sig_zw_${cached.datum}`), null))
+          setLfPlayed(lsParse(lsGet(`sig_lf_${cached.datum}`), null))
+        } else {
+          setApiError(err.message)
+        }
       })
 
     return () => {
@@ -140,6 +173,7 @@ export function useDailyContent() {
   return {
     lemmata,
     apiError,
+    isOfflineFallback,
     serverDatum,
     thema,
     themaKurz,

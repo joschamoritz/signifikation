@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { API } from '../config'
 import SelectionThema from './SelectionThema'
 import { logError } from '../utils/logError'
+import ExternalLink from './ExternalLink'
 
 
 export default function LemmaSelection({ lemmata, thema, themaKurz, themaQuelle, playedIds = [], onSelect, onViewResult, onBack }) {
@@ -94,13 +95,11 @@ export default function LemmaSelection({ lemmata, thema, themaKurz, themaQuelle,
               <div className="lemma-notiz">
                 <span>{lemma.notiz}</span>
                 {lemma.link && (
-                  <a
+                  <ExternalLink
                     href={lemma.link}
-                    target="_blank"
-                    rel="noopener noreferrer"
                     className="lemma-notiz-link"
                     aria-label={`Mehr über ${lemma.lemma} erfahren (öffnet externen Link)`}
-                  >Mehr →</a>
+                  >Mehr →</ExternalLink>
                 )}
               </div>
             )}
