@@ -68,7 +68,12 @@ export default function AppTabScreens({
         onUnlockGesamtausgabe={onNavigateToKonto}
       />
     ) : null,
-    kurs: <KursTab />,
+    kurs: (
+      <KursTab
+        gesamtausgabe={gesamtausgabeUnlocked}
+        onNavigateToKonto={onNavigateToKonto}
+      />
+    ),
     profil: (
       <KontoTab
         gesamtausgabe={gesamtausgabeUnlocked}
