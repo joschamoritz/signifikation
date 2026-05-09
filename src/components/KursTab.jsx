@@ -96,7 +96,7 @@ export default function KursTab({ gesamtausgabe = false, onNavigateToKonto = () 
           <ol className="test-entries" aria-label="Kurs-Module" ref={entriesRef}>
 
             {KURS_MODULES.map((mod, idx) => (
-              <li key={mod.id} className={`test-entry${!gesamtausgabe ? ' test-entry--disabled' : ''}`}>
+              <li key={mod.id} className="test-entry test-entry--disabled">
                 <div className="test-entry-number" aria-hidden="true">
                   <span className="test-entry-num-glyph">{mod.glyph}</span>
                   <span className="test-entry-marginalia">{mod.marginalia}</span>
@@ -119,28 +119,10 @@ export default function KursTab({ gesamtausgabe = false, onNavigateToKonto = () 
                   <p className="test-definition">{mod.definition}</p>
 
                   <div className="test-entry-footer">
-                    <span className="test-status">
-                      {!gesamtausgabe ? 'Teil der Gesamtausgabe.' : 'Bereit zum Starten.'}
+                    <span className="test-status">In Entwicklung.</span>
+                    <span className="test-cta test-cta--disabled" aria-hidden="true">
+                      Bald verfügbar
                     </span>
-                    {!gesamtausgabe ? (
-                      <button
-                        className="test-cta test-cta--locked"
-                        type="button"
-                        onClick={onNavigateToKonto}
-                        aria-label="Gesamtausgabe freischalten"
-                      >
-                        <LockIcon /> Gesamtausgabe freischalten
-                      </button>
-                    ) : (
-                      <button
-                        className="test-cta"
-                        type="button"
-                        aria-label={`Aufgabe starten: ${mod.title}`}
-                      >
-                        Aufgabe starten
-                        <span className="test-cta-arrow" aria-hidden="true"> →</span>
-                      </button>
-                    )}
                   </div>
                 </div>
               </li>
