@@ -8,6 +8,8 @@ export function useAppGameScreens({
   backToHome,
   backToSelection,
   handleRestart,
+  setLfProgress,
+  setZwProgress,
 }) {
   return useMemo(() => ({
     onLemmaSelect: (lemma) => startVT(() => handleLemmaSelect(lemma)),
@@ -16,10 +18,10 @@ export function useAppGameScreens({
     onBackToSelection: () => startVT(() => backToSelection()),
     onRestart: () => startVT(() => handleRestart()),
     onWortzwillingBack: () => startVT(() => setPhase('home')),
-    onZeitenwendeBack: () => startVT(() => backToHome()),
+    onZeitenwendeBack: (progress) => startVT(() => { setZwProgress(progress ?? null); backToHome() }),
     onWortzwillingSelectionBack: () => startVT(() => setPhase('home')),
     onZeitenwendeSelectionBack: () => startVT(() => setPhase('home')),
-    onLueckenfuellerBack: () => startVT(() => setPhase('home')),
+    onLueckenfuellerBack: (progress) => startVT(() => { setLfProgress(progress ?? null); setPhase('home') }),
   }), [
     backToHome,
     backToSelection,
@@ -28,5 +30,7 @@ export function useAppGameScreens({
     handleViewResult,
     setPhase,
     startVT,
+    setLfProgress,
+    setZwProgress,
   ])
 }

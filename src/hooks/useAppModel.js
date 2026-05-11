@@ -1,4 +1,4 @@
-import { useRef } from 'react'
+import { useRef, useState } from 'react'
 import { WortZwillingScreen, ZeitenwendeScreen, LueckenfuellerScreen } from '../components/AppLazyScreens'
 import { useAppDailyState } from './useAppDailyState'
 import { useAppEffects } from './useAppEffects'
@@ -67,6 +67,9 @@ export function useAppModel() {
     startVT,
   })
 
+  const [lfProgress, setLfProgress] = useState(null)
+  const [zwProgress, setZwProgress] = useState(null)
+
   const {
     handleWZFinish,
     handleZeitenwendeFinish,
@@ -129,6 +132,8 @@ export function useAppModel() {
     backToHome,
     backToSelection,
     handleRestart,
+    setLfProgress,
+    setZwProgress,
   })
 
   useAppEffects({
@@ -180,12 +185,14 @@ export function useAppModel() {
       handleZeitenwendeFinish,
       zwViewOnly: tabState.zwViewOnly,
       zwPlayed,
+      zwProgress,
       Zeitenwende: ZeitenwendeScreen,
       lueckenfuellerLemma,
       onLueckenfuellerBack: gameScreenActions.onLueckenfuellerBack,
       handleLFFinish,
       lfViewOnly: tabState.lfViewOnly,
       lfPlayed,
+      lfProgress,
       Lueckenfueller: LueckenfuellerScreen,
     },
     persistentClassroomProps: {

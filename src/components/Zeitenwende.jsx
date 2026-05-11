@@ -87,11 +87,11 @@ function ZWResults({ lemma, words, answers, onBack, ipa, definitionen }) {
 }
 
 /** Hauptkomponente */
-export default function Zeitenwende({ data, onBack, onFinish, savedResult = null }) {
+export default function Zeitenwende({ data, onBack, onFinish, savedResult = null, initialProgress = null }) {
   const { lemma, words, ipa = '', definitionen = [] } = data
 
-  const [round,   setRound]   = useState(0)
-  const [answers, setAnswers] = useState(savedResult?.answers ?? [])
+  const [round,   setRound]   = useState(initialProgress?.round ?? 0)
+  const [answers, setAnswers] = useState(initialProgress?.answers ?? savedResult?.answers ?? [])
   const [feedback, setFeedback] = useState(null)   // null | 'correct' | 'wrong'
   const [chosen,   setChosen]   = useState(null)    // 'pre' | 'post'
   const [phase,    setPhase]    = useState(savedResult ? 'results' : 'play')
@@ -250,7 +250,7 @@ export default function Zeitenwende({ data, onBack, onFinish, savedResult = null
   }, [feedback, swiping])
 
   if (phase === 'results') {
-    return <ZWResults lemma={lemma} words={words} answers={answers} onBack={onBack} ipa={ipa} definitionen={definitionen} />
+    return <ZWResults lemma={lemma} words={words} answers={answers} onBack={() => onBack(null)} ipa={ipa} definitionen={definitionen} />
   }
 
   const currentWord   = words[round]
@@ -276,7 +276,7 @@ export default function Zeitenwende({ data, onBack, onFinish, savedResult = null
 
   return (
     <div className="screen zw-screen">
-      <button type="button" className="back-btn" onClick={onBack} aria-label="Zurück zur Startseite"><svg width="10" height="16" viewBox="0 0 10 16" fill="none" aria-hidden="true"><path d="M8.5 1L1.5 8L8.5 15" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg></button>
+      <button type="button" className="back-btn" onClick={() => onBack({ round, answers })} aria-label="Zurück zur Startseite"><svg width="10" height="16" viewBox="0 0 10 16" fill="none" aria-hidden="true"><path d="M8.5 1L1.5 8L8.5 15" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg></button>
 
       <header className="zw-header">
         <span className="zw-badge">Zeitenwende</span>

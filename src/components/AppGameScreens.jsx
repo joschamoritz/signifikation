@@ -43,12 +43,14 @@ export default function AppGameScreens({
   handleZeitenwendeFinish,
   zwViewOnly,
   zwPlayed,
+  zwProgress,
   Zeitenwende,
   lueckenfuellerLemma,
   onLueckenfuellerBack,
   handleLFFinish,
   lfViewOnly,
   lfPlayed,
+  lfProgress,
   Lueckenfueller,
 }) {
   return (
@@ -118,6 +120,7 @@ export default function AppGameScreens({
             onBack={onZeitenwendeBack}
             onFinish={handleZeitenwendeFinish}
             savedResult={zwViewOnly ? zwPlayed : null}
+            initialProgress={zwViewOnly ? null : zwProgress}
           />
         </Suspense>
       )}
@@ -129,6 +132,7 @@ export default function AppGameScreens({
             onBack={onLueckenfuellerBack}
             onFinish={handleLFFinish}
             savedResult={lfViewOnly ? lfPlayed : null}
+            initialProgress={lfViewOnly ? null : lfProgress}
           />
         </Suspense>
       )}

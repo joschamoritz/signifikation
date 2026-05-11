@@ -40,6 +40,13 @@
   border-radius: var(--radius);
   padding: 20px 18px 16px;
   box-shadow: var(--shadow-soft);
+  transition: border-color 0.3s ease, background 0.3s ease;
+}
+
+/* Freie Eingabe – Beleg leuchtet auf wenn richtig */
+.lf-satz-card--highlight {
+  background: #f0fdf4;
+  border-color: #86efac;
 }
 
 .lf-satz-text {

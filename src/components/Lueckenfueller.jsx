@@ -222,20 +222,23 @@ function ChoiceRound({ round, roundIdx, totalRounds, onScore, onBack }) {
 
 // ── Double-Runde ──────────────────────────────────────────
 function DoubleRound({ round, onScore, onBack }) {
-  const [answers,   setAnswers]   = useState([null, null])
-  const [submitted, setSubmitted] = useState(false)
+  const [answers,     setAnswers]     = useState([null, null])
+  const [submitted,   setSubmitted]   = useState(false)
+  const [debouncing,  setDebouncing]  = useState(null) // verhindert Doppelklick-Fehler auf Mobile
 
   const bothFilled = answers[0] !== null && answers[1] !== null
   const activeSlot = answers[0] === null ? 0 : answers[1] === null ? 1 : null
 
   function handleOptionClick(opt) {
-    if (submitted) return
+    if (submitted || debouncing === opt) return
     const assignedAt = answers.indexOf(opt)
     if (assignedAt !== -1) {
-      // Zuweisung aufheben
+      // Zuweisung aufheben + kurzen Debounce setzen damit Doppeltap nicht sofort reassigned
       const next = [...answers]
       next[assignedAt] = null
       setAnswers(next)
+      setDebouncing(opt)
+      requestAnimationFrame(() => requestAnimationFrame(() => setDebouncing(null)))
       return
     }
     if (activeSlot === null) return
@@ -350,12 +353,20 @@ function FreeRound({ round, onScore, onBack }) {
 
   useEffect(() => { inputRef.current?.focus() }, [])
 
+  function matchesFree(val, kollokator, token) {
+    const v = val.toLowerCase()
+    const k = kollokator.toLowerCase()
+    const t = (token || '').toLowerCase()
+    // Exakter Match oder startsWith-Toleranz für Flexionsformen (min. 4 Zeichen Stamm)
+    return v === k || v === t ||
+      (k.length >= 4 && (v.startsWith(k) || k.startsWith(v))) ||
+      (t.length >= 4 && (v.startsWith(t) || t.startsWith(v)))
+  }
+
   function handleSubmit() {
     if (!input.trim() || submitted) return
-    const val     = input.trim().toLowerCase()
-    const correct = val === round.kollokator.toLowerCase() || val === (round.token || '').toLowerCase()
-    const p       = correct ? round.punkte : 0
-    setPts(p)
+    const correct = matchesFree(input.trim(), round.kollokator, round.token)
+    setPts(correct ? round.punkte : 0)
     setSubmitted(true)
   }
 
@@ -363,14 +374,11 @@ function FreeRound({ round, onScore, onBack }) {
     if (e.key === 'Enter') handleSubmit()
   }
 
-  const isCorrect = submitted && (
-    input.trim().toLowerCase() === round.kollokator.toLowerCase() ||
-    input.trim().toLowerCase() === (round.token || '').toLowerCase()
-  )
+  const isCorrect = submitted && matchesFree(input.trim(), round.kollokator, round.token)
 
   return (
     <>
-      <div className="lf-satz-card">
+      <div className={`lf-satz-card${submitted && isCorrect ? ' lf-satz-card--highlight' : ''}`}>
         <p className="lf-satz-text">
           <SatzMitLuecke
             satzMitLuecke={round.satzMitLuecke}
@@ -428,17 +436,22 @@ function FreeRound({ round, onScore, onBack }) {
 }
 
 // ── Hauptkomponente ───────────────────────────────────────
-export default function Lueckenfueller({ data, lemmaName, onBack, onFinish, savedResult }) {
+export default function Lueckenfueller({ data, lemmaName, onBack, onFinish, savedResult, initialProgress }) {
   const [phase,  setPhase]  = useState(savedResult ? 'results' : 'play')
-  const [round,  setRound]  = useState(0)
-  const [scores, setScores] = useState([])
+  const [round,  setRound]  = useState(initialProgress?.round ?? 0)
+  const [scores, setScores] = useState(initialProgress?.scores ?? [])
+
+  // Wird an Unterrunden weitergegeben – speichert den aktuellen Spielstand beim Zurück-Klick
+  function handleMidGameBack() {
+    onBack({ round, scores })
+  }
 
   if (phase === 'results') {
     return (
       <ResultsScreen
         data={data}
         scores={savedResult ? savedResult.scores : scores}
-        onBack={onBack}
+        onBack={() => onBack(null)}
       />
     )
   }
@@ -490,7 +503,7 @@ export default function Lueckenfueller({ data, lemmaName, onBack, onFinish, save
           roundIdx={round}
           totalRounds={totalRounds}
           onScore={handleScore}
-          onBack={onBack}
+          onBack={handleMidGameBack}
         />
       )}
 
@@ -499,7 +512,7 @@ export default function Lueckenfueller({ data, lemmaName, onBack, onFinish, save
           key={round}
           round={currentRound}
           onScore={handleScore}
-          onBack={onBack}
+          onBack={handleMidGameBack}
         />
       )}
 
@@ -508,7 +521,7 @@ export default function Lueckenfueller({ data, lemmaName, onBack, onFinish, save
           key={round}
           round={currentRound}
           onScore={handleScore}
-          onBack={onBack}
+          onBack={handleMidGameBack}
         />
       )}
     </div>

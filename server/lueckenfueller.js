@@ -74,35 +74,50 @@ function blankCollocate(satz, depLemma) {
  * damit Spieler aus vorherigen Runden keine Rückschlüsse ziehen können.
  */
 function pickDistractors(roundIdx, target, pool, choiceTargets, usedOptions) {
-  const notTarget  = pool.filter(c => c.lemma !== target.lemma)
-  const fresh      = notTarget.filter(c => !usedOptions.has(c.lemma))
-  const weakFresh  = fresh.filter(c => pool.indexOf(c) >= 5)
+  const notTarget       = pool.filter(c => c.lemma !== target.lemma)
+  const fresh           = notTarget.filter(c => !usedOptions.has(c.lemma))
+  // Gleiche Wortart wie das Target – bevorzugte Distraktor-Quelle
+  const freshSamePOS    = fresh.filter(c => c.pos === target.pos)
+  const weakSamePOS     = freshSamePOS.filter(c => pool.indexOf(c) >= 5)
 
   function padTo3(preferred) {
     const result = [...preferred]
     const seen   = new Set(result.map(r => r.lemma))
-    // Auffüllen: zuerst frische, dann beliebige verbleibende
-    for (const c of [...fresh, ...notTarget]) {
+    // Auffüllen: zuerst gleiche Wortart, dann beliebige frische, dann Rest
+    for (const c of [...freshSamePOS, ...fresh, ...notTarget]) {
       if (result.length >= 3) break
       if (!seen.has(c.lemma)) { result.push(c); seen.add(c.lemma) }
     }
     return result.slice(0, 3)
   }
 
-  // Alle Runden: ausschließlich frische Distraktoren – keine vorherigen Optionen recyceln
-  return padTo3(weakFresh.slice(0, 3))
+  // Bevorzugt: schwächere Kollokatoren gleicher Wortart (pool-Position ≥ 5)
+  return padTo3(weakSamePOS.slice(0, 3))
 }
 
 /**
  * Findet den ersten blankbaren Beleg für einen Kollokator.
  */
+const MIN_SATZ_LEN = 50
+const MAX_SATZ_LEN = 220
+
 function findBlankableSatz(lemma, target) {
   const belege = fetchBelegeRaw(lemma, target.lemma, { limit: 30, prefixCollocate: true })
+
+  // Alle blankbaren Sätze sammeln, nach Länge sortieren (längster zuerst),
+  // dabei Sätze unter MIN_SATZ_LEN und über MAX_SATZ_LEN ausschließen.
+  // Fallback: wenn kein Satz die Mindestlänge erfüllt, kürzeste akzeptable nehmen.
+  const candidates = []
   for (const b of belege) {
     const blanked = blankCollocate(b.satz, target.lemma)
-    if (blanked) return { satz: b.satz, quelle: b.quelle, ...blanked }
+    if (blanked) candidates.push({ satz: b.satz, quelle: b.quelle, ...blanked })
   }
-  return null
+  if (!candidates.length) return null
+
+  const inRange = candidates.filter(c => c.satz.length >= MIN_SATZ_LEN && c.satz.length <= MAX_SATZ_LEN)
+  const pool = inRange.length ? inRange : candidates
+  pool.sort((a, b) => b.satz.length - a.satz.length)
+  return pool[0]
 }
 
 /**
@@ -171,20 +186,24 @@ export async function buildLueckenfueller(lemma, pos) {
       distSet.add(extra.lemma)
     }
 
+    // Korrekte Antwort: token-Form wenn vorhanden (z.B. "Säugetierarten"),
+    // sonst Lemma – so stimmen Optionsbutton und Lückenfüllung überein
+    const correctLabel = target.token || target.lemma
+
     // Alle gezeigten Optionen dieser Runde für Folgerunden merken
     usedOptions.add(target.lemma)
     for (const d of distractors) usedOptions.add(d.lemma)
 
     rounds.push({
       type:          'choice',
-      kollokator:    target.lemma,
+      kollokator:    correctLabel,
       token:         target.token,
       logDice:       parseFloat(parseFloat(target.logDice).toFixed(1)),
       satz:          target.satz,
       satzMitLuecke: target.satzMitLuecke,
       quelle:        target.quelle,
       punkte:        PUNKTE[i],
-      optionen:      shuffle([target.lemma, ...distractors.map(d => d.lemma)]),
+      optionen:      shuffle([correctLabel, ...distractors.map(d => d.lemma)]),
     })
   }
 
