@@ -254,7 +254,8 @@ router.get('/api/v1/spezialwoche', (req, res) => {
     if (!entry) return res.json(null)
 
     const { byId, byLemma } = getLemmataIndex()
-    const lemma = byLemma.get(entry.lemma_id) ?? byId.get(entry.lemma_id) ?? null
+    const lemmaKey = entry.lemma_id?.toLowerCase() ?? ''
+    const lemma = byLemma.get(lemmaKey) ?? byLemma.get(entry.lemma_id) ?? byId.get(entry.lemma_id) ?? null
     if (!lemma) return res.json(null)   // Lemma nicht mehr in DB → kein Eintrag
 
     // Wort-Zwilling: nur ausgeben wenn Partner eingetragen
@@ -280,7 +281,8 @@ router.get('/api/v1/spezialwoche', (req, res) => {
     // Lückenfüller: nur wenn lueckenfueller_id gesetzt und Lemma auffindbar
     let lueckenfuellerLemma = null
     if (entry.lueckenfueller_id) {
-      const lfLemma = byLemma.get(entry.lueckenfueller_id) ?? byId.get(entry.lueckenfueller_id) ?? null
+      const lfKey = entry.lueckenfueller_id?.toLowerCase() ?? ''
+      const lfLemma = byLemma.get(lfKey) ?? byLemma.get(entry.lueckenfueller_id) ?? byId.get(entry.lueckenfueller_id) ?? null
       if (lfLemma?.lueckenfueller) lueckenfuellerLemma = lfLemma
     }
 

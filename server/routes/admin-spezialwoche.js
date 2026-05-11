@@ -90,17 +90,21 @@ export function createAdminSpezialwocheRouter({
     validate(adminSpezialwocheSchema),
     async (req, res) => {
       const {
-        woche, von, bis, lemma_id,
+        woche, von, bis,
         zwilling_partner, zwilling_pos,
         zeitenwende_notiz, zeitenwende_link,
-        lueckenfueller_id, notiz, link,
+        notiz, link,
       } = req.body
 
-      // Lemma muss in der DB existieren – Suche erst per Lemma-Wort, dann per ID
+      // Lemmata sind in der DB kleingeschrieben – normalisieren
+      const lemma_id        = req.body.lemma_id.trim().toLowerCase()
+      const lueckenfueller_id = (req.body.lueckenfueller_id || '').trim().toLowerCase()
+
+      // Lemma muss in der DB existieren
       const { byId, byLemma } = getLemmataIndex()
       const lemma = byLemma.get(lemma_id) ?? byId.get(lemma_id)
       if (!lemma) {
-        return res.status(404).json({ error: `Lemma „${lemma_id}" nicht gefunden` })
+        return res.status(404).json({ error: `Lemma „${lemma_id}" nicht in wortprofil.db gefunden` })
       }
 
       let zwilling_kollokatoren = []
