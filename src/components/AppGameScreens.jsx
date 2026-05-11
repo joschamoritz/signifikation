@@ -69,6 +69,9 @@ export default function AppGameScreens({
   onSwWzPlay,
   onSwZwPlay,
   onSwLfPlay,
+  onViewSwWz,
+  onViewSwZw,
+  onViewSwLf,
   onSwBack,
 }) {
   return (
@@ -95,6 +98,10 @@ export default function AppGameScreens({
           themaQuelle={themaQuelle}
           onPlay={onWortzwillingPlay}
           onBack={onWortzwillingSelectionBack}
+          spezialwoche={spezialwoche}
+          swWzPlayed={swWzPlayed}
+          onPlaySpezial={onSwWzPlay}
+          onViewSpezial={onViewSwWz}
         />
       )}
       {phase === 'zeitenwende-selection' && zeitenwende && (
@@ -105,6 +112,10 @@ export default function AppGameScreens({
           themaQuelle={themaQuelle}
           onPlay={onZeitenwendePlay}
           onBack={onZeitenwendeSelectionBack}
+          spezialwoche={spezialwoche}
+          swZwPlayed={swZwPlayed}
+          onPlaySpezial={onSwZwPlay}
+          onViewSpezial={onViewSwZw}
         />
       )}
       {phase === 'quiz' && selectedLemma && (
@@ -152,6 +163,10 @@ export default function AppGameScreens({
           themaQuelle={themaQuelle}
           onPlay={onLueckenfuellerPlay}
           onBack={onLueckenfuellerSelectionBack}
+          spezialwoche={spezialwoche}
+          swLfPlayed={swLfPlayed}
+          onPlaySpezial={onSwLfPlay}
+          onViewSpezial={onViewSwLf}
         />
       )}
       {phase === 'lueckenfueller' && lueckenfuellerLemma?.lueckenfueller && (
@@ -168,16 +183,6 @@ export default function AppGameScreens({
       )}
 
       {/* ── Spezialwoche: Wort-Zwilling ─────────────────────────── */}
-      {phase === 'sw-wz-selection' && spezialwoche?.wortzwilling && (
-        <WortZwillingSelection
-          data={spezialwoche.wortzwilling}
-          thema="Wort der Woche"
-          themaKurz={spezialwoche.lemma?.lemma ?? ''}
-          themaQuelle=""
-          onPlay={onSwWzPlay}
-          onBack={onSwBack}
-        />
-      )}
       {phase === 'sw-wz' && spezialwoche?.wortzwilling && (
         <Suspense fallback={<ScreenFallback />}>
           <WortZwilling
@@ -190,16 +195,6 @@ export default function AppGameScreens({
       )}
 
       {/* ── Spezialwoche: Zeitenwende ────────────────────────────── */}
-      {phase === 'sw-zeitenwende-selection' && spezialwoche?.zeitenwende && (
-        <ZeitenwendeSelection
-          data={spezialwoche.zeitenwende}
-          thema="Wort der Woche"
-          themaKurz={spezialwoche.lemma?.lemma ?? ''}
-          themaQuelle=""
-          onPlay={onSwZwPlay}
-          onBack={onSwBack}
-        />
-      )}
       {phase === 'sw-zeitenwende' && spezialwoche?.zeitenwende && (
         <Suspense fallback={<ScreenFallback />}>
           <Zeitenwende
@@ -213,16 +208,6 @@ export default function AppGameScreens({
       )}
 
       {/* ── Spezialwoche: Lückenfüller ───────────────────────────── */}
-      {phase === 'sw-lf-selection' && spezialwoche?.lueckenfuellerLemma?.lueckenfueller && (
-        <LueckenfuellerSelection
-          data={spezialwoche.lueckenfuellerLemma}
-          thema="Wort der Woche"
-          themaKurz={spezialwoche.lemma?.lemma ?? ''}
-          themaQuelle=""
-          onPlay={onSwLfPlay}
-          onBack={onSwBack}
-        />
-      )}
       {phase === 'sw-lf' && spezialwoche?.lueckenfuellerLemma?.lueckenfueller && (
         <Suspense fallback={<ScreenFallback />}>
           <Lueckenfueller

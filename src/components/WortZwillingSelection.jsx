@@ -23,7 +23,7 @@ function WZEntry({ lemma, pos }) {
   )
 }
 
-export default function WortZwillingSelection({ data, thema, themaKurz, themaQuelle, onPlay, onBack }) {
+export default function WortZwillingSelection({ data, thema, themaKurz, themaQuelle, onPlay, onBack, spezialwoche = null, swWzPlayed = null, onPlaySpezial, onViewSpezial }) {
   const { wortA, wortB, pos, notiz, link } = data ?? {}
   const [notizOpen, setNotizOpen] = useState(false)
   const wortart = pos || 'Substantiv'
@@ -88,6 +88,36 @@ export default function WortZwillingSelection({ data, thema, themaKurz, themaQue
           )}
 
         </div>
+
+          {/* ── Wort der Woche ─── */}
+          {spezialwoche?.wortzwilling && (
+            <>
+              <div className="lemma-cards-spezial-divider" role="separator" aria-label="Wort der Woche">
+                <span className="lemma-cards-spezial-label">✦ Wort der Woche</span>
+              </div>
+              <div className="lemma-card-wrap">
+                <div className={`lemma-card lemma-card--spezial${swWzPlayed ? ' lemma-card--played' : ''}`}>
+                  <button
+                    className="lemma-card-main"
+                    type="button"
+                    onClick={swWzPlayed ? onViewSpezial : onPlaySpezial}
+                    aria-label={`${spezialwoche.wortzwilling.wortA} vs. ${spezialwoche.wortzwilling.wortB} – Wort-Zwilling${swWzPlayed ? ' – Ergebnis ansehen' : ' starten'}`}
+                  >
+                    <div className="lemma-info">
+                      <div className="lemma-header-row">
+                        <span className="lemma-name">
+                          {spezialwoche.wortzwilling.wortA}
+                          <span style={{ color: 'var(--muted)', fontWeight: 400, margin: '0 0.3em' }}>vs.</span>
+                          {spezialwoche.wortzwilling.wortB}
+                        </span>
+                      </div>
+                    </div>
+                    <span className="lemma-arrow" aria-hidden="true">›</span>
+                  </button>
+                </div>
+              </div>
+            </>
+          )}
       </div>
     </div>
   )

@@ -269,6 +269,9 @@ export function useAppModel() {
       onSwWzPlay: tabState.goToSwWzGame,
       onSwZwPlay: tabState.goToSwZeitenwendeGame,
       onSwLfPlay: tabState.goToSwLfGame,
+      onViewSwWz: tabState.viewSwWz,
+      onViewSwZw: tabState.viewSwZw,
+      onViewSwLf: tabState.viewSwLf,
       onSwBack: gameScreenActions.onBackToHome,
     },
     persistentClassroomProps: {

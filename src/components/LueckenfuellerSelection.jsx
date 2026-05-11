@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useWiktionary } from '../hooks/useWiktionary'
 import SelectionThema from './SelectionThema'
 
-export default function LueckenfuellerSelection({ data, thema, themaKurz, themaQuelle, onPlay, onBack }) {
+export default function LueckenfuellerSelection({ data, thema, themaKurz, themaQuelle, onPlay, onBack, spezialwoche = null, swLfPlayed = null, onPlaySpezial, onViewSpezial }) {
   const { lemma, pos, notiz, link } = data ?? {}
   const [notizOpen, setNotizOpen] = useState(false)
   const { ipa, definitionen } = useWiktionary({ lemma })
@@ -67,6 +67,40 @@ export default function LueckenfuellerSelection({ data, thema, themaKurz, themaQ
             </div>
           )}
         </div>
+
+        {/* ── Wort der Woche ─── */}
+        {spezialwoche?.lueckenfuellerLemma?.lueckenfueller && (
+          <>
+            <div className="lemma-cards-spezial-divider" role="separator" aria-label="Wort der Woche">
+              <span className="lemma-cards-spezial-label">✦ Wort der Woche</span>
+            </div>
+            <div className="lemma-card-wrap">
+              <div className={`lemma-card lemma-card--spezial${swLfPlayed ? ' lemma-card--played' : ''}`}>
+                <button
+                  className="lemma-card-main"
+                  type="button"
+                  onClick={swLfPlayed ? onViewSpezial : onPlaySpezial}
+                  aria-label={`${spezialwoche.lueckenfuellerLemma.lemma} – Lückenfüller${swLfPlayed ? ' – Ergebnis ansehen' : ' starten'}`}
+                >
+                  <div className="lemma-info">
+                    <div className="lemma-header-row">
+                      <span className="lemma-name">{spezialwoche.lueckenfuellerLemma.lemma}</span>
+                      {spezialwoche.lueckenfuellerLemma.wortart && (
+                        <span className="lemma-wortart-abbrev">{spezialwoche.lueckenfuellerLemma.wortart}</span>
+                      )}
+                    </div>
+                    {spezialwoche.lueckenfuellerLemma.definitionen?.length > 0 && (
+                      <div className="lemma-definition">
+                        {spezialwoche.lueckenfuellerLemma.definitionen.slice(0, 2).map((d, i) => <p key={i}>{d}</p>)}
+                      </div>
+                    )}
+                  </div>
+                  <span className="lemma-arrow" aria-hidden="true">›</span>
+                </button>
+              </div>
+            </div>
+          </>
+        )}
       </div>
     </div>
   )

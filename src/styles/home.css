@@ -885,10 +885,8 @@
   letter-spacing: 0.07em;
 }
 
-/* Spezial-Karte – subtile Abgrenzung, kein dominanter Akzent */
+/* Spezial-Karte – kein extra Styling, Trennstrich reicht als Abgrenzung */
 .lemma-card--spezial {
-  border-left: 2px solid var(--border-lt);
-  padding-left: 10px;
 }
 
 .lemma-card--spezial .lemma-name {

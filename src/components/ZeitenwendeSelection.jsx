@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useWiktionary } from '../hooks/useWiktionary'
 import SelectionThema from './SelectionThema'
 
-export default function ZeitenwendeSelection({ data, thema, themaKurz, themaQuelle, onPlay, onBack }) {
+export default function ZeitenwendeSelection({ data, thema, themaKurz, themaQuelle, onPlay, onBack, spezialwoche = null, swZwPlayed = null, onPlaySpezial, onViewSpezial }) {
   const { lemma, ipa: savedIpa, definitionen: savedDefs, notiz, link } = data ?? {}
   const [notizOpen, setNotizOpen] = useState(false)
   const { ipa, definitionen } = useWiktionary({
@@ -66,6 +66,40 @@ export default function ZeitenwendeSelection({ data, thema, themaKurz, themaQuel
             </div>
           )}
         </div>
+
+        {/* ── Wort der Woche ─── */}
+        {spezialwoche?.zeitenwende && (
+          <>
+            <div className="lemma-cards-spezial-divider" role="separator" aria-label="Wort der Woche">
+              <span className="lemma-cards-spezial-label">✦ Wort der Woche</span>
+            </div>
+            <div className="lemma-card-wrap">
+              <div className={`lemma-card lemma-card--spezial${swZwPlayed ? ' lemma-card--played' : ''}`}>
+                <button
+                  className="lemma-card-main"
+                  type="button"
+                  onClick={swZwPlayed ? onViewSpezial : onPlaySpezial}
+                  aria-label={`${spezialwoche.zeitenwende.lemma} – Zeitenwende${swZwPlayed ? ' – Ergebnis ansehen' : ' starten'}`}
+                >
+                  <div className="lemma-info">
+                    <div className="lemma-header-row">
+                      <span className="lemma-name">{spezialwoche.zeitenwende.lemma}</span>
+                      {spezialwoche.zeitenwende.ipa && (
+                        <span className="lautschrift lemma-ipa">[{spezialwoche.zeitenwende.ipa}]</span>
+                      )}
+                    </div>
+                    {spezialwoche.zeitenwende.definitionen?.length > 0 && (
+                      <div className="lemma-definition">
+                        {spezialwoche.zeitenwende.definitionen.slice(0, 2).map((d, i) => <p key={i}>{d}</p>)}
+                      </div>
+                    )}
+                  </div>
+                  <span className="lemma-arrow" aria-hidden="true">›</span>
+                </button>
+              </div>
+            </div>
+          </>
+        )}
       </div>
     </div>
   )

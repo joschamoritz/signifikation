@@ -264,6 +264,8 @@ router.get('/api/v1/spezialwoche', async (req, res) => {
       fetchBonusQuestion(lemmaId, 'Substantiv').catch(() => null),
     ])
     if (!lemma) return res.json(null)
+    // Lemma für Anzeige großschreiben (wortprofil.db speichert lowercase)
+    lemma.lemma = lemma.lemma.charAt(0).toUpperCase() + lemma.lemma.slice(1)
     lemma.bonusFrage = bonusFrage
     lemma.notiz = entry.notiz || ''
     lemma.link  = entry.link  || ''
