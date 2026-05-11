@@ -35,7 +35,7 @@ export default function LemmaSelection({ lemmata, thema, themaKurz, themaQuelle,
     }))
 
     return () => controller.abort()
-  }, [lemmata])
+  }, [lemmata, spezialLemma])
 
   return (
     <div className="screen selection-screen">
@@ -145,11 +145,6 @@ export default function LemmaSelection({ lemmata, thema, themaKurz, themaQuelle,
                           : <p>{spezialLemma.definition}</p>
                         }
                       </div>
-                    )}
-                    {spezialwoche?.von && (
-                      <p className="lemma-spezial-zeitraum">
-                        {spezialwoche.von.slice(5)} – {spezialwoche.bis.slice(5)}
-                      </p>
                     )}
                   </div>
                   <span className="lemma-arrow" aria-hidden="true">›</span>

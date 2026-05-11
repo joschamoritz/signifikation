@@ -885,14 +885,14 @@
   letter-spacing: 0.07em;
 }
 
-/* Spezial-Karte – leichte goldene Akzentlinie links */
+/* Spezial-Karte – subtile Abgrenzung, kein dominanter Akzent */
 .lemma-card--spezial {
-  border-left: 3px solid var(--primary, #c9a84c);
+  border-left: 2px solid var(--border-lt);
   padding-left: 10px;
 }
 
 .lemma-card--spezial .lemma-name {
-  color: var(--primary, #c9a84c);
+  color: var(--text);
 }
 
 /* Zeitraum-Zeile unter dem Lemmanamen */

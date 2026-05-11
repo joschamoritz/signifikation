@@ -268,6 +268,17 @@ router.get('/api/v1/spezialwoche', async (req, res) => {
     lemma.notiz = entry.notiz || ''
     lemma.link  = entry.link  || ''
 
+    // IPA + Definitionen via Wiktionary (Substantive groß, mit Cache)
+    const wiktKey = `wikt:${lemmaId}`
+    let wikt = cacheGet(wiktKey)
+    if (!wikt) {
+      const wiktLemma = lemmaId.charAt(0).toUpperCase() + lemmaId.slice(1)
+      wikt = await fetchWiktionary(wiktLemma).catch(() => ({}))
+      if (wikt) cacheSet(wiktKey, wikt)
+    }
+    lemma.ipa          = wikt?.ipa          || ''
+    lemma.definitionen = wikt?.definitionen || []
+
     // Wort-Zwilling: nur ausgeben wenn Partner eingetragen
     let wortzwilling = null
     if (entry.zwilling_partner) {

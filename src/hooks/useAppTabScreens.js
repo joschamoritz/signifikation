@@ -104,17 +104,15 @@ export function useAppTabScreens({
     swLfPlayed,
     onPlaySwKoll: () => startVT(() => setPhase('selection')),  // nutzt reguläre LemmaSelection
     onViewSwKoll: () => startVT(() => setPhase('selection')),
-    onPlaySwWz: spezialwoche?.wortzwilling ? {
-      play: () => startVT(() => { setSwWzViewOnly(false); setPhase('sw-wz-selection') }),
-    } : null,
+    onPlaySwWz: spezialwoche?.wortzwilling
+      ? () => startVT(() => { setSwWzViewOnly(false); setPhase('sw-wz-selection') })
+      : undefined,
     onViewSwWz: () => startVT(() => { setSwWzViewOnly(true); setPhase('sw-wz') }),
-    onPlaySwZw: {
-      play: () => startVT(() => { setSwZwViewOnly(false); setPhase('sw-zeitenwende-selection') }),
-    },
+    onPlaySwZw: () => startVT(() => { setSwZwViewOnly(false); setPhase('sw-zeitenwende-selection') }),
     onViewSwZw: () => startVT(() => { setSwZwViewOnly(true); setPhase('sw-zeitenwende') }),
-    onPlaySwLf: spezialwoche?.lueckenfuellerLemma?.lueckenfueller ? {
-      play: () => startVT(() => { setSwLfViewOnly(false); setPhase('sw-lf-selection') }),
-    } : null,
+    onPlaySwLf: spezialwoche?.lueckenfuellerLemma?.lueckenfueller
+      ? () => startVT(() => { setSwLfViewOnly(false); setPhase('sw-lf-selection') })
+      : undefined,
     onViewSwLf: () => startVT(() => { setSwLfViewOnly(true); setPhase('sw-lf') }),
   }), [
     phase,
