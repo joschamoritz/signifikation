@@ -100,11 +100,20 @@ export function createAdminSpezialwocheRouter({
       const lemma_id        = req.body.lemma_id.trim().toLowerCase()
       const lueckenfueller_id = (req.body.lueckenfueller_id || '').trim().toLowerCase()
 
-      // Lemma muss in der DB existieren
+      // Lemmata in wortprofil.db prüfen
       const { byId, byLemma } = getLemmataIndex()
-      const lemma = byLemma.get(lemma_id) ?? byId.get(lemma_id)
+      const resolve = (key) => byLemma.get(key) ?? byId.get(key)
+
+      const lemma = resolve(lemma_id)
       if (!lemma) {
-        return res.status(404).json({ error: `Lemma „${lemma_id}" nicht in wortprofil.db gefunden` })
+        return res.status(404).json({ error: `Feld „Lemma": „${lemma_id}" nicht in wortprofil.db gefunden` })
+      }
+
+      if (lueckenfueller_id) {
+        const lfLemma = resolve(lueckenfueller_id)
+        if (!lfLemma) {
+          return res.status(404).json({ error: `Feld „Lückenfüller-Lemma": „${lueckenfueller_id}" nicht in wortprofil.db gefunden` })
+        }
       }
 
       let zwilling_kollokatoren = []
