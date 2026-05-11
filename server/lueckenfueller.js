@@ -190,6 +190,13 @@ export async function buildLueckenfueller(lemma, pos) {
     // sonst Lemma – so stimmen Optionsbutton und Lückenfüllung überein
     const correctLabel = target.token || target.lemma
 
+    // Distraktoren: ebenfalls token-Form aus dem Korpus holen (selber Satz-Kontext),
+    // damit alle Optionen grammatisch einheitlich flektiert erscheinen (z.B. "langfristige")
+    const distractorLabels = distractors.map(d => {
+      const found = findBlankableSatz(lemma, d)
+      return found?.token || d.lemma
+    })
+
     // Alle gezeigten Optionen dieser Runde für Folgerunden merken
     usedOptions.add(target.lemma)
     for (const d of distractors) usedOptions.add(d.lemma)
@@ -203,7 +210,7 @@ export async function buildLueckenfueller(lemma, pos) {
       satzMitLuecke: target.satzMitLuecke,
       quelle:        target.quelle,
       punkte:        PUNKTE[i],
-      optionen:      shuffle([correctLabel, ...distractors.map(d => d.lemma)]),
+      optionen:      shuffle([correctLabel, ...distractorLabels]),
     })
   }
 
@@ -213,18 +220,23 @@ export async function buildLueckenfueller(lemma, pos) {
   if (targets[idxA] && targets[idxB]) {
     const tA = targets[idxA]
     const tB = targets[idxB]
+    const labelA = tA.token || tA.lemma
+    const labelB = tB.token || tB.lemma
     const wrongOptions = pool
       .filter(c => c.lemma !== tA.lemma && c.lemma !== tB.lemma)
       .slice(0, 2)
-      .map(c => c.lemma)
+      .map(c => {
+        const found = findBlankableSatz(lemma, c)
+        return found?.token || c.lemma
+      })
 
     rounds.push({
       type:    'double',
       punkte:  PUNKTE[4],
-      optionen: shuffle([tA.lemma, tB.lemma, ...wrongOptions]),
+      optionen: shuffle([labelA, labelB, ...wrongOptions]),
       sentences: [
-        { satzMitLuecke: tA.satzMitLuecke, quelle: tA.quelle, kollokator: tA.lemma, token: tA.token },
-        { satzMitLuecke: tB.satzMitLuecke, quelle: tB.quelle, kollokator: tB.lemma, token: tB.token },
+        { satzMitLuecke: tA.satzMitLuecke, quelle: tA.quelle, kollokator: labelA, token: tA.token },
+        { satzMitLuecke: tB.satzMitLuecke, quelle: tB.quelle, kollokator: labelB, token: tB.token },
       ],
     })
   }
