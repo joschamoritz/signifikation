@@ -139,14 +139,14 @@ export function createAdminSpezialwocheRouter({
         })
 
         auditCreate?.('spezialwoche', woche, {
-          von, bis, lemma: lemma.lemma, zwilling_partner,
+          von, bis, lemma: lemma_id, zwilling_partner,
         }, req)
 
-        logger.info({ woche, lemma: lemma.lemma }, 'Spezialwoche gespeichert')
+        logger.info({ woche, lemma: lemma_id }, 'Spezialwoche gespeichert')
         res.json({
           ok: true,
           woche,
-          lemmaName: lemma.lemma,
+          lemmaName: lemma_id,
           wzKollokatoren: zwilling_kollokatoren.length,
         })
       } catch (err) {

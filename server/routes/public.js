@@ -3,6 +3,7 @@ import { join, normalize, sep } from 'path'
 import { readFileSync } from 'fs'
 import { fetchBelege, belegeVerfuegbar } from '../belege.js'
 import { fetchWiktionary } from '../wiktionary.js'
+import { fetchLemma, fetchBonusQuestion } from '../wortprofil.js'
 import { loadKalenderEntry, loadWortZwillingEntry, loadZeitenwendeEntry, loadSpezialwoche, recordStat, getPercentile, getLemmataIndex, cacheGet, cacheSet, DATA } from '../store.js'
 import { belegeLimiter, statsLimiter } from '../middleware/rateLimiter.js'
 import { auth } from '../auth/index.js'
@@ -247,16 +248,25 @@ router.get('/api/v1/bonus', validate(bonusQuerySchema, 'query'), (req, res) => {
  * Enthält das aufgelöste Lemma-Objekt (Kollokationen), Wort-Zwilling-Daten,
  * Zeitenwende-Metadaten und optional das Lückenfüller-Lemma.
  */
-router.get('/api/v1/spezialwoche', (req, res) => {
+router.get('/api/v1/spezialwoche', async (req, res) => {
   try {
     const datum = req.query.datum || todayDatum()
     const entry = loadSpezialwoche(datum)
     if (!entry) return res.json(null)
 
-    const { byId, byLemma } = getLemmataIndex()
-    const lemmaKey = entry.lemma_id?.toLowerCase() ?? ''
-    const lemma = byLemma.get(lemmaKey) ?? byLemma.get(entry.lemma_id) ?? byId.get(entry.lemma_id) ?? null
-    if (!lemma) return res.json(null)   // Lemma nicht mehr in DB → kein Eintrag
+    const lemmaId = entry.lemma_id?.toLowerCase() ?? ''
+    if (!lemmaId) return res.json(null)
+
+    // Lemma-Objekt direkt aus wortprofil.db bauen (wie reguläre Tageseinträge),
+    // damit auch Lemmata funktionieren die noch nie im Kalender standen.
+    const [lemma, bonusFrage] = await Promise.all([
+      fetchLemma(lemmaId, 'Substantiv'),
+      fetchBonusQuestion(lemmaId, 'Substantiv').catch(() => null),
+    ])
+    if (!lemma) return res.json(null)
+    lemma.bonusFrage = bonusFrage
+    lemma.notiz = entry.notiz || ''
+    lemma.link  = entry.link  || ''
 
     // Wort-Zwilling: nur ausgeben wenn Partner eingetragen
     let wortzwilling = null
@@ -271,17 +281,18 @@ router.get('/api/v1/spezialwoche', (req, res) => {
       }
     }
 
-    // Zeitenwende: immer vorhanden (nutzt Hauptlemma), Notiz + Link optional
+    // Zeitenwende: immer vorhanden, Notiz + Link optional
     const zeitenwende = {
       lemma:  lemma.lemma,
       notiz:  entry.zeitenwende_notiz,
       link:   entry.zeitenwende_link,
     }
 
-    // Lückenfüller: nur wenn lueckenfueller_id gesetzt und Lemma auffindbar
+    // Lückenfüller: nur wenn lueckenfueller_id gesetzt
     let lueckenfuellerLemma = null
     if (entry.lueckenfueller_id) {
-      const lfKey = entry.lueckenfueller_id?.toLowerCase() ?? ''
+      const { byId, byLemma } = getLemmataIndex()
+      const lfKey = entry.lueckenfueller_id.toLowerCase()
       const lfLemma = byLemma.get(lfKey) ?? byLemma.get(entry.lueckenfueller_id) ?? byId.get(entry.lueckenfueller_id) ?? null
       if (lfLemma?.lueckenfueller) lueckenfuellerLemma = lfLemma
     }
