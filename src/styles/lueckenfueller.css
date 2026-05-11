@@ -50,13 +50,13 @@
 .lf-satz-card::before {
   content: '\201C';
   font-family: var(--font-serif);
-  font-size: 3.5rem;
-  line-height: 0;
+  font-size: 3rem;
+  line-height: 1;
   color: var(--accent);
-  opacity: 0.5;
+  opacity: 0.45;
   display: block;
   text-align: center;
-  margin-bottom: 14px;
+  margin-bottom: 6px;
   pointer-events: none;
   user-select: none;
 }
@@ -186,18 +186,19 @@
 
 .lf-option-btn {
   position: relative;
-  padding: 11px 12px;
+  padding: 12px 14px;
   border: 1px solid var(--border);
-  border-radius: 2px;
+  border-radius: 0;
   background: var(--surface);
   font-family: var(--font-serif);
   font-size: 1rem;
+  font-style: italic;
   font-weight: 400;
   cursor: pointer;
   color: var(--text);
   text-align: center;
   transition: border-color 0.15s, background 0.15s, color 0.15s;
-  min-height: 48px;
+  min-height: 52px;
   display: flex;
   align-items: center;
   justify-content: center;

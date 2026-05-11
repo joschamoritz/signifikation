@@ -43,6 +43,12 @@ function DoubleSatz({ sentence, assignedWord, isActive, submitted }) {
   )
 }
 
+const BackArrow = () => (
+  <svg width="10" height="16" viewBox="0 0 10 16" fill="none" aria-hidden="true">
+    <path d="M8.5 1L1.5 8L8.5 15" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>
+)
+
 // ── Ergebnisseite ─────────────────────────────────────────
 function ResultsScreen({ data, scores, onBack }) {
   const maxPoints = data.reduce((s, r) => s + r.punkte, 0)
@@ -110,6 +116,7 @@ function ResultsScreen({ data, scores, onBack }) {
 
   return (
     <div className="screen lf-screen">
+      <button className="back-btn" type="button" onClick={onBack} aria-label="Zurück zur Startseite"><BackArrow /></button>
       <header className="lf-header">
         <span className="quiz-game-badge">Lückenfüller</span>
         <div className="round-progress" aria-label={`Alle ${data.length} Runden abgeschlossen`}>
@@ -128,14 +135,12 @@ function ResultsScreen({ data, scores, onBack }) {
         </div>
         <p className="results-medal">{medal.emoji} {medal.label}</p>
       </div>
-
-      <button className="btn-primary btn-full" onClick={onBack}>Zurück</button>
     </div>
   )
 }
 
 // ── Choice-Runde ──────────────────────────────────────────
-function ChoiceRound({ round, roundIdx, totalRounds, onScore, onBack }) {
+function ChoiceRound({ round, roundIdx, totalRounds, onScore }) {
   const [selected,  setSelected]  = useState(null)
   const [submitted, setSubmitted] = useState(false)
   const [pts,       setPts]       = useState(0)
@@ -204,12 +209,9 @@ function ChoiceRound({ round, roundIdx, totalRounds, onScore, onBack }) {
 
       <footer className="quiz-footer">
         {!submitted ? (
-          <>
-            <button className="btn-secondary" onClick={onBack}>Abbruch</button>
-            <button className="btn-primary" disabled={!selected} onClick={handleSubmit}>
-              Auswerten
-            </button>
-          </>
+          <button className="btn-primary btn-full" disabled={!selected} onClick={handleSubmit}>
+            Auswerten
+          </button>
         ) : (
           <button className="btn-primary btn-full" onClick={() => onScore(pts)}>
             {totalRounds - 1 === roundIdx ? 'Ergebnis ansehen' : 'Weiter →'}
@@ -221,7 +223,7 @@ function ChoiceRound({ round, roundIdx, totalRounds, onScore, onBack }) {
 }
 
 // ── Double-Runde ──────────────────────────────────────────
-function DoubleRound({ round, onScore, onBack }) {
+function DoubleRound({ round, onScore }) {
   const [answers,     setAnswers]     = useState([null, null])
   const [submitted,   setSubmitted]   = useState(false)
   const [debouncing,  setDebouncing]  = useState(null) // verhindert Doppelklick-Fehler auf Mobile
@@ -328,12 +330,9 @@ function DoubleRound({ round, onScore, onBack }) {
 
       <footer className="quiz-footer">
         {!submitted ? (
-          <>
-            <button className="btn-secondary" onClick={onBack}>Abbruch</button>
-            <button className="btn-primary" disabled={!bothFilled} onClick={handleSubmit}>
-              Auswerten
-            </button>
-          </>
+          <button className="btn-primary btn-full" disabled={!bothFilled} onClick={handleSubmit}>
+            Auswerten
+          </button>
         ) : (
           <button className="btn-primary btn-full" onClick={() => onScore(pts)}>
             Weiter →
@@ -345,7 +344,7 @@ function DoubleRound({ round, onScore, onBack }) {
 }
 
 // ── Free-Runde ────────────────────────────────────────────
-function FreeRound({ round, onScore, onBack }) {
+function FreeRound({ round, onScore }) {
   const [input,     setInput]     = useState('')
   const [submitted, setSubmitted] = useState(false)
   const [pts,       setPts]       = useState(0)
@@ -419,12 +418,9 @@ function FreeRound({ round, onScore, onBack }) {
 
       <footer className="quiz-footer">
         {!submitted ? (
-          <>
-            <button className="btn-secondary" onClick={onBack}>Abbruch</button>
-            <button className="btn-primary" disabled={!input.trim()} onClick={handleSubmit}>
-              Auswerten
-            </button>
-          </>
+          <button className="btn-primary btn-full" disabled={!input.trim()} onClick={handleSubmit}>
+            Auswerten
+          </button>
         ) : (
           <button className="btn-primary btn-full" onClick={() => onScore(pts)}>
             Ergebnis ansehen
@@ -480,6 +476,7 @@ export default function Lueckenfueller({ data, lemmaName, onBack, onFinish, save
 
   return (
     <div className="screen lf-screen">
+      <button className="back-btn" type="button" onClick={handleMidGameBack} aria-label="Zurück zur Startseite"><BackArrow /></button>
       <header className="lf-header">
         <div className="lf-header-top">
           <span className="quiz-game-badge">Lückenfüller</span>
@@ -503,7 +500,6 @@ export default function Lueckenfueller({ data, lemmaName, onBack, onFinish, save
           roundIdx={round}
           totalRounds={totalRounds}
           onScore={handleScore}
-          onBack={handleMidGameBack}
         />
       )}
 
@@ -512,7 +508,6 @@ export default function Lueckenfueller({ data, lemmaName, onBack, onFinish, save
           key={round}
           round={currentRound}
           onScore={handleScore}
-          onBack={handleMidGameBack}
         />
       )}
 
@@ -521,7 +516,6 @@ export default function Lueckenfueller({ data, lemmaName, onBack, onFinish, save
           key={round}
           round={currentRound}
           onScore={handleScore}
-          onBack={handleMidGameBack}
         />
       )}
     </div>
