@@ -3,7 +3,7 @@ import { join, normalize, sep } from 'path'
 import { readFileSync } from 'fs'
 import { fetchBelege, belegeVerfuegbar } from '../belege.js'
 import { fetchWiktionary } from '../wiktionary.js'
-import { fetchLemma, fetchBonusQuestion } from '../wortprofil.js'
+import { fetchLemma, fetchBonusQuestion, fetchZeitenwende } from '../wortprofil.js'
 import { loadKalenderEntry, loadWortZwillingEntry, loadZeitenwendeEntry, loadSpezialwoche, recordStat, getPercentile, getLemmataIndex, cacheGet, cacheSet, DATA } from '../store.js'
 import { belegeLimiter, statsLimiter } from '../middleware/rateLimiter.js'
 import { auth } from '../auth/index.js'
@@ -292,11 +292,15 @@ router.get('/api/v1/spezialwoche', async (req, res) => {
       }
     }
 
-    // Zeitenwende: immer vorhanden, Notiz + Link optional
+    // Zeitenwende: Wort-Daten (words) aus wortprofil.db generieren
+    const zwData = await fetchZeitenwende(lemmaId).catch(() => null)
     const zeitenwende = {
       lemma:  lemma.lemma,
-      notiz:  entry.zeitenwende_notiz,
-      link:   entry.zeitenwende_link,
+      words:  zwData?.words ?? [],
+      ipa:    lemma.ipa          || '',
+      definitionen: lemma.definitionen || [],
+      notiz:  entry.zeitenwende_notiz ?? '',
+      link:   entry.zeitenwende_link  ?? '',
     }
 
     // Lückenfüller: nur wenn lueckenfueller_id gesetzt

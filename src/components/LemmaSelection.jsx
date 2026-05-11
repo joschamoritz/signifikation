@@ -8,12 +8,19 @@ import ExternalLink from './ExternalLink'
 export default function LemmaSelection({ lemmata, thema, themaKurz, themaQuelle, playedIds = [], onSelect, onViewResult, onBack, spezialLemma = null, spezialwoche = null }) {
   const [closedNotiz, setClosedNotiz] = useState(() => new Set(lemmata.map(l => l.id)))
   // Lemmata mit gespeicherter IPA direkt ins Map laden; Rest per API nachholen
-  const [ipaMap, setIpaMap] = useState(() =>
-    Object.fromEntries(lemmata.filter(l => l.ipa).map(l => [l.lemma, l.ipa]))
-  )
+  const [ipaMap, setIpaMap] = useState(() => {
+    const entries = lemmata.filter(l => l.ipa).map(l => [l.lemma, l.ipa])
+    if (spezialLemma?.ipa) entries.push([spezialLemma.lemma, spezialLemma.ipa])
+    return Object.fromEntries(entries)
+  })
   const [ipaLoading, setIpaLoading] = useState(
     () => new Set(lemmata.filter(l => !l.ipa).map(l => l.lemma))
   )
+
+  // spezialLemma.ipa kommt server-seitig mit → direkt in Map übernehmen
+  useEffect(() => {
+    if (spezialLemma?.ipa) setIpaMap(m => ({ ...m, [spezialLemma.lemma]: spezialLemma.ipa }))
+  }, [spezialLemma?.ipa, spezialLemma?.lemma])
 
   useEffect(() => {
     const toFetch = [...lemmata, ...(spezialLemma ? [spezialLemma] : [])].filter(l => !l.ipa)
