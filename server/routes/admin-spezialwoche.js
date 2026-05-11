@@ -22,6 +22,7 @@ export function createAdminSpezialwocheRouter({
   saveSpezialwoche,
   deleteSpezialwoche,
   getLemmataIndex,
+  lemmaExistsInWortprofil,
   fetchWortZwilling,
   auditCreate,
   auditDelete,
@@ -100,20 +101,12 @@ export function createAdminSpezialwocheRouter({
       const lemma_id        = req.body.lemma_id.trim().toLowerCase()
       const lueckenfueller_id = (req.body.lueckenfueller_id || '').trim().toLowerCase()
 
-      // Lemmata in wortprofil.db prüfen
-      const { byId, byLemma } = getLemmataIndex()
-      const resolve = (key) => byLemma.get(key) ?? byId.get(key)
-
-      const lemma = resolve(lemma_id)
-      if (!lemma) {
+      // Lemmata direkt in wortprofil.db prüfen (nicht Kalender-Index)
+      if (!lemmaExistsInWortprofil(lemma_id)) {
         return res.status(404).json({ error: `Feld „Lemma": „${lemma_id}" nicht in wortprofil.db gefunden` })
       }
-
-      if (lueckenfueller_id) {
-        const lfLemma = resolve(lueckenfueller_id)
-        if (!lfLemma) {
-          return res.status(404).json({ error: `Feld „Lückenfüller-Lemma": „${lueckenfueller_id}" nicht in wortprofil.db gefunden` })
-        }
+      if (lueckenfueller_id && !lemmaExistsInWortprofil(lueckenfueller_id)) {
+        return res.status(404).json({ error: `Feld „Lückenfüller-Lemma": „${lueckenfueller_id}" nicht in wortprofil.db gefunden` })
       }
 
       let zwilling_kollokatoren = []
@@ -121,13 +114,13 @@ export function createAdminSpezialwocheRouter({
       // Wenn ein Zwillingspartner angegeben ist, Kollokatoren berechnen
       if (zwilling_partner) {
         try {
-          logger.info({ lemmaA: lemma.lemma, lemmaB: zwilling_partner, pos: zwilling_pos },
+          logger.info({ lemmaA: lemma_id, lemmaB: zwilling_partner, pos: zwilling_pos },
             'Spezialwoche: WortZwilling-Kollokatoren abrufen')
-          const wz = await fetchWortZwilling(lemma.lemma, zwilling_partner, zwilling_pos)
+          const wz = await fetchWortZwilling(lemma_id, zwilling_partner, zwilling_pos)
           if (wz) {
             zwilling_kollokatoren = wz.kollokatoren
           } else {
-            logger.warn({ lemmaA: lemma.lemma, lemmaB: zwilling_partner },
+            logger.warn({ lemmaA: lemma_id, lemmaB: zwilling_partner },
               'Spezialwoche: Nicht genug Kollokatoren – WZ bleibt leer')
           }
         } catch (err) {

@@ -1,7 +1,7 @@
 import express          from 'express'
 import { fileURLToPath } from 'url'
 import { dirname, join }  from 'path'
-import { fetchLemma, fetchBonusQuestion, fetchRelation, fetchZeitenwende, fetchZeitenwendeAnalyze, POS_ROUNDS } from '../wortprofil.js'
+import { fetchLemma, fetchBonusQuestion, fetchRelation, fetchZeitenwende, fetchZeitenwendeAnalyze, lemmaExistsInWortprofil, POS_ROUNDS } from '../wortprofil.js'
 import { buildLueckenfueller } from '../lueckenfueller.js'
 import { fetchBelege } from '../belege.js'
 import { fetchWiktionary } from '../wiktionary.js'
@@ -207,6 +207,7 @@ router.use(createAdminSpezialwocheRouter({
   saveSpezialwoche,
   deleteSpezialwoche,
   getLemmataIndex,
+  lemmaExistsInWortprofil,
   fetchWortZwilling,
   auditCreate,
   auditDelete,

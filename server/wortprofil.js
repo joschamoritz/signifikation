@@ -525,3 +525,18 @@ export async function fetchZeitenwendeAnalyze(lemma) {
   const result = await fetchZeitenwende(lemma)
   return { lemma, usable: !!result, preCandidates, postCandidates, words: result?.words ?? null }
 }
+
+/**
+ * Prüft, ob ein Lemma mindestens einen Eintrag in wortprofil.db hat.
+ * Nützlich für Admin-Validierung ohne den Kalender-Index zu benötigen.
+ */
+export function lemmaExistsInWortprofil(lemma) {
+  try {
+    const row = withConnection(db =>
+      stmt('SELECT 1 FROM collocations WHERE lemma = ? LIMIT 1', db).get(lemma.toLowerCase())
+    )
+    return !!row
+  } catch {
+    return false
+  }
+}
