@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { API } from '../config'
 import { lsGet, lsSet, lsRemove } from '../utils/storage'
 
@@ -53,6 +53,10 @@ export function useEntitlements() {
       return { ok: false, code: 'network_error' }
     }
   }, [syncEntitlementsFromResponse])
+
+  useEffect(() => {
+    refreshEntitlements()
+  }, [refreshEntitlements])
 
   return {
     gesamtausgabeUnlocked: gesamtausgabeUnlocked || freeAccessToday,
