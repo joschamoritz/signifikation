@@ -14,11 +14,11 @@ export function useWiktionary({ lemma, initialIpa = '', initialDefinitionen = []
   useEffect(() => {
     let cancelled = false
 
-    setIpa(initialIpa)
-    setDefinitionen(initialDefinitionen)
-    setLoading(!initialIpa || !initialDefinitionen.length)
-
+    // Initialwerte werden nur einmalig per useState gesetzt – kein Reset hier,
+    // da initialDefinitionen bei jedem Render eine neue []-Referenz ist und
+    // sonst einen Infinite-Loop verursachen würde.
     if (!lemma) return () => { cancelled = true }
+
     const needsIpa  = !initialIpa
     const needsDefs = !initialDefinitionen.length
     if (!needsIpa && !needsDefs) {
@@ -45,7 +45,8 @@ export function useWiktionary({ lemma, initialIpa = '', initialDefinitionen = []
       cancelled = true
       controller.abort()
     }
-  }, [lemma, initialDefinitionen, initialIpa])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lemma])
 
   return { ipa, definitionen, loading }
 }

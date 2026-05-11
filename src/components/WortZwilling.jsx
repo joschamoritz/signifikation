@@ -1,20 +1,108 @@
 import { useState, useEffect, useRef } from 'react'
+import {
+  DndContext,
+  DragOverlay,
+  MouseSensor,
+  TouchSensor,
+  useSensor,
+  useSensors,
+  useDroppable,
+  useDraggable,
+  closestCenter,
+} from '@dnd-kit/core'
+import { CSS } from '@dnd-kit/utilities'
 import { shuffle } from '../utils/gameLogic'
 import { API } from '../config'
 import WzResultsView, { computeScore } from './WzResultsView'
 import { logError } from '../utils/logError'
 
-/** Hauptkomponente */
+// ── Draggable Chip ────────────────────────────────────────────
+function DraggableChip({ word, placed, selected, jokerCluster, onClick, onKeyDown, ariaLabel }) {
+  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id: word })
+  const style = transform ? { transform: CSS.Translate.toString(transform) } : undefined
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      {...listeners}
+      {...attributes}
+      role="button"
+      tabIndex={0}
+      className={[
+        'wz-chip',
+        placed         ? 'wz-chip--placed'   : '',
+        isDragging     ? 'wz-chip--dragging'  : '',
+        selected       ? 'wz-chip--selected'  : '',
+        jokerCluster   ? 'wz-chip--cluster'   : '',
+      ].filter(Boolean).join(' ')}
+      onClick={onClick}
+      onKeyDown={onKeyDown}
+      aria-label={ariaLabel}
+    >
+      {word}
+    </div>
+  )
+}
+
+// ── Droppable Zone ────────────────────────────────────────────
+function DroppableZone({ id, label, chips, jokerCluster, isShaking, isClickable, isFull, onZoneClick, onChipClick }) {
+  const { isOver, setNodeRef } = useDroppable({ id })
+  return (
+    <div
+      ref={setNodeRef}
+      role="button"
+      tabIndex={isClickable ? 0 : -1}
+      aria-label={`${label}${isFull ? ' – voll' : isClickable ? ' – hier einordnen' : ''}`}
+      className={[
+        'wz-zone',
+        isOver      ? 'wz-zone--over'      : '',
+        isClickable ? 'wz-zone--clickable'  : '',
+        isFull      ? 'wz-zone--full'       : '',
+        isShaking   ? 'wz-zone--shake'      : '',
+      ].filter(Boolean).join(' ')}
+      onClick={onZoneClick}
+      onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onZoneClick() } }}
+    >
+      <div className="wz-zone-label">{label}</div>
+      {isShaking && <p className="wz-zone-full-msg" aria-live="polite">Zone voll</p>}
+      <div className="wz-zone-chips">
+        {chips.map(w => (
+          <DraggableChip
+            key={w}
+            word={w}
+            placed
+            jokerCluster={jokerCluster?.includes(w)}
+            onClick={e => { e.stopPropagation(); onChipClick(w) }}
+            onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.stopPropagation(); onChipClick(w) } }}
+            ariaLabel={`${w} – in Zone ${label}, zurück in Wortbank legen`}
+          />
+        ))}
+        {Array.from({ length: 5 - chips.length }).map((_, i) => (
+          <div key={i} className="wz-slot-empty" />
+        ))}
+      </div>
+    </div>
+  )
+}
+
+// ── Droppable Bank ────────────────────────────────────────────
+function DroppableBank({ children }) {
+  const { isOver, setNodeRef } = useDroppable({ id: 'bank' })
+  return (
+    <div ref={setNodeRef} className={`wz-bank${isOver ? ' wz-bank--over' : ''}`}>
+      {children}
+    </div>
+  )
+}
+
+// ── Hauptkomponente ───────────────────────────────────────────
 export default function WortZwilling({ data, onBack, onFinish, savedResult = null }) {
   const words = data.kollokatoren.map(k => k.wort)
 
-  // Einmalig gemischte Reihenfolge für die Anzeige
   const [order] = useState(() => shuffle([...words]))
 
-  // Positionen: jedes Wort → 'bank' | 'A' | 'B'
   const [locations, setLocations] = useState(() => {
     if (savedResult) {
-      // Beim Revisit: gespeicherte Zuordnung wiederherstellen
       const map = {}
       for (const w of words) map[w] = 'bank'
       for (const w of (savedResult.zoneA || [])) map[w] = 'A'
@@ -24,19 +112,19 @@ export default function WortZwilling({ data, onBack, onFinish, savedResult = nul
     return Object.fromEntries(words.map(w => [w, 'bank']))
   })
 
-  const [selected, setSelected] = useState(null) // mobiler Click-Flow
-  const [dragging, setDragging] = useState(null) // aktuell gezogenes Wort
-  const [dragOver, setDragOver] = useState(null) // 'A' | 'B' | 'bank' | null
-  const [phase, setPhase]       = useState(savedResult ? 'results' : 'play')
-  const [fullZone, setFullZone] = useState(null) // 'A' | 'B' — Zone gerade voll-geblockt
+  const [selected,  setSelected]  = useState(null)
+  const [activeId,  setActiveId]  = useState(null)
+  const [phase,     setPhase]     = useState(savedResult ? 'results' : 'play')
+  const [fullZone,  setFullZone]  = useState(null)
 
   // ── Joker ────────────────────────────────────────────────────
-  const [jokerVisible, setJokerVisible] = useState(false)
-  const [jokerUsed,    setJokerUsed]    = useState(false)
-  const [jokerCluster, setJokerCluster] = useState(null) // [word1, word2] gleiche Gruppe
-  const jokerTimer = useRef(null)
-  const jokerMsgTimer = useRef(null)
-  const fullZoneTimer = useRef(null)
+  const [jokerVisible,  setJokerVisible]  = useState(false)
+  const [jokerUsed,     setJokerUsed]     = useState(false)
+  const [jokerCluster,  setJokerCluster]  = useState(null)
+  const [jokerMsg,      setJokerMsg]      = useState(null)
+  const jokerTimer     = useRef(null)
+  const jokerMsgTimer  = useRef(null)
+  const fullZoneTimer  = useRef(null)
 
   useEffect(() => {
     if (phase !== 'play' || jokerUsed) return
@@ -57,19 +145,17 @@ export default function WortZwilling({ data, onBack, onFinish, savedResult = nul
     jokerTimer.current = setTimeout(() => setJokerVisible(true), 20000)
   }
 
-  const [jokerMsg, setJokerMsg] = useState(null)
-
   function activateJoker() {
     if (jokerUsed || phase !== 'play') return
     setJokerUsed(true)
     setJokerVisible(false)
     clearTimeout(jokerTimer.current)
-    const groupA = data.kollokatoren.filter(k => k.zuordnung === 'A').map(k => k.wort)
-    const groupB = data.kollokatoren.filter(k => k.zuordnung === 'B').map(k => k.wort)
-    const wrongA = groupA.filter(w => locations[w] !== 'A')
-    const wrongB = groupB.filter(w => locations[w] !== 'B')
-    const pool = wrongA.length >= wrongB.length ? groupA : groupB
-    const pair = shuffle([...pool]).slice(0, 2)
+    const groupA   = data.kollokatoren.filter(k => k.zuordnung === 'A').map(k => k.wort)
+    const groupB   = data.kollokatoren.filter(k => k.zuordnung === 'B').map(k => k.wort)
+    const wrongA   = groupA.filter(w => locations[w] !== 'A')
+    const wrongB   = groupB.filter(w => locations[w] !== 'B')
+    const pool     = wrongA.length >= wrongB.length ? groupA : groupB
+    const pair     = shuffle([...pool]).slice(0, 2)
     if (pair.length === 2) {
       setJokerCluster(pair)
       setJokerMsg(pair)
@@ -78,7 +164,7 @@ export default function WortZwilling({ data, onBack, onFinish, savedResult = nul
     }
   }
 
-  // IPA für beide Wörter
+  // ── IPA ──────────────────────────────────────────────────────
   const [ipaA, setIpaA] = useState(null)
   const [ipaB, setIpaB] = useState(null)
   useEffect(() => {
@@ -100,7 +186,7 @@ export default function WortZwilling({ data, onBack, onFinish, savedResult = nul
 
   const canSubmit = zoneA.length === 5 && zoneB.length === 5
 
-  // ── Hilfsfunktionen ──────────────────────────────────────
+  // ── Hilfsfunktionen ──────────────────────────────────────────
   function moveTo(word, zone) {
     const target = zone === 'A' ? zoneA : zoneB
     if (locations[word] !== zone && target.length >= 5) {
@@ -118,43 +204,32 @@ export default function WortZwilling({ data, onBack, onFinish, savedResult = nul
     setSelected(null)
   }
 
-  // ── Drag & Drop ──────────────────────────────────────────
-  function onDragStart(e, word) {
-    setDragging(word)
-    e.dataTransfer.effectAllowed = 'move'
+  // ── dnd-kit Sensors (Mouse + Touch + Keyboard) ────────────────
+  const sensors = useSensors(
+    useSensor(MouseSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(TouchSensor, { activationConstraint: { distance: 5 } }),
+  )
+
+  function handleDragStart(event) {
+    setActiveId(event.active.id)
+    setSelected(null)
+    resetJokerTimer()
   }
 
-  function onDragEnd() {
-    setDragging(null)
-    setDragOver(null)
+  function handleDragEnd(event) {
+    const { active, over } = event
+    setActiveId(null)
+    if (!over) return
+    const word = active.id
+    if (over.id === 'bank') moveToBank(word)
+    else if (over.id === 'A' || over.id === 'B') moveTo(word, over.id)
   }
 
-  function onDragOverZone(e, zone) {
-    e.preventDefault()
-    e.dataTransfer.dropEffect = 'move'
-    setDragOver(zone)
+  function handleDragCancel() {
+    setActiveId(null)
   }
 
-  function onDragOverBank(e) {
-    e.preventDefault()
-    setDragOver('bank')
-  }
-
-  function onDropZone(e, zone) {
-    e.preventDefault()
-    if (dragging) moveTo(dragging, zone)
-    setDragging(null)
-    setDragOver(null)
-  }
-
-  function onDropBank(e) {
-    e.preventDefault()
-    if (dragging) moveToBank(dragging)
-    setDragging(null)
-    setDragOver(null)
-  }
-
-  // ── Click-Flow (Mobile) ───────────────────────────────────
+  // ── Click-Flow (Tap-Tap für Keyboard/schnelle Auswahl) ────────
   function onChipClick(word) {
     if (selected === word) { setSelected(null); return }
     if (locations[word] !== 'bank') { moveToBank(word); return }
@@ -166,7 +241,7 @@ export default function WortZwilling({ data, onBack, onFinish, savedResult = nul
     moveTo(selected, zone)
   }
 
-  // ── Auswerten ─────────────────────────────────────────────
+  // ── Auswerten ─────────────────────────────────────────────────
   function handleSubmit() {
     if (!canSubmit) return
     const zuordnungMap = Object.fromEntries(data.kollokatoren.map(k => [k.wort, k.zuordnung]))
@@ -175,154 +250,129 @@ export default function WortZwilling({ data, onBack, onFinish, savedResult = nul
     onFinish?.({ score, zoneA, zoneB })
   }
 
-  // ── Ergebnisansicht ───────────────────────────────────────
+  // ── Ergebnisansicht ───────────────────────────────────────────
   if (phase === 'results') {
     return <WzResultsView data={data} zoneA={zoneA} zoneB={zoneB} onBack={onBack} ipaA={ipaA} ipaB={ipaB} />
   }
 
-  // ── Spielansicht ──────────────────────────────────────────
   const remaining = 10 - zoneA.length - zoneB.length
 
   return (
-    <div className="screen wz-screen" onClick={resetJokerTimer}>
-      <button className="back-btn" type="button" onClick={onBack} aria-label="Zurück zur Startseite"><svg width="10" height="16" viewBox="0 0 10 16" fill="none" aria-hidden="true"><path d="M8.5 1L1.5 8L8.5 15" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg></button>
-      <header className="wz-header">
-        <span className="wz-badge">Wort-Zwilling</span>
-        <div className="wz-dict-pair">
-          <div className="dict-entry-header">
-            <h1 className="wz-title">{data.wortA}</h1>
-            <div className="dict-entry-meta">
-              {ipaA && <span className="lautschrift">[{ipaA}]</span>}
-              {data.pos && <span className="dict-entry-wortart">{data.pos}</span>}
-            </div>
-            {(ipaA || data.pos) && <hr className="dict-entry-rule" aria-hidden="true" />}
-          </div>
-          <span className="wz-dict-vs" aria-hidden="true">·</span>
-          <div className="dict-entry-header">
-            <h1 className="wz-title">{data.wortB}</h1>
-            <div className="dict-entry-meta">
-              {ipaB && <span className="lautschrift">[{ipaB}]</span>}
-              {data.pos && <span className="dict-entry-wortart">{data.pos}</span>}
-            </div>
-            {(ipaB || data.pos) && <hr className="dict-entry-rule" aria-hidden="true" />}
-          </div>
-        </div>
-      </header>
+    <DndContext
+      sensors={sensors}
+      collisionDetection={closestCenter}
+      onDragStart={handleDragStart}
+      onDragEnd={handleDragEnd}
+      onDragCancel={handleDragCancel}
+    >
+      <div className="screen wz-screen" onClick={resetJokerTimer}>
+        <button className="back-btn" type="button" onClick={onBack} aria-label="Zurück zur Startseite">
+          <svg width="10" height="16" viewBox="0 0 10 16" fill="none" aria-hidden="true">
+            <path d="M8.5 1L1.5 8L8.5 15" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+        </button>
 
-      <p className="wz-instruction">
-        Ordne die Kollokationen dem richtigen Wort zu.
-        {!jokerUsed && jokerVisible && (
-          <button className="joker-btn" type="button" onClick={e => { e.stopPropagation(); activateJoker() }} aria-label="Hinweis aktivieren" title="Hinweis"><em>i</em></button>
-        )}
-      </p>
-
-      {/* Wortbank */}
-      <div
-        className={`wz-bank${dragOver === 'bank' ? ' wz-bank--over' : ''}`}
-        onDragOver={onDragOverBank}
-        onDragLeave={() => setDragOver(null)}
-        onDrop={onDropBank}
-      >
-        {bank.length > 0
-          ? bank.map(w => (
-              <div
-                key={w}
-                role="button"
-                tabIndex={0}
-                className={`wz-chip${selected === w ? ' wz-chip--selected' : ''}${dragging === w ? ' wz-chip--dragging' : ''}${jokerCluster?.includes(w) ? ' wz-chip--cluster' : ''}`}
-                draggable
-                onDragStart={e => onDragStart(e, w)}
-                onDragEnd={onDragEnd}
-                onClick={() => onChipClick(w)}
-                onKeyDown={e => (e.key === 'Enter' || e.key === ' ') && onChipClick(w)}
-                aria-label={selected === w ? `${w} ausgewählt – Tippe auf eine Zone` : w}
-              >
-                {w}
+        <header className="wz-header">
+          <span className="wz-badge">Wort-Zwilling</span>
+          <div className="wz-dict-pair">
+            <div className="dict-entry-header">
+              <h1 className="wz-title">{data.wortA}</h1>
+              <div className="dict-entry-meta">
+                {ipaA && <span className="lautschrift">[{ipaA}]</span>}
+                {data.pos && <span className="dict-entry-wortart">{data.pos}</span>}
               </div>
-            ))
-          : <p className="wz-bank-done">Alle Wörter zugeordnet <span aria-hidden="true">✓</span></p>
-        }
-      </div>
+              {(ipaA || data.pos) && <hr className="dict-entry-rule" aria-hidden="true" />}
+            </div>
+            <span className="wz-dict-vs" aria-hidden="true">·</span>
+            <div className="dict-entry-header">
+              <h1 className="wz-title">{data.wortB}</h1>
+              <div className="dict-entry-meta">
+                {ipaB && <span className="lautschrift">[{ipaB}]</span>}
+                {data.pos && <span className="dict-entry-wortart">{data.pos}</span>}
+              </div>
+              {(ipaB || data.pos) && <hr className="dict-entry-rule" aria-hidden="true" />}
+            </div>
+          </div>
+        </header>
 
-      {/* Zugängliche Ankündigung für "Zone voll" (persistent aria-live region) */}
-      <p className="sr-only" aria-live="polite" aria-atomic="true">
-        {fullZone ? `Zone ${fullZone === 'A' ? data.wortA : data.wortB} ist voll` : ''}
-      </p>
-
-      {jokerMsg && (
-        <p className="wz-joker-msg" aria-live="polite">
-          <em><strong>{jokerMsg[0]}</strong> und <strong>{jokerMsg[1]}</strong> gehören demselben Wort zu.</em>
+        <p className="wz-instruction">
+          Ordne die Kollokationen dem richtigen Wort zu.
+          {!jokerUsed && jokerVisible && (
+            <button
+              className="joker-btn"
+              type="button"
+              onClick={e => { e.stopPropagation(); activateJoker() }}
+              aria-label="Hinweis aktivieren"
+              title="Hinweis"
+            ><em>i</em></button>
+          )}
         </p>
-      )}
 
-      {selected && (
-        <p className="wz-hint">Tippe auf eine Zone, um <strong>{selected}</strong> einzuordnen</p>
-      )}
+        {/* Zugängliche Ankündigung für "Zone voll" */}
+        <p className="sr-only" aria-live="polite" aria-atomic="true">
+          {fullZone ? `Zone ${fullZone === 'A' ? data.wortA : data.wortB} ist voll` : ''}
+        </p>
 
-      {/* Drop-Zonen */}
-      <div className="wz-zones">
-        {[['A', data.wortA, zoneA], ['B', data.wortB, zoneB]].map(([z, label, zone]) => {
-          const isOver      = dragOver === z
-          const isFull      = zone.length >= 5
-          const isClickable = !!selected && !isFull
-          const isShaking   = fullZone === z
-          return (
-            <div
+        {jokerMsg && (
+          <p className="wz-joker-msg" aria-live="polite">
+            <em><strong>{jokerMsg[0]}</strong> und <strong>{jokerMsg[1]}</strong> gehören demselben Wort zu.</em>
+          </p>
+        )}
+
+        {/* Wortbank */}
+        <DroppableBank>
+          {bank.length > 0
+            ? bank.map(w => (
+                <DraggableChip
+                  key={w}
+                  word={w}
+                  selected={selected === w}
+                  jokerCluster={jokerCluster?.includes(w)}
+                  onClick={() => onChipClick(w)}
+                  onKeyDown={e => (e.key === 'Enter' || e.key === ' ') && onChipClick(w)}
+                  ariaLabel={w}
+                />
+              ))
+            : <p className="wz-bank-done">Alle Wörter zugeordnet <span aria-hidden="true">✓</span></p>
+          }
+        </DroppableBank>
+
+        {/* Drop-Zonen */}
+        <div className="wz-zones">
+          {[['A', data.wortA, zoneA], ['B', data.wortB, zoneB]].map(([z, label, zone]) => (
+            <DroppableZone
               key={z}
-              role="button"
-              tabIndex={isClickable ? 0 : -1}
-              aria-label={`${label}${isFull ? ' – voll' : selected ? ` – ${selected} hier einordnen` : ''}`}
-              className={[
-                'wz-zone',
-                isOver      ? 'wz-zone--over'      : '',
-                isClickable ? 'wz-zone--clickable'  : '',
-                isFull      ? 'wz-zone--full'       : '',
-                isShaking   ? 'wz-zone--shake'      : '',
-              ].filter(Boolean).join(' ')}
-              onDragOver={e => onDragOverZone(e, z)}
-              onDragLeave={() => setDragOver(prev => prev === z ? null : prev)}
-              onDrop={e => onDropZone(e, z)}
-              onClick={() => onZoneClick(z)}
-              onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onZoneClick(z) } }}
-            >
-              <div className="wz-zone-label">{label}</div>
-              {isShaking && <p className="wz-zone-full-msg" aria-live="polite">Zone voll</p>}
-              <div className="wz-zone-chips">
-                {zone.map(w => (
-                  <div
-                    key={w}
-                    role="button"
-                    tabIndex={0}
-                    className={`wz-chip wz-chip--placed${dragging === w ? ' wz-chip--dragging' : ''}${jokerCluster?.includes(w) ? ' wz-chip--cluster' : ''}`}
-                    draggable
-                    onDragStart={e => onDragStart(e, w)}
-                    onDragEnd={onDragEnd}
-                    onClick={e => { e.stopPropagation(); onChipClick(w) }}
-                    onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.stopPropagation(); onChipClick(w) } }}
-                    aria-label={`${w} – in Zone ${label}, zurück in Wortbank legen`}
-                  >
-                    {w}
-                  </div>
-                ))}
-                {Array.from({ length: 5 - zone.length }).map((_, i) => (
-                  <div key={i} className="wz-slot-empty" />
-                ))}
-              </div>
-            </div>
-          )
-        })}
+              id={z}
+              label={label}
+              chips={zone}
+              jokerCluster={jokerCluster}
+              isShaking={fullZone === z}
+              isFull={zone.length >= 5}
+              isClickable={!!selected && zone.length < 5}
+              onZoneClick={() => onZoneClick(z)}
+              onChipClick={onChipClick}
+            />
+          ))}
+        </div>
+
+        <button
+          className="btn-primary btn-full"
+          type="button"
+          onClick={handleSubmit}
+          disabled={!canSubmit}
+        >
+          {canSubmit
+            ? 'Auswerten'
+            : `Noch ${remaining} Wort${remaining !== 1 ? 'e' : ''} zuordnen`}
+        </button>
       </div>
 
-      <button
-        className="btn-primary btn-full"
-        type="button"
-        onClick={handleSubmit}
-        disabled={!canSubmit}
-      >
-        {canSubmit
-          ? 'Auswerten'
-          : `Noch ${remaining} Wort${remaining !== 1 ? 'e' : ''} zuordnen`}
-      </button>
-    </div>
+      {/* Floating chip während des Drags */}
+      <DragOverlay>
+        {activeId ? (
+          <div className="wz-chip wz-chip--overlay">{activeId}</div>
+        ) : null}
+      </DragOverlay>
+    </DndContext>
   )
 }

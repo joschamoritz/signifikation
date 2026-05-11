@@ -53,18 +53,6 @@
   100% { opacity: 0 }
 }
 
-.wz-hint {
-  font-size: 0.82rem;
-  color: var(--primary);
-  text-align: center;
-  font-weight: 500;
-  animation: wz-pulse 1s ease-in-out 4 alternate;
-}
-@keyframes wz-pulse {
-  from { opacity: 0.55 }
-  to   { opacity: 1 }
-}
-
 /* Wortbank */
 .wz-bank {
   display: flex;
@@ -114,6 +102,7 @@
 .wz-chip--placed      { background: var(--surface2); border-color: var(--border); cursor: pointer }
 .wz-chip--placed:hover { border-color: var(--muted) }
 .wz-chip--dragging    { opacity: 0.3 }
+.wz-chip--overlay     { cursor: grabbing; box-shadow: 0 4px 16px rgba(0,0,0,0.15); opacity: 0.95; transform: rotate(1.5deg) }
 .wz-chip--correct     { background: var(--success-bg); border-color: #86efac; color: var(--success); cursor: pointer }
 .wz-chip--wrong       { background: var(--error-bg);   border-color: #fca5a5; color: var(--error);   cursor: pointer; animation: wzReject 180ms ease both }
 .wz-chip--beleg-active { outline: 2px solid var(--primary); outline-offset: 1px }
