@@ -34,11 +34,11 @@ export function createAdminSpezialwocheRouter({
   /** GET /admin/spezialwochen – alle Einträge sortiert nach von DESC */
   router.get('/admin/spezialwochen', adminLimiter, requireAuth, (req, res) => {
     try {
-      const { byId } = getLemmataIndex()
+      const { byId, byLemma } = getLemmataIndex()
       const rows = loadAllSpezialwochen()
       const result = rows.map(r => ({
         ...r,
-        lemmaName: byId.get(r.lemma_id)?.lemma ?? r.lemma_id,
+        lemmaName: (byLemma.get(r.lemma_id) ?? byId.get(r.lemma_id))?.lemma ?? r.lemma_id,
       }))
       res.json({ entries: result })
     } catch (err) {
@@ -72,8 +72,8 @@ export function createAdminSpezialwocheRouter({
         const { woche } = req.params
         const entry = loadSpezialwocheByWoche(woche)
         if (!entry) return res.status(404).json({ error: `Kein Eintrag für ${woche}` })
-        const { byId } = getLemmataIndex()
-        res.json({ entry: { ...entry, lemmaName: byId.get(entry.lemma_id)?.lemma ?? entry.lemma_id } })
+        const { byId, byLemma } = getLemmataIndex()
+        res.json({ entry: { ...entry, lemmaName: (byLemma.get(entry.lemma_id) ?? byId.get(entry.lemma_id))?.lemma ?? entry.lemma_id } })
       } catch (err) {
         adminError(res, 500, 'Spezialwoche konnte nicht geladen werden', err)
       }
@@ -96,11 +96,11 @@ export function createAdminSpezialwocheRouter({
         lueckenfueller_id, notiz, link,
       } = req.body
 
-      // Lemma muss in der DB existieren
-      const { byId } = getLemmataIndex()
-      const lemma = byId.get(lemma_id)
+      // Lemma muss in der DB existieren – Suche erst per Lemma-Wort, dann per ID
+      const { byId, byLemma } = getLemmataIndex()
+      const lemma = byLemma.get(lemma_id) ?? byId.get(lemma_id)
       if (!lemma) {
-        return res.status(404).json({ error: `Lemma mit ID „${lemma_id}" nicht gefunden` })
+        return res.status(404).json({ error: `Lemma „${lemma_id}" nicht gefunden` })
       }
 
       let zwilling_kollokatoren = []
