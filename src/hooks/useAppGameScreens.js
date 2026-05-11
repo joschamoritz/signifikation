@@ -21,6 +21,7 @@ export function useAppGameScreens({
     onZeitenwendeBack: (progress) => startVT(() => { setZwProgress(progress ?? null); backToHome() }),
     onWortzwillingSelectionBack: () => startVT(() => setPhase('home')),
     onZeitenwendeSelectionBack: () => startVT(() => setPhase('home')),
+    onLueckenfuellerSelectionBack: () => startVT(() => setPhase('home')),
     onLueckenfuellerBack: (progress) => startVT(() => { setLfProgress(progress ?? null); setPhase('home') }),
   }), [
     backToHome,

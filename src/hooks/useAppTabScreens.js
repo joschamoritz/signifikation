@@ -83,7 +83,7 @@ export function useAppTabScreens({
     onPlayLueckenfueller: lueckenfuellerLemma?.lueckenfueller ? {
       play: () => startVT(() => {
         setLfViewOnly(false)
-        setPhase('lueckenfueller')
+        setPhase('lueckenfueller-selection')
       }),
     } : null,
     onViewLueckenfueller: () => startVT(() => {
@@ -113,7 +113,7 @@ export function useAppTabScreens({
     },
     onViewSwZw: () => startVT(() => { setSwZwViewOnly(true); setPhase('sw-zeitenwende') }),
     onPlaySwLf: spezialwoche?.lueckenfuellerLemma?.lueckenfueller ? {
-      play: () => startVT(() => { setSwLfViewOnly(false); setPhase('sw-lf') }),
+      play: () => startVT(() => { setSwLfViewOnly(false); setPhase('sw-lf-selection') }),
     } : null,
     onViewSwLf: () => startVT(() => { setSwLfViewOnly(true); setPhase('sw-lf') }),
   }), [
@@ -172,6 +172,16 @@ export function useAppTabScreens({
     setPhase('sw-zeitenwende')
   }), [setPhase, startVT])
 
+  const goToLueckenfuellerGame = useCallback(() => startVT(() => {
+    setLfViewOnly(false)
+    setPhase('lueckenfueller')
+  }), [setPhase, startVT])
+
+  const goToSwLfGame = useCallback(() => startVT(() => {
+    setSwLfViewOnly(false)
+    setPhase('sw-lf')
+  }), [setPhase, startVT])
+
   return {
     tabScreens,
     wzViewOnly,
@@ -179,10 +189,12 @@ export function useAppTabScreens({
     lfViewOnly,
     goToWortzwillingGame,
     goToZeitenwendeGame,
+    goToLueckenfuellerGame,
     swWzViewOnly,
     swZwViewOnly,
     swLfViewOnly,
     goToSwWzGame,
     goToSwZeitenwendeGame,
+    goToSwLfGame,
   }
 }

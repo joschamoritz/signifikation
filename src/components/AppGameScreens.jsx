@@ -2,6 +2,7 @@ import { Suspense } from 'react'
 import LemmaSelection from './LemmaSelection'
 import WortZwillingSelection from './WortZwillingSelection'
 import ZeitenwendeSelection from './ZeitenwendeSelection'
+import LueckenfuellerSelection from './LueckenfuellerSelection'
 import Quiz from './Quiz'
 import Results from './Results'
 
@@ -46,6 +47,8 @@ export default function AppGameScreens({
   zwProgress,
   Zeitenwende,
   lueckenfuellerLemma,
+  onLueckenfuellerSelectionBack,
+  onLueckenfuellerPlay,
   onLueckenfuellerBack,
   handleLFFinish,
   lfViewOnly,
@@ -65,6 +68,7 @@ export default function AppGameScreens({
   swLfViewOnly,
   onSwWzPlay,
   onSwZwPlay,
+  onSwLfPlay,
   onSwBack,
 }) {
   return (
@@ -140,6 +144,16 @@ export default function AppGameScreens({
           />
         </Suspense>
       )}
+      {phase === 'lueckenfueller-selection' && lueckenfuellerLemma?.lueckenfueller && (
+        <LueckenfuellerSelection
+          data={lueckenfuellerLemma}
+          thema={thema}
+          themaKurz={themaKurz}
+          themaQuelle={themaQuelle}
+          onPlay={onLueckenfuellerPlay}
+          onBack={onLueckenfuellerSelectionBack}
+        />
+      )}
       {phase === 'lueckenfueller' && lueckenfuellerLemma?.lueckenfueller && (
         <Suspense fallback={<ScreenFallback />}>
           <Lueckenfueller
@@ -199,6 +213,16 @@ export default function AppGameScreens({
       )}
 
       {/* ── Spezialwoche: Lückenfüller ───────────────────────────── */}
+      {phase === 'sw-lf-selection' && spezialwoche?.lueckenfuellerLemma?.lueckenfueller && (
+        <LueckenfuellerSelection
+          data={spezialwoche.lueckenfuellerLemma}
+          thema="Wort der Woche"
+          themaKurz={spezialwoche.lemma?.lemma ?? ''}
+          themaQuelle=""
+          onPlay={onSwLfPlay}
+          onBack={onSwBack}
+        />
+      )}
       {phase === 'sw-lf' && spezialwoche?.lueckenfuellerLemma?.lueckenfueller && (
         <Suspense fallback={<ScreenFallback />}>
           <Lueckenfueller

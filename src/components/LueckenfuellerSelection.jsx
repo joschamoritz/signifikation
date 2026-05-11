@@ -1,0 +1,73 @@
+import { useState } from 'react'
+import { useWiktionary } from '../hooks/useWiktionary'
+import SelectionThema from './SelectionThema'
+
+export default function LueckenfuellerSelection({ data, thema, themaKurz, themaQuelle, onPlay, onBack }) {
+  const { lemma, pos, notiz, link } = data ?? {}
+  const [notizOpen, setNotizOpen] = useState(false)
+  const { ipa, definitionen } = useWiktionary({ lemma })
+
+  return (
+    <div className="screen selection-screen">
+      <header className="selection-header">
+        <button className="back-btn" type="button" onClick={onBack} aria-label="Zurück zur Startseite">
+          <svg width="10" height="16" viewBox="0 0 10 16" fill="none" aria-hidden="true">
+            <path d="M8.5 1L1.5 8L8.5 15" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+        </button>
+        <span className="quiz-game-badge">Lückenfüller</span>
+        <h1 className="sr-only">Lückenfüller – Wortvorschau</h1>
+        <SelectionThema thema={thema} themaKurz={themaKurz} themaQuelle={themaQuelle} />
+      </header>
+
+      <div className="secondary-selection-card">
+        <div className="lemma-card-wrap">
+          <div className="lemma-card">
+            <button
+              className="lemma-card-main"
+              type="button"
+              onClick={onPlay}
+              aria-label={`${lemma} – Lückenfüller starten`}
+            >
+              <div className="lemma-info">
+                <div className="lemma-header-row">
+                  <span className="lemma-name">{lemma}</span>
+                  {ipa && <span className="lautschrift lemma-ipa">[{ipa}]</span>}
+                  {pos && <span className="lemma-wortart-abbrev">{pos}</span>}
+                </div>
+                {definitionen.length > 0 && (
+                  <div className="lemma-definition">
+                    {definitionen.slice(0, 2).map((d, i) => <p key={i}>{d}</p>)}
+                  </div>
+                )}
+              </div>
+              <span className="lemma-arrow" aria-hidden="true">›</span>
+            </button>
+
+            {notiz && (
+              <button
+                className={`lemma-info-btn${notizOpen ? ' lemma-info-btn--active' : ''}`}
+                type="button"
+                onClick={() => setNotizOpen(o => !o)}
+                aria-label={`Hinweis ${notizOpen ? 'ausblenden' : 'anzeigen'}`}
+                aria-expanded={notizOpen}
+              >i</button>
+            )}
+          </div>
+
+          {notizOpen && notiz && (
+            <div className="lemma-notiz">
+              <span>{notiz}</span>
+              {link && (
+                <a href={link} target="_blank" rel="noopener noreferrer"
+                  className="lemma-notiz-link"
+                  aria-label="Mehr erfahren (öffnet externen Link)"
+                >Mehr →</a>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}

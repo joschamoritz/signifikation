@@ -247,6 +247,8 @@ export function useAppModel() {
       zwProgress,
       Zeitenwende: ZeitenwendeScreen,
       lueckenfuellerLemma,
+      onLueckenfuellerSelectionBack: gameScreenActions.onLueckenfuellerSelectionBack,
+      onLueckenfuellerPlay: tabState.goToLueckenfuellerGame,
       onLueckenfuellerBack: gameScreenActions.onLueckenfuellerBack,
       handleLFFinish,
       lfViewOnly: tabState.lfViewOnly,
@@ -266,6 +268,7 @@ export function useAppModel() {
       swLfViewOnly: tabState.swLfViewOnly,
       onSwWzPlay: tabState.goToSwWzGame,
       onSwZwPlay: tabState.goToSwZeitenwendeGame,
+      onSwLfPlay: tabState.goToSwLfGame,
       onSwBack: gameScreenActions.onBackToHome,
     },
     persistentClassroomProps: {
