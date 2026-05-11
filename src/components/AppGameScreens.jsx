@@ -52,6 +52,20 @@ export default function AppGameScreens({
   lfPlayed,
   lfProgress,
   Lueckenfueller,
+  // Spezialwoche
+  spezialwoche,
+  swWzPlayed,
+  swZwPlayed,
+  swLfPlayed,
+  handleSwWZFinish,
+  handleSwZeitenwendeFinish,
+  handleSwLFFinish,
+  swWzViewOnly,
+  swZwViewOnly,
+  swLfViewOnly,
+  onSwWzPlay,
+  onSwZwPlay,
+  onSwBack,
 }) {
   return (
     <>
@@ -65,6 +79,8 @@ export default function AppGameScreens({
           onSelect={handleLemmaSelect}
           onViewResult={handleViewResult}
           onBack={onBackToHome}
+          spezialLemma={spezialwoche?.lemma ?? null}
+          spezialwoche={spezialwoche}
         />
       )}
       {phase === 'wortzwilling-selection' && wortzwilling && (
@@ -133,6 +149,65 @@ export default function AppGameScreens({
             onFinish={handleLFFinish}
             savedResult={lfViewOnly ? lfPlayed : null}
             initialProgress={lfViewOnly ? null : lfProgress}
+          />
+        </Suspense>
+      )}
+
+      {/* ── Spezialwoche: Wort-Zwilling ─────────────────────────── */}
+      {phase === 'sw-wz-selection' && spezialwoche?.wortzwilling && (
+        <WortZwillingSelection
+          data={spezialwoche.wortzwilling}
+          thema="Wort der Woche"
+          themaKurz={spezialwoche.lemma?.lemma ?? ''}
+          themaQuelle=""
+          onPlay={onSwWzPlay}
+          onBack={onSwBack}
+        />
+      )}
+      {phase === 'sw-wz' && spezialwoche?.wortzwilling && (
+        <Suspense fallback={<ScreenFallback />}>
+          <WortZwilling
+            data={spezialwoche.wortzwilling}
+            onBack={onSwBack}
+            onFinish={handleSwWZFinish}
+            savedResult={swWzViewOnly ? swWzPlayed : null}
+          />
+        </Suspense>
+      )}
+
+      {/* ── Spezialwoche: Zeitenwende ────────────────────────────── */}
+      {phase === 'sw-zeitenwende-selection' && spezialwoche?.zeitenwende && (
+        <ZeitenwendeSelection
+          data={spezialwoche.zeitenwende}
+          thema="Wort der Woche"
+          themaKurz={spezialwoche.lemma?.lemma ?? ''}
+          themaQuelle=""
+          onPlay={onSwZwPlay}
+          onBack={onSwBack}
+        />
+      )}
+      {phase === 'sw-zeitenwende' && spezialwoche?.zeitenwende && (
+        <Suspense fallback={<ScreenFallback />}>
+          <Zeitenwende
+            data={spezialwoche.zeitenwende}
+            onBack={onSwBack}
+            onFinish={handleSwZeitenwendeFinish}
+            savedResult={swZwViewOnly ? swZwPlayed : null}
+            initialProgress={null}
+          />
+        </Suspense>
+      )}
+
+      {/* ── Spezialwoche: Lückenfüller ───────────────────────────── */}
+      {phase === 'sw-lf' && spezialwoche?.lueckenfuellerLemma?.lueckenfueller && (
+        <Suspense fallback={<ScreenFallback />}>
+          <Lueckenfueller
+            data={spezialwoche.lueckenfuellerLemma.lueckenfueller}
+            lemmaName={spezialwoche.lueckenfuellerLemma.lemma}
+            onBack={onSwBack}
+            onFinish={handleSwLFFinish}
+            savedResult={swLfViewOnly ? swLfPlayed : null}
+            initialProgress={null}
           />
         </Suspense>
       )}

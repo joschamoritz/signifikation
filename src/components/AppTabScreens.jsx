@@ -34,6 +34,19 @@ export default function AppTabScreens({
   classroomInSession,
   onNavigateToKonto,
   refreshEntitlements,
+  // Spezialwoche
+  spezialwoche,
+  swWzPlayed,
+  swZwPlayed,
+  swLfPlayed,
+  onPlaySwKoll,
+  onViewSwKoll,
+  onPlaySwWz,
+  onViewSwWz,
+  onPlaySwZw,
+  onViewSwZw,
+  onPlaySwLf,
+  onViewSwLf,
 }) {
   return {
     spielmodi: phase === 'home' ? (
@@ -66,6 +79,18 @@ export default function AppTabScreens({
         freeAccessToday={freeAccessToday}
         freeAccessLabel={freeAccessLabel}
         onUnlockGesamtausgabe={onNavigateToKonto}
+        spezialwoche={spezialwoche}
+        swWzPlayed={swWzPlayed}
+        swZwPlayed={swZwPlayed}
+        swLfPlayed={swLfPlayed}
+        onPlaySwKoll={onPlaySwKoll}
+        onViewSwKoll={onViewSwKoll}
+        onPlaySwWz={onPlaySwWz?.play}
+        onViewSwWz={onViewSwWz}
+        onPlaySwZw={onPlaySwZw?.play}
+        onViewSwZw={onViewSwZw}
+        onPlaySwLf={onPlaySwLf?.play}
+        onViewSwLf={onViewSwLf}
       />
     ) : null,
     kurs: (

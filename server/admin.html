@@ -62,6 +62,7 @@
           <div class="nav-group-items">
             <button class="nav-item" data-action="switch-page" data-page="users">Nutzer</button>
             <button class="nav-item" data-action="switch-page" data-page="freedays">Freitage</button>
+            <button class="nav-item" data-action="switch-page" data-page="spezialwoche">Wort der Woche</button>
             <button class="nav-item" data-action="switch-page" data-page="system">System</button>
           </div>
         </div>
@@ -716,6 +717,100 @@
             <button class="entry-filters-reset" data-action="load-free-days">↺ Laden</button>
           </div>
           <div id="freedays-list">
+            <div class="users-empty">Wird geladen …</div>
+          </div>
+        </div>
+      </section>
+
+      <section class="admin-page" id="page-spezialwoche" data-title="Wort der Woche" data-subtitle="Wöchentliches Spezial-Lemma, das montags bis sonntags in allen Spielmodi verfügbar ist.">
+        <div class="card">
+          <h2>Wort der Woche eintragen</h2>
+          <p class="section-copy">Das Spezial-Lemma erscheint die ganze Woche abgesetzt unter den täglichen Lemmata und ist in allen Spielmodi spielbar.</p>
+
+          <div class="sw-form-grid">
+            <div class="entry-field entry-field--compact">
+              <label for="sw-woche">ISO-Woche <span class="label-hint">z.&nbsp;B. 2026-W20</span></label>
+              <input type="text" id="sw-woche" placeholder="2026-W20" maxlength="8" pattern="\d{4}-W\d{2}">
+            </div>
+            <div class="entry-field entry-field--compact">
+              <label for="sw-von">Von (Mo)</label>
+              <input type="date" id="sw-von">
+            </div>
+            <div class="entry-field entry-field--compact">
+              <label for="sw-bis">Bis (So)</label>
+              <input type="date" id="sw-bis">
+            </div>
+          </div>
+
+          <div class="sw-form-grid">
+            <div class="entry-field">
+              <label for="sw-lemma-id">Lemma</label>
+              <input type="text" id="sw-lemma-id" placeholder="z.B. Finale" maxlength="120">
+            </div>
+            <div class="entry-field entry-field--compact">
+              <label for="sw-notiz">Notiz <span class="label-hint">optional</span></label>
+              <input type="text" id="sw-notiz" placeholder="z.B. DFB Pokalfinale 2026" maxlength="500">
+            </div>
+            <div class="entry-field entry-field--compact">
+              <label for="sw-link">Link <span class="label-hint">optional</span></label>
+              <input type="text" id="sw-link" placeholder="https://…" maxlength="500">
+            </div>
+          </div>
+
+          <h3 class="sw-section-heading">Wort-Zwilling</h3>
+          <div class="sw-form-grid">
+            <div class="entry-field">
+              <label for="sw-wza">Partner-Wort <span class="label-hint">leer = kein WZ</span></label>
+              <input type="text" id="sw-wza" placeholder="z.B. Niederlage" maxlength="100">
+            </div>
+            <div class="entry-field entry-field--compact">
+              <label for="sw-wzpos">Wortart Partner</label>
+              <select id="sw-wzpos">
+                <option value="Substantiv">Substantiv</option>
+                <option value="Verb">Verb</option>
+                <option value="Adjektiv">Adjektiv</option>
+                <option value="Adverb">Adverb</option>
+              </select>
+            </div>
+            <div class="entry-field entry-field--compact">
+              <button class="ghost-btn" style="margin-top:1.5rem" data-action="preview-sw-wz">WZ-Vorschau</button>
+            </div>
+          </div>
+          <pre id="sw-wz-preview" class="system-json sw-wz-preview is-hidden"></pre>
+
+          <h3 class="sw-section-heading">Zeitenwende</h3>
+          <div class="sw-form-grid">
+            <div class="entry-field">
+              <label for="sw-zw-notiz">Notiz <span class="label-hint">optional – Hinweis zur Zeitenwende</span></label>
+              <input type="text" id="sw-zw-notiz" placeholder="Kurze Erklärung …" maxlength="500">
+            </div>
+            <div class="entry-field">
+              <label for="sw-zw-link">Link <span class="label-hint">optional</span></label>
+              <input type="text" id="sw-zw-link" placeholder="https://…" maxlength="500">
+            </div>
+          </div>
+
+          <h3 class="sw-section-heading">Lückenfüller</h3>
+          <div class="sw-form-grid">
+            <div class="entry-field">
+              <label for="sw-lf-id">Lückenfüller-Lemma <span class="label-hint">leer = keiner</span></label>
+              <input type="text" id="sw-lf-id" placeholder="z.B. Finale" maxlength="120">
+            </div>
+          </div>
+
+          <div class="sw-form-actions">
+            <button class="primary-btn" data-action="save-spezialwoche">Speichern</button>
+            <button class="entry-filters-reset" data-action="clear-sw-form">Formular leeren</button>
+          </div>
+          <p class="entry-hint is-hidden" id="sw-msg"></p>
+        </div>
+
+        <div class="card">
+          <div class="card-head card-head--wrap">
+            <h2>Eingetragene Spezialwochen</h2>
+            <button class="entry-filters-reset" data-action="load-spezialwochen">↺ Laden</button>
+          </div>
+          <div id="sw-list">
             <div class="users-empty">Wird geladen …</div>
           </div>
         </div>

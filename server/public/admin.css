@@ -2303,3 +2303,95 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
     grid-template-columns: 1fr;
   }
 }
+
+/* ── Spezialwoche ─────────────────────────────────────────── */
+.sw-form-grid {
+  display: flex;
+  gap: 8px;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+
+.sw-section-heading {
+  font-size: 0.88rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin: 18px 0 8px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border-lt);
+}
+
+.sw-form-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-top: 18px;
+  flex-wrap: wrap;
+}
+
+.sw-wz-preview {
+  margin-top: 10px;
+  font-size: 0.78rem;
+  max-height: 260px;
+  overflow-y: auto;
+}
+
+.sw-list {
+  display: grid;
+  gap: 0;
+}
+
+.sw-list-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border-lt);
+  flex-wrap: wrap;
+}
+
+.sw-list-main {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  flex: 1;
+  min-width: 0;
+}
+
+.sw-list-main strong {
+  font-size: 0.9rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.sw-list-dates {
+  font-size: 0.82rem;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.sw-list-lemma {
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+.sw-list-badge {
+  font-size: 0.74rem;
+  background: var(--surface2);
+  color: var(--muted);
+  border-radius: 4px;
+  padding: 2px 7px;
+  white-space: nowrap;
+}
+
+.sw-list-actions {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  flex-shrink: 0;
+}

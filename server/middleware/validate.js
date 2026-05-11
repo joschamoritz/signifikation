@@ -226,6 +226,35 @@ export const adminSocialCardsBelegeSchema = z.object({
   collocate: z.string().min(1).max(100),
 })
 
+// ── Spezialwoche Schemas ────────────────────────────────────────
+
+const ISO_WOCHE = z.string().regex(/^\d{4}-W\d{2}$/, 'woche muss ISO-Format haben: YYYY-Www')
+
+/** POST /admin/spezialwoche */
+export const adminSpezialwocheSchema = z.object({
+  woche:              ISO_WOCHE,
+  von:                DATUM_ISO,
+  bis:                DATUM_ISO,
+  lemma_id:           z.string().trim().min(1, 'lemma_id erforderlich').max(120),
+  zwilling_partner:   z.string().max(100).optional().default(''),
+  zwilling_pos:       POS,
+  zeitenwende_notiz:  z.string().max(500).optional().default(''),
+  zeitenwende_link:   z.string().max(500).optional().default(''),
+  lueckenfueller_id:  z.string().max(120).optional().default(''),
+  notiz:              z.string().max(500).optional().default(''),
+  link:               z.string().max(500).optional().default(''),
+})
+
+/** GET /admin/spezialwoche/:woche (params) */
+export const adminSpezialwocheParamsSchema = z.object({
+  woche: ISO_WOCHE,
+})
+
+/** GET /api/v1/spezialwoche (query: datum=) */
+export const spezialwocheDatumQuerySchema = z.object({
+  datum: DATUM_ISO.optional(),
+})
+
 // ── Classroom Schemas ───────────────────────────────────────────
 
 const CLASSROOM_STATE = z.enum(['created', 'lobby', 'running', 'finished', 'archived'])

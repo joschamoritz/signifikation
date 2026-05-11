@@ -5,7 +5,7 @@ import { logError } from '../utils/logError'
 import ExternalLink from './ExternalLink'
 
 
-export default function LemmaSelection({ lemmata, thema, themaKurz, themaQuelle, playedIds = [], onSelect, onViewResult, onBack }) {
+export default function LemmaSelection({ lemmata, thema, themaKurz, themaQuelle, playedIds = [], onSelect, onViewResult, onBack, spezialLemma = null, spezialwoche = null }) {
   const [closedNotiz, setClosedNotiz] = useState(() => new Set(lemmata.map(l => l.id)))
   // Lemmata mit gespeicherter IPA direkt ins Map laden; Rest per API nachholen
   const [ipaMap, setIpaMap] = useState(() =>
@@ -16,7 +16,7 @@ export default function LemmaSelection({ lemmata, thema, themaKurz, themaQuelle,
   )
 
   useEffect(() => {
-    const toFetch = lemmata.filter(l => !l.ipa)
+    const toFetch = [...lemmata, ...(spezialLemma ? [spezialLemma] : [])].filter(l => !l.ipa)
     if (!toFetch.length) return
 
     const controller = new AbortController()
@@ -47,6 +47,7 @@ export default function LemmaSelection({ lemmata, thema, themaKurz, themaQuelle,
       </header>
 
       <div className="lemma-cards">
+        {/* ── Tägliche Lemmata ─── */}
         {lemmata.map(lemma => {
           const played = playedIds.includes(lemma.id)
           return (
@@ -106,6 +107,81 @@ export default function LemmaSelection({ lemmata, thema, themaKurz, themaQuelle,
           </div>
           )
         })}
+        {/* ── Wort der Woche (abgesetzt) ─── */}
+        {spezialLemma && (
+          <>
+            <div className="lemma-cards-spezial-divider" role="separator" aria-label="Wort der Woche">
+              <span className="lemma-cards-spezial-label">✦ Wort der Woche</span>
+            </div>
+            <div className="lemma-card-wrap">
+              <div className={`lemma-card lemma-card--spezial${playedIds.includes(spezialLemma.id) ? ' lemma-card--played' : ''}`}>
+                <button
+                  className="lemma-card-main"
+                  type="button"
+                  onClick={() =>
+                    playedIds.includes(spezialLemma.id)
+                      ? onViewResult?.(spezialLemma.id)
+                      : onSelect(spezialLemma)
+                  }
+                  aria-label={
+                    playedIds.includes(spezialLemma.id)
+                      ? `${spezialLemma.lemma} – Ergebnis ansehen`
+                      : `${spezialLemma.lemma} spielen`
+                  }
+                >
+                  <div className="lemma-info">
+                    <div className="lemma-header-row">
+                      <span className="lemma-name">{spezialLemma.lemma}</span>
+                      {ipaMap[spezialLemma.lemma]
+                        ? <span className="lautschrift lemma-ipa">[{ipaMap[spezialLemma.lemma]}]</span>
+                        : ipaLoading.has(spezialLemma.lemma) && <span className="lemma-ipa-skeleton" aria-hidden="true" />
+                      }
+                      <span className="lemma-wortart-abbrev">{spezialLemma.wortart}</span>
+                    </div>
+                    {(spezialLemma.definitionen?.length > 0 || spezialLemma.definition) && (
+                      <div className="lemma-definition">
+                        {spezialLemma.definitionen?.length > 0
+                          ? spezialLemma.definitionen.slice(0, 2).map((d, i) => <p key={i}>{d}</p>)
+                          : <p>{spezialLemma.definition}</p>
+                        }
+                      </div>
+                    )}
+                    {spezialwoche?.von && (
+                      <p className="lemma-spezial-zeitraum">
+                        {spezialwoche.von.slice(5)} – {spezialwoche.bis.slice(5)}
+                      </p>
+                    )}
+                  </div>
+                  <span className="lemma-arrow" aria-hidden="true">›</span>
+                </button>
+                {spezialLemma.notiz && (
+                  <button
+                    className={`lemma-info-btn ${!closedNotiz.has(spezialLemma.id) ? 'lemma-info-btn--active' : ''}`}
+                    onClick={() => setClosedNotiz(s => {
+                      const n = new Set(s)
+                      n.has(spezialLemma.id) ? n.delete(spezialLemma.id) : n.add(spezialLemma.id)
+                      return n
+                    })}
+                    aria-label={`Hinweis zu ${spezialLemma.lemma} ${!closedNotiz.has(spezialLemma.id) ? 'ausblenden' : 'anzeigen'}`}
+                    aria-expanded={!closedNotiz.has(spezialLemma.id)}
+                  >i</button>
+                )}
+              </div>
+              {!closedNotiz.has(spezialLemma.id) && spezialLemma.notiz && (
+                <div className="lemma-notiz">
+                  <span>{spezialLemma.notiz}</span>
+                  {spezialLemma.link && (
+                    <ExternalLink
+                      href={spezialLemma.link}
+                      className="lemma-notiz-link"
+                      aria-label={`Mehr über ${spezialLemma.lemma} erfahren (öffnet externen Link)`}
+                    >Mehr →</ExternalLink>
+                  )}
+                </div>
+              )}
+            </div>
+          </>
+        )}
       </div>
 
     </div>

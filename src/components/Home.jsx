@@ -32,6 +32,12 @@ export default function Home({
   freeAccessToday = false,
   freeAccessLabel = null,
   onUnlockGesamtausgabe = () => {},
+  // Spezialwoche (Wort der Woche)
+  spezialwoche = null,
+  swKollPlayed = null, onPlaySwKoll, onViewSwKoll,
+  swWzPlayed  = null, onPlaySwWz,   onViewSwWz,
+  swZwPlayed  = null, onPlaySwZw,   onViewSwZw,
+  swLfPlayed  = null, onPlaySwLf,   onViewSwLf,
 }) {
   const [sheetOpen,         setSheetOpen]         = useState(false)
   const [desktopInfoOpen,   setDesktopInfoOpen]   = useState(false)
@@ -486,6 +492,111 @@ export default function Home({
                 </div>
               </div>
             </li>
+
+            {/* ── ✦ Wort der Woche (Spezialwoche, optional) ── */}
+            {spezialwoche && (
+              <li className="test-entry test-entry--spezialwoche">
+                <div className="test-entry-number" aria-hidden="true">
+                  <span className="test-entry-num-glyph">✦</span>
+                  <span className="test-entry-marginalia">WOCHE</span>
+                </div>
+                <div className="test-entry-body">
+                  <div className="test-entry-head">
+                    <h2 className="test-headword">{spezialwoche.lemma.lemma}</h2>
+                    <span className="test-entry-spezial-badge">Wort der Woche</span>
+                  </div>
+                  <div className="test-entry-grammar" aria-hidden="true">
+                    <span className="test-pos">{spezialwoche.lemma.wortart || spezialwoche.lemma.pos}</span>
+                    <span className="test-pos-rule" />
+                    <span className="test-entry-category">{spezialwoche.von.slice(5)} – {spezialwoche.bis.slice(5)}</span>
+                  </div>
+                  {spezialwoche.notiz && (
+                    <p className="test-definition">{spezialwoche.notiz}</p>
+                  )}
+
+                  {/* Mode-Buttons */}
+                  <div className="test-spezial-modes">
+                    {/* Kollokationen */}
+                    <div className="test-spezial-mode-row">
+                      <span className="test-spezial-mode-label">Kollokationen</span>
+                      <button
+                        className="test-cta test-cta--sm"
+                        type="button"
+                        onClick={swKollPlayed ? onViewSwKoll : onPlaySwKoll}
+                        aria-label={swKollPlayed ? `Ergebnis ansehen: Wort der Woche Kollokationen` : `Wort der Woche Kollokationen spielen`}
+                      >
+                        {swKollPlayed ? `${swKollPlayed.medal?.emoji ?? ''} Ergebnis` : 'Spielen'}
+                        <span className="test-cta-arrow" aria-hidden="true"> →</span>
+                      </button>
+                    </div>
+
+                    {/* Wort-Zwilling – nur wenn Zwillingspartner vorhanden */}
+                    {spezialwoche.wortzwilling && (
+                      <div className="test-spezial-mode-row">
+                        <span className="test-spezial-mode-label">Wort-Zwilling</span>
+                        {!gesamtausgabe ? (
+                          <button className="test-cta test-cta--sm test-cta--locked" type="button" onClick={onUnlockGesamtausgabe}>
+                            <LockIcon /> Gesamtausgabe
+                          </button>
+                        ) : (
+                          <button
+                            className="test-cta test-cta--sm"
+                            type="button"
+                            onClick={swWzPlayed ? onViewSwWz : onPlaySwWz}
+                            aria-label={swWzPlayed ? 'Ergebnis ansehen: Wort-Zwilling Wort der Woche' : 'Wort-Zwilling Wort der Woche spielen'}
+                          >
+                            {swWzPlayed ? `${swWzPlayed.medal?.emoji ?? ''} Ergebnis` : 'Spielen'}
+                            <span className="test-cta-arrow" aria-hidden="true"> →</span>
+                          </button>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Zeitenwende */}
+                    <div className="test-spezial-mode-row">
+                      <span className="test-spezial-mode-label">Zeitenwende</span>
+                      {!gesamtausgabe ? (
+                        <button className="test-cta test-cta--sm test-cta--locked" type="button" onClick={onUnlockGesamtausgabe}>
+                          <LockIcon /> Gesamtausgabe
+                        </button>
+                      ) : (
+                        <button
+                          className="test-cta test-cta--sm"
+                          type="button"
+                          onClick={swZwPlayed ? onViewSwZw : onPlaySwZw}
+                          aria-label={swZwPlayed ? 'Ergebnis ansehen: Zeitenwende Wort der Woche' : 'Zeitenwende Wort der Woche spielen'}
+                        >
+                          {swZwPlayed ? `${swZwPlayed.medal?.emoji ?? ''} Ergebnis` : 'Spielen'}
+                          <span className="test-cta-arrow" aria-hidden="true"> →</span>
+                        </button>
+                      )}
+                    </div>
+
+                    {/* Lückenfüller – nur wenn Lemma Lückenfüller-Daten hat */}
+                    {spezialwoche.lueckenfuellerLemma?.lueckenfueller && (
+                      <div className="test-spezial-mode-row">
+                        <span className="test-spezial-mode-label">Lückenfüller</span>
+                        {!gesamtausgabe ? (
+                          <button className="test-cta test-cta--sm test-cta--locked" type="button" onClick={onUnlockGesamtausgabe}>
+                            <LockIcon /> Gesamtausgabe
+                          </button>
+                        ) : (
+                          <button
+                            className="test-cta test-cta--sm"
+                            type="button"
+                            onClick={swLfPlayed ? onViewSwLf : onPlaySwLf}
+                            aria-label={swLfPlayed ? 'Ergebnis ansehen: Lückenfüller Wort der Woche' : 'Lückenfüller Wort der Woche spielen'}
+                          >
+                            {swLfPlayed ? `${swLfPlayed.medal?.emoji ?? ''} Ergebnis` : 'Spielen'}
+                            <span className="test-cta-arrow" aria-hidden="true"> →</span>
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </li>
+            )}
 
             {/* ── ⑤ Platzhalter (i.V.) ─────────────────────── */}
             <li className="test-entry test-entry--disabled" aria-hidden="true">

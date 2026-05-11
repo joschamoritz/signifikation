@@ -116,6 +116,10 @@ function switchPage(pageId) {
   if (pageId === 'freedays') {
     loadFreeDays()
   }
+
+  if (pageId === 'spezialwoche') {
+    loadSpezialwochen()
+  }
 }
 
 function refreshDashboard() {
@@ -2600,6 +2604,176 @@ async function deleteFreeDay(date) {
   } catch { /* ignore */ }
 }
 
+// ── Spezialwoche ──────────────────────────────────────────
+function setSwMessage(message, tone = 'info') {
+  const msgEl = document.getElementById('sw-msg')
+  if (!msgEl) return
+  msgEl.textContent = message || ''
+  msgEl.classList.remove('is-hidden', 'is-error', 'is-success')
+  if (!message) { msgEl.classList.add('is-hidden'); return }
+  if (tone === 'error') msgEl.classList.add('is-error')
+  if (tone === 'success') msgEl.classList.add('is-success')
+}
+
+function fillSwForm(entry) {
+  const set = (id, val) => { const el = document.getElementById(id); if (el) el.value = val ?? '' }
+  set('sw-woche', entry.woche)
+  set('sw-von', entry.von)
+  set('sw-bis', entry.bis)
+  set('sw-lemma-id', entry.lemma_id)
+  set('sw-notiz', entry.notiz)
+  set('sw-link', entry.link)
+  set('sw-wza', entry.zwilling_partner)
+  set('sw-wzpos', entry.zwilling_pos || 'Substantiv')
+  set('sw-zw-notiz', entry.zeitenwende_notiz)
+  set('sw-zw-link', entry.zeitenwende_link)
+  set('sw-lf-id', entry.lueckenfueller_id)
+  const preview = document.getElementById('sw-wz-preview')
+  if (preview) preview.classList.add('is-hidden')
+  setSwMessage('')
+}
+
+function clearSwForm() {
+  ['sw-woche', 'sw-von', 'sw-bis', 'sw-lemma-id', 'sw-notiz', 'sw-link',
+   'sw-wza', 'sw-zw-notiz', 'sw-zw-link', 'sw-lf-id'].forEach((id) => {
+    const el = document.getElementById(id)
+    if (el) el.value = ''
+  })
+  const posEl = document.getElementById('sw-wzpos')
+  if (posEl) posEl.value = 'Substantiv'
+  const preview = document.getElementById('sw-wz-preview')
+  if (preview) preview.classList.add('is-hidden')
+  setSwMessage('')
+}
+
+async function loadSpezialwochen() {
+  const listEl = document.getElementById('sw-list')
+  if (listEl) listEl.innerHTML = '<div class="users-empty">Wird geladen …</div>'
+  try {
+    const res = await fetch('/admin/spezialwochen')
+    if (!res.ok) throw new Error(`HTTP ${res.status}`)
+    const { entries } = await res.json()
+    if (!listEl) return
+    if (!Array.isArray(entries) || !entries.length) {
+      listEl.innerHTML = '<div class="users-empty">Keine Spezialwochen eingetragen.</div>'
+      return
+    }
+    const rows = entries.map((e) => `
+      <div class="sw-list-row">
+        <div class="sw-list-main">
+          <strong>${esc(e.woche)}</strong>
+          <span class="sw-list-dates">${esc(formatIsoDate(e.von))} – ${esc(formatIsoDate(e.bis))}</span>
+          <span class="sw-list-lemma">${esc(e.lemmaName || e.lemma_id)}</span>
+          ${e.zwilling_partner ? `<span class="sw-list-badge">WZ: ${esc(e.zwilling_partner)}</span>` : ''}
+          ${e.zeitenwende_notiz ? `<span class="sw-list-badge">ZW ✓</span>` : ''}
+          ${e.lueckenfueller_id ? `<span class="sw-list-badge">LF: ${esc(e.lueckenfueller_id)}</span>` : ''}
+        </div>
+        <div class="sw-list-actions">
+          <button class="ghost-btn ghost-btn--small" data-action="edit-spezialwoche" data-woche="${esc(e.woche)}">Bearbeiten</button>
+          <button class="entry-filters-reset" data-action="delete-spezialwoche" data-woche="${esc(e.woche)}">Löschen</button>
+        </div>
+      </div>`).join('')
+    listEl.innerHTML = `<div class="sw-list">${rows}</div>`
+  } catch (err) {
+    if (listEl) listEl.innerHTML = `<div class="users-empty" style="color:#991b1b">Fehler: ${esc(err.message)}</div>`
+  }
+}
+
+async function saveSpezialwoche() {
+  const get = (id) => (document.getElementById(id)?.value || '').trim()
+  const body = {
+    woche: get('sw-woche'),
+    von: get('sw-von'),
+    bis: get('sw-bis'),
+    lemma_id: get('sw-lemma-id'),
+    notiz: get('sw-notiz'),
+    link: get('sw-link'),
+    zwilling_partner: get('sw-wza'),
+    zwilling_pos: get('sw-wzpos') || 'Substantiv',
+    zeitenwende_notiz: get('sw-zw-notiz'),
+    zeitenwende_link: get('sw-zw-link'),
+    lueckenfueller_id: get('sw-lf-id'),
+  }
+  if (!body.woche || !body.von || !body.bis || !body.lemma_id) {
+    setSwMessage('Woche, Von, Bis und Lemma sind Pflicht.', 'error')
+    return
+  }
+  try {
+    const res = await fetch('/admin/spezialwoche', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    })
+    const data = await res.json().catch(() => ({}))
+    if (!res.ok) {
+      setSwMessage(data.error || 'Fehler beim Speichern.', 'error')
+      return
+    }
+    setSwMessage(`Woche ${body.woche} gespeichert.`, 'success')
+    clearSwForm()
+    await loadSpezialwochen()
+  } catch {
+    setSwMessage('Netzwerkfehler.', 'error')
+  }
+}
+
+async function editSpezialwoche(woche) {
+  if (!woche) return
+  try {
+    const res = await fetch(`/admin/spezialwoche/${encodeURIComponent(woche)}`)
+    if (!res.ok) throw new Error(`HTTP ${res.status}`)
+    const { entry } = await res.json()
+    if (!entry) { setSwMessage('Eintrag nicht gefunden.', 'error'); return }
+    fillSwForm(entry)
+    document.getElementById('sw-woche')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  } catch (err) {
+    setSwMessage(`Fehler: ${err.message}`, 'error')
+  }
+}
+
+async function deleteSpezialwoche(woche) {
+  if (!woche) return
+  const ok = confirmAction(`Spezialwoche ${woche} wirklich löschen?`, [
+    `ISO-Woche: ${woche}`,
+    'Dieser Vorgang kann nicht rückgängig gemacht werden.',
+  ])
+  if (!ok) return
+  try {
+    const res = await fetch(`/admin/spezialwoche/${encodeURIComponent(woche)}`, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+    })
+    if (!res.ok) return
+    setSwMessage(`Woche ${woche} gelöscht.`, 'success')
+    await loadSpezialwochen()
+  } catch { /* ignore */ }
+}
+
+async function previewSwWz() {
+  const get = (id) => (document.getElementById(id)?.value || '').trim()
+  const lemma = get('sw-lemma-id')
+  const zwilling_partner = get('sw-wza')
+  const zwilling_pos = get('sw-wzpos') || 'Substantiv'
+  const previewEl = document.getElementById('sw-wz-preview')
+  if (!lemma || !zwilling_partner) {
+    setSwMessage('Lemma und Partner-Wort für WZ-Vorschau erforderlich.', 'error')
+    return
+  }
+  if (previewEl) { previewEl.textContent = 'Lade Vorschau …'; previewEl.classList.remove('is-hidden') }
+  try {
+    const params = new URLSearchParams({ a: lemma, b: zwilling_partner, pos: zwilling_pos })
+    const res = await fetch(`/admin/spezialwoche/preview-wz?${params}`)
+    const data = await res.json().catch(() => ({}))
+    if (!res.ok) {
+      if (previewEl) previewEl.textContent = `Fehler: ${data.error || res.status}`
+      return
+    }
+    if (previewEl) previewEl.textContent = JSON.stringify(data, null, 2)
+  } catch (err) {
+    if (previewEl) previewEl.textContent = `Netzwerkfehler: ${err.message}`
+  }
+}
+
 let _jsonImportArray = null
 
 function openJsonImportDialog() {
@@ -2822,6 +2996,12 @@ function handleDocumentClick(event) {
   if (action === 'load-free-days') return void loadFreeDays()
   if (action === 'add-free-day') return void addFreeDay()
   if (action === 'delete-free-day') return void deleteFreeDay(target.dataset.date || '')
+  if (action === 'load-spezialwochen') return void loadSpezialwochen()
+  if (action === 'save-spezialwoche') return void saveSpezialwoche()
+  if (action === 'clear-sw-form') return void clearSwForm()
+  if (action === 'edit-spezialwoche') return void editSpezialwoche(target.dataset.woche || '')
+  if (action === 'delete-spezialwoche') return void deleteSpezialwoche(target.dataset.woche || '')
+  if (action === 'preview-sw-wz') return void previewSwWz()
 }
 
 function handleDocumentChange(event) {

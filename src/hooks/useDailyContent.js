@@ -46,6 +46,12 @@ export function useDailyContent() {
   const [lfPlayed, setLfPlayed] = useState(null)
   const [contentRequestId, setContentRequestId] = useState(0)
 
+  const [spezialwoche, setSpezialwoche] = useState(null)
+  const [swKollPlayed, setSwKollPlayed] = useState(null)   // gespielt: { total, medal, ... }
+  const [swWzPlayed,  setSwWzPlayed]  = useState(null)
+  const [swZwPlayed,  setSwZwPlayed]  = useState(null)
+  const [swLfPlayed,  setSwLfPlayed]  = useState(null)
+
   const triggerContentReload = useCallback(() => {
     setContentRequestId((n) => n + 1)
   }, [])
@@ -157,6 +163,35 @@ export function useDailyContent() {
     }
   }, [zeitenwendeRetry])
 
+  // ── Spezialwoche (Wort der Woche) ────────────────────────────
+  useEffect(() => {
+    let cancelled = false
+    const controller = new AbortController()
+
+    fetchWithRetry(`${API}/spezialwoche`, { signal: controller.signal })
+      .then((r) => {
+        if (r.ok) return r.json()
+        return null
+      })
+      .then((data) => {
+        if (cancelled) return
+        setSpezialwoche(data ?? null)
+        if (data?.woche) {
+          const w = data.woche
+          // Gelesene Played-States aus localStorage
+          setSwKollPlayed(lsParse(lsGet(`sig_sw_koll_${w}`), null))
+          setSwWzPlayed(lsParse(lsGet(`sig_sw_wz_${w}`), null))
+          setSwZwPlayed(lsParse(lsGet(`sig_sw_zw_${w}`), null))
+          setSwLfPlayed(lsParse(lsGet(`sig_sw_lf_${w}`), null))
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setSpezialwoche(null)
+      })
+
+    return () => { cancelled = true; controller.abort() }
+  }, [contentRequestId])
+
   const retryWortzwilling = useCallback(() => {
     setWortzwillingRetry((n) => n + 1)
   }, [])
@@ -193,5 +228,15 @@ export function useDailyContent() {
     setZwPlayed,
     lfPlayed,
     setLfPlayed,
+    // Spezialwoche (Wort der Woche)
+    spezialwoche,
+    swKollPlayed,
+    setSwKollPlayed,
+    swWzPlayed,
+    setSwWzPlayed,
+    swZwPlayed,
+    setSwZwPlayed,
+    swLfPlayed,
+    setSwLfPlayed,
   }
 }

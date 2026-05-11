@@ -28,10 +28,18 @@ export function useAppTabScreens({
   classroomInSession,
   refreshEntitlements,
   setActiveTab,
+  // Spezialwoche
+  spezialwoche,
+  swWzPlayed,
+  swZwPlayed,
+  swLfPlayed,
 }) {
   const [wzViewOnly, setWzViewOnly] = useState(false)
   const [zwViewOnly, setZwViewOnly] = useState(false)
   const [lfViewOnly, setLfViewOnly] = useState(false)
+  const [swWzViewOnly, setSwWzViewOnly] = useState(false)
+  const [swZwViewOnly, setSwZwViewOnly] = useState(false)
+  const [swLfViewOnly, setSwLfViewOnly] = useState(false)
 
   const tabScreens = useMemo(() => AppTabScreens({
     phase,
@@ -89,6 +97,25 @@ export function useAppTabScreens({
     classroomInSession,
     onNavigateToKonto: () => setActiveTab('profil'),
     refreshEntitlements,
+    // Spezialwoche
+    spezialwoche,
+    swWzPlayed,
+    swZwPlayed,
+    swLfPlayed,
+    onPlaySwKoll: () => startVT(() => setPhase('selection')),  // nutzt reguläre LemmaSelection
+    onViewSwKoll: () => startVT(() => setPhase('selection')),
+    onPlaySwWz: spezialwoche?.wortzwilling ? {
+      play: () => startVT(() => { setSwWzViewOnly(false); setPhase('sw-wz-selection') }),
+    } : null,
+    onViewSwWz: () => startVT(() => { setSwWzViewOnly(true); setPhase('sw-wz') }),
+    onPlaySwZw: {
+      play: () => startVT(() => { setSwZwViewOnly(false); setPhase('sw-zeitenwende-selection') }),
+    },
+    onViewSwZw: () => startVT(() => { setSwZwViewOnly(true); setPhase('sw-zeitenwende') }),
+    onPlaySwLf: spezialwoche?.lueckenfuellerLemma?.lueckenfueller ? {
+      play: () => startVT(() => { setSwLfViewOnly(false); setPhase('sw-lf') }),
+    } : null,
+    onViewSwLf: () => startVT(() => { setSwLfViewOnly(true); setPhase('sw-lf') }),
   }), [
     phase,
     lemmata,
@@ -116,6 +143,13 @@ export function useAppTabScreens({
     setActiveTab,
     setPhase,
     startVT,
+    spezialwoche,
+    swWzPlayed,
+    swZwPlayed,
+    swLfPlayed,
+    setSwWzViewOnly,
+    setSwZwViewOnly,
+    setSwLfViewOnly,
   ])
 
   const goToWortzwillingGame = useCallback(() => startVT(() => {
@@ -128,6 +162,16 @@ export function useAppTabScreens({
     setPhase('zeitenwende')
   }), [setPhase, startVT])
 
+  const goToSwWzGame = useCallback(() => startVT(() => {
+    setSwWzViewOnly(false)
+    setPhase('sw-wz')
+  }), [setPhase, startVT])
+
+  const goToSwZeitenwendeGame = useCallback(() => startVT(() => {
+    setSwZwViewOnly(false)
+    setPhase('sw-zeitenwende')
+  }), [setPhase, startVT])
+
   return {
     tabScreens,
     wzViewOnly,
@@ -135,5 +179,10 @@ export function useAppTabScreens({
     lfViewOnly,
     goToWortzwillingGame,
     goToZeitenwendeGame,
+    swWzViewOnly,
+    swZwViewOnly,
+    swLfViewOnly,
+    goToSwWzGame,
+    goToSwZeitenwendeGame,
   }
 }

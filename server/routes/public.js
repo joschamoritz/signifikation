@@ -3,7 +3,7 @@ import { join, normalize, sep } from 'path'
 import { readFileSync } from 'fs'
 import { fetchBelege, belegeVerfuegbar } from '../belege.js'
 import { fetchWiktionary } from '../wiktionary.js'
-import { loadKalenderEntry, loadWortZwillingEntry, loadZeitenwendeEntry, recordStat, getPercentile, getLemmataIndex, cacheGet, cacheSet, DATA } from '../store.js'
+import { loadKalenderEntry, loadWortZwillingEntry, loadZeitenwendeEntry, loadSpezialwoche, recordStat, getPercentile, getLemmataIndex, cacheGet, cacheSet, DATA } from '../store.js'
 import { belegeLimiter, statsLimiter } from '../middleware/rateLimiter.js'
 import { auth } from '../auth/index.js'
 import { serverError } from '../middleware/auth.js'
@@ -237,6 +237,67 @@ router.get('/api/v1/bonus', validate(bonusQuerySchema, 'query'), (req, res) => {
     res.json(l?.bonusFrage ?? null)
   } catch {
     res.json(null)
+  }
+})
+
+/**
+ * GET /api/v1/spezialwoche
+ *
+ * Gibt die aktuelle Spezialwoche zurück (falls vorhanden), oder null.
+ * Enthält das aufgelöste Lemma-Objekt (Kollokationen), Wort-Zwilling-Daten,
+ * Zeitenwende-Metadaten und optional das Lückenfüller-Lemma.
+ */
+router.get('/api/v1/spezialwoche', (req, res) => {
+  try {
+    const datum = req.query.datum || todayDatum()
+    const entry = loadSpezialwoche(datum)
+    if (!entry) return res.json(null)
+
+    const { byId } = getLemmataIndex()
+    const lemma = byId.get(entry.lemma_id) ?? null
+    if (!lemma) return res.json(null)   // Lemma nicht mehr in DB → kein Eintrag
+
+    // Wort-Zwilling: nur ausgeben wenn Partner eingetragen
+    let wortzwilling = null
+    if (entry.zwilling_partner) {
+      wortzwilling = {
+        wortA:        lemma.lemma,
+        wortB:        entry.zwilling_partner,
+        pos:          entry.zwilling_pos,
+        kollokatoren: entry.zwilling_kollokatoren.map(({ wort, zuordnung }) => ({ wort, zuordnung })),
+        notiz:        '',
+        link:         '',
+      }
+    }
+
+    // Zeitenwende: immer vorhanden (nutzt Hauptlemma), Notiz + Link optional
+    const zeitenwende = {
+      lemma:  lemma.lemma,
+      notiz:  entry.zeitenwende_notiz,
+      link:   entry.zeitenwende_link,
+    }
+
+    // Lückenfüller: nur wenn lueckenfueller_id gesetzt und Lemma auffindbar
+    let lueckenfuellerLemma = null
+    if (entry.lueckenfueller_id) {
+      const lfLemma = byId.get(entry.lueckenfueller_id) ?? null
+      if (lfLemma?.lueckenfueller) lueckenfuellerLemma = lfLemma
+    }
+
+    res.json({
+      woche:             entry.woche,
+      von:               entry.von,
+      bis:               entry.bis,
+      lemma,
+      wortzwilling,
+      zeitenwende,
+      lueckenfuellerLemma,
+      notiz:             entry.notiz,
+      link:              entry.link,
+    })
+  } catch (err) {
+    logger.error({ err }, 'Spezialwoche-Abruf fehlgeschlagen')
+    serverError(res, err)
   }
 })
 

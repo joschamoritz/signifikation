@@ -856,3 +856,49 @@
     animation: none !important;
   }
 }
+
+/* ── Wort der Woche – Trennlinie in der Lemma-Auswahl ─────────── */
+.lemma-cards-spezial-divider {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 18px 0 6px;
+  color: var(--muted);
+  font-size: 0.75rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.lemma-cards-spezial-divider::before,
+.lemma-cards-spezial-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border-lt);
+}
+
+.lemma-cards-spezial-label {
+  white-space: nowrap;
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.07em;
+}
+
+/* Spezial-Karte – leichte goldene Akzentlinie links */
+.lemma-card--spezial {
+  border-left: 3px solid var(--primary, #c9a84c);
+  padding-left: 10px;
+}
+
+.lemma-card--spezial .lemma-name {
+  color: var(--primary, #c9a84c);
+}
+
+/* Zeitraum-Zeile unter dem Lemmanamen */
+.lemma-spezial-zeitraum {
+  font-size: 0.75rem;
+  color: var(--muted);
+  margin-top: 2px;
+  font-style: italic;
+}

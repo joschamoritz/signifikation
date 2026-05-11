@@ -143,6 +143,24 @@ db.exec(`
     label TEXT NOT NULL DEFAULT ''
   );
 
+  CREATE TABLE IF NOT EXISTS spezialwochen (
+    woche               TEXT PRIMARY KEY,
+    von                 TEXT NOT NULL,
+    bis                 TEXT NOT NULL,
+    lemma_id            TEXT NOT NULL,
+    zwilling_partner    TEXT NOT NULL DEFAULT '',
+    zwilling_pos        TEXT NOT NULL DEFAULT 'Substantiv',
+    zwilling_kollokatoren TEXT NOT NULL DEFAULT '[]',
+    zeitenwende_notiz   TEXT NOT NULL DEFAULT '',
+    zeitenwende_link    TEXT NOT NULL DEFAULT '',
+    lueckenfueller_id   TEXT NOT NULL DEFAULT '',
+    notiz               TEXT NOT NULL DEFAULT '',
+    link                TEXT NOT NULL DEFAULT ''
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_spezialwochen_von_bis
+    ON spezialwochen(von, bis);
+
   CREATE TABLE IF NOT EXISTS payments (
     id           TEXT PRIMARY KEY,
     user_id      TEXT NOT NULL,
