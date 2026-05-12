@@ -15,10 +15,12 @@ function isStandaloneWorkerProcess() {
   return process.argv[1] === fileURLToPath(import.meta.url)
 }
 
-function runExportCycle() {
+async function runExportCycle() {
   try {
-    processQueuedCsvExports(10)
-    processQueuedPdfExports(10)
+    await Promise.all([
+      processQueuedCsvExports(10),
+      processQueuedPdfExports(10),
+    ])
   } catch (err) {
     logger.error({ err }, 'Classroom-Export-Worker Zyklus fehlgeschlagen')
   }

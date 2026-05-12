@@ -38,7 +38,7 @@ describe('classroom service', () => {
     expect(finished.session.state).toBe('finished')
   })
 
-  it('schreibt Submissions idempotent per Upsert', () => {
+  it('ignoriert Mehrfach-Submissions – erste Abgabe gilt', () => {
     const teacherUserId = `teacher-idempotent-${Date.now()}`
     const created = createClassroomSession({ teacherUserId })
     const sessionId = created.session.id
@@ -79,7 +79,8 @@ describe('classroom service', () => {
     const submissionRows = rows.filter((row) => row.round_no != null)
 
     expect(submissionRows).toHaveLength(1)
-    expect(submissionRows[0].score).toBe(9)
+    // Zweite Abgabe wird ignoriert – erste Score bleibt erhalten
+    expect(submissionRows[0].score).toBe(4)
     expect(submissionRows[0].max_score).toBe(10)
   })
 })

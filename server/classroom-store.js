@@ -5,10 +5,10 @@ import { generateJoinCode, normalizeJoinCode } from './classroom/join-codes.js'
 
 const TIMEZONE = process.env.TIMEZONE || 'Europe/Berlin'
 const IS_PROD = process.env.NODE_ENV === 'production'
-const configuredJoinSecret = (process.env.CLASSROOM_JOIN_SECRET || process.env.ADMIN_KEY || '').trim()
+const configuredJoinSecret = (process.env.CLASSROOM_JOIN_SECRET || '').trim()
 
 if (IS_PROD && !configuredJoinSecret) {
-  throw new Error('Classroom-Join-Secret ist nicht gesetzt (CLASSROOM_JOIN_SECRET/ADMIN_KEY)')
+  throw new Error('Classroom-Join-Secret ist nicht gesetzt (CLASSROOM_JOIN_SECRET)')
 }
 
 if (!IS_PROD && !configuredJoinSecret) {
@@ -106,11 +106,7 @@ const stmts = {
     ) VALUES (
       @id, @session_id, @participant_id, @round_no, @payload_json, @score, @max_score, @submitted_at
     )
-    ON CONFLICT(session_id, participant_id, round_no) DO UPDATE SET
-      payload_json = excluded.payload_json,
-      score = excluded.score,
-      max_score = excluded.max_score,
-      submitted_at = excluded.submitted_at
+    ON CONFLICT(session_id, participant_id, round_no) DO NOTHING
   `),
   countActiveParticipants: db.prepare(`
     SELECT COUNT(1) AS c
@@ -173,6 +169,13 @@ const stmts = {
     FROM classroom_exports
     WHERE session_id = ?
     ORDER BY created_at DESC
+  `),
+  claimExportJob: db.prepare(`
+    UPDATE classroom_exports
+    SET status = 'running'
+    WHERE id = @id
+      AND session_id = @session_id
+      AND status = 'queued'
   `),
   updateExportStatus: db.prepare(`
     UPDATE classroom_exports
@@ -304,18 +307,30 @@ function buildDistribution(rows) {
   return dist
 }
 
-export function createClassroomSession({ teacherUserId, datum, year, settings }) {
+export function createClassroomSession({ teacherUserId, datum, settings }) {
   const now = nowMs()
   const today = todayDatum()
   const id = randomUUID()
   const { joinCode, joinCodeHash } = resolveJoinCode()
+
+  // datum kommt als YYYY-MM-DD von der API → in MM-DD + year aufsplitten
+  let resolvedDatum, resolvedYear
+  if (datum && /^\d{4}-\d{2}-\d{2}$/.test(datum)) {
+    const [y, m, d] = datum.split('-')
+    resolvedDatum = `${m}-${d}`
+    resolvedYear = Number(y)
+  } else {
+    resolvedDatum = today.datum
+    resolvedYear = today.year
+  }
+
   const row = {
     id,
     teacher_user_id: teacherUserId,
     join_code_hash: joinCodeHash,
     state: 'lobby',
-    datum: datum || today.datum,
-    year: year || today.year,
+    datum: resolvedDatum,
+    year: resolvedYear,
     settings_json: JSON.stringify(mergeSettings({ allowLateJoin: true }, settings || {})),
     created_at: now,
     expires_at: now + RETENTION_MS,
@@ -559,15 +574,9 @@ export function listQueuedExports({ type, limit = 10 }) {
   return stmts.listQueuedExportsByType.all(type, limit).map(normalizeExportRow)
 }
 
-export function markExportRunning({ sessionId, exportId }) {
-  stmts.updateExportStatus.run({
-    id: exportId,
-    session_id: sessionId,
-    status: 'running',
-    file_ref: null,
-    error: null,
-    finished_at: null,
-  })
+export function claimExportJob({ sessionId, exportId }) {
+  const result = stmts.claimExportJob.run({ id: exportId, session_id: sessionId })
+  return result.changes > 0
 }
 
 export function markExportDone({ sessionId, exportId, fileRef }) {

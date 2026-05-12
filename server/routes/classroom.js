@@ -58,11 +58,10 @@ function mapError(errCode) {
 
 router.post('/api/v1/classroom/sessions', classroomWriteLimiter, requirePremium, validate(classroomCreateSessionSchema), (req, res) => {
   try {
-    const { datum, year, settings } = req.body
+    const { datum, settings } = req.body
     const { session, joinCode } = createClassroomSession({
       teacherUserId: req.user.id,
       datum,
-      year,
       settings,
     })
     res.status(201).json({ session, joinCode })

@@ -1,6 +1,8 @@
 import express from 'express'
+import { z } from 'zod/v3'
 import { createMollieClient } from '@mollie/api-client'
 import { requireAuthUser } from '../middleware/userAuth.js'
+import { validate } from '../middleware/validate.js'
 import db from '../db.js'
 import logger from '../logger.js'
 import { sendPurchaseConfirmation } from '../mailer.js'
@@ -25,13 +27,27 @@ function isIpInRange(ip, cidr) {
   return (ipToInt(ip) & mask) === (ipToInt(range) & mask)
 }
 
+function normalizeIp(ip) {
+  if (!ip) return ''
+  // IPv4-mapped IPv6-Adressen normalisieren (z.B. ::ffff:91.218.240.1 → 91.218.240.1)
+  if (ip.startsWith('::ffff:')) return ip.slice(7)
+  return ip
+}
+
 function isValidMollieIP(ip) {
   if (!ip) return false
-  return MOLLIE_IP_RANGES.some(range => isIpInRange(ip, range))
+  return MOLLIE_IP_RANGES.some(range => isIpInRange(normalizeIp(ip), range))
 }
 
 const VALID_PRICES = ['6.99', '9.99', '14.99']
 const GESAMTAUSGABE_PRODUCT = 'gesamtausgabe'
+
+const checkoutSchema = z.object({
+  price: z.string().refine(v => VALID_PRICES.includes(v), { message: 'Ungültiger Preis.' }),
+  agreedToDigitalWaiver: z.literal(true, {
+    errorMap: () => ({ message: 'Bitte Zustimmung zum sofortigen Beginn der digitalen Inhalte bestätigen.' }),
+  }),
+})
 
 const BASE_URL = IS_PROD
   ? 'https://signifikation.de'
@@ -96,15 +112,9 @@ const setPremiumRoleStmt = db.prepare(`
 // Erstellt eine Mollie-Zahlung und gibt die Checkout-URL zurück.
 // Erfordert eingeloggten Nutzer.
 
-router.post('/api/v1/payments/checkout', requireAuthUser, async (req, res) => {
+router.post('/api/v1/payments/checkout', requireAuthUser, validate(checkoutSchema), async (req, res) => {
   try {
-    const { price, agreedToDigitalWaiver } = req.body ?? {}
-    if (!price || !VALID_PRICES.includes(price)) {
-      return res.status(400).json({ error: 'Ungültiger Preis.' })
-    }
-    if (agreedToDigitalWaiver !== true) {
-      return res.status(400).json({ error: 'Bitte Zustimmung zum sofortigen Beginn der digitalen Inhalte bestätigen.' })
-    }
+    const { price } = req.body
 
     // Bereits bezahlt?
     const existing = getPaidPaymentStmt.get(req.user.id, GESAMTAUSGABE_PRODUCT)

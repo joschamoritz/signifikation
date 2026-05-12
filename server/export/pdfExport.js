@@ -1,10 +1,11 @@
-import { mkdirSync, writeFileSync } from 'fs'
+import { mkdirSync } from 'fs'
+import { writeFile } from 'fs/promises'
 import { join } from 'path'
 import { fileURLToPath } from 'url'
 import { dirname } from 'path'
 import {
   listQueuedExports,
-  markExportRunning,
+  claimExportJob,
   markExportDone,
   markExportFailed,
   getExportRowsForSession,
@@ -162,15 +163,19 @@ function buildSummary(rows) {
   }
 }
 
-function processOneJob(job) {
+async function processOneJob(job) {
+  const claimed = claimExportJob({ sessionId: job.sessionId, exportId: job.id })
+  if (!claimed) {
+    logger.debug({ exportId: job.id }, 'PDF-Export bereits vergeben, übersprungen')
+    return
+  }
   try {
-    markExportRunning({ sessionId: job.sessionId, exportId: job.id })
     const rows = getExportRowsForSession({ sessionId: job.sessionId })
     const lines = buildReportLines(job.sessionId, rows)
     const pdf = buildPdfDocument(lines)
     const filename = buildPdfFilename(job.sessionId, job.id)
     const fullPath = join(EXPORT_DIR, filename)
-    writeFileSync(fullPath, pdf)
+    await writeFile(fullPath, pdf)
     markExportDone({ sessionId: job.sessionId, exportId: job.id, fileRef: fullPath })
     const summary = buildSummary(rows)
     logger.info({ sessionId: job.sessionId, exportId: job.id, summary }, 'PDF-Export erfolgreich erstellt')
@@ -180,8 +185,8 @@ function processOneJob(job) {
   }
 }
 
-export function processQueuedPdfExports(limit = 10) {
+export async function processQueuedPdfExports(limit = 10) {
   const jobs = listQueuedExports({ type: 'pdf', limit })
-  for (const job of jobs) processOneJob(job)
+  await Promise.all(jobs.map(processOneJob))
   return { processed: jobs.length }
 }

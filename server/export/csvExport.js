@@ -1,10 +1,11 @@
-import { mkdirSync, writeFileSync } from 'fs'
+import { mkdirSync } from 'fs'
+import { writeFile } from 'fs/promises'
 import { join } from 'path'
 import { fileURLToPath } from 'url'
 import { dirname } from 'path'
 import {
   listQueuedExports,
-  markExportRunning,
+  claimExportJob,
   markExportDone,
   markExportFailed,
   getExportRowsForSession,
@@ -53,14 +54,18 @@ function buildCsvFilename(sessionId, exportId) {
   return `classroom-${sessionId}-${exportId}.csv`
 }
 
-function processOneJob(job) {
+async function processOneJob(job) {
+  const claimed = claimExportJob({ sessionId: job.sessionId, exportId: job.id })
+  if (!claimed) {
+    logger.debug({ exportId: job.id }, 'CSV-Export bereits vergeben, übersprungen')
+    return
+  }
   try {
-    markExportRunning({ sessionId: job.sessionId, exportId: job.id })
     const rows = getExportRowsForSession({ sessionId: job.sessionId })
     const csv = toCsv(rows)
     const filename = buildCsvFilename(job.sessionId, job.id)
     const fullPath = join(EXPORT_DIR, filename)
-    writeFileSync(fullPath, csv, 'utf8')
+    await writeFile(fullPath, csv, 'utf8')
     markExportDone({ sessionId: job.sessionId, exportId: job.id, fileRef: fullPath })
     logger.info({ sessionId: job.sessionId, exportId: job.id }, 'CSV-Export erfolgreich erstellt')
   } catch (err) {
@@ -69,8 +74,8 @@ function processOneJob(job) {
   }
 }
 
-export function processQueuedCsvExports(limit = 10) {
+export async function processQueuedCsvExports(limit = 10) {
   const jobs = listQueuedExports({ type: 'csv', limit })
-  for (const job of jobs) processOneJob(job)
+  await Promise.all(jobs.map(processOneJob))
   return { processed: jobs.length }
 }

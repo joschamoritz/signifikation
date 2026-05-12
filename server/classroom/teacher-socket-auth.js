@@ -9,12 +9,11 @@ const configuredSecret = (
   || process.env.CLASSROOM_JOIN_SECRET
   || process.env.BETTER_AUTH_SECRET
   || process.env.AUTH_SECRET
-  || process.env.ADMIN_KEY
   || ''
 ).trim()
 
 if (IS_PROD && !configuredSecret) {
-  throw new Error('Teacher-Socket-Secret ist nicht gesetzt (CLASSROOM_SOCKET_SECRET/CLASSROOM_JOIN_SECRET/BETTER_AUTH_SECRET/AUTH_SECRET/ADMIN_KEY)')
+  throw new Error('Teacher-Socket-Secret ist nicht gesetzt (CLASSROOM_SOCKET_SECRET/CLASSROOM_JOIN_SECRET/BETTER_AUTH_SECRET/AUTH_SECRET)')
 }
 
 if (!IS_PROD && !configuredSecret) {

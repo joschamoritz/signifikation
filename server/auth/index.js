@@ -49,6 +49,11 @@ if (GITHUB_CLIENT_ID && GITHUB_CLIENT_SECRET) {
 
 const PASSWORD_RESET_DELIVERY = (process.env.PASSWORD_RESET_DELIVERY || (IS_PROD ? 'disabled' : 'log')).trim().toLowerCase()
 const PASSWORD_RESET_WEBHOOK_URL = process.env.PASSWORD_RESET_WEBHOOK_URL?.trim()
+
+if (IS_PROD && PASSWORD_RESET_DELIVERY === 'log') {
+  throw new Error('PASSWORD_RESET_DELIVERY=log ist in Produktion nicht erlaubt – Reset-URLs dürfen nicht geloggt werden')
+}
+
 const PASSWORD_RESET_ENABLED = PASSWORD_RESET_DELIVERY === 'log'
   || (PASSWORD_RESET_DELIVERY === 'webhook' && !!PASSWORD_RESET_WEBHOOK_URL)
 
