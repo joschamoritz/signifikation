@@ -15,18 +15,15 @@ export default function AppTabScreens({
   onRetryWortzwilling,
   wzPlayed,
   onPlayWortzwilling,
-  onViewWortzwilling,
   zeitenwende,
   zeitenwendeError,
   zeitenwendeMissing,
   onRetryZeitenwende,
   zwPlayed,
   onPlayZeitenwende,
-  onViewZeitenwende,
   lueckenfuellerLemma,
   lfPlayed,
   onPlayLueckenfueller,
-  onViewLueckenfueller,
   gesamtausgabeUnlocked,
   gesamtausgabePermanent,
   freeAccessToday,
@@ -50,18 +47,15 @@ export default function AppTabScreens({
         onRetryWortzwilling={onRetryWortzwilling}
         wzPlayed={wzPlayed}
         onPlayWortzwilling={onPlayWortzwilling.play}
-        onViewWortzwilling={onViewWortzwilling}
         zeitenwende={zeitenwende}
         zeitenwendeError={zeitenwendeError}
         zeitenwendeMissing={zeitenwendeMissing}
         onRetryZeitenwende={onRetryZeitenwende}
         zwPlayed={zwPlayed}
         onPlayZeitenwende={onPlayZeitenwende.play}
-        onViewZeitenwende={onViewZeitenwende}
         lueckenfuellerLemma={lueckenfuellerLemma}
         lfPlayed={lfPlayed}
         onPlayLueckenfueller={onPlayLueckenfueller?.play}
-        onViewLueckenfueller={onViewLueckenfueller}
         gesamtausgabe={gesamtausgabeUnlocked || classroomInSession}
         freeAccessToday={freeAccessToday}
         freeAccessLabel={freeAccessLabel}

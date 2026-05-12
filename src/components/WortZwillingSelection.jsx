@@ -23,10 +23,11 @@ function WZEntry({ lemma, pos }) {
   )
 }
 
-export default function WortZwillingSelection({ data, thema, themaKurz, themaQuelle, onPlay, onBack, spezialwoche = null, swWzPlayed = null, onPlaySpezial, onViewSpezial }) {
+export default function WortZwillingSelection({ data, thema, themaKurz, themaQuelle, onPlay, onViewDaily, wzPlayed = null, onBack, spezialwoche = null, swWzPlayed = null, onPlaySpezial, onViewSpezial }) {
   const { wortA, wortB, pos, notiz, link } = data ?? {}
   const [notizOpen, setNotizOpen] = useState(false)
   const wortart = pos || 'Substantiv'
+  const isPlayed = !!wzPlayed
 
   return (
     <div className="screen selection-screen">
@@ -41,9 +42,10 @@ export default function WortZwillingSelection({ data, thema, themaKurz, themaQue
         <div className="wz-pair-card">
 
           {/* Eintrag A */}
-          <div className="lemma-card">
-            <button className="lemma-card-main" type="button" onClick={onPlay}
-              aria-label={`${wortA} vs. ${wortB} – Wort-Zwilling starten`}>
+          <div className={`lemma-card${isPlayed ? ' lemma-card--played' : ''}`}>
+            <button className="lemma-card-main" type="button"
+              onClick={isPlayed ? onViewDaily : onPlay}
+              aria-label={isPlayed ? `${wortA} vs. ${wortB} – Ergebnis ansehen` : `${wortA} vs. ${wortB} – Wort-Zwilling starten`}>
               <WZEntry lemma={wortA} pos={wortart} />
               <span className="lemma-arrow" aria-hidden="true">›</span>
             </button>
@@ -66,9 +68,10 @@ export default function WortZwillingSelection({ data, thema, themaKurz, themaQue
           </div>
 
           {/* Eintrag B */}
-          <div className="lemma-card">
-            <button className="lemma-card-main" type="button" onClick={onPlay}
-              aria-label={`${wortA} vs. ${wortB} – Wort-Zwilling starten`}>
+          <div className={`lemma-card${isPlayed ? ' lemma-card--played' : ''}`}>
+            <button className="lemma-card-main" type="button"
+              onClick={isPlayed ? onViewDaily : onPlay}
+              aria-label={isPlayed ? `${wortA} vs. ${wortB} – Ergebnis ansehen` : `${wortA} vs. ${wortB} – Wort-Zwilling starten`}>
               <WZEntry lemma={wortB} pos={wortart} />
               <span className="lemma-arrow" aria-hidden="true">›</span>
             </button>

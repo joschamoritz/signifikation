@@ -2,9 +2,10 @@ import { useState } from 'react'
 import { useWiktionary } from '../hooks/useWiktionary'
 import SelectionThema from './SelectionThema'
 
-export default function ZeitenwendeSelection({ data, thema, themaKurz, themaQuelle, onPlay, onBack, spezialwoche = null, swZwPlayed = null, onPlaySpezial, onViewSpezial }) {
+export default function ZeitenwendeSelection({ data, thema, themaKurz, themaQuelle, onPlay, onViewDaily, zwPlayed = null, onBack, spezialwoche = null, swZwPlayed = null, onPlaySpezial, onViewSpezial }) {
   const { lemma, ipa: savedIpa, definitionen: savedDefs, notiz, link } = data ?? {}
   const [notizOpen, setNotizOpen] = useState(false)
+  const isPlayed = !!zwPlayed
   const { ipa, definitionen } = useWiktionary({
     lemma,
     initialIpa: savedIpa || '',
@@ -22,12 +23,12 @@ export default function ZeitenwendeSelection({ data, thema, themaKurz, themaQuel
 
       <div className="secondary-selection-card">
         <div className="lemma-card-wrap">
-          <div className="lemma-card">
+          <div className={`lemma-card${isPlayed ? ' lemma-card--played' : ''}`}>
               <button
                 className="lemma-card-main"
                 type="button"
-                onClick={onPlay}
-                aria-label={`${lemma} – Zeitenwende starten`}
+                onClick={isPlayed ? onViewDaily : onPlay}
+                aria-label={isPlayed ? `${lemma} – Ergebnis ansehen` : `${lemma} – Zeitenwende starten`}
               >
               <div className="lemma-info">
                 <div className="lemma-header-row">

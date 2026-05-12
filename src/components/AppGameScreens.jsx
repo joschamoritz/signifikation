@@ -33,6 +33,7 @@ export default function AppGameScreens({
   onWortzwillingBack,
   onWortzwillingSelectionBack,
   onWortzwillingPlay,
+  onWortzwillingViewResult,
   handleWZFinish,
   wzViewOnly,
   wzPlayed,
@@ -41,6 +42,7 @@ export default function AppGameScreens({
   onZeitenwendeBack,
   onZeitenwendeSelectionBack,
   onZeitenwendePlay,
+  onZeitenwendeViewResult,
   handleZeitenwendeFinish,
   zwViewOnly,
   zwPlayed,
@@ -49,6 +51,7 @@ export default function AppGameScreens({
   lueckenfuellerLemma,
   onLueckenfuellerSelectionBack,
   onLueckenfuellerPlay,
+  onLueckenfuellerViewResult,
   onLueckenfuellerBack,
   handleLFFinish,
   lfViewOnly,
@@ -97,6 +100,8 @@ export default function AppGameScreens({
           themaKurz={themaKurz}
           themaQuelle={themaQuelle}
           onPlay={onWortzwillingPlay}
+          onViewDaily={onWortzwillingViewResult}
+          wzPlayed={wzPlayed}
           onBack={onWortzwillingSelectionBack}
           spezialwoche={spezialwoche}
           swWzPlayed={swWzPlayed}
@@ -111,6 +116,8 @@ export default function AppGameScreens({
           themaKurz={themaKurz}
           themaQuelle={themaQuelle}
           onPlay={onZeitenwendePlay}
+          onViewDaily={onZeitenwendeViewResult}
+          zwPlayed={zwPlayed}
           onBack={onZeitenwendeSelectionBack}
           spezialwoche={spezialwoche}
           swZwPlayed={swZwPlayed}
@@ -162,6 +169,8 @@ export default function AppGameScreens({
           themaKurz={themaKurz}
           themaQuelle={themaQuelle}
           onPlay={onLueckenfuellerPlay}
+          onViewDaily={onLueckenfuellerViewResult}
+          lfPlayed={lfPlayed}
           onBack={onLueckenfuellerSelectionBack}
           spezialwoche={spezialwoche}
           swLfPlayed={swLfPlayed}

@@ -59,10 +59,6 @@ export function useAppTabScreens({
         setPhase('wortzwilling-selection')
       }),
     },
-    onViewWortzwilling: () => startVT(() => {
-      setWzViewOnly(true)
-      setPhase('wortzwilling')
-    }),
     zeitenwende,
     zeitenwendeError,
     zeitenwendeMissing,
@@ -74,10 +70,6 @@ export function useAppTabScreens({
         setPhase('zeitenwende-selection')
       }),
     },
-    onViewZeitenwende: () => startVT(() => {
-      setZwViewOnly(true)
-      setPhase('zeitenwende')
-    }),
     lueckenfuellerLemma,
     lfPlayed,
     onPlayLueckenfueller: lueckenfuellerLemma?.lueckenfueller ? {
@@ -86,10 +78,6 @@ export function useAppTabScreens({
         setPhase('lueckenfueller-selection')
       }),
     } : null,
-    onViewLueckenfueller: () => startVT(() => {
-      setLfViewOnly(true)
-      setPhase('lueckenfueller')
-    }),
     gesamtausgabeUnlocked,
     gesamtausgabePermanent,
     freeAccessToday,
@@ -131,8 +119,18 @@ export function useAppTabScreens({
     setPhase('wortzwilling')
   }), [setPhase, startVT])
 
+  const viewWortzwillingResult = useCallback(() => startVT(() => {
+    setWzViewOnly(true)
+    setPhase('wortzwilling')
+  }), [setPhase, startVT])
+
   const goToZeitenwendeGame = useCallback(() => startVT(() => {
     setZwViewOnly(false)
+    setPhase('zeitenwende')
+  }), [setPhase, startVT])
+
+  const viewZeitenwendeResult = useCallback(() => startVT(() => {
+    setZwViewOnly(true)
     setPhase('zeitenwende')
   }), [setPhase, startVT])
 
@@ -148,6 +146,11 @@ export function useAppTabScreens({
 
   const goToLueckenfuellerGame = useCallback(() => startVT(() => {
     setLfViewOnly(false)
+    setPhase('lueckenfueller')
+  }), [setPhase, startVT])
+
+  const viewLueckenfuellerResult = useCallback(() => startVT(() => {
+    setLfViewOnly(true)
     setPhase('lueckenfueller')
   }), [setPhase, startVT])
 
@@ -177,8 +180,11 @@ export function useAppTabScreens({
     zwViewOnly,
     lfViewOnly,
     goToWortzwillingGame,
+    viewWortzwillingResult,
     goToZeitenwendeGame,
+    viewZeitenwendeResult,
     goToLueckenfuellerGame,
+    viewLueckenfuellerResult,
     swWzViewOnly,
     swZwViewOnly,
     swLfViewOnly,

@@ -24,10 +24,10 @@ export default function Home({
   thema = '',
   playedGames = [], allPlayed = false,
   wortzwilling = null, wortzwillingError = false, onRetryWortzwilling,
-  wzPlayed = null, onPlayWortzwilling, onViewWortzwilling,
+  wzPlayed = null, onPlayWortzwilling,
   zeitenwende = null, zeitenwendeError = false, zeitenwendeMissing = false, onRetryZeitenwende,
-  zwPlayed = null, onPlayZeitenwende, onViewZeitenwende,
-  lueckenfuellerLemma = null, lfPlayed = null, onPlayLueckenfueller, onViewLueckenfueller,
+  zwPlayed = null, onPlayZeitenwende,
+  lueckenfuellerLemma = null, lfPlayed = null, onPlayLueckenfueller,
   gesamtausgabe = false,
   freeAccessToday = false,
   freeAccessLabel = null,
@@ -355,7 +355,7 @@ export default function Home({
                     <button
                       className="test-cta"
                       type="button"
-                      onClick={wzPlayed ? onViewWortzwilling : onPlayWortzwilling}
+                      onClick={onPlayWortzwilling}
                       aria-label={wzPlayed ? 'Ergebnis ansehen: Wort-Zwilling' : 'Wort-Zwilling starten'}
                     >
                       {wzPlayed ? 'Ergebnis ansehen' : 'Wort-Zwilling starten'}
@@ -419,7 +419,7 @@ export default function Home({
                     <button
                       className="test-cta"
                       type="button"
-                      onClick={zwPlayed ? onViewZeitenwende : onPlayZeitenwende}
+                      onClick={onPlayZeitenwende}
                       aria-label={zwPlayed ? 'Ergebnis ansehen: Zeitenwende' : 'Zeitenwende starten'}
                     >
                       {zwPlayed ? 'Ergebnis ansehen' : 'Zeitenwende starten'}
@@ -474,7 +474,7 @@ export default function Home({
                     <button
                       className="test-cta"
                       type="button"
-                      onClick={lfPlayed ? onViewLueckenfueller : onPlayLueckenfueller}
+                      onClick={onPlayLueckenfueller}
                       aria-label={lfPlayed ? 'Ergebnis ansehen: Lückenfüller' : 'Lückenfüller starten'}
                     >
                       {lfPlayed ? 'Ergebnis ansehen' : 'Lückenfüller starten'}

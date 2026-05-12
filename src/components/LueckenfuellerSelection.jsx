@@ -2,9 +2,10 @@ import { useState } from 'react'
 import { useWiktionary } from '../hooks/useWiktionary'
 import SelectionThema from './SelectionThema'
 
-export default function LueckenfuellerSelection({ data, thema, themaKurz, themaQuelle, onPlay, onBack, spezialwoche = null, swLfPlayed = null, onPlaySpezial, onViewSpezial }) {
+export default function LueckenfuellerSelection({ data, thema, themaKurz, themaQuelle, onPlay, onViewDaily, lfPlayed = null, onBack, spezialwoche = null, swLfPlayed = null, onPlaySpezial, onViewSpezial }) {
   const { lemma, pos, notiz, link } = data ?? {}
   const [notizOpen, setNotizOpen] = useState(false)
+  const isPlayed = !!lfPlayed
   const { ipa, definitionen } = useWiktionary({ lemma })
 
   return (
@@ -22,12 +23,12 @@ export default function LueckenfuellerSelection({ data, thema, themaKurz, themaQ
 
       <div className="secondary-selection-card">
         <div className="lemma-card-wrap">
-          <div className="lemma-card">
+          <div className={`lemma-card${isPlayed ? ' lemma-card--played' : ''}`}>
             <button
               className="lemma-card-main"
               type="button"
-              onClick={onPlay}
-              aria-label={`${lemma} – Lückenfüller starten`}
+              onClick={isPlayed ? onViewDaily : onPlay}
+              aria-label={isPlayed ? `${lemma} – Ergebnis ansehen` : `${lemma} – Lückenfüller starten`}
             >
               <div className="lemma-info">
                 <div className="lemma-header-row">
