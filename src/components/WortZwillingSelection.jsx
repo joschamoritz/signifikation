@@ -93,34 +93,42 @@ export default function WortZwillingSelection({ data, thema, themaKurz, themaQue
         </div>
 
           {/* ── Wort der Woche ─── */}
-          {spezialwoche?.wortzwilling && (
-            <>
-              <div className="lemma-cards-spezial-divider" role="separator" aria-label="Wort der Woche">
-                <span className="lemma-cards-spezial-label">✦ Wort der Woche</span>
-              </div>
-              <div className="lemma-card-wrap">
-                <div className={`lemma-card lemma-card--spezial${swWzPlayed ? ' lemma-card--played' : ''}`}>
-                  <button
-                    className="lemma-card-main"
-                    type="button"
-                    onClick={swWzPlayed ? onViewSpezial : onPlaySpezial}
-                    aria-label={`${spezialwoche.wortzwilling.wortA} vs. ${spezialwoche.wortzwilling.wortB} – Wort-Zwilling${swWzPlayed ? ' – Ergebnis ansehen' : ' starten'}`}
-                  >
-                    <div className="lemma-info">
-                      <div className="lemma-header-row">
-                        <span className="lemma-name">
-                          {spezialwoche.wortzwilling.wortA}
-                          <span style={{ color: 'var(--muted)', fontWeight: 400, margin: '0 0.3em' }}>vs.</span>
-                          {spezialwoche.wortzwilling.wortB}
-                        </span>
-                      </div>
-                    </div>
-                    <span className="lemma-arrow" aria-hidden="true">›</span>
-                  </button>
+          {spezialwoche?.wortzwilling && (() => {
+            const sw = spezialwoche.wortzwilling
+            const swWortart = sw.pos || 'Substantiv'
+            const swIsPlayed = !!swWzPlayed
+            const swLabel = `${sw.wortA} vs. ${sw.wortB} – Wort-Zwilling${swIsPlayed ? ' – Ergebnis ansehen' : ' starten'}`
+            return (
+              <>
+                <div className="lemma-cards-spezial-divider" role="separator" aria-label="Wort der Woche">
+                  <span className="lemma-cards-spezial-label">✦ Wort der Woche</span>
                 </div>
-              </div>
-            </>
-          )}
+                <div className="wz-pair-card">
+                  <div className={`lemma-card lemma-card--spezial${swIsPlayed ? ' lemma-card--played' : ''}`}>
+                    <button className="lemma-card-main" type="button"
+                      onClick={swIsPlayed ? onViewSpezial : onPlaySpezial}
+                      aria-label={swLabel}>
+                      <WZEntry lemma={sw.wortA} pos={swWortart} />
+                      <span className="lemma-arrow" aria-hidden="true">›</span>
+                    </button>
+                  </div>
+                  <div className="wz-selection-vs">
+                    <span className="wz-vs-line" aria-hidden="true" />
+                    <span className="wz-vs-label" aria-hidden="true">vs.</span>
+                    <span className="wz-vs-line" aria-hidden="true" />
+                  </div>
+                  <div className={`lemma-card lemma-card--spezial${swIsPlayed ? ' lemma-card--played' : ''}`}>
+                    <button className="lemma-card-main" type="button"
+                      onClick={swIsPlayed ? onViewSpezial : onPlaySpezial}
+                      aria-label={swLabel}>
+                      <WZEntry lemma={sw.wortB} pos={swWortart} />
+                      <span className="lemma-arrow" aria-hidden="true">›</span>
+                    </button>
+                  </div>
+                </div>
+              </>
+            )
+          })()}
       </div>
     </div>
   )
