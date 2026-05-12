@@ -19,7 +19,7 @@ export default defineConfig({
   test: {
     environment: 'node',
     fileParallelism: false,
-    exclude: ['e2e/**', 'node_modules/**', 'dist/**'],
+    exclude: ['e2e/**', 'node_modules/**', 'dist/**', '.claude/**'],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],
