@@ -1717,12 +1717,11 @@ async function previewCurrentDay() {
     return
   }
 
-  const [, mm, dd] = iso.split('-')
-  const datum = mm && dd ? `${mm}-${dd}` : ''
-  if (!datum) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(iso)) {
     out.innerHTML = '<div class="users-empty">Ungültiges Datumsformat.</div>'
     return
   }
+  const datum = iso
 
   out.innerHTML = '<div class="users-empty">Tages-Vorschau wird geladen …</div>'
   try {

@@ -28,6 +28,7 @@ export default function Home({
   zeitenwende = null, zeitenwendeError = false, zeitenwendeMissing = false, onRetryZeitenwende,
   zwPlayed = null, onPlayZeitenwende,
   lueckenfuellerLemma = null, lfPlayed = null, onPlayLueckenfueller,
+  serverDatum = null,
   gesamtausgabe = false,
   freeAccessToday = false,
   freeAccessLabel = null,
@@ -75,7 +76,8 @@ export default function Home({
   // Pfeiltasten-Navigation (nur mobil)
   const handleSnapKeyDown = useCallback((e) => {
     if (!window.matchMedia('(max-width: 699px)').matches) return
-    if (e.key === 'ArrowDown') scrollToCard(Math.min(activeCard + 1, 5))
+    const maxIndex = (entriesRef.current?.querySelectorAll('.test-entry').length ?? 1) - 1
+    if (e.key === 'ArrowDown') scrollToCard(Math.min(activeCard + 1, maxIndex))
     if (e.key === 'ArrowUp')   scrollToCard(Math.max(activeCard - 1, 0))
   }, [activeCard, scrollToCard])
 
@@ -147,6 +149,7 @@ export default function Home({
           wzPlayed={wzPlayed}
           zwPlayed={zwPlayed}
           lfPlayed={lfPlayed}
+          serverDatum={serverDatum}
         />
       )}
       <div className="test-wrapper">

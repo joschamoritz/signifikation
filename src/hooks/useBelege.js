@@ -39,10 +39,11 @@ export function useBelege(lemmaWort, relCode = '') {
         ...(overrides.year   && { year:   overrides.year   }),
       })
       const r    = await fetch(`${API}/belege?${params}`)
+      if (!r.ok) { setBelegeCache(prev => ({ ...prev, [key]: null })); return }
       const data = await r.json()
-      setBelegeCache(prev => ({ ...prev, [key]: Array.isArray(data) ? data : [] }))
+      setBelegeCache(prev => ({ ...prev, [key]: Array.isArray(data) ? data : null }))
     } catch {
-      setBelegeCache(prev => ({ ...prev, [key]: [] }))
+      setBelegeCache(prev => ({ ...prev, [key]: null }))
     } finally {
       setBelegeLoading(false)
     }

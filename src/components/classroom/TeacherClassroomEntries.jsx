@@ -12,6 +12,9 @@ export default function TeacherClassroomEntries({
   copyJoinCode,
   activeSession,
   updateSessionState,
+  pendingFinish,
+  confirmFinish,
+  cancelFinish,
   timerTick,
   dashboard,
   requestingExport,
@@ -23,6 +26,15 @@ export default function TeacherClassroomEntries({
 }) {
   return (
     <>
+      {pendingFinish && (
+        <li className="classroom-confirm-banner" role="dialog" aria-label="Session beenden bestätigen">
+          <p className="classroom-confirm-text">Keine Teilnehmenden verbunden. Trotzdem beenden?</p>
+          <span className="classroom-confirm-actions">
+            <button className="btn-ghost" type="button" onClick={confirmFinish}>Ja, beenden</button>
+            <button className="btn-ghost" type="button" onClick={cancelFinish}>Abbrechen</button>
+          </span>
+        </li>
+      )}
       <TeacherSessionCard
         sessionNameInput={sessionNameInput}
         setSessionNameInput={setSessionNameInput}

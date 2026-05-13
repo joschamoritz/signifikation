@@ -1,9 +1,14 @@
 import { expect } from '@playwright/test'
 
-export async function loginAsAdmin(page, adminKey = process.env.ADMIN_KEY || 'dev-only') {
+export async function loginAsAdmin(
+  page,
+  email    = process.env.ADMIN_EMAIL    || 'admin@signifikation.de',
+  password = process.env.ADMIN_PASSWORD || 'dev-only',
+) {
   await page.goto('/admin')
   await expect(page.locator('#login-overlay')).toBeVisible()
-  await page.locator('#login-key').fill(adminKey)
+  await page.locator('#login-email').fill(email)
+  await page.locator('#login-password').fill(password)
   await page.locator('#login-btn').click()
   await expect(page.locator('#main-container')).toBeVisible()
   await expect(page.locator('#page-title')).toContainText('Dashboard')

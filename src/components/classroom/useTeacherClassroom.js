@@ -23,6 +23,7 @@ export function useTeacherClassroom({ isTeacher, setTeacherError }) {
   const [loadingExports, setLoadingExports] = useState(false)
   const [exportsError, setExportsError] = useState('')
   const [requestingExport, setRequestingExport] = useState('')
+  const [pendingFinish, setPendingFinish] = useState(false)
 
   const activeSessionIdRef = useRef('')
 
@@ -135,18 +136,18 @@ export function useTeacherClassroom({ isTeacher, setTeacherError }) {
     }
   }, [creating, isTeacher, loadSessions, sessionNameInput])
 
-  const updateSessionState = useCallback(async (action) => {
+  const updateSessionState = useCallback(async (action, options) => {
     if (!isTeacher || !activeSessionIdRef.current) return
     const sessionId = activeSessionIdRef.current
     const url = action === 'start'
       ? `${API}/classroom/sessions/${sessionId}/start`
       : `${API}/classroom/sessions/${sessionId}/finish`
 
-    if (action === 'finish') {
+    if (action === 'finish' && !options?.force) {
       const connectedCount = Number(dashboard?.metrics?.connected_count || 0)
       if (connectedCount === 0) {
-        const ok = window.confirm('Keine Teilnehmenden verbunden. Trotzdem beenden?')
-        if (!ok) return
+        setPendingFinish(true)
+        return
       }
     }
 
@@ -260,6 +261,13 @@ export function useTeacherClassroom({ isTeacher, setTeacherError }) {
     setRequestingExport('')
   }, [isTeacher])
 
+  const confirmFinish = useCallback(() => {
+    setPendingFinish(false)
+    updateSessionState('finish', { force: true })
+  }, [updateSessionState])
+
+  const cancelFinish = useCallback(() => setPendingFinish(false), [])
+
   return {
     sessions,
     loadingSessions,
@@ -280,8 +288,11 @@ export function useTeacherClassroom({ isTeacher, setTeacherError }) {
     exportsError,
     requestingExport,
     activeSession,
+    pendingFinish,
     createSession,
     updateSessionState,
+    confirmFinish,
+    cancelFinish,
     requestExport,
     copyJoinCode,
   }

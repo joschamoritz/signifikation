@@ -26,6 +26,9 @@ export default function ClassroomEntries({
           copyJoinCode={teacherState.copyJoinCode}
           activeSession={teacherState.activeSession}
           updateSessionState={teacherState.updateSessionState}
+          pendingFinish={teacherState.pendingFinish}
+          confirmFinish={teacherState.confirmFinish}
+          cancelFinish={teacherState.cancelFinish}
           timerTick={teacherState.timerTick}
           dashboard={teacherState.dashboard}
           requestingExport={teacherState.requestingExport}

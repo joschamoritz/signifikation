@@ -27,6 +27,8 @@ import { createReadOnlyCache } from './store-readonly-cache.js'
 import { createBelegeCache } from './store-belege-cache.js'
 import {
   createDailyContentStore,
+  toWortzwillingRow,
+  toZeitenwendeRow,
 } from './store-daily-content.js'
 import {
   createStatsStore,
@@ -71,9 +73,12 @@ export const stmts = {
   getAllZeitenwende:  db.prepare('SELECT * FROM zeitenwende'),
   getZeitenwendeByDatum: db.prepare('SELECT * FROM zeitenwende WHERE datum = ?'),
   deleteAllZeitenwende: db.prepare('DELETE FROM zeitenwende'),
+  deleteZeitenwendeByDatum: db.prepare('DELETE FROM zeitenwende WHERE datum = ?'),
   upsertZeitenwende: db.prepare(
     'INSERT OR REPLACE INTO zeitenwende (datum, data) VALUES (@datum, @data)'
   ),
+
+  deleteWortzwillingByDatum: db.prepare('DELETE FROM wortzwilling WHERE datum = ?'),
 
   // spezialwochen
   getAllSpezialwochen:   db.prepare('SELECT * FROM spezialwochen ORDER BY von DESC'),
@@ -144,6 +149,15 @@ function _saveLemmata(arr) {
   _replaceLemmata(arr)
   _lemmataIndexStore.invalidate()
 }
+
+const _saveTagTx = db.transaction(({ datum, lemmaRows, kalenderRow, wzRow, zwRow }) => {
+  for (const row of lemmaRows) stmts.upsertLemma.run(row)
+  stmts.upsertKalender.run(kalenderRow)
+  stmts.deleteWortzwillingByDatum.run(datum)
+  if (wzRow) stmts.upsertWortzwilling.run(wzRow)
+  stmts.deleteZeitenwendeByDatum.run(datum)
+  if (zwRow) stmts.upsertZeitenwende.run(zwRow)
+})
 
 // ── Stats ─────────────────────────────────────────────────────────
 
@@ -231,6 +245,28 @@ export function saveDailyContentMaps({ kalender, wortzwilling, zeitenwende }) {
   }
 
   return Promise.resolve()
+}
+
+export function saveTagAtomically({ datum, lemmaEntries, kalenderEntry, wzEntry, zwEntry }) {
+  _saveTagTx({
+    datum,
+    lemmaRows: lemmaEntries.map(lemmaToRowInternal),
+    kalenderRow: {
+      datum,
+      ids: JSON.stringify(kalenderEntry.ids),
+      thema: kalenderEntry.thema ?? '',
+      thema_kurz: kalenderEntry.thema_kurz ?? '',
+      thema_quelle: kalenderEntry.thema_quelle ?? '',
+      lueckenfueller_id: kalenderEntry.lueckenfueller_id ?? '',
+    },
+    wzRow: wzEntry ? toWortzwillingRow(datum, wzEntry) : null,
+    zwRow: zwEntry ? toZeitenwendeRow(datum, zwEntry) : null,
+  })
+  _lemmataIndexStore.invalidate()
+  _readOnlyCache.invalidate('lemmata.json')
+  _readOnlyCache.invalidate('kalender.json')
+  _readOnlyCache.invalidate('wortzwilling.json')
+  _readOnlyCache.invalidate('zeitenwende.json')
 }
 
 export function loadBackupFiles() {

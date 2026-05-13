@@ -14,9 +14,11 @@ export function useWiktionary({ lemma, initialIpa = '', initialDefinitionen = []
   useEffect(() => {
     let cancelled = false
 
-    // Initialwerte werden nur einmalig per useState gesetzt – kein Reset hier,
-    // da initialDefinitionen bei jedem Render eine neue []-Referenz ist und
-    // sonst einen Infinite-Loop verursachen würde.
+    // Bei Lemma-Wechsel immer auf aktuelle Initialwerte zurücksetzen, damit
+    // IPA/Definitionen des Vorgängers nicht stehen bleiben.
+    setIpa(initialIpa)
+    setDefinitionen(initialDefinitionen)
+
     if (!lemma) return () => { cancelled = true }
 
     const needsIpa  = !initialIpa

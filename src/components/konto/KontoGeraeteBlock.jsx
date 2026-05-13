@@ -41,6 +41,7 @@ export default function KontoGeraeteBlock({ isLoggedIn, gesamtausgabePermanent }
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [removing, setRemoving] = useState(null)
+  const [pendingRemoveId, setPendingRemoveId] = useState(null)
 
   useEffect(() => {
     if (!isLoggedIn) {
@@ -72,8 +73,11 @@ export default function KontoGeraeteBlock({ isLoggedIn, gesamtausgabePermanent }
   }
 
   async function handleRemoveDevice(deviceId) {
-    if (!confirm('Möchtest du dieses Gerät wirklich entfernen?')) return
-    
+    if (pendingRemoveId !== deviceId) {
+      setPendingRemoveId(deviceId)
+      return
+    }
+    setPendingRemoveId(null)
     setRemoving(deviceId)
     try {
       const res = await fetch(`${API}/account/devices/${deviceId}`, {
@@ -81,12 +85,10 @@ export default function KontoGeraeteBlock({ isLoggedIn, gesamtausgabePermanent }
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
       })
-      if (!res.ok) {
-        throw new Error('Gerät konnte nicht entfernt werden')
-      }
+      if (!res.ok) throw new Error('Gerät konnte nicht entfernt werden')
       setDevices(devices.filter(d => d.id !== deviceId))
     } catch (err) {
-      alert(err.message)
+      setError(err.message)
     } finally {
       setRemoving(null)
     }
@@ -138,15 +140,34 @@ export default function KontoGeraeteBlock({ isLoggedIn, gesamtausgabePermanent }
                     Zuletzt aktiv: {formatDate(device.last_seen)}
                   </span>
                 </div>
-                <button
-                  className="konto-device-remove"
-                  type="button"
-                  onClick={() => handleRemoveDevice(device.id)}
-                  disabled={removing === device.id}
-                  aria-label={`${parseUserAgent(device.user_agent)} entfernen`}
-                >
-                  {removing === device.id ? '…' : 'Entfernen'}
-                </button>
+                {pendingRemoveId === device.id ? (
+                  <span className="konto-device-confirm" role="group" aria-label="Entfernen bestätigen">
+                    <button
+                      className="konto-device-remove konto-device-remove--danger"
+                      type="button"
+                      onClick={() => handleRemoveDevice(device.id)}
+                    >
+                      Ja, entfernen
+                    </button>
+                    <button
+                      className="konto-device-remove"
+                      type="button"
+                      onClick={() => setPendingRemoveId(null)}
+                    >
+                      Abbrechen
+                    </button>
+                  </span>
+                ) : (
+                  <button
+                    className="konto-device-remove"
+                    type="button"
+                    onClick={() => handleRemoveDevice(device.id)}
+                    disabled={removing === device.id}
+                    aria-label={`${parseUserAgent(device.user_agent)} entfernen`}
+                  >
+                    {removing === device.id ? '…' : 'Entfernen'}
+                  </button>
+                )}
               </li>
             ))}
           </ul>

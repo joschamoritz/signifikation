@@ -26,6 +26,7 @@ export function createAdminCalendarRouter({
   invalidateCache,
   stmts,
   lemmaToRow,
+  saveTagAtomically,
   fetchLemma,
   fetchBonusQuestion,
   fetchRelation,
@@ -129,12 +130,12 @@ export function createAdminCalendarRouter({
     try {
       const entries = parseCalendarBulkImport(req.body.csv)
       const kalender = loadMutableDailyContentMaps().kalender
+      const lemmataDB = load('lemmata.json')
       const imported = []
       const replaced = []
 
       for (const entry of entries) {
         const ids = []
-        const lemmataDB = load('lemmata.json')
 
         for (const wort of entry.woerter) {
           const lemma = await fetchLemma(wort, 'Substantiv')
@@ -148,7 +149,6 @@ export function createAdminCalendarRouter({
           ids.push(lemma.id)
         }
 
-        await save('lemmata.json', lemmataDB)
         const existed = !!kalender[entry.datum]
         kalender[entry.datum] = { ids, thema: '' }
         imported.push({ datum: entry.datum, ids, woerter: entry.woerter })
@@ -160,6 +160,7 @@ export function createAdminCalendarRouter({
         })
       }
 
+      await save('lemmata.json', lemmataDB)
       await saveDailyContentMaps({
         kalender,
         wortzwilling: loadWortZwilling(),
@@ -335,7 +336,8 @@ export function createAdminCalendarRouter({
     } = req.body
 
     try {
-      const { kalender, wortzwilling, zeitenwende } = loadMutableDailyContentMaps()
+      // ── Phase 1: Alle Daten async sammeln – noch nichts schreiben ──
+      const lemmaEntries = []
       const ids = []
 
       for (const [i, wort] of woerter.entries()) {
@@ -347,7 +349,6 @@ export function createAdminCalendarRouter({
         entry.definition = definitionen[i] || ''
         entry.bonusFrage = await fetchBonusQuestion(wort, pos).catch(() => null)
 
-        // Wiktionary-Daten nur holen, wenn noch nicht vorhanden
         const { byId } = getLemmataIndex()
         const existing = byId.get(entry.id)
         if (!existing || !existing.ipa || !existing.definitionen?.length) {
@@ -356,31 +357,26 @@ export function createAdminCalendarRouter({
           entry.ipa = wikt.ipa
           entry.definitionen = wikt.definitionen
         } else {
-          // Vorhandene Wiktionary-Daten beibehalten
           entry.ipa = existing.ipa
           entry.definitionen = existing.definitionen
         }
 
-        // Vorhandene Lückenfüller-Daten beibehalten (fetchLemma liefert kein lueckenfueller-Feld)
         if (existing?.lueckenfueller) {
           entry.lueckenfueller = existing.lueckenfueller
         }
 
-        stmts.upsertLemma.run(lemmaToRow(entry))
+        lemmaEntries.push(entry)
         ids.push(entry.id)
       }
 
-      invalidateCache('lemmata.json')
-      kalender[datum] = { ids, thema: thema || '', thema_kurz: thema_kurz || '', thema_quelle: thema_quelle || '', lueckenfueller_id: lueckenfueller_id || '' }
-
+      let wzEntry = null
       let zwillingOk = null
-      delete wortzwilling[datum]
       if (Array.isArray(zwilling_paar) && zwilling_paar.length === 2 && zwilling_paar[0] && zwilling_paar[1]) {
         logger.info(`Lade Wort-Zwilling-Daten für „${zwilling_paar[0]}" / „${zwilling_paar[1]}" …`)
         try {
           const wz = await fetchWortZwilling(zwilling_paar[0].trim(), zwilling_paar[1].trim(), zwilling_pos)
           if (wz) {
-            wortzwilling[datum] = { ...wz, notiz: zwilling_notiz || '', link: zwilling_link || '' }
+            wzEntry = { ...wz, notiz: zwilling_notiz || '', link: zwilling_link || '' }
             zwillingOk = true
           } else {
             zwillingOk = false
@@ -392,16 +388,16 @@ export function createAdminCalendarRouter({
         }
       }
 
+      let zwEntry = null
       let zeitenwendeOk = null
-      delete zeitenwende[datum]
       if (zeitenwende_lemma?.trim()) {
         logger.info(`Lade Zeitenwende-Daten für „${zeitenwende_lemma}" …`)
         try {
           const zw = await fetchZeitenwende(zeitenwende_lemma.trim())
           if (zw) {
-            zeitenwende[datum] = { ...zw, notiz: zeitenwende_notiz || '', link: zeitenwende_link || '' }
+            zwEntry = { ...zw, notiz: zeitenwende_notiz || '', link: zeitenwende_link || '' }
             zeitenwendeOk = true
-            logger.info(`Zeitenwende gespeichert: ${zw.words.length} Wörter für „${zw.lemma}"`)
+            logger.info(`Zeitenwende geladen: ${zw.words.length} Wörter für „${zw.lemma}"`)
           } else {
             zeitenwendeOk = false
             logger.warn(`Zeitenwende: nicht genug distinkte Kollokatoren für „${zeitenwende_lemma}"`)
@@ -411,7 +407,21 @@ export function createAdminCalendarRouter({
           logger.error({ err }, 'Zeitenwende-Fehler')
         }
       }
-      await saveDailyContentMaps({ kalender, wortzwilling, zeitenwende })
+
+      // ── Phase 2: Alles in einer DB-Transaktion atomar schreiben ────
+      saveTagAtomically({
+        datum,
+        lemmaEntries,
+        kalenderEntry: {
+          ids,
+          thema: thema || '',
+          thema_kurz: thema_kurz || '',
+          thema_quelle: thema_quelle || '',
+          lueckenfueller_id: lueckenfueller_id || '',
+        },
+        wzEntry,
+        zwEntry,
+      })
 
       logger.info(`Eintrag gespeichert: ${datum} → ${ids.join(', ')}`)
 

@@ -173,6 +173,7 @@ export function useAppModel() {
     gesamtausgabePermanent,
     freeAccessToday,
     freeAccessLabel,
+    serverDatum,
     classroomInSession: navigation.classroomInSession,
     refreshEntitlements,
     setActiveTab: navigation.setActiveTab,

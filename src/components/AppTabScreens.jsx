@@ -28,6 +28,7 @@ export default function AppTabScreens({
   gesamtausgabePermanent,
   freeAccessToday,
   freeAccessLabel,
+  serverDatum,
   classroomInSession,
   onNavigateToKonto,
   refreshEntitlements,
@@ -56,6 +57,7 @@ export default function AppTabScreens({
         lueckenfuellerLemma={lueckenfuellerLemma}
         lfPlayed={lfPlayed}
         onPlayLueckenfueller={onPlayLueckenfueller?.play}
+        serverDatum={serverDatum}
         gesamtausgabe={gesamtausgabeUnlocked || classroomInSession}
         freeAccessToday={freeAccessToday}
         freeAccessLabel={freeAccessLabel}

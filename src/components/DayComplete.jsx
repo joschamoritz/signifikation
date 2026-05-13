@@ -4,7 +4,7 @@ import { getMedal } from '../utils/gameLogic'
 import { shareAsImage } from '../utils/shareImage'
 import { API } from '../config.js'
 
-export default function DayComplete({ onClose, playedGames = [], wzPlayed = null, zwPlayed = null, lfPlayed = null }) {
+export default function DayComplete({ onClose, playedGames = [], wzPlayed = null, zwPlayed = null, lfPlayed = null, serverDatum = null }) {
   const [closing,    setClosing]    = useState(false)
   const [copied,     setCopied]     = useState(false)
   const [sharing,    setSharing]    = useState(false)
@@ -12,7 +12,7 @@ export default function DayComplete({ onClose, playedGames = [], wzPlayed = null
   const [percentiles, setPercentiles] = useState({})
 
   const today   = new Date()
-  const datum   = localDateStr(today)
+  const datum   = serverDatum ?? localDateStr(today)
   const weekday = WEEKDAYS[today.getDay()]
   const date    = `${today.getDate()}. ${MONTHS[today.getMonth()]} ${today.getFullYear()}`
   const streak  = computeStreak()
