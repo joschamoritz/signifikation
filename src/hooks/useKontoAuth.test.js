@@ -145,7 +145,7 @@ describe('useKontoAuth – Fehlerübersetzung (über handleAuthSubmit)', () => {
     expect(result.current.notice?.text).toBe('Diese E-Mail ist bereits registriert.')
   })
 
-  it('setzt notice bei ungültiger E-Mail-Fehlermeldung vom Server', async () => {
+  it('setzt fieldErrors.email und notice wenn Fehlermeldung E-Mail betrifft', async () => {
     mockSession(null)
     const { result } = renderHook(() => useKontoAuth({ onAuthStateChange: () => {} }))
     await waitFor(() => expect(result.current.isChecking).toBe(false))
@@ -167,9 +167,10 @@ describe('useKontoAuth – Fehlerübersetzung (über handleAuthSubmit)', () => {
       await result.current.handleAuthSubmit({ preventDefault: () => {} })
     })
 
-    // translateAuthError mappt "Invalid email" auf deutschen Text im notice
     expect(result.current.notice?.type).toBe('error')
     expect(result.current.notice?.text).toMatch(/E-Mail/)
+    // /e-?mail/i matched jetzt auf "E-Mail" in der deutschen Fehlermeldung
+    expect(result.current.fieldErrors.email.length).toBeGreaterThan(0)
   })
 })
 

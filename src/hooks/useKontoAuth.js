@@ -252,7 +252,7 @@ export function useKontoAuth({ onAuthStateChange = () => {} }) {
       if (!response.ok) {
         const message = await getErrorMessage(response, mode)
 
-        if (/email/i.test(message)) {
+        if (/e-?mail/i.test(message)) {
           setFieldErrors((prev) => ({ ...prev, email: message }))
         } else if (/passwort|password/i.test(message)) {
           setFieldErrors((prev) => ({ ...prev, password: message }))
