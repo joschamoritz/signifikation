@@ -1,5 +1,4 @@
 import Home from './Home'
-import KontoTab from './KontoTab'
 import KursTab from './KursTab'
 
 export default function AppTabScreens({
@@ -25,13 +24,11 @@ export default function AppTabScreens({
   lfPlayed,
   onPlayLueckenfueller,
   gesamtausgabeUnlocked,
-  gesamtausgabePermanent,
   freeAccessToday,
   freeAccessLabel,
   serverDatum,
   classroomInSession,
   onNavigateToKonto,
-  refreshEntitlements,
 }) {
   return {
     spielmodi: phase === 'home' ? (
@@ -70,14 +67,6 @@ export default function AppTabScreens({
         onNavigateToKonto={onNavigateToKonto}
       />
     ),
-    profil: (
-      <KontoTab
-        gesamtausgabe={gesamtausgabeUnlocked}
-        gesamtausgabePermanent={gesamtausgabePermanent}
-        freeAccessToday={freeAccessToday}
-        freeAccessLabel={freeAccessLabel}
-        onAuthStateChange={refreshEntitlements}
-      />
-    ),
+    // profil wird als PersistentKontoTab außerhalb von TabTransition gerendert
   }
 }

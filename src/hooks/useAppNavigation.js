@@ -1,15 +1,24 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useRef, useState } from 'react'
 
 export function useAppNavigation({ activePhase, backToHome, startVT }) {
   const [activeTab, setActiveTab] = useState('spielmodi')
   const [classroomLive, setClassroomLive] = useState(false)
   const [classroomInSession, setClassroomInSession] = useState(false)
 
+  // Konto-Tab: einmal gemounted, immer gemounted (lazy-once wie Classroom)
+  const kontoMountedRef = useRef(false)
+  const [kontoMounted, setKontoMounted] = useState(false)
+
   const handleTabChange = useCallback((tab) => {
     if (tab === activeTab) return
 
     if (activeTab === 'spielmodi' && activePhase !== 'home') {
       startVT(() => backToHome())
+    }
+
+    if (tab === 'profil' && !kontoMountedRef.current) {
+      kontoMountedRef.current = true
+      setKontoMounted(true)
     }
 
     setActiveTab(tab)
@@ -22,6 +31,7 @@ export function useAppNavigation({ activePhase, backToHome, startVT }) {
     setClassroomLive,
     classroomInSession,
     setClassroomInSession,
+    kontoMounted,
     handleTabChange,
     showTabBar: activePhase === 'home' || activeTab !== 'spielmodi',
   }

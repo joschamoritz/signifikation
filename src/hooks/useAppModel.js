@@ -170,12 +170,10 @@ export function useAppModel() {
     lueckenfuellerLemma,
     lfPlayed,
     gesamtausgabeUnlocked,
-    gesamtausgabePermanent,
     freeAccessToday,
     freeAccessLabel,
     serverDatum,
     classroomInSession: navigation.classroomInSession,
-    refreshEntitlements,
     setActiveTab: navigation.setActiveTab,
     // Spezialwoche
     spezialwoche,
@@ -211,6 +209,7 @@ export function useAppModel() {
     classroomLive: navigation.classroomLive,
     classroomMounted:
       navigation.activeTab === 'klassenraum' || navigation.classroomInSession || navigation.classroomLive,
+    kontoMounted: navigation.kontoMounted,
     handleTabChange: navigation.handleTabChange,
     showTabBar: navigation.showTabBar,
     phase,
@@ -284,6 +283,14 @@ export function useAppModel() {
       onInSessionChange: navigation.setClassroomInSession,
       submitRef: classroomSubmitRef,
       getRetroResultsRef,
+    },
+    persistentKontoProps: {
+      activeTab: navigation.activeTab,
+      gesamtausgabe: gesamtausgabeUnlocked,
+      gesamtausgabePermanent,
+      freeAccessToday,
+      freeAccessLabel,
+      onAuthStateChange: refreshEntitlements,
     },
   }
 }
