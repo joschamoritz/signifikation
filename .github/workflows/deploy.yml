@@ -19,10 +19,42 @@ jobs:
       name: production
     permissions:
       contents: read
+      actions: read  # für Artefakt-Download aus dem Verify-Run
     env:
-      # Bei workflow_run: exakt der verifizierte SHA. Bei workflow_dispatch: aktueller HEAD.
       DEPLOY_SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
     steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.DEPLOY_SHA }}
+
+      # Bei workflow_run: verifizierten dist aus dem Verify-Run laden
+      - name: Build-Artefakt aus Verify-Run laden
+        if: github.event_name == 'workflow_run'
+        uses: actions/download-artifact@v4
+        with:
+          name: dist-build
+          path: dist/
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      # Bei workflow_dispatch: lokal bauen (Fallback ohne Artefakt)
+      - name: Lokal bauen (workflow_dispatch Fallback)
+        if: github.event_name == 'workflow_dispatch'
+        run: npm ci && npm run build
+
+      - name: dist als Tarball packen
+        run: tar czf /tmp/signifikation-dist.tar.gz dist/
+
+      - name: dist-Tarball auf Server übertragen
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SERVER_IP }}
+          username: deploy
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          source: /tmp/signifikation-dist.tar.gz
+          target: /tmp/
+          strip_components: 2
+
       - uses: appleboy/ssh-action@v1
         with:
           host: ${{ secrets.SERVER_IP }}
@@ -42,9 +74,16 @@ jobs:
             rollback() {
               echo "Rollback auf ${PREV_REV}"
               git checkout --detach "$PREV_REV"
-              npm ci
-              npm run build
-              # DB aus dem Pre-Deploy-Snapshot wiederherstellen
+              npm ci --omit=dev
+              # Alten dist aus Backup wiederherstellen oder neu bauen
+              if [ -d "dist.rollback/" ]; then
+                rm -rf dist/
+                mv dist.rollback/ dist/
+                echo "dist aus Backup wiederhergestellt"
+              else
+                npm run build
+              fi
+              # DB aus letztem Pre-Deploy-Snapshot wiederherstellen
               LATEST_SNAP=$(ls -t "${DB_FILE}.pre-deploy-"* 2>/dev/null | head -1)
               if [ -n "$LATEST_SNAP" ]; then
                 echo "Stelle DB wieder her: $LATEST_SNAP"
@@ -53,20 +92,30 @@ jobs:
               sudo -u signifikation bash -lc 'export NVM_DIR="/opt/nvm" && source "$NVM_DIR/nvm.sh" && cd /opt/signifikation/app && pm2 startOrRestart ecosystem.config.cjs --update-env && pm2 save'
             }
 
-            # Exakt den verifizierten SHA auschecken – kein git pull
+            # Exakt den verifizierten SHA auschecken
             git fetch origin
             git checkout --detach "$DEPLOY_SHA"
             echo "Deploye SHA: $DEPLOY_SHA"
 
-            npm ci
-            npm run build
+            # Produktions-Abhängigkeiten installieren (kein Build nötig)
+            npm ci --omit=dev
+
+            # Alten dist sichern für schnellen Rollback
+            if [ -d "dist/" ]; then
+              rm -rf dist.rollback/
+              cp -r dist/ dist.rollback/
+            fi
+
+            # Verifizierten dist aus CI-Tarball entpacken
+            rm -rf dist/
+            tar xzf /tmp/signifikation-dist.tar.gz -C .
+            rm /tmp/signifikation-dist.tar.gz
 
             # DB-Snapshot vor pm2-Neustart (vor möglichen Schema-Migrationen)
             if [ -f "$DB_FILE" ]; then
               SNAPSHOT="${DB_FILE}.pre-deploy-$(date +%Y%m%d-%H%M%S)"
               cp "$DB_FILE" "$SNAPSHOT"
               echo "DB-Snapshot erstellt: $SNAPSHOT"
-              # Maximal 3 Snapshots behalten
               ls -t "${DB_FILE}.pre-deploy-"* 2>/dev/null | tail -n +4 | xargs rm -f 2>/dev/null || true
             fi
 
@@ -86,6 +135,7 @@ jobs:
               echo "Lokaler Healthcheck fehlgeschlagen (Versuch $i) – warte 2s …"
               sleep 2
             done
+
       - name: Health check
         run: |
           echo "Warte auf Server-Start …"
@@ -101,6 +151,7 @@ jobs:
           done
           echo "Health check fehlgeschlagen – Deploy prüfen!"
           exit 1
+
       - name: Verify PM2 processes
         uses: appleboy/ssh-action@v1
         with:

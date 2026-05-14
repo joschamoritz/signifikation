@@ -72,3 +72,10 @@ jobs:
           echo "Auth-Endpunkt: HTTP $HTTP (ok)"
 
           echo "Alle Smokes bestanden"
+      - name: dist als Build-Artefakt hochladen
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist-build
+          path: dist/
+          retention-days: 1
+          if-no-files-found: error
