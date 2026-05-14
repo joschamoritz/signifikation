@@ -11,6 +11,7 @@ import { serverError } from '../middleware/auth.js'
 import { validate, statsSchema, percentileQuerySchema, belegeQuerySchema, archivQuerySchema, qQuerySchema, bonusQuerySchema, datumQuerySchema } from '../middleware/validate.js'
 import logger from '../logger.js'
 import { fromNodeHeaders } from 'better-auth/node'
+import db from '../db.js'
 
 const router = express.Router()
 
@@ -21,9 +22,47 @@ function todayDatum() {
   return new Intl.DateTimeFormat('en-CA', { timeZone: TIMEZONE }).format(new Date())
 }
 
-/** GET /health – öffentlich: nur Status. Details über /admin/health. */
+const stalledExportsStmt = db.prepare(
+  `SELECT COUNT(*) AS n FROM classroom_exports WHERE status IN ('queued','running') AND created_at < ?`
+)
+
+/**
+ * GET /health – Readiness-Check.
+ * Prüft DB-Schreibzugriff, Export-Queue-Stau und Belege-Verfügbarkeit.
+ * HTTP 503 bei kritischen Fehlern, sonst 200 (auch bei degraded).
+ */
 router.get('/health', (_req, res) => {
-  res.json({ status: 'ok' })
+  const checks = {}
+  let status = 'ok'
+
+  // DB-Schreibzugriff: BEGIN IMMEDIATE schlägt fehl wenn DB nicht beschreibbar
+  try {
+    db.exec('BEGIN IMMEDIATE; ROLLBACK;')
+    checks.db = 'ok'
+  } catch (err) {
+    checks.db = `error: ${err.message}`
+    status = 'error'
+  }
+
+  // Export-Queue: Jobs älter als 10 Minuten in Queued/Running = Worker hängt
+  try {
+    const staleThreshold = Date.now() - 10 * 60 * 1000
+    const stalled = stalledExportsStmt.get(staleThreshold)
+    if (stalled?.n > 0) {
+      checks.exportQueue = `stalled:${stalled.n}`
+      if (status === 'ok') status = 'degraded'
+    } else {
+      checks.exportQueue = 'ok'
+    }
+  } catch {
+    checks.exportQueue = 'unknown'
+  }
+
+  // Sprachdatenbank Belege
+  checks.belege = belegeVerfuegbar() ? 'ok' : 'unavailable'
+  if (checks.belege !== 'ok' && status === 'ok') status = 'degraded'
+
+  res.status(status === 'error' ? 503 : 200).json({ status, checks })
 })
 
 /** GET /api/heute → die 3 Lemmata des Tages */

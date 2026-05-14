@@ -18,3 +18,57 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run verify
+      - name: Server-Start-Smoke
+        run: |
+          # Server mit temporärer DB starten – keine Sprachdatenbanken in CI (degraded ist ok)
+          APP_DB=/tmp/smoke-signifikation.db PORT=3999 node server/index.js &
+          SERVER_PID=$!
+          trap "kill $SERVER_PID 2>/dev/null || true" EXIT
+
+          # Warten bis /health antwortet (max 20 Sekunden)
+          BODY=""
+          for i in $(seq 1 20); do
+            BODY=$(curl -sf http://127.0.0.1:3999/health 2>/dev/null) && break
+            sleep 1
+          done
+
+          if [ -z "$BODY" ]; then
+            echo "ERROR: Server hat nicht innerhalb von 20s gestartet"
+            exit 1
+          fi
+          echo "Health-Antwort: $BODY"
+
+          # DB-Check muss 'ok' sein – alles andere wäre ein kritischer Fehler
+          DB_CHECK=$(echo "$BODY" | jq -r '.checks.db')
+          if [ "$DB_CHECK" != "ok" ]; then
+            echo "ERROR: DB-Check fehlgeschlagen: $DB_CHECK"
+            exit 1
+          fi
+
+          # status 'error' bedeutet HTTP 503 – darf nicht vorkommen
+          STATUS=$(echo "$BODY" | jq -r '.status')
+          if [ "$STATUS" = "error" ]; then
+            echo "ERROR: Health-Status ist 'error'"
+            exit 1
+          fi
+
+          # Public API: /api/v1/heute darf nicht mit 500 antworten
+          # (404 ist korrekt – kein Kalender-Seed in CI)
+          HTTP=$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:3999/api/v1/heute)
+          if [ "$HTTP" = "500" ] || [ "$HTTP" = "000" ]; then
+            echo "ERROR: /api/v1/heute antwortete mit HTTP $HTTP"
+            exit 1
+          fi
+          echo "/api/v1/heute: HTTP $HTTP (ok)"
+
+          # Auth-Endpunkt: falsche Credentials müssen 401 liefern, nicht 500
+          HTTP=$(curl -s -o /dev/null -w "%{http_code}" -X POST http://127.0.0.1:3999/api/auth/sign-in/email \
+            -H "Content-Type: application/json" \
+            -d '{"email":"smoke@test.invalid","password":"wrong"}')
+          if [ "$HTTP" = "500" ] || [ "$HTTP" = "000" ]; then
+            echo "ERROR: Auth-Endpunkt antwortete mit HTTP $HTTP"
+            exit 1
+          fi
+          echo "Auth-Endpunkt: HTTP $HTTP (ok)"
+
+          echo "Alle Smokes bestanden"
