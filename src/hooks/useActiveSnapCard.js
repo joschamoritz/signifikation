@@ -5,39 +5,71 @@ export function useActiveSnapCard(containerRef) {
 
   useEffect(() => {
     const mq = window.matchMedia('(max-width: 699px)')
-    if (!mq.matches) return
-
     const container = containerRef.current
     if (!container) return
 
     const items = container.querySelectorAll('.test-entry')
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach(entry => {
-          if (entry.isIntersecting && entry.intersectionRatio >= 0.5) {
-            setActiveCard(Array.from(items).indexOf(entry.target))
-          }
-        })
-      },
-      { root: container, threshold: 0.5 }
-    )
+    let observer = null
 
-    items.forEach(item => observer.observe(item))
-    return () => observer.disconnect()
+    function connect() {
+      if (observer) return
+      observer = new IntersectionObserver(
+        (entries) => {
+          entries.forEach(entry => {
+            if (entry.isIntersecting && entry.intersectionRatio >= 0.5) {
+              setActiveCard(Array.from(items).indexOf(entry.target))
+            }
+          })
+        },
+        { root: container, threshold: 0.5 }
+      )
+      items.forEach(item => observer.observe(item))
+    }
+
+    function disconnect() {
+      if (!observer) return
+      observer.disconnect()
+      observer = null
+      items.forEach(item => item.removeAttribute('inert'))
+    }
+
+    function onBreakpointChange(e) {
+      if (e.matches) connect()
+      else disconnect()
+    }
+
+    mq.addEventListener('change', onBreakpointChange)
+    if (mq.matches) connect()
+
+    return () => {
+      mq.removeEventListener('change', onBreakpointChange)
+      disconnect()
+    }
   }, [containerRef])
 
   useEffect(() => {
-    const items = containerRef.current?.querySelectorAll('.test-entry')
     const mq = window.matchMedia('(max-width: 699px)')
-    if (!mq.matches) {
-      // Breakpoint verlassen – alle inert-Attribute bereinigen
-      items?.forEach(item => item.removeAttribute('inert'))
-      return
+    const items = containerRef.current?.querySelectorAll('.test-entry')
+
+    function applyInert(isMobile) {
+      if (!isMobile) {
+        items?.forEach(item => item.removeAttribute('inert'))
+        return
+      }
+      items?.forEach((item, i) => {
+        if (i === activeCard) item.removeAttribute('inert')
+        else item.setAttribute('inert', '')
+      })
     }
-    items?.forEach((item, i) => {
-      if (i === activeCard) item.removeAttribute('inert')
-      else item.setAttribute('inert', '')
-    })
+
+    function onBreakpointChange(e) {
+      applyInert(e.matches)
+    }
+
+    mq.addEventListener('change', onBreakpointChange)
+    applyInert(mq.matches)
+
+    return () => mq.removeEventListener('change', onBreakpointChange)
   }, [activeCard, containerRef])
 
   return activeCard
