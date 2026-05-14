@@ -1,11 +1,18 @@
 import { normalizeDatumToIso, sortDatumKeys } from './date-utils.js'
 
-function parseJson(value, fallback) {
+function parseJson(value, fallback, logger, context) {
   try {
     return JSON.parse(value)
-  } catch {
+  } catch (err) {
+    logger?.warn({ err, context }, 'JSON-Parse fehlgeschlagen in Stats – Fallback verwendet')
     return fallback
   }
+}
+
+function computeSinceDate(days) {
+  const d = new Date()
+  d.setDate(d.getDate() - Number(days))
+  return d.toISOString().slice(0, 10)
 }
 
 export function createEmptyDistribution() {
@@ -23,13 +30,13 @@ export function normalizeDistribution(distRaw) {
   return dist
 }
 
-export function aggregateStatsRows(rows) {
+export function aggregateStatsRows(rows, logger) {
   const result = {}
 
   for (const row of rows) {
     if (!result[row.datum]) result[row.datum] = {}
 
-    const distEntries = parseJson(row.dist_list || '[]', [])
+    const distEntries = parseJson(row.dist_list || '[]', [], logger, { datum: row.datum, field: 'stats.dist_list' })
     const mergedDist = createEmptyDistribution()
 
     for (const distRaw of distEntries) {
@@ -186,7 +193,7 @@ export function getCachedStatsWindow(cache, stats, days) {
   return result
 }
 
-export function createStatsStore({ db, stmts, loadReadOnly }) {
+export function createStatsStore({ db, stmts, logger, loadReadOnly }) {
   const statsWindowCache = createStatsWindowCache(30 * 1000)
 
   const replaceStats = db.transaction((obj) => {
@@ -236,8 +243,9 @@ export function createStatsStore({ db, stmts, loadReadOnly }) {
     invalidateStatsWindowCache(statsWindowCache)
   })
 
-  function loadStats() {
-    return aggregateStatsRows(stmts.getStatsAggregated.all())
+  function loadStats(days = 3650) {
+    const since = computeSinceDate(days)
+    return aggregateStatsRows(stmts.getStatsAggregated.all({ since }), logger)
   }
 
   function loadStatsRows() {
@@ -249,12 +257,12 @@ export function createStatsStore({ db, stmts, loadReadOnly }) {
   }
 
   function getStatsWindow(days) {
-    const stats = loadStats()
+    const stats = loadStats(days)
     return getCachedStatsWindow(statsWindowCache, stats, days)
   }
 
   function getStatsTimeline(days) {
-    const stats = loadStats()
+    const stats = loadStats(days)
     return buildStatsTimeline(stats, days)
   }
 
@@ -263,7 +271,7 @@ export function createStatsStore({ db, stmts, loadReadOnly }) {
     const totalPlays = Number(row?.plays || 0)
     if (totalPlays < 10) return null
 
-    const distEntries = parseJson(row.dist_list || '[]', [])
+    const distEntries = parseJson(row.dist_list || '[]', [], logger, { datum, spiel, field: 'stats.dist_list' })
     const merged = createEmptyDistribution()
     for (const d of distEntries) {
       const dist = normalizeDistribution(d)

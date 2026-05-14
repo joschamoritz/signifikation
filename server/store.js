@@ -117,6 +117,7 @@ export const stmts = {
       SUM(maxSum) AS maxSum,
       json_group_array(dist) AS dist_list
     FROM stats
+    WHERE datum >= :since
     GROUP BY datum, spiel
   `),
 
@@ -176,6 +177,7 @@ _readOnlyCache.startCleanup(5 * 60 * 1000)
 const _statsStore = createStatsStore({
   db,
   stmts,
+  logger,
   loadReadOnly(file) {
     return loadReadOnly(file)
   },
