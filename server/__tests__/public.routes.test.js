@@ -118,11 +118,13 @@ describe('public routes integration', () => {
   // ── /health ────────────────────────────────────────────────────
 
   describe('GET /health', () => {
-    it('gibt status ok zurück', async () => {
+    it('antwortet mit 200 und db:ok (degraded ist in Testumgebung erlaubt)', async () => {
       const res = await fetch(`${baseUrl}/health`)
       expect(res.status).toBe(200)
       const body = await res.json()
-      expect(body.status).toBe('ok')
+      // 'degraded' ist ok – bedeutet nur, dass optionale Deps (belege.db) fehlen
+      expect(['ok', 'degraded']).toContain(body.status)
+      expect(body.checks.db).toBe('ok')
     })
   })
 
