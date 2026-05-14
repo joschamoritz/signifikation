@@ -27,10 +27,13 @@ export function useActiveSnapCard(containerRef) {
   }, [containerRef])
 
   useEffect(() => {
-    const mq = window.matchMedia('(max-width: 699px)')
-    if (!mq.matches) return
-
     const items = containerRef.current?.querySelectorAll('.test-entry')
+    const mq = window.matchMedia('(max-width: 699px)')
+    if (!mq.matches) {
+      // Breakpoint verlassen – alle inert-Attribute bereinigen
+      items?.forEach(item => item.removeAttribute('inert'))
+      return
+    }
     items?.forEach((item, i) => {
       if (i === activeCard) item.removeAttribute('inert')
       else item.setAttribute('inert', '')

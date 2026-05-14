@@ -1,12 +1,21 @@
 import express from 'express'
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import publicRouter from '../routes/public.js'
+import { belegeVerfuegbar } from '../belege.js'
 import { invalidateCache, stmts } from '../store.js'
 import db from '../db.js'
 
 // ── Wiktionary-Fetch mocken (kein Netz in Tests) ─────────────────
 vi.mock('../wiktionary.js', () => ({
   fetchWiktionary: vi.fn().mockResolvedValue({ ipa: 'ˈtɛst', definitionen: ['Prüfung'] }),
+}))
+
+// ── belege.js mocken (belege.db existiert in Testumgebung nicht) ──
+vi.mock('../belege.js', () => ({
+  fetchBelege: vi.fn().mockReturnValue([
+    { tokens: [{ w: 'Test', ws: false, hl: true }, { w: 'machen', ws: false, hl: true }], quelle: 'kern' },
+  ]),
+  belegeVerfuegbar: vi.fn().mockReturnValue(false),
 }))
 
 // ── Helpers ───────────────────────────────────────────────────────
@@ -287,6 +296,58 @@ describe('public routes integration', () => {
       const body = await res.json()
       expect(body).not.toBeNull()
       expect(body.frage).toBe('Was ist das?')
+    })
+  })
+
+  // ── GET /api/v1/belege ─────────────────────────────────────────
+
+  describe('GET /api/v1/belege', () => {
+    it('gibt 400 zurück wenn Pflichtparameter fehlen', async () => {
+      const res = await fetch(`${baseUrl}/api/v1/belege`)
+      expect(res.status).toBe(400)
+    })
+
+    it('gibt 400 zurück wenn nur lemma angegeben', async () => {
+      const res = await fetch(`${baseUrl}/api/v1/belege?lemma=Wasser`)
+      expect(res.status).toBe(400)
+    })
+
+    it('gibt 400 zurück bei ungültigen Zeichen im lemma', async () => {
+      const res = await fetch(`${baseUrl}/api/v1/belege?lemma=%3Cscript%3E&collocate=machen`)
+      expect(res.status).toBe(400)
+    })
+
+    it('gibt leeres Array zurück wenn belege.db nicht verfügbar', async () => {
+      // belegeVerfuegbar ist per Mock auf false gesetzt
+      const res = await fetch(`${baseUrl}/api/v1/belege?lemma=Wasser&collocate=trinken`)
+      expect(res.status).toBe(200)
+      const body = await res.json()
+      expect(Array.isArray(body)).toBe(true)
+      expect(body).toHaveLength(0)
+    })
+
+    it('gibt Belege zurück wenn belege.db verfügbar', async () => {
+      vi.mocked(belegeVerfuegbar).mockReturnValueOnce(true)
+      const res = await fetch(`${baseUrl}/api/v1/belege?lemma=Wasser&collocate=trinken`)
+      expect(res.status).toBe(200)
+      const body = await res.json()
+      expect(Array.isArray(body)).toBe(true)
+      expect(body.length).toBeGreaterThan(0)
+      expect(body[0]).toHaveProperty('tokens')
+      expect(body[0]).toHaveProperty('quelle')
+      expect(Array.isArray(body[0].tokens)).toBe(true)
+    })
+
+    it('gibt leeres Array zurück bei Fehler in fetchBelege', async () => {
+      vi.mocked(belegeVerfuegbar).mockReturnValueOnce(true)
+      const { fetchBelege } = await import('../belege.js')
+      vi.mocked(fetchBelege).mockImplementationOnce(() => { throw new Error('DB-Fehler') })
+      // Andere Parameter, damit kein Cache-Hit der vorherigen Anfrage greift
+      const res = await fetch(`${baseUrl}/api/v1/belege?lemma=Feuer&collocate=loeschen`)
+      expect(res.status).toBe(200)
+      const body = await res.json()
+      expect(Array.isArray(body)).toBe(true)
+      expect(body).toHaveLength(0)
     })
   })
 })

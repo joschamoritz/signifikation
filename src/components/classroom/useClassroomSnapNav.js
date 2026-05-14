@@ -30,9 +30,13 @@ export function useClassroomSnapNav({ entriesRef, isTeacher, loadingAccount }) {
   }, [entriesRef, loadingAccount, isTeacher])
 
   useEffect(() => {
-    const mq = window.matchMedia('(max-width: 699px)')
-    if (!mq.matches) return
     const items = entriesRef.current?.querySelectorAll('.test-entry')
+    const mq = window.matchMedia('(max-width: 699px)')
+    if (!mq.matches) {
+      // Breakpoint verlassen – alle inert-Attribute bereinigen
+      items?.forEach(item => item.removeAttribute('inert'))
+      return
+    }
     items?.forEach((item, index) => {
       if (index === activeCard) item.removeAttribute('inert')
       else item.setAttribute('inert', '')

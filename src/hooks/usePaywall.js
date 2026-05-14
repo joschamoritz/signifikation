@@ -17,12 +17,13 @@ export function usePaywall({ refreshEntitlements }) {
       `${window.location.pathname}${nextSearch ? `?${nextSearch}` : ''}`
     )
 
+    let timer
     refreshEntitlements().then(({ ok, payload } = {}) => {
       if (ok && payload?.gesamtausgabe?.unlocked) return
       // Webhook noch nicht verarbeitet – einmalig nach kurzer Verzögerung nochmals prüfen
-      const timer = setTimeout(() => refreshEntitlements(), 4000)
-      return () => clearTimeout(timer)
+      timer = setTimeout(() => refreshEntitlements(), 4000)
     })
+    return () => clearTimeout(timer)
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 }
