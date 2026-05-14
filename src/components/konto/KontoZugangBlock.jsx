@@ -1,26 +1,9 @@
-import { useState, useRef } from 'react'
+import { useState } from 'react'
 import KontoAuthCard from './KontoAuthCard'
 import CheckoutModal from './CheckoutModal'
 
 export default function KontoZugangBlock({ auth, gesamtausgabe, gesamtausgabePermanent, freeAccessToday, freeAccessLabel }) {
   const [checkoutOpen, setCheckoutOpen] = useState(false)
-  const swipeStartY = useRef(0)
-
-  function handleSheetTouchStart(e) {
-    swipeStartY.current = e.touches[0].clientY
-  }
-
-  function handleSheetTouchMove(e) {
-    e.preventDefault()
-  }
-
-  function handleSheetTouchEnd(e) {
-    const swipeEndY = e.changedTouches[0].clientY
-    const swipeDistance = swipeEndY - swipeStartY.current
-    if (swipeDistance > 100) {
-      setCheckoutOpen(false)
-    }
-  }
 
   return (
     <li className="test-entry test-drop-cap">
@@ -105,9 +88,6 @@ export default function KontoZugangBlock({ auth, gesamtausgabe, gesamtausgabePer
       <CheckoutModal
         isOpen={checkoutOpen}
         onClose={() => setCheckoutOpen(false)}
-        onTouchStart={handleSheetTouchStart}
-        onTouchMove={handleSheetTouchMove}
-        onTouchEnd={handleSheetTouchEnd}
       />
     </li>
   )
