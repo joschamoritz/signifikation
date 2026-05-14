@@ -3,6 +3,7 @@ import { statSync } from 'fs'
 import { join } from 'path'
 import db from '../db.js'
 import { belegeVerfuegbar } from '../belege.js'
+import { getEventLoopLagMs, getEventLoopLagLastMs } from '../metrics.js'
 
 function getProcessFingerprint() {
   return {
@@ -28,6 +29,26 @@ const countClassroomSessionsStmt = db.prepare(`
 const countUsersStmt = db.prepare(`
   SELECT COUNT(*) AS total
   FROM user
+`)
+
+const queueStatusStmt = db.prepare(`
+  SELECT status, COUNT(*) AS n
+  FROM classroom_exports
+  GROUP BY status
+`)
+
+const oldestPendingStmt = db.prepare(`
+  SELECT MIN(created_at) AS oldest
+  FROM classroom_exports
+  WHERE status IN ('queued', 'running')
+`)
+
+const recentFailuresStmt = db.prepare(`
+  SELECT id, session_id, type, error, created_at, finished_at
+  FROM classroom_exports
+  WHERE status = 'failed'
+  ORDER BY finished_at DESC
+  LIMIT 5
 `)
 
 export function createAdminOpsRouter({
@@ -69,6 +90,10 @@ export function createAdminOpsRouter({
       res.json({
         uptimeSec: Math.floor(process.uptime()),
         rssMb: Math.round(process.memoryUsage().rss / 1024 / 1024),
+        eventLoop: {
+          lagAvgMs: getEventLoopLagMs(),
+          lagLastMs: getEventLoopLagLastMs(),
+        },
         process: getProcessFingerprint(),
         db: {
           path: join(DATA, 'signifikation.db'),
@@ -131,6 +156,42 @@ export function createAdminOpsRouter({
       res.json({
         belege: belegeCache,
         queryResults: queryCache,
+        timestamp: new Date().toISOString(),
+      })
+    } catch (err) {
+      adminError(res, err)
+    }
+  })
+
+  router.get('/admin/worker-status', adminLimiter, requireAuth, (_req, res) => {
+    try {
+      const statusRows = queueStatusStmt.all()
+      const byStatus = Object.fromEntries(statusRows.map(r => [r.status, Number(r.n)]))
+      const counts = {
+        queued:  byStatus.queued  ?? 0,
+        running: byStatus.running ?? 0,
+        done:    byStatus.done    ?? 0,
+        failed:  byStatus.failed  ?? 0,
+      }
+
+      const oldestPending = oldestPendingStmt.get()?.oldest ?? null
+      const oldestPendingAgeMs = oldestPending ? Date.now() - oldestPending : null
+
+      const recentFailures = recentFailuresStmt.all().map(r => ({
+        id: r.id,
+        sessionId: r.session_id,
+        type: r.type,
+        error: r.error,
+        createdAt: new Date(r.created_at).toISOString(),
+        finishedAt: r.finished_at ? new Date(r.finished_at).toISOString() : null,
+      }))
+
+      res.json({
+        queue: counts,
+        oldestPendingAgeMs,
+        stalledThresholdMs: 10 * 60 * 1000,
+        isStalled: oldestPendingAgeMs !== null && oldestPendingAgeMs > 10 * 60 * 1000,
+        recentFailures,
         timestamp: new Date().toISOString(),
       })
     } catch (err) {
