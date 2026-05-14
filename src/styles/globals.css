@@ -3,6 +3,7 @@
    ============================================================ */
 
 @import '/fonts/fonts.css';
+@import '../components/ui/primitives.css';
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0 }
 
@@ -150,9 +151,7 @@ body {
   .history-dot,
   .lemma-card-wrap,
   .btn-share--copied,
-  .wz-chip--wrong,
-  .feedback-sheet,
-  .feedback-sheet--closing {
+  .wz-chip--wrong {
     animation: none !important;
   }
   .bar-fill,
@@ -247,6 +246,16 @@ button { font-family: inherit; cursor: pointer; border: none }
   padding: 8px 12px;
 }
 .btn-ghost:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; border-radius: 4px }
+.btn-danger {
+  background: none;
+  border: none;
+  color: var(--error, #c0392b);
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 8px 12px;
+}
+.btn-danger:focus-visible { outline: 2px solid var(--error, #c0392b); outline-offset: 2px; border-radius: 4px }
 .btn-secondary {
   background: transparent;
   color: var(--primary);
@@ -268,37 +277,6 @@ button { font-family: inherit; cursor: pointer; border: none }
 }
 .results-actions .btn-primary,
 .results-actions .btn-secondary { flex: 1 }
-
-/* ── Bottom-Sheet / Modal-Overlay ───────────────────────────── */
-.feedback-overlay {
-  position: fixed;
-  inset: 0;
-  background: var(--overlay-scrim);
-  z-index: 300;
-  display: flex;
-  align-items: flex-end;
-}
-.feedback-sheet {
-  width: 100%;
-  background: var(--surface);
-  border-radius: 16px 16px 0 0;
-  padding: 24px 20px max(32px, env(safe-area-inset-bottom));
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  animation: slideUp 0.25s ease both;
-}
-.feedback-sheet--closing {
-  animation: slideDown 0.2s ease both;
-}
-@keyframes slideUp {
-  from { transform: translateY(100%); }
-  to   { transform: translateY(0); }
-}
-@keyframes slideDown {
-  from { transform: translateY(0); }
-  to   { transform: translateY(100%); }
-}
 
 /* ── Zurück-Button ───────────────────────────────────────────── */
 /* Absolut positioniert: nimmt keinen Platz im Flex-Flow ein,     */

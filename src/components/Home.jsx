@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { getDailyMedal } from '../utils/gameLogic'
 import DayComplete from './DayComplete'
+import Sheet from './ui/Sheet'
 import '../test.css'
 import {
   WEEKDAYS, MONTHS,
@@ -43,8 +44,6 @@ export default function Home({
   const [showDayComplete,   setShowDayComplete]   = useState(false)
 
   const entriesRef  = useRef(null)
-  const swipeStartY = useRef(null)
-  const swipeEl     = useRef(null)
 
   const streak     = computeStreak()
   const today      = new Date()
@@ -80,35 +79,6 @@ export default function Home({
     if (e.key === 'ArrowDown') scrollToCard(Math.min(activeCard + 1, maxIndex))
     if (e.key === 'ArrowUp')   scrollToCard(Math.max(activeCard - 1, 0))
   }, [activeCard, scrollToCard])
-
-  function handleSheetTouchStart(e) {
-    swipeStartY.current = e.touches[0].clientY
-    swipeEl.current = e.currentTarget
-    swipeEl.current.style.transition = 'none'
-  }
-
-  function handleSheetTouchMove(e) {
-    if (swipeStartY.current === null) return
-    const delta = e.touches[0].clientY - swipeStartY.current
-    if (delta > 0 && swipeEl.current) {
-      swipeEl.current.style.transform = `translateY(${delta}px)`
-    }
-  }
-
-  function handleSheetTouchEnd(e) {
-    if (swipeStartY.current === null) return
-    const delta = e.changedTouches[0].clientY - swipeStartY.current
-    swipeStartY.current = null
-    if (swipeEl.current) {
-      swipeEl.current.style.transition = ''
-      swipeEl.current.style.transform = ''
-    }
-    swipeEl.current = null
-    if (delta > 80) {
-      setSheetOpen(false)
-      setShareSheetOpen(false)
-    }
-  }
 
   async function shareImg() {
     if (sharing) return
@@ -640,66 +610,46 @@ export default function Home({
     </div>
 
     {/* ── Info Bottom Sheet ────────────────────────────────── */}
-    {sheetOpen && (
-      <div className="info-sheet-backdrop" onClick={() => setSheetOpen(false)} aria-hidden="true" />
-    )}
-    <div
-      className={`info-sheet${sheetOpen ? ' info-sheet--open' : ''}`}
-      role="dialog"
-      aria-modal="true"
-      aria-label="Was ist eine Kollokation?"
-      aria-hidden={!sheetOpen}
-      onTouchStart={handleSheetTouchStart}
-      onTouchMove={handleSheetTouchMove}
-      onTouchEnd={handleSheetTouchEnd}
-    >
+    <Sheet open={sheetOpen} onClose={() => setSheetOpen(false)} aria-label="Was ist eine Kollokation?">
+      <Sheet.Header />
       <div className="info-sheet-header">
         <span className="info-sheet-label" aria-hidden="true">Anm.</span>
         <h2 className="info-sheet-title">Was ist eine Kollokation?</h2>
         <button className="info-sheet-close" type="button" onClick={() => setSheetOpen(false)} aria-label="Schließen">✕</button>
       </div>
-      <div className="info-sheet-body">
-        <p>
-          Kollokationen sind <strong>charakteristische syntagmatische Wortverbindungen</strong>,
-          in denen ein Element (die <strong>Basis</strong>) den anderen Bestandteil (den{' '}
-          <strong>Kollokator</strong>) semantisch selegiert. Man sagt <em>blondes Haar</em> und
-          nicht <em>gelbes Haar</em> — nicht weil Letzteres grammatisch falsch wäre, sondern
-          weil der konventionalisierte Sprachgebrauch <em>blond</em> als typischen Kollokator
-          von <em>Haar</em> fordert.<sup>1</sup>
-        </p>
-        <p>
-          Kollokationen liegen zwischen freien Wortverbindungen (<em>rotes Auto</em>) und
-          Idiomen (<em>ins Gras beißen</em>): semantisch motiviert, aber lexikalisch
-          konventionalisiert.
-        </p>
-        <p>
-          Der <strong>logDice-Wert</strong><sup>2</sup> misst die statistische Signifikanz
-          von Kookkurrenzen im Korpus — je höher der Wert, desto charakteristischer die
-          Verbindung. Die Daten stammen aus einem eigenen Wortprofil<sup>3</sup>,
-          berechnet aus mehreren Milliarden Textwörtern freier deutschsprachiger Korpora.
-        </p>
-        <ol className="info-sheet-footnotes">
-          <li>Hausmann, F.&thinsp;J. (2003): Was sind eigentlich Kollokationen? In: Steyer, K. (Hrsg.): <em>Wortverbindungen — mehr oder weniger fest</em>. de Gruyter, S.&thinsp;309–334.</li>
-          <li>Rychlý, P. (2008): A Lexicographer-Friendly Association Score. In: <em>Proceedings of RASLAN 2008</em>, S.&thinsp;6–9.</li>
-          <li>Eigenes Wortprofil, berechnet auf Basis freier deutschsprachiger Korpora (CC BY-SA), syntaktisch annotiert mit dem ZDL-Dependenzparser (BBAW).</li>
-        </ol>
-      </div>
-    </div>
+      <Sheet.Body>
+        <div className="info-sheet-body">
+          <p>
+            Kollokationen sind <strong>charakteristische syntagmatische Wortverbindungen</strong>,
+            in denen ein Element (die <strong>Basis</strong>) den anderen Bestandteil (den{' '}
+            <strong>Kollokator</strong>) semantisch selegiert. Man sagt <em>blondes Haar</em> und
+            nicht <em>gelbes Haar</em> — nicht weil Letzteres grammatisch falsch wäre, sondern
+            weil der konventionalisierte Sprachgebrauch <em>blond</em> als typischen Kollokator
+            von <em>Haar</em> fordert.<sup>1</sup>
+          </p>
+          <p>
+            Kollokationen liegen zwischen freien Wortverbindungen (<em>rotes Auto</em>) und
+            Idiomen (<em>ins Gras beißen</em>): semantisch motiviert, aber lexikalisch
+            konventionalisiert.
+          </p>
+          <p>
+            Der <strong>logDice-Wert</strong><sup>2</sup> misst die statistische Signifikanz
+            von Kookkurrenzen im Korpus — je höher der Wert, desto charakteristischer die
+            Verbindung. Die Daten stammen aus einem eigenen Wortprofil<sup>3</sup>,
+            berechnet aus mehreren Milliarden Textwörtern freier deutschsprachiger Korpora.
+          </p>
+          <ol className="info-sheet-footnotes">
+            <li>Hausmann, F.&thinsp;J. (2003): Was sind eigentlich Kollokationen? In: Steyer, K. (Hrsg.): <em>Wortverbindungen — mehr oder weniger fest</em>. de Gruyter, S.&thinsp;309–334.</li>
+            <li>Rychlý, P. (2008): A Lexicographer-Friendly Association Score. In: <em>Proceedings of RASLAN 2008</em>, S.&thinsp;6–9.</li>
+            <li>Eigenes Wortprofil, berechnet auf Basis freier deutschsprachiger Korpora (CC BY-SA), syntaktisch annotiert mit dem ZDL-Dependenzparser (BBAW).</li>
+          </ol>
+        </div>
+      </Sheet.Body>
+    </Sheet>
 
     {/* ── Share Bottom Sheet ───────────────────────────────── */}
-    {shareSheetOpen && (
-      <div className="info-sheet-backdrop" onClick={() => setShareSheetOpen(false)} aria-hidden="true" />
-    )}
-    <div
-      className={`share-sheet${shareSheetOpen ? ' share-sheet--open' : ''}`}
-      role="dialog"
-      aria-modal="true"
-      aria-label="Ergebnis mitteilen"
-      aria-hidden={!shareSheetOpen}
-      onTouchStart={handleSheetTouchStart}
-      onTouchMove={handleSheetTouchMove}
-      onTouchEnd={handleSheetTouchEnd}
-    >
+    <Sheet open={shareSheetOpen} onClose={() => setShareSheetOpen(false)} aria-label="Ergebnis mitteilen">
+      <Sheet.Header />
       <div className="share-sheet-header">
         <span className="share-sheet-label">Ergebnis mitteilen</span>
         <button className="info-sheet-close" type="button" onClick={() => setShareSheetOpen(false)} aria-label="Schließen">✕</button>
@@ -721,7 +671,7 @@ export default function Home({
         <span className="share-sheet-option-glyph">↗</span>
         <span>Als Text mitteilen</span>
       </button>
-    </div>
+    </Sheet>
     </>
   )
 }

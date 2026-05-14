@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 
 export function useAppGameScreens({
   startVT,
@@ -8,10 +8,11 @@ export function useAppGameScreens({
   backToHome,
   backToSelection,
   handleRestart,
-  setLfProgress,
-  setZwProgress,
 }) {
-  return useMemo(() => ({
+  const [lfProgress, setLfProgress] = useState(null)
+  const [zwProgress, setZwProgress] = useState(null)
+
+  const actions = useMemo(() => ({
     onLemmaSelect: (lemma) => startVT(() => handleLemmaSelect(lemma)),
     onViewResult: (lemmaId) => startVT(() => handleViewResult(lemmaId)),
     onBackToHome: () => startVT(() => backToHome()),
@@ -31,7 +32,7 @@ export function useAppGameScreens({
     handleViewResult,
     setPhase,
     startVT,
-    setLfProgress,
-    setZwProgress,
   ])
+
+  return { ...actions, lfProgress, zwProgress }
 }

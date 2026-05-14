@@ -53,10 +53,6 @@
   text-underline-offset: 2px;
 }
 /* ── Tagesabschluss ─────────────────────────────── */
-.dc-sheet {
-  gap: 0;
-  padding-bottom: max(28px, env(safe-area-inset-bottom));
-}
 .dc-grip {
   width: 36px;
   height: 4px;

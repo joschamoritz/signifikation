@@ -1,6 +1,7 @@
 import { useState } from 'react'
-import { createPortal } from 'react-dom'
 import { API } from '../../config'
+import Sheet from '../ui/Sheet'
+import './CheckoutModal.css'
 
 const PRICE_OPTIONS = [
   { value: '6.99', label: '6,99 €', sub: 'Petit' },
@@ -8,7 +9,7 @@ const PRICE_OPTIONS = [
   { value: '14.99', label: '14,99 €', sub: 'Cicero' },
 ]
 
-export default function CheckoutModal({ isOpen, onClose, onTouchStart, onTouchMove, onTouchEnd }) {
+export default function CheckoutModal({ isOpen, onClose }) {
   const [agreed, setAgreed] = useState(false)
   const [isBusy, setIsBusy] = useState(false)
   const [checkoutError, setCheckoutError] = useState(null)
@@ -44,21 +45,10 @@ export default function CheckoutModal({ isOpen, onClose, onTouchStart, onTouchMo
     }
   }
 
-  return createPortal(
-    <>
-      {isOpen && (
-        <div className="info-sheet-backdrop" onClick={onClose} aria-hidden="true" />
-      )}
-      <div
-        className={`checkout-sheet${isOpen ? ' checkout-sheet--open' : ''}`}
-        role="dialog"
-        aria-modal="true"
-        aria-label="Gesamtausgabe freischalten"
-        aria-hidden={!isOpen}
-        onTouchStart={onTouchStart}
-        onTouchMove={onTouchMove}
-        onTouchEnd={onTouchEnd}
-      >
+  return (
+    <Sheet open={isOpen} onClose={onClose} aria-label="Gesamtausgabe freischalten">
+      <Sheet.Header />
+      <Sheet.Body>
         <div className="checkout-sheet-header">
           <span className="checkout-sheet-label" aria-hidden="true">Betrag</span>
           <h2 className="checkout-sheet-title">Gesamtausgabe freischalten</h2>
@@ -140,8 +130,7 @@ export default function CheckoutModal({ isOpen, onClose, onTouchStart, onTouchMo
             Gemäß §&nbsp;19 UStG (Kleinunternehmerregelung) wird keine Umsatzsteuer ausgewiesen.
           </p>
         </div>
-      </div>
-    </>,
-    document.body
+      </Sheet.Body>
+    </Sheet>
   )
 }

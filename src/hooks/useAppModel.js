@@ -1,5 +1,4 @@
-import { useRef, useState } from 'react'
-import { WortZwillingScreen, ZeitenwendeScreen, LueckenfuellerScreen } from '../components/AppLazyScreens'
+import { useRef } from 'react'
 import { useAppDailyState } from './useAppDailyState'
 import { useAppEffects } from './useAppEffects'
 import { useAppGameScreens } from './useAppGameScreens'
@@ -11,6 +10,7 @@ import { useAppTabScreens } from './useAppTabScreens'
 import { useKollokationenGame } from './useKollokationenGame'
 import { useSecondaryGameResults } from './useSecondaryGameResults'
 import { useSpezialwocheResults } from './useSpezialwocheResults'
+import { useGameScreenProps } from './useGameScreenProps'
 import { makeDailyKeys } from '../utils/dailyProgress'
 import { startVT } from '../utils/viewTransition'
 
@@ -75,9 +75,6 @@ export function useAppModel() {
     backToHome,
     startVT,
   })
-
-  const [lfProgress, setLfProgress] = useState(null)
-  const [zwProgress, setZwProgress] = useState(null)
 
   const {
     handleWZFinish,
@@ -152,8 +149,6 @@ export function useAppModel() {
     backToHome,
     backToSelection,
     handleRestart,
-    setLfProgress,
-    setZwProgress,
   })
 
   useAppEffects({
@@ -163,6 +158,36 @@ export function useAppModel() {
     appRef,
     persistResults,
     classroomSubmitRef,
+  })
+
+  const appGameScreensProps = useGameScreenProps({
+    phase,
+    thema,
+    themaKurz,
+    themaQuelle,
+    lemmata,
+    playedIds,
+    selectedLemma,
+    handleRoundComplete,
+    roundScores,
+    wortzwilling,
+    wzPlayed,
+    zeitenwende,
+    zwPlayed,
+    lueckenfuellerLemma,
+    lfPlayed,
+    spezialwoche,
+    swWzPlayed,
+    swZwPlayed,
+    swLfPlayed,
+    handleWZFinish,
+    handleZeitenwendeFinish,
+    handleLFFinish,
+    handleSwWZFinish,
+    handleSwZeitenwendeFinish,
+    handleSwLFFinish,
+    gameScreenActions,
+    tabState,
   })
 
   return {
@@ -176,69 +201,7 @@ export function useAppModel() {
     showTabBar: navigation.showTabBar,
     phase,
     tabScreens: tabState.tabScreens,
-    appGameScreensProps: {
-      phase,
-      thema,
-      themaKurz,
-      themaQuelle,
-      lemmata,
-      playedIds,
-      handleLemmaSelect: gameScreenActions.onLemmaSelect,
-      handleViewResult: gameScreenActions.onViewResult,
-      onBackToHome: gameScreenActions.onBackToHome,
-      selectedLemma,
-      handleRoundComplete,
-      onBackToSelection: gameScreenActions.onBackToSelection,
-      roundScores,
-      handleRestart: gameScreenActions.onRestart,
-      wortzwilling,
-      onWortzwillingBack: gameScreenActions.onWortzwillingBack,
-      onWortzwillingSelectionBack: gameScreenActions.onWortzwillingSelectionBack,
-      onWortzwillingPlay: tabState.goToWortzwillingGame,
-      onWortzwillingViewResult: tabState.viewWortzwillingResult,
-      handleWZFinish,
-      wzViewOnly: tabState.wzViewOnly,
-      wzPlayed,
-      WortZwilling: WortZwillingScreen,
-      zeitenwende,
-      onZeitenwendeBack: gameScreenActions.onZeitenwendeBack,
-      onZeitenwendeSelectionBack: gameScreenActions.onZeitenwendeSelectionBack,
-      onZeitenwendePlay: tabState.goToZeitenwendeGame,
-      onZeitenwendeViewResult: tabState.viewZeitenwendeResult,
-      handleZeitenwendeFinish,
-      zwViewOnly: tabState.zwViewOnly,
-      zwPlayed,
-      zwProgress,
-      Zeitenwende: ZeitenwendeScreen,
-      lueckenfuellerLemma,
-      onLueckenfuellerSelectionBack: gameScreenActions.onLueckenfuellerSelectionBack,
-      onLueckenfuellerPlay: tabState.goToLueckenfuellerGame,
-      onLueckenfuellerViewResult: tabState.viewLueckenfuellerResult,
-      onLueckenfuellerBack: gameScreenActions.onLueckenfuellerBack,
-      handleLFFinish,
-      lfViewOnly: tabState.lfViewOnly,
-      lfPlayed,
-      lfProgress,
-      Lueckenfueller: LueckenfuellerScreen,
-      // Spezialwoche
-      spezialwoche,
-      swWzPlayed,
-      swZwPlayed,
-      swLfPlayed,
-      handleSwWZFinish,
-      handleSwZeitenwendeFinish,
-      handleSwLFFinish,
-      swWzViewOnly: tabState.swWzViewOnly,
-      swZwViewOnly: tabState.swZwViewOnly,
-      swLfViewOnly: tabState.swLfViewOnly,
-      onSwWzPlay: tabState.goToSwWzGame,
-      onSwZwPlay: tabState.goToSwZeitenwendeGame,
-      onSwLfPlay: tabState.goToSwLfGame,
-      onViewSwWz: tabState.viewSwWz,
-      onViewSwZw: tabState.viewSwZw,
-      onViewSwLf: tabState.viewSwLf,
-      onSwBack: gameScreenActions.onBackToHome,
-    },
+    appGameScreensProps,
     persistentClassroomProps: {
       activeTab: navigation.activeTab,
       onLiveChange: navigation.setClassroomLive,

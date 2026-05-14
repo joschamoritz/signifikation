@@ -1,0 +1,37 @@
+/* Checkout-Inhalts-Styles – Shell-CSS liegt in Sheet.css */
+
+.checkout-sheet-header {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 0 0 12px;
+  border-bottom: 1px solid var(--border-lt);
+  position: sticky;
+  top: 0;
+  background: var(--bg);
+  margin: -20px -24px 0;
+  padding: 16px 24px 12px;
+}
+
+.checkout-sheet-label {
+  font-family: var(--font-sans);
+  font-size: 9px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--primary);
+  flex-shrink: 0;
+}
+
+.checkout-sheet-title {
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-size: 0.95rem;
+  color: var(--text);
+  flex: 1;
+  font-weight: 400;
+}
+
+.checkout-sheet-body {
+  padding-top: 16px;
+}

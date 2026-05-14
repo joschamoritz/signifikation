@@ -1144,47 +1144,17 @@
 
 }
 
-/* ── Info Bottom Sheet ─────────────────────────────────────── */
-.info-sheet-backdrop {
-  position: fixed;
-  inset: 0;
-  background: rgba(26, 26, 24, 0.4);
-  z-index: 249;
-  backdrop-filter: blur(2px);
-  -webkit-backdrop-filter: blur(2px);
-}
-
-.info-sheet {
-  position: fixed;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  max-height: 80vh;
-  background: var(--bg);
-  border-top: 2px solid var(--text);
-  z-index: 250;
-  overflow-y: auto;
-  transform: translateY(100%);
-  visibility: hidden;
-  transition: transform 0.32s cubic-bezier(0.4, 0, 0.2, 1), visibility 0s 0.32s;
-  padding-bottom: env(safe-area-inset-bottom, 0px);
-}
-
-.info-sheet--open {
-  transform: translateY(0);
-  visibility: visible;
-  transition: transform 0.32s cubic-bezier(0.4, 0, 0.2, 1), visibility 0s;
-}
-
+/* ── Info Bottom Sheet – Inhalts-Styles (Shell liegt in Sheet.css) ── */
 .info-sheet-header {
   display: flex;
   align-items: baseline;
   gap: 8px;
-  padding: 16px 20px 12px;
+  padding: 16px 24px 12px;
   border-bottom: 1px solid var(--border-lt);
   position: sticky;
-  top: 0;
+  top: -20px;
   background: var(--bg);
+  margin: -20px -24px 0;
 }
 
 .info-sheet-label {
@@ -1260,33 +1230,14 @@
   line-height: 1.5;
 }
 
-/* ── Share Bottom Sheet ────────────────────────────────────── */
-.share-sheet {
-  position: fixed;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: var(--bg);
-  border-top: 2px solid var(--text);
-  z-index: 250;
-  transform: translateY(100%);
-  visibility: hidden;
-  transition: transform 0.32s cubic-bezier(0.4, 0, 0.2, 1), visibility 0s 0.32s;
-  padding-bottom: env(safe-area-inset-bottom, 0px);
-}
-
-.share-sheet--open {
-  transform: translateY(0);
-  visibility: visible;
-  transition: transform 0.32s cubic-bezier(0.4, 0, 0.2, 1), visibility 0s;
-}
-
+/* ── Share Bottom Sheet – Inhalts-Styles (Shell liegt in Sheet.css) ── */
 .share-sheet-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 14px 20px 12px;
+  padding: 0 0 12px;
   border-bottom: 1px solid var(--border-lt);
+  margin-bottom: 4px;
 }
 
 .share-sheet-label {
@@ -1327,78 +1278,6 @@
   color: var(--primary);
   flex-shrink: 0;
   width: 16px;
-}
-
-/* ── Checkout Bottom Sheet ─────────────────────────────────── */
-.checkout-sheet {
-  /* --t-* Aliasse: Portal rendert außerhalb .test-page, daher hier neu definieren */
-  --t-bg:        var(--bg);
-  --t-surface:   var(--surface2);
-  --t-text:      var(--text);
-  --t-muted:     var(--muted);
-  --t-accent:    var(--accent);
-  --t-accent-dk: var(--accent-dk);
-  --t-rule:      var(--border);
-  --t-rule-lt:   var(--border-lt);
-  --t-serif:     var(--font-serif);
-  --t-sans:      var(--font-sans);
-  --t-disabled:  var(--disabled);
-  --t-red:       var(--primary);
-  --t-red-hi:    var(--primary-hi);
-
-  position: fixed;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  max-height: 90vh;
-  background: var(--bg);
-  border-top: 2px solid var(--text);
-  z-index: 250;
-  overflow-y: auto;
-  transform: translateY(100%);
-  visibility: hidden;
-  transition: transform 0.32s cubic-bezier(0.4, 0, 0.2, 1), visibility 0s 0.32s;
-  padding-bottom: env(safe-area-inset-bottom, 0px);
-}
-
-.checkout-sheet--open {
-  transform: translateY(0);
-  visibility: visible;
-  transition: transform 0.32s cubic-bezier(0.4, 0, 0.2, 1), visibility 0s;
-}
-
-.checkout-sheet-header {
-  display: flex;
-  align-items: baseline;
-  gap: 8px;
-  padding: 16px 20px 12px;
-  border-bottom: 1px solid var(--border-lt);
-  position: sticky;
-  top: 0;
-  background: var(--bg);
-}
-
-.checkout-sheet-label {
-  font-family: var(--font-sans);
-  font-size: 9px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  color: var(--primary);
-  flex-shrink: 0;
-}
-
-.checkout-sheet-title {
-  font-family: var(--font-serif);
-  font-style: italic;
-  font-size: 0.95rem;
-  color: var(--text);
-  flex: 1;
-  font-weight: 400;
-}
-
-.checkout-sheet-body {
-  padding: 16px 20px 24px;
 }
 
 /* ── Konto Tab: Kategorie-Badges → Rot statt Gold ─────────── */
