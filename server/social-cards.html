@@ -81,6 +81,13 @@ header h1{font-family:'Gentium Plus',serif;font-size:1.25rem;font-weight:400}
 #card-canvas{display:block}
 .preview-actions{display:flex;gap:10px}
 .preview-actions button{padding:10px 24px;font-size:.88rem}
+
+.section-heading{font-size:.72rem;color:var(--gold);text-transform:uppercase;letter-spacing:.1em;font-weight:600;margin-top:2px}
+.posting-hint{display:flex;align-items:center;gap:10px;font-size:.82rem;color:var(--muted);background:var(--input-bg);border:1px solid var(--border);border-radius:6px;padding:9px 12px}
+.posting-hint strong{color:var(--gold)}
+.copy-btn-row{display:flex;gap:8px}
+.copy-btn-row textarea{flex:1}
+#hashtag-output{font-size:.78rem;line-height:1.7;color:var(--muted);background:var(--input-bg);border:1px solid var(--border);border-radius:6px;padding:8px 10px;cursor:text;user-select:all;word-break:break-word}
 </style>
 </head>
 <body>
@@ -253,6 +260,46 @@ header h1{font-family:'Gentium Plus',serif;font-size:1.25rem;font-weight:400}
       </label>
 
       <button class="btn secondary" onclick="renderCard()">↺ Vorschau</button>
+
+      <div class="divider"></div>
+
+      <label class="check-row">
+        <input type="checkbox" id="header-toggle" checked>
+        <span>Header (SIGNIFIKATION + Datum)</span>
+      </label>
+
+      <div class="divider"></div>
+
+      <div class="section-heading">SOCIAL MEDIA</div>
+
+      <div class="posting-hint" id="posting-hint">
+        <span>📅</span>
+        <span id="posting-hint-text"></span>
+      </div>
+
+      <div>
+        <label>Caption-Vorlage</label>
+        <select id="caption-variant" onchange="updateCaption()">
+          <option value="0">Variante 1 – direkt/Rätsel</option>
+          <option value="1">Variante 2 – Überraschung/Frage</option>
+          <option value="2">Variante 3 – mit Hashtags</option>
+        </select>
+      </div>
+      <textarea class="beleg-preview" id="caption-output" rows="6" spellcheck="false" style="resize:vertical;line-height:1.55"></textarea>
+      <button class="btn secondary" id="copy-caption-btn" onclick="copyText('caption-output', this)">⎘ Caption kopieren</button>
+
+      <div>
+        <label>Hashtag-Set</label>
+        <select id="hashtag-set" onchange="updateHashtags()">
+          <option value="bildung">Bildung / Schule (Mo, Fr)</option>
+          <option value="wortkultur">Wortkultur (Mi)</option>
+          <option value="quiz">Quiz / Spiel (Format A, C)</option>
+          <option value="akademisch">Akademisch (Format X)</option>
+        </select>
+      </div>
+      <div id="hashtag-output"></div>
+      <button class="btn secondary" id="copy-hashtag-btn" onclick="copyText('hashtag-output', this)">⎘ Hashtags kopieren</button>
+
     </div>
 
     <div class="preview">
@@ -305,6 +352,7 @@ function setFormat(fmt) {
   document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.fmt === fmt))
   ;['A','B','C','X'].forEach(f => document.getElementById('ctrl-'+f).classList.toggle('hidden', f !== fmt))
   if ((fmt === 'A' || fmt === 'B') && currentCollocations.length) populateRelSelect()
+  updateSocialPanel()
   renderCard()
 }
 
@@ -318,10 +366,12 @@ function initApp() {
   document.querySelectorAll('input[name=ratio]').forEach(r => r.addEventListener('change', renderCard))
   document.getElementById('b-show-options').addEventListener('change', renderCard)
   document.getElementById('reveal-toggle').addEventListener('change', renderCard)
+  document.getElementById('header-toggle').addEventListener('change', renderCard)
   ;['answer-input','dist1-input','dist2-input',
     'wortA-input','wortB-input','kollA-input','kollB-input',
     'x-subtype','x-lemma','x-headline','x-body','b-quelle-input','beleg-preview'
-  ].forEach(id => document.getElementById(id).addEventListener('input', renderCard))
+  ].forEach(id => document.getElementById(id).addEventListener('input', () => { updateCaption(); renderCard() }))
+  updateSocialPanel()
   onDatumChange()
 }
 
@@ -371,18 +421,23 @@ async function onLemmaChange() {
   if (!r.ok) return
   const data = await r.json()
 
-  // Alle Kollokatoren für Format B / X (Beleg-Auswahl, x-Zitat)
-  currentCollocations = (data.runden || []).flatMap(runde =>
-    (runde.items || []).map(it => ({ wort: it.wort, logDice: it.logDice, relation: runde.key, relation_description: runde.desc }))
-  )
+  // API liefert {kollokatoren: [{wort, logDice}], usable, ...}
+  currentCollocations = (data.kollokatoren || [])
 
-  // Format A: top3 gesamt (wie im Spielmodus)
-  const top3 = Array.isArray(data.top3) ? data.top3 : []
+  if (!currentCollocations.length) {
+    document.getElementById('answer-input').value = ''
+    document.getElementById('dist1-input').value  = ''
+    document.getElementById('dist2-input').value  = ''
+    document.getElementById('rel-select').innerHTML = '<option value="">Keine Daten für dieses Lemma</option>'
+    populateCollSelects()
+    renderCard()
+    return
+  }
+
   const relSel = document.getElementById('rel-select')
   relSel.innerHTML = '<option value="top3">Beste Kollokationen (gesamt)</option>'
-  // Richtige Antwort = Rang 1, Köder aus schwächerem Bereich
   const allSorted = [...currentCollocations].sort((a, b) => b.logDice - a.logDice)
-  document.getElementById('answer-input').value = top3[0]?.wort || allSorted[0]?.wort || ''
+  document.getElementById('answer-input').value = allSorted[0]?.wort || ''
   document.getElementById('dist1-input').value  = allSorted[4]?.wort || allSorted[1]?.wort || ''
   document.getElementById('dist2-input').value  = allSorted[9]?.wort || allSorted[2]?.wort || ''
 
@@ -507,7 +562,15 @@ function populateWzChipPool(kols) {
     const btn = document.createElement('button')
     btn.textContent = k.wort
     btn.className = 'chip-btn'
-    btn.title = `Zu Wort ${poolTarget} hinzufügen`
+    if (k.owner === 'A') {
+      btn.style.borderColor = '#9b1c1c'
+      btn.title = `Vorschlag Wort A → klicken zum Zuweisen`
+    } else if (k.owner === 'B') {
+      btn.style.borderColor = '#c9a84c'
+      btn.title = `Vorschlag Wort B → klicken zum Zuweisen`
+    } else {
+      btn.title = `Zu Wort ${poolTarget} hinzufügen`
+    }
     btn.onclick = () => addToKollInput(k.wort)
     pool.appendChild(btn)
   })
@@ -601,16 +664,22 @@ function drawOptions(ctx, W, y, opts) {
 const HEADER_H = (26+24) + (100+44) + (8+36) + (36+44) + (8+52)
 const FOOTER_H = (8+52) + (44+48) + 28
 
-function drawHeader(ctx, W, yStart) {
+function drawHeader(ctx, W, yStart, datumStr) {
   let y = yStart
   ctx.textAlign = 'center'; ctx.fillStyle = MUTED_COL; ctx.font = `400 26px ${SANS}`; ctx.letterSpacing = '3px'
   ctx.fillText('TÄGLICHES WORTSPIEL · LINGUISTIK', W/2, y+26); ctx.letterSpacing = '0px'; y += 26+24
   ctx.fillStyle = TEXT_COL; ctx.font = `bold 100px ${SERIF}`; ctx.letterSpacing = '4px'
   ctx.fillText('SIGNIFIKATION', W/2, y+100); ctx.letterSpacing = '0px'; y += 100+44
   drawRule(ctx, y, W); y += 8+36
-  const d = new Date()
   const WDAYS = ['Sonntag','Montag','Dienstag','Mittwoch','Donnerstag','Freitag','Samstag']
   const MONS  = ['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember']
+  let d
+  if (datumStr) {
+    const [yr, mo, dy] = datumStr.split('-').map(Number)
+    d = new Date(yr, mo - 1, dy)
+  } else {
+    d = new Date()
+  }
   ctx.fillStyle = MUTED_COL; ctx.font = `400 36px ${SANS}`
   ctx.fillText(`${WDAYS[d.getDay()]}, ${d.getDate()}. ${MONS[d.getMonth()]} ${d.getFullYear()}`, W/2, y+36)
   y += 36+44; drawRule(ctx, y, W); y += 8+52
@@ -851,14 +920,21 @@ function drawFormatC(ctx, W, y, data) {
   })
   y += 22
 
-  ctx.textAlign = 'center'; ctx.font = `400 34px ${SANS}`
+  ctx.font = `400 34px ${SANS}`
   if (data.reveal) {
-    // Legend: ■ Wort A  ■ Wort B
+    // Legend: ■ Wort A  ·  ■ Wort B – korrekt gemessen, kein Überlapp
     const legY = y + 34
-    ctx.fillStyle = ACCENT; ctx.fillText('■', W/2 - 140, legY)
-    ctx.fillStyle = TEXT_COL; ctx.fillText(` ${wortA || 'Wort A'}`, W/2 - 100, legY)
-    ctx.fillStyle = GOLD; ctx.fillText('■', W/2 + 80, legY)
-    ctx.fillStyle = TEXT_COL; ctx.fillText(` ${wortB || 'Wort B'}`, W/2 + 120, legY)
+    const sqW   = ctx.measureText('■').width
+    const txtAW = ctx.measureText(wortA || 'Wort A').width
+    const txtBW = ctx.measureText(wortB || 'Wort B').width
+    const gap = 10, sep = 48
+    const totalW = sqW + gap + txtAW + sep + sqW + gap + txtBW
+    let lx = (W - totalW) / 2
+    ctx.textAlign = 'left'
+    ctx.fillStyle = ACCENT;   ctx.fillText('■', lx, legY); lx += sqW + gap
+    ctx.fillStyle = TEXT_COL; ctx.fillText(wortA || 'Wort A', lx, legY); lx += txtAW + sep
+    ctx.fillStyle = GOLD;     ctx.fillText('■', lx, legY); lx += sqW + gap
+    ctx.fillStyle = TEXT_COL; ctx.fillText(wortB || 'Wort B', lx, legY)
   } else {
     ctx.fillStyle = MUTED_COL
     ctx.fillText('Welchem Wort gehört welcher Kollokator?', W/2, y+34)
@@ -973,14 +1049,18 @@ async function renderCard() {
   const showOpts = document.getElementById('b-show-options').checked
   const reveal   = document.getElementById('reveal-toggle').checked
 
+  const showHeader = document.getElementById('header-toggle').checked
+
   let contentH = 400
   if (fmt === 'A') contentH = contentHeightA()
   else if (fmt === 'B') contentH = contentHeightB(document.getElementById('beleg-preview').textContent, W, showOpts)
   else if (fmt === 'C') contentH = contentHeightC()
   else if (fmt === 'X') contentH = contentHeightX(document.getElementById('x-headline').value, document.getElementById('x-body').value, W, document.getElementById('x-subtype').value)
 
-  const yStart = BORDER + Math.max(60, Math.round((H - BORDER*2 - HEADER_H - contentH - FOOTER_H) / 2))
-  let y = drawHeader(ctx, W, yStart)
+  const effectiveHeaderH = showHeader ? HEADER_H : 0
+  const yStart = BORDER + Math.max(60, Math.round((H - BORDER*2 - effectiveHeaderH - contentH - FOOTER_H) / 2))
+  const datum = document.getElementById('datum-input').value
+  let y = showHeader ? drawHeader(ctx, W, yStart, datum) : yStart
 
   if (fmt === 'A') {
     y = drawFormatA(ctx, W, y, {
@@ -1033,6 +1113,97 @@ function downloadCard() {
   const link = document.createElement('a')
   link.download = `signifikation-format${currentFormat.toLowerCase()}.png`
   link.href = canvas.toDataURL('image/png'); link.click()
+}
+
+// ── Social Media Panel ────────────────────────────────────────────────────────
+const HASHTAGS = {
+  primary:    '#signifikation #deutschesprache #linguistik #wortgeschichte #sprachliebe',
+  bildung:    '#deutschunterricht #daf #germanistik #sprachdidaktik #lehrkraefte',
+  wortkultur: '#etymologie #sprachgeschichte #wortschatz #duden #korpuslinguistik',
+  quiz:       '#sprachraetsel #quiz #kollokation #wortwissen #sprachtest',
+  akademisch: '#dwds #sprachwissenschaft #semantik #pragmatik #textlinguistik',
+}
+
+const POSTING_HINTS = {
+  A: '<strong>Montag</strong> · 07:15 Uhr · Format A – Quiz',
+  B: '<strong>Freitag</strong> · 17:00 Uhr · Format B – Beleg',
+  C: '<strong>Freitag</strong> · 17:00 Uhr · Format C – Zwilling',
+  X: '<strong>Mittwoch</strong> · 12:30 Uhr · Format X – Info',
+}
+
+const SUGGESTED_HASHTAG_SET = { A: 'quiz', B: 'bildung', C: 'quiz', X: 'wortkultur' }
+
+const CAPTION_TEMPLATES = {
+  A: [
+    s => `*${s.lemma}* – und was kommt danach?\n\nDrei Möglichkeiten, eine passt. Welche?\n\nAuflösung morgen früh in der Story.`,
+    s => `Manche Verbindungen klingen selbstverständlich – bis man sie hinterfragt.\n\n*${s.lemma}* + ?\n\nKommentiere deine Antwort, bevor du weiterscrollst.`,
+    s => `Im heutigen Rätsel geht es um *${s.lemma}*.\n\nKannst du den häufigsten Kollokator nennen?\n\n${HASHTAGS.primary}\n${HASHTAGS.quiz}`,
+  ],
+  B: [
+    s => `Aus einem echten Text – welches Wort fehlt?\n\n„${s.quote}"\n\nAuflösung morgen früh in der Story.`,
+    s => `Echte Sprache ist oft präziser als Lehrbuchsprache.\n\n„${s.quote}"\n\nWelches Wort hat der Autor gewählt?`,
+    s => `*${s.lemma}* in der Praxis – ein Beleg aus unserem Korpus.\n\n„${s.quote}"\n\nQuelle: ${s.source}\n\n${HASHTAGS.primary}\n${HASHTAGS.bildung}`,
+  ],
+  C: [
+    s => `Zwei Wörter. Scheinbar ähnlich, tatsächlich verschieden.\n\n*${s.wortA}* und *${s.wortB}* – welche Kollokatoren gehören zu welchem?\n\nAuflösung: morgen.`,
+    s => `Der Unterschied zwischen *${s.wortA}* und *${s.wortB}* ist subtil – aber er ist da.\n\nDie Kollokatoren verraten ihn. Kannst du sie zuordnen?`,
+    s => `Ein klassischer Verwechslungsfall.\n\n*${s.wortA}* vs. *${s.wortB}* – für den Unterricht: Welche Beispiele würdest du wählen?\n\n${HASHTAGS.primary}\n${HASHTAGS.quiz}`,
+  ],
+  X: [
+    s => `${s.headline}\n\n${s.body}`,
+    s => `*${s.xLemma || 'Wort'}* – ${s.headline}\n\n${s.body}\n\nWas von der alten Bedeutung ist noch spürbar?`,
+    s => `Aus der Sprachgeschichte:\n\n${s.body}\n\n${HASHTAGS.primary}\n${HASHTAGS.wortkultur}`,
+  ],
+}
+
+function getSocialState() {
+  const lemmaId = document.getElementById('lemma-select').value
+  const lemma   = currentLemmata.find(l => l.id === lemmaId)
+  const belegTxt = document.getElementById('beleg-preview').value || '—'
+  return {
+    lemma:    lemma?.lemma || '—',
+    wortA:    document.getElementById('wortA-input').value    || 'Wort A',
+    wortB:    document.getElementById('wortB-input').value    || 'Wort B',
+    quote:    belegTxt.length > 100 ? belegTxt.slice(0, 100) + '…' : belegTxt,
+    source:   document.getElementById('b-quelle-input').value || 'Korpus',
+    xLemma:   document.getElementById('x-lemma').value        || '',
+    headline: document.getElementById('x-headline').value     || '',
+    body:     document.getElementById('x-body').value         || '',
+  }
+}
+
+function updateSocialPanel() {
+  const fmt = currentFormat
+  document.getElementById('posting-hint-text').innerHTML = POSTING_HINTS[fmt] || ''
+  const suggestedSet = SUGGESTED_HASHTAG_SET[fmt] || 'bildung'
+  document.getElementById('hashtag-set').value = suggestedSet
+  updateCaption()
+  updateHashtags()
+}
+
+function updateCaption() {
+  const fmt      = currentFormat
+  const variant  = parseInt(document.getElementById('caption-variant').value) || 0
+  const templates = CAPTION_TEMPLATES[fmt] || CAPTION_TEMPLATES.X
+  const fn = templates[Math.min(variant, templates.length - 1)]
+  document.getElementById('caption-output').value = fn(getSocialState())
+}
+
+function updateHashtags() {
+  const set = document.getElementById('hashtag-set').value
+  document.getElementById('hashtag-output').textContent =
+    HASHTAGS.primary + '\n' + (HASHTAGS[set] || '')
+}
+
+async function copyText(sourceId, btn) {
+  const el = document.getElementById(sourceId)
+  const text = el.value ?? el.textContent
+  try {
+    await navigator.clipboard.writeText(text)
+    const orig = btn.textContent
+    btn.textContent = '✓ Kopiert'
+    setTimeout(() => { btn.textContent = orig }, 1800)
+  } catch {}
 }
 
 window.addEventListener('load', () => {
