@@ -2,7 +2,7 @@
  * backup.js – Automatisches Backup nach GitHub Gist
  *
  * Hält die letzten KEEP_COUNT Gists (Standard: 5).
- * Wird täglich via Railway Cron aufgerufen: node server/backup.js
+ * Aufruf z.B. via Cron oder manuell: node server/backup.js
  */
 import { loadBackupFiles } from './store.js'
 import logger from './logger.js'

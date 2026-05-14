@@ -137,7 +137,7 @@ app.use((err, req, res, next) => {
 const WORTPROFIL_TIMEOUT_MS = 130_000  // etwas mehr als curl --max-time 120
 
 ;(async () => {
-  // ensureWortprofilDb kann bei Railway 2+ GB laden – Timeout verhindert infinites Hängen.
+  // ensureWortprofilDb kann 2+ GB laden – Timeout verhindert infinites Hängen.
   // Fehler sind nicht fatal: Server startet, Wortprofil-Queries liefern dann nur null.
   await Promise.race([
     ensureWortprofilDb(),

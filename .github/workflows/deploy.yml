@@ -113,6 +113,8 @@ jobs:
             # DB-Snapshot vor pm2-Neustart (vor möglichen Schema-Migrationen)
             if [ -f "$DB_FILE" ]; then
               SNAPSHOT="${DB_FILE}.pre-deploy-$(date +%Y%m%d-%H%M%S)"
+              # WAL vor Snapshot leeren, damit der Snapshot vollständig ist
+              sqlite3 "$DB_FILE" "PRAGMA wal_checkpoint(TRUNCATE);" || true
               cp "$DB_FILE" "$SNAPSHOT"
               echo "DB-Snapshot erstellt: $SNAPSHOT"
               ls -t "${DB_FILE}.pre-deploy-"* 2>/dev/null | tail -n +4 | xargs rm -f 2>/dev/null || true

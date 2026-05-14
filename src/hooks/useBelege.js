@@ -1,5 +1,4 @@
-// Belege aus eigener belege.db (CC BY-SA, kein DWDS).
-// Aktiviert sobald belege.db auf Railway Volume hochgeladen ist (BELEGE_DB=/data/belege.db).
+// Belege aus eigener belege.db (CC BY-SA, kein DWDS). Aktiviert wenn BELEGE_DB gesetzt.
 
 import { useState } from 'react'
 import { API } from '../config'
