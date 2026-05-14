@@ -4,6 +4,7 @@ import { requireAuthUser, optionalAuthUser } from '../middleware/userAuth.js'
 import { authFeatureFlags } from '../auth/index.js'
 import { IS_PROD } from '../middleware/auth.js'
 import { deleteUserTx } from './admin-users-data.js'
+import { validate, accountIdParamsSchema } from '../middleware/validate.js'
 import db from '../db.js'
 import logger from '../logger.js'
 
@@ -207,7 +208,7 @@ router.get('/api/v1/account/sessions', requireAuthUser, (req, res) => {
   }
 })
 
-router.delete('/api/v1/account/sessions/:id', requireAuthUser, (req, res) => {
+router.delete('/api/v1/account/sessions/:id', requireAuthUser, validate(accountIdParamsSchema, 'params'), (req, res) => {
   try {
     const result = db.prepare(
       'DELETE FROM session WHERE id = ? AND userId = ?'
@@ -235,7 +236,7 @@ router.get('/api/v1/account/devices', requireAuthUser, (req, res) => {
 // ── DELETE /api/v1/account/devices/:id ────────────────────────
 // Gerät entfernen (z.B. altes Handy)
 
-router.delete('/api/v1/account/devices/:id', requireAuthUser, (req, res) => {
+router.delete('/api/v1/account/devices/:id', requireAuthUser, validate(accountIdParamsSchema, 'params'), (req, res) => {
   try {
     const result = deleteDeviceStmt.run(req.params.id, req.user.id)
     

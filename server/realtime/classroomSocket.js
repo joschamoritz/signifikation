@@ -18,6 +18,25 @@ const HOST_RECONNECT_WINDOW_MS = 2 * 60 * 1000
 
 const sessionRegistry = new Map()
 
+// ── Socket-Join Rate-Limit ─────────────────────────────────────
+// Schützt den Join-Pfad vor Code-Brute-Force via WebSocket.
+// Reconnects (mit gültigem Token) sind ausgenommen.
+const JOIN_RATE_LIMIT = 10        // max. Versuche pro Fenster
+const JOIN_RATE_WINDOW_MS = 60_000 // 1 Minute
+const joinAttempts = new Map()    // ip → { count, windowStart }
+
+function checkJoinRateLimit(ip) {
+  const now = Date.now()
+  const entry = joinAttempts.get(ip)
+  if (!entry || now - entry.windowStart > JOIN_RATE_WINDOW_MS) {
+    joinAttempts.set(ip, { count: 1, windowStart: now })
+    return true
+  }
+  if (entry.count >= JOIN_RATE_LIMIT) return false
+  entry.count++
+  return true
+}
+
 function roomName(sessionId) {
   return `classroom:${sessionId}`
 }
@@ -201,6 +220,15 @@ export function initClassroomSocket(httpServer) {
         if (parsed.error) {
           socket.emit('classroom:error', { code: 'INVALID_PAYLOAD', message: 'Join-Payload ist ungueltig' })
           return
+        }
+
+        // Rate-Limit nur für neue Joins – Reconnects haben gültiges Token und sind ausgenommen
+        if (!parsed.reconnect) {
+          const ip = socket.handshake.address
+          if (!checkJoinRateLimit(ip)) {
+            socket.emit('classroom:error', { code: 'RATE_LIMITED', message: 'Zu viele Beitrittsversuche. Bitte kurz warten.' })
+            return
+          }
         }
 
         if (parsed.reconnect) {
