@@ -1,5 +1,6 @@
 import { TeacherSessionCard, TeacherLiveCard, TeacherProtocolCard } from './ClassroomCards'
 import { GAME_LABELS, ROUND_GAME_NAME, formatDateTime, formatElapsed, formatStagnation, mapSessionState } from './classroomUtils'
+import Sheet from '../ui/Sheet'
 
 export default function TeacherClassroomEntries({
   sessionNameInput,
@@ -26,15 +27,21 @@ export default function TeacherClassroomEntries({
 }) {
   return (
     <>
-      {pendingFinish && (
-        <li className="classroom-confirm-banner" role="dialog" aria-label="Session beenden bestätigen">
+      <Sheet
+        open={pendingFinish}
+        onClose={cancelFinish}
+        variant="center"
+        dismissible={false}
+        aria-label="Session beenden bestätigen"
+      >
+        <Sheet.Body>
           <p className="classroom-confirm-text">Keine Teilnehmenden verbunden. Trotzdem beenden?</p>
-          <span className="classroom-confirm-actions">
-            <button className="btn-ghost" type="button" onClick={confirmFinish}>Ja, beenden</button>
-            <button className="btn-ghost" type="button" onClick={cancelFinish}>Abbrechen</button>
-          </span>
-        </li>
-      )}
+        </Sheet.Body>
+        <Sheet.Footer>
+          <button className="btn-ghost" type="button" onClick={confirmFinish}>Ja, beenden</button>
+          <button className="btn-ghost" type="button" onClick={cancelFinish}>Abbrechen</button>
+        </Sheet.Footer>
+      </Sheet>
       <TeacherSessionCard
         sessionNameInput={sessionNameInput}
         setSessionNameInput={setSessionNameInput}
