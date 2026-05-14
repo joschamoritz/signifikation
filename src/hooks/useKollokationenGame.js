@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { API } from '../config'
 import { getMedal } from '../utils/gameLogic'
 import { getPlayedToday, savePlayedGame } from '../utils/dailyProgress'
+import { postStat } from '../api/stats'
 
 export function useKollokationenGame({ keys, serverDatum, lemmata }) {
   const [phase, setPhase] = useState('home')
@@ -61,11 +61,7 @@ export function useKollokationenGame({ keys, serverDatum, lemmata }) {
 
     if (freshKollRef.current && serverDatum) {
       freshKollRef.current = false
-      fetch(`${API}/stats`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ game: 'kollokationen', datum: serverDatum, score: total, max: 10 }),
-      }).catch(() => {})
+      postStat('kollokationen', serverDatum, total, 10)
 
       submitRetro?.({ game: 'kollokationen', score: total, maxScore: maxPoints })
     }

@@ -1,8 +1,8 @@
 import { useCallback, useEffect } from 'react'
-import { API } from '../config'
 import { lsSet } from '../utils/storage'
 import { getMedal } from '../utils/gameLogic'
 import { getPlayedToday, markActivity, saveWZHistory, saveZWHistory, saveLFHistory } from '../utils/dailyProgress'
+import { postStat } from '../api/stats'
 
 export function useSecondaryGameResults({
   keys,
@@ -37,11 +37,7 @@ export function useSecondaryGameResults({
     setWzPlayed(entry)
     markActivity(keys.dateStr)
     saveWZHistory(keys.dateStr, medal.label, medal.emoji)
-    fetch(`${API}/stats`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ game: 'wortzwilling', datum: serverDatum, score, max: 10 }),
-    }).catch(() => {})
+    postStat('wortzwilling', serverDatum, score, 10)
     classroomSubmitRef.current?.({ game: 'wortzwilling', score, maxScore: 10 })
   }, [classroomSubmitRef, keys.dateStr, serverDatum, setWzPlayed, wortzwilling])
 
@@ -58,11 +54,7 @@ export function useSecondaryGameResults({
     setLfPlayed(entry)
     markActivity(keys.dateStr)
     saveLFHistory(keys.dateStr, medal.label, medal.emoji)
-    fetch(`${API}/stats`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ game: 'lueckenfueller', datum: serverDatum, score, max: 10 }),
-    }).catch(() => {})
+    postStat('lueckenfueller', serverDatum, score, 10)
     classroomSubmitRef.current?.({ game: 'lueckenfueller', score, maxScore: 10 })
   }, [classroomSubmitRef, keys.dateStr, lueckenfuellerLemma, serverDatum, setLfPlayed])
 
@@ -76,11 +68,7 @@ export function useSecondaryGameResults({
     setZwPlayed(entry)
     markActivity(keys.dateStr)
     saveZWHistory(keys.dateStr, medal.label, medal.emoji)
-    fetch(`${API}/stats`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ game: 'zeitenwende', datum: serverDatum, score, max: 10 }),
-    }).catch(() => {})
+    postStat('zeitenwende', serverDatum, score, 10)
     classroomSubmitRef.current?.({ game: 'zeitenwende', score, maxScore: 10 })
   }, [classroomSubmitRef, keys.dateStr, serverDatum, setZwPlayed, zeitenwende])
 
