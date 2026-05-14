@@ -11,6 +11,30 @@ function normalizeDateKeyedMap(raw) {
   return result
 }
 
+/**
+ * Konvertiert das alte aggregierte stats.json-Format (datum → spiel → {plays,...})
+ * in das aktuelle Zeilen-Array-Format, falls nötig.
+ */
+function flattenLegacyStatsFormat(statsObj) {
+  const rows = []
+  for (const [datum, games] of Object.entries(statsObj)) {
+    if (!games || typeof games !== 'object') continue
+    for (const [spiel, v] of Object.entries(games)) {
+      if (!v || typeof v !== 'object') continue
+      rows.push({
+        datum,
+        spiel,
+        user_id:  v.user_id  ?? '',
+        plays:    v.plays    ?? 0,
+        scoreSum: v.scoreSum ?? 0,
+        maxSum:   v.maxSum   ?? 0,
+        dist:     Array.isArray(v.dist) ? v.dist : [],
+      })
+    }
+  }
+  return rows
+}
+
 function normalizeStatsRows(rows) {
   return rows.map((row) => {
     if (!row || typeof row !== 'object') {
@@ -39,11 +63,16 @@ export function sanitizeBackupBundle(payload) {
   const wortzwilling = normalizeDateKeyedMap(files['wortzwilling.json'] && typeof files['wortzwilling.json'] === 'object' ? files['wortzwilling.json'] : {})
   const zeitenwende = normalizeDateKeyedMap(files['zeitenwende.json'] && typeof files['zeitenwende.json'] === 'object' ? files['zeitenwende.json'] : {})
 
-  const statsRows = normalizeStatsRows(
-    Array.isArray(files['stats-rows.json'])
-      ? files['stats-rows.json']
-      : Array.isArray(files['stats.json']) ? files['stats.json'] : []
-  )
+  const rawStatsRows = (() => {
+    if (Array.isArray(files['stats-rows.json'])) return files['stats-rows.json']
+    if (Array.isArray(files['stats.json'])) return files['stats.json']
+    // Altes Format: { datum: { spiel: { plays, ... } } } → in Zeilen-Array konvertieren
+    if (files['stats.json'] && typeof files['stats.json'] === 'object') {
+      return flattenLegacyStatsFormat(files['stats.json'])
+    }
+    return []
+  })()
+  const statsRows = normalizeStatsRows(rawStatsRows)
 
   return { lemmata, kalender, wortzwilling, zeitenwende, statsRows }
 }

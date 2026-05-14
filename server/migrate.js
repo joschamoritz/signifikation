@@ -13,6 +13,7 @@ import { readFileSync, existsSync } from 'fs'
 import { join, dirname } from 'path'
 import { fileURLToPath } from 'url'
 import db from './db.js'
+import { normalizeKalenderShape } from './store-daily-content.js'
 
 function printInfo(message = '') {
   process.stdout.write(`${message}\n`)
@@ -46,29 +47,31 @@ printInfo('')
 {
   const lemmata = readJson('lemmata.json', [])
   const upsert  = db.prepare(`
-    INSERT INTO lemmata (id,lemma,pos,wortart,runden,rundenInfo,notiz,link,definition,bonusFrage,ipa,definitionen)
-    VALUES (@id,@lemma,@pos,@wortart,@runden,@rundenInfo,@notiz,@link,@definition,@bonusFrage,@ipa,@definitionen)
+    INSERT INTO lemmata (id,lemma,pos,wortart,runden,rundenInfo,notiz,link,definition,bonusFrage,ipa,definitionen,lueckenfueller)
+    VALUES (@id,@lemma,@pos,@wortart,@runden,@rundenInfo,@notiz,@link,@definition,@bonusFrage,@ipa,@definitionen,@lueckenfueller)
     ON CONFLICT(id) DO UPDATE SET
       lemma=excluded.lemma, pos=excluded.pos, wortart=excluded.wortart,
       runden=excluded.runden, rundenInfo=excluded.rundenInfo,
       notiz=excluded.notiz, link=excluded.link, definition=excluded.definition,
-      bonusFrage=excluded.bonusFrage, ipa=excluded.ipa, definitionen=excluded.definitionen
+      bonusFrage=excluded.bonusFrage, ipa=excluded.ipa, definitionen=excluded.definitionen,
+      lueckenfueller=excluded.lueckenfueller
   `)
   const run = db.transaction(list => {
     for (const l of list) {
       upsert.run({
-        id:           l.id,
-        lemma:        l.lemma,
-        pos:          l.pos          ?? '',
-        wortart:      l.wortart      ?? '',
-        runden:       JSON.stringify(l.runden      ?? {}),
-        rundenInfo:   JSON.stringify(l.rundenInfo  ?? []),
-        notiz:        l.notiz        ?? '',
-        link:         l.link         ?? '',
-        definition:   l.definition   ?? '',
-        bonusFrage:   l.bonusFrage ? JSON.stringify(l.bonusFrage) : null,
-        ipa:          l.ipa          ?? '',
-        definitionen: JSON.stringify(l.definitionen ?? []),
+        id:            l.id,
+        lemma:         l.lemma,
+        pos:           l.pos           ?? '',
+        wortart:       l.wortart       ?? '',
+        runden:        JSON.stringify(l.runden       ?? {}),
+        rundenInfo:    JSON.stringify(l.rundenInfo   ?? []),
+        notiz:         l.notiz         ?? '',
+        link:          l.link          ?? '',
+        definition:    l.definition    ?? '',
+        bonusFrage:    l.bonusFrage ? JSON.stringify(l.bonusFrage) : null,
+        ipa:           l.ipa           ?? '',
+        definitionen:  JSON.stringify(l.definitionen ?? []),
+        lueckenfueller: l.lueckenfueller ? JSON.stringify(l.lueckenfueller) : null,
       })
     }
   })
@@ -78,43 +81,59 @@ printInfo('')
 
 // ── Kalender ──────────────────────────────────────────────────────
 {
-  const kalender = readJson('kalender.json', {})
-  const upsert   = db.prepare('INSERT OR REPLACE INTO kalender (datum, ids) VALUES (@datum, @ids)')
+  // normalizeKalenderShape konvertiert altes Format (datum → id[]) auf neue Shape
+  const kalender = normalizeKalenderShape(readJson('kalender.json', {}))
+  const upsert   = db.prepare(`
+    INSERT OR REPLACE INTO kalender (datum, ids, thema, thema_kurz, thema_quelle, lueckenfueller_id)
+    VALUES (@datum, @ids, @thema, @thema_kurz, @thema_quelle, @lueckenfueller_id)
+  `)
   const run      = db.transaction(obj => {
-    for (const [datum, ids] of Object.entries(obj)) {
-      upsert.run({ datum, ids: JSON.stringify(ids) })
+    for (const [datum, entry] of Object.entries(obj)) {
+      upsert.run({
+        datum,
+        ids:               JSON.stringify(entry.ids ?? []),
+        thema:             entry.thema             ?? '',
+        thema_kurz:        entry.thema_kurz        ?? '',
+        thema_quelle:      entry.thema_quelle      ?? '',
+        lueckenfueller_id: entry.lueckenfueller_id ?? '',
+      })
     }
   })
   run(kalender)
   printInfo(`OK kalender: ${Object.keys(kalender).length} Eintraege`)
 }
 
-// ── Zeitreise ─────────────────────────────────────────────────────
+// ── Zeitreise (veraltet – Tabelle existiert nicht mehr, wird übersprungen) ──
 {
-  const zeitreise = readJson('zeitreise.json', {})
-  const upsert    = db.prepare(
-    'INSERT OR REPLACE INTO zeitreise (datum,lemma,paare,perioden,wortart) VALUES (@datum,@lemma,@paare,@perioden,@wortart)'
-  )
-  const run = db.transaction(obj => {
-    for (const [datum, v] of Object.entries(obj)) {
-      upsert.run({
-        datum,
-        lemma:    v.lemma    ?? '',
-        paare:    JSON.stringify(v.paare    ?? []),
-        perioden: JSON.stringify(v.perioden ?? []),
-        wortart:  v.wortart  ?? 'Substantiv',
-      })
-    }
-  })
-  run(zeitreise)
-  printInfo(`OK zeitreise: ${Object.keys(zeitreise).length} Eintraege`)
+  const hasZeitreise = db.prepare(`SELECT name FROM sqlite_master WHERE type='table' AND name='zeitreise'`).get()
+  if (hasZeitreise) {
+    const zeitreise = readJson('zeitreise.json', {})
+    const upsert    = db.prepare(
+      'INSERT OR REPLACE INTO zeitreise (datum,lemma,paare,perioden,wortart) VALUES (@datum,@lemma,@paare,@perioden,@wortart)'
+    )
+    const run = db.transaction(obj => {
+      for (const [datum, v] of Object.entries(obj)) {
+        upsert.run({
+          datum,
+          lemma:    v.lemma    ?? '',
+          paare:    JSON.stringify(v.paare    ?? []),
+          perioden: JSON.stringify(v.perioden ?? []),
+          wortart:  v.wortart  ?? 'Substantiv',
+        })
+      }
+    })
+    run(zeitreise)
+    printInfo(`OK zeitreise: ${Object.keys(zeitreise).length} Eintraege`)
+  } else {
+    printInfo('  SKIP zeitreise: Tabelle nicht mehr vorhanden')
+  }
 }
 
 // ── Wortzwilling ──────────────────────────────────────────────────
 {
   const wz     = readJson('wortzwilling.json', {})
   const upsert = db.prepare(
-    'INSERT OR REPLACE INTO wortzwilling (datum,wortA,wortB,pos,kollokatoren) VALUES (@datum,@wortA,@wortB,@pos,@kollokatoren)'
+    'INSERT OR REPLACE INTO wortzwilling (datum,wortA,wortB,pos,kollokatoren,notiz,link) VALUES (@datum,@wortA,@wortB,@pos,@kollokatoren,@notiz,@link)'
   )
   const run = db.transaction(obj => {
     for (const [datum, v] of Object.entries(obj)) {
@@ -124,6 +143,8 @@ printInfo('')
         wortB:        v.wortB        ?? '',
         pos:          v.pos          ?? 'Substantiv',
         kollokatoren: JSON.stringify(v.kollokatoren ?? []),
+        notiz:        v.notiz        ?? '',
+        link:         v.link         ?? '',
       })
     }
   })
