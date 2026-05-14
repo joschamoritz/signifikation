@@ -1,4 +1,4 @@
-export function ClassroomExplanationCard() {
+export function ClassroomExplanationCard({ isTeacher = false, isLoggedIn = false, onNavigateToKonto = () => {} }) {
   return (
     <li className="test-entry test-drop-cap">
       <div className="test-entry-number" aria-hidden="true">
@@ -25,6 +25,18 @@ export function ClassroomExplanationCard() {
           <li>Spielergebnisse aller vier Modi werden automatisch übertragen.</li>
           <li>Nach der Sitzung: Auswertung nach Spielmodus, Export als CSV oder PDF.</li>
         </ul>
+        {!isTeacher && (
+          <div className="cr-teacher-prompt">
+            <p className="cr-teacher-prompt-text">
+              {isLoggedIn
+                ? 'Klasse leiten · Für Lehrkräfte mit Gesamtausgabe.'
+                : 'Klasse leiten · Bitte anmelden, um Sitzungen zu erstellen.'}
+            </p>
+            <button type="button" className="test-cta" onClick={onNavigateToKonto}>
+              {isLoggedIn ? 'Zum Konto →' : 'Anmelden →'}
+            </button>
+          </div>
+        )}
       </div>
     </li>
   )

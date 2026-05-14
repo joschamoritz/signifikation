@@ -6,6 +6,7 @@ export default function PersistentClassroomTab({
   onInSessionChange,
   submitRef,
   getRetroResultsRef,
+  onNavigateToKonto,
 }) {
   return (
     <div
@@ -17,6 +18,7 @@ export default function PersistentClassroomTab({
         onInSessionChange={onInSessionChange}
         submitRef={submitRef}
         getRetroResultsRef={getRetroResultsRef}
+        onNavigateToKonto={onNavigateToKonto}
       />
     </div>
   )

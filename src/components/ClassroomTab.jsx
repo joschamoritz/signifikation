@@ -4,7 +4,7 @@ import ClassroomRaster from './classroom/ClassroomRaster'
 import ClassroomSnapNav from './classroom/ClassroomSnapNav'
 import { useClassroomTabState } from './classroom/useClassroomTabState'
 
-export default function ClassroomTab({ onLiveChange = () => {}, submitRef = null, onInSessionChange = () => {}, getRetroResultsRef = null }) {
+export default function ClassroomTab({ onLiveChange = () => {}, submitRef = null, onInSessionChange = () => {}, getRetroResultsRef = null, onNavigateToKonto = () => {} }) {
   const {
     loadingAccount,
     teacherError,
@@ -16,6 +16,7 @@ export default function ClassroomTab({ onLiveChange = () => {}, submitRef = null
     submitRef,
     onInSessionChange,
     getRetroResultsRef,
+    onNavigateToKonto,
   })
 
   return (

@@ -245,6 +245,7 @@ export function useAppModel() {
       onInSessionChange: navigation.setClassroomInSession,
       submitRef: classroomSubmitRef,
       getRetroResultsRef,
+      onNavigateToKonto: () => navigation.setActiveTab('profil'),
     },
     persistentKontoProps: {
       activeTab: navigation.activeTab,

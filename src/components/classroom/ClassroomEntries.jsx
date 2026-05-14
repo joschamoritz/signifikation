@@ -6,13 +6,15 @@ export default function ClassroomEntries({
   entriesRef,
   handleSnapKeyDown,
   isTeacher,
+  isLoggedIn,
+  onNavigateToKonto,
   teacherState,
   studentState,
   api,
 }) {
   return (
     <ul className="classroom-entries" ref={entriesRef} onKeyDown={handleSnapKeyDown}>
-      <ClassroomExplanationCard />
+      <ClassroomExplanationCard isTeacher={isTeacher} isLoggedIn={isLoggedIn} onNavigateToKonto={onNavigateToKonto} />
 
       {isTeacher ? (
         <TeacherClassroomEntries

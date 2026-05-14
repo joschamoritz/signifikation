@@ -11,11 +11,13 @@ export function useClassroomTabState({
   submitRef,
   onInSessionChange,
   getRetroResultsRef,
+  onNavigateToKonto = () => {},
 }) {
   const entriesRef = useRef(null)
 
   const { account, loadingAccount, teacherError, setTeacherError } = useClassroomAccount()
   const isTeacher = account?.role === 'premium'
+  const isLoggedIn = !loadingAccount && account !== null
 
   const teacherState = useTeacherClassroom({ isTeacher, setTeacherError })
 
@@ -65,6 +67,8 @@ export function useClassroomTabState({
       entriesRef,
       handleSnapKeyDown: snapNav.handleSnapKeyDown,
       isTeacher,
+      isLoggedIn,
+      onNavigateToKonto,
       teacherState,
       studentState,
       api: API,
