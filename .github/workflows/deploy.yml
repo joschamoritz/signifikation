@@ -43,7 +43,7 @@ jobs:
         run: npm ci && npm run build
 
       - name: dist als Tarball packen
-        run: tar czf /tmp/signifikation-dist.tar.gz dist/
+        run: tar czf signifikation-dist.tar.gz dist/
 
       - name: dist-Tarball auf Server übertragen
         uses: appleboy/scp-action@v0.1.7
@@ -51,9 +51,8 @@ jobs:
           host: ${{ secrets.SERVER_IP }}
           username: deploy
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          source: /tmp/signifikation-dist.tar.gz
+          source: signifikation-dist.tar.gz
           target: /tmp/
-          strip_components: 2
 
       - uses: appleboy/ssh-action@v1
         with:
