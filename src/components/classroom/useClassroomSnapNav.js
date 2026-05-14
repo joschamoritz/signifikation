@@ -81,8 +81,8 @@ export function useClassroomSnapNav({ entriesRef, isTeacher, loadingAccount }) {
   const handleSnapKeyDown = useCallback((event) => {
     if (!window.matchMedia('(max-width: 699px)').matches) return
     const maxCard = isTeacher ? 3 : 2
-    if (event.key === 'ArrowDown') scrollToCard(Math.min(activeCard + 1, maxCard))
-    if (event.key === 'ArrowUp') scrollToCard(Math.max(activeCard - 1, 0))
+    if (event.key === 'ArrowDown' && activeCard < maxCard) scrollToCard(activeCard + 1)
+    if (event.key === 'ArrowUp' && activeCard > 0) scrollToCard(activeCard - 1)
   }, [activeCard, isTeacher, scrollToCard])
 
   return {

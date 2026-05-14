@@ -7,17 +7,19 @@ const FOCUSABLE =
 
 function getFocusable(container) {
   return Array.from(container.querySelectorAll(FOCUSABLE)).filter(
-    (el) => !el.disabled && el.offsetParent !== null
+    (el) => !el.disabled
   )
 }
 
-// Portal container created once, outside component to survive re-renders
 let _portalContainer = null
 function getPortalContainer() {
-  if (!_portalContainer) {
-    _portalContainer = document.createElement('div')
-    _portalContainer.setAttribute('id', 'sheet-portal')
-    document.body.appendChild(_portalContainer)
+  if (!_portalContainer || !document.body.contains(_portalContainer)) {
+    _portalContainer = document.getElementById('sheet-portal')
+    if (!_portalContainer) {
+      _portalContainer = document.createElement('div')
+      _portalContainer.setAttribute('id', 'sheet-portal')
+      document.body.appendChild(_portalContainer)
+    }
   }
   return _portalContainer
 }
