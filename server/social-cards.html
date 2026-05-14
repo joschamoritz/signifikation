@@ -142,12 +142,12 @@ header h1{font-family:'Gentium Plus',serif;font-size:1.25rem;font-weight:400}
           <input id="answer-input" placeholder="—" readonly>
         </div>
         <div>
-          <label>Köder 1 (Rang ~5)</label>
-          <input id="dist1-input" placeholder="—">
+          <label>Köder 1</label>
+          <select id="dist1-sel" onchange="reshuffleOptions(); renderCard()"><option value="">– Lemma wählen –</option></select>
         </div>
         <div>
-          <label>Köder 2 (Rang ~10)</label>
-          <input id="dist2-input" placeholder="—">
+          <label>Köder 2</label>
+          <select id="dist2-sel" onchange="reshuffleOptions(); renderCard()"><option value="">– Lemma wählen –</option></select>
         </div>
 
       </div>
@@ -245,6 +245,15 @@ header h1{font-family:'Gentium Plus',serif;font-size:1.25rem;font-weight:400}
       </div>
 
       <div class="divider"></div>
+
+      <div>
+        <label>Farbdesign</label>
+        <div class="tabs">
+          <button class="tab theme-btn active" data-theme="hell" onclick="applyTheme('hell')">Hell</button>
+          <button class="tab theme-btn" data-theme="dunkel" onclick="applyTheme('dunkel')">Dunkel</button>
+          <button class="tab theme-btn" data-theme="rot" onclick="applyTheme('rot')">Rot</button>
+        </div>
+      </div>
 
       <div>
         <label>Seitenformat</label>
@@ -367,7 +376,7 @@ function initApp() {
   document.getElementById('b-show-options').addEventListener('change', renderCard)
   document.getElementById('reveal-toggle').addEventListener('change', renderCard)
   document.getElementById('header-toggle').addEventListener('change', renderCard)
-  ;['answer-input','dist1-input','dist2-input',
+  ;['answer-input',
     'wortA-input','wortB-input','kollA-input','kollB-input',
     'x-subtype','x-lemma','x-headline','x-body','b-quelle-input','beleg-preview'
   ].forEach(id => document.getElementById(id).addEventListener('input', () => { updateCaption(); renderCard() }))
@@ -426,10 +435,9 @@ async function onLemmaChange() {
 
   if (!currentCollocations.length) {
     document.getElementById('answer-input').value = ''
-    document.getElementById('dist1-input').value  = ''
-    document.getElementById('dist2-input').value  = ''
     document.getElementById('rel-select').innerHTML = '<option value="">Keine Daten für dieses Lemma</option>'
     populateCollSelects()
+    populateDistSelects()
     renderCard()
     return
   }
@@ -438,10 +446,10 @@ async function onLemmaChange() {
   relSel.innerHTML = '<option value="top3">Beste Kollokationen (gesamt)</option>'
   const allSorted = [...currentCollocations].sort((a, b) => b.logDice - a.logDice)
   document.getElementById('answer-input').value = allSorted[0]?.wort || ''
-  document.getElementById('dist1-input').value  = allSorted[4]?.wort || allSorted[1]?.wort || ''
-  document.getElementById('dist2-input').value  = allSorted[9]?.wort || allSorted[2]?.wort || ''
 
   populateCollSelects()
+  populateDistSelects()
+  reshuffleOptions()
   renderCard()
 }
 
@@ -464,6 +472,62 @@ function populateCollSelects() {
     o.value = c.wort; o.textContent = c.wort
     xZitatSel.appendChild(o)
   })
+}
+
+function populateDistSelects() {
+  const answer = document.getElementById('answer-input').value
+  const sorted = [...currentCollocations].sort((a, b) => b.logDice - a.logDice)
+  const options = sorted.filter(c => c.wort !== answer)
+  ;['dist1-sel', 'dist2-sel'].forEach((selId, i) => {
+    const sel = document.getElementById(selId)
+    const prev = sel.value
+    sel.innerHTML = ''
+    options.forEach((c, idx) => {
+      const o = document.createElement('option')
+      o.value = c.wort
+      o.textContent = `${c.wort}  (Rang ${idx + 2} · logDice ${c.logDice.toFixed(1)})`
+      sel.appendChild(o)
+    })
+    // Vorauswahl: Rang ~5 für Köder 1, Rang ~10 für Köder 2
+    const defaultIdx = i === 0 ? 3 : 8
+    sel.value = (prev && options.find(c => c.wort === prev))
+      ? prev
+      : options[defaultIdx]?.wort || options[i]?.wort || ''
+  })
+}
+
+// ── Shuffle-Logik für Format A ────────────────────────────────────────────────
+let shuffledOrder = null  // [0,1,2] – welcher Antwort-Slot bei A/B/C liegt
+
+function reshuffleOptions() {
+  const arr = [0, 1, 2]
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1))
+    ;[arr[i], arr[j]] = [arr[j], arr[i]]
+  }
+  shuffledOrder = arr  // shuffledOrder[posABC] = originalIndex (0=richtig, 1=köder1, 2=köder2)
+}
+
+function getShuffledOpts(answer, dist1, dist2) {
+  if (!shuffledOrder) reshuffleOptions()
+  const texts = [answer || '–', dist1 || '–', dist2 || '–']
+  return shuffledOrder.map((origIdx, i) => ({
+    letter: 'ABC'[i],
+    text: texts[origIdx],
+    correct: origIdx === 0,
+  }))
+}
+
+// ── Theme ─────────────────────────────────────────────────────────────────────
+function applyTheme(name) {
+  const t = THEMES[name]
+  if (!t) return
+  ACCENT = t.ACCENT; GOLD = t.GOLD; BG = t.BG; TEXT_COL = t.TEXT_COL; MUTED_COL = t.MUTED_COL
+  BADGE_BG = t.BADGE_BG; SEP_COL = t.SEP_COL; POLL_COL = t.POLL_COL
+  CORPUS_BG = t.CORPUS_BG; CORPUS_TEXT = t.CORPUS_TEXT; CHIP_SEP = t.CHIP_SEP
+  BORDER_STRIPE = t.BORDER_STRIPE
+  document.querySelectorAll('.theme-btn').forEach(b => b.classList.toggle('active', b.dataset.theme === name))
+  renderCard()
 }
 
 // Wird nicht mehr per Relation-Change ausgelöst, bleibt für eventuelle manuelle Auslösung
@@ -590,14 +654,47 @@ function addToKollInput(wort) {
 }
 
 // ── Canvas constants ──────────────────────────────────────────────────────────
-const ACCENT    = '#9b1c1c'
-const GOLD      = '#c9a84c'
-const BG        = '#faf9f7'
-const TEXT_COL  = '#1a1510'
-const MUTED_COL = '#8a8070'
-const SANS      = "'DM Sans', system-ui, sans-serif"
-const SERIF     = "'Gentium Plus', Georgia, serif"
+const SANS  = "'DM Sans', system-ui, sans-serif"
+const SERIF = "'Gentium Plus', Georgia, serif"
 const PAD = 96, BORDER = 18
+
+// Theme-Farben – werden durch applyTheme() überschrieben
+let ACCENT       = '#9b1c1c'
+let GOLD         = '#c9a84c'
+let BG           = '#faf9f7'
+let TEXT_COL     = '#1a1510'
+let MUTED_COL    = '#8a8070'
+let BADGE_BG     = '#ede8e0'  // Buchstaben-Badge, neutrale Chips
+let SEP_COL      = '#e4ddd4'  // Trennlinie zwischen Optionen
+let POLL_COL     = '#c8c0b4'  // Poll-Kreis Strich
+let CORPUS_BG    = '#2a2218'  // Corpus-Badge Hintergrund
+let CORPUS_TEXT  = '#c8c0b4'  // Corpus-Badge Text
+let CHIP_SEP     = '#ddd8ce'  // Trennlinie WZ-Chip-Pool
+let BORDER_STRIPE = '#9b1c1c' // Rand oben/unten
+
+const THEMES = {
+  hell: {
+    BG: '#faf9f7',  TEXT_COL: '#1a1510',  MUTED_COL: '#8a8070',
+    ACCENT: '#9b1c1c',  GOLD: '#c9a84c',
+    BADGE_BG: '#ede8e0',  SEP_COL: '#e4ddd4',  POLL_COL: '#c8c0b4',
+    CORPUS_BG: '#2a2218',  CORPUS_TEXT: '#c8c0b4',  CHIP_SEP: '#ddd8ce',
+    BORDER_STRIPE: '#9b1c1c',
+  },
+  dunkel: {
+    BG: '#1a1510',  TEXT_COL: '#f0ebe4',  MUTED_COL: '#8a8070',
+    ACCENT: '#9b1c1c',  GOLD: '#c9a84c',
+    BADGE_BG: '#2a2018',  SEP_COL: '#3a3028',  POLL_COL: '#8a8070',
+    CORPUS_BG: '#0d0b08',  CORPUS_TEXT: '#8a8070',  CHIP_SEP: '#3a3028',
+    BORDER_STRIPE: '#9b1c1c',
+  },
+  rot: {
+    BG: '#9b1c1c',  TEXT_COL: '#faf9f7',  MUTED_COL: '#e8d5c4',
+    ACCENT: '#c9a84c',  GOLD: '#c9a84c',
+    BADGE_BG: '#7a1515',  SEP_COL: '#7a1515',  POLL_COL: '#e8d5c4',
+    CORPUS_BG: '#5a0f0f',  CORPUS_TEXT: '#e8d5c4',  CHIP_SEP: '#7a1515',
+    BORDER_STRIPE: '#1a1510',
+  },
+}
 
 function getCanvasDims() {
   return document.querySelector('input[name=ratio]:checked')?.value === '9:16'
@@ -641,20 +738,17 @@ function drawOptions(ctx, W, y, opts) {
     const ry = y + i * (optRowH + optGap)
     const midY = ry + optRowH / 2
     if (i > 0) {
-      ctx.strokeStyle = '#e4ddd4'; ctx.lineWidth = 1
+      ctx.strokeStyle = SEP_COL; ctx.lineWidth = 1
       ctx.beginPath(); ctx.moveTo(PAD, ry - 1); ctx.lineTo(W-PAD, ry - 1); ctx.stroke()
     }
-    // Letter badge
     const badgeR = 22, badgeX = PAD + badgeR
-    ctx.fillStyle = '#ede8e0'
+    ctx.fillStyle = BADGE_BG
     ctx.beginPath(); ctx.arc(badgeX, midY, badgeR, 0, Math.PI*2); ctx.fill()
     ctx.fillStyle = TEXT_COL; ctx.font = `600 24px ${SANS}`; ctx.textAlign = 'center'
     ctx.fillText(opt.letter, badgeX, midY + 9)
-    // Option text
     ctx.textAlign = 'left'; ctx.fillStyle = TEXT_COL; ctx.font = `400 38px ${SERIF}`
     ctx.fillText(opt.text, PAD + badgeR*2 + 20, midY + 14)
-    // Poll circle
-    ctx.strokeStyle = '#c8c0b4'; ctx.lineWidth = 2
+    ctx.strokeStyle = POLL_COL; ctx.lineWidth = 2
     ctx.beginPath(); ctx.arc(W - PAD - 20, midY, 18, 0, Math.PI*2); ctx.stroke()
   })
   return y + opts.length * (optRowH + optGap) - optGap
@@ -722,24 +816,20 @@ function drawFormatA(ctx, W, y, data) {
   ctx.textAlign = 'center'; ctx.fillStyle = MUTED_COL; ctx.font = `400 28px ${SANS}`
   ctx.fillText('Häufigste Verbindung im Deutschen', W/2, y+28); y += 28+32
 
+  const shuffledOpts = getShuffledOpts(answer, dist1, dist2)
+
   if (reveal) {
-    // Reveal: correct answer prominent, distractors dimmed
     const optRowH = 72, optGap = 12
-    const revOpts = [
-      { letter: 'A', text: answer || '–', correct: true  },
-      { letter: 'B', text: dist1  || '–', correct: false },
-      { letter: 'C', text: dist2  || '–', correct: false },
-    ]
-    revOpts.forEach((opt, i) => {
+    shuffledOpts.forEach((opt, i) => {
       const ry = y + i * (optRowH + optGap)
       const midY = ry + optRowH / 2
       if (i > 0) {
-        ctx.strokeStyle = '#e4ddd4'; ctx.lineWidth = 1
+        ctx.strokeStyle = SEP_COL; ctx.lineWidth = 1
         ctx.beginPath(); ctx.moveTo(PAD, ry-1); ctx.lineTo(W-PAD, ry-1); ctx.stroke()
       }
       ctx.globalAlpha = opt.correct ? 1 : 0.28
       const badgeR = 22, badgeX = PAD + badgeR
-      ctx.fillStyle = opt.correct ? ACCENT : '#ede8e0'
+      ctx.fillStyle = opt.correct ? ACCENT : BADGE_BG
       ctx.beginPath(); ctx.arc(badgeX, midY, badgeR, 0, Math.PI*2); ctx.fill()
       ctx.fillStyle = opt.correct ? '#fff' : TEXT_COL
       ctx.font = `600 24px ${SANS}`; ctx.textAlign = 'center'
@@ -748,7 +838,6 @@ function drawFormatA(ctx, W, y, data) {
       ctx.fillStyle = opt.correct ? ACCENT : TEXT_COL
       ctx.font = opt.correct ? `bold 40px ${SERIF}` : `400 38px ${SERIF}`
       ctx.fillText(opt.text, PAD + badgeR*2 + 20, midY+14)
-      // Poll circle: filled with ✓ for correct, empty+dim for others
       const pollX = W - PAD - 20
       if (opt.correct) {
         ctx.fillStyle = ACCENT
@@ -756,20 +845,15 @@ function drawFormatA(ctx, W, y, data) {
         ctx.fillStyle = '#fff'; ctx.font = `600 26px ${SANS}`; ctx.textAlign = 'center'
         ctx.fillText('✓', pollX, midY+9)
       } else {
-        ctx.strokeStyle = '#c8c0b4'; ctx.lineWidth = 2
+        ctx.strokeStyle = POLL_COL; ctx.lineWidth = 2
         ctx.beginPath(); ctx.arc(pollX, midY, 18, 0, Math.PI*2); ctx.stroke()
       }
       ctx.globalAlpha = 1
     })
-    return y + revOpts.length * (optRowH + optGap) - optGap
+    return y + shuffledOpts.length * (optRowH + optGap) - optGap
   }
 
-  const opts = [
-    { letter: 'A', text: answer || '–' },
-    { letter: 'B', text: dist1  || '–' },
-    { letter: 'C', text: dist2  || '–' },
-  ]
-  return drawOptions(ctx, W, y, opts)
+  return drawOptions(ctx, W, y, shuffledOpts)
 }
 
 // ── Format B ──────────────────────────────────────────────────────────────────
@@ -817,9 +901,9 @@ function drawFormatB(ctx, W, y, data) {
   const badgeLineH = 34, badgePadV = 14
   const badgeH = badgeLines.length * badgeLineH + badgePadV * 2
   const badgeR = badgeLines.length > 1 ? 8 : badgeH / 2
-  ctx.fillStyle = '#2a2218'
+  ctx.fillStyle = CORPUS_BG
   roundRect(ctx, PAD, y, badgeMaxW, badgeH, badgeR); ctx.fill()
-  ctx.fillStyle = '#c8c0b4'; ctx.textAlign = 'left'
+  ctx.fillStyle = CORPUS_TEXT; ctx.textAlign = 'left'
   badgeLines.forEach((l, i) => ctx.fillText(l, PAD + 20, y + badgePadV + badgeLineH * (i + 0.85)))
   y += badgeH + 32
 
@@ -874,7 +958,7 @@ function drawFormatC(ctx, W, y, data) {
   ctx.fillText(wortB || 'Wort B', boxBX + col/2, boxY + boxH/2 + sB*0.36)
 
   y += boxH + 40
-  ctx.strokeStyle = '#ddd8ce'; ctx.lineWidth = 1
+  ctx.strokeStyle = CHIP_SEP; ctx.lineWidth = 1
   ctx.beginPath(); ctx.moveTo(PAD, y); ctx.lineTo(W-PAD, y); ctx.stroke(); y += 12
 
   // Chips – shuffled in puzzle mode, grouped+colored in reveal mode
@@ -909,7 +993,7 @@ function drawFormatC(ctx, W, y, data) {
       if (data.reveal) {
         ctx.fillStyle = chip.owner === 'A' ? ACCENT : GOLD
       } else {
-        ctx.fillStyle = '#ede8e0'
+        ctx.fillStyle = BADGE_BG
       }
       roundRect(ctx, cx, y, cw, chipH, chipH/2); ctx.fill()
       ctx.fillStyle = data.reveal ? '#fff' : TEXT_COL
@@ -1041,7 +1125,7 @@ async function renderCard() {
   const ctx = canvas.getContext('2d')
   ctx.textBaseline = 'alphabetic'
   ctx.fillStyle = BG; ctx.fillRect(0, 0, W, H)
-  ctx.fillStyle = ACCENT; ctx.fillRect(0, 0, W, BORDER); ctx.fillRect(0, H-BORDER, W, BORDER)
+  ctx.fillStyle = BORDER_STRIPE; ctx.fillRect(0, 0, W, BORDER); ctx.fillRect(0, H-BORDER, W, BORDER)
 
   const fmt = currentFormat
   const lemmaId = document.getElementById('lemma-select').value
@@ -1068,8 +1152,8 @@ async function renderCard() {
       pos:     lemma?.pos   || '',
       ipa:     lemma?.ipa   || '',
       answer:  document.getElementById('answer-input').value,
-      dist1:   document.getElementById('dist1-input').value,
-      dist2:   document.getElementById('dist2-input').value,
+      dist1:   document.getElementById('dist1-sel').value,
+      dist2:   document.getElementById('dist2-sel').value,
 
       reveal,
     })
