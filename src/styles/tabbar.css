@@ -1303,6 +1303,15 @@
   }
 }
 
+/* ── Klassenraum: Bestätigungs-Dialog ───────────────────────── */
+.classroom-confirm-text {
+  font-family: var(--font-serif);
+  font-size: 0.95rem;
+  line-height: 1.6;
+  color: var(--text);
+  margin: 0 0 4px;
+}
+
 /* ── Klassenraum: Kategorie-Badges → Rot statt Gold ─────────── */
 .classroom-entries .test-entry-category {
   color: var(--primary);

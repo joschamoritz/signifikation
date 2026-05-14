@@ -73,3 +73,24 @@
   font-style: normal;
   color: var(--t-text);
 }
+
+/* ── snap-scroll-container ────────────────────────────────────────────────
+   Shared scroll-snap base für Home (.test-entries) und Classroom
+   (.classroom-tab .classroom-entries). JSX-Migration ausstehend.
+   ───────────────────────────────────────────────────────────────────────── */
+.snap-scroll-container {
+  overflow-y: scroll;
+  scroll-snap-type: y mandatory;
+  overscroll-behavior-y: contain;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+
+.snap-scroll-container::-webkit-scrollbar {
+  display: none;
+}
+
+.snap-scroll-item {
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
+}

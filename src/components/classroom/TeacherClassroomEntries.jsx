@@ -38,7 +38,7 @@ export default function TeacherClassroomEntries({
           <p className="classroom-confirm-text">Keine Teilnehmenden verbunden. Trotzdem beenden?</p>
         </Sheet.Body>
         <Sheet.Footer>
-          <button className="btn-ghost" type="button" onClick={confirmFinish}>Ja, beenden</button>
+          <button className="btn-danger" type="button" onClick={confirmFinish}>Ja, beenden</button>
           <button className="btn-ghost" type="button" onClick={cancelFinish}>Abbrechen</button>
         </Sheet.Footer>
       </Sheet>
