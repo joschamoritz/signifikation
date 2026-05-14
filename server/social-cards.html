@@ -171,6 +171,14 @@ header h1{font-family:'Gentium Plus',serif;font-size:1.25rem;font-weight:400}
           <input type="checkbox" id="b-show-options">
           <span>Antwortoptionen anzeigen (A / B / C)</span>
         </label>
+        <div>
+          <label>Köder 1</label>
+          <select id="b-dist1-sel" onchange="renderCard()"><option value="">– Lemma wählen –</option></select>
+        </div>
+        <div>
+          <label>Köder 2</label>
+          <select id="b-dist2-sel" onchange="renderCard()"><option value="">– Lemma wählen –</option></select>
+        </div>
       </div>
 
       <!-- Format C -->
@@ -535,12 +543,33 @@ function onRelChange() {
   renderCard()
 }
 
+function populateBDistSelects(selectedCollocate) {
+  const sorted = [...currentCollocations].sort((a, b) => b.logDice - a.logDice)
+  const options = sorted.filter(c => c.wort.toLowerCase() !== (selectedCollocate || '').toLowerCase())
+  ;['b-dist1-sel', 'b-dist2-sel'].forEach((selId, i) => {
+    const sel = document.getElementById(selId)
+    const prev = sel.value
+    sel.innerHTML = ''
+    options.forEach((c, idx) => {
+      const o = document.createElement('option')
+      o.value = c.wort
+      o.textContent = `${c.wort}  (Rang ${idx + 2} · logDice ${c.logDice.toFixed(1)})`
+      sel.appendChild(o)
+    })
+    const defaultIdx = i === 0 ? 4 : 9
+    sel.value = (prev && options.find(c => c.wort === prev))
+      ? prev
+      : options[defaultIdx]?.wort || options[i]?.wort || ''
+  })
+}
+
 async function onCollocateChange() {
   const collocate = document.getElementById('collocate-sel').value
   if (!collocate) return
   const lemmaId = document.getElementById('lemma-select').value
   const lemma = currentLemmata.find(l => l.id === lemmaId)
   if (!lemma) return
+  populateBDistSelects(collocate)
   const r = await fetch(`/admin/social-cards/belege?lemma=${encodeURIComponent(lemma.lemma)}&collocate=${encodeURIComponent(collocate)}`, {credentials:'include'})
   if (!r.ok) { document.getElementById('beleg-preview').textContent = 'Keine Belege gefunden.'; return }
   const data = await r.json()
@@ -635,7 +664,7 @@ function populateWzChipPool(kols) {
     } else {
       btn.title = `Zu Wort ${poolTarget} hinzufügen`
     }
-    btn.onclick = () => addToKollInput(k.wort)
+    btn.onclick = () => addToKollInput(k.wort, k.owner || null)
     pool.appendChild(btn)
   })
 }
@@ -646,8 +675,9 @@ function setPoolTarget(target) {
   document.getElementById('pool-btn-B').className = 'pool-target ' + (target === 'B' ? 'active' : 'inactive')
 }
 
-function addToKollInput(wort) {
-  const inputId = poolTarget === 'A' ? 'kollA-input' : 'kollB-input'
+function addToKollInput(wort, forcedTarget) {
+  const target = (forcedTarget === 'A' || forcedTarget === 'B') ? forcedTarget : poolTarget
+  const inputId = target === 'A' ? 'kollA-input' : 'kollB-input'
   const input = document.getElementById(inputId)
   const existing = input.value.split(',').map(s => s.trim()).filter(Boolean)
   if (!existing.includes(wort)) { input.value = [...existing, wort].join(', '); renderCard() }
@@ -814,7 +844,7 @@ function drawFormatA(ctx, W, y, data) {
 
   // Relation description
   ctx.textAlign = 'center'; ctx.fillStyle = MUTED_COL; ctx.font = `400 28px ${SANS}`
-  ctx.fillText('Häufigste Verbindung im Deutschen', W/2, y+28); y += 28+32
+  ctx.fillText('Typische Kollokation im Deutschen', W/2, y+28); y += 28+32
 
   const shuffledOpts = getShuffledOpts(answer, dist1, dist2)
 
@@ -874,10 +904,6 @@ function drawFormatB(ctx, W, y, data) {
   const displayText = reveal
     ? (quoteText || '—').replace(/______/g, collocate || '?')
     : (quoteText || '—')
-
-  // Decorative opening „
-  ctx.textAlign = 'left'; ctx.fillStyle = GOLD; ctx.font = `italic 160px ${SERIF}`
-  ctx.fillText('\u201E', PAD, y + 100); y += 40
 
   // Quote block with left red line
   const textX = PAD + 32, maxW = W - PAD*2 - 32
@@ -1021,7 +1047,7 @@ function drawFormatC(ctx, W, y, data) {
     ctx.fillStyle = TEXT_COL; ctx.fillText(wortB || 'Wort B', lx, legY)
   } else {
     ctx.fillStyle = MUTED_COL
-    ctx.fillText('Welchem Wort gehört welcher Kollokator?', W/2, y+34)
+    ctx.fillText('Ordne die Kollokationen den Wörtern zu.', W/2, y+34)
   }
   y += 34
   return y
@@ -1158,18 +1184,14 @@ async function renderCard() {
       reveal,
     })
   } else if (fmt === 'B') {
-    const belegIdx = parseInt(document.getElementById('beleg-sel').value)
     const collocate = document.getElementById('collocate-sel').value
-    const distractors = currentCollocations
-      .filter(c => c.wort.toLowerCase() !== collocate.toLowerCase())
-      .sort((a,b) => b.logDice - a.logDice)
     y = drawFormatB(ctx, W, y, {
       quoteText:   document.getElementById('beleg-preview').value || '—',
       quelle:      document.getElementById('b-quelle-input').value,
       collocate,
       showOptions: showOpts,
-      dist1:       distractors[4]?.wort || distractors[1]?.wort || '',
-      dist2:       distractors[9]?.wort || distractors[2]?.wort || '',
+      dist1:       document.getElementById('b-dist1-sel').value,
+      dist2:       document.getElementById('b-dist2-sel').value,
       reveal,
     })
   } else if (fmt === 'C') {
