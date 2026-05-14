@@ -7,6 +7,7 @@ const IS_PROD = process.env.NODE_ENV === 'production'
 
 function normalizeRole(role) {
   if (role === 'premium') return 'premium'
+  if (role === 'admin') return 'admin'
   return 'user'
 }
 
@@ -104,7 +105,7 @@ export async function requirePremium(req, res, next) {
     const sessionUser = await getAuthUserFromSession(req)
     const user = sessionUser || getAuthUser(req)
     if (!user) return res.status(401).json({ error: 'Nicht autorisiert' })
-    if (user.role !== 'premium') return res.status(403).json({ error: 'Premium-Berechtigung erforderlich' })
+    if (user.role !== 'premium' && user.role !== 'admin') return res.status(403).json({ error: 'Premium-Berechtigung erforderlich' })
     req.user = user
     if (user.source === 'dev-header') {
       logger.debug({ userId: user.id }, 'Dev-Header-Premium-Auth verwendet')
