@@ -36,7 +36,11 @@
   --font-ipa:    'Gentium Plus', Georgia, serif;
 }
 
-html { font-size: 16px; -webkit-text-size-adjust: 100% }
+html {
+  font-size: 16px;
+  -webkit-text-size-adjust: 100%;
+  overscroll-behavior: none;
+}
 
 body {
   font-family: var(--font-sans);
@@ -44,6 +48,7 @@ body {
   color: var(--text);
   line-height: 1.5;
   min-height: 100dvh;
+  overscroll-behavior: none;
 }
 
 #root { min-height: 100dvh }
@@ -53,7 +58,7 @@ body {
   min-height: 100dvh;
   max-width: 480px;
   margin-inline: auto;
-  padding: 20px max(16px, env(safe-area-inset-right, 0px)) env(safe-area-inset-bottom, 16px) max(16px, env(safe-area-inset-left, 0px));
+  padding: max(20px, env(safe-area-inset-top, 20px)) max(16px, env(safe-area-inset-right, 0px)) env(safe-area-inset-bottom, 16px) max(16px, env(safe-area-inset-left, 0px));
   display: flex;
   flex-direction: column;
 }
