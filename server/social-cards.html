@@ -128,6 +128,7 @@ header h1{font-family:'Gentium Plus',serif;font-size:1.25rem;font-weight:400}
           <button class="tab" data-fmt="B" onclick="setFormat('B')">B – Beleg</button>
           <button class="tab" data-fmt="C" onclick="setFormat('C')">C – Zwilling</button>
           <button class="tab" data-fmt="X" onclick="setFormat('X')">X – Info</button>
+          <button class="tab" data-fmt="T" onclick="setFormat('T')">T – Teaser</button>
         </div>
       </div>
 
@@ -209,6 +210,11 @@ header h1{font-family:'Gentium Plus',serif;font-size:1.25rem;font-weight:400}
           <input id="kollB-input" placeholder="dienen, verteidigen">
         </div>
         <div class="info">Alle Chips erscheinen gemischt auf der Karte.</div>
+      </div>
+
+      <!-- Format T -->
+      <div id="ctrl-T" class="fmt-ctrl hidden">
+        <div class="info">Befüllt sich automatisch aus dem gewählten Datum.<br>Zeigt die drei Tages-Lemmata als Teaser-Karte.</div>
       </div>
 
       <!-- Format X -->
@@ -367,7 +373,7 @@ let poolTarget = 'A'
 function setFormat(fmt) {
   currentFormat = fmt
   document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.fmt === fmt))
-  ;['A','B','C','X'].forEach(f => document.getElementById('ctrl-'+f).classList.toggle('hidden', f !== fmt))
+  ;['A','B','C','X','T'].forEach(f => document.getElementById('ctrl-'+f).classList.toggle('hidden', f !== fmt))
   if ((fmt === 'A' || fmt === 'B') && currentCollocations.length) populateRelSelect()
   updateSocialPanel()
   renderCard()
@@ -1136,6 +1142,55 @@ function drawFormatX(ctx, W, y, data) {
   return y
 }
 
+// ── Format T ──────────────────────────────────────────────────────────────────
+function contentHeightT() {
+  return 26 + 32 + 3 * 124 + 2 * 24
+}
+
+function drawFormatT(ctx, W, y, lemmata) {
+  // Overline
+  ctx.textAlign = 'center'; ctx.fillStyle = MUTED_COL
+  ctx.font = `400 26px ${SANS}`; ctx.letterSpacing = '3px'
+  ctx.fillText('HEUTE IM SPIEL', W/2, y + 26)
+  ctx.letterSpacing = '0px'; y += 26 + 32
+
+  const rowH = 124, rowGap = 24
+  const entries = lemmata.slice(0, 3)
+
+  entries.forEach((l, i) => {
+    if (i > 0) {
+      ctx.strokeStyle = SEP_COL; ctx.lineWidth = 1
+      ctx.beginPath(); ctx.moveTo(PAD, y - rowGap/2 + 0.5); ctx.lineTo(W - PAD, y - rowGap/2 + 0.5); ctx.stroke()
+    }
+
+    const midY = y + rowH / 2
+
+    // Number badge
+    const circR = 28, circX = PAD + circR
+    ctx.fillStyle = ACCENT
+    ctx.beginPath(); ctx.arc(circX, midY, circR, 0, Math.PI * 2); ctx.fill()
+    ctx.fillStyle = BG; ctx.font = `600 28px ${SANS}`; ctx.textAlign = 'center'
+    ctx.fillText(String(i + 1), circX, midY + 10)
+
+    // Lemma
+    const textX = PAD + circR * 2 + 28
+    const lemmaStr = l.lemma || '—'
+    const lemmaSize = lemmaStr.length > 14 ? 52 : lemmaStr.length > 10 ? 64 : 74
+    ctx.textAlign = 'left'; ctx.fillStyle = TEXT_COL
+    ctx.font = `700 ${lemmaSize}px ${SERIF}`
+    ctx.fillText(lemmaStr, textX, midY + 10)
+
+    // POS
+    ctx.fillStyle = MUTED_COL; ctx.font = `400 24px ${SANS}`; ctx.letterSpacing = '1px'
+    ctx.fillText((l.pos || '').toUpperCase(), textX, midY + 10 + 34)
+    ctx.letterSpacing = '0px'
+
+    y += rowH + rowGap
+  })
+
+  return y - rowGap
+}
+
 // ── Main renderer ─────────────────────────────────────────────────────────────
 async function renderCard() {
   await document.fonts.ready
@@ -1166,6 +1221,7 @@ async function renderCard() {
   else if (fmt === 'B') contentH = contentHeightB(document.getElementById('beleg-preview').textContent, W, showOpts)
   else if (fmt === 'C') contentH = contentHeightC()
   else if (fmt === 'X') contentH = contentHeightX(document.getElementById('x-headline').value, document.getElementById('x-body').value, W, document.getElementById('x-subtype').value)
+  else if (fmt === 'T') contentH = contentHeightT()
 
   const effectiveHeaderH = showHeader ? HEADER_H : 0
   const yStart = BORDER + Math.max(60, Math.round((H - BORDER*2 - effectiveHeaderH - contentH - FOOTER_H) / 2))
@@ -1209,6 +1265,8 @@ async function renderCard() {
       headline: document.getElementById('x-headline').value,
       body:     document.getElementById('x-body').value,
     })
+  } else if (fmt === 'T') {
+    y = drawFormatT(ctx, W, y, currentLemmata)
   }
 
   drawFooter(ctx, W, y + 40)
@@ -1235,9 +1293,10 @@ const POSTING_HINTS = {
   B: '<strong>Freitag</strong> · 17:00 Uhr · Format B – Beleg',
   C: '<strong>Freitag</strong> · 17:00 Uhr · Format C – Zwilling',
   X: '<strong>Mittwoch</strong> · 12:30 Uhr · Format X – Info',
+  T: '<strong>Täglich</strong> · 06:45 Uhr · Format T – Teaser (vor dem Quiz)',
 }
 
-const SUGGESTED_HASHTAG_SET = { A: 'quiz', B: 'bildung', C: 'quiz', X: 'wortkultur' }
+const SUGGESTED_HASHTAG_SET = { A: 'quiz', B: 'bildung', C: 'quiz', X: 'wortkultur', T: 'primary' }
 
 const CAPTION_TEMPLATES = {
   A: [
@@ -1259,6 +1318,16 @@ const CAPTION_TEMPLATES = {
     s => `${s.headline}\n\n${s.body}`,
     s => `*${s.xLemma || 'Wort'}* – ${s.headline}\n\n${s.body}\n\nWas von der alten Bedeutung ist noch spürbar?`,
     s => `Aus der Sprachgeschichte:\n\n${s.body}\n\n${HASHTAGS.primary}\n${HASHTAGS.wortkultur}`,
+  ],
+  T: [
+    () => {
+      const namen = currentLemmata.slice(0,3).map(l => `→ ${l.lemma}`).join('\n')
+      return `Das Tagesrätsel ist online.\n\nHeute drei Wörter:\n${namen}\n\nWelche Kollokationen stecken dahinter?\nsignifikation.de`
+    },
+    () => {
+      const namen = currentLemmata.slice(0,3).map(l => l.lemma).join(', ')
+      return `Heute spielen wir mit: ${namen}.\n\nDrei Wörter, vier Spiele, täglich neu.\n\n${HASHTAGS.primary}`
+    },
   ],
 }
 
