@@ -1,3 +1,23 @@
+import { Browser } from '@capacitor/browser'
+import { Capacitor } from '@capacitor/core'
+
+const BASE = 'https://signifikation.de'
+
+function LegalLink({ href, children }) {
+  const handleClick = async (e) => {
+    if (Capacitor.isNativePlatform()) {
+      e.preventDefault()
+      await Browser.open({ url: `${BASE}${href}` })
+    }
+  }
+  return (
+    <a href={href} target="_blank" rel="noopener noreferrer" className="konto-legal-link" onClick={handleClick}>
+      <span className="konto-legal-link-text">{children}</span>
+      <span className="konto-legal-link-arrow" aria-hidden="true">→</span>
+    </a>
+  )
+}
+
 export default function KontoRechtlichesBlock() {
   return (
     <li className="test-entry">
@@ -20,42 +40,10 @@ export default function KontoRechtlichesBlock() {
         </p>
 
         <nav className="konto-legal-links" aria-label="Rechtliche Links">
-          <a 
-            href="/ueber.html" 
-            target="_blank" 
-            rel="noopener noreferrer"
-            className="konto-legal-link"
-          >
-            <span className="konto-legal-link-text">Über die App</span>
-            <span className="konto-legal-link-arrow" aria-hidden="true">→</span>
-          </a>
-          <a 
-            href="/impressum.html" 
-            target="_blank" 
-            rel="noopener noreferrer"
-            className="konto-legal-link"
-          >
-            <span className="konto-legal-link-text">Impressum</span>
-            <span className="konto-legal-link-arrow" aria-hidden="true">→</span>
-          </a>
-          <a 
-            href="/datenschutz.html" 
-            target="_blank" 
-            rel="noopener noreferrer"
-            className="konto-legal-link"
-          >
-            <span className="konto-legal-link-text">Datenschutz</span>
-            <span className="konto-legal-link-arrow" aria-hidden="true">→</span>
-          </a>
-          <a 
-            href="/nutzungsbedingungen.html" 
-            target="_blank" 
-            rel="noopener noreferrer"
-            className="konto-legal-link"
-          >
-            <span className="konto-legal-link-text">Nutzungsbedingungen</span>
-            <span className="konto-legal-link-arrow" aria-hidden="true">→</span>
-          </a>
+          <LegalLink href="/ueber.html">Über die App</LegalLink>
+          <LegalLink href="/impressum.html">Impressum</LegalLink>
+          <LegalLink href="/datenschutz.html">Datenschutz</LegalLink>
+          <LegalLink href="/nutzungsbedingungen.html">Nutzungsbedingungen</LegalLink>
         </nav>
 
         <div className="test-entry-footer">
