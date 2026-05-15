@@ -134,7 +134,10 @@ export const auth = betterAuth({
   advanced: {
     useSecureCookies: IS_PROD,
     defaultCookieAttributes: {
-      sameSite: 'lax',
+      // 'none' nötig für Capacitor-WKWebView: Requests kommen von capacitor://localhost
+      // (cross-origin zu signifikation.de), SameSite=Lax blockiert den Cookie dabei.
+      // CSRF-Schutz läuft weiterhin über csrfProtect-Middleware.
+      sameSite: IS_PROD ? 'none' : 'lax',
       secure: IS_PROD,
       httpOnly: true,
       path: '/',

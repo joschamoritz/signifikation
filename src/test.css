@@ -1559,7 +1559,9 @@
 
 .konto-price-option--selected {
   border-color: var(--t-red);
+  border-width: 2px;
   color: var(--t-red);
+  background: #fef2f2;
 }
 
 .konto-price-option-amount {
