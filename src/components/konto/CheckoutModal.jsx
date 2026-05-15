@@ -89,15 +89,12 @@ export default function CheckoutModal({ isOpen, onClose }) {
               onChange={(e) => setAgreed(e.target.checked)}
             />
             <span className="konto-checkout-legal-text">
-              Ich stimme zu, dass die Bereitstellung der digitalen Inhalte sofort beginnt
-              und mein <strong>Widerrufsrecht damit erlischt</strong> (§&nbsp;356 Abs.&nbsp;5 BGB).
-              Ich habe die{' '}
+              Ich stimme ausdrücklich zu, dass Sie mit der Ausführung des Vertrages vor
+              Ablauf der Widerrufsfrist beginnen. Ich habe zur Kenntnis genommen, dass ich
+              mein <strong>Widerrufsrecht mit Beginn der Ausführung des Vertrages verliere</strong>{' '}
+              (§&nbsp;356 Abs.&nbsp;5 BGB). Ich habe die{' '}
               <a href="/nutzungsbedingungen.html" target="_blank" rel="noopener noreferrer">
                 Nutzungsbedingungen
-              </a>{' '}
-              und das{' '}
-              <a href="/impressum.html" target="_blank" rel="noopener noreferrer">
-                Impressum
               </a>{' '}
               zur Kenntnis genommen.
             </span>

@@ -25,9 +25,9 @@
 
   <p>
     Diese Datenschutzerklärung gilt für die Web-App unter signifikation.de sowie
-    für die Android-App „Signifikation". In beiden Versionen werden dieselben
-    Datenkategorien verarbeitet. Es werden keine gerätespezifischen Kennungen
-    (z.&thinsp;B. Android Advertising ID) erhoben.
+    für die Android-App und die iOS-App „Signifikation". In allen Versionen werden
+    dieselben Datenkategorien verarbeitet. Es werden keine gerätespezifischen Kennungen
+    (z.&thinsp;B. Android Advertising ID oder IDFA) erhoben.
   </p>
 
   <h2>Kurzübersicht</h2>
@@ -55,8 +55,8 @@
     Die Erstellung eines Nutzerkontos ist freiwillig. Bei Registrierung speichern wir:
     E-Mail-Adresse, Name, Passwort (als bcrypt-Hash, nicht im Klartext), Konto-Rolle
     und Registrierungsdatum. Diese Daten werden bis zur Kontolöschung gespeichert und
-    anschließend vollständig entfernt. Das Konto kann jederzeit direkt in der App
-    gelöscht werden.
+    anschließend unverzüglich vollständig entfernt. Das Konto kann jederzeit direkt in
+    der App gelöscht werden.
     Rechtsgrundlage: Art.&nbsp;6 Abs.&nbsp;1 lit.&nbsp;b DSGVO (Vertragserfüllung).
   </p>
 
@@ -75,23 +75,29 @@
   <p>
     <strong>Spielfortschritt</strong><br />
     Spielstände, Streaks und Verlauf werden lokal in deinem Browser gespeichert
-    (<code>localStorage</code>). Bei eingeloggten Nutzern werden diese Daten
-    zusätzlich auf dem Server gespeichert, um geräteübergreifende Synchronisation
-    zu ermöglichen. Sie sind an das Konto gebunden und werden bei Kontolöschung
-    vollständig entfernt.
+    (<code>localStorage</code>). Da diese Speicherung technisch für die Bereitstellung
+    des Dienstes unbedingt erforderlich ist, gilt §&nbsp;25 Abs.&nbsp;2 Nr.&nbsp;2 TDDDG.
+    Bei eingeloggten Nutzern werden diese Daten zusätzlich auf dem Server gespeichert,
+    um geräteübergreifende Synchronisation zu ermöglichen. Sie sind an das Konto
+    gebunden und werden bei Kontolöschung unverzüglich vollständig entfernt.
     Rechtsgrundlage: Art.&nbsp;6 Abs.&nbsp;1 lit.&nbsp;b DSGVO.
   </p>
 
   <p>
     <strong>Gerätefingerabdruck (nur bei Gesamtausgabe)</strong><br />
     Zur Durchsetzung des 3-Geräte-Limits wird bei Nutzern der Gesamtausgabe ein
-    technischer Fingerabdruck des verwendeten Geräts als SHA-256-Hashwert gespeichert –
-    gebildet aus Browser-Typ, Spracheinstellung und Kodierungspräferenz. Der Rohwert
-    wird nicht gespeichert. Dieser Hashwert wird für die Dauer des aktiven Nutzerkontos
-    gespeichert und bei Kontolöschung vollständig entfernt. Einzelne Geräte können
-    jederzeit im Konto-Bereich der App entfernt werden.
-    Da der Zugriff auf Geräteinformationen technisch für die Durchsetzung des
-    3-Geräte-Limits zwingend erforderlich ist, gilt §&nbsp;25 Abs.&nbsp;2 Nr.&nbsp;2 TDDDG.
+    technischer Fingerabdruck des verwendeten Geräts als SHA-256-Hashwert gespeichert.
+    Dazu werden folgende vom Browser übermittelte Parameter ausgelesen und zu einem
+    Hash kombiniert: Browser-Typ und -Version (<code>User-Agent</code>),
+    Spracheinstellung (<code>Accept-Language</code>) sowie Zeichenkodierungspräferenz
+    (<code>Accept-Charset</code>). Die Rohdaten werden nicht gespeichert; gespeichert
+    wird ausschließlich der daraus berechnete Hash (Pseudonymisierung). Dieser Hashwert
+    wird für die Dauer des aktiven Nutzerkontos gespeichert und bei Kontolöschung
+    unverzüglich entfernt. Einzelne Geräte können jederzeit im Konto-Bereich der App
+    entfernt werden.
+    Da der Zugriff auf diese Geräteinformationen technisch für die Durchsetzung des
+    vertraglich vereinbarten 3-Geräte-Limits zwingend erforderlich ist, gilt
+    §&nbsp;25 Abs.&nbsp;2 Nr.&nbsp;2 TDDDG.
     Rechtsgrundlage: Art.&nbsp;6 Abs.&nbsp;1 lit.&nbsp;b DSGVO (Vertragserfüllung).
   </p>
 
@@ -99,10 +105,12 @@
     <strong>Zahlungsabwicklung (Mollie)</strong><br />
     Beim Erwerb der Gesamtausgabe wirst du zur Zahlungsseite von
     <strong>Mollie B.V.</strong> (Keizersgracht 126, 1015 CW Amsterdam, Niederlande)
-    weitergeleitet. Mollie verarbeitet deine Zahlungsdaten eigenverantwortlich gemäß
-    ihrer Datenschutzerklärung. Wir erhalten ausschließlich den Zahlungsstatus und
-    eine Zahlungs-ID – keine Kreditkarten- oder Bankdaten.
-    Datenschutzhinweise von Mollie:
+    weitergeleitet. An Mollie werden dabei übermittelt: Name, E-Mail-Adresse,
+    gewählter Betrag sowie technische Verbindungsdaten (IP-Adresse). Mollie verarbeitet
+    diese Daten eigenverantwortlich gemäß ihrer Datenschutzerklärung. Da Mollie in den
+    Niederlanden ansässig ist, findet kein Drittlandstransfer statt. Wir erhalten
+    ausschließlich den Zahlungsstatus und eine Zahlungs-ID – keine Kreditkarten- oder
+    Bankdaten. Datenschutzhinweise von Mollie:
     <a href="https://www.mollie.com/de/privacy" target="_blank" rel="noopener noreferrer">mollie.com/de/privacy</a>.<br />
     Der Zahlungsstatus und die Zahlungs-ID werden als Lizenznachweis gespeichert und
     zur Erfüllung steuerrechtlicher Aufbewahrungspflichten für <strong>10 Jahre</strong>
