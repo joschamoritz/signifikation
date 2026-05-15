@@ -59,6 +59,12 @@ jobs:
           mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
           cp $PP_PATH ~/Library/MobileDevice/Provisioning\ Profiles
 
+      - name: Set Build Number
+        run: |
+          BUILD_NUMBER=${{ github.run_number }}
+          echo "Build number: $BUILD_NUMBER"
+          xcrun agvtool new-version -all $BUILD_NUMBER
+
       - name: Build and Archive
         run: |
           xcodebuild -project ios/App/App.xcodeproj \
