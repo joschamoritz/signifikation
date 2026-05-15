@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useWiktionary } from '../hooks/useWiktionary'
 import SelectionThema from './SelectionThema'
+import ExternalLink from './ExternalLink'
 
 export default function LueckenfuellerSelection({ data, thema, themaKurz, themaQuelle, onPlay, onViewDaily, lfPlayed = null, onBack, spezialwoche = null, swLfPlayed = null, onPlaySpezial, onViewSpezial }) {
   const { lemma, pos, notiz, link } = data ?? {}
@@ -60,10 +61,10 @@ export default function LueckenfuellerSelection({ data, thema, themaKurz, themaQ
             <div className="lemma-notiz">
               <span>{notiz}</span>
               {link && (
-                <a href={link} target="_blank" rel="noopener noreferrer"
+                <ExternalLink href={link}
                   className="lemma-notiz-link"
                   aria-label="Mehr erfahren (öffnet externen Link)"
-                >Mehr →</a>
+                >Mehr →</ExternalLink>
               )}
             </div>
           )}

@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useWiktionary } from '../hooks/useWiktionary'
 import SelectionThema from './SelectionThema'
+import ExternalLink from './ExternalLink'
 
 export default function ZeitenwendeSelection({ data, thema, themaKurz, themaQuelle, onPlay, onViewDaily, zwPlayed = null, onBack, spezialwoche = null, swZwPlayed = null, onPlaySpezial, onViewSpezial }) {
   const { lemma, ipa: savedIpa, definitionen: savedDefs, notiz, link } = data ?? {}
@@ -59,10 +60,10 @@ export default function ZeitenwendeSelection({ data, thema, themaKurz, themaQuel
             <div className="lemma-notiz">
               <span>{notiz}</span>
               {link && (
-                <a href={link} target="_blank" rel="noopener noreferrer"
+                <ExternalLink href={link}
                   className="lemma-notiz-link"
                   aria-label="Mehr erfahren (öffnet externen Link)"
-                >Mehr →</a>
+                >Mehr →</ExternalLink>
               )}
             </div>
           )}

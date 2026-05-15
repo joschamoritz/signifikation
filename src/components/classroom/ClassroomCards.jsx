@@ -1,3 +1,5 @@
+import ExternalLink from '../ExternalLink'
+
 export function ClassroomExplanationCard({ isTeacher = false, isLoggedIn = false, onNavigateToKonto = () => {} }) {
   return (
     <li className="test-entry test-drop-cap">
@@ -407,9 +409,9 @@ export function TeacherProtocolCard({ activeSession, dashboard, requestingExport
                       <span className="cr-export-status">{e.status}</span>
                       <span className="cr-export-date">{formatDateTime(e.createdAt)}</span>
                       {e.status === 'done' && (
-                        <a className="cr-export-link" href={`${api}/classroom/sessions/${activeSessionId}/exports/${e.id}/download`} target="_blank" rel="noreferrer">
+                        <ExternalLink className="cr-export-link" href={`${api}/classroom/sessions/${activeSessionId}/exports/${e.id}/download`}>
                           Download
-                        </a>
+                        </ExternalLink>
                       )}
                     </li>
                   ))}

@@ -10,6 +10,7 @@ import {
 import { shareAsImage } from '../utils/shareImage'
 import { lsGet, lsSet } from '../utils/storage'
 import { useActiveSnapCard } from '../hooks/useActiveSnapCard'
+import ExternalLink from './ExternalLink'
 
 function LockIcon() {
   return (
@@ -564,9 +565,9 @@ export default function Home({
         {/* ── Kompakter Mobile-Footer (nur mobil) ──────────── */}
         <div className="snap-footer">
           <nav className="snap-footer-links" aria-label="Rechtliche Links">
-            <a href="/ueber.html" target="_blank" rel="noopener">Über</a>
-            <a href="/impressum.html" target="_blank" rel="noopener">Impressum</a>
-            <a href="/datenschutz.html" target="_blank" rel="noopener">Datenschutz</a>
+            <ExternalLink href="https://signifikation.de/ueber.html">Über</ExternalLink>
+            <ExternalLink href="https://signifikation.de/impressum.html">Impressum</ExternalLink>
+            <ExternalLink href="https://signifikation.de/datenschutz.html">Datenschutz</ExternalLink>
           </nav>
           <span className="snap-footer-version">v{__APP_VERSION__}</span>
         </div>

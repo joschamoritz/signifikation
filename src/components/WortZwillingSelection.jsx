@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useWiktionary } from '../hooks/useWiktionary'
 import SelectionThema from './SelectionThema'
+import ExternalLink from './ExternalLink'
 
 function WZEntry({ lemma, pos }) {
   const { ipa, definitionen, loading } = useWiktionary({ lemma })
@@ -82,10 +83,10 @@ export default function WortZwillingSelection({ data, thema, themaKurz, themaQue
             <div className="lemma-notiz">
               <span>{notiz}</span>
               {link && (
-                <a href={link} target="_blank" rel="noopener noreferrer"
+                <ExternalLink href={link}
                   className="lemma-notiz-link"
                   aria-label="Mehr erfahren (öffnet externen Link)"
-                >Mehr →</a>
+                >Mehr →</ExternalLink>
               )}
             </div>
           )}

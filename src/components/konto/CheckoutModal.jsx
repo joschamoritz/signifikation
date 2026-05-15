@@ -3,6 +3,7 @@ import { Capacitor } from '@capacitor/core'
 import { API } from '../../config'
 import { apiFetch } from '../../utils/apiFetch'
 import Sheet from '../ui/Sheet'
+import ExternalLink from '../ExternalLink'
 import './CheckoutModal.css'
 
 const PRICE_OPTIONS = [
@@ -153,9 +154,9 @@ export default function CheckoutModal({ isOpen, onClose, onSuccess }) {
               Ablauf der Widerrufsfrist beginnen. Ich habe zur Kenntnis genommen, dass ich
               mein <strong>Widerrufsrecht mit Beginn der Ausführung des Vertrages verliere</strong>{' '}
               (§&nbsp;356 Abs.&nbsp;5 BGB). Ich habe die{' '}
-              <a href="/nutzungsbedingungen.html" target="_blank" rel="noopener noreferrer">
+              <ExternalLink href="https://signifikation.de/nutzungsbedingungen.html">
                 Nutzungsbedingungen
-              </a>{' '}
+              </ExternalLink>{' '}
               zur Kenntnis genommen.
             </span>
           </label>
