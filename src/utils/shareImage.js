@@ -1,3 +1,4 @@
+import { Capacitor } from '@capacitor/core'
 import { WEEKDAYS, MONTHS } from './homeUtils'
 import { getMedal } from './gameLogic'
 
@@ -191,9 +192,39 @@ export async function shareAsImage(playedGames, wzPlayed, streak, zwPlayed = nul
     canvas.toBlob(async (blob) => {
       if (!blob) { reject(new Error('Bild konnte nicht erstellt werden')); return }
 
-      const file = new File([blob], 'signifikation.png', { type: 'image/png' })
+      // Nativer Share-Sheet via Capacitor (iOS/Android)
+      if (Capacitor.isNativePlatform()) {
+        try {
+          const { Share } = await import('@capacitor/share')
+          const { Filesystem, Directory } = await import('@capacitor/filesystem')
 
-      // Native Share Sheet (iOS/Android)
+          const reader = new FileReader()
+          const base64 = await new Promise((res, rej) => {
+            reader.onload  = () => res(reader.result.split(',')[1])
+            reader.onerror = rej
+            reader.readAsDataURL(blob)
+          })
+
+          const saved = await Filesystem.writeFile({
+            path: `signifikation_${Date.now()}.png`,
+            data: base64,
+            directory: Directory.Cache,
+          })
+
+          await Share.share({ title: 'Signifikation', files: [saved.uri] })
+          resolve('shared')
+        } catch (e) {
+          if (e?.name === 'AbortError' || e?.message?.includes('cancel')) {
+            resolve('cancelled')
+          } else {
+            reject(e)
+          }
+        }
+        return
+      }
+
+      // Web: native Share API
+      const file = new File([blob], 'signifikation.png', { type: 'image/png' })
       if (navigator.canShare?.({ files: [file] })) {
         try {
           await navigator.share({ files: [file], title: 'Signifikation' })

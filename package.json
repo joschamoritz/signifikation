@@ -23,6 +23,8 @@
   },
   "dependencies": {
     "@capacitor/core": "^8.2.0",
+    "@capacitor/filesystem": "^8.1.2",
+    "@capacitor/share": "^8.0.1",
     "@fontsource/dm-sans": "^5.2.8",
     "@mollie/api-client": "^4.5.0",
     "async-lock": "^1.4.1",
