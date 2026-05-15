@@ -30,6 +30,7 @@ import adminRouter  from './routes/admin.js'
 import accountRouter from './routes/account.js'
 import classroomRouter from './routes/classroom.js'
 import paymentsRouter from './routes/payments.js'
+import iapRouter from './routes/iap.js'
 import { initClassroomSocket } from './realtime/classroomSocket.js'
 import { startClassroomWorker } from './workers/classroomWorker.js'
 import { ALLOWED_ORIGINS, CAPACITOR_ORIGINS, isAllowedOrigin } from './config/origins.js'
@@ -106,6 +107,7 @@ app.use('/', adminRouter)
 app.use('/', accountRouter)
 app.use('/', classroomRouter)
 app.use('/', paymentsRouter)
+app.use('/', iapRouter)
 
 app.use('/api', (_req, res) => {
   res.status(404).json({ error: 'Endpoint nicht gefunden' })

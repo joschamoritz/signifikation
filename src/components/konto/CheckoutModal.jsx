@@ -1,15 +1,18 @@
 import { useState } from 'react'
+import { Capacitor } from '@capacitor/core'
 import { API } from '../../config'
 import Sheet from '../ui/Sheet'
 import './CheckoutModal.css'
 
 const PRICE_OPTIONS = [
-  { value: '6.99', label: '6,99 €', sub: 'Petit' },
-  { value: '9.99', label: '9,99 €', sub: 'Korpus' },
-  { value: '14.99', label: '14,99 €', sub: 'Cicero' },
+  { value: '6.99', label: '6,99 €', sub: 'Petit',   productId: 'de.signifikation.gesamtausgabe.petit'  },
+  { value: '9.99', label: '9,99 €', sub: 'Korpus',  productId: 'de.signifikation.gesamtausgabe.korpus' },
+  { value: '14.99', label: '14,99 €', sub: 'Cicero', productId: 'de.signifikation.gesamtausgabe.cicero' },
 ]
 
-export default function CheckoutModal({ isOpen, onClose }) {
+const IS_NATIVE = Capacitor.isNativePlatform()
+
+export default function CheckoutModal({ isOpen, onClose, onSuccess }) {
   const [agreed, setAgreed] = useState(false)
   const [isBusy, setIsBusy] = useState(false)
   const [checkoutError, setCheckoutError] = useState(null)
@@ -17,29 +20,85 @@ export default function CheckoutModal({ isOpen, onClose }) {
 
   const selectedOption = PRICE_OPTIONS.find(o => o.value === selectedPrice)
 
+  async function handleCheckoutWeb() {
+    const res = await fetch(`${API}/payments/checkout`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ price: selectedPrice, agreedToDigitalWaiver: agreed }),
+    })
+    const data = await res.json().catch(() => ({}))
+    if (res.status === 409) throw Object.assign(new Error('already'), { code: 409 })
+    if (!res.ok) throw new Error(data.error || 'Zahlung konnte nicht gestartet werden.')
+    window.location.assign(data.checkoutUrl)
+  }
+
+  async function handleCheckoutIAP() {
+    const { IAP } = await import('../../plugins/iap.js')
+    const result = await IAP.purchase({ productId: selectedOption.productId })
+    if (result.status === 'cancelled') return
+    if (result.status === 'pending') {
+      throw new Error('Zahlung wird noch verarbeitet. Bitte warte kurz und versuche es erneut.')
+    }
+    const res = await fetch(`${API}/iap/verify`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({
+        jwsRepresentation: result.jwsRepresentation,
+        productId: result.productId,
+      }),
+    })
+    const data = await res.json().catch(() => ({}))
+    if (!res.ok) throw new Error(data.error || 'Freischaltung fehlgeschlagen.')
+    onSuccess?.()
+    onClose()
+  }
+
   async function handleCheckout() {
     if (!agreed || isBusy) return
     setIsBusy(true)
     setCheckoutError(null)
     try {
-      const res = await fetch(`${API}/payments/checkout`, {
+      if (IS_NATIVE) {
+        await handleCheckoutIAP()
+      } else {
+        await handleCheckoutWeb()
+      }
+    } catch (err) {
+      if (err.code === 409) {
+        setCheckoutError('Die Gesamtausgabe ist bereits freigeschaltet.')
+      } else {
+        setCheckoutError(err.message || 'Netzwerkfehler. Bitte erneut versuchen.')
+      }
+    } finally {
+      setIsBusy(false)
+    }
+  }
+
+  async function handleRestore() {
+    if (isBusy) return
+    setIsBusy(true)
+    setCheckoutError(null)
+    try {
+      const { IAP } = await import('../../plugins/iap.js')
+      const { transactions } = await IAP.restorePurchases()
+      if (!transactions?.length) {
+        setCheckoutError('Keine früheren Käufe gefunden.')
+        return
+      }
+      const res = await fetch(`${API}/iap/restore`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ price: selectedPrice, agreedToDigitalWaiver: agreed }),
+        body: JSON.stringify({ transactions }),
       })
       const data = await res.json().catch(() => ({}))
-      if (res.status === 409) {
-        setCheckoutError('Die Gesamtausgabe ist bereits freigeschaltet.')
-        return
-      }
-      if (!res.ok) {
-        setCheckoutError(data.error || 'Zahlung konnte nicht gestartet werden.')
-        return
-      }
-      window.location.assign(data.checkoutUrl)
-    } catch {
-      setCheckoutError('Netzwerkfehler. Bitte erneut versuchen.')
+      if (!res.ok) throw new Error(data.error || 'Wiederherstellung fehlgeschlagen.')
+      if (data.unlocked) { onSuccess?.(); onClose() }
+      else setCheckoutError('Kein gültiger Kauf gefunden.')
+    } catch (err) {
+      setCheckoutError(err.message || 'Netzwerkfehler.')
     } finally {
       setIsBusy(false)
     }
@@ -118,13 +177,26 @@ export default function CheckoutModal({ isOpen, onClose }) {
             onClick={handleCheckout}
             disabled={!agreed || isBusy}
           >
-            {isBusy ? 'Weiterleitung …' : `Jetzt freischalten – ${selectedOption.label}`}
+            {isBusy ? 'Wird verarbeitet …' : `Jetzt freischalten – ${selectedOption.label}`}
             {!isBusy && <span className="test-cta-arrow" aria-hidden="true"> →</span>}
           </button>
 
+          {IS_NATIVE && (
+            <button
+              className="konto-checkout-restore"
+              type="button"
+              onClick={handleRestore}
+              disabled={isBusy}
+            >
+              Bereits gekauft? Kauf wiederherstellen
+            </button>
+          )}
+
           <p className="konto-checkout-footnote">
-            Zahlung über Mollie · SSL-verschlüsselt ·{' '}
-            Gemäß §&nbsp;19 UStG (Kleinunternehmerregelung) wird keine Umsatzsteuer ausgewiesen.
+            {IS_NATIVE
+              ? 'Zahlung über Apple In-App Purchase · Einmalig · kein Abo'
+              : 'Zahlung über Mollie · SSL-verschlüsselt · Gemäß § 19 UStG (Kleinunternehmerregelung) wird keine Umsatzsteuer ausgewiesen.'
+            }
           </p>
         </div>
       </Sheet.Body>
