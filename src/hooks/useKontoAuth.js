@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { API } from '../config'
+import { apiFetch, setNativeBearerToken } from '../utils/apiFetch'
 
 const EMPTY_FIELD_ERRORS = { name: '', email: '', password: '' }
 const EMPTY_RESET_ERRORS = { email: '', token: '', password: '', confirm: '' }
@@ -138,7 +139,7 @@ export function useKontoAuth({ onAuthStateChange = () => {} }) {
   const loadSession = useCallback(async () => {
     setIsChecking(true)
     try {
-      const sessionRes = await fetch(`${API}/auth/get-session`, {
+      const sessionRes = await apiFetch(`${API}/auth/get-session`, {
         credentials: 'include',
       })
 
@@ -156,7 +157,7 @@ export function useKontoAuth({ onAuthStateChange = () => {} }) {
         return
       }
 
-      const accountRes = await fetch(`${API}/account/me`, {
+      const accountRes = await apiFetch(`${API}/account/me`, {
         credentials: 'include',
       })
 
@@ -242,7 +243,7 @@ export function useKontoAuth({ onAuthStateChange = () => {} }) {
         ? { name: name.trim(), email: cleanEmail, password }
         : { email: cleanEmail, password }
 
-      const response = await fetch(endpoint, {
+      const response = await apiFetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -263,6 +264,9 @@ export function useKontoAuth({ onAuthStateChange = () => {} }) {
         setNotice({ type: 'error', text: message })
         return
       }
+
+      const bearerToken = response.headers.get('set-auth-token')
+      if (bearerToken) setNativeBearerToken(bearerToken)
 
       setPassword('')
       setShowPassword(false)
@@ -297,7 +301,7 @@ export function useKontoAuth({ onAuthStateChange = () => {} }) {
 
     try {
       const redirectTo = `${window.location.origin}${window.location.pathname}`
-      const response = await fetch(`${API}/auth/request-password-reset`, {
+      const response = await apiFetch(`${API}/auth/request-password-reset`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -357,7 +361,7 @@ export function useKontoAuth({ onAuthStateChange = () => {} }) {
     setNotice(null)
 
     try {
-      const response = await fetch(`${API}/auth/reset-password`, {
+      const response = await apiFetch(`${API}/auth/reset-password`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -402,7 +406,7 @@ export function useKontoAuth({ onAuthStateChange = () => {} }) {
 
     try {
       const callbackURL = `${window.location.origin}${window.location.pathname}`
-      const response = await fetch(`${API}/auth/sign-in/social`, {
+      const response = await apiFetch(`${API}/auth/sign-in/social`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -434,7 +438,7 @@ export function useKontoAuth({ onAuthStateChange = () => {} }) {
     setNotice(null)
 
     try {
-      const response = await fetch(`${API}/auth/sign-out`, {
+      const response = await apiFetch(`${API}/auth/sign-out`, {
         method: 'POST',
         credentials: 'include',
       })
@@ -444,6 +448,7 @@ export function useKontoAuth({ onAuthStateChange = () => {} }) {
         return
       }
 
+      setNativeBearerToken(null)
       setSessionData(null)
       setAccountData(null)
       setPassword('')
@@ -462,7 +467,7 @@ export function useKontoAuth({ onAuthStateChange = () => {} }) {
     setIsBusy(true)
     setNotice(null)
     try {
-      const response = await fetch(`${API}/account/me`, {
+      const response = await apiFetch(`${API}/account/me`, {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -471,6 +476,7 @@ export function useKontoAuth({ onAuthStateChange = () => {} }) {
         setNotice({ type: 'error', text: 'Konto konnte nicht gelöscht werden.' })
         return
       }
+      setNativeBearerToken(null)
       setSessionData(null)
       setAccountData(null)
       setNotice({ type: 'success', text: 'Konto wurde gelöscht.' })

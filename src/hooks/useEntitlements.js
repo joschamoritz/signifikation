@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { API } from '../config'
 import { lsGet, lsSet, lsRemove } from '../utils/storage'
+import { apiFetch } from '../utils/apiFetch'
 
 const DEVICE_LIMIT_ERROR = 'Gerätelimit erreicht'
 
@@ -27,7 +28,7 @@ export function useEntitlements() {
 
   const refreshEntitlements = useCallback(async () => {
     try {
-      const res = await fetch(`${API}/account/entitlements`, {
+      const res = await apiFetch(`${API}/account/entitlements`, {
         credentials: 'include',
       })
       if (!res.ok) {

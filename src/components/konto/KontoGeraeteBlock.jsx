@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { API } from '../../config'
+import { apiFetch } from '../../utils/apiFetch'
 
 function parseUserAgent(ua) {
   if (!ua || ua === 'unknown') return 'Unbekanntes Gerät'
@@ -56,7 +57,7 @@ export default function KontoGeraeteBlock({ isLoggedIn, gesamtausgabePermanent }
     setLoading(true)
     setError(null)
     try {
-      const res = await fetch(`${API}/account/devices`, {
+      const res = await apiFetch(`${API}/account/devices`, {
         credentials: 'include',
       })
       if (!res.ok) {
@@ -80,7 +81,7 @@ export default function KontoGeraeteBlock({ isLoggedIn, gesamtausgabePermanent }
     setPendingRemoveId(null)
     setRemoving(deviceId)
     try {
-      const res = await fetch(`${API}/account/devices/${deviceId}`, {
+      const res = await apiFetch(`${API}/account/devices/${deviceId}`, {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',

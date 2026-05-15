@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { API } from '../../config'
+import { apiFetch } from '../../utils/apiFetch'
 
 export function useClassroomAccount() {
   const [account, setAccount] = useState(null)
@@ -10,7 +11,7 @@ export function useClassroomAccount() {
     setLoadingAccount(true)
     setTeacherError('')
     try {
-      const res = await fetch(`${API}/account/me`, { credentials: 'include' })
+      const res = await apiFetch(`${API}/account/me`, { credentials: 'include' })
       if (!res.ok) {
         setAccount(null)
         if (res.status !== 401) {

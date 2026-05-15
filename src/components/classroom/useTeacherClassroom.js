@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { API } from '../../config'
+import { apiFetch } from '../../utils/apiFetch'
 import { getErrorMessage, mapSessionState, readJsonSafe } from './classroomUtils'
 
 export function useTeacherClassroom({ isTeacher, setTeacherError }) {
@@ -36,7 +37,7 @@ export function useTeacherClassroom({ isTeacher, setTeacherError }) {
     if (!isTeacher) return
     setLoadingSessions(true)
     try {
-      const res = await fetch(`${API}/classroom/sessions?limit=10`, { credentials: 'include' })
+      const res = await apiFetch(`${API}/classroom/sessions?limit=10`, { credentials: 'include' })
       const payload = await readJsonSafe(res)
       if (!res.ok) {
         setTeacherError(getErrorMessage(payload, 'Session-Historie konnte nicht geladen werden.'))
@@ -64,7 +65,7 @@ export function useTeacherClassroom({ isTeacher, setTeacherError }) {
     setLoadingDashboard(true)
     setDashboardError('')
     try {
-      const res = await fetch(`${API}/classroom/sessions/${sessionId}/dashboard`, {
+      const res = await apiFetch(`${API}/classroom/sessions/${sessionId}/dashboard`, {
         credentials: 'include',
       })
       const payload = await readJsonSafe(res)
@@ -90,7 +91,7 @@ export function useTeacherClassroom({ isTeacher, setTeacherError }) {
     setLoadingExports(true)
     setExportsError('')
     try {
-      const res = await fetch(`${API}/classroom/sessions/${sessionId}/exports`, {
+      const res = await apiFetch(`${API}/classroom/sessions/${sessionId}/exports`, {
         credentials: 'include',
       })
       const payload = await readJsonSafe(res)
@@ -113,7 +114,7 @@ export function useTeacherClassroom({ isTeacher, setTeacherError }) {
     setCreating(true)
     setCreateNotice('')
     try {
-      const res = await fetch(`${API}/classroom/sessions`, {
+      const res = await apiFetch(`${API}/classroom/sessions`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -153,7 +154,7 @@ export function useTeacherClassroom({ isTeacher, setTeacherError }) {
 
     setCreateNotice('')
     try {
-      const res = await fetch(url, {
+      const res = await apiFetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -177,7 +178,7 @@ export function useTeacherClassroom({ isTeacher, setTeacherError }) {
     setRequestingExport(type)
     setExportsError('')
     try {
-      const res = await fetch(`${API}/classroom/sessions/${activeSessionIdRef.current}/exports`, {
+      const res = await apiFetch(`${API}/classroom/sessions/${activeSessionIdRef.current}/exports`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',

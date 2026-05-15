@@ -1,4 +1,5 @@
 import { betterAuth } from 'better-auth'
+import { bearer } from 'better-auth/plugins'
 import db from '../db.js'
 import logger from '../logger.js'
 
@@ -154,4 +155,5 @@ export const auth = betterAuth({
     requireEmailVerification: false,
     ...(PASSWORD_RESET_ENABLED ? { sendResetPassword: sendPasswordReset } : {}),
   },
+  plugins: [bearer()],
 })

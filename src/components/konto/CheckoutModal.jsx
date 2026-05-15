@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Capacitor } from '@capacitor/core'
 import { API } from '../../config'
+import { apiFetch } from '../../utils/apiFetch'
 import Sheet from '../ui/Sheet'
 import './CheckoutModal.css'
 
@@ -21,7 +22,7 @@ export default function CheckoutModal({ isOpen, onClose, onSuccess }) {
   const selectedOption = PRICE_OPTIONS.find(o => o.value === selectedPrice)
 
   async function handleCheckoutWeb() {
-    const res = await fetch(`${API}/payments/checkout`, {
+    const res = await apiFetch(`${API}/payments/checkout`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'include',
@@ -40,7 +41,7 @@ export default function CheckoutModal({ isOpen, onClose, onSuccess }) {
     if (result.status === 'pending') {
       throw new Error('Zahlung wird noch verarbeitet. Bitte warte kurz und versuche es erneut.')
     }
-    const res = await fetch(`${API}/iap/verify`, {
+    const res = await apiFetch(`${API}/iap/verify`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'include',
@@ -87,7 +88,7 @@ export default function CheckoutModal({ isOpen, onClose, onSuccess }) {
         setCheckoutError('Keine früheren Käufe gefunden.')
         return
       }
-      const res = await fetch(`${API}/iap/restore`, {
+      const res = await apiFetch(`${API}/iap/restore`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
