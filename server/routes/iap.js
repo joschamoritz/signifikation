@@ -20,11 +20,12 @@ const PRODUCT_AMOUNTS = {
 }
 
 // SHA-256-Fingerabdruck Apple Root CA – G3
-// Verifizieren unter: https://www.apple.com/certificateauthority/
-// Format: Hex ohne Doppelpunkte, Kleinbuchstaben
+// Quelle: https://www.apple.com/certificateauthority/ → AppleRootCA-G3.cer
+// Prüfen: certutil -hashfile AppleRootCA-G3.cer SHA256  (Windows)
+//     oder openssl x509 -inform DER -in AppleRootCA-G3.cer -fingerprint -sha256 -noout
 const APPLE_ROOT_CA_G3_SHA256 =
-  '63343abfb89a6a03ebbe5953f3653231' +
-  '92cad7b50e2b4fbeb94caf66cf2e8b55'
+  '63343abfb89a6a03ebb57e9b3f5fa7be' +
+  '7c4f5c756f3017b3a8c488c3653e9179'
 
 // ── Prepared Statements ────────────────────────────────────────
 

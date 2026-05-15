@@ -1482,6 +1482,19 @@
   flex-shrink: 0;
 }
 
+.konto-buy-anyway {
+  background: none;
+  border: none;
+  font-family: var(--t-sans);
+  font-size: 0.78rem;
+  color: var(--muted);
+  cursor: pointer;
+  padding: 4px 0;
+  margin-top: 4px;
+  min-height: 44px;
+  text-align: left;
+}
+
 .konto-subscription-unlock {
   margin-top: 12px;
 }
