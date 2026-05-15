@@ -15,7 +15,7 @@ const PRICE_OPTIONS = [
 const IS_NATIVE = Capacitor.isNativePlatform()
 
 export default function CheckoutModal({ isOpen, onClose, onSuccess }) {
-  const [agreed, setAgreed] = useState(false)
+  const [agreed, setAgreed] = useState(IS_NATIVE)
   const [isBusy, setIsBusy] = useState(false)
   const [checkoutError, setCheckoutError] = useState(null)
   const [selectedPrice, setSelectedPrice] = useState('6.99')
@@ -142,24 +142,26 @@ export default function CheckoutModal({ isOpen, onClose, onSuccess }) {
             <p className="konto-checkout-once">Einmalig · kein Abo</p>
           </div>
 
-          <label className="konto-checkout-legal-label">
-            <input
-              className="konto-checkout-legal-input"
-              type="checkbox"
-              checked={agreed}
-              onChange={(e) => setAgreed(e.target.checked)}
-            />
-            <span className="konto-checkout-legal-text">
-              Ich stimme ausdrücklich zu, dass Sie mit der Ausführung des Vertrages vor
-              Ablauf der Widerrufsfrist beginnen. Ich habe zur Kenntnis genommen, dass ich
-              mein <strong>Widerrufsrecht mit Beginn der Ausführung des Vertrages verliere</strong>{' '}
-              (§&nbsp;356 Abs.&nbsp;5 BGB). Ich habe die{' '}
-              <ExternalLink href="https://signifikation.de/nutzungsbedingungen.html">
-                Nutzungsbedingungen
-              </ExternalLink>{' '}
-              zur Kenntnis genommen.
-            </span>
-          </label>
+          {!IS_NATIVE && (
+            <label className="konto-checkout-legal-label">
+              <input
+                className="konto-checkout-legal-input"
+                type="checkbox"
+                checked={agreed}
+                onChange={(e) => setAgreed(e.target.checked)}
+              />
+              <span className="konto-checkout-legal-text">
+                Ich stimme ausdrücklich zu, dass Sie mit der Ausführung des Vertrages vor
+                Ablauf der Widerrufsfrist beginnen. Ich habe zur Kenntnis genommen, dass ich
+                mein <strong>Widerrufsrecht mit Beginn der Ausführung des Vertrages verliere</strong>{' '}
+                (§&nbsp;356 Abs.&nbsp;5 BGB). Ich habe die{' '}
+                <ExternalLink href="https://signifikation.de/nutzungsbedingungen.html">
+                  Nutzungsbedingungen
+                </ExternalLink>{' '}
+                zur Kenntnis genommen.
+              </span>
+            </label>
+          )}
 
           {checkoutError && (
             <p className="konto-checkout-error" role="alert">
