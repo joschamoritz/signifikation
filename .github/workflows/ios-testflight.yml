@@ -63,7 +63,7 @@ jobs:
         run: |
           BUILD_NUMBER=${{ github.run_number }}
           echo "Build number: $BUILD_NUMBER"
-          xcrun agvtool new-version -all $BUILD_NUMBER
+          cd ios/App && xcrun agvtool new-version -all $BUILD_NUMBER
 
       - name: Build and Archive
         run: |
