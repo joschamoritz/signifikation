@@ -1615,6 +1615,21 @@
   margin: 12px 0 0;
 }
 
+.konto-checkout-restore {
+  background: none;
+  border: none;
+  font-family: var(--t-sans);
+  font-size: 0.78rem;
+  color: var(--primary);
+  cursor: pointer;
+  padding: 6px 0;
+  margin-top: 4px;
+  min-height: 44px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.konto-checkout-restore:disabled { opacity: 0.5; cursor: default; }
+
 /* ── Konto Preis-Selector ────────────────────────────────── */
 
 .konto-price-selector-wrap {
