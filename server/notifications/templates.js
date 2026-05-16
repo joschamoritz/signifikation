@@ -58,6 +58,7 @@ const getWortzwillingStmt = db.prepare(`
 function loadTagesdaten(datum) {
   const result = {
     lemma: null,
+    lemmata: [],
     thema: null,
     wortA: null,
     wortB: null,
@@ -87,6 +88,10 @@ function loadTagesdaten(datum) {
           }
         }
       }
+      // Bis zu 3 Lemma-Namen für Template #7
+      result.lemmata = ids.slice(0, 3)
+        .map(id => getLemmaStmt.get(id)?.lemma)
+        .filter(Boolean)
     }
 
     if (kalender.lueckenfueller_id && !result.lueckensatz) {
@@ -173,7 +178,7 @@ const TEMPLATES = [
       body: `${wortA} und ${wortB} – was unterscheidet sie?`,
     }
   },
-  // 6 – Fallback auf #0 wenn kein Lückensatz
+  // 6 – Fallback auf #0 wenn kein Lückensatz; Lückensatz im Body (nicht Titel – zu lang)
   ({ lemma, lueckensatz }) => {
     if (!lueckensatz) {
       return {
@@ -182,15 +187,33 @@ const TEMPLATES = [
       }
     }
     return {
-      title: `„${lueckensatz}"`,
-      body: 'Kannst du die Lücke füllen? · Signifikation',
+      title: 'Kannst du die Lücke füllen?',
+      body: `„${lueckensatz}"`,
     }
   },
-  // 7
-  ({ lemma, wochentag }) => ({
-    title: `Signifikation · ${wochentag}`,
-    body: lemma ? `${lemma} · täglich neu.` : 'Täglich neu.',
-  }),
+  // 7 – Wochentag im Titel, bis zu 3 Lemmata im Body
+  ({ wochentag, lemmata }) => {
+    const body = lemmata.length > 0
+      ? lemmata.join(' · ')
+      : 'Täglich neu.'
+    return {
+      title: `Signifikation · ${wochentag}`,
+      body,
+    }
+  },
+  // 8 – Thema des Tages im Body
+  ({ lemma, thema }) => {
+    if (!thema) {
+      return {
+        title: lemma ? `Heute: »${lemma}«` : 'Signifikation · Heute',
+        body: 'Welche Wörter treten am häufigsten gemeinsam auf?',
+      }
+    }
+    return {
+      title: 'Signifikation · Heute',
+      body: `Thema: ${thema}`,
+    }
+  },
 ]
 
 /**
@@ -202,7 +225,7 @@ const TEMPLATES = [
 export function buildNotificationPayload(date = new Date()) {
   const datum = formatDatum(date)
   const dayOfYear = getDayOfYear(date)
-  const templateIndex = dayOfYear % 8
+  const templateIndex = dayOfYear % 9
   const wochentag = getWochentag(date)
 
   const tagesdaten = loadTagesdaten(datum)
