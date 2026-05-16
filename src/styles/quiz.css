@@ -20,8 +20,8 @@
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--primary);
-  background: #fef2f2;
-  border: 1px solid #fecaca;
+  background: var(--error-bg);
+  border: 1px solid var(--wrong-border);
   border-radius: 4px;
   padding: 2px 10px;
 }
@@ -46,8 +46,8 @@
 }
 .round-dot.done   { background: var(--success) }
 .round-dot.active { background: var(--primary); width: 24px; border-radius: 4px }
-.round-dot--bonus         { background: #fde68a; opacity: 0.5 }
-.round-dot--bonus.active  { background: #d97706; width: 24px; border-radius: 4px; opacity: 1 }
+.round-dot--bonus         { background: var(--bonus-bg); opacity: 0.5 }
+.round-dot--bonus.active  { background: var(--bonus); width: 24px; border-radius: 4px; opacity: 1 }
 
 .round-title {
   font-family: var(--font-serif);
@@ -164,9 +164,9 @@
   animation: shake 0.24s ease both;
 }
 .option.missed {
-  border-left-color: #d97706;
-  background: #fffbeb;
-  color: #92400e;
+  border-left-color: var(--bonus);
+  background: var(--bonus-bg-lt);
+  color: var(--warn);
 }
 .option .logdice { margin-left: auto; }
 
@@ -188,7 +188,7 @@
 }
 .option.correct .option-icon { background: var(--success); color: #fff }
 .option.wrong   .option-icon { background: var(--error);   color: #fff }
-.option.missed  .option-icon { background: #d97706;        color: #fff }
+.option.missed  .option-icon { background: var(--bonus);    color: #fff }
 
 /* Feedback strip */
 .round-feedback {
@@ -232,7 +232,7 @@
   gap: 4px;
   background: var(--success-bg);
   color: var(--success);
-  border: 1px solid #bbf7d0;
+  border: 1px solid var(--correct-border);
   border-radius: 4px;
   padding: 2px 8px;
   font-weight: 600;
@@ -250,7 +250,7 @@
   border-radius: 3px; padding: 0 4px; line-height: 1.4;
 }
 .feedback-rang--ok   { background: var(--success); color: #fff; }
-.feedback-rang--off  { background: #fef08a; color: #713f12; }
+.feedback-rang--off  { background: var(--bonus-bg); color: var(--warn); }
 .feedback-rang--miss { background: var(--border); color: var(--muted); }
 
 /* Punkte-Badge im Gemischt-Feedback (+2, +3 usw.) */
@@ -267,7 +267,7 @@
 .feedback-bonus {
   font-style: italic;
   background: var(--success-bg);
-  border-color: #86efac;
+  border-color: var(--correct-border);
   color: var(--success);
 }
 
@@ -511,7 +511,7 @@
 .threshold.reached {
   color: var(--primary);
   border-color: var(--primary);
-  background: #fef2f2;
+  background: var(--error-bg);
 }
 
 /* Wortprofil-Karte in Results */
@@ -609,15 +609,15 @@
   text-align: left;
   margin: 8px 0 4px;
   padding: 9px 14px;
-  background: #fef9ec;
+  background: var(--bonus-bg-lt);
   border: none;
-  border-left: 3px solid #d97706;
+  border-left: 3px solid var(--bonus);
   border-radius: 6px;
   font-size: 0.82rem;
   color: var(--text);
   cursor: pointer;
 }
-.beleg-hint:hover { background: #fef3c7; }
+.beleg-hint:hover { background: var(--warn-bg); }
 
 /* ── Mobile ───────────────────────────────────────────────── */
 @media (max-width: 499px) {

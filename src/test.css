@@ -708,7 +708,7 @@
   opacity: 0.6;
 }
 .test-colophon-ornament--link:focus-visible {
-  outline: 2px solid #c9a84c;
+  outline: 2px solid var(--accent);
   outline-offset: 4px;
   border-radius: 2px;
 }
@@ -1091,7 +1091,7 @@
   }
 
   .snap-nav-btn--complete {
-    color: #c9a84c;
+    color: var(--accent);
     font-size: 1.15rem;
     margin-top: 4px;
     border-top: 0.5px solid rgba(201, 168, 76, 0.3);
@@ -1334,9 +1334,9 @@
 }
 
 .konto-subscription-badge--free {
-  color: #c9a84c;
+  color: var(--accent);
   background: transparent;
-  border: 1px solid #c9a84c;
+  border: 1px solid var(--accent);
 }
 
 .konto-subscription-note {
@@ -1561,7 +1561,7 @@
   border-color: var(--t-red);
   border-width: 2px;
   color: var(--t-red);
-  background: #fef2f2;
+  background: var(--error-bg);
 }
 
 .konto-price-option-amount {
@@ -1660,7 +1660,7 @@
   width: 8px;
   height: 8px;
   border-radius: 1px;
-  background: #e8e4de;
+  background: var(--surface2);
 }
 
 .konto-heatmap-cell--pad {
@@ -1680,7 +1680,7 @@
 }
 
 .konto-heatmap-cell--gold {
-  background: #9b1c1c;
+  background: var(--primary);
 }
 
 .konto-heatmap-legend {

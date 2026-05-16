@@ -6,6 +6,23 @@
   --zw-accent-dk: #6d28d9;
   --zw-bg:        #f5f3ff;
   --zw-border:    #c4b5fd;
+  --zw-pre:       #1d4ed8;
+  --zw-pre-bg:    #dbeafe;
+  --zw-pre-bg-lt: #eff6ff;
+  --zw-post:      #166534;
+  --zw-post-bg:   #dcfce7;
+  --zw-post-bg-lt: #f0fdf4;
+}
+
+[data-theme="dark"] {
+  --zw-bg:        #1e1a2e;
+  --zw-border:    #4c3d8f;
+  --zw-pre:       #60a5fa;
+  --zw-pre-bg:    #1e3a5f;
+  --zw-pre-bg-lt: #172038;
+  --zw-post:      #4ade80;
+  --zw-post-bg:   #14532d;
+  --zw-post-bg-lt: #0d3320;
 }
 
 .zw-screen {
@@ -171,18 +188,18 @@
 
 .zw-swipe-label--pre {
   left: 14px;
-  color: #1d4ed8;
-  border-color: #1d4ed8;
+  color: var(--zw-pre);
+  border-color: var(--zw-pre);
   transform: rotate(-14deg);
-  background: rgba(219,234,254,0.15);
+  background: color-mix(in srgb, var(--zw-pre-bg) 15%, transparent);
 }
 
 .zw-swipe-label--post {
   right: 14px;
-  color: #166534;
-  border-color: #166534;
+  color: var(--zw-post);
+  border-color: var(--zw-post);
   transform: rotate(14deg);
-  background: rgba(220,252,231,0.15);
+  background: color-mix(in srgb, var(--zw-post-bg) 15%, transparent);
 }
 
 /* Während Swipe: grabbing-Cursor, keine Animation */
@@ -320,26 +337,26 @@
 
 .zw-choice-btn--pre {
   border-left-width: 4px;
-  border-left-color: #3b82f6;
+  border-left-color: var(--zw-pre);
 }
 
 .zw-choice-btn--pre:hover:not(:disabled) {
-  border-left-color: #3b82f6;
-  background: #eff6ff;
+  border-left-color: var(--zw-pre);
+  background: var(--zw-pre-bg-lt);
 }
 
 .zw-choice-btn--post {
   border-right-width: 4px;
-  border-right-color: #22c55e;
+  border-right-color: var(--zw-post);
 }
 
 .zw-choice-btn--post:hover:not(:disabled) {
-  border-right-color: #22c55e;
-  background: #f0fdf4;
+  border-right-color: var(--zw-post);
+  background: var(--zw-post-bg-lt);
 }
 
-.zw-choice-btn--selected-pre  { border-color: #3b82f6; background: #dbeafe }
-.zw-choice-btn--selected-post { border-color: #22c55e; background: #dcfce7 }
+.zw-choice-btn--selected-pre  { border-color: var(--zw-pre);  background: var(--zw-pre-bg) }
+.zw-choice-btn--selected-post { border-color: var(--zw-post); background: var(--zw-post-bg) }
 
 .zw-choice-arrow {
   font-size: 1.3rem;
@@ -407,12 +424,12 @@
 
 .zw-result-row--correct {
   background: var(--success-bg);
-  border: 1px solid #bbf7d0;
+  border: 1px solid var(--correct-border);
 }
 
 .zw-result-row--wrong {
   background: var(--error-bg);
-  border: 1px solid #fecaca;
+  border: 1px solid var(--wrong-border);
 }
 
 .zw-result-icon {
@@ -439,8 +456,8 @@
   border-radius: 3px;
 }
 
-.zw-period-chip--pre  { background: #dbeafe; color: #1d4ed8 }
-.zw-period-chip--post { background: #dcfce7; color: #166534 }
+.zw-period-chip--pre  { background: var(--zw-pre-bg);  color: var(--zw-pre) }
+.zw-period-chip--post { background: var(--zw-post-bg); color: var(--zw-post) }
 
 /* ── Keyboard-Hint ───────────────────────────────────────── */
 .zw-key-hint {

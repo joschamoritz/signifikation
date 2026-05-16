@@ -6,8 +6,11 @@ import PersistentKontoTab from './components/PersistentKontoTab'
 import TabBar from './components/TabBar'
 import TabTransition from './components/TabTransition'
 import { useAppModel } from './hooks/useAppModel'
+import { useTheme, ThemeContext } from './hooks/useTheme'
 
 export default function App() {
+  const theme = useTheme()
+
   const {
     appRef,
     activeTab,
@@ -24,6 +27,7 @@ export default function App() {
   } = useAppModel()
 
   return (
+    <ThemeContext.Provider value={theme}>
     <ErrorBoundary>
       <AppShell phase={phase} showTabBar={showTabBar} activeTab={activeTab} appRef={appRef}>
         <AppGameScreens {...appGameScreensProps} />
@@ -33,5 +37,6 @@ export default function App() {
       </AppShell>
       {showTabBar && <TabBar activeTab={activeTab} onTabChange={handleTabChange} classroomLive={classroomLive} />}
     </ErrorBoundary>
+    </ThemeContext.Provider>
   )
 }

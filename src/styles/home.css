@@ -214,8 +214,8 @@
   align-items: center;
   justify-content: center;
   gap: 10px;
-  background: linear-gradient(135deg, #fff7ed 0%, #fef3c7 100%);
-  border: 1.5px solid #fcd34d;
+  background: linear-gradient(135deg, var(--bonus-bg-lt) 0%, var(--warn-bg) 100%);
+  border: 1.5px solid var(--bonus-bg);
   border-radius: 16px;
   padding: 10px 20px;
   animation: fadeIn 0.3s ease, streakGlow 700ms ease 300ms 1 forwards;
@@ -235,14 +235,14 @@
   font-family: var(--font-serif);
   font-size: 1.3rem;
   font-weight: 800;
-  color: #c2410c;
+  color: var(--bonus);
   line-height: 1;
 }
 .streak-label {
   font-size: 0.8rem;
   font-weight: 600;
   letter-spacing: 0.03em;
-  color: #92400e;
+  color: var(--warn);
   opacity: 0.8;
 }
 
@@ -307,7 +307,7 @@
   padding: 10px;
   background: var(--error-bg);
   border-radius: var(--radius-sm);
-  border: 1px solid #fecaca;
+  border: 1px solid var(--wrong-border);
 }
 .home-error small { font-size: 0.75rem; color: var(--muted) }
 
@@ -363,7 +363,7 @@
   align-items: center;
   padding: 8px 12px;
   background: var(--success-bg);
-  border: 1px solid #bbf7d0;
+  border: 1px solid var(--correct-border);
   border-radius: var(--radius-sm);
   font-size: 0.85rem;
 }
@@ -380,8 +380,8 @@
   color: var(--primary);
   font-weight: 600;
   padding: 10px 12px;
-  background: #fef2f2;
-  border: 1px solid #fecaca;
+  background: var(--error-bg);
+  border: 1px solid var(--wrong-border);
   border-radius: var(--radius-sm);
   text-align: center;
 }

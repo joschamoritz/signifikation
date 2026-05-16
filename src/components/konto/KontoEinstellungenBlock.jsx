@@ -1,4 +1,9 @@
+import { useContext } from 'react'
+import { ThemeContext } from '../../hooks/useTheme'
+
 export default function KontoEinstellungenBlock() {
+  const { pref, setTheme } = useContext(ThemeContext)
+
   return (
     <li className="test-entry">
       <div className="test-entry-number" aria-hidden="true">
@@ -36,10 +41,14 @@ export default function KontoEinstellungenBlock() {
               <span className="konto-setting-label">Erscheinungsbild</span>
               <span className="konto-setting-desc">Hell, Dunkel oder Automatisch</span>
             </div>
-            <select className="konto-select" disabled>
-              <option>Hell</option>
-              <option>Dunkel</option>
-              <option>Automatisch</option>
+            <select
+              className="konto-select"
+              value={pref}
+              onChange={e => setTheme(e.target.value)}
+            >
+              <option value="light">Hell</option>
+              <option value="dark">Dunkel</option>
+              <option value="auto">Automatisch</option>
             </select>
           </div>
 
@@ -56,7 +65,7 @@ export default function KontoEinstellungenBlock() {
         </div>
 
         <div className="test-entry-footer">
-          <span className="test-status">In Entwicklung</span>
+          <span className="test-status">Teilweise verfügbar</span>
         </div>
       </div>
     </li>

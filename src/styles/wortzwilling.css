@@ -227,7 +227,7 @@
   gap: 8px;
   transition: background 0.15s, border-color 0.15s, color 0.15s;
 }
-.btn-share:hover { background: #fef2f2 }
+.btn-share:hover { background: var(--error-bg) }
 .btn-share--copied {
   color: var(--success);
   border-color: var(--success);

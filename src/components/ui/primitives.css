@@ -53,8 +53,8 @@
 }
 
 .ui-badge--gold {
-  color: #c9a84c;
-  border-color: #c9a84c;
+  color: var(--accent);
+  border-color: var(--accent);
 }
 
 /* ── meta-text ────────────────────────────────────────────────────────────
