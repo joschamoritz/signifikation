@@ -24,6 +24,7 @@ export function usePushNotifications() {
     }
   });
   const [requesting, setRequesting] = useState(false);
+  const [error, setError] = useState(null);
 
   const listenerRefs = useRef([]);
 
@@ -81,9 +82,13 @@ export function usePushNotifications() {
 
   const subscribe = useCallback(async () => {
     if (!supported || requesting) return;
+    setError(null);
 
     const PushNotifications = await getPushNotifications();
-    if (!PushNotifications) return;
+    if (!PushNotifications) {
+      setError('Plugin nicht verfügbar');
+      return;
+    }
 
     setRequesting(true);
 
@@ -96,6 +101,7 @@ export function usePushNotifications() {
       }
 
       if (permStatus.receive !== 'granted') {
+        setError(`Berechtigung verweigert (${permStatus.receive})`);
         setRequesting(false);
         return;
       }
@@ -140,7 +146,7 @@ export function usePushNotifications() {
         PushNotifications.register();
       });
     } catch (e) {
-      // Fehler still – kein Stack Trace an Konsole
+      setError(String(e?.message ?? e));
     } finally {
       setRequesting(false);
     }
@@ -166,5 +172,5 @@ export function usePushNotifications() {
     }
   }, [supported]);
 
-  return { supported, subscribed, requesting, subscribe, unsubscribe };
+  return { supported, subscribed, requesting, error, subscribe, unsubscribe };
 }

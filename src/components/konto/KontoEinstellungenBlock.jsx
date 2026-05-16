@@ -28,7 +28,8 @@ export default function KontoEinstellungenBlock() {
 
   // ── iOS Push (Capacitor/Native) ───────────────────────────────────
   const { supported: iosPushSupported, subscribed: iosPushSubscribed,
-          requesting: iosPushRequesting, subscribe: iosPushSubscribe,
+          requesting: iosPushRequesting, error: iosPushError,
+          subscribe: iosPushSubscribe,
           unsubscribe: iosPushUnsubscribe } = usePushNotifications()
 
   useEffect(() => {
@@ -164,7 +165,9 @@ export default function KontoEinstellungenBlock() {
             <div className="konto-setting-item">
               <div className="konto-setting-info">
                 <span className="konto-setting-label">Push-Benachrichtigungen</span>
-                <span className="konto-setting-desc">Tägliche Erinnerung zum Spielen</span>
+                <span className="konto-setting-desc">
+                  {iosPushError ?? 'Tägliche Erinnerung zum Spielen'}
+                </span>
               </div>
               <label className="konto-toggle">
                 <input
