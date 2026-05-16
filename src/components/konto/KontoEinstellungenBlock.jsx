@@ -29,6 +29,7 @@ export default function KontoEinstellungenBlock() {
   // ── iOS Push (Capacitor/Native) ───────────────────────────────────
   const { supported: iosPushSupported, subscribed: iosPushSubscribed,
           requesting: iosPushRequesting, error: iosPushError,
+          permStatus: iosPushPermStatus,
           subscribe: iosPushSubscribe,
           unsubscribe: iosPushUnsubscribe } = usePushNotifications()
 
@@ -166,7 +167,7 @@ export default function KontoEinstellungenBlock() {
               <div className="konto-setting-info">
                 <span className="konto-setting-label">Push-Benachrichtigungen</span>
                 <span className="konto-setting-desc">
-                  {iosPushError ?? 'Tägliche Erinnerung zum Spielen'}
+                  {iosPushError ?? (iosPushPermStatus ? `[${iosPushPermStatus}] Tägliche Erinnerung` : 'Tägliche Erinnerung zum Spielen')}
                 </span>
               </div>
               <label className="konto-toggle">

@@ -25,8 +25,23 @@ export function usePushNotifications() {
   });
   const [requesting, setRequesting] = useState(false);
   const [error, setError] = useState(null);
+  const [permStatus, setPermStatus] = useState(null);
 
   const listenerRefs = useRef([]);
+
+  // Permission-Status beim Mount abfragen
+  useEffect(() => {
+    if (!supported) return;
+    getPushNotifications().then(async (PushNotifications) => {
+      if (!PushNotifications) { setPermStatus('plugin-missing'); return; }
+      try {
+        const s = await PushNotifications.checkPermissions();
+        setPermStatus(s.receive);
+      } catch (e) {
+        setPermStatus('check-failed: ' + e?.message);
+      }
+    });
+  }, [supported]);
 
   // Serverseitigen Status beim Mount abgleichen (nur auf Native)
   useEffect(() => {
@@ -174,5 +189,5 @@ export function usePushNotifications() {
     }
   }, [supported]);
 
-  return { supported, subscribed, requesting, error, subscribe, unsubscribe };
+  return { supported, subscribed, requesting, error, permStatus, subscribe, unsubscribe };
 }
