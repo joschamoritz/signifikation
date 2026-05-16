@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Capacitor } from '@capacitor/core';
+import { PushNotifications as _PushNotificationsPlugin } from '@capacitor/push-notifications';
 
 const STORAGE_KEY = 'sig-push-subscribed';
 
@@ -7,10 +8,9 @@ function isNative() {
   return Capacitor.isNativePlatform();
 }
 
-async function getPushNotifications() {
+function getPushNotifications() {
   if (!isNative()) return null;
-  const { PushNotifications } = await import('@capacitor/push-notifications');
-  return PushNotifications;
+  return _PushNotificationsPlugin;
 }
 
 export function usePushNotifications() {
@@ -32,8 +32,9 @@ export function usePushNotifications() {
   // Permission-Status beim Mount abfragen
   useEffect(() => {
     if (!supported) return;
-    getPushNotifications().then(async (PushNotifications) => {
-      if (!PushNotifications) { setPermStatus('plugin-missing'); return; }
+    const PushNotifications = getPushNotifications();
+    if (!PushNotifications) { setPermStatus('plugin-missing'); return; }
+    (async () => {
       try {
         const s = await Promise.race([
           PushNotifications.checkPermissions(),
@@ -43,7 +44,7 @@ export function usePushNotifications() {
       } catch (e) {
         setPermStatus('check-failed: ' + e?.message);
       }
-    });
+    })();
   }, [supported]);
 
   // Serverseitigen Status beim Mount abgleichen (nur auf Native)
@@ -77,7 +78,7 @@ export function usePushNotifications() {
     let cleanedUp = false;
 
     async function registerTapListener() {
-      const PushNotifications = await getPushNotifications();
+      const PushNotifications = getPushNotifications();
       if (!PushNotifications || cleanedUp) return;
 
       const handle = await PushNotifications.addListener(
@@ -102,7 +103,7 @@ export function usePushNotifications() {
     if (!supported || requesting) return;
     setError(null);
 
-    const PushNotifications = await getPushNotifications();
+    const PushNotifications = getPushNotifications();
     if (!PushNotifications) {
       setError('Plugin nicht verfügbar');
       return;
@@ -186,7 +187,7 @@ export function usePushNotifications() {
     try { localStorage.removeItem(STORAGE_KEY); } catch { /* ignore */ }
 
     // Native-seitige Registrierung aufheben
-    const PushNotifications = await getPushNotifications();
+    const PushNotifications = getPushNotifications();
     if (PushNotifications) {
       try { await PushNotifications.unregister(); } catch { /* ignore */ }
     }
