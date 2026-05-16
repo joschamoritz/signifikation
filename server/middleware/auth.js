@@ -1,14 +1,6 @@
-import { fileURLToPath } from 'url'
-import { dirname, join } from 'path'
-import { config as _loadEnv } from 'dotenv'
+import '../env.js'
 import logger from '../logger.js'
 import db from '../db.js'
-
-// Load .env relative to this file — works regardless of PM2 cwd or process.env.DOTENV_CONFIG_PATH
-_loadEnv({
-  path: join(dirname(fileURLToPath(import.meta.url)), '../../.env'),
-  override: false,
-})
 
 const IS_PROD = process.env.NODE_ENV === 'production'
 

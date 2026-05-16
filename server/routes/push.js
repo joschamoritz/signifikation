@@ -90,10 +90,15 @@ const getStatusStmt = db.prepare(`
  * Öffentlicher Endpunkt – kein Auth erforderlich.
  */
 router.get('/api/v1/push/vapid-public-key', (req, res) => {
-  const key = process.env.VAPID_PUBLIC_KEY
-  if (!key) {
-    return res.status(503).json({ error: 'VAPID nicht konfiguriert' })
+  const requiredKeys = ['VAPID_PUBLIC_KEY', 'VAPID_PRIVATE_KEY', 'VAPID_MAILTO']
+  const missing = requiredKeys.filter((name) => !process.env[name]?.trim())
+  const key = process.env.VAPID_PUBLIC_KEY?.trim()
+
+  if (missing.length > 0 || !key) {
+    logger.warn({ missing }, 'Push: VAPID-Konfiguration unvollständig')
+    return res.status(503).json({ error: 'VAPID nicht konfiguriert', missing })
   }
+
   res.json({ key })
 })
 

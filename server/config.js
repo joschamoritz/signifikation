@@ -1,6 +1,7 @@
 // Startet den Server nur wenn alle Pflicht-Variablen gesetzt sind.
 // Muss der ERSTE import in server/index.js sein (nach dotenv/config).
 
+import { ENV_CANDIDATE_PATHS, ENV_PATH } from './env.js'
 import logger from './logger.js'
 
 const IS_PROD = process.env.NODE_ENV === 'production'
@@ -17,6 +18,13 @@ const PLACEHOLDER_VALUES = new Set([
   'test_...',
 ])
 
+const OPTIONAL_GROUPS = [
+  {
+    label: 'VAPID',
+    keys: ['VAPID_PUBLIC_KEY', 'VAPID_PRIVATE_KEY', 'VAPID_MAILTO'],
+  },
+]
+
 function isPlaceholderValue(value) {
   const trimmed = value?.trim()
   if (!trimmed) return false
@@ -24,8 +32,25 @@ function isPlaceholderValue(value) {
   return /^bitte-/i.test(trimmed)
 }
 
+const fallbackEnvPath = ENV_CANDIDATE_PATHS[0] !== ENV_PATH
+  ? ENV_PATH
+  : null
+
+if (fallbackEnvPath) {
+  logger.warn({ configuredPath: ENV_CANDIDATE_PATHS[0], fallbackPath: fallbackEnvPath }, 'Startup: Konfigurierte Env-Datei nicht gefunden, Fallback aktiv')
+}
+
+logger.info({ envPath: ENV_PATH }, 'Startup: Env-Datei geladen')
+
 const missing = REQUIRED_IN_PROD.filter((key) => !process.env[key]?.trim())
 const placeholders = REQUIRED_IN_PROD.filter((key) => isPlaceholderValue(process.env[key]))
+const incompleteOptionalGroups = OPTIONAL_GROUPS
+  .map(({ label, keys }) => ({
+    label,
+    present: keys.filter((key) => process.env[key]?.trim()),
+    missing: keys.filter((key) => !process.env[key]?.trim()),
+  }))
+  .filter(({ present, missing }) => present.length > 0 && missing.length > 0)
 
 if (missing.length > 0) {
   if (IS_PROD) {
@@ -45,4 +70,8 @@ if (placeholders.length > 0) {
   } else {
     logger.warn({ placeholders }, 'Startup: Platzhalterwerte erkannt')
   }
+}
+
+for (const group of incompleteOptionalGroups) {
+  logger.warn(group, 'Startup: Optionale Variablengruppe unvollständig konfiguriert')
 }

@@ -12,9 +12,9 @@ import { buildNotificationPayload } from './templates.js'
 
 // ── VAPID-Initialisierung ─────────────────────────────────────────────────────
 
-const VAPID_PUBLIC_KEY  = process.env.VAPID_PUBLIC_KEY
-const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY
-const VAPID_MAILTO      = process.env.VAPID_MAILTO
+const VAPID_PUBLIC_KEY  = process.env.VAPID_PUBLIC_KEY?.trim()
+const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY?.trim()
+const VAPID_MAILTO      = process.env.VAPID_MAILTO?.trim()
 
 let vapidConfigured = false
 
