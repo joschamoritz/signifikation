@@ -1,0 +1,175 @@
+/**
+ * push.js – Push-Notification-Endpunkte
+ *
+ * POST   /api/v1/push/subscribe        – Subscription speichern/updaten
+ * DELETE /api/v1/push/unsubscribe      – Subscription löschen
+ * GET    /api/v1/push/status           – Subscription-Status des eingeloggten Users
+ * GET    /api/v1/push/vapid-public-key – VAPID Public Key (öffentlich)
+ */
+import express from 'express'
+import { z } from 'zod/v3'
+import { randomUUID } from 'crypto'
+import { requireAuthUser } from '../middleware/userAuth.js'
+import { validate } from '../middleware/validate.js'
+import db from '../db.js'
+import logger from '../logger.js'
+
+const router = express.Router()
+
+// ── Zod-Schemata ─────────────────────────────────────────────────────────────
+
+const webSubscribeSchema = z.object({
+  platform: z.literal('web'),
+  endpoint: z.string().url('endpoint muss eine gültige URL sein').max(2048),
+  p256dh:   z.string().min(1, 'p256dh erforderlich').max(256),
+  auth:     z.string().min(1, 'auth erforderlich').max(64),
+})
+
+const iosSubscribeSchema = z.object({
+  platform:   z.literal('ios'),
+  apns_token: z.string().min(32, 'apns_token zu kurz').max(256),
+})
+
+const subscribeSchema = z.discriminatedUnion('platform', [
+  webSubscribeSchema,
+  iosSubscribeSchema,
+])
+
+const webUnsubscribeSchema = z.object({
+  endpoint: z.string().url('endpoint muss eine gültige URL sein').max(2048),
+})
+
+const iosUnsubscribeSchema = z.object({
+  apns_token: z.string().min(32, 'apns_token zu kurz').max(256),
+})
+
+const unsubscribeSchema = z.union([webUnsubscribeSchema, iosUnsubscribeSchema])
+
+// ── Prepared Statements ───────────────────────────────────────────────────────
+
+const upsertWebSubStmt = db.prepare(`
+  INSERT INTO push_subscriptions (id, user_id, platform, endpoint, p256dh, auth, apns_token, created_at, updated_at)
+  VALUES (?, ?, 'web', ?, ?, ?, NULL, ?, ?)
+  ON CONFLICT(endpoint) DO UPDATE SET
+    user_id    = excluded.user_id,
+    p256dh     = excluded.p256dh,
+    auth       = excluded.auth,
+    updated_at = excluded.updated_at
+`)
+
+const upsertIosSubStmt = db.prepare(`
+  INSERT INTO push_subscriptions (id, user_id, platform, endpoint, p256dh, auth, apns_token, created_at, updated_at)
+  VALUES (?, ?, 'ios', NULL, NULL, NULL, ?, ?, ?)
+  ON CONFLICT(apns_token) DO UPDATE SET
+    user_id    = excluded.user_id,
+    updated_at = excluded.updated_at
+`)
+
+const deleteByEndpointStmt = db.prepare(`
+  DELETE FROM push_subscriptions
+  WHERE endpoint = ? AND user_id = ?
+`)
+
+const deleteByApnsTokenStmt = db.prepare(`
+  DELETE FROM push_subscriptions
+  WHERE apns_token = ? AND user_id = ?
+`)
+
+const getStatusStmt = db.prepare(`
+  SELECT platform
+  FROM push_subscriptions
+  WHERE user_id = ?
+  ORDER BY updated_at DESC
+  LIMIT 1
+`)
+
+// ── Endpunkte ─────────────────────────────────────────────────────────────────
+
+/**
+ * GET /api/v1/push/vapid-public-key
+ * Öffentlicher Endpunkt – kein Auth erforderlich.
+ */
+router.get('/api/v1/push/vapid-public-key', (req, res) => {
+  const key = process.env.VAPID_PUBLIC_KEY
+  if (!key) {
+    return res.status(503).json({ error: 'VAPID nicht konfiguriert' })
+  }
+  res.json({ key })
+})
+
+/**
+ * GET /api/v1/push/status
+ */
+router.get('/api/v1/push/status', requireAuthUser, (req, res) => {
+  try {
+    const row = getStatusStmt.get(req.user.id)
+    if (!row) {
+      return res.json({ subscribed: false, platform: null })
+    }
+    return res.json({ subscribed: true, platform: row.platform })
+  } catch (err) {
+    logger.error({ err, userId: req.user.id }, 'Push-Status-Abfrage fehlgeschlagen')
+    return res.status(500).json({ error: 'Interner Serverfehler' })
+  }
+})
+
+/**
+ * POST /api/v1/push/subscribe
+ */
+router.post(
+  '/api/v1/push/subscribe',
+  requireAuthUser,
+  validate(subscribeSchema, 'body'),
+  (req, res) => {
+    const userId = req.user.id
+    const now = Date.now()
+
+    try {
+      if (req.body.platform === 'web') {
+        const { endpoint, p256dh, auth } = req.body
+        upsertWebSubStmt.run(randomUUID(), userId, endpoint, p256dh, auth, now, now)
+        logger.info({ userId, platform: 'web' }, 'Push-Subscription gespeichert (web)')
+      } else {
+        const { apns_token } = req.body
+        upsertIosSubStmt.run(randomUUID(), userId, apns_token, now, now)
+        logger.info({ userId, platform: 'ios' }, 'Push-Subscription gespeichert (ios)')
+      }
+
+      return res.status(201).json({ ok: true })
+    } catch (err) {
+      logger.error({ err, userId }, 'Push-Subscribe fehlgeschlagen')
+      return res.status(500).json({ error: 'Interner Serverfehler' })
+    }
+  }
+)
+
+/**
+ * DELETE /api/v1/push/unsubscribe
+ */
+router.delete(
+  '/api/v1/push/unsubscribe',
+  requireAuthUser,
+  validate(unsubscribeSchema, 'body'),
+  (req, res) => {
+    const userId = req.user.id
+
+    try {
+      if (req.body.endpoint) {
+        const result = deleteByEndpointStmt.run(req.body.endpoint, userId)
+        logger.info({ userId, changes: result.changes }, 'Push-Subscription gelöscht (web)')
+      } else if (req.body.apns_token) {
+        const result = deleteByApnsTokenStmt.run(req.body.apns_token, userId)
+        logger.info({ userId, changes: result.changes }, 'Push-Subscription gelöscht (ios)')
+      } else {
+        return res.status(400).json({ error: 'endpoint oder apns_token erforderlich' })
+      }
+
+      return res.json({ ok: true })
+    } catch (err) {
+      logger.error({ err, userId }, 'Push-Unsubscribe fehlgeschlagen')
+      return res.status(500).json({ error: 'Interner Serverfehler' })
+    }
+  }
+)
+
+export default router

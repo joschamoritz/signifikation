@@ -40,61 +40,13 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
+      strategies: 'injectManifest',
+      srcDir: 'src',
+      filename: 'sw.js',
       includeAssets: ['favicon.svg', 'favicon.png'],
-      workbox: {
+      injectManifest: {
         globPatterns: ['**/*.{css,html,webmanifest}'],
         maximumFileSizeToCacheInBytes: 256 * 1024,
-        navigateFallbackDenylist: [/^\/admin/, /^\/impressum/, /^\/datenschutz/, /^\/nutzungsbedingungen/],
-        runtimeCaching: [
-          {
-            urlPattern: /^\/assets\/.*\.js$/,
-            handler: 'StaleWhileRevalidate',
-            options: {
-              cacheName: 'app-scripts',
-              expiration: { maxEntries: 12, maxAgeSeconds: 60 * 60 * 24 * 7 },
-            },
-          },
-          {
-            urlPattern: ({ request }) => request.destination === 'font',
-            handler: 'CacheFirst',
-            options: {
-              cacheName: 'app-fonts',
-              expiration: { maxEntries: 12, maxAgeSeconds: 60 * 60 * 24 * 30 },
-            },
-          },
-          {
-            urlPattern: /^\/api\/v1\/heute/,
-            handler: 'StaleWhileRevalidate',
-            options: {
-              cacheName: 'api-heute',
-              expiration: { maxEntries: 5, maxAgeSeconds: 60 * 60 * 24 },
-            },
-          },
-          {
-            urlPattern: /^\/api\/v1\/wortzwilling/,
-            handler: 'StaleWhileRevalidate',
-            options: {
-              cacheName: 'api-wortzwilling',
-              expiration: { maxEntries: 10, maxAgeSeconds: 60 * 60 * 24 },
-            },
-          },
-          {
-            urlPattern: /^\/api\/v1\/zeitenwende/,
-            handler: 'StaleWhileRevalidate',
-            options: {
-              cacheName: 'api-zeitenwende',
-              expiration: { maxEntries: 10, maxAgeSeconds: 60 * 60 * 24 },
-            },
-          },
-          {
-            urlPattern: /\.(?:png|svg)$/,
-            handler: 'CacheFirst',
-            options: {
-              cacheName: 'static-images',
-              expiration: { maxEntries: 12, maxAgeSeconds: 60 * 60 * 24 * 30 },
-            },
-          },
-        ],
       },
       manifest: {
         name: 'Signifikation',

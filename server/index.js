@@ -31,6 +31,8 @@ import accountRouter from './routes/account.js'
 import classroomRouter from './routes/classroom.js'
 import paymentsRouter from './routes/payments.js'
 import iapRouter from './routes/iap.js'
+import pushRouter from './routes/push.js'
+import { startPushScheduler } from './notifications/scheduler.js'
 import { initClassroomSocket } from './realtime/classroomSocket.js'
 import { startClassroomWorker } from './workers/classroomWorker.js'
 import { ALLOWED_ORIGINS, CAPACITOR_ORIGINS, isAllowedOrigin } from './config/origins.js'
@@ -108,6 +110,7 @@ app.use('/', accountRouter)
 app.use('/', classroomRouter)
 app.use('/', paymentsRouter)
 app.use('/', iapRouter)
+app.use('/', pushRouter)
 
 app.use('/api', (_req, res) => {
   res.status(404).json({ error: 'Endpoint nicht gefunden' })
@@ -150,6 +153,7 @@ const WORTPROFIL_TIMEOUT_MS = 130_000  // etwas mehr als curl --max-time 120
 
   initializeIndices()
   startSessionCleanup()
+  startPushScheduler()
 
   // ── Start ────────────────────────────────────────────────────
   const server = app.listen(PORT, () => {

@@ -1,0 +1,17 @@
+VAPID-Keys für Push-Benachrichtigungen
+=======================================
+
+Führe folgenden Befehl aus, um neue Keys zu generieren:
+
+  node -e "import('web-push').then(wp => { const k = wp.default.generateVAPIDKeys(); console.log('PUBLIC:', k.publicKey); console.log('PRIVATE:', k.privateKey) })"
+
+Trage die generierten Werte in die .env-Datei ein:
+
+  VAPID_PUBLIC_KEY=<publicKey hier eintragen>
+  VAPID_PRIVATE_KEY=<privateKey hier eintragen>
+  VAPID_MAILTO=mailto:admin@signifikation.de
+
+WICHTIG:
+- Die Keys dürfen NICHT in den Code oder in Git eingecheckt werden
+- Der PUBLIC_KEY muss außerdem im Frontend bekannt sein (wird via /api/v1/push/vapid-public-key ausgeliefert)
+- Nach dem ersten Setzen der Keys NICHT mehr ändern – alle bestehenden Subscriptions werden sonst ungültig

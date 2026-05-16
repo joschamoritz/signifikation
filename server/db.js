@@ -321,6 +321,22 @@ db.exec(`
 
   CREATE INDEX IF NOT EXISTS idx_audit_log_action_status
     ON audit_log(action, status, timestamp DESC);
+
+  CREATE TABLE IF NOT EXISTS push_subscriptions (
+    id         TEXT PRIMARY KEY,
+    user_id    TEXT NOT NULL,
+    platform   TEXT NOT NULL,
+    endpoint   TEXT,
+    p256dh     TEXT,
+    auth       TEXT,
+    apns_token TEXT,
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL,
+    FOREIGN KEY (user_id) REFERENCES user(id) ON DELETE CASCADE
+  );
+  CREATE INDEX IF NOT EXISTS idx_push_user ON push_subscriptions(user_id);
+  CREATE UNIQUE INDEX IF NOT EXISTS idx_push_endpoint ON push_subscriptions(endpoint) WHERE endpoint IS NOT NULL;
+  CREATE UNIQUE INDEX IF NOT EXISTS idx_push_apns ON push_subscriptions(apns_token) WHERE apns_token IS NOT NULL;
 `)
 
 logger.info({ path: DB_PATH }, 'signifikation.db bereit')
