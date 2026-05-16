@@ -106,12 +106,14 @@ export function usePushNotifications() {
         return;
       }
 
-      // Token-Empfang via einmaliger Listener
+      // Token-Empfang via einmaliger Listener (mit 15s Timeout)
       await new Promise((resolve, reject) => {
         let regHandle;
         let errHandle;
+        const timeout = setTimeout(() => reject(new Error('Timeout: kein Token erhalten (15s)')), 15000);
 
         async function cleanup() {
+          clearTimeout(timeout);
           if (regHandle) await regHandle.remove();
           if (errHandle) await errHandle.remove();
         }
@@ -140,7 +142,7 @@ export function usePushNotifications() {
 
         PushNotifications.addListener('registrationError', async (err) => {
           await cleanup();
-          reject(new Error(err.error?.message || 'Registration error'));
+          reject(new Error('registrationError: ' + (err.error?.message || JSON.stringify(err.error))));
         }).then((h) => { errHandle = h; });
 
         PushNotifications.register();
