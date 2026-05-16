@@ -47,22 +47,22 @@ const unsubscribeSchema = z.union([webUnsubscribeSchema, iosUnsubscribeSchema])
 
 // ── Prepared Statements ───────────────────────────────────────────────────────
 
-const upsertWebSubStmt = db.prepare(`
+const findByEndpointStmt = db.prepare(`SELECT id FROM push_subscriptions WHERE endpoint = ?`)
+const insertWebSubStmt = db.prepare(`
   INSERT INTO push_subscriptions (id, user_id, platform, endpoint, p256dh, auth, apns_token, created_at, updated_at)
   VALUES (?, ?, 'web', ?, ?, ?, NULL, ?, ?)
-  ON CONFLICT(endpoint) DO UPDATE SET
-    user_id    = excluded.user_id,
-    p256dh     = excluded.p256dh,
-    auth       = excluded.auth,
-    updated_at = excluded.updated_at
+`)
+const updateWebSubStmt = db.prepare(`
+  UPDATE push_subscriptions SET user_id=?, p256dh=?, auth=?, updated_at=? WHERE endpoint=?
 `)
 
-const upsertIosSubStmt = db.prepare(`
+const findByApnsTokenStmt = db.prepare(`SELECT id FROM push_subscriptions WHERE apns_token = ?`)
+const insertIosSubStmt = db.prepare(`
   INSERT INTO push_subscriptions (id, user_id, platform, endpoint, p256dh, auth, apns_token, created_at, updated_at)
   VALUES (?, ?, 'ios', NULL, NULL, NULL, ?, ?, ?)
-  ON CONFLICT(apns_token) DO UPDATE SET
-    user_id    = excluded.user_id,
-    updated_at = excluded.updated_at
+`)
+const updateIosSubStmt = db.prepare(`
+  UPDATE push_subscriptions SET user_id=?, updated_at=? WHERE apns_token=?
 `)
 
 const deleteByEndpointStmt = db.prepare(`
@@ -127,11 +127,21 @@ router.post(
     try {
       if (req.body.platform === 'web') {
         const { endpoint, p256dh, auth } = req.body
-        upsertWebSubStmt.run(randomUUID(), userId, endpoint, p256dh, auth, now, now)
+        const existing = findByEndpointStmt.get(endpoint)
+        if (existing) {
+          updateWebSubStmt.run(userId, p256dh, auth, now, endpoint)
+        } else {
+          insertWebSubStmt.run(randomUUID(), userId, endpoint, p256dh, auth, now, now)
+        }
         logger.info({ userId, platform: 'web' }, 'Push-Subscription gespeichert (web)')
       } else {
         const { apns_token } = req.body
-        upsertIosSubStmt.run(randomUUID(), userId, apns_token, now, now)
+        const existing = findByApnsTokenStmt.get(apns_token)
+        if (existing) {
+          updateIosSubStmt.run(userId, now, apns_token)
+        } else {
+          insertIosSubStmt.run(randomUUID(), userId, apns_token, now, now)
+        }
         logger.info({ userId, platform: 'ios' }, 'Push-Subscription gespeichert (ios)')
       }
 
