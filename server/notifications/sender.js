@@ -1,10 +1,11 @@
 /**
  * sender.js – Push-Benachrichtigungen versenden
  *
- * Unterstützt Web Push (via web-push) und iOS APNs (Stub – wird vom iOS-Agent implementiert).
- * VAPID-Konfiguration wird beim Modul-Load aus den Env-Variablen initialisiert.
+ * Unterstützt Web Push (via web-push) und iOS APNs (via node-apn).
+ * VAPID- und APNs-Konfiguration werden beim Modul-Load aus den Env-Variablen initialisiert.
  */
 import webpush from 'web-push'
+import apn from 'node-apn'
 import db from '../db.js'
 import logger from '../logger.js'
 import { buildNotificationPayload } from './templates.js'
@@ -81,18 +82,79 @@ async function sendWebPush(sub, payload) {
   }
 }
 
-// ── APNs (Stub) ───────────────────────────────────────────────────────────────
+// ── APNs-Initialisierung ──────────────────────────────────────────────────────
+
+const APNS_KEY_ID   = process.env.APNS_KEY_ID
+const APNS_TEAM_ID  = process.env.APNS_TEAM_ID
+const APNS_KEY_PATH = process.env.APNS_KEY_PATH
+const APNS_BUNDLE_ID = 'de.signifikation.app'
+
+let apnsProvider = null
+
+if (APNS_KEY_ID && APNS_TEAM_ID && APNS_KEY_PATH) {
+  try {
+    apnsProvider = new apn.Provider({
+      token: {
+        key:    APNS_KEY_PATH,
+        keyId:  APNS_KEY_ID,
+        teamId: APNS_TEAM_ID,
+      },
+      production: true,
+    })
+    logger.info('APNs-Provider initialisiert')
+  } catch (err) {
+    logger.error({ err }, 'APNs-Provider konnte nicht initialisiert werden')
+  }
+} else {
+  logger.warn('APNS_KEY_ID / APNS_TEAM_ID / APNS_KEY_PATH nicht gesetzt – iOS Push deaktiviert')
+}
+
+// ── APNs ──────────────────────────────────────────────────────────────────────
 
 /**
- * Stub für iOS APNs – wird vom iOS-Agent implementiert.
+ * Sendet eine APNs-Notification an ein iOS-Gerät.
+ * Bei ungültigem Token (BadDeviceToken, Unregistered) wird die Subscription gelöscht.
  *
  * @param {{ id: string, apns_token: string }} sub
  * @param {object} payload
  * @returns {Promise<boolean>}
  */
 async function sendApnsPush(sub, payload) {
-  logger.debug({ subId: sub.id, apnsToken: sub.apns_token?.slice(0, 8) + '…' }, 'APNs-Push (Stub) – noch nicht implementiert')
-  return false
+  if (!apnsProvider) {
+    logger.warn({ subId: sub.id }, 'APNs nicht konfiguriert – Nachricht übersprungen')
+    return false
+  }
+
+  const note = new apn.Notification()
+  note.expiry       = Math.floor(Date.now() / 1000) + 3600
+  note.badge        = 1
+  note.sound        = 'default'
+  note.alert        = { title: payload.title, body: payload.body }
+  note.topic        = APNS_BUNDLE_ID
+  note.pushType     = 'alert'
+
+  try {
+    const result = await apnsProvider.send(note, sub.apns_token)
+
+    if (result.sent.length > 0) {
+      logger.debug({ subId: sub.id }, 'APNs-Push gesendet')
+      return true
+    }
+
+    const failed = result.failed[0]
+    const reason = failed?.response?.reason ?? 'unknown'
+    logger.warn({ subId: sub.id, reason }, 'APNs-Push fehlgeschlagen')
+
+    if (reason === 'BadDeviceToken' || reason === 'Unregistered') {
+      try { deleteSubscriptionByIdStmt.run(sub.id) } catch { /* ignore */ }
+      logger.info({ subId: sub.id, reason }, 'APNs-Subscription gelöscht')
+    }
+
+    return false
+  } catch (err) {
+    logger.warn({ err, subId: sub.id }, 'APNs-Push Ausnahme')
+    return false
+  }
 }
 
 // ── Öffentliche API ───────────────────────────────────────────────────────────
