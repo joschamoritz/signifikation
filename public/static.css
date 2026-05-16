@@ -297,3 +297,29 @@ nav.legal a:hover { color: #9b1c1c }
   color: #b8b0a0;
   letter-spacing: 0.04em;
 }
+
+/* ── Dark Mode ────────────────────────────────────────────── */
+@media (prefers-color-scheme: dark) {
+  body {
+    background-color: #1a1510;
+    background-image: none;
+    color: #f0ebe4;
+  }
+  h1, h2, p, ul li, ol.numbered li { color: #f0ebe4; }
+  h2 { border-bottom-color: #3a3028; }
+  .overline, .ipa, .subtitle, .section-label, footer p, nav.legal a,
+  .footnotes li, .badge--no, .ornament { color: #8a8070; }
+  .rule-double::before, .rule-double::after { border-top-color: #3a3028; }
+  .footnotes { border-top-color: #3a3028; }
+  footer { border-top-color: #3a3028; }
+  a { color: #e05555; }
+  a:hover { color: #f07070; }
+  nav.legal a:hover { color: #e05555; }
+  sup { color: #e05555; }
+  code { background: #2a2420; color: #c0b8b0; }
+  .badge { border-color: #c9a84c; color: #c9a84c; }
+  .badge--no { border-color: #3a3028; }
+  header::after { border-top-color: #c9a84c; }
+  ul li::before { color: #c9a84c; }
+  .edition { color: #6a6058; }
+}

@@ -6,13 +6,17 @@
   right: 0;
   height: calc(49px + env(safe-area-inset-bottom, 0px));
   padding-bottom: env(safe-area-inset-bottom, 0px);
-  /* iOS-Material: Blur + semi-transparenter Pergament-Hintergrund */
   background: rgba(250, 249, 247, 0.88);
   backdrop-filter: blur(20px) saturate(1.8);
   -webkit-backdrop-filter: blur(20px) saturate(1.8);
   border-top: 0.5px solid rgba(0, 0, 0, 0.12);
   display: flex;
   z-index: 200;
+}
+
+[data-theme="dark"] .tab-bar {
+  background: rgba(26, 21, 16, 0.90);
+  border-top-color: rgba(255, 255, 255, 0.08);
 }
 
 /* Innerer Wrapper – zentriert Buttons auf breiten Screens */
@@ -39,6 +43,14 @@
   transition: color 0.2s cubic-bezier(0.34, 1.56, 0.64, 1),
               transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
   -webkit-tap-highlight-color: transparent;
+}
+
+[data-theme="dark"] .tab-bar-btn {
+  color: rgba(240, 235, 228, 0.30);
+}
+
+[data-theme="dark"] .tab-bar-btn:hover:not(.tab-bar-btn--active) {
+  color: rgba(240, 235, 228, 0.55);
 }
 
 .tab-bar-btn:active {
