@@ -25,7 +25,7 @@ export function usePushNotifications() {
   });
   const [requesting, setRequesting] = useState(false);
   const [error, setError] = useState(null);
-  const [permStatus, setPermStatus] = useState(null);
+  const [permStatus, setPermStatus] = useState('...');
 
   const listenerRefs = useRef([]);
 
@@ -35,7 +35,10 @@ export function usePushNotifications() {
     getPushNotifications().then(async (PushNotifications) => {
       if (!PushNotifications) { setPermStatus('plugin-missing'); return; }
       try {
-        const s = await PushNotifications.checkPermissions();
+        const s = await Promise.race([
+          PushNotifications.checkPermissions(),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('bridge-timeout')), 5000)),
+        ]);
         setPermStatus(s.receive);
       } catch (e) {
         setPermStatus('check-failed: ' + e?.message);
