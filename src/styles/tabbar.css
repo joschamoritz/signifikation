@@ -49,6 +49,10 @@
   color: rgba(240, 235, 228, 0.30);
 }
 
+[data-theme="dark"] .tab-bar-btn--active {
+  color: var(--primary);
+}
+
 [data-theme="dark"] .tab-bar-btn:hover:not(.tab-bar-btn--active) {
   color: rgba(240, 235, 228, 0.55);
 }
