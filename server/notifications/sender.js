@@ -123,7 +123,7 @@ export async function sendPushToUser(userId, date = new Date()) {
     } else {
       logger.warn({ subId: sub.id, platform: sub.platform }, 'Unbekannte Plattform oder fehlende Daten')
     }
-    if (ok) sent++ else failed++
+    if (ok) { sent++ } else { failed++ }
   }
 
   logger.debug({ userId, sent, failed }, 'Push-Benachrichtigungen für User abgeschlossen')
