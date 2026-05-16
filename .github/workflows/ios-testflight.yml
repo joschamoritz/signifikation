@@ -2,14 +2,10 @@ name: iOS TestFlight Build
 
 on:
   workflow_dispatch:
-  workflow_run:
-    workflows: ['Verify']
-    types: [completed]
-    branches: [main]
 
 jobs:
   build:
-    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
+    if: true
     runs-on: macos-26
 
     steps:
