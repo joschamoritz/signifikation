@@ -1615,7 +1615,8 @@
   border-color: var(--t-red);
   border-width: 2px;
   color: var(--t-red);
-  background: var(--error-bg);
+  background: rgba(155, 28, 28, 0.09);
+  font-weight: 700;
 }
 
 .konto-price-option-amount {
@@ -2144,5 +2145,19 @@
   .konto-subscription-status {
     margin-top: 6px;
     padding-top: 4px;
+  }
+
+  /* Ornament-Punkte (· · ·) ausblenden – spart ~35px */
+  .konto-auth-card::before {
+    display: none;
+  }
+  .konto-auth-card {
+    margin-top: 4px;
+  }
+
+  /* Trennlinie unter den Profilinfos enger */
+  .konto-session-meta {
+    margin-top: 10px;
+    padding-top: 8px;
   }
 }

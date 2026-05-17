@@ -134,12 +134,12 @@ export default function CheckoutModal({ isOpen, onClose, onSuccess }) {
   return (
     <Sheet open={isOpen} onClose={onClose} aria-label="Gesamtausgabe freischalten">
       <Sheet.Header />
+      <div className="checkout-sheet-header">
+        <span className="checkout-sheet-label" aria-hidden="true">Betrag</span>
+        <h2 className="checkout-sheet-title">Gesamtausgabe freischalten</h2>
+        <button className="info-sheet-close" type="button" onClick={onClose} aria-label="Schließen">✕</button>
+      </div>
       <Sheet.Body>
-        <div className="checkout-sheet-header">
-          <span className="checkout-sheet-label" aria-hidden="true">Betrag</span>
-          <h2 className="checkout-sheet-title">Gesamtausgabe freischalten</h2>
-          <button className="info-sheet-close" type="button" onClick={onClose} aria-label="Schließen">✕</button>
-        </div>
         <div className="checkout-sheet-body">
           <ul className="konto-checkout-features" aria-label="Enthaltene Inhalte">
             <li>Wort-Zwilling – Bedeutungsverwandtschaften entdecken</li>
@@ -191,28 +191,6 @@ export default function CheckoutModal({ isOpen, onClose, onSuccess }) {
             </label>
           )}
 
-          {checkoutError && (
-            <p className="konto-checkout-error" role="alert">
-              {checkoutError}
-            </p>
-          )}
-
-          {!agreed && !checkoutError && (
-            <p className="konto-checkout-hint">
-              Bitte Zustimmung oben bestätigen.
-            </p>
-          )}
-
-          <button
-            className="konto-iap-cta"
-            type="button"
-            onClick={handleCheckout}
-            disabled={!agreed || isBusy}
-          >
-            <span>{isBusy ? 'Wird verarbeitet …' : 'Jetzt kaufen'}</span>
-            {!isBusy && <span className="konto-iap-cta-price">{getLivePrice(selectedOption)}</span>}
-          </button>
-
           {IS_NATIVE && (
             <button
               className="konto-checkout-restore"
@@ -232,6 +210,27 @@ export default function CheckoutModal({ isOpen, onClose, onSuccess }) {
           </p>
         </div>
       </Sheet.Body>
+      <Sheet.Footer>
+        {checkoutError && (
+          <p className="konto-checkout-error" role="alert">
+            {checkoutError}
+          </p>
+        )}
+        {!agreed && !checkoutError && (
+          <p className="konto-checkout-hint">
+            Bitte Zustimmung oben bestätigen.
+          </p>
+        )}
+        <button
+          className="konto-iap-cta"
+          type="button"
+          onClick={handleCheckout}
+          disabled={!agreed || isBusy}
+        >
+          <span>{isBusy ? 'Wird verarbeitet …' : 'Jetzt kaufen'}</span>
+          {!isBusy && <span className="konto-iap-cta-price">{getLivePrice(selectedOption)}</span>}
+        </button>
+      </Sheet.Footer>
     </Sheet>
   )
 }
