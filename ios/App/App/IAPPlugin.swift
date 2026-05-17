@@ -22,7 +22,7 @@ public class IAPPlugin: CAPPlugin, CAPBridgedPlugin {
                     self?.notifyListeners("transactionUpdate", data: [
                         "productId":         transaction.productID,
                         "transactionId":     String(transaction.id),
-                        "jwsRepresentation": transaction.jwsRepresentation,
+                        "jwsRepresentation": verificationResult.jwsRepresentation,
                     ])
                 }
             }
@@ -75,7 +75,7 @@ public class IAPPlugin: CAPPlugin, CAPBridgedPlugin {
                             "status":            "purchased",
                             "transactionId":     String(transaction.id),
                             "productId":         transaction.productID,
-                            "jwsRepresentation": transaction.jwsRepresentation,
+                            "jwsRepresentation": verification.jwsRepresentation,
                         ])
                     case .unverified(_, let error):
                         call.reject("Transaktion nicht verifizierbar: \(error.localizedDescription)")
@@ -125,7 +125,7 @@ public class IAPPlugin: CAPPlugin, CAPBridgedPlugin {
                     restored.append([
                         "productId":         transaction.productID,
                         "transactionId":     String(transaction.id),
-                        "jwsRepresentation": transaction.jwsRepresentation,
+                        "jwsRepresentation": result.jwsRepresentation,
                     ])
                 }
             }
