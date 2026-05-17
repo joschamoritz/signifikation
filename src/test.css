@@ -1375,11 +1375,54 @@
 }
 
 .konto-subscription-unlock {
-  margin-top: 12px;
+  margin-top: 16px;
 }
 
-.konto-subscription-unlock .test-cta {
-  margin-top: 12px;
+/* ── Prominenter IAP-Kauf-Button ─────────────────────── */
+.konto-iap-cta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  font-family: var(--t-serif);
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #fff;
+  background: var(--t-red);
+  border: none;
+  padding: 14px 20px;
+  border-radius: 2px;
+  cursor: pointer;
+  letter-spacing: 0.01em;
+  transition: background 0.15s;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.konto-iap-cta:hover,
+.konto-iap-cta:focus-visible {
+  background: var(--t-red-hi);
+  outline: none;
+}
+
+.konto-iap-cta:active {
+  transform: scale(0.98);
+  opacity: 0.9;
+  transition: transform 80ms ease-out, opacity 80ms ease-out;
+}
+
+.konto-iap-cta:disabled {
+  background: var(--t-disabled);
+  cursor: default;
+  pointer-events: none;
+}
+
+.konto-iap-cta-price {
+  font-family: var(--t-sans);
+  font-size: 0.78rem;
+  font-weight: 600;
+  opacity: 0.88;
+  white-space: nowrap;
 }
 
 .konto-login-hint {

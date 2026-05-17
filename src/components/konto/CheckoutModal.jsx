@@ -204,13 +204,13 @@ export default function CheckoutModal({ isOpen, onClose, onSuccess }) {
           )}
 
           <button
-            className="test-cta"
+            className="konto-iap-cta"
             type="button"
             onClick={handleCheckout}
             disabled={!agreed || isBusy}
           >
-            {isBusy ? 'Wird verarbeitet …' : `Jetzt freischalten – ${getLivePrice(selectedOption)}`}
-            {!isBusy && <span className="test-cta-arrow" aria-hidden="true"> →</span>}
+            <span>{isBusy ? 'Wird verarbeitet …' : 'Jetzt kaufen'}</span>
+            {!isBusy && <span className="konto-iap-cta-price">{getLivePrice(selectedOption)}</span>}
           </button>
 
           {IS_NATIVE && (

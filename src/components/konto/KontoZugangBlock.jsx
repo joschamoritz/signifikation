@@ -113,13 +113,9 @@ export default function KontoZugangBlock({ auth, gesamtausgabe, gesamtausgabePer
                 Heute kostenlos{freeAccessLabel ? ` – ${freeAccessLabel}` : ''}. Du hast Zugriff auf alle Spielmodi.
               </p>
               <div className="konto-subscription-unlock">
-                <button
-                  className="test-cta"
-                  type="button"
-                  onClick={handleBuyClick}
-                >
-                  Dauerhaft freischalten
-                  <span className="test-cta-arrow" aria-hidden="true">→</span>
+                <button className="konto-iap-cta" type="button" onClick={handleBuyClick}>
+                  <span>Dauerhaft freischalten</span>
+                  <span className="konto-iap-cta-price">ab 6,99 €</span>
                 </button>
               </div>
             </>
@@ -129,13 +125,9 @@ export default function KontoZugangBlock({ auth, gesamtausgabe, gesamtausgabePer
                 Wort-Zwilling, Zeitenwende, Lückenfüller und Klassenraum freischalten.
               </p>
               <div className="konto-subscription-unlock">
-                <button
-                  className="test-cta"
-                  type="button"
-                  onClick={handleBuyClick}
-                >
-                  Gesamtausgabe freischalten
-                  <span className="test-cta-arrow" aria-hidden="true">→</span>
+                <button className="konto-iap-cta" type="button" onClick={handleBuyClick}>
+                  <span>Gesamtausgabe freischalten</span>
+                  <span className="konto-iap-cta-price">ab 6,99 €</span>
                 </button>
               </div>
             </>
