@@ -71,13 +71,16 @@ export default function KontoZugangBlock({ auth, gesamtausgabe, gesamtausgabePer
                   <span className="konto-free-star" aria-hidden="true">✦</span>
                   Heute kostenlos{freeAccessLabel ? ` – ${freeAccessLabel}` : ''}. Du hast Zugriff auf alle Spielmodi.
                 </p>
-                <button
-                  className="konto-buy-anyway"
-                  type="button"
-                  onClick={() => setCheckoutOpen(true)}
-                >
-                  Dauerhaft freischalten →
-                </button>
+                <div className="konto-subscription-unlock">
+                  <button
+                    className="test-cta"
+                    type="button"
+                    onClick={() => setCheckoutOpen(true)}
+                  >
+                    Dauerhaft freischalten
+                    <span className="test-cta-arrow" aria-hidden="true">→</span>
+                  </button>
+                </div>
               </>
             ) : (
               <button

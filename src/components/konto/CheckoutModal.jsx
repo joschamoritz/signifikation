@@ -117,14 +117,14 @@ export default function CheckoutModal({ isOpen, onClose, onSuccess }) {
         </div>
         <div className="checkout-sheet-body">
           <ul className="konto-checkout-features" aria-label="Enthaltene Inhalte">
-            <li>Wort-Zwilling – Bedeutungsverwandtschaft entdecken</li>
+            <li>Wort-Zwilling – Bedeutungsverwandtschaften entdecken</li>
             <li>Zeitenwende – Semantischen Wandel verstehen</li>
-            <li>Lückenfüller – Korpussätze mit Lücken füllen</li>
+            <li>Lückenfüller – Korpussätze ergänzen und lernen</li>
             <li>Klassenraum – Gemeinsam spielen (für Lehrkräfte)</li>
           </ul>
 
           <div className="konto-price-selector-wrap">
-            <p className="konto-price-selector-intro">Du entscheidest, wie viel du beiträgst:</p>
+            <p className="konto-price-selector-intro">Wähle deinen Beitrag – einmalig, kein Abo:</p>
             <div className="konto-price-selector" role="group" aria-label="Betrag wählen">
               {PRICE_OPTIONS.map(opt => (
                 <button
@@ -139,7 +139,7 @@ export default function CheckoutModal({ isOpen, onClose, onSuccess }) {
                 </button>
               ))}
             </div>
-            <p className="konto-checkout-once">Einmalig · kein Abo</p>
+            <p className="konto-checkout-once">Alle Spielmodi · dauerhaft freigeschaltet</p>
           </div>
 
           {!IS_NATIVE && (
