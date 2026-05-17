@@ -25,7 +25,7 @@ export function usePushNotifications() {
   });
   const [requesting, setRequesting] = useState(false);
   const [error, setError] = useState(null);
-  const [permStatus, setPermStatus] = useState('...');
+  const [permStatus, setPermStatus] = useState(null);
 
   const listenerRefs = useRef([]);
 

@@ -167,7 +167,7 @@ export default function KontoEinstellungenBlock() {
               <div className="konto-setting-info">
                 <span className="konto-setting-label">Push-Benachrichtigungen</span>
                 <span className="konto-setting-desc">
-                  {iosPushError ?? (iosPushPermStatus ? `[${iosPushPermStatus}] Tägliche Erinnerung` : 'Tägliche Erinnerung zum Spielen')}
+                  {iosPushError ?? 'Tägliche Erinnerung zum Spielen'}
                 </span>
               </div>
               <label className="konto-toggle">
