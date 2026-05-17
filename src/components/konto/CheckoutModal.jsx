@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { Capacitor } from '@capacitor/core'
 import { API } from '../../config'
 import { apiFetch } from '../../utils/apiFetch'
+import { IAP } from '../../plugins/iap.js'
 import Sheet from '../ui/Sheet'
 import ExternalLink from '../ExternalLink'
 import './CheckoutModal.css'
@@ -27,11 +28,9 @@ export default function CheckoutModal({ isOpen, onClose, onSuccess }) {
   useEffect(() => {
     if (!isOpen || !IS_NATIVE) return
     let cancelled = false
-    import('../../plugins/iap.js').then(({ IAP }) => {
-      IAP.getProducts({ productIds: PRICE_OPTIONS.map(o => o.productId) })
-        .then(({ products }) => { if (!cancelled) setIapProducts(products) })
-        .catch(() => {})
-    })
+    IAP.getProducts({ productIds: PRICE_OPTIONS.map(o => o.productId) })
+      .then(({ products }) => { if (!cancelled) setIapProducts(products) })
+      .catch(() => {})
     return () => { cancelled = true }
   }, [isOpen])
 
@@ -58,7 +57,6 @@ export default function CheckoutModal({ isOpen, onClose, onSuccess }) {
   }
 
   async function handleCheckoutIAP() {
-    const { IAP } = await import('../../plugins/iap.js')
     const result = await IAP.purchase({ productId: selectedOption.productId })
     if (result.status === 'cancelled') return
     if (result.status === 'pending') {
@@ -108,7 +106,6 @@ export default function CheckoutModal({ isOpen, onClose, onSuccess }) {
     setIsBusy(true)
     setCheckoutError(null)
     try {
-      const { IAP } = await import('../../plugins/iap.js')
       const { transactions } = await IAP.restorePurchases()
       if (!transactions?.length) {
         setCheckoutError('Keine früheren Käufe gefunden.')
