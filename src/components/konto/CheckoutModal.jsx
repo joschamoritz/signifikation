@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Capacitor } from '@capacitor/core'
 import { API } from '../../config'
 import { apiFetch } from '../../utils/apiFetch'
@@ -19,8 +19,30 @@ export default function CheckoutModal({ isOpen, onClose, onSuccess }) {
   const [isBusy, setIsBusy] = useState(false)
   const [checkoutError, setCheckoutError] = useState(null)
   const [selectedPrice, setSelectedPrice] = useState('6.99')
+  const [iapProducts, setIapProducts] = useState([])
 
   const selectedOption = PRICE_OPTIONS.find(o => o.value === selectedPrice)
+
+  // Auf iOS: StoreKit-Preise laden (displayPrice in Storekonto-Währung des Nutzers)
+  useEffect(() => {
+    if (!isOpen || !IS_NATIVE) return
+    let cancelled = false
+    import('../../plugins/iap.js').then(({ IAP }) => {
+      IAP.getProducts({ productIds: PRICE_OPTIONS.map(o => o.productId) })
+        .then(({ products }) => { if (!cancelled) setIapProducts(products) })
+        .catch(() => {})
+    })
+    return () => { cancelled = true }
+  }, [isOpen])
+
+  // Preis anzeigen: StoreKit-displayPrice auf iOS, sonst hardcoded EUR
+  function getLivePrice(option) {
+    if (IS_NATIVE && iapProducts.length) {
+      const p = iapProducts.find(p => p.id === option.productId)
+      if (p) return p.price
+    }
+    return option.label
+  }
 
   async function handleCheckoutWeb() {
     const res = await apiFetch(`${API}/payments/checkout`, {
@@ -40,7 +62,8 @@ export default function CheckoutModal({ isOpen, onClose, onSuccess }) {
     const result = await IAP.purchase({ productId: selectedOption.productId })
     if (result.status === 'cancelled') return
     if (result.status === 'pending') {
-      throw new Error('Zahlung wird noch verarbeitet. Bitte warte kurz und versuche es erneut.')
+      setCheckoutError('Kauf wartet auf Bestätigung (z.B. Famigliengenehmigung). Du erhältst eine Mitteilung, sobald er abgeschlossen ist.')
+      return
     }
     const res = await apiFetch(`${API}/iap/verify`, {
       method: 'POST',
@@ -53,6 +76,8 @@ export default function CheckoutModal({ isOpen, onClose, onSuccess }) {
     })
     const data = await res.json().catch(() => ({}))
     if (!res.ok) throw new Error(data.error || 'Freischaltung fehlgeschlagen.')
+    // Transaktion erst nach erfolgreicher Server-Bestätigung abschließen
+    await IAP.finishTransaction({ transactionId: result.transactionId }).catch(() => {})
     onSuccess?.()
     onClose()
   }
@@ -124,8 +149,11 @@ export default function CheckoutModal({ isOpen, onClose, onSuccess }) {
           </ul>
 
           <div className="konto-price-selector-wrap">
-            <p className="konto-price-selector-intro">Wähle deinen Beitrag – einmalig, kein Abo:</p>
-            <div className="konto-price-selector" role="group" aria-label="Betrag wählen">
+            <p className="konto-price-selector-intro">
+              Alle drei Stufen schalten denselben Funktionsumfang frei –<br />
+              wähle deinen Unterstützungsbeitrag:
+            </p>
+            <div className="konto-price-selector" role="group" aria-label="Beitrag wählen">
               {PRICE_OPTIONS.map(opt => (
                 <button
                   key={opt.value}
@@ -134,7 +162,7 @@ export default function CheckoutModal({ isOpen, onClose, onSuccess }) {
                   onClick={() => setSelectedPrice(opt.value)}
                   aria-pressed={selectedPrice === opt.value}
                 >
-                  <span className="konto-price-option-amount">{opt.label}</span>
+                  <span className="konto-price-option-amount">{getLivePrice(opt)}</span>
                   <span className="konto-price-option-label">{opt.sub}</span>
                 </button>
               ))}
@@ -181,7 +209,7 @@ export default function CheckoutModal({ isOpen, onClose, onSuccess }) {
             onClick={handleCheckout}
             disabled={!agreed || isBusy}
           >
-            {isBusy ? 'Wird verarbeitet …' : `Jetzt freischalten – ${selectedOption.label}`}
+            {isBusy ? 'Wird verarbeitet …' : `Jetzt freischalten – ${getLivePrice(selectedOption)}`}
             {!isBusy && <span className="test-cta-arrow" aria-hidden="true"> →</span>}
           </button>
 
@@ -199,7 +227,7 @@ export default function CheckoutModal({ isOpen, onClose, onSuccess }) {
           <p className="konto-checkout-footnote">
             {IS_NATIVE
               ? 'Zahlung über Apple In-App Purchase · Einmalig · kein Abo'
-              : 'Zahlung über Mollie · SSL-verschlüsselt · Gemäß § 19 UStG (Kleinunternehmerregelung) wird keine Umsatzsteuer ausgewiesen.'
+              : 'Zahlung über Mollie · SSL-verschlüsselt · Gemäß § 19 UStG (Kleinunternehmerregelung) wird keine Umsatzsteuer ausgewiesen.'
             }
           </p>
         </div>

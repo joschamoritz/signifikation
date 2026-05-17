@@ -545,5 +545,6 @@ export function useKontoAuth({ onAuthStateChange = () => {} }) {
     handleSignOut,
     handleDeleteAccount,
     switchMode,
+    loadSession,
   }
 }

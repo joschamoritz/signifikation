@@ -6,10 +6,30 @@ public class IAPPlugin: CAPPlugin, CAPBridgedPlugin {
     public let identifier = "IAPPlugin"
     public let jsName = "IAP"
     public let pluginMethods: [CAPPluginMethod] = [
-        CAPPluginMethod(name: "getProducts",      returnType: CAPPluginReturnPromise),
-        CAPPluginMethod(name: "purchase",         returnType: CAPPluginReturnPromise),
-        CAPPluginMethod(name: "restorePurchases", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "getProducts",       returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "purchase",          returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "restorePurchases",  returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "finishTransaction", returnType: CAPPluginReturnPromise),
     ]
+
+    private var updatesTask: Task<Void, Never>?
+
+    // Hintergrund-Observer: feuert für Ask-to-Buy, SCA und unfertige Transaktionen
+    override public func load() {
+        updatesTask = Task.detached { [weak self] in
+            for await verificationResult in Transaction.updates {
+                if case .verified(let transaction) = verificationResult {
+                    self?.notifyListeners("transactionUpdate", data: [
+                        "productId":         transaction.productID,
+                        "transactionId":     String(transaction.id),
+                        "jwsRepresentation": transaction.jwsRepresentation,
+                    ])
+                }
+            }
+        }
+    }
+
+    deinit { updatesTask?.cancel() }
 
     // Verfügbare Produkte von Apple laden
     @objc func getProducts(_ call: CAPPluginCall) {
@@ -33,7 +53,7 @@ public class IAPPlugin: CAPPlugin, CAPBridgedPlugin {
         }
     }
 
-    // Kauf auslösen – gibt JWS-Transaction zurück
+    // Kauf auslösen – kein finish() hier, JS ruft finishTransaction() nach Server-OK
     @objc func purchase(_ call: CAPPluginCall) {
         guard let productId = call.getString("productId") else {
             call.reject("productId erforderlich")
@@ -51,7 +71,6 @@ public class IAPPlugin: CAPPlugin, CAPBridgedPlugin {
                 case .success(let verification):
                     switch verification {
                     case .verified(let transaction):
-                        await transaction.finish()
                         call.resolve([
                             "status":            "purchased",
                             "transactionId":     String(transaction.id),
@@ -74,9 +93,32 @@ public class IAPPlugin: CAPPlugin, CAPBridgedPlugin {
         }
     }
 
-    // Bereits getätigte Käufe wiederherstellen
+    // Transaktion bei StoreKit abschließen – erst nach Server-Bestätigung aufrufen
+    @objc func finishTransaction(_ call: CAPPluginCall) {
+        guard let transactionIdStr = call.getString("transactionId"),
+              let transactionId = UInt64(transactionIdStr) else {
+            call.reject("transactionId (String) erforderlich")
+            return
+        }
+        Task {
+            for await result in Transaction.currentEntitlements {
+                if case .verified(let tx) = result, tx.id == transactionId {
+                    await tx.finish()
+                    break
+                }
+            }
+            call.resolve()
+        }
+    }
+
+    // Käufe wiederherstellen – AppStore.sync() erzwingt echten Netzwerk-Abgleich
     @objc func restorePurchases(_ call: CAPPluginCall) {
         Task {
+            do {
+                try await AppStore.sync()
+            } catch {
+                // sync() kann vom Nutzer abgebrochen werden – kein harter Fehler
+            }
             var restored: [[String: Any]] = []
             for await result in Transaction.currentEntitlements {
                 if case .verified(let transaction) = result {

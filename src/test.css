@@ -1382,6 +1382,14 @@
   margin-top: 12px;
 }
 
+.konto-login-hint {
+  font-family: var(--t-sans);
+  font-size: 0.78rem;
+  color: var(--t-accent-dk);
+  margin-top: 8px;
+  padding: 6px 0;
+}
+
 /* Placeholder – kursiv wie Wörterbuch-Verweis */
 .konto-placeholder {
   margin-top: 16px;
