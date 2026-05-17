@@ -1388,11 +1388,11 @@
   justify-content: space-between;
   gap: 8px;
   width: 100%;
-  font-family: var(--t-serif);
+  font-family: var(--font-serif);
   font-size: 0.95rem;
   font-weight: 700;
   color: #fff;
-  background: var(--t-red);
+  background: var(--primary);
   border: none;
   padding: 12px 20px;
   border-radius: 2px;
@@ -1404,7 +1404,7 @@
 
 .konto-iap-cta:hover,
 .konto-iap-cta:focus-visible {
-  background: var(--t-red-hi);
+  background: var(--primary-hi);
   outline: none;
 }
 
@@ -1415,7 +1415,7 @@
 }
 
 .konto-iap-cta:disabled {
-  background: var(--t-disabled);
+  background: var(--disabled);
   cursor: default;
   pointer-events: none;
 }
@@ -1612,9 +1612,9 @@
 }
 
 .konto-price-option--selected {
-  border-color: var(--t-red);
+  border-color: var(--primary);
   border-width: 2px;
-  color: var(--t-red);
+  color: var(--primary);
   background: rgba(155, 28, 28, 0.09);
   font-weight: 700;
 }

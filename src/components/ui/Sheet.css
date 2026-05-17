@@ -111,8 +111,8 @@
 
 .sheet-footer {
   flex-shrink: 0;
-  padding-top: 12px;
+  padding-top: 16px;
   display: flex;
-  flex-direction: column;
-  gap: 4px;
+  gap: 12px;
+  flex-wrap: wrap;
 }

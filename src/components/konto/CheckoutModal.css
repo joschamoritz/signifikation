@@ -1,11 +1,13 @@
 /* Checkout-Inhalts-Styles – Shell-CSS liegt in Sheet.css */
 
 .checkout-sheet-header {
-  flex-shrink: 0;
   display: flex;
   align-items: baseline;
   gap: 8px;
   border-bottom: 1px solid var(--border-lt);
+  position: sticky;
+  top: 0;
+  background: var(--bg);
   margin: -20px -24px 0;
   padding: 16px 24px 12px;
 }
