@@ -138,16 +138,9 @@ export default function CheckoutModal({ isOpen, onClose, onSuccess }) {
           <button className="info-sheet-close" type="button" onClick={onClose} aria-label="Schließen">✕</button>
         </div>
         <div className="checkout-sheet-body">
-          <ul className="konto-checkout-features" aria-label="Enthaltene Inhalte">
-            <li>Wort-Zwilling – Bedeutungsverwandtschaften entdecken</li>
-            <li>Zeitenwende – Semantischen Wandel verstehen</li>
-            <li>Lückenfüller – Korpussätze ergänzen und lernen</li>
-            <li>Klassenraum – Gemeinsam spielen (für Lehrkräfte)</li>
-          </ul>
-
           <div className="konto-price-selector-wrap">
             <p className="konto-price-selector-intro">
-              Alle drei Stufen schalten denselben Funktionsumfang frei –<br />
+              Alle drei Stufen schalten denselben Funktionsumfang frei –
               wähle deinen Unterstützungsbeitrag:
             </p>
             <div className="konto-price-selector" role="group" aria-label="Beitrag wählen">
