@@ -153,7 +153,7 @@ router.post('/api/v1/iap/verify', requireAuthUser, (req, res) => {
       'Apple IAP: productId-Mismatch')
     return res.status(400).json({ error: 'Produkt stimmt nicht überein' })
   }
-  if (payload.type !== 'NON_CONSUMABLE') {
+  if (payload.type !== 'Non-Consumable') {
     return res.status(400).json({ error: 'Unerwarteter Produkttyp' })
   }
 
@@ -198,7 +198,7 @@ router.post('/api/v1/iap/restore', requireAuthUser, (req, res) => {
       continue
     }
 
-    if (payload.productId !== productId || payload.type !== 'NON_CONSUMABLE') continue
+    if (payload.productId !== productId || payload.type !== 'Non-Consumable') continue
 
     const transactionId = String(payload.transactionId ?? payload.originalTransactionId)
     if (unlockForUser(userId, transactionId, productId)) anyUnlocked = true
