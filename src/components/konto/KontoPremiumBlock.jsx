@@ -97,20 +97,7 @@ export default function KontoPremiumBlock({ auth, gesamtausgabePermanent, freeAc
           </>
         ) : (
           <>
-            <div className="konto-subscription-header">
-              <span className="konto-subscription-label">Gesamtausgabe</span>
-              {freeAccessToday
-                ? <span className="konto-subscription-badge konto-subscription-badge--free">Heute kostenlos</span>
-                : <span className="konto-subscription-badge konto-subscription-badge--locked">Gesperrt</span>
-              }
-            </div>
-
-            {freeAccessToday ? (
-              <p className="konto-subscription-note konto-subscription-note--free">
-                <span className="konto-free-star" aria-hidden="true">✦</span>
-                Heute kostenlos{freeAccessLabel ? ` – ${freeAccessLabel}` : ''}. Du hast Zugriff auf alle Spielmodi.
-              </p>
-            ) : (
+            {!freeAccessToday && (
               <p className="test-definition">
                 Schalte alle Spielmodi und den Klassenraum dauerhaft frei.
               </p>
@@ -139,6 +126,13 @@ export default function KontoPremiumBlock({ auth, gesamtausgabePermanent, freeAc
                 </p>
               )}
             </div>
+
+            {freeAccessToday && (
+              <p className="konto-subscription-note konto-subscription-note--free">
+                <span className="konto-free-star" aria-hidden="true">✦</span>
+                Heute kostenlos{freeAccessLabel ? ` – ${freeAccessLabel}` : ''}. Du hast Zugriff auf alle Spielmodi.
+              </p>
+            )}
           </>
         )}
       </div>
