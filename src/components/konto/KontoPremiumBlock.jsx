@@ -54,15 +54,14 @@ export default function KontoPremiumBlock({ auth, gesamtausgabePermanent, freeAc
   }, [auth.loadSession])
 
   return (
-    <li className="test-entry test-drop-cap">
+    <li className="test-entry">
       <div className="test-entry-number" aria-hidden="true">
         <span className="test-entry-num-glyph">②</span>
         <span className="test-entry-marginalia">PREMIUM</span>
       </div>
       <div className="test-entry-body">
         <div className="test-entry-head">
-          <span className="test-dropcap-k" aria-hidden="true">G</span>
-          <h2 className="test-headword" aria-label="Gesamtausgabe">esamtausgabe</h2>
+          <h2 className="test-headword">Gesamtausgabe</h2>
           <span className="test-ipa">[ɡəˈzamtˌʔaʊ̯sɡaːbə]</span>
         </div>
         <div className="test-entry-grammar">
@@ -76,11 +75,13 @@ export default function KontoPremiumBlock({ auth, gesamtausgabePermanent, freeAc
             <p className="test-definition">
               Vollzugang zu allen Spielmodi und Funktionen.
             </p>
-            <ul className={`konto-premium-features konto-premium-features--active`} aria-label="Enthaltene Funktionen">
+            <ul className="konto-premium-features konto-premium-features--active" aria-label="Enthaltene Funktionen">
               {FEATURES.map(f => (
                 <li key={f.label} className="konto-premium-feature">
                   <span className="konto-premium-feature-marker" aria-hidden="true">✓</span>
-                  <span className="konto-premium-feature-label">{f.label}</span>
+                  <div className="konto-premium-feature-content">
+                    <span className="konto-premium-feature-label">{f.label}</span>
+                  </div>
                 </li>
               ))}
             </ul>
@@ -96,20 +97,37 @@ export default function KontoPremiumBlock({ auth, gesamtausgabePermanent, freeAc
           </>
         ) : (
           <>
-            <p className="test-definition">
+            <div className="konto-subscription-header">
+              <span className="konto-subscription-label">Gesamtausgabe</span>
               {freeAccessToday
-                ? `Heute kostenlos${freeAccessLabel ? ` – ${freeAccessLabel}` : ''}: Zugriff auf alle Spielmodi.`
-                : 'Schalte alle Spielmodi und den Klassenraum dauerhaft frei.'}
-            </p>
+                ? <span className="konto-subscription-badge konto-subscription-badge--free">Heute kostenlos</span>
+                : <span className="konto-subscription-badge konto-subscription-badge--locked">Gesperrt</span>
+              }
+            </div>
+
+            {freeAccessToday ? (
+              <p className="konto-subscription-note konto-subscription-note--free">
+                <span className="konto-free-star" aria-hidden="true">✦</span>
+                Heute kostenlos{freeAccessLabel ? ` – ${freeAccessLabel}` : ''}. Du hast Zugriff auf alle Spielmodi.
+              </p>
+            ) : (
+              <p className="test-definition">
+                Schalte alle Spielmodi und den Klassenraum dauerhaft frei.
+              </p>
+            )}
+
             <ul className="konto-premium-features" aria-label="Enthaltene Funktionen">
               {FEATURES.map(f => (
                 <li key={f.label} className="konto-premium-feature">
                   <span className="konto-premium-feature-marker" aria-hidden="true">—</span>
-                  <span className="konto-premium-feature-label">{f.label}</span>
-                  <span className="konto-premium-feature-desc">{f.desc}</span>
+                  <div className="konto-premium-feature-content">
+                    <span className="konto-premium-feature-label">{f.label}</span>
+                    <span className="konto-premium-feature-desc">{f.desc}</span>
+                  </div>
                 </li>
               ))}
             </ul>
+
             <div className="konto-subscription-unlock">
               <button className="konto-iap-cta" type="button" onClick={handleBuyClick}>
                 <span>{freeAccessToday ? 'Dauerhaft freischalten' : 'Gesamtausgabe freischalten'}</span>
