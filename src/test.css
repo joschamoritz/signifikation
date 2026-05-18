@@ -1353,6 +1353,7 @@
 .konto-subscription-note--free {
   color: var(--t-accent);
   font-weight: 500;
+  margin-top: 14px;
   display: flex;
   align-items: baseline;
   gap: 6px;
