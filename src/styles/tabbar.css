@@ -53,8 +53,10 @@
   color: var(--primary);
 }
 
-[data-theme="dark"] .tab-bar-btn:hover:not(.tab-bar-btn--active) {
-  color: rgba(240, 235, 228, 0.55);
+@media (hover: hover) {
+  [data-theme="dark"] .tab-bar-btn:hover:not(.tab-bar-btn--active) {
+    color: rgba(240, 235, 228, 0.55);
+  }
 }
 
 .tab-bar-btn:active {
@@ -71,8 +73,10 @@
   transition: transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
-.tab-bar-btn:hover:not(.tab-bar-btn--active) {
-  color: rgba(80, 55, 45, 0.6);
+@media (hover: hover) {
+  .tab-bar-btn:hover:not(.tab-bar-btn--active) {
+    color: rgba(80, 55, 45, 0.6);
+  }
 }
 
 .tab-bar-label {
@@ -114,7 +118,7 @@
 }
 
 /* Home: snap-layout als fixed Box — Viewport-Bounds direkt, kein Padding-Offset-Problem */
-@media (max-width: 699px) {
+@media (max-width: 767px) {
   .app--has-tabbar.app--home .test-page {
     position: fixed;
     top: env(safe-area-inset-top, 0px);
@@ -1379,7 +1383,7 @@
 
 
 /* ── Klassenraum: Mobiles Snap-Layout ───────────────────────── */
-@media (max-width: 699px) {
+@media (max-width: 767px) {
   /* Vollbild — wie .test-page auf der Startseite */
   .app--has-tabbar .classroom-tab {
     position: fixed;
@@ -1620,7 +1624,7 @@
 }
 
 /* ── Konto-Tab: kompaktere Abstände auf Mobile ─────────────── */
-@media (max-width: 699px) {
+@media (max-width: 767px) {
   .konto-auth-card {
     margin-top: 8px;
   }

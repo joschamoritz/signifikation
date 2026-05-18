@@ -137,9 +137,11 @@
 .options-grid .option:nth-child(2) { animation-delay: 30ms }
 .options-grid .option:nth-child(3) { animation-delay: 60ms }
 .options-grid .option:nth-child(4) { animation-delay: 90ms }
-.option:hover:not(:disabled) {
-  border-left-color: var(--primary);
-  background: color-mix(in srgb, var(--primary) 4%, transparent);
+@media (hover: hover) {
+  .option:hover:not(:disabled) {
+    border-left-color: var(--primary);
+    background: color-mix(in srgb, var(--primary) 4%, transparent);
+  }
 }
 .option:active:not(:disabled) { transform: scale(0.985) }
 .option:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px }
@@ -333,9 +335,11 @@
   animation: optionIn 0.2s ease both;
 }
 .bonus-options .bonus-option:first-child { border-top-color: transparent }
-.bonus-option:hover:not(:disabled) {
-  border-left-color: var(--primary);
-  background: color-mix(in srgb, var(--primary) 4%, transparent);
+@media (hover: hover) {
+  .bonus-option:hover:not(:disabled) {
+    border-left-color: var(--primary);
+    background: color-mix(in srgb, var(--primary) 4%, transparent);
+  }
 }
 .bonus-option:active:not(:disabled) { transform: scale(0.985) }
 .bonus-option.selected {

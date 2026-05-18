@@ -863,7 +863,7 @@
 }
 
 /* ── Desktop: Mobile-only Elemente ausblenden ──────────────── */
-@media (min-width: 700px) {
+@media (min-width: 768px) {
   .snap-dots,
   .snap-footer,
   .snap-nav,
@@ -873,7 +873,7 @@
 }
 
 /* ── Mobiles Scroll-Snap-Layout ────────────────────────────── */
-@media (max-width: 699px) {
+@media (max-width: 767px) {
   /* Vollbild-Seite */
   .test-page {
     height: 100svh;
@@ -2127,7 +2127,7 @@
 }
 
 /* ── iPhone SE (max-height: 700px): zusätzliche Komprimierung ── */
-@media (max-width: 699px) and (max-height: 700px) {
+@media (max-width: 767px) and (max-height: 700px) {
   .test-title-section {
     padding: 3px 20px 4px;
   }
@@ -2159,5 +2159,17 @@
   .konto-session-meta {
     margin-top: 10px;
     padding-top: 8px;
+  }
+}
+
+/* ── iPad Landscape: kompaktere Vertikale ───────────────────── */
+@media (orientation: landscape) and (min-width: 768px) {
+  .test-title-section {
+    padding-top: 24px;
+    padding-bottom: 14px;
+  }
+
+  .test-entry {
+    padding-top: 16px;
   }
 }

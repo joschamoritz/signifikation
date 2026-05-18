@@ -282,7 +282,7 @@ button { font-family: inherit; cursor: pointer; border: none }
   letter-spacing: 0.02em;
   transition: background 0.15s, opacity 0.15s;
 }
-.btn-primary:hover:not(:disabled) { background: var(--primary-hi) }
+@media (hover: hover) { .btn-primary:hover:not(:disabled) { background: var(--primary-hi) } }
 .btn-primary:active:not(:disabled) {
   opacity: 0.85;
   transform: scale(0.94);
@@ -325,7 +325,7 @@ button { font-family: inherit; cursor: pointer; border: none }
   font-weight: 600;
   transition: background 0.15s;
 }
-.btn-secondary:hover { background: var(--error-bg) }
+@media (hover: hover) { .btn-secondary:hover { background: var(--error-bg) } }
 .btn-secondary:active { opacity: 0.8 }
 .btn-secondary:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px }
 .results-actions {
@@ -356,7 +356,7 @@ button { font-family: inherit; cursor: pointer; border: none }
   cursor: pointer;
   transition: opacity 0.15s;
 }
-.back-btn:hover { opacity: 0.65 }
+@media (hover: hover) { .back-btn:hover { opacity: 0.65 } }
 .back-btn:active { opacity: 0.4 }
 .back-btn:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; border-radius: 4px }
 
@@ -393,7 +393,7 @@ button { font-family: inherit; cursor: pointer; border: none }
   width: 44px;
   height: 44px;
 }
-.joker-btn:hover { border-color: var(--text); color: var(--text) }
+@media (hover: hover) { .joker-btn:hover { border-color: var(--text); color: var(--text) } }
 
 @keyframes jokerFadeIn {
   from { opacity: 0; transform: scale(0.7) }
