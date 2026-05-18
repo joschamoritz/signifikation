@@ -52,17 +52,6 @@ describe('useEntitlements', () => {
     expect(result.current.gesamtausgabePermanent).toBe(false)  // aber kein permanenter Kauf
   })
 
-  it('entfernt localStorage bei device_limit (403)', async () => {
-    localStorage.setItem('sig_gesamtausgabe', '1')
-    mockFetch({ error: 'Gerätelimit erreicht' }, { status: 403 })
-
-    const { result } = renderHook(() => useEntitlements())
-    await waitFor(() => expect(result.current.gesamtausgabeUnlocked).toBe(false))
-
-    expect(localStorage.getItem('sig_gesamtausgabe')).toBeNull()
-    expect(result.current.gesamtausgabePermanent).toBe(false)
-  })
-
   it('fällt bei HTTP-Fehler auf localStorage-Wert zurück', async () => {
     localStorage.setItem('sig_gesamtausgabe', '1')
     mockFetch({}, { status: 500 })

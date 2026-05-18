@@ -3,8 +3,6 @@ import { API } from '../config'
 import { lsGet, lsSet, lsRemove } from '../utils/storage'
 import { apiFetch } from '../utils/apiFetch'
 
-const DEVICE_LIMIT_ERROR = 'Gerätelimit erreicht'
-
 export function useEntitlements() {
   const [gesamtausgabeUnlocked, setGesamtausgabeUnlocked] = useState(() => !!lsGet('sig_gesamtausgabe'))
   const [freeAccessToday, setFreeAccessToday] = useState(false)
@@ -32,16 +30,6 @@ export function useEntitlements() {
         credentials: 'include',
       })
       if (!res.ok) {
-        if (res.status === 403) {
-          const payload = await res.json().catch(() => null)
-          if (payload?.error === DEVICE_LIMIT_ERROR) {
-            lsRemove('sig_gesamtausgabe')
-            setGesamtausgabeUnlocked(false)
-            setFreeAccessToday(false)
-            setFreeAccessLabel(null)
-            return { ok: false, code: 'device_limit', payload }
-          }
-        }
         setGesamtausgabeUnlocked(!!lsGet('sig_gesamtausgabe'))
         return { ok: false, code: 'http_error' }
       }

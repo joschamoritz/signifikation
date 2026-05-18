@@ -33,11 +33,10 @@ function createTestUser() {
   return userId
 }
 
-function devHeaders(userId, role = 'user', extra = {}) {
+function devHeaders(userId, role = 'user') {
   return {
     'x-dev-user-id': userId,
     'x-dev-user-role': role,
-    ...extra,
   }
 }
 
@@ -62,7 +61,6 @@ describe('account entitlements integration', () => {
 
   afterAll(async () => {
     for (const userId of testUserIds) {
-      db.prepare('DELETE FROM device_registrations WHERE user_id = ?').run(userId)
       db.prepare('DELETE FROM user_entitlements WHERE user_id = ?').run(userId)
       db.prepare('DELETE FROM user_profiles WHERE user_id = ?').run(userId)
       db.prepare('DELETE FROM user WHERE id = ?').run(userId)
@@ -100,7 +98,7 @@ describe('account entitlements integration', () => {
     testUserIds.add(userId)
 
     const res = await fetch(`${baseUrl}/api/v1/account/entitlements`, {
-      headers: devHeaders(userId, 'premium', { 'user-agent': 'role-premium-device' }),
+      headers: devHeaders(userId, 'premium'),
     })
     const payload = await res.json()
 
@@ -116,33 +114,12 @@ describe('account entitlements integration', () => {
     upsertEntitlementStmt.run(userId, 1, now, 'mollie', now, now)
 
     const res = await fetch(`${baseUrl}/api/v1/account/entitlements`, {
-      headers: devHeaders(userId, 'user', { 'user-agent': 'paid-device' }),
+      headers: devHeaders(userId, 'user'),
     })
     const payload = await res.json()
 
     expect(res.status).toBe(200)
     expect(payload.gesamtausgabe.unlocked).toBe(true)
     expect(payload.gesamtausgabe.source).toBe('mollie')
-  })
-
-  it('Gerätelimit: das vierte Gerät eines freigeschalteten Accounts wird mit 403 abgewiesen', async () => {
-    const userId = createTestUser()
-    testUserIds.add(userId)
-
-    for (let i = 1; i <= 3; i++) {
-      const res = await fetch(`${baseUrl}/api/v1/account/entitlements`, {
-        headers: devHeaders(userId, 'premium', { 'user-agent': `limit-device-${i}` }),
-      })
-      expect(res.status).toBe(200)
-    }
-
-    const blocked = await fetch(`${baseUrl}/api/v1/account/entitlements`, {
-      headers: devHeaders(userId, 'premium', { 'user-agent': 'limit-device-4' }),
-    })
-    const payload = await blocked.json()
-
-    expect(blocked.status).toBe(403)
-    expect(payload.error).toBe('Gerätelimit erreicht')
-    expect(Array.isArray(payload.devices)).toBe(true)
   })
 })

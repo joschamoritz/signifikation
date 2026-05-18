@@ -257,7 +257,7 @@ export const spezialwocheDatumQuerySchema = z.object({
 
 // ── Account Schemas ────────────────────────────────────────────
 
-/** DELETE /api/v1/account/sessions/:id, /api/v1/account/devices/:id (params) */
+/** DELETE /api/v1/account/sessions/:id (params) */
 export const accountIdParamsSchema = z.object({
   id: z.string().uuid('Ungültige ID'),
 })

@@ -1,5 +1,4 @@
 import express from 'express'
-import crypto from 'crypto'
 import { requireAuthUser, optionalAuthUser } from '../middleware/userAuth.js'
 import { authFeatureFlags } from '../auth/index.js'
 import { IS_PROD } from '../middleware/auth.js'
@@ -9,8 +8,6 @@ import db from '../db.js'
 import logger from '../logger.js'
 
 const router = express.Router()
-
-const MAX_DEVICES = 3
 
 const ensureEntitlementStmt = db.prepare(`
   INSERT INTO user_entitlements (
@@ -42,52 +39,7 @@ const getUserCreatedAtStmt = db.prepare(`
 
 const getFreeDayStmt = db.prepare(`SELECT label FROM free_days WHERE date = ?`)
 
-// ── Device Registration Statements ────────────────────────────
-
-const getDeviceByHashStmt = db.prepare(`
-  SELECT id FROM device_registrations 
-  WHERE user_id = ? AND device_hash = ?
-`)
-
-const updateDeviceLastSeenStmt = db.prepare(`
-  UPDATE device_registrations 
-  SET last_seen = ? 
-  WHERE id = ?
-`)
-
-const countUserDevicesStmt = db.prepare(`
-  SELECT COUNT(*) as cnt 
-  FROM device_registrations 
-  WHERE user_id = ?
-`)
-
-const insertDeviceStmt = db.prepare(`
-  INSERT INTO device_registrations (id, user_id, device_hash, user_agent, last_seen, created_at)
-  VALUES (?, ?, ?, ?, ?, ?)
-`)
-
-const listUserDevicesStmt = db.prepare(`
-  SELECT id, user_agent, last_seen, created_at 
-  FROM device_registrations 
-  WHERE user_id = ? 
-  ORDER BY last_seen DESC
-`)
-
-const deleteDeviceStmt = db.prepare(`
-  DELETE FROM device_registrations 
-  WHERE id = ? AND user_id = ?
-`)
-
 // ── Helper Functions ───────────────────────────────────────────
-
-function getDeviceFingerprint(req) {
-  const ua = req.headers['user-agent'] || 'unknown'
-  const acceptLang = req.headers['accept-language'] || ''
-  const acceptEnc = req.headers['accept-encoding'] || ''
-  return crypto.createHash('sha256')
-    .update(`${ua}:${acceptLang}:${acceptEnc}`)
-    .digest('hex')
-}
 
 function getTodayBerlin() {
   return new Date().toLocaleDateString('en-CA', { timeZone: 'Europe/Berlin' }) // YYYY-MM-DD
@@ -143,45 +95,7 @@ router.get('/api/v1/account/entitlements', optionalAuthUser, (req, res) => {
     }
 
     const entitlements = readEntitlements(req.user.id, req.user.role)
-    
-    // ── Gerätelimit prüfen ────────────────────────────────────
-    if (entitlements.gesamtausgabe.unlocked) {
-      const deviceHash = getDeviceFingerprint(req)
-      
-      // Ist dieses Gerät bereits registriert?
-      const knownDevice = getDeviceByHashStmt.get(req.user.id, deviceHash)
-      
-      if (knownDevice) {
-        // Gerät bekannt → last_seen aktualisieren
-        updateDeviceLastSeenStmt.run(Date.now(), knownDevice.id)
-      } else {
-        // Neues Gerät → Limit prüfen
-        const deviceCount = countUserDevicesStmt.get(req.user.id)
-        
-        if (deviceCount.cnt >= MAX_DEVICES) {
-          const devices = listUserDevicesStmt.all(req.user.id)
-          return res.status(403).json({
-            error: 'Gerätelimit erreicht',
-            message: `Du kannst die Gesamtausgabe auf maximal ${MAX_DEVICES} Geräten nutzen. Entferne ein Gerät in den Einstellungen.`,
-            devices,
-          })
-        }
-        
-        // Gerät registrieren
-        const now = Date.now()
-        insertDeviceStmt.run(
-          crypto.randomUUID(),
-          req.user.id,
-          deviceHash,
-          req.headers['user-agent'] || 'unknown',
-          now,
-          now
-        )
-        
-        logger.info({ userId: req.user.id, deviceHash: deviceHash.slice(0, 8) }, 'Neues Gerät registriert')
-      }
-    }
-    
+
     res.json({
       ...entitlements,
       freeAccessToday: freeAccess.active,
@@ -216,38 +130,6 @@ router.delete('/api/v1/account/sessions/:id', requireAuthUser, validate(accountI
     if (result.changes === 0) return res.status(404).json({ error: 'Session nicht gefunden' })
     res.json({ ok: true })
   } catch {
-    res.status(500).json({ error: 'Interner Serverfehler' })
-  }
-})
-
-// ── GET /api/v1/account/devices ───────────────────────────────
-// Liste aller registrierten Geräte des Users
-
-router.get('/api/v1/account/devices', requireAuthUser, (req, res) => {
-  try {
-    const devices = listUserDevicesStmt.all(req.user.id)
-    res.json({ devices, maxDevices: MAX_DEVICES })
-  } catch (err) {
-    logger.error({ err }, 'Geräte-Abruf fehlgeschlagen')
-    res.status(500).json({ error: 'Interner Serverfehler' })
-  }
-})
-
-// ── DELETE /api/v1/account/devices/:id ────────────────────────
-// Gerät entfernen (z.B. altes Handy)
-
-router.delete('/api/v1/account/devices/:id', requireAuthUser, validate(accountIdParamsSchema, 'params'), (req, res) => {
-  try {
-    const result = deleteDeviceStmt.run(req.params.id, req.user.id)
-    
-    if (result.changes === 0) {
-      return res.status(404).json({ error: 'Gerät nicht gefunden' })
-    }
-    
-    logger.info({ userId: req.user.id, deviceId: req.params.id }, 'Gerät entfernt')
-    res.json({ ok: true })
-  } catch (err) {
-    logger.error({ err }, 'Gerät-Entfernung fehlgeschlagen')
     res.status(500).json({ error: 'Interner Serverfehler' })
   }
 })

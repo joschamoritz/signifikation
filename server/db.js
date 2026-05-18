@@ -181,26 +181,6 @@ db.exec(`
     last_retry INTEGER NOT NULL
   );
 
-  CREATE TABLE IF NOT EXISTS device_registrations (
-    id          TEXT PRIMARY KEY,
-    user_id     TEXT NOT NULL,
-    device_hash TEXT NOT NULL,
-    user_agent  TEXT,
-    last_seen   INTEGER NOT NULL,
-    created_at  INTEGER NOT NULL,
-    FOREIGN KEY (user_id) REFERENCES user(id) ON DELETE CASCADE,
-    UNIQUE (user_id, device_hash)
-  );
-
-  CREATE INDEX IF NOT EXISTS idx_device_user
-    ON device_registrations(user_id);
-
-  CREATE INDEX IF NOT EXISTS idx_device_hash
-    ON device_registrations(device_hash);
-
-  CREATE INDEX IF NOT EXISTS idx_device_user_hash
-    ON device_registrations(user_id, device_hash);
-
   CREATE TABLE IF NOT EXISTS audit_log (
     id             INTEGER PRIMARY KEY AUTOINCREMENT,
     timestamp      TEXT NOT NULL,
@@ -484,47 +464,12 @@ if (!hasColumn('lemmata', 'lueckenfueller')) {
   }
 }
 
+// ── Migration: Gerätelimit-Feature entfernt – device_registrations löschen ──
 {
-  const deviceTable = db.prepare(`SELECT sql FROM sqlite_master WHERE type='table' AND name='device_registrations'`).get()
-  if (deviceTable?.sql?.includes('device_hash TEXT NOT NULL UNIQUE')) {
-    logger.info('Migration: device_registrations UNIQUE(device_hash) → UNIQUE(user_id, device_hash)')
-    try {
-      db.exec(`
-        BEGIN;
-
-        CREATE TABLE device_registrations_new (
-          id          TEXT PRIMARY KEY,
-          user_id     TEXT NOT NULL,
-          device_hash TEXT NOT NULL,
-          user_agent  TEXT,
-          last_seen   INTEGER NOT NULL,
-          created_at  INTEGER NOT NULL,
-          FOREIGN KEY (user_id) REFERENCES user(id) ON DELETE CASCADE,
-          UNIQUE (user_id, device_hash)
-        );
-
-        INSERT INTO device_registrations_new (id, user_id, device_hash, user_agent, last_seen, created_at)
-        SELECT id, user_id, device_hash, user_agent, last_seen, created_at
-        FROM device_registrations;
-
-        DROP TABLE device_registrations;
-        ALTER TABLE device_registrations_new RENAME TO device_registrations;
-
-        CREATE INDEX IF NOT EXISTS idx_device_user
-          ON device_registrations(user_id);
-
-        CREATE INDEX IF NOT EXISTS idx_device_hash
-          ON device_registrations(device_hash);
-
-        CREATE INDEX IF NOT EXISTS idx_device_user_hash
-          ON device_registrations(user_id, device_hash);
-
-        COMMIT;
-      `)
-    } catch (err) {
-      db.exec('ROLLBACK;')
-      throw err
-    }
+  const deviceTable = db.prepare(`SELECT name FROM sqlite_master WHERE type='table' AND name='device_registrations'`).get()
+  if (deviceTable) {
+    logger.info('Migration: device_registrations entfernt (Gerätelimit-Feature abgeschafft)')
+    db.exec(`DROP TABLE IF EXISTS device_registrations`)
   }
 }
 
