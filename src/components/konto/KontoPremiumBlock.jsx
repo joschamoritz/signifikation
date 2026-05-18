@@ -65,7 +65,7 @@ export default function KontoPremiumBlock({ auth, gesamtausgabePermanent, freeAc
           <span className="test-ipa">[ɡəˈzamtˌʔaʊ̯sɡaːbə]</span>
         </div>
         <div className="test-entry-grammar">
-          <span className="test-pos">Substantiv</span>
+          <span className="test-pos">Lizenz</span>
           <span className="test-pos-rule" />
           <span className="test-entry-category">Premium</span>
         </div>

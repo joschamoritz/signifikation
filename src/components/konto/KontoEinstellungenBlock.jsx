@@ -133,7 +133,7 @@ export default function KontoEinstellungenBlock() {
           <span className="test-ipa">[ˈaɪ̯nˌʃtɛlʊŋən]</span>
         </div>
         <div className="test-entry-grammar">
-          <span className="test-pos">Bereich</span>
+          <span className="test-pos">Präferenz</span>
           <span className="test-pos-rule" />
           <span className="test-entry-category">Anpassung</span>
         </div>

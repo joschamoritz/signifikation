@@ -31,7 +31,7 @@ export default function KontoRechtlichesBlock() {
           <span className="test-ipa">[ˈʁɛçtlɪçəs]</span>
         </div>
         <div className="test-entry-grammar">
-          <span className="test-pos">Bereich</span>
+          <span className="test-pos">Impressum</span>
           <span className="test-pos-rule" />
           <span className="test-entry-category">Dokumentation</span>
         </div>

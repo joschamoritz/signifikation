@@ -17,7 +17,7 @@ export default function KontoZugangBlock({ auth }) {
           <span className="test-ipa">[ˈt͡suːɡaŋ]</span>
         </div>
         <div className="test-entry-grammar">
-          <span className="test-pos">Substantiv</span>
+          <span className="test-pos">Profil</span>
           <span className="test-pos-rule" />
           <span className="test-entry-category">Anmeldung</span>
         </div>

@@ -73,7 +73,7 @@ export default function KontoStatistikenBlock() {
           <span className="test-ipa">[ʃtaˈtɪstɪkən]</span>
         </div>
         <div className="test-entry-grammar">
-          <span className="test-pos">Bereich</span>
+          <span className="test-pos">Verlauf</span>
           <span className="test-pos-rule" />
           <span className="test-entry-category">Spielhistorie</span>
         </div>
