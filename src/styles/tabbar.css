@@ -1459,7 +1459,7 @@
 
 .tab-transition-container {
   position: relative;
-  overflow: hidden;
+  overflow: clip; /* clip statt hidden: clippt Slide-Animationen ohne Scroll-Container zu erzeugen → iPadOS kann Seite scrollen */
   min-height: calc(100dvh - 49px - env(safe-area-inset-bottom, 0px));
 }
 
