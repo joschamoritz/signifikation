@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { Capacitor } from '@capacitor/core'
 import { API } from '../../config'
 import { apiFetch } from '../../utils/apiFetch'
+import { IAP } from '../../plugins/iap.js'
 import KontoAuthCard from './KontoAuthCard'
 import CheckoutModal from './CheckoutModal'
 
@@ -27,7 +28,6 @@ export default function KontoZugangBlock({ auth, gesamtausgabe, gesamtausgabePer
     if (!IS_NATIVE) return
     let listener = null
     const setup = async () => {
-      const { IAP } = await import('../../plugins/iap.js')
       listener = await IAP.addListener('transactionUpdate', async (data) => {
         try {
           const res = await apiFetch(`${API}/iap/verify`, {
