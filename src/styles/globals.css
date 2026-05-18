@@ -114,6 +114,18 @@ body {
   padding: 0;
 }
 
+@media (min-width: 768px) {
+  .app:not(.app--home) {
+    max-width: 640px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .app:not(.app--home) {
+    max-width: 760px;
+  }
+}
+
 .screen {
   flex: 1;
   display: flex;

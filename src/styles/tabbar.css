@@ -176,6 +176,20 @@
   position: relative; /* für absolut positioniertes Badge */
 }
 
+@media (min-width: 768px) {
+  .tab-placeholder-inner {
+    max-width: 640px;
+    padding-inline: 32px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .tab-placeholder-inner {
+    max-width: 760px;
+    padding-inline: 40px;
+  }
+}
+
 
 .tab-placeholder-head {
   display: flex;

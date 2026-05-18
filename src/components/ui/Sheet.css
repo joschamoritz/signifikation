@@ -50,6 +50,18 @@
   transform: translateY(100%);
 }
 
+@media (min-width: 768px) {
+  .sheet-panel {
+    max-width: 640px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .sheet-panel {
+    max-width: 760px;
+  }
+}
+
 /* ── Panel – center variant ────────────────────────────────────────────────── */
 
 .sheet-panel[data-variant="center"] {
