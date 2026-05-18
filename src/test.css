@@ -1402,7 +1402,12 @@
   -webkit-tap-highlight-color: transparent;
 }
 
-.konto-iap-cta:hover,
+@media (hover: hover) {
+  .konto-iap-cta:hover {
+    background: var(--primary-hi);
+  }
+}
+
 .konto-iap-cta:focus-visible {
   background: var(--primary-hi);
   outline: none;
@@ -1434,6 +1439,59 @@
   color: var(--t-accent-dk);
   margin-top: 8px;
   padding: 6px 0;
+}
+
+/* ── Premium-Feature-Liste ───────────────────────────────── */
+.konto-premium-features {
+  list-style: none;
+  padding: 0;
+  margin: 16px 0 0;
+  border-top: 1px solid var(--t-rule-lt);
+}
+
+.konto-premium-feature {
+  display: grid;
+  grid-template-columns: 16px 1fr;
+  grid-template-rows: auto auto;
+  column-gap: 8px;
+  padding: 9px 0;
+  border-bottom: 1px solid var(--t-rule-lt);
+}
+
+.konto-premium-features--active .konto-premium-feature {
+  grid-template-rows: auto;
+}
+
+.konto-premium-feature-marker {
+  grid-row: 1 / -1;
+  font-family: var(--t-sans);
+  font-size: 0.75rem;
+  color: var(--t-muted);
+  padding-top: 2px;
+  align-self: start;
+}
+
+.konto-premium-features--active .konto-premium-feature-marker {
+  color: var(--t-red);
+  font-weight: 700;
+}
+
+.konto-premium-feature-label {
+  font-family: var(--t-serif);
+  font-size: 0.9rem;
+  font-weight: 400;
+  color: var(--t-text);
+  line-height: 1.4;
+}
+
+.konto-premium-feature-desc {
+  grid-column: 2;
+  font-family: var(--t-sans);
+  font-size: 0.72rem;
+  letter-spacing: 0.02em;
+  color: var(--t-muted);
+  line-height: 1.4;
+  margin-top: 2px;
 }
 
 /* Placeholder – kursiv wie Wörterbuch-Verweis */

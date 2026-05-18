@@ -3,7 +3,7 @@ import TabHeader from './TabHeader'
 import { useKontoAuth } from '../hooks/useKontoAuth'
 import { useActiveSnapCard } from '../hooks/useActiveSnapCard'
 import KontoZugangBlock from './konto/KontoZugangBlock'
-import KontoGeraeteBlock from './konto/KontoGeraeteBlock'
+import KontoPremiumBlock from './konto/KontoPremiumBlock'
 import KontoStatistikenBlock from './konto/KontoStatistikenBlock'
 import KontoEinstellungenBlock from './konto/KontoEinstellungenBlock'
 import KontoRechtlichesBlock from './konto/KontoRechtlichesBlock'
@@ -44,19 +44,15 @@ export default function KontoTab({ gesamtausgabe, gesamtausgabePermanent, freeAc
         <main>
           <ol className="test-entries" aria-label="Konto-Bereiche" ref={entriesRef}>
             
-            {/* ① Zugang & Abonnement */}
-            <KontoZugangBlock
+            {/* ① Zugang */}
+            <KontoZugangBlock auth={auth} />
+
+            {/* ② Premium – Gesamtausgabe */}
+            <KontoPremiumBlock
               auth={auth}
-              gesamtausgabe={gesamtausgabe}
               gesamtausgabePermanent={gesamtausgabePermanent}
               freeAccessToday={freeAccessToday}
               freeAccessLabel={freeAccessLabel}
-            />
-
-            {/* ② Registrierte Geräte */}
-            <KontoGeraeteBlock
-              isLoggedIn={auth.isLoggedIn}
-              gesamtausgabePermanent={gesamtausgabePermanent}
             />
 
             {/* ③ Statistiken */}
