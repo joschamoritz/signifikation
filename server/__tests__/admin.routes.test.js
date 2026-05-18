@@ -1,6 +1,7 @@
 import express from 'express'
 import cookieParser from 'cookie-parser'
 import { randomUUID } from 'crypto'
+import bcryptjs from 'bcryptjs'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import adminRouter from '../routes/admin.js'
 import { loadReadOnly, save } from '../store.js'
@@ -37,6 +38,13 @@ const insertSessionStmt = db.prepare(`
 
 const deleteSessionStmt = db.prepare(`DELETE FROM session WHERE id = ?`)
 
+const insertAccountStmt = db.prepare(`
+  INSERT INTO account (id, userId, accountId, providerId, password, createdAt, updatedAt)
+  VALUES (?, ?, ?, 'credential', ?, ?, ?)
+`)
+
+const getUserEmailStmt = db.prepare(`SELECT email FROM user WHERE id = ?`)
+
 const cleanupUsersTx = db.transaction((userIds) => {
   for (const userId of userIds) {
     deleteUserProfileStmt.run(userId)
@@ -65,6 +73,14 @@ function createTestUser({ role } = {}) {
   }
 
   return userId
+}
+
+async function createCredentialUser({ role, password }) {
+  const userId = createTestUser({ role })
+  const now = new Date().toISOString()
+  const hash = await bcryptjs.hash(password, 10)
+  insertAccountStmt.run(randomUUID(), userId, userId, hash, now, now)
+  return { userId, email: getUserEmailStmt.get(userId).email }
 }
 
 function adminHeaders(token, ip = '198.51.100.50') {
@@ -503,5 +519,70 @@ describe('admin routes integration', () => {
     expect(csv).toContain('id,name,email,role,emailVerified,createdAt')
     expect(csv).toContain(firstUserId)
     expect(csv).toContain(secondUserId)
+  })
+
+  // ── Admin-Login (POST /admin/auth) ────────────────────────────
+
+  const loginHeaders = {
+    'content-type': 'application/json',
+    'x-forwarded-for': '198.51.100.77',
+  }
+
+  it('POST /admin/auth lehnt fehlende Zugangsdaten mit 400 ab', async () => {
+    const response = await fetch(`${baseUrl}/admin/auth`, {
+      method: 'POST',
+      headers: loginHeaders,
+      body: JSON.stringify({}),
+    })
+    const payload = await response.json()
+
+    expect(response.status).toBe(400)
+    expect(payload).toEqual({ error: 'Email und Passwort erforderlich' })
+  })
+
+  it('POST /admin/auth weist falsches Passwort mit 401 ab', async () => {
+    const { userId, email } = await createCredentialUser({ role: 'admin', password: 'korrektes-passwort' })
+    testUserIds.add(userId)
+
+    const response = await fetch(`${baseUrl}/admin/auth`, {
+      method: 'POST',
+      headers: loginHeaders,
+      body: JSON.stringify({ email, password: 'falsches-passwort' }),
+    })
+    const payload = await response.json()
+
+    expect(response.status).toBe(401)
+    expect(payload).toEqual({ error: 'Email oder Passwort falsch' })
+  })
+
+  it('POST /admin/auth weist Nicht-Admin trotz korrektem Passwort mit 401 ab', async () => {
+    const { userId, email } = await createCredentialUser({ role: 'user', password: 'korrektes-passwort' })
+    testUserIds.add(userId)
+
+    const response = await fetch(`${baseUrl}/admin/auth`, {
+      method: 'POST',
+      headers: loginHeaders,
+      body: JSON.stringify({ email, password: 'korrektes-passwort' }),
+    })
+    const payload = await response.json()
+
+    expect(response.status).toBe(401)
+    expect(payload).toEqual({ error: 'Email oder Passwort falsch' })
+  })
+
+  it('POST /admin/auth meldet gültige Admin-Credentials mit 200 + Session-Cookie an', async () => {
+    const { userId, email } = await createCredentialUser({ role: 'admin', password: 'korrektes-passwort' })
+    testUserIds.add(userId)
+
+    const response = await fetch(`${baseUrl}/admin/auth`, {
+      method: 'POST',
+      headers: loginHeaders,
+      body: JSON.stringify({ email, password: 'korrektes-passwort' }),
+    })
+    const payload = await response.json()
+
+    expect(response.status).toBe(200)
+    expect(payload).toEqual({ ok: true })
+    expect(response.headers.get('set-cookie')).toContain('better-auth.session_token=')
   })
 })
