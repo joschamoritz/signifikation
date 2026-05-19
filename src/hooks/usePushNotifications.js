@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Capacitor } from '@capacitor/core';
 import { PushNotifications as _PushNotificationsPlugin } from '@capacitor/push-notifications';
+import { API } from '../config';
 
 const STORAGE_KEY = 'sig-push-subscribed';
 
@@ -55,7 +56,7 @@ export function usePushNotifications() {
 
     async function fetchStatus() {
       try {
-        const res = await fetch('/api/v1/push/status', { credentials: 'include' });
+        const res = await fetch(`${API}/push/status`, { credentials: 'include' });
         if (!res.ok) return;
         const data = await res.json();
         if (cancelled) return;
@@ -140,7 +141,7 @@ export function usePushNotifications() {
         PushNotifications.addListener('registration', async (token) => {
           await cleanup();
           try {
-            const res = await fetch('/api/v1/push/subscribe', {
+            const res = await fetch(`${API}/push/subscribe`, {
               method: 'POST',
               credentials: 'include',
               headers: { 'Content-Type': 'application/json' },
@@ -177,7 +178,7 @@ export function usePushNotifications() {
     if (!supported) return;
 
     try {
-      await fetch('/api/v1/push/unsubscribe', {
+      await fetch(`${API}/push/unsubscribe`, {
         method: 'DELETE',
         credentials: 'include',
       });
