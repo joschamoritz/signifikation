@@ -317,6 +317,15 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_push_user ON push_subscriptions(user_id);
   CREATE UNIQUE INDEX IF NOT EXISTS idx_push_endpoint ON push_subscriptions(endpoint) WHERE endpoint IS NOT NULL;
   CREATE UNIQUE INDEX IF NOT EXISTS idx_push_apns ON push_subscriptions(apns_token) WHERE apns_token IS NOT NULL;
+
+  CREATE TABLE IF NOT EXISTS push_templates (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    title      TEXT NOT NULL DEFAULT '',
+    body       TEXT NOT NULL DEFAULT '',
+    enabled    INTEGER NOT NULL DEFAULT 1,
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL
+  );
 `)
 
 logger.info({ path: DB_PATH }, 'signifikation.db bereit')
@@ -508,6 +517,34 @@ if (!hasColumn('lemmata', 'lueckenfueller')) {
       db.exec('ROLLBACK;')
       throw err
     }
+  }
+}
+
+// ── Seed: Standard-Push-Templates ───────────────────────────────
+// Platzhalter: {lemma} {thema} {wortA} {wortB} {lueckensatz} {wochentag} {lemmata}
+{
+  const count = db.prepare(`SELECT COUNT(*) AS n FROM push_templates`).get().n
+  if (count === 0) {
+    logger.info('Seed: Standard-Push-Templates einfügen')
+    const now = Date.now()
+    const insert = db.prepare(`
+      INSERT INTO push_templates (title, body, enabled, created_at, updated_at)
+      VALUES (?, ?, 1, ?, ?)
+    `)
+    const defaults = [
+      ['Heute: »{lemma}«',            'Welche Wörter treten am häufigsten gemeinsam auf?'],
+      ['{lemma} wartet auf dich',     'Kennst du seine stärksten Kollokationen?'],
+      ['Thema heute: {thema}',        '»{lemma}« und mehr warten auf dich.'],
+      ['Aus echten Texten: »{lemma}«', 'Heute täglich neu – korpusbasiert.'],
+      ['{wortA} oder {wortB}?',       'Spür dem feinen Unterschied nach.'],
+      ['Zwei Wörter, ein Rätsel',     '{wortA} und {wortB} – was unterscheidet sie?'],
+      ['Kannst du die Lücke füllen?', '„{lueckensatz}"'],
+      ['Signifikation · {wochentag}', '{lemmata}'],
+      ['Signifikation · Heute',       'Thema: {thema}'],
+    ]
+    db.transaction((rows) => {
+      for (const [title, body] of rows) insert.run(title, body, now, now)
+    })(defaults)
   }
 }
 

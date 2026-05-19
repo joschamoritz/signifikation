@@ -8,7 +8,6 @@ import webpush from 'web-push'
 import apn from 'node-apn'
 import db from '../db.js'
 import logger from '../logger.js'
-import { buildNotificationPayload } from './templates.js'
 
 // ── VAPID-Initialisierung ─────────────────────────────────────────────────────
 
@@ -36,6 +35,15 @@ const getSubscriptionsStmt = db.prepare(`
   SELECT id, platform, endpoint, p256dh, auth, apns_token
   FROM push_subscriptions
   WHERE user_id = ?
+`)
+
+const getAllSubscriptionsStmt = db.prepare(`
+  SELECT id, platform, endpoint, p256dh, auth, apns_token
+  FROM push_subscriptions
+`)
+
+const countSubscriptionsStmt = db.prepare(`
+  SELECT COUNT(*) AS n FROM push_subscriptions
 `)
 
 const deleteSubscriptionByIdStmt = db.prepare(`
@@ -157,37 +165,86 @@ async function sendApnsPush(sub, payload) {
   }
 }
 
+// ── Versand-Helfer ────────────────────────────────────────────────────────────
+
+const SEND_CONCURRENCY = 10
+
+/** Sendet ein Payload an eine einzelne Subscription (Plattform-Weiche). */
+async function sendToSubscription(sub, payload) {
+  if (sub.platform === 'web' && sub.endpoint) {
+    return sendWebPush(sub, payload)
+  }
+  if (sub.platform === 'ios' && sub.apns_token) {
+    return sendApnsPush(sub, payload)
+  }
+  logger.warn({ subId: sub.id, platform: sub.platform }, 'Unbekannte Plattform oder fehlende Daten')
+  return false
+}
+
+/**
+ * Versendet ein Payload an mehrere Subscriptions – in Blöcken von
+ * SEND_CONCURRENCY parallel, damit große Empfängerlisten nicht seriell
+ * blockieren.
+ */
+async function dispatchToSubscriptions(subscriptions, payload) {
+  let sent = 0
+  let failed = 0
+
+  for (let i = 0; i < subscriptions.length; i += SEND_CONCURRENCY) {
+    const batch = subscriptions.slice(i, i + SEND_CONCURRENCY)
+    const results = await Promise.all(batch.map(sub => sendToSubscription(sub, payload)))
+    for (const ok of results) {
+      if (ok) { sent++ } else { failed++ }
+    }
+  }
+
+  return { sent, failed }
+}
+
 // ── Öffentliche API ───────────────────────────────────────────────────────────
 
 /**
- * Sendet eine Push-Benachrichtigung an alle aktiven Subscriptions eines Users.
+ * Sendet ein vorgefertigtes Payload an alle Subscriptions eines Users.
  *
  * @param {string} userId
- * @param {Date} [date=new Date()]
+ * @param {{ title: string, body: string, url?: string }} payload
  * @returns {Promise<{ sent: number, failed: number }>}
  */
-export async function sendPushToUser(userId, date = new Date()) {
+export async function sendPushToUser(userId, payload) {
   const subscriptions = getSubscriptionsStmt.all(userId)
   if (!subscriptions.length) {
     return { sent: 0, failed: 0 }
   }
 
-  const payload = buildNotificationPayload(date)
-  let sent = 0
-  let failed = 0
+  const result = await dispatchToSubscriptions(subscriptions, { url: '/', ...payload })
+  logger.debug({ userId, ...result }, 'Push-Benachrichtigungen für User abgeschlossen')
+  return result
+}
 
-  for (const sub of subscriptions) {
-    let ok = false
-    if (sub.platform === 'web' && sub.endpoint) {
-      ok = await sendWebPush(sub, payload)
-    } else if (sub.platform === 'ios' && sub.apns_token) {
-      ok = await sendApnsPush(sub, payload)
-    } else {
-      logger.warn({ subId: sub.id, platform: sub.platform }, 'Unbekannte Plattform oder fehlende Daten')
-    }
-    if (ok) { sent++ } else { failed++ }
+/**
+ * Anzahl der aktuell gespeicherten Push-Subscriptions (Geräte).
+ *
+ * @returns {number}
+ */
+export function getSubscriberCount() {
+  try {
+    return countSubscriptionsStmt.get().n
+  } catch (err) {
+    logger.warn({ err }, 'Subscriber-Count konnte nicht ermittelt werden')
+    return 0
   }
+}
 
-  logger.debug({ userId, sent, failed }, 'Push-Benachrichtigungen für User abgeschlossen')
-  return { sent, failed }
+/**
+ * Sendet ein festes Payload an alle gespeicherten Subscriptions.
+ * Genutzt vom täglichen Job und vom manuellen Versand aus dem Admin-Panel.
+ *
+ * @param {{ title: string, body: string, url?: string }} payload
+ * @returns {Promise<{ sent: number, failed: number, total: number }>}
+ */
+export async function sendPushToAll(payload) {
+  const subscriptions = getAllSubscriptionsStmt.all()
+  const result = await dispatchToSubscriptions(subscriptions, { url: '/', ...payload })
+  logger.info({ ...result, total: subscriptions.length }, 'Push-Broadcast abgeschlossen')
+  return { ...result, total: subscriptions.length }
 }

@@ -1,49 +1,26 @@
 /**
  * scheduler.js – Täglicher Push-Notification-Job
  *
- * Sendet täglich um 08:00 Europe/Berlin an alle User mit aktiver Subscription.
- * Einzelne Fehler brechen den Job nicht ab.
+ * Sendet täglich um 08:00 Europe/Berlin eine Benachrichtigung an alle
+ * registrierten Geräte. Das Payload wird einmal pro Tag erstellt, damit
+ * alle Nutzer dieselbe Nachricht erhalten.
  */
 import cron from 'node-cron'
-import db from '../db.js'
 import logger from '../logger.js'
-import { sendPushToUser } from './sender.js'
-
-const getActiveUserIdsStmt = db.prepare(`
-  SELECT DISTINCT user_id
-  FROM push_subscriptions
-`)
+import { sendPushToAll } from './sender.js'
+import { buildNotificationPayload } from './templates.js'
 
 /**
- * Führt den Push-Job für alle Subscriber durch.
+ * Führt den Push-Job für alle Abonnenten durch.
  */
 async function runPushJob() {
   const date = new Date()
   logger.info({ date: date.toISOString() }, 'Push-Job gestartet')
 
-  const rows = getActiveUserIdsStmt.all()
-  if (!rows.length) {
-    logger.info('Push-Job: keine aktiven Subscriptions – abgebrochen')
-    return
-  }
+  const payload = buildNotificationPayload(date)
+  const { sent, failed, total } = await sendPushToAll(payload)
 
-  logger.info({ count: rows.length }, 'Push-Job: sende an User')
-
-  let totalSent = 0
-  let totalFailed = 0
-
-  for (const { user_id } of rows) {
-    try {
-      const { sent, failed } = await sendPushToUser(user_id, date)
-      totalSent   += sent
-      totalFailed += failed
-    } catch (err) {
-      logger.error({ err, userId: user_id }, 'Push-Job: Fehler bei User – übersprungen')
-      totalFailed++
-    }
-  }
-
-  logger.info({ totalSent, totalFailed, users: rows.length }, 'Push-Job abgeschlossen')
+  logger.info({ sent, failed, devices: total, title: payload.title }, 'Push-Job abgeschlossen')
 }
 
 /**

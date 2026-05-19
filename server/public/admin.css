@@ -1436,6 +1436,43 @@ body {
   min-height: 36px;
 }
 
+.push-template {
+  border: 1px solid var(--border-lt);
+  border-radius: var(--radius);
+  padding: 14px;
+  margin-bottom: 12px;
+  background: var(--surface2);
+}
+
+.push-tpl-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.85rem;
+  margin: 8px 0;
+}
+
+.push-tpl-preview {
+  font-size: 0.84rem;
+  color: var(--muted);
+  padding: 8px 10px;
+  background: var(--surface);
+  border: 1px solid var(--border-lt);
+  border-radius: var(--radius);
+  margin-bottom: 10px;
+  line-height: 1.45;
+}
+
+.push-tpl-skip {
+  color: #991b1b;
+}
+
+.push-tpl-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
 .system-json {
   background: var(--surface2);
   border: 1px solid var(--border-lt);

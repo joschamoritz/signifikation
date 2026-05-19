@@ -1,33 +1,30 @@
 /**
  * templates.js – Notification-Templates für Push-Benachrichtigungen
  *
- * 8 Vorlagen, Rotation via dayOfYear % 8.
- * Tagesdaten werden aus der DB geladen (kalender, lemmata, wortzwilling).
+ * Templates werden in der Tabelle `push_templates` gepflegt (Admin-Panel).
+ * Jedes Template hat Titel + Text mit Platzhaltern. Für die tägliche
+ * Benachrichtigung wird zufällig aus den aktiven Templates gewählt, deren
+ * Platzhalter an dem Tag alle befüllbar sind.
  */
 import db from '../db.js'
 import logger from '../logger.js'
 
-/**
- * Berechnet den Tag des Jahres (1-basiert) für ein Date-Objekt.
- */
-function getDayOfYear(date) {
-  const start = new Date(date.getFullYear(), 0, 0)
-  const diff = date - start
-  const oneDay = 1000 * 60 * 60 * 24
-  return Math.floor(diff / oneDay)
+/** Verfügbare Platzhalter (für Admin-UI und Validierung). */
+export const PLACEHOLDERS = ['lemma', 'thema', 'wortA', 'wortB', 'lueckensatz', 'wochentag', 'lemmata']
+
+const STATIC_FALLBACK = {
+  title: 'Signifikation',
+  body: 'Dein tägliches Wortspiel wartet.',
+  url: '/',
 }
 
-/**
- * Gibt den deutschen Wochentagsnamen zurück.
- */
+/** Gibt den deutschen Wochentagsnamen zurück. */
 function getWochentag(date) {
   const tage = ['Sonntag', 'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag']
   return tage[date.getDay()]
 }
 
-/**
- * Formatiert ein Date-Objekt als YYYY-MM-DD.
- */
+/** Formatiert ein Date-Objekt als YYYY-MM-DD. */
 function formatDatum(date) {
   return date.toISOString().slice(0, 10)
 }
@@ -50,10 +47,22 @@ const getWortzwillingStmt = db.prepare(`
   WHERE datum = ?
 `)
 
+const listEnabledTemplatesStmt = db.prepare(`
+  SELECT id, title, body FROM push_templates WHERE enabled = 1
+`)
+
+const getTemplateStmt = db.prepare(`
+  SELECT id, title, body FROM push_templates WHERE id = ?
+`)
+
+const listAllTemplatesStmt = db.prepare(`
+  SELECT id, title, body, enabled FROM push_templates ORDER BY id
+`)
+
 /**
  * Lädt die Tagesdaten für ein gegebenes Datum aus der DB.
- * Gibt ein Objekt mit lemma, thema, wortA, wortB, lueckensatz zurück.
- * Felder können null sein, wenn keine Daten vorhanden.
+ * Gibt ein Objekt mit lemma, thema, wortA, wortB, lueckensatz, lemmata zurück.
+ * Felder können null bzw. leer sein, wenn keine Daten vorhanden.
  */
 function loadTagesdaten(datum) {
   const result = {
@@ -88,7 +97,6 @@ function loadTagesdaten(datum) {
           }
         }
       }
-      // Bis zu 3 Lemma-Namen für Template #7
       result.lemmata = ids.slice(0, 3)
         .map(id => getLemmaStmt.get(id)?.lemma)
         .filter(Boolean)
@@ -119,127 +127,111 @@ function loadTagesdaten(datum) {
 }
 
 /**
- * Definiert die 8 Template-Builder-Funktionen (Index 0–7).
- * Jede Funktion erhält die Tagesdaten und gibt { title, body } zurück.
- * Fallbacks sind inline definiert.
+ * Baut den Platzhalter-Kontext für ein Datum.
+ * Jeder Wert ist ein nicht-leerer String oder null (= nicht verfügbar).
  */
-const TEMPLATES = [
-  // 0
-  ({ lemma }) => ({
-    title: lemma ? `Heute: »${lemma}«` : 'Signifikation · Heute',
-    body: 'Welche Wörter treten am häufigsten gemeinsam auf?',
-  }),
-  // 1
-  ({ lemma }) => ({
-    title: lemma ? `${lemma} wartet auf dich` : 'Dein Wort wartet auf dich',
-    body: 'Kennst du seine stärksten Kollokationen?',
-  }),
-  // 2 – Fallback auf #0 wenn kein Thema
-  ({ lemma, thema }) => {
-    if (!thema) {
-      return {
-        title: lemma ? `Heute: »${lemma}«` : 'Signifikation · Heute',
-        body: 'Welche Wörter treten am häufigsten gemeinsam auf?',
-      }
-    }
-    return {
-      title: `Thema heute: ${thema}`,
-      body: lemma ? `»${lemma}« und mehr warten auf dich.` : 'Dein tägliches Wortspiel wartet.',
-    }
-  },
-  // 3
-  ({ lemma }) => ({
-    title: lemma ? `Aus echten Texten: »${lemma}«` : 'Aus echten Texten',
-    body: 'Heute täglich neu – korpusbasiert.',
-  }),
-  // 4 – Fallback auf #1 wenn kein Wortzwilling
-  ({ lemma, wortA, wortB }) => {
-    if (!wortA || !wortB) {
-      return {
-        title: lemma ? `${lemma} wartet auf dich` : 'Dein Wort wartet auf dich',
-        body: 'Kennst du seine stärksten Kollokationen?',
-      }
-    }
-    return {
-      title: `${wortA} oder ${wortB}?`,
-      body: 'Spür dem feinen Unterschied nach.',
-    }
-  },
-  // 5 – Fallback auf #3 wenn kein Wortzwilling
-  ({ lemma, wortA, wortB }) => {
-    if (!wortA || !wortB) {
-      return {
-        title: lemma ? `Aus echten Texten: »${lemma}«` : 'Aus echten Texten',
-        body: 'Heute täglich neu – korpusbasiert.',
-      }
-    }
-    return {
-      title: 'Zwei Wörter, ein Rätsel',
-      body: `${wortA} und ${wortB} – was unterscheidet sie?`,
-    }
-  },
-  // 6 – Fallback auf #0 wenn kein Lückensatz; Lückensatz im Body (nicht Titel – zu lang)
-  ({ lemma, lueckensatz }) => {
-    if (!lueckensatz) {
-      return {
-        title: lemma ? `Heute: »${lemma}«` : 'Signifikation · Heute',
-        body: 'Welche Wörter treten am häufigsten gemeinsam auf?',
-      }
-    }
-    return {
-      title: 'Kannst du die Lücke füllen?',
-      body: `„${lueckensatz}"`,
-    }
-  },
-  // 7 – Wochentag im Titel, bis zu 3 Lemmata im Body
-  ({ wochentag, lemmata }) => {
-    const body = lemmata.length > 0
-      ? lemmata.join(' · ')
-      : 'Täglich neu.'
-    return {
-      title: `Signifikation · ${wochentag}`,
-      body,
-    }
-  },
-  // 8 – Thema des Tages im Body
-  ({ lemma, thema }) => {
-    if (!thema) {
-      return {
-        title: lemma ? `Heute: »${lemma}«` : 'Signifikation · Heute',
-        body: 'Welche Wörter treten am häufigsten gemeinsam auf?',
-      }
-    }
-    return {
-      title: 'Signifikation · Heute',
-      body: `Thema: ${thema}`,
-    }
-  },
-]
+function buildContext(date) {
+  const t = loadTagesdaten(formatDatum(date))
+  return {
+    lemma:       t.lemma || null,
+    thema:       t.thema || null,
+    wortA:       t.wortA || null,
+    wortB:       t.wortB || null,
+    lueckensatz: t.lueckensatz || null,
+    wochentag:   getWochentag(date),
+    lemmata:     t.lemmata.length > 0 ? t.lemmata.join(' · ') : null,
+  }
+}
+
+/** Liefert die Menge der in einem Text verwendeten Platzhalter-Namen. */
+function placeholdersIn(text) {
+  const found = new Set()
+  for (const m of String(text ?? '').matchAll(/\{(\w+)\}/g)) {
+    found.add(m[1])
+  }
+  return found
+}
+
+/**
+ * Gibt die Platzhalter eines Templates zurück, die im Kontext nicht
+ * befüllbar sind. Unbekannte Platzhalter zählen ebenfalls als fehlend.
+ */
+function missingPlaceholders(template, ctx) {
+  const used = new Set([
+    ...placeholdersIn(template.title),
+    ...placeholdersIn(template.body),
+  ])
+  return [...used].filter(key => !ctx[key])
+}
+
+/** Ersetzt {platzhalter}-Token durch ihre Kontextwerte (fehlende → leer). */
+function render(text, ctx) {
+  return String(text ?? '').replace(/\{(\w+)\}/g, (_, key) => ctx[key] ?? '')
+}
 
 /**
  * Erstellt das Notification-Payload für ein gegebenes Datum.
+ * Wählt zufällig aus den aktiven Templates, deren Platzhalter an dem Tag
+ * vollständig befüllbar sind. Gibt es keine, kommt ein statischer Fallback.
  *
  * @param {Date} date
  * @returns {{ title: string, body: string, url: string }}
  */
 export function buildNotificationPayload(date = new Date()) {
-  const datum = formatDatum(date)
-  const dayOfYear = getDayOfYear(date)
-  const templateIndex = dayOfYear % 9
-  const wochentag = getWochentag(date)
-
-  const tagesdaten = loadTagesdaten(datum)
-  const ctx = { ...tagesdaten, wochentag }
-
   try {
-    const { title, body } = TEMPLATES[templateIndex](ctx)
-    return { title, body, url: '/' }
-  } catch (err) {
-    logger.warn({ err, templateIndex, datum }, 'Template-Rendering fehlgeschlagen, verwende Fallback')
-    return {
-      title: 'Signifikation',
-      body: 'Dein tägliches Wortspiel wartet.',
-      url: '/',
+    const ctx = buildContext(date)
+    const templates = listEnabledTemplatesStmt.all()
+    const eligible = templates.filter(t => missingPlaceholders(t, ctx).length === 0)
+
+    if (eligible.length === 0) {
+      logger.warn({ datum: formatDatum(date) }, 'Push: kein passendes Template – Fallback')
+      return { ...STATIC_FALLBACK }
     }
+
+    const chosen = eligible[Math.floor(Math.random() * eligible.length)]
+    return {
+      title: render(chosen.title, ctx),
+      body:  render(chosen.body, ctx),
+      url:   '/',
+    }
+  } catch (err) {
+    logger.warn({ err }, 'Template-Rendering fehlgeschlagen, verwende Fallback')
+    return { ...STATIC_FALLBACK }
   }
+}
+
+/**
+ * Rendert ein einzelnes Template (per ID) mit den Tagesdaten eines Datums.
+ * Für den manuellen Versand eines Templates aus dem Admin-Panel.
+ *
+ * @returns {{ title: string, body: string } | null}
+ */
+export function renderTemplateById(id, date = new Date()) {
+  const t = getTemplateStmt.get(id)
+  if (!t) return null
+  const ctx = buildContext(date)
+  return { title: render(t.title, ctx), body: render(t.body, ctx) }
+}
+
+/**
+ * Liefert alle Templates inkl. gerenderter Vorschau für ein Datum.
+ * Für die Anzeige im Admin-Panel.
+ */
+export function listTemplatesWithPreview(date = new Date()) {
+  const ctx = buildContext(date)
+  return listAllTemplatesStmt.all().map(t => {
+    const missing = missingPlaceholders(t, ctx)
+    return {
+      id:      t.id,
+      title:   t.title,
+      body:    t.body,
+      enabled: !!t.enabled,
+      preview: {
+        title:    render(t.title, ctx),
+        body:     render(t.body, ctx),
+        eligible: missing.length === 0,
+        missing,
+      },
+    }
+  })
 }

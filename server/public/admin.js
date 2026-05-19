@@ -120,6 +120,10 @@ function switchPage(pageId) {
   if (pageId === 'spezialwoche') {
     loadSpezialwochen()
   }
+
+  if (pageId === 'push') {
+    loadPushTemplates()
+  }
 }
 
 function refreshDashboard() {
@@ -2926,6 +2930,178 @@ function runJsonImport() {
   }
 }
 
+// ── Push-Benachrichtigungen ──────────────────────────────
+function setPushHint(id, message, tone = 'info') {
+  const el = document.getElementById(id)
+  if (!el) return
+  el.textContent = message || ''
+  el.classList.remove('is-hidden', 'is-error', 'is-success')
+  if (!message) { el.classList.add('is-hidden'); return }
+  if (tone === 'error') el.classList.add('is-error')
+  if (tone === 'success') el.classList.add('is-success')
+}
+
+function renderPushTemplateRow(t) {
+  const preview = t.preview || {}
+  const previewHtml = preview.eligible
+    ? `<strong>${esc(preview.title)}</strong><br>${esc(preview.body)}`
+    : `<span class="push-tpl-skip">Heute übersprungen — fehlt: ${esc((preview.missing || []).join(', ') || 'unbekannt')}</span>`
+  return `
+    <div class="push-template" data-id="${t.id}">
+      <div class="entry-field">
+        <label>Titel</label>
+        <input type="text" class="push-tpl-title" maxlength="120" value="${esc(t.title)}">
+      </div>
+      <div class="entry-field">
+        <label>Text</label>
+        <textarea class="push-tpl-body" maxlength="300" rows="2">${esc(t.body)}</textarea>
+      </div>
+      <label class="push-tpl-toggle">
+        <input type="checkbox" class="push-tpl-enabled" ${t.enabled ? 'checked' : ''}>
+        Aktiv – nimmt an der täglichen Rotation teil
+      </label>
+      <div class="push-tpl-preview">Vorschau heute: ${previewHtml}</div>
+      <div class="push-tpl-actions">
+        <button class="primary-btn" data-action="push-save-template" data-id="${t.id}">Speichern</button>
+        <button class="ghost-btn" data-action="push-send-template" data-id="${t.id}">Jetzt senden</button>
+        <button class="entry-filters-reset" data-action="push-delete-template" data-id="${t.id}">Löschen</button>
+      </div>
+    </div>`
+}
+
+function renderPushTemplates(data) {
+  const placeholdersEl = document.getElementById('push-placeholders')
+  if (placeholdersEl) {
+    placeholdersEl.textContent = (data.placeholders || []).map(p => `{${p}}`).join('  ')
+  }
+  const countEl = document.getElementById('push-subscriber-count')
+  if (countEl) {
+    const n = Number(data.subscriberCount) || 0
+    countEl.textContent = n === 1 ? '1 Gerät' : `${n} Geräte`
+  }
+  const listEl = document.getElementById('push-templates-list')
+  if (!listEl) return
+  const templates = Array.isArray(data.templates) ? data.templates : []
+  listEl.innerHTML = templates.length
+    ? templates.map(renderPushTemplateRow).join('')
+    : '<div class="users-empty">Keine Vorlagen vorhanden.</div>'
+}
+
+async function loadPushTemplates() {
+  const listEl = document.getElementById('push-templates-list')
+  if (listEl) listEl.innerHTML = '<div class="users-empty">Wird geladen …</div>'
+  try {
+    const res = await fetch('/admin/push/templates')
+    if (!res.ok) throw new Error(`HTTP ${res.status}`)
+    renderPushTemplates(await res.json())
+  } catch (err) {
+    if (listEl) listEl.innerHTML = `<div class="users-empty" style="color:#991b1b">Fehler: ${esc(err.message)}</div>`
+  }
+}
+
+async function addPushTemplate() {
+  try {
+    const res = await fetch('/admin/push/templates', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title: 'Neue Vorlage', body: 'Text bearbeiten …', enabled: false }),
+    })
+    const data = await res.json().catch(() => ({}))
+    if (!res.ok) { setPushHint('push-template-msg', data.error || 'Anlegen fehlgeschlagen.', 'error'); return }
+    setPushHint('push-template-msg', 'Vorlage angelegt – jetzt bearbeiten und aktivieren.', 'success')
+    await loadPushTemplates()
+  } catch {
+    setPushHint('push-template-msg', 'Netzwerkfehler.', 'error')
+  }
+}
+
+async function savePushTemplate(id) {
+  const row = document.querySelector(`.push-template[data-id="${id}"]`)
+  if (!row) return
+  const title = row.querySelector('.push-tpl-title')?.value?.trim() || ''
+  const body = row.querySelector('.push-tpl-body')?.value?.trim() || ''
+  const enabled = row.querySelector('.push-tpl-enabled')?.checked || false
+  try {
+    const res = await fetch(`/admin/push/templates/${encodeURIComponent(id)}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title, body, enabled }),
+    })
+    const data = await res.json().catch(() => ({}))
+    if (!res.ok) { setPushHint('push-template-msg', data.error || 'Speichern fehlgeschlagen.', 'error'); return }
+    setPushHint('push-template-msg', 'Vorlage gespeichert.', 'success')
+    await loadPushTemplates()
+  } catch {
+    setPushHint('push-template-msg', 'Netzwerkfehler.', 'error')
+  }
+}
+
+async function deletePushTemplate(id) {
+  if (!confirmAction('Vorlage wirklich löschen?')) return
+  try {
+    const res = await fetch(`/admin/push/templates/${encodeURIComponent(id)}`, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+    })
+    const data = await res.json().catch(() => ({}))
+    if (!res.ok) { setPushHint('push-template-msg', data.error || 'Löschen fehlgeschlagen.', 'error'); return }
+    setPushHint('push-template-msg', 'Vorlage gelöscht.', 'success')
+    await loadPushTemplates()
+  } catch {
+    setPushHint('push-template-msg', 'Netzwerkfehler.', 'error')
+  }
+}
+
+async function sendPushTemplate(id) {
+  if (!confirmAction('Diese Vorlage jetzt an alle registrierten Geräte senden?')) return
+  setPushHint('push-template-msg', 'Wird gesendet …', 'info')
+  try {
+    const res = await fetch('/admin/push/send', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ mode: 'template', templateId: Number(id) }),
+    })
+    const data = await res.json().catch(() => ({}))
+    if (!res.ok) { setPushHint('push-template-msg', data.error || 'Versand fehlgeschlagen.', 'error'); return }
+    setPushHint('push-template-msg', `Gesendet: ${data.sent} erfolgreich, ${data.failed} fehlgeschlagen (von ${data.total}).`, 'success')
+  } catch {
+    setPushHint('push-template-msg', 'Netzwerkfehler.', 'error')
+  }
+}
+
+async function submitManualPush(mode) {
+  const titleEl = document.getElementById('push-send-title')
+  const bodyEl = document.getElementById('push-send-body')
+  const title = titleEl?.value?.trim() || ''
+  const body = bodyEl?.value?.trim() || ''
+  if (!title || !body) {
+    setPushHint('push-send-msg', 'Titel und Text sind erforderlich.', 'error')
+    return
+  }
+  const confirmMsg = mode === 'self'
+    ? 'Testnachricht jetzt an deine eigenen Geräte senden?'
+    : 'Diese Nachricht jetzt an alle registrierten Geräte senden?'
+  if (!confirmAction(confirmMsg, [`Titel: ${title}`, `Text: ${body}`])) return
+  setPushHint('push-send-msg', 'Wird gesendet …', 'info')
+  try {
+    const res = await fetch('/admin/push/send', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ mode, title, body }),
+    })
+    const data = await res.json().catch(() => ({}))
+    if (!res.ok) { setPushHint('push-send-msg', data.error || 'Versand fehlgeschlagen.', 'error'); return }
+    setPushHint('push-send-msg', `Gesendet: ${data.sent} erfolgreich, ${data.failed} fehlgeschlagen (von ${data.total}).`, 'success')
+    // Test-Versand: Felder behalten, damit der Text danach an alle gehen kann.
+    if (mode !== 'self') {
+      if (titleEl) titleEl.value = ''
+      if (bodyEl) bodyEl.value = ''
+    }
+  } catch {
+    setPushHint('push-send-msg', 'Netzwerkfehler.', 'error')
+  }
+}
+
 function handleDocumentClick(event) {
   const target = event.target.closest('[data-action]')
   if (!target) return
@@ -3001,6 +3177,13 @@ function handleDocumentClick(event) {
   if (action === 'edit-spezialwoche') return void editSpezialwoche(target.dataset.woche || '')
   if (action === 'delete-spezialwoche') return void deleteSpezialwoche(target.dataset.woche || '')
   if (action === 'preview-sw-wz') return void previewSwWz()
+  if (action === 'push-load-templates') return void loadPushTemplates()
+  if (action === 'push-add-template') return void addPushTemplate()
+  if (action === 'push-save-template') return void savePushTemplate(target.dataset.id || '')
+  if (action === 'push-delete-template') return void deletePushTemplate(target.dataset.id || '')
+  if (action === 'push-send-template') return void sendPushTemplate(target.dataset.id || '')
+  if (action === 'push-send-free') return void submitManualPush('free')
+  if (action === 'push-send-self') return void submitManualPush('self')
 }
 
 function handleDocumentChange(event) {

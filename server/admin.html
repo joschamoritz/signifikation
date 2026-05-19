@@ -63,6 +63,7 @@
             <button class="nav-item" data-action="switch-page" data-page="users">Nutzer</button>
             <button class="nav-item" data-action="switch-page" data-page="freedays">Freitage</button>
             <button class="nav-item" data-action="switch-page" data-page="spezialwoche">Wort der Woche</button>
+            <button class="nav-item" data-action="switch-page" data-page="push">Benachrichtigungen</button>
             <button class="nav-item" data-action="switch-page" data-page="system">System</button>
           </div>
         </div>
@@ -719,6 +720,48 @@
           <div id="freedays-list">
             <div class="users-empty">Wird geladen …</div>
           </div>
+        </div>
+      </section>
+
+      <section class="admin-page" id="page-push" data-title="Benachrichtigungen" data-subtitle="Push-Vorlagen verwalten und Nachrichten manuell versenden.">
+        <div class="card">
+          <h2>Nachricht manuell senden</h2>
+          <p class="section-copy">
+            Sendet sofort eine Push-Benachrichtigung an alle aktuell registrierten Geräte
+            (<strong id="push-subscriber-count">…</strong>).
+          </p>
+          <div class="entry-field">
+            <label for="push-send-title">Titel</label>
+            <input type="text" id="push-send-title" maxlength="120" placeholder="z.B. Neues Worträtsel wartet">
+          </div>
+          <div class="entry-field">
+            <label for="push-send-body">Text</label>
+            <textarea id="push-send-body" maxlength="300" rows="2" placeholder="Kurzer Hinweistext …"></textarea>
+          </div>
+          <div class="sw-form-actions">
+            <button class="primary-btn" data-action="push-send-free">Jetzt an alle senden</button>
+            <button class="ghost-btn" data-action="push-send-self">Test an meine Geräte</button>
+          </div>
+          <p class="entry-hint is-hidden" id="push-send-msg"></p>
+        </div>
+
+        <div class="card">
+          <div class="card-head card-head--wrap">
+            <h2>Vorlagen</h2>
+            <button class="entry-filters-reset" data-action="push-load-templates">↺ Laden</button>
+          </div>
+          <p class="section-copy">
+            Täglich um 08:00 Uhr wird zufällig eine aktive Vorlage verschickt. Verfügbare Platzhalter:
+            <code id="push-placeholders"></code>. Fehlt an einem Tag der Wert für einen verwendeten
+            Platzhalter, wird die Vorlage an dem Tag übersprungen.
+          </p>
+          <div id="push-templates-list">
+            <div class="users-empty">Wird geladen …</div>
+          </div>
+          <div class="sw-form-actions">
+            <button class="ghost-btn" data-action="push-add-template">+ Neue Vorlage</button>
+          </div>
+          <p class="entry-hint is-hidden" id="push-template-msg"></p>
         </div>
       </section>
 

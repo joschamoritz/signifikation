@@ -22,6 +22,7 @@ import { createAdminCalendarRouter } from './admin-calendar.js'
 import { createAdminSocialCardsRouter } from './admin-social-cards.js'
 import { createAdminCoreRouter } from './admin-core.js'
 import freeDaysRouter from './admin-free-days.js'
+import adminPushRouter from './admin-push.js'
 import { createAdminSpezialwocheRouter } from './admin-spezialwoche.js'
 import {
   countUsersStmt,
@@ -195,6 +196,7 @@ router.use(createAdminSocialCardsRouter({
 }))
 
 router.use(freeDaysRouter)
+router.use(adminPushRouter)
 
 router.use(createAdminSpezialwocheRouter({
   adminLimiter,
