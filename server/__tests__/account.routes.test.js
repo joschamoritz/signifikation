@@ -17,6 +17,11 @@ const upsertEntitlementStmt = db.prepare(`
     source = excluded.source
 `)
 
+const insertStatStmt = db.prepare(`
+  INSERT INTO stats (datum, spiel, user_id, plays, scoreSum, maxSum, dist)
+  VALUES (?, ?, ?, ?, ?, ?, '[]')
+`)
+
 function createTestUser() {
   const suffix = `${Date.now()}-${Math.random().toString(16).slice(2, 10)}`
   const userId = `acc-test-${suffix}`
@@ -61,6 +66,7 @@ describe('account entitlements integration', () => {
 
   afterAll(async () => {
     for (const userId of testUserIds) {
+      db.prepare('DELETE FROM stats WHERE user_id = ?').run(userId)
       db.prepare('DELETE FROM user_entitlements WHERE user_id = ?').run(userId)
       db.prepare('DELETE FROM user_profiles WHERE user_id = ?').run(userId)
       db.prepare('DELETE FROM user WHERE id = ?').run(userId)
@@ -121,5 +127,45 @@ describe('account entitlements integration', () => {
     expect(res.status).toBe(200)
     expect(payload.gesamtausgabe.unlocked).toBe(true)
     expect(payload.gesamtausgabe.source).toBe('mollie')
+  })
+
+  it('Statistiken: blockiert unauthentifizierte Requests mit 401', async () => {
+    const res = await fetch(`${baseUrl}/api/v1/account/stats`)
+    expect(res.status).toBe(401)
+  })
+
+  it('Statistiken: liefert gespielte Tage und Kollokationen-Aggregate des Nutzers', async () => {
+    const userId = createTestUser()
+    testUserIds.add(userId)
+    insertStatStmt.run('2026-05-10', 'kollokationen', userId, 1, 24, 30)
+    insertStatStmt.run('2026-05-10', 'wortzwilling', userId, 1, 8, 10)
+    insertStatStmt.run('2026-05-11', 'kollokationen', userId, 1, 30, 30)
+
+    const res = await fetch(`${baseUrl}/api/v1/account/stats`, {
+      headers: devHeaders(userId, 'user'),
+    })
+    const payload = await res.json()
+
+    expect(res.status).toBe(200)
+    expect(payload.playedDates).toEqual(['2026-05-10', '2026-05-11'])
+    expect(payload.kollokationen['2026-05-10']).toEqual({ score: 24, max: 30 })
+    expect(payload.kollokationen['2026-05-11']).toEqual({ score: 30, max: 30 })
+  })
+
+  it('Statistiken: zeigt nur Daten des anfragenden Nutzers', async () => {
+    const userId = createTestUser()
+    const otherUserId = createTestUser()
+    testUserIds.add(userId)
+    testUserIds.add(otherUserId)
+    insertStatStmt.run('2026-06-01', 'kollokationen', otherUserId, 1, 20, 30)
+
+    const res = await fetch(`${baseUrl}/api/v1/account/stats`, {
+      headers: devHeaders(userId, 'user'),
+    })
+    const payload = await res.json()
+
+    expect(res.status).toBe(200)
+    expect(payload.playedDates).toEqual([])
+    expect(payload.kollokationen).toEqual({})
   })
 })

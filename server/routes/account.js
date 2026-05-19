@@ -39,6 +39,20 @@ const getUserCreatedAtStmt = db.prepare(`
 
 const getFreeDayStmt = db.prepare(`SELECT label FROM free_days WHERE date = ?`)
 
+const getPlayedDatesStmt = db.prepare(`
+  SELECT DISTINCT datum
+  FROM stats
+  WHERE user_id = ?
+  ORDER BY datum
+`)
+
+const getKollokationenStatsStmt = db.prepare(`
+  SELECT datum, SUM(scoreSum) AS score, SUM(maxSum) AS max
+  FROM stats
+  WHERE user_id = ? AND spiel = 'kollokationen'
+  GROUP BY datum
+`)
+
 // ── Helper Functions ───────────────────────────────────────────
 
 function getTodayBerlin() {
@@ -104,6 +118,22 @@ router.get('/api/v1/account/entitlements', optionalAuthUser, (req, res) => {
     })
   } catch (err) {
     logger.error({ err }, 'Entitlements-Abruf fehlgeschlagen')
+    res.status(500).json({ error: 'Interner Serverfehler' })
+  }
+})
+
+// Serverseitige Spielstatistik des eingeloggten Nutzers – Basis für den
+// Konto-Statistik-Block, der die Daten mit dem lokalen Verlauf zusammenführt.
+router.get('/api/v1/account/stats', requireAuthUser, (req, res) => {
+  try {
+    const playedDates = getPlayedDatesStmt.all(req.user.id).map((row) => row.datum)
+    const kollokationen = {}
+    for (const row of getKollokationenStatsStmt.all(req.user.id)) {
+      kollokationen[row.datum] = { score: row.score, max: row.max }
+    }
+    res.json({ playedDates, kollokationen })
+  } catch (err) {
+    logger.error({ err }, 'Konto-Statistik-Abruf fehlgeschlagen')
     res.status(500).json({ error: 'Interner Serverfehler' })
   }
 })

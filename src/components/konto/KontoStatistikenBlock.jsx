@@ -1,25 +1,52 @@
 import { useMemo } from 'react'
-import { computeStreak, computeLongestStreak, computePlayedDays, localDateStr } from '../../utils/homeUtils'
+import {
+  computeStreak,
+  computeLongestStreak,
+  computePlayedDays,
+  localDateStr,
+  readLocalPlayedDates,
+} from '../../utils/homeUtils'
+import { getMedal } from '../../utils/gameLogic'
 import { lsGet, lsParse } from '../../utils/storage'
+import { useAccountStats } from '../../hooks/useAccountStats'
 
-function buildHeatmapData() {
-  const activity  = lsParse(lsGet('sig_activity'), [])
-  const legacy    = lsParse(lsGet('sig_history'), []).map(h => h.date)
-  const playedSet = new Set([...activity, ...legacy])
+// Führt den lokalen Verlauf mit der serverseitigen Statistik zusammen.
+// Eingeloggte Nutzer sehen so auch Spiele von anderen Geräten; der lokale
+// Verlauf (z.B. von vor dem Login) bleibt erhalten. Server-Medaillen haben
+// bei Überschneidung Vorrang.
+function buildMergedData(serverStats) {
+  const dateSet = readLocalPlayedDates()
 
-  const kollHistory = lsParse(lsGet('sig_koll_history'), [])
   const medalMap = {}
-  kollHistory.forEach(h => { medalMap[h.date] = h.medal.toLowerCase() })
+  lsParse(lsGet('sig_koll_history'), []).forEach((h) => {
+    if (h?.date && h?.medal) medalMap[h.date] = h.medal.toLowerCase()
+  })
 
+  if (serverStats) {
+    for (const datum of serverStats.playedDates || []) dateSet.add(datum)
+    for (const [datum, agg] of Object.entries(serverStats.kollokationen || {})) {
+      dateSet.add(datum)
+      medalMap[datum] = getMedal(agg.score, agg.max).label.toLowerCase()
+    }
+  }
+  return { dateSet, medalMap }
+}
+
+function buildHeatmapData(dateSet, medalMap) {
   const today = new Date()
   today.setHours(0, 0, 0, 0)
 
-  return Array.from({ length: 365 }, (_, i) => {
-    const d = new Date(today - (364 - i) * 86_400_000)
+  // Über Kalendertage iterieren (setDate), nicht über Millisekunden –
+  // sonst erzeugt der DST-Wechsel zwei Zellen mit demselben Datum.
+  const days = []
+  for (let i = 364; i >= 0; i--) {
+    const d = new Date(today)
+    d.setDate(d.getDate() - i)
     const dateStr = localDateStr(d)
-    const played = playedSet.has(dateStr)
-    return { dateStr, played, medal: played ? (medalMap[dateStr] || 'gespielt') : null }
-  })
+    const played = dateSet.has(dateStr)
+    days.push({ dateStr, played, medal: played ? (medalMap[dateStr] || 'gespielt') : null })
+  }
+  return days
 }
 
 function Heatmap({ days }) {
@@ -47,14 +74,17 @@ function Heatmap({ days }) {
 }
 
 export default function KontoStatistikenBlock() {
-  const streak     = useMemo(() => computeStreak(), [])
-  const longest    = useMemo(() => computeLongestStreak(), [])
-  const playedDays = useMemo(() => computePlayedDays(), [])
-  const heatmap    = useMemo(() => buildHeatmapData(), [])
-  const goldMedals = useMemo(() => {
-    const history = lsParse(lsGet('sig_koll_history'), [])
-    return history.filter(h => h.medal === 'Gold').length
-  }, [])
+  const serverStats = useAccountStats()
+
+  const { dateSet, medalMap } = useMemo(() => buildMergedData(serverStats), [serverStats])
+  const streak     = useMemo(() => computeStreak(dateSet), [dateSet])
+  const longest    = useMemo(() => computeLongestStreak(dateSet), [dateSet])
+  const playedDays = useMemo(() => computePlayedDays(dateSet), [dateSet])
+  const heatmap    = useMemo(() => buildHeatmapData(dateSet, medalMap), [dateSet, medalMap])
+  const goldMedals = useMemo(
+    () => Object.values(medalMap).filter(m => m === 'gold').length,
+    [medalMap],
+  )
 
   const streakLabel  = streak > 0  ? `🔥 ${streak} ${streak === 1 ? 'Tag' : 'Tage'}` : '–'
   const longestLabel = longest > 0 ? `${longest} ${longest === 1 ? 'Tag' : 'Tage'}`  : '–'

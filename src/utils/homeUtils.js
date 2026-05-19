@@ -16,10 +16,15 @@ export function getISOWeek(d) {
   return 1 + Math.round(((date - week1) / 86400000 - 3 + (week1.getDay() + 6) % 7) / 7)
 }
 
-export function computeStreak() {
+// Liest die gespielten Tage aus dem lokalen Verlauf. Dient als Default für die
+// compute*-Funktionen; Aufrufer mit Server-Daten übergeben ein eigenes Set.
+export function readLocalPlayedDates() {
   const activity = lsParse(lsGet('sig_activity'), [])
   const legacy   = lsParse(lsGet('sig_history'), []).map(h => h.date)
-  const dateSet  = new Set([...activity, ...legacy])
+  return new Set([...activity, ...legacy])
+}
+
+export function computeStreak(dateSet = readLocalPlayedDates()) {
   if (!dateSet.size) return 0
   const msDay = 86_400_000
   const today = new Date(); today.setHours(0, 0, 0, 0)
@@ -32,10 +37,8 @@ export function computeStreak() {
   return streak
 }
 
-export function computeLongestStreak() {
-  const activity = lsParse(lsGet('sig_activity'), [])
-  const legacy   = lsParse(lsGet('sig_history'), []).map(h => h.date)
-  const dates    = [...new Set([...activity, ...legacy])].sort()
+export function computeLongestStreak(dateSet = readLocalPlayedDates()) {
+  const dates = [...dateSet].sort()
   if (!dates.length) return 0
   const msDay = 86_400_000
   let longest = 1, current = 1
@@ -47,10 +50,8 @@ export function computeLongestStreak() {
   return longest
 }
 
-export function computePlayedDays() {
-  const activity = lsParse(lsGet('sig_activity'), [])
-  const legacy   = lsParse(lsGet('sig_history'), []).map(h => h.date)
-  return new Set([...activity, ...legacy]).size
+export function computePlayedDays(dateSet = readLocalPlayedDates()) {
+  return dateSet.size
 }
 
 export function streakFlames(n) {
