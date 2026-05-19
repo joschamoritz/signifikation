@@ -96,9 +96,12 @@ describe('useDailyContent – /heute', () => {
   })
 
   it('fällt bei Netzwerkfehler auf localStorage-Cache zurück', async () => {
+    const d = new Date()
+    const todayStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+
     localStorage.setItem('sig_cache_heute', JSON.stringify({
       ...HEUTE_OK,
-      datum: '2099-03-15',
+      datum: todayStr,
       cachedAt: new Date().toISOString(),
     }))
 
@@ -113,12 +116,32 @@ describe('useDailyContent – /heute', () => {
 
     await waitFor(() => expect(result.current.isOfflineFallback).toBe(true))
 
-    expect(result.current.serverDatum).toBe('2099-03-15')
+    expect(result.current.serverDatum).toBe(todayStr)
     expect(result.current.lemmata).toHaveLength(1)
     expect(result.current.apiError).toBeNull()
   })
 
   it('setzt apiError wenn kein Cache und Netzwerkfehler', async () => {
+    fetchWithRetry.mockImplementation((url) => {
+      if (url.includes('/heute')) return Promise.reject(new Error('Network'))
+      return makeResponse(null)
+    })
+
+    const { result } = renderHook(() => useDailyContent())
+
+    await waitFor(() => expect(result.current.apiError).not.toBeNull())
+
+    expect(result.current.lemmata).toBeNull()
+    expect(result.current.isOfflineFallback).toBe(false)
+  })
+
+  it('ignoriert veralteten Cache (datum von gestern) bei Netzwerkfehler', async () => {
+    localStorage.setItem('sig_cache_heute', JSON.stringify({
+      ...HEUTE_OK,
+      datum: '2000-01-01',
+      cachedAt: '2000-01-01T10:00:00.000Z',
+    }))
+
     fetchWithRetry.mockImplementation((url) => {
       if (url.includes('/heute')) return Promise.reject(new Error('Network'))
       return makeResponse(null)

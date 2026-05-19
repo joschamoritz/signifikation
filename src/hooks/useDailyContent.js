@@ -11,9 +11,16 @@ function saveHeuteCache(data) {
   } catch (_) {}
 }
 
+function todayISO() {
+  const d = new Date()
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
 function loadHeuteCache() {
   try {
-    return JSON.parse(localStorage.getItem(CACHE_KEY))
+    const cached = JSON.parse(localStorage.getItem(CACHE_KEY))
+    if (!cached?.datum || cached.datum !== todayISO()) return null
+    return cached
   } catch (_) {
     return null
   }
