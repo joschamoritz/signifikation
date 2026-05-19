@@ -8,6 +8,8 @@ import {
   getExportRowsForSession,
 } from '../classroom-store.js'
 
+const SESSION_MAX_PARTICIPANTS = 50
+
 describe('classroom service', () => {
   it('erzwingt gueltige Lifecycle-Uebergaenge', () => {
     const teacherUserId = `teacher-lifecycle-${Date.now()}`
@@ -36,6 +38,41 @@ describe('classroom service', () => {
     })
     expect(finished.error).toBeUndefined()
     expect(finished.session.state).toBe('finished')
+  })
+
+  it('verweigert Join wenn Session voll ist (Limit atomisch geprüft)', () => {
+    const teacherUserId = `teacher-full-${Date.now()}`
+    const created = createClassroomSession({ teacherUserId })
+    const sessionId = created.session.id
+
+    for (let i = 0; i < SESSION_MAX_PARTICIPANTS; i++) {
+      const result = joinClassroomSession({ code: created.joinCode })
+      expect(result.error).toBeUndefined()
+    }
+
+    const overflow = joinClassroomSession({ code: created.joinCode })
+    expect(overflow.error).toBe('SESSION_FULL')
+  })
+
+  it('verweigert Submit mit zu großem Payload', () => {
+    const teacherUserId = `teacher-payload-${Date.now()}`
+    const created = createClassroomSession({ teacherUserId })
+    const sessionId = created.session.id
+
+    startClassroomSession({ sessionId, teacherUserId, allowLateJoin: true })
+    const joined = joinClassroomSession({ code: created.joinCode })
+
+    const oversizedPayload = { data: 'x'.repeat(5000) }
+    const result = submitClassroomRound({
+      sessionId,
+      participantId: joined.participant.id,
+      participantToken: joined.participant.token,
+      roundNo: 1,
+      payload: oversizedPayload,
+      score: 5,
+      maxScore: 10,
+    })
+    expect(result.error).toBe('PAYLOAD_TOO_LARGE')
   })
 
   it('ignoriert Mehrfach-Submissions – erste Abgabe gilt', () => {

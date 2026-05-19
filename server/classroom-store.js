@@ -19,6 +19,7 @@ const JOIN_SECRET = configuredJoinSecret || 'dev-classroom-secret'
 const RETENTION_MS = 90 * 24 * 60 * 60 * 1000
 const CONNECTED_WINDOW_MS = 45 * 1000
 const SESSION_MAX_PARTICIPANTS = 50
+const MAX_SUBMISSION_PAYLOAD_BYTES = 4096
 
 function parseJsonSafe(value, fallback, loggerInstance, context) {
   if (!value) return fallback
@@ -419,21 +420,24 @@ export function joinClassroomSession({ code }) {
     return { error: 'SESSION_NOT_JOINABLE' }
   }
 
-  const currentParticipants = stmts.countActiveParticipants.get(raw.id)?.c || 0
-  if (currentParticipants >= SESSION_MAX_PARTICIPANTS) {
-    return { error: 'SESSION_FULL' }
-  }
-
   const participantId = randomUUID()
   const participantToken = randomUUID()
   const joinedAt = nowMs()
-  stmts.insertParticipant.run({
-    id: participantId,
-    session_id: raw.id,
-    participant_token_hash: hashValue(participantToken),
-    joined_at: joinedAt,
-    last_seen_at: joinedAt,
-  })
+
+  const txResult = db.transaction(() => {
+    const currentParticipants = stmts.countActiveParticipants.get(raw.id)?.c || 0
+    if (currentParticipants >= SESSION_MAX_PARTICIPANTS) return 'SESSION_FULL'
+    stmts.insertParticipant.run({
+      id: participantId,
+      session_id: raw.id,
+      participant_token_hash: hashValue(participantToken),
+      joined_at: joinedAt,
+      last_seen_at: joinedAt,
+    })
+    return null
+  })()
+
+  if (txResult) return { error: txResult }
 
   return {
     session: normalizeSessionRow(raw),
@@ -477,12 +481,15 @@ export function submitClassroomRound({ sessionId, participantId, participantToke
   if (!session) return { error: 'NOT_FOUND' }
   if (session.state !== 'running') return { error: 'INVALID_STATE' }
 
+  const payloadJson = JSON.stringify(payload || {})
+  if (payloadJson.length > MAX_SUBMISSION_PAYLOAD_BYTES) return { error: 'PAYLOAD_TOO_LARGE' }
+
   stmts.upsertSubmission.run({
     id: randomUUID(),
     session_id: sessionId,
     participant_id: participantId,
     round_no: roundNo,
-    payload_json: JSON.stringify(payload || {}),
+    payload_json: payloadJson,
     score: Math.max(0, Number(score || 0)),
     max_score: Math.max(0, Number(maxScore || 0)),
     submitted_at: nowMs(),
