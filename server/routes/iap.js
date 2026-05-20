@@ -2,18 +2,14 @@ import express from 'express'
 import { X509Certificate, createVerify } from 'node:crypto'
 import { requireAuthUser } from '../middleware/userAuth.js'
 import { iapVerifyLimiter } from '../middleware/rateLimiter.js'
+import { validate, iapVerifySchema, iapRestoreSchema } from '../middleware/validate.js'
 import db from '../db.js'
 import logger from '../logger.js'
 import { sendPurchaseConfirmation } from '../mailer.js'
 
 const router = express.Router()
 
-const VALID_PRODUCT_IDS = new Set([
-  'de.signifikation.gesamtausgabe.petit',
-  'de.signifikation.gesamtausgabe.korpus',
-  'de.signifikation.gesamtausgabe.cicero',
-])
-
+// productId-Whitelist liegt in middleware/validate.js (iapVerifySchema / iapRestoreSchema).
 const PRODUCT_AMOUNTS = {
   'de.signifikation.gesamtausgabe.petit':   '6.99',
   'de.signifikation.gesamtausgabe.korpus':  '9.99',
@@ -130,16 +126,9 @@ function unlockForUser(userId, transactionId, productId) {
 // ── POST /api/v1/iap/verify ────────────────────────────────────
 // Empfängt JWS-Token aus StoreKit, verifiziert und schaltet frei.
 
-router.post('/api/v1/iap/verify', iapVerifyLimiter, requireAuthUser, (req, res) => {
+router.post('/api/v1/iap/verify', iapVerifyLimiter, requireAuthUser, validate(iapVerifySchema), (req, res) => {
   const { jwsRepresentation, productId } = req.body
   const userId = req.user.id
-
-  if (!jwsRepresentation || typeof jwsRepresentation !== 'string') {
-    return res.status(400).json({ error: 'jwsRepresentation erforderlich' })
-  }
-  if (!productId || !VALID_PRODUCT_IDS.has(productId)) {
-    return res.status(400).json({ error: 'Ungültige productId' })
-  }
 
   let payload
   try {
@@ -178,18 +167,13 @@ router.post('/api/v1/iap/verify', iapVerifyLimiter, requireAuthUser, (req, res) 
 // ── POST /api/v1/iap/restore ───────────────────────────────────
 // Verarbeitet alle wiederhergestellten Transaktionen (Restore Purchases).
 
-router.post('/api/v1/iap/restore', requireAuthUser, (req, res) => {
+router.post('/api/v1/iap/restore', iapVerifyLimiter, requireAuthUser, validate(iapRestoreSchema), (req, res) => {
   const { transactions } = req.body
   const userId = req.user.id
-
-  if (!Array.isArray(transactions) || transactions.length === 0) {
-    return res.status(400).json({ error: 'transactions (Array) erforderlich' })
-  }
 
   let anyUnlocked = false
   for (const tx of transactions) {
     const { jwsRepresentation, productId } = tx
-    if (!jwsRepresentation || !VALID_PRODUCT_IDS.has(productId)) continue
 
     let payload
     try {

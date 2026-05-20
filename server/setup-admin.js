@@ -94,8 +94,9 @@ async function main() {
       VALUES (?, ?, ?, 1, ?, ?)
     `).run(userId, email.split('@')[0], email, now, now)
 
-    // Hash Passwort mit bcryptjs (betterAuth nutzt das gleiche Schema)
-    const hashedPassword = await bcryptjs.hash(password, 10)
+    // Hash Passwort mit bcryptjs (betterAuth nutzt das gleiche Schema).
+    // cost=12 ist 2026 der konservative Stand für Admin-Accounts.
+    const hashedPassword = await bcryptjs.hash(password, 12)
 
     // Erstelle Account mit gehashtem Passwort
     const accountId = randomUUID()

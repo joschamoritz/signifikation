@@ -226,6 +226,33 @@ export const adminSocialCardsBelegeSchema = z.object({
   collocate: z.string().min(1).max(100),
 })
 
+// ── IAP Schemas ────────────────────────────────────────────────
+
+const VALID_IAP_PRODUCT_IDS = [
+  'de.signifikation.gesamtausgabe.petit',
+  'de.signifikation.gesamtausgabe.korpus',
+  'de.signifikation.gesamtausgabe.cicero',
+]
+
+// JWS-Tokens sind Base64URL-codiert (drei Teile, Punkt-getrennt).
+// Wir begrenzen die Länge defensiv – Apple JWS sind typischerweise < 8 KB.
+const IAP_JWS = z.string().min(50).max(16_000)
+  .regex(/^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/, 'jwsRepresentation muss Base64URL-JWS sein')
+
+/** POST /api/v1/iap/verify */
+export const iapVerifySchema = z.object({
+  jwsRepresentation: IAP_JWS,
+  productId: z.enum(VALID_IAP_PRODUCT_IDS),
+})
+
+/** POST /api/v1/iap/restore */
+export const iapRestoreSchema = z.object({
+  transactions: z.array(z.object({
+    jwsRepresentation: IAP_JWS,
+    productId: z.enum(VALID_IAP_PRODUCT_IDS),
+  })).min(1, 'transactions darf nicht leer sein').max(20, 'Maximal 20 Transaktionen pro Restore'),
+})
+
 // ── Spezialwoche Schemas ────────────────────────────────────────
 
 const ISO_WOCHE = z.string().regex(/^\d{4}-W\d{2}$/, 'woche muss ISO-Format haben: YYYY-Www')
