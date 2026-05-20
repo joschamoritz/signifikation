@@ -26,6 +26,12 @@ const db = new Database(DB_PATH)
 db.pragma('journal_mode = WAL')
 db.pragma('synchronous = NORMAL')
 db.pragma('foreign_keys = ON')
+// 5 s Retry-Fenster bei DB-Lock (z.B. PM2-Reload während Writes), damit
+// Writer nicht sofort mit SQLITE_BUSY scheitern.
+db.pragma('busy_timeout = 5000')
+// 16 MB Page-Cache (negativer Wert = KiB). Default 2 MB ist für die
+// hot Lemma-/Kalender-Reads zu knapp.
+db.pragma('cache_size = -16000')
 // Auto-Checkpoint nach 1000 Page-Writes (Default), zusätzlich periodisch
 // passive Checkpoint, damit die .db-wal-Datei bei sehr schreibintensiven
 // Phasen (Classroom-Sessions) nicht unbegrenzt wächst. PASSIVE blockiert
@@ -300,6 +306,12 @@ db.exec(`
 
   CREATE INDEX IF NOT EXISTS idx_classroom_participants_session_seen
     ON classroom_participants(session_id, last_seen_at);
+
+  -- Heartbeat-Hot-Path: getParticipant/updateParticipantSeen/markParticipantLeft
+  -- filtern auf (id, session_id, participant_token_hash). Ohne diesen Index
+  -- fällt der Planner auf einen Scan über alle Teilnehmer der Session zurück.
+  CREATE INDEX IF NOT EXISTS idx_classroom_participants_token_hash
+    ON classroom_participants(participant_token_hash);
 
   CREATE INDEX IF NOT EXISTS idx_classroom_submissions_session_round
     ON classroom_submissions(session_id, round_no);
