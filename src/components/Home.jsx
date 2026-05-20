@@ -11,15 +11,7 @@ import { shareAsImage } from '../utils/shareImage'
 import { lsGet, lsSet } from '../utils/storage'
 import { useActiveSnapCard } from '../hooks/useActiveSnapCard'
 import ExternalLink from './ExternalLink'
-
-function LockIcon() {
-  return (
-    <svg width="9" height="11" viewBox="0 0 9 11" fill="currentColor" aria-hidden="true" style={{ display: 'inline', verticalAlign: 'middle', marginRight: '4px', marginBottom: '1px' }}>
-      <rect x="0.5" y="4.5" width="8" height="6" rx="1" />
-      <path d="M2.5 4.5V3a2 2 0 0 1 4 0v1.5" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
-    </svg>
-  )
-}
+import GameEntry from './GameEntry'
 
 export default function Home({
   onStart, loading, error, lemmata = [],
@@ -291,187 +283,88 @@ export default function Home({
             </li>
 
             {/* ── ② Wort-Zwilling ──────────────────────────── */}
-            <li className={`test-entry${!wortzwilling ? ' test-entry--disabled' : ''}${wzPlayed ? ' test-entry--done' : ''}`}>
-              <div className="test-entry-number" aria-hidden="true">
-                <span className="test-entry-num-glyph">②</span>
-                <span className="test-entry-marginalia">KOMPAR.</span>
-                <span className={`test-entry-premium${freeAccessToday ? ' test-entry-premium--free' : ''}`} aria-label={freeAccessToday ? 'Heute kostenlos' : 'Teil der Gesamtausgabe'}>{freeAccessToday ? '✦ Heute kostenlos' : 'Gesamtausgabe'}</span>
-              </div>
-              <div className="test-entry-body">
-                <div className="test-entry-head">
-                  <h2 className="test-headword">Wort-Zwilling</h2>
-                  <span className="test-ipa" aria-label="Aussprache: [ˈvɔʁtˌtsvɪlɪŋ]">[ˈvɔʁtˌtsvɪlɪŋ]</span>
-                </div>
-                <div className="test-entry-grammar" aria-hidden="true">
-                  <span className="test-pos">Wortspiel</span>
-                  <span className="test-pos-rule" />
-                  <span className="test-entry-category">komparativ</span>
-                </div>
-                <p className="test-definition">
-                  Zwei bedeutungsnahe Wörter — zwei unterschiedliche Kollokationsprofile. Ordne zehn Kollokationen dem richtigen Lemma zu.
-                </p>
-
-                {wzPlayed && wortzwilling && (
-                  <ul className="test-played-list">
-                    <li className="test-played-entry">
-                      <span className="test-played-word">{wzPlayed.medal?.emoji ?? ''} {wortzwilling.wortA} / {wortzwilling.wortB}</span>
-                      <span className="test-played-score">{wzPlayed.total}/10</span>
-                    </li>
-                  </ul>
-                )}
-
-                {wortzwillingError && (
-                  <p className="test-game-error">
-                    Verbindungsfehler.{' '}
-                    <button className="test-game-error-retry" type="button" onClick={onRetryWortzwilling}>
-                      Erneut versuchen
-                    </button>
-                  </p>
-                )}
-
-                <div className="test-entry-footer">
-                  <span className={`test-status${wzPlayed ? ' test-status--done' : ''}`}>
-                    {!gesamtausgabe ? 'Teil der Gesamtausgabe.' : wortzwillingError ? '' : !wortzwilling ? 'Heute nicht verfügbar.' : wzPlayed ? 'Gespielt.' : 'Noch nicht gespielt.'}
-                  </span>
-                  {!gesamtausgabe ? (
-                    <button className="test-cta test-cta--locked" type="button" onClick={onUnlockGesamtausgabe} aria-label="Gesamtausgabe freischalten">
-                      <LockIcon /> Gesamtausgabe freischalten
-                    </button>
-                  ) : wortzwilling ? (
-                    <button
-                      className="test-cta"
-                      type="button"
-                      onClick={onPlayWortzwilling}
-                      aria-label={wzPlayed ? 'Ergebnis ansehen: Wort-Zwilling' : 'Wort-Zwilling starten'}
-                    >
-                      {wzPlayed ? 'Ergebnis ansehen' : 'Wort-Zwilling starten'}
-                      <span className="test-cta-arrow" aria-hidden="true"> →</span>
-                    </button>
-                  ) : (
-                    <span className="test-cta test-cta--disabled" aria-hidden="true">—</span>
-                  )}
-                </div>
-              </div>
-            </li>
+            <GameEntry
+              glyph="②"
+              marginalia="KOMPAR."
+              category="komparativ"
+              headword="Wort-Zwilling"
+              ipa="[ˈvɔʁtˌtsvɪlɪŋ]"
+              ipaAriaLabel="Aussprache: [ˈvɔʁtˌtsvɪlɪŋ]"
+              definition="Zwei bedeutungsnahe Wörter — zwei unterschiedliche Kollokationsprofile. Ordne zehn Kollokationen dem richtigen Lemma zu."
+              available={!!wortzwilling}
+              played={wzPlayed}
+              playedLabel={wortzwilling ? `${wortzwilling.wortA} / ${wortzwilling.wortB}` : null}
+              errorState={wortzwillingError}
+              onRetry={onRetryWortzwilling}
+              onPlay={onPlayWortzwilling}
+              statusText={
+                !gesamtausgabe ? 'Teil der Gesamtausgabe.'
+                : wortzwillingError ? ''
+                : !wortzwilling ? 'Heute nicht verfügbar.'
+                : wzPlayed ? 'Gespielt.'
+                : 'Noch nicht gespielt.'
+              }
+              ctaText={wzPlayed ? 'Ergebnis ansehen' : 'Wort-Zwilling starten'}
+              ctaAriaLabel={wzPlayed ? 'Ergebnis ansehen: Wort-Zwilling' : 'Wort-Zwilling starten'}
+              gesamtausgabe={gesamtausgabe}
+              freeAccessToday={freeAccessToday}
+              onUnlockGesamtausgabe={onUnlockGesamtausgabe}
+            />
 
             {/* ── ③ Zeitenwende ────────────────────────────── */}
-            <li className={`test-entry${!zeitenwende ? ' test-entry--disabled' : ''}${zwPlayed ? ' test-entry--done' : ''}`}>
-              <div className="test-entry-number" aria-hidden="true">
-                <span className="test-entry-num-glyph">③</span>
-                <span className="test-entry-marginalia">DIACH.</span>
-                <span className={`test-entry-premium${freeAccessToday ? ' test-entry-premium--free' : ''}`} aria-label={freeAccessToday ? 'Heute kostenlos' : 'Teil der Gesamtausgabe'}>{freeAccessToday ? '✦ Heute kostenlos' : 'Gesamtausgabe'}</span>
-              </div>
-              <div className="test-entry-body">
-                <div className="test-entry-head">
-                  <h2 className="test-headword">Zeitenwende</h2>
-                  <span className="test-ipa" aria-label="Aussprache: [ˈtsaɪ̯tənˌvɛndə]">[ˈtsaɪ̯tənˌvɛndə]</span>
-                </div>
-                <div className="test-entry-grammar" aria-hidden="true">
-                  <span className="test-pos">Wortspiel</span>
-                  <span className="test-pos-rule" />
-                  <span className="test-entry-category">diachron</span>
-                </div>
-                <p className="test-definition">
-                  Gehört dieses Wort eher in die Zeit vor oder nach der Jahrtausendwende? Entscheide für zehn Kollokationen eines Lemmas.
-                </p>
-
-                {zwPlayed && zeitenwende && (
-                  <ul className="test-played-list">
-                    <li className="test-played-entry">
-                      <span className="test-played-word">{zwPlayed.medal?.emoji ?? ''} {zeitenwende.lemma}</span>
-                      <span className="test-played-score">{zwPlayed.total}/10</span>
-                    </li>
-                  </ul>
-                )}
-
-                {zeitenwendeError && (
-                  <p className="test-game-error">
-                    Verbindungsfehler.{' '}
-                    <button className="test-game-error-retry" type="button" onClick={onRetryZeitenwende}>
-                      Erneut versuchen
-                    </button>
-                  </p>
-                )}
-
-                <div className="test-entry-footer">
-                  <span className={`test-status${zwPlayed ? ' test-status--done' : ''}`}>
-                    {!gesamtausgabe ? 'Teil der Gesamtausgabe.' : zeitenwendeError ? 'Der Eintrag konnte gerade nicht geladen werden.' : zeitenwendeMissing || !zeitenwende ? 'Heute nicht verfügbar.' : zwPlayed ? 'Gespielt.' : 'Noch nicht gespielt.'}
-                  </span>
-                  {!gesamtausgabe ? (
-                    <button className="test-cta test-cta--locked" type="button" onClick={onUnlockGesamtausgabe} aria-label="Gesamtausgabe freischalten">
-                      <LockIcon /> Gesamtausgabe freischalten
-                    </button>
-                  ) : zeitenwende ? (
-                    <button
-                      className="test-cta"
-                      type="button"
-                      onClick={onPlayZeitenwende}
-                      aria-label={zwPlayed ? 'Ergebnis ansehen: Zeitenwende' : 'Zeitenwende starten'}
-                    >
-                      {zwPlayed ? 'Ergebnis ansehen' : 'Zeitenwende starten'}
-                      <span className="test-cta-arrow" aria-hidden="true"> →</span>
-                    </button>
-                  ) : (
-                    <span className="test-cta test-cta--disabled" aria-hidden="true">—</span>
-                  )}
-                </div>
-              </div>
-            </li>
+            <GameEntry
+              glyph="③"
+              marginalia="DIACH."
+              category="diachron"
+              headword="Zeitenwende"
+              ipa="[ˈtsaɪ̯tənˌvɛndə]"
+              ipaAriaLabel="Aussprache: [ˈtsaɪ̯tənˌvɛndə]"
+              definition="Gehört dieses Wort eher in die Zeit vor oder nach der Jahrtausendwende? Entscheide für zehn Kollokationen eines Lemmas."
+              available={!!zeitenwende}
+              played={zwPlayed}
+              playedLabel={zeitenwende?.lemma ?? null}
+              errorState={zeitenwendeError}
+              onRetry={onRetryZeitenwende}
+              onPlay={onPlayZeitenwende}
+              statusText={
+                !gesamtausgabe ? 'Teil der Gesamtausgabe.'
+                : zeitenwendeError ? 'Der Eintrag konnte gerade nicht geladen werden.'
+                : zeitenwendeMissing || !zeitenwende ? 'Heute nicht verfügbar.'
+                : zwPlayed ? 'Gespielt.'
+                : 'Noch nicht gespielt.'
+              }
+              ctaText={zwPlayed ? 'Ergebnis ansehen' : 'Zeitenwende starten'}
+              ctaAriaLabel={zwPlayed ? 'Ergebnis ansehen: Zeitenwende' : 'Zeitenwende starten'}
+              gesamtausgabe={gesamtausgabe}
+              freeAccessToday={freeAccessToday}
+              onUnlockGesamtausgabe={onUnlockGesamtausgabe}
+            />
 
             {/* ── ④ Lückenfüller ───────────────────────────── */}
-            <li className={`test-entry${!lueckenfuellerLemma?.lueckenfueller ? ' test-entry--disabled' : ''}${lfPlayed ? ' test-entry--done' : ''}`}>
-              <div className="test-entry-number" aria-hidden="true">
-                <span className="test-entry-num-glyph">④</span>
-                <span className="test-entry-marginalia">KONSTR.</span>
-                <span className={`test-entry-premium${freeAccessToday ? ' test-entry-premium--free' : ''}`} aria-label={freeAccessToday ? 'Heute kostenlos' : 'Teil der Gesamtausgabe'}>{freeAccessToday ? '✦ Heute kostenlos' : 'Gesamtausgabe'}</span>
-              </div>
-              <div className="test-entry-body">
-                <div className="test-entry-head">
-                  <h2 className="test-headword">Lückenfüller</h2>
-                  <span className="test-ipa" aria-label="Aussprache: [ˈlʏkənˌfʏlɐ]">[ˈlʏkənˌfʏlɐ]</span>
-                </div>
-                <div className="test-entry-grammar" aria-hidden="true">
-                  <span className="test-pos">Wortspiel</span>
-                  <span className="test-pos-rule" />
-                  <span className="test-entry-category">konstruktiv</span>
-                </div>
-                <p className="test-definition">
-                  Ein echter Korpussatz mit fehlender Kollokation — welches Wort gehört in die Lücke? Drei Runden, vier Optionen, zehn Punkte.
-                </p>
-
-                {lfPlayed && lueckenfuellerLemma && (
-                  <ul className="test-played-list">
-                    <li className="test-played-entry">
-                      <span className="test-played-word">{lfPlayed.medal?.emoji ?? ''} {lueckenfuellerLemma.lemma}</span>
-                      <span className="test-played-score">{lfPlayed.total}/10</span>
-                    </li>
-                  </ul>
-                )}
-
-                <div className="test-entry-footer">
-                  <span className={`test-status${lfPlayed ? ' test-status--done' : ''}`}>
-                    {!gesamtausgabe ? 'Teil der Gesamtausgabe.' : !lueckenfuellerLemma?.lueckenfueller ? 'Heute nicht verfügbar.' : lfPlayed ? 'Gespielt.' : 'Noch nicht gespielt.'}
-                  </span>
-                  {!gesamtausgabe ? (
-                    <button className="test-cta test-cta--locked" type="button" onClick={onUnlockGesamtausgabe} aria-label="Gesamtausgabe freischalten">
-                      <LockIcon /> Gesamtausgabe freischalten
-                    </button>
-                  ) : lueckenfuellerLemma?.lueckenfueller ? (
-                    <button
-                      className="test-cta"
-                      type="button"
-                      onClick={onPlayLueckenfueller}
-                      aria-label={lfPlayed ? 'Ergebnis ansehen: Lückenfüller' : 'Lückenfüller starten'}
-                    >
-                      {lfPlayed ? 'Ergebnis ansehen' : 'Lückenfüller starten'}
-                      <span className="test-cta-arrow" aria-hidden="true"> →</span>
-                    </button>
-                  ) : (
-                    <span className="test-cta test-cta--disabled" aria-hidden="true">—</span>
-                  )}
-                </div>
-              </div>
-            </li>
+            <GameEntry
+              glyph="④"
+              marginalia="KONSTR."
+              category="konstruktiv"
+              headword="Lückenfüller"
+              ipa="[ˈlʏkənˌfʏlɐ]"
+              ipaAriaLabel="Aussprache: [ˈlʏkənˌfʏlɐ]"
+              definition="Ein echter Korpussatz mit fehlender Kollokation — welches Wort gehört in die Lücke? Drei Runden, vier Optionen, zehn Punkte."
+              available={!!lueckenfuellerLemma?.lueckenfueller}
+              played={lfPlayed}
+              playedLabel={lueckenfuellerLemma?.lemma ?? null}
+              onPlay={onPlayLueckenfueller}
+              statusText={
+                !gesamtausgabe ? 'Teil der Gesamtausgabe.'
+                : !lueckenfuellerLemma?.lueckenfueller ? 'Heute nicht verfügbar.'
+                : lfPlayed ? 'Gespielt.'
+                : 'Noch nicht gespielt.'
+              }
+              ctaText={lfPlayed ? 'Ergebnis ansehen' : 'Lückenfüller starten'}
+              ctaAriaLabel={lfPlayed ? 'Ergebnis ansehen: Lückenfüller' : 'Lückenfüller starten'}
+              gesamtausgabe={gesamtausgabe}
+              freeAccessToday={freeAccessToday}
+              onUnlockGesamtausgabe={onUnlockGesamtausgabe}
+            />
 
             {/* ── ⑤ Platzhalter (i.V.) ─────────────────────── */}
             <li className="test-entry test-entry--disabled" aria-hidden="true">
