@@ -171,12 +171,9 @@ router.get('/api/v1/classroom/sessions', requirePremium, validate(classroomListQ
     const sessions = listTeacherSessions({
       teacherUserId: req.user.id,
       limit: req.query.limit,
+      state: req.query.state || null,
     })
-    const state = req.query.state
-    const filtered = state
-      ? sessions.filter((session) => session.state === state)
-      : sessions
-    return res.json({ sessions: filtered })
+    return res.json({ sessions })
   } catch (err) {
     logger.error({ err, teacherUserId: req.user.id }, 'Session-Historie konnte nicht geladen werden')
     return res.status(500).json({ error: 'Interner Serverfehler' })

@@ -40,12 +40,17 @@ const stmts = {
     )
   `),
   getSessionById: db.prepare('SELECT * FROM classroom_sessions WHERE id = ?'),
+  // state-Filter direkt in SQL: spart das nachgelagerte JS-Filter +
+  // das Deserialisieren von settings_json für Zeilen, die dann
+  // sowieso verworfen werden. NULL-Trick erlaubt einen einzigen
+  // Statement-Cache für beide Filtervarianten.
   listTeacherSessions: db.prepare(`
     SELECT *
     FROM classroom_sessions
     WHERE teacher_user_id = ?
+      AND (@state IS NULL OR state = @state)
     ORDER BY created_at DESC
-    LIMIT ?
+    LIMIT @limit
   `),
   findActiveSessionByJoinHash: db.prepare(`
     SELECT *
@@ -115,35 +120,20 @@ const stmts = {
     WHERE session_id = ?
       AND left_at IS NULL
   `),
-  countParticipants: db.prepare(`
-    SELECT COUNT(1) AS c
+  // Dashboard-Konsolidierung: total + connected in einer Query
+  // (vorher zwei Einzel-COUNTs).
+  dashboardParticipantStats: db.prepare(`
+    SELECT
+      COUNT(1) AS total,
+      SUM(CASE WHEN left_at IS NULL AND last_seen_at >= @threshold THEN 1 ELSE 0 END) AS connected
     FROM classroom_participants
-    WHERE session_id = ?
+    WHERE session_id = @session_id
   `),
-  countConnectedParticipants: db.prepare(`
-    SELECT COUNT(1) AS c
-    FROM classroom_participants
-    WHERE session_id = ?
-      AND (left_at IS NULL)
-      AND last_seen_at >= ?
-  `),
-  countSubmittedParticipants: db.prepare(`
-    SELECT COUNT(DISTINCT participant_id) AS c
-    FROM classroom_submissions
-    WHERE session_id = ?
-  `),
-  avgScore: db.prepare(`
-    SELECT AVG(score * 1.0) AS avg_score
-    FROM classroom_submissions
-    WHERE session_id = ?
-  `),
-  listSubmissionScores: db.prepare(`
-    SELECT score, max_score
-    FROM classroom_submissions
-    WHERE session_id = ?
-  `),
-  lastSubmissionAt: db.prepare(`
-    SELECT MAX(submitted_at) AS last_at
+  // Dashboard-Konsolidierung: alle Submission-Rows ein einziges Mal
+  // laden. avg/last/submittedCount/distribution werden anschließend
+  // in JS aus dieser Liste berechnet, statt vier Aggregat-Queries.
+  dashboardSubmissionRows: db.prepare(`
+    SELECT participant_id, score, max_score, submitted_at
     FROM classroom_submissions
     WHERE session_id = ?
   `),
@@ -347,9 +337,11 @@ export function getSessionById({ sessionId }) {
   return normalizeSessionRow(stmts.getSessionById.get(sessionId))
 }
 
-export function listTeacherSessions({ teacherUserId, limit = 10 }) {
+export function listTeacherSessions({ teacherUserId, limit = 10, state = null }) {
   const safeLimit = Math.max(1, Math.min(50, Number(limit) || 10))
-  return stmts.listTeacherSessions.all(teacherUserId, safeLimit).map(normalizeSessionRow)
+  return stmts.listTeacherSessions
+    .all(teacherUserId, { state: state || null, limit: safeLimit })
+    .map(normalizeSessionRow)
 }
 
 export function startClassroomSession({ sessionId, teacherUserId, allowLateJoin }) {
@@ -506,14 +498,28 @@ export function getClassroomDashboard({ sessionId, teacherUserId }) {
   const ROUND_GAME = { 1: 'kollokationen', 2: 'wortzwilling', 3: 'zeitenwende', 4: 'lueckenfueller' }
   const GAME_LABEL = { kollokationen: 'Kollokationen', wortzwilling: 'Wort-Zwilling', zeitenwende: 'Zeitenwende', lueckenfueller: 'Lückenfüller' }
 
+  // Vorher: 8 separate Queries pro Dashboard-Aufruf. Jetzt: 3
+  // (Session, Participants, Submissions) plus perGameStats.
   const now = nowMs()
-  const totalParticipants = stmts.countParticipants.get(sessionId)?.c || 0
-  const connectedCount = stmts.countConnectedParticipants.get(sessionId, now - CONNECTED_WINDOW_MS)?.c || 0
-  const submittedCount = stmts.countSubmittedParticipants.get(sessionId)?.c || 0
-  const avg = stmts.avgScore.get(sessionId)?.avg_score
-  const rows = stmts.listSubmissionScores.all(sessionId)
-  const distribution = buildDistribution(rows)
-  const lastAt = stmts.lastSubmissionAt.get(sessionId)?.last_at || null
+  const participantStats = stmts.dashboardParticipantStats.get({
+    session_id: sessionId,
+    threshold: now - CONNECTED_WINDOW_MS,
+  }) || { total: 0, connected: 0 }
+  const totalParticipants = Number(participantStats.total) || 0
+  const connectedCount = Number(participantStats.connected) || 0
+
+  const submissionRows = stmts.dashboardSubmissionRows.all(sessionId)
+  const submittedParticipants = new Set()
+  let scoreSum = 0
+  let lastAt = null
+  for (const row of submissionRows) {
+    submittedParticipants.add(row.participant_id)
+    scoreSum += Number(row.score) || 0
+    if (row.submitted_at && (!lastAt || row.submitted_at > lastAt)) lastAt = row.submitted_at
+  }
+  const submittedCount = submittedParticipants.size
+  const avg = submissionRows.length > 0 ? scoreSum / submissionRows.length : null
+  const distribution = buildDistribution(submissionRows)
   const perGameRows = stmts.perGameStats.all(sessionId)
 
   const perGame = perGameRows.map((r) => ({
@@ -616,24 +622,29 @@ export function cleanupExpiredSessions({ now = nowMs(), limit = 100 } = {}) {
   const archivedNow = stmts.archiveExpiredSessions.run(now).changes || 0
   const expiredIds = stmts.listExpiredSessionIds.all(now, limit).map(r => r.id)
   if (!expiredIds.length) return { deletedSessions: 0, archivedSessions: archivedNow, expiredIds: [], fileRefs: [] }
+
+  // Vorher: N+1 – pro expired Session ein eigenes SELECT auf classroom_exports.
+  // Jetzt: eine IN(?,?,...)-Query für alle file_refs auf einmal.
+  const placeholders = expiredIds.map(() => '?').join(',')
+  const fileRefRows = db.prepare(
+    `SELECT file_ref FROM classroom_exports
+     WHERE session_id IN (${placeholders}) AND file_ref IS NOT NULL`
+  ).all(...expiredIds)
+  const fileRefs = fileRefRows.map(r => r.file_ref).filter(Boolean)
+
   const tx = db.transaction(() => {
     let deleted = 0
-    const fileRefs = []
     for (const id of expiredIds) {
-      const rows = stmts.listExportFileRefsForSession.all(id)
-      for (const row of rows) {
-        if (row?.file_ref) fileRefs.push(row.file_ref)
-      }
       const result = stmts.deleteSessionById.run(id)
       deleted += result.changes
     }
-    return { deleted, fileRefs }
+    return { deleted }
   })
   const result = tx()
   return {
     deletedSessions: result.deleted,
     archivedSessions: archivedNow,
     expiredIds,
-    fileRefs: result.fileRefs,
+    fileRefs,
   }
 }
