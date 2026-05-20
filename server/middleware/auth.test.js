@@ -54,12 +54,21 @@ describe('Auth-Middleware', () => {
       expect(res.status).not.toHaveBeenCalled()
     })
 
-    test('POST mit application/json wird durchgelassen', () => {
-      const req  = mockReq({ method: 'POST', headers: { 'content-type': 'application/json' } })
+    test('POST mit application/json + X-Requested-With wird durchgelassen', () => {
+      const req  = mockReq({ method: 'POST', headers: { 'content-type': 'application/json', 'x-requested-with': 'signifikation-app' } })
       const res  = mockRes()
       const next = vi.fn()
       csrfProtect(req, res, next)
       expect(next).toHaveBeenCalledOnce()
+    })
+
+    test('POST mit application/json aber ohne X-Requested-With → 403', () => {
+      const req  = mockReq({ method: 'POST', headers: { 'content-type': 'application/json' } })
+      const res  = mockRes()
+      const next = vi.fn()
+      csrfProtect(req, res, next)
+      expect(res.status).toHaveBeenCalledWith(403)
+      expect(next).not.toHaveBeenCalled()
     })
 
     test('POST ohne application/json → 403', () => {
@@ -91,20 +100,29 @@ describe('Auth-Middleware', () => {
 
   // ── csrfProtectUpload ────────────────────────────────────────
   describe('csrfProtectUpload', () => {
-    test('POST mit application/octet-stream wird durchgelassen', () => {
-      const req  = mockReq({ method: 'POST', headers: { 'content-type': 'application/octet-stream' } })
+    test('POST mit application/octet-stream + X-Requested-With wird durchgelassen', () => {
+      const req  = mockReq({ method: 'POST', headers: { 'content-type': 'application/octet-stream', 'x-requested-with': 'signifikation-app' } })
       const res  = mockRes()
       const next = vi.fn()
       csrfProtectUpload(req, res, next)
       expect(next).toHaveBeenCalledOnce()
     })
 
-    test('POST mit application/json wird durchgelassen', () => {
-      const req  = mockReq({ method: 'POST', headers: { 'content-type': 'application/json' } })
+    test('POST mit application/json + X-Requested-With wird durchgelassen', () => {
+      const req  = mockReq({ method: 'POST', headers: { 'content-type': 'application/json', 'x-requested-with': 'signifikation-app' } })
       const res  = mockRes()
       const next = vi.fn()
       csrfProtectUpload(req, res, next)
       expect(next).toHaveBeenCalledOnce()
+    })
+
+    test('POST mit application/json ohne X-Requested-With → 403', () => {
+      const req  = mockReq({ method: 'POST', headers: { 'content-type': 'application/json' } })
+      const res  = mockRes()
+      const next = vi.fn()
+      csrfProtectUpload(req, res, next)
+      expect(res.status).toHaveBeenCalledWith(403)
+      expect(next).not.toHaveBeenCalled()
     })
 
     test('POST mit multipart/form-data → 403', () => {

@@ -71,6 +71,7 @@ const classroomHeartbeatStore = new CleanupStore(60_000)
 const classroomWriteStore = new CleanupStore(60_000)
 const classroomExportStore = new CleanupStore(60_000)
 const registerStore = new CleanupStore(15 * 60_000)
+const pushSubscribeStore = new CleanupStore(60_000)
 
 export const belegeLimiter = rateLimit({
   windowMs: 60_000, max: 30,
@@ -155,4 +156,13 @@ export const classroomExportLimiter = rateLimit({
   keyGenerator: getClientIp,
   standardHeaders: true, legacyHeaders: false,
   message: { error: 'Zu viele Export-Anfragen. Bitte kurz warten.' },
+})
+
+// Push-Subscribe/Unsubscribe: 20 Versuche / Minute pro IP
+export const pushSubscribeLimiter = rateLimit({
+  windowMs: 60_000, max: 20,
+  store: pushSubscribeStore,
+  keyGenerator: getClientIp,
+  standardHeaders: true, legacyHeaders: false,
+  message: { error: 'Zu viele Push-Anfragen. Bitte kurz warten.' },
 })

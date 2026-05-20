@@ -11,16 +11,37 @@ import { z } from 'zod/v3'
 import { randomUUID } from 'crypto'
 import { optionalAuthUser } from '../middleware/userAuth.js'
 import { validate } from '../middleware/validate.js'
+import { pushSubscribeLimiter } from '../middleware/rateLimiter.js'
 import db from '../db.js'
 import logger from '../logger.js'
 
 const router = express.Router()
 
+// ── Endpoint-Whitelist (Push-Provider) ───────────────────────────────────────
+// Verhindert SSRF / Spam-Subscribes auf beliebige URLs
+const ALLOWED_PUSH_HOSTS = [
+  /\.googleapis\.com$/i,           // FCM
+  /\.push\.apple\.com$/i,          // APNs
+  /\.notify\.windows\.com$/i,      // WNS
+  /\.push\.services\.mozilla\.com$/i, // Mozilla autopush
+]
+
+function isAllowedPushEndpoint(urlStr) {
+  try {
+    const u = new URL(urlStr)
+    if (u.protocol !== 'https:') return false
+    return ALLOWED_PUSH_HOSTS.some((re) => re.test(u.hostname))
+  } catch {
+    return false
+  }
+}
+
 // ── Zod-Schemata ─────────────────────────────────────────────────────────────
 
 const webSubscribeSchema = z.object({
   platform: z.literal('web'),
-  endpoint: z.string().url('endpoint muss eine gültige URL sein').max(2048),
+  endpoint: z.string().url('endpoint muss eine gültige URL sein').max(2048)
+    .refine(isAllowedPushEndpoint, 'endpoint stammt nicht von einem bekannten Push-Provider'),
   p256dh:   z.string().min(1, 'p256dh erforderlich').max(256),
   auth:     z.string().min(1, 'auth erforderlich').max(64),
 })
@@ -36,7 +57,8 @@ const subscribeSchema = z.discriminatedUnion('platform', [
 ])
 
 const webUnsubscribeSchema = z.object({
-  endpoint: z.string().url('endpoint muss eine gültige URL sein').max(2048),
+  endpoint: z.string().url('endpoint muss eine gültige URL sein').max(2048)
+    .refine(isAllowedPushEndpoint, 'endpoint stammt nicht von einem bekannten Push-Provider'),
 })
 
 const iosUnsubscribeSchema = z.object({
@@ -47,7 +69,7 @@ const unsubscribeSchema = z.union([webUnsubscribeSchema, iosUnsubscribeSchema])
 
 // ── Prepared Statements ───────────────────────────────────────────────────────
 
-const findByEndpointStmt = db.prepare(`SELECT id FROM push_subscriptions WHERE endpoint = ?`)
+const findByEndpointStmt = db.prepare(`SELECT id, user_id FROM push_subscriptions WHERE endpoint = ?`)
 const insertWebSubStmt = db.prepare(`
   INSERT INTO push_subscriptions (id, user_id, platform, endpoint, p256dh, auth, apns_token, created_at, updated_at)
   VALUES (?, ?, 'web', ?, ?, ?, NULL, ?, ?)
@@ -56,7 +78,7 @@ const updateWebSubStmt = db.prepare(`
   UPDATE push_subscriptions SET user_id=?, p256dh=?, auth=?, updated_at=? WHERE endpoint=?
 `)
 
-const findByApnsTokenStmt = db.prepare(`SELECT id FROM push_subscriptions WHERE apns_token = ?`)
+const findByApnsTokenStmt = db.prepare(`SELECT id, user_id FROM push_subscriptions WHERE apns_token = ?`)
 const insertIosSubStmt = db.prepare(`
   INSERT INTO push_subscriptions (id, user_id, platform, endpoint, p256dh, auth, apns_token, created_at, updated_at)
   VALUES (?, ?, 'ios', NULL, NULL, NULL, ?, ?, ?)
@@ -65,14 +87,25 @@ const updateIosSubStmt = db.prepare(`
   UPDATE push_subscriptions SET user_id=?, updated_at=? WHERE apns_token=?
 `)
 
-const deleteByEndpointStmt = db.prepare(`
+// Lösch-Statements mit Owner-Filter: entweder anonym (user_id IS NULL) ODER
+// passend zum Aufrufer. Verhindert, dass beliebige bekannte Endpoints/Tokens
+// fremde Subscriptions entfernen.
+const deleteByEndpointAnonStmt = db.prepare(`
   DELETE FROM push_subscriptions
-  WHERE endpoint = ?
+  WHERE endpoint = ? AND user_id IS NULL
+`)
+const deleteByEndpointOwnerStmt = db.prepare(`
+  DELETE FROM push_subscriptions
+  WHERE endpoint = ? AND (user_id = ? OR user_id IS NULL)
 `)
 
-const deleteByApnsTokenStmt = db.prepare(`
+const deleteByApnsTokenAnonStmt = db.prepare(`
   DELETE FROM push_subscriptions
-  WHERE apns_token = ?
+  WHERE apns_token = ? AND user_id IS NULL
+`)
+const deleteByApnsTokenOwnerStmt = db.prepare(`
+  DELETE FROM push_subscriptions
+  WHERE apns_token = ? AND (user_id = ? OR user_id IS NULL)
 `)
 
 const getStatusStmt = db.prepare(`
@@ -126,6 +159,7 @@ router.get('/api/v1/push/status', optionalAuthUser, (req, res) => {
  */
 router.post(
   '/api/v1/push/subscribe',
+  pushSubscribeLimiter,
   optionalAuthUser,
   validate(subscribeSchema, 'body'),
   (req, res) => {
@@ -137,6 +171,15 @@ router.post(
         const { endpoint, p256dh, auth } = req.body
         const existing = findByEndpointStmt.get(endpoint)
         if (existing) {
+          // Owner-Check: Update nur erlaubt, wenn die Subscription anonym ist
+          // (user_id IS NULL → wird übernommen) oder dem aktuellen Aufrufer gehört.
+          if (existing.user_id && existing.user_id !== userId) {
+            logger.warn(
+              { endpoint, existingUserId: existing.user_id, callerUserId: userId },
+              'Push-Subscribe abgelehnt: Endpoint gehört anderem Nutzer'
+            )
+            return res.status(403).json({ error: 'Endpoint gehört einem anderen Nutzer.' })
+          }
           updateWebSubStmt.run(userId, p256dh, auth, now, endpoint)
         } else {
           insertWebSubStmt.run(randomUUID(), userId, endpoint, p256dh, auth, now, now)
@@ -146,6 +189,13 @@ router.post(
         const { apns_token } = req.body
         const existing = findByApnsTokenStmt.get(apns_token)
         if (existing) {
+          if (existing.user_id && existing.user_id !== userId) {
+            logger.warn(
+              { existingUserId: existing.user_id, callerUserId: userId },
+              'Push-Subscribe abgelehnt: APNS-Token gehört anderem Nutzer'
+            )
+            return res.status(403).json({ error: 'APNS-Token gehört einem anderen Nutzer.' })
+          }
           updateIosSubStmt.run(userId, now, apns_token)
         } else {
           insertIosSubStmt.run(randomUUID(), userId, apns_token, now, now)
@@ -166,6 +216,7 @@ router.post(
  */
 router.delete(
   '/api/v1/push/unsubscribe',
+  pushSubscribeLimiter,
   optionalAuthUser,
   validate(unsubscribeSchema, 'body'),
   (req, res) => {
@@ -173,10 +224,16 @@ router.delete(
 
     try {
       if (req.body.endpoint) {
-        const result = deleteByEndpointStmt.run(req.body.endpoint)
+        // Anonyme Aufrufer dürfen nur anonyme Subscriptions löschen.
+        // Eingeloggte Aufrufer dürfen eigene + anonyme Subscriptions löschen.
+        const result = userId
+          ? deleteByEndpointOwnerStmt.run(req.body.endpoint, userId)
+          : deleteByEndpointAnonStmt.run(req.body.endpoint)
         logger.info({ userId, changes: result.changes }, 'Push-Subscription gelöscht (web)')
       } else if (req.body.apns_token) {
-        const result = deleteByApnsTokenStmt.run(req.body.apns_token)
+        const result = userId
+          ? deleteByApnsTokenOwnerStmt.run(req.body.apns_token, userId)
+          : deleteByApnsTokenAnonStmt.run(req.body.apns_token)
         logger.info({ userId, changes: result.changes }, 'Push-Subscription gelöscht (ios)')
       } else {
         return res.status(400).json({ error: 'endpoint oder apns_token erforderlich' })

@@ -5,6 +5,7 @@ import {
   classroomStartSessionSchema,
   classroomFinishSessionSchema,
   classroomJoinSchema,
+  classroomHeartbeatSchema,
   classroomCreateExportSchema,
   classroomListQuerySchema,
   validate,
@@ -120,14 +121,9 @@ router.post('/api/v1/classroom/join', classroomJoinLimiter, validate(classroomJo
   }
 })
 
-router.post('/api/v1/classroom/heartbeat', classroomHeartbeatLimiter, (req, res) => {
+router.post('/api/v1/classroom/heartbeat', classroomHeartbeatLimiter, validate(classroomHeartbeatSchema), (req, res) => {
   try {
-    const sessionId = String(req.body?.sessionId || '')
-    const participantId = String(req.body?.participantId || '')
-    const participantToken = String(req.body?.participantToken || '')
-    if (!sessionId || !participantId || !participantToken) {
-      return res.status(400).json({ error: 'sessionId, participantId und participantToken sind erforderlich' })
-    }
+    const { sessionId, participantId, participantToken } = req.body
     const result = markParticipantHeartbeat({ sessionId, participantId, participantToken })
     if (result.error) {
       const mapped = mapError(result.error)

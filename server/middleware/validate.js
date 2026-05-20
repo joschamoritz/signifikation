@@ -287,6 +287,13 @@ export const classroomJoinSchema = z.object({
   code: z.string().trim().toLowerCase().min(4, 'Join-Code zu kurz').max(20, 'Join-Code zu lang').regex(/^[a-z-]+$/, 'Join-Code enthaelt ungueltige Zeichen'),
 })
 
+/** POST /api/v1/classroom/heartbeat */
+export const classroomHeartbeatSchema = z.object({
+  sessionId:        z.string().trim().min(1, 'sessionId erforderlich').max(128),
+  participantId:    z.string().trim().min(1, 'participantId erforderlich').max(128),
+  participantToken: z.string().trim().min(1, 'participantToken erforderlich').max(256),
+})
+
 /** POST /api/v1/classroom/sessions/:id/exports */
 export const classroomCreateExportSchema = z.object({
   type: z.enum(['csv', 'pdf']),

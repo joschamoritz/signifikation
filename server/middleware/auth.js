@@ -112,6 +112,26 @@ export async function adminLogout(req, res) {
 }
 
 /** Middleware: CSRF-Schutz – verhindert Form-basierte CSRF-Angriffe */
+// CSRF-Header, den alle State-Changing-Requests vom eigenen Client mitschicken müssen.
+// Ein Cross-Origin-Browser-Request kann diesen Header ohne Preflight nicht setzen
+// (Custom-Header → non-simple → CORS-Preflight, der für fremde Origins fehlschlägt).
+// Damit ist der Header eine echte zweite Verteidigung neben Content-Type und SameSite.
+const CSRF_HEADER = 'x-requested-with'
+const CSRF_HEADER_VALUE = 'signifikation-app'
+
+function checkCsrfHeader(req, res) {
+  const value = req.headers[CSRF_HEADER]
+  if (value !== CSRF_HEADER_VALUE) {
+    logger.warn(
+      { method: req.method, url: req.originalUrl, header: value || null },
+      'CSRF-Schutz: X-Requested-With fehlt oder ist ungueltig'
+    )
+    res.status(403).json({ error: 'CSRF-Header fehlt' })
+    return false
+  }
+  return true
+}
+
 export function csrfProtect(req, res, next) {
   if (req.originalUrl?.startsWith('/api/v1/auth/')) {
     return next()
@@ -127,6 +147,7 @@ export function csrfProtect(req, res, next) {
       logger.warn({ method: req.method, contentType }, 'CSRF-Schutz: falscher Content-Type')
       return res.status(403).json({ error: 'Ungültiger Content-Type' })
     }
+    if (!checkCsrfHeader(req, res)) return
   }
   next()
 }
@@ -139,6 +160,7 @@ export function csrfProtectUpload(req, res, next) {
       logger.warn({ method: req.method, contentType }, 'CSRF-Schutz: falscher Content-Type')
       return res.status(403).json({ error: 'Ungültiger Content-Type' })
     }
+    if (!checkCsrfHeader(req, res)) return
   }
   next()
 }

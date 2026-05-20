@@ -364,11 +364,11 @@ if (!hasColumn('wortzwilling', 'notiz')) {
 
 if (!hasColumn('stats', 'user_id')) {
   logger.info('Migriere Tabelle stats: fuege user_id hinzu')
-  try {
+  // better-sqlite3-Transaktion sorgt für sauberes Rollback bei Fehlern;
+  // rohes BEGIN/COMMIT via db.exec() würde im catch-Pfad ROLLBACK ins Leere laufen lassen.
+  const migrateStats = db.transaction(() => {
+    db.exec(`ALTER TABLE stats RENAME TO stats_legacy`)
     db.exec(`
-      BEGIN;
-      ALTER TABLE stats RENAME TO stats_legacy;
-
       CREATE TABLE stats (
         datum    TEXT NOT NULL,
         spiel    TEXT NOT NULL,
@@ -378,20 +378,16 @@ if (!hasColumn('stats', 'user_id')) {
         maxSum   INTEGER NOT NULL DEFAULT 0,
         dist     TEXT NOT NULL DEFAULT '[]',
         PRIMARY KEY (datum, spiel, user_id)
-      );
-
+      )
+    `)
+    db.exec(`
       INSERT INTO stats (datum, spiel, user_id, plays, scoreSum, maxSum, dist)
       SELECT datum, spiel, '', plays, scoreSum, maxSum, dist
-      FROM stats_legacy;
-
-      DROP TABLE stats_legacy;
-
-      COMMIT;
+      FROM stats_legacy
     `)
-  } catch (err) {
-    db.exec('ROLLBACK;')
-    throw err
-  }
+    db.exec(`DROP TABLE stats_legacy`)
+  })
+  migrateStats()
 }
 
 if (hasColumn('stats', 'user_id')) {
