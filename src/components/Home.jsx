@@ -10,8 +10,8 @@ import {
 import { shareAsImage } from '../utils/shareImage'
 import { lsGet, lsSet } from '../utils/storage'
 import { useActiveSnapCard } from '../hooks/useActiveSnapCard'
-import ExternalLink from './ExternalLink'
 import GameEntry from './GameEntry'
+import LegalLinks from './LegalLinks'
 
 export default function Home({
   onStart, loading, error, lemmata = [],
@@ -469,11 +469,7 @@ export default function Home({
 
         {/* ── Kompakter Mobile-Footer (nur mobil) ──────────── */}
         <div className="snap-footer">
-          <nav className="snap-footer-links" aria-label="Rechtliche Links">
-            <ExternalLink href="https://signifikation.de/ueber.html">Über</ExternalLink>
-            <ExternalLink href="https://signifikation.de/impressum.html">Impressum</ExternalLink>
-            <ExternalLink href="https://signifikation.de/datenschutz.html">Datenschutz</ExternalLink>
-          </nav>
+          <LegalLinks variant="compact" />
           <span className="snap-footer-version">v{__APP_VERSION__}</span>
         </div>
 
@@ -501,12 +497,7 @@ export default function Home({
           <p className="feedback-hint colophon-feedback">
             Fehler oder Anregungen? <a href="mailto:info@signifikation.de">Schreib uns.</a>
           </p>
-          <nav className="legal-links" aria-label="Rechtliche Links">
-            <a href="/ueber.html">Über die App</a>
-            <a href="/impressum.html">Impressum</a>
-            <a href="/datenschutz.html">Datenschutz</a>
-            <a href="/nutzungsbedingungen.html">Nutzungsbedingungen</a>
-          </nav>
+          <LegalLinks variant="full" />
           <p className="test-colophon-edition">
             v{__APP_VERSION__} · {__BUILD_DATE__}
           </p>

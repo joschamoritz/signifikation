@@ -38,6 +38,7 @@ import { startClassroomWorker } from './workers/classroomWorker.js'
 import { ALLOWED_ORIGINS, CAPACITOR_ORIGINS, isAllowedOrigin } from './config/origins.js'
 import { startSessionCleanup } from './auth/session-cleanup.js'
 import { startAlerting } from './alerting.js'
+import { runMigrations } from './migrate-runner.js'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const PORT      = process.env.PORT || 3001
@@ -59,7 +60,11 @@ app.use(helmet({
     directives: {
       defaultSrc:     ["'self'"],
       scriptSrc:      ["'self'"],
-      styleSrc:       ["'self'", "'unsafe-inline'"],
+      // styleSrc strikt: nur eigene Stylesheets, kein injizierter <style>-Block.
+      // styleSrcAttr erlaubt weiterhin inline style="..."-Attribute, die
+      // in der App und im Admin-Panel dynamisch genutzt werden.
+      styleSrc:       ["'self'"],
+      styleSrcAttr:   ["'unsafe-inline'"],
       fontSrc:        ["'self'"],
       imgSrc:         ["'self'", "data:"],
       connectSrc:     ["'self'", ...ALLOWED_ORIGINS, ...CAPACITOR_ORIGINS],
@@ -151,6 +156,13 @@ const WORTPROFIL_TIMEOUT_MS = 130_000  // etwas mehr als curl --max-time 120
       setTimeout(() => reject(new Error('Wortprofil-Download-Timeout')), WORTPROFIL_TIMEOUT_MS)
     ),
   ]).catch(err => logger.warn({ err }, 'Wortprofil-Init übersprungen – Server startet trotzdem'))
+
+  // Versionierte Migrationen aus server/migrations/ anwenden, bevor Caches
+  // gebaut werden. Baseline-Migrationen aus db.js sind bereits gelaufen.
+  await runMigrations().catch((err) => {
+    logger.error({ err }, 'Migrations-Runner fehlgeschlagen – Server startet nicht')
+    process.exit(1)
+  })
 
   initializeIndices()
   startSessionCleanup()
