@@ -9,6 +9,7 @@ import {
 } from '../utils/homeUtils'
 import { shareAsImage } from '../utils/shareImage'
 import { lsGet, lsSet } from '../utils/storage'
+import { logError } from '../utils/logError'
 import { useActiveSnapCard } from '../hooks/useActiveSnapCard'
 import GameEntry from './GameEntry'
 import LegalLinks from './LegalLinks'
@@ -93,19 +94,27 @@ export default function Home({
         if (imgStateTimer.current) clearTimeout(imgStateTimer.current)
         imgStateTimer.current = setTimeout(() => setImgState(null), 2500)
       }
-    } catch {}
+    } catch (err) {
+      logError('Home.shareImg', err)
+    }
     finally { setSharing(false) }
   }
 
   async function shareResult() {
     const text = buildShareText(playedGames, wzPlayed, streak, zwPlayed, lfPlayed)
-    if (navigator.share) { try { await navigator.share({ text }); return } catch {} }
+    if (navigator.share) {
+      try { await navigator.share({ text }); return } catch {
+        // User-Abbruch oder unsupported – fällt auf clipboard-Pfad zurück.
+      }
+    }
     try {
       await navigator.clipboard.writeText(text)
       setCopied(true)
       if (copiedTimer.current) clearTimeout(copiedTimer.current)
       copiedTimer.current = setTimeout(() => setCopied(false), 2200)
-    } catch {}
+    } catch (err) {
+      logError('Home.shareResult.clipboard', err)
+    }
   }
 
   /* ── CTA-Text & Handler für Kollokationen ─────────────────── */

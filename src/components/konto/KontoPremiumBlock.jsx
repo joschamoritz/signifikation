@@ -3,6 +3,7 @@ import { Capacitor } from '@capacitor/core'
 import { API } from '../../config'
 import { apiFetch } from '../../utils/apiFetch'
 import { IAP } from '../../plugins/iap.js'
+import { logError } from '../../utils/logError'
 import CheckoutModal from './CheckoutModal'
 
 const IS_NATIVE = Capacitor.isNativePlatform()
@@ -43,10 +44,14 @@ export default function KontoPremiumBlock({ auth, gesamtausgabePermanent, freeAc
             }),
           })
           if (res.ok) {
-            await IAP.finishTransaction({ transactionId: data.transactionId }).catch(() => {})
+            await IAP.finishTransaction({ transactionId: data.transactionId }).catch((err) => {
+              logError('KontoPremiumBlock.finishTransaction', err)
+            })
             auth.loadSession?.()
           }
-        } catch {}
+        } catch (err) {
+          logError('KontoPremiumBlock.iapVerify', err)
+        }
       })
     }
     setup()

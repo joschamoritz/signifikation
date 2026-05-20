@@ -3,6 +3,7 @@ import { WEEKDAYS, MONTHS, computeStreak, buildShareText, localDateStr } from '.
 import { getMedal } from '../utils/gameLogic'
 import { shareAsImage } from '../utils/shareImage'
 import { API } from '../config.js'
+import { logError } from '../utils/logError'
 import Sheet from './ui/Sheet'
 
 export default function DayComplete({ onClose, playedGames = [], wzPlayed = null, zwPlayed = null, lfPlayed = null, serverDatum = null }) {
@@ -42,12 +43,18 @@ export default function DayComplete({ onClose, playedGames = [], wzPlayed = null
 
   async function share() {
     const text = buildShareText(playedGames, wzPlayed, streak, zwPlayed, lfPlayed)
-    if (navigator.share) { try { await navigator.share({ text }); return } catch {} }
+    if (navigator.share) {
+      try { await navigator.share({ text }); return } catch {
+        // User-Abbruch oder unsupported – fällt auf clipboard zurück.
+      }
+    }
     try {
       await navigator.clipboard.writeText(text)
       setCopied(true)
       setTimeout(() => setCopied(false), 2200)
-    } catch {}
+    } catch (err) {
+      logError('DayComplete.share.clipboard', err)
+    }
   }
 
   async function shareImg() {
