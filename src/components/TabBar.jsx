@@ -1,3 +1,5 @@
+import '../styles/tabbar.css'
+
 const TABS = [
   {
     id: 'spielmodi',

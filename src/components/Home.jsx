@@ -188,7 +188,7 @@ export default function Home({
             <div className="test-raster-words">
               {lemmata.length > 0
                 ? lemmata.map(l => <span key={l.id} className="test-raster-word">{l.lemma}</span>)
-                : <span className="test-raster-word" style={{ color: 'var(--t-disabled)' }}>—</span>
+                : <span className="test-raster-word test-raster-word--empty">—</span>
               }
             </div>
           )}

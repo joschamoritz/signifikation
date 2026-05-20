@@ -26,6 +26,20 @@ const db = new Database(DB_PATH)
 db.pragma('journal_mode = WAL')
 db.pragma('synchronous = NORMAL')
 db.pragma('foreign_keys = ON')
+// Auto-Checkpoint nach 1000 Page-Writes (Default), zusätzlich periodisch
+// passive Checkpoint, damit die .db-wal-Datei bei sehr schreibintensiven
+// Phasen (Classroom-Sessions) nicht unbegrenzt wächst. PASSIVE blockiert
+// keine Reader/Writer.
+db.pragma('wal_autocheckpoint = 1000')
+const WAL_CHECKPOINT_INTERVAL_MS = 60 * 60 * 1000 // 60 min
+const walTimer = setInterval(() => {
+  try {
+    db.pragma('wal_checkpoint(PASSIVE)')
+  } catch {
+    // Bei DB-Lock einfach beim nächsten Tick wieder probieren.
+  }
+}, WAL_CHECKPOINT_INTERVAL_MS)
+walTimer.unref() // soll den Prozess nicht am Leben halten
 
 db.exec(`
   CREATE TABLE IF NOT EXISTS user (
