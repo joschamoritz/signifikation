@@ -33,6 +33,8 @@
     "@dnd-kit/utilities": "^3.2.2",
     "@fontsource/dm-sans": "^5.2.8",
     "@mollie/api-client": "^4.5.0",
+    "@sentry/node": "^10.53.1",
+    "@sentry/react": "^10.53.1",
     "async-lock": "^1.4.1",
     "bcryptjs": "^3.0.3",
     "better-auth": "^1.3.10",

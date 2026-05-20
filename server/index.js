@@ -1,4 +1,6 @@
 import './env.js'
+// Sentry MUSS vor allen anderen Imports stehen, damit Node-Hooks greifen.
+import { Sentry, sentryEnabled } from './sentry.js'
 
 import logger from './logger.js'
 
@@ -137,6 +139,11 @@ if (existsSync(DIST)) {
     }
   }))
   app.use((_req, res) => res.sendFile(join(DIST, 'index.html')))
+}
+
+// ── Sentry-Error-Capture (vor errorHandler!) ───────────────────
+if (sentryEnabled) {
+  Sentry.setupExpressErrorHandler(app)
 }
 
 // ── Globaler Fehler-Handler (strukturiertes Error Handling) ────
