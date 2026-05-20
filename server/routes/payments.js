@@ -230,6 +230,19 @@ router.post(
         return res.status(200).end()
       }
 
+      // Betrag gegen erlaubte Preisliste prüfen. Schützt vor 0.01-EUR-Test-
+      // Payments oder gefälschten Webhook-Aufrufen mit beliebigem Betrag,
+      // die sonst trotzdem die Gesamtausgabe freischalten würden.
+      const paidAmount = payment?.amount?.value
+      const paidCurrency = payment?.amount?.currency
+      if (paidCurrency !== 'EUR' || !VALID_PRICES.includes(paidAmount)) {
+        logger.warn(
+          { paymentId, paidAmount, paidCurrency },
+          'Mollie-Webhook: ungültiger Betrag oder Währung – Entitlement NICHT freigeschaltet'
+        )
+        return res.status(200).end() // 200 damit Mollie nicht endlos wiederholt
+      }
+
       // Transaktion: Idempotenz-Check + Entitlement-Unlock + Payment-Eintrag
       let newlyUnlocked = false
       db.transaction(() => {

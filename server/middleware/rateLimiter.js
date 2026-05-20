@@ -72,6 +72,7 @@ const classroomWriteStore = new CleanupStore(60_000)
 const classroomExportStore = new CleanupStore(60_000)
 const registerStore = new CleanupStore(15 * 60_000)
 const pushSubscribeStore = new CleanupStore(60_000)
+const iapVerifyStore = new CleanupStore(60_000)
 
 export const belegeLimiter = rateLimit({
   windowMs: 60_000, max: 30,
@@ -165,4 +166,14 @@ export const pushSubscribeLimiter = rateLimit({
   keyGenerator: getClientIp,
   standardHeaders: true, legacyHeaders: false,
   message: { error: 'Zu viele Push-Anfragen. Bitte kurz warten.' },
+})
+
+// IAP-Verify: 30 Versuche / Minute pro IP. Begrenzt JWS-Spam und
+// CPU-Verbrauch durch Brute-Force-Versuche.
+export const iapVerifyLimiter = rateLimit({
+  windowMs: 60_000, max: 30,
+  store: iapVerifyStore,
+  keyGenerator: getClientIp,
+  standardHeaders: true, legacyHeaders: false,
+  message: { error: 'Zu viele Verifikations-Anfragen. Bitte kurz warten.' },
 })

@@ -19,6 +19,7 @@ export default defineConfig({
   test: {
     environment: 'node',
     fileParallelism: false,
+    setupFiles: ['./vitest.setup.js'],
     exclude: ['e2e/**', 'node_modules/**', 'dist/**', '.claude/**'],
     coverage: {
       provider: 'v8',

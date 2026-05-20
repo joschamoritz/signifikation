@@ -4,6 +4,12 @@ import db from '../db.js'
 
 const IS_PROD = process.env.NODE_ENV === 'production'
 
+// Dummy-Hash für constant-time-Login: Wenn User nicht existiert oder keine
+// Admin-Rolle hat, wird trotzdem bcrypt.compare gegen diesen Hash gefahren,
+// damit Response-Zeiten keine User-/Admin-Enumeration erlauben.
+// (bcrypt-Hash von 'invalid-dummy-password' mit cost=10)
+const DUMMY_BCRYPT_HASH = '$2a$10$CwTycUXWue0Thq9StjUM0uJ8RU.kF8wQHbgcQp.4Xz5o5Wi1iD./.'
+
 // Hilfsfunktion: Sensitive Felder aus Log-Objekten entfernen
 function sanitize(obj) {
   if (!obj || typeof obj !== 'object') return obj
@@ -33,36 +39,37 @@ export async function adminAuth(req, res) {
 
   try {
     const emailLower = String(email).trim().toLowerCase()
-
-    // Finde User
-    const user = db.prepare('SELECT id FROM user WHERE email = ?').get(emailLower)
-
-    if (!user) {
-      logger.warn({ ip: req.ip, email: emailLower }, 'Admin-Login fehlgeschlagen (User nicht gefunden)')
-      return res.status(401).json({ error: 'Email oder Passwort falsch' })
-    }
-
-    // Prüfe Admin-Role zuerst (fail-fast)
-    const profile = db.prepare('SELECT role FROM user_profiles WHERE user_id = ?').get(user.id)
-
-    if (!profile || profile.role !== 'admin') {
-      logger.warn({ ip: req.ip, email: emailLower, userId: user.id }, 'Admin-Login fehlgeschlagen (keine Admin-Role)')
-      return res.status(401).json({ error: 'Email oder Passwort falsch' })
-    }
-
-    // Validiere Passwort (bcryptjs-Hash)
-    const account = db.prepare('SELECT password FROM account WHERE userId = ? AND providerId = ?').get(user.id, 'credential')
-
-    if (!account || !account.password) {
-      logger.warn({ ip: req.ip, email: emailLower, userId: user.id }, 'Admin-Login fehlgeschlagen (kein Passwort)')
-      return res.status(401).json({ error: 'Email oder Passwort falsch' })
-    }
-
-    // Timing-safe Passwort-Vergleich
     const { default: bcryptjs } = await import('bcryptjs')
-    const passwordMatch = await bcryptjs.compare(String(password), account.password)
-    if (!passwordMatch) {
-      logger.warn({ ip: req.ip, email: emailLower, userId: user.id }, 'Admin-Login fehlgeschlagen (Passwort falsch)')
+
+    // User, Admin-Rolle und Account-Passwort holen. Wir entscheiden ERST nach
+    // dem bcrypt.compare, ob der Login gültig ist – damit alle Fail-Pfade die
+    // gleiche Laufzeit haben (kein Timing-Leak für User-/Admin-Enumeration).
+    const user = db.prepare('SELECT id FROM user WHERE email = ?').get(emailLower)
+    const profile = user
+      ? db.prepare('SELECT role FROM user_profiles WHERE user_id = ?').get(user.id)
+      : null
+    const account = user
+      ? db.prepare('SELECT password FROM account WHERE userId = ? AND providerId = ?').get(user.id, 'credential')
+      : null
+
+    const hashToCompare = account?.password || DUMMY_BCRYPT_HASH
+    const passwordMatch = await bcryptjs.compare(String(password), hashToCompare)
+
+    const isAdmin = profile?.role === 'admin'
+    const loginValid = Boolean(user) && Boolean(account?.password) && isAdmin && passwordMatch
+
+    if (!loginValid) {
+      const reason = !user
+        ? 'User nicht gefunden'
+        : !isAdmin
+          ? 'keine Admin-Role'
+          : !account?.password
+            ? 'kein Passwort'
+            : 'Passwort falsch'
+      logger.warn(
+        { ip: req.ip, email: emailLower, userId: user?.id, reason },
+        'Admin-Login fehlgeschlagen'
+      )
       return res.status(401).json({ error: 'Email oder Passwort falsch' })
     }
 

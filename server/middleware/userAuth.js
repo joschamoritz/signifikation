@@ -5,6 +5,12 @@ import { auth } from '../auth/index.js'
 
 const IS_PROD = process.env.NODE_ENV === 'production'
 
+// Dev-Header-Auth (x-dev-user-id / x-dev-user-role) ist eine doppelt
+// gesicherte Backdoor: NODE_ENV muss !== 'production' sein UND
+// ALLOW_DEV_AUTH muss explizit auf '1' stehen. Damit ist ein PM2-Misconfig
+// (NODE_ENV nicht gesetzt) kein Sicherheits-Bypass mehr.
+const DEV_AUTH_ENABLED = !IS_PROD && process.env.ALLOW_DEV_AUTH === '1'
+
 function normalizeRole(role) {
   if (role === 'premium') return 'premium'
   if (role === 'admin') return 'admin'
@@ -45,7 +51,7 @@ function getAuthUser(req) {
   if (req.user && typeof req.user === 'object' && req.user.id) {
     return { id: String(req.user.id), role: normalizeRole(req.user.role), source: 'auth-context' }
   }
-  if (!IS_PROD) {
+  if (DEV_AUTH_ENABLED) {
     const devUser = getDevUserFromHeaders(req)
     if (devUser) return devUser
   }

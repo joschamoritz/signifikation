@@ -8,7 +8,7 @@ import { loadKalenderEntry, loadWortZwillingEntry, loadZeitenwendeEntry, loadSpe
 import { belegeLimiter, statsLimiter } from '../middleware/rateLimiter.js'
 import { auth } from '../auth/index.js'
 import { serverError } from '../middleware/auth.js'
-import { validate, statsSchema, percentileQuerySchema, belegeQuerySchema, archivQuerySchema, qQuerySchema, bonusQuerySchema, datumQuerySchema } from '../middleware/validate.js'
+import { validate, statsSchema, percentileQuerySchema, belegeQuerySchema, archivQuerySchema, qQuerySchema, bonusQuerySchema, datumQuerySchema, spezialwocheDatumQuerySchema } from '../middleware/validate.js'
 import logger from '../logger.js'
 import { fromNodeHeaders } from 'better-auth/node'
 import db from '../db.js'
@@ -287,7 +287,7 @@ router.get('/api/v1/bonus', validate(bonusQuerySchema, 'query'), (req, res) => {
  * Enthält das aufgelöste Lemma-Objekt (Kollokationen), Wort-Zwilling-Daten,
  * Zeitenwende-Metadaten und optional das Lückenfüller-Lemma.
  */
-router.get('/api/v1/spezialwoche', async (req, res) => {
+router.get('/api/v1/spezialwoche', belegeLimiter, validate(spezialwocheDatumQuerySchema, 'query'), async (req, res) => {
   try {
     const datum = req.query.datum || todayDatum()
     const entry = loadSpezialwoche(datum)

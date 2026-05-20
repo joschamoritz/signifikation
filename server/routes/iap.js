@@ -1,6 +1,7 @@
 import express from 'express'
 import { X509Certificate, createVerify } from 'node:crypto'
 import { requireAuthUser } from '../middleware/userAuth.js'
+import { iapVerifyLimiter } from '../middleware/rateLimiter.js'
 import db from '../db.js'
 import logger from '../logger.js'
 import { sendPurchaseConfirmation } from '../mailer.js'
@@ -129,7 +130,7 @@ function unlockForUser(userId, transactionId, productId) {
 // ── POST /api/v1/iap/verify ────────────────────────────────────
 // Empfängt JWS-Token aus StoreKit, verifiziert und schaltet frei.
 
-router.post('/api/v1/iap/verify', requireAuthUser, (req, res) => {
+router.post('/api/v1/iap/verify', iapVerifyLimiter, requireAuthUser, (req, res) => {
   const { jwsRepresentation, productId } = req.body
   const userId = req.user.id
 

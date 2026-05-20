@@ -260,11 +260,17 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_session_userId
     ON session(userId);
 
+  CREATE INDEX IF NOT EXISTS idx_session_expiresAt
+    ON session(expiresAt);
+
   CREATE INDEX IF NOT EXISTS idx_account_userId
     ON account(userId);
 
   CREATE INDEX IF NOT EXISTS idx_verification_identifier
     ON verification(identifier);
+
+  CREATE INDEX IF NOT EXISTS idx_verification_expiresAt
+    ON verification(expiresAt);
 
   CREATE INDEX IF NOT EXISTS idx_classroom_sessions_teacher_created
     ON classroom_sessions(teacher_user_id, created_at DESC);
