@@ -118,7 +118,13 @@ app.use('/api', csrfProtect)
 
 // ── Admin-Assets (CSS/JS für admin.html) ─────────────────────
 app.use('/admin-assets', express.static(join(__dirname, 'public')))
-app.use('/fonts', express.static(join(__dirname, '../public/fonts')))
+app.use('/fonts', express.static(join(__dirname, '../public/fonts'), {
+  setHeaders(res) {
+    // Font-Dateinamen sind stabil → 1 Jahr immutable cachen, verhindert
+    // Conditional-GET pro App-Start (~461 KB).
+    res.setHeader('Cache-Control', 'public, max-age=31536000, immutable')
+  },
+}))
 
 // ── Routes ───────────────────────────────────────────────────
 app.use('/', publicRouter)
