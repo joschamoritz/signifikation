@@ -51,15 +51,13 @@ class CleanupStore {
   }
 }
 
-// Hilfsfunktion für korrekte IP-Erkennung hinter Railway-Proxy (IPv6-compatible)
+// Hilfsfunktion für korrekte IP-Erkennung hinter nginx-Proxy (IPv6-compatible).
+// req.ip wird durch `app.set('trust proxy', 1)` (server/index.js) korrekt aus
+// dem X-Forwarded-For-Header gewählt – kein manuelles Parsing nötig.
+// express-rate-limit erwartet für IPv6 explizit ipKeyGenerator(), damit nicht
+// durch IP-Rotation innerhalb eines /56-Präfixes umgangen wird.
 function getClientIp(req) {
-  // X-Forwarded-For kann mehrere IPs enthalten; erste ist Client-IP
-  const forwarded = req.headers['x-forwarded-for']
-  const ip = forwarded ? forwarded.split(',')[0].trim() : req.ip
-
-  // express-rate-limit erwartet für IPv6 explizit ipKeyGenerator(),
-  // damit nicht durch IP-Rotation innerhalb eines /56-Präfixes umgangen wird.
-  return ipKeyGenerator(ip)
+  return ipKeyGenerator(req.ip)
 }
 
 // Globale Store-Instanzen (teilen sich den Cleanup-Timer)

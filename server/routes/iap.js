@@ -16,13 +16,18 @@ const PRODUCT_AMOUNTS = {
   'de.signifikation.gesamtausgabe.cicero':  '14.99',
 }
 
-// SHA-256-Fingerabdruck Apple Root CA – G3
-// Quelle: https://www.apple.com/certificateauthority/ → AppleRootCA-G3.cer
+// Vertrauenswürdige Apple Root CA Fingerprints (SHA-256, hex, lowercase).
+// Quelle: https://www.apple.com/certificateauthority/
 // Prüfen: certutil -hashfile AppleRootCA-G3.cer SHA256  (Windows)
 //     oder openssl x509 -inform DER -in AppleRootCA-G3.cer -fingerprint -sha256 -noout
-const APPLE_ROOT_CA_G3_SHA256 =
-  '63343abfb89a6a03ebb57e9b3f5fa7be' +
-  '7c4f5c756f3017b3a8c488c3653e9179'
+//
+// Liste statt Einzelwert: erlaubt einen Rollover-Übergang, ohne dass IAP
+// während des Wechsels bricht. Neuen Fingerprint AM ANFANG einfügen, alten
+// erst nach Apple-seitiger Migration entfernen.
+const APPLE_ROOT_CA_FINGERPRINTS = new Set([
+  // Apple Root CA - G3 (StoreKit 2 JWS, aktuell)
+  '63343abfb89a6a03ebb57e9b3f5fa7be7c4f5c756f3017b3a8c488c3653e9179',
+])
 
 // ── Prepared Statements ────────────────────────────────────────
 
@@ -80,9 +85,9 @@ function verifyAppleJWS(jws) {
 
   const certs = header.x5c.map(c => new X509Certificate(Buffer.from(c, 'base64')))
 
-  // Root-Zertifikat gegen bekannten Apple-Fingerabdruck prüfen
+  // Root-Zertifikat gegen die Allowlist bekannter Apple-Fingerprints prüfen
   const rootFp = certs.at(-1).fingerprint256.replace(/:/g, '').toLowerCase()
-  if (rootFp !== APPLE_ROOT_CA_G3_SHA256) {
+  if (!APPLE_ROOT_CA_FINGERPRINTS.has(rootFp)) {
     throw new Error(`Unbekannte Root-CA: ${rootFp}`)
   }
 

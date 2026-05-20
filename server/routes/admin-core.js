@@ -97,6 +97,10 @@ export function createAdminCoreRouter({
       "connect-src 'self'; " +
       "frame-ancestors 'none';"
     )
+    // Footprinting verhindern: Suchmaschinen / Archive sollen die
+    // Admin-URL nicht indexieren, auch wenn sie öffentlich erreichbar
+    // ist (Auth läuft erst innerhalb des Admin-Frontends gegen /admin/...).
+    res.setHeader('X-Robots-Tag', 'noindex, nofollow, noarchive')
     res.sendFile(adminHtmlPath)
   })
 
