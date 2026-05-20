@@ -3,6 +3,7 @@ import { createHash } from 'node:crypto'
 import logger from '../logger.js'
 import db from '../db.js'
 import { auditSecurity } from '../audit.js'
+import { sendErrorResponse } from '../error-handling.js'
 
 // DSGVO: Email-Adressen nicht im Klartext loggen.
 // SHA-256 (gekürzt) reicht zur Korrelation in Logs ohne Klartext-Speicherung.
@@ -241,21 +242,37 @@ export async function requireAuth(req, res, next) {
   }
 }
 
-/** Fehlerausgabe: in Produktion keine internen Details preisgeben */
+/**
+ * Fehlerausgabe – delegiert an sendErrorResponse (server/error-handling.js).
+ * Einheitliches Format: { error, code, details? }.
+ *
+ * Legacy-Wrapper: Neue Routen sollten `throw new AppError(...)` mit asyncHandler
+ * verwenden statt direkt serverError aufzurufen.
+ */
 export function serverError(res, err) {
-  logger.error({ err }, 'Server-Fehler')
-  res.status(500).json({ error: clientErrorMessage(err) })
+  sendErrorResponse(res, err)
 }
 
-/** Admin-seitige Fehlerausgabe: bereinigt Dateipfade, kein Stack an Client */
-export function adminError(res, err) {
-  logger.error({ err: sanitize(err instanceof Error ? { message: err.message, stack: err.stack } : err) }, 'Admin-Fehler')
-  if (IS_PROD) {
-    return res.status(500).json({ error: 'Interner Admin-Fehler' })
+/**
+ * Admin-Fehlerausgabe – wie serverError, markiert aber den Admin-Pfad,
+ * damit sendErrorResponse Details auch in Production preisgibt.
+ *
+ * Akzeptiert zwei Signaturen für Rückwärtskompatibilität:
+ *   adminError(res, err)
+ *   adminError(res, status, message, err)  – legacy 4-arg-Form
+ */
+export function adminError(res, errOrStatus, message, errArg) {
+  let err
+  if (typeof errOrStatus === 'number') {
+    // Legacy: adminError(res, 500, 'msg', err) → message+err zusammenführen
+    const base = errArg instanceof Error ? errArg : new Error(String(errArg ?? message))
+    err = message ? new Error(`${message}: ${base.message}`) : base
+    if (errArg?.stack) err.stack = errArg.stack
+  } else {
+    err = errOrStatus
   }
-  const rawMsg = err.message || String(err)
-  const cleanMsg = rawMsg.replace(/(?:\/[\w.-]+)+/g, '[path]').replace(/(?:[A-Z]:\\[\w\\.-]+)/gi, '[path]')
-  res.status(500).json({ error: cleanMsg })
+  // path: '/admin' simuliert Admin-Kontext → Details auch in Production
+  sendErrorResponse(res, err, { path: '/admin' })
 }
 
 export { IS_PROD }
