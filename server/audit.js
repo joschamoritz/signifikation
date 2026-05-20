@@ -183,6 +183,20 @@ export function auditDelete(resource, resourceId, data, { adminKey, ip }) {
   auditLog({ action: 'DELETE', resource, resourceId, changes: { before: data }, adminKey, ip })
 }
 
+/** Sicherheitsrelevante Events (Login/Logout/Role-Change/Payment-Reject/etc.)
+ *  ohne Admin-Key. resource = 'security', resourceId = z. B. 'admin-login'. */
+export function auditSecurity(event, details = {}, { ip, status = 'SUCCESS' } = {}) {
+  auditLog({
+    action: event,           // 'LOGIN_SUCCESS', 'LOGIN_FAIL', 'LOGOUT', 'PAYMENT_REJECT', ...
+    resource: 'security',
+    resourceId: details.userId || details.subject || 'anonymous',
+    changes: { details },
+    adminKey: null,
+    ip,
+    status,
+  })
+}
+
 export function getAuditLog(limit = 100) {
   return stmts.latest.all(limit).map(parseRow)
 }

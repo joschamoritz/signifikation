@@ -81,3 +81,11 @@ wortprofil/00_setup/wordprofile-src
 wortprofil/**/__pycache__/
 wortprofil/06_belege/belege.db-wal
 wortprofil/06_belege/belege.db-shm
+
+# Dev-Artefakte / lokale Helfer
+dev-err.txt
+dev-out.txt
+tmp/
+tools/
+icons/
+kw20-2026.json

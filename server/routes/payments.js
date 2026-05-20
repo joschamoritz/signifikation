@@ -6,6 +6,7 @@ import { validate } from '../middleware/validate.js'
 import db from '../db.js'
 import logger from '../logger.js'
 import { sendPurchaseConfirmation } from '../mailer.js'
+import { auditSecurity } from '../audit.js'
 
 const IS_PROD = process.env.NODE_ENV === 'production'
 const MOLLIE_API_KEY = process.env.MOLLIE_API_KEY?.trim()
@@ -239,6 +240,11 @@ router.post(
         logger.warn(
           { paymentId, paidAmount, paidCurrency },
           'Mollie-Webhook: ungültiger Betrag oder Währung – Entitlement NICHT freigeschaltet'
+        )
+        auditSecurity(
+          'PAYMENT_REJECT',
+          { paymentId, userId, paidAmount, paidCurrency, reason: 'invalid amount or currency' },
+          { ip: req.ip, status: 'FAIL' }
         )
         return res.status(200).end() // 200 damit Mollie nicht endlos wiederholt
       }

@@ -257,9 +257,11 @@ export const spezialwocheDatumQuerySchema = z.object({
 
 // ── Account Schemas ────────────────────────────────────────────
 
-/** DELETE /api/v1/account/sessions/:id (params) */
+/** DELETE /api/v1/account/sessions/:id (params)
+ *  Opake String-ID, weil better-auth-Session-IDs nicht zwingend UUIDs sind
+ *  (random hex/base64). */
 export const accountIdParamsSchema = z.object({
-  id: z.string().uuid('Ungültige ID'),
+  id: z.string().trim().min(8, 'ID zu kurz').max(128, 'ID zu lang').regex(/^[A-Za-z0-9_-]+$/, 'ID enthält ungültige Zeichen'),
 })
 
 // ── Classroom Schemas ───────────────────────────────────────────

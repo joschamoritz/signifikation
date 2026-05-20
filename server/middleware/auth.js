@@ -1,6 +1,15 @@
 import '../env.js'
+import { createHash } from 'node:crypto'
 import logger from '../logger.js'
 import db from '../db.js'
+import { auditSecurity } from '../audit.js'
+
+// DSGVO: Email-Adressen nicht im Klartext loggen.
+// SHA-256 (gekürzt) reicht zur Korrelation in Logs ohne Klartext-Speicherung.
+function hashEmail(email) {
+  if (!email) return null
+  return createHash('sha256').update(String(email).toLowerCase().trim()).digest('hex').slice(0, 16)
+}
 
 const IS_PROD = process.env.NODE_ENV === 'production'
 
@@ -67,9 +76,10 @@ export async function adminAuth(req, res) {
             ? 'kein Passwort'
             : 'Passwort falsch'
       logger.warn(
-        { ip: req.ip, email: emailLower, userId: user?.id, reason },
+        { ip: req.ip, emailHash: hashEmail(emailLower), userId: user?.id, reason },
         'Admin-Login fehlgeschlagen'
       )
+      auditSecurity('LOGIN_FAIL', { subject: hashEmail(emailLower), reason }, { ip: req.ip, status: 'FAIL' })
       return res.status(401).json({ error: 'Email oder Passwort falsch' })
     }
 
@@ -93,7 +103,8 @@ export async function adminAuth(req, res) {
       maxAge: 30 * 24 * 60 * 60 * 1000, // 30 Tage
     })
 
-    logger.info({ ip: req.ip, email: emailLower, userId: user.id }, 'Admin eingeloggt')
+    logger.info({ ip: req.ip, emailHash: hashEmail(emailLower), userId: user.id }, 'Admin eingeloggt')
+    auditSecurity('LOGIN_SUCCESS', { userId: user.id }, { ip: req.ip })
     res.json({ ok: true })
   } catch (err) {
     logger.error({ err: sanitize(err), ip: req.ip }, 'Admin-Auth-Fehler')
@@ -110,6 +121,7 @@ export async function adminLogout(req, res) {
     }
 
     logger.info({ userId: req.session?.userId }, 'Admin ausgeloggt')
+    auditSecurity('LOGOUT', { userId: req.session?.userId || 'unknown' }, { ip: req.ip })
     res.clearCookie('better-auth.session_token', { httpOnly: true, secure: IS_PROD, sameSite: 'lax', path: '/' })
     res.json({ ok: true })
   } catch (err) {
