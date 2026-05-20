@@ -69,6 +69,11 @@ function Sheet({
   const previousFocusRef = useRef(null)
   const portalContainer = useRef(getPortalContainer())
 
+  // Spiegel des mounted-State als Ref. Vermeidet, dass dieser Effect bei
+  // jedem mounted-Wechsel neu läuft (mounted ist hier nur Konsument, nicht
+  // Trigger). Sync per setter unten + cleanup in transitionend-Effect.
+  const mountedRef = useRef(false)
+
   // Touch tracking
   const touchStartY = useRef(null)
 
@@ -77,6 +82,7 @@ function Sheet({
     if (open) {
       previousFocusRef.current = document.activeElement
       setMounted(true)
+      mountedRef.current = true
       // data-state="open" must be set after paint so CSS transition fires
       requestAnimationFrame(() => {
         requestAnimationFrame(() => {
@@ -85,12 +91,11 @@ function Sheet({
       })
       setBodyInert(portalContainer.current)
     } else {
-      if (mounted) {
+      if (mountedRef.current) {
         setDataState('closing')
         // transitionend listener handles unmount + cleanup
       }
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open])
 
   // ── transitionend → unmount ────────────────────────────────────────────────
@@ -103,6 +108,7 @@ function Sheet({
       if (e.propertyName !== relevantProp) return
       if (dataState === 'closing') {
         setMounted(false)
+        mountedRef.current = false
         setDataState('closed')
         removeBodyInert()
         onClose()

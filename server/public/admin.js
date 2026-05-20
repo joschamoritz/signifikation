@@ -19,6 +19,13 @@ function hideMainContainer() {
 }
 
 // ── XSS-Schutz ───────────────────────────────────────────
+// Escapt HTML-Text-Kontext (Tag-Inhalt, doppelt-/einfach-gequotete Attribute).
+// Backtick wird ebenfalls escapt, damit Werte auch in Template-Literal-
+// Kontexten (z.B. inline JS via onclick) sicher bleiben – aktuell nicht
+// genutzt, aber Vorsorge.
+// NICHT geeignet für: URL-Attribute (href/src – könnten javascript:-URLs
+// enthalten, deshalb wird im Admin-Frontend bewusst keine URL aus
+// Nutzer-Eingabe direkt in href/src interpoliert), CSS-Kontext, JSON.
 function esc(s) {
   return String(s ?? '')
     .replace(/&/g, '&amp;')
@@ -26,6 +33,7 @@ function esc(s) {
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#x27;')
+    .replace(/`/g, '&#x60;')
 }
 
 let usersLoaded = false

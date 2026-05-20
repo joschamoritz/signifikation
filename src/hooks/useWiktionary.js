@@ -1,28 +1,40 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { API } from '../config'
 
 /**
  * Fetcht IPA + Definitionen für ein einzelnes Lemma von der Wiktionary-API.
  * Bereits vorhandene Werte (aus den gespeicherten Daten) werden als Initialwert
  * übernommen und nur dann per API nachgeladen, wenn sie fehlen.
+ *
+ * Effect läuft bewusst nur bei Lemma-Wechsel – wenn Parent ein neues
+ * initialDefinitionen-Array-Objekt erzeugt (Identitätswechsel ohne
+ * Inhaltsänderung), soll nicht erneut gefetcht werden. Refs halten die
+ * aktuellen Initialwerte für den Effect-Zeitpunkt verfügbar.
  */
 export function useWiktionary({ lemma, initialIpa = '', initialDefinitionen = [] }) {
   const [ipa, setIpa]               = useState(initialIpa)
   const [definitionen, setDefinitionen] = useState(initialDefinitionen)
   const [loading, setLoading]       = useState(!initialIpa || !initialDefinitionen.length)
 
+  const initialIpaRef  = useRef(initialIpa)
+  const initialDefsRef = useRef(initialDefinitionen)
+  initialIpaRef.current  = initialIpa
+  initialDefsRef.current = initialDefinitionen
+
   useEffect(() => {
     let cancelled = false
+    const currentInitialIpa  = initialIpaRef.current
+    const currentInitialDefs = initialDefsRef.current
 
     // Bei Lemma-Wechsel immer auf aktuelle Initialwerte zurücksetzen, damit
     // IPA/Definitionen des Vorgängers nicht stehen bleiben.
-    setIpa(initialIpa)
-    setDefinitionen(initialDefinitionen)
+    setIpa(currentInitialIpa)
+    setDefinitionen(currentInitialDefs)
 
     if (!lemma) return () => { cancelled = true }
 
-    const needsIpa  = !initialIpa
-    const needsDefs = !initialDefinitionen.length
+    const needsIpa  = !currentInitialIpa
+    const needsDefs = !currentInitialDefs.length
     if (!needsIpa && !needsDefs) {
       setLoading(false)
       return () => { cancelled = true }
@@ -47,7 +59,6 @@ export function useWiktionary({ lemma, initialIpa = '', initialDefinitionen = []
       cancelled = true
       controller.abort()
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lemma])
 
   return { ipa, definitionen, loading }

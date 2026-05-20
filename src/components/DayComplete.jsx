@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { WEEKDAYS, MONTHS, computeStreak, buildShareText, localDateStr } from '../utils/homeUtils'
 import { getMedal } from '../utils/gameLogic'
 import { shareAsImage } from '../utils/shareImage'
@@ -23,22 +23,35 @@ export default function DayComplete({ onClose, playedGames = [], wzPlayed = null
   const kollMax   = playedGames.length * 10
   const kollMedal = getMedal(kollTotal, kollMax)
 
+  // Mount-Only-Snapshot: Sheet ist modal, während es offen ist ändern sich
+  // die Spiel-Ergebnisse nicht. Ref hält Werte vom ersten Render fest, damit
+  // späteres Parent-Re-Render (z. B. Stats-Update) keinen erneuten Fetch
+  // auslöst. Ohne Ref wäre die Effect-Logik abhängig von Array-Identity der
+  // playedGames-Prop.
+  const initialQueryDataRef = useRef({
+    playedGames, kollTotal, kollMax, wzPlayed, zwPlayed, lfPlayed, datum,
+  })
+
   useEffect(() => {
+    const {
+      playedGames: pg, kollTotal: kt, kollMax: km,
+      wzPlayed: wz, zwPlayed: zw, lfPlayed: lf, datum: d,
+    } = initialQueryDataRef.current
+
     const queries = []
-    if (playedGames.length > 0) queries.push({ game: 'kollokationen', score: kollTotal, max: kollMax })
-    if (wzPlayed)  queries.push({ game: 'wortzwilling',  score: wzPlayed.total,  max: 10 })
-    if (zwPlayed)  queries.push({ game: 'zeitenwende',   score: zwPlayed.total,  max: 10 })
-    if (lfPlayed)  queries.push({ game: 'lueckenfueller', score: lfPlayed.total, max: 10 })
+    if (pg.length > 0) queries.push({ game: 'kollokationen', score: kt, max: km })
+    if (wz) queries.push({ game: 'wortzwilling',  score: wz.total, max: 10 })
+    if (zw) queries.push({ game: 'zeitenwende',   score: zw.total, max: 10 })
+    if (lf) queries.push({ game: 'lueckenfueller', score: lf.total, max: 10 })
 
     Promise.all(queries.map(({ game, score, max }) =>
-      fetch(`${API}/percentile?datum=${datum}&game=${game}&score=${score}&max=${max}`)
+      fetch(`${API}/percentile?datum=${d}&game=${game}&score=${score}&max=${max}`)
         .then(r => r.ok ? r.json() : null)
         .then(data => [game, data?.available ? data.percentile : null])
         .catch(() => [game, null])
     )).then(results => {
       setPercentiles(Object.fromEntries(results))
     })
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   async function share() {
