@@ -1,15 +1,16 @@
 import { useState, useMemo, useEffect, useRef, useCallback } from 'react'
 import { getRoundOptions, calculateMixedScore, shuffle } from '../utils/gameLogic'
 import { useBelege } from '../hooks/useBelege'
+import { lsGet, lsSet } from '../utils/storage'
 import BelegePanel from './BelegePanel'
+
+const BELEG_HINT_KEY = 'sig_beleg_hint'
 
 // ── Haupt-Quiz (Einzelrunde, gemischte Top-3) ─────────────────
 export default function Quiz({ lemma, currentRound, onRoundComplete, onBack }) {
   const [selected, setSelected]   = useState([])
   const [submitted, setSubmitted] = useState(false)
-  const [showBelegHint, setShowBelegHint] = useState(
-    () => !localStorage.getItem('sig_beleg_hint')
-  )
+  const [showBelegHint, setShowBelegHint] = useState(() => !lsGet(BELEG_HINT_KEY))
 
   const kollokatoren = lemma.runden?.kollokatoren ?? []
 
@@ -112,7 +113,7 @@ export default function Quiz({ lemma, currentRound, onRoundComplete, onBack }) {
   function handleLoadBelege(collocate) {
     if (showBelegHint) {
       setShowBelegHint(false)
-      localStorage.setItem('sig_beleg_hint', '1')
+      lsSet(BELEG_HINT_KEY, '1')
     }
     loadBelege(collocate)
   }
@@ -180,7 +181,7 @@ export default function Quiz({ lemma, currentRound, onRoundComplete, onBack }) {
         <button
           type="button"
           className="beleg-hint"
-          onClick={() => { setShowBelegHint(false); localStorage.setItem('sig_beleg_hint', '1') }}
+          onClick={() => { setShowBelegHint(false); lsSet(BELEG_HINT_KEY, '1') }}
           aria-label="Tipp schließen: Klicke auf ein Wort, um Beispielsätze aus dem DWDS-Korpus zu sehen."
         >
           💡 Tipp: Klicke auf ein Wort, um Beispielsätze aus dem DWDS-Korpus zu sehen.

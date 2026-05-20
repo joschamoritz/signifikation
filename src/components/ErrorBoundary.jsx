@@ -1,6 +1,5 @@
 import { Component } from 'react'
 import { logError } from '../utils/logError'
-import { Sentry } from '../utils/sentry.js'
 
 // Erkennt Lazy-Chunk-Lade-Fehler. Treten typischerweise auf, wenn nach einem
 // Deployment die alten gehashten Bundle-Dateien nicht mehr existieren und der
@@ -48,13 +47,6 @@ export default class ErrorBoundary extends Component {
 
   componentDidCatch(error, info) {
     logError('[ErrorBoundary]', error, info)
-    try {
-      Sentry.captureException(error, {
-        contexts: { react: { componentStack: info?.componentStack } },
-      })
-    } catch {
-      // Sentry nicht initialisiert oder Netzwerk-Fehler -> nicht weiter eskalieren.
-    }
 
     // Bei ChunkLoadError genau einmal automatisch SW-Caches leeren und reloaden.
     // Wenn das schon versucht wurde, fällt es auf die manuelle Fallback-UI zurück.

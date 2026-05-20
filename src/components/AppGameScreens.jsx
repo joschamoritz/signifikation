@@ -1,10 +1,12 @@
-import { Suspense } from 'react'
+import { lazy, Suspense } from 'react'
 import LemmaSelection from './LemmaSelection'
 import WortZwillingSelection from './WortZwillingSelection'
 import ZeitenwendeSelection from './ZeitenwendeSelection'
 import LueckenfuellerSelection from './LueckenfuellerSelection'
-import Quiz from './Quiz'
-import Results from './Results'
+// Quiz und Results sind groß und werden erst nach Lemma-Wahl gebraucht.
+// BelegePanel mit logDice-Sortierung wird automatisch mit-lazy-geladen.
+const Quiz    = lazy(() => import('./Quiz'))
+const Results = lazy(() => import('./Results'))
 
 function ScreenFallback() {
   return (
@@ -126,20 +128,24 @@ export default function AppGameScreens({
         />
       )}
       {phase === 'quiz' && selectedLemma && (
-        <Quiz
-          lemma={selectedLemma}
-          currentRound={0}
-          onRoundComplete={handleRoundComplete}
-          onBack={onBackToSelection}
-        />
+        <Suspense fallback={<ScreenFallback />}>
+          <Quiz
+            lemma={selectedLemma}
+            currentRound={0}
+            onRoundComplete={handleRoundComplete}
+            onBack={onBackToSelection}
+          />
+        </Suspense>
       )}
       {phase === 'results' && selectedLemma && (
-        <Results
-          lemma={selectedLemma}
-          roundScores={roundScores}
-          onRestart={handleRestart}
-          onToSelection={onBackToSelection}
-        />
+        <Suspense fallback={<ScreenFallback />}>
+          <Results
+            lemma={selectedLemma}
+            roundScores={roundScores}
+            onRestart={handleRestart}
+            onToSelection={onBackToSelection}
+          />
+        </Suspense>
       )}
       {phase === 'wortzwilling' && wortzwilling && (
         <Suspense fallback={<ScreenFallback />}>

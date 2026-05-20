@@ -1,6 +1,4 @@
 import './env.js'
-// Sentry MUSS vor allen anderen Imports stehen, damit Node-Hooks greifen.
-import { Sentry, sentryEnabled } from './sentry.js'
 
 import logger from './logger.js'
 
@@ -91,6 +89,17 @@ app.use(cookieParser())
 app.post('/api/v1/auth/sign-in/email', loginLimiter)
 app.post('/api/v1/auth/sign-up/email', registerLimiter)
 app.all('/api/v1/auth/*splat', toNodeHandler(auth))
+
+// Pre-Flight-Schutz für Backup-Restore: 10-MB-Body nur nach Cookie-Check
+// parsen. Verhindert DoS via 10-MB-Bodies von unauthenticated Origins
+// (Auth läuft im Router danach trotzdem nochmal).
+app.use('/admin/backup/restore', (req, res, next) => {
+  if (req.method === 'POST' && !req.cookies?.['better-auth.session_token']) {
+    logger.warn({ ip: req.ip }, 'Backup-Restore ohne Session-Cookie abgelehnt (pre-flight)')
+    return res.status(401).json({ error: 'Nicht autorisiert' })
+  }
+  next()
+})
 app.use('/admin/backup/restore', express.json({ limit: BACKUP_RESTORE_BODY_LIMIT }))
 app.use(express.json({ limit: '16kb' }))
 
@@ -139,11 +148,6 @@ if (existsSync(DIST)) {
     }
   }))
   app.use((_req, res) => res.sendFile(join(DIST, 'index.html')))
-}
-
-// ── Sentry-Error-Capture (vor errorHandler!) ───────────────────
-if (sentryEnabled) {
-  Sentry.setupExpressErrorHandler(app)
 }
 
 // ── Globaler Fehler-Handler (strukturiertes Error Handling) ────

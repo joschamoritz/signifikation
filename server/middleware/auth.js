@@ -12,6 +12,13 @@ function hashEmail(email) {
 }
 
 const IS_PROD = process.env.NODE_ENV === 'production'
+// Strict-Mode-Check für Klartext-Fehlerausgabe: nur in echtem dev-Modus,
+// nicht in staging/test/sonstigem, damit interne Pfade nicht versehentlich
+// exposed werden.
+const IS_DEV = process.env.NODE_ENV === 'development'
+function clientErrorMessage(err) {
+  return IS_DEV ? err.message : 'Interner Fehler'
+}
 
 // Dummy-Hash für constant-time-Login: Wenn User nicht existiert oder keine
 // Admin-Rolle hat, wird trotzdem bcrypt.compare gegen diesen Hash gefahren,
@@ -108,7 +115,7 @@ export async function adminAuth(req, res) {
     res.json({ ok: true })
   } catch (err) {
     logger.error({ err: sanitize(err), ip: req.ip }, 'Admin-Auth-Fehler')
-    res.status(500).json({ error: IS_PROD ? 'Interner Fehler' : err.message })
+    res.status(500).json({ error: clientErrorMessage(err) })
   }
 }
 
@@ -126,7 +133,7 @@ export async function adminLogout(req, res) {
     res.json({ ok: true })
   } catch (err) {
     logger.error({ err: sanitize(err) }, 'Admin-Logout-Fehler')
-    res.status(500).json({ error: IS_PROD ? 'Interner Fehler' : err.message })
+    res.status(500).json({ error: clientErrorMessage(err) })
   }
 }
 
@@ -230,14 +237,14 @@ export async function requireAuth(req, res, next) {
     next()
   } catch (err) {
     logger.error({ err: sanitize(err), ip: req.ip }, 'requireAuth-Fehler')
-    res.status(500).json({ error: IS_PROD ? 'Interner Fehler' : err.message })
+    res.status(500).json({ error: clientErrorMessage(err) })
   }
 }
 
 /** Fehlerausgabe: in Produktion keine internen Details preisgeben */
 export function serverError(res, err) {
   logger.error({ err }, 'Server-Fehler')
-  res.status(500).json({ error: IS_PROD ? 'Interner Serverfehler' : err.message })
+  res.status(500).json({ error: clientErrorMessage(err) })
 }
 
 /** Admin-seitige Fehlerausgabe: bereinigt Dateipfade, kein Stack an Client */

@@ -443,7 +443,8 @@ export default function Home({
           <div className="snap-nav-games">
             {[['①','Kollokationen'],['②','Wort-Zwilling'],['③','Zeitenwende'],['④','Lückenfüller'],['⑤','In Vorbereitung']].map(([glyph, label], i) => (
               <button
-                key={i}
+                key={label}
+                type="button"
                 className={`snap-nav-btn${activeCard === i ? ' snap-nav-btn--active' : ''}`}
                 aria-label={label}
                 aria-current={activeCard === i ? 'true' : undefined}
