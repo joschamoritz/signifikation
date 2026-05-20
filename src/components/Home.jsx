@@ -45,6 +45,16 @@ export default function Home({
   const [showDayComplete,   setShowDayComplete]   = useState(false)
 
   const entriesRef  = useRef(null)
+  // Timer-Handles für Banner-Resets, damit ein Unmount sie aufräumen kann.
+  const imgStateTimer = useRef(null)
+  const copiedTimer   = useRef(null)
+
+  useEffect(() => {
+    return () => {
+      if (imgStateTimer.current) clearTimeout(imgStateTimer.current)
+      if (copiedTimer.current)   clearTimeout(copiedTimer.current)
+    }
+  }, [])
 
   const streak     = computeStreak()
   const today      = new Date()
@@ -88,7 +98,8 @@ export default function Home({
       const result = await shareAsImage(playedGames, wzPlayed, streak, zwPlayed, lfPlayed)
       if (result === 'shared' || result === 'downloaded') {
         setImgState(result)
-        setTimeout(() => setImgState(null), 2500)
+        if (imgStateTimer.current) clearTimeout(imgStateTimer.current)
+        imgStateTimer.current = setTimeout(() => setImgState(null), 2500)
       }
     } catch {}
     finally { setSharing(false) }
@@ -100,7 +111,8 @@ export default function Home({
     try {
       await navigator.clipboard.writeText(text)
       setCopied(true)
-      setTimeout(() => setCopied(false), 2200)
+      if (copiedTimer.current) clearTimeout(copiedTimer.current)
+      copiedTimer.current = setTimeout(() => setCopied(false), 2200)
     } catch {}
   }
 

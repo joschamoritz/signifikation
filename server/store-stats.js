@@ -257,8 +257,19 @@ export function createStatsStore({ db, stmts, logger, loadReadOnly }) {
   }
 
   function getStatsWindow(days) {
+    // Cache-Check vor der DB-Query. Cache-Key basiert nur auf days; jede
+    // Stats-Mutation (recordStat/replaceStats) ruft invalidateStatsWindowCache
+    // auf, also kann der Cache so lange gültig bleiben wie die TTL.
+    const cacheKey = `window|${days}`
+    if (statsWindowCache.key === cacheKey && Date.now() - statsWindowCache.ts < statsWindowCache.ttlMs) {
+      return statsWindowCache.value
+    }
     const stats = loadStats(days)
-    return getCachedStatsWindow(statsWindowCache, stats, days)
+    const result = buildStatsWindow(stats, days)
+    statsWindowCache.key = cacheKey
+    statsWindowCache.value = result
+    statsWindowCache.ts = Date.now()
+    return result
   }
 
   function getStatsTimeline(days) {
