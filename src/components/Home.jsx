@@ -2,7 +2,6 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { getDailyMedal } from '../utils/gameLogic'
 import DayComplete from './DayComplete'
 import Sheet from './ui/Sheet'
-import '../test.css'
 import {
   WEEKDAYS, MONTHS,
   localDateStr, getISOWeek, computeStreak, streakFlames, buildShareText,

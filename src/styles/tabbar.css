@@ -152,7 +152,7 @@
   background: var(--bg);
   display: flex;
   flex-direction: column;
-  /* --t-* Aliases: test.css-Klassen brauchen diese Variablen */
+  /* --t-* Aliases: dictionary.css-Klassen (.test-*) brauchen diese Variablen */
   --t-bg:        var(--bg);
   --t-surface:   var(--surface2);
   --t-text:      var(--text);

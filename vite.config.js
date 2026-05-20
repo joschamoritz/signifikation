@@ -46,8 +46,11 @@ export default defineConfig({
       filename: 'sw.js',
       includeAssets: ['favicon.svg', 'favicon.png'],
       injectManifest: {
-        globPatterns: ['**/*.{css,html,webmanifest}'],
-        maximumFileSizeToCacheInBytes: 256 * 1024,
+        // JS-Chunks (insb. realtime-vendor, vendor, react-vendor) müssen mit
+        // precached werden, sonst kommt es nach einem Deploy zur Mischung aus
+        // alten JS-Chunks (SWR) und frischem CSS/HTML.
+        globPatterns: ['**/*.{js,css,html,webmanifest}'],
+        maximumFileSizeToCacheInBytes: 512 * 1024,
       },
       manifest: {
         name: 'Signifikation',

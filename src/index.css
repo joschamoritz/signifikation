@@ -4,6 +4,7 @@
    ============================================================ */
 
 @import './styles/globals.css';
+@import './styles/dictionary.css';
 @import './styles/home.css';
 @import './styles/quiz.css';
 @import './styles/wortzwilling.css';
