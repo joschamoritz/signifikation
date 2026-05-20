@@ -304,7 +304,7 @@ db.exec(`
 
   CREATE TABLE IF NOT EXISTS push_subscriptions (
     id         TEXT PRIMARY KEY,
-    user_id    TEXT NOT NULL,
+    user_id    TEXT,
     platform   TEXT NOT NULL,
     endpoint   TEXT,
     p256dh     TEXT,
@@ -511,6 +511,43 @@ if (!hasColumn('lemmata', 'lueckenfueller')) {
 
         CREATE INDEX IF NOT EXISTS idx_user_profiles_role ON user_profiles(role);
 
+        COMMIT;
+      `)
+    } catch (err) {
+      db.exec('ROLLBACK;')
+      throw err
+    }
+  }
+}
+
+// ── Migration: push_subscriptions.user_id → nullable ────────────
+// Erlaubt anonyme Push-Subscriptions ohne eingeloggten Account.
+{
+  const pushCols = db.prepare(`PRAGMA table_info(push_subscriptions)`).all()
+  const userIdCol = pushCols.find(r => r.name === 'user_id')
+  if (userIdCol && userIdCol.notnull === 1) {
+    logger.info('Migration: push_subscriptions.user_id NOT NULL → nullable')
+    try {
+      db.exec(`
+        BEGIN;
+        CREATE TABLE push_subscriptions_new (
+          id         TEXT PRIMARY KEY,
+          user_id    TEXT,
+          platform   TEXT NOT NULL,
+          endpoint   TEXT,
+          p256dh     TEXT,
+          auth       TEXT,
+          apns_token TEXT,
+          created_at INTEGER NOT NULL,
+          updated_at INTEGER NOT NULL,
+          FOREIGN KEY (user_id) REFERENCES user(id) ON DELETE CASCADE
+        );
+        INSERT INTO push_subscriptions_new SELECT * FROM push_subscriptions;
+        DROP TABLE push_subscriptions;
+        ALTER TABLE push_subscriptions_new RENAME TO push_subscriptions;
+        CREATE INDEX IF NOT EXISTS idx_push_user ON push_subscriptions(user_id);
+        CREATE UNIQUE INDEX IF NOT EXISTS idx_push_endpoint ON push_subscriptions(endpoint) WHERE endpoint IS NOT NULL;
+        CREATE UNIQUE INDEX IF NOT EXISTS idx_push_apns ON push_subscriptions(apns_token) WHERE apns_token IS NOT NULL;
         COMMIT;
       `)
     } catch (err) {

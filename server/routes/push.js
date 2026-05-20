@@ -9,7 +9,7 @@
 import express from 'express'
 import { z } from 'zod/v3'
 import { randomUUID } from 'crypto'
-import { requireAuthUser } from '../middleware/userAuth.js'
+import { optionalAuthUser } from '../middleware/userAuth.js'
 import { validate } from '../middleware/validate.js'
 import db from '../db.js'
 import logger from '../logger.js'
@@ -67,12 +67,12 @@ const updateIosSubStmt = db.prepare(`
 
 const deleteByEndpointStmt = db.prepare(`
   DELETE FROM push_subscriptions
-  WHERE endpoint = ? AND user_id = ?
+  WHERE endpoint = ?
 `)
 
 const deleteByApnsTokenStmt = db.prepare(`
   DELETE FROM push_subscriptions
-  WHERE apns_token = ? AND user_id = ?
+  WHERE apns_token = ?
 `)
 
 const getStatusStmt = db.prepare(`
@@ -105,7 +105,10 @@ router.get('/api/v1/push/vapid-public-key', (req, res) => {
 /**
  * GET /api/v1/push/status
  */
-router.get('/api/v1/push/status', requireAuthUser, (req, res) => {
+router.get('/api/v1/push/status', optionalAuthUser, (req, res) => {
+  if (!req.user) {
+    return res.json({ subscribed: false, platform: null })
+  }
   try {
     const row = getStatusStmt.get(req.user.id)
     if (!row) {
@@ -123,10 +126,10 @@ router.get('/api/v1/push/status', requireAuthUser, (req, res) => {
  */
 router.post(
   '/api/v1/push/subscribe',
-  requireAuthUser,
+  optionalAuthUser,
   validate(subscribeSchema, 'body'),
   (req, res) => {
-    const userId = req.user.id
+    const userId = req.user?.id ?? null
     const now = Date.now()
 
     try {
@@ -163,17 +166,17 @@ router.post(
  */
 router.delete(
   '/api/v1/push/unsubscribe',
-  requireAuthUser,
+  optionalAuthUser,
   validate(unsubscribeSchema, 'body'),
   (req, res) => {
-    const userId = req.user.id
+    const userId = req.user?.id ?? null
 
     try {
       if (req.body.endpoint) {
-        const result = deleteByEndpointStmt.run(req.body.endpoint, userId)
+        const result = deleteByEndpointStmt.run(req.body.endpoint)
         logger.info({ userId, changes: result.changes }, 'Push-Subscription gelöscht (web)')
       } else if (req.body.apns_token) {
-        const result = deleteByApnsTokenStmt.run(req.body.apns_token, userId)
+        const result = deleteByApnsTokenStmt.run(req.body.apns_token)
         logger.info({ userId, changes: result.changes }, 'Push-Subscription gelöscht (ios)')
       } else {
         return res.status(400).json({ error: 'endpoint oder apns_token erforderlich' })
