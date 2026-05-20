@@ -237,7 +237,7 @@ router.get('/api/v1/archiv', validate(archivQuerySchema, 'query'), async (req, r
 })
 
 /** GET /api/v1/wiktionary – IPA + Definitionen via Wiktionary */
-router.get('/api/v1/wiktionary', validate(qQuerySchema, 'query'), async (req, res) => {
+router.get('/api/v1/wiktionary', belegeLimiter, validate(qQuerySchema, 'query'), async (req, res) => {
   const { q } = req.query
   try {
     const cacheKey = `wikt:${q}`
@@ -251,7 +251,7 @@ router.get('/api/v1/wiktionary', validate(qQuerySchema, 'query'), async (req, re
 })
 
 /** GET /api/ipa – IPA-Aussprache via Wiktionary */
-router.get('/api/v1/ipa', validate(qQuerySchema, 'query'), async (req, res) => {
+router.get('/api/v1/ipa', belegeLimiter, validate(qQuerySchema, 'query'), async (req, res) => {
   const { q } = req.query
   try {
     const url = `https://de.wiktionary.org/w/api.php?action=parse&page=${encodeURIComponent(q)}&prop=wikitext&format=json&formatversion=2`

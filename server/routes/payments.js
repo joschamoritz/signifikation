@@ -249,9 +249,18 @@ router.post(
         return res.status(200).end() // 200 damit Mollie nicht endlos wiederholt
       }
 
-      // Transaktion: Idempotenz-Check + Entitlement-Unlock + Payment-Eintrag
+      // Transaktion: Idempotenz-Check + Entitlement-Unlock + Payment-Eintrag.
+      // .immediate() statt default-deferred: erzwingt BEGIN IMMEDIATE und
+      // damit den RESERVED-Lock vor dem ersten SELECT. Bei parallelem
+      // Mollie-Retry für dieselbe paymentId würde sonst der idempotente
+      // SELECT in zwei Transaktionen gleichzeitig zurückkommen, beide
+      // würden setPremiumRoleStmt/unlockEntitlementStmt durchlaufen
+      // (UPDATE-idempotent, aber unsauber); insertPaymentStmt fängt
+      // den Doppel-Insert per OR IGNORE ab. Mit IMMEDIATE serialisiert
+      // SQLite die zwei Webhook-Calls sauber, einer wartet bzw. scheitert
+      // mit SQLITE_BUSY und Mollie wiederholt.
       let newlyUnlocked = false
-      db.transaction(() => {
+      const processWebhook = db.transaction(() => {
         const alreadyProcessed = getPaymentByIdStmt.get(paymentId)
         if (alreadyProcessed) {
           logger.info({ paymentId, userId }, 'Mollie-Webhook: bereits verarbeitet, übersprungen')
@@ -266,7 +275,8 @@ router.post(
 
         newlyUnlocked = true
         logger.info({ paymentId, userId }, 'Gesamtausgabe freigeschaltet und Rolle auf premium gesetzt via Mollie')
-      })()
+      })
+      processWebhook.immediate()
 
       // Bestellbestätigung senden (nur bei neuem Kauf, nicht bei Webhook-Retry)
       if (newlyUnlocked) {

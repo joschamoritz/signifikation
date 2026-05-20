@@ -106,8 +106,11 @@ function verifyAppleJWS(jws) {
 }
 
 function unlockForUser(userId, transactionId, productId) {
+  // .immediate() statt default-deferred: serialisiert parallele
+  // verify/restore-Calls für dieselbe transactionId sauber. Siehe
+  // payments.js-Webhook für ausführliche Begründung.
   let newlyUnlocked = false
-  db.transaction(() => {
+  const tx = db.transaction(() => {
     if (getTransactionStmt.get(transactionId)) {
       logger.info({ transactionId, userId }, 'Apple IAP: Transaktion bereits verarbeitet')
       return
@@ -119,7 +122,8 @@ function unlockForUser(userId, transactionId, productId) {
     insertPaymentStmt.run(transactionId, userId, PRODUCT_AMOUNTS[productId], now)
     newlyUnlocked = true
     logger.info({ transactionId, userId, productId }, 'Apple IAP: Gesamtausgabe freigeschaltet')
-  })()
+  })
+  tx.immediate()
   return newlyUnlocked
 }
 
