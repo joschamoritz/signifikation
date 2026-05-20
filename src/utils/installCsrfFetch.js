@@ -3,27 +3,58 @@
 // Direkt-fetch()-Aufrufer und ist trotzdem ein robuster Schutz, weil
 // Cross-Origin-Scripts diesen Header ohne CORS-Preflight nicht setzen können.
 //
+// Wichtig für Native (Capacitor): window.location.origin ist dort
+// 'capacitor://localhost'/'http://localhost', während API-Requests an
+// 'https://signifikation.de' gehen. Ohne explizite Backend-Allowlist
+// würde der Wrapper diese Requests als cross-origin behandeln und den
+// Header weglassen → Server lehnt mit 403 ab.
+//
 // Pendant im Backend: server/middleware/auth.js (CSRF_HEADER_VALUE)
 
 const CSRF_HEADER_VALUE = 'signifikation-app'
 const STATE_CHANGING = new Set(['POST', 'PUT', 'DELETE', 'PATCH'])
 
-function isSameOriginRequest(url) {
+// Eigene Backend-Origins, an die der CSRF-Header in jedem Fall gehört –
+// auch bei cross-origin Requests aus dem Native-WebView.
+const BACKEND_ORIGINS = new Set([
+  'https://signifikation.de',
+  'http://localhost:3001',
+  'http://localhost:5173',
+])
+
+// VITE_API_BASE kann zur Build-Zeit eine weitere Backend-Origin liefern
+// (z. B. Staging). Diese ergänzen wir dynamisch zur Allowlist.
+try {
+  const apiBase = import.meta.env?.VITE_API_BASE
+  if (apiBase) {
+    const parsed = new URL(apiBase, 'https://example.invalid')
+    if (parsed.origin && parsed.origin !== 'https://example.invalid') {
+      BACKEND_ORIGINS.add(parsed.origin)
+    }
+  }
+} catch { /* import.meta nicht verfügbar (Tests u.ä.) – egal */ }
+
+function shouldAttachCsrfHeader(url) {
   try {
     if (typeof url === 'string') {
-      // Relative URLs (z. B. "/api/v1/...") sind immer same-origin.
+      // Relative URLs (z. B. "/api/v1/...") sind immer same-origin → Backend.
       if (url.startsWith('/') && !url.startsWith('//')) return true
       const parsed = new URL(url, window.location.href)
-      return parsed.origin === window.location.origin
+      if (parsed.origin === window.location.origin) return true
+      return BACKEND_ORIGINS.has(parsed.origin)
     }
-    if (url instanceof URL) return url.origin === window.location.origin
+    if (url instanceof URL) {
+      if (url.origin === window.location.origin) return true
+      return BACKEND_ORIGINS.has(url.origin)
+    }
     if (url instanceof Request) {
       const parsed = new URL(url.url, window.location.href)
-      return parsed.origin === window.location.origin
+      if (parsed.origin === window.location.origin) return true
+      return BACKEND_ORIGINS.has(parsed.origin)
     }
   } catch {
-    // Unparsebare URLs → vorsichtshalber als same-origin behandeln,
-    // damit interne Calls nicht stillschweigend ihren CSRF-Header verlieren.
+    // Unparsebare URLs → vorsichtshalber Header setzen, damit interne
+    // Calls nicht stillschweigend ihren CSRF-Header verlieren.
     return true
   }
   return false
@@ -44,7 +75,7 @@ export function installCsrfFetch() {
   const wrapped = function patchedFetch(input, init) {
     const method = methodOf(input, init)
     if (!STATE_CHANGING.has(method)) return originalFetch(input, init)
-    if (!isSameOriginRequest(input)) return originalFetch(input, init)
+    if (!shouldAttachCsrfHeader(input)) return originalFetch(input, init)
 
     // Init-Pfad: Header dort setzen.
     if (init || !(input instanceof Request)) {
