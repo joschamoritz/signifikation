@@ -212,6 +212,10 @@ body {
   .wz-chip--wrong {
     animation: none !important;
   }
+  /* Federzug-Unterstreichung wäre sonst auf 0% stehen geblieben */
+  .option.correct { background-size: 100% 100% !important }
+  /* Vorhang-Clip muss vollständig offen sein */
+  .round-feedback { clip-path: none !important; opacity: 1 !important }
   .bar-fill,
   .btn-primary,
   .btn-secondary,

@@ -35,6 +35,7 @@ export default function Home({
   const [sharing,           setSharing]           = useState(false)
   const [imgState,          setImgState]          = useState(null)
   const [showDayComplete,   setShowDayComplete]   = useState(false)
+  const [dayFlip,           setDayFlip]           = useState(false)
 
   const entriesRef  = useRef(null)
   // Timer-Handles für Banner-Resets, damit ein Unmount sie aufräumen kann.
@@ -67,6 +68,18 @@ export default function Home({
       setShowDayComplete(true)
     }
   }, [allThreePlayed])
+
+  // Tagesübergang: wenn der letzte gesehene Tag != heute, einmaliger Seitenwechsel
+  useEffect(() => {
+    const lastSeen = lsGet('sig_last_seen_date')
+    if (lastSeen && lastSeen !== dateStr) {
+      setDayFlip(true)
+      const t = setTimeout(() => setDayFlip(false), 360)
+      lsSet('sig_last_seen_date', dateStr)
+      return () => clearTimeout(t)
+    }
+    lsSet('sig_last_seen_date', dateStr)
+  }, [dateStr])
 
   const scrollToCard = useCallback((index) => {
     const items = entriesRef.current?.querySelectorAll('.test-entry')
@@ -124,7 +137,7 @@ export default function Home({
 
   return (
     <>
-    <div className="test-page" lang="de">
+    <div className={`test-page${dayFlip ? ' test-page-flip--right' : ''}`} lang="de">
       {showDayComplete && (
         <DayComplete
           onClose={() => setShowDayComplete(false)}
@@ -237,7 +250,10 @@ export default function Home({
               </div>
               <div className="test-entry-body">
                 <div className="test-entry-head">
-                  <span className="test-dropcap-k" aria-hidden="true">K</span>
+                  <span
+                    className={`test-dropcap-k${today.getDate() === 1 ? ' test-dropcap-k--ornament' : ''}`}
+                    aria-hidden="true"
+                  >K</span>
                   <h2 className="test-headword" aria-label="Kollokationen">ollokationen</h2>
                   <span className="test-ipa" aria-label="Aussprache: [kɔlokaˈtsi̯oːnən]">[kɔlokaˈtsi̯oːnən]</span>
                 </div>

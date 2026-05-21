@@ -73,9 +73,15 @@
   60%       { transform: translateX(-4px) }
   80%       { transform: translateX(3px) }
 }
-@keyframes correctPulse {
-  0%, 100% { transform: scale(1) }
-  45%      { transform: scale(1.018) }
+/* Federzug: goldene Unterstreichung wird in 320ms von links eingezogen */
+@keyframes correctInk {
+  from { background-size: 0% 100% }
+  to   { background-size: 100% 100% }
+}
+/* Definition / Feedback erscheint wie eine aufgeschlagene Seite (von oben nach unten) */
+@keyframes curtainDown {
+  from { clip-path: inset(0 0 100% 0); opacity: 0.6 }
+  to   { clip-path: inset(0 0 0 0);    opacity: 1 }
 }
 
 /* Option list – single column */
@@ -152,10 +158,13 @@
 }
 .option.correct {
   border-left-color: var(--success);
-  background: var(--success-bg);
+  background-color: var(--success-bg);
+  background-image: linear-gradient(transparent calc(100% - 2px), var(--accent-dk) calc(100% - 2px));
+  background-repeat: no-repeat;
+  background-size: 0% 100%;
   color: var(--success);
   font-weight: 600;
-  animation: correctPulse 0.2s ease both;
+  animation: correctInk 320ms ease-out 80ms both;
 }
 .option.partial {
   border-left-color: var(--warn);
@@ -204,7 +213,7 @@
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   padding: 12px 16px;
-  animation: slideUp 0.2s ease both;
+  animation: curtainDown 280ms ease-out both;
 }
 .round-feedback-score {
   display: flex;

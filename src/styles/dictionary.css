@@ -476,6 +476,16 @@
   letter-spacing: 0.01em;
 }
 
+/* ── Schmuckinitiale (nur am 1. eines Monats) ───────────────── */
+/* Doppellinie oben + unten in Gold — Wörterbuch-Geste für      */
+/* Schmuckinitialen am Auflagenanfang.                          */
+.test-dropcap-k--ornament {
+  padding: 4px 10px 2px;
+  border-top:    2.5px double var(--t-accent);
+  border-bottom: 2.5px double var(--t-accent);
+  line-height: 0.95;
+}
+
 /* ── Abschnitt-Titel ───────────────────────────────────────── */
 .test-section-label {
   font-family: var(--t-sans);

@@ -23,6 +23,13 @@ export default function DayComplete({ onClose, playedGames = [], wzPlayed = null
   const kollMax   = playedGames.length * 10
   const kollMedal = getMedal(kollTotal, kollMax)
 
+  // „Perfekter Tag": alle gespielten Modi mit Goldmedaille
+  const isPerfect =
+    kollMedal.label === 'Gold' &&
+    (!wzPlayed || wzPlayed.medal?.label === 'Gold') &&
+    (!zwPlayed || zwPlayed.medal?.label === 'Gold') &&
+    (!lfPlayed || lfPlayed.medal?.label === 'Gold')
+
   // Mount-Only-Snapshot: Sheet ist modal, während es offen ist ändern sich
   // die Spiel-Ergebnisse nicht. Ref hält Werte vom ersten Render fest, damit
   // späteres Parent-Re-Render (z. B. Stats-Update) keinen erneuten Fetch
@@ -142,6 +149,9 @@ export default function DayComplete({ onClose, playedGames = [], wzPlayed = null
         )}
         <p className="dc-ornament" aria-hidden="true">· · ·</p>
         <p className="dc-colophon">Der Eintrag für diesen Tag ist beschlossen.</p>
+        {isPerfect && (
+          <span className="dc-stamp" aria-label="Bestleistung in allen Modi">rev. &amp; approb.</span>
+        )}
       </div>
 
       <div className="dc-actions">

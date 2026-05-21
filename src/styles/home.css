@@ -121,6 +121,37 @@
   flex-direction: column;
   align-items: center;
   gap: 8px;
+  position: relative;
+}
+
+/* ── Bestleistungs-Stempel (alle Modi Gold) ─────────────────── */
+.dc-stamp {
+  position: absolute;
+  right: -4px;
+  bottom: -8px;
+  font-family: 'Courier New', 'Courier', monospace;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--accent-dk);
+  border: 1px solid var(--accent-dk);
+  padding: 4px 9px 3px;
+  border-radius: 2px;
+  transform: rotate(-2.4deg);
+  opacity: 0.78;
+  pointer-events: none;
+  white-space: nowrap;
+  animation: stampDown 280ms cubic-bezier(0.34, 1.2, 0.64, 1) both;
+}
+@keyframes stampDown {
+  from { opacity: 0; transform: rotate(-2.4deg) scale(1.4) }
+  to   { opacity: 0.78; transform: rotate(-2.4deg) scale(1) }
+}
+@media (prefers-reduced-motion: reduce) {
+  .dc-stamp { animation: none }
+}
+@media (max-width: 499px) {
+  .dc-stamp { right: 4px; bottom: -4px; font-size: 0.58rem }
 }
 .dc-streak {
   font-family: var(--font-sans);
@@ -266,6 +297,12 @@
   float: left;
   margin-right: 4px;
   color: var(--text);
+  animation: inkSeep 1200ms ease-out 200ms both;
+}
+/* Tinte sickert leicht ins Papier */
+@keyframes inkSeep {
+  from { text-shadow: 0 0 0 transparent }
+  to   { text-shadow: 0 0 0.6px color-mix(in srgb, currentColor 45%, transparent) }
 }
 
 /* Lautschrift */
@@ -848,7 +885,8 @@
 @media (prefers-reduced-motion: reduce) {
   .streak-pill,
   .history-dot,
-  .lemma-card-wrap {
+  .lemma-card-wrap,
+  .home-card-text--dropcap::first-letter {
     animation: none !important;
   }
 }
