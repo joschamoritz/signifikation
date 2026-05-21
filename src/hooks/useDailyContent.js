@@ -1,249 +1,148 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useReducer, useState } from 'react'
 import { API } from '../config'
 import { lsGet, lsParse } from '../utils/storage'
-import { fetchWithRetry } from '../utils/fetchWithRetry'
+import { loadHeuteCache, saveHeuteCache } from '../utils/heuteCache'
+import { useApiResource } from './useApiResource'
 
-const CACHE_KEY = 'sig_cache_heute'
-
-function saveHeuteCache(data) {
-  try {
-    localStorage.setItem(CACHE_KEY, JSON.stringify({ ...data, cachedAt: new Date().toISOString() }))
-  } catch (_) {}
+const initialState = {
+  lemmata: null, apiError: null, isOfflineFallback: false, serverDatum: null,
+  thema: '', themaKurz: '', themaQuelle: '', lueckenfuellerLemma: null,
+  wortzwilling: null, wortzwillingError: false,
+  zeitenwende: null, zeitenwendeStatus: 'idle',
+  spezialwoche: null,
 }
 
-function todayISO() {
-  const d = new Date()
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
-}
-
-function loadHeuteCache() {
-  try {
-    const cached = JSON.parse(localStorage.getItem(CACHE_KEY))
-    if (!cached?.datum || cached.datum !== todayISO()) return null
-    return cached
-  } catch (_) {
-    return null
+function heuteFields(payload, offline) {
+  return {
+    isOfflineFallback: offline, apiError: null,
+    serverDatum: payload.datum, lemmata: payload.lemmata,
+    thema: payload.thema || '', themaKurz: payload.thema_kurz || '',
+    themaQuelle: payload.thema_quelle || '',
+    lueckenfuellerLemma: payload.lueckenfuellerLemma ?? null,
   }
 }
 
-function getWZToday(key) {
-  return lsParse(lsGet(key), null)
+function reducer(state, action) {
+  switch (action.type) {
+    case 'HEUTE_LOADED':         return { ...state, ...heuteFields(action.payload, false) }
+    case 'OFFLINE_FALLBACK':     return { ...state, ...heuteFields(action.payload, true) }
+    case 'HEUTE_ERROR':          return { ...state, apiError: action.payload }
+    case 'HEUTE_RESET_ERROR':    return { ...state, apiError: null }
+    case 'WORTZWILLING_LOADING': return { ...state, wortzwilling: null, wortzwillingError: false }
+    case 'WORTZWILLING_LOADED':  return { ...state, wortzwilling: action.payload, wortzwillingError: false }
+    case 'WORTZWILLING_ERROR':   return { ...state, wortzwillingError: true }
+    case 'ZEITENWENDE_LOADING':  return { ...state, zeitenwende: null, zeitenwendeStatus: 'loading' }
+    case 'ZEITENWENDE_LOADED':   return { ...state, zeitenwende: action.payload, zeitenwendeStatus: 'ready' }
+    case 'ZEITENWENDE_MISSING':  return { ...state, zeitenwende: null, zeitenwendeStatus: 'missing' }
+    case 'ZEITENWENDE_ERROR':    return { ...state, zeitenwendeStatus: 'error' }
+    case 'SPEZIALWOCHE_LOADED':  return { ...state, spezialwoche: action.payload }
+    default: return state
+  }
 }
 
+const MISSING = Symbol('missing')
+
 export function useDailyContent() {
-  const [lemmata, setLemmata] = useState(null)
-  const [apiError, setApiError] = useState(null)
-  const [isOfflineFallback, setIsOfflineFallback] = useState(false)
-  const [serverDatum, setServerDatum] = useState(null)
-  const [thema, setThema] = useState('')
-  const [themaKurz, setThemaKurz] = useState('')
-  const [themaQuelle, setThemaQuelle] = useState('')
-
-  const [lueckenfuellerLemma, setLueckenfuellerLemma] = useState(null)
-  const [wortzwilling, setWortzwilling] = useState(null)
-  const [wortzwillingError, setWortzwillingError] = useState(false)
+  const [state, dispatch] = useReducer(reducer, initialState)
+  const [contentRequestId, setContentRequestId] = useState(0)
   const [wortzwillingRetry, setWortzwillingRetry] = useState(0)
-
-  const [zeitenwende, setZeitenwende] = useState(null)
-  const [zeitenwendeStatus, setZeitenwendeStatus] = useState('idle')
   const [zeitenwendeRetry, setZeitenwendeRetry] = useState(0)
 
   const [wzPlayed, setWzPlayed] = useState(null)
   const [zwPlayed, setZwPlayed] = useState(null)
   const [lfPlayed, setLfPlayed] = useState(null)
-  const [contentRequestId, setContentRequestId] = useState(0)
+  const [swKollPlayed, setSwKollPlayed] = useState(null)
+  const [swWzPlayed, setSwWzPlayed] = useState(null)
+  const [swZwPlayed, setSwZwPlayed] = useState(null)
+  const [swLfPlayed, setSwLfPlayed] = useState(null)
 
-  const [spezialwoche, setSpezialwoche] = useState(null)
-  const [swKollPlayed, setSwKollPlayed] = useState(null)   // gespielt: { total, medal, ... }
-  const [swWzPlayed,  setSwWzPlayed]  = useState(null)
-  const [swZwPlayed,  setSwZwPlayed]  = useState(null)
-  const [swLfPlayed,  setSwLfPlayed]  = useState(null)
+  const seedPlayed = useCallback((datum) => {
+    setWzPlayed(lsParse(lsGet(`sig_wz_${datum}`), null))
+    setZwPlayed(lsParse(lsGet(`sig_zw_${datum}`), null))
+    setLfPlayed(lsParse(lsGet(`sig_lf_${datum}`), null))
+  }, [])
 
-  const triggerContentReload = useCallback(() => {
+  useApiResource({
+    url: `${API}/heute`, deps: [contentRequestId],
+    parseResponse: async (r) => {
+      if (r.ok) return r.json()
+      const body = await r.json().catch(() => ({}))
+      throw new Error(body?.error || `HTTP ${r.status}`)
+    },
+    onSuccess: (payload) => {
+      dispatch({ type: 'HEUTE_LOADED', payload })
+      seedPlayed(payload.datum)
+      saveHeuteCache(payload)
+    },
+    onError: (err) => {
+      const cached = loadHeuteCache()
+      if (cached?.datum && cached?.lemmata) {
+        dispatch({ type: 'OFFLINE_FALLBACK', payload: cached })
+        seedPlayed(cached.datum)
+      } else {
+        dispatch({ type: 'HEUTE_ERROR', payload: err.message })
+      }
+    },
+  })
+
+  useApiResource({
+    url: `${API}/wortzwilling`, deps: [wortzwillingRetry],
+    onStart: () => dispatch({ type: 'WORTZWILLING_LOADING' }),
+    parseResponse: async (r) => {
+      if (r.ok) return r.json()
+      if (r.status === 404) return null
+      throw new Error(`HTTP ${r.status}`)
+    },
+    onSuccess: (data) => { if (data) dispatch({ type: 'WORTZWILLING_LOADED', payload: data }) },
+    onError: () => dispatch({ type: 'WORTZWILLING_ERROR' }),
+  })
+
+  useApiResource({
+    url: `${API}/zeitenwende`, deps: [zeitenwendeRetry],
+    onStart: () => dispatch({ type: 'ZEITENWENDE_LOADING' }),
+    parseResponse: async (r) => {
+      if (r.ok) return r.json()
+      if (r.status === 404) return MISSING
+      throw new Error(`HTTP ${r.status}`)
+    },
+    onSuccess: (data) => dispatch(
+      data === MISSING
+        ? { type: 'ZEITENWENDE_MISSING' }
+        : { type: 'ZEITENWENDE_LOADED', payload: data }
+    ),
+    onError: () => dispatch({ type: 'ZEITENWENDE_ERROR' }),
+  })
+
+  useApiResource({
+    url: `${API}/spezialwoche`, deps: [contentRequestId],
+    parseResponse: async (r) => (r.ok ? r.json() : null),
+    onSuccess: (data) => {
+      dispatch({ type: 'SPEZIALWOCHE_LOADED', payload: data ?? null })
+      const w = data?.woche
+      if (w) {
+        setSwKollPlayed(lsParse(lsGet(`sig_sw_koll_${w}`), null))
+        setSwWzPlayed(lsParse(lsGet(`sig_sw_wz_${w}`), null))
+        setSwZwPlayed(lsParse(lsGet(`sig_sw_zw_${w}`), null))
+        setSwLfPlayed(lsParse(lsGet(`sig_sw_lf_${w}`), null))
+      }
+    },
+    onError: () => dispatch({ type: 'SPEZIALWOCHE_LOADED', payload: null }),
+  })
+
+  const retryWortzwilling = useCallback(() => setWortzwillingRetry((n) => n + 1), [])
+  const retryZeitenwende = useCallback(() => setZeitenwendeRetry((n) => n + 1), [])
+  const retryDailyContent = useCallback(() => {
+    dispatch({ type: 'HEUTE_RESET_ERROR' })
     setContentRequestId((n) => n + 1)
   }, [])
 
-  useEffect(() => {
-    let cancelled = false
-    const controller = new AbortController()
-
-    fetchWithRetry(`${API}/heute`, { signal: controller.signal })
-      .then((r) => r.ok ? r.json() : r.json().then((d) => Promise.reject(new Error(d.error || `HTTP ${r.status}`))))
-      .then(({ datum, lemmata, thema, thema_kurz, thema_quelle, lueckenfuellerLemma: lfLemma }) => {
-        if (cancelled) return
-        setIsOfflineFallback(false)
-        setServerDatum(datum)
-        setLemmata(lemmata)
-        setThema(thema || '')
-        setThemaKurz(thema_kurz || '')
-        setThemaQuelle(thema_quelle || '')
-        setLueckenfuellerLemma(lfLemma ?? null)
-        setWzPlayed(getWZToday(`sig_wz_${datum}`))
-        setZwPlayed(lsParse(lsGet(`sig_zw_${datum}`), null))
-        setLfPlayed(lsParse(lsGet(`sig_lf_${datum}`), null))
-        saveHeuteCache({ datum, lemmata, thema, thema_kurz, thema_quelle, lueckenfuellerLemma: lfLemma })
-      })
-      .catch((err) => {
-        if (cancelled || err?.name === 'AbortError') return
-        const cached = loadHeuteCache()
-        if (cached?.datum && cached?.lemmata) {
-          setIsOfflineFallback(true)
-          setServerDatum(cached.datum)
-          setLemmata(cached.lemmata)
-          setThema(cached.thema || '')
-          setThemaKurz(cached.thema_kurz || '')
-          setThemaQuelle(cached.thema_quelle || '')
-          setLueckenfuellerLemma(cached.lueckenfuellerLemma ?? null)
-          setWzPlayed(getWZToday(`sig_wz_${cached.datum}`))
-          setZwPlayed(lsParse(lsGet(`sig_zw_${cached.datum}`), null))
-          setLfPlayed(lsParse(lsGet(`sig_lf_${cached.datum}`), null))
-        } else {
-          setApiError(err.message)
-        }
-      })
-
-    return () => {
-      cancelled = true
-      controller.abort()
-    }
-  }, [contentRequestId])
-
-  useEffect(() => {
-    let cancelled = false
-    const controller = new AbortController()
-
-    setWortzwillingError(false)
-    setWortzwilling(null)
-    fetchWithRetry(`${API}/wortzwilling`, { signal: controller.signal })
-      .then((r) => {
-        if (r.ok) return r.json()
-        if (r.status === 404) return null
-        return Promise.reject(new Error(`HTTP ${r.status}`))
-      })
-      .then((data) => {
-        if (cancelled) return
-        if (data) setWortzwilling(data)
-      })
-      .catch((err) => {
-        if (cancelled || err?.name === 'AbortError') return
-        setWortzwillingError(true)
-      })
-
-    return () => {
-      cancelled = true
-      controller.abort()
-    }
-  }, [wortzwillingRetry])
-
-  useEffect(() => {
-    let cancelled = false
-    const controller = new AbortController()
-
-    setZeitenwendeStatus('loading')
-    setZeitenwende(null)
-    fetchWithRetry(`${API}/zeitenwende`, { signal: controller.signal })
-      .then((r) => {
-        if (r.ok) return r.json()
-        if (r.status === 404) {
-          if (!cancelled) setZeitenwendeStatus('missing')
-          return null
-        }
-        return Promise.reject(new Error(`HTTP ${r.status}`))
-      })
-      .then((data) => {
-        if (cancelled) return
-        if (data) {
-          setZeitenwende(data)
-          setZeitenwendeStatus('ready')
-        } else {
-          setZeitenwende(null)
-        }
-      })
-      .catch((err) => {
-        if (cancelled || err?.name === 'AbortError') return
-        setZeitenwendeStatus('error')
-      })
-
-    return () => {
-      cancelled = true
-      controller.abort()
-    }
-  }, [zeitenwendeRetry])
-
-  // ── Spezialwoche (Wort der Woche) ────────────────────────────
-  useEffect(() => {
-    let cancelled = false
-    const controller = new AbortController()
-
-    fetchWithRetry(`${API}/spezialwoche`, { signal: controller.signal })
-      .then((r) => {
-        if (r.ok) return r.json()
-        return null
-      })
-      .then((data) => {
-        if (cancelled) return
-        setSpezialwoche(data ?? null)
-        if (data?.woche) {
-          const w = data.woche
-          // Gelesene Played-States aus localStorage
-          setSwKollPlayed(lsParse(lsGet(`sig_sw_koll_${w}`), null))
-          setSwWzPlayed(lsParse(lsGet(`sig_sw_wz_${w}`), null))
-          setSwZwPlayed(lsParse(lsGet(`sig_sw_zw_${w}`), null))
-          setSwLfPlayed(lsParse(lsGet(`sig_sw_lf_${w}`), null))
-        }
-      })
-      .catch(() => {
-        if (!cancelled) setSpezialwoche(null)
-      })
-
-    return () => { cancelled = true; controller.abort() }
-  }, [contentRequestId])
-
-  const retryWortzwilling = useCallback(() => {
-    setWortzwillingRetry((n) => n + 1)
-  }, [])
-
-  const retryZeitenwende = useCallback(() => {
-    setZeitenwendeRetry((n) => n + 1)
-  }, [])
-
-  const retryDailyContent = useCallback(() => {
-    setApiError(null)
-    triggerContentReload()
-  }, [triggerContentReload])
-
   return {
-    lemmata,
-    apiError,
-    isOfflineFallback,
-    serverDatum,
-    thema,
-    themaKurz,
-    themaQuelle,
-    lueckenfuellerLemma,
-    wortzwilling,
-    wortzwillingError,
-    retryWortzwilling,
-    zeitenwende,
-    zeitenwendeError: zeitenwendeStatus === 'error',
-    zeitenwendeMissing: zeitenwendeStatus === 'missing',
-    retryZeitenwende,
-    retryDailyContent,
-    wzPlayed,
-    setWzPlayed,
-    zwPlayed,
-    setZwPlayed,
-    lfPlayed,
-    setLfPlayed,
-    // Spezialwoche (Wort der Woche)
-    spezialwoche,
-    swKollPlayed,
-    setSwKollPlayed,
-    swWzPlayed,
-    setSwWzPlayed,
-    swZwPlayed,
-    setSwZwPlayed,
-    swLfPlayed,
-    setSwLfPlayed,
+    ...state,
+    zeitenwendeError: state.zeitenwendeStatus === 'error',
+    zeitenwendeMissing: state.zeitenwendeStatus === 'missing',
+    retryWortzwilling, retryZeitenwende, retryDailyContent,
+    wzPlayed, setWzPlayed, zwPlayed, setZwPlayed, lfPlayed, setLfPlayed,
+    swKollPlayed, setSwKollPlayed, swWzPlayed, setSwWzPlayed,
+    swZwPlayed, setSwZwPlayed, swLfPlayed, setSwLfPlayed,
   }
 }
