@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useState } from 'react'
 import AppTabScreens from '../components/AppTabScreens'
 
 export function useAppTabScreens({
@@ -40,7 +40,7 @@ export function useAppTabScreens({
   const [swZwViewOnly, setSwZwViewOnly] = useState(false)
   const [swLfViewOnly, setSwLfViewOnly] = useState(false)
 
-  const tabScreens = useMemo(() => AppTabScreens({
+  const tabScreens = AppTabScreens({
     phase,
     lemmata,
     apiError,
@@ -83,33 +83,7 @@ export function useAppTabScreens({
     serverDatum,
     classroomInSession,
     onNavigateToKonto: () => setActiveTab('profil'),
-  }), [
-    phase,
-    lemmata,
-    apiError,
-    thema,
-    playedGames,
-    allPlayed,
-    wortzwilling,
-    wortzwillingError,
-    retryWortzwilling,
-    wzPlayed,
-    zeitenwende,
-    zeitenwendeError,
-    zeitenwendeMissing,
-    retryZeitenwende,
-    zwPlayed,
-    lueckenfuellerLemma,
-    lfPlayed,
-    gesamtausgabeUnlocked,
-    freeAccessToday,
-    freeAccessLabel,
-    serverDatum,
-    classroomInSession,
-    setActiveTab,
-    setPhase,
-    startVT,
-  ])
+  })
 
   const goToWortzwillingGame = useCallback(() => startVT(() => {
     setWzViewOnly(false)
