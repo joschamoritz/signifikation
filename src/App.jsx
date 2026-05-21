@@ -4,6 +4,7 @@ import AppShell from './components/AppShell'
 import AppGameScreens from './components/AppGameScreens'
 import TabBar from './components/TabBar'
 import TabTransition from './components/TabTransition'
+import UpdateBanner from './components/UpdateBanner'
 import { useAppModel } from './hooks/useAppModel'
 import { useTheme, ThemeContext } from './hooks/useTheme'
 
@@ -33,6 +34,7 @@ export default function App() {
   return (
     <ThemeContext.Provider value={theme}>
     <ErrorBoundary>
+      <UpdateBanner />
       <AppShell phase={phase} showTabBar={showTabBar} activeTab={activeTab} appRef={appRef}>
         <AppGameScreens {...appGameScreensProps} />
         <TabTransition activeTab={activeTab} tabs={tabScreens} />
