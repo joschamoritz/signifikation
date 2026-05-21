@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { API } from '../config'
 import { apiFetch, setNativeBearerToken } from '../utils/apiFetch'
+import { isAppleNativeAvailable, signInWithAppleNative } from '../utils/appleSignIn'
 
 const EMPTY_FIELD_ERRORS = { name: '', email: '', password: '' }
 const EMPTY_RESET_ERRORS = { email: '', token: '', password: '', confirm: '' }
@@ -405,6 +406,35 @@ export function useKontoAuth({ onAuthStateChange = () => {} }) {
     setNotice(null)
 
     try {
+      // Native iOS: Apple-Login geht NICHT über den Web-Redirect (Apple lehnt Web-Views
+      // im App-Store ab), sondern über das native ASAuthorization-Plugin. Wir bekommen
+      // ein identityToken zurueck und uebergeben es an better-auth's idToken-Flow.
+      if (provider === 'apple' && isAppleNativeAvailable()) {
+        const idToken = await signInWithAppleNative()
+        const response = await apiFetch(`${API}/auth/sign-in/social`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({
+            provider: 'apple',
+            idToken,
+          }),
+        })
+
+        if (!response.ok) {
+          setNotice({ type: 'error', text: 'Apple-Anmeldung fehlgeschlagen.' })
+          return
+        }
+
+        const bearerToken = response.headers.get('set-auth-token')
+        if (bearerToken) setNativeBearerToken(bearerToken)
+
+        setNotice({ type: 'success', text: 'Erfolgreich angemeldet.' })
+        await loadSession()
+        onAuthStateChange()
+        return
+      }
+
       const callbackURL = `${window.location.origin}${window.location.pathname}`
       const response = await apiFetch(`${API}/auth/sign-in/social`, {
         method: 'POST',
@@ -425,12 +455,18 @@ export function useKontoAuth({ onAuthStateChange = () => {} }) {
       }
 
       window.location.assign(payload.url)
-    } catch {
+    } catch (err) {
+      // Apple Plugin wirft bei User-Cancel einen spezifischen Error
+      const message = String(err?.message || '').toLowerCase()
+      if (message.includes('canceled') || message.includes('cancelled') || message.includes('1001')) {
+        // Stille Behandlung – User hat aktiv abgebrochen
+        return
+      }
       setNotice({ type: 'error', text: 'Netzwerkfehler. Bitte erneut versuchen.' })
     } finally {
       setIsBusy(false)
     }
-  }, [isBusy, readJsonSafe])
+  }, [isBusy, loadSession, onAuthStateChange, readJsonSafe])
 
   const handleSignOut = useCallback(async () => {
     if (isBusy) return

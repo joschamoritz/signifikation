@@ -702,6 +702,46 @@
   opacity: 0.7;
 }
 
+.konto-auth-apple-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 36px;
+  padding: 0 12px;
+  background: transparent;
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  font-family: var(--font-serif);
+  font-size: 0.82rem;
+  font-style: italic;
+  cursor: pointer;
+  transition: border-color 120ms ease;
+}
+
+.konto-auth-apple-btn:hover:not(:disabled) {
+  border-color: var(--text);
+}
+
+.konto-auth-apple-btn:active:not(:disabled) {
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+.konto-auth-apple-btn:disabled {
+  color: var(--disabled);
+  border-color: var(--border-lt);
+  cursor: default;
+}
+
+.konto-auth-apple-btn svg {
+  flex-shrink: 0;
+  color: var(--text);
+  margin-top: -2px;
+}
+
 .konto-teacher-note {
   border-left: 2px solid var(--accent);
   padding: 2px 0 2px 12px;
