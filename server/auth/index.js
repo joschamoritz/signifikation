@@ -2,6 +2,7 @@ import { betterAuth } from 'better-auth'
 import { bearer } from 'better-auth/plugins'
 import db from '../db.js'
 import logger from '../logger.js'
+import { initAppleClientSecret } from './apple-client-secret.js'
 
 const IS_PROD = process.env.NODE_ENV === 'production'
 const APP_PORT = process.env.PORT || 3001
@@ -22,7 +23,23 @@ const SESSION_UPDATE_AGE = readPositiveInt(process.env.AUTH_SESSION_UPDATE_AGE, 
 const GOOGLE_CLIENT_ID = process.env.BETTER_AUTH_GOOGLE_CLIENT_ID?.trim()
 const GOOGLE_CLIENT_SECRET = process.env.BETTER_AUTH_GOOGLE_CLIENT_SECRET?.trim()
 const APPLE_CLIENT_ID = process.env.BETTER_AUTH_APPLE_CLIENT_ID?.trim()
-const APPLE_CLIENT_SECRET = process.env.BETTER_AUTH_APPLE_CLIENT_SECRET?.trim()
+const APPLE_CLIENT_SECRET_STATIC = process.env.BETTER_AUTH_APPLE_CLIENT_SECRET?.trim()
+const APPLE_BUNDLE_ID = process.env.APPLE_BUNDLE_IDENTIFIER?.trim() || 'de.signifikation.app'
+
+// Apple verlangt ein dynamisch signiertes JWT (max. 6 Monate gültig) als clientSecret.
+// Wir generieren es beim Server-Start aus dem .p8-Privatekey, sofern Team-ID, Key-ID
+// und Key-Pfad gesetzt sind. Fällt back auf das statische Secret aus der Env-Variable,
+// falls jemand das JWT manuell erzeugt hat (z. B. in lokalen Test-Setups).
+let appleClientSecret = null
+try {
+  appleClientSecret = await initAppleClientSecret()
+} catch (err) {
+  logger.error({ err }, 'Apple Client Secret konnte nicht erzeugt werden – Apple-Login deaktiviert')
+}
+if (!appleClientSecret && APPLE_CLIENT_SECRET_STATIC) {
+  appleClientSecret = APPLE_CLIENT_SECRET_STATIC
+  logger.warn('Apple-Login verwendet statisches BETTER_AUTH_APPLE_CLIENT_SECRET – dieses muss vor Ablauf manuell rotiert werden')
+}
 const GITHUB_CLIENT_ID = process.env.BETTER_AUTH_GITHUB_CLIENT_ID?.trim()
 const GITHUB_CLIENT_SECRET = process.env.BETTER_AUTH_GITHUB_CLIENT_SECRET?.trim()
 
@@ -34,10 +51,14 @@ if (GOOGLE_CLIENT_ID && GOOGLE_CLIENT_SECRET) {
   }
 }
 
-if (APPLE_CLIENT_ID && APPLE_CLIENT_SECRET) {
+if (APPLE_CLIENT_ID && appleClientSecret) {
   socialProviders.apple = {
     clientId: APPLE_CLIENT_ID,
-    clientSecret: APPLE_CLIENT_SECRET,
+    clientSecret: appleClientSecret,
+    // Erlaubt sowohl Web-Tokens (Services-ID als aud) als auch Native-iOS-Tokens
+    // (Bundle-ID als aud), die wir später vom Capacitor-Plugin entgegennehmen.
+    appBundleIdentifier: APPLE_BUNDLE_ID,
+    audience: [APPLE_CLIENT_ID, APPLE_BUNDLE_ID],
   }
 }
 

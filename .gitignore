@@ -89,3 +89,4 @@ tmp/
 tools/
 icons/
 kw20-2026.json
+.secrets/
