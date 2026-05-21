@@ -1,3 +1,39 @@
+// ── CSRF-Header für State-Changing-Requests ───────────────
+// Das Backend (server/middleware/auth.js) verlangt für POST/PUT/DELETE/PATCH
+// den Header X-Requested-With: signifikation-app. Cross-Origin-Scripts können
+// diesen Custom-Header ohne CORS-Preflight nicht setzen → echter CSRF-Schutz.
+//
+// Pendant in der React-App: src/utils/installCsrfFetch.js. Hier ist alles
+// same-origin (Admin-Panel und API laufen unter derselben Origin), deshalb
+// reicht die schlanke Variante ohne Backend-Origins-Allowlist.
+;(function installAdminCsrfFetch() {
+  if (!window.fetch || window.fetch.__sigAdminCsrfWrapped) return
+  const CSRF_HEADER_VALUE = 'signifikation-app'
+  const STATE_CHANGING = new Set(['POST', 'PUT', 'DELETE', 'PATCH'])
+  const originalFetch = window.fetch.bind(window)
+  function methodOf(input, init) {
+    if (init && init.method) return String(init.method).toUpperCase()
+    if (input instanceof Request) return String(input.method || 'GET').toUpperCase()
+    return 'GET'
+  }
+  const wrapped = function patchedFetch(input, init) {
+    const method = methodOf(input, init)
+    if (!STATE_CHANGING.has(method)) return originalFetch(input, init)
+    if (init || !(input instanceof Request)) {
+      const next = { ...(init || {}) }
+      const headers = new Headers(next.headers)
+      if (!headers.has('X-Requested-With')) headers.set('X-Requested-With', CSRF_HEADER_VALUE)
+      next.headers = headers
+      return originalFetch(input, next)
+    }
+    const headers = new Headers(input.headers)
+    if (!headers.has('X-Requested-With')) headers.set('X-Requested-With', CSRF_HEADER_VALUE)
+    return originalFetch(new Request(input, { headers }))
+  }
+  wrapped.__sigAdminCsrfWrapped = true
+  window.fetch = wrapped
+})()
+
 // ── Auth: httpOnly-Cookie ─────────────────────────────────
 // Token wird als httpOnly-Cookie gesetzt und vom Browser automatisch
 // bei jedem Request mitgesendet. Kein Token in sessionStorage nötig.
