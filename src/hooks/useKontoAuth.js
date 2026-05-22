@@ -35,7 +35,6 @@ export function useKontoAuth({ onAuthStateChange = () => {} }) {
   const [authOptions, setAuthOptions] = useState({
     googleEnabled: false,
     appleEnabled: false,
-    githubEnabled: false,
     passwordResetEnabled: false,
   })
   const [resetEmail, setResetEmail] = useState('')
@@ -192,7 +191,6 @@ export function useKontoAuth({ onAuthStateChange = () => {} }) {
         setAuthOptions({
           googleEnabled: !!payload.googleEnabled,
           appleEnabled: !!payload.appleEnabled,
-          githubEnabled: !!payload.githubEnabled,
           passwordResetEnabled: !!payload.passwordResetEnabled,
         })
       })

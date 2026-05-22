@@ -40,9 +40,6 @@ if (!appleClientSecret && APPLE_CLIENT_SECRET_STATIC) {
   appleClientSecret = APPLE_CLIENT_SECRET_STATIC
   logger.warn('Apple-Login verwendet statisches BETTER_AUTH_APPLE_CLIENT_SECRET – dieses muss vor Ablauf manuell rotiert werden')
 }
-const GITHUB_CLIENT_ID = process.env.BETTER_AUTH_GITHUB_CLIENT_ID?.trim()
-const GITHUB_CLIENT_SECRET = process.env.BETTER_AUTH_GITHUB_CLIENT_SECRET?.trim()
-
 const socialProviders = {}
 if (GOOGLE_CLIENT_ID && GOOGLE_CLIENT_SECRET) {
   socialProviders.google = {
@@ -59,13 +56,6 @@ if (APPLE_CLIENT_ID && appleClientSecret) {
     // (Bundle-ID als aud), die wir später vom Capacitor-Plugin entgegennehmen.
     appBundleIdentifier: APPLE_BUNDLE_ID,
     audience: [APPLE_CLIENT_ID, APPLE_BUNDLE_ID],
-  }
-}
-
-if (GITHUB_CLIENT_ID && GITHUB_CLIENT_SECRET) {
-  socialProviders.github = {
-    clientId: GITHUB_CLIENT_ID,
-    clientSecret: GITHUB_CLIENT_SECRET,
   }
 }
 
@@ -143,7 +133,6 @@ if (IS_PROD && PASSWORD_RESET_DELIVERY === 'log') {
 export const authFeatureFlags = {
   googleEnabled: !!socialProviders.google,
   appleEnabled: !!socialProviders.apple,
-  githubEnabled: !!socialProviders.github,
   passwordResetEnabled: PASSWORD_RESET_ENABLED,
 }
 
@@ -171,6 +160,18 @@ export const auth = betterAuth({
     updateAge: SESSION_UPDATE_AGE,
   },
   socialProviders,
+  account: {
+    // Wenn ein User sich erst per E-Mail registriert und dann mit Apple (oder Google)
+    // mit derselben verifizierten E-Mail einloggt, verknüpft better-auth automatisch
+    // beide Accounts unter derselben user-id. Bestandsentitlements (Premium etc.)
+    // bleiben erhalten, da sie an user.id hängen.
+    // Hinweis: Apple Private Relay (@privaterelay.appleid.com) matched nie eine echte
+    // Mail – in dem Fall entsteht ein neuer Account, das ist gewollt.
+    accountLinking: {
+      enabled: true,
+      trustedProviders: ['apple', 'google'],
+    },
+  },
   emailAndPassword: {
     enabled: true,
     requireEmailVerification: false,
