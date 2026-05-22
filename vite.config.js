@@ -40,11 +40,7 @@ export default defineConfig({
   plugins: [
     react(),
     VitePWA({
-      // 'prompt' statt 'autoUpdate', damit wir den Reload selbst über
-      // src/pwa.js + UpdateBanner steuern können (statt der Auto-Reload-Logik
-      // aus dem generierten Bootstrap, die laufende Spielsitzungen abreißen
-      // würde). registerSW({ onNeedRefresh }) liefert uns das Update-Event.
-      registerType: 'prompt',
+      registerType: 'autoUpdate',
       strategies: 'injectManifest',
       srcDir: 'src',
       filename: 'sw.js',

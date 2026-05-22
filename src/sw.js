@@ -5,23 +5,6 @@ import { ExpirationPlugin } from 'workbox-expiration'
 
 precacheAndRoute(self.__WB_MANIFEST)
 
-// ── Update-Übernahme ─────────────────────────────────────────────────────────
-// Bei `injectManifest`-Strategie liefert vite-plugin-pwa kein Auto-skipWaiting;
-// der neue SW bleibt sonst im `waiting`-State hängen, bis alle Tabs geschlossen
-// werden. Folge: Nach Deploy kombiniert der alte SW frische index.html mit
-// alten Asset-Hashes → weiße Seite, bis der User Strg+F5 drückt.
-//
-// Trigger kommt vom Client (src/pwa.js) per postMessage, nachdem der User im
-// Update-Banner auf "Aktualisieren" geklickt hat. `clients.claim()` lässt den
-// neuen SW sofort alle offenen Tabs übernehmen; der Client lädt anschließend
-// via `controllerchange`-Listener neu.
-self.addEventListener('message', (event) => {
-  if (event.data?.type === 'SKIP_WAITING') self.skipWaiting()
-})
-self.addEventListener('activate', (event) => {
-  event.waitUntil(self.clients.claim())
-})
-
 // ── Runtime Caching ───────────────────────────────────────────────────────────
 
 // JS-Assets mit Content-Hash

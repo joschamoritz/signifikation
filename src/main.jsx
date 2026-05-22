@@ -4,7 +4,6 @@ import { Capacitor } from '@capacitor/core'
 import './index.css'
 import { installCsrfFetch } from './utils/installCsrfFetch.js'
 import { initNativeBearerToken } from './utils/apiFetch.js'
-import { registerPwa } from './pwa.js'
 import App from './App.jsx'
 
 // Capacitor (TestFlight/Play Store): App-Bundle wird vom OS atomar aktualisiert,
@@ -80,7 +79,3 @@ function renderApp() {
 }
 
 initNativeBearerToken().then(renderApp, renderApp)
-
-// Service Worker nur im Web registrieren. In Capacitor wäre das ein No-Op mit
-// Fehlerlog, weil capacitor:// kein secure context für SW ist.
-if (!IS_NATIVE) registerPwa()
