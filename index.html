@@ -57,14 +57,15 @@
   <body>
     <a href="#main-content" class="skip-link">Zum Hauptinhalt springen</a>
     <div id="root"></div>
-    <!-- Bootstrap-Safety-Net: Sammelt frühe Fehler in einer Liste und zeigt
-         eine Fallback-UI NUR DANN, wenn nach 6 s nichts in #root gerendert
-         wurde. Wichtig: dangling Promise-Rejections (z. B. ein Capacitor-
-         Plugin, das auf einer Platform 'is not implemented' wirft) dürfen den
-         Render nicht überschreiben – React würde sonst in einen Container
-         rendern, dessen DOM von außen ersetzt wurde. -->
+    <!-- Bootstrap-Safety-Net: NUR im Web aktiv. In der Capacitor-WebView
+         (location.protocol === 'capacitor:') würde es bei harmlosen dangling
+         Promise-Rejections aus Plugin-Proxies fälschlich eine Fehler-UI
+         zeigen – die App rendert dahinter eigentlich normal. Native-Updates
+         laufen ohnehin über App Store / TestFlight, das Safety-Net wäre dort
+         doppelt sinnlos. -->
     <script>
       (function () {
+        if (window.location.protocol === 'capacitor:') return
         window.__sigBootErrors = []
         function record(label, detail) {
           window.__sigBootErrors.push({ label: label, detail: detail, t: Date.now() })
