@@ -5,7 +5,8 @@ import { fetchBelege, belegeVerfuegbar } from '../belege.js'
 import { fetchWiktionary } from '../wiktionary.js'
 import { fetchLemma, fetchBonusQuestion, fetchZeitenwende } from '../wortprofil.js'
 import { loadKalenderEntry, loadWortZwillingEntry, loadZeitenwendeEntry, loadSpezialwoche, recordStat, getPercentile, getLemmataIndex, cacheGet, cacheSet, DATA } from '../store.js'
-import { belegeLimiter, statsLimiter } from '../middleware/rateLimiter.js'
+import { belegeLimiter, statsLimiter, debugLogLimiter } from '../middleware/rateLimiter.js'
+import { z } from 'zod/v3'
 import { auth } from '../auth/index.js'
 import { serverError } from '../middleware/auth.js'
 import { validate, statsSchema, percentileQuerySchema, belegeQuerySchema, archivQuerySchema, qQuerySchema, bonusQuerySchema, datumQuerySchema, spezialwocheDatumQuerySchema } from '../middleware/validate.js'
@@ -368,6 +369,42 @@ router.get('/api/v1/spezialwoche', belegeLimiter, validate(spezialwocheDatumQuer
     logger.error({ err }, 'Spezialwoche-Abruf fehlgeschlagen')
     serverError(res, err)
   }
+})
+
+// ── Debug-Log-Endpoint (Remote-Logging für TestFlight) ───────────────────────
+// Temporär: Die TestFlight-App startet aktuell nicht und wir haben ohne Safari
+// Web Inspector keinen Zugriff auf die Console. Dieser Endpoint empfängt
+// Bootstrap-Errors und Plugin-Warnings, sodass sie im Hetzner-Log
+// (server/logs/...) sichtbar werden.
+//
+// Sicherheit: Rate-limited (60/min/IP), keine Auth, aber harte Längenlimits,
+// damit der Endpoint nicht als Log-Spam-Vehikel missbraucht werden kann.
+const debugLogSchema = z.object({
+  level:   z.enum(['log', 'info', 'warn', 'error']),
+  source:  z.string().max(200),
+  message: z.string().max(2000),
+  stack:   z.string().max(4000).optional(),
+  url:     z.string().max(500).optional(),
+  ua:      z.string().max(300).optional(),
+  ts:      z.number().int().optional(),
+})
+
+router.post('/api/v1/debug/log', debugLogLimiter, validate(debugLogSchema), (req, res) => {
+  const { level, source, message, stack, url, ua, ts } = req.body
+  const fields = {
+    debug:  true,
+    source,
+    msg:    message,
+    stack:  stack || undefined,
+    url:    url   || undefined,
+    ua:     ua    || req.headers['user-agent'],
+    ts:     ts    || Date.now(),
+    ip:     req.ip,
+  }
+  if (level === 'error')      logger.error(fields, '[client-debug]')
+  else if (level === 'warn')  logger.warn(fields,  '[client-debug]')
+  else                        logger.info(fields,  '[client-debug]')
+  res.status(204).end()
 })
 
 export default router

@@ -57,6 +57,61 @@
   <body>
     <a href="#main-content" class="skip-link">Zum Hauptinhalt springen</a>
     <div id="root"></div>
+    <!-- Remote-Debug-Logger: Postet Bootstrap-Errors an /api/v1/debug/log,
+         damit sie im Server-Log sichtbar werden. Aktiv auf jeder Plattform –
+         in TestFlight ist es aktuell die einzige Diagnose-Quelle, weil die
+         App vor jedem Render einen weißen Bildschirm zeigt. -->
+    <script>
+      (function () {
+        var API = window.location.protocol === 'capacitor:'
+          ? 'https://signifikation.de/api/v1/debug/log'
+          : '/api/v1/debug/log'
+        var posted = 0
+        var MAX = 20
+        window.__sigDebugPost = function (level, source, message, stack) {
+          if (posted >= MAX) return
+          posted++
+          try {
+            var body = JSON.stringify({
+              level:   level,
+              source:  String(source || 'unknown').slice(0, 200),
+              message: String(message || '').slice(0, 2000),
+              stack:   stack ? String(stack).slice(0, 4000) : undefined,
+              url:     String(location.href).slice(0, 500),
+              ua:      String(navigator.userAgent || '').slice(0, 300),
+              ts:      Date.now(),
+            })
+            fetch(API, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'signifikation-app',
+              },
+              body: body,
+              keepalive: true,
+            }).catch(function () {})
+          } catch (e) {}
+        }
+        window.addEventListener('error', function (e) {
+          var t = e.target
+          if (t && (t.tagName === 'SCRIPT' || t.tagName === 'LINK' || t.tagName === 'IMG')) {
+            window.__sigDebugPost('error', 'asset-load',
+              'Asset failed to load: ' + (t.src || t.href || '?'), null)
+            return
+          }
+          window.__sigDebugPost('error', 'window.error',
+            (e.message || 'unknown') + (e.filename ? ' @ ' + e.filename + ':' + (e.lineno || '?') : ''),
+            e.error && e.error.stack)
+        }, true)
+        window.addEventListener('unhandledrejection', function (e) {
+          var r = e.reason
+          var msg = (r && r.message) || String(r || 'unknown')
+          window.__sigDebugPost('error', 'unhandledrejection', msg, r && r.stack)
+        })
+        window.__sigDebugPost('info', 'bootstrap', 'index.html loaded, protocol=' + window.location.protocol)
+      })()
+    </script>
+
     <!-- Bootstrap-Safety-Net: NUR im Web aktiv. In der Capacitor-WebView
          (location.protocol === 'capacitor:') würde es bei harmlosen dangling
          Promise-Rejections aus Plugin-Proxies fälschlich eine Fehler-UI

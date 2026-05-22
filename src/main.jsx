@@ -1,3 +1,9 @@
+// Heartbeat 1: vor allen Modul-Imports. Wenn dieser Log nicht im Server-Log
+// erscheint, kommt die App nicht mal bis zum main.jsx-Eval.
+if (typeof window !== 'undefined' && window.__sigDebugPost) {
+  window.__sigDebugPost('info', 'main.jsx', 'main.jsx eval start')
+}
+
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { Capacitor } from '@capacitor/core'
@@ -5,6 +11,10 @@ import './index.css'
 import { installCsrfFetch } from './utils/installCsrfFetch.js'
 import { initNativeBearerToken } from './utils/apiFetch.js'
 import App from './App.jsx'
+
+if (typeof window !== 'undefined' && window.__sigDebugPost) {
+  window.__sigDebugPost('info', 'main.jsx', 'imports done, platform=' + (Capacitor?.getPlatform?.() || 'unknown'))
+}
 
 // Capacitor (TestFlight/Play Store): App-Bundle wird vom OS atomar aktualisiert,
 // es gibt also weder eine "alte index.html mit kaputten Asset-Hashes" noch
@@ -38,6 +48,9 @@ if (typeof window !== 'undefined') {
       event.preventDefault()
       // eslint-disable-next-line no-console
       console.warn('[Capacitor] Plugin-Methode nicht implementiert (ignoriert):', msg)
+      if (window.__sigDebugPost) {
+        window.__sigDebugPost('warn', 'capacitor-unimplemented', msg, reason?.stack)
+      }
     }
   })
 }
@@ -71,11 +84,32 @@ if (!IS_NATIVE && typeof window !== 'undefined') {
 // die App rendert – sonst läuft die erste /auth/get-session Anfrage ohne
 // Authorization-Header und der Nutzer wird scheinbar abgemeldet.
 function renderApp() {
-  createRoot(document.getElementById('root')).render(
-    <StrictMode>
-      <App />
-    </StrictMode>,
-  )
+  if (typeof window !== 'undefined' && window.__sigDebugPost) {
+    window.__sigDebugPost('info', 'main.jsx', 'renderApp() called')
+  }
+  try {
+    createRoot(document.getElementById('root')).render(
+      <StrictMode>
+        <App />
+      </StrictMode>,
+    )
+    if (typeof window !== 'undefined' && window.__sigDebugPost) {
+      window.__sigDebugPost('info', 'main.jsx', 'createRoot.render returned')
+    }
+  } catch (err) {
+    if (typeof window !== 'undefined' && window.__sigDebugPost) {
+      window.__sigDebugPost('error', 'main.jsx', 'renderApp threw: ' + (err?.message || err), err?.stack)
+    }
+    throw err
+  }
 }
 
-initNativeBearerToken().then(renderApp, renderApp)
+if (typeof window !== 'undefined' && window.__sigDebugPost) {
+  window.__sigDebugPost('info', 'main.jsx', 'calling initNativeBearerToken')
+}
+initNativeBearerToken().then(renderApp, (err) => {
+  if (typeof window !== 'undefined' && window.__sigDebugPost) {
+    window.__sigDebugPost('error', 'main.jsx', 'initNativeBearerToken rejected: ' + (err?.message || err), err?.stack)
+  }
+  renderApp()
+})

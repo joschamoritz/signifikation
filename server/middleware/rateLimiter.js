@@ -71,6 +71,7 @@ const classroomExportStore = new CleanupStore(60_000)
 const registerStore = new CleanupStore(15 * 60_000)
 const pushSubscribeStore = new CleanupStore(60_000)
 const iapVerifyStore = new CleanupStore(60_000)
+const debugLogStore = new CleanupStore(60_000)
 
 export const belegeLimiter = rateLimit({
   windowMs: 60_000, max: 30,
@@ -174,4 +175,15 @@ export const iapVerifyLimiter = rateLimit({
   keyGenerator: getClientIp,
   standardHeaders: true, legacyHeaders: false,
   message: { error: 'Zu viele Verifikations-Anfragen. Bitte kurz warten.' },
+})
+
+// Debug-Log-Endpoint: 60 Posts / Minute pro IP. Reicht, um den Bootstrap einer
+// crashenden TestFlight-App zu protokollieren, ohne dass böswillige Aufrufer
+// das Server-Log fluten können.
+export const debugLogLimiter = rateLimit({
+  windowMs: 60_000, max: 60,
+  store: debugLogStore,
+  keyGenerator: getClientIp,
+  standardHeaders: true, legacyHeaders: false,
+  message: { error: 'Zu viele Debug-Logs. Bitte kurz warten.' },
 })
