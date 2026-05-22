@@ -41,9 +41,22 @@ import {
 } from './admin-users-data.js'
 import { sanitizeBackupBundle } from './admin-backup-utils.js'
 import { parseCalendarBulkImport, buildModeGroups } from './admin-calendar-utils.js'
+import { getDebugLogs, clearDebugLogs } from './public.js'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const router = express.Router()
+
+// ── Debug-Log-Reader (Diagnose-Helper) ───────────────────────────────────────
+// Liefert die letzten 200 client-debug Posts aus dem In-Memory-Ring-Buffer.
+// Genutzt, wenn TestFlight-App nicht startet und Safari Web Inspector keine
+// Option ist – der eingeloggte Admin kann die Bootstrap-Logs hier auslesen.
+router.get('/admin/debug-logs', requireAuth, (_req, res) => {
+  res.json({ logs: getDebugLogs() })
+})
+router.delete('/admin/debug-logs', requireAuth, (_req, res) => {
+  clearDebugLogs()
+  res.json({ ok: true })
+})
 
 router.use(createAdminCoreRouter({
   adminLimiter,

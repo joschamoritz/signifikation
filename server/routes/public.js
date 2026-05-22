@@ -374,11 +374,18 @@ router.get('/api/v1/spezialwoche', belegeLimiter, validate(spezialwocheDatumQuer
 // ── Debug-Log-Endpoint (Remote-Logging für TestFlight) ───────────────────────
 // Temporär: Die TestFlight-App startet aktuell nicht und wir haben ohne Safari
 // Web Inspector keinen Zugriff auf die Console. Dieser Endpoint empfängt
-// Bootstrap-Errors und Plugin-Warnings, sodass sie im Hetzner-Log
-// (server/logs/...) sichtbar werden.
+// Bootstrap-Errors und Plugin-Warnings.
 //
-// Sicherheit: Rate-limited (60/min/IP), keine Auth, aber harte Längenlimits,
-// damit der Endpoint nicht als Log-Spam-Vehikel missbraucht werden kann.
+// Logs landen in zwei Senken:
+//   1. pino-Stream (Server-Log via PM2) – für SSH-Zugang
+//   2. In-Memory-Ring-Buffer (debugLogBuffer) – ausgelesen über
+//      GET /admin/debug-logs durch eingeloggten Admin, kein SSH nötig.
+//
+// Sicherheit: Rate-limited (60/min/IP), keine Auth zum Posten, aber harte
+// Längenlimits. Auslesen erfordert Admin-Session.
+const DEBUG_LOG_BUFFER_SIZE = 200
+const debugLogBuffer = []
+
 const debugLogSchema = z.object({
   level:   z.enum(['log', 'info', 'warn', 'error']),
   source:  z.string().max(200),
@@ -391,8 +398,8 @@ const debugLogSchema = z.object({
 
 router.post('/api/v1/debug/log', debugLogLimiter, validate(debugLogSchema), (req, res) => {
   const { level, source, message, stack, url, ua, ts } = req.body
-  const fields = {
-    debug:  true,
+  const entry = {
+    level,
     source,
     msg:    message,
     stack:  stack || undefined,
@@ -400,11 +407,24 @@ router.post('/api/v1/debug/log', debugLogLimiter, validate(debugLogSchema), (req
     ua:     ua    || req.headers['user-agent'],
     ts:     ts    || Date.now(),
     ip:     req.ip,
+    receivedAt: Date.now(),
   }
-  if (level === 'error')      logger.error(fields, '[client-debug]')
-  else if (level === 'warn')  logger.warn(fields,  '[client-debug]')
-  else                        logger.info(fields,  '[client-debug]')
+  // Ring-Buffer
+  debugLogBuffer.push(entry)
+  if (debugLogBuffer.length > DEBUG_LOG_BUFFER_SIZE) debugLogBuffer.shift()
+  // pino
+  if (level === 'error')      logger.error(entry, '[client-debug]')
+  else if (level === 'warn')  logger.warn(entry,  '[client-debug]')
+  else                        logger.info(entry,  '[client-debug]')
   res.status(204).end()
 })
+
+// Export für Admin-Route – kein zusätzliches Modul nötig.
+export function getDebugLogs() {
+  return debugLogBuffer.slice()
+}
+export function clearDebugLogs() {
+  debugLogBuffer.length = 0
+}
 
 export default router
