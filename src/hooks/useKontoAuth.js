@@ -456,9 +456,14 @@ export function useKontoAuth({ onAuthStateChange = () => {} }) {
 
       window.location.assign(payload.url)
     } catch (err) {
-      // Apple Plugin wirft bei User-Cancel einen spezifischen Error
+      // Apple Plugin (Capawesome) wirft bei User-Cancel ErrorCode SIGN_IN_CANCELED
+      const code = String(err?.code || '').toUpperCase()
       const message = String(err?.message || '').toLowerCase()
-      if (message.includes('canceled') || message.includes('cancelled') || message.includes('1001')) {
+      if (
+        code === 'SIGN_IN_CANCELED' ||
+        message.includes('canceled') ||
+        message.includes('cancelled')
+      ) {
         // Stille Behandlung – User hat aktiv abgebrochen
         return
       }
