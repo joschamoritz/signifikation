@@ -57,44 +57,42 @@
   <body>
     <a href="#main-content" class="skip-link">Zum Hauptinhalt springen</a>
     <div id="root"></div>
-    <!-- Bootstrap-Safety-Net: Wenn der Modul-Bundle beim Start crash't (etwa
-         weil ein Capacitor-Plugin nicht initialisierbar ist), zeigt dieser
-         Fallback statt einer weißen Seite eine echte Fehlermeldung. Wird vom
-         erfolgreichen React-Render automatisch überschrieben. -->
+    <!-- Bootstrap-Safety-Net: Sammelt frühe Fehler in einer Liste und zeigt
+         eine Fallback-UI NUR DANN, wenn nach 6 s nichts in #root gerendert
+         wurde. Wichtig: dangling Promise-Rejections (z. B. ein Capacitor-
+         Plugin, das auf einer Platform 'is not implemented' wirft) dürfen den
+         Render nicht überschreiben – React würde sonst in einen Container
+         rendern, dessen DOM von außen ersetzt wurde. -->
     <script>
       (function () {
-        var fired = false
-        function showBootError(label, detail) {
-          if (fired) return
-          fired = true
-          var root = document.getElementById('root')
-          if (!root || root.childNodes.length > 0) return
-          root.innerHTML =
-            '<div style="font-family:system-ui,sans-serif;max-width:480px;margin:48px auto;padding:24px;color:#1a1a18;background:#faf9f7;border:1px solid #d4c9b0;border-radius:4px">' +
-              '<h1 style="font-size:1.2rem;margin:0 0 12px;color:#9b1c1c">App konnte nicht starten</h1>' +
-              '<p style="font-size:0.9rem;line-height:1.5;margin:0 0 8px">' + label + '</p>' +
-              '<pre style="font-size:0.75rem;background:#f3f1ed;padding:8px;border-radius:4px;white-space:pre-wrap;word-break:break-all;max-height:240px;overflow:auto;margin:0">' + detail + '</pre>' +
-            '</div>'
+        window.__sigBootErrors = []
+        function record(label, detail) {
+          window.__sigBootErrors.push({ label: label, detail: detail, t: Date.now() })
         }
         window.addEventListener('error', function (e) {
-          showBootError(
-            'Beim Laden ist ein Fehler aufgetreten:',
-            (e.message || 'Unbekannter Fehler') +
-              (e.filename ? '\n@ ' + e.filename + ':' + (e.lineno || '?') : '')
+          record(
+            'Script-Fehler',
+            (e.message || 'Unbekannt') + (e.filename ? '\n@ ' + e.filename + ':' + (e.lineno || '?') : '')
           )
         })
         window.addEventListener('unhandledrejection', function (e) {
           var reason = e.reason
           var msg = (reason && (reason.stack || reason.message)) || String(reason)
-          showBootError('Unbehandelte Promise-Ablehnung:', msg)
+          record('Unhandled Promise', msg)
         })
-        // Wenn nach 6s nichts gerendert wurde, zeigen wir trotzdem einen Hinweis –
-        // sonst wäre der Bildschirm bei "stillem" Hang weiterhin weiß.
         setTimeout(function () {
           var root = document.getElementById('root')
-          if (root && root.childNodes.length === 0) {
-            showBootError('Die App hat nicht innerhalb von 6 Sekunden gerendert.', 'Vermutlich blockiert ein Modul den Start.')
-          }
+          if (!root || root.childNodes.length > 0) return
+          var errs = window.__sigBootErrors || []
+          var detail = errs.length
+            ? errs.map(function (e) { return '· ' + e.label + ': ' + e.detail }).join('\n\n')
+            : 'Keine Exception erfasst – vermutlich blockiert ein Modul den Start.'
+          root.innerHTML =
+            '<div style="font-family:system-ui,sans-serif;max-width:480px;margin:48px auto;padding:24px;color:#1a1a18;background:#faf9f7;border:1px solid #d4c9b0;border-radius:4px">' +
+              '<h1 style="font-size:1.2rem;margin:0 0 12px;color:#9b1c1c">App konnte nicht starten</h1>' +
+              '<p style="font-size:0.9rem;line-height:1.5;margin:0 0 8px">Die App hat nicht innerhalb von 6 Sekunden gerendert. Erfasste Fehler:</p>' +
+              '<pre style="font-size:0.75rem;background:#f3f1ed;padding:8px;border-radius:4px;white-space:pre-wrap;word-break:break-all;max-height:320px;overflow:auto;margin:0">' + detail + '</pre>' +
+            '</div>'
         }, 6000)
       })()
     </script>

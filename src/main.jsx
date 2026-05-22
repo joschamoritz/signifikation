@@ -18,6 +18,31 @@ import App from './App.jsx'
 //     → registerSW würde nur Fehler werfen.
 const IS_NATIVE = Capacitor.isNativePlatform()
 
+// Capacitor-Plugin-Proxies werfen mit Code 'UNIMPLEMENTED', wenn eine Methode
+// auf der aktuellen Plattform nicht implementiert ist (z. B. wenn ein Plugin
+// im Package.swift fehlt oder eine optionale Methode nur auf Android existiert).
+// Solche Promises sind oft "fire-and-forget" – wenn der Aufrufer nicht .catch()
+// macht, landet die Rejection als 'unhandledrejection' und reißt die App in
+// TestFlight komplett ab (weiße Seite, weil das Safety-Net feuert). Wir
+// swallowen sie hier global, loggen aber den betroffenen Plugin-Namen, damit
+// der Bug-Verursacher diagnostizierbar bleibt.
+if (typeof window !== 'undefined') {
+  window.addEventListener('unhandledrejection', (event) => {
+    const reason = event.reason
+    const code = reason?.code || reason?.errorMessage || ''
+    const msg = reason?.message || String(reason || '')
+    const isCapacitorUnimplemented =
+      code === 'UNIMPLEMENTED' ||
+      /is not implemented on (ios|android|web)/i.test(msg) ||
+      /plugin.+not implemented/i.test(msg)
+    if (isCapacitorUnimplemented) {
+      event.preventDefault()
+      // eslint-disable-next-line no-console
+      console.warn('[Capacitor] Plugin-Methode nicht implementiert (ignoriert):', msg)
+    }
+  })
+}
+
 // CSRF-Header für alle State-Changing-Requests setzen, bevor App rendert.
 installCsrfFetch()
 
