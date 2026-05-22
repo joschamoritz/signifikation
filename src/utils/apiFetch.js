@@ -20,7 +20,21 @@ async function getSecureStorage() {
   if (!Capacitor.isNativePlatform()) return null
   try {
     const mod = await import('@aparajita/capacitor-secure-storage')
-    return mod.SecureStorage ?? null
+    const proxy = mod.SecureStorage
+    if (!proxy) return null
+    // WICHTIG: Den Capacitor-Plugin-Proxy NICHT direkt als async-return
+    // weiterreichen. Async-function-return macht einen Thenable-Check
+    // (`x.then(resolve, reject)`); der Capacitor-Proxy interpretiert
+    // `then` als Plugin-Methode und wirft 'UNIMPLEMENTED' – die App
+    // startet dann in TestFlight gar nicht erst, weil
+    // `initNativeBearerToken()` rejected, bevor `renderApp()` aufgerufen
+    // wird. Wir wrappen den Proxy hier in ein einfaches Pass-through-
+    // Object, das KEIN `then` hat.
+    return {
+      get: (key) => proxy.get(key),
+      set: (key, value) => proxy.set(key, value),
+      remove: (key) => proxy.remove(key),
+    }
   } catch {
     return null
   }
@@ -33,7 +47,11 @@ export function initNativeBearerToken() {
   if (!Capacitor.isNativePlatform()) return Promise.resolve()
   if (initPromise) return initPromise
   initPromise = (async () => {
-    const storage = await getSecureStorage()
+    // Defense-in-Depth: getSecureStorage() darf den Bootstrap unter keinen
+    // Umständen sprengen – falls das Plugin gerade wieder einen unerwarteten
+    // Crash-Pfad hat, fallback auf localStorage und App rendert trotzdem.
+    let storage = null
+    try { storage = await getSecureStorage() } catch { storage = null }
     if (storage) {
       try {
         const fromKeychain = await storage.get(NATIVE_TOKEN_KEY)
@@ -61,7 +79,8 @@ export function setNativeBearerToken(token) {
   if (!Capacitor.isNativePlatform()) return
   cachedToken = token || null
   void (async () => {
-    const storage = await getSecureStorage()
+    let storage = null
+    try { storage = await getSecureStorage() } catch { storage = null }
     if (storage) {
       try {
         if (token) await storage.set(NATIVE_TOKEN_KEY, token)
