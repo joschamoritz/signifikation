@@ -24,10 +24,10 @@ function ZWResults({ lemma, words, answers, onBack, ipa, definitionen }) {
   const zwHistory = lsParse(lsGet('sig_zw_history'), []).slice(0, 14).reverse()
 
   return (
-    <div className="screen zw-screen">
+    <div className="screen zw-screen zw-screen--results">
       <button type="button" className="back-btn" onClick={onBack} aria-label="Zurück zur Startseite"><svg width="10" height="16" viewBox="0 0 10 16" fill="none" aria-hidden="true"><path d="M8.5 1L1.5 8L8.5 15" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg></button>
 
-      <header className="zw-header">
+      <header className="zw-header zw-header--results">
         <span className="zw-badge">Zeitenwende</span>
         <div className="dict-entry-header">
           <div className="zw-lemma">{lemma}</div>
@@ -40,13 +40,31 @@ function ZWResults({ lemma, words, answers, onBack, ipa, definitionen }) {
         </div>
       </header>
 
-      <div className="zw-results">
-        <div className="zw-results-score">
-          <div className="zw-results-medal" aria-hidden="true">{medal.emoji}</div>
+      {/* Score-Block fix unter Header */}
+      <div className="zw-results-score zw-results-score--top">
+        <div className="zw-results-medal" aria-hidden="true">{medal.emoji}</div>
+        <div className="zw-results-score-text">
           <div className="zw-results-points">{score} / {TOTAL} <span className="zw-results-unit">Punkte</span></div>
           <div className="zw-results-label">{medal.label}</div>
         </div>
+      </div>
 
+      {zwHistory.length > 0 && (
+        <div className="history-strip history-strip--top">
+          <span className="history-label">Dein Verlauf · Zeitenwende</span>
+          <div className="history-emojis" role="list" aria-label="Verlauf Zeitenwende">
+            {zwHistory.map((h, i) => (
+              <span key={i} role="listitem" className="history-emoji"
+                    title={`${h.date}: ${h.medal}`} aria-label={`${h.date}: ${h.medal}`}>
+                {h.emoji}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Scrollbare Wörter-Liste */}
+      <div className="zw-results-scroll">
         <div className="zw-results-list" role="list" aria-label="Ergebnisse">
           {words.map((w, i) => {
             const correct = answers[i] === w.periode
@@ -63,21 +81,10 @@ function ZWResults({ lemma, words, answers, onBack, ipa, definitionen }) {
             )
           })}
         </div>
+      </div>
 
-        {zwHistory.length > 0 && (
-          <div className="history-strip">
-            <span className="history-label">Dein Verlauf · Zeitenwende</span>
-            <div className="history-emojis" role="list" aria-label="Verlauf Zeitenwende">
-              {zwHistory.map((h, i) => (
-                <span key={i} role="listitem" className="history-emoji"
-                      title={`${h.date}: ${h.medal}`} aria-label={`${h.date}: ${h.medal}`}>
-                  {h.emoji}
-                </span>
-              ))}
-            </div>
-          </div>
-        )}
-
+      {/* Sticky Footer */}
+      <div className="zw-results-footer">
         <button type="button" className="btn-primary btn-full" onClick={onBack}>
           Zur Startseite
         </button>
@@ -383,44 +390,44 @@ export default function Zeitenwende({ data, onBack, onFinish, savedResult = null
         </button>
       )}
 
-      {/* Entscheidungs-Buttons */}
-      <div className="zw-choices">
-        <button
-          type="button"
-          className={[
-            'zw-choice-btn',
-            'zw-choice-btn--pre',
-            chosen === 'pre' ? 'zw-choice-btn--selected-pre' : '',
-          ].filter(Boolean).join(' ')}
-          onClick={() => choose('pre')}
-          disabled={feedback !== null}
-          aria-label="Vor 2000"
-        >
-          <span className="zw-choice-arrow" aria-hidden="true">←</span>
-          <span className="zw-choice-label">Vor 2000</span>
-        </button>
+      {/* Entscheidungs-Buttons – nur im Spielmodus, im Feedback-Modus übernimmt der Weiter-Button */}
+      {feedback === null && (
+        <div className="zw-choices">
+          <button
+            type="button"
+            className={[
+              'zw-choice-btn',
+              'zw-choice-btn--pre',
+              chosen === 'pre' ? 'zw-choice-btn--selected-pre' : '',
+            ].filter(Boolean).join(' ')}
+            onClick={() => choose('pre')}
+            disabled={feedback !== null}
+            aria-label="Vor 2000"
+          >
+            <span className="zw-choice-arrow" aria-hidden="true">←</span>
+            <span className="zw-choice-label">Vor 2000</span>
+          </button>
 
-        <button
-          type="button"
-          className={[
-            'zw-choice-btn',
-            'zw-choice-btn--post',
-            chosen === 'post' ? 'zw-choice-btn--selected-post' : '',
-          ].filter(Boolean).join(' ')}
-          onClick={() => choose('post')}
-          disabled={feedback !== null}
-          aria-label="Nach 2000"
-        >
-          <span className="zw-choice-arrow" aria-hidden="true">→</span>
-          <span className="zw-choice-label">Nach 2000</span>
-        </button>
-      </div>
+          <button
+            type="button"
+            className={[
+              'zw-choice-btn',
+              'zw-choice-btn--post',
+              chosen === 'post' ? 'zw-choice-btn--selected-post' : '',
+            ].filter(Boolean).join(' ')}
+            onClick={() => choose('post')}
+            disabled={feedback !== null}
+            aria-label="Nach 2000"
+          >
+            <span className="zw-choice-arrow" aria-hidden="true">→</span>
+            <span className="zw-choice-label">Nach 2000</span>
+          </button>
+        </div>
+      )}
 
-      <p className="zw-key-hint" aria-hidden="true">
-        {feedback !== null
-          ? 'Wischen oder Enter → Weiter'
-          : '← Wischen oder Klicken →'}
-      </p>
+      {feedback === null && (
+        <p className="zw-key-hint" aria-hidden="true">← Wischen oder Klicken →</p>
+      )}
     </div>
   )
 }

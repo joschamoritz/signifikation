@@ -120,6 +120,15 @@
   overscroll-behavior: contain;
 }
 
+/* BelegePanel im Sheet: keine Doppel-Karte – Border/Background entfallen */
+.sheet-body .belege-panel {
+  margin-top: 0;
+  padding: 0;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+}
+
 /* ── Footer ────────────────────────────────────────────────────────────────── */
 
 .sheet-footer {

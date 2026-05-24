@@ -3,6 +3,7 @@ import { getRoundOptions, calculateMixedScore, shuffle } from '../utils/gameLogi
 import { useBelege } from '../hooks/useBelege'
 import { lsGet, lsSet } from '../utils/storage'
 import BelegePanel from './BelegePanel'
+import Sheet from './ui/Sheet'
 
 const BELEG_HINT_KEY = 'sig_beleg_hint'
 
@@ -14,7 +15,7 @@ export default function Quiz({ lemma, currentRound, onRoundComplete, onBack }) {
 
   const kollokatoren = lemma.runden?.kollokatoren ?? []
 
-  const { openBeleg, belegeCache, belegeLoading, loadBelege } = useBelege(lemma.lemma, '')
+  const { openBeleg, belegeCache, belegeLoading, loadBelege, closeBelege } = useBelege(lemma.lemma, '')
   const wrapRef = useRef(null)
 
   const handleScroll = useCallback(() => {
@@ -188,14 +189,23 @@ export default function Quiz({ lemma, currentRound, onRoundComplete, onBack }) {
         </button>
       )}
 
-      {submitted && openBeleg && (
-        <BelegePanel
-          lemma={lemma.lemma}
-          collocate={openBeleg}
-          data={belegeCache[openBeleg]}
-          loading={belegeLoading}
-        />
-      )}
+      <Sheet
+        open={submitted && !!openBeleg}
+        onClose={closeBelege}
+        aria-label={openBeleg ? `Belege für ${lemma.lemma} und ${openBeleg}` : 'Belege'}
+      >
+        <Sheet.Header />
+        <Sheet.Body>
+          {openBeleg && (
+            <BelegePanel
+              lemma={lemma.lemma}
+              collocate={openBeleg}
+              data={belegeCache[openBeleg]}
+              loading={belegeLoading}
+            />
+          )}
+        </Sheet.Body>
+      </Sheet>
 
       {submitted && (
         <div className="round-feedback" aria-live="polite" aria-atomic="true">

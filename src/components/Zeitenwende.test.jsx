@@ -68,7 +68,7 @@ describe('Zeitenwende – Smoketest', () => {
       />
     )
 
-    expect(document.querySelector('.zw-results')).toBeTruthy()
+    expect(document.querySelector('.zw-results-list')).toBeTruthy()
     expect(document.querySelector('.zw-word-card')).toBeNull()
   })
 

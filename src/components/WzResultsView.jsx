@@ -3,6 +3,7 @@ import { API } from '../config'
 import { getMedal } from '../utils/gameLogic'
 import { lsGet, lsParse } from '../utils/storage'
 import BelegePanel from './BelegePanel'
+import Sheet from './ui/Sheet'
 
 export function computeScore(zoneA, zoneB, zuordnungMap) {
   return [...zoneA, ...zoneB].filter(w =>
@@ -44,7 +45,7 @@ export default function WzResultsView({ data, zoneA, zoneB, onBack, ipaA, ipaB }
     : null
 
   return (
-    <div className="screen wz-screen">
+    <div className="screen wz-screen wz-screen--results">
       <button className="back-btn" type="button" onClick={onBack} aria-label="Zurück zur Startseite"><svg width="10" height="16" viewBox="0 0 10 16" fill="none" aria-hidden="true"><path d="M8.5 1L1.5 8L8.5 15" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg></button>
       <header className="wz-header">
         <span className="wz-badge">Wort-Zwilling</span>
@@ -69,68 +70,85 @@ export default function WzResultsView({ data, zoneA, zoneB, onBack, ipaA, ipaB }
         </div>
       </header>
 
-      <div className="wz-zones">
-        {[['A', data.wortA, zoneA], ['B', data.wortB, zoneB]].map(([z, label, zone]) => (
-          <div key={z} className="wz-zone wz-zone--result">
-            <div className="wz-zone-label">{label}</div>
-            <div className="wz-zone-chips">
-              {zone.map(w => {
-                const correct = zuordnungMap[w] === z
-                return (
-                  <button
-                    key={w}
-                    className={`wz-chip wz-chip--${correct ? 'correct' : 'wrong'}${openBeleg === w ? ' wz-chip--beleg-active' : ''}`}
-                    onClick={() => loadWZBeleg(w)}
-                    title="Belege anzeigen"
-                    aria-label={`${w} – Belege anzeigen`}
-                    aria-pressed={openBeleg === w}
-                  >
-                    <span>{w}</span>
-                    <span className="wz-chip-icon" aria-hidden="true">{correct ? '✓' : '✗'}</span>
-                  </button>
-                )
-              })}
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {openBeleg && (
-        <BelegePanel
-          lemma={activeLemma}
-          collocate={openBeleg}
-          data={belegeCache[openBeleg]}
-          loading={belegeLoading}
-        />
-      )}
-
-      <p className="wz-beleg-hint">Tippe auf eine Kollokation, um Beispielsätze aus dem Korpus zu sehen.</p>
-
-      <div className="wz-result-banner">
-        <span className="wz-result-medal">{medal.emoji}</span>
+      {/* Score-Banner direkt unter Header (kompakt) */}
+      <div className="wz-result-banner wz-result-banner--top">
+        <span className="wz-result-medal" aria-hidden="true">{medal.emoji}</span>
         <div>
           <p className="wz-result-score">{score} / 10 richtig</p>
           <p className="wz-result-label">{medal.label}</p>
         </div>
       </div>
 
-      {wzHistory.length > 0 && (
-        <div className="history-strip">
-          <span className="history-label">Dein Verlauf · Wort-Zwilling</span>
-          <div className="history-emojis" role="list" aria-label="Verlauf Wort-Zwilling">
-            {wzHistory.map((h, i) => (
-              <span key={i} role="listitem" className="history-emoji"
-                    title={`${h.date}: ${h.medal}`} aria-label={`${h.date}: ${h.medal}`}>
-                {h.emoji}
-              </span>
-            ))}
-          </div>
-        </div>
-      )}
+      <p className="wz-beleg-hint">Tippe auf eine Kollokation, um Beispielsätze aus dem Korpus zu sehen.</p>
 
-      <button className="btn-primary btn-full" onClick={onBack}>
-        Zur Startseite
-      </button>
+      {/* Scrollbarer Mittelteil */}
+      <div className="wz-result-scroll">
+        <div className="wz-zones">
+          {[['A', data.wortA, zoneA], ['B', data.wortB, zoneB]].map(([z, label, zone]) => (
+            <div key={z} className="wz-zone wz-zone--result">
+              <div className="wz-zone-label">{label}</div>
+              <div className="wz-zone-chips">
+                {zone.map(w => {
+                  const correct = zuordnungMap[w] === z
+                  return (
+                    <button
+                      key={w}
+                      className={`wz-chip wz-chip--${correct ? 'correct' : 'wrong'}${openBeleg === w ? ' wz-chip--beleg-active' : ''}`}
+                      onClick={() => loadWZBeleg(w)}
+                      title="Belege anzeigen"
+                      aria-label={`${w} – Belege anzeigen`}
+                      aria-pressed={openBeleg === w}
+                    >
+                      <span>{w}</span>
+                      <span className="wz-chip-icon" aria-hidden="true">{correct ? '✓' : '✗'}</span>
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {wzHistory.length > 0 && (
+          <div className="history-strip">
+            <span className="history-label">Dein Verlauf · Wort-Zwilling</span>
+            <div className="history-emojis" role="list" aria-label="Verlauf Wort-Zwilling">
+              {wzHistory.map((h, i) => (
+                <span key={i} role="listitem" className="history-emoji"
+                      title={`${h.date}: ${h.medal}`} aria-label={`${h.date}: ${h.medal}`}>
+                  {h.emoji}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Sticky Footer */}
+      <div className="wz-result-footer">
+        <button className="btn-primary btn-full" onClick={onBack}>
+          Zur Startseite
+        </button>
+      </div>
+
+      {/* Belege als Bottom-Sheet */}
+      <Sheet
+        open={!!openBeleg}
+        onClose={() => setOpenBeleg(null)}
+        aria-label={openBeleg ? `Belege für ${activeLemma} und ${openBeleg}` : 'Belege'}
+      >
+        <Sheet.Header />
+        <Sheet.Body>
+          {openBeleg && (
+            <BelegePanel
+              lemma={activeLemma}
+              collocate={openBeleg}
+              data={belegeCache[openBeleg]}
+              loading={belegeLoading}
+            />
+          )}
+        </Sheet.Body>
+      </Sheet>
     </div>
   )
 }

@@ -241,6 +241,10 @@
 .zw-belege {
   width: 100%;
   margin-top: 4px;
+  max-height: 120px;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
 }
 
 .zw-belege-status {
@@ -380,6 +384,51 @@
 
 .zw-results-score {
   text-align: center;
+}
+
+/* Kompakt-Variante (Score oben fix bei Ergebnis-Screen) */
+.zw-results-score--top {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: left;
+  gap: 14px;
+  padding: 10px 14px;
+  background: var(--surface2, var(--surface-warm));
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-sm);
+  margin-bottom: 8px;
+}
+.zw-results-score--top .zw-results-medal { font-size: 2rem }
+.zw-results-score--top .zw-results-points { font-size: 1.25rem; margin-top: 0 }
+.zw-results-score--top .zw-results-label  { font-size: 0.78rem; margin-top: 0 }
+
+/* Ergebnis-Screen-Layout: scrollbarer Mittelteil + sticky Footer */
+.zw-screen--results {
+  padding-block: 32px 0;
+}
+.zw-header--results {
+  margin-bottom: 12px;
+}
+.history-strip--top {
+  margin-bottom: 8px;
+}
+.zw-results-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  margin: 0 -4px;
+  padding: 0 4px 8px;
+}
+.zw-results-footer {
+  position: sticky;
+  bottom: 0;
+  background: var(--bg);
+  padding: 12px 0 max(8px, env(safe-area-inset-bottom));
+  box-shadow: 0 -8px 12px -8px rgba(26, 26, 24, 0.08);
+  z-index: 5;
 }
 
 .zw-results-medal {

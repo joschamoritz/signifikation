@@ -19,8 +19,10 @@ export default function BelegePanel({ lemma, collocate, data, loading }) {
             <p className="beleg-quelle">{b.quelle}</p>
           </div>
         ))
-      ) : (
+      ) : data === null ? (
         <p className="belege-status">Belege konnten nicht geladen werden.</p>
+      ) : (
+        <p className="belege-status">Keine Korpusbelege vorhanden.</p>
       )}
     </div>
   )

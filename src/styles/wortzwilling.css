@@ -200,6 +200,19 @@
   border-radius: 0;
   padding: 18px 4px;
 }
+/* Kompakt-Variante direkt unter dem Header (Results-Top) */
+.wz-result-banner--top {
+  padding: 10px 12px;
+  gap: 12px;
+  background: var(--surface2, var(--surface-warm));
+  border: none;
+  border-bottom: 1px solid var(--accent);
+  border-top: 1px solid var(--accent);
+  border-radius: var(--radius-sm);
+}
+.wz-result-banner--top .wz-result-medal { font-size: 2rem }
+.wz-result-banner--top .wz-result-score { font-size: 1.15rem }
+.wz-result-banner--top .wz-result-label { font-size: 0.78rem }
 .wz-result-medal  { font-size: 2.6rem; line-height: 1 }
 .wz-result-score  { font-family: var(--font-serif); font-size: 1.4rem; font-weight: 700; color: var(--text) }
 .wz-result-label  { font-size: 0.85rem; color: var(--muted); margin-top: 2px }
@@ -208,6 +221,28 @@
   color: var(--muted);
   text-align: center;
   font-style: italic;
+}
+
+/* Result-Screen: Scrollbarer Mittelteil + sticky Footer */
+.wz-screen--results {
+  /* Footer überlappt den Inhalt – keine zusätzliche Padding-Anpassung nötig,
+     weil sticky bottom: 0 nur klebt, sobald Inhalt nach unten überläuft */
+  padding-bottom: 0;
+}
+.wz-result-scroll {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.wz-result-footer {
+  position: sticky;
+  bottom: 0;
+  background: var(--bg);
+  margin-top: 8px;
+  padding: 12px 0 max(8px, env(safe-area-inset-bottom));
+  /* Subtiler Schatten/Border, damit klar ist: hier endet der Scroll */
+  box-shadow: 0 -8px 12px -8px rgba(26, 26, 24, 0.08);
+  z-index: 5;
 }
 
 /* ── Share-Button ─────────────────────────────────────────── */
