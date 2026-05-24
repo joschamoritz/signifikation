@@ -183,9 +183,9 @@ export default function Quiz({ lemma, currentRound, onRoundComplete, onBack }) {
           type="button"
           className="beleg-hint"
           onClick={() => { setShowBelegHint(false); lsSet(BELEG_HINT_KEY, '1') }}
-          aria-label="Tipp schließen: Klicke auf ein Wort, um Beispielsätze aus dem DWDS-Korpus zu sehen."
+          aria-label="Tipp schließen: Tippe auf ein Wort, um Beispielsätze aus dem Korpus zu sehen."
         >
-          💡 Tipp: Klicke auf ein Wort, um Beispielsätze aus dem DWDS-Korpus zu sehen.
+          💡 Tipp: Tippe auf ein Wort, um Beispielsätze aus dem Korpus zu sehen.
         </button>
       )}
 
