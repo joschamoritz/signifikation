@@ -5,6 +5,7 @@ import { lsGet, lsParse } from '../utils/storage'
 import { API } from '../config'
 import BelegePanel from './BelegePanel'
 import ExternalLink from './ExternalLink'
+import Sheet from './ui/Sheet'
 
 /**
  * Filtert `definitionen`-Strings auf echte Bedeutungseinträge.
@@ -68,7 +69,7 @@ export default function Results({ lemma, roundScores, onRestart, onToSelection }
     return () => clearTimeout(t)
   }, [isPerfect])
 
-  const { openBeleg, belegeCache, belegeLoading, loadBelege } = useBelege(lemma.lemma)
+  const { openBeleg, belegeCache, belegeLoading, loadBelege, closeBelege } = useBelege(lemma.lemma)
 
   return (
     <div className="screen results-screen">
@@ -158,15 +159,26 @@ export default function Results({ lemma, roundScores, onRestart, onToSelection }
           </div>
         </div>
 
-        {openBeleg && (
-          <BelegePanel
-            lemma={lemma.lemma}
-            collocate={openBeleg}
-            data={belegeCache[openBeleg]}
-            loading={belegeLoading}
-          />
-        )}
       </div>
+
+      {/* Belege als Bottom-Sheet (Top-3-Wörter im Wortprofil) */}
+      <Sheet
+        open={!!openBeleg}
+        onClose={closeBelege}
+        aria-label={openBeleg ? `Belege für ${lemma.lemma} und ${openBeleg}` : 'Belege'}
+      >
+        <Sheet.Header />
+        <Sheet.Body>
+          {openBeleg && (
+            <BelegePanel
+              lemma={lemma.lemma}
+              collocate={openBeleg}
+              data={belegeCache[openBeleg]}
+              loading={belegeLoading}
+            />
+          )}
+        </Sheet.Body>
+      </Sheet>
 
       {/* ── Score-Banner ── */}
       <div className="results-score-banner">
