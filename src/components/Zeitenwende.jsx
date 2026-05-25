@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import BelegeSatz from './BelegeSatz'
 import { lsGet, lsParse } from '../utils/storage'
 import { getMedal } from '../utils/gameLogic'
+import { hapticLight, hapticMedium } from '../utils/haptics'
 import { API } from '../config'
 import '../styles/zeitenwende.css'
 
@@ -186,7 +187,7 @@ export default function Zeitenwende({ data, onBack, onFinish, savedResult = null
     const dx  = raw * 0.85 // Widerstandsgefühl
     // Haptik genau beim Einrasten der Schwelle
     if (Math.abs(raw) >= SWIPE_THRESHOLD && Math.abs(dragX) < SWIPE_THRESHOLD * 0.85) {
-      navigator.vibrate?.(12)
+      hapticLight()
     }
     setDragX(dx)
   }, [feedback, dragX])
@@ -204,11 +205,11 @@ export default function Zeitenwende({ data, onBack, onFinish, savedResult = null
     }
 
     if (totalDx < -SWIPE_THRESHOLD) {
-      navigator.vibrate?.([8, 30, 8])
+      hapticMedium()
       setDragX(0)
       choose('pre')
     } else if (totalDx > SWIPE_THRESHOLD) {
-      navigator.vibrate?.([8, 30, 8])
+      hapticMedium()
       setDragX(0)
       choose('post')
     } else {
@@ -235,7 +236,7 @@ export default function Zeitenwende({ data, onBack, onFinish, savedResult = null
     const raw = e.clientX - touchStartX.current
     const dx  = raw * 0.85
     if (Math.abs(raw) >= SWIPE_THRESHOLD && Math.abs(dragX) < SWIPE_THRESHOLD * 0.85) {
-      navigator.vibrate?.(12)
+      hapticLight()
     }
     setDragX(dx)
   }, [feedback, dragX])

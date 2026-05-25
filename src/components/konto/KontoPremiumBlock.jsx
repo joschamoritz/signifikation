@@ -3,6 +3,7 @@ import { Capacitor } from '@capacitor/core'
 import { API } from '../../config'
 import { apiFetch } from '../../utils/apiFetch'
 import { IAP } from '../../plugins/iap.js'
+import { restoreIapPurchases } from '../../utils/iapRestore'
 import { logError } from '../../utils/logError'
 import CheckoutModal from './CheckoutModal'
 
@@ -18,6 +19,8 @@ const FEATURES = [
 export default function KontoPremiumBlock({ auth, gesamtausgabePermanent, freeAccessToday, freeAccessLabel }) {
   const [checkoutOpen, setCheckoutOpen] = useState(false)
   const [loginHint, setLoginHint] = useState(false)
+  const [restoreStatus, setRestoreStatus] = useState(null) // 'busy' | 'none' | 'not-found' | 'error' | null
+  const [restoreMessage, setRestoreMessage] = useState(null)
 
   function handleBuyClick() {
     if (!auth.isLoggedIn) {
@@ -26,6 +29,23 @@ export default function KontoPremiumBlock({ auth, gesamtausgabePermanent, freeAc
     }
     setLoginHint(false)
     setCheckoutOpen(true)
+  }
+
+  // Permanent zugänglich – Apple verlangt einen sichtbaren Restore-Pfad, ohne
+  // dass der Nutzer erst den Kauf-Dialog öffnen muss.
+  async function handleRestoreClick() {
+    if (restoreStatus === 'busy') return
+    setRestoreStatus('busy')
+    setRestoreMessage(null)
+    const result = await restoreIapPurchases()
+    if (result.ok) {
+      await auth.loadSession?.()
+      setRestoreStatus(null)
+      return
+    }
+    if (result.reason === 'none')           { setRestoreStatus('none');      setRestoreMessage('Keine früheren Käufe gefunden.') }
+    else if (result.reason === 'not-found') { setRestoreStatus('not-found'); setRestoreMessage('Kein gültiger Kauf gefunden.') }
+    else                                    { setRestoreStatus('error');     setRestoreMessage(result.message || 'Netzwerkfehler.') }
   }
 
   useEffect(() => {
@@ -129,6 +149,21 @@ export default function KontoPremiumBlock({ auth, gesamtausgabePermanent, freeAc
                 <p className="konto-login-hint" role="alert">
                   Bitte oben anmelden, um den Kauf abzuschließen.
                 </p>
+              )}
+              {IS_NATIVE && (
+                <>
+                  <button
+                    className="konto-restore-link"
+                    type="button"
+                    onClick={handleRestoreClick}
+                    disabled={restoreStatus === 'busy'}
+                  >
+                    {restoreStatus === 'busy' ? 'Wird geprüft …' : 'Bereits gekauft? Kauf wiederherstellen'}
+                  </button>
+                  {restoreMessage && (
+                    <p className="konto-restore-note" role="status">{restoreMessage}</p>
+                  )}
+                </>
               )}
             </div>
 

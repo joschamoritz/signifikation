@@ -1,8 +1,10 @@
 import { useState, useEffect, useCallback, createContext, useContext } from 'react'
+import { Capacitor } from '@capacitor/core'
 
 export const ThemeContext = createContext({ pref: 'auto', setTheme: () => {} })
 
 const STORAGE_KEY = 'signifikation-theme'
+const IS_NATIVE = Capacitor.isNativePlatform()
 
 function resolveTheme(pref) {
   if (pref === 'dark') return 'dark'
@@ -10,8 +12,19 @@ function resolveTheme(pref) {
   return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
 }
 
+// StatusBar-Style folgt dem aktiven Theme. Style.Dark = dunkler Inhalt für hellen
+// Hintergrund (Light Mode), Style.Light = heller Inhalt für dunklen Hintergrund.
+async function applyNativeStatusBar(theme) {
+  if (!IS_NATIVE) return
+  try {
+    const { StatusBar, Style } = await import('@capacitor/status-bar')
+    await StatusBar.setStyle({ style: theme === 'dark' ? Style.Light : Style.Dark })
+  } catch { /* Plugin fehlt oder unterstützt Plattform nicht – ignorieren */ }
+}
+
 function applyTheme(theme) {
   document.documentElement.setAttribute('data-theme', theme)
+  applyNativeStatusBar(theme)
 }
 
 export function useTheme() {

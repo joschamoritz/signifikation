@@ -3,6 +3,7 @@ import { Capacitor } from '@capacitor/core'
 import { API } from '../../config'
 import { apiFetch } from '../../utils/apiFetch'
 import { IAP } from '../../plugins/iap.js'
+import { restoreIapPurchases } from '../../utils/iapRestore'
 import Sheet from '../ui/Sheet'
 import ExternalLink from '../ExternalLink'
 import './CheckoutModal.css'
@@ -105,27 +106,12 @@ export default function CheckoutModal({ isOpen, onClose, onSuccess }) {
     if (isBusy) return
     setIsBusy(true)
     setCheckoutError(null)
-    try {
-      const { transactions } = await IAP.restorePurchases()
-      if (!transactions?.length) {
-        setCheckoutError('Keine früheren Käufe gefunden.')
-        return
-      }
-      const res = await apiFetch(`${API}/iap/restore`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ transactions }),
-      })
-      const data = await res.json().catch(() => ({}))
-      if (!res.ok) throw new Error(data.error || 'Wiederherstellung fehlgeschlagen.')
-      if (data.unlocked) { onSuccess?.(); onClose() }
-      else setCheckoutError('Kein gültiger Kauf gefunden.')
-    } catch (err) {
-      setCheckoutError(err.message || 'Netzwerkfehler.')
-    } finally {
-      setIsBusy(false)
-    }
+    const result = await restoreIapPurchases()
+    setIsBusy(false)
+    if (result.ok) { onSuccess?.(); onClose(); return }
+    if (result.reason === 'none')      setCheckoutError('Keine früheren Käufe gefunden.')
+    else if (result.reason === 'not-found') setCheckoutError('Kein gültiger Kauf gefunden.')
+    else setCheckoutError(result.message || 'Netzwerkfehler.')
   }
 
   return (

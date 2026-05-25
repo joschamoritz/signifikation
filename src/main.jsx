@@ -27,6 +27,14 @@ if (typeof window !== 'undefined' && window.__sigDebugPost) {
 //     → registerSW würde nur Fehler werfen.
 const IS_NATIVE = Capacitor.isNativePlatform()
 
+// Plattform-Marker auf <html> setzen, damit CSS gezielt iOS-/Android-spezifische
+// Akzente setzen kann (z.B. Glass-Hintergründe nur in der Native-App, im Web
+// bleibt die Wörterbuch-Ästhetik nackt).
+try {
+  const platform = Capacitor.getPlatform?.() || 'web'
+  document.documentElement.setAttribute('data-platform', platform)
+} catch { /* ignore – nicht kritisch */ }
+
 // Capacitor-Plugin-Proxies werfen mit Code 'UNIMPLEMENTED', wenn eine Methode
 // auf der aktuellen Plattform nicht implementiert ist (z. B. wenn ein Plugin
 // im Package.swift fehlt oder eine optionale Methode nur auf Android existiert).
