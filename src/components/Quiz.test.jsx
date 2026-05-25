@@ -80,7 +80,7 @@ describe('Quiz – Smoketest', () => {
     expect(onRoundComplete).toHaveBeenCalledWith(0)
   })
 
-  it('Submit-Pfad: Top-3 in korrekter Reihenfolge → onRoundComplete(10)', () => {
+  it('Submit-Pfad: alle Top-3 gewählt → onRoundComplete(10)', () => {
     const onRoundComplete = vi.fn()
     render(
       <Quiz
@@ -90,7 +90,7 @@ describe('Quiz – Smoketest', () => {
       />
     )
 
-    // Reihenfolge entspricht Rängen → 3+3+3+1 Bonus = 10
+    // 3 + 3 + 3 + Bonus = 10 (Klick-Reihenfolge spielt keine Rolle)
     fireEvent.click(getOption('eins'))
     fireEvent.click(getOption('zwei'))
     fireEvent.click(getOption('drei'))
@@ -108,7 +108,7 @@ describe('Quiz – Smoketest', () => {
     expect(onRoundComplete).toHaveBeenCalledWith(10)
   })
 
-  it('Submit-Pfad: alle Picks außerhalb Top-5 → onRoundComplete(0)', () => {
+  it('Submit-Pfad: gemischte Picks (nearPool + midPool) → Teilpunkte', () => {
     const onRoundComplete = vi.fn()
     render(
       <Quiz
@@ -118,6 +118,7 @@ describe('Quiz – Smoketest', () => {
       />
     )
 
+    // sechs(Rang 6)=2 + sieben(Rang 7)=2 + acht(Rang 8)=1 = 5
     fireEvent.click(getOption('sechs'))
     fireEvent.click(getOption('sieben'))
     fireEvent.click(getOption('acht'))
@@ -125,7 +126,7 @@ describe('Quiz – Smoketest', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Auswerten' }))
     fireEvent.click(screen.getByRole('button', { name: /Weiter/ }))
 
-    expect(onRoundComplete).toHaveBeenCalledWith(0)
+    expect(onRoundComplete).toHaveBeenCalledWith(5)
   })
 
   it('Auswerten ist deaktiviert bevor 3 Wörter gewählt sind', () => {

@@ -41,23 +41,29 @@ export function calculateScore(selectedWords, kollokatoren) {
 
 /**
  * Score for the mixed single round:
- *   Richtiges Wort + richtiger Rang:  3 Punkte
- *   Richtiges Wort + falscher Rang:   2 Punkte
- *   Rang 4–5 (naher Treffer):         1 Punkt
- *   Rang 6+:                          0 Punkte
+ *   Top-3 (Rang 1–3):                 3 Punkte
+ *   Naher Treffer (Rang 4–7):         2 Punkte
+ *   Schwacher Treffer (Rang 8–10):    1 Punkt
  *   +1 Bonus wenn alle 3 Picks in Top-3
  * Max 10 Punkte (3×3 + 1 Bonus)
+ *
+ * Die Klick-Reihenfolge spielt keine Rolle mehr – die Top-3
+ * unterscheiden sich linguistisch kaum, und die echten Korpus-Ränge
+ * der Distraktoren (Plätze 4–12 = nearPool, 13–25 = midPool) werden
+ * konsistent belohnt statt vom Shuffle-Index abhängig zu sein.
  */
 export function calculateMixedScore(selectedWords, kollokatoren) {
   let score = 0
   let top3Count = 0
-  selectedWords.forEach((word, pickIndex) => {
+  selectedWords.forEach((word) => {
     const k = kollokatoren.find(k => k.wort === word)
     if (!k) return
     if (k.rang <= 3) {
       top3Count++
-      score += (k.rang === pickIndex + 1) ? 3 : 2
-    } else if (k.rang <= 5) {
+      score += 3
+    } else if (k.rang <= 7) {
+      score += 2
+    } else if (k.rang <= 10) {
       score += 1
     }
   })
@@ -68,9 +74,9 @@ export function calculateMixedScore(selectedWords, kollokatoren) {
 /** Einheitliche Medaille (prozentbasiert). */
 export function getMedal(score, max) {
   const pct = score / (max || 1)
-  if (pct >= 0.8) return { label: 'Gold',         emoji: '🥇' }
-  if (pct >= 0.6) return { label: 'Silber',        emoji: '🥈' }
-  if (pct >= 0.4) return { label: 'Bronze',        emoji: '🥉' }
+  if (pct >= 0.7) return { label: 'Gold',         emoji: '🥇' }
+  if (pct >= 0.5) return { label: 'Silber',        emoji: '🥈' }
+  if (pct >= 0.3) return { label: 'Bronze',        emoji: '🥉' }
   return                  { label: 'Teilgenommen', emoji: '🌱' }
 }
 

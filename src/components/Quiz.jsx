@@ -150,7 +150,7 @@ export default function Quiz({ lemma, currentRound, onRoundComplete, onBack }) {
           const ariaLabel = submitted
             ? `${opt.wort} – ${STATE_LABEL[state] ?? ''}`
             : rank
-              ? `${opt.wort} – Rang ${rank} gewählt`
+              ? `${opt.wort} – gewählt`
               : opt.wort
 
           return (
@@ -167,7 +167,6 @@ export default function Quiz({ lemma, currentRound, onRoundComplete, onBack }) {
               {submitted && STATE_ICON[state] && (
                 <span className="option-icon" aria-hidden="true">{STATE_ICON[state]}</span>
               )}
-              {!submitted && rank && <span className="option-rank" aria-hidden="true">{rank}</span>}
               {opt.wort}
               {submitted && opt.log_dice != null && (
                 <span className="logdice" aria-hidden="true">{opt.log_dice}</span>
@@ -232,12 +231,11 @@ export default function Quiz({ lemma, currentRound, onRoundComplete, onBack }) {
               .filter(k => k.rang <= 3)
               .sort((a, b) => a.rang - b.rang)
               .map(k => {
-                const guessedRank = selectedRank(k.wort)
-                const rankOk = guessedRank === k.rang
-                const pts = guessedRank ? (rankOk ? 3 : 2) : null
+                const guessed = selected.includes(k.wort)
+                const pts = guessed ? 3 : null
                 return (
                   <span key={k.wort} className="feedback-word">
-                    <span className={`feedback-rang ${rankOk ? 'feedback-rang--ok' : guessedRank ? 'feedback-rang--off' : 'feedback-rang--miss'}`}>
+                    <span className={`feedback-rang ${guessed ? 'feedback-rang--ok' : 'feedback-rang--miss'}`}>
                       #{k.rang}
                     </span>
                     {k.wort}
@@ -247,10 +245,23 @@ export default function Quiz({ lemma, currentRound, onRoundComplete, onBack }) {
                 )
               })
             }
-            {/* Nahe-Treffer (Rang 4–5) die gewählt wurden */}
+            {/* Nahe Treffer (Rang 4–7) die gewählt wurden */}
             {selected
               .map(word => kollokatoren.find(k => k.wort === word))
-              .filter(k => k && k.rang >= 4 && k.rang <= 5)
+              .filter(k => k && k.rang >= 4 && k.rang <= 7)
+              .map(k => (
+                <span key={k.wort} className="feedback-word">
+                  <span className="feedback-rang feedback-rang--off">#{k.rang}</span>
+                  {k.wort}
+                  <span className="logdice">{k.log_dice}</span>
+                  <span className="feedback-pts">+2</span>
+                </span>
+              ))
+            }
+            {/* Schwache Treffer (Rang 8–10) die gewählt wurden */}
+            {selected
+              .map(word => kollokatoren.find(k => k.wort === word))
+              .filter(k => k && k.rang >= 8 && k.rang <= 10)
               .map(k => (
                 <span key={k.wort} className="feedback-word">
                   <span className="feedback-rang feedback-rang--off">#{k.rang}</span>
