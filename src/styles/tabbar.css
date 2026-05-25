@@ -1546,85 +1546,8 @@
   position: relative;
 }
 
-/* Forward: neuer Screen kommt von rechts rein */
-.tab-screen--enter-forward {
-  animation: slideInFromRight 350ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
-  z-index: 2;
-}
-
-/* Backward: neuer Screen kommt von links rein */
-.tab-screen--enter-backward {
-  animation: slideInFromLeft 350ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
-  z-index: 2;
-}
-
-.tab-screen--exit-forward {
-  animation: slideOutLeft 350ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
-  z-index: 1;
-}
-
-.tab-screen--exit-backward {
-  animation: slideOutRight 350ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
-  z-index: 1;
-}
-
-/* Keyframes: einfacher horizontaler Slide */
-@keyframes slideOutLeft {
-  from {
-    transform: translateX(0);
-    opacity: 1;
-  }
-  to {
-    transform: translateX(-100%);
-    opacity: 0.5;
-  }
-}
-
-@keyframes slideInFromRight {
-  from {
-    transform: translateX(100%);
-    opacity: 0.5;
-  }
-  to {
-    transform: translateX(0);
-    opacity: 1;
-  }
-}
-
-@keyframes slideOutRight {
-  from {
-    transform: translateX(0);
-    opacity: 1;
-  }
-  to {
-    transform: translateX(100%);
-    opacity: 0.5;
-  }
-}
-
-@keyframes slideInFromLeft {
-  from {
-    transform: translateX(-100%);
-    opacity: 0.5;
-  }
-  to {
-    transform: translateX(0);
-    opacity: 1;
-  }
-}
-
-/* prefers-reduced-motion: nur Crossfade, keine Tap-Animationen */
+/* prefers-reduced-motion: Tap-Animationen abschalten */
 @media (prefers-reduced-motion: reduce) {
-  .tab-screen--enter-forward,
-  .tab-screen--enter-backward {
-    animation: fadeIn 200ms ease-in forwards;
-  }
-
-  .tab-screen--exit-forward,
-  .tab-screen--exit-backward {
-    animation: fadeOut 200ms ease-out forwards;
-  }
-
   .tab-bar-btn,
   .tab-bar-btn--active .tab-bar-icon-wrap {
     transition: color 0.15s;
@@ -1651,16 +1574,6 @@
     grid-template-columns: minmax(0, 1fr);
     gap: 2px;
   }
-}
-
-@keyframes fadeOut {
-  from { opacity: 1; }
-  to { opacity: 0; }
-}
-
-@keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
 }
 
 /* ── Konto-Tab: kompaktere Abstände auf Mobile ─────────────── */

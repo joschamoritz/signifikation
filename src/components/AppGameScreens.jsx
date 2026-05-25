@@ -1,8 +1,9 @@
-import { lazy, Suspense } from 'react'
+import { lazy, Suspense, useMemo } from 'react'
 import LemmaSelection from './LemmaSelection'
 import WortZwillingSelection from './WortZwillingSelection'
 import ZeitenwendeSelection from './ZeitenwendeSelection'
 import LueckenfuellerSelection from './LueckenfuellerSelection'
+import { useEdgeSwipeBack } from '../hooks/useEdgeSwipeBack'
 // Quiz und Results sind groß und werden erst nach Lemma-Wahl gebraucht.
 // BelegePanel mit logDice-Sortierung wird automatisch mit-lazy-geladen.
 const Quiz    = lazy(() => import('./Quiz'))
@@ -79,6 +80,38 @@ export default function AppGameScreens({
   onViewSwLf,
   onSwBack,
 }) {
+  const swipeBackHandler = useMemo(() => {
+    switch (phase) {
+      case 'selection': return onBackToHome
+      case 'wortzwilling-selection': return onWortzwillingSelectionBack
+      case 'zeitenwende-selection': return onZeitenwendeSelectionBack
+      case 'lueckenfueller-selection': return onLueckenfuellerSelectionBack
+      case 'quiz': return onBackToSelection
+      case 'results': return onBackToSelection
+      case 'wortzwilling': return onWortzwillingBack
+      case 'zeitenwende': return onZeitenwendeBack
+      case 'lueckenfueller': return onLueckenfuellerBack
+      case 'sw-wz':
+      case 'sw-zeitenwende':
+      case 'sw-lf':
+        return onSwBack
+      default: return null
+    }
+  }, [
+    phase,
+    onBackToHome,
+    onBackToSelection,
+    onWortzwillingBack,
+    onWortzwillingSelectionBack,
+    onZeitenwendeBack,
+    onZeitenwendeSelectionBack,
+    onLueckenfuellerBack,
+    onLueckenfuellerSelectionBack,
+    onSwBack,
+  ])
+
+  useEdgeSwipeBack(swipeBackHandler, { enabled: Boolean(swipeBackHandler) })
+
   return (
     <>
       {phase === 'selection' && lemmata && (
