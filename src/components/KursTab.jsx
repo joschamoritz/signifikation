@@ -1,6 +1,7 @@
 import { useRef, useCallback } from 'react'
 import TabHeader from './TabHeader'
 import { useActiveSnapCard } from '../hooks/useActiveSnapCard'
+import { useScrollPersist } from '../hooks/useScrollPersist'
 
 function LockIcon() {
   return (
@@ -67,6 +68,7 @@ const KURS_MODULES = [
 export default function KursTab({ gesamtausgabe = false, onNavigateToKonto = () => {} }) {
   const entriesRef = useRef(null)
   const activeCard = useActiveSnapCard(entriesRef)
+  useScrollPersist(entriesRef, 'kurs')
 
   const scrollToCard = useCallback((index) => {
     const items = entriesRef.current?.querySelectorAll('.test-entry')

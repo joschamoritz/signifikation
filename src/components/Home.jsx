@@ -10,6 +10,7 @@ import { shareAsImage } from '../utils/shareImage'
 import { lsGet, lsSet } from '../utils/storage'
 import { logError } from '../utils/logError'
 import { useActiveSnapCard } from '../hooks/useActiveSnapCard'
+import { useScrollPersist } from '../hooks/useScrollPersist'
 import GameEntry from './GameEntry'
 import LegalLinks from './LegalLinks'
 
@@ -87,6 +88,7 @@ export default function Home({
   }, [])
 
   const activeCard = useActiveSnapCard(entriesRef)
+  useScrollPersist(entriesRef, 'home')
 
   // Pfeiltasten-Navigation (nur mobil)
   const handleSnapKeyDown = useCallback((e) => {
