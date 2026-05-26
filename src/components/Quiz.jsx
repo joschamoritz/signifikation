@@ -4,6 +4,7 @@ import { useBelege } from '../hooks/useBelege'
 import { lsGet, lsSet } from '../utils/storage'
 import BelegePanel from './BelegePanel'
 import Sheet from './ui/Sheet'
+import '../styles/quiz.css'
 
 const BELEG_HINT_KEY = 'sig_beleg_hint'
 

@@ -1,4 +1,5 @@
 import ClassroomTab from './ClassroomTab'
+import '../styles/classroom-tab.css'
 
 export default function PersistentClassroomTab({
   activeTab,

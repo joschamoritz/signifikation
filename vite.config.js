@@ -9,6 +9,9 @@ export default defineConfig({
       output: {
         manualChunks(id) {
           if (!id.includes('node_modules')) return undefined
+          // @dnd-kit nur in WortZwilling genutzt – Rollup automatisch in den
+          // WortZwilling-Lazy-Chunk packen lassen, statt in vendor.js zu zwingen.
+          if (id.includes('@dnd-kit')) return undefined
           if (id.includes('react') || id.includes('scheduler')) return 'react-vendor'
           if (id.includes('socket.io-client') || id.includes('engine.io-client')) return 'realtime-vendor'
           return 'vendor'
@@ -55,7 +58,7 @@ export default defineConfig({
       manifest: {
         name: 'Signifikation',
         short_name: 'Signifikation',
-        description: 'Tägliches linguistisches Quiz basierend auf DWDS-Daten',
+        description: 'Tägliches linguistisches Quiz aus eigenen Korpusdaten',
         theme_color: '#9b1c1c',
         background_color: '#faf9f7',
         display: 'standalone',

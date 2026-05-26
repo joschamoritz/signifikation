@@ -1,11 +1,10 @@
 /* ============================================================
    SIGNIFIKATION – style entry point
-   Import-Reihenfolge: globals → home → quiz → wortzwilling
+   Nur eager-CSS: globals, dictionary (Home), home. Spielmodi-CSS
+   werden in den jeweiligen Komponenten importiert, damit Vite sie
+   in die Lazy-Chunks splittet und der Cold-Start kleiner bleibt.
    ============================================================ */
 
 @import './styles/globals.css';
 @import './styles/dictionary.css';
 @import './styles/home.css';
-@import './styles/quiz.css';
-@import './styles/wortzwilling.css';
-@import './styles/lueckenfueller.css';

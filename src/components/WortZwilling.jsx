@@ -13,6 +13,7 @@ import {
 import { CSS } from '@dnd-kit/utilities'
 import { shuffle } from '../utils/gameLogic'
 import { API } from '../config'
+import '../styles/wortzwilling.css'
 import WzResultsView, { computeScore } from './WzResultsView'
 import { logError } from '../utils/logError'
 
