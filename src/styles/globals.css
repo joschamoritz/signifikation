@@ -83,6 +83,31 @@ html {
   overscroll-behavior: none;
 }
 
+/* Markenkonforme Text-Selection (Gold-Akzent, sonst Browser-Default-Blau). */
+::selection {
+  background: rgba(201, 168, 76, 0.32);
+  color: inherit;
+}
+
+/* Tabular numbers für alle Live-/Score-/Punkte-Anzeigen, damit Zahlen bei
+   Updates nicht in der Breite zappeln (Klassenraum-Live, Streak, Quiz-Score,
+   Result-Banner, Archiv-Liste). Zentral hier statt verstreut in 7 CSS-Files. */
+.cr-live-num,
+.cr-metric-value,
+.cr-per-game-score,
+.cr-submitted-score,
+.streak-count,
+.results-score-num,
+.results-score-max,
+.round-feedback-score,
+.round-score-display,
+.zw-results-points,
+.wz-result-score,
+.test-played-score,
+.game-played-score {
+  font-variant-numeric: tabular-nums;
+}
+
 body {
   font-family: var(--font-sans);
   background: var(--bg);
@@ -376,7 +401,7 @@ button { font-family: inherit; cursor: pointer; border: none }
   backdrop-filter: blur(14px) saturate(1.4);
   -webkit-backdrop-filter: blur(14px) saturate(1.4);
   border-radius: 22px;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+  box-shadow: 0 1px 2px rgba(60, 40, 30, 0.06);
 }
 @supports not (backdrop-filter: blur(1px)) {
   :where(html[data-platform="ios"]) .back-btn { background: transparent; box-shadow: none; }

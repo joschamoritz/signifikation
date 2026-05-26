@@ -289,6 +289,7 @@
   line-height: 1.2;
   color: var(--t-text);
   letter-spacing: 0.01em;
+  text-wrap: balance;
 }
 
 .test-entry--disabled .test-headword {
@@ -387,6 +388,7 @@
   line-height: 1.65;
   color: var(--t-text);
   margin-bottom: 12px;
+  text-wrap: pretty;
 }
 
 .test-entry--disabled .test-definition {
