@@ -167,3 +167,32 @@ jobs:
             WORKER_PID=$(sudo -u signifikation bash -lc 'export NVM_DIR="/opt/nvm" && source "$NVM_DIR/nvm.sh" && export PM2_HOME="/opt/signifikation/.pm2" && pm2 pid signifikation-worker')
             test -n "$APP_PID" && test "$APP_PID" != "0"
             test -n "$WORKER_PID" && test "$WORKER_PID" != "0"
+
+            # Sanity-Check: keine Phantom-PM2-Instanz beim deploy-User.
+            # ADR-0003 verlangt Single-Instance PM2 unter dem signifikation-User.
+            # Eine zweite PM2-Daemon-Instanz unter deploy haelt zwar keinen Port
+            # (Race-Verlierer), waere aber laut "pm2 list" online und ueberlebt
+            # Reboots ueber eine eigene systemd-Unit – das hat im Push-Outage
+            # 2026-05-26 die Diagnose deutlich verzoegert. Fail hard.
+            if pm2 list 2>/dev/null | grep -qE "^[^A-Za-z0-9]*[0-9]+[^A-Za-z0-9]+signifikation[^A-Za-z0-9-]"; then
+              echo "FEHLER: Phantom-PM2-Instanz unter deploy-User erkannt." >&2
+              echo "Cleanup auf dem Server: 'pm2 delete signifikation && pm2 save' als deploy-User," >&2
+              echo "danach 'sudo systemctl disable --now pm2-deploy' (falls aktiv)." >&2
+              pm2 list >&2
+              exit 1
+            fi
+
+            # Permission-Sanity: APNs-Key muss fuer signifikation-User lesbar sein.
+            # Push-Outage 2026-05-26: keys/-Parent gehoerte deploy:deploy 0700,
+            # signifikation konnte nicht durchqueren → silent EACCES beim APNs-Init.
+            if [ -n "${APNS_KEY_PATH:-}" ] || grep -q '^APNS_KEY_PATH=' /opt/signifikation/app/.env; then
+              KEY_PATH=$(grep -oP '(?<=^APNS_KEY_PATH=).+' /opt/signifikation/app/.env | tr -d '"' | tr -d "'")
+              if [ -n "$KEY_PATH" ]; then
+                if ! sudo -u signifikation test -r "$KEY_PATH"; then
+                  echo "FEHLER: signifikation-User kann APNS_KEY_PATH nicht lesen: $KEY_PATH" >&2
+                  echo "Pruefe Permissions der gesamten Pfadkette: namei -l $KEY_PATH" >&2
+                  sudo namei -l "$KEY_PATH" >&2 || true
+                  exit 1
+                fi
+              fi
+            fi
