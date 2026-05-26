@@ -1,5 +1,6 @@
 import UIKit
 import Capacitor
+import UserNotifications
 
 @UIApplicationMain
 class AppDelegate: UIResponder, UIApplicationDelegate {
@@ -26,7 +27,17 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     }
 
     func applicationDidBecomeActive(_ application: UIApplication) {
-        // Restart any tasks that were paused (or not yet started) while the application was inactive. If the application was previously in the background, optionally refresh the user interface.
+        // Badge zuruecksetzen, sobald die App aktiv ist – Server schickt
+        // `badge: 1` mit jedem Push (siehe server/notifications/sender.js),
+        // iOS raeumt das Badge ohne explizites Setzen nie auf. Greift bei
+        // jedem App-Foreground, also auch nach Push-Tap.
+        let center = UNUserNotificationCenter.current()
+        if #available(iOS 16.0, *) {
+            center.setBadgeCount(0) { _ in }
+        } else {
+            application.applicationIconBadgeNumber = 0
+        }
+        center.removeAllDeliveredNotifications()
     }
 
     func applicationWillTerminate(_ application: UIApplication) {
