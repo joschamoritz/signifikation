@@ -201,6 +201,15 @@ async function dispatchToSubscriptions(subscriptions, payload) {
   return { sent, failed }
 }
 
+/**
+ * Gibt zurück, ob der APNs-Provider konfiguriert und einsatzbereit ist.
+ * Wird vom Subscribe-Endpoint genutzt, um iOS-Subscriptions bei fehlender
+ * Konfiguration sofort abzulehnen statt sie still zu verwerfen.
+ */
+export function isApnsConfigured() {
+  return apnsProvider !== null
+}
+
 // ── Öffentliche API ───────────────────────────────────────────────────────────
 
 /**

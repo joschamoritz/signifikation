@@ -14,6 +14,7 @@ import { validate } from '../middleware/validate.js'
 import { pushSubscribeLimiter } from '../middleware/rateLimiter.js'
 import db from '../db.js'
 import logger from '../logger.js'
+import { isApnsConfigured } from '../notifications/sender.js'
 
 const router = express.Router()
 
@@ -186,6 +187,12 @@ router.post(
         }
         logger.info({ userId, platform: 'web' }, 'Push-Subscription gespeichert (web)')
       } else {
+        // Fail-fast: iOS-Subscriptions ablehnen wenn APNs serverseitig nicht konfiguriert ist.
+        // Verhindert, dass User sich als "subscribed" sehen, aber nie Notifications erhalten.
+        if (!isApnsConfigured()) {
+          logger.warn({ userId }, 'iOS-Push-Subscribe abgelehnt: APNs nicht konfiguriert')
+          return res.status(503).json({ error: 'iOS Push ist serverseitig nicht konfiguriert.' })
+        }
         const { apns_token } = req.body
         const existing = findByApnsTokenStmt.get(apns_token)
         if (existing) {

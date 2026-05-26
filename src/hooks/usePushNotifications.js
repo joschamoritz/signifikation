@@ -145,7 +145,7 @@ export function usePushNotifications() {
               method: 'POST',
               credentials: 'include',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ platform: 'ios', apns_token: token.value }),
+              body: JSON.stringify({ platform: Capacitor.getPlatform() === 'android' ? 'android' : 'ios', apns_token: token.value }),
             });
             if (!res.ok) {
               const err = await res.json().catch(() => ({}));
