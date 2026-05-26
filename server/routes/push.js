@@ -108,6 +108,14 @@ const deleteByApnsTokenOwnerStmt = db.prepare(`
   WHERE apns_token = ? AND (user_id = ? OR user_id IS NULL)
 `)
 
+// Löscht alle Subscriptions eines Users – Pfad für den Native-Client, der den
+// apns_token nach Reload nicht mehr im Hand-Cache hat. Schutz: nur eigene
+// Subscriptions, anonyme bleiben unangetastet.
+const deleteByUserStmt = db.prepare(`
+  DELETE FROM push_subscriptions
+  WHERE user_id = ?
+`)
+
 const getStatusStmt = db.prepare(`
   SELECT platform
   FROM push_subscriptions
@@ -218,25 +226,34 @@ router.delete(
   '/api/v1/push/unsubscribe',
   pushSubscribeLimiter,
   optionalAuthUser,
-  validate(unsubscribeSchema, 'body'),
   (req, res) => {
     const userId = req.user?.id ?? null
+    const hasIdentifier = req.body && (req.body.endpoint || req.body.apns_token)
 
     try {
-      if (req.body.endpoint) {
-        // Anonyme Aufrufer dürfen nur anonyme Subscriptions löschen.
-        // Eingeloggte Aufrufer dürfen eigene + anonyme Subscriptions löschen.
-        const result = userId
-          ? deleteByEndpointOwnerStmt.run(req.body.endpoint, userId)
-          : deleteByEndpointAnonStmt.run(req.body.endpoint)
-        logger.info({ userId, changes: result.changes }, 'Push-Subscription gelöscht (web)')
-      } else if (req.body.apns_token) {
-        const result = userId
-          ? deleteByApnsTokenOwnerStmt.run(req.body.apns_token, userId)
-          : deleteByApnsTokenAnonStmt.run(req.body.apns_token)
-        logger.info({ userId, changes: result.changes }, 'Push-Subscription gelöscht (ios)')
+      if (hasIdentifier) {
+        const parsed = unsubscribeSchema.safeParse(req.body)
+        if (!parsed.success) {
+          return res.status(400).json({ error: parsed.error.errors[0].message })
+        }
+        req.body = parsed.data
+
+        if (req.body.endpoint) {
+          const result = userId
+            ? deleteByEndpointOwnerStmt.run(req.body.endpoint, userId)
+            : deleteByEndpointAnonStmt.run(req.body.endpoint)
+          logger.info({ userId, changes: result.changes }, 'Push-Subscription gelöscht (web)')
+        } else {
+          const result = userId
+            ? deleteByApnsTokenOwnerStmt.run(req.body.apns_token, userId)
+            : deleteByApnsTokenAnonStmt.run(req.body.apns_token)
+          logger.info({ userId, changes: result.changes }, 'Push-Subscription gelöscht (ios)')
+        }
+      } else if (userId) {
+        const result = deleteByUserStmt.run(userId)
+        logger.info({ userId, changes: result.changes }, 'Push-Subscriptions per User gelöscht')
       } else {
-        return res.status(400).json({ error: 'endpoint oder apns_token erforderlich' })
+        return res.status(400).json({ error: 'endpoint oder apns_token erforderlich (oder Login)' })
       }
 
       return res.json({ ok: true })
