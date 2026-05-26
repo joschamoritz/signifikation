@@ -10,7 +10,6 @@
  *   loadStats()          – Stats-Dict
  *   loadStatsRows()      – rohe Stats-Zeilen (inkl. user_id)
  *   getLemmataIndex()    – Map<id, lemma> + Map<lemma, lemma>
- *   withStatsLock(fn)    – Serialisiert Stats-Writes (SQLite übernimmt Atomizität)
  *   cacheGet/cacheSet/getCacheMetrics – Beleg-Cache
  *   initializeIndices()  – Preload beim Start
  *   DATA                 – Pfad zum data/-Verzeichnis (für Archiv-Endpunkt)
@@ -315,12 +314,6 @@ const _lemmataIndexStore = createLemmataIndexStore(_loadLemmata, logger)
 
 export function getLemmataIndex() {
   return _lemmataIndexStore.get()
-}
-
-// ── Stats-Lock (SQLite-Transaktionen übernehmen Atomizität) ───────
-
-export function withStatsLock(fn) {
-  return Promise.resolve().then(fn)
 }
 
 // ── Beleg-Cache (TTL 6h, max 2000 Einträge, LRU) ─────────────────
