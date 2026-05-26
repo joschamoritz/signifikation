@@ -134,12 +134,14 @@ describe('account entitlements integration', () => {
     expect(res.status).toBe(401)
   })
 
-  it('Statistiken: liefert gespielte Tage und Kollokationen-Aggregate des Nutzers', async () => {
+  it('Statistiken: liefert Tages-Aggregate aller vier Spielmodi und Plays-Counts', async () => {
     const userId = createTestUser()
     testUserIds.add(userId)
-    insertStatStmt.run('2026-05-10', 'kollokationen', userId, 1, 24, 30)
-    insertStatStmt.run('2026-05-10', 'wortzwilling', userId, 1, 8, 10)
+    insertStatStmt.run('2026-05-10', 'kollokationen', userId, 3, 24, 30)
+    insertStatStmt.run('2026-05-10', 'wortzwilling', userId, 2, 8, 10)
     insertStatStmt.run('2026-05-11', 'kollokationen', userId, 1, 30, 30)
+    insertStatStmt.run('2026-05-11', 'zeitenwende', userId, 1, 5, 7)
+    insertStatStmt.run('2026-05-12', 'lueckenfueller', userId, 4, 18, 20)
 
     const res = await fetch(`${baseUrl}/api/v1/account/stats`, {
       headers: devHeaders(userId, 'user'),
@@ -147,9 +149,18 @@ describe('account entitlements integration', () => {
     const payload = await res.json()
 
     expect(res.status).toBe(200)
-    expect(payload.playedDates).toEqual(['2026-05-10', '2026-05-11'])
+    expect(payload.playedDates).toEqual(['2026-05-10', '2026-05-11', '2026-05-12'])
     expect(payload.kollokationen['2026-05-10']).toEqual({ score: 24, max: 30 })
     expect(payload.kollokationen['2026-05-11']).toEqual({ score: 30, max: 30 })
+    expect(payload.wortzwilling['2026-05-10']).toEqual({ score: 8, max: 10 })
+    expect(payload.zeitenwende['2026-05-11']).toEqual({ score: 5, max: 7 })
+    expect(payload.lueckenfueller['2026-05-12']).toEqual({ score: 18, max: 20 })
+    expect(payload.plays).toEqual({
+      kollokationen: 4,
+      wortzwilling: 2,
+      zeitenwende: 1,
+      lueckenfueller: 4,
+    })
   })
 
   it('Statistiken: zeigt nur Daten des anfragenden Nutzers', async () => {
@@ -167,5 +178,9 @@ describe('account entitlements integration', () => {
     expect(res.status).toBe(200)
     expect(payload.playedDates).toEqual([])
     expect(payload.kollokationen).toEqual({})
+    expect(payload.wortzwilling).toEqual({})
+    expect(payload.zeitenwende).toEqual({})
+    expect(payload.lueckenfueller).toEqual({})
+    expect(payload.plays).toEqual({})
   })
 })

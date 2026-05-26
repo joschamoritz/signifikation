@@ -1833,20 +1833,90 @@
   background: transparent;
 }
 
-.konto-heatmap-cell--gespielt {
-  background: rgba(155, 28, 28, 0.18);
-}
-
-.konto-heatmap-cell--bronze {
-  background: rgba(155, 28, 28, 0.42);
-}
-
-.konto-heatmap-cell--silber {
-  background: rgba(155, 28, 28, 0.68);
-}
-
-.konto-heatmap-cell--gold {
+.konto-heatmap-cell--on {
   background: var(--primary);
+}
+
+/* Trefferquote pro Spielmodus – Balken im Wörterbuch-Stil */
+.konto-bars {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.konto-bar-row {
+  display: grid;
+  grid-template-columns: minmax(96px, 0.4fr) 1fr auto;
+  align-items: center;
+  gap: 12px;
+}
+
+.konto-bar-label {
+  font-family: var(--t-serif);
+  font-size: 0.95rem;
+  color: var(--t-text);
+  font-variant-numeric: oldstyle-nums;
+}
+
+.konto-bar-track {
+  position: relative;
+  height: 4px;
+  background: var(--t-rule-lt);
+  border-radius: 0;
+  overflow: hidden;
+}
+
+.konto-bar-fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  background: var(--primary);
+  transition: width 320ms ease-out;
+}
+
+.konto-bar-value {
+  font-family: var(--t-sans);
+  font-size: 0.78rem;
+  letter-spacing: 0.04em;
+  color: var(--t-muted);
+  font-variant-numeric: tabular-nums;
+  min-width: 3.2em;
+  text-align: right;
+}
+
+.konto-trend {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin: 14px 0 0 0;
+  padding-top: 10px;
+  border-top: 1px dashed var(--t-rule-lt);
+}
+
+.konto-trend-label {
+  font-family: var(--t-sans);
+  font-size: 8.5px;
+  font-weight: 600;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--t-muted);
+}
+
+.konto-trend-value {
+  font-family: var(--t-serif);
+  font-size: 0.95rem;
+  color: var(--t-text);
+  font-variant-numeric: oldstyle-nums tabular-nums;
+}
+
+.konto-empty {
+  margin: 0;
+  font-family: var(--t-serif);
+  font-style: italic;
+  font-size: 0.9rem;
+  color: var(--t-muted);
 }
 
 .konto-heatmap-legend {
@@ -2121,6 +2191,43 @@
   }
 
   .konto-stat-card:nth-child(even) {
+    padding-left: 20px;
+  }
+}
+
+/* 3-Karten-Variante (Streak · Lieblingsmodus · Bester Tag) */
+.konto-stats-grid--three {
+  grid-template-columns: 1fr;
+}
+
+.konto-stats-grid--three .konto-stat-card {
+  padding: 12px 0;
+  border-right: none;
+  padding-right: 0;
+  padding-left: 0;
+}
+
+@media (min-width: 540px) {
+  .konto-stats-grid--three {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .konto-stats-grid--three .konto-stat-card {
+    padding: 12px 0;
+  }
+
+  .konto-stats-grid--three .konto-stat-card + .konto-stat-card {
+    padding-left: 16px;
+    border-left: 1px solid var(--t-rule-lt);
+  }
+}
+
+@media (min-width: 700px) {
+  .konto-stats-grid--three {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .konto-stats-grid--three .konto-stat-card + .konto-stat-card {
     padding-left: 20px;
   }
 }

@@ -46,12 +46,21 @@ const getPlayedDatesStmt = db.prepare(`
   ORDER BY datum
 `)
 
-const getKollokationenStatsStmt = db.prepare(`
+const getStatsBySpielStmt = db.prepare(`
   SELECT datum, SUM(scoreSum) AS score, SUM(maxSum) AS max
   FROM stats
-  WHERE user_id = ? AND spiel = 'kollokationen'
+  WHERE user_id = ? AND spiel = ?
   GROUP BY datum
 `)
+
+const getPlaysBySpielStmt = db.prepare(`
+  SELECT spiel, SUM(plays) AS plays
+  FROM stats
+  WHERE user_id = ?
+  GROUP BY spiel
+`)
+
+const SPIELE = ['kollokationen', 'wortzwilling', 'zeitenwende', 'lueckenfueller']
 
 // ── Helper Functions ───────────────────────────────────────────
 
@@ -126,12 +135,21 @@ router.get('/api/v1/account/entitlements', optionalAuthUser, (req, res) => {
 // Konto-Statistik-Block, der die Daten mit dem lokalen Verlauf zusammenführt.
 router.get('/api/v1/account/stats', requireAuthUser, (req, res) => {
   try {
-    const playedDates = getPlayedDatesStmt.all(req.user.id).map((row) => row.datum)
-    const kollokationen = {}
-    for (const row of getKollokationenStatsStmt.all(req.user.id)) {
-      kollokationen[row.datum] = { score: row.score, max: row.max }
+    const userId = req.user.id
+    const playedDates = getPlayedDatesStmt.all(userId).map((row) => row.datum)
+
+    const payload = { playedDates, plays: {} }
+    for (const spiel of SPIELE) {
+      const map = {}
+      for (const row of getStatsBySpielStmt.all(userId, spiel)) {
+        map[row.datum] = { score: row.score, max: row.max }
+      }
+      payload[spiel] = map
     }
-    res.json({ playedDates, kollokationen })
+    for (const row of getPlaysBySpielStmt.all(userId)) {
+      payload.plays[row.spiel] = row.plays
+    }
+    res.json(payload)
   } catch (err) {
     logger.error({ err }, 'Konto-Statistik-Abruf fehlgeschlagen')
     res.status(500).json({ error: 'Interner Serverfehler' })
