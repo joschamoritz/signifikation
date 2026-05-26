@@ -25,7 +25,7 @@
   --error:       #991b1b;
   --error-bg:    #fef2f2;
   --text:        #1a1a18;
-  --muted:       #8a7f6e;
+  --muted:       #776c5e;
   --disabled:    #b8b0a0;
   --bonus:       #d97706;
   --bonus-bg:    #fde68a;
@@ -63,7 +63,7 @@
   --error:       #f87171;
   --error-bg:    #450a0a;
   --text:        #f0ebe4;
-  --muted:       #8a8070;
+  --muted:       #9a9080;
   --disabled:    #504840;
   --bonus:       #fbbf24;
   --bonus-bg:    #78350f;
@@ -78,7 +78,7 @@
 }
 
 html {
-  font-size: 16px;
+  font-size: 100%;
   -webkit-text-size-adjust: 100%;
   overscroll-behavior: none;
 }

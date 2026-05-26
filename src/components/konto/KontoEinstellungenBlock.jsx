@@ -151,14 +151,14 @@ export default function KontoEinstellungenBlock() {
                   {pushError ?? 'Tägliche Erinnerung zum Spielen'}
                 </span>
               </div>
-              <label className="konto-toggle">
+              <label className="konto-toggle" aria-label="Push-Benachrichtigungen">
                 <input
                   type="checkbox"
                   checked={pushEnabled}
                   disabled={pushLoading}
                   onChange={handlePushToggle}
                 />
-                <span className="konto-toggle-slider" />
+                <span className="konto-toggle-slider" aria-hidden="true" />
               </label>
             </div>
           )}
@@ -171,14 +171,14 @@ export default function KontoEinstellungenBlock() {
                   {iosPushError ?? 'Tägliche Erinnerung zum Spielen'}
                 </span>
               </div>
-              <label className="konto-toggle">
+              <label className="konto-toggle" aria-label="Push-Benachrichtigungen">
                 <input
                   type="checkbox"
                   checked={iosPushSubscribed}
                   disabled={iosPushRequesting}
                   onChange={handleIosPushToggle}
                 />
-                <span className="konto-toggle-slider" />
+                <span className="konto-toggle-slider" aria-hidden="true" />
               </label>
             </div>
           )}

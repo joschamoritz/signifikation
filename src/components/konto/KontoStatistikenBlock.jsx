@@ -50,8 +50,11 @@ function buildHeatmapData(dateSet, medalMap) {
 }
 
 function Heatmap({ days }) {
+  const played = days.filter(d => d.played).length
+  const gold   = days.filter(d => d.medal === 'gold').length
+  const label  = `Spielhistorie: ${played} ${played === 1 ? 'Tag' : 'Tage'} gespielt, davon ${gold} mit Gold-Medaille`
   return (
-    <div className="konto-heatmap-wrapper" aria-hidden="true">
+    <div className="konto-heatmap-wrapper" role="img" aria-label={label}>
       <div className="konto-heatmap-grid">
         {days.map(day => (
           <div
