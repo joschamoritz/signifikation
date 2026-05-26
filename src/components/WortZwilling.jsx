@@ -4,6 +4,7 @@ import {
   DragOverlay,
   MouseSensor,
   TouchSensor,
+  KeyboardSensor,
   useSensor,
   useSensors,
   useDroppable,
@@ -209,6 +210,7 @@ export default function WortZwilling({ data, onBack, onFinish, savedResult = nul
   const sensors = useSensors(
     useSensor(MouseSensor, { activationConstraint: { distance: 5 } }),
     useSensor(TouchSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(KeyboardSensor),
   )
 
   function handleDragStart(event) {

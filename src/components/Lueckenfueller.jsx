@@ -318,6 +318,7 @@ function DoubleRound({ round, onScore }) {
               className={cls}
               onClick={() => handleOptionClick(opt)}
               disabled={submitted}
+              aria-pressed={!submitted && assignedAt !== -1 ? 'true' : 'false'}
             >
               {assignedAt !== -1 && !submitted && (
                 <span className="lf-slot-badge">{assignedAt + 1}</span>
@@ -400,7 +401,9 @@ function FreeRound({ round, onScore }) {
 
       {!submitted && (
         <div className="lf-free-wrap">
+          <label htmlFor="lf-free-input" className="sr-only">Fehlende Kollokation eingeben</label>
           <input
+            id="lf-free-input"
             ref={inputRef}
             className="lf-free-input"
             type="text"

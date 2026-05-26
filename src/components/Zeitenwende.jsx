@@ -301,13 +301,17 @@ export default function Zeitenwende({ data, onBack, onFinish, savedResult = null
       </header>
 
       {/* Fortschritt */}
-      <div className="zw-progress" role="progressbar" aria-valuenow={round} aria-valuemin={0} aria-valuemax={TOTAL}>
+      <div className="zw-progress" role="progressbar" aria-valuenow={round + 1} aria-valuemin={1} aria-valuemax={TOTAL} aria-valuetext={`Runde ${round + 1} von ${TOTAL}`}>
         <div className="zw-progress-bar">
           <div className="zw-progress-fill" style={{ width: `${progressPct}%` }} />
         </div>
         <span className="zw-progress-count" aria-label={`Runde ${round + 1} von ${TOTAL}`}>
           {round + 1} / {TOTAL}
         </span>
+      </div>
+
+      <div aria-live="polite" aria-atomic="true" className="sr-only">
+        {`Runde ${round + 1} von ${TOTAL}: ${currentWord.wort}`}
       </div>
 
       {/* Karten-Bereich */}
@@ -321,7 +325,6 @@ export default function Zeitenwende({ data, onBack, onFinish, savedResult = null
           key={round}
           className={cardClass}
           style={cardStyle}
-          aria-live="polite"
           aria-label={`Kollokation: ${currentWord.wort}`}
           onTouchStart={handleTouchStart}
           onTouchMove={handleTouchMove}

@@ -51,7 +51,7 @@ function buildHeatmapData(dateSet, medalMap) {
 
 function Heatmap({ days }) {
   return (
-    <div className="konto-heatmap-wrapper">
+    <div className="konto-heatmap-wrapper" aria-hidden="true">
       <div className="konto-heatmap-grid">
         {days.map(day => (
           <div

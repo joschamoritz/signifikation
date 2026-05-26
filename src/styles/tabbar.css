@@ -64,6 +64,12 @@
   transition: transform 80ms ease-out;
 }
 
+.tab-bar-btn:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: -2px;
+  border-radius: 4px;
+}
+
 .tab-bar-btn--active {
   color: var(--primary);
 }
@@ -434,7 +440,8 @@
 }
 
 .konto-auth-password-toggle:focus-visible {
-  outline: none;
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
   border-bottom-color: var(--primary);
 }
 

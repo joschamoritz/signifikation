@@ -433,11 +433,15 @@
   border-bottom: 1px solid transparent;
 }
 
-.test-cta:hover,
+.test-cta:hover {
+  color: var(--t-accent-dk);
+  border-bottom-color: var(--t-accent);
+}
 .test-cta:focus-visible {
   color: var(--t-accent-dk);
   border-bottom-color: var(--t-accent);
-  outline: none;
+  outline: 2px solid var(--t-accent);
+  outline-offset: 2px;
 }
 .test-cta:active:not(:disabled) {
   transform: scale(0.96);
@@ -717,7 +721,7 @@
   border: none;
   font-family: var(--t-serif);
   cursor: pointer;
-  padding: 0;
+  padding: 8px 12px;
   transition: opacity 0.15s;
 }
 .test-colophon-ornament--link:hover {

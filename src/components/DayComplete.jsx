@@ -105,16 +105,16 @@ export default function DayComplete({ onClose, playedGames = [], wzPlayed = null
       <div className="dc-rule" />
 
       <div className="dc-medals">
-        <div className="dc-medal-item">
-          <span className="dc-medal-emoji" aria-label={kollMedal.label}>{kollMedal.emoji}</span>
+        <div className="dc-medal-item" aria-label={`${kollMedal.label}: Kollokationen`}>
+          <span className="dc-medal-emoji" aria-hidden="true">{kollMedal.emoji}</span>
           <span className="dc-medal-label">Kollokationen</span>
           {percentiles.kollokationen != null && (
             <span className="dc-percentile">besser als {percentiles.kollokationen} %</span>
           )}
         </div>
         {wzPlayed && (
-          <div className="dc-medal-item">
-            <span className="dc-medal-emoji" aria-label={wzPlayed.medal?.label}>{wzPlayed.medal?.emoji}</span>
+          <div className="dc-medal-item" aria-label={wzPlayed.medal ? `${wzPlayed.medal.label}: Wort-Zwilling` : 'Wort-Zwilling'}>
+            <span className="dc-medal-emoji" aria-hidden="true">{wzPlayed.medal?.emoji}</span>
             <span className="dc-medal-label">Wort-Zwilling</span>
             {percentiles.wortzwilling != null && (
               <span className="dc-percentile">besser als {percentiles.wortzwilling} %</span>
@@ -122,8 +122,8 @@ export default function DayComplete({ onClose, playedGames = [], wzPlayed = null
           </div>
         )}
         {zwPlayed && (
-          <div className="dc-medal-item">
-            <span className="dc-medal-emoji" aria-label={zwPlayed.medal?.label}>{zwPlayed.medal?.emoji}</span>
+          <div className="dc-medal-item" aria-label={zwPlayed.medal ? `${zwPlayed.medal.label}: Zeitenwende` : 'Zeitenwende'}>
+            <span className="dc-medal-emoji" aria-hidden="true">{zwPlayed.medal?.emoji}</span>
             <span className="dc-medal-label">Zeitenwende</span>
             {percentiles.zeitenwende != null && (
               <span className="dc-percentile">besser als {percentiles.zeitenwende} %</span>
@@ -131,8 +131,8 @@ export default function DayComplete({ onClose, playedGames = [], wzPlayed = null
           </div>
         )}
         {lfPlayed && (
-          <div className="dc-medal-item">
-            <span className="dc-medal-emoji" aria-label={lfPlayed.medal?.label}>{lfPlayed.medal?.emoji}</span>
+          <div className="dc-medal-item" aria-label={lfPlayed.medal ? `${lfPlayed.medal.label}: Lückenfüller` : 'Lückenfüller'}>
+            <span className="dc-medal-emoji" aria-hidden="true">{lfPlayed.medal?.emoji}</span>
             <span className="dc-medal-label">Lückenfüller</span>
             {percentiles.lueckenfueller != null && (
               <span className="dc-percentile">besser als {percentiles.lueckenfueller} %</span>
