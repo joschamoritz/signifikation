@@ -70,19 +70,22 @@ describe('fetchWithRetry', () => {
   })
 
   it('verdoppelt Delay bei jedem Retry (exponential backoff)', async () => {
+    // Echte Timer verwenden: vi.runAllTimersAsync() ruft intern setTimeout(fn, 1)
+    // auf, das wuerde durch den Spy erfasst und delays[1] korrumpieren.
+    // Mit echten Timern + originalSetTimeout(fn, 0) laufen die Callbacks sofort,
+    // ohne dass Vitest-Interna in die delays-Liste einfliessen.
+    vi.useRealTimers()
+
     global.fetch = vi.fn().mockRejectedValue(new Error('Network'))
     const delays = []
     const originalSetTimeout = global.setTimeout
     vi.spyOn(global, 'setTimeout').mockImplementation((fn, ms) => {
       delays.push(ms)
-      return originalSetTimeout(fn, 0)  // sofort ausführen
+      return originalSetTimeout(fn, 0)  // sofort ausfuehren
     })
 
-    const promise = fetchWithRetry('http://example.com', {}, 2, 400)
-    await Promise.all([
-      vi.runAllTimersAsync(),
-      promise.catch(() => {}),
-    ])
+    // Kein vi.runAllTimersAsync() noetig: originalSetTimeout(fn, 0) loest sofort auf
+    await fetchWithRetry('http://example.com', {}, 2, 400).catch(() => {})
 
     // Erster Retry: 400ms (400 * 2^0), zweiter: 800ms (400 * 2^1)
     expect(delays[0]).toBe(400)
