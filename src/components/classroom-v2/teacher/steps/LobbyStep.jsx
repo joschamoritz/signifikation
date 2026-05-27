@@ -1,0 +1,144 @@
+// T-4.5 — T3 Lobby.
+//
+// Code riesig, Teilnehmer-Liste live ueber Socket. Start-CTA disabled bis
+// mind. 1 Teilnehmer beigetreten ist. POST /start setzt locked_at und
+// broadcasted session:started — danach in Live-Step.
+
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useTeacherClassroom } from '../TeacherClassroomContext'
+import { getDashboard, startSession } from '../hooks/useTeacherSession'
+import { useTeacherSocket } from '../hooks/useTeacherSocket'
+import SessionCodeCard from '../components/SessionCodeCard'
+import ParticipantList from '../components/ParticipantList'
+
+export default function LobbyStep() {
+  const { state, dispatch } = useTeacherClassroom()
+  const sessionId = state.activeSessionId
+
+  const [session, setSession]           = useState(null)
+  const [participants, setParticipants] = useState([])
+  const [loading, setLoading]           = useState(true)
+  const [error, setError]               = useState(null)
+  const [starting, setStarting]         = useState(false)
+
+  // Initial-Load: aktueller Session-Snapshot + Teilnehmer.
+  // (Auch unter „lobby" liefert der Dashboard-Endpunkt diese Daten.)
+  useEffect(() => {
+    let cancelled = false
+    if (!sessionId) return undefined
+    setLoading(true)
+    setError(null)
+    ;(async () => {
+      try {
+        const data = await getDashboard(sessionId)
+        if (cancelled) return
+        setSession(data?.session || null)
+        setParticipants(data?.participants || [])
+      } catch (err) {
+        if (!cancelled) setError(err?.message || 'Session konnte nicht geladen werden.')
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    })()
+    return () => { cancelled = true }
+  }, [sessionId])
+
+  // Live-Socket: student:joined / student:left aktualisieren die Liste,
+  // ohne dass wir polling brauchen.
+  const handlers = useMemo(() => ({
+    'student:joined': (payload) => {
+      if (!payload?.participantId) return
+      setParticipants((prev) => {
+        if (prev.some((p) => p.id === payload.participantId)) return prev
+        return [...prev, {
+          id: payload.participantId,
+          displayName: payload.displayName || '',
+          joinedAt: payload.joinedAt || Date.now(),
+          connected: true,
+          leftAt: null,
+        }]
+      })
+    },
+    'student:left': (payload) => {
+      if (!payload?.participantId) return
+      setParticipants((prev) => prev.map((p) =>
+        p.id === payload.participantId
+          ? { ...p, connected: false, leftAt: Date.now() }
+          : p,
+      ))
+    },
+    'student:heartbeat': (payload) => {
+      if (!payload?.participantId) return
+      setParticipants((prev) => prev.map((p) =>
+        p.id === payload.participantId
+          ? { ...p, connected: !!payload.connected }
+          : p,
+      ))
+    },
+  }), [])
+
+  useTeacherSocket({ sessionId, enabled: !!sessionId, handlers })
+
+  const activeCount = participants.filter((p) => !p.leftAt).length
+
+  const handleStart = useCallback(async () => {
+    if (!sessionId || activeCount === 0 || starting) return
+    setStarting(true)
+    setError(null)
+    try {
+      await startSession(sessionId)
+      dispatch({ type: 'GO_TO_LIVE', sessionId })
+    } catch (err) {
+      setError(err?.message || 'Start fehlgeschlagen.')
+    } finally {
+      setStarting(false)
+    }
+  }, [sessionId, activeCount, starting, dispatch])
+
+  return (
+    <div data-testid="cr2-lobby">
+      <button
+        type="button"
+        className="cr2-btn cr2-btn--ghost"
+        onClick={() => dispatch({ type: 'GO_TO_LIST' })}
+        style={{ marginBottom: 12 }}
+      >
+        ← Zurück zur Übersicht
+      </button>
+
+      {loading && <p className="cr2-loading">Lobby wird vorbereitet …</p>}
+      {error && <p className="cr2-error">{error}</p>}
+
+      {session && (
+        <>
+          <SessionCodeCard code={session.code} />
+
+          <section className="cr2-section" aria-labelledby="cr2-lobby-participants-label" style={{ marginTop: 24 }}>
+            <span id="cr2-lobby-participants-label" className="cr2-section__label">
+              Teilnehmer ({activeCount})
+            </span>
+            <ParticipantList participants={participants} mode="lobby" />
+          </section>
+        </>
+      )}
+
+      <div className="cr2-sticky-cta" role="none">
+        <div className="cr2-sticky-cta__inner">
+          <button
+            type="button"
+            className="cr2-btn cr2-btn--primary"
+            disabled={!session || activeCount === 0 || starting}
+            onClick={handleStart}
+            data-testid="cr2-lobby-start"
+          >
+            {starting
+              ? 'Wird gestartet …'
+              : activeCount === 0
+                ? 'Warte auf Teilnehmer …'
+                : `Spiel starten (${activeCount} dabei)`}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}

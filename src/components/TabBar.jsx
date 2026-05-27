@@ -24,6 +24,19 @@ const TABS = [
     ),
   },
   {
+    id: 'klassenraum-v2',
+    label: 'Klasse v2',
+    flag: 'classroom_v2',
+    icon: () => (
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <rect x="3" y="4" width="18" height="14" rx="2" />
+        <path d="M3 8h18" />
+        <path d="M8 18v2" />
+        <path d="M16 18v2" />
+      </svg>
+    ),
+  },
+  {
     id: 'kurs',
     label: 'Kurs',
     icon: () => (
@@ -45,11 +58,12 @@ const TABS = [
   },
 ]
 
-export default function TabBar({ activeTab, onTabChange, classroomLive = false }) {
+export default function TabBar({ activeTab, onTabChange, classroomLive = false, showClassroomV2 = false }) {
+  const visibleTabs = TABS.filter((t) => !t.flag || (t.flag === 'classroom_v2' && showClassroomV2))
   return (
     <nav className="tab-bar" aria-label="Hauptnavigation">
       <div className="tab-bar-inner">
-        {TABS.map(({ id, label, icon: Icon }) => (
+        {visibleTabs.map(({ id, label, icon: Icon }) => (
           <button
             key={id}
             className={`tab-bar-btn${activeTab === id ? ' tab-bar-btn--active' : ''}`}
