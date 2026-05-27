@@ -29,6 +29,7 @@ import publicRouter from './routes/public.js'
 import adminRouter  from './routes/admin.js'
 import accountRouter from './routes/account.js'
 import classroomRouter from './routes/classroom.js'
+import classroomV2Router from './routes/classroom-v2.js'
 import paymentsRouter from './routes/payments.js'
 import iapRouter from './routes/iap.js'
 import pushRouter from './routes/push.js'
@@ -130,6 +131,7 @@ app.use('/fonts', express.static(join(__dirname, '../public/fonts'), {
 app.use('/', publicRouter)
 app.use('/', adminRouter)
 app.use('/', accountRouter)
+app.use('/', classroomV2Router)  // v2 vor v1 mounten (hat Vorrang bei gleichen Pfaden)
 app.use('/', classroomRouter)
 app.use('/', paymentsRouter)
 app.use('/', iapRouter)

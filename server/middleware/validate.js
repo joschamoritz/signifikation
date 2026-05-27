@@ -338,3 +338,66 @@ export const classroomListQuerySchema = z.object({
   state: CLASSROOM_STATE.optional(),
   limit: z.coerce.number().int().min(1).max(100).optional().default(20),
 })
+
+// ── Classroom v2 Schemas ────────────────────────────────────────
+
+const CR2_VALID_MODES = z.enum(['kollokationen', 'wortzwilling', 'zeitenwende', 'lueckenfueller'])
+const CR2_LEMMA_ID    = z.string().trim().min(1, 'lemmaId darf nicht leer sein').max(128, 'lemmaId zu lang')
+
+/** POST /api/v1/classroom/sessions (T-2.1) */
+export const cr2CreateSessionSchema = z.object({
+  title:    z.string().trim().max(120, 'Titel zu lang').optional(),
+  settings: z.record(z.unknown()).optional().default({}),
+})
+
+/** POST /api/v1/classroom/sessions/:id/assignments (T-2.2) */
+export const cr2CreateAssignmentSchema = z.object({
+  mode:     CR2_VALID_MODES,
+  lemmaIds: z.array(CR2_LEMMA_ID)
+    .min(1, 'Mindestens 1 Lemma erforderlich')
+    .max(3, 'Maximal 3 Lemmata pro Assignment (D3)'),
+})
+
+/** GET /api/v1/classroom/lemmata (T-2.3) */
+export const cr2LemmataQuerySchema = z.object({
+  q:     z.string().trim().max(100).optional(),
+  pos:   POS.optional(),
+  mode:  CR2_VALID_MODES.optional(),
+  limit: z.coerce.number().int().min(1).max(50).optional().default(20),
+})
+
+/** POST /api/v1/classroom/join (T-2.5) */
+export const cr2JoinSchema = z.object({
+  code:        z.string().trim().toLowerCase()
+                 .min(4, 'Join-Code zu kurz')
+                 .max(30, 'Join-Code zu lang'),
+  displayName: z.string().trim().max(20).optional(),
+})
+
+/**
+ * POST /api/v1/classroom/me/submit (T-2.7)
+ * WICHTIG (D13/R6): kein score-Feld! rawAnswer ist ein opakes JSON-Objekt;
+ * der Server berechnet den Score ausschliesslich server-seitig.
+ */
+export const cr2SubmitSchema = z.object({
+  assignmentId: z.string().trim().min(1, 'assignmentId erforderlich').max(128),
+  lemmaId:      CR2_LEMMA_ID,
+  roundIndex:   z.coerce.number().int().min(0).max(99).optional().default(0),
+  rawAnswer:    z.record(z.unknown()).optional().default({}),
+  clientMs:     z.number().int().min(0).max(600_000).optional(),
+})
+
+/** POST /api/v1/classroom/sessions/:id/start (T-2.4) */
+export const cr2StartSessionSchema = z.object({
+  allowLateJoin: z.boolean().optional().default(true),
+})
+
+/** POST /api/v1/classroom/sessions/:id/finish (T-2.4) */
+export const cr2FinishSessionSchema = z.object({
+  reason: z.string().trim().max(120).optional(),
+})
+
+/** GET /api/v1/classroom/sessions (T-2.10) */
+export const cr2ListSessionsQuerySchema = z.object({
+  limit: z.coerce.number().int().min(1).max(50).optional().default(20),
+})

@@ -26,6 +26,10 @@ import {
   hasCapability as storeHasCapability,
 } from '../classroom-v2/store.js'
 
+// Dev-Auth-Guard (identisch zu middleware/userAuth.js — beide prufen dasselbe Flag)
+const IS_PROD = process.env.NODE_ENV === 'production'
+const DEV_AUTH_ENABLED = !IS_PROD && process.env.ALLOW_DEV_AUTH === '1'
+
 function extractBearer(req) {
   const header = req.headers?.authorization || req.headers?.Authorization
   if (!header || typeof header !== 'string') return null
@@ -34,7 +38,16 @@ function extractBearer(req) {
 }
 
 async function resolveTeacherSubject(req) {
+  // 1. Bereits aufgeloest (z.B. durch requirePremium / requireAuthUser davor)
   if (req.user?.id) return { kind: 'teacher', id: String(req.user.id) }
+  // 2. Dev-Header-Auth (nur wenn ALLOW_DEV_AUTH=1, nie in Produktion)
+  if (DEV_AUTH_ENABLED) {
+    const devId = req.headers['x-dev-user-id']
+    if (devId && typeof devId === 'string' && devId.trim()) {
+      return { kind: 'teacher', id: devId.trim() }
+    }
+  }
+  // 3. Better-Auth-Session (Normal-/Produktiv-Pfad via Cookie)
   try {
     const session = await auth.api.getSession({ headers: fromNodeHeaders(req.headers) })
     if (session?.user?.id) return { kind: 'teacher', id: String(session.user.id) }
@@ -111,6 +124,8 @@ export function requireCapability(capability) {
         subject,
         sessionId,
         capability,
+        // Convenience-Alias fuer Participant-Routen (analog requireParticipantAuth)
+        participant: subject.kind === 'participant' ? subject.participant : undefined,
       }
       return next()
     } catch (err) {
