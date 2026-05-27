@@ -49,6 +49,16 @@ import {
   getDashboard,
 } from '../classroom-v2/store.js'
 import {
+  notifyStudentJoined,
+  notifyStudentLeft,
+  notifyStudentHeartbeat,
+  notifySubmissionReceived,
+  notifyParticipantProgress,
+  notifySessionStarted,
+  notifySessionFinished,
+  notifyStudentViewUpdated,
+} from '../realtime/classroomSocketV2.js'
+import {
   classroomJoinLimiter,
   classroomHeartbeatLimiter,
   classroomWriteLimiter,
@@ -567,7 +577,14 @@ router.post(
         return res.status(mapped.status).json({ error: mapped.message })
       }
       logger.info({ sessionId }, 'cr2 session started')
-      // TODO (T-3.x): io.to(`cr2:${sessionId}:students`).emit('session:started', { sessionId, startedAt: result.session.startedAt, assignment: { mode } })
+      // Broadcast an Schueler- und Teacher-Room (Plan §6: session:started).
+      // Mode wird aus dem (einzigen, D2) Assignment gezogen, falls vorhanden.
+      const assignments = listAssignments(sessionId)
+      notifySessionStarted(sessionId, {
+        sessionId,
+        startedAt: result.session.startedAt,
+        assignment: assignments[0] ? { mode: assignments[0].mode } : null,
+      })
       return res.json({
         status:    result.session.status,
         startedAt: result.session.startedAt,
@@ -596,8 +613,11 @@ router.post(
         return res.status(mapped.status).json({ error: mapped.message })
       }
       logger.info({ sessionId, reason }, 'cr2 session finished')
-      // TODO (T-3.x): io.to(`cr2:${sessionId}:students`).emit('session:finished', { sessionId, finishedAt: result.session.finishedAt })
-      // TODO (T-3.x): io.to(`cr2:${sessionId}:teacher`).emit('session:finished', { sessionId, finishedAt: result.session.finishedAt })
+      notifySessionFinished(sessionId, {
+        sessionId,
+        finishedAt: result.session.finishedAt,
+        reason: reason || 'manual',
+      })
       return res.json({
         status:     result.session.status,
         finishedAt: result.session.finishedAt,
@@ -656,7 +676,11 @@ router.post(
         { sessionId: result.session.id, participantId: result.participant.id },
         'cr2 participant joined',
       )
-      // TODO (T-3.x): io.to(`cr2:${result.session.id}:teacher`).emit('student:joined', { participantId, displayName, joinedAt })
+      notifyStudentJoined(result.session.id, {
+        participantId: result.participant.id,
+        displayName:   (displayName || '').trim().slice(0, 40) || null,
+        joinedAt:      Date.now(),
+      })
       return res.status(201).json({
         participantId: result.participant.id,
         token:         result.participant.token,
@@ -735,7 +759,27 @@ router.post(
         return res.status(mapped.status).json({ error: mapped.message })
       }
 
-      // TODO (T-3.x): io.to(`cr2:${sessionId}:teacher`).emit('submission:received', { participantId, assignmentId, lemmaId, score, maxScore, correct, scoredAt })
+      const scoredAt = Date.now()
+      notifySubmissionReceived(sessionId, {
+        participantId: participant.id,
+        assignmentId,
+        lemmaId,
+        score:    result.score,
+        maxScore: result.maxScore,
+        correct:  result.correct,
+        scoredAt,
+      })
+      // Fortschrittssignal an die Teacher-Live-Ansicht.
+      // currentIndex liefern wir bewusst nicht — D7 verbietet Live-Einzelantworten
+      // an die Beamer-Ansicht; der status reicht fuer den Dot.
+      notifyParticipantProgress(sessionId, {
+        participantId: participant.id,
+        status: 'submitted',
+        lemmaId,
+      })
+      // Push naechste Sicht an den Schueler, damit er ohne Polling
+      // direkt das naechste Lemma sieht.
+      notifyStudentViewUpdated(participant.id, { reason: 'submission' })
       return res.json({
         score:    result.score,
         correct:  result.correct,
@@ -760,7 +804,11 @@ router.post(
       heartbeatParticipant(participant.id)
 
       const session = getSessionById(sessionId)
-      // TODO (T-3.x): io.to(`cr2:${sessionId}:teacher`).emit('student:heartbeat', { participantId, connected: true, lastSeenAt })
+      notifyStudentHeartbeat(sessionId, {
+        participantId: participant.id,
+        connected:     true,
+        lastSeenAt:    Date.now(),
+      })
       return res.json({ ok: true, status: session?.status || 'unknown' })
     } catch (err) {
       logger.error({ err }, 'cr2 heartbeat crashed')
@@ -777,7 +825,11 @@ router.post(
     try {
       const { participant, sessionId } = req.cr2
       leaveParticipant(participant.id)
-      // TODO (T-3.x): io.to(`cr2:${sessionId}:teacher`).emit('student:left', { participantId, reason: 'self' })
+      notifyStudentLeft(sessionId, {
+        participantId: participant.id,
+        reason:        'self',
+        at:            Date.now(),
+      })
       return res.status(204).end()
     } catch (err) {
       logger.error({ err }, 'cr2 leave crashed')

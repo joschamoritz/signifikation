@@ -1,0 +1,464 @@
+/**
+ * server/realtime/classroomSocketV2.js
+ *
+ * Realtime-Layer fuer Classroom v2 (Welle 1, Phase 3).
+ *
+ * Architektur:
+ *   - Eigener Socket.io-Namespace `/cr2`, parallel zum alten Default-Namespace
+ *     (classroomSocket.js bleibt fuer v1 unangetastet, D11 / W3-Konsolidierung).
+ *   - Zwei Rooms pro Session:
+ *       cr2:<sessionId>:teacher    — Lehrkraft-Sockets (Live-Dashboard)
+ *       cr2:<sessionId>:students   — alle Schueler-Sockets (Broadcasts)
+ *     Plus pro Teilnehmer ein Single-Subscriber-Room:
+ *       cr2:p:<participantId>      — view:updated, kicked
+ *
+ * Auth (D14, Single Source of Truth = cr2_capability_grant):
+ *   - Lehrer  : Better-Auth-Session (Cookie) oder x-dev-user-id (ALLOW_DEV_AUTH=1)
+ *               + handshake.auth.sessionId. Erfordert Capability `session:read`.
+ *   - Schueler: handshake.auth.token oder Authorization-Header
+ *               (Bearer <participant.auth_token>) oder Post-Connect-Event
+ *               `student:hello { token }`. Erfordert Capability `view:student`.
+ *   Beide Capabilities werden bei jedem Connect frisch aus der DB gelesen
+ *   (kein In-Memory-Cache), damit Revokes (Kick, Session-Ende) sofort greifen.
+ *
+ * Reconnect-Logik (D6, 5-Min-Window):
+ *   - Schueler-Socket schliesst: connected=0, last_seen_at aktualisiert,
+ *     KEIN left_at gesetzt. Ein Timeout pro Teilnehmer wird gestartet.
+ *   - Reconnect mit gueltigem Token innerhalb des Windows: Timer wird
+ *     gecleart, view:updated wird gepusht. Keine erneuten capability_grants.
+ *   - Window laeuft ab: student:left an Teacher-Room (reason: 'timeout').
+ *     Capability bleibt bestehen — der Schueler kann mit demselben Token
+ *     immer noch zurueck, der Lehrer sieht ihn nur als "weg".
+ *
+ * Risiko R-2 (Race-Conditions):
+ *   Timer-Verwaltung zentral in Map<participantId, Timeout>. Beim Reconnect
+ *   IMMER zuerst clearen, dann State setzen. clearAllTimers() fuer Tests.
+ *
+ * IP-Rate-Limit (Schutz gegen Connect-Floods, R-2-Pattern aus altem Code):
+ *   Sliding-Window in Map<ip, { count, windowStart }>. Wird im Middleware
+ *   vor jeglicher DB-Operation geprueft, damit DB-Last begrenzt bleibt.
+ */
+
+import { Server } from 'socket.io'
+import { fromNodeHeaders } from 'better-auth/node'
+import { auth } from '../auth/index.js'
+import logger from '../logger.js'
+import {
+  findParticipantByToken,
+  hasCapability,
+  heartbeatParticipant,
+  markParticipantDisconnect,
+} from '../classroom-v2/store.js'
+
+const IS_PROD = process.env.NODE_ENV === 'production'
+const DEV_AUTH_ENABLED = !IS_PROD && process.env.ALLOW_DEV_AUTH === '1'
+
+const DEFAULT_RECONNECT_WINDOW_MS = 5 * 60 * 1000  // D6
+const DEFAULT_HELLO_TIMEOUT_MS = 5 * 1000
+const DEFAULT_CONNECT_RATE_LIMIT = 50              // Connects pro IP / Fenster
+const DEFAULT_CONNECT_RATE_WINDOW_MS = 60_000
+
+// ── Modulzustand ────────────────────────────────────────────────────
+// nsp wird beim Setup gesetzt. Helper (notify*) und Timer-Logik
+// lesen ueber Closure-Referenz. Ohne Setup sind alle Helper No-Ops
+// (relevant fuer Route-Tests ohne Socket-Server).
+let nsp = null
+let RECONNECT_WINDOW_MS = DEFAULT_RECONNECT_WINDOW_MS
+let HELLO_TIMEOUT_MS = DEFAULT_HELLO_TIMEOUT_MS
+let CONNECT_RATE_LIMIT = DEFAULT_CONNECT_RATE_LIMIT
+let CONNECT_RATE_WINDOW_MS = DEFAULT_CONNECT_RATE_WINDOW_MS
+
+// Zentrale Timer-Verwaltung (T-3.3). Genau EINE Map fuer alle
+// pending Disconnect-Timeouts. Mehrere Tabs eines Teilnehmers
+// teilen sich denselben Slot.
+const disconnectTimers = new Map()
+
+// Pro-IP-Rate-Limit
+const connectAttempts = new Map()
+
+function nowMs() { return Date.now() }
+
+function checkConnectRateLimit(ip) {
+  if (CONNECT_RATE_LIMIT === 0) return true
+  const now = nowMs()
+  const entry = connectAttempts.get(ip)
+  if (!entry || now - entry.windowStart > CONNECT_RATE_WINDOW_MS) {
+    connectAttempts.set(ip, { count: 1, windowStart: now })
+    return true
+  }
+  if (entry.count >= CONNECT_RATE_LIMIT) return false
+  entry.count++
+  return true
+}
+
+function roomTeacher(sessionId)      { return `cr2:${sessionId}:teacher` }
+function roomStudents(sessionId)     { return `cr2:${sessionId}:students` }
+function roomParticipant(participantId) { return `cr2:p:${participantId}` }
+
+// ── Subject-Resolver ────────────────────────────────────────────────
+// Beide Pfade lesen ausschliesslich aus dem Handshake — keine
+// per-Socket-Cookies oder State nach dem ersten Auth.
+
+async function resolveTeacherSubject(socket) {
+  const headers = socket.handshake.headers || {}
+  if (DEV_AUTH_ENABLED) {
+    const devId = headers['x-dev-user-id']
+    if (typeof devId === 'string' && devId.trim()) {
+      return { kind: 'teacher', id: devId.trim() }
+    }
+  }
+  try {
+    const session = await auth.api.getSession({ headers: fromNodeHeaders(headers) })
+    if (session?.user?.id) return { kind: 'teacher', id: String(session.user.id) }
+  } catch (err) {
+    logger.debug({ err }, 'cr2 socket: getSession fehlgeschlagen')
+  }
+  return null
+}
+
+function extractParticipantToken(socket) {
+  const authObj = socket.handshake.auth || {}
+  if (typeof authObj.token === 'string' && authObj.token.trim()) {
+    return authObj.token.trim()
+  }
+  const header = socket.handshake.headers?.authorization
+  if (typeof header === 'string') {
+    const m = header.match(/^Bearer\s+(.+)$/i)
+    if (m) return m[1].trim()
+  }
+  return null
+}
+
+function resolveParticipantSubject(socket) {
+  const token = extractParticipantToken(socket)
+  if (!token) return null
+  const p = findParticipantByToken(token)
+  if (!p || p.leftAt) return null
+  return { kind: 'participant', id: p.id, sessionId: p.sessionId, participant: p }
+}
+
+// ── Timer-Helfer (T-3.3, R-2-Mitigation) ────────────────────────────
+
+function clearDisconnectTimer(participantId) {
+  const t = disconnectTimers.get(participantId)
+  if (t) {
+    clearTimeout(t)
+    disconnectTimers.delete(participantId)
+  }
+}
+
+function scheduleDisconnectTimeout(sessionId, participantId) {
+  // Wenn bereits ein Timer existiert (etwa weil ein zweiter Tab gerade
+  // ebenfalls geschlossen wurde), erst clearen. Sonst kaeme das Event
+  // doppelt durch.
+  clearDisconnectTimer(participantId)
+
+  const t = setTimeout(() => {
+    disconnectTimers.delete(participantId)
+    if (!nsp) return
+    // D6: student:left zwecks Anzeige im Live-Dashboard.
+    // Capability bleibt — kein Revoke, der Schueler kann mit Token zurueck.
+    nsp.to(roomTeacher(sessionId)).emit('student:left', {
+      participantId,
+      reason: 'timeout',
+      at: nowMs(),
+    })
+    logger.info({ sessionId, participantId }, 'cr2 student timed out (reconnect window expired)')
+  }, RECONNECT_WINDOW_MS)
+  t.unref?.()
+  disconnectTimers.set(participantId, t)
+}
+
+function hasOpenSocketsForParticipant(participantId) {
+  if (!nsp) return false
+  const room = nsp.adapter?.rooms?.get(roomParticipant(participantId))
+  return !!room && room.size > 0
+}
+
+// ── Setup ───────────────────────────────────────────────────────────
+
+/**
+ * setupClassroomSocketV2(io, options) – registriert den /cr2-Namespace
+ * auf einer bestehenden Socket.io-Server-Instanz (von initClassroomSocket
+ * fuer v1 erzeugt). Die alte v1-Logik bleibt im Default-Namespace und
+ * wird hier NICHT angefasst (siehe D11).
+ *
+ * Options:
+ *   reconnectWindowMs    – default 5 Min (D6). In Tests deutlich kleiner.
+ *   helloTimeoutMs       – default 5 s, Grace-Period fuer pending-Sockets.
+ *   connectRateLimit     – default 50/min/IP. 0 deaktiviert das Limit.
+ *   connectRateWindowMs  – default 60 s.
+ */
+export function setupClassroomSocketV2(io, options = {}) {
+  if (!io) throw new Error('setupClassroomSocketV2: io required')
+
+  RECONNECT_WINDOW_MS    = options.reconnectWindowMs    ?? DEFAULT_RECONNECT_WINDOW_MS
+  HELLO_TIMEOUT_MS       = options.helloTimeoutMs       ?? DEFAULT_HELLO_TIMEOUT_MS
+  CONNECT_RATE_LIMIT     = options.connectRateLimit     ?? DEFAULT_CONNECT_RATE_LIMIT
+  CONNECT_RATE_WINDOW_MS = options.connectRateWindowMs  ?? DEFAULT_CONNECT_RATE_WINDOW_MS
+
+  nsp = io.of('/cr2')
+
+  nsp.use(async (socket, next) => {
+    try {
+      const ip = socket.handshake.address || 'unknown'
+      if (!checkConnectRateLimit(ip)) {
+        logger.warn({ ip }, 'cr2 socket: rate limit exceeded')
+        return next(new Error('RATE_LIMITED'))
+      }
+
+      const handshakeAuth = socket.handshake.auth || {}
+      const handshakeSessionId = typeof handshakeAuth.sessionId === 'string'
+        ? handshakeAuth.sessionId.trim()
+        : ''
+
+      // 1. Teacher-Pfad: Cookie/Dev-Header + handshake.sessionId
+      const teacher = await resolveTeacherSubject(socket)
+      if (teacher && handshakeSessionId) {
+        const ok = hasCapability({
+          sessionId:    handshakeSessionId,
+          subjectKind:  'teacher',
+          subjectId:    teacher.id,
+          capability:   'session:read',
+        })
+        if (!ok) return next(new Error('FORBIDDEN'))
+        socket.data.role      = 'teacher'
+        socket.data.sessionId = handshakeSessionId
+        socket.data.subjectId = teacher.id
+        return next()
+      }
+
+      // 2. Schueler-Pfad: Token im Handshake (oder Bearer-Header)
+      const participantSubject = resolveParticipantSubject(socket)
+      if (participantSubject) {
+        const ok = hasCapability({
+          sessionId:   participantSubject.sessionId,
+          subjectKind: 'participant',
+          subjectId:   participantSubject.id,
+          capability:  'view:student',
+        })
+        if (!ok) return next(new Error('FORBIDDEN'))
+        socket.data.role        = 'student'
+        socket.data.sessionId   = participantSubject.sessionId
+        socket.data.subjectId   = participantSubject.id
+        socket.data.participant = participantSubject.participant
+        return next()
+      }
+
+      // 3. Pending-Pfad: Client kuendigt mit role='student-pending' an,
+      //    dass er das Token nach Connect per student:hello nachschiebt.
+      //    Ein Watchdog schliesst die Verbindung, falls hello ausbleibt.
+      if (handshakeAuth.role === 'student-pending') {
+        socket.data.role = 'pending'
+        return next()
+      }
+
+      return next(new Error('UNAUTHORIZED'))
+    } catch (err) {
+      logger.error({ err }, 'cr2 socket middleware crashed')
+      return next(new Error('INTERNAL'))
+    }
+  })
+
+  nsp.on('connection', (socket) => {
+    onSocketConnected(socket)
+  })
+
+  logger.info('cr2 socket namespace /cr2 initialisiert')
+  return nsp
+}
+
+function onSocketConnected(socket) {
+  const { role } = socket.data || {}
+
+  if (role === 'teacher') {
+    socket.join(roomTeacher(socket.data.sessionId))
+    logger.debug({
+      sid: socket.id,
+      teacherId: socket.data.subjectId,
+      sessionId: socket.data.sessionId,
+    }, 'cr2 teacher socket connected')
+  } else if (role === 'student') {
+    attachStudent(socket)
+  } else if (role === 'pending') {
+    const watchdog = setTimeout(() => {
+      if (socket.data.role === 'pending') {
+        try { socket.emit('cr2:error', { code: 'HELLO_TIMEOUT' }) } catch {}
+        socket.disconnect(true)
+      }
+    }, HELLO_TIMEOUT_MS)
+    watchdog.unref?.()
+    socket.data.helloWatchdog = watchdog
+  }
+
+  socket.on('student:hello', (payload) => handleStudentHello(socket, payload))
+  socket.on('disconnect', (reason) => onSocketDisconnect(socket, reason))
+}
+
+function attachStudent(socket) {
+  const sessionId     = socket.data.sessionId
+  const participantId = socket.data.subjectId
+
+  socket.join(roomStudents(sessionId))
+  socket.join(roomParticipant(participantId))
+
+  // Reconnect innerhalb 300s: pending Timer clearen, connected=1 in DB.
+  clearDisconnectTimer(participantId)
+  try { heartbeatParticipant(participantId) } catch (err) {
+    logger.warn({ err, participantId }, 'cr2 heartbeat on attach fehlgeschlagen')
+  }
+
+  socket.emit('view:updated', { reason: 'connected' })
+  logger.debug({
+    sid: socket.id,
+    participantId,
+    sessionId,
+  }, 'cr2 student socket connected')
+}
+
+function handleStudentHello(socket, payload) {
+  if (socket.data.role !== 'pending') return
+  try {
+    const token = typeof payload?.token === 'string' ? payload.token.trim() : ''
+    if (!token) {
+      socket.emit('cr2:error', { code: 'INVALID_TOKEN' })
+      return
+    }
+    const p = findParticipantByToken(token)
+    if (!p || p.leftAt) {
+      socket.emit('cr2:error', { code: 'UNAUTHORIZED' })
+      return
+    }
+    const ok = hasCapability({
+      sessionId:   p.sessionId,
+      subjectKind: 'participant',
+      subjectId:   p.id,
+      capability:  'view:student',
+    })
+    if (!ok) {
+      socket.emit('cr2:error', { code: 'FORBIDDEN' })
+      return
+    }
+    if (socket.data.helloWatchdog) clearTimeout(socket.data.helloWatchdog)
+    socket.data.role        = 'student'
+    socket.data.sessionId   = p.sessionId
+    socket.data.subjectId   = p.id
+    socket.data.participant = p
+    attachStudent(socket)
+  } catch (err) {
+    logger.error({ err }, 'cr2 student:hello crashed')
+  }
+}
+
+function onSocketDisconnect(socket, reason) {
+  if (socket.data?.helloWatchdog) clearTimeout(socket.data.helloWatchdog)
+
+  if (socket.data?.role !== 'student' || !socket.data.subjectId) {
+    // Lehrer-/Pending-Disconnect: keine Aktion. Session laeuft serverseitig
+    // weiter; T1 zeigt die Session als "live", Rejoin via Klick (Plan §UX).
+    return
+  }
+
+  const sessionId     = socket.data.sessionId
+  const participantId = socket.data.subjectId
+
+  try { markParticipantDisconnect(participantId) } catch (err) {
+    logger.warn({ err, participantId }, 'cr2 markParticipantDisconnect fehlgeschlagen')
+  }
+
+  // Nur Timer starten, wenn KEIN weiteres Socket dieses Teilnehmers offen ist.
+  // Verhindert verfruehte timeouts, wenn ein zweiter Tab noch lebt.
+  if (!hasOpenSocketsForParticipant(participantId)) {
+    scheduleDisconnectTimeout(sessionId, participantId)
+  }
+
+  logger.debug({
+    sid: socket.id,
+    participantId,
+    sessionId,
+    reason,
+  }, 'cr2 student socket disconnected')
+}
+
+// ════════════════════════════════════════════════════════════════════
+// Broadcast-Helper fuer den HTTP-Layer (T-3.2)
+// ════════════════════════════════════════════════════════════════════
+// Werden aus server/routes/classroom-v2.js gerufen. Kein direkter
+// io-Zugriff in den Routes — saubere Kapselung.
+//
+// Alle Helper sind No-Ops, wenn setupClassroomSocketV2 nicht gerufen
+// wurde (Unit-Test-Pfad ohne Socket-Server).
+
+export function notifyStudentJoined(sessionId, payload) {
+  if (!nsp || !sessionId) return
+  nsp.to(roomTeacher(sessionId)).emit('student:joined', payload)
+}
+
+export function notifyStudentLeft(sessionId, payload) {
+  if (!nsp || !sessionId) return
+  nsp.to(roomTeacher(sessionId)).emit('student:left', payload)
+}
+
+export function notifyStudentHeartbeat(sessionId, payload) {
+  if (!nsp || !sessionId) return
+  nsp.to(roomTeacher(sessionId)).emit('student:heartbeat', payload)
+}
+
+export function notifySubmissionReceived(sessionId, payload) {
+  if (!nsp || !sessionId) return
+  nsp.to(roomTeacher(sessionId)).emit('submission:received', payload)
+}
+
+export function notifyParticipantProgress(sessionId, payload) {
+  if (!nsp || !sessionId) return
+  nsp.to(roomTeacher(sessionId)).emit('participant:progress', payload)
+}
+
+export function notifySessionStarted(sessionId, payload) {
+  if (!nsp || !sessionId) return
+  nsp.to(roomStudents(sessionId)).emit('session:started', payload)
+  nsp.to(roomTeacher(sessionId)).emit('session:started', payload)
+}
+
+export function notifySessionFinished(sessionId, payload) {
+  if (!nsp || !sessionId) return
+  nsp.to(roomStudents(sessionId)).emit('session:finished', payload)
+  nsp.to(roomTeacher(sessionId)).emit('session:finished', payload)
+}
+
+export function notifySessionAborted(sessionId, payload) {
+  if (!nsp || !sessionId) return
+  nsp.to(roomStudents(sessionId)).emit('session:aborted', payload)
+  nsp.to(roomTeacher(sessionId)).emit('session:aborted', payload)
+}
+
+export function notifyStudentViewUpdated(participantId, payload) {
+  if (!nsp || !participantId) return
+  nsp.to(roomParticipant(participantId)).emit('view:updated', payload)
+}
+
+export function notifyStudentKicked(participantId, payload) {
+  if (!nsp || !participantId) return
+  nsp.to(roomParticipant(participantId)).emit('kicked', payload)
+}
+
+// ── Test-/Cleanup-Helper ────────────────────────────────────────────
+
+/**
+ * Cleared alle pending Disconnect-Timeouts. Wird in Tests verwendet, damit
+ * setTimeout-Handles nicht ueber das aktuelle Test-File hinaus weiterleben
+ * (vitest-Worker recyclen ihre Module sonst nicht sauber).
+ */
+export function clearAllTimers() {
+  for (const t of disconnectTimers.values()) clearTimeout(t)
+  disconnectTimers.clear()
+  connectAttempts.clear()
+}
+
+export function __getTimerCountForTests() {
+  return disconnectTimers.size
+}
+
+export function __getNamespaceForTests() {
+  return nsp
+}

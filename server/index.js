@@ -35,6 +35,7 @@ import iapRouter from './routes/iap.js'
 import pushRouter from './routes/push.js'
 import { startPushScheduler } from './notifications/scheduler.js'
 import { initClassroomSocket } from './realtime/classroomSocket.js'
+import { setupClassroomSocketV2 } from './realtime/classroomSocketV2.js'
 import { startClassroomWorker } from './workers/classroomWorker.js'
 import { ALLOWED_ORIGINS, CAPACITOR_ORIGINS, isAllowedOrigin } from './config/origins.js'
 import { startSessionCleanup } from './auth/session-cleanup.js'
@@ -195,6 +196,9 @@ const WORTPROFIL_TIMEOUT_MS = 130_000  // etwas mehr als curl --max-time 120
   })
 
   const io = initClassroomSocket(server)
+  // Classroom v2 hängt sich als eigener Namespace /cr2 an dieselbe io-Instanz.
+  // Default-Namespace bleibt fuer v1 (D11) bis zur W3-Konsolidierung.
+  setupClassroomSocketV2(io)
   const workerHandle = process.env.CLASSROOM_EXPORT_WORKER_ENABLED !== 'false'
     ? startClassroomWorker()
     : null

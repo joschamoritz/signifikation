@@ -113,6 +113,13 @@ const stmts = {
     SET last_seen_at = @ts, connected = 1, left_at = NULL
     WHERE id = @id
   `),
+  // Socket-Disconnect ohne Leave: connected=0, last_seen_at aktualisieren,
+  // left_at bleibt NULL → Schueler kann innerhalb des Reconnect-Window (D6) zurueck.
+  markParticipantDisconnect: db.prepare(`
+    UPDATE cr2_participant
+    SET connected = 0, last_seen_at = @ts
+    WHERE id = @id AND left_at IS NULL
+  `),
   leaveParticipant: db.prepare(`
     UPDATE cr2_participant
     SET left_at = @ts, connected = 0
@@ -240,12 +247,23 @@ export function createSession({ teacherUserId, title = null, settings = {} }) {
       settings_json: JSON.stringify(settings || {}),
       created_at: nowMs(),
     })
+    // Schreibrechte (CRUD auf Session/Assignment, Start/Finish)
     stmts.insertCapability.run({
       id: randomUUID(),
       session_id: id,
       subject_kind: 'teacher',
       subject_id: teacherUserId,
       capability: 'session:manage',
+      granted_at: nowMs(),
+    })
+    // Lese-/Socket-Recht: Voraussetzung fuer cr2-Socket-Namespace,
+    // damit der Lehrer in den Teacher-Room joinen darf.
+    stmts.insertCapability.run({
+      id: randomUUID(),
+      session_id: id,
+      subject_kind: 'teacher',
+      subject_id: teacherUserId,
+      capability: 'session:read',
       granted_at: nowMs(),
     })
   })
@@ -372,6 +390,17 @@ export function joinByCode({ code, displayName }) {
       capability: 'submission:write',
       granted_at: nowMs(),
     })
+    // Socket-Recht: View auf die laufende Session (cr2-Namespace, view:updated etc.).
+    // Wird beim Session-Finish bewusst NICHT revoked (D6) — Schueler kann mit
+    // gueltigem Token zurueckkehren, auch wenn submission:write bereits weg ist.
+    stmts.insertCapability.run({
+      id: randomUUID(),
+      session_id: raw.id,
+      subject_kind: 'participant',
+      subject_id: participantId,
+      capability: 'view:student',
+      granted_at: nowMs(),
+    })
     return null
   })()
   if (txResult) return { error: txResult }
@@ -390,6 +419,13 @@ export function findParticipantByToken(token) {
 
 export function heartbeatParticipant(participantId) {
   const r = stmts.heartbeatParticipant.run({ id: participantId, ts: nowMs() })
+  return r.changes > 0
+}
+
+// Socket-Disconnect, KEIN Leave: nur connected=0 + last_seen_at,
+// left_at bleibt NULL bis zum tatsaechlichen Leave / Timeout-Window-Ablauf (D6).
+export function markParticipantDisconnect(participantId) {
+  const r = stmts.markParticipantDisconnect.run({ id: participantId, ts: nowMs() })
   return r.changes > 0
 }
 
