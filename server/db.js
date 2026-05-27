@@ -16,6 +16,7 @@ import { join, dirname } from 'path'
 import { mkdirSync } from 'fs'
 import { fileURLToPath } from 'url'
 import logger from './logger.js'
+import { runSqlMigrationsSync } from './migrate-sync.js'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const DB_PATH = process.env.APP_DB || join(__dirname, 'data', 'signifikation.db')
@@ -617,6 +618,17 @@ if (!hasColumn('lemmata', 'lueckenfueller')) {
 if (!hasColumn('user_entitlements', 'classroom_v2_enabled')) {
   logger.info('Migration: user_entitlements.classroom_v2_enabled hinzufügen')
   db.exec(`ALTER TABLE user_entitlements ADD COLUMN classroom_v2_enabled INTEGER NOT NULL DEFAULT 0`)
+}
+
+// ── Versionierte SQL-Migrationen synchron anwenden ──────────────────────────
+// Muss VOR dem Export geschehen: andere Module (z.B. server/classroom-v2/store.js)
+// registrieren beim Import sofort Prepared Statements auf cr2_*-Tabellen.
+// Ohne diesen Aufruf scheitert der Server-Boot in einer frischen DB-Umgebung
+// (z.B. CI Smoke-Test) mit "no such table: cr2_session".
+// JS-Migrationen bleiben dem async migrate-runner.js im Server-IIFE überlassen.
+const _migResult = runSqlMigrationsSync(db)
+if (_migResult.applied.length > 0) {
+  logger.info({ applied: _migResult.applied }, 'SQL-Migrationen (sync) angewendet')
 }
 
 export default db
