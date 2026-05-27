@@ -70,10 +70,9 @@ describe('fetchWithRetry', () => {
   })
 
   it('verdoppelt Delay bei jedem Retry (exponential backoff)', async () => {
-    // Echte Timer verwenden: vi.runAllTimersAsync() ruft intern setTimeout(fn, 1)
-    // auf, das wuerde durch den Spy erfasst und delays[1] korrumpieren.
-    // Mit echten Timern + originalSetTimeout(fn, 0) laufen die Callbacks sofort,
-    // ohne dass Vitest-Interna in die delays-Liste einfliessen.
+    // Mit echten Timern arbeiten, damit originalSetTimeout(fn, 0) sofort feuert
+    // und vi.runAllTimersAsync() (das intern setTimeout(fn, 1) ruft) nicht
+    // gebraucht wird.
     vi.useRealTimers()
 
     global.fetch = vi.fn().mockRejectedValue(new Error('Network'))
@@ -84,12 +83,15 @@ describe('fetchWithRetry', () => {
       return originalSetTimeout(fn, 0)  // sofort ausfuehren
     })
 
-    // Kein vi.runAllTimersAsync() noetig: originalSetTimeout(fn, 0) loest sofort auf
     await fetchWithRetry('http://example.com', {}, 2, 400).catch(() => {})
 
+    // Vitest-/Node-Interna koennen kleine setTimeout-Aufrufe (1–5ms) einstreuen
+    // (z.B. fuer Promise-Scheduling im Worker). Wir filtern nur die echten
+    // Backoff-Delays heraus — alles >= 100ms ist garantiert von fetchWithRetry.
+    const backoffDelays = delays.filter((d) => d >= 100)
     // Erster Retry: 400ms (400 * 2^0), zweiter: 800ms (400 * 2^1)
-    expect(delays[0]).toBe(400)
-    expect(delays[1]).toBe(800)
+    expect(backoffDelays[0]).toBe(400)
+    expect(backoffDelays[1]).toBe(800)
   })
 
   it('übergibt options korrekt an fetch', async () => {
