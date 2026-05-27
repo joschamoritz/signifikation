@@ -1277,6 +1277,31 @@ body {
   gap: 12px;
 }
 
+.user-feature-flags {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 0 4px;
+  border-top: 1px solid var(--border);
+  flex-wrap: wrap;
+}
+
+.user-feature-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  user-select: none;
+}
+
+.user-feature-toggle input[type="checkbox"] {
+  width: 15px;
+  height: 15px;
+  accent-color: var(--primary);
+  cursor: pointer;
+}
+
 .user-detail-head {
   display: flex;
   align-items: baseline;

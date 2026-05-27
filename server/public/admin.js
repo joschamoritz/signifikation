@@ -2001,6 +2001,11 @@ function clearSelectedUser(message) {
   if (roleBtn) roleBtn.disabled = true
   if (roleSelect) roleSelect.value = 'user'
   if (userDeleteBtn) userDeleteBtn.disabled = true
+
+  const classroomV2Cb = document.getElementById('user-feature-classroom-v2')
+  const featuresSaveBtn = document.getElementById('user-features-save-btn')
+  if (classroomV2Cb) { classroomV2Cb.checked = false; classroomV2Cb.dataset.initial = '0' }
+  if (featuresSaveBtn) featuresSaveBtn.disabled = true
 }
 
 function renderUserStatsByGame(byGame) {
@@ -2065,6 +2070,14 @@ function renderUserDetails(data) {
   userDeleteBtn.disabled = !selectedUserId
   const roleBtn = document.getElementById('user-role-save-btn')
   if (roleBtn) roleBtn.disabled = !selectedUserId
+
+  const classroomV2Cb = document.getElementById('user-feature-classroom-v2')
+  const featuresSaveBtn = document.getElementById('user-features-save-btn')
+  if (classroomV2Cb) {
+    classroomV2Cb.checked = !!data.features?.classroomV2
+    classroomV2Cb.dataset.initial = classroomV2Cb.checked ? '1' : '0'
+  }
+  if (featuresSaveBtn) featuresSaveBtn.disabled = !selectedUserId
 
   const meta = document.getElementById('user-meta-grid')
   if (meta) {
@@ -2150,6 +2163,36 @@ async function saveSelectedUserRole() {
   } finally {
     roleBtn.disabled = !selectedUserId
     if (!selectedUserId) roleSelect.value = roleSelectInitial
+  }
+}
+
+async function saveSelectedUserFeatures() {
+  if (!selectedUserId) return
+
+  const classroomV2Cb = document.getElementById('user-feature-classroom-v2')
+  const featuresSaveBtn = document.getElementById('user-features-save-btn')
+  if (!classroomV2Cb || !featuresSaveBtn) return
+
+  featuresSaveBtn.disabled = true
+  try {
+    const response = await fetch(`/admin/users/${encodeURIComponent(selectedUserId)}/features`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ classroomV2: classroomV2Cb.checked }),
+    })
+    const data = await response.json().catch(() => ({}))
+    if (!response.ok) throw new Error(data.error || `HTTP ${response.status}`)
+
+    classroomV2Cb.dataset.initial = classroomV2Cb.checked ? '1' : '0'
+  } catch (err) {
+    classroomV2Cb.checked = classroomV2Cb.dataset.initial === '1'
+    const empty = document.getElementById('user-detail-empty')
+    if (empty) {
+      empty.textContent = `Feature-Änderung fehlgeschlagen: ${err.message}`
+      empty.style.display = 'block'
+    }
+  } finally {
+    featuresSaveBtn.disabled = !selectedUserId
   }
 }
 
@@ -3201,6 +3244,7 @@ function handleDocumentClick(event) {
   if (action === 'run-users-bulk-action') return void runUsersBulkAction()
   if (action === 'reset-users-filters') return void resetUsersFilters()
   if (action === 'save-selected-user-role') return void saveSelectedUserRole()
+  if (action === 'save-selected-user-features') return void saveSelectedUserFeatures()
   if (action === 'delete-selected-user') return void deleteSelectedUser()
   if (action === 'trigger-backup-restore') return void triggerBackupRestore()
   if (action === 'load-performance') return void loadPerformance()

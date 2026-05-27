@@ -10,7 +10,7 @@ import { load, loadKalender, loadDailyContentMaps, loadMutableDailyContentMaps, 
 import { getCacheMetrics as getQueryCacheMetrics, clearCache as clearQueryCache } from '../query-cache.js'
 import { adminLimiter, loginLimiter, uploadLimiter } from '../middleware/rateLimiter.js'
 import { requireAuth, adminAuth, adminLogout, adminError, serverError } from '../middleware/auth.js'
-import { validate, qQuerySchema, adminTagSchema, analyzeKollQuerySchema, analyzeWZQuerySchema, analyzeZWendeQuerySchema, adminUsersQuerySchema, adminSetUserRoleSchema, adminUserIdParamsSchema, adminUsersBulkUpdateSchema, adminBulkDeleteCalendarSchema, adminBulkImportCalendarSchema, adminPreviewLemmaSchema, adminPreviewDayParamsSchema, adminLemmaIdParamsSchema, adminAuditLogDetailParamsSchema, adminBackupRestoreSchema, adminStatsQuerySchema, adminStatsSummaryQuerySchema, adminStatsExportQuerySchema, adminAuditLogQuerySchema, adminSocialCardsTagesdataSchema, adminSocialCardsBelegeSchema, adminSpezialwocheSchema, adminSpezialwocheParamsSchema } from '../middleware/validate.js'
+import { validate, qQuerySchema, adminTagSchema, analyzeKollQuerySchema, analyzeWZQuerySchema, analyzeZWendeQuerySchema, adminUsersQuerySchema, adminSetUserRoleSchema, adminSetUserFeaturesSchema, adminUserIdParamsSchema, adminUsersBulkUpdateSchema, adminBulkDeleteCalendarSchema, adminBulkImportCalendarSchema, adminPreviewLemmaSchema, adminPreviewDayParamsSchema, adminLemmaIdParamsSchema, adminAuditLogDetailParamsSchema, adminBackupRestoreSchema, adminStatsQuerySchema, adminStatsSummaryQuerySchema, adminStatsExportQuerySchema, adminAuditLogQuerySchema, adminSocialCardsTagesdataSchema, adminSocialCardsBelegeSchema, adminSpezialwocheSchema, adminSpezialwocheParamsSchema } from '../middleware/validate.js'
 import { auditCreate, auditUpdate, auditDelete, getAuditLog } from '../audit.js'
 import logger from '../logger.js'
 import { createAdminAuditRouter } from './admin-audit.js'
@@ -35,6 +35,8 @@ import {
   setUserRoleStmt,
   userExistsStmt,
   getUsersByIdsStmt,
+  getUserFeaturesStmt,
+  setUserClassroomV2Stmt,
   deleteUserTx,
   adminUsersStatsStmt,
   toCsvCell,
@@ -77,6 +79,7 @@ router.use(createAdminUsersRouter({
   validate,
   adminUsersQuerySchema,
   adminSetUserRoleSchema,
+  adminSetUserFeaturesSchema,
   adminUserIdParamsSchema,
   adminUsersBulkUpdateSchema,
   countUsersStmt,
@@ -89,6 +92,8 @@ router.use(createAdminUsersRouter({
   setUserRoleStmt,
   userExistsStmt,
   getUsersByIdsStmt,
+  getUserFeaturesStmt,
+  setUserClassroomV2Stmt,
   deleteUserTx,
   adminUsersStatsStmt,
   toCsvCell,
