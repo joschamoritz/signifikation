@@ -1,0 +1,49 @@
+/**
+ * server/classroom-v2/join-code.js
+ *
+ * Generiert kollisionsfreie Join-Codes fuer cr2_session.
+ * Default-Strategie (siehe Plan Decision D16, T-0.4 vertagt): die
+ * bestehende Wortliste aus server/classroom/join-codes.js. Bei
+ * Mockup von T-4.5 wird entschieden, ob auf 6-stellig umgestellt wird –
+ * dafuer reicht es, generateCandidate auszutauschen, alles andere
+ * (Kollisionsschutz, Retry-Budget) bleibt identisch.
+ *
+ * Kollisionsfenster: idx_cr2_session_code_active ist ein partial
+ * unique index auf cr2_session(code) WHERE status IN ('lobby','running').
+ * Wir matchen explizit auf diesen Filter, damit Codes nach Session-Ende
+ * sofort wiederverwendbar sind.
+ *
+ * Max 40 Versuche – derselbe Wert wie classroom-store.js, empirisch
+ * ausreichend bei 108×107 ≈ 11.500 moeglichen Wort-Paaren.
+ */
+
+import db from '../db.js'
+import { generateJoinCode, normalizeJoinCode } from '../classroom/join-codes.js'
+
+const MAX_ATTEMPTS = 40
+
+const countActiveByCodeStmt = db.prepare(`
+  SELECT COUNT(1) AS c
+  FROM cr2_session
+  WHERE code = ?
+    AND status IN ('lobby','running')
+`)
+
+// Eigene Funktion in Tests injizierbar (Determinismus + Kollisions-
+// Stress-Test). Default delegiert an die bestehende, geprueft-stilkonforme
+// Wortliste – auch nach D16-Entscheid bleibt diese Hilfsfunktion stabil,
+// es aendert sich nur die uebergebene Strategie.
+export function generateUniqueJoinCode({
+  generate = generateJoinCode,
+  maxAttempts = MAX_ATTEMPTS,
+} = {}) {
+  for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+    const candidate = normalizeJoinCode(generate())
+    if (!candidate) continue
+    const row = countActiveByCodeStmt.get(candidate)
+    if (!row || row.c === 0) return candidate
+  }
+  throw new Error('Join-Code konnte nach maximaler Anzahl Versuche nicht eindeutig erzeugt werden')
+}
+
+export { normalizeJoinCode }
