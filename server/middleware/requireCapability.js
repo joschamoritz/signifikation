@@ -7,9 +7,9 @@
  *   1. Teacher: bestehende better-auth-Session (cookie-basiert via
  *      requireAuthUser / req.user). Subject = { kind:'teacher', id:userId }
  *   2. Schueler: Authorization: Bearer <auth_token> →
- *      cr2_participant per HMAC-Hash. Subject = { kind:'participant', id:participantId }
+ *      classroom_participant per HMAC-Hash. Subject = { kind:'participant', id:participantId }
  *
- * Anschliessend wird gegen cr2_capability_grant geprueft
+ * Anschliessend wird gegen classroom_capability_grant geprueft
  * (WHERE revoked_at IS NULL). Mismatch → 403 mit JSON-Fehler.
  *
  * Session-ID wird aus req.params.sessionId, req.body.sessionId oder

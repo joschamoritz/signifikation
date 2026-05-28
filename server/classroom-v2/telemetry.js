@@ -2,7 +2,7 @@
  * server/classroom-v2/telemetry.js
  *
  * Telemetrie-Events fuer Classroom v2 (T-6.5).
- * Speichert Pilot-Metriken in cr2_telemetry (neue Tabelle, getrennt von
+ * Speichert Pilot-Metriken in classroom_telemetry (neue Tabelle, getrennt von
  * audit_log – der ist fuer Admin-Aktionen).
  *
  * Verwendung:
@@ -27,7 +27,7 @@ import logger from '../logger.js'
 
 const stmts = {
   insert: db.prepare(`
-    INSERT INTO cr2_telemetry (ts, event, session_id, teacher_id, payload_json)
+    INSERT INTO classroom_telemetry (ts, event, session_id, teacher_id, payload_json)
     VALUES (@ts, @event, @sessionId, @teacherId, @payloadJson)
   `),
   // Aggregate: Aktivierungsrate – Sessions mit Start UND >= minParticipants
@@ -37,8 +37,8 @@ const stmts = {
       COUNT(DISTINCT t_started.session_id) AS sessions_started,
       CAST(COUNT(DISTINCT t_started.session_id) AS REAL)
         / MAX(COUNT(DISTINCT t_created.session_id), 1) AS activation_rate
-    FROM cr2_telemetry t_created
-    LEFT JOIN cr2_telemetry t_started
+    FROM classroom_telemetry t_created
+    LEFT JOIN classroom_telemetry t_started
       ON  t_started.session_id  = t_created.session_id
       AND t_started.event       = 'cr2_session_started'
       AND CAST(json_extract(t_started.payload_json, '$.participantCount') AS INTEGER) >= @minParticipants
@@ -52,14 +52,14 @@ const stmts = {
       COUNT(CASE WHEN event = 'cr2_session_finished' THEN 1 END) AS finished_events,
       CAST(COUNT(CASE WHEN event = 'cr2_session_finished' THEN 1 END) AS REAL)
         / MAX(COUNT(CASE WHEN event = 'cr2_join_succeeded' THEN 1 END), 1) AS completion_rate
-    FROM cr2_telemetry
+    FROM classroom_telemetry
     WHERE event IN ('cr2_join_succeeded', 'cr2_session_finished')
       AND ts >= @since
   `),
   // Rohe Event-Liste fuer Debugging
   recentEvents: db.prepare(`
     SELECT id, ts, event, session_id, teacher_id, payload_json
-    FROM cr2_telemetry
+    FROM classroom_telemetry
     WHERE ts >= @since
     ORDER BY ts DESC
     LIMIT @limit
@@ -69,7 +69,7 @@ const stmts = {
 // ── Kern-Funktion ────────────────────────────────────────────────
 
 /**
- * Schreibt ein Telemetrie-Event in cr2_telemetry.
+ * Schreibt ein Telemetrie-Event in classroom_telemetry.
  * Niemals werfend — Fehler werden nur geloggt.
  *
  * @param {string} event       – Event-Name (z. B. 'cr2_session_created')

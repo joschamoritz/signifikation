@@ -16,14 +16,14 @@ function ensureTeacher() {
 function insertSession({ code, status = 'lobby' }) {
   const id = randomUUID()
   db.prepare(`
-    INSERT INTO cr2_session (id, code, teacher_user_id, status, created_at)
+    INSERT INTO classroom_session (id, code, teacher_user_id, status, created_at)
     VALUES (?, ?, ?, ?, ?)
   `).run(id, code, TEACHER_ID, status, Date.now())
   return id
 }
 
 function cleanCr2Sessions() {
-  db.prepare(`DELETE FROM cr2_session WHERE teacher_user_id = ?`).run(TEACHER_ID)
+  db.prepare(`DELETE FROM classroom_session WHERE teacher_user_id = ?`).run(TEACHER_ID)
 }
 
 describe('generateUniqueJoinCode', () => {

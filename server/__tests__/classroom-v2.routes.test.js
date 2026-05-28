@@ -51,7 +51,7 @@ function participantHeaders(token) {
   }
 }
 
-/** User in DB anlegen (noetig fuer FK cr2_session.teacher_user_id) */
+/** User in DB anlegen (noetig fuer FK classroom_session.teacher_user_id) */
 function ensureUser(id) {
   const now = new Date().toISOString()
   db.prepare(`
@@ -60,11 +60,11 @@ function ensureUser(id) {
   `).run(id, `${id}@test.local`, now, now)
 }
 
-/** Löscht alle cr2_session-Zeilen eines Lehrers (kaskadiert auf cr2_*) */
+/** Löscht alle classroom_session-Zeilen eines Lehrers (kaskadiert auf classroom_*) */
 function cleanupTeacher(id) {
-  const sessions = db.prepare('SELECT id FROM cr2_session WHERE teacher_user_id = ?').all(id)
+  const sessions = db.prepare('SELECT id FROM classroom_session WHERE teacher_user_id = ?').all(id)
   for (const s of sessions) {
-    db.prepare('DELETE FROM cr2_session WHERE id = ?').run(s.id)
+    db.prepare('DELETE FROM classroom_session WHERE id = ?').run(s.id)
   }
 }
 

@@ -1,7 +1,7 @@
 /**
  * server/classroom-v2/store.js
  *
- * Datenzugriff-Layer fuer Classroom v2 (cr2_* Tabellen).
+ * Datenzugriff-Layer fuer den Klassenraum (classroom_* Tabellen).
  *
  * Patterns aus dem alten server/classroom-store.js bewusst uebernommen
  * (Risiko R-3 im Plan): HMAC-Hash auf sensitive Tokens, Submission-
@@ -41,7 +41,7 @@ function parseJsonSafe(value, fallback, context) {
   try {
     return JSON.parse(value)
   } catch (err) {
-    logger.warn({ err, context }, 'Ungueltiges JSON in cr2_* – Fallback verwendet')
+    logger.warn({ err, context }, 'Ungueltiges JSON in classroom_* – Fallback verwendet')
     return fallback
   }
 }
@@ -50,127 +50,127 @@ function parseJsonSafe(value, fallback, context) {
 const stmts = {
   // Sessions
   insertSession: db.prepare(`
-    INSERT INTO cr2_session (id, code, teacher_user_id, title, status, settings_json, created_at)
+    INSERT INTO classroom_session (id, code, teacher_user_id, title, status, settings_json, created_at)
     VALUES (@id, @code, @teacher_user_id, @title, 'lobby', @settings_json, @created_at)
   `),
-  getSessionById: db.prepare(`SELECT * FROM cr2_session WHERE id = ?`),
+  getSessionById: db.prepare(`SELECT * FROM classroom_session WHERE id = ?`),
   getSessionByCode: db.prepare(`
-    SELECT * FROM cr2_session
+    SELECT * FROM classroom_session
     WHERE code = ? AND status IN ('lobby','running')
     LIMIT 1
   `),
   listTeacherSessions: db.prepare(`
-    SELECT * FROM cr2_session
+    SELECT * FROM classroom_session
     WHERE teacher_user_id = ?
     ORDER BY created_at DESC
     LIMIT ?
   `),
   startSession: db.prepare(`
-    UPDATE cr2_session
+    UPDATE classroom_session
     SET status = 'running', started_at = @started_at, locked_at = @started_at
     WHERE id = @id AND status = 'lobby'
   `),
   finishSession: db.prepare(`
-    UPDATE cr2_session
+    UPDATE classroom_session
     SET status = 'finished', finished_at = @finished_at
     WHERE id = @id AND status IN ('lobby','running')
   `),
   abortSession: db.prepare(`
-    UPDATE cr2_session
+    UPDATE classroom_session
     SET status = 'aborted', finished_at = @finished_at
     WHERE id = @id AND status IN ('lobby','running')
   `),
 
   // Assignments
   insertAssignment: db.prepare(`
-    INSERT INTO cr2_assignment (id, session_id, mode, lemma_ids, content_snapshot, position, created_at)
+    INSERT INTO classroom_assignment (id, session_id, mode, lemma_ids, content_snapshot, position, created_at)
     VALUES (@id, @session_id, @mode, @lemma_ids, @content_snapshot, @position, @created_at)
   `),
-  getAssignmentById: db.prepare(`SELECT * FROM cr2_assignment WHERE id = ?`),
+  getAssignmentById: db.prepare(`SELECT * FROM classroom_assignment WHERE id = ?`),
   listAssignmentsBySession: db.prepare(`
-    SELECT * FROM cr2_assignment
+    SELECT * FROM classroom_assignment
     WHERE session_id = ?
     ORDER BY position ASC, created_at ASC
   `),
-  countAssignments: db.prepare(`SELECT COUNT(1) AS c FROM cr2_assignment WHERE session_id = ?`),
+  countAssignments: db.prepare(`SELECT COUNT(1) AS c FROM classroom_assignment WHERE session_id = ?`),
   deleteAssignment: db.prepare(`
-    DELETE FROM cr2_assignment WHERE id = ? AND session_id = ?
+    DELETE FROM classroom_assignment WHERE id = ? AND session_id = ?
   `),
 
   // Participants
   insertParticipant: db.prepare(`
-    INSERT INTO cr2_participant (id, session_id, display_name, auth_token, joined_at, last_seen_at, connected)
+    INSERT INTO classroom_participant (id, session_id, display_name, auth_token, joined_at, last_seen_at, connected)
     VALUES (@id, @session_id, @display_name, @auth_token, @joined_at, @joined_at, 1)
   `),
   countActiveParticipants: db.prepare(`
-    SELECT COUNT(1) AS c FROM cr2_participant WHERE session_id = ? AND left_at IS NULL
+    SELECT COUNT(1) AS c FROM classroom_participant WHERE session_id = ? AND left_at IS NULL
   `),
   getParticipantByTokenHash: db.prepare(`
-    SELECT * FROM cr2_participant WHERE auth_token = ? LIMIT 1
+    SELECT * FROM classroom_participant WHERE auth_token = ? LIMIT 1
   `),
   heartbeatParticipant: db.prepare(`
-    UPDATE cr2_participant
+    UPDATE classroom_participant
     SET last_seen_at = @ts, connected = 1, left_at = NULL
     WHERE id = @id
   `),
   // Socket-Disconnect ohne Leave: connected=0, last_seen_at aktualisieren,
   // left_at bleibt NULL → Schueler kann innerhalb des Reconnect-Window (D6) zurueck.
   markParticipantDisconnect: db.prepare(`
-    UPDATE cr2_participant
+    UPDATE classroom_participant
     SET connected = 0, last_seen_at = @ts
     WHERE id = @id AND left_at IS NULL
   `),
   leaveParticipant: db.prepare(`
-    UPDATE cr2_participant
+    UPDATE classroom_participant
     SET left_at = @ts, connected = 0
     WHERE id = @id AND left_at IS NULL
   `),
   listParticipantsForDashboard: db.prepare(`
     SELECT id, display_name, joined_at, last_seen_at, connected, left_at
-    FROM cr2_participant
+    FROM classroom_participant
     WHERE session_id = ?
     ORDER BY joined_at ASC
   `),
 
   // Submissions + Scores
   insertSubmission: db.prepare(`
-    INSERT INTO cr2_submission (id, session_id, assignment_id, participant_id, lemma_id, round_index, raw_answer, submitted_at, client_ms)
+    INSERT INTO classroom_submission (id, session_id, assignment_id, participant_id, lemma_id, round_index, raw_answer, submitted_at, client_ms)
     VALUES (@id, @session_id, @assignment_id, @participant_id, @lemma_id, @round_index, @raw_answer, @submitted_at, @client_ms)
     ON CONFLICT(participant_id, assignment_id, lemma_id, round_index) DO NOTHING
   `),
   getSubmissionByKey: db.prepare(`
-    SELECT * FROM cr2_submission
+    SELECT * FROM classroom_submission
     WHERE participant_id = ? AND assignment_id = ? AND lemma_id = ? AND round_index = ?
     LIMIT 1
   `),
   insertScore: db.prepare(`
-    INSERT INTO cr2_score_record (submission_id, session_id, participant_id, assignment_id, score, max_score, correct, detail_json, scored_at)
+    INSERT INTO classroom_score_record (submission_id, session_id, participant_id, assignment_id, score, max_score, correct, detail_json, scored_at)
     VALUES (@submission_id, @session_id, @participant_id, @assignment_id, @score, @max_score, @correct, @detail_json, @scored_at)
     ON CONFLICT(submission_id) DO NOTHING
   `),
   getScoreBySubmission: db.prepare(`
-    SELECT * FROM cr2_score_record WHERE submission_id = ?
+    SELECT * FROM classroom_score_record WHERE submission_id = ?
   `),
   listSessionSubmissionsForDashboard: db.prepare(`
     SELECT s.lemma_id, s.participant_id, sc.score, sc.max_score, sc.correct
-    FROM cr2_submission s
-    JOIN cr2_score_record sc ON sc.submission_id = s.id
+    FROM classroom_submission s
+    JOIN classroom_score_record sc ON sc.submission_id = s.id
     WHERE s.session_id = ?
   `),
 
   // Capability Grants
   insertCapability: db.prepare(`
-    INSERT INTO cr2_capability_grant (id, session_id, subject_kind, subject_id, capability, granted_at)
+    INSERT INTO classroom_capability_grant (id, session_id, subject_kind, subject_id, capability, granted_at)
     VALUES (@id, @session_id, @subject_kind, @subject_id, @capability, @granted_at)
     ON CONFLICT(session_id, subject_kind, subject_id, capability) WHERE revoked_at IS NULL DO NOTHING
   `),
   revokeAllForSession: db.prepare(`
-    UPDATE cr2_capability_grant
+    UPDATE classroom_capability_grant
     SET revoked_at = @ts
     WHERE session_id = @session_id AND revoked_at IS NULL
   `),
   revokeAllForSubject: db.prepare(`
-    UPDATE cr2_capability_grant
+    UPDATE classroom_capability_grant
     SET revoked_at = @ts
     WHERE session_id = @session_id
       AND subject_kind = @subject_kind
@@ -178,12 +178,12 @@ const stmts = {
       AND revoked_at IS NULL
   `),
   revokeByCapability: db.prepare(`
-    UPDATE cr2_capability_grant
+    UPDATE classroom_capability_grant
     SET revoked_at = @ts
     WHERE session_id = @session_id AND capability = @capability AND revoked_at IS NULL
   `),
   hasCapability: db.prepare(`
-    SELECT 1 FROM cr2_capability_grant
+    SELECT 1 FROM classroom_capability_grant
     WHERE session_id = ? AND subject_kind = ? AND subject_id = ? AND capability = ?
       AND revoked_at IS NULL
     LIMIT 1

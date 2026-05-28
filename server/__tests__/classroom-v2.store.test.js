@@ -31,9 +31,9 @@ function ensureUser(id) {
 
 function cleanup() {
   for (const t of [TEACHER_A, TEACHER_B]) {
-    const sessions = db.prepare(`SELECT id FROM cr2_session WHERE teacher_user_id = ?`).all(t)
+    const sessions = db.prepare(`SELECT id FROM classroom_session WHERE teacher_user_id = ?`).all(t)
     for (const s of sessions) {
-      db.prepare(`DELETE FROM cr2_session WHERE id = ?`).run(s.id)
+      db.prepare(`DELETE FROM classroom_session WHERE id = ?`).run(s.id)
     }
   }
 }
@@ -200,7 +200,7 @@ describe('classroom-v2/store', () => {
       expect(r.participant.token).toBeTruthy()
       expect(r.session.id).toBe(session.id)
       // Token NICHT im DB-Klartext gespeichert (HMAC, R-3)
-      const tokenInDb = db.prepare(`SELECT auth_token FROM cr2_participant WHERE id = ?`).get(r.participant.id)
+      const tokenInDb = db.prepare(`SELECT auth_token FROM classroom_participant WHERE id = ?`).get(r.participant.id)
       expect(tokenInDb.auth_token).not.toBe(r.participant.token)
     })
 
@@ -235,7 +235,7 @@ describe('classroom-v2/store', () => {
       const j = joinByCode({ code: session.code, displayName: 'Lena' })
       leaveParticipant(j.participant.id)
       heartbeatParticipant(j.participant.id)
-      const row = db.prepare(`SELECT left_at, connected FROM cr2_participant WHERE id = ?`).get(j.participant.id)
+      const row = db.prepare(`SELECT left_at, connected FROM classroom_participant WHERE id = ?`).get(j.participant.id)
       expect(row.left_at).toBeNull()
       expect(row.connected).toBe(1)
     })

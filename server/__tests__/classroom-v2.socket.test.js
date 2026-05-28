@@ -50,9 +50,9 @@ function ensureUser(id) {
 }
 
 function cleanupTeacher(id) {
-  const sessions = db.prepare(`SELECT id FROM cr2_session WHERE teacher_user_id = ?`).all(id)
+  const sessions = db.prepare(`SELECT id FROM classroom_session WHERE teacher_user_id = ?`).all(id)
   for (const s of sessions) {
-    db.prepare(`DELETE FROM cr2_session WHERE id = ?`).run(s.id)
+    db.prepare(`DELETE FROM classroom_session WHERE id = ?`).run(s.id)
   }
 }
 

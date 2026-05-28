@@ -7,7 +7,7 @@
  *
  * Auth-Modi (D14):
  *   Teacher   – better-auth-Session (cookie) + premium-Rolle
- *   Participant – Bearer auth_token (HMAC-Hash in cr2_participant)
+ *   Participant – Bearer auth_token (HMAC-Hash in classroom_participant)
  *   Public    – nur POST /join (rate-limited)
  *
  * Sicherheits-Invarianten:
@@ -267,7 +267,7 @@ function buildSafeRound(round) {
 // Submissions fuer einen Teilnehmer laden (fuer Fortschrittsberechnung)
 const getParticipantSubmissionsStmt = db.prepare(`
   SELECT DISTINCT lemma_id, round_index
-  FROM cr2_submission
+  FROM classroom_submission
   WHERE participant_id = ? AND assignment_id = ?
   ORDER BY lemma_id, round_index
 `)
@@ -566,7 +566,7 @@ router.post(
       }
       logger.info({ sessionId }, 'cr2 session started')
       const participantCount = db.prepare(
-        'SELECT COUNT(1) AS c FROM cr2_participant WHERE session_id = ? AND left_at IS NULL',
+        'SELECT COUNT(1) AS c FROM classroom_participant WHERE session_id = ? AND left_at IS NULL',
       ).get(sessionId)?.c ?? 0
       trackSessionStarted(sessionId, teacherUserId, participantCount)
       // Broadcast an Schueler- und Teacher-Room (Plan §6: session:started).
@@ -611,10 +611,10 @@ router.post(
         : null
       // Completion-Rate: Schüler mit mind. 1 Submission / alle Teilnehmer
       const totalParts = db.prepare(
-        'SELECT COUNT(1) AS c FROM cr2_participant WHERE session_id = ? AND left_at IS NULL',
+        'SELECT COUNT(1) AS c FROM classroom_participant WHERE session_id = ? AND left_at IS NULL',
       ).get(sessionId)?.c ?? 0
       const submittedParts = db.prepare(
-        'SELECT COUNT(DISTINCT participant_id) AS c FROM cr2_submission WHERE session_id = ?',
+        'SELECT COUNT(DISTINCT participant_id) AS c FROM classroom_submission WHERE session_id = ?',
       ).get(sessionId)?.c ?? 0
       const completionRate = totalParts > 0 ? submittedParts / totalParts : 0
       trackSessionFinished(sessionId, teacherUserId, { durationMs, completionRate })

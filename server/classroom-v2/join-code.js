@@ -1,15 +1,15 @@
 /**
  * server/classroom-v2/join-code.js
  *
- * Generiert kollisionsfreie Join-Codes fuer cr2_session.
+ * Generiert kollisionsfreie Join-Codes fuer classroom_session.
  * Default-Strategie (siehe Plan Decision D16, T-0.4 vertagt): die
  * bestehende Wortliste aus server/classroom/join-codes.js. Bei
  * Mockup von T-4.5 wird entschieden, ob auf 6-stellig umgestellt wird –
  * dafuer reicht es, generateCandidate auszutauschen, alles andere
  * (Kollisionsschutz, Retry-Budget) bleibt identisch.
  *
- * Kollisionsfenster: idx_cr2_session_code_active ist ein partial
- * unique index auf cr2_session(code) WHERE status IN ('lobby','running').
+ * Kollisionsfenster: idx_classroom_session_code_active ist ein partial
+ * unique index auf classroom_session(code) WHERE status IN ('lobby','running').
  * Wir matchen explizit auf diesen Filter, damit Codes nach Session-Ende
  * sofort wiederverwendbar sind.
  *
@@ -24,7 +24,7 @@ const MAX_ATTEMPTS = 40
 
 const countActiveByCodeStmt = db.prepare(`
   SELECT COUNT(1) AS c
-  FROM cr2_session
+  FROM classroom_session
   WHERE code = ?
     AND status IN ('lobby','running')
 `)

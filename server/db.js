@@ -616,9 +616,9 @@ if (!hasColumn('lemmata', 'lueckenfueller')) {
 
 // ── Versionierte SQL-Migrationen synchron anwenden ──────────────────────────
 // Muss VOR dem Export geschehen: andere Module (z.B. server/classroom-v2/store.js)
-// registrieren beim Import sofort Prepared Statements auf cr2_*-Tabellen.
+// registrieren beim Import sofort Prepared Statements auf classroom_*-Tabellen.
 // Ohne diesen Aufruf scheitert der Server-Boot in einer frischen DB-Umgebung
-// (z.B. CI Smoke-Test) mit "no such table: cr2_session".
+// (z.B. CI Smoke-Test) mit "no such table: classroom_session".
 // JS-Migrationen bleiben dem async migrate-runner.js im Server-IIFE überlassen.
 const _migResult = runSqlMigrationsSync(db)
 if (_migResult.applied.length > 0) {
