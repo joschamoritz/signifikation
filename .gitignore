@@ -75,6 +75,7 @@ wortprofil/06_belege/belege.db
 server/data/signifikation.db
 server/data/signifikation.db-wal
 server/data/signifikation.db-shm
+server/data/signifikation-*.db
 server/data/audit.log
 server/data/classroom-exports/
 wortprofil/00_setup/wordprofile-src
