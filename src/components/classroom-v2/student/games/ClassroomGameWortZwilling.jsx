@@ -4,7 +4,7 @@
 //   Tippen auf Wort → ausgewählt
 //   Tippen auf Zone → Wort wandert dorthin
 // Drag-and-Drop wäre robust, aber zwingt dnd-kit + Touch-Aushebelung in
-// die Kiosk-Shell — fuer den Pilot reicht der einfache Tap-Pfad.
+// die Kiosk-Shell — der einfache Tap-Pfad reicht.
 //
 // rawAnswer: { zoneA: [strings], zoneB: [strings] }
 

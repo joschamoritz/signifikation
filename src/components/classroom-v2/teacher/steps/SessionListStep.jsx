@@ -4,7 +4,7 @@
 // CTA „+ Neue Session" ist die einzige primaere Aktion auf diesem Screen —
 // als sticky bottom button (Mobile-first) realisiert.
 //
-// Pagination-Schwelle bewusst bei 50 (limit) — wenn ein Pilot-Lehrer mehr
+// Pagination-Schwelle bewusst bei 50 (limit) — wenn eine Lehrkraft mehr
 // braucht, kommt das in Welle 2. Bis dahin reicht ein Hinweis am Ende der
 // Liste, dass aelter geschnitten ist.
 

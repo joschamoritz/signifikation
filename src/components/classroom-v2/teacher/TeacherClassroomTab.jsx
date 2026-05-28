@@ -1,10 +1,8 @@
-// T-4.2 — Root des Lehrer-Tabs „Klassenraum v2".
+// Root des Lehrer-Tabs „Klassenraum".
 //
 // Mountet den Reducer-Context und rendert den Step, der gerade aktiv ist.
-// Wörterbuch-Stil: Container limitiert auf 680px (Setup/Lobby), TestFeatureBadge
-// markiert das Feature klar als Pilot.
+// Wörterbuch-Stil: Container limitiert auf 680px (Setup/Lobby).
 
-import { TestFeatureBadge } from '../shared/TestFeatureBadge'
 import { TeacherClassroomProvider, useTeacherClassroom, STEPS } from './TeacherClassroomContext'
 import SessionListStep from './steps/SessionListStep'
 import SetupStep       from './steps/SetupStep'
@@ -31,7 +29,6 @@ export default function TeacherClassroomTab() {
       <div className="cr2-teacher">
         <header className="cr2-teacher__topbar">
           <h1 className="cr2-teacher__title">Klassenraum</h1>
-          <TestFeatureBadge label="Klassenraum v2" />
         </header>
         <main className="cr2-teacher__main">
           <StepRouter />

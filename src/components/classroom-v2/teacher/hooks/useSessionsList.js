@@ -1,8 +1,8 @@
 // T-4.8 — kleiner Wrapper um GET /sessions mit Lade-/Fehler-State.
 // Pagination ist im Endpoint vorhanden (limit), aber wir starten in
 // Welle 1 ohne Infinite-Scroll: 50 Sessions ist die UI-Schwelle, danach
-// kommt eine Hinweiszeile. Wenn der Pilot zeigt, dass Lehrkraefte mehr
-// brauchen, kommt das in Welle 2.
+// kommt eine Hinweiszeile. Falls Lehrkraefte mehr brauchen, kommt das
+// in Welle 2.
 
 import { useCallback, useEffect, useState } from 'react'
 import { listSessions } from './useTeacherSession'

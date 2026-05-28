@@ -7,7 +7,7 @@
 // QR-Code: bewusst KEIN externer Library-Import. Statt ein QR-Renderer-Paket
 // einzuziehen (>20KB), liefert der Server eine Beitritts-URL — der Teacher
 // kann den Tab auf dem Beamer projizieren und der Schueler tippt den Code
-// ein. Wenn der Pilot zeigt, dass QR gefragt ist, kommt das in Welle 2 dazu.
+// ein. Falls QR gefragt ist, kommt das in Welle 2 dazu.
 
 import { useState } from 'react'
 

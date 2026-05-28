@@ -14,9 +14,8 @@ import './components/classroom-v2/student/KioskStub.css'
 const PersistentClassroomTab = lazy(() => import('./components/PersistentClassroomTab'))
 const PersistentKontoTab     = lazy(() => import('./components/PersistentKontoTab'))
 
-// Classroom v2 — Tab fuer Lehrkraefte (gleicher Lazy-Pfad wie v1, damit
-// socket.io-client erst beim Tab-Wechsel geladen wird) und Schueler-Shell
-// (eigene Route /c und /c/:code).
+// Klassenraum — Tab fuer Lehrkraefte (Lazy-Pfad, damit socket.io-client erst
+// beim Tab-Wechsel geladen wird) und Schueler-Shell (Routen /c und /c/:code).
 const TeacherClassroomTabV2 = lazy(() => import('./components/classroom-v2/teacher/TeacherClassroomTab'))
 const StudentJoinEntry      = lazy(() => import('./components/classroom-v2/student/StudentJoinEntry'))
 const StudentKioskRoute     = lazy(() => import('./components/classroom-v2/student/StudentKioskRoute'))
@@ -44,9 +43,9 @@ function MainAppShell() {
   } = useAppModel()
   const showClassroomV2 = classroomTeacher
 
-  // Klassenraum v2: einmal gemounted (bei erstem Tab-Besuch), bleibt im DOM
+  // Klassenraum: einmal gemounted (bei erstem Tab-Besuch), bleibt im DOM
   // damit Sockets und Step-State einen Tab-Wechsel ueberleben — identisches
-  // Pattern wie PersistentClassroomTab (v1) und PersistentKontoTab.
+  // Pattern wie PersistentKontoTab.
   const classroomV2MountedRef = useRef(false)
   const [classroomV2Mounted, setClassroomV2Mounted] = useState(false)
   useEffect(() => {

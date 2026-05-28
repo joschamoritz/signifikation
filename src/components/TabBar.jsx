@@ -25,7 +25,7 @@ const TABS = [
   },
   {
     id: 'klassenraum-v2',
-    label: 'Klasse v2',
+    label: 'Klassenraum',
     teacherOnly: true,
     icon: () => (
       <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">

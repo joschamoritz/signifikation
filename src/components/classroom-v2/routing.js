@@ -5,8 +5,7 @@
 // brauchen: /c und /c/:code. Alles andere bleibt im Tab-System.
 //
 // Native (Capacitor) laeuft immer unter capacitor://localhost/ — dort matched
-// niemals /c. Das ist Absicht: die Schueler-Kiosk-Shell ist ein Web-Feature
-// fuer den Pilot.
+// niemals /c. Das ist Absicht: die Schueler-Kiosk-Shell ist ein Web-Feature.
 
 import { useEffect, useState } from 'react'
 
