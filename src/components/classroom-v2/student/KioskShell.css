@@ -1,0 +1,568 @@
+/* T-5.1 — Layout fuer die Schueler-Kiosk-Shell.
+   Eigene CSS-Variablen, damit die Datei autark ist und nicht von der
+   Teacher-Shell abhaengt (verschiedene Mount-Pfade). */
+
+.cr2-kiosk {
+  --k-bg:        #faf9f7;
+  --k-card:      #ffffff;
+  --k-text:      #1f1f1f;
+  --k-muted:     #6a6a6a;
+  --k-rule:      #d8d2c4;
+  --k-rule-lt:   #ece8de;
+  --k-accent:    #9b1c1c;
+  --k-gold:      #c9a84c;
+  --k-error:     #9b1c1c;
+  --k-disabled:  #a8a39a;
+
+  min-height: 100vh;
+  background: var(--k-bg);
+  color:      var(--k-text);
+  font-family: 'DM Sans', system-ui, sans-serif;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── Header ─────────────────────────────────────────────────────────── */
+.cr2-kiosk__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 18px 12px;
+  border-bottom: 1px solid var(--k-rule-lt);
+  background: var(--k-bg);
+}
+
+.cr2-kiosk__brand {
+  font-family: 'Gentium Plus', Georgia, serif;
+  font-size: 1.05rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--k-text);
+}
+
+.cr2-kiosk__brand small {
+  font-family: 'Gentium Plus', Georgia, serif;
+  font-style: italic;
+  font-weight: 400;
+  font-size: 0.8rem;
+  color: var(--k-muted);
+  margin-left: 8px;
+}
+
+.cr2-kiosk__exit {
+  background: transparent;
+  border: 1px solid var(--k-rule);
+  color: var(--k-muted);
+  font-family: 'DM Sans', system-ui, sans-serif;
+  font-size: 0.85rem;
+  padding: 6px 12px;
+  border-radius: 3px;
+  cursor: pointer;
+}
+
+.cr2-kiosk__exit:hover {
+  border-color: var(--k-accent);
+  color: var(--k-accent);
+}
+
+/* ── Main-Container ─────────────────────────────────────────────────── */
+.cr2-kiosk__main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  padding: 24px 18px 32px;
+  max-width: 480px;
+  width: 100%;
+  margin: 0 auto;
+  box-sizing: border-box;
+}
+
+/* ── Drop-Cap + Headlines ───────────────────────────────────────────── */
+.cr2-kiosk__dropcap {
+  font-family: 'Gentium Plus', Georgia, serif;
+  font-size: 4.5rem;
+  line-height: 1;
+  color: var(--k-accent);
+  font-weight: 700;
+  display: inline-block;
+  margin: 0 0 8px;
+}
+
+.cr2-kiosk__dropcap--gold {
+  color: var(--k-gold);
+}
+
+.cr2-kiosk__title {
+  font-family: 'Gentium Plus', Georgia, serif;
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin: 0 0 6px;
+}
+
+.cr2-kiosk__lead {
+  font-family: 'Gentium Plus', Georgia, serif;
+  font-style: italic;
+  color: var(--k-muted);
+  font-size: 1.05rem;
+  margin: 0 0 20px;
+  line-height: 1.5;
+}
+
+.cr2-kiosk__hint {
+  font-family: 'Gentium Plus', Georgia, serif;
+  font-style: italic;
+  color: var(--k-muted);
+  font-size: 0.9rem;
+  margin: 0 0 12px;
+  line-height: 1.5;
+}
+
+.cr2-kiosk__hint--error {
+  color: var(--k-error);
+}
+
+/* ── Form-Bausteine ─────────────────────────────────────────────────── */
+.cr2-kiosk__input {
+  width: 100%;
+  padding: 14px 16px;
+  font-family: 'Gentium Plus', Georgia, serif;
+  font-size: 1.4rem;
+  background: var(--k-card);
+  border: 1px solid var(--k-rule);
+  border-radius: 4px;
+  color: var(--k-text);
+  text-align: center;
+  letter-spacing: 0.05em;
+  box-sizing: border-box;
+}
+
+.cr2-kiosk__input:focus {
+  outline: none;
+  border-color: var(--k-accent);
+}
+
+.cr2-kiosk__input--shake {
+  animation: cr2-kiosk-shake 320ms ease-in-out;
+  border-color: var(--k-error) !important;
+}
+
+@keyframes cr2-kiosk-shake {
+  0%, 100% { transform: translateX(0); }
+  20%      { transform: translateX(-6px); }
+  40%      { transform: translateX(6px); }
+  60%      { transform: translateX(-4px); }
+  80%      { transform: translateX(4px); }
+}
+
+.cr2-kiosk__counter {
+  font-size: 0.75rem;
+  color: var(--k-muted);
+  text-align: right;
+  margin: 4px 2px 0;
+  font-family: 'DM Sans', system-ui, sans-serif;
+}
+
+/* ── Buttons ────────────────────────────────────────────────────────── */
+.cr2-kiosk__btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-family: 'DM Sans', system-ui, sans-serif;
+  font-size: 1rem;
+  font-weight: 500;
+  padding: 14px 20px;
+  border-radius: 4px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  width: 100%;
+  margin-top: 16px;
+  box-sizing: border-box;
+}
+
+.cr2-kiosk__btn--primary {
+  background: var(--k-accent);
+  color: #fff;
+  border-color: var(--k-accent);
+}
+
+.cr2-kiosk__btn--primary:disabled {
+  background: var(--k-disabled);
+  border-color: var(--k-disabled);
+  cursor: not-allowed;
+}
+
+.cr2-kiosk__btn--ghost {
+  background: transparent;
+  color: var(--k-muted);
+  border-color: transparent;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  width: auto;
+  padding: 8px 4px;
+  margin-top: 4px;
+}
+
+.cr2-kiosk__btn--ghost:hover {
+  color: var(--k-text);
+}
+
+/* ── Chip (Name oben rechts in S3/S4) ───────────────────────────────── */
+.cr2-kiosk__name-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #fdfcf8;
+  border: 1px solid var(--k-rule-lt);
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-family: 'Gentium Plus', Georgia, serif;
+  font-size: 0.85rem;
+  color: var(--k-muted);
+}
+
+.cr2-kiosk__name-chip strong {
+  color: var(--k-text);
+  font-weight: 700;
+}
+
+/* ── Pulse-Dot (Warten) ─────────────────────────────────────────────── */
+.cr2-kiosk__pulse {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--k-gold);
+  display: inline-block;
+  animation: cr2-kiosk-pulse 1.6s ease-in-out infinite;
+  margin-right: 8px;
+  vertical-align: middle;
+}
+
+@keyframes cr2-kiosk-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%      { opacity: 0.35; transform: scale(0.85); }
+}
+
+/* ── Code-Anzeige (oben links als Mini-Block) ───────────────────────── */
+.cr2-kiosk__code-line {
+  font-family: 'Gentium Plus', Georgia, serif;
+  font-size: 0.85rem;
+  color: var(--k-muted);
+  margin: 0 0 14px;
+}
+
+.cr2-kiosk__code-line strong {
+  color: var(--k-accent);
+  letter-spacing: 0.05em;
+}
+
+/* ── Auth-Banner (eingeloggter User in /c) ──────────────────────────── */
+.cr2-kiosk__auth-banner {
+  background: #fffbef;
+  border-top: 1px solid var(--k-gold);
+  padding: 10px 14px;
+  font-size: 0.8rem;
+  color: var(--k-muted);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.cr2-kiosk__auth-banner a {
+  color: var(--k-accent);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+/* ── Bestätigungs-Modal (Verlassen) ─────────────────────────────────── */
+.cr2-kiosk__modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  z-index: 50;
+}
+
+.cr2-kiosk__modal {
+  background: var(--k-card);
+  border-radius: 6px;
+  padding: 24px 22px;
+  max-width: 360px;
+  width: 100%;
+  text-align: center;
+}
+
+.cr2-kiosk__modal h2 {
+  font-family: 'Gentium Plus', Georgia, serif;
+  font-size: 1.2rem;
+  margin: 0 0 8px;
+}
+
+.cr2-kiosk__modal p {
+  font-family: 'Gentium Plus', Georgia, serif;
+  font-style: italic;
+  color: var(--k-muted);
+  margin: 0 0 18px;
+}
+
+.cr2-kiosk__modal-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.cr2-kiosk__modal-actions button {
+  flex: 1 1 0;
+  margin-top: 0;
+}
+
+/* ── Toast (Submit-Fehler) ──────────────────────────────────────────── */
+.cr2-kiosk__toast {
+  position: fixed;
+  left: 50%;
+  bottom: 24px;
+  transform: translateX(-50%);
+  background: var(--k-text);
+  color: #faf9f7;
+  font-size: 0.85rem;
+  padding: 10px 16px;
+  border-radius: 4px;
+  z-index: 60;
+  max-width: calc(100% - 32px);
+  text-align: center;
+  font-family: 'DM Sans', system-ui, sans-serif;
+}
+
+/* ── Multi-Tab-Sperre ───────────────────────────────────────────────── */
+.cr2-kiosk__lock {
+  text-align: center;
+  padding: 32px 12px;
+}
+
+.cr2-kiosk__lock h2 {
+  font-family: 'Gentium Plus', Georgia, serif;
+  font-size: 1.3rem;
+  margin: 12px 0 8px;
+}
+
+/* ── Submit/Result-Karte (S5) ───────────────────────────────────────── */
+.cr2-kiosk__resultcard {
+  background: var(--k-card);
+  border: 1px solid var(--k-rule-lt);
+  border-radius: 4px;
+  padding: 18px 16px;
+  margin-top: 18px;
+}
+
+.cr2-kiosk__resultcard__row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+  padding: 6px 0;
+  border-bottom: 1px dashed var(--k-rule-lt);
+  font-family: 'Gentium Plus', Georgia, serif;
+}
+
+.cr2-kiosk__resultcard__row:last-child {
+  border-bottom: none;
+}
+
+.cr2-kiosk__resultcard__row--correct strong {
+  color: var(--k-accent);
+}
+
+.cr2-kiosk__resultcard__row--wrong {
+  color: var(--k-muted);
+  text-decoration: line-through;
+}
+
+/* ── Spielmodi-Inhalt (Wrapper-Layout) ──────────────────────────────── */
+.cr2-kiosk__game {
+  background: var(--k-card);
+  border: 1px solid var(--k-rule-lt);
+  border-radius: 4px;
+  padding: 20px 18px;
+  margin-top: 12px;
+}
+
+.cr2-kiosk__lemma {
+  font-family: 'Gentium Plus', Georgia, serif;
+  font-size: 1.6rem;
+  font-weight: 700;
+  margin: 0 0 4px;
+}
+
+.cr2-kiosk__ipa {
+  font-family: 'Gentium Plus', Georgia, serif;
+  font-size: 0.85rem;
+  font-style: italic;
+  color: var(--k-muted);
+  margin: 0 0 12px;
+}
+
+.cr2-kiosk__definition {
+  font-family: 'Gentium Plus', Georgia, serif;
+  font-size: 0.95rem;
+  line-height: 1.45;
+  color: var(--k-muted);
+  margin: 0 0 18px;
+  font-style: italic;
+}
+
+.cr2-kiosk__choices {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.cr2-kiosk__choice {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 12px 14px;
+  background: var(--k-card);
+  border: 1px solid var(--k-rule);
+  border-radius: 3px;
+  font-family: 'Gentium Plus', Georgia, serif;
+  font-size: 1.05rem;
+  cursor: pointer;
+  user-select: none;
+}
+
+.cr2-kiosk__choice:hover:not(.cr2-kiosk__choice--disabled) {
+  background: #fdfcf8;
+}
+
+.cr2-kiosk__choice--picked {
+  border-color: var(--k-accent);
+  background: #fdf2f0;
+}
+
+.cr2-kiosk__choice--disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.cr2-kiosk__choice-rank {
+  font-family: 'DM Sans', system-ui, sans-serif;
+  font-size: 0.8rem;
+  color: var(--k-accent);
+  font-weight: 700;
+}
+
+/* WortZwilling Zonen */
+.cr2-kiosk__zones {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.cr2-kiosk__zone {
+  border: 1px dashed var(--k-rule);
+  border-radius: 3px;
+  padding: 10px;
+  min-height: 88px;
+  background: #fdfcf8;
+}
+
+.cr2-kiosk__zone__label {
+  font-family: 'Gentium Plus', Georgia, serif;
+  font-size: 0.85rem;
+  color: var(--k-accent);
+  font-weight: 700;
+  text-align: center;
+  margin: 0 0 8px;
+}
+
+.cr2-kiosk__bank {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 8px 0 0;
+  border-top: 1px solid var(--k-rule-lt);
+}
+
+.cr2-kiosk__pill {
+  font-family: 'Gentium Plus', Georgia, serif;
+  font-size: 0.95rem;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: var(--k-card);
+  border: 1px solid var(--k-rule);
+  cursor: pointer;
+}
+
+.cr2-kiosk__pill--in-zone-a { border-color: var(--k-accent); }
+.cr2-kiosk__pill--in-zone-b { border-color: var(--k-gold); }
+
+/* Zeitenwende — Karten */
+.cr2-kiosk__zw-card {
+  background: var(--k-card);
+  border: 1px solid var(--k-rule);
+  border-radius: 4px;
+  padding: 16px 14px;
+  text-align: center;
+  margin: 8px 0;
+}
+
+.cr2-kiosk__zw-word {
+  font-family: 'Gentium Plus', Georgia, serif;
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+.cr2-kiosk__zw-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.cr2-kiosk__zw-action {
+  font-family: 'DM Sans', system-ui, sans-serif;
+  font-size: 0.9rem;
+  padding: 10px;
+  border-radius: 3px;
+  border: 1px solid var(--k-rule);
+  background: var(--k-card);
+  cursor: pointer;
+}
+
+.cr2-kiosk__zw-action--active-pre  { border-color: var(--k-accent); background: #fdf2f0; }
+.cr2-kiosk__zw-action--active-post { border-color: var(--k-gold);   background: #fffbef; }
+
+.cr2-kiosk__zw-progress {
+  font-family: 'DM Sans', system-ui, sans-serif;
+  font-size: 0.75rem;
+  color: var(--k-muted);
+  text-align: center;
+  margin: 4px 0 12px;
+}
+
+/* Lückenfüller — Sentence */
+.cr2-kiosk__lf-sentence {
+  font-family: 'Gentium Plus', Georgia, serif;
+  font-size: 1.1rem;
+  line-height: 1.5;
+  margin: 0 0 14px;
+}
+
+.cr2-kiosk__lf-blank {
+  display: inline-block;
+  min-width: 80px;
+  border-bottom: 2px solid var(--k-accent);
+  padding: 0 4px;
+  color: var(--k-accent);
+}

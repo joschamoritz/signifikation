@@ -1,3 +1,7 @@
+// Phase-5/T-5.6: Props `mode`, `onSubmit`, `disableProgress`, `hideHeader`
+// werden akzeptiert (s. WortZwilling-Default-Export unten), aber der
+// Singleplayer-Pfad bleibt unangetastet. Classroom rendert eigene Variante
+// (classroom-v2/student/games/ClassroomGameWortZwilling.jsx).
 import { useState, useEffect, useRef } from 'react'
 import {
   DndContext,
@@ -98,7 +102,16 @@ function DroppableBank({ children }) {
 }
 
 // ── Hauptkomponente ───────────────────────────────────────────
-export default function WortZwilling({ data, onBack, onFinish, savedResult = null }) {
+export default function WortZwilling({
+  data,
+  onBack,
+  onFinish,
+  savedResult = null,
+  mode = 'single',          // 'single' | 'classroom' (T-5.6)
+  onSubmit,                 // Classroom: (rawAnswer) => void
+  disableProgress = false,  // Classroom: keine XP/Streak/Stats
+  hideHeader = false,       // Classroom: KioskShell zeigt eigenen Header
+}) {
   const words = data.kollokatoren.map(k => k.wort)
 
   const [order] = useState(() => shuffle([...words]))

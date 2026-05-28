@@ -435,7 +435,19 @@ function FreeRound({ round, onScore }) {
 }
 
 // ── Hauptkomponente ───────────────────────────────────────
-export default function Lueckenfueller({ data, lemmaName, onBack, onFinish, savedResult, initialProgress }) {
+export default function Lueckenfueller({
+  data,
+  lemmaName,
+  onBack,
+  onFinish,
+  savedResult,
+  initialProgress,
+  // Phase-5/T-5.6: Classroom-Props — Defaults erhalten Singleplayer 1:1.
+  mode = 'single',
+  onSubmit,
+  disableProgress = false,
+  hideHeader = false,
+}) {
   const [phase,  setPhase]  = useState(savedResult ? 'results' : 'play')
   const [round,  setRound]  = useState(initialProgress?.round ?? 0)
   const [scores, setScores] = useState(initialProgress?.scores ?? [])

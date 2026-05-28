@@ -95,7 +95,19 @@ function ZWResults({ lemma, words, answers, onBack, ipa, definitionen }) {
 }
 
 /** Hauptkomponente */
-export default function Zeitenwende({ data, onBack, onFinish, savedResult = null, initialProgress = null }) {
+export default function Zeitenwende({
+  data,
+  onBack,
+  onFinish,
+  savedResult = null,
+  initialProgress = null,
+  // Phase-5/T-5.6: Props fuer den Classroom-Pfad — Defaults bleiben Singleplayer.
+  // Classroom rendert eigene Variante (ClassroomGameZeitenwende.jsx).
+  mode = 'single',
+  onSubmit,
+  disableProgress = false,
+  hideHeader = false,
+}) {
   const { lemma, words, ipa = '', definitionen = [] } = data
 
   const [round,   setRound]   = useState(initialProgress?.round ?? 0)

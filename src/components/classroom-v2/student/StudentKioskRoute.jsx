@@ -1,20 +1,145 @@
-// T-4.1 Phase-4-Stub.
-// Vollausbau folgt in Phase 5 (T-5.1 ff.) — hier nur das Mindestmaß, um
-// im Teacher-Walkthrough einen zweiten Tab auf /c/CODE zu öffnen und damit
-// zu zeigen, dass die Route greift.
-import { TestFeatureBadge } from '../shared/TestFeatureBadge'
+// T-5.1 — StudentKioskRoute (/c/:code).
+//
+// Mountet StudentKioskProvider, KioskShell, State-Router und alle Hooks.
+// Persistenz + Polling laeuft via useStudentSession (T-5.8), Realtime via
+// useStudentSocket (T-5.9), Tab-/Reload-Schutz via useKioskGuard.
+//
+// Lifecycle-Übersicht:
+//   - Mount mit code aus URL → Provider mit initialCode=code
+//   - useStudentSession liest sessionStorage:
+//       a) gleicher code + token → JOINED dispatchen → /me/view sync
+//       b) kein Token / anderer Code → bleibt in 'name' (NameState)
+//   - NameState ruft POST /join → JOINED dispatch → Persistenz schreibt
+//   - Polling /me/view alle 10s, solange Socket nicht verbunden
+//   - Socket-Events → SET_VIEW + STATE_TRANSITIONS
 
-export default function StudentKioskRoute({ code }) {
+import { useCallback, useEffect, useState } from 'react'
+import {
+  StudentKioskProvider,
+  useStudentKiosk,
+  KIOSK_STATES,
+} from './StudentKioskContext'
+import KioskShell from './KioskShell'
+import NameState       from './states/NameState'
+import WaitingState    from './states/WaitingState'
+import PlayingState    from './states/PlayingState'
+import SubmittedState  from './states/SubmittedState'
+import { useStudentSession, clearKioskSession } from './hooks/useStudentSession'
+import { useStudentSocket } from './hooks/useStudentSocket'
+import { useKioskGuard }    from './hooks/useKioskGuard'
+import './KioskShell.css'
+
+// ── Mini-Hook: holt einmalig /account/me, fuer den Auth-Banner. ──────
+function useOptionalUserLabel() {
+  const [label, setLabel] = useState(null)
+  useEffect(() => {
+    let cancelled = false
+    ;(async () => {
+      try {
+        const { API } = await import('../../../config')
+        const res = await fetch(`${API}/account/me`, { credentials: 'include' })
+        if (!res.ok || cancelled) return
+        const json = await res.json()
+        if (cancelled) return
+        // Wir zeigen nur Namen/Email-Stub — keine Rolle, kein Plan-Status.
+        const name = json?.user?.name || json?.user?.email || json?.email || null
+        if (name) setLabel(String(name))
+      } catch {}
+    })()
+    return () => { cancelled = true }
+  }, [])
+  return label
+}
+
+// ── State-Router ──────────────────────────────────────────────────────
+function StateRouter({ onToast }) {
+  const { state } = useStudentKiosk()
+  switch (state.currentState) {
+    case KIOSK_STATES.NAME:       return <NameState />
+    case KIOSK_STATES.WAITING:    return <WaitingState />
+    case KIOSK_STATES.PLAYING:    return <PlayingState onToast={onToast} />
+    case KIOSK_STATES.SUBMITTED:  return <SubmittedState />
+    case KIOSK_STATES.ENDED:      return <SubmittedState />
+    default:                      return <WaitingState />
+  }
+}
+
+// ── Inner: braucht den Provider als Vorfahre ─────────────────────────
+function KioskRouteInner({ code, userLabel }) {
+  const { state, dispatch } = useStudentKiosk()
+  const [toast, setToast] = useState(null)
+
+  // Toast nach 3 s automatisch ausblenden.
+  useEffect(() => {
+    if (!toast) return undefined
+    const id = setTimeout(() => setToast(null), 3000)
+    return () => clearTimeout(id)
+  }, [toast])
+
+  // Socket: nur wenn Token vorhanden.
+  const onRefreshView   = useCallback(() => {/* gleich gleich via session.refreshView */}, [])
+  const onSessionStarted = useCallback((p) => {
+    dispatch({ type: 'SET_SESSION_STATUS', status: 'running' })
+  }, [dispatch])
+  const onSessionEnded   = useCallback((p) => {
+    dispatch({ type: 'SESSION_ENDED', reason: p?.reason || 'finished' })
+  }, [dispatch])
+
+  // useStudentSocket emittiert onRefreshView nach jedem Reconnect/view:updated.
+  // Wir verdrahten das gleich mit useStudentSession.refreshView (unten).
+  const refreshRef = useState(() => ({ fn: () => {} }))[0]
+
+  const { connected: socketConnected } = useStudentSocket({
+    token: state.token,
+    enabled: !!state.token,
+    onRefreshView: () => { refreshRef.fn() },
+    onSessionStarted,
+    onSessionEnded,
+  })
+
+  const { refreshView, leave } = useStudentSession({ socketConnected })
+  // Lazy-Bridge: Socket muss refreshView() rufen koennen, ohne dass die
+  // Hook-Reihenfolge tanzt.
+  useEffect(() => { refreshRef.fn = refreshView }, [refreshView, refreshRef])
+
+  const { locked } = useKioskGuard({ code, currentState: state.currentState })
+
+  if (locked) {
+    return (
+      <KioskShell code={code} confirmExit={false} onLeave={() => { clearKioskSession() }}>
+        <div className="cr2-kiosk__lock">
+          <p className="cr2-kiosk__dropcap">!</p>
+          <h2>Bereits in einem anderen Tab geöffnet</h2>
+          <p className="cr2-kiosk__lead">
+            Dieser Klassenraum läuft schon in einem anderen Tab. Bitte dort weiterspielen.
+          </p>
+        </div>
+      </KioskShell>
+    )
+  }
+
+  // Bestaetigungs-Modal beim Verlassen NUR in playing/submitted.
+  const confirmExit = state.currentState === KIOSK_STATES.PLAYING || state.currentState === KIOSK_STATES.SUBMITTED
+
   return (
-    <div className="cr2-kiosk-stub">
-      <div className="cr2-kiosk-stub__inner">
-        <TestFeatureBadge label="Klassenraum v2 · Schüler" />
-        <h1 className="cr2-kiosk-stub__title">Zugangscode</h1>
-        <p className="cr2-kiosk-stub__code">{code || '—'}</p>
-        <p className="cr2-kiosk-stub__hint">
-          Die volle Beitritts-/Spielansicht entsteht in Phase 5 (T-5.x).
-        </p>
-      </div>
-    </div>
+    <KioskShell
+      code={code}
+      onLeave={() => { leave() }}
+      loggedInUserLabel={userLabel}
+      confirmExit={confirmExit}
+      toast={toast}
+    >
+      <StateRouter onToast={setToast} />
+    </KioskShell>
+  )
+}
+
+// ── Public ────────────────────────────────────────────────────────────
+export default function StudentKioskRoute({ code }) {
+  const userLabel = useOptionalUserLabel()
+  return (
+    <StudentKioskProvider initialCode={code || ''}>
+      <KioskRouteInner code={code || ''} userLabel={userLabel} />
+    </StudentKioskProvider>
   )
 }
