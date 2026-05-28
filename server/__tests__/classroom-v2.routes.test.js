@@ -98,6 +98,87 @@ function insertTestLemma(suffix = '') {
   return id
 }
 
+/**
+ * Lemma fuer Wortzwilling-Tests.
+ * runden.wortzwilling.kollokatoren enthaelt {wort, zuordnung} — zuordnung darf NIEMALS geleakt werden.
+ */
+function insertTestLemmaWortzwilling(suffix = '') {
+  const id = `test-lemma-wz-${suffix || randomUUID()}`
+  const runden = JSON.stringify({
+    wortzwilling: {
+      wortA: 'Wasser',
+      wortB: 'Feuer',
+      kollokatoren: [
+        { wort: 'fließen', zuordnung: 'A' },
+        { wort: 'brennen', zuordnung: 'B' },
+        { wort: 'klar',    zuordnung: 'A' },
+        { wort: 'heiß',    zuordnung: 'B' },
+      ],
+    },
+  })
+  db.prepare(`
+    INSERT OR REPLACE INTO lemmata
+      (id, lemma, pos, wortart, runden, rundenInfo, notiz, link, definition, ipa, definitionen)
+    VALUES
+      (?, 'Wasser', 'Substantiv', 'Substantiv', ?, '[]',
+       'WZ-INTERN-GEHEIM', '', 'H₂O-Verbindung', 'ˈvasɐ', '["H₂O-Verbindung"]')
+  `).run(id, runden)
+  return id
+}
+
+/**
+ * Lemma fuer Zeitenwende-Tests.
+ * runden.zeitenwende.words enthaelt {wort, periode} — periode darf NIEMALS geleakt werden.
+ */
+function insertTestLemmaZeitenwende(suffix = '') {
+  const id = `test-lemma-zw-${suffix || randomUUID()}`
+  const runden = JSON.stringify({
+    zeitenwende: {
+      words: [
+        { wort: 'digital', periode: 'post' },
+        { wort: 'analog',  periode: 'pre'  },
+        { wort: 'Netz',    periode: 'post' },
+      ],
+    },
+  })
+  db.prepare(`
+    INSERT OR REPLACE INTO lemmata
+      (id, lemma, pos, wortart, runden, rundenInfo, notiz, link, definition, ipa, definitionen)
+    VALUES
+      (?, 'Digital', 'Adjektiv', 'Adjektiv', ?, '[]',
+       'ZW-INTERN-GEHEIM', '', 'Digitale Epoche', 'diˈɡiːtaːl', '["Digitale Epoche"]')
+  `).run(id, runden)
+  return id
+}
+
+/**
+ * Lemma fuer Lueckenfueller-Tests.
+ * lueckenfueller.rounds[*].kollokator darf NIEMALS geleakt werden.
+ */
+function insertTestLemmaLueckenfueller(suffix = '') {
+  const id = `test-lemma-lf-${suffix || randomUUID()}`
+  const runden = JSON.stringify({})
+  const lueckenfueller = JSON.stringify({
+    rounds: [
+      {
+        type:      'choice',
+        sentence:  'Das Wasser fließt ___.',
+        kollokator: 'sanft',
+        punkte:    3,
+        options:   ['sanft', 'laut', 'trocken', 'still'],
+      },
+    ],
+  })
+  db.prepare(`
+    INSERT OR REPLACE INTO lemmata
+      (id, lemma, pos, wortart, runden, rundenInfo, notiz, link, definition, ipa, definitionen, lueckenfueller)
+    VALUES
+      (?, 'Fluss', 'Substantiv', 'Substantiv', ?, '[]',
+       'LF-INTERN-GEHEIM', '', 'Fließendes Gewässer', 'flʊs', '["Fließendes Gewässer"]', ?)
+  `).run(id, runden, lueckenfueller)
+  return id
+}
+
 // ── Server-Setup ───────────────────────────────────────────────
 
 describe('classroom-v2 routes', () => {
@@ -578,6 +659,263 @@ describe('classroom-v2 routes', () => {
       // aber der Handler liest result.data.score nie aus)
       expect(result.success).toBe(true)
       expect(result.data).not.toHaveProperty('score')  // score nicht im Schema definiert
+    })
+  })
+
+  // ── T-6.4 Audit-Erweiterung: Wortzwilling ────────────────────
+
+  describe('T-6.4 Audit /me/view — Modus wortzwilling (kein zuordnung-Leak)', () => {
+    const TEACHER_ID = `cr2-teacher-audit-wz-${randomUUID()}`
+    let viewBody
+
+    beforeAll(async () => {
+      ensureUser(TEACHER_ID)
+      const lemmaId = insertTestLemmaWortzwilling('wz')
+      const { session } = createSession({ teacherUserId: TEACHER_ID, title: 'Audit-WZ' })
+
+      await fetch(`${baseUrl}/api/v1/classroom/sessions/${session.id}/assignments`, {
+        method: 'POST',
+        headers: teacherHeaders(TEACHER_ID),
+        body: JSON.stringify({ mode: 'wortzwilling', lemmaIds: [lemmaId] }),
+      })
+      await fetch(`${baseUrl}/api/v1/classroom/sessions/${session.id}/start`, {
+        method: 'POST',
+        headers: teacherHeaders(TEACHER_ID),
+        body: JSON.stringify({}),
+      })
+      const joinRes = await fetch(`${baseUrl}/api/v1/classroom/join`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', 'x-forwarded-for': '10.0.1.1' },
+        body: JSON.stringify({ code: session.code }),
+      })
+      const { token } = await joinRes.json()
+      const viewRes = await fetch(`${baseUrl}/api/v1/classroom/me/view`, {
+        headers: participantHeaders(token),
+      })
+      viewBody = await viewRes.json()
+    })
+
+    afterAll(() => cleanupTeacher(TEACHER_ID))
+
+    function flatKeys(obj, prefix = '') {
+      const result = {}
+      for (const [k, v] of Object.entries(obj || {})) {
+        const key = prefix ? `${prefix}.${k}` : k
+        if (v !== null && typeof v === 'object' && !Array.isArray(v)) {
+          Object.assign(result, flatKeys(v, key))
+        } else if (Array.isArray(v)) {
+          for (let i = 0; i < v.length; i++) {
+            if (typeof v[i] === 'object' && v[i] !== null) Object.assign(result, flatKeys(v[i], `${key}[${i}]`))
+            else result[`${key}[${i}]`] = v[i]
+          }
+          result[key] = v
+        } else {
+          result[key] = v
+        }
+      }
+      return result
+    }
+
+    it('response hat valide Struktur und mode=wortzwilling', () => {
+      expect(viewBody.assignment?.mode).toBe('wortzwilling')
+    })
+
+    it('NIEMALS: zuordnung (verrät Wort-Zwilling-Zone → Antwort)', () => {
+      const keys = Object.keys(flatKeys(viewBody))
+      expect(keys.some(k => k === 'zuordnung' || k.endsWith('.zuordnung'))).toBe(false)
+      expect(JSON.stringify(viewBody)).not.toContain('zuordnung')
+    })
+
+    it('NIEMALS: rang in Wortzwilling-Antwort', () => {
+      const keys = Object.keys(flatKeys(viewBody))
+      expect(keys.some(k => k === 'rang' || k.endsWith('.rang'))).toBe(false)
+    })
+
+    it('NIEMALS: content_snapshot in Antwort', () => {
+      const keys = Object.keys(flatKeys(viewBody))
+      expect(keys.some(k => k.includes('content_snapshot') || k.includes('contentSnapshot'))).toBe(false)
+    })
+
+    it('NIEMALS: notiz-Wert in Antwort', () => {
+      expect(JSON.stringify(viewBody)).not.toContain('WZ-INTERN-GEHEIM')
+    })
+
+    it('Whitelist: wortA und wortB sind vorhanden (erlaubte Felder)', () => {
+      // Diese Felder DARF der Schüler sehen
+      const json = JSON.stringify(viewBody)
+      expect(json).toContain('wortA')
+    })
+  })
+
+  // ── T-6.4 Audit-Erweiterung: Zeitenwende ─────────────────────
+
+  describe('T-6.4 Audit /me/view — Modus zeitenwende (kein periode-Leak)', () => {
+    const TEACHER_ID = `cr2-teacher-audit-zw-${randomUUID()}`
+    let viewBody
+
+    beforeAll(async () => {
+      ensureUser(TEACHER_ID)
+      const lemmaId = insertTestLemmaZeitenwende('zw')
+      const { session } = createSession({ teacherUserId: TEACHER_ID, title: 'Audit-ZW' })
+
+      await fetch(`${baseUrl}/api/v1/classroom/sessions/${session.id}/assignments`, {
+        method: 'POST',
+        headers: teacherHeaders(TEACHER_ID),
+        body: JSON.stringify({ mode: 'zeitenwende', lemmaIds: [lemmaId] }),
+      })
+      await fetch(`${baseUrl}/api/v1/classroom/sessions/${session.id}/start`, {
+        method: 'POST',
+        headers: teacherHeaders(TEACHER_ID),
+        body: JSON.stringify({}),
+      })
+      const joinRes = await fetch(`${baseUrl}/api/v1/classroom/join`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', 'x-forwarded-for': '10.0.2.1' },
+        body: JSON.stringify({ code: session.code }),
+      })
+      const { token } = await joinRes.json()
+      const viewRes = await fetch(`${baseUrl}/api/v1/classroom/me/view`, {
+        headers: participantHeaders(token),
+      })
+      viewBody = await viewRes.json()
+    })
+
+    afterAll(() => cleanupTeacher(TEACHER_ID))
+
+    function flatKeys(obj, prefix = '') {
+      const result = {}
+      for (const [k, v] of Object.entries(obj || {})) {
+        const key = prefix ? `${prefix}.${k}` : k
+        if (v !== null && typeof v === 'object' && !Array.isArray(v)) {
+          Object.assign(result, flatKeys(v, key))
+        } else if (Array.isArray(v)) {
+          for (let i = 0; i < v.length; i++) {
+            if (typeof v[i] === 'object' && v[i] !== null) Object.assign(result, flatKeys(v[i], `${key}[${i}]`))
+            else result[`${key}[${i}]`] = v[i]
+          }
+          result[key] = v
+        } else {
+          result[key] = v
+        }
+      }
+      return result
+    }
+
+    it('response hat valide Struktur und mode=zeitenwende', () => {
+      expect(viewBody.assignment?.mode).toBe('zeitenwende')
+    })
+
+    it('NIEMALS: periode (verrät Zeitenwende-Lösung → Antwort)', () => {
+      const keys = Object.keys(flatKeys(viewBody))
+      expect(keys.some(k => k === 'periode' || k.endsWith('.periode'))).toBe(false)
+      expect(JSON.stringify(viewBody)).not.toContain('periode')
+    })
+
+    it('NIEMALS: content_snapshot in Antwort', () => {
+      const keys = Object.keys(flatKeys(viewBody))
+      expect(keys.some(k => k.includes('content_snapshot') || k.includes('contentSnapshot'))).toBe(false)
+    })
+
+    it('NIEMALS: notiz-Wert in Antwort', () => {
+      expect(JSON.stringify(viewBody)).not.toContain('ZW-INTERN-GEHEIM')
+    })
+
+    it('Whitelist: words-Array ist vorhanden aber ohne periode', () => {
+      // Der Schüler sieht die Wörter — aber nicht ihre Epoche
+      const json = JSON.stringify(viewBody)
+      expect(json).toContain('digital')
+      expect(json).not.toContain('post')
+      expect(json).not.toContain('"pre"')
+    })
+  })
+
+  // ── T-6.4 Audit-Erweiterung: Lückenfüller ────────────────────
+
+  describe('T-6.4 Audit /me/view — Modus lueckenfueller (kein kollokator-Leak)', () => {
+    const TEACHER_ID = `cr2-teacher-audit-lf-${randomUUID()}`
+    let viewBody
+
+    beforeAll(async () => {
+      ensureUser(TEACHER_ID)
+      const lemmaId = insertTestLemmaLueckenfueller('lf')
+      const { session } = createSession({ teacherUserId: TEACHER_ID, title: 'Audit-LF' })
+
+      await fetch(`${baseUrl}/api/v1/classroom/sessions/${session.id}/assignments`, {
+        method: 'POST',
+        headers: teacherHeaders(TEACHER_ID),
+        body: JSON.stringify({ mode: 'lueckenfueller', lemmaIds: [lemmaId] }),
+      })
+      await fetch(`${baseUrl}/api/v1/classroom/sessions/${session.id}/start`, {
+        method: 'POST',
+        headers: teacherHeaders(TEACHER_ID),
+        body: JSON.stringify({}),
+      })
+      const joinRes = await fetch(`${baseUrl}/api/v1/classroom/join`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', 'x-forwarded-for': '10.0.3.1' },
+        body: JSON.stringify({ code: session.code }),
+      })
+      const { token } = await joinRes.json()
+      const viewRes = await fetch(`${baseUrl}/api/v1/classroom/me/view`, {
+        headers: participantHeaders(token),
+      })
+      viewBody = await viewRes.json()
+    })
+
+    afterAll(() => cleanupTeacher(TEACHER_ID))
+
+    function flatKeys(obj, prefix = '') {
+      const result = {}
+      for (const [k, v] of Object.entries(obj || {})) {
+        const key = prefix ? `${prefix}.${k}` : k
+        if (v !== null && typeof v === 'object' && !Array.isArray(v)) {
+          Object.assign(result, flatKeys(v, key))
+        } else if (Array.isArray(v)) {
+          for (let i = 0; i < v.length; i++) {
+            if (typeof v[i] === 'object' && v[i] !== null) Object.assign(result, flatKeys(v[i], `${key}[${i}]`))
+            else result[`${key}[${i}]`] = v[i]
+          }
+          result[key] = v
+        } else {
+          result[key] = v
+        }
+      }
+      return result
+    }
+
+    it('response hat valide Struktur und mode=lueckenfueller', () => {
+      expect(viewBody.assignment?.mode).toBe('lueckenfueller')
+    })
+
+    it('NIEMALS: kollokator als Feld-Name (verrät Lückenfüller-Antwort)', () => {
+      // Das Feld "kollokator" selbst darf nicht in der Response erscheinen.
+      // HINWEIS: Der Wert der korrekten Antwort ("sanft") darf in options[] stehen —
+      // buildSafeRound() gibt absichtlich alle Auswahloptionen inkl. korrekter weiter,
+      // weil der Schüler sonst nicht wählen könnte. Das ist keine Leck-Situation.
+      const keys = Object.keys(flatKeys(viewBody))
+      expect(keys.some(k => k === 'kollokator' || k.endsWith('.kollokator'))).toBe(false)
+      // Sicherstellen, dass "kollokator" nicht als Property-Name in der JSON-Response steht
+      expect(JSON.stringify(viewBody)).not.toMatch(/"kollokator"\s*:/)
+    })
+
+    it('NIEMALS: content_snapshot in Antwort', () => {
+      const keys = Object.keys(flatKeys(viewBody))
+      expect(keys.some(k => k.includes('content_snapshot') || k.includes('contentSnapshot'))).toBe(false)
+    })
+
+    it('NIEMALS: alle Runden im rounds-Array (nur aktuelle Runde)', () => {
+      // buildStudentView: delete safePrompt.rounds → nur currentRound
+      const json = JSON.stringify(viewBody)
+      expect(viewBody.currentLemma?.rounds).toBeUndefined()
+    })
+
+    it('NIEMALS: notiz-Wert in Antwort', () => {
+      expect(JSON.stringify(viewBody)).not.toContain('LF-INTERN-GEHEIM')
+    })
+
+    it('Whitelist: sentence ist vorhanden (erlaubtes Feld)', () => {
+      // sentence darf der Schüler sehen
+      expect(JSON.stringify(viewBody)).toContain('fließt')
     })
   })
 })

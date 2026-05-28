@@ -23,6 +23,14 @@ import { requirePremium } from '../middleware/userAuth.js'
 import { requireCapability } from '../middleware/requireCapability.js'
 import { findParticipantByToken } from '../classroom-v2/store.js'
 import {
+  trackSessionCreated,
+  trackJoinAttempted,
+  trackJoinSucceeded,
+  trackJoinFailed,
+  trackSessionStarted,
+  trackSessionFinished,
+} from '../classroom-v2/telemetry.js'
+import {
   validate,
   cr2CreateSessionSchema,
   cr2CreateAssignmentSchema,
@@ -392,6 +400,7 @@ router.post(
         return res.status(mapped.status).json({ error: mapped.message })
       }
       logger.info({ sessionId: result.session.id, teacherId: req.user.id }, 'cr2 session created')
+      trackSessionCreated(result.session.id, req.user.id)
       // TODO (T-3.x): keine Broadcast nötig beim Anlegen
       return res.status(201).json({
         id:     result.session.id,
@@ -577,6 +586,10 @@ router.post(
         return res.status(mapped.status).json({ error: mapped.message })
       }
       logger.info({ sessionId }, 'cr2 session started')
+      const participantCount = db.prepare(
+        'SELECT COUNT(1) AS c FROM cr2_participant WHERE session_id = ? AND left_at IS NULL',
+      ).get(sessionId)?.c ?? 0
+      trackSessionStarted(sessionId, teacherUserId, participantCount)
       // Broadcast an Schueler- und Teacher-Room (Plan §6: session:started).
       // Mode wird aus dem (einzigen, D2) Assignment gezogen, falls vorhanden.
       const assignments = listAssignments(sessionId)
@@ -613,6 +626,19 @@ router.post(
         return res.status(mapped.status).json({ error: mapped.message })
       }
       logger.info({ sessionId, reason }, 'cr2 session finished')
+      // Telemetrie: durationMs aus started_at
+      const durationMs = result.session.startedAt
+        ? result.session.finishedAt - result.session.startedAt
+        : null
+      // Completion-Rate: Schüler mit mind. 1 Submission / alle Teilnehmer
+      const totalParts = db.prepare(
+        'SELECT COUNT(1) AS c FROM cr2_participant WHERE session_id = ? AND left_at IS NULL',
+      ).get(sessionId)?.c ?? 0
+      const submittedParts = db.prepare(
+        'SELECT COUNT(DISTINCT participant_id) AS c FROM cr2_submission WHERE session_id = ?',
+      ).get(sessionId)?.c ?? 0
+      const completionRate = totalParts > 0 ? submittedParts / totalParts : 0
+      trackSessionFinished(sessionId, teacherUserId, { durationMs, completionRate })
       notifySessionFinished(sessionId, {
         sessionId,
         finishedAt: result.session.finishedAt,
@@ -667,8 +693,14 @@ router.post(
   (req, res) => {
     try {
       const { code, displayName } = req.body
+      trackJoinAttempted(code)
       const result = joinByCode({ code, displayName: displayName || null })
       if (result.error) {
+        const reason = result.error === 'INVALID_CODE'    ? 'invalid_code'
+          : result.error === 'SESSION_FULL'              ? 'session_full'
+          : result.error === 'INVALID_STATE'             ? 'session_not_running'
+          : 'unknown'
+        trackJoinFailed(code, reason)
         const mapped = mapError(result.error)
         return res.status(mapped.status).json({ error: mapped.message })
       }
@@ -676,6 +708,7 @@ router.post(
         { sessionId: result.session.id, participantId: result.participant.id },
         'cr2 participant joined',
       )
+      trackJoinSucceeded(result.session.id, result.participant.id)
       notifyStudentJoined(result.session.id, {
         participantId: result.participant.id,
         displayName:   (displayName || '').trim().slice(0, 40) || null,
