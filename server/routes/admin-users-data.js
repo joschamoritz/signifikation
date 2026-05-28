@@ -91,7 +91,7 @@ const deleteUserStatsStmt = db.prepare(`
 `)
 
 const deleteClassroomSessionsByTeacherStmt = db.prepare(`
-  DELETE FROM classroom_sessions
+  DELETE FROM classroom_session
   WHERE teacher_user_id = ?
 `)
 

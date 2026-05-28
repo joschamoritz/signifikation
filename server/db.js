@@ -216,56 +216,6 @@ db.exec(`
     entry_hash     TEXT NOT NULL UNIQUE
   );
 
-  CREATE TABLE IF NOT EXISTS classroom_sessions (
-    id             TEXT PRIMARY KEY,
-    teacher_user_id TEXT NOT NULL,
-    join_code_hash TEXT NOT NULL,
-    state          TEXT NOT NULL CHECK (state IN ('created','lobby','running','finished','archived')),
-    datum          TEXT NOT NULL,
-    year           INTEGER NOT NULL,
-    settings_json  TEXT NOT NULL DEFAULT '{}',
-    created_at     INTEGER NOT NULL,
-    started_at     INTEGER,
-    finished_at    INTEGER,
-    expires_at     INTEGER NOT NULL
-  );
-
-  CREATE TABLE IF NOT EXISTS classroom_participants (
-    id                    TEXT PRIMARY KEY,
-    session_id            TEXT NOT NULL,
-    participant_token_hash TEXT NOT NULL,
-    joined_at             INTEGER NOT NULL,
-    last_seen_at          INTEGER NOT NULL,
-    left_at               INTEGER,
-    FOREIGN KEY (session_id) REFERENCES classroom_sessions(id) ON DELETE CASCADE
-  );
-
-  CREATE TABLE IF NOT EXISTS classroom_submissions (
-    id             TEXT PRIMARY KEY,
-    session_id     TEXT NOT NULL,
-    participant_id TEXT NOT NULL,
-    round_no       INTEGER NOT NULL,
-    payload_json   TEXT NOT NULL,
-    score          INTEGER NOT NULL DEFAULT 0,
-    max_score      INTEGER NOT NULL DEFAULT 0,
-    submitted_at   INTEGER NOT NULL,
-    FOREIGN KEY (session_id) REFERENCES classroom_sessions(id) ON DELETE CASCADE,
-    FOREIGN KEY (participant_id) REFERENCES classroom_participants(id) ON DELETE CASCADE,
-    UNIQUE (session_id, participant_id, round_no)
-  );
-
-  CREATE TABLE IF NOT EXISTS classroom_exports (
-    id          TEXT PRIMARY KEY,
-    session_id  TEXT NOT NULL,
-    type        TEXT NOT NULL CHECK (type IN ('csv','pdf')),
-    status      TEXT NOT NULL CHECK (status IN ('queued','running','done','failed')),
-    file_ref    TEXT,
-    error       TEXT,
-    created_at  INTEGER NOT NULL,
-    finished_at INTEGER,
-    FOREIGN KEY (session_id) REFERENCES classroom_sessions(id) ON DELETE CASCADE
-  );
-
   CREATE INDEX IF NOT EXISTS idx_user_profiles_role
     ON user_profiles(role);
 
@@ -292,39 +242,6 @@ db.exec(`
 
   CREATE INDEX IF NOT EXISTS idx_verification_expiresAt
     ON verification(expiresAt);
-
-  CREATE INDEX IF NOT EXISTS idx_classroom_sessions_teacher_created
-    ON classroom_sessions(teacher_user_id, created_at DESC);
-
-  CREATE INDEX IF NOT EXISTS idx_classroom_sessions_state_expires
-    ON classroom_sessions(state, expires_at);
-
-  CREATE INDEX IF NOT EXISTS idx_classroom_sessions_join_hash
-    ON classroom_sessions(join_code_hash);
-
-  CREATE INDEX IF NOT EXISTS idx_classroom_participants_session_joined
-    ON classroom_participants(session_id, joined_at);
-
-  CREATE INDEX IF NOT EXISTS idx_classroom_participants_session_seen
-    ON classroom_participants(session_id, last_seen_at);
-
-  -- Heartbeat-Hot-Path: getParticipant/updateParticipantSeen/markParticipantLeft
-  -- filtern auf (id, session_id, participant_token_hash). Ohne diesen Index
-  -- fällt der Planner auf einen Scan über alle Teilnehmer der Session zurück.
-  CREATE INDEX IF NOT EXISTS idx_classroom_participants_token_hash
-    ON classroom_participants(participant_token_hash);
-
-  CREATE INDEX IF NOT EXISTS idx_classroom_submissions_session_round
-    ON classroom_submissions(session_id, round_no);
-
-  CREATE INDEX IF NOT EXISTS idx_classroom_submissions_session_submitted
-    ON classroom_submissions(session_id, submitted_at);
-
-  CREATE INDEX IF NOT EXISTS idx_classroom_exports_session_created
-    ON classroom_exports(session_id, created_at DESC);
-
-  CREATE INDEX IF NOT EXISTS idx_classroom_exports_status_type_created
-    ON classroom_exports(status, type, created_at ASC);
 
   CREATE INDEX IF NOT EXISTS idx_audit_log_timestamp
     ON audit_log(timestamp DESC);
@@ -615,7 +532,7 @@ if (!hasColumn('lemmata', 'lueckenfueller')) {
 }
 
 // ── Versionierte SQL-Migrationen synchron anwenden ──────────────────────────
-// Muss VOR dem Export geschehen: andere Module (z.B. server/classroom-v2/store.js)
+// Muss VOR dem Export geschehen: andere Module (z.B. server/classroom/store.js)
 // registrieren beim Import sofort Prepared Statements auf classroom_*-Tabellen.
 // Ohne diesen Aufruf scheitert der Server-Boot in einer frischen DB-Umgebung
 // (z.B. CI Smoke-Test) mit "no such table: classroom_session".

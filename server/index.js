@@ -14,6 +14,7 @@ import compression  from 'compression'
 import helmet       from 'helmet'
 import cors         from 'cors'
 import cookieParser from 'cookie-parser'
+import { Server }   from 'socket.io'
 import { existsSync } from 'fs'
 import { fileURLToPath } from 'url'
 import { dirname, join }  from 'path'
@@ -29,14 +30,11 @@ import publicRouter from './routes/public.js'
 import adminRouter  from './routes/admin.js'
 import accountRouter from './routes/account.js'
 import classroomRouter from './routes/classroom.js'
-import classroomV2Router from './routes/classroom-v2.js'
 import paymentsRouter from './routes/payments.js'
 import iapRouter from './routes/iap.js'
 import pushRouter from './routes/push.js'
 import { startPushScheduler } from './notifications/scheduler.js'
-import { initClassroomSocket } from './realtime/classroomSocket.js'
-import { setupClassroomSocketV2 } from './realtime/classroomSocketV2.js'
-import { startClassroomWorker } from './workers/classroomWorker.js'
+import { setupClassroomSocket } from './realtime/classroomSocket.js'
 import { ALLOWED_ORIGINS, CAPACITOR_ORIGINS, isAllowedOrigin } from './config/origins.js'
 import { startSessionCleanup } from './auth/session-cleanup.js'
 import { startAlerting } from './alerting.js'
@@ -132,7 +130,6 @@ app.use('/fonts', express.static(join(__dirname, '../public/fonts'), {
 app.use('/', publicRouter)
 app.use('/', adminRouter)
 app.use('/', accountRouter)
-app.use('/', classroomV2Router)  // v2 vor v1 mounten (hat Vorrang bei gleichen Pfaden)
 app.use('/', classroomRouter)
 app.use('/', paymentsRouter)
 app.use('/', iapRouter)
@@ -195,21 +192,21 @@ const WORTPROFIL_TIMEOUT_MS = 130_000  // etwas mehr als curl --max-time 120
     logger.info(`Admin: http://localhost:${PORT}/admin`)
   })
 
-  const io = initClassroomSocket(server)
-  // Classroom v2 hängt sich als eigener Namespace /cr2 an dieselbe io-Instanz.
-  // Default-Namespace bleibt fuer v1 (D11) bis zur W3-Konsolidierung.
-  setupClassroomSocketV2(io)
-  const workerHandle = process.env.CLASSROOM_EXPORT_WORKER_ENABLED !== 'false'
-    ? startClassroomWorker()
-    : null
-  if (!workerHandle) {
-    logger.info('Classroom-Export-Worker deaktiviert (CLASSROOM_EXPORT_WORKER_ENABLED=false)')
-  }
+  const io = new Server(server, {
+    path: '/socket.io',
+    cors: {
+      origin: (origin, callback) => {
+        if (isAllowedOrigin(origin)) callback(null, true)
+        else callback(new Error(`Socket-CORS: Unerlaubte Origin ${origin}`))
+      },
+      credentials: true,
+    },
+  })
+  setupClassroomSocket(io)
 
   // ── Graceful Shutdown (D-21) ──────────────────────────────────
   const shutdown = (signal) => {
     logger.info(`${signal} empfangen – fahre herunter …`)
-    if (workerHandle?.clear) workerHandle.clear()
     io.close()
     server.close(() => {
       logger.info('HTTP-Server geschlossen')

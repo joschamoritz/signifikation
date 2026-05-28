@@ -1,11 +1,10 @@
 /**
- * server/classroom-v2/join-code.js
+ * server/classroom/join-code.js
  *
  * Generiert kollisionsfreie Join-Codes fuer classroom_session.
- * Default-Strategie (siehe Plan Decision D16, T-0.4 vertagt): die
- * bestehende Wortliste aus server/classroom/join-codes.js. Bei
- * Mockup von T-4.5 wird entschieden, ob auf 6-stellig umgestellt wird –
- * dafuer reicht es, generateCandidate auszutauschen, alles andere
+ * Default-Strategie (siehe Plan Decision D16): die bestehende Wortliste
+ * aus server/classroom/join-codes.js. Zum Umstellen (z.B. 6-stellig)
+ * reicht es, generateCandidate auszutauschen, alles andere
  * (Kollisionsschutz, Retry-Budget) bleibt identisch.
  *
  * Kollisionsfenster: idx_classroom_session_code_active ist ein partial
@@ -13,12 +12,12 @@
  * Wir matchen explizit auf diesen Filter, damit Codes nach Session-Ende
  * sofort wiederverwendbar sind.
  *
- * Max 40 Versuche – derselbe Wert wie classroom-store.js, empirisch
- * ausreichend bei 108×107 ≈ 11.500 moeglichen Wort-Paaren.
+ * Max 40 Versuche – empirisch ausreichend bei 108×107 ≈ 11.500
+ * moeglichen Wort-Paaren.
  */
 
 import db from '../db.js'
-import { generateJoinCode, normalizeJoinCode } from '../classroom/join-codes.js'
+import { generateJoinCode, normalizeJoinCode } from './join-codes.js'
 
 const MAX_ATTEMPTS = 40
 

@@ -24,7 +24,7 @@ import { auth } from '../auth/index.js'
 import {
   findParticipantByToken,
   hasCapability as storeHasCapability,
-} from '../classroom-v2/store.js'
+} from '../classroom/store.js'
 
 // Dev-Auth-Guard (identisch zu middleware/userAuth.js — beide prufen dasselbe Flag)
 const IS_PROD = process.env.NODE_ENV === 'production'

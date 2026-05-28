@@ -1,10 +1,10 @@
 /**
- * server/classroom-v2/store.js
+ * server/classroom/store.js
  *
  * Datenzugriff-Layer fuer den Klassenraum (classroom_* Tabellen).
  *
- * Patterns aus dem alten server/classroom-store.js bewusst uebernommen
- * (Risiko R-3 im Plan): HMAC-Hash auf sensitive Tokens, Submission-
+ * Bewaehrte Patterns (Risiko R-3 im Plan): HMAC-Hash auf sensitive
+ * Tokens, Submission-
  * Idempotenz via UNIQUE-Index + ON CONFLICT, Dashboard-Konsolidierung
  * in <=3 Queries. Wo hier abgewichen wird (Code im Klartext statt Hash),
  * ist es bewusst – der Code ist als oeffentlicher Identifier gedacht

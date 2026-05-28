@@ -23,13 +23,9 @@ function todayDatum() {
   return new Intl.DateTimeFormat('en-CA', { timeZone: TIMEZONE }).format(new Date())
 }
 
-const stalledExportsStmt = db.prepare(
-  `SELECT COUNT(*) AS n FROM classroom_exports WHERE status IN ('queued','running') AND created_at < ?`
-)
-
 /**
  * GET /health – Readiness-Check.
- * Prüft DB-Schreibzugriff, Export-Queue-Stau und Belege-Verfügbarkeit.
+ * Prüft DB-Schreibzugriff und Belege-Verfügbarkeit.
  * HTTP 503 bei kritischen Fehlern, sonst 200 (auch bei degraded).
  */
 router.get('/health', (_req, res) => {
@@ -43,20 +39,6 @@ router.get('/health', (_req, res) => {
   } catch (err) {
     checks.db = `error: ${err.message}`
     status = 'error'
-  }
-
-  // Export-Queue: Jobs älter als 10 Minuten in Queued/Running = Worker hängt
-  try {
-    const staleThreshold = Date.now() - 10 * 60 * 1000
-    const stalled = stalledExportsStmt.get(staleThreshold)
-    if (stalled?.n > 0) {
-      checks.exportQueue = `stalled:${stalled.n}`
-      if (status === 'ok') status = 'degraded'
-    } else {
-      checks.exportQueue = 'ok'
-    }
-  } catch {
-    checks.exportQueue = 'unknown'
   }
 
   // Sprachdatenbank Belege

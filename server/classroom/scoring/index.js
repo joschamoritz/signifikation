@@ -1,5 +1,5 @@
 /**
- * server/classroom-v2/scoring/index.js
+ * server/classroom/scoring/index.js
  *
  * Serverautoritatives Scoring (D13). Eine Funktion pro Modus:
  *   (contentSnapshot, rawAnswer) → { score, maxScore, correct, detail }
@@ -10,7 +10,7 @@
  * invasiv zu refaktorieren, sind die Regeln hier als pure Funktionen
  * dupliziert – Singleplayer bleibt unangetastet und durch
  * gameLogic.test.js abgedeckt; jede Aenderung hier muss zusaetzlich
- * in classroom-v2.scoring.test.js abgesichert werden.
+ * in classroom.scoring.test.js abgesichert werden.
  *
  * Eine spaetere Konsolidierung (gemeinsames Modul aus
  * src/utils/gameLogic.js importieren) ist moeglich, sobald wir ein

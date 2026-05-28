@@ -1,8 +1,8 @@
 /**
- * server/classroom-v2/telemetry.js
+ * server/classroom/telemetry.js
  *
- * Telemetrie-Events fuer Classroom v2 (T-6.5).
- * Speichert Pilot-Metriken in classroom_telemetry (neue Tabelle, getrennt von
+ * Telemetrie-Events fuer den Klassenraum (T-6.5).
+ * Speichert Metriken in classroom_telemetry (getrennt von
  * audit_log – der ist fuer Admin-Aktionen).
  *
  * Verwendung:

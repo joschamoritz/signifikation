@@ -3,7 +3,7 @@
  *
  * Wird von db.js am Modul-Load direkt aufgerufen, damit alle Schema-
  * Migrationen anliegen, bevor andere Module ihre Prepared Statements
- * auf Modul-Ebene registrieren (z.B. server/classroom-v2/store.js).
+ * auf Modul-Ebene registrieren (z.B. server/classroom/store.js).
  *
  * Bewusst keine JS-Migrationen (die brauchen async import()). Der
  * async migrate-runner.js läuft danach im Server-IIFE und kümmert sich
