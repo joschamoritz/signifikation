@@ -45,7 +45,7 @@ export function useAppModel() {
     swLfPlayed,
     setSwLfPlayed,
   } = useDailyContent()
-  const { gesamtausgabeUnlocked, gesamtausgabePermanent, freeAccessToday, freeAccessLabel, refreshEntitlements } = useEntitlements()
+  const { gesamtausgabeUnlocked, gesamtausgabePermanent, freeAccessToday, freeAccessLabel, classroomTeacher, refreshEntitlements } = useEntitlements()
   usePaywall({ refreshEntitlements })
 
   const appRef = useRef(null)
@@ -199,6 +199,7 @@ export function useAppModel() {
     kontoMounted: navigation.kontoMounted,
     handleTabChange: navigation.handleTabChange,
     showTabBar: navigation.showTabBar,
+    classroomTeacher,
     phase,
     tabScreens: tabState.tabScreens,
     appGameScreensProps,

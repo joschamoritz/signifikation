@@ -44,7 +44,6 @@ export function createAdminUsersRouter(deps) {
     validate,
     adminUsersQuerySchema,
     adminSetUserRoleSchema,
-    adminSetUserFeaturesSchema,
     adminUserIdParamsSchema,
     adminUsersBulkUpdateSchema,
     countUsersStmt,
@@ -57,8 +56,6 @@ export function createAdminUsersRouter(deps) {
     setUserRoleStmt,
     userExistsStmt,
     getUsersByIdsStmt,
-    getUserFeaturesStmt,
-    setUserClassroomV2Stmt,
     deleteUserTx,
     adminUsersStatsStmt,
     toCsvCell,
@@ -142,45 +139,10 @@ export function createAdminUsersRouter(deps) {
         getUserRecentStatsStmt.all(userId),
       )
 
-      const featuresRow = getUserFeaturesStmt.get(userId)
-      const features = {
-        classroomV2: !!featuresRow?.classroom_v2_enabled,
-      }
-
       res.json({
         user: mapUserRow(user),
         stats,
-        features,
       })
-    } catch (err) {
-      adminError(res, err)
-    }
-  })
-
-  router.patch('/admin/users/:id/features', adminLimiter, requireAuth, validate(adminSetUserFeaturesSchema), validate(adminUserIdParamsSchema, 'params'), (req, res) => {
-    const userId = String(req.params.id || '').trim()
-    if (!userId) return res.status(400).json({ error: 'userId erforderlich' })
-
-    try {
-      if (!userExistsStmt.get(userId)) {
-        return res.status(404).json({ error: 'Nutzer nicht gefunden' })
-      }
-
-      const now = Date.now()
-      const changes = {}
-
-      if (typeof req.body.classroomV2 === 'boolean') {
-        setUserClassroomV2Stmt.run(userId, now, now, req.body.classroomV2 ? 1 : 0)
-        changes.classroomV2 = req.body.classroomV2
-      }
-
-      auditUpdate('user_features', userId, null, changes, {
-        adminKey: req.adminSessionId || 'unknown',
-        ip: req.ip,
-      })
-
-      logger.info({ userId, changes }, 'Nutzer-Features aktualisiert')
-      res.json({ ok: true, userId, features: changes })
     } catch (err) {
       adminError(res, err)
     }

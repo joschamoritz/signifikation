@@ -128,11 +128,6 @@ export const adminSetUserRoleSchema = z.object({
   role: z.enum(['user', 'premium']),
 })
 
-/** PATCH /admin/users/:id/features */
-export const adminSetUserFeaturesSchema = z.object({
-  classroomV2: z.boolean().optional(),
-})
-
 /** GET /admin/users/:id (params) */
 export const adminUserIdParamsSchema = z.object({
   id: z.string().trim().min(1, 'id erforderlich'),

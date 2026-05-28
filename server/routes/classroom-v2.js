@@ -6,7 +6,7 @@
  * VOR dem alten classroomRouter gemountet, sodass v2-Routen Vorrang haben.
  *
  * Auth-Modi (D14):
- *   Teacher   – better-auth-Session (cookie) + premium-Rolle + classroom_v2-Flag
+ *   Teacher   – better-auth-Session (cookie) + premium-Rolle
  *   Participant – Bearer auth_token (HMAC-Hash in cr2_participant)
  *   Public    – nur POST /join (rate-limited)
  *
@@ -73,24 +73,6 @@ import {
 } from '../middleware/rateLimiter.js'
 
 const router = express.Router()
-
-// ── Feature-Flag-Check ───────────────────────────────────────────
-// Prüft classroom_v2_enabled in user_entitlements.
-// Admins (role=admin) passieren ohne Flag-Prüfung.
-const classroomV2EnabledStmt = db.prepare(`
-  SELECT classroom_v2_enabled FROM user_entitlements WHERE user_id = ?
-`)
-
-function requireClassroomV2(req, res, next) {
-  // req.user ist von requirePremium gesetzt
-  if (!req.user?.id) return res.status(401).json({ error: 'Nicht autorisiert' })
-  if (req.user.role === 'admin') return next()
-  const row = classroomV2EnabledStmt.get(req.user.id)
-  if (!row?.classroom_v2_enabled) {
-    return res.status(403).json({ error: 'Classroom v2 ist für diesen Account nicht aktiviert' })
-  }
-  return next()
-}
 
 // ── Participant-Auth aus Bearer-Token ───────────────────────────
 // Für /me/*-Routen die keine spezifische Capability prüfen (view, heartbeat, leave).
@@ -385,7 +367,6 @@ router.post(
   '/api/v1/classroom/sessions',
   classroomWriteLimiter,
   requirePremium,
-  requireClassroomV2,
   validate(cr2CreateSessionSchema),
   (req, res) => {
     try {
@@ -439,7 +420,6 @@ const lemmataCountStmt = db.prepare(`
 router.get(
   '/api/v1/classroom/lemmata',
   requirePremium,
-  requireClassroomV2,
   validate(cr2LemmataQuerySchema, 'query'),
   (req, res) => {
     try {
@@ -477,7 +457,6 @@ router.get(
 router.get(
   '/api/v1/classroom/sessions',
   requirePremium,
-  requireClassroomV2,
   validate(cr2ListSessionsQuerySchema, 'query'),
   (req, res) => {
     try {

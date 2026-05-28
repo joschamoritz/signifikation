@@ -26,8 +26,7 @@ const getEntitlementStmt = db.prepare(`
   SELECT
     gesamtausgabe_unlocked,
     unlocked_at,
-    source,
-    classroom_v2_enabled
+    source
   FROM user_entitlements
   WHERE user_id = ?
 `)
@@ -90,7 +89,8 @@ function readEntitlements(userId, userRole) {
       unlockedAt: row?.unlocked_at || null,
       source: unlockedByPayment ? (row?.source || 'none') : unlockedByRole ? 'admin-role' : 'none',
     },
-    classroomV2: !!row?.classroom_v2_enabled,
+    // Klassenraum (Lehrkraft-Bereich): nur fuer Premium-/Admin-Konten sichtbar.
+    classroomTeacher: userRole === 'premium' || userRole === 'admin',
   }
 }
 

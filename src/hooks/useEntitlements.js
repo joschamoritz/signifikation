@@ -7,7 +7,7 @@ export function useEntitlements() {
   const [gesamtausgabeUnlocked, setGesamtausgabeUnlocked] = useState(() => !!lsGet('sig_gesamtausgabe'))
   const [freeAccessToday, setFreeAccessToday] = useState(false)
   const [freeAccessLabel, setFreeAccessLabel] = useState(null)
-  const [classroomV2, setClassroomV2] = useState(false)
+  const [classroomTeacher, setClassroomTeacher] = useState(false)
 
   const syncEntitlementsFromResponse = useCallback((payload) => {
     // Server-Antwort ist maßgeblich – localStorage nur als Offline-Fallback (catch-Block)
@@ -24,7 +24,7 @@ export function useEntitlements() {
     setFreeAccessToday(free)
     setFreeAccessLabel(free ? (payload?.freeAccessLabel ?? null) : null)
 
-    setClassroomV2(!!payload?.classroomV2)
+    setClassroomTeacher(!!payload?.classroomTeacher)
   }, [])
 
   const refreshEntitlements = useCallback(async () => {
@@ -55,7 +55,7 @@ export function useEntitlements() {
     gesamtausgabePermanent: gesamtausgabeUnlocked,
     freeAccessToday,
     freeAccessLabel,
-    classroomV2,
+    classroomTeacher,
     refreshEntitlements,
   }
 }

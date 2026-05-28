@@ -106,19 +106,6 @@ export const ensureProfileStmt = db.prepare(`
   ON CONFLICT(user_id) DO NOTHING
 `)
 
-export const getUserFeaturesStmt = db.prepare(`
-  SELECT classroom_v2_enabled
-  FROM user_entitlements
-  WHERE user_id = ?
-`)
-
-export const setUserClassroomV2Stmt = db.prepare(`
-  INSERT INTO user_entitlements (user_id, gesamtausgabe_unlocked, source, created_at, updated_at, classroom_v2_enabled)
-  VALUES (?, 0, 'none', ?, ?, ?)
-  ON CONFLICT(user_id)
-  DO UPDATE SET classroom_v2_enabled = excluded.classroom_v2_enabled, updated_at = excluded.updated_at
-`)
-
 export const setUserRoleStmt = db.prepare(`
   INSERT INTO user_profiles (user_id, role, created_at, updated_at)
   VALUES (?, ?, ?, ?)

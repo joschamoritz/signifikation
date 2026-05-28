@@ -6,7 +6,6 @@ import TabBar from './components/TabBar'
 import TabTransition from './components/TabTransition'
 import { useAppModel } from './hooks/useAppModel'
 import { useTheme, ThemeContext } from './hooks/useTheme'
-import { useFeatureFlag } from './hooks/useFeatureFlag'
 import { useLocationPath, matchClassroomRoute } from './components/classroom-v2/routing'
 import './components/classroom-v2/student/KioskStub.css'
 
@@ -41,8 +40,9 @@ function MainAppShell() {
     appGameScreensProps,
     persistentClassroomProps,
     persistentKontoProps,
+    classroomTeacher,
   } = useAppModel()
-  const showClassroomV2 = useFeatureFlag('classroom_v2')
+  const showClassroomV2 = classroomTeacher
 
   // Klassenraum v2: einmal gemounted (bei erstem Tab-Besuch), bleibt im DOM
   // damit Sockets und Step-State einen Tab-Wechsel ueberleben — identisches

@@ -614,12 +614,6 @@ if (!hasColumn('lemmata', 'lueckenfueller')) {
   }
 }
 
-// ── Migration: classroom_v2_enabled in user_entitlements ────────────────────
-if (!hasColumn('user_entitlements', 'classroom_v2_enabled')) {
-  logger.info('Migration: user_entitlements.classroom_v2_enabled hinzufügen')
-  db.exec(`ALTER TABLE user_entitlements ADD COLUMN classroom_v2_enabled INTEGER NOT NULL DEFAULT 0`)
-}
-
 // ── Versionierte SQL-Migrationen synchron anwenden ──────────────────────────
 // Muss VOR dem Export geschehen: andere Module (z.B. server/classroom-v2/store.js)
 // registrieren beim Import sofort Prepared Statements auf cr2_*-Tabellen.

@@ -26,7 +26,7 @@ const TABS = [
   {
     id: 'klassenraum-v2',
     label: 'Klasse v2',
-    flag: 'classroom_v2',
+    teacherOnly: true,
     icon: () => (
       <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
         <rect x="3" y="4" width="18" height="14" rx="2" />
@@ -59,7 +59,7 @@ const TABS = [
 ]
 
 export default function TabBar({ activeTab, onTabChange, classroomLive = false, showClassroomV2 = false }) {
-  const visibleTabs = TABS.filter((t) => !t.flag || (t.flag === 'classroom_v2' && showClassroomV2))
+  const visibleTabs = TABS.filter((t) => !t.teacherOnly || showClassroomV2)
   return (
     <nav className="tab-bar" aria-label="Hauptnavigation">
       <div className="tab-bar-inner">
