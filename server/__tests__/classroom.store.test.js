@@ -16,7 +16,7 @@ import {
   getDashboard,
   listTeacherSessions,
   hasCapability,
-} from '../classroom-v2/store.js'
+} from '../classroom/store.js'
 
 const TEACHER_A = `test-store-teacher-A-${randomUUID()}`
 const TEACHER_B = `test-store-teacher-B-${randomUUID()}`
@@ -57,7 +57,7 @@ const KOLL_SNAPSHOT = {
   },
 }
 
-describe('classroom-v2/store', () => {
+describe('classroom/store', () => {
   beforeAll(() => {
     ensureUser(TEACHER_A)
     ensureUser(TEACHER_B)

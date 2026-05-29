@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, beforeAll } from 'vitest'
 import db from '../db.js'
-import { generateUniqueJoinCode } from '../classroom-v2/join-code.js'
+import { generateUniqueJoinCode } from '../classroom/join-code.js'
 import { randomUUID } from 'crypto'
 
 const TEACHER_ID = `test-teacher-${randomUUID()}`

@@ -1,7 +1,7 @@
 /**
- * server/__tests__/classroom-v2.schemas.test.js
+ * server/__tests__/classroom.schemas.test.js
  *
- * Unit-Tests fuer die Classroom-v2 Zod-Schemas (T-6.1).
+ * Unit-Tests fuer die Classroom Zod-Schemas (T-6.1).
  * Prueft Edge-Cases, Boundary-Werte und Sicherheits-Invarianten
  * direkt auf Schema-Ebene — ohne HTTP-Overhead.
  */

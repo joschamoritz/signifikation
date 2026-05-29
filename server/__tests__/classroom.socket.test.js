@@ -1,7 +1,7 @@
 /**
- * server/__tests__/classroom-v2.socket.test.js
+ * server/__tests__/classroom.socket.test.js
  *
- * Realtime-Tests fuer Classroom v2 (T-3.1 / T-3.2 / T-3.3).
+ * Realtime-Tests fuer Classroom (T-3.1 / T-3.2 / T-3.3).
  * Mitigation fuer R-2 (Race-Conditions im Socket-Layer): die Race-Pfade
  * unter „Reconnect-Window" sind hier explizit abgesichert.
  *
@@ -27,8 +27,8 @@ vi.mock('../auth/index.js', () => ({
   auth: { api: { getSession: vi.fn(async () => null) } },
 }))
 
-const { setupClassroomSocketV2, clearAllTimers, __getTimerCountForTests } =
-  await import('../realtime/classroomSocketV2.js')
+const { setupClassroomSocket, clearAllTimers, __getTimerCountForTests } =
+  await import('../realtime/classroomSocket.js')
 const {
   createSession,
   addAssignment,
@@ -36,7 +36,7 @@ const {
   finishSession,
   joinByCode,
   revokeCapability,
-} = await import('../classroom-v2/store.js')
+} = await import('../classroom/store.js')
 
 const RECONNECT_WINDOW_MS = 200
 const TEACHER = `cr2-sock-teacher-${randomUUID()}`
@@ -108,7 +108,7 @@ function awaitConnect(socket, timeoutMs = 2000) {
 
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)) }
 
-describe('classroom-v2 socket (T-3.1 / T-3.2 / T-3.3)', () => {
+describe('classroom socket (T-3.1 / T-3.2 / T-3.3)', () => {
   let server
   let io
   let baseUrl
@@ -119,7 +119,7 @@ describe('classroom-v2 socket (T-3.1 / T-3.2 / T-3.3)', () => {
     const app = express()
     server = createServer(app)
     io = new IoServer(server, { path: '/socket.io' })
-    setupClassroomSocketV2(io, {
+    setupClassroomSocket(io, {
       reconnectWindowMs: RECONNECT_WINDOW_MS,
       connectRateLimit:  0, // Tests sollen nicht am Rate-Limit haengen
     })
@@ -224,7 +224,7 @@ describe('classroom-v2 socket (T-3.1 / T-3.2 / T-3.3)', () => {
     const heardB = new Promise((resolve) => tB.once('student:joined', resolve))
 
     // Importiere notify direkt — simuliert was die /join-Route tut.
-    const { notifyStudentJoined } = await import('../realtime/classroomSocketV2.js')
+    const { notifyStudentJoined } = await import('../realtime/classroomSocket.js')
     notifyStudentJoined(session.id, {
       participantId: participant.id,
       displayName:   'Schueler',
@@ -244,7 +244,7 @@ describe('classroom-v2 socket (T-3.1 / T-3.2 / T-3.3)', () => {
     await awaitConnect(student)
 
     const heard = new Promise((resolve) => student.once('session:finished', resolve))
-    const { notifySessionFinished } = await import('../realtime/classroomSocketV2.js')
+    const { notifySessionFinished } = await import('../realtime/classroomSocket.js')
     notifySessionFinished(session.id, { sessionId: session.id, finishedAt: Date.now() })
 
     const payload = await heard

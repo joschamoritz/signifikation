@@ -212,7 +212,7 @@ function buildContentSnapshot(mode, lemmata) {
 //   - detail_json, raw_answer, content_snapshot anderer Lemmata
 //
 // Aenderungen hier muessen den Audit-Test T-6.4 bestehen:
-//   server/__tests__/classroom-v2.routes.test.js → 'view whitelist'
+//   server/__tests__/classroom.routes.test.js → 'view whitelist'
 
 function buildSafePrompt(mode, snapshot) {
   if (!snapshot || typeof snapshot !== 'object') return {}

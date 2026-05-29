@@ -1,9 +1,9 @@
 /**
- * server/__tests__/classroom-v2.routes.test.js
+ * server/__tests__/classroom.routes.test.js
  *
- * Integration-Tests fuer den Classroom v2 API-Layer (T-2.1 bis T-2.10).
+ * Integration-Tests fuer den Classroom API-Layer (T-2.1 bis T-2.10).
  *
- * Teststrategie (analog classroom.routes.test.js):
+ * Teststrategie:
  *   - Echter SQLite (keine Mocks)
  *   - Dev-Header-Auth (x-dev-user-id / x-dev-user-role, ALLOW_DEV_AUTH=1 in vitest.setup.js)
  *   - Minimaler Express-App-Setup per Suite, Server auf Random-Port
@@ -26,8 +26,8 @@ import {
 } from 'vitest'
 import { randomUUID } from 'crypto'
 import db from '../db.js'
-import classroomV2Router from '../routes/classroom-v2.js'
-import { createSession } from '../classroom-v2/store.js'
+import classroomRouter from '../routes/classroom.js'
+import { createSession } from '../classroom/store.js'
 
 // ── Test-Infrastruktur ─────────────────────────────────────────
 
@@ -181,7 +181,7 @@ function insertTestLemmaLueckenfueller(suffix = '') {
 
 // ── Server-Setup ───────────────────────────────────────────────
 
-describe('classroom-v2 routes', () => {
+describe('classroom routes', () => {
   let server
   let baseUrl
 
@@ -190,7 +190,7 @@ describe('classroom-v2 routes', () => {
     app.set('trust proxy', 1)
     app.use(express.json())
     // Minimal CSRF-Bypass fuer Tests (kein csrfProtect in Test-App)
-    app.use('/', classroomV2Router)
+    app.use('/', classroomRouter)
 
     await new Promise((resolve) => {
       server = app.listen(0, resolve)

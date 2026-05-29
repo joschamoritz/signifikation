@@ -5,7 +5,7 @@ import {
   scoreZeitenwende,
   scoreLueckenfueller,
   scoreSubmission,
-} from '../classroom-v2/scoring/index.js'
+} from '../classroom/scoring/index.js'
 
 /*
  * Server-autoritatives Scoring (D13).

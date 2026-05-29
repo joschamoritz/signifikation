@@ -10,7 +10,7 @@ import {
   finishSession,
   grantCapability,
   revokeCapability,
-} from '../classroom-v2/store.js'
+} from '../classroom/store.js'
 
 // Better-auth getSession mocken – Tests pruefen die Capability-Pruefung,
 // nicht das Cookie-Handling. So bleibt der Test deterministisch.
