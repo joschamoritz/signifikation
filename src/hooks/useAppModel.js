@@ -49,8 +49,6 @@ export function useAppModel() {
   usePaywall({ refreshEntitlements })
 
   const appRef = useRef(null)
-  const classroomSubmitRef = useRef(null)
-  const getRetroResultsRef = useRef(null)
 
   const keys = serverDatum
     ? makeDailyKeys(serverDatum)
@@ -86,14 +84,9 @@ export function useAppModel() {
     wortzwilling,
     zeitenwende,
     lueckenfuellerLemma,
-    wzPlayed,
-    zwPlayed,
-    lfPlayed,
     setWzPlayed,
     setZwPlayed,
     setLfPlayed,
-    classroomSubmitRef,
-    getRetroResultsRef,
   })
 
   // ── Spezialwoche Finish-Handler ─────────────────────────────────
@@ -132,7 +125,6 @@ export function useAppModel() {
     freeAccessToday,
     freeAccessLabel,
     serverDatum,
-    classroomInSession: navigation.classroomInSession,
     setActiveTab: navigation.setActiveTab,
     // Spezialwoche
     spezialwoche,
@@ -157,7 +149,6 @@ export function useAppModel() {
     phase,
     appRef,
     persistResults,
-    classroomSubmitRef,
   })
 
   const appGameScreensProps = useGameScreenProps({
@@ -193,9 +184,6 @@ export function useAppModel() {
   return {
     appRef,
     activeTab: navigation.activeTab,
-    classroomLive: navigation.classroomLive,
-    classroomMounted:
-      navigation.activeTab === 'klassenraum' || navigation.classroomInSession || navigation.classroomLive,
     kontoMounted: navigation.kontoMounted,
     handleTabChange: navigation.handleTabChange,
     showTabBar: navigation.showTabBar,
@@ -203,14 +191,6 @@ export function useAppModel() {
     phase,
     tabScreens: tabState.tabScreens,
     appGameScreensProps,
-    persistentClassroomProps: {
-      activeTab: navigation.activeTab,
-      onLiveChange: navigation.setClassroomLive,
-      onInSessionChange: navigation.setClassroomInSession,
-      submitRef: classroomSubmitRef,
-      getRetroResultsRef,
-      onNavigateToKonto: () => navigation.setActiveTab('profil'),
-    },
     persistentKontoProps: {
       activeTab: navigation.activeTab,
       gesamtausgabe: gesamtausgabeUnlocked,

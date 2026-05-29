@@ -6,7 +6,6 @@ export function useAppEffects({
   phase,
   appRef,
   persistResults,
-  classroomSubmitRef,
 }) {
   useEffect(() => {
     if (activeTab !== 'profil') return
@@ -18,6 +17,6 @@ export function useAppEffects({
   }, [appRef, phase])
 
   useEffect(() => {
-    persistResults(classroomSubmitRef.current)
-  }, [classroomSubmitRef, persistResults])
+    persistResults()
+  }, [persistResults])
 }

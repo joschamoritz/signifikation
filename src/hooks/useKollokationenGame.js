@@ -41,7 +41,7 @@ export function useKollokationenGame({ keys, serverDatum, lemmata }) {
     }
   }, [phase, roundScores.length])
 
-  const persistResults = useCallback((submitRetro) => {
+  const persistResults = useCallback(() => {
     if (phase !== 'results' || !selectedLemma || roundScores.length === 0) return
 
     const total     = roundScores.reduce((sum, value) => sum + value, 0)
@@ -62,8 +62,6 @@ export function useKollokationenGame({ keys, serverDatum, lemmata }) {
     if (freshKollRef.current && serverDatum) {
       freshKollRef.current = false
       postStat('kollokationen', serverDatum, total, 10)
-
-      submitRetro?.({ game: 'kollokationen', score: total, maxScore: maxPoints })
     }
   }, [keys, lemmata?.length, phase, roundScores, selectedLemma, serverDatum])
 

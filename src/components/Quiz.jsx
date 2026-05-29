@@ -12,7 +12,7 @@ const BELEG_HINT_KEY = 'sig_beleg_hint'
 // Phase-5/T-5.6: zusaetzliche Props (mode, onSubmit, disableProgress,
 // hideHeader) werden derzeit nur durchgereicht — Defaults erhalten das
 // Singleplayer-Verhalten 1:1. Der Classroom-Pfad rendert seine eigene
-// Mini-Variante in classroom-v2/student/games/ClassroomGameKollokationen.jsx,
+// Mini-Variante in classroom/student/games/ClassroomGameKollokationen.jsx,
 // d.h. diese Komponente bleibt unangetastet. Die Props ermoeglichen aber
 // einen kuenftigen In-Place-Klassenraum-Render ohne weiteren Eingriff hier.
 export default function Quiz({

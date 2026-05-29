@@ -27,7 +27,6 @@ export default function AppTabScreens({
   freeAccessToday,
   freeAccessLabel,
   serverDatum,
-  classroomInSession,
   onNavigateToKonto,
 }) {
   return {
@@ -55,7 +54,7 @@ export default function AppTabScreens({
         lfPlayed={lfPlayed}
         onPlayLueckenfueller={onPlayLueckenfueller?.play}
         serverDatum={serverDatum}
-        gesamtausgabe={gesamtausgabeUnlocked || classroomInSession}
+        gesamtausgabe={gesamtausgabeUnlocked}
         freeAccessToday={freeAccessToday}
         freeAccessLabel={freeAccessLabel}
         onUnlockGesamtausgabe={onNavigateToKonto}

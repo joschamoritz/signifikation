@@ -6,19 +6,18 @@ import TabBar from './components/TabBar'
 import TabTransition from './components/TabTransition'
 import { useAppModel } from './hooks/useAppModel'
 import { useTheme, ThemeContext } from './hooks/useTheme'
-import { useLocationPath, matchClassroomRoute } from './components/classroom-v2/routing'
-import './components/classroom-v2/student/KioskStub.css'
+import { useLocationPath, matchClassroomRoute } from './components/classroom/routing'
+import './components/classroom/student/KioskStub.css'
 
 // Classroom zieht socket.io-client (~32 KB) und Mollie-Flows mit; nur laden,
 // wenn der Nutzer tatsächlich auf den jeweiligen Tab wechselt.
-const PersistentClassroomTab = lazy(() => import('./components/PersistentClassroomTab'))
 const PersistentKontoTab     = lazy(() => import('./components/PersistentKontoTab'))
 
 // Klassenraum — Tab fuer Lehrkraefte (Lazy-Pfad, damit socket.io-client erst
 // beim Tab-Wechsel geladen wird) und Schueler-Shell (Routen /c und /c/:code).
-const TeacherClassroomTabV2 = lazy(() => import('./components/classroom-v2/teacher/TeacherClassroomTab'))
-const StudentJoinEntry      = lazy(() => import('./components/classroom-v2/student/StudentJoinEntry'))
-const StudentKioskRoute     = lazy(() => import('./components/classroom-v2/student/StudentKioskRoute'))
+const TeacherClassroomTab = lazy(() => import('./components/classroom/teacher/TeacherClassroomTab'))
+const StudentJoinEntry    = lazy(() => import('./components/classroom/student/StudentJoinEntry'))
+const StudentKioskRoute   = lazy(() => import('./components/classroom/student/StudentKioskRoute'))
 
 // MainAppShell kapselt useAppModel + alle Hooks der Hauptansicht. Dadurch
 // kann <App> ueber Routen entscheiden, ohne dass die Hook-Reihenfolge in
@@ -29,29 +28,26 @@ function MainAppShell() {
   const {
     appRef,
     activeTab,
-    classroomLive,
-    classroomMounted,
     kontoMounted,
     handleTabChange,
     showTabBar,
     phase,
     tabScreens,
     appGameScreensProps,
-    persistentClassroomProps,
     persistentKontoProps,
     classroomTeacher,
   } = useAppModel()
-  const showClassroomV2 = classroomTeacher
+  const showClassroomTab = classroomTeacher
 
   // Klassenraum: einmal gemounted (bei erstem Tab-Besuch), bleibt im DOM
   // damit Sockets und Step-State einen Tab-Wechsel ueberleben — identisches
   // Pattern wie PersistentKontoTab.
-  const classroomV2MountedRef = useRef(false)
-  const [classroomV2Mounted, setClassroomV2Mounted] = useState(false)
+  const classroomMountedRef = useRef(false)
+  const [classroomMounted, setClassroomMounted] = useState(false)
   useEffect(() => {
-    if (activeTab === 'klassenraum-v2' && !classroomV2MountedRef.current) {
-      classroomV2MountedRef.current = true
-      setClassroomV2Mounted(true)
+    if (activeTab === 'klassenraum' && !classroomMountedRef.current) {
+      classroomMountedRef.current = true
+      setClassroomMounted(true)
     }
   }, [activeTab])
 
@@ -61,14 +57,13 @@ function MainAppShell() {
         <AppGameScreens {...appGameScreensProps} />
         <TabTransition activeTab={activeTab} tabs={tabScreens} />
         <Suspense fallback={null}>
-          {classroomMounted ? <PersistentClassroomTab {...persistentClassroomProps} /> : null}
           {kontoMounted ? <PersistentKontoTab {...persistentKontoProps} /> : null}
-          {classroomV2Mounted ? (
+          {classroomMounted ? (
             <div
-              aria-hidden={activeTab !== 'klassenraum-v2' ? 'true' : undefined}
-              style={activeTab !== 'klassenraum-v2' ? { display: 'none' } : undefined}
+              aria-hidden={activeTab !== 'klassenraum' ? 'true' : undefined}
+              style={activeTab !== 'klassenraum' ? { display: 'none' } : undefined}
             >
-              <TeacherClassroomTabV2 />
+              <TeacherClassroomTab />
             </div>
           ) : null}
         </Suspense>
@@ -77,8 +72,7 @@ function MainAppShell() {
         <TabBar
           activeTab={activeTab}
           onTabChange={handleTabChange}
-          classroomLive={classroomLive}
-          showClassroomV2={showClassroomV2}
+          showClassroomTab={showClassroomTab}
         />
       )}
     </>

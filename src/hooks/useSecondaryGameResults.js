@@ -1,7 +1,7 @@
-import { useCallback, useEffect } from 'react'
+import { useCallback } from 'react'
 import { lsSet } from '../utils/storage'
 import { getMedal } from '../utils/gameLogic'
-import { getPlayedToday, markActivity, saveWZHistory, saveZWHistory, saveLFHistory } from '../utils/dailyProgress'
+import { markActivity, saveWZHistory, saveZWHistory, saveLFHistory } from '../utils/dailyProgress'
 import { postStat } from '../api/stats'
 
 export function useSecondaryGameResults({
@@ -10,14 +10,9 @@ export function useSecondaryGameResults({
   wortzwilling,
   zeitenwende,
   lueckenfuellerLemma,
-  wzPlayed,
-  zwPlayed,
-  lfPlayed,
   setWzPlayed,
   setZwPlayed,
   setLfPlayed,
-  classroomSubmitRef,
-  getRetroResultsRef,
 }) {
   const handleWZFinish = useCallback(({ score, zoneA, zoneB }) => {
     if (!wortzwilling || !serverDatum) return
@@ -38,8 +33,7 @@ export function useSecondaryGameResults({
     markActivity(keys.dateStr)
     saveWZHistory(keys.dateStr, medal.label, medal.emoji)
     postStat('wortzwilling', serverDatum, score, 10)
-    classroomSubmitRef.current?.({ game: 'wortzwilling', score, maxScore: 10 })
-  }, [classroomSubmitRef, keys.dateStr, serverDatum, setWzPlayed, wortzwilling])
+  }, [keys.dateStr, serverDatum, setWzPlayed, wortzwilling])
 
   const handleLFFinish = useCallback(({ score, scores }) => {
     if (!serverDatum) return
@@ -55,8 +49,7 @@ export function useSecondaryGameResults({
     markActivity(keys.dateStr)
     saveLFHistory(keys.dateStr, medal.label, medal.emoji)
     postStat('lueckenfueller', serverDatum, score, 10)
-    classroomSubmitRef.current?.({ game: 'lueckenfueller', score, maxScore: 10 })
-  }, [classroomSubmitRef, keys.dateStr, lueckenfuellerLemma, serverDatum, setLfPlayed])
+  }, [keys.dateStr, lueckenfuellerLemma, serverDatum, setLfPlayed])
 
   const handleZeitenwendeFinish = useCallback(({ score, answers }) => {
     if (!zeitenwende || !serverDatum) return
@@ -69,28 +62,7 @@ export function useSecondaryGameResults({
     markActivity(keys.dateStr)
     saveZWHistory(keys.dateStr, medal.label, medal.emoji)
     postStat('zeitenwende', serverDatum, score, 10)
-    classroomSubmitRef.current?.({ game: 'zeitenwende', score, maxScore: 10 })
-  }, [classroomSubmitRef, keys.dateStr, serverDatum, setZwPlayed, zeitenwende])
-
-  useEffect(() => {
-    getRetroResultsRef.current = () => {
-      const results = []
-      const played = getPlayedToday(keys.todayKey)
-
-      for (const game of played) {
-        if (game.total != null) {
-          const maxScore = Array.isArray(game.scores) && game.scores.length >= 4 ? 10 : 9
-          results.push({ game: 'kollokationen', score: game.total, maxScore })
-        }
-      }
-
-      if (wzPlayed?.total != null) results.push({ game: 'wortzwilling', score: wzPlayed.total, maxScore: 10 })
-      if (zwPlayed?.total != null) results.push({ game: 'zeitenwende', score: zwPlayed.total, maxScore: 10 })
-      if (lfPlayed?.total != null) results.push({ game: 'lueckenfueller', score: lfPlayed.total, maxScore: 10 })
-
-      return results
-    }
-  }, [getRetroResultsRef, keys.todayKey, wzPlayed, zwPlayed, lfPlayed])
+  }, [keys.dateStr, serverDatum, setZwPlayed, zeitenwende])
 
   return {
     handleWZFinish,

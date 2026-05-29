@@ -2,7 +2,7 @@
 //
 // Renderlogik:
 //   - state.currentLemma + state.assignment.mode → passende Mini-Spiel-
-//     Komponente in classroom-v2/student/games/*
+//     Komponente in classroom/student/games/*
 //   - onSubmit ruft kioskFetch.submitAnswer und dispatcht das Ergebnis
 //     in den Kiosk-Context (state.submittedAnswer / submittedResult).
 //

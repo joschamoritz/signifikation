@@ -25,7 +25,6 @@ export function useAppTabScreens({
   freeAccessToday,
   freeAccessLabel,
   serverDatum,
-  classroomInSession,
   setActiveTab,
   // Spezialwoche
   spezialwoche,
@@ -81,7 +80,6 @@ export function useAppTabScreens({
     freeAccessToday,
     freeAccessLabel,
     serverDatum,
-    classroomInSession,
     onNavigateToKonto: () => setActiveTab('profil'),
   })
 

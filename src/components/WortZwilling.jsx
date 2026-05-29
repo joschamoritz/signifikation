@@ -1,7 +1,7 @@
 // Phase-5/T-5.6: Props `mode`, `onSubmit`, `disableProgress`, `hideHeader`
 // werden akzeptiert (s. WortZwilling-Default-Export unten), aber der
 // Singleplayer-Pfad bleibt unangetastet. Classroom rendert eigene Variante
-// (classroom-v2/student/games/ClassroomGameWortZwilling.jsx).
+// (classroom/student/games/ClassroomGameWortZwilling.jsx).
 import { useState, useEffect, useRef } from 'react'
 import {
   DndContext,

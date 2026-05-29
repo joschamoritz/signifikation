@@ -8,7 +8,7 @@
 //
 // Wir verzichten darauf, die existierenden Tests anzufassen — der
 // Classroom-Pfad rendert in der echten App eigene Mini-Komponenten
-// (classroom-v2/student/games/*), nicht diese Komponenten. Der Test
+// (classroom/student/games/*), nicht diese Komponenten. Der Test
 // soll also nur die NEUEN Props verifizieren.
 
 import { render, cleanup } from '@testing-library/react'

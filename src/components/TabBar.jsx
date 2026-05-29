@@ -14,18 +14,6 @@ const TABS = [
   {
     id: 'klassenraum',
     label: 'Klassenraum',
-    icon: () => (
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-        <circle cx="8.5" cy="7" r="3"/>
-        <path d="M2 21c0-3.6 2.9-6.5 6.5-6.5S15 17.4 15 21"/>
-        <circle cx="17" cy="8" r="2.5"/>
-        <path d="M21 21c0-3-1.7-5.5-4-5.5"/>
-      </svg>
-    ),
-  },
-  {
-    id: 'klassenraum-v2',
-    label: 'Klassenraum',
     teacherOnly: true,
     icon: () => (
       <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -58,8 +46,8 @@ const TABS = [
   },
 ]
 
-export default function TabBar({ activeTab, onTabChange, classroomLive = false, showClassroomV2 = false }) {
-  const visibleTabs = TABS.filter((t) => !t.teacherOnly || showClassroomV2)
+export default function TabBar({ activeTab, onTabChange, showClassroomTab = false }) {
+  const visibleTabs = TABS.filter((t) => !t.teacherOnly || showClassroomTab)
   return (
     <nav className="tab-bar" aria-label="Hauptnavigation">
       <div className="tab-bar-inner">
@@ -68,15 +56,12 @@ export default function TabBar({ activeTab, onTabChange, classroomLive = false, 
             key={id}
             className={`tab-bar-btn${activeTab === id ? ' tab-bar-btn--active' : ''}`}
             onClick={() => onTabChange(id)}
-            aria-label={id === 'klassenraum' && classroomLive ? `${label} – live verbunden` : label}
+            aria-label={label}
             aria-current={activeTab === id ? 'page' : undefined}
             type="button"
           >
             <span className="tab-bar-icon-wrap">
               <Icon />
-              {id === 'klassenraum' && classroomLive && (
-                <span className="tab-bar-live-dot" aria-hidden="true" />
-              )}
             </span>
             <span className="tab-bar-label">{label}</span>
           </button>
