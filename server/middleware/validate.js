@@ -345,13 +345,28 @@ export const cr2CreateSessionSchema = z.object({
   settings: z.record(z.unknown()).optional().default({}),
 })
 
-/** POST /api/v1/classroom/sessions/:id/assignments (T-2.2) */
+/** POST /api/v1/classroom/sessions/:id/assignments (T-2.2) — Einzel-Block */
 export const cr2CreateAssignmentSchema = z.object({
   mode:     CR2_VALID_MODES,
   lemmaIds: z.array(CR2_LEMMA_ID)
     .min(1, 'Mindestens 1 Lemma erforderlich')
     .max(3, 'Maximal 3 Lemmata pro Assignment (D3)'),
 })
+
+/**
+ * POST /api/v1/classroom/sessions/:id/assignments/bulk (W2-T2)
+ * Mehrere (Modus + Lemmata)-Bloecke in Reihenfolge. Min 1, max 5 Bloecke;
+ * pro Block weiterhin max. 3 Lemmata (D3). Der Server friert content_snapshot
+ * pro Block beim Anlegen ein.
+ */
+export const cr2CreateAssignmentsSchema = z.object({
+  blocks: z.array(cr2CreateAssignmentSchema)
+    .min(1, 'Mindestens 1 Modus-Block erforderlich')
+    .max(5, 'Maximal 5 Modus-Bloecke pro Session (W2-T2)'),
+})
+
+/** POST /api/v1/classroom/sessions/:id/next-assignment (W2-T2) */
+export const cr2NextAssignmentSchema = z.object({})
 
 /** GET /api/v1/classroom/lemmata (T-2.3) */
 export const cr2LemmataQuerySchema = z.object({

@@ -656,3 +656,69 @@
   font-size: 1rem;
   color: var(--cr2-accent);
 }
+
+/* ── W2-T2: Modus-Bloecke im Setup ───────────────────────────────── */
+.cr2-block {
+  border: 1px solid var(--cr2-rule-lt);
+  border-left: 3px solid var(--cr2-gold);
+  border-radius: 6px;
+  padding: 16px;
+  margin-bottom: 16px;
+  background: var(--cr2-card-bg);
+}
+
+.cr2-block__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.cr2-block__num {
+  font-family: 'DM Sans', system-ui, sans-serif;
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--cr2-muted);
+}
+
+.cr2-block__tools {
+  display: flex;
+  gap: 6px;
+}
+
+.cr2-block__tool {
+  width: 28px;
+  height: 28px;
+  border: 1px solid var(--cr2-rule);
+  background: var(--cr2-bg);
+  color: var(--cr2-text);
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.95rem;
+  line-height: 1;
+}
+
+.cr2-block__tool:disabled {
+  color: var(--cr2-disabled);
+  border-color: var(--cr2-rule-lt);
+  cursor: default;
+}
+
+.cr2-block__tool--remove {
+  color: var(--cr2-accent);
+}
+
+.cr2-block__preview {
+  margin-top: 8px;
+}
+
+.cr2-block-add {
+  width: 100%;
+  border-style: dashed;
+}
+
+.cr2-progress__step {
+  color: var(--cr2-muted);
+  font-size: 0.85em;
+}

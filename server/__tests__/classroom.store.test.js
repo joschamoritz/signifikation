@@ -11,6 +11,9 @@ import {
   autoEndStaleSessions,
   getSessionById,
   addAssignment,
+  addAssignments,
+  nextAssignment,
+  getCurrentAssignment,
   listAssignments,
   removeAssignment,
   joinByCode,
@@ -129,18 +132,48 @@ describe('classroom/store', () => {
       expect(r.error).toBe('INVALID_STATE')
     })
 
-    it('erzwingt D2: nur 1 Assignment pro Session', () => {
+    it('W2-T2: mehrere Assignments behalten ihre Reihenfolge (position 0,1,2)', () => {
       const { session } = createSession({ teacherUserId: TEACHER_A })
       addAssignment({
         sessionId: session.id, teacherUserId: TEACHER_A,
-        mode: 'kollokationen', lemmaIds: ['lemma-1'],
-        contentSnapshot: KOLL_SNAPSHOT,
+        mode: 'kollokationen', lemmaIds: ['lemma-1'], contentSnapshot: KOLL_SNAPSHOT,
       })
-      const r = addAssignment({
+      addAssignment({
         sessionId: session.id, teacherUserId: TEACHER_A,
         mode: 'wortzwilling', lemmaIds: ['lemma-2'], contentSnapshot: {},
       })
-      expect(r.error).toBe('ASSIGNMENT_EXISTS')
+      addAssignment({
+        sessionId: session.id, teacherUserId: TEACHER_A,
+        mode: 'zeitenwende', lemmaIds: ['lemma-3'], contentSnapshot: {},
+      })
+      const list = listAssignments(session.id)
+      expect(list.map((a) => a.position)).toEqual([0, 1, 2])
+      expect(list.map((a) => a.mode)).toEqual(['kollokationen', 'wortzwilling', 'zeitenwende'])
+    })
+
+    it('W2-T2: addAssignments legt Bloecke atomar in Reihenfolge an', () => {
+      const { session } = createSession({ teacherUserId: TEACHER_A })
+      const r = addAssignments({
+        sessionId: session.id, teacherUserId: TEACHER_A,
+        blocks: [
+          { mode: 'kollokationen', lemmaIds: ['lemma-1'], contentSnapshot: KOLL_SNAPSHOT },
+          { mode: 'wortzwilling',  lemmaIds: ['lemma-2'], contentSnapshot: {} },
+        ],
+      })
+      expect(r.error).toBeUndefined()
+      expect(r.assignments).toHaveLength(2)
+      expect(r.assignments.map((a) => a.position)).toEqual([0, 1])
+    })
+
+    it('W2-T2: erzwingt max 5 Modus-Bloecke pro Session', () => {
+      const { session } = createSession({ teacherUserId: TEACHER_A })
+      const r = addAssignments({
+        sessionId: session.id, teacherUserId: TEACHER_A,
+        blocks: Array.from({ length: 6 }, () => ({
+          mode: 'kollokationen', lemmaIds: ['lemma-1'], contentSnapshot: {},
+        })),
+      })
+      expect(r.error).toBe('TOO_MANY_ASSIGNMENTS')
     })
 
     it('erzwingt D3: max 3 Lemmata pro Assignment', () => {
@@ -340,6 +373,111 @@ describe('classroom/store', () => {
         rawAnswer: { huge: 'x'.repeat(5000) },
       })
       expect(r.error).toBe('PAYLOAD_TOO_LARGE')
+    })
+  })
+
+  // ── nextAssignment (W2-T2, sequenzielle Modi) ──────────────────
+  describe('nextAssignment', () => {
+    function setupMultiSession() {
+      const { session } = createSession({ teacherUserId: TEACHER_A })
+      addAssignments({
+        sessionId: session.id, teacherUserId: TEACHER_A,
+        blocks: [
+          { mode: 'kollokationen', lemmaIds: ['lemma-1'], contentSnapshot: KOLL_SNAPSHOT },
+          { mode: 'wortzwilling',  lemmaIds: ['lemma-2'], contentSnapshot: {} },
+        ],
+      })
+      startSession({ sessionId: session.id, teacherUserId: TEACHER_A })
+      return { session }
+    }
+
+    it('startet beim ersten Assignment (index 0)', () => {
+      const { session } = setupMultiSession()
+      const current = getCurrentAssignment(session.id)
+      expect(current.position).toBe(0)
+      expect(current.mode).toBe('kollokationen')
+    })
+
+    it('rueckt auf das naechste Assignment vor', () => {
+      const { session } = setupMultiSession()
+      const r = nextAssignment({ sessionId: session.id, teacherUserId: TEACHER_A })
+      expect(r.error).toBeUndefined()
+      expect(r.done).toBeUndefined()
+      expect(r.index).toBe(1)
+      expect(r.total).toBe(2)
+      expect(r.assignment.mode).toBe('wortzwilling')
+      expect(getCurrentAssignment(session.id).position).toBe(1)
+    })
+
+    it('beendet die Session nach dem letzten Block (done: true)', () => {
+      const { session } = setupMultiSession()
+      nextAssignment({ sessionId: session.id, teacherUserId: TEACHER_A }) // → index 1 (letzter)
+      const r = nextAssignment({ sessionId: session.id, teacherUserId: TEACHER_A }) // → ended
+      expect(r.error).toBeUndefined()
+      expect(r.done).toBe(true)
+      expect(r.session.status).toBe('finished')
+    })
+
+    it('verweigert Wechsel im Pause-Zustand', () => {
+      const { session } = setupMultiSession()
+      pauseSession({ sessionId: session.id, teacherUserId: TEACHER_A })
+      const r = nextAssignment({ sessionId: session.id, teacherUserId: TEACHER_A })
+      expect(r.error).toBe('SESSION_PAUSED')
+    })
+
+    it('verweigert fremden Teacher', () => {
+      const { session } = setupMultiSession()
+      const r = nextAssignment({ sessionId: session.id, teacherUserId: TEACHER_B })
+      expect(r.error).toBe('FORBIDDEN')
+    })
+  })
+
+  // ── Submission-Zuordnung zum aktiven Assignment (W2-T2) ────────
+  describe('submitAnswer Assignment-Routing', () => {
+    function setupTwoBlocksRunning() {
+      const { session } = createSession({ teacherUserId: TEACHER_A })
+      const r = addAssignments({
+        sessionId: session.id, teacherUserId: TEACHER_A,
+        blocks: [
+          { mode: 'kollokationen', lemmaIds: ['lemma-1'], contentSnapshot: KOLL_SNAPSHOT },
+          { mode: 'kollokationen', lemmaIds: ['lemma-1'], contentSnapshot: KOLL_SNAPSHOT },
+        ],
+      })
+      startSession({ sessionId: session.id, teacherUserId: TEACHER_A })
+      const j = joinByCode({ code: session.code, displayName: 'X' })
+      return { session, blockA: r.assignments[0], blockB: r.assignments[1], participant: j.participant }
+    }
+
+    it('nimmt Submission fuer das aktive Assignment an', () => {
+      const { session, blockA, participant } = setupTwoBlocksRunning()
+      const r = submitAnswer({
+        participantId: participant.id, sessionId: session.id,
+        assignmentId: blockA.id, lemmaId: 'lemma-1', roundIndex: 0,
+        rawAnswer: { selected: ['stark', 'groß', 'klein'] },
+      })
+      expect(r.error).toBeUndefined()
+      expect(r.score).toBeGreaterThan(0)
+    })
+
+    it('lehnt Submission fuer noch nicht aktives Assignment ab', () => {
+      const { session, blockB, participant } = setupTwoBlocksRunning()
+      const r = submitAnswer({
+        participantId: participant.id, sessionId: session.id,
+        assignmentId: blockB.id, lemmaId: 'lemma-1', roundIndex: 0,
+        rawAnswer: { selected: ['stark', 'groß', 'klein'] },
+      })
+      expect(r.error).toBe('ASSIGNMENT_NOT_ACTIVE')
+    })
+
+    it('lehnt Submission fuer bereits abgeschlossenes Assignment ab', () => {
+      const { session, blockA, participant } = setupTwoBlocksRunning()
+      nextAssignment({ sessionId: session.id, teacherUserId: TEACHER_A }) // blockA abgeschlossen
+      const r = submitAnswer({
+        participantId: participant.id, sessionId: session.id,
+        assignmentId: blockA.id, lemmaId: 'lemma-1', roundIndex: 0,
+        rawAnswer: { selected: ['stark', 'groß', 'klein'] },
+      })
+      expect(r.error).toBe('ASSIGNMENT_NOT_ACTIVE')
     })
   })
 

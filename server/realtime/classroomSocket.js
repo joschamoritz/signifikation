@@ -443,6 +443,22 @@ export function notifySessionResumed(sessionId, payload) {
   nsp.to(roomTeacher(sessionId)).emit('session:resumed', payload)
 }
 
+// W2-T2: Modus-Wechsel innerhalb einer laufenden Session.
+//
+// SICHERHEIT (R1): Das Payload enthaelt BEWUSST KEINEN content_snapshot —
+// der Snapshot haelt antwort-relevante Felder (rang, periode, zuordnung,
+// kollokator). Wuerden wir ihn ueber den Socket schicken, umgingen wir die
+// Whitelist-Serialisierung aus /me/view. Stattdessen senden wir nur ein
+// Signal + unkritische Metadaten (mode, index, total); der Schueler-Kiosk
+// holt die gewhitelistete neue Aufgabe per GET /me/view nach (gleiches
+// Muster wie 'view:updated'). Der Plan-Wortlaut „mit content_snapshot"
+// wird hier zugunsten von R1 bewusst nicht woertlich umgesetzt.
+export function notifyAssignmentChanged(sessionId, payload) {
+  if (!nsp || !sessionId) return
+  nsp.to(roomStudents(sessionId)).emit('assignment:changed', payload)
+  nsp.to(roomTeacher(sessionId)).emit('assignment:changed', payload)
+}
+
 export function notifyStudentViewUpdated(participantId, payload) {
   if (!nsp || !participantId) return
   nsp.to(roomParticipant(participantId)).emit('view:updated', payload)

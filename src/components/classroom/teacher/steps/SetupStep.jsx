@@ -1,15 +1,25 @@
-// T-4.4 — T2 Setup: Modus, Lemmata, Name auf einem Screen.
+// T-4.4 / W2-T2 — T2 Setup: geordnete Liste von (Modus + Lemmata)-Bloecken,
+// dann Name/Details.
 //
-// Stepper-Header oben (A/B/C), alle drei Bereiche untereinander sichtbar.
-// CTA „Lobby öffnen" ist sticky bottom — disabled bis Modus + min. 1 Lemma.
-// Bei Bestaetigung: POST /sessions → POST /assignments, dann GO_TO_LOBBY.
+// Eine Session kann seit W2-T2 mehrere Modi NACHEINANDER spielen. Der Lehrer
+// legt im Setup eine geordnete Liste an (1–5 Bloecke), kann Bloecke
+// hinzufuegen/entfernen/umordnen und pro Block die Schueleransicht testen.
+// Bei Bestaetigung: POST /sessions → POST /assignments/bulk, dann GO_TO_LOBBY.
 
 import { useMemo, useState } from 'react'
 import { useTeacherClassroom } from '../TeacherClassroomContext'
-import { createSession, addAssignment } from '../hooks/useTeacherSession'
+import { createSession, addAssignments } from '../hooks/useTeacherSession'
 import ModePicker  from '../components/ModePicker'
 import LemmaPicker from '../components/LemmaPicker'
 import SetupPreview from '../components/SetupPreview'
+
+const MAX_BLOCKS = 5
+
+let blockKeySeq = 0
+function newBlock(init = {}) {
+  blockKeySeq += 1
+  return { key: `blk-${blockKeySeq}`, mode: init.mode || null, lemmaIds: init.lemmaIds || [] }
+}
 
 function defaultTitle() {
   try {
@@ -22,35 +32,66 @@ function defaultTitle() {
   } catch { return 'Klasse' }
 }
 
+function blocksFromDraft(draft) {
+  if (Array.isArray(draft.blocks) && draft.blocks.length > 0) {
+    return draft.blocks.map((b) => newBlock(b))
+  }
+  // Rueckwaerts-Kompat: ein alter Single-Draft (mode + lemmaIds).
+  if (draft.mode || (draft.lemmaIds && draft.lemmaIds.length)) {
+    return [newBlock({ mode: draft.mode || null, lemmaIds: draft.lemmaIds || [] })]
+  }
+  return [newBlock()]
+}
+
 export default function SetupStep() {
   const { state, dispatch } = useTeacherClassroom()
   const draft = state.setupDraft || {}
 
-  const [mode, setMode]         = useState(draft.mode || null)
-  const [lemmaIds, setLemmaIds] = useState(draft.lemmaIds || [])
-  const [title, setTitle]       = useState(draft.title ?? defaultTitle())
+  const [blocks, setBlocks]       = useState(() => blocksFromDraft(draft))
+  const [title, setTitle]         = useState(draft.title ?? defaultTitle())
   const [autoStart, setAutoStart] = useState(false)
   const [submitting, setSubmitting] = useState(false)
-  const [error, setError] = useState(null)
-  const [previewOpen, setPreviewOpen] = useState(false)
+  const [error, setError]         = useState(null)
+  const [previewIdx, setPreviewIdx] = useState(null)  // index des offenen Vorschau-Blocks
 
-  const canSubmit = !!mode && lemmaIds.length > 0 && !submitting
-  const canPreview = !!mode && lemmaIds.length > 0
+  const blockValid = (b) => !!b.mode && b.lemmaIds.length > 0
+  const allValid   = blocks.length > 0 && blocks.every(blockValid)
+  const canSubmit  = allValid && !submitting
 
   const stepperItems = useMemo(() => ([
-    { id: 'A', label: 'Modus',   done: !!mode },
-    { id: 'B', label: 'Lemmata', done: lemmaIds.length > 0 },
-    { id: 'C', label: 'Details', done: !!title.trim() },
-  ]), [mode, lemmaIds, title])
+    { id: 'A', label: 'Modi',    done: allValid },
+    { id: 'B', label: 'Details', done: !!title.trim() },
+  ]), [allValid, title])
+
+  function updateBlock(idx, patch) {
+    setBlocks((prev) => prev.map((b, i) => (i === idx ? { ...b, ...patch } : b)))
+  }
+  function addBlock() {
+    setBlocks((prev) => (prev.length >= MAX_BLOCKS ? prev : [...prev, newBlock()]))
+  }
+  function removeBlock(idx) {
+    setBlocks((prev) => (prev.length <= 1 ? prev : prev.filter((_, i) => i !== idx)))
+  }
+  function moveBlock(idx, dir) {
+    setBlocks((prev) => {
+      const j = idx + dir
+      if (j < 0 || j >= prev.length) return prev
+      const next = [...prev]
+      ;[next[idx], next[j]] = [next[j], next[idx]]
+      return next
+    })
+  }
 
   async function handleSubmit() {
     if (!canSubmit) return
     setSubmitting(true)
     setError(null)
     try {
-      const settings = { mode, autoStart }
+      const settings = { mode: blocks[0].mode, autoStart, blockCount: blocks.length }
       const session  = await createSession({ title: title.trim() || null, settings })
-      await addAssignment(session.id, { mode, lemmaIds })
+      await addAssignments(session.id, {
+        blocks: blocks.map((b) => ({ mode: b.mode, lemmaIds: b.lemmaIds })),
+      })
       dispatch({ type: 'GO_TO_LOBBY', sessionId: session.id })
     } catch (err) {
       setError(err?.message || 'Session konnte nicht angelegt werden.')
@@ -58,6 +99,8 @@ export default function SetupStep() {
       setSubmitting(false)
     }
   }
+
+  const previewBlock = previewIdx != null ? blocks[previewIdx] : null
 
   return (
     <div data-testid="cr2-setup">
@@ -80,21 +123,86 @@ export default function SetupStep() {
         ))}
       </ol>
 
-      {/* A — Modus */}
-      <section className="cr2-section" aria-labelledby="cr2-setup-mode-label">
-        <span id="cr2-setup-mode-label" className="cr2-section__label">A · Spielmodus</span>
-        <ModePicker value={mode} onChange={setMode} />
+      {/* A — Modus-Bloecke in Reihenfolge */}
+      <section className="cr2-section" aria-labelledby="cr2-setup-modes-label">
+        <span id="cr2-setup-modes-label" className="cr2-section__label">
+          A · Modi nacheinander (1–{MAX_BLOCKS})
+        </span>
+
+        {blocks.map((block, idx) => (
+          <article
+            key={block.key}
+            className="cr2-block"
+            data-testid={`cr2-block-${idx}`}
+            aria-label={`Modus ${idx + 1} von ${blocks.length}`}
+          >
+            <header className="cr2-block__head">
+              <span className="cr2-block__num">Modus {idx + 1} von {blocks.length}</span>
+              <div className="cr2-block__tools" role="group" aria-label="Block ordnen">
+                <button
+                  type="button"
+                  className="cr2-block__tool"
+                  onClick={() => moveBlock(idx, -1)}
+                  disabled={idx === 0}
+                  aria-label={`Modus ${idx + 1} nach oben`}
+                  data-testid={`cr2-block-up-${idx}`}
+                >↑</button>
+                <button
+                  type="button"
+                  className="cr2-block__tool"
+                  onClick={() => moveBlock(idx, +1)}
+                  disabled={idx === blocks.length - 1}
+                  aria-label={`Modus ${idx + 1} nach unten`}
+                  data-testid={`cr2-block-down-${idx}`}
+                >↓</button>
+                {blocks.length > 1 && (
+                  <button
+                    type="button"
+                    className="cr2-block__tool cr2-block__tool--remove"
+                    onClick={() => removeBlock(idx)}
+                    aria-label={`Modus ${idx + 1} entfernen`}
+                    data-testid={`cr2-block-remove-${idx}`}
+                  >×</button>
+                )}
+              </div>
+            </header>
+
+            <ModePicker
+              value={block.mode}
+              onChange={(mode) => updateBlock(idx, { mode })}
+            />
+            <LemmaPicker
+              value={block.lemmaIds}
+              onChange={(lemmaIds) => updateBlock(idx, { lemmaIds })}
+            />
+
+            <button
+              type="button"
+              className="cr2-btn cr2-btn--ghost cr2-block__preview"
+              disabled={!blockValid(block)}
+              onClick={() => setPreviewIdx(idx)}
+              data-testid={`cr2-block-preview-${idx}`}
+            >
+              Schüleransicht testen
+            </button>
+          </article>
+        ))}
+
+        {blocks.length < MAX_BLOCKS && (
+          <button
+            type="button"
+            className="cr2-btn cr2-btn--ghost cr2-block-add"
+            onClick={addBlock}
+            data-testid="cr2-block-add"
+          >
+            + Weiterer Modus
+          </button>
+        )}
       </section>
 
-      {/* B — Lemmata */}
-      <section className="cr2-section" aria-labelledby="cr2-setup-lemma-label">
-        <span id="cr2-setup-lemma-label" className="cr2-section__label">B · Lemmata (1–3)</span>
-        <LemmaPicker value={lemmaIds} onChange={setLemmaIds} />
-      </section>
-
-      {/* C — Details */}
+      {/* B — Details */}
       <section className="cr2-section" aria-labelledby="cr2-setup-title-label">
-        <span id="cr2-setup-title-label" className="cr2-section__label">C · Details</span>
+        <span id="cr2-setup-title-label" className="cr2-section__label">B · Details</span>
         <input
           type="text"
           className="cr2-input"
@@ -120,15 +228,6 @@ export default function SetupStep() {
         <div className="cr2-sticky-cta__inner">
           <button
             type="button"
-            className="cr2-btn cr2-btn--ghost"
-            disabled={!canPreview}
-            onClick={() => setPreviewOpen(true)}
-            data-testid="cr2-setup-preview-open"
-          >
-            Schüleransicht testen
-          </button>
-          <button
-            type="button"
             className="cr2-btn cr2-btn--primary"
             disabled={!canSubmit}
             onClick={handleSubmit}
@@ -139,11 +238,11 @@ export default function SetupStep() {
         </div>
       </div>
 
-      {previewOpen && (
+      {previewBlock && (
         <SetupPreview
-          mode={mode}
-          lemmaIds={lemmaIds}
-          onClose={() => setPreviewOpen(false)}
+          mode={previewBlock.mode}
+          lemmaIds={previewBlock.lemmaIds}
+          onClose={() => setPreviewIdx(null)}
         />
       )}
     </div>

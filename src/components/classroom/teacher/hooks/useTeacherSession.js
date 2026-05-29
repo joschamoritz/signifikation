@@ -60,6 +60,29 @@ export async function addAssignment(sessionId, { mode, lemmaIds }) {
   return jsonOrThrow(res)
 }
 
+// W2-T2: mehrere (Modus + Lemmata)-Bloecke in Reihenfolge anlegen (atomar).
+export async function addAssignments(sessionId, { blocks }) {
+  const res = await apiFetch(`${BASE}/sessions/${encodeURIComponent(sessionId)}/assignments/bulk`, {
+    method: 'POST',
+    credentials: 'include',
+    headers: jsonHeaders(),
+    body: JSON.stringify({ blocks }),
+  })
+  return jsonOrThrow(res)
+}
+
+// W2-T2: auf das naechste Assignment vorruecken (oder Session beenden, wenn
+// es das letzte war — { done: true }).
+export async function nextAssignment(sessionId) {
+  const res = await apiFetch(`${BASE}/sessions/${encodeURIComponent(sessionId)}/next-assignment`, {
+    method: 'POST',
+    credentials: 'include',
+    headers: jsonHeaders(),
+    body: JSON.stringify({}),
+  })
+  return jsonOrThrow(res)
+}
+
 // W2-T1: Schueleransicht-Vorschau. Holt fuer eine Modus+Lemma-Auswahl die
 // gewhitelistete Schueler-Sicht, ohne eine Session/Assignment anzulegen.
 export async function previewAssignment({ mode, lemmaIds }) {
@@ -147,6 +170,8 @@ export default {
   listSessions,
   createSession,
   addAssignment,
+  addAssignments,
+  nextAssignment,
   previewAssignment,
   removeAssignment,
   startSession,

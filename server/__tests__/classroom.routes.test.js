@@ -268,13 +268,15 @@ describe('classroom routes', () => {
       assignmentId = body.id
     })
 
-    it('T-2.2 Zweites Assignment abgelehnt (D2: max 1)', async () => {
+    it('W2-T2 Zweites Assignment wird angenommen (sequenzielle Modi)', async () => {
       const res = await fetch(`${baseUrl}/api/v1/classroom/sessions/${sessionId}/assignments`, {
         method: 'POST',
         headers: teacherHeaders(TEACHER_ID),
-        body: JSON.stringify({ mode: 'kollokationen', lemmaIds: [lemmaId] }),
+        body: JSON.stringify({ mode: 'wortzwilling', lemmaIds: [lemmaId] }),
       })
-      expect(res.status).toBe(409)
+      expect(res.status).toBe(201)
+      const body = await res.json()
+      expect(body.mode).toBe('wortzwilling')
     })
 
     it('T-2.4 Session starten → 200 { status, startedAt }', async () => {
@@ -659,6 +661,107 @@ describe('classroom routes', () => {
       // aber der Handler liest result.data.score nie aus)
       expect(result.success).toBe(true)
       expect(result.data).not.toHaveProperty('score')  // score nicht im Schema definiert
+    })
+  })
+
+  // ── W2-T2: Mehrere Modi pro Session (sequenziell) ─────────────
+
+  describe('W2-T2 Multi-Assignment', () => {
+    const TEACHER_ID = `cr2-teacher-w2t2-${randomUUID()}`
+    let lemmaId
+
+    beforeAll(() => {
+      ensureUser(TEACHER_ID)
+      lemmaId = insertTestLemma('w2t2')
+    })
+    afterAll(() => cleanupTeacher(TEACHER_ID))
+
+    async function freshSession() {
+      const res = await fetch(`${baseUrl}/api/v1/classroom/sessions`, {
+        method: 'POST', headers: teacherHeaders(TEACHER_ID), body: JSON.stringify({}),
+      })
+      return (await res.json()).id
+    }
+
+    it('bulk legt mehrere Bloecke in Reihenfolge an', async () => {
+      const sessionId = await freshSession()
+      const res = await fetch(`${baseUrl}/api/v1/classroom/sessions/${sessionId}/assignments/bulk`, {
+        method: 'POST',
+        headers: teacherHeaders(TEACHER_ID),
+        body: JSON.stringify({ blocks: [
+          { mode: 'kollokationen', lemmaIds: [lemmaId] },
+          { mode: 'wortzwilling',  lemmaIds: [lemmaId] },
+        ] }),
+      })
+      expect(res.status).toBe(201)
+      const body = await res.json()
+      expect(body.assignments).toHaveLength(2)
+      expect(body.assignments.map(a => a.position)).toEqual([0, 1])
+    })
+
+    it('bulk lehnt >5 Bloecke ab (Schema 400)', async () => {
+      const sessionId = await freshSession()
+      const blocks = Array.from({ length: 6 }, () => ({ mode: 'kollokationen', lemmaIds: [lemmaId] }))
+      const res = await fetch(`${baseUrl}/api/v1/classroom/sessions/${sessionId}/assignments/bulk`, {
+        method: 'POST', headers: teacherHeaders(TEACHER_ID), body: JSON.stringify({ blocks }),
+      })
+      expect(res.status).toBe(400)
+    })
+
+    it('next-assignment wechselt und beendet nach dem letzten Block', async () => {
+      const sessionId = await freshSession()
+      await fetch(`${baseUrl}/api/v1/classroom/sessions/${sessionId}/assignments/bulk`, {
+        method: 'POST',
+        headers: teacherHeaders(TEACHER_ID),
+        body: JSON.stringify({ blocks: [
+          { mode: 'kollokationen', lemmaIds: [lemmaId] },
+          { mode: 'kollokationen', lemmaIds: [lemmaId] },
+        ] }),
+      })
+      await fetch(`${baseUrl}/api/v1/classroom/sessions/${sessionId}/start`, {
+        method: 'POST', headers: teacherHeaders(TEACHER_ID), body: JSON.stringify({}),
+      })
+
+      // Wechsel auf Block 2
+      const next1 = await fetch(`${baseUrl}/api/v1/classroom/sessions/${sessionId}/next-assignment`, {
+        method: 'POST', headers: teacherHeaders(TEACHER_ID), body: JSON.stringify({}),
+      })
+      expect(next1.status).toBe(200)
+      const b1 = await next1.json()
+      expect(b1.done).toBe(false)
+      expect(b1.index).toBe(1)
+      expect(b1.total).toBe(2)
+
+      // Nach letztem Block → Session beendet
+      const next2 = await fetch(`${baseUrl}/api/v1/classroom/sessions/${sessionId}/next-assignment`, {
+        method: 'POST', headers: teacherHeaders(TEACHER_ID), body: JSON.stringify({}),
+      })
+      expect(next2.status).toBe(200)
+      const b2 = await next2.json()
+      expect(b2.done).toBe(true)
+      expect(b2.status).toBe('finished')
+    })
+
+    it('Dashboard liefert assignmentIndex/assignmentTotal', async () => {
+      const sessionId = await freshSession()
+      await fetch(`${baseUrl}/api/v1/classroom/sessions/${sessionId}/assignments/bulk`, {
+        method: 'POST',
+        headers: teacherHeaders(TEACHER_ID),
+        body: JSON.stringify({ blocks: [
+          { mode: 'kollokationen', lemmaIds: [lemmaId] },
+          { mode: 'wortzwilling',  lemmaIds: [lemmaId] },
+        ] }),
+      })
+      await fetch(`${baseUrl}/api/v1/classroom/sessions/${sessionId}/start`, {
+        method: 'POST', headers: teacherHeaders(TEACHER_ID), body: JSON.stringify({}),
+      })
+      const res = await fetch(`${baseUrl}/api/v1/classroom/sessions/${sessionId}/dashboard`, {
+        headers: teacherHeaders(TEACHER_ID),
+      })
+      const body = await res.json()
+      expect(body.assignmentTotal).toBe(2)
+      expect(body.assignmentIndex).toBe(0)
+      expect(body.assignment?.mode).toBe('kollokationen')
     })
   })
 

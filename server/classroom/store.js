@@ -27,6 +27,10 @@ const SECRET = configuredJoinSecret || 'dev-classroom-secret'
 const CONNECTED_WINDOW_MS = 45 * 1000
 const SESSION_MAX_PARTICIPANTS = 50
 const MAX_LEMMATA_PER_ASSIGNMENT = 3
+// W2-T2: Eine Session kann mehrere Modi nacheinander spielen. Harte
+// Obergrenze, damit eine 45-Min-Stunde nicht in eine endlose Modus-Kette
+// ausartet (Setup-UI limitiert ebenfalls auf 5).
+const MAX_ASSIGNMENTS_PER_SESSION = 5
 const MAX_RAW_ANSWER_BYTES = 4096
 const VALID_MODES = ['kollokationen', 'wortzwilling', 'zeitenwende', 'lueckenfueller']
 // D8: Auto-End nach 90 Min Inaktivitaet. last_activity_at ist die
@@ -127,6 +131,15 @@ const stmts = {
   deleteAssignment: db.prepare(`
     DELETE FROM classroom_assignment WHERE id = ? AND session_id = ?
   `),
+  // W2-T2: Session-Zeiger auf das aktuell aktive Assignment vorruecken.
+  // Nur laufende, nicht pausierte Sessions — der Wechsel selbst zaehlt als
+  // Aktivitaet (D8). Bedingung @from schuetzt gegen Doppel-Klick/Race.
+  advanceAssignmentIndex: db.prepare(`
+    UPDATE classroom_session
+    SET current_assignment_index = @to, last_activity_at = @ts
+    WHERE id = @id AND status = 'running' AND paused_at IS NULL
+      AND current_assignment_index = @from
+  `),
 
   // Participants
   insertParticipant: db.prepare(`
@@ -183,7 +196,7 @@ const stmts = {
     SELECT * FROM classroom_score_record WHERE submission_id = ?
   `),
   listSessionSubmissionsForDashboard: db.prepare(`
-    SELECT s.lemma_id, s.participant_id, sc.score, sc.max_score, sc.correct
+    SELECT s.lemma_id, s.assignment_id, s.participant_id, sc.score, sc.max_score, sc.correct
     FROM classroom_submission s
     JOIN classroom_score_record sc ON sc.submission_id = s.id
     WHERE s.session_id = ?
@@ -242,6 +255,8 @@ function normalizeSessionRow(row) {
     lockedAt: row.locked_at,
     pausedAt: row.paused_at ?? null,
     lastActivityAt: row.last_activity_at ?? null,
+    // W2-T2: 0-basierter Zeiger auf das aktuell aktive Assignment.
+    currentAssignmentIndex: row.current_assignment_index ?? 0,
   }
 }
 
@@ -415,30 +430,121 @@ export function autoEndStaleSessions({ now = nowMs(), maxIdleMs = DEFAULT_AUTO_E
 }
 
 // ── Assignments ─────────────────────────────────────────────────────
-export function addAssignment({ sessionId, teacherUserId, mode, lemmaIds, contentSnapshot }) {
+// Validierung eines einzelnen Modus-Blocks (Form-Pruefung, ohne DB).
+function validateAssignmentBlock(block) {
+  if (!block || typeof block !== 'object') return 'INVALID_MODE'
+  if (!VALID_MODES.includes(block.mode)) return 'INVALID_MODE'
+  if (!Array.isArray(block.lemmaIds) || block.lemmaIds.length < 1) return 'NO_LEMMATA'
+  if (block.lemmaIds.length > MAX_LEMMATA_PER_ASSIGNMENT) return 'TOO_MANY_LEMMATA'
+  return null
+}
+
+// W2-T2: Mehrere Modus-Bloecke in Reihenfolge anlegen (atomar).
+// content_snapshot wird PRO Assignment beim Anlegen eingefroren (D-Entscheidung
+// beibehalten) — der Aufrufer (Route) baut ihn aus den aktuellen Lemmata.
+// position vergeben wir fortlaufend ab dem bestehenden Count, damit
+// mehrfache Aufrufe (oder gemischtes addAssignment/addAssignments) eine
+// luckenlose Ordnung 0,1,2,… ergeben.
+export function addAssignments({ sessionId, teacherUserId, blocks }) {
   const session = stmts.getSessionById.get(sessionId)
   if (!session) return { error: 'NOT_FOUND' }
   if (session.teacher_user_id !== teacherUserId) return { error: 'FORBIDDEN' }
   if (session.status !== 'lobby') return { error: 'INVALID_STATE' }
-  if (!VALID_MODES.includes(mode)) return { error: 'INVALID_MODE' }
-  if (!Array.isArray(lemmaIds) || lemmaIds.length < 1) return { error: 'NO_LEMMATA' }
-  if (lemmaIds.length > MAX_LEMMATA_PER_ASSIGNMENT) return { error: 'TOO_MANY_LEMMATA' }
+  if (!Array.isArray(blocks) || blocks.length < 1) return { error: 'NO_ASSIGNMENT' }
+
+  for (const block of blocks) {
+    const err = validateAssignmentBlock(block)
+    if (err) return { error: err }
+  }
 
   const existing = stmts.countAssignments.get(sessionId)?.c || 0
-  // D2: genau 1 Modus pro Session in v1 – also genau 1 Assignment.
-  if (existing >= 1) return { error: 'ASSIGNMENT_EXISTS' }
+  if (existing + blocks.length > MAX_ASSIGNMENTS_PER_SESSION) {
+    return { error: 'TOO_MANY_ASSIGNMENTS' }
+  }
 
-  const id = randomUUID()
-  stmts.insertAssignment.run({
-    id,
-    session_id: sessionId,
-    mode,
-    lemma_ids: JSON.stringify(lemmaIds),
-    content_snapshot: JSON.stringify(contentSnapshot || {}),
-    position: existing,
-    created_at: nowMs(),
+  const ids = []
+  const tx = db.transaction(() => {
+    blocks.forEach((block, i) => {
+      const id = randomUUID()
+      stmts.insertAssignment.run({
+        id,
+        session_id: sessionId,
+        mode: block.mode,
+        lemma_ids: JSON.stringify(block.lemmaIds),
+        content_snapshot: JSON.stringify(block.contentSnapshot || {}),
+        position: existing + i,
+        created_at: nowMs(),
+      })
+      ids.push(id)
+    })
   })
-  return { assignment: normalizeAssignmentRow(stmts.getAssignmentById.get(id)) }
+  tx()
+  return { assignments: ids.map((id) => normalizeAssignmentRow(stmts.getAssignmentById.get(id))) }
+}
+
+// Einzel-Variante (Bestand): delegiert an addAssignments und liefert das
+// erste Assignment. Reihenfolge entsteht durch fortlaufende position.
+export function addAssignment({ sessionId, teacherUserId, mode, lemmaIds, contentSnapshot }) {
+  const result = addAssignments({
+    sessionId,
+    teacherUserId,
+    blocks: [{ mode, lemmaIds, contentSnapshot }],
+  })
+  if (result.error) return result
+  return { assignment: result.assignments[0] }
+}
+
+// Aktuell aktives Assignment einer Session (per current_assignment_index).
+export function getCurrentAssignment(sessionId) {
+  const sessionRow = stmts.getSessionById.get(sessionId)
+  if (!sessionRow) return null
+  const ordered = stmts.listAssignmentsBySession.all(sessionId).map(normalizeAssignmentRow)
+  if (ordered.length === 0) return null
+  const idx = Math.min(Math.max(0, sessionRow.current_assignment_index ?? 0), ordered.length - 1)
+  return ordered[idx]
+}
+
+// W2-T2: Auf das naechste Assignment vorruecken. Server-autoritativ (D13).
+//   - Nur durch den Besitzer, nur bei laufender, nicht pausierter Session.
+//   - Aktuelles Assignment gilt mit dem Wechsel als abgeschlossen.
+//   - Nach dem letzten Block wird die Session beendet (status 'finished'),
+//     identisch zu finishSession (submission:write wird revoked).
+// Rueckgabe bei Wechsel: { session, assignment, index, total }.
+// Rueckgabe nach letztem Block: { session, done: true }.
+export function nextAssignment({ sessionId, teacherUserId }) {
+  const row = stmts.getSessionById.get(sessionId)
+  if (!row) return { error: 'NOT_FOUND' }
+  if (row.teacher_user_id !== teacherUserId) return { error: 'FORBIDDEN' }
+  if (row.status !== 'running') return { error: 'INVALID_STATE' }
+  // Im Pause-Zustand kein Wechsel — sonst saehen die Schueler waehrend des
+  // Wartebilds einen neuen Modus aufploppen. Lehrer muss erst fortsetzen.
+  if (row.paused_at != null) return { error: 'SESSION_PAUSED' }
+
+  const ordered = stmts.listAssignmentsBySession.all(sessionId).map(normalizeAssignmentRow)
+  if (ordered.length === 0) return { error: 'NO_ASSIGNMENT' }
+
+  const currentIndex = Math.min(Math.max(0, row.current_assignment_index ?? 0), ordered.length - 1)
+  const nextIndex = currentIndex + 1
+
+  // Letzter Block → Session beenden (gleiche Semantik wie finishSession).
+  if (nextIndex >= ordered.length) {
+    const finished = finishSession({ sessionId, teacherUserId, reason: 'completed' })
+    if (finished.error) return finished
+    return { session: finished.session, done: true }
+  }
+
+  const now = nowMs()
+  const result = stmts.advanceAssignmentIndex.run({
+    id: sessionId, from: currentIndex, to: nextIndex, ts: now,
+  })
+  if (!result.changes) return { error: 'INVALID_STATE' }
+
+  return {
+    session: normalizeSessionRow(stmts.getSessionById.get(sessionId)),
+    assignment: ordered[nextIndex],
+    index: nextIndex,
+    total: ordered.length,
+  }
 }
 
 export function listAssignments(sessionId) {
@@ -559,6 +665,16 @@ export function submitAnswer({
 
   const assignmentRow = stmts.getAssignmentById.get(assignmentId)
   if (!assignmentRow || assignmentRow.session_id !== sessionId) return { error: 'NOT_FOUND' }
+
+  // W2-T2: Submissions werden IMMER nur dem aktuell aktiven Assignment
+  // zugeordnet. Ein bereits abgeschlossener (oder noch nicht erreichter)
+  // Modus-Block nimmt keine Abgaben mehr an — server-autoritativ (D13).
+  const ordered = stmts.listAssignmentsBySession.all(sessionId).map(normalizeAssignmentRow)
+  const activeIndex = Math.min(Math.max(0, session.current_assignment_index ?? 0), Math.max(0, ordered.length - 1))
+  const activeAssignment = ordered[activeIndex]
+  if (!activeAssignment || activeAssignment.id !== assignmentId) {
+    return { error: 'ASSIGNMENT_NOT_ACTIVE' }
+  }
 
   // Capability-Check als zweites Sicherheitsnetz; Route hat bereits
   // requireCapability('submission:write') durchgelaufen.
@@ -687,8 +803,19 @@ export function getDashboard({ sessionId, teacherUserId }) {
     leftAt: p.left_at,
   }))
 
-  // Query 3: Submissions + Scores zusammen (single JOIN, kein N+1)
+  // Aktuelles Assignment + Reihenfolge-Metadaten (W2-T2).
+  const orderedAssignments = stmts.listAssignmentsBySession.all(sessionId).map(normalizeAssignmentRow)
+  const assignmentTotal = orderedAssignments.length
+  const assignmentIndex = assignmentTotal > 0
+    ? Math.min(Math.max(0, session.currentAssignmentIndex), assignmentTotal - 1)
+    : 0
+  const currentAssignment = orderedAssignments[assignmentIndex] || null
+
+  // Query 3: Submissions + Scores zusammen (single JOIN, kein N+1).
+  // Die Trefferquote bezieht sich auf das AKTUELL aktive Assignment — sonst
+  // wuerden Lemmata vergangener Modi-Bloecke die Live-Anzeige verwaessern.
   const submissionRows = stmts.listSessionSubmissionsForDashboard.all(sessionId)
+    .filter((r) => !currentAssignment || r.assignment_id === currentAssignment.id)
   const perLemma = new Map()
   for (const row of submissionRows) {
     const key = String(row.lemma_id)
@@ -709,7 +836,10 @@ export function getDashboard({ sessionId, teacherUserId }) {
 
   return {
     session,
-    assignment: stmts.listAssignmentsBySession.all(sessionId).map(normalizeAssignmentRow)[0] || null,
+    assignment: currentAssignment,
+    // W2-T2: Reihenfolge-Metadaten fuer "Modus X von N" in der Live-Ansicht.
+    assignmentIndex,
+    assignmentTotal,
     participants,
     aggregate: {
       totalParticipants: participants.length,

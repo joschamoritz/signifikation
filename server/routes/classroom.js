@@ -33,6 +33,8 @@ import {
   validate,
   cr2CreateSessionSchema,
   cr2CreateAssignmentSchema,
+  cr2CreateAssignmentsSchema,
+  cr2NextAssignmentSchema,
   cr2LemmataQuerySchema,
   cr2StartSessionSchema,
   cr2FinishSessionSchema,
@@ -45,8 +47,10 @@ import {
 import {
   createSession,
   addAssignment,
+  addAssignments,
   removeAssignment,
   listAssignments,
+  nextAssignment,
   getSessionById,
   listTeacherSessions,
   startSession,
@@ -69,6 +73,7 @@ import {
   notifySessionFinished,
   notifySessionPaused,
   notifySessionResumed,
+  notifyAssignmentChanged,
   notifyStudentViewUpdated,
 } from '../realtime/classroomSocket.js'
 import {
@@ -109,7 +114,9 @@ function mapError(errCode) {
     case 'LATE_JOIN_DISABLED': return { status: 409, message: 'Spaetbeitritt deaktiviert' }
     case 'SESSION_FULL':       return { status: 409, message: 'Session voll (max. 50 Teilnehmende)' }
     case 'NO_ASSIGNMENT':      return { status: 409, message: 'Session hat kein Assignment – erst hinzufügen' }
-    case 'ASSIGNMENT_EXISTS':  return { status: 409, message: 'Assignment bereits vorhanden (D2: max. 1 pro Session)' }
+    case 'ASSIGNMENT_EXISTS':  return { status: 409, message: 'Assignment bereits vorhanden' }
+    case 'TOO_MANY_ASSIGNMENTS': return { status: 409, message: 'Maximal 5 Modus-Blöcke pro Session' }
+    case 'ASSIGNMENT_NOT_ACTIVE': return { status: 409, message: 'Dieser Modus ist nicht mehr aktiv' }
     case 'TOO_MANY_LEMMATA':   return { status: 400, message: 'Maximal 3 Lemmata pro Assignment (D3)' }
     case 'NO_LEMMATA':         return { status: 400, message: 'Mindestens 1 Lemma erforderlich' }
     case 'INVALID_MODE':       return { status: 400, message: 'Ungültiger Modus' }
@@ -281,7 +288,7 @@ const getParticipantSubmissionsStmt = db.prepare(`
 const getRoundsCountFromSnapshot = (snapshot) =>
   Array.isArray(snapshot?.rounds) ? snapshot.rounds.length : 1
 
-function buildStudentView(participant, session, assignment) {
+function buildStudentView(participant, session, assignment, meta = {}) {
   const lemmaIds = assignment.lemmaIds || []
   const rows = getParticipantSubmissionsStmt.all(participant.id, assignment.id)
 
@@ -353,6 +360,9 @@ function buildStudentView(participant, session, assignment) {
       id:         assignment.id,
       mode:       assignment.mode,
       lemmaCount: lemmaIds.length,
+      // W2-T2: Reihenfolge-Position fuer „Modus X von N" im Kiosk.
+      index:      meta.index ?? 0,
+      total:      meta.total ?? 1,
     },
     currentLemma: currentLemmaData,
     progress: {
@@ -582,6 +592,61 @@ router.post(
   },
 )
 
+// ── W2-T2 POST /api/v1/classroom/sessions/:id/assignments/bulk ──
+// Mehrere (Modus + Lemmata)-Bloecke in Reihenfolge anlegen. content_snapshot
+// wird pro Block beim Anlegen eingefroren — gleiche Bauweise wie das
+// Einzel-Assignment, nur in einer atomaren Operation.
+router.post(
+  '/api/v1/classroom/sessions/:id/assignments/bulk',
+  classroomWriteLimiter,
+  requireCapability('session:manage'),
+  validate(cr2CreateAssignmentsSchema),
+  (req, res) => {
+    try {
+      const { blocks } = req.body
+      const sessionId    = req.params.id
+      const teacherUserId = req.cr2.subject.id
+
+      // Pro Block Snapshot bauen; dafuer alle referenzierten Lemmata laden.
+      const builtBlocks = []
+      for (const block of blocks) {
+        const lemmaRows = getLemmataByIdsStmt.all(JSON.stringify(block.lemmaIds))
+        const lemmata   = lemmaRows.map(parseLemmaJson)
+        const foundIds  = new Set(lemmata.map(l => l.id))
+        const missing   = block.lemmaIds.filter(id => !foundIds.has(id))
+        if (missing.length > 0) {
+          return res.status(404).json({ error: `Lemmata nicht gefunden: ${missing.join(', ')}` })
+        }
+        const orderedLemmata = block.lemmaIds.map(id => lemmata.find(l => l.id === id))
+        builtBlocks.push({
+          mode:           block.mode,
+          lemmaIds:       block.lemmaIds,
+          contentSnapshot: buildContentSnapshot(block.mode, orderedLemmata),
+        })
+      }
+
+      const result = addAssignments({ sessionId, teacherUserId, blocks: builtBlocks })
+      if (result.error) {
+        const mapped = mapError(result.error)
+        return res.status(mapped.status).json({ error: mapped.message })
+      }
+
+      logger.info({ sessionId, count: result.assignments.length }, 'cr2 assignments (bulk) added')
+      return res.status(201).json({
+        assignments: result.assignments.map(a => ({
+          id:         a.id,
+          mode:       a.mode,
+          lemmaCount: a.lemmaIds.length,
+          position:   a.position,
+        })),
+      })
+    } catch (err) {
+      logger.error({ err }, 'cr2 addAssignments crashed')
+      return res.status(500).json({ error: 'Interner Serverfehler' })
+    }
+  },
+)
+
 // ── DELETE /api/v1/classroom/sessions/:id/assignments/:aid ──────
 // Nur bei status='lobby'. (Nicht in T-2.x nummeriert, aber im API-Vertrag)
 router.delete(
@@ -751,6 +816,79 @@ router.post(
   },
 )
 
+// ── W2-T2 POST /api/v1/classroom/sessions/:id/next-assignment ──
+// Schliesst das aktuelle Assignment ab und aktiviert das naechste.
+// Nach dem letzten Block → Session beendet (gleiche Semantik wie /finish).
+// Server-autoritativ (D13), nur Besitzer (requireCapability session:manage),
+// im Pause-Zustand verboten (store gibt SESSION_PAUSED zurueck).
+router.post(
+  '/api/v1/classroom/sessions/:id/next-assignment',
+  classroomWriteLimiter,
+  requireCapability('session:manage'),
+  validate(cr2NextAssignmentSchema),
+  (req, res) => {
+    try {
+      const sessionId    = req.params.id
+      const teacherUserId = req.cr2.subject.id
+      const result = nextAssignment({ sessionId, teacherUserId })
+      if (result.error) {
+        const mapped = mapError(result.error)
+        return res.status(mapped.status).json({ error: mapped.message })
+      }
+
+      if (result.done) {
+        // Letzter Block durchgespielt → Session ist beendet. Broadcast wie /finish.
+        logger.info({ sessionId }, 'cr2 next-assignment → session finished (last block)')
+        const durationMs = result.session.startedAt
+          ? result.session.finishedAt - result.session.startedAt
+          : null
+        const totalParts = db.prepare(
+          'SELECT COUNT(1) AS c FROM classroom_participant WHERE session_id = ? AND left_at IS NULL',
+        ).get(sessionId)?.c ?? 0
+        const submittedParts = db.prepare(
+          'SELECT COUNT(DISTINCT participant_id) AS c FROM classroom_submission WHERE session_id = ?',
+        ).get(sessionId)?.c ?? 0
+        const completionRate = totalParts > 0 ? submittedParts / totalParts : 0
+        trackSessionFinished(sessionId, teacherUserId, { durationMs, completionRate })
+        notifySessionFinished(sessionId, {
+          sessionId,
+          finishedAt: result.session.finishedAt,
+          reason: 'completed',
+        })
+        return res.json({ status: 'finished', done: true, finishedAt: result.session.finishedAt })
+      }
+
+      // Wechsel: Schueler-Kiosk holt die neue (gewhitelistete) Sicht per
+      // /me/view nach — wir senden bewusst KEINEN content_snapshot (R1).
+      logger.info(
+        { sessionId, index: result.index, total: result.total, mode: result.assignment.mode },
+        'cr2 advanced to next assignment',
+      )
+      notifyAssignmentChanged(sessionId, {
+        sessionId,
+        assignmentId: result.assignment.id,
+        mode:         result.assignment.mode,
+        index:        result.index,
+        total:        result.total,
+      })
+      return res.json({
+        status:     result.session.status,
+        done:       false,
+        index:      result.index,
+        total:      result.total,
+        assignment: {
+          id:         result.assignment.id,
+          mode:       result.assignment.mode,
+          lemmaCount: result.assignment.lemmaIds.length,
+        },
+      })
+    } catch (err) {
+      logger.error({ err }, 'cr2 nextAssignment crashed')
+      return res.status(500).json({ error: 'Interner Serverfehler' })
+    }
+  },
+)
+
 // ── T-2.9 GET /api/v1/classroom/sessions/:id/dashboard ─────────
 // Aggregierte Trefferquote pro Lemma + Abgaben-Count (D7).
 // KEIN Live-Leaderboard, KEINE Einzelantworten.
@@ -837,9 +975,16 @@ router.get(
       if (!session) return res.status(404).json({ error: 'Session nicht gefunden' })
 
       // Session-Status pruefen — Schueler koennen Retro-View sehen (D5)
-      // auch wenn die Session beendet ist (read-only)
+      // auch wenn die Session beendet ist (read-only).
+      // W2-T2: Es zaehlt das AKTUELL aktive Assignment (current_assignment_index),
+      // nicht mehr stur das erste. Bei einem Modus-Wechsel liefert /me/view
+      // damit automatisch den neuen Block (Whitelist-gefiltert, R1).
       const assignments = listAssignments(sessionId)
-      const assignment  = assignments[0] || null
+      const total = assignments.length
+      const index = total > 0
+        ? Math.min(Math.max(0, session.currentAssignmentIndex), total - 1)
+        : 0
+      const assignment = total > 0 ? assignments[index] : null
       if (!assignment) {
         return res.json({
           sessionId,
@@ -850,7 +995,7 @@ router.get(
         })
       }
 
-      const view = buildStudentView(participant, session, assignment)
+      const view = buildStudentView(participant, session, assignment, { index, total })
       return res.json(view)
     } catch (err) {
       logger.error({ err }, 'cr2 me/view crashed')

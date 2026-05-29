@@ -8,7 +8,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTeacherClassroom } from '../TeacherClassroomContext'
-import { getDashboard, finishSession, pauseSession, resumeSession } from '../hooks/useTeacherSession'
+import { getDashboard, finishSession, pauseSession, resumeSession, nextAssignment } from '../hooks/useTeacherSession'
 import { useTeacherSocket } from '../hooks/useTeacherSocket'
 import ParticipantList from '../components/ParticipantList'
 
@@ -29,6 +29,7 @@ export default function LiveStep() {
   const [error, setError]          = useState(null)
   const [finishing, setFinishing]  = useState(false)
   const [pauseBusy, setPauseBusy]  = useState(false)
+  const [advancing, setAdvancing]  = useState(false)
   const submittedIdsRef = useRef(new Set())
 
   // Pause-Status: Dashboard ist Source of Truth (session.paused), Socket-
@@ -74,6 +75,12 @@ export default function LiveStep() {
     'student:joined': () => { refresh() },
     'session:paused': () => { refresh() },
     'session:resumed': () => { refresh() },
+    // W2-T2: Modus-Wechsel → Abgabe-Marker des alten Blocks zuruecksetzen,
+    // damit der Fortschrittsbalken fuer den neuen Block bei 0 startet.
+    'assignment:changed': () => {
+      submittedIdsRef.current = new Set()
+      refresh()
+    },
     'session:finished': () => {
       dispatch({ type: 'GO_TO_END', sessionId })
     },
@@ -96,6 +103,11 @@ export default function LiveStep() {
   const currentLemma = assignment?.contentSnapshot?.lemmata?.[0] || null
   const perLemma = dashboard?.aggregate?.perLemma || []
 
+  // W2-T2: Reihenfolge-Metadaten. assignmentTotal>1 ⇒ es gibt weitere Modi.
+  const assignmentTotal = dashboard?.assignmentTotal ?? 1
+  const assignmentIndex = dashboard?.assignmentIndex ?? 0
+  const hasNext = assignmentTotal > 1 && assignmentIndex < assignmentTotal - 1
+
   async function handleFinish() {
     if (!sessionId || finishing) return
     setFinishing(true)
@@ -107,6 +119,26 @@ export default function LiveStep() {
       setError(err?.message || 'Beenden fehlgeschlagen.')
     } finally {
       setFinishing(false)
+    }
+  }
+
+  async function handleNext() {
+    if (!sessionId || advancing) return
+    setAdvancing(true)
+    setError(null)
+    try {
+      const res = await nextAssignment(sessionId)
+      if (res?.done) {
+        dispatch({ type: 'GO_TO_END', sessionId })
+        return
+      }
+      // Marker des alten Blocks fallen lassen, dann frische Daten holen.
+      submittedIdsRef.current = new Set()
+      await refresh()
+    } catch (err) {
+      setError(err?.message || 'Weiter zum nächsten Modus fehlgeschlagen.')
+    } finally {
+      setAdvancing(false)
     }
   }
 
@@ -129,7 +161,14 @@ export default function LiveStep() {
     <div data-testid="cr2-live">
       <section className="cr2-progress" aria-label="Abgaben-Fortschritt">
         <div className="cr2-progress__label">
-          <span>{modeLabel}</span>
+          <span>
+            {modeLabel}
+            {assignmentTotal > 1 && (
+              <span className="cr2-progress__step" data-testid="cr2-live-step">
+                {' '}· Modus {assignmentIndex + 1} von {assignmentTotal}
+              </span>
+            )}
+          </span>
           <span className="cr2-progress__numbers">{submittedCount} / {totalCount} abgegeben</span>
         </div>
         <div className="cr2-progress__bar" aria-hidden="true">
@@ -184,15 +223,28 @@ export default function LiveStep() {
               ? (paused ? 'Wird fortgesetzt …' : 'Wird pausiert …')
               : (paused ? 'Fortsetzen' : 'Pausieren')}
           </button>
-          <button
-            type="button"
-            className="cr2-btn cr2-btn--primary"
-            onClick={handleFinish}
-            disabled={finishing}
-            data-testid="cr2-live-finish"
-          >
-            {finishing ? 'Wird beendet …' : 'Auflösung freigeben'}
-          </button>
+          {hasNext ? (
+            <button
+              type="button"
+              className="cr2-btn cr2-btn--primary"
+              onClick={handleNext}
+              disabled={advancing || paused}
+              data-testid="cr2-live-next"
+              title={paused ? 'Erst fortsetzen, dann wechseln' : undefined}
+            >
+              {advancing ? 'Wechselt …' : 'Nächster Modus'}
+            </button>
+          ) : (
+            <button
+              type="button"
+              className="cr2-btn cr2-btn--primary"
+              onClick={handleFinish}
+              disabled={finishing}
+              data-testid="cr2-live-finish"
+            >
+              {finishing ? 'Wird beendet …' : 'Auflösung freigeben'}
+            </button>
+          )}
         </div>
       </div>
     </div>

@@ -91,6 +91,16 @@ function reducer(state, action) {
       else if (currentLemma && effectiveRunning) next = KIOSK_STATES.PLAYING
       else                              next = KIOSK_STATES.WAITING
 
+      // W2-T2: Modus-Wechsel (assignment.id aendert sich) → der lokale
+      // Submitted-Zustand des vorherigen Blocks muss sauber zurueckgesetzt
+      // werden, sonst zeigt S5 noch die alte Abgabe, waehrend der neue Block
+      // schon laeuft. ParticipantState ist serverseitig pro Assignment
+      // getrennt (eigene Submission-Keys) — hier nur die UI-Spiegelung.
+      const assignmentChanged = !!assignment && assignment.id !== state.assignment?.id
+      const submittedAnswer = assignmentChanged ? null : state.submittedAnswer
+      const submittedResult = assignmentChanged ? null : state.submittedResult
+      const revealed = assignmentChanged && status !== 'finished' ? false : state.revealed
+
       return {
         ...state,
         sessionStatus: status,
@@ -99,6 +109,9 @@ function reducer(state, action) {
         currentLemma,
         progress,
         currentState: next,
+        submittedAnswer,
+        submittedResult,
+        revealed,
       }
     }
 

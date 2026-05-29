@@ -76,6 +76,13 @@ export function useStudentSocket({ token, enabled = true, onRefreshView, onSessi
         socket.on('view:updated', () => {
           try { handlersRef.current?.onRefreshView?.() } catch {}
         })
+        // W2-T2: Modus-Wechsel. Payload traegt nur Metadaten (mode/index/total),
+        // KEINEN content_snapshot (R1). Wir holen die neue, gewhitelistete
+        // Aufgabe per /me/view nach — gleiches Muster wie view:updated. Der
+        // Reducer (SET_VIEW) raeumt den alten Submitted-Zustand auf.
+        socket.on('assignment:changed', () => {
+          try { handlersRef.current?.onRefreshView?.() } catch {}
+        })
         socket.on('kicked', (payload) => {
           try { handlersRef.current?.onSessionEnded?.({ ...payload, reason: 'kicked' }) } catch {}
         })

@@ -12,6 +12,7 @@ vi.mock('../hooks/useTeacherSession', () => ({
   finishSession: vi.fn(),
   pauseSession: vi.fn(),
   resumeSession: vi.fn(),
+  nextAssignment: vi.fn(),
   getDashboard: vi.fn(),
   searchLemmata: vi.fn(),
 }))
@@ -21,7 +22,7 @@ vi.mock('../hooks/useTeacherSocket', () => ({
 
 import LiveStep from '../steps/LiveStep'
 import { TeacherClassroomProvider, useTeacherClassroom } from '../TeacherClassroomContext'
-import { getDashboard } from '../hooks/useTeacherSession'
+import { getDashboard, nextAssignment } from '../hooks/useTeacherSession'
 
 function WithSession({ children }) {
   const { state, dispatch } = useTeacherClassroom()
@@ -59,5 +60,24 @@ describe('LiveStep (T-4.6)', () => {
       expect(screen.getByTestId('cr2-live-finish')).toBeTruthy()
     })
     expect(screen.getByText(/abgegeben/i)).toBeTruthy()
+  })
+
+  it('W2-T2: zeigt „Modus X von N" und „Nächster Modus" bei mehreren Blöcken', async () => {
+    getDashboard.mockResolvedValue({
+      session: { id: 's1', code: 'morgentau', status: 'running' },
+      assignment: { id: 'a1', mode: 'kollokationen', contentSnapshot: { lemmata: [] }, lemmaIds: ['l1'] },
+      assignmentIndex: 0,
+      assignmentTotal: 3,
+      participants: [],
+      aggregate: { totalParticipants: 0, connectedCount: 0, submittedTotal: 0, perLemma: [] },
+    })
+    nextAssignment.mockResolvedValue({ status: 'running', done: false, index: 1, total: 3 })
+    renderLive()
+    await waitFor(() => {
+      expect(screen.getByTestId('cr2-live-next')).toBeTruthy()
+    })
+    expect(screen.getByTestId('cr2-live-step').textContent).toMatch(/Modus 1 von 3/)
+    // beim letzten Block (kein hasNext) gäbe es stattdessen den Finish-Button
+    expect(screen.queryByTestId('cr2-live-finish')).toBeNull()
   })
 })
