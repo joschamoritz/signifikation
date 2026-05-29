@@ -17,14 +17,14 @@ import { useEffect, useRef, useState } from 'react'
 
 const NAMESPACE = '/cr2'
 
-export function useStudentSocket({ token, enabled = true, onRefreshView, onSessionStarted, onSessionEnded }) {
+export function useStudentSocket({ token, enabled = true, onRefreshView, onSessionStarted, onSessionEnded, onSessionPaused, onSessionResumed }) {
   const [connected, setConnected] = useState(false)
   const [error, setError]         = useState(null)
   const socketRef = useRef(null)
 
-  const handlersRef = useRef({ onRefreshView, onSessionStarted, onSessionEnded })
-  useEffect(() => { handlersRef.current = { onRefreshView, onSessionStarted, onSessionEnded } },
-    [onRefreshView, onSessionStarted, onSessionEnded])
+  const handlersRef = useRef({ onRefreshView, onSessionStarted, onSessionEnded, onSessionPaused, onSessionResumed })
+  useEffect(() => { handlersRef.current = { onRefreshView, onSessionStarted, onSessionEnded, onSessionPaused, onSessionResumed } },
+    [onRefreshView, onSessionStarted, onSessionEnded, onSessionPaused, onSessionResumed])
 
   useEffect(() => {
     if (!enabled || !token) return undefined
@@ -64,6 +64,14 @@ export function useStudentSocket({ token, enabled = true, onRefreshView, onSessi
         })
         socket.on('session:aborted', (payload) => {
           try { handlersRef.current?.onSessionEnded?.({ ...payload, reason: 'aborted' }) } catch {}
+        })
+        socket.on('session:paused', (payload) => {
+          try { handlersRef.current?.onSessionPaused?.(payload) } catch {}
+        })
+        socket.on('session:resumed', (payload) => {
+          try { handlersRef.current?.onSessionResumed?.(payload) } catch {}
+          // Server-State nach Resume frisch holen, damit currentLemma/progress stimmen.
+          try { handlersRef.current?.onRefreshView?.() } catch {}
         })
         socket.on('view:updated', () => {
           try { handlersRef.current?.onRefreshView?.() } catch {}

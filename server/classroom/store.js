@@ -29,6 +29,9 @@ const SESSION_MAX_PARTICIPANTS = 50
 const MAX_LEMMATA_PER_ASSIGNMENT = 3
 const MAX_RAW_ANSWER_BYTES = 4096
 const VALID_MODES = ['kollokationen', 'wortzwilling', 'zeitenwende', 'lueckenfueller']
+// D8: Auto-End nach 90 Min Inaktivitaet. last_activity_at ist die
+// persistente Bezugsgroesse (siehe Migration 0007).
+export const DEFAULT_AUTO_END_IDLE_MS = 90 * 60 * 1000
 
 function nowMs() { return Date.now() }
 
@@ -67,18 +70,46 @@ const stmts = {
   `),
   startSession: db.prepare(`
     UPDATE classroom_session
-    SET status = 'running', started_at = @started_at, locked_at = @started_at
+    SET status = 'running', started_at = @started_at, locked_at = @started_at,
+        last_activity_at = @started_at
     WHERE id = @id AND status = 'lobby'
   `),
   finishSession: db.prepare(`
     UPDATE classroom_session
-    SET status = 'finished', finished_at = @finished_at
+    SET status = 'finished', finished_at = @finished_at, paused_at = NULL
     WHERE id = @id AND status IN ('lobby','running')
   `),
   abortSession: db.prepare(`
     UPDATE classroom_session
-    SET status = 'aborted', finished_at = @finished_at
+    SET status = 'aborted', finished_at = @finished_at, paused_at = NULL
     WHERE id = @id AND status IN ('lobby','running')
+  `),
+  // Pause/Resume als Flag: DB-Status bleibt 'running' (Index + Beitritt
+  // unveraendert). pausedAt != NULL ⇒ Normalizer leitet 'paused' ab.
+  // Nur eine laufende, noch nicht pausierte Session laesst sich pausieren.
+  pauseSession: db.prepare(`
+    UPDATE classroom_session
+    SET paused_at = @ts, last_activity_at = @ts
+    WHERE id = @id AND status = 'running' AND paused_at IS NULL
+  `),
+  resumeSession: db.prepare(`
+    UPDATE classroom_session
+    SET paused_at = NULL, last_activity_at = @ts
+    WHERE id = @id AND status = 'running' AND paused_at IS NOT NULL
+  `),
+  // Aktivitaets-Heartbeat fuer Auto-End (D8). Nur laufende Sessions.
+  touchSessionActivity: db.prepare(`
+    UPDATE classroom_session
+    SET last_activity_at = @ts
+    WHERE id = @id AND status = 'running'
+  `),
+  // Auto-End-Kandidaten: laufende Sessions, deren letzte Aktivitaet
+  // laenger als das Idle-Fenster zurueckliegt. COALESCE faengt
+  // Alt-Zeilen ohne last_activity_at ab.
+  listStaleRunningSessions: db.prepare(`
+    SELECT * FROM classroom_session
+    WHERE status = 'running'
+      AND COALESCE(last_activity_at, started_at, created_at) <= @threshold
   `),
 
   // Assignments
@@ -193,17 +224,24 @@ const stmts = {
 // ── Normalizer ──────────────────────────────────────────────────────
 function normalizeSessionRow(row) {
   if (!row) return null
+  // Abgeleiteter Status: pausedAt-Flag hat Vorrang, solange die Session
+  // in der DB noch 'running' ist (siehe Migration 0007 — Pause ist kein
+  // eigener DB-Status, um den CHECK-Rebuild zu vermeiden).
+  const paused = row.status === 'running' && row.paused_at != null
   return {
     id: row.id,
     code: row.code,
     teacherUserId: row.teacher_user_id,
     title: row.title,
-    status: row.status,
+    status: paused ? 'paused' : row.status,
+    paused,
     settings: parseJsonSafe(row.settings_json, {}, { sessionId: row.id }),
     createdAt: row.created_at,
     startedAt: row.started_at,
     finishedAt: row.finished_at,
     lockedAt: row.locked_at,
+    pausedAt: row.paused_at ?? null,
+    lastActivityAt: row.last_activity_at ?? null,
   }
 }
 
@@ -312,6 +350,68 @@ export function finishSession({ sessionId, teacherUserId, reason = 'manual' }) {
   if (err) return { error: err }
   logger.info({ sessionId, reason }, 'cr2 session finished')
   return { session: normalizeSessionRow(stmts.getSessionById.get(sessionId)) }
+}
+
+export function pauseSession({ sessionId, teacherUserId }) {
+  const row = stmts.getSessionById.get(sessionId)
+  if (!row) return { error: 'NOT_FOUND' }
+  if (row.teacher_user_id !== teacherUserId) return { error: 'FORBIDDEN' }
+  // Nur eine laufende, nicht bereits pausierte Session ist pausierbar.
+  if (row.status !== 'running' || row.paused_at != null) return { error: 'INVALID_STATE' }
+  const result = stmts.pauseSession.run({ id: sessionId, ts: nowMs() })
+  if (!result.changes) return { error: 'INVALID_STATE' }
+  logger.info({ sessionId }, 'cr2 session paused')
+  return { session: normalizeSessionRow(stmts.getSessionById.get(sessionId)) }
+}
+
+export function resumeSession({ sessionId, teacherUserId }) {
+  const row = stmts.getSessionById.get(sessionId)
+  if (!row) return { error: 'NOT_FOUND' }
+  if (row.teacher_user_id !== teacherUserId) return { error: 'FORBIDDEN' }
+  if (row.status !== 'running' || row.paused_at == null) return { error: 'INVALID_STATE' }
+  const result = stmts.resumeSession.run({ id: sessionId, ts: nowMs() })
+  if (!result.changes) return { error: 'INVALID_STATE' }
+  logger.info({ sessionId }, 'cr2 session resumed')
+  return { session: normalizeSessionRow(stmts.getSessionById.get(sessionId)) }
+}
+
+// Aktivitaets-Heartbeat fuer Lehrer-Events (Dashboard-Abruf, Assignment-
+// Aenderung etc.), damit aktives Unterrichten das Auto-End-Fenster (D8)
+// verschiebt, auch wenn gerade keine Schueler-Submission kommt.
+export function touchSessionActivity(sessionId) {
+  if (!sessionId) return false
+  const r = stmts.touchSessionActivity.run({ id: sessionId, ts: nowMs() })
+  return r.changes > 0
+}
+
+// ── Auto-End nach Inaktivitaet (D8) ─────────────────────────────────
+// Server-autoritativ und NEUSTART-FEST: gerechnet wird gegen den
+// persistierten last_activity_at-Timestamp, NICHT gegen einen
+// In-Memory-Timer. Ein setTimeout pro Session waere fragil (geht beim
+// Neustart verloren, driftet). Stattdessen scannt der Job (jobs/
+// classroomAutoEnd.js) periodisch die abgelaufenen Sessions.
+// `now`/`maxIdleMs` sind injizierbar → in Tests deterministisch.
+export function autoEndStaleSessions({ now = nowMs(), maxIdleMs = DEFAULT_AUTO_END_IDLE_MS } = {}) {
+  const threshold = now - maxIdleMs
+  const stale = stmts.listStaleRunningSessions.all({ threshold })
+  const ended = []
+  for (const row of stale) {
+    const tx = db.transaction(() => {
+      const updated = stmts.finishSession.run({ id: row.id, finished_at: now })
+      if (!updated.changes) return false
+      stmts.revokeByCapability.run({
+        session_id: row.id,
+        capability: 'submission:write',
+        ts: now,
+      })
+      return true
+    })
+    if (tx()) {
+      logger.info({ sessionId: row.id }, 'cr2 session auto-ended (idle timeout)')
+      ended.push(normalizeSessionRow(stmts.getSessionById.get(row.id)))
+    }
+  }
+  return { ended }
 }
 
 // ── Assignments ─────────────────────────────────────────────────────
@@ -453,6 +553,9 @@ export function submitAnswer({
   const session = stmts.getSessionById.get(sessionId)
   if (!session) return { error: 'NOT_FOUND' }
   if (session.status !== 'running') return { error: 'INVALID_STATE' }
+  // Serverautoritativ (D13): waehrend einer Pause werden keine
+  // Submissions angenommen — paused_at ist gesetzt, DB-Status ist 'running'.
+  if (session.paused_at != null) return { error: 'SESSION_PAUSED' }
 
   const assignmentRow = stmts.getAssignmentById.get(assignmentId)
   if (!assignmentRow || assignmentRow.session_id !== sessionId) return { error: 'NOT_FOUND' }
@@ -524,6 +627,9 @@ export function submitAnswer({
 
   const finalId = tx()
   if (finalId === 'IDEMPOTENCY_RACE') return { error: 'IDEMPOTENCY_RACE' }
+
+  // Aktivitaet registrieren — verschiebt das Auto-End-Fenster (D8).
+  stmts.touchSessionActivity.run({ id: sessionId, ts: submittedAt })
 
   const existingScore = stmts.getScoreBySubmission.get(finalId)
   return {

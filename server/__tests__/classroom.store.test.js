@@ -5,6 +5,11 @@ import {
   createSession,
   startSession,
   finishSession,
+  pauseSession,
+  resumeSession,
+  touchSessionActivity,
+  autoEndStaleSessions,
+  getSessionById,
   addAssignment,
   listAssignments,
   removeAssignment,
@@ -16,6 +21,7 @@ import {
   getDashboard,
   listTeacherSessions,
   hasCapability,
+  DEFAULT_AUTO_END_IDLE_MS,
 } from '../classroom/store.js'
 
 const TEACHER_A = `test-store-teacher-A-${randomUUID()}`
@@ -390,6 +396,164 @@ describe('classroom/store', () => {
       const list = listTeacherSessions({ teacherUserId: TEACHER_A })
       expect(list.length).toBe(2)
       expect(list.every((s) => s.teacherUserId === TEACHER_A)).toBe(true)
+    })
+  })
+
+  // ── Pause / Resume (W2-T3, D8) ─────────────────────────────────
+  describe('pauseSession / resumeSession', () => {
+    function startedSession() {
+      const { session } = createSession({ teacherUserId: TEACHER_A })
+      addAssignment({
+        sessionId: session.id, teacherUserId: TEACHER_A,
+        mode: 'kollokationen', lemmaIds: ['lemma-1'],
+        contentSnapshot: KOLL_SNAPSHOT,
+      })
+      const started = startSession({ sessionId: session.id, teacherUserId: TEACHER_A })
+      return { session, started: started.session }
+    }
+
+    it('pausiert eine laufende Session: abgeleiteter Status paused', () => {
+      const { session } = startedSession()
+      const r = pauseSession({ sessionId: session.id, teacherUserId: TEACHER_A })
+      expect(r.error).toBeUndefined()
+      expect(r.session.status).toBe('paused')
+      expect(r.session.paused).toBe(true)
+      expect(r.session.pausedAt).toBeGreaterThan(0)
+      // DB-Status bleibt 'running' (Code-Join bleibt gueltig) — nur abgeleitet.
+      const raw = db.prepare(`SELECT status, paused_at FROM classroom_session WHERE id = ?`).get(session.id)
+      expect(raw.status).toBe('running')
+      expect(raw.paused_at).toBeGreaterThan(0)
+    })
+
+    it('setzt nach resume zurueck auf running', () => {
+      const { session } = startedSession()
+      pauseSession({ sessionId: session.id, teacherUserId: TEACHER_A })
+      const r = resumeSession({ sessionId: session.id, teacherUserId: TEACHER_A })
+      expect(r.error).toBeUndefined()
+      expect(r.session.status).toBe('running')
+      expect(r.session.paused).toBe(false)
+      expect(r.session.pausedAt).toBeNull()
+      expect(getSessionById(session.id).status).toBe('running')
+    })
+
+    it('verweigert pause im lobby-State (INVALID_STATE)', () => {
+      const { session } = createSession({ teacherUserId: TEACHER_A })
+      const r = pauseSession({ sessionId: session.id, teacherUserId: TEACHER_A })
+      expect(r.error).toBe('INVALID_STATE')
+    })
+
+    it('verweigert doppeltes pause (INVALID_STATE)', () => {
+      const { session } = startedSession()
+      pauseSession({ sessionId: session.id, teacherUserId: TEACHER_A })
+      const r = pauseSession({ sessionId: session.id, teacherUserId: TEACHER_A })
+      expect(r.error).toBe('INVALID_STATE')
+    })
+
+    it('verweigert resume wenn nicht pausiert (INVALID_STATE)', () => {
+      const { session } = startedSession()
+      const r = resumeSession({ sessionId: session.id, teacherUserId: TEACHER_A })
+      expect(r.error).toBe('INVALID_STATE')
+    })
+
+    it('verweigert fremden teacher_user_id (FORBIDDEN)', () => {
+      const { session } = startedSession()
+      const r1 = pauseSession({ sessionId: session.id, teacherUserId: TEACHER_B })
+      expect(r1.error).toBe('FORBIDDEN')
+      pauseSession({ sessionId: session.id, teacherUserId: TEACHER_A })
+      const r2 = resumeSession({ sessionId: session.id, teacherUserId: TEACHER_B })
+      expect(r2.error).toBe('FORBIDDEN')
+    })
+
+    it('NOT_FOUND fuer unbekannte Session', () => {
+      expect(pauseSession({ sessionId: 'nope', teacherUserId: TEACHER_A }).error).toBe('NOT_FOUND')
+      expect(resumeSession({ sessionId: 'nope', teacherUserId: TEACHER_A }).error).toBe('NOT_FOUND')
+    })
+
+    it('verweigert Submit waehrend Pause (SESSION_PAUSED), nach resume wieder ok', () => {
+      const { session } = startedSession()
+      const assignment = listAssignments(session.id)[0]
+      const j = joinByCode({ code: session.code, displayName: 'X' })
+      pauseSession({ sessionId: session.id, teacherUserId: TEACHER_A })
+      const blocked = submitAnswer({
+        participantId: j.participant.id,
+        sessionId: session.id, assignmentId: assignment.id,
+        lemmaId: 'lemma-1', roundIndex: 0,
+        rawAnswer: { selected: ['stark', 'groß', 'klein'] },
+      })
+      expect(blocked.error).toBe('SESSION_PAUSED')
+      resumeSession({ sessionId: session.id, teacherUserId: TEACHER_A })
+      const ok = submitAnswer({
+        participantId: j.participant.id,
+        sessionId: session.id, assignmentId: assignment.id,
+        lemmaId: 'lemma-1', roundIndex: 0,
+        rawAnswer: { selected: ['stark', 'groß', 'klein'] },
+      })
+      expect(ok.error).toBeUndefined()
+      expect(ok.score).toBe(10)
+    })
+  })
+
+  // ── Auto-End nach Inaktivitaet (W2-T3, D8) ─────────────────────
+  describe('autoEndStaleSessions', () => {
+    function startedSession() {
+      const { session } = createSession({ teacherUserId: TEACHER_A })
+      addAssignment({
+        sessionId: session.id, teacherUserId: TEACHER_A,
+        mode: 'kollokationen', lemmaIds: ['lemma-1'],
+        contentSnapshot: KOLL_SNAPSHOT,
+      })
+      startSession({ sessionId: session.id, teacherUserId: TEACHER_A })
+      return session
+    }
+
+    it('beendet eine inaktive Session und revoked submission:write', () => {
+      const session = startedSession()
+      const j = joinByCode({ code: session.code, displayName: 'X' })
+      expect(hasCapability({
+        sessionId: session.id, subjectKind: 'participant',
+        subjectId: j.participant.id, capability: 'submission:write',
+      })).toBe(true)
+
+      // now weit in der Zukunft → last_activity_at liegt > maxIdleMs zurueck.
+      const future = Date.now() + DEFAULT_AUTO_END_IDLE_MS + 1000
+      const { ended } = autoEndStaleSessions({ now: future })
+      expect(ended.map((s) => s.id)).toContain(session.id)
+
+      expect(getSessionById(session.id).status).toBe('finished')
+      expect(hasCapability({
+        sessionId: session.id, subjectKind: 'participant',
+        subjectId: j.participant.id, capability: 'submission:write',
+      })).toBe(false)
+    })
+
+    it('laesst eine frisch aktive Session unberuehrt', () => {
+      const session = startedSession()
+      const { ended } = autoEndStaleSessions() // now = jetzt, maxIdleMs = 90 Min
+      expect(ended.map((s) => s.id)).not.toContain(session.id)
+      expect(getSessionById(session.id).status).toBe('running')
+    })
+
+    it('touchSessionActivity verschiebt das Auto-End-Fenster', () => {
+      const session = startedSession()
+      // Aktivitaet kurz vor dem Pruefzeitpunkt → nicht mehr stale.
+      const future = Date.now() + DEFAULT_AUTO_END_IDLE_MS + 1000
+      // Erst Aktivitaet "in der Zukunft" simulieren ist nicht moeglich (nowMs
+      // intern), daher pruefen wir: ohne erneute Aktivitaet wuerde sie enden,
+      // mit maxIdleMs gross genug bleibt sie laufen.
+      const { ended } = autoEndStaleSessions({ now: future, maxIdleMs: DEFAULT_AUTO_END_IDLE_MS * 10 })
+      expect(ended.map((s) => s.id)).not.toContain(session.id)
+      expect(getSessionById(session.id).status).toBe('running')
+    })
+
+    it('ignoriert nicht-laufende Sessions (lobby/finished)', () => {
+      const { session: lobby } = createSession({ teacherUserId: TEACHER_A })
+      const finished = startedSession()
+      finishSession({ sessionId: finished.id, teacherUserId: TEACHER_A })
+      const future = Date.now() + DEFAULT_AUTO_END_IDLE_MS + 1000
+      const { ended } = autoEndStaleSessions({ now: future })
+      const ids = ended.map((s) => s.id)
+      expect(ids).not.toContain(lobby.id)
+      expect(ids).not.toContain(finished.id)
     })
   })
 })

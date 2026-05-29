@@ -8,7 +8,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTeacherClassroom } from '../TeacherClassroomContext'
-import { getDashboard, finishSession } from '../hooks/useTeacherSession'
+import { getDashboard, finishSession, pauseSession, resumeSession } from '../hooks/useTeacherSession'
 import { useTeacherSocket } from '../hooks/useTeacherSocket'
 import ParticipantList from '../components/ParticipantList'
 
@@ -28,7 +28,12 @@ export default function LiveStep() {
   const [dashboard, setDashboard]  = useState(null)
   const [error, setError]          = useState(null)
   const [finishing, setFinishing]  = useState(false)
+  const [pauseBusy, setPauseBusy]  = useState(false)
   const submittedIdsRef = useRef(new Set())
+
+  // Pause-Status: Dashboard ist Source of Truth (session.paused), Socket-
+  // Events (session:paused/resumed) sorgen fuer sofortige Reaktion.
+  const paused = !!dashboard?.session?.paused
 
   const refresh = useCallback(async () => {
     if (!sessionId) return
@@ -67,6 +72,8 @@ export default function LiveStep() {
     },
     'student:left': () => { refresh() },
     'student:joined': () => { refresh() },
+    'session:paused': () => { refresh() },
+    'session:resumed': () => { refresh() },
     'session:finished': () => {
       dispatch({ type: 'GO_TO_END', sessionId })
     },
@@ -103,6 +110,21 @@ export default function LiveStep() {
     }
   }
 
+  async function handleTogglePause() {
+    if (!sessionId || pauseBusy) return
+    setPauseBusy(true)
+    setError(null)
+    try {
+      if (paused) await resumeSession(sessionId)
+      else await pauseSession(sessionId)
+      await refresh()
+    } catch (err) {
+      setError(err?.message || (paused ? 'Fortsetzen fehlgeschlagen.' : 'Pausieren fehlgeschlagen.'))
+    } finally {
+      setPauseBusy(false)
+    }
+  }
+
   return (
     <div data-testid="cr2-live">
       <section className="cr2-progress" aria-label="Abgaben-Fortschritt">
@@ -114,6 +136,12 @@ export default function LiveStep() {
           <div className="cr2-progress__fill" style={{ width: `${pct}%` }} />
         </div>
       </section>
+
+      {paused && (
+        <p className="cr2-paused-banner" data-testid="cr2-live-paused-banner">
+          Pausiert — Schüler:innen sehen ein Wartebild, Abgaben sind gesperrt.
+        </p>
+      )}
 
       {error && <p className="cr2-error">{error}</p>}
 
@@ -145,6 +173,17 @@ export default function LiveStep() {
 
       <div className="cr2-sticky-cta" role="none">
         <div className="cr2-sticky-cta__inner">
+          <button
+            type="button"
+            className="cr2-btn cr2-btn--ghost"
+            onClick={handleTogglePause}
+            disabled={pauseBusy}
+            data-testid="cr2-live-pause"
+          >
+            {pauseBusy
+              ? (paused ? 'Wird fortgesetzt …' : 'Wird pausiert …')
+              : (paused ? 'Fortsetzen' : 'Pausieren')}
+          </button>
           <button
             type="button"
             className="cr2-btn cr2-btn--primary"

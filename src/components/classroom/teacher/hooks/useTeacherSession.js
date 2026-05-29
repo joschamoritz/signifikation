@@ -91,6 +91,26 @@ export async function finishSession(sessionId, { reason } = {}) {
   return jsonOrThrow(res)
 }
 
+export async function pauseSession(sessionId) {
+  const res = await apiFetch(`${BASE}/sessions/${encodeURIComponent(sessionId)}/pause`, {
+    method: 'POST',
+    credentials: 'include',
+    headers: jsonHeaders(),
+    body: JSON.stringify({}),
+  })
+  return jsonOrThrow(res)
+}
+
+export async function resumeSession(sessionId) {
+  const res = await apiFetch(`${BASE}/sessions/${encodeURIComponent(sessionId)}/resume`, {
+    method: 'POST',
+    credentials: 'include',
+    headers: jsonHeaders(),
+    body: JSON.stringify({}),
+  })
+  return jsonOrThrow(res)
+}
+
 // ── Dashboard & Lemma-Picker ───────────────────────────────────────
 
 export async function getDashboard(sessionId) {
@@ -118,6 +138,8 @@ export default {
   removeAssignment,
   startSession,
   finishSession,
+  pauseSession,
+  resumeSession,
   getDashboard,
   searchLemmata,
 }

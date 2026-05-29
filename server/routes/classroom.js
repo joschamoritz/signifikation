@@ -36,6 +36,8 @@ import {
   cr2LemmataQuerySchema,
   cr2StartSessionSchema,
   cr2FinishSessionSchema,
+  cr2PauseSessionSchema,
+  cr2ResumeSessionSchema,
   cr2JoinSchema,
   cr2SubmitSchema,
   cr2ListSessionsQuerySchema,
@@ -49,6 +51,8 @@ import {
   listTeacherSessions,
   startSession,
   finishSession,
+  pauseSession,
+  resumeSession,
   joinByCode,
   heartbeatParticipant,
   leaveParticipant,
@@ -63,6 +67,8 @@ import {
   notifyParticipantProgress,
   notifySessionStarted,
   notifySessionFinished,
+  notifySessionPaused,
+  notifySessionResumed,
   notifyStudentViewUpdated,
 } from '../realtime/classroomSocket.js'
 import {
@@ -98,6 +104,7 @@ function mapError(errCode) {
     case 'NOT_FOUND':          return { status: 404, message: 'Nicht gefunden' }
     case 'FORBIDDEN':          return { status: 403, message: 'Keine Berechtigung' }
     case 'INVALID_STATE':      return { status: 409, message: 'Ungültiger Session-Zustand' }
+    case 'SESSION_PAUSED':     return { status: 409, message: 'Session ist pausiert' }
     case 'INVALID_CODE':       return { status: 404, message: 'Code ungültig oder Session nicht aktiv' }
     case 'LATE_JOIN_DISABLED': return { status: 409, message: 'Spaetbeitritt deaktiviert' }
     case 'SESSION_FULL':       return { status: 409, message: 'Session voll (max. 50 Teilnehmende)' }
@@ -628,6 +635,65 @@ router.post(
       })
     } catch (err) {
       logger.error({ err }, 'cr2 finishSession crashed')
+      return res.status(500).json({ error: 'Interner Serverfehler' })
+    }
+  },
+)
+
+// ── W2-T3 POST /api/v1/classroom/sessions/:id/pause ────────────
+router.post(
+  '/api/v1/classroom/sessions/:id/pause',
+  classroomWriteLimiter,
+  requireCapability('session:manage'),
+  validate(cr2PauseSessionSchema),
+  (req, res) => {
+    try {
+      const sessionId     = req.params.id
+      const teacherUserId = req.cr2.subject.id
+      const result = pauseSession({ sessionId, teacherUserId })
+      if (result.error) {
+        const mapped = mapError(result.error)
+        return res.status(mapped.status).json({ error: mapped.message })
+      }
+      notifySessionPaused(sessionId, {
+        sessionId,
+        pausedAt: result.session.pausedAt,
+      })
+      return res.json({
+        status:   result.session.status,
+        pausedAt: result.session.pausedAt,
+      })
+    } catch (err) {
+      logger.error({ err }, 'cr2 pauseSession crashed')
+      return res.status(500).json({ error: 'Interner Serverfehler' })
+    }
+  },
+)
+
+// ── W2-T3 POST /api/v1/classroom/sessions/:id/resume ───────────
+router.post(
+  '/api/v1/classroom/sessions/:id/resume',
+  classroomWriteLimiter,
+  requireCapability('session:manage'),
+  validate(cr2ResumeSessionSchema),
+  (req, res) => {
+    try {
+      const sessionId     = req.params.id
+      const teacherUserId = req.cr2.subject.id
+      const result = resumeSession({ sessionId, teacherUserId })
+      if (result.error) {
+        const mapped = mapError(result.error)
+        return res.status(mapped.status).json({ error: mapped.message })
+      }
+      notifySessionResumed(sessionId, {
+        sessionId,
+        resumedAt: result.session.lastActivityAt,
+      })
+      return res.json({
+        status: result.session.status,
+      })
+    } catch (err) {
+      logger.error({ err }, 'cr2 resumeSession crashed')
       return res.status(500).json({ error: 'Interner Serverfehler' })
     }
   },

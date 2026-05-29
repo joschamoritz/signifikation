@@ -431,6 +431,18 @@ export function notifySessionAborted(sessionId, payload) {
   nsp.to(roomTeacher(sessionId)).emit('session:aborted', payload)
 }
 
+export function notifySessionPaused(sessionId, payload) {
+  if (!nsp || !sessionId) return
+  nsp.to(roomStudents(sessionId)).emit('session:paused', payload)
+  nsp.to(roomTeacher(sessionId)).emit('session:paused', payload)
+}
+
+export function notifySessionResumed(sessionId, payload) {
+  if (!nsp || !sessionId) return
+  nsp.to(roomStudents(sessionId)).emit('session:resumed', payload)
+  nsp.to(roomTeacher(sessionId)).emit('session:resumed', payload)
+}
+
 export function notifyStudentViewUpdated(participantId, payload) {
   if (!nsp || !participantId) return
   nsp.to(roomParticipant(participantId)).emit('view:updated', payload)

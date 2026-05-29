@@ -59,6 +59,8 @@ export function useTeacherSocket({ sessionId, enabled = true, handlers = {} }) {
           'session:started',
           'session:finished',
           'session:aborted',
+          'session:paused',
+          'session:resumed',
         ]
         for (const ev of TEACHER_EVENTS) {
           socket.on(ev, (payload) => {

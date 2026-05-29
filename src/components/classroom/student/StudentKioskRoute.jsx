@@ -24,6 +24,7 @@ import NameState       from './states/NameState'
 import WaitingState    from './states/WaitingState'
 import PlayingState    from './states/PlayingState'
 import SubmittedState  from './states/SubmittedState'
+import PauseState      from './states/PauseState'
 import { useStudentSession, clearKioskSession } from './hooks/useStudentSession'
 import { useStudentSocket } from './hooks/useStudentSocket'
 import { useKioskGuard }    from './hooks/useKioskGuard'
@@ -54,6 +55,14 @@ function useOptionalUserLabel() {
 // ── State-Router ──────────────────────────────────────────────────────
 function StateRouter({ onToast }) {
   const { state } = useStudentKiosk()
+  // Pause-Overlay hat Vorrang vor dem Spielscreen — aber nicht ueber dem
+  // Namens-/End-Screen (dort ist Pause bedeutungslos). currentState bleibt
+  // im Reducer erhalten, sodass Resume exakt dorthin zurueckkehrt.
+  if (state.paused
+      && state.currentState !== KIOSK_STATES.NAME
+      && state.currentState !== KIOSK_STATES.ENDED) {
+    return <PauseState />
+  }
   switch (state.currentState) {
     case KIOSK_STATES.NAME:       return <NameState />
     case KIOSK_STATES.WAITING:    return <WaitingState />
@@ -84,6 +93,12 @@ function KioskRouteInner({ code, userLabel }) {
   const onSessionEnded   = useCallback((p) => {
     dispatch({ type: 'SESSION_ENDED', reason: p?.reason || 'finished' })
   }, [dispatch])
+  const onSessionPaused  = useCallback(() => {
+    dispatch({ type: 'SESSION_PAUSED' })
+  }, [dispatch])
+  const onSessionResumed = useCallback(() => {
+    dispatch({ type: 'SESSION_RESUMED' })
+  }, [dispatch])
 
   // useStudentSocket emittiert onRefreshView nach jedem Reconnect/view:updated.
   // Wir verdrahten das gleich mit useStudentSession.refreshView (unten).
@@ -95,6 +110,8 @@ function KioskRouteInner({ code, userLabel }) {
     onRefreshView: () => { refreshRef.fn() },
     onSessionStarted,
     onSessionEnded,
+    onSessionPaused,
+    onSessionResumed,
   })
 
   const { refreshView, leave } = useStudentSession({ socketConnected })

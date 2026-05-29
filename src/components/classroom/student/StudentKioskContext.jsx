@@ -30,7 +30,8 @@ export function initialState(code) {
     currentState:    KIOSK_STATES.NAME,
     code:            code || '',
     sessionId:       null,
-    sessionStatus:   null,        // 'lobby' | 'running' | 'finished' | 'aborted'
+    sessionStatus:   null,        // 'lobby' | 'running' | 'paused' | 'finished' | 'aborted'
+    paused:          false,       // W2-T3: Pause-Overlay aktiv, currentState bleibt erhalten
     participantId:   null,
     token:           null,
     displayName:     '',
@@ -75,24 +76,39 @@ function reducer(state, action) {
       const assignment = view.assignment || null
       const currentLemma = view.currentLemma || null
       const progress = view.progress || state.progress
+      // Pause ist ein abgeleiteter Status; die Session laeuft serverseitig
+      // weiter ('running'). Fuer die State-Maschine zaehlt sie wie 'running',
+      // damit currentState (playing/submitted) nicht verloren geht — das
+      // Pause-Overlay wird ueber das paused-Flag gerendert.
+      const paused = status === 'paused'
+      const effectiveRunning = status === 'running' || paused
 
       let next = state.currentState
       if (status === 'aborted')        next = KIOSK_STATES.ENDED
       else if (status === 'finished')  next = KIOSK_STATES.ENDED
       else if (!assignment)            next = KIOSK_STATES.WAITING
       else if (progress?.done)         next = KIOSK_STATES.SUBMITTED
-      else if (currentLemma && status === 'running') next = KIOSK_STATES.PLAYING
+      else if (currentLemma && effectiveRunning) next = KIOSK_STATES.PLAYING
       else                              next = KIOSK_STATES.WAITING
 
       return {
         ...state,
         sessionStatus: status,
+        paused,
         assignment,
         currentLemma,
         progress,
         currentState: next,
       }
     }
+
+    case 'SESSION_PAUSED':
+      // Socket-Push: Pause-Overlay einblenden, currentState unberuehrt lassen.
+      return { ...state, paused: true, sessionStatus: 'paused' }
+
+    case 'SESSION_RESUMED':
+      // Socket-Push: zurueck in den vorherigen currentState (nicht verloren).
+      return { ...state, paused: false, sessionStatus: 'running' }
 
     case 'SET_SESSION_STATUS':
       // Wird von Socket-Events (session:started/finished/aborted) gepusht.

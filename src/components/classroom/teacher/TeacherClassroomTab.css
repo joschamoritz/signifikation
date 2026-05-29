@@ -246,6 +246,18 @@
   font-size: 0.95rem;
 }
 
+.cr2-paused-banner {
+  font-family: 'Gentium Plus', Georgia, serif;
+  font-weight: 600;
+  color: var(--cr2-accent);
+  background: rgba(201, 168, 76, 0.12);
+  border-left: 3px solid var(--cr2-gold, #c9a84c);
+  padding: 10px 14px;
+  margin: 12px 0 0;
+  border-radius: 2px;
+  font-size: 0.95rem;
+}
+
 .cr2-loading {
   font-family: 'Gentium Plus', Georgia, serif;
   font-style: italic;

@@ -392,6 +392,12 @@ export const cr2FinishSessionSchema = z.object({
   reason: z.string().trim().max(120).optional(),
 })
 
+/** POST /api/v1/classroom/sessions/:id/pause (W2-T3) */
+export const cr2PauseSessionSchema = z.object({})
+
+/** POST /api/v1/classroom/sessions/:id/resume (W2-T3) */
+export const cr2ResumeSessionSchema = z.object({})
+
 /** GET /api/v1/classroom/sessions (T-2.10) */
 export const cr2ListSessionsQuerySchema = z.object({
   limit: z.coerce.number().int().min(1).max(50).optional().default(20),

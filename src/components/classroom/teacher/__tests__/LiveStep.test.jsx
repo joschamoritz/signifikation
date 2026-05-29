@@ -10,6 +10,8 @@ vi.mock('../hooks/useTeacherSession', () => ({
   removeAssignment: vi.fn(),
   startSession: vi.fn(),
   finishSession: vi.fn(),
+  pauseSession: vi.fn(),
+  resumeSession: vi.fn(),
   getDashboard: vi.fn(),
   searchLemmata: vi.fn(),
 }))
