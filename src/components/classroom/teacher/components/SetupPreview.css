@@ -1,0 +1,38 @@
+/* W2-T1 — Overlay für die Schüleransicht-Vorschau im Setup.
+   Der Inhalt nutzt die Kiosk-Klassen (.cr2-kiosk*) aus KioskShell.css,
+   damit die Vorschau pixelgleich zum Echtbetrieb aussieht. Hier nur das
+   Overlay-Gerüst + der dezente Vorschau-Hinweis. */
+
+.cr2-preview-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  background: rgba(31, 31, 31, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  overflow-y: auto;
+}
+
+.cr2-preview.cr2-kiosk {
+  width: 100%;
+  /* Kiosk-Look auf 480px begrenzt (max-width steckt in .cr2-kiosk__main).
+     Die Shell darf die volle Höhe füllen, damit es wie das echte Gerät wirkt. */
+  min-height: 100vh;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.06);
+}
+
+/* Dezenter Vorschau-Hinweis im Wörterbuch-Stil (Gold, kursiv). */
+.cr2-preview__banner {
+  border: 1px solid var(--k-gold);
+  background: #fffbef;
+  color: var(--k-muted);
+  font-family: 'Gentium Plus', Georgia, serif;
+  font-style: italic;
+  font-size: 0.85rem;
+  line-height: 1.45;
+  text-align: center;
+  padding: 8px 12px;
+  border-radius: 3px;
+  margin: 0 0 16px;
+}

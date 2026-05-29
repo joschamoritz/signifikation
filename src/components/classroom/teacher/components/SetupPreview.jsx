@@ -1,0 +1,200 @@
+// W2-T1 — Teacher-Preview „Schüleransicht testen".
+//
+// Rendert die ECHTE Schüler-Spielkomponente (classroom/student/games/*) im
+// Kiosk-Look, aber vollständig lokal:
+//   - KEIN Socket, KEIN Join, KEINE Session, KEINE Submission, KEIN Scoring.
+//   - Inhalt kommt aus POST /preview → derselbe content_snapshot + dieselbe
+//     Whitelist (buildSafePrompt) wie im Echtbetrieb (server/routes/classroom.js).
+//   - onSubmit ist ein No-Op-Handler, der nur lokal zum nächsten Lemma /
+//     zur nächsten Lückenfüller-Runde weiterschaltet.
+//
+// Schließen führt ohne Seiteneffekte zurück ins Setup (onClose).
+
+import { useEffect, useState } from 'react'
+import { previewAssignment } from '../hooks/useTeacherSession'
+import ClassroomGameKollokationen  from '../../student/games/ClassroomGameKollokationen'
+import ClassroomGameWortZwilling   from '../../student/games/ClassroomGameWortZwilling'
+import ClassroomGameZeitenwende    from '../../student/games/ClassroomGameZeitenwende'
+import ClassroomGameLueckenfueller from '../../student/games/ClassroomGameLueckenfueller'
+import '../../student/KioskShell.css'
+import './SetupPreview.css'
+
+function pickGameComponent(mode) {
+  switch (mode) {
+    case 'kollokationen':   return ClassroomGameKollokationen
+    case 'wortzwilling':    return ClassroomGameWortZwilling
+    case 'zeitenwende':     return ClassroomGameZeitenwende
+    case 'lueckenfueller':  return ClassroomGameLueckenfueller
+    default:                 return null
+  }
+}
+
+// Lückenfüller liefert das volle (gewhitelistete) rounds-Array; die Spiel-
+// Komponente erwartet aber prompt.currentRound / prompt.roundIndex (so wie
+// buildStudentView es im Echtbetrieb pro Submission nachschiebt). Wir formen
+// das hier lokal je Schritt.
+function gamePromptFor(mode, lemma, roundIndex) {
+  if (mode === 'lueckenfueller') {
+    const rounds = Array.isArray(lemma?.prompt?.rounds) ? lemma.prompt.rounds : []
+    return { currentRound: rounds[roundIndex] || null, roundIndex }
+  }
+  return lemma?.prompt || {}
+}
+
+function roundCount(mode, lemma) {
+  if (mode !== 'lueckenfueller') return 1
+  return Array.isArray(lemma?.prompt?.rounds) ? lemma.prompt.rounds.length : 1
+}
+
+export default function SetupPreview({ mode, lemmaIds, onClose }) {
+  const [status, setStatus]   = useState('loading') // loading | ready | error
+  const [error, setError]     = useState(null)
+  const [lemmata, setLemmata] = useState([])
+  const [lemmaIndex, setLemmaIndex] = useState(0)
+  const [roundIndex, setRoundIndex] = useState(0)
+  const [done, setDone]       = useState(false)
+
+  useEffect(() => {
+    let alive = true
+    setStatus('loading')
+    setError(null)
+    previewAssignment({ mode, lemmaIds })
+      .then((data) => {
+        if (!alive) return
+        const items = Array.isArray(data?.lemmata) ? data.lemmata : []
+        setLemmata(items)
+        setLemmaIndex(0)
+        setRoundIndex(0)
+        setDone(false)
+        setStatus(items.length > 0 ? 'ready' : 'error')
+        if (items.length === 0) setError('Keine Inhalte für diese Auswahl vorhanden.')
+      })
+      .catch((err) => {
+        if (!alive) return
+        setError(err?.message || 'Vorschau konnte nicht geladen werden.')
+        setStatus('error')
+      })
+    return () => { alive = false }
+  }, [mode, lemmaIds])
+
+  const Game = pickGameComponent(mode)
+  const currentLemma = lemmata[lemmaIndex] || null
+
+  // No-Op-Submit: keine Submission, kein Scoring — nur lokal weiterschalten.
+  function handleAdvance() {
+    const totalRounds = roundCount(mode, currentLemma)
+    if (mode === 'lueckenfueller' && roundIndex + 1 < totalRounds) {
+      setRoundIndex((r) => r + 1)
+      return
+    }
+    if (lemmaIndex + 1 < lemmata.length) {
+      setLemmaIndex((i) => i + 1)
+      setRoundIndex(0)
+      return
+    }
+    setDone(true)
+  }
+
+  function restart() {
+    setLemmaIndex(0)
+    setRoundIndex(0)
+    setDone(false)
+  }
+
+  const total = lemmata.length
+  const totalRounds = roundCount(mode, currentLemma)
+
+  return (
+    <div
+      className="cr2-preview-overlay"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Vorschau der Schüleransicht"
+      data-testid="cr2-setup-preview"
+    >
+      <div className="cr2-kiosk cr2-preview">
+        <header className="cr2-kiosk__header">
+          <span className="cr2-kiosk__brand">
+            Signifikation<small>· Vorschau</small>
+          </span>
+          <button
+            type="button"
+            className="cr2-kiosk__exit"
+            onClick={onClose}
+            data-testid="cr2-preview-close"
+          >
+            Schließen
+          </button>
+        </header>
+
+        <main className="cr2-kiosk__main">
+          <p className="cr2-preview__banner" role="note">
+            Vorschau — so sehen es deine Schüler:innen. Keine echte Session,
+            Eingaben werden nicht gewertet.
+          </p>
+
+          {status === 'loading' && (
+            <p className="cr2-kiosk__hint" data-testid="cr2-preview-loading">
+              Vorschau wird geladen …
+            </p>
+          )}
+
+          {status === 'error' && (
+            <p className="cr2-kiosk__hint cr2-kiosk__hint--error" data-testid="cr2-preview-error">
+              {error || 'Vorschau nicht verfügbar.'}
+            </p>
+          )}
+
+          {status === 'ready' && !done && currentLemma && Game && (
+            <>
+              <p className="cr2-kiosk__hint" style={{ margin: '0 0 4px' }} data-testid="cr2-preview-progress">
+                {total > 1 ? `Lemma ${lemmaIndex + 1} / ${total}` : 'Klassenraum'}
+                {mode === 'lueckenfueller' && totalRounds > 1
+                  ? ` · Runde ${roundIndex + 1} / ${totalRounds}`
+                  : ''}
+              </p>
+              <Game
+                key={`${lemmaIndex}:${roundIndex}`}
+                lemma={currentLemma}
+                prompt={gamePromptFor(mode, currentLemma, roundIndex)}
+                onSubmit={handleAdvance}
+                submitting={false}
+              />
+            </>
+          )}
+
+          {status === 'ready' && !done && currentLemma && !Game && (
+            <p className="cr2-kiosk__hint cr2-kiosk__hint--error">
+              Unbekannter Spielmodus „{mode || '—'}".
+            </p>
+          )}
+
+          {status === 'ready' && done && (
+            <div style={{ textAlign: 'center', paddingTop: 16 }} data-testid="cr2-preview-done">
+              <span className="cr2-kiosk__dropcap cr2-kiosk__dropcap--gold">✓</span>
+              <p className="cr2-kiosk__title">Vorschau durchgespielt</p>
+              <p className="cr2-kiosk__lead">
+                Das war die Schüleransicht für deine Auswahl.
+              </p>
+              <button
+                type="button"
+                className="cr2-kiosk__btn cr2-kiosk__btn--primary"
+                onClick={restart}
+                data-testid="cr2-preview-restart"
+              >
+                Nochmal ansehen
+              </button>
+              <button
+                type="button"
+                className="cr2-kiosk__btn cr2-kiosk__btn--ghost"
+                onClick={onClose}
+              >
+                Zurück zum Setup
+              </button>
+            </div>
+          )}
+        </main>
+      </div>
+    </div>
+  )
+}

@@ -60,6 +60,18 @@ export async function addAssignment(sessionId, { mode, lemmaIds }) {
   return jsonOrThrow(res)
 }
 
+// W2-T1: Schueleransicht-Vorschau. Holt fuer eine Modus+Lemma-Auswahl die
+// gewhitelistete Schueler-Sicht, ohne eine Session/Assignment anzulegen.
+export async function previewAssignment({ mode, lemmaIds }) {
+  const res = await apiFetch(`${BASE}/preview`, {
+    method: 'POST',
+    credentials: 'include',
+    headers: jsonHeaders(),
+    body: JSON.stringify({ mode, lemmaIds }),
+  })
+  return jsonOrThrow(res)
+}
+
 export async function removeAssignment(sessionId, assignmentId) {
   const res = await apiFetch(
     `${BASE}/sessions/${encodeURIComponent(sessionId)}/assignments/${encodeURIComponent(assignmentId)}`,
@@ -135,6 +147,7 @@ export default {
   listSessions,
   createSession,
   addAssignment,
+  previewAssignment,
   removeAssignment,
   startSession,
   finishSession,

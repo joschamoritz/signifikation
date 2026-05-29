@@ -458,6 +458,58 @@ router.get(
   },
 )
 
+// ── W2-T1 POST /api/v1/classroom/preview ────────────────────────
+// Teacher-Preview: liefert exakt die Schueler-Sicht (currentLemma.prompt)
+// fuer eine Modus+Lemma-Auswahl, OHNE Session/Assignment/Participant
+// anzulegen. Gleiche Datenquelle wie der Echtbetrieb — wir bauen denselben
+// content_snapshot (buildContentSnapshot) und filtern ihn mit derselben
+// Whitelist (buildSafePrompt). Es wird NICHTS persistiert, NICHTS gescort.
+//
+// Body == cr2CreateAssignmentSchema ({ mode, lemmaIds }), damit Validierung
+// und Limits (D3: max. 3 Lemmata) identisch zum echten Assignment sind.
+router.post(
+  '/api/v1/classroom/preview',
+  requirePremium,
+  validate(cr2CreateAssignmentSchema),
+  (req, res) => {
+    try {
+      const { mode, lemmaIds } = req.body
+
+      const lemmaRows = getLemmataByIdsStmt.all(JSON.stringify(lemmaIds))
+      const lemmata   = lemmaRows.map(parseLemmaJson)
+
+      const foundIds = new Set(lemmata.map(l => l.id))
+      const missing  = lemmaIds.filter(id => !foundIds.has(id))
+      if (missing.length > 0) {
+        return res.status(404).json({ error: `Lemmata nicht gefunden: ${missing.join(', ')}` })
+      }
+
+      // Reihenfolge aus Request erhalten (wie beim echten Assignment)
+      const orderedLemmata = lemmaIds.map(id => lemmata.find(l => l.id === id))
+      const snapshot = buildContentSnapshot(mode, orderedLemmata)
+
+      // Pro Lemma die gewhitelistete Schueler-Sicht. Fuer Lueckenfueller
+      // bleibt das volle (sichere) rounds-Array erhalten — der Client steppt
+      // in der Vorschau lokal durch die Runden (analog buildStudentView).
+      const previewLemmata = orderedLemmata.map((l) => {
+        const snap = snapshot.byLemma?.[l.id] ?? {}
+        return {
+          id:         l.id,
+          lemma:      l.lemma,
+          ipa:        l.ipa,
+          definition: l.definition || (l.definitionen?.[0] ?? ''),
+          prompt:     buildSafePrompt(mode, snap),
+        }
+      })
+
+      return res.json({ mode, lemmata: previewLemmata })
+    } catch (err) {
+      logger.error({ err }, 'cr2 preview crashed')
+      return res.status(500).json({ error: 'Interner Serverfehler' })
+    }
+  },
+)
+
 // ── T-2.10 GET /api/v1/classroom/sessions ───────────────────────
 // Liste eigener Sessions des Lehrers.
 router.get(

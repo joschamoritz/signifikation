@@ -9,6 +9,7 @@ import { useTeacherClassroom } from '../TeacherClassroomContext'
 import { createSession, addAssignment } from '../hooks/useTeacherSession'
 import ModePicker  from '../components/ModePicker'
 import LemmaPicker from '../components/LemmaPicker'
+import SetupPreview from '../components/SetupPreview'
 
 function defaultTitle() {
   try {
@@ -31,8 +32,10 @@ export default function SetupStep() {
   const [autoStart, setAutoStart] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState(null)
+  const [previewOpen, setPreviewOpen] = useState(false)
 
   const canSubmit = !!mode && lemmaIds.length > 0 && !submitting
+  const canPreview = !!mode && lemmaIds.length > 0
 
   const stepperItems = useMemo(() => ([
     { id: 'A', label: 'Modus',   done: !!mode },
@@ -117,6 +120,15 @@ export default function SetupStep() {
         <div className="cr2-sticky-cta__inner">
           <button
             type="button"
+            className="cr2-btn cr2-btn--ghost"
+            disabled={!canPreview}
+            onClick={() => setPreviewOpen(true)}
+            data-testid="cr2-setup-preview-open"
+          >
+            Schüleransicht testen
+          </button>
+          <button
+            type="button"
             className="cr2-btn cr2-btn--primary"
             disabled={!canSubmit}
             onClick={handleSubmit}
@@ -126,6 +138,14 @@ export default function SetupStep() {
           </button>
         </div>
       </div>
+
+      {previewOpen && (
+        <SetupPreview
+          mode={mode}
+          lemmaIds={lemmaIds}
+          onClose={() => setPreviewOpen(false)}
+        />
+      )}
     </div>
   )
 }

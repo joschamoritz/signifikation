@@ -918,4 +918,97 @@ describe('classroom routes', () => {
       expect(JSON.stringify(viewBody)).toContain('fließt')
     })
   })
+
+  // ── W2-T1 Teacher-Preview (POST /preview) ────────────────────
+  // Liefert die gewhitelistete Schüler-Sicht für eine Auswahl, OHNE
+  // Session/Assignment/Participant — und ohne interne Felder zu leaken.
+
+  describe('W2-T1 POST /api/v1/classroom/preview', () => {
+    const TEACHER_ID = `cr2-teacher-prev-${randomUUID()}`
+
+    beforeAll(() => ensureUser(TEACHER_ID))
+    afterAll(() => cleanupTeacher(TEACHER_ID))
+
+    async function preview(body) {
+      const res = await fetch(`${baseUrl}/api/v1/classroom/preview`, {
+        method: 'POST',
+        headers: teacherHeaders(TEACHER_ID),
+        body: JSON.stringify(body),
+      })
+      return { status: res.status, body: await res.json().catch(() => null) }
+    }
+
+    it('legt KEINE Session/Assignment an (keine Persistenz)', async () => {
+      const lemmaId = insertTestLemma('prev-persist')
+      const before = db.prepare('SELECT COUNT(1) AS c FROM classroom_session').get().c
+      const beforeA = db.prepare('SELECT COUNT(1) AS c FROM classroom_assignment').get().c
+      const { status } = await preview({ mode: 'kollokationen', lemmaIds: [lemmaId] })
+      expect(status).toBe(200)
+      expect(db.prepare('SELECT COUNT(1) AS c FROM classroom_session').get().c).toBe(before)
+      expect(db.prepare('SELECT COUNT(1) AS c FROM classroom_assignment').get().c).toBe(beforeA)
+    })
+
+    it('kollokationen: liefert words + definition, kein rang/notiz', async () => {
+      const lemmaId = insertTestLemma('prev-koll')
+      const { status, body } = await preview({ mode: 'kollokationen', lemmaIds: [lemmaId] })
+      expect(status).toBe(200)
+      expect(body.mode).toBe('kollokationen')
+      expect(body.lemmata).toHaveLength(1)
+      const p = body.lemmata[0].prompt
+      expect(Array.isArray(p.words)).toBe(true)
+      expect(p.words).toContain('stark')
+      const json = JSON.stringify(body)
+      expect(json).not.toMatch(/"rang"\s*:/)
+      expect(json).not.toContain('NOTIZ-INTERN-GEHEIM')
+      expect(json).not.toContain('GEHEIM')
+    })
+
+    it('wortzwilling: liefert wortA/wortB/words, keine zuordnung', async () => {
+      const lemmaId = insertTestLemmaWortzwilling('prev-wz')
+      const { status, body } = await preview({ mode: 'wortzwilling', lemmaIds: [lemmaId] })
+      expect(status).toBe(200)
+      const p = body.lemmata[0].prompt
+      expect(p.wortA).toBe('Wasser')
+      expect(p.wortB).toBe('Feuer')
+      expect(p.words).toContain('fließen')
+      expect(JSON.stringify(body)).not.toMatch(/"zuordnung"\s*:/)
+    })
+
+    it('zeitenwende: liefert words, keine periode', async () => {
+      const lemmaId = insertTestLemmaZeitenwende('prev-zw')
+      const { status, body } = await preview({ mode: 'zeitenwende', lemmaIds: [lemmaId] })
+      expect(status).toBe(200)
+      const p = body.lemmata[0].prompt
+      expect(p.words).toContain('digital')
+      const json = JSON.stringify(body)
+      expect(json).not.toMatch(/"periode"\s*:/)
+      expect(json).not.toContain('"pre"')
+    })
+
+    it('lueckenfueller: liefert rounds mit options, kein kollokator', async () => {
+      const lemmaId = insertTestLemmaLueckenfueller('prev-lf')
+      const { status, body } = await preview({ mode: 'lueckenfueller', lemmaIds: [lemmaId] })
+      expect(status).toBe(200)
+      const p = body.lemmata[0].prompt
+      expect(Array.isArray(p.rounds)).toBe(true)
+      expect(p.rounds[0].options).toContain('sanft')
+      expect(JSON.stringify(body)).not.toMatch(/"kollokator"\s*:/)
+    })
+
+    it('unbekanntes Lemma → 404', async () => {
+      const { status } = await preview({ mode: 'kollokationen', lemmaIds: ['gibt-es-nicht'] })
+      expect(status).toBe(404)
+    })
+
+    it('zu viele Lemmata → 400 (D3)', async () => {
+      const ids = [
+        insertTestLemma('prev-a'),
+        insertTestLemma('prev-b'),
+        insertTestLemma('prev-c'),
+        insertTestLemma('prev-d'),
+      ]
+      const { status } = await preview({ mode: 'kollokationen', lemmaIds: ids })
+      expect(status).toBe(400)
+    })
+  })
 })
