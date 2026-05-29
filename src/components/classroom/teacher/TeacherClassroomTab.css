@@ -657,6 +657,142 @@
   color: var(--cr2-accent);
 }
 
+/* ── W2-T4: Ergebnisansicht (EndStep) ────────────────────────────── */
+.cr2-result-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.cr2-result-card {
+  background: var(--cr2-card-bg);
+  border: 1px solid var(--cr2-rule-lt);
+  border-left: 3px solid var(--cr2-gold);
+  border-radius: 6px;
+  padding: 16px;
+}
+
+.cr2-result-card__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.cr2-result-card__lemma {
+  font-family: 'Gentium Plus', Georgia, serif;
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: var(--cr2-text);
+  margin: 0;
+}
+
+.cr2-result-card__mode {
+  font-family: 'DM Sans', system-ui, sans-serif;
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--cr2-muted);
+}
+
+/* Trefferquote-Balken */
+.cr2-bar {
+  position: relative;
+  height: 22px;
+  border-radius: 4px;
+  background: var(--cr2-rule-lt);
+  overflow: hidden;
+}
+
+.cr2-bar__fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  background: var(--cr2-accent);
+  border-radius: 4px 0 0 4px;
+  transition: width 0.4s ease;
+  min-width: 2px;
+}
+
+.cr2-bar__label {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-family: 'DM Sans', system-ui, sans-serif;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--cr2-text);
+}
+
+.cr2-result-card__meta {
+  display: flex;
+  gap: 28px;
+  margin: 14px 0 0;
+}
+
+.cr2-result-card__metaItem dt {
+  font-family: 'DM Sans', system-ui, sans-serif;
+  font-size: 0.68rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--cr2-muted);
+}
+
+.cr2-result-card__metaItem dd {
+  margin: 2px 0 0;
+  font-family: 'Gentium Plus', Georgia, serif;
+  font-size: 1.1rem;
+  color: var(--cr2-text);
+}
+
+.cr2-result-card__distractor {
+  margin: 12px 0 0;
+  padding-top: 12px;
+  border-top: 1px solid var(--cr2-rule-lt);
+  font-family: 'DM Sans', system-ui, sans-serif;
+  font-size: 0.88rem;
+  color: var(--cr2-text);
+}
+
+.cr2-result-card__distractor strong {
+  color: var(--cr2-accent);
+}
+
+.cr2-result-card__distractorCount {
+  color: var(--cr2-muted);
+}
+
+.cr2-result-card__distractor--none {
+  color: var(--cr2-muted);
+}
+
+/* Empty State */
+.cr2-result-empty {
+  background: #fdfcf8;
+  border: 1px dashed var(--cr2-rule);
+  border-radius: 6px;
+  padding: 24px 20px;
+  text-align: center;
+}
+
+.cr2-result-empty__title {
+  font-family: 'Gentium Plus', Georgia, serif;
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--cr2-text);
+  margin: 0 0 6px;
+}
+
+.cr2-result-empty__text {
+  font-family: 'DM Sans', system-ui, sans-serif;
+  font-size: 0.9rem;
+  color: var(--cr2-muted);
+  margin: 0;
+  line-height: 1.5;
+}
+
 /* ── W2-T2: Modus-Bloecke im Setup ───────────────────────────────── */
 .cr2-block {
   border: 1px solid var(--cr2-rule-lt);

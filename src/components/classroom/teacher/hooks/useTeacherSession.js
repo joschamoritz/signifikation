@@ -156,6 +156,16 @@ export async function getDashboard(sessionId) {
   return jsonOrThrow(res)
 }
 
+// W2-T4: pseudonymisierte Nachbereitung pro Modus/Lemma (nur fuer beendete
+// Sessions). Liefert byLemma-Karten, trickiest (Top-3) und Totals.
+export async function getSessionResults(sessionId) {
+  const res = await apiFetch(
+    `${BASE}/sessions/${encodeURIComponent(sessionId)}/results`,
+    { credentials: 'include' },
+  )
+  return jsonOrThrow(res)
+}
+
 export async function searchLemmata({ q, pos, limit = 20 } = {}) {
   const url = new URL(`${BASE}/lemmata`, window.location.origin)
   if (q) url.searchParams.set('q', q)
@@ -179,5 +189,6 @@ export default {
   pauseSession,
   resumeSession,
   getDashboard,
+  getSessionResults,
   searchLemmata,
 }

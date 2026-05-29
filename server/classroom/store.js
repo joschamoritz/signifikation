@@ -201,6 +201,16 @@ const stmts = {
     JOIN classroom_score_record sc ON sc.submission_id = s.id
     WHERE s.session_id = ?
   `),
+  // W2-T4: ein einziger JOIN ueber ALLE Submissions+Scores einer Session
+  // inkl. detail_json fuer die Distraktor-Auswertung. Bewusst KEIN
+  // display_name / participant-Join — die Auswertung bleibt pseudonym (D7).
+  listSessionResultRows: db.prepare(`
+    SELECT s.assignment_id, s.lemma_id, s.participant_id, s.round_index,
+           sc.score, sc.max_score, sc.correct, sc.detail_json
+    FROM classroom_submission s
+    JOIN classroom_score_record sc ON sc.submission_id = s.id
+    WHERE s.session_id = ?
+  `),
 
   // Capability Grants
   insertCapability: db.prepare(`
@@ -287,41 +297,63 @@ function normalizeParticipantRow(row) {
 }
 
 // ── Session-CRUD ────────────────────────────────────────────────────
+const CODE_INSERT_MAX_ATTEMPTS = 5
+
 export function createSession({ teacherUserId, title = null, settings = {} }) {
   if (!teacherUserId) return { error: 'TEACHER_REQUIRED' }
-  const code = generateUniqueJoinCode()
   const id = randomUUID()
-  const tx = db.transaction(() => {
-    stmts.insertSession.run({
-      id,
-      code,
-      teacher_user_id: teacherUserId,
-      title: title || null,
-      settings_json: JSON.stringify(settings || {}),
-      created_at: nowMs(),
+  const settingsJson = JSON.stringify(settings || {})
+
+  // generateUniqueJoinCode prueft per SELECT, ist aber gegen den Insert
+  // nicht atomar (TOCTOU): zwei parallele createSession koennen denselben
+  // freien Code ziehen, der zweite Insert scheitert dann am partial unique
+  // index. Statt das Symptom zu ignorieren, regenerieren wir den Code und
+  // versuchen es erneut — bounded, damit kein Endlos-Retry entsteht.
+  for (let attempt = 0; attempt < CODE_INSERT_MAX_ATTEMPTS; attempt += 1) {
+    const code = generateUniqueJoinCode()
+    const tx = db.transaction(() => {
+      stmts.insertSession.run({
+        id,
+        code,
+        teacher_user_id: teacherUserId,
+        title: title || null,
+        settings_json: settingsJson,
+        created_at: nowMs(),
+      })
+      // Schreibrechte (CRUD auf Session/Assignment, Start/Finish)
+      stmts.insertCapability.run({
+        id: randomUUID(),
+        session_id: id,
+        subject_kind: 'teacher',
+        subject_id: teacherUserId,
+        capability: 'session:manage',
+        granted_at: nowMs(),
+      })
+      // Lese-/Socket-Recht: Voraussetzung fuer cr2-Socket-Namespace,
+      // damit der Lehrer in den Teacher-Room joinen darf.
+      stmts.insertCapability.run({
+        id: randomUUID(),
+        session_id: id,
+        subject_kind: 'teacher',
+        subject_id: teacherUserId,
+        capability: 'session:read',
+        granted_at: nowMs(),
+      })
     })
-    // Schreibrechte (CRUD auf Session/Assignment, Start/Finish)
-    stmts.insertCapability.run({
-      id: randomUUID(),
-      session_id: id,
-      subject_kind: 'teacher',
-      subject_id: teacherUserId,
-      capability: 'session:manage',
-      granted_at: nowMs(),
-    })
-    // Lese-/Socket-Recht: Voraussetzung fuer cr2-Socket-Namespace,
-    // damit der Lehrer in den Teacher-Room joinen darf.
-    stmts.insertCapability.run({
-      id: randomUUID(),
-      session_id: id,
-      subject_kind: 'teacher',
-      subject_id: teacherUserId,
-      capability: 'session:read',
-      granted_at: nowMs(),
-    })
-  })
-  tx()
-  return { session: normalizeSessionRow(stmts.getSessionById.get(id)) }
+    try {
+      tx()
+      return { session: normalizeSessionRow(stmts.getSessionById.get(id)) }
+    } catch (err) {
+      // Nur Code-Kollision ist retrybar; alles andere weiterreichen.
+      if (err?.code === 'SQLITE_CONSTRAINT_UNIQUE' && attempt < CODE_INSERT_MAX_ATTEMPTS - 1) {
+        logger.warn({ attempt }, 'cr2 join-code collision beim Insert — neuer Code, Retry')
+        continue
+      }
+      throw err
+    }
+  }
+  // Theoretisch unerreichbar (Schleife liefert oder wirft), defensiv:
+  throw new Error('createSession: Join-Code konnte nicht eindeutig vergeben werden')
 }
 
 export function getSessionById(sessionId) {
@@ -847,6 +879,193 @@ export function getDashboard({ sessionId, teacherUserId }) {
       submittedTotal: submissionRows.length,
       perLemma: perLemmaArr,
     },
+  }
+}
+
+// ── Post-Session-Auswertung (W2-T4) ─────────────────────────────────
+// Distraktoren / Falschantworten je Submission aus dem (bereits gescorten)
+// detail_json ableiten. detail_json haelt KEINE Teilnehmer-Identitaet,
+// nur die fachliche Bewertung — damit bleibt die Auswertung pseudonym.
+// Rueckgabe: Array der "falschen" Auswahl-Labels dieser Abgabe (mehrfach
+// moeglich), die fuer das Distraktor-Ranking gezaehlt werden.
+function extractDistractors(mode, row) {
+  const detail = parseJsonSafe(row.detail_json, null, { field: 'detail_json' })
+  if (!detail) return []
+  switch (mode) {
+    case 'kollokationen': {
+      // hits: [{ word, rang, points }] — als Distraktor gilt eine gewaehlte,
+      // aber nicht optimale Kollokation (Rang > 3 ⇒ points < 3). Der haeufigste
+      // ist der groesste "Stolperstein".
+      const hits = Array.isArray(detail.hits) ? detail.hits : []
+      return hits
+        .filter((h) => h && h.word && (Number(h.points) || 0) < 3)
+        .map((h) => String(h.word))
+    }
+    case 'zeitenwende': {
+      // detail ist das Array der Wort-Einschaetzungen.
+      const arr = Array.isArray(detail) ? detail : []
+      return arr
+        .filter((d) => d && d.correct === false && d.wort)
+        .map((d) => String(d.wort))
+    }
+    case 'wortzwilling': {
+      const zoneA = Array.isArray(detail.zoneA) ? detail.zoneA : []
+      const zoneB = Array.isArray(detail.zoneB) ? detail.zoneB : []
+      return [...zoneA, ...zoneB]
+        .filter((d) => d && d.correct === false && d.word)
+        .map((d) => String(d.word))
+    }
+    case 'lueckenfueller': {
+      if (detail.type === 'choice') {
+        if (detail.selected != null && String(detail.selected) !== String(detail.kollokator)) {
+          return [String(detail.selected)]
+        }
+        return []
+      }
+      if (detail.type === 'free') {
+        // free hat keinen Distraktor-Pool; nur eine falsche Eingabe zaehlt.
+        if (detail.value != null && (Number(row.correct) || 0) === 0) {
+          return [String(detail.value)]
+        }
+        return []
+      }
+      if (detail.type === 'double') {
+        const slots = Array.isArray(detail.slots) ? detail.slots : []
+        return slots
+          .filter((s) => s && s.correct === false && s.given != null && s.given !== '')
+          .map((s) => String(s.given))
+      }
+      return []
+    }
+    default:
+      return []
+  }
+}
+
+// Haeufigsten Distraktor aus einer Label→Count-Map waehlen.
+// Deterministisch: hoechster Count, bei Gleichstand alphabetisch.
+function pickTopDistractor(distractorMap) {
+  if (!distractorMap || distractorMap.size === 0) return null
+  let best = null
+  for (const [label, count] of distractorMap) {
+    if (!best || count > best.count || (count === best.count && label < best.label)) {
+      best = { label, count }
+    }
+  }
+  return best
+}
+
+// Aggregierte, PSEUDONYMISIERTE Auswertung nach Session-Ende.
+// Bewusst KEINE Teilnehmer-Identitaet im Ergebnis (kein display_name, keine
+// participant-Zeilen) — D7 gilt auch nach Session-Ende.
+//
+// Effizienz: genau zwei Reads (Assignments + ein JOIN ueber alle
+// Submissions/Scores), danach EIN JS-Pass. Datenmengen sind hart begrenzt
+// (<=50 Teilnehmer, <=5 Bloecke, <=3 Lemmata, wenige Runden) → kein N+1,
+// kein Recompute pro Teilnehmer im Hotpath.
+//
+// Entscheidung: nur fuer beendete Sessions ('finished'/'aborted'). Begruendung:
+// Live-Aggregate liefert getDashboard; die Ergebnisansicht ist explizit die
+// Nachbereitung und braucht einen stabilen, vollstaendigen Endstand.
+export function getSessionResults({ sessionId, teacherUserId }) {
+  const sessionRow = stmts.getSessionById.get(sessionId)
+  if (!sessionRow) return { error: 'NOT_FOUND' }
+  if (sessionRow.teacher_user_id !== teacherUserId) return { error: 'FORBIDDEN' }
+  if (sessionRow.status !== 'finished' && sessionRow.status !== 'aborted') {
+    return { error: 'SESSION_NOT_ENDED' }
+  }
+  const session = normalizeSessionRow(sessionRow)
+
+  const assignments = stmts.listAssignmentsBySession.all(sessionId).map(normalizeAssignmentRow)
+  const modeByAssignment = new Map(assignments.map((a) => [a.id, a.mode]))
+  const rows = stmts.listSessionResultRows.all(sessionId)
+
+  // Aggregat je (assignmentId :: lemmaId) in einem Durchlauf.
+  const byKey = new Map()
+  const participantsAll = new Set()
+  for (const row of rows) {
+    participantsAll.add(row.participant_id)
+    const key = `${row.assignment_id}::${String(row.lemma_id)}`
+    let agg = byKey.get(key)
+    if (!agg) {
+      agg = {
+        submissions: 0,
+        scoreSum: 0,
+        maxSum: 0,
+        correctSum: 0,
+        participants: new Set(),
+        distractors: new Map(),
+      }
+      byKey.set(key, agg)
+    }
+    agg.submissions += 1
+    agg.scoreSum += Number(row.score) || 0
+    agg.maxSum += Number(row.max_score) || 0
+    agg.correctSum += Number(row.correct) || 0
+    agg.participants.add(row.participant_id)
+    for (const label of extractDistractors(modeByAssignment.get(row.assignment_id), row)) {
+      agg.distractors.set(label, (agg.distractors.get(label) || 0) + 1)
+    }
+  }
+
+  // Karten in inhaltlicher Reihenfolge: Assignment-Position, dann Lemma-Folge.
+  // Lemmata ohne jede Abgabe werden uebersprungen (keine aussagekraeftige Quote).
+  const byLemma = []
+  for (const a of assignments) {
+    for (const lemmaId of a.lemmaIds) {
+      const agg = byKey.get(`${a.id}::${String(lemmaId)}`)
+      if (!agg) continue
+      const hitRatePct = agg.maxSum > 0 ? Math.round((agg.scoreSum / agg.maxSum) * 100) : 0
+      const avgScore = agg.submissions > 0
+        ? Math.round((agg.scoreSum / agg.submissions) * 10) / 10
+        : 0
+      const maxScore = agg.submissions > 0 ? Math.round(agg.maxSum / agg.submissions) : 0
+      byLemma.push({
+        assignmentId: a.id,
+        mode: a.mode,
+        position: a.position,
+        lemmaId: String(lemmaId),
+        lemma: a.contentSnapshot?.byLemma?.[lemmaId]?.lemma || String(lemmaId),
+        participants: agg.participants.size,
+        submissions: agg.submissions,
+        hitRatePct,
+        avgScore,
+        maxScore,
+        topDistractor: pickTopDistractor(agg.distractors),
+      })
+    }
+  }
+
+  // Auffaelligste Fragen: Top 3 mit der niedrigsten Trefferquote. Tie-Break
+  // deterministisch (mehr Abgaben zuerst, dann alphabetisch).
+  const trickiest = [...byLemma]
+    .sort((x, y) =>
+      x.hitRatePct - y.hitRatePct ||
+      y.submissions - x.submissions ||
+      x.lemma.localeCompare(y.lemma))
+    .slice(0, 3)
+    .map((c) => ({
+      assignmentId: c.assignmentId,
+      mode: c.mode,
+      lemmaId: c.lemmaId,
+      lemma: c.lemma,
+      hitRatePct: c.hitRatePct,
+    }))
+
+  return {
+    session: {
+      id: session.id,
+      status: session.status,
+      title: session.title,
+      finishedAt: session.finishedAt,
+    },
+    totals: {
+      participants: participantsAll.size,
+      submissions: rows.length,
+    },
+    hasSubmissions: rows.length > 0,
+    byLemma,
+    trickiest,
   }
 }
 

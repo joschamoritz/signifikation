@@ -405,6 +405,26 @@ describe('classroom routes', () => {
       expect(body.status).toBe('finished')
     })
 
+    it('W2-T4 Results liefert pseudonymisierte Auswertung (kein Klarname)', async () => {
+      const res = await fetch(`${baseUrl}/api/v1/classroom/sessions/${sessionId}/results`, {
+        headers: teacherHeaders(TEACHER_ID),
+      })
+      expect(res.status).toBe(200)
+      const body = await res.json()
+      expect(body.hasSubmissions).toBe(true)
+      expect(Array.isArray(body.byLemma)).toBe(true)
+      expect(body.byLemma.length).toBeGreaterThanOrEqual(1)
+      const card = body.byLemma[0]
+      // MaxMuster submitte stark/groß/klein → 10/10 = 100 %
+      expect(card.hitRatePct).toBe(100)
+      expect(card.mode).toBe('kollokationen')
+      // Pseudonymisierung: Anzeigename taucht NICHT auf, keine Identitätsfelder
+      expect(JSON.stringify(body)).not.toContain('MaxMuster')
+      expect(card).not.toHaveProperty('participantId')
+      expect(card).not.toHaveProperty('displayName')
+      expect(body).not.toHaveProperty('leaderboard')
+    })
+
     it('T-2.7 Submit nach Finish abgelehnt (submission:write revoked)', async () => {
       const res = await fetch(`${baseUrl}/api/v1/classroom/me/submit`, {
         method: 'POST',

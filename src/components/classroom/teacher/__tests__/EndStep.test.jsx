@@ -11,12 +11,13 @@ vi.mock('../hooks/useTeacherSession', () => ({
   startSession: vi.fn(),
   finishSession: vi.fn(),
   getDashboard: vi.fn(),
+  getSessionResults: vi.fn(),
   searchLemmata: vi.fn(),
 }))
 
 import EndStep from '../steps/EndStep'
 import { TeacherClassroomProvider, useTeacherClassroom } from '../TeacherClassroomContext'
-import { getDashboard } from '../hooks/useTeacherSession'
+import { getDashboard, getSessionResults } from '../hooks/useTeacherSession'
 
 function WithSession({ children }) {
   const { state, dispatch } = useTeacherClassroom()
@@ -38,39 +39,68 @@ function renderEnd() {
   )
 }
 
-describe('EndStep (T-4.7)', () => {
+describe('EndStep (W2-T4)', () => {
   beforeEach(() => { vi.clearAllMocks() })
   afterEach(() => { cleanup() })
 
-  it('rendert die Aggregat-Übersicht und beide CTA-Buttons', async () => {
-    getDashboard.mockResolvedValue({
-      session: { id: 's1', status: 'finished' },
-      assignment: { mode: 'kollokationen' },
-      participants: [{ id: 'p1', displayName: 'Alex' }],
-      aggregate: {
-        totalParticipants: 1,
-        connectedCount: 0,
-        submittedTotal: 2,
-        perLemma: [
-          { lemmaId: 'lemma-1', submitted: 1, correctPct: 60 },
-          { lemmaId: 'lemma-2', submitted: 1, correctPct: 20 },
-        ],
-      },
+  it('rendert Lemma-Karten, auffälligste Fragen und beide CTA-Buttons', async () => {
+    getSessionResults.mockResolvedValue({
+      session: { id: 's1', status: 'finished', title: null, finishedAt: 1 },
+      totals: { participants: 2, submissions: 3 },
+      hasSubmissions: true,
+      byLemma: [
+        {
+          assignmentId: 'a1', mode: 'kollokationen', position: 0,
+          lemmaId: 'lemma-1', lemma: 'Wasser',
+          participants: 2, submissions: 2, hitRatePct: 63, avgScore: 6.3, maxScore: 10,
+          topDistractor: { label: 'weit', count: 2 },
+        },
+      ],
+      trickiest: [
+        { assignmentId: 'a1', mode: 'kollokationen', lemmaId: 'lemma-1', lemma: 'Wasser', hitRatePct: 63 },
+      ],
     })
+    getDashboard.mockResolvedValue({ participants: [{ id: 'p1', displayName: 'Alex' }] })
+
     renderEnd()
     await waitFor(() => {
       expect(screen.getByTestId('cr2-end-new')).toBeTruthy()
     })
     expect(screen.getByTestId('cr2-end-close')).toBeTruthy()
-    expect(screen.getByText(/auffälligster distraktor/i)).toBeTruthy()
+    expect(screen.getByTestId('cr2-end-cards')).toBeTruthy()
+    expect(screen.getByTestId('cr2-end-trickiest')).toBeTruthy()
+    // Lemma-Headword + Distraktor sichtbar
+    expect(screen.getAllByText('Wasser').length).toBeGreaterThanOrEqual(1)
+    expect(screen.getByText('weit')).toBeTruthy()
+  })
+
+  it('zeigt einen Empty State, wenn keine Submissions vorliegen', async () => {
+    getSessionResults.mockResolvedValue({
+      session: { id: 's1', status: 'finished', title: null, finishedAt: 1 },
+      totals: { participants: 0, submissions: 0 },
+      hasSubmissions: false,
+      byLemma: [],
+      trickiest: [],
+    })
+    getDashboard.mockResolvedValue({ participants: [] })
+
+    renderEnd()
+    await waitFor(() => {
+      expect(screen.getByTestId('cr2-end-empty')).toBeTruthy()
+    })
+    expect(screen.queryByTestId('cr2-end-cards')).toBeNull()
   })
 
   it('„Namen zeigen" ist standardmäßig off (kein Name sichtbar)', async () => {
-    getDashboard.mockResolvedValue({
-      session: { id: 's1', status: 'finished' },
-      participants: [{ id: 'p1', displayName: 'Alex' }],
-      aggregate: { totalParticipants: 1, connectedCount: 0, submittedTotal: 0, perLemma: [] },
+    getSessionResults.mockResolvedValue({
+      session: { id: 's1', status: 'finished', title: null, finishedAt: 1 },
+      totals: { participants: 1, submissions: 1 },
+      hasSubmissions: true,
+      byLemma: [],
+      trickiest: [],
     })
+    getDashboard.mockResolvedValue({ participants: [{ id: 'p1', displayName: 'Alex' }] })
+
     renderEnd()
     await waitFor(() => {
       expect(screen.getByTestId('cr2-end-new')).toBeTruthy()

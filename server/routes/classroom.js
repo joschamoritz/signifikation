@@ -43,6 +43,7 @@ import {
   cr2JoinSchema,
   cr2SubmitSchema,
   cr2ListSessionsQuerySchema,
+  cr2SessionIdParamsSchema,
 } from '../middleware/validate.js'
 import {
   createSession,
@@ -62,6 +63,7 @@ import {
   leaveParticipant,
   submitAnswer,
   getDashboard,
+  getSessionResults,
 } from '../classroom/store.js'
 import {
   notifyStudentJoined,
@@ -109,6 +111,7 @@ function mapError(errCode) {
     case 'NOT_FOUND':          return { status: 404, message: 'Nicht gefunden' }
     case 'FORBIDDEN':          return { status: 403, message: 'Keine Berechtigung' }
     case 'INVALID_STATE':      return { status: 409, message: 'Ungültiger Session-Zustand' }
+    case 'SESSION_NOT_ENDED':  return { status: 409, message: 'Auswertung erst nach Session-Ende verfügbar' }
     case 'SESSION_PAUSED':     return { status: 409, message: 'Session ist pausiert' }
     case 'INVALID_CODE':       return { status: 404, message: 'Code ungültig oder Session nicht aktiv' }
     case 'LATE_JOIN_DISABLED': return { status: 409, message: 'Spaetbeitritt deaktiviert' }
@@ -908,6 +911,33 @@ router.get(
       return res.json(result)
     } catch (err) {
       logger.error({ err }, 'cr2 getDashboard crashed')
+      return res.status(500).json({ error: 'Interner Serverfehler' })
+    }
+  },
+)
+
+// ── W2-T4 GET /api/v1/classroom/sessions/:id/results ────────────
+// Pseudonymisierte Nachbereitung pro Modus/Lemma: Trefferquote, Ø-Score,
+// haeufigster Distraktor + Top-3 auffaelligste Fragen. KEINE Klarnamen-
+// Zuordnung zu einzelnen Antworten (D7 gilt auch nach Session-Ende).
+// Nur fuer beendete Sessions (store gibt sonst SESSION_NOT_ENDED zurueck).
+router.get(
+  '/api/v1/classroom/sessions/:id/results',
+  requireCapability('session:manage'),
+  validate(cr2SessionIdParamsSchema, 'params'),
+  (req, res) => {
+    try {
+      const result = getSessionResults({
+        sessionId:    req.params.id,
+        teacherUserId: req.cr2.subject.id,
+      })
+      if (result.error) {
+        const mapped = mapError(result.error)
+        return res.status(mapped.status).json({ error: mapped.message })
+      }
+      return res.json(result)
+    } catch (err) {
+      logger.error({ err }, 'cr2 getSessionResults crashed')
       return res.status(500).json({ error: 'Interner Serverfehler' })
     }
   },

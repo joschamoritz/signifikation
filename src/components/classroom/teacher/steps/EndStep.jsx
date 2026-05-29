@@ -1,21 +1,35 @@
-// T-4.7 — T5 Ende-Step.
+// T5 — Ende-Step (W2-T4).
 //
-// Aggregierte Auswertung, „Auffaelligster Distraktor" (in Welle 1 zeigen wir
-// einfach das Lemma mit der niedrigsten Trefferquote — Single-Choice-Distraktor-
-// Tracking kommt in Welle 2 mit dem erweiterten Telemetry-Modell).
+// Pseudonymisierte Nachbereitung pro Modus/Lemma: Trefferquote (Balken),
+// Ø-Score, haeufigster Distraktor + Liste der auffaelligsten Fragen.
+// Datenquelle: GET /sessions/:id/results — bewusst OHNE Klarnamen-Zuordnung
+// zu einzelnen Antworten (D7 gilt auch nach Session-Ende).
 //
-// „Namen zeigen" — off by default (D7-Prinzip auch nach Session-Ende).
+// „Namen zeigen" (off by default) listet nur die Teilnehmer-Roster aus dem
+// Dashboard — niemals verknuepft mit einzelnen Antworten.
 // Export-Button NICHT hier — Welle 2 (D10).
 
 import { useEffect, useState } from 'react'
 import { useTeacherClassroom } from '../TeacherClassroomContext'
-import { getDashboard } from '../hooks/useTeacherSession'
+import { getDashboard, getSessionResults } from '../hooks/useTeacherSession'
+
+const MODE_LABELS = {
+  kollokationen: 'Kollokationen',
+  wortzwilling:  'Wort-Zwilling',
+  zeitenwende:   'Zeitenwende',
+  lueckenfueller: 'Lückenfüller',
+}
+
+function modeLabel(mode) {
+  return MODE_LABELS[mode] || mode || '—'
+}
 
 export default function EndStep() {
   const { state, dispatch } = useTeacherClassroom()
   const sessionId = state.activeSessionId
 
-  const [dashboard, setDashboard] = useState(null)
+  const [results, setResults] = useState(null)
+  const [participants, setParticipants] = useState([])
   const [showNames, setShowNames] = useState(false)
   const [error, setError] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -24,11 +38,19 @@ export default function EndStep() {
     let cancelled = false
     if (!sessionId) return undefined
     setLoading(true)
+    setError(null)
     ;(async () => {
       try {
-        const data = await getDashboard(sessionId)
+        // Auswertung ist primaer; das Dashboard liefert nur den Namens-Roster
+        // fuer den optionalen Toggle. Faellt das Dashboard aus, bleibt die
+        // Auswertung trotzdem nutzbar.
+        const [res, dash] = await Promise.all([
+          getSessionResults(sessionId),
+          getDashboard(sessionId).catch(() => null),
+        ])
         if (cancelled) return
-        setDashboard(data)
+        setResults(res)
+        setParticipants(dash?.participants || [])
       } catch (err) {
         if (!cancelled) setError(err?.message || 'Auswertung konnte nicht geladen werden.')
       } finally {
@@ -38,61 +60,121 @@ export default function EndStep() {
     return () => { cancelled = true }
   }, [sessionId])
 
-  const aggregate = dashboard?.aggregate
-  const perLemma  = aggregate?.perLemma || []
-  const total     = aggregate?.totalParticipants || 0
-  const submitted = aggregate?.submittedTotal || 0
-  const participants = dashboard?.participants || []
-
-  // Auffaelligster Distraktor in Welle 1: Lemma mit der NIEDRIGSTEN Trefferquote.
-  const tricky = perLemma.length
-    ? [...perLemma].sort((a, b) => a.correctPct - b.correctPct)[0]
-    : null
+  const byLemma   = results?.byLemma || []
+  const trickiest = results?.trickiest || []
+  const totals    = results?.totals || { participants: 0, submissions: 0 }
+  const hasSubmissions = results?.hasSubmissions
 
   return (
     <div data-testid="cr2-end">
       {loading && <p className="cr2-loading">Auswertung wird geladen …</p>}
       {error && <p className="cr2-error">{error}</p>}
 
-      {dashboard && (
+      {results && (
         <>
           <section className="cr2-section" aria-label="Übersicht">
             <span className="cr2-section__label">Übersicht</span>
             <ul className="cr2-aggregate">
               <li className="cr2-aggregate__row">
-                <span className="cr2-aggregate__lemma">Teilnehmer</span>
-                <span className="cr2-aggregate__pct" style={{ color: 'var(--cr2-text)' }}>{total}</span>
+                <span className="cr2-aggregate__lemma">Teilnehmer mit Abgabe</span>
+                <span className="cr2-aggregate__pct" style={{ color: 'var(--cr2-text)' }}>
+                  {totals.participants}
+                </span>
               </li>
               <li className="cr2-aggregate__row">
                 <span className="cr2-aggregate__lemma">Abgaben gesamt</span>
-                <span className="cr2-aggregate__pct" style={{ color: 'var(--cr2-text)' }}>{submitted}</span>
+                <span className="cr2-aggregate__pct" style={{ color: 'var(--cr2-text)' }}>
+                  {totals.submissions}
+                </span>
               </li>
             </ul>
           </section>
 
-          {tricky && (
-            <section className="cr2-section" aria-label="Auffälligster Distraktor">
-              <span className="cr2-section__label">Auffälligster Distraktor</span>
-              <div className="cr2-lemma-mirror">
-                <p className="cr2-lemma-mirror__title">{tricky.lemmaId}</p>
-                <p style={{ margin: 0 }}>
-                  Nur {tricky.correctPct}% Trefferquote — das Lemma mit dem grössten Stolperstein.
+          {/* Empty State: Session ohne Abgaben beendet */}
+          {!hasSubmissions && (
+            <section className="cr2-section" aria-label="Keine Abgaben">
+              <div className="cr2-result-empty" data-testid="cr2-end-empty">
+                <p className="cr2-result-empty__title">Keine Abgaben</p>
+                <p className="cr2-result-empty__text">
+                  In dieser Session wurden keine Antworten abgegeben — es gibt nichts auszuwerten.
+                  Starte eine neue Session, um es erneut zu versuchen.
                 </p>
               </div>
             </section>
           )}
 
-          {perLemma.length > 0 && (
-            <section className="cr2-section" aria-label="Trefferquote pro Lemma">
-              <span className="cr2-section__label">Trefferquote pro Lemma</span>
-              <ul className="cr2-aggregate">
-                {perLemma.map((row) => (
-                  <li key={row.lemmaId} className="cr2-aggregate__row">
-                    <span className="cr2-aggregate__lemma">{row.lemmaId}</span>
-                    <span className="cr2-aggregate__pct">{row.correctPct}%</span>
+          {/* Auffälligste Fragen (Top 3 niedrigste Trefferquote) */}
+          {trickiest.length > 0 && (
+            <section className="cr2-section" aria-label="Auffälligste Fragen">
+              <span className="cr2-section__label">Auffälligste Fragen</span>
+              <ul className="cr2-aggregate" data-testid="cr2-end-trickiest">
+                {trickiest.map((t) => (
+                  <li key={`${t.assignmentId}:${t.lemmaId}`} className="cr2-aggregate__row">
+                    <span className="cr2-aggregate__lemma">
+                      {t.lemma}{' '}
+                      <span className="cr2-result-card__mode">· {modeLabel(t.mode)}</span>
+                    </span>
+                    <span className="cr2-aggregate__pct">{t.hitRatePct}%</span>
                   </li>
                 ))}
               </ul>
+            </section>
+          )}
+
+          {/* Pro Lemma: Trefferquote-Balken, Ø-Score, häufigster Distraktor */}
+          {byLemma.length > 0 && (
+            <section className="cr2-section" aria-label="Auswertung pro Lemma">
+              <span className="cr2-section__label">Pro Lemma</span>
+              <div className="cr2-result-cards" data-testid="cr2-end-cards">
+                {byLemma.map((row) => (
+                  <article
+                    key={`${row.assignmentId}:${row.lemmaId}`}
+                    className="cr2-result-card"
+                  >
+                    <header className="cr2-result-card__head">
+                      <h3 className="cr2-result-card__lemma">{row.lemma}</h3>
+                      <span className="cr2-result-card__mode">{modeLabel(row.mode)}</span>
+                    </header>
+
+                    <div
+                      className="cr2-bar"
+                      role="img"
+                      aria-label={`Trefferquote ${row.hitRatePct} Prozent`}
+                    >
+                      <div
+                        className="cr2-bar__fill"
+                        style={{ width: `${row.hitRatePct}%` }}
+                      />
+                      <span className="cr2-bar__label">{row.hitRatePct}%</span>
+                    </div>
+
+                    <dl className="cr2-result-card__meta">
+                      <div className="cr2-result-card__metaItem">
+                        <dt>Ø-Score</dt>
+                        <dd>{row.avgScore} / {row.maxScore}</dd>
+                      </div>
+                      <div className="cr2-result-card__metaItem">
+                        <dt>Teilnehmer</dt>
+                        <dd>{row.participants}</dd>
+                      </div>
+                    </dl>
+
+                    {row.topDistractor ? (
+                      <p className="cr2-result-card__distractor">
+                        Häufigster Stolperstein:{' '}
+                        <strong>{row.topDistractor.label}</strong>{' '}
+                        <span className="cr2-result-card__distractorCount">
+                          ({row.topDistractor.count}×)
+                        </span>
+                      </p>
+                    ) : (
+                      <p className="cr2-result-card__distractor cr2-result-card__distractor--none">
+                        Kein auffälliger Distraktor.
+                      </p>
+                    )}
+                  </article>
+                ))}
+              </div>
             </section>
           )}
 

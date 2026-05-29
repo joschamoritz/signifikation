@@ -22,6 +22,7 @@ import {
   findParticipantByToken,
   submitAnswer,
   getDashboard,
+  getSessionResults,
   listTeacherSessions,
   hasCapability,
   DEFAULT_AUTO_END_IDLE_MS,
@@ -523,6 +524,137 @@ describe('classroom/store', () => {
       const { session } = createSession({ teacherUserId: TEACHER_A })
       const dash = getDashboard({ sessionId: session.id, teacherUserId: TEACHER_B })
       expect(dash.error).toBe('FORBIDDEN')
+    })
+  })
+
+  // ── getSessionResults (W2-T4) ──────────────────────────────────
+  describe('getSessionResults', () => {
+    function setupFinishedKollSession() {
+      const { session } = createSession({ teacherUserId: TEACHER_A })
+      const { assignment } = addAssignment({
+        sessionId: session.id, teacherUserId: TEACHER_A,
+        mode: 'kollokationen', lemmaIds: ['lemma-1'],
+        contentSnapshot: KOLL_SNAPSHOT,
+      })
+      startSession({ sessionId: session.id, teacherUserId: TEACHER_A })
+      const j1 = joinByCode({ code: session.code, displayName: 'Alice' })
+      const j2 = joinByCode({ code: session.code, displayName: 'Bob' })
+      const j3 = joinByCode({ code: session.code, displayName: 'Charlie' })
+      // j1: stark/groß/klein → 3+3+3 +Bonus = 10, keine Distraktoren
+      submitAnswer({
+        participantId: j1.participant.id, sessionId: session.id,
+        assignmentId: assignment.id, lemmaId: 'lemma-1', roundIndex: 0,
+        rawAnswer: { selected: ['stark', 'groß', 'klein'] },
+      })
+      // j2: weit/tief/leise → 2+1+1 = 4; Distraktoren: weit, tief, leise
+      submitAnswer({
+        participantId: j2.participant.id, sessionId: session.id,
+        assignmentId: assignment.id, lemmaId: 'lemma-1', roundIndex: 0,
+        rawAnswer: { selected: ['weit', 'tief', 'leise'] },
+      })
+      // j3: weit/hoch/laut → 2+2+1 = 5; Distraktoren: weit, hoch, laut
+      submitAnswer({
+        participantId: j3.participant.id, sessionId: session.id,
+        assignmentId: assignment.id, lemmaId: 'lemma-1', roundIndex: 0,
+        rawAnswer: { selected: ['weit', 'hoch', 'laut'] },
+      })
+      finishSession({ sessionId: session.id, teacherUserId: TEACHER_A })
+      return { session, assignment }
+    }
+
+    it('berechnet Trefferquote, Ø-Score und häufigsten Distraktor korrekt', () => {
+      const { session } = setupFinishedKollSession()
+      const r = getSessionResults({ sessionId: session.id, teacherUserId: TEACHER_A })
+      expect(r.error).toBeUndefined()
+      expect(r.hasSubmissions).toBe(true)
+      expect(r.totals.participants).toBe(3)
+      expect(r.totals.submissions).toBe(3)
+      expect(r.byLemma).toHaveLength(1)
+
+      const card = r.byLemma[0]
+      expect(card.lemmaId).toBe('lemma-1')
+      expect(card.mode).toBe('kollokationen')
+      expect(card.participants).toBe(3)
+      expect(card.submissions).toBe(3)
+      // (10 + 4 + 5) / 30 = 63.33 → 63 %
+      expect(card.hitRatePct).toBe(63)
+      // (10 + 4 + 5) / 3 = 6.33 → 6.3
+      expect(card.avgScore).toBe(6.3)
+      expect(card.maxScore).toBe(10)
+      // 'weit' wurde 2× als nicht-optimal gewählt → häufigster Distraktor
+      expect(card.topDistractor).toEqual({ label: 'weit', count: 2 })
+    })
+
+    it('listet auffälligste Fragen (Top 3 niedrigste Quote) rein aggregiert', () => {
+      const { session } = setupFinishedKollSession()
+      const r = getSessionResults({ sessionId: session.id, teacherUserId: TEACHER_A })
+      expect(r.trickiest.length).toBeGreaterThanOrEqual(1)
+      const t = r.trickiest[0]
+      expect(t).toHaveProperty('lemma')
+      expect(t).toHaveProperty('hitRatePct')
+      // Keine Teilnehmer-Identität in den auffälligsten Fragen
+      expect(t).not.toHaveProperty('participantId')
+      expect(t).not.toHaveProperty('displayName')
+    })
+
+    it('ist pseudonymisiert — keine Klarnamen oder Teilnehmer-IDs im Ergebnis', () => {
+      const { session } = setupFinishedKollSession()
+      const r = getSessionResults({ sessionId: session.id, teacherUserId: TEACHER_A })
+      const serialized = JSON.stringify(r)
+      // Anzeigenamen der Teilnehmer dürfen nirgends auftauchen
+      expect(serialized).not.toContain('Alice')
+      expect(serialized).not.toContain('Bob')
+      expect(serialized).not.toContain('Charlie')
+      // Keine Namens-/Identitätsfelder in den Lemma-Karten
+      for (const card of r.byLemma) {
+        expect(card).not.toHaveProperty('participantId')
+        expect(card).not.toHaveProperty('displayName')
+        expect(card).not.toHaveProperty('participants_list')
+      }
+    })
+
+    it('liefert Empty State, wenn keine Submissions vorliegen', () => {
+      const { session } = createSession({ teacherUserId: TEACHER_A })
+      addAssignment({
+        sessionId: session.id, teacherUserId: TEACHER_A,
+        mode: 'kollokationen', lemmaIds: ['lemma-1'],
+        contentSnapshot: KOLL_SNAPSHOT,
+      })
+      startSession({ sessionId: session.id, teacherUserId: TEACHER_A })
+      finishSession({ sessionId: session.id, teacherUserId: TEACHER_A })
+      const r = getSessionResults({ sessionId: session.id, teacherUserId: TEACHER_A })
+      expect(r.error).toBeUndefined()
+      expect(r.hasSubmissions).toBe(false)
+      expect(r.byLemma).toEqual([])
+      expect(r.trickiest).toEqual([])
+      expect(r.totals).toEqual({ participants: 0, submissions: 0 })
+    })
+
+    it('verweigert Auswertung für noch nicht beendete Session', () => {
+      const { session } = createSession({ teacherUserId: TEACHER_A })
+      addAssignment({
+        sessionId: session.id, teacherUserId: TEACHER_A,
+        mode: 'kollokationen', lemmaIds: ['lemma-1'],
+        contentSnapshot: KOLL_SNAPSHOT,
+      })
+      // lobby
+      expect(getSessionResults({ sessionId: session.id, teacherUserId: TEACHER_A }).error)
+        .toBe('SESSION_NOT_ENDED')
+      // running
+      startSession({ sessionId: session.id, teacherUserId: TEACHER_A })
+      expect(getSessionResults({ sessionId: session.id, teacherUserId: TEACHER_A }).error)
+        .toBe('SESSION_NOT_ENDED')
+    })
+
+    it('verweigert fremdem Teacher Zugriff', () => {
+      const { session } = setupFinishedKollSession()
+      const r = getSessionResults({ sessionId: session.id, teacherUserId: TEACHER_B })
+      expect(r.error).toBe('FORBIDDEN')
+    })
+
+    it('liefert NOT_FOUND für unbekannte Session', () => {
+      const r = getSessionResults({ sessionId: 'does-not-exist', teacherUserId: TEACHER_A })
+      expect(r.error).toBe('NOT_FOUND')
     })
   })
 

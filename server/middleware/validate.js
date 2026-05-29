@@ -417,3 +417,8 @@ export const cr2ResumeSessionSchema = z.object({})
 export const cr2ListSessionsQuerySchema = z.object({
   limit: z.coerce.number().int().min(1).max(50).optional().default(20),
 })
+
+/** GET /api/v1/classroom/sessions/:id/results (W2-T4) — Params */
+export const cr2SessionIdParamsSchema = z.object({
+  id: z.string().trim().min(1, 'Session-ID erforderlich').max(128, 'Session-ID zu lang'),
+})
