@@ -494,6 +494,22 @@
   padding: 0 0.04em 0.05em;
 }
 
+/* F6 — QR-Code zur Beitritts-URL */
+.cr2-code-card__qr {
+  width: clamp(140px, 38vw, 220px);
+  margin: 18px auto 4px;
+  padding: 10px;
+  background: #faf9f7;
+  border: 1px solid var(--cr2-gold);
+  border-radius: 6px;
+  line-height: 0;
+}
+.cr2-code-card__qr svg {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
 .cr2-code-card__actions {
   display: flex;
   justify-content: center;

@@ -1,4 +1,4 @@
-// T-5.2 — S1 Code-Eingabe.
+// T-5.2 / F5 — S1 Code-Eingabe (Schueler-Einstieg).
 //
 // Eine einfache Code-Eingabe (keine Slots, weil D16-Decision die Wortliste
 // behält — Wörter zwischen 4 und 10 Buchstaben). Paste-Support: alles, was
@@ -6,10 +6,17 @@
 //
 // Ein Submit fuehrt KEIN /join aus — das passiert erst in NameState mit
 // dem dann ebenfalls gewünschten Namen. Hier nur Routing nach /c/:code.
+//
+// F5: `embedded` rendert die Eingabe IM Klassenraum-Tab (ohne KioskShell-
+// Vollbild, TabBar bleibt sichtbar). Zusaetzlich ein „QR-Code scannen"-Button
+// (In-App-Scanner) — beide Wege navigieren nach /c/:code, wo der Kiosk
+// uebernimmt.
 
-import { useState, useRef } from 'react'
+import { useState, useRef, lazy, Suspense } from 'react'
 import { navigate } from '../routing'
 import KioskShell from './KioskShell'
+
+const QrScanner = lazy(() => import('./QrScanner'))
 
 function normalizeCode(raw) {
   return String(raw || '')
@@ -19,10 +26,11 @@ function normalizeCode(raw) {
     .slice(0, 30)
 }
 
-export default function StudentJoinEntry({ initialNotice = null }) {
+export default function StudentJoinEntry({ initialNotice = null, embedded = false }) {
   const [code, setCode]       = useState('')
   const [error, setError]     = useState(initialNotice || null)
   const [shake, setShake]     = useState(false)
+  const [scanning, setScanning] = useState(false)
   const inputRef              = useRef(null)
 
   function handleChange(e) {
@@ -38,9 +46,8 @@ export default function StudentJoinEntry({ initialNotice = null }) {
     setCode(normalizeCode(txt))
   }
 
-  function handleSubmit(e) {
-    e.preventDefault()
-    const c = normalizeCode(code)
+  function go(raw) {
+    const c = normalizeCode(raw)
     if (c.length < 4) {
       setError('Zugangscode zu kurz.')
       triggerShake()
@@ -49,18 +56,34 @@ export default function StudentJoinEntry({ initialNotice = null }) {
     navigate(`/c/${encodeURIComponent(c)}`)
   }
 
+  function handleSubmit(e) {
+    e.preventDefault()
+    go(code)
+  }
+
   function triggerShake() {
     setShake(true)
     setTimeout(() => setShake(false), 320)
     try { inputRef.current?.focus() } catch {}
   }
 
-  return (
-    <KioskShell confirmExit={false}>
+  if (scanning) {
+    return (
+      <Suspense fallback={null}>
+        <QrScanner
+          onResult={(c) => { setScanning(false); go(c) }}
+          onClose={() => setScanning(false)}
+        />
+      </Suspense>
+    )
+  }
+
+  const inner = (
+    <>
       <p className="cr2-kiosk__dropcap">K</p>
       <h1 className="cr2-kiosk__title">Klassenraum</h1>
       <p className="cr2-kiosk__lead">
-        Tipp den Zugangscode deiner Lehrkraft ein.
+        Tipp den Zugangscode deiner Lehrkraft ein – oder scanne den QR-Code.
       </p>
 
       <form onSubmit={handleSubmit} noValidate>
@@ -98,6 +121,24 @@ export default function StudentJoinEntry({ initialNotice = null }) {
           Beitreten
         </button>
       </form>
-    </KioskShell>
+
+      <button
+        type="button"
+        className="cr2-kiosk__btn cr2-kiosk__btn--ghost"
+        onClick={() => { setError(null); setScanning(true) }}
+        data-testid="cr2-kiosk-scan-btn"
+      >
+        QR-Code scannen
+      </button>
+    </>
   )
+
+  if (embedded) {
+    return (
+      <div className="cr2-kiosk cr2-kiosk--embedded" data-testid="cr2-student-tab">
+        <main className="cr2-kiosk__main">{inner}</main>
+      </div>
+    )
+  }
+  return <KioskShell confirmExit={false}>{inner}</KioskShell>
 }

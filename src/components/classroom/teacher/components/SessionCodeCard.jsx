@@ -1,15 +1,16 @@
-// T-4.5 — Code-Karte fuer die Lobby.
+// T-4.5 / F6 — Code-Karte fuer die Lobby.
 //
 // Der Code MUSS aus 5m lesbar sein (Beamer-Setting). Wir nutzen
 // clamp(48px, 12vw, 120px), Gentium Plus und ein dezentes Gold-Underscore
 // pro Zeichen — das macht den Code als Logo lesbar, nicht als Code-Block.
 //
-// QR-Code: bewusst KEIN externer Library-Import. Statt ein QR-Renderer-Paket
-// einzuziehen (>20KB), liefert der Server eine Beitritts-URL — der Teacher
-// kann den Tab auf dem Beamer projizieren und der Schueler tippt den Code
-// ein. Falls QR gefragt ist, kommt das in Welle 2 dazu.
+// F6 (Praxistest): QR-Code zur Beitritts-URL. Schueler scannen ihn mit der
+// Handy-Kamera (oder dem In-App-Scanner) und landen direkt im Kiosk. SVG wird
+// per `qrcode` erzeugt — dunkelrot (#9b1c1c) auf Pergament fuer CD-Konsistenz
+// bei genug Kontrast; Fehlerkorrektur 'M' macht das Scannen robust.
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import QRCode from 'qrcode'
 
 function joinUrl(code) {
   if (typeof window === 'undefined' || !code) return ''
@@ -19,7 +20,22 @@ function joinUrl(code) {
 
 export default function SessionCodeCard({ code }) {
   const [copied, setCopied] = useState(false)
+  const [qrSvg, setQrSvg]   = useState('')
   const url = joinUrl(code)
+
+  useEffect(() => {
+    let cancelled = false
+    if (!url) { setQrSvg(''); return }
+    QRCode.toString(url, {
+      type: 'svg',
+      margin: 1,
+      errorCorrectionLevel: 'M',
+      color: { dark: '#9b1c1cff', light: '#faf9f7ff' },
+    })
+      .then((svg) => { if (!cancelled) setQrSvg(svg) })
+      .catch(() => { if (!cancelled) setQrSvg('') })
+    return () => { cancelled = true }
+  }, [url])
 
   async function copyCode() {
     if (!code) return
@@ -40,6 +56,17 @@ export default function SessionCodeCard({ code }) {
           <span key={i} className="cr2-code-card__char">{char}</span>
         ))}
       </div>
+
+      {qrSvg && (
+        <div
+          className="cr2-code-card__qr"
+          // eslint-disable-next-line react/no-danger -- SVG kommt aus der qrcode-Lib, kein User-Input
+          dangerouslySetInnerHTML={{ __html: qrSvg }}
+          role="img"
+          aria-label="QR-Code zum Beitreten"
+        />
+      )}
+
       <div className="cr2-code-card__actions">
         <button
           type="button"

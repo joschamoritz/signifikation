@@ -49,6 +49,8 @@
 	<true/>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
+	<key>NSCameraUsageDescription</key>
+	<string>Die Kamera wird nur zum Scannen des QR-Codes verwendet, um einem Klassenraum beizutreten.</string>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>remote-notification</string>

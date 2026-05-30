@@ -37,19 +37,21 @@ function MainAppShell() {
     persistentKontoProps,
     classroomTeacher,
   } = useAppModel()
-  const showClassroomTab = classroomTeacher
+  // F5: Klassenraum-Tab fuer ALLE sichtbar — Lehrer sehen das Setup,
+  // nicht-eingeloggte Nutzer die Schueler-Code-Eingabe (+ QR-Scan).
+  const showClassroomTab = true
 
-  // Klassenraum: einmal gemounted (bei erstem Tab-Besuch), bleibt im DOM
-  // damit Sockets und Step-State einen Tab-Wechsel ueberleben — identisches
-  // Pattern wie PersistentKontoTab.
+  // Klassenraum (Lehrer): einmal gemounted (bei erstem Tab-Besuch), bleibt im
+  // DOM damit Sockets und Step-State einen Tab-Wechsel ueberleben — identisches
+  // Pattern wie PersistentKontoTab. Fuer Schueler nicht noetig (leichtgewichtig).
   const classroomMountedRef = useRef(false)
   const [classroomMounted, setClassroomMounted] = useState(false)
   useEffect(() => {
-    if (activeTab === 'klassenraum' && !classroomMountedRef.current) {
+    if (activeTab === 'klassenraum' && classroomTeacher && !classroomMountedRef.current) {
       classroomMountedRef.current = true
       setClassroomMounted(true)
     }
-  }, [activeTab])
+  }, [activeTab, classroomTeacher])
 
   return (
     <>
@@ -58,13 +60,16 @@ function MainAppShell() {
         <TabTransition activeTab={activeTab} tabs={tabScreens} />
         <Suspense fallback={null}>
           {kontoMounted ? <PersistentKontoTab {...persistentKontoProps} /> : null}
-          {classroomMounted ? (
+          {classroomMounted && classroomTeacher ? (
             <div
               aria-hidden={activeTab !== 'klassenraum' ? 'true' : undefined}
               style={activeTab !== 'klassenraum' ? { display: 'none' } : undefined}
             >
               <TeacherClassroomTab />
             </div>
+          ) : null}
+          {activeTab === 'klassenraum' && !classroomTeacher ? (
+            <StudentJoinEntry embedded />
           ) : null}
         </Suspense>
       </AppShell>
