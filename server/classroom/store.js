@@ -127,6 +127,15 @@ const stmts = {
     WHERE session_id = ?
     ORDER BY position ASC, created_at ASC
   `),
+  // Direkter Einzelzugriff auf das Assignment an Index i (0-basiert) einer Session.
+  // Nutzt idx_classroom_assignment_session(session_id, position) — O(log N) statt O(N).
+  // Ersetzt den listAssignmentsBySession.all()-Aufruf in submitAnswer und getCurrentAssignment.
+  getAssignmentAtIndex: db.prepare(`
+    SELECT * FROM classroom_assignment
+    WHERE session_id = ?
+    ORDER BY position ASC, created_at ASC
+    LIMIT 1 OFFSET ?
+  `),
   countAssignments: db.prepare(`SELECT COUNT(1) AS c FROM classroom_assignment WHERE session_id = ?`),
   deleteAssignment: db.prepare(`
     DELETE FROM classroom_assignment WHERE id = ? AND session_id = ?
@@ -527,13 +536,13 @@ export function addAssignment({ sessionId, teacherUserId, mode, lemmaIds, conten
 }
 
 // Aktuell aktives Assignment einer Session (per current_assignment_index).
+// Nutzt getAssignmentAtIndex statt listAssignmentsBySession.all() — spart
+// das Laden aller Assignments (max 5) und filtert direkt per LIMIT 1 OFFSET.
 export function getCurrentAssignment(sessionId) {
   const sessionRow = stmts.getSessionById.get(sessionId)
   if (!sessionRow) return null
-  const ordered = stmts.listAssignmentsBySession.all(sessionId).map(normalizeAssignmentRow)
-  if (ordered.length === 0) return null
-  const idx = Math.min(Math.max(0, sessionRow.current_assignment_index ?? 0), ordered.length - 1)
-  return ordered[idx]
+  const idx = Math.max(0, sessionRow.current_assignment_index ?? 0)
+  return normalizeAssignmentRow(stmts.getAssignmentAtIndex.get(sessionId, idx))
 }
 
 // W2-T2: Auf das naechste Assignment vorruecken. Server-autoritativ (D13).
@@ -701,9 +710,10 @@ export function submitAnswer({
   // W2-T2: Submissions werden IMMER nur dem aktuell aktiven Assignment
   // zugeordnet. Ein bereits abgeschlossener (oder noch nicht erreichter)
   // Modus-Block nimmt keine Abgaben mehr an — server-autoritativ (D13).
-  const ordered = stmts.listAssignmentsBySession.all(sessionId).map(normalizeAssignmentRow)
-  const activeIndex = Math.min(Math.max(0, session.current_assignment_index ?? 0), Math.max(0, ordered.length - 1))
-  const activeAssignment = ordered[activeIndex]
+  // Optimierung: getAssignmentAtIndex statt listAssignmentsBySession.all()
+  // reduziert den Submit-Hotpath um O(N)-Lesen auf O(1)-Lesen (LIMIT 1 OFFSET).
+  const activeIndex = Math.max(0, session.current_assignment_index ?? 0)
+  const activeAssignment = normalizeAssignmentRow(stmts.getAssignmentAtIndex.get(sessionId, activeIndex))
   if (!activeAssignment || activeAssignment.id !== assignmentId) {
     return { error: 'ASSIGNMENT_NOT_ACTIVE' }
   }
