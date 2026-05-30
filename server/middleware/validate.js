@@ -328,11 +328,6 @@ export const classroomHeartbeatSchema = z.object({
   participantToken: z.string().trim().min(1, 'participantToken erforderlich').max(256),
 })
 
-/** POST /api/v1/classroom/sessions/:id/exports */
-export const classroomCreateExportSchema = z.object({
-  type: z.enum(['csv', 'pdf']),
-})
-
 /** GET /api/v1/classroom/sessions/:id/query */
 export const classroomListQuerySchema = z.object({
   state: CLASSROOM_STATE.optional(),
