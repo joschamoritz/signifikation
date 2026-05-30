@@ -23,11 +23,6 @@ export default function ClassroomGameKollokationen({ lemma, prompt, onSubmit, su
     })
   }
 
-  function rankOf(w) {
-    const i = picked.indexOf(w)
-    return i >= 0 ? i + 1 : null
-  }
-
   function handleSubmit() {
     if (submitting || picked.length === 0) return
     onSubmit({ selected: picked })
@@ -40,25 +35,25 @@ export default function ClassroomGameKollokationen({ lemma, prompt, onSubmit, su
       {prompt?.definition ? <p className="cr2-kiosk__definition">{prompt.definition}</p> : null}
 
       <p className="cr2-kiosk__hint">
-        Wähle die drei besten Kollokationen (Reihenfolge zählt).
+        Wähle die drei besten Kollokationen.
       </p>
 
       <ul className="cr2-kiosk__choices">
         {words.map((w) => {
-          const r = rankOf(w)
-          const picked_ = r != null
+          const picked_ = picked.includes(w)
           return (
             <li
               key={w}
               className={`cr2-kiosk__choice ${picked_ ? 'cr2-kiosk__choice--picked' : ''}`}
               role="button"
               tabIndex={0}
+              aria-pressed={picked_}
               onClick={() => toggle(w)}
               onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(w) } }}
               data-testid={`cr2-kiosk-koll-choice-${w}`}
             >
               <span>{w}</span>
-              {picked_ && <span className="cr2-kiosk__choice-rank">{r}.</span>}
+              {picked_ && <span className="cr2-kiosk__choice-rank" aria-hidden="true">✓</span>}
             </li>
           )
         })}

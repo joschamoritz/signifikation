@@ -79,6 +79,12 @@ function pickSessionId(req, fallback) {
     || null
 }
 
+// Schueler-Capabilities: hier bevorzugen wir den Participant (Bearer-Token),
+// auch wenn gleichzeitig ein Lehrer-Cookie anliegt. Sonst scheitert der Submit,
+// wenn ein eingeloggter Lehrer im selben Browser als Schueler beitritt
+// (Cookie + Bearer): der Teacher hat keine sessionId → „sessionId fehlt".
+const PARTICIPANT_CAPABILITIES = new Set(['submission:write', 'view:student'])
+
 /**
  * requireCapability(capability) – Express-Middleware.
  *
@@ -91,12 +97,13 @@ export function requireCapability(capability) {
 
   return async function requireCapabilityMiddleware(req, res, next) {
     try {
-      // Beide Subjekte parallel probieren; Teacher hat Vorrang, wenn
-      // Cookie und Bearer gleichzeitig anliegen (unwahrscheinlich,
-      // aber Lehrer-Tab mit Demo-Account z.B.).
+      // Beide Subjekte parallel probieren. Vorrang haengt von der Capability ab:
+      // Schueler-Capabilities → Participant zuerst, sonst Teacher zuerst.
       const teacher = await resolveTeacherSubject(req)
       const participant = resolveParticipantSubject(req)
-      const subject = teacher || participant
+      const subject = PARTICIPANT_CAPABILITIES.has(capability)
+        ? (participant || teacher)
+        : (teacher || participant)
       if (!subject) {
         return res.status(401).json({ error: 'Nicht autorisiert' })
       }

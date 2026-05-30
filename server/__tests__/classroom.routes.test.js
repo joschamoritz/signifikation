@@ -364,6 +364,29 @@ describe('classroom routes', () => {
       expect(body.score).toBe(10)
     })
 
+    it('Dual-Auth: eingeloggter Lehrer + Schueler-Token → Participant-Vorrang (kein „sessionId fehlt")', async () => {
+      // Realfall (Praxistest): Lehrer im selben Browser eingeloggt (Dev-Header
+      // bzw. Cookie) UND als Schueler beigetreten (Bearer). submission:write muss
+      // den Participant bevorzugen, sonst 400 „sessionId fehlt" (Teacher hat keine).
+      const res = await fetch(`${baseUrl}/api/v1/classroom/me/submit`, {
+        method: 'POST',
+        headers: {
+          ...participantHeaders(participantToken),
+          'x-dev-user-id':   TEACHER_ID,
+          'x-dev-user-role': 'admin',
+        },
+        body: JSON.stringify({
+          assignmentId,
+          lemmaId,
+          roundIndex: 0,
+          rawAnswer: { selected: ['stark', 'groß', 'klein'] },
+        }),
+      })
+      expect(res.status).toBe(200)
+      const body = await res.json()
+      expect(body.score).toBe(10)
+    })
+
     it('T-2.8 Heartbeat → { ok: true, status }', async () => {
       const res = await fetch(`${baseUrl}/api/v1/classroom/me/heartbeat`, {
         method: 'POST',
