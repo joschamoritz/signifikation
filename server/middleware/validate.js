@@ -205,6 +205,11 @@ export const adminStatsExportQuerySchema = z.object({
   days: z.coerce.number().int().min(1).max(365).optional().default(30),
 })
 
+/** GET /admin/classroom/stats (query) — W2-T6 */
+export const adminClassroomStatsQuerySchema = z.object({
+  days: z.coerce.number().int().min(1).max(365).optional().default(30),
+})
+
 /** GET /admin/audit-log (query) */
 export const adminAuditLogQuerySchema = z.object({
   action: z.enum(['CREATE', 'UPDATE', 'DELETE']).optional(),

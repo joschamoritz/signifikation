@@ -27,9 +27,15 @@
  *     KEIN left_at gesetzt. Ein Timeout pro Teilnehmer wird gestartet.
  *   - Reconnect mit gueltigem Token innerhalb des Windows: Timer wird
  *     gecleart, view:updated wird gepusht. Keine erneuten capability_grants.
- *   - Window laeuft ab: student:left an Teacher-Room (reason: 'timeout').
- *     Capability bleibt bestehen — der Schueler kann mit demselben Token
- *     immer noch zurueck, der Lehrer sieht ihn nur als "weg".
+ *     Der Server bindet ueber den Token an denselben classroom_participant —
+ *     kein neuer Teilnehmer, kein verlorener Platz (W2-T5).
+ *   - Window laeuft ab (W2-T5): Teilnehmer wird ENDGUELTIG entfernt
+ *     (leaveParticipant → left_at gesetzt) und student:left mit reason
+ *     'timeout' an den Teacher-Room gesendet. Ein spaeterer Reconnect mit
+ *     demselben Token scheitert dann an resolveParticipantSubject (leftAt-
+ *     Check) — der Schueler muss per Code neu beitreten. Das haelt D6
+ *     ("kein Dauerzustand") ein: 5 Min Gnadenfrist, danach ist der Platz frei
+ *     und die aktive Teilnehmerzahl im Dashboard wieder korrekt.
  *
  * Risiko R-2 (Race-Conditions):
  *   Timer-Verwaltung zentral in Map<participantId, Timeout>. Beim Reconnect
@@ -48,8 +54,13 @@ import {
   findParticipantByToken,
   hasCapability,
   heartbeatParticipant,
+  leaveParticipant,
   markParticipantDisconnect,
 } from '../classroom/store.js'
+import {
+  trackParticipantReconnected,
+  trackParticipantDropped,
+} from '../classroom/telemetry.js'
 
 const IS_PROD = process.env.NODE_ENV === 'production'
 const DEV_AUTH_ENABLED = !IS_PROD && process.env.ALLOW_DEV_AUTH === '1'
@@ -156,9 +167,18 @@ function scheduleDisconnectTimeout(sessionId, participantId) {
 
   const t = setTimeout(() => {
     disconnectTimers.delete(participantId)
+    // W2-T5: Reconnect-Fenster abgelaufen → Teilnehmer endgueltig entfernen.
+    // left_at wird gesetzt; ein spaeterer Reconnect mit demselben Token
+    // scheitert dann an resolveParticipantSubject (leftAt-Check). Das gibt den
+    // Platz frei (D6: kein Dauerzustand) und haelt die aktive Teilnehmerzahl
+    // im Dashboard korrekt. KEIN explizites Revoke noetig — der leftAt-Gate
+    // sperrt den Token bereits vor jeder Capability-Pruefung.
+    try { leaveParticipant(participantId) } catch (err) {
+      logger.warn({ err, participantId }, 'cr2 leaveParticipant on timeout fehlgeschlagen')
+    }
+    trackParticipantDropped(sessionId, participantId)
     if (!nsp) return
-    // D6: student:left zwecks Anzeige im Live-Dashboard.
-    // Capability bleibt — kein Revoke, der Schueler kann mit Token zurueck.
+    // student:left zwecks Anzeige im Live-Dashboard (reason: 'timeout').
     nsp.to(roomTeacher(sessionId)).emit('student:left', {
       participantId,
       reason: 'timeout',
@@ -301,10 +321,17 @@ function attachStudent(socket) {
   socket.join(roomStudents(sessionId))
   socket.join(roomParticipant(participantId))
 
-  // Reconnect innerhalb 300s: pending Timer clearen, connected=1 in DB.
+  // Reconnect innerhalb des Windows: Timer war noch aktiv → ist ein Reconnect.
+  const isReconnect = disconnectTimers.has(participantId)
   clearDisconnectTimer(participantId)
+
   try { heartbeatParticipant(participantId) } catch (err) {
     logger.warn({ err, participantId }, 'cr2 heartbeat on attach fehlgeschlagen')
+  }
+
+  if (isReconnect) {
+    trackParticipantReconnected(sessionId, participantId)
+    logger.debug({ sid: socket.id, participantId, sessionId }, 'cr2 student reconnected (within window)')
   }
 
   socket.emit('view:updated', { reason: 'connected' })

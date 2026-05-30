@@ -168,6 +168,10 @@ function switchPage(pageId) {
   if (pageId === 'push') {
     loadPushTemplates()
   }
+
+  if (pageId === 'classroom') {
+    loadClassroomStats()
+  }
 }
 
 function refreshDashboard() {
@@ -3228,6 +3232,170 @@ function handleDocumentClick(event) {
   if (action === 'push-send-template') return void sendPushTemplate(target.dataset.id || '')
   if (action === 'push-send-free') return void submitManualPush('free')
   if (action === 'push-send-self') return void submitManualPush('self')
+  if (action === 'load-classroom-stats') return void loadClassroomStats()
+}
+
+async function loadClassroomStats() {
+  const out  = document.getElementById('classroom-stats-output')
+  const days = document.getElementById('classroom-days')?.value || '30'
+  if (!out) return
+  out.innerHTML = '<div style="color:var(--muted);font-size:0.85rem">Lade …</div>'
+  try {
+    const r    = await fetch(`/admin/classroom/stats?days=${encodeURIComponent(days)}`)
+    const data = await r.json()
+    if (!r.ok) throw new Error(data.error || `HTTP ${r.status}`)
+    out.innerHTML = renderClassroomStats(data)
+  } catch (e) {
+    out.innerHTML = `<div class="status error">Fehler: ${esc(e.message)}</div>`
+  }
+}
+
+function renderClassroomStats(d) {
+  const s   = d.sessions   || {}
+  const p   = d.participants || {}
+  const sub = d.submissions || {}
+  const modes = d.modes    || []
+
+  // Empty State
+  if (!s.total) {
+    return `
+      <div class="users-empty" style="padding:48px 0; text-align:center">
+        <p style="font-size:1.5rem; font-family:'Gentium Plus',serif; color:var(--primary)">K</p>
+        <p style="color:var(--muted); font-size:0.9rem; margin-top:8px">Noch keine Klassenraum-Sessions im gewählten Zeitraum.</p>
+      </div>`
+  }
+
+  const pct = (n, d2) => d2 > 0 ? Math.round((n / d2) * 100) + '%' : '-'
+  const fmt = (n) => n == null ? '-' : Number(n).toLocaleString('de-DE')
+  const fmtPct = (v) => v == null ? '-' : (v * 100).toFixed(1) + '%'
+
+  // Sessions-Kacheln
+  const byStatus = s.byStatus || {}
+  const byReason = s.byReason || {}
+  const manual   = (byReason['manual'] || 0) + (byReason['completed'] || 0)
+  const auto     = byReason['auto'] || byReason['auto_end'] || 0
+
+  // Modus-Tabelle
+  const modeRows = modes.length
+    ? modes.map(m => {
+        const w = modes[0].count > 0 ? Math.round((m.count / modes[0].count) * 100) : 0
+        return `<tr>
+          <td style="width:130px">${esc(m.mode)}</td>
+          <td><div style="display:flex;align-items:center;gap:8px">
+            <div style="flex:1;height:8px;background:var(--border-light);border-radius:4px">
+              <div style="width:${w}%;height:8px;background:var(--primary);border-radius:4px"></div>
+            </div>
+            <span style="min-width:32px;text-align:right;font-size:0.82rem">${fmt(m.count)}</span>
+          </div></td>
+        </tr>`
+      }).join('')
+    : '<tr><td colspan="2" class="users-empty">Keine Modi-Daten</td></tr>'
+
+  // Sessions pro Tag (Mini-Balkendiagramm)
+  const perDay = (s.perDay || []).slice(-30)
+  const maxDay = perDay.reduce((m, r) => Math.max(m, r.count), 0) || 1
+  const dayBars = perDay.length
+    ? perDay.map(r => {
+        const h = Math.round((r.count / maxDay) * 36)
+        return `<div title="${esc(r.day)}: ${r.count}" style="display:inline-flex;flex-direction:column;align-items:center;justify-content:flex-end;height:40px;width:${Math.max(8, Math.floor(280 / perDay.length))}px">
+          <div style="width:80%;background:var(--primary);border-radius:2px 2px 0 0;height:${h}px"></div>
+        </div>`
+      }).join('')
+    : '<span style="color:var(--muted);font-size:0.82rem">Keine Daten</span>'
+
+  return `
+    <div class="dashboard-grid" style="margin-bottom:16px">
+      <article class="metric-card metric-card--support">
+        <span class="metric-label">Sessions gesamt</span>
+        <strong class="metric-value">${fmt(s.total)}</strong>
+        <span class="metric-sub">im Zeitraum</span>
+      </article>
+      <article class="metric-card metric-card--support">
+        <span class="metric-label">Abgeschlossen</span>
+        <strong class="metric-value">${fmt(byStatus['finished'] || 0)}</strong>
+        <span class="metric-sub">${pct(byStatus['finished'] || 0, s.total)} der Sessions</span>
+      </article>
+      <article class="metric-card metric-card--support">
+        <span class="metric-label">Ø Teilnehmer</span>
+        <strong class="metric-value">${p.avgPerSession != null ? p.avgPerSession : '-'}</strong>
+        <span class="metric-sub">${fmt(p.totalJoins)} Joins gesamt</span>
+      </article>
+      <article class="metric-card metric-card--support">
+        <span class="metric-label">Korrekte Antworten</span>
+        <strong class="metric-value">${fmtPct(sub.correctPct)}</strong>
+        <span class="metric-sub">${fmt(sub.total)} Abgaben</span>
+      </article>
+    </div>
+
+    <div class="dashboard-main-grid" style="margin-bottom:16px">
+      <article class="card dashboard-panel dashboard-panel--primary">
+        <div class="dashboard-panel-head">
+          <div>
+            <p class="section-label">Verlauf</p>
+            <h2>Sessions pro Tag</h2>
+          </div>
+        </div>
+        <div style="display:flex;align-items:flex-end;gap:1px;padding:8px 0;overflow:hidden;min-height:50px">
+          ${dayBars}
+        </div>
+      </article>
+
+      <aside class="dashboard-side-column">
+        <article class="card dashboard-panel dashboard-panel--secondary">
+          <div class="dashboard-panel-head dashboard-panel-head--stacked">
+            <div><p class="section-label">Inhalte</p><h2>Beliebteste Modi</h2></div>
+          </div>
+          <table style="width:100%;border-collapse:collapse">
+            <tbody>${modeRows}</tbody>
+          </table>
+        </article>
+
+        <article class="card dashboard-panel dashboard-panel--secondary">
+          <div class="dashboard-panel-head dashboard-panel-head--stacked">
+            <div><p class="section-label">Lifecycle</p><h2>Session-Status</h2></div>
+          </div>
+          <table class="users-table" style="font-size:0.83rem">
+            <tbody>
+              <tr><td>Lobby (offen)</td><td style="text-align:right">${fmt(byStatus['lobby'] || 0)}</td></tr>
+              <tr><td>Laufend</td><td style="text-align:right">${fmt(byStatus['running'] || 0)}</td></tr>
+              <tr><td>Pausiert</td><td style="text-align:right">${fmt(byStatus['paused'] || 0)}</td></tr>
+              <tr><td>Abgeschlossen</td><td style="text-align:right">${fmt(byStatus['finished'] || 0)}</td></tr>
+              <tr><td>Abgebrochen</td><td style="text-align:right">${fmt(byStatus['aborted'] || 0)}</td></tr>
+            </tbody>
+          </table>
+        </article>
+      </aside>
+    </div>
+
+    <div class="dashboard-grid" style="grid-template-columns:1fr 1fr">
+      <article class="card dashboard-panel dashboard-panel--secondary">
+        <div class="dashboard-panel-head dashboard-panel-head--stacked">
+          <div><p class="section-label">Teilnehmer</p><h2>Verbindungen</h2></div>
+        </div>
+        <table class="users-table" style="font-size:0.83rem">
+          <tbody>
+            <tr><td>Gesamt-Joins</td><td style="text-align:right">${fmt(p.totalJoins)}</td></tr>
+            <tr><td>Reconnects</td><td style="text-align:right">${fmt(p.reconnects)}</td></tr>
+            <tr><td>Reconnect-Quote</td><td style="text-align:right">${fmtPct(p.reconnectRate)}</td></tr>
+            <tr><td>Dropped (Timeout)</td><td style="text-align:right">${fmt(p.dropped)}</td></tr>
+          </tbody>
+        </table>
+      </article>
+
+      <article class="card dashboard-panel dashboard-panel--secondary">
+        <div class="dashboard-panel-head dashboard-panel-head--stacked">
+          <div><p class="section-label">Ende</p><h2>Abschlussart</h2></div>
+        </div>
+        <table class="users-table" style="font-size:0.83rem">
+          <tbody>
+            <tr><td>Manuell beendet</td><td style="text-align:right">${fmt(byReason['manual'] || 0)}</td></tr>
+            <tr><td>Alle Modi gespielt</td><td style="text-align:right">${fmt(byReason['completed'] || 0)}</td></tr>
+            <tr><td>Auto-End (Inaktivität)</td><td style="text-align:right">${fmt(auto)}</td></tr>
+            <tr><td>Abgebrochen</td><td style="text-align:right">${fmt(byReason['aborted'] || 0)}</td></tr>
+          </tbody>
+        </table>
+      </article>
+    </div>`
 }
 
 function handleDocumentChange(event) {
@@ -3242,6 +3410,7 @@ function handleDocumentChange(event) {
   if (target.matches('.user-select-checkbox')) return void updateUsersBulkState()
   if (target.dataset.action === 'toggle-entry-selection') return void toggleEntrySelection(target.dataset.datum || '', target.checked)
   if (target.id === 'audit-limit' || target.id === 'audit-action' || target.id === 'audit-resource' || target.id === 'audit-status' || target.id === 'audit-from' || target.id === 'audit-to') return void loadAuditLog()
+  if (target.id === 'classroom-days') return void loadClassroomStats()
 }
 
 function handleDocumentInput(event) {

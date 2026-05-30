@@ -1,12 +1,12 @@
 /**
  * server/classroom/telemetry.js
  *
- * Telemetrie-Events fuer den Klassenraum (T-6.5).
+ * Telemetrie-Events fuer den Klassenraum (T-6.5, W2-T6).
  * Speichert Metriken in classroom_telemetry (getrennt von
  * audit_log – der ist fuer Admin-Aktionen).
  *
  * Verwendung:
- *   import { trackEvent, aggregateMetrics } from './telemetry.js'
+ *   import { trackEvent, getAdminStats } from './telemetry.js'
  *   trackEvent('cr2_session_created', { sessionId, teacherId, payload: { mode } })
  *
  * Fehler beim Schreiben werden geloggt aber nie geworfen – Telemetrie darf
@@ -18,6 +18,17 @@
  *   - Completion-Rate:   (Schüler mit cr2_session_finished-Teilnahme)
  *                        / (Schüler mit cr2_join_succeeded)
  *   - Wiederholungsabsicht: codiert aus Interview (T-6.7), KEIN automatisches Signal
+ *
+ * Events (W2-T6-Erweiterung):
+ *   cr2_session_created, cr2_session_started, cr2_session_finished
+ *   cr2_session_paused, cr2_session_resumed
+ *   cr2_assignment_changed
+ *   cr2_join_attempted, cr2_join_succeeded, cr2_join_failed
+ *   cr2_participant_reconnected, cr2_participant_dropped
+ *   cr2_submission_received
+ *   cr2_session_abandoned
+ *
+ * Keine personenbezogenen Klarnamen – participantId ist pseudonym.
  */
 
 import db from '../db.js'
@@ -64,6 +75,83 @@ const stmts = {
     ORDER BY ts DESC
     LIMIT @limit
   `),
+
+  // ── Admin-Dashboard-Queries (W2-T6) ─────────────────────────────
+
+  // Sessions pro Tag (direkt aus classroom_session, zuverlaessiger als Events)
+  sessionsPerDay: db.prepare(`
+    SELECT
+      date(created_at / 1000, 'unixepoch') AS day,
+      COUNT(*) AS count
+    FROM classroom_session
+    WHERE created_at >= @since AND created_at <= @until
+    GROUP BY day
+    ORDER BY day
+  `),
+
+  // Status-Breakdown
+  statusBreakdown: db.prepare(`
+    SELECT status, COUNT(*) AS count
+    FROM classroom_session
+    WHERE created_at >= @since AND created_at <= @until
+    GROUP BY status
+  `),
+
+  // Beliebteste Modi (aus classroom_assignment)
+  modePopularity: db.prepare(`
+    SELECT a.mode, COUNT(*) AS count
+    FROM classroom_assignment a
+    JOIN classroom_session s ON s.id = a.session_id
+    WHERE s.created_at >= @since AND s.created_at <= @until
+    GROUP BY a.mode
+    ORDER BY count DESC
+  `),
+
+  // Ø-Teilnehmer pro Session (nur Sessions die gestartet wurden)
+  avgParticipants: db.prepare(`
+    SELECT
+      AVG(participant_count) AS avg_participants,
+      SUM(participant_count) AS total_joins
+    FROM (
+      SELECT session_id, COUNT(*) AS participant_count
+      FROM classroom_participant p
+      JOIN classroom_session s ON s.id = p.session_id
+      WHERE s.created_at >= @since AND s.created_at <= @until
+      GROUP BY session_id
+    )
+  `),
+
+  // Auto-End-Quote: reason aus cr2_session_finished-Events
+  finishReasons: db.prepare(`
+    SELECT
+      json_extract(payload_json, '$.reason') AS reason,
+      COUNT(*) AS count
+    FROM classroom_telemetry
+    WHERE event = 'cr2_session_finished'
+      AND ts >= @since AND ts <= @until
+    GROUP BY reason
+  `),
+
+  // Reconnect-Quote: Reconnects vs. Joins
+  reconnectStats: db.prepare(`
+    SELECT
+      COUNT(CASE WHEN event = 'cr2_participant_reconnected' THEN 1 END) AS reconnects,
+      COUNT(CASE WHEN event = 'cr2_participant_dropped'    THEN 1 END) AS dropped,
+      COUNT(CASE WHEN event = 'cr2_join_succeeded'         THEN 1 END) AS total_joins
+    FROM classroom_telemetry
+    WHERE event IN ('cr2_participant_reconnected', 'cr2_participant_dropped', 'cr2_join_succeeded')
+      AND ts >= @since AND ts <= @until
+  `),
+
+  // Submissions: Anzahl und Korrektheit
+  submissionStats: db.prepare(`
+    SELECT
+      COUNT(*) AS total,
+      SUM(CASE WHEN json_extract(payload_json, '$.correct') = 1 THEN 1 ELSE 0 END) AS correct_count
+    FROM classroom_telemetry
+    WHERE event = 'cr2_submission_received'
+      AND ts >= @since AND ts <= @until
+  `),
 }
 
 // ── Kern-Funktion ────────────────────────────────────────────────
@@ -95,8 +183,8 @@ export function trackEvent(event, { sessionId = null, teacherId = null, payload 
 // ── Convenience-Exports (je Event ein benannter Wrapper) ─────────
 
 /** Lehrer legt eine neue Session an. */
-export function trackSessionCreated(sessionId, teacherId, { mode } = {}) {
-  trackEvent('cr2_session_created', { sessionId, teacherId, payload: { mode } })
+export function trackSessionCreated(sessionId, teacherId) {
+  trackEvent('cr2_session_created', { sessionId, teacherId, payload: {} })
 }
 
 /** Join-Versuch (vor DB-Lookup). Wird immer gerufen, egal ob er klappt. */
@@ -124,14 +212,74 @@ export function trackSessionStarted(sessionId, teacherId, participantCount) {
 
 /**
  * Lehrer beendet die Session manuell oder System-Auto-End.
- * @param {number} durationMs  – Zeit von started_at bis jetzt
+ * @param {number} durationMs     – Zeit von started_at bis jetzt
  * @param {number} completionRate – Anteil Schüler mit letzter Submission (0–1)
+ * @param {string} reason         – 'manual' | 'completed' | 'auto' | 'aborted'
  */
-export function trackSessionFinished(sessionId, teacherId, { durationMs, completionRate } = {}) {
+export function trackSessionFinished(sessionId, teacherId, { durationMs, completionRate, reason } = {}) {
   trackEvent('cr2_session_finished', {
     sessionId,
     teacherId,
-    payload: { durationMs, completionRate },
+    payload: { durationMs, completionRate, reason: reason ?? 'manual' },
+  })
+}
+
+/** Session pausiert (W2-T3). */
+export function trackSessionPaused(sessionId, teacherId) {
+  trackEvent('cr2_session_paused', { sessionId, teacherId, payload: {} })
+}
+
+/** Session wieder aufgenommen (W2-T3). */
+export function trackSessionResumed(sessionId, teacherId) {
+  trackEvent('cr2_session_resumed', { sessionId, teacherId, payload: {} })
+}
+
+/**
+ * Modus-Wechsel innerhalb einer laufenden Session (W2-T2).
+ * @param {number} fromIndex – bisheriger Assignment-Index
+ * @param {number} toIndex   – neuer Assignment-Index
+ * @param {string} mode      – Modus des neuen Assignments
+ */
+export function trackAssignmentChanged(sessionId, teacherId, { fromIndex, toIndex, mode } = {}) {
+  trackEvent('cr2_assignment_changed', {
+    sessionId,
+    teacherId,
+    payload: { fromIndex, toIndex, mode },
+  })
+}
+
+/**
+ * Schüler hat sich innerhalb des Reconnect-Windows (5 Min, D6) neu verbunden.
+ * participantId ist pseudonymisiert (kein displayName).
+ */
+export function trackParticipantReconnected(sessionId, participantId) {
+  trackEvent('cr2_participant_reconnected', {
+    sessionId,
+    payload: { participantId },
+  })
+}
+
+/**
+ * Reconnect-Window ist abgelaufen – Schüler endgültig entfernt.
+ * participantId ist pseudonymisiert (kein displayName).
+ */
+export function trackParticipantDropped(sessionId, participantId) {
+  trackEvent('cr2_participant_dropped', {
+    sessionId,
+    payload: { participantId },
+  })
+}
+
+/**
+ * Submission eingegangen (W2-T6). Nur mode und correct – kein participantId,
+ * kein lemmaId (vermeidet personenbezogene Verkettbarkeit).
+ * @param {string} mode    – Spielmodus
+ * @param {boolean} correct – ob die Antwort korrekt war
+ */
+export function trackSubmissionReceived(sessionId, { mode, correct } = {}) {
+  trackEvent('cr2_submission_received', {
+    sessionId,
+    payload: { mode, correct: correct ? 1 : 0 },
   })
 }
 
@@ -197,5 +345,96 @@ export function getRecentEvents({ since, limit = 100 } = {}) {
   } catch (err) {
     logger.error({ err }, 'cr2 telemetry getRecentEvents failed')
     return []
+  }
+}
+
+/**
+ * Admin-Dashboard-Aggregate (W2-T6).
+ * Hybrid-Queries: direkte Tabellen (classroom_session, classroom_assignment,
+ * classroom_participant) fuer stabile Zaehler + classroom_telemetry fuer
+ * Event-spezifische Metriken (reconnect, auto-end, submission).
+ *
+ * @param {object} [opts]
+ * @param {number} [opts.days]   – Zeitraum in Tagen (default: 30)
+ * @param {number} [opts.since]  – Unix-Ms explizit (ueberschreibt days)
+ * @param {number} [opts.until]  – Unix-Ms (default: jetzt)
+ */
+export function getAdminStats({ days = 30, since, until } = {}) {
+  const untilMs = until ?? Date.now()
+  const sinceMs = since ?? untilMs - days * 24 * 60 * 60 * 1000
+  const params  = { since: sinceMs, until: untilMs }
+
+  try {
+    const perDay        = stmts.sessionsPerDay.all(params)
+    const statusRows    = stmts.statusBreakdown.all(params)
+    const modeRows      = stmts.modePopularity.all(params)
+    const partRow       = stmts.avgParticipants.get(params)
+    const reasonRows    = stmts.finishReasons.all(params)
+    const reconnRow     = stmts.reconnectStats.get(params)
+    const submitRow     = stmts.submissionStats.get(params)
+
+    // Status-Breakdown als Objekt
+    const byStatus = { lobby: 0, running: 0, paused: 0, finished: 0, aborted: 0 }
+    for (const r of statusRows) {
+      if (r.status in byStatus) byStatus[r.status] = Number(r.count)
+    }
+    const totalSessions = Object.values(byStatus).reduce((a, b) => a + b, 0)
+
+    // Auto-End-Gruende
+    const byReason = {}
+    for (const r of reasonRows) {
+      byReason[r.reason ?? 'unknown'] = Number(r.count)
+    }
+
+    // Teilnehmer-Statistik
+    const totalJoins      = Number(partRow?.total_joins ?? 0)
+    const avgParticipants = partRow?.avg_participants != null
+      ? Math.round(partRow.avg_participants * 10) / 10
+      : null
+
+    // Reconnect-Quote
+    const reconnects  = Number(reconnRow?.reconnects ?? 0)
+    const dropped     = Number(reconnRow?.dropped    ?? 0)
+    const joinEvents  = Number(reconnRow?.total_joins ?? 0)
+    const reconnectRate = joinEvents > 0
+      ? Math.round((reconnects / joinEvents) * 1000) / 1000
+      : 0
+
+    // Submission-Statistik
+    const submitTotal   = Number(submitRow?.total        ?? 0)
+    const submitCorrect = Number(submitRow?.correct_count ?? 0)
+    const correctPct    = submitTotal > 0
+      ? Math.round((submitCorrect / submitTotal) * 1000) / 1000
+      : null
+
+    return {
+      period: {
+        days,
+        sinceMs,
+        untilMs,
+      },
+      sessions: {
+        total:    totalSessions,
+        perDay:   perDay.map(r => ({ day: r.day, count: Number(r.count) })),
+        byStatus,
+        byReason,
+      },
+      participants: {
+        totalJoins,
+        avgPerSession: avgParticipants,
+        reconnects,
+        dropped,
+        reconnectRate,
+      },
+      modes: modeRows.map(r => ({ mode: r.mode, count: Number(r.count) })),
+      submissions: {
+        total:      submitTotal,
+        correct:    submitCorrect,
+        correctPct,
+      },
+    }
+  } catch (err) {
+    logger.error({ err }, 'cr2 telemetry getAdminStats failed')
+    return null
   }
 }

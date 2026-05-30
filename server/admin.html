@@ -64,6 +64,7 @@
             <button class="nav-item" data-action="switch-page" data-page="freedays">Freitage</button>
             <button class="nav-item" data-action="switch-page" data-page="spezialwoche">Wort der Woche</button>
             <button class="nav-item" data-action="switch-page" data-page="push">Benachrichtigungen</button>
+            <button class="nav-item" data-action="switch-page" data-page="classroom">Klassenraum</button>
             <button class="nav-item" data-action="switch-page" data-page="system">System</button>
           </div>
         </div>
@@ -855,6 +856,30 @@
           </div>
           <div id="sw-list">
             <div class="users-empty">Wird geladen …</div>
+          </div>
+        </div>
+      </section>
+
+      <section class="admin-page" id="page-classroom" data-title="Klassenraum" data-subtitle="Telemetrie und Nutzungsstatistiken des Klassenraum-Modus.">
+        <div class="card">
+          <div class="card-head card-head--wrap">
+            <div>
+              <p class="section-label">Klassenraum</p>
+              <h2>Statistiken</h2>
+            </div>
+            <div style="display:flex; gap:8px; align-items:center">
+              <label for="classroom-days" style="font-size:0.83rem; white-space:nowrap">Zeitraum</label>
+              <select id="classroom-days" class="filter-select">
+                <option value="7">7 Tage</option>
+                <option value="30" selected>30 Tage</option>
+                <option value="90">90 Tage</option>
+                <option value="365">365 Tage</option>
+              </select>
+              <button class="entry-filters-reset" data-action="load-classroom-stats">↺ Laden</button>
+            </div>
+          </div>
+          <div id="classroom-stats-output">
+            <div class="users-empty">Klassenraum-Statistiken werden geladen …</div>
           </div>
         </div>
       </section>

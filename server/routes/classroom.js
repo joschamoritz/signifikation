@@ -28,6 +28,10 @@ import {
   trackJoinFailed,
   trackSessionStarted,
   trackSessionFinished,
+  trackSessionPaused,
+  trackSessionResumed,
+  trackAssignmentChanged,
+  trackSubmissionReceived,
 } from '../classroom/telemetry.js'
 import {
   validate,
@@ -694,7 +698,7 @@ router.post(
       const participantCount = db.prepare(
         'SELECT COUNT(1) AS c FROM classroom_participant WHERE session_id = ? AND left_at IS NULL',
       ).get(sessionId)?.c ?? 0
-      trackSessionStarted(sessionId, teacherUserId, participantCount)
+      trackSessionStarted(sessionId, teacherUserId, Number(participantCount))
       // Broadcast an Schueler- und Teacher-Room (Plan §6: session:started).
       // Mode wird aus dem (einzigen, D2) Assignment gezogen, falls vorhanden.
       const assignments = listAssignments(sessionId)
@@ -743,7 +747,7 @@ router.post(
         'SELECT COUNT(DISTINCT participant_id) AS c FROM classroom_submission WHERE session_id = ?',
       ).get(sessionId)?.c ?? 0
       const completionRate = totalParts > 0 ? submittedParts / totalParts : 0
-      trackSessionFinished(sessionId, teacherUserId, { durationMs, completionRate })
+      trackSessionFinished(sessionId, teacherUserId, { durationMs, completionRate, reason: reason || 'manual' })
       notifySessionFinished(sessionId, {
         sessionId,
         finishedAt: result.session.finishedAt,
@@ -775,6 +779,7 @@ router.post(
         const mapped = mapError(result.error)
         return res.status(mapped.status).json({ error: mapped.message })
       }
+      trackSessionPaused(sessionId, teacherUserId)
       notifySessionPaused(sessionId, {
         sessionId,
         pausedAt: result.session.pausedAt,
@@ -805,6 +810,7 @@ router.post(
         const mapped = mapError(result.error)
         return res.status(mapped.status).json({ error: mapped.message })
       }
+      trackSessionResumed(sessionId, teacherUserId)
       notifySessionResumed(sessionId, {
         sessionId,
         resumedAt: result.session.lastActivityAt,
@@ -852,7 +858,7 @@ router.post(
           'SELECT COUNT(DISTINCT participant_id) AS c FROM classroom_submission WHERE session_id = ?',
         ).get(sessionId)?.c ?? 0
         const completionRate = totalParts > 0 ? submittedParts / totalParts : 0
-        trackSessionFinished(sessionId, teacherUserId, { durationMs, completionRate })
+        trackSessionFinished(sessionId, teacherUserId, { durationMs, completionRate, reason: 'completed' })
         notifySessionFinished(sessionId, {
           sessionId,
           finishedAt: result.session.finishedAt,
@@ -867,6 +873,11 @@ router.post(
         { sessionId, index: result.index, total: result.total, mode: result.assignment.mode },
         'cr2 advanced to next assignment',
       )
+      trackAssignmentChanged(sessionId, teacherUserId, {
+        fromIndex: result.index - 1,
+        toIndex:   result.index,
+        mode:      result.assignment.mode,
+      })
       notifyAssignmentChanged(sessionId, {
         sessionId,
         assignmentId: result.assignment.id,
@@ -1064,6 +1075,16 @@ router.post(
       }
 
       const scoredAt = Date.now()
+      // Telemetrie: nur mode + correct, kein participantId/lemmaId (D7 / Pseudonymisierung)
+      const submissionAssignment = (() => {
+        try {
+          return db.prepare('SELECT mode FROM classroom_assignment WHERE id = ?').get(assignmentId)
+        } catch { return null }
+      })()
+      trackSubmissionReceived(sessionId, {
+        mode:    submissionAssignment?.mode ?? 'unknown',
+        correct: result.correct,
+      })
       notifySubmissionReceived(sessionId, {
         participantId: participant.id,
         assignmentId,
