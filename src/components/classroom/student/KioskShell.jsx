@@ -59,6 +59,8 @@ function ExitConfirmModal({ open, onClose, onConfirm }) {
  *   onLeave           — callback nach bestätigtem Verlassen
  *   loggedInUserLabel — wenn gesetzt: zeigt unten den Auth-Banner
  *   confirmExit       — wenn false, kein Modal (z. B. beim S5 'ended'-State)
+ *   reconnecting      — wenn true: dezenter „Verbindung wird wiederhergestellt…"-
+ *                       Hinweis (W2-T5). Der Spielscreen bleibt darunter erhalten.
  *   toast             — kurzer Hinweis-Text (Submit-Fehler), 3s sichtbar
  */
 export default function KioskShell({
@@ -66,6 +68,7 @@ export default function KioskShell({
   onLeave,
   loggedInUserLabel = null,
   confirmExit = true,
+  reconnecting = false,
   toast = null,
   children,
 }) {
@@ -105,6 +108,18 @@ export default function KioskShell({
           Verlassen
         </button>
       </header>
+
+      {reconnecting && (
+        <div
+          className="cr2-kiosk__reconnect"
+          role="status"
+          aria-live="polite"
+          data-testid="cr2-kiosk-reconnect"
+        >
+          <span className="cr2-kiosk__reconnect-dot" aria-hidden="true" />
+          Verbindung wird wiederhergestellt …
+        </div>
+      )}
 
       <main className="cr2-kiosk__main">
         {children}

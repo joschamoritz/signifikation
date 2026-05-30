@@ -25,6 +25,7 @@ import NameState        from '../states/NameState'
 import WaitingState     from '../states/WaitingState'
 import SubmittedState   from '../states/SubmittedState'
 import StudentJoinEntry from '../StudentJoinEntry'
+import KioskShell       from '../KioskShell'
 
 function renderWith(stateOverride) {
   return render(
@@ -146,5 +147,24 @@ describe('SubmittedState (T-5.7)', () => {
     }
     renderWith(s)
     expect(screen.getByText(/session beendet/i)).toBeTruthy()
+  })
+})
+
+describe('KioskShell Reconnect-Hinweis (W2-T5)', () => {
+  afterEach(() => cleanup())
+
+  it('zeigt den Hinweis NICHT, wenn reconnecting=false', () => {
+    render(<KioskShell code="morgentau" reconnecting={false}><div>inhalt</div></KioskShell>)
+    expect(screen.queryByTestId('cr2-kiosk-reconnect')).toBeNull()
+    // Spielinhalt bleibt sichtbar.
+    expect(screen.getByText('inhalt')).toBeTruthy()
+  })
+
+  it('zeigt den dezenten Hinweis, wenn reconnecting=true — Inhalt bleibt erhalten', () => {
+    render(<KioskShell code="morgentau" reconnecting={true}><div>inhalt</div></KioskShell>)
+    const banner = screen.getByTestId('cr2-kiosk-reconnect')
+    expect(banner.textContent).toMatch(/verbindung wird wiederhergestellt/i)
+    // Der Spielscreen wird NICHT ersetzt (Eingaben gehen nicht verloren).
+    expect(screen.getByText('inhalt')).toBeTruthy()
   })
 })

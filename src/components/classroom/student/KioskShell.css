@@ -66,6 +66,32 @@
   color: var(--k-accent);
 }
 
+/* ── Reconnect-Hinweis (W2-T5) ──────────────────────────────────────── */
+/* Dezenter Streifen unter dem Header — kein Modal, der Spielscreen bleibt
+   sichtbar und bedienbar. Wörterbuch-Ästhetik: kursiv, gedämpft, Gold-Puls. */
+.cr2-kiosk__reconnect {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 8px 14px;
+  background: #fffbef;
+  border-bottom: 1px solid var(--k-gold);
+  font-family: 'Gentium Plus', Georgia, serif;
+  font-style: italic;
+  font-size: 0.85rem;
+  color: var(--k-muted);
+}
+
+.cr2-kiosk__reconnect-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--k-gold);
+  display: inline-block;
+  animation: cr2-kiosk-pulse 1.6s ease-in-out infinite;
+}
+
 /* ── Main-Container ─────────────────────────────────────────────────── */
 .cr2-kiosk__main {
   flex: 1;

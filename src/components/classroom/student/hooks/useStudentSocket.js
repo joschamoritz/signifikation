@@ -8,19 +8,36 @@
 //   - view:updated      → refreshView (Server pusht das nach jedem Submit)
 //   - kicked            → SESSION_ENDED('kicked')
 //
-// Reconnect: socket.io-client reconnect-Logik schickt handshake.auth
-// automatisch mit, kein extra student:hello noetig. Bei flakigem WLAN
-// kommt unser Pending-Pfad (student-pending + student:hello) NICHT zum
-// Einsatz, weil wir den Token von Anfang an im Handshake haben.
+// Wiederverbindungs-Strategie (W2-T5): wir verlassen uns BEWUSST auf die
+// eingebaute exponentielle Backoff-Mechanik von socket.io-client — KEIN
+// eigener setTimeout-Retry (das waere ein Timing-Bastel statt einer Loesung).
+// Der Manager verdoppelt den Delay je Versuch (reconnectionDelay →
+// reconnectionDelayMax) und streut ihn per randomizationFactor, sodass eine
+// ganze Klasse nach einem WLAN-Drop nicht gleichzeitig gegen den Server
+// haemmert (thundering herd). reconnectionAttempts ist unendlich, weil ein
+// 30-s-Abbruch (D6: 5-Min-Fenster) muehelos ueberbrueckbar sein muss.
+// Der Token steckt im handshake.auth und wird bei JEDEM Reconnect-Versuch
+// automatisch erneut mitgeschickt → der Server bindet uns an denselben
+// classroom_participant (kein neuer Teilnehmer, kein verlorener Platz).
+//
+// Nach jedem erfolgreichen (Re-)Connect holen wir den Wahrheitszustand per
+// /me/view (server-autoritativ, D13) — der alte Client-State wird nicht blind
+// weiterbenutzt. So landet der Schueler nach einem Moduswechsel waehrend des
+// Abbruchs (assignment:changed, W2-T2) im korrekten aktiven Assignment.
 
 import { useEffect, useRef, useState } from 'react'
 
 const NAMESPACE = '/cr2'
 
 export function useStudentSocket({ token, enabled = true, onRefreshView, onSessionStarted, onSessionEnded, onSessionPaused, onSessionResumed }) {
-  const [connected, setConnected] = useState(false)
-  const [error, setError]         = useState(null)
-  const socketRef = useRef(null)
+  const [connected, setConnected]       = useState(false)
+  // reconnecting = wir waren schon mal verbunden, sind es jetzt nicht und der
+  // Manager versucht (per Backoff oben) gerade die Wiederverbindung. Steuert
+  // den dezenten „Verbindung wird wiederhergestellt…"-Hinweis in der Shell.
+  const [reconnecting, setReconnecting] = useState(false)
+  const [error, setError]               = useState(null)
+  const socketRef     = useRef(null)
+  const everConnected = useRef(false)
 
   const handlersRef = useRef({ onRefreshView, onSessionStarted, onSessionEnded, onSessionPaused, onSessionResumed })
   useEffect(() => { handlersRef.current = { onRefreshView, onSessionStarted, onSessionEnded, onSessionPaused, onSessionResumed } },
@@ -40,19 +57,39 @@ export function useStudentSocket({ token, enabled = true, onRefreshView, onSessi
           transports: ['websocket', 'polling'],
           auth: { token },
           // KEIN withCredentials — Schueler hat keine Auth-Cookies.
+          // Exponentielles Backoff (Begruendung im Datei-Header):
+          reconnection:         true,
+          reconnectionAttempts: Infinity,
+          reconnectionDelay:    800,
+          reconnectionDelayMax: 5000,
+          randomizationFactor:  0.5,
         })
         socketRef.current = socket
 
         socket.on('connect', () => {
+          everConnected.current = true
           setConnected(true)
+          setReconnecting(false)
           setError(null)
           // Nach jedem Reconnect frisches /me/view holen — Server-State
           // koennte sich in der Disconnect-Phase geaendert haben.
           try { handlersRef.current?.onRefreshView?.() } catch {}
         })
-        socket.on('disconnect', () => setConnected(false))
+        socket.on('disconnect', (reason) => {
+          setConnected(false)
+          // 'io client disconnect' = wir haben selbst getrennt (Unmount/Leave)
+          // → kein Reconnect-Hinweis. Alles andere (transport close, ping
+          // timeout, transport error) ist ein echter Abbruch, bei dem der
+          // Manager automatisch weiterversucht → Hinweis einblenden.
+          if (everConnected.current && reason !== 'io client disconnect') {
+            setReconnecting(true)
+          }
+        })
         socket.on('connect_error', (err) => {
           setError(err?.message || 'Socket-Fehler')
+          // Erst-Connect fehlgeschlagen ist kein „reconnect"; nur wenn wir
+          // schon einmal verbunden waren, ist das ein echter Wiederaufbau.
+          if (everConnected.current) setReconnecting(true)
         })
 
         socket.on('session:started', (payload) => {
@@ -96,9 +133,11 @@ export function useStudentSocket({ token, enabled = true, onRefreshView, onSessi
       try { socket?.removeAllListeners() } catch {}
       try { socket?.disconnect() } catch {}
       socketRef.current = null
+      everConnected.current = false
       setConnected(false)
+      setReconnecting(false)
     }
   }, [token, enabled])
 
-  return { connected, error }
+  return { connected, reconnecting, error }
 }

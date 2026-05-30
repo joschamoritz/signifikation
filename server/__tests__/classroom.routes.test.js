@@ -1134,4 +1134,120 @@ describe('classroom routes', () => {
       expect(status).toBe(400)
     })
   })
+
+  // ── W2-T5: State-Restore + Anti-Doppelsubmission ─────────────
+  // Nach einem Reconnect holt der Kiosk den Wahrheitszustand per /me/view
+  // (server-autoritativ, D13) und sendet keine Submission doppelt.
+
+  describe('W2-T5 Reconnect-Wahrheitszustand', () => {
+    const TEACHER_ID = `cr2-teacher-w2t5-${randomUUID()}`
+    let lemmaId
+
+    beforeAll(() => {
+      ensureUser(TEACHER_ID)
+      lemmaId = insertTestLemma('w2t5')
+    })
+    afterAll(() => cleanupTeacher(TEACHER_ID))
+
+    /** Session anlegen, Assignment, Start, Join → { sessionId, assignmentId, token } */
+    async function liveSessionWithStudent() {
+      const { session } = createSession({ teacherUserId: TEACHER_ID, title: 'W2T5' })
+      const aRes = await fetch(`${baseUrl}/api/v1/classroom/sessions/${session.id}/assignments`, {
+        method: 'POST', headers: teacherHeaders(TEACHER_ID),
+        body: JSON.stringify({ mode: 'kollokationen', lemmaIds: [lemmaId] }),
+      })
+      const assignmentId = (await aRes.json()).id
+      await fetch(`${baseUrl}/api/v1/classroom/sessions/${session.id}/start`, {
+        method: 'POST', headers: teacherHeaders(TEACHER_ID), body: JSON.stringify({}),
+      })
+      const jRes = await fetch(`${baseUrl}/api/v1/classroom/join`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', 'x-forwarded-for': '10.0.5.1' },
+        body: JSON.stringify({ code: session.code, displayName: 'Reco' }),
+      })
+      const { token, participantId } = await jRes.json()
+      return { sessionId: session.id, assignmentId, token, participantId }
+    }
+
+    async function submit(token, assignmentId, selected) {
+      const res = await fetch(`${baseUrl}/api/v1/classroom/me/submit`, {
+        method: 'POST', headers: participantHeaders(token),
+        body: JSON.stringify({ assignmentId, lemmaId, roundIndex: 0, rawAnswer: { selected } }),
+      })
+      return { status: res.status, body: await res.json().catch(() => null) }
+    }
+
+    it('State-Restore: /me/view nach Submit liefert aktives Assignment + done-Flag', async () => {
+      const { token, assignmentId } = await liveSessionWithStudent()
+      const s = await submit(token, assignmentId, ['stark', 'groß', 'klein'])
+      expect(s.status).toBe(200)
+
+      // Reconnect-Simulation: frischer /me/view-Abruf (Server ist Wahrheit).
+      const res = await fetch(`${baseUrl}/api/v1/classroom/me/view`, {
+        headers: participantHeaders(token),
+      })
+      expect(res.status).toBe(200)
+      const view = await res.json()
+      expect(view.assignment?.id).toBe(assignmentId)
+      expect(view.assignment?.mode).toBe('kollokationen')
+      // „Submitted-Flag": das einzige Lemma ist abgegeben → done.
+      expect(view.progress.done).toBe(true)
+      expect(view.progress.submittedCount).toBe(1)
+    })
+
+    it('Zweit-Submission nach Reconnect zaehlt nicht doppelt (idempotent, ein Score-Record)', async () => {
+      const { token, assignmentId, participantId } = await liveSessionWithStudent()
+      const first  = await submit(token, assignmentId, ['stark', 'groß', 'klein'])
+      const second = await submit(token, assignmentId, ['stark', 'groß', 'klein'])
+
+      expect(first.status).toBe(200)
+      expect(second.status).toBe(200)
+      // Gleicher Score, aber: serverseitig nur EIN Score-Record (kein Doppel).
+      expect(second.body.score).toBe(first.body.score)
+      const scoreRows = db.prepare(
+        'SELECT COUNT(1) AS c FROM classroom_score_record WHERE participant_id = ? AND assignment_id = ?',
+      ).get(participantId, assignmentId).c
+      expect(scoreRows).toBe(1)
+      const subRows = db.prepare(
+        'SELECT COUNT(1) AS c FROM classroom_submission WHERE participant_id = ? AND assignment_id = ?',
+      ).get(participantId, assignmentId).c
+      expect(subRows).toBe(1)
+    })
+
+    it('Submission an ein nicht mehr aktives Assignment wird abgelehnt (ASSIGNMENT_NOT_ACTIVE → 409)', async () => {
+      // Multi-Modus: nach next-assignment ist Block 0 nicht mehr aktiv.
+      const { session } = createSession({ teacherUserId: TEACHER_ID, title: 'W2T5-multi' })
+      const bulk = await fetch(`${baseUrl}/api/v1/classroom/sessions/${session.id}/assignments/bulk`, {
+        method: 'POST', headers: teacherHeaders(TEACHER_ID),
+        body: JSON.stringify({ blocks: [
+          { mode: 'kollokationen', lemmaIds: [lemmaId] },
+          { mode: 'kollokationen', lemmaIds: [lemmaId] },
+        ] }),
+      })
+      const firstAssignmentId = (await bulk.json()).assignments[0].id
+      await fetch(`${baseUrl}/api/v1/classroom/sessions/${session.id}/start`, {
+        method: 'POST', headers: teacherHeaders(TEACHER_ID), body: JSON.stringify({}),
+      })
+      const jRes = await fetch(`${baseUrl}/api/v1/classroom/join`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', 'x-forwarded-for': '10.0.5.2' },
+        body: JSON.stringify({ code: session.code, displayName: 'Reco2' }),
+      })
+      const { token } = await jRes.json()
+
+      // Lehrer schaltet weiter — Block 0 ist jetzt Vergangenheit.
+      await fetch(`${baseUrl}/api/v1/classroom/sessions/${session.id}/next-assignment`, {
+        method: 'POST', headers: teacherHeaders(TEACHER_ID), body: JSON.stringify({}),
+      })
+
+      // Stale-Client (alter State nach Reconnect) sendet an Block 0 → abgelehnt.
+      const res = await fetch(`${baseUrl}/api/v1/classroom/me/submit`, {
+        method: 'POST', headers: participantHeaders(token),
+        body: JSON.stringify({ assignmentId: firstAssignmentId, lemmaId, roundIndex: 0, rawAnswer: { selected: ['stark'] } }),
+      })
+      expect(res.status).toBe(409)
+      const body = await res.json()
+      expect(body.error).toBeTruthy()
+    })
+  })
 })

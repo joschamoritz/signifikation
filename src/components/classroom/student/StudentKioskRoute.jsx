@@ -104,7 +104,7 @@ function KioskRouteInner({ code, userLabel }) {
   // Wir verdrahten das gleich mit useStudentSession.refreshView (unten).
   const refreshRef = useState(() => ({ fn: () => {} }))[0]
 
-  const { connected: socketConnected } = useStudentSocket({
+  const { connected: socketConnected, reconnecting } = useStudentSocket({
     token: state.token,
     enabled: !!state.token,
     onRefreshView: () => { refreshRef.fn() },
@@ -138,12 +138,22 @@ function KioskRouteInner({ code, userLabel }) {
   // Bestaetigungs-Modal beim Verlassen NUR in playing/submitted.
   const confirmExit = state.currentState === KIOSK_STATES.PLAYING || state.currentState === KIOSK_STATES.SUBMITTED
 
+  // Reconnect-Hinweis nur waehrend einer aktiven Teilnahme — im Namens-/
+  // End-Screen ist er bedeutungslos. Eingaben in PlayingState bleiben dabei
+  // erhalten (der Screen wird NICHT ausgetauscht, nur ein Banner ueberlagert).
+  const showReconnecting = reconnecting && (
+    state.currentState === KIOSK_STATES.WAITING ||
+    state.currentState === KIOSK_STATES.PLAYING ||
+    state.currentState === KIOSK_STATES.SUBMITTED
+  )
+
   return (
     <KioskShell
       code={code}
       onLeave={() => { leave() }}
       loggedInUserLabel={userLabel}
       confirmExit={confirmExit}
+      reconnecting={showReconnecting}
       toast={toast}
     >
       <StateRouter onToast={setToast} />

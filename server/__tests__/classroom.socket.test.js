@@ -36,7 +36,14 @@ const {
   finishSession,
   joinByCode,
   revokeCapability,
+  findParticipantByToken,
 } = await import('../classroom/store.js')
+
+function countActiveParticipants(sessionId) {
+  return db.prepare(
+    'SELECT COUNT(1) AS c FROM classroom_participant WHERE session_id = ? AND left_at IS NULL',
+  ).get(sessionId).c
+}
 
 const RECONNECT_WINDOW_MS = 200
 const TEACHER = `cr2-sock-teacher-${randomUUID()}`
@@ -365,5 +372,71 @@ describe('classroom socket (T-3.1 / T-3.2 / T-3.3)', () => {
     const socket = connectStudent(baseUrl, participant.token)
     openSockets.push(socket)
     await awaitConnect(socket) // view:student wurde NICHT revoked → Connect OK
+  })
+
+  // ── W2-T5: Reconnect-Robustheit ────────────────────────────────
+
+  describe('W2-T5 Reconnect-Robustheit', () => {
+    it('Reconnect bindet denselben participant — kein Duplikat in der DB', async () => {
+      const { session, participant } = setupSessionWithStudent()
+      expect(countActiveParticipants(session.id)).toBe(1)
+
+      let student = connectStudent(baseUrl, participant.token)
+      openSockets.push(student)
+      await awaitConnect(student)
+      await sleep(20)
+
+      // Abbruch + Wiederanmeldung mit DEMSELBEN Token, innerhalb des Windows.
+      student.disconnect()
+      await sleep(RECONNECT_WINDOW_MS / 2)
+      student = connectStudent(baseUrl, participant.token)
+      openSockets.push(student)
+      await awaitConnect(student)
+      await sleep(20)
+
+      // Kein neuer Teilnehmer: weder ein zweiter classroom_participant noch
+      // ein verlorener Platz. Der Token zeigt weiterhin auf dieselbe id.
+      expect(countActiveParticipants(session.id)).toBe(1)
+      const resolved = findParticipantByToken(participant.token)
+      expect(resolved?.id).toBe(participant.id)
+      expect(resolved?.leftAt).toBeFalsy()
+    })
+
+    it('Ablauf des Reconnect-Fensters entfernt den Teilnehmer endgueltig (left_at gesetzt)', async () => {
+      const { session, participant } = setupSessionWithStudent()
+
+      const student = connectStudent(baseUrl, participant.token)
+      openSockets.push(student)
+      await awaitConnect(student)
+      await sleep(20)
+      expect(countActiveParticipants(session.id)).toBe(1)
+
+      student.disconnect()
+      // Window + Puffer abwarten — Timer feuert, leaveParticipant setzt left_at.
+      await sleep(RECONNECT_WINDOW_MS + 150)
+
+      const resolved = findParticipantByToken(participant.token)
+      expect(resolved?.leftAt).toBeTruthy()
+      expect(countActiveParticipants(session.id)).toBe(0)
+    })
+
+    it('Reconnect NACH abgelaufenem Fenster wird abgelehnt (leftAt-Gate)', async () => {
+      const { session, participant } = setupSessionWithStudent()
+
+      let student = connectStudent(baseUrl, participant.token)
+      openSockets.push(student)
+      await awaitConnect(student)
+      await sleep(20)
+
+      student.disconnect()
+      await sleep(RECONNECT_WINDOW_MS + 150) // endgueltig entfernt
+
+      // Erneuter Connect-Versuch mit demselben (nun ungueltigen) Token.
+      student = connectStudent(baseUrl, participant.token)
+      openSockets.push(student)
+      await expect(awaitConnect(student)).rejects.toThrow(/UNAUTHORIZED/)
+      // Session-Konsistenz: weiterhin niemand aktiv.
+      expect(countActiveParticipants(session.id)).toBe(0)
+    })
   })
 })
