@@ -57,7 +57,7 @@ export default function ClassroomGameWortZwilling({ lemma, prompt, onSubmit, sub
           role="button"
           tabIndex={0}
           onClick={() => placeInZone('A')}
-          onKeyDown={(e) => { if (e.key === 'Enter') placeInZone('A') }}
+          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); placeInZone('A') } }}
           data-testid="cr2-kiosk-wz-zoneA"
         >
           <p className="cr2-kiosk__zone__label">{prompt?.wortA || 'A'}</p>
@@ -76,7 +76,7 @@ export default function ClassroomGameWortZwilling({ lemma, prompt, onSubmit, sub
           role="button"
           tabIndex={0}
           onClick={() => placeInZone('B')}
-          onKeyDown={(e) => { if (e.key === 'Enter') placeInZone('B') }}
+          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); placeInZone('B') } }}
           data-testid="cr2-kiosk-wz-zoneB"
         >
           <p className="cr2-kiosk__zone__label">{prompt?.wortB || 'B'}</p>
@@ -100,7 +100,7 @@ export default function ClassroomGameWortZwilling({ lemma, prompt, onSubmit, sub
             tabIndex={0}
             className={`cr2-kiosk__pill ${picked === w ? 'cr2-kiosk__choice--picked' : ''}`}
             onClick={() => setPicked(picked === w ? null : w)}
-            onKeyDown={(e) => { if (e.key === 'Enter') setPicked(picked === w ? null : w) }}
+            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setPicked(picked === w ? null : w) } }}
             style={picked === w ? { borderColor: 'var(--k-accent)' } : undefined}
             data-testid={`cr2-kiosk-wz-pill-${w}`}
           >

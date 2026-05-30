@@ -85,7 +85,8 @@ export default function NameState() {
       <p className="cr2-kiosk__dropcap">N</p>
       <h1 className="cr2-kiosk__title">Wie heißt du?</h1>
       <p className="cr2-kiosk__lead">
-        Spitzname reicht — wird nur deiner Lehrkraft angezeigt.
+        Kein echter Name nötig — ein Spitzname reicht. Er wird nur deiner Lehrkraft
+        angezeigt und nach der Stunde gelöscht.
       </p>
 
       <form onSubmit={handleSubmit} noValidate>

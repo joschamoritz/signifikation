@@ -41,7 +41,7 @@ function ChoiceRound({ round, submitting, onSubmit }) {
             role="button"
             tabIndex={0}
             onClick={() => setPicked(opt)}
-            onKeyDown={(e) => { if (e.key === 'Enter') setPicked(opt) }}
+            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setPicked(opt) } }}
             data-testid={`cr2-kiosk-lf-choice-${opt}`}
           >
             <span>{opt}</span>

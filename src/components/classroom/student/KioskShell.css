@@ -165,8 +165,24 @@
 }
 
 .cr2-kiosk__input:focus {
-  outline: none;
+  outline: 2px solid var(--k-accent);
+  outline-offset: 1px;
   border-color: var(--k-accent);
+}
+
+/* ── Tastatur-Fokus (WCAG 2.4.7) ────────────────────────────────────── */
+/* Custom-Buttons (role="button") und echte Buttons brauchen einen sichtbaren
+   Fokusring — Gold passt zur Wörterbuch-Ästhetik und hebt sich vom roten
+   :focus des Inputs ab. :focus-visible blendet ihn bei reinem Maus-/Touch-
+   Tap aus. */
+.cr2-kiosk__choice:focus-visible,
+.cr2-kiosk__pill:focus-visible,
+.cr2-kiosk__zone:focus-visible,
+.cr2-kiosk__zw-action:focus-visible,
+.cr2-kiosk__btn:focus-visible,
+.cr2-kiosk__exit:focus-visible {
+  outline: 2px solid var(--k-gold);
+  outline-offset: 2px;
 }
 
 .cr2-kiosk__input--shake {
