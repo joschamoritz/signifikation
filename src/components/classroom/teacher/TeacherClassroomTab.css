@@ -19,23 +19,54 @@
   padding: 0 0 96px;
 }
 
-.cr2-teacher__topbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 24px 20px 12px;
+/* F1 — App-Header im Woerterbuch-Stil (Desktop: zentriert + Gold-Trennlinie),
+   analog zur Startseite (.test-title-section). */
+.cr2-teacher__masthead {
   max-width: 680px;
   margin: 0 auto;
-  border-bottom: 1px solid var(--cr2-rule-lt);
+  padding: 44px 20px 24px;
+  text-align: center;
 }
-
+.cr2-teacher__masthead::after {
+  content: '';
+  display: block;
+  margin: 22px auto 0;
+  width: 80px;
+  border-top: 2px solid var(--cr2-gold);
+}
+.cr2-teacher__overline {
+  font-family: 'DM Sans', system-ui, sans-serif;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  color: var(--cr2-muted);
+  margin: 0 0 10px;
+}
 .cr2-teacher__title {
   font-family: 'Gentium Plus', Georgia, serif;
-  font-size: 1.6rem;
+  font-size: clamp(2.2rem, 6vw, 3.4rem);
   font-weight: 700;
   margin: 0;
-  letter-spacing: 0.01em;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--cr2-text);
+  line-height: 1.05;
+}
+
+/* Mobil: kompakter, linksbuendiger Header mit Gold-Unterkante */
+@media (max-width: 767px) {
+  .cr2-teacher__masthead {
+    padding: 10px 20px 8px;
+    text-align: left;
+    border-bottom: 2px solid var(--cr2-gold);
+  }
+  .cr2-teacher__masthead::after { display: none; }
+  .cr2-teacher__overline { display: none; }
+  .cr2-teacher__title {
+    font-size: 1.3rem;
+    letter-spacing: 0.1em;
+  }
 }
 
 .cr2-teacher__main {
@@ -46,13 +77,13 @@
 
 /* ── Geteilte Bausteine ──────────────────────────────────────────── */
 
+/* F1 — Empty-State ohne Kasten: zentriert auf Pergament, Drop-Cap traegt. */
 .cr2-empty {
-  padding: 48px 24px;
+  padding: 56px 24px;
   text-align: center;
-  background: var(--cr2-card-bg);
-  border: 1px solid var(--cr2-rule-lt);
-  border-radius: 4px;
-  margin-top: 24px;
+  background: transparent;
+  border: none;
+  margin-top: 8px;
 }
 
 .cr2-empty__dropcap {
@@ -163,29 +194,33 @@
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 0;
 }
 
+/* F1 — Karten als Linien-getrennte Eintraege statt umrahmter Kaesten.
+   Gold-Linksakzent markiert die Auswahl (kein Rahmen-Wechsel, keine Schatten). */
 .cr2-card {
-  background: var(--cr2-card-bg);
-  border: 1px solid var(--cr2-rule-lt);
-  border-radius: 4px;
-  padding: 16px 18px;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--cr2-rule-lt);
+  border-left: 3px solid transparent;
+  border-radius: 0;
+  padding: 14px 6px 14px 14px;
   cursor: pointer;
   display: block;
   width: 100%;
   text-align: left;
   font: inherit;
   color: inherit;
+  transition: background 0.12s ease, border-left-color 0.12s ease;
 }
 
 .cr2-card:hover {
-  border-color: var(--cr2-rule);
-  background: #fdfcf8;
+  background: #f4f1e9;
 }
 
 .cr2-card--active {
-  border-color: var(--cr2-gold);
+  border-left-color: var(--cr2-gold);
   background: #fffbef;
 }
 
@@ -810,13 +845,16 @@
 }
 
 /* ── W2-T2: Modus-Bloecke im Setup ───────────────────────────────── */
+/* F1 — Modus-Block als Linien-Sektion: Doppellinie oben + dezenter Gold-
+   Linksakzent statt umrahmtem Kasten (keine Schatten, kein radius). */
 .cr2-block {
-  border: 1px solid var(--cr2-rule-lt);
+  border: none;
+  border-top: 1px solid var(--cr2-rule);
   border-left: 3px solid var(--cr2-gold);
-  border-radius: 6px;
-  padding: 16px;
-  margin-bottom: 16px;
-  background: var(--cr2-card-bg);
+  border-radius: 0;
+  padding: 18px 0 20px 16px;
+  margin-bottom: 4px;
+  background: transparent;
 }
 
 .cr2-block__head {

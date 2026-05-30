@@ -27,7 +27,8 @@ export default function TeacherClassroomTab() {
   return (
     <TeacherClassroomProvider>
       <div className="cr2-teacher">
-        <header className="cr2-teacher__topbar">
+        <header className="cr2-teacher__masthead" role="banner">
+          <p className="cr2-teacher__overline">Unterricht · Live-Session</p>
           <h1 className="cr2-teacher__title">Klassenraum</h1>
         </header>
         <main className="cr2-teacher__main">
