@@ -26,6 +26,10 @@ import {
   listTeacherSessions,
   hasCapability,
   DEFAULT_AUTO_END_IDLE_MS,
+  runClassroomRetention,
+  DEFAULT_NAME_ANONYMIZE_MS,
+  DEFAULT_HARD_DELETE_MS,
+  ANONYMIZED_DISPLAY_NAME,
 } from '../classroom/store.js'
 
 const TEACHER_A = `test-store-teacher-A-${randomUUID()}`
@@ -824,6 +828,116 @@ describe('classroom/store', () => {
       const ids = ended.map((s) => s.id)
       expect(ids).not.toContain(lobby.id)
       expect(ids).not.toContain(finished.id)
+    })
+  })
+
+  describe('runClassroomRetention (E1/D9)', () => {
+    // WICHTIG: Die Tests laufen gegen die echte signifikation.db (kein APP_DB).
+    // Damit der Sweep NIE reale Sessions trifft, altern wir finished_at auf
+    // einen winzigen Epoch-Wert und waehlen `now` klein. Bedingung ist
+    // `finished_at <= threshold`; reale Zeilen (finished_at ~1.7e12) liegen weit
+    // ueber jeder hier abgeleiteten Schwelle und werden so nie erfasst.
+    const AGED = 1_000_000 // ~1970, beliebig „alt"
+
+    // Beendete Session mit 1 Teilnehmer (Klarname) + 1 Submission; finished_at
+    // wird auf `agedAt` zurueckdatiert.
+    function finishedSessionWithData(displayName = 'Max Mustermann', agedAt = AGED) {
+      const { session } = createSession({ teacherUserId: TEACHER_A })
+      const { assignment } = addAssignment({
+        sessionId: session.id, teacherUserId: TEACHER_A,
+        mode: 'kollokationen', lemmaIds: ['lemma-1'],
+        contentSnapshot: KOLL_SNAPSHOT,
+      })
+      startSession({ sessionId: session.id, teacherUserId: TEACHER_A })
+      const j = joinByCode({ code: session.code, displayName })
+      submitAnswer({
+        participantId: j.participant.id,
+        sessionId: session.id, assignmentId: assignment.id,
+        lemmaId: 'lemma-1', roundIndex: 0,
+        rawAnswer: { selected: ['stark', 'groß', 'klein'] },
+      })
+      finishSession({ sessionId: session.id, teacherUserId: TEACHER_A })
+      db.prepare(`UPDATE classroom_session SET finished_at = ? WHERE id = ?`)
+        .run(agedAt, session.id)
+      return { session, participant: j.participant }
+    }
+
+    const nameOf = (participantId) =>
+      db.prepare(`SELECT display_name FROM classroom_participant WHERE id = ?`)
+        .get(participantId)?.display_name
+
+    it('Stufe A: anonymisiert display_name nach 48 h, ohne zu loeschen', () => {
+      const { session, participant } = finishedSessionWithData()
+      expect(nameOf(participant.id)).toBe('Max Mustermann')
+
+      // now = AGED + 48 h + 1 s → Stufe A greift, Stufe B (30 Tage) nicht.
+      const res = runClassroomRetention({ now: AGED + DEFAULT_NAME_ANONYMIZE_MS + 1000 })
+      expect(res.anonymized).toBeGreaterThanOrEqual(1)
+      expect(res.deleted).toBe(0)
+
+      expect(nameOf(participant.id)).toBe(ANONYMIZED_DISPLAY_NAME)
+      // Session + Daten bleiben erhalten.
+      expect(getSessionById(session.id)).toBeTruthy()
+    })
+
+    it('laesst Sessions juenger als 48 h unberuehrt', () => {
+      const { session, participant } = finishedSessionWithData('Erika')
+      // now nur 1 h nach (gekuenstelt-altem) Ende → kein Fenster erreicht.
+      const res = runClassroomRetention({ now: AGED + 60 * 60 * 1000 })
+      expect(res.anonymized).toBe(0)
+      expect(res.deleted).toBe(0)
+      expect(nameOf(participant.id)).toBe('Erika')
+      expect(getSessionById(session.id)).toBeTruthy()
+    })
+
+    it('ist idempotent: zweiter Sweep anonymisiert nichts erneut', () => {
+      const { participant } = finishedSessionWithData('Klaus')
+      const now = AGED + DEFAULT_NAME_ANONYMIZE_MS + 1000
+      const first = runClassroomRetention({ now })
+      expect(first.anonymized).toBeGreaterThanOrEqual(1)
+      const second = runClassroomRetention({ now })
+      // Bereits anonymisierte Zeile (== Platzhalter) wird nicht erneut angefasst.
+      expect(second.anonymized).toBe(0)
+      expect(nameOf(participant.id)).toBe(ANONYMIZED_DISPLAY_NAME)
+    })
+
+    it('Stufe B: loescht Session + Teilnehmer + Submissions nach 30 Tagen (CASCADE)', () => {
+      const { session, participant } = finishedSessionWithData('Lösch Mich')
+      const submCountBefore = db
+        .prepare(`SELECT COUNT(1) AS c FROM classroom_submission WHERE session_id = ?`)
+        .get(session.id).c
+      expect(submCountBefore).toBeGreaterThanOrEqual(1)
+
+      const res = runClassroomRetention({ now: AGED + DEFAULT_HARD_DELETE_MS + 1000 })
+      expect(res.deleted).toBeGreaterThanOrEqual(1)
+
+      expect(getSessionById(session.id)).toBeNull()
+      const partLeft = db
+        .prepare(`SELECT COUNT(1) AS c FROM classroom_participant WHERE id = ?`)
+        .get(participant.id).c
+      const submLeft = db
+        .prepare(`SELECT COUNT(1) AS c FROM classroom_submission WHERE session_id = ?`)
+        .get(session.id).c
+      expect(partLeft).toBe(0)
+      expect(submLeft).toBe(0)
+    })
+
+    it('ruehrt laufende (nicht beendete) Sessions nicht an', () => {
+      const { session } = createSession({ teacherUserId: TEACHER_A })
+      addAssignment({
+        sessionId: session.id, teacherUserId: TEACHER_A,
+        mode: 'kollokationen', lemmaIds: ['lemma-1'],
+        contentSnapshot: KOLL_SNAPSHOT,
+      })
+      startSession({ sessionId: session.id, teacherUserId: TEACHER_A })
+      const j = joinByCode({ code: session.code, displayName: 'Aktiv' })
+
+      // Laufende Session hat kein finished_at → Status-Filter schuetzt sie,
+      // unabhaengig von `now` (klein gehalten, damit reale Sessions unberuehrt).
+      const res = runClassroomRetention({ now: AGED + DEFAULT_HARD_DELETE_MS * 2 })
+      expect(getSessionById(session.id).status).toBe('running')
+      expect(nameOf(j.participant.id)).toBe('Aktiv')
+      expect(res.deleted).toBe(0)
     })
   })
 })

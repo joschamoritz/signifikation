@@ -37,6 +37,21 @@ const VALID_MODES = ['kollokationen', 'wortzwilling', 'zeitenwende', 'lueckenfue
 // persistente Bezugsgroesse (siehe Migration 0007).
 export const DEFAULT_AUTO_END_IDLE_MS = 90 * 60 * 1000
 
+// E1/D9 Retention (W4): zweistufiges Aufraeumen beendeter Sessions.
+//   Stufe A — Name-Anonymisierung: 48 h nach finished_at wird display_name
+//     (einziger potenzielle Klarname Minderjaehriger) durch einen neutralen
+//     Platzhalter ersetzt. Der Zweck des Namens (Live-Zuordnung am Beamer, D15)
+//     ist nach Stundenende erloschen; die Nachbereitung (getSessionResults)
+//     ist ohnehin pseudonym.
+//   Stufe B — Hard-Delete: 30 Tage nach finished_at wird die ganze Session
+//     geloescht (CASCADE raeumt Assignments/Participants/Submissions/Scores/
+//     Capabilities mit weg). Deckelt das Tabellenwachstum endgueltig.
+//   classroom_telemetry bleibt unberuehrt — bereits pseudonym (kein
+//     display_name), traegt die §14-Metriken.
+export const DEFAULT_NAME_ANONYMIZE_MS = 48 * 60 * 60 * 1000      // 48 h
+export const DEFAULT_HARD_DELETE_MS    = 30 * 24 * 60 * 60 * 1000 // 30 Tage
+export const ANONYMIZED_DISPLAY_NAME   = 'Schüler:in'
+
 function nowMs() { return Date.now() }
 
 function hashToken(token) {
@@ -115,6 +130,30 @@ const stmts = {
     WHERE status = 'running'
       AND COALESCE(last_activity_at, started_at, created_at) <= @threshold
   `),
+
+  // Retention Stufe A (E1/D9): display_name beendeter Sessions anonymisieren,
+  // sobald finished_at aelter als das Fenster ist. Nur Zeilen, die noch nicht
+  // anonymisiert sind (!= Platzhalter) → idempotent, kein Re-Write je Sweep.
+  anonymizeStaleParticipants: db.prepare(`
+    UPDATE classroom_participant
+    SET display_name = @placeholder
+    WHERE display_name != @placeholder
+      AND session_id IN (
+        SELECT id FROM classroom_session
+        WHERE status IN ('finished','aborted')
+          AND finished_at IS NOT NULL
+          AND finished_at <= @threshold
+      )
+  `),
+  // Retention Stufe B (E1): Kandidaten fuer Hard-Delete (beendet + ueberfaellig).
+  listHardDeleteSessions: db.prepare(`
+    SELECT id FROM classroom_session
+    WHERE status IN ('finished','aborted')
+      AND finished_at IS NOT NULL
+      AND finished_at <= @threshold
+  `),
+  // CASCADE raeumt Assignments/Participants/Submissions/Scores/Capabilities mit.
+  deleteSessionById: db.prepare(`DELETE FROM classroom_session WHERE id = ?`),
 
   // Assignments
   insertAssignment: db.prepare(`
@@ -468,6 +507,46 @@ export function autoEndStaleSessions({ now = nowMs(), maxIdleMs = DEFAULT_AUTO_E
     }
   }
   return { ended }
+}
+
+// ── Retention / Aufraeumen (E1 / D9) ────────────────────────────────
+// Zweistufig, server-autoritativ, neustart-fest (gerechnet gegen den
+// persistierten finished_at — kein In-Memory-Timer). Der Job
+// (jobs/classroomRetention.js) ruft dies periodisch. `now`/Fenster sind
+// injizierbar → in Tests deterministisch.
+//
+// Reihenfolge im Sweep: erst anonymisieren (Stufe A), dann loeschen
+// (Stufe B). Schon geloeschte Zeilen koennen nicht mehr anonymisiert
+// werden — die Stufen ueberschneiden sich nicht (48 h < 30 Tage).
+export function runClassroomRetention({
+  now = nowMs(),
+  anonymizeAfterMs = DEFAULT_NAME_ANONYMIZE_MS,
+  hardDeleteAfterMs = DEFAULT_HARD_DELETE_MS,
+} = {}) {
+  // Stufe A — display_name anonymisieren (idempotent via != Platzhalter).
+  const anonResult = stmts.anonymizeStaleParticipants.run({
+    placeholder: ANONYMIZED_DISPLAY_NAME,
+    threshold: now - anonymizeAfterMs,
+  })
+  const anonymized = anonResult.changes
+
+  // Stufe B — ganze Session loeschen (CASCADE). Pro Session eine atomare
+  // Transaktion; ein Fehler an einer Session stoppt nicht die uebrigen.
+  const toDelete = stmts.listHardDeleteSessions.all({ threshold: now - hardDeleteAfterMs })
+  let deleted = 0
+  for (const row of toDelete) {
+    try {
+      const r = stmts.deleteSessionById.run(row.id)
+      if (r.changes > 0) deleted += 1
+    } catch (err) {
+      logger.warn({ err, sessionId: row.id }, 'cr2 retention hard-delete fehlgeschlagen')
+    }
+  }
+
+  if (anonymized > 0 || deleted > 0) {
+    logger.info({ anonymized, deleted }, 'cr2 retention sweep')
+  }
+  return { anonymized, deleted }
 }
 
 // ── Assignments ─────────────────────────────────────────────────────

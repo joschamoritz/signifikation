@@ -36,6 +36,7 @@ import pushRouter from './routes/push.js'
 import { startPushScheduler } from './notifications/scheduler.js'
 import { setupClassroomSocket } from './realtime/classroomSocket.js'
 import { startClassroomAutoEnd } from './jobs/classroomAutoEnd.js'
+import { startClassroomRetention } from './jobs/classroomRetention.js'
 import { ALLOWED_ORIGINS, CAPACITOR_ORIGINS, isAllowedOrigin } from './config/origins.js'
 import { startSessionCleanup } from './auth/session-cleanup.js'
 import { startAlerting } from './alerting.js'
@@ -207,6 +208,9 @@ const WORTPROFIL_TIMEOUT_MS = 130_000  // etwas mehr als curl --max-time 120
   // Auto-End nach Inaktivitaet (D8) — nach dem Socket-Setup, damit die
   // session:finished-Broadcasts greifen.
   startClassroomAutoEnd()
+  // Retention/Aufraeumen (E1/D9): display_name nach 48 h anonymisieren,
+  // beendete Sessions nach 30 Tagen hart loeschen. Daily-Sweep, neustart-fest.
+  startClassroomRetention()
 
   // ── Graceful Shutdown (D-21) ──────────────────────────────────
   const shutdown = (signal) => {
