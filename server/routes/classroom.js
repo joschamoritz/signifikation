@@ -69,6 +69,8 @@ import {
   getDashboard,
   getSessionResults,
 } from '../classroom/store.js'
+import { fetchLemma } from '../wortprofil.js'
+import { resolveKollokatoren } from '../classroom/content.js'
 import {
   notifyStudentJoined,
   notifyStudentLeft,
@@ -167,17 +169,20 @@ function parseLemmaJson(row) {
  * periode, zuordnung, kollokator) – diese werden NIEMALS direkt an Schueler
  * gesendet! buildStudentView() filtert sie strikt heraus.
  */
-function buildContentSnapshot(mode, lemmata) {
+async function buildContentSnapshot(mode, lemmata) {
   const byLemma = {}
   for (const l of lemmata) {
     const r = l.runden || {}
     switch (mode) {
       case 'kollokationen': {
-        // Kollokatoren koennen direkt oder unter runden.kollokatoren liegen
-        const kollokatoren =
-          r.kollokatoren ||
-          r.kollokationen?.kollokatoren ||
-          []
+        // F2a: Kollokatoren IMMER live aus wortprofil.db (fetchLemma →
+        // buildMixedRound), Fallback auf gespeichertes Feld. Gemischt, damit
+        // die Top-3 nicht oben stehen. Details: server/classroom/content.js.
+        const kollokatoren = await resolveKollokatoren(l, {
+          fetchLemma,
+          logWarn: (err, lemma) =>
+            logger.warn({ err, lemma }, 'cr2 fetchLemma Kollokationen fehlgeschlagen — Fallback aufs gespeicherte Feld'),
+        })
         byLemma[l.id] = {
           lemma:       l.lemma,
           ipa:         l.ipa,
@@ -488,7 +493,7 @@ router.post(
   '/api/v1/classroom/preview',
   requirePremium,
   validate(cr2CreateAssignmentSchema),
-  (req, res) => {
+  async (req, res) => {
     try {
       const { mode, lemmaIds } = req.body
 
@@ -503,7 +508,7 @@ router.post(
 
       // Reihenfolge aus Request erhalten (wie beim echten Assignment)
       const orderedLemmata = lemmaIds.map(id => lemmata.find(l => l.id === id))
-      const snapshot = buildContentSnapshot(mode, orderedLemmata)
+      const snapshot = await buildContentSnapshot(mode, orderedLemmata)
 
       // Pro Lemma die gewhitelistete Schueler-Sicht. Fuer Lueckenfueller
       // bleibt das volle (sichere) rounds-Array erhalten — der Client steppt
@@ -553,7 +558,7 @@ router.post(
   classroomWriteLimiter,
   requireCapability('session:manage'),
   validate(cr2CreateAssignmentSchema),
-  (req, res) => {
+  async (req, res) => {
     try {
       const { mode, lemmaIds } = req.body
       const sessionId   = req.params.id
@@ -572,7 +577,7 @@ router.post(
 
       // Reihenfolge aus Request erhalten
       const orderedLemmata = lemmaIds.map(id => lemmata.find(l => l.id === id))
-      const contentSnapshot = buildContentSnapshot(mode, orderedLemmata)
+      const contentSnapshot = await buildContentSnapshot(mode, orderedLemmata)
 
       const result = addAssignment({
         sessionId,
@@ -608,7 +613,7 @@ router.post(
   classroomWriteLimiter,
   requireCapability('session:manage'),
   validate(cr2CreateAssignmentsSchema),
-  (req, res) => {
+  async (req, res) => {
     try {
       const { blocks } = req.body
       const sessionId    = req.params.id
@@ -628,7 +633,7 @@ router.post(
         builtBlocks.push({
           mode:           block.mode,
           lemmaIds:       block.lemmaIds,
-          contentSnapshot: buildContentSnapshot(block.mode, orderedLemmata),
+          contentSnapshot: await buildContentSnapshot(block.mode, orderedLemmata),
         })
       }
 

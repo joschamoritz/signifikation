@@ -82,7 +82,7 @@ export default function NameState() {
       <p className="cr2-kiosk__code-line">
         Zugangscode: <strong>{state.code}</strong>
       </p>
-      <p className="cr2-kiosk__dropcap">N</p>
+      <p className="cr2-kiosk__dropcap">W</p>
       <h1 className="cr2-kiosk__title">Wie heißt du?</h1>
       <p className="cr2-kiosk__lead">
         Kein echter Name nötig — ein Spitzname reicht. Er wird nur deiner Lehrkraft

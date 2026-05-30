@@ -91,8 +91,9 @@ export default function LemmaPicker({ value = [], onChange }) {
       />
 
       <p className="cr2-lemma-picker__hint">
-        {value.length}/{MAX_LEMMATA} ausgewählt
-        {limitReached && ' · maximale Anzahl erreicht'}
+        {value.length === 0
+          ? `Wähle 1–${MAX_LEMMATA} deiner Spielwörter`
+          : `${value.length}/${MAX_LEMMATA} ausgewählt${limitReached ? ' · Maximum erreicht' : ''}`}
       </p>
 
       {loading && <p className="cr2-loading">Wird gesucht …</p>}

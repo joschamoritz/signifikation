@@ -23,11 +23,21 @@ import {
   describe,
   expect,
   it,
+  vi,
 } from 'vitest'
 import { randomUUID } from 'crypto'
 import db from '../db.js'
 import classroomRouter from '../routes/classroom.js'
 import { createSession } from '../classroom/store.js'
+
+// Kollokationen werden im Klassenraum live aus wortprofil.db generiert
+// (buildContentSnapshot → resolveKollokatoren → fetchLemma). Im Test ist die
+// 2-GB-Korpus-DB nicht deterministisch verfuegbar — wir mocken fetchLemma so,
+// dass es „leer" liefert; dadurch greift der Fallback auf das gespeicherte
+// runden.kollokatoren-Feld der Test-Fixtures (stark/groß/klein …).
+vi.mock('../wortprofil.js', () => ({
+  fetchLemma: vi.fn(async () => ({ runden: { kollokatoren: [] } })),
+}))
 
 // ── Test-Infrastruktur ─────────────────────────────────────────
 
