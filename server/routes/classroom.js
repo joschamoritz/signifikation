@@ -40,6 +40,7 @@ import {
   cr2CreateAssignmentsSchema,
   cr2NextAssignmentSchema,
   cr2LemmataQuerySchema,
+  cr2TodayLemmataQuerySchema,
   cr2StartSessionSchema,
   cr2FinishSessionSchema,
   cr2PauseSessionSchema,
@@ -60,6 +61,7 @@ import {
   listTeacherSessions,
   startSession,
   finishSession,
+  deleteSession,
   pauseSession,
   resumeSession,
   joinByCode,
@@ -71,6 +73,7 @@ import {
 } from '../classroom/store.js'
 import { fetchLemma } from '../wortprofil.js'
 import { resolveKollokatoren } from '../classroom/content.js'
+import { loadKalenderEntry, getLemmataIndex } from '../store.js'
 import {
   notifyStudentJoined,
   notifyStudentLeft,
@@ -480,6 +483,61 @@ router.get(
   },
 )
 
+// ── GET /api/v1/classroom/today-lemmata ─────────────────────────
+// Schnellzugriff auf die heutige Tagesauswahl (Kalender) als waehlbare Lemmata.
+// Nur Modi mit Lemma-ID-Tagesplanung: kollokationen (kalender.ids) +
+// lueckenfueller (kalender.lueckenfueller_id). wortzwilling/zeitenwende haben
+// eigene Tagestabellen ohne Lemma-ID → leere Liste (Frontend zeigt Hinweis).
+function classroomTodayDatum() {
+  return new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Berlin' }).format(new Date())
+}
+
+router.get(
+  '/api/v1/classroom/today-lemmata',
+  requirePremium,
+  validate(cr2TodayLemmataQuerySchema, 'query'),
+  (req, res) => {
+    try {
+      const mode  = req.query.mode || 'kollokationen'
+      const datum = classroomTodayDatum()
+      const entry = loadKalenderEntry(datum)
+      const { byId } = getLemmataIndex()
+
+      let ids = []
+      if (entry) {
+        if (mode === 'lueckenfueller') {
+          const lfId = Array.isArray(entry) ? null : entry.lueckenfueller_id
+          if (lfId) ids = [lfId]
+        } else if (mode === 'kollokationen') {
+          ids = Array.isArray(entry) ? entry : (entry.ids ?? [])
+        }
+        // wortzwilling / zeitenwende: keine Lemma-ID-Tagesauswahl → ids bleibt []
+      }
+
+      function firstDef(l) {
+        if (l.definition) return l.definition
+        const arr = l.definitionen
+        return (Array.isArray(arr) && arr[0]) || ''
+      }
+      const items = ids
+        .map((id) => byId.get(id))
+        .filter(Boolean)
+        .map((l) => ({
+          id:         l.id,
+          lemma:      l.lemma,
+          pos:        l.pos,
+          ipa:        l.ipa || '',
+          definition: firstDef(l),
+        }))
+
+      return res.json({ datum, mode, items })
+    } catch (err) {
+      logger.error({ err }, 'cr2 today-lemmata crashed')
+      return res.status(500).json({ error: 'Interner Serverfehler' })
+    }
+  },
+)
+
 // ── W2-T1 POST /api/v1/classroom/preview ────────────────────────
 // Teacher-Preview: liefert exakt die Schueler-Sicht (currentLemma.prompt)
 // fuer eine Modus+Lemma-Auswahl, OHNE Session/Assignment/Participant
@@ -764,6 +822,33 @@ router.post(
       })
     } catch (err) {
       logger.error({ err }, 'cr2 finishSession crashed')
+      return res.status(500).json({ error: 'Interner Serverfehler' })
+    }
+  },
+)
+
+// ── DELETE /api/v1/classroom/sessions/:id ───────────────────────
+// Lehrer loescht eine eigene Session (Liste sauber halten). ON DELETE CASCADE
+// raeumt Teilnehmer/Submissions/Scores/Capabilities/Telemetrie mit ab.
+router.delete(
+  '/api/v1/classroom/sessions/:id',
+  classroomWriteLimiter,
+  requireCapability('session:manage'),
+  validate(cr2SessionIdParamsSchema, 'params'),
+  (req, res) => {
+    try {
+      const result = deleteSession({
+        sessionId:     req.params.id,
+        teacherUserId: req.cr2.subject.id,
+      })
+      if (result.error) {
+        const mapped = mapError(result.error)
+        return res.status(mapped.status).json({ error: mapped.message })
+      }
+      logger.info({ sessionId: req.params.id }, 'cr2 session deleted')
+      return res.status(204).end()
+    } catch (err) {
+      logger.error({ err }, 'cr2 deleteSession crashed')
       return res.status(500).json({ error: 'Interner Serverfehler' })
     }
   },

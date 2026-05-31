@@ -5,20 +5,43 @@
 // Bereits gewaehlte Lemmata bleiben oben als Chips sichtbar.
 
 import { useEffect, useRef, useState } from 'react'
-import { searchLemmata } from '../hooks/useTeacherSession'
+import { searchLemmata, getTodayLemmata } from '../hooks/useTeacherSession'
 
 const MAX_LEMMATA = 3
 const DEBOUNCE_MS = 250
+const NO_TODAY_MODES = new Set(['wortzwilling', 'zeitenwende'])
 
-export default function LemmaPicker({ value = [], onChange }) {
+export default function LemmaPicker({ value = [], onChange, mode = null }) {
   const [query, setQuery]   = useState('')
   const [items, setItems]   = useState([])
   const [loading, setLoading] = useState(false)
   const [error, setError]   = useState(null)
+  const [todayItems, setTodayItems] = useState([])
   const timerRef = useRef(null)
   // Map ID → Lemma-Objekt, damit ausgewaehlte Eintraege auch dann sichtbar
   // bleiben, wenn sie nicht im aktuellen Suchergebnis vorkommen.
   const [cache, setCache] = useState({})
+
+  // Tagesauswahl (Kalender) laden, wenn sich der Modus aendert.
+  useEffect(() => {
+    let cancelled = false
+    if (!mode) { setTodayItems([]); return undefined }
+    getTodayLemmata(mode)
+      .then((data) => {
+        if (cancelled) return
+        const list = Array.isArray(data?.items) ? data.items : []
+        setTodayItems(list)
+        if (list.length) {
+          setCache((prev) => {
+            const next = { ...prev }
+            for (const it of list) next[it.id] = it
+            return next
+          })
+        }
+      })
+      .catch(() => { if (!cancelled) setTodayItems([]) })
+    return () => { cancelled = true }
+  }, [mode])
 
   useEffect(() => {
     if (timerRef.current) clearTimeout(timerRef.current)
@@ -58,6 +81,38 @@ export default function LemmaPicker({ value = [], onChange }) {
 
   return (
     <div className="cr2-lemma-picker">
+      {todayItems.length > 0 && (
+        <div className="cr2-lemma-today">
+          <span className="cr2-lemma-today__label">Heute im Kalender</span>
+          <ul className="cr2-lemma-today__chips" aria-label="Tagesauswahl">
+            {todayItems.map((it) => {
+              const sel = value.includes(it.id)
+              const dis = !sel && value.length >= MAX_LEMMATA
+              return (
+                <li key={it.id}>
+                  <button
+                    type="button"
+                    className={`cr2-lemma-today__chip${sel ? ' cr2-lemma-today__chip--active' : ''}`}
+                    onClick={() => toggle(it.id)}
+                    disabled={dis}
+                    aria-pressed={sel}
+                    data-testid={`cr2-today-${it.id}`}
+                  >
+                    {it.lemma}
+                  </button>
+                </li>
+              )
+            })}
+          </ul>
+        </div>
+      )}
+
+      {todayItems.length === 0 && NO_TODAY_MODES.has(mode) && (
+        <p className="cr2-lemma-today__none">
+          Für diesen Modus gibt es keine Tagesauswahl – wähle ein Lemma per Suche.
+        </p>
+      )}
+
       {value.length > 0 && (
         <ul className="cr2-lemma-chips" aria-label="Gewählte Lemmata">
           {value.map((id) => {

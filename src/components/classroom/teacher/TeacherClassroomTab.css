@@ -224,6 +224,61 @@
   background: #fffbef;
 }
 
+/* Session-Zeile mit Loeschen-Aktion (Liste) */
+.cr2-session-row {
+  display: flex;
+  align-items: stretch;
+  border-bottom: 1px solid var(--cr2-rule-lt);
+}
+.cr2-session-row .cr2-card {
+  border-bottom: none;
+}
+.cr2-session-row__main {
+  flex: 1;
+  min-width: 0;
+}
+.cr2-session-row__delete {
+  flex-shrink: 0;
+  width: 44px;
+  border: none;
+  background: transparent;
+  color: var(--cr2-muted);
+  font-size: 1.4rem;
+  line-height: 1;
+  cursor: pointer;
+}
+.cr2-session-row__delete:hover {
+  color: var(--cr2-accent);
+  background: #f4f1e9;
+}
+.cr2-session-row__confirm {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+  padding: 8px 10px;
+}
+.cr2-session-row__confirm-yes,
+.cr2-session-row__confirm-no {
+  font-family: 'DM Sans', system-ui, sans-serif;
+  font-size: 0.8rem;
+  padding: 6px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.cr2-session-row__confirm-yes {
+  background: var(--cr2-accent);
+  color: #fff;
+  border: 1px solid var(--cr2-accent);
+}
+.cr2-session-row__confirm-no {
+  background: transparent;
+  color: var(--cr2-muted);
+  border: 1px solid var(--cr2-rule);
+}
+
 .cr2-card__row {
   display: flex;
   align-items: baseline;
@@ -419,6 +474,57 @@
   display: flex;
   flex-direction: column;
   gap: 12px;
+}
+
+/* Tagesauswahl-Schnellzugriff (Kalender) oben im Picker */
+.cr2-lemma-today {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.cr2-lemma-today__label {
+  font-family: 'DM Sans', system-ui, sans-serif;
+  font-size: 0.7rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--cr2-muted);
+}
+.cr2-lemma-today__chips {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.cr2-lemma-today__chip {
+  font-family: 'Gentium Plus', Georgia, serif;
+  font-size: 0.95rem;
+  padding: 6px 12px;
+  background: transparent;
+  border: 1px solid var(--cr2-gold);
+  border-radius: 999px;
+  color: var(--cr2-text);
+  cursor: pointer;
+}
+.cr2-lemma-today__chip:hover:not(:disabled) {
+  background: #fffbef;
+}
+.cr2-lemma-today__chip--active {
+  background: #fffbef;
+  border-color: var(--cr2-accent);
+  color: var(--cr2-accent);
+}
+.cr2-lemma-today__chip:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.cr2-lemma-today__none {
+  font-family: 'Gentium Plus', Georgia, serif;
+  font-style: italic;
+  font-size: 0.85rem;
+  color: var(--cr2-muted);
+  margin: 0;
 }
 
 .cr2-lemma-chips {

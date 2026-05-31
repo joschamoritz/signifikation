@@ -5,6 +5,7 @@ import {
   createSession,
   startSession,
   finishSession,
+  deleteSession,
   pauseSession,
   resumeSession,
   touchSessionActivity,
@@ -107,6 +108,25 @@ describe('classroom/store', () => {
       const { session } = createSession({ teacherUserId: TEACHER_A })
       const r = startSession({ sessionId: session.id, teacherUserId: TEACHER_A })
       expect(r.error).toBe('NO_ASSIGNMENT')
+    })
+
+    it('deleteSession entfernt die Session inkl. Assignments (CASCADE), nur Eigentuemer', () => {
+      const { session } = createSession({ teacherUserId: TEACHER_A })
+      addAssignment({
+        sessionId: session.id, teacherUserId: TEACHER_A,
+        mode: 'kollokationen', lemmaIds: ['lemma-1'],
+        contentSnapshot: KOLL_SNAPSHOT,
+      })
+      // Fremder Lehrer darf nicht loeschen
+      expect(deleteSession({ sessionId: session.id, teacherUserId: TEACHER_B }).error).toBe('FORBIDDEN')
+      expect(getSessionById(session.id)).toBeTruthy()
+      // Eigentuemer loescht → Session weg, Assignments per CASCADE entfernt
+      const r = deleteSession({ sessionId: session.id, teacherUserId: TEACHER_A })
+      expect(r.ok).toBe(true)
+      expect(getSessionById(session.id)).toBeFalsy()
+      expect(listAssignments(session.id)).toHaveLength(0)
+      // Nicht-existente Session
+      expect(deleteSession({ sessionId: 'does-not-exist', teacherUserId: TEACHER_A }).error).toBe('NOT_FOUND')
     })
 
     it('setzt locked_at beim Start (D4)', () => {

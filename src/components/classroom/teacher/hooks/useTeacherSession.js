@@ -126,6 +126,15 @@ export async function finishSession(sessionId, { reason } = {}) {
   return jsonOrThrow(res)
 }
 
+export async function deleteSession(sessionId) {
+  const res = await apiFetch(`${BASE}/sessions/${encodeURIComponent(sessionId)}`, {
+    method: 'DELETE',
+    credentials: 'include',
+  })
+  if (res.status === 204) return null
+  return jsonOrThrow(res)
+}
+
 export async function pauseSession(sessionId) {
   const res = await apiFetch(`${BASE}/sessions/${encodeURIComponent(sessionId)}/pause`, {
     method: 'POST',
@@ -175,6 +184,14 @@ export async function searchLemmata({ q, pos, limit = 20 } = {}) {
   return jsonOrThrow(res)
 }
 
+// Tagesauswahl (Kalender) fuer den gewaehlten Modus — Schnellzugriff im Picker.
+export async function getTodayLemmata(mode) {
+  const url = new URL(`${BASE}/today-lemmata`, window.location.origin)
+  if (mode) url.searchParams.set('mode', mode)
+  const res = await apiFetch(url.pathname + url.search, { credentials: 'include' })
+  return jsonOrThrow(res)
+}
+
 // Default-Export-Bundle: erleichtert das Mocken in Tests.
 export default {
   listSessions,
@@ -186,9 +203,11 @@ export default {
   removeAssignment,
   startSession,
   finishSession,
+  deleteSession,
   pauseSession,
   resumeSession,
   getDashboard,
   getSessionResults,
   searchLemmata,
+  getTodayLemmata,
 }

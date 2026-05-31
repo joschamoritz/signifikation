@@ -98,6 +98,9 @@ const stmts = {
     SET status = 'finished', finished_at = @finished_at, paused_at = NULL
     WHERE id = @id AND status IN ('lobby','running')
   `),
+  deleteSession: db.prepare(`
+    DELETE FROM classroom_session WHERE id = @id AND teacher_user_id = @teacher_user_id
+  `),
   abortSession: db.prepare(`
     UPDATE classroom_session
     SET status = 'aborted', finished_at = @finished_at, paused_at = NULL
@@ -445,6 +448,16 @@ export function finishSession({ sessionId, teacherUserId, reason = 'manual' }) {
   if (err) return { error: err }
   logger.info({ sessionId, reason }, 'cr2 session finished')
   return { session: normalizeSessionRow(stmts.getSessionById.get(sessionId)) }
+}
+
+export function deleteSession({ sessionId, teacherUserId }) {
+  const row = stmts.getSessionById.get(sessionId)
+  if (!row) return { error: 'NOT_FOUND' }
+  if (row.teacher_user_id !== teacherUserId) return { error: 'FORBIDDEN' }
+  // ON DELETE CASCADE raeumt participants/submissions/scores/capabilities mit ab.
+  stmts.deleteSession.run({ id: sessionId, teacher_user_id: teacherUserId })
+  logger.info({ sessionId }, 'cr2 session deleted')
+  return { ok: true }
 }
 
 export function pauseSession({ sessionId, teacherUserId }) {

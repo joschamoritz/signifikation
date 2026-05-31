@@ -8,8 +8,10 @@
 // braucht, kommt das in Welle 2. Bis dahin reicht ein Hinweis am Ende der
 // Liste, dass aelter geschnitten ist.
 
+import { useState } from 'react'
 import { useTeacherClassroom, STEPS } from '../TeacherClassroomContext'
 import { useSessionsList } from '../hooks/useSessionsList'
+import { deleteSession } from '../hooks/useTeacherSession'
 
 const MODE_LABEL = {
   kollokationen: 'Kollokationen',
@@ -46,12 +48,29 @@ function statusToStep(status) {
 export default function SessionListStep() {
   const { state, dispatch } = useTeacherClassroom()
   const { sessions, loading, error, refresh } = useSessionsList({ limit: 50 })
+  const [confirmId, setConfirmId] = useState(null)
+  const [busyId, setBusyId]       = useState(null)
+  const [delError, setDelError]   = useState(null)
 
   // Bei Mount nach Setup-/Lobby-Wechsel auf einen aktualen Stand
   void state // (state nicht ungenutzt: Linter-Friend)
 
   function handleNew() {
     dispatch({ type: 'GO_TO_SETUP' })
+  }
+
+  async function doDelete(session) {
+    setBusyId(session.id)
+    setDelError(null)
+    try {
+      await deleteSession(session.id)
+      setConfirmId(null)
+      refresh()
+    } catch (err) {
+      setDelError(err?.message || 'Session konnte nicht gelöscht werden.')
+    } finally {
+      setBusyId(null)
+    }
   }
 
   function handleResume(session) {
@@ -75,6 +94,8 @@ export default function SessionListStep() {
         </p>
       )}
 
+      {delError && <p className="cr2-error" role="alert">{delError}</p>}
+
       {!loading && !error && sessions.length === 0 && (
         <div className="cr2-empty" role="status">
           <span className="cr2-empty__dropcap" aria-hidden="true">K</span>
@@ -93,10 +114,10 @@ export default function SessionListStep() {
               s.status === 'running'  ? 'cr2-card__dot--running'  :
               s.status === 'finished' ? 'cr2-card__dot--finished' : ''
             return (
-              <li key={s.id}>
+              <li key={s.id} className="cr2-session-row">
                 <button
                   type="button"
-                  className="cr2-card"
+                  className="cr2-card cr2-session-row__main"
                   onClick={() => handleResume(s)}
                   aria-label={`Session ${s.title || s.code} – ${STATUS_LABEL[s.status] || s.status}`}
                 >
@@ -114,6 +135,39 @@ export default function SessionListStep() {
                     </span>
                   </div>
                 </button>
+
+                {confirmId === s.id ? (
+                  <div className="cr2-session-row__confirm" role="group" aria-label="Löschen bestätigen">
+                    <button
+                      type="button"
+                      className="cr2-session-row__confirm-yes"
+                      onClick={() => doDelete(s)}
+                      disabled={busyId === s.id}
+                      data-testid={`cr2-session-delete-confirm-${s.id}`}
+                    >
+                      {busyId === s.id ? '…' : 'Löschen'}
+                    </button>
+                    <button
+                      type="button"
+                      className="cr2-session-row__confirm-no"
+                      onClick={() => setConfirmId(null)}
+                      disabled={busyId === s.id}
+                    >
+                      Abbrechen
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    className="cr2-session-row__delete"
+                    onClick={() => { setDelError(null); setConfirmId(s.id) }}
+                    aria-label={`Session ${s.title || s.code} löschen`}
+                    title="Session löschen"
+                    data-testid={`cr2-session-delete-${s.id}`}
+                  >
+                    ×
+                  </button>
+                )}
               </li>
             )
           })}

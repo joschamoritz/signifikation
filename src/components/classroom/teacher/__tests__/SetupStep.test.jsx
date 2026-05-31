@@ -17,6 +17,7 @@ vi.mock('../hooks/useTeacherSession', () => ({
   finishSession: vi.fn(),
   getDashboard: vi.fn(),
   searchLemmata: vi.fn().mockResolvedValue({ items: [], total: 0 }),
+  getTodayLemmata: vi.fn().mockResolvedValue({ items: [] }),
 }))
 
 import { searchLemmata, createSession, addAssignments } from '../hooks/useTeacherSession'

@@ -172,6 +172,7 @@ export default function SetupStep() {
               onChange={(mode) => updateBlock(idx, { mode })}
             />
             <LemmaPicker
+              mode={block.mode}
               value={block.lemmaIds}
               onChange={(lemmaIds) => updateBlock(idx, { lemmaIds })}
             />

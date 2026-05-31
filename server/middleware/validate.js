@@ -376,6 +376,11 @@ export const cr2LemmataQuerySchema = z.object({
   limit: z.coerce.number().int().min(1).max(50).optional().default(20),
 })
 
+/** GET /api/v1/classroom/today-lemmata — Tagesauswahl als Schnellzugriff */
+export const cr2TodayLemmataQuerySchema = z.object({
+  mode: CR2_VALID_MODES.optional(),
+})
+
 /** POST /api/v1/classroom/join (T-2.5) */
 export const cr2JoinSchema = z.object({
   code:        z.string().trim().toLowerCase()
