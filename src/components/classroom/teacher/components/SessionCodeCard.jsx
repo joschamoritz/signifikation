@@ -70,14 +70,15 @@ export default function SessionCodeCard({ code }) {
       <div className="cr2-code-card__actions">
         <button
           type="button"
-          className="cr2-btn cr2-btn--ghost"
+          className="cr2-link-cta"
           onClick={copyCode}
         >
-          {copied ? 'Kopiert' : 'Code kopieren'}
+          {copied ? '✓ Kopiert' : 'Code kopieren'}
         </button>
         {url && (
-          <a className="cr2-btn cr2-btn--ghost" href={url} target="_blank" rel="noreferrer">
+          <a className="cr2-link-cta" href={url} target="_blank" rel="noreferrer">
             Beitrittsseite öffnen
+            <span className="test-cta-arrow" aria-hidden="true"> ↗</span>
           </a>
         )}
       </div>

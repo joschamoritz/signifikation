@@ -868,21 +868,23 @@
 }
 
 /* ── Code-Karte (Lobby) ──────────────────────────────────────────── */
+/* Code „frei" auf Pergament — kein Kasten. Der riesige Code ist das Headword
+   der Lobby (Beamer-lesbar), darunter QR + Text-Aktionen. */
 .cr2-code-card {
-  background: var(--cr2-card-bg);
-  border: 1px solid var(--cr2-rule-lt);
-  border-radius: 4px;
-  padding: 28px 20px;
+  background: transparent;
+  border: none;
+  padding: 8px 0 4px;
   text-align: center;
 }
 
 .cr2-code-card__label {
-  font-family: 'DM Sans', system-ui, sans-serif;
-  font-size: 0.7rem;
-  letter-spacing: 0.12em;
+  font-family: var(--font-sans);
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.25em;
   text-transform: uppercase;
-  color: var(--cr2-muted);
-  margin: 0 0 12px;
+  color: var(--accent-dk);
+  margin: 0 0 14px;
 }
 
 .cr2-code-card__display {
@@ -904,14 +906,14 @@
   padding: 0 0.04em 0.05em;
 }
 
-/* F6 — QR-Code zur Beitritts-URL */
+/* F6 — QR-Code zur Beitritts-URL. Dezenter Haarlinien-Rahmen statt Kasten. */
 .cr2-code-card__qr {
-  width: clamp(140px, 38vw, 220px);
-  margin: 18px auto 4px;
+  width: clamp(140px, 38vw, 200px);
+  margin: 20px auto 6px;
   padding: 10px;
-  background: #faf9f7;
-  border: 1px solid var(--cr2-gold);
-  border-radius: 6px;
+  background: var(--surface, #fff);
+  border: 1px solid var(--border-lt);
+  border-radius: var(--radius, 4px);
   line-height: 0;
 }
 .cr2-code-card__qr svg {
@@ -923,30 +925,49 @@
 .cr2-code-card__actions {
   display: flex;
   justify-content: center;
-  gap: 8px;
-  margin-top: 16px;
+  gap: 24px;
+  margin-top: 14px;
   flex-wrap: wrap;
 }
 
-/* ── Teilnehmer-Liste ────────────────────────────────────────────── */
+/* Text-CTA im Wörterbuch-Stil (Code kopieren / Beitrittsseite). */
+.cr2-link-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: var(--font-serif);
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--primary);
+  background: none;
+  border: none;
+  padding: 6px 0;
+  min-height: 44px;
+  cursor: pointer;
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
+  transition: color 0.15s, border-color 0.15s;
+}
+.cr2-link-cta:hover {
+  color: var(--primary-hi);
+  border-bottom-color: var(--primary);
+}
+
+/* ── Teilnehmer-Liste — linien-getrennte Wörterbuch-Zeilen ───────── */
 .cr2-participant-list {
   list-style: none;
   margin: 0;
   padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
+  border-top: 1px solid var(--border-lt);
 }
 
 .cr2-participant {
   display: grid;
-  grid-template-columns: 16px 1fr auto;
+  grid-template-columns: 12px 1fr auto;
   align-items: center;
-  gap: 10px;
-  padding: 10px 14px;
-  background: var(--cr2-card-bg);
-  border: 1px solid var(--cr2-rule-lt);
-  border-radius: 4px;
+  gap: 12px;
+  padding: 11px 4px;
+  border-bottom: 1px solid var(--border-lt);
 }
 
 .cr2-participant__dot {

@@ -10,6 +10,7 @@ import { getDashboard, startSession } from '../hooks/useTeacherSession'
 import { useTeacherSocket } from '../hooks/useTeacherSocket'
 import SessionCodeCard from '../components/SessionCodeCard'
 import ParticipantList from '../components/ParticipantList'
+import ClassroomSubScreen from '../components/ClassroomSubScreen'
 
 export default function LobbyStep() {
   const { state, dispatch } = useTeacherClassroom()
@@ -96,16 +97,14 @@ export default function LobbyStep() {
   }, [sessionId, activeCount, starting, dispatch])
 
   return (
-    <div data-testid="cr2-lobby">
-      <button
-        type="button"
-        className="cr2-btn cr2-btn--ghost"
-        onClick={() => dispatch({ type: 'GO_TO_LIST' })}
-        style={{ marginBottom: 12 }}
-      >
-        ← Zurück zur Übersicht
-      </button>
-
+    <ClassroomSubScreen
+      testId="cr2-lobby"
+      title="Lobby"
+      label="Live-Session"
+      lead="Teile den Code — warte auf die Klasse."
+      backLabel="Zurück zur Übersicht"
+      onBack={() => dispatch({ type: 'GO_TO_LIST' })}
+    >
       {loading && <p className="cr2-loading">Lobby wird vorbereitet …</p>}
       {error && <p className="cr2-error">{error}</p>}
 
@@ -126,7 +125,7 @@ export default function LobbyStep() {
         <div className="cr2-sticky-cta__inner">
           <button
             type="button"
-            className="cr2-btn cr2-btn--primary"
+            className="cr2-cta"
             disabled={!session || activeCount === 0 || starting}
             onClick={handleStart}
             data-testid="cr2-lobby-start"
@@ -136,9 +135,10 @@ export default function LobbyStep() {
               : activeCount === 0
                 ? 'Warte auf Teilnehmer …'
                 : `Spiel starten (${activeCount} dabei)`}
+            {!starting && activeCount > 0 && <span className="test-cta-arrow" aria-hidden="true"> →</span>}
           </button>
         </div>
       </div>
-    </div>
+    </ClassroomSubScreen>
   )
 }
