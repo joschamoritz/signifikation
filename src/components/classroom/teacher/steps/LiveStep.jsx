@@ -104,6 +104,13 @@ export default function LiveStep() {
   const currentLemma = assignment?.contentSnapshot?.lemmata?.[0] || null
   const perLemma = dashboard?.aggregate?.perLemma || []
 
+  // Lemma-Wort zur ID auflösen (Aggregat liefert nur lemmaId, kein Wort).
+  const snap = assignment?.contentSnapshot || {}
+  const lemmaWord = (id) =>
+    snap.byLemma?.[id]?.lemma
+    || (Array.isArray(snap.lemmata) ? snap.lemmata.find((l) => String(l.id) === String(id))?.lemma : null)
+    || id
+
   // W2-T2: Reihenfolge-Metadaten. assignmentTotal>1 ⇒ es gibt weitere Modi.
   const assignmentTotal = dashboard?.assignmentTotal ?? 1
   const assignmentIndex = dashboard?.assignmentIndex ?? 0
@@ -210,7 +217,7 @@ export default function LiveStep() {
           <ul className="cr2-aggregate">
             {perLemma.map((row) => (
               <li key={row.lemmaId} className="cr2-aggregate__row">
-                <span className="cr2-aggregate__lemma">{row.lemmaId}</span>
+                <span className="cr2-aggregate__lemma">{lemmaWord(row.lemmaId)}</span>
                 <span className="cr2-aggregate__pct">{row.correctPct}%</span>
               </li>
             ))}
