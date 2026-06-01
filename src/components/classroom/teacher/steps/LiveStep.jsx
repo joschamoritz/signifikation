@@ -11,6 +11,7 @@ import { useTeacherClassroom } from '../TeacherClassroomContext'
 import { getDashboard, finishSession, pauseSession, resumeSession, nextAssignment } from '../hooks/useTeacherSession'
 import { useTeacherSocket } from '../hooks/useTeacherSocket'
 import ParticipantList from '../components/ParticipantList'
+import ClassroomSubScreen from '../components/ClassroomSubScreen'
 
 const POLL_INTERVAL_MS = 3000
 
@@ -158,7 +159,14 @@ export default function LiveStep() {
   }
 
   return (
-    <div data-testid="cr2-live">
+    <ClassroomSubScreen
+      testId="cr2-live"
+      title="Live"
+      label={modeLabel || 'Live-Session'}
+      lead="Die Klasse spielt — du behältst den Überblick."
+      backLabel="Zurück zur Übersicht"
+      onBack={() => dispatch({ type: 'GO_TO_LIST' })}
+    >
       <section className="cr2-progress" aria-label="Abgaben-Fortschritt">
         <div className="cr2-progress__label">
           <span>
@@ -210,11 +218,11 @@ export default function LiveStep() {
         </section>
       )}
 
-      <div className="cr2-sticky-cta" role="none">
-        <div className="cr2-sticky-cta__inner">
+      <div className="cr2-sticky-cta cr2-sticky-cta--row" role="none">
+        <div className="cr2-sticky-cta__inner cr2-sticky-cta__inner--row">
           <button
             type="button"
-            className="cr2-btn cr2-btn--ghost"
+            className="cr2-link-cta cr2-link-cta--muted"
             onClick={handleTogglePause}
             disabled={pauseBusy}
             data-testid="cr2-live-pause"
@@ -226,27 +234,29 @@ export default function LiveStep() {
           {hasNext ? (
             <button
               type="button"
-              className="cr2-btn cr2-btn--primary"
+              className="cr2-cta cr2-cta--inline"
               onClick={handleNext}
               disabled={advancing || paused}
               data-testid="cr2-live-next"
               title={paused ? 'Erst fortsetzen, dann wechseln' : undefined}
             >
               {advancing ? 'Wechselt …' : 'Nächster Modus'}
+              {!advancing && <span className="test-cta-arrow" aria-hidden="true"> →</span>}
             </button>
           ) : (
             <button
               type="button"
-              className="cr2-btn cr2-btn--primary"
+              className="cr2-cta cr2-cta--inline"
               onClick={handleFinish}
               disabled={finishing}
               data-testid="cr2-live-finish"
             >
               {finishing ? 'Wird beendet …' : 'Auflösung freigeben'}
+              {!finishing && <span className="test-cta-arrow" aria-hidden="true"> →</span>}
             </button>
           )}
         </div>
       </div>
-    </div>
+    </ClassroomSubScreen>
   )
 }

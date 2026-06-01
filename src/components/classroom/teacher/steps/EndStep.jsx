@@ -12,6 +12,7 @@
 import { useEffect, useState } from 'react'
 import { useTeacherClassroom } from '../TeacherClassroomContext'
 import { getDashboard, getSessionResults } from '../hooks/useTeacherSession'
+import ClassroomSubScreen from '../components/ClassroomSubScreen'
 
 const MODE_LABELS = {
   kollokationen: 'Kollokationen',
@@ -66,7 +67,14 @@ export default function EndStep() {
   const hasSubmissions = results?.hasSubmissions
 
   return (
-    <div data-testid="cr2-end">
+    <ClassroomSubScreen
+      testId="cr2-end"
+      title="Auswertung"
+      label="Live-Session"
+      lead="Wie lief die Stunde?"
+      backLabel="Zurück zur Übersicht"
+      onBack={() => dispatch({ type: 'GO_TO_LIST' })}
+    >
       {loading && <p className="cr2-loading">Auswertung wird geladen …</p>}
       {error && <p className="cr2-error">{error}</p>}
 
@@ -203,18 +211,20 @@ export default function EndStep() {
       )}
 
       <div className="cr2-sticky-cta" role="none">
-        <div className="cr2-sticky-cta__inner" style={{ display: 'flex', gap: 10, flexDirection: 'column' }}>
+        <div className="cr2-sticky-cta__inner cr2-end-actions">
           <button
             type="button"
-            className="cr2-btn cr2-btn--primary"
+            className="cr2-cta"
             onClick={() => dispatch({ type: 'GO_TO_SETUP' })}
             data-testid="cr2-end-new"
           >
+            <span className="cr2-cta__plus" aria-hidden="true">＋</span>
             Neue Session
+            <span className="test-cta-arrow" aria-hidden="true"> →</span>
           </button>
           <button
             type="button"
-            className="cr2-btn cr2-btn--outline"
+            className="cr2-link-cta cr2-link-cta--muted cr2-end-close"
             onClick={() => dispatch({ type: 'GO_TO_LIST' })}
             data-testid="cr2-end-close"
           >
@@ -222,6 +232,6 @@ export default function EndStep() {
           </button>
         </div>
       </div>
-    </div>
+    </ClassroomSubScreen>
   )
 }

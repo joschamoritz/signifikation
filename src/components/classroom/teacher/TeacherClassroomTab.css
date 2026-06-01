@@ -461,6 +461,34 @@
   background: transparent;
   cursor: not-allowed;
 }
+/* Inline-Variante (teilt sich die Breite in einer Aktionszeile). */
+.cr2-cta--inline { width: auto; flex: 1; }
+
+/* Aktionszeile mit zwei Aktionen nebeneinander (Live). */
+.cr2-sticky-cta__inner--row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+/* Ende: Aktionen gestapelt + zentrierter Schließen-Link. */
+.cr2-end-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.cr2-end-close { align-self: center; }
+.cr2-link-cta.cr2-link-cta--muted {
+  color: var(--muted);
+  font-weight: 400;
+}
+.cr2-link-cta.cr2-link-cta--muted:hover {
+  color: var(--text);
+  border-bottom-color: var(--border);
+}
+.cr2-link-cta:disabled {
+  color: var(--disabled);
+  cursor: default;
+}
 
 /* Klassen-Name als „Headword"-Feld: serif, nur unterstrichen (kein Kasten). */
 .cr2-headword-input {
@@ -1017,11 +1045,11 @@
 
 /* ── Live-Step ───────────────────────────────────────────────────── */
 .cr2-progress {
-  background: var(--cr2-card-bg);
-  border: 1px solid var(--cr2-rule-lt);
-  border-radius: 4px;
-  padding: 16px 18px;
-  margin-bottom: 20px;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  padding: 0;
+  margin-bottom: 22px;
 }
 
 .cr2-progress__label {
@@ -1054,10 +1082,10 @@
 }
 
 .cr2-lemma-mirror {
-  background: #fdfcf8;
-  border-left: 3px solid var(--cr2-gold);
-  padding: 14px 16px;
-  margin: 20px 0;
+  background: transparent;
+  border-left: 2px solid var(--accent);
+  padding: 4px 0 4px 14px;
+  margin: 18px 0;
   font-family: 'Gentium Plus', Georgia, serif;
   font-style: italic;
   color: var(--cr2-muted);
@@ -1108,16 +1136,17 @@
 .cr2-result-cards {
   display: flex;
   flex-direction: column;
-  gap: 16px;
-  margin-top: 16px;
+  gap: 0;
+  margin-top: 8px;
+  border-top: 1px solid var(--border-lt);
 }
 
 .cr2-result-card {
-  background: var(--cr2-card-bg);
-  border: 1px solid var(--cr2-rule-lt);
-  border-left: 3px solid var(--cr2-gold);
-  border-radius: 6px;
-  padding: 16px;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--border-lt);
+  border-radius: 0;
+  padding: 18px 0;
 }
 
 .cr2-result-card__head {
@@ -1217,10 +1246,11 @@
 
 /* Empty State */
 .cr2-result-empty {
-  background: #fdfcf8;
-  border: 1px dashed var(--cr2-rule);
-  border-radius: 6px;
-  padding: 24px 20px;
+  background: transparent;
+  border: none;
+  border-top: 1px solid var(--border-lt);
+  border-bottom: 1px solid var(--border-lt);
+  padding: 28px 20px;
   text-align: center;
 }
 
