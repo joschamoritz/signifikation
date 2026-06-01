@@ -197,6 +197,20 @@
   background: #fffbef;
 }
 
+/* Modus-Auswahl: Hover + Auswahl im dezenten Rot mit rotem Linksakzent —
+   genau wie die Optionen im Kollokationen-Spiel (statt Gold/Grau). */
+.cr2-mode-card.cr2-card:hover {
+  background: color-mix(in srgb, var(--primary) 4%, transparent);
+  border-left-color: var(--primary);
+}
+.cr2-mode-card.cr2-card--active {
+  border-left-color: var(--primary);
+  background: color-mix(in srgb, var(--primary) 7%, transparent);
+}
+.cr2-mode-card.cr2-card--active .cr2-card__title {
+  color: var(--primary);
+}
+
 /* ── Klassenraum-Index-Einträge ─────────────────────────────────────
    Wörterbuch-Einträge der Landing-Ansicht (① Anleitung … ④ Vorbereiten).
    Optisch wie .test-entry (Spielmodi/Kurs), aber mit eigenen Klassen, damit
@@ -403,8 +417,9 @@
   cursor: default;
 }
 
-/* „Neue Session anlegen" — roter Wörterbuch-CTA (kein gefüllter Kasten). */
-.cr2-new-session-cta {
+/* Primärer Wörterbuch-CTA (kein gefüllter Kasten) — „Neue Session anlegen",
+   „Lobby öffnen" usw. Roter Text auf Pergament-Karte mit Haarlinien-Rahmen. */
+.cr2-cta {
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -423,23 +438,29 @@
   letter-spacing: 0.01em;
   transition: color 0.15s, border-color 0.15s, background 0.15s;
 }
-.cr2-new-session-cta__plus {
+.cr2-cta__plus {
   font-weight: 400;
   font-size: 1.15rem;
   line-height: 1;
 }
-.cr2-new-session-cta .test-cta-arrow { transition: transform 0.15s; }
-.cr2-new-session-cta:hover {
+.cr2-cta .test-cta-arrow { transition: transform 0.15s; }
+.cr2-cta:hover:not(:disabled) {
   border-color: var(--primary);
   background: var(--error-bg, #fef2f2);
   color: var(--primary-hi);
 }
-.cr2-new-session-cta:hover .test-cta-arrow { transform: translateX(3px); }
-.cr2-new-session-cta:focus-visible {
+.cr2-cta:hover:not(:disabled) .test-cta-arrow { transform: translateX(3px); }
+.cr2-cta:focus-visible {
   outline: 2px solid var(--primary);
   outline-offset: 2px;
 }
-.cr2-new-session-cta:active { transform: scale(0.985); }
+.cr2-cta:active:not(:disabled) { transform: scale(0.985); }
+.cr2-cta:disabled {
+  color: var(--disabled);
+  border-color: var(--border-lt);
+  background: transparent;
+  cursor: not-allowed;
+}
 
 .cr2-card__row {
   display: flex;
@@ -638,55 +659,93 @@
   gap: 12px;
 }
 
-/* Tagesauswahl-Schnellzugriff (Kalender) oben im Picker */
-.cr2-lemma-today {
+/* ── Lemma des Tages — prominente Auswahl-Karten ───────────────────── */
+.cr2-today {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 10px;
 }
-.cr2-lemma-today__label {
-  font-family: 'DM Sans', system-ui, sans-serif;
-  font-size: 0.7rem;
-  letter-spacing: 0.1em;
+.cr2-today__label {
+  font-family: var(--font-sans);
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.25em;
   text-transform: uppercase;
-  color: var(--cr2-muted);
+  color: var(--accent-dk);
 }
-.cr2-lemma-today__chips {
+.cr2-today__cards {
   list-style: none;
   margin: 0;
   padding: 0;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+}
+@media (min-width: 460px) {
+  .cr2-today__cards { grid-template-columns: 1fr 1fr; }
+}
+.cr2-today-card {
   display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-.cr2-lemma-today__chip {
-  font-family: 'Gentium Plus', Georgia, serif;
-  font-size: 0.95rem;
-  padding: 6px 12px;
-  background: transparent;
-  border: 1px solid var(--cr2-gold);
-  border-radius: 999px;
-  color: var(--cr2-text);
+  align-items: baseline;
+  gap: 8px;
+  width: 100%;
+  text-align: left;
+  padding: 14px 14px 14px 13px;
+  background: var(--surface, #fff);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent);
+  border-radius: var(--radius, 4px);
   cursor: pointer;
+  min-height: 52px;
+  transition: background 0.12s, border-color 0.12s;
 }
-.cr2-lemma-today__chip:hover:not(:disabled) {
-  background: #fffbef;
+.cr2-today-card__lemma {
+  font-family: var(--font-serif);
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--text);
 }
-.cr2-lemma-today__chip--active {
-  background: #fffbef;
-  border-color: var(--cr2-accent);
-  color: var(--cr2-accent);
+.cr2-today-card__ipa {
+  font-family: var(--font-serif);
+  font-size: 0.8rem;
+  color: var(--muted);
 }
-.cr2-lemma-today__chip:disabled {
-  opacity: 0.45;
+.cr2-today-card__pos {
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+.cr2-today-card__mark {
+  margin-left: auto;
+  font-family: var(--font-sans);
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--accent-dk);
+  line-height: 1;
+}
+.cr2-today-card:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--primary) 4%, transparent);
+  border-color: var(--primary);
+  border-left-color: var(--primary);
+}
+.cr2-today-card--active {
+  border-color: var(--primary);
+  border-left-color: var(--primary);
+  background: color-mix(in srgb, var(--primary) 7%, transparent);
+}
+.cr2-today-card--active .cr2-today-card__lemma { color: var(--primary); }
+.cr2-today-card--active .cr2-today-card__mark { color: var(--primary); }
+.cr2-today-card:disabled {
+  opacity: 0.42;
   cursor: not-allowed;
 }
-.cr2-lemma-today__none {
-  font-family: 'Gentium Plus', Georgia, serif;
-  font-style: italic;
-  font-size: 0.85rem;
-  color: var(--cr2-muted);
-  margin: 0;
+
+/* Suchsektion (Label + Feld) */
+.cr2-lemma-search {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
 }
 
 /* Wort-Zwilling-Paar-Auswahl */
@@ -1140,9 +1199,8 @@
 .cr2-block {
   border: none;
   border-top: 1px solid var(--cr2-rule);
-  border-left: 3px solid var(--cr2-gold);
   border-radius: 0;
-  padding: 18px 0 20px 16px;
+  padding: 18px 0 20px;
   margin-bottom: 4px;
   background: transparent;
 }

@@ -194,11 +194,11 @@ export default function SessionListStep() {
         <div className="cr2-sticky-cta__inner">
           <button
             type="button"
-            className="cr2-new-session-cta"
+            className="cr2-cta"
             data-testid="cr2-new-session"
             onClick={handleNew}
           >
-            <span className="cr2-new-session-cta__plus" aria-hidden="true">＋</span>
+            <span className="cr2-cta__plus" aria-hidden="true">＋</span>
             Neue Session anlegen
             <span className="test-cta-arrow" aria-hidden="true"> →</span>
           </button>

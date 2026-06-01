@@ -78,12 +78,15 @@ export default function LemmaPicker({ value = [], onChange, mode = null }) {
 
   const limitReached = value.length >= MAX_LEMMATA
 
+  const hasQuery = query.trim() !== ''
+
   return (
     <div className="cr2-lemma-picker">
+      {/* Lemma des Tages — prominente Standardwahl als Karten. */}
       {todayItems.length > 0 && (
-        <div className="cr2-lemma-today">
-          <span className="cr2-lemma-today__label">Heute im Kalender</span>
-          <ul className="cr2-lemma-today__chips" aria-label="Tagesauswahl">
+        <div className="cr2-today">
+          <span className="cr2-today__label">Lemma des Tages</span>
+          <ul className="cr2-today__cards" aria-label="Lemma des Tages">
             {todayItems.map((it) => {
               const sel = value.includes(it.id)
               const dis = !sel && value.length >= MAX_LEMMATA
@@ -91,13 +94,16 @@ export default function LemmaPicker({ value = [], onChange, mode = null }) {
                 <li key={it.id}>
                   <button
                     type="button"
-                    className={`cr2-lemma-today__chip${sel ? ' cr2-lemma-today__chip--active' : ''}`}
+                    className={`cr2-today-card${sel ? ' cr2-today-card--active' : ''}`}
                     onClick={() => toggle(it.id)}
                     disabled={dis}
                     aria-pressed={sel}
                     data-testid={`cr2-today-${it.id}`}
                   >
-                    {it.lemma}
+                    <span className="cr2-today-card__lemma">{it.lemma}</span>
+                    {it.ipa && <span className="cr2-today-card__ipa">[{it.ipa}]</span>}
+                    {it.pos && <span className="cr2-today-card__pos">{it.pos}</span>}
+                    <span className="cr2-today-card__mark" aria-hidden="true">{sel ? '✓' : '+'}</span>
                   </button>
                 </li>
               )
@@ -129,14 +135,18 @@ export default function LemmaPicker({ value = [], onChange, mode = null }) {
         </ul>
       )}
 
-      <input
-        type="search"
-        className="cr2-input"
-        placeholder="Lemma suchen …"
-        value={query}
-        onChange={(e) => setQuery(e.target.value)}
-        aria-label="Lemma-Suche"
-      />
+      {/* Eigenes Lemma suchen — Trefferliste erscheint nur bei Eingabe. */}
+      <div className="cr2-lemma-search">
+        <span className="cr2-today__label">{todayItems.length > 0 ? 'Oder eigenes Lemma' : 'Lemma suchen'}</span>
+        <input
+          type="search"
+          className="cr2-input"
+          placeholder="Lemma suchen …"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          aria-label="Lemma-Suche"
+        />
+      </div>
 
       <p className="cr2-lemma-picker__hint">
         {value.length === 0
@@ -144,10 +154,14 @@ export default function LemmaPicker({ value = [], onChange, mode = null }) {
           : `${value.length}/${MAX_LEMMATA} ausgewählt${limitReached ? ' · Maximum erreicht' : ''}`}
       </p>
 
-      {loading && <p className="cr2-loading">Wird gesucht …</p>}
-      {error && <p className="cr2-error">{error}</p>}
+      {hasQuery && loading && <p className="cr2-loading">Wird gesucht …</p>}
+      {hasQuery && error && <p className="cr2-error">{error}</p>}
 
-      {!loading && !error && items.length > 0 && (
+      {hasQuery && !loading && !error && items.length === 0 && (
+        <p className="cr2-lemma-picker__hint">Keine Treffer für „{query.trim()}".</p>
+      )}
+
+      {hasQuery && !loading && !error && items.length > 0 && (
         <ul className="cr2-card-list" aria-label="Suchergebnisse">
           {items.map((it) => {
             const selected = value.includes(it.id)

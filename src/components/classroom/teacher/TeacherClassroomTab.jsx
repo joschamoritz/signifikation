@@ -18,7 +18,7 @@ import './TeacherClassroomTab.css'
 // Unterseiten, die als Vollbild-Takeover rendern (eigener Zurück-Pfeil +
 // zentrierter Titel, wie ein Modus-Klick auf der Spielmodi-Seite) — OHNE den
 // großen App-Header. Der Rest läuft (noch) in der Landing-Shell.
-const TAKEOVER = new Set([STEPS.HOWTO, STEPS.JOIN, STEPS.LIST])
+const TAKEOVER = new Set([STEPS.HOWTO, STEPS.JOIN, STEPS.LIST, STEPS.SETUP])
 
 function StepRouter() {
   const { state } = useTeacherClassroom()

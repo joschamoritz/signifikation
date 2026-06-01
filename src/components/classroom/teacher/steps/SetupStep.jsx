@@ -13,6 +13,7 @@ import ModePicker  from '../components/ModePicker'
 import LemmaPicker from '../components/LemmaPicker'
 import WortZwillingPicker from '../components/WortZwillingPicker'
 import SetupPreview from '../components/SetupPreview'
+import ClassroomSubScreen from '../components/ClassroomSubScreen'
 
 const MAX_BLOCKS = 5
 
@@ -104,16 +105,14 @@ export default function SetupStep() {
   const previewBlock = previewIdx != null ? blocks[previewIdx] : null
 
   return (
-    <div data-testid="cr2-setup">
-      <button
-        type="button"
-        className="cr2-btn cr2-btn--ghost"
-        onClick={() => dispatch({ type: 'GO_TO_LIST' })}
-        style={{ marginBottom: 12 }}
-      >
-        ← Zurück
-      </button>
-
+    <ClassroomSubScreen
+      testId="cr2-setup"
+      title="Neue Session"
+      label="Live-Session"
+      lead="Modus und Wörter wählen."
+      backLabel="Zurück zu den Sessions"
+      onBack={() => dispatch({ type: 'GO_TO_LIST' })}
+    >
       <ol className="cr2-stepper" aria-label="Setup-Schritte">
         {stepperItems.map((item, idx) => (
           <li key={item.id} className={`cr2-stepper__item${item.done ? ' cr2-stepper__item--done' : (idx === 0 || stepperItems[idx - 1].done) ? ' cr2-stepper__item--active' : ''}`}>
@@ -237,12 +236,13 @@ export default function SetupStep() {
         <div className="cr2-sticky-cta__inner">
           <button
             type="button"
-            className="cr2-btn cr2-btn--primary"
+            className="cr2-cta"
             disabled={!canSubmit}
             onClick={handleSubmit}
             data-testid="cr2-setup-submit"
           >
             {submitting ? 'Wird angelegt …' : 'Lobby öffnen'}
+            {!submitting && <span className="test-cta-arrow" aria-hidden="true"> →</span>}
           </button>
         </div>
       </div>
@@ -254,6 +254,6 @@ export default function SetupStep() {
           onClose={() => setPreviewIdx(null)}
         />
       )}
-    </div>
+    </ClassroomSubScreen>
   )
 }
