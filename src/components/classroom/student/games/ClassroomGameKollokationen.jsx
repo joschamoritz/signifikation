@@ -43,7 +43,6 @@ export default function ClassroomGameKollokationen({ lemma, prompt, onSubmit, su
         <div className="options-grid" aria-describedby="cr2-koll-instruction">
           {words.map((w, i) => {
             const isPicked = picked.includes(w)
-            const rank = picked.indexOf(w) + 1
             return (
               <button
                 key={w}
@@ -54,7 +53,6 @@ export default function ClassroomGameKollokationen({ lemma, prompt, onSubmit, su
                 aria-pressed={isPicked}
                 data-testid={`cr2-kiosk-koll-choice-${w}`}
               >
-                {isPicked && <span className="option-rank" aria-hidden="true">{rank}</span>}
                 {w}
               </button>
             )

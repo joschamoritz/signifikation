@@ -48,10 +48,19 @@ export default function SessionCodeCard({ code }) {
 
   if (!code) return null
 
+  // Schriftgröße an Code-Länge koppeln → höchstens ~2 Zeilen, auch bei langen
+  // Codes wie „nomen-redaktion".
+  const len = code.length
+  const codeSize =
+    len <= 7  ? 'clamp(44px, 11vw, 104px)' :
+    len <= 10 ? 'clamp(34px, 8.5vw, 78px)' :
+    len <= 13 ? 'clamp(28px, 6.8vw, 60px)' :
+                'clamp(24px, 5.4vw, 48px)'
+
   return (
     <section className="cr2-code-card" aria-label="Zugangscode">
       <p className="cr2-code-card__label">Zugangscode</p>
-      <div className="cr2-code-card__display" aria-live="polite">
+      <div className="cr2-code-card__display" aria-live="polite" style={{ fontSize: codeSize }}>
         {code.split('').map((char, i) => (
           <span key={i} className="cr2-code-card__char">{char}</span>
         ))}

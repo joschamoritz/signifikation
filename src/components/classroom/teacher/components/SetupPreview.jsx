@@ -16,6 +16,8 @@ import ClassroomGameKollokationen  from '../../student/games/ClassroomGameKollok
 import ClassroomGameWortZwilling   from '../../student/games/ClassroomGameWortZwilling'
 import ClassroomGameZeitenwende    from '../../student/games/ClassroomGameZeitenwende'
 import ClassroomGameLueckenfueller from '../../student/games/ClassroomGameLueckenfueller'
+// Spielscreen-Optik (Optionsliste/Header/Footer) — wie im echten Kiosk.
+import '../../../../styles/quiz.css'
 import '../../student/KioskShell.css'
 import './SetupPreview.css'
 
@@ -113,18 +115,18 @@ export default function SetupPreview({ mode, lemmaIds, onClose }) {
       data-testid="cr2-setup-preview"
     >
       <div className="cr2-kiosk cr2-preview">
-        <header className="cr2-kiosk__header">
-          <span className="cr2-kiosk__brand">
-            Signifikation<small>· Vorschau</small>
-          </span>
+        <header className="cr2-kiosk__header cr2-preview__header">
           <button
             type="button"
-            className="cr2-kiosk__exit"
+            className="cr2-preview__back"
             onClick={onClose}
+            aria-label="Vorschau schließen"
             data-testid="cr2-preview-close"
           >
+            <svg width="10" height="16" viewBox="0 0 10 16" fill="none" aria-hidden="true"><path d="M8.5 1L1.5 8L8.5 15" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>
             Schließen
           </button>
+          <span className="cr2-kiosk__brand"><small>Vorschau</small></span>
         </header>
 
         <main className="cr2-kiosk__main">
@@ -178,7 +180,7 @@ export default function SetupPreview({ mode, lemmaIds, onClose }) {
               </p>
               <button
                 type="button"
-                className="cr2-kiosk__btn cr2-kiosk__btn--primary"
+                className="btn-primary btn-full"
                 onClick={restart}
                 data-testid="cr2-preview-restart"
               >
@@ -186,7 +188,8 @@ export default function SetupPreview({ mode, lemmaIds, onClose }) {
               </button>
               <button
                 type="button"
-                className="cr2-kiosk__btn cr2-kiosk__btn--ghost"
+                className="btn-ghost"
+                style={{ marginTop: 6 }}
                 onClick={onClose}
               >
                 Zurück zum Setup

@@ -10,28 +10,28 @@ const MODES = [
     label: 'Kollokationen',
     ipa: '[kɔlokaˈtsi̯oːnən]',
     cat: 'Lexik',
-    desc: 'Häufige Begleitwörter zu einem Lemma — Klassiker fürs Sprachgefühl.',
+    desc: 'Welche Wörter treten am häufigsten gemeinsam auf? Bestimme die stärksten Kollokationen des Tages aus eigenen Korpusdaten.',
   },
   {
     id: 'wortzwilling',
     label: 'Wort-Zwilling',
     ipa: '[ˈvɔʁtˌtsvɪlɪŋ]',
     cat: 'Komparativ',
-    desc: 'Zwei Wörter, eine Kollokationsfamilie. Was passt zu beiden?',
+    desc: 'Zwei bedeutungsnahe Wörter — zwei unterschiedliche Kollokationsprofile. Ordne zehn Kollokationen dem richtigen Lemma zu.',
   },
   {
     id: 'zeitenwende',
     label: 'Zeitenwende',
     ipa: '[ˈtsaɪ̯tənˌvɛndə]',
     cat: 'Diachron',
-    desc: 'Ein Wort in unterschiedlichen Epochen — Bedeutung im Wandel.',
+    desc: 'Gehört dieses Wort eher in die Zeit vor oder nach der Jahrtausendwende? Entscheide für zehn Kollokationen eines Lemmas.',
   },
   {
     id: 'lueckenfueller',
     label: 'Lückenfüller',
     ipa: '[ˈlʏkənˌfʏlɐ]',
     cat: 'Konstruktiv',
-    desc: 'Eine Lücke im Satz, eine zielgenaue Lösung — schneller Drill.',
+    desc: 'Ein echter Korpussatz mit fehlender Kollokation — welches Wort gehört in die Lücke? Drei Runden, vier Optionen, zehn Punkte.',
   },
 ]
 

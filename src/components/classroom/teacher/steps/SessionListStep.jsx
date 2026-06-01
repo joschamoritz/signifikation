@@ -104,7 +104,7 @@ export default function SessionListStep() {
 
       {!loading && !error && sessions.length === 0 && (
         <div className="cr2-empty" role="status">
-          <span className="cr2-empty__dropcap" aria-hidden="true">K</span>
+          <span className="cr2-empty__ornament" aria-hidden="true">· · ·</span>
           <p className="cr2-empty__title">
             Noch keine Sessions. Lege deine erste an —<br />
             eine Klasse braucht nur einen Modus und ein Lemma.

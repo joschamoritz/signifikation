@@ -22,6 +22,25 @@
   box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.06);
 }
 
+/* Kopfzeile: Zurück oben links (wie überall in der App), Label rechts. */
+.cr2-preview__header {
+  justify-content: space-between;
+}
+.cr2-preview__back {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: none;
+  color: var(--k-accent);
+  font-family: 'DM Sans', system-ui, sans-serif;
+  font-size: 0.9rem;
+  cursor: pointer;
+  padding: 6px 4px;
+  min-height: 44px;
+}
+.cr2-preview__back:hover { opacity: 0.7; }
+
 /* Dezenter Vorschau-Hinweis im Wörterbuch-Stil (Gold, kursiv). */
 .cr2-preview__banner {
   border: 1px solid var(--k-gold);

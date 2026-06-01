@@ -59,14 +59,14 @@
   margin-top: 8px;
 }
 
-.cr2-empty__dropcap {
+.cr2-empty__ornament {
+  display: block;
   font-family: 'Gentium Plus', Georgia, serif;
-  font-size: 4.5rem;
-  line-height: 1;
-  color: var(--cr2-accent);
-  display: inline-block;
-  margin-bottom: 12px;
-  font-weight: 700;
+  font-size: 1.4rem;
+  letter-spacing: 0.5em;
+  color: var(--cr2-gold);
+  margin-bottom: 16px;
+  user-select: none;
 }
 
 .cr2-empty__title {
@@ -96,6 +96,8 @@
   width: 100%;
   max-width: 480px;
   pointer-events: auto;
+  border-top: 1px solid var(--border);
+  padding-top: 6px;
 }
 
 /* Mit aktivem TabBar (60px) – CTA muss darueber sitzen */
@@ -417,8 +419,8 @@
   cursor: default;
 }
 
-/* Primärer Wörterbuch-CTA (kein gefüllter Kasten) — „Neue Session anlegen",
-   „Lobby öffnen" usw. Roter Text auf Pergament-Karte mit Haarlinien-Rahmen. */
+/* Primärer Wörterbuch-CTA — roter Text, KEIN Kasten (wie „Quiz starten →"
+   auf der Startseite). Verankert durch die Haarlinie über der Aktionszeile. */
 .cr2-cta {
   display: inline-flex;
   align-items: center;
@@ -426,17 +428,17 @@
   width: 100%;
   justify-content: center;
   font-family: var(--font-serif);
-  font-size: 1rem;
+  font-size: 1.05rem;
   font-weight: 700;
   color: var(--primary);
-  background: var(--surface, #fff);
-  border: 1px solid var(--border);
-  border-radius: var(--radius, 4px);
-  padding: 13px 20px;
+  background: none;
+  border: none;
+  border-radius: 0;
+  padding: 12px 8px;
   min-height: 48px;
   cursor: pointer;
   letter-spacing: 0.01em;
-  transition: color 0.15s, border-color 0.15s, background 0.15s;
+  transition: color 0.15s;
 }
 .cr2-cta__plus {
   font-weight: 400;
@@ -444,21 +446,16 @@
   line-height: 1;
 }
 .cr2-cta .test-cta-arrow { transition: transform 0.15s; }
-.cr2-cta:hover:not(:disabled) {
-  border-color: var(--primary);
-  background: var(--error-bg, #fef2f2);
-  color: var(--primary-hi);
-}
+.cr2-cta:hover:not(:disabled) { color: var(--primary-hi); }
 .cr2-cta:hover:not(:disabled) .test-cta-arrow { transform: translateX(3px); }
 .cr2-cta:focus-visible {
   outline: 2px solid var(--primary);
   outline-offset: 2px;
+  border-radius: 4px;
 }
 .cr2-cta:active:not(:disabled) { transform: scale(0.985); }
 .cr2-cta:disabled {
   color: var(--disabled);
-  border-color: var(--border-lt);
-  background: transparent;
   cursor: not-allowed;
 }
 /* Inline-Variante (teilt sich die Breite in einer Aktionszeile). */

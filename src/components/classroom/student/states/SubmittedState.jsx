@@ -20,7 +20,7 @@ function CollocationsRecap({ rawAnswer, lemma }) {
       {picked.map((w, i) => (
         <li key={i} className="cr2-kiosk__choice cr2-kiosk__choice--disabled">
           <span>{w}</span>
-          <span className="cr2-kiosk__choice-rank">{i + 1}. Pick</span>
+          <span className="cr2-kiosk__choice-rank" aria-hidden="true">✓</span>
         </li>
       ))}
       {picked.length === 0 && (
@@ -102,11 +102,11 @@ export default function SubmittedState() {
         <p className="cr2-kiosk__lead">Danke fürs Mitspielen.</p>
         <button
           type="button"
-          className="cr2-kiosk__btn cr2-kiosk__btn--primary"
+          className="btn-primary btn-full"
           onClick={() => navigate('/')}
           data-testid="cr2-kiosk-to-app"
         >
-          Zur App
+          Zur App →
         </button>
       </>
     )
@@ -130,7 +130,7 @@ export default function SubmittedState() {
       <p className="cr2-kiosk__lead">
         {isEnded
           ? 'Hier siehst du deine Antwort und die Auflösung.'
-          : 'Warte auf deinen Lehrer.'}
+          : 'Warte auf deine Lehrkraft.'}
       </p>
 
       {state.currentLemma?.lemma && (
@@ -161,11 +161,11 @@ export default function SubmittedState() {
       {isEnded && (
         <button
           type="button"
-          className="cr2-kiosk__btn cr2-kiosk__btn--primary"
+          className="btn-primary btn-full"
           onClick={() => navigate('/')}
           data-testid="cr2-kiosk-to-app"
         >
-          Zur App
+          Zur App →
         </button>
       )}
     </>
