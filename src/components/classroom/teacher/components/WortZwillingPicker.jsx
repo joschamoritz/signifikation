@@ -47,28 +47,34 @@ export default function WortZwillingPicker({ value = [], onChange }) {
     onChange(a && b ? [makeWzId(a, b, pos)] : [])
   }
 
+  const isToday = today && wortA.trim() === today.wortA && wortB.trim() === today.wortB
+
   return (
     <div className="cr2-wz-picker">
       {today && (
-        <div className="cr2-lemma-today">
-          <span className="cr2-lemma-today__label">Heute im Kalender</span>
-          <div className="cr2-lemma-today__chips">
-            <button
-              type="button"
-              className="cr2-lemma-today__chip"
-              onClick={() => setPair(today.wortA, today.wortB, today.pos)}
-              data-testid="cr2-wz-today"
-            >
-              {today.wortA} ↔ {today.wortB}
-            </button>
-          </div>
+        <div className="cr2-today">
+          <span className="cr2-today__label">Paar des Tages</span>
+          <ul className="cr2-today__cards" aria-label="Paar des Tages">
+            <li>
+              <button
+                type="button"
+                className={`cr2-today-card${isToday ? ' cr2-today-card--active' : ''}`}
+                onClick={() => setPair(today.wortA, today.wortB, today.pos)}
+                aria-pressed={!!isToday}
+                data-testid="cr2-wz-today"
+              >
+                <span className="cr2-today-card__lemma">{today.wortA} ↔ {today.wortB}</span>
+                <span className="cr2-today-card__mark" aria-hidden="true">{isToday ? '✓' : '+'}</span>
+              </button>
+            </li>
+          </ul>
         </div>
       )}
 
       <div className="cr2-wz-fields">
         <input
           type="text"
-          className="cr2-input"
+          className="cr2-wz-field"
           placeholder="Erstes Wort"
           value={wortA}
           onChange={(e) => setPair(e.target.value, wortB)}
@@ -78,7 +84,7 @@ export default function WortZwillingPicker({ value = [], onChange }) {
         <span className="cr2-wz-sep" aria-hidden="true">↔</span>
         <input
           type="text"
-          className="cr2-input"
+          className="cr2-wz-field"
           placeholder="Zweites Wort"
           value={wortB}
           onChange={(e) => setPair(wortA, e.target.value)}

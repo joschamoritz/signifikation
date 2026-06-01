@@ -185,11 +185,11 @@ export default function SetupStep() {
         {blocks.length < MAX_BLOCKS && (
           <button
             type="button"
-            className="cr2-btn cr2-btn--ghost cr2-block-add"
+            className="test-cta cr2-block-add"
             onClick={addBlock}
             data-testid="cr2-block-add"
           >
-            + Weiterer Modus
+            <span aria-hidden="true">＋</span> Weiterer Modus
           </button>
         )}
       </section>

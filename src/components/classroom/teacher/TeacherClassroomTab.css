@@ -811,16 +811,36 @@
 .cr2-wz-fields {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
 }
-.cr2-wz-fields .cr2-input {
+.cr2-wz-field {
   flex: 1;
   min-width: 0;
+  box-sizing: border-box;
+  font-family: var(--font-serif);
+  font-size: 1.2rem;
+  font-weight: 700;
+  text-align: center;
+  color: var(--text);
+  background: transparent;
+  border: none;
+  border-bottom: 1.5px solid var(--border);
+  border-radius: 0;
+  padding: 8px 2px;
+}
+.cr2-wz-field::placeholder {
+  font-weight: 400;
+  font-style: italic;
+  color: var(--muted);
+}
+.cr2-wz-field:focus {
+  outline: none;
+  border-bottom-color: var(--primary);
 }
 .cr2-wz-sep {
-  font-family: 'Gentium Plus', Georgia, serif;
-  font-size: 1.3rem;
-  color: var(--cr2-gold);
+  font-family: var(--font-serif);
+  font-size: 1.2rem;
+  color: var(--accent-dk);
   flex-shrink: 0;
 }
 
@@ -1303,15 +1323,20 @@
 }
 
 .cr2-block__tool {
-  width: 28px;
-  height: 28px;
-  border: 1px solid var(--cr2-rule);
-  background: var(--cr2-bg);
-  color: var(--cr2-text);
-  border-radius: 4px;
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: transparent;
+  color: var(--cr2-muted);
+  border-radius: var(--radius, 4px);
   cursor: pointer;
-  font-size: 0.95rem;
+  font-size: 1.05rem;
   line-height: 1;
+  transition: color 0.12s, background 0.12s;
+}
+.cr2-block__tool:hover:not(:disabled) {
+  color: var(--primary);
+  background: var(--error-bg, #fef2f2);
 }
 
 .cr2-block__tool:disabled {
@@ -1329,8 +1354,11 @@
 }
 
 .cr2-block-add {
+  display: flex;
+  justify-content: center;
   width: 100%;
-  border-style: dashed;
+  gap: 6px;
+  margin-top: 12px;
 }
 
 .cr2-progress__step {
