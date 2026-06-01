@@ -193,6 +193,12 @@ export async function getTodayLemmata(mode) {
   return jsonOrThrow(res)
 }
 
+// Heutiges Wort-Zwilling-Paar (Schnellauswahl im Wort-Zwilling-Setup).
+export async function getTodayWortzwilling() {
+  const res = await apiFetch(`${BASE}/today-wortzwilling`, { credentials: 'include' })
+  return jsonOrThrow(res)
+}
+
 // Default-Export-Bundle: erleichtert das Mocken in Tests.
 export default {
   listSessions,
@@ -211,4 +217,5 @@ export default {
   getSessionResults,
   searchLemmata,
   getTodayLemmata,
+  getTodayWortzwilling,
 }

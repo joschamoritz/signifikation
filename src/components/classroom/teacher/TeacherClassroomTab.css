@@ -527,6 +527,28 @@
   margin: 0;
 }
 
+/* Wort-Zwilling-Paar-Auswahl */
+.cr2-wz-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.cr2-wz-fields {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.cr2-wz-fields .cr2-input {
+  flex: 1;
+  min-width: 0;
+}
+.cr2-wz-sep {
+  font-family: 'Gentium Plus', Georgia, serif;
+  font-size: 1.3rem;
+  color: var(--cr2-gold);
+  flex-shrink: 0;
+}
+
 .cr2-lemma-chips {
   list-style: none;
   margin: 0;

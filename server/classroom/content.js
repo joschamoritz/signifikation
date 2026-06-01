@@ -99,3 +99,57 @@ export async function resolveZeitenwende(lemma, { fetchZeitenwende, logWarn } = 
 
   return words
 }
+
+// ── Wort-Zwilling: Paar-basiert (kein Lemma) ─────────────────────────
+//
+// Ein Wort-Zwilling ist ein PAAR (wortA, wortB), das live aus zwei Wort-
+// profilen generiert wird (fetchWortZwilling). Es passt nicht ins Lemma-ID-
+// Modell des Pickers. Damit die Assignment-Pipeline (lemma_ids: string[])
+// unveraendert bleibt, kodieren wir das Paar als synthetische „wz:"-ID.
+
+const WZ_PREFIX = 'wz:'
+
+/** Kodiert ein Paar als synthetische Assignment-ID. */
+export function makeWzId(wortA, wortB, pos = 'Substantiv') {
+  return `${WZ_PREFIX}${encodeURIComponent(wortA)}:${encodeURIComponent(wortB)}:${encodeURIComponent(pos)}`
+}
+
+/** Parst eine „wz:"-ID zurueck → { wortA, wortB, pos } oder null. */
+export function parseWzId(id) {
+  if (typeof id !== 'string' || !id.startsWith(WZ_PREFIX)) return null
+  const parts = id.slice(WZ_PREFIX.length).split(':')
+  if (parts.length < 2) return null
+  const wortA = decodeURIComponent(parts[0] || '').trim()
+  const wortB = decodeURIComponent(parts[1] || '').trim()
+  const pos   = parts[2] ? decodeURIComponent(parts[2]).trim() : 'Substantiv'
+  if (!wortA || !wortB) return null
+  return { wortA, wortB, pos }
+}
+
+/**
+ * Wort-Zwilling-Kollokatoren für den Klassenraum — IMMER live aus wortprofil.db
+ * (fetchWortZwilling → unterscheidende Kollokatoren mit zuordnung A/B).
+ * Kein Fallback (Paare existieren nicht als gespeichertes Lemma). Liefert leer,
+ * wenn das Paar nicht genug Distinktion hat → Frontend/Preview zeigt das.
+ * Gemischt, damit A/B nicht blockweise erscheinen; `zuordnung` bleibt (Scoring).
+ *
+ * @param {{wortA:string, wortB:string, pos?:string}} pair
+ * @param {object} deps
+ * @param {Function} deps.fetchWortZwilling  async (a,b,pos) → { kollokatoren:[{wort,zuordnung}] } | null
+ * @param {Function} [deps.logWarn]
+ * @returns {Promise<Array<{wort:string, zuordnung:string}>>}
+ */
+export async function resolveWortzwilling(pair, { fetchWortZwilling, logWarn } = {}) {
+  if (!pair?.wortA || !pair?.wortB) return []
+  try {
+    if (typeof fetchWortZwilling === 'function') {
+      const fresh = await fetchWortZwilling(pair.wortA, pair.wortB, pair.pos || 'Substantiv')
+      if (Array.isArray(fresh?.kollokatoren) && fresh.kollokatoren.length) {
+        return shuffleArr(fresh.kollokatoren)
+      }
+    }
+  } catch (err) {
+    if (typeof logWarn === 'function') logWarn(err, `${pair.wortA}/${pair.wortB}`)
+  }
+  return []
+}

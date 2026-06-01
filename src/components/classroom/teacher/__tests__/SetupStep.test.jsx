@@ -18,6 +18,7 @@ vi.mock('../hooks/useTeacherSession', () => ({
   getDashboard: vi.fn(),
   searchLemmata: vi.fn().mockResolvedValue({ items: [], total: 0 }),
   getTodayLemmata: vi.fn().mockResolvedValue({ items: [] }),
+  getTodayWortzwilling: vi.fn().mockResolvedValue({ pair: null }),
 }))
 
 import { searchLemmata, createSession, addAssignments } from '../hooks/useTeacherSession'
@@ -102,8 +103,9 @@ describe('SetupStep (T-4.4 / W2-T2)', () => {
     fireEvent.click(screen.getByTestId('cr2-block-add'))
     const block1 = screen.getByTestId('cr2-block-1')
     fireEvent.click(within(block1).getByTestId('cr2-mode-wortzwilling'))
-    fireEvent.change(within(block1).getByLabelText('Lemma-Suche'), { target: { value: 'Pro' } })
-    fireEvent.click(await within(block1).findByTestId('cr2-lemma-x1'))
+    // Wort-Zwilling nutzt den Paar-Picker (zwei Wörter statt Lemma-Suche)
+    fireEvent.change(within(block1).getByTestId('cr2-wz-a'), { target: { value: 'Wasser' } })
+    fireEvent.change(within(block1).getByTestId('cr2-wz-b'), { target: { value: 'Feuer' } })
 
     fireEvent.click(screen.getByTestId('cr2-setup-submit'))
 

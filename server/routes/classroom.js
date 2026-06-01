@@ -72,8 +72,9 @@ import {
   getSessionResults,
 } from '../classroom/store.js'
 import { fetchLemma, fetchZeitenwende } from '../wortprofil.js'
-import { resolveKollokatoren, resolveZeitenwende } from '../classroom/content.js'
-import { loadKalenderEntry, getLemmataIndex } from '../store.js'
+import { fetchWortZwilling } from '../wortzwilling.js'
+import { resolveKollokatoren, resolveZeitenwende, resolveWortzwilling, parseWzId } from '../classroom/content.js'
+import { loadKalenderEntry, getLemmataIndex, loadWortZwillingEntry } from '../store.js'
 import {
   notifyStudentJoined,
   notifyStudentLeft,
@@ -163,6 +164,35 @@ function parseLemmaJson(row) {
   }
 }
 
+// Synthetisches Lemma-Objekt fuer ein Wort-Zwilling-Paar (hat keinen DB-Eintrag).
+function synthWzLemma(id, pair) {
+  return {
+    id,
+    lemma:        `${pair.wortA} ↔ ${pair.wortB}`,
+    pos:          pair.pos || 'Substantiv',
+    ipa:          '',
+    definition:   '',
+    definitionen: [],
+    runden:       { wzPair: pair },
+    lueckenfueller: null,
+  }
+}
+
+// Laedt die Lemmata fuer ein Assignment: echte IDs aus der DB, „wz:"-Paar-IDs
+// (Wort-Zwilling) als synthetische Objekte. → { lemmata, missing }.
+function loadAssignmentLemmata(lemmaIds) {
+  const realIds = lemmaIds.filter((id) => !parseWzId(id))
+  const rows = realIds.length ? getLemmataByIdsStmt.all(JSON.stringify(realIds)) : []
+  const lemmata = rows.map(parseLemmaJson)
+  for (const id of lemmaIds) {
+    const pair = parseWzId(id)
+    if (pair) lemmata.push(synthWzLemma(id, pair))
+  }
+  const foundIds = new Set(lemmata.map((l) => l.id))
+  const missing = lemmaIds.filter((id) => !foundIds.has(id))
+  return { lemmata, missing }
+}
+
 /**
  * Baut den content_snapshot fuer ein Assignment.
  * Der Snapshot wird beim Anlegen eingefroren (D4) und fuer Scoring verwendet.
@@ -195,13 +225,30 @@ async function buildContentSnapshot(mode, lemmata) {
         break
       }
       case 'wortzwilling': {
-        const wz = r.wortzwilling || r
-        byLemma[l.id] = {
-          lemma:       l.lemma,
-          ipa:         l.ipa,
-          wortA:       wz.wortA || l.lemma,
-          wortB:       wz.wortB || '',
-          kollokatoren: wz.kollokatoren || [],
+        if (r.wzPair) {
+          // Paar-Flow (Vereinheitlichung): live aus wortprofil.db.
+          const koll = await resolveWortzwilling(r.wzPair, {
+            fetchWortZwilling,
+            logWarn: (err, paar) =>
+              logger.warn({ err, paar }, 'cr2 fetchWortZwilling fehlgeschlagen'),
+          })
+          byLemma[l.id] = {
+            lemma:        l.lemma,
+            ipa:          l.ipa,
+            wortA:        r.wzPair.wortA,
+            wortB:        r.wzPair.wortB,
+            kollokatoren: koll,
+          }
+        } else {
+          // Rueckwaertskompat: gespeichertes runden.wortzwilling-Feld.
+          const wz = r.wortzwilling || r
+          byLemma[l.id] = {
+            lemma:        l.lemma,
+            ipa:          l.ipa,
+            wortA:        wz.wortA || l.lemma,
+            wortB:        wz.wortB || '',
+            kollokatoren: wz.kollokatoren || [],
+          }
         }
         break
       }
@@ -561,6 +608,29 @@ router.get(
   },
 )
 
+// ── GET /api/v1/classroom/today-wortzwilling ────────────────────
+// Heutiges Wort-Zwilling-Paar (Schnellauswahl im Wort-Zwilling-Setup).
+router.get(
+  '/api/v1/classroom/today-wortzwilling',
+  requirePremium,
+  (req, res) => {
+    try {
+      const datum = classroomTodayDatum()
+      const entry = loadWortZwillingEntry(datum)
+      if (!entry || !entry.wortA || !entry.wortB) {
+        return res.json({ datum, pair: null })
+      }
+      return res.json({
+        datum,
+        pair: { wortA: entry.wortA, wortB: entry.wortB, pos: entry.pos || 'Substantiv' },
+      })
+    } catch (err) {
+      logger.error({ err }, 'cr2 today-wortzwilling crashed')
+      return res.status(500).json({ error: 'Interner Serverfehler' })
+    }
+  },
+)
+
 // ── W2-T1 POST /api/v1/classroom/preview ────────────────────────
 // Teacher-Preview: liefert exakt die Schueler-Sicht (currentLemma.prompt)
 // fuer eine Modus+Lemma-Auswahl, OHNE Session/Assignment/Participant
@@ -578,11 +648,7 @@ router.post(
     try {
       const { mode, lemmaIds } = req.body
 
-      const lemmaRows = getLemmataByIdsStmt.all(JSON.stringify(lemmaIds))
-      const lemmata   = lemmaRows.map(parseLemmaJson)
-
-      const foundIds = new Set(lemmata.map(l => l.id))
-      const missing  = lemmaIds.filter(id => !foundIds.has(id))
+      const { lemmata, missing } = loadAssignmentLemmata(lemmaIds)
       if (missing.length > 0) {
         return res.status(404).json({ error: `Lemmata nicht gefunden: ${missing.join(', ')}` })
       }
@@ -645,13 +711,8 @@ router.post(
       const sessionId   = req.params.id
       const teacherUserId = req.cr2.subject.id
 
-      // Lemmata aus DB laden, um Snapshot einzufrieren
-      const lemmaRows = getLemmataByIdsStmt.all(JSON.stringify(lemmaIds))
-      const lemmata   = lemmaRows.map(parseLemmaJson)
-
-      // Alle angeforderten IDs muessen existieren
-      const foundIds = new Set(lemmata.map(l => l.id))
-      const missing  = lemmaIds.filter(id => !foundIds.has(id))
+      // Lemmata laden (echte aus DB, wz:-Paare synthetisch), Snapshot einfrieren
+      const { lemmata, missing } = loadAssignmentLemmata(lemmaIds)
       if (missing.length > 0) {
         return res.status(404).json({ error: `Lemmata nicht gefunden: ${missing.join(', ')}` })
       }
@@ -703,10 +764,7 @@ router.post(
       // Pro Block Snapshot bauen; dafuer alle referenzierten Lemmata laden.
       const builtBlocks = []
       for (const block of blocks) {
-        const lemmaRows = getLemmataByIdsStmt.all(JSON.stringify(block.lemmaIds))
-        const lemmata   = lemmaRows.map(parseLemmaJson)
-        const foundIds  = new Set(lemmata.map(l => l.id))
-        const missing   = block.lemmaIds.filter(id => !foundIds.has(id))
+        const { lemmata, missing } = loadAssignmentLemmata(block.lemmaIds)
         if (missing.length > 0) {
           return res.status(404).json({ error: `Lemmata nicht gefunden: ${missing.join(', ')}` })
         }

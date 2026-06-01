@@ -1,5 +1,12 @@
 import { describe, it, expect, vi } from 'vitest'
-import { resolveKollokatoren, resolveZeitenwende, shuffleArr } from '../classroom/content.js'
+import {
+  resolveKollokatoren,
+  resolveZeitenwende,
+  resolveWortzwilling,
+  makeWzId,
+  parseWzId,
+  shuffleArr,
+} from '../classroom/content.js'
 
 const worte = (list) => list.map((k) => k.wort).sort()
 
@@ -103,5 +110,48 @@ describe('resolveZeitenwende (Vereinheitlichung — live aus wortprofil.db)', ()
   it('liefert leeres Array, wenn weder live noch gespeichert Daten haben', async () => {
     const fetchZeitenwende = vi.fn(async () => null)
     expect(await resolveZeitenwende({ lemma: 'X', runden: {} }, { fetchZeitenwende })).toEqual([])
+  })
+})
+
+describe('makeWzId / parseWzId (Wort-Zwilling-Paar-ID)', () => {
+  it('Round-Trip Paar ↔ ID', () => {
+    const id = makeWzId('Wasser', 'Feuer', 'Substantiv')
+    expect(id.startsWith('wz:')).toBe(true)
+    expect(parseWzId(id)).toEqual({ wortA: 'Wasser', wortB: 'Feuer', pos: 'Substantiv' })
+  })
+
+  it('robust gegen Umlaute/Sonderzeichen', () => {
+    const p = parseWzId(makeWzId('groß', 'süß'))
+    expect(p.wortA).toBe('groß')
+    expect(p.wortB).toBe('süß')
+  })
+
+  it('liefert null bei Nicht-wz-IDs', () => {
+    expect(parseWzId('lemma-123')).toBeNull()
+    expect(parseWzId('')).toBeNull()
+    expect(parseWzId(null)).toBeNull()
+    expect(parseWzId('wz:nur-ein-teil')).toBeNull()
+  })
+})
+
+describe('resolveWortzwilling (Paar live aus wortprofil.db)', () => {
+  it('nutzt live fetchWortZwilling (kollokatoren mit zuordnung A/B)', async () => {
+    const koll = [{ wort: 'fließen', zuordnung: 'A' }, { wort: 'brennen', zuordnung: 'B' }]
+    const fetchWortZwilling = vi.fn(async () => ({ wortA: 'Wasser', wortB: 'Feuer', kollokatoren: koll }))
+    const out = await resolveWortzwilling({ wortA: 'Wasser', wortB: 'Feuer', pos: 'Substantiv' }, { fetchWortZwilling })
+    expect(fetchWortZwilling).toHaveBeenCalledWith('Wasser', 'Feuer', 'Substantiv')
+    expect(out.map((k) => k.wort).sort()).toEqual(['brennen', 'fließen'])
+    expect(out.find((k) => k.wort === 'fließen').zuordnung).toBe('A') // zuordnung bleibt (Scoring)
+  })
+
+  it('liefert leer, wenn fetchWortZwilling null liefert (zu wenig Kontrast)', async () => {
+    const fetchWortZwilling = vi.fn(async () => null)
+    expect(await resolveWortzwilling({ wortA: 'X', wortB: 'Y' }, { fetchWortZwilling })).toEqual([])
+  })
+
+  it('ruft fetchWortZwilling gar nicht bei unvollständigem Paar', async () => {
+    const fetchWortZwilling = vi.fn(async () => ({ kollokatoren: [{ wort: 'a', zuordnung: 'A' }] }))
+    expect(await resolveWortzwilling({ wortA: 'X' }, { fetchWortZwilling })).toEqual([])
+    expect(fetchWortZwilling).not.toHaveBeenCalled()
   })
 })

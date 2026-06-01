@@ -29,6 +29,7 @@ import { randomUUID } from 'crypto'
 import db from '../db.js'
 import classroomRouter from '../routes/classroom.js'
 import { createSession } from '../classroom/store.js'
+import { makeWzId } from '../classroom/content.js'
 
 // Kollokationen werden im Klassenraum live aus wortprofil.db generiert
 // (buildContentSnapshot → resolveKollokatoren → fetchLemma). Im Test ist die
@@ -40,6 +41,18 @@ vi.mock('../wortprofil.js', () => ({
   // Zeitenwende ebenfalls live (Vereinheitlichung): im Test „leer" → Fallback
   // aufs gespeicherte runden.zeitenwende-Feld der Fixtures.
   fetchZeitenwende: vi.fn(async () => null),
+}))
+
+// Wort-Zwilling-Paar wird live aus wortprofil.db generiert → im Test gemockt.
+vi.mock('../wortzwilling.js', () => ({
+  fetchWortZwilling: vi.fn(async (a, b) => ({
+    wortA: a,
+    wortB: b,
+    kollokatoren: [
+      { wort: 'kalt', zuordnung: 'A' },
+      { wort: 'heiß', zuordnung: 'B' },
+    ],
+  })),
 }))
 
 // ── Test-Infrastruktur ─────────────────────────────────────────
@@ -282,6 +295,23 @@ describe('classroom routes', () => {
       })
       const b2 = await r2.json()
       expect(b2.items.some((it) => it.id === wzId)).toBe(false)
+    })
+
+    it('Wort-Zwilling-Paar: /preview baut Snapshot aus wz:-ID (Paar-Flow, kein Lemma)', async () => {
+      const wzId = makeWzId('Wasser', 'Feuer', 'Substantiv')
+      const res = await fetch(`${baseUrl}/api/v1/classroom/preview`, {
+        method: 'POST',
+        headers: teacherHeaders(TEACHER_ID),
+        body: JSON.stringify({ mode: 'wortzwilling', lemmaIds: [wzId] }),
+      })
+      expect(res.status).toBe(200)
+      const body = await res.json()
+      expect(body.lemmata).toHaveLength(1)
+      expect(body.lemmata[0].prompt.wortA).toBe('Wasser')
+      expect(body.lemmata[0].prompt.wortB).toBe('Feuer')
+      expect(body.lemmata[0].prompt.words).toEqual(expect.arrayContaining(['kalt', 'heiß']))
+      // R1: zuordnung darf NIEMALS an Schueler geleakt werden
+      expect(JSON.stringify(body.lemmata[0].prompt)).not.toContain('zuordnung')
     })
 
     it('T-2.2 Assignment hinzufügen → 201 { id, mode, lemmaCount }', async () => {

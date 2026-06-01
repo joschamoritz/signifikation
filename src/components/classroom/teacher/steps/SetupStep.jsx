@@ -11,6 +11,7 @@ import { useTeacherClassroom } from '../TeacherClassroomContext'
 import { createSession, addAssignments } from '../hooks/useTeacherSession'
 import ModePicker  from '../components/ModePicker'
 import LemmaPicker from '../components/LemmaPicker'
+import WortZwillingPicker from '../components/WortZwillingPicker'
 import SetupPreview from '../components/SetupPreview'
 
 const MAX_BLOCKS = 5
@@ -169,13 +170,20 @@ export default function SetupStep() {
 
             <ModePicker
               value={block.mode}
-              onChange={(mode) => updateBlock(idx, { mode })}
+              onChange={(mode) => updateBlock(idx, { mode, lemmaIds: [] })}
             />
-            <LemmaPicker
-              mode={block.mode}
-              value={block.lemmaIds}
-              onChange={(lemmaIds) => updateBlock(idx, { lemmaIds })}
-            />
+            {block.mode === 'wortzwilling' ? (
+              <WortZwillingPicker
+                value={block.lemmaIds}
+                onChange={(lemmaIds) => updateBlock(idx, { lemmaIds })}
+              />
+            ) : (
+              <LemmaPicker
+                mode={block.mode}
+                value={block.lemmaIds}
+                onChange={(lemmaIds) => updateBlock(idx, { lemmaIds })}
+              />
+            )}
 
             <button
               type="button"
