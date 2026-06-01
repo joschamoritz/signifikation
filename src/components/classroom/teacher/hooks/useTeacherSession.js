@@ -98,7 +98,7 @@ export async function previewAssignment({ mode, lemmaIds }) {
 export async function removeAssignment(sessionId, assignmentId) {
   const res = await apiFetch(
     `${BASE}/sessions/${encodeURIComponent(sessionId)}/assignments/${encodeURIComponent(assignmentId)}`,
-    { method: 'DELETE', credentials: 'include' },
+    { method: 'DELETE', credentials: 'include', headers: jsonHeaders() },
   )
   if (res.status === 204) return null
   return jsonOrThrow(res)
@@ -130,6 +130,8 @@ export async function deleteSession(sessionId) {
   const res = await apiFetch(`${BASE}/sessions/${encodeURIComponent(sessionId)}`, {
     method: 'DELETE',
     credentials: 'include',
+    // Content-Type noetig: csrfProtect verlangt application/json fuer DELETE.
+    headers: jsonHeaders(),
   })
   if (res.status === 204) return null
   return jsonOrThrow(res)
