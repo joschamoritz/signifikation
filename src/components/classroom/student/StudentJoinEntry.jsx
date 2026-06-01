@@ -15,6 +15,7 @@
 import { useState, useRef, lazy, Suspense } from 'react'
 import { navigate } from '../routing'
 import KioskShell from './KioskShell'
+import TabHeader from '../../TabHeader'
 
 const QrScanner = lazy(() => import('./QrScanner'))
 
@@ -79,8 +80,8 @@ export default function StudentJoinEntry({ initialNotice = null, embedded = fals
   }
 
   const inner = (
-    <>
-      <p className="cr2-kiosk__dropcap">K</p>
+    <div className="cr2-kiosk__panel">
+      <p className="cr2-kiosk__overline">Live-Session · Beitreten</p>
       <h1 className="cr2-kiosk__title">Klassenraum</h1>
       <p className="cr2-kiosk__lead">
         Tipp den Zugangscode deiner Lehrkraft ein – oder scanne den QR-Code.
@@ -98,8 +99,7 @@ export default function StudentJoinEntry({ initialNotice = null, embedded = fals
           autoComplete="off"
           autoCapitalize="characters"
           spellCheck={false}
-          className={`cr2-kiosk__input ${shake ? 'cr2-kiosk__input--shake' : ''}`}
-          style={{ textTransform: 'uppercase' }}
+          className={`cr2-kiosk__code-field ${shake ? 'cr2-kiosk__input--shake' : ''}`}
           value={code}
           onChange={handleChange}
           onPaste={handlePaste}
@@ -114,7 +114,7 @@ export default function StudentJoinEntry({ initialNotice = null, embedded = fals
         )}
         <button
           type="submit"
-          className="cr2-kiosk__btn cr2-kiosk__btn--primary"
+          className="btn-primary btn-full"
           disabled={code.length < 4}
           data-testid="cr2-kiosk-code-submit"
         >
@@ -124,19 +124,33 @@ export default function StudentJoinEntry({ initialNotice = null, embedded = fals
 
       <button
         type="button"
-        className="cr2-kiosk__btn cr2-kiosk__btn--ghost"
+        className="btn-ghost cr2-kiosk__skip"
         onClick={() => { setError(null); setScanning(true) }}
         data-testid="cr2-kiosk-scan-btn"
       >
         QR-Code scannen
       </button>
-    </>
+    </div>
   )
 
   if (embedded) {
+    // Einstieg im Klassenraum-Tab → gleicher App-Header wie alle Tabs.
     return (
-      <div className="cr2-kiosk cr2-kiosk--embedded" data-testid="cr2-student-tab">
-        <main className="cr2-kiosk__main">{inner}</main>
+      <div className="cr2-kiosk cr2-kiosk--embedded cr2-student-entry" data-testid="cr2-student-tab">
+        <div className="test-wrapper">
+          <TabHeader />
+          <nav className="test-raster" aria-label="Klassenraum">
+            <span className="test-raster-label" aria-hidden="true">Klassenraum</span>
+            <div className="test-raster-words">
+              <span className="test-raster-word">Live-Session beitreten</span>
+            </div>
+            <div className="test-raster-end">
+              <span className="test-raster-folio" aria-hidden="true">Schüler:in</span>
+            </div>
+          </nav>
+          <div className="test-rule--double" role="separator" aria-hidden="true" />
+          <main className="cr2-kiosk__main">{inner}</main>
+        </div>
       </div>
     )
   }

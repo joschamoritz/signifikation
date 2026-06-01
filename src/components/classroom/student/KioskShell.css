@@ -523,6 +523,51 @@
   margin: 4px auto 0;
 }
 
+/* Zugangscode als unterstrichenes „Headword"-Feld (Grossbuchstaben). */
+.cr2-kiosk__code-field {
+  width: 100%;
+  box-sizing: border-box;
+  font-family: 'Gentium Plus', Georgia, serif;
+  font-size: 1.5rem;
+  font-weight: 700;
+  text-align: center;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--k-text);
+  background: transparent;
+  border: none;
+  border-bottom: 1.5px solid var(--k-rule);
+  border-radius: 0;
+  padding: 8px 4px;
+}
+.cr2-kiosk__code-field::placeholder {
+  font-weight: 400;
+  font-style: italic;
+  letter-spacing: 0.02em;
+  text-transform: none;
+  color: var(--k-muted);
+}
+.cr2-kiosk__code-field:focus {
+  outline: none;
+  border-bottom-color: var(--k-accent);
+}
+
+/* Embedded-Einstieg im Klassenraum-Tab: Wörterbuch-Tokens für den geteilten
+   App-Header (.test-title-section), Raster + Doppellinie. */
+.cr2-student-entry {
+  --t-bg:        var(--bg);
+  --t-text:      var(--text);
+  --t-muted:     var(--muted);
+  --t-accent:    var(--accent);
+  --t-accent-dk: var(--accent-dk);
+  --t-rule:      var(--border);
+  --t-rule-lt:   var(--border-lt);
+  --t-serif:     var(--font-serif);
+  --t-sans:      var(--font-sans);
+  --t-red:       var(--primary);
+  --t-red-hi:    var(--primary-hi);
+}
+
 .cr2-kiosk__choices {
   list-style: none;
   margin: 0;
