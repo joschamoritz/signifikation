@@ -4,7 +4,8 @@
 // Wörterbuch-Stil: Container limitiert auf 680px (Setup/Lobby).
 
 import { TeacherClassroomProvider, useTeacherClassroom, STEPS } from './TeacherClassroomContext'
-import TabHeader        from '../../TabHeader'
+import TabHeader          from '../../TabHeader'
+import ClassroomIndexStep from './steps/ClassroomIndexStep'
 import SessionListStep from './steps/SessionListStep'
 import SetupStep       from './steps/SetupStep'
 import LobbyStep       from './steps/LobbyStep'
@@ -15,12 +16,13 @@ import './TeacherClassroomTab.css'
 function StepRouter() {
   const { state } = useTeacherClassroom()
   switch (state.currentStep) {
+    case STEPS.LIST:  return <SessionListStep />
     case STEPS.SETUP: return <SetupStep />
     case STEPS.LOBBY: return <LobbyStep />
     case STEPS.LIVE:  return <LiveStep />
     case STEPS.END:   return <EndStep />
-    case STEPS.LIST:
-    default:          return <SessionListStep />
+    case STEPS.INDEX:
+    default:          return <ClassroomIndexStep />
   }
 }
 

@@ -8,7 +8,8 @@
 import { createContext, useContext, useMemo, useReducer } from 'react'
 
 export const STEPS = Object.freeze({
-  LIST:  'list',
+  INDEX: 'index',   // Landing: Wörterbuch-Index des Klassenraum-Modus
+  LIST:  'list',    // Session-Verwaltung (hinter ② „Sessions")
   SETUP: 'setup',
   LOBBY: 'lobby',
   LIVE:  'live',
@@ -16,7 +17,7 @@ export const STEPS = Object.freeze({
 })
 
 const initialState = {
-  currentStep:    STEPS.LIST,
+  currentStep:    STEPS.INDEX,
   activeSessionId: null,
   dashboardData:  null,
   // Setup-Buffer: lebt nur bis die Session angelegt + Assignment geschrieben ist.
@@ -35,8 +36,12 @@ function reducer(state, action) {
       return { ...state, currentStep: STEPS.LIVE, activeSessionId: action.sessionId || state.activeSessionId }
     case 'GO_TO_END':
       return { ...state, currentStep: STEPS.END, activeSessionId: action.sessionId || state.activeSessionId }
-    case 'GO_TO_LIST':
+    case 'GO_TO_INDEX':
+      // Zurück zur Landing-Ansicht (Klassenraum-Index), Flow komplett zurücksetzen.
       return { ...initialState }
+    case 'GO_TO_LIST':
+      // Session-Verwaltung öffnen (aus dem Index ② oder als „zurück" aus Lobby/Setup/Ende).
+      return { ...initialState, currentStep: STEPS.LIST }
     case 'RESUME_SESSION':
       // Lehrer klickt auf eine bereits laufende Session in der Liste.
       // Wir landen je nach Status im richtigen Step.

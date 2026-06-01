@@ -219,9 +219,21 @@
   border-bottom: none;
 }
 
-/* Platz rechts oben für das Löschen-× reservieren. */
-.cr2-entry .test-entry-head {
+/* Platz rechts oben für das Löschen-× reservieren (nur Session-Einträge). */
+.cr2-entry--session .test-entry-head {
   padding-right: 40px;
+}
+
+/* Index-Teaser „Vorbereiten" — gedämpft wie der ⑤-Eintrag der Startseite. */
+.cr2-entry--disabled {
+  opacity: 0.6;
+}
+.cr2-entry--disabled .test-headword {
+  color: var(--t-disabled);
+}
+.cr2-entry--disabled .test-entry-category {
+  color: var(--t-disabled);
+  border-color: var(--t-rule);
 }
 
 /* Löschen-× — dezent in der oberen rechten Ecke des Eintrags. */

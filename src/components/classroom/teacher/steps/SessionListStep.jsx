@@ -96,6 +96,16 @@ export default function SessionListStep() {
 
   return (
     <div data-testid="cr2-session-list">
+      <button
+        type="button"
+        className="cr2-btn cr2-btn--ghost"
+        onClick={() => dispatch({ type: 'GO_TO_INDEX' })}
+        style={{ marginBottom: 12 }}
+        data-testid="cr2-sessions-back"
+      >
+        ← Klassenraum
+      </button>
+
       {loading && <p className="cr2-loading">Sessions werden geladen …</p>}
 
       {error && (
@@ -132,7 +142,7 @@ export default function SessionListStep() {
               statusKey === 'finished' ? 'cr2-status-dot--finished' :
               statusKey === 'lobby'    ? 'cr2-status-dot--lobby'    : ''
             return (
-              <li key={s.id} className="cr2-entry">
+              <li key={s.id} className="cr2-entry cr2-entry--session">
                 <div className="test-entry-number" aria-hidden="true">
                   <span className="test-entry-num-glyph">{entryGlyph(idx)}</span>
                   <span className="test-entry-marginalia">{MODE_MARGIN[mode] || 'SESSION'}</span>
