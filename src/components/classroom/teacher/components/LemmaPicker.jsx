@@ -9,7 +9,6 @@ import { searchLemmata, getTodayLemmata } from '../hooks/useTeacherSession'
 
 const MAX_LEMMATA = 3
 const DEBOUNCE_MS = 250
-const NO_TODAY_MODES = new Set(['wortzwilling', 'zeitenwende'])
 
 export default function LemmaPicker({ value = [], onChange, mode = null }) {
   const [query, setQuery]   = useState('')
@@ -105,12 +104,6 @@ export default function LemmaPicker({ value = [], onChange, mode = null }) {
             })}
           </ul>
         </div>
-      )}
-
-      {todayItems.length === 0 && NO_TODAY_MODES.has(mode) && (
-        <p className="cr2-lemma-today__none">
-          Für diesen Modus gibt es keine Tagesauswahl – wähle ein Lemma per Suche.
-        </p>
       )}
 
       {value.length > 0 && (

@@ -81,7 +81,7 @@ import {
   resolveLueckenfueller,
   parseWzId,
 } from '../classroom/content.js'
-import { loadKalenderEntry, getLemmataIndex, loadWortZwillingEntry } from '../store.js'
+import { loadKalenderEntry, getLemmataIndex, loadWortZwillingEntry, loadZeitenwendeEntry } from '../store.js'
 import {
   notifyStudentJoined,
   notifyStudentLeft,
@@ -585,18 +585,26 @@ router.get(
     try {
       const mode  = req.query.mode || 'kollokationen'
       const datum = classroomTodayDatum()
-      const entry = loadKalenderEntry(datum)
-      const { byId } = getLemmataIndex()
+      const { byId, byLemma } = getLemmataIndex()
 
       let ids = []
-      if (entry) {
-        if (mode === 'lueckenfueller') {
-          const lfId = Array.isArray(entry) ? null : entry.lueckenfueller_id
-          if (lfId) ids = [lfId]
-        } else if (mode === 'kollokationen') {
-          ids = Array.isArray(entry) ? entry : (entry.ids ?? [])
+      if (mode === 'zeitenwende') {
+        // Eigene Tagestabelle (kein Lemma-ID): heutiges Wort → Lemma-ID via
+        // Namen-Lookup. Nur wenn es als kuratiertes Lemma existiert.
+        const zw = loadZeitenwendeEntry(datum)
+        const lem = zw?.lemma ? byLemma.get(zw.lemma) : null
+        if (lem?.id) ids = [lem.id]
+      } else {
+        const entry = loadKalenderEntry(datum)
+        if (entry) {
+          if (mode === 'lueckenfueller') {
+            const lfId = Array.isArray(entry) ? null : entry.lueckenfueller_id
+            if (lfId) ids = [lfId]
+          } else if (mode === 'kollokationen') {
+            ids = Array.isArray(entry) ? entry : (entry.ids ?? [])
+          }
         }
-        // wortzwilling / zeitenwende: keine Lemma-ID-Tagesauswahl → ids bleibt []
+        // wortzwilling: nutzt den Paar-Picker (today-wortzwilling), nicht hier.
       }
 
       function firstDef(l) {
