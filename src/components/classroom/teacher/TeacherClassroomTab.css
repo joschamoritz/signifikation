@@ -197,10 +197,10 @@
   background: #fffbef;
 }
 
-/* ── Sessions als Wörterbuch-Einträge ───────────────────────────────
-   Optisch identisch zu .test-entry (Spielmodi/Kurs), aber mit eigenen
-   Klassen, damit das mobile Snap-Karten-Layout der .test-entry NICHT
-   greift — eine Session-Liste ist variabel lang und normal scrollbar. */
+/* ── Klassenraum-Index-Einträge ─────────────────────────────────────
+   Wörterbuch-Einträge der Landing-Ansicht (① Anleitung … ④ Vorbereiten).
+   Optisch wie .test-entry (Spielmodi/Kurs), aber mit eigenen Klassen, damit
+   das mobile Snap-Karten-Layout der .test-entry NICHT greift. */
 .cr2-entries {
   list-style: none;
   margin: 0;
@@ -219,11 +219,6 @@
   border-bottom: none;
 }
 
-/* Platz rechts oben für das Löschen-× reservieren (nur Session-Einträge). */
-.cr2-entry--session .test-entry-head {
-  padding-right: 40px;
-}
-
 /* Index-Teaser „Vorbereiten" — gedämpft wie der ⑤-Eintrag der Startseite. */
 .cr2-entry--disabled {
   opacity: 0.6;
@@ -236,67 +231,7 @@
   border-color: var(--t-rule);
 }
 
-/* Löschen-× — dezent in der oberen rechten Ecke des Eintrags. */
-.cr2-entry__delete {
-  position: absolute;
-  top: -2px;
-  right: 0;
-  width: 32px;
-  height: 32px;
-  border: none;
-  background: transparent;
-  color: var(--t-muted);
-  font-size: 1.3rem;
-  line-height: 1;
-  cursor: pointer;
-  border-radius: var(--radius, 4px);
-  transition: color 0.12s, background 0.12s;
-}
-.cr2-entry__delete:hover {
-  color: var(--t-red);
-  background: var(--error-bg, #fef2f2);
-}
-.cr2-entry__delete:focus-visible {
-  outline: 2px solid var(--t-accent);
-  outline-offset: 2px;
-}
-
-.cr2-entry__confirm {
-  position: absolute;
-  top: -4px;
-  right: 0;
-  display: inline-flex;
-  gap: 6px;
-}
-.cr2-entry__confirm-yes,
-.cr2-entry__confirm-no {
-  font-family: var(--t-sans);
-  font-size: 0.78rem;
-  padding: 6px 12px;
-  min-height: 32px;
-  border-radius: var(--radius, 4px);
-  cursor: pointer;
-  white-space: nowrap;
-}
-.cr2-entry__confirm-yes {
-  background: var(--t-red);
-  color: #fff;
-  border: 1px solid var(--t-red);
-}
-.cr2-entry__confirm-no {
-  background: transparent;
-  color: var(--t-muted);
-  border: 1px solid var(--t-rule);
-}
-
-/* Untitelte Session – kursiv wie eine fehlende Lemma-Angabe. */
-.cr2-entry__untitled {
-  font-style: italic;
-  color: var(--t-muted);
-  font-weight: 400;
-}
-
-/* Status-Punkt vor dem Status-Text in der Fußzeile. */
+/* Status-Punkt vor dem Status-Text (Session-Karten). */
 .cr2-status-dot {
   width: 7px;
   height: 7px;
@@ -309,6 +244,150 @@
 .cr2-status-dot--lobby    { background: var(--t-accent); }
 .cr2-status-dot--running  { background: var(--t-red); animation: cr2-pulse 1.6s ease-in-out infinite; }
 .cr2-status-dot--finished { background: var(--t-accent); }
+
+/* ── Vollbild-Unterseiten (Anleitung / Beitritt / Sessions) ─────────
+   Spiegeln die Modus-Detail-Optik der App (.selection-screen): zentrierter
+   Titel + Thema-Block, Inhalt als Wörterbuch-Einträge. */
+.selection-screen.cr2-subscreen {
+  max-width: 680px;
+  width: 100%;
+  margin-inline: auto;
+  padding-inline: max(20px, env(safe-area-inset-left, 20px));
+  box-sizing: border-box;
+}
+
+.cr2-subscreen__title {
+  font-family: var(--font-serif);
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: 0.01em;
+  margin: 0;
+  text-align: center;
+}
+
+.cr2-subscreen__intro {
+  font-family: var(--font-serif);
+  font-size: 0.95rem;
+  line-height: 1.65;
+  color: var(--text);
+  margin: 0;
+}
+
+.cr2-subscreen__note {
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-size: 0.82rem;
+  line-height: 1.55;
+  color: var(--muted);
+  margin: 0;
+  text-align: center;
+}
+
+/* Schritt-Liste als Wörterbuch-Einträge (Doppellinie oben/unten, 1px-Trenner). */
+.cr2-steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border-top: 2.5px double var(--border);
+  border-bottom: 2.5px double var(--border);
+}
+.cr2-step {
+  display: grid;
+  grid-template-columns: 26px 1fr;
+  gap: 0 16px;
+  padding: 16px 4px;
+}
+.cr2-step + .cr2-step {
+  border-top: 1px solid var(--border-lt);
+}
+.cr2-step__num {
+  font-family: var(--font-serif);
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--accent-dk);
+  line-height: 1.4;
+  user-select: none;
+}
+.cr2-step__title {
+  font-family: var(--font-serif);
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--text);
+  margin: 0 0 3px;
+  line-height: 1.2;
+}
+.cr2-step__text {
+  font-family: var(--font-serif);
+  font-size: 0.9rem;
+  font-style: italic;
+  line-height: 1.55;
+  color: var(--muted);
+  margin: 0;
+}
+
+/* ── Session-Karten (Lemma-Card-Optik) ──────────────────────────────
+   Nutzen die globalen .lemma-card*-Klassen (Nummer · Headword · Meta · ›).
+   Hier nur die session-spezifischen Ergänzungen: Löschen-× rechts (im
+   .lemma-info-btn-Slot) und die Bestätigungszeile darunter. */
+.cr2-session-untitled {
+  font-style: italic;
+  color: var(--muted);
+  font-weight: 400;
+}
+
+/* Modus-Label rechts in der Kopfzeile (Slot der Wortart-Angabe). */
+.cr2-session-cards .lemma-wortart-abbrev {
+  font-style: normal;
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--accent-dk);
+}
+
+/* Löschen-× im rechten Aktions-Slot der Karte. */
+.cr2-session-del {
+  font-size: 1.25rem;
+  line-height: 1;
+  color: var(--muted);
+}
+.cr2-session-del:hover { color: var(--primary); }
+
+/* Bestätigungszeile unter der Karte (analog .lemma-notiz). */
+.cr2-session-confirm {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 4px 12px;
+  border-top: 1px dotted var(--border-lt);
+}
+.cr2-session-confirm__q {
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-size: 0.85rem;
+  color: var(--muted);
+  margin-right: auto;
+}
+.cr2-session-confirm__yes,
+.cr2-session-confirm__no {
+  font-family: var(--font-sans);
+  font-size: 0.78rem;
+  padding: 7px 14px;
+  min-height: 36px;
+  border-radius: var(--radius, 4px);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.cr2-session-confirm__yes {
+  background: var(--primary);
+  color: #fff;
+  border: 1px solid var(--primary);
+}
+.cr2-session-confirm__no {
+  background: transparent;
+  color: var(--muted);
+  border: 1px solid var(--border);
+}
 
 .cr2-card__row {
   display: flex;
