@@ -9,6 +9,7 @@
 // rawAnswer: { zoneA: [strings], zoneB: [strings] }
 
 import { useMemo, useState } from 'react'
+import KioskGameHeader from '../components/KioskGameHeader'
 
 export default function ClassroomGameWortZwilling({ lemma, prompt, onSubmit, submitting }) {
   const words = useMemo(() => Array.isArray(prompt?.words) ? prompt.words : [], [prompt])
@@ -44,12 +45,13 @@ export default function ClassroomGameWortZwilling({ lemma, prompt, onSubmit, sub
   }
 
   return (
-    <div className="cr2-kiosk__game" data-testid="cr2-kiosk-game-wortzwilling">
-      <p className="cr2-kiosk__lemma">{lemma?.lemma || ''}</p>
-      {lemma?.ipa ? <p className="cr2-kiosk__ipa">[{lemma.ipa}]</p> : null}
-      <p className="cr2-kiosk__hint">
-        Tippe ein Wort an, dann auf die passende Zone.
-      </p>
+    <div className="screen quiz-screen cr2-kiosk__game" data-testid="cr2-kiosk-game-wortzwilling">
+      <KioskGameHeader
+        badge="Wort-Zwilling"
+        lemma={lemma?.lemma || (prompt?.wortA && prompt?.wortB ? `${prompt.wortA} / ${prompt.wortB}` : null)}
+        ipa={lemma?.ipa}
+        instruction="Tippe ein Wort an, dann auf die passende Zone."
+      />
 
       <div className="cr2-kiosk__zones">
         <div
@@ -109,15 +111,18 @@ export default function ClassroomGameWortZwilling({ lemma, prompt, onSubmit, sub
         ))}
       </div>
 
-      <button
-        type="button"
-        className="cr2-kiosk__btn cr2-kiosk__btn--primary"
-        onClick={handleSubmit}
-        disabled={submitting}
-        data-testid="cr2-kiosk-wz-submit"
-      >
-        {submitting ? 'Sende …' : placedAll ? 'Abgeben' : 'Abgeben (unvollständig)'}
-      </button>
+      <footer className="quiz-footer">
+        <span className="select-count">{zoneA.length + zoneB.length} / {words.length} zugeordnet</span>
+        <button
+          type="button"
+          className="btn-primary"
+          onClick={handleSubmit}
+          disabled={submitting}
+          data-testid="cr2-kiosk-wz-submit"
+        >
+          {submitting ? 'Sende …' : placedAll ? 'Abgeben' : 'Trotzdem abgeben'}
+        </button>
+      </footer>
     </div>
   )
 }

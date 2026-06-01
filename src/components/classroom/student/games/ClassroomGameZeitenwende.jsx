@@ -6,6 +6,7 @@
 // rawAnswer: { answers: ['pre' | 'post', ...] }
 
 import { useState } from 'react'
+import KioskGameHeader from '../components/KioskGameHeader'
 
 export default function ClassroomGameZeitenwende({ lemma, prompt, onSubmit, submitting }) {
   const words = Array.isArray(prompt?.words) ? prompt.words : []
@@ -39,9 +40,13 @@ export default function ClassroomGameZeitenwende({ lemma, prompt, onSubmit, subm
   const current = answers[idx]
 
   return (
-    <div className="cr2-kiosk__game" data-testid="cr2-kiosk-game-zeitenwende">
-      <p className="cr2-kiosk__lemma">{lemma?.lemma || ''}</p>
-      {lemma?.ipa ? <p className="cr2-kiosk__ipa">[{lemma.ipa}]</p> : null}
+    <div className="screen quiz-screen cr2-kiosk__game" data-testid="cr2-kiosk-game-zeitenwende">
+      <KioskGameHeader
+        badge="Zeitenwende"
+        lemma={lemma?.lemma}
+        ipa={lemma?.ipa}
+        instruction="Vor oder nach der Jahrtausendwende?"
+      />
 
       <p className="cr2-kiosk__zw-progress">
         {idx + 1} / {words.length}
@@ -72,27 +77,25 @@ export default function ClassroomGameZeitenwende({ lemma, prompt, onSubmit, subm
         </button>
       </div>
 
-      <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
+      <footer className="quiz-footer">
         <button
           type="button"
-          className="cr2-kiosk__btn"
-          style={{ background: 'transparent', color: 'var(--k-muted)', border: '1px solid var(--k-rule)', marginTop: 0 }}
+          className="btn-ghost"
           onClick={back}
           disabled={idx === 0 || submitting}
         >
-          Zurück
+          ← Zurück
         </button>
         <button
           type="button"
-          className="cr2-kiosk__btn cr2-kiosk__btn--primary"
-          style={{ marginTop: 0 }}
+          className="btn-primary"
           onClick={handleSubmit}
           disabled={!allAnswered || submitting}
           data-testid="cr2-kiosk-zw-submit"
         >
           {submitting ? 'Sende …' : 'Abgeben'}
         </button>
-      </div>
+      </footer>
     </div>
   )
 }

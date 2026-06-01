@@ -416,13 +416,14 @@
   margin: 12px 0 8px;
 }
 
-/* ── Submit/Result-Karte (S5) ───────────────────────────────────────── */
+/* ── Submit/Result (S5) — entkastelt, nur Linien ────────────────────── */
 .cr2-kiosk__resultcard {
-  background: var(--k-card);
-  border: 1px solid var(--k-rule-lt);
-  border-radius: 4px;
-  padding: 18px 16px;
-  margin-top: 18px;
+  background: transparent;
+  border: none;
+  border-top: 1px solid var(--k-rule-lt);
+  border-radius: 0;
+  padding: 14px 0 4px;
+  margin-top: 16px;
 }
 
 .cr2-kiosk__resultcard__row {
@@ -613,20 +614,22 @@
 .cr2-kiosk__pill--in-zone-a { border-color: var(--k-accent); }
 .cr2-kiosk__pill--in-zone-b { border-color: var(--k-gold); }
 
-/* Zeitenwende — Karten */
+/* Zeitenwende — aktuelles Wort frei auf Pergament (kein Kasten), gross. */
 .cr2-kiosk__zw-card {
-  background: var(--k-card);
-  border: 1px solid var(--k-rule);
-  border-radius: 4px;
-  padding: 16px 14px;
+  background: transparent;
+  border: none;
+  border-top: 2px solid var(--k-rule);
+  border-bottom: 2px solid var(--k-rule);
+  padding: 22px 14px;
   text-align: center;
-  margin: 8px 0;
+  margin: 6px 0 4px;
 }
 
 .cr2-kiosk__zw-word {
   font-family: 'Gentium Plus', Georgia, serif;
-  font-size: 1.5rem;
+  font-size: 2rem;
   font-weight: 700;
+  color: var(--k-text);
 }
 
 .cr2-kiosk__zw-actions {
@@ -671,6 +674,28 @@
   border-bottom: 2px solid var(--k-accent);
   padding: 0 4px;
   color: var(--k-accent);
+}
+
+/* Lückenfüller — Eingabefeld (unterstrichen, kein Kasten). */
+.cr2-kiosk__lf-input {
+  width: 100%;
+  box-sizing: border-box;
+  font-family: 'Gentium Plus', Georgia, serif;
+  font-size: 1.2rem;
+  color: var(--k-text);
+  background: transparent;
+  border: none;
+  border-bottom: 1.5px solid var(--k-rule);
+  border-radius: 0;
+  padding: 8px 2px;
+}
+.cr2-kiosk__lf-input::placeholder {
+  font-style: italic;
+  color: var(--k-muted);
+}
+.cr2-kiosk__lf-input:focus {
+  outline: none;
+  border-bottom-color: var(--k-accent);
 }
 
 /* ── F5: Schueler-Einstieg eingebettet im Klassenraum-Tab ───────────── */
