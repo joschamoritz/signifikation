@@ -12,67 +12,40 @@
   --cr2-disabled: #a8a39a;
   --cr2-card-bg: #ffffff;
 
-  background: var(--cr2-bg);
+  /* Wörterbuch-Tokens (Spiegel von .test-page), damit die geteilten
+     .test-*-Klassen (TabHeader, Raster, Einträge) hier korrekt auflösen –
+     ohne die Klasse .test-page selbst zu erben (die zieht das mobile
+     Snap-Karten-Layout mit, das für eine variable Session-Liste falsch ist). */
+  --t-bg:        var(--bg);
+  --t-surface:   var(--surface2);
+  --t-text:      var(--text);
+  --t-muted:     var(--muted);
+  --t-accent:    var(--accent);
+  --t-accent-dk: var(--accent-dk);
+  --t-rule:      var(--border);
+  --t-rule-lt:   var(--border-lt);
+  --t-serif:     var(--font-serif);
+  --t-sans:      var(--font-sans);
+  --t-disabled:  var(--disabled);
+  --t-red:       var(--primary);
+  --t-red-hi:    var(--primary-hi);
+
+  background-color: var(--cr2-bg);
+  /* Feine Papier-Körnung – identisch zur Startseite/.test-page. */
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
   color: var(--cr2-text);
   min-height: 100%;
   font-family: 'DM Sans', system-ui, sans-serif;
   padding: 0 0 96px;
 }
 
-/* F1 — App-Header im Woerterbuch-Stil (Desktop: zentriert + Gold-Trennlinie),
-   analog zur Startseite (.test-title-section). */
-.cr2-teacher__masthead {
-  max-width: 680px;
-  margin: 0 auto;
-  padding: 44px 20px 24px;
-  text-align: center;
-}
-.cr2-teacher__masthead::after {
-  content: '';
-  display: block;
-  margin: 22px auto 0;
-  width: 80px;
-  border-top: 2px solid var(--cr2-gold);
-}
-.cr2-teacher__overline {
-  font-family: 'DM Sans', system-ui, sans-serif;
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 0.25em;
-  text-transform: uppercase;
-  color: var(--cr2-muted);
-  margin: 0 0 10px;
-}
-.cr2-teacher__title {
-  font-family: 'Gentium Plus', Georgia, serif;
-  font-size: clamp(2.2rem, 6vw, 3.4rem);
-  font-weight: 700;
-  margin: 0;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: var(--cr2-text);
-  line-height: 1.05;
-}
+/* Der App-Header kommt jetzt aus der geteilten <TabHeader />-Komponente
+   (.test-title-section) — identisch zu Spielmodi/Kurs. Kein eigener Masthead. */
 
-/* Mobil: kompakter, linksbuendiger Header mit Gold-Unterkante */
-@media (max-width: 767px) {
-  .cr2-teacher__masthead {
-    padding: 10px 20px 8px;
-    text-align: left;
-    border-bottom: 2px solid var(--cr2-gold);
-  }
-  .cr2-teacher__masthead::after { display: none; }
-  .cr2-teacher__overline { display: none; }
-  .cr2-teacher__title {
-    font-size: 1.3rem;
-    letter-spacing: 0.1em;
-  }
-}
-
+/* Inhalt sitzt im .test-wrapper (max-width 680px + Padding). Der <main>
+   braucht daher keine eigene Breite/Polsterung mehr. */
 .cr2-teacher__main {
-  max-width: 680px;
-  margin: 0 auto;
-  padding: 20px;
+  padding-top: 4px;
 }
 
 /* ── Geteilte Bausteine ──────────────────────────────────────────── */
@@ -224,60 +197,106 @@
   background: #fffbef;
 }
 
-/* Session-Zeile mit Loeschen-Aktion (Liste) */
-.cr2-session-row {
-  display: flex;
-  align-items: stretch;
-  border-bottom: 1px solid var(--cr2-rule-lt);
+/* ── Sessions als Wörterbuch-Einträge ───────────────────────────────
+   Optisch identisch zu .test-entry (Spielmodi/Kurs), aber mit eigenen
+   Klassen, damit das mobile Snap-Karten-Layout der .test-entry NICHT
+   greift — eine Session-Liste ist variabel lang und normal scrollbar. */
+.cr2-entries {
+  list-style: none;
+  margin: 0;
+  padding: 0;
 }
-.cr2-session-row .cr2-card {
+
+.cr2-entry {
+  display: grid;
+  grid-template-columns: 28px 1fr;
+  gap: 0 20px;
+  padding: 24px 0 22px;
+  border-bottom: 1px solid var(--t-rule-lt);
+  position: relative;
+}
+.cr2-entry:last-child {
   border-bottom: none;
 }
-.cr2-session-row__main {
-  flex: 1;
-  min-width: 0;
+
+/* Platz rechts oben für das Löschen-× reservieren. */
+.cr2-entry .test-entry-head {
+  padding-right: 40px;
 }
-.cr2-session-row__delete {
-  flex-shrink: 0;
-  width: 44px;
+
+/* Löschen-× — dezent in der oberen rechten Ecke des Eintrags. */
+.cr2-entry__delete {
+  position: absolute;
+  top: -2px;
+  right: 0;
+  width: 32px;
+  height: 32px;
   border: none;
   background: transparent;
-  color: var(--cr2-muted);
-  font-size: 1.4rem;
+  color: var(--t-muted);
+  font-size: 1.3rem;
   line-height: 1;
   cursor: pointer;
+  border-radius: var(--radius, 4px);
+  transition: color 0.12s, background 0.12s;
 }
-.cr2-session-row__delete:hover {
-  color: var(--cr2-accent);
-  background: #f4f1e9;
+.cr2-entry__delete:hover {
+  color: var(--t-red);
+  background: var(--error-bg, #fef2f2);
 }
-.cr2-session-row__confirm {
-  flex-shrink: 0;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  gap: 4px;
-  padding: 8px 10px;
+.cr2-entry__delete:focus-visible {
+  outline: 2px solid var(--t-accent);
+  outline-offset: 2px;
 }
-.cr2-session-row__confirm-yes,
-.cr2-session-row__confirm-no {
-  font-family: 'DM Sans', system-ui, sans-serif;
-  font-size: 0.8rem;
+
+.cr2-entry__confirm {
+  position: absolute;
+  top: -4px;
+  right: 0;
+  display: inline-flex;
+  gap: 6px;
+}
+.cr2-entry__confirm-yes,
+.cr2-entry__confirm-no {
+  font-family: var(--t-sans);
+  font-size: 0.78rem;
   padding: 6px 12px;
-  border-radius: 4px;
+  min-height: 32px;
+  border-radius: var(--radius, 4px);
   cursor: pointer;
   white-space: nowrap;
 }
-.cr2-session-row__confirm-yes {
-  background: var(--cr2-accent);
+.cr2-entry__confirm-yes {
+  background: var(--t-red);
   color: #fff;
-  border: 1px solid var(--cr2-accent);
+  border: 1px solid var(--t-red);
 }
-.cr2-session-row__confirm-no {
+.cr2-entry__confirm-no {
   background: transparent;
-  color: var(--cr2-muted);
-  border: 1px solid var(--cr2-rule);
+  color: var(--t-muted);
+  border: 1px solid var(--t-rule);
 }
+
+/* Untitelte Session – kursiv wie eine fehlende Lemma-Angabe. */
+.cr2-entry__untitled {
+  font-style: italic;
+  color: var(--t-muted);
+  font-weight: 400;
+}
+
+/* Status-Punkt vor dem Status-Text in der Fußzeile. */
+.cr2-status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  display: inline-block;
+  margin-right: 6px;
+  vertical-align: middle;
+  background: var(--t-rule);
+}
+.cr2-status-dot--lobby    { background: var(--t-accent); }
+.cr2-status-dot--running  { background: var(--t-red); animation: cr2-pulse 1.6s ease-in-out infinite; }
+.cr2-status-dot--finished { background: var(--t-accent); }
 
 .cr2-card__row {
   display: flex;

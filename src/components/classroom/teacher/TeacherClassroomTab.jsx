@@ -4,6 +4,7 @@
 // Wörterbuch-Stil: Container limitiert auf 680px (Setup/Lobby).
 
 import { TeacherClassroomProvider, useTeacherClassroom, STEPS } from './TeacherClassroomContext'
+import TabHeader        from '../../TabHeader'
 import SessionListStep from './steps/SessionListStep'
 import SetupStep       from './steps/SetupStep'
 import LobbyStep       from './steps/LobbyStep'
@@ -26,14 +27,27 @@ function StepRouter() {
 export default function TeacherClassroomTab() {
   return (
     <TeacherClassroomProvider>
-      <div className="cr2-teacher">
-        <header className="cr2-teacher__masthead" role="banner">
-          <p className="cr2-teacher__overline">Unterricht · Live-Session</p>
-          <h1 className="cr2-teacher__title">Klassenraum</h1>
-        </header>
-        <main className="cr2-teacher__main">
-          <StepRouter />
-        </main>
+      <div className="cr2-teacher" lang="de">
+        <div className="test-wrapper">
+          {/* Identischer App-Header wie alle anderen Tabs (Spielmodi/Kurs). */}
+          <TabHeader />
+
+          <nav className="test-raster" aria-label="Klassenraum">
+            <span className="test-raster-label" aria-hidden="true">Klassenraum</span>
+            <div className="test-raster-words">
+              <span className="test-raster-word">Unterricht · Live-Session</span>
+            </div>
+            <div className="test-raster-end">
+              <span className="test-raster-folio" aria-hidden="true">Lehrkraft</span>
+            </div>
+          </nav>
+
+          <div className="test-rule--double" role="separator" aria-hidden="true" />
+
+          <main className="cr2-teacher__main">
+            <StepRouter />
+          </main>
+        </div>
       </div>
     </TeacherClassroomProvider>
   )

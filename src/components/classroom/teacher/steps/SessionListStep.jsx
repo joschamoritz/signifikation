@@ -20,11 +20,24 @@ const MODE_LABEL = {
   lueckenfueller: 'Lückenfüller',
 }
 
+// Marginalien-Kürzel pro Modus — analog zur Spielmodi-Startseite (KOLLOKT., KOMPAR. …).
+const MODE_MARGIN = {
+  kollokationen: 'KOLLOKT.',
+  wortzwilling:  'KOMPAR.',
+  zeitenwende:   'DIACH.',
+  lueckenfueller: 'KONSTR.',
+}
+
 const STATUS_LABEL = {
   lobby:    'Lobby',
   running:  'Läuft',
   finished: 'Beendet',
   aborted:  'Abgebrochen',
+}
+
+// Eingekreiste Ziffern ①–⑳ wie im Wörterbuch; darüber hinaus schlichte Zahl.
+function entryGlyph(i) {
+  return i < 20 ? String.fromCharCode(0x2460 + i) : String(i + 1)
 }
 
 function formatDate(ts) {
@@ -107,71 +120,91 @@ export default function SessionListStep() {
       )}
 
       {!loading && !error && sessions.length > 0 && (
-        <ul className="cr2-card-list" aria-label="Sessions">
-          {sessions.map((s) => {
+        <ol className="cr2-entries" aria-label="Sessions">
+          {sessions.map((s, idx) => {
             const mode = s.settings?.mode
-            const statusClass =
-              s.status === 'running'  ? 'cr2-card__dot--running'  :
-              s.status === 'finished' ? 'cr2-card__dot--finished' : ''
+            const statusKey = s.status
+            const ctaText =
+              statusKey === 'lobby'   ? 'Lobby öffnen' :
+              statusKey === 'running' ? 'Live ansehen' : 'Auswertung'
+            const dotClass =
+              statusKey === 'running'  ? 'cr2-status-dot--running'  :
+              statusKey === 'finished' ? 'cr2-status-dot--finished' :
+              statusKey === 'lobby'    ? 'cr2-status-dot--lobby'    : ''
             return (
-              <li key={s.id} className="cr2-session-row">
-                <button
-                  type="button"
-                  className="cr2-card cr2-session-row__main"
-                  onClick={() => handleResume(s)}
-                  aria-label={`Session ${s.title || s.code} – ${STATUS_LABEL[s.status] || s.status}`}
-                >
-                  <div className="cr2-card__row">
-                    <h2 className="cr2-card__title">
-                      {s.title || <span style={{ fontStyle: 'italic', color: 'var(--cr2-muted)' }}>Klasse · {s.code}</span>}
-                    </h2>
-                    <span className="cr2-card__meta">{formatDate(s.createdAt)}</span>
-                  </div>
-                  <div className="cr2-card__row" style={{ marginTop: 8 }}>
-                    {mode && <span className="cr2-card__badge">{MODE_LABEL[mode] || mode}</span>}
-                    <span className="cr2-card__meta">
-                      <span className={`cr2-card__dot ${statusClass}`} aria-hidden="true" />
-                      {' '}{STATUS_LABEL[s.status] || s.status}
-                    </span>
-                  </div>
-                </button>
+              <li key={s.id} className="cr2-entry">
+                <div className="test-entry-number" aria-hidden="true">
+                  <span className="test-entry-num-glyph">{entryGlyph(idx)}</span>
+                  <span className="test-entry-marginalia">{MODE_MARGIN[mode] || 'SESSION'}</span>
+                </div>
 
-                {confirmId === s.id ? (
-                  <div className="cr2-session-row__confirm" role="group" aria-label="Löschen bestätigen">
+                <div className="test-entry-body">
+                  {confirmId === s.id ? (
+                    <div className="cr2-entry__confirm" role="group" aria-label="Löschen bestätigen">
+                      <button
+                        type="button"
+                        className="cr2-entry__confirm-yes"
+                        onClick={() => doDelete(s)}
+                        disabled={busyId === s.id}
+                        data-testid={`cr2-session-delete-confirm-${s.id}`}
+                      >
+                        {busyId === s.id ? '…' : 'Löschen'}
+                      </button>
+                      <button
+                        type="button"
+                        className="cr2-entry__confirm-no"
+                        onClick={() => setConfirmId(null)}
+                        disabled={busyId === s.id}
+                      >
+                        Abbrechen
+                      </button>
+                    </div>
+                  ) : (
                     <button
                       type="button"
-                      className="cr2-session-row__confirm-yes"
-                      onClick={() => doDelete(s)}
-                      disabled={busyId === s.id}
-                      data-testid={`cr2-session-delete-confirm-${s.id}`}
+                      className="cr2-entry__delete"
+                      onClick={() => { setDelError(null); setConfirmId(s.id) }}
+                      aria-label={`Session ${s.title || s.code} löschen`}
+                      title="Session löschen"
+                      data-testid={`cr2-session-delete-${s.id}`}
                     >
-                      {busyId === s.id ? '…' : 'Löschen'}
+                      ×
                     </button>
+                  )}
+
+                  <div className="test-entry-head">
+                    <h2 className="test-headword">
+                      {s.title || <span className="cr2-entry__untitled">Klasse · {s.code}</span>}
+                    </h2>
+                    <span className="test-ipa">{formatDate(s.createdAt)}</span>
+                  </div>
+
+                  <div className="test-entry-grammar">
+                    <span className="test-pos">Session</span>
+                    <span className="test-pos-rule" aria-hidden="true" />
+                    {mode && <span className="test-entry-category">{MODE_LABEL[mode] || mode}</span>}
+                  </div>
+
+                  <div className="test-entry-footer">
+                    <span className={`test-status${statusKey === 'finished' ? ' test-status--done' : ''}`}>
+                      <span className={`cr2-status-dot ${dotClass}`} aria-hidden="true" />
+                      {STATUS_LABEL[statusKey] || statusKey}
+                    </span>
                     <button
                       type="button"
-                      className="cr2-session-row__confirm-no"
-                      onClick={() => setConfirmId(null)}
-                      disabled={busyId === s.id}
+                      className="test-cta"
+                      onClick={() => handleResume(s)}
+                      aria-label={`Session ${s.title || s.code} – ${STATUS_LABEL[statusKey] || statusKey}: ${ctaText}`}
                     >
-                      Abbrechen
+                      {ctaText}
+                      <span className="test-cta-arrow" aria-hidden="true"> →</span>
                     </button>
                   </div>
-                ) : (
-                  <button
-                    type="button"
-                    className="cr2-session-row__delete"
-                    onClick={() => { setDelError(null); setConfirmId(s.id) }}
-                    aria-label={`Session ${s.title || s.code} löschen`}
-                    title="Session löschen"
-                    data-testid={`cr2-session-delete-${s.id}`}
-                  >
-                    ×
-                  </button>
-                )}
+                </div>
               </li>
             )
           })}
-        </ul>
+        </ol>
       )}
 
       <div className="cr2-sticky-cta" role="none">
