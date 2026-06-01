@@ -1,31 +1,36 @@
 // T-4.4 — Modus-Picker (Setup Schritt A).
 //
-// 4 Karten, single-select (D2). Aktive Karte bekommt Gold-Border.
-// Bewusst keine Icons — Wörterbuch-Stil arbeitet mit Typografie.
+// Einspaltige Wörterbuch-Einträge (Headword + IPA + Definition), single-select
+// (D2). Hover + Auswahl im dezenten Rot mit rotem Linksakzent — wie die
+// Optionen im Kollokationen-Spiel. Keine Icons (Typografie statt Symbole).
 
 const MODES = [
   {
     id: 'kollokationen',
     label: 'Kollokationen',
-    pos: 'Spielmodus',
+    ipa: '[kɔlokaˈtsi̯oːnən]',
+    cat: 'Lexik',
     desc: 'Häufige Begleitwörter zu einem Lemma — Klassiker fürs Sprachgefühl.',
   },
   {
     id: 'wortzwilling',
     label: 'Wort-Zwilling',
-    pos: 'Spielmodus',
+    ipa: '[ˈvɔʁtˌtsvɪlɪŋ]',
+    cat: 'Komparativ',
     desc: 'Zwei Wörter, eine Kollokationsfamilie. Was passt zu beiden?',
   },
   {
     id: 'zeitenwende',
     label: 'Zeitenwende',
-    pos: 'Spielmodus',
+    ipa: '[ˈtsaɪ̯tənˌvɛndə]',
+    cat: 'Diachron',
     desc: 'Ein Wort in unterschiedlichen Epochen — Bedeutung im Wandel.',
   },
   {
     id: 'lueckenfueller',
     label: 'Lückenfüller',
-    pos: 'Spielmodus',
+    ipa: '[ˈlʏkənˌfʏlɐ]',
+    cat: 'Konstruktiv',
     desc: 'Eine Lücke im Satz, eine zielgenaue Lösung — schneller Drill.',
   },
 ]
@@ -45,11 +50,12 @@ export default function ModePicker({ value, onChange }) {
               onClick={() => onChange(m.id)}
               data-testid={`cr2-mode-${m.id}`}
             >
-              <div className="cr2-card__row">
-                <h3 className="cr2-card__title">{m.label}</h3>
-                <span className="cr2-card__badge">{m.pos}</span>
-              </div>
-              <p className="cr2-mode-card__desc">{m.desc}</p>
+              <span className="cr2-mode-card__head">
+                <span className="cr2-mode-card__name">{m.label}</span>
+                <span className="cr2-mode-card__ipa">{m.ipa}</span>
+                <span className="cr2-mode-card__cat">{m.cat}</span>
+              </span>
+              <span className="cr2-mode-card__desc">{m.desc}</span>
             </button>
           </li>
         )

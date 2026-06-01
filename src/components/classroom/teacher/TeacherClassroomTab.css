@@ -462,6 +462,40 @@
   cursor: not-allowed;
 }
 
+/* Klassen-Name als „Headword"-Feld: serif, nur unterstrichen (kein Kasten). */
+.cr2-headword-input {
+  width: 100%;
+  box-sizing: border-box;
+  font-family: var(--font-serif);
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: var(--text);
+  background: transparent;
+  border: none;
+  border-bottom: 1.5px solid var(--border);
+  border-radius: 0;
+  padding: 6px 2px;
+  letter-spacing: 0.01em;
+  transition: border-color 0.15s;
+}
+.cr2-headword-input::placeholder {
+  font-weight: 400;
+  font-style: italic;
+  color: var(--muted);
+}
+.cr2-headword-input:focus {
+  outline: none;
+  border-bottom-color: var(--primary);
+}
+
+/* Unaufdringlicher Zusatz im Section-Label (z. B. „(1–5)"). */
+.cr2-section__hint {
+  font-weight: 400;
+  letter-spacing: 0.04em;
+  color: var(--disabled);
+  text-transform: none;
+}
+
 .cr2-card__row {
   display: flex;
   align-items: baseline;
@@ -539,50 +573,6 @@
   margin: 32px 0;
 }
 
-/* Stepper-Header (Setup) */
-.cr2-stepper {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 24px;
-  font-size: 0.85rem;
-  color: var(--cr2-muted);
-}
-
-.cr2-stepper__item {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.cr2-stepper__num {
-  width: 22px;
-  height: 22px;
-  border: 1px solid var(--cr2-rule);
-  border-radius: 50%;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-family: 'Gentium Plus', Georgia, serif;
-  font-size: 0.85rem;
-  color: var(--cr2-muted);
-}
-
-.cr2-stepper__item--active .cr2-stepper__num {
-  border-color: var(--cr2-accent);
-  color: var(--cr2-accent);
-}
-
-.cr2-stepper__item--done .cr2-stepper__num {
-  border-color: var(--cr2-gold);
-  background: var(--cr2-gold);
-  color: #fff;
-}
-
-.cr2-stepper__sep {
-  color: var(--cr2-rule);
-}
-
 .cr2-section {
   margin-bottom: 32px;
 }
@@ -629,28 +619,64 @@
 }
 
 /* ── Mode-Picker ─────────────────────────────────────────────────── */
+/* Einspaltige Wörterbuch-Einträge (Headword + IPA + Definition). */
 .cr2-mode-picker {
   list-style: none;
   margin: 0;
   padding: 0;
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 10px;
+  border-top: 2.5px double var(--border);
+  border-bottom: 2.5px double var(--border);
 }
 
-@media (min-width: 520px) {
-  .cr2-mode-picker {
-    grid-template-columns: 1fr 1fr;
-  }
+.cr2-mode-card {
+  /* erbt .cr2-card (transparent, roter Hover/Aktiv-Akzent) */
+  padding: 16px 6px 16px 14px;
+  border-bottom: none;
+}
+.cr2-mode-picker li + li .cr2-mode-card {
+  border-top: 1px solid var(--border-lt);
 }
 
+.cr2-mode-card__head {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+}
+.cr2-mode-card__name {
+  font-family: var(--font-serif);
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: 0.01em;
+}
+.cr2-mode-card__ipa {
+  font-family: var(--font-serif);
+  font-size: 0.82rem;
+  color: var(--muted);
+}
+.cr2-mode-card__cat {
+  margin-left: auto;
+  font-family: var(--font-sans);
+  font-size: 8.5px;
+  font-weight: 600;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--accent-dk);
+  border: 1px solid var(--accent);
+  padding: 1px 6px;
+  border-radius: 2px;
+  align-self: center;
+}
 .cr2-mode-card__desc {
-  font-family: 'Gentium Plus', Georgia, serif;
-  font-size: 0.95rem;
-  line-height: 1.45;
-  color: var(--cr2-muted);
-  margin: 8px 0 0;
+  display: block;
+  font-family: var(--font-serif);
+  font-size: 0.92rem;
+  line-height: 1.5;
+  color: var(--muted);
+  margin: 6px 0 0;
 }
+.cr2-mode-card.cr2-card--active .cr2-mode-card__name { color: var(--primary); }
 
 /* ── Lemma-Picker ────────────────────────────────────────────────── */
 .cr2-lemma-picker {

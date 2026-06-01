@@ -6,7 +6,7 @@
 // hinzufuegen/entfernen/umordnen und pro Block die Schueleransicht testen.
 // Bei Bestaetigung: POST /sessions → POST /assignments/bulk, dann GO_TO_LOBBY.
 
-import { useMemo, useState } from 'react'
+import { useState } from 'react'
 import { useTeacherClassroom } from '../TeacherClassroomContext'
 import { createSession, addAssignments } from '../hooks/useTeacherSession'
 import ModePicker  from '../components/ModePicker'
@@ -60,11 +60,6 @@ export default function SetupStep() {
   const allValid   = blocks.length > 0 && blocks.every(blockValid)
   const canSubmit  = allValid && !submitting
 
-  const stepperItems = useMemo(() => ([
-    { id: 'A', label: 'Modi',    done: allValid },
-    { id: 'B', label: 'Details', done: !!title.trim() },
-  ]), [allValid, title])
-
   function updateBlock(idx, patch) {
     setBlocks((prev) => prev.map((b, i) => (i === idx ? { ...b, ...patch } : b)))
   }
@@ -113,20 +108,10 @@ export default function SetupStep() {
       backLabel="Zurück zu den Sessions"
       onBack={() => dispatch({ type: 'GO_TO_LIST' })}
     >
-      <ol className="cr2-stepper" aria-label="Setup-Schritte">
-        {stepperItems.map((item, idx) => (
-          <li key={item.id} className={`cr2-stepper__item${item.done ? ' cr2-stepper__item--done' : (idx === 0 || stepperItems[idx - 1].done) ? ' cr2-stepper__item--active' : ''}`}>
-            <span className="cr2-stepper__num">{item.id}</span>
-            <span>{item.label}</span>
-            {idx < stepperItems.length - 1 && <span className="cr2-stepper__sep">·</span>}
-          </li>
-        ))}
-      </ol>
-
-      {/* A — Modus-Bloecke in Reihenfolge */}
+      {/* I — Modus-Bloecke in Reihenfolge */}
       <section className="cr2-section" aria-labelledby="cr2-setup-modes-label">
         <span id="cr2-setup-modes-label" className="cr2-section__label">
-          A · Modi nacheinander (1–{MAX_BLOCKS})
+          I · Modi &amp; Wörter <span className="cr2-section__hint">(1–{MAX_BLOCKS})</span>
         </span>
 
         {blocks.map((block, idx) => (
@@ -186,12 +171,13 @@ export default function SetupStep() {
 
             <button
               type="button"
-              className="cr2-btn cr2-btn--ghost cr2-block__preview"
+              className="test-cta cr2-block__preview"
               disabled={!blockValid(block)}
               onClick={() => setPreviewIdx(idx)}
               data-testid={`cr2-block-preview-${idx}`}
             >
               Schüleransicht testen
+              <span className="test-cta-arrow" aria-hidden="true"> →</span>
             </button>
           </article>
         ))}
@@ -208,12 +194,14 @@ export default function SetupStep() {
         )}
       </section>
 
-      {/* B — Details */}
+      <div className="test-rule--double" role="separator" aria-hidden="true" />
+
+      {/* II — Details */}
       <section className="cr2-section" aria-labelledby="cr2-setup-title-label">
-        <span id="cr2-setup-title-label" className="cr2-section__label">B · Details</span>
+        <span id="cr2-setup-title-label" className="cr2-section__label">II · Details</span>
         <input
           type="text"
-          className="cr2-input"
+          className="cr2-headword-input"
           placeholder="Klassen-Name (optional)"
           value={title}
           onChange={(e) => setTitle(e.target.value)}

@@ -53,8 +53,8 @@ describe('SetupStep (T-4.4 / W2-T2)', () => {
 
   it('rendert die Modi- und Details-Abschnitte mit genau einem Block', () => {
     renderSetup()
-    expect(screen.getByText(/A · Modi nacheinander/i)).toBeTruthy()
-    expect(screen.getByText(/B · Details/i)).toBeTruthy()
+    expect(screen.getByText(/Modi & Wörter/i)).toBeTruthy()
+    expect(screen.getByText(/II · Details/i)).toBeTruthy()
     expect(screen.getByTestId('cr2-block-0')).toBeTruthy()
     expect(screen.queryByTestId('cr2-block-1')).toBeNull()
   })
