@@ -353,11 +353,12 @@
 }
 .cr2-session-del:hover { color: var(--primary); }
 
-/* Bestätigungszeile unter der Karte (analog .lemma-notiz). */
+/* Bestätigungszeile unter der Karte (analog .lemma-notiz) — Textlinks im
+   Wörterbuch-Stil statt gefüllter/umrandeter Buttons. */
 .cr2-session-confirm {
   display: flex;
-  align-items: center;
-  gap: 10px;
+  align-items: baseline;
+  gap: 18px;
   padding: 10px 4px 12px;
   border-top: 1px dotted var(--border-lt);
 }
@@ -370,24 +371,75 @@
 }
 .cr2-session-confirm__yes,
 .cr2-session-confirm__no {
-  font-family: var(--font-sans);
-  font-size: 0.78rem;
-  padding: 7px 14px;
-  min-height: 36px;
-  border-radius: var(--radius, 4px);
+  font-family: var(--font-serif);
+  font-size: 0.85rem;
+  font-weight: 700;
+  background: none;
+  border: none;
+  padding: 6px 0;
+  min-height: 44px;
   cursor: pointer;
-  white-space: nowrap;
+  letter-spacing: 0.01em;
+  border-bottom: 1px solid transparent;
+  transition: color 0.15s, border-color 0.15s;
 }
 .cr2-session-confirm__yes {
-  background: var(--primary);
-  color: #fff;
-  border: 1px solid var(--primary);
+  color: var(--primary);
+}
+.cr2-session-confirm__yes:hover {
+  color: var(--primary-hi);
+  border-bottom-color: var(--primary);
 }
 .cr2-session-confirm__no {
-  background: transparent;
   color: var(--muted);
-  border: 1px solid var(--border);
+  font-weight: 400;
 }
+.cr2-session-confirm__no:hover {
+  color: var(--text);
+}
+.cr2-session-confirm__yes:disabled,
+.cr2-session-confirm__no:disabled {
+  color: var(--disabled);
+  cursor: default;
+}
+
+/* „Neue Session anlegen" — roter Wörterbuch-CTA (kein gefüllter Kasten). */
+.cr2-new-session-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  justify-content: center;
+  font-family: var(--font-serif);
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--primary);
+  background: var(--surface, #fff);
+  border: 1px solid var(--border);
+  border-radius: var(--radius, 4px);
+  padding: 13px 20px;
+  min-height: 48px;
+  cursor: pointer;
+  letter-spacing: 0.01em;
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
+}
+.cr2-new-session-cta__plus {
+  font-weight: 400;
+  font-size: 1.15rem;
+  line-height: 1;
+}
+.cr2-new-session-cta .test-cta-arrow { transition: transform 0.15s; }
+.cr2-new-session-cta:hover {
+  border-color: var(--primary);
+  background: var(--error-bg, #fef2f2);
+  color: var(--primary-hi);
+}
+.cr2-new-session-cta:hover .test-cta-arrow { transform: translateX(3px); }
+.cr2-new-session-cta:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+.cr2-new-session-cta:active { transform: scale(0.985); }
 
 .cr2-card__row {
   display: flex;
