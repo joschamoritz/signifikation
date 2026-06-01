@@ -264,6 +264,23 @@ describe('classroom routes', () => {
       }
     })
 
+    it('F2b Modus-Filter: mode=wortzwilling liefert nur Lemmata mit runden.wortzwilling', async () => {
+      const wzId = insertTestLemmaWortzwilling('filter')
+      // Bei mode=wortzwilling ist das Lemma dabei …
+      const r1 = await fetch(`${baseUrl}/api/v1/classroom/lemmata?q=Wasser&mode=wortzwilling&limit=50`, {
+        headers: teacherHeaders(TEACHER_ID),
+      })
+      expect(r1.status).toBe(200)
+      const b1 = await r1.json()
+      expect(b1.items.some((it) => it.id === wzId)).toBe(true)
+      // … aber NICHT bei mode=zeitenwende (kein runden.zeitenwende)
+      const r2 = await fetch(`${baseUrl}/api/v1/classroom/lemmata?q=Wasser&mode=zeitenwende&limit=50`, {
+        headers: teacherHeaders(TEACHER_ID),
+      })
+      const b2 = await r2.json()
+      expect(b2.items.some((it) => it.id === wzId)).toBe(false)
+    })
+
     it('T-2.2 Assignment hinzufügen → 201 { id, mode, lemmaCount }', async () => {
       const res = await fetch(`${baseUrl}/api/v1/classroom/sessions/${sessionId}/assignments`, {
         method: 'POST',

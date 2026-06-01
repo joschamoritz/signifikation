@@ -49,7 +49,7 @@ export default function LemmaPicker({ value = [], onChange, mode = null }) {
       setLoading(true)
       setError(null)
       try {
-        const data = await searchLemmata({ q: query, limit: 20 })
+        const data = await searchLemmata({ q: query, mode, limit: 20 })
         const list = Array.isArray(data?.items) ? data.items : []
         setItems(list)
         // Cache pflegen, damit ausgewählte Lemmata sichtbar bleiben.
@@ -66,7 +66,7 @@ export default function LemmaPicker({ value = [], onChange, mode = null }) {
       }
     }, DEBOUNCE_MS)
     return () => { if (timerRef.current) clearTimeout(timerRef.current) }
-  }, [query])
+  }, [query, mode])
 
   function toggle(id) {
     if (value.includes(id)) {

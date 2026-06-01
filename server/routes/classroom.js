@@ -428,25 +428,41 @@ router.post(
 )
 
 // ── T-2.3 GET /api/v1/classroom/lemmata ────────────────────────
-// Picker-Endpoint fuer die Teacher-UI (Suche + Filter).
+// Picker-Endpoint fuer die Teacher-UI (Suche + Modus-Filter).
 // Nur oeffentliche Felder — KEIN notiz, runden, rundenInfo.
-const lemmataSearchStmt = db.prepare(`
-  SELECT id, lemma, pos, ipa, definition, definitionen
-  FROM lemmata
-  WHERE
-    (:q IS NULL OR lemma LIKE :q OR definition LIKE :q)
-    AND (:pos IS NULL OR pos = :pos)
-  ORDER BY lemma
-  LIMIT :limit
-`)
+//
+// Modus-Filter (F2b): zeigt pro Modus nur Lemmata, die dafuer Spieldaten haben.
+//   wortzwilling / zeitenwende → gespeichertes runden.<modus>-Feld vorhanden
+//   lueckenfueller             → lueckenfueller.rounds vorhanden
+//   kollokationen              → KEIN Filter: durch F2a live aus wortprofil.db
+//                                generierbar, also jedes kuratierte Lemma spielbar
+function lemmaModeFilter(mode) {
+  switch (mode) {
+    case 'wortzwilling':
+      return `AND json_valid(runden) AND json_extract(runden, '$.wortzwilling') IS NOT NULL`
+    case 'zeitenwende':
+      return `AND json_valid(runden) AND json_extract(runden, '$.zeitenwende') IS NOT NULL`
+    case 'lueckenfueller':
+      return `AND json_valid(lueckenfueller) AND json_array_length(json_extract(lueckenfueller, '$.rounds')) > 0`
+    default:
+      return '' // kollokationen + kein Modus: kein Filter
+  }
+}
 
-const lemmataCountStmt = db.prepare(`
-  SELECT COUNT(*) AS total
-  FROM lemmata
-  WHERE
-    (:q IS NULL OR lemma LIKE :q OR definition LIKE :q)
-    AND (:pos IS NULL OR pos = :pos)
-`)
+// Prepared-Statements je Modus cachen (better-sqlite3 mag stabile Statements).
+const _lemmataStmtCache = new Map()
+function lemmataStmts(mode) {
+  const key = mode || '*'
+  if (_lemmataStmtCache.has(key)) return _lemmataStmtCache.get(key)
+  const where = `WHERE (:q IS NULL OR lemma LIKE :q OR definition LIKE :q)
+    AND (:pos IS NULL OR pos = :pos) ${lemmaModeFilter(mode)}`
+  const pair = {
+    search: db.prepare(`SELECT id, lemma, pos, ipa, definition, definitionen FROM lemmata ${where} ORDER BY lemma LIMIT :limit`),
+    count:  db.prepare(`SELECT COUNT(*) AS total FROM lemmata ${where}`),
+  }
+  _lemmataStmtCache.set(key, pair)
+  return pair
+}
 
 router.get(
   '/api/v1/classroom/lemmata',
@@ -454,12 +470,13 @@ router.get(
   validate(cr2LemmataQuerySchema, 'query'),
   (req, res) => {
     try {
-      const { q, pos, limit } = req.query
+      const { q, pos, limit, mode } = req.query
       const qParam = q ? `%${q}%` : null
       const posParam = pos || null
+      const { search, count } = lemmataStmts(mode)
 
-      const rows = lemmataSearchStmt.all({ q: qParam, pos: posParam, limit })
-      const { total } = lemmataCountStmt.get({ q: qParam, pos: posParam })
+      const rows = search.all({ q: qParam, pos: posParam, limit })
+      const { total } = count.get({ q: qParam, pos: posParam })
 
       function safe(v, fb) { try { return v ? JSON.parse(v) : fb } catch { return fb } }
 

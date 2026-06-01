@@ -175,10 +175,11 @@ export async function getSessionResults(sessionId) {
   return jsonOrThrow(res)
 }
 
-export async function searchLemmata({ q, pos, limit = 20 } = {}) {
+export async function searchLemmata({ q, pos, mode, limit = 20 } = {}) {
   const url = new URL(`${BASE}/lemmata`, window.location.origin)
   if (q) url.searchParams.set('q', q)
   if (pos) url.searchParams.set('pos', pos)
+  if (mode) url.searchParams.set('mode', mode)
   if (limit) url.searchParams.set('limit', String(limit))
   const res = await apiFetch(url.pathname + url.search, { credentials: 'include' })
   return jsonOrThrow(res)
