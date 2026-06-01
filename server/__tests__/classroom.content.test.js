@@ -3,6 +3,7 @@ import {
   resolveKollokatoren,
   resolveZeitenwende,
   resolveWortzwilling,
+  resolveLueckenfueller,
   makeWzId,
   parseWzId,
   shuffleArr,
@@ -153,5 +154,37 @@ describe('resolveWortzwilling (Paar live aus wortprofil.db)', () => {
     const fetchWortZwilling = vi.fn(async () => ({ kollokatoren: [{ wort: 'a', zuordnung: 'A' }] }))
     expect(await resolveWortzwilling({ wortA: 'X' }, { fetchWortZwilling })).toEqual([])
     expect(fetchWortZwilling).not.toHaveBeenCalled()
+  })
+})
+
+describe('resolveLueckenfueller (live aus belege.db)', () => {
+  it('nutzt die live generierten Runden (buildLueckenfueller)', async () => {
+    const live = [{ type: 'choice', satzMitLuecke: 'Ein _____ Tag.', kollokator: 'schöner', options: ['schöner'], punkte: 1 }]
+    const buildLueckenfueller = vi.fn(async () => live)
+    const lemma = { lemma: 'Tag', pos: 'Substantiv', lueckenfueller: { rounds: [] } }
+    const out = await resolveLueckenfueller(lemma, { buildLueckenfueller })
+    expect(buildLueckenfueller).toHaveBeenCalledWith('Tag', 'Substantiv')
+    expect(out).toEqual(live)
+  })
+
+  it('faellt auf lemma.lueckenfueller.rounds zurueck, wenn buildLueckenfueller null liefert', async () => {
+    const stored = [{ type: 'free', kollokator: 'alt', punkte: 2 }]
+    const buildLueckenfueller = vi.fn(async () => null)
+    const lemma = { lemma: 'X', pos: 'Substantiv', lueckenfueller: { rounds: stored } }
+    expect(await resolveLueckenfueller(lemma, { buildLueckenfueller })).toEqual(stored)
+  })
+
+  it('faellt zurueck, wenn buildLueckenfueller wirft', async () => {
+    const stored = [{ type: 'choice', kollokator: 'x', punkte: 1 }]
+    const buildLueckenfueller = vi.fn(async () => { throw new Error('belege.db weg') })
+    const logWarn = vi.fn()
+    const lemma = { lemma: 'X', pos: 'Substantiv', lueckenfueller: { rounds: stored } }
+    expect(await resolveLueckenfueller(lemma, { buildLueckenfueller, logWarn })).toEqual(stored)
+    expect(logWarn).toHaveBeenCalled()
+  })
+
+  it('liefert leer, wenn weder live noch gespeichert', async () => {
+    const buildLueckenfueller = vi.fn(async () => null)
+    expect(await resolveLueckenfueller({ lemma: 'X', lueckenfueller: null }, { buildLueckenfueller })).toEqual([])
   })
 })

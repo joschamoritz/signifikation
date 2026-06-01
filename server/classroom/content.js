@@ -100,6 +100,41 @@ export async function resolveZeitenwende(lemma, { fetchZeitenwende, logWarn } = 
   return words
 }
 
+/**
+ * Lückenfüller-Runden für den Klassenraum — IMMER live (buildLueckenfueller:
+ * Sätze aus belege.db, Kollokatoren aus wortprofil.db, identische Game-Logik
+ * wie das Tagesspiel). Fallback aufs gespeicherte lemma.lueckenfueller.rounds.
+ *
+ * Eignung restriktiv (≥6 Kollokatoren mit logDice≥5 + ≥4 belegbare Sätze) →
+ * buildLueckenfueller liefert sonst null; dann greift der Fallback bzw. leer.
+ * KEIN zusätzliches Mischen (die Runden tragen eine bewusste Schwierigkeits-
+ * progression R1→R6).
+ *
+ * @param {object} lemma  geparstes Lemma ({ lemma, pos, lueckenfueller })
+ * @param {object} deps
+ * @param {Function} deps.buildLueckenfueller  async (lemma,pos) → rounds[] | null
+ * @param {Function} [deps.logWarn]
+ * @returns {Promise<Array>}
+ */
+export async function resolveLueckenfueller(lemma, { buildLueckenfueller, logWarn } = {}) {
+  let rounds = []
+  try {
+    if (typeof buildLueckenfueller === 'function') {
+      const fresh = await buildLueckenfueller(lemma.lemma, lemma.pos || 'Substantiv')
+      if (Array.isArray(fresh) && fresh.length) rounds = fresh
+    }
+  } catch (err) {
+    if (typeof logWarn === 'function') logWarn(err, lemma.lemma)
+  }
+
+  if (!rounds.length) {
+    const stored = lemma.lueckenfueller?.rounds
+    rounds = Array.isArray(stored) ? stored : []
+  }
+
+  return rounds
+}
+
 // ── Wort-Zwilling: Paar-basiert (kein Lemma) ─────────────────────────
 //
 // Ein Wort-Zwilling ist ein PAAR (wortA, wortB), das live aus zwei Wort-

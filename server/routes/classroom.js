@@ -73,7 +73,14 @@ import {
 } from '../classroom/store.js'
 import { fetchLemma, fetchZeitenwende } from '../wortprofil.js'
 import { fetchWortZwilling } from '../wortzwilling.js'
-import { resolveKollokatoren, resolveZeitenwende, resolveWortzwilling, parseWzId } from '../classroom/content.js'
+import { buildLueckenfueller } from '../lueckenfueller.js'
+import {
+  resolveKollokatoren,
+  resolveZeitenwende,
+  resolveWortzwilling,
+  resolveLueckenfueller,
+  parseWzId,
+} from '../classroom/content.js'
 import { loadKalenderEntry, getLemmataIndex, loadWortZwillingEntry } from '../store.js'
 import {
   notifyStudentJoined,
@@ -268,10 +275,17 @@ async function buildContentSnapshot(mode, lemmata) {
         break
       }
       case 'lueckenfueller': {
+        // Vereinheitlichung: Lückenfüller live (buildLueckenfueller, belege.db),
+        // Fallback aufs gespeicherte lemma.lueckenfueller.rounds.
+        const rounds = await resolveLueckenfueller(l, {
+          buildLueckenfueller,
+          logWarn: (err, lemma) =>
+            logger.warn({ err, lemma }, 'cr2 buildLueckenfueller fehlgeschlagen — Fallback aufs gespeicherte Feld'),
+        })
         byLemma[l.id] = {
           lemma:  l.lemma,
           ipa:    l.ipa,
-          rounds: l.lueckenfueller?.rounds || [],
+          rounds,
         }
         break
       }
@@ -491,14 +505,15 @@ router.post(
 //                                generierbar, also jedes kuratierte Lemma spielbar
 function lemmaModeFilter(mode) {
   switch (mode) {
-    case 'wortzwilling':
-      return `AND json_valid(runden) AND json_extract(runden, '$.wortzwilling') IS NOT NULL`
+    // Zeitenwende: Live-Eignung sehr restriktiv (braucht starke pre/post-
+    // Distinktion) → nur kuratierte, sicher spielbare Lemmata zeigen.
     case 'zeitenwende':
       return `AND json_valid(runden) AND json_extract(runden, '$.zeitenwende') IS NOT NULL`
-    case 'lueckenfueller':
-      return `AND json_valid(lueckenfueller) AND json_array_length(json_extract(lueckenfueller, '$.rounds')) > 0`
+    // kollokationen + lueckenfueller: live aus Korpus/Belegen → jedes Lemma
+    //   wählbar (Preview zeigt Eignung). wortzwilling nutzt den Paar-Picker,
+    //   nicht diesen Lemma-Picker. Alle → kein Filter.
     default:
-      return '' // kollokationen + kein Modus: kein Filter
+      return ''
   }
 }
 

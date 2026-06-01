@@ -55,6 +55,12 @@ vi.mock('../wortzwilling.js', () => ({
   })),
 }))
 
+// Lückenfüller ebenfalls live (belege.db nicht deterministisch im Test) →
+// „null" → Fallback aufs gespeicherte lemma.lueckenfueller.rounds der Fixtures.
+vi.mock('../lueckenfueller.js', () => ({
+  buildLueckenfueller: vi.fn(async () => null),
+}))
+
 // ── Test-Infrastruktur ─────────────────────────────────────────
 
 /** Lehrer-Header fuer Dev-Auth (ALLOW_DEV_AUTH=1 in vitest.setup.js) */
