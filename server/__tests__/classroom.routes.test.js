@@ -37,6 +37,9 @@ import { createSession } from '../classroom/store.js'
 // runden.kollokatoren-Feld der Test-Fixtures (stark/groß/klein …).
 vi.mock('../wortprofil.js', () => ({
   fetchLemma: vi.fn(async () => ({ runden: { kollokatoren: [] } })),
+  // Zeitenwende ebenfalls live (Vereinheitlichung): im Test „leer" → Fallback
+  // aufs gespeicherte runden.zeitenwende-Feld der Fixtures.
+  fetchZeitenwende: vi.fn(async () => null),
 }))
 
 // ── Test-Infrastruktur ─────────────────────────────────────────

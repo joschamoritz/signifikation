@@ -60,3 +60,42 @@ export async function resolveKollokatoren(lemma, { fetchLemma, logWarn } = {}) {
 
   return shuffleArr(koll)
 }
+
+/**
+ * Zeitenwende-Wörter für den Klassenraum.
+ *
+ * Vereinheitlichung (Plan „Datenarchitektur-Vereinheitlichung", Option A):
+ * analog zu resolveKollokatoren wird Zeitenwende IMMER live aus wortprofil.db
+ * generiert (fetchZeitenwende → pre/post-distinktive Wörter), mit Fallback auf
+ * das gespeicherte runden.zeitenwende-Feld. So ist jedes korpusgeeignete Wort
+ * im Klassenraum spielbar, konsistent mit Kollokationen.
+ *
+ * fetchZeitenwende mischt die Wörter bereits (pre/post gemischt) → hier KEIN
+ * zusätzliches Mischen. `periode` bleibt im Objekt (server-autoritatives
+ * Scoring); die Whitelist (buildSafePrompt) entfernt sie für die Schüler-Sicht.
+ *
+ * @param {object} lemma  geparstes Lemma ({ lemma, runden })
+ * @param {object} deps
+ * @param {Function} deps.fetchZeitenwende  async (lemma) → { words: [{wort, periode}] } | null
+ * @param {Function} [deps.logWarn]
+ * @returns {Promise<Array<{wort:string, periode:string}>>}
+ */
+export async function resolveZeitenwende(lemma, { fetchZeitenwende, logWarn } = {}) {
+  let words = []
+  try {
+    if (typeof fetchZeitenwende === 'function') {
+      const fresh = await fetchZeitenwende(lemma.lemma)
+      if (Array.isArray(fresh?.words) && fresh.words.length) words = fresh.words
+    }
+  } catch (err) {
+    if (typeof logWarn === 'function') logWarn(err, lemma.lemma)
+  }
+
+  if (!words.length) {
+    const r = lemma.runden || {}
+    const zw = r.zeitenwende || r
+    words = Array.isArray(zw?.words) ? zw.words : []
+  }
+
+  return words
+}

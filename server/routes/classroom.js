@@ -71,8 +71,8 @@ import {
   getDashboard,
   getSessionResults,
 } from '../classroom/store.js'
-import { fetchLemma } from '../wortprofil.js'
-import { resolveKollokatoren } from '../classroom/content.js'
+import { fetchLemma, fetchZeitenwende } from '../wortprofil.js'
+import { resolveKollokatoren, resolveZeitenwende } from '../classroom/content.js'
 import { loadKalenderEntry, getLemmataIndex } from '../store.js'
 import {
   notifyStudentJoined,
@@ -206,11 +206,17 @@ async function buildContentSnapshot(mode, lemmata) {
         break
       }
       case 'zeitenwende': {
-        const zw = r.zeitenwende || r
+        // Vereinheitlichung (Option A): Zeitenwende IMMER live aus wortprofil.db
+        // (fetchZeitenwende), Fallback aufs gespeicherte runden.zeitenwende-Feld.
+        const words = await resolveZeitenwende(l, {
+          fetchZeitenwende,
+          logWarn: (err, lemma) =>
+            logger.warn({ err, lemma }, 'cr2 fetchZeitenwende fehlgeschlagen — Fallback aufs gespeicherte Feld'),
+        })
         byLemma[l.id] = {
           lemma:  l.lemma,
           ipa:    l.ipa,
-          words:  zw.words || [],
+          words,
         }
         break
       }

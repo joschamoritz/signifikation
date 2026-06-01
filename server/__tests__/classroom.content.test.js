@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest'
-import { resolveKollokatoren, shuffleArr } from '../classroom/content.js'
+import { resolveKollokatoren, resolveZeitenwende, shuffleArr } from '../classroom/content.js'
 
 const worte = (list) => list.map((k) => k.wort).sort()
 
@@ -66,5 +66,42 @@ describe('resolveKollokatoren (F2a — live aus wortprofil.db)', () => {
   it('shuffleArr ist robust gegen Nicht-Arrays', () => {
     expect(shuffleArr(null)).toEqual([])
     expect(shuffleArr(undefined)).toEqual([])
+  })
+})
+
+describe('resolveZeitenwende (Vereinheitlichung — live aus wortprofil.db)', () => {
+  it('nutzt die live generierten Wörter (fetchZeitenwende)', async () => {
+    const live = [
+      { wort: 'digital', periode: 'post' },
+      { wort: 'analog',  periode: 'pre' },
+    ]
+    const fetchZeitenwende = vi.fn(async () => ({ lemma: 'Netz', words: live }))
+    const lemma = { lemma: 'Netz', runden: { zeitenwende: { words: [] } } }
+
+    const out = await resolveZeitenwende(lemma, { fetchZeitenwende })
+    expect(fetchZeitenwende).toHaveBeenCalledWith('Netz')
+    expect(out).toEqual(live) // periode bleibt erhalten (Scoring)
+  })
+
+  it('faellt auf runden.zeitenwende.words zurueck, wenn fetchZeitenwende null/leer liefert', async () => {
+    const stored = [{ wort: 'modern', periode: 'post' }]
+    const fetchZeitenwende = vi.fn(async () => null)
+    const lemma = { lemma: 'Zeit', runden: { zeitenwende: { words: stored } } }
+    expect(await resolveZeitenwende(lemma, { fetchZeitenwende })).toEqual(stored)
+  })
+
+  it('faellt zurueck, wenn fetchZeitenwende wirft (DB nicht erreichbar)', async () => {
+    const stored = [{ wort: 'alt', periode: 'pre' }]
+    const fetchZeitenwende = vi.fn(async () => { throw new Error('Wortprofil-DB nicht gefunden') })
+    const logWarn = vi.fn()
+    const lemma = { lemma: 'Zeit', runden: { zeitenwende: { words: stored } } }
+    const out = await resolveZeitenwende(lemma, { fetchZeitenwende, logWarn })
+    expect(out).toEqual(stored)
+    expect(logWarn).toHaveBeenCalled()
+  })
+
+  it('liefert leeres Array, wenn weder live noch gespeichert Daten haben', async () => {
+    const fetchZeitenwende = vi.fn(async () => null)
+    expect(await resolveZeitenwende({ lemma: 'X', runden: {} }, { fetchZeitenwende })).toEqual([])
   })
 })
