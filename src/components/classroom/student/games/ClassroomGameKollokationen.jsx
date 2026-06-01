@@ -1,12 +1,12 @@
 // Classroom-Variante des Kollokationen-Spiels.
 //
-// Bewusst NICHT die alte Quiz.jsx wiederverwendet — die hängt an
-// Belege/Joker/Storage und am 3-Runden-Multi-Lemma-Konstrukt der App.
-// Hier nur, was die Schueler-Sicht braucht: 10 Optionen aus dem Server-
-// Snapshot, max 3 Picks, rawAnswer { selected: [...] }.
+// Optik 1:1 aus dem echten Spiel (Quiz.jsx / quiz.css): Badge → Headword →
+// IPA → Aufgabentext → Optionsliste (.options-grid/.option) → Footer mit
+// Auswahl-Zähler + Primär-Button. Bewusst NICHT Quiz.jsx selbst wiederverwendet
+// (das haengt an Belege/Joker/3-Runden); hier nur die Schueler-Sicht: 10
+// Optionen aus dem Server-Snapshot, max 3 Picks, rawAnswer { selected: [...] }.
 //
-// Reihenfolge: server hat schon gemischt — KEIN Re-Shuffle clientseitig,
-// sonst widerspricht das dem snapshot-basierten Scoring.
+// Reihenfolge: server hat schon gemischt — KEIN Re-Shuffle clientseitig.
 
 import { useState } from 'react'
 
@@ -29,45 +29,51 @@ export default function ClassroomGameKollokationen({ lemma, prompt, onSubmit, su
   }
 
   return (
-    <div className="cr2-kiosk__game" data-testid="cr2-kiosk-game-kollokationen">
-      <p className="cr2-kiosk__lemma">{lemma?.lemma || ''}</p>
-      {lemma?.ipa ? <p className="cr2-kiosk__ipa">[{lemma.ipa}]</p> : null}
-      {prompt?.definition ? <p className="cr2-kiosk__definition">{prompt.definition}</p> : null}
+    <div className="screen quiz-screen" data-testid="cr2-kiosk-game-kollokationen">
+      <header className="quiz-header">
+        <span className="quiz-game-badge">Kollokationen</span>
+        <h1 className="quiz-lemma-word">{lemma?.lemma || ''}</h1>
+        {lemma?.ipa ? <p className="quiz-instruction" style={{ fontStyle: 'italic' }}>[{lemma.ipa}]</p> : null}
+        <p id="cr2-koll-instruction" className="quiz-instruction">
+          Wähle die <strong>3 stärksten</strong> Kollokationen{lemma?.lemma ? <> von <strong>{lemma.lemma}</strong></> : ''}.
+        </p>
+      </header>
 
-      <p className="cr2-kiosk__hint">
-        Wähle die drei besten Kollokationen.
-      </p>
+      <div className="options-grid-wrap">
+        <div className="options-grid" aria-describedby="cr2-koll-instruction">
+          {words.map((w, i) => {
+            const isPicked = picked.includes(w)
+            const rank = picked.indexOf(w) + 1
+            return (
+              <button
+                key={w}
+                type="button"
+                className={`option${isPicked ? ' selected' : ''}`}
+                style={{ animationDelay: `${i * 30}ms` }}
+                onClick={() => toggle(w)}
+                aria-pressed={isPicked}
+                data-testid={`cr2-kiosk-koll-choice-${w}`}
+              >
+                {isPicked && <span className="option-rank" aria-hidden="true">{rank}</span>}
+                {w}
+              </button>
+            )
+          })}
+        </div>
+      </div>
 
-      <ul className="cr2-kiosk__choices">
-        {words.map((w) => {
-          const picked_ = picked.includes(w)
-          return (
-            <li
-              key={w}
-              className={`cr2-kiosk__choice ${picked_ ? 'cr2-kiosk__choice--picked' : ''}`}
-              role="button"
-              tabIndex={0}
-              aria-pressed={picked_}
-              onClick={() => toggle(w)}
-              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(w) } }}
-              data-testid={`cr2-kiosk-koll-choice-${w}`}
-            >
-              <span>{w}</span>
-              {picked_ && <span className="cr2-kiosk__choice-rank" aria-hidden="true">✓</span>}
-            </li>
-          )
-        })}
-      </ul>
-
-      <button
-        type="button"
-        className="cr2-kiosk__btn cr2-kiosk__btn--primary"
-        onClick={handleSubmit}
-        disabled={submitting || picked.length === 0}
-        data-testid="cr2-kiosk-koll-submit"
-      >
-        {submitting ? 'Sende …' : `Abgeben (${picked.length}/3)`}
-      </button>
+      <footer className="quiz-footer">
+        <span className="select-count" aria-live="polite" aria-atomic="true">{picked.length} / 3 gewählt</span>
+        <button
+          type="button"
+          className="btn-primary"
+          onClick={handleSubmit}
+          disabled={submitting || picked.length === 0}
+          data-testid="cr2-kiosk-koll-submit"
+        >
+          {submitting ? 'Sende …' : 'Abgeben'}
+        </button>
+      </footer>
     </div>
   )
 }

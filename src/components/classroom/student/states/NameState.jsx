@@ -78,11 +78,8 @@ export default function NameState() {
   }
 
   return (
-    <>
-      <p className="cr2-kiosk__code-line">
-        Zugangscode: <strong>{state.code}</strong>
-      </p>
-      <p className="cr2-kiosk__dropcap">W</p>
+    <div className="cr2-kiosk__panel">
+      <p className="cr2-kiosk__overline">Klassenraum · Beitritt</p>
       <h1 className="cr2-kiosk__title">Wie heißt du?</h1>
       <p className="cr2-kiosk__lead">
         Kein echter Name nötig — ein Spitzname reicht. Er wird nur deiner Lehrkraft
@@ -99,8 +96,7 @@ export default function NameState() {
           type="text"
           autoComplete="off"
           spellCheck={false}
-          className="cr2-kiosk__input"
-          style={{ fontSize: '1.2rem', textAlign: 'left' }}
+          className="cr2-kiosk__name-field"
           value={name}
           onChange={handleChange}
           placeholder="Spitzname"
@@ -116,7 +112,7 @@ export default function NameState() {
         )}
         <button
           type="submit"
-          className="cr2-kiosk__btn cr2-kiosk__btn--primary"
+          className="btn-primary btn-full"
           disabled={submitting}
           data-testid="cr2-kiosk-name-submit"
         >
@@ -124,7 +120,7 @@ export default function NameState() {
         </button>
         <button
           type="button"
-          className="cr2-kiosk__btn cr2-kiosk__btn--ghost"
+          className="btn-ghost cr2-kiosk__skip"
           onClick={handleSkip}
           disabled={submitting}
           data-testid="cr2-kiosk-name-skip"
@@ -132,7 +128,11 @@ export default function NameState() {
           Ohne Namen beitreten
         </button>
       </form>
-    </>
+
+      <p className="cr2-kiosk__code-line">
+        Zugangscode: <strong>{state.code}</strong>
+      </p>
+    </div>
   )
 }
 

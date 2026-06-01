@@ -105,10 +105,33 @@
   box-sizing: border-box;
 }
 
-/* ── Drop-Cap + Headlines ───────────────────────────────────────────── */
+/* ── Message-Screens (Name / Warten / Pause) ────────────────────────── */
+.cr2-kiosk__panel {
+  display: flex;
+  flex-direction: column;
+}
+.cr2-kiosk__panel--center {
+  align-items: center;
+  text-align: center;
+  padding-top: clamp(24px, 12vh, 96px);
+}
+.cr2-kiosk__panel--center .cr2-kiosk__lead { max-width: 32ch; }
+
+/* Kleines Overline-Label statt der grossen Einzelbuchstaben-Drop-Cap. */
+.cr2-kiosk__overline {
+  font-family: 'DM Sans', system-ui, sans-serif;
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  color: var(--k-gold);
+  margin: 0 0 10px;
+}
+
+/* ── Drop-Cap (nur noch fuer das ✓ in SubmittedState) ───────────────── */
 .cr2-kiosk__dropcap {
   font-family: 'Gentium Plus', Georgia, serif;
-  font-size: 4.5rem;
+  font-size: 3rem;
   line-height: 1;
   color: var(--k-accent);
   font-weight: 700;
@@ -425,19 +448,26 @@
   text-decoration: line-through;
 }
 
-/* ── Spielmodi-Inhalt (Wrapper-Layout) ──────────────────────────────── */
+/* ── Spielmodi-Inhalt (Wrapper-Layout) ──────────────────────────────────
+   Entkastelt: kein weisser Kasten mehr. Kollokationen nutzt die echte
+   Quiz-Optik (.quiz-screen). Die uebrigen Modi bekommen hier einen
+   zentrierten Spielscreen-Header analog zum echten Spiel. */
 .cr2-kiosk__game {
-  background: var(--k-card);
-  border: 1px solid var(--k-rule-lt);
-  border-radius: 4px;
-  padding: 20px 18px;
-  margin-top: 12px;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  padding: 0;
+  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
 }
 
 .cr2-kiosk__lemma {
   font-family: 'Gentium Plus', Georgia, serif;
-  font-size: 1.6rem;
+  font-size: 2rem;
   font-weight: 700;
+  line-height: 1.05;
+  text-align: center;
   margin: 0 0 4px;
 }
 
@@ -446,7 +476,8 @@
   font-size: 0.85rem;
   font-style: italic;
   color: var(--k-muted);
-  margin: 0 0 12px;
+  text-align: center;
+  margin: 0 0 10px;
 }
 
 .cr2-kiosk__definition {
@@ -454,8 +485,41 @@
   font-size: 0.95rem;
   line-height: 1.45;
   color: var(--k-muted);
+  text-align: center;
   margin: 0 0 18px;
   font-style: italic;
+}
+
+/* Spitzname als unterstrichenes „Headword"-Feld (kein Kasten). */
+.cr2-kiosk__name-field {
+  width: 100%;
+  box-sizing: border-box;
+  font-family: 'Gentium Plus', Georgia, serif;
+  font-size: 1.5rem;
+  font-weight: 700;
+  text-align: center;
+  color: var(--k-text);
+  background: transparent;
+  border: none;
+  border-bottom: 1.5px solid var(--k-rule);
+  border-radius: 0;
+  padding: 8px 4px;
+  letter-spacing: 0.02em;
+}
+.cr2-kiosk__name-field::placeholder {
+  font-weight: 400;
+  font-style: italic;
+  color: var(--k-muted);
+}
+.cr2-kiosk__name-field:focus {
+  outline: none;
+  border-bottom-color: var(--k-accent);
+}
+
+/* Skip-Link mittig unter dem Beitreten-Button. */
+.cr2-kiosk__skip {
+  display: block;
+  margin: 4px auto 0;
 }
 
 .cr2-kiosk__choices {

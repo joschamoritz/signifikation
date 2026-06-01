@@ -12,6 +12,9 @@
 
 import { useState } from 'react'
 import { navigate } from '../routing'
+// Spielscreen-Optik 1:1 aus dem echten Spiel übernehmen (Optionsliste, Header,
+// Footer-Button) — Einheitlichkeit des CD, kein eigener Spielscreen-Stil.
+import '../../../styles/quiz.css'
 import './KioskShell.css'
 
 function ExitConfirmModal({ open, onClose, onConfirm }) {
