@@ -9,9 +9,9 @@
   transform: translateX(-50%);
   width: min(calc(100% - 2 * var(--tabbar-side)), 460px);
   height: var(--tabbar-h);
-  background: rgba(250, 249, 247, 0.78);
-  backdrop-filter: blur(24px) saturate(1.4);
-  -webkit-backdrop-filter: blur(24px) saturate(1.4);
+  background: rgba(255, 255, 255, 0.55); /* frostig-weiss, heller als Pergament -> liest als Glas-Schicht */
+  backdrop-filter: blur(26px) saturate(1.5);
+  -webkit-backdrop-filter: blur(26px) saturate(1.5);
   border: 0.5px solid rgba(120, 95, 65, 0.20);
   border-radius: calc(var(--tabbar-h) / 2); /* volle Pille – runde Enden wie iOS */
   /* warmer Lift-Schatten + helle Innen-Lichtkante oben (spekulare Glas-Tiefe) */
@@ -24,12 +24,12 @@
 
 /* Fallback ohne backdrop-filter: deckender, damit Inhalt nicht durchscheint */
 @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-  .tab-bar { background: rgba(250, 249, 247, 0.96); }
+  .tab-bar { background: rgba(255, 255, 255, 0.92); }
   [data-theme="dark"] .tab-bar { background: rgba(36, 30, 24, 0.96); }
 }
 
 [data-theme="dark"] .tab-bar {
-  background: rgba(36, 30, 24, 0.78);
+  background: rgba(36, 30, 24, 0.6);
   border-color: rgba(255, 255, 255, 0.10);
   box-shadow: 0 8px 26px -10px rgba(0, 0, 0, 0.55),
               0 2px 6px -4px rgba(0, 0, 0, 0.4),
