@@ -41,6 +41,12 @@
   --font-serif:  'Gentium Plus', Georgia, 'Times New Roman', serif;
   --font-sans:   'DM Sans', system-ui, -apple-system, sans-serif;
   --font-ipa:    'Gentium Plus', Georgia, serif;
+  /* Schwebende Tab-Leiste (Floating Pill) – Maße zentral, damit alle
+     Content-Offsets (Padding, snap-nav, Home-Layout) gekoppelt bleiben. */
+  --tabbar-h:    54px;          /* Höhe der schwebenden Kapsel */
+  --tabbar-gap:  10px;          /* Abstand zur unteren Kante / Safe-Area */
+  --tabbar-side: 14px;          /* seitlicher Abstand */
+  --tabbar-reserve: calc(env(safe-area-inset-bottom, 0px) + var(--tabbar-gap) + var(--tabbar-h));
 }
 
 /* ── Dark Mode ────────────────────────────────────────────── */

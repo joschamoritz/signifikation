@@ -1037,7 +1037,7 @@
     position: fixed;
     left: 0;
     top: env(safe-area-inset-top, 0px);
-    bottom: calc(49px + env(safe-area-inset-bottom, 0px));
+    bottom: var(--tabbar-reserve);
     z-index: 50;
     display: flex;
     flex-direction: column;
