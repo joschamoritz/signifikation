@@ -2,10 +2,12 @@
    ZEITENWENDE SCREEN
    ============================================================ */
 :root {
-  --zw-accent:    #7c3aed;
-  --zw-accent-dk: #6d28d9;
-  --zw-bg:        #f5f3ff;
-  --zw-border:    #c4b5fd;
+  /* Mode-Chrome (Badge/Progress/Weiter-Button) = rote App-Voice statt
+     Fremd-Lila. pre/post bleiben Blau/Grün — bedeutungstragend (vor/nach 2000). */
+  --zw-accent:    var(--primary);
+  --zw-accent-dk: var(--primary-hi);
+  --zw-bg:        var(--error-bg);
+  --zw-border:    var(--wrong-border);
   --zw-pre:       #1d4ed8;
   --zw-pre-bg:    #dbeafe;
   --zw-pre-bg-lt: #eff6ff;
@@ -15,8 +17,6 @@
 }
 
 [data-theme="dark"] {
-  --zw-bg:        #1e1a2e;
-  --zw-border:    #4c3d8f;
   --zw-pre:       #60a5fa;
   --zw-pre-bg:    #1e3a5f;
   --zw-pre-bg-lt: #172038;
@@ -126,7 +126,7 @@
   position: absolute;
   width: 100%;
   min-height: 120px;
-  border-radius: 8px;
+  border-radius: 4px;
   background: var(--surface);
   border: 2px solid var(--border);
   pointer-events: none;
@@ -153,7 +153,7 @@
   padding: 24px 20px;
   background: var(--surface);
   border: 2px solid var(--border);
-  border-radius: 8px;
+  border-radius: 4px;
   font-family: var(--font-serif);
   font-size: 2rem;
   font-weight: 700;
@@ -208,7 +208,6 @@
   cursor: grabbing;
   animation: none;
   transition: none;
-  box-shadow: 0 8px 24px rgba(60, 40, 30, 0.14);
 }
 
 .zw-word-card--correct {
@@ -282,7 +281,7 @@
   background: var(--zw-accent);
   color: #fff;
   border: none;
-  border-radius: 8px;
+  border-radius: 4px;
   font-family: var(--font-sans);
   font-size: 0.95rem;
   font-weight: 600;
@@ -315,7 +314,7 @@
   gap: 4px;
   padding: 14px 10px;
   border: 2px solid var(--border);
-  border-radius: 8px;
+  border-radius: 4px;
   background: var(--surface);
   color: var(--text);
   font-family: var(--font-sans);
@@ -428,7 +427,7 @@
   bottom: 0;
   background: var(--bg);
   padding: 12px 0 max(8px, env(safe-area-inset-bottom));
-  box-shadow: 0 -8px 12px -8px rgba(26, 26, 24, 0.08);
+  border-top: 1px solid var(--border);
   z-index: 5;
 }
 
@@ -468,7 +467,7 @@
   align-items: center;
   gap: 10px;
   padding: 8px 12px;
-  border-radius: 6px;
+  border-radius: 4px;
   font-size: 0.88rem;
 }
 
