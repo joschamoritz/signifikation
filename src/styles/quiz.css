@@ -628,7 +628,7 @@
   background: var(--bonus-bg-lt);
   border: none;
   border-left: 3px solid var(--bonus);
-  border-radius: 6px;
+  border-radius: var(--radius, 4px);
   font-size: 0.82rem;
   color: var(--text);
   cursor: pointer;

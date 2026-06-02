@@ -322,24 +322,30 @@
 
 .lf-free-input {
   width: 100%;
-  padding: 12px 16px;
-  border: 1px solid var(--border);
-  border-radius: 2px;
-  background: var(--surface);
+  padding: 10px 4px;
+  border: none;
+  border-bottom: 1.5px solid var(--border);
+  border-radius: 0;
+  background: transparent;
   font-family: var(--font-serif);
-  font-size: 1.1rem;
-  font-weight: 400;
+  font-size: 1.2rem;
+  font-weight: 700;
   color: var(--text);
   text-align: center;
-  transition: border-color 0.15s, border-left-width 0.15s, padding-left 0.15s;
+  transition: border-color 0.15s;
   box-sizing: border-box;
+}
+
+.lf-free-input::placeholder {
+  font-weight: 400;
+  font-style: italic;
+  color: var(--muted);
 }
 
 .lf-free-input:focus {
   outline: none;
-  border-color: var(--primary);
-  border-left-width: 3px;
-  padding-left: 14px;
+  border-bottom-color: var(--primary);
+  border-bottom-width: 2px;
 }
 
 /* ── Weiter-Hint ──────────────────────────────────────────── */

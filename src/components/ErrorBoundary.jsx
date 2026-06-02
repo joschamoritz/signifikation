@@ -64,7 +64,7 @@ export default class ErrorBoundary extends Component {
       const chunkError = isChunkLoadError(this.state.error)
       return (
         <div role="alert" className="screen" style={{ justifyContent: 'center', alignItems: 'center', gap: 16, padding: '32px 24px', textAlign: 'center' }}>
-          <p style={{ fontSize: '2rem' }}>⚠️</p>
+          <p aria-hidden="true" style={{ fontFamily: 'var(--font-serif)', fontSize: '2rem', color: 'var(--accent)', letterSpacing: '0.3em', lineHeight: 1 }}>· · ·</p>
           <p style={{ fontFamily: 'var(--font-serif)', fontSize: '1.2rem', fontWeight: 700 }}>
             {chunkError ? 'Neue Version verfügbar' : 'Etwas ist schiefgelaufen'}
           </p>
