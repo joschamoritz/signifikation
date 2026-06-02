@@ -29,14 +29,15 @@ export default function ClassroomIndexStep() {
       <ol className="cr2-entries" aria-label="Klassenraum">
 
         {/* ① Anleitung ─────────────────────────────────────── */}
-        <li className="cr2-entry cr2-entry--index">
+        <li className="cr2-entry cr2-entry--index test-drop-cap">
           <div className="test-entry-number" aria-hidden="true">
             <span className="test-entry-num-glyph">①</span>
             <span className="test-entry-marginalia">INFO</span>
           </div>
           <div className="test-entry-body">
             <div className="test-entry-head">
-              <h2 className="test-headword">Anleitung</h2>
+              <span className="test-dropcap-k" aria-hidden="true">A</span>
+              <h2 className="test-headword" aria-label="Anleitung">nleitung</h2>
               <span className="test-ipa" aria-label="Aussprache: [ˈanlaɪ̯tʊŋ]">[ˈanlaɪ̯tʊŋ]</span>
             </div>
             <div className="test-entry-grammar" aria-hidden="true">
@@ -64,14 +65,15 @@ export default function ClassroomIndexStep() {
         </li>
 
         {/* ② Sessions ──────────────────────────────────────── */}
-        <li className="cr2-entry cr2-entry--index">
+        <li className="cr2-entry cr2-entry--index test-drop-cap">
           <div className="test-entry-number" aria-hidden="true">
             <span className="test-entry-num-glyph">②</span>
             <span className="test-entry-marginalia">LIVE</span>
           </div>
           <div className="test-entry-body">
             <div className="test-entry-head">
-              <h2 className="test-headword">Sessions</h2>
+              <span className="test-dropcap-k" aria-hidden="true">S</span>
+              <h2 className="test-headword" aria-label="Sessions">essions</h2>
               <span className="test-ipa" aria-label="Aussprache: [ˈsɛʃn̩s]">[ˈsɛʃn̩s]</span>
             </div>
             <div className="test-entry-grammar" aria-hidden="true">
@@ -99,14 +101,15 @@ export default function ClassroomIndexStep() {
         </li>
 
         {/* ③ Beitritt ──────────────────────────────────────── */}
-        <li className="cr2-entry cr2-entry--index">
+        <li className="cr2-entry cr2-entry--index test-drop-cap">
           <div className="test-entry-number" aria-hidden="true">
             <span className="test-entry-num-glyph">③</span>
             <span className="test-entry-marginalia">ZUGANG</span>
           </div>
           <div className="test-entry-body">
             <div className="test-entry-head">
-              <h2 className="test-headword">Beitritt</h2>
+              <span className="test-dropcap-k" aria-hidden="true">B</span>
+              <h2 className="test-headword" aria-label="Beitritt">eitritt</h2>
               <span className="test-ipa" aria-label="Aussprache: [ˈbaɪ̯tʁɪt]">[ˈbaɪ̯tʁɪt]</span>
             </div>
             <div className="test-entry-grammar" aria-hidden="true">
@@ -134,14 +137,15 @@ export default function ClassroomIndexStep() {
         </li>
 
         {/* ④ Vorbereiten ───────────────────────────────────── */}
-        <li className="cr2-entry cr2-entry--index cr2-entry--disabled" aria-hidden="true">
+        <li className="cr2-entry cr2-entry--index test-drop-cap cr2-entry--disabled" aria-hidden="true">
           <div className="test-entry-number">
             <span className="test-entry-num-glyph">④</span>
             <span className="test-entry-marginalia">PLAN</span>
           </div>
           <div className="test-entry-body">
             <div className="test-entry-head">
-              <h2 className="test-headword">Vorbereiten</h2>
+              <span className="test-dropcap-k" aria-hidden="true">V</span>
+              <h2 className="test-headword" aria-label="Vorbereiten">orbereiten</h2>
               <span className="test-ipa">[ˈfoːɐ̯bəˌʁaɪ̯tn̩]</span>
             </div>
             <div className="test-entry-grammar">
