@@ -233,49 +233,7 @@
   font-weight: 500;
 }
 
-/* Streak */
-@keyframes streakGlow {
-  0%   { box-shadow: none }
-  50%  { box-shadow: 0 0 10px rgba(234, 88, 12, 0.35) }
-  100% { box-shadow: none }
-}
-
-.streak-pill {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  background: linear-gradient(135deg, var(--bonus-bg-lt) 0%, var(--warn-bg) 100%);
-  border: 1.5px solid var(--bonus-bg);
-  border-radius: 16px;
-  padding: 10px 20px;
-  animation: fadeIn 0.3s ease, streakGlow 700ms ease 300ms 1 forwards;
-}
-.streak-flames {
-  font-size: 1.8rem;
-  line-height: 1;
-  filter: drop-shadow(0 1px 3px rgba(234,88,12,0.35));
-}
-.streak-text {
-  display: flex;
-  flex-direction: row;
-  align-items: baseline;
-  gap: 5px;
-}
-.streak-count {
-  font-family: var(--font-serif);
-  font-size: 1.3rem;
-  font-weight: 800;
-  color: var(--bonus);
-  line-height: 1;
-}
-.streak-label {
-  font-size: 0.8rem;
-  font-weight: 600;
-  letter-spacing: 0.03em;
-  color: var(--warn);
-  opacity: 0.8;
-}
+/* (Streak-Pill-Gruppe entfernt — toter Code; sichtbare Streak nutzt .test-streak / .test-title-streak) */
 
 .toggle-arrow {
   font-size: 1.2rem;
@@ -348,80 +306,8 @@
 }
 .home-error small { font-size: 0.75rem; color: var(--muted) }
 
-/* Spielkarte auf der Startseite */
-.game-card {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 20px;
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
-.game-card-head {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-}
-.game-card-title {
-  font-family: var(--font-serif);
-  font-size: 1.2rem;
-  font-weight: 700;
-  color: var(--text);
-}
-.game-card-meta {
-  font-size: 0.78rem;
-  color: var(--muted);
-}
-.game-card-empty {
-  font-size: 0.85rem;
-  color: var(--muted);
-}
-.game-card--unavailable {
-  opacity: 0.4;
-  pointer-events: none;
-  user-select: none;
-  filter: grayscale(0.35);
-}
-.game-card--coming-soon {
-  opacity: 0.45;
-  pointer-events: none;
-  user-select: none;
-  filter: grayscale(0.25);
-}
-.game-played-list {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-.game-played-entry {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 8px 12px;
-  background: var(--success-bg);
-  border: 1px solid var(--correct-border);
-  border-radius: var(--radius-sm);
-  font-size: 0.85rem;
-}
-.game-played-word { font-weight: 600; color: var(--text) }
-.game-played-score { color: var(--success); font-weight: 600; font-size: 0.82rem }
-.game-played-total {
-  font-size: 0.82rem;
-  color: var(--muted);
-  text-align: center;
-  padding-top: 4px;
-}
-.game-played-total--medal {
-  font-size: 0.95rem;
-  color: var(--primary);
-  font-weight: 600;
-  padding: 10px 12px;
-  background: var(--error-bg);
-  border: 1px solid var(--wrong-border);
-  border-radius: var(--radius-sm);
-  text-align: center;
-}
+/* (Spielkarten-Gruppe .game-card* / .game-played* entfernt — toter Code,
+   in keiner JSX referenziert; die Startseite nutzt .test-entry-Einträge) */
 
 /* Verlauf-Strip */
 .history-strip {
@@ -883,7 +769,6 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .streak-pill,
   .history-dot,
   .lemma-card-wrap,
   .home-card-text--dropcap::first-letter {

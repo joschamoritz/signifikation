@@ -7,7 +7,6 @@ import TabTransition from './components/TabTransition'
 import { useAppModel } from './hooks/useAppModel'
 import { useTheme, ThemeContext } from './hooks/useTheme'
 import { useLocationPath, matchClassroomRoute } from './components/classroom/routing'
-import './components/classroom/student/KioskStub.css'
 
 // Classroom zieht socket.io-client (~32 KB) und Mollie-Flows mit; nur laden,
 // wenn der Nutzer tatsächlich auf den jeweiligen Tab wechselt.

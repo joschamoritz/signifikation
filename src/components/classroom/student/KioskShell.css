@@ -3,16 +3,17 @@
    Teacher-Shell abhaengt (verschiedene Mount-Pfade). */
 
 .cr2-kiosk {
-  --k-bg:        #faf9f7;
-  --k-card:      #ffffff;
-  --k-text:      #1f1f1f;
-  --k-muted:     #6a6a6a;
-  --k-rule:      #d8d2c4;
-  --k-rule-lt:   #ece8de;
-  --k-accent:    #9b1c1c;
-  --k-gold:      #c9a84c;
-  --k-error:     #9b1c1c;
-  --k-disabled:  #a8a39a;
+  /* Auf globale Tokens gemappt → folgt dem App-Dark-Mode, eine Quelle der Wahrheit. */
+  --k-bg:        var(--bg);
+  --k-card:      var(--surface);
+  --k-text:      var(--text);
+  --k-muted:     var(--muted);
+  --k-rule:      var(--border);
+  --k-rule-lt:   var(--border-lt);
+  --k-accent:    var(--primary);
+  --k-gold:      var(--accent);
+  --k-error:     var(--error);
+  --k-disabled:  var(--disabled);
 
   min-height: 100vh;
   background: var(--k-bg);
@@ -52,18 +53,20 @@
 
 .cr2-kiosk__exit {
   background: transparent;
-  border: 1px solid var(--k-rule);
+  border: none;
   color: var(--k-muted);
   font-family: 'DM Sans', system-ui, sans-serif;
   font-size: 0.85rem;
-  padding: 6px 12px;
-  border-radius: 3px;
+  padding: 10px 4px;
+  min-height: 44px;
+  border-bottom: 1px solid transparent;
   cursor: pointer;
+  transition: color 0.12s, border-color 0.12s;
 }
 
 .cr2-kiosk__exit:hover {
-  border-color: var(--k-accent);
   color: var(--k-accent);
+  border-bottom-color: var(--k-accent);
 }
 
 /* ── Reconnect-Hinweis (W2-T5) ──────────────────────────────────────── */
@@ -75,7 +78,7 @@
   justify-content: center;
   gap: 8px;
   padding: 8px 14px;
-  background: #fffbef;
+  background: color-mix(in srgb, var(--k-gold) 12%, transparent);
   border-bottom: 1px solid var(--k-gold);
   font-family: 'Gentium Plus', Georgia, serif;
   font-style: italic;
@@ -279,7 +282,7 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  background: #fdfcf8;
+  background: var(--k-card);
   border: 1px solid var(--k-rule-lt);
   border-radius: 999px;
   padding: 4px 10px;
@@ -325,7 +328,7 @@
 
 /* ── Auth-Banner (eingeloggter User in /c) ──────────────────────────── */
 .cr2-kiosk__auth-banner {
-  background: #fffbef;
+  background: color-mix(in srgb, var(--k-gold) 12%, transparent);
   border-top: 1px solid var(--k-gold);
   padding: 10px 14px;
   font-size: 0.8rem;
@@ -356,7 +359,8 @@
 
 .cr2-kiosk__modal {
   background: var(--k-card);
-  border-radius: 6px;
+  border: 1px solid var(--k-rule);
+  border-radius: var(--radius, 4px);
   padding: 24px 22px;
   max-width: 360px;
   width: 100%;
@@ -593,12 +597,12 @@
 }
 
 .cr2-kiosk__choice:hover:not(.cr2-kiosk__choice--disabled) {
-  background: #fdfcf8;
+  background: var(--k-card);
 }
 
 .cr2-kiosk__choice--picked {
   border-color: var(--k-accent);
-  background: #fdf2f0;
+  background: color-mix(in srgb, var(--k-accent) 8%, transparent);
 }
 
 .cr2-kiosk__choice--disabled {
@@ -626,7 +630,7 @@
   border-radius: 3px;
   padding: 10px;
   min-height: 88px;
-  background: #fdfcf8;
+  background: var(--k-card);
 }
 
 .cr2-kiosk__zone__label {
@@ -694,8 +698,8 @@
   cursor: pointer;
 }
 
-.cr2-kiosk__zw-action--active-pre  { border-color: var(--k-accent); background: #fdf2f0; }
-.cr2-kiosk__zw-action--active-post { border-color: var(--k-gold);   background: #fffbef; }
+.cr2-kiosk__zw-action--active-pre  { border-color: var(--k-accent); background: color-mix(in srgb, var(--k-accent) 8%, transparent); }
+.cr2-kiosk__zw-action--active-post { border-color: var(--k-gold);   background: color-mix(in srgb, var(--k-gold) 12%, transparent); }
 
 .cr2-kiosk__zw-progress {
   font-family: 'DM Sans', system-ui, sans-serif;

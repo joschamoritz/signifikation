@@ -2,15 +2,16 @@
    Wörterbuch-Stil: Pergament-Hintergrund, max-width 680px, schmale Marginalien. */
 
 .cr2-teacher {
-  --cr2-bg: #faf9f7;
-  --cr2-text: #1f1f1f;
-  --cr2-muted: #6a6a6a;
-  --cr2-rule: #d8d2c4;
-  --cr2-rule-lt: #ece8de;
-  --cr2-accent: #9b1c1c;
-  --cr2-gold: #c9a84c;
-  --cr2-disabled: #a8a39a;
-  --cr2-card-bg: #ffffff;
+  /* Auf globale Tokens gemappt → folgt dem App-Dark-Mode, eine Quelle der Wahrheit. */
+  --cr2-bg:      var(--bg);
+  --cr2-text:    var(--text);
+  --cr2-muted:   var(--muted);
+  --cr2-rule:    var(--border);
+  --cr2-rule-lt: var(--border-lt);
+  --cr2-accent:  var(--primary);
+  --cr2-gold:    var(--accent);
+  --cr2-disabled: var(--disabled);
+  --cr2-card-bg: var(--surface);
 
   /* Wörterbuch-Tokens (Spiegel von .test-page), damit die geteilten
      .test-*-Klassen (TabHeader, Raster, Einträge) hier korrekt auflösen –
@@ -130,8 +131,8 @@
   border-color: var(--cr2-accent);
 }
 .cr2-btn--primary:hover:not(:disabled) {
-  background: #7e1616;
-  border-color: #7e1616;
+  background: var(--primary-hi);
+  border-color: var(--primary-hi);
 }
 .cr2-btn--primary:disabled {
   background: var(--cr2-disabled);
@@ -145,7 +146,7 @@
   border-color: var(--cr2-rule);
 }
 .cr2-btn--outline:hover:not(:disabled) {
-  background: #f4f1e9;
+  background: color-mix(in srgb, var(--text) 5%, transparent);
 }
 
 .cr2-btn--ghost {
@@ -191,12 +192,12 @@
 }
 
 .cr2-card:hover {
-  background: #f4f1e9;
+  background: color-mix(in srgb, var(--primary) 4%, transparent);
 }
 
 .cr2-card--active {
-  border-left-color: var(--cr2-gold);
-  background: #fffbef;
+  border-left-color: var(--primary);
+  background: color-mix(in srgb, var(--primary) 7%, transparent);
 }
 
 /* Modus-Auswahl: Hover + Auswahl im dezenten Rot mit rotem Linksakzent —
@@ -552,7 +553,7 @@
   padding: 2px 8px;
   border: 1px solid var(--cr2-rule-lt);
   border-radius: 2px;
-  background: #fdfcf8;
+  background: var(--surface);
 }
 
 .cr2-card__dot {
@@ -855,7 +856,7 @@
   align-items: center;
   gap: 6px;
   padding: 6px 8px 6px 12px;
-  background: #fffbef;
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
   border: 1px solid var(--cr2-gold);
   border-radius: 999px;
   font-family: 'Gentium Plus', Georgia, serif;
@@ -866,9 +867,10 @@
   border: none;
   background: transparent;
   color: var(--cr2-muted);
-  font-size: 1rem;
-  width: 22px;
-  height: 22px;
+  font-size: 1.05rem;
+  width: 32px;
+  height: 32px;
+  margin: -6px -6px -6px 0; /* Tap-Fläche vergrößern ohne den Chip aufzublähen */
   border-radius: 50%;
   cursor: pointer;
   line-height: 1;
@@ -1320,8 +1322,8 @@
 }
 
 .cr2-block__tool {
-  width: 32px;
-  height: 32px;
+  min-width: 44px;
+  min-height: 44px;
   border: none;
   background: transparent;
   color: var(--cr2-muted);

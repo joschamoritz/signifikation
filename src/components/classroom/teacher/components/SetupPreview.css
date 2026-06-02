@@ -19,7 +19,8 @@
   /* Kiosk-Look auf 480px begrenzt (max-width steckt in .cr2-kiosk__main).
      Die Shell darf die volle Höhe füllen, damit es wie das echte Gerät wirkt. */
   min-height: 100vh;
-  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.06);
+  border-left: 1px solid var(--border-lt);
+  border-right: 1px solid var(--border-lt);
 }
 
 /* Kopfzeile: Zurück oben links (wie überall in der App), Label rechts. */
@@ -44,7 +45,7 @@
 /* Dezenter Vorschau-Hinweis im Wörterbuch-Stil (Gold, kursiv). */
 .cr2-preview__banner {
   border: 1px solid var(--k-gold);
-  background: #fffbef;
+  background: color-mix(in srgb, var(--k-gold) 12%, transparent);
   color: var(--k-muted);
   font-family: 'Gentium Plus', Georgia, serif;
   font-style: italic;
@@ -52,6 +53,6 @@
   line-height: 1.45;
   text-align: center;
   padding: 8px 12px;
-  border-radius: 3px;
+  border-radius: var(--radius, 4px);
   margin: 0 0 16px;
 }
