@@ -10,12 +10,25 @@
 // Jeder aktive Eintrag öffnet — wie ein Modus-Klick auf der Spielmodi-Seite —
 // eine Vollbild-Unterseite (kein Bottom-Sheet). Reine Navigation/Info.
 
+import { useRef, useCallback } from 'react'
 import { useTeacherClassroom } from '../TeacherClassroomContext'
 import { useSessionsList } from '../hooks/useSessionsList'
+import { useActiveSnapCard } from '../../../../hooks/useActiveSnapCard'
+
+// Badge-Navigation (mobil, links): identisch zur Spielmodi-Startseite.
+const SNAP_NAV = [['①', 'Anleitung'], ['②', 'Sessions'], ['③', 'Beitritt'], ['④', 'Vorbereiten']]
 
 export default function ClassroomIndexStep() {
   const { dispatch } = useTeacherClassroom()
   const { sessions, loading } = useSessionsList({ limit: 50 })
+
+  // Scroll-Snap-Navigation wie Home (test-entries + snap-nav).
+  const entriesRef = useRef(null)
+  const activeCard = useActiveSnapCard(entriesRef)
+  const scrollToCard = useCallback((i) => {
+    const items = entriesRef.current?.querySelectorAll('.test-entry')
+    items?.[i]?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }, [])
 
   const sessionCount = sessions.length
   const sessionStatus = loading
@@ -25,11 +38,12 @@ export default function ClassroomIndexStep() {
       : `${sessionCount} ${sessionCount === 1 ? 'Session' : 'Sessions'} angelegt.`
 
   return (
-    <div data-testid="cr2-index">
-      <ol className="cr2-entries" aria-label="Klassenraum">
+    <>
+      <main>
+      <ol className="test-entries" aria-label="Klassenraum" ref={entriesRef} data-testid="cr2-index">
 
         {/* ① Anleitung ─────────────────────────────────────── */}
-        <li className="cr2-entry cr2-entry--index test-drop-cap">
+        <li className="test-entry test-drop-cap">
           <div className="test-entry-number" aria-hidden="true">
             <span className="test-entry-num-glyph">①</span>
             <span className="test-entry-marginalia">INFO</span>
@@ -65,7 +79,7 @@ export default function ClassroomIndexStep() {
         </li>
 
         {/* ② Sessions ──────────────────────────────────────── */}
-        <li className="cr2-entry cr2-entry--index test-drop-cap">
+        <li className="test-entry test-drop-cap">
           <div className="test-entry-number" aria-hidden="true">
             <span className="test-entry-num-glyph">②</span>
             <span className="test-entry-marginalia">LIVE</span>
@@ -101,7 +115,7 @@ export default function ClassroomIndexStep() {
         </li>
 
         {/* ③ Beitritt ──────────────────────────────────────── */}
-        <li className="cr2-entry cr2-entry--index test-drop-cap">
+        <li className="test-entry test-drop-cap">
           <div className="test-entry-number" aria-hidden="true">
             <span className="test-entry-num-glyph">③</span>
             <span className="test-entry-marginalia">ZUGANG</span>
@@ -165,6 +179,23 @@ export default function ClassroomIndexStep() {
         </li>
 
       </ol>
-    </div>
+      </main>
+
+      {/* Vertikale Badge-Navigation (nur mobil) — wie die Spielmodi-Startseite. */}
+      <nav className="snap-nav" aria-label="Klassenraum-Navigation">
+        <div className="snap-nav-games">
+          {SNAP_NAV.map(([glyph, label], i) => (
+            <button
+              key={label}
+              type="button"
+              className={`snap-nav-btn${activeCard === i ? ' snap-nav-btn--active' : ''}`}
+              aria-label={label}
+              aria-current={activeCard === i ? 'true' : undefined}
+              onClick={() => scrollToCard(i)}
+            >{glyph}</button>
+          ))}
+        </div>
+      </nav>
+    </>
   )
 }

@@ -47,9 +47,11 @@ function TeacherClassroomBody() {
     )
   }
 
-  // Landing-Shell mit geteiltem App-Header (Index + noch nicht umgebaute Steps).
+  // Landing-Shell — strukturell identisch zur Spielmodi-Startseite (test-page),
+  // damit Header, Snap-Scrolling und Badge-Nav 1:1 wie dort funktionieren.
+  // ClassroomIndexStep rendert main + test-entries + snap-nav selbst.
   return (
-    <div className="cr2-teacher cr2-teacher--landing" lang="de">
+    <div className="cr2-teacher test-page" lang="de">
       <div className="test-wrapper">
         {/* Identischer App-Header wie alle anderen Tabs (Spielmodi/Kurs). */}
         <TabHeader />
@@ -66,9 +68,7 @@ function TeacherClassroomBody() {
 
         <div className="test-rule--double" role="separator" aria-hidden="true" />
 
-        <main className="cr2-teacher__main">
-          <StepRouter />
-        </main>
+        <ClassroomIndexStep />
       </div>
     </div>
   )
