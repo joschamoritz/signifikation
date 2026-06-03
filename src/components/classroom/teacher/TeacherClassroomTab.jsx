@@ -49,7 +49,7 @@ function TeacherClassroomBody() {
 
   // Landing-Shell mit geteiltem App-Header (Index + noch nicht umgebaute Steps).
   return (
-    <div className="cr2-teacher" lang="de">
+    <div className="cr2-teacher cr2-teacher--landing" lang="de">
       <div className="test-wrapper">
         {/* Identischer App-Header wie alle anderen Tabs (Spielmodi/Kurs). */}
         <TabHeader />
