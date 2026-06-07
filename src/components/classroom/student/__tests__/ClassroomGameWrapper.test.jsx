@@ -60,8 +60,11 @@ describe('ClassroomGameWrapper (T-5.5)', () => {
     }
     renderWith(s)
     expect(screen.getByTestId('cr2-kiosk-game-kollokationen')).toBeTruthy()
-    expect(screen.getByTestId('cr2-kiosk-koll-choice-ohrenbetäubend')).toBeTruthy()
-    expect(screen.getByTestId('cr2-kiosk-koll-submit').disabled).toBe(true)
+    // Echte Quiz-Engine: Optionen als .option-Buttons (Wort als Text), Abgabe
+    // erst bei 3 Auswahlen aktiv.
+    expect(screen.getByText('ohrenbetäubend')).toBeTruthy()
+    const submit = screen.getByRole('button', { name: 'Abgeben' })
+    expect(submit.disabled).toBe(true)
   })
 
   it('beim Klick auf Submit nach Pick wird onSubmitOverride mit rawAnswer aufgerufen', async () => {
@@ -80,11 +83,12 @@ describe('ClassroomGameWrapper (T-5.5)', () => {
     }
     const { getState } = renderWith(s, { onSubmitOverride: fakeSubmit })
 
+    // Echte Quiz-Engine: Abgabe erst bei genau 3 Auswahlen aktiv.
+    for (const w of ['ohrenbetäubend', 'leise', 'höllisch']) {
+      await act(async () => { fireEvent.click(screen.getByText(w)) })
+    }
     await act(async () => {
-      fireEvent.click(screen.getByTestId('cr2-kiosk-koll-choice-ohrenbetäubend'))
-    })
-    await act(async () => {
-      fireEvent.click(screen.getByTestId('cr2-kiosk-koll-submit'))
+      fireEvent.click(screen.getByRole('button', { name: 'Abgeben' }))
     })
 
     await waitFor(() => {
@@ -95,7 +99,10 @@ describe('ClassroomGameWrapper (T-5.5)', () => {
     expect(token).toBe('tok-1')
     expect(payload.assignmentId).toBe('a1')
     expect(payload.lemmaId).toBe('l1')
-    expect(payload.rawAnswer).toEqual({ selected: ['ohrenbetäubend'] })
+    expect(payload.rawAnswer.selected).toEqual(
+      expect.arrayContaining(['ohrenbetäubend', 'leise', 'höllisch']),
+    )
+    expect(payload.rawAnswer.selected).toHaveLength(3)
 
     // Context-State wechselt nach SUBMITTED
     await waitFor(() => {

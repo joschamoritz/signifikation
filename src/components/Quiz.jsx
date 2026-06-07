@@ -22,10 +22,19 @@ export default function Quiz({
   onBack,
   mode = 'single',          // 'single' | 'classroom'
   onSubmit,                 // Classroom: (rawAnswer) => void
+  onProgress,               // Classroom: Entwurf spiegeln (Reload, 7.2)
+  initialSelected = null,   // Classroom: Auswahl aus dem Entwurf
   disableProgress = false,  // Classroom: keine XP/Streak/Stats-Schreibvorgaenge
   hideHeader = false,       // Classroom: KioskShell zeigt eigenen Header
 }) {
-  const [selected, setSelected]   = useState([])
+  // Klassenraum: dieselbe Quiz-Optik, aber ohne Joker/Belege/Sofort-Feedback
+  // (server-autoritativ; Joker/Feedback braeuchten die Loesung `rang`). Eine
+  // Abgabe via onSubmit({ selected }); Aufloesung gibt die Lehrkraft frei.
+  const isClassroom = mode === 'classroom'
+  const submittedRef = useRef(false)
+  const [selected, setSelected]   = useState(() =>
+    isClassroom && Array.isArray(initialSelected) ? initialSelected.slice(0, 3) : [],
+  )
   const [submitted, setSubmitted] = useState(false)
   const [showBelegHint, setShowBelegHint] = useState(() => !lsGet(BELEG_HINT_KEY))
 
@@ -47,6 +56,13 @@ export default function Quiz({
     handleScroll()
     return () => window.removeEventListener('scroll', handleScroll)
   }, [handleScroll])
+
+  // Klassenraum: Auswahl als Entwurf spiegeln → Reload-sicher (7.2).
+  useEffect(() => {
+    if (!isClassroom || typeof onProgress !== 'function') return
+    onProgress(selected)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isClassroom, selected])
 
   const options        = useMemo(() => getRoundOptions(kollokatoren), [kollokatoren])
   const displayOptions = useMemo(
@@ -73,11 +89,11 @@ export default function Quiz({
   const jokerTimer = useRef(null)
 
   useEffect(() => {
-    if (submitted || jokerUsed) return
+    if (submitted || jokerUsed || isClassroom) return
     setJokerVisible(false)
     jokerTimer.current = setTimeout(() => setJokerVisible(true), 15000)
     return () => clearTimeout(jokerTimer.current)
-  }, [currentRound, submitted, jokerUsed])
+  }, [currentRound, submitted, jokerUsed, isClassroom])
 
   function resetJokerTimer() {
     if (jokerUsed || submitted) return
@@ -137,7 +153,7 @@ export default function Quiz({
 
   return (
     <div className="screen quiz-screen" onClick={resetJokerTimer}>
-      {onBack && !submitted && (
+      {onBack && !submitted && !isClassroom && (
         <button className="back-btn" type="button" onClick={onBack} aria-label="Zurück zur Wortauswahl"><svg width="10" height="16" viewBox="0 0 10 16" fill="none" aria-hidden="true"><path d="M8.5 1L1.5 8L8.5 15" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg></button>
       )}
       <header className="quiz-header">
@@ -309,9 +325,19 @@ export default function Quiz({
               className="btn-primary"
               type="button"
               disabled={selected.length !== 3}
-              onClick={() => setSubmitted(true)}
+              onClick={() => {
+                if (selected.length !== 3) return
+                if (isClassroom) {
+                  // Server-autoritativ: keine lokale Auswertung, eine Abgabe.
+                  if (submittedRef.current) return
+                  submittedRef.current = true
+                  onSubmit?.({ selected })
+                  return
+                }
+                setSubmitted(true)
+              }}
             >
-              Auswerten
+              {isClassroom ? 'Abgeben' : 'Auswerten'}
             </button>
           </>
         ) : (

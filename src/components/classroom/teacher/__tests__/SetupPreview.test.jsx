@@ -82,9 +82,12 @@ describe('SetupPreview (W2-T1)', () => {
 
     expect(screen.getByTestId('cr2-preview-progress').textContent).toMatch(/Lemma 1 \/ 2/)
 
-    // Auswahl + Abgeben (No-Op-Submit, nur lokales Weiterschalten)
-    fireEvent.click(screen.getByTestId('cr2-kiosk-koll-choice-alpha'))
-    fireEvent.click(screen.getByTestId('cr2-kiosk-koll-submit'))
+    // Echte Quiz-Engine: alle 3 Optionen waehlen, dann Abgeben (No-Op-Submit,
+    // nur lokales Weiterschalten zum naechsten Lemma).
+    fireEvent.click(screen.getByText('alpha'))
+    fireEvent.click(screen.getByText('beta'))
+    fireEvent.click(screen.getByText('gamma'))
+    fireEvent.click(screen.getByRole('button', { name: 'Abgeben' }))
 
     await waitFor(() => {
       expect(screen.getByTestId('cr2-preview-progress').textContent).toMatch(/Lemma 2 \/ 2/)

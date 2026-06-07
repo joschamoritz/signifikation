@@ -1,78 +1,46 @@
-// Classroom-Variante des Kollokationen-Spiels.
+// Classroom-Kollokationen — Adapter um die ECHTE Spiel-Engine (Quiz.jsx).
 //
-// Optik 1:1 aus dem echten Spiel (Quiz.jsx / quiz.css): Badge → Headword →
-// IPA → Aufgabentext → Optionsliste (.options-grid/.option) → Footer mit
-// Auswahl-Zähler + Primär-Button. Bewusst NICHT Quiz.jsx selbst wiederverwendet
-// (das haengt an Belege/Joker/3-Runden); hier nur die Schueler-Sicht: 10
-// Optionen aus dem Server-Snapshot, max 3 Picks, rawAnswer { selected: [...] }.
+// W4-S4: Nutzt jetzt die echte Quiz-Komponente (mode="classroom") statt einer
+// Mini-Variante. Unterschiede: kein Joker, keine Belege, kein Sofort-Feedback
+// (server-autoritativ; Joker/Feedback braeuchten die Loesung `rang`). Genau ein
+// onSubmit({ selected: [...] }) nach Auswahl der 3 staerksten Kollokationen.
 //
-// Reihenfolge: server hat schon gemischt — KEIN Re-Shuffle clientseitig.
+// Server-Whitelist: prompt = { words:[strings], definition } (kein rang) →
+// lemma.runden.kollokatoren = words.map(w => ({ wort: w })). Reload-Persistenz
+// (7.2) via Draft + onProgress/initialSelected.
 
-import { useAnswerDraft } from '../hooks/useAnswerDraft'
+import { useMemo } from 'react'
+import Quiz from '../../../Quiz'
+import { readDraft, writeDraft } from '../hooks/useAnswerDraft'
 
-export default function ClassroomGameKollokationen({ lemma, prompt, onSubmit, submitting, draftKey = null }) {
+export default function ClassroomGameKollokationen({ lemma, prompt, onSubmit, draftKey = null }) {
   const words = Array.isArray(prompt?.words) ? prompt.words : []
-  // Auswahl als Entwurf spiegeln → Reload verliert die Picks nicht (7.2).
-  const [picked, setPicked] = useAnswerDraft(draftKey ? `${draftKey}::0` : null, [])
+  const key = draftKey ? `${draftKey}::0` : null
 
-  function toggle(w) {
-    if (submitting) return
-    setPicked((prev) => {
-      if (prev.includes(w)) return prev.filter((x) => x !== w)
-      if (prev.length >= 3) return prev
-      return [...prev, w]
-    })
-  }
+  const quizLemma = useMemo(() => ({
+    lemma: lemma?.lemma || '',
+    ipa:   lemma?.ipa || '',
+    // Im Klassenraum ohne `rang` (die Loesung) — nur die Woerter.
+    runden: { kollokatoren: words.map((w) => ({ wort: w })) },
+  }), [lemma, words]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  function handleSubmit() {
-    if (submitting || picked.length === 0) return
-    onSubmit({ selected: picked })
-  }
+  const draft = key ? readDraft(key) : null
+  const initialSelected = Array.isArray(draft) ? draft : (Array.isArray(draft?.selected) ? draft.selected : null)
 
   return (
-    <div className="screen quiz-screen" data-testid="cr2-kiosk-game-kollokationen">
-      <header className="quiz-header">
-        <span className="quiz-game-badge">Kollokationen</span>
-        <h1 className="quiz-lemma-word">{lemma?.lemma || ''}</h1>
-        {lemma?.ipa ? <p className="quiz-instruction" style={{ fontStyle: 'italic' }}>[{lemma.ipa}]</p> : null}
-        <p id="cr2-koll-instruction" className="quiz-instruction">
-          Wähle die <strong>3 stärksten</strong> Kollokationen{lemma?.lemma ? <> von <strong>{lemma.lemma}</strong></> : ''}.
-        </p>
-      </header>
-
-      <div className="options-grid-wrap">
-        <div className="options-grid" aria-describedby="cr2-koll-instruction">
-          {words.map((w, i) => {
-            const isPicked = picked.includes(w)
-            return (
-              <button
-                key={w}
-                type="button"
-                className={`option${isPicked ? ' selected' : ''}`}
-                style={{ animationDelay: `${i * 30}ms` }}
-                onClick={() => toggle(w)}
-                aria-pressed={isPicked}
-                data-testid={`cr2-kiosk-koll-choice-${w}`}
-              >
-                {w}
-              </button>
-            )
-          })}
-        </div>
-      </div>
-
-      <footer className="quiz-footer">
-        <span className="select-count" aria-live="polite" aria-atomic="true">{picked.length} / 3 gewählt</span>
-        <button
-          type="button"
-          className="btn-primary"
-          onClick={handleSubmit}
-          disabled={submitting || picked.length === 0}
-          data-testid="cr2-kiosk-koll-submit"
-        >
-          {submitting ? 'Sende …' : 'Abgeben'}
-        </button>
-      </footer>
+    <div data-testid="cr2-kiosk-game-kollokationen">
+      <Quiz
+        lemma={quizLemma}
+        currentRound={0}
+        onRoundComplete={() => {}}
+        onBack={() => {}}
+        mode="classroom"
+        onSubmit={onSubmit}
+        onProgress={key ? (sel) => writeDraft(key, sel) : undefined}
+        initialSelected={initialSelected}
+        disableProgress
+        hideHeader={false}
+      />
     </div>
   )
 }
