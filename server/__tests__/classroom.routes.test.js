@@ -60,6 +60,7 @@ vi.mock('../wortzwilling.js', () => ({
 vi.mock('../lueckenfueller.js', () => ({
   buildLueckenfueller: vi.fn(async () => null),
 }))
+import { buildLueckenfueller as buildLfMock } from '../lueckenfueller.js'
 
 // ── Test-Infrastruktur ─────────────────────────────────────────
 
@@ -1241,6 +1242,32 @@ describe('classroom routes', () => {
       expect(Array.isArray(p.rounds)).toBe(true)
       expect(p.rounds[0].options).toContain('sanft')
       expect(JSON.stringify(body)).not.toMatch(/"kollokator"\s*:/)
+    })
+
+    it('W4-S4 Bugfix: live buildLueckenfueller (satzMitLuecke/optionen) wird korrekt gemappt', async () => {
+      // Regressionsschutz: frueher las buildSafeRound `sentence`/`options`, die
+      // Live-Quelle liefert aber `satzMitLuecke`/`optionen` → leerer Inhalt.
+      buildLfMock.mockResolvedValueOnce([
+        {
+          type: 'choice',
+          satzMitLuecke: 'Die ___ war gut besucht.',
+          satz: 'Die Ausstellung war gut besucht.', // ← Loesung, darf NICHT leaken
+          optionen: ['Ausstellung', 'Lampe', 'Strasse', 'Frage'],
+          kollokator: 'Ausstellung',
+          token: 'Ausstellung',
+          punkte: 3,
+        },
+      ])
+      const lemmaId = insertTestLemma('prev-lf-live')
+      const { status, body } = await preview({ mode: 'lueckenfueller', lemmaIds: [lemmaId] })
+      expect(status).toBe(200)
+      const round = body.lemmata[0].prompt.rounds[0]
+      expect(round.sentence).toBe('Die ___ war gut besucht.')
+      expect(round.options).toContain('Ausstellung')
+      const json = JSON.stringify(body)
+      // Lösung/Antwort-Felder bleiben draußen
+      expect(json).not.toMatch(/"kollokator"\s*:/)
+      expect(json).not.toContain('Die Ausstellung war gut besucht.')
     })
 
     it('unbekanntes Lemma → 404', async () => {

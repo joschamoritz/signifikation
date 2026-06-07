@@ -344,16 +344,26 @@ function buildSafePrompt(mode, snapshot) {
 
 function buildSafeRound(round) {
   if (!round || typeof round !== 'object') return null
-  const base = { type: round.type, sentence: round.sentence || round.text || '' }
+  // buildLueckenfueller liefert die Felder `satzMitLuecke` (Satz mit _____) und
+  // `optionen` — NICHT `sentence`/`options`. Frueher las die Whitelist die
+  // falschen Namen → Satz + Optionen fielen weg, der Schueler sah einen leeren
+  // Lueckenfueller (Realbedingungstest „Ausstellung"). NIE `satz` (enthaelt das
+  // Loesungswort) und NIE `kollokator`/`token` exponieren.
+  const sentence = round.satzMitLuecke || round.sentence || round.text || ''
+  const options  = Array.isArray(round.optionen) ? round.optionen
+                 : Array.isArray(round.options)  ? round.options : []
+  const base = { type: round.type, sentence }
   if (round.type === 'choice') {
-    // WHITELIST: options (alle Auswahlmoeglichkeiten inkl. korrekte), KEIN kollokator-Label
-    return { ...base, options: Array.isArray(round.options) ? round.options : [] }
+    return { ...base, options }
   }
   if (round.type === 'double') {
     return {
       ...base,
-      // WHITELIST: nur text der Saetze, KEIN kollokator
-      sentences: (round.sentences || []).map(s => ({ text: s.text || s.sentence || '' })),
+      options,
+      // WHITELIST: nur der gelueckte Satz, KEIN kollokator/token
+      sentences: (round.sentences || []).map(s => ({
+        text: s.satzMitLuecke || s.text || s.sentence || '',
+      })),
     }
   }
   // 'free': Schueler tippt, kein Hinweis noetig → nur Satz
