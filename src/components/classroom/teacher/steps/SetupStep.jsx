@@ -51,7 +51,6 @@ export default function SetupStep() {
 
   const [blocks, setBlocks]       = useState(() => blocksFromDraft(draft))
   const [title, setTitle]         = useState(draft.title ?? defaultTitle())
-  const [autoStart, setAutoStart] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError]         = useState(null)
   const [previewIdx, setPreviewIdx] = useState(null)  // index des offenen Vorschau-Blocks
@@ -84,7 +83,7 @@ export default function SetupStep() {
     setSubmitting(true)
     setError(null)
     try {
-      const settings = { mode: blocks[0].mode, autoStart, blockCount: blocks.length }
+      const settings = { mode: blocks[0].mode, blockCount: blocks.length }
       const session  = await createSession({ title: title.trim() || null, settings })
       await addAssignments(session.id, {
         blocks: blocks.map((b) => ({ mode: b.mode, lemmaIds: b.lemmaIds })),
@@ -208,14 +207,6 @@ export default function SetupStep() {
           maxLength={60}
           aria-label="Klassen-Name"
         />
-        <label className="cr2-toggle" style={{ marginTop: 16 }}>
-          <input
-            type="checkbox"
-            checked={autoStart}
-            onChange={(e) => setAutoStart(e.target.checked)}
-          />
-          Sofort starten (statt Lobby öffnen)
-        </label>
       </section>
 
       {error && <p className="cr2-error">{error}</p>}

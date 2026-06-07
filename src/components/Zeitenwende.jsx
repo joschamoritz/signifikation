@@ -105,10 +105,19 @@ export default function Zeitenwende({
   // Classroom rendert eigene Variante (ClassroomGameZeitenwende.jsx).
   mode = 'single',
   onSubmit,
+  onProgress,
   disableProgress = false,
   hideHeader = false,
 }) {
   const { lemma, words, ipa = '', definitionen = [] } = data
+
+  // Klassenraum-Pilot: dieselbe Swipe-Engine + Karten-Optik wie Singleplayer,
+  // ABER ohne lokales Scoring/Feedback/Belege/Ergebnis (Server-autoritativ,
+  // Auflösung erst durch die Lehrkraft). Der Swipe sammelt nur pre/post und
+  // schiebt nach dem letzten Wort EIN onSubmit({ answers }) hoch.
+  const isClassroom = mode === 'classroom'
+  const total = isClassroom ? (Array.isArray(words) ? words.length : 0) : TOTAL
+  const submittedRef = useRef(false)
 
   const [round,   setRound]   = useState(initialProgress?.round ?? 0)
   const [answers, setAnswers] = useState(initialProgress?.answers ?? savedResult?.answers ?? [])
@@ -160,11 +169,29 @@ export default function Zeitenwende({
   }, [feedback, chosen, answers, round, words, onFinish])
 
   const choose = useCallback((periode) => {
+    if (isClassroom) {
+      // Kein Sofort-Feedback: Antwort sammeln, direkt weiter; nach dem letzten
+      // Wort genau einmal an den Server (onSubmit). Kein periode-Vergleich
+      // (die Lösung liegt nicht auf dem Client).
+      if (submittedRef.current) return
+      const nextAnswers = [...answers, periode]
+      if (round + 1 >= total) {
+        submittedRef.current = true
+        setAnswers(nextAnswers)
+        onSubmit?.({ answers: nextAnswers })
+      } else {
+        setAnswers(nextAnswers)
+        setRound(r => r + 1)
+        // Entwurf für Reload-Wiederherstellung (7.2) spiegeln.
+        onProgress?.({ round: round + 1, answers: nextAnswers })
+      }
+      return
+    }
     if (feedback !== null) return
     const correct = words[round].periode === periode
     setChosen(periode)
     setFeedback(correct ? 'correct' : 'wrong')
-  }, [feedback, words, round])
+  }, [isClassroom, answers, round, total, onSubmit, onProgress, feedback, words])
 
   // Tastatur-Support (← = pre, → = post; Enter/Space/Pfeile = Weiter)
   const handleKey = useCallback((e) => {
@@ -274,7 +301,7 @@ export default function Zeitenwende({
   }
 
   const currentWord   = words[round]
-  const progressPct   = (round / TOTAL) * 100
+  const progressPct   = (round / total) * 100
 
   // Swipe-Berechnungen für visuelle Effekte
   const swipeProgress = swiping ? Math.min(1, Math.abs(dragX) / SWIPE_THRESHOLD) : 0
@@ -296,34 +323,40 @@ export default function Zeitenwende({
 
   return (
     <div className="screen zw-screen">
-      <button type="button" className="back-btn" onClick={() => onBack({ round, answers })} aria-label="Zurück zur Startseite"><svg width="10" height="16" viewBox="0 0 10 16" fill="none" aria-hidden="true"><path d="M8.5 1L1.5 8L8.5 15" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg></button>
+      {!isClassroom && (
+        <button type="button" className="back-btn" onClick={() => onBack({ round, answers })} aria-label="Zurück zur Startseite"><svg width="10" height="16" viewBox="0 0 10 16" fill="none" aria-hidden="true"><path d="M8.5 1L1.5 8L8.5 15" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg></button>
+      )}
 
-      <header className="zw-header">
-        <span className="zw-badge">Zeitenwende</span>
-        <div className="dict-entry-header">
-          <div className="zw-lemma">{lemma}</div>
-          {ipa && (
-            <div className="dict-entry-meta">
-              <span className="lautschrift" aria-label={`Aussprache: [${ipa}]`}>[{ipa}]</span>
-            </div>
-          )}
-          {ipa && <hr className="dict-entry-rule" aria-hidden="true" />}
-        </div>
-        <p className="zw-subtitle">Wann war diese Kollokation von <em>{lemma}</em> gebräuchlicher?</p>
-      </header>
+      {!hideHeader && (
+        <header className="zw-header">
+          <span className="zw-badge">Zeitenwende</span>
+          <div className="dict-entry-header">
+            <div className="zw-lemma">{lemma}</div>
+            {ipa && (
+              <div className="dict-entry-meta">
+                <span className="lautschrift" aria-label={`Aussprache: [${ipa}]`}>[{ipa}]</span>
+              </div>
+            )}
+            {ipa && <hr className="dict-entry-rule" aria-hidden="true" />}
+          </div>
+          <p className="zw-subtitle">Wann war diese Kollokation von <em>{lemma}</em> gebräuchlicher?</p>
+        </header>
+      )}
 
       {/* Fortschritt */}
-      <div className="zw-progress" role="progressbar" aria-valuenow={round + 1} aria-valuemin={1} aria-valuemax={TOTAL} aria-valuetext={`Runde ${round + 1} von ${TOTAL}`}>
-        <div className="zw-progress-bar">
-          <div className="zw-progress-fill" style={{ width: `${progressPct}%` }} />
+      {!disableProgress && (
+        <div className="zw-progress" role="progressbar" aria-valuenow={round + 1} aria-valuemin={1} aria-valuemax={total} aria-valuetext={`Runde ${round + 1} von ${total}`}>
+          <div className="zw-progress-bar">
+            <div className="zw-progress-fill" style={{ width: `${progressPct}%` }} />
+          </div>
+          <span className="zw-progress-count" aria-label={`Runde ${round + 1} von ${total}`}>
+            {round + 1} / {total}
+          </span>
         </div>
-        <span className="zw-progress-count" aria-label={`Runde ${round + 1} von ${TOTAL}`}>
-          {round + 1} / {TOTAL}
-        </span>
-      </div>
+      )}
 
       <div aria-live="polite" aria-atomic="true" className="sr-only">
-        {`Runde ${round + 1} von ${TOTAL}: ${currentWord.wort}`}
+        {`Runde ${round + 1} von ${total}: ${currentWord.wort}`}
       </div>
 
       {/* Karten-Bereich */}

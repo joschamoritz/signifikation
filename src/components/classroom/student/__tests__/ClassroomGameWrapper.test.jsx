@@ -134,7 +134,11 @@ describe('ClassroomGameWrapper (T-5.5)', () => {
     }
     renderWith(s)
     expect(screen.getByTestId('cr2-kiosk-game-zeitenwende')).toBeTruthy()
-    expect(screen.getByTestId('cr2-kiosk-zw-pre')).toBeTruthy()
+    // Nutzt jetzt die echte Zeitenwende-Engine (Swipe + Karten): Choice-Buttons
+    // per aria-label, Wort auf der Karte.
+    expect(screen.getByLabelText('Vor 2000')).toBeTruthy()
+    expect(screen.getByLabelText('Nach 2000')).toBeTruthy()
+    expect(screen.getByText('Wort1')).toBeTruthy()
   })
 
   it('rendert Lueckenfueller (choice-Runde) mit Optionen', () => {
