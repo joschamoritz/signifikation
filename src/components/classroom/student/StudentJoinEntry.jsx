@@ -135,8 +135,11 @@ export default function StudentJoinEntry({ initialNotice = null, embedded = fals
 
   if (embedded) {
     // Einstieg im Klassenraum-Tab → gleicher App-Header wie alle Tabs.
+    // test-page liefert die --t-*-Tokens + das Mobil-Layout, das der geteilte
+    // Header (test-title-section) braucht; cr2-kiosk bleibt für die --k-*-Tokens
+    // der inneren cr2-kiosk__*-Elemente.
     return (
-      <div className="cr2-kiosk cr2-kiosk--embedded cr2-student-entry" data-testid="cr2-student-tab">
+      <div className="cr2-kiosk test-page cr2-student-entry" data-testid="cr2-student-tab">
         <div className="test-wrapper">
           <TabHeader />
           <nav className="test-raster" aria-label="Klassenraum">

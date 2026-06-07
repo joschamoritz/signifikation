@@ -86,8 +86,7 @@ export default function ClassroomIndexStep() {
           </div>
           <div className="test-entry-body">
             <div className="test-entry-head">
-              <span className="test-dropcap-k" aria-hidden="true">S</span>
-              <h2 className="test-headword" aria-label="Sessions">essions</h2>
+              <h2 className="test-headword">Sessions</h2>
               <span className="test-ipa" aria-label="Aussprache: [ˈsɛʃn̩s]">[ˈsɛʃn̩s]</span>
             </div>
             <div className="test-entry-grammar" aria-hidden="true">
@@ -122,8 +121,7 @@ export default function ClassroomIndexStep() {
           </div>
           <div className="test-entry-body">
             <div className="test-entry-head">
-              <span className="test-dropcap-k" aria-hidden="true">B</span>
-              <h2 className="test-headword" aria-label="Beitritt">eitritt</h2>
+              <h2 className="test-headword">Beitritt</h2>
               <span className="test-ipa" aria-label="Aussprache: [ˈbaɪ̯tʁɪt]">[ˈbaɪ̯tʁɪt]</span>
             </div>
             <div className="test-entry-grammar" aria-hidden="true">
@@ -151,15 +149,14 @@ export default function ClassroomIndexStep() {
         </li>
 
         {/* ④ Vorbereiten ───────────────────────────────────── */}
-        <li className="cr2-entry cr2-entry--index test-drop-cap cr2-entry--disabled" aria-hidden="true">
+        <li className="test-entry cr2-entry--disabled">
           <div className="test-entry-number">
             <span className="test-entry-num-glyph">④</span>
             <span className="test-entry-marginalia">PLAN</span>
           </div>
           <div className="test-entry-body">
             <div className="test-entry-head">
-              <span className="test-dropcap-k" aria-hidden="true">V</span>
-              <h2 className="test-headword" aria-label="Vorbereiten">orbereiten</h2>
+              <h2 className="test-headword">Vorbereiten</h2>
               <span className="test-ipa">[ˈfoːɐ̯bəˌʁaɪ̯tn̩]</span>
             </div>
             <div className="test-entry-grammar">
