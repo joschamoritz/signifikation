@@ -117,8 +117,11 @@ describe('ClassroomGameWrapper (T-5.5)', () => {
     }
     renderWith(s)
     expect(screen.getByTestId('cr2-kiosk-game-wortzwilling')).toBeTruthy()
-    expect(screen.getByTestId('cr2-kiosk-wz-zoneA')).toBeTruthy()
-    expect(screen.getByTestId('cr2-kiosk-wz-zoneB')).toBeTruthy()
+    // Echte Drag-and-Drop-Engine: Zonen tragen die Wort-Labels, Wörter in der Bank.
+    expect(screen.getAllByText('A').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('B').length).toBeGreaterThan(0)
+    expect(screen.getByText('eins')).toBeTruthy()
+    expect(screen.getByText('zwei')).toBeTruthy()
   })
 
   it('rendert Zeitenwende-Karte mit Buttons', () => {

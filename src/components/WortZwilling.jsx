@@ -109,19 +109,28 @@ export default function WortZwilling({
   savedResult = null,
   mode = 'single',          // 'single' | 'classroom' (T-5.6)
   onSubmit,                 // Classroom: (rawAnswer) => void
+  onProgress,               // Classroom: Entwurf spiegeln (Reload, 7.2)
+  initialZones = null,      // Classroom: { zoneA, zoneB } aus dem Entwurf
   disableProgress = false,  // Classroom: keine XP/Streak/Stats
   hideHeader = false,       // Classroom: KioskShell zeigt eigenen Header
 }) {
+  // Klassenraum nutzt dieselbe Drag-and-Drop-Engine, aber OHNE Joker und OHNE
+  // lokales Scoring (beide brauchen die Lösung `zuordnung`, die der Server im
+  // Klassenraum bewusst NICHT mitschickt). Abgabe geht per onSubmit an den
+  // Server; die Auflösung gibt die Lehrkraft frei.
+  const isClassroom = mode === 'classroom'
+  const submittedRef = useRef(false)
   const words = data.kollokatoren.map(k => k.wort)
 
   const [order] = useState(() => shuffle([...words]))
 
   const [locations, setLocations] = useState(() => {
-    if (savedResult) {
+    const restore = isClassroom ? initialZones : savedResult
+    if (restore) {
       const map = {}
       for (const w of words) map[w] = 'bank'
-      for (const w of (savedResult.zoneA || [])) map[w] = 'A'
-      for (const w of (savedResult.zoneB || [])) map[w] = 'B'
+      for (const w of (restore.zoneA || [])) if (w in map || words.includes(w)) map[w] = 'A'
+      for (const w of (restore.zoneB || [])) if (w in map || words.includes(w)) map[w] = 'B'
       return map
     }
     return Object.fromEntries(words.map(w => [w, 'bank']))
@@ -129,7 +138,7 @@ export default function WortZwilling({
 
   const [selected,  setSelected]  = useState(null)
   const [activeId,  setActiveId]  = useState(null)
-  const [phase,     setPhase]     = useState(savedResult ? 'results' : 'play')
+  const [phase,     setPhase]     = useState(savedResult && !isClassroom ? 'results' : 'play')
   const [fullZone,  setFullZone]  = useState(null)
 
   // ── Joker ────────────────────────────────────────────────────
@@ -142,11 +151,11 @@ export default function WortZwilling({
   const fullZoneTimer  = useRef(null)
 
   useEffect(() => {
-    if (phase !== 'play' || jokerUsed) return
+    if (phase !== 'play' || jokerUsed || isClassroom) return
     setJokerVisible(false)
     jokerTimer.current = setTimeout(() => setJokerVisible(true), 20000)
     return () => clearTimeout(jokerTimer.current)
-  }, [phase, jokerUsed])
+  }, [phase, jokerUsed, isClassroom])
 
   useEffect(() => () => {
     clearTimeout(jokerMsgTimer.current)
@@ -183,6 +192,7 @@ export default function WortZwilling({
   const [ipaA, setIpaA] = useState(null)
   const [ipaB, setIpaB] = useState(null)
   useEffect(() => {
+    if (isClassroom) return undefined // Kiosk: keine Extra-IPA-Fetches
     const controller = new AbortController()
     const { signal } = controller
     const fetchIpa = (word, setter) =>
@@ -193,13 +203,21 @@ export default function WortZwilling({
     fetchIpa(data.wortA, setIpaA)
     fetchIpa(data.wortB, setIpaB)
     return () => controller.abort()
-  }, [data.wortA, data.wortB])
+  }, [data.wortA, data.wortB, isClassroom])
 
   const bank  = order.filter(w => locations[w] === 'bank')
   const zoneA = order.filter(w => locations[w] === 'A')
   const zoneB = order.filter(w => locations[w] === 'B')
 
   const canSubmit = zoneA.length === 5 && zoneB.length === 5
+
+  // Klassenraum: Entwurf (Zonen) bei jeder Änderung spiegeln → Reload-sicher (7.2).
+  useEffect(() => {
+    if (!isClassroom || typeof onProgress !== 'function') return
+    onProgress({ zoneA, zoneB })
+    // zoneA/zoneB leiten sich aus locations ab; order ist stabil.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isClassroom, locations])
 
   // ── Hilfsfunktionen ──────────────────────────────────────────
   function moveTo(word, zone) {
@@ -260,6 +278,13 @@ export default function WortZwilling({
   // ── Auswerten ─────────────────────────────────────────────────
   function handleSubmit() {
     if (!canSubmit) return
+    if (isClassroom) {
+      // Server-autoritativ: keine lokale Bewertung, eine Abgabe.
+      if (submittedRef.current) return
+      submittedRef.current = true
+      onSubmit?.({ zoneA, zoneB })
+      return
+    }
     const zuordnungMap = Object.fromEntries(data.kollokatoren.map(k => [k.wort, k.zuordnung]))
     const score = computeScore(zoneA, zoneB, zuordnungMap)
     setPhase('results')
@@ -282,13 +307,15 @@ export default function WortZwilling({
       onDragCancel={handleDragCancel}
     >
       <div className="screen wz-screen" onClick={resetJokerTimer}>
-        <button className="back-btn" type="button" onClick={onBack} aria-label="Zurück zur Startseite">
-          <svg width="10" height="16" viewBox="0 0 10 16" fill="none" aria-hidden="true">
-            <path d="M8.5 1L1.5 8L8.5 15" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
-          </svg>
-        </button>
+        {!isClassroom && (
+          <button className="back-btn" type="button" onClick={onBack} aria-label="Zurück zur Startseite">
+            <svg width="10" height="16" viewBox="0 0 10 16" fill="none" aria-hidden="true">
+              <path d="M8.5 1L1.5 8L8.5 15" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </button>
+        )}
 
-        <header className="wz-header">
+        <header className="wz-header" hidden={hideHeader} style={hideHeader ? { display: 'none' } : undefined}>
           <span className="wz-badge">Wort-Zwilling</span>
           <div className="wz-dict-pair">
             <div className="dict-entry-header">
@@ -378,7 +405,7 @@ export default function WortZwilling({
           disabled={!canSubmit}
         >
           {canSubmit
-            ? 'Auswerten'
+            ? (isClassroom ? 'Abgeben' : 'Auswerten')
             : `Noch ${remaining} Wort${remaining !== 1 ? 'e' : ''} zuordnen`}
         </button>
       </div>
