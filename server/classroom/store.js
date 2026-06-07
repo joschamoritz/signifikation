@@ -227,6 +227,12 @@ const stmts = {
     SET left_at = @ts, connected = 0
     WHERE id = @id AND left_at IS NULL
   `),
+  // Kick durch die Lehrkraft: nur Teilnehmer DIESER Session, der noch dabei ist.
+  kickParticipant: db.prepare(`
+    UPDATE classroom_participant
+    SET left_at = @ts, connected = 0
+    WHERE id = @id AND session_id = @session_id AND left_at IS NULL
+  `),
   listParticipantsForDashboard: db.prepare(`
     SELECT id, display_name, joined_at, last_seen_at, connected, left_at
     FROM classroom_participant
@@ -783,6 +789,18 @@ export function markParticipantDisconnect(participantId) {
 export function leaveParticipant(participantId) {
   const r = stmts.leaveParticipant.run({ id: participantId, ts: nowMs() })
   return r.changes > 0
+}
+
+// Lehrkraft entfernt einen Teilnehmer (z. B. Fake-Name/Beleidigung). Markiert
+// left_at → der naechste /me/view oder Heartbeat des Schuelers bekommt 403 und
+// fuehrt zurueck zum Beitritt (neuer Name moeglich). Nur Besitzer der Session.
+export function kickParticipant({ sessionId, participantId, teacherUserId }) {
+  const sessionRow = stmts.getSessionById.get(sessionId)
+  if (!sessionRow) return { error: 'NOT_FOUND' }
+  if (sessionRow.teacher_user_id !== teacherUserId) return { error: 'FORBIDDEN' }
+  const r = stmts.kickParticipant.run({ id: participantId, session_id: sessionId, ts: nowMs() })
+  if (r.changes === 0) return { error: 'NOT_FOUND' } // nicht in Session oder bereits weg
+  return { ok: true, participantId }
 }
 
 // ── Submissions (serverautoritatives Scoring) ───────────────────────

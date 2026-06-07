@@ -6,7 +6,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useTeacherClassroom } from '../TeacherClassroomContext'
-import { getDashboard, startSession } from '../hooks/useTeacherSession'
+import { getDashboard, startSession, kickParticipant } from '../hooks/useTeacherSession'
 import { useTeacherSocket } from '../hooks/useTeacherSocket'
 import SessionCodeCard from '../components/SessionCodeCard'
 import ParticipantList from '../components/ParticipantList'
@@ -82,6 +82,22 @@ export default function LobbyStep() {
 
   const activeCount = participants.filter((p) => !p.leftAt).length
 
+  const handleKick = useCallback(async (participantId) => {
+    if (!sessionId || !participantId) return
+    // Optimistisch entfernen — der Server bestätigt + wirft den Schüler raus.
+    setParticipants((prev) => prev.filter((p) => p.id !== participantId))
+    try {
+      await kickParticipant(sessionId, participantId)
+    } catch (err) {
+      setError(err?.message || 'Teilnehmer konnte nicht entfernt werden.')
+      // Bei Fehler neu laden, damit die Liste konsistent bleibt.
+      try {
+        const data = await getDashboard(sessionId)
+        setParticipants(data?.participants || [])
+      } catch { /* Liste bleibt wie sie ist */ }
+    }
+  }, [sessionId])
+
   const handleStart = useCallback(async () => {
     if (!sessionId || activeCount === 0 || starting) return
     setStarting(true)
@@ -116,7 +132,7 @@ export default function LobbyStep() {
             <span id="cr2-lobby-participants-label" className="cr2-section__label">
               Teilnehmer ({activeCount})
             </span>
-            <ParticipantList participants={participants} mode="lobby" />
+            <ParticipantList participants={participants} mode="lobby" onKick={handleKick} />
           </section>
         </>
       )}

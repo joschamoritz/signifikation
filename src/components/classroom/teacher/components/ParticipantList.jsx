@@ -28,6 +28,7 @@ export default function ParticipantList({
   mode = 'lobby',
   showNames = true,
   emptyLabel = 'Noch niemand beigetreten.',
+  onKick = null,
 }) {
   if (!participants.length) {
     return (
@@ -56,6 +57,18 @@ export default function ParticipantList({
                 ? `Runde ${Math.min((p.roundsDone || 0) + 1, roundsTotal)}/${roundsTotal}`
                 : STATUS_TEXT[status]}
             </span>
+            {onKick && !p.leftAt && (
+              <button
+                type="button"
+                className="cr2-participant__kick"
+                onClick={() => onKick(p.id)}
+                aria-label={`${p.displayName || `Schüler:in ${i + 1}`} entfernen`}
+                title="Teilnehmer entfernen"
+                data-testid={`cr2-participant-kick-${p.id}`}
+              >
+                ×
+              </button>
+            )}
           </li>
         )
       })}

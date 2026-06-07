@@ -67,6 +67,7 @@ import {
   joinByCode,
   heartbeatParticipant,
   leaveParticipant,
+  kickParticipant,
   submitAnswer,
   getDashboard,
   getSessionResults,
@@ -1359,6 +1360,38 @@ router.post(
       return res.status(204).end()
     } catch (err) {
       logger.error({ err }, 'cr2 leave crashed')
+      return res.status(500).json({ error: 'Interner Serverfehler' })
+    }
+  },
+)
+
+// ── POST /api/v1/classroom/sessions/:id/participants/:pid/kick ──
+// Lehrkraft entfernt einen Teilnehmer (Fake-Name/Beleidigung). Server-
+// autoritativ (nur Besitzer, requireCapability). Der Schueler wird sofort
+// rausgeworfen (view:updated → /me/view 403 → zurueck zum Beitritt); das
+// Lehrer-Dashboard aktualisiert via student:left.
+router.post(
+  '/api/v1/classroom/sessions/:id/participants/:pid/kick',
+  classroomWriteLimiter,
+  requireCapability('session:manage'),
+  (req, res) => {
+    try {
+      const sessionId     = req.params.id
+      const participantId  = req.params.pid
+      const teacherUserId = req.cr2.subject.id
+      const result = kickParticipant({ sessionId, participantId, teacherUserId })
+      if (result.error) {
+        const mapped = mapError(result.error)
+        return res.status(mapped.status).json({ error: mapped.message })
+      }
+      // Schueler sofort zwingen, die Sicht neu zu holen → 403 → ausgeloggt.
+      notifyStudentViewUpdated(participantId, { reason: 'kicked' })
+      // Lehrer-Dashboard/Lobby aktualisieren.
+      notifyStudentLeft(sessionId, { participantId, reason: 'kicked', at: Date.now() })
+      logger.info({ sessionId, participantId, teacherUserId }, 'cr2 participant kicked')
+      return res.json({ ok: true })
+    } catch (err) {
+      logger.error({ err }, 'cr2 kick crashed')
       return res.status(500).json({ error: 'Interner Serverfehler' })
     }
   },

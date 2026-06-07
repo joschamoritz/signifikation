@@ -20,6 +20,7 @@ import {
   joinByCode,
   heartbeatParticipant,
   leaveParticipant,
+  kickParticipant,
   findParticipantByToken,
   submitAnswer,
   getDashboard,
@@ -292,6 +293,31 @@ describe('classroom/store', () => {
       finishSession({ sessionId: session.id, teacherUserId: TEACHER_A })
       const r = joinByCode({ code: session.code, displayName: 'Spaet' })
       expect(r.error).toBe('INVALID_CODE')
+    })
+
+    it('kickParticipant: Besitzer entfernt Teilnehmer (left_at gesetzt)', () => {
+      const { session } = createSession({ teacherUserId: TEACHER_A })
+      const j = joinByCode({ code: session.code, displayName: 'Trollo' })
+      const r = kickParticipant({ sessionId: session.id, participantId: j.participant.id, teacherUserId: TEACHER_A })
+      expect(r.ok).toBe(true)
+      const row = db.prepare(`SELECT left_at, connected FROM classroom_participant WHERE id = ?`).get(j.participant.id)
+      expect(row.left_at).not.toBeNull()
+      expect(row.connected).toBe(0)
+      // Token ist damit entwertet (requireParticipantAuth lehnt leftAt ab).
+      expect(findParticipantByToken(j.participant.token)?.leftAt).not.toBeNull()
+    })
+
+    it('kickParticipant: fremder Teacher → FORBIDDEN', () => {
+      const { session } = createSession({ teacherUserId: TEACHER_A })
+      const j = joinByCode({ code: session.code, displayName: 'Lena' })
+      const r = kickParticipant({ sessionId: session.id, participantId: j.participant.id, teacherUserId: TEACHER_B })
+      expect(r.error).toBe('FORBIDDEN')
+    })
+
+    it('kickParticipant: Teilnehmer gehört nicht zur Session → NOT_FOUND', () => {
+      const { session } = createSession({ teacherUserId: TEACHER_A })
+      const r = kickParticipant({ sessionId: session.id, participantId: 'gibt-es-nicht', teacherUserId: TEACHER_A })
+      expect(r.error).toBe('NOT_FOUND')
     })
 
     it('heartbeat reaktiviert auch nach Leave', () => {

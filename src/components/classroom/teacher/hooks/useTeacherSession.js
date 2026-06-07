@@ -83,6 +83,20 @@ export async function nextAssignment(sessionId) {
   return jsonOrThrow(res)
 }
 
+// Lehrkraft entfernt einen Teilnehmer aus der Session (Fake-Name/Beleidigung).
+export async function kickParticipant(sessionId, participantId) {
+  const res = await apiFetch(
+    `${BASE}/sessions/${encodeURIComponent(sessionId)}/participants/${encodeURIComponent(participantId)}/kick`,
+    {
+      method: 'POST',
+      credentials: 'include',
+      headers: jsonHeaders(),
+      body: JSON.stringify({}),
+    },
+  )
+  return jsonOrThrow(res)
+}
+
 // W2-T1: Schueleransicht-Vorschau. Holt fuer eine Modus+Lemma-Auswahl die
 // gewhitelistete Schueler-Sicht, ohne eine Session/Assignment anzulegen.
 export async function previewAssignment({ mode, lemmaIds }) {
