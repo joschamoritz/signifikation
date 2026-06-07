@@ -12,6 +12,7 @@
 import { useCallback, useState } from 'react'
 import { useStudentKiosk } from '../StudentKioskContext'
 import { submitAnswer as apiSubmit, KioskApiError } from '../kioskFetch'
+import { clearDraftPrefix } from '../hooks/useAnswerDraft'
 import ClassroomGameKollokationen    from '../games/ClassroomGameKollokationen'
 import ClassroomGameWortZwilling     from '../games/ClassroomGameWortZwilling'
 import ClassroomGameZeitenwende      from '../games/ClassroomGameZeitenwende'
@@ -38,19 +39,28 @@ export default function ClassroomGameWrapper({ onSubmitOverride = null, onToast 
   const lemma   = state.currentLemma
   const Game    = pickGameComponent(mode)
 
+  // Stabiler Entwurfs-Schluessel der aktuellen Runde — gespiegelt in
+  // sessionStorage, damit ein Reload die Auswahl nicht verliert (7.2).
+  const draftKey = (state.sessionId && state.assignment?.id && lemma?.id)
+    ? `${state.sessionId}:${state.assignment.id}:${lemma.id}`
+    : null
+
   const handleSubmit = useCallback(async (rawAnswer, options = {}) => {
     if (!state.token || !state.assignment?.id || !lemma?.id) return
     if (submitting) return
     setSubmitting(true)
     const submitFn = onSubmitOverride || apiSubmit
     try {
+      const roundIndex = options.roundIndex ?? 0
       const result = await submitFn(state.token, {
         assignmentId: state.assignment.id,
         lemmaId:      lemma.id,
-        roundIndex:   options.roundIndex ?? 0,
+        roundIndex,
         rawAnswer,
       })
-      dispatch({ type: 'SUBMITTED', rawAnswer, result })
+      // Entwurf dieser Runde ist abgegeben → alle Draft-Keys des Lemmas weg.
+      if (draftKey) clearDraftPrefix(draftKey)
+      dispatch({ type: 'SUBMITTED', rawAnswer, result, roundIndex })
     } catch (err) {
       const msg = err instanceof KioskApiError
         ? err.message
@@ -60,7 +70,7 @@ export default function ClassroomGameWrapper({ onSubmitOverride = null, onToast 
     } finally {
       setSubmitting(false)
     }
-  }, [state.token, state.assignment?.id, lemma?.id, submitting, onSubmitOverride, onToast, dispatch])
+  }, [state.token, state.assignment?.id, lemma?.id, draftKey, submitting, onSubmitOverride, onToast, dispatch])
 
   if (!Game) {
     return (
@@ -81,10 +91,12 @@ export default function ClassroomGameWrapper({ onSubmitOverride = null, onToast 
 
   return (
     <Game
+      key={lemma.id}
       lemma={lemma}
       prompt={lemma.prompt || {}}
       onSubmit={handleSubmit}
       submitting={submitting}
+      draftKey={draftKey}
     />
   )
 }

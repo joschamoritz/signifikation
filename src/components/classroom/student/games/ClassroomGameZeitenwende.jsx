@@ -7,10 +7,15 @@
 
 import { useState } from 'react'
 import KioskGameHeader from '../components/KioskGameHeader'
+import { useAnswerDraft } from '../hooks/useAnswerDraft'
 
-export default function ClassroomGameZeitenwende({ lemma, prompt, onSubmit, submitting }) {
+export default function ClassroomGameZeitenwende({ lemma, prompt, onSubmit, submitting, draftKey = null }) {
   const words = Array.isArray(prompt?.words) ? prompt.words : []
-  const [answers, setAnswers] = useState(() => new Array(words.length).fill(null))
+  // Zuordnungen als Entwurf spiegeln (7.2); idx bleibt rein navigatorisch.
+  const [answers, setAnswers] = useAnswerDraft(
+    draftKey ? `${draftKey}::0` : null,
+    () => new Array(words.length).fill(null),
+  )
   const [idx, setIdx]         = useState(0)
 
   function pick(periode) {

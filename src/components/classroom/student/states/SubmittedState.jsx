@@ -94,6 +94,14 @@ export default function SubmittedState() {
   const result = state.submittedResult
   const hadSubmission = !!state.submittedAnswer
 
+  // W4-S4: Bei Mehrrunden-Modi (z. B. 3 Lemmata Kollokationen) zeigen wir eine
+  // Auswertung ALLER Runden statt nur der letzten Antwort. Scores erst nach
+  // Auflösungsfreigabe — vorher nur „abgegeben".
+  const rounds = Array.isArray(state.roundResults) ? state.roundResults : []
+  const isMultiRound = rounds.length > 1
+  const totalScore = rounds.reduce((s, r) => s + (Number(r.score) || 0), 0)
+  const totalMax   = rounds.reduce((s, r) => s + (Number(r.maxScore) || 0), 0)
+
   if (isEnded && !hadSubmission) {
     return (
       <>
@@ -133,29 +141,57 @@ export default function SubmittedState() {
           : 'Warte auf deine Lehrkraft.'}
       </p>
 
-      {state.currentLemma?.lemma && (
+      {!isMultiRound && state.currentLemma?.lemma && (
         <p className="cr2-kiosk__hint">
           Lemma: <strong>{state.currentLemma.lemma}</strong>
         </p>
       )}
 
-      <section className="cr2-kiosk__resultcard" aria-label="Deine Antwort">
-        <Recap mode={mode} rawAnswer={state.submittedAnswer} lemma={state.currentLemma} />
-      </section>
-
-      {revealed && result && (
-        <section className="cr2-kiosk__resultcard" aria-label="Auflösung" data-testid="cr2-kiosk-reveal">
-          <div className="cr2-kiosk__resultcard__row cr2-kiosk__resultcard__row--correct">
-            <span>Ergebnis</span>
-            <strong>{result.score} / {result.maxScore} Punkte</strong>
-          </div>
-          {typeof result.correct === 'number' && (
-            <div className="cr2-kiosk__resultcard__row">
-              <span>Korrekte Auswahl</span>
-              <strong>{result.correct}</strong>
+      {isMultiRound ? (
+        <section className="cr2-kiosk__resultcard" aria-label="Deine Runden" data-testid="cr2-kiosk-rounds">
+          <ul className="cr2-kiosk__rounds">
+            {rounds.map((r, i) => (
+              <li key={r.key || i} className="cr2-kiosk__rounds__row">
+                <span className="cr2-kiosk__rounds__lemma">
+                  <span className="cr2-kiosk__rounds__idx" aria-hidden="true">{i + 1}.</span>{' '}
+                  {r.lemma || `Runde ${i + 1}`}
+                </span>
+                <span className="cr2-kiosk__rounds__score">
+                  {revealed && r.maxScore != null
+                    ? `${r.score} / ${r.maxScore}`
+                    : '✓ abgegeben'}
+                </span>
+              </li>
+            ))}
+          </ul>
+          {revealed && totalMax > 0 && (
+            <div className="cr2-kiosk__resultcard__row cr2-kiosk__resultcard__row--correct cr2-kiosk__rounds__total">
+              <span>Gesamt</span>
+              <strong>{totalScore} / {totalMax} Punkte</strong>
             </div>
           )}
         </section>
+      ) : (
+        <>
+          <section className="cr2-kiosk__resultcard" aria-label="Deine Antwort">
+            <Recap mode={mode} rawAnswer={state.submittedAnswer} lemma={state.currentLemma} />
+          </section>
+
+          {revealed && result && (
+            <section className="cr2-kiosk__resultcard" aria-label="Auflösung" data-testid="cr2-kiosk-reveal">
+              <div className="cr2-kiosk__resultcard__row cr2-kiosk__resultcard__row--correct">
+                <span>Ergebnis</span>
+                <strong>{result.score} / {result.maxScore} Punkte</strong>
+              </div>
+              {typeof result.correct === 'number' && (
+                <div className="cr2-kiosk__resultcard__row">
+                  <span>Korrekte Auswahl</span>
+                  <strong>{result.correct}</strong>
+                </div>
+              )}
+            </section>
+          )}
+        </>
       )}
 
       {isEnded && (

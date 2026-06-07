@@ -8,11 +8,12 @@
 //
 // Reihenfolge: server hat schon gemischt — KEIN Re-Shuffle clientseitig.
 
-import { useState } from 'react'
+import { useAnswerDraft } from '../hooks/useAnswerDraft'
 
-export default function ClassroomGameKollokationen({ lemma, prompt, onSubmit, submitting }) {
+export default function ClassroomGameKollokationen({ lemma, prompt, onSubmit, submitting, draftKey = null }) {
   const words = Array.isArray(prompt?.words) ? prompt.words : []
-  const [picked, setPicked] = useState([])
+  // Auswahl als Entwurf spiegeln → Reload verliert die Picks nicht (7.2).
+  const [picked, setPicked] = useAnswerDraft(draftKey ? `${draftKey}::0` : null, [])
 
   function toggle(w) {
     if (submitting) return

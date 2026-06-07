@@ -75,6 +75,22 @@ export default function EndStep() {
       backLabel="Zurück zur Übersicht"
       onBack={() => dispatch({ type: 'GO_TO_LIST' })}
     >
+      {/* Primär-Aktion prominent oben — nach Session-Ende ist „Neue Session"
+          der wahrscheinlichste nächste Schritt; früher lag der Button nur
+          ganz unten in der fixierten Leiste und war schwer zu finden. */}
+      <div className="cr2-end-top-actions">
+        <button
+          type="button"
+          className="cr2-cta cr2-cta--inline"
+          onClick={() => dispatch({ type: 'GO_TO_SETUP' })}
+          data-testid="cr2-end-new"
+        >
+          <span className="cr2-cta__plus" aria-hidden="true">＋</span>
+          Neue Session
+          <span className="test-cta-arrow" aria-hidden="true"> →</span>
+        </button>
+      </div>
+
       {loading && <p className="cr2-loading">Auswertung wird geladen …</p>}
       {error && <p className="cr2-error">{error}</p>}
 
@@ -216,7 +232,7 @@ export default function EndStep() {
             type="button"
             className="cr2-cta"
             onClick={() => dispatch({ type: 'GO_TO_SETUP' })}
-            data-testid="cr2-end-new"
+            data-testid="cr2-end-new-bottom"
           >
             <span className="cr2-cta__plus" aria-hidden="true">＋</span>
             Neue Session

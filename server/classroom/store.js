@@ -247,7 +247,7 @@ const stmts = {
     SELECT * FROM classroom_score_record WHERE submission_id = ?
   `),
   listSessionSubmissionsForDashboard: db.prepare(`
-    SELECT s.lemma_id, s.assignment_id, s.participant_id, sc.score, sc.max_score, sc.correct
+    SELECT s.lemma_id, s.assignment_id, s.participant_id, s.round_index, sc.score, sc.max_score, sc.correct
     FROM classroom_submission s
     JOIN classroom_score_record sc ON sc.submission_id = s.id
     WHERE s.session_id = ?
@@ -968,17 +968,55 @@ export function getDashboard({ sessionId, teacherUserId }) {
     correctPct: agg.maxSum > 0 ? Math.round((agg.scoreSum / agg.maxSum) * 100) : 0,
   }))
 
+  // W4-S4 (3.3): Runden-Fortschritt pro Teilnehmer im AKTUELLEN Assignment.
+  // Ein Lemma gilt als "fertig", wenn alle seine Runden eingereicht sind —
+  // exakt wie buildStudentView (Lueckenfueller hat mehrere Runden pro Lemma,
+  // sonst eine). So unterscheidet die Live-Ansicht "spielt noch" von "fertig".
+  const lemmaIdsCur = currentAssignment?.lemmaIds || []
+  const lemmataTotal = lemmaIdsCur.length
+  const roundsByPart = new Map() // participantId → Map(lemmaId → Set(roundIndex))
+  for (const row of submissionRows) {
+    const pid = String(row.participant_id)
+    if (!roundsByPart.has(pid)) roundsByPart.set(pid, new Map())
+    const byLemma = roundsByPart.get(pid)
+    const lid = String(row.lemma_id)
+    if (!byLemma.has(lid)) byLemma.set(lid, new Set())
+    byLemma.get(lid).add(Number(row.round_index) || 0)
+  }
+  const totalRoundsFor = (lemmaId) => {
+    if (currentAssignment?.mode !== 'lueckenfueller') return 1
+    const snap = currentAssignment?.contentSnapshot?.byLemma?.[lemmaId]
+    return Array.isArray(snap?.rounds) ? snap.rounds.length : 1
+  }
+  const doneLemmataFor = (participantId) => {
+    const byLemma = roundsByPart.get(String(participantId))
+    if (!byLemma) return 0
+    let done = 0
+    for (const lid of lemmaIdsCur) {
+      if ((byLemma.get(String(lid))?.size || 0) >= totalRoundsFor(lid)) done += 1
+    }
+    return done
+  }
+  for (const p of participants) {
+    p.submittedLemmata = doneLemmataFor(p.id)
+    p.done = lemmataTotal > 0 && p.submittedLemmata >= lemmataTotal
+  }
+
   return {
     session,
     assignment: currentAssignment,
     // W2-T2: Reihenfolge-Metadaten fuer "Modus X von N" in der Live-Ansicht.
     assignmentIndex,
     assignmentTotal,
+    // W4-S4 (3.3): Lemma-Anzahl des aktuellen Blocks = Runden pro Teilnehmer.
+    lemmataPerAssignment: lemmataTotal,
     participants,
     aggregate: {
       totalParticipants: participants.length,
       connectedCount: participants.filter((p) => p.connected).length,
       submittedTotal: submissionRows.length,
+      // Teilnehmer, die ALLE Runden des aktuellen Blocks abgegeben haben.
+      doneCount: participants.filter((p) => p.done).length,
       perLemma: perLemmaArr,
     },
   }

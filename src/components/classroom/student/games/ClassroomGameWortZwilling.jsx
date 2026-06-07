@@ -10,12 +10,15 @@
 
 import { useMemo, useState } from 'react'
 import KioskGameHeader from '../components/KioskGameHeader'
+import { useAnswerDraft } from '../hooks/useAnswerDraft'
 
-export default function ClassroomGameWortZwilling({ lemma, prompt, onSubmit, submitting }) {
+export default function ClassroomGameWortZwilling({ lemma, prompt, onSubmit, submitting, draftKey = null }) {
   const words = useMemo(() => Array.isArray(prompt?.words) ? prompt.words : [], [prompt])
   const [picked, setPicked]     = useState(null)
-  const [zoneA, setZoneA]       = useState([])
-  const [zoneB, setZoneB]       = useState([])
+  // Zonen-Zuordnung als Entwurf spiegeln (7.2); picked ist nur die transiente
+  // Pill-Vorauswahl und muss nicht ueberleben.
+  const [zoneA, setZoneA]       = useAnswerDraft(draftKey ? `${draftKey}::0:A` : null, [])
+  const [zoneB, setZoneB]       = useAnswerDraft(draftKey ? `${draftKey}::0:B` : null, [])
 
   const bank = useMemo(() => words.filter((w) => !zoneA.includes(w) && !zoneB.includes(w)), [words, zoneA, zoneB])
   const placedAll = bank.length === 0 && (zoneA.length + zoneB.length) === words.length

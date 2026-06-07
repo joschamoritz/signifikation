@@ -145,7 +145,12 @@ export default function LemmaPicker({ value = [], onChange, mode = null }) {
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           aria-label="Lemma-Suche"
+          aria-describedby="cr2-lemma-search-note"
         />
+        <p id="cr2-lemma-search-note" className="cr2-lemma-search__note">
+          Wählbar sind nur freigegebene Lemmata. Tipp: nur den Anfangsbuchstaben
+          eingeben und in der Liste stöbern.
+        </p>
       </div>
 
       <p className="cr2-lemma-picker__hint">

@@ -468,6 +468,14 @@
   align-items: center;
   gap: 16px;
 }
+/* Ende: prominente „Neue Session"-Aktion direkt unter dem Kopf, damit sie
+   ohne Scrollen sichtbar ist (vorher nur in der fixierten Leiste unten). */
+.cr2-end-top-actions {
+  display: flex;
+  justify-content: center;
+  margin: 0 0 20px;
+}
+
 /* Ende: Aktionen gestapelt + zentrierter Schließen-Link. */
 .cr2-end-actions {
   display: flex;
@@ -800,6 +808,14 @@
   gap: 6px;
 }
 
+.cr2-lemma-search__note {
+  margin: 2px 0 0;
+  font-family: var(--font-sans);
+  font-size: 0.78rem;
+  line-height: 1.4;
+  color: var(--cr2-muted);
+}
+
 /* Wort-Zwilling-Paar-Auswahl */
 .cr2-wz-picker {
   display: flex;
@@ -967,6 +983,93 @@
   width: 100%;
   height: auto;
   display: block;
+}
+
+/* QR als Button: klickbar für Vollbild (Beamer aus 5 m). */
+.cr2-code-card__qr--button {
+  cursor: zoom-in;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+.cr2-code-card__qr--button:hover {
+  transform: scale(1.03);
+  box-shadow: 0 4px 16px rgba(60, 40, 30, 0.14);
+}
+.cr2-code-card__qr--button:focus-visible {
+  outline: 2px solid var(--cr2-accent);
+  outline-offset: 3px;
+}
+
+/* QR-Vollbild-Overlay — maximaler Kontrast, riesiger Code + QR für den Beamer. */
+.cr2-qr-fullscreen {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4vmin;
+  padding: 5vmin;
+  background: var(--cr2-bg, #faf9f7);
+  cursor: zoom-out;
+}
+.cr2-qr-fullscreen__inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3vmin;
+  max-width: min(92vw, 92vh);
+}
+.cr2-qr-fullscreen__code {
+  margin: 0;
+  font-family: 'Gentium Plus', Georgia, serif;
+  font-weight: 700;
+  font-size: clamp(40px, 9vmin, 120px);
+  line-height: 1;
+  color: var(--cr2-accent);
+  letter-spacing: 0.02em;
+  text-align: center;
+  word-break: break-word;
+}
+.cr2-qr-fullscreen__qr {
+  width: min(72vmin, 560px);
+  line-height: 0;
+  background: #fff;
+  padding: 3vmin;
+  border-radius: 8px;
+  box-shadow: 0 8px 40px rgba(60, 40, 30, 0.18);
+}
+.cr2-qr-fullscreen__qr svg {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+.cr2-qr-fullscreen__hint {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: 0.85rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--cr2-muted);
+}
+.cr2-qr-fullscreen__close {
+  position: absolute;
+  top: max(16px, env(safe-area-inset-top));
+  right: max(16px, env(safe-area-inset-right));
+  width: 48px;
+  height: 48px;
+  border: 1px solid var(--border-lt, rgba(0, 0, 0, 0.12));
+  border-radius: 50%;
+  background: var(--surface, #fff);
+  color: var(--cr2-text, #2a211a);
+  font-size: 28px;
+  line-height: 1;
+  cursor: pointer;
+}
+.cr2-qr-fullscreen__close:focus-visible {
+  outline: 2px solid var(--cr2-accent);
+  outline-offset: 2px;
 }
 
 .cr2-code-card__actions {
@@ -1363,5 +1466,10 @@
 .cr2-progress__step {
   color: var(--cr2-muted);
   font-size: 0.85em;
+}
+
+.cr2-progress__rounds {
+  color: var(--cr2-muted);
+  font-weight: 400;
 }
 

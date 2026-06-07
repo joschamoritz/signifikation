@@ -14,11 +14,11 @@
 //   double → { answers: ['w1', 'w2'] }
 //   free   → { value:    'eingabe' }
 
-import { useState } from 'react'
 import KioskGameHeader from '../components/KioskGameHeader'
+import { useAnswerDraft } from '../hooks/useAnswerDraft'
 
-function ChoiceRound({ round, submitting, onSubmit }) {
-  const [picked, setPicked] = useState(null)
+function ChoiceRound({ round, submitting, onSubmit, draftKey }) {
+  const [picked, setPicked] = useAnswerDraft(draftKey ? `${draftKey}:c` : null, null)
   const options = Array.isArray(round?.options) ? round.options : []
   const sentence = round?.sentence || ''
   function handle() {
@@ -66,9 +66,12 @@ function ChoiceRound({ round, submitting, onSubmit }) {
   )
 }
 
-function DoubleRound({ round, submitting, onSubmit }) {
+function DoubleRound({ round, submitting, onSubmit, draftKey }) {
   const sentences = Array.isArray(round?.sentences) ? round.sentences : []
-  const [answers, setAnswers] = useState(() => new Array(sentences.length).fill(''))
+  const [answers, setAnswers] = useAnswerDraft(
+    draftKey ? `${draftKey}:d` : null,
+    () => new Array(sentences.length).fill(''),
+  )
 
   function handle() {
     if (submitting) return
@@ -111,8 +114,8 @@ function DoubleRound({ round, submitting, onSubmit }) {
   )
 }
 
-function FreeRound({ round, submitting, onSubmit }) {
-  const [value, setValue] = useState('')
+function FreeRound({ round, submitting, onSubmit, draftKey }) {
+  const [value, setValue] = useAnswerDraft(draftKey ? `${draftKey}:f` : null, '')
   const sentence = round?.sentence || ''
   function handle() {
     if (submitting || !value.trim()) return
@@ -146,9 +149,11 @@ function FreeRound({ round, submitting, onSubmit }) {
   )
 }
 
-export default function ClassroomGameLueckenfueller({ lemma, prompt, onSubmit, submitting }) {
+export default function ClassroomGameLueckenfueller({ lemma, prompt, onSubmit, submitting, draftKey = null }) {
   const round = prompt?.currentRound || null
   const roundIndex = prompt?.roundIndex ?? 0
+  // Entwurfs-Key pro Runde, damit Reload die Eingabe der aktuellen Runde haelt.
+  const roundDraftKey = draftKey ? `${draftKey}::${roundIndex}` : null
 
   function handleSubmit(rawAnswer) {
     onSubmit(rawAnswer, { roundIndex })
@@ -164,9 +169,9 @@ export default function ClassroomGameLueckenfueller({ lemma, prompt, onSubmit, s
       />
 
       {!round && <p className="cr2-kiosk__hint">Keine Runde verfügbar.</p>}
-      {round?.type === 'choice'  && <ChoiceRound  round={round} submitting={submitting} onSubmit={handleSubmit} />}
-      {round?.type === 'double'  && <DoubleRound  round={round} submitting={submitting} onSubmit={handleSubmit} />}
-      {round?.type === 'free'    && <FreeRound    round={round} submitting={submitting} onSubmit={handleSubmit} />}
+      {round?.type === 'choice'  && <ChoiceRound  round={round} submitting={submitting} onSubmit={handleSubmit} draftKey={roundDraftKey} />}
+      {round?.type === 'double'  && <DoubleRound  round={round} submitting={submitting} onSubmit={handleSubmit} draftKey={roundDraftKey} />}
+      {round?.type === 'free'    && <FreeRound    round={round} submitting={submitting} onSubmit={handleSubmit} draftKey={roundDraftKey} />}
     </div>
   )
 }

@@ -549,6 +549,47 @@ describe('classroom/store', () => {
       const dash = getDashboard({ sessionId: session.id, teacherUserId: TEACHER_B })
       expect(dash.error).toBe('FORBIDDEN')
     })
+
+    it('W4-S4 (3.3): Runden-Fortschritt pro Teilnehmer + done-Flag bei mehreren Lemmata', () => {
+      const { session } = createSession({ teacherUserId: TEACHER_A })
+      const snap2 = {
+        byLemma: {
+          'lemma-1': KOLL_SNAPSHOT.byLemma['lemma-1'],
+          'lemma-2': KOLL_SNAPSHOT.byLemma['lemma-1'],
+        },
+      }
+      const { assignment } = addAssignment({
+        sessionId: session.id, teacherUserId: TEACHER_A,
+        mode: 'kollokationen', lemmaIds: ['lemma-1', 'lemma-2'],
+        contentSnapshot: snap2,
+      })
+      startSession({ sessionId: session.id, teacherUserId: TEACHER_A })
+      const alice = joinByCode({ code: session.code, displayName: 'Alice' })
+      const bob   = joinByCode({ code: session.code, displayName: 'Bob' })
+
+      // Alice gibt beide Lemmata ab → fertig. Bob nur das erste.
+      for (const lemmaId of ['lemma-1', 'lemma-2']) {
+        submitAnswer({
+          participantId: alice.participant.id,
+          sessionId: session.id, assignmentId: assignment.id,
+          lemmaId, roundIndex: 0, rawAnswer: { selected: ['stark', 'groß', 'klein'] },
+        })
+      }
+      submitAnswer({
+        participantId: bob.participant.id,
+        sessionId: session.id, assignmentId: assignment.id,
+        lemmaId: 'lemma-1', roundIndex: 0, rawAnswer: { selected: ['stark', 'groß', 'klein'] },
+      })
+
+      const dash = getDashboard({ sessionId: session.id, teacherUserId: TEACHER_A })
+      expect(dash.lemmataPerAssignment).toBe(2)
+      const byName = Object.fromEntries(dash.participants.map((p) => [p.displayName, p]))
+      expect(byName.Alice.submittedLemmata).toBe(2)
+      expect(byName.Alice.done).toBe(true)
+      expect(byName.Bob.submittedLemmata).toBe(1)
+      expect(byName.Bob.done).toBe(false)
+      expect(dash.aggregate.doneCount).toBe(1)
+    })
   })
 
   // ── getSessionResults (W2-T4) ──────────────────────────────────

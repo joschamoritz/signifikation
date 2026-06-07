@@ -59,7 +59,7 @@ describe('LiveStep (T-4.6)', () => {
     await waitFor(() => {
       expect(screen.getByTestId('cr2-live-finish')).toBeTruthy()
     })
-    expect(screen.getByText(/abgegeben/i)).toBeTruthy()
+    expect(screen.getByText(/fertig/i)).toBeTruthy()
   })
 
   it('W2-T2: zeigt „Modus X von N" und „Nächster Modus" bei mehreren Blöcken', async () => {

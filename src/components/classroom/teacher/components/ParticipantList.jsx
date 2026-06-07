@@ -39,6 +39,11 @@ export default function ParticipantList({
     <ul className="cr2-participant-list" aria-label="Teilnehmer">
       {participants.map((p, i) => {
         const status = statusFor(p, mode)
+        // Mehrrunden-Modus (z. B. Kollokationen, 3 Lemmata): solange noch
+        // nicht alle Runden fertig sind, zeigen wir den Runden-Stand statt
+        // nur "verbunden" — so sieht die Lehrkraft, wie weit jede:r ist.
+        const roundsTotal = p.roundsTotal || 0
+        const showRounds = mode === 'live' && !p.leftAt && roundsTotal > 1 && status !== 'submitted'
         return (
           <li key={p.id} className="cr2-participant" data-status={status}>
             <span className={`cr2-participant__dot cr2-participant__dot--${status}`} aria-hidden="true" />
@@ -46,7 +51,11 @@ export default function ParticipantList({
               {showNames ? (p.displayName || `Schüler:in ${i + 1}`)
                          : <em style={{ color: 'var(--cr2-muted)' }}>Schüler:in {i + 1}</em>}
             </span>
-            <span className="cr2-participant__status">{STATUS_TEXT[status]}</span>
+            <span className="cr2-participant__status">
+              {showRounds
+                ? `Runde ${Math.min((p.roundsDone || 0) + 1, roundsTotal)}/${roundsTotal}`
+                : STATUS_TEXT[status]}
+            </span>
           </li>
         )
       })}

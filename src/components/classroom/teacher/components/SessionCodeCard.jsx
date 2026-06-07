@@ -10,6 +10,7 @@
 // bei genug Kontrast; Fehlerkorrektur 'M' macht das Scannen robust.
 
 import { useState, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import QRCode from 'qrcode'
 
 function joinUrl(code) {
@@ -21,7 +22,21 @@ function joinUrl(code) {
 export default function SessionCodeCard({ code }) {
   const [copied, setCopied] = useState(false)
   const [qrSvg, setQrSvg]   = useState('')
+  const [zoomed, setZoomed] = useState(false)
   const url = joinUrl(code)
+
+  // Esc schließt das Vollbild; body-scroll sperren, solange offen.
+  useEffect(() => {
+    if (!zoomed) return undefined
+    function onKey(e) { if (e.key === 'Escape') setZoomed(false) }
+    window.addEventListener('keydown', onKey)
+    const prevOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => {
+      window.removeEventListener('keydown', onKey)
+      document.body.style.overflow = prevOverflow
+    }
+  }, [zoomed])
 
   useEffect(() => {
     let cancelled = false
@@ -67,13 +82,47 @@ export default function SessionCodeCard({ code }) {
       </div>
 
       {qrSvg && (
-        <div
-          className="cr2-code-card__qr"
+        <button
+          type="button"
+          className="cr2-code-card__qr cr2-code-card__qr--button"
           // eslint-disable-next-line react/no-danger -- SVG kommt aus der qrcode-Lib, kein User-Input
           dangerouslySetInnerHTML={{ __html: qrSvg }}
-          role="img"
-          aria-label="QR-Code zum Beitreten"
+          onClick={() => setZoomed(true)}
+          aria-label="QR-Code zum Beitreten — tippen für Vollbild"
+          data-testid="cr2-code-qr-button"
         />
+      )}
+
+      {zoomed && typeof document !== 'undefined' && createPortal(
+        <div
+          className="cr2-qr-fullscreen"
+          role="dialog"
+          aria-modal="true"
+          aria-label="QR-Code Vollbild"
+          onClick={() => setZoomed(false)}
+          data-testid="cr2-qr-fullscreen"
+        >
+          <button
+            type="button"
+            className="cr2-qr-fullscreen__close"
+            onClick={() => setZoomed(false)}
+            aria-label="Vollbild schließen"
+          >
+            ×
+          </button>
+          <div className="cr2-qr-fullscreen__inner" onClick={(e) => e.stopPropagation()}>
+            <p className="cr2-qr-fullscreen__code">{code}</p>
+            <div
+              className="cr2-qr-fullscreen__qr"
+              // eslint-disable-next-line react/no-danger -- SVG aus qrcode-Lib, kein User-Input
+              dangerouslySetInnerHTML={{ __html: qrSvg }}
+              role="img"
+              aria-label="QR-Code zum Beitreten"
+            />
+            <p className="cr2-qr-fullscreen__hint">Tippen zum Schließen</p>
+          </div>
+        </div>,
+        document.body,
       )}
 
       <div className="cr2-code-card__actions">

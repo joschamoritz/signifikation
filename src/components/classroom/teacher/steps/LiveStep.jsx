@@ -6,7 +6,7 @@
 //
 // D7: KEINE Live-Einzelantworten. KEIN Leaderboard. Nur Aggregate.
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useTeacherClassroom } from '../TeacherClassroomContext'
 import { getDashboard, finishSession, pauseSession, resumeSession, nextAssignment } from '../hooks/useTeacherSession'
 import { useTeacherSocket } from '../hooks/useTeacherSocket'
@@ -31,7 +31,6 @@ export default function LiveStep() {
   const [finishing, setFinishing]  = useState(false)
   const [pauseBusy, setPauseBusy]  = useState(false)
   const [advancing, setAdvancing]  = useState(false)
-  const submittedIdsRef = useRef(new Set())
 
   // Pause-Status: Dashboard ist Source of Truth (session.paused), Socket-
   // Events (session:paused/resumed) sorgen fuer sofortige Reaktion.
@@ -42,15 +41,6 @@ export default function LiveStep() {
     try {
       const data = await getDashboard(sessionId)
       setDashboard(data)
-      // submittedIds aktualisieren — Socket-Events ergaenzen das nur fuer
-      // sofortige Reaktion; das Polling ist Source of Truth.
-      const newSet = new Set()
-      for (const lemma of data?.aggregate?.perLemma || []) {
-        // perLemma traegt submission-Counts pro Lemma, nicht pro Participant.
-        // Wir markieren stattdessen Teilnehmer per submission:received-Socket-Event.
-        void lemma
-      }
-      void newSet
     } catch (err) {
       setError(err?.message || 'Dashboard konnte nicht geladen werden.')
     }
@@ -63,25 +53,17 @@ export default function LiveStep() {
     return () => clearInterval(id)
   }, [refresh])
 
-  // Socket-Updates: submission:received markiert Teilnehmer als "abgegeben"
-  // (Dot wird gefuellt). student:left → Teilnehmer ausgrauen.
+  // Socket-Updates loesen einen Dashboard-Refresh aus — die Pro-Teilnehmer-
+  // Runden-Counts kommen jetzt aus dem Dashboard (Server ist Source of Truth),
+  // nicht mehr aus einem lokalen Submitted-Set. So unterscheidet die Anzeige
+  // "spielt noch (Runde 1/3)" sauber von "fertig (3/3)".
   const handlers = useMemo(() => ({
-    'submission:received': (payload) => {
-      if (!payload?.participantId) return
-      submittedIdsRef.current.add(payload.participantId)
-      // Force re-render via state-tick
-      setDashboard((prev) => prev ? { ...prev } : prev)
-    },
-    'student:left': () => { refresh() },
-    'student:joined': () => { refresh() },
-    'session:paused': () => { refresh() },
-    'session:resumed': () => { refresh() },
-    // W2-T2: Modus-Wechsel → Abgabe-Marker des alten Blocks zuruecksetzen,
-    // damit der Fortschrittsbalken fuer den neuen Block bei 0 startet.
-    'assignment:changed': () => {
-      submittedIdsRef.current = new Set()
-      refresh()
-    },
+    'submission:received': () => { refresh() },
+    'student:left':        () => { refresh() },
+    'student:joined':      () => { refresh() },
+    'session:paused':      () => { refresh() },
+    'session:resumed':     () => { refresh() },
+    'assignment:changed':  () => { refresh() },
     'session:finished': () => {
       dispatch({ type: 'GO_TO_END', sessionId })
     },
@@ -89,12 +71,19 @@ export default function LiveStep() {
 
   useTeacherSocket({ sessionId, enabled: !!sessionId, handlers })
 
+  // Runden pro Teilnehmer = Lemma-Anzahl des aktuellen Blocks (Server).
+  const lemmataTotal = dashboard?.lemmataPerAssignment || 1
   const participants = dashboard?.participants || []
   const enrichedParticipants = participants.map((p) => ({
     ...p,
-    submitted: submittedIdsRef.current.has(p.id),
+    // "submitted" = ALLE Runden fertig (Dot wird erst dann gefuellt).
+    submitted:   !!p.done,
+    roundsDone:  p.submittedLemmata || 0,
+    roundsTotal: lemmataTotal,
   }))
 
+  // Fortschritt zaehlt FERTIGE Teilnehmer (alle Runden abgegeben), nicht
+  // "hat irgendeine Runde abgegeben" — das war die Mehrdeutigkeit aus 3.3.
   const submittedCount = enrichedParticipants.filter((p) => p.submitted).length
   const totalCount = enrichedParticipants.filter((p) => !p.leftAt).length
   const pct = totalCount > 0 ? Math.round((submittedCount / totalCount) * 100) : 0
@@ -140,8 +129,7 @@ export default function LiveStep() {
         dispatch({ type: 'GO_TO_END', sessionId })
         return
       }
-      // Marker des alten Blocks fallen lassen, dann frische Daten holen.
-      submittedIdsRef.current = new Set()
+      // Frische Daten fuer den neuen Block holen (Counts kommen vom Server).
       await refresh()
     } catch (err) {
       setError(err?.message || 'Weiter zum nächsten Modus fehlgeschlagen.')
@@ -184,7 +172,12 @@ export default function LiveStep() {
               </span>
             )}
           </span>
-          <span className="cr2-progress__numbers">{submittedCount} / {totalCount} abgegeben</span>
+          <span className="cr2-progress__numbers">
+            {submittedCount} / {totalCount} fertig
+            {lemmataTotal > 1 && (
+              <span className="cr2-progress__rounds"> · {lemmataTotal} Runden</span>
+            )}
+          </span>
         </div>
         <div className="cr2-progress__bar" aria-hidden="true">
           <div className="cr2-progress__fill" style={{ width: `${pct}%` }} />

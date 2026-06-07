@@ -40,6 +40,10 @@ export function initialState(code) {
     progress:        { submittedCount: 0, totalLemmata: 0, done: false },
     submittedAnswer: null,        // letzte eingereichte rawAnswer (lokal fuer S5)
     submittedResult: null,        // { score, maxScore, correct } vom Server
+    // W4-S4: Verlauf aller Runden im aktuellen Block (z. B. 3 Lemmata bei
+    // Kollokationen). Speist die Rundenauswertung in S5. Wird beim Modus-
+    // Wechsel geleert. Scores zeigen wir erst nach „Auflösung freigeben".
+    roundResults:    [],          // [{ key, lemmaId, lemma, score, maxScore, correct }]
     revealed:        false,       // hat Lehrer „Auflösung freigeben" gedrueckt? (session:finished)
     notice:          null,        // info-Hinweise an die UI
     error:           null,
@@ -99,6 +103,7 @@ function reducer(state, action) {
       const assignmentChanged = !!assignment && assignment.id !== state.assignment?.id
       const submittedAnswer = assignmentChanged ? null : state.submittedAnswer
       const submittedResult = assignmentChanged ? null : state.submittedResult
+      const roundResults    = assignmentChanged ? [] : state.roundResults
       const revealed = assignmentChanged && status !== 'finished' ? false : state.revealed
 
       return {
@@ -111,6 +116,7 @@ function reducer(state, action) {
         currentState: next,
         submittedAnswer,
         submittedResult,
+        roundResults,
         revealed,
       }
     }
@@ -129,8 +135,24 @@ function reducer(state, action) {
       return { ...state, sessionStatus: action.status || state.sessionStatus }
 
     case 'SUBMITTED': {
+      // Runde im Verlauf festhalten (für die Rundenauswertung in S5). Key aus
+      // Lemma + Runden-Index, damit ein erneutes Abgeben dieselbe Runde ersetzt
+      // statt sie zu duplizieren.
+      const lemmaId    = state.currentLemma?.id ?? null
+      const roundIndex = action.roundIndex ?? 0
+      const key        = `${lemmaId}:${roundIndex}`
+      const entry = {
+        key,
+        lemmaId,
+        lemma:    state.currentLemma?.lemma || '',
+        score:    action.result?.score    ?? null,
+        maxScore: action.result?.maxScore ?? null,
+        correct:  action.result?.correct  ?? null,
+      }
+      const priorRounds = (state.roundResults || []).filter((r) => r.key !== key)
       return {
         ...state,
+        roundResults:    [...priorRounds, entry],
         submittedAnswer: action.rawAnswer || null,
         submittedResult: action.result || null,
         currentState:    KIOSK_STATES.SUBMITTED,
