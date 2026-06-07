@@ -104,6 +104,8 @@ function renderApp() {
     if (typeof window !== 'undefined' && window.__sigDebugPost) {
       window.__sigDebugPost('info', 'main.jsx', 'createRoot.render returned')
     }
+    // Universal Links (Classroom-QR öffnet die App) — fire-and-forget, nativ-only.
+    import('./utils/initDeepLinks.js').then((m) => m.initDeepLinks()).catch(() => {})
   } catch (err) {
     if (typeof window !== 'undefined' && window.__sigDebugPost) {
       window.__sigDebugPost('error', 'main.jsx', 'renderApp threw: ' + (err?.message || err), err?.stack)

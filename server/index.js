@@ -128,6 +128,30 @@ app.use('/fonts', express.static(join(__dirname, '../public/fonts'), {
   },
 }))
 
+// ── Apple Universal Links (Classroom-QR öffnet die iOS-App) ──
+// Die AASA wird dynamisch aus APPLE_TEAM_ID gebaut (Team-ID ist kein Repo-
+// Secret → kommt aus der Hetzner-.env). Fehlt die Variable, liefern wir 404 —
+// iOS fällt dann sauber auf den Browser-Kiosk (/c/<code>) zurück. Apple
+// verlangt application/json über HTTPS ohne Redirect; nginx terminiert TLS
+// und proxyt hierher. Pfad /c/* = Beitritts-Links.
+app.get(
+  ['/.well-known/apple-app-site-association', '/apple-app-site-association'],
+  (_req, res) => {
+    const teamId = process.env.APPLE_TEAM_ID
+    if (!teamId) return res.status(404).json({ error: 'Not configured' })
+    res.type('application/json')
+    res.setHeader('Cache-Control', 'public, max-age=3600')
+    return res.json({
+      applinks: {
+        apps: [],
+        details: [
+          { appID: `${teamId}.de.signifikation.app`, paths: ['/c/*'] },
+        ],
+      },
+    })
+  },
+)
+
 // ── Routes ───────────────────────────────────────────────────
 app.use('/', publicRouter)
 app.use('/', adminRouter)
