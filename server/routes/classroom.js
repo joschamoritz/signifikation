@@ -404,10 +404,19 @@ function buildStudentView(participant, session, assignment, meta = {}) {
   // R1: Wir laden NUR das aktuelle Lemma, nie alle auf einmal ans Frontend
   let currentLemmaData = null
   if (currentLemmaId && !allDone) {
-    const rows2 = getLemmataByIdsStmt.all(JSON.stringify([currentLemmaId]))
-    const lemmaRow = rows2.find(r => r.id === currentLemmaId)
-    if (lemmaRow) {
-      const lemma = parseLemmaJson(lemmaRow)
+    // Wort-Zwilling: synthetische „wz:"-Paare haben KEINE DB-Zeile. Direkt aus
+    // dem Snapshot synthetisieren — sonst bliebe currentLemma null und die
+    // Schüler:innen sähen nie ein Spiel (Bug Realbedingungstest).
+    const wzPair = parseWzId(currentLemmaId)
+    let lemma = null
+    if (wzPair) {
+      lemma = synthWzLemma(currentLemmaId, wzPair)
+    } else {
+      const rows2 = getLemmataByIdsStmt.all(JSON.stringify([currentLemmaId]))
+      const lemmaRow = rows2.find(r => r.id === currentLemmaId)
+      if (lemmaRow) lemma = parseLemmaJson(lemmaRow)
+    }
+    if (lemma) {
       const snap = assignment.contentSnapshot?.byLemma?.[currentLemmaId] ?? {}
 
       // Aktueller Runden-Index fuer Lueckenfueller
@@ -504,17 +513,15 @@ router.post(
 //   kollokationen              → KEIN Filter: durch F2a live aus wortprofil.db
 //                                generierbar, also jedes kuratierte Lemma spielbar
 function lemmaModeFilter(mode) {
-  switch (mode) {
-    // Zeitenwende: Live-Eignung sehr restriktiv (braucht starke pre/post-
-    // Distinktion) → nur kuratierte, sicher spielbare Lemmata zeigen.
-    case 'zeitenwende':
-      return `AND json_valid(runden) AND json_extract(runden, '$.zeitenwende') IS NOT NULL`
-    // kollokationen + lueckenfueller: live aus Korpus/Belegen → jedes Lemma
-    //   wählbar (Preview zeigt Eignung). wortzwilling nutzt den Paar-Picker,
-    //   nicht diesen Lemma-Picker. Alle → kein Filter.
-    default:
-      return ''
-  }
+  // Kein Modus-Filter mehr: Zeitenwende/Lückenfüller/Kollokationen werden alle
+  // live aus Korpus/Belegen generiert (fetchZeitenwende / buildLueckenfueller /
+  // fetchLemma). Jedes kuratierte Lemma ist also wählbar; ob es genug Eignung
+  // hat, zeigt die Schüleransicht-Vorschau. (Früher beschränkte Zeitenwende auf
+  // ein gespeichertes runden.zeitenwende-Feld → „Keine Treffer" für eigene
+  // Lemmata, obwohl der Content live erzeugbar ist.) wortzwilling nutzt ohnehin
+  // den Paar-Picker, nicht diesen Endpoint.
+  void mode
+  return ''
 }
 
 // Prepared-Statements je Modus cachen (better-sqlite3 mag stabile Statements).

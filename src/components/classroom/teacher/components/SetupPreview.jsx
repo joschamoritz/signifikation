@@ -48,6 +48,22 @@ function roundCount(mode, lemma) {
   return Array.isArray(lemma?.prompt?.rounds) ? lemma.prompt.rounds.length : 1
 }
 
+// Hat das Lemma überhaupt spielbaren Inhalt? (z. B. Lückenfüller braucht genug
+// Belege → sonst leere rounds; Zeitenwende/Kollokationen/Wort-Zwilling brauchen
+// Wörter.) Steuert eine klare Eignungs-Meldung statt eines leeren Spielscreens.
+function lemmaHasContent(mode, lemma) {
+  const p = lemma?.prompt || {}
+  if (mode === 'lueckenfueller') return Array.isArray(p.rounds) && p.rounds.length > 0
+  return Array.isArray(p.words) && p.words.length > 0
+}
+
+const NO_CONTENT_HINT = {
+  lueckenfueller: 'Für dieses Lemma gibt es nicht genug Belege für den Lückenfüller. Wähle ein anderes Lemma.',
+  zeitenwende:    'Dieses Lemma hat zu wenig zeitliche Distinktion (vor/nach 2000). Wähle ein anderes Lemma.',
+  kollokationen:  'Für dieses Lemma konnten keine Kollokationen erzeugt werden. Wähle ein anderes Lemma.',
+  wortzwilling:   'Dieses Paar hat zu wenig unterscheidende Begleitwörter. Wähle ein anderes Paar.',
+}
+
 export default function SetupPreview({ mode, lemmaIds, onClose }) {
   const [status, setStatus]   = useState('loading') // loading | ready | error
   const [error, setError]     = useState(null)
@@ -147,7 +163,7 @@ export default function SetupPreview({ mode, lemmaIds, onClose }) {
             </p>
           )}
 
-          {status === 'ready' && !done && currentLemma && Game && (
+          {status === 'ready' && !done && currentLemma && Game && lemmaHasContent(mode, currentLemma) && (
             <>
               <p className="cr2-kiosk__hint" style={{ margin: '0 0 4px' }} data-testid="cr2-preview-progress">
                 {total > 1 ? `Lemma ${lemmaIndex + 1} / ${total}` : 'Klassenraum'}
@@ -163,6 +179,33 @@ export default function SetupPreview({ mode, lemmaIds, onClose }) {
                 submitting={false}
               />
             </>
+          )}
+
+          {/* Eignungs-Hinweis: das gewählte Lemma hat keinen spielbaren Inhalt. */}
+          {status === 'ready' && !done && currentLemma && Game && !lemmaHasContent(mode, currentLemma) && (
+            <div style={{ textAlign: 'center', paddingTop: 8 }} data-testid="cr2-preview-no-content">
+              <span className="cr2-kiosk__dropcap">!</span>
+              <p className="cr2-kiosk__title" style={{ fontSize: '1.2rem' }}>
+                {currentLemma.lemma || 'Dieses Lemma'} — kein Inhalt
+              </p>
+              <p className="cr2-kiosk__lead">
+                {NO_CONTENT_HINT[mode] || 'Für diese Auswahl gibt es keinen spielbaren Inhalt.'}
+              </p>
+              {lemmaIndex + 1 < total ? (
+                <button
+                  type="button"
+                  className="btn-ghost"
+                  onClick={() => { setLemmaIndex((i) => i + 1); setRoundIndex(0) }}
+                  data-testid="cr2-preview-skip"
+                >
+                  Nächstes Lemma ansehen →
+                </button>
+              ) : (
+                <button type="button" className="btn-ghost" onClick={onClose}>
+                  Zurück zum Setup
+                </button>
+              )}
+            </div>
           )}
 
           {status === 'ready' && !done && currentLemma && !Game && (

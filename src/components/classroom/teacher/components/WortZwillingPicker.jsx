@@ -92,11 +92,6 @@ export default function WortZwillingPicker({ value = [], onChange }) {
           data-testid="cr2-wz-b"
         />
       </div>
-
-      <p className="cr2-lemma-picker__hint">
-        Zwei Wörter, deren unterscheidende Begleitwörter erraten werden – live aus dem Korpus.
-        Mit „Schüleransicht testen" siehst du, ob das Paar genug Kontrast hat.
-      </p>
     </div>
   )
 }

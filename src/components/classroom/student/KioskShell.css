@@ -490,6 +490,31 @@
   padding-top: 10px;
 }
 
+/* Entkastelter Abschluss-Link „Zur App" — Wörterbuch-Stil statt Block-Button. */
+.cr2-kiosk__textlink {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin: 24px auto 0;
+  padding: 6px 2px;
+  background: none;
+  border: none;
+  font-family: 'Gentium Plus', Georgia, serif;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--k-accent);
+  cursor: pointer;
+  border-bottom: 1px solid transparent;
+  transition: border-color 0.15s ease;
+}
+.cr2-kiosk__textlink:hover {
+  border-bottom-color: var(--k-accent);
+}
+.cr2-kiosk__textlink:focus-visible {
+  outline: 2px solid var(--k-accent);
+  outline-offset: 3px;
+}
+
 /* ── Spielmodi-Inhalt (Wrapper-Layout) ──────────────────────────────────
    Entkastelt: kein weisser Kasten mehr. Kollokationen nutzt die echte
    Quiz-Optik (.quiz-screen). Die uebrigen Modi bekommen hier einen

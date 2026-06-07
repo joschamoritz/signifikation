@@ -468,14 +468,6 @@
   align-items: center;
   gap: 16px;
 }
-/* Ende: prominente „Neue Session"-Aktion direkt unter dem Kopf, damit sie
-   ohne Scrollen sichtbar ist (vorher nur in der fixierten Leiste unten). */
-.cr2-end-top-actions {
-  display: flex;
-  justify-content: center;
-  margin: 0 0 20px;
-}
-
 /* Ende: Aktionen gestapelt + zentrierter Schließen-Link. */
 .cr2-end-actions {
   display: flex;
@@ -806,14 +798,6 @@
   display: flex;
   flex-direction: column;
   gap: 6px;
-}
-
-.cr2-lemma-search__note {
-  margin: 2px 0 0;
-  font-family: var(--font-sans);
-  font-size: 0.78rem;
-  line-height: 1.4;
-  color: var(--cr2-muted);
 }
 
 /* Wort-Zwilling-Paar-Auswahl */

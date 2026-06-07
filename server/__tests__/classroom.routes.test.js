@@ -286,21 +286,24 @@ describe('classroom routes', () => {
       }
     })
 
-    it('F2b Modus-Filter: mode=wortzwilling liefert nur Lemmata mit runden.wortzwilling', async () => {
+    it('Kein Modus-Filter mehr: Lemma erscheint in jedem Modus (Content wird live generiert)', async () => {
+      // W4-S4: Der frühere Zeitenwende-Filter (nur Lemmata mit gespeichertem
+      // runden.zeitenwende) ist entfernt — Content wird live aus dem Korpus
+      // erzeugt, also ist jedes kuratierte Lemma wählbar. Die Eignung zeigt die
+      // Schüleransicht-Vorschau, nicht der Picker.
       const wzId = insertTestLemmaWortzwilling('filter')
-      // Bei mode=wortzwilling ist das Lemma dabei …
       const r1 = await fetch(`${baseUrl}/api/v1/classroom/lemmata?q=Wasser&mode=wortzwilling&limit=50`, {
         headers: teacherHeaders(TEACHER_ID),
       })
       expect(r1.status).toBe(200)
       const b1 = await r1.json()
       expect(b1.items.some((it) => it.id === wzId)).toBe(true)
-      // … aber NICHT bei mode=zeitenwende (kein runden.zeitenwende)
+      // Neu: auch bei mode=zeitenwende dabei (kein Filter mehr).
       const r2 = await fetch(`${baseUrl}/api/v1/classroom/lemmata?q=Wasser&mode=zeitenwende&limit=50`, {
         headers: teacherHeaders(TEACHER_ID),
       })
       const b2 = await r2.json()
-      expect(b2.items.some((it) => it.id === wzId)).toBe(false)
+      expect(b2.items.some((it) => it.id === wzId)).toBe(true)
     })
 
     it('Wort-Zwilling-Paar: /preview baut Snapshot aus wz:-ID (Paar-Flow, kein Lemma)', async () => {
@@ -318,6 +321,39 @@ describe('classroom routes', () => {
       expect(body.lemmata[0].prompt.words).toEqual(expect.arrayContaining(['kalt', 'heiß']))
       // R1: zuordnung darf NIEMALS an Schueler geleakt werden
       expect(JSON.stringify(body.lemmata[0].prompt)).not.toContain('zuordnung')
+    })
+
+    it('W4-S4 Bugfix: /me/view liefert currentLemma für wz:-Paar (synthetisches Lemma, keine DB-Zeile)', async () => {
+      // Regressionsschutz: buildStudentView lud das aktuelle Lemma früher NUR
+      // per DB-Query → für synthetische wz:-Paar-IDs kam currentLemma=null und
+      // die Schüler:innen sahen nie ein Spiel.
+      const wzId = makeWzId('Wasser', 'Feuer', 'Substantiv')
+      const { session } = createSession({ teacherUserId: TEACHER_ID, title: 'WZ-View' })
+      await fetch(`${baseUrl}/api/v1/classroom/sessions/${session.id}/assignments`, {
+        method: 'POST',
+        headers: teacherHeaders(TEACHER_ID),
+        body: JSON.stringify({ mode: 'wortzwilling', lemmaIds: [wzId] }),
+      })
+      await fetch(`${baseUrl}/api/v1/classroom/sessions/${session.id}/start`, {
+        method: 'POST', headers: teacherHeaders(TEACHER_ID), body: JSON.stringify({}),
+      })
+      const joinRes = await fetch(`${baseUrl}/api/v1/classroom/join`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', 'x-forwarded-for': '10.0.9.9' },
+        body: JSON.stringify({ code: session.code }),
+      })
+      const { token } = await joinRes.json()
+      const viewRes = await fetch(`${baseUrl}/api/v1/classroom/me/view`, {
+        headers: participantHeaders(token),
+      })
+      const view = await viewRes.json()
+      expect(view.currentLemma).toBeTruthy()
+      expect(view.currentLemma.prompt.wortA).toBe('Wasser')
+      expect(view.currentLemma.prompt.wortB).toBe('Feuer')
+      expect(Array.isArray(view.currentLemma.prompt.words)).toBe(true)
+      expect(view.currentLemma.prompt.words.length).toBeGreaterThan(0)
+      // R1: zuordnung niemals geleakt
+      expect(JSON.stringify(view.currentLemma.prompt)).not.toContain('zuordnung')
     })
 
     it('T-2.2 Assignment hinzufügen → 201 { id, mode, lemmaCount }', async () => {

@@ -64,10 +64,12 @@ describe('EndStep (W2-T4)', () => {
 
     renderEnd()
     await waitFor(() => {
-      expect(screen.getByTestId('cr2-end-new')).toBeTruthy()
+      expect(screen.getByTestId('cr2-end-cards')).toBeTruthy()
     })
-    expect(screen.getByTestId('cr2-end-close')).toBeTruthy()
-    expect(screen.getByTestId('cr2-end-cards')).toBeTruthy()
+    // Kein „Neue Session"-Button mehr auf der Ergebnisseite (Wunsch: nur der
+    // Zurück-Pfeil oben). Der Zurück-Button der Subscreen-Hülle bleibt.
+    expect(screen.queryByTestId('cr2-end-new')).toBeNull()
+    expect(screen.getByTestId('cr2-subscreen-back')).toBeTruthy()
     expect(screen.getByTestId('cr2-end-trickiest')).toBeTruthy()
     // Lemma-Headword + Distraktor sichtbar
     expect(screen.getAllByText('Wasser').length).toBeGreaterThanOrEqual(1)
@@ -103,7 +105,7 @@ describe('EndStep (W2-T4)', () => {
 
     renderEnd()
     await waitFor(() => {
-      expect(screen.getByTestId('cr2-end-new')).toBeTruthy()
+      expect(screen.getByText(/Namen zeigen/i)).toBeTruthy()
     })
     expect(screen.queryByText('Alex')).toBeNull()
   })

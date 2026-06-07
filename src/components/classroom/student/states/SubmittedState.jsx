@@ -110,11 +110,11 @@ export default function SubmittedState() {
         <p className="cr2-kiosk__lead">Danke fürs Mitspielen.</p>
         <button
           type="button"
-          className="btn-primary btn-full"
+          className="cr2-kiosk__textlink"
           onClick={() => navigate('/')}
           data-testid="cr2-kiosk-to-app"
         >
-          Zur App →
+          Zur App<span className="test-cta-arrow" aria-hidden="true"> →</span>
         </button>
       </>
     )
@@ -197,11 +197,11 @@ export default function SubmittedState() {
       {isEnded && (
         <button
           type="button"
-          className="btn-primary btn-full"
+          className="cr2-kiosk__textlink"
           onClick={() => navigate('/')}
           data-testid="cr2-kiosk-to-app"
         >
-          Zur App →
+          Zur App<span className="test-cta-arrow" aria-hidden="true"> →</span>
         </button>
       )}
     </>

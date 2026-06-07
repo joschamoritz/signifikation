@@ -82,9 +82,16 @@ const stmts = {
     LIMIT 1
   `),
   listTeacherSessions: db.prepare(`
-    SELECT * FROM classroom_session
-    WHERE teacher_user_id = ?
-    ORDER BY created_at DESC
+    SELECT s.*, (
+      SELECT GROUP_CONCAT(a.mode, ',')
+      FROM (
+        SELECT mode FROM classroom_assignment
+        WHERE session_id = s.id ORDER BY position ASC
+      ) a
+    ) AS modes
+    FROM classroom_session s
+    WHERE s.teacher_user_id = ?
+    ORDER BY s.created_at DESC
     LIMIT ?
   `),
   startSession: db.prepare(`
@@ -318,6 +325,11 @@ function normalizeSessionRow(row) {
     lastActivityAt: row.last_activity_at ?? null,
     // W2-T2: 0-basierter Zeiger auf das aktuell aktive Assignment.
     currentAssignmentIndex: row.current_assignment_index ?? 0,
+    // Liste aller Assignment-Modi in Reihenfolge (nur listTeacherSessions liefert
+    // die Spalte). Für die Übersicht, die sonst nur den ersten Modus zeigte.
+    ...(row.modes !== undefined
+      ? { modes: row.modes ? String(row.modes).split(',').filter(Boolean) : [] }
+      : {}),
   }
 }
 

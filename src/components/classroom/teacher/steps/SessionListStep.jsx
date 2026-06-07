@@ -115,7 +115,12 @@ export default function SessionListStep() {
       {!loading && !error && sessions.length > 0 && (
         <ol className="lemma-cards cr2-session-cards" aria-label="Sessions">
           {sessions.map((s) => {
-            const mode = s.settings?.mode
+            // Alle gespielten Modi (in Reihenfolge); Fallback auf settings.mode
+            // für Altsessions ohne Modi-Liste.
+            const modeList = Array.isArray(s.modes) && s.modes.length
+              ? s.modes
+              : (s.settings?.mode ? [s.settings.mode] : [])
+            const modeLabel = modeList.map((m) => MODE_LABEL[m] || m).join(' · ')
             const statusKey = s.status
             const dotClass =
               statusKey === 'running'  ? 'cr2-status-dot--running'  :
@@ -136,7 +141,7 @@ export default function SessionListStep() {
                         <span className="lemma-name">
                           {s.title || <span className="cr2-session-untitled">Klasse · {s.code}</span>}
                         </span>
-                        {mode && <span className="lemma-wortart-abbrev">{MODE_LABEL[mode] || mode}</span>}
+                        {modeLabel && <span className="lemma-wortart-abbrev">{modeLabel}</span>}
                       </div>
                       <div className="lemma-definition">
                         <p>
