@@ -38,6 +38,104 @@ function fmtDice(v) {
   return v == null ? null : String(v).replace('.', ',')
 }
 
+// Modus-Pille in der Marken-Optik aus design.md (Farbe je Modus).
+function ModeBadge({ mode }) {
+  return <span className={`cr2-mode-badge cr2-mode-badge--${mode}`}>{modeLabel(mode)}</span>
+}
+
+// Ein Wörterbuch-Eintrag pro Lemma (Headword, Ø-Punkte, Lösung, Distraktor,
+// aufklappbare Antwortverteilung). showBadge=false in gruppierter Ansicht
+// (der Modus steht dann in der Gruppen-Überschrift).
+function LemmaEntry({ row, showBadge }) {
+  const dist = Array.isArray(row.distribution) ? row.distribution : []
+  const isOption = dist[0]?.kind === 'option'
+  const firstDistractorIdx = isOption ? dist.findIndex((o) => !o.correct) : -1
+
+  return (
+    <article className="cr2-result-card">
+      <header className="cr2-result-card__head">
+        <h3 className="cr2-result-card__lemma">{row.lemma}</h3>
+        {showBadge && <ModeBadge mode={row.mode} />}
+      </header>
+
+      <p className="cr2-result-card__sub">
+        n = {row.participants} · Ø{' '}
+        <span className={`cr2-result-card__avg ${rateClass(row.hitRatePct)}`}>{row.avgScore}</span>
+        {' '}/ {row.maxScore} Pkt.
+      </p>
+
+      {/* Lösung dauerhaft sichtbar — bei Kollokationen die besten 3 + logDice. */}
+      {isOption && (
+        <p className="cr2-result-card__solution">
+          <span className="cr2-result-card__solutionLead">Beste Kollokationen: </span>
+          {dist.filter((o) => o.correct).map((o, i, arr) => (
+            <span key={o.label}>
+              <strong>{o.label}</strong>
+              {o.logDice != null && (
+                <span className="cr2-result-card__ld"> ({fmtDice(o.logDice)})</span>
+              )}
+              {i < arr.length - 1 ? ' · ' : ''}
+            </span>
+          ))}
+        </p>
+      )}
+
+      {row.topDistractor && (
+        <p className="cr2-result-card__distractor">
+          <span className="cr2-result-card__distractorLead">Häufigste Fehlantwort: </span>
+          <strong>{row.topDistractor.label}</strong>
+          <span className="cr2-result-card__distractorCount">
+            {' '}— {row.topDistractor.count}×
+          </span>
+        </p>
+      )}
+
+      {dist.length > 0 && (
+        <details className="cr2-dist" data-testid="cr2-end-dist">
+          <summary className="cr2-dist__toggle">
+            {isOption
+              ? `Antwortverteilung · ${dist.length} Optionen`
+              : `Trefferquote je Item · ${dist.length}`}
+          </summary>
+          <ul className="cr2-dist__list">
+            {dist.map((o, idx) => {
+              const bandClass = isOption
+                ? (o.correct ? ' cr2-dist__row--correct' : '')
+                : ` ${rateClass(o.pct).replace('cr2-rate--', 'cr2-dist__row--band-')}`
+              const divideClass = idx === firstDistractorIdx && firstDistractorIdx > 0
+                ? ' cr2-dist__row--divide'
+                : ''
+              const ariaVerb = isOption
+                ? `${o.count}× gewählt, ${o.pct} Prozent${o.correct ? ', korrekt' : ''}`
+                : `${o.pct} Prozent richtig${o.sub ? `, Lösung ${o.sub}` : ''}`
+              return (
+                <li key={o.label} className={`cr2-dist__row${bandClass}${divideClass}`}>
+                  <span className="cr2-dist__mark" aria-hidden="true">
+                    {isOption && o.correct ? '✓' : ''}
+                  </span>
+                  <span className="cr2-dist__word">
+                    {o.label}
+                    {o.sub && <span className="cr2-dist__sub"> · {o.sub}</span>}
+                    {isOption && o.logDice != null && (
+                      <span className="cr2-dist__ld"> · {fmtDice(o.logDice)}</span>
+                    )}
+                  </span>
+                  <span className="cr2-dist__bar" role="img" aria-label={`${o.label}: ${ariaVerb}`}>
+                    {o.pct > 0 && (
+                      <span className="cr2-dist__fill" style={{ width: `${o.pct}%` }} />
+                    )}
+                  </span>
+                  <span className="cr2-dist__pct">{o.pct} %</span>
+                </li>
+              )
+            })}
+          </ul>
+        </details>
+      )}
+    </article>
+  )
+}
+
 // Klassen-Puls: rohe Zaehler in einen lesbaren Satz verdichten.
 function pulseSentence(totals) {
   const p = totals.participants || 0
@@ -56,6 +154,9 @@ export default function EndStep() {
   const [showNames, setShowNames] = useState(false)
   const [error, setError] = useState(null)
   const [loading, setLoading] = useState(true)
+  // Pro-Lemma-Reihenfolge: inhaltlich (nach Modus gruppiert) oder nach
+  // Schwierigkeit (niedrigste Trefferquote zuerst).
+  const [sortBy, setSortBy] = useState('order') // 'order' | 'difficulty'
 
   useEffect(() => {
     let cancelled = false
@@ -133,7 +234,7 @@ export default function EndStep() {
                   <li key={`${t.assignmentId}:${t.lemmaId}`} className="cr2-aggregate__row">
                     <span className="cr2-aggregate__lemma">
                       {t.lemma}{' '}
-                      <span className="cr2-result-card__mode">· {modeLabel(t.mode)}</span>
+                      <ModeBadge mode={t.mode} />
                     </span>
                     <span className={`cr2-aggregate__pct ${rateClass(t.hitRatePct)}`}>{t.hitRatePct}%</span>
                   </li>
@@ -142,113 +243,66 @@ export default function EndStep() {
             </section>
           )}
 
-          {/* Pro Lemma: Trefferquote-Balken, Ø-Score, häufigster Distraktor */}
-          {byLemma.length > 0 && (
-            <section className="cr2-section" aria-label="Auswertung pro Lemma">
-              <span className="cr2-section__label">Pro Lemma</span>
-              <div className="cr2-result-cards" data-testid="cr2-end-cards">
-                {byLemma.map((row) => (
-                  <article
-                    key={`${row.assignmentId}:${row.lemmaId}`}
-                    className="cr2-result-card"
-                  >
-                    <header className="cr2-result-card__head">
-                      <h3 className="cr2-result-card__lemma">{row.lemma}</h3>
-                      <span className="cr2-result-card__mode">{modeLabel(row.mode)}</span>
-                    </header>
+          {/* Pro Lemma: Ø-Punkte, Lösung, Distraktor, Antwortverteilung. */}
+          {byLemma.length > 0 && (() => {
+            const distinctModes = [...new Set(byLemma.map((r) => r.mode))]
+            const grouped = sortBy === 'order' && distinctModes.length > 1
+            const ordered = sortBy === 'difficulty'
+              ? [...byLemma].sort((a, b) => a.hitRatePct - b.hitRatePct)
+              : byLemma
 
-                    <p className="cr2-result-card__sub">
-                      n = {row.participants} · Ø {row.avgScore} / {row.maxScore} Pkt.
-                    </p>
-
-                    <p
-                      className="cr2-rate"
-                      role="img"
-                      aria-label={`Trefferquote ${row.hitRatePct} Prozent — ${row.participants} Teilnehmer`}
+            return (
+              <section className="cr2-section" aria-label="Auswertung pro Lemma">
+                <div className="cr2-prolemma-head">
+                  <span className="cr2-section__label">Pro Lemma</span>
+                  <div className="cr2-sort" role="group" aria-label="Sortierung">
+                    <button
+                      type="button"
+                      className={`cr2-sort__opt${sortBy === 'order' ? ' is-active' : ''}`}
+                      aria-pressed={sortBy === 'order'}
+                      onClick={() => setSortBy('order')}
                     >
-                      <span className={`cr2-rate__num ${rateClass(row.hitRatePct)}`}>
-                        {row.hitRatePct} %
-                      </span>
-                      <span className="cr2-rate__text">der erreichbaren Punkte</span>
-                    </p>
+                      Reihenfolge
+                    </button>
+                    <span className="cr2-sort__sep" aria-hidden="true">·</span>
+                    <button
+                      type="button"
+                      className={`cr2-sort__opt${sortBy === 'difficulty' ? ' is-active' : ''}`}
+                      aria-pressed={sortBy === 'difficulty'}
+                      onClick={() => setSortBy('difficulty')}
+                    >
+                      Schwierigkeit
+                    </button>
+                  </div>
+                </div>
 
-                    {/* Lösung dauerhaft sichtbar (auch ohne Aufklappen) — bei
-                        Kollokationen die besten 3 Optionen + logDice-Gewichtung. */}
-                    {Array.isArray(row.distribution) && row.distribution[0]?.kind === 'option' && (
-                      <p className="cr2-result-card__solution">
-                        <span className="cr2-result-card__solutionLead">Beste Kollokationen: </span>
-                        {row.distribution
-                          .filter((o) => o.correct)
-                          .map((o, i, arr) => (
-                            <span key={o.label}>
-                              <strong>{o.label}</strong>
-                              {o.logDice != null && (
-                                <span className="cr2-result-card__ld"> ({fmtDice(o.logDice)})</span>
-                              )}
-                              {i < arr.length - 1 ? ' · ' : ''}
-                            </span>
-                          ))}
-                      </p>
-                    )}
-
-                    {row.topDistractor && (
-                      <p className="cr2-result-card__distractor">
-                        <span className="cr2-result-card__distractorLead">Häufigste Fehlantwort: </span>
-                        <strong>{row.topDistractor.label}</strong>
-                        <span className="cr2-result-card__distractorCount">
-                          {' '}— {row.topDistractor.count}×
-                        </span>
-                      </p>
-                    )}
-
-                    {Array.isArray(row.distribution) && row.distribution.length > 0 && (() => {
-                      const isOption = row.distribution[0]?.kind === 'option'
-                      const summary = isOption
-                        ? `Antwortverteilung · ${row.distribution.length} Optionen`
-                        : `Trefferquote je Item · ${row.distribution.length}`
-                      return (
-                        <details className="cr2-dist" data-testid="cr2-end-dist">
-                          <summary className="cr2-dist__toggle">{summary}</summary>
-                          <ul className="cr2-dist__list">
-                            {row.distribution.map((o) => {
-                              const rowClass = isOption
-                                ? (o.correct ? ' cr2-dist__row--correct' : '')
-                                : ` ${rateClass(o.pct).replace('cr2-rate--', 'cr2-dist__row--band-')}`
-                              const ariaVerb = isOption
-                                ? `${o.count}× gewählt, ${o.pct} Prozent${o.correct ? ', korrekt' : ''}`
-                                : `${o.pct} Prozent richtig${o.sub ? `, Lösung ${o.sub}` : ''}`
-                              return (
-                                <li key={o.label} className={`cr2-dist__row${rowClass}`}>
-                                  <span className="cr2-dist__mark" aria-hidden="true">
-                                    {isOption && o.correct ? '✓' : ''}
-                                  </span>
-                                  <span className="cr2-dist__word">
-                                    {o.label}
-                                    {o.sub && <span className="cr2-dist__sub"> · {o.sub}</span>}
-                                    {isOption && o.logDice != null && (
-                                      <span className="cr2-dist__ld"> · {fmtDice(o.logDice)}</span>
-                                    )}
-                                  </span>
-                                  <span
-                                    className="cr2-dist__bar"
-                                    role="img"
-                                    aria-label={`${o.label}: ${ariaVerb}`}
-                                  >
-                                    <span className="cr2-dist__fill" style={{ width: `${o.pct}%` }} />
-                                  </span>
-                                  <span className="cr2-dist__pct">{o.pct} %</span>
-                                </li>
-                              )
-                            })}
-                          </ul>
-                        </details>
-                      )
-                    })()}
-                  </article>
-                ))}
-              </div>
-            </section>
-          )}
+                <div className="cr2-result-cards" data-testid="cr2-end-cards">
+                  {grouped
+                    ? (() => {
+                        const out = []
+                        let lastMode = null
+                        ordered.forEach((row) => {
+                          if (row.mode !== lastMode) {
+                            out.push(
+                              <h4 key={`grp-${row.assignmentId}`} className="cr2-prolemma-group">
+                                <ModeBadge mode={row.mode} />
+                              </h4>,
+                            )
+                            lastMode = row.mode
+                          }
+                          out.push(
+                            <LemmaEntry key={`${row.assignmentId}:${row.lemmaId}`} row={row} showBadge={false} />,
+                          )
+                        })
+                        return out
+                      })()
+                    : ordered.map((row) => (
+                        <LemmaEntry key={`${row.assignmentId}:${row.lemmaId}`} row={row} showBadge />
+                      ))}
+                </div>
+              </section>
+            )
+          })()}
 
           <section className="cr2-section" aria-label="Teilnehmer">
             <label className="cr2-toggle">

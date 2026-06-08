@@ -107,7 +107,14 @@ function reducer(state, action) {
       const submittedAnswer = assignmentChanged ? null : state.submittedAnswer
       const submittedResult = assignmentChanged ? null : state.submittedResult
       const roundResults    = assignmentChanged ? [] : state.roundResults
-      const revealed = assignmentChanged && status !== 'finished' ? false : state.revealed
+      // Freigabe (D5) wird normal per Socket (REVEAL/SESSION_ENDED) gesetzt.
+      // Faellt der Socket aus und das Ende kommt nur per /me/view-Polling
+      // (status finished/aborted), muss revealed hier ebenfalls true werden —
+      // sonst feuert der Reveal-Fetch nie (Code-Review M5).
+      const endedStatus = status === 'finished' || status === 'aborted'
+      const revealed = endedStatus
+        ? true
+        : (assignmentChanged ? false : state.revealed)
 
       return {
         ...state,

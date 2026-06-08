@@ -173,6 +173,33 @@ describe('SubmittedState (T-5.7)', () => {
     expect(screen.getByText(/6 \/ 10 Punkte/)).toBeTruthy()
   })
 
+  it('zeigt die Einzel-Auflösung auch wenn currentLemma nach Sessionende null ist (M4)', () => {
+    const s = {
+      ...initialState('morgentau'),
+      currentState:    KIOSK_STATES.ENDED,
+      assignment:      { id: 'a1', mode: 'kollokationen', lemmaCount: 1 },
+      currentLemma:    null, // allDone → Server liefert kein currentLemma mehr
+      submittedAnswer: { selected: ['stark', 'weit', 'leise'] },
+      submittedResult: { score: 6, maxScore: 10, correct: 1 },
+      roundResults:    [{ key: 'l1:0', lemmaId: 'l1', lemma: 'Test', score: 6, maxScore: 10, correct: 1 }],
+      revealed:        true,
+      sessionStatus:   'finished',
+      revealData: {
+        byKey: {
+          'l1:0': {
+            lemmaId: 'l1', roundIndex: 0, mode: 'kollokationen', score: 6, maxScore: 10,
+            items: [{ label: 'stark', you: 'stark', correct: true, partial: false }],
+            solution: 'stark, groß, klein',
+          },
+        },
+      },
+    }
+    renderWith(s)
+    // Der Key kommt aus roundResults[0].key, nicht aus currentLemma.id.
+    expect(screen.getByTestId('cr2-kiosk-reveal-items')).toBeTruthy()
+    expect(screen.getByText(/stark, groß, klein/)).toBeTruthy()
+  })
+
   it('zeigt „Session beendet" wenn kein Submit erfolgte', () => {
     const s = {
       ...initialState('morgentau'),

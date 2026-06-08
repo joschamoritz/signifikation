@@ -614,6 +614,28 @@
   color: var(--k-text);
 }
 
+.cr2-kiosk__reveal-legend {
+  margin: 8px 0 0;
+  font-family: 'DM Sans', system-ui, sans-serif;
+  font-size: 0.78rem;
+  color: var(--k-muted);
+}
+
+/* Wartephasen-Lebenssignal: dezenter pulsierender Gold-Punkt vor dem Lead. */
+.cr2-kiosk__pulse-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--k-gold);
+  margin-right: 8px;
+  vertical-align: middle;
+  animation: cr2-kiosk-pulse 1.8s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .cr2-kiosk__pulse-dot { animation: none; }
+}
+
 .cr2-kiosk__rounds__detail {
   padding: 4px 0 10px 16px;
   border-bottom: 1px dashed var(--k-rule-lt);

@@ -124,6 +124,9 @@ function KioskRouteInner({ code, userLabel }) {
   // eigene Abgabe existiert, die item-genaue Aufloesung EINMALIG laden.
   // Der Server gated die Loesung serverseitig (R1) — vor der Freigabe kaeme
   // ohnehin nur { revealed:false } zurueck.
+  // socketConnected in den Deps: schlaegt der erste Fetch fehl (z. B. Netz weg
+  // genau im Freigabemoment), wird beim Reconnect erneut versucht, solange
+  // revealData noch null ist (Code-Review M3).
   useEffect(() => {
     if (!state.revealed || !state.token || state.revealData || !state.submittedResult) return undefined
     let cancelled = false
@@ -136,7 +139,7 @@ function KioskRouteInner({ code, userLabel }) {
       }
     })()
     return () => { cancelled = true }
-  }, [state.revealed, state.token, state.revealData, state.submittedResult, dispatch])
+  }, [state.revealed, state.token, state.revealData, state.submittedResult, socketConnected, dispatch])
 
   const { locked } = useKioskGuard({ code, currentState: state.currentState })
 

@@ -90,6 +90,7 @@ function LueckenfuellerRecap({ rawAnswer }) {
 function RevealItems({ entry }) {
   const items = Array.isArray(entry?.items) ? entry.items : []
   if (items.length === 0) return null
+  const hasDice = items.some((it) => it.logDice != null)
   return (
     <>
       <ul className="cr2-kiosk__reveal" data-testid="cr2-kiosk-reveal-items">
@@ -120,6 +121,11 @@ function RevealItems({ entry }) {
       {entry.solution && (
         <p className="cr2-kiosk__reveal-note">
           Beste Antwort: <strong>{entry.solution}</strong>
+        </p>
+      )}
+      {hasDice && (
+        <p className="cr2-kiosk__reveal-legend">
+          logDice: je höher, desto typischer die Wortverbindung.
         </p>
       )}
     </>
@@ -154,8 +160,10 @@ export default function SubmittedState() {
   const totalMax   = rounds.reduce((s, r) => s + (Number(r.maxScore) || 0), 0)
 
   // Schritt 4 (C1): item-genaue Auflösung, vom Server byKey „<lemmaId>:<round>".
+  // Den Key aus roundResults nehmen: currentLemma ist nach Sessionende null
+  // (allDone), die Runde bleibt aber im Verlauf erhalten (Code-Review M4).
   const revealByKey = state.revealData?.byKey || {}
-  const singleKey   = `${state.currentLemma?.id ?? null}:0`
+  const singleKey   = rounds[0]?.key ?? `${state.currentLemma?.id ?? null}:0`
   const singleReveal = revealed ? (revealByKey[singleKey] || null) : null
 
   if (isEnded && !hadSubmission) {
@@ -199,9 +207,14 @@ export default function SubmittedState() {
         {isEnded ? 'Hier ist die Auflösung.' : 'Deine Antwort ist eingereicht.'}
       </h1>
       <p className="cr2-kiosk__lead">
-        {isEnded
-          ? 'Deine Antwort im Vergleich.'
-          : 'Warte auf deine Lehrkraft.'}
+        {isEnded ? (
+          'Deine Antwort im Vergleich.'
+        ) : (
+          <>
+            <span className="cr2-kiosk__pulse-dot" aria-hidden="true" />
+            Warte auf deine Lehrkraft.
+          </>
+        )}
       </p>
 
       {!isMultiRound && state.currentLemma?.lemma && (

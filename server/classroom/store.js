@@ -1075,9 +1075,12 @@ function extractDistractors(mode, row) {
       // hits: [{ word, rang, points }] — als Distraktor gilt eine gewaehlte,
       // aber nicht optimale Kollokation (Rang > 3 ⇒ points < 3). Der haeufigste
       // ist der groesste "Stolperstein".
+      // rang != null schliesst „nicht gefundene" Phantom-Picks aus (Scoring
+      // setzt rang:null/points:0 fuer Woerter ausserhalb der Optionen) — sonst
+      // verschmutzen sie die Distraktor-Statistik (Code-Review M2).
       const hits = Array.isArray(detail.hits) ? detail.hits : []
       return hits
-        .filter((h) => h && h.word && (Number(h.points) || 0) < 3)
+        .filter((h) => h && h.word && h.rang != null && (Number(h.points) || 0) < 3)
         .map((h) => String(h.word))
     }
     case 'zeitenwende': {
@@ -1183,6 +1186,9 @@ function lemmaLogDice(k) {
 //     korrekte zuerst (nach Rang), dann uebrige nach Haeufigkeit.
 //   kind 'item' (WZ/ZW/LF): jedes Item mit Trefferquote (% richtig); Snapshot-Reihenfolge.
 // Pseudonym (reine Zaehlung, D7).
+// denom = distinkte Teilnehmer (agg.participants.size). Die Options-Prozente
+// (kind 'option') gelten je Teilnehmer, weil pro Teilnehmer jede Option max. 1×
+// im picks-Zaehler steht (UNIQUE-Submission je Lemma/Runde — Code-Review H2).
 function buildDistribution(mode, snapshot, agg, denom) {
   if (denom <= 0) return null
 
@@ -1253,7 +1259,7 @@ function pickTopDistractor(distractorMap) {
   if (!distractorMap || distractorMap.size === 0) return null
   let best = null
   for (const [label, count] of distractorMap) {
-    if (!best || count > best.count || (count === best.count && label < best.label)) {
+    if (!best || count > best.count || (count === best.count && label.localeCompare(best.label) < 0)) {
       best = { label, count }
     }
   }
@@ -1395,6 +1401,10 @@ export function getSessionResults({ sessionId, teacherUserId }) {
 // Freigabe wird { revealed: false } ohne jede Loesung zurueckgegeben (R1).
 // Pseudonymitaet (D7) bleibt unberuehrt: nur die eigenen Daten, keine anderen
 // Teilnehmer.
+//
+// Hinweis (Code-Review H1): Die Eigen-Aufloesung bleibt bewusst auch nach der
+// Namens-Anonymisierung (Stufe A, ~48 h) bis zum Hard-Delete verfuegbar — die
+// Loesungswoerter sind nicht personenbezogen, nur der Name ist es.
 function zwPeriodLabel(p) {
   return p === 'pre' ? 'vor 2000' : p === 'post' ? 'nach 2000' : '—'
 }

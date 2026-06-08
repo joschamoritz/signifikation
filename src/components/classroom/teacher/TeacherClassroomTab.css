@@ -1605,6 +1605,90 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* Feiner Trenner zwischen den korrekten Top-Optionen und den Distraktoren. */
+.cr2-dist__row--divide {
+  border-top: 1px solid var(--cr2-rule-lt);
+  margin-top: 4px;
+  padding-top: 9px;
+}
+
+/* Ø-Punktzahl trägt die Schwierigkeits-Semantik (statt eigenem %-Feld). */
+.cr2-result-card__avg {
+  font-weight: 700;
+}
+
+/* Modus-Pille in Marken-Optik (design.md Badge-Farben je Modus). */
+.cr2-mode-badge {
+  display: inline-block;
+  font-family: 'DM Sans', system-ui, sans-serif;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 2px 8px;
+  border-radius: 4px;
+  border: 1px solid transparent;
+  white-space: nowrap;
+}
+.cr2-mode-badge--kollokationen  { background: #fef2f2; border-color: #fecaca; color: #9b1c1c; }
+.cr2-mode-badge--zeitenwende    { background: #eff6ff; border-color: #bfdbfe; color: #1d4ed8; }
+.cr2-mode-badge--lueckenfueller { background: #f3f4f6; border-color: #d1d5db; color: #374151; }
+.cr2-mode-badge--wortzwilling   { background: #fdf8ee; border-color: #c9a84c; color: #a07830; }
+
+/* Pro-Lemma Kopf: Label + Sortier-Umschalter. */
+.cr2-prolemma-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 4px;
+}
+.cr2-sort {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+}
+.cr2-sort__opt {
+  background: none;
+  border: none;
+  padding: 10px 2px;
+  min-height: 44px;
+  font-family: 'DM Sans', system-ui, sans-serif;
+  font-size: 0.78rem;
+  color: var(--cr2-muted);
+  cursor: pointer;
+  border-bottom: 1px solid transparent;
+}
+.cr2-sort__opt.is-active {
+  color: var(--cr2-accent);
+  border-bottom-color: var(--cr2-accent);
+  font-weight: 600;
+}
+.cr2-sort__opt:hover { color: var(--cr2-text); }
+.cr2-sort__opt:focus-visible { outline: 2px solid var(--cr2-accent); outline-offset: 2px; }
+.cr2-sort__sep { color: var(--cr2-muted); }
+
+/* Modus-Gruppen-Überschrift (nur bei Mehr-Modi-Sessions, „Reihenfolge"). */
+.cr2-prolemma-group {
+  margin: 20px 0 0;
+  padding-top: 14px;
+  border-top: 1px solid var(--cr2-rule-lt);
+}
+.cr2-prolemma-group:first-child {
+  border-top: none;
+  padding-top: 2px;
+  margin-top: 4px;
+}
+
+/* Druckansicht: Verteilungen aufgeklappt, Bedien-Elemente aus. */
+@media print {
+  details:not([open]) > *:not(summary) { display: block !important; }
+  .cr2-dist__toggle::after { display: none !important; }
+  .cr2-sort,
+  .back-btn,
+  .cr2-sticky-cta { display: none !important; }
+}
+
 /* ── W2-T2: Modus-Bloecke im Setup ───────────────────────────────── */
 /* F1 — Modus-Block als Linien-Sektion: Doppellinie oben + dezenter Gold-
    Linksakzent statt umrahmtem Kasten (keine Schatten, kein radius). */

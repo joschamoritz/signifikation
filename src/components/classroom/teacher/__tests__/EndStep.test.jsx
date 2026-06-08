@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
 import { useEffect } from 'react'
-import { render, screen, waitFor, cleanup } from '@testing-library/react'
+import { render, screen, waitFor, cleanup, fireEvent } from '@testing-library/react'
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest'
 
 vi.mock('../hooks/useTeacherSession', () => ({
@@ -106,6 +106,35 @@ describe('EndStep (W2-T4)', () => {
     expect(screen.getAllByText('klar').length).toBeGreaterThanOrEqual(1)
     expect(screen.getByText('100 %')).toBeTruthy()
     expect(screen.getByText('75 %')).toBeTruthy()
+  })
+
+  it('gruppiert nach Modus und sortiert nach Schwierigkeit auf Klick', async () => {
+    getSessionResults.mockResolvedValue({
+      session: { id: 's1', status: 'finished', title: null, finishedAt: 1 },
+      totals: { participants: 5, submissions: 10 },
+      hasSubmissions: true,
+      byLemma: [
+        { assignmentId: 'a1', mode: 'kollokationen', position: 0, lemmaId: 'l1', lemma: 'Alpha',
+          participants: 5, submissions: 5, hitRatePct: 80, avgScore: 8, maxScore: 10, topDistractor: null, distribution: null },
+        { assignmentId: 'a2', mode: 'zeitenwende', position: 1, lemmaId: 'l2', lemma: 'Beta',
+          participants: 5, submissions: 5, hitRatePct: 30, avgScore: 3, maxScore: 10, topDistractor: null, distribution: null },
+      ],
+      trickiest: [],
+    })
+    getDashboard.mockResolvedValue({ participants: [] })
+
+    renderEnd()
+    await waitFor(() => expect(screen.getByTestId('cr2-end-cards')).toBeTruthy())
+
+    // Reihenfolge-Ansicht: Modus-Gruppen sichtbar (zwei Modi → Gruppen-Header).
+    expect(screen.getByText('Reihenfolge')).toBeTruthy()
+    const lemmataOrder = screen.getAllByRole('heading', { level: 3 }).map((h) => h.textContent)
+    expect(lemmataOrder).toEqual(['Alpha', 'Beta'])
+
+    // Nach „Schwierigkeit": niedrigste Trefferquote (Beta 30 %) zuerst.
+    fireEvent.click(screen.getByText('Schwierigkeit'))
+    const lemmataDiff = screen.getAllByRole('heading', { level: 3 }).map((h) => h.textContent)
+    expect(lemmataDiff).toEqual(['Beta', 'Alpha'])
   })
 
   it('zeigt einen Empty State, wenn keine Submissions vorliegen', async () => {
