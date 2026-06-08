@@ -1605,6 +1605,33 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* Auffälligste Fragen: Lemma links, Modus-Pille rechtsbündig (wie Pro-Lemma). */
+.cr2-trickiest {
+  list-style: none;
+  margin: 16px 0 0;
+  padding: 0;
+}
+.cr2-trickiest__row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 11px 0;
+  border-bottom: 1px solid var(--cr2-rule-lt);
+}
+.cr2-trickiest__row:last-child {
+  border-bottom: none;
+}
+.cr2-trickiest__lemma {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: 'Gentium Plus', Georgia, serif;
+  font-size: 1.05rem;
+  color: var(--cr2-text);
+}
+
 /* Feiner Trenner zwischen den korrekten Top-Optionen und den Distraktoren. */
 .cr2-dist__row--divide {
   border-top: 1px solid var(--cr2-rule-lt);
@@ -1620,6 +1647,7 @@
 /* Modus-Pille in Marken-Optik (design.md Badge-Farben je Modus). */
 .cr2-mode-badge {
   display: inline-block;
+  flex-shrink: 0;
   font-family: 'DM Sans', system-ui, sans-serif;
   font-size: 0.62rem;
   font-weight: 700;

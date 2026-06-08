@@ -225,18 +225,16 @@ export default function EndStep() {
             </section>
           )}
 
-          {/* Auffälligste Fragen (Top 3 niedrigste Trefferquote) */}
+          {/* Auffälligste Fragen — nach Schwierigkeit sortiert (härteste zuerst),
+              daher ohne eigene Prozent-/Punktanzeige; Detail steht in „Pro Lemma". */}
           {trickiest.length > 0 && (
             <section className="cr2-section" aria-label="Auffälligste Fragen">
               <span className="cr2-section__label">Auffälligste Fragen</span>
-              <ul className="cr2-aggregate" data-testid="cr2-end-trickiest">
+              <ul className="cr2-trickiest" data-testid="cr2-end-trickiest">
                 {trickiest.map((t) => (
-                  <li key={`${t.assignmentId}:${t.lemmaId}`} className="cr2-aggregate__row">
-                    <span className="cr2-aggregate__lemma">
-                      {t.lemma}{' '}
-                      <ModeBadge mode={t.mode} />
-                    </span>
-                    <span className={`cr2-aggregate__pct ${rateClass(t.hitRatePct)}`}>{t.hitRatePct}%</span>
+                  <li key={`${t.assignmentId}:${t.lemmaId}`} className="cr2-trickiest__row">
+                    <span className="cr2-trickiest__lemma">{t.lemma}</span>
+                    <ModeBadge mode={t.mode} />
                   </li>
                 ))}
               </ul>
