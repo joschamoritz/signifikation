@@ -1401,6 +1401,182 @@
   line-height: 1.5;
 }
 
+.cr2-result-empty__ornament {
+  font-family: 'Gentium Plus', Georgia, serif;
+  font-size: 1.3rem;
+  letter-spacing: 0.5em;
+  color: var(--cr2-gold);
+  margin: 0 0 14px;
+}
+
+/* ── A1: Redesign Auswertung (Klassen-Puls, typografische Trefferquote) ── */
+.cr2-pulse {
+  font-family: 'Gentium Plus', Georgia, serif;
+  font-style: italic;
+  font-size: 1.05rem;
+  color: var(--cr2-text);
+  margin: 0;
+  line-height: 1.5;
+}
+
+/* Doppellinie als Abschnittstrenner (design.md: 0.9px + 0.45px, 3px Abstand). */
+.cr2-doubleline {
+  border: none;
+  border-top: 0.9px solid var(--cr2-rule);
+  margin: 18px 0 0;
+  position: relative;
+}
+.cr2-doubleline::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 3px;
+  border-top: 0.45px solid var(--cr2-rule);
+}
+
+/* Pro-Lemma-Eintrag: Subzeile (Teilnehmer + Ø-Score). */
+.cr2-result-card__sub {
+  font-family: 'Gentium Plus', Georgia, serif;
+  font-style: italic;
+  font-size: 0.85rem;
+  color: var(--cr2-muted);
+  margin: 0 0 8px;
+}
+
+/* Typografische Trefferquote statt Balken. */
+.cr2-rate {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin: 4px 0 0;
+}
+.cr2-rate__num {
+  font-family: 'Gentium Plus', Georgia, serif;
+  font-size: 2rem;
+  font-weight: 700;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+.cr2-rate__text {
+  font-family: 'Gentium Plus', Georgia, serif;
+  font-style: italic;
+  font-size: 0.9rem;
+  color: var(--cr2-muted);
+}
+
+/* Trefferquote-Semantik (auch auf .cr2-aggregate__pct in „Auffälligste Fragen"). */
+.cr2-rate--low  { color: #991b1b; }
+.cr2-rate--mid  { color: #92400e; }
+.cr2-rate--high { color: #166534; }
+
+.cr2-result-card__distractorLead {
+  font-family: 'Gentium Plus', Georgia, serif;
+  font-style: italic;
+  color: var(--cr2-muted);
+}
+
+/* ── Antwortverteilung pro Lemma (aufklappbar, D1) ───────────────── */
+.cr2-dist {
+  margin-top: 12px;
+}
+
+.cr2-dist__toggle {
+  font-family: 'DM Sans', system-ui, sans-serif;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--cr2-accent);
+  cursor: pointer;
+  list-style: none;
+  padding: 6px 0;
+  min-height: 32px;
+  display: inline-flex;
+  align-items: center;
+}
+.cr2-dist__toggle::-webkit-details-marker { display: none; }
+.cr2-dist__toggle::after {
+  content: '▸';
+  margin-left: 8px;
+  font-size: 0.7rem;
+  transition: transform 0.15s ease;
+}
+.cr2-dist[open] .cr2-dist__toggle::after {
+  content: '▾';
+}
+.cr2-dist__toggleCount {
+  color: var(--cr2-muted);
+  font-weight: 400;
+}
+
+.cr2-dist__list {
+  list-style: none;
+  margin: 8px 0 4px;
+  padding: 0;
+}
+
+.cr2-dist__row {
+  display: grid;
+  grid-template-columns: 14px minmax(0, 10ch) 1fr 3.2em;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 0;
+}
+
+.cr2-dist__mark {
+  font-size: 0.85rem;
+  color: #166534;
+  text-align: center;
+}
+
+.cr2-dist__word {
+  font-family: 'Gentium Plus', Georgia, serif;
+  font-size: 0.98rem;
+  color: var(--cr2-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.cr2-dist__row--correct .cr2-dist__word {
+  color: #166534;
+}
+
+.cr2-dist__bar {
+  position: relative;
+  height: 6px;
+  background: var(--cr2-rule-lt);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.cr2-dist__fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  height: 100%;
+  background: var(--cr2-accent);
+  min-width: 2px;
+}
+.cr2-dist__row--correct .cr2-dist__fill {
+  background: #166534;
+}
+
+/* Item-Modus (WZ/ZW/LF): Balken nach Trefferquote-Band gefaerbt. */
+.cr2-dist__row--band-low .cr2-dist__fill  { background: #991b1b; }
+.cr2-dist__row--band-mid .cr2-dist__fill  { background: #92400e; }
+.cr2-dist__row--band-high .cr2-dist__fill { background: #166534; }
+
+.cr2-dist__sub {
+  font-style: italic;
+  color: var(--cr2-muted);
+  font-size: 0.82rem;
+}
+
+.cr2-dist__pct {
+  font-family: 'DM Sans', system-ui, sans-serif;
+  font-size: 0.75rem;
+  color: var(--cr2-muted);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
 /* ── W2-T2: Modus-Bloecke im Setup ───────────────────────────────── */
 /* F1 — Modus-Block als Linien-Sektion: Doppellinie oben + dezenter Gold-
    Linksakzent statt umrahmtem Kasten (keine Schatten, kein radius). */

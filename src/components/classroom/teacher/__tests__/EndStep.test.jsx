@@ -76,6 +76,37 @@ describe('EndStep (W2-T4)', () => {
     expect(screen.getByText('weit')).toBeTruthy()
   })
 
+  it('zeigt die Antwortverteilung pro Lemma (aufklappbar)', async () => {
+    getSessionResults.mockResolvedValue({
+      session: { id: 's1', status: 'finished', title: null, finishedAt: 1 },
+      totals: { participants: 4, submissions: 4 },
+      hasSubmissions: true,
+      byLemma: [
+        {
+          assignmentId: 'a1', mode: 'kollokationen', position: 0,
+          lemmaId: 'lemma-1', lemma: 'Wasser',
+          participants: 4, submissions: 4, hitRatePct: 70, avgScore: 7, maxScore: 10,
+          topDistractor: { label: 'weit', count: 3 },
+          distribution: [
+            { label: 'klar', rang: 1, correct: true, count: 4, pct: 100, kind: 'option' },
+            { label: 'weit', rang: 8, correct: false, count: 3, pct: 75, kind: 'option' },
+          ],
+        },
+      ],
+      trickiest: [],
+    })
+    getDashboard.mockResolvedValue({ participants: [] })
+
+    renderEnd()
+    await waitFor(() => {
+      expect(screen.getByTestId('cr2-end-dist')).toBeTruthy()
+    })
+    // Optionen + Anteile sind im DOM (auch wenn das <details> zugeklappt ist).
+    expect(screen.getByText('klar')).toBeTruthy()
+    expect(screen.getByText('100 %')).toBeTruthy()
+    expect(screen.getByText('75 %')).toBeTruthy()
+  })
+
   it('zeigt einen Empty State, wenn keine Submissions vorliegen', async () => {
     getSessionResults.mockResolvedValue({
       session: { id: 's1', status: 'finished', title: null, finishedAt: 1 },

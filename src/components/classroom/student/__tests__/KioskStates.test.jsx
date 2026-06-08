@@ -118,7 +118,7 @@ describe('SubmittedState (T-5.7)', () => {
       revealed:        false,
     }
     renderWith(s)
-    expect(screen.getByTestId('cr2-kiosk-submitted-title').textContent).toMatch(/abgegeben/i)
+    expect(screen.getByTestId('cr2-kiosk-submitted-title').textContent).toMatch(/eingereicht/i)
     expect(screen.queryByTestId('cr2-kiosk-reveal')).toBeNull()
   })
 
@@ -136,6 +136,39 @@ describe('SubmittedState (T-5.7)', () => {
     renderWith(s)
     expect(screen.getByTestId('cr2-kiosk-reveal')).toBeTruthy()
     expect(screen.getByTestId('cr2-kiosk-to-app')).toBeTruthy()
+  })
+
+  it('zeigt nach Freigabe die item-genaue Auflösung (✓/✗ + Lösung)', () => {
+    const s = {
+      ...initialState('morgentau'),
+      currentState:    KIOSK_STATES.ENDED,
+      assignment:      { id: 'a1', mode: 'kollokationen', lemmaCount: 1 },
+      currentLemma:    { id: 'l1', lemma: 'Test', ipa: '', prompt: { words: [] } },
+      submittedAnswer: { selected: ['stark', 'weit', 'leise'] },
+      submittedResult: { score: 6, maxScore: 10, correct: 1 },
+      revealed:        true,
+      sessionStatus:   'finished',
+      revealData: {
+        byKey: {
+          'l1:0': {
+            lemmaId: 'l1', roundIndex: 0, mode: 'kollokationen',
+            score: 6, maxScore: 10,
+            items: [
+              { label: 'stark', you: 'stark', correct: true,  partial: false },
+              { label: 'weit',  you: 'weit',  correct: false, partial: true  },
+              { label: 'leise', you: 'leise', correct: false, partial: false },
+            ],
+            solution: 'stark, groß, klein',
+          },
+        },
+      },
+    }
+    renderWith(s)
+    expect(screen.getByTestId('cr2-kiosk-reveal-items')).toBeTruthy()
+    // Lösung wird genannt.
+    expect(screen.getByText(/stark, groß, klein/)).toBeTruthy()
+    // Punkte aus der Reveal-Antwort.
+    expect(screen.getByText(/6 \/ 10 Punkte/)).toBeTruthy()
   })
 
   it('zeigt „Session beendet" wenn kein Submit erfolgte', () => {

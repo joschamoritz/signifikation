@@ -25,6 +25,7 @@ import WaitingState    from './states/WaitingState'
 import PlayingState    from './states/PlayingState'
 import SubmittedState  from './states/SubmittedState'
 import PauseState      from './states/PauseState'
+import { fetchReveal } from './kioskFetch'
 import { useStudentSession, clearKioskSession } from './hooks/useStudentSession'
 import { useStudentSocket } from './hooks/useStudentSocket'
 import { useKioskGuard }    from './hooks/useKioskGuard'
@@ -118,6 +119,24 @@ function KioskRouteInner({ code, userLabel }) {
   // Lazy-Bridge: Socket muss refreshView() rufen koennen, ohne dass die
   // Hook-Reihenfolge tanzt.
   useEffect(() => { refreshRef.fn = refreshView }, [refreshView, refreshRef])
+
+  // Schritt 4 (C1): Sobald die Lehrkraft freigibt (revealed=true) UND eine
+  // eigene Abgabe existiert, die item-genaue Aufloesung EINMALIG laden.
+  // Der Server gated die Loesung serverseitig (R1) — vor der Freigabe kaeme
+  // ohnehin nur { revealed:false } zurueck.
+  useEffect(() => {
+    if (!state.revealed || !state.token || state.revealData || !state.submittedResult) return undefined
+    let cancelled = false
+    ;(async () => {
+      try {
+        const data = await fetchReveal(state.token)
+        if (!cancelled && data?.revealed) dispatch({ type: 'SET_REVEAL', data })
+      } catch {
+        // Aufloesung ist eine Ergaenzung — bei Fehler bleibt der Score-Recap.
+      }
+    })()
+    return () => { cancelled = true }
+  }, [state.revealed, state.token, state.revealData, state.submittedResult, dispatch])
 
   const { locked } = useKioskGuard({ code, currentState: state.currentState })
 

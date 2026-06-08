@@ -45,6 +45,9 @@ export function initialState(code) {
     // Wechsel geleert. Scores zeigen wir erst nach „Auflösung freigeben".
     roundResults:    [],          // [{ key, lemmaId, lemma, score, maxScore, correct }]
     revealed:        false,       // hat Lehrer „Auflösung freigeben" gedrueckt? (session:finished)
+    // Schritt 4 (C1): item-genaue Aufloesung vom Server, byKey „<lemmaId>:<round>".
+    // Wird erst nach Freigabe geladen (R1-Gate serverseitig).
+    revealData:      null,        // { byKey: { [key]: { mode, score, maxScore, items, solution } } } | null
     notice:          null,        // info-Hinweise an die UI
     error:           null,
   }
@@ -169,6 +172,10 @@ function reducer(state, action) {
     case 'SESSION_ENDED':
       // session:finished oder :aborted ohne eigene Submission.
       return { ...state, sessionStatus: action.reason === 'aborted' ? 'aborted' : 'finished', revealed: true, currentState: state.submittedResult ? KIOSK_STATES.SUBMITTED : KIOSK_STATES.ENDED }
+
+    case 'SET_REVEAL':
+      // Item-genaue Aufloesung nach Freigabe (Schritt 4 / C1).
+      return { ...state, revealData: action.data || null }
 
     case 'GOTO':
       return { ...state, currentState: action.state }

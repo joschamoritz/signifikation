@@ -457,6 +457,19 @@ describe('classroom routes', () => {
       expect(body.score).toBe(10)
     })
 
+    it('Schritt 4 (R1): /me/reveal gibt vor der Freigabe KEINE Lösung preis', async () => {
+      const res = await fetch(`${baseUrl}/api/v1/classroom/me/reveal`, {
+        headers: participantHeaders(participantToken),
+      })
+      expect(res.status).toBe(200)
+      const body = await res.json()
+      // Session laeuft noch → keine Aufloesung, kein byKey-Inhalt.
+      expect(body.revealed).toBe(false)
+      expect(Object.keys(body.byKey || {})).toHaveLength(0)
+      // Keine Loesungswoerter (rang-1-Kollokatoren) im Payload.
+      expect(JSON.stringify(body)).not.toContain('stark')
+    })
+
     it('Dual-Auth: eingeloggter Lehrer + Schueler-Token → Participant-Vorrang (kein „sessionId fehlt")', async () => {
       // Realfall (Praxistest): Lehrer im selben Browser eingeloggt (Dev-Header
       // bzw. Cookie) UND als Schueler beigetreten (Bearer). submission:write muss

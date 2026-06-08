@@ -490,6 +490,128 @@
   padding-top: 10px;
 }
 
+/* Read-only Recap der eigenen Antwort (Wartephase): entkastelte Linien-Liste,
+   neutrales ·-Bullet — KEIN ✓ (das wuerde vor der Freigabe „korrekt" suggerieren). */
+.cr2-kiosk__reslabel {
+  display: block;
+  font-family: 'DM Sans', system-ui, sans-serif;
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  color: var(--k-muted);
+  margin: 0 0 6px;
+}
+
+.cr2-kiosk__recap {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.cr2-kiosk__recap-row {
+  display: grid;
+  grid-template-columns: 16px 1fr auto;
+  gap: 4px 10px;
+  align-items: baseline;
+  padding: 10px 0;
+  border-top: 1px solid var(--k-rule-lt);
+  font-family: 'Gentium Plus', Georgia, serif;
+  font-size: 1.05rem;
+}
+
+.cr2-kiosk__recap-row:first-child {
+  border-top: none;
+}
+
+.cr2-kiosk__recap-bullet {
+  font-family: 'DM Sans', system-ui, sans-serif;
+  font-size: 0.8rem;
+  color: var(--k-muted);
+}
+
+.cr2-kiosk__recap-aside {
+  grid-column: 3;
+  font-family: 'Gentium Plus', Georgia, serif;
+  font-style: italic;
+  font-size: 0.92rem;
+  color: var(--k-muted);
+  white-space: nowrap;
+}
+
+.cr2-kiosk__recap-empty {
+  font-family: 'Gentium Plus', Georgia, serif;
+  font-style: italic;
+  color: var(--k-muted);
+  font-size: 0.92rem;
+  margin: 0;
+  padding: 8px 0;
+}
+
+/* Schritt 4 (C1): item-genaue Auflösung nach Freigabe — ✓/·/✗ pro Antwort. */
+.cr2-kiosk__reveal {
+  list-style: none;
+  margin: 4px 0 0;
+  padding: 0;
+}
+
+.cr2-kiosk__reveal-row {
+  display: grid;
+  grid-template-columns: 18px 1fr;
+  gap: 2px 10px;
+  align-items: baseline;
+  padding: 8px 0;
+  border-top: 1px solid var(--k-rule-lt);
+  font-family: 'Gentium Plus', Georgia, serif;
+  font-size: 1.05rem;
+}
+.cr2-kiosk__reveal-row:first-child { border-top: none; }
+
+.cr2-kiosk__reveal-mark {
+  font-family: 'DM Sans', system-ui, sans-serif;
+  font-size: 0.9rem;
+  text-align: center;
+}
+.cr2-kiosk__reveal-row--is-correct .cr2-kiosk__reveal-mark { color: #166534; }
+.cr2-kiosk__reveal-row--is-wrong   .cr2-kiosk__reveal-mark { color: var(--k-error); }
+.cr2-kiosk__reveal-row--is-partial .cr2-kiosk__reveal-mark { color: var(--k-muted); }
+
+.cr2-kiosk__reveal-row--is-correct .cr2-kiosk__reveal-word { color: #166534; }
+.cr2-kiosk__reveal-row--is-wrong .cr2-kiosk__reveal-word {
+  color: var(--k-muted);
+  text-decoration: line-through;
+}
+
+.cr2-kiosk__reveal-you {
+  font-style: italic;
+  color: var(--k-muted);
+  font-size: 0.88rem;
+}
+
+.cr2-kiosk__reveal-sol {
+  grid-column: 2;
+  font-family: 'DM Sans', system-ui, sans-serif;
+  font-size: 0.82rem;
+  color: #166534;
+}
+
+.cr2-kiosk__reveal-note {
+  margin: 10px 0 0;
+  font-family: 'Gentium Plus', Georgia, serif;
+  font-style: italic;
+  font-size: 0.92rem;
+  color: var(--k-muted);
+}
+.cr2-kiosk__reveal-note strong {
+  font-style: normal;
+  color: var(--k-text);
+}
+
+.cr2-kiosk__rounds__detail {
+  padding: 4px 0 10px 16px;
+  border-bottom: 1px dashed var(--k-rule-lt);
+}
+
 /* Entkastelter Abschluss-Link „Zur App" — Wörterbuch-Stil statt Block-Button. */
 .cr2-kiosk__textlink {
   display: inline-flex;

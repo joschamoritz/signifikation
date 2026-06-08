@@ -259,6 +259,15 @@ const stmts = {
   getScoreBySubmission: db.prepare(`
     SELECT * FROM classroom_score_record WHERE submission_id = ?
   `),
+  // Schritt 4 (C1): eigene Abgaben+Scores EINES Teilnehmers fuer die
+  // Aufloesung. Nur nach Freigabe (Session finished/aborted) ausliefern (R1).
+  listParticipantResultRows: db.prepare(`
+    SELECT s.assignment_id, s.lemma_id, s.round_index, s.raw_answer,
+           sc.score, sc.max_score, sc.correct, sc.detail_json
+    FROM classroom_submission s
+    JOIN classroom_score_record sc ON sc.submission_id = s.id
+    WHERE s.session_id = ? AND s.participant_id = ?
+  `),
   listSessionSubmissionsForDashboard: db.prepare(`
     SELECT s.lemma_id, s.assignment_id, s.participant_id, s.round_index, sc.score, sc.max_score, sc.correct
     FROM classroom_submission s
@@ -1112,6 +1121,121 @@ function extractDistractors(mode, row) {
   }
 }
 
+// Alle gewaehlten Optionen einer Kollokationen-Abgabe (nicht nur Distraktoren)
+// — Basis fuer die Options-Anteil-Verteilung (kind 'option').
+function extractPicks(mode, row) {
+  const detail = parseJsonSafe(row.detail_json, null, { field: 'detail_json' })
+  if (!detail) return []
+  switch (mode) {
+    case 'kollokationen': {
+      const hits = Array.isArray(detail.hits) ? detail.hits : []
+      return hits.filter((h) => h && h.word).map((h) => String(h.word))
+    }
+    default:
+      return []
+  }
+}
+
+// Pro-Item-Korrektheit einer Abgabe (Wort-Zwilling / Zeitenwende / Lueckenfueller).
+// Liefert [{ key, isCorrect }] je beantwortetem Item — Basis fuer die
+// Trefferquote-je-Item-Verteilung (kind 'item'). Pseudonym (keine Identitaet).
+function extractItems(mode, row) {
+  const detail = parseJsonSafe(row.detail_json, null, { field: 'detail_json' })
+  if (!detail) return []
+  switch (mode) {
+    case 'wortzwilling': {
+      const a = Array.isArray(detail.zoneA) ? detail.zoneA : []
+      const b = Array.isArray(detail.zoneB) ? detail.zoneB : []
+      return [...a, ...b]
+        .filter((d) => d && d.word)
+        .map((d) => ({ key: String(d.word), isCorrect: d.correct === true }))
+    }
+    case 'zeitenwende': {
+      const arr = Array.isArray(detail) ? detail : []
+      return arr
+        .filter((d) => d && d.wort)
+        .map((d) => ({ key: String(d.wort), isCorrect: d.correct === true }))
+    }
+    case 'lueckenfueller': {
+      // Eine Runde pro Submission (round_index). Gilt als „richtig", wenn Punkte.
+      return [{ key: `r${Number(row.round_index) || 0}`, isCorrect: (Number(row.score) || 0) > 0 }]
+    }
+    default:
+      return []
+  }
+}
+
+function roundTypeLabel(type) {
+  if (type === 'choice') return 'Auswahl'
+  if (type === 'free') return 'Freie Eingabe'
+  if (type === 'double') return 'Doppellücke'
+  return type || ''
+}
+
+// Antwortverteilung pro Lemma.
+//   kind 'option' (Kollokationen): jede Option mit Wahl-Anteil + Korrektheit;
+//     korrekte zuerst (nach Rang), dann uebrige nach Haeufigkeit.
+//   kind 'item' (WZ/ZW/LF): jedes Item mit Trefferquote (% richtig); Snapshot-Reihenfolge.
+// Pseudonym (reine Zaehlung, D7).
+function buildDistribution(mode, snapshot, agg, denom) {
+  if (denom <= 0) return null
+
+  if (mode === 'kollokationen') {
+    const koll = Array.isArray(snapshot?.kollokatoren) ? snapshot.kollokatoren : []
+    if (koll.length === 0) return null
+    return koll
+      .map((k) => {
+        const label = String(k.wort)
+        const rang = Number(k.rang) || 99
+        const count = agg.picks.get(label) || 0
+        return { label, rang, correct: rang <= 3, count, pct: Math.round((count / denom) * 100), kind: 'option' }
+      })
+      .sort((x, y) => {
+        if (x.correct !== y.correct) return x.correct ? -1 : 1
+        if (x.correct) return x.rang - y.rang
+        return y.count - x.count || x.label.localeCompare(y.label)
+      })
+  }
+
+  const itemRow = (key, label, sub) => {
+    const it = agg.items.get(key)
+    const answered = it?.answered || 0
+    const correct = it?.correct || 0
+    return { label, sub: sub || null, count: correct, pct: answered > 0 ? Math.round((correct / answered) * 100) : 0, kind: 'item' }
+  }
+
+  if (mode === 'wortzwilling') {
+    const koll = Array.isArray(snapshot?.kollokatoren) ? snapshot.kollokatoren : []
+    if (koll.length === 0) return null
+    return koll.map((k) => {
+      const zone = k.zuordnung === 'A' ? 'Zone A' : k.zuordnung === 'B' ? 'Zone B' : null
+      return itemRow(String(k.wort), String(k.wort), zone)
+    })
+  }
+
+  if (mode === 'zeitenwende') {
+    const words = Array.isArray(snapshot?.words) ? snapshot.words : []
+    if (words.length === 0) return null
+    return words.map((w) => {
+      const period = w.periode === 'pre' ? 'vor 2000' : w.periode === 'post' ? 'nach 2000' : null
+      return itemRow(String(w.wort), String(w.wort), period)
+    })
+  }
+
+  if (mode === 'lueckenfueller') {
+    const rounds = Array.isArray(snapshot?.rounds) ? snapshot.rounds : []
+    if (rounds.length === 0) return null
+    return rounds.map((r, i) => {
+      const solution = r.kollokator
+        || (Array.isArray(r.sentences) ? r.sentences.map((s) => s && s.kollokator).filter(Boolean).join(' / ') : '')
+        || `Runde ${i + 1}`
+      return itemRow(`r${i}`, String(solution), roundTypeLabel(r.type))
+    })
+  }
+
+  return null
+}
+
 // Haeufigsten Distraktor aus einer Label→Count-Map waehlen.
 // Deterministisch: hoechster Count, bei Gleichstand alphabetisch.
 function pickTopDistractor(distractorMap) {
@@ -1165,6 +1289,8 @@ export function getSessionResults({ sessionId, teacherUserId }) {
         correctSum: 0,
         participants: new Set(),
         distractors: new Map(),
+        picks: new Map(),
+        items: new Map(),
       }
       byKey.set(key, agg)
     }
@@ -1173,8 +1299,18 @@ export function getSessionResults({ sessionId, teacherUserId }) {
     agg.maxSum += Number(row.max_score) || 0
     agg.correctSum += Number(row.correct) || 0
     agg.participants.add(row.participant_id)
-    for (const label of extractDistractors(modeByAssignment.get(row.assignment_id), row)) {
+    const rowMode = modeByAssignment.get(row.assignment_id)
+    for (const label of extractDistractors(rowMode, row)) {
       agg.distractors.set(label, (agg.distractors.get(label) || 0) + 1)
+    }
+    for (const word of extractPicks(rowMode, row)) {
+      agg.picks.set(word, (agg.picks.get(word) || 0) + 1)
+    }
+    for (const { key: itemKey, isCorrect } of extractItems(rowMode, row)) {
+      const it = agg.items.get(itemKey) || { answered: 0, correct: 0 }
+      it.answered += 1
+      if (isCorrect) it.correct += 1
+      agg.items.set(itemKey, it)
     }
   }
 
@@ -1190,18 +1326,21 @@ export function getSessionResults({ sessionId, teacherUserId }) {
         ? Math.round((agg.scoreSum / agg.submissions) * 10) / 10
         : 0
       const maxScore = agg.submissions > 0 ? Math.round(agg.maxSum / agg.submissions) : 0
+      const lemmaSnapshot = a.contentSnapshot?.byLemma?.[lemmaId] ?? a.contentSnapshot
+      const distribution = buildDistribution(a.mode, lemmaSnapshot, agg, agg.participants.size)
       byLemma.push({
         assignmentId: a.id,
         mode: a.mode,
         position: a.position,
         lemmaId: String(lemmaId),
-        lemma: a.contentSnapshot?.byLemma?.[lemmaId]?.lemma || String(lemmaId),
+        lemma: lemmaSnapshot?.lemma || String(lemmaId),
         participants: agg.participants.size,
         submissions: agg.submissions,
         hitRatePct,
         avgScore,
         maxScore,
         topDistractor: pickTopDistractor(agg.distractors),
+        distribution,
       })
     }
   }
@@ -1237,6 +1376,118 @@ export function getSessionResults({ sessionId, teacherUserId }) {
     byLemma,
     trickiest,
   }
+}
+
+// ── Schritt 4 (C1): Schueler-Aufloesung, item-genau ────────────────────
+// Liefert AUSSCHLIESSLICH die EIGENE Abgabe + Korrektheit + Loesung eines
+// Teilnehmers, und das NUR nach Freigabe (Session finished/aborted). Vor der
+// Freigabe wird { revealed: false } ohne jede Loesung zurueckgegeben (R1).
+// Pseudonymitaet (D7) bleibt unberuehrt: nur die eigenen Daten, keine anderen
+// Teilnehmer.
+function zwPeriodLabel(p) {
+  return p === 'pre' ? 'vor 2000' : p === 'post' ? 'nach 2000' : '—'
+}
+
+function buildRevealItems(mode, detail, snapshot) {
+  if (!detail) return { items: [], solution: null }
+  switch (mode) {
+    case 'kollokationen': {
+      const hits = Array.isArray(detail.hits) ? detail.hits : []
+      const items = hits.map((h) => ({
+        label: String(h.word),
+        you: String(h.word),
+        correct: (Number(h.points) || 0) >= 3,
+        partial: (Number(h.points) || 0) > 0 && (Number(h.points) || 0) < 3,
+      }))
+      const top3 = (Array.isArray(snapshot?.kollokatoren) ? snapshot.kollokatoren : [])
+        .filter((k) => (Number(k.rang) || 99) <= 3)
+        .sort((a, b) => (Number(a.rang) || 99) - (Number(b.rang) || 99))
+        .map((k) => String(k.wort))
+      return { items, solution: top3.length ? top3.join(', ') : null }
+    }
+    case 'wortzwilling': {
+      const a = (Array.isArray(detail.zoneA) ? detail.zoneA : []).map((d) => ({
+        label: String(d.word), you: 'Zone A', correct: d.correct === true,
+        solution: d.expected === 'A' ? 'Zone A' : d.expected === 'B' ? 'Zone B' : null,
+      }))
+      const b = (Array.isArray(detail.zoneB) ? detail.zoneB : []).map((d) => ({
+        label: String(d.word), you: 'Zone B', correct: d.correct === true,
+        solution: d.expected === 'A' ? 'Zone A' : d.expected === 'B' ? 'Zone B' : null,
+      }))
+      return { items: [...a, ...b], solution: null }
+    }
+    case 'zeitenwende': {
+      const arr = Array.isArray(detail) ? detail : []
+      const items = arr.map((d) => ({
+        label: String(d.wort), you: zwPeriodLabel(d.given), correct: d.correct === true,
+        solution: zwPeriodLabel(d.expected),
+      }))
+      return { items, solution: null }
+    }
+    case 'lueckenfueller': {
+      if (detail.type === 'choice' || detail.type === 'free') {
+        const you = detail.selected ?? detail.value ?? null
+        const sol = detail.kollokator != null ? String(detail.kollokator) : null
+        return {
+          items: [{
+            label: sol || '—',
+            you: you != null ? String(you) : '—',
+            correct: sol != null && String(you ?? '') === sol,
+            solution: sol,
+          }],
+          solution: sol,
+        }
+      }
+      if (detail.type === 'double') {
+        const slots = Array.isArray(detail.slots) ? detail.slots : []
+        const items = slots.map((s) => ({
+          label: s.expected != null ? String(s.expected) : '—',
+          you: s.given != null ? String(s.given) : '—',
+          correct: s.correct === true,
+          solution: s.expected != null ? String(s.expected) : null,
+        }))
+        return { items, solution: null }
+      }
+      return { items: [], solution: null }
+    }
+    default:
+      return { items: [], solution: null }
+  }
+}
+
+export function getParticipantReveal({ sessionId, participantId }) {
+  const sessionRow = stmts.getSessionById.get(sessionId)
+  if (!sessionRow) return { error: 'NOT_FOUND' }
+  const session = normalizeSessionRow(sessionRow)
+  // R1-Gate: vor der Freigabe NIEMALS Loesungsdaten ausliefern.
+  if (session.status !== 'finished' && session.status !== 'aborted') {
+    return { revealed: false, byKey: {} }
+  }
+
+  const assignments = stmts.listAssignmentsBySession.all(sessionId).map(normalizeAssignmentRow)
+  const byAssignment = new Map(assignments.map((a) => [a.id, a]))
+  const rows = stmts.listParticipantResultRows.all(sessionId, participantId)
+
+  const byKey = {}
+  for (const row of rows) {
+    const a = byAssignment.get(row.assignment_id)
+    if (!a) continue
+    const lemmaId = String(row.lemma_id)
+    const snapshot = a.contentSnapshot?.byLemma?.[lemmaId] ?? a.contentSnapshot
+    const detail = parseJsonSafe(row.detail_json, null, { field: 'detail_json' })
+    const { items, solution } = buildRevealItems(a.mode, detail, snapshot)
+    byKey[`${lemmaId}:${Number(row.round_index) || 0}`] = {
+      lemmaId,
+      roundIndex: Number(row.round_index) || 0,
+      mode: a.mode,
+      score: Number(row.score) || 0,
+      maxScore: Number(row.max_score) || 0,
+      items,
+      solution,
+    }
+  }
+
+  return { revealed: true, byKey }
 }
 
 // ── Test-Helper (nur fuer Tests verwenden) ──────────────────────────

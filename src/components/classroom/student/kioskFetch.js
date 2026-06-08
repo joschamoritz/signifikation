@@ -69,6 +69,14 @@ export async function fetchView(token) {
   return readBody(res)
 }
 
+// Schritt 4 (C1): item-genaue Aufloesung der EIGENEN Abgabe. Der Server
+// liefert vor der Freigabe { revealed:false } ohne Loesung (R1).
+export async function fetchReveal(token) {
+  const res = await fetch(`${BASE}/me/reveal`, { headers: bearer(token) })
+  await throwIfNotOk(res)
+  return readBody(res)
+}
+
 export async function submitAnswer(token, { assignmentId, lemmaId, roundIndex, rawAnswer, clientMs }) {
   const res = await fetch(`${BASE}/me/submit`, {
     method:  'POST',
@@ -113,6 +121,7 @@ export async function leaveSession(token) {
 export default {
   joinSession,
   fetchView,
+  fetchReveal,
   submitAnswer,
   sendHeartbeat,
   leaveSession,

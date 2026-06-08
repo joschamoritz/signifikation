@@ -71,6 +71,7 @@ import {
   submitAnswer,
   getDashboard,
   getSessionResults,
+  getParticipantReveal,
 } from '../classroom/store.js'
 import { fetchLemma, fetchZeitenwende } from '../wortprofil.js'
 import { fetchWortZwilling } from '../wortzwilling.js'
@@ -1252,6 +1253,28 @@ router.get(
       return res.json(view)
     } catch (err) {
       logger.error({ err }, 'cr2 me/view crashed')
+      return res.status(500).json({ error: 'Interner Serverfehler' })
+    }
+  },
+)
+
+// ── Schritt 4 (C1) GET /api/v1/classroom/me/reveal ─────────────
+// Item-genaue Aufloesung der EIGENEN Abgabe — NUR nach Freigabe (D5/R1).
+// Vor der Freigabe liefert der Store { revealed: false } ohne Loesung.
+router.get(
+  '/api/v1/classroom/me/reveal',
+  requireParticipantAuth,
+  (req, res) => {
+    try {
+      const { participant, sessionId } = req.cr2
+      const result = getParticipantReveal({ sessionId, participantId: participant.id })
+      if (result.error) {
+        const mapped = mapError(result.error)
+        return res.status(mapped.status).json({ error: mapped.message })
+      }
+      return res.json(result)
+    } catch (err) {
+      logger.error({ err }, 'cr2 me/reveal crashed')
       return res.status(500).json({ error: 'Interner Serverfehler' })
     }
   },

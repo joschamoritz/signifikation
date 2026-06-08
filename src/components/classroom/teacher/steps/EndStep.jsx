@@ -25,6 +25,23 @@ function modeLabel(mode) {
   return MODE_LABELS[mode] || mode || '—'
 }
 
+// Trefferquote-Semantik (design.md: Status-Farben nur fuer Bedeutung):
+// rot = hoher Klaerbedarf, amber = mittel, gruen = gut verstanden.
+function rateClass(pct) {
+  if (pct < 40) return 'cr2-rate--low'
+  if (pct < 70) return 'cr2-rate--mid'
+  return 'cr2-rate--high'
+}
+
+// Klassen-Puls: rohe Zaehler in einen lesbaren Satz verdichten.
+function pulseSentence(totals) {
+  const p = totals.participants || 0
+  const s = totals.submissions || 0
+  const pPart = `${p} ${p === 1 ? 'Teilnehmer hat' : 'Teilnehmer haben'} abgegeben`
+  const sPart = `${s} ${s === 1 ? 'Antwort' : 'Antworten'} insgesamt`
+  return `${pPart} · ${sPart}.`
+}
+
 export default function EndStep() {
   const { state, dispatch } = useTeacherClassroom()
   const sessionId = state.activeSessionId
@@ -80,32 +97,23 @@ export default function EndStep() {
 
       {results && (
         <>
-          <section className="cr2-section" aria-label="Übersicht">
-            <span className="cr2-section__label">Übersicht</span>
-            <ul className="cr2-aggregate">
-              <li className="cr2-aggregate__row">
-                <span className="cr2-aggregate__lemma">Teilnehmer mit Abgabe</span>
-                <span className="cr2-aggregate__pct" style={{ color: 'var(--cr2-text)' }}>
-                  {totals.participants}
-                </span>
-              </li>
-              <li className="cr2-aggregate__row">
-                <span className="cr2-aggregate__lemma">Abgaben gesamt</span>
-                <span className="cr2-aggregate__pct" style={{ color: 'var(--cr2-text)' }}>
-                  {totals.submissions}
-                </span>
-              </li>
-            </ul>
-          </section>
+          {/* Klassen-Puls: eine lesbare Aussage statt roher Zaehler. */}
+          {hasSubmissions && (
+            <section className="cr2-section cr2-pulse-section" aria-label="Übersicht">
+              <span className="cr2-section__label">Session-Ergebnis</span>
+              <p className="cr2-pulse">{pulseSentence(totals)}</p>
+              <hr className="cr2-doubleline" aria-hidden="true" />
+            </section>
+          )}
 
           {/* Empty State: Session ohne Abgaben beendet */}
           {!hasSubmissions && (
             <section className="cr2-section" aria-label="Keine Abgaben">
               <div className="cr2-result-empty" data-testid="cr2-end-empty">
+                <p className="cr2-result-empty__ornament" aria-hidden="true">· · ·</p>
                 <p className="cr2-result-empty__title">Keine Abgaben</p>
                 <p className="cr2-result-empty__text">
-                  In dieser Session wurden keine Antworten abgegeben — es gibt nichts auszuwerten.
-                  Starte eine neue Session, um es erneut zu versuchen.
+                  In dieser Session wurden keine Antworten eingereicht — es gibt nichts auszuwerten.
                 </p>
               </div>
             </section>
@@ -122,7 +130,7 @@ export default function EndStep() {
                       {t.lemma}{' '}
                       <span className="cr2-result-card__mode">· {modeLabel(t.mode)}</span>
                     </span>
-                    <span className="cr2-aggregate__pct">{t.hitRatePct}%</span>
+                    <span className={`cr2-aggregate__pct ${rateClass(t.hitRatePct)}`}>{t.hitRatePct}%</span>
                   </li>
                 ))}
               </ul>
@@ -144,42 +152,71 @@ export default function EndStep() {
                       <span className="cr2-result-card__mode">{modeLabel(row.mode)}</span>
                     </header>
 
-                    <div
-                      className="cr2-bar"
+                    <p className="cr2-result-card__sub">
+                      n = {row.participants} · Ø {row.avgScore} / {row.maxScore} Pkt.
+                    </p>
+
+                    <p
+                      className="cr2-rate"
                       role="img"
-                      aria-label={`Trefferquote ${row.hitRatePct} Prozent`}
+                      aria-label={`Trefferquote ${row.hitRatePct} Prozent — ${row.participants} Teilnehmer`}
                     >
-                      <div
-                        className="cr2-bar__fill"
-                        style={{ width: `${row.hitRatePct}%` }}
-                      />
-                      <span className="cr2-bar__label">{row.hitRatePct}%</span>
-                    </div>
+                      <span className={`cr2-rate__num ${rateClass(row.hitRatePct)}`}>
+                        {row.hitRatePct} %
+                      </span>
+                      <span className="cr2-rate__text">der Teilnehmer lagen richtig</span>
+                    </p>
 
-                    <dl className="cr2-result-card__meta">
-                      <div className="cr2-result-card__metaItem">
-                        <dt>Ø-Score</dt>
-                        <dd>{row.avgScore} / {row.maxScore}</dd>
-                      </div>
-                      <div className="cr2-result-card__metaItem">
-                        <dt>Teilnehmer</dt>
-                        <dd>{row.participants}</dd>
-                      </div>
-                    </dl>
-
-                    {row.topDistractor ? (
+                    {row.topDistractor && (
                       <p className="cr2-result-card__distractor">
-                        Häufigster Stolperstein:{' '}
-                        <strong>{row.topDistractor.label}</strong>{' '}
+                        <span className="cr2-result-card__distractorLead">Häufigste Fehlantwort: </span>
+                        <strong>{row.topDistractor.label}</strong>
                         <span className="cr2-result-card__distractorCount">
-                          ({row.topDistractor.count}×)
+                          {' '}— {row.topDistractor.count}×
                         </span>
                       </p>
-                    ) : (
-                      <p className="cr2-result-card__distractor cr2-result-card__distractor--none">
-                        Kein auffälliger Distraktor.
-                      </p>
                     )}
+
+                    {Array.isArray(row.distribution) && row.distribution.length > 0 && (() => {
+                      const isOption = row.distribution[0]?.kind === 'option'
+                      const summary = isOption
+                        ? `Antwortverteilung · ${row.distribution.length} Optionen`
+                        : `Trefferquote je Item · ${row.distribution.length}`
+                      return (
+                        <details className="cr2-dist" data-testid="cr2-end-dist">
+                          <summary className="cr2-dist__toggle">{summary}</summary>
+                          <ul className="cr2-dist__list">
+                            {row.distribution.map((o) => {
+                              const rowClass = isOption
+                                ? (o.correct ? ' cr2-dist__row--correct' : '')
+                                : ` ${rateClass(o.pct).replace('cr2-rate--', 'cr2-dist__row--band-')}`
+                              const ariaVerb = isOption
+                                ? `${o.count}× gewählt, ${o.pct} Prozent${o.correct ? ', korrekt' : ''}`
+                                : `${o.pct} Prozent richtig${o.sub ? `, Lösung ${o.sub}` : ''}`
+                              return (
+                                <li key={o.label} className={`cr2-dist__row${rowClass}`}>
+                                  <span className="cr2-dist__mark" aria-hidden="true">
+                                    {isOption && o.correct ? '✓' : ''}
+                                  </span>
+                                  <span className="cr2-dist__word">
+                                    {o.label}
+                                    {o.sub && <span className="cr2-dist__sub"> · {o.sub}</span>}
+                                  </span>
+                                  <span
+                                    className="cr2-dist__bar"
+                                    role="img"
+                                    aria-label={`${o.label}: ${ariaVerb}`}
+                                  >
+                                    <span className="cr2-dist__fill" style={{ width: `${o.pct}%` }} />
+                                  </span>
+                                  <span className="cr2-dist__pct">{o.pct} %</span>
+                                </li>
+                              )
+                            })}
+                          </ul>
+                        </details>
+                      )
+                    })()}
                   </article>
                 ))}
               </div>

@@ -25,6 +25,7 @@ import {
   submitAnswer,
   getDashboard,
   getSessionResults,
+  getParticipantReveal,
   listTeacherSessions,
   hasCapability,
   DEFAULT_AUTO_END_IDLE_MS,
@@ -676,6 +677,54 @@ describe('classroom/store', () => {
       expect(card.topDistractor).toEqual({ label: 'weit', count: 2 })
     })
 
+    it('liefert die Antwortverteilung pro Option (Kollokationen, pseudonym)', () => {
+      const { session } = setupFinishedKollSession()
+      const r = getSessionResults({ sessionId: session.id, teacherUserId: TEACHER_A })
+      const dist = r.byLemma[0].distribution
+      expect(Array.isArray(dist)).toBe(true)
+      // Alle 10 Optionen aus dem Snapshot, auch ungewaehlte.
+      expect(dist).toHaveLength(10)
+      // stark (rang 1) von 1 von 3 gewaehlt → 33 %, korrekt.
+      expect(dist.find((o) => o.label === 'stark')).toMatchObject({ correct: true, count: 1, pct: 33, kind: 'option' })
+      // weit (rang 4) von 2 von 3 gewaehlt → 67 %, nicht korrekt.
+      expect(dist.find((o) => o.label === 'weit')).toMatchObject({ correct: false, count: 2, pct: 67 })
+      // nah wurde nie gewaehlt → 0.
+      expect(dist.find((o) => o.label === 'nah')).toMatchObject({ count: 0, pct: 0 })
+      // Sortierung: korrekte Optionen zuerst, dann groesster Stolperstein.
+      expect(dist.slice(0, 3).every((o) => o.correct)).toBe(true)
+      expect(dist[3].label).toBe('weit')
+    })
+
+    it('liefert eine Trefferquote-je-Item-Verteilung fuer Zeitenwende', () => {
+      const { session } = createSession({ teacherUserId: TEACHER_A })
+      const ZW_SNAP = {
+        byLemma: {
+          'lemma-zw': { words: [
+            { wort: 'Pferd', periode: 'pre' },
+            { wort: 'Handy', periode: 'post' },
+          ] },
+        },
+      }
+      const { assignment } = addAssignment({
+        sessionId: session.id, teacherUserId: TEACHER_A,
+        mode: 'zeitenwende', lemmaIds: ['lemma-zw'], contentSnapshot: ZW_SNAP,
+      })
+      startSession({ sessionId: session.id, teacherUserId: TEACHER_A })
+      const j1 = joinByCode({ code: session.code, displayName: 'Alice' })
+      const j2 = joinByCode({ code: session.code, displayName: 'Bob' })
+      // Alice: beide richtig. Bob: Pferd richtig, Handy falsch.
+      submitAnswer({ participantId: j1.participant.id, sessionId: session.id, assignmentId: assignment.id, lemmaId: 'lemma-zw', roundIndex: 0, rawAnswer: { answers: ['pre', 'post'] } })
+      submitAnswer({ participantId: j2.participant.id, sessionId: session.id, assignmentId: assignment.id, lemmaId: 'lemma-zw', roundIndex: 0, rawAnswer: { answers: ['pre', 'pre'] } })
+      finishSession({ sessionId: session.id, teacherUserId: TEACHER_A })
+
+      const r = getSessionResults({ sessionId: session.id, teacherUserId: TEACHER_A })
+      const dist = r.byLemma[0].distribution
+      expect(dist).toHaveLength(2)
+      expect(dist[0]).toMatchObject({ label: 'Pferd', sub: 'vor 2000', pct: 100, kind: 'item' })
+      // Handy: nur Alice richtig (1 von 2) → 50 %.
+      expect(dist[1]).toMatchObject({ label: 'Handy', sub: 'nach 2000', pct: 50, kind: 'item' })
+    })
+
     it('listet auffälligste Fragen (Top 3 niedrigste Quote) rein aggregiert', () => {
       const { session } = setupFinishedKollSession()
       const r = getSessionResults({ sessionId: session.id, teacherUserId: TEACHER_A })
@@ -702,6 +751,55 @@ describe('classroom/store', () => {
         expect(card).not.toHaveProperty('displayName')
         expect(card).not.toHaveProperty('participants_list')
       }
+    })
+
+    it('getParticipantReveal: gibt vor der Freigabe KEINE Loesung preis (R1)', () => {
+      const { session } = createSession({ teacherUserId: TEACHER_A })
+      const { assignment } = addAssignment({
+        sessionId: session.id, teacherUserId: TEACHER_A,
+        mode: 'kollokationen', lemmaIds: ['lemma-1'], contentSnapshot: KOLL_SNAPSHOT,
+      })
+      startSession({ sessionId: session.id, teacherUserId: TEACHER_A })
+      const j1 = joinByCode({ code: session.code, displayName: 'Alice' })
+      submitAnswer({
+        participantId: j1.participant.id, sessionId: session.id,
+        assignmentId: assignment.id, lemmaId: 'lemma-1', roundIndex: 0,
+        rawAnswer: { selected: ['stark', 'weit', 'tief'] },
+      })
+      // Session laeuft noch → keine Aufloesung.
+      const before = getParticipantReveal({ sessionId: session.id, participantId: j1.participant.id })
+      expect(before.revealed).toBe(false)
+      expect(JSON.stringify(before.byKey || {})).not.toContain('stark')
+    })
+
+    it('getParticipantReveal: liefert nach Freigabe item-genaue Aufloesung + Loesung', () => {
+      const { session } = createSession({ teacherUserId: TEACHER_A })
+      const { assignment } = addAssignment({
+        sessionId: session.id, teacherUserId: TEACHER_A,
+        mode: 'kollokationen', lemmaIds: ['lemma-1'], contentSnapshot: KOLL_SNAPSHOT,
+      })
+      startSession({ sessionId: session.id, teacherUserId: TEACHER_A })
+      const j1 = joinByCode({ code: session.code, displayName: 'Alice' })
+      // stark (rang 1, korrekt), weit (rang 4, gueltig aber nicht optimal), nah? -> 'leise' (rang10)
+      submitAnswer({
+        participantId: j1.participant.id, sessionId: session.id,
+        assignmentId: assignment.id, lemmaId: 'lemma-1', roundIndex: 0,
+        rawAnswer: { selected: ['stark', 'weit', 'leise'] },
+      })
+      finishSession({ sessionId: session.id, teacherUserId: TEACHER_A })
+
+      const r = getParticipantReveal({ sessionId: session.id, participantId: j1.participant.id })
+      expect(r.revealed).toBe(true)
+      const entry = r.byKey['lemma-1:0']
+      expect(entry).toBeTruthy()
+      expect(entry.mode).toBe('kollokationen')
+      expect(entry.items).toHaveLength(3)
+      const stark = entry.items.find((it) => it.label === 'stark')
+      expect(stark).toMatchObject({ correct: true })
+      const weit = entry.items.find((it) => it.label === 'weit')
+      expect(weit).toMatchObject({ correct: false, partial: true })
+      // Loesung = Top-3 nach Rang.
+      expect(entry.solution).toBe('stark, groß, klein')
     })
 
     it('liefert Empty State, wenn keine Submissions vorliegen', () => {
