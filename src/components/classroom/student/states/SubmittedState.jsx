@@ -93,11 +93,13 @@ function RevealItems({ entry }) {
         {items.map((it, i) => {
           const cls = it.correct ? 'is-correct' : it.partial ? 'is-partial' : 'is-wrong'
           const mark = it.correct ? '✓' : it.partial ? '·' : '✗'
+          const srStatus = it.correct ? 'richtig' : it.partial ? 'gültig, nicht optimal' : 'falsch'
           return (
             <li key={i} className={`cr2-kiosk__reveal-row cr2-kiosk__reveal-row--${cls}`}>
               <span className="cr2-kiosk__reveal-mark" aria-hidden="true">{mark}</span>
               <span className="cr2-kiosk__reveal-word">
                 {it.label}
+                <span className="sr-only"> – {srStatus}</span>
                 {it.you && it.you !== it.label && (
                   <span className="cr2-kiosk__reveal-you"> · du: {it.you}</span>
                 )}
@@ -177,6 +179,14 @@ export default function SubmittedState() {
           </span>
         </div>
       )}
+
+      {/* A11y: Phasenwechsel passiert per Server-Push ohne Nutzeraktion —
+          eine stabile Live-Region kuendigt die Freigabe fuer Screenreader an. */}
+      <p className="sr-only" aria-live="polite" aria-atomic="true">
+        {isEnded
+          ? 'Die Auflösung wurde freigegeben. Hier ist deine Auswertung.'
+          : 'Deine Antwort ist eingereicht. Warte auf deine Lehrkraft.'}
+      </p>
 
       <p className="cr2-kiosk__overline">{isEnded ? 'Auflösung' : 'Abgegeben'}</p>
       <h1 className="cr2-kiosk__title" data-testid="cr2-kiosk-submitted-title">

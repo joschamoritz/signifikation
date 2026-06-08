@@ -616,9 +616,11 @@
 .cr2-kiosk__textlink {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 4px;
   margin: 24px auto 0;
-  padding: 6px 2px;
+  padding: 10px 4px;
+  min-height: 44px;
   background: none;
   border: none;
   font-family: 'Gentium Plus', Georgia, serif;

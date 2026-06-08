@@ -165,6 +165,8 @@ describe('SubmittedState (T-5.7)', () => {
     }
     renderWith(s)
     expect(screen.getByTestId('cr2-kiosk-reveal-items')).toBeTruthy()
+    // A11y: Live-Region kuendigt die Freigabe an (Phasenwechsel ohne Nutzeraktion).
+    expect(screen.getByText(/Auflösung wurde freigegeben/)).toBeTruthy()
     // Lösung wird genannt.
     expect(screen.getByText(/stark, groß, klein/)).toBeTruthy()
     // Punkte aus der Reveal-Antwort.

@@ -92,8 +92,8 @@ export default function EndStep() {
       backLabel="Zurück zur Übersicht"
       onBack={() => dispatch({ type: 'GO_TO_LIST' })}
     >
-      {loading && <p className="cr2-loading">Auswertung wird geladen …</p>}
-      {error && <p className="cr2-error">{error}</p>}
+      {loading && <p className="cr2-loading" role="status">Auswertung wird geladen …</p>}
+      {error && <p className="cr2-error" role="alert">{error}</p>}
 
       {results && (
         <>
