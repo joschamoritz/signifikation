@@ -102,7 +102,8 @@ describe('EndStep (W2-T4)', () => {
       expect(screen.getByTestId('cr2-end-dist')).toBeTruthy()
     })
     // Optionen + Anteile sind im DOM (auch wenn das <details> zugeklappt ist).
-    expect(screen.getByText('klar')).toBeTruthy()
+    // „klar" erscheint in der Lösungszeile UND in der Verteilung → getAllByText.
+    expect(screen.getAllByText('klar').length).toBeGreaterThanOrEqual(1)
     expect(screen.getByText('100 %')).toBeTruthy()
     expect(screen.getByText('75 %')).toBeTruthy()
   })

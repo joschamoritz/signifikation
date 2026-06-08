@@ -1172,6 +1172,12 @@ function roundTypeLabel(type) {
   return type || ''
 }
 
+// logDice als Zahl normalisieren (Snapshot-Feld heisst `log_dice`).
+function lemmaLogDice(k) {
+  const v = Number(k?.log_dice)
+  return Number.isFinite(v) ? v : null
+}
+
 // Antwortverteilung pro Lemma.
 //   kind 'option' (Kollokationen): jede Option mit Wahl-Anteil + Korrektheit;
 //     korrekte zuerst (nach Rang), dann uebrige nach Haeufigkeit.
@@ -1188,7 +1194,12 @@ function buildDistribution(mode, snapshot, agg, denom) {
         const label = String(k.wort)
         const rang = Number(k.rang) || 99
         const count = agg.picks.get(label) || 0
-        return { label, rang, correct: rang <= 3, count, pct: Math.round((count / denom) * 100), kind: 'option' }
+        return {
+          label, rang, correct: rang <= 3, count,
+          pct: Math.round((count / denom) * 100),
+          logDice: lemmaLogDice(k),
+          kind: 'option',
+        }
       })
       .sort((x, y) => {
         if (x.correct !== y.correct) return x.correct ? -1 : 1
@@ -1392,17 +1403,23 @@ function buildRevealItems(mode, detail, snapshot) {
   if (!detail) return { items: [], solution: null }
   switch (mode) {
     case 'kollokationen': {
+      const koll = Array.isArray(snapshot?.kollokatoren) ? snapshot.kollokatoren : []
+      const diceByWord = new Map(koll.map((k) => [String(k.wort), lemmaLogDice(k)]))
       const hits = Array.isArray(detail.hits) ? detail.hits : []
       const items = hits.map((h) => ({
         label: String(h.word),
         you: String(h.word),
         correct: (Number(h.points) || 0) >= 3,
         partial: (Number(h.points) || 0) > 0 && (Number(h.points) || 0) < 3,
+        logDice: diceByWord.has(String(h.word)) ? diceByWord.get(String(h.word)) : null,
       }))
-      const top3 = (Array.isArray(snapshot?.kollokatoren) ? snapshot.kollokatoren : [])
+      const top3 = koll
         .filter((k) => (Number(k.rang) || 99) <= 3)
         .sort((a, b) => (Number(a.rang) || 99) - (Number(b.rang) || 99))
-        .map((k) => String(k.wort))
+        .map((k) => {
+          const d = lemmaLogDice(k)
+          return d != null ? `${k.wort} (${String(d).replace('.', ',')})` : String(k.wort)
+        })
       return { items, solution: top3.length ? top3.join(', ') : null }
     }
     case 'wortzwilling': {

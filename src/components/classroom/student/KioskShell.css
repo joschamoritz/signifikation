@@ -588,6 +588,13 @@
   font-size: 0.88rem;
 }
 
+.cr2-kiosk__reveal-ld {
+  font-family: 'DM Sans', system-ui, sans-serif;
+  font-size: 0.78rem;
+  color: var(--k-muted);
+  font-variant-numeric: tabular-nums;
+}
+
 .cr2-kiosk__reveal-sol {
   grid-column: 2;
   font-family: 'DM Sans', system-ui, sans-serif;

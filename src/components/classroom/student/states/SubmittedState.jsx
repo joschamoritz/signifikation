@@ -14,6 +14,9 @@ import { navigate } from '../../routing'
 
 function safeArr(v) { return Array.isArray(v) ? v : [] }
 
+// logDice komma-formatiert (deutsch), null → leer.
+function fmtDice(v) { return v == null ? null : String(v).replace('.', ',') }
+
 function CollocationsRecap({ rawAnswer, lemma }) {
   const picked = safeArr(rawAnswer?.selected)
   if (picked.length === 0) {
@@ -99,6 +102,9 @@ function RevealItems({ entry }) {
               <span className="cr2-kiosk__reveal-mark" aria-hidden="true">{mark}</span>
               <span className="cr2-kiosk__reveal-word">
                 {it.label}
+                {it.logDice != null && (
+                  <span className="cr2-kiosk__reveal-ld"> · {fmtDice(it.logDice)}</span>
+                )}
                 <span className="sr-only"> – {srStatus}</span>
                 {it.you && it.you !== it.label && (
                   <span className="cr2-kiosk__reveal-you"> · du: {it.you}</span>

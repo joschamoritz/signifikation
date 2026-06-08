@@ -1476,6 +1476,30 @@
   color: var(--cr2-muted);
 }
 
+/* Dauerhaft sichtbare Lösungszeile (beste Kollokationen + logDice). */
+.cr2-result-card__solution {
+  margin: 8px 0 0;
+  font-family: 'Gentium Plus', Georgia, serif;
+  font-size: 0.95rem;
+  color: var(--cr2-text);
+  line-height: 1.5;
+}
+.cr2-result-card__solution strong {
+  color: #166534;
+  font-weight: 700;
+}
+.cr2-result-card__solutionLead {
+  font-style: italic;
+  color: var(--cr2-muted);
+}
+.cr2-result-card__ld,
+.cr2-dist__ld {
+  font-family: 'DM Sans', system-ui, sans-serif;
+  font-size: 0.78rem;
+  color: var(--cr2-muted);
+  font-variant-numeric: tabular-nums;
+}
+
 /* ── Antwortverteilung pro Lemma (aufklappbar, D1) ───────────────── */
 .cr2-dist {
   margin-top: 12px;

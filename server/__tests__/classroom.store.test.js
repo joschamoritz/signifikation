@@ -59,16 +59,16 @@ const KOLL_SNAPSHOT = {
   byLemma: {
     'lemma-1': {
       kollokatoren: [
-        { wort: 'stark', rang: 1 },
-        { wort: 'groß',  rang: 2 },
-        { wort: 'klein', rang: 3 },
-        { wort: 'weit',  rang: 4 },
-        { wort: 'hoch',  rang: 6 },
-        { wort: 'tief',  rang: 8 },
-        { wort: 'laut',  rang: 9 },
-        { wort: 'leise', rang: 10 },
-        { wort: 'fern',  rang: 11 },
-        { wort: 'nah',   rang: 12 },
+        { wort: 'stark', rang: 1,  log_dice: 9.5 },
+        { wort: 'groß',  rang: 2,  log_dice: 8.8 },
+        { wort: 'klein', rang: 3,  log_dice: 8.1 },
+        { wort: 'weit',  rang: 4,  log_dice: 6.0 },
+        { wort: 'hoch',  rang: 6,  log_dice: 5.2 },
+        { wort: 'tief',  rang: 8,  log_dice: 4.4 },
+        { wort: 'laut',  rang: 9,  log_dice: 4.0 },
+        { wort: 'leise', rang: 10, log_dice: 3.6 },
+        { wort: 'fern',  rang: 11, log_dice: 3.0 },
+        { wort: 'nah',   rang: 12, log_dice: 2.5 },
       ],
     },
   },
@@ -684,8 +684,8 @@ describe('classroom/store', () => {
       expect(Array.isArray(dist)).toBe(true)
       // Alle 10 Optionen aus dem Snapshot, auch ungewaehlte.
       expect(dist).toHaveLength(10)
-      // stark (rang 1) von 1 von 3 gewaehlt → 33 %, korrekt.
-      expect(dist.find((o) => o.label === 'stark')).toMatchObject({ correct: true, count: 1, pct: 33, kind: 'option' })
+      // stark (rang 1) von 1 von 3 gewaehlt → 33 %, korrekt, mit logDice.
+      expect(dist.find((o) => o.label === 'stark')).toMatchObject({ correct: true, count: 1, pct: 33, kind: 'option', logDice: 9.5 })
       // weit (rang 4) von 2 von 3 gewaehlt → 67 %, nicht korrekt.
       expect(dist.find((o) => o.label === 'weit')).toMatchObject({ correct: false, count: 2, pct: 67 })
       // nah wurde nie gewaehlt → 0.
@@ -795,11 +795,11 @@ describe('classroom/store', () => {
       expect(entry.mode).toBe('kollokationen')
       expect(entry.items).toHaveLength(3)
       const stark = entry.items.find((it) => it.label === 'stark')
-      expect(stark).toMatchObject({ correct: true })
+      expect(stark).toMatchObject({ correct: true, logDice: 9.5 })
       const weit = entry.items.find((it) => it.label === 'weit')
-      expect(weit).toMatchObject({ correct: false, partial: true })
-      // Loesung = Top-3 nach Rang.
-      expect(entry.solution).toBe('stark, groß, klein')
+      expect(weit).toMatchObject({ correct: false, partial: true, logDice: 6 })
+      // Loesung = Top-3 nach Rang, mit logDice-Gewichtung (deutsche Schreibweise).
+      expect(entry.solution).toBe('stark (9,5), groß (8,8), klein (8,1)')
     })
 
     it('liefert Empty State, wenn keine Submissions vorliegen', () => {

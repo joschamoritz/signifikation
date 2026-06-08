@@ -33,6 +33,11 @@ function rateClass(pct) {
   return 'cr2-rate--high'
 }
 
+// logDice komma-formatiert (deutsche Schreibweise), null → leer.
+function fmtDice(v) {
+  return v == null ? null : String(v).replace('.', ',')
+}
+
 // Klassen-Puls: rohe Zaehler in einen lesbaren Satz verdichten.
 function pulseSentence(totals) {
   const p = totals.participants || 0
@@ -164,8 +169,27 @@ export default function EndStep() {
                       <span className={`cr2-rate__num ${rateClass(row.hitRatePct)}`}>
                         {row.hitRatePct} %
                       </span>
-                      <span className="cr2-rate__text">der Teilnehmer lagen richtig</span>
+                      <span className="cr2-rate__text">der erreichbaren Punkte</span>
                     </p>
+
+                    {/* Lösung dauerhaft sichtbar (auch ohne Aufklappen) — bei
+                        Kollokationen die besten 3 Optionen + logDice-Gewichtung. */}
+                    {Array.isArray(row.distribution) && row.distribution[0]?.kind === 'option' && (
+                      <p className="cr2-result-card__solution">
+                        <span className="cr2-result-card__solutionLead">Beste Kollokationen: </span>
+                        {row.distribution
+                          .filter((o) => o.correct)
+                          .map((o, i, arr) => (
+                            <span key={o.label}>
+                              <strong>{o.label}</strong>
+                              {o.logDice != null && (
+                                <span className="cr2-result-card__ld"> ({fmtDice(o.logDice)})</span>
+                              )}
+                              {i < arr.length - 1 ? ' · ' : ''}
+                            </span>
+                          ))}
+                      </p>
+                    )}
 
                     {row.topDistractor && (
                       <p className="cr2-result-card__distractor">
@@ -201,6 +225,9 @@ export default function EndStep() {
                                   <span className="cr2-dist__word">
                                     {o.label}
                                     {o.sub && <span className="cr2-dist__sub"> · {o.sub}</span>}
+                                    {isOption && o.logDice != null && (
+                                      <span className="cr2-dist__ld"> · {fmtDice(o.logDice)}</span>
+                                    )}
                                   </span>
                                   <span
                                     className="cr2-dist__bar"
