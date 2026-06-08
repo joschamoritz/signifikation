@@ -185,7 +185,6 @@ export default function EndStep() {
   }, [sessionId])
 
   const byLemma   = results?.byLemma || []
-  const trickiest = results?.trickiest || []
   const totals    = results?.totals || { participants: 0, submissions: 0 }
   const hasSubmissions = results?.hasSubmissions
 
@@ -222,22 +221,6 @@ export default function EndStep() {
                   In dieser Session wurden keine Antworten eingereicht — es gibt nichts auszuwerten.
                 </p>
               </div>
-            </section>
-          )}
-
-          {/* Auffälligste Fragen — nach Schwierigkeit sortiert (härteste zuerst),
-              daher ohne eigene Prozent-/Punktanzeige; Detail steht in „Pro Lemma". */}
-          {trickiest.length > 0 && (
-            <section className="cr2-section" aria-label="Auffälligste Fragen">
-              <span className="cr2-section__label">Auffälligste Fragen</span>
-              <ul className="cr2-trickiest" data-testid="cr2-end-trickiest">
-                {trickiest.map((t) => (
-                  <li key={`${t.assignmentId}:${t.lemmaId}`} className="cr2-trickiest__row">
-                    <span className="cr2-trickiest__lemma">{t.lemma}</span>
-                    <ModeBadge mode={t.mode} />
-                  </li>
-                ))}
-              </ul>
             </section>
           )}
 

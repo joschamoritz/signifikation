@@ -725,18 +725,6 @@ describe('classroom/store', () => {
       expect(dist[1]).toMatchObject({ label: 'Handy', sub: 'nach 2000', pct: 50, kind: 'item' })
     })
 
-    it('listet auffälligste Fragen (Top 3 niedrigste Quote) rein aggregiert', () => {
-      const { session } = setupFinishedKollSession()
-      const r = getSessionResults({ sessionId: session.id, teacherUserId: TEACHER_A })
-      expect(r.trickiest.length).toBeGreaterThanOrEqual(1)
-      const t = r.trickiest[0]
-      expect(t).toHaveProperty('lemma')
-      expect(t).toHaveProperty('hitRatePct')
-      // Keine Teilnehmer-Identität in den auffälligsten Fragen
-      expect(t).not.toHaveProperty('participantId')
-      expect(t).not.toHaveProperty('displayName')
-    })
-
     it('ist pseudonymisiert — keine Klarnamen oder Teilnehmer-IDs im Ergebnis', () => {
       const { session } = setupFinishedKollSession()
       const r = getSessionResults({ sessionId: session.id, teacherUserId: TEACHER_A })
@@ -815,7 +803,6 @@ describe('classroom/store', () => {
       expect(r.error).toBeUndefined()
       expect(r.hasSubmissions).toBe(false)
       expect(r.byLemma).toEqual([])
-      expect(r.trickiest).toEqual([])
       expect(r.totals).toEqual({ participants: 0, submissions: 0 })
     })
 

@@ -70,7 +70,6 @@ describe('EndStep (W2-T4)', () => {
     // Zurück-Pfeil oben). Der Zurück-Button der Subscreen-Hülle bleibt.
     expect(screen.queryByTestId('cr2-end-new')).toBeNull()
     expect(screen.getByTestId('cr2-subscreen-back')).toBeTruthy()
-    expect(screen.getByTestId('cr2-end-trickiest')).toBeTruthy()
     // Lemma-Headword + Distraktor sichtbar
     expect(screen.getAllByText('Wasser').length).toBeGreaterThanOrEqual(1)
     expect(screen.getByText('weit')).toBeTruthy()

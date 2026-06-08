@@ -1362,22 +1362,6 @@ export function getSessionResults({ sessionId, teacherUserId }) {
     }
   }
 
-  // Auffaelligste Fragen: Top 3 mit der niedrigsten Trefferquote. Tie-Break
-  // deterministisch (mehr Abgaben zuerst, dann alphabetisch).
-  const trickiest = [...byLemma]
-    .sort((x, y) =>
-      x.hitRatePct - y.hitRatePct ||
-      y.submissions - x.submissions ||
-      x.lemma.localeCompare(y.lemma))
-    .slice(0, 3)
-    .map((c) => ({
-      assignmentId: c.assignmentId,
-      mode: c.mode,
-      lemmaId: c.lemmaId,
-      lemma: c.lemma,
-      hitRatePct: c.hitRatePct,
-    }))
-
   return {
     session: {
       id: session.id,
@@ -1391,7 +1375,6 @@ export function getSessionResults({ sessionId, teacherUserId }) {
     },
     hasSubmissions: rows.length > 0,
     byLemma,
-    trickiest,
   }
 }
 
