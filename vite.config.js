@@ -1,9 +1,18 @@
 import { defineConfig } from 'vite'
+import { fileURLToPath } from 'node:url'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
 import pkg from './package.json' with { type: 'json' }
 
 export default defineConfig({
+  resolve: {
+    alias: {
+      // Geteilte, framework-freie Module (z. B. Scoring-Regeln, P6), die sowohl
+      // das Frontend (hier via Alias) als auch der Server (relativer Import)
+      // nutzen. Single Source ohne Duplizierung.
+      '@shared': fileURLToPath(new URL('./shared', import.meta.url)),
+    },
+  },
   build: {
     rollupOptions: {
       output: {

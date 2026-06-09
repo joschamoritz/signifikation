@@ -1,3 +1,7 @@
+// Kollokationen-Score: kanonische Regel liegt framework-frei in shared/scoring.js
+// (Single Source, Code-Review P6) und wird vom Server-Klassenraum genauso genutzt.
+export { calculateMixedScore } from '@shared/scoring.js'
+
 /** Gibt rundenInfo zurück – aus dem Lemma-Objekt oder als Fallback für alte Substantiv-Einträge */
 export function getRundInfo(lemma) {
   if (lemma?.rundenInfo?.length) return lemma.rundenInfo
@@ -37,38 +41,6 @@ export function calculateScore(selectedWords, kollokatoren) {
     const k = kollokatoren.find(k => k.wort === word)
     return k && k.rang <= 3
   }).length
-}
-
-/**
- * Score for the mixed single round:
- *   Top-3 (Rang 1–3):                 3 Punkte
- *   Naher Treffer (Rang 4–7):         2 Punkte
- *   Schwacher Treffer (Rang 8–10):    1 Punkt
- *   +1 Bonus wenn alle 3 Picks in Top-3
- * Max 10 Punkte (3×3 + 1 Bonus)
- *
- * Die Klick-Reihenfolge spielt keine Rolle mehr – die Top-3
- * unterscheiden sich linguistisch kaum, und die echten Korpus-Ränge
- * der Distraktoren (Plätze 4–12 = nearPool, 13–25 = midPool) werden
- * konsistent belohnt statt vom Shuffle-Index abhängig zu sein.
- */
-export function calculateMixedScore(selectedWords, kollokatoren) {
-  let score = 0
-  let top3Count = 0
-  selectedWords.forEach((word) => {
-    const k = kollokatoren.find(k => k.wort === word)
-    if (!k) return
-    if (k.rang <= 3) {
-      top3Count++
-      score += 3
-    } else if (k.rang <= 7) {
-      score += 2
-    } else if (k.rang <= 10) {
-      score += 1
-    }
-  })
-  if (top3Count === 3) score += 1
-  return score
 }
 
 /** Einheitliche Medaille (prozentbasiert). */
