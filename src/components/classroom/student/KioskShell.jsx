@@ -10,7 +10,7 @@
 // /c/:code seinen eigenen Renderzweig hat. KioskShell ist also der gesamte
 // Viewport. AuthBanner (§7 Spezialfall „eingeloggter User") sitzt am Ende.
 
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { navigate } from '../routing'
 // Spielscreen-Optik 1:1 aus dem echten Spiel übernehmen (Optionsliste, Header,
 // Footer-Button) — Einheitlichkeit des CD, kein eigener Spielscreen-Stil.
@@ -18,16 +18,54 @@ import '../../../styles/quiz.css'
 import './KioskShell.css'
 
 function ExitConfirmModal({ open, onClose, onConfirm }) {
+  const modalRef    = useRef(null)
+  const cancelRef   = useRef(null)
+  const prevFocusRef = useRef(null)
+
+  useEffect(() => {
+    if (!open) return undefined
+    // Fokus merken und in den Dialog setzen (Cancel = ungefährliche Default-Wahl).
+    prevFocusRef.current = document.activeElement
+    cancelRef.current?.focus()
+
+    function onKeyDown(e) {
+      if (e.key === 'Escape') { e.preventDefault(); onClose(); return }
+      if (e.key !== 'Tab') return
+      // Fokus-Trap: Tab zyklisch innerhalb der Dialog-Buttons halten.
+      const focusables = modalRef.current?.querySelectorAll('button')
+      if (!focusables || focusables.length === 0) return
+      const first = focusables[0]
+      const last  = focusables[focusables.length - 1]
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault(); last.focus()
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault(); first.focus()
+      }
+    }
+    document.addEventListener('keydown', onKeyDown)
+    return () => {
+      document.removeEventListener('keydown', onKeyDown)
+      // Fokus zum auslösenden Element zurückgeben.
+      if (prevFocusRef.current && typeof prevFocusRef.current.focus === 'function') {
+        prevFocusRef.current.focus()
+      }
+    }
+  }, [open, onClose])
+
   if (!open) return null
   return (
     <div
       className="cr2-kiosk__modal-backdrop"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="cr2-kiosk-exit-title"
       onClick={onClose}
     >
-      <div className="cr2-kiosk__modal" onClick={(e) => e.stopPropagation()}>
+      <div
+        className="cr2-kiosk__modal"
+        ref={modalRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="cr2-kiosk-exit-title"
+        onClick={(e) => e.stopPropagation()}
+      >
         <h2 id="cr2-kiosk-exit-title">Klassenraum verlassen?</h2>
         <p>Dein Fortschritt geht verloren. Sicher?</p>
         <div className="cr2-kiosk__modal-actions">
@@ -41,6 +79,7 @@ function ExitConfirmModal({ open, onClose, onConfirm }) {
           </button>
           <button
             type="button"
+            ref={cancelRef}
             className="cr2-kiosk__btn"
             style={{ background: 'transparent', color: 'inherit', border: '1px solid var(--k-rule)' }}
             onClick={onClose}

@@ -90,7 +90,6 @@ export default function LiveStep() {
 
   const assignment = dashboard?.assignment
   const modeLabel = assignment?.mode ? (MODE_LABEL[assignment.mode] || assignment.mode) : ''
-  const currentLemma = assignment?.contentSnapshot?.lemmata?.[0] || null
   const perLemma = dashboard?.aggregate?.perLemma || []
 
   // Lemma-Wort zur ID auflösen (Aggregat liefert nur lemmaId, kein Wort).
@@ -191,13 +190,6 @@ export default function LiveStep() {
       )}
 
       {error && <p className="cr2-error">{error}</p>}
-
-      {currentLemma && (
-        <div className="cr2-lemma-mirror" aria-label="Aktuelles Lemma">
-          <p className="cr2-lemma-mirror__title">{currentLemma.lemma}</p>
-          <p style={{ margin: 0 }}>{currentLemma.definition || currentLemma.prompt || '—'}</p>
-        </div>
-      )}
 
       <section className="cr2-section" aria-labelledby="cr2-live-participants-label">
         <span id="cr2-live-participants-label" className="cr2-section__label">Teilnehmer</span>

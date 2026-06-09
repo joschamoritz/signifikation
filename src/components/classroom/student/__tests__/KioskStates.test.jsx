@@ -129,9 +129,19 @@ describe('SubmittedState (T-5.7)', () => {
       assignment:      { id: 'a1', mode: 'kollokationen', lemmaCount: 1 },
       currentLemma:    { id: 'l1', lemma: 'Test', ipa: '', prompt: { words: [] } },
       submittedAnswer: { selected: ['a', 'b', 'c'] },
-      submittedResult: { score: 7, maxScore: 10, correct: 2 },
+      submittedResult: { accepted: true },
       revealed:        true,
       sessionStatus:   'finished',
+      // D5: Score/Auflösung kommt erst nach Freigabe über revealData.
+      revealData: {
+        byKey: {
+          'l1:0': {
+            lemmaId: 'l1', roundIndex: 0, mode: 'kollokationen', score: 7, maxScore: 10,
+            items: [{ label: 'a', you: 'a', correct: true, partial: false }],
+            solution: null,
+          },
+        },
+      },
     }
     renderWith(s)
     expect(screen.getByTestId('cr2-kiosk-reveal')).toBeTruthy()

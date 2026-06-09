@@ -434,14 +434,12 @@ describe('classroom routes', () => {
       })
       expect(res.status).toBe(200)
       const body = await res.json()
-      expect(typeof body.score).toBe('number')
-      expect(typeof body.maxScore).toBe('number')
-      expect(body.score).toBeGreaterThanOrEqual(0)
-      // stark/groß/klein sind rang 1/2/3 → alle Top-3 → Bonus → 10 Punkte
-      expect(body.score).toBe(10)
+      // D5: Submit verrät dem Schüler KEINEN Score mehr — nur Annahme bestätigen.
+      expect(body.accepted).toBe(true)
+      expect(body.score).toBeUndefined()
     })
 
-    it('T-2.7 idempotent: nochmaliger Submit liefert gleichen Score', async () => {
+    it('T-2.7 idempotent: nochmaliger Submit wird ebenfalls akzeptiert', async () => {
       const res = await fetch(`${baseUrl}/api/v1/classroom/me/submit`, {
         method: 'POST',
         headers: participantHeaders(participantToken),
@@ -454,7 +452,7 @@ describe('classroom routes', () => {
       })
       expect(res.status).toBe(200)
       const body = await res.json()
-      expect(body.score).toBe(10)
+      expect(body.accepted).toBe(true)
     })
 
     it('Schritt 4 (R1): /me/reveal gibt vor der Freigabe KEINE Lösung preis', async () => {
@@ -490,7 +488,7 @@ describe('classroom routes', () => {
       })
       expect(res.status).toBe(200)
       const body = await res.json()
-      expect(body.score).toBe(10)
+      expect(body.accepted).toBe(true)
     })
 
     it('T-2.8 Heartbeat → { ok: true, status }', async () => {
@@ -1367,8 +1365,10 @@ describe('classroom routes', () => {
 
       expect(first.status).toBe(200)
       expect(second.status).toBe(200)
-      // Gleicher Score, aber: serverseitig nur EIN Score-Record (kein Doppel).
-      expect(second.body.score).toBe(first.body.score)
+      // Beide akzeptiert (D5: kein Score im Response), aber serverseitig nur
+      // EIN Score-Record (kein Doppel) — das ist der eigentliche Idempotenz-Beleg.
+      expect(first.body.accepted).toBe(true)
+      expect(second.body.accepted).toBe(true)
       const scoreRows = db.prepare(
         'SELECT COUNT(1) AS c FROM classroom_score_record WHERE participant_id = ? AND assignment_id = ?',
       ).get(participantId, assignmentId).c

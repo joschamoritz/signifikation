@@ -9,7 +9,7 @@
 // Hardware-Back: wir registrieren beforeunload (in useKioskGuard, T-5.9).
 // Die Confirmation für den Verlassen-Button sitzt in KioskShell.
 
-import { useCallback, useState } from 'react'
+import { useCallback, useRef, useState } from 'react'
 import { useStudentKiosk } from '../StudentKioskContext'
 import { submitAnswer as apiSubmit, KioskApiError } from '../kioskFetch'
 import { clearDraftPrefix } from '../hooks/useAnswerDraft'
@@ -35,6 +35,10 @@ function pickGameComponent(mode) {
 export default function ClassroomGameWrapper({ onSubmitOverride = null, onToast = null }) {
   const { state, dispatch } = useStudentKiosk()
   const [submitting, setSubmitting] = useState(false)
+  // Synchroner Guard gegen Doppel-Submit (schnelles Doppeltippen mobil):
+  // setSubmitting ist asynchron, der State-Guard allein lässt ein zweites
+  // handleSubmit im selben Tick durch (Code-Review React H2).
+  const submittingRef = useRef(false)
   const mode    = state.assignment?.mode
   const lemma   = state.currentLemma
   const Game    = pickGameComponent(mode)
@@ -47,7 +51,8 @@ export default function ClassroomGameWrapper({ onSubmitOverride = null, onToast 
 
   const handleSubmit = useCallback(async (rawAnswer, options = {}) => {
     if (!state.token || !state.assignment?.id || !lemma?.id) return
-    if (submitting) return
+    if (submittingRef.current) return
+    submittingRef.current = true
     setSubmitting(true)
     const submitFn = onSubmitOverride || apiSubmit
     try {
@@ -68,9 +73,10 @@ export default function ClassroomGameWrapper({ onSubmitOverride = null, onToast 
       if (typeof onToast === 'function') onToast(msg)
       else dispatch({ type: 'SET_ERROR', error: msg })
     } finally {
+      submittingRef.current = false
       setSubmitting(false)
     }
-  }, [state.token, state.assignment?.id, lemma?.id, draftKey, submitting, onSubmitOverride, onToast, dispatch])
+  }, [state.token, state.assignment?.id, lemma?.id, draftKey, onSubmitOverride, onToast, dispatch])
 
   if (!Game) {
     return (

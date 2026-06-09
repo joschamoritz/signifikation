@@ -56,6 +56,7 @@ export function useTeacherSocket({ sessionId, enabled = true, handlers = {} }) {
           'student:heartbeat',
           'submission:received',
           'participant:progress',
+          'assignment:changed',
           'session:started',
           'session:finished',
           'session:aborted',

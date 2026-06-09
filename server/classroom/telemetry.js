@@ -188,8 +188,11 @@ export function trackSessionCreated(sessionId, teacherId) {
 }
 
 /** Join-Versuch (vor DB-Lookup). Wird immer gerufen, egal ob er klappt. */
-export function trackJoinAttempted(code) {
-  trackEvent('cr2_join_attempted', { payload: { code } })
+// Der Join-Code wird bewusst NICHT persistiert (Security N1): er ist zwar ein
+// öffentlicher Beamer-Identifier, würde aber das Session-Ende dauerhaft
+// überleben (Retention rührt Telemetrie nicht an) — für die Metriken unnötig.
+export function trackJoinAttempted(_code) {
+  trackEvent('cr2_join_attempted', {})
 }
 
 /** Join hat geklappt — Participant ist angelegt. */
@@ -201,8 +204,8 @@ export function trackJoinSucceeded(sessionId, participantId) {
  * Join ist fehlgeschlagen.
  * @param {'invalid_code'|'session_full'|'session_not_running'|'rate_limited'|'unknown'} reason
  */
-export function trackJoinFailed(code, reason) {
-  trackEvent('cr2_join_failed', { payload: { code, reason } })
+export function trackJoinFailed(_code, reason) {
+  trackEvent('cr2_join_failed', { payload: { reason } })
 }
 
 /** Lehrer startet die Session (locked_at gesetzt). */

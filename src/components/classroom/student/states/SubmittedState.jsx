@@ -148,16 +148,14 @@ export default function SubmittedState() {
   const isEnded = state.currentState === KIOSK_STATES.ENDED || state.sessionStatus === 'finished' || state.sessionStatus === 'aborted'
   const revealed = state.revealed || isEnded
   const mode = state.assignment?.mode || null
-  const result = state.submittedResult
   const hadSubmission = !!state.submittedAnswer
 
   // W4-S4: Bei Mehrrunden-Modi (z. B. 3 Lemmata Kollokationen) zeigen wir eine
-  // Auswertung ALLER Runden statt nur der letzten Antwort. Scores erst nach
-  // Auflösungsfreigabe — vorher nur „abgegeben".
+  // Auswertung ALLER Runden statt nur der letzten Antwort. roundResults hält den
+  // Runden-Verlauf (Lemma + „abgegeben"); Scores kommen NICHT vom Submit (D5),
+  // sondern erst nach Freigabe aus revealData (Server-autoritativ).
   const rounds = Array.isArray(state.roundResults) ? state.roundResults : []
   const isMultiRound = rounds.length > 1
-  const totalScore = rounds.reduce((s, r) => s + (Number(r.score) || 0), 0)
-  const totalMax   = rounds.reduce((s, r) => s + (Number(r.maxScore) || 0), 0)
 
   // Schritt 4 (C1): item-genaue Auflösung, vom Server byKey „<lemmaId>:<round>".
   // Den Key aus roundResults nehmen: currentLemma ist nach Sessionende null
@@ -165,6 +163,11 @@ export default function SubmittedState() {
   const revealByKey = state.revealData?.byKey || {}
   const singleKey   = rounds[0]?.key ?? `${state.currentLemma?.id ?? null}:0`
   const singleReveal = revealed ? (revealByKey[singleKey] || null) : null
+
+  // Gesamtpunkte aus der freigegebenen Auflösung (nicht aus der Submit-Antwort).
+  const revealedEntries = rounds.map((r) => revealByKey[r.key]).filter(Boolean)
+  const totalScore = revealedEntries.reduce((s, e) => s + (Number(e.score) || 0), 0)
+  const totalMax   = revealedEntries.reduce((s, e) => s + (Number(e.maxScore) || 0), 0)
 
   if (isEnded && !hadSubmission) {
     return (
@@ -237,8 +240,8 @@ export default function SubmittedState() {
                       {r.lemma || `Runde ${i + 1}`}
                     </span>
                     <span className="cr2-kiosk__rounds__score">
-                      {revealed && r.maxScore != null
-                        ? `${r.score} / ${r.maxScore}`
+                      {rev && rev.maxScore != null
+                        ? `${rev.score} / ${rev.maxScore}`
                         : '✓ abgegeben'}
                     </span>
                   </li>
@@ -267,16 +270,16 @@ export default function SubmittedState() {
             </section>
           )}
 
-          {revealed && (singleReveal || result) && (
+          {revealed && singleReveal && (
             <section className="cr2-kiosk__resultcard" aria-label="Auflösung" data-testid="cr2-kiosk-reveal">
               <span className="cr2-kiosk__reslabel">Auflösung</span>
-              {singleReveal && <RevealItems entry={singleReveal} />}
-              <div className="cr2-kiosk__resultcard__row cr2-kiosk__resultcard__row--correct">
-                <span>Ergebnis</span>
-                <strong>
-                  {(singleReveal?.score ?? result?.score)} / {(singleReveal?.maxScore ?? result?.maxScore)} Punkte
-                </strong>
-              </div>
+              <RevealItems entry={singleReveal} />
+              {singleReveal.maxScore != null && (
+                <div className="cr2-kiosk__resultcard__row cr2-kiosk__resultcard__row--correct">
+                  <span>Ergebnis</span>
+                  <strong>{singleReveal.score} / {singleReveal.maxScore} Punkte</strong>
+                </div>
+              )}
             </section>
           )}
         </>

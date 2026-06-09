@@ -101,6 +101,7 @@ import {
   classroomJoinLimiter,
   classroomHeartbeatLimiter,
   classroomWriteLimiter,
+  classroomReadLimiter,
 } from '../middleware/rateLimiter.js'
 
 const router = express.Router()
@@ -378,6 +379,18 @@ const getParticipantSubmissionsStmt = db.prepare(`
   WHERE participant_id = ? AND assignment_id = ?
   ORDER BY lemma_id, round_index
 `)
+
+// Wiederkehrende Statements einmalig vorbereiten statt pro Request neu
+// kompilieren (better-sqlite3 kompiliert synchron im Hauptthread) — Code-Review H1.
+const countActivePartsStmt = db.prepare(
+  'SELECT COUNT(1) AS c FROM classroom_participant WHERE session_id = ? AND left_at IS NULL',
+)
+const countSubmittedPartsStmt = db.prepare(
+  'SELECT COUNT(DISTINCT participant_id) AS c FROM classroom_submission WHERE session_id = ?',
+)
+const getAssignmentModeStmt = db.prepare(
+  'SELECT mode FROM classroom_assignment WHERE id = ?',
+)
 
 const getRoundsCountFromSnapshot = (snapshot) =>
   Array.isArray(snapshot?.rounds) ? snapshot.rounds.length : 1
@@ -881,9 +894,7 @@ router.post(
         return res.status(mapped.status).json({ error: mapped.message })
       }
       logger.info({ sessionId }, 'cr2 session started')
-      const participantCount = db.prepare(
-        'SELECT COUNT(1) AS c FROM classroom_participant WHERE session_id = ? AND left_at IS NULL',
-      ).get(sessionId)?.c ?? 0
+      const participantCount = countActivePartsStmt.get(sessionId)?.c ?? 0
       trackSessionStarted(sessionId, teacherUserId, Number(participantCount))
       // Broadcast an Schueler- und Teacher-Room (Plan §6: session:started).
       // Mode wird aus dem (einzigen, D2) Assignment gezogen, falls vorhanden.
@@ -926,12 +937,8 @@ router.post(
         ? result.session.finishedAt - result.session.startedAt
         : null
       // Completion-Rate: Schüler mit mind. 1 Submission / alle Teilnehmer
-      const totalParts = db.prepare(
-        'SELECT COUNT(1) AS c FROM classroom_participant WHERE session_id = ? AND left_at IS NULL',
-      ).get(sessionId)?.c ?? 0
-      const submittedParts = db.prepare(
-        'SELECT COUNT(DISTINCT participant_id) AS c FROM classroom_submission WHERE session_id = ?',
-      ).get(sessionId)?.c ?? 0
+      const totalParts = countActivePartsStmt.get(sessionId)?.c ?? 0
+      const submittedParts = countSubmittedPartsStmt.get(sessionId)?.c ?? 0
       const completionRate = totalParts > 0 ? submittedParts / totalParts : 0
       trackSessionFinished(sessionId, teacherUserId, { durationMs, completionRate, reason: reason || 'manual' })
       notifySessionFinished(sessionId, {
@@ -1064,12 +1071,8 @@ router.post(
         const durationMs = result.session.startedAt
           ? result.session.finishedAt - result.session.startedAt
           : null
-        const totalParts = db.prepare(
-          'SELECT COUNT(1) AS c FROM classroom_participant WHERE session_id = ? AND left_at IS NULL',
-        ).get(sessionId)?.c ?? 0
-        const submittedParts = db.prepare(
-          'SELECT COUNT(DISTINCT participant_id) AS c FROM classroom_submission WHERE session_id = ?',
-        ).get(sessionId)?.c ?? 0
+        const totalParts = countActivePartsStmt.get(sessionId)?.c ?? 0
+        const submittedParts = countSubmittedPartsStmt.get(sessionId)?.c ?? 0
         const completionRate = totalParts > 0 ? submittedParts / totalParts : 0
         trackSessionFinished(sessionId, teacherUserId, { durationMs, completionRate, reason: 'completed' })
         notifySessionFinished(sessionId, {
@@ -1221,6 +1224,7 @@ router.post(
 // buildStudentView() ist die einzige Stelle, die Antwortdaten haelt.
 router.get(
   '/api/v1/classroom/me/view',
+  classroomReadLimiter,
   requireParticipantAuth,
   (req, res) => {
     try {
@@ -1263,6 +1267,7 @@ router.get(
 // Vor der Freigabe liefert der Store { revealed: false } ohne Loesung.
 router.get(
   '/api/v1/classroom/me/reveal',
+  classroomReadLimiter,
   requireParticipantAuth,
   (req, res) => {
     try {
@@ -1313,7 +1318,7 @@ router.post(
       // Telemetrie: nur mode + correct, kein participantId/lemmaId (D7 / Pseudonymisierung)
       const submissionAssignment = (() => {
         try {
-          return db.prepare('SELECT mode FROM classroom_assignment WHERE id = ?').get(assignmentId)
+          return getAssignmentModeStmt.get(assignmentId)
         } catch { return null }
       })()
       trackSubmissionReceived(sessionId, {
@@ -1340,11 +1345,10 @@ router.post(
       // Push naechste Sicht an den Schueler, damit er ohne Polling
       // direkt das naechste Lemma sieht.
       notifyStudentViewUpdated(participant.id, { reason: 'submission' })
-      return res.json({
-        score:    result.score,
-        correct:  result.correct,
-        maxScore: result.maxScore,
-      })
+      // D5: Dem Schueler wird der Score NICHT mit der Submit-Antwort verraten
+      // (auch nicht „nur im State") — er kommt erst nach Freigabe via /me/reveal.
+      // Nur die Annahme bestaetigen.
+      return res.json({ accepted: true })
     } catch (err) {
       logger.error({ err }, 'cr2 submit crashed')
       return res.status(500).json({ error: 'Interner Serverfehler' })

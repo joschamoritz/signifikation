@@ -855,7 +855,8 @@ export function submitAnswer({
   if (!hasCap) return { error: 'FORBIDDEN' }
 
   const rawAnswerJson = JSON.stringify(rawAnswer ?? {})
-  if (rawAnswerJson.length > MAX_RAW_ANSWER_BYTES) return { error: 'PAYLOAD_TOO_LARGE' }
+  // byte-genau (mehrbyte-UTF-8 wird sonst unterschätzt) — vor dem Scoring.
+  if (Buffer.byteLength(rawAnswerJson, 'utf8') > MAX_RAW_ANSWER_BYTES) return { error: 'PAYLOAD_TOO_LARGE' }
 
   const assignment = normalizeAssignmentRow(assignmentRow)
   // content_snapshot ist per Assignment; bei mehreren Lemmata muessen

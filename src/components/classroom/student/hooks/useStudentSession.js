@@ -128,7 +128,11 @@ export function useStudentSession({ socketConnected = false } = {}) {
     let stopped = false
     async function beat() {
       if (stopped) return
-      try { await sendHeartbeat(state.token) } catch (err) {
+      // stateRef statt state.token: vermeidet stale Closure, falls sich der
+      // Token nach Effekt-Start noch ändert (Rehydrate-Race) — analog refreshView.
+      const token = stateRef.current.token
+      if (!token) return
+      try { await sendHeartbeat(token) } catch (err) {
         if (err instanceof KioskApiError && (err.status === 401 || err.status === 403)) {
           clearKioskSession()
           dispatch({ type: 'CLEAR' })

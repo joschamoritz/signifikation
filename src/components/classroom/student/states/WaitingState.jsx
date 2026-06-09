@@ -33,7 +33,9 @@ export default function WaitingState() {
       </p>
       <h1 className="cr2-kiosk__title">Warte, gleich geht&apos;s los.</h1>
 
-      <p className="cr2-kiosk__lead" style={{ marginTop: 18, marginBottom: 0 }}>
+      {/* role=status: der Wechsel zu „spielen" passiert per Server-Push ohne
+          Nutzeraktion — Screenreader bekommen wenigstens die Warte-Ansage. */}
+      <p className="cr2-kiosk__lead" role="status" style={{ marginTop: 18, marginBottom: 0 }}>
         <span className="cr2-kiosk__pulse" aria-hidden="true" />
         Deine Lehrkraft startet das Spiel gleich.
       </p>

@@ -29,7 +29,7 @@ import { useEffect, useRef, useState } from 'react'
 
 const NAMESPACE = '/cr2'
 
-export function useStudentSocket({ token, enabled = true, onRefreshView, onSessionStarted, onSessionEnded, onSessionPaused, onSessionResumed }) {
+export function useStudentSocket({ token, enabled = true, onRefreshView, onSessionStarted, onSessionEnded, onSessionPaused, onSessionResumed, onKicked }) {
   const [connected, setConnected]       = useState(false)
   // reconnecting = wir waren schon mal verbunden, sind es jetzt nicht und der
   // Manager versucht (per Backoff oben) gerade die Wiederverbindung. Steuert
@@ -39,9 +39,9 @@ export function useStudentSocket({ token, enabled = true, onRefreshView, onSessi
   const socketRef     = useRef(null)
   const everConnected = useRef(false)
 
-  const handlersRef = useRef({ onRefreshView, onSessionStarted, onSessionEnded, onSessionPaused, onSessionResumed })
-  useEffect(() => { handlersRef.current = { onRefreshView, onSessionStarted, onSessionEnded, onSessionPaused, onSessionResumed } },
-    [onRefreshView, onSessionStarted, onSessionEnded, onSessionPaused, onSessionResumed])
+  const handlersRef = useRef({ onRefreshView, onSessionStarted, onSessionEnded, onSessionPaused, onSessionResumed, onKicked })
+  useEffect(() => { handlersRef.current = { onRefreshView, onSessionStarted, onSessionEnded, onSessionPaused, onSessionResumed, onKicked } },
+    [onRefreshView, onSessionStarted, onSessionEnded, onSessionPaused, onSessionResumed, onKicked])
 
   useEffect(() => {
     if (!enabled || !token) return undefined
@@ -121,7 +121,7 @@ export function useStudentSocket({ token, enabled = true, onRefreshView, onSessi
           try { handlersRef.current?.onRefreshView?.() } catch {}
         })
         socket.on('kicked', (payload) => {
-          try { handlersRef.current?.onSessionEnded?.({ ...payload, reason: 'kicked' }) } catch {}
+          try { handlersRef.current?.onKicked?.(payload) } catch {}
         })
       } catch (err) {
         if (!cancelled) setError(err?.message || 'Socket-Load fehlgeschlagen')

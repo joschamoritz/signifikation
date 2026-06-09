@@ -67,6 +67,7 @@ const statsStore = new CleanupStore(60_000)
 const classroomJoinStore = new CleanupStore(5 * 60_000)
 const classroomHeartbeatStore = new CleanupStore(60_000)
 const classroomWriteStore = new CleanupStore(60_000)
+const classroomReadStore = new CleanupStore(60_000)
 const registerStore = new CleanupStore(15 * 60_000)
 const pushSubscribeStore = new CleanupStore(60_000)
 const iapVerifyStore = new CleanupStore(60_000)
@@ -147,6 +148,16 @@ export const classroomWriteLimiter = rateLimit({
   keyGenerator: getClientIp,
   standardHeaders: true, legacyHeaders: false,
   message: { error: 'Zu viele Klassenraum-Aktionen. Bitte kurz warten.' },
+})
+
+// Lese-Endpunkte (/me/view, /me/reveal): grosszuegig, aber gedeckelt, damit ein
+// gueltiger Participant-Token nicht ungedrosselt teure Views pollt (Security N3).
+export const classroomReadLimiter = rateLimit({
+  windowMs: 60_000, max: 120,
+  store: classroomReadStore,
+  keyGenerator: getClientIp,
+  standardHeaders: true, legacyHeaders: false,
+  message: { error: 'Zu viele Anfragen. Bitte kurz warten.' },
 })
 
 // Push-Subscribe/Unsubscribe: 20 Versuche / Minute pro IP

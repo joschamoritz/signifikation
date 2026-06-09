@@ -25,6 +25,9 @@ export default function PlayingState({ onToast }) {
         )}
       </div>
 
+      {/* Spielstart kommt per Server-Push ohne Nutzeraktion → für Screenreader ansagen. */}
+      <p className="sr-only" role="status">Das Spiel hat begonnen. Deine Aufgabe ist da.</p>
+
       <ClassroomGameWrapper onToast={onToast} />
     </>
   )

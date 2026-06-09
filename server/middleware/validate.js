@@ -385,8 +385,11 @@ export const cr2TodayLemmataQuerySchema = z.object({
 export const cr2JoinSchema = z.object({
   code:        z.string().trim().toLowerCase()
                  .min(4, 'Join-Code zu kurz')
-                 .max(30, 'Join-Code zu lang'),
-  displayName: z.string().trim().max(20).optional(),
+                 .max(30, 'Join-Code zu lang')
+                 .regex(/^[a-z-]+$/, 'Join-Code enthaelt ungueltige Zeichen'),
+  // displayName wird im Lehrer-Dashboard angezeigt → Winkelklammern verbieten
+  // (Stored-XSS-Defense-in-Depth; React escaped ohnehin).
+  displayName: z.string().trim().max(20).regex(/^[^<>]*$/, 'Name enthaelt ungueltige Zeichen').optional(),
 })
 
 /**
@@ -398,7 +401,12 @@ export const cr2SubmitSchema = z.object({
   assignmentId: z.string().trim().min(1, 'assignmentId erforderlich').max(128),
   lemmaId:      CR2_LEMMA_ID,
   roundIndex:   z.coerce.number().int().min(0).max(99).optional().default(0),
-  rawAnswer:    z.record(z.unknown()).optional().default({}),
+  rawAnswer:    z.record(z.unknown())
+                  // Größenlimit bereits in der Validierung (vor dem Scoring):
+                  // verhindert riesige/tief verschachtelte Payloads (Security M1).
+                  .refine((v) => { try { return JSON.stringify(v).length <= 8000 } catch { return false } },
+                          'rawAnswer zu groß')
+                  .optional().default({}),
   clientMs:     z.number().int().min(0).max(600_000).optional(),
 })
 

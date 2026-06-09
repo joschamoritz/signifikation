@@ -72,8 +72,11 @@ export function scoreWortzwilling(contentSnapshot, rawAnswer) {
   const zuordnung = new Map(
     kollokatoren.map((k) => [String(k.wort), String(k.zuordnung)]),
   )
-  const zoneA = Array.isArray(rawAnswer?.zoneA) ? rawAnswer.zoneA : []
-  const zoneB = Array.isArray(rawAnswer?.zoneB) ? rawAnswer.zoneB : []
+  // Client-Arrays auf die Anzahl gültiger Optionen clampen — verhindert
+  // ungebundene Iteration/aufgeblähtes detail_json (Security M2).
+  const cap = kollokatoren.length
+  const zoneA = (Array.isArray(rawAnswer?.zoneA) ? rawAnswer.zoneA : []).slice(0, cap)
+  const zoneB = (Array.isArray(rawAnswer?.zoneB) ? rawAnswer.zoneB : []).slice(0, cap)
 
   let score = 0
   const detail = { zoneA: [], zoneB: [] }

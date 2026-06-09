@@ -13,7 +13,7 @@
 //   - Polling /me/view alle 10s, solange Socket nicht verbunden
 //   - Socket-Events → SET_VIEW + STATE_TRANSITIONS
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import {
   StudentKioskProvider,
   useStudentKiosk,
@@ -100,25 +100,33 @@ function KioskRouteInner({ code, userLabel }) {
   const onSessionResumed = useCallback(() => {
     dispatch({ type: 'SESSION_RESUMED' })
   }, [dispatch])
+  // Kick: zurück zum Beitritt (NICHT in die Auflösung). Der reguläre Pfad läuft
+  // ohnehin über /me/view-403; dieser Handler ist die korrekte Socket-Variante.
+  const onKicked = useCallback(() => {
+    clearKioskSession()
+    dispatch({ type: 'CLEAR' })
+    setToast('Du wurdest aus dem Klassenraum entfernt.')
+  }, [dispatch])
 
   // useStudentSocket emittiert onRefreshView nach jedem Reconnect/view:updated.
   // Wir verdrahten das gleich mit useStudentSession.refreshView (unten).
-  const refreshRef = useState(() => ({ fn: () => {} }))[0]
+  const refreshRef = useRef({ fn: () => {} })
 
   const { connected: socketConnected, reconnecting } = useStudentSocket({
     token: state.token,
     enabled: !!state.token,
-    onRefreshView: () => { refreshRef.fn() },
+    onRefreshView: () => { refreshRef.current.fn() },
     onSessionStarted,
     onSessionEnded,
     onSessionPaused,
     onSessionResumed,
+    onKicked,
   })
 
   const { refreshView, leave } = useStudentSession({ socketConnected })
   // Lazy-Bridge: Socket muss refreshView() rufen koennen, ohne dass die
   // Hook-Reihenfolge tanzt.
-  useEffect(() => { refreshRef.fn = refreshView }, [refreshView, refreshRef])
+  useEffect(() => { refreshRef.current.fn = refreshView }, [refreshView])
 
   // Schritt 4 (C1): Sobald die Lehrkraft freigibt (revealed=true) UND eine
   // eigene Abgabe existiert, die item-genaue Aufloesung EINMALIG laden.
