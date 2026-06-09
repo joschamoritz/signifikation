@@ -44,7 +44,7 @@ export function initialState(code) {
     // Kollokationen). Speist die Rundenauswertung in S5. Wird beim Modus-
     // Wechsel geleert. Scores zeigen wir erst nach „Auflösung freigeben".
     roundResults:    [],          // [{ key, lemmaId, lemma, score, maxScore, correct }]
-    revealed:        false,       // hat Lehrer „Auflösung freigeben" gedrueckt? (session:finished)
+    revealed:        false,       // abgeleitet aus sessionStatus (finished/aborted), nur in SET_VIEW (P4)
     // Schritt 4 (C1): item-genaue Aufloesung vom Server, byKey „<lemmaId>:<round>".
     // Wird erst nach Freigabe geladen (R1-Gate serverseitig).
     revealData:      null,        // { byKey: { [key]: { mode, score, maxScore, items, solution } } } | null
@@ -107,14 +107,12 @@ function reducer(state, action) {
       const submittedAnswer = assignmentChanged ? null : state.submittedAnswer
       const submittedResult = assignmentChanged ? null : state.submittedResult
       const roundResults    = assignmentChanged ? [] : state.roundResults
-      // Freigabe (D5) wird normal per Socket (REVEAL/SESSION_ENDED) gesetzt.
-      // Faellt der Socket aus und das Ende kommt nur per /me/view-Polling
-      // (status finished/aborted), muss revealed hier ebenfalls true werden —
-      // sonst feuert der Reveal-Fetch nie (Code-Review M5).
-      const endedStatus = status === 'finished' || status === 'aborted'
-      const revealed = endedStatus
-        ? true
-        : (assignmentChanged ? false : state.revealed)
+      // P4: Freigabe (D5) wird AUSSCHLIESSLICH aus dem Server-Status abgeleitet
+      // (finished/aborted ⇒ revealed). SET_VIEW ist die einzige Quelle dafuer;
+      // Socket-Events (session:finished/aborted) loesen nur ein refreshView aus,
+      // statt revealed direkt zu setzen. So gibt es nur noch EINEN Pfad — kein
+      // Auseinanderlaufen zwischen Socket-Push und /me/view mehr.
+      const revealed = status === 'finished' || status === 'aborted'
 
       return {
         ...state,
@@ -170,15 +168,10 @@ function reducer(state, action) {
       }
     }
 
-    case 'REVEAL':
-      // session:finished kam → Lehrer hat Auflösung freigegeben (D5).
-      return { ...state, revealed: true, currentState: state.submittedResult
-        ? KIOSK_STATES.SUBMITTED
-        : KIOSK_STATES.ENDED }
-
-    case 'SESSION_ENDED':
-      // session:finished oder :aborted ohne eigene Submission.
-      return { ...state, sessionStatus: action.reason === 'aborted' ? 'aborted' : 'finished', revealed: true, currentState: state.submittedResult ? KIOSK_STATES.SUBMITTED : KIOSK_STATES.ENDED }
+    // P4: Frueher setzten REVEAL/SESSION_ENDED revealed direkt. Beide entfernt —
+    // das Session-Ende kommt jetzt einheitlich ueber SET_VIEW (Server-Status),
+    // angestossen durch ein refreshView im Socket-Handler. revealed hat damit
+    // nur noch EINE Ableitung (siehe SET_VIEW).
 
     case 'SET_REVEAL':
       // Item-genaue Aufloesung nach Freigabe (Schritt 4 / C1).

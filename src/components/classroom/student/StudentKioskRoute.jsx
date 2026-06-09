@@ -86,14 +86,22 @@ function KioskRouteInner({ code, userLabel }) {
     return () => clearTimeout(id)
   }, [toast])
 
+  // useStudentSocket emittiert onRefreshView nach jedem Reconnect/view:updated.
+  // Lazy-Bridge: Socket muss refreshView() rufen koennen, bevor useStudentSession
+  // (unten) es liefert — der Ref wird in einem Effekt verdrahtet.
+  const refreshRef = useRef({ fn: () => {} })
+
   // Socket: nur wenn Token vorhanden.
-  const onRefreshView   = useCallback(() => {/* gleich gleich via session.refreshView */}, [])
-  const onSessionStarted = useCallback((p) => {
+  const onSessionStarted = useCallback(() => {
     dispatch({ type: 'SET_SESSION_STATUS', status: 'running' })
   }, [dispatch])
-  const onSessionEnded   = useCallback((p) => {
-    dispatch({ type: 'SESSION_ENDED', reason: p?.reason || 'finished' })
-  }, [dispatch])
+  // P4: Session-Ende setzt revealed NICHT mehr direkt. Wir holen den
+  // server-autoritativen Status per /me/view nach (refreshView) — SET_VIEW
+  // leitet revealed + Endzustand daraus ab. Gleiches Muster wie session:started
+  // / view:updated / assignment:changed.
+  const onSessionEnded   = useCallback(() => {
+    refreshRef.current.fn()
+  }, [])
   const onSessionPaused  = useCallback(() => {
     dispatch({ type: 'SESSION_PAUSED' })
   }, [dispatch])
@@ -107,10 +115,6 @@ function KioskRouteInner({ code, userLabel }) {
     dispatch({ type: 'CLEAR' })
     setToast('Du wurdest aus dem Klassenraum entfernt.')
   }, [dispatch])
-
-  // useStudentSocket emittiert onRefreshView nach jedem Reconnect/view:updated.
-  // Wir verdrahten das gleich mit useStudentSession.refreshView (unten).
-  const refreshRef = useRef({ fn: () => {} })
 
   const { connected: socketConnected, reconnecting } = useStudentSocket({
     token: state.token,

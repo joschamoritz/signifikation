@@ -3,10 +3,10 @@
 // Verbindung zum /cr2-Namespace mit Bearer-Token in handshake.auth.
 // Hört die fuer Schueler relevanten Events (siehe Plan §6):
 //   - session:started   → SET_SESSION_STATUS('running') + refreshView
-//   - session:finished  → SESSION_ENDED
-//   - session:aborted   → SESSION_ENDED
+//   - session:finished  → refreshView (Status/Reveal leitet SET_VIEW ab, P4)
+//   - session:aborted   → refreshView (Status/Reveal leitet SET_VIEW ab, P4)
 //   - view:updated      → refreshView (Server pusht das nach jedem Submit)
-//   - kicked            → SESSION_ENDED('kicked')
+//   - kicked            → onKicked (zurueck zum Beitritt)
 //
 // Wiederverbindungs-Strategie (W2-T5): wir verlassen uns BEWUSST auf die
 // eingebaute exponentielle Backoff-Mechanik von socket.io-client — KEIN
