@@ -107,11 +107,10 @@ const stmts = {
   deleteSession: db.prepare(`
     DELETE FROM classroom_session WHERE id = @id AND teacher_user_id = @teacher_user_id
   `),
-  abortSession: db.prepare(`
-    UPDATE classroom_session
-    SET status = 'aborted', finished_at = @finished_at, paused_at = NULL
-    WHERE id = @id AND status IN ('lobby','running')
-  `),
+  // Hinweis: Es gibt KEIN abortSession-Statement (mehr). Der 'aborted'-Status
+  // wird nirgends erzeugt — es existiert kein Abort-Endpoint. Die lesende Seite
+  // (getSessionResults/getParticipantReveal, Kiosk SET_VIEW) behandelt 'aborted'
+  // weiterhin defensiv wie 'finished', falls der Status je eingefuehrt wird.
   // Pause/Resume als Flag: DB-Status bleibt 'running' (Index + Beitritt
   // unveraendert). pausedAt != NULL ⇒ Normalizer leitet 'paused' ab.
   // Nur eine laufende, noch nicht pausierte Session laesst sich pausieren.
@@ -679,14 +678,17 @@ export function nextAssignment({ sessionId, teacherUserId }) {
   // Wartebilds einen neuen Modus aufploppen. Lehrer muss erst fortsetzen.
   if (row.paused_at != null) return { error: 'SESSION_PAUSED' }
 
-  const ordered = stmts.listAssignmentsBySession.all(sessionId).map(normalizeAssignmentRow)
-  if (ordered.length === 0) return { error: 'NO_ASSIGNMENT' }
+  // Kleinkram-Refactor: nur COUNT + Einzelzugriff auf das naechste Assignment
+  // (getAssignmentAtIndex, LIMIT 1 OFFSET) statt alle Assignments zu laden —
+  // analog submitAnswer. Gleiche Ordnung (position ASC, created_at ASC).
+  const total = stmts.countAssignments.get(sessionId)?.c || 0
+  if (total === 0) return { error: 'NO_ASSIGNMENT' }
 
-  const currentIndex = Math.min(Math.max(0, row.current_assignment_index ?? 0), ordered.length - 1)
+  const currentIndex = Math.min(Math.max(0, row.current_assignment_index ?? 0), total - 1)
   const nextIndex = currentIndex + 1
 
   // Letzter Block → Session beenden (gleiche Semantik wie finishSession).
-  if (nextIndex >= ordered.length) {
+  if (nextIndex >= total) {
     const finished = finishSession({ sessionId, teacherUserId, reason: 'completed' })
     if (finished.error) return finished
     return { session: finished.session, done: true }
@@ -700,9 +702,9 @@ export function nextAssignment({ sessionId, teacherUserId }) {
 
   return {
     session: normalizeSessionRow(stmts.getSessionById.get(sessionId)),
-    assignment: ordered[nextIndex],
+    assignment: normalizeAssignmentRow(stmts.getAssignmentAtIndex.get(sessionId, nextIndex)),
     index: nextIndex,
-    total: ordered.length,
+    total,
   }
 }
 

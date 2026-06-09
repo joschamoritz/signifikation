@@ -497,11 +497,10 @@ export function notifySessionFinished(sessionId, payload) {
   nsp.to(roomTeacher(sessionId)).emit('session:finished', payload)
 }
 
-export function notifySessionAborted(sessionId, payload) {
-  if (!nsp || !sessionId) return
-  nsp.to(roomStudents(sessionId)).emit('session:aborted', payload)
-  nsp.to(roomTeacher(sessionId)).emit('session:aborted', payload)
-}
+// Hinweis (P5/Kleinkram): notifySessionAborted wurde entfernt — es gibt keinen
+// Abort-Endpoint, der 'aborted' erzeugt. Der Client lauscht zwar weiterhin
+// defensiv auf 'session:aborted', aber niemand emittiert es. Bei Einfuehrung
+// eines Abort-Flows hier wieder ergaenzen (Muster wie notifySessionFinished).
 
 export function notifySessionPaused(sessionId, payload) {
   if (!nsp || !sessionId) return
