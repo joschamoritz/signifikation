@@ -24,10 +24,6 @@ export default function Home({
   zwPlayed = null, onPlayZeitenwende,
   lueckenfuellerLemma = null, lfPlayed = null, onPlayLueckenfueller,
   serverDatum = null,
-  gesamtausgabe = false,
-  freeAccessToday = false,
-  freeAccessLabel = null,
-  onUnlockGesamtausgabe = () => {},
 }) {
   const [sheetOpen,         setSheetOpen]         = useState(false)
   const [desktopInfoOpen,   setDesktopInfoOpen]   = useState(false)
@@ -183,15 +179,6 @@ export default function Home({
           </div>
         </header>
 
-        {freeAccessToday && (
-          <div className="free-day-banner" role="status">
-            <span className="free-day-banner-icon" aria-hidden="true">✦</span>
-            <span className="free-day-banner-text">
-              Heute kostenlos spielbar{freeAccessLabel ? ` – ${freeAccessLabel}` : ''}
-            </span>
-          </div>
-        )}
-
         {/* ── Streak ───────────────────────────────────────── */}
         {streak > 0 && (
           <div className="test-streak">
@@ -324,17 +311,13 @@ export default function Home({
               onRetry={onRetryWortzwilling}
               onPlay={onPlayWortzwilling}
               statusText={
-                !gesamtausgabe ? 'Teil der Gesamtausgabe.'
-                : wortzwillingError ? ''
+                wortzwillingError ? ''
                 : !wortzwilling ? 'Heute nicht verfügbar.'
                 : wzPlayed ? 'Gespielt.'
                 : 'Noch nicht gespielt.'
               }
               ctaText={wzPlayed ? 'Ergebnis ansehen' : 'Wort-Zwilling starten'}
               ctaAriaLabel={wzPlayed ? 'Ergebnis ansehen: Wort-Zwilling' : 'Wort-Zwilling starten'}
-              gesamtausgabe={gesamtausgabe}
-              freeAccessToday={freeAccessToday}
-              onUnlockGesamtausgabe={onUnlockGesamtausgabe}
             />
 
             {/* ── ③ Zeitenwende ────────────────────────────── */}
@@ -353,17 +336,13 @@ export default function Home({
               onRetry={onRetryZeitenwende}
               onPlay={onPlayZeitenwende}
               statusText={
-                !gesamtausgabe ? 'Teil der Gesamtausgabe.'
-                : zeitenwendeError ? 'Der Eintrag konnte gerade nicht geladen werden.'
+                zeitenwendeError ? 'Der Eintrag konnte gerade nicht geladen werden.'
                 : zeitenwendeMissing || !zeitenwende ? 'Heute nicht verfügbar.'
                 : zwPlayed ? 'Gespielt.'
                 : 'Noch nicht gespielt.'
               }
               ctaText={zwPlayed ? 'Ergebnis ansehen' : 'Zeitenwende starten'}
               ctaAriaLabel={zwPlayed ? 'Ergebnis ansehen: Zeitenwende' : 'Zeitenwende starten'}
-              gesamtausgabe={gesamtausgabe}
-              freeAccessToday={freeAccessToday}
-              onUnlockGesamtausgabe={onUnlockGesamtausgabe}
             />
 
             {/* ── ④ Lückenfüller ───────────────────────────── */}
@@ -380,16 +359,12 @@ export default function Home({
               playedLabel={lueckenfuellerLemma?.lemma ?? null}
               onPlay={onPlayLueckenfueller}
               statusText={
-                !gesamtausgabe ? 'Teil der Gesamtausgabe.'
-                : !lueckenfuellerLemma?.lueckenfueller ? 'Heute nicht verfügbar.'
+                !lueckenfuellerLemma?.lueckenfueller ? 'Heute nicht verfügbar.'
                 : lfPlayed ? 'Gespielt.'
                 : 'Noch nicht gespielt.'
               }
               ctaText={lfPlayed ? 'Ergebnis ansehen' : 'Lückenfüller starten'}
               ctaAriaLabel={lfPlayed ? 'Ergebnis ansehen: Lückenfüller' : 'Lückenfüller starten'}
-              gesamtausgabe={gesamtausgabe}
-              freeAccessToday={freeAccessToday}
-              onUnlockGesamtausgabe={onUnlockGesamtausgabe}
             />
 
             {/* ── ⑤ Platzhalter (i.V.) ─────────────────────── */}

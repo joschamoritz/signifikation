@@ -37,8 +37,6 @@ const getUserCreatedAtStmt = db.prepare(`
   WHERE id = ?
 `)
 
-const getFreeDayStmt = db.prepare(`SELECT label FROM free_days WHERE date = ?`)
-
 const getPlayedDatesStmt = db.prepare(`
   SELECT DISTINCT datum
   FROM stats
@@ -63,19 +61,6 @@ const getPlaysBySpielStmt = db.prepare(`
 const SPIELE = ['kollokationen', 'wortzwilling', 'zeitenwende', 'lueckenfueller']
 
 // ── Helper Functions ───────────────────────────────────────────
-
-function getTodayBerlin() {
-  return new Date().toLocaleDateString('en-CA', { timeZone: 'Europe/Berlin' }) // YYYY-MM-DD
-}
-
-function checkFreeAccess() {
-  const day = new Date().toLocaleString('en-US', { timeZone: 'Europe/Berlin', weekday: 'short' })
-  if (day === 'Sun') return { active: true, reason: 'sunday', label: 'Sonntag' }
-  const today = getTodayBerlin()
-  const row = getFreeDayStmt.get(today)
-  if (row) return { active: true, reason: 'free_day', label: row.label || 'Freier Tag' }
-  return { active: false, reason: null, label: null }
-}
 
 function readEntitlements(userId, userRole) {
   const now = Date.now()
@@ -109,24 +94,13 @@ router.get('/api/v1/account/auth-options', (_req, res) => {
 
 router.get('/api/v1/account/entitlements', optionalAuthUser, (req, res) => {
   try {
-    const freeAccess = checkFreeAccess()
     if (!req.user) {
       return res.json({
         gesamtausgabe: { unlocked: false, unlockedAt: null, source: 'none' },
-        freeAccessToday: freeAccess.active,
-        freeAccessReason: freeAccess.reason,
-        freeAccessLabel: freeAccess.label,
       })
     }
 
-    const entitlements = readEntitlements(req.user.id, req.user.role)
-
-    res.json({
-      ...entitlements,
-      freeAccessToday: freeAccess.active,
-      freeAccessReason: freeAccess.reason,
-      freeAccessLabel: freeAccess.label,
-    })
+    res.json(readEntitlements(req.user.id, req.user.role))
   } catch (err) {
     logger.error({ err }, 'Entitlements-Abruf fehlgeschlagen')
     res.status(500).json({ error: 'Interner Serverfehler' })

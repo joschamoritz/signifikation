@@ -37,15 +37,17 @@ test.describe('Home – Spielmodi-Rendering', () => {
     await expect(tabbar.getByRole('button', { name: /Konto/ })).toBeVisible()
   })
 
-  test('Premium-Modi zeigen Lock-CTA oder Unlock-Button ohne Gesamtausgabe', async ({ page }) => {
+  test('Wort-Zwilling ist frei spielbar – kein Gesamtausgabe-Schloss mehr', async ({ page }) => {
     await page.goto('/')
-    // Wort-Zwilling-Eintrag muss entweder "Gesamtausgabe freischalten"
-    // (nicht eingeloggt / kein Premium) oder einen Spielen-CTA zeigen.
+    // Seit dem Premium-Umbau sind alle vier Modi dauerhaft frei. Der
+    // Wort-Zwilling-Eintrag darf daher keinen Lock-CTA mehr zeigen, sondern
+    // entweder den Spielen-CTA oder (mangels Tagesdaten) den deaktivierten
+    // Platzhalter.
     const wzHeadword = page.locator('.test-headword', { hasText: 'Wort-Zwilling' })
     await expect(wzHeadword).toBeVisible()
     const wzEntry = wzHeadword.locator('xpath=ancestor::li[contains(@class, "test-entry")]')
-    const cta = wzEntry.locator('.test-cta, .test-cta--locked').first()
-    await expect(cta).toBeVisible()
+    await expect(wzEntry.locator('.test-cta--locked')).toHaveCount(0)
+    await expect(wzEntry.locator('.test-cta').first()).toBeVisible()
   })
 
   test('Klassenraum-Tab öffnet ohne Fehler', async ({ page }) => {

@@ -41,15 +41,17 @@ describe('useEntitlements', () => {
     expect(localStorage.getItem('sig_gesamtausgabe')).toBe('1')
   })
 
-  it('setzt freeAccessToday und freeAccessLabel aus Server-Antwort', async () => {
+  it('freeAccessToday wird propagiert, schaltet aber gesamtausgabe NICHT mehr frei (entkoppelt)', async () => {
     mockFetch({ gesamtausgabe: { unlocked: false }, freeAccessToday: true, freeAccessLabel: 'Sonntag' })
 
     const { result } = renderHook(() => useEntitlements())
     await waitFor(() => expect(result.current.freeAccessToday).toBe(true))
 
     expect(result.current.freeAccessLabel).toBe('Sonntag')
-    expect(result.current.gesamtausgabeUnlocked).toBe(true)   // true wegen freeAccess
-    expect(result.current.gesamtausgabePermanent).toBe(false)  // aber kein permanenter Kauf
+    // Seit dem Premium-Umbau sind alle Modi frei; freeAccess schaltet kein
+    // Premium-Feature (Klassenraum/Eigenes Lemma) mehr frei.
+    expect(result.current.gesamtausgabeUnlocked).toBe(false)
+    expect(result.current.gesamtausgabePermanent).toBe(false)
   })
 
   it('fällt bei HTTP-Fehler auf localStorage-Wert zurück', async () => {

@@ -116,6 +116,21 @@ export const analyzeZWendeQuerySchema = z.object({
   q: z.string().min(1, 'q= erforderlich'),
 })
 
+/**
+ * GET /api/v1/custom-lemma/validate (query) – Eignungsprüfung für Eigenes-Lemma.
+ * Wort-Zwilling braucht ein Paar (a & b), die anderen Modi ein Einzelwort (q).
+ */
+export const customLemmaValidateSchema = z.object({
+  mode: z.enum(VALID_GAMES),
+  q:   z.string().min(1).max(100).regex(WORT_REGEX, 'q enthält ungültige Zeichen').optional(),
+  a:   z.string().min(1).max(100).regex(WORT_REGEX, 'a enthält ungültige Zeichen').optional(),
+  b:   z.string().min(1).max(100).regex(WORT_REGEX, 'b enthält ungültige Zeichen').optional(),
+  pos: z.enum(['Substantiv', 'Verb', 'Adjektiv']).optional(),
+}).refine(
+  (data) => (data.mode === 'wortzwilling' ? Boolean(data.a && data.b) : Boolean(data.q)),
+  { message: 'Wort-Zwilling benötigt a und b, andere Modi benötigen q' },
+)
+
 /** GET /admin/users (query) */
 export const adminUsersQuerySchema = z.object({
   limit: z.coerce.number().int().min(1).max(200).optional().default(50),

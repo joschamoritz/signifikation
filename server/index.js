@@ -29,6 +29,7 @@ import { ensureWortprofilDb } from './init-wortprofil.js'
 import publicRouter from './routes/public.js'
 import adminRouter  from './routes/admin.js'
 import accountRouter from './routes/account.js'
+import customLemmaRouter from './routes/custom-lemma.js'
 import classroomRouter from './routes/classroom.js'
 import paymentsRouter from './routes/payments.js'
 import iapRouter from './routes/iap.js'
@@ -156,6 +157,7 @@ app.get(
 app.use('/', publicRouter)
 app.use('/', adminRouter)
 app.use('/', accountRouter)
+app.use('/', customLemmaRouter)
 app.use('/', classroomRouter)
 app.use('/', paymentsRouter)
 app.use('/', iapRouter)

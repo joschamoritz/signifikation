@@ -51,7 +51,11 @@ export function useEntitlements() {
   }, [refreshEntitlements])
 
   return {
-    gesamtausgabeUnlocked: gesamtausgabeUnlocked || freeAccessToday,
+    // Premium-Entitlement steuert nur noch Klassenraum/Kurs + Eigenes Lemma.
+    // Alle vier Spielmodi sind dauerhaft frei, daher fließt freeAccessToday
+    // hier NICHT mehr ein (sonst würde Sonntag/Freitag fälschlich Premium-
+    // Features freischalten).
+    gesamtausgabeUnlocked: gesamtausgabeUnlocked,
     gesamtausgabePermanent: gesamtausgabeUnlocked,
     freeAccessToday,
     freeAccessLabel,
