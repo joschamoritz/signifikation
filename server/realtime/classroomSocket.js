@@ -46,6 +46,7 @@
  *   vor jeglicher DB-Operation geprueft, damit DB-Last begrenzt bleibt.
  */
 
+import cluster from 'node:cluster'
 import { Server } from 'socket.io'
 import { fromNodeHeaders } from 'better-auth/node'
 import { auth } from '../auth/index.js'
@@ -70,10 +71,23 @@ const DEFAULT_HELLO_TIMEOUT_MS = 5 * 1000
 const DEFAULT_CONNECT_RATE_LIMIT = 50              // Connects pro IP / Fenster
 const DEFAULT_CONNECT_RATE_WINDOW_MS = 60_000
 
-// ── Modulzustand ────────────────────────────────────────────────────
+// ── Modulzustand (SINGLE-NODE-ANNAHME, P5) ──────────────────────────
 // nsp wird beim Setup gesetzt. Helper (notify*) und Timer-Logik
 // lesen ueber Closure-Referenz. Ohne Setup sind alle Helper No-Ops
 // (relevant fuer Route-Tests ohne Socket-Server).
+//
+// WICHTIG: nsp, disconnectTimers und connectAttempts sind MODUL-LOKAL —
+// also pro Node-Prozess. Der Klassenraum-Realtime ist bewusst auf EINEN
+// einzigen Node-Prozess ausgelegt (Use-Case: <=50 Teilnehmer/Schulstunde):
+//   - notify*-Broadcasts erreichen nur Sockets, die mit DIESEM Prozess
+//     verbunden sind (kein Redis-Adapter, kein Pub/Sub).
+//   - Reconnect-Timer (D6) und IP-Rate-Limit leben nur in diesem Prozess.
+// Mit PM2 instances>1 (Cluster-Mode) verteilt der Load-Balancer Sockets auf
+// mehrere Prozesse → Broadcasts/Timer greifen prozessuebergreifend NICHT mehr,
+// und zwar STILL (kein Fehler). Deshalb: ecosystem.config.cjs nutzt
+// instances:1 + exec_mode:'fork', und setupClassroomSocket warnt LAUT, falls
+// es doch in einem Cluster laeuft (assertSingleNode unten). Horizontal-Scaling
+// (Redis-Adapter) ist fuer diesen Use-Case bewusst NICHT vorgesehen.
 let nsp = null
 let RECONNECT_WINDOW_MS = DEFAULT_RECONNECT_WINDOW_MS
 let HELLO_TIMEOUT_MS = DEFAULT_HELLO_TIMEOUT_MS
@@ -89,6 +103,34 @@ const disconnectTimers = new Map()
 const connectAttempts = new Map()
 
 function nowMs() { return Date.now() }
+
+// P5: Erkennt einen Multi-Instance-/Cluster-Betrieb, in dem der modul-lokale
+// Realtime-State (Broadcasts/Timer/Rate-Limit) STILL bricht.
+//   - PM2 cluster_mode forkt ueber Node's cluster-Modul → cluster.isWorker.
+//   - PM2 setzt zusaetzlich NODE_APP_INSTANCE je Instanz; > 0 ⇒ definitiv
+//     mehrere Instanzen (instance 0 allein faellt nicht auf, deckt cluster.isWorker ab).
+function detectMultiInstance() {
+  if (cluster.isWorker) return true
+  const inst = Number(process.env.NODE_APP_INSTANCE)
+  return Number.isFinite(inst) && inst > 0
+}
+
+// LAUTE Warnung beim Setup, falls der Single-Node-Vertrag verletzt ist (P5).
+// Bewusst nur Warnung (kein process.exit): ein degradierter, aber laufender
+// Server ist besser als ein harter Deploy-Ausfall — und die Warnung macht die
+// Fehlkonfiguration unuebersehbar, statt sie still bleiben zu lassen.
+function assertSingleNode() {
+  if (!detectMultiInstance()) return
+  logger.error(
+    {
+      nodeAppInstance: process.env.NODE_APP_INSTANCE ?? null,
+      isClusterWorker: cluster.isWorker,
+    },
+    'KLASSENRAUM-REALTIME LAEUFT IM CLUSTER-/MULTI-INSTANCE-MODUS — das ist NICHT unterstuetzt. ' +
+    'Socket-Broadcasts, Reconnect-Timer (D6) und IP-Rate-Limit sind modul-lokal pro Prozess und ' +
+    'brechen prozessuebergreifend STILL. PM2: instances:1 + exec_mode:"fork" setzen (ecosystem.config.cjs).',
+  )
+}
 
 function checkConnectRateLimit(ip) {
   if (CONNECT_RATE_LIMIT === 0) return true
@@ -210,6 +252,9 @@ function hasOpenSocketsForParticipant(participantId) {
  */
 export function setupClassroomSocket(io, options = {}) {
   if (!io) throw new Error('setupClassroomSocket: io required')
+
+  // P5: Single-Node-Vertrag pruefen (warnt laut bei Cluster-/Multi-Instance).
+  assertSingleNode()
 
   RECONNECT_WINDOW_MS    = options.reconnectWindowMs    ?? DEFAULT_RECONNECT_WINDOW_MS
   HELLO_TIMEOUT_MS       = options.helloTimeoutMs       ?? DEFAULT_HELLO_TIMEOUT_MS
