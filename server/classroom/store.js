@@ -858,13 +858,14 @@ export function submitAnswer({
   if (Buffer.byteLength(rawAnswerJson, 'utf8') > MAX_RAW_ANSWER_BYTES) return { error: 'PAYLOAD_TOO_LARGE' }
 
   const assignment = normalizeAssignmentRow(assignmentRow)
-  // content_snapshot ist per Assignment; bei mehreren Lemmata muessen
-  // die einzelnen lemma-spezifischen Inhalte unter contentSnapshot[lemmaId]
-  // liegen. Wir akzeptieren beide Formen: { byLemma: { [lemmaId]: {...} } }
-  // oder ein direktes Single-Lemma-Snapshot (wenn nur 1 Lemma in der
-  // Liste war).
-  const lemmaSnapshot = assignment.contentSnapshot?.byLemma?.[lemmaId]
-    ?? assignment.contentSnapshot
+  // content_snapshot wird IMMER als { byLemma: { [lemmaId]: {...} } } gebaut
+  // (buildContentSnapshot). Das lemma-spezifische Snapshot liegt also unter
+  // byLemma[lemmaId]; fehlt es, scort der Modus auf einem leeren Objekt
+  // (0 Punkte) statt auf der falschen { byLemma }-Huelle. Der frueher hier
+  // stehende „?? contentSnapshot"-Fallback war tot/irrefuehrend (P3): er haette
+  // dem Scoring die gesamte byLemma-Huelle als Single-Lemma-Snapshot
+  // untergeschoben — es gibt keinen Pfad, der je ein Single-Lemma-Snapshot ablegt.
+  const lemmaSnapshot = assignment.contentSnapshot?.byLemma?.[lemmaId] ?? {}
 
   let scoreResult
   try {

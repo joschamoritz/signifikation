@@ -297,25 +297,16 @@ function buildStudentView(participant, session, assignment, meta = {}) {
   const currentLemmaId = lemmaIds.find(id => !doneLemmaIds.has(id)) || null
   const allDone = doneLemmaIds.size >= lemmaIds.length
 
-  // Lemmata aus DB laden (nur das aktuelle, um Leaks anderer Lemmata zu verhindern)
-  // R1: Wir laden NUR das aktuelle Lemma, nie alle auf einmal ans Frontend
+  // P3: Der content_snapshot (beim Anlegen eingefroren, D4) ist die ALLEINIGE
+  // View-Quelle — kein DB-Reload des Lemmas mehr. lemma/ipa/definition liegen
+  // bereits im Snapshot (fuer alle Modi, inkl. synthetischer „wz:"-Paare, die gar
+  // keine DB-Zeile haben). Das vermeidet einen Read pro /me/view und haelt die
+  // Schueler-Sicht konsistent mit dem eingefrorenen Stand.
+  // R1: Nur das aktuelle Lemma wird gewhitelistet ausgeliefert, nie alle.
   let currentLemmaData = null
   if (currentLemmaId && !allDone) {
-    // Wort-Zwilling: synthetische „wz:"-Paare haben KEINE DB-Zeile. Direkt aus
-    // dem Snapshot synthetisieren — sonst bliebe currentLemma null und die
-    // Schüler:innen sähen nie ein Spiel (Bug Realbedingungstest).
-    const wzPair = parseWzId(currentLemmaId)
-    let lemma = null
-    if (wzPair) {
-      lemma = synthWzLemma(currentLemmaId, wzPair)
-    } else {
-      const rows2 = getLemmataByIdsStmt.all(JSON.stringify([currentLemmaId]))
-      const lemmaRow = rows2.find(r => r.id === currentLemmaId)
-      if (lemmaRow) lemma = parseLemmaJson(lemmaRow)
-    }
-    if (lemma) {
-      const snap = assignment.contentSnapshot?.byLemma?.[currentLemmaId] ?? {}
-
+    const snap = assignment.contentSnapshot?.byLemma?.[currentLemmaId]
+    if (snap) {
       // Aktueller Runden-Index fuer Lueckenfueller
       const submittedRounds = roundsPerLemma[currentLemmaId] || new Set()
       const currentRoundIndex = submittedRounds.size
@@ -331,12 +322,12 @@ function buildStudentView(participant, session, assignment, meta = {}) {
 
       currentLemmaData = {
         // WHITELIST (R1): nur diese Felder sind fuer Schueler bestimmt
-        id:     lemma.id,
-        lemma:  lemma.lemma,
-        ipa:    lemma.ipa,
+        id:     currentLemmaId,
+        lemma:  snap.lemma,
+        ipa:    snap.ipa,
         prompt: safePrompt,
-        // definition nur aus oeffentlichem Feld, KEIN notiz
-        definition: lemma.definition || (lemma.definitionen[0] ?? ''),
+        // oeffentliche Definition aus dem Snapshot (KEIN notiz)
+        definition: snap.definition || '',
       }
     }
   }

@@ -31,6 +31,7 @@ export default {
       return {
         lemma:        lemma.lemma,
         ipa:          lemma.ipa,
+        definition:   lemma.definition || lemma.definitionen?.[0] || '',
         wortA:        r.wzPair.wortA,
         wortB:        r.wzPair.wortB,
         kollokatoren: koll,
@@ -41,6 +42,7 @@ export default {
     return {
       lemma:        lemma.lemma,
       ipa:          lemma.ipa,
+      definition:   lemma.definition || lemma.definitionen?.[0] || '',
       wortA:        wz.wortA || lemma.lemma,
       wortB:        wz.wortB || '',
       kollokatoren: wz.kollokatoren || [],

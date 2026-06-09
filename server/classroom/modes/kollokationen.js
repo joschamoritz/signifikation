@@ -34,7 +34,9 @@ export default {
     return {
       lemma:       lemma.lemma,
       ipa:         lemma.ipa,
-      definition:  lemma.definition,
+      // Aufgeloeste, oeffentliche Definition (Fallback auf erste definitionen-
+      // Eintrag) — der content_snapshot ist seit P3 die alleinige View-Quelle.
+      definition:  lemma.definition || lemma.definitionen?.[0] || '',
       kollokatoren,
     }
   },

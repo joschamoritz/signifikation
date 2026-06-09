@@ -26,8 +26,9 @@ export default {
         deps.logger?.warn({ err, lemma: l }, 'cr2 fetchZeitenwende fehlgeschlagen — Fallback aufs gespeicherte Feld'),
     })
     return {
-      lemma:  lemma.lemma,
-      ipa:    lemma.ipa,
+      lemma:      lemma.lemma,
+      ipa:        lemma.ipa,
+      definition: lemma.definition || lemma.definitionen?.[0] || '',
       words,
     }
   },
