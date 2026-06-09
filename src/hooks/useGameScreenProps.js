@@ -28,6 +28,10 @@ export function useGameScreenProps({
   handleSwLFFinish,
   gameScreenActions,
   tabState,
+  gesamtausgabe,
+  onCustomPlay,
+  customGame,
+  onExitCustomGame,
 }) {
   return {
     phase,
@@ -36,6 +40,10 @@ export function useGameScreenProps({
     themaQuelle,
     lemmata,
     playedIds,
+    gesamtausgabe,
+    onCustomPlay,
+    customGame,
+    onExitCustomGame,
     handleLemmaSelect: gameScreenActions.onLemmaSelect,
     handleViewResult: gameScreenActions.onViewResult,
     onBackToHome: gameScreenActions.onBackToHome,

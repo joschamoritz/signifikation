@@ -812,6 +812,158 @@
   color: var(--text);
 }
 
+/* ── Eigenes Lemma (Premium) – als weiterer Wörterbuch-Eintrag ──── */
+/* Eingeklappte Zeile: gleiches Nummern-Raster + Headword-Typografie */
+.eigenes-lemma-toggle {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  width: 100%;
+  padding: 16px 4px 16px 0;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: var(--font-serif);
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: var(--muted);
+  text-align: left;
+  transition: color 0.15s;
+}
+.eigenes-lemma-toggle:hover { color: var(--primary); }
+.eigenes-lemma-toggle__label { flex: 1; }
+.eigenes-lemma-toggle__premium {
+  font-family: var(--font-serif);
+  font-size: 0.78rem;
+  font-weight: 400;
+  font-style: italic;
+  color: var(--accent-dk);
+  margin-left: auto;
+}
+
+/* Marker im 22px-Slot – spiegelt die Eintragsnummer (1. 2. 3.) */
+.eigenes-lemma-marker {
+  font-family: var(--font-serif);
+  font-size: 1.1rem;
+  line-height: 1;
+  color: var(--border);
+  min-width: 22px;
+  flex-shrink: 0;
+  padding-top: 4px;
+  user-select: none;
+}
+.eigenes-lemma-marker--btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  align-self: flex-start;
+  transition: color 0.15s;
+}
+.eigenes-lemma-marker--btn:hover { color: var(--primary); }
+
+/* Aufgeklappte Eintrags-Karte – kein Hintergrund, gleiches Padding */
+.lemma-card--eigenes {
+  align-items: flex-start;
+  gap: 16px;
+  padding: 16px 4px 16px 0;
+}
+.eigenes-lemma-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* Eingabe sieht aus wie ein Headword (.lemma-name) */
+.eigenes-lemma-input {
+  font-family: var(--font-serif);
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: 0.01em;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--border-lt);
+  padding: 0 0 3px;
+  outline: none;
+  transition: border-color 0.15s;
+}
+.eigenes-lemma-input:focus { border-bottom-color: var(--primary); }
+.eigenes-lemma-input::placeholder {
+  color: var(--disabled);
+  font-weight: 400;
+  font-style: italic;
+}
+
+/* Statuszeile wie eine Definition (kursiv, klein, muted) */
+.eigenes-lemma-status {
+  font-family: var(--font-serif);
+  font-size: 0.82rem;
+  font-style: italic;
+  color: var(--muted);
+  line-height: 1.4;
+  margin: 0;
+  min-height: 1.15em;
+}
+.eigenes-lemma-status--ok { color: var(--success); font-style: normal; }
+.eigenes-lemma-status--bad,
+.eigenes-lemma-status--error { color: var(--error); }
+.eigenes-lemma-status--locked { color: var(--accent-dk); }
+
+/* „Spielen" – wie der Lemma-Pfeil/CTA, rechts ausgerichtet */
+.eigenes-lemma-play {
+  flex-shrink: 0;
+  align-self: center;
+  font-family: var(--font-sans);
+  font-size: 0.92rem;
+  color: var(--primary);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px 0 4px 8px;
+  white-space: nowrap;
+}
+.eigenes-lemma-play:disabled { color: var(--disabled); cursor: default; }
+
+/* Upsell-Eintrag (ohne Premium) */
+.eigenes-lemma-name {
+  font-family: var(--font-serif);
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: var(--text);
+}
+.eigenes-lemma-name--muted { color: var(--muted); }
+.eigenes-lemma-hint {
+  font-family: var(--font-serif);
+  font-size: 0.82rem;
+  font-style: italic;
+  color: var(--muted);
+  line-height: 1.5;
+  margin: 0;
+}
+.eigenes-lemma-hint strong { color: var(--accent-dk); font-style: normal; }
+
+/* Wort-Zwilling: „vs."-Linie zwischen den beiden Eingabefeldern */
+.eigenes-lemma-vs {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 0;
+}
+
+/* IPA + Definition nach „✓ Spielbar" (Einzelwort-Modi) */
+.eigenes-lemma-enrich {
+  font-family: var(--font-serif);
+  font-size: 0.82rem;
+  color: var(--muted);
+  line-height: 1.4;
+  margin: 0;
+}
+.eigenes-lemma-enrich .lautschrift { color: var(--muted); }
+.eigenes-lemma-enrich__def { font-style: italic; }
+
 /* Zeitraum-Zeile unter dem Lemmanamen */
 .lemma-spezial-zeitraum {
   font-size: 0.75rem;

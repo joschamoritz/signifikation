@@ -1,4 +1,4 @@
-import { useRef } from 'react'
+import { useRef, useState, useCallback } from 'react'
 import { useAppDailyState } from './useAppDailyState'
 import { useAppEffects } from './useAppEffects'
 import { useAppGameScreens } from './useAppGameScreens'
@@ -73,6 +73,25 @@ export function useAppModel() {
     backToHome,
     startVT,
   })
+
+  // ── Eigenes Lemma: isolierter Custom-Spielpfad (reines Üben) ─────
+  // Zeitenwende/Wort-Zwilling/Lückenfüller laufen über eine eigene
+  // 'custom-play'-Phase mit injizierten Daten und ephemerem Finish (keine
+  // Tageswertung). Kollokationen nutzt den normalen Pfad (handleLemmaSelect),
+  // wobei das Lemma als isCustom markiert ist und persistResults es überspringt.
+  const [customGame, setCustomGame] = useState(null) // { mode, data } | null
+  const playCustomGame = useCallback((mode, data) => {
+    startVT(() => { setCustomGame({ mode, data }); setPhase('custom-play') })
+  }, [setPhase])
+  const exitCustomGame = useCallback(() => {
+    const back = customGame?.mode ? `${customGame.mode}-selection` : 'home'
+    startVT(() => { setCustomGame(null); setPhase(back) })
+  }, [customGame, setPhase])
+  const handleCustomPlay = useCallback((result) => {
+    if (!result?.usable) return
+    if (result.mode === 'kollokationen') handleLemmaSelect(result.lemma)
+    else playCustomGame(result.mode, result.data)
+  }, [handleLemmaSelect, playCustomGame])
 
   const {
     handleWZFinish,
@@ -179,6 +198,10 @@ export function useAppModel() {
     handleSwLFFinish,
     gameScreenActions,
     tabState,
+    gesamtausgabe: gesamtausgabeUnlocked,
+    onCustomPlay: handleCustomPlay,
+    customGame,
+    onExitCustomGame: exitCustomGame,
   })
 
   return {

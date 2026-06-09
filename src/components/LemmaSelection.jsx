@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react'
 import { API } from '../config'
 import SelectionThema from './SelectionThema'
+import EigenesLemma from './EigenesLemma'
 import { logError } from '../utils/logError'
 import ExternalLink from './ExternalLink'
 
 
-export default function LemmaSelection({ lemmata, thema, themaKurz, themaQuelle, playedIds = [], onSelect, onViewResult, onBack, spezialLemma = null, spezialwoche = null }) {
+export default function LemmaSelection({ lemmata, thema, themaKurz, themaQuelle, playedIds = [], onSelect, onViewResult, onBack, spezialLemma = null, spezialwoche = null, gesamtausgabe = false }) {
   const [closedNotiz, setClosedNotiz] = useState(() => new Set(lemmata.map(l => l.id)))
   // Lemmata mit gespeicherter IPA direkt ins Map laden; Rest per API nachholen
   const [ipaMap, setIpaMap] = useState(() => {
@@ -184,6 +185,9 @@ export default function LemmaSelection({ lemmata, thema, themaKurz, themaQuelle,
             </div>
           </>
         )}
+
+        {/* ── Eigenes Lemma (Premium) ─── */}
+        <EigenesLemma mode="kollokationen" gesamtausgabe={gesamtausgabe} onPlay={(r) => onSelect(r.lemma)} />
       </div>
 
     </div>

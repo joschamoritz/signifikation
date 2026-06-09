@@ -1,9 +1,10 @@
 import { useState } from 'react'
 import { useWiktionary } from '../hooks/useWiktionary'
 import SelectionThema from './SelectionThema'
+import EigenesLemma from './EigenesLemma'
 import ExternalLink from './ExternalLink'
 
-export default function ZeitenwendeSelection({ data, thema, themaKurz, themaQuelle, onPlay, onViewDaily, zwPlayed = null, onBack, spezialwoche = null, swZwPlayed = null, onPlaySpezial, onViewSpezial }) {
+export default function ZeitenwendeSelection({ data, thema, themaKurz, themaQuelle, onPlay, onViewDaily, zwPlayed = null, onBack, spezialwoche = null, swZwPlayed = null, onPlaySpezial, onViewSpezial, gesamtausgabe = false, onCustomPlay }) {
   const { lemma, ipa: savedIpa, definitionen: savedDefs, notiz, link } = data ?? {}
   const [notizOpen, setNotizOpen] = useState(false)
   const isPlayed = !!zwPlayed
@@ -102,6 +103,9 @@ export default function ZeitenwendeSelection({ data, thema, themaKurz, themaQuel
             </div>
           </>
         )}
+
+        {/* ── Eigenes Lemma (Premium) ─── */}
+        <EigenesLemma mode="zeitenwende" gesamtausgabe={gesamtausgabe} onPlay={onCustomPlay} />
       </div>
     </div>
   )

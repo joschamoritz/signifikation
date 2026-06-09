@@ -8,15 +8,18 @@ vi.mock('../wortprofil.js', () => ({
     Adjektiv:   [{ key: 'nomen', relCode: '~ATTR' }],
   },
   fetchRelation: vi.fn(),
+  fetchLemma: vi.fn(),
+  fetchZeitenwende: vi.fn(),
   fetchZeitenwendeAnalyze: vi.fn(),
 }))
 vi.mock('../wortzwilling.js', () => ({ fetchWortZwilling: vi.fn() }))
 vi.mock('../lueckenfueller.js', () => ({ buildLueckenfueller: vi.fn() }))
+vi.mock('../wiktionary.js', () => ({ fetchWiktionary: vi.fn(async () => ({ ipa: 'ˈaʁ̥çiːf', definitionen: ['Sammlung'] })) }))
 
-import { fetchRelation, fetchZeitenwendeAnalyze } from '../wortprofil.js'
+import { fetchRelation, fetchLemma, fetchZeitenwende, fetchZeitenwendeAnalyze } from '../wortprofil.js'
 import { fetchWortZwilling } from '../wortzwilling.js'
 import { buildLueckenfueller } from '../lueckenfueller.js'
-import { validateCustomLemma, MIN_KOLLOKATIONEN } from '../customLemma.js'
+import { validateCustomLemma, buildCustomPlay, MIN_KOLLOKATIONEN } from '../customLemma.js'
 
 function kolls(n, prefix = 'w') {
   return Array.from({ length: n }, (_, i) => ({ lemma: `${prefix}${i}`, logDice: String((10 - i * 0.1).toFixed(2)) }))
@@ -113,5 +116,69 @@ describe('validateCustomLemma – Lückenfüller', () => {
 describe('validateCustomLemma – unbekannter Modus', () => {
   it('wirft bei unbekanntem Modus', async () => {
     await expect(validateCustomLemma({ mode: 'quatsch', q: 'x' })).rejects.toThrow(/Unbekannter Modus/)
+  })
+})
+
+describe('buildCustomPlay – Kollokationen', () => {
+  it('liefert das Lemma-Objekt aus fetchLemma bei spielbarem Wort', async () => {
+    fetchRelation.mockResolvedValue(kolls(12))
+    fetchLemma.mockResolvedValue({ id: 'archiv', lemma: 'Archiv', pos: 'Substantiv', runden: {} })
+    const res = await buildCustomPlay({ mode: 'kollokationen', q: 'Archiv', pos: 'Substantiv' })
+    expect(res.usable).toBe(true)
+    expect(res.lemma.id).toBe('archiv')
+    expect(fetchLemma).toHaveBeenCalledWith('Archiv', 'Substantiv')
+  })
+
+  it('liefert usable=false ohne fetchLemma-Aufruf bei zu wenig Kollokationen', async () => {
+    fetchRelation.mockResolvedValue(kolls(4))
+    const res = await buildCustomPlay({ mode: 'kollokationen', q: 'Selten', pos: 'Substantiv' })
+    expect(res.usable).toBe(false)
+    expect(res.reason).toContain(String(MIN_KOLLOKATIONEN))
+    expect(fetchLemma).not.toHaveBeenCalled()
+  })
+})
+
+describe('buildCustomPlay – Zeitenwende', () => {
+  it('liefert Spieldaten + Wiktionary-Anreicherung, markiert isCustom', async () => {
+    fetchZeitenwende.mockResolvedValue({ lemma: 'Archiv', words: [{ wort: 'digital', periode: 'post' }] })
+    const res = await buildCustomPlay({ mode: 'zeitenwende', q: 'Archiv' })
+    expect(res.usable).toBe(true)
+    expect(res.data.lemma).toBe('Archiv')
+    expect(res.data.words).toHaveLength(1)
+    expect(res.data.ipa).toBe('ˈaʁ̥çiːf')
+    expect(res.data.isCustom).toBe(true)
+  })
+
+  it('usable=false wenn fetchZeitenwende null liefert', async () => {
+    fetchZeitenwende.mockResolvedValue(null)
+    const res = await buildCustomPlay({ mode: 'zeitenwende', q: 'xyz' })
+    expect(res.usable).toBe(false)
+  })
+})
+
+describe('buildCustomPlay – Wort-Zwilling', () => {
+  it('liefert Paar-Daten ohne Scores, markiert isCustom', async () => {
+    fetchWortZwilling.mockResolvedValue({
+      wortA: 'Bruder', wortB: 'Schwester', pos: 'Substantiv',
+      kollokatoren: [{ wort: 'älterer', zuordnung: 'A', scoreA: 9, scoreB: 1 }],
+    })
+    const res = await buildCustomPlay({ mode: 'wortzwilling', a: 'Bruder', b: 'Schwester', pos: 'Substantiv' })
+    expect(res.usable).toBe(true)
+    expect(res.data.wortA).toBe('Bruder')
+    expect(res.data.kollokatoren[0]).toEqual({ wort: 'älterer', zuordnung: 'A' })
+    expect(res.data.kollokatoren[0].scoreA).toBeUndefined()
+    expect(res.data.isCustom).toBe(true)
+  })
+})
+
+describe('buildCustomPlay – Lückenfüller', () => {
+  it('liefert lemma + Runden, markiert isCustom', async () => {
+    fetchRelation.mockResolvedValue(kolls(8))
+    buildLueckenfueller.mockResolvedValue([{ round: 1 }, { round: 2 }])
+    const res = await buildCustomPlay({ mode: 'lueckenfueller', q: 'Wasser', pos: 'Substantiv' })
+    expect(res.usable).toBe(true)
+    expect(res.data.lemma).toBe('Wasser')
+    expect(res.data.lueckenfueller).toHaveLength(2)
+    expect(res.data.isCustom).toBe(true)
   })
 })

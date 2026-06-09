@@ -43,6 +43,9 @@ export function useKollokationenGame({ keys, serverDatum, lemmata }) {
 
   const persistResults = useCallback(() => {
     if (phase !== 'results' || !selectedLemma || roundScores.length === 0) return
+    // Selbst gewählte Lemmata (Eigenes Lemma) sind reines Üben: nicht in die
+    // Tageswertung/Statistik schreiben.
+    if (selectedLemma.isCustom) return
 
     const total     = roundScores.reduce((sum, value) => sum + value, 0)
     const maxPoints = 10

@@ -24,6 +24,10 @@ export default function AppGameScreens({
   themaQuelle,
   lemmata,
   playedIds,
+  gesamtausgabe,
+  onCustomPlay,
+  customGame,
+  onExitCustomGame,
   handleLemmaSelect,
   handleViewResult,
   onBackToHome,
@@ -88,6 +92,7 @@ export default function AppGameScreens({
       case 'lueckenfueller-selection': return onLueckenfuellerSelectionBack
       case 'quiz': return onBackToSelection
       case 'results': return onBackToSelection
+      case 'custom-play': return onExitCustomGame
       case 'wortzwilling': return onWortzwillingBack
       case 'zeitenwende': return onZeitenwendeBack
       case 'lueckenfueller': return onLueckenfuellerBack
@@ -108,6 +113,7 @@ export default function AppGameScreens({
     onLueckenfuellerBack,
     onLueckenfuellerSelectionBack,
     onSwBack,
+    onExitCustomGame,
   ])
 
   useEdgeSwipeBack(swipeBackHandler, { enabled: Boolean(swipeBackHandler) })
@@ -126,6 +132,7 @@ export default function AppGameScreens({
           onBack={onBackToHome}
           spezialLemma={spezialwoche?.lemma ?? null}
           spezialwoche={spezialwoche}
+          gesamtausgabe={gesamtausgabe}
         />
       )}
       {phase === 'wortzwilling-selection' && wortzwilling && (
@@ -142,6 +149,8 @@ export default function AppGameScreens({
           swWzPlayed={swWzPlayed}
           onPlaySpezial={onSwWzPlay}
           onViewSpezial={onViewSwWz}
+          gesamtausgabe={gesamtausgabe}
+          onCustomPlay={onCustomPlay}
         />
       )}
       {phase === 'zeitenwende-selection' && zeitenwende && (
@@ -158,6 +167,8 @@ export default function AppGameScreens({
           swZwPlayed={swZwPlayed}
           onPlaySpezial={onSwZwPlay}
           onViewSpezial={onViewSwZw}
+          gesamtausgabe={gesamtausgabe}
+          onCustomPlay={onCustomPlay}
         />
       )}
       {phase === 'quiz' && selectedLemma && (
@@ -215,6 +226,8 @@ export default function AppGameScreens({
           swLfPlayed={swLfPlayed}
           onPlaySpezial={onSwLfPlay}
           onViewSpezial={onViewSwLf}
+          gesamtausgabe={gesamtausgabe}
+          onCustomPlay={onCustomPlay}
         />
       )}
       {phase === 'lueckenfueller' && lueckenfuellerLemma?.lueckenfueller && (
@@ -226,6 +239,41 @@ export default function AppGameScreens({
             onFinish={handleLFFinish}
             savedResult={lfViewOnly ? lfPlayed : null}
             initialProgress={lfViewOnly ? null : lfProgress}
+          />
+        </Suspense>
+      )}
+
+      {/* ── Eigenes Lemma: isolierter Custom-Spielpfad (reines Üben) ── */}
+      {phase === 'custom-play' && customGame?.mode === 'zeitenwende' && (
+        <Suspense fallback={<ScreenFallback />}>
+          <Zeitenwende
+            data={customGame.data}
+            onBack={onExitCustomGame}
+            onFinish={() => {}}
+            savedResult={null}
+            initialProgress={null}
+          />
+        </Suspense>
+      )}
+      {phase === 'custom-play' && customGame?.mode === 'wortzwilling' && (
+        <Suspense fallback={<ScreenFallback />}>
+          <WortZwilling
+            data={customGame.data}
+            onBack={onExitCustomGame}
+            onFinish={() => {}}
+            savedResult={null}
+          />
+        </Suspense>
+      )}
+      {phase === 'custom-play' && customGame?.mode === 'lueckenfueller' && (
+        <Suspense fallback={<ScreenFallback />}>
+          <Lueckenfueller
+            data={customGame.data.lueckenfueller}
+            lemmaName={customGame.data.lemma}
+            onBack={onExitCustomGame}
+            onFinish={() => {}}
+            savedResult={null}
+            initialProgress={null}
           />
         </Suspense>
       )}

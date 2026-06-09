@@ -1,9 +1,10 @@
 import { useState } from 'react'
 import { useWiktionary } from '../hooks/useWiktionary'
 import SelectionThema from './SelectionThema'
+import EigenesLemma from './EigenesLemma'
 import ExternalLink from './ExternalLink'
 
-export default function LueckenfuellerSelection({ data, thema, themaKurz, themaQuelle, onPlay, onViewDaily, lfPlayed = null, onBack, spezialwoche = null, swLfPlayed = null, onPlaySpezial, onViewSpezial }) {
+export default function LueckenfuellerSelection({ data, thema, themaKurz, themaQuelle, onPlay, onViewDaily, lfPlayed = null, onBack, spezialwoche = null, swLfPlayed = null, onPlaySpezial, onViewSpezial, gesamtausgabe = false, onCustomPlay }) {
   const { lemma, pos, notiz, link } = data ?? {}
   const [notizOpen, setNotizOpen] = useState(false)
   const isPlayed = !!lfPlayed
@@ -103,6 +104,9 @@ export default function LueckenfuellerSelection({ data, thema, themaKurz, themaQ
             </div>
           </>
         )}
+
+        {/* ── Eigenes Lemma (Premium) ─── */}
+        <EigenesLemma mode="lueckenfueller" gesamtausgabe={gesamtausgabe} onPlay={onCustomPlay} />
       </div>
     </div>
   )

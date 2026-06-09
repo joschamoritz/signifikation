@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useWiktionary } from '../hooks/useWiktionary'
 import SelectionThema from './SelectionThema'
+import EigenesLemma from './EigenesLemma'
 import ExternalLink from './ExternalLink'
 
 function WZEntry({ lemma, pos }) {
@@ -24,7 +25,7 @@ function WZEntry({ lemma, pos }) {
   )
 }
 
-export default function WortZwillingSelection({ data, thema, themaKurz, themaQuelle, onPlay, onViewDaily, wzPlayed = null, onBack, spezialwoche = null, swWzPlayed = null, onPlaySpezial, onViewSpezial }) {
+export default function WortZwillingSelection({ data, thema, themaKurz, themaQuelle, onPlay, onViewDaily, wzPlayed = null, onBack, spezialwoche = null, swWzPlayed = null, onPlaySpezial, onViewSpezial, gesamtausgabe = false, onCustomPlay }) {
   const { wortA, wortB, pos, notiz, link } = data ?? {}
   const [notizOpen, setNotizOpen] = useState(false)
   const wortart = pos || 'Substantiv'
@@ -130,6 +131,9 @@ export default function WortZwillingSelection({ data, thema, themaKurz, themaQue
               </>
             )
           })()}
+
+          {/* ── Eigenes Wort-Paar (Premium) ─── */}
+          <EigenesLemma mode="wortzwilling" gesamtausgabe={gesamtausgabe} onPlay={onCustomPlay} />
       </div>
     </div>
   )
