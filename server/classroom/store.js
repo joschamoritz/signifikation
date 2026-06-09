@@ -15,7 +15,7 @@ import { createHmac, randomUUID } from 'crypto'
 import db from '../db.js'
 import logger from '../logger.js'
 import { generateUniqueJoinCode } from './join-code.js'
-import { scoreSubmission } from './scoring/index.js'
+import { scoreSubmission, VALID_MODES } from './modes/index.js'
 import { parseJsonSafe } from './json-safe.js'
 import {
   extractDistractors,
@@ -41,7 +41,7 @@ const MAX_LEMMATA_PER_ASSIGNMENT = 3
 // ausartet (Setup-UI limitiert ebenfalls auf 5).
 const MAX_ASSIGNMENTS_PER_SESSION = 5
 const MAX_RAW_ANSWER_BYTES = 4096
-const VALID_MODES = ['kollokationen', 'wortzwilling', 'zeitenwende', 'lueckenfueller']
+// VALID_MODES kommt aus der Modus-Registry (./modes/index.js) — Single Source.
 // D8: Auto-End nach 90 Min Inaktivitaet. last_activity_at ist die
 // persistente Bezugsgroesse (siehe Migration 0007).
 export const DEFAULT_AUTO_END_IDLE_MS = 90 * 60 * 1000

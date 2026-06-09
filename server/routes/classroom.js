@@ -76,13 +76,8 @@ import {
 import { fetchLemma, fetchZeitenwende } from '../wortprofil.js'
 import { fetchWortZwilling } from '../wortzwilling.js'
 import { buildLueckenfueller } from '../lueckenfueller.js'
-import {
-  resolveKollokatoren,
-  resolveZeitenwende,
-  resolveWortzwilling,
-  resolveLueckenfueller,
-  parseWzId,
-} from '../classroom/content.js'
+import { parseWzId } from '../classroom/content.js'
+import { getMode } from '../classroom/modes/index.js'
 import { loadKalenderEntry, getLemmataIndex, loadWortZwillingEntry, loadZeitenwendeEntry } from '../store.js'
 import {
   notifyStudentJoined,
@@ -214,87 +209,13 @@ function loadAssignmentLemmata(lemmaIds) {
  */
 async function buildContentSnapshot(mode, lemmata) {
   const byLemma = {}
+  const m = getMode(mode)
+  if (!m) return { byLemma } // unbekannter Modus → leerer Snapshot (wie zuvor)
+  // Datenquellen + Logger werden in die Modus-Funktion hereingereicht, damit
+  // modes/<mode>.js OHNE wortprofil.db/belege.db isoliert testbar bleibt.
+  const deps = { fetchLemma, fetchWortZwilling, fetchZeitenwende, buildLueckenfueller, logger }
   for (const l of lemmata) {
-    const r = l.runden || {}
-    switch (mode) {
-      case 'kollokationen': {
-        // F2a: Kollokatoren IMMER live aus wortprofil.db (fetchLemma →
-        // buildMixedRound), Fallback auf gespeichertes Feld. Gemischt, damit
-        // die Top-3 nicht oben stehen. Details: server/classroom/content.js.
-        const kollokatoren = await resolveKollokatoren(l, {
-          fetchLemma,
-          logWarn: (err, lemma) =>
-            logger.warn({ err, lemma }, 'cr2 fetchLemma Kollokationen fehlgeschlagen — Fallback aufs gespeicherte Feld'),
-        })
-        byLemma[l.id] = {
-          lemma:       l.lemma,
-          ipa:         l.ipa,
-          definition:  l.definition,
-          kollokatoren,
-        }
-        break
-      }
-      case 'wortzwilling': {
-        if (r.wzPair) {
-          // Paar-Flow (Vereinheitlichung): live aus wortprofil.db.
-          const koll = await resolveWortzwilling(r.wzPair, {
-            fetchWortZwilling,
-            logWarn: (err, paar) =>
-              logger.warn({ err, paar }, 'cr2 fetchWortZwilling fehlgeschlagen'),
-          })
-          byLemma[l.id] = {
-            lemma:        l.lemma,
-            ipa:          l.ipa,
-            wortA:        r.wzPair.wortA,
-            wortB:        r.wzPair.wortB,
-            kollokatoren: koll,
-          }
-        } else {
-          // Rueckwaertskompat: gespeichertes runden.wortzwilling-Feld.
-          const wz = r.wortzwilling || r
-          byLemma[l.id] = {
-            lemma:        l.lemma,
-            ipa:          l.ipa,
-            wortA:        wz.wortA || l.lemma,
-            wortB:        wz.wortB || '',
-            kollokatoren: wz.kollokatoren || [],
-          }
-        }
-        break
-      }
-      case 'zeitenwende': {
-        // Vereinheitlichung (Option A): Zeitenwende IMMER live aus wortprofil.db
-        // (fetchZeitenwende), Fallback aufs gespeicherte runden.zeitenwende-Feld.
-        const words = await resolveZeitenwende(l, {
-          fetchZeitenwende,
-          logWarn: (err, lemma) =>
-            logger.warn({ err, lemma }, 'cr2 fetchZeitenwende fehlgeschlagen — Fallback aufs gespeicherte Feld'),
-        })
-        byLemma[l.id] = {
-          lemma:  l.lemma,
-          ipa:    l.ipa,
-          words,
-        }
-        break
-      }
-      case 'lueckenfueller': {
-        // Vereinheitlichung: Lückenfüller live (buildLueckenfueller, belege.db),
-        // Fallback aufs gespeicherte lemma.lueckenfueller.rounds.
-        const rounds = await resolveLueckenfueller(l, {
-          buildLueckenfueller,
-          logWarn: (err, lemma) =>
-            logger.warn({ err, lemma }, 'cr2 buildLueckenfueller fehlgeschlagen — Fallback aufs gespeicherte Feld'),
-        })
-        byLemma[l.id] = {
-          lemma:  l.lemma,
-          ipa:    l.ipa,
-          rounds,
-        }
-        break
-      }
-      default:
-        break
-    }
+    byLemma[l.id] = await m.buildSnapshotEntry(l, deps)
   }
   return { byLemma }
 }
@@ -313,63 +234,14 @@ async function buildContentSnapshot(mode, lemmata) {
 // Aenderungen hier muessen den Audit-Test T-6.4 bestehen:
 //   server/__tests__/classroom.routes.test.js → 'view whitelist'
 
+// Delegiert an die Modus-Registry (P2). Die eigentliche, modus-spezifische
+// Whitelist liegt in modes/<mode>.js (inkl. buildSafeRound fuer Lueckenfueller).
+// Der Snapshot-Typ-Guard + leerer Default bleiben hier, damit das Verhalten
+// gegenueber der frueheren Inline-Variante identisch ist.
 function buildSafePrompt(mode, snapshot) {
   if (!snapshot || typeof snapshot !== 'object') return {}
-  switch (mode) {
-    case 'kollokationen':
-      return {
-        // WHITELIST: nur Wort-Strings, KEIN rang (wuerde Ranking verraten)
-        words:      (snapshot.kollokatoren || []).map(k => String(k.wort || '')).filter(Boolean),
-        definition: snapshot.definition || '',
-      }
-    case 'wortzwilling':
-      return {
-        // WHITELIST: wortA, wortB, Wort-Strings, KEINE zuordnung
-        wortA: snapshot.wortA || '',
-        wortB: snapshot.wortB || '',
-        words: (snapshot.kollokatoren || []).map(k => String(k.wort || '')).filter(Boolean),
-      }
-    case 'zeitenwende':
-      return {
-        // WHITELIST: nur Wort-Strings, KEINE periode
-        words: (snapshot.words || []).map(w => String(w.wort || '')).filter(Boolean),
-      }
-    case 'lueckenfueller':
-      return {
-        // WHITELIST: pro Runde nur das, was zum Loesen noetig ist
-        rounds: (snapshot.rounds || []).map(buildSafeRound),
-      }
-    default:
-      return {}
-  }
-}
-
-function buildSafeRound(round) {
-  if (!round || typeof round !== 'object') return null
-  // buildLueckenfueller liefert die Felder `satzMitLuecke` (Satz mit _____) und
-  // `optionen` — NICHT `sentence`/`options`. Frueher las die Whitelist die
-  // falschen Namen → Satz + Optionen fielen weg, der Schueler sah einen leeren
-  // Lueckenfueller (Realbedingungstest „Ausstellung"). NIE `satz` (enthaelt das
-  // Loesungswort) und NIE `kollokator`/`token` exponieren.
-  const sentence = round.satzMitLuecke || round.sentence || round.text || ''
-  const options  = Array.isArray(round.optionen) ? round.optionen
-                 : Array.isArray(round.options)  ? round.options : []
-  const base = { type: round.type, sentence }
-  if (round.type === 'choice') {
-    return { ...base, options }
-  }
-  if (round.type === 'double') {
-    return {
-      ...base,
-      options,
-      // WHITELIST: nur der gelueckte Satz, KEIN kollokator/token
-      sentences: (round.sentences || []).map(s => ({
-        text: s.satzMitLuecke || s.text || s.sentence || '',
-      })),
-    }
-  }
-  // 'free': Schueler tippt, kein Hinweis noetig → nur Satz
-  return base
+  const m = getMode(mode)
+  return m ? m.buildSafePrompt(snapshot) : {}
 }
 
 // Submissions fuer einen Teilnehmer laden (fuer Fortschrittsberechnung)
