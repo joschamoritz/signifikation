@@ -342,15 +342,14 @@ if (!hasColumn('stats', 'user_id')) {
 }
 
 if (hasColumn('stats', 'user_id')) {
+  // Nur idx_stats_user: der PRIMARY KEY (datum, spiel, user_id) deckt die
+  // Links-Präfixe (datum) und (datum, spiel) bereits ab — die früheren
+  // Zusatzindizes idx_stats_datum / idx_stats_datum_spiel waren redundanter
+  // Write-Overhead auf dem Spiel-Hotpath und werden in Migration 0012
+  // entfernt (Review 2026-06-10).
   db.exec(`
   CREATE INDEX IF NOT EXISTS idx_stats_user
   ON stats(user_id);
-
-  CREATE INDEX IF NOT EXISTS idx_stats_datum_spiel
-  ON stats(datum, spiel);
-
-  CREATE INDEX IF NOT EXISTS idx_stats_datum
-  ON stats(datum);
   `)
 }
 

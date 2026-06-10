@@ -30,7 +30,6 @@ import { fileURLToPath } from 'url'
 import { dirname, resolve } from 'path'
 import logger from './logger.js'
 import { getCachedQuery } from './query-cache.js'
-import { SQLitePool } from './db-pool.js'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 
@@ -38,28 +37,25 @@ const __dirname = dirname(fileURLToPath(import.meta.url))
 const DB_PATH = process.env.WORTPROFIL_DB
   ?? resolve(__dirname, '..', 'wortprofil', '05_db', 'wortprofil.db')
 
-let _pool = null
-function pool() {
-  if (!_pool) {
+// Einzelne readonly-Connection statt SQLitePool (Review 2026-06-10): better-
+// sqlite3 ist synchron und Node single-threaded — acquire/release liefen
+// strikt geschachtelt, es gab nie zwei gleichzeitig aktive Connections.
+// Der Pool brachte null Parallelität, kostete aber 4 × 64 MB Page-Cache.
+let _db = null
+function db() {
+  if (!_db) {
     try {
-      _pool = new SQLitePool(DB_PATH, { poolSize: 4, readonly: true })
-      logger.info(`Wortprofil-DB Pool initialized: ${DB_PATH}`)
+      _db = new Database(DB_PATH, { readonly: true, fileMustExist: true })
+      _db.pragma('cache_size = -65536')    // 64 MB
+      _db.pragma('mmap_size = 536870912')  // 512 MB
+      _db.pragma('temp_store = MEMORY')
+      logger.info(`Wortprofil-DB geladen: ${DB_PATH}`)
     } catch (err) {
       logger.error({ err }, `Wortprofil-DB nicht gefunden: ${DB_PATH}`)
       throw new Error(`Wortprofil-DB nicht gefunden: ${DB_PATH}`)
     }
   }
-  return _pool
-}
-
-// Hilfsfunktion: mit Connection-Pool arbeiten
-function withConnection(fn) {
-  const { db, release } = pool().acquire()
-  try {
-    return fn(db)
-  } finally {
-    release()
-  }
+  return _db
 }
 
 // ── RelCode-Mapping (DWDS → eigene DB) ───────────────────────────────────────
@@ -124,60 +120,82 @@ const VALID_RELCODE = new Set([
   'PRED_REV', // Pseudo-RelCode: Rückwärtssuche über PRED (dep_lemma = adjektiv)
 ])
 
-// Statement-Caching: better-sqlite3 cached prepare() intern pro Connection.
-// Keine globale Cache nötig, da jede Connection ihre eigenen Statements cached.
-function stmt(sql, db) {
-  return db.prepare(sql)
+// Prepared Statements einmalig nach DB-Init — better-sqlite3 cached
+// prepare() NICHT intern, jeder Aufruf kompilierte das SQL neu
+// (Review 2026-06-10; der frühere Kommentar hier behauptete das Gegenteil).
+let _stmts = null
+function stmts() {
+  if (!_stmts) {
+    const database = db()
+    _stmts = {
+      relation: database.prepare(`
+        SELECT form, dep_lemma, dep_pos, frequency, logDice, relation_full, relation_description
+        FROM collocations
+        WHERE lemma = ? AND pos = ? AND relation = ?
+          AND frequency >= ? AND logDice >= ?
+        ORDER BY logDice DESC
+        LIMIT ?
+      `),
+      relationReverse: database.prepare(`
+        SELECT lemma AS dep_lemma, pos AS dep_pos, frequency, logDice
+        FROM collocations
+        WHERE dep_lemma = ? AND dep_pos = ? AND relation = ?
+          AND frequency >= ? AND logDice >= ?
+        ORDER BY logDice DESC
+        LIMIT ?
+      `),
+      zeitreise: database.prepare(`
+        SELECT dep_lemma, dep_pos, jahrzehnt, score
+        FROM zeitreise
+        WHERE lemma = ?
+          AND jahrzehnt >= ?
+        ORDER BY dep_lemma
+      `),
+      lemmaExists: database.prepare('SELECT 1 FROM collocations WHERE lemma = ? LIMIT 1'),
+    }
+  }
+  return _stmts
 }
 
-function queryRelationRaw(lemma, pos, rel, limit, minFreq, minDice, db) {
-  return stmt(`
-    SELECT form, dep_lemma, dep_pos, frequency, logDice, relation_full, relation_description
-    FROM collocations
-    WHERE lemma = ? AND pos = ? AND relation = ?
-      AND frequency >= ? AND logDice >= ?
-    ORDER BY logDice DESC
-    LIMIT ?
-  `, db).all(lemma.toLowerCase(), pos, rel, minFreq, minDice, limit)
+function queryRelationRaw(lemma, pos, rel, limit, minFreq, minDice) {
+  return stmts().relation.all(lemma.toLowerCase(), pos, rel, minFreq, minDice, limit)
 }
 
 function queryRelation(lemma, pos, relCode, limit = 30, minFreq = 5, minDice = 0) {
-  return withConnection(db => {
-    if (!VALID_POS.has(pos)) {
-      logger.warn({ lemma, pos, relCode }, 'queryRelation: unbekannte POS')
-      return []
-    }
-    const rel = normalizeRel(relCode)
-    if (!VALID_RELCODE.has(rel)) {
-      logger.warn({ lemma, pos, relCode: rel }, 'queryRelation: unbekannter RelCode')
-      return []
-    }
+  if (!VALID_POS.has(pos)) {
+    logger.warn({ lemma, pos, relCode }, 'queryRelation: unbekannte POS')
+    return []
+  }
+  const rel = normalizeRel(relCode)
+  if (!VALID_RELCODE.has(rel)) {
+    logger.warn({ lemma, pos, relCode: rel }, 'queryRelation: unbekannter RelCode')
+    return []
+  }
 
-    let rows = queryRelationRaw(lemma, pos, rel, limit, minFreq, minDice, db)
+  let rows = queryRelationRaw(lemma, pos, rel, limit, minFreq, minDice)
 
-    // Adaptiver Fallback: minFreq schrittweise senken wenn zu wenig Treffer
-    if (rows.length < 10 && minFreq > 1) {
-      rows = queryRelationRaw(lemma, pos, rel, limit, 2, minDice, db)
-      if (rows.length < 10) {
-        rows = queryRelationRaw(lemma, pos, rel, limit, 1, minDice, db)
-      }
-      if (rows.length > 0)
-        logger.debug({ lemma, pos, relCode: rel, count: rows.length }, 'queryRelation: minFreq-Fallback aktiv')
+  // Adaptiver Fallback: minFreq schrittweise senken wenn zu wenig Treffer
+  if (rows.length < 10 && minFreq > 1) {
+    rows = queryRelationRaw(lemma, pos, rel, limit, 2, minDice)
+    if (rows.length < 10) {
+      rows = queryRelationRaw(lemma, pos, rel, limit, 1, minDice)
     }
+    if (rows.length > 0)
+      logger.debug({ lemma, pos, relCode: rel, count: rows.length }, 'queryRelation: minFreq-Fallback aktiv')
+  }
 
-    return rows.map(r => ({
-      form:                 r.form,
-      lemma:                normalizeLemma(r.dep_lemma, r.dep_pos),
-      frequency:            r.frequency,
-      logDice:              String(r.logDice.toFixed(4)),
-      pos:                  r.dep_pos,
-      relation:             r.relation_full,
-      relation_description: r.relation_description,
-      concord_id:           null,
-      has_concord:          false,
-      has_mwe:              false,
-    }))
-  })
+  return rows.map(r => ({
+    form:                 r.form,
+    lemma:                normalizeLemma(r.dep_lemma, r.dep_pos),
+    frequency:            r.frequency,
+    logDice:              String(r.logDice.toFixed(4)),
+    pos:                  r.dep_pos,
+    relation:             r.relation_full,
+    relation_description: r.relation_description,
+    concord_id:           null,
+    has_concord:          false,
+    has_mwe:              false,
+  }))
 }
 
 /**
@@ -186,41 +204,25 @@ function queryRelation(lemma, pos, relCode, limit = 30, minFreq = 5, minDice = 0
  * Ersetzt ~ADV für Adjektive, da PRED in build_wortprofil.py nicht invertiert wird.
  */
 function queryRelationReverse(lemma, depPos, rel, limit = 30, minFreq = 5, minDice = 0) {
-  return withConnection(db => {
-    let rows = stmt(`
-      SELECT lemma AS dep_lemma, pos AS dep_pos, frequency, logDice
-      FROM collocations
-      WHERE dep_lemma = ? AND dep_pos = ? AND relation = ?
-        AND frequency >= ? AND logDice >= ?
-      ORDER BY logDice DESC
-      LIMIT ?
-    `, db).all(lemma.toLowerCase(), depPos, rel, minFreq, minDice, limit)
+  let rows = stmts().relationReverse.all(lemma.toLowerCase(), depPos, rel, minFreq, minDice, limit)
 
-    // Adaptiver Fallback
-    if (rows.length < 10 && minFreq > 1) {
-      rows = stmt(`
-        SELECT lemma AS dep_lemma, pos AS dep_pos, frequency, logDice
-        FROM collocations
-        WHERE dep_lemma = ? AND dep_pos = ? AND relation = ?
-          AND frequency >= ? AND logDice >= ?
-        ORDER BY logDice DESC
-        LIMIT ?
-      `, db).all(lemma.toLowerCase(), depPos, rel, 1, minDice, limit)
-    }
+  // Adaptiver Fallback
+  if (rows.length < 10 && minFreq > 1) {
+    rows = stmts().relationReverse.all(lemma.toLowerCase(), depPos, rel, 1, minDice, limit)
+  }
 
-    return rows.map(r => ({
-      form:                 r.dep_lemma,
-      lemma:                normalizeLemma(r.dep_lemma, r.dep_pos),
-      frequency:            r.frequency,
-      logDice:              String(r.logDice.toFixed(4)),
-      pos:                  r.dep_pos,
-      relation:             rel,
-      relation_description: 'prädikativ verwendet mit',
-      concord_id:           null,
-      has_concord:          false,
-      has_mwe:              false,
-    }))
-  })
+  return rows.map(r => ({
+    form:                 r.dep_lemma,
+    lemma:                normalizeLemma(r.dep_lemma, r.dep_pos),
+    frequency:            r.frequency,
+    logDice:              String(r.logDice.toFixed(4)),
+    pos:                  r.dep_pos,
+    relation:             rel,
+    relation_description: 'prädikativ verwendet mit',
+    concord_id:           null,
+    has_concord:          false,
+    has_mwe:              false,
+  }))
 }
 
 function shuffle(arr) {
@@ -400,13 +402,7 @@ const ZW_WORD_REGEX    = /^[a-zäöüß][a-zA-ZäöüÄÖÜß]*$/
  */
 export async function fetchZeitenwende(lemma) {
   try {
-    const rows = withConnection(db => stmt(`
-      SELECT dep_lemma, dep_pos, jahrzehnt, score
-      FROM zeitreise
-      WHERE lemma = ?
-        AND jahrzehnt >= ?
-      ORDER BY dep_lemma
-    `, db).all(lemma.toLowerCase(), ZW_MIN_JAHRZEHNT))
+    const rows = stmts().zeitreise.all(lemma.toLowerCase(), ZW_MIN_JAHRZEHNT)
 
     if (!rows.length) return null
 
@@ -483,13 +479,7 @@ export async function fetchZeitenwende(lemma) {
  * Gibt { lemma, usable, preCandidates, postCandidates, words? } zurück.
  */
 export async function fetchZeitenwendeAnalyze(lemma) {
-  const rows = withConnection(db => stmt(`
-    SELECT dep_lemma, dep_pos, jahrzehnt, score
-    FROM zeitreise
-    WHERE lemma = ?
-      AND jahrzehnt >= ?
-    ORDER BY dep_lemma
-  `, db).all(lemma.toLowerCase(), ZW_MIN_JAHRZEHNT))
+  const rows = stmts().zeitreise.all(lemma.toLowerCase(), ZW_MIN_JAHRZEHNT)
 
   if (!rows.length) return null
 
@@ -532,9 +522,7 @@ export async function fetchZeitenwendeAnalyze(lemma) {
  */
 export function lemmaExistsInWortprofil(lemma) {
   try {
-    const row = withConnection(db =>
-      stmt('SELECT 1 FROM collocations WHERE lemma = ? LIMIT 1', db).get(lemma.toLowerCase())
-    )
+    const row = stmts().lemmaExists.get(lemma.toLowerCase())
     return !!row
   } catch {
     return false
