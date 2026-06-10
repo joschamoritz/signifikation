@@ -1,4 +1,5 @@
 import rateLimit, { ipKeyGenerator } from 'express-rate-limit'
+import { createHash } from 'node:crypto'
 import logger from '../logger.js'
 
 // Custom Store mit auto-cleanup für Memory-Leak-Prävention
@@ -58,6 +59,19 @@ class CleanupStore {
 // durch IP-Rotation innerhalb eines /56-Präfixes umgangen wird.
 function getClientIp(req) {
   return ipKeyGenerator(req.ip)
+}
+
+// Klassenraum-Limiter keyen nach Akteur statt IP: hinter Schul-NAT teilen
+// sich ~30 Schüler eine öffentliche IP und würden sich gegenseitig ins
+// Limit drängen (Security-Review N4). Bearer-Token (Participant- bzw.
+// Auth-Token) ist der präzisere Schlüssel; ohne Token fällt der Key auf
+// die IP zurück. Gehasht, damit keine Roh-Tokens im Limiter-Store liegen.
+function getBearerOrIp(req) {
+  const auth = req.headers?.authorization
+  if (typeof auth === 'string' && auth.startsWith('Bearer ') && auth.length > 15) {
+    return 'tok:' + createHash('sha256').update(auth.slice(7)).digest('base64url').slice(0, 24)
+  }
+  return getClientIp(req)
 }
 
 // Globale Store-Instanzen (teilen sich den Cleanup-Timer)
@@ -138,7 +152,7 @@ export const classroomJoinLimiter = rateLimit({
 export const classroomHeartbeatLimiter = rateLimit({
   windowMs: 60_000, max: 180,
   store: classroomHeartbeatStore,
-  keyGenerator: getClientIp,
+  keyGenerator: getBearerOrIp,
   standardHeaders: true, legacyHeaders: false,
   message: { error: 'Zu viele Heartbeats. Bitte kurz warten.' },
 })
@@ -146,7 +160,7 @@ export const classroomHeartbeatLimiter = rateLimit({
 export const classroomWriteLimiter = rateLimit({
   windowMs: 60_000, max: 80,
   store: classroomWriteStore,
-  keyGenerator: getClientIp,
+  keyGenerator: getBearerOrIp,
   standardHeaders: true, legacyHeaders: false,
   message: { error: 'Zu viele Klassenraum-Aktionen. Bitte kurz warten.' },
 })
@@ -156,7 +170,7 @@ export const classroomWriteLimiter = rateLimit({
 export const classroomReadLimiter = rateLimit({
   windowMs: 60_000, max: 120,
   store: classroomReadStore,
-  keyGenerator: getClientIp,
+  keyGenerator: getBearerOrIp,
   standardHeaders: true, legacyHeaders: false,
   message: { error: 'Zu viele Anfragen. Bitte kurz warten.' },
 })
