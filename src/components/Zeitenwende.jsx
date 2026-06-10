@@ -139,17 +139,22 @@ export default function Zeitenwende({
     setSwiping(false)
   }, [round])
 
-  // Belege laden sobald Feedback erscheint
+  // Belege laden sobald Feedback erscheint. AbortController + cancelled-Flag:
+  // bei schnellem Weiterswipen darf eine spaete Antwort nicht die Belege
+  // eines anderen Wortes setzen (Review 2026-06-10).
   useEffect(() => {
     if (feedback === null) { setBelege(null); return }
     setBelege(null)
+    let cancelled = false
+    const controller = new AbortController()
     const word = encodeURIComponent(words[round]?.wort ?? '')
     const lem  = encodeURIComponent(lemma)
-    fetch(`${API}/belege?collocate=${word}&lemma=${lem}`)
+    fetch(`${API}/belege?collocate=${word}&lemma=${lem}`, { signal: controller.signal })
       .then(r => r.ok ? r.json() : [])
-      .then(d  => setBelege(Array.isArray(d) ? d : []))
-      .catch(() => setBelege([]))
-  }, [feedback]) // eslint-disable-line
+      .then(d  => { if (!cancelled) setBelege(Array.isArray(d) ? d : []) })
+      .catch(() => { if (!cancelled) setBelege([]) })
+    return () => { cancelled = true; controller.abort() }
+  }, [feedback, round, words, lemma])
 
   const advanceRound = useCallback(() => {
     if (feedback === null || chosen === null) return
@@ -157,7 +162,7 @@ export default function Zeitenwende({
     setFeedback(null)
     setChosen(null)
     setBelege(null)
-    if (round + 1 >= TOTAL) {
+    if (round + 1 >= total) {
       const score = nextAnswers.filter((a, i) => a === words[i].periode).length
       setAnswers(nextAnswers)
       setPhase('results')
@@ -166,7 +171,7 @@ export default function Zeitenwende({
       setAnswers(nextAnswers)
       setRound(r => r + 1)
     }
-  }, [feedback, chosen, answers, round, words, onFinish])
+  }, [feedback, chosen, answers, round, words, total, onFinish])
 
   const choose = useCallback((periode) => {
     if (isClassroom) {
@@ -433,9 +438,9 @@ export default function Zeitenwende({
           type="button"
           className="zw-weiter-btn"
           onClick={advanceRound}
-          aria-label={round + 1 >= TOTAL ? 'Ergebnis anzeigen' : 'Nächstes Wort'}
+          aria-label={round + 1 >= total ? 'Ergebnis anzeigen' : 'Nächstes Wort'}
         >
-          {round + 1 >= TOTAL ? 'Ergebnis anzeigen' : 'Weiter'} →
+          {round + 1 >= total ? 'Ergebnis anzeigen' : 'Weiter'} →
         </button>
       )}
 

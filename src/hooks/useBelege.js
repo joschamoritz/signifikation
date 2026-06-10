@@ -1,6 +1,6 @@
 // Belege aus eigener belege.db (CC BY-SA, kein DWDS). Aktiviert wenn BELEGE_DB gesetzt.
 
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { API } from '../config'
 
 /**
@@ -15,6 +15,24 @@ export function useBelege(lemmaWort, relCode = '') {
   const [belegeCache,   setBelegeCache]   = useState({})
   const [belegeLoading, setBelegeLoading] = useState(false)
 
+  // Refs spiegeln den jeweils aktuellen Stand: loadBelege entschied früher
+  // über den Render-Snapshot von openBeleg/belegeCache — bei schnellem
+  // Doppelklick (oder Re-Render zwischen Klick und State-Update) verglich
+  // der Toggle gegen einen veralteten Wert und das Panel blieb hängen
+  // (Review 2026-06-10).
+  const openBelegRef   = useRef(null)
+  const belegeCacheRef = useRef({})
+
+  function applyOpen(key) {
+    openBelegRef.current = key
+    setOpenBeleg(key)
+  }
+
+  function applyCacheEntry(key, value) {
+    belegeCacheRef.current = { ...belegeCacheRef.current, [key]: value }
+    setBelegeCache(belegeCacheRef.current)
+  }
+
   /**
    * Lädt Belege für eine Kollokation.
    * @param {string} collocate   – Die Kollokation (Suchwort)
@@ -24,10 +42,10 @@ export function useBelege(lemmaWort, relCode = '') {
    */
   async function loadBelege(collocate, cacheKey, overrides = {}) {
     const key = cacheKey ?? collocate
-    if (openBeleg === key) { setOpenBeleg(null); return }
-    if (belegeCache[key] !== undefined) { setOpenBeleg(key); return }
+    if (openBelegRef.current === key) { applyOpen(null); return }
+    if (belegeCacheRef.current[key] !== undefined) { applyOpen(key); return }
 
-    setOpenBeleg(key)
+    applyOpen(key)
     setBelegeLoading(true)
     try {
       const params = new URLSearchParams({
@@ -38,17 +56,17 @@ export function useBelege(lemmaWort, relCode = '') {
         ...(overrides.year   && { year:   overrides.year   }),
       })
       const r    = await fetch(`${API}/belege?${params}`)
-      if (!r.ok) { setBelegeCache(prev => ({ ...prev, [key]: null })); return }
+      if (!r.ok) { applyCacheEntry(key, null); return }
       const data = await r.json()
-      setBelegeCache(prev => ({ ...prev, [key]: Array.isArray(data) ? data : null }))
+      applyCacheEntry(key, Array.isArray(data) ? data : null)
     } catch {
-      setBelegeCache(prev => ({ ...prev, [key]: null }))
+      applyCacheEntry(key, null)
     } finally {
       setBelegeLoading(false)
     }
   }
 
-  function closeBelege() { setOpenBeleg(null) }
+  function closeBelege() { applyOpen(null) }
 
   return { openBeleg, belegeCache, belegeLoading, loadBelege, closeBelege }
 }
