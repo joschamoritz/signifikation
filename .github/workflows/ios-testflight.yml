@@ -55,6 +55,14 @@ jobs:
           mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
           cp $PP_PATH ~/Library/MobileDevice/Provisioning\ Profiles
 
+      - name: Inspect Provisioning Profile
+        run: |
+          PP_PATH=$RUNNER_TEMP/build_pp.mobileprovision
+          echo "=== Profile Name ==="
+          security cms -D -i "$PP_PATH" | grep -A1 '<key>Name</key>'
+          echo "=== Entitlements ==="
+          security cms -D -i "$PP_PATH" | sed -n '/<key>Entitlements<\/key>/,/<\/dict>/p'
+
       - name: Set Build Number
         run: |
           BUILD_NUMBER=$(( ${{ github.run_number }} - 74 ))
