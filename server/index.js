@@ -49,6 +49,19 @@ const __dirname = dirname(fileURLToPath(import.meta.url))
 const PORT      = process.env.PORT || 3001
 const BACKUP_RESTORE_BODY_LIMIT = '10mb'
 
+// ── Letzte Verteidigungslinie für unbehandelte Fehler ─────────
+// Floating Promises (z.B. Fire-and-Forget-Mails) und Fehler ausserhalb von
+// Request-Handlern landen sonst ohne strukturierten Kontext bei PM2.
+// unhandledRejection: nur loggen — der Prozess ist weiter konsistent.
+// uncaughtException: Prozesszustand ist undefiniert → kontrolliert beenden,
+// PM2 startet neu (Review 2026-06-10).
+process.on('unhandledRejection', (reason) => {
+  logger.error({ err: reason }, 'Unhandled Promise Rejection')
+})
+process.on('uncaughtException', (err) => {
+  logger.fatal({ err }, 'Uncaught Exception – Prozess wird beendet')
+  process.exit(1)
+})
 
 const app = express()
 

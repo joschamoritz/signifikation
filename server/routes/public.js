@@ -233,9 +233,12 @@ router.get('/api/v1/wiktionary', belegeLimiter, validate(qQuerySchema, 'query'),
   } catch (err) { serverError(res, err) }
 })
 
-/** GET /api/ipa – IPA-Aussprache via Wiktionary */
+/** GET /api/ipa – IPA-Aussprache via Wiktionary (gecacht wie /wiktionary) */
 router.get('/api/v1/ipa', belegeLimiter, validate(qQuerySchema, 'query'), async (req, res) => {
   const { q } = req.query
+  const cacheKey = `ipa:${q}`
+  const cached = cacheGet(cacheKey)
+  if (cached) return res.json(cached)
   try {
     const url = `https://de.wiktionary.org/w/api.php?action=parse&page=${encodeURIComponent(q)}&prop=wikitext&format=json&formatversion=2`
     const r = await fetch(url, {
@@ -246,9 +249,15 @@ router.get('/api/v1/ipa', belegeLimiter, validate(qQuerySchema, 'query'), async 
     const data = await r.json()
     const wikitext = data.parse?.wikitext ?? ''
     const matches = [...wikitext.matchAll(/\{\{Lautschrift\|([^|}]+)\}\}/g)]
-    if (!matches.length) return res.json([])
-    res.json([{ ipa: matches[0][1], status: 'proved' }])
-  } catch (err) { serverError(res, err) }
+    const result = matches.length ? [{ ipa: matches[0][1], status: 'proved' }] : []
+    cacheSet(cacheKey, result)
+    res.json(result)
+  } catch (err) {
+    // Wiktionary down/Timeout: leeres Ergebnis statt 500 — IPA ist
+    // Schmuck, kein Pflichtbestandteil (Graceful Degradation).
+    logger.warn({ err, q }, 'IPA-Abruf fehlgeschlagen')
+    res.json([])
+  }
 })
 
 /** GET /api/bonus – Bonusfrage für ein Lemma (beim Admin-Eintrag vorberechnet) */

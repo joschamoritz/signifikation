@@ -1,4 +1,4 @@
-import { useRef, useState, useCallback } from 'react'
+import { useRef, useState, useCallback, useMemo } from 'react'
 import { useAppDailyState } from './useAppDailyState'
 import { useAppEffects } from './useAppEffects'
 import { useAppGameScreens } from './useAppGameScreens'
@@ -50,9 +50,14 @@ export function useAppModel() {
 
   const appRef = useRef(null)
 
-  const keys = serverDatum
-    ? makeDailyKeys(serverDatum)
-    : makeDailyKeys(new Intl.DateTimeFormat('en-CA').format(new Date()))
+  // Memoized: keys wird als Dependency durch useKollokationenGame &
+  // useAppDailyState gereicht — ohne useMemo erzeugte jeder State-Tick
+  // ein neues Objekt und löste dort Effekte/Callbacks unnötig neu aus
+  // (Review 2026-06-10).
+  const keys = useMemo(
+    () => makeDailyKeys(serverDatum || new Intl.DateTimeFormat('en-CA').format(new Date())),
+    [serverDatum],
+  )
 
   const {
     phase,
