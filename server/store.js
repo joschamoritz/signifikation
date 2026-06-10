@@ -267,6 +267,9 @@ export function loadBackupFiles() {
     'kalender.json': loadKalender(),
     'wortzwilling.json': loadWortZwilling(),
     'zeitenwende.json': loadZeitenwende(),
+    // stats.json ist auf das loadStats-Fenster (400 Tage) begrenzt und nur
+    // Legacy-Kompat; Restore-Quelle ist stats-rows.json (vollstaendig, roh).
+    // Vollbackup inkl. aller Tabellen: jobs/sqliteBackup.js.
     'stats.json': loadStats(),
     'stats-rows.json': loadStatsRows(),
   }

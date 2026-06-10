@@ -243,7 +243,12 @@ export function createStatsStore({ db, stmts, logger, loadReadOnly }) {
     invalidateStatsWindowCache(statsWindowCache)
   })
 
-  function loadStats(days = 3650) {
+  // Default bewusst gedeckelt (Review 2026-06-10): stats waechst unbegrenzt
+  // (eine Zeile pro User × Spiel × Tag) — der alte Default 3650 aggregierte
+  // faktisch die ganze Tabelle synchron im Event-Loop. 400 Tage decken alle
+  // Admin-Ansichten und den Legacy-Export; das vollstaendige Archiv sichert
+  // das Datei-Backup (jobs/sqliteBackup.js), Rohzugriff: loadStatsRows().
+  function loadStats(days = 400) {
     const since = computeSinceDate(days)
     return aggregateStatsRows(stmts.getStatsAggregated.all({ since }), logger)
   }
