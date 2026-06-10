@@ -964,6 +964,14 @@
 .eigenes-lemma-enrich .lautschrift { color: var(--muted); }
 .eigenes-lemma-enrich__def { font-style: italic; }
 
+/* Tageskontingent-Hinweis (Basic) */
+.eigenes-lemma-quota {
+  font-family: var(--font-sans);
+  font-size: 0.72rem;
+  color: var(--muted);
+  margin: 0;
+}
+
 /* Zeitraum-Zeile unter dem Lemmanamen */
 .lemma-spezial-zeitraum {
   font-size: 0.75rem;

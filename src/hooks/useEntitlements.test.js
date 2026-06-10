@@ -41,15 +41,12 @@ describe('useEntitlements', () => {
     expect(localStorage.getItem('sig_gesamtausgabe')).toBe('1')
   })
 
-  it('freeAccessToday wird propagiert, schaltet aber gesamtausgabe NICHT mehr frei (entkoppelt)', async () => {
-    mockFetch({ gesamtausgabe: { unlocked: false }, freeAccessToday: true, freeAccessLabel: 'Sonntag' })
+  it('propagiert das customLemma-Kontingent aus der Server-Antwort', async () => {
+    mockFetch({ gesamtausgabe: { unlocked: false }, customLemma: { unlimited: false, allowance: 1, remaining: 1 } })
 
     const { result } = renderHook(() => useEntitlements())
-    await waitFor(() => expect(result.current.freeAccessToday).toBe(true))
+    await waitFor(() => expect(result.current.customLemma).toEqual({ unlimited: false, allowance: 1, remaining: 1 }))
 
-    expect(result.current.freeAccessLabel).toBe('Sonntag')
-    // Seit dem Premium-Umbau sind alle Modi frei; freeAccess schaltet kein
-    // Premium-Feature (Klassenraum/Eigenes Lemma) mehr frei.
     expect(result.current.gesamtausgabeUnlocked).toBe(false)
     expect(result.current.gesamtausgabePermanent).toBe(false)
   })

@@ -45,7 +45,7 @@ export function useAppModel() {
     swLfPlayed,
     setSwLfPlayed,
   } = useDailyContent()
-  const { gesamtausgabeUnlocked, gesamtausgabePermanent, freeAccessToday, freeAccessLabel, classroomTeacher, refreshEntitlements } = useEntitlements()
+  const { gesamtausgabeUnlocked, gesamtausgabePermanent, classroomTeacher, customLemma: customLemmaQuota, refreshEntitlements } = useEntitlements()
   usePaywall({ refreshEntitlements })
 
   const appRef = useRef(null)
@@ -91,7 +91,10 @@ export function useAppModel() {
     if (!result?.usable) return
     if (result.mode === 'kollokationen') handleLemmaSelect(result.lemma)
     else playCustomGame(result.mode, result.data)
-  }, [handleLemmaSelect, playCustomGame])
+    // Verbrauch wurde server-seitig gezählt – Kontingent neu laden, damit der
+    // Zähler nach Rückkehr zur Auswahl stimmt.
+    refreshEntitlements()
+  }, [handleLemmaSelect, playCustomGame, refreshEntitlements])
 
   const {
     handleWZFinish,
@@ -141,8 +144,6 @@ export function useAppModel() {
     lueckenfuellerLemma,
     lfPlayed,
     gesamtausgabeUnlocked,
-    freeAccessToday,
-    freeAccessLabel,
     serverDatum,
     setActiveTab: navigation.setActiveTab,
     // Spezialwoche
@@ -199,6 +200,7 @@ export function useAppModel() {
     gameScreenActions,
     tabState,
     gesamtausgabe: gesamtausgabeUnlocked,
+    customLemmaQuota,
     onCustomPlay: handleCustomPlay,
     customGame,
     onExitCustomGame: exitCustomGame,
@@ -218,8 +220,6 @@ export function useAppModel() {
       activeTab: navigation.activeTab,
       gesamtausgabe: gesamtausgabeUnlocked,
       gesamtausgabePermanent,
-      freeAccessToday,
-      freeAccessLabel,
       onAuthStateChange: refreshEntitlements,
     },
   }

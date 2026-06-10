@@ -4,6 +4,7 @@ import { authFeatureFlags } from '../auth/index.js'
 import { IS_PROD } from '../middleware/auth.js'
 import { deleteUserTx } from './admin-users-data.js'
 import { validate, accountIdParamsSchema } from '../middleware/validate.js'
+import { getQuota } from '../customLemmaQuota.js'
 import db from '../db.js'
 import logger from '../logger.js'
 
@@ -68,6 +69,12 @@ function readEntitlements(userId, userRole) {
   const row = getEntitlementStmt.get(userId)
   const unlockedByPayment = !!row?.gesamtausgabe_unlocked
   const unlockedByRole = userRole === 'premium'
+
+  const quota = getQuota({ userId, role: userRole })
+  const customLemma = quota.unlimited
+    ? { unlimited: true }
+    : { unlimited: false, allowance: quota.allowance, remaining: quota.remaining }
+
   return {
     gesamtausgabe: {
       unlocked: unlockedByPayment || unlockedByRole,
@@ -76,6 +83,8 @@ function readEntitlements(userId, userRole) {
     },
     // Klassenraum (Lehrkraft-Bereich): nur fuer Premium-/Admin-Konten sichtbar.
     classroomTeacher: userRole === 'premium' || userRole === 'admin',
+    // Eigenes-Lemma-Tageskontingent (Phase 4). Premium = unbegrenzt.
+    customLemma,
   }
 }
 
@@ -97,6 +106,8 @@ router.get('/api/v1/account/entitlements', optionalAuthUser, (req, res) => {
     if (!req.user) {
       return res.json({
         gesamtausgabe: { unlocked: false, unlockedAt: null, source: 'none' },
+        // Anonym: Eigenes Lemma erfordert Login (Verbrauch wird pro Account gezählt).
+        customLemma: { unlimited: false, allowance: 0, remaining: 0, requiresLogin: true },
       })
     }
 

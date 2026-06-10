@@ -24,8 +24,6 @@ export default function AppTabScreens({
   lfPlayed,
   onPlayLueckenfueller,
   gesamtausgabeUnlocked,
-  freeAccessToday,
-  freeAccessLabel,
   serverDatum,
   onNavigateToKonto,
 }) {
@@ -54,10 +52,6 @@ export default function AppTabScreens({
         lfPlayed={lfPlayed}
         onPlayLueckenfueller={onPlayLueckenfueller?.play}
         serverDatum={serverDatum}
-        gesamtausgabe={gesamtausgabeUnlocked}
-        freeAccessToday={freeAccessToday}
-        freeAccessLabel={freeAccessLabel}
-        onUnlockGesamtausgabe={onNavigateToKonto}
       />
     ) : null,
     kurs: (

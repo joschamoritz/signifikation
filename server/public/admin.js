@@ -261,19 +261,13 @@ function getFreeDayInfo(iso) {
   if (!iso) return null
   const explicit = freeDaysData.find((item) => item?.date === iso) || null
   if (explicit) {
+    const bonus = Number(explicit.bonus_count) || 0
     return {
       date: iso,
       label: explicit.label || '',
+      bonus,
       source: 'manual',
-      displayLabel: explicit.label ? `Freitag: ${explicit.label}` : 'Freitag eingetragen',
-    }
-  }
-  if (isSundayIso(iso)) {
-    return {
-      date: iso,
-      label: 'Sonntag',
-      source: 'sunday',
-      displayLabel: 'Sonntag: automatisch frei',
+      displayLabel: `Bonus: +${bonus} Eigene-Lemma-Spiele für Basic${explicit.label ? ` · ${explicit.label}` : ''}`,
     }
   }
   return null
@@ -1418,7 +1412,7 @@ function updateCalendarDetails(datum) {
 
   const groupedHtml = entry ? renderModeGroupSummary(entry) : ''
   const freeDayHtml = freeDayInfo
-    ? `<div class="calendar-detail-free ${freeDayInfo.source === 'sunday' ? 'is-auto' : ''}"><strong>Freier Tag</strong><span>${esc(freeDayInfo.displayLabel)}</span></div>`
+    ? `<div class="calendar-detail-free"><strong>Bonus-Tag</strong><span>${esc(freeDayInfo.displayLabel)}</span></div>`
     : ''
   const contentHtml = entry
     ? `<div class="calendar-detail-section">
@@ -2589,14 +2583,15 @@ async function loadFreeDays(options = {}) {
     if (selectedCalendarDate) updateCalendarDetails(selectedCalendarDate)
     if (!listEl) return
     if (!freeDaysData.length) {
-      listEl.innerHTML = '<div class="users-empty">Keine Freitage eingetragen.</div>'
+      listEl.innerHTML = '<div class="users-empty">Keine Bonus-Tage eingetragen.</div>'
       return
     }
-    const rows = freeDaysData.map(({ date, label }) => `
+    const rows = freeDaysData.map(({ date, label, bonus_count }) => `
       <div class="freeday-row">
         <div>
           <strong>${esc(formatIsoDate(date))}</strong>
           ${label ? `<span>${esc(label)}</span>` : ''}
+          <span class="freeday-bonus">+${Number(bonus_count) || 0} Eigene-Lemma-Spiele für Basic</span>
         </div>
         <button class="entry-filters-reset freeday-delete-btn" data-action="delete-free-day" data-date="${esc(date)}">Entfernen</button>
       </div>`).join('')
@@ -2612,9 +2607,11 @@ async function loadFreeDays(options = {}) {
 async function addFreeDay() {
   const dateInput = document.getElementById('freeday-date')
   const labelInput = document.getElementById('freeday-label')
+  const bonusInput = document.getElementById('freeday-bonus')
   const msgEl = document.getElementById('freeday-msg')
   const date = dateInput?.value?.trim()
   const label = labelInput?.value?.trim() || ''
+  const bonus_count = Math.max(0, Math.min(50, parseInt(bonusInput?.value, 10) || 0))
   if (!date) {
     if (msgEl) setFreeDayMessage('Bitte ein Datum auswählen.', 'error')
     return
@@ -2623,7 +2620,7 @@ async function addFreeDay() {
     const res = await fetch('/admin/free-days', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ date, label }),
+      body: JSON.stringify({ date, label, bonus_count }),
     })
     const data = await res.json().catch(() => ({}))
     if (!res.ok) {
@@ -2632,6 +2629,7 @@ async function addFreeDay() {
     }
     if (dateInput) dateInput.value = ''
     if (labelInput) labelInput.value = ''
+    if (bonusInput) bonusInput.value = ''
     if (msgEl) setFreeDayMessage(`${formatIsoDate(date)} wurde eingetragen.`, 'success')
     await loadFreeDays()
   } catch {
@@ -2642,7 +2640,7 @@ async function addFreeDay() {
 async function deleteFreeDay(date) {
   if (!date) return
   const info = getFreeDayInfo(date)
-  const ok = confirmAction('Freitag wirklich entfernen?', [
+  const ok = confirmAction('Bonus-Tag wirklich entfernen?', [
     `Datum: ${formatIsoDate(date)}`,
     info?.label ? `Bezeichnung: ${info.label}` : 'Ohne Bezeichnung',
   ])

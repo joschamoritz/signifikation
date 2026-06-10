@@ -25,7 +25,7 @@ function WZEntry({ lemma, pos }) {
   )
 }
 
-export default function WortZwillingSelection({ data, thema, themaKurz, themaQuelle, onPlay, onViewDaily, wzPlayed = null, onBack, spezialwoche = null, swWzPlayed = null, onPlaySpezial, onViewSpezial, gesamtausgabe = false, onCustomPlay }) {
+export default function WortZwillingSelection({ data, thema, themaKurz, themaQuelle, onPlay, onViewDaily, wzPlayed = null, onBack, spezialwoche = null, swWzPlayed = null, onPlaySpezial, onViewSpezial, customLemma = null, onCustomPlay }) {
   const { wortA, wortB, pos, notiz, link } = data ?? {}
   const [notizOpen, setNotizOpen] = useState(false)
   const wortart = pos || 'Substantiv'
@@ -133,7 +133,7 @@ export default function WortZwillingSelection({ data, thema, themaKurz, themaQue
           })()}
 
           {/* ── Eigenes Wort-Paar (Premium) ─── */}
-          <EigenesLemma mode="wortzwilling" gesamtausgabe={gesamtausgabe} onPlay={onCustomPlay} />
+          <EigenesLemma mode="wortzwilling" customLemma={customLemma} onPlay={onCustomPlay} />
       </div>
     </div>
   )

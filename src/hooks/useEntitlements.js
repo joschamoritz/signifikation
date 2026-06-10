@@ -5,9 +5,11 @@ import { apiFetch } from '../utils/apiFetch'
 
 export function useEntitlements() {
   const [gesamtausgabeUnlocked, setGesamtausgabeUnlocked] = useState(() => !!lsGet('sig_gesamtausgabe'))
-  const [freeAccessToday, setFreeAccessToday] = useState(false)
-  const [freeAccessLabel, setFreeAccessLabel] = useState(null)
   const [classroomTeacher, setClassroomTeacher] = useState(false)
+  // Eigenes-Lemma-Tageskontingent (Phase 4). Optimistisch aus dem gecachten
+  // Premium-Flag vorbelegt, damit ein zurückkehrender Premium-Nutzer sofort
+  // „unbegrenzt" sieht; Server-Antwort ist maßgeblich.
+  const [customLemma, setCustomLemma] = useState(() => (lsGet('sig_gesamtausgabe') ? { unlimited: true } : null))
 
   const syncEntitlementsFromResponse = useCallback((payload) => {
     // Server-Antwort ist maßgeblich – localStorage nur als Offline-Fallback (catch-Block)
@@ -18,13 +20,8 @@ export function useEntitlements() {
       lsRemove('sig_gesamtausgabe')
     }
     setGesamtausgabeUnlocked(serverUnlocked)
-
-    // Temporärer Free-Access (Sonntag / Freitag) – nicht in localStorage
-    const free = !!payload?.freeAccessToday
-    setFreeAccessToday(free)
-    setFreeAccessLabel(free ? (payload?.freeAccessLabel ?? null) : null)
-
     setClassroomTeacher(!!payload?.classroomTeacher)
+    setCustomLemma(payload?.customLemma ?? null)
   }, [])
 
   const refreshEntitlements = useCallback(async () => {
@@ -52,14 +49,11 @@ export function useEntitlements() {
 
   return {
     // Premium-Entitlement steuert nur noch Klassenraum/Kurs + Eigenes Lemma.
-    // Alle vier Spielmodi sind dauerhaft frei, daher fließt freeAccessToday
-    // hier NICHT mehr ein (sonst würde Sonntag/Freitag fälschlich Premium-
-    // Features freischalten).
-    gesamtausgabeUnlocked: gesamtausgabeUnlocked,
+    // Alle vier Spielmodi sind dauerhaft frei.
+    gesamtausgabeUnlocked,
     gesamtausgabePermanent: gesamtausgabeUnlocked,
-    freeAccessToday,
-    freeAccessLabel,
     classroomTeacher,
+    customLemma,
     refreshEntitlements,
   }
 }

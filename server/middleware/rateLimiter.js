@@ -72,6 +72,7 @@ const registerStore = new CleanupStore(15 * 60_000)
 const pushSubscribeStore = new CleanupStore(60_000)
 const iapVerifyStore = new CleanupStore(60_000)
 const debugLogStore = new CleanupStore(60_000)
+const customLemmaStore = new CleanupStore(60_000)
 
 export const belegeLimiter = rateLimit({
   windowMs: 60_000, max: 30,
@@ -188,4 +189,14 @@ export const debugLogLimiter = rateLimit({
   keyGenerator: getClientIp,
   standardHeaders: true, legacyHeaders: false,
   message: { error: 'Zu viele Debug-Logs. Bitte kurz warten.' },
+})
+
+// Eigenes-Lemma (validate/play): Korpus-Queries; für Basic-Nutzer offen.
+// 40/Minute reicht für die debounced Live-Prüfung, deckelt aber Spam.
+export const customLemmaLimiter = rateLimit({
+  windowMs: 60_000, max: 40,
+  store: customLemmaStore,
+  keyGenerator: getClientIp,
+  standardHeaders: true, legacyHeaders: false,
+  message: { error: 'Zu viele Anfragen. Bitte kurz warten.' },
 })

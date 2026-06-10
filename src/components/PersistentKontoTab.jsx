@@ -4,8 +4,6 @@ export default function PersistentKontoTab({
   activeTab,
   gesamtausgabe,
   gesamtausgabePermanent,
-  freeAccessToday,
-  freeAccessLabel,
   onAuthStateChange,
 }) {
   const hidden = activeTab !== 'profil'
@@ -17,8 +15,6 @@ export default function PersistentKontoTab({
       <KontoTab
         gesamtausgabe={gesamtausgabe}
         gesamtausgabePermanent={gesamtausgabePermanent}
-        freeAccessToday={freeAccessToday}
-        freeAccessLabel={freeAccessLabel}
         onAuthStateChange={onAuthStateChange}
       />
     </div>

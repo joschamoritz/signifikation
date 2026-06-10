@@ -10,13 +10,12 @@ import CheckoutModal from './CheckoutModal'
 const IS_NATIVE = Capacitor.isNativePlatform()
 
 const FEATURES = [
-  { label: 'Wort-Zwilling',  desc: 'Zwei Wörter, ein Kollokationsnetz' },
-  { label: 'Zeitenwende',    desc: 'Kollokatoren im Jahrtausendvergleich' },
-  { label: 'Lückenfüller',   desc: 'Satzlücken mit Korpusdaten füllen' },
+  { label: 'Eigenes Lemma',  desc: 'Jeden Modus mit selbst gewählten Wörtern – unbegrenzt' },
   { label: 'Klassenraum',    desc: 'Live-Sessions für den Unterricht' },
+  { label: 'Kurse',          desc: 'Strukturierte Lerneinheiten (in Vorbereitung)' },
 ]
 
-export default function KontoPremiumBlock({ auth, gesamtausgabePermanent, freeAccessToday, freeAccessLabel }) {
+export default function KontoPremiumBlock({ auth, gesamtausgabePermanent }) {
   const [checkoutOpen, setCheckoutOpen] = useState(false)
   const [loginHint, setLoginHint] = useState(false)
   const [restoreStatus, setRestoreStatus] = useState(null) // 'busy' | 'none' | 'not-found' | 'error' | null
@@ -98,7 +97,7 @@ export default function KontoPremiumBlock({ auth, gesamtausgabePermanent, freeAc
         {gesamtausgabePermanent ? (
           <>
             <p className="test-definition">
-              Vollzugang zu allen Spielmodi und Funktionen.
+              Unbegrenzt eigene Lemmata, Klassenraum und Kurse.
             </p>
             <ul className="konto-premium-features konto-premium-features--active" aria-label="Enthaltene Funktionen">
               {FEATURES.map(f => (
@@ -122,11 +121,10 @@ export default function KontoPremiumBlock({ auth, gesamtausgabePermanent, freeAc
           </>
         ) : (
           <>
-            {!freeAccessToday && (
-              <p className="test-definition">
-                Schalte alle Spielmodi und den Klassenraum dauerhaft frei.
-              </p>
-            )}
+            <p className="test-definition">
+              Alle vier Spielmodi sind frei. Mit der Gesamtausgabe spielst du
+              jeden Modus mit selbst gewählten Wörtern – unbegrenzt – plus Klassenraum &amp; Kurse.
+            </p>
 
             <ul className="konto-premium-features" aria-label="Enthaltene Funktionen">
               {FEATURES.map(f => (
@@ -142,7 +140,7 @@ export default function KontoPremiumBlock({ auth, gesamtausgabePermanent, freeAc
 
             <div className="konto-subscription-unlock">
               <button className="konto-iap-cta" type="button" onClick={handleBuyClick}>
-                <span>{freeAccessToday ? 'Dauerhaft freischalten' : 'Gesamtausgabe freischalten'}</span>
+                <span>Gesamtausgabe freischalten</span>
                 <span className="konto-iap-cta-price">ab 6,99 €</span>
               </button>
               {loginHint && (
@@ -166,13 +164,6 @@ export default function KontoPremiumBlock({ auth, gesamtausgabePermanent, freeAc
                 </>
               )}
             </div>
-
-            {freeAccessToday && (
-              <p className="konto-subscription-note konto-subscription-note--free">
-                <span className="konto-free-star" aria-hidden="true">✦</span>
-                Heute kostenlos{freeAccessLabel ? ` – ${freeAccessLabel}` : ''}. Du hast Zugriff auf alle Spielmodi.
-              </p>
-            )}
           </>
         )}
       </div>

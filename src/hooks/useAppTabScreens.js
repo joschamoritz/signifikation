@@ -22,8 +22,6 @@ export function useAppTabScreens({
   lueckenfuellerLemma,
   lfPlayed,
   gesamtausgabeUnlocked,
-  freeAccessToday,
-  freeAccessLabel,
   serverDatum,
   setActiveTab,
   // Spezialwoche
@@ -77,8 +75,6 @@ export function useAppTabScreens({
       }),
     } : null,
     gesamtausgabeUnlocked,
-    freeAccessToday,
-    freeAccessLabel,
     serverDatum,
     onNavigateToKonto: () => setActiveTab('profil'),
   })

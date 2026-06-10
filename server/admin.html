@@ -61,7 +61,7 @@
           <p class="nav-group-label">System</p>
           <div class="nav-group-items">
             <button class="nav-item" data-action="switch-page" data-page="users">Nutzer</button>
-            <button class="nav-item" data-action="switch-page" data-page="freedays">Freitage</button>
+            <button class="nav-item" data-action="switch-page" data-page="freedays">Bonus-Tage</button>
             <button class="nav-item" data-action="switch-page" data-page="spezialwoche">Wort der Woche</button>
             <button class="nav-item" data-action="switch-page" data-page="push">Benachrichtigungen</button>
             <button class="nav-item" data-action="switch-page" data-page="classroom">Klassenraum</button>
@@ -576,7 +576,7 @@
           <div class="card-head card-head--wrap">
             <h2>Tagesdetails</h2>
             <div class="calendar-detail-actions">
-              <button class="entry-filters-reset" data-action="switch-page" data-page="freedays">Freitage verwalten</button>
+              <button class="entry-filters-reset" data-action="switch-page" data-page="freedays">Bonus-Tage verwalten</button>
               <button id="calendar-edit-btn" data-action="edit-selected-calendar-date" disabled>Eintrag bearbeiten</button>
             </div>
           </div>
@@ -693,20 +693,24 @@
         </div>
       </section>
 
-      <section class="admin-page" id="page-freedays" data-title="Freitage" data-subtitle="Tage mit kostenlosem Gesamtausgabe-Zugang (zusätzlich zu Sonntagen).">
+      <section class="admin-page" id="page-freedays" data-title="Bonus-Tage" data-subtitle="An ausgewählten Tagen bekommen Basic-Nutzer zusätzliche Eigene-Lemma-Spiele.">
         <div class="card">
-          <h2>Neuer Freitag</h2>
+          <h2>Neuer Bonus-Tag</h2>
           <p class="section-copy">
-            An eingetragenen Tagen haben alle Nutzer – auch ohne Zahlung – Zugriff auf die Gesamtausgabe. Sonntage sind automatisch immer frei.
+            Basic-Nutzer dürfen pro Tag 1 eigenes Lemma spielen. An eingetragenen Bonus-Tagen kommen die hier gewählte Anzahl zusätzlicher Spiele oben drauf. Premium ist immer unbegrenzt.
           </p>
           <div class="freeday-form-row">
             <div class="entry-field entry-field--compact">
               <label for="freeday-date">Datum</label>
               <input type="date" id="freeday-date">
             </div>
+            <div class="entry-field entry-field--compact">
+              <label for="freeday-bonus">Bonus <span class="label-hint">Spiele extra</span></label>
+              <input type="number" id="freeday-bonus" min="0" max="50" step="1" placeholder="z.B. 5">
+            </div>
             <div class="entry-field freeday-field-grow">
-              <label for="freeday-label">Bezeichnung <span class="label-hint">optional, z.&nbsp;B. »Tag der Deutschen Einheit«</span></label>
-              <input type="text" id="freeday-label" placeholder="z.B. Schulstart, WM-Finale …" maxlength="100">
+              <label for="freeday-label">Anlass <span class="label-hint">optional, z.&nbsp;B. »Tag der Deutschen Einheit«</span></label>
+              <input type="text" id="freeday-label" placeholder="z.B. Sonntag, Schulstart …" maxlength="100">
             </div>
             <button class="entry-filters-reset" data-action="add-free-day">Hinzufügen</button>
           </div>
@@ -715,7 +719,7 @@
 
         <div class="card">
           <div class="card-head card-head--wrap">
-            <h2>Eingetragene Freitage</h2>
+            <h2>Eingetragene Bonus-Tage</h2>
             <button class="entry-filters-reset" data-action="load-free-days">↺ Laden</button>
           </div>
           <div id="freedays-list">

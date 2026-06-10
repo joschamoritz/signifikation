@@ -24,7 +24,7 @@ export default function AppGameScreens({
   themaQuelle,
   lemmata,
   playedIds,
-  gesamtausgabe,
+  customLemmaQuota,
   onCustomPlay,
   customGame,
   onExitCustomGame,
@@ -132,7 +132,8 @@ export default function AppGameScreens({
           onBack={onBackToHome}
           spezialLemma={spezialwoche?.lemma ?? null}
           spezialwoche={spezialwoche}
-          gesamtausgabe={gesamtausgabe}
+          customLemma={customLemmaQuota}
+          onCustomPlay={onCustomPlay}
         />
       )}
       {phase === 'wortzwilling-selection' && wortzwilling && (
@@ -149,7 +150,7 @@ export default function AppGameScreens({
           swWzPlayed={swWzPlayed}
           onPlaySpezial={onSwWzPlay}
           onViewSpezial={onViewSwWz}
-          gesamtausgabe={gesamtausgabe}
+          customLemma={customLemmaQuota}
           onCustomPlay={onCustomPlay}
         />
       )}
@@ -167,7 +168,7 @@ export default function AppGameScreens({
           swZwPlayed={swZwPlayed}
           onPlaySpezial={onSwZwPlay}
           onViewSpezial={onViewSwZw}
-          gesamtausgabe={gesamtausgabe}
+          customLemma={customLemmaQuota}
           onCustomPlay={onCustomPlay}
         />
       )}
@@ -226,7 +227,7 @@ export default function AppGameScreens({
           swLfPlayed={swLfPlayed}
           onPlaySpezial={onSwLfPlay}
           onViewSpezial={onViewSwLf}
-          gesamtausgabe={gesamtausgabe}
+          customLemma={customLemmaQuota}
           onCustomPlay={onCustomPlay}
         />
       )}
