@@ -385,6 +385,19 @@ describe('classroom/store', () => {
       })
       expect(r1.submissionId).toBe(r2.submissionId)
       expect(r2.score).toBe(r1.score) // erste Antwort gewinnt
+
+      // Review-Finding K1 (2026-06-10): genau EIN Submission- und EIN
+      // Score-Record — der UNIQUE-Constraint muss exakt den ON-CONFLICT-
+      // Spalten entsprechen, sonst entstehen hier Doppel-Scores.
+      const subCount = db.prepare(`
+        SELECT COUNT(*) AS c FROM classroom_submission
+        WHERE participant_id = ? AND assignment_id = ? AND lemma_id = ? AND round_index = 0
+      `).get(participant.id, assignment.id, 'lemma-1')
+      expect(subCount.c).toBe(1)
+      const scoreCount = db.prepare(
+        'SELECT COUNT(*) AS c FROM classroom_score_record WHERE submission_id = ?',
+      ).get(r1.submissionId)
+      expect(scoreCount.c).toBe(1)
     })
 
     it('verweigert Submit in lobby-State', () => {

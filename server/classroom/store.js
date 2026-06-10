@@ -914,14 +914,16 @@ export function submitAnswer({
       detail_json: JSON.stringify(scoreResult.detail || {}),
       scored_at: submittedAt,
     })
+    // Aktivitaet registrieren — verschiebt das Auto-End-Fenster (D8).
+    // Bewusst INNERHALB der Transaktion: liefe es danach als separater
+    // Write, koennte eine gewertete Submission bei SQLITE_BUSY das Fenster
+    // nicht verschieben und die Session mitten im Spielen idle-timeouten.
+    stmts.touchSessionActivity.run({ id: sessionId, ts: submittedAt })
     return finalSubmissionId
   })
 
   const finalId = tx()
   if (finalId === 'IDEMPOTENCY_RACE') return { error: 'IDEMPOTENCY_RACE' }
-
-  // Aktivitaet registrieren — verschiebt das Auto-End-Fenster (D8).
-  stmts.touchSessionActivity.run({ id: sessionId, ts: submittedAt })
 
   const existingScore = stmts.getScoreBySubmission.get(finalId)
   return {
