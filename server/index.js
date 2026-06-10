@@ -39,6 +39,7 @@ import { setupClassroomSocket } from './realtime/classroomSocket.js'
 import { startClassroomAutoEnd } from './jobs/classroomAutoEnd.js'
 import { startClassroomRetention } from './jobs/classroomRetention.js'
 import { startSqliteBackup } from './jobs/sqliteBackup.js'
+import { startDataRetention } from './jobs/dataRetention.js'
 import { ALLOWED_ORIGINS, CAPACITOR_ORIGINS, isAllowedOrigin } from './config/origins.js'
 import { startSessionCleanup } from './auth/session-cleanup.js'
 import { startAlerting } from './alerting.js'
@@ -241,6 +242,9 @@ const WORTPROFIL_TIMEOUT_MS = 130_000  // etwas mehr als curl --max-time 120
   // Taegliches Voll-Backup der signifikation.db (Online-Backup-API + gzip +
   // Rotation) — sichert auch user/payments/entitlements/classroom_*.
   startSqliteBackup()
+  // Retention fuer wachsende Log-Tabellen: audit_log + classroom_telemetry
+  // nach 24 Monaten aufraeumen (taeglicher Sweep).
+  startDataRetention()
 
   // ── Graceful Shutdown (D-21) ──────────────────────────────────
   const shutdown = (signal) => {
