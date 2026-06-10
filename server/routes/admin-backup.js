@@ -22,6 +22,23 @@ export function createAdminBackupRouter({
     } catch (err) { adminError(res, err) }
   })
 
+  // Dateibasiertes Voll-Backup (signifikation.db → .db.gz) manuell auslösen.
+  // Läuft zusätzlich automatisch täglich (jobs/sqliteBackup.js).
+  router.post('/admin/backup/sqlite', adminLimiter, requireAuth, async (req, res) => {
+    try {
+      const { runSqliteBackup } = await import('../jobs/sqliteBackup.js')
+      const result = await runSqliteBackup()
+      res.json({ ok: true, ...result })
+    } catch (err) { adminError(res, err) }
+  })
+
+  router.get('/admin/backup/sqlite', adminLimiter, requireAuth, async (req, res) => {
+    try {
+      const { listSqliteBackups } = await import('../jobs/sqliteBackup.js')
+      res.json({ backups: listSqliteBackups() })
+    } catch (err) { adminError(res, err) }
+  })
+
   router.get('/admin/backup', adminLimiter, requireAuth, (req, res) => {
     try {
       res.setHeader('Content-Disposition', `attachment; filename="signifikation-backup-${new Date().toISOString().slice(0, 10)}.json"`)

@@ -19,7 +19,8 @@ import logger from './logger.js'
 import { runSqlMigrationsSync } from './migrate-sync.js'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
-const DB_PATH = process.env.APP_DB || join(__dirname, 'data', 'signifikation.db')
+// Exportiert für das dateibasierte Backup (jobs/sqliteBackup.js)
+export const DB_PATH = process.env.APP_DB || join(__dirname, 'data', 'signifikation.db')
 
 mkdirSync(dirname(DB_PATH), { recursive: true })
 
