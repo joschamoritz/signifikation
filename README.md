@@ -21,8 +21,8 @@ Analysen kommen aus separaten SQLite-Datenbanken wie `wortprofil.db` und `belege
 ## Weitere Produktbereiche
 
 - **Admin-Portal** unter `/admin` für Tagesplanung, Analysen, Nutzerverwaltung, Backups, Social Cards und Systemdiagnose
-- **Account-/Entitlement-System** mit better-auth, Rollen (`user`, `premium`, `admin`) und Gerätegrenzen für Premium-Zugriff
-- **Mollie-Checkout** für die Gesamtausgabe
+- **Account-/Entitlement-System** mit better-auth, Rollen (`user`, `premium`, `admin`) und Gerätegrenzen
+- **Premium („Gesamtausgabe", Mollie + Apple IAP):** Alle vier Spielmodi sind dauerhaft gratis – Premium schaltet **Klassenraum, Kurse und „Eigenes Lemma" unbegrenzt** frei (selbst gewähltes Wort in jedem Modus). Basic-Nutzer bekommen 1 Eigenes-Lemma-Spiel pro Tag plus Admin-Bonus-Tage.
 - **Classroom-Modus** für Lehrkräfte mit Sessions, Join-Code, Live-Dashboard und Exportjobs
 
 ## Stack
@@ -111,11 +111,12 @@ Wichtige Tabellen:
 - `wortzwilling`
 - `zeitenwende`
 - `stats`
-- `free_days`
+- `free_days` (Bonus-Tage fürs „Eigene Lemma"-Feature: `date`, `label`, `bonus_count`)
+- `custom_lemma_usage` (Tagesverbrauch „Eigenes Lemma" pro Account)
 - `user`, `session`, `account`, `verification`
 - `user_profiles`, `user_entitlements`, `payments`, `device_registrations`
 - `audit_log`
-- `classroom_sessions`, `classroom_participants`, `classroom_submissions`, `classroom_exports`
+- `classroom_session`, `classroom_assignment`, `classroom_participant`, `classroom_participant_state`, `classroom_submission`, `classroom_score_record`, `classroom_capability_grant`, `classroom_telemetry` (alle SINGULAR; die alten v1-Plural-Tabellen wurden in Migration `0006_drop_classroom_v1.sql` entfernt)
 
 ### Backup-Format
 
@@ -183,7 +184,7 @@ Das Admin-Portal deckt aktuell ab:
 
 - Tagesplanung und Tageseinträge
 - Inline-Analysen für alle vier Modi
-- Kalender inklusive freie Tage
+- Kalender inklusive Bonus-Tage (Zusatz-Kontingent „Eigenes Lemma" für Basic-Nutzer)
 - Bulk-Import und Bulk-Delete für Kalendereinträge
 - Nutzerverwaltung inklusive Bulk-Export
 - Audit-Log
