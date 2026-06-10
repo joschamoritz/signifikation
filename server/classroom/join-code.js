@@ -12,8 +12,8 @@
  * Wir matchen explizit auf diesen Filter, damit Codes nach Session-Ende
  * sofort wiederverwendbar sind.
  *
- * Max 40 Versuche – empirisch ausreichend bei 108×107 ≈ 11.500
- * moeglichen Wort-Paaren.
+ * Max 40 Versuche – empirisch ausreichend bei ~230 Woertern
+ * (≈ 50.000 moegliche Wort-Paare nach Laengenfilter).
  */
 
 import db from '../db.js'

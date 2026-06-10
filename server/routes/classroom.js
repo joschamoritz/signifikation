@@ -98,6 +98,7 @@ import {
   classroomWriteLimiter,
   classroomReadLimiter,
 } from '../middleware/rateLimiter.js'
+import { isJoinBlocked, recordJoinFailure } from '../classroom/join-guard.js'
 
 const router = express.Router()
 
@@ -1047,6 +1048,13 @@ router.post(
   (req, res) => {
     try {
       const { code, displayName } = req.body
+      // Globaler Brute-Force-Guard (verteilte Code-Rateversuche): über der
+      // Schwelle werden ALLE Joins abgelehnt — auch gültige, sonst bliebe
+      // der Endpoint ein Code-Orakel. Details in classroom/join-guard.js.
+      if (isJoinBlocked()) {
+        trackJoinFailed(code, 'guard_blocked')
+        return res.status(429).json({ error: 'Zu viele Beitrittsversuche. Bitte kurz warten.' })
+      }
       trackJoinAttempted(code)
       const result = joinByCode({ code, displayName: displayName || null })
       if (result.error) {
@@ -1054,6 +1062,9 @@ router.post(
           : result.error === 'SESSION_FULL'              ? 'session_full'
           : result.error === 'INVALID_STATE'             ? 'session_not_running'
           : 'unknown'
+        // Nur ungültige Codes zählen — SESSION_FULL/INVALID_STATE belegen
+        // einen gültigen Code und sind kein Rate-Signal.
+        if (result.error === 'INVALID_CODE') recordJoinFailure()
         trackJoinFailed(code, reason)
         const mapped = mapError(result.error)
         return res.status(mapped.status).json({ error: mapped.message })
