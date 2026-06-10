@@ -6,7 +6,7 @@ vi.mock('../mailer.js', () => ({
   sendPurchaseConfirmation: vi.fn(),
 }))
 
-const { default: iapRouter } = await import('../routes/iap.js')
+const { default: iapRouter, deriveAppAccountToken } = await import('../routes/iap.js')
 
 const VALID_PRODUCT_ID = 'de.signifikation.gesamtausgabe.korpus'
 
@@ -115,5 +115,36 @@ describe('iap routes integration (flache Validierung)', () => {
 
     expect(res.status).toBe(400)
     expect(typeof payload.error).toBe('string')
+  })
+
+  // ── /api/v1/iap/app-account-token ──────────────────────────────
+
+  it('app-account-token: blockiert unauthentifizierte Requests mit 401', async () => {
+    const res = await fetch(`${baseUrl}/api/v1/iap/app-account-token`)
+    expect(res.status).toBe(401)
+  })
+
+  it('app-account-token: liefert pro User ein stabiles UUID', async () => {
+    const headers = devHeaders('iap-token-user')
+    const res1 = await fetch(`${baseUrl}/api/v1/iap/app-account-token`, { headers })
+    const res2 = await fetch(`${baseUrl}/api/v1/iap/app-account-token`, { headers })
+    const { appAccountToken: t1 } = await res1.json()
+    const { appAccountToken: t2 } = await res2.json()
+
+    expect(res1.status).toBe(200)
+    expect(t1).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-5[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/)
+    expect(t1).toBe(t2)
+  })
+})
+
+describe('deriveAppAccountToken', () => {
+  it('ist deterministisch und unterscheidet User', () => {
+    expect(deriveAppAccountToken('user-a')).toBe(deriveAppAccountToken('user-a'))
+    expect(deriveAppAccountToken('user-a')).not.toBe(deriveAppAccountToken('user-b'))
+  })
+
+  it('erzeugt gültige UUIDv5 (Version + Variante)', () => {
+    const token = deriveAppAccountToken('irgendein-user')
+    expect(token).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-5[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/)
   })
 })

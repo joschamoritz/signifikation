@@ -59,6 +59,14 @@ public class IAPPlugin: CAPPlugin, CAPBridgedPlugin {
             call.reject("productId erforderlich")
             return
         }
+        // Account-Bindung: Server prüft das Token im signierten JWS gegen den
+        // eingeloggten Account – ein geteiltes JWS schaltet fremde Accounts
+        // damit nicht mehr frei.
+        var options: Set<Product.PurchaseOption> = []
+        if let tokenString = call.getString("appAccountToken"),
+           let token = UUID(uuidString: tokenString) {
+            options.insert(.appAccountToken(token))
+        }
         Task {
             do {
                 let products = try await Product.products(for: [productId])
@@ -66,7 +74,7 @@ public class IAPPlugin: CAPPlugin, CAPBridgedPlugin {
                     call.reject("Produkt nicht gefunden: \(productId)")
                     return
                 }
-                let result = try await product.purchase()
+                let result = try await product.purchase(options: options)
                 switch result {
                 case .success(let verification):
                     switch verification {

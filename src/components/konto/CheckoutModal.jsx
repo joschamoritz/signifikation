@@ -58,7 +58,19 @@ export default function CheckoutModal({ isOpen, onClose, onSuccess }) {
   }
 
   async function handleCheckoutIAP() {
-    const result = await IAP.purchase({ productId: selectedOption.productId })
+    // Account-Binding-Token vom Server holen – Apple übernimmt es signiert
+    // ins JWS, der Server prüft es bei /iap/verify gegen den Account.
+    let appAccountToken = null
+    try {
+      const tokenRes = await apiFetch(`${API}/iap/app-account-token`, { credentials: 'include' })
+      if (tokenRes.ok) ({ appAccountToken } = await tokenRes.json())
+    } catch {
+      // Kauf bleibt möglich – Server akzeptiert Transaktionen ohne Token (Legacy-Pfad)
+    }
+    const result = await IAP.purchase({
+      productId: selectedOption.productId,
+      ...(appAccountToken ? { appAccountToken } : {}),
+    })
     if (result.status === 'cancelled') return
     if (result.status === 'pending') {
       setCheckoutError('Kauf wartet auf Bestätigung (z.B. Famigliengenehmigung). Du erhältst eine Mitteilung, sobald er abgeschlossen ist.')

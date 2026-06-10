@@ -1,5 +1,5 @@
 import express from 'express'
-import { X509Certificate, createVerify } from 'node:crypto'
+import { X509Certificate, createVerify, createHash } from 'node:crypto'
 import { requireAuthUser } from '../middleware/userAuth.js'
 import { iapVerifyLimiter } from '../middleware/rateLimiter.js'
 import { validate, iapVerifySchema, iapRestoreSchema } from '../middleware/validate.js'
@@ -28,6 +28,34 @@ const APPLE_ROOT_CA_FINGERPRINTS = new Set([
   // Apple Root CA - G3 (StoreKit 2 JWS, aktuell)
   '63343abfb89a6a03ebb57e9b3f5fa7be7c4f5c756f3017b3a8c488c3653e9179',
 ])
+
+const APP_BUNDLE_ID = 'de.signifikation.app'
+
+// Sandbox-Transaktionen (TestFlight!) werden standardmäßig akzeptiert.
+// Nach App-Store-Launch per IAP_ALLOW_SANDBOX=0 abschalten: Sandbox-JWS sind
+// echte Apple-Signaturen, mit denen sich ohne Bezahlung freischalten ließe.
+const ALLOW_SANDBOX = process.env.IAP_ALLOW_SANDBOX !== '0'
+
+// ── appAccountToken (Kauf ↔ Account-Bindung) ──────────────────
+//
+// StoreKit erlaubt beim Kauf ein UUID-Token, das Apple signiert ins JWS
+// übernimmt. Wir leiten es deterministisch aus der User-ID ab (UUIDv5) und
+// prüfen es bei verify/restore — ein geteiltes JWS schaltet damit nur noch
+// den Account frei, der den Kauf tatsächlich ausgelöst hat.
+//
+// Namespace ist fest verdrahtet: eine Änderung würde alle bestehenden
+// Token-Bindungen ungültig machen.
+const APP_ACCOUNT_TOKEN_NAMESPACE = 'b7a9f3c2-4d1e-4f8a-9c6b-2e5d8a7f1c34'
+
+export function deriveAppAccountToken(userId) {
+  const nsBytes = Buffer.from(APP_ACCOUNT_TOKEN_NAMESPACE.replace(/-/g, ''), 'hex')
+  const hash = createHash('sha1').update(nsBytes).update(String(userId)).digest()
+  const bytes = hash.subarray(0, 16)
+  bytes[6] = (bytes[6] & 0x0f) | 0x50 // Version 5
+  bytes[8] = (bytes[8] & 0x3f) | 0x80 // RFC-4122-Variante
+  const hex = bytes.toString('hex')
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`
+}
 
 // ── Prepared Statements ────────────────────────────────────────
 
@@ -91,6 +119,23 @@ function verifyAppleJWS(jws) {
     throw new Error(`Unbekannte Root-CA: ${rootFp}`)
   }
 
+  // Gültigkeitszeitraum: X509Certificate.verify() prüft nur die Signatur,
+  // nicht notBefore/notAfter — abgelaufene Ketten müssen hier scheitern.
+  const now = Date.now()
+  for (let i = 0; i < certs.length; i++) {
+    const from = Date.parse(certs[i].validFrom)
+    const to   = Date.parse(certs[i].validTo)
+    if (!Number.isFinite(from) || !Number.isFinite(to) || now < from || now > to) {
+      throw new Error(`Zertifikat ${i} außerhalb des Gültigkeitszeitraums`)
+    }
+  }
+
+  // CA-Flags: Leaf darf keine CA sein, alle Aussteller müssen CAs sein
+  if (certs[0].ca) throw new Error('Leaf-Zertifikat ist eine CA')
+  for (let i = 1; i < certs.length; i++) {
+    if (!certs[i].ca) throw new Error(`Zertifikat ${i} ist keine CA`)
+  }
+
   // Zertifikatskette: jedes Zertifikat durch das nächste signiert?
   for (let i = 0; i < certs.length - 1; i++) {
     if (!certs[i].verify(certs[i + 1].publicKey)) {
@@ -108,6 +153,41 @@ function verifyAppleJWS(jws) {
   }
 
   return payload
+}
+
+// Prüft die inhaltlichen Felder eines verifizierten JWS-Payloads.
+// Liefert null wenn ok, sonst einen Ablehnungsgrund (für Log + 400).
+function rejectReasonForPayload(payload, claimedProductId, userId) {
+  if (payload.productId !== claimedProductId) {
+    return `productId-Mismatch (${payload.productId} ≠ ${claimedProductId})`
+  }
+  if (payload.type !== 'Non-Consumable') {
+    return `unerwarteter Produkttyp ${payload.type}`
+  }
+  if (payload.bundleId !== APP_BUNDLE_ID) {
+    return `bundleId ${payload.bundleId}`
+  }
+  if (payload.environment !== 'Production') {
+    if (!(payload.environment === 'Sandbox' && ALLOW_SANDBOX)) {
+      return `environment ${payload.environment}`
+    }
+    logger.warn({ userId, transactionId: payload.transactionId },
+      'Apple IAP: Sandbox-Transaktion akzeptiert (IAP_ALLOW_SANDBOX)')
+  }
+  const token = typeof payload.appAccountToken === 'string'
+    ? payload.appAccountToken.toLowerCase()
+    : null
+  if (token && token !== '00000000-0000-0000-0000-000000000000') {
+    if (token !== deriveAppAccountToken(userId)) {
+      return 'appAccountToken gehört zu einem anderen Account'
+    }
+  } else {
+    // Käufe aus App-Versionen vor der Token-Bindung tragen kein Token —
+    // akzeptieren, aber sichtbar machen, bis der Legacy-Pfad ausläuft.
+    logger.warn({ userId, transactionId: payload.transactionId },
+      'Apple IAP: Transaktion ohne appAccountToken (Legacy-Pfad)')
+  }
+  return null
 }
 
 function unlockForUser(userId, transactionId, productId) {
@@ -147,13 +227,10 @@ router.post('/api/v1/iap/verify', iapVerifyLimiter, requireAuthUser, validate(ia
     return res.status(400).json({ error: 'Transaktion konnte nicht verifiziert werden' })
   }
 
-  if (payload.productId !== productId) {
-    logger.warn({ payloadProductId: payload.productId, claimed: productId, userId },
-      'Apple IAP: productId-Mismatch')
-    return res.status(400).json({ error: 'Produkt stimmt nicht überein' })
-  }
-  if (payload.type !== 'Non-Consumable') {
-    return res.status(400).json({ error: 'Unerwarteter Produkttyp' })
+  const rejectReason = rejectReasonForPayload(payload, productId, userId)
+  if (rejectReason) {
+    logger.warn({ reason: rejectReason, userId }, 'Apple IAP: Payload abgelehnt')
+    return res.status(400).json({ error: 'Transaktion konnte nicht verifiziert werden' })
   }
 
   const transactionId = String(payload.transactionId ?? payload.originalTransactionId)
@@ -192,13 +269,25 @@ router.post('/api/v1/iap/restore', iapVerifyLimiter, requireAuthUser, validate(i
       continue
     }
 
-    if (payload.productId !== productId || payload.type !== 'Non-Consumable') continue
+    const rejectReason = rejectReasonForPayload(payload, productId, userId)
+    if (rejectReason) {
+      logger.warn({ reason: rejectReason, userId }, 'Apple IAP Restore: Payload abgelehnt')
+      continue
+    }
 
     const transactionId = String(payload.transactionId ?? payload.originalTransactionId)
     if (unlockForUser(userId, transactionId, productId)) anyUnlocked = true
   }
 
   res.json({ success: true, unlocked: anyUnlocked })
+})
+
+// ── GET /api/v1/iap/app-account-token ──────────────────────────
+// Liefert das Account-Binding-Token, das die App beim StoreKit-Kauf als
+// Product.PurchaseOption.appAccountToken setzt.
+
+router.get('/api/v1/iap/app-account-token', requireAuthUser, (req, res) => {
+  res.json({ appAccountToken: deriveAppAccountToken(req.user.id) })
 })
 
 export default router
