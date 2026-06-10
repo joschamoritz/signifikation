@@ -272,6 +272,14 @@ const stmts = {
     JOIN classroom_score_record sc ON sc.submission_id = s.id
     WHERE s.session_id = ?
   `),
+  // Dashboard-Hotpath: direkt auf das aktive Assignment gefiltert statt
+  // JS-seitig — nutzt idx_classroom_submission_assignment (Migration 0009).
+  listAssignmentSubmissionsForDashboard: db.prepare(`
+    SELECT s.lemma_id, s.assignment_id, s.participant_id, s.round_index, sc.score, sc.max_score, sc.correct
+    FROM classroom_submission s
+    JOIN classroom_score_record sc ON sc.submission_id = s.id
+    WHERE s.session_id = ? AND s.assignment_id = ?
+  `),
   // W2-T4: ein einziger JOIN ueber ALLE Submissions+Scores einer Session
   // inkl. detail_json fuer die Distraktor-Auswertung. Bewusst KEIN
   // display_name / participant-Join — die Auswertung bleibt pseudonym (D7).
@@ -990,10 +998,12 @@ export function getDashboard({ sessionId, teacherUserId }) {
   const currentAssignment = orderedAssignments[assignmentIndex] || null
 
   // Query 3: Submissions + Scores zusammen (single JOIN, kein N+1).
-  // Die Trefferquote bezieht sich auf das AKTUELL aktive Assignment — sonst
-  // wuerden Lemmata vergangener Modi-Bloecke die Live-Anzeige verwaessern.
-  const submissionRows = stmts.listSessionSubmissionsForDashboard.all(sessionId)
-    .filter((r) => !currentAssignment || r.assignment_id === currentAssignment.id)
+  // Die Trefferquote bezieht sich auf das AKTUELL aktive Assignment — direkt
+  // im WHERE gefiltert (Index 0009) statt alle Session-Zeilen zu laden und
+  // JS-seitig 4/5 davon wegzuwerfen (Review 2026-06-10).
+  const submissionRows = currentAssignment
+    ? stmts.listAssignmentSubmissionsForDashboard.all(sessionId, currentAssignment.id)
+    : stmts.listSessionSubmissionsForDashboard.all(sessionId)
   const perLemma = new Map()
   for (const row of submissionRows) {
     const key = String(row.lemma_id)
