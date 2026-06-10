@@ -90,7 +90,7 @@ export function createAdminCoreRouter({
   router.get('/admin', (_req, res) => {
     res.setHeader('Content-Security-Policy',
       "default-src 'self'; " +
-      "script-src 'self' https://cdn.jsdelivr.net; " +
+      "script-src 'self'; " +
       "style-src 'self' 'unsafe-inline'; " +
       "font-src 'self'; " +
       "img-src 'self' data:; " +
