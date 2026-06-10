@@ -39,6 +39,42 @@ function db() {
   return _db
 }
 
+// Prepared Statements einmalig nach DB-Init — better-sqlite3 cached
+// prepare() NICHT intern, jeder Aufruf kompiliert das SQL neu. Die drei
+// Statements hier liegen auf dem Belege-Hotpath des Spiels (Review 2026-06-10).
+let _stmts = null
+function stmts() {
+  const database = db()
+  if (!database) return null
+  if (!_stmts) {
+    _stmts = {
+      topByYear: database.prepare(`
+        SELECT satz, quelle, zitation, jahr
+        FROM belege
+        WHERE belege MATCH ?
+          AND jahr >= ? AND jahr <= ?
+        ORDER BY rank
+        LIMIT ?
+      `),
+      top: database.prepare(`
+        SELECT satz, quelle, zitation, jahr
+        FROM belege
+        WHERE belege MATCH ?
+        ORDER BY rank
+        LIMIT ?
+      `),
+      raw: database.prepare(`
+        SELECT satz, zitation, jahr
+        FROM belege
+        WHERE belege MATCH ?
+        ORDER BY rank
+        LIMIT ?
+      `),
+    }
+  }
+  return _stmts
+}
+
 /**
  * Prüft ob ein bereinigtes Wort zu einem Lemma gehört.
  * Kurze Lemmata (< 4 Zeichen) werden exakt verglichen, um False Positives
@@ -124,8 +160,8 @@ function shuffle(arr) {
 }
 
 export function fetchBelege(lemma, collocate, { limit = 5, year = null } = {}) {
-  const database = db()
-  if (!database) return []
+  const s = stmts()
+  if (!s) return []
 
   // Top-15 nach Relevanz holen, dann zufällig limit davon ziehen
   const pool = limit * 3
@@ -137,33 +173,14 @@ export function fetchBelege(lemma, collocate, { limit = 5, year = null } = {}) {
     // Mit Jahres-Filter zuerst versuchen, dann ohne
     if (year) {
       const y = parseInt(year)
-      rows = database.prepare(`
-        SELECT satz, quelle, zitation, jahr
-        FROM belege
-        WHERE belege MATCH ?
-          AND jahr >= ? AND jahr <= ?
-        ORDER BY rank
-        LIMIT ?
-      `).all(ftsQuery, y - 15, y + 15, pool)
+      rows = s.topByYear.all(ftsQuery, y - 15, y + 15, pool)
 
       // Zu wenige Treffer → ohne Jahres-Filter
       if (rows.length < 2) {
-        rows = database.prepare(`
-          SELECT satz, quelle, zitation, jahr
-          FROM belege
-          WHERE belege MATCH ?
-          ORDER BY rank
-          LIMIT ?
-        `).all(ftsQuery, pool)
+        rows = s.top.all(ftsQuery, pool)
       }
     } else {
-      rows = database.prepare(`
-        SELECT satz, quelle, zitation, jahr
-        FROM belege
-        WHERE belege MATCH ?
-        ORDER BY rank
-        LIMIT ?
-      `).all(ftsQuery, pool)
+      rows = s.top.all(ftsQuery, pool)
     }
 
     // Deduplizieren (gleicher Satz aus verschiedenen Quellen)
@@ -197,20 +214,14 @@ export function fetchBelege(lemma, collocate, { limit = 5, year = null } = {}) {
  * iterativ das erste blankbare Exemplar finden kann.
  */
 export function fetchBelegeRaw(lemma, collocate, { limit = 20, prefixCollocate = false } = {}) {
-  const database = db()
-  if (!database) return []
+  const s = stmts()
+  if (!s) return []
 
   try {
     const ftsQuery = prefixCollocate
       ? buildFtsQueryPrefix(lemma, collocate)
       : buildFtsQuery(lemma, collocate)
-    const rows = database.prepare(`
-      SELECT satz, zitation, jahr
-      FROM belege
-      WHERE belege MATCH ?
-      ORDER BY rank
-      LIMIT ?
-    `).all(ftsQuery, limit)
+    const rows = s.raw.all(ftsQuery, limit)
 
     const seen = new Set()
     return rows
