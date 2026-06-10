@@ -19,7 +19,7 @@ jobs:
       name: production
     permissions:
       contents: read
-      actions: read  # für Artefakt-Download aus dem Verify-Run
+      actions: write  # für Artefakt-Download aus dem Verify-Run
     env:
       DEPLOY_SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
     steps:
