@@ -31,10 +31,27 @@ const APPLE_ROOT_CA_FINGERPRINTS = new Set([
 
 const APP_BUNDLE_ID = 'de.signifikation.app'
 
-// Sandbox-Transaktionen (TestFlight!) werden standardmäßig akzeptiert.
-// Nach App-Store-Launch per IAP_ALLOW_SANDBOX=0 abschalten: Sandbox-JWS sind
-// echte Apple-Signaturen, mit denen sich ohne Bezahlung freischalten ließe.
-const ALLOW_SANDBOX = process.env.IAP_ALLOW_SANDBOX !== '0'
+// Sandbox-Transaktionen (TestFlight!) nur per explizitem Opt-in akzeptieren:
+// Sandbox-JWS sind echte Apple-Signaturen, mit denen sich sonst ohne
+// Bezahlung freischalten ließe. Fuer TestFlight-Phasen IAP_ALLOW_SANDBOX=1
+// setzen. Lazy gelesen, damit Tests die Flags pro Fall setzen koennen.
+function sandboxAllowed() {
+  return process.env.IAP_ALLOW_SANDBOX === '1'
+}
+
+// Sobald die Legacy-Kaeuferbasis (Kaeufe vor der Token-Bindung) migriert ist:
+// IAP_REQUIRE_ACCOUNT_TOKEN=1 setzen → JWS ohne appAccountToken werden
+// abgelehnt (schliesst Replay ueber fremde Accounts endgueltig).
+function accountTokenRequired() {
+  return process.env.IAP_REQUIRE_ACCOUNT_TOKEN === '1'
+}
+
+if (process.env.NODE_ENV === 'production' && sandboxAllowed()) {
+  logger.warn(
+    'Apple IAP: IAP_ALLOW_SANDBOX=1 in Production — Sandbox-/TestFlight-JWS ' +
+    'schalten echte Entitlements frei. Nach App-Store-Launch entfernen!'
+  )
+}
 
 // ── appAccountToken (Kauf ↔ Account-Bindung) ──────────────────
 //
@@ -157,7 +174,8 @@ function verifyAppleJWS(jws) {
 
 // Prüft die inhaltlichen Felder eines verifizierten JWS-Payloads.
 // Liefert null wenn ok, sonst einen Ablehnungsgrund (für Log + 400).
-function rejectReasonForPayload(payload, claimedProductId, userId) {
+// Exportiert für Unit-Tests (Flag-Kombinationen ohne echtes Apple-JWS).
+export function rejectReasonForPayload(payload, claimedProductId, userId) {
   if (payload.productId !== claimedProductId) {
     return `productId-Mismatch (${payload.productId} ≠ ${claimedProductId})`
   }
@@ -168,7 +186,7 @@ function rejectReasonForPayload(payload, claimedProductId, userId) {
     return `bundleId ${payload.bundleId}`
   }
   if (payload.environment !== 'Production') {
-    if (!(payload.environment === 'Sandbox' && ALLOW_SANDBOX)) {
+    if (!(payload.environment === 'Sandbox' && sandboxAllowed())) {
       return `environment ${payload.environment}`
     }
     logger.warn({ userId, transactionId: payload.transactionId },
@@ -181,30 +199,49 @@ function rejectReasonForPayload(payload, claimedProductId, userId) {
     if (token !== deriveAppAccountToken(userId)) {
       return 'appAccountToken gehört zu einem anderen Account'
     }
+  } else if (accountTokenRequired()) {
+    return 'appAccountToken fehlt (IAP_REQUIRE_ACCOUNT_TOKEN aktiv)'
   } else {
     // Käufe aus App-Versionen vor der Token-Bindung tragen kein Token —
     // akzeptieren, aber sichtbar machen, bis der Legacy-Pfad ausläuft.
+    // Replay-Schutz: unlockForUser sperrt transactionId UND
+    // originalTransactionId global (first-come-first-served bleibt das
+    // Restrisiko, bis IAP_REQUIRE_ACCOUNT_TOKEN scharf ist).
     logger.warn({ userId, transactionId: payload.transactionId },
       'Apple IAP: Transaktion ohne appAccountToken (Legacy-Pfad)')
   }
   return null
 }
 
-function unlockForUser(userId, transactionId, productId) {
+// Exportiert für Tests (Cross-Account-Replay-Szenario).
+export function unlockForUser(userId, transactionId, originalTransactionId, productId) {
   // .immediate() statt default-deferred: serialisiert parallele
   // verify/restore-Calls für dieselbe transactionId sauber. Siehe
   // payments.js-Webhook für ausführliche Begründung.
   let newlyUnlocked = false
   const tx = db.transaction(() => {
+    // Global (nicht pro User) gesperrt: eine bereits verarbeitete Transaktion
+    // schaltet keinen zweiten Account frei — auch nicht ueber eine abweichende
+    // originalTransactionId desselben Kaufs (Restore liefert ggf. neue
+    // transactionIds zum selben Original).
     if (getTransactionStmt.get(transactionId)) {
       logger.info({ transactionId, userId }, 'Apple IAP: Transaktion bereits verarbeitet')
+      return
+    }
+    if (originalTransactionId && originalTransactionId !== transactionId
+        && getTransactionStmt.get(originalTransactionId)) {
+      logger.info({ transactionId, originalTransactionId, userId },
+        'Apple IAP: Original-Transaktion bereits verarbeitet')
       return
     }
     const now = Date.now()
     ensureEntitlementStmt.run(userId, now, now)
     unlockEntitlementStmt.run(now, now, userId)
     setPremiumRoleStmt.run(userId, now, now)
-    insertPaymentStmt.run(transactionId, userId, PRODUCT_AMOUNTS[productId], now)
+    // Kanonische ID persistieren: originalTransactionId identifiziert den
+    // Kauf dauerhaft — Restores mit frischer transactionId zum selben
+    // Original laufen damit in den Idempotenz-Check oben.
+    insertPaymentStmt.run(originalTransactionId ?? transactionId, userId, PRODUCT_AMOUNTS[productId], now)
     newlyUnlocked = true
     logger.info({ transactionId, userId, productId }, 'Apple IAP: Gesamtausgabe freigeschaltet')
   })
@@ -234,7 +271,9 @@ router.post('/api/v1/iap/verify', iapVerifyLimiter, requireAuthUser, validate(ia
   }
 
   const transactionId = String(payload.transactionId ?? payload.originalTransactionId)
-  const newlyUnlocked = unlockForUser(userId, transactionId, productId)
+  const originalTransactionId = payload.originalTransactionId != null
+    ? String(payload.originalTransactionId) : null
+  const newlyUnlocked = unlockForUser(userId, transactionId, originalTransactionId, productId)
 
   if (newlyUnlocked) {
     const userRow = getUserEmailStmt.get(userId)
@@ -276,7 +315,9 @@ router.post('/api/v1/iap/restore', iapVerifyLimiter, requireAuthUser, validate(i
     }
 
     const transactionId = String(payload.transactionId ?? payload.originalTransactionId)
-    if (unlockForUser(userId, transactionId, productId)) anyUnlocked = true
+    const originalTransactionId = payload.originalTransactionId != null
+      ? String(payload.originalTransactionId) : null
+    if (unlockForUser(userId, transactionId, originalTransactionId, productId)) anyUnlocked = true
   }
 
   res.json({ success: true, unlocked: anyUnlocked })

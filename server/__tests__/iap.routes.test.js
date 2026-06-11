@@ -1,12 +1,18 @@
 import express from 'express'
-import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
+import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 
 // Mailer mocken (kein Mailversand, kein nodemailer-Init in Tests)
 vi.mock('../mailer.js', () => ({
   sendPurchaseConfirmation: vi.fn(),
 }))
 
-const { default: iapRouter, deriveAppAccountToken } = await import('../routes/iap.js')
+const {
+  default: iapRouter,
+  deriveAppAccountToken,
+  rejectReasonForPayload,
+  unlockForUser,
+} = await import('../routes/iap.js')
+const { default: db } = await import('../db.js')
 
 const VALID_PRODUCT_ID = 'de.signifikation.gesamtausgabe.korpus'
 
@@ -134,6 +140,104 @@ describe('iap routes integration (flache Validierung)', () => {
     expect(res1.status).toBe(200)
     expect(t1).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-5[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/)
     expect(t1).toBe(t2)
+  })
+})
+
+describe('rejectReasonForPayload (Flag-Verhalten)', () => {
+  const basePayload = (overrides = {}) => ({
+    productId: VALID_PRODUCT_ID,
+    type: 'Non-Consumable',
+    bundleId: 'de.signifikation.app',
+    environment: 'Production',
+    transactionId: 'tx-flag-test',
+    ...overrides,
+  })
+
+  afterEach(() => {
+    delete process.env.IAP_ALLOW_SANDBOX
+    delete process.env.IAP_REQUIRE_ACCOUNT_TOKEN
+  })
+
+  it('Sandbox wird ohne Opt-in abgelehnt (sicherer Default)', () => {
+    const reason = rejectReasonForPayload(
+      basePayload({ environment: 'Sandbox' }), VALID_PRODUCT_ID, 'user-x')
+    expect(reason).toMatch(/environment Sandbox/)
+  })
+
+  it('Sandbox wird mit IAP_ALLOW_SANDBOX=1 akzeptiert', () => {
+    process.env.IAP_ALLOW_SANDBOX = '1'
+    const reason = rejectReasonForPayload(
+      basePayload({ environment: 'Sandbox' }), VALID_PRODUCT_ID, 'user-x')
+    expect(reason).toBeNull()
+  })
+
+  it('Legacy-Payload ohne appAccountToken passiert per Default (Warn-Pfad)', () => {
+    const reason = rejectReasonForPayload(basePayload(), VALID_PRODUCT_ID, 'user-x')
+    expect(reason).toBeNull()
+  })
+
+  it('IAP_REQUIRE_ACCOUNT_TOKEN=1 lehnt Payloads ohne Token ab', () => {
+    process.env.IAP_REQUIRE_ACCOUNT_TOKEN = '1'
+    const reason = rejectReasonForPayload(basePayload(), VALID_PRODUCT_ID, 'user-x')
+    expect(reason).toMatch(/appAccountToken fehlt/)
+  })
+
+  it('fremdes appAccountToken wird unabhaengig von Flags abgelehnt', () => {
+    const reason = rejectReasonForPayload(
+      basePayload({ appAccountToken: deriveAppAccountToken('anderer-user') }),
+      VALID_PRODUCT_ID, 'user-x')
+    expect(reason).toMatch(/anderen Account/)
+  })
+
+  it('eigenes appAccountToken passiert', () => {
+    const reason = rejectReasonForPayload(
+      basePayload({ appAccountToken: deriveAppAccountToken('user-x') }),
+      VALID_PRODUCT_ID, 'user-x')
+    expect(reason).toBeNull()
+  })
+})
+
+describe('unlockForUser (Cross-Account-Replay)', () => {
+  const userA = `iap-replay-a-${Date.now()}`
+  const userB = `iap-replay-b-${Date.now()}`
+  const txId = `tx-replay-${Date.now()}`
+  const origId = `orig-replay-${Date.now()}`
+
+  function ensureUser(id) {
+    db.prepare(`INSERT OR IGNORE INTO user (id, email, name, emailVerified, createdAt, updatedAt)
+                VALUES (?, ?, ?, 1, ?, ?)`)
+      .run(id, `${id}@test.local`, id, Date.now(), Date.now())
+  }
+
+  beforeAll(() => {
+    ensureUser(userA)
+    ensureUser(userB)
+  })
+
+  afterAll(() => {
+    for (const t of [txId, `${txId}-2`, origId]) {
+      db.prepare('DELETE FROM payments WHERE id = ?').run(t)
+    }
+    for (const u of [userA, userB]) {
+      db.prepare('DELETE FROM user_entitlements WHERE user_id = ?').run(u)
+      db.prepare('DELETE FROM user_profiles WHERE user_id = ?').run(u)
+      db.prepare('DELETE FROM user WHERE id = ?').run(u)
+    }
+  })
+
+  it('zweiter Account kann dieselbe transactionId nicht erneut einloesen', () => {
+    expect(unlockForUser(userA, txId, origId, VALID_PRODUCT_ID)).toBe(true)
+    expect(unlockForUser(userB, txId, origId, VALID_PRODUCT_ID)).toBe(false)
+
+    const entB = db.prepare(
+      'SELECT gesamtausgabe_unlocked FROM user_entitlements WHERE user_id = ?').get(userB)
+    expect(entB?.gesamtausgabe_unlocked ?? 0).toBe(0)
+  })
+
+  it('abweichende transactionId zum selben Original wird ebenfalls gesperrt', () => {
+    // Restore kann zum selben Kauf eine neue transactionId liefern —
+    // die Sperre muss auch ueber originalTransactionId greifen.
+    expect(unlockForUser(userB, `${txId}-2`, origId, VALID_PRODUCT_ID)).toBe(false)
   })
 })
 
