@@ -22,6 +22,16 @@ const insertStatStmt = db.prepare(`
   VALUES (?, ?, ?, ?, ?, ?, '[]')
 `)
 
+const insertSessionStmt = db.prepare(`
+  INSERT INTO session (id, userId, token, expiresAt, createdAt, updatedAt)
+  VALUES (?, ?, ?, ?, ?, ?)
+`)
+
+const insertAccountStmt = db.prepare(`
+  INSERT INTO account (id, userId, accountId, providerId, createdAt, updatedAt)
+  VALUES (?, ?, ?, ?, ?, ?)
+`)
+
 function createTestUser() {
   const suffix = `${Date.now()}-${Math.random().toString(16).slice(2, 10)}`
   const userId = `acc-test-${suffix}`
@@ -182,5 +192,26 @@ describe('account entitlements integration', () => {
     expect(payload.zeitenwende).toEqual({})
     expect(payload.lueckenfueller).toEqual({})
     expect(payload.plays).toEqual({})
+  })
+
+  it('Account-Löschung: entfernt session- und account-Zeilen via FK-Cascade', async () => {
+    const userId = createTestUser()
+    testUserIds.add(userId)
+    const nowIso = new Date().toISOString()
+    const futureIso = new Date(Date.now() + 86_400_000).toISOString()
+    insertSessionStmt.run(`sess-${userId}`, userId, `tok-${userId}`, futureIso, nowIso, nowIso)
+    insertAccountStmt.run(`acct-${userId}`, userId, `acctid-${userId}`, 'credential', nowIso, nowIso)
+
+    const res = await fetch(`${baseUrl}/api/v1/account/me`, {
+      method: 'DELETE',
+      headers: devHeaders(userId, 'user'),
+    })
+    const payload = await res.json()
+
+    expect(res.status).toBe(200)
+    expect(payload.ok).toBe(true)
+    expect(db.prepare('SELECT COUNT(*) AS n FROM user WHERE id = ?').get(userId).n).toBe(0)
+    expect(db.prepare('SELECT COUNT(*) AS n FROM session WHERE userId = ?').get(userId).n).toBe(0)
+    expect(db.prepare('SELECT COUNT(*) AS n FROM account WHERE userId = ?').get(userId).n).toBe(0)
   })
 })

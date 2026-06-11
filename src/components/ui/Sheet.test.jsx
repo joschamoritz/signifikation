@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-import { render, screen, act, fireEvent, waitFor } from '@testing-library/react'
+import { render, act, fireEvent, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import Sheet from './Sheet'
@@ -59,6 +59,19 @@ describe('Sheet', () => {
     const panel = getPanel()
     expect(panel).toBeTruthy()
     expect(panel.getAttribute('aria-label')).toBe('Mein Dialog')
+  })
+
+  it('Dialog ist fuer assistive Technologien erreichbar (kein aria-hidden-Vorfahre)', () => {
+    // Regression (Review 2026-06-11, F-H3): der Backdrop trug aria-hidden
+    // und umschloss das role="dialog"-Panel — damit war der komplette
+    // Dialog fuer Screenreader unsichtbar.
+    renderSheet({ 'aria-label': 'Erreichbar' })
+    let el = getPanel()
+    expect(el).toBeTruthy()
+    while (el) {
+      expect(el.getAttribute?.('aria-hidden')).not.toBe('true')
+      el = el.parentElement
+    }
   })
 
   // ── data-state ───────────────────────────────────────────────────────────

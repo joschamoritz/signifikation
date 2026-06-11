@@ -17,7 +17,12 @@ jobs:
           node-version: 20
           cache: npm
       - run: npm ci
-      - run: npm run verify
+      # Wie 'npm run verify', aber Tests mit Coverage-Gate (thresholds in
+      # vite.config.js) — lokal bleibt verify ohne Coverage schnell.
+      - run: npm run lint
+      - run: npm run test:coverage
+      - run: npm run build
+      - run: node scripts/check-precache.mjs
       - name: Server-Start-Smoke
         run: |
           # Server mit temporärer DB starten – keine Sprachdatenbanken in CI (degraded ist ok)
@@ -79,3 +84,30 @@ jobs:
           path: dist/
           retention-days: 1
           if-no-files-found: error
+
+  e2e:
+    runs-on: ubuntu-latest
+    needs: verify
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      # e2e/start-server.js seedet eine Temp-DB (Admin + Tagesinhalte) und
+      # startet den Server — kein manueller Setup-Schritt noetig.
+      - run: npm run test:e2e
+      - name: Playwright-Report hochladen (bei Fehlschlag)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 7
+          if-no-files-found: ignore

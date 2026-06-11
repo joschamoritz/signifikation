@@ -7,7 +7,11 @@ import { apiFetch } from '../utils/apiFetch';
 const STORAGE_KEY = 'sig-push-subscribed';
 
 function isNative() {
-  return Capacitor.isNativePlatform();
+  // Bewusst iOS-only: der Server kennt nur platform 'web'|'ios'
+  // (routes/push.js, APNs). Ein Android-Geraet wuerde sonst sein
+  // FCM-Token als apns_token registrieren — kaputte Subscription.
+  // Bei Android-Support: Server-Schema + FCM-Sender zuerst.
+  return Capacitor.isNativePlatform() && Capacitor.getPlatform() === 'ios';
 }
 
 function getPushNotifications() {

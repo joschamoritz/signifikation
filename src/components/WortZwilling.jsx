@@ -18,6 +18,7 @@ import {
 import { CSS } from '@dnd-kit/utilities'
 import { shuffle } from '../utils/gameLogic'
 import { API } from '../config'
+import { apiGet } from '../api/client'
 import '../styles/wortzwilling.css'
 import WzResultsView, { computeScore } from './WzResultsView'
 import { logError } from '../utils/logError'
@@ -26,14 +27,15 @@ import { logError } from '../utils/logError'
 function DraggableChip({ word, placed, selected, jokerCluster, onClick, onKeyDown, ariaLabel }) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id: word })
   const style = transform ? { transform: CSS.Translate.toString(transform) } : undefined
+  // Echtes <button> statt div role=button: natives Keyboard-Verhalten
+  // (Space ohne Scroll, Enter), Fokus-Semantik, AT-Robustheit (F-N8).
   return (
-    <div
+    <button
+      type="button"
       ref={setNodeRef}
       style={style}
       {...listeners}
       {...attributes}
-      role="button"
-      tabIndex={0}
       className={[
         'wz-chip',
         placed         ? 'wz-chip--placed'   : '',
@@ -46,7 +48,7 @@ function DraggableChip({ word, placed, selected, jokerCluster, onClick, onKeyDow
       aria-label={ariaLabel}
     >
       {word}
-    </div>
+    </button>
   )
 }
 
@@ -111,7 +113,6 @@ export default function WortZwilling({
   onSubmit,                 // Classroom: (rawAnswer) => void
   onProgress,               // Classroom: Entwurf spiegeln (Reload, 7.2)
   initialZones = null,      // Classroom: { zoneA, zoneB } aus dem Entwurf
-  disableProgress = false,  // Classroom: keine XP/Streak/Stats
   hideHeader = false,       // Classroom: KioskShell zeigt eigenen Header
 }) {
   // Klassenraum nutzt dieselbe Drag-and-Drop-Engine, aber OHNE Joker und OHNE
@@ -196,8 +197,7 @@ export default function WortZwilling({
     const controller = new AbortController()
     const { signal } = controller
     const fetchIpa = (word, setter) =>
-      fetch(`${API}/ipa?q=${encodeURIComponent(word)}`, { signal })
-        .then(r => r.json())
+      apiGet(`${API}/ipa?q=${encodeURIComponent(word)}`, { signal })
         .then(d => { if (d[0]?.ipa) setter(d[0].ipa) })
         .catch(err => { if (err.name !== 'AbortError') logError('IPA fetch (WZ) fehlgeschlagen', err, { word }) })
     fetchIpa(data.wortA, setIpaA)

@@ -4,11 +4,11 @@
 
 import { describe, it, expect } from 'vitest'
 import {
+  validate,
   statsSchema,
   belegeQuerySchema,
   archivQuerySchema,
   qQuerySchema,
-  bonusQuerySchema,
   adminTagSchema,
   adminUsersBulkUpdateSchema,
   adminBulkDeleteCalendarSchema,
@@ -16,6 +16,39 @@ import {
   adminPreviewLemmaSchema,
   adminPreviewDayParamsSchema,
 } from './validate.js'
+
+// ── validate()-Middleware ────────────────────────────────────
+describe('validate() middleware', () => {
+  function runMiddleware(schema, source, input) {
+    const req = { [source]: input }
+    let statusCode = null
+    let jsonBody = null
+    const res = {
+      status(code) { statusCode = code; return this },
+      json(body) { jsonBody = body; return this },
+    }
+    let nextCalled = false
+    validate(schema, source)(req, res, () => { nextCalled = true })
+    return { req, statusCode, jsonBody, nextCalled }
+  }
+
+  it('entfernt nicht-deklarierte Query-Params von req.query (Ersetzen statt Mergen)', () => {
+    const { req, nextCalled } = runMiddleware(qQuerySchema, 'query', {
+      q: 'Wasser',
+      evil: 'nicht-deklariert',
+    })
+    expect(nextCalled).toBe(true)
+    expect(req.query.q).toBe('Wasser')
+    expect('evil' in req.query).toBe(false)
+  })
+
+  it('behält validierte Werte und antwortet 400 bei ungültiger Eingabe', () => {
+    const { statusCode, jsonBody, nextCalled } = runMiddleware(qQuerySchema, 'query', {})
+    expect(nextCalled).toBe(false)
+    expect(statusCode).toBe(400)
+    expect(jsonBody.error).toBeTruthy()
+  })
+})
 
 // ── statsSchema ──────────────────────────────────────────────
 describe('statsSchema', () => {

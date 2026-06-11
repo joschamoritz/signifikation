@@ -15,7 +15,7 @@ import { useMemo } from 'react'
 import WortZwilling from '../../../WortZwilling'
 import { readDraft, writeDraft } from '../hooks/useAnswerDraft'
 
-export default function ClassroomGameWortZwilling({ lemma, prompt, onSubmit, draftKey = null }) {
+export default function ClassroomGameWortZwilling({ prompt, onSubmit, draftKey = null }) {
   const words = Array.isArray(prompt?.words) ? prompt.words : []
   const key = draftKey ? `${draftKey}::0` : null
 

@@ -202,12 +202,15 @@ function Sheet({
 
   if (!mounted) return null
 
+  // KEIN aria-hidden auf dem Backdrop: es umschliesst das Panel mit
+  // role="dialog" — aria-hidden auf dem Vorfahren versteckt den kompletten
+  // Dialog vor Screenreadern (Backdrop-Klick-Schliessen laeuft ohnehin ueber
+  // e.target === e.currentTarget, dafuer braucht es kein aria-hidden).
   const panel = (
     <div
       className="sheet-backdrop"
       data-state={dataState}
       onClick={handleBackdropClick}
-      aria-hidden="true"
     >
       <div
         ref={panelRef}

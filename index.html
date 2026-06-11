@@ -68,7 +68,15 @@
           : '/api/v1/debug/log'
         var posted = 0
         var MAX = 20
+        // Web-Produktion: nur warn/error posten — info-Heartbeats bei jedem
+        // Seitenaufruf aller Nutzer sind Log-Rauschen + Extra-Request im
+        // Startpfad. Nativ (capacitor:) bleibt alles an (TestFlight-Diagnose);
+        // Opt-in im Web via localStorage sigDebug=1.
+        var isNative = window.location.protocol === 'capacitor:'
+        var optIn = false
+        try { optIn = localStorage.getItem('sigDebug') === '1' } catch (e) {}
         window.__sigDebugPost = function (level, source, message, stack) {
+          if (level === 'info' && !isNative && !optIn) return
           if (posted >= MAX) return
           posted++
           try {

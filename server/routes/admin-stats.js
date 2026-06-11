@@ -28,7 +28,7 @@ const topUsersByDatesStmt = db.prepare(`
 
 function toCsvCell(value) {
   const s = String(value ?? '')
-  if (/[\",\n]/.test(s)) return `"${s.replace(/"/g, '""')}"`
+  if (/[",\n]/.test(s)) return `"${s.replace(/"/g, '""')}"`
   return s
 }
 

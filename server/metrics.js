@@ -30,3 +30,22 @@ export function getEventLoopLagLastMs() {
   if (_samples.length === 0) return null
   return Math.round(_samples[_samples.length - 1] * 10) / 10
 }
+
+// ── 5xx-Zaehler (rollierendes Fenster) ────────────────────────────
+// Gefuettert vom Request-Log-Middleware in index.js; ausgewertet vom
+// Alerting (Schwelle pro 5-Minuten-Fenster).
+
+const _errs5xx = []
+const MAX_5XX_SAMPLES = 1000
+
+export function track5xx() {
+  _errs5xx.push(Date.now())
+  if (_errs5xx.length > MAX_5XX_SAMPLES) _errs5xx.shift()
+}
+
+/** Anzahl 5xx-Antworten im Fenster (Default: letzte 5 Minuten). */
+export function count5xx(windowMs = 5 * 60_000) {
+  const cutoff = Date.now() - windowMs
+  while (_errs5xx.length > 0 && _errs5xx[0] < cutoff) _errs5xx.shift()
+  return _errs5xx.length
+}

@@ -79,31 +79,32 @@ export class AppError extends Error {
 }
 
 /**
- * Kategorisiert einen beliebigen Error aufgrund von Exception-Typ und Message.
+ * Kategorisiert einen beliebigen Error — AUSSCHLIESSLICH ueber Typ und
+ * err.code, nie ueber Message-Substrings.
+ *
+ * Frueher wurde per Message gerast ("invalid" → 400!): ein interner Bug mit
+ * "invalid state" in der Message wurde dem Client als Client-Fehler
+ * praesentiert und im Monitoring unsichtbar (Warn- statt Error-Log). Da
+ * Express 5 rejected Promises automatisch hierher routet, betraf das alle
+ * async-Pfade ohne eigenes try/catch. Wer einen 4xx will, wirft AppError.
+ *
  * @param {Error} err – Error-Objekt
  * @returns {string} – ErrorCategory key (z.B. 'DATABASE_ERROR')
  */
 export function categorizeError(err) {
   if (err instanceof AppError) return err.category
 
-  const msg = err.message?.toLowerCase() || ''
+  const code = typeof err?.code === 'string' ? err.code : ''
 
-  // Database Errors
-  if (msg.includes('sqlite') || msg.includes('database') || msg.includes('sql')) {
-    return 'DATABASE_ERROR'
-  }
+  // better-sqlite3 setzt SQLITE_*-Codes (SQLITE_BUSY, SQLITE_CONSTRAINT, …)
+  if (code.startsWith('SQLITE_')) return 'DATABASE_ERROR'
 
-  // File I/O Errors
-  if (msg.includes('enoent') || msg.includes('file') || msg.includes('permission denied')) {
+  // Node-Dateisystem-Fehler
+  if (['ENOENT', 'EACCES', 'EPERM', 'EISDIR', 'ENOTDIR', 'EMFILE', 'ENOSPC'].includes(code)) {
     return 'FILE_IO_ERROR'
   }
 
-  // Validation Errors
-  if (msg.includes('validation') || msg.includes('invalid')) {
-    return 'VALIDATION_ERROR'
-  }
-
-  // Default: Internal Error
+  // Default: Internal Error (bewusst KEIN Message-Sniffing)
   return 'INTERNAL_ERROR'
 }
 

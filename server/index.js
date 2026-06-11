@@ -24,7 +24,7 @@ import { IS_PROD, csrfProtect, csrfProtectUpload } from './middleware/auth.js'
 import { auth } from './auth/index.js'
 import { loginLimiter, registerLimiter } from './middleware/rateLimiter.js'
 import { initializeIndices } from './store.js'
-import { errorHandler } from './error-handling.js'
+import { errorHandler, AppError } from './error-handling.js'
 import { ensureWortprofilDb } from './init-wortprofil.js'
 import publicRouter from './routes/public.js'
 import adminRouter  from './routes/admin.js'
@@ -43,7 +43,9 @@ import { startDataRetention } from './jobs/dataRetention.js'
 import { ALLOWED_ORIGINS, CAPACITOR_ORIGINS, isAllowedOrigin } from './config/origins.js'
 import { startSessionCleanup } from './auth/session-cleanup.js'
 import { startAlerting } from './alerting.js'
+import { track5xx } from './metrics.js'
 import { runMigrations } from './migrate-runner.js'
+import db from './db.js'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const PORT      = process.env.PORT || 3001
@@ -97,7 +99,9 @@ app.use(cors({
       origin: IS_PROD
     ? (origin, cb) => {
         if (isAllowedOrigin(origin)) cb(null, true)
-        else cb(new Error(`CORS: Unerlaubte Origin ${origin}`))
+        // AppError(FORBIDDEN) → errorHandler antwortet 403 statt 500.
+        // Bot-Traffic mit fremder Origin verfaelscht sonst die 5xx-Rate.
+        else cb(new AppError('FORBIDDEN', `CORS: Unerlaubte Origin ${origin}`))
       }
     : true,
   credentials: true,
@@ -124,6 +128,30 @@ app.use(express.json({ limit: '16kb' }))
 // ── Correlation-ID ────────────────────────────────────────────
 app.use((req, _res, next) => {
   req.id = req.headers['x-request-id'] || randomUUID()
+  next()
+})
+
+// ── Request-Logging (API/Admin) ───────────────────────────────
+// Korrelierbares Log pro Request (req.id) + 5xx-Zaehler fuers Alerting.
+// /health bewusst ausgenommen (Probe-Rauschen).
+app.use((req, res, next) => {
+  const path = req.path
+  if (path === '/health' || (!path.startsWith('/api') && !path.startsWith('/admin'))) {
+    return next()
+  }
+  const start = process.hrtime.bigint()
+  res.on('finish', () => {
+    const durationMs = Math.round(Number(process.hrtime.bigint() - start) / 1e6)
+    const entry = { id: req.id, method: req.method, path, status: res.statusCode, durationMs }
+    if (res.statusCode >= 500) {
+      track5xx()
+      logger.error(entry, 'request')
+    } else if (res.statusCode >= 400) {
+      logger.warn(entry, 'request')
+    } else {
+      logger.info(entry, 'request')
+    }
+  })
   next()
 })
 
@@ -265,6 +293,13 @@ const WORTPROFIL_TIMEOUT_MS = 130_000  // etwas mehr als curl --max-time 120
     io.close()
     server.close(() => {
       logger.info('HTTP-Server geschlossen')
+      // SQLite-Verbindung sauber schließen (flusht WAL, gibt File-Handles frei)
+      try {
+        db.close()
+        logger.info('DB-Verbindung geschlossen')
+      } catch (err) {
+        logger.warn({ err }, 'db.close() beim Shutdown fehlgeschlagen')
+      }
       process.exit(0)
     })
     // Force-Exit nach 30 s falls offene Verbindungen hängen
