@@ -78,6 +78,9 @@ server/data/signifikation.db-shm
 server/data/signifikation-*.db
 server/data/audit.log
 server/data/classroom-exports/
+server/data/backups/
+# Git-Bundles (lokale Repo-Snapshots, gehoeren nicht ins Repo)
+*.bundle
 wortprofil/00_setup/wordprofile-src
 wortprofil/**/__pycache__/
 wortprofil/06_belege/belege.db-wal

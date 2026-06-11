@@ -8,7 +8,9 @@ export function validate(schema, source = 'body') {
   return (req, res, next) => {
     const result = schema.safeParse(req[source])
     if (!result.success) {
-      return res.status(400).json({ error: result.error.errors[0].message })
+      // Guard: bei (theoretisch) leerem ZodError keinen TypeError werfen → 400 mit Fallback
+      const message = result.error?.errors?.[0]?.message || 'Ungültige Eingabe'
+      return res.status(400).json({ error: message })
     }
     // req.body kann direkt ersetzt werden; req.query/params sind in Express 5
     // getter-only → bestehendes Objekt in-place ERSETZEN (nicht mergen):

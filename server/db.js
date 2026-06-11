@@ -49,6 +49,29 @@ const walTimer = setInterval(() => {
 }, WAL_CHECKPOINT_INTERVAL_MS)
 walTimer.unref() // soll den Prozess nicht am Leben halten
 
+// PRAGMA optimize: aktualisiert die Query-Planner-Statistiken (u.a. fuer
+// partielle Indizes), damit der Planner gute Index-Entscheidungen trifft.
+// SQLite-Empfehlung: periodisch im laufenden Prozess + einmal beim Schliessen
+// (siehe closeDb()). 6 h ist konservativ fuer einen Single-Node-Server.
+const OPTIMIZE_INTERVAL_MS = 6 * 60 * 60 * 1000 // 6 h
+const optimizeTimer = setInterval(() => {
+  try {
+    db.pragma('optimize')
+  } catch {
+    // Bei DB-Lock einfach beim naechsten Tick erneut versuchen.
+  }
+}, OPTIMIZE_INTERVAL_MS)
+optimizeTimer.unref()
+
+/**
+ * Schliesst die DB sauber: PRAGMA optimize (finale Planner-Statistiken) +
+ * close() (flusht WAL, gibt File-Handles frei). Vom Graceful-Shutdown genutzt.
+ */
+export function closeDb() {
+  try { db.pragma('optimize') } catch { /* best effort */ }
+  db.close()
+}
+
 db.exec(`
   CREATE TABLE IF NOT EXISTS user (
     id            TEXT PRIMARY KEY,

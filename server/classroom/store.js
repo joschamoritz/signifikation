@@ -893,7 +893,7 @@ export function submitAnswer({
   const submissionId = randomUUID()
   const submittedAt = nowMs()
   const tx = db.transaction(() => {
-    stmts.insertSubmission.run({
+    const info = stmts.insertSubmission.run({
       id: submissionId,
       session_id: sessionId,
       assignment_id: assignmentId,
@@ -904,13 +904,14 @@ export function submitAnswer({
       submitted_at: submittedAt,
       client_ms: Number.isFinite(clientMs) ? Math.trunc(clientMs) : null,
     })
-    // Idempotenz: bei Konflikt existiert die Submission bereits.
-    // Wir lesen sie und springen ggf. auf das bereits gespeicherte
-    // Score-Record. So liefert der Client bei Retry denselben Score
-    // ohne doppelt zu zaehlen.
-    const existing = stmts.getSubmissionByKey.get(participantId, assignmentId, lemmaId, roundIndex)
-    if (!existing) return 'IDEMPOTENCY_RACE'
-    const finalSubmissionId = existing.id
+    // changes === 1 → neu eingefuegt (kein Konflikt); changes === 0 → die
+    // Submission existierte bereits (Retry/Race). Bei Konflikt lesen wir die
+    // bestehende Submission, um auf deren Score-Record zu springen, damit der
+    // Client bei Retry denselben Score ohne Doppelzaehlung bekommt.
+    const inserted = info.changes === 1
+    const existing = inserted ? null : stmts.getSubmissionByKey.get(participantId, assignmentId, lemmaId, roundIndex)
+    if (!inserted && !existing) return { race: true }
+    const finalSubmissionId = inserted ? submissionId : existing.id
     stmts.insertScore.run({
       submission_id: finalSubmissionId,
       session_id: sessionId,
@@ -927,15 +928,26 @@ export function submitAnswer({
     // Write, koennte eine gewertete Submission bei SQLITE_BUSY das Fenster
     // nicht verschieben und die Session mitten im Spielen idle-timeouten.
     stmts.touchSessionActivity.run({ id: sessionId, ts: submittedAt })
-    return finalSubmissionId
+    return { submissionId: finalSubmissionId, inserted }
   })
 
-  const finalId = tx()
-  if (finalId === 'IDEMPOTENCY_RACE') return { error: 'IDEMPOTENCY_RACE' }
+  const result = tx()
+  if (result.race) return { error: 'IDEMPOTENCY_RACE' }
 
-  const existingScore = stmts.getScoreBySubmission.get(finalId)
+  // Normalfall (neu eingefuegt): unser scoreResult IST der gerade gespeicherte
+  // Score — ein Zuruecklesen waere redundant. Nur bei Idempotenz-Konflikt kann
+  // ein bereits vorhandener (evtl. abweichender) Score gelten → dann lesen.
+  if (result.inserted) {
+    return {
+      submissionId: result.submissionId,
+      score: scoreResult.score,
+      maxScore: scoreResult.maxScore,
+      correct: scoreResult.correct,
+    }
+  }
+  const existingScore = stmts.getScoreBySubmission.get(result.submissionId)
   return {
-    submissionId: finalId,
+    submissionId: result.submissionId,
     score: existingScore?.score ?? scoreResult.score,
     maxScore: existingScore?.max_score ?? scoreResult.maxScore,
     correct: existingScore?.correct ?? scoreResult.correct,
