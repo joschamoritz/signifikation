@@ -72,17 +72,10 @@ export default function Quiz({
     [options, submitted]
   )
 
-  // Keine Daten → überspringen (0 Punkte)
-  const shouldSkip = !kollokatoren.length
-  useEffect(() => {
-    if (shouldSkip) onRoundComplete(0)
-  }, [shouldSkip]) // eslint-disable-line
-
-  if (shouldSkip) return null
-
-  const roundScore = submitted ? calculateMixedScore(selected, kollokatoren) : null
-
   // ── Joker ────────────────────────────────────────────────────
+  // Hooks muessen VOR dem shouldSkip-Early-Return stehen (Rules of Hooks):
+  // wechselt kollokatoren zwischen Renders von leer → befuellt, wuerde sich
+  // sonst die Hook-Anzahl aendern und React crashen.
   const [jokerVisible, setJokerVisible] = useState(false)
   const [jokerUsed,    setJokerUsed]    = useState(false)
   const [grayedWords,  setGrayedWords]  = useState(new Set())
@@ -94,6 +87,16 @@ export default function Quiz({
     jokerTimer.current = setTimeout(() => setJokerVisible(true), 15000)
     return () => clearTimeout(jokerTimer.current)
   }, [currentRound, submitted, jokerUsed, isClassroom])
+
+  // Keine Daten → überspringen (0 Punkte)
+  const shouldSkip = !kollokatoren.length
+  useEffect(() => {
+    if (shouldSkip) onRoundComplete(0)
+  }, [shouldSkip]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  if (shouldSkip) return null
+
+  const roundScore = submitted ? calculateMixedScore(selected, kollokatoren) : null
 
   function resetJokerTimer() {
     if (jokerUsed || submitted) return
