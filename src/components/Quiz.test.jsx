@@ -80,6 +80,32 @@ describe('Quiz – Smoketest', () => {
     expect(onRoundComplete).toHaveBeenCalledWith(0)
   })
 
+  it('crasht nicht wenn kollokatoren zwischen Renders von leer auf befüllt wechseln', () => {
+    // Regression (Rules of Hooks): die Joker-Hooks standen frueher hinter dem
+    // shouldSkip-Early-Return — dieser Prop-Wechsel aenderte die Hook-Anzahl
+    // und haette "Rendered more hooks than during the previous render" geworfen.
+    const onRoundComplete = vi.fn()
+    const { rerender } = render(
+      <Quiz
+        lemma={makeLemma({ runden: { kollokatoren: [] } })}
+        currentRound={0}
+        onRoundComplete={onRoundComplete}
+      />
+    )
+    expect(onRoundComplete).toHaveBeenCalledWith(0)
+
+    expect(() => {
+      rerender(
+        <Quiz
+          lemma={makeLemma()}
+          currentRound={0}
+          onRoundComplete={onRoundComplete}
+        />
+      )
+    }).not.toThrow()
+    expect(document.querySelectorAll('.options-grid .option')).toHaveLength(10)
+  })
+
   it('Submit-Pfad: alle Top-3 gewählt → onRoundComplete(10)', () => {
     const onRoundComplete = vi.fn()
     render(
