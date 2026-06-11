@@ -1,4 +1,6 @@
-import { IS_PROD } from '../middleware/auth.js'
+// Bewusst KEIN Import aus middleware/auth.js: das wuerde db + audit in
+// jeden Origins-Consumer ziehen (u.a. auth/index.js) und Zyklen riskieren.
+const IS_PROD = process.env.NODE_ENV === 'production'
 
 export const ALLOWED_ORIGINS = process.env.ALLOWED_ORIGINS
   ? process.env.ALLOWED_ORIGINS.split(',').map((value) => value.trim()).filter(Boolean)
