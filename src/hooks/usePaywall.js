@@ -26,11 +26,15 @@ export function usePaywall({ refreshEntitlements }) {
     )
 
     let timer
+    let cancelled = false
     refreshRef.current().then(({ ok, payload } = {}) => {
+      // Promise kann nach Unmount aufloesen: dann keinen Timer mehr setzen,
+      // sonst liefe er nach der (bereits gelaufenen) Cleanup ungehindert weiter.
+      if (cancelled) return
       if (ok && payload?.gesamtausgabe?.unlocked) return
       // Webhook noch nicht verarbeitet – einmalig nach kurzer Verzögerung nochmals prüfen
       timer = setTimeout(() => refreshRef.current(), 4000)
     })
-    return () => clearTimeout(timer)
+    return () => { cancelled = true; clearTimeout(timer) }
   }, [])
 }

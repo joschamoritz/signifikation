@@ -196,13 +196,16 @@ export default function WortZwilling({
     if (isClassroom) return undefined // Kiosk: keine Extra-IPA-Fetches
     const controller = new AbortController()
     const { signal } = controller
+    // cancelled-Flag zusaetzlich zum Abort: eine bereits aufgeloeste Response
+    // kann im Microtask noch setter() feuern, nachdem die Cleanup lief.
+    let cancelled = false
     const fetchIpa = (word, setter) =>
       apiGet(`${API}/ipa?q=${encodeURIComponent(word)}`, { signal })
-        .then(d => { if (d[0]?.ipa) setter(d[0].ipa) })
+        .then(d => { if (!cancelled && d[0]?.ipa) setter(d[0].ipa) })
         .catch(err => { if (err.name !== 'AbortError') logError('IPA fetch (WZ) fehlgeschlagen', err, { word }) })
     fetchIpa(data.wortA, setIpaA)
     fetchIpa(data.wortB, setIpaB)
-    return () => controller.abort()
+    return () => { cancelled = true; controller.abort() }
   }, [data.wortA, data.wortB, isClassroom])
 
   const bank  = order.filter(w => locations[w] === 'bank')

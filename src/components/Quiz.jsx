@@ -24,6 +24,7 @@ export default function Quiz({
   onSubmit,                 // Classroom: (rawAnswer) => void
   onProgress,               // Classroom: Entwurf spiegeln (Reload, 7.2)
   initialSelected = null,   // Classroom: Auswahl aus dem Entwurf
+  serverDatum = null,       // Tages-Seed fuer das Score-Label (Server-Tag statt Client-Uhr)
 }) {
   // Klassenraum: dieselbe Quiz-Optik, aber ohne Joker/Belege/Sofort-Feedback
   // (server-autoritativ; Joker/Feedback braeuchten die Loesung `rang`). Eine
@@ -86,11 +87,16 @@ export default function Quiz({
     return () => clearTimeout(jokerTimer.current)
   }, [currentRound, submitted, jokerUsed, isClassroom])
 
-  // Keine Daten → überspringen (0 Punkte)
+  // Keine Daten → überspringen (0 Punkte). onRoundComplete ueber eine Ref
+  // stabilisieren: so haengt der Effekt nur an shouldSkip (feuert genau einmal
+  // beim Wechsel auf true) und ruft trotzdem den aktuellen Callback — ohne
+  // eslint-disable und ohne Doppelaufruf bei nicht-memoizierter Prop.
+  const onRoundCompleteRef = useRef(onRoundComplete)
+  useEffect(() => { onRoundCompleteRef.current = onRoundComplete })
   const shouldSkip = !kollokatoren.length
   useEffect(() => {
-    if (shouldSkip) onRoundComplete(0)
-  }, [shouldSkip]) // eslint-disable-line react-hooks/exhaustive-deps
+    if (shouldSkip) onRoundCompleteRef.current(0)
+  }, [shouldSkip])
 
   if (shouldSkip) return null
 
@@ -245,9 +251,10 @@ export default function Quiz({
             <span className="round-score-display">+{roundScore}</span>
             <span className="round-score-label">
               {(() => {
-                // Lokaldatum (en-CA = YYYY-MM-DD) statt UTC: sonst wechselt das Label
-                // um Mitternacht ±2h inkonsistent zum Tagescontent
-                const v = new Intl.DateTimeFormat('en-CA').format(new Date()).replace(/-/g, '')
+                // Tages-Seed: serverDatum (der Tag, zu dem der Content gehoert)
+                // hat Vorrang; Fallback Lokaldatum (en-CA = YYYY-MM-DD) statt UTC,
+                // sonst wuerde das Label um Mitternacht ±2h inkonsistent wechseln.
+                const v = (serverDatum || new Intl.DateTimeFormat('en-CA').format(new Date())).replace(/-/g, '')
                 const seed = parseInt(v, 10) % 4
                 const labelGroups = {
                   3: ['treffend','präzise','belegt','nachgewiesen'],

@@ -5,7 +5,6 @@ export function useAppEffects({
   refreshEntitlements,
   phase,
   appRef,
-  persistResults,
 }) {
   useEffect(() => {
     if (activeTab !== 'profil') return
@@ -16,7 +15,7 @@ export function useAppEffects({
     appRef.current?.focus()
   }, [appRef, phase])
 
-  useEffect(() => {
-    persistResults()
-  }, [persistResults])
+  // Hinweis: Die Persistenz der Kollokationen-Ergebnisse haengt jetzt am
+  // Finish-Ereignis in useKollokationenGame (Phasenwechsel → 'results'),
+  // nicht mehr an einem render-getriebenen Effekt hier.
 }

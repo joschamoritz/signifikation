@@ -33,6 +33,7 @@ export function useGameScreenProps({
   onCustomPlay,
   customGame,
   onExitCustomGame,
+  serverDatum,
 }) {
   return {
     phase,
@@ -41,6 +42,7 @@ export function useGameScreenProps({
     themaQuelle,
     lemmata,
     playedIds,
+    serverDatum,
     gesamtausgabe,
     customLemmaQuota,
     onCustomPlay,

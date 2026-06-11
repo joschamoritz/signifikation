@@ -64,7 +64,6 @@ export function useAppModel() {
     setPhase,
     selectedLemma,
     roundScores,
-    persistResults,
     handleLemmaSelect,
     handleRoundComplete,
     handleViewResult,
@@ -173,7 +172,6 @@ export function useAppModel() {
     refreshEntitlements,
     phase,
     appRef,
-    persistResults,
   })
 
   const appGameScreensProps = useGameScreenProps({
@@ -209,6 +207,7 @@ export function useAppModel() {
     onCustomPlay: handleCustomPlay,
     customGame,
     onExitCustomGame: exitCustomGame,
+    serverDatum,
   })
 
   return {

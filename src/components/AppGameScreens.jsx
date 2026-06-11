@@ -24,6 +24,7 @@ export default function AppGameScreens({
   themaQuelle,
   lemmata,
   playedIds,
+  serverDatum,
   customLemmaQuota,
   onCustomPlay,
   customGame,
@@ -179,6 +180,7 @@ export default function AppGameScreens({
             currentRound={0}
             onRoundComplete={handleRoundComplete}
             onBack={onBackToSelection}
+            serverDatum={serverDatum}
           />
         </Suspense>
       )}
