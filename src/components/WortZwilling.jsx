@@ -18,6 +18,7 @@ import {
 import { CSS } from '@dnd-kit/utilities'
 import { shuffle } from '../utils/gameLogic'
 import { API } from '../config'
+import { apiGet } from '../api/client'
 import '../styles/wortzwilling.css'
 import WzResultsView, { computeScore } from './WzResultsView'
 import { logError } from '../utils/logError'
@@ -196,8 +197,7 @@ export default function WortZwilling({
     const controller = new AbortController()
     const { signal } = controller
     const fetchIpa = (word, setter) =>
-      fetch(`${API}/ipa?q=${encodeURIComponent(word)}`, { signal })
-        .then(r => r.json())
+      apiGet(`${API}/ipa?q=${encodeURIComponent(word)}`, { signal })
         .then(d => { if (d[0]?.ipa) setter(d[0].ipa) })
         .catch(err => { if (err.name !== 'AbortError') logError('IPA fetch (WZ) fehlgeschlagen', err, { word }) })
     fetchIpa(data.wortA, setIpaA)

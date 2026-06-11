@@ -4,6 +4,7 @@ import { lsGet, lsParse } from '../utils/storage'
 import { getMedal } from '../utils/gameLogic'
 import { hapticLight, hapticMedium } from '../utils/haptics'
 import { API } from '../config'
+import { apiGet } from '../api/client'
 import '../styles/zeitenwende.css'
 
 const TOTAL                   = 10
@@ -191,8 +192,7 @@ export default function Zeitenwende({
     const controller = new AbortController()
     const word = encodeURIComponent(words[round]?.wort ?? '')
     const lem  = encodeURIComponent(lemma)
-    fetch(`${API}/belege?collocate=${word}&lemma=${lem}`, { signal: controller.signal })
-      .then(r => r.ok ? r.json() : [])
+    apiGet(`${API}/belege?collocate=${word}&lemma=${lem}`, { signal: controller.signal })
       .then(d  => { if (!cancelled) setBelege(Array.isArray(d) ? d : []) })
       .catch(() => { if (!cancelled) setBelege([]) })
     return () => { cancelled = true; controller.abort() }

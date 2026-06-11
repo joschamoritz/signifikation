@@ -3,6 +3,7 @@ import { useBelege } from '../hooks/useBelege'
 import { getMedal } from '../utils/gameLogic'
 import { lsGet, lsParse } from '../utils/storage'
 import { API } from '../config'
+import { apiGet } from '../api/client'
 import BelegePanel from './BelegePanel'
 import ExternalLink from './ExternalLink'
 import Sheet from './ui/Sheet'
@@ -53,8 +54,7 @@ export default function Results({ lemma, roundScores, onRestart, onToSelection }
   const [ipa, setIpa] = useState(lemma.ipa || '')
   useEffect(() => {
     if (lemma.ipa || !lemma?.lemma) return   // gespeicherte IPA vorhanden → kein Fetch nötig
-    fetch(`${API}/ipa?q=${encodeURIComponent(lemma.lemma)}`)
-      .then(r => r.ok ? r.json() : null)
+    apiGet(`${API}/ipa?q=${encodeURIComponent(lemma.lemma)}`)
       .then(d => { if (Array.isArray(d) && d[0]?.ipa) setIpa(d[0].ipa) })
       .catch(() => {})
   }, [lemma?.lemma])
