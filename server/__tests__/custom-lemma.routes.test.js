@@ -105,6 +105,25 @@ describe('custom-lemma Routen – Gating & Kontingent', () => {
     expect(b2.quota.remaining).toBe(0)
   })
 
+  it('play: zwei parallele Requests bei remaining=1 → genau EIN Erfolg (atomarer Verbrauch)', async () => {
+    // Regression (Review 2026-06-11, S-N1): das fruehere
+    // getQuota→buildCustomPlay→incrementUsage war ein Read-Check-Write-Race.
+    const userId = createTestUser(); userIds.add(userId)
+    const h = devHeaders(userId, 'user')
+
+    const [r1, r2] = await Promise.all([
+      fetch(`${baseUrl}/api/v1/custom-lemma/play?mode=kollokationen&q=Archiv`, { headers: h }),
+      fetch(`${baseUrl}/api/v1/custom-lemma/play?mode=kollokationen&q=Archiv`, { headers: h }),
+    ])
+    const statuses = [r1.status, r2.status].sort()
+    expect(statuses).toEqual([200, 403])
+
+    const used = db.prepare(
+      'SELECT count FROM custom_lemma_usage WHERE user_id = ? AND date = ?'
+    ).get(userId, todayBerlin())
+    expect(used?.count).toBe(1)
+  })
+
   it('play: Premium ist unbegrenzt (mehrfach 200, unlimited-Quota)', async () => {
     const userId = createTestUser(); userIds.add(userId)
     const h = devHeaders(userId, 'premium')

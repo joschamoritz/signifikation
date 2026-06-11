@@ -47,7 +47,6 @@
  */
 
 import cluster from 'node:cluster'
-import { Server } from 'socket.io'
 import { fromNodeHeaders } from 'better-auth/node'
 import { auth } from '../auth/index.js'
 import logger from '../logger.js'
@@ -103,6 +102,23 @@ const disconnectTimers = new Map()
 const connectAttempts = new Map()
 
 function nowMs() { return Date.now() }
+
+// Pruning: abgelaufene Fenster wurden bisher nur beim erneuten Connect
+// DERSELBEN IP ueberschrieben — die Map wuchs sonst mit jeder je gesehenen
+// IP unbegrenzt (langsamer Leak ueber Wochen). Muster wie CleanupStore in
+// middleware/rateLimiter.js; unref() haelt CLI-Prozesse nicht am Leben.
+// Exportiert fuer Tests.
+export function pruneConnectAttempts(now = nowMs()) {
+  let pruned = 0
+  for (const [ip, entry] of connectAttempts.entries()) {
+    if (now - entry.windowStart > CONNECT_RATE_WINDOW_MS) {
+      connectAttempts.delete(ip)
+      pruned++
+    }
+  }
+  return pruned
+}
+setInterval(pruneConnectAttempts, 10 * 60 * 1000).unref()
 
 // P5: Erkennt einen Multi-Instance-/Cluster-Betrieb, in dem der modul-lokale
 // Realtime-State (Broadcasts/Timer/Rate-Limit) STILL bricht.
@@ -265,7 +281,14 @@ export function setupClassroomSocket(io, options = {}) {
 
   nsp.use(async (socket, next) => {
     try {
-      const ip = socket.handshake.address || 'unknown'
+      // Hinter nginx ist handshake.address die Proxy-IP — das Limit wuerde
+      // auf EINE IP kollabieren. X-Forwarded-For (vom Proxy gesetzt, siehe
+      // ops/nginx-*.conf) hat Vorrang; erster Eintrag = Client. Caveat wie
+      // bei Express trust proxy=1: nur hinter dem eigenen Proxy verlaesslich.
+      const xff = socket.handshake.headers['x-forwarded-for']
+      const ip = (typeof xff === 'string' && xff.length > 0)
+        ? xff.split(',')[0].trim()
+        : (socket.handshake.address || 'unknown')
       if (!checkConnectRateLimit(ip)) {
         logger.warn({ ip }, 'cr2 socket: rate limit exceeded')
         return next(new Error('RATE_LIMITED'))
@@ -535,10 +558,6 @@ export function notifyStudentViewUpdated(participantId, payload) {
   nsp.to(roomParticipant(participantId)).emit('view:updated', payload)
 }
 
-export function notifyStudentKicked(participantId, payload) {
-  if (!nsp || !participantId) return
-  nsp.to(roomParticipant(participantId)).emit('kicked', payload)
-}
 
 // ── Test-/Cleanup-Helper ────────────────────────────────────────────
 
@@ -555,6 +574,14 @@ export function clearAllTimers() {
 
 export function __getTimerCountForTests() {
   return disconnectTimers.size
+}
+
+export function __seedConnectAttemptForTests(ip, windowStart) {
+  connectAttempts.set(ip, { count: 1, windowStart })
+}
+
+export function __getConnectAttemptCountForTests() {
+  return connectAttempts.size
 }
 
 export function __getNamespaceForTests() {

@@ -146,6 +146,18 @@ function mapError(errCode) {
   }
 }
 
+// ── Store-Ergebnis → HTTP-Response ──────────────────────────────
+// Übernimmt das wiederkehrende result.error-Mapping (mapError → Status +
+// { error: message }) und ruft bei Erfolg onSuccess(result) auf.
+// Default-onSuccess: res.json(result) (Dashboard/Results/Reveal).
+function respondStoreResult(res, result, onSuccess = (r) => res.json(r)) {
+  if (result.error) {
+    const mapped = mapError(result.error)
+    return res.status(mapped.status).json({ error: mapped.message })
+  }
+  return onSuccess(result)
+}
+
 // ── Lemmata-Lookup (für T-2.2 und T-2.3) ───────────────────────
 const getLemmataByIdsStmt = db.prepare(`
   SELECT id, lemma, pos, ipa, definition, definitionen, runden, lueckenfueller
@@ -365,17 +377,13 @@ router.post(
   requirePremium,
   validate(cr2CreateSessionSchema),
   (req, res) => {
-    try {
-      const { title, settings } = req.body
-      const result = createSession({
-        teacherUserId: req.user.id,
-        title: title || null,
-        settings: settings || {},
-      })
-      if (result.error) {
-        const mapped = mapError(result.error)
-        return res.status(mapped.status).json({ error: mapped.message })
-      }
+    const { title, settings } = req.body
+    const result = createSession({
+      teacherUserId: req.user.id,
+      title: title || null,
+      settings: settings || {},
+    })
+    return respondStoreResult(res, result, () => {
       logger.info({ sessionId: result.session.id, teacherId: req.user.id }, 'cr2 session created')
       trackSessionCreated(result.session.id, req.user.id)
       // TODO (T-3.x): keine Broadcast nötig beim Anlegen
@@ -385,10 +393,7 @@ router.post(
         status: result.session.status,
         title:  result.session.title,
       })
-    } catch (err) {
-      logger.error({ err }, 'cr2 createSession crashed')
-      return res.status(500).json({ error: 'Interner Serverfehler' })
-    }
+    })
   },
 )
 
@@ -433,34 +438,29 @@ router.get(
   requirePremium,
   validate(cr2LemmataQuerySchema, 'query'),
   (req, res) => {
-    try {
-      const { q, pos, limit, mode } = req.query
-      const qParam = q ? `%${q}%` : null
-      const posParam = pos || null
-      const { search, count } = lemmataStmts(mode)
+    const { q, pos, limit, mode } = req.query
+    const qParam = q ? `%${q}%` : null
+    const posParam = pos || null
+    const { search, count } = lemmataStmts(mode)
 
-      const rows = search.all({ q: qParam, pos: posParam, limit })
-      const { total } = count.get({ q: qParam, pos: posParam })
+    const rows = search.all({ q: qParam, pos: posParam, limit })
+    const { total } = count.get({ q: qParam, pos: posParam })
 
-      function safe(v, fb) { try { return v ? JSON.parse(v) : fb } catch { return fb } }
+    function safe(v, fb) { try { return v ? JSON.parse(v) : fb } catch { return fb } }
 
-      const items = rows.map(r => ({
-        id:         r.id,
-        lemma:      r.lemma,
-        pos:        r.pos,
-        ipa:        r.ipa || '',
-        // Erste Definition aus definitionen-Array oder Fallback auf definition
-        definition: (() => {
-          const arr = safe(r.definitionen, [])
-          return arr[0] || r.definition || ''
-        })(),
-      }))
+    const items = rows.map(r => ({
+      id:         r.id,
+      lemma:      r.lemma,
+      pos:        r.pos,
+      ipa:        r.ipa || '',
+      // Erste Definition aus definitionen-Array oder Fallback auf definition
+      definition: (() => {
+        const arr = safe(r.definitionen, [])
+        return arr[0] || r.definition || ''
+      })(),
+    }))
 
-      return res.json({ items, total: Number(total) })
-    } catch (err) {
-      logger.error({ err }, 'cr2 lemmata search crashed')
-      return res.status(500).json({ error: 'Interner Serverfehler' })
-    }
+    return res.json({ items, total: Number(total) })
   },
 )
 
@@ -478,52 +478,47 @@ router.get(
   requirePremium,
   validate(cr2TodayLemmataQuerySchema, 'query'),
   (req, res) => {
-    try {
-      const mode  = req.query.mode || 'kollokationen'
-      const datum = classroomTodayDatum()
-      const { byId, byLemma } = getLemmataIndex()
+    const mode  = req.query.mode || 'kollokationen'
+    const datum = classroomTodayDatum()
+    const { byId, byLemma } = getLemmataIndex()
 
-      let ids = []
-      if (mode === 'zeitenwende') {
-        // Eigene Tagestabelle (kein Lemma-ID): heutiges Wort → Lemma-ID via
-        // Namen-Lookup. Nur wenn es als kuratiertes Lemma existiert.
-        const zw = loadZeitenwendeEntry(datum)
-        const lem = zw?.lemma ? byLemma.get(zw.lemma) : null
-        if (lem?.id) ids = [lem.id]
-      } else {
-        const entry = loadKalenderEntry(datum)
-        if (entry) {
-          if (mode === 'lueckenfueller') {
-            const lfId = Array.isArray(entry) ? null : entry.lueckenfueller_id
-            if (lfId) ids = [lfId]
-          } else if (mode === 'kollokationen') {
-            ids = Array.isArray(entry) ? entry : (entry.ids ?? [])
-          }
+    let ids = []
+    if (mode === 'zeitenwende') {
+      // Eigene Tagestabelle (kein Lemma-ID): heutiges Wort → Lemma-ID via
+      // Namen-Lookup. Nur wenn es als kuratiertes Lemma existiert.
+      const zw = loadZeitenwendeEntry(datum)
+      const lem = zw?.lemma ? byLemma.get(zw.lemma) : null
+      if (lem?.id) ids = [lem.id]
+    } else {
+      const entry = loadKalenderEntry(datum)
+      if (entry) {
+        if (mode === 'lueckenfueller') {
+          const lfId = Array.isArray(entry) ? null : entry.lueckenfueller_id
+          if (lfId) ids = [lfId]
+        } else if (mode === 'kollokationen') {
+          ids = Array.isArray(entry) ? entry : (entry.ids ?? [])
         }
-        // wortzwilling: nutzt den Paar-Picker (today-wortzwilling), nicht hier.
       }
-
-      function firstDef(l) {
-        if (l.definition) return l.definition
-        const arr = l.definitionen
-        return (Array.isArray(arr) && arr[0]) || ''
-      }
-      const items = ids
-        .map((id) => byId.get(id))
-        .filter(Boolean)
-        .map((l) => ({
-          id:         l.id,
-          lemma:      l.lemma,
-          pos:        l.pos,
-          ipa:        l.ipa || '',
-          definition: firstDef(l),
-        }))
-
-      return res.json({ datum, mode, items })
-    } catch (err) {
-      logger.error({ err }, 'cr2 today-lemmata crashed')
-      return res.status(500).json({ error: 'Interner Serverfehler' })
+      // wortzwilling: nutzt den Paar-Picker (today-wortzwilling), nicht hier.
     }
+
+    function firstDef(l) {
+      if (l.definition) return l.definition
+      const arr = l.definitionen
+      return (Array.isArray(arr) && arr[0]) || ''
+    }
+    const items = ids
+      .map((id) => byId.get(id))
+      .filter(Boolean)
+      .map((l) => ({
+        id:         l.id,
+        lemma:      l.lemma,
+        pos:        l.pos,
+        ipa:        l.ipa || '',
+        definition: firstDef(l),
+      }))
+
+    return res.json({ datum, mode, items })
   },
 )
 
@@ -533,20 +528,15 @@ router.get(
   '/api/v1/classroom/today-wortzwilling',
   requirePremium,
   (req, res) => {
-    try {
-      const datum = classroomTodayDatum()
-      const entry = loadWortZwillingEntry(datum)
-      if (!entry || !entry.wortA || !entry.wortB) {
-        return res.json({ datum, pair: null })
-      }
-      return res.json({
-        datum,
-        pair: { wortA: entry.wortA, wortB: entry.wortB, pos: entry.pos || 'Substantiv' },
-      })
-    } catch (err) {
-      logger.error({ err }, 'cr2 today-wortzwilling crashed')
-      return res.status(500).json({ error: 'Interner Serverfehler' })
+    const datum = classroomTodayDatum()
+    const entry = loadWortZwillingEntry(datum)
+    if (!entry || !entry.wortA || !entry.wortB) {
+      return res.json({ datum, pair: null })
     }
+    return res.json({
+      datum,
+      pair: { wortA: entry.wortA, wortB: entry.wortB, pos: entry.pos || 'Substantiv' },
+    })
   },
 )
 
@@ -564,37 +554,32 @@ router.post(
   requirePremium,
   validate(cr2CreateAssignmentSchema),
   async (req, res) => {
-    try {
-      const { mode, lemmaIds } = req.body
+    const { mode, lemmaIds } = req.body
 
-      const { lemmata, missing } = loadAssignmentLemmata(lemmaIds)
-      if (missing.length > 0) {
-        return res.status(404).json({ error: `Lemmata nicht gefunden: ${missing.join(', ')}` })
-      }
-
-      // Reihenfolge aus Request erhalten (wie beim echten Assignment)
-      const orderedLemmata = lemmaIds.map(id => lemmata.find(l => l.id === id))
-      const snapshot = await buildContentSnapshot(mode, orderedLemmata)
-
-      // Pro Lemma die gewhitelistete Schueler-Sicht. Fuer Lueckenfueller
-      // bleibt das volle (sichere) rounds-Array erhalten — der Client steppt
-      // in der Vorschau lokal durch die Runden (analog buildStudentView).
-      const previewLemmata = orderedLemmata.map((l) => {
-        const snap = snapshot.byLemma?.[l.id] ?? {}
-        return {
-          id:         l.id,
-          lemma:      l.lemma,
-          ipa:        l.ipa,
-          definition: l.definition || (l.definitionen?.[0] ?? ''),
-          prompt:     buildSafePrompt(mode, snap),
-        }
-      })
-
-      return res.json({ mode, lemmata: previewLemmata })
-    } catch (err) {
-      logger.error({ err }, 'cr2 preview crashed')
-      return res.status(500).json({ error: 'Interner Serverfehler' })
+    const { lemmata, missing } = loadAssignmentLemmata(lemmaIds)
+    if (missing.length > 0) {
+      return res.status(404).json({ error: `Lemmata nicht gefunden: ${missing.join(', ')}` })
     }
+
+    // Reihenfolge aus Request erhalten (wie beim echten Assignment)
+    const orderedLemmata = lemmaIds.map(id => lemmata.find(l => l.id === id))
+    const snapshot = await buildContentSnapshot(mode, orderedLemmata)
+
+    // Pro Lemma die gewhitelistete Schueler-Sicht. Fuer Lueckenfueller
+    // bleibt das volle (sichere) rounds-Array erhalten — der Client steppt
+    // in der Vorschau lokal durch die Runden (analog buildStudentView).
+    const previewLemmata = orderedLemmata.map((l) => {
+      const snap = snapshot.byLemma?.[l.id] ?? {}
+      return {
+        id:         l.id,
+        lemma:      l.lemma,
+        ipa:        l.ipa,
+        definition: l.definition || (l.definitionen?.[0] ?? ''),
+        prompt:     buildSafePrompt(mode, snap),
+      }
+    })
+
+    return res.json({ mode, lemmata: previewLemmata })
   },
 )
 
@@ -605,14 +590,9 @@ router.get(
   requirePremium,
   validate(cr2ListSessionsQuerySchema, 'query'),
   (req, res) => {
-    try {
-      const { limit } = req.query
-      const sessions = listTeacherSessions({ teacherUserId: req.user.id, limit })
-      return res.json({ sessions })
-    } catch (err) {
-      logger.error({ err }, 'cr2 listSessions crashed')
-      return res.status(500).json({ error: 'Interner Serverfehler' })
-    }
+    const { limit } = req.query
+    const sessions = listTeacherSessions({ teacherUserId: req.user.id, limit })
+    return res.json({ sessions })
   },
 )
 
@@ -625,43 +605,35 @@ router.post(
   requireCapability('session:manage'),
   validate(cr2CreateAssignmentSchema),
   async (req, res) => {
-    try {
-      const { mode, lemmaIds } = req.body
-      const sessionId   = req.params.id
-      const teacherUserId = req.cr2.subject.id
+    const { mode, lemmaIds } = req.body
+    const sessionId   = req.params.id
+    const teacherUserId = req.cr2.subject.id
 
-      // Lemmata laden (echte aus DB, wz:-Paare synthetisch), Snapshot einfrieren
-      const { lemmata, missing } = loadAssignmentLemmata(lemmaIds)
-      if (missing.length > 0) {
-        return res.status(404).json({ error: `Lemmata nicht gefunden: ${missing.join(', ')}` })
-      }
+    // Lemmata laden (echte aus DB, wz:-Paare synthetisch), Snapshot einfrieren
+    const { lemmata, missing } = loadAssignmentLemmata(lemmaIds)
+    if (missing.length > 0) {
+      return res.status(404).json({ error: `Lemmata nicht gefunden: ${missing.join(', ')}` })
+    }
 
-      // Reihenfolge aus Request erhalten
-      const orderedLemmata = lemmaIds.map(id => lemmata.find(l => l.id === id))
-      const contentSnapshot = await buildContentSnapshot(mode, orderedLemmata)
+    // Reihenfolge aus Request erhalten
+    const orderedLemmata = lemmaIds.map(id => lemmata.find(l => l.id === id))
+    const contentSnapshot = await buildContentSnapshot(mode, orderedLemmata)
 
-      const result = addAssignment({
-        sessionId,
-        teacherUserId,
-        mode,
-        lemmaIds,
-        contentSnapshot,
-      })
-      if (result.error) {
-        const mapped = mapError(result.error)
-        return res.status(mapped.status).json({ error: mapped.message })
-      }
-
+    const result = addAssignment({
+      sessionId,
+      teacherUserId,
+      mode,
+      lemmaIds,
+      contentSnapshot,
+    })
+    return respondStoreResult(res, result, () => {
       logger.info({ sessionId, mode, lemmaCount: lemmaIds.length }, 'cr2 assignment added')
       return res.status(201).json({
         id:         result.assignment.id,
         mode:       result.assignment.mode,
         lemmaCount: result.assignment.lemmaIds.length,
       })
-    } catch (err) {
-      logger.error({ err }, 'cr2 addAssignment crashed')
-      return res.status(500).json({ error: 'Interner Serverfehler' })
-    }
+    })
   },
 )
 
@@ -675,32 +647,27 @@ router.post(
   requireCapability('session:manage'),
   validate(cr2CreateAssignmentsSchema),
   async (req, res) => {
-    try {
-      const { blocks } = req.body
-      const sessionId    = req.params.id
-      const teacherUserId = req.cr2.subject.id
+    const { blocks } = req.body
+    const sessionId    = req.params.id
+    const teacherUserId = req.cr2.subject.id
 
-      // Pro Block Snapshot bauen; dafuer alle referenzierten Lemmata laden.
-      const builtBlocks = []
-      for (const block of blocks) {
-        const { lemmata, missing } = loadAssignmentLemmata(block.lemmaIds)
-        if (missing.length > 0) {
-          return res.status(404).json({ error: `Lemmata nicht gefunden: ${missing.join(', ')}` })
-        }
-        const orderedLemmata = block.lemmaIds.map(id => lemmata.find(l => l.id === id))
-        builtBlocks.push({
-          mode:           block.mode,
-          lemmaIds:       block.lemmaIds,
-          contentSnapshot: await buildContentSnapshot(block.mode, orderedLemmata),
-        })
+    // Pro Block Snapshot bauen; dafuer alle referenzierten Lemmata laden.
+    const builtBlocks = []
+    for (const block of blocks) {
+      const { lemmata, missing } = loadAssignmentLemmata(block.lemmaIds)
+      if (missing.length > 0) {
+        return res.status(404).json({ error: `Lemmata nicht gefunden: ${missing.join(', ')}` })
       }
+      const orderedLemmata = block.lemmaIds.map(id => lemmata.find(l => l.id === id))
+      builtBlocks.push({
+        mode:           block.mode,
+        lemmaIds:       block.lemmaIds,
+        contentSnapshot: await buildContentSnapshot(block.mode, orderedLemmata),
+      })
+    }
 
-      const result = addAssignments({ sessionId, teacherUserId, blocks: builtBlocks })
-      if (result.error) {
-        const mapped = mapError(result.error)
-        return res.status(mapped.status).json({ error: mapped.message })
-      }
-
+    const result = addAssignments({ sessionId, teacherUserId, blocks: builtBlocks })
+    return respondStoreResult(res, result, () => {
       logger.info({ sessionId, count: result.assignments.length }, 'cr2 assignments (bulk) added')
       return res.status(201).json({
         assignments: result.assignments.map(a => ({
@@ -710,10 +677,7 @@ router.post(
           position:   a.position,
         })),
       })
-    } catch (err) {
-      logger.error({ err }, 'cr2 addAssignments crashed')
-      return res.status(500).json({ error: 'Interner Serverfehler' })
-    }
+    })
   },
 )
 
@@ -724,21 +688,12 @@ router.delete(
   classroomWriteLimiter,
   requireCapability('session:manage'),
   (req, res) => {
-    try {
-      const result = removeAssignment({
-        sessionId:    req.params.id,
-        assignmentId: req.params.aid,
-        teacherUserId: req.cr2.subject.id,
-      })
-      if (result.error) {
-        const mapped = mapError(result.error)
-        return res.status(mapped.status).json({ error: mapped.message })
-      }
-      return res.status(204).end()
-    } catch (err) {
-      logger.error({ err }, 'cr2 removeAssignment crashed')
-      return res.status(500).json({ error: 'Interner Serverfehler' })
-    }
+    const result = removeAssignment({
+      sessionId:    req.params.id,
+      assignmentId: req.params.aid,
+      teacherUserId: req.cr2.subject.id,
+    })
+    return respondStoreResult(res, result, () => res.status(204).end())
   },
 )
 
@@ -749,14 +704,10 @@ router.post(
   requireCapability('session:manage'),
   validate(cr2StartSessionSchema),
   (req, res) => {
-    try {
-      const sessionId    = req.params.id
-      const teacherUserId = req.cr2.subject.id
-      const result = startSession({ sessionId, teacherUserId })
-      if (result.error) {
-        const mapped = mapError(result.error)
-        return res.status(mapped.status).json({ error: mapped.message })
-      }
+    const sessionId    = req.params.id
+    const teacherUserId = req.cr2.subject.id
+    const result = startSession({ sessionId, teacherUserId })
+    return respondStoreResult(res, result, () => {
       logger.info({ sessionId }, 'cr2 session started')
       const participantCount = countActivePartsStmt.get(sessionId)?.c ?? 0
       trackSessionStarted(sessionId, teacherUserId, Number(participantCount))
@@ -772,10 +723,7 @@ router.post(
         status:    result.session.status,
         startedAt: result.session.startedAt,
       })
-    } catch (err) {
-      logger.error({ err }, 'cr2 startSession crashed')
-      return res.status(500).json({ error: 'Interner Serverfehler' })
-    }
+    })
   },
 )
 
@@ -1048,10 +996,9 @@ router.post(
   (req, res) => {
     try {
       const { code, displayName } = req.body
-      // Globaler Brute-Force-Guard (verteilte Code-Rateversuche): über der
-      // Schwelle werden ALLE Joins abgelehnt — auch gültige, sonst bliebe
-      // der Endpoint ein Code-Orakel. Details in classroom/join-guard.js.
-      if (isJoinBlocked()) {
+      // Brute-Force-Guard pro Code + globaler Backstop — Details und
+      // DoS-Begruendung in classroom/join-guard.js (S-M1, 2026-06-11).
+      if (isJoinBlocked(code)) {
         trackJoinFailed(code, 'guard_blocked')
         return res.status(429).json({ error: 'Zu viele Beitrittsversuche. Bitte kurz warten.' })
       }
@@ -1064,7 +1011,7 @@ router.post(
           : 'unknown'
         // Nur ungültige Codes zählen — SESSION_FULL/INVALID_STATE belegen
         // einen gültigen Code und sind kein Rate-Signal.
-        if (result.error === 'INVALID_CODE') recordJoinFailure()
+        if (result.error === 'INVALID_CODE') recordJoinFailure(code)
         trackJoinFailed(code, reason)
         const mapped = mapError(result.error)
         return res.status(mapped.status).json({ error: mapped.message })

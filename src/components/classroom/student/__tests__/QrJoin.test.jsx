@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 
-import { describe, it, expect, afterEach, vi } from 'vitest'
-import { render, screen, fireEvent, cleanup } from '@testing-library/react'
+import { describe, it, expect, afterEach } from 'vitest'
+import { render, screen, cleanup } from '@testing-library/react'
 import { extractCode } from '../QrScanner'
 import StudentJoinEntry from '../StudentJoinEntry'
 

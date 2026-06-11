@@ -1,16 +1,8 @@
+import { memo } from 'react'
 import { useRef, useCallback } from 'react'
 import TabHeader from './TabHeader'
 import { useActiveSnapCard } from '../hooks/useActiveSnapCard'
 import { useScrollPersist } from '../hooks/useScrollPersist'
-
-function LockIcon() {
-  return (
-    <svg width="9" height="11" viewBox="0 0 9 11" fill="currentColor" aria-hidden="true" style={{ display: 'inline', verticalAlign: 'middle', marginRight: '4px', marginBottom: '1px' }}>
-      <rect x="0.5" y="4.5" width="8" height="6" rx="1" />
-      <path d="M2.5 4.5V3a2 2 0 0 1 4 0v1.5" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
-    </svg>
-  )
-}
 
 const KURS_MODULES = [
   {
@@ -65,7 +57,7 @@ const KURS_MODULES = [
   },
 ]
 
-export default function KursTab({ gesamtausgabe = false, onNavigateToKonto = () => {} }) {
+function KursTab({ gesamtausgabe = false }) {
   const entriesRef = useRef(null)
   const activeCard = useActiveSnapCard(entriesRef)
   useScrollPersist(entriesRef, 'kurs')
@@ -97,7 +89,7 @@ export default function KursTab({ gesamtausgabe = false, onNavigateToKonto = () 
         <main>
           <ol className="test-entries" aria-label="Kurs-Module" ref={entriesRef}>
 
-            {KURS_MODULES.map((mod, idx) => (
+            {KURS_MODULES.map((mod) => (
               <li key={mod.id} className="test-entry test-entry--disabled">
                 <div className="test-entry-number" aria-hidden="true">
                   <span className="test-entry-num-glyph">{mod.glyph}</span>
@@ -156,3 +148,5 @@ export default function KursTab({ gesamtausgabe = false, onNavigateToKonto = () 
     </div>
   )
 }
+
+export default memo(KursTab)

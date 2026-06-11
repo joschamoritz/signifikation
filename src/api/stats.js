@@ -19,5 +19,8 @@ export function postStat(game, datum, score, max) {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ game, datum, score, max }),
+    // keepalive: Ergebnis geht nicht verloren, wenn der Tab direkt nach
+    // Spielende geschlossen wird / die Seite navigiert (F-N6-Minimalfix).
+    keepalive: true,
   }).catch(() => {})
 }

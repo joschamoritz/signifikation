@@ -1,10 +1,11 @@
+import { MOBILE_MEDIA_QUERY } from '../config'
 import { useState, useEffect } from 'react'
 
 export function useActiveSnapCard(containerRef) {
   const [activeCard, setActiveCard] = useState(0)
 
   useEffect(() => {
-    const mq = window.matchMedia('(max-width: 699px)')
+    const mq = window.matchMedia(MOBILE_MEDIA_QUERY)
     const container = containerRef.current
     if (!container) return
 
@@ -48,7 +49,7 @@ export function useActiveSnapCard(containerRef) {
   }, [containerRef])
 
   useEffect(() => {
-    const mq = window.matchMedia('(max-width: 699px)')
+    const mq = window.matchMedia(MOBILE_MEDIA_QUERY)
     const items = containerRef.current?.querySelectorAll('.test-entry')
 
     function applyInert(isMobile) {

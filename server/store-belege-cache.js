@@ -15,6 +15,12 @@ export function createBelegeCache({ ttlMs, maxEntries }) {
       return null
     }
 
+    // LRU-Refresh: ans Map-Ende verschieben, damit die Eviction in set()
+    // den am laengsten UNBENUTZTEN Eintrag trifft statt des aeltesten
+    // Inserts (vorher faktisch FIFO — Hot Keys konnten verdraengt werden).
+    cache.delete(key)
+    cache.set(key, entry)
+
     metrics.hits += 1
     return entry.data
   }

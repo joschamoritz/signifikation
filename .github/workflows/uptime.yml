@@ -1,0 +1,39 @@
+name: Uptime
+
+# Externer /health-Check alle 15 Minuten (Review 2026-06-11, T-N1):
+# Das interne Alerting sieht einen abgestuerzten/unerreichbaren Server
+# naturgemaess nicht. Bei Fehlschlag wird der Alert-Webhook benachrichtigt
+# (Secret ALERT_WEBHOOK_URL; ohne Secret schlaegt nur der Workflow rot an).
+
+on:
+  schedule:
+    - cron: '*/15 * * * *'
+  workflow_dispatch:
+
+jobs:
+  health:
+    runs-on: ubuntu-latest
+    steps:
+      - name: /health pruefen
+        run: |
+          set -e
+          BODY=$(curl -sf --max-time 20 https://signifikation.de/health) || {
+            echo "FEHLER: /health nicht erreichbar"
+            if [ -n "${{ secrets.ALERT_WEBHOOK_URL }}" ]; then
+              curl -s -X POST "${{ secrets.ALERT_WEBHOOK_URL }}" \
+                -H 'Content-Type: application/json' \
+                -d '{"type":"uptime","message":"signifikation.de/health nicht erreichbar (GitHub-Uptime-Check)","timestamp":"'"$(date -u +%FT%TZ)"'"}' || true
+            fi
+            exit 1
+          }
+          echo "Health: $BODY"
+          STATUS=$(echo "$BODY" | jq -r '.status')
+          if [ "$STATUS" = "error" ]; then
+            echo "FEHLER: Health-Status ist 'error'"
+            if [ -n "${{ secrets.ALERT_WEBHOOK_URL }}" ]; then
+              curl -s -X POST "${{ secrets.ALERT_WEBHOOK_URL }}" \
+                -H 'Content-Type: application/json' \
+                -d '{"type":"uptime","message":"signifikation.de/health meldet status=error","timestamp":"'"$(date -u +%FT%TZ)"'"}' || true
+            fi
+            exit 1
+          fi

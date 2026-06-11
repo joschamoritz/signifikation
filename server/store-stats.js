@@ -169,32 +169,14 @@ export function buildStatsWindow(stats, days) {
   }
 }
 
-export function createStatsWindowCache(ttlMs) {
-  return {
-    ttlMs,
-    key: null,
-    value: null,
-    ts: 0,
-  }
-}
-
-export function getCachedStatsWindow(cache, stats, days) {
-  const statsKeys = Object.keys(stats || {})
-  const cacheKey = `${days}|${statsKeys.length}|${statsKeys.join(',')}`
-
-  if (cache.key === cacheKey && Date.now() - cache.ts < cache.ttlMs) {
-    return cache.value
-  }
-
-  const result = buildStatsWindow(stats, days)
-  cache.key = cacheKey
-  cache.value = result
-  cache.ts = Date.now()
-  return result
-}
-
-export function createStatsStore({ db, stmts, logger, loadReadOnly }) {
-  const statsWindowCache = createStatsWindowCache(30 * 1000)
+export function createStatsStore({ db, stmts, logger }) {
+  // Map pro days-Key mit reiner TTL (30 s): Das fruehere Single-Slot-Modell
+  // wurde bei JEDEM recordStat invalidiert — unter Spiellast fiel das
+  // Admin-Summary praktisch immer auf die volle Aggregation zurueck
+  // (Review 2026-06-11, D-M5). Admin-Dashboards sind eventual-consistent;
+  // 30 s Verzoegerung sind akzeptabel. Bulk-Replace (Restore) leert die Map.
+  const STATS_WINDOW_TTL_MS = 30 * 1000
+  const statsWindowCache = new Map()
 
   const replaceStats = db.transaction((obj) => {
     stmts.deleteAllStats.run()
@@ -211,7 +193,7 @@ export function createStatsStore({ db, stmts, logger, loadReadOnly }) {
         })
       }
     }
-    invalidateStatsWindowCache(statsWindowCache)
+    statsWindowCache.clear()
   })
 
   const replaceStatsRows = db.transaction((rows) => {
@@ -219,7 +201,7 @@ export function createStatsStore({ db, stmts, logger, loadReadOnly }) {
     for (const row of rows) {
       stmts.upsertStats.run(sanitizeStatsRow(row))
     }
-    invalidateStatsWindowCache(statsWindowCache)
+    statsWindowCache.clear()
   })
 
   const recordStatTx = db.transaction(({ datum, spiel, userId, score, max }) => {
@@ -239,8 +221,7 @@ export function createStatsStore({ db, stmts, logger, loadReadOnly }) {
       maxSum: (existing?.maxSum || 0) + Number(max || 0),
       dist: JSON.stringify(dist),
     })
-
-    invalidateStatsWindowCache(statsWindowCache)
+    // Bewusst KEINE Cache-Invalidierung pro Spielzug — TTL (30 s) reicht.
   })
 
   // Default bewusst gedeckelt (Review 2026-06-10): stats waechst unbegrenzt
@@ -262,24 +243,88 @@ export function createStatsStore({ db, stmts, logger, loadReadOnly }) {
   }
 
   function getStatsWindow(days) {
-    // Cache-Check vor der DB-Query. Cache-Key basiert nur auf days; jede
-    // Stats-Mutation (recordStat/replaceStats) ruft invalidateStatsWindowCache
-    // auf, also kann der Cache so lange gültig bleiben wie die TTL.
-    const cacheKey = `window|${days}`
-    if (statsWindowCache.key === cacheKey && Date.now() - statsWindowCache.ts < statsWindowCache.ttlMs) {
-      return statsWindowCache.value
+    const hit = statsWindowCache.get(days)
+    if (hit && Date.now() - hit.ts < STATS_WINDOW_TTL_MS) {
+      return hit.value
     }
-    const stats = loadStats(days)
-    const result = buildStatsWindow(stats, days)
-    statsWindowCache.key = cacheKey
-    statsWindowCache.value = result
-    statsWindowCache.ts = Date.now()
+    const result = buildStatsWindow(loadStats(days), days)
+    statsWindowCache.set(days, { value: result, ts: Date.now() })
     return result
   }
 
   function getStatsTimeline(days) {
     const stats = loadStats(days)
     return buildStatsTimeline(stats, days)
+  }
+
+  // ── Stats-Retention (Review 2026-06-11, D-H1) ────────────────────
+  // stats waechst eine Zeile pro User × Spiel × Tag. Aeltere per-User-
+  // Zeilen tragen nur noch zu Aggregaten bei → in die anonyme Zeile
+  // (user_id='') falten und loeschen. Batched (LIMIT) gegen Event-Loop-
+  // Blockaden; idempotent (zweiter Lauf findet nichts mehr).
+  const selectOldUserRowsStmt = db.prepare(`
+    SELECT datum, spiel, user_id, plays, scoreSum, maxSum, dist
+    FROM stats
+    WHERE user_id != '' AND datum < ?
+    LIMIT 2000
+  `)
+  const deleteStatsRowStmt = db.prepare(
+    'DELETE FROM stats WHERE datum = ? AND spiel = ? AND user_id = ?'
+  )
+
+  const compactBatchTx = db.transaction((cutoff) => {
+    const rows = selectOldUserRowsStmt.all(cutoff)
+    for (const row of rows) {
+      const anon = stmts.getStatsByKey.get(row.datum, row.spiel, '')
+      const dist = anon ? normalizeDistribution(anon.dist || '[]') : createEmptyDistribution()
+      const rowDist = normalizeDistribution(row.dist || '[]')
+      for (let i = 0; i < 11; i += 1) dist[i] += rowDist[i]
+
+      stmts.upsertStats.run({
+        datum: row.datum,
+        spiel: row.spiel,
+        user_id: '',
+        plays: (anon?.plays || 0) + Number(row.plays || 0),
+        scoreSum: (anon?.scoreSum || 0) + Number(row.scoreSum || 0),
+        maxSum: (anon?.maxSum || 0) + Number(row.maxSum || 0),
+        dist: JSON.stringify(dist),
+      })
+      deleteStatsRowStmt.run(row.datum, row.spiel, row.user_id)
+    }
+    return rows.length
+  })
+
+  function compactOldUserStats(olderThanDays = 180) {
+    const cutoff = computeSinceDate(olderThanDays)
+    let total = 0
+    for (;;) {
+      const n = compactBatchTx(cutoff)
+      total += n
+      if (n < 2000) break
+    }
+    if (total > 0) statsWindowCache.clear()
+    return total
+  }
+
+  // Export ohne per-User-Aufloesung (Gist-Backup): aggregiert pro
+  // datum × spiel — Summen/Verteilungen bleiben fuer die Admin-Statistik
+  // exakt, pseudonyme User-IDs verlassen den Server nicht (D-M4).
+  function loadStatsRowsAnonymized() {
+    const rows = stmts.getAllStats.all()
+    const byKey = new Map()
+    for (const row of mapStatsRows(rows)) {
+      const key = `${row.datum}|${row.spiel}`
+      const agg = byKey.get(key) || {
+        datum: row.datum, spiel: row.spiel, user_id: '',
+        plays: 0, scoreSum: 0, maxSum: 0, dist: createEmptyDistribution(),
+      }
+      agg.plays += row.plays
+      agg.scoreSum += row.scoreSum
+      agg.maxSum += row.maxSum
+      for (let i = 0; i < 11; i += 1) agg.dist[i] += Number(row.dist[i] || 0)
+      byKey.set(key, agg)
+    }
+    return [...byKey.values()]
   }
 
   function getPercentile(datum, spiel, score, max) {
@@ -308,8 +353,10 @@ export function createStatsStore({ db, stmts, logger, loadReadOnly }) {
     getStatsWindow,
     getStatsTimeline,
     getPercentile,
+    compactOldUserStats,
+    loadStatsRowsAnonymized,
     invalidateWindowCache() {
-      invalidateStatsWindowCache(statsWindowCache)
+      statsWindowCache.clear()
     },
   }
 }
@@ -317,10 +364,4 @@ export function createStatsStore({ db, stmts, logger, loadReadOnly }) {
 export function buildStatsTimeline(stats, days) {
   const orderedDates = sortMmddKeys(Object.keys(stats || {}))
   return orderedDates.slice(-days).map((datum) => ({ datum, ...(stats[datum] || {}) }))
-}
-
-function invalidateStatsWindowCache(cache) {
-  cache.key = null
-  cache.value = null
-  cache.ts = 0
 }

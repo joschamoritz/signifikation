@@ -44,6 +44,35 @@ export function incrementUsage(userId, date = todayBerlin()) {
 
 const isPremiumRole = (role) => role === 'premium' || role === 'admin'
 
+// Atomar zaehlen+pruefen in EINEM Statement: das fruehere Muster
+// getQuota() → ... → incrementUsage() war ein Read-Check-Write-Race —
+// zwei parallele Requests bei remaining=1 bekamen beide ein Spiel.
+// DO UPDATE ... WHERE count < allowance: verliert der zweite Request,
+// ist changes === 0. Der INSERT-Pfad (erste Nutzung des Tages) ist safe,
+// weil allowance >= BASE_ALLOWANCE (1).
+const consumeStmt = db.prepare(`
+  INSERT INTO custom_lemma_usage (user_id, date, count) VALUES (?, ?, 1)
+  ON CONFLICT(user_id, date) DO UPDATE SET count = count + 1
+  WHERE count < ?
+`)
+
+/**
+ * Verbraucht atomar 1 Spiel, wenn das Kontingent es hergibt.
+ * @returns {{ consumed:boolean, unlimited:boolean, allowance:number, remaining:number }}
+ */
+export function tryConsume({ userId, role, date = todayBerlin() }) {
+  if (isPremiumRole(role)) {
+    return { consumed: true, unlimited: true, allowance: Infinity, remaining: Infinity }
+  }
+  const allowance = BASE_ALLOWANCE + getTodayBonus(date)
+  const info = consumeStmt.run(userId, date, allowance)
+  if (info.changes === 0) {
+    return { consumed: false, unlimited: false, allowance, remaining: 0 }
+  }
+  const used = getUsageToday(userId, date)
+  return { consumed: true, unlimited: false, allowance, remaining: Math.max(0, allowance - used) }
+}
+
 /**
  * Kontingent-Status eines Subjekts.
  * @returns {{ unlimited:boolean, allowance:number, used:number, remaining:number }}

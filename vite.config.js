@@ -31,11 +31,20 @@ export default defineConfig({
   test: {
     environment: 'node',
     fileParallelism: false,
+    globalSetup: ['./vitest.global-setup.js'],
     setupFiles: ['./vitest.setup.js'],
     exclude: ['e2e/**', 'node_modules/**', 'dist/**', '.claude/**'],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],
+      // Ratchet-Boden knapp unter dem Ist-Stand (2026-06-11: 59/51/61/62) —
+      // Abdeckung darf nicht unbemerkt sinken; bei Steigerung nachziehen.
+      thresholds: {
+        statements: 55,
+        branches: 47,
+        functions: 56,
+        lines: 58,
+      },
       exclude: [
         'node_modules/**',
         'server/public/**',
@@ -53,6 +62,11 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
+      // Keine automatische Registrierungs-Injektion in index.html: dieselbe
+      // dist/ wird per cap sync in die Native-Apps kopiert, und unter
+      // capacitor:// wirft serviceWorker.register() nur eine Unhandled
+      // Rejection. Registrierung passiert explizit in main.jsx (!IS_NATIVE).
+      injectRegister: null,
       strategies: 'injectManifest',
       srcDir: 'src',
       filename: 'sw.js',
@@ -105,8 +119,10 @@ export default defineConfig({
   ],
   server: {
     proxy: {
-      '/api':   'http://localhost:3000',
-      '/admin': 'http://localhost:3000',
+      // Muss zum Backend-Default-Port passen (PORT=3001, siehe .env.example) —
+      // stand faelschlich auf 3000, damit funktionierte das README-Dev-Setup nicht.
+      '/api':   'http://localhost:3001',
+      '/admin': 'http://localhost:3001',
     },
   },
 })

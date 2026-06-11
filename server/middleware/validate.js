@@ -11,11 +11,15 @@ export function validate(schema, source = 'body') {
       return res.status(400).json({ error: result.error.errors[0].message })
     }
     // req.body kann direkt ersetzt werden; req.query/params sind in Express 5
-    // getter-only → bestehende Objekte per Object.assign mutieren.
+    // getter-only → bestehendes Objekt in-place ERSETZEN (nicht mergen):
+    // erst alle vorhandenen Keys löschen, dann die validierten Daten zuweisen.
+    // Sonst blieben nicht-deklarierte Query-Params auf req[source] liegen.
     if (source === 'body') {
       req.body = result.data
     } else {
-      Object.assign(req[source], result.data)
+      const target = req[source]
+      for (const key of Object.keys(target)) delete target[key]
+      Object.assign(target, result.data)
     }
     next()
   }
@@ -45,7 +49,7 @@ export const percentileQuerySchema = z.object({
 })
 
 
-const WORT_REGEX = /^[a-zA-ZäöüÄÖÜß\-]+$/
+const WORT_REGEX = /^[a-zA-ZäöüÄÖÜß-]+$/
 
 /** GET /api/belege (query) */
 export const belegeQuerySchema = z.object({

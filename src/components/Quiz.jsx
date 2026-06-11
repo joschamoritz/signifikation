@@ -24,8 +24,6 @@ export default function Quiz({
   onSubmit,                 // Classroom: (rawAnswer) => void
   onProgress,               // Classroom: Entwurf spiegeln (Reload, 7.2)
   initialSelected = null,   // Classroom: Auswahl aus dem Entwurf
-  disableProgress = false,  // Classroom: keine XP/Streak/Stats-Schreibvorgaenge
-  hideHeader = false,       // Classroom: KioskShell zeigt eigenen Header
 }) {
   // Klassenraum: dieselbe Quiz-Optik, aber ohne Joker/Belege/Sofort-Feedback
   // (server-autoritativ; Joker/Feedback braeuchten die Loesung `rang`). Eine
@@ -72,17 +70,10 @@ export default function Quiz({
     [options, submitted]
   )
 
-  // Keine Daten → überspringen (0 Punkte)
-  const shouldSkip = !kollokatoren.length
-  useEffect(() => {
-    if (shouldSkip) onRoundComplete(0)
-  }, [shouldSkip]) // eslint-disable-line
-
-  if (shouldSkip) return null
-
-  const roundScore = submitted ? calculateMixedScore(selected, kollokatoren) : null
-
   // ── Joker ────────────────────────────────────────────────────
+  // Hooks muessen VOR dem shouldSkip-Early-Return stehen (Rules of Hooks):
+  // wechselt kollokatoren zwischen Renders von leer → befuellt, wuerde sich
+  // sonst die Hook-Anzahl aendern und React crashen.
   const [jokerVisible, setJokerVisible] = useState(false)
   const [jokerUsed,    setJokerUsed]    = useState(false)
   const [grayedWords,  setGrayedWords]  = useState(new Set())
@@ -94,6 +85,16 @@ export default function Quiz({
     jokerTimer.current = setTimeout(() => setJokerVisible(true), 15000)
     return () => clearTimeout(jokerTimer.current)
   }, [currentRound, submitted, jokerUsed, isClassroom])
+
+  // Keine Daten → überspringen (0 Punkte)
+  const shouldSkip = !kollokatoren.length
+  useEffect(() => {
+    if (shouldSkip) onRoundComplete(0)
+  }, [shouldSkip]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  if (shouldSkip) return null
+
+  const roundScore = submitted ? calculateMixedScore(selected, kollokatoren) : null
 
   function resetJokerTimer() {
     if (jokerUsed || submitted) return
@@ -244,7 +245,9 @@ export default function Quiz({
             <span className="round-score-display">+{roundScore}</span>
             <span className="round-score-label">
               {(() => {
-                const v = new Date().toISOString().slice(0,10).replace(/-/g,'')
+                // Lokaldatum (en-CA = YYYY-MM-DD) statt UTC: sonst wechselt das Label
+                // um Mitternacht ±2h inkonsistent zum Tagescontent
+                const v = new Intl.DateTimeFormat('en-CA').format(new Date()).replace(/-/g, '')
                 const seed = parseInt(v, 10) % 4
                 const labelGroups = {
                   3: ['treffend','präzise','belegt','nachgewiesen'],

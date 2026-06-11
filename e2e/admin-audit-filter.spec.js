@@ -11,12 +11,8 @@ test('Audit-Log Filter nach Aktion funktioniert', async ({ page }) => {
   const rows = page.locator('#audit-table-body tr')
   await expect(rows.first()).toBeVisible()
 
-  const firstRowText = ((await rows.first().textContent()) || '').trim()
-  if (firstRowText.includes('Noch keine Audit-Einträge vorhanden')) {
-    await expect(page.locator('#audit-count')).toContainText('0 Einträge')
-    return
-  }
-
+  // Kein Early-Return mehr noetig: e2e/start-server.js seedet deterministisch
+  // einen CREATE-Eintrag (frueher testete die Spec bei leerer DB faktisch nichts).
   const firstActionCell = rows.first().locator('td').nth(1)
   await expect(firstActionCell).toHaveText('CREATE')
 })

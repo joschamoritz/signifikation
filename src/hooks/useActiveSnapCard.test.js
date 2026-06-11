@@ -1,6 +1,5 @@
 // @vitest-environment happy-dom
 import { renderHook, act } from '@testing-library/react'
-import { useRef } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { useActiveSnapCard } from './useActiveSnapCard'
 

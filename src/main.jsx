@@ -66,6 +66,19 @@ if (typeof window !== 'undefined') {
 // CSRF-Header für alle State-Changing-Requests setzen, bevor App rendert.
 installCsrfFetch()
 
+// Service Worker nur im Web-Build registrieren (vite.config.js setzt
+// injectRegister:null, damit cap sync keine Registrierung in die Native-Apps
+// kopiert). PROD-Guard: im Vite-Dev-Server existiert /sw.js nicht.
+if (!IS_NATIVE && import.meta.env.PROD && typeof window !== 'undefined' && 'serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js').catch((err) => {
+      if (window.__sigDebugPost) {
+        window.__sigDebugPost('warn', 'sw-register', 'SW-Registrierung fehlgeschlagen: ' + (err?.message || err))
+      }
+    })
+  })
+}
+
 // Asset-Fail-Recovery (Web only): Wenn nach einem Deploy ein gecachter Client
 // noch auf eine alte index.html mit nicht mehr existierenden Asset-Hashes
 // verweist, schlägt der <script>-Load fehl → weiße Seite. Capture-Phase, weil

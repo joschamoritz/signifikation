@@ -27,8 +27,10 @@ vi.mock('../auth/index.js', () => ({
   auth: { api: { getSession: vi.fn(async () => null) } },
 }))
 
-const { setupClassroomSocket, clearAllTimers, __getTimerCountForTests } =
-  await import('../realtime/classroomSocket.js')
+const {
+  setupClassroomSocket, clearAllTimers, __getTimerCountForTests,
+  pruneConnectAttempts, __seedConnectAttemptForTests, __getConnectAttemptCountForTests,
+} = await import('../realtime/classroomSocket.js')
 const {
   createSession,
   addAssignment,
@@ -438,5 +440,22 @@ describe('classroom socket (T-3.1 / T-3.2 / T-3.3)', () => {
       // Session-Konsistenz: weiterhin niemand aktiv.
       expect(countActiveParticipants(session.id)).toBe(0)
     })
+  })
+})
+
+describe('connectAttempts-Pruning (Memory-Leak-Schutz)', () => {
+  it('entfernt abgelaufene Fenster, behaelt frische', () => {
+    clearAllTimers() // leert auch connectAttempts
+    const now = Date.now()
+    __seedConnectAttemptForTests('10.0.0.1', now - 10 * 60_000) // abgelaufen
+    __seedConnectAttemptForTests('10.0.0.2', now - 9 * 60_000)  // abgelaufen
+    __seedConnectAttemptForTests('10.0.0.3', now - 1_000)       // frisch
+    expect(__getConnectAttemptCountForTests()).toBe(3)
+
+    const pruned = pruneConnectAttempts(now)
+
+    expect(pruned).toBe(2)
+    expect(__getConnectAttemptCountForTests()).toBe(1)
+    clearAllTimers()
   })
 })

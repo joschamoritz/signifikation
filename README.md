@@ -192,8 +192,6 @@ Das Admin-Portal deckt aktuell ab:
 - Social-Cards-Generator
 - Health-, Performance- und Cache-Diagnose
 
-Siehe dazu auch `ADMIN_API.md`.
-
 ## Deployment
 
 - Zielbranch: `main`
@@ -202,4 +200,4 @@ Siehe dazu auch `ADMIN_API.md`.
 - Start via PM2 (`ecosystem.config.cjs`)
 - Reverse Proxy via nginx
 
-Zusätzliche Betriebsdetails stehen in `OPS.md`.
+Betriebsdetails (PM2, Logs, Backups/Restore, Monitoring, Env-Checkliste): [`docs/OPS.md`](docs/OPS.md)

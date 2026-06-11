@@ -82,11 +82,22 @@ async function runOne(filename) {
       if (typeof mod.default !== 'function') {
         throw new Error(`Migration ${name}: kein default-export function(db)`)
       }
-      // JS-Migrationen verantworten ihre eigene Transaktionsgrenze, weil sie
-      // ggf. mehrere Iterationen brauchen. Wir wrappen aber das Marker-Insert
-      // mit, damit Marker und letzter Schritt atomar sind.
-      await mod.default(db)
-      markApplied.run(name, Date.now())
+      // Contract: JS-Migrationen sind SYNCHRON (better-sqlite3-Transaktionen
+      // koennen kein await). Migration + Marker laufen in EINER Transaktion —
+      // ein Crash dazwischen kann die Migration sonst beim naechsten Boot
+      // erneut ausfuehren (frueherer Kommentar behauptete Atomaritaet, der
+      // Code hatte sie nicht).
+      const run = db.transaction(() => {
+        const result = mod.default(db)
+        if (result && typeof result.then === 'function') {
+          throw new Error(
+            `Migration ${name}: default-export muss synchron sein ` +
+            '(db.transaction kann kein Promise abwarten)'
+          )
+        }
+        markApplied.run(name, Date.now())
+      })
+      run()
     } else {
       throw new Error(`Migration ${name}: unbekannte Extension ${ext}`)
     }
