@@ -1,5 +1,16 @@
 apply plugin: 'com.android.application'
 
+// Version aus package.json ableiten (Review 2026-06-11, T-M5): versionName
+// folgt der App-Version, versionCode = major*10000 + minor*100 + patch
+// (monoton steigend, solange semver-artig gepflegt). Statische Werte
+// drifteten (build.gradle 1.0 vs package.json 1.1.0).
+def packageJson = new groovy.json.JsonSlurper().parseText(
+    new File("$rootDir/../package.json").text
+)
+def appVersionName = packageJson.version
+def (vMajor, vMinor, vPatch) = appVersionName.tokenize('.').collect { it.toInteger() }
+def appVersionCode = vMajor * 10000 + vMinor * 100 + vPatch
+
 android {
     namespace = "de.signifikation.app"
     compileSdk = rootProject.ext.compileSdkVersion
@@ -7,8 +18,8 @@ android {
         applicationId "de.signifikation.app"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 1
-        versionName "1.0"
+        versionCode appVersionCode
+        versionName appVersionName
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
