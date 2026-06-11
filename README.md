@@ -199,3 +199,5 @@ Das Admin-Portal deckt aktuell ab:
 - Build via `npm run build`
 - Start via PM2 (`ecosystem.config.cjs`)
 - Reverse Proxy via nginx
+
+Betriebsdetails (PM2, Logs, Backups/Restore, Monitoring, Env-Checkliste): [`docs/OPS.md`](docs/OPS.md)
