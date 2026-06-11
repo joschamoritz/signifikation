@@ -338,16 +338,17 @@ describe('public routes integration', () => {
       expect(Array.isArray(body[0].tokens)).toBe(true)
     })
 
-    it('gibt leeres Array zurück bei Fehler in fetchBelege', async () => {
+    it('antwortet 502 bei Fehler in fetchBelege (Defekt nicht als leeres 200 maskieren)', async () => {
+      // Review 2026-06-11 (B-M5): Clients/Monitoring muessen einen Defekt
+      // der Beleg-DB von "keine Belege vorhanden" unterscheiden koennen.
       vi.mocked(belegeVerfuegbar).mockReturnValueOnce(true)
       const { fetchBelege } = await import('../belege.js')
       vi.mocked(fetchBelege).mockImplementationOnce(() => { throw new Error('DB-Fehler') })
       // Andere Parameter, damit kein Cache-Hit der vorherigen Anfrage greift
       const res = await fetch(`${baseUrl}/api/v1/belege?lemma=Feuer&collocate=loeschen`)
-      expect(res.status).toBe(200)
+      expect(res.status).toBe(502)
       const body = await res.json()
-      expect(Array.isArray(body)).toBe(true)
-      expect(body).toHaveLength(0)
+      expect(body.code).toBe('BELEGE_UNAVAILABLE')
     })
   })
 })

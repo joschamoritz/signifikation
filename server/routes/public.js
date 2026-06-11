@@ -151,8 +151,11 @@ router.get('/api/v1/belege', belegeLimiter, validate(belegeQuerySchema, 'query')
     cacheSet(cacheKey, results)
     res.json(results)
   } catch (err) {
+    // 502 statt leerem 200: Clients und Monitoring muessen einen Defekt
+    // der Beleg-DB von "keine Belege vorhanden" unterscheiden koennen.
+    // Frontend-Fallback: useBelege zeigt "derzeit nicht verfuegbar".
     logger.error({ err }, 'Belege-Fehler')
-    res.json([])
+    res.status(502).json({ error: 'Belege derzeit nicht verfügbar', code: 'BELEGE_UNAVAILABLE' })
   }
 })
 
@@ -207,15 +210,20 @@ router.get('/api/v1/archiv', validate(archivQuerySchema, 'query'), async (req, r
     const normalizedData = normalize(DATA) + sep
     if (!normalized.startsWith(normalizedData)) {
       logger.warn({ path: file }, 'Path-Traversal-Versuch blockiert')
-      return res.json({ datum: date.slice(5), lemmata: [] })
+      return res.status(400).json({ error: 'Ungültiges Datum', code: 'VALIDATION_ERROR' })
     }
 
     const raw  = JSON.parse(readFileSync(file, 'utf8'))
     const lemmata = raw.lemmata || []
     res.json({ datum: `${mm}-${dd}`, year: date.slice(0, 4), lemmata })
   } catch (err) {
-    logger.warn({ err, date }, 'Archiv-Abruf fehlgeschlagen')
-    res.json({ datum: date.slice(5), lemmata: [] })
+    // Fehlende Datei = Tag ohne Archiv-Inhalt → leeres 200 ist korrekt.
+    // Alles andere (I/O, kaputtes JSON) ist ein echter Serverfehler.
+    if (err?.code === 'ENOENT') {
+      return res.json({ datum: date.slice(5), lemmata: [] })
+    }
+    logger.error({ err, date }, 'Archiv-Abruf fehlgeschlagen')
+    res.status(500).json({ error: 'Archiv derzeit nicht verfügbar', code: 'INTERNAL_ERROR' })
   }
 })
 
