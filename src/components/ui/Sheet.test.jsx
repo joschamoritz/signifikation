@@ -61,6 +61,19 @@ describe('Sheet', () => {
     expect(panel.getAttribute('aria-label')).toBe('Mein Dialog')
   })
 
+  it('Dialog ist fuer assistive Technologien erreichbar (kein aria-hidden-Vorfahre)', () => {
+    // Regression (Review 2026-06-11, F-H3): der Backdrop trug aria-hidden
+    // und umschloss das role="dialog"-Panel — damit war der komplette
+    // Dialog fuer Screenreader unsichtbar.
+    renderSheet({ 'aria-label': 'Erreichbar' })
+    let el = getPanel()
+    expect(el).toBeTruthy()
+    while (el) {
+      expect(el.getAttribute?.('aria-hidden')).not.toBe('true')
+      el = el.parentElement
+    }
+  })
+
   // ── data-state ───────────────────────────────────────────────────────────
 
   it('Panel hat data-state="open" nach dem Öffnen', () => {
