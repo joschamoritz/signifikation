@@ -36,7 +36,7 @@ export default function Quiz({
   const [submitted, setSubmitted] = useState(false)
   const [showBelegHint, setShowBelegHint] = useState(() => !lsGet(BELEG_HINT_KEY))
 
-  const kollokatoren = lemma.runden?.kollokatoren ?? []
+  const kollokatoren = useMemo(() => lemma.runden?.kollokatoren ?? [], [lemma])
 
   const { openBeleg, belegeCache, belegeLoading, loadBelege, closeBelege } = useBelege(lemma.lemma, '')
   const wrapRef = useRef(null)
