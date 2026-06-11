@@ -268,10 +268,12 @@ export function loadBackupFiles() {
     'wortzwilling.json': loadWortZwilling(),
     'zeitenwende.json': loadZeitenwende(),
     // stats.json ist auf das loadStats-Fenster (400 Tage) begrenzt und nur
-    // Legacy-Kompat; Restore-Quelle ist stats-rows.json (vollstaendig, roh).
-    // Vollbackup inkl. aller Tabellen: jobs/sqliteBackup.js.
+    // Legacy-Kompat. stats-rows.json ist seit 2026-06-11 pro datum×spiel
+    // aggregiert (user_id='') — pseudonyme User-IDs gehoeren nicht in den
+    // Gist (D-M4), und der Export skaliert nicht mehr mit der Nutzerzahl.
+    // Vollbackup inkl. aller Tabellen (mit User-Aufloesung): jobs/sqliteBackup.js.
     'stats.json': loadStats(),
-    'stats-rows.json': loadStatsRows(),
+    'stats-rows.json': _statsStore.loadStatsRowsAnonymized(),
   }
 }
 
@@ -294,6 +296,7 @@ export function loadWortZwillingEntry(datum) { return _dailyContentStore.loadWor
 export function loadZeitenwendeEntry(datum) { return _dailyContentStore.loadZeitenwendeEntry(datum) }
 export function loadStats() { return loadReadOnly('stats.json') }
 export function loadStatsRows() { return loadReadOnly('stats-rows.json') }
+export function compactOldUserStats(olderThanDays) { return _statsStore.compactOldUserStats(olderThanDays) }
 export function loadDailyContentMaps() {
   return {
     kalender: loadKalender(),
