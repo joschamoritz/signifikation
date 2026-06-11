@@ -14,6 +14,14 @@ module.exports = {
       exec_mode: 'fork',
       autorestart: true,
       watch: false,
+      // Leak-Notbremse: Neustart bevor der Prozess das System wuergt.
+      // Bekannte Caches sind gedeckelt (query-cache, belege-cache) — das
+      // hier faengt Unbekanntes. Logs: pm2-logrotate installieren (OPS.md),
+      // sonst wachsen out/error unbegrenzt.
+      max_memory_restart: '512M',
+      error_file: '/opt/signifikation/logs/signifikation-error.log',
+      out_file: '/opt/signifikation/logs/signifikation-out.log',
+      merge_logs: true,
       env: {
         NODE_ENV: 'production',
         DOTENV_CONFIG_PATH: '/opt/signifikation/app/.env',

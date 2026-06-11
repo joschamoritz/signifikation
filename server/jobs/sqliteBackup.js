@@ -34,6 +34,14 @@ import { reportAlert } from '../alerting.js'
 import logger from '../logger.js'
 
 const BACKUP_DIR  = process.env.SQLITE_BACKUP_DIR || join(dirname(DB_PATH), 'backups')
+
+if (!process.env.SQLITE_BACKUP_DIR && process.env.NODE_ENV === 'production') {
+  logger.warn(
+    { backupDir: BACKUP_DIR },
+    'SQLITE_BACKUP_DIR nicht gesetzt — Backups liegen auf demselben Volume wie die DB ' +
+    'und schuetzen NICHT gegen Volume-/Hostverlust. Separates Volume/Offsite-Sync einrichten (docs/OPS.md).'
+  )
+}
 const KEEP_COUNT  = Math.max(1, parseInt(process.env.SQLITE_BACKUP_KEEP ?? '14', 10) || 14)
 const FILE_PATTERN = /^signifikation-\d{4}-\d{2}-\d{2}\.db\.gz$/
 
