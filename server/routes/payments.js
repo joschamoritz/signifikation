@@ -188,13 +188,13 @@ router.post(
   async (req, res) => {
     // ── Security: IP-Whitelist (nur in Production) ────────────
     if (IS_PROD && !isValidMollieIP(req.ip)) {
-      logger.warn({ ip: req.ip, body: req.body }, 'Webhook von unbekannter IP blockiert')
+      logger.warn({ ip: req.ip, paymentId: req.body?.id }, 'Webhook von unbekannter IP blockiert')
       return res.status(403).end()
     }
 
     const paymentId = req.body?.id
     if (!paymentId || typeof paymentId !== 'string') {
-      logger.warn({ body: req.body, ip: req.ip }, 'Mollie-Webhook: fehlende payment-ID')
+      logger.warn({ ip: req.ip }, 'Mollie-Webhook: fehlende payment-ID')
       return res.status(400).end()
     }
 

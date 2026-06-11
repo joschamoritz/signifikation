@@ -172,11 +172,11 @@ router.delete('/api/v1/account/sessions/:id', requireAuthUser, validate(accountI
 router.delete('/api/v1/account/me', requireAuthUser, (req, res) => {
   try {
     const userId = req.user.id
-    // Alle User-Daten löschen (Profile, Entitlements, Stats, Classroom-Sessions, User-Row)
+    // Alle User-Daten löschen (Profile, Entitlements, Stats, Classroom-Sessions, User-Row).
+    // session/account räumt SQLite selbst auf: beide Tabellen haben
+    // FOREIGN KEY ... ON DELETE CASCADE auf user(id) und db.js setzt
+    // PRAGMA foreign_keys = ON — manuelle Deletes sind nicht nötig.
     deleteUserTx(userId)
-    // betterAuth-Tabellen manuell bereinigen (kein Cascade in SQLite ohne PRAGMA)
-    db.prepare('DELETE FROM session WHERE userId = ?').run(userId)
-    db.prepare('DELETE FROM account WHERE userId = ?').run(userId)
     // Session-Cookie löschen
     res.clearCookie('better-auth.session_token', { httpOnly: true, secure: IS_PROD, sameSite: 'lax', path: '/' })
     logger.info({ userId }, 'Account gelöscht')

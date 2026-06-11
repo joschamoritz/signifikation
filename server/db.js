@@ -223,9 +223,6 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_user_entitlements_unlocked
     ON user_entitlements(gesamtausgabe_unlocked);
 
-  CREATE INDEX IF NOT EXISTS idx_user_email
-    ON user(email);
-
   CREATE INDEX IF NOT EXISTS idx_user_createdAt
     ON user(createdAt);
 
@@ -437,10 +434,11 @@ if (!hasColumn('lemmata', 'lueckenfueller')) {
   const upRow = db.prepare(`SELECT sql FROM sqlite_master WHERE type='table' AND name='user_profiles'`).get()
   if (upRow?.sql?.includes("'teacher'")) {
     logger.info("Migration: user_profiles.role 'teacher' → 'premium'")
-    try {
+    // db.transaction() statt rohem BEGIN/COMMIT: better-sqlite3 rollt bei
+    // Fehlern selbst zurück — kein ROLLBACK-ins-Leere / "no transaction
+    // is active"-Maskierungsrisiko im catch-Pfad.
+    db.transaction(() => {
       db.exec(`
-        BEGIN;
-
         CREATE TABLE user_profiles_new (
           user_id    TEXT PRIMARY KEY,
           role       TEXT NOT NULL DEFAULT 'user' CHECK (role IN ('user','premium','admin')),
@@ -460,13 +458,8 @@ if (!hasColumn('lemmata', 'lueckenfueller')) {
         ALTER TABLE user_profiles_new RENAME TO user_profiles;
 
         CREATE INDEX IF NOT EXISTS idx_user_profiles_role ON user_profiles(role);
-
-        COMMIT;
       `)
-    } catch (err) {
-      db.exec('ROLLBACK;')
-      throw err
-    }
+    })()
   }
 }
 
@@ -477,9 +470,9 @@ if (!hasColumn('lemmata', 'lueckenfueller')) {
   const userIdCol = pushCols.find(r => r.name === 'user_id')
   if (userIdCol && userIdCol.notnull === 1) {
     logger.info('Migration: push_subscriptions.user_id NOT NULL → nullable')
-    try {
+    // db.transaction() statt rohem BEGIN/COMMIT (siehe user_profiles-Block oben)
+    db.transaction(() => {
       db.exec(`
-        BEGIN;
         CREATE TABLE push_subscriptions_new (
           id         TEXT PRIMARY KEY,
           user_id    TEXT,
@@ -498,12 +491,8 @@ if (!hasColumn('lemmata', 'lueckenfueller')) {
         CREATE INDEX IF NOT EXISTS idx_push_user ON push_subscriptions(user_id);
         CREATE UNIQUE INDEX IF NOT EXISTS idx_push_endpoint ON push_subscriptions(endpoint) WHERE endpoint IS NOT NULL;
         CREATE UNIQUE INDEX IF NOT EXISTS idx_push_apns ON push_subscriptions(apns_token) WHERE apns_token IS NOT NULL;
-        COMMIT;
       `)
-    } catch (err) {
-      db.exec('ROLLBACK;')
-      throw err
-    }
+    })()
   }
 }
 
