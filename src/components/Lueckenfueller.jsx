@@ -59,7 +59,6 @@ function ResultsScreen({ data, scores, onBack }) {
     const pts = scores[i] ?? 0
 
     if (r.type === 'double') {
-      const scoreA = scores[i] >= 1 ? 1 : 0  // simplified: show as combined
       return (
         <div key={i} className="lf-result-round">
           <div className="lf-result-left">
@@ -265,7 +264,6 @@ function DoubleRound({ round, onScore }) {
       <div className="lf-double-card">
         {round.sentences.map((s, i) => {
           const isActive    = activeSlot === i
-          const isSubmitted = submitted
           return (
             <div key={i} className={`lf-double-sentence${isActive && !answers[i] ? ' lf-double-sentence--active' : ''}`}>
               <span className="lf-double-label">Lücke {i + 1}</span>
@@ -442,11 +440,6 @@ export default function Lueckenfueller({
   onFinish,
   savedResult,
   initialProgress,
-  // Phase-5/T-5.6: Classroom-Props — Defaults erhalten Singleplayer 1:1.
-  mode = 'single',
-  onSubmit,
-  disableProgress = false,
-  hideHeader = false,
 }) {
   const [phase,  setPhase]  = useState(savedResult ? 'results' : 'play')
   const [round,  setRound]  = useState(initialProgress?.round ?? 0)

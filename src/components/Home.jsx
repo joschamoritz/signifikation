@@ -28,9 +28,9 @@ export default function Home({
   const [sheetOpen,         setSheetOpen]         = useState(false)
   const [desktopInfoOpen,   setDesktopInfoOpen]   = useState(false)
   const [shareSheetOpen,    setShareSheetOpen]    = useState(false)
-  const [copied,            setCopied]            = useState(false)
+  const [,                  setCopied]            = useState(false)
   const [sharing,           setSharing]           = useState(false)
-  const [imgState,          setImgState]          = useState(null)
+  const [,                  setImgState]          = useState(null)
   const [showDayComplete,   setShowDayComplete]   = useState(false)
   const [dayFlip,           setDayFlip]           = useState(false)
 

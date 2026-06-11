@@ -17,7 +17,7 @@ function safeArr(v) { return Array.isArray(v) ? v : [] }
 // logDice komma-formatiert (deutsch), null → leer.
 function fmtDice(v) { return v == null ? null : String(v).replace('.', ',') }
 
-function CollocationsRecap({ rawAnswer, lemma }) {
+function CollocationsRecap({ rawAnswer }) {
   const picked = safeArr(rawAnswer?.selected)
   if (picked.length === 0) {
     return <p className="cr2-kiosk__recap-empty" data-testid="cr2-kiosk-recap-koll">Keine Auswahl gespeichert.</p>

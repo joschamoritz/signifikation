@@ -13,7 +13,7 @@
 // Bewusst NICHT localStorage (D6) — Token soll mit Browser-Restart sterben.
 
 import { useCallback, useEffect, useRef } from 'react'
-import { useStudentKiosk, KIOSK_STATES } from '../StudentKioskContext'
+import { useStudentKiosk } from '../StudentKioskContext'
 import { fetchView, sendHeartbeat, leaveSession, KioskApiError } from '../kioskFetch'
 
 const STORAGE_KEY = 'classroom-v2:student'

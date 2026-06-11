@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-import { render, screen, act, fireEvent, waitFor } from '@testing-library/react'
+import { render, act, fireEvent, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import Sheet from './Sheet'

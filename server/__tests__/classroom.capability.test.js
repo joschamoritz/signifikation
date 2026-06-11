@@ -8,7 +8,6 @@ import {
   addAssignment,
   startSession,
   finishSession,
-  grantCapability,
   revokeCapability,
 } from '../classroom/store.js'
 
@@ -59,13 +58,6 @@ function buildApp() {
 
 async function call(app, method, url, opts = {}) {
   return await new Promise((resolve) => {
-    const req = Object.assign({
-      method, url,
-      headers: opts.headers || {},
-      params: {},
-      body: opts.body || {},
-      query: {},
-    })
     // einfach Express selbst aufrufen
     const http = require('http')
     const server = http.createServer(app).listen(0, async () => {

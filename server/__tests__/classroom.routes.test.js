@@ -19,7 +19,6 @@ import express from 'express'
 import {
   afterAll,
   beforeAll,
-  beforeEach,
   describe,
   expect,
   it,
@@ -248,7 +247,6 @@ describe('classroom routes', () => {
     let sessionCode
     let assignmentId
     let participantToken
-    let participantId
 
     beforeAll(() => {
       ensureUser(TEACHER_ID)
@@ -406,7 +404,6 @@ describe('classroom routes', () => {
       expect(body.token).toBeTruthy()
       expect(body.sessionId).toBe(sessionId)
       participantToken = body.token
-      participantId    = body.participantId
     })
 
     it('T-2.6 /me/view liefert whitelistete Ansicht', async () => {
@@ -666,8 +663,8 @@ describe('classroom routes', () => {
     })
 
     it('NIEMALS: notiz (interne Redaktionsnotiz)', () => {
-      const json = JSON.stringify(viewBody)
       // Wert des notiz-Felds aus insertTestLemma
+      const json = JSON.stringify(viewBody)
       expect(json).not.toContain('NOTIZ-INTERN-GEHEIM')
       const flat = flatten(viewBody)
       const keys = Object.keys(flat)
@@ -1165,7 +1162,6 @@ describe('classroom routes', () => {
 
     it('NIEMALS: alle Runden im rounds-Array (nur aktuelle Runde)', () => {
       // buildStudentView: delete safePrompt.rounds → nur currentRound
-      const json = JSON.stringify(viewBody)
       expect(viewBody.currentLemma?.rounds).toBeUndefined()
     })
 

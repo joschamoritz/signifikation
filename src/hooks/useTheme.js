@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, createContext, useContext } from 'react'
+import { useState, useEffect, useCallback, createContext } from 'react'
 import { Capacitor } from '@capacitor/core'
 
 export const ThemeContext = createContext({ pref: 'auto', setTheme: () => {} })

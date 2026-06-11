@@ -8,7 +8,6 @@ import {
   belegeQuerySchema,
   archivQuerySchema,
   qQuerySchema,
-  bonusQuerySchema,
   adminTagSchema,
   adminUsersBulkUpdateSchema,
   adminBulkDeleteCalendarSchema,
