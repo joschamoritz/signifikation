@@ -2,6 +2,7 @@
 
 import { useRef, useState } from 'react'
 import { API } from '../config'
+import { apiGet } from '../api/client'
 
 /**
  * Wiederverwendbarer Hook für Korpusbelege.
@@ -55,9 +56,7 @@ export function useBelege(lemmaWort, relCode = '') {
         ...(overrides.corpus && { corpus: overrides.corpus }),
         ...(overrides.year   && { year:   overrides.year   }),
       })
-      const r    = await fetch(`${API}/belege?${params}`)
-      if (!r.ok) { applyCacheEntry(key, null); return }
-      const data = await r.json()
+      const data = await apiGet(`${API}/belege?${params}`)
       applyCacheEntry(key, Array.isArray(data) ? data : null)
     } catch {
       applyCacheEntry(key, null)
