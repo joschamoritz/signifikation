@@ -30,6 +30,7 @@ import { createGzip } from 'node:zlib'
 import { pipeline } from 'node:stream/promises'
 import { join, dirname } from 'node:path'
 import db, { DB_PATH } from '../db.js'
+import { reportAlert } from '../alerting.js'
 import logger from '../logger.js'
 
 const BACKUP_DIR  = process.env.SQLITE_BACKUP_DIR || join(dirname(DB_PATH), 'backups')
@@ -92,6 +93,7 @@ export function startSqliteBackup(options = {}) {
   const run = () => {
     runSqliteBackup(options).catch(err => {
       logger.error({ err }, 'SQLite-Backup fehlgeschlagen')
+      reportAlert('backup_failed', `SQLite-Backup fehlgeschlagen: ${err?.message || err}`)
     })
   }
 
