@@ -111,8 +111,10 @@ export default defineConfig({
   ],
   server: {
     proxy: {
-      '/api':   'http://localhost:3000',
-      '/admin': 'http://localhost:3000',
+      // Muss zum Backend-Default-Port passen (PORT=3001, siehe .env.example) —
+      // stand faelschlich auf 3000, damit funktionierte das README-Dev-Setup nicht.
+      '/api':   'http://localhost:3001',
+      '/admin': 'http://localhost:3001',
     },
   },
 })

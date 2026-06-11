@@ -12,7 +12,7 @@ import { requireAuthUser } from '../middleware/userAuth.js'
 import { customLemmaLimiter } from '../middleware/rateLimiter.js'
 import { validate, customLemmaValidateSchema } from '../middleware/validate.js'
 import { validateCustomLemma, buildCustomPlay } from '../customLemma.js'
-import { getQuota, incrementUsage, todayBerlin } from '../customLemmaQuota.js'
+import { getQuota, tryConsume, todayBerlin } from '../customLemmaQuota.js'
 import { serverError } from '../middleware/auth.js'
 import logger from '../logger.js'
 
@@ -65,18 +65,23 @@ router.get(
       if (result.notImplemented) return res.status(501).json({ error: result.reason })
       if (!result.usable) return res.status(422).json({ error: result.reason, usable: false })
 
-      // Erst bei spielbarem Ergebnis verbrauchen.
-      let remaining = Infinity
-      if (!quota.unlimited) {
-        incrementUsage(req.user.id, date)
-        remaining = Math.max(0, quota.remaining - 1)
+      // Erst bei spielbarem Ergebnis verbrauchen — ATOMAR (zaehlen+pruefen in
+      // einem Statement). Der getQuota-Pre-Check oben ist nur der schnelle
+      // 403-Pfad; das Race zweier paralleler Requests bei remaining=1
+      // entscheidet sich hier.
+      const consume = tryConsume({ userId: req.user.id, role: req.user.role, date })
+      if (!consume.consumed) {
+        return res.status(403).json({
+          error: 'Dein Eigenes-Lemma-Kontingent für heute ist aufgebraucht.',
+          quota: { unlimited: false, allowance: consume.allowance, remaining: 0 },
+        })
       }
 
       res.json({
         ...result,
-        quota: quota.unlimited
+        quota: consume.unlimited
           ? { unlimited: true }
-          : { unlimited: false, allowance: quota.allowance, remaining },
+          : { unlimited: false, allowance: consume.allowance, remaining: consume.remaining },
       })
     } catch (err) {
       logger.error({ err, query: req.query }, 'Eigenes-Lemma-Spielaufbau fehlgeschlagen')
