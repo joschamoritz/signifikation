@@ -43,6 +43,7 @@ import { startDataRetention } from './jobs/dataRetention.js'
 import { ALLOWED_ORIGINS, CAPACITOR_ORIGINS, isAllowedOrigin } from './config/origins.js'
 import { startSessionCleanup } from './auth/session-cleanup.js'
 import { startAlerting } from './alerting.js'
+import { track5xx } from './metrics.js'
 import { runMigrations } from './migrate-runner.js'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
@@ -126,6 +127,30 @@ app.use(express.json({ limit: '16kb' }))
 // ── Correlation-ID ────────────────────────────────────────────
 app.use((req, _res, next) => {
   req.id = req.headers['x-request-id'] || randomUUID()
+  next()
+})
+
+// ── Request-Logging (API/Admin) ───────────────────────────────
+// Korrelierbares Log pro Request (req.id) + 5xx-Zaehler fuers Alerting.
+// /health bewusst ausgenommen (Probe-Rauschen).
+app.use((req, res, next) => {
+  const path = req.path
+  if (path === '/health' || (!path.startsWith('/api') && !path.startsWith('/admin'))) {
+    return next()
+  }
+  const start = process.hrtime.bigint()
+  res.on('finish', () => {
+    const durationMs = Math.round(Number(process.hrtime.bigint() - start) / 1e6)
+    const entry = { id: req.id, method: req.method, path, status: res.statusCode, durationMs }
+    if (res.statusCode >= 500) {
+      track5xx()
+      logger.error(entry, 'request')
+    } else if (res.statusCode >= 400) {
+      logger.warn(entry, 'request')
+    } else {
+      logger.info(entry, 'request')
+    }
+  })
   next()
 })
 
