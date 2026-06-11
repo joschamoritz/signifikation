@@ -18,13 +18,21 @@ test.describe('Home – Spielmodi-Rendering', () => {
     await expect(page.locator('.test-title')).toContainText('Signifikation')
 
     // Snap-Nav-Buttons der vier Modi (① Kollokationen, ② Wort-Zwilling,
-    // ③ Zeitenwende, ④ Lückenfüller) – ⑤ ist "in Vorbereitung"
-    const snapNav = page.locator('nav[aria-label="Spielmodus-Navigation"]')
-    await expect(snapNav).toBeVisible()
-    await expect(snapNav.getByRole('button', { name: /Kollokationen/ })).toBeVisible()
-    await expect(snapNav.getByRole('button', { name: /Wort-Zwilling/ })).toBeVisible()
-    await expect(snapNav.getByRole('button', { name: /Zeitenwende/ })).toBeVisible()
-    await expect(snapNav.getByRole('button', { name: /Lückenfüller/ })).toBeVisible()
+    // ③ Zeitenwende, ④ Lückenfüller) – nur auf Mobile sichtbar (< 768px).
+    // Auf Desktop ist die snap-nav per CSS ausgeblendet; dort prüfen wir
+    // stattdessen die Eintrags-Liste.
+    const { width } = page.viewportSize()
+    if (width < 768) {
+      const snapNav = page.locator('nav[aria-label="Spielmodus-Navigation"]')
+      await expect(snapNav).toBeVisible()
+      await expect(snapNav.getByRole('button', { name: /Kollokationen/ })).toBeVisible()
+      await expect(snapNav.getByRole('button', { name: /Wort-Zwilling/ })).toBeVisible()
+      await expect(snapNav.getByRole('button', { name: /Zeitenwende/ })).toBeVisible()
+      await expect(snapNav.getByRole('button', { name: /Lückenfüller/ })).toBeVisible()
+    } else {
+      // Desktop: Spielmodi über Eintrags-Liste erreichbar
+      await expect(page.locator('.test-entry').first()).toBeVisible()
+    }
   })
 
   test('Home: Tab-Bar hat alle Haupt-Tabs', async ({ page }) => {

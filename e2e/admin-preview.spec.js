@@ -8,15 +8,12 @@ test('Tageseintrag Vorschau: Lemma- und Tages-Vorschau rendern', async ({ page }
   const date = await getAnyCalendarDate(page)
   test.skip(!date, 'Keine Kalenderdaten verfügbar')
 
-  const [mm, dd] = date.split('-')
-  const year = new Date().getFullYear()
-  const isoDate = `${year}-${mm}-${dd}`
-
-  // Eingabefelder liegen im kollabierten Bereich, daher zuerst aufklappen.
-  await page.getByRole('button', { name: /Kollokationen/ }).click()
+  // #w1 ist immer sichtbar – kein Aufklappen noetig (kein Kollokationen-Toggle-Button
+  // in admin.html; der Text ist nur ein <span> ohne Button-Rolle).
   await expect(page.locator('#w1')).toBeVisible()
 
-  await page.locator('#datum').fill(isoDate)
+  // date ist bereits YYYY-MM-DD – direkt in das date-Input eintragen.
+  await page.locator('#datum').fill(date)
 
   const lemma = await page.evaluate(async (datum) => {
     const res = await fetch(`/admin/preview/day/${encodeURIComponent(datum)}`)

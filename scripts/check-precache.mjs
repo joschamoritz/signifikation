@@ -8,8 +8,11 @@
 // Dieser Check macht das zum harten Build-Fehler.
 import { readFileSync, readdirSync, statSync } from 'node:fs'
 import { join, relative } from 'node:path'
+import { fileURLToPath } from 'node:url'
 
-const DIST = new URL('../dist', import.meta.url).pathname
+// fileURLToPath statt .pathname – auf Windows liefert .pathname einen
+// fuehrenden Slash ("/D:/...") der join() zu einem doppelten Laufwerksbuchstaben fuehrt.
+const DIST = fileURLToPath(new URL('../dist', import.meta.url))
 
 function walk(dir) {
   const out = []
@@ -28,7 +31,9 @@ const manifestUrls = new Set(
 )
 
 const wanted = walk(DIST)
-  .map((p) => relative(DIST, p))
+  // relative() liefert auf Windows Backslash-Pfade, die nicht mit den
+  // Workbox-Manifest-URLs (immer Forward-Slash) uebereinstimmen.
+  .map((p) => relative(DIST, p).replace(/\\/g, '/'))
   .filter((p) => /\.(js|css|html|webmanifest)$/.test(p))
   // Der SW selbst und sein Registrierungs-Stub gehoeren nicht in den Precache
   .filter((p) => p !== 'sw.js' && p !== 'registerSW.js' && !p.startsWith('workbox-'))

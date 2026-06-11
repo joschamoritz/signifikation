@@ -11,14 +11,24 @@ import bcryptjs from 'bcryptjs'
 import db from './db.js'
 import logger from './logger.js'
 
-const rl = readline.createInterface({
-  input: process.stdin,
-  output: process.stdout,
-})
+// Readline nur im interaktiven Modus (ohne Argv) öffnen – andernfalls
+// hält das Interface stdin offen und execFileSync in e2e/start-server.js
+// blockiert bis zum Timeout.
+let rl = null
+
+function getRL() {
+  if (!rl) {
+    rl = readline.createInterface({
+      input: process.stdin,
+      output: process.stdout,
+    })
+  }
+  return rl
+}
 
 function question(prompt) {
   return new Promise((resolve) => {
-    rl.question(prompt, resolve)
+    getRL().question(prompt, resolve)
   })
 }
 
@@ -125,11 +135,16 @@ async function main() {
   } catch (err) {
     logger.error({ err }, 'Setup-Fehler')
     printError(`Fehler: ${err.message}`)
-    process.exit(1)
-  } finally {
-    rl.close()
+    if (rl) rl.close()
     db.close()
+    process.exit(1)
   }
+
+  if (rl) rl.close()
+  db.close()
+  // db.js installiert einen WAL-Checkpoint-Timer – ohne expliziten Exit
+  // hängt execFileSync in e2e/start-server.js (wie bei seed-dev.js).
+  process.exit(0)
 }
 
 main().catch((err) => {
