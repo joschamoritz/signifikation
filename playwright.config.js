@@ -21,11 +21,20 @@ export default defineConfig({
       name: 'chromium',
       use: { ...devices['Desktop Chrome'] },
     },
+    // PWA/Capacitor-App: Spielmodi zusaetzlich im Mobil-Viewport smoken.
+    // Admin-Specs bleiben Desktop-only (Admin-UI ist nicht mobiloptimiert).
+    {
+      name: 'mobile-chrome',
+      use: { ...devices['Pixel 7'] },
+      testMatch: /spielmodi-smoke\.spec\.js/,
+    },
   ],
   webServer: {
-    command: `node server/index.js`,
+    // Wrapper: isolierte Temp-DB + Admin-Account + Seeds, dann Server-Start
+    // (e2e/start-server.js) — E2E laeuft damit auf frischem Checkout und in CI.
+    command: `node e2e/start-server.js`,
     url: `${BASE_URL}/admin`,
-    reuseExistingServer: true,
+    reuseExistingServer: !process.env.CI,
     timeout: 180000,
     env: {
       ...process.env,
