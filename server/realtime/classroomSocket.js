@@ -551,10 +551,6 @@ export function notifyStudentViewUpdated(participantId, payload) {
   nsp.to(roomParticipant(participantId)).emit('view:updated', payload)
 }
 
-export function notifyStudentKicked(participantId, payload) {
-  if (!nsp || !participantId) return
-  nsp.to(roomParticipant(participantId)).emit('kicked', payload)
-}
 
 // ── Test-/Cleanup-Helper ────────────────────────────────────────────
 

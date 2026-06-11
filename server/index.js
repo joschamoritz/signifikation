@@ -45,6 +45,7 @@ import { startSessionCleanup } from './auth/session-cleanup.js'
 import { startAlerting } from './alerting.js'
 import { track5xx } from './metrics.js'
 import { runMigrations } from './migrate-runner.js'
+import db from './db.js'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const PORT      = process.env.PORT || 3001
@@ -292,6 +293,13 @@ const WORTPROFIL_TIMEOUT_MS = 130_000  // etwas mehr als curl --max-time 120
     io.close()
     server.close(() => {
       logger.info('HTTP-Server geschlossen')
+      // SQLite-Verbindung sauber schließen (flusht WAL, gibt File-Handles frei)
+      try {
+        db.close()
+        logger.info('DB-Verbindung geschlossen')
+      } catch (err) {
+        logger.warn({ err }, 'db.close() beim Shutdown fehlgeschlagen')
+      }
       process.exit(0)
     })
     // Force-Exit nach 30 s falls offene Verbindungen hängen

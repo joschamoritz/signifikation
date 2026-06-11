@@ -23,7 +23,7 @@ export default [
   js.configs.recommended,
   // Serverseitiger Code + Build-/Ops-Skripte (Node ESM)
   {
-    files: ['server/**/*.js', 'shared/**/*.js', 'scripts/**/*.js', '*.js', '*.cjs', 'e2e/**/*.js'],
+    files: ['server/**/*.js', 'shared/**/*.js', 'scripts/**/*.{js,mjs}', '*.js', '*.cjs', 'e2e/**/*.js'],
     languageOptions: {
       ecmaVersion: 'latest',
       sourceType: 'module',

@@ -25,16 +25,17 @@ function todayDatum() {
 
 /**
  * GET /health – Readiness-Check.
- * Prüft DB-Schreibzugriff und Belege-Verfügbarkeit.
+ * Prüft DB-Erreichbarkeit und Belege-Verfügbarkeit.
  * HTTP 503 bei kritischen Fehlern, sonst 200 (auch bei degraded).
  */
 router.get('/health', (_req, res) => {
   const checks = {}
   let status = 'ok'
 
-  // DB-Schreibzugriff: BEGIN IMMEDIATE schlägt fehl wenn DB nicht beschreibbar
+  // DB-Erreichbarkeit: leichter Read-Check statt BEGIN IMMEDIATE — der frühere
+  // Write-Lock pro Probe erzeugte unnötige Contention mit echten Writes.
   try {
-    db.exec('BEGIN IMMEDIATE; ROLLBACK;')
+    db.prepare('SELECT 1').get()
     checks.db = 'ok'
   } catch (err) {
     checks.db = `error: ${err.message}`
