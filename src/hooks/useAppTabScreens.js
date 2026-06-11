@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import AppTabScreens from '../components/AppTabScreens'
 
 export function useAppTabScreens({
@@ -32,47 +32,73 @@ export function useAppTabScreens({
   const [swZwViewOnly, setSwZwViewOnly] = useState(false)
   const [swLfViewOnly, setSwLfViewOnly] = useState(false)
 
-  const tabScreens = AppTabScreens({
+  // Stabile Callback-Identitaeten (F-M2): die frueheren Inline-Literale
+  // ({ play: () => … }) wurden bei JEDEM Render neu erzeugt — zusammen mit
+  // dem direkten Funktionsaufruf von AppTabScreens bekam <Home> damit bei
+  // jedem State-Tick des App-Modells neue Props und renderte komplett neu
+  // (inkl. computeStreak()-localStorage-Scan).
+  const canStart = !!(lemmata && !apiError)
+  const onStart = useCallback(
+    () => startVT(() => setPhase(canStart ? 'selection' : 'home')),
+    [startVT, setPhase, canStart],
+  )
+  const onPlayWortzwilling = useMemo(() => ({
+    play: () => startVT(() => {
+      setWzViewOnly(false)
+      setPhase('wortzwilling-selection')
+    }),
+  }), [startVT, setPhase])
+  const onPlayZeitenwende = useMemo(() => ({
+    play: () => startVT(() => {
+      setZwViewOnly(false)
+      setPhase('zeitenwende-selection')
+    }),
+  }), [startVT, setPhase])
+  const hasLueckenfueller = !!lueckenfuellerLemma?.lueckenfueller
+  const onPlayLueckenfueller = useMemo(() => hasLueckenfueller ? {
+    play: () => startVT(() => {
+      setLfViewOnly(false)
+      setPhase('lueckenfueller-selection')
+    }),
+  } : null, [hasLueckenfueller, startVT, setPhase])
+  const onNavigateToKonto = useCallback(() => setActiveTab('profil'), [setActiveTab])
+
+  // useMemo statt Komponenten-Aufruf pro Render: die Elemente behalten ihre
+  // Identitaet, solange sich keine Abhaengigkeit aendert — React bailed dann
+  // beim Re-Render des Parents komplett aus (memo auf Home/KursTab greift
+  // zusaetzlich bei geaenderten, aber gleichen Props).
+  const tabScreens = useMemo(() => AppTabScreens({
     phase,
     lemmata,
     apiError,
     thema,
     playedGames,
     allPlayed,
-    onStart: () => startVT(() => setPhase(lemmata && !apiError ? 'selection' : 'home')),
+    onStart,
     wortzwilling,
     wortzwillingError,
     onRetryWortzwilling: retryWortzwilling,
     wzPlayed,
-    onPlayWortzwilling: {
-      play: () => startVT(() => {
-        setWzViewOnly(false)
-        setPhase('wortzwilling-selection')
-      }),
-    },
+    onPlayWortzwilling,
     zeitenwende,
     zeitenwendeError,
     zeitenwendeMissing,
     onRetryZeitenwende: retryZeitenwende,
     zwPlayed,
-    onPlayZeitenwende: {
-      play: () => startVT(() => {
-        setZwViewOnly(false)
-        setPhase('zeitenwende-selection')
-      }),
-    },
+    onPlayZeitenwende,
     lueckenfuellerLemma,
     lfPlayed,
-    onPlayLueckenfueller: lueckenfuellerLemma?.lueckenfueller ? {
-      play: () => startVT(() => {
-        setLfViewOnly(false)
-        setPhase('lueckenfueller-selection')
-      }),
-    } : null,
+    onPlayLueckenfueller,
     gesamtausgabeUnlocked,
     serverDatum,
-    onNavigateToKonto: () => setActiveTab('profil'),
-  })
+    onNavigateToKonto,
+  }), [
+    phase, lemmata, apiError, thema, playedGames, allPlayed, onStart,
+    wortzwilling, wortzwillingError, retryWortzwilling, wzPlayed, onPlayWortzwilling,
+    zeitenwende, zeitenwendeError, zeitenwendeMissing, retryZeitenwende, zwPlayed, onPlayZeitenwende,
+    lueckenfuellerLemma, lfPlayed, onPlayLueckenfueller,
+    gesamtausgabeUnlocked, serverDatum, onNavigateToKonto,
+  ])
 
   const goToWortzwillingGame = useCallback(() => startVT(() => {
     setWzViewOnly(false)

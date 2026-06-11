@@ -16,7 +16,9 @@ import { MOBILE_MEDIA_QUERY } from '../config'
 import GameEntry from './GameEntry'
 import LegalLinks from './LegalLinks'
 
-export default function Home({
+import { memo } from 'react'
+
+function Home({
   onStart, loading, error, lemmata = [],
   thema = '',
   playedGames = [], allPlayed = false,
@@ -530,3 +532,6 @@ export default function Home({
     </>
   )
 }
+
+// memo: Home ist der groesste Screen — Re-Render nur bei echten Prop-Aenderungen (F-M2)
+export default memo(Home)

@@ -1,3 +1,4 @@
+import { memo } from 'react'
 import { useRef, useCallback } from 'react'
 import TabHeader from './TabHeader'
 import { useActiveSnapCard } from '../hooks/useActiveSnapCard'
@@ -56,7 +57,7 @@ const KURS_MODULES = [
   },
 ]
 
-export default function KursTab({ gesamtausgabe = false }) {
+function KursTab({ gesamtausgabe = false }) {
   const entriesRef = useRef(null)
   const activeCard = useActiveSnapCard(entriesRef)
   useScrollPersist(entriesRef, 'kurs')
@@ -147,3 +148,5 @@ export default function KursTab({ gesamtausgabe = false }) {
     </div>
   )
 }
+
+export default memo(KursTab)
