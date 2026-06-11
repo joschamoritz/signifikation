@@ -30,7 +30,6 @@ export default function KontoEinstellungenBlock() {
   // ── iOS Push (Capacitor/Native) ───────────────────────────────────
   const { supported: iosPushSupported, subscribed: iosPushSubscribed,
           requesting: iosPushRequesting, error: iosPushError,
-          permStatus: iosPushPermStatus,
           subscribe: iosPushSubscribe,
           unsubscribe: iosPushUnsubscribe } = usePushNotifications()
 

@@ -111,7 +111,6 @@ export default function WortZwilling({
   onSubmit,                 // Classroom: (rawAnswer) => void
   onProgress,               // Classroom: Entwurf spiegeln (Reload, 7.2)
   initialZones = null,      // Classroom: { zoneA, zoneB } aus dem Entwurf
-  disableProgress = false,  // Classroom: keine XP/Streak/Stats
   hideHeader = false,       // Classroom: KioskShell zeigt eigenen Header
 }) {
   // Klassenraum nutzt dieselbe Drag-and-Drop-Engine, aber OHNE Joker und OHNE

@@ -9,7 +9,7 @@
  *   3. getAdminStats liefert erwartete Aggregat-Zahlen
  */
 
-import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeAll, describe, expect, it, vi } from 'vitest'
 import { randomUUID } from 'crypto'
 import db from '../db.js'
 import {
@@ -21,12 +21,10 @@ import {
   trackSessionResumed,
   trackAssignmentChanged,
   trackJoinSucceeded,
-  trackJoinFailed,
   trackParticipantReconnected,
   trackParticipantDropped,
   trackSubmissionReceived,
   getAdminStats,
-  getRecentEvents,
 } from '../classroom/telemetry.js'
 
 // ── Hilfsfunktionen ────────────────────────────────────────────────

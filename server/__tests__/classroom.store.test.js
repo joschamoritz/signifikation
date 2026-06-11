@@ -8,7 +8,6 @@ import {
   deleteSession,
   pauseSession,
   resumeSession,
-  touchSessionActivity,
   autoEndStaleSessions,
   getSessionById,
   addAssignment,

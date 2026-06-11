@@ -47,7 +47,6 @@
  */
 
 import cluster from 'node:cluster'
-import { Server } from 'socket.io'
 import { fromNodeHeaders } from 'better-auth/node'
 import { auth } from '../auth/index.js'
 import logger from '../logger.js'

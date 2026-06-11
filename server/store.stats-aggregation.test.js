@@ -1,4 +1,3 @@
-import Database from 'better-sqlite3'
 import { mkdtempSync, rmSync } from 'fs'
 import { join } from 'path'
 import { tmpdir } from 'os'

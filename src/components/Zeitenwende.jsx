@@ -19,7 +19,7 @@ function PeriodChip({ periode }) {
 }
 
 /** Ergebnisansicht */
-function ZWResults({ lemma, words, answers, onBack, ipa, definitionen }) {
+function ZWResults({ lemma, words, answers, onBack, ipa }) {
   const score     = answers.filter((a, i) => a === words[i].periode).length
   const medal     = getMedal(score, TOTAL)
   const zwHistory = lsParse(lsGet('sig_zw_history'), []).slice(0, 14).reverse()

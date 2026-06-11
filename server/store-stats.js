@@ -193,7 +193,7 @@ export function getCachedStatsWindow(cache, stats, days) {
   return result
 }
 
-export function createStatsStore({ db, stmts, logger, loadReadOnly }) {
+export function createStatsStore({ db, stmts, logger }) {
   const statsWindowCache = createStatsWindowCache(30 * 1000)
 
   const replaceStats = db.transaction((obj) => {

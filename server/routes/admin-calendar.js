@@ -15,7 +15,6 @@ export function createAdminCalendarRouter({
   adminPreviewDayParamsSchema,
   adminLemmaIdParamsSchema,
   load,
-  loadKalender,
   loadDailyContentMaps,
   loadMutableDailyContentMaps,
   save,

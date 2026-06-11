@@ -45,7 +45,7 @@ export const percentileQuerySchema = z.object({
 })
 
 
-const WORT_REGEX = /^[a-zA-ZäöüÄÖÜß\-]+$/
+const WORT_REGEX = /^[a-zA-ZäöüÄÖÜß-]+$/
 
 /** GET /api/belege (query) */
 export const belegeQuerySchema = z.object({

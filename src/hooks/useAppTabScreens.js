@@ -24,11 +24,6 @@ export function useAppTabScreens({
   gesamtausgabeUnlocked,
   serverDatum,
   setActiveTab,
-  // Spezialwoche
-  spezialwoche,
-  swWzPlayed,
-  swZwPlayed,
-  swLfPlayed,
 }) {
   const [wzViewOnly, setWzViewOnly] = useState(false)
   const [zwViewOnly, setZwViewOnly] = useState(false)

@@ -24,8 +24,6 @@ export default function Quiz({
   onSubmit,                 // Classroom: (rawAnswer) => void
   onProgress,               // Classroom: Entwurf spiegeln (Reload, 7.2)
   initialSelected = null,   // Classroom: Auswahl aus dem Entwurf
-  disableProgress = false,  // Classroom: keine XP/Streak/Stats-Schreibvorgaenge
-  hideHeader = false,       // Classroom: KioskShell zeigt eigenen Header
 }) {
   // Klassenraum: dieselbe Quiz-Optik, aber ohne Joker/Belege/Sofort-Feedback
   // (server-autoritativ; Joker/Feedback braeuchten die Loesung `rang`). Eine
