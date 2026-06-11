@@ -17,7 +17,12 @@ jobs:
           node-version: 20
           cache: npm
       - run: npm ci
-      - run: npm run verify
+      # Wie 'npm run verify', aber Tests mit Coverage-Gate (thresholds in
+      # vite.config.js) — lokal bleibt verify ohne Coverage schnell.
+      - run: npm run lint
+      - run: npm run test:coverage
+      - run: npm run build
+      - run: node scripts/check-precache.mjs
       - name: Server-Start-Smoke
         run: |
           # Server mit temporärer DB starten – keine Sprachdatenbanken in CI (degraded ist ok)

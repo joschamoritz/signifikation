@@ -37,6 +37,14 @@ export default defineConfig({
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],
+      // Ratchet-Boden knapp unter dem Ist-Stand (2026-06-11: 59/51/61/62) —
+      // Abdeckung darf nicht unbemerkt sinken; bei Steigerung nachziehen.
+      thresholds: {
+        statements: 55,
+        branches: 47,
+        functions: 56,
+        lines: 58,
+      },
       exclude: [
         'node_modules/**',
         'server/public/**',
