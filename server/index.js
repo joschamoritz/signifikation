@@ -24,7 +24,7 @@ import { IS_PROD, csrfProtect, csrfProtectUpload } from './middleware/auth.js'
 import { auth } from './auth/index.js'
 import { loginLimiter, registerLimiter } from './middleware/rateLimiter.js'
 import { initializeIndices } from './store.js'
-import { errorHandler } from './error-handling.js'
+import { errorHandler, AppError } from './error-handling.js'
 import { ensureWortprofilDb } from './init-wortprofil.js'
 import publicRouter from './routes/public.js'
 import adminRouter  from './routes/admin.js'
@@ -97,7 +97,9 @@ app.use(cors({
       origin: IS_PROD
     ? (origin, cb) => {
         if (isAllowedOrigin(origin)) cb(null, true)
-        else cb(new Error(`CORS: Unerlaubte Origin ${origin}`))
+        // AppError(FORBIDDEN) → errorHandler antwortet 403 statt 500.
+        // Bot-Traffic mit fremder Origin verfaelscht sonst die 5xx-Rate.
+        else cb(new AppError('FORBIDDEN', `CORS: Unerlaubte Origin ${origin}`))
       }
     : true,
   credentials: true,
