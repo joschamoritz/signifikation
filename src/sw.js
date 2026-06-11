@@ -1,9 +1,24 @@
-import { precacheAndRoute } from 'workbox-precaching'
-import { registerRoute } from 'workbox-routing'
+import { clientsClaim } from 'workbox-core'
+import { precacheAndRoute, createHandlerBoundToURL } from 'workbox-precaching'
+import { registerRoute, NavigationRoute } from 'workbox-routing'
 import { StaleWhileRevalidate, CacheFirst, NetworkFirst } from 'workbox-strategies'
 import { ExpirationPlugin } from 'workbox-expiration'
 
+// registerType 'autoUpdate' verlangt bei strategies:'injectManifest', dass
+// das SW-Skript skipWaiting/clientsClaim SELBST aufruft — sonst bleibt der
+// neue SW im waiting-State, bis alle Tabs zu sind, und der Precache liefert
+// weiter die alte App-Version (Mischversions-Risiko mit SWR auf /assets/).
+self.skipWaiting()
+clientsClaim()
+
 precacheAndRoute(self.__WB_MANIFEST)
+
+// SPA-Navigation-Fallback: Deep-Links wie /c/:code (Schueler-Kiosk) muessen
+// offline/bei Reconnect die App-Shell aus dem Precache bekommen statt eines
+// Browserfehlers (instabiles Schul-WLAN!). Server-gerenderte Pfade ausnehmen.
+registerRoute(new NavigationRoute(createHandlerBoundToURL('index.html'), {
+  denylist: [/^\/admin/, /^\/api\//, /^\/socket\.io\//],
+}))
 
 // ── Runtime Caching ───────────────────────────────────────────────────────────
 
