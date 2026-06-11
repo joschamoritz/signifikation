@@ -1,6 +1,46 @@
 import express from 'express'
-import { createWriteStream, existsSync, renameSync, statSync, unlinkSync } from 'fs'
+import { createWriteStream, existsSync, renameSync, statSync, unlinkSync, openSync, readSync, closeSync } from 'fs'
 import { join } from 'path'
+import Database from 'better-sqlite3'
+
+const SQLITE_HEADER = 'SQLite format 3\0'
+
+/**
+ * Validiert eine hochgeladene SQLite-Datei, bevor sie die laufende DB ersetzt.
+ * 1) Header-Check (billig) — faengt truncatedte oder Nicht-SQLite-Uploads.
+ * 2) readonly oeffnen + PRAGMA quick_check — faengt strukturelle Korruption.
+ *    quick_check statt integrity_check, weil Letzteres bei Multi-GB-DBs Minuten
+ *    blockieren kann; quick_check ueberspringt nur die teuren Index/Tabelle-
+ *    Cross-Checks und erkennt echte Korruption zuverlaessig.
+ * @returns {{ ok: true } | { ok: false, reason: string }}
+ */
+function validateSqliteFile(path) {
+  let fd
+  try {
+    fd = openSync(path, 'r')
+    const header = Buffer.alloc(16)
+    readSync(fd, header, 0, 16, 0)
+    if (header.toString('latin1') !== SQLITE_HEADER) {
+      return { ok: false, reason: 'kein gültiger SQLite-Header' }
+    }
+  } catch (err) {
+    return { ok: false, reason: err.message }
+  } finally {
+    if (fd !== undefined) { try { closeSync(fd) } catch { /* ignore */ } }
+  }
+
+  let probe
+  try {
+    probe = new Database(path, { readonly: true, fileMustExist: true })
+    const result = probe.pragma('quick_check')?.[0]?.quick_check
+    if (result !== 'ok') return { ok: false, reason: `quick_check: ${result}` }
+    return { ok: true }
+  } catch (err) {
+    return { ok: false, reason: err.message }
+  } finally {
+    if (probe) { try { probe.close() } catch { /* ignore */ } }
+  }
+}
 
 export function createAdminCoreRouter({
   adminLimiter,
@@ -62,10 +102,20 @@ export function createAdminCoreRouter({
         stream.once('error', (err) => adminError(res, err))
         stream.once('finish', () => {
           if (idxRaw === totalRaw - 1) {
+            // Letzter Chunk: hochgeladene Datei VOR dem Aktivieren validieren,
+            // damit ein truncatedter/kaputter Upload nicht die laufende DB
+            // ersetzt und das Backup unwiederbringlich loescht.
+            const validation = validateSqliteFile(tmpPath)
+            if (!validation.ok) {
+              try { unlinkSync(tmpPath) } catch { /* ignore */ }
+              logger.warn({ reason: validation.reason }, 'wortprofil.db Upload abgelehnt (Validierung fehlgeschlagen)')
+              return res.status(400).json({ error: `Upload ungültig: ${validation.reason}` })
+            }
             const dbPath = join(dataDir, 'wortprofil.db')
             const bakPath = join(dataDir, 'wortprofil.db.bak')
             if (existsSync(dbPath)) renameSync(dbPath, bakPath)
             renameSync(tmpPath, dbPath)
+            // Backup erst NACH erfolgreicher Aktivierung loeschen.
             if (existsSync(bakPath)) {
               try { unlinkSync(bakPath) } catch (err) { logger.warn({ err }, 'Backup konnte nicht gelöscht werden') }
             }

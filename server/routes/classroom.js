@@ -139,6 +139,7 @@ function mapError(errCode) {
     case 'TOO_MANY_LEMMATA':   return { status: 400, message: 'Maximal 3 Lemmata pro Assignment (D3)' }
     case 'NO_LEMMATA':         return { status: 400, message: 'Mindestens 1 Lemma erforderlich' }
     case 'INVALID_MODE':       return { status: 400, message: 'Ungültiger Modus' }
+    case 'INVALID_INPUT':      return { status: 400, message: 'Ungültige oder fehlende Eingabe' }
     case 'PAYLOAD_TOO_LARGE':  return { status: 413, message: 'rawAnswer zu groß (max. 4 KiB)' }
     case 'SCORING_FAILED':     return { status: 422, message: 'Scoring fehlgeschlagen – ggf. Content-Snapshot prüfen' }
     case 'IDEMPOTENCY_RACE':   return { status: 409, message: 'Submission-Konflikt – bitte wiederholen' }

@@ -189,6 +189,15 @@ router.post(
     // ── Security: IP-Whitelist (nur in Production) ────────────
     if (IS_PROD && !isValidMollieIP(req.ip)) {
       logger.warn({ ip: req.ip, paymentId: req.body?.id }, 'Webhook von unbekannter IP blockiert')
+      // In den Security-Audit-Trail spiegeln: ein Webhook von einer IP
+      // ausserhalb der Mollie-Range ist ein Manipulationssignal, kein
+      // Routine-Log. Die Mollie-IP-Ranges koennen sich aendern → wiederholte
+      // Eintraege hier sind das Alarmsignal, die Whitelist zu pruefen.
+      auditSecurity(
+        'WEBHOOK_REJECT',
+        { ip: req.ip, paymentId: req.body?.id, reason: 'IP nicht in Mollie-Whitelist' },
+        { ip: req.ip, status: 'FAIL' }
+      )
       return res.status(403).end()
     }
 
