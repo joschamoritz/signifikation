@@ -3,6 +3,7 @@ import { bearer } from 'better-auth/plugins'
 import db from '../db.js'
 import logger from '../logger.js'
 import { initAppleClientSecret } from './apple-client-secret.js'
+import { ALLOWED_ORIGINS, CAPACITOR_ORIGINS } from '../config/origins.js'
 
 const IS_PROD = process.env.NODE_ENV === 'production'
 const APP_PORT = process.env.PORT || 3001
@@ -98,15 +99,12 @@ async function sendPasswordReset({ user, url }) {
 }
 
 
-const ALLOWED_ORIGINS = process.env.ALLOWED_ORIGINS
-  ? process.env.ALLOWED_ORIGINS.split(',').map((value) => value.trim()).filter(Boolean)
-  : IS_PROD
-    ? ['https://signifikation.de']
-    : ['http://localhost:5173', 'http://localhost:3001']
-
-const CAPACITOR_ORIGINS = ['capacitor://localhost', 'http://localhost']
-
-const trustedOrigins = Array.from(new Set([
+// Single Source fuer Origins: config/origins.js. Die fruehere lokale Kopie
+// war gedriftet — http://localhost stand auch in Prod in den trustedOrigins
+// (origins.js schliesst das mit Begruendung aus) und https://localhost
+// (Capacitor-Android) fehlte, was Android-Sign-in brechen konnte.
+// Exportiert fuer den Paritaetstest (origins.test.js).
+export const trustedOrigins = Array.from(new Set([
   ...ALLOWED_ORIGINS,
   ...CAPACITOR_ORIGINS,
 ]))
