@@ -281,7 +281,14 @@ export function setupClassroomSocket(io, options = {}) {
 
   nsp.use(async (socket, next) => {
     try {
-      const ip = socket.handshake.address || 'unknown'
+      // Hinter nginx ist handshake.address die Proxy-IP — das Limit wuerde
+      // auf EINE IP kollabieren. X-Forwarded-For (vom Proxy gesetzt, siehe
+      // ops/nginx-*.conf) hat Vorrang; erster Eintrag = Client. Caveat wie
+      // bei Express trust proxy=1: nur hinter dem eigenen Proxy verlaesslich.
+      const xff = socket.handshake.headers['x-forwarded-for']
+      const ip = (typeof xff === 'string' && xff.length > 0)
+        ? xff.split(',')[0].trim()
+        : (socket.handshake.address || 'unknown')
       if (!checkConnectRateLimit(ip)) {
         logger.warn({ ip }, 'cr2 socket: rate limit exceeded')
         return next(new Error('RATE_LIMITED'))
