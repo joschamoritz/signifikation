@@ -61,14 +61,18 @@ test.describe('Home – Spielmodi-Rendering', () => {
   test('Klassenraum-Tab öffnet ohne Fehler', async ({ page }) => {
     await page.goto('/')
     await page.getByRole('button', { name: /^Klassenraum$/ }).click()
-    // Lazy-Loaded – kann kurz dauern
-    await expect(page.locator('text=/Klassenraum|Teilnehmer|Code/i').first()).toBeVisible({ timeout: 10_000 })
+    // Lazy-Loaded – kann kurz dauern.
+    // text= wuerde zuerst den .test-raster-Span matchen, der auf Mobile
+    // (max-width:767px) per CSS display:none ist → data-testid statt text=.
+    await expect(page.locator('[data-testid="cr2-kiosk-code-input"]')).toBeVisible({ timeout: 10_000 })
   })
 
   test('Konto-Tab öffnet ohne Fehler', async ({ page }) => {
     await page.goto('/')
     await page.getByRole('button', { name: /^Konto$/ }).click()
-    // Lazy-Loaded
-    await expect(page.locator('text=/Anmeld|Konto|Email/i').first()).toBeVisible({ timeout: 10_000 })
+    // Lazy-Loaded.
+    // Gleiche Falle wie Klassenraum: text=/Konto/ trifft den .test-raster-Span
+    // (display:none auf Mobile) bevor die sichtbaren .test-entry-Kacheln erscheinen.
+    await expect(page.locator('.test-entry').first()).toBeVisible({ timeout: 10_000 })
   })
 })
