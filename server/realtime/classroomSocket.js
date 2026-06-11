@@ -103,6 +103,23 @@ const connectAttempts = new Map()
 
 function nowMs() { return Date.now() }
 
+// Pruning: abgelaufene Fenster wurden bisher nur beim erneuten Connect
+// DERSELBEN IP ueberschrieben — die Map wuchs sonst mit jeder je gesehenen
+// IP unbegrenzt (langsamer Leak ueber Wochen). Muster wie CleanupStore in
+// middleware/rateLimiter.js; unref() haelt CLI-Prozesse nicht am Leben.
+// Exportiert fuer Tests.
+export function pruneConnectAttempts(now = nowMs()) {
+  let pruned = 0
+  for (const [ip, entry] of connectAttempts.entries()) {
+    if (now - entry.windowStart > CONNECT_RATE_WINDOW_MS) {
+      connectAttempts.delete(ip)
+      pruned++
+    }
+  }
+  return pruned
+}
+setInterval(pruneConnectAttempts, 10 * 60 * 1000).unref()
+
 // P5: Erkennt einen Multi-Instance-/Cluster-Betrieb, in dem der modul-lokale
 // Realtime-State (Broadcasts/Timer/Rate-Limit) STILL bricht.
 //   - PM2 cluster_mode forkt ueber Node's cluster-Modul → cluster.isWorker.
@@ -554,6 +571,14 @@ export function clearAllTimers() {
 
 export function __getTimerCountForTests() {
   return disconnectTimers.size
+}
+
+export function __seedConnectAttemptForTests(ip, windowStart) {
+  connectAttempts.set(ip, { count: 1, windowStart })
+}
+
+export function __getConnectAttemptCountForTests() {
+  return connectAttempts.size
 }
 
 export function __getNamespaceForTests() {
