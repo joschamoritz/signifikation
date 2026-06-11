@@ -126,18 +126,60 @@ export default function Zeitenwende({
   const [phase,    setPhase]    = useState(savedResult ? 'results' : 'play')
   const [belege,   setBelege]   = useState(null)
 
-  // Swipe-State
-  const [dragX,   setDragX]   = useState(0)
+  // Swipe-State. dragX lebt bewusst NICHT im React-State: setState pro
+  // touchmove rendert die komplette Komponente pro Frame neu (Jank auf
+  // Low-End-Android — Classroom-Zielgruppe, F-M3). Stattdessen schreibt
+  // ein rAF-gedrosselter Handler Transform/Opacity direkt aufs DOM.
   const [swiping, setSwiping] = useState(false)
   const touchStartX   = useRef(null)
   const touchCurrentX = useRef(null)
   const mouseDownRef  = useRef(false)
+  const dragXRef      = useRef(0)
+  const rafRef        = useRef(null)
+  const cardRef       = useRef(null)
+  const preLabelRef   = useRef(null)
+  const postLabelRef  = useRef(null)
+
+  const applyDrag = useCallback((dx) => {
+    dragXRef.current = dx
+    if (rafRef.current !== null) return // ein DOM-Write pro Frame reicht
+    rafRef.current = requestAnimationFrame(() => {
+      rafRef.current = null
+      const el = cardRef.current
+      if (!el) return
+      const x = dragXRef.current
+      const progress = Math.min(1, Math.abs(x) / SWIPE_THRESHOLD)
+      el.style.transform  = `translateX(${x}px) rotate(${(x * 0.04).toFixed(2)}deg)`
+      el.style.transition = 'none'
+      el.style.animation  = 'none'
+      el.style.boxShadow  = `${(-x * 0.1).toFixed(1)}px 8px ${(16 + Math.abs(x) * 0.25).toFixed(1)}px rgba(0,0,0,${(0.08 + progress * 0.12).toFixed(3)})`
+      if (preLabelRef.current)  preLabelRef.current.style.opacity  = String(Math.min(1, Math.max(0, (-x - 20) / 50)))
+      if (postLabelRef.current) postLabelRef.current.style.opacity = String(Math.min(1, Math.max(0, (x - 20) / 50)))
+    })
+  }, [])
+
+  const resetDrag = useCallback(() => {
+    dragXRef.current = 0
+    if (rafRef.current !== null) {
+      cancelAnimationFrame(rafRef.current)
+      rafRef.current = null
+    }
+    const el = cardRef.current
+    if (el) {
+      el.style.transform = ''
+      el.style.transition = ''
+      el.style.animation = ''
+      el.style.boxShadow = ''
+    }
+    if (preLabelRef.current)  preLabelRef.current.style.opacity = '0'
+    if (postLabelRef.current) postLabelRef.current.style.opacity = '0'
+  }, [])
 
   // Swipe-State bei neuem Wort zurücksetzen
   useEffect(() => {
-    setDragX(0)
+    resetDrag()
     setSwiping(false)
-  }, [round])
+  }, [round, resetDrag])
 
   // Belege laden sobald Feedback erscheint. AbortController + cancelled-Flag:
   // bei schnellem Weiterswipen darf eine spaete Antwort nicht die Belege
@@ -230,11 +272,11 @@ export default function Zeitenwende({
     const raw = e.touches[0].clientX - touchStartX.current
     const dx  = raw * 0.85 // Widerstandsgefühl
     // Haptik genau beim Einrasten der Schwelle
-    if (Math.abs(raw) >= SWIPE_THRESHOLD && Math.abs(dragX) < SWIPE_THRESHOLD * 0.85) {
+    if (Math.abs(raw) >= SWIPE_THRESHOLD && Math.abs(dragXRef.current) < SWIPE_THRESHOLD * 0.85) {
       hapticLight()
     }
-    setDragX(dx)
-  }, [feedback, dragX])
+    applyDrag(dx)
+  }, [feedback, applyDrag])
 
   // Gemeinsame Drag-End-Logik (Touch + Maus)
   const finishDrag = useCallback(() => {
@@ -250,17 +292,17 @@ export default function Zeitenwende({
 
     if (totalDx < -SWIPE_THRESHOLD) {
       hapticMedium()
-      setDragX(0)
+      resetDrag()
       choose('pre')
     } else if (totalDx > SWIPE_THRESHOLD) {
       hapticMedium()
-      setDragX(0)
+      resetDrag()
       choose('post')
     } else {
       setSwiping(false)
-      setDragX(0)
+      resetDrag()
     }
-  }, [feedback, advanceRound, choose])
+  }, [feedback, advanceRound, choose, resetDrag])
 
   const handleTouchEnd = useCallback(() => finishDrag(), [finishDrag])
 
@@ -279,11 +321,11 @@ export default function Zeitenwende({
     if (feedback !== null) return
     const raw = e.clientX - touchStartX.current
     const dx  = raw * 0.85
-    if (Math.abs(raw) >= SWIPE_THRESHOLD && Math.abs(dragX) < SWIPE_THRESHOLD * 0.85) {
+    if (Math.abs(raw) >= SWIPE_THRESHOLD && Math.abs(dragXRef.current) < SWIPE_THRESHOLD * 0.85) {
       hapticLight()
     }
-    setDragX(dx)
-  }, [feedback, dragX])
+    applyDrag(dx)
+  }, [feedback, applyDrag])
 
   // Globales mouseup: fängt Releases auch außerhalb der Karte ab
   useEffect(() => {
@@ -308,16 +350,7 @@ export default function Zeitenwende({
   const currentWord   = words[round]
   const progressPct   = (round / total) * 100
 
-  // Swipe-Berechnungen für visuelle Effekte
-  const swipeProgress = swiping ? Math.min(1, Math.abs(dragX) / SWIPE_THRESHOLD) : 0
-  const preOpacity    = swiping ? Math.min(1, Math.max(0, (-dragX - 20) / 50)) : 0
-  const postOpacity   = swiping ? Math.min(1, Math.max(0, (dragX  - 20) / 50)) : 0
-  const cardStyle     = swiping ? {
-    transform:  `translateX(${dragX}px) rotate(${(dragX * 0.04).toFixed(2)}deg)`,
-    transition: 'none',
-    animation:  'none',
-    boxShadow:  `${(-dragX * 0.1).toFixed(1)}px 8px ${(16 + Math.abs(dragX) * 0.25).toFixed(1)}px rgba(0,0,0,${(0.08 + swipeProgress * 0.12).toFixed(3)})`,
-  } : {}
+  // Visuelle Swipe-Effekte schreibt applyDrag() framestabil direkt aufs DOM.
 
   const cardClass = [
     'zw-word-card',
@@ -373,8 +406,8 @@ export default function Zeitenwende({
         {/* Aktive Wortkarte */}
         <div
           key={round}
+          ref={cardRef}
           className={cardClass}
-          style={cardStyle}
           aria-label={`Kollokation: ${currentWord.wort}`}
           onTouchStart={handleTouchStart}
           onTouchMove={handleTouchMove}
@@ -382,15 +415,17 @@ export default function Zeitenwende({
           onMouseDown={handleMouseDown}
           onMouseMove={handleMouseMove}
         >
-          {/* Richtungs-Indikatoren (Stempel-Stil) */}
+          {/* Richtungs-Indikatoren (Stempel-Stil); Opacity setzt applyDrag() */}
           <span
+            ref={preLabelRef}
             className="zw-swipe-label zw-swipe-label--pre"
-            style={{ opacity: preOpacity }}
+            style={{ opacity: 0 }}
             aria-hidden="true"
           >HISTORISCH</span>
           <span
+            ref={postLabelRef}
             className="zw-swipe-label zw-swipe-label--post"
-            style={{ opacity: postOpacity }}
+            style={{ opacity: 0 }}
             aria-hidden="true"
           >MODERN</span>
           {currentWord.wort}
