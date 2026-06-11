@@ -54,6 +54,11 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
+      // Keine automatische Registrierungs-Injektion in index.html: dieselbe
+      // dist/ wird per cap sync in die Native-Apps kopiert, und unter
+      // capacitor:// wirft serviceWorker.register() nur eine Unhandled
+      // Rejection. Registrierung passiert explizit in main.jsx (!IS_NATIVE).
+      injectRegister: null,
       strategies: 'injectManifest',
       srcDir: 'src',
       filename: 'sw.js',

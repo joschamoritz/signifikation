@@ -17,7 +17,7 @@
     "start": "node server/index.js",
     "test": "vitest run",
     "lint": "eslint .",
-    "verify": "npm run lint && npm run test && npm run build",
+    "verify": "npm run lint && npm run test && npm run build && node scripts/check-precache.mjs",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "test:e2e": "playwright test",
