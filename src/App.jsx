@@ -18,6 +18,20 @@ const TeacherClassroomTab = lazy(() => import('./components/classroom/teacher/Te
 const StudentJoinEntry    = lazy(() => import('./components/classroom/student/StudentJoinEntry'))
 const StudentKioskRoute   = lazy(() => import('./components/classroom/student/StudentKioskRoute'))
 
+// Inline-Fallback fuer einen einzelnen Tab/Bereich: ersetzt nur diesen
+// Ausschnitt (die TabBar + andere Tabs bleiben bedienbar), statt die ganze
+// App gegen die globale Fehler-UI zu tauschen.
+function SectionErrorFallback({ label = 'Dieser Bereich' }) {
+  return (
+    <div role="alert" className="screen" style={{ justifyContent: 'center', alignItems: 'center', gap: 12, padding: '32px 24px', textAlign: 'center' }}>
+      <p aria-hidden="true" style={{ fontFamily: 'var(--font-serif)', fontSize: '1.6rem', color: 'var(--accent)', letterSpacing: '0.3em', lineHeight: 1 }}>· · ·</p>
+      <p style={{ fontFamily: 'var(--font-serif)', fontSize: '1.1rem', fontWeight: 700 }}>{label} konnte nicht geladen werden</p>
+      <p style={{ fontSize: '0.875rem', color: 'var(--muted)', maxWidth: 320 }}>Wechsle den Tab oder lade die Seite neu.</p>
+      <button className="btn-primary" onClick={() => window.location.reload()}>Seite neu laden</button>
+    </div>
+  )
+}
+
 // MainAppShell kapselt useAppModel + alle Hooks der Hauptansicht. Dadurch
 // kann <App> ueber Routen entscheiden, ohne dass die Hook-Reihenfolge in
 // <App> abhaengig von der aktuellen URL waechst oder schrumpft (das war ein
@@ -58,17 +72,25 @@ function MainAppShell() {
         <AppGameScreens {...appGameScreensProps} />
         <TabTransition activeTab={activeTab} tabs={tabScreens} />
         <Suspense fallback={null}>
-          {kontoMounted ? <PersistentKontoTab {...persistentKontoProps} /> : null}
+          {kontoMounted ? (
+            <ErrorBoundary fallback={<SectionErrorFallback label="Das Konto" />}>
+              <PersistentKontoTab {...persistentKontoProps} />
+            </ErrorBoundary>
+          ) : null}
           {classroomMounted && classroomTeacher ? (
             <div
               aria-hidden={activeTab !== 'klassenraum' ? 'true' : undefined}
               style={activeTab !== 'klassenraum' ? { display: 'none' } : undefined}
             >
-              <TeacherClassroomTab />
+              <ErrorBoundary fallback={<SectionErrorFallback label="Der Klassenraum" />}>
+                <TeacherClassroomTab />
+              </ErrorBoundary>
             </div>
           ) : null}
           {activeTab === 'klassenraum' && !classroomTeacher ? (
-            <StudentJoinEntry embedded />
+            <ErrorBoundary fallback={<SectionErrorFallback label="Der Klassenraum" />}>
+              <StudentJoinEntry embedded />
+            </ErrorBoundary>
           ) : null}
         </Suspense>
       </AppShell>
