@@ -15,7 +15,9 @@ export async function loginAsAdmin(
 }
 
 export async function openNavPage(page, label) {
-  await page.getByRole('button', { name: label }).click()
+  // exact: true – ohne das würde z.B. "System" auch "Systemstatus aktualisieren"
+  // matchen (aria-label-Teilübereinstimmung) → strict-mode-Fehler bei 2 Treffern.
+  await page.getByRole('button', { name: label, exact: true }).click()
 }
 
 export async function getAnyCalendarDate(page) {

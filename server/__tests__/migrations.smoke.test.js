@@ -70,6 +70,9 @@ describe('Migrations-Smoke: frische DB', () => {
     )
     expect([...indices].some((i) => i.includes('classroom'))).toBe(true)
 
+    // Auf Windows haelt better-sqlite3 die Datei gesperrt – explizit schliessen
+    // damit afterAll rmSync nicht mit EBUSY scheitert.
+    freshDb.close()
     vi.unstubAllEnvs()
     vi.resetModules()
   })

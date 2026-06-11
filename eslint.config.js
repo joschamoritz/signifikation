@@ -18,12 +18,14 @@ export default [
       'server/public/**', // gebundelte Admin-Assets (Chart.js etc.)
       'playwright-report/**',
       'test-results/**',
+      'wortprofil/**', // Python-Pipeline + venv – kein Projekt-JS
+      '.claude/**',    // Claude Code Worktrees – nur lokal, nicht in CI
     ],
   },
   js.configs.recommended,
   // Serverseitiger Code + Build-/Ops-Skripte (Node ESM)
   {
-    files: ['server/**/*.js', 'shared/**/*.js', 'scripts/**/*.{js,mjs}', '*.js', '*.cjs', 'e2e/**/*.js'],
+    files: ['server/**/*.{js,mjs}', 'shared/**/*.js', 'scripts/**/*.{js,mjs}', '*.js', '*.cjs', 'e2e/**/*.js'],
     languageOptions: {
       ecmaVersion: 'latest',
       sourceType: 'module',

@@ -492,8 +492,10 @@ function updateUsersBulkState() {
 
   if (countEl) countEl.textContent = `${selectedIds.length} ausgewählt`
   if (runBtn) runBtn.disabled = selectedIds.length === 0
-  if (roleWrap) roleWrap.style.display = action === 'setRole' ? 'inline-flex' : 'none'
-  if (exportWrap) exportWrap.style.display = action === 'export' ? 'inline-flex' : 'none'
+  // classList statt style.display – .is-hidden hat display:none !important,
+  // das inline-style nicht ueberschreiben kann.
+  if (roleWrap) roleWrap.classList.toggle('is-hidden', action !== 'setRole')
+  if (exportWrap) exportWrap.classList.toggle('is-hidden', action !== 'export')
 }
 
 function toggleAllUsersSelection(checked) {

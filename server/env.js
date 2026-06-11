@@ -15,4 +15,7 @@ export const ENV_CANDIDATE_PATHS = configuredEnvPath === defaultEnvPath
 
 export const ENV_PATH = ENV_CANDIDATE_PATHS.find((envPath) => existsSync(envPath)) ?? configuredEnvPath
 
-dotenv.config({ path: ENV_PATH, override: true })
+// Im test-Modus (NODE_ENV=test, gesetzt von playwright.config.js) sollen
+// Shell-Variablen (PORT, APP_DB) Vorrang haben, damit playwright den Port
+// explizit setzen kann ohne dass .env ihn ueberschreibt.
+dotenv.config({ path: ENV_PATH, override: process.env.NODE_ENV !== 'test' })

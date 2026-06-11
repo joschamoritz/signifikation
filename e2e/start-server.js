@@ -10,7 +10,7 @@ import { execFileSync } from 'node:child_process'
 import { rmSync, mkdirSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, dirname } from 'node:path'
-import { fileURLToPath } from 'node:url'
+import { fileURLToPath, pathToFileURL } from 'node:url'
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
 
@@ -46,4 +46,5 @@ execFileSync(process.execPath, [join(root, 'server/seed-dev.js')], {
   db.close()
 }
 
-await import(join(root, 'server/index.js'))
+// pathToFileURL wegen Windows: import('D:\\...') schlaegt fehl, file://-URL noetig.
+await import(pathToFileURL(join(root, 'server/index.js')).href)
