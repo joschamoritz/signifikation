@@ -996,10 +996,9 @@ router.post(
   (req, res) => {
     try {
       const { code, displayName } = req.body
-      // Globaler Brute-Force-Guard (verteilte Code-Rateversuche): über der
-      // Schwelle werden ALLE Joins abgelehnt — auch gültige, sonst bliebe
-      // der Endpoint ein Code-Orakel. Details in classroom/join-guard.js.
-      if (isJoinBlocked()) {
+      // Brute-Force-Guard pro Code + globaler Backstop — Details und
+      // DoS-Begruendung in classroom/join-guard.js (S-M1, 2026-06-11).
+      if (isJoinBlocked(code)) {
         trackJoinFailed(code, 'guard_blocked')
         return res.status(429).json({ error: 'Zu viele Beitrittsversuche. Bitte kurz warten.' })
       }
@@ -1012,7 +1011,7 @@ router.post(
           : 'unknown'
         // Nur ungültige Codes zählen — SESSION_FULL/INVALID_STATE belegen
         // einen gültigen Code und sind kein Rate-Signal.
-        if (result.error === 'INVALID_CODE') recordJoinFailure()
+        if (result.error === 'INVALID_CODE') recordJoinFailure(code)
         trackJoinFailed(code, reason)
         const mapped = mapError(result.error)
         return res.status(mapped.status).json({ error: mapped.message })
