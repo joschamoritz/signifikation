@@ -14,7 +14,7 @@ import Quiz from '../../../Quiz'
 import { readDraft, writeDraft } from '../hooks/useAnswerDraft'
 
 export default function ClassroomGameKollokationen({ lemma, prompt, onSubmit, draftKey = null }) {
-  const words = Array.isArray(prompt?.words) ? prompt.words : []
+  const words = useMemo(() => Array.isArray(prompt?.words) ? prompt.words : [], [prompt])
   const key = draftKey ? `${draftKey}::0` : null
 
   const quizLemma = useMemo(() => ({
@@ -22,7 +22,7 @@ export default function ClassroomGameKollokationen({ lemma, prompt, onSubmit, dr
     ipa:   lemma?.ipa || '',
     // Im Klassenraum ohne `rang` (die Loesung) — nur die Woerter.
     runden: { kollokatoren: words.map((w) => ({ wort: w })) },
-  }), [lemma, words]) // eslint-disable-line react-hooks/exhaustive-deps
+  }), [lemma, words])
 
   const draft = key ? readDraft(key) : null
   const initialSelected = Array.isArray(draft) ? draft : (Array.isArray(draft?.selected) ? draft.selected : null)

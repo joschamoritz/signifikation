@@ -47,6 +47,7 @@ export default function KontoPremiumBlock({ auth, gesamtausgabePermanent }) {
     else                                    { setRestoreStatus('error');     setRestoreMessage(result.message || 'Netzwerkfehler.') }
   }
 
+  const { loadSession } = auth
   useEffect(() => {
     if (!IS_NATIVE) return
     let listener = null
@@ -66,7 +67,7 @@ export default function KontoPremiumBlock({ auth, gesamtausgabePermanent }) {
             await IAP.finishTransaction({ transactionId: data.transactionId }).catch((err) => {
               logError('KontoPremiumBlock.finishTransaction', err)
             })
-            auth.loadSession?.()
+            loadSession?.()
           }
         } catch (err) {
           logError('KontoPremiumBlock.iapVerify', err)
@@ -75,7 +76,7 @@ export default function KontoPremiumBlock({ auth, gesamtausgabePermanent }) {
     }
     setup()
     return () => { listener?.remove() }
-  }, [auth.loadSession])
+  }, [loadSession])
 
   return (
     <li className="test-entry">

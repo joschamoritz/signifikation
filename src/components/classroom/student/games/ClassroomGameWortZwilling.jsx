@@ -16,7 +16,7 @@ import WortZwilling from '../../../WortZwilling'
 import { readDraft, writeDraft } from '../hooks/useAnswerDraft'
 
 export default function ClassroomGameWortZwilling({ prompt, onSubmit, draftKey = null }) {
-  const words = Array.isArray(prompt?.words) ? prompt.words : []
+  const words = useMemo(() => Array.isArray(prompt?.words) ? prompt.words : [], [prompt])
   const key = draftKey ? `${draftKey}::0` : null
 
   const data = useMemo(() => ({
@@ -25,7 +25,7 @@ export default function ClassroomGameWortZwilling({ prompt, onSubmit, draftKey =
     pos:   '',
     // Im Klassenraum ohne `zuordnung` (die Lösung) — nur die Wörter.
     kollokatoren: words.map((w) => ({ wort: w })),
-  }), [prompt, words]) // eslint-disable-line react-hooks/exhaustive-deps
+  }), [prompt, words])
 
   const draft = key ? readDraft(key) : null
   const initialZones = (draft && (Array.isArray(draft.zoneA) || Array.isArray(draft.zoneB)))

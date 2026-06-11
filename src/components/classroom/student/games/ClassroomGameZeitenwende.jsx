@@ -15,7 +15,7 @@ import Zeitenwende from '../../../Zeitenwende'
 import { readDraft, writeDraft } from '../hooks/useAnswerDraft'
 
 export default function ClassroomGameZeitenwende({ lemma, prompt, onSubmit, draftKey = null }) {
-  const words = Array.isArray(prompt?.words) ? prompt.words : []
+  const words = useMemo(() => Array.isArray(prompt?.words) ? prompt.words : [], [prompt])
   const key = draftKey ? `${draftKey}::0` : null
 
   const data = useMemo(() => ({
@@ -23,7 +23,7 @@ export default function ClassroomGameZeitenwende({ lemma, prompt, onSubmit, draf
     ipa:   lemma?.ipa || '',
     // Im Klassenraum gibt es KEINE periode (würde die Lösung verraten).
     words: words.map((w) => ({ wort: w })),
-  }), [lemma, words]) // eslint-disable-line react-hooks/exhaustive-deps
+  }), [lemma, words])
 
   // Gespeicherten Entwurf (Reload) als initialProgress einspeisen.
   const draft = key ? readDraft(key) : null

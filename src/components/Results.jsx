@@ -57,7 +57,7 @@ export default function Results({ lemma, roundScores, onRestart, onToSelection }
     apiGet(`${API}/ipa?q=${encodeURIComponent(lemma.lemma)}`)
       .then(d => { if (Array.isArray(d) && d[0]?.ipa) setIpa(d[0].ipa) })
       .catch(() => {})
-  }, [lemma?.lemma])
+  }, [lemma?.lemma, lemma?.ipa])
   const maxPoints = 10
   const medal      = getMedal(total, maxPoints)
 
