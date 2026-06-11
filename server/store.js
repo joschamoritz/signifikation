@@ -64,6 +64,7 @@ export const stmts = {
   // kalender
   getAllKalender:    db.prepare('SELECT * FROM kalender'),
   getKalenderByDatum: db.prepare('SELECT * FROM kalender WHERE datum = ?'),
+  deleteKalenderByDatum: db.prepare('DELETE FROM kalender WHERE datum = ?'),
   deleteAllKalender: db.prepare('DELETE FROM kalender'),
   upsertKalender:   db.prepare('INSERT OR REPLACE INTO kalender (datum, ids, thema, thema_kurz, thema_quelle, lueckenfueller_id) VALUES (@datum, @ids, @thema, @thema_kurz, @thema_quelle, @lueckenfueller_id)'),
 
@@ -222,21 +223,40 @@ export function save(file, data) {
   return Promise.resolve()
 }
 
+// Atomar ueber alle drei Tabellen (Review 2026-06-11, D-M2): die frueheren
+// drei separaten Replace-Transaktionen konnten bei einem Fehler in Nr. 2
+// einen inkonsistenten Tageszustand hinterlassen (Kalender neu, Rest alt).
+// better-sqlite3 macht die inneren db.transaction()-Saver zu Savepoints.
+const _saveDailyContentMapsTx = db.transaction(({ kalender, wortzwilling, zeitenwende }) => {
+  SAVERS['kalender.json'](kalender)
+  SAVERS['wortzwilling.json'](wortzwilling)
+  SAVERS['zeitenwende.json'](zeitenwende)
+})
+
 export function saveDailyContentMaps({ kalender, wortzwilling, zeitenwende }) {
-  const files = {
-    'kalender.json': kalender,
-    'wortzwilling.json': wortzwilling,
-    'zeitenwende.json': zeitenwende,
-  }
-
-  for (const [file, data] of Object.entries(files)) {
-    const saver = SAVERS[file]
-    if (!saver) throw new Error(`Unbekannte Datei: ${file}`)
-    saver(data)
-    _readOnlyCache.invalidate(file)
-  }
-
+  _saveDailyContentMapsTx({ kalender, wortzwilling, zeitenwende })
+  _readOnlyCache.invalidate('kalender.json')
+  _readOnlyCache.invalidate('wortzwilling.json')
+  _readOnlyCache.invalidate('zeitenwende.json')
   return Promise.resolve()
+}
+
+// Gezielte Tages-Loeschung statt Full-Map-Replace (D-M2): kein
+// Lost-Update-Race zwischen parallelen Admin-Requests und keine
+// Write-Amplification (Ein-Tages-Edit schrieb frueher die komplette Tabelle).
+const _deleteTagsTx = db.transaction((dates) => {
+  for (const datum of dates) {
+    stmts.deleteKalenderByDatum.run(datum)
+    stmts.deleteWortzwillingByDatum.run(datum)
+    stmts.deleteZeitenwendeByDatum.run(datum)
+  }
+})
+
+export function deleteTagsAtomically(dates) {
+  _deleteTagsTx(dates)
+  _readOnlyCache.invalidate('kalender.json')
+  _readOnlyCache.invalidate('wortzwilling.json')
+  _readOnlyCache.invalidate('zeitenwende.json')
 }
 
 export function saveTagAtomically({ datum, lemmaEntries, kalenderEntry, wzEntry, zwEntry }) {

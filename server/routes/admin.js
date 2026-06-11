@@ -6,7 +6,7 @@ import { buildLueckenfueller } from '../lueckenfueller.js'
 import { fetchBelege } from '../belege.js'
 import { fetchWiktionary } from '../wiktionary.js'
 import { fetchWortZwilling } from '../wortzwilling.js'
-import { load, loadKalender, loadDailyContentMaps, loadMutableDailyContentMaps, save, saveDailyContentMaps, loadWortZwilling, loadZeitenwende, getLemmataIndex, invalidateCache, getCacheMetrics, DATA, stmts, lemmaToRow, replaceAllAdminData, getStatsWindow, getStatsTimeline, loadBackupFiles, loadAllSpezialwochen, loadSpezialwocheByWoche, saveSpezialwoche, deleteSpezialwoche, saveTagAtomically } from '../store.js'
+import { load, loadKalender, loadDailyContentMaps, loadMutableDailyContentMaps, save, saveDailyContentMaps, loadWortZwilling, loadZeitenwende, getLemmataIndex, invalidateCache, getCacheMetrics, DATA, stmts, lemmaToRow, replaceAllAdminData, getStatsWindow, getStatsTimeline, loadBackupFiles, loadAllSpezialwochen, loadSpezialwocheByWoche, saveSpezialwoche, deleteSpezialwoche, saveTagAtomically, deleteTagsAtomically } from '../store.js'
 import { getCacheMetrics as getQueryCacheMetrics, clearCache as clearQueryCache } from '../query-cache.js'
 import { adminLimiter, loginLimiter, uploadLimiter } from '../middleware/rateLimiter.js'
 import { requireAuth, adminAuth, adminLogout, adminError, serverError } from '../middleware/auth.js'
@@ -153,6 +153,7 @@ router.use(createAdminCalendarRouter({
   loadMutableDailyContentMaps,
   save,
   saveDailyContentMaps,
+  deleteTagsAtomically,
   loadWortZwilling,
   loadZeitenwende,
   getLemmataIndex,

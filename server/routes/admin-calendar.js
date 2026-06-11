@@ -19,6 +19,7 @@ export function createAdminCalendarRouter({
   loadMutableDailyContentMaps,
   save,
   saveDailyContentMaps,
+  deleteTagsAtomically,
   loadWortZwilling,
   loadZeitenwende,
   getLemmataIndex,
@@ -86,26 +87,24 @@ export function createAdminCalendarRouter({
   router.post('/admin/kalender/bulk-delete', adminLimiter, requireAuth, validate(adminBulkDeleteCalendarSchema), async (req, res) => {
     const { dates } = req.body
     try {
-      const { kalender, wortzwilling, zeitenwende } = loadMutableDailyContentMaps()
-
+      // Gezielte Tages-Deletes (D-M2): das fruehere Load-Mutate-FullReplace
+      // ueberschrieb parallele Admin-Aenderungen und schrieb pro Aufruf die
+      // kompletten Tabellen neu.
       const removed = []
       const skipped = []
 
       for (const datum of dates) {
-        if (!kalender[datum]) {
+        const kal = stmts.getKalenderByDatum.get(datum)
+        if (!kal) {
           skipped.push(datum)
           continue
         }
 
         const deletedData = {
-          kalender: kalender[datum],
-          wortzwilling: wortzwilling[datum],
-          zeitenwende: zeitenwende[datum],
+          kalender: kal,
+          wortzwilling: stmts.getWortzwillingByDatum.get(datum) ?? null,
+          zeitenwende: stmts.getZeitenwendeByDatum.get(datum) ?? null,
         }
-
-        delete kalender[datum]
-        delete wortzwilling[datum]
-        delete zeitenwende[datum]
 
         removed.push(datum)
 
@@ -116,7 +115,7 @@ export function createAdminCalendarRouter({
       }
 
       if (removed.length > 0) {
-        await saveDailyContentMaps({ kalender, wortzwilling, zeitenwende })
+        deleteTagsAtomically(removed)
       }
 
       res.json({ ok: true, removed, skipped, removedCount: removed.length, skippedCount: skipped.length })
@@ -616,20 +615,17 @@ export function createAdminCalendarRouter({
   router.delete('/admin/tag/:datum', adminLimiter, requireAuth, async (req, res) => {
     if (!/^\d{4}-\d{2}-\d{2}$/.test(req.params.datum)) return res.status(400).json({ error: 'Ungültiges Datumsformat' })
     try {
-      const { kalender, wortzwilling, zeitenwende } = loadMutableDailyContentMaps()
       const datum = req.params.datum
 
+      const kal = stmts.getKalenderByDatum.get(datum)
       const deletedData = {
-        ids: kalender[datum],
-        wortzwilling: wortzwilling[datum],
-        zeitenwende: zeitenwende[datum],
+        ids: kal,
+        wortzwilling: stmts.getWortzwillingByDatum.get(datum) ?? null,
+        zeitenwende: stmts.getZeitenwendeByDatum.get(datum) ?? null,
       }
 
-      delete kalender[datum]
-      delete wortzwilling[datum]
-      delete zeitenwende[datum]
-
-      await saveDailyContentMaps({ kalender, wortzwilling, zeitenwende })
+      // Gezielter atomarer Delete statt Full-Map-Replace (D-M2)
+      deleteTagsAtomically([datum])
 
       auditDelete('kalender', datum, deletedData, {
         adminKey: req.adminSessionId || 'unknown',

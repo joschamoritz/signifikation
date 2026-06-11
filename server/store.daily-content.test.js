@@ -132,3 +132,28 @@ describe('loadZeitenwendeRows', () => {
     expect(result['2025-01-01']).toBeNull()
   })
 })
+
+// ── deleteTagsAtomically (Review 2026-06-11, D-M2) ───────────────
+describe('deleteTagsAtomically', () => {
+  it('loescht einen Tag aus allen drei Tabellen, laesst andere Tage stehen', async () => {
+    const { stmts, deleteTagsAtomically } = await import('./store.js')
+    const { default: db } = await import('./db.js')
+    const KEEP = '2098-03-01'
+    const KILL = '2098-03-02'
+
+    for (const datum of [KEEP, KILL]) {
+      stmts.upsertKalender.run({ datum, ids: '["x"]', thema: 't', thema_kurz: '', thema_quelle: '', lueckenfueller_id: '' })
+      stmts.upsertWortzwilling.run({ datum, wortA: 'A', wortB: 'B', pos: 'Substantiv', kollokatoren: '[]', notiz: '', link: '' })
+      stmts.upsertZeitenwende.run({ datum, data: '{"lemma":"T","words":[]}' })
+    }
+
+    deleteTagsAtomically([KILL])
+
+    for (const table of ['kalender', 'wortzwilling', 'zeitenwende']) {
+      expect(db.prepare(`SELECT COUNT(*) n FROM ${table} WHERE datum = ?`).get(KILL).n).toBe(0)
+      expect(db.prepare(`SELECT COUNT(*) n FROM ${table} WHERE datum = ?`).get(KEEP).n).toBe(1)
+    }
+
+    deleteTagsAtomically([KEEP]) // Cleanup
+  })
+})
