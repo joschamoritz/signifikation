@@ -62,6 +62,13 @@ export default class ErrorBoundary extends Component {
   render() {
     if (this.state.error) {
       const chunkError = isChunkLoadError(this.state.error)
+      // Granulare Nutzung: ein eigener `fallback` (z. B. pro Tab) ersetzt nur
+      // diesen Bereich, nicht die ganze App — andere Tabs bleiben bedienbar.
+      // Bei ChunkLoadError bleibt bewusst die globale Reload-UI, weil ein
+      // veraltetes Bundle die gesamte App betrifft (Auto-Reload greift dann).
+      if (this.props.fallback && !chunkError) {
+        return this.props.fallback
+      }
       return (
         <div role="alert" className="screen" style={{ justifyContent: 'center', alignItems: 'center', gap: 16, padding: '32px 24px', textAlign: 'center' }}>
           <p aria-hidden="true" style={{ fontFamily: 'var(--font-serif)', fontSize: '2rem', color: 'var(--accent)', letterSpacing: '0.3em', lineHeight: 1 }}>· · ·</p>
