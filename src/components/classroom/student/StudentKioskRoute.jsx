@@ -35,20 +35,24 @@ import './KioskShell.css'
 function useOptionalUserLabel() {
   const [label, setLabel] = useState(null)
   useEffect(() => {
+    const controller = new AbortController()
     let cancelled = false
     ;(async () => {
       try {
         const { API } = await import('../../../config')
-        const res = await fetch(`${API}/account/me`, { credentials: 'include' })
-        if (!res.ok || cancelled) return
-        const json = await res.json()
+        // apiGet statt fetch: liefert in der nativen App den Bearer-Token mit
+        // (Cookies sind in der WKWebView cross-origin) + AbortController-Abbruch.
+        const { apiGet } = await import('../../../api/client')
+        const json = await apiGet(`${API}/account/me`, { signal: controller.signal })
         if (cancelled) return
         // Wir zeigen nur Namen/Email-Stub — keine Rolle, kein Plan-Status.
         const name = json?.user?.name || json?.user?.email || json?.email || null
         if (name) setLabel(String(name))
-      } catch {}
+      } catch {
+        // Banner ist optional — anonym (401)/Abbruch/Netzfehler still ignorieren.
+      }
     })()
-    return () => { cancelled = true }
+    return () => { cancelled = true; controller.abort() }
   }, [])
   return label
 }

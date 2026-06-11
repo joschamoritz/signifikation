@@ -68,6 +68,15 @@ export function useKollokationenGame({ keys, serverDatum, lemmata }) {
     }
   }, [keys, lemmata?.length, phase, roundScores, selectedLemma, serverDatum])
 
+  // Persistenz an das Finish-Ereignis binden (Phasenwechsel → 'results'),
+  // nicht an die Callback-Identitaet im Render-Zyklus eines Parent-Effekts.
+  // persistResults ist intern idempotent (Phase-Guard + freshKollRef), daher
+  // ist ein erneutes Feuern bei Identitaetswechsel unkritisch.
+  useEffect(() => {
+    if (phase !== 'results') return
+    persistResults()
+  }, [phase, persistResults])
+
   const handleLemmaSelect = useCallback((lemma) => {
     setSelectedLemma(lemma)
     setRoundScores([])
@@ -102,7 +111,6 @@ export function useKollokationenGame({ keys, serverDatum, lemmata }) {
     roundScores,
     bonusQuestion: null,
     isBonus: false,
-    persistResults,
     handleLemmaSelect,
     handleRoundComplete,
     handleViewResult: openPlayedResult,

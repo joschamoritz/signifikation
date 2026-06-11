@@ -64,8 +64,11 @@ export function useStudentSession({ socketConnected = false } = {}) {
     rehydratedRef.current = true
     const stored = readStorage()
     if (!stored?.token) return
-    // Code aus URL gewinnt — wenn stored.code != state.code, ignoriere stored.
-    if (state.code && stored.code && stored.code !== state.code) {
+    // stateRef statt Render-Closure: nutzt den Code-Stand zur Ausfuehrungszeit
+    // (nicht den evtl. noch leeren Mount-Snapshot), analog refreshView/beat.
+    const currentCode = stateRef.current.code
+    // Code aus URL gewinnt — wenn stored.code != aktueller Code, ignoriere stored.
+    if (currentCode && stored.code && stored.code !== currentCode) {
       writeStorage(null)
       return
     }
@@ -77,7 +80,7 @@ export function useStudentSession({ socketConnected = false } = {}) {
       token:         stored.token,
       displayName:   stored.displayName || '',
     })
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [dispatch])
 
   // 2. Persistenz: wann immer wir einen Token haben, in sessionStorage halten.
   useEffect(() => {
