@@ -31,6 +31,7 @@ export default defineConfig({
   test: {
     environment: 'node',
     fileParallelism: false,
+    globalSetup: ['./vitest.global-setup.js'],
     setupFiles: ['./vitest.setup.js'],
     exclude: ['e2e/**', 'node_modules/**', 'dist/**', '.claude/**'],
     coverage: {
