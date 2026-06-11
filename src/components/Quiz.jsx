@@ -245,7 +245,9 @@ export default function Quiz({
             <span className="round-score-display">+{roundScore}</span>
             <span className="round-score-label">
               {(() => {
-                const v = new Date().toISOString().slice(0,10).replace(/-/g,'')
+                // Lokaldatum (en-CA = YYYY-MM-DD) statt UTC: sonst wechselt das Label
+                // um Mitternacht ±2h inkonsistent zum Tagescontent
+                const v = new Intl.DateTimeFormat('en-CA').format(new Date()).replace(/-/g, '')
                 const seed = parseInt(v, 10) % 4
                 const labelGroups = {
                   3: ['treffend','präzise','belegt','nachgewiesen'],

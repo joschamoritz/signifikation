@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, createContext } from 'react'
+import { useState, useEffect, useCallback, useMemo, createContext } from 'react'
 import { Capacitor } from '@capacitor/core'
 
 export const ThemeContext = createContext({ pref: 'auto', setTheme: () => {} })
@@ -49,5 +49,7 @@ export function useTheme() {
     setPref(value)
   }, [])
 
-  return { pref, setTheme }
+  // Stabile Identitaet: der Wert wandert als Context-Value durch App.jsx —
+  // ohne Memo bekaeme jeder App-Render eine neue Objekt-Identitaet.
+  return useMemo(() => ({ pref, setTheme }), [pref, setTheme])
 }

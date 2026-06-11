@@ -11,6 +11,8 @@ import { lsGet, lsSet } from '../utils/storage'
 import { logError } from '../utils/logError'
 import { useActiveSnapCard } from '../hooks/useActiveSnapCard'
 import { useScrollPersist } from '../hooks/useScrollPersist'
+import KollokationNote from './KollokationNote'
+import { MOBILE_MEDIA_QUERY } from '../config'
 import GameEntry from './GameEntry'
 import LegalLinks from './LegalLinks'
 
@@ -88,7 +90,7 @@ export default function Home({
 
   // Pfeiltasten-Navigation (nur mobil)
   const handleSnapKeyDown = useCallback((e) => {
-    if (!window.matchMedia('(max-width: 699px)').matches) return
+    if (!window.matchMedia(MOBILE_MEDIA_QUERY).matches) return
     const maxIndex = (entriesRef.current?.querySelectorAll('.test-entry').length ?? 1) - 1
     if (e.key === 'ArrowDown') scrollToCard(Math.min(activeCard + 1, maxIndex))
     if (e.key === 'ArrowUp')   scrollToCard(Math.max(activeCard - 1, 0))
@@ -412,30 +414,7 @@ export default function Home({
             className={`test-footnote-body${desktopInfoOpen ? ' open' : ''}`}
             role="region"
           >
-            <p>
-              Kollokationen sind <strong>charakteristische syntagmatische Wortverbindungen</strong>,
-              in denen ein Element (die <strong>Basis</strong>) den anderen Bestandteil (den{' '}
-              <strong>Kollokator</strong>) semantisch selegiert. Man sagt <em>blondes Haar</em> und
-              nicht <em>gelbes Haar</em> — nicht weil Letzteres grammatisch falsch wäre, sondern
-              weil der konventionalisierte Sprachgebrauch <em>blond</em> als typischen Kollokator
-              von <em>Haar</em> fordert.<sup>1</sup>
-            </p>
-            <p>
-              Kollokationen liegen zwischen freien Wortverbindungen (<em>rotes Auto</em>) und
-              Idiomen (<em>ins Gras beißen</em>): semantisch motiviert, aber lexikalisch
-              konventionalisiert.
-            </p>
-            <p>
-              Der <strong>logDice-Wert</strong><sup>2</sup> misst die statistische Signifikanz
-              von Kookkurrenzen im Korpus — je höher der Wert, desto charakteristischer die
-              Verbindung. Die Daten stammen aus einem eigenen Wortprofil<sup>3</sup>,
-              berechnet aus mehreren Milliarden Textwörtern freier deutschsprachiger Korpora.
-            </p>
-            <ol className="test-footnote-footnotes">
-              <li>Hausmann, F.&thinsp;J. (2003): Was sind eigentlich Kollokationen? In: Steyer, K. (Hrsg.): <em>Wortverbindungen — mehr oder weniger fest</em>. de Gruyter, S.&thinsp;309–334.</li>
-              <li>Rychlý, P. (2008): A Lexicographer-Friendly Association Score. In: <em>Proceedings of RASLAN 2008</em>, S.&thinsp;6–9.</li>
-              <li>Eigenes Wortprofil, berechnet auf Basis freier deutschsprachiger Korpora (CC BY-SA), syntaktisch annotiert mit dem ZDL-Dependenzparser (BBAW).</li>
-            </ol>
+            <KollokationNote footnotesClass="test-footnote-footnotes" />
           </div>
         </section>
 
@@ -518,30 +497,7 @@ export default function Home({
       </div>
       <Sheet.Body>
         <div className="info-sheet-body">
-          <p>
-            Kollokationen sind <strong>charakteristische syntagmatische Wortverbindungen</strong>,
-            in denen ein Element (die <strong>Basis</strong>) den anderen Bestandteil (den{' '}
-            <strong>Kollokator</strong>) semantisch selegiert. Man sagt <em>blondes Haar</em> und
-            nicht <em>gelbes Haar</em> — nicht weil Letzteres grammatisch falsch wäre, sondern
-            weil der konventionalisierte Sprachgebrauch <em>blond</em> als typischen Kollokator
-            von <em>Haar</em> fordert.<sup>1</sup>
-          </p>
-          <p>
-            Kollokationen liegen zwischen freien Wortverbindungen (<em>rotes Auto</em>) und
-            Idiomen (<em>ins Gras beißen</em>): semantisch motiviert, aber lexikalisch
-            konventionalisiert.
-          </p>
-          <p>
-            Der <strong>logDice-Wert</strong><sup>2</sup> misst die statistische Signifikanz
-            von Kookkurrenzen im Korpus — je höher der Wert, desto charakteristischer die
-            Verbindung. Die Daten stammen aus einem eigenen Wortprofil<sup>3</sup>,
-            berechnet aus mehreren Milliarden Textwörtern freier deutschsprachiger Korpora.
-          </p>
-          <ol className="info-sheet-footnotes">
-            <li>Hausmann, F.&thinsp;J. (2003): Was sind eigentlich Kollokationen? In: Steyer, K. (Hrsg.): <em>Wortverbindungen — mehr oder weniger fest</em>. de Gruyter, S.&thinsp;309–334.</li>
-            <li>Rychlý, P. (2008): A Lexicographer-Friendly Association Score. In: <em>Proceedings of RASLAN 2008</em>, S.&thinsp;6–9.</li>
-            <li>Eigenes Wortprofil, berechnet auf Basis freier deutschsprachiger Korpora (CC BY-SA), syntaktisch annotiert mit dem ZDL-Dependenzparser (BBAW).</li>
-          </ol>
+          <KollokationNote footnotesClass="info-sheet-footnotes" />
         </div>
       </Sheet.Body>
     </Sheet>

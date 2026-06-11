@@ -26,14 +26,15 @@ import { logError } from '../utils/logError'
 function DraggableChip({ word, placed, selected, jokerCluster, onClick, onKeyDown, ariaLabel }) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id: word })
   const style = transform ? { transform: CSS.Translate.toString(transform) } : undefined
+  // Echtes <button> statt div role=button: natives Keyboard-Verhalten
+  // (Space ohne Scroll, Enter), Fokus-Semantik, AT-Robustheit (F-N8).
   return (
-    <div
+    <button
+      type="button"
       ref={setNodeRef}
       style={style}
       {...listeners}
       {...attributes}
-      role="button"
-      tabIndex={0}
       className={[
         'wz-chip',
         placed         ? 'wz-chip--placed'   : '',
@@ -46,7 +47,7 @@ function DraggableChip({ word, placed, selected, jokerCluster, onClick, onKeyDow
       aria-label={ariaLabel}
     >
       {word}
-    </div>
+    </button>
   )
 }
 
