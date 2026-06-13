@@ -63,7 +63,7 @@ describe('SetupPreview (W2-T1)', () => {
     render(<SetupPreview mode="kollokationen" lemmaIds={['l0']} onClose={() => {}} />)
     expect(await screen.findByTestId('classroom-kiosk-game-kollokationen')).toBeTruthy()
     expect(screen.getByTestId('classroom-setup-preview')).toBeTruthy()
-    expect(screen.getByText(/Keine echte Session/i)).toBeTruthy()
+    expect(screen.getByText(/Keine echte Sitzung/i)).toBeTruthy()
   })
 
   it('Schließen ruft onClose', async () => {

@@ -36,14 +36,14 @@ describe('SessionListStep (T-4.3)', () => {
   it('rendert ohne Crash und zeigt Loading-Indikator', () => {
     listSessions.mockReturnValue(new Promise(() => {})) // pending
     renderInProvider()
-    expect(screen.getByText(/sessions werden geladen/i)).toBeTruthy()
+    expect(screen.getByText(/sitzungen werden geladen/i)).toBeTruthy()
   })
 
   it('zeigt Empty-State wenn keine Sessions vorhanden', async () => {
     listSessions.mockResolvedValue({ sessions: [] })
     renderInProvider()
     await waitFor(() => {
-      expect(screen.getByText(/noch keine sessions/i)).toBeTruthy()
+      expect(screen.getByText(/noch keine sitzungen/i)).toBeTruthy()
     })
     // Ornament statt Einzelbuchstaben-Drop-Cap
     expect(document.querySelector('.classroom-empty__ornament')).toBeTruthy()

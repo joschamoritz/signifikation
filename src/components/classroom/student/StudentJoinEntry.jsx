@@ -81,7 +81,7 @@ export default function StudentJoinEntry({ initialNotice = null, embedded = fals
 
   const inner = (
     <div className="classroom-kiosk__panel">
-      <p className="classroom-kiosk__overline">Live-Session · Beitreten</p>
+      <p className="classroom-kiosk__overline">Live-Sitzung · Beitreten</p>
       <h1 className="classroom-kiosk__title">Klassenraum</h1>
       <p className="classroom-kiosk__lead">
         Tipp den Zugangscode deiner Lehrkraft ein – oder scanne den QR-Code.
@@ -145,7 +145,7 @@ export default function StudentJoinEntry({ initialNotice = null, embedded = fals
           <nav className="test-raster" aria-label="Klassenraum">
             <span className="test-raster-label" aria-hidden="true">Klassenraum</span>
             <div className="test-raster-words">
-              <span className="test-raster-word">Live-Session beitreten</span>
+              <span className="test-raster-word">Live-Sitzung beitreten</span>
             </div>
             <div className="test-raster-end">
               <span className="test-raster-folio" aria-hidden="true">Schüler:in</span>

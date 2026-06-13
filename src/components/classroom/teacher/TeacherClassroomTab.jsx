@@ -55,7 +55,7 @@ function TeacherClassroomBody() {
         <nav className="test-raster" aria-label="Klassenraum">
           <span className="test-raster-label" aria-hidden="true">Klassenraum</span>
           <div className="test-raster-words">
-            <span className="test-raster-word">Unterricht · Live-Session</span>
+            <span className="test-raster-word">Unterricht · Live-Sitzung</span>
           </div>
           <div className="test-raster-end">
             <span className="test-raster-folio" aria-hidden="true">Lehrkraft</span>

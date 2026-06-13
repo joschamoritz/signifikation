@@ -90,7 +90,7 @@ export default function SetupStep() {
       })
       dispatch({ type: 'GO_TO_LOBBY', sessionId: session.id })
     } catch (err) {
-      setError(err?.message || 'Session konnte nicht angelegt werden.')
+      setError(err?.message || 'Sitzung konnte nicht angelegt werden.')
     } finally {
       setSubmitting(false)
     }
@@ -101,10 +101,10 @@ export default function SetupStep() {
   return (
     <ClassroomSubScreen
       testId="classroom-setup"
-      title="Neue Session"
-      label="Live-Session"
+      title="Neue Sitzung"
+      label="Live-Sitzung"
       lead="Modus und Wörter wählen."
-      backLabel="Zurück zu den Sessions"
+      backLabel="Zurück zu den Sitzungen"
       onBack={() => dispatch({ type: 'GO_TO_LIST' })}
     >
       {/* I — Modus-Bloecke in Reihenfolge */}

@@ -209,7 +209,7 @@ export default function EndStep() {
     <ClassroomSubScreen
       testId="classroom-end"
       title="Auswertung"
-      label="Live-Session"
+      label="Live-Sitzung"
       lead="Wie lief die Stunde?"
       backLabel="Zurück zur Übersicht"
       onBack={() => dispatch({ type: 'GO_TO_LIST' })}
@@ -222,7 +222,7 @@ export default function EndStep() {
           {/* Klassen-Puls: eine lesbare Aussage statt roher Zaehler. */}
           {hasSubmissions && (
             <section className="classroom-section classroom-pulse-section" aria-label="Übersicht">
-              <span className="classroom-section__label">Session-Ergebnis</span>
+              <span className="classroom-section__label">Sitzungsergebnis</span>
               <p className="classroom-pulse">{pulseSentence(totals)}</p>
               <hr className="classroom-doubleline" aria-hidden="true" />
             </section>
@@ -235,7 +235,7 @@ export default function EndStep() {
                 <p className="classroom-result-empty__ornament" aria-hidden="true">· · ·</p>
                 <p className="classroom-result-empty__title">Keine Abgaben</p>
                 <p className="classroom-result-empty__text">
-                  In dieser Session wurden keine Antworten eingereicht — es gibt nichts auszuwerten.
+                  In dieser Sitzung wurden keine Antworten eingereicht — es gibt nichts auszuwerten.
                 </p>
               </div>
             </section>

@@ -69,7 +69,7 @@ export default function SessionListStep() {
       setConfirmId(null)
       refresh()
     } catch (err) {
-      setDelError(err?.message || 'Session konnte nicht gelöscht werden.')
+      setDelError(err?.message || 'Sitzung konnte nicht gelöscht werden.')
     } finally {
       setBusyId(null)
     }
@@ -92,7 +92,7 @@ export default function SessionListStep() {
       // Direkt in die Lobby der frischen Session — neuer Code, teilen, los.
       dispatch({ type: 'GO_TO_LOBBY', sessionId: dup.id })
     } catch (err) {
-      setDelError(err?.message || 'Session konnte nicht wiederholt werden.')
+      setDelError(err?.message || 'Sitzung konnte nicht wiederholt werden.')
     } finally {
       setDupBusyId(null)
     }
@@ -101,11 +101,11 @@ export default function SessionListStep() {
   return (
     <ClassroomSubScreen
       testId="classroom-session-list"
-      title="Sessions"
-      label="Live-Session"
+      title="Sitzungen"
+      label="Live-Sitzung"
       lead="Verwalte deine Live-Stunden."
     >
-      {loading && <p className="classroom-loading">Sessions werden geladen …</p>}
+      {loading && <p className="classroom-loading">Sitzungen werden geladen …</p>}
 
       {error && (
         <p className="classroom-error">
@@ -122,14 +122,14 @@ export default function SessionListStep() {
         <div className="classroom-empty" role="status">
           <span className="classroom-empty__ornament" aria-hidden="true">· · ·</span>
           <p className="classroom-empty__title">
-            Noch keine Sessions. Lege deine erste an —<br />
+            Noch keine Sitzungen. Lege deine erste an —<br />
             eine Klasse braucht nur einen Modus und ein Lemma.
           </p>
         </div>
       )}
 
       {!loading && !error && sessions.length > 0 && (
-        <ol className="lemma-cards classroom-session-cards" aria-label="Sessions">
+        <ol className="lemma-cards classroom-session-cards" aria-label="Sitzungen">
           {sessions.map((s) => {
             // Alle gespielten Modi (in Reihenfolge); Fallback auf settings.mode
             // für Altsessions ohne Modi-Liste.
@@ -150,7 +150,7 @@ export default function SessionListStep() {
                     className="lemma-card-main"
                     type="button"
                     onClick={() => handleResume(s)}
-                    aria-label={`Session ${s.title || s.code} – ${STATUS_LABEL[statusKey] || statusKey}`}
+                    aria-label={`Sitzung ${s.title || s.code} – ${STATUS_LABEL[statusKey] || statusKey}`}
                   >
                     <div className="lemma-info">
                       <div className="lemma-header-row">
@@ -176,7 +176,7 @@ export default function SessionListStep() {
                         className="lemma-info-btn classroom-session-repeat"
                         onClick={() => handleDuplicate(s)}
                         disabled={dupBusyId === s.id}
-                        aria-label={`Session ${s.title || s.code} mit neuer Klasse wiederholen`}
+                        aria-label={`Sitzung ${s.title || s.code} mit neuer Klasse wiederholen`}
                         title="Mit neuer Klasse wiederholen"
                         data-testid={`classroom-session-repeat-${s.id}`}
                       >
@@ -186,8 +186,8 @@ export default function SessionListStep() {
                         type="button"
                         className="lemma-info-btn classroom-session-del"
                         onClick={() => { setDelError(null); setConfirmId(s.id) }}
-                        aria-label={`Session ${s.title || s.code} löschen`}
-                        title="Session löschen"
+                        aria-label={`Sitzung ${s.title || s.code} löschen`}
+                        title="Sitzung löschen"
                         data-testid={`classroom-session-delete-${s.id}`}
                       >
                         ×
@@ -198,7 +198,7 @@ export default function SessionListStep() {
 
                 {confirming && (
                   <div className="classroom-session-confirm" role="group" aria-label="Löschen bestätigen">
-                    <span className="classroom-session-confirm__q">Session löschen?</span>
+                    <span className="classroom-session-confirm__q">Sitzung löschen?</span>
                     <button
                       type="button"
                       className="classroom-session-confirm__yes"
@@ -233,7 +233,7 @@ export default function SessionListStep() {
             onClick={handleNew}
           >
             <span className="classroom-cta__plus" aria-hidden="true">＋</span>
-            Neue Session anlegen
+            Neue Sitzung anlegen
             <span className="test-cta-arrow" aria-hidden="true"> →</span>
           </button>
         </div>
