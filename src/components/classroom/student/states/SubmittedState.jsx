@@ -173,7 +173,7 @@ export default function SubmittedState() {
     return (
       <>
         <p className="classroom-kiosk__overline">Abgeschlossen</p>
-        <h1 className="classroom-kiosk__title">Session beendet.</h1>
+        <h1 className="classroom-kiosk__title">Sitzung beendet.</h1>
         <p className="classroom-kiosk__lead">Danke fürs Mitspielen.</p>
         <button
           type="button"

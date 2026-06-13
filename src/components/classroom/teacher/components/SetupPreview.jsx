@@ -147,7 +147,7 @@ export default function SetupPreview({ mode, lemmaIds, onClose }) {
 
         <main className="classroom-kiosk__main">
           <p className="classroom-preview__banner" role="note">
-            Vorschau — so sehen es deine Schüler:innen. Keine echte Session,
+            Vorschau — so sehen es deine Schüler:innen. Keine echte Sitzung,
             Eingaben werden nicht gewertet.
           </p>
 

@@ -20,7 +20,7 @@ import Sheet from '../../../ui/Sheet'
 import ClassroomHowItWorksNote from '../components/ClassroomHowItWorksNote'
 
 // Badge-Navigation (mobil, links): identisch zur Spielmodi-Startseite.
-const SNAP_NAV = [['①', 'Sessions'], ['②', 'Vorbereiten']]
+const SNAP_NAV = [['①', 'Sitzungen'], ['②', 'Vorbereiten']]
 
 export default function ClassroomIndexStep() {
   const { dispatch } = useTeacherClassroom()
@@ -41,8 +41,8 @@ export default function ClassroomIndexStep() {
   const sessionStatus = loading
     ? 'Wird geladen …'
     : sessionCount === 0
-      ? 'Noch keine Session angelegt.'
-      : `${sessionCount} ${sessionCount === 1 ? 'Session' : 'Sessions'} angelegt.`
+      ? 'Noch keine Sitzung angelegt.'
+      : `${sessionCount} ${sessionCount === 1 ? 'Sitzung' : 'Sitzungen'} angelegt.`
 
   return (
     <>
@@ -58,8 +58,8 @@ export default function ClassroomIndexStep() {
           <div className="test-entry-body">
             <div className="test-entry-head">
               <span className="test-dropcap-k" aria-hidden="true">S</span>
-              <h2 className="test-headword" aria-label="Sessions">essions</h2>
-              <span className="test-ipa" aria-label="Aussprache: [ˈsɛʃn̩s]">[ˈsɛʃn̩s]</span>
+              <h2 className="test-headword" aria-label="Sitzungen">itzungen</h2>
+              <span className="test-ipa" aria-label="Aussprache: [ˈzɪtsʊŋən]">[ˈzɪtsʊŋən]</span>
             </div>
             <div className="test-entry-grammar" aria-hidden="true">
               <span className="test-pos">Verwaltung</span>
@@ -67,7 +67,7 @@ export default function ClassroomIndexStep() {
               <span className="test-entry-category">Live-Stunde</span>
             </div>
             <p className="test-definition">
-              Lege eine neue Live-Session an oder setze eine laufende fort —
+              Lege eine neue Live-Sitzung an oder setze eine laufende fort —
               ein Modus, ein Lemma, ein Beitrittscode für die ganze Klasse.
             </p>
             <div className="test-entry-footer">
@@ -78,7 +78,7 @@ export default function ClassroomIndexStep() {
                 onClick={() => dispatch({ type: 'GO_TO_LIST' })}
                 data-testid="classroom-index-sessions"
               >
-                Sessions verwalten
+                Sitzungen verwalten
                 <span className="test-cta-arrow" aria-hidden="true"> →</span>
               </button>
             </div>
@@ -102,7 +102,7 @@ export default function ClassroomIndexStep() {
               <span className="test-entry-category">in Arbeit</span>
             </div>
             <p className="test-definition">
-              Sessions im Voraus zusammenstellen und für die nächste Stunde
+              Sitzungen im Voraus zusammenstellen und für die nächste Stunde
               bereithalten — geplant für eine spätere Auflage.
             </p>
             <div className="test-entry-footer">

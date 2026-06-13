@@ -210,7 +210,7 @@ describe('SubmittedState (T-5.7)', () => {
     expect(screen.getByText(/stark, groß, klein/)).toBeTruthy()
   })
 
-  it('zeigt „Session beendet" wenn kein Submit erfolgte', () => {
+  it('zeigt „Sitzung beendet" wenn kein Submit erfolgte', () => {
     const s = {
       ...initialState('morgentau'),
       currentState:  KIOSK_STATES.ENDED,
@@ -218,7 +218,7 @@ describe('SubmittedState (T-5.7)', () => {
       revealed:      true,
     }
     renderWith(s)
-    expect(screen.getByText(/session beendet/i)).toBeTruthy()
+    expect(screen.getByText(/sitzung beendet/i)).toBeTruthy()
   })
 })
 

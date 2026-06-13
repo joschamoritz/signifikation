@@ -36,7 +36,7 @@ export default function LobbyStep() {
         setSession(data?.session || null)
         setParticipants(data?.participants || [])
       } catch (err) {
-        if (!cancelled) setError(err?.message || 'Session konnte nicht geladen werden.')
+        if (!cancelled) setError(err?.message || 'Sitzung konnte nicht geladen werden.')
       } finally {
         if (!cancelled) setLoading(false)
       }
@@ -116,7 +116,7 @@ export default function LobbyStep() {
     <ClassroomSubScreen
       testId="classroom-lobby"
       title="Lobby"
-      label="Live-Session"
+      label="Live-Sitzung"
       lead="Teile den Code — warte auf die Klasse."
       backLabel="Zurück zur Übersicht"
       onBack={() => dispatch({ type: 'GO_TO_LIST' })}

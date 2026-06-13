@@ -14,7 +14,7 @@ export default function ClassroomHowItWorksNote() {
         den eigenen Geräten — <strong>anonym, ohne Anmeldung</strong>.
       </p>
       <p>
-        <strong>1 · Session anlegen.</strong> Wähle einen Spielmodus und ein bis
+        <strong>1 · Sitzung anlegen.</strong> Wähle einen Spielmodus und ein bis
         drei Lemmata — optional mehrere Modi nacheinander.
       </p>
       <p>
