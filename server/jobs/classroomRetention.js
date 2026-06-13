@@ -24,19 +24,21 @@ import {
   runClassroomRetention,
   DEFAULT_NAME_ANONYMIZE_MS,
   DEFAULT_HARD_DELETE_MS,
+  DEFAULT_LOBBY_ABANDON_MS,
 } from '../classroom/store.js'
 
-// Einmal pro Tag reicht — die Fenster sind 48 h / 30 Tage, nicht minutengenau.
+// Einmal pro Tag reicht — die Fenster sind 48 h / 30 Tage / 7 Tage, nicht minutengenau.
 const DEFAULT_SWEEP_INTERVAL_MS = 24 * 60 * 60 * 1000
 
 export function startClassroomRetention(options = {}) {
   const intervalMs        = options.intervalMs        ?? DEFAULT_SWEEP_INTERVAL_MS
   const anonymizeAfterMs  = options.anonymizeAfterMs  ?? DEFAULT_NAME_ANONYMIZE_MS
   const hardDeleteAfterMs = options.hardDeleteAfterMs ?? DEFAULT_HARD_DELETE_MS
+  const lobbyAbandonMs    = options.lobbyAbandonMs    ?? DEFAULT_LOBBY_ABANDON_MS
 
   const run = () => {
     try {
-      runClassroomRetention({ anonymizeAfterMs, hardDeleteAfterMs })
+      runClassroomRetention({ anonymizeAfterMs, hardDeleteAfterMs, lobbyAbandonMs })
     } catch (err) {
       logger.warn({ err }, 'cr2 Retention-Sweep fehlgeschlagen')
     }
