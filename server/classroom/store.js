@@ -60,6 +60,13 @@ export const DEFAULT_AUTO_END_IDLE_MS = 90 * 60 * 1000
 export const DEFAULT_NAME_ANONYMIZE_MS = 48 * 60 * 60 * 1000      // 48 h
 export const DEFAULT_HARD_DELETE_MS    = 30 * 24 * 60 * 60 * 1000 // 30 Tage
 export const ANONYMIZED_DISPLAY_NAME   = 'Schüler:in'
+// W4-U2: nie gestartete Lobby-Sessions (Lehrer legt an, zieht Join-Code,
+// startet aber nie) erreichen weder das Auto-End (nur 'running') noch die
+// finished-Retention — sie blieben sonst ewig liegen und belegen Join-Codes.
+// Nach 7 Tagen ohne Start gilt die Session als verwaist und wird direkt hart
+// geloescht (CASCADE). 7 Tage decken jede Wochenend-Vorbereitung ab; ein
+// Planungs-/Termin-Feature existiert nicht (Sessions sind ad-hoc).
+export const DEFAULT_LOBBY_ABANDON_MS  = 7 * 24 * 60 * 60 * 1000  // 7 Tage
 
 function nowMs() { return Date.now() }
 
@@ -159,6 +166,16 @@ const stmts = {
     WHERE status IN ('finished','aborted')
       AND finished_at IS NOT NULL
       AND finished_at <= @threshold
+  `),
+  // Retention Stufe C (W4-U2): verwaiste Lobby-Sessions, die nie gestartet
+  // wurden (started_at IS NULL) und deren Anlage laenger zurueckliegt als das
+  // Fenster. Diese erreichen weder Auto-End (nur 'running') noch Stufe A/B
+  // (kein finished_at) → ohne diese Stufe lecken sie unbegrenzt.
+  listAbandonedLobbySessions: db.prepare(`
+    SELECT id FROM classroom_session
+    WHERE status = 'lobby'
+      AND started_at IS NULL
+      AND created_at <= @threshold
   `),
   // CASCADE raeumt Assignments/Participants/Submissions/Scores/Capabilities mit.
   deleteSessionById: db.prepare(`DELETE FROM classroom_session WHERE id = ?`),
@@ -568,6 +585,7 @@ export function runClassroomRetention({
   now = nowMs(),
   anonymizeAfterMs = DEFAULT_NAME_ANONYMIZE_MS,
   hardDeleteAfterMs = DEFAULT_HARD_DELETE_MS,
+  lobbyAbandonMs = DEFAULT_LOBBY_ABANDON_MS,
 } = {}) {
   // Stufe A — display_name anonymisieren (idempotent via != Platzhalter).
   const anonResult = stmts.anonymizeStaleParticipants.run({
@@ -576,23 +594,39 @@ export function runClassroomRetention({
   })
   const anonymized = anonResult.changes
 
-  // Stufe B — ganze Session loeschen (CASCADE). Pro Session eine atomare
-  // Transaktion; ein Fehler an einer Session stoppt nicht die uebrigen.
-  const toDelete = stmts.listHardDeleteSessions.all({ threshold: now - hardDeleteAfterMs })
-  let deleted = 0
-  for (const row of toDelete) {
-    try {
-      const r = stmts.deleteSessionById.run(row.id)
-      if (r.changes > 0) deleted += 1
-    } catch (err) {
-      logger.warn({ err, sessionId: row.id }, 'cr2 retention hard-delete fehlgeschlagen')
+  // Pro Session eine atomare CASCADE-Loeschung; ein Fehler an einer Session
+  // stoppt die uebrigen nicht. Stufe B (beendet + ueberfaellig) und Stufe C
+  // (verwaiste Lobby) nutzen denselben Lösch-Helfer.
+  const deleteSessions = (rows, label) => {
+    let n = 0
+    for (const row of rows) {
+      try {
+        const r = stmts.deleteSessionById.run(row.id)
+        if (r.changes > 0) n += 1
+      } catch (err) {
+        logger.warn({ err, sessionId: row.id }, `cr2 retention ${label} fehlgeschlagen`)
+      }
     }
+    return n
   }
 
-  if (anonymized > 0 || deleted > 0) {
-    logger.info({ anonymized, deleted }, 'cr2 retention sweep')
+  // Stufe B — beendete Sessions 30 Tage nach finished_at hart loeschen.
+  const deleted = deleteSessions(
+    stmts.listHardDeleteSessions.all({ threshold: now - hardDeleteAfterMs }),
+    'hard-delete',
+  )
+
+  // Stufe C (W4-U2) — verwaiste Lobby-Sessions (nie gestartet) nach dem
+  // Abandon-Fenster hart loeschen, damit sie nicht ewig Join-Codes belegen.
+  const lobbyDeleted = deleteSessions(
+    stmts.listAbandonedLobbySessions.all({ threshold: now - lobbyAbandonMs }),
+    'lobby-cleanup',
+  )
+
+  if (anonymized > 0 || deleted > 0 || lobbyDeleted > 0) {
+    logger.info({ anonymized, deleted, lobbyDeleted }, 'cr2 retention sweep')
   }
-  return { anonymized, deleted }
+  return { anonymized, deleted, lobbyDeleted }
 }
 
 // ── Assignments ─────────────────────────────────────────────────────

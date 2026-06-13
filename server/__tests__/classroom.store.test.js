@@ -31,6 +31,7 @@ import {
   runClassroomRetention,
   DEFAULT_NAME_ANONYMIZE_MS,
   DEFAULT_HARD_DELETE_MS,
+  DEFAULT_LOBBY_ABANDON_MS,
   ANONYMIZED_DISPLAY_NAME,
 } from '../classroom/store.js'
 
@@ -1122,6 +1123,48 @@ describe('classroom/store', () => {
       expect(getSessionById(session.id).status).toBe('running')
       expect(nameOf(j.participant.id)).toBe('Aktiv')
       expect(res.deleted).toBe(0)
+    })
+
+    // Verwaiste Lobby: angelegt, nie gestartet. created_at wird zurueckdatiert,
+    // started_at bleibt NULL.
+    function abandonedLobby(agedAt = AGED) {
+      const { session } = createSession({ teacherUserId: TEACHER_A })
+      db.prepare(`UPDATE classroom_session SET created_at = ? WHERE id = ?`).run(agedAt, session.id)
+      return session
+    }
+
+    it('Stufe C: loescht nie gestartete Lobby-Session nach dem Abandon-Fenster', () => {
+      const session = abandonedLobby()
+      expect(getSessionById(session.id).status).toBe('lobby')
+
+      const res = runClassroomRetention({ now: AGED + DEFAULT_LOBBY_ABANDON_MS + 1000 })
+      expect(res.lobbyDeleted).toBeGreaterThanOrEqual(1)
+      expect(getSessionById(session.id)).toBeNull()
+    })
+
+    it('Stufe C: laesst Lobby juenger als das Abandon-Fenster unberuehrt', () => {
+      const session = abandonedLobby()
+      // now nur 1 h nach Anlage → Fenster (7 Tage) nicht erreicht.
+      const res = runClassroomRetention({ now: AGED + 60 * 60 * 1000 })
+      expect(res.lobbyDeleted).toBe(0)
+      expect(getSessionById(session.id)).toBeTruthy()
+    })
+
+    it('Stufe C: ruehrt gestartete Sessions nicht an (started_at gesetzt)', () => {
+      const { session } = createSession({ teacherUserId: TEACHER_A })
+      addAssignment({
+        sessionId: session.id, teacherUserId: TEACHER_A,
+        mode: 'kollokationen', lemmaIds: ['lemma-1'],
+        contentSnapshot: KOLL_SNAPSHOT,
+      })
+      startSession({ sessionId: session.id, teacherUserId: TEACHER_A })
+      // created_at weit zurueckdatieren — trotzdem geschuetzt, weil started_at
+      // gesetzt und Status 'running' (nicht 'lobby').
+      db.prepare(`UPDATE classroom_session SET created_at = ? WHERE id = ?`).run(AGED, session.id)
+
+      const res = runClassroomRetention({ now: AGED + DEFAULT_LOBBY_ABANDON_MS + 1000 })
+      expect(res.lobbyDeleted).toBe(0)
+      expect(getSessionById(session.id)).toBeTruthy()
     })
   })
 })

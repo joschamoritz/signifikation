@@ -16,7 +16,9 @@
  * eigene Indizes nur dafür lohnen sich nicht.
  */
 
-import db from '../db.js'
+import { join, dirname } from 'path'
+import { existsSync, readdirSync, statSync, unlinkSync, rmdirSync } from 'fs'
+import db, { DB_PATH } from '../db.js'
 import logger from '../logger.js'
 import { compactOldUserStats } from '../store.js'
 
@@ -28,6 +30,40 @@ const deleteOldAuditStmt = db.prepare(`DELETE FROM audit_log WHERE timestamp < ?
 const deleteOldTelemetryStmt = db.prepare(`DELETE FROM classroom_telemetry WHERE ts < ?`)
 
 export const STATS_COMPACT_AFTER_DAYS = 180
+
+// W4-U2: Legacy-CSV-Exports aus der Klassenraum-v1-Aera (Tabelle
+// classroom_exports wurde in Migration 0006 gedroppt; aktueller Code schreibt
+// NICHTS mehr hierher). Auf dem Hetzner-Volume koennen aber noch Alt-CSVs
+// liegen. Defensiver Prune: ueberfaellige Dateien loeschen, leeres Verzeichnis
+// abraeumen. Existiert das Verzeichnis nicht (Normalfall), passiert nichts.
+const LEGACY_EXPORT_DIR = join(dirname(DB_PATH), 'classroom-exports')
+
+function pruneLegacyExports(cutoffMs) {
+  if (!existsSync(LEGACY_EXPORT_DIR)) return 0
+  let removed = 0
+  try {
+    const entries = readdirSync(LEGACY_EXPORT_DIR)
+    for (const name of entries) {
+      const full = join(LEGACY_EXPORT_DIR, name)
+      try {
+        const st = statSync(full)
+        if (st.isFile() && st.mtimeMs < cutoffMs) {
+          unlinkSync(full)
+          removed += 1
+        }
+      } catch (err) {
+        logger.warn({ err, file: name }, 'Legacy-CSV-Prune: Datei konnte nicht geprueft/geloescht werden')
+      }
+    }
+    // Leeres Relikt-Verzeichnis abraeumen (best effort, schlaegt fehl wenn noch Dateien drin).
+    if (readdirSync(LEGACY_EXPORT_DIR).length === 0) {
+      try { rmdirSync(LEGACY_EXPORT_DIR) } catch { /* nicht leer / Race — egal */ }
+    }
+  } catch (err) {
+    logger.warn({ err }, 'Legacy-CSV-Prune fehlgeschlagen')
+  }
+  return removed
+}
 
 export function runDataRetention({ now = Date.now(), retentionMs = DEFAULT_RETENTION_MS } = {}) {
   const cutoffMs = now - retentionMs
@@ -41,8 +77,16 @@ export function runDataRetention({ now = Date.now(), retentionMs = DEFAULT_RETEN
   // Admin-Statistiken (Summen/Verteilungen) bleiben exakt.
   const statsCompacted = compactOldUserStats(STATS_COMPACT_AFTER_DAYS)
 
-  const result = { auditDeleted: audit.changes, telemetryDeleted: telemetry.changes, statsCompacted }
-  if (result.auditDeleted > 0 || result.telemetryDeleted > 0 || result.statsCompacted > 0) {
+  // Legacy-CSV-Exports nach derselben 24-Monats-Frist abraeumen.
+  const legacyExportsRemoved = pruneLegacyExports(cutoffMs)
+
+  const result = {
+    auditDeleted: audit.changes,
+    telemetryDeleted: telemetry.changes,
+    statsCompacted,
+    legacyExportsRemoved,
+  }
+  if (result.auditDeleted > 0 || result.telemetryDeleted > 0 || result.statsCompacted > 0 || result.legacyExportsRemoved > 0) {
     logger.info(result, 'Retention-Sweep: alte Eintraege geloescht/kompaktiert')
   }
   return result
