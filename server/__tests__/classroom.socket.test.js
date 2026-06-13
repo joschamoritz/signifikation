@@ -260,6 +260,47 @@ describe('classroom socket (T-3.1 / T-3.2 / T-3.3)', () => {
     expect(payload.sessionId).toBe(session.id)
   })
 
+  // ── W4-S2: Dual-Namespace (/classroom neu + /cr2 Legacy) ───────
+
+  it('Client auf dem neuen /classroom-Namespace kann verbinden', async () => {
+    const { session } = setupSessionWithStudent()
+    const teacher = ioClient(`${baseUrl}/classroom`, {
+      transports: ['websocket'], forceNew: true,
+      auth: { sessionId: session.id },
+      extraHeaders: { 'x-dev-user-id': TEACHER },
+      timeout: 4000,
+    })
+    openSockets.push(teacher)
+    await expect(awaitConnect(teacher)).resolves.toBeUndefined()
+  })
+
+  it('Broadcast erreicht Lehrer auf /classroom UND Schueler auf /cr2 (Cross-Namespace)', async () => {
+    const { session, participant } = setupSessionWithStudent()
+
+    // Lehrer auf NEUEM Namespace, Schueler auf LEGACY-Namespace — wie waehrend
+    // eines Deploys (alt-gecachter Schueler-Client, frisch geladener Lehrer).
+    const teacher = ioClient(`${baseUrl}/classroom`, {
+      transports: ['websocket'], forceNew: true,
+      auth: { sessionId: session.id },
+      extraHeaders: { 'x-dev-user-id': TEACHER },
+      timeout: 4000,
+    })
+    const student = connectStudent(baseUrl, participant.token) // /cr2
+    openSockets.push(teacher, student)
+    await Promise.all([awaitConnect(teacher), awaitConnect(student)])
+
+    const teacherHeard = new Promise((resolve) => teacher.once('student:joined', resolve))
+    const studentHeard = new Promise((resolve) => student.once('session:finished', resolve))
+
+    const { notifyStudentJoined, notifySessionFinished } = await import('../realtime/classroomSocket.js')
+    notifyStudentJoined(session.id, { participantId: participant.id, displayName: 'Schueler', joinedAt: Date.now() })
+    notifySessionFinished(session.id, { sessionId: session.id, finishedAt: Date.now() })
+
+    const [t, s] = await Promise.all([teacherHeard, studentHeard])
+    expect(t.participantId).toBe(participant.id)
+    expect(s.sessionId).toBe(session.id)
+  })
+
   // ── T-3.3: Reconnect-Window ────────────────────────────────────
 
   it('Schueler-Reconnect innerhalb 300s liefert KEIN student:left an Lehrer', async () => {

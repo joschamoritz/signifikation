@@ -71,11 +71,11 @@ const DEFAULT_CONNECT_RATE_LIMIT = 50              // Connects pro IP / Fenster
 const DEFAULT_CONNECT_RATE_WINDOW_MS = 60_000
 
 // ── Modulzustand (SINGLE-NODE-ANNAHME, P5) ──────────────────────────
-// nsp wird beim Setup gesetzt. Helper (notify*) und Timer-Logik
-// lesen ueber Closure-Referenz. Ohne Setup sind alle Helper No-Ops
-// (relevant fuer Route-Tests ohne Socket-Server).
+// nsps wird beim Setup gesetzt (Liste: [/classroom, /cr2]). Helper (notify*)
+// und Timer-Logik lesen ueber Closure-Referenz. Ohne Setup sind alle Helper
+// No-Ops (relevant fuer Route-Tests ohne Socket-Server).
 //
-// WICHTIG: nsp, disconnectTimers und connectAttempts sind MODUL-LOKAL —
+// WICHTIG: nsps, disconnectTimers und connectAttempts sind MODUL-LOKAL —
 // also pro Node-Prozess. Der Klassenraum-Realtime ist bewusst auf EINEN
 // einzigen Node-Prozess ausgelegt (Use-Case: <=50 Teilnehmer/Schulstunde):
 //   - notify*-Broadcasts erreichen nur Sockets, die mit DIESEM Prozess
@@ -87,7 +87,16 @@ const DEFAULT_CONNECT_RATE_WINDOW_MS = 60_000
 // instances:1 + exec_mode:'fork', und setupClassroomSocket warnt LAUT, falls
 // es doch in einem Cluster laeuft (assertSingleNode unten). Horizontal-Scaling
 // (Redis-Adapter) ist fuer diesen Use-Case bewusst NICHT vorgesehen.
-let nsp = null
+//
+// W4-S2 (De-Brand): Primaerer Namespace ist `/classroom`. `/cr2` bleibt als
+// Legacy-Alias erhalten, damit waehrend des Deploy-Fensters alte (gecachte)
+// Clients, die noch `/cr2` verbinden, NICHT abreissen. Beide Namespaces teilen
+// dieselbe Middleware + Connection-Logik; Emits gehen per emitToRoom() an
+// BEIDE (Socket.io-Rooms sind pro Namespace isoliert). LEGACY_NAMESPACE
+// entfernen, sobald keine alten Clients mehr aktiv sein koennen.
+const PRIMARY_NAMESPACE = '/classroom'
+const LEGACY_NAMESPACE  = '/cr2'
+let nsps = []  // [primary, legacy] — gesetzt in setupClassroomSocket
 let RECONNECT_WINDOW_MS = DEFAULT_RECONNECT_WINDOW_MS
 let HELLO_TIMEOUT_MS = DEFAULT_HELLO_TIMEOUT_MS
 let CONNECT_RATE_LIMIT = DEFAULT_CONNECT_RATE_LIMIT
@@ -235,9 +244,9 @@ function scheduleDisconnectTimeout(sessionId, participantId) {
       logger.warn({ err, participantId }, 'cr2 leaveParticipant on timeout fehlgeschlagen')
     }
     trackParticipantDropped(sessionId, participantId)
-    if (!nsp) return
+    if (!nsps.length) return
     // student:left zwecks Anzeige im Live-Dashboard (reason: 'timeout').
-    nsp.to(roomTeacher(sessionId)).emit('student:left', {
+    emitToRoom(roomTeacher(sessionId), 'student:left', {
       participantId,
       reason: 'timeout',
       at: nowMs(),
@@ -249,16 +258,88 @@ function scheduleDisconnectTimeout(sessionId, participantId) {
 }
 
 function hasOpenSocketsForParticipant(participantId) {
-  if (!nsp) return false
-  const room = nsp.adapter?.rooms?.get(roomParticipant(participantId))
-  return !!room && room.size > 0
+  if (!nsps.length) return false
+  // Ueber alle Namespaces pruefen — der Socket des Teilnehmers kann waehrend
+  // des Deploy-Fensters auf /classroom ODER /cr2 haengen.
+  const room = roomParticipant(participantId)
+  return nsps.some((n) => (n.adapter?.rooms?.get(room)?.size ?? 0) > 0)
 }
 
 // ── Setup ───────────────────────────────────────────────────────────
 
+// Auth-Middleware fuer den Klassenraum-Namespace. Identisch fuer /classroom
+// und den Legacy-Alias /cr2 (W4-S2) — daher als benannte Funktion extrahiert.
+async function classroomSocketAuth(socket, next) {
+  try {
+    // Hinter nginx ist handshake.address die Proxy-IP — das Limit wuerde
+    // auf EINE IP kollabieren. X-Forwarded-For (vom Proxy gesetzt, siehe
+    // ops/nginx-*.conf) hat Vorrang; erster Eintrag = Client. Caveat wie
+    // bei Express trust proxy=1: nur hinter dem eigenen Proxy verlaesslich.
+    const xff = socket.handshake.headers['x-forwarded-for']
+    const ip = (typeof xff === 'string' && xff.length > 0)
+      ? xff.split(',')[0].trim()
+      : (socket.handshake.address || 'unknown')
+    if (!checkConnectRateLimit(ip)) {
+      logger.warn({ ip }, 'classroom socket: rate limit exceeded')
+      return next(new Error('RATE_LIMITED'))
+    }
+
+    const handshakeAuth = socket.handshake.auth || {}
+    const handshakeSessionId = typeof handshakeAuth.sessionId === 'string'
+      ? handshakeAuth.sessionId.trim()
+      : ''
+
+    // 1. Teacher-Pfad: Cookie/Dev-Header + handshake.sessionId
+    const teacher = await resolveTeacherSubject(socket)
+    if (teacher && handshakeSessionId) {
+      const ok = hasCapability({
+        sessionId:    handshakeSessionId,
+        subjectKind:  'teacher',
+        subjectId:    teacher.id,
+        capability:   'session:read',
+      })
+      if (!ok) return next(new Error('FORBIDDEN'))
+      socket.data.role      = 'teacher'
+      socket.data.sessionId = handshakeSessionId
+      socket.data.subjectId = teacher.id
+      return next()
+    }
+
+    // 2. Schueler-Pfad: Token im Handshake (oder Bearer-Header)
+    const participantSubject = resolveParticipantSubject(socket)
+    if (participantSubject) {
+      const ok = hasCapability({
+        sessionId:   participantSubject.sessionId,
+        subjectKind: 'participant',
+        subjectId:   participantSubject.id,
+        capability:  'view:student',
+      })
+      if (!ok) return next(new Error('FORBIDDEN'))
+      socket.data.role        = 'student'
+      socket.data.sessionId   = participantSubject.sessionId
+      socket.data.subjectId   = participantSubject.id
+      socket.data.participant = participantSubject.participant
+      return next()
+    }
+
+    // 3. Pending-Pfad: Client kuendigt mit role='student-pending' an,
+    //    dass er das Token nach Connect per student:hello nachschiebt.
+    //    Ein Watchdog schliesst die Verbindung, falls hello ausbleibt.
+    if (handshakeAuth.role === 'student-pending') {
+      socket.data.role = 'pending'
+      return next()
+    }
+
+    return next(new Error('UNAUTHORIZED'))
+  } catch (err) {
+    logger.error({ err }, 'classroom socket middleware crashed')
+    return next(new Error('INTERNAL'))
+  }
+}
+
 /**
- * setupClassroomSocket(io, options) – registriert den /cr2-Namespace auf
- * einer bestehenden Socket.io-Server-Instanz.
+ * setupClassroomSocket(io, options) – registriert den /classroom-Namespace
+ * (plus Legacy-Alias /cr2) auf einer bestehenden Socket.io-Server-Instanz.
  *
  * Options:
  *   reconnectWindowMs    – default 5 Min (D6). In Tests deutlich kleiner.
@@ -277,82 +358,18 @@ export function setupClassroomSocket(io, options = {}) {
   CONNECT_RATE_LIMIT     = options.connectRateLimit     ?? DEFAULT_CONNECT_RATE_LIMIT
   CONNECT_RATE_WINDOW_MS = options.connectRateWindowMs  ?? DEFAULT_CONNECT_RATE_WINDOW_MS
 
-  nsp = io.of('/cr2')
-
-  nsp.use(async (socket, next) => {
-    try {
-      // Hinter nginx ist handshake.address die Proxy-IP — das Limit wuerde
-      // auf EINE IP kollabieren. X-Forwarded-For (vom Proxy gesetzt, siehe
-      // ops/nginx-*.conf) hat Vorrang; erster Eintrag = Client. Caveat wie
-      // bei Express trust proxy=1: nur hinter dem eigenen Proxy verlaesslich.
-      const xff = socket.handshake.headers['x-forwarded-for']
-      const ip = (typeof xff === 'string' && xff.length > 0)
-        ? xff.split(',')[0].trim()
-        : (socket.handshake.address || 'unknown')
-      if (!checkConnectRateLimit(ip)) {
-        logger.warn({ ip }, 'cr2 socket: rate limit exceeded')
-        return next(new Error('RATE_LIMITED'))
-      }
-
-      const handshakeAuth = socket.handshake.auth || {}
-      const handshakeSessionId = typeof handshakeAuth.sessionId === 'string'
-        ? handshakeAuth.sessionId.trim()
-        : ''
-
-      // 1. Teacher-Pfad: Cookie/Dev-Header + handshake.sessionId
-      const teacher = await resolveTeacherSubject(socket)
-      if (teacher && handshakeSessionId) {
-        const ok = hasCapability({
-          sessionId:    handshakeSessionId,
-          subjectKind:  'teacher',
-          subjectId:    teacher.id,
-          capability:   'session:read',
-        })
-        if (!ok) return next(new Error('FORBIDDEN'))
-        socket.data.role      = 'teacher'
-        socket.data.sessionId = handshakeSessionId
-        socket.data.subjectId = teacher.id
-        return next()
-      }
-
-      // 2. Schueler-Pfad: Token im Handshake (oder Bearer-Header)
-      const participantSubject = resolveParticipantSubject(socket)
-      if (participantSubject) {
-        const ok = hasCapability({
-          sessionId:   participantSubject.sessionId,
-          subjectKind: 'participant',
-          subjectId:   participantSubject.id,
-          capability:  'view:student',
-        })
-        if (!ok) return next(new Error('FORBIDDEN'))
-        socket.data.role        = 'student'
-        socket.data.sessionId   = participantSubject.sessionId
-        socket.data.subjectId   = participantSubject.id
-        socket.data.participant = participantSubject.participant
-        return next()
-      }
-
-      // 3. Pending-Pfad: Client kuendigt mit role='student-pending' an,
-      //    dass er das Token nach Connect per student:hello nachschiebt.
-      //    Ein Watchdog schliesst die Verbindung, falls hello ausbleibt.
-      if (handshakeAuth.role === 'student-pending') {
-        socket.data.role = 'pending'
-        return next()
-      }
-
-      return next(new Error('UNAUTHORIZED'))
-    } catch (err) {
-      logger.error({ err }, 'cr2 socket middleware crashed')
-      return next(new Error('INTERNAL'))
-    }
+  // Primaerer Namespace zuerst + Legacy-Alias /cr2 (W4-S2, Deploy-Fenster).
+  // Beide teilen Auth-Middleware und Connection-Handler; Emits fan-out per
+  // emitToRoom() an alle. nsps[0] (/classroom) ist der bevorzugte Rueckgabewert.
+  nsps = [PRIMARY_NAMESPACE, LEGACY_NAMESPACE].map((name) => {
+    const n = io.of(name)
+    n.use(classroomSocketAuth)
+    n.on('connection', (socket) => onSocketConnected(socket))
+    return n
   })
 
-  nsp.on('connection', (socket) => {
-    onSocketConnected(socket)
-  })
-
-  logger.info('cr2 socket namespace /cr2 initialisiert')
-  return nsp
+  logger.info({ namespaces: [PRIMARY_NAMESPACE, LEGACY_NAMESPACE] }, 'classroom socket namespaces initialisiert')
+  return nsps[0]
 }
 
 function onSocketConnected(socket) {
@@ -483,41 +500,50 @@ function onSocketDisconnect(socket, reason) {
 // Alle Helper sind No-Ops, wenn setupClassroomSocket nicht gerufen
 // wurde (Unit-Test-Pfad ohne Socket-Server).
 
+// Emit an einen Room ueber ALLE aktiven Namespaces (/classroom + /cr2).
+// Waehrend des Deploy-Fensters koennen Lehrer und Schueler einer Session auf
+// verschiedenen Namespaces haengen (neuer Client → /classroom, alt-gecachter
+// Client → /cr2). Socket.io-Rooms sind pro Namespace isoliert, also muss jeder
+// Broadcast an beide gehen, sonst sehen sich die Parteien nicht.
+function emitToRoom(room, event, payload) {
+  for (const n of nsps) n.to(room).emit(event, payload)
+}
+
 export function notifyStudentJoined(sessionId, payload) {
-  if (!nsp || !sessionId) return
-  nsp.to(roomTeacher(sessionId)).emit('student:joined', payload)
+  if (!nsps.length || !sessionId) return
+  emitToRoom(roomTeacher(sessionId), 'student:joined', payload)
 }
 
 export function notifyStudentLeft(sessionId, payload) {
-  if (!nsp || !sessionId) return
-  nsp.to(roomTeacher(sessionId)).emit('student:left', payload)
+  if (!nsps.length || !sessionId) return
+  emitToRoom(roomTeacher(sessionId), 'student:left', payload)
 }
 
 export function notifyStudentHeartbeat(sessionId, payload) {
-  if (!nsp || !sessionId) return
-  nsp.to(roomTeacher(sessionId)).emit('student:heartbeat', payload)
+  if (!nsps.length || !sessionId) return
+  emitToRoom(roomTeacher(sessionId), 'student:heartbeat', payload)
 }
 
 export function notifySubmissionReceived(sessionId, payload) {
-  if (!nsp || !sessionId) return
-  nsp.to(roomTeacher(sessionId)).emit('submission:received', payload)
+  if (!nsps.length || !sessionId) return
+  emitToRoom(roomTeacher(sessionId), 'submission:received', payload)
 }
 
 export function notifyParticipantProgress(sessionId, payload) {
-  if (!nsp || !sessionId) return
-  nsp.to(roomTeacher(sessionId)).emit('participant:progress', payload)
+  if (!nsps.length || !sessionId) return
+  emitToRoom(roomTeacher(sessionId), 'participant:progress', payload)
 }
 
 export function notifySessionStarted(sessionId, payload) {
-  if (!nsp || !sessionId) return
-  nsp.to(roomStudents(sessionId)).emit('session:started', payload)
-  nsp.to(roomTeacher(sessionId)).emit('session:started', payload)
+  if (!nsps.length || !sessionId) return
+  emitToRoom(roomStudents(sessionId), 'session:started', payload)
+  emitToRoom(roomTeacher(sessionId), 'session:started', payload)
 }
 
 export function notifySessionFinished(sessionId, payload) {
-  if (!nsp || !sessionId) return
-  nsp.to(roomStudents(sessionId)).emit('session:finished', payload)
-  nsp.to(roomTeacher(sessionId)).emit('session:finished', payload)
+  if (!nsps.length || !sessionId) return
+  emitToRoom(roomStudents(sessionId), 'session:finished', payload)
+  emitToRoom(roomTeacher(sessionId), 'session:finished', payload)
 }
 
 // Hinweis (P5/Kleinkram): notifySessionAborted wurde entfernt — es gibt keinen
@@ -526,15 +552,15 @@ export function notifySessionFinished(sessionId, payload) {
 // eines Abort-Flows hier wieder ergaenzen (Muster wie notifySessionFinished).
 
 export function notifySessionPaused(sessionId, payload) {
-  if (!nsp || !sessionId) return
-  nsp.to(roomStudents(sessionId)).emit('session:paused', payload)
-  nsp.to(roomTeacher(sessionId)).emit('session:paused', payload)
+  if (!nsps.length || !sessionId) return
+  emitToRoom(roomStudents(sessionId), 'session:paused', payload)
+  emitToRoom(roomTeacher(sessionId), 'session:paused', payload)
 }
 
 export function notifySessionResumed(sessionId, payload) {
-  if (!nsp || !sessionId) return
-  nsp.to(roomStudents(sessionId)).emit('session:resumed', payload)
-  nsp.to(roomTeacher(sessionId)).emit('session:resumed', payload)
+  if (!nsps.length || !sessionId) return
+  emitToRoom(roomStudents(sessionId), 'session:resumed', payload)
+  emitToRoom(roomTeacher(sessionId), 'session:resumed', payload)
 }
 
 // W2-T2: Modus-Wechsel innerhalb einer laufenden Session.
@@ -548,14 +574,14 @@ export function notifySessionResumed(sessionId, payload) {
 // Muster wie 'view:updated'). Der Plan-Wortlaut „mit content_snapshot"
 // wird hier zugunsten von R1 bewusst nicht woertlich umgesetzt.
 export function notifyAssignmentChanged(sessionId, payload) {
-  if (!nsp || !sessionId) return
-  nsp.to(roomStudents(sessionId)).emit('assignment:changed', payload)
-  nsp.to(roomTeacher(sessionId)).emit('assignment:changed', payload)
+  if (!nsps.length || !sessionId) return
+  emitToRoom(roomStudents(sessionId), 'assignment:changed', payload)
+  emitToRoom(roomTeacher(sessionId), 'assignment:changed', payload)
 }
 
 export function notifyStudentViewUpdated(participantId, payload) {
-  if (!nsp || !participantId) return
-  nsp.to(roomParticipant(participantId)).emit('view:updated', payload)
+  if (!nsps.length || !participantId) return
+  emitToRoom(roomParticipant(participantId), 'view:updated', payload)
 }
 
 
@@ -585,5 +611,5 @@ export function __getConnectAttemptCountForTests() {
 }
 
 export function __getNamespaceForTests() {
-  return nsp
+  return nsps[0] ?? null
 }
