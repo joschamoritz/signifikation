@@ -16,20 +16,34 @@ import { useCallback, useEffect, useRef } from 'react'
 import { useStudentKiosk } from '../StudentKioskContext'
 import { fetchView, sendHeartbeat, leaveSession, KioskApiError } from '../kioskFetch'
 
-const STORAGE_KEY = 'classroom-v2:student'
+const STORAGE_KEY = 'classroom:student'
+// W4-S2 (De-Brand): alter Key. Einmalige Migration beim Lesen/Schreiben,
+// damit ein Schueler, der waehrend des Deploys mitten in einer Session ist,
+// nicht ausgeloggt wird. Nach dem Deploy-Fenster kann diese Zeile + die
+// Migrationslogik entfernt werden.
+const LEGACY_STORAGE_KEY = 'classroom-v2:student'
 const POLL_INTERVAL_MS      = 10_000
 const HEARTBEAT_INTERVAL_MS = 8_000
 
 function readStorage() {
   try {
-    const raw = sessionStorage.getItem(STORAGE_KEY)
-    if (!raw) return null
+    let raw = sessionStorage.getItem(STORAGE_KEY)
+    if (!raw) {
+      // Fallback auf den alten Key + einmalige Migration auf den neuen.
+      const legacy = sessionStorage.getItem(LEGACY_STORAGE_KEY)
+      if (!legacy) return null
+      sessionStorage.setItem(STORAGE_KEY, legacy)
+      sessionStorage.removeItem(LEGACY_STORAGE_KEY)
+      raw = legacy
+    }
     return JSON.parse(raw)
   } catch { return null }
 }
 
 function writeStorage(value) {
   try {
+    // Alten Key in jedem Fall mitraeumen (Migration abschliessen).
+    sessionStorage.removeItem(LEGACY_STORAGE_KEY)
     if (!value) sessionStorage.removeItem(STORAGE_KEY)
     else sessionStorage.setItem(STORAGE_KEY, JSON.stringify(value))
   } catch {}

@@ -22,7 +22,12 @@
 
 import { useEffect, useRef, useState } from 'react'
 
-const CHANNEL_NAME = 'classroom-v2-kiosk'
+const CHANNEL_NAME = 'classroom-kiosk'
+// W4-S2 (De-Brand): alter Channel-Name. Waehrend des Deploy-Fensters lauschen
+// und posten wir auf BEIDEN Channels, damit ein alter und ein neuer Tab sich
+// fuer die Multi-Tab-Sperre gegenseitig sehen. Nach dem Fenster entfernbar.
+const LEGACY_CHANNEL_NAME = 'classroom-v2-kiosk'
+const CHANNEL_NAMES = [CHANNEL_NAME, LEGACY_CHANNEL_NAME]
 
 function hasBroadcastChannel() {
   return typeof window !== 'undefined' && typeof window.BroadcastChannel === 'function'
@@ -50,9 +55,17 @@ export function useKioskGuard({ code, currentState }) {
   // ── Multi-Tab-Sperre ──────────────────────────────────────────────
   useEffect(() => {
     if (!hasBroadcastChannel() || !code) return undefined
-    let ch
-    try { ch = new BroadcastChannel(CHANNEL_NAME) } catch { return undefined }
+    // Beide Channels oeffnen (neu + Legacy), damit die Sperre versionsuebergreifend
+    // greift. postAll() sendet an alle, onMessage haengt an allen.
+    const channels = []
+    for (const name of CHANNEL_NAMES) {
+      try { channels.push(new BroadcastChannel(name)) } catch { /* ignore */ }
+    }
+    if (channels.length === 0) return undefined
     const self = selfRef.current
+    const postAll = (payload) => {
+      for (const ch of channels) { try { ch.postMessage(payload) } catch { /* ignore */ } }
+    }
 
     function onMessage(ev) {
       const msg = ev?.data
@@ -65,20 +78,22 @@ export function useKioskGuard({ code, currentState }) {
           setLocked(true)
         } else if (!lockedRef.current) {
           // Wir sind der aeltere (Holder) → den neuen Tab zur Sperre auffordern.
-          try { ch.postMessage({ type: 'occupied', code, from: self.id, target: msg.from }) } catch {}
+          postAll({ type: 'occupied', code, from: self.id, target: msg.from })
         }
       } else if (msg.type === 'occupied' && msg.target === self.id) {
         setLocked(true)
       }
     }
 
-    ch.addEventListener('message', onMessage)
+    for (const ch of channels) ch.addEventListener('message', onMessage)
     // Anmelden — bereits offene Holder antworten mit 'occupied'.
-    try { ch.postMessage({ type: 'hello', code, from: self.id, t: self.t }) } catch {}
+    postAll({ type: 'hello', code, from: self.id, t: self.t })
 
     return () => {
-      try { ch.removeEventListener('message', onMessage) } catch {}
-      try { ch.close() } catch {}
+      for (const ch of channels) {
+        try { ch.removeEventListener('message', onMessage) } catch { /* ignore */ }
+        try { ch.close() } catch { /* ignore */ }
+      }
     }
   }, [code])
 
