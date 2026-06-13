@@ -21,22 +21,22 @@ export default function WaitingState() {
   const { state } = useStudentKiosk()
 
   return (
-    <div className="cr2-kiosk__panel cr2-kiosk__panel--center">
+    <div className="classroom-kiosk__panel classroom-kiosk__panel--center">
       {state.displayName && (
-        <span className="cr2-kiosk__name-chip" data-testid="cr2-kiosk-name-chip">
+        <span className="classroom-kiosk__name-chip" data-testid="classroom-kiosk-name-chip">
           <strong>{state.displayName}</strong>
         </span>
       )}
 
-      <p className="cr2-kiosk__overline">
+      <p className="classroom-kiosk__overline">
         {state.assignment?.mode ? (MODE_LABEL[state.assignment.mode] || state.assignment.mode) : 'Klassenraum'}
       </p>
-      <h1 className="cr2-kiosk__title">Warte, gleich geht&apos;s los.</h1>
+      <h1 className="classroom-kiosk__title">Warte, gleich geht&apos;s los.</h1>
 
       {/* role=status: der Wechsel zu „spielen" passiert per Server-Push ohne
           Nutzeraktion — Screenreader bekommen wenigstens die Warte-Ansage. */}
-      <p className="cr2-kiosk__lead" role="status" style={{ marginTop: 18, marginBottom: 0 }}>
-        <span className="cr2-kiosk__pulse" aria-hidden="true" />
+      <p className="classroom-kiosk__lead" role="status" style={{ marginTop: 18, marginBottom: 0 }}>
+        <span className="classroom-kiosk__pulse" aria-hidden="true" />
         Deine Lehrkraft startet das Spiel gleich.
       </p>
     </div>

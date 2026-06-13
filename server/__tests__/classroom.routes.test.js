@@ -795,7 +795,7 @@ describe('classroom routes', () => {
       cleanupTeacher(TEACHER_ID)
     })
 
-    it('R6: cr2SubmitSchema hat kein score-Feld — schickt man es mit, wird es ignoriert', async () => {
+    it('R6: classroomSubmitSchema hat kein score-Feld — schickt man es mit, wird es ignoriert', async () => {
       // Score vom Client soll NIEMALS akzeptiert werden (D13/R6).
       // Wir koennen das direkt auf Schema-Ebene prüfen, indem wir schauen,
       // dass das Schema mit einem score-Feld trotzdem valid parsed (Zod
@@ -804,8 +804,8 @@ describe('classroom routes', () => {
       // Direkter Beweis via E2E-Submit mit manipuliertem score → echter
       // Score-Berechnung wird genutzt (Happy-Path-Test belegt das mit score=10)
       // Hier: Schema-Import pruefen
-      const { cr2SubmitSchema } = await import('../middleware/validate.js')
-      const result = cr2SubmitSchema.safeParse({
+      const { classroomSubmitSchema } = await import('../middleware/validate.js')
+      const result = classroomSubmitSchema.safeParse({
         assignmentId: 'x',
         lemmaId: 'y',
         rawAnswer: { selected: [] },

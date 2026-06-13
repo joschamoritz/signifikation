@@ -33,7 +33,7 @@ export default function ClassroomGameWortZwilling({ prompt, onSubmit, draftKey =
     : null
 
   return (
-    <div data-testid="cr2-kiosk-game-wortzwilling">
+    <div data-testid="classroom-kiosk-game-wortzwilling">
       <WortZwilling
         data={data}
         mode="classroom"

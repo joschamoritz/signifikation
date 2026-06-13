@@ -35,10 +35,10 @@ function renderSetup() {
 
 // Hilfsfunktion: ersten Block vollstaendig ausfuellen (Modus + Lemma).
 async function fillFirstBlock() {
-  const block = screen.getByTestId('cr2-block-0')
-  fireEvent.click(within(block).getByTestId('cr2-mode-kollokationen'))
+  const block = screen.getByTestId('classroom-block-0')
+  fireEvent.click(within(block).getByTestId('classroom-mode-kollokationen'))
   fireEvent.change(within(block).getByLabelText('Lemma-Suche'), { target: { value: 'Pro' } })
-  fireEvent.click(await within(block).findByTestId('cr2-lemma-x1'))
+  fireEvent.click(await within(block).findByTestId('classroom-lemma-x1'))
 }
 
 describe('SetupStep (T-4.4 / W2-T2)', () => {
@@ -55,42 +55,42 @@ describe('SetupStep (T-4.4 / W2-T2)', () => {
     renderSetup()
     expect(screen.getByText(/Modi & Wörter/i)).toBeTruthy()
     expect(screen.getByText(/II · Details/i)).toBeTruthy()
-    expect(screen.getByTestId('cr2-block-0')).toBeTruthy()
-    expect(screen.queryByTestId('cr2-block-1')).toBeNull()
+    expect(screen.getByTestId('classroom-block-0')).toBeTruthy()
+    expect(screen.queryByTestId('classroom-block-1')).toBeNull()
   })
 
   it('CTA „Lobby öffnen" ist disabled ohne vollständigen Block', () => {
     renderSetup()
-    expect(screen.getByTestId('cr2-setup-submit').hasAttribute('disabled')).toBe(true)
+    expect(screen.getByTestId('classroom-setup-submit').hasAttribute('disabled')).toBe(true)
   })
 
   it('Auswahl nur eines Modus reicht NICHT — CTA bleibt disabled', () => {
     renderSetup()
-    fireEvent.click(within(screen.getByTestId('cr2-block-0')).getByTestId('cr2-mode-kollokationen'))
-    expect(screen.getByTestId('cr2-setup-submit').hasAttribute('disabled')).toBe(true)
+    fireEvent.click(within(screen.getByTestId('classroom-block-0')).getByTestId('classroom-mode-kollokationen'))
+    expect(screen.getByTestId('classroom-setup-submit').hasAttribute('disabled')).toBe(true)
   })
 
   it('„Schüleransicht testen" je Block ist disabled ohne vollständige Auswahl', () => {
     renderSetup()
-    expect(screen.getByTestId('cr2-block-preview-0').hasAttribute('disabled')).toBe(true)
+    expect(screen.getByTestId('classroom-block-preview-0').hasAttribute('disabled')).toBe(true)
   })
 
   it('aktiviert CTA + Vorschau, sobald der Block vollständig ist', async () => {
     renderSetup()
     await fillFirstBlock()
-    expect(screen.getByTestId('cr2-setup-submit').hasAttribute('disabled')).toBe(false)
-    const previewBtn = screen.getByTestId('cr2-block-preview-0')
+    expect(screen.getByTestId('classroom-setup-submit').hasAttribute('disabled')).toBe(false)
+    const previewBtn = screen.getByTestId('classroom-block-preview-0')
     expect(previewBtn.hasAttribute('disabled')).toBe(false)
     fireEvent.click(previewBtn)
-    expect(await screen.findByTestId('cr2-setup-preview')).toBeTruthy()
+    expect(await screen.findByTestId('classroom-setup-preview')).toBeTruthy()
   })
 
   it('W2-T2: fügt einen zweiten Modus-Block hinzu und entfernt ihn wieder', () => {
     renderSetup()
-    fireEvent.click(screen.getByTestId('cr2-block-add'))
-    expect(screen.getByTestId('cr2-block-1')).toBeTruthy()
-    fireEvent.click(screen.getByTestId('cr2-block-remove-1'))
-    expect(screen.queryByTestId('cr2-block-1')).toBeNull()
+    fireEvent.click(screen.getByTestId('classroom-block-add'))
+    expect(screen.getByTestId('classroom-block-1')).toBeTruthy()
+    fireEvent.click(screen.getByTestId('classroom-block-remove-1'))
+    expect(screen.queryByTestId('classroom-block-1')).toBeNull()
   })
 
   it('W2-T2: legt bei „Lobby öffnen" alle Blöcke per bulk an', async () => {
@@ -100,14 +100,14 @@ describe('SetupStep (T-4.4 / W2-T2)', () => {
 
     await fillFirstBlock()
     // zweiten Block hinzufügen + ausfüllen
-    fireEvent.click(screen.getByTestId('cr2-block-add'))
-    const block1 = screen.getByTestId('cr2-block-1')
-    fireEvent.click(within(block1).getByTestId('cr2-mode-wortzwilling'))
+    fireEvent.click(screen.getByTestId('classroom-block-add'))
+    const block1 = screen.getByTestId('classroom-block-1')
+    fireEvent.click(within(block1).getByTestId('classroom-mode-wortzwilling'))
     // Wort-Zwilling nutzt den Paar-Picker (zwei Wörter statt Lemma-Suche)
-    fireEvent.change(within(block1).getByTestId('cr2-wz-a'), { target: { value: 'Wasser' } })
-    fireEvent.change(within(block1).getByTestId('cr2-wz-b'), { target: { value: 'Feuer' } })
+    fireEvent.change(within(block1).getByTestId('classroom-wz-a'), { target: { value: 'Wasser' } })
+    fireEvent.change(within(block1).getByTestId('classroom-wz-b'), { target: { value: 'Feuer' } })
 
-    fireEvent.click(screen.getByTestId('cr2-setup-submit'))
+    fireEvent.click(screen.getByTestId('classroom-setup-submit'))
 
     // createSession + bulk-addAssignments mit zwei Blöcken in Reihenfolge
     await vi.waitFor(() => expect(addAssignments).toHaveBeenCalled())

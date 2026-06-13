@@ -38,14 +38,14 @@ describe('StudentJoinEntry — QR-Scan-Button (F5)', () => {
 
   it('rendert den „QR-Code scannen"-Button', () => {
     render(<StudentJoinEntry />)
-    expect(screen.getByTestId('cr2-kiosk-scan-btn')).toBeTruthy()
+    expect(screen.getByTestId('classroom-kiosk-scan-btn')).toBeTruthy()
   })
 
   it('embedded-Modus rendert ohne Kiosk-Shell, aber mit Code-Eingabe', () => {
     render(<StudentJoinEntry embedded />)
-    expect(screen.getByTestId('cr2-student-tab')).toBeTruthy()
-    expect(screen.getByTestId('cr2-kiosk-code-input')).toBeTruthy()
+    expect(screen.getByTestId('classroom-student-tab')).toBeTruthy()
+    expect(screen.getByTestId('classroom-kiosk-code-input')).toBeTruthy()
     // Kiosk-Shell (mit Verlassen-Button) darf im Tab NICHT da sein
-    expect(screen.queryByTestId('cr2-kiosk-exit')).toBeNull()
+    expect(screen.queryByTestId('classroom-kiosk-exit')).toBeNull()
   })
 })

@@ -28,7 +28,7 @@ export default function ClassroomGameKollokationen({ lemma, prompt, onSubmit, dr
   const initialSelected = Array.isArray(draft) ? draft : (Array.isArray(draft?.selected) ? draft.selected : null)
 
   return (
-    <div data-testid="cr2-kiosk-game-kollokationen">
+    <div data-testid="classroom-kiosk-game-kollokationen">
       <Quiz
         lemma={quizLemma}
         currentRound={0}

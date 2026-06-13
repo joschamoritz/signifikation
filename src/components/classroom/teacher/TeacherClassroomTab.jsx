@@ -41,7 +41,7 @@ function TeacherClassroomBody() {
   // Takeover-Unterseiten bringen ihre eigene Kopfzeile (Zurück + Titel) mit.
   if (TAKEOVER.has(state.currentStep)) {
     return (
-      <div className="cr2-teacher" lang="de">
+      <div className="classroom-teacher" lang="de">
         <StepRouter />
       </div>
     )
@@ -51,7 +51,7 @@ function TeacherClassroomBody() {
   // damit Header, Snap-Scrolling und Badge-Nav 1:1 wie dort funktionieren.
   // ClassroomIndexStep rendert main + test-entries + snap-nav selbst.
   return (
-    <div className="cr2-teacher test-page" lang="de">
+    <div className="classroom-teacher test-page" lang="de">
       <div className="test-wrapper">
         {/* Identischer App-Header wie alle anderen Tabs (Spielmodi/Kurs). */}
         <TabHeader />

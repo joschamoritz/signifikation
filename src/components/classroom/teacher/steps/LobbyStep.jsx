@@ -114,22 +114,22 @@ export default function LobbyStep() {
 
   return (
     <ClassroomSubScreen
-      testId="cr2-lobby"
+      testId="classroom-lobby"
       title="Lobby"
       label="Live-Session"
       lead="Teile den Code — warte auf die Klasse."
       backLabel="Zurück zur Übersicht"
       onBack={() => dispatch({ type: 'GO_TO_LIST' })}
     >
-      {loading && <p className="cr2-loading">Lobby wird vorbereitet …</p>}
-      {error && <p className="cr2-error">{error}</p>}
+      {loading && <p className="classroom-loading">Lobby wird vorbereitet …</p>}
+      {error && <p className="classroom-error">{error}</p>}
 
       {session && (
         <>
           <SessionCodeCard code={session.code} />
 
-          <section className="cr2-section" aria-labelledby="cr2-lobby-participants-label" style={{ marginTop: 24 }}>
-            <span id="cr2-lobby-participants-label" className="cr2-section__label">
+          <section className="classroom-section" aria-labelledby="classroom-lobby-participants-label" style={{ marginTop: 24 }}>
+            <span id="classroom-lobby-participants-label" className="classroom-section__label">
               Teilnehmer ({activeCount})
             </span>
             <ParticipantList participants={participants} mode="lobby" onKick={handleKick} />
@@ -137,14 +137,14 @@ export default function LobbyStep() {
         </>
       )}
 
-      <div className="cr2-sticky-cta" role="none">
-        <div className="cr2-sticky-cta__inner">
+      <div className="classroom-sticky-cta" role="none">
+        <div className="classroom-sticky-cta__inner">
           <button
             type="button"
-            className="cr2-cta"
+            className="classroom-cta"
             disabled={!session || activeCount === 0 || starting}
             onClick={handleStart}
-            data-testid="cr2-lobby-start"
+            data-testid="classroom-lobby-start"
           >
             {starting
               ? 'Wird gestartet …'

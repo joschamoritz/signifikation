@@ -46,7 +46,7 @@ describe('SessionListStep (T-4.3)', () => {
       expect(screen.getByText(/noch keine sessions/i)).toBeTruthy()
     })
     // Ornament statt Einzelbuchstaben-Drop-Cap
-    expect(document.querySelector('.cr2-empty__ornament')).toBeTruthy()
+    expect(document.querySelector('.classroom-empty__ornament')).toBeTruthy()
   })
 
   it('rendert eine Session-Karte und den Floating-CTA „+ Neue Session"', async () => {
@@ -64,6 +64,6 @@ describe('SessionListStep (T-4.3)', () => {
     await waitFor(() => {
       expect(screen.getByText('Klasse A')).toBeTruthy()
     })
-    expect(screen.getByTestId('cr2-new-session')).toBeTruthy()
+    expect(screen.getByTestId('classroom-new-session')).toBeTruthy()
   })
 })

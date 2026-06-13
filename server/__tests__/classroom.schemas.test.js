@@ -8,82 +8,82 @@
 
 import { describe, it, expect } from 'vitest'
 import {
-  cr2CreateSessionSchema,
-  cr2CreateAssignmentSchema,
-  cr2LemmataQuerySchema,
-  cr2JoinSchema,
-  cr2SubmitSchema,
-  cr2StartSessionSchema,
-  cr2FinishSessionSchema,
-  cr2ListSessionsQuerySchema,
+  classroomCreateSessionSchema,
+  classroomCreateAssignmentSchema,
+  classroomLemmataQuerySchema,
+  classroomJoinSchema,
+  classroomSubmitSchema,
+  classroomStartSessionSchema,
+  classroomFinishSessionSchema,
+  classroomListSessionsQuerySchema,
 } from '../middleware/validate.js'
 
-// ── cr2CreateSessionSchema ────────────────────────────────────────
+// ── classroomCreateSessionSchema ────────────────────────────────────────
 
-describe('cr2CreateSessionSchema', () => {
+describe('classroomCreateSessionSchema', () => {
   it('akzeptiert leeres Objekt (title optional)', () => {
-    expect(cr2CreateSessionSchema.safeParse({}).success).toBe(true)
+    expect(classroomCreateSessionSchema.safeParse({}).success).toBe(true)
   })
 
   it('akzeptiert validen Titel', () => {
-    const r = cr2CreateSessionSchema.safeParse({ title: 'Deutschstunde 10b' })
+    const r = classroomCreateSessionSchema.safeParse({ title: 'Deutschstunde 10b' })
     expect(r.success).toBe(true)
     expect(r.data.title).toBe('Deutschstunde 10b')
   })
 
   it('lehnt Titel > 120 Zeichen ab', () => {
-    const r = cr2CreateSessionSchema.safeParse({ title: 'x'.repeat(121) })
+    const r = classroomCreateSessionSchema.safeParse({ title: 'x'.repeat(121) })
     expect(r.success).toBe(false)
   })
 
   it('Titel genau 120 Zeichen ist valide', () => {
-    expect(cr2CreateSessionSchema.safeParse({ title: 'x'.repeat(120) }).success).toBe(true)
+    expect(classroomCreateSessionSchema.safeParse({ title: 'x'.repeat(120) }).success).toBe(true)
   })
 
   it('settings default {} wenn nicht angegeben', () => {
-    const r = cr2CreateSessionSchema.safeParse({})
+    const r = classroomCreateSessionSchema.safeParse({})
     expect(r.success).toBe(true)
     expect(r.data.settings).toEqual({})
   })
 })
 
-// ── cr2CreateAssignmentSchema ─────────────────────────────────────
+// ── classroomCreateAssignmentSchema ─────────────────────────────────────
 
-describe('cr2CreateAssignmentSchema', () => {
+describe('classroomCreateAssignmentSchema', () => {
   it('akzeptiert validen Modus mit 1 Lemma', () => {
-    const r = cr2CreateAssignmentSchema.safeParse({ mode: 'kollokationen', lemmaIds: ['abc'] })
+    const r = classroomCreateAssignmentSchema.safeParse({ mode: 'kollokationen', lemmaIds: ['abc'] })
     expect(r.success).toBe(true)
   })
 
   it('akzeptiert alle 4 gueltigen Modi', () => {
     for (const mode of ['kollokationen', 'wortzwilling', 'zeitenwende', 'lueckenfueller']) {
-      expect(cr2CreateAssignmentSchema.safeParse({ mode, lemmaIds: ['x'] }).success).toBe(true)
+      expect(classroomCreateAssignmentSchema.safeParse({ mode, lemmaIds: ['x'] }).success).toBe(true)
     }
   })
 
   it('lehnt unbekannten Modus ab', () => {
-    const r = cr2CreateAssignmentSchema.safeParse({ mode: 'hangman', lemmaIds: ['x'] })
+    const r = classroomCreateAssignmentSchema.safeParse({ mode: 'hangman', lemmaIds: ['x'] })
     expect(r.success).toBe(false)
   })
 
   it('akzeptiert maximal 3 Lemmata (D3)', () => {
-    const r = cr2CreateAssignmentSchema.safeParse({ mode: 'kollokationen', lemmaIds: ['a', 'b', 'c'] })
+    const r = classroomCreateAssignmentSchema.safeParse({ mode: 'kollokationen', lemmaIds: ['a', 'b', 'c'] })
     expect(r.success).toBe(true)
   })
 
   it('lehnt 4 Lemmata ab (D3: max 3)', () => {
-    const r = cr2CreateAssignmentSchema.safeParse({ mode: 'kollokationen', lemmaIds: ['a', 'b', 'c', 'd'] })
+    const r = classroomCreateAssignmentSchema.safeParse({ mode: 'kollokationen', lemmaIds: ['a', 'b', 'c', 'd'] })
     expect(r.success).toBe(false)
     expect(r.error.errors[0].message).toMatch(/3/)
   })
 
   it('lehnt leeres lemmaIds-Array ab', () => {
-    const r = cr2CreateAssignmentSchema.safeParse({ mode: 'kollokationen', lemmaIds: [] })
+    const r = classroomCreateAssignmentSchema.safeParse({ mode: 'kollokationen', lemmaIds: [] })
     expect(r.success).toBe(false)
   })
 
   it('lehnt LemmaId > 128 Zeichen ab', () => {
-    const r = cr2CreateAssignmentSchema.safeParse({
+    const r = classroomCreateAssignmentSchema.safeParse({
       mode: 'kollokationen',
       lemmaIds: ['x'.repeat(129)],
     })
@@ -91,7 +91,7 @@ describe('cr2CreateAssignmentSchema', () => {
   })
 
   it('lehnt leere LemmaId ("") ab', () => {
-    const r = cr2CreateAssignmentSchema.safeParse({
+    const r = classroomCreateAssignmentSchema.safeParse({
       mode: 'kollokationen',
       lemmaIds: [''],
     })
@@ -99,7 +99,7 @@ describe('cr2CreateAssignmentSchema', () => {
   })
 
   it('LemmaId genau 128 Zeichen ist valide', () => {
-    const r = cr2CreateAssignmentSchema.safeParse({
+    const r = classroomCreateAssignmentSchema.safeParse({
       mode: 'kollokationen',
       lemmaIds: ['x'.repeat(128)],
     })
@@ -107,63 +107,63 @@ describe('cr2CreateAssignmentSchema', () => {
   })
 })
 
-// ── cr2JoinSchema ─────────────────────────────────────────────────
+// ── classroomJoinSchema ─────────────────────────────────────────────────
 
-describe('cr2JoinSchema', () => {
+describe('classroomJoinSchema', () => {
   it('akzeptiert validen Code ohne displayName', () => {
-    const r = cr2JoinSchema.safeParse({ code: 'manuskript' })
+    const r = classroomJoinSchema.safeParse({ code: 'manuskript' })
     expect(r.success).toBe(true)
     expect(r.data.code).toBe('manuskript')
   })
 
   it('akzeptiert validen Code mit displayName', () => {
-    const r = cr2JoinSchema.safeParse({ code: 'test-wort', displayName: 'Max M.' })
+    const r = classroomJoinSchema.safeParse({ code: 'test-wort', displayName: 'Max M.' })
     expect(r.success).toBe(true)
     expect(r.data.displayName).toBe('Max M.')
   })
 
   it('normalisiert Code auf Kleinschreibung', () => {
-    const r = cr2JoinSchema.safeParse({ code: 'MANUSKRIPT' })
+    const r = classroomJoinSchema.safeParse({ code: 'MANUSKRIPT' })
     expect(r.success).toBe(true)
     expect(r.data.code).toBe('manuskript')
   })
 
   it('lehnt Code < 4 Zeichen ab', () => {
-    const r = cr2JoinSchema.safeParse({ code: 'abc' })
+    const r = classroomJoinSchema.safeParse({ code: 'abc' })
     expect(r.success).toBe(false)
   })
 
   it('Code genau 4 Zeichen ist valide', () => {
-    const r = cr2JoinSchema.safeParse({ code: 'wort' })
+    const r = classroomJoinSchema.safeParse({ code: 'wort' })
     expect(r.success).toBe(true)
   })
 
   it('lehnt Code > 30 Zeichen ab', () => {
-    const r = cr2JoinSchema.safeParse({ code: 'a'.repeat(31) })
+    const r = classroomJoinSchema.safeParse({ code: 'a'.repeat(31) })
     expect(r.success).toBe(false)
   })
 
   it('Code genau 30 Zeichen ist valide', () => {
-    const r = cr2JoinSchema.safeParse({ code: 'a'.repeat(30) })
+    const r = classroomJoinSchema.safeParse({ code: 'a'.repeat(30) })
     expect(r.success).toBe(true)
   })
 
   it('displayName > 20 Zeichen wird auf 20 gekürzt (max 20)', () => {
     // Zod .max(20) wirft Fehler, kein silentes Truncate
-    const r = cr2JoinSchema.safeParse({ code: 'wort', displayName: 'x'.repeat(21) })
+    const r = classroomJoinSchema.safeParse({ code: 'wort', displayName: 'x'.repeat(21) })
     expect(r.success).toBe(false)
   })
 
   it('displayName optional — fehlendes Feld ist valide', () => {
-    const r = cr2JoinSchema.safeParse({ code: 'wort' })
+    const r = classroomJoinSchema.safeParse({ code: 'wort' })
     expect(r.success).toBe(true)
     expect(r.data.displayName).toBeUndefined()
   })
 })
 
-// ── cr2SubmitSchema ───────────────────────────────────────────────
+// ── classroomSubmitSchema ───────────────────────────────────────────────
 
-describe('cr2SubmitSchema', () => {
+describe('classroomSubmitSchema', () => {
   const validBase = {
     assignmentId: 'assign-1',
     lemmaId:      'lemma-1',
@@ -171,11 +171,11 @@ describe('cr2SubmitSchema', () => {
   }
 
   it('akzeptiert valides Payload', () => {
-    expect(cr2SubmitSchema.safeParse(validBase).success).toBe(true)
+    expect(classroomSubmitSchema.safeParse(validBase).success).toBe(true)
   })
 
   it('R6/D13: score-Feld darf nicht im Schema definiert sein', () => {
-    const r = cr2SubmitSchema.safeParse({ ...validBase, score: 9999 })
+    const r = classroomSubmitSchema.safeParse({ ...validBase, score: 9999 })
     expect(r.success).toBe(true)
     // Zod mit default-Einstellung lässt unbekannte Keys durch, aber
     // score darf NICHT im geparsten Objekt erscheinen (Schema hat kein score)
@@ -183,150 +183,150 @@ describe('cr2SubmitSchema', () => {
   })
 
   it('roundIndex default 0 wenn fehlt', () => {
-    const r = cr2SubmitSchema.safeParse(validBase)
+    const r = classroomSubmitSchema.safeParse(validBase)
     expect(r.success).toBe(true)
     expect(r.data.roundIndex).toBe(0)
   })
 
   it('roundIndex 0 explizit gesetzt', () => {
-    expect(cr2SubmitSchema.safeParse({ ...validBase, roundIndex: 0 }).success).toBe(true)
+    expect(classroomSubmitSchema.safeParse({ ...validBase, roundIndex: 0 }).success).toBe(true)
   })
 
   it('roundIndex 99 (Obergrenze)', () => {
-    expect(cr2SubmitSchema.safeParse({ ...validBase, roundIndex: 99 }).success).toBe(true)
+    expect(classroomSubmitSchema.safeParse({ ...validBase, roundIndex: 99 }).success).toBe(true)
   })
 
   it('roundIndex 100 abgelehnt (max 99)', () => {
-    expect(cr2SubmitSchema.safeParse({ ...validBase, roundIndex: 100 }).success).toBe(false)
+    expect(classroomSubmitSchema.safeParse({ ...validBase, roundIndex: 100 }).success).toBe(false)
   })
 
   it('roundIndex -1 abgelehnt', () => {
-    expect(cr2SubmitSchema.safeParse({ ...validBase, roundIndex: -1 }).success).toBe(false)
+    expect(classroomSubmitSchema.safeParse({ ...validBase, roundIndex: -1 }).success).toBe(false)
   })
 
   it('fehlendes assignmentId abgelehnt', () => {
     const { assignmentId: _, ...rest } = validBase
-    expect(cr2SubmitSchema.safeParse(rest).success).toBe(false)
+    expect(classroomSubmitSchema.safeParse(rest).success).toBe(false)
   })
 
   it('fehlendes lemmaId abgelehnt', () => {
     const { lemmaId: _, ...rest } = validBase
-    expect(cr2SubmitSchema.safeParse(rest).success).toBe(false)
+    expect(classroomSubmitSchema.safeParse(rest).success).toBe(false)
   })
 
   it('rawAnswer default {} wenn fehlt', () => {
     const { rawAnswer: _, ...rest } = validBase
-    const r = cr2SubmitSchema.safeParse(rest)
+    const r = classroomSubmitSchema.safeParse(rest)
     expect(r.success).toBe(true)
     expect(r.data.rawAnswer).toEqual({})
   })
 
   it('leeres rawAnswer {} ist valide', () => {
-    expect(cr2SubmitSchema.safeParse({ ...validBase, rawAnswer: {} }).success).toBe(true)
+    expect(classroomSubmitSchema.safeParse({ ...validBase, rawAnswer: {} }).success).toBe(true)
   })
 
   it('clientMs 0 ist valide', () => {
-    expect(cr2SubmitSchema.safeParse({ ...validBase, clientMs: 0 }).success).toBe(true)
+    expect(classroomSubmitSchema.safeParse({ ...validBase, clientMs: 0 }).success).toBe(true)
   })
 
   it('clientMs > 600000 abgelehnt', () => {
-    expect(cr2SubmitSchema.safeParse({ ...validBase, clientMs: 600_001 }).success).toBe(false)
+    expect(classroomSubmitSchema.safeParse({ ...validBase, clientMs: 600_001 }).success).toBe(false)
   })
 
   it('clientMs negativ abgelehnt', () => {
-    expect(cr2SubmitSchema.safeParse({ ...validBase, clientMs: -1 }).success).toBe(false)
+    expect(classroomSubmitSchema.safeParse({ ...validBase, clientMs: -1 }).success).toBe(false)
   })
 })
 
-// ── cr2LemmataQuerySchema ─────────────────────────────────────────
+// ── classroomLemmataQuerySchema ─────────────────────────────────────────
 
-describe('cr2LemmataQuerySchema', () => {
+describe('classroomLemmataQuerySchema', () => {
   it('leeres Query valide (alle optional)', () => {
-    expect(cr2LemmataQuerySchema.safeParse({}).success).toBe(true)
+    expect(classroomLemmataQuerySchema.safeParse({}).success).toBe(true)
   })
 
   it('limit coerced von String', () => {
-    const r = cr2LemmataQuerySchema.safeParse({ limit: '10' })
+    const r = classroomLemmataQuerySchema.safeParse({ limit: '10' })
     expect(r.success).toBe(true)
     expect(r.data.limit).toBe(10)
   })
 
   it('limit default 20', () => {
-    const r = cr2LemmataQuerySchema.safeParse({})
+    const r = classroomLemmataQuerySchema.safeParse({})
     expect(r.success).toBe(true)
     expect(r.data.limit).toBe(20)
   })
 
   it('limit > 50 abgelehnt', () => {
-    expect(cr2LemmataQuerySchema.safeParse({ limit: '51' }).success).toBe(false)
+    expect(classroomLemmataQuerySchema.safeParse({ limit: '51' }).success).toBe(false)
   })
 
   it('limit 50 valide', () => {
-    expect(cr2LemmataQuerySchema.safeParse({ limit: '50' }).success).toBe(true)
+    expect(classroomLemmataQuerySchema.safeParse({ limit: '50' }).success).toBe(true)
   })
 
   it('ungültiger pos-Wert abgelehnt', () => {
-    expect(cr2LemmataQuerySchema.safeParse({ pos: 'Artikel' }).success).toBe(false)
+    expect(classroomLemmataQuerySchema.safeParse({ pos: 'Artikel' }).success).toBe(false)
   })
 
   it('ungültiger mode-Wert abgelehnt', () => {
-    expect(cr2LemmataQuerySchema.safeParse({ mode: 'hangman' }).success).toBe(false)
+    expect(classroomLemmataQuerySchema.safeParse({ mode: 'hangman' }).success).toBe(false)
   })
 
   it('valider mode kollokationen', () => {
-    expect(cr2LemmataQuerySchema.safeParse({ mode: 'kollokationen' }).success).toBe(true)
+    expect(classroomLemmataQuerySchema.safeParse({ mode: 'kollokationen' }).success).toBe(true)
   })
 })
 
-// ── cr2ListSessionsQuerySchema ────────────────────────────────────
+// ── classroomListSessionsQuerySchema ────────────────────────────────────
 
-describe('cr2ListSessionsQuerySchema', () => {
+describe('classroomListSessionsQuerySchema', () => {
   it('leeres Query valide', () => {
-    expect(cr2ListSessionsQuerySchema.safeParse({}).success).toBe(true)
+    expect(classroomListSessionsQuerySchema.safeParse({}).success).toBe(true)
   })
 
   it('limit default 20', () => {
-    const r = cr2ListSessionsQuerySchema.safeParse({})
+    const r = classroomListSessionsQuerySchema.safeParse({})
     expect(r.data.limit).toBe(20)
   })
 
   it('limit coerced von String "5"', () => {
-    const r = cr2ListSessionsQuerySchema.safeParse({ limit: '5' })
+    const r = classroomListSessionsQuerySchema.safeParse({ limit: '5' })
     expect(r.success).toBe(true)
     expect(r.data.limit).toBe(5)
   })
 
   it('limit > 50 abgelehnt', () => {
-    expect(cr2ListSessionsQuerySchema.safeParse({ limit: '51' }).success).toBe(false)
+    expect(classroomListSessionsQuerySchema.safeParse({ limit: '51' }).success).toBe(false)
   })
 })
 
-// ── cr2StartSessionSchema + cr2FinishSessionSchema ────────────────
+// ── classroomStartSessionSchema + classroomFinishSessionSchema ────────────────
 
-describe('cr2StartSessionSchema', () => {
+describe('classroomStartSessionSchema', () => {
   it('leeres Objekt valide (allowLateJoin default true)', () => {
-    const r = cr2StartSessionSchema.safeParse({})
+    const r = classroomStartSessionSchema.safeParse({})
     expect(r.success).toBe(true)
     expect(r.data.allowLateJoin).toBe(true)
   })
 
   it('allowLateJoin false setzbar', () => {
-    const r = cr2StartSessionSchema.safeParse({ allowLateJoin: false })
+    const r = classroomStartSessionSchema.safeParse({ allowLateJoin: false })
     expect(r.success).toBe(true)
     expect(r.data.allowLateJoin).toBe(false)
   })
 })
 
-describe('cr2FinishSessionSchema', () => {
+describe('classroomFinishSessionSchema', () => {
   it('leeres Objekt valide (reason optional)', () => {
-    expect(cr2FinishSessionSchema.safeParse({}).success).toBe(true)
+    expect(classroomFinishSessionSchema.safeParse({}).success).toBe(true)
   })
 
   it('reason > 120 Zeichen abgelehnt', () => {
-    expect(cr2FinishSessionSchema.safeParse({ reason: 'x'.repeat(121) }).success).toBe(false)
+    expect(classroomFinishSessionSchema.safeParse({ reason: 'x'.repeat(121) }).success).toBe(false)
   })
 
   it('reason genau 120 Zeichen valide', () => {
-    expect(cr2FinishSessionSchema.safeParse({ reason: 'x'.repeat(120) }).success).toBe(true)
+    expect(classroomFinishSessionSchema.safeParse({ reason: 'x'.repeat(120) }).success).toBe(true)
   })
 })

@@ -154,70 +154,70 @@ export default function LiveStep() {
 
   return (
     <ClassroomSubScreen
-      testId="cr2-live"
+      testId="classroom-live"
       title="Live"
       label={modeLabel || 'Live-Session'}
       lead="Die Klasse spielt — du behältst den Überblick."
       backLabel="Zurück zur Übersicht"
       onBack={() => dispatch({ type: 'GO_TO_LIST' })}
     >
-      <section className="cr2-progress" aria-label="Abgaben-Fortschritt">
-        <div className="cr2-progress__label">
+      <section className="classroom-progress" aria-label="Abgaben-Fortschritt">
+        <div className="classroom-progress__label">
           <span>
             {modeLabel}
             {assignmentTotal > 1 && (
-              <span className="cr2-progress__step" data-testid="cr2-live-step">
+              <span className="classroom-progress__step" data-testid="classroom-live-step">
                 {' '}· Modus {assignmentIndex + 1} von {assignmentTotal}
               </span>
             )}
           </span>
-          <span className="cr2-progress__numbers">
+          <span className="classroom-progress__numbers">
             {submittedCount} / {totalCount} fertig
             {lemmataTotal > 1 && (
-              <span className="cr2-progress__rounds"> · {lemmataTotal} Runden</span>
+              <span className="classroom-progress__rounds"> · {lemmataTotal} Runden</span>
             )}
           </span>
         </div>
-        <div className="cr2-progress__bar" aria-hidden="true">
-          <div className="cr2-progress__fill" style={{ width: `${pct}%` }} />
+        <div className="classroom-progress__bar" aria-hidden="true">
+          <div className="classroom-progress__fill" style={{ width: `${pct}%` }} />
         </div>
       </section>
 
       {paused && (
-        <p className="cr2-paused-banner" data-testid="cr2-live-paused-banner">
+        <p className="classroom-paused-banner" data-testid="classroom-live-paused-banner">
           Pausiert — Schüler:innen sehen ein Wartebild, Abgaben sind gesperrt.
         </p>
       )}
 
-      {error && <p className="cr2-error">{error}</p>}
+      {error && <p className="classroom-error">{error}</p>}
 
-      <section className="cr2-section" aria-labelledby="cr2-live-participants-label">
-        <span id="cr2-live-participants-label" className="cr2-section__label">Teilnehmer</span>
+      <section className="classroom-section" aria-labelledby="classroom-live-participants-label">
+        <span id="classroom-live-participants-label" className="classroom-section__label">Teilnehmer</span>
         <ParticipantList participants={enrichedParticipants} mode="live" />
       </section>
 
       {perLemma.length > 0 && (
-        <section className="cr2-section" aria-labelledby="cr2-live-aggregate-label">
-          <span id="cr2-live-aggregate-label" className="cr2-section__label">Trefferquote</span>
-          <ul className="cr2-aggregate">
+        <section className="classroom-section" aria-labelledby="classroom-live-aggregate-label">
+          <span id="classroom-live-aggregate-label" className="classroom-section__label">Trefferquote</span>
+          <ul className="classroom-aggregate">
             {perLemma.map((row) => (
-              <li key={row.lemmaId} className="cr2-aggregate__row">
-                <span className="cr2-aggregate__lemma">{lemmaWord(row.lemmaId)}</span>
-                <span className="cr2-aggregate__pct">{row.correctPct}%</span>
+              <li key={row.lemmaId} className="classroom-aggregate__row">
+                <span className="classroom-aggregate__lemma">{lemmaWord(row.lemmaId)}</span>
+                <span className="classroom-aggregate__pct">{row.correctPct}%</span>
               </li>
             ))}
           </ul>
         </section>
       )}
 
-      <div className="cr2-sticky-cta cr2-sticky-cta--row" role="none">
-        <div className="cr2-sticky-cta__inner cr2-sticky-cta__inner--row">
+      <div className="classroom-sticky-cta classroom-sticky-cta--row" role="none">
+        <div className="classroom-sticky-cta__inner classroom-sticky-cta__inner--row">
           <button
             type="button"
-            className="cr2-link-cta cr2-link-cta--muted"
+            className="classroom-link-cta classroom-link-cta--muted"
             onClick={handleTogglePause}
             disabled={pauseBusy}
-            data-testid="cr2-live-pause"
+            data-testid="classroom-live-pause"
           >
             {pauseBusy
               ? (paused ? 'Wird fortgesetzt …' : 'Wird pausiert …')
@@ -226,10 +226,10 @@ export default function LiveStep() {
           {hasNext ? (
             <button
               type="button"
-              className="cr2-cta cr2-cta--inline"
+              className="classroom-cta classroom-cta--inline"
               onClick={handleNext}
               disabled={advancing || paused}
-              data-testid="cr2-live-next"
+              data-testid="classroom-live-next"
               title={paused ? 'Erst fortsetzen, dann wechseln' : undefined}
             >
               {advancing ? 'Wechselt …' : 'Nächster Modus'}
@@ -238,10 +238,10 @@ export default function LiveStep() {
           ) : (
             <button
               type="button"
-              className="cr2-cta cr2-cta--inline"
+              className="classroom-cta classroom-cta--inline"
               onClick={handleFinish}
               disabled={finishing}
-              data-testid="cr2-live-finish"
+              data-testid="classroom-live-finish"
             >
               {finishing ? 'Wird beendet …' : 'Auflösung freigeben'}
               {!finishing && <span className="test-cta-arrow" aria-hidden="true"> →</span>}

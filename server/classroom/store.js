@@ -430,7 +430,7 @@ export function createSession({ teacherUserId, title = null, settings = {} }) {
         capability: 'session:manage',
         granted_at: nowMs(),
       })
-      // Lese-/Socket-Recht: Voraussetzung fuer cr2-Socket-Namespace,
+      // Lese-/Socket-Recht: Voraussetzung fuer classroom-Socket-Namespace,
       // damit der Lehrer in den Teacher-Room joinen darf.
       stmts.insertCapability.run({
         id: randomUUID(),
@@ -447,7 +447,7 @@ export function createSession({ teacherUserId, title = null, settings = {} }) {
     } catch (err) {
       // Nur Code-Kollision ist retrybar; alles andere weiterreichen.
       if (err?.code === 'SQLITE_CONSTRAINT_UNIQUE' && attempt < CODE_INSERT_MAX_ATTEMPTS - 1) {
-        logger.warn({ attempt }, 'cr2 join-code collision beim Insert — neuer Code, Retry')
+        logger.warn({ attempt }, 'classroom join-code collision beim Insert — neuer Code, Retry')
         continue
       }
       throw err
@@ -496,7 +496,7 @@ export function finishSession({ sessionId, teacherUserId, reason = 'manual' }) {
   })
   const err = tx()
   if (err) return { error: err }
-  logger.info({ sessionId, reason }, 'cr2 session finished')
+  logger.info({ sessionId, reason }, 'classroom session finished')
   return { session: normalizeSessionRow(stmts.getSessionById.get(sessionId)) }
 }
 
@@ -506,7 +506,7 @@ export function deleteSession({ sessionId, teacherUserId }) {
   if (row.teacher_user_id !== teacherUserId) return { error: 'FORBIDDEN' }
   // ON DELETE CASCADE raeumt participants/submissions/scores/capabilities mit ab.
   stmts.deleteSession.run({ id: sessionId, teacher_user_id: teacherUserId })
-  logger.info({ sessionId }, 'cr2 session deleted')
+  logger.info({ sessionId }, 'classroom session deleted')
   return { ok: true }
 }
 
@@ -518,7 +518,7 @@ export function pauseSession({ sessionId, teacherUserId }) {
   if (row.status !== 'running' || row.paused_at != null) return { error: 'INVALID_STATE' }
   const result = stmts.pauseSession.run({ id: sessionId, ts: nowMs() })
   if (!result.changes) return { error: 'INVALID_STATE' }
-  logger.info({ sessionId }, 'cr2 session paused')
+  logger.info({ sessionId }, 'classroom session paused')
   return { session: normalizeSessionRow(stmts.getSessionById.get(sessionId)) }
 }
 
@@ -529,7 +529,7 @@ export function resumeSession({ sessionId, teacherUserId }) {
   if (row.status !== 'running' || row.paused_at == null) return { error: 'INVALID_STATE' }
   const result = stmts.resumeSession.run({ id: sessionId, ts: nowMs() })
   if (!result.changes) return { error: 'INVALID_STATE' }
-  logger.info({ sessionId }, 'cr2 session resumed')
+  logger.info({ sessionId }, 'classroom session resumed')
   return { session: normalizeSessionRow(stmts.getSessionById.get(sessionId)) }
 }
 
@@ -565,7 +565,7 @@ export function autoEndStaleSessions({ now = nowMs(), maxIdleMs = DEFAULT_AUTO_E
       return true
     })
     if (tx()) {
-      logger.info({ sessionId: row.id }, 'cr2 session auto-ended (idle timeout)')
+      logger.info({ sessionId: row.id }, 'classroom session auto-ended (idle timeout)')
       ended.push(normalizeSessionRow(stmts.getSessionById.get(row.id)))
     }
   }
@@ -604,7 +604,7 @@ export function runClassroomRetention({
         const r = stmts.deleteSessionById.run(row.id)
         if (r.changes > 0) n += 1
       } catch (err) {
-        logger.warn({ err, sessionId: row.id }, `cr2 retention ${label} fehlgeschlagen`)
+        logger.warn({ err, sessionId: row.id }, `classroom retention ${label} fehlgeschlagen`)
       }
     }
     return n
@@ -624,7 +624,7 @@ export function runClassroomRetention({
   )
 
   if (anonymized > 0 || deleted > 0 || lobbyDeleted > 0) {
-    logger.info({ anonymized, deleted, lobbyDeleted }, 'cr2 retention sweep')
+    logger.info({ anonymized, deleted, lobbyDeleted }, 'classroom retention sweep')
   }
   return { anonymized, deleted, lobbyDeleted }
 }
@@ -799,7 +799,7 @@ export function joinByCode({ code, displayName }) {
       capability: 'submission:write',
       granted_at: nowMs(),
     })
-    // Socket-Recht: View auf die laufende Session (cr2-Namespace, view:updated etc.).
+    // Socket-Recht: View auf die laufende Session (classroom-Namespace, view:updated etc.).
     // Wird beim Session-Finish bewusst NICHT revoked (D6) — Schueler kann mit
     // gueltigem Token zurueckkehren, auch wenn submission:write bereits weg ist.
     stmts.insertCapability.run({

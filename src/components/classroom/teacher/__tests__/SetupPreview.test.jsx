@@ -53,7 +53,7 @@ describe('SetupPreview (W2-T1)', () => {
     for (const mode of ['kollokationen', 'wortzwilling', 'zeitenwende', 'lueckenfueller']) {
       previewAssignment.mockResolvedValueOnce(previewFor(mode, 1))
       render(<SetupPreview mode={mode} lemmaIds={['l0']} onClose={() => {}} />)
-      expect(await screen.findByTestId(`cr2-kiosk-game-${mode}`)).toBeTruthy()
+      expect(await screen.findByTestId(`classroom-kiosk-game-${mode}`)).toBeTruthy()
       cleanup()
     }
   })
@@ -61,8 +61,8 @@ describe('SetupPreview (W2-T1)', () => {
   it('zeigt den Vorschau-Hinweis und ein Dialog-Element', async () => {
     previewAssignment.mockResolvedValueOnce(previewFor('kollokationen', 1))
     render(<SetupPreview mode="kollokationen" lemmaIds={['l0']} onClose={() => {}} />)
-    expect(await screen.findByTestId('cr2-kiosk-game-kollokationen')).toBeTruthy()
-    expect(screen.getByTestId('cr2-setup-preview')).toBeTruthy()
+    expect(await screen.findByTestId('classroom-kiosk-game-kollokationen')).toBeTruthy()
+    expect(screen.getByTestId('classroom-setup-preview')).toBeTruthy()
     expect(screen.getByText(/Keine echte Session/i)).toBeTruthy()
   })
 
@@ -70,17 +70,17 @@ describe('SetupPreview (W2-T1)', () => {
     previewAssignment.mockResolvedValueOnce(previewFor('kollokationen', 1))
     const onClose = vi.fn()
     render(<SetupPreview mode="kollokationen" lemmaIds={['l0']} onClose={onClose} />)
-    await screen.findByTestId('cr2-kiosk-game-kollokationen')
-    fireEvent.click(screen.getByTestId('cr2-preview-close'))
+    await screen.findByTestId('classroom-kiosk-game-kollokationen')
+    fireEvent.click(screen.getByTestId('classroom-preview-close'))
     expect(onClose).toHaveBeenCalledTimes(1)
   })
 
   it('sendet KEINE Submission und schaltet lokal zum nächsten Lemma', async () => {
     previewAssignment.mockResolvedValueOnce(previewFor('kollokationen', 2))
     render(<SetupPreview mode="kollokationen" lemmaIds={['l0', 'l1']} onClose={() => {}} />)
-    await screen.findByTestId('cr2-kiosk-game-kollokationen')
+    await screen.findByTestId('classroom-kiosk-game-kollokationen')
 
-    expect(screen.getByTestId('cr2-preview-progress').textContent).toMatch(/Lemma 1 \/ 2/)
+    expect(screen.getByTestId('classroom-preview-progress').textContent).toMatch(/Lemma 1 \/ 2/)
 
     // Echte Quiz-Engine: alle 3 Optionen waehlen, dann Abgeben (No-Op-Submit,
     // nur lokales Weiterschalten zum naechsten Lemma).
@@ -90,7 +90,7 @@ describe('SetupPreview (W2-T1)', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Abgeben' }))
 
     await waitFor(() => {
-      expect(screen.getByTestId('cr2-preview-progress').textContent).toMatch(/Lemma 2 \/ 2/)
+      expect(screen.getByTestId('classroom-preview-progress').textContent).toMatch(/Lemma 2 \/ 2/)
     })
 
     // previewAssignment genau einmal (beim Laden), fetch NIE.
@@ -101,15 +101,15 @@ describe('SetupPreview (W2-T1)', () => {
   it('Lückenfüller: schaltet lokal durch die Runden', async () => {
     previewAssignment.mockResolvedValueOnce(previewFor('lueckenfueller', 1))
     render(<SetupPreview mode="lueckenfueller" lemmaIds={['l0']} onClose={() => {}} />)
-    await screen.findByTestId('cr2-kiosk-game-lueckenfueller')
-    expect(screen.getByTestId('cr2-preview-progress').textContent).toMatch(/Runde 1 \/ 2/)
+    await screen.findByTestId('classroom-kiosk-game-lueckenfueller')
+    expect(screen.getByTestId('classroom-preview-progress').textContent).toMatch(/Runde 1 \/ 2/)
 
     // Runde 1 (choice): Option wählen + abgeben
-    fireEvent.click(screen.getByTestId('cr2-kiosk-lf-choice-x'))
-    fireEvent.click(screen.getByTestId('cr2-kiosk-lf-submit'))
+    fireEvent.click(screen.getByTestId('classroom-kiosk-lf-choice-x'))
+    fireEvent.click(screen.getByTestId('classroom-kiosk-lf-submit'))
 
     await waitFor(() => {
-      expect(screen.getByTestId('cr2-preview-progress').textContent).toMatch(/Runde 2 \/ 2/)
+      expect(screen.getByTestId('classroom-preview-progress').textContent).toMatch(/Runde 2 \/ 2/)
     })
     expect(global.fetch).not.toHaveBeenCalled()
   })
@@ -117,6 +117,6 @@ describe('SetupPreview (W2-T1)', () => {
   it('zeigt einen Fehler-State, wenn keine Inhalte zurückkommen', async () => {
     previewAssignment.mockResolvedValueOnce({ mode: 'kollokationen', lemmata: [] })
     render(<SetupPreview mode="kollokationen" lemmaIds={['l0']} onClose={() => {}} />)
-    expect(await screen.findByTestId('cr2-preview-error')).toBeTruthy()
+    expect(await screen.findByTestId('classroom-preview-error')).toBeTruthy()
   })
 })

@@ -52,7 +52,7 @@ async function resolveTeacherSubject(req) {
     const session = await auth.api.getSession({ headers: fromNodeHeaders(req.headers) })
     if (session?.user?.id) return { kind: 'teacher', id: String(session.user.id) }
   } catch (err) {
-    logger.debug({ err }, 'cr2 capability: getSession fehlgeschlagen')
+    logger.debug({ err }, 'classroom capability: getSession fehlgeschlagen')
   }
   return null
 }
@@ -122,12 +122,12 @@ export function requireCapability(capability) {
       if (!allowed) {
         logger.warn(
           { subjectKind: subject.kind, subjectId: subject.id, sessionId, capability },
-          'cr2 capability denied',
+          'classroom capability denied',
         )
         return res.status(403).json({ error: 'Keine Berechtigung' })
       }
 
-      req.cr2 = {
+      req.classroom = {
         subject,
         sessionId,
         capability,
@@ -136,7 +136,7 @@ export function requireCapability(capability) {
       }
       return next()
     } catch (err) {
-      logger.error({ err, capability }, 'cr2 capability middleware crashed')
+      logger.error({ err, capability }, 'classroom capability middleware crashed')
       return res.status(500).json({ error: 'Interner Serverfehler' })
     }
   }

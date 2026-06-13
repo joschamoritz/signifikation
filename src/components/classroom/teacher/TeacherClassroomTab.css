@@ -1,17 +1,17 @@
 /* T-4.2 — Layout-Container fuer den Teacher-Tab.
    Wörterbuch-Stil: Pergament-Hintergrund, max-width 680px, schmale Marginalien. */
 
-.cr2-teacher {
+.classroom-teacher {
   /* Auf globale Tokens gemappt → folgt dem App-Dark-Mode, eine Quelle der Wahrheit. */
-  --cr2-bg:      var(--bg);
-  --cr2-text:    var(--text);
-  --cr2-muted:   var(--muted);
-  --cr2-rule:    var(--border);
-  --cr2-rule-lt: var(--border-lt);
-  --cr2-accent:  var(--primary);
-  --cr2-gold:    var(--accent);
-  --cr2-disabled: var(--disabled);
-  --cr2-card-bg: var(--surface);
+  --classroom-bg:      var(--bg);
+  --classroom-text:    var(--text);
+  --classroom-muted:   var(--muted);
+  --classroom-rule:    var(--border);
+  --classroom-rule-lt: var(--border-lt);
+  --classroom-accent:  var(--primary);
+  --classroom-gold:    var(--accent);
+  --classroom-disabled: var(--disabled);
+  --classroom-card-bg: var(--surface);
 
   /* Wörterbuch-Tokens (Spiegel von .test-page), damit die geteilten
      .test-*-Klassen (TabHeader, Raster, Einträge) hier korrekt auflösen –
@@ -31,10 +31,10 @@
   --t-red:       var(--primary);
   --t-red-hi:    var(--primary-hi);
 
-  background-color: var(--cr2-bg);
+  background-color: var(--classroom-bg);
   /* Feine Papier-Körnung – identisch zur Startseite/.test-page. */
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
-  color: var(--cr2-text);
+  color: var(--classroom-text);
   min-height: 100%;
   font-family: 'DM Sans', system-ui, sans-serif;
   padding: 0 0 96px;
@@ -45,14 +45,14 @@
 
 /* Inhalt sitzt im .test-wrapper (max-width 680px + Padding). Der <main>
    braucht daher keine eigene Breite/Polsterung mehr. */
-.cr2-teacher__main {
+.classroom-teacher__main {
   padding-top: 4px;
 }
 
 /* ── Geteilte Bausteine ──────────────────────────────────────────── */
 
 /* F1 — Empty-State ohne Kasten: zentriert auf Pergament, Drop-Cap traegt. */
-.cr2-empty {
+.classroom-empty {
   padding: 56px 24px;
   text-align: center;
   background: transparent;
@@ -60,40 +60,40 @@
   margin-top: 8px;
 }
 
-.cr2-empty__ornament {
+.classroom-empty__ornament {
   display: block;
   font-family: 'Gentium Plus', Georgia, serif;
   font-size: 1.4rem;
   letter-spacing: 0.5em;
-  color: var(--cr2-gold);
+  color: var(--classroom-gold);
   margin-bottom: 16px;
   user-select: none;
 }
 
-.cr2-empty__title {
+.classroom-empty__title {
   font-family: 'Gentium Plus', Georgia, serif;
   font-style: italic;
   font-size: 1.15rem;
-  color: var(--cr2-muted);
+  color: var(--classroom-muted);
   margin: 0 0 24px;
   line-height: 1.5;
 }
 
 /* Sticky bottom CTA */
-.cr2-sticky-cta {
+.classroom-sticky-cta {
   position: fixed;
   left: 0;
   right: 0;
   bottom: 0;
   padding: 16px 20px calc(16px + env(safe-area-inset-bottom));
-  background: linear-gradient(to top, var(--cr2-bg) 70%, rgba(250, 249, 247, 0));
+  background: linear-gradient(to top, var(--classroom-bg) 70%, rgba(250, 249, 247, 0));
   display: flex;
   justify-content: center;
   z-index: 10;
   pointer-events: none;
 }
 
-.cr2-sticky-cta__inner {
+.classroom-sticky-cta__inner {
   width: 100%;
   max-width: 480px;
   pointer-events: auto;
@@ -103,13 +103,13 @@
 
 /* Mit aktivem TabBar (60px) – CTA muss darueber sitzen */
 @media (min-width: 1px) {
-  .cr2-sticky-cta {
+  .classroom-sticky-cta {
     bottom: 60px;
   }
 }
 
 /* Floating + Outline-Buttons im Wörterbuch-Stil */
-.cr2-btn {
+.classroom-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -125,33 +125,33 @@
   width: 100%;
 }
 
-.cr2-btn--primary {
-  background: var(--cr2-accent);
+.classroom-btn--primary {
+  background: var(--classroom-accent);
   color: #fff;
-  border-color: var(--cr2-accent);
+  border-color: var(--classroom-accent);
 }
-.cr2-btn--primary:hover:not(:disabled) {
+.classroom-btn--primary:hover:not(:disabled) {
   background: var(--primary-hi);
   border-color: var(--primary-hi);
 }
-.cr2-btn--primary:disabled {
-  background: var(--cr2-disabled);
-  border-color: var(--cr2-disabled);
+.classroom-btn--primary:disabled {
+  background: var(--classroom-disabled);
+  border-color: var(--classroom-disabled);
   cursor: not-allowed;
 }
 
-.cr2-btn--outline {
+.classroom-btn--outline {
   background: transparent;
-  color: var(--cr2-text);
-  border-color: var(--cr2-rule);
+  color: var(--classroom-text);
+  border-color: var(--classroom-rule);
 }
-.cr2-btn--outline:hover:not(:disabled) {
+.classroom-btn--outline:hover:not(:disabled) {
   background: color-mix(in srgb, var(--text) 5%, transparent);
 }
 
-.cr2-btn--ghost {
+.classroom-btn--ghost {
   background: transparent;
-  color: var(--cr2-muted);
+  color: var(--classroom-muted);
   padding: 8px 12px;
   border-color: transparent;
   text-decoration: underline;
@@ -159,12 +159,12 @@
   width: auto;
 }
 
-.cr2-btn--ghost:hover:not(:disabled) {
-  color: var(--cr2-text);
+.classroom-btn--ghost:hover:not(:disabled) {
+  color: var(--classroom-text);
 }
 
 /* Karten-Listen */
-.cr2-card-list {
+.classroom-card-list {
   list-style: none;
   margin: 0;
   padding: 0;
@@ -175,10 +175,10 @@
 
 /* F1 — Karten als Linien-getrennte Eintraege statt umrahmter Kaesten.
    Gold-Linksakzent markiert die Auswahl (kein Rahmen-Wechsel, keine Schatten). */
-.cr2-card {
+.classroom-card {
   background: transparent;
   border: none;
-  border-bottom: 1px solid var(--cr2-rule-lt);
+  border-bottom: 1px solid var(--classroom-rule-lt);
   border-left: 3px solid transparent;
   border-radius: 0;
   padding: 14px 6px 14px 14px;
@@ -191,26 +191,26 @@
   transition: background 0.12s ease, border-left-color 0.12s ease;
 }
 
-.cr2-card:hover {
+.classroom-card:hover {
   background: color-mix(in srgb, var(--primary) 4%, transparent);
 }
 
-.cr2-card--active {
+.classroom-card--active {
   border-left-color: var(--primary);
   background: color-mix(in srgb, var(--primary) 7%, transparent);
 }
 
 /* Modus-Auswahl: Hover + Auswahl im dezenten Rot mit rotem Linksakzent —
    genau wie die Optionen im Kollokationen-Spiel (statt Gold/Grau). */
-.cr2-mode-card.cr2-card:hover {
+.classroom-mode-card.classroom-card:hover {
   background: color-mix(in srgb, var(--primary) 4%, transparent);
   border-left-color: var(--primary);
 }
-.cr2-mode-card.cr2-card--active {
+.classroom-mode-card.classroom-card--active {
   border-left-color: var(--primary);
   background: color-mix(in srgb, var(--primary) 7%, transparent);
 }
-.cr2-mode-card.cr2-card--active .cr2-card__title {
+.classroom-mode-card.classroom-card--active .classroom-card__title {
   color: var(--primary);
 }
 
@@ -218,13 +218,13 @@
    Wörterbuch-Einträge der Landing-Ansicht (① Anleitung … ④ Vorbereiten).
    Optisch wie .test-entry (Spielmodi/Kurs), aber mit eigenen Klassen, damit
    das mobile Snap-Karten-Layout der .test-entry NICHT greift. */
-.cr2-entries {
+.classroom-entries {
   list-style: none;
   margin: 0;
   padding: 0;
 }
 
-.cr2-entry {
+.classroom-entry {
   display: grid;
   grid-template-columns: 28px 1fr;
   gap: 0 20px;
@@ -232,24 +232,24 @@
   border-bottom: 1px solid var(--t-rule-lt);
   position: relative;
 }
-.cr2-entry:last-child {
+.classroom-entry:last-child {
   border-bottom: none;
 }
 
 /* Index-Teaser „Vorbereiten" — gedämpft wie der ⑤-Eintrag der Startseite. */
-.cr2-entry--disabled {
+.classroom-entry--disabled {
   opacity: 0.6;
 }
-.cr2-entry--disabled .test-headword {
+.classroom-entry--disabled .test-headword {
   color: var(--t-disabled);
 }
-.cr2-entry--disabled .test-entry-category {
+.classroom-entry--disabled .test-entry-category {
   color: var(--t-disabled);
   border-color: var(--t-rule);
 }
 
 /* Status-Punkt vor dem Status-Text (Session-Karten). */
-.cr2-status-dot {
+.classroom-status-dot {
   width: 7px;
   height: 7px;
   border-radius: 50%;
@@ -258,14 +258,14 @@
   vertical-align: middle;
   background: var(--t-rule);
 }
-.cr2-status-dot--lobby    { background: var(--t-accent); }
-.cr2-status-dot--running  { background: var(--t-red); animation: cr2-pulse 1.6s ease-in-out infinite; }
-.cr2-status-dot--finished { background: var(--t-accent); }
+.classroom-status-dot--lobby    { background: var(--t-accent); }
+.classroom-status-dot--running  { background: var(--t-red); animation: classroom-pulse 1.6s ease-in-out infinite; }
+.classroom-status-dot--finished { background: var(--t-accent); }
 
 /* ── Vollbild-Unterseiten (Anleitung / Beitritt / Sessions) ─────────
    Spiegeln die Modus-Detail-Optik der App (.selection-screen): zentrierter
    Titel + Thema-Block, Inhalt als Wörterbuch-Einträge. */
-.selection-screen.cr2-subscreen {
+.selection-screen.classroom-subscreen {
   max-width: 680px;
   width: 100%;
   margin-inline: auto;
@@ -273,7 +273,7 @@
   box-sizing: border-box;
 }
 
-.cr2-subscreen__title {
+.classroom-subscreen__title {
   font-family: var(--font-serif);
   font-size: 1.2rem;
   font-weight: 700;
@@ -283,7 +283,7 @@
   text-align: center;
 }
 
-.cr2-subscreen__intro {
+.classroom-subscreen__intro {
   font-family: var(--font-serif);
   font-size: 0.95rem;
   line-height: 1.65;
@@ -291,7 +291,7 @@
   margin: 0;
 }
 
-.cr2-subscreen__note {
+.classroom-subscreen__note {
   font-family: var(--font-serif);
   font-style: italic;
   font-size: 0.82rem;
@@ -302,23 +302,23 @@
 }
 
 /* Schritt-Liste als Wörterbuch-Einträge (Doppellinie oben/unten, 1px-Trenner). */
-.cr2-steps {
+.classroom-steps {
   list-style: none;
   margin: 0;
   padding: 0;
   border-top: 2.5px double var(--border);
   border-bottom: 2.5px double var(--border);
 }
-.cr2-step {
+.classroom-step {
   display: grid;
   grid-template-columns: 26px 1fr;
   gap: 0 16px;
   padding: 16px 4px;
 }
-.cr2-step + .cr2-step {
+.classroom-step + .classroom-step {
   border-top: 1px solid var(--border-lt);
 }
-.cr2-step__num {
+.classroom-step__num {
   font-family: var(--font-serif);
   font-size: 1rem;
   font-weight: 700;
@@ -326,7 +326,7 @@
   line-height: 1.4;
   user-select: none;
 }
-.cr2-step__title {
+.classroom-step__title {
   font-family: var(--font-serif);
   font-size: 1.1rem;
   font-weight: 700;
@@ -334,7 +334,7 @@
   margin: 0 0 3px;
   line-height: 1.2;
 }
-.cr2-step__text {
+.classroom-step__text {
   font-family: var(--font-serif);
   font-size: 0.9rem;
   font-style: italic;
@@ -347,14 +347,14 @@
    Nutzen die globalen .lemma-card*-Klassen (Nummer · Headword · Meta · ›).
    Hier nur die session-spezifischen Ergänzungen: Löschen-× rechts (im
    .lemma-info-btn-Slot) und die Bestätigungszeile darunter. */
-.cr2-session-untitled {
+.classroom-session-untitled {
   font-style: italic;
   color: var(--muted);
   font-weight: 400;
 }
 
 /* Modus-Label rechts in der Kopfzeile (Slot der Wortart-Angabe). */
-.cr2-session-cards .lemma-wortart-abbrev {
+.classroom-session-cards .lemma-wortart-abbrev {
   font-style: normal;
   font-size: 0.72rem;
   letter-spacing: 0.06em;
@@ -363,31 +363,31 @@
 }
 
 /* Löschen-× im rechten Aktions-Slot der Karte. */
-.cr2-session-del {
+.classroom-session-del {
   font-size: 1.25rem;
   line-height: 1;
   color: var(--muted);
 }
-.cr2-session-del:hover { color: var(--primary); }
+.classroom-session-del:hover { color: var(--primary); }
 
 /* Bestätigungszeile unter der Karte (analog .lemma-notiz) — Textlinks im
    Wörterbuch-Stil statt gefüllter/umrandeter Buttons. */
-.cr2-session-confirm {
+.classroom-session-confirm {
   display: flex;
   align-items: baseline;
   gap: 18px;
   padding: 10px 4px 12px;
   border-top: 1px dotted var(--border-lt);
 }
-.cr2-session-confirm__q {
+.classroom-session-confirm__q {
   font-family: var(--font-serif);
   font-style: italic;
   font-size: 0.85rem;
   color: var(--muted);
   margin-right: auto;
 }
-.cr2-session-confirm__yes,
-.cr2-session-confirm__no {
+.classroom-session-confirm__yes,
+.classroom-session-confirm__no {
   font-family: var(--font-serif);
   font-size: 0.85rem;
   font-weight: 700;
@@ -400,29 +400,29 @@
   border-bottom: 1px solid transparent;
   transition: color 0.15s, border-color 0.15s;
 }
-.cr2-session-confirm__yes {
+.classroom-session-confirm__yes {
   color: var(--primary);
 }
-.cr2-session-confirm__yes:hover {
+.classroom-session-confirm__yes:hover {
   color: var(--primary-hi);
   border-bottom-color: var(--primary);
 }
-.cr2-session-confirm__no {
+.classroom-session-confirm__no {
   color: var(--muted);
   font-weight: 400;
 }
-.cr2-session-confirm__no:hover {
+.classroom-session-confirm__no:hover {
   color: var(--text);
 }
-.cr2-session-confirm__yes:disabled,
-.cr2-session-confirm__no:disabled {
+.classroom-session-confirm__yes:disabled,
+.classroom-session-confirm__no:disabled {
   color: var(--disabled);
   cursor: default;
 }
 
 /* Primärer Wörterbuch-CTA — roter Text, KEIN Kasten (wie „Quiz starten →"
    auf der Startseite). Verankert durch die Haarlinie über der Aktionszeile. */
-.cr2-cta {
+.classroom-cta {
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -441,55 +441,55 @@
   letter-spacing: 0.01em;
   transition: color 0.15s;
 }
-.cr2-cta__plus {
+.classroom-cta__plus {
   font-weight: 400;
   font-size: 1.15rem;
   line-height: 1;
 }
-.cr2-cta .test-cta-arrow { transition: transform 0.15s; }
-.cr2-cta:hover:not(:disabled) { color: var(--primary-hi); }
-.cr2-cta:hover:not(:disabled) .test-cta-arrow { transform: translateX(3px); }
-.cr2-cta:focus-visible {
+.classroom-cta .test-cta-arrow { transition: transform 0.15s; }
+.classroom-cta:hover:not(:disabled) { color: var(--primary-hi); }
+.classroom-cta:hover:not(:disabled) .test-cta-arrow { transform: translateX(3px); }
+.classroom-cta:focus-visible {
   outline: 2px solid var(--primary);
   outline-offset: 2px;
   border-radius: 4px;
 }
-.cr2-cta:active:not(:disabled) { transform: scale(0.985); }
-.cr2-cta:disabled {
+.classroom-cta:active:not(:disabled) { transform: scale(0.985); }
+.classroom-cta:disabled {
   color: var(--disabled);
   cursor: not-allowed;
 }
 /* Inline-Variante (teilt sich die Breite in einer Aktionszeile). */
-.cr2-cta--inline { width: auto; flex: 1; }
+.classroom-cta--inline { width: auto; flex: 1; }
 
 /* Aktionszeile mit zwei Aktionen nebeneinander (Live). */
-.cr2-sticky-cta__inner--row {
+.classroom-sticky-cta__inner--row {
   display: flex;
   align-items: center;
   gap: 16px;
 }
 /* Ende: Aktionen gestapelt + zentrierter Schließen-Link. */
-.cr2-end-actions {
+.classroom-end-actions {
   display: flex;
   flex-direction: column;
   gap: 6px;
 }
-.cr2-end-close { align-self: center; }
-.cr2-link-cta.cr2-link-cta--muted {
+.classroom-end-close { align-self: center; }
+.classroom-link-cta.classroom-link-cta--muted {
   color: var(--muted);
   font-weight: 400;
 }
-.cr2-link-cta.cr2-link-cta--muted:hover {
+.classroom-link-cta.classroom-link-cta--muted:hover {
   color: var(--text);
   border-bottom-color: var(--border);
 }
-.cr2-link-cta:disabled {
+.classroom-link-cta:disabled {
   color: var(--disabled);
   cursor: default;
 }
 
 /* Klassen-Name als „Headword"-Feld: serif, nur unterstrichen (kein Kasten). */
-.cr2-headword-input {
+.classroom-headword-input {
   width: 100%;
   box-sizing: border-box;
   font-family: var(--font-serif);
@@ -504,25 +504,25 @@
   letter-spacing: 0.01em;
   transition: border-color 0.15s;
 }
-.cr2-headword-input::placeholder {
+.classroom-headword-input::placeholder {
   font-weight: 400;
   font-style: italic;
   color: var(--muted);
 }
-.cr2-headword-input:focus {
+.classroom-headword-input:focus {
   outline: none;
   border-bottom-color: var(--primary);
 }
 
 /* Unaufdringlicher Zusatz im Section-Label (z. B. „(1–5)"). */
-.cr2-section__hint {
+.classroom-section__hint {
   font-weight: 400;
   letter-spacing: 0.04em;
   color: var(--disabled);
   text-transform: none;
 }
 
-.cr2-card__row {
+.classroom-card__row {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
@@ -530,106 +530,106 @@
   flex-wrap: wrap;
 }
 
-.cr2-card__title {
+.classroom-card__title {
   font-family: 'Gentium Plus', Georgia, serif;
   font-size: 1.15rem;
   font-weight: 700;
   margin: 0;
 }
 
-.cr2-card__meta {
+.classroom-card__meta {
   font-size: 0.85rem;
-  color: var(--cr2-muted);
+  color: var(--classroom-muted);
 }
 
-.cr2-card__badge {
+.classroom-card__badge {
   display: inline-flex;
   align-items: center;
   gap: 6px;
   font-size: 0.7rem;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: var(--cr2-muted);
+  color: var(--classroom-muted);
   padding: 2px 8px;
-  border: 1px solid var(--cr2-rule-lt);
+  border: 1px solid var(--classroom-rule-lt);
   border-radius: 2px;
   background: var(--surface);
 }
 
-.cr2-card__dot {
+.classroom-card__dot {
   width: 8px;
   height: 8px;
   border-radius: 50%;
   display: inline-block;
-  background: var(--cr2-rule);
+  background: var(--classroom-rule);
 }
-.cr2-card__dot--running { background: var(--cr2-accent); animation: cr2-pulse 1.6s ease-in-out infinite; }
-.cr2-card__dot--finished { background: var(--cr2-gold); }
+.classroom-card__dot--running { background: var(--classroom-accent); animation: classroom-pulse 1.6s ease-in-out infinite; }
+.classroom-card__dot--finished { background: var(--classroom-gold); }
 
-@keyframes cr2-pulse {
+@keyframes classroom-pulse {
   0%, 100% { opacity: 1; }
   50%      { opacity: 0.35; }
 }
 
-.cr2-error {
+.classroom-error {
   font-family: 'Gentium Plus', Georgia, serif;
   font-style: italic;
-  color: var(--cr2-accent);
+  color: var(--classroom-accent);
   margin-top: 12px;
   font-size: 0.95rem;
 }
 
-.cr2-paused-banner {
+.classroom-paused-banner {
   font-family: 'Gentium Plus', Georgia, serif;
   font-weight: 600;
-  color: var(--cr2-accent);
+  color: var(--classroom-accent);
   background: rgba(201, 168, 76, 0.12);
-  border-left: 3px solid var(--cr2-gold, #c9a84c);
+  border-left: 3px solid var(--classroom-gold, #c9a84c);
   padding: 10px 14px;
   margin: 12px 0 0;
   border-radius: 2px;
   font-size: 0.95rem;
 }
 
-.cr2-loading {
+.classroom-loading {
   font-family: 'Gentium Plus', Georgia, serif;
   font-style: italic;
-  color: var(--cr2-muted);
+  color: var(--classroom-muted);
   text-align: center;
   margin: 32px 0;
 }
 
-.cr2-section {
+.classroom-section {
   margin-bottom: 32px;
 }
 
-.cr2-section__label {
+.classroom-section__label {
   font-family: 'DM Sans', system-ui, sans-serif;
   font-size: 0.7rem;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: var(--cr2-muted);
+  color: var(--classroom-muted);
   display: block;
   margin-bottom: 12px;
 }
 
-.cr2-input {
+.classroom-input {
   width: 100%;
   padding: 12px 14px;
   font-family: 'DM Sans', system-ui, sans-serif;
   font-size: 1rem;
-  background: var(--cr2-card-bg);
-  border: 1px solid var(--cr2-rule);
+  background: var(--classroom-card-bg);
+  border: 1px solid var(--classroom-rule);
   border-radius: 3px;
-  color: var(--cr2-text);
+  color: var(--classroom-text);
 }
 
-.cr2-input:focus {
+.classroom-input:focus {
   outline: none;
-  border-color: var(--cr2-accent);
+  border-color: var(--classroom-accent);
 }
 
-.cr2-toggle {
+.classroom-toggle {
   display: flex;
   align-items: center;
   gap: 10px;
@@ -638,15 +638,15 @@
   user-select: none;
 }
 
-.cr2-toggle input {
+.classroom-toggle input {
   width: 18px;
   height: 18px;
-  accent-color: var(--cr2-accent);
+  accent-color: var(--classroom-accent);
 }
 
 /* ── Mode-Picker ─────────────────────────────────────────────────── */
 /* Einspaltige Wörterbuch-Einträge (Headword + IPA + Definition). */
-.cr2-mode-picker {
+.classroom-mode-picker {
   list-style: none;
   margin: 0;
   padding: 0;
@@ -654,34 +654,34 @@
   border-bottom: 2.5px double var(--border);
 }
 
-.cr2-mode-card {
-  /* erbt .cr2-card (transparent, roter Hover/Aktiv-Akzent) */
+.classroom-mode-card {
+  /* erbt .classroom-card (transparent, roter Hover/Aktiv-Akzent) */
   padding: 16px 6px 16px 14px;
   border-bottom: none;
 }
-.cr2-mode-picker li + li .cr2-mode-card {
+.classroom-mode-picker li + li .classroom-mode-card {
   border-top: 1px solid var(--border-lt);
 }
 
-.cr2-mode-card__head {
+.classroom-mode-card__head {
   display: flex;
   align-items: baseline;
   flex-wrap: wrap;
   gap: 6px 10px;
 }
-.cr2-mode-card__name {
+.classroom-mode-card__name {
   font-family: var(--font-serif);
   font-size: 1.2rem;
   font-weight: 700;
   color: var(--text);
   letter-spacing: 0.01em;
 }
-.cr2-mode-card__ipa {
+.classroom-mode-card__ipa {
   font-family: var(--font-serif);
   font-size: 0.82rem;
   color: var(--muted);
 }
-.cr2-mode-card__cat {
+.classroom-mode-card__cat {
   margin-left: auto;
   font-family: var(--font-sans);
   font-size: 8.5px;
@@ -694,7 +694,7 @@
   border-radius: 2px;
   align-self: center;
 }
-.cr2-mode-card__desc {
+.classroom-mode-card__desc {
   display: block;
   font-family: var(--font-serif);
   font-size: 0.92rem;
@@ -702,22 +702,22 @@
   color: var(--muted);
   margin: 6px 0 0;
 }
-.cr2-mode-card.cr2-card--active .cr2-mode-card__name { color: var(--primary); }
+.classroom-mode-card.classroom-card--active .classroom-mode-card__name { color: var(--primary); }
 
 /* ── Lemma-Picker ────────────────────────────────────────────────── */
-.cr2-lemma-picker {
+.classroom-lemma-picker {
   display: flex;
   flex-direction: column;
   gap: 12px;
 }
 
 /* ── Lemma des Tages — prominente Auswahl-Karten ───────────────────── */
-.cr2-today {
+.classroom-today {
   display: flex;
   flex-direction: column;
   gap: 10px;
 }
-.cr2-today__label {
+.classroom-today__label {
   font-family: var(--font-sans);
   font-size: 9px;
   font-weight: 600;
@@ -725,7 +725,7 @@
   text-transform: uppercase;
   color: var(--accent-dk);
 }
-.cr2-today__cards {
+.classroom-today__cards {
   list-style: none;
   margin: 0;
   padding: 0;
@@ -734,9 +734,9 @@
   gap: 8px;
 }
 @media (min-width: 460px) {
-  .cr2-today__cards { grid-template-columns: 1fr 1fr; }
+  .classroom-today__cards { grid-template-columns: 1fr 1fr; }
 }
-.cr2-today-card {
+.classroom-today-card {
   display: flex;
   align-items: baseline;
   gap: 8px;
@@ -751,24 +751,24 @@
   min-height: 52px;
   transition: background 0.12s, border-color 0.12s;
 }
-.cr2-today-card__lemma {
+.classroom-today-card__lemma {
   font-family: var(--font-serif);
   font-size: 1.15rem;
   font-weight: 700;
   color: var(--text);
 }
-.cr2-today-card__ipa {
+.classroom-today-card__ipa {
   font-family: var(--font-serif);
   font-size: 0.8rem;
   color: var(--muted);
 }
-.cr2-today-card__pos {
+.classroom-today-card__pos {
   font-family: var(--font-serif);
   font-style: italic;
   font-size: 0.78rem;
   color: var(--muted);
 }
-.cr2-today-card__mark {
+.classroom-today-card__mark {
   margin-left: auto;
   font-family: var(--font-sans);
   font-size: 1rem;
@@ -776,42 +776,42 @@
   color: var(--accent-dk);
   line-height: 1;
 }
-.cr2-today-card:hover:not(:disabled) {
+.classroom-today-card:hover:not(:disabled) {
   background: color-mix(in srgb, var(--primary) 4%, transparent);
   border-color: var(--primary);
   border-left-color: var(--primary);
 }
-.cr2-today-card--active {
+.classroom-today-card--active {
   border-color: var(--primary);
   border-left-color: var(--primary);
   background: color-mix(in srgb, var(--primary) 7%, transparent);
 }
-.cr2-today-card--active .cr2-today-card__lemma { color: var(--primary); }
-.cr2-today-card--active .cr2-today-card__mark { color: var(--primary); }
-.cr2-today-card:disabled {
+.classroom-today-card--active .classroom-today-card__lemma { color: var(--primary); }
+.classroom-today-card--active .classroom-today-card__mark { color: var(--primary); }
+.classroom-today-card:disabled {
   opacity: 0.42;
   cursor: not-allowed;
 }
 
 /* Suchsektion (Label + Feld) */
-.cr2-lemma-search {
+.classroom-lemma-search {
   display: flex;
   flex-direction: column;
   gap: 6px;
 }
 
 /* Wort-Zwilling-Paar-Auswahl */
-.cr2-wz-picker {
+.classroom-wz-picker {
   display: flex;
   flex-direction: column;
   gap: 12px;
 }
-.cr2-wz-fields {
+.classroom-wz-fields {
   display: flex;
   align-items: center;
   gap: 12px;
 }
-.cr2-wz-field {
+.classroom-wz-field {
   flex: 1;
   min-width: 0;
   box-sizing: border-box;
@@ -826,23 +826,23 @@
   border-radius: 0;
   padding: 8px 2px;
 }
-.cr2-wz-field::placeholder {
+.classroom-wz-field::placeholder {
   font-weight: 400;
   font-style: italic;
   color: var(--muted);
 }
-.cr2-wz-field:focus {
+.classroom-wz-field:focus {
   outline: none;
   border-bottom-color: var(--primary);
 }
-.cr2-wz-sep {
+.classroom-wz-sep {
   font-family: var(--font-serif);
   font-size: 1.2rem;
   color: var(--accent-dk);
   flex-shrink: 0;
 }
 
-.cr2-lemma-chips {
+.classroom-lemma-chips {
   list-style: none;
   margin: 0;
   padding: 0;
@@ -851,22 +851,22 @@
   gap: 6px;
 }
 
-.cr2-lemma-chip {
+.classroom-lemma-chip {
   display: inline-flex;
   align-items: center;
   gap: 6px;
   padding: 6px 8px 6px 12px;
   background: color-mix(in srgb, var(--accent) 12%, transparent);
-  border: 1px solid var(--cr2-gold);
+  border: 1px solid var(--classroom-gold);
   border-radius: 999px;
   font-family: 'Gentium Plus', Georgia, serif;
   font-size: 0.95rem;
 }
 
-.cr2-lemma-chip__remove {
+.classroom-lemma-chip__remove {
   border: none;
   background: transparent;
-  color: var(--cr2-muted);
+  color: var(--classroom-muted);
   font-size: 1.05rem;
   width: 32px;
   height: 32px;
@@ -876,55 +876,55 @@
   line-height: 1;
 }
 
-.cr2-lemma-chip__remove:hover {
+.classroom-lemma-chip__remove:hover {
   background: rgba(155, 28, 28, 0.1);
-  color: var(--cr2-accent);
+  color: var(--classroom-accent);
 }
 
-.cr2-lemma-picker__hint {
+.classroom-lemma-picker__hint {
   font-size: 0.8rem;
-  color: var(--cr2-muted);
+  color: var(--classroom-muted);
   margin: 0;
   font-style: italic;
   font-family: 'Gentium Plus', Georgia, serif;
 }
 
-.cr2-lemma-result {
+.classroom-lemma-result {
   display: block;
 }
 
-.cr2-lemma-result--disabled {
+.classroom-lemma-result--disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
 
-.cr2-lemma-result__ipa {
+.classroom-lemma-result__ipa {
   font-family: 'Gentium Plus', Georgia, serif;
   font-weight: 400;
   font-size: 0.85rem;
-  color: var(--cr2-muted);
+  color: var(--classroom-muted);
   margin-left: 6px;
 }
 
-.cr2-lemma-result__def {
+.classroom-lemma-result__def {
   font-family: 'Gentium Plus', Georgia, serif;
   font-size: 0.9rem;
   line-height: 1.4;
-  color: var(--cr2-muted);
+  color: var(--classroom-muted);
   margin: 6px 0 0;
 }
 
 /* ── Code-Karte (Lobby) ──────────────────────────────────────────── */
 /* Code „frei" auf Pergament — kein Kasten. Der riesige Code ist das Headword
    der Lobby (Beamer-lesbar), darunter QR + Text-Aktionen. */
-.cr2-code-card {
+.classroom-code-card {
   background: transparent;
   border: none;
   padding: 8px 0 4px;
   text-align: center;
 }
 
-.cr2-code-card__label {
+.classroom-code-card__label {
   font-family: var(--font-sans);
   font-size: 9px;
   font-weight: 600;
@@ -934,7 +934,7 @@
   margin: 0 0 14px;
 }
 
-.cr2-code-card__display {
+.classroom-code-card__display {
   display: inline-flex;
   flex-wrap: wrap;
   justify-content: center;
@@ -942,19 +942,19 @@
   font-family: 'Gentium Plus', Georgia, serif;
   font-size: clamp(48px, 12vw, 120px);
   line-height: 1;
-  color: var(--cr2-accent);
+  color: var(--classroom-accent);
   font-weight: 700;
   letter-spacing: 0.02em;
 }
 
-.cr2-code-card__char {
+.classroom-code-card__char {
   display: inline-block;
-  border-bottom: 2px solid var(--cr2-gold);
+  border-bottom: 2px solid var(--classroom-gold);
   padding: 0 0.04em 0.05em;
 }
 
 /* F6 — QR-Code zur Beitritts-URL. Dezenter Haarlinien-Rahmen statt Kasten. */
-.cr2-code-card__qr {
+.classroom-code-card__qr {
   width: clamp(140px, 38vw, 200px);
   margin: 20px auto 6px;
   padding: 10px;
@@ -963,29 +963,29 @@
   border-radius: var(--radius, 4px);
   line-height: 0;
 }
-.cr2-code-card__qr svg {
+.classroom-code-card__qr svg {
   width: 100%;
   height: auto;
   display: block;
 }
 
 /* QR als Button: klickbar für Vollbild (Beamer aus 5 m). */
-.cr2-code-card__qr--button {
+.classroom-code-card__qr--button {
   cursor: zoom-in;
   transition: transform 0.15s ease, box-shadow 0.15s ease;
   -webkit-tap-highlight-color: transparent;
 }
-.cr2-code-card__qr--button:hover {
+.classroom-code-card__qr--button:hover {
   transform: scale(1.03);
   box-shadow: 0 4px 16px rgba(60, 40, 30, 0.14);
 }
-.cr2-code-card__qr--button:focus-visible {
-  outline: 2px solid var(--cr2-accent);
+.classroom-code-card__qr--button:focus-visible {
+  outline: 2px solid var(--classroom-accent);
   outline-offset: 3px;
 }
 
 /* QR-Vollbild-Overlay — maximaler Kontrast, riesiger Code + QR für den Beamer. */
-.cr2-qr-fullscreen {
+.classroom-qr-fullscreen {
   position: fixed;
   inset: 0;
   z-index: 1000;
@@ -995,28 +995,28 @@
   justify-content: center;
   gap: 4vmin;
   padding: 5vmin;
-  background: var(--cr2-bg, #faf9f7);
+  background: var(--classroom-bg, #faf9f7);
   cursor: zoom-out;
 }
-.cr2-qr-fullscreen__inner {
+.classroom-qr-fullscreen__inner {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 3vmin;
   max-width: min(92vw, 92vh);
 }
-.cr2-qr-fullscreen__code {
+.classroom-qr-fullscreen__code {
   margin: 0;
   font-family: 'Gentium Plus', Georgia, serif;
   font-weight: 700;
   font-size: clamp(40px, 9vmin, 120px);
   line-height: 1;
-  color: var(--cr2-accent);
+  color: var(--classroom-accent);
   letter-spacing: 0.02em;
   text-align: center;
   word-break: break-word;
 }
-.cr2-qr-fullscreen__qr {
+.classroom-qr-fullscreen__qr {
   width: min(72vmin, 560px);
   line-height: 0;
   background: #fff;
@@ -1024,20 +1024,20 @@
   border-radius: 8px;
   box-shadow: 0 8px 40px rgba(60, 40, 30, 0.18);
 }
-.cr2-qr-fullscreen__qr svg {
+.classroom-qr-fullscreen__qr svg {
   width: 100%;
   height: auto;
   display: block;
 }
-.cr2-qr-fullscreen__hint {
+.classroom-qr-fullscreen__hint {
   margin: 0;
   font-family: var(--font-sans);
   font-size: 0.85rem;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: var(--cr2-muted);
+  color: var(--classroom-muted);
 }
-.cr2-qr-fullscreen__close {
+.classroom-qr-fullscreen__close {
   position: absolute;
   top: max(16px, env(safe-area-inset-top));
   right: max(16px, env(safe-area-inset-right));
@@ -1046,17 +1046,17 @@
   border: 1px solid var(--border-lt, rgba(0, 0, 0, 0.12));
   border-radius: 50%;
   background: var(--surface, #fff);
-  color: var(--cr2-text, #2a211a);
+  color: var(--classroom-text, #2a211a);
   font-size: 28px;
   line-height: 1;
   cursor: pointer;
 }
-.cr2-qr-fullscreen__close:focus-visible {
-  outline: 2px solid var(--cr2-accent);
+.classroom-qr-fullscreen__close:focus-visible {
+  outline: 2px solid var(--classroom-accent);
   outline-offset: 2px;
 }
 
-.cr2-code-card__actions {
+.classroom-code-card__actions {
   display: flex;
   justify-content: center;
   gap: 24px;
@@ -1065,7 +1065,7 @@
 }
 
 /* Text-CTA im Wörterbuch-Stil (Code kopieren / Beitrittsseite). */
-.cr2-link-cta {
+.classroom-link-cta {
   display: inline-flex;
   align-items: center;
   gap: 4px;
@@ -1082,20 +1082,20 @@
   border-bottom: 1px solid transparent;
   transition: color 0.15s, border-color 0.15s;
 }
-.cr2-link-cta:hover {
+.classroom-link-cta:hover {
   color: var(--primary-hi);
   border-bottom-color: var(--primary);
 }
 
 /* ── Teilnehmer-Liste — linien-getrennte Wörterbuch-Zeilen ───────── */
-.cr2-participant-list {
+.classroom-participant-list {
   list-style: none;
   margin: 0;
   padding: 0;
   border-top: 1px solid var(--border-lt);
 }
 
-.cr2-participant {
+.classroom-participant {
   display: flex;
   align-items: center;
   gap: 12px;
@@ -1103,79 +1103,79 @@
   border-bottom: 1px solid var(--border-lt);
 }
 
-.cr2-participant__name { flex: 1 1 auto; min-width: 0; }
+.classroom-participant__name { flex: 1 1 auto; min-width: 0; }
 
 /* Teilnehmer entfernen (Lobby) — dezenter Kreis, rot beim Hover. */
-.cr2-participant__kick {
+.classroom-participant__kick {
   flex: 0 0 auto;
   width: 26px;
   height: 26px;
   border-radius: 50%;
   border: 1px solid var(--border-lt);
   background: transparent;
-  color: var(--cr2-muted);
+  color: var(--classroom-muted);
   font-size: 17px;
   line-height: 1;
   cursor: pointer;
   transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
 }
-.cr2-participant__kick:hover {
-  color: var(--cr2-accent);
-  border-color: var(--cr2-accent);
-  background: color-mix(in srgb, var(--cr2-accent) 8%, transparent);
+.classroom-participant__kick:hover {
+  color: var(--classroom-accent);
+  border-color: var(--classroom-accent);
+  background: color-mix(in srgb, var(--classroom-accent) 8%, transparent);
 }
-.cr2-participant__kick:focus-visible {
-  outline: 2px solid var(--cr2-accent);
+.classroom-participant__kick:focus-visible {
+  outline: 2px solid var(--classroom-accent);
   outline-offset: 2px;
 }
 
-.cr2-participant__dot {
+.classroom-participant__dot {
   width: 10px;
   height: 10px;
   border-radius: 50%;
-  background: var(--cr2-rule);
+  background: var(--classroom-rule);
   display: inline-block;
 }
 
-.cr2-participant__dot--connected {
-  background: var(--cr2-gold);
-  animation: cr2-pulse 1.6s ease-in-out infinite;
+.classroom-participant__dot--connected {
+  background: var(--classroom-gold);
+  animation: classroom-pulse 1.6s ease-in-out infinite;
 }
 
-.cr2-participant__dot--submitted {
-  background: var(--cr2-accent);
+.classroom-participant__dot--submitted {
+  background: var(--classroom-accent);
 }
 
-.cr2-participant__dot--away {
+.classroom-participant__dot--away {
   background: transparent;
-  border: 1.5px solid var(--cr2-rule);
+  border: 1.5px solid var(--classroom-rule);
 }
 
-.cr2-participant__dot--left {
+.classroom-participant__dot--left {
   background: transparent;
-  border: 1.5px dashed var(--cr2-rule);
+  border: 1.5px dashed var(--classroom-rule);
 }
 
-.cr2-participant__name {
+.classroom-participant__name {
   font-family: 'Gentium Plus', Georgia, serif;
   font-size: 1.05rem;
 }
 
-.cr2-participant__status {
+.classroom-participant__status {
   font-family: 'Gentium Plus', Georgia, serif;
   font-style: italic;
   font-size: 0.85rem;
-  color: var(--cr2-muted);
+  color: var(--classroom-muted);
 }
 
-.cr2-participant[data-status="away"] .cr2-participant__name,
-.cr2-participant[data-status="left"] .cr2-participant__name {
-  color: var(--cr2-muted);
+.classroom-participant[data-status="away"] .classroom-participant__name,
+.classroom-participant[data-status="left"] .classroom-participant__name {
+  color: var(--classroom-muted);
   font-style: italic;
 }
 
 /* ── Live-Step ───────────────────────────────────────────────────── */
-.cr2-progress {
+.classroom-progress {
   background: transparent;
   border: none;
   border-radius: 0;
@@ -1183,88 +1183,88 @@
   margin-bottom: 22px;
 }
 
-.cr2-progress__label {
+.classroom-progress__label {
   display: flex;
   justify-content: space-between;
   align-items: baseline;
   font-family: 'DM Sans', system-ui, sans-serif;
   font-size: 0.85rem;
-  color: var(--cr2-muted);
+  color: var(--classroom-muted);
   margin-bottom: 8px;
 }
 
-.cr2-progress__numbers {
+.classroom-progress__numbers {
   font-family: 'Gentium Plus', Georgia, serif;
   font-size: 1.2rem;
-  color: var(--cr2-text);
+  color: var(--classroom-text);
 }
 
-.cr2-progress__bar {
+.classroom-progress__bar {
   height: 8px;
-  background: var(--cr2-rule-lt);
+  background: var(--classroom-rule-lt);
   border-radius: 2px;
   overflow: hidden;
 }
 
-.cr2-progress__fill {
+.classroom-progress__fill {
   height: 100%;
-  background: var(--cr2-gold);
+  background: var(--classroom-gold);
   transition: width 240ms ease-out;
 }
 
-.cr2-lemma-mirror {
+.classroom-lemma-mirror {
   background: transparent;
   border-left: 2px solid var(--accent);
   padding: 4px 0 4px 14px;
   margin: 18px 0;
   font-family: 'Gentium Plus', Georgia, serif;
   font-style: italic;
-  color: var(--cr2-muted);
+  color: var(--classroom-muted);
   font-size: 0.95rem;
   line-height: 1.5;
 }
 
-.cr2-lemma-mirror__title {
+.classroom-lemma-mirror__title {
   font-style: normal;
   font-weight: 700;
-  color: var(--cr2-text);
+  color: var(--classroom-text);
   font-size: 1.05rem;
   margin: 0 0 4px;
 }
 
-.cr2-aggregate {
+.classroom-aggregate {
   list-style: none;
   margin: 16px 0 0;
   padding: 0;
 }
 
-.cr2-aggregate__row {
+.classroom-aggregate__row {
   display: grid;
   grid-template-columns: 1fr 60px;
   gap: 10px;
   padding: 10px 0;
-  border-bottom: 1px solid var(--cr2-rule-lt);
+  border-bottom: 1px solid var(--classroom-rule-lt);
   align-items: baseline;
 }
 
-.cr2-aggregate__row:last-child {
+.classroom-aggregate__row:last-child {
   border-bottom: none;
 }
 
-.cr2-aggregate__lemma {
+.classroom-aggregate__lemma {
   font-family: 'Gentium Plus', Georgia, serif;
   font-size: 1rem;
 }
 
-.cr2-aggregate__pct {
+.classroom-aggregate__pct {
   text-align: right;
   font-family: 'Gentium Plus', Georgia, serif;
   font-size: 1rem;
-  color: var(--cr2-accent);
+  color: var(--classroom-accent);
 }
 
 /* ── W2-T4: Ergebnisansicht (EndStep) ────────────────────────────── */
-.cr2-result-cards {
+.classroom-result-cards {
   display: flex;
   flex-direction: column;
   gap: 0;
@@ -1272,7 +1272,7 @@
   border-top: 1px solid var(--border-lt);
 }
 
-.cr2-result-card {
+.classroom-result-card {
   background: transparent;
   border: none;
   border-bottom: 1px solid var(--border-lt);
@@ -1280,7 +1280,7 @@
   padding: 18px 0;
 }
 
-.cr2-result-card__head {
+.classroom-result-card__head {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
@@ -1288,41 +1288,41 @@
   margin-bottom: 12px;
 }
 
-.cr2-result-card__lemma {
+.classroom-result-card__lemma {
   font-family: 'Gentium Plus', Georgia, serif;
   font-size: 1.4rem;
   font-weight: 700;
-  color: var(--cr2-text);
+  color: var(--classroom-text);
   margin: 0;
 }
 
-.cr2-result-card__mode {
+.classroom-result-card__mode {
   font-family: 'DM Sans', system-ui, sans-serif;
   font-size: 0.72rem;
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  color: var(--cr2-muted);
+  color: var(--classroom-muted);
 }
 
 /* Trefferquote-Balken */
-.cr2-bar {
+.classroom-bar {
   position: relative;
   height: 22px;
   border-radius: 4px;
-  background: var(--cr2-rule-lt);
+  background: var(--classroom-rule-lt);
   overflow: hidden;
 }
 
-.cr2-bar__fill {
+.classroom-bar__fill {
   position: absolute;
   inset: 0 auto 0 0;
-  background: var(--cr2-accent);
+  background: var(--classroom-accent);
   border-radius: 4px 0 0 4px;
   transition: width 0.4s ease;
   min-width: 2px;
 }
 
-.cr2-bar__label {
+.classroom-bar__label {
   position: absolute;
   right: 8px;
   top: 50%;
@@ -1330,53 +1330,53 @@
   font-family: 'DM Sans', system-ui, sans-serif;
   font-size: 0.8rem;
   font-weight: 600;
-  color: var(--cr2-text);
+  color: var(--classroom-text);
 }
 
-.cr2-result-card__meta {
+.classroom-result-card__meta {
   display: flex;
   gap: 28px;
   margin: 14px 0 0;
 }
 
-.cr2-result-card__metaItem dt {
+.classroom-result-card__metaItem dt {
   font-family: 'DM Sans', system-ui, sans-serif;
   font-size: 0.68rem;
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  color: var(--cr2-muted);
+  color: var(--classroom-muted);
 }
 
-.cr2-result-card__metaItem dd {
+.classroom-result-card__metaItem dd {
   margin: 2px 0 0;
   font-family: 'Gentium Plus', Georgia, serif;
   font-size: 1.1rem;
-  color: var(--cr2-text);
+  color: var(--classroom-text);
 }
 
-.cr2-result-card__distractor {
+.classroom-result-card__distractor {
   margin: 12px 0 0;
   padding-top: 12px;
-  border-top: 1px solid var(--cr2-rule-lt);
+  border-top: 1px solid var(--classroom-rule-lt);
   font-family: 'DM Sans', system-ui, sans-serif;
   font-size: 0.88rem;
-  color: var(--cr2-text);
+  color: var(--classroom-text);
 }
 
-.cr2-result-card__distractor strong {
-  color: var(--cr2-accent);
+.classroom-result-card__distractor strong {
+  color: var(--classroom-accent);
 }
 
-.cr2-result-card__distractorCount {
-  color: var(--cr2-muted);
+.classroom-result-card__distractorCount {
+  color: var(--classroom-muted);
 }
 
-.cr2-result-card__distractor--none {
-  color: var(--cr2-muted);
+.classroom-result-card__distractor--none {
+  color: var(--classroom-muted);
 }
 
 /* Empty State */
-.cr2-result-empty {
+.classroom-result-empty {
   background: transparent;
   border: none;
   border-top: 1px solid var(--border-lt);
@@ -1385,131 +1385,131 @@
   text-align: center;
 }
 
-.cr2-result-empty__title {
+.classroom-result-empty__title {
   font-family: 'Gentium Plus', Georgia, serif;
   font-size: 1.2rem;
   font-weight: 700;
-  color: var(--cr2-text);
+  color: var(--classroom-text);
   margin: 0 0 6px;
 }
 
-.cr2-result-empty__text {
+.classroom-result-empty__text {
   font-family: 'DM Sans', system-ui, sans-serif;
   font-size: 0.9rem;
-  color: var(--cr2-muted);
+  color: var(--classroom-muted);
   margin: 0;
   line-height: 1.5;
 }
 
-.cr2-result-empty__ornament {
+.classroom-result-empty__ornament {
   font-family: 'Gentium Plus', Georgia, serif;
   font-size: 1.3rem;
   letter-spacing: 0.5em;
-  color: var(--cr2-gold);
+  color: var(--classroom-gold);
   margin: 0 0 14px;
 }
 
 /* ── A1: Redesign Auswertung (Klassen-Puls, typografische Trefferquote) ── */
-.cr2-pulse {
+.classroom-pulse {
   font-family: 'Gentium Plus', Georgia, serif;
   font-style: italic;
   font-size: 1.05rem;
-  color: var(--cr2-text);
+  color: var(--classroom-text);
   margin: 0;
   line-height: 1.5;
 }
 
 /* Doppellinie als Abschnittstrenner (design.md: 0.9px + 0.45px, 3px Abstand). */
-.cr2-doubleline {
+.classroom-doubleline {
   border: none;
-  border-top: 0.9px solid var(--cr2-rule);
+  border-top: 0.9px solid var(--classroom-rule);
   margin: 18px 0 0;
   position: relative;
 }
-.cr2-doubleline::after {
+.classroom-doubleline::after {
   content: '';
   position: absolute;
   left: 0;
   right: 0;
   top: 3px;
-  border-top: 0.45px solid var(--cr2-rule);
+  border-top: 0.45px solid var(--classroom-rule);
 }
 
 /* Pro-Lemma-Eintrag: Subzeile (Teilnehmer + Ø-Score). */
-.cr2-result-card__sub {
+.classroom-result-card__sub {
   font-family: 'Gentium Plus', Georgia, serif;
   font-style: italic;
   font-size: 0.85rem;
-  color: var(--cr2-muted);
+  color: var(--classroom-muted);
   margin: 0 0 8px;
 }
 
 /* Typografische Trefferquote statt Balken. */
-.cr2-rate {
+.classroom-rate {
   display: flex;
   align-items: baseline;
   gap: 10px;
   margin: 4px 0 0;
 }
-.cr2-rate__num {
+.classroom-rate__num {
   font-family: 'Gentium Plus', Georgia, serif;
   font-size: 2rem;
   font-weight: 700;
   line-height: 1;
   font-variant-numeric: tabular-nums;
 }
-.cr2-rate__text {
+.classroom-rate__text {
   font-family: 'Gentium Plus', Georgia, serif;
   font-style: italic;
   font-size: 0.9rem;
-  color: var(--cr2-muted);
+  color: var(--classroom-muted);
 }
 
-/* Trefferquote-Semantik (auch auf .cr2-aggregate__pct in „Auffälligste Fragen"). */
-.cr2-rate--low  { color: #991b1b; }
-.cr2-rate--mid  { color: #92400e; }
-.cr2-rate--high { color: #166534; }
+/* Trefferquote-Semantik (auch auf .classroom-aggregate__pct in „Auffälligste Fragen"). */
+.classroom-rate--low  { color: #991b1b; }
+.classroom-rate--mid  { color: #92400e; }
+.classroom-rate--high { color: #166534; }
 
-.cr2-result-card__distractorLead {
+.classroom-result-card__distractorLead {
   font-family: 'Gentium Plus', Georgia, serif;
   font-style: italic;
-  color: var(--cr2-muted);
+  color: var(--classroom-muted);
 }
 
 /* Dauerhaft sichtbare Lösungszeile (beste Kollokationen + logDice). */
-.cr2-result-card__solution {
+.classroom-result-card__solution {
   margin: 8px 0 0;
   font-family: 'Gentium Plus', Georgia, serif;
   font-size: 0.95rem;
-  color: var(--cr2-text);
+  color: var(--classroom-text);
   line-height: 1.5;
 }
-.cr2-result-card__solution strong {
+.classroom-result-card__solution strong {
   color: #166534;
   font-weight: 700;
 }
-.cr2-result-card__solutionLead {
+.classroom-result-card__solutionLead {
   font-style: italic;
-  color: var(--cr2-muted);
+  color: var(--classroom-muted);
 }
-.cr2-result-card__ld,
-.cr2-dist__ld {
+.classroom-result-card__ld,
+.classroom-dist__ld {
   font-family: 'DM Sans', system-ui, sans-serif;
   font-size: 0.78rem;
-  color: var(--cr2-muted);
+  color: var(--classroom-muted);
   font-variant-numeric: tabular-nums;
 }
 
 /* ── Antwortverteilung pro Lemma (aufklappbar, D1) ───────────────── */
-.cr2-dist {
+.classroom-dist {
   margin-top: 12px;
 }
 
-.cr2-dist__toggle {
+.classroom-dist__toggle {
   font-family: 'DM Sans', system-ui, sans-serif;
   font-size: 0.82rem;
   font-weight: 600;
-  color: var(--cr2-accent);
+  color: var(--classroom-accent);
   cursor: pointer;
   list-style: none;
   padding: 10px 0;
@@ -1517,32 +1517,32 @@
   display: inline-flex;
   align-items: center;
 }
-.cr2-dist__toggle:focus-visible {
-  outline: 2px solid var(--cr2-accent);
+.classroom-dist__toggle:focus-visible {
+  outline: 2px solid var(--classroom-accent);
   outline-offset: 2px;
 }
-.cr2-dist__toggle::-webkit-details-marker { display: none; }
-.cr2-dist__toggle::after {
+.classroom-dist__toggle::-webkit-details-marker { display: none; }
+.classroom-dist__toggle::after {
   content: '▸';
   margin-left: 8px;
   font-size: 0.7rem;
   transition: transform 0.15s ease;
 }
-.cr2-dist[open] .cr2-dist__toggle::after {
+.classroom-dist[open] .classroom-dist__toggle::after {
   content: '▾';
 }
-.cr2-dist__toggleCount {
-  color: var(--cr2-muted);
+.classroom-dist__toggleCount {
+  color: var(--classroom-muted);
   font-weight: 400;
 }
 
-.cr2-dist__list {
+.classroom-dist__list {
   list-style: none;
   margin: 8px 0 4px;
   padding: 0;
 }
 
-.cr2-dist__row {
+.classroom-dist__row {
   display: grid;
   grid-template-columns: 14px minmax(0, 10ch) 1fr 3.2em;
   align-items: center;
@@ -1550,75 +1550,75 @@
   padding: 5px 0;
 }
 
-.cr2-dist__mark {
+.classroom-dist__mark {
   font-size: 0.85rem;
   color: #166534;
   text-align: center;
 }
 
-.cr2-dist__word {
+.classroom-dist__word {
   font-family: 'Gentium Plus', Georgia, serif;
   font-size: 0.98rem;
-  color: var(--cr2-text);
+  color: var(--classroom-text);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.cr2-dist__row--correct .cr2-dist__word {
+.classroom-dist__row--correct .classroom-dist__word {
   color: #166534;
 }
 
-.cr2-dist__bar {
+.classroom-dist__bar {
   position: relative;
   height: 6px;
-  background: var(--cr2-rule-lt);
+  background: var(--classroom-rule-lt);
   border-radius: 2px;
   overflow: hidden;
 }
-.cr2-dist__fill {
+.classroom-dist__fill {
   position: absolute;
   inset: 0 auto 0 0;
   height: 100%;
-  background: var(--cr2-accent);
+  background: var(--classroom-accent);
   min-width: 2px;
 }
-.cr2-dist__row--correct .cr2-dist__fill {
+.classroom-dist__row--correct .classroom-dist__fill {
   background: #166534;
 }
 
 /* Item-Modus (WZ/ZW/LF): Balken nach Trefferquote-Band gefaerbt. */
-.cr2-dist__row--band-low .cr2-dist__fill  { background: #991b1b; }
-.cr2-dist__row--band-mid .cr2-dist__fill  { background: #92400e; }
-.cr2-dist__row--band-high .cr2-dist__fill { background: #166534; }
+.classroom-dist__row--band-low .classroom-dist__fill  { background: #991b1b; }
+.classroom-dist__row--band-mid .classroom-dist__fill  { background: #92400e; }
+.classroom-dist__row--band-high .classroom-dist__fill { background: #166534; }
 
-.cr2-dist__sub {
+.classroom-dist__sub {
   font-style: italic;
-  color: var(--cr2-muted);
+  color: var(--classroom-muted);
   font-size: 0.82rem;
 }
 
-.cr2-dist__pct {
+.classroom-dist__pct {
   font-family: 'DM Sans', system-ui, sans-serif;
   font-size: 0.75rem;
-  color: var(--cr2-muted);
+  color: var(--classroom-muted);
   text-align: right;
   font-variant-numeric: tabular-nums;
 }
 
 /* Feiner Trenner zwischen den korrekten Top-Optionen und den Distraktoren. */
-.cr2-dist__row--divide {
-  border-top: 1px solid var(--cr2-rule-lt);
+.classroom-dist__row--divide {
+  border-top: 1px solid var(--classroom-rule-lt);
   margin-top: 4px;
   padding-top: 9px;
 }
 
 /* Ø-Punktzahl trägt die Schwierigkeits-Semantik (statt eigenem %-Feld). */
-.cr2-result-card__avg {
+.classroom-result-card__avg {
   font-weight: 700;
 }
 
 /* Modus-Pille in Marken-Optik (design.md Badge-Farben je Modus). */
-.cr2-mode-badge {
+.classroom-mode-badge {
   display: inline-block;
   flex-shrink: 0;
   font-family: 'DM Sans', system-ui, sans-serif;
@@ -1631,51 +1631,51 @@
   border: 1px solid transparent;
   white-space: nowrap;
 }
-.cr2-mode-badge--kollokationen  { background: #fef2f2; border-color: #fecaca; color: #9b1c1c; }
-.cr2-mode-badge--zeitenwende    { background: #eff6ff; border-color: #bfdbfe; color: #1d4ed8; }
-.cr2-mode-badge--lueckenfueller { background: #f3f4f6; border-color: #d1d5db; color: #374151; }
-.cr2-mode-badge--wortzwilling   { background: #fdf8ee; border-color: #c9a84c; color: #a07830; }
+.classroom-mode-badge--kollokationen  { background: #fef2f2; border-color: #fecaca; color: #9b1c1c; }
+.classroom-mode-badge--zeitenwende    { background: #eff6ff; border-color: #bfdbfe; color: #1d4ed8; }
+.classroom-mode-badge--lueckenfueller { background: #f3f4f6; border-color: #d1d5db; color: #374151; }
+.classroom-mode-badge--wortzwilling   { background: #fdf8ee; border-color: #c9a84c; color: #a07830; }
 
 /* Pro-Lemma Kopf: Label + Sortier-Umschalter. */
-.cr2-prolemma-head {
+.classroom-prolemma-head {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
   gap: 12px;
   margin-bottom: 4px;
 }
-.cr2-sort {
+.classroom-sort {
   display: inline-flex;
   align-items: baseline;
   gap: 6px;
 }
-.cr2-sort__opt {
+.classroom-sort__opt {
   background: none;
   border: none;
   padding: 10px 2px;
   min-height: 44px;
   font-family: 'DM Sans', system-ui, sans-serif;
   font-size: 0.78rem;
-  color: var(--cr2-muted);
+  color: var(--classroom-muted);
   cursor: pointer;
   border-bottom: 1px solid transparent;
 }
-.cr2-sort__opt.is-active {
-  color: var(--cr2-accent);
-  border-bottom-color: var(--cr2-accent);
+.classroom-sort__opt.is-active {
+  color: var(--classroom-accent);
+  border-bottom-color: var(--classroom-accent);
   font-weight: 600;
 }
-.cr2-sort__opt:hover { color: var(--cr2-text); }
-.cr2-sort__opt:focus-visible { outline: 2px solid var(--cr2-accent); outline-offset: 2px; }
-.cr2-sort__sep { color: var(--cr2-muted); }
+.classroom-sort__opt:hover { color: var(--classroom-text); }
+.classroom-sort__opt:focus-visible { outline: 2px solid var(--classroom-accent); outline-offset: 2px; }
+.classroom-sort__sep { color: var(--classroom-muted); }
 
 /* Modus-Gruppen-Überschrift (nur bei Mehr-Modi-Sessions, „Reihenfolge"). */
-.cr2-prolemma-group {
+.classroom-prolemma-group {
   margin: 20px 0 0;
   padding-top: 14px;
-  border-top: 1px solid var(--cr2-rule-lt);
+  border-top: 1px solid var(--classroom-rule-lt);
 }
-.cr2-prolemma-group:first-child {
+.classroom-prolemma-group:first-child {
   border-top: none;
   padding-top: 2px;
   margin-top: 4px;
@@ -1684,76 +1684,76 @@
 /* Druckansicht: Verteilungen aufgeklappt, Bedien-Elemente aus. */
 @media print {
   details:not([open]) > *:not(summary) { display: block !important; }
-  .cr2-dist__toggle::after { display: none !important; }
-  .cr2-sort,
+  .classroom-dist__toggle::after { display: none !important; }
+  .classroom-sort,
   .back-btn,
-  .cr2-sticky-cta { display: none !important; }
+  .classroom-sticky-cta { display: none !important; }
 }
 
 /* ── W2-T2: Modus-Bloecke im Setup ───────────────────────────────── */
 /* F1 — Modus-Block als Linien-Sektion: Doppellinie oben + dezenter Gold-
    Linksakzent statt umrahmtem Kasten (keine Schatten, kein radius). */
-.cr2-block {
+.classroom-block {
   border: none;
-  border-top: 1px solid var(--cr2-rule);
+  border-top: 1px solid var(--classroom-rule);
   border-radius: 0;
   padding: 18px 0 20px;
   margin-bottom: 4px;
   background: transparent;
 }
 
-.cr2-block__head {
+.classroom-block__head {
   display: flex;
   justify-content: space-between;
   align-items: center;
   margin-bottom: 12px;
 }
 
-.cr2-block__num {
+.classroom-block__num {
   font-family: 'DM Sans', system-ui, sans-serif;
   font-size: 0.72rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--cr2-muted);
+  color: var(--classroom-muted);
 }
 
-.cr2-block__tools {
+.classroom-block__tools {
   display: flex;
   gap: 6px;
 }
 
-.cr2-block__tool {
+.classroom-block__tool {
   min-width: 44px;
   min-height: 44px;
   border: none;
   background: transparent;
-  color: var(--cr2-muted);
+  color: var(--classroom-muted);
   border-radius: var(--radius, 4px);
   cursor: pointer;
   font-size: 1.05rem;
   line-height: 1;
   transition: color 0.12s, background 0.12s;
 }
-.cr2-block__tool:hover:not(:disabled) {
+.classroom-block__tool:hover:not(:disabled) {
   color: var(--primary);
   background: var(--error-bg, #fef2f2);
 }
 
-.cr2-block__tool:disabled {
-  color: var(--cr2-disabled);
-  border-color: var(--cr2-rule-lt);
+.classroom-block__tool:disabled {
+  color: var(--classroom-disabled);
+  border-color: var(--classroom-rule-lt);
   cursor: default;
 }
 
-.cr2-block__tool--remove {
-  color: var(--cr2-accent);
+.classroom-block__tool--remove {
+  color: var(--classroom-accent);
 }
 
-.cr2-block__preview {
+.classroom-block__preview {
   margin-top: 8px;
 }
 
-.cr2-block-add {
+.classroom-block-add {
   display: flex;
   justify-content: center;
   width: 100%;
@@ -1761,13 +1761,13 @@
   margin-top: 12px;
 }
 
-.cr2-progress__step {
-  color: var(--cr2-muted);
+.classroom-progress__step {
+  color: var(--classroom-muted);
   font-size: 0.85em;
 }
 
-.cr2-progress__rounds {
-  color: var(--cr2-muted);
+.classroom-progress__rounds {
+  color: var(--classroom-muted);
   font-weight: 400;
 }
 

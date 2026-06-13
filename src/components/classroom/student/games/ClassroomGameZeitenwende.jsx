@@ -33,7 +33,7 @@ export default function ClassroomGameZeitenwende({ lemma, prompt, onSubmit, draf
     : null
 
   return (
-    <div data-testid="cr2-kiosk-game-zeitenwende">
+    <div data-testid="classroom-kiosk-game-zeitenwende">
       <Zeitenwende
         data={data}
         mode="classroom"

@@ -100,7 +100,7 @@ export default function SetupStep() {
 
   return (
     <ClassroomSubScreen
-      testId="cr2-setup"
+      testId="classroom-setup"
       title="Neue Session"
       label="Live-Session"
       lead="Modus und Wörter wählen."
@@ -108,44 +108,44 @@ export default function SetupStep() {
       onBack={() => dispatch({ type: 'GO_TO_LIST' })}
     >
       {/* I — Modus-Bloecke in Reihenfolge */}
-      <section className="cr2-section" aria-labelledby="cr2-setup-modes-label">
-        <span id="cr2-setup-modes-label" className="cr2-section__label">
-          I · Modi &amp; Wörter <span className="cr2-section__hint">(1–{MAX_BLOCKS})</span>
+      <section className="classroom-section" aria-labelledby="classroom-setup-modes-label">
+        <span id="classroom-setup-modes-label" className="classroom-section__label">
+          I · Modi &amp; Wörter <span className="classroom-section__hint">(1–{MAX_BLOCKS})</span>
         </span>
 
         {blocks.map((block, idx) => (
           <article
             key={block.key}
-            className="cr2-block"
-            data-testid={`cr2-block-${idx}`}
+            className="classroom-block"
+            data-testid={`classroom-block-${idx}`}
             aria-label={`Modus ${idx + 1} von ${blocks.length}`}
           >
-            <header className="cr2-block__head">
-              <span className="cr2-block__num">Modus {idx + 1} von {blocks.length}</span>
-              <div className="cr2-block__tools" role="group" aria-label="Block ordnen">
+            <header className="classroom-block__head">
+              <span className="classroom-block__num">Modus {idx + 1} von {blocks.length}</span>
+              <div className="classroom-block__tools" role="group" aria-label="Block ordnen">
                 <button
                   type="button"
-                  className="cr2-block__tool"
+                  className="classroom-block__tool"
                   onClick={() => moveBlock(idx, -1)}
                   disabled={idx === 0}
                   aria-label={`Modus ${idx + 1} nach oben`}
-                  data-testid={`cr2-block-up-${idx}`}
+                  data-testid={`classroom-block-up-${idx}`}
                 >↑</button>
                 <button
                   type="button"
-                  className="cr2-block__tool"
+                  className="classroom-block__tool"
                   onClick={() => moveBlock(idx, +1)}
                   disabled={idx === blocks.length - 1}
                   aria-label={`Modus ${idx + 1} nach unten`}
-                  data-testid={`cr2-block-down-${idx}`}
+                  data-testid={`classroom-block-down-${idx}`}
                 >↓</button>
                 {blocks.length > 1 && (
                   <button
                     type="button"
-                    className="cr2-block__tool cr2-block__tool--remove"
+                    className="classroom-block__tool classroom-block__tool--remove"
                     onClick={() => removeBlock(idx)}
                     aria-label={`Modus ${idx + 1} entfernen`}
-                    data-testid={`cr2-block-remove-${idx}`}
+                    data-testid={`classroom-block-remove-${idx}`}
                   >×</button>
                 )}
               </div>
@@ -170,10 +170,10 @@ export default function SetupStep() {
 
             <button
               type="button"
-              className="test-cta cr2-block__preview"
+              className="test-cta classroom-block__preview"
               disabled={!blockValid(block)}
               onClick={() => setPreviewIdx(idx)}
-              data-testid={`cr2-block-preview-${idx}`}
+              data-testid={`classroom-block-preview-${idx}`}
             >
               Schüleransicht testen
               <span className="test-cta-arrow" aria-hidden="true"> →</span>
@@ -184,9 +184,9 @@ export default function SetupStep() {
         {blocks.length < MAX_BLOCKS && (
           <button
             type="button"
-            className="test-cta cr2-block-add"
+            className="test-cta classroom-block-add"
             onClick={addBlock}
-            data-testid="cr2-block-add"
+            data-testid="classroom-block-add"
           >
             <span aria-hidden="true">＋</span> Weiterer Modus
           </button>
@@ -196,11 +196,11 @@ export default function SetupStep() {
       <div className="test-rule--double" role="separator" aria-hidden="true" />
 
       {/* II — Details */}
-      <section className="cr2-section" aria-labelledby="cr2-setup-title-label">
-        <span id="cr2-setup-title-label" className="cr2-section__label">II · Details</span>
+      <section className="classroom-section" aria-labelledby="classroom-setup-title-label">
+        <span id="classroom-setup-title-label" className="classroom-section__label">II · Details</span>
         <input
           type="text"
-          className="cr2-headword-input"
+          className="classroom-headword-input"
           placeholder="Klassen-Name (optional)"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
@@ -209,16 +209,16 @@ export default function SetupStep() {
         />
       </section>
 
-      {error && <p className="cr2-error">{error}</p>}
+      {error && <p className="classroom-error">{error}</p>}
 
-      <div className="cr2-sticky-cta" role="none">
-        <div className="cr2-sticky-cta__inner">
+      <div className="classroom-sticky-cta" role="none">
+        <div className="classroom-sticky-cta__inner">
           <button
             type="button"
-            className="cr2-cta"
+            className="classroom-cta"
             disabled={!canSubmit}
             onClick={handleSubmit}
-            data-testid="cr2-setup-submit"
+            data-testid="classroom-setup-submit"
           >
             {submitting ? 'Wird angelegt …' : 'Lobby öffnen'}
             {!submitting && <span className="test-cta-arrow" aria-hidden="true"> →</span>}

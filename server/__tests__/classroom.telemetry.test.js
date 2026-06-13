@@ -104,15 +104,15 @@ describe('classroom telemetry — event inserts', () => {
     const sid = makeSessionId()
     const tid = makeTeacherId()
     trackSessionCreated(sid, tid)
-    expect(countEventsByType('cr2_session_created', sid)).toBe(1)
+    expect(countEventsByType('classroom_session_created', sid)).toBe(1)
   })
 
   it('trackSessionStarted schreibt event mit participantCount', () => {
     const sid = makeSessionId()
     const tid = makeTeacherId()
     trackSessionStarted(sid, tid, 5)
-    expect(countEventsByType('cr2_session_started', sid)).toBe(1)
-    const payload = getEventPayload('cr2_session_started', sid)
+    expect(countEventsByType('classroom_session_started', sid)).toBe(1)
+    const payload = getEventPayload('classroom_session_started', sid)
     expect(payload?.participantCount).toBe(5)
   })
 
@@ -120,8 +120,8 @@ describe('classroom telemetry — event inserts', () => {
     const sid = makeSessionId()
     const tid = makeTeacherId()
     trackSessionFinished(sid, tid, { durationMs: 60_000, completionRate: 0.8, reason: 'manual' })
-    expect(countEventsByType('cr2_session_finished', sid)).toBe(1)
-    const payload = getEventPayload('cr2_session_finished', sid)
+    expect(countEventsByType('classroom_session_finished', sid)).toBe(1)
+    const payload = getEventPayload('classroom_session_finished', sid)
     expect(payload?.reason).toBe('manual')
     expect(payload?.durationMs).toBe(60_000)
     expect(payload?.completionRate).toBeCloseTo(0.8)
@@ -130,7 +130,7 @@ describe('classroom telemetry — event inserts', () => {
   it('trackSessionFinished reason "completed" wird korrekt gespeichert', () => {
     const sid = makeSessionId()
     trackSessionFinished(sid, makeTeacherId(), { reason: 'completed', durationMs: 30_000, completionRate: 1 })
-    const payload = getEventPayload('cr2_session_finished', sid)
+    const payload = getEventPayload('classroom_session_finished', sid)
     expect(payload?.reason).toBe('completed')
   })
 
@@ -139,15 +139,15 @@ describe('classroom telemetry — event inserts', () => {
     const tid = makeTeacherId()
     trackSessionPaused(sid, tid)
     trackSessionResumed(sid, tid)
-    expect(countEventsByType('cr2_session_paused', sid)).toBe(1)
-    expect(countEventsByType('cr2_session_resumed', sid)).toBe(1)
+    expect(countEventsByType('classroom_session_paused', sid)).toBe(1)
+    expect(countEventsByType('classroom_session_resumed', sid)).toBe(1)
   })
 
   it('trackAssignmentChanged schreibt event mit korrekten Indizes und Modus', () => {
     const sid = makeSessionId()
     trackAssignmentChanged(sid, makeTeacherId(), { fromIndex: 0, toIndex: 1, mode: 'wortzwilling' })
-    expect(countEventsByType('cr2_assignment_changed', sid)).toBe(1)
-    const payload = getEventPayload('cr2_assignment_changed', sid)
+    expect(countEventsByType('classroom_assignment_changed', sid)).toBe(1)
+    const payload = getEventPayload('classroom_assignment_changed', sid)
     expect(payload?.fromIndex).toBe(0)
     expect(payload?.toIndex).toBe(1)
     expect(payload?.mode).toBe('wortzwilling')
@@ -157,15 +157,15 @@ describe('classroom telemetry — event inserts', () => {
     const sid = makeSessionId()
     const pid = makeParticipantId()
     trackJoinSucceeded(sid, pid)
-    expect(countEventsByType('cr2_join_succeeded', sid)).toBe(1)
+    expect(countEventsByType('classroom_join_succeeded', sid)).toBe(1)
   })
 
   it('trackParticipantReconnected schreibt event mit participantId', () => {
     const sid = makeSessionId()
     const pid = makeParticipantId()
     trackParticipantReconnected(sid, pid)
-    expect(countEventsByType('cr2_participant_reconnected', sid)).toBe(1)
-    const payload = getEventPayload('cr2_participant_reconnected', sid)
+    expect(countEventsByType('classroom_participant_reconnected', sid)).toBe(1)
+    const payload = getEventPayload('classroom_participant_reconnected', sid)
     expect(payload?.participantId).toBe(pid)
   })
 
@@ -173,16 +173,16 @@ describe('classroom telemetry — event inserts', () => {
     const sid = makeSessionId()
     const pid = makeParticipantId()
     trackParticipantDropped(sid, pid)
-    expect(countEventsByType('cr2_participant_dropped', sid)).toBe(1)
-    const payload = getEventPayload('cr2_participant_dropped', sid)
+    expect(countEventsByType('classroom_participant_dropped', sid)).toBe(1)
+    const payload = getEventPayload('classroom_participant_dropped', sid)
     expect(payload?.participantId).toBe(pid)
   })
 
   it('trackSubmissionReceived schreibt event ohne personenbezogene Felder', () => {
     const sid = makeSessionId()
     trackSubmissionReceived(sid, { mode: 'kollokationen', correct: true })
-    expect(countEventsByType('cr2_submission_received', sid)).toBe(1)
-    const payload = getEventPayload('cr2_submission_received', sid)
+    expect(countEventsByType('classroom_submission_received', sid)).toBe(1)
+    const payload = getEventPayload('classroom_submission_received', sid)
     expect(payload?.mode).toBe('kollokationen')
     expect(payload?.correct).toBe(1)
     // Sicherheits-Check: KEIN participantId oder lemmaId im Payload
@@ -193,7 +193,7 @@ describe('classroom telemetry — event inserts', () => {
   it('trackSubmissionReceived correct=false → 0 im Payload', () => {
     const sid = makeSessionId()
     trackSubmissionReceived(sid, { mode: 'wortzwilling', correct: false })
-    const payload = getEventPayload('cr2_submission_received', sid)
+    const payload = getEventPayload('classroom_submission_received', sid)
     expect(payload?.correct).toBe(0)
   })
 })
@@ -202,7 +202,7 @@ describe('classroom telemetry — Fehler bricht Hauptpfad nicht ab', () => {
   it('trackEvent mit ungueltigem session_id wirft nicht', () => {
     expect(() => {
       // null session_id ist erlaubt (kein NOT NULL-Constraint)
-      trackEvent('cr2_session_created', { sessionId: null, teacherId: null, payload: {} })
+      trackEvent('classroom_session_created', { sessionId: null, teacherId: null, payload: {} })
     }).not.toThrow()
   })
 
@@ -311,5 +311,55 @@ describe('classroom telemetry — getAdminStats Aggregate', () => {
     const stats = getAdminStats({ since: Date.now() + 10_000, until: Date.now() + 20_000 })
     expect(stats).not.toBeNull()
     expect(stats.sessions.total).toBe(0)
+  })
+})
+
+describe('classroom telemetry — Event-Rename-Migration (0015, W4-S2)', () => {
+  // Die Migration schreibt bestehende 'cr2_*'-Events einmalig auf 'classroom_*'
+  // um. Wir testen die Migrations-SQL-Semantik deterministisch auf frisch
+  // geseedeten Zeilen (die Migration selbst lief bereits idempotent beim Boot).
+  const renameSql = `
+    UPDATE classroom_telemetry
+    SET event = 'classroom_' || substr(event, 5)
+    WHERE event LIKE 'cr2\\_%' ESCAPE '\\'
+  `
+
+  it('schreibt cr2_-Prefix auf classroom_ um, laesst andere Events unberuehrt', () => {
+    const tag = `mig-${randomUUID().slice(0, 8)}`
+    const insert = db.prepare(
+      `INSERT INTO classroom_telemetry (ts, event, session_id, teacher_id, payload_json)
+       VALUES (?, ?, ?, NULL, '{}')`
+    )
+    insert.run(Date.now(), 'cr2_session_started', tag)   // soll umbenannt werden
+    insert.run(Date.now(), 'classroom_session_finished', tag) // schon neu → unberuehrt
+    insert.run(Date.now(), 'cr2x_not_a_prefix', tag)     // kein 'cr2_' → unberuehrt
+
+    db.prepare(renameSql).run()
+
+    const events = db.prepare(
+      `SELECT event FROM classroom_telemetry WHERE session_id = ? ORDER BY event`
+    ).all(tag).map((r) => r.event)
+
+    expect(events).toContain('classroom_session_started')  // umbenannt
+    expect(events).toContain('classroom_session_finished') // unveraendert
+    expect(events).toContain('cr2x_not_a_prefix')          // unveraendert (kein _-Prefix)
+    expect(events).not.toContain('cr2_session_started')
+
+    db.prepare(`DELETE FROM classroom_telemetry WHERE session_id = ?`).run(tag)
+  })
+
+  it('ist idempotent: ein zweiter Lauf aendert nichts mehr', () => {
+    const tag = `mig2-${randomUUID().slice(0, 8)}`
+    db.prepare(
+      `INSERT INTO classroom_telemetry (ts, event, session_id, teacher_id, payload_json)
+       VALUES (?, 'cr2_join_succeeded', ?, NULL, '{}')`
+    ).run(Date.now(), tag)
+
+    const first = db.prepare(renameSql).run()
+    expect(first.changes).toBe(1)
+    const second = db.prepare(renameSql).run()
+    expect(second.changes).toBe(0)
+
+    db.prepare(`DELETE FROM classroom_telemetry WHERE session_id = ?`).run(tag)
   })
 })

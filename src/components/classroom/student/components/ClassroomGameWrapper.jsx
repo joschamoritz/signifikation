@@ -80,8 +80,8 @@ export default function ClassroomGameWrapper({ onSubmitOverride = null, onToast 
 
   if (!Game) {
     return (
-      <div className="cr2-kiosk__game">
-        <p className="cr2-kiosk__hint cr2-kiosk__hint--error">
+      <div className="classroom-kiosk__game">
+        <p className="classroom-kiosk__hint classroom-kiosk__hint--error">
           Unbekannter Spielmodus „{mode || '—'}". Bitte Lehrkraft informieren.
         </p>
       </div>
@@ -89,8 +89,8 @@ export default function ClassroomGameWrapper({ onSubmitOverride = null, onToast 
   }
   if (!lemma) {
     return (
-      <div className="cr2-kiosk__game">
-        <p className="cr2-kiosk__hint">Lade Aufgabe …</p>
+      <div className="classroom-kiosk__game">
+        <p className="classroom-kiosk__hint">Lade Aufgabe …</p>
       </div>
     )
   }

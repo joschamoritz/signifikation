@@ -26,7 +26,7 @@ export default {
       const koll = await resolveWortzwilling(r.wzPair, {
         fetchWortZwilling: deps.fetchWortZwilling,
         logWarn: (err, paar) =>
-          deps.logger?.warn({ err, paar }, 'cr2 fetchWortZwilling fehlgeschlagen'),
+          deps.logger?.warn({ err, paar }, 'classroom fetchWortZwilling fehlgeschlagen'),
       })
       return {
         lemma:        lemma.lemma,

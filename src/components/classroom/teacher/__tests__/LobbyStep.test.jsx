@@ -50,7 +50,7 @@ describe('LobbyStep (T-4.5)', () => {
     getDashboard.mockReturnValue(new Promise(() => {})) // pending
     renderLobby()
     await waitFor(() => {
-      expect(screen.getByTestId('cr2-lobby')).toBeTruthy()
+      expect(screen.getByTestId('classroom-lobby')).toBeTruthy()
     })
   })
 
@@ -61,7 +61,7 @@ describe('LobbyStep (T-4.5)', () => {
     })
     renderLobby()
     await waitFor(() => {
-      const btn = screen.getByTestId('cr2-lobby-start')
+      const btn = screen.getByTestId('classroom-lobby-start')
       expect(btn.hasAttribute('disabled')).toBe(true)
     })
     expect(screen.getByText(/warte auf teilnehmer/i)).toBeTruthy()

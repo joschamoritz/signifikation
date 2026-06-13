@@ -28,9 +28,9 @@ function modeLabel(mode) {
 // Trefferquote-Semantik (design.md: Status-Farben nur fuer Bedeutung):
 // rot = hoher Klaerbedarf, amber = mittel, gruen = gut verstanden.
 function rateClass(pct) {
-  if (pct < 40) return 'cr2-rate--low'
-  if (pct < 70) return 'cr2-rate--mid'
-  return 'cr2-rate--high'
+  if (pct < 40) return 'classroom-rate--low'
+  if (pct < 70) return 'classroom-rate--mid'
+  return 'classroom-rate--high'
 }
 
 // logDice komma-formatiert (deutsche Schreibweise), null → leer.
@@ -40,7 +40,7 @@ function fmtDice(v) {
 
 // Modus-Pille in der Marken-Optik aus design.md (Farbe je Modus).
 function ModeBadge({ mode }) {
-  return <span className={`cr2-mode-badge cr2-mode-badge--${mode}`}>{modeLabel(mode)}</span>
+  return <span className={`classroom-mode-badge classroom-mode-badge--${mode}`}>{modeLabel(mode)}</span>
 }
 
 // Ein Wörterbuch-Eintrag pro Lemma (Headword, Ø-Punkte, Lösung, Distraktor,
@@ -52,27 +52,27 @@ function LemmaEntry({ row, showBadge }) {
   const firstDistractorIdx = isOption ? dist.findIndex((o) => !o.correct) : -1
 
   return (
-    <article className="cr2-result-card">
-      <header className="cr2-result-card__head">
-        <h3 className="cr2-result-card__lemma">{row.lemma}</h3>
+    <article className="classroom-result-card">
+      <header className="classroom-result-card__head">
+        <h3 className="classroom-result-card__lemma">{row.lemma}</h3>
         {showBadge && <ModeBadge mode={row.mode} />}
       </header>
 
-      <p className="cr2-result-card__sub">
+      <p className="classroom-result-card__sub">
         n = {row.participants} · Ø{' '}
-        <span className={`cr2-result-card__avg ${rateClass(row.hitRatePct)}`}>{row.avgScore}</span>
+        <span className={`classroom-result-card__avg ${rateClass(row.hitRatePct)}`}>{row.avgScore}</span>
         {' '}/ {row.maxScore} Pkt.
       </p>
 
       {/* Lösung dauerhaft sichtbar — bei Kollokationen die besten 3 + logDice. */}
       {isOption && (
-        <p className="cr2-result-card__solution">
-          <span className="cr2-result-card__solutionLead">Beste Kollokationen: </span>
+        <p className="classroom-result-card__solution">
+          <span className="classroom-result-card__solutionLead">Beste Kollokationen: </span>
           {dist.filter((o) => o.correct).map((o, i, arr) => (
             <span key={o.label}>
               <strong>{o.label}</strong>
               {o.logDice != null && (
-                <span className="cr2-result-card__ld"> ({fmtDice(o.logDice)})</span>
+                <span className="classroom-result-card__ld"> ({fmtDice(o.logDice)})</span>
               )}
               {i < arr.length - 1 ? ' · ' : ''}
             </span>
@@ -81,51 +81,51 @@ function LemmaEntry({ row, showBadge }) {
       )}
 
       {row.topDistractor && (
-        <p className="cr2-result-card__distractor">
-          <span className="cr2-result-card__distractorLead">Häufigste Fehlantwort: </span>
+        <p className="classroom-result-card__distractor">
+          <span className="classroom-result-card__distractorLead">Häufigste Fehlantwort: </span>
           <strong>{row.topDistractor.label}</strong>
-          <span className="cr2-result-card__distractorCount">
+          <span className="classroom-result-card__distractorCount">
             {' '}— {row.topDistractor.count}×
           </span>
         </p>
       )}
 
       {dist.length > 0 && (
-        <details className="cr2-dist" data-testid="cr2-end-dist">
-          <summary className="cr2-dist__toggle">
+        <details className="classroom-dist" data-testid="classroom-end-dist">
+          <summary className="classroom-dist__toggle">
             {isOption
               ? `Antwortverteilung · ${dist.length} Optionen`
               : `Trefferquote je Item · ${dist.length}`}
           </summary>
-          <ul className="cr2-dist__list">
+          <ul className="classroom-dist__list">
             {dist.map((o, idx) => {
               const bandClass = isOption
-                ? (o.correct ? ' cr2-dist__row--correct' : '')
-                : ` ${rateClass(o.pct).replace('cr2-rate--', 'cr2-dist__row--band-')}`
+                ? (o.correct ? ' classroom-dist__row--correct' : '')
+                : ` ${rateClass(o.pct).replace('classroom-rate--', 'classroom-dist__row--band-')}`
               const divideClass = idx === firstDistractorIdx && firstDistractorIdx > 0
-                ? ' cr2-dist__row--divide'
+                ? ' classroom-dist__row--divide'
                 : ''
               const ariaVerb = isOption
                 ? `${o.count}× gewählt, ${o.pct} Prozent${o.correct ? ', korrekt' : ''}`
                 : `${o.pct} Prozent richtig${o.sub ? `, Lösung ${o.sub}` : ''}`
               return (
-                <li key={o.label} className={`cr2-dist__row${bandClass}${divideClass}`}>
-                  <span className="cr2-dist__mark" aria-hidden="true">
+                <li key={o.label} className={`classroom-dist__row${bandClass}${divideClass}`}>
+                  <span className="classroom-dist__mark" aria-hidden="true">
                     {isOption && o.correct ? '✓' : ''}
                   </span>
-                  <span className="cr2-dist__word">
+                  <span className="classroom-dist__word">
                     {o.label}
-                    {o.sub && <span className="cr2-dist__sub"> · {o.sub}</span>}
+                    {o.sub && <span className="classroom-dist__sub"> · {o.sub}</span>}
                     {isOption && o.logDice != null && (
-                      <span className="cr2-dist__ld"> · {fmtDice(o.logDice)}</span>
+                      <span className="classroom-dist__ld"> · {fmtDice(o.logDice)}</span>
                     )}
                   </span>
-                  <span className="cr2-dist__bar" role="img" aria-label={`${o.label}: ${ariaVerb}`}>
+                  <span className="classroom-dist__bar" role="img" aria-label={`${o.label}: ${ariaVerb}`}>
                     {o.pct > 0 && (
-                      <span className="cr2-dist__fill" style={{ width: `${o.pct}%` }} />
+                      <span className="classroom-dist__fill" style={{ width: `${o.pct}%` }} />
                     )}
                   </span>
-                  <span className="cr2-dist__pct">{o.pct} %</span>
+                  <span className="classroom-dist__pct">{o.pct} %</span>
                 </li>
               )
             })}
@@ -190,34 +190,34 @@ export default function EndStep() {
 
   return (
     <ClassroomSubScreen
-      testId="cr2-end"
+      testId="classroom-end"
       title="Auswertung"
       label="Live-Session"
       lead="Wie lief die Stunde?"
       backLabel="Zurück zur Übersicht"
       onBack={() => dispatch({ type: 'GO_TO_LIST' })}
     >
-      {loading && <p className="cr2-loading" role="status">Auswertung wird geladen …</p>}
-      {error && <p className="cr2-error" role="alert">{error}</p>}
+      {loading && <p className="classroom-loading" role="status">Auswertung wird geladen …</p>}
+      {error && <p className="classroom-error" role="alert">{error}</p>}
 
       {results && (
         <>
           {/* Klassen-Puls: eine lesbare Aussage statt roher Zaehler. */}
           {hasSubmissions && (
-            <section className="cr2-section cr2-pulse-section" aria-label="Übersicht">
-              <span className="cr2-section__label">Session-Ergebnis</span>
-              <p className="cr2-pulse">{pulseSentence(totals)}</p>
-              <hr className="cr2-doubleline" aria-hidden="true" />
+            <section className="classroom-section classroom-pulse-section" aria-label="Übersicht">
+              <span className="classroom-section__label">Session-Ergebnis</span>
+              <p className="classroom-pulse">{pulseSentence(totals)}</p>
+              <hr className="classroom-doubleline" aria-hidden="true" />
             </section>
           )}
 
           {/* Empty State: Session ohne Abgaben beendet */}
           {!hasSubmissions && (
-            <section className="cr2-section" aria-label="Keine Abgaben">
-              <div className="cr2-result-empty" data-testid="cr2-end-empty">
-                <p className="cr2-result-empty__ornament" aria-hidden="true">· · ·</p>
-                <p className="cr2-result-empty__title">Keine Abgaben</p>
-                <p className="cr2-result-empty__text">
+            <section className="classroom-section" aria-label="Keine Abgaben">
+              <div className="classroom-result-empty" data-testid="classroom-end-empty">
+                <p className="classroom-result-empty__ornament" aria-hidden="true">· · ·</p>
+                <p className="classroom-result-empty__title">Keine Abgaben</p>
+                <p className="classroom-result-empty__text">
                   In dieser Session wurden keine Antworten eingereicht — es gibt nichts auszuwerten.
                 </p>
               </div>
@@ -233,22 +233,22 @@ export default function EndStep() {
               : byLemma
 
             return (
-              <section className="cr2-section" aria-label="Auswertung pro Lemma">
-                <div className="cr2-prolemma-head">
-                  <span className="cr2-section__label">Pro Lemma</span>
-                  <div className="cr2-sort" role="group" aria-label="Sortierung">
+              <section className="classroom-section" aria-label="Auswertung pro Lemma">
+                <div className="classroom-prolemma-head">
+                  <span className="classroom-section__label">Pro Lemma</span>
+                  <div className="classroom-sort" role="group" aria-label="Sortierung">
                     <button
                       type="button"
-                      className={`cr2-sort__opt${sortBy === 'order' ? ' is-active' : ''}`}
+                      className={`classroom-sort__opt${sortBy === 'order' ? ' is-active' : ''}`}
                       aria-pressed={sortBy === 'order'}
                       onClick={() => setSortBy('order')}
                     >
                       Reihenfolge
                     </button>
-                    <span className="cr2-sort__sep" aria-hidden="true">·</span>
+                    <span className="classroom-sort__sep" aria-hidden="true">·</span>
                     <button
                       type="button"
-                      className={`cr2-sort__opt${sortBy === 'difficulty' ? ' is-active' : ''}`}
+                      className={`classroom-sort__opt${sortBy === 'difficulty' ? ' is-active' : ''}`}
                       aria-pressed={sortBy === 'difficulty'}
                       onClick={() => setSortBy('difficulty')}
                     >
@@ -257,7 +257,7 @@ export default function EndStep() {
                   </div>
                 </div>
 
-                <div className="cr2-result-cards" data-testid="cr2-end-cards">
+                <div className="classroom-result-cards" data-testid="classroom-end-cards">
                   {grouped
                     ? (() => {
                         const out = []
@@ -265,7 +265,7 @@ export default function EndStep() {
                         ordered.forEach((row) => {
                           if (row.mode !== lastMode) {
                             out.push(
-                              <h4 key={`grp-${row.assignmentId}`} className="cr2-prolemma-group">
+                              <h4 key={`grp-${row.assignmentId}`} className="classroom-prolemma-group">
                                 <ModeBadge mode={row.mode} />
                               </h4>,
                             )
@@ -285,8 +285,8 @@ export default function EndStep() {
             )
           })()}
 
-          <section className="cr2-section" aria-label="Teilnehmer">
-            <label className="cr2-toggle">
+          <section className="classroom-section" aria-label="Teilnehmer">
+            <label className="classroom-toggle">
               <input
                 type="checkbox"
                 checked={showNames}
@@ -295,12 +295,12 @@ export default function EndStep() {
               Namen zeigen ({participants.length})
             </label>
             {showNames && participants.length > 0 && (
-              <ul className="cr2-participant-list" style={{ marginTop: 12 }}>
+              <ul className="classroom-participant-list" style={{ marginTop: 12 }}>
                 {participants.map((p) => (
-                  <li key={p.id} className="cr2-participant">
-                    <span className="cr2-participant__dot" aria-hidden="true" />
-                    <span className="cr2-participant__name">{p.displayName || '—'}</span>
-                    <span className="cr2-participant__status">{p.leftAt ? 'verlassen' : 'dabei'}</span>
+                  <li key={p.id} className="classroom-participant">
+                    <span className="classroom-participant__dot" aria-hidden="true" />
+                    <span className="classroom-participant__name">{p.displayName || '—'}</span>
+                    <span className="classroom-participant__status">{p.leftAt ? 'verlassen' : 'dabei'}</span>
                   </li>
                 ))}
               </ul>

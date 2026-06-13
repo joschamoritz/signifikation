@@ -59,7 +59,7 @@ describe('ClassroomGameWrapper (T-5.5)', () => {
       },
     }
     renderWith(s)
-    expect(screen.getByTestId('cr2-kiosk-game-kollokationen')).toBeTruthy()
+    expect(screen.getByTestId('classroom-kiosk-game-kollokationen')).toBeTruthy()
     // Echte Quiz-Engine: Optionen als .option-Buttons (Wort als Text), Abgabe
     // erst bei 3 Auswahlen aktiv.
     expect(screen.getByText('ohrenbetäubend')).toBeTruthy()
@@ -123,7 +123,7 @@ describe('ClassroomGameWrapper (T-5.5)', () => {
       },
     }
     renderWith(s)
-    expect(screen.getByTestId('cr2-kiosk-game-wortzwilling')).toBeTruthy()
+    expect(screen.getByTestId('classroom-kiosk-game-wortzwilling')).toBeTruthy()
     // Echte Drag-and-Drop-Engine: Zonen tragen die Wort-Labels, Wörter in der Bank.
     expect(screen.getAllByText('A').length).toBeGreaterThan(0)
     expect(screen.getAllByText('B').length).toBeGreaterThan(0)
@@ -143,7 +143,7 @@ describe('ClassroomGameWrapper (T-5.5)', () => {
       },
     }
     renderWith(s)
-    expect(screen.getByTestId('cr2-kiosk-game-zeitenwende')).toBeTruthy()
+    expect(screen.getByTestId('classroom-kiosk-game-zeitenwende')).toBeTruthy()
     // Nutzt jetzt die echte Zeitenwende-Engine (Swipe + Karten): Choice-Buttons
     // per aria-label, Wort auf der Karte.
     expect(screen.getByLabelText('Vor 2000')).toBeTruthy()
@@ -166,7 +166,7 @@ describe('ClassroomGameWrapper (T-5.5)', () => {
       },
     }
     renderWith(s)
-    expect(screen.getByTestId('cr2-kiosk-game-lueckenfueller')).toBeTruthy()
-    expect(screen.getByTestId('cr2-kiosk-lf-choice-sehr')).toBeTruthy()
+    expect(screen.getByTestId('classroom-kiosk-game-lueckenfueller')).toBeTruthy()
+    expect(screen.getByTestId('classroom-kiosk-lf-choice-sehr')).toBeTruthy()
   })
 })

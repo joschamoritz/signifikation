@@ -84,28 +84,28 @@ export default function SessionListStep() {
 
   return (
     <ClassroomSubScreen
-      testId="cr2-session-list"
+      testId="classroom-session-list"
       title="Sessions"
       label="Live-Session"
       lead="Verwalte deine Live-Stunden."
     >
-      {loading && <p className="cr2-loading">Sessions werden geladen …</p>}
+      {loading && <p className="classroom-loading">Sessions werden geladen …</p>}
 
       {error && (
-        <p className="cr2-error">
+        <p className="classroom-error">
           {error}{' '}
-          <button type="button" className="cr2-btn cr2-btn--ghost" onClick={refresh}>
+          <button type="button" className="classroom-btn classroom-btn--ghost" onClick={refresh}>
             Erneut versuchen
           </button>
         </p>
       )}
 
-      {delError && <p className="cr2-error" role="alert">{delError}</p>}
+      {delError && <p className="classroom-error" role="alert">{delError}</p>}
 
       {!loading && !error && sessions.length === 0 && (
-        <div className="cr2-empty" role="status">
-          <span className="cr2-empty__ornament" aria-hidden="true">· · ·</span>
-          <p className="cr2-empty__title">
+        <div className="classroom-empty" role="status">
+          <span className="classroom-empty__ornament" aria-hidden="true">· · ·</span>
+          <p className="classroom-empty__title">
             Noch keine Sessions. Lege deine erste an —<br />
             eine Klasse braucht nur einen Modus und ein Lemma.
           </p>
@@ -113,7 +113,7 @@ export default function SessionListStep() {
       )}
 
       {!loading && !error && sessions.length > 0 && (
-        <ol className="lemma-cards cr2-session-cards" aria-label="Sessions">
+        <ol className="lemma-cards classroom-session-cards" aria-label="Sessions">
           {sessions.map((s) => {
             // Alle gespielten Modi (in Reihenfolge); Fallback auf settings.mode
             // für Altsessions ohne Modi-Liste.
@@ -123,9 +123,9 @@ export default function SessionListStep() {
             const modeLabel = modeList.map((m) => MODE_LABEL[m] || m).join(' · ')
             const statusKey = s.status
             const dotClass =
-              statusKey === 'running'  ? 'cr2-status-dot--running'  :
-              statusKey === 'finished' ? 'cr2-status-dot--finished' :
-              statusKey === 'lobby'    ? 'cr2-status-dot--lobby'    : ''
+              statusKey === 'running'  ? 'classroom-status-dot--running'  :
+              statusKey === 'finished' ? 'classroom-status-dot--finished' :
+              statusKey === 'lobby'    ? 'classroom-status-dot--lobby'    : ''
             const confirming = confirmId === s.id
             return (
               <li key={s.id} className="lemma-card-wrap">
@@ -139,13 +139,13 @@ export default function SessionListStep() {
                     <div className="lemma-info">
                       <div className="lemma-header-row">
                         <span className="lemma-name">
-                          {s.title || <span className="cr2-session-untitled">Klasse · {s.code}</span>}
+                          {s.title || <span className="classroom-session-untitled">Klasse · {s.code}</span>}
                         </span>
                         {modeLabel && <span className="lemma-wortart-abbrev">{modeLabel}</span>}
                       </div>
                       <div className="lemma-definition">
                         <p>
-                          <span className={`cr2-status-dot ${dotClass}`} aria-hidden="true" />
+                          <span className={`classroom-status-dot ${dotClass}`} aria-hidden="true" />
                           {STATUS_LABEL[statusKey] || statusKey} · {formatDate(s.createdAt)}
                         </p>
                       </div>
@@ -156,11 +156,11 @@ export default function SessionListStep() {
                   {!confirming && (
                     <button
                       type="button"
-                      className="lemma-info-btn cr2-session-del"
+                      className="lemma-info-btn classroom-session-del"
                       onClick={() => { setDelError(null); setConfirmId(s.id) }}
                       aria-label={`Session ${s.title || s.code} löschen`}
                       title="Session löschen"
-                      data-testid={`cr2-session-delete-${s.id}`}
+                      data-testid={`classroom-session-delete-${s.id}`}
                     >
                       ×
                     </button>
@@ -168,20 +168,20 @@ export default function SessionListStep() {
                 </div>
 
                 {confirming && (
-                  <div className="cr2-session-confirm" role="group" aria-label="Löschen bestätigen">
-                    <span className="cr2-session-confirm__q">Session löschen?</span>
+                  <div className="classroom-session-confirm" role="group" aria-label="Löschen bestätigen">
+                    <span className="classroom-session-confirm__q">Session löschen?</span>
                     <button
                       type="button"
-                      className="cr2-session-confirm__yes"
+                      className="classroom-session-confirm__yes"
                       onClick={() => doDelete(s)}
                       disabled={busyId === s.id}
-                      data-testid={`cr2-session-delete-confirm-${s.id}`}
+                      data-testid={`classroom-session-delete-confirm-${s.id}`}
                     >
                       {busyId === s.id ? '…' : 'Löschen'}
                     </button>
                     <button
                       type="button"
-                      className="cr2-session-confirm__no"
+                      className="classroom-session-confirm__no"
                       onClick={() => setConfirmId(null)}
                       disabled={busyId === s.id}
                     >
@@ -195,15 +195,15 @@ export default function SessionListStep() {
         </ol>
       )}
 
-      <div className="cr2-sticky-cta" role="none">
-        <div className="cr2-sticky-cta__inner">
+      <div className="classroom-sticky-cta" role="none">
+        <div className="classroom-sticky-cta__inner">
           <button
             type="button"
-            className="cr2-cta"
-            data-testid="cr2-new-session"
+            className="classroom-cta"
+            data-testid="classroom-new-session"
             onClick={handleNew}
           >
-            <span className="cr2-cta__plus" aria-hidden="true">＋</span>
+            <span className="classroom-cta__plus" aria-hidden="true">＋</span>
             Neue Session anlegen
             <span className="test-cta-arrow" aria-hidden="true"> →</span>
           </button>

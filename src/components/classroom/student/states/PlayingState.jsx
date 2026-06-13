@@ -15,11 +15,11 @@ export default function PlayingState({ onToast }) {
   return (
     <>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-        <span className="cr2-kiosk__hint" style={{ margin: 0 }}>
+        <span className="classroom-kiosk__hint" style={{ margin: 0 }}>
           {total > 1 ? `Lemma ${Math.min(current, total)} / ${total}` : 'Klassenraum'}
         </span>
         {state.displayName && (
-          <span className="cr2-kiosk__name-chip">
+          <span className="classroom-kiosk__name-chip">
             <strong>{state.displayName}</strong>
           </span>
         )}

@@ -85,12 +85,12 @@ export default function LemmaPicker({ value = [], onChange, mode = null }) {
   const hasQuery = query.trim() !== ''
 
   return (
-    <div className="cr2-lemma-picker">
+    <div className="classroom-lemma-picker">
       {/* Lemma des Tages — prominente Standardwahl als Karten. */}
       {todayItems.length > 0 && (
-        <div className="cr2-today">
-          <span className="cr2-today__label">Lemma des Tages</span>
-          <ul className="cr2-today__cards" aria-label="Lemma des Tages">
+        <div className="classroom-today">
+          <span className="classroom-today__label">Lemma des Tages</span>
+          <ul className="classroom-today__cards" aria-label="Lemma des Tages">
             {todayItems.map((it) => {
               const sel = value.includes(it.id)
               const dis = !sel && value.length >= MAX_LEMMATA
@@ -98,16 +98,16 @@ export default function LemmaPicker({ value = [], onChange, mode = null }) {
                 <li key={it.id}>
                   <button
                     type="button"
-                    className={`cr2-today-card${sel ? ' cr2-today-card--active' : ''}`}
+                    className={`classroom-today-card${sel ? ' classroom-today-card--active' : ''}`}
                     onClick={() => toggle(it.id)}
                     disabled={dis}
                     aria-pressed={sel}
-                    data-testid={`cr2-today-${it.id}`}
+                    data-testid={`classroom-today-${it.id}`}
                   >
-                    <span className="cr2-today-card__lemma">{it.lemma}</span>
-                    {it.ipa && <span className="cr2-today-card__ipa">[{it.ipa}]</span>}
-                    {it.pos && <span className="cr2-today-card__pos">{it.pos}</span>}
-                    <span className="cr2-today-card__mark" aria-hidden="true">{sel ? '✓' : '+'}</span>
+                    <span className="classroom-today-card__lemma">{it.lemma}</span>
+                    {it.ipa && <span className="classroom-today-card__ipa">[{it.ipa}]</span>}
+                    {it.pos && <span className="classroom-today-card__pos">{it.pos}</span>}
+                    <span className="classroom-today-card__mark" aria-hidden="true">{sel ? '✓' : '+'}</span>
                   </button>
                 </li>
               )
@@ -117,17 +117,17 @@ export default function LemmaPicker({ value = [], onChange, mode = null }) {
       )}
 
       {value.length > 0 && (
-        <ul className="cr2-lemma-chips" aria-label="Gewählte Lemmata">
+        <ul className="classroom-lemma-chips" aria-label="Gewählte Lemmata">
           {value.map((id) => {
             const lemma = cache[id]
             return (
-              <li key={id} className="cr2-lemma-chip">
-                <span className="cr2-lemma-chip__text">
+              <li key={id} className="classroom-lemma-chip">
+                <span className="classroom-lemma-chip__text">
                   {lemma?.lemma || id}
                 </span>
                 <button
                   type="button"
-                  className="cr2-lemma-chip__remove"
+                  className="classroom-lemma-chip__remove"
                   onClick={() => toggle(id)}
                   aria-label={`${lemma?.lemma || id} entfernen`}
                 >
@@ -140,11 +140,11 @@ export default function LemmaPicker({ value = [], onChange, mode = null }) {
       )}
 
       {/* Eigenes Lemma suchen — Trefferliste erscheint nur bei Eingabe. */}
-      <div className="cr2-lemma-search">
-        <span className="cr2-today__label">{todayItems.length > 0 ? 'Oder eigenes Lemma' : 'Lemma suchen'}</span>
+      <div className="classroom-lemma-search">
+        <span className="classroom-today__label">{todayItems.length > 0 ? 'Oder eigenes Lemma' : 'Lemma suchen'}</span>
         <input
           type="search"
-          className="cr2-input"
+          className="classroom-input"
           placeholder="Lemma suchen …"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
@@ -152,21 +152,21 @@ export default function LemmaPicker({ value = [], onChange, mode = null }) {
         />
       </div>
 
-      <p className="cr2-lemma-picker__hint">
+      <p className="classroom-lemma-picker__hint">
         {value.length === 0
           ? `Wähle 1–${MAX_LEMMATA} deiner Spielwörter`
           : `${value.length}/${MAX_LEMMATA} ausgewählt${limitReached ? ' · Maximum erreicht' : ''}`}
       </p>
 
-      {hasQuery && loading && <p className="cr2-loading">Wird gesucht …</p>}
-      {hasQuery && error && <p className="cr2-error">{error}</p>}
+      {hasQuery && loading && <p className="classroom-loading">Wird gesucht …</p>}
+      {hasQuery && error && <p className="classroom-error">{error}</p>}
 
       {hasQuery && !loading && !error && items.length === 0 && (
-        <p className="cr2-lemma-picker__hint">Keine Treffer für „{query.trim()}".</p>
+        <p className="classroom-lemma-picker__hint">Keine Treffer für „{query.trim()}".</p>
       )}
 
       {hasQuery && !loading && !error && items.length > 0 && (
-        <ul className="cr2-card-list" aria-label="Suchergebnisse">
+        <ul className="classroom-card-list" aria-label="Suchergebnisse">
           {items.map((it) => {
             const selected = value.includes(it.id)
             const disabled = !selected && limitReached
@@ -174,21 +174,21 @@ export default function LemmaPicker({ value = [], onChange, mode = null }) {
               <li key={it.id}>
                 <button
                   type="button"
-                  className={`cr2-card cr2-lemma-result${selected ? ' cr2-card--active' : ''}${disabled ? ' cr2-lemma-result--disabled' : ''}`}
+                  className={`classroom-card classroom-lemma-result${selected ? ' classroom-card--active' : ''}${disabled ? ' classroom-lemma-result--disabled' : ''}`}
                   onClick={() => !disabled && toggle(it.id)}
                   aria-pressed={selected}
                   aria-disabled={disabled || undefined}
-                  data-testid={`cr2-lemma-${it.id}`}
+                  data-testid={`classroom-lemma-${it.id}`}
                 >
-                  <div className="cr2-card__row">
-                    <h4 className="cr2-card__title" style={{ fontSize: '1.05rem' }}>
+                  <div className="classroom-card__row">
+                    <h4 className="classroom-card__title" style={{ fontSize: '1.05rem' }}>
                       {it.lemma}
-                      {it.ipa && <span className="cr2-lemma-result__ipa"> {it.ipa}</span>}
+                      {it.ipa && <span className="classroom-lemma-result__ipa"> {it.ipa}</span>}
                     </h4>
-                    {it.pos && <span className="cr2-card__badge">{it.pos}</span>}
+                    {it.pos && <span className="classroom-card__badge">{it.pos}</span>}
                   </div>
                   {it.definition && (
-                    <p className="cr2-lemma-result__def">{it.definition}</p>
+                    <p className="classroom-lemma-result__def">{it.definition}</p>
                   )}
                 </button>
               </li>

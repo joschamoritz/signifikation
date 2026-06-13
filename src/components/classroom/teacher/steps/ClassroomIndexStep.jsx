@@ -40,7 +40,7 @@ export default function ClassroomIndexStep() {
   return (
     <>
       <main>
-      <ol className="test-entries" aria-label="Klassenraum" ref={entriesRef} data-testid="cr2-index">
+      <ol className="test-entries" aria-label="Klassenraum" ref={entriesRef} data-testid="classroom-index">
 
         {/* ① Anleitung ─────────────────────────────────────── */}
         <li className="test-entry test-drop-cap">
@@ -69,7 +69,7 @@ export default function ClassroomIndexStep() {
                 type="button"
                 className="test-cta"
                 onClick={() => dispatch({ type: 'GO_TO_HOWTO' })}
-                data-testid="cr2-index-how"
+                data-testid="classroom-index-how"
               >
                 So funktioniert's
                 <span className="test-cta-arrow" aria-hidden="true"> →</span>
@@ -104,7 +104,7 @@ export default function ClassroomIndexStep() {
                 type="button"
                 className="test-cta"
                 onClick={() => dispatch({ type: 'GO_TO_LIST' })}
-                data-testid="cr2-index-sessions"
+                data-testid="classroom-index-sessions"
               >
                 Sessions verwalten
                 <span className="test-cta-arrow" aria-hidden="true"> →</span>
@@ -139,7 +139,7 @@ export default function ClassroomIndexStep() {
                 type="button"
                 className="test-cta"
                 onClick={() => dispatch({ type: 'GO_TO_JOIN' })}
-                data-testid="cr2-index-join"
+                data-testid="classroom-index-join"
               >
                 So treten Schüler bei
                 <span className="test-cta-arrow" aria-hidden="true"> →</span>
@@ -149,7 +149,7 @@ export default function ClassroomIndexStep() {
         </li>
 
         {/* ④ Vorbereiten ───────────────────────────────────── */}
-        <li className="test-entry cr2-entry--disabled">
+        <li className="test-entry classroom-entry--disabled">
           <div className="test-entry-number">
             <span className="test-entry-num-glyph">④</span>
             <span className="test-entry-marginalia">PLAN</span>
