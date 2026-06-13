@@ -11,7 +11,7 @@
 import { useState } from 'react'
 import { useTeacherClassroom, STEPS } from '../TeacherClassroomContext'
 import { useSessionsList } from '../hooks/useSessionsList'
-import { deleteSession } from '../hooks/useTeacherSession'
+import { deleteSession, duplicateSession } from '../hooks/useTeacherSession'
 import ClassroomSubScreen from '../components/ClassroomSubScreen'
 
 const MODE_LABEL = {
@@ -52,6 +52,7 @@ export default function SessionListStep() {
   const [confirmId, setConfirmId] = useState(null)
   const [busyId, setBusyId]       = useState(null)
   const [delError, setDelError]   = useState(null)
+  const [dupBusyId, setDupBusyId] = useState(null)
 
   // Bei Mount nach Setup-/Lobby-Wechsel auf einen aktualen Stand
   void state // (state nicht ungenutzt: Linter-Friend)
@@ -80,6 +81,21 @@ export default function SessionListStep() {
       sessionId: session.id,
       step: statusToStep(session.status),
     })
+  }
+
+  async function handleDuplicate(session) {
+    if (dupBusyId) return
+    setDupBusyId(session.id)
+    setDelError(null)
+    try {
+      const dup = await duplicateSession(session.id)
+      // Direkt in die Lobby der frischen Session — neuer Code, teilen, los.
+      dispatch({ type: 'GO_TO_LOBBY', sessionId: dup.id })
+    } catch (err) {
+      setDelError(err?.message || 'Session konnte nicht wiederholt werden.')
+    } finally {
+      setDupBusyId(null)
+    }
   }
 
   return (
@@ -154,16 +170,29 @@ export default function SessionListStep() {
                   </button>
 
                   {!confirming && (
-                    <button
-                      type="button"
-                      className="lemma-info-btn classroom-session-del"
-                      onClick={() => { setDelError(null); setConfirmId(s.id) }}
-                      aria-label={`Session ${s.title || s.code} löschen`}
-                      title="Session löschen"
-                      data-testid={`classroom-session-delete-${s.id}`}
-                    >
-                      ×
-                    </button>
+                    <>
+                      <button
+                        type="button"
+                        className="lemma-info-btn classroom-session-repeat"
+                        onClick={() => handleDuplicate(s)}
+                        disabled={dupBusyId === s.id}
+                        aria-label={`Session ${s.title || s.code} mit neuer Klasse wiederholen`}
+                        title="Mit neuer Klasse wiederholen"
+                        data-testid={`classroom-session-repeat-${s.id}`}
+                      >
+                        {dupBusyId === s.id ? '…' : '↻'}
+                      </button>
+                      <button
+                        type="button"
+                        className="lemma-info-btn classroom-session-del"
+                        onClick={() => { setDelError(null); setConfirmId(s.id) }}
+                        aria-label={`Session ${s.title || s.code} löschen`}
+                        title="Session löschen"
+                        data-testid={`classroom-session-delete-${s.id}`}
+                      >
+                        ×
+                      </button>
+                    </>
                   )}
                 </div>
 

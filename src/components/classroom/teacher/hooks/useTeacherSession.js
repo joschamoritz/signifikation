@@ -48,6 +48,18 @@ export async function createSession({ title, settings } = {}) {
   return jsonOrThrow(res)
 }
 
+// W4: „Mit neuer Klasse wiederholen" — klont eine Session in eine frische
+// Lobby (neuer Code, ohne Teilnehmer/Abgaben). Liefert { id, code, status, title }.
+export async function duplicateSession(sessionId, { title } = {}) {
+  const res = await apiFetch(`${BASE}/sessions/${encodeURIComponent(sessionId)}/duplicate`, {
+    method: 'POST',
+    credentials: 'include',
+    headers: jsonHeaders(),
+    body: JSON.stringify(title ? { title } : {}),
+  })
+  return jsonOrThrow(res)
+}
+
 // ── Assignments ────────────────────────────────────────────────────
 
 export async function addAssignment(sessionId, { mode, lemmaIds }) {
@@ -219,6 +231,7 @@ export async function getTodayWortzwilling() {
 export default {
   listSessions,
   createSession,
+  duplicateSession,
   addAssignment,
   addAssignments,
   nextAssignment,

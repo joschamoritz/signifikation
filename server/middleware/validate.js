@@ -407,6 +407,11 @@ export const classroomFinishSessionSchema = z.object({
   reason: z.string().trim().max(120).optional(),
 })
 
+/** POST /api/v1/classroom/sessions/:id/duplicate (W4) — optional neuer Titel */
+export const classroomDuplicateSessionSchema = z.object({
+  title: z.string().trim().max(120, 'Titel zu lang').optional(),
+})
+
 /** POST /api/v1/classroom/sessions/:id/pause (W2-T3) */
 export const classroomPauseSessionSchema = z.object({})
 

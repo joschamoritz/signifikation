@@ -43,6 +43,7 @@ import {
   classroomTodayLemmataQuerySchema,
   classroomStartSessionSchema,
   classroomFinishSessionSchema,
+  classroomDuplicateSessionSchema,
   classroomPauseSessionSchema,
   classroomResumeSessionSchema,
   classroomJoinSchema,
@@ -52,6 +53,7 @@ import {
 } from '../middleware/validate.js'
 import {
   createSession,
+  duplicateSession,
   addAssignment,
   addAssignments,
   removeAssignment,
@@ -388,6 +390,33 @@ router.post(
       logger.info({ sessionId: result.session.id, teacherId: req.user.id }, 'classroom session created')
       trackSessionCreated(result.session.id, req.user.id)
       // TODO (T-3.x): keine Broadcast nötig beim Anlegen
+      return res.status(201).json({
+        id:     result.session.id,
+        code:   result.session.code,
+        status: result.session.status,
+        title:  result.session.title,
+      })
+    })
+  },
+)
+
+// ── W4 POST /api/v1/classroom/sessions/:id/duplicate ────────────
+// „Mit neuer Klasse wiederholen": klont Titel + Assignment-Bloecke in eine
+// frische Lobby-Session mit neuem Join-Code (ohne Teilnehmer/Abgaben).
+// requireCapability prueft session:manage auf der QUELL-Session (:id).
+router.post(
+  '/api/v1/classroom/sessions/:id/duplicate',
+  classroomWriteLimiter,
+  requireCapability('session:manage'),
+  validate(classroomDuplicateSessionSchema),
+  (req, res) => {
+    const sourceId      = req.params.id
+    const teacherUserId = req.classroom.subject.id
+    const { title }     = req.body
+    const result = duplicateSession({ sessionId: sourceId, teacherUserId, title: title || null })
+    return respondStoreResult(res, result, () => {
+      logger.info({ sourceId, newId: result.session.id, teacherId: teacherUserId }, 'classroom session duplicated (route)')
+      trackSessionCreated(result.session.id, teacherUserId)
       return res.status(201).json({
         id:     result.session.id,
         code:   result.session.code,

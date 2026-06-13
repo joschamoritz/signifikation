@@ -510,6 +510,48 @@ export function deleteSession({ sessionId, teacherUserId }) {
   return { ok: true }
 }
 
+// W4 — „Mit neuer Klasse wiederholen": klont Titel + alle Assignment-Bloecke
+// (Modus, Lemmata, eingefrorener content_snapshot) in eine frische Session im
+// Status 'lobby' mit neuem Join-Code. Teilnehmer/Abgaben/Scores werden bewusst
+// NICHT uebernommen — es ist eine neue Stunde. Funktioniert aus jedem Status
+// (typisch: aus einer beendeten Session heraus).
+export function duplicateSession({ sessionId, teacherUserId, title = null }) {
+  const source = stmts.getSessionById.get(sessionId)
+  if (!source) return { error: 'NOT_FOUND' }
+  if (source.teacher_user_id !== teacherUserId) return { error: 'FORBIDDEN' }
+
+  const assignments = listAssignments(sessionId)
+  if (assignments.length === 0) return { error: 'NO_ASSIGNMENT' }
+
+  const sourceNorm = normalizeSessionRow(source)
+  const created = createSession({
+    teacherUserId,
+    title: title != null ? title : sourceNorm.title,
+    settings: sourceNorm.settings || {},
+  })
+  if (created.error) return created
+
+  // Snapshot 1:1 uebernehmen (kein Neuaufbau noetig — reproduziert den Content
+  // exakt, auch wenn sich Korpusdaten seither geaendert haben).
+  const blocks = assignments.map((a) => ({
+    mode:            a.mode,
+    lemmaIds:        a.lemmaIds,
+    contentSnapshot: a.contentSnapshot,
+  }))
+  const added = addAssignments({ sessionId: created.session.id, teacherUserId, blocks })
+  if (added.error) {
+    // Rollback der frisch angelegten, noch leeren Session — kein Halbzustand.
+    deleteSession({ sessionId: created.session.id, teacherUserId })
+    return added
+  }
+
+  logger.info(
+    { sourceId: sessionId, newId: created.session.id, blocks: blocks.length },
+    'classroom session duplicated',
+  )
+  return { session: created.session }
+}
+
 export function pauseSession({ sessionId, teacherUserId }) {
   const row = stmts.getSessionById.get(sessionId)
   if (!row) return { error: 'NOT_FOUND' }

@@ -3,6 +3,7 @@ import db from '../db.js'
 import { randomUUID } from 'crypto'
 import {
   createSession,
+  duplicateSession,
   startSession,
   finishSession,
   deleteSession,
@@ -101,6 +102,62 @@ describe('classroom/store', () => {
         subjectId: TEACHER_A,
         capability: 'session:manage',
       })).toBe(true)
+    })
+  })
+
+  // ── duplicateSession (W4) ──────────────────────────────────────
+  describe('duplicateSession', () => {
+    it('klont Titel + Assignments in eine frische Lobby-Session mit neuem Code', () => {
+      const { session: src } = createSession({ teacherUserId: TEACHER_A, title: 'Klasse 8b' })
+      addAssignments({
+        sessionId: src.id, teacherUserId: TEACHER_A,
+        blocks: [
+          { mode: 'kollokationen', lemmaIds: ['lemma-1'], contentSnapshot: KOLL_SNAPSHOT },
+          { mode: 'kollokationen', lemmaIds: ['lemma-1'], contentSnapshot: KOLL_SNAPSHOT },
+        ],
+      })
+
+      const r = duplicateSession({ sessionId: src.id, teacherUserId: TEACHER_A })
+      expect(r.session).toBeTruthy()
+      expect(r.session.id).not.toBe(src.id)
+      expect(r.session.code).not.toBe(src.code)
+      expect(r.session.status).toBe('lobby')
+      expect(r.session.title).toBe('Klasse 8b')
+
+      // Beide Bloecke übernommen, Reihenfolge + Inhalt identisch.
+      const cloned = listAssignments(r.session.id)
+      expect(cloned).toHaveLength(2)
+      expect(cloned.map((a) => a.mode)).toEqual(['kollokationen', 'kollokationen'])
+      expect(cloned[0].lemmaIds).toEqual(['lemma-1'])
+      // Quelle bleibt unangetastet.
+      expect(listAssignments(src.id)).toHaveLength(2)
+    })
+
+    it('übernimmt KEINE Teilnehmer (frische Session ist leer)', () => {
+      const { session: src } = createSession({ teacherUserId: TEACHER_A })
+      addAssignment({
+        sessionId: src.id, teacherUserId: TEACHER_A,
+        mode: 'kollokationen', lemmaIds: ['lemma-1'], contentSnapshot: KOLL_SNAPSHOT,
+      })
+      startSession({ sessionId: src.id, teacherUserId: TEACHER_A })
+      joinByCode({ code: src.code, displayName: 'Anna' })
+
+      const r = duplicateSession({ sessionId: src.id, teacherUserId: TEACHER_A })
+      const dash = getDashboard({ sessionId: r.session.id, teacherUserId: TEACHER_A })
+      expect(dash?.participants ?? []).toHaveLength(0)
+    })
+
+    it('verweigert fremden Lehrer (FORBIDDEN) und leere Session (NO_ASSIGNMENT)', () => {
+      const { session: src } = createSession({ teacherUserId: TEACHER_A })
+      addAssignment({
+        sessionId: src.id, teacherUserId: TEACHER_A,
+        mode: 'kollokationen', lemmaIds: ['lemma-1'], contentSnapshot: KOLL_SNAPSHOT,
+      })
+      expect(duplicateSession({ sessionId: src.id, teacherUserId: TEACHER_B }).error).toBe('FORBIDDEN')
+      expect(duplicateSession({ sessionId: 'nope', teacherUserId: TEACHER_A }).error).toBe('NOT_FOUND')
+
+      const { session: empty } = createSession({ teacherUserId: TEACHER_A })
+      expect(duplicateSession({ sessionId: empty.id, teacherUserId: TEACHER_A }).error).toBe('NO_ASSIGNMENT')
     })
   })
 

@@ -370,6 +370,26 @@
 }
 .classroom-session-del:hover { color: var(--primary); }
 
+/* Wiederholen-↻ im rechten Aktions-Slot der Karte (links neben dem Löschen-×). */
+.classroom-session-repeat {
+  font-size: 1.05rem;
+  font-style: normal;
+  line-height: 1;
+  color: var(--muted);
+}
+.classroom-session-repeat:hover { color: var(--primary); }
+.classroom-session-repeat:disabled { color: var(--disabled); cursor: default; }
+
+/* „Mit neuer Klasse wiederholen" — Abschluss-Aktion der Auswertung. */
+.classroom-end-repeat__hint {
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-size: 0.9rem;
+  color: var(--muted);
+  text-align: center;
+  margin: 14px 0 2px;
+}
+
 /* Bestätigungszeile unter der Karte (analog .lemma-notiz) — Textlinks im
    Wörterbuch-Stil statt gefüllter/umrandeter Buttons. */
 .classroom-session-confirm {
