@@ -11,7 +11,7 @@
 
 import { useEffect, useState } from 'react'
 import { useTeacherClassroom } from '../TeacherClassroomContext'
-import { getDashboard, getSessionResults } from '../hooks/useTeacherSession'
+import { getDashboard, getSessionResults, duplicateSession } from '../hooks/useTeacherSession'
 import ClassroomSubScreen from '../components/ClassroomSubScreen'
 
 const MODE_LABELS = {
@@ -154,6 +154,8 @@ export default function EndStep() {
   const [showNames, setShowNames] = useState(false)
   const [error, setError] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [duplicating, setDuplicating] = useState(false)
+  const [dupError, setDupError] = useState(null)
   // Pro-Lemma-Reihenfolge: inhaltlich (nach Modus gruppiert) oder nach
   // Schwierigkeit (niedrigste Trefferquote zuerst).
   const [sortBy, setSortBy] = useState('order') // 'order' | 'difficulty'
@@ -187,6 +189,21 @@ export default function EndStep() {
   const byLemma   = results?.byLemma || []
   const totals    = results?.totals || { participants: 0, submissions: 0 }
   const hasSubmissions = results?.hasSubmissions
+
+  async function handleDuplicate() {
+    if (!sessionId || duplicating) return
+    setDuplicating(true)
+    setDupError(null)
+    try {
+      const dup = await duplicateSession(sessionId)
+      // Frische Lobby mit neuem Code — dieselbe Stunde für die nächste Klasse.
+      dispatch({ type: 'GO_TO_LOBBY', sessionId: dup.id })
+    } catch (err) {
+      setDupError(err?.message || 'Wiederholen fehlgeschlagen.')
+    } finally {
+      setDuplicating(false)
+    }
+  }
 
   return (
     <ClassroomSubScreen
@@ -307,6 +324,28 @@ export default function EndStep() {
             )}
           </section>
         </>
+      )}
+
+      {/* W4 — Stunde mit neuer Klasse wiederholen: klont die Konfiguration in
+          eine frische Lobby (neuer Code, ohne Teilnehmer/Abgaben). */}
+      {!loading && !error && (
+        <section className="classroom-section classroom-end-repeat" aria-label="Stunde wiederholen">
+          <hr className="classroom-doubleline" aria-hidden="true" />
+          <p className="classroom-end-repeat__hint">
+            Dieselbe Stunde noch einmal — mit einer anderen Klasse?
+          </p>
+          {dupError && <p className="classroom-error" role="alert">{dupError}</p>}
+          <button
+            type="button"
+            className="classroom-cta classroom-end-repeat__cta"
+            onClick={handleDuplicate}
+            disabled={duplicating}
+            data-testid="classroom-end-repeat"
+          >
+            {duplicating ? 'Wird vorbereitet …' : 'Mit neuer Klasse wiederholen'}
+            {!duplicating && <span className="test-cta-arrow" aria-hidden="true"> →</span>}
+          </button>
+        </section>
       )}
 
     </ClassroomSubScreen>
