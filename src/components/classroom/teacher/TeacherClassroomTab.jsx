@@ -6,8 +6,6 @@
 import { TeacherClassroomProvider, useTeacherClassroom, STEPS } from './TeacherClassroomContext'
 import TabHeader          from '../../TabHeader'
 import ClassroomIndexStep from './steps/ClassroomIndexStep'
-import HowToStep       from './steps/HowToStep'
-import JoinStep        from './steps/JoinStep'
 import SessionListStep from './steps/SessionListStep'
 import SetupStep       from './steps/SetupStep'
 import LobbyStep       from './steps/LobbyStep'
@@ -18,13 +16,11 @@ import './TeacherClassroomTab.css'
 // Unterseiten, die als Vollbild-Takeover rendern (eigener Zurück-Pfeil +
 // zentrierter Titel, wie ein Modus-Klick auf der Spielmodi-Seite) — OHNE den
 // großen App-Header. Der Rest läuft (noch) in der Landing-Shell.
-const TAKEOVER = new Set([STEPS.HOWTO, STEPS.JOIN, STEPS.LIST, STEPS.SETUP, STEPS.LOBBY, STEPS.LIVE, STEPS.END])
+const TAKEOVER = new Set([STEPS.LIST, STEPS.SETUP, STEPS.LOBBY, STEPS.LIVE, STEPS.END])
 
 function StepRouter() {
   const { state } = useTeacherClassroom()
   switch (state.currentStep) {
-    case STEPS.HOWTO: return <HowToStep />
-    case STEPS.JOIN:  return <JoinStep />
     case STEPS.LIST:  return <SessionListStep />
     case STEPS.SETUP: return <SetupStep />
     case STEPS.LOBBY: return <LobbyStep />
