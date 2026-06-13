@@ -2,7 +2,7 @@
    Eigene CSS-Variablen, damit die Datei autark ist und nicht von der
    Teacher-Shell abhaengt (verschiedene Mount-Pfade). */
 
-.cr2-kiosk {
+.classroom-kiosk {
   /* Auf globale Tokens gemappt → folgt dem App-Dark-Mode, eine Quelle der Wahrheit. */
   --k-bg:        var(--bg);
   --k-card:      var(--surface);
@@ -24,7 +24,7 @@
 }
 
 /* ── Header ─────────────────────────────────────────────────────────── */
-.cr2-kiosk__header {
+.classroom-kiosk__header {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -34,7 +34,7 @@
   background: var(--k-bg);
 }
 
-.cr2-kiosk__brand {
+.classroom-kiosk__brand {
   font-family: 'Gentium Plus', Georgia, serif;
   font-size: 1.05rem;
   font-weight: 700;
@@ -42,7 +42,7 @@
   color: var(--k-text);
 }
 
-.cr2-kiosk__brand small {
+.classroom-kiosk__brand small {
   font-family: 'Gentium Plus', Georgia, serif;
   font-style: italic;
   font-weight: 400;
@@ -51,7 +51,7 @@
   margin-left: 8px;
 }
 
-.cr2-kiosk__exit {
+.classroom-kiosk__exit {
   background: transparent;
   border: none;
   color: var(--k-muted);
@@ -64,7 +64,7 @@
   transition: color 0.12s, border-color 0.12s;
 }
 
-.cr2-kiosk__exit:hover {
+.classroom-kiosk__exit:hover {
   color: var(--k-accent);
   border-bottom-color: var(--k-accent);
 }
@@ -72,7 +72,7 @@
 /* ── Reconnect-Hinweis (W2-T5) ──────────────────────────────────────── */
 /* Dezenter Streifen unter dem Header — kein Modal, der Spielscreen bleibt
    sichtbar und bedienbar. Wörterbuch-Ästhetik: kursiv, gedämpft, Gold-Puls. */
-.cr2-kiosk__reconnect {
+.classroom-kiosk__reconnect {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -86,17 +86,17 @@
   color: var(--k-muted);
 }
 
-.cr2-kiosk__reconnect-dot {
+.classroom-kiosk__reconnect-dot {
   width: 9px;
   height: 9px;
   border-radius: 50%;
   background: var(--k-gold);
   display: inline-block;
-  animation: cr2-kiosk-pulse 1.6s ease-in-out infinite;
+  animation: classroom-kiosk-pulse 1.6s ease-in-out infinite;
 }
 
 /* ── Main-Container ─────────────────────────────────────────────────── */
-.cr2-kiosk__main {
+.classroom-kiosk__main {
   flex: 1;
   display: flex;
   flex-direction: column;
@@ -109,19 +109,19 @@
 }
 
 /* ── Message-Screens (Name / Warten / Pause) ────────────────────────── */
-.cr2-kiosk__panel {
+.classroom-kiosk__panel {
   display: flex;
   flex-direction: column;
 }
-.cr2-kiosk__panel--center {
+.classroom-kiosk__panel--center {
   align-items: center;
   text-align: center;
   padding-top: clamp(24px, 12vh, 96px);
 }
-.cr2-kiosk__panel--center .cr2-kiosk__lead { max-width: 32ch; }
+.classroom-kiosk__panel--center .classroom-kiosk__lead { max-width: 32ch; }
 
 /* Kleines Overline-Label statt der grossen Einzelbuchstaben-Drop-Cap. */
-.cr2-kiosk__overline {
+.classroom-kiosk__overline {
   font-family: 'DM Sans', system-ui, sans-serif;
   font-size: 9px;
   font-weight: 600;
@@ -132,7 +132,7 @@
 }
 
 /* ── Drop-Cap (nur noch fuer das ✓ in SubmittedState) ───────────────── */
-.cr2-kiosk__dropcap {
+.classroom-kiosk__dropcap {
   font-family: 'Gentium Plus', Georgia, serif;
   font-size: 3rem;
   line-height: 1;
@@ -142,18 +142,18 @@
   margin: 0 0 8px;
 }
 
-.cr2-kiosk__dropcap--gold {
+.classroom-kiosk__dropcap--gold {
   color: var(--k-gold);
 }
 
-.cr2-kiosk__title {
+.classroom-kiosk__title {
   font-family: 'Gentium Plus', Georgia, serif;
   font-size: 1.5rem;
   font-weight: 700;
   margin: 0 0 6px;
 }
 
-.cr2-kiosk__lead {
+.classroom-kiosk__lead {
   font-family: 'Gentium Plus', Georgia, serif;
   font-style: italic;
   color: var(--k-muted);
@@ -162,7 +162,7 @@
   line-height: 1.5;
 }
 
-.cr2-kiosk__hint {
+.classroom-kiosk__hint {
   font-family: 'Gentium Plus', Georgia, serif;
   font-style: italic;
   color: var(--k-muted);
@@ -171,12 +171,12 @@
   line-height: 1.5;
 }
 
-.cr2-kiosk__hint--error {
+.classroom-kiosk__hint--error {
   color: var(--k-error);
 }
 
 /* ── Form-Bausteine ─────────────────────────────────────────────────── */
-.cr2-kiosk__input {
+.classroom-kiosk__input {
   width: 100%;
   padding: 14px 16px;
   font-family: 'Gentium Plus', Georgia, serif;
@@ -190,7 +190,7 @@
   box-sizing: border-box;
 }
 
-.cr2-kiosk__input:focus {
+.classroom-kiosk__input:focus {
   outline: 2px solid var(--k-accent);
   outline-offset: 1px;
   border-color: var(--k-accent);
@@ -201,22 +201,22 @@
    Fokusring — Gold passt zur Wörterbuch-Ästhetik und hebt sich vom roten
    :focus des Inputs ab. :focus-visible blendet ihn bei reinem Maus-/Touch-
    Tap aus. */
-.cr2-kiosk__choice:focus-visible,
-.cr2-kiosk__pill:focus-visible,
-.cr2-kiosk__zone:focus-visible,
-.cr2-kiosk__zw-action:focus-visible,
-.cr2-kiosk__btn:focus-visible,
-.cr2-kiosk__exit:focus-visible {
+.classroom-kiosk__choice:focus-visible,
+.classroom-kiosk__pill:focus-visible,
+.classroom-kiosk__zone:focus-visible,
+.classroom-kiosk__zw-action:focus-visible,
+.classroom-kiosk__btn:focus-visible,
+.classroom-kiosk__exit:focus-visible {
   outline: 2px solid var(--k-gold);
   outline-offset: 2px;
 }
 
-.cr2-kiosk__input--shake {
-  animation: cr2-kiosk-shake 320ms ease-in-out;
+.classroom-kiosk__input--shake {
+  animation: classroom-kiosk-shake 320ms ease-in-out;
   border-color: var(--k-error) !important;
 }
 
-@keyframes cr2-kiosk-shake {
+@keyframes classroom-kiosk-shake {
   0%, 100% { transform: translateX(0); }
   20%      { transform: translateX(-6px); }
   40%      { transform: translateX(6px); }
@@ -224,7 +224,7 @@
   80%      { transform: translateX(4px); }
 }
 
-.cr2-kiosk__counter {
+.classroom-kiosk__counter {
   font-size: 0.75rem;
   color: var(--k-muted);
   text-align: right;
@@ -233,7 +233,7 @@
 }
 
 /* ── Buttons ────────────────────────────────────────────────────────── */
-.cr2-kiosk__btn {
+.classroom-kiosk__btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -250,19 +250,19 @@
   box-sizing: border-box;
 }
 
-.cr2-kiosk__btn--primary {
+.classroom-kiosk__btn--primary {
   background: var(--k-accent);
   color: #fff;
   border-color: var(--k-accent);
 }
 
-.cr2-kiosk__btn--primary:disabled {
+.classroom-kiosk__btn--primary:disabled {
   background: var(--k-disabled);
   border-color: var(--k-disabled);
   cursor: not-allowed;
 }
 
-.cr2-kiosk__btn--ghost {
+.classroom-kiosk__btn--ghost {
   background: transparent;
   color: var(--k-muted);
   border-color: transparent;
@@ -273,12 +273,12 @@
   margin-top: 4px;
 }
 
-.cr2-kiosk__btn--ghost:hover {
+.classroom-kiosk__btn--ghost:hover {
   color: var(--k-text);
 }
 
 /* ── Chip (Name oben rechts in S3/S4) ───────────────────────────────── */
-.cr2-kiosk__name-chip {
+.classroom-kiosk__name-chip {
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -291,43 +291,43 @@
   color: var(--k-muted);
 }
 
-.cr2-kiosk__name-chip strong {
+.classroom-kiosk__name-chip strong {
   color: var(--k-text);
   font-weight: 700;
 }
 
 /* ── Pulse-Dot (Warten) ─────────────────────────────────────────────── */
-.cr2-kiosk__pulse {
+.classroom-kiosk__pulse {
   width: 14px;
   height: 14px;
   border-radius: 50%;
   background: var(--k-gold);
   display: inline-block;
-  animation: cr2-kiosk-pulse 1.6s ease-in-out infinite;
+  animation: classroom-kiosk-pulse 1.6s ease-in-out infinite;
   margin-right: 8px;
   vertical-align: middle;
 }
 
-@keyframes cr2-kiosk-pulse {
+@keyframes classroom-kiosk-pulse {
   0%, 100% { opacity: 1; transform: scale(1); }
   50%      { opacity: 0.35; transform: scale(0.85); }
 }
 
 /* ── Code-Anzeige (oben links als Mini-Block) ───────────────────────── */
-.cr2-kiosk__code-line {
+.classroom-kiosk__code-line {
   font-family: 'Gentium Plus', Georgia, serif;
   font-size: 0.85rem;
   color: var(--k-muted);
   margin: 0 0 14px;
 }
 
-.cr2-kiosk__code-line strong {
+.classroom-kiosk__code-line strong {
   color: var(--k-accent);
   letter-spacing: 0.05em;
 }
 
 /* ── Auth-Banner (eingeloggter User in /c) ──────────────────────────── */
-.cr2-kiosk__auth-banner {
+.classroom-kiosk__auth-banner {
   background: color-mix(in srgb, var(--k-gold) 12%, transparent);
   border-top: 1px solid var(--k-gold);
   padding: 10px 14px;
@@ -339,14 +339,14 @@
   gap: 8px;
 }
 
-.cr2-kiosk__auth-banner a {
+.classroom-kiosk__auth-banner a {
   color: var(--k-accent);
   text-decoration: underline;
   text-underline-offset: 2px;
 }
 
 /* ── Bestätigungs-Modal (Verlassen) ─────────────────────────────────── */
-.cr2-kiosk__modal-backdrop {
+.classroom-kiosk__modal-backdrop {
   position: fixed;
   inset: 0;
   background: rgba(0, 0, 0, 0.45);
@@ -357,7 +357,7 @@
   z-index: 50;
 }
 
-.cr2-kiosk__modal {
+.classroom-kiosk__modal {
   background: var(--k-card);
   border: 1px solid var(--k-rule);
   border-radius: var(--radius, 4px);
@@ -367,32 +367,32 @@
   text-align: center;
 }
 
-.cr2-kiosk__modal h2 {
+.classroom-kiosk__modal h2 {
   font-family: 'Gentium Plus', Georgia, serif;
   font-size: 1.2rem;
   margin: 0 0 8px;
 }
 
-.cr2-kiosk__modal p {
+.classroom-kiosk__modal p {
   font-family: 'Gentium Plus', Georgia, serif;
   font-style: italic;
   color: var(--k-muted);
   margin: 0 0 18px;
 }
 
-.cr2-kiosk__modal-actions {
+.classroom-kiosk__modal-actions {
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
 }
 
-.cr2-kiosk__modal-actions button {
+.classroom-kiosk__modal-actions button {
   flex: 1 1 0;
   margin-top: 0;
 }
 
 /* ── Toast (Submit-Fehler) ──────────────────────────────────────────── */
-.cr2-kiosk__toast {
+.classroom-kiosk__toast {
   position: fixed;
   left: 50%;
   bottom: 24px;
@@ -409,19 +409,19 @@
 }
 
 /* ── Multi-Tab-Sperre ───────────────────────────────────────────────── */
-.cr2-kiosk__lock {
+.classroom-kiosk__lock {
   text-align: center;
   padding: 32px 12px;
 }
 
-.cr2-kiosk__lock h2 {
+.classroom-kiosk__lock h2 {
   font-family: 'Gentium Plus', Georgia, serif;
   font-size: 1.3rem;
   margin: 12px 0 8px;
 }
 
 /* ── Submit/Result (S5) — entkastelt, nur Linien ────────────────────── */
-.cr2-kiosk__resultcard {
+.classroom-kiosk__resultcard {
   background: transparent;
   border: none;
   border-top: 1px solid var(--k-rule-lt);
@@ -430,7 +430,7 @@
   margin-top: 16px;
 }
 
-.cr2-kiosk__resultcard__row {
+.classroom-kiosk__resultcard__row {
   display: flex;
   justify-content: space-between;
   align-items: baseline;
@@ -440,26 +440,26 @@
   font-family: 'Gentium Plus', Georgia, serif;
 }
 
-.cr2-kiosk__resultcard__row:last-child {
+.classroom-kiosk__resultcard__row:last-child {
   border-bottom: none;
 }
 
-.cr2-kiosk__resultcard__row--correct strong {
+.classroom-kiosk__resultcard__row--correct strong {
   color: var(--k-accent);
 }
 
-.cr2-kiosk__resultcard__row--wrong {
+.classroom-kiosk__resultcard__row--wrong {
   color: var(--k-muted);
   text-decoration: line-through;
 }
 
 /* W4-S4: Rundenauswertung (mehrere Lemmata, z. B. Kollokationen). */
-.cr2-kiosk__rounds {
+.classroom-kiosk__rounds {
   list-style: none;
   margin: 0;
   padding: 0;
 }
-.cr2-kiosk__rounds__row {
+.classroom-kiosk__rounds__row {
   display: flex;
   justify-content: space-between;
   align-items: baseline;
@@ -468,22 +468,22 @@
   border-bottom: 1px dashed var(--k-rule-lt);
   font-family: 'Gentium Plus', Georgia, serif;
 }
-.cr2-kiosk__rounds__row:last-child {
+.classroom-kiosk__rounds__row:last-child {
   border-bottom: none;
 }
-.cr2-kiosk__rounds__lemma {
+.classroom-kiosk__rounds__lemma {
   font-size: 1.05rem;
 }
-.cr2-kiosk__rounds__idx {
+.classroom-kiosk__rounds__idx {
   color: var(--k-muted);
   font-weight: 400;
 }
-.cr2-kiosk__rounds__score {
+.classroom-kiosk__rounds__score {
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
   color: var(--k-muted);
 }
-.cr2-kiosk__rounds__total {
+.classroom-kiosk__rounds__total {
   margin-top: 8px;
   border-top: 1px solid var(--k-rule-lt);
   border-bottom: none;
@@ -492,7 +492,7 @@
 
 /* Read-only Recap der eigenen Antwort (Wartephase): entkastelte Linien-Liste,
    neutrales ·-Bullet — KEIN ✓ (das wuerde vor der Freigabe „korrekt" suggerieren). */
-.cr2-kiosk__reslabel {
+.classroom-kiosk__reslabel {
   display: block;
   font-family: 'DM Sans', system-ui, sans-serif;
   font-size: 9px;
@@ -503,13 +503,13 @@
   margin: 0 0 6px;
 }
 
-.cr2-kiosk__recap {
+.classroom-kiosk__recap {
   list-style: none;
   margin: 0;
   padding: 0;
 }
 
-.cr2-kiosk__recap-row {
+.classroom-kiosk__recap-row {
   display: grid;
   grid-template-columns: 16px 1fr auto;
   gap: 4px 10px;
@@ -520,17 +520,17 @@
   font-size: 1.05rem;
 }
 
-.cr2-kiosk__recap-row:first-child {
+.classroom-kiosk__recap-row:first-child {
   border-top: none;
 }
 
-.cr2-kiosk__recap-bullet {
+.classroom-kiosk__recap-bullet {
   font-family: 'DM Sans', system-ui, sans-serif;
   font-size: 0.8rem;
   color: var(--k-muted);
 }
 
-.cr2-kiosk__recap-aside {
+.classroom-kiosk__recap-aside {
   grid-column: 3;
   font-family: 'Gentium Plus', Georgia, serif;
   font-style: italic;
@@ -539,7 +539,7 @@
   white-space: nowrap;
 }
 
-.cr2-kiosk__recap-empty {
+.classroom-kiosk__recap-empty {
   font-family: 'Gentium Plus', Georgia, serif;
   font-style: italic;
   color: var(--k-muted);
@@ -549,13 +549,13 @@
 }
 
 /* Schritt 4 (C1): item-genaue Auflösung nach Freigabe — ✓/·/✗ pro Antwort. */
-.cr2-kiosk__reveal {
+.classroom-kiosk__reveal {
   list-style: none;
   margin: 4px 0 0;
   padding: 0;
 }
 
-.cr2-kiosk__reveal-row {
+.classroom-kiosk__reveal-row {
   display: grid;
   grid-template-columns: 18px 1fr;
   gap: 2px 10px;
@@ -565,56 +565,56 @@
   font-family: 'Gentium Plus', Georgia, serif;
   font-size: 1.05rem;
 }
-.cr2-kiosk__reveal-row:first-child { border-top: none; }
+.classroom-kiosk__reveal-row:first-child { border-top: none; }
 
-.cr2-kiosk__reveal-mark {
+.classroom-kiosk__reveal-mark {
   font-family: 'DM Sans', system-ui, sans-serif;
   font-size: 0.9rem;
   text-align: center;
 }
-.cr2-kiosk__reveal-row--is-correct .cr2-kiosk__reveal-mark { color: #166534; }
-.cr2-kiosk__reveal-row--is-wrong   .cr2-kiosk__reveal-mark { color: var(--k-error); }
-.cr2-kiosk__reveal-row--is-partial .cr2-kiosk__reveal-mark { color: var(--k-muted); }
+.classroom-kiosk__reveal-row--is-correct .classroom-kiosk__reveal-mark { color: #166534; }
+.classroom-kiosk__reveal-row--is-wrong   .classroom-kiosk__reveal-mark { color: var(--k-error); }
+.classroom-kiosk__reveal-row--is-partial .classroom-kiosk__reveal-mark { color: var(--k-muted); }
 
-.cr2-kiosk__reveal-row--is-correct .cr2-kiosk__reveal-word { color: #166534; }
-.cr2-kiosk__reveal-row--is-wrong .cr2-kiosk__reveal-word {
+.classroom-kiosk__reveal-row--is-correct .classroom-kiosk__reveal-word { color: #166534; }
+.classroom-kiosk__reveal-row--is-wrong .classroom-kiosk__reveal-word {
   color: var(--k-muted);
   text-decoration: line-through;
 }
 
-.cr2-kiosk__reveal-you {
+.classroom-kiosk__reveal-you {
   font-style: italic;
   color: var(--k-muted);
   font-size: 0.88rem;
 }
 
-.cr2-kiosk__reveal-ld {
+.classroom-kiosk__reveal-ld {
   font-family: 'DM Sans', system-ui, sans-serif;
   font-size: 0.78rem;
   color: var(--k-muted);
   font-variant-numeric: tabular-nums;
 }
 
-.cr2-kiosk__reveal-sol {
+.classroom-kiosk__reveal-sol {
   grid-column: 2;
   font-family: 'DM Sans', system-ui, sans-serif;
   font-size: 0.82rem;
   color: #166534;
 }
 
-.cr2-kiosk__reveal-note {
+.classroom-kiosk__reveal-note {
   margin: 10px 0 0;
   font-family: 'Gentium Plus', Georgia, serif;
   font-style: italic;
   font-size: 0.92rem;
   color: var(--k-muted);
 }
-.cr2-kiosk__reveal-note strong {
+.classroom-kiosk__reveal-note strong {
   font-style: normal;
   color: var(--k-text);
 }
 
-.cr2-kiosk__reveal-legend {
+.classroom-kiosk__reveal-legend {
   margin: 8px 0 0;
   font-family: 'DM Sans', system-ui, sans-serif;
   font-size: 0.78rem;
@@ -622,7 +622,7 @@
 }
 
 /* Wartephasen-Lebenssignal: dezenter pulsierender Gold-Punkt vor dem Lead. */
-.cr2-kiosk__pulse-dot {
+.classroom-kiosk__pulse-dot {
   display: inline-block;
   width: 8px;
   height: 8px;
@@ -630,19 +630,19 @@
   background: var(--k-gold);
   margin-right: 8px;
   vertical-align: middle;
-  animation: cr2-kiosk-pulse 1.8s ease-in-out infinite;
+  animation: classroom-kiosk-pulse 1.8s ease-in-out infinite;
 }
 @media (prefers-reduced-motion: reduce) {
-  .cr2-kiosk__pulse-dot { animation: none; }
+  .classroom-kiosk__pulse-dot { animation: none; }
 }
 
-.cr2-kiosk__rounds__detail {
+.classroom-kiosk__rounds__detail {
   padding: 4px 0 10px 16px;
   border-bottom: 1px dashed var(--k-rule-lt);
 }
 
 /* Entkastelter Abschluss-Link „Zur App" — Wörterbuch-Stil statt Block-Button. */
-.cr2-kiosk__textlink {
+.classroom-kiosk__textlink {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -660,10 +660,10 @@
   border-bottom: 1px solid transparent;
   transition: border-color 0.15s ease;
 }
-.cr2-kiosk__textlink:hover {
+.classroom-kiosk__textlink:hover {
   border-bottom-color: var(--k-accent);
 }
-.cr2-kiosk__textlink:focus-visible {
+.classroom-kiosk__textlink:focus-visible {
   outline: 2px solid var(--k-accent);
   outline-offset: 3px;
 }
@@ -672,7 +672,7 @@
    Entkastelt: kein weisser Kasten mehr. Kollokationen nutzt die echte
    Quiz-Optik (.quiz-screen). Die uebrigen Modi bekommen hier einen
    zentrierten Spielscreen-Header analog zum echten Spiel. */
-.cr2-kiosk__game {
+.classroom-kiosk__game {
   background: transparent;
   border: none;
   border-radius: 0;
@@ -682,7 +682,7 @@
   flex-direction: column;
 }
 
-.cr2-kiosk__lemma {
+.classroom-kiosk__lemma {
   font-family: 'Gentium Plus', Georgia, serif;
   font-size: 2rem;
   font-weight: 700;
@@ -691,7 +691,7 @@
   margin: 0 0 4px;
 }
 
-.cr2-kiosk__ipa {
+.classroom-kiosk__ipa {
   font-family: 'Gentium Plus', Georgia, serif;
   font-size: 0.85rem;
   font-style: italic;
@@ -700,7 +700,7 @@
   margin: 0 0 10px;
 }
 
-.cr2-kiosk__definition {
+.classroom-kiosk__definition {
   font-family: 'Gentium Plus', Georgia, serif;
   font-size: 0.95rem;
   line-height: 1.45;
@@ -711,7 +711,7 @@
 }
 
 /* Spitzname als unterstrichenes „Headword"-Feld (kein Kasten). */
-.cr2-kiosk__name-field {
+.classroom-kiosk__name-field {
   width: 100%;
   box-sizing: border-box;
   font-family: 'Gentium Plus', Georgia, serif;
@@ -726,24 +726,24 @@
   padding: 8px 4px;
   letter-spacing: 0.02em;
 }
-.cr2-kiosk__name-field::placeholder {
+.classroom-kiosk__name-field::placeholder {
   font-weight: 400;
   font-style: italic;
   color: var(--k-muted);
 }
-.cr2-kiosk__name-field:focus {
+.classroom-kiosk__name-field:focus {
   outline: none;
   border-bottom-color: var(--k-accent);
 }
 
 /* Skip-Link mittig unter dem Beitreten-Button. */
-.cr2-kiosk__skip {
+.classroom-kiosk__skip {
   display: block;
   margin: 4px auto 0;
 }
 
 /* Zugangscode als unterstrichenes „Headword"-Feld (Grossbuchstaben). */
-.cr2-kiosk__code-field {
+.classroom-kiosk__code-field {
   width: 100%;
   box-sizing: border-box;
   font-family: 'Gentium Plus', Georgia, serif;
@@ -759,21 +759,21 @@
   border-radius: 0;
   padding: 8px 4px;
 }
-.cr2-kiosk__code-field::placeholder {
+.classroom-kiosk__code-field::placeholder {
   font-weight: 400;
   font-style: italic;
   letter-spacing: 0.02em;
   text-transform: none;
   color: var(--k-muted);
 }
-.cr2-kiosk__code-field:focus {
+.classroom-kiosk__code-field:focus {
   outline: none;
   border-bottom-color: var(--k-accent);
 }
 
 /* Embedded-Einstieg im Klassenraum-Tab: Wörterbuch-Tokens für den geteilten
    App-Header (.test-title-section), Raster + Doppellinie. */
-.cr2-student-entry {
+.classroom-student-entry {
   --t-bg:        var(--bg);
   --t-text:      var(--text);
   --t-muted:     var(--muted);
@@ -787,7 +787,7 @@
   --t-red-hi:    var(--primary-hi);
 }
 
-.cr2-kiosk__choices {
+.classroom-kiosk__choices {
   list-style: none;
   margin: 0;
   padding: 0;
@@ -796,7 +796,7 @@
   gap: 8px;
 }
 
-.cr2-kiosk__choice {
+.classroom-kiosk__choice {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -811,21 +811,21 @@
   user-select: none;
 }
 
-.cr2-kiosk__choice:hover:not(.cr2-kiosk__choice--disabled) {
+.classroom-kiosk__choice:hover:not(.classroom-kiosk__choice--disabled) {
   background: var(--k-card);
 }
 
-.cr2-kiosk__choice--picked {
+.classroom-kiosk__choice--picked {
   border-color: var(--k-accent);
   background: color-mix(in srgb, var(--k-accent) 8%, transparent);
 }
 
-.cr2-kiosk__choice--disabled {
+.classroom-kiosk__choice--disabled {
   opacity: 0.55;
   cursor: not-allowed;
 }
 
-.cr2-kiosk__choice-rank {
+.classroom-kiosk__choice-rank {
   font-family: 'DM Sans', system-ui, sans-serif;
   font-size: 0.8rem;
   color: var(--k-accent);
@@ -833,14 +833,14 @@
 }
 
 /* WortZwilling Zonen */
-.cr2-kiosk__zones {
+.classroom-kiosk__zones {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 8px;
   margin-bottom: 12px;
 }
 
-.cr2-kiosk__zone {
+.classroom-kiosk__zone {
   border: 1px dashed var(--k-rule);
   border-radius: 3px;
   padding: 10px;
@@ -848,7 +848,7 @@
   background: var(--k-card);
 }
 
-.cr2-kiosk__zone__label {
+.classroom-kiosk__zone__label {
   font-family: 'Gentium Plus', Georgia, serif;
   font-size: 0.85rem;
   color: var(--k-accent);
@@ -857,7 +857,7 @@
   margin: 0 0 8px;
 }
 
-.cr2-kiosk__bank {
+.classroom-kiosk__bank {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
@@ -865,7 +865,7 @@
   border-top: 1px solid var(--k-rule-lt);
 }
 
-.cr2-kiosk__pill {
+.classroom-kiosk__pill {
   font-family: 'Gentium Plus', Georgia, serif;
   font-size: 0.95rem;
   padding: 6px 10px;
@@ -875,11 +875,11 @@
   cursor: pointer;
 }
 
-.cr2-kiosk__pill--in-zone-a { border-color: var(--k-accent); }
-.cr2-kiosk__pill--in-zone-b { border-color: var(--k-gold); }
+.classroom-kiosk__pill--in-zone-a { border-color: var(--k-accent); }
+.classroom-kiosk__pill--in-zone-b { border-color: var(--k-gold); }
 
 /* Zeitenwende — aktuelles Wort frei auf Pergament (kein Kasten), gross. */
-.cr2-kiosk__zw-card {
+.classroom-kiosk__zw-card {
   background: transparent;
   border: none;
   border-top: 2px solid var(--k-rule);
@@ -889,21 +889,21 @@
   margin: 6px 0 4px;
 }
 
-.cr2-kiosk__zw-word {
+.classroom-kiosk__zw-word {
   font-family: 'Gentium Plus', Georgia, serif;
   font-size: 2rem;
   font-weight: 700;
   color: var(--k-text);
 }
 
-.cr2-kiosk__zw-actions {
+.classroom-kiosk__zw-actions {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 8px;
   margin-top: 12px;
 }
 
-.cr2-kiosk__zw-action {
+.classroom-kiosk__zw-action {
   font-family: 'DM Sans', system-ui, sans-serif;
   font-size: 0.9rem;
   padding: 10px;
@@ -913,10 +913,10 @@
   cursor: pointer;
 }
 
-.cr2-kiosk__zw-action--active-pre  { border-color: var(--k-accent); background: color-mix(in srgb, var(--k-accent) 8%, transparent); }
-.cr2-kiosk__zw-action--active-post { border-color: var(--k-gold);   background: color-mix(in srgb, var(--k-gold) 12%, transparent); }
+.classroom-kiosk__zw-action--active-pre  { border-color: var(--k-accent); background: color-mix(in srgb, var(--k-accent) 8%, transparent); }
+.classroom-kiosk__zw-action--active-post { border-color: var(--k-gold);   background: color-mix(in srgb, var(--k-gold) 12%, transparent); }
 
-.cr2-kiosk__zw-progress {
+.classroom-kiosk__zw-progress {
   font-family: 'DM Sans', system-ui, sans-serif;
   font-size: 0.75rem;
   color: var(--k-muted);
@@ -925,14 +925,14 @@
 }
 
 /* Lückenfüller — Sentence */
-.cr2-kiosk__lf-sentence {
+.classroom-kiosk__lf-sentence {
   font-family: 'Gentium Plus', Georgia, serif;
   font-size: 1.1rem;
   line-height: 1.5;
   margin: 0 0 14px;
 }
 
-.cr2-kiosk__lf-blank {
+.classroom-kiosk__lf-blank {
   display: inline-block;
   min-width: 80px;
   border-bottom: 2px solid var(--k-accent);
@@ -941,7 +941,7 @@
 }
 
 /* Lückenfüller — Eingabefeld (unterstrichen, kein Kasten). */
-.cr2-kiosk__lf-input {
+.classroom-kiosk__lf-input {
   width: 100%;
   box-sizing: border-box;
   font-family: 'Gentium Plus', Georgia, serif;
@@ -953,23 +953,23 @@
   border-radius: 0;
   padding: 8px 2px;
 }
-.cr2-kiosk__lf-input::placeholder {
+.classroom-kiosk__lf-input::placeholder {
   font-style: italic;
   color: var(--k-muted);
 }
-.cr2-kiosk__lf-input:focus {
+.classroom-kiosk__lf-input:focus {
   outline: none;
   border-bottom-color: var(--k-accent);
 }
 
 /* ── F5: Schueler-Einstieg eingebettet im Klassenraum-Tab ───────────── */
-.cr2-kiosk--embedded {
+.classroom-kiosk--embedded {
   min-height: auto;
   padding-bottom: 96px; /* Platz fuer die untere TabBar */
 }
 
 /* ── F5: In-App-QR-Scanner (Vollbild-Overlay) ───────────────────────── */
-.cr2-qr-scanner {
+.classroom-qr-scanner {
   position: fixed;
   inset: 0;
   z-index: 1000;
@@ -981,7 +981,7 @@
   gap: 18px;
   padding: 24px;
 }
-.cr2-qr-scanner__frame {
+.classroom-qr-scanner__frame {
   position: relative;
   width: min(80vw, 320px);
   aspect-ratio: 1 / 1;
@@ -989,19 +989,19 @@
   overflow: hidden;
   background: #000;
 }
-.cr2-qr-scanner__video {
+.classroom-qr-scanner__video {
   width: 100%;
   height: 100%;
   object-fit: cover;
 }
-.cr2-qr-scanner__reticle {
+.classroom-qr-scanner__reticle {
   position: absolute;
   inset: 14%;
   border: 2px solid #c9a84c;
   border-radius: 8px;
   box-shadow: 0 0 0 100vmax rgba(0, 0, 0, 0.35);
 }
-.cr2-qr-scanner__hint {
+.classroom-qr-scanner__hint {
   color: #faf9f7;
   font-family: 'DM Sans', system-ui, sans-serif;
   font-size: 0.95rem;
@@ -1010,7 +1010,7 @@
   max-width: 320px;
   margin: 0;
 }
-.cr2-qr-scanner__cancel {
+.classroom-qr-scanner__cancel {
   font-family: 'DM Sans', system-ui, sans-serif;
   font-size: 0.95rem;
   background: transparent;
@@ -1020,6 +1020,6 @@
   padding: 10px 28px;
   cursor: pointer;
 }
-.cr2-qr-scanner__cancel:active {
+.classroom-qr-scanner__cancel:active {
   background: rgba(250, 249, 247, 0.12);
 }

@@ -44,16 +44,16 @@ describe('StudentJoinEntry (T-5.2)', () => {
   it('rendert Beitreten-Form, Submit ist initial disabled', () => {
     render(<StudentJoinEntry />)
     expect(screen.getByText(/klassenraum/i)).toBeTruthy()
-    const btn = screen.getByTestId('cr2-kiosk-code-submit')
+    const btn = screen.getByTestId('classroom-kiosk-code-submit')
     expect(btn.disabled).toBe(true)
   })
 
   it('aktiviert Submit ab 4 Zeichen und normalisiert auf a-z0-9-', () => {
     render(<StudentJoinEntry />)
-    const input = screen.getByTestId('cr2-kiosk-code-input')
+    const input = screen.getByTestId('classroom-kiosk-code-input')
     fireEvent.change(input, { target: { value: 'MORG!?ent au' } })
     expect(input.value).toBe('morgentau')
-    expect(screen.getByTestId('cr2-kiosk-code-submit').disabled).toBe(false)
+    expect(screen.getByTestId('classroom-kiosk-code-submit').disabled).toBe(false)
   })
 
   it('zeigt Hinweis bei initialNotice', () => {
@@ -78,7 +78,7 @@ describe('NameState (T-5.3)', () => {
   it('Skip-Link rendert', () => {
     const s = { ...initialState('morgentau'), currentState: KIOSK_STATES.NAME }
     renderWith(s)
-    expect(screen.getByTestId('cr2-kiosk-name-skip')).toBeTruthy()
+    expect(screen.getByTestId('classroom-kiosk-name-skip')).toBeTruthy()
   })
 })
 
@@ -93,14 +93,14 @@ describe('WaitingState (T-5.4)', () => {
     }
     renderWith(s)
     expect(screen.getByText("Warte, gleich geht's los.")).toBeTruthy()
-    expect(screen.getByTestId('cr2-kiosk-name-chip').textContent).toContain('Mira')
+    expect(screen.getByTestId('classroom-kiosk-name-chip').textContent).toContain('Mira')
   })
 
   it('zeigt KEINE anderen Teilnehmer (sozialer Druck vermeiden)', () => {
     const s = { ...initialState('morgentau'), currentState: KIOSK_STATES.WAITING, displayName: 'Mira' }
     renderWith(s)
-    // Erwartung: kein Element mit class "cr2-participant" (Lehrer-spezifisch).
-    expect(document.querySelector('.cr2-participant')).toBeNull()
+    // Erwartung: kein Element mit class "classroom-participant" (Lehrer-spezifisch).
+    expect(document.querySelector('.classroom-participant')).toBeNull()
   })
 })
 
@@ -118,8 +118,8 @@ describe('SubmittedState (T-5.7)', () => {
       revealed:        false,
     }
     renderWith(s)
-    expect(screen.getByTestId('cr2-kiosk-submitted-title').textContent).toMatch(/eingereicht/i)
-    expect(screen.queryByTestId('cr2-kiosk-reveal')).toBeNull()
+    expect(screen.getByTestId('classroom-kiosk-submitted-title').textContent).toMatch(/eingereicht/i)
+    expect(screen.queryByTestId('classroom-kiosk-reveal')).toBeNull()
   })
 
   it('zeigt Auflösung im ended-State + Link „Zur App"', () => {
@@ -144,8 +144,8 @@ describe('SubmittedState (T-5.7)', () => {
       },
     }
     renderWith(s)
-    expect(screen.getByTestId('cr2-kiosk-reveal')).toBeTruthy()
-    expect(screen.getByTestId('cr2-kiosk-to-app')).toBeTruthy()
+    expect(screen.getByTestId('classroom-kiosk-reveal')).toBeTruthy()
+    expect(screen.getByTestId('classroom-kiosk-to-app')).toBeTruthy()
   })
 
   it('zeigt nach Freigabe die item-genaue Auflösung (✓/✗ + Lösung)', () => {
@@ -174,7 +174,7 @@ describe('SubmittedState (T-5.7)', () => {
       },
     }
     renderWith(s)
-    expect(screen.getByTestId('cr2-kiosk-reveal-items')).toBeTruthy()
+    expect(screen.getByTestId('classroom-kiosk-reveal-items')).toBeTruthy()
     // A11y: Live-Region kuendigt die Freigabe an (Phasenwechsel ohne Nutzeraktion).
     expect(screen.getByText(/Auflösung wurde freigegeben/)).toBeTruthy()
     // Lösung wird genannt.
@@ -206,7 +206,7 @@ describe('SubmittedState (T-5.7)', () => {
     }
     renderWith(s)
     // Der Key kommt aus roundResults[0].key, nicht aus currentLemma.id.
-    expect(screen.getByTestId('cr2-kiosk-reveal-items')).toBeTruthy()
+    expect(screen.getByTestId('classroom-kiosk-reveal-items')).toBeTruthy()
     expect(screen.getByText(/stark, groß, klein/)).toBeTruthy()
   })
 
@@ -227,14 +227,14 @@ describe('KioskShell Reconnect-Hinweis (W2-T5)', () => {
 
   it('zeigt den Hinweis NICHT, wenn reconnecting=false', () => {
     render(<KioskShell code="morgentau" reconnecting={false}><div>inhalt</div></KioskShell>)
-    expect(screen.queryByTestId('cr2-kiosk-reconnect')).toBeNull()
+    expect(screen.queryByTestId('classroom-kiosk-reconnect')).toBeNull()
     // Spielinhalt bleibt sichtbar.
     expect(screen.getByText('inhalt')).toBeTruthy()
   })
 
   it('zeigt den dezenten Hinweis, wenn reconnecting=true — Inhalt bleibt erhalten', () => {
     render(<KioskShell code="morgentau" reconnecting={true}><div>inhalt</div></KioskShell>)
-    const banner = screen.getByTestId('cr2-kiosk-reconnect')
+    const banner = screen.getByTestId('classroom-kiosk-reconnect')
     expect(banner.textContent).toMatch(/verbindung wird wiederhergestellt/i)
     // Der Spielscreen wird NICHT ersetzt (Eingaben gehen nicht verloren).
     expect(screen.getByText('inhalt')).toBeTruthy()

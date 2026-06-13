@@ -3,7 +3,7 @@
 // Bewusst NICHT ueber utils/apiFetch:
 //   apiFetch setzt auf Native (Capacitor) automatisch den User-Bearer-Token.
 //   Im Schueler-Pfad gibt es aber keinen User-Account — der Schueler hat
-//   einen Participant-Token (cr2_participant.auth_token), der nichts mit der
+//   einen Participant-Token (classroom_participant.auth_token), der nichts mit der
 //   App-Auth zu tun hat. Wuerde apiFetch den User-Bearer dazwischenfunken,
 //   wuerde der Server das als ungueltigen Participant-Token zurueckweisen.
 //

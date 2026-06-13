@@ -49,10 +49,10 @@ function buildApp() {
   app.use(express.json())
   app.post('/sessions/:sessionId/manage',
     requireCapability('session:manage'),
-    (req, res) => res.json({ ok: true, subject: req.cr2.subject.kind }))
+    (req, res) => res.json({ ok: true, subject: req.classroom.subject.kind }))
   app.post('/sessions/:sessionId/submit',
     requireCapability('submission:write'),
-    (req, res) => res.json({ ok: true, participantId: req.cr2.subject.id }))
+    (req, res) => res.json({ ok: true, participantId: req.classroom.subject.id }))
   return app
 }
 

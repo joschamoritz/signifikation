@@ -12,7 +12,7 @@ import { useEffect, useState } from 'react'
 /**
  * Liefert das aktuelle pathname-/search-Snapshot. Aktualisiert sich auf
  * popstate (Back/Forward) und auf manuelle history.pushState/replaceState
- * via Window-Event "cr2:navigate" (siehe navigate()).
+ * via Window-Event "classroom:navigate" (siehe navigate()).
  */
 export function useLocationPath() {
   const [path, setPath] = useState(() =>
@@ -22,10 +22,10 @@ export function useLocationPath() {
   useEffect(() => {
     function read() { setPath(window.location.pathname) }
     window.addEventListener('popstate', read)
-    window.addEventListener('cr2:navigate', read)
+    window.addEventListener('classroom:navigate', read)
     return () => {
       window.removeEventListener('popstate', read)
-      window.removeEventListener('cr2:navigate', read)
+      window.removeEventListener('classroom:navigate', read)
     }
   }, [])
 
@@ -41,7 +41,7 @@ export function navigate(to, { replace = false } = {}) {
   if (typeof window === 'undefined') return
   if (replace) window.history.replaceState({}, '', to)
   else window.history.pushState({}, '', to)
-  window.dispatchEvent(new Event('cr2:navigate'))
+  window.dispatchEvent(new Event('classroom:navigate'))
 }
 
 /**

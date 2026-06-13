@@ -80,35 +80,35 @@ export default function StudentJoinEntry({ initialNotice = null, embedded = fals
   }
 
   const inner = (
-    <div className="cr2-kiosk__panel">
-      <p className="cr2-kiosk__overline">Live-Session · Beitreten</p>
-      <h1 className="cr2-kiosk__title">Klassenraum</h1>
-      <p className="cr2-kiosk__lead">
+    <div className="classroom-kiosk__panel">
+      <p className="classroom-kiosk__overline">Live-Session · Beitreten</p>
+      <h1 className="classroom-kiosk__title">Klassenraum</h1>
+      <p className="classroom-kiosk__lead">
         Tipp den Zugangscode deiner Lehrkraft ein – oder scanne den QR-Code.
       </p>
 
       <form onSubmit={handleSubmit} noValidate>
-        <label htmlFor="cr2-kiosk-code" style={{ position: 'absolute', left: -9999 }}>
+        <label htmlFor="classroom-kiosk-code" style={{ position: 'absolute', left: -9999 }}>
           Zugangscode
         </label>
         <input
-          id="cr2-kiosk-code"
+          id="classroom-kiosk-code"
           ref={inputRef}
           type="text"
           inputMode="text"
           autoComplete="off"
           autoCapitalize="characters"
           spellCheck={false}
-          className={`cr2-kiosk__code-field ${shake ? 'cr2-kiosk__input--shake' : ''}`}
+          className={`classroom-kiosk__code-field ${shake ? 'classroom-kiosk__input--shake' : ''}`}
           value={code}
           onChange={handleChange}
           onPaste={handlePaste}
           placeholder="z. B. MORGENTAU"
           maxLength={30}
-          data-testid="cr2-kiosk-code-input"
+          data-testid="classroom-kiosk-code-input"
         />
         {error && (
-          <p className="cr2-kiosk__hint cr2-kiosk__hint--error" data-testid="cr2-kiosk-code-error">
+          <p className="classroom-kiosk__hint classroom-kiosk__hint--error" data-testid="classroom-kiosk-code-error">
             {error}
           </p>
         )}
@@ -116,7 +116,7 @@ export default function StudentJoinEntry({ initialNotice = null, embedded = fals
           type="submit"
           className="btn-primary btn-full"
           disabled={code.length < 4}
-          data-testid="cr2-kiosk-code-submit"
+          data-testid="classroom-kiosk-code-submit"
         >
           Beitreten
         </button>
@@ -124,9 +124,9 @@ export default function StudentJoinEntry({ initialNotice = null, embedded = fals
 
       <button
         type="button"
-        className="btn-ghost cr2-kiosk__skip"
+        className="btn-ghost classroom-kiosk__skip"
         onClick={() => { setError(null); setScanning(true) }}
-        data-testid="cr2-kiosk-scan-btn"
+        data-testid="classroom-kiosk-scan-btn"
       >
         QR-Code scannen
       </button>
@@ -136,10 +136,10 @@ export default function StudentJoinEntry({ initialNotice = null, embedded = fals
   if (embedded) {
     // Einstieg im Klassenraum-Tab → gleicher App-Header wie alle Tabs.
     // test-page liefert die --t-*-Tokens + das Mobil-Layout, das der geteilte
-    // Header (test-title-section) braucht; cr2-kiosk bleibt für die --k-*-Tokens
-    // der inneren cr2-kiosk__*-Elemente.
+    // Header (test-title-section) braucht; classroom-kiosk bleibt für die --k-*-Tokens
+    // der inneren classroom-kiosk__*-Elemente.
     return (
-      <div className="cr2-kiosk test-page cr2-student-entry" data-testid="cr2-student-tab">
+      <div className="classroom-kiosk test-page classroom-student-entry" data-testid="classroom-student-tab">
         <div className="test-wrapper">
           <TabHeader />
           <nav className="test-raster" aria-label="Klassenraum">
@@ -152,7 +152,7 @@ export default function StudentJoinEntry({ initialNotice = null, embedded = fals
             </div>
           </nav>
           <div className="test-rule--double" role="separator" aria-hidden="true" />
-          <main className="cr2-kiosk__main">{inner}</main>
+          <main className="classroom-kiosk__main">{inner}</main>
         </div>
       </div>
     )

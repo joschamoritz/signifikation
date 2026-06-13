@@ -20,13 +20,13 @@ function fmtDice(v) { return v == null ? null : String(v).replace('.', ',') }
 function CollocationsRecap({ rawAnswer }) {
   const picked = safeArr(rawAnswer?.selected)
   if (picked.length === 0) {
-    return <p className="cr2-kiosk__recap-empty" data-testid="cr2-kiosk-recap-koll">Keine Auswahl gespeichert.</p>
+    return <p className="classroom-kiosk__recap-empty" data-testid="classroom-kiosk-recap-koll">Keine Auswahl gespeichert.</p>
   }
   return (
-    <ul className="cr2-kiosk__recap" data-testid="cr2-kiosk-recap-koll">
+    <ul className="classroom-kiosk__recap" data-testid="classroom-kiosk-recap-koll">
       {picked.map((w, i) => (
-        <li key={i} className="cr2-kiosk__recap-row">
-          <span className="cr2-kiosk__recap-bullet" aria-hidden="true">·</span>
+        <li key={i} className="classroom-kiosk__recap-row">
+          <span className="classroom-kiosk__recap-bullet" aria-hidden="true">·</span>
           <span>{w}</span>
         </li>
       ))}
@@ -36,17 +36,17 @@ function CollocationsRecap({ rawAnswer }) {
 
 function WortzwillingRecap({ rawAnswer }) {
   return (
-    <div className="cr2-kiosk__zones" data-testid="cr2-kiosk-recap-wz">
-      <div className="cr2-kiosk__zone">
-        <p className="cr2-kiosk__zone__label">Zone A</p>
+    <div className="classroom-kiosk__zones" data-testid="classroom-kiosk-recap-wz">
+      <div className="classroom-kiosk__zone">
+        <p className="classroom-kiosk__zone__label">Zone A</p>
         {safeArr(rawAnswer?.zoneA).map((w) => (
-          <span key={w} className="cr2-kiosk__pill cr2-kiosk__pill--in-zone-a">{w}</span>
+          <span key={w} className="classroom-kiosk__pill classroom-kiosk__pill--in-zone-a">{w}</span>
         ))}
       </div>
-      <div className="cr2-kiosk__zone">
-        <p className="cr2-kiosk__zone__label">Zone B</p>
+      <div className="classroom-kiosk__zone">
+        <p className="classroom-kiosk__zone__label">Zone B</p>
         {safeArr(rawAnswer?.zoneB).map((w) => (
-          <span key={w} className="cr2-kiosk__pill cr2-kiosk__pill--in-zone-b">{w}</span>
+          <span key={w} className="classroom-kiosk__pill classroom-kiosk__pill--in-zone-b">{w}</span>
         ))}
       </div>
     </div>
@@ -56,15 +56,15 @@ function WortzwillingRecap({ rawAnswer }) {
 function ZeitenwendeRecap({ rawAnswer }) {
   const picks = safeArr(rawAnswer?.answers)
   if (picks.length === 0) {
-    return <p className="cr2-kiosk__recap-empty" data-testid="cr2-kiosk-recap-zw">Keine Auswahl gespeichert.</p>
+    return <p className="classroom-kiosk__recap-empty" data-testid="classroom-kiosk-recap-zw">Keine Auswahl gespeichert.</p>
   }
   return (
-    <ul className="cr2-kiosk__recap" data-testid="cr2-kiosk-recap-zw">
+    <ul className="classroom-kiosk__recap" data-testid="classroom-kiosk-recap-zw">
       {picks.map((p, i) => (
-        <li key={i} className="cr2-kiosk__recap-row">
-          <span className="cr2-kiosk__recap-bullet" aria-hidden="true">·</span>
+        <li key={i} className="classroom-kiosk__recap-row">
+          <span className="classroom-kiosk__recap-bullet" aria-hidden="true">·</span>
           <span>Wort {i + 1}</span>
-          <span className="cr2-kiosk__recap-aside">
+          <span className="classroom-kiosk__recap-aside">
             {p === 'pre' ? 'vor 2000' : p === 'post' ? 'nach 2000' : '—'}
           </span>
         </li>
@@ -75,7 +75,7 @@ function ZeitenwendeRecap({ rawAnswer }) {
 
 function LueckenfuellerRecap({ rawAnswer }) {
   return (
-    <p className="cr2-kiosk__hint" data-testid="cr2-kiosk-recap-lf">
+    <p className="classroom-kiosk__hint" data-testid="classroom-kiosk-recap-lf">
       {rawAnswer?.value ? `Eingabe: „${rawAnswer.value}"` :
        rawAnswer?.selected ? `Auswahl: „${rawAnswer.selected}"` :
        Array.isArray(rawAnswer?.answers) ? `Eingaben: ${rawAnswer.answers.join(', ')}` :
@@ -93,38 +93,38 @@ function RevealItems({ entry }) {
   const hasDice = items.some((it) => it.logDice != null)
   return (
     <>
-      <ul className="cr2-kiosk__reveal" data-testid="cr2-kiosk-reveal-items">
+      <ul className="classroom-kiosk__reveal" data-testid="classroom-kiosk-reveal-items">
         {items.map((it, i) => {
           const cls = it.correct ? 'is-correct' : it.partial ? 'is-partial' : 'is-wrong'
           const mark = it.correct ? '✓' : it.partial ? '·' : '✗'
           const srStatus = it.correct ? 'richtig' : it.partial ? 'gültig, nicht optimal' : 'falsch'
           return (
-            <li key={i} className={`cr2-kiosk__reveal-row cr2-kiosk__reveal-row--${cls}`}>
-              <span className="cr2-kiosk__reveal-mark" aria-hidden="true">{mark}</span>
-              <span className="cr2-kiosk__reveal-word">
+            <li key={i} className={`classroom-kiosk__reveal-row classroom-kiosk__reveal-row--${cls}`}>
+              <span className="classroom-kiosk__reveal-mark" aria-hidden="true">{mark}</span>
+              <span className="classroom-kiosk__reveal-word">
                 {it.label}
                 {it.logDice != null && (
-                  <span className="cr2-kiosk__reveal-ld"> · {fmtDice(it.logDice)}</span>
+                  <span className="classroom-kiosk__reveal-ld"> · {fmtDice(it.logDice)}</span>
                 )}
                 <span className="sr-only"> – {srStatus}</span>
                 {it.you && it.you !== it.label && (
-                  <span className="cr2-kiosk__reveal-you"> · du: {it.you}</span>
+                  <span className="classroom-kiosk__reveal-you"> · du: {it.you}</span>
                 )}
               </span>
               {!it.correct && it.solution && it.solution !== it.you && (
-                <span className="cr2-kiosk__reveal-sol">richtig: {it.solution}</span>
+                <span className="classroom-kiosk__reveal-sol">richtig: {it.solution}</span>
               )}
             </li>
           )
         })}
       </ul>
       {entry.solution && (
-        <p className="cr2-kiosk__reveal-note">
+        <p className="classroom-kiosk__reveal-note">
           Beste Antwort: <strong>{entry.solution}</strong>
         </p>
       )}
       {hasDice && (
-        <p className="cr2-kiosk__reveal-legend">
+        <p className="classroom-kiosk__reveal-legend">
           logDice: je höher, desto typischer die Wortverbindung.
         </p>
       )}
@@ -172,14 +172,14 @@ export default function SubmittedState() {
   if (isEnded && !hadSubmission) {
     return (
       <>
-        <p className="cr2-kiosk__overline">Abgeschlossen</p>
-        <h1 className="cr2-kiosk__title">Session beendet.</h1>
-        <p className="cr2-kiosk__lead">Danke fürs Mitspielen.</p>
+        <p className="classroom-kiosk__overline">Abgeschlossen</p>
+        <h1 className="classroom-kiosk__title">Session beendet.</h1>
+        <p className="classroom-kiosk__lead">Danke fürs Mitspielen.</p>
         <button
           type="button"
-          className="cr2-kiosk__textlink"
+          className="classroom-kiosk__textlink"
           onClick={() => navigate('/')}
-          data-testid="cr2-kiosk-to-app"
+          data-testid="classroom-kiosk-to-app"
         >
           Zur App<span className="test-cta-arrow" aria-hidden="true"> →</span>
         </button>
@@ -191,7 +191,7 @@ export default function SubmittedState() {
     <>
       {state.displayName && (
         <div style={{ textAlign: 'right', marginBottom: 12 }}>
-          <span className="cr2-kiosk__name-chip">
+          <span className="classroom-kiosk__name-chip">
             <strong>{state.displayName}</strong>
           </span>
         </div>
@@ -205,48 +205,48 @@ export default function SubmittedState() {
           : 'Deine Antwort ist eingereicht. Warte auf deine Lehrkraft.'}
       </p>
 
-      <p className="cr2-kiosk__overline">{isEnded ? 'Auflösung' : 'Abgegeben'}</p>
-      <h1 className="cr2-kiosk__title" data-testid="cr2-kiosk-submitted-title">
+      <p className="classroom-kiosk__overline">{isEnded ? 'Auflösung' : 'Abgegeben'}</p>
+      <h1 className="classroom-kiosk__title" data-testid="classroom-kiosk-submitted-title">
         {isEnded ? 'Hier ist die Auflösung.' : 'Deine Antwort ist eingereicht.'}
       </h1>
-      <p className="cr2-kiosk__lead">
+      <p className="classroom-kiosk__lead">
         {isEnded ? (
           'Deine Antwort im Vergleich.'
         ) : (
           <>
-            <span className="cr2-kiosk__pulse-dot" aria-hidden="true" />
+            <span className="classroom-kiosk__pulse-dot" aria-hidden="true" />
             Warte auf deine Lehrkraft.
           </>
         )}
       </p>
 
       {!isMultiRound && state.currentLemma?.lemma && (
-        <p className="cr2-kiosk__hint">
+        <p className="classroom-kiosk__hint">
           Lemma: <strong>{state.currentLemma.lemma}</strong>
         </p>
       )}
 
       {isMultiRound ? (
-        <section className="cr2-kiosk__resultcard" aria-label="Deine Runden" data-testid="cr2-kiosk-rounds">
-          <span className="cr2-kiosk__reslabel">Deine Runden</span>
-          <ul className="cr2-kiosk__rounds">
+        <section className="classroom-kiosk__resultcard" aria-label="Deine Runden" data-testid="classroom-kiosk-rounds">
+          <span className="classroom-kiosk__reslabel">Deine Runden</span>
+          <ul className="classroom-kiosk__rounds">
             {rounds.map((r, i) => {
               const rev = revealed ? (revealByKey[r.key] || null) : null
               return (
                 <Fragment key={r.key || i}>
-                  <li className="cr2-kiosk__rounds__row">
-                    <span className="cr2-kiosk__rounds__lemma">
-                      <span className="cr2-kiosk__rounds__idx" aria-hidden="true">{i + 1}.</span>{' '}
+                  <li className="classroom-kiosk__rounds__row">
+                    <span className="classroom-kiosk__rounds__lemma">
+                      <span className="classroom-kiosk__rounds__idx" aria-hidden="true">{i + 1}.</span>{' '}
                       {r.lemma || `Runde ${i + 1}`}
                     </span>
-                    <span className="cr2-kiosk__rounds__score">
+                    <span className="classroom-kiosk__rounds__score">
                       {rev && rev.maxScore != null
                         ? `${rev.score} / ${rev.maxScore}`
                         : '✓ abgegeben'}
                     </span>
                   </li>
                   {rev && (
-                    <li className="cr2-kiosk__rounds__detail">
+                    <li className="classroom-kiosk__rounds__detail">
                       <RevealItems entry={rev} />
                     </li>
                   )}
@@ -255,7 +255,7 @@ export default function SubmittedState() {
             })}
           </ul>
           {revealed && totalMax > 0 && (
-            <div className="cr2-kiosk__resultcard__row cr2-kiosk__resultcard__row--correct cr2-kiosk__rounds__total">
+            <div className="classroom-kiosk__resultcard__row classroom-kiosk__resultcard__row--correct classroom-kiosk__rounds__total">
               <span>Gesamt</span>
               <strong>{totalScore} / {totalMax} Punkte</strong>
             </div>
@@ -264,18 +264,18 @@ export default function SubmittedState() {
       ) : (
         <>
           {(!revealed || !singleReveal) && (
-            <section className="cr2-kiosk__resultcard" aria-label="Deine Antwort">
-              <span className="cr2-kiosk__reslabel">Deine Antwort</span>
+            <section className="classroom-kiosk__resultcard" aria-label="Deine Antwort">
+              <span className="classroom-kiosk__reslabel">Deine Antwort</span>
               <Recap mode={mode} rawAnswer={state.submittedAnswer} lemma={state.currentLemma} />
             </section>
           )}
 
           {revealed && singleReveal && (
-            <section className="cr2-kiosk__resultcard" aria-label="Auflösung" data-testid="cr2-kiosk-reveal">
-              <span className="cr2-kiosk__reslabel">Auflösung</span>
+            <section className="classroom-kiosk__resultcard" aria-label="Auflösung" data-testid="classroom-kiosk-reveal">
+              <span className="classroom-kiosk__reslabel">Auflösung</span>
               <RevealItems entry={singleReveal} />
               {singleReveal.maxScore != null && (
-                <div className="cr2-kiosk__resultcard__row cr2-kiosk__resultcard__row--correct">
+                <div className="classroom-kiosk__resultcard__row classroom-kiosk__resultcard__row--correct">
                   <span>Ergebnis</span>
                   <strong>{singleReveal.score} / {singleReveal.maxScore} Punkte</strong>
                 </div>
@@ -288,9 +288,9 @@ export default function SubmittedState() {
       {isEnded && (
         <button
           type="button"
-          className="cr2-kiosk__textlink"
+          className="classroom-kiosk__textlink"
           onClick={() => navigate('/')}
-          data-testid="cr2-kiosk-to-app"
+          data-testid="classroom-kiosk-to-app"
         >
           Zur App<span className="test-cta-arrow" aria-hidden="true"> →</span>
         </button>

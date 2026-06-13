@@ -37,7 +37,7 @@ const MODES = [
 
 export default function ModePicker({ value, onChange }) {
   return (
-    <ul className="cr2-mode-picker" role="radiogroup" aria-label="Spielmodus wählen">
+    <ul className="classroom-mode-picker" role="radiogroup" aria-label="Spielmodus wählen">
       {MODES.map((m) => {
         const active = m.id === value
         return (
@@ -46,16 +46,16 @@ export default function ModePicker({ value, onChange }) {
               type="button"
               role="radio"
               aria-checked={active}
-              className={`cr2-card cr2-mode-card${active ? ' cr2-card--active' : ''}`}
+              className={`classroom-card classroom-mode-card${active ? ' classroom-card--active' : ''}`}
               onClick={() => onChange(m.id)}
-              data-testid={`cr2-mode-${m.id}`}
+              data-testid={`classroom-mode-${m.id}`}
             >
-              <span className="cr2-mode-card__head">
-                <span className="cr2-mode-card__name">{m.label}</span>
-                <span className="cr2-mode-card__ipa">{m.ipa}</span>
-                <span className="cr2-mode-card__cat">{m.cat}</span>
+              <span className="classroom-mode-card__head">
+                <span className="classroom-mode-card__name">{m.label}</span>
+                <span className="classroom-mode-card__ipa">{m.ipa}</span>
+                <span className="classroom-mode-card__cat">{m.cat}</span>
               </span>
-              <span className="cr2-mode-card__desc">{m.desc}</span>
+              <span className="classroom-mode-card__desc">{m.desc}</span>
             </button>
           </li>
         )

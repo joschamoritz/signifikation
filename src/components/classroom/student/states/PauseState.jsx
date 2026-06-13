@@ -13,22 +13,22 @@ export default function PauseState() {
   const { state } = useStudentKiosk()
 
   return (
-    <div className="cr2-kiosk__panel cr2-kiosk__panel--center">
+    <div className="classroom-kiosk__panel classroom-kiosk__panel--center">
       {state.displayName && (
-        <span className="cr2-kiosk__name-chip" data-testid="cr2-kiosk-name-chip">
+        <span className="classroom-kiosk__name-chip" data-testid="classroom-kiosk-name-chip">
           <strong>{state.displayName}</strong>
         </span>
       )}
 
-      <p className="cr2-kiosk__overline">Pause</p>
-      <h1 className="cr2-kiosk__title" data-testid="cr2-kiosk-pause">Kurze Pause.</h1>
+      <p className="classroom-kiosk__overline">Pause</p>
+      <h1 className="classroom-kiosk__title" data-testid="classroom-kiosk-pause">Kurze Pause.</h1>
 
-      <p className="cr2-kiosk__lead" style={{ marginTop: 18, marginBottom: 0 }}>
-        <span className="cr2-kiosk__pulse" aria-hidden="true" />
+      <p className="classroom-kiosk__lead" style={{ marginTop: 18, marginBottom: 0 }}>
+        <span className="classroom-kiosk__pulse" aria-hidden="true" />
         Deine Lehrkraft hat das Spiel pausiert. Es geht gleich weiter.
       </p>
 
-      <p className="cr2-kiosk__hint" style={{ marginTop: 12 }}>
+      <p className="classroom-kiosk__hint" style={{ marginTop: 12 }}>
         Dein Fortschritt bleibt erhalten.
       </p>
     </div>

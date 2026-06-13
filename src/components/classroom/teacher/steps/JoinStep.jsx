@@ -23,30 +23,30 @@ const STEPS_DATA = [
 export default function JoinStep() {
   return (
     <ClassroomSubScreen
-      testId="cr2-join"
+      testId="classroom-join"
       title="Beitritt"
       label="Zugang"
       lead="So kommt die Klasse in deine Session."
     >
-      <p className="cr2-subscreen__intro">
+      <p className="classroom-subscreen__intro">
         Sobald du eine Session öffnest, zeigt die Lobby einen Beitrittscode und
         einen QR-Code. Beide führen zum selben Ziel — ohne Konto, direkt im
         Browser.
       </p>
 
-      <ol className="cr2-steps" aria-label="Beitrittswege">
+      <ol className="classroom-steps" aria-label="Beitrittswege">
         {STEPS_DATA.map((s, i) => (
-          <li className="cr2-step" key={i}>
-            <span className="cr2-step__num" aria-hidden="true">{i + 1}</span>
-            <div className="cr2-step__body">
-              <h2 className="cr2-step__title">{s.title}</h2>
-              <p className="cr2-step__text">{s.text}</p>
+          <li className="classroom-step" key={i}>
+            <span className="classroom-step__num" aria-hidden="true">{i + 1}</span>
+            <div className="classroom-step__body">
+              <h2 className="classroom-step__title">{s.title}</h2>
+              <p className="classroom-step__text">{s.text}</p>
             </div>
           </li>
         ))}
       </ol>
 
-      <p className="cr2-subscreen__note">
+      <p className="classroom-subscreen__note">
         In der Lobby siehst du, wer beigetreten ist — und startest die Runde,
         wenn alle da sind.
       </p>

@@ -94,23 +94,23 @@ export default function QrScanner({ onResult, onClose }) {
   }, [])
 
   return (
-    <div className="cr2-qr-scanner" role="dialog" aria-label="QR-Code scannen" aria-modal="true">
-      <div className="cr2-qr-scanner__frame">
+    <div className="classroom-qr-scanner" role="dialog" aria-label="QR-Code scannen" aria-modal="true">
+      <div className="classroom-qr-scanner__frame">
         <video
           ref={videoRef}
-          className="cr2-qr-scanner__video"
+          className="classroom-qr-scanner__video"
           muted
           playsInline
           aria-hidden="true"
         />
-        <div className="cr2-qr-scanner__reticle" aria-hidden="true" />
+        <div className="classroom-qr-scanner__reticle" aria-hidden="true" />
       </div>
-      <p className="cr2-qr-scanner__hint" aria-live="polite">
+      <p className="classroom-qr-scanner__hint" aria-live="polite">
         {error || 'Richte die Kamera auf den QR-Code deiner Lehrkraft.'}
       </p>
       <button
         type="button"
-        className="cr2-qr-scanner__cancel"
+        className="classroom-qr-scanner__cancel"
         onClick={() => onCloseRef.current?.()}
       >
         Abbrechen

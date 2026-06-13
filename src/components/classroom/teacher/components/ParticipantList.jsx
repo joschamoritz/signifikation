@@ -32,12 +32,12 @@ export default function ParticipantList({
 }) {
   if (!participants.length) {
     return (
-      <p className="cr2-loading" data-testid="cr2-participants-empty">{emptyLabel}</p>
+      <p className="classroom-loading" data-testid="classroom-participants-empty">{emptyLabel}</p>
     )
   }
 
   return (
-    <ul className="cr2-participant-list" aria-label="Teilnehmer">
+    <ul className="classroom-participant-list" aria-label="Teilnehmer">
       {participants.map((p, i) => {
         const status = statusFor(p, mode)
         // Mehrrunden-Modus (z. B. Kollokationen, 3 Lemmata): solange noch
@@ -46,13 +46,13 @@ export default function ParticipantList({
         const roundsTotal = p.roundsTotal || 0
         const showRounds = mode === 'live' && !p.leftAt && roundsTotal > 1 && status !== 'submitted'
         return (
-          <li key={p.id} className="cr2-participant" data-status={status}>
-            <span className={`cr2-participant__dot cr2-participant__dot--${status}`} aria-hidden="true" />
-            <span className="cr2-participant__name">
+          <li key={p.id} className="classroom-participant" data-status={status}>
+            <span className={`classroom-participant__dot classroom-participant__dot--${status}`} aria-hidden="true" />
+            <span className="classroom-participant__name">
               {showNames ? (p.displayName || `Schüler:in ${i + 1}`)
-                         : <em style={{ color: 'var(--cr2-muted)' }}>Schüler:in {i + 1}</em>}
+                         : <em style={{ color: 'var(--classroom-muted)' }}>Schüler:in {i + 1}</em>}
             </span>
-            <span className="cr2-participant__status">
+            <span className="classroom-participant__status">
               {showRounds
                 ? `Runde ${Math.min((p.roundsDone || 0) + 1, roundsTotal)}/${roundsTotal}`
                 : STATUS_TEXT[status]}
@@ -60,11 +60,11 @@ export default function ParticipantList({
             {onKick && !p.leftAt && (
               <button
                 type="button"
-                className="cr2-participant__kick"
+                className="classroom-participant__kick"
                 onClick={() => onKick(p.id)}
                 aria-label={`${p.displayName || `Schüler:in ${i + 1}`} entfernen`}
                 title="Teilnehmer entfernen"
-                data-testid={`cr2-participant-kick-${p.id}`}
+                data-testid={`classroom-participant-kick-${p.id}`}
               >
                 ×
               </button>

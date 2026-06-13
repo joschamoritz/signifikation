@@ -1,9 +1,9 @@
 /* W2-T1 — Overlay für die Schüleransicht-Vorschau im Setup.
-   Der Inhalt nutzt die Kiosk-Klassen (.cr2-kiosk*) aus KioskShell.css,
+   Der Inhalt nutzt die Kiosk-Klassen (.classroom-kiosk*) aus KioskShell.css,
    damit die Vorschau pixelgleich zum Echtbetrieb aussieht. Hier nur das
    Overlay-Gerüst + der dezente Vorschau-Hinweis. */
 
-.cr2-preview-overlay {
+.classroom-preview-overlay {
   position: fixed;
   inset: 0;
   z-index: 70;
@@ -14,9 +14,9 @@
   overflow-y: auto;
 }
 
-.cr2-preview.cr2-kiosk {
+.classroom-preview.classroom-kiosk {
   width: 100%;
-  /* Kiosk-Look auf 480px begrenzt (max-width steckt in .cr2-kiosk__main).
+  /* Kiosk-Look auf 480px begrenzt (max-width steckt in .classroom-kiosk__main).
      Die Shell darf die volle Höhe füllen, damit es wie das echte Gerät wirkt. */
   min-height: 100vh;
   border-left: 1px solid var(--border-lt);
@@ -24,10 +24,10 @@
 }
 
 /* Kopfzeile: Zurück oben links (wie überall in der App), Label rechts. */
-.cr2-preview__header {
+.classroom-preview__header {
   justify-content: space-between;
 }
-.cr2-preview__back {
+.classroom-preview__back {
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -40,10 +40,10 @@
   padding: 6px 4px;
   min-height: 44px;
 }
-.cr2-preview__back:hover { opacity: 0.7; }
+.classroom-preview__back:hover { opacity: 0.7; }
 
 /* Dezenter Vorschau-Hinweis im Wörterbuch-Stil (Gold, kursiv). */
-.cr2-preview__banner {
+.classroom-preview__banner {
   border: 1px solid var(--k-gold);
   background: color-mix(in srgb, var(--k-gold) 12%, transparent);
   color: var(--k-muted);

@@ -124,48 +124,48 @@ export default function SetupPreview({ mode, lemmaIds, onClose }) {
 
   return (
     <div
-      className="cr2-preview-overlay"
+      className="classroom-preview-overlay"
       role="dialog"
       aria-modal="true"
       aria-label="Vorschau der Schüleransicht"
-      data-testid="cr2-setup-preview"
+      data-testid="classroom-setup-preview"
     >
-      <div className="cr2-kiosk cr2-preview">
-        <header className="cr2-kiosk__header cr2-preview__header">
+      <div className="classroom-kiosk classroom-preview">
+        <header className="classroom-kiosk__header classroom-preview__header">
           <button
             type="button"
-            className="cr2-preview__back"
+            className="classroom-preview__back"
             onClick={onClose}
             aria-label="Vorschau schließen"
-            data-testid="cr2-preview-close"
+            data-testid="classroom-preview-close"
           >
             <svg width="10" height="16" viewBox="0 0 10 16" fill="none" aria-hidden="true"><path d="M8.5 1L1.5 8L8.5 15" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>
             Schließen
           </button>
-          <span className="cr2-kiosk__brand"><small>Vorschau</small></span>
+          <span className="classroom-kiosk__brand"><small>Vorschau</small></span>
         </header>
 
-        <main className="cr2-kiosk__main">
-          <p className="cr2-preview__banner" role="note">
+        <main className="classroom-kiosk__main">
+          <p className="classroom-preview__banner" role="note">
             Vorschau — so sehen es deine Schüler:innen. Keine echte Session,
             Eingaben werden nicht gewertet.
           </p>
 
           {status === 'loading' && (
-            <p className="cr2-kiosk__hint" data-testid="cr2-preview-loading">
+            <p className="classroom-kiosk__hint" data-testid="classroom-preview-loading">
               Vorschau wird geladen …
             </p>
           )}
 
           {status === 'error' && (
-            <p className="cr2-kiosk__hint cr2-kiosk__hint--error" data-testid="cr2-preview-error">
+            <p className="classroom-kiosk__hint classroom-kiosk__hint--error" data-testid="classroom-preview-error">
               {error || 'Vorschau nicht verfügbar.'}
             </p>
           )}
 
           {status === 'ready' && !done && currentLemma && Game && lemmaHasContent(mode, currentLemma) && (
             <>
-              <p className="cr2-kiosk__hint" style={{ margin: '0 0 4px' }} data-testid="cr2-preview-progress">
+              <p className="classroom-kiosk__hint" style={{ margin: '0 0 4px' }} data-testid="classroom-preview-progress">
                 {total > 1 ? `Lemma ${lemmaIndex + 1} / ${total}` : 'Klassenraum'}
                 {mode === 'lueckenfueller' && totalRounds > 1
                   ? ` · Runde ${roundIndex + 1} / ${totalRounds}`
@@ -183,12 +183,12 @@ export default function SetupPreview({ mode, lemmaIds, onClose }) {
 
           {/* Eignungs-Hinweis: das gewählte Lemma hat keinen spielbaren Inhalt. */}
           {status === 'ready' && !done && currentLemma && Game && !lemmaHasContent(mode, currentLemma) && (
-            <div style={{ textAlign: 'center', paddingTop: 8 }} data-testid="cr2-preview-no-content">
-              <span className="cr2-kiosk__dropcap">!</span>
-              <p className="cr2-kiosk__title" style={{ fontSize: '1.2rem' }}>
+            <div style={{ textAlign: 'center', paddingTop: 8 }} data-testid="classroom-preview-no-content">
+              <span className="classroom-kiosk__dropcap">!</span>
+              <p className="classroom-kiosk__title" style={{ fontSize: '1.2rem' }}>
                 {currentLemma.lemma || 'Dieses Lemma'} — kein Inhalt
               </p>
-              <p className="cr2-kiosk__lead">
+              <p className="classroom-kiosk__lead">
                 {NO_CONTENT_HINT[mode] || 'Für diese Auswahl gibt es keinen spielbaren Inhalt.'}
               </p>
               {lemmaIndex + 1 < total ? (
@@ -196,7 +196,7 @@ export default function SetupPreview({ mode, lemmaIds, onClose }) {
                   type="button"
                   className="btn-ghost"
                   onClick={() => { setLemmaIndex((i) => i + 1); setRoundIndex(0) }}
-                  data-testid="cr2-preview-skip"
+                  data-testid="classroom-preview-skip"
                 >
                   Nächstes Lemma ansehen →
                 </button>
@@ -209,23 +209,23 @@ export default function SetupPreview({ mode, lemmaIds, onClose }) {
           )}
 
           {status === 'ready' && !done && currentLemma && !Game && (
-            <p className="cr2-kiosk__hint cr2-kiosk__hint--error">
+            <p className="classroom-kiosk__hint classroom-kiosk__hint--error">
               Unbekannter Spielmodus „{mode || '—'}".
             </p>
           )}
 
           {status === 'ready' && done && (
-            <div style={{ textAlign: 'center', paddingTop: 16 }} data-testid="cr2-preview-done">
-              <span className="cr2-kiosk__dropcap cr2-kiosk__dropcap--gold">✓</span>
-              <p className="cr2-kiosk__title">Vorschau durchgespielt</p>
-              <p className="cr2-kiosk__lead">
+            <div style={{ textAlign: 'center', paddingTop: 16 }} data-testid="classroom-preview-done">
+              <span className="classroom-kiosk__dropcap classroom-kiosk__dropcap--gold">✓</span>
+              <p className="classroom-kiosk__title">Vorschau durchgespielt</p>
+              <p className="classroom-kiosk__lead">
                 Das war die Schüleransicht für deine Auswahl.
               </p>
               <button
                 type="button"
                 className="btn-primary btn-full"
                 onClick={restart}
-                data-testid="cr2-preview-restart"
+                data-testid="classroom-preview-restart"
               >
                 Nochmal ansehen
               </button>

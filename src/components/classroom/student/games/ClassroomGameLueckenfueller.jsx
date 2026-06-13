@@ -46,7 +46,7 @@ function ChoiceRound({ round, submitting, onSubmit, draftKey }) {
             onClick={() => { if (!submitting) setPicked(opt) }}
             aria-pressed={picked === opt}
             disabled={submitting}
-            data-testid={`cr2-kiosk-lf-choice-${opt}`}
+            data-testid={`classroom-kiosk-lf-choice-${opt}`}
           >
             {opt}
           </button>
@@ -58,7 +58,7 @@ function ChoiceRound({ round, submitting, onSubmit, draftKey }) {
           className="btn-primary btn-full"
           onClick={() => { if (picked) onSubmit({ selected: picked }) }}
           disabled={submitting || !picked}
-          data-testid="cr2-kiosk-lf-submit"
+          data-testid="classroom-kiosk-lf-submit"
         >
           {submitting ? 'Sende …' : 'Abgeben'}
         </button>
@@ -95,7 +95,7 @@ function DoubleRound({ round, submitting, onSubmit, draftKey }) {
               autoCorrect="off"
               spellCheck={false}
               disabled={submitting}
-              data-testid={`cr2-kiosk-lf-double-input-${i}`}
+              data-testid={`classroom-kiosk-lf-double-input-${i}`}
             />
           </div>
         </div>
@@ -106,7 +106,7 @@ function DoubleRound({ round, submitting, onSubmit, draftKey }) {
           className="btn-primary btn-full"
           onClick={() => onSubmit({ answers })}
           disabled={submitting || answers.some((a) => !String(a).trim())}
-          data-testid="cr2-kiosk-lf-submit"
+          data-testid="classroom-kiosk-lf-submit"
         >
           {submitting ? 'Sende …' : 'Abgeben'}
         </button>
@@ -125,9 +125,9 @@ function FreeRound({ round, submitting, onSubmit, draftKey }) {
         </p>
       </div>
       <div className="lf-free-wrap">
-        <label htmlFor="cr2-lf-free" className="sr-only">Fehlende Kollokation eingeben</label>
+        <label htmlFor="classroom-lf-free" className="sr-only">Fehlende Kollokation eingeben</label>
         <input
-          id="cr2-lf-free"
+          id="classroom-lf-free"
           className="lf-free-input"
           type="text"
           value={value}
@@ -137,7 +137,7 @@ function FreeRound({ round, submitting, onSubmit, draftKey }) {
           autoCorrect="off"
           spellCheck={false}
           disabled={submitting}
-          data-testid="cr2-kiosk-lf-free-input"
+          data-testid="classroom-kiosk-lf-free-input"
         />
       </div>
       <footer className="quiz-footer">
@@ -146,7 +146,7 @@ function FreeRound({ round, submitting, onSubmit, draftKey }) {
           className="btn-primary btn-full"
           onClick={() => { if (value.trim()) onSubmit({ value: value.trim() }) }}
           disabled={submitting || !value.trim()}
-          data-testid="cr2-kiosk-lf-submit"
+          data-testid="classroom-kiosk-lf-submit"
         >
           {submitting ? 'Sende …' : 'Abgeben'}
         </button>
@@ -165,7 +165,7 @@ export default function ClassroomGameLueckenfueller({ lemma, prompt, onSubmit, s
   }
 
   return (
-    <div className="screen quiz-screen cr2-kiosk__game lf-screen" data-testid="cr2-kiosk-game-lueckenfueller">
+    <div className="screen quiz-screen classroom-kiosk__game lf-screen" data-testid="classroom-kiosk-game-lueckenfueller">
       <KioskGameHeader
         badge="Lückenfüller"
         lemma={lemma?.lemma}
@@ -173,7 +173,7 @@ export default function ClassroomGameLueckenfueller({ lemma, prompt, onSubmit, s
         instruction={`Welches Wort fehlt? · Runde ${roundIndex + 1}`}
       />
 
-      {!round && <p className="cr2-kiosk__hint">Keine Runde verfügbar.</p>}
+      {!round && <p className="classroom-kiosk__hint">Keine Runde verfügbar.</p>}
       {round?.type === 'choice'  && <ChoiceRound  round={round} submitting={submitting} onSubmit={handleSubmit} draftKey={roundDraftKey} />}
       {round?.type === 'double'  && <DoubleRound  round={round} submitting={submitting} onSubmit={handleSubmit} draftKey={roundDraftKey} />}
       {round?.type === 'free'    && <FreeRound    round={round} submitting={submitting} onSubmit={handleSubmit} draftKey={roundDraftKey} />}

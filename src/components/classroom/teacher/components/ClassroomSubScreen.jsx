@@ -19,20 +19,20 @@ export default function ClassroomSubScreen({
   const handleBack = onBack || (() => dispatch({ type: 'GO_TO_INDEX' }))
 
   return (
-    <div className="screen selection-screen cr2-subscreen" data-testid={testId}>
+    <div className="screen selection-screen classroom-subscreen" data-testid={testId}>
       <header className="selection-header">
         <button
           className="back-btn"
           type="button"
           onClick={handleBack}
           aria-label={backLabel}
-          data-testid="cr2-subscreen-back"
+          data-testid="classroom-subscreen-back"
         >
           <svg width="10" height="16" viewBox="0 0 10 16" fill="none" aria-hidden="true">
             <path d="M8.5 1L1.5 8L8.5 15" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         </button>
-        <h1 className="cr2-subscreen__title">{title}</h1>
+        <h1 className="classroom-subscreen__title">{title}</h1>
         {(label || lead) && (
           <div className="selection-thema-block">
             {label && <span className="selection-thema-label">{label}</span>}

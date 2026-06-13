@@ -35,20 +35,20 @@ import {
 } from '../classroom/telemetry.js'
 import {
   validate,
-  cr2CreateSessionSchema,
-  cr2CreateAssignmentSchema,
-  cr2CreateAssignmentsSchema,
-  cr2NextAssignmentSchema,
-  cr2LemmataQuerySchema,
-  cr2TodayLemmataQuerySchema,
-  cr2StartSessionSchema,
-  cr2FinishSessionSchema,
-  cr2PauseSessionSchema,
-  cr2ResumeSessionSchema,
-  cr2JoinSchema,
-  cr2SubmitSchema,
-  cr2ListSessionsQuerySchema,
-  cr2SessionIdParamsSchema,
+  classroomCreateSessionSchema,
+  classroomCreateAssignmentSchema,
+  classroomCreateAssignmentsSchema,
+  classroomNextAssignmentSchema,
+  classroomLemmataQuerySchema,
+  classroomTodayLemmataQuerySchema,
+  classroomStartSessionSchema,
+  classroomFinishSessionSchema,
+  classroomPauseSessionSchema,
+  classroomResumeSessionSchema,
+  classroomJoinSchema,
+  classroomSubmitSchema,
+  classroomListSessionsQuerySchema,
+  classroomSessionIdParamsSchema,
 } from '../middleware/validate.js'
 import {
   createSession,
@@ -117,7 +117,7 @@ function requireParticipantAuth(req, res, next) {
   if (!participant) return res.status(401).json({ error: 'Ungültiger oder abgelaufener Token' })
   if (participant.leftAt) return res.status(403).json({ error: 'Du hast die Session verlassen' })
 
-  req.cr2 = { participant, sessionId: participant.sessionId }
+  req.classroom = { participant, sessionId: participant.sessionId }
   return next()
 }
 
@@ -376,7 +376,7 @@ router.post(
   '/api/v1/classroom/sessions',
   classroomWriteLimiter,
   requirePremium,
-  validate(cr2CreateSessionSchema),
+  validate(classroomCreateSessionSchema),
   (req, res) => {
     const { title, settings } = req.body
     const result = createSession({
@@ -385,7 +385,7 @@ router.post(
       settings: settings || {},
     })
     return respondStoreResult(res, result, () => {
-      logger.info({ sessionId: result.session.id, teacherId: req.user.id }, 'cr2 session created')
+      logger.info({ sessionId: result.session.id, teacherId: req.user.id }, 'classroom session created')
       trackSessionCreated(result.session.id, req.user.id)
       // TODO (T-3.x): keine Broadcast nötig beim Anlegen
       return res.status(201).json({
@@ -437,7 +437,7 @@ function lemmataStmts(mode) {
 router.get(
   '/api/v1/classroom/lemmata',
   requirePremium,
-  validate(cr2LemmataQuerySchema, 'query'),
+  validate(classroomLemmataQuerySchema, 'query'),
   (req, res) => {
     const { q, pos, limit, mode } = req.query
     const qParam = q ? `%${q}%` : null
@@ -477,7 +477,7 @@ function classroomTodayDatum() {
 router.get(
   '/api/v1/classroom/today-lemmata',
   requirePremium,
-  validate(cr2TodayLemmataQuerySchema, 'query'),
+  validate(classroomTodayLemmataQuerySchema, 'query'),
   (req, res) => {
     const mode  = req.query.mode || 'kollokationen'
     const datum = classroomTodayDatum()
@@ -548,12 +548,12 @@ router.get(
 // content_snapshot (buildContentSnapshot) und filtern ihn mit derselben
 // Whitelist (buildSafePrompt). Es wird NICHTS persistiert, NICHTS gescort.
 //
-// Body == cr2CreateAssignmentSchema ({ mode, lemmaIds }), damit Validierung
+// Body == classroomCreateAssignmentSchema ({ mode, lemmaIds }), damit Validierung
 // und Limits (D3: max. 3 Lemmata) identisch zum echten Assignment sind.
 router.post(
   '/api/v1/classroom/preview',
   requirePremium,
-  validate(cr2CreateAssignmentSchema),
+  validate(classroomCreateAssignmentSchema),
   async (req, res) => {
     const { mode, lemmaIds } = req.body
 
@@ -589,7 +589,7 @@ router.post(
 router.get(
   '/api/v1/classroom/sessions',
   requirePremium,
-  validate(cr2ListSessionsQuerySchema, 'query'),
+  validate(classroomListSessionsQuerySchema, 'query'),
   (req, res) => {
     const { limit } = req.query
     const sessions = listTeacherSessions({ teacherUserId: req.user.id, limit })
@@ -604,11 +604,11 @@ router.post(
   '/api/v1/classroom/sessions/:id/assignments',
   classroomWriteLimiter,
   requireCapability('session:manage'),
-  validate(cr2CreateAssignmentSchema),
+  validate(classroomCreateAssignmentSchema),
   async (req, res) => {
     const { mode, lemmaIds } = req.body
     const sessionId   = req.params.id
-    const teacherUserId = req.cr2.subject.id
+    const teacherUserId = req.classroom.subject.id
 
     // Lemmata laden (echte aus DB, wz:-Paare synthetisch), Snapshot einfrieren
     const { lemmata, missing } = loadAssignmentLemmata(lemmaIds)
@@ -628,7 +628,7 @@ router.post(
       contentSnapshot,
     })
     return respondStoreResult(res, result, () => {
-      logger.info({ sessionId, mode, lemmaCount: lemmaIds.length }, 'cr2 assignment added')
+      logger.info({ sessionId, mode, lemmaCount: lemmaIds.length }, 'classroom assignment added')
       return res.status(201).json({
         id:         result.assignment.id,
         mode:       result.assignment.mode,
@@ -646,11 +646,11 @@ router.post(
   '/api/v1/classroom/sessions/:id/assignments/bulk',
   classroomWriteLimiter,
   requireCapability('session:manage'),
-  validate(cr2CreateAssignmentsSchema),
+  validate(classroomCreateAssignmentsSchema),
   async (req, res) => {
     const { blocks } = req.body
     const sessionId    = req.params.id
-    const teacherUserId = req.cr2.subject.id
+    const teacherUserId = req.classroom.subject.id
 
     // Pro Block Snapshot bauen; dafuer alle referenzierten Lemmata laden.
     const builtBlocks = []
@@ -669,7 +669,7 @@ router.post(
 
     const result = addAssignments({ sessionId, teacherUserId, blocks: builtBlocks })
     return respondStoreResult(res, result, () => {
-      logger.info({ sessionId, count: result.assignments.length }, 'cr2 assignments (bulk) added')
+      logger.info({ sessionId, count: result.assignments.length }, 'classroom assignments (bulk) added')
       return res.status(201).json({
         assignments: result.assignments.map(a => ({
           id:         a.id,
@@ -692,7 +692,7 @@ router.delete(
     const result = removeAssignment({
       sessionId:    req.params.id,
       assignmentId: req.params.aid,
-      teacherUserId: req.cr2.subject.id,
+      teacherUserId: req.classroom.subject.id,
     })
     return respondStoreResult(res, result, () => res.status(204).end())
   },
@@ -703,13 +703,13 @@ router.post(
   '/api/v1/classroom/sessions/:id/start',
   classroomWriteLimiter,
   requireCapability('session:manage'),
-  validate(cr2StartSessionSchema),
+  validate(classroomStartSessionSchema),
   (req, res) => {
     const sessionId    = req.params.id
-    const teacherUserId = req.cr2.subject.id
+    const teacherUserId = req.classroom.subject.id
     const result = startSession({ sessionId, teacherUserId })
     return respondStoreResult(res, result, () => {
-      logger.info({ sessionId }, 'cr2 session started')
+      logger.info({ sessionId }, 'classroom session started')
       const participantCount = countActivePartsStmt.get(sessionId)?.c ?? 0
       trackSessionStarted(sessionId, teacherUserId, Number(participantCount))
       // Broadcast an Schueler- und Teacher-Room (Plan §6: session:started).
@@ -733,18 +733,18 @@ router.post(
   '/api/v1/classroom/sessions/:id/finish',
   classroomWriteLimiter,
   requireCapability('session:manage'),
-  validate(cr2FinishSessionSchema),
+  validate(classroomFinishSessionSchema),
   (req, res) => {
     try {
       const sessionId    = req.params.id
-      const teacherUserId = req.cr2.subject.id
+      const teacherUserId = req.classroom.subject.id
       const { reason }   = req.body
       const result = finishSession({ sessionId, teacherUserId, reason })
       if (result.error) {
         const mapped = mapError(result.error)
         return res.status(mapped.status).json({ error: mapped.message })
       }
-      logger.info({ sessionId, reason }, 'cr2 session finished')
+      logger.info({ sessionId, reason }, 'classroom session finished')
       // Telemetrie: durationMs aus started_at
       const durationMs = result.session.startedAt
         ? result.session.finishedAt - result.session.startedAt
@@ -764,7 +764,7 @@ router.post(
         finishedAt: result.session.finishedAt,
       })
     } catch (err) {
-      logger.error({ err }, 'cr2 finishSession crashed')
+      logger.error({ err }, 'classroom finishSession crashed')
       return res.status(500).json({ error: 'Interner Serverfehler' })
     }
   },
@@ -777,21 +777,21 @@ router.delete(
   '/api/v1/classroom/sessions/:id',
   classroomWriteLimiter,
   requireCapability('session:manage'),
-  validate(cr2SessionIdParamsSchema, 'params'),
+  validate(classroomSessionIdParamsSchema, 'params'),
   (req, res) => {
     try {
       const result = deleteSession({
         sessionId:     req.params.id,
-        teacherUserId: req.cr2.subject.id,
+        teacherUserId: req.classroom.subject.id,
       })
       if (result.error) {
         const mapped = mapError(result.error)
         return res.status(mapped.status).json({ error: mapped.message })
       }
-      logger.info({ sessionId: req.params.id }, 'cr2 session deleted')
+      logger.info({ sessionId: req.params.id }, 'classroom session deleted')
       return res.status(204).end()
     } catch (err) {
-      logger.error({ err }, 'cr2 deleteSession crashed')
+      logger.error({ err }, 'classroom deleteSession crashed')
       return res.status(500).json({ error: 'Interner Serverfehler' })
     }
   },
@@ -802,11 +802,11 @@ router.post(
   '/api/v1/classroom/sessions/:id/pause',
   classroomWriteLimiter,
   requireCapability('session:manage'),
-  validate(cr2PauseSessionSchema),
+  validate(classroomPauseSessionSchema),
   (req, res) => {
     try {
       const sessionId     = req.params.id
-      const teacherUserId = req.cr2.subject.id
+      const teacherUserId = req.classroom.subject.id
       const result = pauseSession({ sessionId, teacherUserId })
       if (result.error) {
         const mapped = mapError(result.error)
@@ -822,7 +822,7 @@ router.post(
         pausedAt: result.session.pausedAt,
       })
     } catch (err) {
-      logger.error({ err }, 'cr2 pauseSession crashed')
+      logger.error({ err }, 'classroom pauseSession crashed')
       return res.status(500).json({ error: 'Interner Serverfehler' })
     }
   },
@@ -833,11 +833,11 @@ router.post(
   '/api/v1/classroom/sessions/:id/resume',
   classroomWriteLimiter,
   requireCapability('session:manage'),
-  validate(cr2ResumeSessionSchema),
+  validate(classroomResumeSessionSchema),
   (req, res) => {
     try {
       const sessionId     = req.params.id
-      const teacherUserId = req.cr2.subject.id
+      const teacherUserId = req.classroom.subject.id
       const result = resumeSession({ sessionId, teacherUserId })
       if (result.error) {
         const mapped = mapError(result.error)
@@ -852,7 +852,7 @@ router.post(
         status: result.session.status,
       })
     } catch (err) {
-      logger.error({ err }, 'cr2 resumeSession crashed')
+      logger.error({ err }, 'classroom resumeSession crashed')
       return res.status(500).json({ error: 'Interner Serverfehler' })
     }
   },
@@ -867,11 +867,11 @@ router.post(
   '/api/v1/classroom/sessions/:id/next-assignment',
   classroomWriteLimiter,
   requireCapability('session:manage'),
-  validate(cr2NextAssignmentSchema),
+  validate(classroomNextAssignmentSchema),
   (req, res) => {
     try {
       const sessionId    = req.params.id
-      const teacherUserId = req.cr2.subject.id
+      const teacherUserId = req.classroom.subject.id
       const result = nextAssignment({ sessionId, teacherUserId })
       if (result.error) {
         const mapped = mapError(result.error)
@@ -880,7 +880,7 @@ router.post(
 
       if (result.done) {
         // Letzter Block durchgespielt → Session ist beendet. Broadcast wie /finish.
-        logger.info({ sessionId }, 'cr2 next-assignment → session finished (last block)')
+        logger.info({ sessionId }, 'classroom next-assignment → session finished (last block)')
         const durationMs = result.session.startedAt
           ? result.session.finishedAt - result.session.startedAt
           : null
@@ -900,7 +900,7 @@ router.post(
       // /me/view nach — wir senden bewusst KEINEN content_snapshot (R1).
       logger.info(
         { sessionId, index: result.index, total: result.total, mode: result.assignment.mode },
-        'cr2 advanced to next assignment',
+        'classroom advanced to next assignment',
       )
       trackAssignmentChanged(sessionId, teacherUserId, {
         fromIndex: result.index - 1,
@@ -926,7 +926,7 @@ router.post(
         },
       })
     } catch (err) {
-      logger.error({ err }, 'cr2 nextAssignment crashed')
+      logger.error({ err }, 'classroom nextAssignment crashed')
       return res.status(500).json({ error: 'Interner Serverfehler' })
     }
   },
@@ -942,7 +942,7 @@ router.get(
     try {
       const result = getDashboard({
         sessionId:    req.params.id,
-        teacherUserId: req.cr2.subject.id,
+        teacherUserId: req.classroom.subject.id,
       })
       if (result.error) {
         const mapped = mapError(result.error)
@@ -950,7 +950,7 @@ router.get(
       }
       return res.json(result)
     } catch (err) {
-      logger.error({ err }, 'cr2 getDashboard crashed')
+      logger.error({ err }, 'classroom getDashboard crashed')
       return res.status(500).json({ error: 'Interner Serverfehler' })
     }
   },
@@ -964,12 +964,12 @@ router.get(
 router.get(
   '/api/v1/classroom/sessions/:id/results',
   requireCapability('session:manage'),
-  validate(cr2SessionIdParamsSchema, 'params'),
+  validate(classroomSessionIdParamsSchema, 'params'),
   (req, res) => {
     try {
       const result = getSessionResults({
         sessionId:    req.params.id,
-        teacherUserId: req.cr2.subject.id,
+        teacherUserId: req.classroom.subject.id,
       })
       if (result.error) {
         const mapped = mapError(result.error)
@@ -977,7 +977,7 @@ router.get(
       }
       return res.json(result)
     } catch (err) {
-      logger.error({ err }, 'cr2 getSessionResults crashed')
+      logger.error({ err }, 'classroom getSessionResults crashed')
       return res.status(500).json({ error: 'Interner Serverfehler' })
     }
   },
@@ -993,7 +993,7 @@ router.get(
 router.post(
   '/api/v1/classroom/join',
   classroomJoinLimiter,
-  validate(cr2JoinSchema),
+  validate(classroomJoinSchema),
   (req, res) => {
     try {
       const { code, displayName } = req.body
@@ -1019,7 +1019,7 @@ router.post(
       }
       logger.info(
         { sessionId: result.session.id, participantId: result.participant.id },
-        'cr2 participant joined',
+        'classroom participant joined',
       )
       trackJoinSucceeded(result.session.id, result.participant.id)
       notifyStudentJoined(result.session.id, {
@@ -1034,7 +1034,7 @@ router.post(
         sessionStatus: result.session.status,
       })
     } catch (err) {
-      logger.error({ err }, 'cr2 join crashed')
+      logger.error({ err }, 'classroom join crashed')
       return res.status(500).json({ error: 'Interner Serverfehler' })
     }
   },
@@ -1050,7 +1050,7 @@ router.get(
   requireParticipantAuth,
   (req, res) => {
     try {
-      const { participant, sessionId } = req.cr2
+      const { participant, sessionId } = req.classroom
       const session = getSessionById(sessionId)
       if (!session) return res.status(404).json({ error: 'Session nicht gefunden' })
 
@@ -1078,7 +1078,7 @@ router.get(
       const view = buildStudentView(participant, session, assignment, { index, total })
       return res.json(view)
     } catch (err) {
-      logger.error({ err }, 'cr2 me/view crashed')
+      logger.error({ err }, 'classroom me/view crashed')
       return res.status(500).json({ error: 'Interner Serverfehler' })
     }
   },
@@ -1093,7 +1093,7 @@ router.get(
   requireParticipantAuth,
   (req, res) => {
     try {
-      const { participant, sessionId } = req.cr2
+      const { participant, sessionId } = req.classroom
       const result = getParticipantReveal({ sessionId, participantId: participant.id })
       if (result.error) {
         const mapped = mapError(result.error)
@@ -1101,7 +1101,7 @@ router.get(
       }
       return res.json(result)
     } catch (err) {
-      logger.error({ err }, 'cr2 me/reveal crashed')
+      logger.error({ err }, 'classroom me/reveal crashed')
       return res.status(500).json({ error: 'Interner Serverfehler' })
     }
   },
@@ -1116,10 +1116,10 @@ router.post(
   '/api/v1/classroom/me/submit',
   classroomWriteLimiter,
   requireCapability('submission:write'),
-  validate(cr2SubmitSchema),
+  validate(classroomSubmitSchema),
   (req, res) => {
     try {
-      const { participant, sessionId } = req.cr2
+      const { participant, sessionId } = req.classroom
       const { assignmentId, lemmaId, roundIndex, rawAnswer, clientMs } = req.body
 
       const result = submitAnswer({
@@ -1172,7 +1172,7 @@ router.post(
       // Nur die Annahme bestaetigen.
       return res.json({ accepted: true })
     } catch (err) {
-      logger.error({ err }, 'cr2 submit crashed')
+      logger.error({ err }, 'classroom submit crashed')
       return res.status(500).json({ error: 'Interner Serverfehler' })
     }
   },
@@ -1186,7 +1186,7 @@ router.post(
   requireParticipantAuth,
   (req, res) => {
     try {
-      const { participant, sessionId } = req.cr2
+      const { participant, sessionId } = req.classroom
       heartbeatParticipant(participant.id)
 
       const session = getSessionById(sessionId)
@@ -1197,7 +1197,7 @@ router.post(
       })
       return res.json({ ok: true, status: session?.status || 'unknown' })
     } catch (err) {
-      logger.error({ err }, 'cr2 heartbeat crashed')
+      logger.error({ err }, 'classroom heartbeat crashed')
       return res.status(500).json({ error: 'Interner Serverfehler' })
     }
   },
@@ -1209,7 +1209,7 @@ router.post(
   requireParticipantAuth,
   (req, res) => {
     try {
-      const { participant, sessionId } = req.cr2
+      const { participant, sessionId } = req.classroom
       leaveParticipant(participant.id)
       notifyStudentLeft(sessionId, {
         participantId: participant.id,
@@ -1218,7 +1218,7 @@ router.post(
       })
       return res.status(204).end()
     } catch (err) {
-      logger.error({ err }, 'cr2 leave crashed')
+      logger.error({ err }, 'classroom leave crashed')
       return res.status(500).json({ error: 'Interner Serverfehler' })
     }
   },
@@ -1237,7 +1237,7 @@ router.post(
     try {
       const sessionId     = req.params.id
       const participantId  = req.params.pid
-      const teacherUserId = req.cr2.subject.id
+      const teacherUserId = req.classroom.subject.id
       const result = kickParticipant({ sessionId, participantId, teacherUserId })
       if (result.error) {
         const mapped = mapError(result.error)
@@ -1247,10 +1247,10 @@ router.post(
       notifyStudentViewUpdated(participantId, { reason: 'kicked' })
       // Lehrer-Dashboard/Lobby aktualisieren.
       notifyStudentLeft(sessionId, { participantId, reason: 'kicked', at: Date.now() })
-      logger.info({ sessionId, participantId, teacherUserId }, 'cr2 participant kicked')
+      logger.info({ sessionId, participantId, teacherUserId }, 'classroom participant kicked')
       return res.json({ ok: true })
     } catch (err) {
-      logger.error({ err }, 'cr2 kick crashed')
+      logger.error({ err }, 'classroom kick crashed')
       return res.status(500).json({ error: 'Interner Serverfehler' })
     }
   },

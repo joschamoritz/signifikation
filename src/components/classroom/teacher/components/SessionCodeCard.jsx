@@ -73,68 +73,68 @@ export default function SessionCodeCard({ code }) {
                 'clamp(24px, 5.4vw, 48px)'
 
   return (
-    <section className="cr2-code-card" aria-label="Zugangscode">
-      <p className="cr2-code-card__label">Zugangscode</p>
-      <div className="cr2-code-card__display" aria-live="polite" style={{ fontSize: codeSize }}>
+    <section className="classroom-code-card" aria-label="Zugangscode">
+      <p className="classroom-code-card__label">Zugangscode</p>
+      <div className="classroom-code-card__display" aria-live="polite" style={{ fontSize: codeSize }}>
         {code.split('').map((char, i) => (
-          <span key={i} className="cr2-code-card__char">{char}</span>
+          <span key={i} className="classroom-code-card__char">{char}</span>
         ))}
       </div>
 
       {qrSvg && (
         <button
           type="button"
-          className="cr2-code-card__qr cr2-code-card__qr--button"
+          className="classroom-code-card__qr classroom-code-card__qr--button"
           // eslint-disable-next-line react/no-danger -- SVG kommt aus der qrcode-Lib, kein User-Input
           dangerouslySetInnerHTML={{ __html: qrSvg }}
           onClick={() => setZoomed(true)}
           aria-label="QR-Code zum Beitreten — tippen für Vollbild"
-          data-testid="cr2-code-qr-button"
+          data-testid="classroom-code-qr-button"
         />
       )}
 
       {zoomed && typeof document !== 'undefined' && createPortal(
         <div
-          className="cr2-qr-fullscreen"
+          className="classroom-qr-fullscreen"
           role="dialog"
           aria-modal="true"
           aria-label="QR-Code Vollbild"
           onClick={() => setZoomed(false)}
-          data-testid="cr2-qr-fullscreen"
+          data-testid="classroom-qr-fullscreen"
         >
           <button
             type="button"
-            className="cr2-qr-fullscreen__close"
+            className="classroom-qr-fullscreen__close"
             onClick={() => setZoomed(false)}
             aria-label="Vollbild schließen"
           >
             ×
           </button>
-          <div className="cr2-qr-fullscreen__inner" onClick={(e) => e.stopPropagation()}>
-            <p className="cr2-qr-fullscreen__code">{code}</p>
+          <div className="classroom-qr-fullscreen__inner" onClick={(e) => e.stopPropagation()}>
+            <p className="classroom-qr-fullscreen__code">{code}</p>
             <div
-              className="cr2-qr-fullscreen__qr"
+              className="classroom-qr-fullscreen__qr"
               // eslint-disable-next-line react/no-danger -- SVG aus qrcode-Lib, kein User-Input
               dangerouslySetInnerHTML={{ __html: qrSvg }}
               role="img"
               aria-label="QR-Code zum Beitreten"
             />
-            <p className="cr2-qr-fullscreen__hint">Tippen zum Schließen</p>
+            <p className="classroom-qr-fullscreen__hint">Tippen zum Schließen</p>
           </div>
         </div>,
         document.body,
       )}
 
-      <div className="cr2-code-card__actions">
+      <div className="classroom-code-card__actions">
         <button
           type="button"
-          className="cr2-link-cta"
+          className="classroom-link-cta"
           onClick={copyCode}
         >
           {copied ? '✓ Kopiert' : 'Code kopieren'}
         </button>
         {url && (
-          <a className="cr2-link-cta" href={url} target="_blank" rel="noreferrer">
+          <a className="classroom-link-cta" href={url} target="_blank" rel="noreferrer">
             Beitrittsseite öffnen
             <span className="test-cta-arrow" aria-hidden="true"> ↗</span>
           </a>

@@ -40,10 +40,10 @@ export function startClassroomAutoEnd(options = {}) {
         })
       }
       if (ended.length > 0) {
-        logger.info({ count: ended.length }, 'cr2 Auto-End: Sessions beendet')
+        logger.info({ count: ended.length }, 'classroom Auto-End: Sessions beendet')
       }
     } catch (err) {
-      logger.warn({ err }, 'cr2 Auto-End-Sweep fehlgeschlagen')
+      logger.warn({ err }, 'classroom Auto-End-Sweep fehlgeschlagen')
     }
   }
 

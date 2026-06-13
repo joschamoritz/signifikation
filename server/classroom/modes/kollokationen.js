@@ -29,7 +29,7 @@ export default {
     const kollokatoren = await resolveKollokatoren(lemma, {
       fetchLemma: deps.fetchLemma,
       logWarn: (err, l) =>
-        deps.logger?.warn({ err, lemma: l }, 'cr2 fetchLemma Kollokationen fehlgeschlagen — Fallback aufs gespeicherte Feld'),
+        deps.logger?.warn({ err, lemma: l }, 'classroom fetchLemma Kollokationen fehlgeschlagen — Fallback aufs gespeicherte Feld'),
     })
     return {
       lemma:       lemma.lemma,

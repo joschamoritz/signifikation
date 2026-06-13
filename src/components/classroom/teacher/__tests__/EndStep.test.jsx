@@ -64,12 +64,12 @@ describe('EndStep (W2-T4)', () => {
 
     renderEnd()
     await waitFor(() => {
-      expect(screen.getByTestId('cr2-end-cards')).toBeTruthy()
+      expect(screen.getByTestId('classroom-end-cards')).toBeTruthy()
     })
     // Kein „Neue Session"-Button mehr auf der Ergebnisseite (Wunsch: nur der
     // Zurück-Pfeil oben). Der Zurück-Button der Subscreen-Hülle bleibt.
-    expect(screen.queryByTestId('cr2-end-new')).toBeNull()
-    expect(screen.getByTestId('cr2-subscreen-back')).toBeTruthy()
+    expect(screen.queryByTestId('classroom-end-new')).toBeNull()
+    expect(screen.getByTestId('classroom-subscreen-back')).toBeTruthy()
     // Lemma-Headword + Distraktor sichtbar
     expect(screen.getAllByText('Wasser').length).toBeGreaterThanOrEqual(1)
     expect(screen.getByText('weit')).toBeTruthy()
@@ -98,7 +98,7 @@ describe('EndStep (W2-T4)', () => {
 
     renderEnd()
     await waitFor(() => {
-      expect(screen.getByTestId('cr2-end-dist')).toBeTruthy()
+      expect(screen.getByTestId('classroom-end-dist')).toBeTruthy()
     })
     // Optionen + Anteile sind im DOM (auch wenn das <details> zugeklappt ist).
     // „klar" erscheint in der Lösungszeile UND in der Verteilung → getAllByText.
@@ -123,7 +123,7 @@ describe('EndStep (W2-T4)', () => {
     getDashboard.mockResolvedValue({ participants: [] })
 
     renderEnd()
-    await waitFor(() => expect(screen.getByTestId('cr2-end-cards')).toBeTruthy())
+    await waitFor(() => expect(screen.getByTestId('classroom-end-cards')).toBeTruthy())
 
     // Reihenfolge-Ansicht: Modus-Gruppen sichtbar (zwei Modi → Gruppen-Header).
     expect(screen.getByText('Reihenfolge')).toBeTruthy()
@@ -148,9 +148,9 @@ describe('EndStep (W2-T4)', () => {
 
     renderEnd()
     await waitFor(() => {
-      expect(screen.getByTestId('cr2-end-empty')).toBeTruthy()
+      expect(screen.getByTestId('classroom-end-empty')).toBeTruthy()
     })
-    expect(screen.queryByTestId('cr2-end-cards')).toBeNull()
+    expect(screen.queryByTestId('classroom-end-cards')).toBeNull()
   })
 
   it('„Namen zeigen" ist standardmäßig off (kein Name sichtbar)', async () => {

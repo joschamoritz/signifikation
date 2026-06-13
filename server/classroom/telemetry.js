@@ -7,26 +7,26 @@
  *
  * Verwendung:
  *   import { trackEvent, getAdminStats } from './telemetry.js'
- *   trackEvent('cr2_session_created', { sessionId, teacherId, payload: { mode } })
+ *   trackEvent('classroom_session_created', { sessionId, teacherId, payload: { mode } })
  *
  * Fehler beim Schreiben werden geloggt aber nie geworfen – Telemetrie darf
  * den Request-Pfad nicht blockieren.
  *
  * Erfolgsmetriken (§14):
- *   - Aktivierungsrate:  sessions mit cr2_session_started UND participantCount >= 3
+ *   - Aktivierungsrate:  sessions mit classroom_session_started UND participantCount >= 3
  *                        relativ zu eingeladenen Lehrern
- *   - Completion-Rate:   (Schüler mit cr2_session_finished-Teilnahme)
- *                        / (Schüler mit cr2_join_succeeded)
+ *   - Completion-Rate:   (Schüler mit classroom_session_finished-Teilnahme)
+ *                        / (Schüler mit classroom_join_succeeded)
  *   - Wiederholungsabsicht: codiert aus Interview (T-6.7), KEIN automatisches Signal
  *
  * Events (W2-T6-Erweiterung):
- *   cr2_session_created, cr2_session_started, cr2_session_finished
- *   cr2_session_paused, cr2_session_resumed
- *   cr2_assignment_changed
- *   cr2_join_attempted, cr2_join_succeeded, cr2_join_failed
- *   cr2_participant_reconnected, cr2_participant_dropped
- *   cr2_submission_received
- *   cr2_session_abandoned
+ *   classroom_session_created, classroom_session_started, classroom_session_finished
+ *   classroom_session_paused, classroom_session_resumed
+ *   classroom_assignment_changed
+ *   classroom_join_attempted, classroom_join_succeeded, classroom_join_failed
+ *   classroom_participant_reconnected, classroom_participant_dropped
+ *   classroom_submission_received
+ *   classroom_session_abandoned
  *
  * Keine personenbezogenen Klarnamen – participantId ist pseudonym.
  */
@@ -51,20 +51,20 @@ const stmts = {
     FROM classroom_telemetry t_created
     LEFT JOIN classroom_telemetry t_started
       ON  t_started.session_id  = t_created.session_id
-      AND t_started.event       = 'cr2_session_started'
+      AND t_started.event       = 'classroom_session_started'
       AND CAST(json_extract(t_started.payload_json, '$.participantCount') AS INTEGER) >= @minParticipants
-    WHERE t_created.event = 'cr2_session_created'
+    WHERE t_created.event = 'classroom_session_created'
       AND t_created.ts    >= @since
   `),
   // Aggregate: Completion-Rate – Joins vs. Sessions die finished wurden
   completionRate: db.prepare(`
     SELECT
-      COUNT(CASE WHEN event = 'cr2_join_succeeded' THEN 1 END)  AS total_joins,
-      COUNT(CASE WHEN event = 'cr2_session_finished' THEN 1 END) AS finished_events,
-      CAST(COUNT(CASE WHEN event = 'cr2_session_finished' THEN 1 END) AS REAL)
-        / MAX(COUNT(CASE WHEN event = 'cr2_join_succeeded' THEN 1 END), 1) AS completion_rate
+      COUNT(CASE WHEN event = 'classroom_join_succeeded' THEN 1 END)  AS total_joins,
+      COUNT(CASE WHEN event = 'classroom_session_finished' THEN 1 END) AS finished_events,
+      CAST(COUNT(CASE WHEN event = 'classroom_session_finished' THEN 1 END) AS REAL)
+        / MAX(COUNT(CASE WHEN event = 'classroom_join_succeeded' THEN 1 END), 1) AS completion_rate
     FROM classroom_telemetry
-    WHERE event IN ('cr2_join_succeeded', 'cr2_session_finished')
+    WHERE event IN ('classroom_join_succeeded', 'classroom_session_finished')
       AND ts >= @since
   `),
   // Rohe Event-Liste fuer Debugging
@@ -121,13 +121,13 @@ const stmts = {
     )
   `),
 
-  // Auto-End-Quote: reason aus cr2_session_finished-Events
+  // Auto-End-Quote: reason aus classroom_session_finished-Events
   finishReasons: db.prepare(`
     SELECT
       json_extract(payload_json, '$.reason') AS reason,
       COUNT(*) AS count
     FROM classroom_telemetry
-    WHERE event = 'cr2_session_finished'
+    WHERE event = 'classroom_session_finished'
       AND ts >= @since AND ts <= @until
     GROUP BY reason
   `),
@@ -135,11 +135,11 @@ const stmts = {
   // Reconnect-Quote: Reconnects vs. Joins
   reconnectStats: db.prepare(`
     SELECT
-      COUNT(CASE WHEN event = 'cr2_participant_reconnected' THEN 1 END) AS reconnects,
-      COUNT(CASE WHEN event = 'cr2_participant_dropped'    THEN 1 END) AS dropped,
-      COUNT(CASE WHEN event = 'cr2_join_succeeded'         THEN 1 END) AS total_joins
+      COUNT(CASE WHEN event = 'classroom_participant_reconnected' THEN 1 END) AS reconnects,
+      COUNT(CASE WHEN event = 'classroom_participant_dropped'    THEN 1 END) AS dropped,
+      COUNT(CASE WHEN event = 'classroom_join_succeeded'         THEN 1 END) AS total_joins
     FROM classroom_telemetry
-    WHERE event IN ('cr2_participant_reconnected', 'cr2_participant_dropped', 'cr2_join_succeeded')
+    WHERE event IN ('classroom_participant_reconnected', 'classroom_participant_dropped', 'classroom_join_succeeded')
       AND ts >= @since AND ts <= @until
   `),
 
@@ -149,7 +149,7 @@ const stmts = {
       COUNT(*) AS total,
       SUM(CASE WHEN json_extract(payload_json, '$.correct') = 1 THEN 1 ELSE 0 END) AS correct_count
     FROM classroom_telemetry
-    WHERE event = 'cr2_submission_received'
+    WHERE event = 'classroom_submission_received'
       AND ts >= @since AND ts <= @until
   `),
 }
@@ -160,7 +160,7 @@ const stmts = {
  * Schreibt ein Telemetrie-Event in classroom_telemetry.
  * Niemals werfend — Fehler werden nur geloggt.
  *
- * @param {string} event       – Event-Name (z. B. 'cr2_session_created')
+ * @param {string} event       – Event-Name (z. B. 'classroom_session_created')
  * @param {object} [opts]
  * @param {string} [opts.sessionId]
  * @param {string} [opts.teacherId]
@@ -176,7 +176,7 @@ export function trackEvent(event, { sessionId = null, teacherId = null, payload 
       payloadJson: JSON.stringify(payload),
     })
   } catch (err) {
-    logger.error({ err, event, sessionId }, 'cr2 telemetry write failed')
+    logger.error({ err, event, sessionId }, 'classroom telemetry write failed')
   }
 }
 
@@ -184,7 +184,7 @@ export function trackEvent(event, { sessionId = null, teacherId = null, payload 
 
 /** Lehrer legt eine neue Session an. */
 export function trackSessionCreated(sessionId, teacherId) {
-  trackEvent('cr2_session_created', { sessionId, teacherId, payload: {} })
+  trackEvent('classroom_session_created', { sessionId, teacherId, payload: {} })
 }
 
 /** Join-Versuch (vor DB-Lookup). Wird immer gerufen, egal ob er klappt. */
@@ -192,12 +192,12 @@ export function trackSessionCreated(sessionId, teacherId) {
 // öffentlicher Beamer-Identifier, würde aber das Session-Ende dauerhaft
 // überleben (Retention rührt Telemetrie nicht an) — für die Metriken unnötig.
 export function trackJoinAttempted(_code) {
-  trackEvent('cr2_join_attempted', {})
+  trackEvent('classroom_join_attempted', {})
 }
 
 /** Join hat geklappt — Participant ist angelegt. */
 export function trackJoinSucceeded(sessionId, participantId) {
-  trackEvent('cr2_join_succeeded', { sessionId, payload: { participantId } })
+  trackEvent('classroom_join_succeeded', { sessionId, payload: { participantId } })
 }
 
 /**
@@ -205,12 +205,12 @@ export function trackJoinSucceeded(sessionId, participantId) {
  * @param {'invalid_code'|'session_full'|'session_not_running'|'rate_limited'|'unknown'} reason
  */
 export function trackJoinFailed(_code, reason) {
-  trackEvent('cr2_join_failed', { payload: { reason } })
+  trackEvent('classroom_join_failed', { payload: { reason } })
 }
 
 /** Lehrer startet die Session (locked_at gesetzt). */
 export function trackSessionStarted(sessionId, teacherId, participantCount) {
-  trackEvent('cr2_session_started', { sessionId, teacherId, payload: { participantCount } })
+  trackEvent('classroom_session_started', { sessionId, teacherId, payload: { participantCount } })
 }
 
 /**
@@ -220,7 +220,7 @@ export function trackSessionStarted(sessionId, teacherId, participantCount) {
  * @param {string} reason         – 'manual' | 'completed' | 'auto' | 'aborted'
  */
 export function trackSessionFinished(sessionId, teacherId, { durationMs, completionRate, reason } = {}) {
-  trackEvent('cr2_session_finished', {
+  trackEvent('classroom_session_finished', {
     sessionId,
     teacherId,
     payload: { durationMs, completionRate, reason: reason ?? 'manual' },
@@ -229,12 +229,12 @@ export function trackSessionFinished(sessionId, teacherId, { durationMs, complet
 
 /** Session pausiert (W2-T3). */
 export function trackSessionPaused(sessionId, teacherId) {
-  trackEvent('cr2_session_paused', { sessionId, teacherId, payload: {} })
+  trackEvent('classroom_session_paused', { sessionId, teacherId, payload: {} })
 }
 
 /** Session wieder aufgenommen (W2-T3). */
 export function trackSessionResumed(sessionId, teacherId) {
-  trackEvent('cr2_session_resumed', { sessionId, teacherId, payload: {} })
+  trackEvent('classroom_session_resumed', { sessionId, teacherId, payload: {} })
 }
 
 /**
@@ -244,7 +244,7 @@ export function trackSessionResumed(sessionId, teacherId) {
  * @param {string} mode      – Modus des neuen Assignments
  */
 export function trackAssignmentChanged(sessionId, teacherId, { fromIndex, toIndex, mode } = {}) {
-  trackEvent('cr2_assignment_changed', {
+  trackEvent('classroom_assignment_changed', {
     sessionId,
     teacherId,
     payload: { fromIndex, toIndex, mode },
@@ -256,7 +256,7 @@ export function trackAssignmentChanged(sessionId, teacherId, { fromIndex, toInde
  * participantId ist pseudonymisiert (kein displayName).
  */
 export function trackParticipantReconnected(sessionId, participantId) {
-  trackEvent('cr2_participant_reconnected', {
+  trackEvent('classroom_participant_reconnected', {
     sessionId,
     payload: { participantId },
   })
@@ -267,7 +267,7 @@ export function trackParticipantReconnected(sessionId, participantId) {
  * participantId ist pseudonymisiert (kein displayName).
  */
 export function trackParticipantDropped(sessionId, participantId) {
-  trackEvent('cr2_participant_dropped', {
+  trackEvent('classroom_participant_dropped', {
     sessionId,
     payload: { participantId },
   })
@@ -280,7 +280,7 @@ export function trackParticipantDropped(sessionId, participantId) {
  * @param {boolean} correct – ob die Antwort korrekt war
  */
 export function trackSubmissionReceived(sessionId, { mode, correct } = {}) {
-  trackEvent('cr2_submission_received', {
+  trackEvent('classroom_submission_received', {
     sessionId,
     payload: { mode, correct: correct ? 1 : 0 },
   })
@@ -291,7 +291,7 @@ export function trackSubmissionReceived(sessionId, { mode, correct } = {}) {
  * @param {number} lastActivityAgo – Ms seit letzter Aktivität
  */
 export function trackSessionAbandoned(sessionId, teacherId, lastActivityAgo) {
-  trackEvent('cr2_session_abandoned', {
+  trackEvent('classroom_session_abandoned', {
     sessionId,
     teacherId,
     payload: { lastActivityAgo },
@@ -323,7 +323,7 @@ export function getMetrics({ since, minParticipants = 3 } = {}) {
       completionRate:   comp?.completion_rate  ?? 0,
     }
   } catch (err) {
-    logger.error({ err }, 'cr2 telemetry getMetrics failed')
+    logger.error({ err }, 'classroom telemetry getMetrics failed')
     return { sessionsCreated: 0, sessionsStarted: 0, activationRate: 0, totalJoins: 0, completionRate: 0 }
   }
 }
@@ -346,7 +346,7 @@ export function getRecentEvents({ since, limit = 100 } = {}) {
       payload:   JSON.parse(row.payload_json || '{}'),
     }))
   } catch (err) {
-    logger.error({ err }, 'cr2 telemetry getRecentEvents failed')
+    logger.error({ err }, 'classroom telemetry getRecentEvents failed')
     return []
   }
 }
@@ -437,7 +437,7 @@ export function getAdminStats({ days = 30, since, until } = {}) {
       },
     }
   } catch (err) {
-    logger.error({ err }, 'cr2 telemetry getAdminStats failed')
+    logger.error({ err }, 'classroom telemetry getAdminStats failed')
     return null
   }
 }

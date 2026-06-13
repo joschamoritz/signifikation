@@ -78,35 +78,35 @@ export default function NameState() {
   }
 
   return (
-    <div className="cr2-kiosk__panel">
-      <p className="cr2-kiosk__overline">Klassenraum · Beitritt</p>
-      <h1 className="cr2-kiosk__title">Wie heißt du?</h1>
-      <p className="cr2-kiosk__lead">
+    <div className="classroom-kiosk__panel">
+      <p className="classroom-kiosk__overline">Klassenraum · Beitritt</p>
+      <h1 className="classroom-kiosk__title">Wie heißt du?</h1>
+      <p className="classroom-kiosk__lead">
         Kein echter Name nötig — ein Spitzname reicht. Er wird nur deiner Lehrkraft
         angezeigt und nach der Stunde gelöscht.
       </p>
 
       <form onSubmit={handleSubmit} noValidate>
-        <label htmlFor="cr2-kiosk-name" style={{ position: 'absolute', left: -9999 }}>
+        <label htmlFor="classroom-kiosk-name" style={{ position: 'absolute', left: -9999 }}>
           Spitzname
         </label>
         <input
-          id="cr2-kiosk-name"
+          id="classroom-kiosk-name"
           ref={inputRef}
           type="text"
           autoComplete="off"
           spellCheck={false}
-          className="cr2-kiosk__name-field"
+          className="classroom-kiosk__name-field"
           value={name}
           onChange={handleChange}
           placeholder="Spitzname"
           maxLength={MAX_NAME}
           disabled={submitting}
-          data-testid="cr2-kiosk-name-input"
+          data-testid="classroom-kiosk-name-input"
         />
-        <p className="cr2-kiosk__counter">{name.length} / {MAX_NAME}</p>
+        <p className="classroom-kiosk__counter">{name.length} / {MAX_NAME}</p>
         {localError && (
-          <p className="cr2-kiosk__hint cr2-kiosk__hint--error" data-testid="cr2-kiosk-name-error">
+          <p className="classroom-kiosk__hint classroom-kiosk__hint--error" data-testid="classroom-kiosk-name-error">
             {localError}
           </p>
         )}
@@ -114,22 +114,22 @@ export default function NameState() {
           type="submit"
           className="btn-primary btn-full"
           disabled={submitting}
-          data-testid="cr2-kiosk-name-submit"
+          data-testid="classroom-kiosk-name-submit"
         >
           {submitting ? 'Beitritt …' : 'Beitreten'}
         </button>
         <button
           type="button"
-          className="btn-ghost cr2-kiosk__skip"
+          className="btn-ghost classroom-kiosk__skip"
           onClick={handleSkip}
           disabled={submitting}
-          data-testid="cr2-kiosk-name-skip"
+          data-testid="classroom-kiosk-name-skip"
         >
           Ohne Namen beitreten
         </button>
       </form>
 
-      <p className="cr2-kiosk__code-line">
+      <p className="classroom-kiosk__code-line">
         Zugangscode: <strong>{state.code}</strong>
       </p>
     </div>

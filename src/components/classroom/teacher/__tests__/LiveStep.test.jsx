@@ -57,7 +57,7 @@ describe('LiveStep (T-4.6)', () => {
     })
     renderLive()
     await waitFor(() => {
-      expect(screen.getByTestId('cr2-live-finish')).toBeTruthy()
+      expect(screen.getByTestId('classroom-live-finish')).toBeTruthy()
     })
     expect(screen.getByText(/fertig/i)).toBeTruthy()
   })
@@ -74,10 +74,10 @@ describe('LiveStep (T-4.6)', () => {
     nextAssignment.mockResolvedValue({ status: 'running', done: false, index: 1, total: 3 })
     renderLive()
     await waitFor(() => {
-      expect(screen.getByTestId('cr2-live-next')).toBeTruthy()
+      expect(screen.getByTestId('classroom-live-next')).toBeTruthy()
     })
-    expect(screen.getByTestId('cr2-live-step').textContent).toMatch(/Modus 1 von 3/)
+    expect(screen.getByTestId('classroom-live-step').textContent).toMatch(/Modus 1 von 3/)
     // beim letzten Block (kein hasNext) gäbe es stattdessen den Finish-Button
-    expect(screen.queryByTestId('cr2-live-finish')).toBeNull()
+    expect(screen.queryByTestId('classroom-live-finish')).toBeNull()
   })
 })

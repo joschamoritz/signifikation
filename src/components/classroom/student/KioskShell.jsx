@@ -55,32 +55,32 @@ function ExitConfirmModal({ open, onClose, onConfirm }) {
   if (!open) return null
   return (
     <div
-      className="cr2-kiosk__modal-backdrop"
+      className="classroom-kiosk__modal-backdrop"
       onClick={onClose}
     >
       <div
-        className="cr2-kiosk__modal"
+        className="classroom-kiosk__modal"
         ref={modalRef}
         role="dialog"
         aria-modal="true"
-        aria-labelledby="cr2-kiosk-exit-title"
+        aria-labelledby="classroom-kiosk-exit-title"
         onClick={(e) => e.stopPropagation()}
       >
-        <h2 id="cr2-kiosk-exit-title">Klassenraum verlassen?</h2>
+        <h2 id="classroom-kiosk-exit-title">Klassenraum verlassen?</h2>
         <p>Dein Fortschritt geht verloren. Sicher?</p>
-        <div className="cr2-kiosk__modal-actions">
+        <div className="classroom-kiosk__modal-actions">
           <button
             type="button"
-            className="cr2-kiosk__btn cr2-kiosk__btn--primary"
+            className="classroom-kiosk__btn classroom-kiosk__btn--primary"
             onClick={onConfirm}
-            data-testid="cr2-kiosk-exit-confirm"
+            data-testid="classroom-kiosk-exit-confirm"
           >
             Verlassen
           </button>
           <button
             type="button"
             ref={cancelRef}
-            className="cr2-kiosk__btn"
+            className="classroom-kiosk__btn"
             style={{ background: 'transparent', color: 'inherit', border: '1px solid var(--k-rule)' }}
             onClick={onClose}
           >
@@ -134,18 +134,18 @@ export default function KioskShell({
   }
 
   return (
-    <div className="cr2-kiosk" data-testid="cr2-kiosk-shell">
-      <header className="cr2-kiosk__header">
-        <span className="cr2-kiosk__brand">
+    <div className="classroom-kiosk" data-testid="classroom-kiosk-shell">
+      <header className="classroom-kiosk__header">
+        <span className="classroom-kiosk__brand">
           Signifikation
           {code ? <small>· Klassenraum {code}</small> : null}
         </span>
         <button
           type="button"
-          className="cr2-kiosk__exit"
+          className="classroom-kiosk__exit"
           onClick={handleExitClick}
           aria-label="Klassenraum verlassen"
-          data-testid="cr2-kiosk-exit"
+          data-testid="classroom-kiosk-exit"
         >
           Verlassen
         </button>
@@ -153,22 +153,22 @@ export default function KioskShell({
 
       {reconnecting && (
         <div
-          className="cr2-kiosk__reconnect"
+          className="classroom-kiosk__reconnect"
           role="status"
           aria-live="polite"
-          data-testid="cr2-kiosk-reconnect"
+          data-testid="classroom-kiosk-reconnect"
         >
-          <span className="cr2-kiosk__reconnect-dot" aria-hidden="true" />
+          <span className="classroom-kiosk__reconnect-dot" aria-hidden="true" />
           Verbindung wird wiederhergestellt …
         </div>
       )}
 
-      <main className="cr2-kiosk__main">
+      <main className="classroom-kiosk__main">
         {children}
       </main>
 
       {loggedInUserLabel && (
-        <div className="cr2-kiosk__auth-banner" role="note">
+        <div className="classroom-kiosk__auth-banner" role="note">
           <span>
             Angemeldet als <strong>{loggedInUserLabel}</strong> — Classroom läuft anonym.
           </span>
@@ -177,7 +177,7 @@ export default function KioskShell({
       )}
 
       {toast && (
-        <div className="cr2-kiosk__toast" role="status" aria-live="polite" data-testid="cr2-kiosk-toast">
+        <div className="classroom-kiosk__toast" role="status" aria-live="polite" data-testid="classroom-kiosk-toast">
           {toast}
         </div>
       )}

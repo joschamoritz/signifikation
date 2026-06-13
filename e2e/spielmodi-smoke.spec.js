@@ -64,7 +64,7 @@ test.describe('Home – Spielmodi-Rendering', () => {
     // Lazy-Loaded – kann kurz dauern.
     // text= wuerde zuerst den .test-raster-Span matchen, der auf Mobile
     // (max-width:767px) per CSS display:none ist → data-testid statt text=.
-    await expect(page.locator('[data-testid="cr2-kiosk-code-input"]')).toBeVisible({ timeout: 10_000 })
+    await expect(page.locator('[data-testid="classroom-kiosk-code-input"]')).toBeVisible({ timeout: 10_000 })
   })
 
   test('Konto-Tab öffnet ohne Fehler', async ({ page }) => {

@@ -40,7 +40,7 @@ export function startClassroomRetention(options = {}) {
     try {
       runClassroomRetention({ anonymizeAfterMs, hardDeleteAfterMs, lobbyAbandonMs })
     } catch (err) {
-      logger.warn({ err }, 'cr2 Retention-Sweep fehlgeschlagen')
+      logger.warn({ err }, 'classroom Retention-Sweep fehlgeschlagen')
     }
   }
 

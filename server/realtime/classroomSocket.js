@@ -4,16 +4,18 @@
  * Realtime-Layer fuer den Klassenraum (Phase 3).
  *
  * Architektur:
- *   - Socket.io-Namespace `/cr2` (interner Wire-Name, Client-Vertrag —
- *     bewusst beibehalten, da Umbenennung eine koordinierte Client-Aenderung
- *     erfordert).
+ *   - Socket.io-Namespace `/classroom` (W4-S2). Der alte Name `/cr2` wird als
+ *     Legacy-Alias weiter bedient, damit waehrend des Deploy-Fensters alte
+ *     (gecachte) Clients nicht abreissen; Emits fan-out an beide Namespaces
+ *     (siehe emitToRoom). LEGACY_NAMESPACE entfernen, sobald keine alten
+ *     Clients mehr aktiv sein koennen.
  *   - Zwei Rooms pro Session:
- *       cr2:<sessionId>:teacher    — Lehrkraft-Sockets (Live-Dashboard)
- *       cr2:<sessionId>:students   — alle Schueler-Sockets (Broadcasts)
+ *       classroom:<sessionId>:teacher    — Lehrkraft-Sockets (Live-Dashboard)
+ *       classroom:<sessionId>:students   — alle Schueler-Sockets (Broadcasts)
  *     Plus pro Teilnehmer ein Single-Subscriber-Room:
- *       cr2:p:<participantId>      — view:updated, kicked
+ *       classroom:p:<participantId>      — view:updated, kicked
  *
- * Auth (D14, Single Source of Truth = cr2_capability_grant):
+ * Auth (D14, Single Source of Truth = classroom_capability_grant):
  *   - Lehrer  : Better-Auth-Session (Cookie) oder x-dev-user-id (ALLOW_DEV_AUTH=1)
  *               + handshake.auth.sessionId. Erfordert Capability `session:read`.
  *   - Schueler: handshake.auth.token oder Authorization-Header
@@ -170,9 +172,9 @@ function checkConnectRateLimit(ip) {
   return true
 }
 
-function roomTeacher(sessionId)      { return `cr2:${sessionId}:teacher` }
-function roomStudents(sessionId)     { return `cr2:${sessionId}:students` }
-function roomParticipant(participantId) { return `cr2:p:${participantId}` }
+function roomTeacher(sessionId)      { return `classroom:${sessionId}:teacher` }
+function roomStudents(sessionId)     { return `classroom:${sessionId}:students` }
+function roomParticipant(participantId) { return `classroom:p:${participantId}` }
 
 // ── Subject-Resolver ────────────────────────────────────────────────
 // Beide Pfade lesen ausschliesslich aus dem Handshake — keine
@@ -190,7 +192,7 @@ async function resolveTeacherSubject(socket) {
     const session = await auth.api.getSession({ headers: fromNodeHeaders(headers) })
     if (session?.user?.id) return { kind: 'teacher', id: String(session.user.id) }
   } catch (err) {
-    logger.debug({ err }, 'cr2 socket: getSession fehlgeschlagen')
+    logger.debug({ err }, 'classroom socket: getSession fehlgeschlagen')
   }
   return null
 }
@@ -241,7 +243,7 @@ function scheduleDisconnectTimeout(sessionId, participantId) {
     // im Dashboard korrekt. KEIN explizites Revoke noetig — der leftAt-Gate
     // sperrt den Token bereits vor jeder Capability-Pruefung.
     try { leaveParticipant(participantId) } catch (err) {
-      logger.warn({ err, participantId }, 'cr2 leaveParticipant on timeout fehlgeschlagen')
+      logger.warn({ err, participantId }, 'classroom leaveParticipant on timeout fehlgeschlagen')
     }
     trackParticipantDropped(sessionId, participantId)
     if (!nsps.length) return
@@ -251,7 +253,7 @@ function scheduleDisconnectTimeout(sessionId, participantId) {
       reason: 'timeout',
       at: nowMs(),
     })
-    logger.info({ sessionId, participantId }, 'cr2 student timed out (reconnect window expired)')
+    logger.info({ sessionId, participantId }, 'classroom student timed out (reconnect window expired)')
   }, RECONNECT_WINDOW_MS)
   t.unref?.()
   disconnectTimers.set(participantId, t)
@@ -381,13 +383,13 @@ function onSocketConnected(socket) {
       sid: socket.id,
       teacherId: socket.data.subjectId,
       sessionId: socket.data.sessionId,
-    }, 'cr2 teacher socket connected')
+    }, 'classroom teacher socket connected')
   } else if (role === 'student') {
     attachStudent(socket)
   } else if (role === 'pending') {
     const watchdog = setTimeout(() => {
       if (socket.data.role === 'pending') {
-        try { socket.emit('cr2:error', { code: 'HELLO_TIMEOUT' }) } catch {}
+        try { socket.emit('classroom:error', { code: 'HELLO_TIMEOUT' }) } catch {}
         socket.disconnect(true)
       }
     }, HELLO_TIMEOUT_MS)
@@ -411,12 +413,12 @@ function attachStudent(socket) {
   clearDisconnectTimer(participantId)
 
   try { heartbeatParticipant(participantId) } catch (err) {
-    logger.warn({ err, participantId }, 'cr2 heartbeat on attach fehlgeschlagen')
+    logger.warn({ err, participantId }, 'classroom heartbeat on attach fehlgeschlagen')
   }
 
   if (isReconnect) {
     trackParticipantReconnected(sessionId, participantId)
-    logger.debug({ sid: socket.id, participantId, sessionId }, 'cr2 student reconnected (within window)')
+    logger.debug({ sid: socket.id, participantId, sessionId }, 'classroom student reconnected (within window)')
   }
 
   socket.emit('view:updated', { reason: 'connected' })
@@ -424,7 +426,7 @@ function attachStudent(socket) {
     sid: socket.id,
     participantId,
     sessionId,
-  }, 'cr2 student socket connected')
+  }, 'classroom student socket connected')
 }
 
 function handleStudentHello(socket, payload) {
@@ -432,12 +434,12 @@ function handleStudentHello(socket, payload) {
   try {
     const token = typeof payload?.token === 'string' ? payload.token.trim() : ''
     if (!token) {
-      socket.emit('cr2:error', { code: 'INVALID_TOKEN' })
+      socket.emit('classroom:error', { code: 'INVALID_TOKEN' })
       return
     }
     const p = findParticipantByToken(token)
     if (!p || p.leftAt) {
-      socket.emit('cr2:error', { code: 'UNAUTHORIZED' })
+      socket.emit('classroom:error', { code: 'UNAUTHORIZED' })
       return
     }
     const ok = hasCapability({
@@ -447,7 +449,7 @@ function handleStudentHello(socket, payload) {
       capability:  'view:student',
     })
     if (!ok) {
-      socket.emit('cr2:error', { code: 'FORBIDDEN' })
+      socket.emit('classroom:error', { code: 'FORBIDDEN' })
       return
     }
     if (socket.data.helloWatchdog) clearTimeout(socket.data.helloWatchdog)
@@ -457,7 +459,7 @@ function handleStudentHello(socket, payload) {
     socket.data.participant = p
     attachStudent(socket)
   } catch (err) {
-    logger.error({ err }, 'cr2 student:hello crashed')
+    logger.error({ err }, 'classroom student:hello crashed')
   }
 }
 
@@ -474,7 +476,7 @@ function onSocketDisconnect(socket, reason) {
   const participantId = socket.data.subjectId
 
   try { markParticipantDisconnect(participantId) } catch (err) {
-    logger.warn({ err, participantId }, 'cr2 markParticipantDisconnect fehlgeschlagen')
+    logger.warn({ err, participantId }, 'classroom markParticipantDisconnect fehlgeschlagen')
   }
 
   // Nur Timer starten, wenn KEIN weiteres Socket dieses Teilnehmers offen ist.
@@ -488,7 +490,7 @@ function onSocketDisconnect(socket, reason) {
     participantId,
     sessionId,
     reason,
-  }, 'cr2 student socket disconnected')
+  }, 'classroom student socket disconnected')
 }
 
 // ════════════════════════════════════════════════════════════════════

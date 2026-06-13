@@ -14,7 +14,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 
-const PREFIX = 'cr2:draft:'
+const PREFIX = 'classroom:draft:'
 
 function storageOk() {
   return typeof sessionStorage !== 'undefined'
