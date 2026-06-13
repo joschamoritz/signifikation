@@ -787,6 +787,18 @@
   --t-red-hi:    var(--primary-hi);
 }
 
+/* Code-Eingabe innerhalb der ① Beitreten-Karte (Wörterbuch-Index). */
+.classroom-student-entry__form {
+  margin-top: 10px;
+}
+/* QR-Scan als zurückhaltender Zweitweg unter dem Beitreten-Button. */
+.classroom-student-entry__scan {
+  display: inline-block;
+  margin-top: 10px;
+  color: var(--muted);
+}
+.classroom-student-entry__scan:hover { color: var(--primary); }
+
 .classroom-kiosk__choices {
   list-style: none;
   margin: 0;

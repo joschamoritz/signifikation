@@ -60,6 +60,17 @@ export function clearKioskSession() {
 }
 
 /**
+ * Public: persistierte Sitzung lesen, ohne Seiteneffekt. Liefert
+ * { code, sessionId, participantId, token, displayName } oder null.
+ * Genutzt vom eingebetteten Schueler-Einstieg fuer die „Fortsetzen"-Karte.
+ */
+export function peekKioskSession() {
+  const s = readStorage()
+  if (!s || !s.token || !s.code) return null
+  return s
+}
+
+/**
  * useStudentSession({ socketConnected }) — Hauptorchestrierung.
  *
  * Liest beim Mount aus sessionStorage + GET /me/view → SET_VIEW.
