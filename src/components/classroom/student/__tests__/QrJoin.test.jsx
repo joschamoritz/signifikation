@@ -34,7 +34,7 @@ describe('extractCode (F5 — QR-Text → Beitritts-Code)', () => {
 })
 
 describe('StudentJoinEntry — QR-Scan-Button (F5)', () => {
-  afterEach(() => cleanup())
+  afterEach(() => { cleanup(); sessionStorage.clear() })
 
   it('rendert den „QR-Code scannen"-Button', () => {
     render(<StudentJoinEntry />)
@@ -47,5 +47,30 @@ describe('StudentJoinEntry — QR-Scan-Button (F5)', () => {
     expect(screen.getByTestId('classroom-kiosk-code-input')).toBeTruthy()
     // Kiosk-Shell (mit Verlassen-Button) darf im Tab NICHT da sein
     expect(screen.queryByTestId('classroom-kiosk-exit')).toBeNull()
+  })
+})
+
+describe('StudentJoinEntry — „Fortsetzen"-Karte (W4)', () => {
+  afterEach(() => { cleanup(); sessionStorage.clear() })
+
+  it('zeigt die Fortsetzen-Karte, wenn eine Sitzung persistiert ist', () => {
+    sessionStorage.setItem('classroom:student', JSON.stringify({
+      code: 'morgentau', sessionId: 's1', participantId: 'p1', token: 'tok', displayName: 'Anna',
+    }))
+    render(<StudentJoinEntry embedded />)
+    expect(screen.getByTestId('classroom-student-resume')).toBeTruthy()
+    expect(screen.getByText(/MORGENTAU/)).toBeTruthy()
+  })
+
+  it('zeigt KEINE Fortsetzen-Karte ohne persistierte Sitzung', () => {
+    sessionStorage.clear()
+    render(<StudentJoinEntry embedded />)
+    expect(screen.queryByTestId('classroom-student-resume')).toBeNull()
+  })
+
+  it('blendet die Karte aus, wenn der Token fehlt (nur Code reicht nicht)', () => {
+    sessionStorage.setItem('classroom:student', JSON.stringify({ code: 'morgentau' }))
+    render(<StudentJoinEntry embedded />)
+    expect(screen.queryByTestId('classroom-student-resume')).toBeNull()
   })
 })
