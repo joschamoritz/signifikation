@@ -9,9 +9,7 @@ import { createContext, useContext, useMemo, useReducer } from 'react'
 
 export const STEPS = Object.freeze({
   INDEX: 'index',   // Landing: Wörterbuch-Index des Klassenraum-Modus
-  HOWTO: 'howto',   // ① Anleitung — Unterseite
-  JOIN:  'join',    // ③ Beitritt — Unterseite
-  LIST:  'list',    // ② Session-Verwaltung — Unterseite
+  LIST:  'list',    // ① Session-Verwaltung — Unterseite
   SETUP: 'setup',
   LOBBY: 'lobby',
   LIVE:  'live',
@@ -41,12 +39,8 @@ function reducer(state, action) {
     case 'GO_TO_INDEX':
       // Zurück zur Landing-Ansicht (Klassenraum-Index), Flow komplett zurücksetzen.
       return { ...initialState }
-    case 'GO_TO_HOWTO':
-      return { ...initialState, currentStep: STEPS.HOWTO }
-    case 'GO_TO_JOIN':
-      return { ...initialState, currentStep: STEPS.JOIN }
     case 'GO_TO_LIST':
-      // Session-Verwaltung öffnen (aus dem Index ② oder als „zurück" aus Lobby/Setup/Ende).
+      // Session-Verwaltung öffnen (aus dem Index ① oder als „zurück" aus Lobby/Setup/Ende).
       return { ...initialState, currentStep: STEPS.LIST }
     case 'RESUME_SESSION':
       // Lehrer klickt auf eine bereits laufende Session in der Liste.
