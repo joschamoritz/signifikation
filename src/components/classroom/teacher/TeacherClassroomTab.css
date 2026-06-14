@@ -1177,6 +1177,19 @@
   border: 1.5px dashed var(--classroom-rule);
 }
 
+/* Spätbeitritt-Schalter in der Lobby. */
+.classroom-lobby-latejoin {
+  margin-top: 18px;
+  flex-wrap: wrap;
+}
+.classroom-lobby-latejoin__hint {
+  flex-basis: 100%;
+  margin-top: 3px;
+  font-size: 0.78rem;
+  font-style: italic;
+  color: var(--classroom-muted);
+}
+
 /* „N offline"-Hinweis im Teilnehmer-Label (Amber, Audit-Finding). */
 .classroom-section__warn {
   color: var(--classroom-warning);

@@ -132,12 +132,12 @@ export async function removeAssignment(sessionId, assignmentId) {
 
 // ── Lebenszyklus ───────────────────────────────────────────────────
 
-export async function startSession(sessionId) {
+export async function startSession(sessionId, { allowLateJoin = true } = {}) {
   const res = await apiFetch(`${BASE}/sessions/${encodeURIComponent(sessionId)}/start`, {
     method: 'POST',
     credentials: 'include',
     headers: jsonHeaders(),
-    body: JSON.stringify({}),
+    body: JSON.stringify({ allowLateJoin }),
   })
   return jsonOrThrow(res)
 }

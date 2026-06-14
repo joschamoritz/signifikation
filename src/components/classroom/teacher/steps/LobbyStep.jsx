@@ -22,6 +22,7 @@ export default function LobbyStep() {
   const [error, setError]               = useState(null)
   const [starting, setStarting]         = useState(false)
   const [armed, setArmed]               = useState(false)
+  const [allowLateJoin, setAllowLateJoin] = useState(true)
 
   // Initial-Load: aktueller Session-Snapshot + Teilnehmer.
   // (Auch unter „lobby" liefert der Dashboard-Endpunkt diese Daten.)
@@ -104,14 +105,14 @@ export default function LobbyStep() {
     setStarting(true)
     setError(null)
     try {
-      await startSession(sessionId)
+      await startSession(sessionId, { allowLateJoin })
       dispatch({ type: 'GO_TO_LIVE', sessionId })
     } catch (err) {
       setError(err?.message || 'Start fehlgeschlagen.')
     } finally {
       setStarting(false)
     }
-  }, [sessionId, activeCount, starting, dispatch])
+  }, [sessionId, activeCount, starting, allowLateJoin, dispatch])
 
   // Auto-disarm: schaut die Lehrkraft nach dem ersten Tap weg, fällt die
   // Bestätigung nach 4 s zurück.
@@ -151,6 +152,19 @@ export default function LobbyStep() {
             </span>
             <ParticipantList participants={participants} mode="lobby" onKick={handleKick} />
           </section>
+
+          <label className="classroom-toggle classroom-lobby-latejoin">
+            <input
+              type="checkbox"
+              checked={allowLateJoin}
+              onChange={(e) => setAllowLateJoin(e.target.checked)}
+              data-testid="classroom-lobby-latejoin"
+            />
+            Spätbeitritt erlauben
+            <span className="classroom-lobby-latejoin__hint">
+              Aus: nach dem Start kommt niemand mehr rein.
+            </span>
+          </label>
         </>
       )}
 

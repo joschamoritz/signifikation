@@ -355,6 +355,34 @@ describe('classroom routes', () => {
       expect(JSON.stringify(view.currentLemma.prompt)).not.toContain('zuordnung')
     })
 
+    it('Token-TTL (H3): /me/view → 401, wenn das 2h-Reveal-Fenster nach Ende abgelaufen ist', async () => {
+      const wzId = makeWzId('Wasser', 'Feuer', 'Substantiv')
+      const { session } = createSession({ teacherUserId: TEACHER_ID, title: 'TTL' })
+      await fetch(`${baseUrl}/api/v1/classroom/sessions/${session.id}/assignments`, {
+        method: 'POST', headers: teacherHeaders(TEACHER_ID),
+        body: JSON.stringify({ mode: 'wortzwilling', lemmaIds: [wzId] }),
+      })
+      await fetch(`${baseUrl}/api/v1/classroom/sessions/${session.id}/start`, {
+        method: 'POST', headers: teacherHeaders(TEACHER_ID), body: JSON.stringify({}),
+      })
+      const joinRes = await fetch(`${baseUrl}/api/v1/classroom/join`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', 'x-forwarded-for': '10.0.9.8' },
+        body: JSON.stringify({ code: session.code }),
+      })
+      const { token } = await joinRes.json()
+      // Beenden + finished_at künstlich > 2h zurückdatieren.
+      await fetch(`${baseUrl}/api/v1/classroom/sessions/${session.id}/finish`, {
+        method: 'POST', headers: teacherHeaders(TEACHER_ID), body: JSON.stringify({}),
+      })
+      db.prepare('UPDATE classroom_session SET finished_at = ? WHERE id = ?')
+        .run(Date.now() - 3 * 60 * 60 * 1000, session.id)
+      const viewRes = await fetch(`${baseUrl}/api/v1/classroom/me/view`, {
+        headers: participantHeaders(token),
+      })
+      expect(viewRes.status).toBe(401)
+    })
+
     it('T-2.2 Assignment hinzufügen → 201 { id, mode, lemmaCount }', async () => {
       const res = await fetch(`${baseUrl}/api/v1/classroom/sessions/${sessionId}/assignments`, {
         method: 'POST',
