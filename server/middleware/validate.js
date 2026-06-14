@@ -1,4 +1,5 @@
 import { z } from 'zod/v3'
+import { isBlockedNickname } from '../classroom/nickname-filter.js'
 
 /**
  * Middleware-Factory: validiert req[source] gegen ein Zod-Schema.
@@ -375,8 +376,13 @@ export const classroomJoinSchema = z.object({
                  .max(30, 'Join-Code zu lang')
                  .regex(/^[a-z-]+$/, 'Join-Code enthaelt ungueltige Zeichen'),
   // displayName wird im Lehrer-Dashboard angezeigt → Winkelklammern verbieten
-  // (Stored-XSS-Defense-in-Depth; React escaped ohnehin).
-  displayName: z.string().trim().max(20).regex(/^[^<>]*$/, 'Name enthaelt ungueltige Zeichen').optional(),
+  // (Stored-XSS-Defense-in-Depth; React escaped ohnehin). Zusätzlich
+  // Moderations-Blockliste (H2): unmissverständliche Beleidigungen/Slurs vom
+  // Beamer fernhalten, bevor die Lehrkraft kicken muss.
+  displayName: z.string().trim().max(20)
+    .regex(/^[^<>]*$/, 'Name enthaelt ungueltige Zeichen')
+    .refine((v) => !isBlockedNickname(v), 'Bitte wähle einen anderen Namen.')
+    .optional(),
 })
 
 /**

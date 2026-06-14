@@ -128,6 +128,11 @@ describe('classroomJoinSchema', () => {
     expect(r.data.code).toBe('manuskript')
   })
 
+  it('lehnt einen gesperrten displayName ab (H2-Moderation)', () => {
+    const r = classroomJoinSchema.safeParse({ code: 'test-wort', displayName: 'Arschloch' })
+    expect(r.success).toBe(false)
+  })
+
   it('lehnt Code < 4 Zeichen ab', () => {
     const r = classroomJoinSchema.safeParse({ code: 'abc' })
     expect(r.success).toBe(false)
