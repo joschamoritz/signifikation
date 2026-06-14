@@ -106,6 +106,9 @@ const stmts = {
         last_activity_at = @started_at
     WHERE id = @id AND status = 'lobby'
   `),
+  updateSessionSettings: db.prepare(`
+    UPDATE classroom_session SET settings_json = @settings_json WHERE id = @id
+  `),
   finishSession: db.prepare(`
     UPDATE classroom_session
     SET status = 'finished', finished_at = @finished_at, paused_at = NULL
@@ -466,15 +469,22 @@ export function listTeacherSessions({ teacherUserId, limit = 20 }) {
   return stmts.listTeacherSessions.all(teacherUserId, safeLimit).map(normalizeSessionRow)
 }
 
-export function startSession({ sessionId, teacherUserId }) {
+export function startSession({ sessionId, teacherUserId, allowLateJoin = true }) {
   const row = stmts.getSessionById.get(sessionId)
   if (!row) return { error: 'NOT_FOUND' }
   if (row.teacher_user_id !== teacherUserId) return { error: 'FORBIDDEN' }
   if (row.status !== 'lobby') return { error: 'INVALID_STATE' }
   const assignmentCount = stmts.countAssignments.get(sessionId)?.c || 0
   if (assignmentCount === 0) return { error: 'NO_ASSIGNMENT' }
-  const result = stmts.startSession.run({ id: sessionId, started_at: nowMs() })
-  if (!result.changes) return { error: 'INVALID_STATE' }
+  // allowLateJoin in settings_json schreiben (Lese-Pfad: joinByCode). Default
+  // true → kein Verhaltenswechsel; nur die Lehrkraft-Sperre persistiert false.
+  const settings = parseJsonSafe(row.settings_json, {}, { sessionId })
+  settings.allowLateJoin = allowLateJoin !== false
+  const started = db.transaction(() => {
+    stmts.updateSessionSettings.run({ id: sessionId, settings_json: JSON.stringify(settings) })
+    return stmts.startSession.run({ id: sessionId, started_at: nowMs() }).changes
+  })()
+  if (!started) return { error: 'INVALID_STATE' }
   return { session: normalizeSessionRow(stmts.getSessionById.get(sessionId)) }
 }
 

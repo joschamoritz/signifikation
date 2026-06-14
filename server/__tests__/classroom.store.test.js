@@ -353,6 +353,28 @@ describe('classroom/store', () => {
       expect(r.error).toBe('INVALID_CODE')
     })
 
+    it('startSession mit allowLateJoin:false blockt Spätbeitritt während running', () => {
+      const { session } = createSession({ teacherUserId: TEACHER_A })
+      addAssignment({
+        sessionId: session.id, teacherUserId: TEACHER_A,
+        mode: 'kollokationen', lemmaIds: ['lemma-1'], contentSnapshot: KOLL_SNAPSHOT,
+      })
+      startSession({ sessionId: session.id, teacherUserId: TEACHER_A, allowLateJoin: false })
+      const r = joinByCode({ code: session.code, displayName: 'Spaet' })
+      expect(r.error).toBe('LATE_JOIN_DISABLED')
+    })
+
+    it('startSession default erlaubt Spätbeitritt während running', () => {
+      const { session } = createSession({ teacherUserId: TEACHER_A })
+      addAssignment({
+        sessionId: session.id, teacherUserId: TEACHER_A,
+        mode: 'kollokationen', lemmaIds: ['lemma-1'], contentSnapshot: KOLL_SNAPSHOT,
+      })
+      startSession({ sessionId: session.id, teacherUserId: TEACHER_A })
+      const r = joinByCode({ code: session.code, displayName: 'Spaet' })
+      expect(r.participant).toBeTruthy()
+    })
+
     it('kickParticipant: Besitzer entfernt Teilnehmer (left_at gesetzt)', () => {
       const { session } = createSession({ teacherUserId: TEACHER_A })
       const j = joinByCode({ code: session.code, displayName: 'Trollo' })

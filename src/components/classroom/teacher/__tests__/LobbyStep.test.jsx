@@ -84,4 +84,19 @@ describe('LobbyStep (T-4.5)', () => {
     fireEvent.click(screen.getByTestId('classroom-lobby-start'))
     await waitFor(() => expect(startSession).toHaveBeenCalledTimes(1))
   })
+
+  it('reicht den Spätbeitritt-Schalter an startSession durch', async () => {
+    getDashboard.mockResolvedValue({
+      session: { id: 's1', code: 'morgentau', status: 'lobby' },
+      participants: [{ id: 'p1', displayName: 'Lena', connected: true, leftAt: null }],
+    })
+    startSession.mockResolvedValue({ status: 'running' })
+    renderLobby()
+    const toggle = await screen.findByTestId('classroom-lobby-latejoin')
+    fireEvent.click(toggle) // Spätbeitritt AUS
+    fireEvent.click(screen.getByTestId('classroom-lobby-start')) // arm
+    fireEvent.click(screen.getByTestId('classroom-lobby-start')) // start
+    await waitFor(() => expect(startSession).toHaveBeenCalledTimes(1))
+    expect(startSession.mock.calls[0][1]).toEqual({ allowLateJoin: false })
+  })
 })

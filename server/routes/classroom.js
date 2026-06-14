@@ -105,6 +105,10 @@ import { isJoinBlocked, recordJoinFailure } from '../classroom/join-guard.js'
 
 const router = express.Router()
 
+// Reveal-Fenster nach Sitzungsende: so lange bleibt der Schüler-Token gültig
+// (Auflösung ansehen), danach 401. Während Lobby/Running gilt er unbegrenzt.
+const PARTICIPANT_REVEAL_TTL_MS = 2 * 60 * 60 * 1000 // 2 h
+
 // ── Participant-Auth aus Bearer-Token ───────────────────────────
 // Für /me/*-Routen die keine spezifische Capability prüfen (view, heartbeat, leave).
 function requireParticipantAuth(req, res, next) {
@@ -119,6 +123,15 @@ function requireParticipantAuth(req, res, next) {
   const participant = findParticipantByToken(token)
   if (!participant) return res.status(401).json({ error: 'Ungültiger oder abgelaufener Token' })
   if (participant.leftAt) return res.status(403).json({ error: 'Du hast die Session verlassen' })
+
+  // Token-TTL (H3): nach Sitzungsende gilt der Token nur noch ein kurzes
+  // Reveal-Fenster (Auflösung ansehen), nicht bis zum Hard-Delete (30 Tage).
+  // Während Lobby/Running gilt er unbegrenzt.
+  const session = getSessionById(participant.sessionId)
+  if (session && (session.status === 'finished' || session.status === 'aborted')
+      && session.finishedAt && Date.now() - session.finishedAt > PARTICIPANT_REVEAL_TTL_MS) {
+    return res.status(401).json({ error: 'Token abgelaufen' })
+  }
 
   req.classroom = { participant, sessionId: participant.sessionId }
   return next()
@@ -758,7 +771,7 @@ router.post(
   (req, res) => {
     const sessionId    = req.params.id
     const teacherUserId = req.classroom.subject.id
-    const result = startSession({ sessionId, teacherUserId })
+    const result = startSession({ sessionId, teacherUserId, allowLateJoin: req.body.allowLateJoin })
     return respondStoreResult(res, result, () => {
       logger.info({ sessionId }, 'classroom session started')
       const participantCount = countActivePartsStmt.get(sessionId)?.c ?? 0
