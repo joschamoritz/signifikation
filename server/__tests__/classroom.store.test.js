@@ -387,6 +387,16 @@ describe('classroom/store', () => {
       expect(findParticipantByToken(j.participant.token)?.leftAt).not.toBeNull()
     })
 
+    it('Heartbeat reaktiviert einen gekickten Teilnehmer NICHT (left_at bleibt)', () => {
+      const { session } = createSession({ teacherUserId: TEACHER_A })
+      const j = joinByCode({ code: session.code, displayName: 'Trollo' })
+      kickParticipant({ sessionId: session.id, participantId: j.participant.id, teacherUserId: TEACHER_A })
+      const changed = heartbeatParticipant(j.participant.id)
+      expect(changed).toBe(false) // kein Update, weil left_at gesetzt
+      const row = db.prepare(`SELECT left_at FROM classroom_participant WHERE id = ?`).get(j.participant.id)
+      expect(row.left_at).not.toBeNull()
+    })
+
     it('kickParticipant: fremder Teacher → FORBIDDEN', () => {
       const { session } = createSession({ teacherUserId: TEACHER_A })
       const j = joinByCode({ code: session.code, displayName: 'Lena' })
@@ -400,14 +410,15 @@ describe('classroom/store', () => {
       expect(r.error).toBe('NOT_FOUND')
     })
 
-    it('heartbeat reaktiviert auch nach Leave', () => {
+    it('heartbeat reaktiviert NICHT nach Leave (left_at bleibt; Route 403t left ohnehin)', () => {
       const { session } = createSession({ teacherUserId: TEACHER_A })
       const j = joinByCode({ code: session.code, displayName: 'Lena' })
       leaveParticipant(j.participant.id)
-      heartbeatParticipant(j.participant.id)
+      const changed = heartbeatParticipant(j.participant.id)
+      expect(changed).toBe(false)
       const row = db.prepare(`SELECT left_at, connected FROM classroom_participant WHERE id = ?`).get(j.participant.id)
-      expect(row.left_at).toBeNull()
-      expect(row.connected).toBe(1)
+      expect(row.left_at).not.toBeNull()
+      expect(row.connected).toBe(0)
     })
 
     it('Default-Name wenn displayName leer', () => {
