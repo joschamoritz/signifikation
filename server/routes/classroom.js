@@ -79,6 +79,7 @@ import { fetchLemma, fetchZeitenwende } from '../wortprofil.js'
 import { fetchWortZwilling } from '../wortzwilling.js'
 import { buildLueckenfueller } from '../lueckenfueller.js'
 import { parseWzId } from '../classroom/content.js'
+import { withTimeout } from '../classroom/withTimeout.js'
 import { getMode } from '../classroom/modes/index.js'
 import { loadKalenderEntry, getLemmataIndex, loadWortZwillingEntry, loadZeitenwendeEntry } from '../store.js'
 import {
@@ -223,6 +224,10 @@ function loadAssignmentLemmata(lemmaIds) {
  * periode, zuordnung, kollokator) – diese werden NIEMALS direkt an Schueler
  * gesendet! buildStudentView() filtert sie strikt heraus.
  */
+// Hartes Limit pro Lemma-Snapshot, damit eine haengende Sekundaer-DB
+// (wortprofil.db/belege.db) den Anlegen-Request nicht unbegrenzt blockiert.
+const SNAPSHOT_BUILD_TIMEOUT_MS = 10_000
+
 async function buildContentSnapshot(mode, lemmata) {
   const byLemma = {}
   const m = getMode(mode)
@@ -231,7 +236,11 @@ async function buildContentSnapshot(mode, lemmata) {
   // modes/<mode>.js OHNE wortprofil.db/belege.db isoliert testbar bleibt.
   const deps = { fetchLemma, fetchWortZwilling, fetchZeitenwende, buildLueckenfueller, logger }
   for (const l of lemmata) {
-    byLemma[l.id] = await m.buildSnapshotEntry(l, deps)
+    byLemma[l.id] = await withTimeout(
+      m.buildSnapshotEntry(l, deps),
+      SNAPSHOT_BUILD_TIMEOUT_MS,
+      `content-snapshot ${mode}/${l.id}`,
+    )
   }
   return { byLemma }
 }
@@ -647,7 +656,13 @@ router.post(
 
     // Reihenfolge aus Request erhalten
     const orderedLemmata = lemmaIds.map(id => lemmata.find(l => l.id === id))
-    const contentSnapshot = await buildContentSnapshot(mode, orderedLemmata)
+    let contentSnapshot
+    try {
+      contentSnapshot = await buildContentSnapshot(mode, orderedLemmata)
+    } catch (err) {
+      logger.error({ err, sessionId, mode }, 'content_snapshot Aufbau fehlgeschlagen/timeout')
+      return res.status(503).json({ error: 'Inhalte konnten gerade nicht geladen werden. Bitte erneut versuchen.' })
+    }
 
     const result = addAssignment({
       sessionId,
@@ -689,10 +704,17 @@ router.post(
         return res.status(404).json({ error: `Lemmata nicht gefunden: ${missing.join(', ')}` })
       }
       const orderedLemmata = block.lemmaIds.map(id => lemmata.find(l => l.id === id))
+      let contentSnapshot
+      try {
+        contentSnapshot = await buildContentSnapshot(block.mode, orderedLemmata)
+      } catch (err) {
+        logger.error({ err, sessionId, mode: block.mode }, 'content_snapshot Aufbau fehlgeschlagen/timeout (bulk)')
+        return res.status(503).json({ error: 'Inhalte konnten gerade nicht geladen werden. Bitte erneut versuchen.' })
+      }
       builtBlocks.push({
         mode:           block.mode,
         lemmaIds:       block.lemmaIds,
-        contentSnapshot: await buildContentSnapshot(block.mode, orderedLemmata),
+        contentSnapshot,
       })
     }
 

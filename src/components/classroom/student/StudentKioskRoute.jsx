@@ -163,11 +163,12 @@ function KioskRouteInner({ code, userLabel }) {
     return (
       <KioskShell code={code} confirmExit={false} onLeave={() => { clearKioskSession() }}>
         <div className="classroom-kiosk__lock">
-          <p className="classroom-kiosk__dropcap">!</p>
+          <p className="classroom-kiosk__overline">Hinweis</p>
           <h2>Bereits in einem anderen Tab geöffnet</h2>
           <p className="classroom-kiosk__lead">
             Dieser Klassenraum läuft schon in einem anderen Tab. Bitte dort weiterspielen.
           </p>
+          <p className="classroom-kiosk__ornament" aria-hidden="true">· · ·</p>
         </div>
       </KioskShell>
     )
