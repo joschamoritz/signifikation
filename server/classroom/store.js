@@ -15,7 +15,7 @@ import { createHmac, randomUUID } from 'crypto'
 import db from '../db.js'
 import logger from '../logger.js'
 import { generateUniqueJoinCode } from './join-code.js'
-import { scoreSubmission, VALID_MODES } from './modes/index.js'
+import { scoreSubmission, roundCountFor, VALID_MODES } from './modes/index.js'
 import { parseJsonSafe } from './json-safe.js'
 import {
   extractDistractors,
@@ -944,14 +944,32 @@ export function submitAnswer({
   if (Buffer.byteLength(rawAnswerJson, 'utf8') > MAX_RAW_ANSWER_BYTES) return { error: 'PAYLOAD_TOO_LARGE' }
 
   const assignment = normalizeAssignmentRow(assignmentRow)
+
+  // Das eingereichte Lemma muss zu DIESEM Assignment gehoeren — sonst ist die
+  // Abgabe ungueltig (Client-Fehler oder manipuliertes lemmaId). Verhindert,
+  // dass ein fremdes/erfundenes Lemma still auf einem Leer-Snapshot scort.
+  const assignmentLemmaIds = (assignment.lemmaIds || []).map(String)
+  if (!assignmentLemmaIds.includes(String(lemmaId))) return { error: 'INVALID_INPUT' }
+
   // content_snapshot wird IMMER als { byLemma: { [lemmaId]: {...} } } gebaut
-  // (buildContentSnapshot). Das lemma-spezifische Snapshot liegt also unter
-  // byLemma[lemmaId]; fehlt es, scort der Modus auf einem leeren Objekt
-  // (0 Punkte) statt auf der falschen { byLemma }-Huelle. Der frueher hier
-  // stehende „?? contentSnapshot"-Fallback war tot/irrefuehrend (P3): er haette
-  // dem Scoring die gesamte byLemma-Huelle als Single-Lemma-Snapshot
-  // untergeschoben — es gibt keinen Pfad, der je ein Single-Lemma-Snapshot ablegt.
-  const lemmaSnapshot = assignment.contentSnapshot?.byLemma?.[lemmaId] ?? {}
+  // (buildContentSnapshot). Das lemma-spezifische Snapshot liegt unter
+  // byLemma[lemmaId]. Fehlt es oder ist es leer, ist die Content-Generierung
+  // fuer dieses Lemma fehlgeschlagen — frueher scorte der Modus dann still auf
+  // {} (0 Punkte fuer ALLE Schueler, faellt erst in der Auswertung auf). Jetzt
+  // laut: SCORING_FAILED + error-Log, statt einer stillen Null-Punkte-Stunde.
+  const lemmaSnapshot = assignment.contentSnapshot?.byLemma?.[lemmaId]
+  if (!lemmaSnapshot || Object.keys(lemmaSnapshot).length === 0) {
+    logger.error({ sessionId, assignmentId, lemmaId }, 'Leerer content_snapshot fuer Lemma — Scoring abgebrochen')
+    return { error: 'SCORING_FAILED' }
+  }
+
+  // round_index gegen die echte Rundenzahl des Modus validieren (gegen
+  // Submission-Inflation: das Zod-Schema erlaubt 0–99, aber Single-Round-Modi
+  // haben nur Runde 0 und lueckenfueller genau rounds.length Runden). Ohne das
+  // koennte ein Schueler bis zu 100 gewertete Abgaben pro Lemma erzeugen und
+  // die Aggregate verzerren.
+  const validRounds = roundCountFor({ mode: assignment.mode, contentSnapshot: lemmaSnapshot })
+  if (!(roundIndex >= 0 && roundIndex < validRounds)) return { error: 'INVALID_INPUT' }
 
   let scoreResult
   try {

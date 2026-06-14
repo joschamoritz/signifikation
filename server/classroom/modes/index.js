@@ -81,3 +81,14 @@ export function scoreSubmission({ mode, contentSnapshot, rawAnswer, roundIndex =
   if (!m) throw new Error(`scoreSubmission: unbekannter Modus "${mode}"`)
   return m.score(contentSnapshot, rawAnswer, roundIndex)
 }
+
+// ── Gueltige Rundenzahl pro Lemma ───────────────────────────────────
+// Single-Round-Modi (Kollokationen/Wort-Zwilling/Zeitenwende) → 1.
+// Nur lueckenfueller definiert ein eigenes roundCount (rounds[].length).
+// Genutzt von store.submitAnswer zur round_index-Validierung (gegen
+// Submission-Inflation: ohne Grenze waeren bis zu 100 Abgaben/Lemma moeglich).
+export function roundCountFor({ mode, contentSnapshot }) {
+  const m = getMode(mode)
+  if (!m) return 0
+  return typeof m.roundCount === 'function' ? m.roundCount(contentSnapshot) : 1
+}
