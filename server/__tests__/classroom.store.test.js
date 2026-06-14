@@ -496,6 +496,46 @@ describe('classroom/store', () => {
       })
       expect(r.error).toBe('PAYLOAD_TOO_LARGE')
     })
+
+    it('verweigert round_index ausserhalb der Rundenzahl (Single-Round → nur 0)', () => {
+      const { session, assignment, participant } = setupRunningSession()
+      const r = submitAnswer({
+        participantId: participant.id,
+        sessionId: session.id, assignmentId: assignment.id,
+        lemmaId: 'lemma-1', roundIndex: 1, // Kollokationen hat nur Runde 0
+        rawAnswer: { selected: ['stark', 'groß', 'klein'] },
+      })
+      expect(r.error).toBe('INVALID_INPUT')
+    })
+
+    it('verweigert ein Lemma, das nicht zum Assignment gehoert', () => {
+      const { session, assignment, participant } = setupRunningSession()
+      const r = submitAnswer({
+        participantId: participant.id,
+        sessionId: session.id, assignmentId: assignment.id,
+        lemmaId: 'lemma-999', roundIndex: 0,
+        rawAnswer: { selected: ['stark'] },
+      })
+      expect(r.error).toBe('INVALID_INPUT')
+    })
+
+    it('bricht laut ab (SCORING_FAILED) bei leerem content_snapshot statt still 0 Punkte', () => {
+      const { session } = createSession({ teacherUserId: TEACHER_A })
+      const { assignment } = addAssignment({
+        sessionId: session.id, teacherUserId: TEACHER_A,
+        mode: 'kollokationen', lemmaIds: ['lemma-1'],
+        contentSnapshot: { byLemma: {} }, // Lemma-Eintrag fehlt (Content-Build-Fehler)
+      })
+      startSession({ sessionId: session.id, teacherUserId: TEACHER_A })
+      const j = joinByCode({ code: session.code, displayName: 'X' })
+      const r = submitAnswer({
+        participantId: j.participant.id,
+        sessionId: session.id, assignmentId: assignment.id,
+        lemmaId: 'lemma-1', roundIndex: 0,
+        rawAnswer: { selected: ['stark'] },
+      })
+      expect(r.error).toBe('SCORING_FAILED')
+    })
   })
 
   // ── nextAssignment (W2-T2, sequenzielle Modi) ──────────────────

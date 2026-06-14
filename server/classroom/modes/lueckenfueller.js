@@ -46,6 +46,12 @@ export default {
     return scoreLueckenfueller(rounds[roundIndex], rawAnswer)
   },
 
+  // Gueltige Rundenzahl pro Lemma (mehrere Runden, anders als die Single-Round-
+  // Modi). Genutzt zur server-seitigen round_index-Validierung beim Submit.
+  roundCount(contentSnapshot) {
+    return Array.isArray(contentSnapshot?.rounds) ? contentSnapshot.rounds.length : 0
+  },
+
   async buildSnapshotEntry(lemma, deps) {
     // Vereinheitlichung: Lückenfüller live (buildLueckenfueller, belege.db),
     // Fallback aufs gespeicherte lemma.lueckenfueller.rounds.
