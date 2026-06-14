@@ -48,6 +48,9 @@ function blocksFromDraft(draft) {
 export default function SetupStep() {
   const { state, dispatch } = useTeacherClassroom()
   const draft = state.setupDraft || {}
+  // „Vorbereiten" (② Index-Karte): gleiche Maske, aber nach dem Anlegen NICHT
+  // in die Lobby springen — die Sitzung wartet in der Liste auf ihren Einsatz.
+  const prepare = draft.intent === 'prepare'
 
   const [blocks, setBlocks]       = useState(() => blocksFromDraft(draft))
   const [title, setTitle]         = useState(draft.title ?? defaultTitle())
@@ -88,7 +91,9 @@ export default function SetupStep() {
       await addAssignments(session.id, {
         blocks: blocks.map((b) => ({ mode: b.mode, lemmaIds: b.lemmaIds })),
       })
-      dispatch({ type: 'GO_TO_LOBBY', sessionId: session.id })
+      dispatch(prepare
+        ? { type: 'GO_TO_LIST' }
+        : { type: 'GO_TO_LOBBY', sessionId: session.id })
     } catch (err) {
       setError(err?.message || 'Sitzung konnte nicht angelegt werden.')
     } finally {
@@ -101,9 +106,9 @@ export default function SetupStep() {
   return (
     <ClassroomSubScreen
       testId="classroom-setup"
-      title="Neue Sitzung"
-      label="Live-Sitzung"
-      lead="Modus und Wörter wählen."
+      title={prepare ? 'Sitzung vorbereiten' : 'Neue Sitzung'}
+      label={prepare ? 'Vorbereiten' : 'Live-Sitzung'}
+      lead={prepare ? 'Für später zusammenstellen.' : 'Modus und Wörter wählen.'}
       backLabel="Zurück zu den Sitzungen"
       onBack={() => dispatch({ type: 'GO_TO_LIST' })}
     >
@@ -220,7 +225,9 @@ export default function SetupStep() {
             onClick={handleSubmit}
             data-testid="classroom-setup-submit"
           >
-            {submitting ? 'Wird angelegt …' : 'Lobby öffnen'}
+            {submitting
+              ? (prepare ? 'Wird vorbereitet …' : 'Wird angelegt …')
+              : (prepare ? 'Für später vorbereiten' : 'Lobby öffnen')}
             {!submitting && <span className="test-cta-arrow" aria-hidden="true"> →</span>}
           </button>
         </div>

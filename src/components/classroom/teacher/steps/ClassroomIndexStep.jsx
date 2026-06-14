@@ -86,28 +86,37 @@ export default function ClassroomIndexStep() {
         </li>
 
         {/* ② Vorbereiten ───────────────────────────────────── */}
-        <li className="test-entry classroom-entry--disabled">
-          <div className="test-entry-number">
+        <li className="test-entry">
+          <div className="test-entry-number" aria-hidden="true">
             <span className="test-entry-num-glyph">②</span>
             <span className="test-entry-marginalia">PLAN</span>
           </div>
           <div className="test-entry-body">
             <div className="test-entry-head">
               <h2 className="test-headword">Vorbereiten</h2>
-              <span className="test-ipa">[ˈfoːɐ̯bəˌʁaɪ̯tn̩]</span>
+              <span className="test-ipa" aria-label="Aussprache: [ˈfoːɐ̯bəˌʁaɪ̯tn̩]">[ˈfoːɐ̯bəˌʁaɪ̯tn̩]</span>
             </div>
-            <div className="test-entry-grammar">
+            <div className="test-entry-grammar" aria-hidden="true">
               <span className="test-pos">Planung</span>
               <span className="test-pos-rule" />
-              <span className="test-entry-category">in Arbeit</span>
+              <span className="test-entry-category">vorab</span>
             </div>
             <p className="test-definition">
-              Sitzungen im Voraus zusammenstellen und für die nächste Stunde
-              bereithalten — geplant für eine spätere Auflage.
+              Stelle eine Sitzung im Voraus zusammen — Modus, Wörter, Titel — und
+              halte sie für die nächste Stunde bereit. Starten kannst du sie
+              später mit einem Tippen.
             </p>
             <div className="test-entry-footer">
-              <span className="test-status">Demnächst verfügbar.</span>
-              <span className="test-cta test-cta--disabled" aria-hidden="true">—</span>
+              <span className="test-status">Für die nächste Stunde.</span>
+              <button
+                type="button"
+                className="test-cta"
+                onClick={() => dispatch({ type: 'GO_TO_SETUP', draft: { intent: 'prepare' } })}
+                data-testid="classroom-index-prepare"
+              >
+                Sitzung vorbereiten
+                <span className="test-cta-arrow" aria-hidden="true"> →</span>
+              </button>
             </div>
           </div>
         </li>
