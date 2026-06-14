@@ -13,6 +13,7 @@ import { useEffect, useState } from 'react'
 import { useTeacherClassroom } from '../TeacherClassroomContext'
 import { getDashboard, getSessionResults, duplicateSession } from '../hooks/useTeacherSession'
 import ClassroomSubScreen from '../components/ClassroomSubScreen'
+import { buildResultsCsv, resultsCsvFilename, downloadCsv } from '../exportResults'
 
 const MODE_LABELS = {
   kollokationen: 'Kollokationen',
@@ -190,6 +191,11 @@ export default function EndStep() {
   const totals    = results?.totals || { participants: 0, submissions: 0 }
   const hasSubmissions = results?.hasSubmissions
 
+  function handleCsv() {
+    if (!results) return
+    downloadCsv(resultsCsvFilename(results), buildResultsCsv(results))
+  }
+
   async function handleDuplicate() {
     if (!sessionId || duplicating) return
     setDuplicating(true)
@@ -224,6 +230,25 @@ export default function EndStep() {
             <section className="classroom-section classroom-pulse-section" aria-label="Übersicht">
               <span className="classroom-section__label">Sitzungsergebnis</span>
               <p className="classroom-pulse">{pulseSentence(totals)}</p>
+              <div className="classroom-export" role="group" aria-label="Auswertung exportieren">
+                <button
+                  type="button"
+                  className="classroom-export__btn"
+                  onClick={handleCsv}
+                  data-testid="classroom-end-export-csv"
+                >
+                  CSV speichern
+                </button>
+                <span className="classroom-export__sep" aria-hidden="true">·</span>
+                <button
+                  type="button"
+                  className="classroom-export__btn"
+                  onClick={() => window.print()}
+                  data-testid="classroom-end-print"
+                >
+                  Drucken
+                </button>
+              </div>
               <hr className="classroom-doubleline" aria-hidden="true" />
             </section>
           )}

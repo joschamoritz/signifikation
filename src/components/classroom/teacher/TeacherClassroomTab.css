@@ -1177,6 +1177,42 @@
   border: 1.5px dashed var(--classroom-rule);
 }
 
+/* Export-Toolbar in der Auswertung. */
+.classroom-export {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin: 6px 0 2px;
+}
+.classroom-export__btn {
+  font-family: var(--font-serif);
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--classroom-accent);
+  background: none;
+  border: none;
+  padding: 4px 0;
+  cursor: pointer;
+  border-bottom: 1px solid transparent;
+  transition: border-color 0.15s;
+}
+.classroom-export__btn:hover { border-bottom-color: var(--classroom-accent); }
+.classroom-export__sep { color: var(--classroom-muted); }
+
+/* Druckansicht: nur die pseudonyme Auswertung, App-Chrome + Namen ausblenden. */
+@media print {
+  .back-btn,
+  .snap-nav,
+  .classroom-sticky-cta,
+  .classroom-end-repeat,
+  .classroom-export,
+  .classroom-sort,
+  .classroom-toggle,
+  .classroom-participant-list { display: none !important; }
+  .classroom-subscreen,
+  .screen { background: #fff !important; }
+}
+
 /* Spätbeitritt-Schalter in der Lobby. */
 .classroom-lobby-latejoin {
   margin-top: 18px;
