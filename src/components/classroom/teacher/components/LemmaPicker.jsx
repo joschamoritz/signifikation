@@ -150,6 +150,9 @@ export default function LemmaPicker({ value = [], onChange, mode = null }) {
           onChange={(e) => setQuery(e.target.value)}
           aria-label="Lemma-Suche"
         />
+        <p className="classroom-lemma-search__note">
+          Wählbar sind nur von der Redaktion kuratierte Lemmata.
+        </p>
       </div>
 
       <p className="classroom-lemma-picker__hint">
@@ -162,7 +165,7 @@ export default function LemmaPicker({ value = [], onChange, mode = null }) {
       {hasQuery && error && <p className="classroom-error">{error}</p>}
 
       {hasQuery && !loading && !error && items.length === 0 && (
-        <p className="classroom-lemma-picker__hint">Keine Treffer für „{query.trim()}".</p>
+        <p className="classroom-lemma-picker__hint">Keine Treffer für „{query.trim()}". Wählbar sind nur kuratierte Lemmata.</p>
       )}
 
       {hasQuery && !loading && !error && items.length > 0 && (
