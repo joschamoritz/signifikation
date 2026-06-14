@@ -23,6 +23,7 @@ import {
   initialState,
 } from '../StudentKioskContext'
 import ClassroomGameWrapper from '../components/ClassroomGameWrapper'
+import { KioskApiError } from '../kioskFetch'
 
 function ContextProbe({ onState }) {
   const { state } = useStudentKiosk()
@@ -109,6 +110,30 @@ describe('ClassroomGameWrapper (T-5.5)', () => {
       expect(getState().currentState).toBe(KIOSK_STATES.SUBMITTED)
     })
     expect(getState().submittedResult).toEqual({ score: 5, maxScore: 10, correct: 1 })
+  })
+
+  it('formuliert Modus-Wechsel (ASSIGNMENT_NOT_ACTIVE) ruhig statt als Fehler', async () => {
+    const e = new KioskApiError('Dieser Modus ist nicht mehr aktiv')
+    e.code = 'ASSIGNMENT_NOT_ACTIVE'
+    const fakeSubmit = vi.fn().mockRejectedValue(e)
+    const onToast = vi.fn()
+    const s = {
+      ...initialState('morgentau'),
+      currentState: KIOSK_STATES.PLAYING,
+      token:        'tok-1',
+      assignment:   { id: 'a1', mode: 'kollokationen', lemmaCount: 1 },
+      currentLemma: {
+        id: 'l1', lemma: 'Lärm', ipa: '',
+        prompt: { words: ['eins', 'zwei', 'drei'], definition: '' },
+      },
+    }
+    renderWith(s, { onSubmitOverride: fakeSubmit, onToast })
+    for (const w of ['eins', 'zwei', 'drei']) {
+      await act(async () => { fireEvent.click(screen.getByText(w)) })
+    }
+    await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'Abgeben' })) })
+    await waitFor(() => expect(onToast).toHaveBeenCalled())
+    expect(onToast.mock.calls[0][0]).toMatch(/gewechselt/i)
   })
 
   it('rendert WortZwilling-Variante mit Zonen', () => {
