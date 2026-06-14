@@ -46,7 +46,7 @@ async function throwIfNotOk(res) {
   if (res.ok) return
   const body = await readBody(res)
   const msg  = body?.error || `HTTP ${res.status}`
-  throw new KioskApiError(msg, { status: res.status, payload: body })
+  throw new KioskApiError(msg, { status: res.status, code: body?.code, payload: body })
 }
 
 // ── Public ────────────────────────────────────────────────────────────

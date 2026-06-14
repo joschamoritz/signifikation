@@ -14,6 +14,15 @@ import { navigate } from '../../routing'
 
 const MAX_NAME = 20
 
+// Schuelerfreundliche Beitritts-Fehlermeldungen je stabilem Server-Code
+// (statt der technischen mapError-Texte). Code kommt aus der Join-Response.
+const JOIN_ERROR_TEXT = {
+  SESSION_FULL:       'Die Sitzung ist voll (höchstens 50 Teilnehmende).',
+  LATE_JOIN_DISABLED: 'Die Sitzung hat schon begonnen — frag deine Lehrkraft, ob du noch beitreten kannst.',
+  INVALID_STATE:      'Diese Sitzung ist gerade nicht aktiv.',
+  NO_ASSIGNMENT:      'Die Sitzung ist noch nicht bereit. Bitte kurz warten.',
+}
+
 export default function NameState() {
   const { state, dispatch } = useStudentKiosk()
   const [name, setName]         = useState(state.displayName || '')
@@ -51,8 +60,9 @@ export default function NameState() {
           navigate('/c')
           return
         }
-        // 409 → Konflikt (Name oder Session voll/SESSION_FULL/NO_ASSIGNMENT).
-        setError(err.message || 'Beitritt abgelehnt.')
+        // 409 → Konflikt. Bevorzugt die schülerfreundliche Meldung je Code,
+        // Fallback auf die Server-Meldung.
+        setError(JOIN_ERROR_TEXT[err.code] || err.message || 'Beitritt abgelehnt.')
       } else {
         setError(err?.message || 'Beitritt fehlgeschlagen.')
       }

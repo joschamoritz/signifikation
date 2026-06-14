@@ -1066,7 +1066,9 @@ router.post(
         if (result.error === 'INVALID_CODE') recordJoinFailure(code)
         trackJoinFailed(code, reason)
         const mapped = mapError(result.error)
-        return res.status(mapped.status).json({ error: mapped.message })
+        // Stabilen Fehler-Code mitgeben, damit der Kiosk (NameState) eine
+        // schuelerfreundliche Meldung waehlen kann statt der technischen.
+        return res.status(mapped.status).json({ error: mapped.message, code: result.error })
       }
       logger.info(
         { sessionId: result.session.id, participantId: result.participant.id },
