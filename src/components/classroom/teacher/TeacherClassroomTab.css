@@ -1177,6 +1177,15 @@
   border: 1.5px dashed var(--classroom-rule);
 }
 
+/* Hinweis im Lemma-Picker: nur kuratierte Lemmata wählbar (Feldtest). */
+.classroom-lemma-search__note {
+  margin: 5px 0 0;
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-size: 0.78rem;
+  color: var(--classroom-muted);
+}
+
 /* Export-Toolbar in der Auswertung. */
 .classroom-export {
   display: flex;
