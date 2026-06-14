@@ -21,6 +21,7 @@ export default function LobbyStep() {
   const [loading, setLoading]           = useState(true)
   const [error, setError]               = useState(null)
   const [starting, setStarting]         = useState(false)
+  const [armed, setArmed]               = useState(false)
 
   // Initial-Load: aktueller Session-Snapshot + Teilnehmer.
   // (Auch unter „lobby" liefert der Dashboard-Endpunkt diese Daten.)
@@ -112,6 +113,22 @@ export default function LobbyStep() {
     }
   }, [sessionId, activeCount, starting, dispatch])
 
+  // Auto-disarm: schaut die Lehrkraft nach dem ersten Tap weg, fällt die
+  // Bestätigung nach 4 s zurück.
+  useEffect(() => {
+    if (!armed) return undefined
+    const t = setTimeout(() => setArmed(false), 4000)
+    return () => clearTimeout(t)
+  }, [armed])
+
+  // 2-Tap-Bestätigung gegen versehentlichen Start (am Beamer schnell passiert).
+  const handleStartClick = useCallback(() => {
+    if (!sessionId || activeCount === 0 || starting) return
+    if (!armed) { setArmed(true); return }
+    setArmed(false)
+    handleStart()
+  }, [sessionId, activeCount, starting, armed, handleStart])
+
   return (
     <ClassroomSubScreen
       testId="classroom-lobby"
@@ -143,14 +160,16 @@ export default function LobbyStep() {
             type="button"
             className="classroom-cta"
             disabled={!session || activeCount === 0 || starting}
-            onClick={handleStart}
+            onClick={handleStartClick}
             data-testid="classroom-lobby-start"
           >
             {starting
               ? 'Wird gestartet …'
               : activeCount === 0
                 ? 'Warte auf Teilnehmer …'
-                : `Spiel starten (${activeCount} dabei)`}
+                : armed
+                  ? 'Nochmal tippen zum Starten'
+                  : `Spiel starten (${activeCount} dabei)`}
             {!starting && activeCount > 0 && <span className="test-cta-arrow" aria-hidden="true"> →</span>}
           </button>
         </div>

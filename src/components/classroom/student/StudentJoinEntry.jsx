@@ -112,7 +112,7 @@ export default function StudentJoinEntry({ initialNotice = null, embedded = fals
         type="text"
         inputMode="text"
         autoComplete="off"
-        autoCapitalize="characters"
+        autoCapitalize="none"
         spellCheck={false}
         className={`classroom-kiosk__code-field ${shake ? 'classroom-kiosk__input--shake' : ''}`}
         value={code}

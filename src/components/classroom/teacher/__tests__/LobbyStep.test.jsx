@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
 import { useEffect } from 'react'
-import { render, screen, waitFor, cleanup } from '@testing-library/react'
+import { render, screen, waitFor, cleanup, fireEvent } from '@testing-library/react'
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest'
 
 vi.mock('../hooks/useTeacherSession', () => ({
@@ -20,7 +20,7 @@ vi.mock('../hooks/useTeacherSocket', () => ({
 
 import LobbyStep from '../steps/LobbyStep'
 import { TeacherClassroomProvider, useTeacherClassroom } from '../TeacherClassroomContext'
-import { getDashboard } from '../hooks/useTeacherSession'
+import { getDashboard, startSession } from '../hooks/useTeacherSession'
 
 function WithSession({ children }) {
   const { state, dispatch } = useTeacherClassroom()
@@ -65,5 +65,23 @@ describe('LobbyStep (T-4.5)', () => {
       expect(btn.hasAttribute('disabled')).toBe(true)
     })
     expect(screen.getByText(/warte auf teilnehmer/i)).toBeTruthy()
+  })
+
+  it('Start erfordert 2-Tap-Bestätigung (kein versehentlicher Start)', async () => {
+    getDashboard.mockResolvedValue({
+      session: { id: 's1', code: 'morgentau', status: 'lobby' },
+      participants: [{ id: 'p1', displayName: 'Lena', connected: true, leftAt: null }],
+    })
+    startSession.mockResolvedValue({ status: 'running' })
+    renderLobby()
+    const btn = await screen.findByTestId('classroom-lobby-start')
+    await waitFor(() => expect(btn.hasAttribute('disabled')).toBe(false))
+    // Erster Tap → nur scharfschalten, noch kein Start
+    fireEvent.click(btn)
+    expect(startSession).not.toHaveBeenCalled()
+    expect(screen.getByTestId('classroom-lobby-start').textContent).toMatch(/nochmal tippen/i)
+    // Zweiter Tap → Start
+    fireEvent.click(screen.getByTestId('classroom-lobby-start'))
+    await waitFor(() => expect(startSession).toHaveBeenCalledTimes(1))
   })
 })

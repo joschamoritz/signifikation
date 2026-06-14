@@ -8,6 +8,7 @@
 // liefert (durch session:started via Socket oder durch das Polling),
 // SET_VIEW im Reducer schaltet auf KIOSK_STATES.PLAYING.
 
+import { useState, useEffect } from 'react'
 import { useStudentKiosk } from '../StudentKioskContext'
 
 const MODE_LABEL = {
@@ -19,6 +20,12 @@ const MODE_LABEL = {
 
 export default function WaitingState() {
   const { state } = useStudentKiosk()
+  // Nach längerem Warten ein ruhiger Hinweis — Handys sperren sonst das Display.
+  const [longWait, setLongWait] = useState(false)
+  useEffect(() => {
+    const t = setTimeout(() => setLongWait(true), 90_000)
+    return () => clearTimeout(t)
+  }, [])
 
   return (
     <div className="classroom-kiosk__panel classroom-kiosk__panel--center">
@@ -39,6 +46,16 @@ export default function WaitingState() {
         <span className="classroom-kiosk__pulse" aria-hidden="true" />
         Deine Lehrkraft startet das Spiel gleich.
       </p>
+
+      {longWait && (
+        <p
+          className="classroom-kiosk__lead"
+          data-testid="classroom-kiosk-longwait"
+          style={{ marginTop: 14, fontSize: '0.85rem', opacity: 0.7 }}
+        >
+          Noch da? Lass das Handy offen — sobald deine Lehrkraft startet, geht es automatisch los.
+        </p>
+      )}
     </div>
   )
 }
