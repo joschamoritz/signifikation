@@ -57,7 +57,7 @@ export const DEFAULT_AUTO_END_IDLE_MS = 90 * 60 * 1000
 //     Capabilities mit weg). Deckelt das Tabellenwachstum endgueltig.
 //   classroom_telemetry bleibt unberuehrt — bereits pseudonym (kein
 //     display_name), traegt die §14-Metriken.
-export const DEFAULT_NAME_ANONYMIZE_MS = 48 * 60 * 60 * 1000      // 48 h
+export const DEFAULT_NAME_ANONYMIZE_MS = 24 * 60 * 60 * 1000      // 24 h (H2: Klartext-Spitznamen Minderjähriger kürzer halten; Lehrkraft-Review am Folgetag bleibt möglich)
 export const DEFAULT_HARD_DELETE_MS    = 30 * 24 * 60 * 60 * 1000 // 30 Tage
 export const ANONYMIZED_DISPLAY_NAME   = 'Schüler:in'
 // W4-U2: nie gestartete Lobby-Sessions (Lehrer legt an, zieht Join-Code,
