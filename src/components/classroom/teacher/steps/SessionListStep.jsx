@@ -48,7 +48,7 @@ function statusToStep(status) {
 
 export default function SessionListStep() {
   const { state, dispatch } = useTeacherClassroom()
-  const { sessions, loading, error, refresh } = useSessionsList({ limit: 50 })
+  const { sessions, loading, error, refresh } = useSessionsList({ limit: 50, pollMs: 30000 })
   const [confirmId, setConfirmId] = useState(null)
   const [busyId, setBusyId]       = useState(null)
   const [delError, setDelError]   = useState(null)

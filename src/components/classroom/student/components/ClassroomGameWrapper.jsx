@@ -67,8 +67,14 @@ export default function ClassroomGameWrapper({ onSubmitOverride = null, onToast 
       if (draftKey) clearDraftPrefix(draftKey)
       dispatch({ type: 'SUBMITTED', rawAnswer, result, roundIndex })
     } catch (err) {
-      const msg = err instanceof KioskApiError
-        ? err.message
+      const code = err instanceof KioskApiError ? err.code : null
+      // Modus-Wechsel/Pause ist kein Fehler des Schülers — ruhig formulieren.
+      // Der Server-Push (assignment:changed / session:paused) holt die neue
+      // Ansicht ohnehin gleich nach.
+      const msg =
+        code === 'ASSIGNMENT_NOT_ACTIVE' ? 'Der Modus wurde gerade gewechselt — gleich geht es weiter.'
+        : code === 'SESSION_PAUSED'       ? 'Pausiert — warte, bis deine Lehrkraft fortsetzt.'
+        : err instanceof KioskApiError    ? err.message
         : 'Antwort nicht gesendet — erneut tippen.'
       if (typeof onToast === 'function') onToast(msg)
       else dispatch({ type: 'SET_ERROR', error: msg })

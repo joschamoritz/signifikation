@@ -1186,7 +1186,9 @@ router.post(
       })
       if (result.error) {
         const mapped = mapError(result.error)
-        return res.status(mapped.status).json({ error: mapped.message })
+        // Stabilen Code mitgeben, damit der Kiosk einen Modus-Wechsel/Pause
+        // ruhig kommunizieren kann statt der technischen Meldung.
+        return res.status(mapped.status).json({ error: mapped.message, code: result.error })
       }
 
       const scoredAt = Date.now()
