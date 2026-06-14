@@ -228,10 +228,15 @@ const stmts = {
   getParticipantByTokenHash: db.prepare(`
     SELECT * FROM classroom_participant WHERE auth_token = ? LIMIT 1
   `),
+  // Reconnect nach transientem Disconnect (left_at noch NULL) → connected=1.
+  // WICHTIG: left_at wird NICHT mehr genullt — ein gekickter/verlassener
+  // Teilnehmer (left_at gesetzt) darf nicht per Heartbeat „wiederauferstehen"
+  // (Audit ⚠️). requireParticipantAuth blockt left_at ohnehin mit 403; das
+  // `AND left_at IS NULL` schließt das schmale In-flight-Race.
   heartbeatParticipant: db.prepare(`
     UPDATE classroom_participant
-    SET last_seen_at = @ts, connected = 1, left_at = NULL
-    WHERE id = @id
+    SET last_seen_at = @ts, connected = 1
+    WHERE id = @id AND left_at IS NULL
   `),
   // Socket-Disconnect ohne Leave: connected=0, last_seen_at aktualisieren,
   // left_at bleibt NULL → Schueler kann innerhalb des Reconnect-Window (D6) zurueck.
