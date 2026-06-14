@@ -10,6 +10,7 @@
   --classroom-rule-lt: var(--border-lt);
   --classroom-accent:  var(--primary);
   --classroom-gold:    var(--accent);
+  --classroom-warning: #c2740c; /* Amber: „offline/hängt" — bewusst distinkt von Gold (verbunden) und Rot (abgegeben) */
   --classroom-disabled: var(--disabled);
   --classroom-card-bg: var(--surface);
 
@@ -1167,13 +1168,63 @@
 }
 
 .classroom-participant__dot--away {
-  background: transparent;
-  border: 1.5px solid var(--classroom-rule);
+  background: var(--classroom-warning);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--classroom-warning) 22%, transparent);
 }
 
 .classroom-participant__dot--left {
   background: transparent;
   border: 1.5px dashed var(--classroom-rule);
+}
+
+/* „N offline"-Hinweis im Teilnehmer-Label (Amber, Audit-Finding). */
+.classroom-section__warn {
+  color: var(--classroom-warning);
+  font-weight: 600;
+}
+
+/* „Sitzung verlassen"-Sheet (Back-Interception im Live-Step). */
+.classroom-leave-sheet {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 4px 20px 24px;
+}
+.classroom-leave-sheet__label {
+  font-family: var(--font-sans);
+  font-size: 0.7rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--classroom-accent);
+}
+.classroom-leave-sheet__hint {
+  font-family: var(--font-serif);
+  font-size: 0.9rem;
+  line-height: 1.5;
+  color: var(--muted);
+  margin: 0 0 6px;
+}
+.classroom-leave-sheet__end {
+  font-family: var(--font-serif);
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: var(--muted);
+  background: none;
+  border: none;
+  min-height: 48px;
+  cursor: pointer;
+  transition: color 0.15s;
+}
+.classroom-leave-sheet__end:hover { color: var(--error); }
+.classroom-leave-sheet__end:disabled { color: var(--classroom-disabled); cursor: default; }
+.classroom-leave-sheet__cancel {
+  font-family: var(--font-serif);
+  font-size: 0.85rem;
+  color: var(--muted);
+  background: none;
+  border: none;
+  min-height: 44px;
+  cursor: pointer;
 }
 
 .classroom-participant__name {

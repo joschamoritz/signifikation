@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
 import { useEffect } from 'react'
-import { render, screen, waitFor, cleanup } from '@testing-library/react'
+import { render, screen, waitFor, cleanup, fireEvent } from '@testing-library/react'
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest'
 
 vi.mock('../hooks/useTeacherSession', () => ({
@@ -79,5 +79,36 @@ describe('LiveStep (T-4.6)', () => {
     expect(screen.getByTestId('classroom-live-step').textContent).toMatch(/Modus 1 von 3/)
     // beim letzten Block (kein hasNext) gäbe es stattdessen den Finish-Button
     expect(screen.queryByTestId('classroom-live-finish')).toBeNull()
+  })
+
+  it('zeigt „N offline" wenn Teilnehmer abwesend sind', async () => {
+    getDashboard.mockResolvedValue({
+      session: { id: 's1', code: 'morgentau', status: 'running' },
+      assignment: { id: 'a1', mode: 'kollokationen', contentSnapshot: { lemmata: [] }, lemmaIds: ['l1'] },
+      participants: [
+        { id: 'p1', displayName: 'Lena', connected: false, done: false, leftAt: null },
+        { id: 'p2', displayName: 'Max', connected: true, done: false, leftAt: null },
+      ],
+      aggregate: { perLemma: [] },
+    })
+    renderLive()
+    await waitFor(() => expect(screen.getByTestId('classroom-live-away')).toBeTruthy())
+    expect(screen.getByTestId('classroom-live-away').textContent).toMatch(/1 offline/)
+  })
+
+  it('Back-Pfeil öffnet das „Sitzung verlassen"-Sheet statt still zu navigieren', async () => {
+    getDashboard.mockResolvedValue({
+      session: { id: 's1', code: 'morgentau', status: 'running' },
+      assignment: { id: 'a1', mode: 'kollokationen', contentSnapshot: { lemmata: [] }, lemmaIds: ['l1'] },
+      participants: [],
+      aggregate: { perLemma: [] },
+    })
+    renderLive()
+    await waitFor(() => expect(screen.getByTestId('classroom-subscreen-back')).toBeTruthy())
+    // Sheet zunächst geschlossen (rendert null)
+    expect(screen.queryByTestId('classroom-live-leave-finish')).toBeNull()
+    fireEvent.click(screen.getByTestId('classroom-subscreen-back'))
+    await waitFor(() => expect(screen.getByTestId('classroom-live-leave-finish')).toBeTruthy())
+    expect(screen.getByTestId('classroom-live-leave-background')).toBeTruthy()
   })
 })
