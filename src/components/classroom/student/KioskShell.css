@@ -420,6 +420,14 @@
   margin: 12px 0 8px;
 }
 
+/* Empty/Warte-Screen-Ornament (DESIGN.md): ersetzt frei stehende Riesen-Initialen. */
+.classroom-kiosk__ornament {
+  margin-top: 18px;
+  letter-spacing: 0.4em;
+  color: var(--k-muted);
+  font-size: 0.9rem;
+}
+
 /* ── Submit/Result (S5) — entkastelt, nur Linien ────────────────────── */
 .classroom-kiosk__resultcard {
   background: transparent;
