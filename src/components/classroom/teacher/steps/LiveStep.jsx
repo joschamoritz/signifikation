@@ -12,6 +12,7 @@ import { getDashboard, finishSession, pauseSession, resumeSession, nextAssignmen
 import { useTeacherSocket } from '../hooks/useTeacherSocket'
 import ParticipantList from '../components/ParticipantList'
 import ClassroomSubScreen from '../components/ClassroomSubScreen'
+import Sheet from '../../../ui/Sheet'
 
 const POLL_INTERVAL_MS = 3000
 
@@ -31,6 +32,8 @@ export default function LiveStep() {
   const [finishing, setFinishing]  = useState(false)
   const [pauseBusy, setPauseBusy]  = useState(false)
   const [advancing, setAdvancing]  = useState(false)
+  // Back-Interception: eine laufende Sitzung soll nicht still verlassen werden.
+  const [confirmLeave, setConfirmLeave] = useState(false)
 
   // Pause-Status: Dashboard ist Source of Truth (session.paused), Socket-
   // Events (session:paused/resumed) sorgen fuer sofortige Reaktion.
@@ -86,6 +89,9 @@ export default function LiveStep() {
   // "hat irgendeine Runde abgegeben" — das war die Mehrdeutigkeit aus 3.3.
   const submittedCount = enrichedParticipants.filter((p) => p.submitted).length
   const totalCount = enrichedParticipants.filter((p) => !p.leftAt).length
+  // „away" = dabei, aber gerade offline und noch nicht fertig — wer hängt/Netz
+  // verloren hat. Fuer den Lehrer der kritischste Blick (Audit-Finding).
+  const awayCount = enrichedParticipants.filter((p) => !p.leftAt && !p.submitted && !p.connected).length
   const pct = totalCount > 0 ? Math.round((submittedCount / totalCount) * 100) : 0
 
   const assignment = dashboard?.assignment
@@ -159,7 +165,7 @@ export default function LiveStep() {
       label={modeLabel || 'Live-Sitzung'}
       lead="Die Klasse spielt — du behältst den Überblick."
       backLabel="Zurück zur Übersicht"
-      onBack={() => dispatch({ type: 'GO_TO_LIST' })}
+      onBack={() => setConfirmLeave(true)}
     >
       <section className="classroom-progress" aria-label="Abgaben-Fortschritt">
         <div className="classroom-progress__label">
@@ -192,7 +198,14 @@ export default function LiveStep() {
       {error && <p className="classroom-error">{error}</p>}
 
       <section className="classroom-section" aria-labelledby="classroom-live-participants-label">
-        <span id="classroom-live-participants-label" className="classroom-section__label">Teilnehmer</span>
+        <span id="classroom-live-participants-label" className="classroom-section__label">
+          Teilnehmer
+          {awayCount > 0 && (
+            <span className="classroom-section__warn" data-testid="classroom-live-away">
+              {' · '}{awayCount} offline
+            </span>
+          )}
+        </span>
         <ParticipantList participants={enrichedParticipants} mode="live" />
       </section>
 
@@ -249,6 +262,43 @@ export default function LiveStep() {
           )}
         </div>
       </div>
+
+      {/* Back-Interception: laufende Sitzung nicht still verlassen. */}
+      <Sheet open={confirmLeave} onClose={() => setConfirmLeave(false)} aria-label="Sitzung verlassen">
+        <Sheet.Header />
+        <div className="classroom-leave-sheet">
+          <span className="classroom-leave-sheet__label" aria-hidden="true">Sitzung läuft</span>
+          <p className="classroom-leave-sheet__hint">
+            Du kannst die Sitzung im Hintergrund weiterlaufen lassen und später aus
+            der Liste fortsetzen — oder sie jetzt für alle beenden. Beim Beenden
+            sehen die Schüler:innen die Auflösung.
+          </p>
+          <button
+            type="button"
+            className="classroom-cta"
+            onClick={() => { setConfirmLeave(false); dispatch({ type: 'GO_TO_LIST' }) }}
+            data-testid="classroom-live-leave-background"
+          >
+            Im Hintergrund weiterlaufen lassen
+          </button>
+          <button
+            type="button"
+            className="classroom-leave-sheet__end"
+            onClick={handleFinish}
+            disabled={finishing}
+            data-testid="classroom-live-leave-finish"
+          >
+            {finishing ? 'Wird beendet …' : 'Sitzung jetzt beenden'}
+          </button>
+          <button
+            type="button"
+            className="classroom-leave-sheet__cancel"
+            onClick={() => setConfirmLeave(false)}
+          >
+            Abbrechen
+          </button>
+        </div>
+      </Sheet>
     </ClassroomSubScreen>
   )
 }
