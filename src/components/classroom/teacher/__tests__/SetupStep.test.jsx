@@ -21,9 +21,10 @@ vi.mock('../hooks/useTeacherSession', () => ({
   getTodayWortzwilling: vi.fn().mockResolvedValue({ pair: null }),
 }))
 
+import { useEffect } from 'react'
 import { searchLemmata, createSession, addAssignments } from '../hooks/useTeacherSession'
 import SetupStep from '../steps/SetupStep'
-import { TeacherClassroomProvider } from '../TeacherClassroomContext'
+import { TeacherClassroomProvider, useTeacherClassroom } from '../TeacherClassroomContext'
 
 function renderSetup() {
   return render(
@@ -31,6 +32,14 @@ function renderSetup() {
       <SetupStep />
     </TeacherClassroomProvider>,
   )
+}
+
+// Prepare-Modus: dispatcht GO_TO_SETUP mit intent='prepare' beim Mount, bevor
+// SetupStep gerendert wird (prepare wird pro Render aus dem Draft berechnet).
+function PrepareSetup() {
+  const { dispatch } = useTeacherClassroom()
+  useEffect(() => { dispatch({ type: 'GO_TO_SETUP', draft: { intent: 'prepare' } }) }, [dispatch])
+  return <SetupStep />
 }
 
 // Hilfsfunktion: ersten Block vollstaendig ausfuellen (Modus + Lemma).
@@ -91,6 +100,12 @@ describe('SetupStep (T-4.4 / W2-T2)', () => {
     expect(screen.getByTestId('classroom-block-1')).toBeTruthy()
     fireEvent.click(screen.getByTestId('classroom-block-remove-1'))
     expect(screen.queryByTestId('classroom-block-1')).toBeNull()
+  })
+
+  it('Vorbereiten-Modus: CTA „Für später vorbereiten" statt „Lobby öffnen"', () => {
+    render(<TeacherClassroomProvider><PrepareSetup /></TeacherClassroomProvider>)
+    expect(screen.getByTestId('classroom-setup-submit').textContent).toMatch(/Für später vorbereiten/)
+    expect(screen.queryByText(/Lobby öffnen/)).toBeNull()
   })
 
   it('W2-T2: legt bei „Lobby öffnen" alle Blöcke per bulk an', async () => {
