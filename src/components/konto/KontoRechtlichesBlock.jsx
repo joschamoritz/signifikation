@@ -47,7 +47,7 @@ export default function KontoRechtlichesBlock() {
         </nav>
 
         <div className="test-entry-footer">
-          <span className="test-status">Version 1.0.0</span>
+          <span className="test-status">Version {__APP_VERSION__}</span>
         </div>
       </div>
     </li>

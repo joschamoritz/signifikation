@@ -80,10 +80,6 @@ export default function KontoTab({ gesamtausgabe, gesamtausgabePermanent, onAuth
             <div className="snap-nav-spacer" aria-hidden="true" />
           </nav>
         </main>
-
-        <div className="tab-placeholder-footer">
-          <span className="tab-placeholder-edition">Dein Konto und deine Einstellungen.</span>
-        </div>
       </div>
     </div>
   )

@@ -140,10 +140,6 @@ function KursTab({ gesamtausgabe = false }) {
             <div className="snap-nav-spacer" aria-hidden="true" />
           </nav>
         </main>
-
-        <div className="tab-placeholder-footer">
-          <span className="tab-placeholder-edition">Systematischer Einstieg in die Korpuslinguistik: von Wortarten über Syntaktik bis zur eigenen Recherche.</span>
-        </div>
       </div>
     </div>
   )

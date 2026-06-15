@@ -211,7 +211,7 @@ export default function KontoEinstellungenBlock() {
         </div>
 
         <div className="test-entry-footer">
-          <span className="test-status">Teilweise verfügbar</span>
+          <span className="test-status">Verfügbar</span>
         </div>
       </div>
     </li>
