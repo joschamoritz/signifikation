@@ -9,11 +9,6 @@ const SPIELE_INFO = [
   { key: 'lueckenfueller', label: 'Lückenfüller' },
 ]
 
-const MONATSNAMEN = [
-  'Januar', 'Februar', 'März', 'April', 'Mai', 'Juni',
-  'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember',
-]
-
 function mergeDateSet(serverStats) {
   const dateSet = readLocalPlayedDates()
   if (serverStats) {
@@ -223,8 +218,6 @@ export default function KontoStatistikenBlock() {
   const bestDay      = useMemo(() => computeBestDayThisMonth(serverStats), [serverStats])
   const weekDelta    = useMemo(() => computeWeekDelta(serverStats, dateSet), [serverStats, dateSet])
 
-  const monatName = MONATSNAMEN[new Date().getMonth()]
-
   const streakLabel = streak > 0 ? `🔥 ${streak} ${streak === 1 ? 'Tag' : 'Tage'}` : '–'
   const favLabel    = favorite || '–'
   const bestLabel   = bestDay
@@ -262,7 +255,7 @@ export default function KontoStatistikenBlock() {
               <span className="konto-stat-value">{favLabel}</span>
             </div>
             <div className="konto-stat-card">
-              <span className="konto-stat-label">Bester Tag im {monatName}</span>
+              <span className="konto-stat-label">Bester Tag</span>
               <span className="konto-stat-value">{bestLabel}</span>
             </div>
           </div>
