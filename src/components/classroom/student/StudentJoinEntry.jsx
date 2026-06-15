@@ -118,7 +118,7 @@ export default function StudentJoinEntry({ initialNotice = null, embedded = fals
         value={code}
         onChange={handleChange}
         onPaste={handlePaste}
-        placeholder="z. B. MORGENTAU"
+        placeholder="hier eintippen"
         maxLength={30}
         data-testid="classroom-kiosk-code-input"
       />

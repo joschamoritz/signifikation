@@ -763,9 +763,10 @@
   color: var(--k-text);
   background: transparent;
   border: none;
-  border-bottom: 1.5px solid var(--k-rule);
+  border-bottom: 2px solid var(--k-muted);
   border-radius: 0;
   padding: 8px 4px;
+  margin-bottom: 18px;
 }
 .classroom-kiosk__code-field::placeholder {
   font-weight: 400;
