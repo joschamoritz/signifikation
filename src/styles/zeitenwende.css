@@ -300,11 +300,15 @@
 }
 
 /* ── Entscheidungs-Buttons ───────────────────────────────── */
+/* Linien-Liste statt umrandeter Kästen (design.md §4): Haarlinien oben/unten,
+   1px-Trenner zwischen den Optionen, farbiger Seitenakzent + zarte Fläche bei
+   Auswahl — analog zu .option im Kollokationen-Spiel. */
 .zw-choices {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 10px;
   width: 100%;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
 }
 
 .zw-choice-btn {
@@ -312,26 +316,27 @@
   flex-direction: column;
   align-items: center;
   gap: 4px;
-  padding: 14px 10px;
-  border: 2px solid var(--border);
-  border-radius: 4px;
-  background: var(--surface);
+  min-height: 44px;
+  padding: 16px 10px;
+  border: none;
+  background: none;
   color: var(--text);
   font-family: var(--font-sans);
   font-size: 0.9rem;
   font-weight: 600;
   cursor: pointer;
-  transition: border-color 150ms, background 150ms, transform 100ms;
+  position: relative;
+  transition: background 150ms, transform 100ms;
   -webkit-tap-highlight-color: transparent;
 }
 
-.zw-choice-btn:hover:not(:disabled) {
-  border-color: var(--zw-accent);
-  background: var(--zw-bg);
+/* 1px-Trenner zwischen den beiden Optionen */
+.zw-choice-btn + .zw-choice-btn {
+  border-left: 1px solid var(--border);
 }
 
 .zw-choice-btn:active:not(:disabled) {
-  transform: scale(0.97);
+  transform: scale(0.98);
 }
 
 .zw-choice-btn:disabled {
@@ -339,39 +344,44 @@
   cursor: default;
 }
 
-.zw-choice-btn--pre {
-  border-left-width: 4px;
-  border-left-color: var(--zw-pre);
-}
+/* Seitenakzent (links für „vor", rechts für „nach") — transparent bis Auswahl */
+.zw-choice-btn--pre  { box-shadow: inset 3px 0 0 transparent; }
+.zw-choice-btn--post { box-shadow: inset -3px 0 0 transparent; }
 
 .zw-choice-btn--pre:hover:not(:disabled) {
-  border-left-color: var(--zw-pre);
-  background: var(--zw-pre-bg-lt);
+  background: color-mix(in srgb, var(--zw-pre) 5%, transparent);
 }
-
-.zw-choice-btn--post {
-  border-right-width: 4px;
-  border-right-color: var(--zw-post);
-}
-
 .zw-choice-btn--post:hover:not(:disabled) {
-  border-right-color: var(--zw-post);
-  background: var(--zw-post-bg-lt);
+  background: color-mix(in srgb, var(--zw-post) 5%, transparent);
 }
 
-.zw-choice-btn--selected-pre  { border-color: var(--zw-pre);  background: var(--zw-pre-bg) }
-.zw-choice-btn--selected-post { border-color: var(--zw-post); background: var(--zw-post-bg) }
+.zw-choice-btn--selected-pre {
+  box-shadow: inset 3px 0 0 var(--zw-pre);
+  background: color-mix(in srgb, var(--zw-pre) 7%, transparent);
+}
+.zw-choice-btn--selected-post {
+  box-shadow: inset -3px 0 0 var(--zw-post);
+  background: color-mix(in srgb, var(--zw-post) 7%, transparent);
+}
 
 .zw-choice-arrow {
   font-size: 1.3rem;
   line-height: 1;
 }
+.zw-choice-btn--pre  .zw-choice-arrow { color: var(--zw-pre); }
+.zw-choice-btn--post .zw-choice-arrow { color: var(--zw-post); }
 
 .zw-choice-label {
   font-size: 0.8rem;
   font-weight: 500;
   color: var(--muted);
   letter-spacing: 0.03em;
+}
+
+.zw-choice-btn--selected-pre .zw-choice-label,
+.zw-choice-btn--selected-post .zw-choice-label {
+  color: var(--text);
+  font-weight: 700;
 }
 
 /* ── Ergebnisse ──────────────────────────────────────────── */
