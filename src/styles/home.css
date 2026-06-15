@@ -451,10 +451,22 @@
   border-top: 2.5px double var(--border);
   border-bottom: 2.5px double var(--border);
   animation: screenIn 0.2s ease-out both;
+  counter-reset: lemma-entry;
 }
 
-/* Kein Zähler innerhalb der sekundären Karten */
-.secondary-selection-card .lemma-card-main::before { content: none }
+/* Nummerierung wie bei Kollokationen (Nachschlagewerk-Optik): Einzel-Einträge
+   in Zeitenwende/Lückenfüller zählen pro .lemma-card-main (Basisregel greift),
+   das „＋" des eigenen Lemmas richtet sich über dasselbe Gutter aus. */
+
+/* Wort-Zwilling: ein Wortpaar = ein Eintrag → nur einmal pro Paar zählen,
+   Nummer am ersten Wort, leeres Gutter am zweiten (Ausrichtung bleibt). */
+.wz-pair-card { counter-increment: lemma-entry; }
+.wz-pair-card .lemma-card-main { counter-increment: none; }
+.wz-pair-card .lemma-card-main::before { content: ""; }
+.wz-pair-card .lemma-card:first-child .lemma-card-main::before {
+  content: counter(lemma-entry) ".";
+}
+
 /* Keine Doppelkante zwischen gestapelten Einträgen (Wort-Zwilling) */
 .secondary-selection-card .lemma-card-wrap + .lemma-card-wrap { border-top: none }
 
