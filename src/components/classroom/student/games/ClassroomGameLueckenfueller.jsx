@@ -55,12 +55,12 @@ function ChoiceRound({ round, submitting, onSubmit, draftKey }) {
       <footer className="quiz-footer">
         <button
           type="button"
-          className="btn-primary btn-full"
+          className="quiz-cta"
           onClick={() => { if (picked) onSubmit({ selected: picked }) }}
           disabled={submitting || !picked}
           data-testid="classroom-kiosk-lf-submit"
         >
-          {submitting ? 'Sende …' : 'Abgeben'}
+          {submitting ? 'Sende …' : (<>Abgeben<span className="quiz-cta-arrow" aria-hidden="true"> →</span></>)}
         </button>
       </footer>
     </>
@@ -103,12 +103,12 @@ function DoubleRound({ round, submitting, onSubmit, draftKey }) {
       <footer className="quiz-footer">
         <button
           type="button"
-          className="btn-primary btn-full"
+          className="quiz-cta"
           onClick={() => onSubmit({ answers })}
           disabled={submitting || answers.some((a) => !String(a).trim())}
           data-testid="classroom-kiosk-lf-submit"
         >
-          {submitting ? 'Sende …' : 'Abgeben'}
+          {submitting ? 'Sende …' : (<>Abgeben<span className="quiz-cta-arrow" aria-hidden="true"> →</span></>)}
         </button>
       </footer>
     </>
@@ -143,12 +143,12 @@ function FreeRound({ round, submitting, onSubmit, draftKey }) {
       <footer className="quiz-footer">
         <button
           type="button"
-          className="btn-primary btn-full"
+          className="quiz-cta"
           onClick={() => { if (value.trim()) onSubmit({ value: value.trim() }) }}
           disabled={submitting || !value.trim()}
           data-testid="classroom-kiosk-lf-submit"
         >
-          {submitting ? 'Sende …' : 'Abgeben'}
+          {submitting ? 'Sende …' : (<>Abgeben<span className="quiz-cta-arrow" aria-hidden="true"> →</span></>)}
         </button>
       </footer>
     </>
