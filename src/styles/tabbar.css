@@ -842,22 +842,6 @@
   line-height: 1.1;
 }
 
-.tab-placeholder-footer {
-  margin-top: auto;
-  padding-top: 20px;
-  border-top: 1px solid var(--border-lt);
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.tab-placeholder-status {
-  font-family: var(--font-sans);
-  font-size: 0.72rem;
-  color: var(--disabled);
-  font-style: italic;
-}
-
 .tab-profil-legal {
   display: flex;
   flex-wrap: wrap;
@@ -876,13 +860,6 @@
 
 .tab-profil-legal a:hover {
   color: var(--text);
-}
-
-.tab-placeholder-edition {
-  font-family: var(--font-serif);
-  font-size: 0.72rem;
-  color: var(--disabled);
-  font-style: italic;
 }
 
 .classroom-inner {
