@@ -66,7 +66,7 @@ describe('WortZwilling – Smoketest', () => {
     expect(document.querySelectorAll('.wz-bank .wz-chip')).toHaveLength(10)
 
     // Auswerten-Button initial deaktiviert
-    const submit = document.querySelector('.btn-primary.btn-full')
+    const submit = document.querySelector('.quiz-cta')
     expect(submit.disabled).toBe(true)
     expect(submit.textContent).toContain('Noch 10')
   })
@@ -114,7 +114,7 @@ describe('WortZwilling – Smoketest', () => {
     expect(document.querySelectorAll('.wz-bank .wz-chip')).toHaveLength(0)
 
     // Auswerten klickbar
-    const submit = document.querySelector('.btn-primary.btn-full')
+    const submit = document.querySelector('.quiz-cta')
     expect(submit.disabled).toBe(false)
     expect(submit.textContent).toContain('Auswerten')
     fireEvent.click(submit)
@@ -145,7 +145,7 @@ describe('WortZwilling – Smoketest', () => {
     for (const w of ['a1', 'a2', 'a3', 'a4', 'a5']) placeInZone(w, 'B')
     for (const w of ['b1', 'b2', 'b3', 'b4', 'b5']) placeInZone(w, 'A')
 
-    fireEvent.click(document.querySelector('.btn-primary.btn-full'))
+    fireEvent.click(document.querySelector('.quiz-cta'))
 
     expect(onFinish).toHaveBeenCalledOnce()
     expect(onFinish.mock.calls[0][0].score).toBe(0)

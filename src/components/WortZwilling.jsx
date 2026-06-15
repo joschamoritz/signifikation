@@ -401,16 +401,18 @@ export default function WortZwilling({
           ))}
         </div>
 
-        <button
-          className="btn-primary btn-full"
-          type="button"
-          onClick={handleSubmit}
-          disabled={!canSubmit}
-        >
-          {canSubmit
-            ? (isClassroom ? 'Abgeben' : 'Auswerten')
-            : `Noch ${remaining} Wort${remaining !== 1 ? 'e' : ''} zuordnen`}
-        </button>
+        <footer className="quiz-footer">
+          <button
+            className="quiz-cta"
+            type="button"
+            onClick={handleSubmit}
+            disabled={!canSubmit}
+          >
+            {canSubmit
+              ? (<>{isClassroom ? 'Abgeben' : 'Auswerten'}<span className="quiz-cta-arrow" aria-hidden="true"> →</span></>)
+              : `Noch ${remaining} Wort${remaining !== 1 ? 'e' : ''} zuordnen`}
+          </button>
+        </footer>
       </div>
 
       {/* Floating chip während des Drags */}

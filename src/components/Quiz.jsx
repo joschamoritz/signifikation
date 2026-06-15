@@ -332,7 +332,7 @@ export default function Quiz({
           <>
             <span className="select-count" aria-live="polite" aria-atomic="true">{selected.length} / 3 gewählt</span>
             <button
-              className="btn-primary"
+              className="quiz-cta"
               type="button"
               disabled={selected.length !== 3}
               onClick={() => {
@@ -348,15 +348,16 @@ export default function Quiz({
               }}
             >
               {isClassroom ? 'Abgeben' : 'Auswerten'}
+              <span className="quiz-cta-arrow" aria-hidden="true"> →</span>
             </button>
           </>
         ) : (
           <button
-            className="btn-primary btn-full"
+            className="quiz-cta"
             type="button"
             onClick={() => onRoundComplete(roundScore)}
           >
-            Weiter →
+            Weiter<span className="quiz-cta-arrow" aria-hidden="true"> →</span>
           </button>
         )}
       </footer>

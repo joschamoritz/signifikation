@@ -208,12 +208,13 @@ function ChoiceRound({ round, roundIdx, totalRounds, onScore }) {
 
       <footer className="quiz-footer">
         {!submitted ? (
-          <button className="btn-primary btn-full" disabled={!selected} onClick={handleSubmit}>
-            Auswerten
+          <button className="quiz-cta" disabled={!selected} onClick={handleSubmit}>
+            Auswerten<span className="quiz-cta-arrow" aria-hidden="true"> →</span>
           </button>
         ) : (
-          <button className="btn-primary btn-full" onClick={() => onScore(pts)}>
-            {totalRounds - 1 === roundIdx ? 'Ergebnis ansehen' : 'Weiter →'}
+          <button className="quiz-cta" onClick={() => onScore(pts)}>
+            {totalRounds - 1 === roundIdx ? 'Ergebnis ansehen' : 'Weiter'}
+            <span className="quiz-cta-arrow" aria-hidden="true"> →</span>
           </button>
         )}
       </footer>
@@ -329,12 +330,12 @@ function DoubleRound({ round, onScore }) {
 
       <footer className="quiz-footer">
         {!submitted ? (
-          <button className="btn-primary btn-full" disabled={!bothFilled} onClick={handleSubmit}>
-            Auswerten
+          <button className="quiz-cta" disabled={!bothFilled} onClick={handleSubmit}>
+            Auswerten<span className="quiz-cta-arrow" aria-hidden="true"> →</span>
           </button>
         ) : (
-          <button className="btn-primary btn-full" onClick={() => onScore(pts)}>
-            Weiter →
+          <button className="quiz-cta" onClick={() => onScore(pts)}>
+            Weiter<span className="quiz-cta-arrow" aria-hidden="true"> →</span>
           </button>
         )}
       </footer>
@@ -419,12 +420,12 @@ function FreeRound({ round, onScore }) {
 
       <footer className="quiz-footer">
         {!submitted ? (
-          <button className="btn-primary btn-full" disabled={!input.trim()} onClick={handleSubmit}>
-            Auswerten
+          <button className="quiz-cta" disabled={!input.trim()} onClick={handleSubmit}>
+            Auswerten<span className="quiz-cta-arrow" aria-hidden="true"> →</span>
           </button>
         ) : (
-          <button className="btn-primary btn-full" onClick={() => onScore(pts)}>
-            Ergebnis ansehen
+          <button className="quiz-cta" onClick={() => onScore(pts)}>
+            Ergebnis ansehen<span className="quiz-cta-arrow" aria-hidden="true"> →</span>
           </button>
         )}
       </footer>

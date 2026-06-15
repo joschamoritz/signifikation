@@ -469,14 +469,17 @@ export default function Zeitenwende({
 
       {/* Weiter-Button (nur während Feedback) */}
       {feedback !== null && (
-        <button
-          type="button"
-          className="zw-weiter-btn"
-          onClick={advanceRound}
-          aria-label={round + 1 >= total ? 'Ergebnis anzeigen' : 'Nächstes Wort'}
-        >
-          {round + 1 >= total ? 'Ergebnis anzeigen' : 'Weiter'} →
-        </button>
+        <footer className="quiz-footer">
+          <button
+            type="button"
+            className="quiz-cta"
+            onClick={advanceRound}
+            aria-label={round + 1 >= total ? 'Ergebnis anzeigen' : 'Nächstes Wort'}
+          >
+            {round + 1 >= total ? 'Ergebnis anzeigen' : 'Weiter'}
+            <span className="quiz-cta-arrow" aria-hidden="true"> →</span>
+          </button>
+        </footer>
       )}
 
       {/* Entscheidungs-Buttons – nur im Spielmodus, im Feedback-Modus übernimmt der Weiter-Button */}

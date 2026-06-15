@@ -298,11 +298,40 @@
 .quiz-footer {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-end;
   gap: 12px;
-  padding-top: 2px;
+  border-top: 1px solid var(--border);
+  padding-top: 12px;
+  margin-top: 16px;
 }
-.select-count { font-size: 0.85rem; color: var(--muted) }
+.select-count { margin-right: auto; font-size: 0.85rem; color: var(--muted) }
+
+/* Spiel-Footer-Aktion als Text-CTA (Auswerten/Abgeben/Weiter) — kein
+   gefuellter Kasten; rote Serif-Schrift + aria-hidden-Pfeil, durch die
+   Haarlinie der .quiz-footer verankert (design.md §4). */
+.quiz-cta {
+  font-family: var(--font-serif);
+  font-weight: 700;
+  font-size: 1.1rem;
+  color: var(--primary);
+  background: none;
+  border: none;
+  padding: 6px 2px;
+  min-height: 44px;
+  cursor: pointer;
+  transition: color 0.15s;
+}
+@media (hover: hover) {
+  .quiz-cta:hover:not(:disabled) {
+    color: var(--primary-hi);
+    text-decoration: underline;
+    text-underline-offset: 4px;
+  }
+}
+.quiz-cta:active:not(:disabled) { opacity: 0.7 }
+.quiz-cta:disabled { color: var(--disabled); cursor: not-allowed }
+.quiz-cta:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; border-radius: 4px }
+.quiz-cta-arrow { font-weight: 700 }
 
 /* Bonus-Tag im Quiz-Header */
 .bonus-tag {

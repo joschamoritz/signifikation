@@ -274,31 +274,6 @@
   line-height: 1.4;
 }
 
-/* ── Weiter-Button ───────────────────────────────────────── */
-.zw-weiter-btn {
-  width: 100%;
-  padding: 12px 16px;
-  background: var(--zw-accent);
-  color: #fff;
-  border: none;
-  border-radius: 4px;
-  font-family: var(--font-sans);
-  font-size: 0.95rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background 150ms, transform 100ms;
-  margin-bottom: 10px;
-  flex-shrink: 0;
-}
-
-.zw-weiter-btn:hover {
-  background: var(--zw-accent-dk);
-}
-
-.zw-weiter-btn:active {
-  transform: scale(0.98);
-}
-
 /* ── Entscheidungs-Buttons ───────────────────────────────── */
 /* Linien-Liste statt umrandeter Kästen (design.md §4): Haarlinien oben/unten,
    1px-Trenner zwischen den Optionen, farbiger Seitenakzent + zarte Fläche bei
