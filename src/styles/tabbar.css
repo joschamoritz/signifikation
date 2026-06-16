@@ -492,18 +492,20 @@
   font-size: 0.72rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--primary);
+  color: var(--muted);
   background: none;
-  border: 1px solid var(--border-lt);
-  border-radius: var(--radius, 2px);
-  padding: 6px 16px;
+  border: none;
+  border-bottom: 1px solid transparent;
+  border-radius: 0;
+  padding: 4px 0;
   cursor: pointer;
   transition: border-color 120ms ease, color 120ms ease;
   margin-bottom: 2px;
 }
 
 .konto-session-signout:hover:not(:disabled) {
-  border-color: var(--primary);
+  color: var(--primary);
+  border-bottom-color: var(--primary);
 }
 
 .konto-session-signout:disabled {
