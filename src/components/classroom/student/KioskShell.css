@@ -176,32 +176,15 @@
 }
 
 /* ── Form-Bausteine ─────────────────────────────────────────────────── */
-.classroom-kiosk__input {
-  width: 100%;
-  padding: 14px 16px;
-  font-family: 'Gentium Plus', Georgia, serif;
-  font-size: 1.4rem;
-  background: var(--k-card);
-  border: 1px solid var(--k-rule);
-  border-radius: 4px;
-  color: var(--k-text);
-  text-align: center;
-  letter-spacing: 0.05em;
-  box-sizing: border-box;
-}
-
-.classroom-kiosk__input:focus {
-  outline: 2px solid var(--k-accent);
-  outline-offset: 1px;
-  border-color: var(--k-accent);
-}
+/* Hinweis: Die fruehere .classroom-kiosk__input-Box (umrandeter Box-Input)
+   wurde entfernt — toter Code, das Zugangscode-Feld nutzt das unterstrichene
+   .classroom-kiosk__code-field. Der --shake-Modifier (unten) bleibt aktiv. */
 
 /* ── Tastatur-Fokus (WCAG 2.4.7) ────────────────────────────────────── */
 /* Custom-Buttons (role="button") und echte Buttons brauchen einen sichtbaren
    Fokusring — Gold passt zur Wörterbuch-Ästhetik und hebt sich vom roten
    :focus des Inputs ab. :focus-visible blendet ihn bei reinem Maus-/Touch-
    Tap aus. */
-.classroom-kiosk__choice:focus-visible,
 .classroom-kiosk__pill:focus-visible,
 .classroom-kiosk__zone:focus-visible,
 .classroom-kiosk__zw-action:focus-visible,
@@ -808,50 +791,10 @@
 }
 .classroom-student-entry__scan:hover { color: var(--primary); }
 
-.classroom-kiosk__choices {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.classroom-kiosk__choice {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  padding: 12px 14px;
-  background: var(--k-card);
-  border: 1px solid var(--k-rule);
-  border-radius: 3px;
-  font-family: 'Gentium Plus', Georgia, serif;
-  font-size: 1.05rem;
-  cursor: pointer;
-  user-select: none;
-}
-
-.classroom-kiosk__choice:hover:not(.classroom-kiosk__choice--disabled) {
-  background: var(--k-card);
-}
-
-.classroom-kiosk__choice--picked {
-  border-color: var(--k-accent);
-  background: color-mix(in srgb, var(--k-accent) 8%, transparent);
-}
-
-.classroom-kiosk__choice--disabled {
-  opacity: 0.55;
-  cursor: not-allowed;
-}
-
-.classroom-kiosk__choice-rank {
-  font-family: 'DM Sans', system-ui, sans-serif;
-  font-size: 0.8rem;
-  color: var(--k-accent);
-  font-weight: 700;
-}
+/* Hinweis: Der fruehere .classroom-kiosk__choice-Block (umrandete Card-Optionen
+   mit __choices-Container + Rang-Badge) wurde entfernt — toter Code. Die
+   Kollokationen-Kiosk-Optionen laufen ueber die geteilte .option-Linien-Liste
+   der Hauptkomponente. */
 
 /* WortZwilling Zonen */
 .classroom-kiosk__zones {
@@ -935,7 +878,7 @@
 }
 
 .classroom-kiosk__zw-action--active-pre  { border-color: var(--k-accent); background: color-mix(in srgb, var(--k-accent) 8%, transparent); }
-.classroom-kiosk__zw-action--active-post { border-color: var(--k-gold);   background: color-mix(in srgb, var(--k-gold) 12%, transparent); }
+.classroom-kiosk__zw-action--active-post { border-color: var(--k-accent); background: color-mix(in srgb, var(--k-accent) 8%, transparent); }
 
 .classroom-kiosk__zw-progress {
   font-family: 'DM Sans', system-ui, sans-serif;

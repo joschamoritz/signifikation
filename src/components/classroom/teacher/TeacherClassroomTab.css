@@ -636,18 +636,20 @@
 
 .classroom-input {
   width: 100%;
-  padding: 12px 14px;
+  box-sizing: border-box;
+  padding: 10px 4px;
   font-family: 'DM Sans', system-ui, sans-serif;
   font-size: 1rem;
-  background: var(--classroom-card-bg);
-  border: 1px solid var(--classroom-rule);
-  border-radius: 3px;
+  background: transparent;
+  border: none;
+  border-bottom: 1.5px solid var(--classroom-rule);
+  border-radius: 0;
   color: var(--classroom-text);
 }
 
 .classroom-input:focus {
   outline: none;
-  border-color: var(--classroom-accent);
+  border-bottom-color: var(--classroom-accent);
 }
 
 .classroom-toggle {
