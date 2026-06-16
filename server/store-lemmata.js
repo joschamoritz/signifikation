@@ -1,12 +1,4 @@
-function parseJsonSafe(value, fallback, logger, context) {
-  if (!value) return fallback
-  try {
-    return JSON.parse(value)
-  } catch (err) {
-    logger?.warn?.({ err, context }, 'Ungueltiges JSON in Lemma-Datensatz – Fallback verwendet')
-    return fallback
-  }
-}
+import { parseJsonSafe } from './json-safe.js'
 
 export function rowToLemma(row, logger) {
   return {

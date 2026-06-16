@@ -1,13 +1,5 @@
 import { normalizeDatumToIso, sortDatumKeys } from './date-utils.js'
-
-function parseJson(value, fallback, logger, context) {
-  try {
-    return JSON.parse(value)
-  } catch (err) {
-    logger?.warn({ err, context }, 'JSON-Parse fehlgeschlagen in Stats – Fallback verwendet')
-    return fallback
-  }
-}
+import { parseJsonSafe as parseJson } from './json-safe.js'
 
 function computeSinceDate(days) {
   const d = new Date()
