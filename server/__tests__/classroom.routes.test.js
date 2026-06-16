@@ -1203,6 +1203,99 @@ describe('classroom routes', () => {
     })
   })
 
+  // ── Regressionsschutz: Lückenfüller-Runden-Robustheit (Bug-Audit) ──
+  // GF-4: Ein Lückenfüller-Lemma ohne Runden (Content-Generierung leer) darf
+  //       die Klasse nicht auf currentRound: null hängen lassen.
+  // CB-3: currentRoundIndex muss die erste NICHT abgegebene Runde sein
+  //       (lückentolerant), nicht submittedRounds.size — sonst zeigt ein
+  //       out-of-order-Submit die falsche Runde.
+  describe('Lückenfüller Runden-Robustheit (GF-4 / CB-3)', () => {
+    const TEACHER_ID = `cr2-teacher-lf-robust-${randomUUID()}`
+
+    beforeAll(() => ensureUser(TEACHER_ID))
+    afterAll(() => cleanupTeacher(TEACHER_ID))
+
+    async function startAndJoin(session, ip) {
+      await fetch(`${baseUrl}/api/v1/classroom/sessions/${session.id}/start`, {
+        method: 'POST', headers: teacherHeaders(TEACHER_ID), body: JSON.stringify({}),
+      })
+      const joinRes = await fetch(`${baseUrl}/api/v1/classroom/join`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', 'x-forwarded-for': ip },
+        body: JSON.stringify({ code: session.code }),
+      })
+      const { token } = await joinRes.json()
+      return token
+    }
+
+    async function view(token) {
+      const res = await fetch(`${baseUrl}/api/v1/classroom/me/view`, {
+        headers: participantHeaders(token),
+      })
+      return res.json()
+    }
+
+    it('GF-4: Lemma mit 0 Runden wird übersprungen — Klasse springt zum nächsten spielbaren Lemma', async () => {
+      // emptyLemma: generisches Lemma OHNE gespeichertes lueckenfueller-Feld →
+      // Live-Mock liefert null → Fallback leer → rounds: [] (unspielbar).
+      const emptyLemma = insertTestLemma(`gf4-empty-${randomUUID()}`)
+      // validLemma: Fixture mit gespeicherter Runde → spielbar.
+      const validLemma = insertTestLemmaLueckenfueller(`gf4-valid-${randomUUID()}`)
+      const { session } = createSession({ teacherUserId: TEACHER_ID, title: 'GF-4' })
+
+      // Reihenfolge: erst das kaputte, dann das valide Lemma.
+      await fetch(`${baseUrl}/api/v1/classroom/sessions/${session.id}/assignments`, {
+        method: 'POST',
+        headers: teacherHeaders(TEACHER_ID),
+        body: JSON.stringify({ mode: 'lueckenfueller', lemmaIds: [emptyLemma, validLemma] }),
+      })
+      const token = await startAndJoin(session, '10.0.4.1')
+      const v = await view(token)
+
+      // Früher: currentLemma = emptyLemma mit currentRound: null → Klasse hängt.
+      // Jetzt: das leere Lemma wird übersprungen, das valide ist aktuell.
+      expect(v.currentLemma).toBeTruthy()
+      expect(v.currentLemma.id).toBe(validLemma)
+      expect(v.currentLemma.prompt.currentRound).toBeTruthy()
+    })
+
+    it('CB-3: out-of-order-Submit (Runde 2 zuerst) zeigt als nächstes die erste Lücke (Runde 0), nicht Runde 1', async () => {
+      const lemma = insertTestLemma(`cb3-${randomUUID()}`)
+      const { session } = createSession({ teacherUserId: TEACHER_ID, title: 'CB-3' })
+
+      // Drei Runden über die Live-Quelle einfrieren (satzMitLuecke/optionen).
+      buildLfMock.mockResolvedValueOnce([
+        { type: 'choice', satzMitLuecke: 'R0 ___.', optionen: ['a', 'b'], kollokator: 'a', punkte: 3 },
+        { type: 'choice', satzMitLuecke: 'R1 ___.', optionen: ['c', 'd'], kollokator: 'c', punkte: 3 },
+        { type: 'choice', satzMitLuecke: 'R2 ___.', optionen: ['e', 'f'], kollokator: 'e', punkte: 3 },
+      ])
+      const createRes = await fetch(`${baseUrl}/api/v1/classroom/sessions/${session.id}/assignments`, {
+        method: 'POST',
+        headers: teacherHeaders(TEACHER_ID),
+        body: JSON.stringify({ mode: 'lueckenfueller', lemmaIds: [lemma] }),
+      })
+      const { id: assignmentId } = await createRes.json()
+      const token = await startAndJoin(session, '10.0.4.2')
+
+      // Anfangs: erste Runde (Index 0).
+      const v0 = await view(token)
+      expect(v0.currentLemma.prompt.roundIndex).toBe(0)
+
+      // Out-of-order: Runde 2 zuerst abgeben (vom Server akzeptiert — keine
+      // Reihenfolge-Prüfung in submitAnswer).
+      const submitRes = await fetch(`${baseUrl}/api/v1/classroom/me/submit`, {
+        method: 'POST',
+        headers: participantHeaders(token),
+        body: JSON.stringify({ assignmentId, lemmaId: lemma, roundIndex: 2, rawAnswer: { selected: 'e' } }),
+      })
+      expect(submitRes.status).toBe(200)
+
+      // Nächste angezeigte Runde = erste LÜCKE = 0 (nicht size-basiert 1).
+      const v1 = await view(token)
+      expect(v1.currentLemma.prompt.roundIndex).toBe(0)
+    })
+  })
+
   // ── W2-T1 Teacher-Preview (POST /preview) ────────────────────
   // Liefert die gewhitelistete Schüler-Sicht für eine Auswahl, OHNE
   // Session/Assignment/Participant — und ohne interne Felder zu leaken.

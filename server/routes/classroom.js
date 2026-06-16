@@ -58,6 +58,8 @@ import {
   addAssignments,
   removeAssignment,
   listAssignments,
+  countAssignments,
+  getAssignmentAtIndex,
   nextAssignment,
   getSessionById,
   listTeacherSessions,
@@ -255,6 +257,21 @@ async function buildContentSnapshot(mode, lemmata) {
       `content-snapshot ${mode}/${l.id}`,
     )
   }
+  // GF-4: Lueckenfueller-Lemmata, deren Runden-Generierung (belege.db) leer
+  // blieb, sind unspielbar — jeder Submit liefert INVALID_INPUT. buildStudentView
+  // ueberspringt sie zwar, aber das soll dem Lehrer VOR dem Start auffallen.
+  // Darum laut loggen (Monitoring/Alert), statt es still mid-class zu entdecken.
+  if (mode === 'lueckenfueller') {
+    const unplayable = lemmata
+      .filter((l) => !(Array.isArray(byLemma[l.id]?.rounds) && byLemma[l.id].rounds.length > 0))
+      .map((l) => l.lemma || l.id)
+    if (unplayable.length > 0) {
+      logger.error(
+        { mode, unplayable },
+        'Lueckenfueller-Lemma(ta) ohne Runden — unspielbar, werden in der Schueler-Sicht uebersprungen',
+      )
+    }
+  }
   return { byLemma }
 }
 
@@ -309,9 +326,6 @@ function buildStudentView(participant, session, assignment, meta = {}) {
   const lemmaIds = assignment.lemmaIds || []
   const rows = getParticipantSubmissionsStmt.all(participant.id, assignment.id)
 
-  // Welche Lemmata haben mindestens eine Submission?
-  const submittedLemmaIdSet = new Set(rows.map(r => r.lemma_id))
-
   // Fuer Lueckenfueller: zaehle Runden pro Lemma
   const roundsPerLemma = {}
   for (const r of rows) {
@@ -319,13 +333,23 @@ function buildStudentView(participant, session, assignment, meta = {}) {
     roundsPerLemma[r.lemma_id].add(r.round_index)
   }
 
-  // Fortschritt: Lemmata, bei denen alle Runden eingereicht sind
+  // Fortschritt: Lemmata, bei denen alle Runden eingereicht sind. Iteriert
+  // ueber ALLE Lemmata des Assignments (nicht nur eingereichte), damit der
+  // GF-4-Skip unten auch unspielbare, nie eingereichte Lemmata erfasst.
   const doneLemmaIds = new Set()
-  for (const lemmaId of submittedLemmaIdSet) {
+  for (const lemmaId of lemmaIds) {
     const snap = assignment.contentSnapshot?.byLemma?.[lemmaId]
     const totalRounds = assignment.mode === 'lueckenfueller'
       ? getRoundsCountFromSnapshot(snap)
       : 1
+    // GF-4: Ein Lueckenfueller-Lemma ohne Runden (Content-Generierung
+    // fehlgeschlagen) ist unspielbar — jeder Submit liefert INVALID_INPUT.
+    // Als „erledigt" behandeln, damit die Klasse nicht ewig auf currentRound:
+    // null haengt, sondern zum naechsten spielbaren Lemma springt.
+    if (totalRounds <= 0) {
+      doneLemmaIds.add(lemmaId)
+      continue
+    }
     if ((roundsPerLemma[lemmaId]?.size || 0) >= totalRounds) {
       doneLemmaIds.add(lemmaId)
     }
@@ -345,9 +369,15 @@ function buildStudentView(participant, session, assignment, meta = {}) {
   if (currentLemmaId && !allDone) {
     const snap = assignment.contentSnapshot?.byLemma?.[currentLemmaId]
     if (snap) {
-      // Aktueller Runden-Index fuer Lueckenfueller
+      // Aktueller Runden-Index fuer Lueckenfueller: erste noch NICHT
+      // abgegebene Runde (luckentolerant). `.size` waere bei out-of-order
+      // Abgaben falsch — die Menge {2} haette size 1 und zeigte faelschlich
+      // Runde 1, obwohl Runde 0 fehlt und Runde 2 schon abgegeben ist. Die
+      // erste Luecke ist der korrekte „naechste" Index; bei in-order-Spiel
+      // (Normalfall) ist sie identisch mit .size.
       const submittedRounds = roundsPerLemma[currentLemmaId] || new Set()
-      const currentRoundIndex = submittedRounds.size
+      let currentRoundIndex = 0
+      while (submittedRounds.has(currentRoundIndex)) currentRoundIndex += 1
 
       // Prompt ist mode-spezifisch und gewhitelistet
       const safePrompt = buildSafePrompt(assignment.mode, snap)
@@ -1125,12 +1155,13 @@ router.get(
       // W2-T2: Es zaehlt das AKTUELL aktive Assignment (current_assignment_index),
       // nicht mehr stur das erste. Bei einem Modus-Wechsel liefert /me/view
       // damit automatisch den neuen Block (Whitelist-gefiltert, R1).
-      const assignments = listAssignments(sessionId)
-      const total = assignments.length
+      // Hot-Path (Schueler-Polling, 10 s-Intervall): nur das AKTIVE Assignment
+      // laden, nicht alle bis zu 5 inkl. content_snapshot. total per COUNT.
+      const total = countAssignments(sessionId)
       const index = total > 0
         ? Math.min(Math.max(0, session.currentAssignmentIndex), total - 1)
         : 0
-      const assignment = total > 0 ? assignments[index] : null
+      const assignment = total > 0 ? getAssignmentAtIndex(sessionId, index) : null
       if (!assignment) {
         return res.json({
           sessionId,
