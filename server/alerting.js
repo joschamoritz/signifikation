@@ -12,14 +12,31 @@
  *   EVENT_LOOP_LAG_THRESHOLD_MS  – Event-Loop-Lag avg (Standard: 100 ms)
  *   ERROR_5XX_THRESHOLD          – 5xx-Antworten pro 5 min (Standard: 10)
  */
+import { statfsSync } from 'node:fs'
+import { dirname } from 'node:path'
 import logger from './logger.js'
 import { getEventLoopLagMs, count5xx } from './metrics.js'
+import { DB_PATH } from './db.js'
 
 const WEBHOOK_URL          = (process.env.ALERT_WEBHOOK_URL || '').trim()
 const CHECK_INTERVAL_MS    = 60_000
 const COOLDOWN_MS          = 30 * 60_000
 const LAG_THRESHOLD_MS     = Number(process.env.EVENT_LOOP_LAG_THRESHOLD_MS  || 100)
 const ERROR_5XX_THRESHOLD  = Number(process.env.ERROR_5XX_THRESHOLD || 10)
+// Wenig freier Speicher killt zuerst das Backup, dann SQLite-Writes, dann den
+// Server — und das alles still. Schwelle in MB, auf dem Daten-Volume gemessen.
+const DISK_LOW_THRESHOLD_BYTES = Number(process.env.DISK_LOW_THRESHOLD_MB || 500) * 1024 * 1024
+const DATA_DIR = dirname(DB_PATH)
+
+function freeDiskBytes() {
+  try {
+    const s = statfsSync(DATA_DIR)
+    return s.bavail * s.bsize
+  } catch (err) {
+    logger.warn({ err, dir: DATA_DIR }, 'Disk-Space-Check fehlgeschlagen')
+    return null
+  }
+}
 
 const lastAlertAt = new Map()
 
@@ -78,6 +95,14 @@ function check() {
     if (errCount > ERROR_5XX_THRESHOLD && canAlert('error_5xx_rate')) {
       markAlerted('error_5xx_rate')
       sendAlert('error_5xx_rate', `${errCount} Server-Fehler (5xx) in 5 Minuten (Schwelle: ${ERROR_5XX_THRESHOLD})`)
+    }
+
+    const freeBytes = freeDiskBytes()
+    if (freeBytes !== null && freeBytes < DISK_LOW_THRESHOLD_BYTES && canAlert('disk_low')) {
+      markAlerted('disk_low')
+      const freeMb = Math.round(freeBytes / (1024 * 1024))
+      const thrMb  = Math.round(DISK_LOW_THRESHOLD_BYTES / (1024 * 1024))
+      sendAlert('disk_low', `Wenig Speicherplatz: ${freeMb} MB frei auf ${DATA_DIR} (Schwelle: ${thrMb} MB) — Backups und DB-Writes gefährdet.`)
     }
   } catch (err) {
     logger.warn({ err }, 'Alerting: Check fehlgeschlagen')

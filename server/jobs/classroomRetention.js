@@ -20,6 +20,7 @@
  */
 
 import logger from '../logger.js'
+import { reportAlert } from '../alerting.js'
 import {
   runClassroomRetention,
   DEFAULT_NAME_ANONYMIZE_MS,
@@ -41,6 +42,9 @@ export function startClassroomRetention(options = {}) {
       runClassroomRetention({ anonymizeAfterMs, hardDeleteAfterMs, lobbyAbandonMs })
     } catch (err) {
       logger.warn({ err }, 'classroom Retention-Sweep fehlgeschlagen')
+      // Bei Dauerfehler bliebe Klarname Minderjähriger über die 48h-Frist
+      // hinaus stehen (DSGVO) — darum laut alerten statt nur loggen.
+      reportAlert('classroom_retention_failed', `Klassenraum-Retention-Sweep fehlgeschlagen: ${err?.message || err}`)
     }
   }
 

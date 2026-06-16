@@ -20,6 +20,7 @@ import { join, dirname } from 'path'
 import { existsSync, readdirSync, statSync, unlinkSync, rmdirSync } from 'fs'
 import db, { DB_PATH } from '../db.js'
 import logger from '../logger.js'
+import { reportAlert } from '../alerting.js'
 import { compactOldUserStats } from '../store.js'
 
 export const DEFAULT_RETENTION_MS = 730 * 24 * 60 * 60 * 1000 // 24 Monate (730 Tage)
@@ -100,6 +101,9 @@ export function startDataRetention(options = {}) {
       runDataRetention(options)
     } catch (err) {
       logger.warn({ err }, 'Retention-Sweep fehlgeschlagen')
+      // Stiller Job-Tod = unbegrenzt wachsende Log-Tabellen ohne Vorwarnung —
+      // darum laut alerten (30-min-Cooldown verhindert Alert-Sturm).
+      reportAlert('data_retention_failed', `Daten-Retention-Sweep fehlgeschlagen: ${err?.message || err}`)
     }
   }
 
