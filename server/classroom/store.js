@@ -761,6 +761,19 @@ export function getCurrentAssignment(sessionId) {
   return normalizeAssignmentRow(stmts.getAssignmentAtIndex.get(sessionId, idx))
 }
 
+// Anzahl Assignments einer Session (COUNT, kein Laden der Zeilen) — fuer
+// Hot-Paths wie /me/view, die nur das aktive Assignment + total brauchen.
+export function countAssignments(sessionId) {
+  return stmts.countAssignments.get(sessionId)?.c || 0
+}
+
+// Assignment an einem konkreten Index (position-Ordnung, LIMIT 1 OFFSET) —
+// vermeidet listAssignmentsBySession.all() (laedt alle content_snapshots) auf
+// dem Schueler-Polling-Pfad. Der Aufrufer klemmt index auf [0, total-1].
+export function getAssignmentAtIndex(sessionId, index) {
+  return normalizeAssignmentRow(stmts.getAssignmentAtIndex.get(sessionId, index))
+}
+
 // W2-T2: Auf das naechste Assignment vorruecken. Server-autoritativ (D13).
 //   - Nur durch den Besitzer, nur bei laufender, nicht pausierter Session.
 //   - Aktuelles Assignment gilt mit dem Wechsel als abgeschlossen.
