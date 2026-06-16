@@ -1,20 +1,8 @@
 /**
  * server/classroom/json-safe.js
  *
- * Geteilter JSON-Parser fuer die classroom_* TEXT-Felder (settings_json,
- * lemma_ids, content_snapshot, detail_json). Frueher modul-lokal in store.js;
- * ausgelagert, damit das results/-Modul (Auswertung/Reveal) denselben
- * tolerant-loggenden Parser nutzt, ohne store.js zu importieren.
+ * Re-Export des kanonischen JSON-Parsers (server/json-safe.js). Bleibt als
+ * Modul unter diesem Pfad erhalten, weil die classroom-Modi + store.js ihn so
+ * importieren; die Implementierung liegt jetzt zentral (vorher 4× dupliziert).
  */
-
-import logger from '../logger.js'
-
-export function parseJsonSafe(value, fallback, context) {
-  if (!value) return fallback
-  try {
-    return JSON.parse(value)
-  } catch (err) {
-    logger.warn({ err, context }, 'Ungueltiges JSON in classroom_* – Fallback verwendet')
-    return fallback
-  }
-}
+export { parseJsonSafe } from '../json-safe.js'

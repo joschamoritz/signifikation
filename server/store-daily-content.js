@@ -1,12 +1,4 @@
-function parseJsonSafe(value, fallback, logger, context) {
-  if (!value) return fallback
-  try {
-    return JSON.parse(value)
-  } catch (err) {
-    logger?.warn?.({ err, context }, 'Ungueltiges JSON in Tagesinhalt – Fallback verwendet')
-    return fallback
-  }
-}
+import { parseJsonSafe } from './json-safe.js'
 
 // ── Kalender ──────────────────────────────────────────────────────
 // Shape: { [datum]: { ids: string[], thema: string, thema_kurz: string, thema_quelle: string } }
