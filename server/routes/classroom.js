@@ -169,11 +169,17 @@ function mapError(errCode) {
 // Übernimmt das wiederkehrende result.error-Mapping (mapError → Status +
 // { error: message }) und ruft bei Erfolg onSuccess(result) auf.
 // Default-onSuccess: res.json(result) (Dashboard/Results/Reveal).
+// Domänen-Fehlercode → HTTP-Fehler-Response (mapError + { error }). withCode
+// hängt zusätzlich den stabilen Code an — nur /join + /me/submit, fürs
+// schülerfreundliche Kiosk-Routing (NameState wählt daraus die Meldung).
+function respondStoreError(res, errCode, { withCode = false } = {}) {
+  const mapped = mapError(errCode)
+  const body = withCode ? { error: mapped.message, code: errCode } : { error: mapped.message }
+  return res.status(mapped.status).json(body)
+}
+
 function respondStoreResult(res, result, onSuccess = (r) => res.json(r)) {
-  if (result.error) {
-    const mapped = mapError(result.error)
-    return res.status(mapped.status).json({ error: mapped.message })
-  }
+  if (result.error) return respondStoreError(res, result.error)
   return onSuccess(result)
 }
 
@@ -834,10 +840,7 @@ router.post(
       const teacherUserId = req.classroom.subject.id
       const { reason }   = req.body
       const result = finishSession({ sessionId, teacherUserId, reason })
-      if (result.error) {
-        const mapped = mapError(result.error)
-        return res.status(mapped.status).json({ error: mapped.message })
-      }
+      if (result.error) return respondStoreError(res, result.error)
       logger.info({ sessionId, reason }, 'classroom session finished')
       // Telemetrie: durationMs aus started_at
       const durationMs = result.session.startedAt
@@ -878,10 +881,7 @@ router.delete(
         sessionId:     req.params.id,
         teacherUserId: req.classroom.subject.id,
       })
-      if (result.error) {
-        const mapped = mapError(result.error)
-        return res.status(mapped.status).json({ error: mapped.message })
-      }
+      if (result.error) return respondStoreError(res, result.error)
       logger.info({ sessionId: req.params.id }, 'classroom session deleted')
       return res.status(204).end()
     } catch (err) {
@@ -902,10 +902,7 @@ router.post(
       const sessionId     = req.params.id
       const teacherUserId = req.classroom.subject.id
       const result = pauseSession({ sessionId, teacherUserId })
-      if (result.error) {
-        const mapped = mapError(result.error)
-        return res.status(mapped.status).json({ error: mapped.message })
-      }
+      if (result.error) return respondStoreError(res, result.error)
       trackSessionPaused(sessionId, teacherUserId)
       notifySessionPaused(sessionId, {
         sessionId,
@@ -933,10 +930,7 @@ router.post(
       const sessionId     = req.params.id
       const teacherUserId = req.classroom.subject.id
       const result = resumeSession({ sessionId, teacherUserId })
-      if (result.error) {
-        const mapped = mapError(result.error)
-        return res.status(mapped.status).json({ error: mapped.message })
-      }
+      if (result.error) return respondStoreError(res, result.error)
       trackSessionResumed(sessionId, teacherUserId)
       notifySessionResumed(sessionId, {
         sessionId,
@@ -967,10 +961,7 @@ router.post(
       const sessionId    = req.params.id
       const teacherUserId = req.classroom.subject.id
       const result = nextAssignment({ sessionId, teacherUserId })
-      if (result.error) {
-        const mapped = mapError(result.error)
-        return res.status(mapped.status).json({ error: mapped.message })
-      }
+      if (result.error) return respondStoreError(res, result.error)
 
       if (result.done) {
         // Letzter Block durchgespielt → Session ist beendet. Broadcast wie /finish.
@@ -1038,10 +1029,7 @@ router.get(
         sessionId:    req.params.id,
         teacherUserId: req.classroom.subject.id,
       })
-      if (result.error) {
-        const mapped = mapError(result.error)
-        return res.status(mapped.status).json({ error: mapped.message })
-      }
+      if (result.error) return respondStoreError(res, result.error)
       return res.json(result)
     } catch (err) {
       logger.error({ err }, 'classroom getDashboard crashed')
@@ -1065,10 +1053,7 @@ router.get(
         sessionId:    req.params.id,
         teacherUserId: req.classroom.subject.id,
       })
-      if (result.error) {
-        const mapped = mapError(result.error)
-        return res.status(mapped.status).json({ error: mapped.message })
-      }
+      if (result.error) return respondStoreError(res, result.error)
       return res.json(result)
     } catch (err) {
       logger.error({ err }, 'classroom getSessionResults crashed')
@@ -1108,10 +1093,9 @@ router.post(
         // einen gültigen Code und sind kein Rate-Signal.
         if (result.error === 'INVALID_CODE') recordJoinFailure(code)
         trackJoinFailed(code, reason)
-        const mapped = mapError(result.error)
         // Stabilen Fehler-Code mitgeben, damit der Kiosk (NameState) eine
         // schuelerfreundliche Meldung waehlen kann statt der technischen.
-        return res.status(mapped.status).json({ error: mapped.message, code: result.error })
+        return respondStoreError(res, result.error, { withCode: true })
       }
       logger.info(
         { sessionId: result.session.id, participantId: result.participant.id },
@@ -1192,10 +1176,7 @@ router.get(
     try {
       const { participant, sessionId } = req.classroom
       const result = getParticipantReveal({ sessionId, participantId: participant.id })
-      if (result.error) {
-        const mapped = mapError(result.error)
-        return res.status(mapped.status).json({ error: mapped.message })
-      }
+      if (result.error) return respondStoreError(res, result.error)
       return res.json(result)
     } catch (err) {
       logger.error({ err }, 'classroom me/reveal crashed')
@@ -1228,12 +1209,9 @@ router.post(
         rawAnswer,
         clientMs: clientMs ?? null,
       })
-      if (result.error) {
-        const mapped = mapError(result.error)
-        // Stabilen Code mitgeben, damit der Kiosk einen Modus-Wechsel/Pause
-        // ruhig kommunizieren kann statt der technischen Meldung.
-        return res.status(mapped.status).json({ error: mapped.message, code: result.error })
-      }
+      // Stabilen Code mitgeben, damit der Kiosk einen Modus-Wechsel/Pause
+      // ruhig kommunizieren kann statt der technischen Meldung.
+      if (result.error) return respondStoreError(res, result.error, { withCode: true })
 
       const scoredAt = Date.now()
       // Telemetrie: nur mode + correct, kein participantId/lemmaId (D7 / Pseudonymisierung)
@@ -1338,10 +1316,7 @@ router.post(
       const participantId  = req.params.pid
       const teacherUserId = req.classroom.subject.id
       const result = kickParticipant({ sessionId, participantId, teacherUserId })
-      if (result.error) {
-        const mapped = mapError(result.error)
-        return res.status(mapped.status).json({ error: mapped.message })
-      }
+      if (result.error) return respondStoreError(res, result.error)
       // Schueler sofort zwingen, die Sicht neu zu holen → 403 → ausgeloggt.
       notifyStudentViewUpdated(participantId, { reason: 'kicked' })
       // Lehrer-Dashboard/Lobby aktualisieren.
