@@ -13,15 +13,9 @@ import { useTeacherSocket } from '../hooks/useTeacherSocket'
 import ParticipantList from '../components/ParticipantList'
 import ClassroomSubScreen from '../components/ClassroomSubScreen'
 import Sheet from '../../../ui/Sheet'
+import { MODE_LABEL } from '../../modeLabels'
 
 const POLL_INTERVAL_MS = 3000
-
-const MODE_LABEL = {
-  kollokationen: 'Kollokationen',
-  wortzwilling:  'Wort-Zwilling',
-  zeitenwende:   'Zeitenwende',
-  lueckenfueller: 'Lückenfüller',
-}
 
 export default function LiveStep() {
   const { state, dispatch } = useTeacherClassroom()

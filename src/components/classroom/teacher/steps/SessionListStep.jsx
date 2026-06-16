@@ -13,13 +13,7 @@ import { useTeacherClassroom, STEPS } from '../TeacherClassroomContext'
 import { useSessionsList } from '../hooks/useSessionsList'
 import { deleteSession, duplicateSession } from '../hooks/useTeacherSession'
 import ClassroomSubScreen from '../components/ClassroomSubScreen'
-
-const MODE_LABEL = {
-  kollokationen: 'Kollokationen',
-  wortzwilling:  'Wort-Zwilling',
-  zeitenwende:   'Zeitenwende',
-  lueckenfueller: 'Lückenfüller',
-}
+import { MODE_LABEL } from '../../modeLabels'
 
 const STATUS_LABEL = {
   lobby:    'Lobby',

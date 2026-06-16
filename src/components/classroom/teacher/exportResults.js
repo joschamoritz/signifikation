@@ -4,12 +4,7 @@
 // Trefferquote, häufigste Fehlantwort) — KEINE Namen, keine Einzelantworten.
 // Rein client-seitig (die Daten liegen im EndStep schon vor), ohne Dependency.
 
-const MODE_LABEL = {
-  kollokationen:  'Kollokationen',
-  wortzwilling:   'Wort-Zwilling',
-  zeitenwende:    'Zeitenwende',
-  lueckenfueller: 'Lückenfüller',
-}
+import { MODE_LABEL } from '../modeLabels'
 
 // Excel-freundlich: Semikolon-getrennt; Felder mit ; " oder Zeilenumbruch
 // werden in Anführungszeichen gesetzt (RFC-4180-Quoting).

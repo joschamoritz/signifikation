@@ -10,13 +10,7 @@
 
 import { useState, useEffect } from 'react'
 import { useStudentKiosk } from '../StudentKioskContext'
-
-const MODE_LABEL = {
-  kollokationen:  'Kollokationen',
-  wortzwilling:   'Wort-Zwilling',
-  zeitenwende:    'Zeitenwende',
-  lueckenfueller: 'Lückenfüller',
-}
+import { MODE_LABEL } from '../../modeLabels'
 
 export default function WaitingState() {
   const { state } = useStudentKiosk()
