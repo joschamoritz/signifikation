@@ -35,7 +35,17 @@ function normalizeCode(raw) {
 
 export default function StudentJoinEntry({ initialNotice = null, embedded = false }) {
   const [code, setCode]       = useState('')
-  const [error, setError]     = useState(initialNotice || null)
+  // Fehlerhinweis: explizit übergebener initialNotice (Tests) ODER ein von
+  // NameState bei ungültigem Code hinterlegter, transienter sessionStorage-
+  // Hinweis (einmalig lesen + löschen, damit er nach Reload nicht klebt).
+  const [error, setError]     = useState(() => {
+    if (initialNotice) return initialNotice
+    try {
+      const n = sessionStorage.getItem('classroom:joinNotice')
+      if (n) { sessionStorage.removeItem('classroom:joinNotice'); return n }
+    } catch {}
+    return null
+  })
   const [shake, setShake]     = useState(false)
   const [scanning, setScanning] = useState(false)
   const inputRef              = useRef(null)
