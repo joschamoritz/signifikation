@@ -29,6 +29,7 @@ import { mkdirSync, createReadStream, createWriteStream, readdirSync, statSync, 
 import { createGzip } from 'node:zlib'
 import { pipeline } from 'node:stream/promises'
 import { join, dirname } from 'node:path'
+import Database from 'better-sqlite3'
 import db, { DB_PATH } from '../db.js'
 import { reportAlert } from '../alerting.js'
 import logger from '../logger.js'
@@ -51,6 +52,23 @@ const DEFAULT_INTERVAL_MS = 24 * 60 * 60 * 1000
 
 let running = false
 
+// Integritätsprüfung eines frisch erzeugten Backups: öffnet die Datei
+// read-only und lässt SQLite `PRAGMA quick_check` laufen. Gibt 'ok' zurück
+// (alles gut) oder eine Fehlerbeschreibung. Ein korruptes Backup ist
+// schlimmer als ein fehlendes — es wiegt in falscher Sicherheit.
+export function verifyBackupIntegrity(path) {
+  let probe
+  try {
+    probe = new Database(path, { readonly: true, fileMustExist: true })
+    // simple:true → erste Spalte der ersten Zeile ('ok' oder Fehlertext).
+    return probe.pragma('quick_check', { simple: true })
+  } catch (err) {
+    return `quick_check warf: ${err?.message || err}`
+  } finally {
+    try { probe?.close() } catch { /* schon zu / nie geöffnet */ }
+  }
+}
+
 export async function runSqliteBackup({ dir = BACKUP_DIR, keep = KEEP_COUNT } = {}) {
   if (running) return { skipped: true }
   running = true
@@ -63,6 +81,18 @@ export async function runSqliteBackup({ dir = BACKUP_DIR, keep = KEEP_COUNT } = 
 
     const started = Date.now()
     await db.backup(tmpPath)
+
+    // Frisches Backup verifizieren, BEVOR es komprimiert + behalten wird.
+    // gzip ist verlustfrei → ist tmpPath integer, ist es auch das .gz. Bei
+    // Korruption: Datei verwerfen + laut alerten, statt sie still abzulegen.
+    const integrity = verifyBackupIntegrity(tmpPath)
+    if (integrity !== 'ok') {
+      try { unlinkSync(tmpPath) } catch { /* nichts zu tun */ }
+      logger.error({ integrity, tmpPath }, 'SQLite-Backup-Integritätsprüfung fehlgeschlagen — Backup verworfen')
+      reportAlert('backup_integrity_failed', `Backup quick_check fehlgeschlagen: ${integrity}`)
+      return { integrityFailed: true, detail: integrity }
+    }
+
     await pipeline(createReadStream(tmpPath), createGzip(), createWriteStream(finalPath))
     unlinkSync(tmpPath)
 

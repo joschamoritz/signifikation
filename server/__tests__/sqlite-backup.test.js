@@ -2,8 +2,9 @@ import { describe, expect, it } from 'vitest'
 import { mkdtempSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import Database from 'better-sqlite3'
 
-const { runSqliteBackup, listSqliteBackups } = await import('../jobs/sqliteBackup.js')
+const { runSqliteBackup, listSqliteBackups, verifyBackupIntegrity } = await import('../jobs/sqliteBackup.js')
 
 describe('sqliteBackup', () => {
   it('erstellt ein gzip-Backup der laufenden DB und rotiert alte Stände', async () => {
@@ -49,5 +50,24 @@ describe('sqliteBackup', () => {
 
   it('listSqliteBackups gibt [] zurück wenn das Verzeichnis fehlt', () => {
     expect(listSqliteBackups({ dir: join(tmpdir(), 'gibt-es-nicht-' + Date.now()) })).toEqual([])
+  })
+
+  it('verifyBackupIntegrity: gibt "ok" für eine valide SQLite-Datei', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'sig-integrity-ok-'))
+    const path = join(dir, 'valid.db')
+    const probe = new Database(path)
+    probe.exec('CREATE TABLE t (id INTEGER PRIMARY KEY, v TEXT); INSERT INTO t (v) VALUES (\'x\');')
+    probe.close()
+    expect(verifyBackupIntegrity(path)).toBe('ok')
+  })
+
+  it('verifyBackupIntegrity: erkennt eine korrupte/nicht-DB-Datei (nicht "ok")', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'sig-integrity-bad-'))
+    const path = join(dir, 'corrupt.db')
+    // Kein gültiger SQLite-Header ("SQLite format 3\0") → quick_check/Öffnen scheitert.
+    writeFileSync(path, Buffer.from('das ist definitiv keine sqlite-datenbank '.repeat(8)))
+    const result = verifyBackupIntegrity(path)
+    expect(result).not.toBe('ok')
+    expect(typeof result).toBe('string')
   })
 })
