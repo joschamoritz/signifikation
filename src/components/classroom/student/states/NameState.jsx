@@ -56,7 +56,17 @@ export default function NameState() {
     } catch (err) {
       if (err instanceof KioskApiError && (err.status === 404 || err.status === 409)) {
         if (err.status === 404) {
-          // Code ungültig — zurück nach /c mit Hinweis.
+          // Code ungültig — schülerfreundlichen Hinweis hinterlegen, dann
+          // zurück nach /c. Der Mini-Router kennt nur pathname (keine Query/
+          // State), daher via sessionStorage; StudentJoinEntry liest + löscht
+          // ihn einmalig beim Mount. Ohne das landete der Schüler stumm auf der
+          // leeren Code-Eingabe und wüsste nicht, was schiefging.
+          try {
+            sessionStorage.setItem(
+              'classroom:joinNotice',
+              'Dieser Code stimmt nicht — bitte prüfen und neu eingeben.',
+            )
+          } catch {}
           navigate('/c')
           return
         }

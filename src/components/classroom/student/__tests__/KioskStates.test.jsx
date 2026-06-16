@@ -4,7 +4,7 @@
 // Wir mocken kioskFetch komplett — die Render-Pfade selbst sind das, was
 // geprueft wird (kein E2E).
 
-import { render, screen, cleanup, fireEvent } from '@testing-library/react'
+import { render, screen, cleanup, fireEvent, waitFor } from '@testing-library/react'
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest'
 
 vi.mock('../kioskFetch', () => ({
@@ -26,6 +26,7 @@ import WaitingState     from '../states/WaitingState'
 import SubmittedState   from '../states/SubmittedState'
 import StudentJoinEntry from '../StudentJoinEntry'
 import KioskShell       from '../KioskShell'
+import { joinSession, KioskApiError } from '../kioskFetch'
 
 function renderWith(stateOverride) {
   return render(
@@ -39,6 +40,7 @@ function renderWith(stateOverride) {
 }
 
 describe('StudentJoinEntry (T-5.2)', () => {
+  beforeEach(() => sessionStorage.clear())
   afterEach(() => cleanup())
 
   it('rendert Beitreten-Form, Submit ist initial disabled', () => {
@@ -60,6 +62,14 @@ describe('StudentJoinEntry (T-5.2)', () => {
     render(<StudentJoinEntry initialNotice="Code ungültig." />)
     expect(screen.getByText(/code ungültig/i)).toBeTruthy()
   })
+
+  it('liest einen hinterlegten Join-Hinweis aus sessionStorage und löscht ihn (UX #3)', () => {
+    sessionStorage.setItem('classroom:joinNotice', 'Dieser Code stimmt nicht — bitte prüfen und neu eingeben.')
+    render(<StudentJoinEntry />)
+    expect(screen.getByText(/stimmt nicht/i)).toBeTruthy()
+    // Einmalig: nach dem Lesen ist der Hinweis weg → klebt nicht nach Reload.
+    expect(sessionStorage.getItem('classroom:joinNotice')).toBeNull()
+  })
 })
 
 describe('NameState (T-5.3)', () => {
@@ -79,6 +89,21 @@ describe('NameState (T-5.3)', () => {
     const s = { ...initialState('morgentau'), currentState: KIOSK_STATES.NAME }
     renderWith(s)
     expect(screen.getByTestId('classroom-kiosk-name-skip')).toBeTruthy()
+  })
+
+  it('hinterlegt bei ungültigem Code (404) einen Hinweis in sessionStorage (UX #3)', async () => {
+    const e = new KioskApiError('invalid code')
+    e.status = 404
+    joinSession.mockRejectedValueOnce(e)
+    const s = { ...initialState('morgentau'), currentState: KIOSK_STATES.NAME }
+    renderWith(s)
+    fireEvent.change(screen.getByTestId('classroom-kiosk-name-input'), { target: { value: 'Mira' } })
+    fireEvent.click(screen.getByTestId('classroom-kiosk-name-submit'))
+    // Nach dem fehlgeschlagenen Join liegt der schülerfreundliche Hinweis bereit,
+    // den StudentJoinEntry auf /c anzeigt (statt stummer leerer Code-Eingabe).
+    await waitFor(() =>
+      expect(sessionStorage.getItem('classroom:joinNotice')).toMatch(/stimmt nicht/i),
+    )
   })
 })
 
