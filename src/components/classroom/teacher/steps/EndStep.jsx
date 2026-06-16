@@ -14,13 +14,7 @@ import { useTeacherClassroom } from '../TeacherClassroomContext'
 import { getDashboard, getSessionResults, duplicateSession } from '../hooks/useTeacherSession'
 import ClassroomSubScreen from '../components/ClassroomSubScreen'
 import { buildResultsCsv, resultsCsvFilename, downloadCsv } from '../exportResults'
-
-const MODE_LABELS = {
-  kollokationen: 'Kollokationen',
-  wortzwilling:  'Wort-Zwilling',
-  zeitenwende:   'Zeitenwende',
-  lueckenfueller: 'Lückenfüller',
-}
+import { MODE_LABEL as MODE_LABELS } from '../../modeLabels'
 
 function modeLabel(mode) {
   return MODE_LABELS[mode] || mode || '—'
