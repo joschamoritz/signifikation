@@ -1,5 +1,9 @@
+import { lazy, Suspense } from 'react'
 import Home from './Home'
-import KursTab from './KursTab'
+
+// KursTab ist ein Premium-Feature, das die meisten Nutzer nie oeffnen — lazy
+// laden, damit CheckoutModal/Konto-Bloecke nicht im Initial-Chunk landen.
+const KursTab = lazy(() => import('./KursTab'))
 
 export default function AppTabScreens({
   phase,
@@ -55,10 +59,12 @@ export default function AppTabScreens({
       />
     ) : null,
     kurs: (
-      <KursTab
-        gesamtausgabe={gesamtausgabeUnlocked}
-        onNavigateToKonto={onNavigateToKonto}
-      />
+      <Suspense fallback={null}>
+        <KursTab
+          gesamtausgabe={gesamtausgabeUnlocked}
+          onNavigateToKonto={onNavigateToKonto}
+        />
+      </Suspense>
     ),
     // profil wird als PersistentKontoTab außerhalb von TabTransition gerendert
   }

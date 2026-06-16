@@ -21,6 +21,9 @@ export default defineConfig({
           // @dnd-kit nur in WortZwilling genutzt – Rollup automatisch in den
           // WortZwilling-Lazy-Chunk packen lassen, statt in vendor.js zu zwingen.
           if (id.includes('@dnd-kit')) return undefined
+          // jsqr nur im lazy QrScanner (Kiosk-Beitritt per QR) – nicht in den
+          // eager vendor-Chunk zwingen, sonst laden ALLE Nutzer den QR-Decoder.
+          if (id.includes('jsqr')) return undefined
           if (id.includes('react') || id.includes('scheduler')) return 'react-vendor'
           if (id.includes('socket.io-client') || id.includes('engine.io-client')) return 'realtime-vendor'
           return 'vendor'
