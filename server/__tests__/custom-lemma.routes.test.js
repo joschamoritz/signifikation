@@ -90,7 +90,7 @@ describe('custom-lemma Routen – Gating & Kontingent', () => {
     expect(res.status).toBe(401)
   })
 
-  it('play: Basic verbraucht 1/Tag – erstes Spiel ok, zweites 403', async () => {
+  it('play: Basic verbraucht 1/Tag – erstes Spiel ok, zweites 429 + Retry-After', async () => {
     const userId = createTestUser(); userIds.add(userId)
     const h = devHeaders(userId, 'user')
 
@@ -99,8 +99,10 @@ describe('custom-lemma Routen – Gating & Kontingent', () => {
     const b1 = await r1.json()
     expect(b1.quota).toEqual({ unlimited: false, allowance: 1, remaining: 0 })
 
+    // Kontingent erschöpft → 429 (statt früher 403) mit Retry-After bis Reset.
     const r2 = await fetch(`${baseUrl}/api/v1/custom-lemma/play?mode=kollokationen&q=Archiv`, { headers: h })
-    expect(r2.status).toBe(403)
+    expect(r2.status).toBe(429)
+    expect(Number(r2.headers.get('retry-after'))).toBeGreaterThan(0)
     const b2 = await r2.json()
     expect(b2.quota.remaining).toBe(0)
   })
@@ -116,7 +118,7 @@ describe('custom-lemma Routen – Gating & Kontingent', () => {
       fetch(`${baseUrl}/api/v1/custom-lemma/play?mode=kollokationen&q=Archiv`, { headers: h }),
     ])
     const statuses = [r1.status, r2.status].sort()
-    expect(statuses).toEqual([200, 403])
+    expect(statuses).toEqual([200, 429])
 
     const used = db.prepare(
       'SELECT count FROM custom_lemma_usage WHERE user_id = ? AND date = ?'
