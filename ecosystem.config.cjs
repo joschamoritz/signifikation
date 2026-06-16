@@ -18,7 +18,10 @@ module.exports = {
       // Bekannte Caches sind gedeckelt (query-cache, belege-cache) — das
       // hier faengt Unbekanntes. Logs: pm2-logrotate installieren (OPS.md),
       // sonst wachsen out/error unbegrenzt.
-      max_memory_restart: '512M',
+      // 1G (VPS hat 4 GB): die wortprofil.db wird per mmap mit 512 MB gemappt
+      // (mmap_size in wortprofil.js) und kann allein die alte 512M-Grenze
+      // beruehren → unnoetiger Neustart mitten in einer Klassenraum-Session.
+      max_memory_restart: '1G',
       error_file: '/opt/signifikation/logs/signifikation-error.log',
       out_file: '/opt/signifikation/logs/signifikation-out.log',
       merge_logs: true,
