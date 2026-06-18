@@ -34,6 +34,7 @@ import classroomRouter from './routes/classroom.js'
 import paymentsRouter from './routes/payments.js'
 import iapRouter from './routes/iap.js'
 import pushRouter from './routes/push.js'
+import archiveRouter from './routes/archive.js'
 import { startPushScheduler } from './notifications/scheduler.js'
 import { setupClassroomSocket } from './realtime/classroomSocket.js'
 import { startClassroomAutoEnd } from './jobs/classroomAutoEnd.js'
@@ -206,6 +207,12 @@ app.use('/', classroomRouter)
 app.use('/', paymentsRouter)
 app.use('/', iapRouter)
 app.use('/', pushRouter)
+
+// SEO-Archiv: /archiv, /wort/:slug, /sitemap.xml. Bewusst VOR express.static
+// und dem SPA-Fallback – die dynamische Sitemap hat damit Vorrang vor einer
+// statischen dist/sitemap.xml, und /wort-Seiten werden nicht vom SPA-Catch-all
+// (index.html) ueberschrieben.
+app.use('/', archiveRouter)
 
 app.use('/api', (_req, res) => {
   res.status(404).json({ error: 'Endpoint nicht gefunden' })
