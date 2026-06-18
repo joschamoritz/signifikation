@@ -37,6 +37,10 @@ const wanted = walk(DIST)
   .filter((p) => /\.(js|css|html|webmanifest)$/.test(p))
   // Der SW selbst und sein Registrierungs-Stub gehoeren nicht in den Precache
   .filter((p) => p !== 'sw.js' && p !== 'registerSW.js' && !p.startsWith('workbox-'))
+  // realtime-vendor (socket.io) ist bewusst per globIgnores aus dem Precache
+  // ausgenommen (siehe vite.config.js) — Runtime-Cache via StaleWhileRevalidate.
+  // Muss daher hier ebenfalls uebersprungen werden, sonst false-positiver Fehler.
+  .filter((p) => !/(^|\/)realtime-vendor-[^/]*\.js$/.test(p))
 
 const missing = wanted.filter((p) => !manifestUrls.has(p))
 
