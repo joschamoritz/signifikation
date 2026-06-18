@@ -298,6 +298,38 @@ nav.legal a:hover { color: #9b1c1c }
   letter-spacing: 0.04em;
 }
 
+/* ── Archiv (/archiv, /wort/:lemma) ───────────────────────── */
+.arc-overline { font-family: 'DM Sans', system-ui, sans-serif; font-size: 9px; font-weight: 600; letter-spacing: 0.25em; text-transform: uppercase; color: #8a7f6e; margin-bottom: 10px; }
+.arc-entry { margin-top: 4px; }
+.arc-headword { font-family: 'Gentium Plus', Georgia, serif; font-weight: 700; font-size: clamp(2rem, 6vw, 2.8rem); line-height: 1.1; color: #1a1a18; }
+.arc-headword .arc-ipa { font-size: 0.42em; font-style: italic; color: #776c5e; font-weight: 400; margin-left: 10px; white-space: nowrap; }
+.arc-pos { display: inline-block; margin: 10px 0 0; font-family: 'DM Sans', system-ui, sans-serif; font-size: 0.7rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: #9b1c1c; background: #fef2f2; border: 1px solid #fecaca; border-radius: 4px; padding: 2px 10px; }
+.arc-defs { list-style: none; padding: 0; margin: 20px 0 0; counter-reset: arc-def; }
+.arc-defs li { counter-increment: arc-def; position: relative; padding: 8px 0 8px 30px; border-bottom: 0.5px solid #e8e2d8; font-size: 1.02rem; line-height: 1.6; }
+.arc-defs li::before { content: counter(arc-def); position: absolute; left: 0; top: 10px; font-family: 'DM Sans', system-ui, sans-serif; font-size: 9px; font-weight: 700; color: #9b1c1c; }
+.arc-defs li:last-child { border-bottom: none; }
+.arc-defs.single li { padding-left: 0; }
+.arc-defs.single li::before { content: none; }
+.arc-meta { font-family: 'DM Sans', system-ui, sans-serif; font-size: 0.8rem; color: #8a7f6e; margin-top: 22px; line-height: 1.6; }
+.arc-play { margin-top: 24px; }
+.arc-play a { font-family: 'Gentium Plus', serif; font-weight: 700; color: #9b1c1c; text-decoration: none; border-bottom: 1px solid transparent; }
+.arc-play a:hover { border-bottom-color: #9b1c1c; }
+.arc-related { margin-top: 28px; padding-top: 18px; border-top: 0.9px solid #d4c9b0; }
+.arc-related-label { font-family: 'DM Sans', system-ui, sans-serif; font-size: 9px; font-weight: 600; letter-spacing: 0.2em; text-transform: uppercase; color: #8a7f6e; margin-bottom: 10px; }
+.arc-related ul { list-style: none; padding: 0; margin: 0; display: flex; flex-wrap: wrap; gap: 6px 16px; }
+.arc-related li::before { display: none; }
+.arc-related a { font-family: 'Gentium Plus', serif; color: #a07830; text-decoration: none; }
+.arc-related a:hover { color: #9b1c1c; }
+.arc-index-list { list-style: none; padding: 0; margin: 24px 0 0; }
+.arc-index-list li { border-bottom: 0.5px solid #e8e2d8; }
+.arc-index-list li::before { display: none; }
+.arc-index-list a { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; padding: 11px 2px; text-decoration: none; color: #1a1a18; }
+.arc-index-list a:hover { background: color-mix(in srgb, #9b1c1c 4%, transparent); }
+.arc-index-word { font-family: 'Gentium Plus', serif; font-size: 1.15rem; }
+.arc-index-word .arc-ipa { font-size: 0.78rem; font-style: italic; color: #776c5e; margin-left: 8px; }
+.arc-index-def { font-family: 'DM Sans', system-ui, sans-serif; font-size: 0.82rem; color: #8a7f6e; text-align: right; flex: 1 1 40%; }
+.arc-group-letter { font-family: 'DM Sans', system-ui, sans-serif; font-size: 9px; font-weight: 700; letter-spacing: 0.2em; color: #9b1c1c; margin: 26px 0 2px; }
+
 /* ── Dark Mode ────────────────────────────────────────────── */
 @media (prefers-color-scheme: dark) {
   body {
@@ -322,4 +354,15 @@ nav.legal a:hover { color: #9b1c1c }
   header::after { border-top-color: #c9a84c; }
   ul li::before { color: #c9a84c; }
   .edition { color: #6a6058; }
+
+  .arc-headword, .arc-index-word, .arc-index-list a { color: #f0ebe4; }
+  .arc-overline, .arc-meta, .arc-related-label, .arc-index-def,
+  .arc-headword .arc-ipa, .arc-index-word .arc-ipa { color: #8a8070; }
+  .arc-defs li::before, .arc-group-letter, .arc-play a { color: #e05555; }
+  .arc-play a:hover { border-bottom-color: #e05555; }
+  .arc-defs li, .arc-index-list li { border-bottom-color: #3a3028; }
+  .arc-related { border-top-color: #3a3028; }
+  .arc-related a { color: #c9a84c; }
+  .arc-related a:hover { color: #e05555; }
+  .arc-pos { background: #2a1a1a; border-color: #5a2a2a; color: #e05555; }
 }
