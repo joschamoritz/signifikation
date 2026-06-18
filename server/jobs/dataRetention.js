@@ -10,6 +10,12 @@
  * der Telemetrie nutzen nur 30-Tage-Fenster, ältere Daten tragen nichts bei;
  * der Audit-Trail bleibt 2 Jahre für Forensik nachvollziehbar.
  *
+ * custom_lemma_usage (Audit 2026-06-15): wächst mit ~1 Zeile pro Account/Tag,
+ * an dem das „Eigene Lemma" gespielt wird — unbegrenzt, ohne Cleanup. Das
+ * Tageskontingent prüft nur das HEUTIGE Datum, alles Ältere ist toter Ballast.
+ * Gleiche 24-Monats-Frist wie oben. payments wird BEWUSST nicht angefasst
+ * (Buchhaltung/Belegpflicht).
+ *
  * Täglicher Sweep, gleiches Muster wie classroomRetention: neustart-fest
  * (rechnet gegen persistierte Zeitstempel), idempotent (Mehrfach-Läufe
  * löschen nichts doppelt). Der Delete läuft einmal täglich als Scan —
@@ -25,10 +31,14 @@ import { compactOldUserStats } from '../store.js'
 
 export const DEFAULT_RETENTION_MS = 730 * 24 * 60 * 60 * 1000 // 24 Monate (730 Tage)
 const DEFAULT_SWEEP_INTERVAL_MS = 24 * 60 * 60 * 1000
+const TIMEZONE = process.env.TIMEZONE || 'Europe/Berlin'
 
 // audit_log.timestamp ist ISO-String, classroom_telemetry.ts Unix-Millis.
 const deleteOldAuditStmt = db.prepare(`DELETE FROM audit_log WHERE timestamp < ?`)
 const deleteOldTelemetryStmt = db.prepare(`DELETE FROM classroom_telemetry WHERE ts < ?`)
+// custom_lemma_usage.date ist ein Berlin-YYYY-MM-DD-String → lexikografischer
+// Vergleich gegen das Cutoff-Datum (gleiches Format, gleiche Zeitzone).
+const deleteOldCustomLemmaUsageStmt = db.prepare(`DELETE FROM custom_lemma_usage WHERE date < ?`)
 
 export const STATS_COMPACT_AFTER_DAYS = 180
 
@@ -69,9 +79,13 @@ function pruneLegacyExports(cutoffMs) {
 export function runDataRetention({ now = Date.now(), retentionMs = DEFAULT_RETENTION_MS } = {}) {
   const cutoffMs = now - retentionMs
   const cutoffIso = new Date(cutoffMs).toISOString()
+  // Berlin-Datum des Cutoffs (YYYY-MM-DD) — passend zum Speicherformat von
+  // custom_lemma_usage.date. en-CA liefert genau dieses Format.
+  const cutoffDate = new Intl.DateTimeFormat('en-CA', { timeZone: TIMEZONE }).format(new Date(cutoffMs))
 
   const audit = deleteOldAuditStmt.run(cutoffIso)
   const telemetry = deleteOldTelemetryStmt.run(cutoffMs)
+  const customLemmaUsage = deleteOldCustomLemmaUsageStmt.run(cutoffDate)
 
   // Stats-Kompaktierung (D-H1): per-User-Zeilen aelter 180 Tage in die
   // anonyme Aggregat-Zeile falten — deckelt die groesste wachsende Tabelle,
@@ -84,10 +98,11 @@ export function runDataRetention({ now = Date.now(), retentionMs = DEFAULT_RETEN
   const result = {
     auditDeleted: audit.changes,
     telemetryDeleted: telemetry.changes,
+    customLemmaUsageDeleted: customLemmaUsage.changes,
     statsCompacted,
     legacyExportsRemoved,
   }
-  if (result.auditDeleted > 0 || result.telemetryDeleted > 0 || result.statsCompacted > 0 || result.legacyExportsRemoved > 0) {
+  if (result.auditDeleted > 0 || result.telemetryDeleted > 0 || result.customLemmaUsageDeleted > 0 || result.statsCompacted > 0 || result.legacyExportsRemoved > 0) {
     logger.info(result, 'Retention-Sweep: alte Eintraege geloescht/kompaktiert')
   }
   return result
