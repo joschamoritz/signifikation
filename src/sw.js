@@ -16,8 +16,12 @@ precacheAndRoute(self.__WB_MANIFEST)
 // SPA-Navigation-Fallback: Deep-Links wie /c/:code (Schueler-Kiosk) muessen
 // offline/bei Reconnect die App-Shell aus dem Precache bekommen statt eines
 // Browserfehlers (instabiles Schul-WLAN!). Server-gerenderte Pfade ausnehmen.
+//
+// /archiv, /wort/:slug, /sitemap.xml werden server-seitig gerendert (kein
+// Precache-File) – ohne Denylist wuerde der NavigationRoute dafuer die SPA-Shell
+// ausliefern (Klick landet auf der Startseite; nur ein Hard-Reload umgeht den SW).
 registerRoute(new NavigationRoute(createHandlerBoundToURL('index.html'), {
-  denylist: [/^\/admin/, /^\/api\//, /^\/socket\.io\//],
+  denylist: [/^\/admin/, /^\/api\//, /^\/socket\.io\//, /^\/archiv/, /^\/wort\//, /^\/sitemap\.xml/],
 }))
 
 // ── Runtime Caching ───────────────────────────────────────────────────────────
