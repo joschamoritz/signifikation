@@ -1,4 +1,7 @@
 User-agent: *
 Allow: /
+Disallow: /admin
+# /api bleibt absichtlich crawlbar — Googlebot braucht es zum Rendern der
+# CSR-Inhalte (ein Disallow wuerde die Indexierung verschlechtern, nicht heilen).
 
 Sitemap: https://signifikation.de/sitemap.xml
