@@ -75,10 +75,22 @@ export default defineConfig({
       filename: 'sw.js',
       includeAssets: ['favicon.svg', 'favicon.png'],
       injectManifest: {
-        // JS-Chunks (insb. realtime-vendor, vendor, react-vendor) müssen mit
-        // precached werden, sonst kommt es nach einem Deploy zur Mischung aus
-        // alten JS-Chunks (SWR) und frischem CSS/HTML.
+        // EAGER JS-Chunks (vendor, react-vendor, App-Entry) MÜSSEN precached
+        // werden, sonst kommt es nach einem Deploy zur Mischung aus alten
+        // JS-Chunks und frischem CSS/HTML.
+        //
+        // Ausnahme: realtime-vendor (socket.io-client, ~10 KB gz) ist ein
+        // LAZY-Chunk, den nur Klassenraum-Nutzer brauchen. Per globIgnores aus
+        // dem Precache nehmen, damit nicht JEDER Nutzer ihn beim SW-Install
+        // eager lädt. Bedient wird er stattdessen vom bestehenden
+        // StaleWhileRevalidate-Route für /assets/*.js in src/sw.js. Sicher,
+        // weil der Dateiname content-gehasht ist: der precachte Importer-Chunk
+        // referenziert immer den exakten neuen Hash → kein Mischversions-Risiko
+        // (anders als bei den Eager-Chunks). Klassenraum ist ohnehin online-only
+        // (Socket.io), die erste Netz-Holung des Chunks ist also unkritisch.
+        // scripts/check-precache.mjs ignoriert realtime-vendor entsprechend.
         globPatterns: ['**/*.{js,css,html,webmanifest}'],
+        globIgnores: ['**/realtime-vendor-*.js'],
         maximumFileSizeToCacheInBytes: 512 * 1024,
       },
       manifest: {
