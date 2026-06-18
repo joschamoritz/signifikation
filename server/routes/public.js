@@ -197,32 +197,46 @@ router.post('/api/v1/stats', statsLimiter, validate(statsSchema), async (req, re
 
 
 /** GET /api/archiv?date=YYYY-MM-DD – Tageseintrag für vergangene Tage */
-router.get('/api/v1/archiv', validate(archivQuerySchema, 'query'), async (req, res) => {
+router.get('/api/v1/archiv', validate(archivQuerySchema, 'query'), (req, res) => {
   const { date } = req.query
   const todayBerlin = new Intl.DateTimeFormat('en-CA', { timeZone: TIMEZONE }).format(new Date())
   if (date > todayBerlin) return res.status(403).json({ error: 'Zukünftige Einträge nicht verfügbar' })
   try {
     const mm   = date.slice(5, 7), dd = date.slice(8, 10)
-    const file = join(DATA, `koll-${mm}-${dd}.json`)
 
-    // Path-Traversal-Schutz: normalisierter Pfad muss innerhalb DATA bleiben.
-    // Separator-Check verhindert Matches wie /data-extra/... gegen /data/...
-    const normalized = normalize(file)
-    const normalizedData = normalize(DATA) + sep
-    if (!normalized.startsWith(normalizedData)) {
-      logger.warn({ path: file }, 'Path-Traversal-Versuch blockiert')
-      return res.status(400).json({ error: 'Ungültiges Datum', code: 'VALIDATION_ERROR' })
+    // Archiv-Dateien (koll-MM-DD.json) sind statische, datierte Inhalte und
+    // ändern sich zur Laufzeit nicht. Statt pro Request synchron von Disk zu
+    // lesen, das Ergebnis im Beleg-Cache halten (Key nur MM-DD, das Jahr steckt
+    // nur im Response). Cache-Miss = null; ein leeres Array (Tag ohne Inhalt)
+    // wird also ebenfalls gecacht und vermeidet wiederholte Disk-Misses.
+    const cacheKey = `archiv:${mm}-${dd}`
+    let lemmata = cacheGet(cacheKey)
+    if (lemmata === null) {
+      const file = join(DATA, `koll-${mm}-${dd}.json`)
+
+      // Path-Traversal-Schutz: normalisierter Pfad muss innerhalb DATA bleiben.
+      // Separator-Check verhindert Matches wie /data-extra/... gegen /data/...
+      const normalized = normalize(file)
+      const normalizedData = normalize(DATA) + sep
+      if (!normalized.startsWith(normalizedData)) {
+        logger.warn({ path: file }, 'Path-Traversal-Versuch blockiert')
+        return res.status(400).json({ error: 'Ungültiges Datum', code: 'VALIDATION_ERROR' })
+      }
+
+      try {
+        const raw = JSON.parse(readFileSync(file, 'utf8'))
+        lemmata = raw.lemmata || []
+      } catch (err) {
+        // Fehlende Datei = Tag ohne Archiv-Inhalt → leeres 200 ist korrekt.
+        // Alles andere (I/O, kaputtes JSON) ist ein echter Serverfehler.
+        if (err?.code !== 'ENOENT') throw err
+        lemmata = []
+      }
+      cacheSet(cacheKey, lemmata)
     }
 
-    const raw  = JSON.parse(readFileSync(file, 'utf8'))
-    const lemmata = raw.lemmata || []
     res.json({ datum: `${mm}-${dd}`, year: date.slice(0, 4), lemmata })
   } catch (err) {
-    // Fehlende Datei = Tag ohne Archiv-Inhalt → leeres 200 ist korrekt.
-    // Alles andere (I/O, kaputtes JSON) ist ein echter Serverfehler.
-    if (err?.code === 'ENOENT') {
-      return res.json({ datum: date.slice(5), lemmata: [] })
-    }
     logger.error({ err, date }, 'Archiv-Abruf fehlgeschlagen')
     res.status(500).json({ error: 'Archiv derzeit nicht verfügbar', code: 'INTERNAL_ERROR' })
   }
