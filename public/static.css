@@ -338,6 +338,12 @@ nav.legal a:hover { color: #9b1c1c }
 .arc-beleg:last-child { margin-bottom: 0; }
 .arc-beleg-satz { font-family: 'Gentium Plus', Georgia, serif; font-style: italic; font-size: 1rem; line-height: 1.55; color: #1a1a18; margin: 0; }
 .arc-beleg-quelle { display: block; font-family: 'DM Sans', system-ui, sans-serif; font-size: 0.72rem; color: #8a7f6e; margin-top: 4px; font-style: normal; }
+.arc-thema-quelle { font-family: 'DM Sans', system-ui, sans-serif; font-size: 0.75rem; color: #8a7f6e; margin-top: 6px; }
+.arc-thema-quelle a { color: #9b1c1c; }
+.arc-koll-intro { margin-top: 14px; font-size: 0.9rem; color: #1a1a18; }
+.arc-koll-words { list-style: none; padding: 0; margin: 8px 0 0; display: flex; flex-wrap: wrap; gap: 6px 8px; }
+.arc-koll-words li { font-family: 'Gentium Plus', Georgia, serif; font-size: 0.92rem; color: #1a1a18; background: #f3f1ed; border: 0.5px solid #e8e2d8; border-radius: 4px; padding: 3px 10px; }
+.arc-koll-words li::before { display: none; }
 
 /* ── Dark Mode ────────────────────────────────────────────── */
 @media (prefers-color-scheme: dark) {
@@ -376,6 +382,8 @@ nav.legal a:hover { color: #9b1c1c }
   .arc-pos { background: #2a1a1a; border-color: #5a2a2a; color: #e05555; }
   .arc-block { border-top-color: #3a3028; }
   .arc-block-label, .arc-beleg-quelle { color: #8a8070; }
-  .arc-block p, .arc-beleg-satz { color: #f0ebe4; }
-  .arc-koll a { color: #e05555; }
+  .arc-block p, .arc-beleg-satz, .arc-koll-intro { color: #f0ebe4; }
+  .arc-koll a, .arc-thema-quelle a { color: #e05555; }
+  .arc-thema-quelle { color: #8a8070; }
+  .arc-koll-words li { background: #2a2420; border-color: #3a3028; color: #f0ebe4; }
 }

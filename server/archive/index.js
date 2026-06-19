@@ -48,15 +48,18 @@ function buildIndex() {
       if (!lem) continue
       const slug = slugifyLemma(lem.lemma)
       if (!slug) continue
-      const thema = (entry?.thema_kurz || entry?.thema || '').trim()
+      // Lange Beschreibung bevorzugt, sonst Kurztitel; Quelle optional.
+      const themaText = (entry?.thema || entry?.thema_kurz || '').trim()
+      const themaQuelle = (entry?.thema_quelle || '').trim()
       let rec = bySlugRaw.get(slug)
       if (!rec) {
-        rec = { lemma: lem, latestDate: datum, dates: new Set(), thema }
+        rec = { lemma: lem, latestDate: datum, dates: new Set(), themaText, themaQuelle }
         bySlugRaw.set(slug, rec)
       } else if (datum > rec.latestDate) {
         rec.lemma = lem
         rec.latestDate = datum
-        rec.thema = thema
+        rec.themaText = themaText
+        rec.themaQuelle = themaQuelle
       }
       rec.dates.add(datum)
     }
@@ -65,7 +68,10 @@ function buildIndex() {
   const bySlug = new Map()
   for (const [slug, rec] of bySlugRaw) {
     const pub = toPublicEntry(rec.lemma, [...rec.dates])
-    pub.thema = rec.thema // Tagesthema (oeffentlich) fuer die Wort-Seite
+    // Tagesthema (oeffentlich) inkl. Datum des juengsten Auftretens.
+    pub.thema = rec.themaText
+      ? { datum: rec.latestDate, text: rec.themaText, quelle: rec.themaQuelle }
+      : null
     bySlug.set(slug, pub)
   }
 
