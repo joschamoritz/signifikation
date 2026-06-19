@@ -135,10 +135,14 @@ function collocationBlurb(lemma, wortart) {
 /**
  * Einzelseite fuer ein Lemma: /wort/:slug
  * entry = Ergebnis von toPublicEntry(); siblings = [{ slug, lemma }] fuer interne Links.
- * extras = { thema?: string, belege?: [{satz, quelle}] } – optionaler Zusatzinhalt.
+ * extras = {
+ *   thema?: { datum, text, quelle },        // Tagesthema (oeffentlich)
+ *   belege?: [{ satz, quelle }],            // Korpus-Belegsaetze
+ *   kollokationen?: string[],               // typische Kollokatoren OHNE die Top-Loesung
+ * }
  */
 export function renderWortPage(entry, siblings = [], extras = {}) {
-  const { thema = '', belege = [] } = extras
+  const { thema = null, belege = [], kollokationen = [] } = extras
   const defs = entry.definitionen.length ? entry.definitionen : []
   const primaryDef = defs[0] || ''
   const title = `${entry.lemma}${entry.wortart ? ', ' + entry.wortart : ''} – Bedeutung | Signifikation`
@@ -168,16 +172,28 @@ export function renderWortPage(entry, siblings = [], extras = {}) {
     ? `<p class="arc-meta">Im Signifikation-Archiv${entry.dates.length > 1 ? ' u. a.' : ''} am ${escapeHtml(formatGermanDate(entry.dates[entry.dates.length - 1]))}.</p>`
     : ''
 
-  const themaHtml = thema
+  const themaText = thema && thema.text ? thema.text : ''
+  const themaQuelleHtml = thema && thema.quelle
+    ? (/^https?:\/\//.test(thema.quelle)
+        ? `<p class="arc-thema-quelle">Quelle: <a href="${escapeHtml(thema.quelle)}" rel="noopener nofollow" target="_blank">${escapeHtml(thema.quelle.replace(/^https?:\/\//, '').replace(/\/$/, ''))}</a></p>`
+        : `<p class="arc-thema-quelle">Quelle: ${escapeHtml(thema.quelle)}</p>`)
+    : ''
+  const themaHtml = themaText
     ? `<section class="arc-block arc-thema">
-    <p class="arc-block-label">Thema des Tages</p>
-    <p>${escapeHtml(thema)}</p>
+    <p class="arc-block-label">Thema des Tages${thema.datum ? ` · ${escapeHtml(formatGermanDate(thema.datum))}` : ''}</p>
+    <p>${escapeHtml(themaText)}</p>
+    ${themaQuelleHtml}
   </section>`
     : ''
 
+  const kollSampleHtml = kollokationen.length
+    ? `<p class="arc-koll-intro">Im Korpus verbindet sich „${escapeHtml(entry.lemma)}" u. a. mit:</p>
+    <ul class="arc-koll-words">${kollokationen.map((w) => `<li>${escapeHtml(w)}</li>`).join('')}</ul>`
+    : ''
   const kollHtml = `<section class="arc-block arc-koll">
     <p class="arc-block-label">Kollokationen</p>
     <p>${collocationBlurb(entry.lemma, entry.wortart)}</p>
+    ${kollSampleHtml}
   </section>`
 
   const belegeHtml = belege.length

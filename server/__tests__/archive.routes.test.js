@@ -34,6 +34,11 @@ vi.mock('../belege.js', () => ({
     lemma === 'Öl' ? [{ satz: 'Das Öl floss langsam.', quelle: 'Testkorpus 2018 · CC BY-SA' }] : []),
 }))
 
+vi.mock('../wortprofil.js', () => ({
+  fetchCollocationSample: vi.fn(async (lemma) =>
+    lemma === 'Öl' ? ['flüssig', 'zähflüssig'] : []),
+}))
+
 const { default: archiveRouter } = await import('../routes/archive.js')
 const { _resetArchiveCache } = await import('../archive/index.js')
 
@@ -67,12 +72,15 @@ describe('SEO-Archiv-Routen', () => {
     }
   })
 
-  it('zeigt Tagesthema und Korpus-Beleg auf der Wort-Seite', async () => {
+  it('zeigt Tagesthema (mit Datum), Korpus-Beleg und Kollokations-Stichprobe', async () => {
     const html = await (await fetch(`${baseUrl}/wort/oel`)).text()
     expect(html).toContain('Tag des Öls')
+    expect(html).toContain('14. März 2020') // Datum des Auftretens
     expect(html).toContain('Aus dem Korpus')
     expect(html).toContain('Das Öl floss langsam.')
     expect(html).toContain('Testkorpus 2018 · CC BY-SA')
+    expect(html).toContain('<li>flüssig</li>')
+    expect(html).toContain('<li>zähflüssig</li>')
   })
 
   it('indexiert KEINE rein zukuenftigen Lemmata', async () => {

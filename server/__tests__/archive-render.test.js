@@ -95,18 +95,28 @@ describe('renderWortPage', () => {
   })
 })
 
-describe('renderWortPage – Zusatzinhalt (Thema + Belege)', () => {
+describe('renderWortPage – Zusatzinhalt (Thema + Belege + Kollokationen)', () => {
   const entry = toPublicEntry({ lemma: 'Wasser', wortart: 'Substantiv', definitionen: ['H₂O'] }, ['2024-01-01'])
   const html = renderWortPage(entry, [], {
-    thema: 'Tag des Wassers',
+    thema: { datum: '2025-03-22', text: 'Weltwassertag – warum Wasser knapp wird.', quelle: 'https://example.org/wasser' },
     belege: [
       { satz: 'Das Wasser des Sees war klar.', quelle: 'Beispielkorpus 2019 · CC BY-SA' },
       { satz: 'Ohne Wasser kein Leben.', quelle: 'Beispielkorpus 2020' },
     ],
+    kollokationen: ['fließend', 'klar', 'sauber'],
   })
-  it('rendert das Tagesthema', () => {
+  it('rendert das Tagesthema mit Datum, langer Beschreibung und Quelle', () => {
     expect(html).toContain('Thema des Tages')
-    expect(html).toContain('Tag des Wassers')
+    expect(html).toContain('22. März 2025')
+    expect(html).toContain('Weltwassertag – warum Wasser knapp wird.')
+    expect(html).toContain('href="https://example.org/wasser"')
+  })
+  it('rendert die Kollokations-Stichprobe als Wörter ohne Werte/Rang', () => {
+    expect(html).toContain('verbindet sich')
+    for (const w of ['fließend', 'klar', 'sauber']) expect(html).toContain(`<li>${w}</li>`)
+    // Die Chips selbst duerfen keine Zahlen (logDice/Rang) enthalten.
+    const chips = html.match(/<ul class="arc-koll-words">.*?<\/ul>/s)[0]
+    expect(chips).not.toMatch(/\d/)
   })
   it('rendert Korpus-Belege mit Quelle', () => {
     expect(html).toContain('Aus dem Korpus')
@@ -118,10 +128,11 @@ describe('renderWortPage – Zusatzinhalt (Thema + Belege)', () => {
     expect(evil).not.toContain('<img src=x')
     expect(evil).toContain('&lt;img src=x')
   })
-  it('laesst Thema/Belege weg, wenn nicht vorhanden', () => {
+  it('laesst Thema/Belege/Kollokationen weg, wenn nicht vorhanden', () => {
     const bare = renderWortPage(entry)
     expect(bare).not.toContain('Thema des Tages')
     expect(bare).not.toContain('Aus dem Korpus')
+    expect(bare).not.toContain('verbindet sich')
   })
 })
 

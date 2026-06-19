@@ -16,6 +16,7 @@ import express from 'express'
 import { getArchiveEntries, getArchiveEntry, getArchiveSiblings, getArchiveSlugs } from '../archive/index.js'
 import { renderWortPage, renderArchivIndex, renderSitemap, renderNotFound, slugifyLemma } from '../archive/render.js'
 import { fetchBelegeForLemma } from '../belege.js'
+import { fetchCollocationSample } from '../wortprofil.js'
 import logger from '../logger.js'
 
 const router = express.Router()
@@ -33,7 +34,7 @@ router.get('/archiv', (_req, res) => {
   }
 })
 
-router.get('/wort/:slug', (req, res) => {
+router.get('/wort/:slug', async (req, res) => {
   try {
     const slug = slugifyLemma(req.params.slug)
 
@@ -50,8 +51,17 @@ router.get('/wort/:slug', (req, res) => {
     // Korpus-Belege fuers Lemma (graceful: [] wenn belege.db fehlt). Bewusst
     // ohne Kollokator → kein Spiel-Loesungsset.
     const belege = fetchBelegeForLemma(entry.lemma, { limit: 2 })
+    // Kollokations-Stichprobe OHNE die Top-Loesung (siehe fetchCollocationSample).
+    // wortart kann Zusaetze tragen ("Substantiv, feminin") → erstes Wort als pos.
+    const pos = (entry.wortart || 'Substantiv').split(/[,\s/]/)[0] || 'Substantiv'
+    let kollokationen = []
+    try {
+      kollokationen = await fetchCollocationSample(entry.lemma, pos)
+    } catch (err) {
+      logger.warn({ err, lemma: entry.lemma }, 'Kollokations-Sample fehlgeschlagen')
+    }
     res.type('html').set('Cache-Control', CACHE_CONTROL)
-      .send(renderWortPage(entry, getArchiveSiblings(slug, 8), { thema: entry.thema, belege }))
+      .send(renderWortPage(entry, getArchiveSiblings(slug, 8), { thema: entry.thema, belege, kollokationen }))
   } catch (err) {
     logger.error({ err, slug: req.params.slug }, 'Wort-Seiten-Rendering fehlgeschlagen')
     res.status(500).type('html').send(renderNotFound())
