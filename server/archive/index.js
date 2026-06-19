@@ -48,13 +48,15 @@ function buildIndex() {
       if (!lem) continue
       const slug = slugifyLemma(lem.lemma)
       if (!slug) continue
+      const thema = (entry?.thema_kurz || entry?.thema || '').trim()
       let rec = bySlugRaw.get(slug)
       if (!rec) {
-        rec = { lemma: lem, latestDate: datum, dates: new Set() }
+        rec = { lemma: lem, latestDate: datum, dates: new Set(), thema }
         bySlugRaw.set(slug, rec)
       } else if (datum > rec.latestDate) {
         rec.lemma = lem
         rec.latestDate = datum
+        rec.thema = thema
       }
       rec.dates.add(datum)
     }
@@ -62,7 +64,9 @@ function buildIndex() {
 
   const bySlug = new Map()
   for (const [slug, rec] of bySlugRaw) {
-    bySlug.set(slug, toPublicEntry(rec.lemma, [...rec.dates]))
+    const pub = toPublicEntry(rec.lemma, [...rec.dates])
+    pub.thema = rec.thema // Tagesthema (oeffentlich) fuer die Wort-Seite
+    bySlug.set(slug, pub)
   }
 
   const entries = [...bySlug.values()].sort((a, b) => a.lemma.localeCompare(b.lemma, 'de'))

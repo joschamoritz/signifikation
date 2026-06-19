@@ -115,9 +115,30 @@ function footer() {
 
 /**
  * Einzelseite fuer ein Lemma: /wort/:slug
- * entry = Ergebnis von toPublicEntry(); siblings = [{ slug, lemma }] fuer interne Links.
+ * Erklaertext zu den Kollokationen je Wortart – beschreibt die typischen
+ * Relationstypen, OHNE konkrete Kollokatoren (= Spiel-Loesung) zu nennen.
  */
-export function renderWortPage(entry, siblings = []) {
+function collocationBlurb(lemma, wortart) {
+  const w = escapeHtml(lemma)
+  const byPos = {
+    Substantiv: `Als Substantiv steht „${w}" im Korpus in charakteristischen Verbindungen — mit beschreibenden Adjektiven, mit Verben, zu denen es als Subjekt oder Objekt gehört, und mit eng verwandten weiteren Substantiven.`,
+    Verb: `Als Verb verbindet sich „${w}" im Korpus typischerweise mit bestimmten Subjekten und Objekten sowie mit charakteristischen Adverbien.`,
+    Adjektiv: `Als Adjektiv bestimmt „${w}" im Korpus bevorzugt bestimmte Substantive näher und tritt mit typischen Verben und Gradangaben auf.`,
+    Adverb: `Als Adverb modifiziert „${w}" im Korpus charakteristische Verben und Adjektive.`,
+  }
+  // Wortart kann Zusaetze tragen ("Substantiv, feminin") → auf das erste Wort normalisieren.
+  const posKey = String(wortart || '').split(/[,\s/]/)[0]
+  const lead = byPos[posKey] || `„${w}" tritt im Korpus in charakteristischen Wortverbindungen (Kollokationen) auf.`
+  return `${lead} Wie typisch eine Verbindung ist, misst Signifikation mit dem logDice-Wert. <a href="/ueber.html#kollokation">Mehr über Kollokationen und die Methodik →</a>`
+}
+
+/**
+ * Einzelseite fuer ein Lemma: /wort/:slug
+ * entry = Ergebnis von toPublicEntry(); siblings = [{ slug, lemma }] fuer interne Links.
+ * extras = { thema?: string, belege?: [{satz, quelle}] } – optionaler Zusatzinhalt.
+ */
+export function renderWortPage(entry, siblings = [], extras = {}) {
+  const { thema = '', belege = [] } = extras
   const defs = entry.definitionen.length ? entry.definitionen : []
   const primaryDef = defs[0] || ''
   const title = `${entry.lemma}${entry.wortart ? ', ' + entry.wortart : ''} – Bedeutung | Signifikation`
@@ -147,6 +168,25 @@ export function renderWortPage(entry, siblings = []) {
     ? `<p class="arc-meta">Im Signifikation-Archiv${entry.dates.length > 1 ? ' u. a.' : ''} am ${escapeHtml(formatGermanDate(entry.dates[entry.dates.length - 1]))}.</p>`
     : ''
 
+  const themaHtml = thema
+    ? `<section class="arc-block arc-thema">
+    <p class="arc-block-label">Thema des Tages</p>
+    <p>${escapeHtml(thema)}</p>
+  </section>`
+    : ''
+
+  const kollHtml = `<section class="arc-block arc-koll">
+    <p class="arc-block-label">Kollokationen</p>
+    <p>${collocationBlurb(entry.lemma, entry.wortart)}</p>
+  </section>`
+
+  const belegeHtml = belege.length
+    ? `<section class="arc-block arc-belege">
+    <p class="arc-block-label">Aus dem Korpus</p>
+    ${belege.map((b) => `<figure class="arc-beleg"><blockquote class="arc-beleg-satz">${escapeHtml(b.satz)}</blockquote>${b.quelle ? `<figcaption class="arc-beleg-quelle">${escapeHtml(b.quelle)}</figcaption>` : ''}</figure>`).join('')}
+  </section>`
+    : ''
+
   const relatedHtml = siblings.length
     ? `<nav class="arc-related" aria-label="Weitere Einträge">
     <p class="arc-related-label">Weitere Einträge</p>
@@ -164,6 +204,9 @@ export function renderWortPage(entry, siblings = []) {
     ${datesHtml}
     <p class="arc-play"><a href="/">Heutiges Wort spielen →</a></p>
   </article>
+${themaHtml}
+${kollHtml}
+${belegeHtml}
 ${relatedHtml}
 ${footer()}`
 
