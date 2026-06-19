@@ -957,6 +957,43 @@
 }
 .eigenes-lemma-hint strong { color: var(--accent-dk); font-style: normal; }
 
+/* Funnel-CTA in den Upsell-/Sackgassen-Zuständen (roter Text-CTA → Konto).
+   Selbsttragend mit globalen Tokens – die Selection-Screens (.selection-screen)
+   liegen nicht in .test-page, wo die --t-*-Tokens von .test-cta definiert sind. */
+.eigenes-lemma-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  margin-top: 8px;
+  font-family: var(--font-serif);
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--primary);
+  background: none;
+  border: none;
+  border-bottom: 1px solid transparent;
+  padding: 2px 0;
+  cursor: pointer;
+  transition: color 0.2s, border-bottom-color 0.2s;
+}
+.eigenes-lemma-cta:hover {
+  color: var(--accent-dk);
+  border-bottom-color: var(--accent);
+}
+.eigenes-lemma-cta:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.eigenes-lemma-cta:active {
+  transform: scale(0.96);
+  opacity: 0.82;
+}
+.eigenes-lemma-cta__arrow {
+  font-style: normal;
+  transition: transform 0.15s;
+}
+.eigenes-lemma-cta:hover .eigenes-lemma-cta__arrow { transform: translateX(3px); }
+
 /* Wort-Zwilling: „vs."-Linie zwischen den beiden Eingabefeldern */
 .eigenes-lemma-vs {
   display: flex;

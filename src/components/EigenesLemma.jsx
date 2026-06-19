@@ -24,7 +24,7 @@ import { logError } from '../utils/logError'
 const DEBOUNCE_MS = 400
 const MIN_LEN = 2
 
-export default function EigenesLemma({ mode = 'kollokationen', customLemma = null, onPlay }) {
+export default function EigenesLemma({ mode = 'kollokationen', customLemma = null, onPlay, onShowPremium }) {
   const isPair = mode === 'wortzwilling'
 
   const unlimited     = customLemma?.unlimited === true
@@ -98,6 +98,15 @@ export default function EigenesLemma({ mode = 'kollokationen', customLemma = nul
 
   const label = isPair ? 'Eigenes Wort-Paar' : 'Eigenes Lemma'
 
+  // Funnel-CTA in den Sackgassen-Zuständen (Login nötig / Kontingent leer /
+  // gesperrt): führt zum Konto-Tab, wo Anmeldung und Gesamtausgabe-Kauf sitzen.
+  const renderUpsellCta = (text) => onShowPremium ? (
+    <button type="button" className="eigenes-lemma-cta" onClick={onShowPremium}>
+      {text}
+      <span className="eigenes-lemma-cta__arrow" aria-hidden="true">→</span>
+    </button>
+  ) : null
+
   // Rechte Notiz der eingeklappten Zeile (Zustand des Kontingents).
   let toggleNote = null
   if (loading) toggleNote = null
@@ -142,6 +151,7 @@ export default function EigenesLemma({ mode = 'kollokationen', customLemma = nul
           Melde dich an, um {isPair ? 'eigene Wörter' : 'ein eigenes Wort'} zu spielen –
           jeden Tag eines gratis, mit der <strong>Gesamtausgabe</strong> unbegrenzt.
         </p>
+        {renderUpsellCta('Anmelden')}
       </Shell>
     )
   }
@@ -154,6 +164,7 @@ export default function EigenesLemma({ mode = 'kollokationen', customLemma = nul
         <p className="eigenes-lemma-hint">
           Dein heutiges Gratis-Spiel ist aufgebraucht. Mit der <strong>Gesamtausgabe</strong> spielst du unbegrenzt eigene {isPair ? 'Wort-Paare' : 'Wörter'}.
         </p>
+        {renderUpsellCta('Gesamtausgabe ansehen')}
       </Shell>
     )
   }
@@ -199,6 +210,8 @@ export default function EigenesLemma({ mode = 'kollokationen', customLemma = nul
             {status.state === 'locked'   && 'Dafür ist die Gesamtausgabe nötig.'}
             {status.state === 'error'    && 'Prüfung gerade nicht möglich – versuch es nochmal.'}
           </p>
+
+          {status.state === 'locked' && renderUpsellCta('Gesamtausgabe ansehen')}
 
           {!isPair && status.state === 'ok' && (enrichIpa || enrichDefs.length > 0) && (
             <p className="eigenes-lemma-enrich">

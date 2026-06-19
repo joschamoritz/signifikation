@@ -4,7 +4,7 @@ import SelectionThema from './SelectionThema'
 import EigenesLemma from './EigenesLemma'
 import ExternalLink from './ExternalLink'
 
-export default function LueckenfuellerSelection({ data, thema, themaKurz, themaQuelle, onPlay, onViewDaily, lfPlayed = null, onBack, spezialwoche = null, swLfPlayed = null, onPlaySpezial, onViewSpezial, customLemma = null, onCustomPlay }) {
+export default function LueckenfuellerSelection({ data, thema, themaKurz, themaQuelle, onPlay, onViewDaily, lfPlayed = null, onBack, spezialwoche = null, swLfPlayed = null, onPlaySpezial, onViewSpezial, customLemma = null, onCustomPlay, onShowPremium }) {
   const { lemma, pos, notiz, link } = data ?? {}
   const [notizOpen, setNotizOpen] = useState(false)
   const isPlayed = !!lfPlayed
@@ -106,7 +106,7 @@ export default function LueckenfuellerSelection({ data, thema, themaKurz, themaQ
         )}
 
         {/* ── Eigenes Lemma (Premium) ─── */}
-        <EigenesLemma mode="lueckenfueller" customLemma={customLemma} onPlay={onCustomPlay} />
+        <EigenesLemma mode="lueckenfueller" customLemma={customLemma} onPlay={onCustomPlay} onShowPremium={onShowPremium} />
       </div>
     </div>
   )

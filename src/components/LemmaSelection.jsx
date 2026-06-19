@@ -6,7 +6,7 @@ import { logError } from '../utils/logError'
 import ExternalLink from './ExternalLink'
 
 
-export default function LemmaSelection({ lemmata, thema, themaKurz, themaQuelle, playedIds = [], onSelect, onViewResult, onBack, spezialLemma = null, customLemma = null, onCustomPlay }) {
+export default function LemmaSelection({ lemmata, thema, themaKurz, themaQuelle, playedIds = [], onSelect, onViewResult, onBack, spezialLemma = null, customLemma = null, onCustomPlay, onShowPremium }) {
   const [closedNotiz, setClosedNotiz] = useState(() => new Set(lemmata.map(l => l.id)))
   // Lemmata mit gespeicherter IPA direkt ins Map laden; Rest per API nachholen
   const [ipaMap, setIpaMap] = useState(() => {
@@ -187,7 +187,7 @@ export default function LemmaSelection({ lemmata, thema, themaKurz, themaQuelle,
         )}
 
         {/* ── Eigenes Lemma (Premium) ─── */}
-        <EigenesLemma mode="kollokationen" customLemma={customLemma} onPlay={onCustomPlay} />
+        <EigenesLemma mode="kollokationen" customLemma={customLemma} onPlay={onCustomPlay} onShowPremium={onShowPremium} />
       </div>
 
     </div>
