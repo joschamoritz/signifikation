@@ -329,6 +329,15 @@ nav.legal a:hover { color: #9b1c1c }
 .arc-index-word .arc-ipa { font-size: 0.78rem; font-style: italic; color: #776c5e; margin-left: 8px; }
 .arc-index-def { font-family: 'DM Sans', system-ui, sans-serif; font-size: 0.82rem; color: #8a7f6e; text-align: right; flex: 1 1 40%; }
 .arc-group-letter { font-family: 'DM Sans', system-ui, sans-serif; font-size: 9px; font-weight: 700; letter-spacing: 0.2em; color: #9b1c1c; margin: 26px 0 2px; }
+.arc-block { margin-top: 26px; padding-top: 18px; border-top: 0.9px solid #d4c9b0; }
+.arc-block-label { font-family: 'DM Sans', system-ui, sans-serif; font-size: 9px; font-weight: 600; letter-spacing: 0.2em; text-transform: uppercase; color: #8a7f6e; margin-bottom: 10px; }
+.arc-block p { font-size: 0.95rem; line-height: 1.65; color: #1a1a18; }
+.arc-koll a { color: #9b1c1c; text-decoration: none; }
+.arc-koll a:hover { text-decoration: underline; }
+.arc-beleg { margin: 0 0 14px; padding: 2px 0 2px 14px; border-left: 2px solid #c9a84c; }
+.arc-beleg:last-child { margin-bottom: 0; }
+.arc-beleg-satz { font-family: 'Gentium Plus', Georgia, serif; font-style: italic; font-size: 1rem; line-height: 1.55; color: #1a1a18; margin: 0; }
+.arc-beleg-quelle { display: block; font-family: 'DM Sans', system-ui, sans-serif; font-size: 0.72rem; color: #8a7f6e; margin-top: 4px; font-style: normal; }
 
 /* ── Dark Mode ────────────────────────────────────────────── */
 @media (prefers-color-scheme: dark) {
@@ -365,4 +374,8 @@ nav.legal a:hover { color: #9b1c1c }
   .arc-related a { color: #c9a84c; }
   .arc-related a:hover { color: #e05555; }
   .arc-pos { background: #2a1a1a; border-color: #5a2a2a; color: #e05555; }
+  .arc-block { border-top-color: #3a3028; }
+  .arc-block-label, .arc-beleg-quelle { color: #8a8070; }
+  .arc-block p, .arc-beleg-satz { color: #f0ebe4; }
+  .arc-koll a { color: #e05555; }
 }

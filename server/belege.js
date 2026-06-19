@@ -241,6 +241,37 @@ export function fetchBelegeRaw(lemma, collocate, { limit = 20, prefixCollocate =
   }
 }
 
+/**
+ * Belegsätze NUR für ein Lemma (ohne Kollokator) – für das SEO-Wort-Archiv.
+ * Liefert die relevantesten Sätze deterministisch (kein Shuffle → stabil für
+ * HTTP-Cache/SSR). Bewusst KEIN Kollokator-Match, damit hier kein Spiel-
+ * Lösungsset entsteht; es sind authentische Korpus-Belege des Worts.
+ *
+ * @returns {Array<{satz:string, quelle:string}>}
+ */
+export function fetchBelegeForLemma(lemma, { limit = 2 } = {}) {
+  const s = stmts()
+  if (!s) return []
+  const esc = str => String(str).replace(/"/g, '""')
+  try {
+    const rows = s.top.all(`"${esc(lemma)}"`, limit * 4)
+    const seen = new Set()
+    const unique = rows.filter(r => {
+      const key = r.satz.trim().toLowerCase()
+      if (seen.has(key)) return false
+      seen.add(key)
+      return true
+    })
+    return unique.slice(0, limit).map(r => ({
+      satz: r.satz,
+      quelle: r.jahr ? `${r.zitation} · ${r.jahr}` : r.zitation,
+    }))
+  } catch (err) {
+    logger.warn({ err }, `Lemma-Belege-Suche fehlgeschlagen: ${lemma}`)
+    return []
+  }
+}
+
 /** Gibt true zurück wenn die Belege-DB vorhanden und lesbar ist. */
 export function belegeVerfuegbar() {
   return db() !== null

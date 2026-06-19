@@ -15,6 +15,7 @@
 import express from 'express'
 import { getArchiveEntries, getArchiveEntry, getArchiveSiblings, getArchiveSlugs } from '../archive/index.js'
 import { renderWortPage, renderArchivIndex, renderSitemap, renderNotFound, slugifyLemma } from '../archive/render.js'
+import { fetchBelegeForLemma } from '../belege.js'
 import logger from '../logger.js'
 
 const router = express.Router()
@@ -46,7 +47,11 @@ router.get('/wort/:slug', (req, res) => {
     if (!entry) {
       return res.status(404).type('html').set('Cache-Control', 'public, max-age=300').send(renderNotFound())
     }
-    res.type('html').set('Cache-Control', CACHE_CONTROL).send(renderWortPage(entry, getArchiveSiblings(slug, 8)))
+    // Korpus-Belege fuers Lemma (graceful: [] wenn belege.db fehlt). Bewusst
+    // ohne Kollokator → kein Spiel-Loesungsset.
+    const belege = fetchBelegeForLemma(entry.lemma, { limit: 2 })
+    res.type('html').set('Cache-Control', CACHE_CONTROL)
+      .send(renderWortPage(entry, getArchiveSiblings(slug, 8), { thema: entry.thema, belege }))
   } catch (err) {
     logger.error({ err, slug: req.params.slug }, 'Wort-Seiten-Rendering fehlgeschlagen')
     res.status(500).type('html').send(renderNotFound())

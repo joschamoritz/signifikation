@@ -24,9 +24,14 @@ vi.mock('../store.js', () => ({
     { id: 'c', lemma: 'Zukunftswort', wortart: 'Substantiv', definitionen: ['nur zukuenftig'] },
   ]),
   loadKalender: vi.fn(() => ({
-    '2020-03-14': { ids: ['a', 'b'] },
+    '2020-03-14': { ids: ['a', 'b'], thema_kurz: 'Tag des Öls' },
     '2999-12-31': { ids: ['c'] }, // nur Zukunft → darf nicht indexiert werden
   })),
+}))
+
+vi.mock('../belege.js', () => ({
+  fetchBelegeForLemma: vi.fn((lemma) =>
+    lemma === 'Öl' ? [{ satz: 'Das Öl floss langsam.', quelle: 'Testkorpus 2018 · CC BY-SA' }] : []),
 }))
 
 const { default: archiveRouter } = await import('../routes/archive.js')
@@ -60,6 +65,14 @@ describe('SEO-Archiv-Routen', () => {
     for (const secret of ['GEHEIMLOESUNG', 'GEHEIM', 'INTERN-NOTIZ', 'LEAK-FRAGE', 'kollokatoren', 'bonusFrage']) {
       expect(html).not.toContain(secret)
     }
+  })
+
+  it('zeigt Tagesthema und Korpus-Beleg auf der Wort-Seite', async () => {
+    const html = await (await fetch(`${baseUrl}/wort/oel`)).text()
+    expect(html).toContain('Tag des Öls')
+    expect(html).toContain('Aus dem Korpus')
+    expect(html).toContain('Das Öl floss langsam.')
+    expect(html).toContain('Testkorpus 2018 · CC BY-SA')
   })
 
   it('indexiert KEINE rein zukuenftigen Lemmata', async () => {
