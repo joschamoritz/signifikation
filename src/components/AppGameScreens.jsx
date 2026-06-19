@@ -27,6 +27,7 @@ export default function AppGameScreens({
   serverDatum,
   customLemmaQuota,
   onCustomPlay,
+  onShowPremium,
   customGame,
   onExitCustomGame,
   handleLemmaSelect,
@@ -135,6 +136,7 @@ export default function AppGameScreens({
           spezialwoche={spezialwoche}
           customLemma={customLemmaQuota}
           onCustomPlay={onCustomPlay}
+          onShowPremium={onShowPremium}
         />
       )}
       {phase === 'wortzwilling-selection' && wortzwilling && (
@@ -153,6 +155,7 @@ export default function AppGameScreens({
           onViewSpezial={onViewSwWz}
           customLemma={customLemmaQuota}
           onCustomPlay={onCustomPlay}
+          onShowPremium={onShowPremium}
         />
       )}
       {phase === 'zeitenwende-selection' && zeitenwende && (
@@ -171,6 +174,7 @@ export default function AppGameScreens({
           onViewSpezial={onViewSwZw}
           customLemma={customLemmaQuota}
           onCustomPlay={onCustomPlay}
+          onShowPremium={onShowPremium}
         />
       )}
       {phase === 'quiz' && selectedLemma && (
@@ -231,6 +235,7 @@ export default function AppGameScreens({
           onViewSpezial={onViewSwLf}
           customLemma={customLemmaQuota}
           onCustomPlay={onCustomPlay}
+          onShowPremium={onShowPremium}
         />
       )}
       {phase === 'lueckenfueller' && lueckenfuellerLemma?.lueckenfueller && (

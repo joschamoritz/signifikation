@@ -78,6 +78,12 @@ export function useAppModel() {
     startVT,
   })
 
+  // Premium-Funnel aus dem Spielkontext: führt zum Konto-Tab (dort sitzt der
+  // Gesamtausgabe-Kauf). handleTabChange verlässt vorher sauber die Spiel-Phase.
+  const onShowPremium = useCallback(() => {
+    navigation.handleTabChange('profil')
+  }, [navigation.handleTabChange])
+
   // ── Eigenes Lemma: isolierter Custom-Spielpfad (reines Üben) ─────
   // Zeitenwende/Wort-Zwilling/Lückenfüller laufen über eine eigene
   // 'custom-play'-Phase mit injizierten Daten und ephemerem Finish (keine
@@ -205,6 +211,7 @@ export function useAppModel() {
     gesamtausgabe: gesamtausgabeUnlocked,
     customLemmaQuota,
     onCustomPlay: handleCustomPlay,
+    onShowPremium,
     customGame,
     onExitCustomGame: exitCustomGame,
     serverDatum,
