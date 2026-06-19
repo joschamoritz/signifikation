@@ -172,6 +172,10 @@ function switchPage(pageId) {
   if (pageId === 'classroom') {
     loadClassroomStats()
   }
+
+  if (pageId === 'metrics') {
+    loadProductMetrics()
+  }
 }
 
 function refreshDashboard() {
@@ -3233,6 +3237,7 @@ function handleDocumentClick(event) {
   if (action === 'push-send-free') return void submitManualPush('free')
   if (action === 'push-send-self') return void submitManualPush('self')
   if (action === 'load-classroom-stats') return void loadClassroomStats()
+  if (action === 'load-product-metrics') return void loadProductMetrics()
 }
 
 async function loadClassroomStats() {
@@ -3398,6 +3403,255 @@ function renderClassroomStats(d) {
     </div>`
 }
 
+// ── Produkt-Kennzahlen ────────────────────────────────────────
+async function loadProductMetrics() {
+  const out  = document.getElementById('metrics-output')
+  const days = document.getElementById('metrics-days')?.value || '30'
+  if (!out) return
+  out.innerHTML = '<div style="color:var(--muted);font-size:0.85rem">Lade …</div>'
+  const q = encodeURIComponent(days)
+
+  // Vier unabhängige Aggregate parallel laden; ein Fehler in einem Block
+  // soll die anderen nicht verschlucken.
+  async function getJson(url) {
+    const r = await fetch(url)
+    const data = await r.json()
+    if (!r.ok) throw new Error(data.error || `HTTP ${r.status}`)
+    return data
+  }
+
+  const [payments, teachers, customLemma, retention] = await Promise.all([
+    getJson(`/admin/payments/summary?days=${q}`).catch((e) => ({ __error: e.message })),
+    getJson(`/admin/classroom/teachers?days=${q}`).catch((e) => ({ __error: e.message })),
+    getJson(`/admin/custom-lemma/summary?days=${q}`).catch((e) => ({ __error: e.message })),
+    getJson(`/admin/stats/retention?days=${q}`).catch((e) => ({ __error: e.message })),
+  ])
+
+  out.innerHTML = [
+    renderMetricsPayments(payments),
+    renderMetricsRetention(retention),
+    renderMetricsCustomLemma(customLemma),
+    renderMetricsTeachers(teachers),
+  ].join('')
+}
+
+const metricsFmt    = (n) => n == null ? '–' : Number(n).toLocaleString('de-DE')
+const metricsPct    = (v) => v == null ? '–' : (v * 100).toFixed(1) + '%'
+const metricsEuro   = (n) => n == null ? '–' : Number(n).toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €'
+
+function metricsErrorCard(title, msg) {
+  return `<article class="card dashboard-panel dashboard-panel--secondary" style="margin-bottom:16px">
+    <div class="dashboard-panel-head dashboard-panel-head--stacked"><div><p class="section-label">Produkt</p><h2>${esc(title)}</h2></div></div>
+    <div class="status error">Fehler: ${esc(msg)}</div>
+  </article>`
+}
+
+// Mini-Balken-Diagramm (Tageswerte). values: [{label, value}]
+function metricsBars(values, color = 'var(--primary)') {
+  if (!values.length) return '<span style="color:var(--muted);font-size:0.82rem">Keine Daten</span>'
+  const max = values.reduce((m, r) => Math.max(m, r.value), 0) || 1
+  const w = Math.max(6, Math.floor(280 / values.length))
+  return values.map((r) => {
+    const h = Math.round((r.value / max) * 36)
+    return `<div title="${esc(r.label)}: ${metricsFmt(r.value)}" style="display:inline-flex;flex-direction:column;align-items:center;justify-content:flex-end;height:40px;width:${w}px">
+      <div style="width:80%;background:${color};border-radius:2px 2px 0 0;height:${h}px"></div>
+    </div>`
+  }).join('')
+}
+
+function renderMetricsPayments(d) {
+  if (d.__error) return metricsErrorCard('Zahlungen', d.__error)
+  const t = d.totals || {}
+  const byProduct = d.byProduct || []
+  const trend = (d.trend || []).slice(-30).map((r) => ({ label: r.day, value: r.count }))
+
+  const productRows = byProduct.length
+    ? byProduct.map((p) => `<tr>
+        <td>${esc(p.product)}</td>
+        <td style="text-align:right">${metricsFmt(p.count)}</td>
+        <td style="text-align:right">${metricsEuro(p.revenue)}</td>
+      </tr>`).join('')
+    : '<tr><td colspan="3" class="users-empty">Keine Zahlungen im Zeitraum</td></tr>'
+
+  return `
+    <p class="section-label" style="margin:4px 0 10px">Zahlungen</p>
+    <div class="dashboard-grid" style="margin-bottom:12px">
+      <article class="metric-card metric-card--support">
+        <span class="metric-label">Umsatz</span>
+        <strong class="metric-value">${metricsEuro(t.revenue)}</strong>
+        <span class="metric-sub">im Zeitraum</span>
+      </article>
+      <article class="metric-card metric-card--support">
+        <span class="metric-label">Zahlungen</span>
+        <strong class="metric-value">${metricsFmt(t.payments)}</strong>
+        <span class="metric-sub">${metricsFmt(t.uniquePayers)} zahlende Nutzer</span>
+      </article>
+      <article class="metric-card metric-card--support">
+        <span class="metric-label">Ø Wert</span>
+        <strong class="metric-value">${metricsEuro(t.avgValue)}</strong>
+        <span class="metric-sub">pro Zahlung</span>
+      </article>
+      <article class="metric-card metric-card--support">
+        <span class="metric-label">Produkte</span>
+        <strong class="metric-value">${metricsFmt(byProduct.length)}</strong>
+        <span class="metric-sub">verschiedene</span>
+      </article>
+    </div>
+    <div class="dashboard-main-grid" style="margin-bottom:20px">
+      <article class="card dashboard-panel dashboard-panel--primary">
+        <div class="dashboard-panel-head"><div><p class="section-label">Verlauf</p><h2>Zahlungen pro Tag</h2></div></div>
+        <div style="display:flex;align-items:flex-end;gap:1px;padding:8px 0;overflow:hidden;min-height:50px">${metricsBars(trend)}</div>
+      </article>
+      <aside class="dashboard-side-column">
+        <article class="card dashboard-panel dashboard-panel--secondary">
+          <div class="dashboard-panel-head dashboard-panel-head--stacked"><div><p class="section-label">Aufschlüsselung</p><h2>Nach Produkt</h2></div></div>
+          <table class="users-table" style="font-size:0.83rem">
+            <thead><tr><th>Produkt</th><th style="text-align:right">Anzahl</th><th style="text-align:right">Umsatz</th></tr></thead>
+            <tbody>${productRows}</tbody>
+          </table>
+        </article>
+      </aside>
+    </div>`
+}
+
+function renderMetricsRetention(d) {
+  if (d.__error) return metricsErrorCard('Wiederkehr', d.__error)
+  const a = d.active || {}
+  const r = d.retentionDay7 || {}
+  const caveat = d.caveat
+    ? `<p style="color:var(--muted);font-size:0.78rem;margin:8px 2px 0">${esc(d.caveat)}</p>`
+    : ''
+  return `
+    <p class="section-label" style="margin:4px 0 10px">Aktivität & Wiederkehr</p>
+    <div class="dashboard-grid" style="margin-bottom:8px">
+      <article class="metric-card metric-card--support">
+        <span class="metric-label">DAU</span>
+        <strong class="metric-value">${metricsFmt(a.dau)}</strong>
+        <span class="metric-sub">aktiv heute</span>
+      </article>
+      <article class="metric-card metric-card--support">
+        <span class="metric-label">WAU</span>
+        <strong class="metric-value">${metricsFmt(a.wau)}</strong>
+        <span class="metric-sub">letzte 7 Tage</span>
+      </article>
+      <article class="metric-card metric-card--support">
+        <span class="metric-label">MAU</span>
+        <strong class="metric-value">${metricsFmt(a.mau)}</strong>
+        <span class="metric-sub">letzte 30 Tage</span>
+      </article>
+      <article class="metric-card metric-card--support">
+        <span class="metric-label">Wiederkehr Tag 7</span>
+        <strong class="metric-value">${metricsPct(r.rate)}</strong>
+        <span class="metric-sub">${metricsFmt(r.returned)} von ${metricsFmt(r.cohortSize)} Konten</span>
+      </article>
+    </div>
+    ${caveat}
+    <div style="margin-bottom:20px"></div>`
+}
+
+function renderMetricsCustomLemma(d) {
+  if (d.__error) return metricsErrorCard('Eigenes Lemma', d.__error)
+  const t = d.totals || {}
+  const byRole = d.byRole || []
+  const trend = (d.trend || []).slice(-30).map((r) => ({ label: r.day, value: r.plays }))
+
+  const roleLabelMap = { user: 'Basic', premium: 'Premium', admin: 'Admin' }
+  const roleRows = byRole.length
+    ? byRole.map((r) => `<tr>
+        <td>${esc(roleLabelMap[r.role] || r.role)}</td>
+        <td style="text-align:right">${metricsFmt(r.users)}</td>
+        <td style="text-align:right">${metricsFmt(r.plays)}</td>
+      </tr>`).join('')
+    : '<tr><td colspan="3" class="users-empty">Keine Nutzung im Zeitraum</td></tr>'
+
+  return `
+    <p class="section-label" style="margin:4px 0 10px">Eigenes Lemma</p>
+    <div class="dashboard-grid" style="margin-bottom:12px">
+      <article class="metric-card metric-card--support">
+        <span class="metric-label">Aktive Nutzer</span>
+        <strong class="metric-value">${metricsFmt(t.activeUsers)}</strong>
+        <span class="metric-sub">im Zeitraum</span>
+      </article>
+      <article class="metric-card metric-card--support">
+        <span class="metric-label">Spiele gesamt</span>
+        <strong class="metric-value">${metricsFmt(t.totalPlays)}</strong>
+        <span class="metric-sub">${metricsFmt(t.dau)} aktiv heute</span>
+      </article>
+      <article class="metric-card metric-card--support">
+        <span class="metric-label">Premium-Anteil</span>
+        <strong class="metric-value">${metricsPct(t.premiumRate)}</strong>
+        <span class="metric-sub">der aktiven Nutzer</span>
+      </article>
+      <article class="metric-card metric-card--support">
+        <span class="metric-label">Premium / Basic</span>
+        <strong class="metric-value">${metricsFmt(t.premiumUsers)} / ${metricsFmt(t.basicUsers)}</strong>
+        <span class="metric-sub">Nutzer</span>
+      </article>
+    </div>
+    <div class="dashboard-main-grid" style="margin-bottom:20px">
+      <article class="card dashboard-panel dashboard-panel--primary">
+        <div class="dashboard-panel-head"><div><p class="section-label">Verlauf</p><h2>Spiele pro Tag</h2></div></div>
+        <div style="display:flex;align-items:flex-end;gap:1px;padding:8px 0;overflow:hidden;min-height:50px">${metricsBars(trend)}</div>
+      </article>
+      <aside class="dashboard-side-column">
+        <article class="card dashboard-panel dashboard-panel--secondary">
+          <div class="dashboard-panel-head dashboard-panel-head--stacked"><div><p class="section-label">Aufschlüsselung</p><h2>Nach Rolle</h2></div></div>
+          <table class="users-table" style="font-size:0.83rem">
+            <thead><tr><th>Rolle</th><th style="text-align:right">Nutzer</th><th style="text-align:right">Spiele</th></tr></thead>
+            <tbody>${roleRows}</tbody>
+          </table>
+        </article>
+      </aside>
+    </div>`
+}
+
+function renderMetricsTeachers(d) {
+  if (d.__error) return metricsErrorCard('Lehrer', d.__error)
+  const h = d.histogram || {}
+  const buckets = [
+    ['1–5 Sessions', h['1-5'] || 0],
+    ['6–20 Sessions', h['6-20'] || 0],
+    ['20+ Sessions', h['20+'] || 0],
+  ]
+  const maxBucket = buckets.reduce((m, [, n]) => Math.max(m, n), 0) || 1
+  const bucketRows = buckets.map(([label, n]) => {
+    const w = Math.round((n / maxBucket) * 100)
+    return `<tr>
+      <td style="width:140px">${esc(label)}</td>
+      <td><div style="display:flex;align-items:center;gap:8px">
+        <div style="flex:1;height:8px;background:var(--border-light);border-radius:4px">
+          <div style="width:${w}%;height:8px;background:var(--primary);border-radius:4px"></div>
+        </div>
+        <span style="min-width:32px;text-align:right;font-size:0.82rem">${metricsFmt(n)}</span>
+      </div></td>
+    </tr>`
+  }).join('')
+
+  return `
+    <p class="section-label" style="margin:4px 0 10px">Lehrer (Klassenraum)</p>
+    <div class="dashboard-grid" style="margin-bottom:12px">
+      <article class="metric-card metric-card--support">
+        <span class="metric-label">Aktive Lehrer</span>
+        <strong class="metric-value">${metricsFmt(d.uniqueTeachers)}</strong>
+        <span class="metric-sub">mit Sessions im Zeitraum</span>
+      </article>
+      <article class="metric-card metric-card--support">
+        <span class="metric-label">Sessions gesamt</span>
+        <strong class="metric-value">${metricsFmt(d.totalSessions)}</strong>
+        <span class="metric-sub">angelegt</span>
+      </article>
+      <article class="metric-card metric-card--support">
+        <span class="metric-label">Ø Sessions / Lehrer</span>
+        <strong class="metric-value">${d.avgSessionsPerTeacher != null ? d.avgSessionsPerTeacher : '–'}</strong>
+        <span class="metric-sub">im Zeitraum</span>
+      </article>
+    </div>
+    <article class="card dashboard-panel dashboard-panel--secondary" style="margin-bottom:8px">
+      <div class="dashboard-panel-head dashboard-panel-head--stacked"><div><p class="section-label">Verteilung</p><h2>Sessions pro Lehrer</h2></div></div>
+      <table style="width:100%;border-collapse:collapse"><tbody>${bucketRows}</tbody></table>
+    </article>`
+}
+
 function handleDocumentChange(event) {
   const target = event.target
   if (target.id === 'calendar-csv-input') return void importCalendarCsv(event)
@@ -3411,6 +3665,7 @@ function handleDocumentChange(event) {
   if (target.dataset.action === 'toggle-entry-selection') return void toggleEntrySelection(target.dataset.datum || '', target.checked)
   if (target.id === 'audit-limit' || target.id === 'audit-action' || target.id === 'audit-resource' || target.id === 'audit-status' || target.id === 'audit-from' || target.id === 'audit-to') return void loadAuditLog()
   if (target.id === 'classroom-days') return void loadClassroomStats()
+  if (target.id === 'metrics-days') return void loadProductMetrics()
 }
 
 function handleDocumentInput(event) {

@@ -97,6 +97,14 @@ const stmts = {
     GROUP BY status
   `),
 
+  // Sessions pro Lehrer (pseudonym: nur teacher_user_id + Anzahl, kein Klarname)
+  sessionsPerTeacher: db.prepare(`
+    SELECT teacher_user_id AS teacherId, COUNT(*) AS n
+    FROM classroom_session
+    WHERE created_at >= @since AND created_at <= @until
+    GROUP BY teacher_user_id
+  `),
+
   // Beliebteste Modi (aus classroom_assignment)
   modePopularity: db.prepare(`
     SELECT a.mode, COUNT(*) AS count
@@ -325,6 +333,53 @@ export function getMetrics({ since, minParticipants = 3 } = {}) {
   } catch (err) {
     logger.error({ err }, 'classroom telemetry getMetrics failed')
     return { sessionsCreated: 0, sessionsStarted: 0, activationRate: 0, totalJoins: 0, completionRate: 0 }
+  }
+}
+
+/**
+ * Lehrer-Aktivitaet im Zeitraum (Daten-Instrumentierung).
+ * Pseudonym: liefert nur Zahlen/Verteilungen, keine teacher_user_id-Liste,
+ * keine Klarnamen oder E-Mails.
+ *
+ * @param {object} [opts]
+ * @param {number} [opts.days]   – Zeitraum in Tagen (default: 30)
+ * @param {number} [opts.since]  – Unix-Ms explizit (ueberschreibt days)
+ * @param {number} [opts.until]  – Unix-Ms (default: jetzt)
+ * @returns {{ period, uniqueTeachers, totalSessions, avgSessionsPerTeacher, histogram }}
+ */
+export function getTeacherStats({ days = 30, since, until } = {}) {
+  const untilMs = until ?? Date.now()
+  const sinceMs = since ?? untilMs - days * 24 * 60 * 60 * 1000
+
+  try {
+    const rows = stmts.sessionsPerTeacher.all({ since: sinceMs, until: untilMs })
+
+    // Sessions-pro-Lehrer-Histogramm: 1-5 / 6-20 / 20+
+    const histogram = { '1-5': 0, '6-20': 0, '20+': 0 }
+    let totalSessions = 0
+    for (const r of rows) {
+      const n = Number(r.n) || 0
+      totalSessions += n
+      if (n <= 5) histogram['1-5'] += 1
+      else if (n <= 20) histogram['6-20'] += 1
+      else histogram['20+'] += 1
+    }
+
+    const uniqueTeachers = rows.length
+    const avgSessionsPerTeacher = uniqueTeachers > 0
+      ? Math.round((totalSessions / uniqueTeachers) * 10) / 10
+      : null
+
+    return {
+      period: { days, sinceMs, untilMs },
+      uniqueTeachers,
+      totalSessions,
+      avgSessionsPerTeacher,
+      histogram,
+    }
+  } catch (err) {
+    logger.error({ err }, 'classroom telemetry getTeacherStats failed')
+    return null
   }
 }
 

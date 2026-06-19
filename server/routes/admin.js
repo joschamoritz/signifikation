@@ -10,7 +10,7 @@ import { load, loadKalender, loadDailyContentMaps, loadMutableDailyContentMaps, 
 import { getCacheMetrics as getQueryCacheMetrics, clearCache as clearQueryCache } from '../query-cache.js'
 import { adminLimiter, loginLimiter, uploadLimiter } from '../middleware/rateLimiter.js'
 import { requireAuth, adminAuth, adminLogout, adminError, serverError } from '../middleware/auth.js'
-import { validate, qQuerySchema, adminTagSchema, analyzeKollQuerySchema, analyzeWZQuerySchema, analyzeZWendeQuerySchema, adminUsersQuerySchema, adminSetUserRoleSchema, adminUserIdParamsSchema, adminUsersBulkUpdateSchema, adminBulkDeleteCalendarSchema, adminBulkImportCalendarSchema, adminPreviewLemmaSchema, adminPreviewDayParamsSchema, adminLemmaIdParamsSchema, adminAuditLogDetailParamsSchema, adminBackupRestoreSchema, adminStatsQuerySchema, adminStatsSummaryQuerySchema, adminStatsExportQuerySchema, adminAuditLogQuerySchema, adminSocialCardsTagesdataSchema, adminSocialCardsBelegeSchema, adminSpezialwocheSchema, adminSpezialwocheParamsSchema, adminClassroomStatsQuerySchema } from '../middleware/validate.js'
+import { validate, qQuerySchema, adminTagSchema, analyzeKollQuerySchema, analyzeWZQuerySchema, analyzeZWendeQuerySchema, adminUsersQuerySchema, adminSetUserRoleSchema, adminUserIdParamsSchema, adminUsersBulkUpdateSchema, adminBulkDeleteCalendarSchema, adminBulkImportCalendarSchema, adminPreviewLemmaSchema, adminPreviewDayParamsSchema, adminLemmaIdParamsSchema, adminAuditLogDetailParamsSchema, adminBackupRestoreSchema, adminStatsQuerySchema, adminStatsSummaryQuerySchema, adminStatsExportQuerySchema, adminAuditLogQuerySchema, adminSocialCardsTagesdataSchema, adminSocialCardsBelegeSchema, adminSpezialwocheSchema, adminSpezialwocheParamsSchema, adminClassroomStatsQuerySchema, adminClassroomTeachersQuerySchema, adminPaymentsSummaryQuerySchema, adminCustomLemmaSummaryQuerySchema, adminRetentionQuerySchema } from '../middleware/validate.js'
 import { auditCreate, auditUpdate, auditDelete, getAuditLog } from '../audit.js'
 import logger from '../logger.js'
 import { createAdminAuditRouter } from './admin-audit.js'
@@ -25,6 +25,7 @@ import freeDaysRouter from './admin-free-days.js'
 import adminPushRouter from './admin-push.js'
 import { createAdminSpezialwocheRouter } from './admin-spezialwoche.js'
 import { createAdminClassroomRouter } from './admin-classroom.js'
+import { createAdminProductMetricsRouter } from './admin-product-metrics.js'
 import {
   countUsersStmt,
   countUsersByRoleStmt,
@@ -117,6 +118,17 @@ router.use(createAdminClassroomRouter({
   requireAuth,
   validate,
   adminClassroomStatsQuerySchema,
+  adminClassroomTeachersQuerySchema,
+  adminError,
+}))
+
+router.use(createAdminProductMetricsRouter({
+  adminLimiter,
+  requireAuth,
+  validate,
+  adminPaymentsSummaryQuerySchema,
+  adminCustomLemmaSummaryQuerySchema,
+  adminRetentionQuerySchema,
   adminError,
 }))
 
