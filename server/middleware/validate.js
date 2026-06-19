@@ -232,6 +232,21 @@ export const adminClassroomStatsQuerySchema = z.object({
   days: z.coerce.number().int().min(1).max(365).optional().default(30),
 })
 
+// ── Produkt-Kennzahlen (Daten-Instrumentierung) ─────────────────
+// Alle vier Endpunkte teilen denselben einfachen Tagesfenster-Parameter.
+const productDaysWindowSchema = z.object({
+  days: z.coerce.number().int().min(1).max(365).optional().default(30),
+})
+
+/** GET /admin/payments/summary (query) */
+export const adminPaymentsSummaryQuerySchema = productDaysWindowSchema
+/** GET /admin/custom-lemma/summary (query) */
+export const adminCustomLemmaSummaryQuerySchema = productDaysWindowSchema
+/** GET /admin/stats/retention (query) */
+export const adminRetentionQuerySchema = productDaysWindowSchema
+/** GET /admin/classroom/teachers (query) */
+export const adminClassroomTeachersQuerySchema = productDaysWindowSchema
+
 /** GET /admin/audit-log (query) */
 export const adminAuditLogQuerySchema = z.object({
   action: z.enum(['CREATE', 'UPDATE', 'DELETE']).optional(),

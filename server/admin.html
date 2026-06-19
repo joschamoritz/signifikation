@@ -57,6 +57,7 @@
             <a class="nav-item nav-link" href="/admin/social-cards">Social Cards</a>
             <button class="nav-item" data-action="switch-page" data-page="analytics">Analysen</button>
             <button class="nav-item" data-action="switch-page" data-page="stats">Statistiken</button>
+            <button class="nav-item" data-action="switch-page" data-page="metrics">Kennzahlen</button>
           </div>
         </div>
         <div class="nav-group-block">
@@ -868,6 +869,30 @@
           </div>
           <div id="sw-list">
             <div class="users-empty">Wird geladen …</div>
+          </div>
+        </div>
+      </section>
+
+      <section class="admin-page" id="page-metrics" data-title="Kennzahlen" data-subtitle="Produkt- und Geschäftszahlen aus vorhandenen Daten – Zahlungen, Lehrer, Eigenes Lemma, Wiederkehr.">
+        <div class="card">
+          <div class="card-head card-head--wrap">
+            <div>
+              <p class="section-label">Produkt</p>
+              <h2>Kennzahlen</h2>
+            </div>
+            <div style="display:flex; gap:8px; align-items:center">
+              <label for="metrics-days" style="font-size:0.83rem; white-space:nowrap">Zeitraum</label>
+              <select id="metrics-days" class="filter-select">
+                <option value="7">7 Tage</option>
+                <option value="30" selected>30 Tage</option>
+                <option value="90">90 Tage</option>
+                <option value="365">365 Tage</option>
+              </select>
+              <button class="entry-filters-reset" data-action="load-product-metrics">↺ Laden</button>
+            </div>
+          </div>
+          <div id="metrics-output">
+            <div class="users-empty">Kennzahlen werden geladen …</div>
           </div>
         </div>
       </section>

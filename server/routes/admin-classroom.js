@@ -10,9 +10,9 @@
  */
 
 import express from 'express'
-import { getAdminStats } from '../classroom/telemetry.js'
+import { getAdminStats, getTeacherStats } from '../classroom/telemetry.js'
 
-export function createAdminClassroomRouter({ adminLimiter, requireAuth, validate, adminClassroomStatsQuerySchema, adminError }) {
+export function createAdminClassroomRouter({ adminLimiter, requireAuth, validate, adminClassroomStatsQuerySchema, adminClassroomTeachersQuerySchema, adminError }) {
   const router = express.Router()
 
   router.get(
@@ -24,6 +24,26 @@ export function createAdminClassroomRouter({ adminLimiter, requireAuth, validate
       try {
         const { days } = req.query
         const stats = getAdminStats({ days })
+        if (!stats) {
+          return res.status(500).json({ error: 'Telemetrie-Abfrage fehlgeschlagen' })
+        }
+        return res.json(stats)
+      } catch (err) {
+        adminError(res, err)
+      }
+    },
+  )
+
+  // Lehrer-Aktivitaet: aktive Lehrer + Sessions-pro-Lehrer-Histogramm.
+  router.get(
+    '/admin/classroom/teachers',
+    adminLimiter,
+    requireAuth,
+    validate(adminClassroomTeachersQuerySchema, 'query'),
+    (req, res) => {
+      try {
+        const { days } = req.query
+        const stats = getTeacherStats({ days })
         if (!stats) {
           return res.status(500).json({ error: 'Telemetrie-Abfrage fehlgeschlagen' })
         }
