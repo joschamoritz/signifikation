@@ -104,6 +104,7 @@ import {
   classroomReadLimiter,
 } from '../middleware/rateLimiter.js'
 import { isJoinBlocked, recordJoinFailure } from '../classroom/join-guard.js'
+import { loadDemoContent } from '../classroom/demoContent.js'
 
 const router = express.Router()
 
@@ -425,6 +426,14 @@ function buildStudentView(participant, session, assignment, meta = {}) {
     },
   }
 }
+
+// ── GET /api/v1/classroom/demo-content (public) ─────────────────
+// Inhalte der login-freien Lehrer-Demo (Klassenraum-Vorschau).
+// Bewusst ohne Auth — die Demo ist für nicht eingeloggte Lehrkräfte.
+// Im Admin editierbar; bricht nie (Default-Fallback im Store).
+router.get('/api/v1/classroom/demo-content', classroomReadLimiter, (_req, res) => {
+  return res.json({ content: loadDemoContent() })
+})
 
 // ════════════════════════════════════════════════════════════════
 // LEHRER-ENDPUNKTE

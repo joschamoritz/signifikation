@@ -11,6 +11,7 @@
 
 import express from 'express'
 import { getAdminStats, getTeacherStats } from '../classroom/telemetry.js'
+import { loadDemoContent, saveDemoContent } from '../classroom/demoContent.js'
 
 export function createAdminClassroomRouter({ adminLimiter, requireAuth, validate, adminClassroomStatsQuerySchema, adminClassroomTeachersQuerySchema, adminError }) {
   const router = express.Router()
@@ -53,6 +54,30 @@ export function createAdminClassroomRouter({ adminLimiter, requireAuth, validate
       }
     },
   )
+
+  // ── Demo-Inhalte (login-freie Lehrer-Vorschau) ──────────────────
+  // GET liefert die aktuellen (oder Default-)Inhalte fuer den Editor.
+  router.get('/admin/classroom/demo-content', adminLimiter, requireAuth, (req, res) => {
+    try {
+      return res.json({ content: loadDemoContent() })
+    } catch (err) {
+      adminError(res, err)
+    }
+  })
+
+  // PUT speichert validierte Inhalte; ungueltige Eingaben werden abgelehnt
+  // (alter Stand bleibt erhalten — saveDemoContent schreibt nur bei Erfolg).
+  router.put('/admin/classroom/demo-content', adminLimiter, requireAuth, (req, res) => {
+    try {
+      const result = saveDemoContent(req.body)
+      if (result.error) {
+        return res.status(400).json({ error: 'Ungültige Demo-Inhalte', issues: result.issues })
+      }
+      return res.json({ ok: true, content: result.content })
+    } catch (err) {
+      adminError(res, err)
+    }
+  })
 
   return router
 }

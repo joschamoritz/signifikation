@@ -1,0 +1,90 @@
+/* Klassenraum-Vorschau für Lehrkräfte (login-frei).
+   Wörterbuch-Ästhetik: Linien statt Boxen, Rot = Aktion, Gold = Deko.
+   Nutzt sonst die geteilten .classroom-section / .selection-* / quiz.css-Stile. */
+
+.classroom-teacher-demo {
+  padding-bottom: 96px; /* Platz für die untere TabBar */
+}
+
+/* „Wort des Tages" — eine Linie, keine Box. */
+.classroom-demo-word {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+  margin: 14px 0 2px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border, #d4c9b0);
+}
+.classroom-demo-word__tag {
+  font-family: var(--font-sans, 'DM Sans'), system-ui, sans-serif;
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--accent-dk, #a07830);
+}
+.classroom-demo-word__lemma {
+  font-family: var(--font-serif, 'Gentium Plus'), Georgia, serif;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text, #1a1a18);
+  line-height: 1.1;
+}
+.classroom-demo-word__ipa {
+  font-family: var(--font-serif, 'Gentium Plus'), Georgia, serif;
+  font-style: italic;
+  font-size: 0.85rem;
+  color: var(--muted, #776c5e);
+}
+
+/* Dezenter Hinweis-Text (Premium-Grenze / Beitritt) — kursiv, gedämpft. */
+.classroom-demo-hint {
+  font-family: var(--font-serif, 'Gentium Plus'), Georgia, serif;
+  font-style: italic;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  color: var(--muted, #776c5e);
+  margin: 12px 0 0;
+}
+
+/* Eingebettete Schüleransicht: Kiosk-Optik, aber NICHT volle Viewport-Höhe. */
+.classroom-demo-preview.classroom-kiosk {
+  min-height: 0;
+  border: 1px solid var(--border-lt, #e8e2d8);
+  border-radius: var(--radius, 4px);
+  margin-top: 12px;
+  overflow: hidden;
+}
+.classroom-demo-preview .classroom-kiosk__main {
+  min-height: 0;
+  padding-top: 16px;
+}
+
+/* „Beispiel"-Overline über der Code-Karte. */
+.classroom-demo-example-tag {
+  font-family: var(--font-sans, 'DM Sans'), system-ui, sans-serif;
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--accent-dk, #a07830);
+  text-align: center;
+  margin: 4px 0 0;
+}
+
+/* Schluss — Premium-Ausblick + Text-CTA. */
+.classroom-demo-outro {
+  text-align: center;
+}
+.classroom-demo-outro__text {
+  font-family: var(--font-serif, 'Gentium Plus'), Georgia, serif;
+  font-size: 1rem;
+  line-height: 1.6;
+  color: var(--text, #1a1a18);
+  margin: 0 auto 10px;
+  max-width: 36ch;
+}
+.classroom-demo-outro__cta {
+  font-size: 1.05rem;
+}
