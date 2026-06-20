@@ -315,6 +315,7 @@ export function renderSitemap(slugs, lastmod) {
     `  <url>\n    <loc>${BASE_URL}${loc}</loc>\n    <lastmod>${mod || today}</lastmod>\n    <changefreq>${freq}</changefreq>\n    <priority>${prio}</priority>\n  </url>`
   const staticUrls = [
     url('/', 'daily', '1.0'),
+    url('/lehrer', 'monthly', '0.8'),
     url('/archiv', 'daily', '0.8'),
     url('/ueber.html', 'monthly', '0.5'),
   ]

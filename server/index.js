@@ -215,6 +215,13 @@ app.use('/', pushRouter)
 // (index.html) ueberschrieben.
 app.use('/', archiveRouter)
 
+// Lehrer-Landingpage unter sauberer URL /lehrer (Akquise; statische Datei aus
+// public/). Bewusst VOR dem SPA-Fallback, sonst wuerde /lehrer als index.html
+// ausgeliefert. Canonical der Seite zeigt auf /lehrer.
+app.get('/lehrer', (_req, res) => {
+  res.sendFile(join(__dirname, '../public/lehrer.html'))
+})
+
 app.use('/api', (_req, res) => {
   res.status(404).json({ error: 'Endpoint nicht gefunden' })
 })
