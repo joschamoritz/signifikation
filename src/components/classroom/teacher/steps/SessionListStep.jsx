@@ -11,6 +11,7 @@
 import { useState } from 'react'
 import { useTeacherClassroom, STEPS } from '../TeacherClassroomContext'
 import { useSessionsList } from '../hooks/useSessionsList'
+import { useQuickStartSession } from '../hooks/useQuickStartSession'
 import { deleteSession, duplicateSession } from '../hooks/useTeacherSession'
 import ClassroomSubScreen from '../components/ClassroomSubScreen'
 import { MODE_LABEL } from '../../modeLabels'
@@ -43,6 +44,7 @@ function statusToStep(status) {
 export default function SessionListStep() {
   const { state, dispatch } = useTeacherClassroom()
   const { sessions, loading, error, refresh } = useSessionsList({ limit: 50, pollMs: 30000 })
+  const quick = useQuickStartSession()
   const [confirmId, setConfirmId] = useState(null)
   const [busyId, setBusyId]       = useState(null)
   const [delError, setDelError]   = useState(null)
@@ -119,6 +121,24 @@ export default function SessionListStep() {
             Noch keine Sitzungen. Lege deine erste an —<br />
             eine Klasse braucht nur einen Modus und ein Lemma.
           </p>
+
+          {quick.available && (
+            <div className="classroom-quickstart">
+              <p className="classroom-quickstart__lead">Am schnellsten loslegen:</p>
+              <button
+                type="button"
+                className="test-cta classroom-quickstart__cta"
+                onClick={quick.quickStart}
+                disabled={quick.busy}
+                data-testid="classroom-quickstart"
+              >
+                {quick.busy ? 'Wird angelegt …' : 'Erste Sitzung mit den Wörtern von heute'}
+                {!quick.busy && <span className="test-cta-arrow" aria-hidden="true"> →</span>}
+              </button>
+              <p className="classroom-quickstart__hint">Kollokationen · direkt in die Lobby. Anpassen kannst du alles später.</p>
+            </div>
+          )}
+          {quick.error && <p className="classroom-error" role="alert">{quick.error}</p>}
         </div>
       )}
 
