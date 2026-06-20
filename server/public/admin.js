@@ -2995,11 +2995,24 @@ function setPushHint(id, message, tone = 'info') {
 
 function renderPushTemplateRow(t) {
   const preview = t.preview || {}
+  const isStreak = t.category === 'streak'
+  const previewLabel = isStreak ? 'Vorschau (Serie = 5)' : 'Vorschau heute'
   const previewHtml = preview.eligible
     ? `<strong>${esc(preview.title)}</strong><br>${esc(preview.body)}`
     : `<span class="push-tpl-skip">Heute übersprungen — fehlt: ${esc((preview.missing || []).join(', ') || 'unbekannt')}</span>`
+  const categoryBadge = isStreak
+    ? '<span class="push-tpl-badge push-tpl-badge-streak">Streak-Saver · 19:00</span>'
+    : '<span class="push-tpl-badge">Täglich · 08:00</span>'
+  const toggleLabel = isStreak
+    ? 'Aktiv – nimmt an der abendlichen Streak-Rotation teil'
+    : 'Aktiv – nimmt an der täglichen Rotation teil'
+  // Streak-Templates gehen nur automatisch an gefährdete Serien – kein Broadcast.
+  const sendButton = isStreak
+    ? '<span class="push-tpl-skip">Automatischer Versand 19:00 an gefährdete Serien</span>'
+    : `<button class="ghost-btn" data-action="push-send-template" data-id="${t.id}">Jetzt senden</button>`
   return `
     <div class="push-template" data-id="${t.id}">
+      <div class="push-tpl-head">${categoryBadge}</div>
       <div class="entry-field">
         <label>Titel</label>
         <input type="text" class="push-tpl-title" maxlength="120" value="${esc(t.title)}">
@@ -3010,12 +3023,12 @@ function renderPushTemplateRow(t) {
       </div>
       <label class="push-tpl-toggle">
         <input type="checkbox" class="push-tpl-enabled" ${t.enabled ? 'checked' : ''}>
-        Aktiv – nimmt an der täglichen Rotation teil
+        ${toggleLabel}
       </label>
-      <div class="push-tpl-preview">Vorschau heute: ${previewHtml}</div>
+      <div class="push-tpl-preview">${previewLabel}: ${previewHtml}</div>
       <div class="push-tpl-actions">
         <button class="primary-btn" data-action="push-save-template" data-id="${t.id}">Speichern</button>
-        <button class="ghost-btn" data-action="push-send-template" data-id="${t.id}">Jetzt senden</button>
+        ${sendButton}
         <button class="entry-filters-reset" data-action="push-delete-template" data-id="${t.id}">Löschen</button>
       </div>
     </div>`

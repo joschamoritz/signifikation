@@ -297,6 +297,9 @@ db.exec(`
     created_at INTEGER NOT NULL,
     updated_at INTEGER NOT NULL
   );
+  -- Spalte category wird ausschliesslich von Migration 0016 ergaenzt
+  -- (Single Source). Hier NICHT mitfuehren, sonst scheitert die ALTER-Migration
+  -- auf einer frischen DB mit "duplicate column".
 `)
 
 logger.info({ path: DB_PATH }, 'signifikation.db bereit')
@@ -556,6 +559,36 @@ if (!hasColumn('lemmata', 'lueckenfueller')) {
 const _migResult = runSqlMigrationsSync(db)
 if (_migResult.applied.length > 0) {
   logger.info({ applied: _migResult.applied }, 'SQL-Migrationen (sync) angewendet')
+}
+
+// ── Seed: Streak-Saver-Templates (category='streak') ────────────
+// NACH den Migrationen, weil 0016 die Spalte `category` erst auf bestehenden
+// DBs nachzieht. Idempotent und unabhaengig vom Daily-Seed oben: laeuft auch
+// auf einer bereits befuellten Produktions-DB an (Daily-Seed greift nur bei
+// leerer Tabelle). Platzhalter: {streak} (Serienlaenge), {lemma} (Tageswort).
+// Diese Templates speist NUR der abendliche Streak-Saver-Job, nie der
+// 08:00-Broadcast (Kategorie-Filter in notifications/templates.js).
+{
+  const hasStreak = db.prepare(
+    `SELECT 1 FROM push_templates WHERE category = 'streak' LIMIT 1`
+  ).get()
+  if (!hasStreak) {
+    logger.info('Seed: Streak-Saver-Push-Templates einfügen')
+    const now = Date.now()
+    const insert = db.prepare(`
+      INSERT INTO push_templates (title, body, enabled, category, created_at, updated_at)
+      VALUES (?, ?, 1, 'streak', ?, ?)
+    `)
+    const defaults = [
+      // A – nuechtern-direkt, immer sendbar (nur {streak})
+      ['Deine Serie 🔥 {streak}', 'Heute noch nicht gespielt. Ein Wort genügt, damit die Serie weiterläuft.'],
+      // B – mit Tageswort als Koeder (nur an Tagen mit {lemma} sendbar)
+      ['🔥 {streak} Tage — heute fehlt noch »{lemma}«', 'Spiel, bevor der Tag endet, und halte deine Serie am Leben.'],
+    ]
+    db.transaction((rows) => {
+      for (const [title, body] of rows) insert.run(title, body, now, now)
+    })(defaults)
+  }
 }
 
 export default db

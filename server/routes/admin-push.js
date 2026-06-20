@@ -21,7 +21,7 @@ const router = express.Router()
 const TITLE_MAX = 120
 const BODY_MAX = 300
 
-const getTemplateStmt = db.prepare(`SELECT id FROM push_templates WHERE id = ?`)
+const getTemplateStmt = db.prepare(`SELECT id, category FROM push_templates WHERE id = ?`)
 const insertTemplateStmt = db.prepare(`
   INSERT INTO push_templates (title, body, enabled, created_at, updated_at)
   VALUES (?, ?, ?, ?, ?)
@@ -135,6 +135,13 @@ router.post('/admin/push/send', adminLimiter, requireAuth, async (req, res) => {
     const id = Number(req.body?.templateId)
     if (!Number.isInteger(id) || id <= 0) {
       return res.status(400).json({ error: 'Ungültige Template-ID' })
+    }
+    // Guardrail: Streak-Templates sind an einzelne gefährdete Nutzer adressiert
+    // und werden ausschließlich vom abendlichen Streak-Saver-Job (19:00) an die
+    // jeweilige Zielgruppe versandt – niemals als Broadcast an alle Geräte.
+    const tplRow = getTemplateStmt.get(id)
+    if (tplRow?.category === 'streak') {
+      return res.status(400).json({ error: 'Streak-Templates werden automatisch um 19:00 an gefährdete Serien versendet – kein Broadcast möglich.' })
     }
     const rendered = renderTemplateById(id, new Date())
     if (!rendered) {
