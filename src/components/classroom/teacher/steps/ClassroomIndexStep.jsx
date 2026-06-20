@@ -19,8 +19,11 @@ import { navigate } from '../../routing'
 import { useTeacherClassroom } from '../TeacherClassroomContext'
 import { useSessionsList } from '../hooks/useSessionsList'
 import { useActiveSnapCard } from '../../../../hooks/useActiveSnapCard'
+import { lsGet, lsSet } from '../../../../utils/storage'
 import Sheet from '../../../ui/Sheet'
 import ClassroomHowItWorksNote from '../components/ClassroomHowItWorksNote'
+
+const FIRSTRUN_HINT_KEY = 'sig_classroom_firstrun_hint'
 
 // Badge-Navigation (mobil, links): identisch zur Spielmodi-Startseite.
 const SNAP_NAV = [['①', 'Beitreten'], ['②', 'Sitzungen']]
@@ -31,6 +34,9 @@ export default function ClassroomIndexStep() {
 
   const [sheetOpen,       setSheetOpen]       = useState(false)
   const [desktopInfoOpen, setDesktopInfoOpen] = useState(false)
+  // Erstnutzer-Hinweis: einmalig, nur solange keine Sitzung existiert.
+  const [hintDismissed, setHintDismissed] = useState(() => !!lsGet(FIRSTRUN_HINT_KEY))
+  const dismissHint = useCallback(() => { lsSet(FIRSTRUN_HINT_KEY, '1'); setHintDismissed(true) }, [])
 
   // Scroll-Snap-Navigation wie Home (test-entries + snap-nav).
   const entriesRef = useRef(null)
@@ -49,6 +55,32 @@ export default function ClassroomIndexStep() {
 
   return (
     <>
+      {!loading && sessionCount === 0 && !hintDismissed && (
+        <aside className="classroom-firstrun" role="note" data-testid="classroom-firstrun">
+          <div className="classroom-firstrun__body">
+            <span className="classroom-firstrun__label" aria-hidden="true">Neu hier?</span>
+            <p className="classroom-firstrun__text">
+              Starte deine erste Live-Sitzung in Sekunden — mit den Wörtern von heute.
+            </p>
+            <button
+              type="button"
+              className="test-cta classroom-firstrun__cta"
+              onClick={() => { dismissHint(); dispatch({ type: 'GO_TO_LIST' }) }}
+              data-testid="classroom-firstrun-start"
+            >
+              Erste Sitzung starten
+              <span className="test-cta-arrow" aria-hidden="true"> →</span>
+            </button>
+          </div>
+          <button
+            type="button"
+            className="classroom-firstrun__close"
+            onClick={dismissHint}
+            aria-label="Hinweis schließen"
+          >✕</button>
+        </aside>
+      )}
+
       <main>
       <ol className="test-entries" aria-label="Klassenraum" ref={entriesRef} data-testid="classroom-index">
 

@@ -1902,3 +1902,45 @@
   font-weight: 400;
 }
 
+
+/* ── First-Run: Erstnutzer-Hinweis (einmalig, marginale Gold-Annotation) ──── */
+.classroom-firstrun {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin: 4px 0 18px;
+  padding: 12px 12px 12px 14px;
+  border-left: 2px solid var(--accent);
+  background: color-mix(in srgb, var(--accent) 6%, transparent);
+  border-radius: 0;
+}
+.classroom-firstrun__body { flex: 1; min-width: 0; }
+.classroom-firstrun__label {
+  display: block;
+  font-family: var(--font-sans, 'DM Sans'), system-ui, sans-serif;
+  font-size: 9px; font-weight: 600; letter-spacing: 0.22em; text-transform: uppercase;
+  color: var(--accent-dk, #a07830); margin-bottom: 3px;
+}
+.classroom-firstrun__text {
+  font-family: var(--font-serif, 'Gentium Plus'), Georgia, serif;
+  font-size: 0.95rem; color: var(--text); margin: 0 0 8px; line-height: 1.45;
+}
+.classroom-firstrun__close {
+  flex-shrink: 0; background: none; border: none; cursor: pointer;
+  color: var(--muted); font-size: 1rem; line-height: 1; padding: 2px 4px;
+  min-height: 44px; min-width: 28px;
+}
+.classroom-firstrun__close:hover { color: var(--primary); }
+
+/* ── First-Run: Schnellstart im leeren Sitzungs-Zustand ───────────────────── */
+.classroom-quickstart { margin-top: 18px; }
+.classroom-quickstart__lead {
+  font-family: var(--font-sans, 'DM Sans'), system-ui, sans-serif;
+  font-size: 9px; font-weight: 600; letter-spacing: 0.22em; text-transform: uppercase;
+  color: var(--accent-dk, #a07830); margin: 0 0 6px;
+}
+.classroom-quickstart__cta { font-size: 1.05rem; }
+.classroom-quickstart__hint {
+  font-family: var(--font-serif, 'Gentium Plus'), Georgia, serif; font-style: italic;
+  font-size: 0.85rem; color: var(--muted); margin: 6px 0 0;
+}
