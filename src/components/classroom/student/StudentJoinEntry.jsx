@@ -24,6 +24,7 @@ import { peekKioskSession } from './hooks/useStudentSession'
 import ClassroomStudentNote from './ClassroomStudentNote'
 
 const QrScanner = lazy(() => import('./QrScanner'))
+const ClassroomTeacherDemo = lazy(() => import('../teacher/demo/ClassroomTeacherDemo'))
 
 function normalizeCode(raw) {
   return String(raw || '')
@@ -33,7 +34,7 @@ function normalizeCode(raw) {
     .slice(0, 30)
 }
 
-export default function StudentJoinEntry({ initialNotice = null, embedded = false }) {
+export default function StudentJoinEntry({ initialNotice = null, embedded = false, onNavigateToKonto = null }) {
   const [code, setCode]       = useState('')
   // Fehlerhinweis: explizit übergebener initialNotice (Tests) ODER ein von
   // NameState bei ungültigem Code hinterlegter, transienter sessionStorage-
@@ -48,6 +49,7 @@ export default function StudentJoinEntry({ initialNotice = null, embedded = fals
   })
   const [shake, setShake]     = useState(false)
   const [scanning, setScanning] = useState(false)
+  const [showDemo, setShowDemo] = useState(false)
   const inputRef              = useRef(null)
 
   // Persistierte Sitzung einmalig beim Mount lesen (für die „Fortsetzen"-Karte).
@@ -105,6 +107,18 @@ export default function StudentJoinEntry({ initialNotice = null, embedded = fals
         <QrScanner
           onResult={(c) => { setScanning(false); go(c) }}
           onClose={() => setScanning(false)}
+        />
+      </Suspense>
+    )
+  }
+
+  // Login-freie Lehrer-Vorschau (② Sitzungen in der Nicht-Premium-Ansicht).
+  if (showDemo) {
+    return (
+      <Suspense fallback={null}>
+        <ClassroomTeacherDemo
+          onBack={() => setShowDemo(false)}
+          onGoPremium={onNavigateToKonto || undefined}
         />
       </Suspense>
     )
@@ -176,8 +190,8 @@ export default function StudentJoinEntry({ initialNotice = null, embedded = fals
   // --t-*-Tokens + das Mobil-Layout des geteilten Headers; classroom-kiosk die
   // --k-*-Tokens für das Code-Feld; classroom-student-entry mappt --t-* aus --*.
   const snapNav = resume
-    ? [['①', 'Beitreten'], ['②', 'Fortsetzen']]
-    : [['①', 'Beitreten']]
+    ? [['①', 'Beitreten'], ['②', 'Sitzungen'], ['③', 'Fortsetzen']]
+    : [['①', 'Beitreten'], ['②', 'Sitzungen']]
 
   return (
     <div className="classroom-kiosk test-page classroom-student-entry" data-testid="classroom-student-tab">
@@ -232,11 +246,46 @@ export default function StudentJoinEntry({ initialNotice = null, embedded = fals
               </div>
             </li>
 
-            {/* ② Fortsetzen ────────────────────── (nur bei aktiver Sitzung) */}
+            {/* ② Sitzungen → login-freie Lehrer-Vorschau ─────────── */}
+            <li className="test-entry">
+              <div className="test-entry-number" aria-hidden="true">
+                <span className="test-entry-num-glyph">②</span>
+                <span className="test-entry-marginalia">VORSCHAU</span>
+              </div>
+              <div className="test-entry-body">
+                <div className="test-entry-head">
+                  <h2 className="test-headword">Sitzungen</h2>
+                  <span className="test-ipa" aria-label="Aussprache: [ˈzɪtsʊŋən]">[ˈzɪtsʊŋən]</span>
+                </div>
+                <div className="test-entry-grammar" aria-hidden="true">
+                  <span className="test-pos">Lehrkraft</span>
+                  <span className="test-pos-rule" />
+                  <span className="test-entry-category">Vorschau</span>
+                </div>
+                <p className="test-definition">
+                  Du leitest eine Klasse? Sieh dir an, wie eine Live-Sitzung
+                  abläuft — Modus, Schüleransicht, Beitritt — ganz ohne Login.
+                </p>
+                <div className="test-entry-footer">
+                  <span className="test-status">Ohne Anmeldung.</span>
+                  <button
+                    type="button"
+                    className="test-cta"
+                    onClick={() => setShowDemo(true)}
+                    data-testid="classroom-student-demo-open"
+                  >
+                    Vorschau ansehen
+                    <span className="test-cta-arrow" aria-hidden="true"> →</span>
+                  </button>
+                </div>
+              </div>
+            </li>
+
+            {/* ③ Fortsetzen ────────────────────── (nur bei aktiver Sitzung) */}
             {resume && (
               <li className="test-entry test-drop-cap">
                 <div className="test-entry-number" aria-hidden="true">
-                  <span className="test-entry-num-glyph">②</span>
+                  <span className="test-entry-num-glyph">③</span>
                   <span className="test-entry-marginalia">LIVE</span>
                 </div>
                 <div className="test-entry-body">

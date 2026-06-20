@@ -89,7 +89,7 @@ function MainAppShell() {
           ) : null}
           {activeTab === 'klassenraum' && !classroomTeacher ? (
             <ErrorBoundary fallback={<SectionErrorFallback label="Der Klassenraum" />}>
-              <StudentJoinEntry embedded />
+              <StudentJoinEntry embedded onNavigateToKonto={() => handleTabChange('profil')} />
             </ErrorBoundary>
           ) : null}
         </Suspense>

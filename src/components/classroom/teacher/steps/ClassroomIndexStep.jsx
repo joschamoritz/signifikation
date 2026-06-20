@@ -6,13 +6,16 @@
 // als Anmerkung unten (Desktop-Fußnote) bzw. hinter der Manicula ☞ (Mobile),
 // exakt wie „Was ist eine Kollokation?" auf der Spielmodi-Startseite. Dadurch
 // bleiben die Prime-Slots fuer das, was zaehlt:
-//   ① Sessions   — Session-Verwaltung (STEPS.LIST)
-//   ② Vorbereiten — Teaser (in Vorbereitung), bewusst deaktiviert
+//   ① Beitreten — selbst einer Sitzung beitreten (Route /c), auch für
+//                 Lehrkräfte (Ausprobieren / mit Kolleg:innen mitspielen)
+//   ② Sitzungen  — Session-Verwaltung (STEPS.LIST)
 //
-// Jeder aktive Eintrag öffnet — wie ein Modus-Klick auf der Spielmodi-Seite —
-// eine Vollbild-Unterseite (kein Bottom-Sheet).
+// Einheitliche Tab-IA: Nicht-Premium sieht dieselben Slots — ① Beitreten +
+// ② Sitzungen (dort die login-freie Lehrer-Demo). „Vorbereiten" entfiel
+// (verlustfrei: „Neue Sitzung" aus der Liste + zurück = wartende Lobby).
 
 import { useRef, useState, useCallback } from 'react'
+import { navigate } from '../../routing'
 import { useTeacherClassroom } from '../TeacherClassroomContext'
 import { useSessionsList } from '../hooks/useSessionsList'
 import { useActiveSnapCard } from '../../../../hooks/useActiveSnapCard'
@@ -20,7 +23,7 @@ import Sheet from '../../../ui/Sheet'
 import ClassroomHowItWorksNote from '../components/ClassroomHowItWorksNote'
 
 // Badge-Navigation (mobil, links): identisch zur Spielmodi-Startseite.
-const SNAP_NAV = [['①', 'Sitzungen'], ['②', 'Vorbereiten']]
+const SNAP_NAV = [['①', 'Beitreten'], ['②', 'Sitzungen']]
 
 export default function ClassroomIndexStep() {
   const { dispatch } = useTeacherClassroom()
@@ -49,16 +52,51 @@ export default function ClassroomIndexStep() {
       <main>
       <ol className="test-entries" aria-label="Klassenraum" ref={entriesRef} data-testid="classroom-index">
 
-        {/* ① Sessions ──────────────────────────────────────── */}
+        {/* ① Beitreten — auch Lehrkräfte können selbst mitspielen ─ */}
         <li className="test-entry test-drop-cap">
           <div className="test-entry-number" aria-hidden="true">
             <span className="test-entry-num-glyph">①</span>
+            <span className="test-entry-marginalia">CODE</span>
+          </div>
+          <div className="test-entry-body">
+            <div className="test-entry-head">
+              <span className="test-dropcap-k" aria-hidden="true">B</span>
+              <h2 className="test-headword" aria-label="Beitreten">eitreten</h2>
+              <span className="test-ipa" aria-label="Aussprache: [ˈbaɪ̯tʁeːtn̩]">[ˈbaɪ̯tʁeːtn̩]</span>
+            </div>
+            <div className="test-entry-grammar" aria-hidden="true">
+              <span className="test-pos">Mitspielen</span>
+              <span className="test-pos-rule" />
+              <span className="test-entry-category">Zugang</span>
+            </div>
+            <p className="test-definition">
+              Tritt selbst einer Sitzung bei — zum Ausprobieren oder mit
+              Kolleg:innen. Code eingeben oder QR scannen.
+            </p>
+            <div className="test-entry-footer">
+              <span className="test-status">Code von der Lehrkraft.</span>
+              <button
+                type="button"
+                className="test-cta"
+                onClick={() => navigate('/c')}
+                data-testid="classroom-index-join"
+              >
+                Zur Beitritts-Seite
+                <span className="test-cta-arrow" aria-hidden="true"> →</span>
+              </button>
+            </div>
+          </div>
+        </li>
+
+        {/* ② Sitzungen ──────────────────────────────────────── */}
+        <li className="test-entry">
+          <div className="test-entry-number" aria-hidden="true">
+            <span className="test-entry-num-glyph">②</span>
             <span className="test-entry-marginalia">LIVE</span>
           </div>
           <div className="test-entry-body">
             <div className="test-entry-head">
-              <span className="test-dropcap-k" aria-hidden="true">S</span>
-              <h2 className="test-headword" aria-label="Sitzungen">itzungen</h2>
+              <h2 className="test-headword">Sitzungen</h2>
               <span className="test-ipa" aria-label="Aussprache: [ˈzɪtsʊŋən]">[ˈzɪtsʊŋən]</span>
             </div>
             <div className="test-entry-grammar" aria-hidden="true">
@@ -68,7 +106,7 @@ export default function ClassroomIndexStep() {
             </div>
             <p className="test-definition">
               Lege eine neue Live-Sitzung an oder setze eine laufende fort —
-              ein Modus, ein Lemma, ein Beitrittscode für die ganze Klasse.
+              Modus, Wörter, ein Beitrittscode für die ganze Klasse.
             </p>
             <div className="test-entry-footer">
               <span className="test-status">{sessionStatus}</span>
@@ -79,42 +117,6 @@ export default function ClassroomIndexStep() {
                 data-testid="classroom-index-sessions"
               >
                 Sitzungen verwalten
-                <span className="test-cta-arrow" aria-hidden="true"> →</span>
-              </button>
-            </div>
-          </div>
-        </li>
-
-        {/* ② Vorbereiten ───────────────────────────────────── */}
-        <li className="test-entry">
-          <div className="test-entry-number" aria-hidden="true">
-            <span className="test-entry-num-glyph">②</span>
-            <span className="test-entry-marginalia">PLAN</span>
-          </div>
-          <div className="test-entry-body">
-            <div className="test-entry-head">
-              <h2 className="test-headword">Vorbereiten</h2>
-              <span className="test-ipa" aria-label="Aussprache: [ˈfoːɐ̯bəˌʁaɪ̯tn̩]">[ˈfoːɐ̯bəˌʁaɪ̯tn̩]</span>
-            </div>
-            <div className="test-entry-grammar" aria-hidden="true">
-              <span className="test-pos">Planung</span>
-              <span className="test-pos-rule" />
-              <span className="test-entry-category">vorab</span>
-            </div>
-            <p className="test-definition">
-              Stelle eine Sitzung im Voraus zusammen — Modus, Wörter, Titel — und
-              halte sie für die nächste Stunde bereit. Starten kannst du sie
-              später mit einem Tippen.
-            </p>
-            <div className="test-entry-footer">
-              <span className="test-status">Für die nächste Stunde.</span>
-              <button
-                type="button"
-                className="test-cta"
-                onClick={() => dispatch({ type: 'GO_TO_SETUP', draft: { intent: 'prepare' } })}
-                data-testid="classroom-index-prepare"
-              >
-                Sitzung vorbereiten
                 <span className="test-cta-arrow" aria-hidden="true"> →</span>
               </button>
             </div>

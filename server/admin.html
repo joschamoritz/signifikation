@@ -919,6 +919,50 @@
             <div class="users-empty">Klassenraum-Statistiken werden geladen …</div>
           </div>
         </div>
+
+        <div class="card" id="demo-content-card">
+          <div class="card-head card-head--wrap">
+            <div>
+              <p class="section-label">Klassenraum</p>
+              <h2>Demo-Inhalte (Lehrer-Vorschau)</h2>
+            </div>
+            <button class="primary-btn" data-action="save-demo-content">Speichern</button>
+          </div>
+          <p class="section-copy">Diese Wörter erscheinen in der login-freien „Klassenraum-Vorschau" für Lehrkräfte (Tab Klassenraum → ② Sitzungen → Vorschau ansehen). Wörter durch Zeilenumbruch oder Komma trennen.</p>
+          <p class="entry-hint" id="demo-content-status"></p>
+
+          <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(250px, 1fr)); gap:16px; margin-top:12px">
+            <fieldset style="border:1px solid var(--border-light); border-radius:8px; padding:12px 14px; min-width:0">
+              <legend style="font-weight:500; padding:0 6px">Kollokationen</legend>
+              <label style="display:block; font-size:0.8rem; color:var(--muted); margin-bottom:8px">Lemma<input type="text" id="demo-kol-lemma" style="width:100%; margin-top:3px"></label>
+              <label style="display:block; font-size:0.8rem; color:var(--muted); margin-bottom:8px">IPA<input type="text" id="demo-kol-ipa" style="width:100%; margin-top:3px"></label>
+              <label style="display:block; font-size:0.8rem; color:var(--muted); margin-bottom:8px">Definition<input type="text" id="demo-kol-def" style="width:100%; margin-top:3px"></label>
+              <label style="display:block; font-size:0.8rem; color:var(--muted)">Wörter (Kandidaten)<textarea id="demo-kol-words" rows="3" style="width:100%; margin-top:3px"></textarea></label>
+            </fieldset>
+
+            <fieldset style="border:1px solid var(--border-light); border-radius:8px; padding:12px 14px; min-width:0">
+              <legend style="font-weight:500; padding:0 6px">Wort-Zwilling</legend>
+              <label style="display:block; font-size:0.8rem; color:var(--muted); margin-bottom:8px">Wort A<input type="text" id="demo-wz-a" style="width:100%; margin-top:3px"></label>
+              <label style="display:block; font-size:0.8rem; color:var(--muted); margin-bottom:8px">Wort B<input type="text" id="demo-wz-b" style="width:100%; margin-top:3px"></label>
+              <label style="display:block; font-size:0.8rem; color:var(--muted)">Wörter (zuzuordnen)<textarea id="demo-wz-words" rows="3" style="width:100%; margin-top:3px"></textarea></label>
+            </fieldset>
+
+            <fieldset style="border:1px solid var(--border-light); border-radius:8px; padding:12px 14px; min-width:0">
+              <legend style="font-weight:500; padding:0 6px">Zeitenwende</legend>
+              <label style="display:block; font-size:0.8rem; color:var(--muted); margin-bottom:8px">Lemma<input type="text" id="demo-zw-lemma" style="width:100%; margin-top:3px"></label>
+              <label style="display:block; font-size:0.8rem; color:var(--muted); margin-bottom:8px">IPA<input type="text" id="demo-zw-ipa" style="width:100%; margin-top:3px"></label>
+              <label style="display:block; font-size:0.8rem; color:var(--muted)">Wörter<textarea id="demo-zw-words" rows="3" style="width:100%; margin-top:3px"></textarea></label>
+            </fieldset>
+
+            <fieldset style="border:1px solid var(--border-light); border-radius:8px; padding:12px 14px; min-width:0">
+              <legend style="font-weight:500; padding:0 6px">Lückenfüller</legend>
+              <label style="display:block; font-size:0.8rem; color:var(--muted); margin-bottom:8px">Lemma<input type="text" id="demo-lf-lemma" style="width:100%; margin-top:3px"></label>
+              <label style="display:block; font-size:0.8rem; color:var(--muted); margin-bottom:8px">IPA<input type="text" id="demo-lf-ipa" style="width:100%; margin-top:3px"></label>
+              <label style="display:block; font-size:0.8rem; color:var(--muted); margin-bottom:8px">Satz (Lücke = fünf Unterstriche _____)<input type="text" id="demo-lf-sentence" style="width:100%; margin-top:3px"></label>
+              <label style="display:block; font-size:0.8rem; color:var(--muted)">Optionen<textarea id="demo-lf-options" rows="2" style="width:100%; margin-top:3px"></textarea></label>
+            </fieldset>
+          </div>
+        </div>
       </section>
 
       <section class="admin-page" id="page-system" data-title="System" data-subtitle="Diagnose, Backup und technische Details.">

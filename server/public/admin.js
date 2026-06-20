@@ -171,6 +171,7 @@ function switchPage(pageId) {
 
   if (pageId === 'classroom') {
     loadClassroomStats()
+    loadDemoEditor()
   }
 
   if (pageId === 'metrics') {
@@ -3250,7 +3251,84 @@ function handleDocumentClick(event) {
   if (action === 'push-send-free') return void submitManualPush('free')
   if (action === 'push-send-self') return void submitManualPush('self')
   if (action === 'load-classroom-stats') return void loadClassroomStats()
+  if (action === 'save-demo-content') return void saveDemoEditor()
   if (action === 'load-product-metrics') return void loadProductMetrics()
+}
+
+// ── Demo-Inhalte (login-freie Lehrer-Vorschau) ──────────────────────────────
+function demoWords(str) {
+  return String(str || '').split(/[\n,]+/).map(s => s.trim()).filter(Boolean)
+}
+
+async function loadDemoEditor() {
+  const status = document.getElementById('demo-content-status')
+  if (!document.getElementById('demo-kol-lemma')) return
+  try {
+    const r = await fetch('/admin/classroom/demo-content')
+    const d = await r.json()
+    if (!r.ok) throw new Error(d.error || `HTTP ${r.status}`)
+    const c = d.content || {}
+    const set = (id, v) => { const el = document.getElementById(id); if (el) el.value = v == null ? '' : v }
+    set('demo-kol-lemma', c.kollokationen?.lemma?.lemma)
+    set('demo-kol-ipa',   c.kollokationen?.lemma?.ipa)
+    set('demo-kol-def',   c.kollokationen?.lemma?.definition)
+    set('demo-kol-words', (c.kollokationen?.words || []).join('\n'))
+    set('demo-wz-a',      c.wortzwilling?.wortA)
+    set('demo-wz-b',      c.wortzwilling?.wortB)
+    set('demo-wz-words',  (c.wortzwilling?.words || []).join('\n'))
+    set('demo-zw-lemma',  c.zeitenwende?.lemma?.lemma)
+    set('demo-zw-ipa',    c.zeitenwende?.lemma?.ipa)
+    set('demo-zw-words',  (c.zeitenwende?.words || []).join('\n'))
+    set('demo-lf-lemma',  c.lueckenfueller?.lemma?.lemma)
+    set('demo-lf-ipa',    c.lueckenfueller?.lemma?.ipa)
+    set('demo-lf-sentence', c.lueckenfueller?.sentence)
+    set('demo-lf-options', (c.lueckenfueller?.options || []).join('\n'))
+    if (status) { status.textContent = 'Inhalte geladen.'; status.className = 'entry-hint' }
+  } catch (e) {
+    if (status) { status.textContent = 'Fehler beim Laden: ' + e.message; status.className = 'status error' }
+  }
+}
+
+async function saveDemoEditor() {
+  const status = document.getElementById('demo-content-status')
+  const val = (id) => (document.getElementById(id)?.value || '').trim()
+  const payload = {
+    kollokationen: {
+      lemma: { lemma: val('demo-kol-lemma'), ipa: val('demo-kol-ipa'), definition: val('demo-kol-def') },
+      words: demoWords(val('demo-kol-words')),
+    },
+    wortzwilling: {
+      wortA: val('demo-wz-a'), wortB: val('demo-wz-b'),
+      words: demoWords(val('demo-wz-words')),
+    },
+    zeitenwende: {
+      lemma: { lemma: val('demo-zw-lemma'), ipa: val('demo-zw-ipa') },
+      words: demoWords(val('demo-zw-words')),
+    },
+    lueckenfueller: {
+      lemma: { lemma: val('demo-lf-lemma'), ipa: val('demo-lf-ipa') },
+      sentence: val('demo-lf-sentence'),
+      options: demoWords(val('demo-lf-options')),
+    },
+  }
+  if (status) { status.textContent = 'Speichere …'; status.className = 'entry-hint' }
+  try {
+    const r = await fetch('/admin/classroom/demo-content', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    })
+    const d = await r.json()
+    if (!r.ok) {
+      const detail = Array.isArray(d.issues) && d.issues.length
+        ? d.issues.map(i => `${(i.path || []).join('.')}: ${i.message}`).join(' · ')
+        : (d.error || `HTTP ${r.status}`)
+      throw new Error(detail)
+    }
+    if (status) { status.textContent = '✓ Gespeichert. Die Vorschau nutzt die neuen Inhalte sofort.'; status.className = 'entry-hint' }
+  } catch (e) {
+    if (status) { status.textContent = 'Fehler: ' + e.message; status.className = 'status error' }
+  }
 }
 
 async function loadClassroomStats() {
