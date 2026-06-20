@@ -37,18 +37,46 @@ function Home({
   const [,                  setImgState]          = useState(null)
   const [showDayComplete,   setShowDayComplete]   = useState(false)
   const [dayFlip,           setDayFlip]           = useState(false)
+  // A1: einmaliger mobiler Wisch-Hinweis (Snap-Navigation zwischen Modi entdecken).
+  const [showSwipeHint,     setShowSwipeHint]     = useState(false)
+  const [swipeHintFade,     setSwipeHintFade]     = useState(false)
 
   const entriesRef  = useRef(null)
   // Timer-Handles für Banner-Resets, damit ein Unmount sie aufräumen kann.
   const imgStateTimer = useRef(null)
   const copiedTimer   = useRef(null)
+  const swipeHintTimer = useRef(null)
+  const swipeFadeTimer = useRef(null)
 
   useEffect(() => {
     return () => {
       if (imgStateTimer.current) clearTimeout(imgStateTimer.current)
       if (copiedTimer.current)   clearTimeout(copiedTimer.current)
+      if (swipeHintTimer.current) clearTimeout(swipeHintTimer.current)
+      if (swipeFadeTimer.current) clearTimeout(swipeFadeTimer.current)
     }
   }, [])
+
+  // A1: Wisch-Hinweis nur mobil und nur beim allerersten Mal zeigen; nach erster
+  // Scroll-Interaktion (oder als Fallback nach 8 s) ausblenden und merken.
+  const dismissSwipeHint = useCallback(() => {
+    if (swipeHintTimer.current) { clearTimeout(swipeHintTimer.current); swipeHintTimer.current = null }
+    lsSet('sig_home_swipe_hint', '1')
+    setSwipeHintFade(true)
+    swipeFadeTimer.current = setTimeout(() => setShowSwipeHint(false), 400)
+  }, [])
+
+  useEffect(() => {
+    if (!window.matchMedia(MOBILE_MEDIA_QUERY).matches) return undefined
+    if (lsGet('sig_home_swipe_hint')) return undefined
+    setShowSwipeHint(true)
+    swipeHintTimer.current = setTimeout(() => dismissSwipeHint(), 8000)
+    return () => { if (swipeHintTimer.current) clearTimeout(swipeHintTimer.current) }
+  }, [dismissSwipeHint])
+
+  const handleEntriesScroll = useCallback(() => {
+    if (showSwipeHint && !swipeHintFade) dismissSwipeHint()
+  }, [showSwipeHint, swipeHintFade, dismissSwipeHint])
 
   const streak     = computeStreak()
   const today      = new Date()
@@ -233,6 +261,7 @@ function Home({
             aria-label="Spielmodi"
             ref={entriesRef}
             onKeyDown={handleSnapKeyDown}
+            onScroll={handleEntriesScroll}
           >
 
             {/* ── ① Kollokationen ─────────────────────────── */}
@@ -488,6 +517,16 @@ function Home({
 
       </div>
     </div>
+
+    {/* ── A1: Mobiler Wisch-Hinweis (einmalig) ──────────────── */}
+    {showSwipeHint && (
+      <p
+        className={`home-swipe-hint${swipeHintFade ? ' home-swipe-hint--fade' : ''}`}
+        aria-hidden="true"
+      >
+        <span className="home-swipe-hint__glyph">↕</span> Wische für weitere Wortspiele
+      </p>
+    )}
 
     {/* ── Info Bottom Sheet ────────────────────────────────── */}
     <Sheet open={sheetOpen} onClose={() => setSheetOpen(false)} aria-label="Was ist eine Kollokation?">

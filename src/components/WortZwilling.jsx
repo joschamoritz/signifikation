@@ -342,7 +342,7 @@ export default function WortZwilling({
         </header>
 
         <p className="wz-instruction">
-          Ordne die Kollokationen dem richtigen Wort zu.
+          Ordne die Kollokationen dem richtigen Wort zu — ziehen oder tippen.
           {!jokerUsed && jokerVisible && (
             <button
               className="joker-btn"
