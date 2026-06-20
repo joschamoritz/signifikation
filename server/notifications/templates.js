@@ -10,12 +10,25 @@ import db from '../db.js'
 import logger from '../logger.js'
 
 /** Verfügbare Platzhalter (für Admin-UI und Validierung). */
-export const PLACEHOLDERS = ['lemma', 'thema', 'wortA', 'wortB', 'lueckensatz', 'wochentag', 'lemmata']
+export const PLACEHOLDERS = ['lemma', 'thema', 'wortA', 'wortB', 'lueckensatz', 'wochentag', 'lemmata', 'streak']
 
 const STATIC_FALLBACK = {
   title: 'Signifikation',
   body: 'Dein tägliches Wortspiel wartet.',
   url: '/',
+}
+
+/**
+ * Fallback für den Streak-Saver, wenn an dem Tag kein Streak-Template
+ * befüllbar ist (z. B. nur ein {lemma}-Template, aber kein Tageswort).
+ * Enthält die Serienlänge, damit der Anreiz erhalten bleibt.
+ */
+function streakFallback(streak) {
+  return {
+    title: `Deine Serie 🔥 ${streak}`,
+    body: 'Heute noch nicht gespielt. Ein Wort genügt, damit die Serie weiterläuft.',
+    url: '/',
+  }
 }
 
 /** Gibt den deutschen Wochentagsnamen zurück. */
@@ -47,16 +60,23 @@ const getWortzwillingStmt = db.prepare(`
   WHERE datum = ?
 `)
 
+// Tages-Broadcast (08:00) zieht NUR aus 'daily'-Templates; Streak-Templates
+// sind dem Abend-Job vorbehalten (Kategorie-Trennung).
 const listEnabledTemplatesStmt = db.prepare(`
-  SELECT id, title, body FROM push_templates WHERE enabled = 1
+  SELECT id, title, body FROM push_templates WHERE enabled = 1 AND category = 'daily'
+`)
+
+// Abend-Job (Streak-Saver) zieht NUR aus 'streak'-Templates.
+const listStreakTemplatesStmt = db.prepare(`
+  SELECT id, title, body FROM push_templates WHERE enabled = 1 AND category = 'streak'
 `)
 
 const getTemplateStmt = db.prepare(`
-  SELECT id, title, body FROM push_templates WHERE id = ?
+  SELECT id, title, body, category FROM push_templates WHERE id = ?
 `)
 
 const listAllTemplatesStmt = db.prepare(`
-  SELECT id, title, body, enabled FROM push_templates ORDER BY id
+  SELECT id, title, body, enabled, category FROM push_templates ORDER BY id
 `)
 
 /**
@@ -129,8 +149,13 @@ function loadTagesdaten(datum) {
 /**
  * Baut den Platzhalter-Kontext für ein Datum.
  * Jeder Wert ist ein nicht-leerer String oder null (= nicht verfügbar).
+ *
+ * `extra` überschreibt/ergänzt einzelne Platzhalter (z. B. {streak} aus dem
+ * Streak-Saver oder ein Beispielwert für die Admin-Vorschau). Der tägliche
+ * Broadcast ruft buildContext OHNE extra → {streak} bleibt unbefüllbar und
+ * Streak-Templates wären dort ohnehin nicht eligible.
  */
-function buildContext(date) {
+function buildContext(date, extra = {}) {
   const t = loadTagesdaten(formatDatum(date))
   return {
     lemma:       t.lemma || null,
@@ -140,6 +165,8 @@ function buildContext(date) {
     lueckensatz: t.lueckensatz || null,
     wochentag:   getWochentag(date),
     lemmata:     t.lemmata.length > 0 ? t.lemmata.join(' · ') : null,
+    streak:      null,
+    ...extra,
   }
 }
 
@@ -201,15 +228,51 @@ export function buildNotificationPayload(date = new Date()) {
 }
 
 /**
+ * Erstellt das Streak-Saver-Payload für ein Datum und eine Serienlänge.
+ * Wählt zufällig aus den aktiven 'streak'-Templates, deren Platzhalter an dem
+ * Tag vollständig befüllbar sind ({streak} ist immer gesetzt, {lemma} nur an
+ * Inhaltstagen). Gibt es keins, kommt ein streak-bewusster Fallback.
+ *
+ * @param {Date} date
+ * @param {number} streak  aktuelle Serienlänge des Empfängers
+ * @returns {{ title: string, body: string, url: string }}
+ */
+export function buildStreakPayload(date = new Date(), streak = 0) {
+  const ctx = buildContext(date, { streak: String(streak) })
+  try {
+    const templates = listStreakTemplatesStmt.all()
+    const eligible = templates.filter(t => missingPlaceholders(t, ctx).length === 0)
+
+    if (eligible.length === 0) {
+      logger.warn({ datum: formatDatum(date) }, 'Streak-Push: kein passendes Template – Fallback')
+      return streakFallback(streak)
+    }
+
+    const chosen = eligible[Math.floor(Math.random() * eligible.length)]
+    return {
+      title: render(chosen.title, ctx),
+      body:  render(chosen.body, ctx),
+      url:   '/',
+    }
+  } catch (err) {
+    logger.warn({ err }, 'Streak-Template-Rendering fehlgeschlagen, verwende Fallback')
+    return streakFallback(streak)
+  }
+}
+
+/**
  * Rendert ein einzelnes Template (per ID) mit den Tagesdaten eines Datums.
  * Für den manuellen Versand eines Templates aus dem Admin-Panel.
+ *
+ * Streak-Templates ({streak}) werden mit einem Beispielwert gerendert, damit
+ * der Admin-Test nicht leer läuft.
  *
  * @returns {{ title: string, body: string } | null}
  */
 export function renderTemplateById(id, date = new Date()) {
   const t = getTemplateStmt.get(id)
   if (!t) return null
-  const ctx = buildContext(date)
+  const ctx = buildContext(date, t.category === 'streak' ? { streak: '5' } : {})
   return { title: render(t.title, ctx), body: render(t.body, ctx) }
 }
 
@@ -218,14 +281,19 @@ export function renderTemplateById(id, date = new Date()) {
  * Für die Anzeige im Admin-Panel.
  */
 export function listTemplatesWithPreview(date = new Date()) {
-  const ctx = buildContext(date)
+  const dailyCtx = buildContext(date)
+  // Streak-Templates mit Beispielwert vorschauen (sonst wäre {streak} immer
+  // "missing" und die Vorschau bliebe leer/„nicht versendbar").
+  const streakCtx = buildContext(date, { streak: '5' })
   return listAllTemplatesStmt.all().map(t => {
+    const ctx = t.category === 'streak' ? streakCtx : dailyCtx
     const missing = missingPlaceholders(t, ctx)
     return {
-      id:      t.id,
-      title:   t.title,
-      body:    t.body,
-      enabled: !!t.enabled,
+      id:       t.id,
+      title:    t.title,
+      body:     t.body,
+      enabled:  !!t.enabled,
+      category: t.category || 'daily',
       preview: {
         title:    render(t.title, ctx),
         body:     render(t.body, ctx),

@@ -36,6 +36,7 @@ import iapRouter from './routes/iap.js'
 import pushRouter from './routes/push.js'
 import archiveRouter from './routes/archive.js'
 import { startPushScheduler } from './notifications/scheduler.js'
+import { startStreakSaverScheduler } from './notifications/streak.js'
 import { setupClassroomSocket } from './realtime/classroomSocket.js'
 import { startClassroomAutoEnd } from './jobs/classroomAutoEnd.js'
 import { startClassroomRetention } from './jobs/classroomRetention.js'
@@ -263,6 +264,7 @@ const WORTPROFIL_TIMEOUT_MS = 130_000  // etwas mehr als curl --max-time 120
   initializeIndices()
   startSessionCleanup()
   startPushScheduler()
+  startStreakSaverScheduler()
   startAlerting()
 
   // ── Start ────────────────────────────────────────────────────
