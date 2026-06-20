@@ -49,7 +49,12 @@ export default function StudentJoinEntry({ initialNotice = null, embedded = fals
   })
   const [shake, setShake]     = useState(false)
   const [scanning, setScanning] = useState(false)
-  const [showDemo, setShowDemo] = useState(false)
+  // Deep-Link von der Lehrer-Landingpage: /?tab=klassenraum&demo=1 öffnet die
+  // login-freie Vorschau direkt (nur in der eingebetteten Tab-Ansicht).
+  const [showDemo, setShowDemo] = useState(() => {
+    if (!embedded || typeof window === 'undefined') return false
+    try { return new URLSearchParams(window.location.search).get('demo') === '1' } catch { return false }
+  })
   const inputRef              = useRef(null)
 
   // Persistierte Sitzung einmalig beim Mount lesen (für die „Fortsetzen"-Karte).
