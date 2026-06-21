@@ -92,15 +92,17 @@ describe('course routes (/api/v1/course)', () => {
     ensureUser(USER_BASIC)
 
     // Station 1: Niveaus DaZ + SekII, Material AB(SekII) + Beamer(übergreifend)
-    insertStation(`${PREFIX}-s1`, 1, 'Wortpartner & Kollokationen', { ipa: 'kɔlokaˈtsi̯oːn', category: 'wortprofil' })
+    // order_no hoch gewählt (8001/8002), um nicht mit echten/geseedeten
+    // Stationen zu kollidieren (course_stations.order_no ist UNIQUE).
+    insertStation(`${PREFIX}-s1`, 8001, 'Wortpartner & Kollokationen', { ipa: 'kɔlokaˈtsi̯oːn', category: 'wortprofil' })
     insertTask(`${PREFIX}-s1-f1-daz`, `${PREFIX}-s1`, { format: 'F1', level: 'DaZ', kern: 'zuordnen', content: { prompt: 'DaZ-Item' }, rubric: { byLevel: { DaZ: { onCorrect: 'gut' } } }, position: 0 })
     insertTask(`${PREFIX}-s1-f3-sek2`, `${PREFIX}-s1`, { format: 'F3', level: 'SekII', source: 'corpus-template', kern: 'vergleich', template: { corpusQuery: { lemma: '{{lemma}}', relation: '~OBJA' } }, rubric: { preferred: ['v1'] }, position: 0 })
     insertTask(`${PREFIX}-s1-f5-sek2`, `${PREFIX}-s1`, { format: 'F5', level: 'SekII', content: { prompt: 'Datenblick' }, rubric: {}, position: 1 })
     insertMaterial(`${PREFIX}-s1-ab-sek2`, `${PREFIX}-s1`, { kind: 'arbeitsblatt', level: 'SekII', title: 'AB Sek II', source: 'corpus-template', template: { tasks: ['x'] } })
     insertMaterial(`${PREFIX}-s1-beamer`, `${PREFIX}-s1`, { kind: 'beamer', level: null, title: 'Beamer-Folien', fileRef: '/pdf/beamer-s1.pdf' })
 
-    // Station 2: order_no 2 (für Reihenfolge-Test)
-    insertStation(`${PREFIX}-s2`, 2, 'Wörter mit Funktion')
+    // Station 2: order_no 8002 (für Reihenfolge-Test)
+    insertStation(`${PREFIX}-s2`, 8002, 'Wörter mit Funktion')
 
     const app = express()
     app.set('trust proxy', 1)
@@ -136,7 +138,7 @@ describe('course routes (/api/v1/course)', () => {
     const { stations } = await res.json()
     const mine = stations.filter(s => s.id.startsWith(PREFIX))
     expect(mine.map(s => s.id)).toEqual([`${PREFIX}-s1`, `${PREFIX}-s2`])
-    expect(mine[0]).toMatchObject({ orderNo: 1, title: 'Wortpartner & Kollokationen', ipa: 'kɔlokaˈtsi̯oːn' })
+    expect(mine[0]).toMatchObject({ orderNo: 8001, title: 'Wortpartner & Kollokationen', ipa: 'kɔlokaˈtsi̯oːn' })
     expect(mine[0].beamerConfig).toEqual({})
   })
 
