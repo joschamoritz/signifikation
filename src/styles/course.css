@@ -1,0 +1,414 @@
+/* ============================================================
+   SIGNIFIKATION – Kurs-Tab · Station-Detail (Ebene 2)
+   Wörterbuch-Ästhetik, mobile-first. Tokens kommen von .test-page.
+   ============================================================ */
+
+/* ── Scroll-Rahmen ─────────────────────────────────────────── */
+.course-detail {
+  padding: 16px 0 48px;
+}
+
+.course-detail-bar {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.course-detail-overline {
+  font-family: var(--font-sans);
+  font-size: 9px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--disabled);
+}
+
+.course-detail-error {
+  font-family: var(--font-serif);
+  font-style: italic;
+  color: var(--primary);
+  margin: 16px 0;
+}
+
+.course-muted {
+  font-family: var(--font-serif);
+  font-style: italic;
+  color: var(--muted);
+  margin: 18px 0;
+}
+
+/* ── Stations-Kopf ─────────────────────────────────────────── */
+.course-head {
+  padding-bottom: 18px;
+  border-bottom: 2px solid var(--accent);
+  margin-bottom: 18px;
+}
+
+.course-head-skeleton {
+  font-family: var(--font-serif);
+  font-style: italic;
+  color: var(--muted);
+}
+
+.course-head-top {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+}
+
+.course-head-glyph {
+  font-family: var(--font-serif);
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: var(--accent);
+  line-height: 1;
+}
+
+.course-head-title {
+  font-family: var(--font-serif);
+  font-size: 1.5rem;
+  font-weight: 700;
+  line-height: 1.18;
+  color: var(--text);
+  letter-spacing: 0.01em;
+  text-wrap: balance;
+  margin: 0;
+}
+
+.course-head-ipa {
+  font-family: var(--font-serif);
+  font-size: 0.82rem;
+  color: var(--muted);
+  letter-spacing: 0.01em;
+}
+
+.course-head-category {
+  font-family: var(--font-sans);
+  font-size: 8.5px;
+  font-weight: 600;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--accent-dk);
+  margin: 10px 0 0;
+}
+
+.course-head-goal {
+  font-family: var(--font-serif);
+  font-size: 0.95rem;
+  line-height: 1.6;
+  color: var(--text);
+  margin: 8px 0 0;
+  text-wrap: pretty;
+}
+
+/* ── Niveau-Umschalter ─────────────────────────────────────── */
+.course-niveau {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 18px;
+  flex-wrap: wrap;
+}
+
+.course-niveau-label {
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.course-niveau-segment {
+  display: inline-flex;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  overflow: hidden;
+  background: var(--surface2);
+}
+
+.course-niveau-btn {
+  font-family: var(--font-sans);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+  background: transparent;
+  border: none;
+  border-right: 1px solid var(--border-lt);
+  padding: 7px 12px;
+  cursor: pointer;
+  transition: color 0.15s, background 0.15s;
+  white-space: nowrap;
+}
+
+.course-niveau-btn:last-child {
+  border-right: none;
+}
+
+.course-niveau-btn:hover {
+  color: var(--text);
+}
+
+.course-niveau-btn--active {
+  color: #fff;
+  background: var(--primary);
+}
+
+.course-niveau-btn:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: -2px;
+}
+
+/* ── Bereich-Tabs (Üben / Material) ────────────────────────── */
+.course-sections {
+  display: flex;
+  gap: 24px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 20px;
+}
+
+.course-section-tab {
+  font-family: var(--font-serif);
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--muted);
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  padding: 8px 2px 10px;
+  margin-bottom: -1px;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.course-section-tab:hover {
+  color: var(--text);
+}
+
+.course-section-tab--active {
+  color: var(--primary);
+  border-bottom-color: var(--primary);
+}
+
+.course-section-tab:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 3px;
+  border-radius: 2px;
+}
+
+/* ── Panel-Gemeinsames ─────────────────────────────────────── */
+.course-panel-lead {
+  font-family: var(--font-serif);
+  font-size: 0.9rem;
+  line-height: 1.6;
+  color: var(--muted);
+  margin: 0 0 18px;
+  text-wrap: pretty;
+}
+
+.course-panel-lead strong {
+  color: var(--text);
+  font-weight: 700;
+}
+
+/* ── Üben: Aufgabenliste ───────────────────────────────────── */
+.course-tasks {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.course-task {
+  padding: 16px 0;
+  border-bottom: 1px solid var(--border-lt);
+}
+
+.course-task:last-child {
+  border-bottom: none;
+}
+
+.course-task-head {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+  margin-bottom: 8px;
+}
+
+.course-task-no {
+  font-family: var(--font-serif);
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--accent);
+  line-height: 1;
+}
+
+.course-task-format {
+  font-family: var(--font-sans);
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--accent-dk);
+  border: 1px solid var(--accent);
+  border-radius: 2px;
+  padding: 1px 6px;
+}
+
+.course-task-kern {
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.course-task-prompt {
+  font-family: var(--font-serif);
+  font-size: 0.95rem;
+  line-height: 1.6;
+  color: var(--text);
+  margin: 0;
+  text-wrap: pretty;
+}
+
+.course-task-tags {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 10px 0 0;
+  padding: 0;
+}
+
+.course-task-tag {
+  font-family: var(--font-sans);
+  font-size: 0.68rem;
+  letter-spacing: 0.02em;
+  color: var(--muted);
+  background: var(--surface2);
+  border: 1px solid var(--border-lt);
+  border-radius: 2px;
+  padding: 2px 7px;
+}
+
+/* ── Material: Download-Karten ─────────────────────────────── */
+.course-materials {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.course-material-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 18px;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  background: var(--surface2);
+  text-decoration: none;
+  color: inherit;
+  transition: border-color 0.15s, transform 0.08s;
+}
+
+.course-material-card:hover {
+  border-color: var(--accent);
+}
+
+.course-material-card:active {
+  transform: scale(0.99);
+}
+
+.course-material-card:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+.course-material-text {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 10px;
+  min-width: 0;
+}
+
+.course-material-kind {
+  font-family: var(--font-serif);
+  font-size: 1.02rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.course-material-level {
+  font-family: var(--font-sans);
+  font-size: 8.5px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--accent-dk);
+  border: 1px solid var(--accent);
+  border-radius: 2px;
+  padding: 1px 6px;
+}
+
+.course-material-hint {
+  flex-basis: 100%;
+  font-family: var(--font-serif);
+  font-size: 0.82rem;
+  color: var(--muted);
+}
+
+.course-material-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  color: var(--primary);
+}
+
+.course-material-format {
+  font-family: var(--font-sans);
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+}
+
+.course-material-arrow {
+  font-size: 1.05rem;
+  line-height: 1;
+}
+
+/* ── Premium-Gate ──────────────────────────────────────────── */
+.course-unlock {
+  padding: 24px 0;
+}
+
+.course-unlock .test-cta {
+  margin-top: 16px;
+}
+
+/* ── Mobiles Vollbild-Scroll ───────────────────────────────── */
+@media (max-width: 767px) {
+  .course-detail {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-y: contain;
+    padding: 10px 18px calc(28px + var(--tabbar-reserve, 0px));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .course-material-card,
+  .course-niveau-btn,
+  .course-section-tab {
+    transition: none;
+  }
+}

@@ -16,6 +16,9 @@
  */
 
 import express from 'express'
+import { existsSync } from 'node:fs'
+import { basename, dirname, join, resolve as pathResolve } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { requirePremium } from '../middleware/userAuth.js'
 import { serverError } from '../middleware/auth.js'
 import {
@@ -23,6 +26,7 @@ import {
   courseStationIdParamsSchema,
   courseTasksQuerySchema,
   courseMaterialsQuerySchema,
+  courseMaterialDownloadParamsSchema,
   courseProgressStationParamsSchema,
   courseProgressUpdateSchema,
 } from '../middleware/validate.js'
@@ -32,6 +36,11 @@ import logger from '../logger.js'
 const router = express.Router()
 
 const BASE = '/api/v1/course'
+
+// Ablage der generierten Kurs-PDFs (AP5: server/data/course-pdfs). Muss mit
+// DEFAULT_OUT in server/course/pdf/generate.js übereinstimmen.
+const __dirname = dirname(fileURLToPath(import.meta.url))
+const PDF_DIR = pathResolve(__dirname, '..', 'data', 'course-pdfs')
 
 /** GET /stations – alle Stationen des Lernpfads. */
 router.get(`${BASE}/stations`, requirePremium, (req, res) => {
@@ -105,6 +114,43 @@ router.get(
       res.json({ stationId: req.params.id, materials })
     } catch (err) {
       logger.error({ err, id: req.params.id }, 'Kurs: Material laden fehlgeschlagen')
+      serverError(res, err)
+    }
+  },
+)
+
+/**
+ * GET /stations/:id/materials/:materialId/download – PDF-Download einer
+ * Material-Karte. Premium-gegated; liefert die in course_materials.file_ref
+ * registrierte Datei aus PDF_DIR. Pfadsicher: nur der Basename des file_ref
+ * wird verwendet (kein nutzergesteuerter Pfad).
+ */
+router.get(
+  `${BASE}/stations/:id/materials/:materialId/download`,
+  requirePremium,
+  validate(courseMaterialDownloadParamsSchema, 'params'),
+  (req, res) => {
+    try {
+      const material = courseStore.getMaterial(req.params.materialId)
+      if (!material || material.stationId !== req.params.id) {
+        return res.status(404).json({ error: 'Material nicht gefunden' })
+      }
+      if (!material.fileRef) {
+        return res.status(404).json({ error: 'Für dieses Material liegt keine Datei vor' })
+      }
+      const filename = basename(material.fileRef) // Path-Traversal ausschließen
+      const filePath = join(PDF_DIR, filename)
+      if (!existsSync(filePath)) {
+        return res.status(404).json({ error: 'Datei wurde noch nicht erzeugt' })
+      }
+      res.download(filePath, filename, (err) => {
+        if (err && !res.headersSent) {
+          logger.error({ err, materialId: req.params.materialId }, 'Kurs: Download fehlgeschlagen')
+          res.status(500).json({ error: 'Download fehlgeschlagen' })
+        }
+      })
+    } catch (err) {
+      logger.error({ err, materialId: req.params.materialId }, 'Kurs: Download-Route fehlgeschlagen')
       serverError(res, err)
     }
   },

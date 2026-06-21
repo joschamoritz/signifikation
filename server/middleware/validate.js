@@ -460,6 +460,12 @@ const COURSE_ID     = z.string().trim()
   .min(1, 'id erforderlich')
   .max(64, 'id zu lang')
   .regex(/^[a-z0-9-]+$/, 'id enthält ungültige Zeichen')
+// Material-IDs tragen das Niveau-Suffix (z.B. 's1-arbeitsblatt-SekI') und
+// dürfen daher Großbuchstaben enthalten — sonst wie COURSE_ID.
+const COURSE_MATERIAL_ID = z.string().trim()
+  .min(1, 'materialId erforderlich')
+  .max(96, 'materialId zu lang')
+  .regex(/^[A-Za-z0-9-]+$/, 'materialId enthält ungültige Zeichen')
 
 /** GET /api/v1/course/stations/:id, …/tasks, …/materials (params) */
 export const courseStationIdParamsSchema = z.object({ id: COURSE_ID })
@@ -474,6 +480,12 @@ export const courseTasksQuerySchema = z.object({
 export const courseMaterialsQuerySchema = z.object({
   level: COURSE_LEVEL.optional(),
   kind:  COURSE_KIND.optional(),
+})
+
+/** GET /api/v1/course/stations/:id/materials/:materialId/download (params) */
+export const courseMaterialDownloadParamsSchema = z.object({
+  id:         COURSE_ID,
+  materialId: COURSE_MATERIAL_ID,
 })
 
 /** PUT /api/v1/course/progress/:stationId (params) */

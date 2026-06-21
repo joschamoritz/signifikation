@@ -1,71 +1,92 @@
-import { memo } from 'react'
-import { useRef, useCallback } from 'react'
+import { memo, useRef, useCallback } from 'react'
 import TabHeader from './TabHeader'
 import { useActiveSnapCard } from '../hooks/useActiveSnapCard'
 import { useScrollPersist } from '../hooks/useScrollPersist'
+import StationDetail from './course/StationDetail'
+import { useCourseStation, openCourseStation, closeCourseStation } from './course/courseRouting'
+import '../styles/course.css'
 
+// Lernpfad-Stationen laut Kurs-Tab-IA.md (Ebene 1). `apiId` markiert die
+// Stationen, die im Kurs-Backend bereits Inhalt haben (course_stations) und
+// daher die Detailansicht öffnen; die übrigen folgen (AP10) und bleiben
+// „In Entwicklung".
 const KURS_MODULES = [
   {
-    id: 'wortarten',
+    id: 'wortpartner',
+    apiId: 's1',
     glyph: '①',
-    marginalia: 'MORPH.',
-    title: 'Wortarten erkennen',
-    ipa: '[ˈvɔʁtˌaʁtən]',
-    category: 'Morphologie',
-    definition: 'Substantive, Verben, Adjektive in echten Texten markieren und klassifizieren.',
-    isPremium: false,
+    marginalia: 'KOLLO.',
+    title: 'Wortpartner & Kollokationen',
+    ipa: '[kɔlokaˈt͡si̯oːn]',
+    category: 'Lexikologie',
+    definition: 'Für ein Lemma die typischen Wortpartner schätzen, Häufigkeit von Typikalität trennen und mit dem Korpus abgleichen.',
   },
   {
-    id: 'grammatik',
+    id: 'funktion',
     glyph: '②',
     marginalia: 'SYNT.',
-    title: 'Grammatische Abhängigkeiten',
-    ipa: '[ɡʁaˈmatɪʃə ʔapˈhɛŋɪçkaɪ̯tən]',
+    title: 'Wörter mit Funktion',
+    ipa: '[ˈvœʁtɐ mɪt fʊŋkˈtsi̯oːn]',
     category: 'Syntax',
-    definition: 'Subjekt, Objekt und Prädikativer verstehen — einfache syntaktische Relationen erkennen.',
-    isPremium: false,
+    definition: 'Subjekt, Objekt und Prädikativ verstehen — Wörter über ihre Funktion im Satz erkennen.',
   },
   {
-    id: 'kollokationen',
+    id: 'dependenz',
     glyph: '③',
-    marginalia: 'KOLLO.',
-    title: 'Kollokationen antizipieren',
-    ipa: '[kɔlokaˈtsi̯oːnən]',
-    category: 'Lexikologie',
-    definition: 'Für ein vorgegebenes Lemma die häufigsten Verben und Adjektive schätzen und mit dem Korpus abgleichen.',
-    isPremium: false,
+    marginalia: 'DEP.',
+    title: 'Wer hängt an wem?',
+    ipa: '[ˈveːɐ̯ hɛŋt an veːm]',
+    category: 'Syntax',
+    definition: 'Grammatische Abhängigkeiten lesen: welche Wörter regieren welche — Dependenzen im Satz erkennen.',
   },
   {
-    id: 'korpuslingu',
+    id: 'korpus',
     glyph: '④',
     marginalia: 'TEOR.',
-    title: 'Korpuslinguistik verstehen',
-    ipa: '[kɔrˈpʊsˌlɪŋɡvɪstɪk]',
+    title: 'Texte, die zählen',
+    ipa: '[ˈtɛkstə diː ˈtsɛːlən]',
     category: 'Theorie',
-    definition: 'Wie entstehen Textkorpora? Was ist automatische Annotation? Überblick über die Methoden.',
-    isPremium: false,
+    definition: 'Wie entstehen Textkorpora? Repräsentativität, automatische Annotation und die Grenzen der Methode.',
   },
   {
-    id: 'mini-recherche',
+    id: 'recherche',
     glyph: '⑤',
     marginalia: 'ANWND.',
-    title: 'Mini-Recherche',
-    ipa: '[ˈmiːniʁəˌʃɛʁʃə]',
+    title: 'Belegen statt raten',
+    ipa: '[bəˈleːɡən ʃtat ˈʁaːtn̩]',
     category: 'Anwendung',
-    definition: 'Eigene Fragestellung in einem kleinen Beispielkorpus — belegen statt raten.',
-    isPremium: false,
+    definition: 'Eigene Fragestellung in einem kleinen Beispielkorpus — eine Behauptung am echten Beleg prüfen.',
   },
 ]
 
-function KursTab({ gesamtausgabe = false }) {
+function KursTab({ gesamtausgabe = false, onNavigateToKonto }) {
   const entriesRef = useRef(null)
   const activeCard = useActiveSnapCard(entriesRef)
   useScrollPersist(entriesRef, 'kurs')
+
+  const stationId = useCourseStation()
 
   const scrollToCard = useCallback((index) => {
     const items = entriesRef.current?.querySelectorAll('.test-entry')
     items?.[index]?.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }, [])
+
+  const openStation = useCallback((mod) => {
+    if (!mod.apiId) return
+    if (!gesamtausgabe) { onNavigateToKonto?.(); return }
+    openCourseStation(mod.apiId)
+  }, [gesamtausgabe, onNavigateToKonto])
+
+  // Ebene 2: Station-Detail, sobald ein Stations-Hash gesetzt ist.
+  if (stationId) {
+    return (
+      <StationDetail
+        stationId={stationId}
+        onBack={closeCourseStation}
+        onNavigateToKonto={onNavigateToKonto}
+      />
+    )
+  }
 
   return (
     <div className="test-page kurs-tab">
@@ -89,38 +110,57 @@ function KursTab({ gesamtausgabe = false }) {
         <main>
           <ol className="test-entries" aria-label="Kurs-Module" ref={entriesRef}>
 
-            {KURS_MODULES.map((mod) => (
-              <li key={mod.id} className="test-entry test-entry--disabled">
-                <div className="test-entry-number" aria-hidden="true">
-                  <span className="test-entry-num-glyph">{mod.glyph}</span>
-                  <span className="test-entry-marginalia">{mod.marginalia}</span>
-                  {mod.isPremium && (
-                    <span className="test-entry-premium" aria-label="Teil der Gesamtausgabe">
-                      Gesamtausgabe
-                    </span>
-                  )}
-                </div>
-                <div className="test-entry-body">
-                  <div className="test-entry-head">
-                    <h2 className="test-headword">{mod.title}</h2>
-                    <span className="test-ipa" aria-label={`Aussprache: ${mod.ipa}`}>{mod.ipa}</span>
+            {KURS_MODULES.map((mod) => {
+              const active = !!mod.apiId
+              return (
+                <li
+                  key={mod.id}
+                  className={`test-entry${active ? '' : ' test-entry--disabled'}`}
+                >
+                  <div className="test-entry-number" aria-hidden="true">
+                    <span className="test-entry-num-glyph">{mod.glyph}</span>
+                    <span className="test-entry-marginalia">{mod.marginalia}</span>
                   </div>
-                  <div className="test-entry-grammar" aria-hidden="true">
-                    <span className="test-pos">Modul</span>
-                    <span className="test-pos-rule" />
-                    <span className="test-entry-category">{mod.category}</span>
-                  </div>
-                  <p className="test-definition">{mod.definition}</p>
+                  <div className="test-entry-body">
+                    <div className="test-entry-head">
+                      <h2 className="test-headword">{mod.title}</h2>
+                      <span className="test-ipa" aria-label={`Aussprache: ${mod.ipa}`}>{mod.ipa}</span>
+                    </div>
+                    <div className="test-entry-grammar" aria-hidden="true">
+                      <span className="test-pos">Station</span>
+                      <span className="test-pos-rule" />
+                      <span className="test-entry-category">{mod.category}</span>
+                    </div>
+                    <p className="test-definition">{mod.definition}</p>
 
-                  <div className="test-entry-footer">
-                    <span className="test-status">In Entwicklung.</span>
-                    <span className="test-cta test-cta--disabled" aria-hidden="true">
-                      Bald verfügbar
-                    </span>
+                    <div className="test-entry-footer">
+                      {active ? (
+                        <>
+                          <span className="test-status">
+                            {gesamtausgabe ? 'Bereit.' : 'Teil der Gesamtausgabe.'}
+                          </span>
+                          <button
+                            type="button"
+                            className="test-cta"
+                            onClick={() => openStation(mod)}
+                          >
+                            {gesamtausgabe ? 'Öffnen' : 'Freischalten'}
+                            <span className="test-cta-arrow" aria-hidden="true">›</span>
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          <span className="test-status">In Entwicklung.</span>
+                          <span className="test-cta test-cta--disabled" aria-hidden="true">
+                            Bald verfügbar
+                          </span>
+                        </>
+                      )}
+                    </div>
                   </div>
-                </div>
-              </li>
-            ))}
+                </li>
+              )
+            })}
 
           </ol>
 
@@ -131,7 +171,7 @@ function KursTab({ gesamtausgabe = false }) {
                 <button
                   key={mod.id}
                   className={`snap-nav-btn${activeCard === i ? ' snap-nav-btn--active' : ''}`}
-                  aria-label={`Modul ${i + 1}: ${mod.title}`}
+                  aria-label={`Station ${i + 1}: ${mod.title}`}
                   aria-current={activeCard === i ? 'true' : undefined}
                   onClick={() => scrollToCard(i)}
                 >{mod.glyph}</button>
