@@ -448,3 +448,36 @@ export const classroomListSessionsQuerySchema = z.object({
 export const classroomSessionIdParamsSchema = z.object({
   id: z.string().trim().min(1, 'Session-ID erforderlich').max(128, 'Session-ID zu lang'),
 })
+
+// ── Kurs (Course) Schemas ───────────────────────────────────────
+// Niveaus = verbindliche Stufen aus planning/Kurs-Differenzierung.md.
+const COURSE_LEVEL  = z.enum(['DaZ', 'SekI', 'SekII', 'LK'])
+const COURSE_FORMAT = z.enum(['F1', 'F2', 'F3', 'F4', 'F5'])
+const COURSE_KIND   = z.enum(['beamer', 'arbeitsblatt', 'loesung', 'unterrichtsentwurf'])
+const COURSE_STATUS = z.enum(['idle', 'in-progress', 'done'])
+// Stations-IDs sind kurze Slugs (z.B. 's1'); kein freier Text.
+const COURSE_ID     = z.string().trim()
+  .min(1, 'id erforderlich')
+  .max(64, 'id zu lang')
+  .regex(/^[a-z0-9-]+$/, 'id enthält ungültige Zeichen')
+
+/** GET /api/v1/course/stations/:id, …/tasks, …/materials (params) */
+export const courseStationIdParamsSchema = z.object({ id: COURSE_ID })
+
+/** GET /api/v1/course/stations/:id/tasks (query) */
+export const courseTasksQuerySchema = z.object({
+  level:  COURSE_LEVEL.optional(),
+  format: COURSE_FORMAT.optional(),
+})
+
+/** GET /api/v1/course/stations/:id/materials (query) */
+export const courseMaterialsQuerySchema = z.object({
+  level: COURSE_LEVEL.optional(),
+  kind:  COURSE_KIND.optional(),
+})
+
+/** PUT /api/v1/course/progress/:stationId (params) */
+export const courseProgressStationParamsSchema = z.object({ stationId: COURSE_ID })
+
+/** PUT /api/v1/course/progress/:stationId (body) */
+export const courseProgressUpdateSchema = z.object({ status: COURSE_STATUS })
