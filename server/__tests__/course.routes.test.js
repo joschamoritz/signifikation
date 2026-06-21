@@ -194,6 +194,39 @@ describe('course routes (/api/v1/course)', () => {
     expect(res.status).toBe(400)
   })
 
+  it('resolve=interactive löst Items auf (kein content/template-Wrapper, selected erhalten)', async () => {
+    // Isolierte Station mit korrekter rubric-Form { solution, feedback }.
+    insertStation(`${PREFIX}-si`, 8003, 'Interaktiv-Test')
+    insertTask(`${PREFIX}-si-f3`, `${PREFIX}-si`, {
+      format: 'F3', level: 'SekI', source: 'corpus-template', kern: 'vergleich',
+      template: {
+        corpusQuery: { lemma: 'Test', pos: 'Substantiv', relation: '~OBJA' },
+        bindings: { answer: [1], contrastPair: [1, 2] },
+        payload: { frame: 'eine ___', variants: '@from:bindings.contrastPair', requireJustification: true },
+        prompt: 'P', metasprache: ['Kollokation'], display: { metric: 'none' },
+      },
+      rubric: {
+        solution: { preferred: '@from:bindings.answer' },
+        feedback: { byLevel: { SekI: { onCorrect: 'typisch {{top.lemma}}', onWrong: '{{selected.lemma}} schwächer' } } },
+      },
+    })
+
+    const res = await get(`/api/v1/course/stations/${PREFIX}-si/tasks?level=SekI&resolve=interactive`)
+    expect(res.status).toBe(200)
+    const { tasks } = await res.json()
+    expect(tasks).toHaveLength(1)
+    const t = tasks[0]
+    // Aufgelöstes Engine-Item, nicht der DB-Wrapper.
+    expect(t.content).toBeUndefined()
+    expect(t.template).toBeUndefined()
+    expect(t.rubric).toBeUndefined()
+    expect(t.payload).toBeDefined()
+    expect(t.feedback).toBeDefined()
+    // {{selected.*}} bleibt für den Client erhalten, andere Platzhalter gefüllt.
+    expect(t.feedback.onWrong).toMatch(/\{\{selected\.lemma\}\}/)
+    expect(t.feedback.onCorrect).not.toMatch(/\{\{top/)
+  })
+
   // ── Material ──────────────────────────────────────────────────
   it('Material nach Art gefiltert, template geparst', async () => {
     const res = await get(`/api/v1/course/stations/${PREFIX}-s1/materials?kind=arbeitsblatt`)

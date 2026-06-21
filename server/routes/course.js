@@ -31,6 +31,8 @@ import {
   courseProgressUpdateSchema,
 } from '../middleware/validate.js'
 import * as courseStore from '../course/store.js'
+import { makeCorpusAdapter } from '../course/corpusAdapter.js'
+import { resolveItemInteractive } from '../course/resolve.js'
 import logger from '../logger.js'
 
 const router = express.Router()
@@ -89,6 +91,16 @@ router.get(
         level:  req.query.level,
         format: req.query.format,
       })
+      // resolve=interactive: Direktiven + Platzhalter serverseitig auflösen
+      // (Korpus liegt nur am Server). selected/chosen + onWrong/onChoice bleiben
+      // erhalten — der Client füllt die Auswahl. Sonst Rohtasks (Druck-/Debug).
+      if (req.query.resolve === 'interactive') {
+        const corpus = makeCorpusAdapter()
+        const items = tasks.map(t =>
+          resolveItemInteractive(courseStore.taskToEngineItem(t), { corpus }),
+        )
+        return res.json({ stationId: req.params.id, level: req.query.level ?? null, tasks: items })
+      }
       res.json({ stationId: req.params.id, level: req.query.level ?? null, tasks })
     } catch (err) {
       logger.error({ err, id: req.params.id }, 'Kurs: Tasks laden fehlgeschlagen')

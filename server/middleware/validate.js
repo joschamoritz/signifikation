@@ -472,8 +472,10 @@ export const courseStationIdParamsSchema = z.object({ id: COURSE_ID })
 
 /** GET /api/v1/course/stations/:id/tasks (query) */
 export const courseTasksQuerySchema = z.object({
-  level:  COURSE_LEVEL.optional(),
-  format: COURSE_FORMAT.optional(),
+  level:   COURSE_LEVEL.optional(),
+  format:  COURSE_FORMAT.optional(),
+  // resolve=interactive → Items werden serverseitig mit Korpus aufgelöst (AP8).
+  resolve: z.enum(['interactive']).optional(),
 })
 
 /** GET /api/v1/course/stations/:id/materials (query) */

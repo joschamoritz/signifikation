@@ -180,6 +180,31 @@ export function listMaterials(stationId, { level, kind } = {}) {
   return materials
 }
 
+/**
+ * DB-Task (mapTask-Shape) → Engine-Item-Shape für resolve.js.
+ * Umkehrung von seed.js#itemToColumns: content_json/template_json + rubric_json
+ * werden wieder zu einem flachen Item zusammengeführt (prompt/payload/…).
+ */
+export function taskToEngineItem(task) {
+  const blob = (task.source === 'static' ? task.content : task.template) ?? {}
+  return {
+    id:          task.id,
+    format:      task.format,
+    level:       task.level,
+    source:      task.source,
+    kern:        task.kern ?? null,
+    prompt:      blob.prompt,
+    metasprache: blob.metasprache ?? [],
+    payload:     blob.payload,
+    display:     blob.display ?? { metric: 'none' },
+    beleg:       blob.beleg ?? [],
+    corpusQuery: blob.corpusQuery,
+    bindings:    blob.bindings,
+    solution:    task.rubric?.solution ?? null,
+    feedback:    task.rubric?.feedback ?? null,
+  }
+}
+
 /** Solo-Fortschritt eines Nutzers über alle Stationen. */
 export function getProgressForUser(userId) {
   return stmts.progressForUser.all(userId).map(mapProgress)
