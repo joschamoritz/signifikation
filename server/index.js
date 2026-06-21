@@ -32,6 +32,7 @@ import accountRouter from './routes/account.js'
 import customLemmaRouter from './routes/custom-lemma.js'
 import classroomRouter from './routes/classroom.js'
 import courseRouter from './routes/course.js'
+import { seedCourseContent } from './course/seed.js'
 import paymentsRouter from './routes/payments.js'
 import iapRouter from './routes/iap.js'
 import pushRouter from './routes/push.js'
@@ -269,6 +270,15 @@ const WORTPROFIL_TIMEOUT_MS = 130_000  // etwas mehr als curl --max-time 120
     logger.error({ err }, 'Migrations-Runner fehlgeschlagen – Server startet nicht')
     process.exit(1)
   })
+
+  // Kurs-Content (kuratiert, Code = Single Source) idempotent einspielen.
+  // Nicht fatal: scheitert das Seeding, startet der Server trotzdem (der
+  // Kurs-Tab zeigt dann nur keine/alte Inhalte).
+  try {
+    seedCourseContent()
+  } catch (err) {
+    logger.error({ err }, 'Kurs-Content-Seeding fehlgeschlagen – Server startet trotzdem')
+  }
 
   initializeIndices()
   startSessionCleanup()
