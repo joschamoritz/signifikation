@@ -31,6 +31,7 @@ import adminRouter  from './routes/admin.js'
 import accountRouter from './routes/account.js'
 import customLemmaRouter from './routes/custom-lemma.js'
 import classroomRouter from './routes/classroom.js'
+import courseRouter from './routes/course.js'
 import paymentsRouter from './routes/payments.js'
 import iapRouter from './routes/iap.js'
 import pushRouter from './routes/push.js'
@@ -205,6 +206,7 @@ app.use('/', adminRouter)
 app.use('/', accountRouter)
 app.use('/', customLemmaRouter)
 app.use('/', classroomRouter)
+app.use('/', courseRouter)
 app.use('/', paymentsRouter)
 app.use('/', iapRouter)
 app.use('/', pushRouter)
