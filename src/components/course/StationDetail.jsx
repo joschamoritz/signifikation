@@ -13,6 +13,7 @@ import { useEffect, useState } from 'react'
 import { API } from '../../config'
 import { apiGet, ApiError } from '../../api/client'
 import { useGlobalNiveau, NIVEAU_LEVELS, NIVEAU_LABELS } from './useGlobalNiveau'
+import TaskPlayer from './games/TaskPlayer'
 
 const SECTIONS = [
   { id: 'ueben',    label: 'Üben' },
@@ -199,7 +200,7 @@ function UebenPanel({ stationId, niveau }) {
     ;(async () => {
       try {
         const json = await apiGet(
-          `${API}/course/stations/${stationId}/tasks?level=${niveau}`,
+          `${API}/course/stations/${stationId}/tasks?level=${niveau}&resolve=interactive`,
           { signal: controller.signal },
         )
         if (cancelled) return
@@ -230,25 +231,13 @@ function UebenPanel({ stationId, niveau }) {
       {state === 'ready' && tasks.length > 0 && (
         <>
           <p className="course-panel-lead">
-            Aufgaben für <strong>{NIVEAU_LABELS[niveau]}</strong>. Das interaktive
-            Lösen folgt — hier siehst du die Items dieser Stufe.
+            Aufgaben für <strong>{NIVEAU_LABELS[niveau]}</strong>. Prüfe deine
+            Lösung — das Feedback nutzt echte Korpusdaten.
           </p>
-          <ol className="course-tasks">
+          <ol className="course-task-list">
             {tasks.map((task, i) => (
-              <li key={task.id} className="course-task">
-                <div className="course-task-head">
-                  <span className="course-task-no" aria-hidden="true">{i + 1}</span>
-                  <span className="course-task-format">Aufgabe · {task.format}</span>
-                  {task.kern && <span className="course-task-kern">{task.kern}</span>}
-                </div>
-                <p className="course-task-prompt">{taskPrompt(task)}</p>
-                {Array.isArray(metasprache(task)) && metasprache(task).length > 0 && (
-                  <ul className="course-task-tags" aria-label="Metasprache">
-                    {metasprache(task).map((m) => (
-                      <li key={m} className="course-task-tag">{m}</li>
-                    ))}
-                  </ul>
-                )}
+              <li key={task.id} className="course-task-item">
+                <TaskPlayer task={task} index={i + 1} />
               </li>
             ))}
           </ol>
@@ -256,14 +245,6 @@ function UebenPanel({ stationId, niveau }) {
       )}
     </section>
   )
-}
-
-// content (static) bzw. template (corpus-template) tragen prompt/metasprache.
-function taskPrompt(task) {
-  return task.content?.prompt ?? task.template?.prompt ?? '—'
-}
-function metasprache(task) {
-  return task.content?.metasprache ?? task.template?.metasprache ?? []
 }
 
 // ── Bereich „Material" — PDF-Download-Karten ────────────────────────────

@@ -20,8 +20,7 @@ import { resolve as pathResolve, dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 import logger from '../../logger.js'
-import { queryRelation } from '../../wortprofil.js'
-import { fetchBelegeRaw } from '../../belege.js'
+import { makeCorpusAdapter } from '../corpusAdapter.js'
 import station1 from '../content/station-1.js'
 import lesson1 from '../lesson/station-1.js'
 import { resolveItems, resolveItem } from '../resolve.js'
@@ -36,24 +35,9 @@ const __dirname = dirname(fileURLToPath(import.meta.url))
 const DEFAULT_OUT = pathResolve(__dirname, '..', '..', 'data', 'course-pdfs')
 const LEVEL_ORDER = ['DaZ', 'SekI', 'SekII', 'LK']
 
-/** Echter Korpus-Adapter (wortprofil.db + belege.db). */
-export function makeCorpusAdapter() {
-  return {
-    queryRelation(q) {
-      const limit = q.limit ?? 30
-      let rows = queryRelation(q.lemma, q.pos, q.relation, Math.max(limit, 30), q.minFrequency ?? 5, q.minLogDice ?? 0)
-      if (q.filter?.singleWordOnly) rows = rows.filter(r => !/\s/.test(r.lemma))
-      if (q.filter?.depPos) rows = rows.filter(r => r.pos === q.filter.depPos)
-      if (Array.isArray(q.exclude) && q.exclude.length) rows = rows.filter(r => !q.exclude.includes(r.lemma))
-      return rows.slice(0, limit)
-    },
-    fetchBeleg(lemma, partner) {
-      if (!lemma || !partner) return null
-      const rows = fetchBelegeRaw(lemma, partner, { limit: 5 })
-      return rows[0] ?? null
-    },
-  }
-}
+// makeCorpusAdapter ist nach ../corpusAdapter.js gewandert (von AP8 mitgenutzt);
+// hier re-exportiert, damit AP5-Aufrufer (Tests/Skripte) stabil bleiben.
+export { makeCorpusAdapter }
 
 /** Tasks einer Station nach Niveau gruppieren (Reihenfolge erhalten). */
 function groupByLevel(tasks) {

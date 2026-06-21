@@ -352,4 +352,134 @@ export function resolveItems(items, deps) {
   return items.map(it => resolveItem(it, deps))
 }
 
+// ════════════════════════════════════════════════════════════════════
+// Interaktive Auflösung (AP8)
+//
+// Unterschied zur Druck-Auflösung: `{{selected.*}}`/`{{chosen.*}}` bleiben als
+// Platzhalter ERHALTEN (der Client füllt sie aus der Lernenden-Auswahl), und
+// die auswahlabhängigen Feedbacktexte (onWrong, onChoice) werden mitgeliefert.
+// Korpus-Werte (top/rank/logDice/freq) werden serverseitig gefüllt.
+// ════════════════════════════════════════════════════════════════════
+
+const KEEP_PLACEHOLDER = Symbol('keep')
+
+/** Wie placeholderValue, aber selected/chosen → KEEP (Client füllt). */
+function placeholderValueInteractive(path, ctx) {
+  const head = String(path).split('.')[0]
+  if (head === 'selected' || head === 'chosen') return KEEP_PLACEHOLDER
+  const value = placeholderValue(path, ctx)
+  return value == null ? '—' : value
+}
+
+/**
+ * Füllt {{…}} in einem String für den interaktiven Kontext: selected/chosen
+ * bleiben literal stehen, alle anderen Platzhalter werden ersetzt (unauflösbare
+ * → „—", damit nie ein Platzhalter „durchleckt").
+ */
+export function fillStringInteractive(str, ctx) {
+  if (typeof str !== 'string') return str
+  return str.replace(PLACEHOLDER_RE, (whole, expr) => {
+    const val = placeholderValueInteractive(expr.trim(), ctx)
+    return val === KEEP_PLACEHOLDER ? whole : String(val)
+  })
+}
+
+/** Feedbacktier des Item-Niveaus inkl. onWrong/onChoice, Platzhalter gefüllt. */
+function resolveFeedbackInteractive(feedback, level, ctx) {
+  if (!feedback) return null
+  const tier = feedback.byLevel?.[level] ?? {}
+  const out = {
+    onCorrect:  tier.onCorrect != null ? fillStringInteractive(tier.onCorrect, ctx) : null,
+    onWrong:    tier.onWrong   != null ? fillStringInteractive(tier.onWrong, ctx)   : null,
+    merksatz:   feedback.merksatz != null ? fillStringInteractive(feedback.merksatz, ctx) : null,
+    tonalitaet: feedback.tonalitaet ?? null,
+  }
+  if (tier.onChoice && typeof tier.onChoice === 'object') {
+    out.onChoice = {}
+    for (const [k, v] of Object.entries(tier.onChoice)) {
+      out.onChoice[k] = fillStringInteractive(v, ctx)
+    }
+  }
+  return out
+}
+
+/**
+ * Löst ein Item für die INTERAKTIVE Ausspielung auf (Selbstlerner, Sofort-
+ * Feedback). Gleiche Korpus-Auflösung wie der Druck, aber selektionsabhängige
+ * Feedbacktexte bleiben erhalten und `{{selected.*}}` wird NICHT entfernt.
+ */
+export function resolveItemInteractive(item, { corpus, lemma } = {}) {
+  if (item.source === 'static') {
+    const emptyCtx = buildPlaceholderContext({ byLogDice: [], byFreq: [], lemma: null })
+    return {
+      id: item.id,
+      format: item.format,
+      level: item.level,
+      kern: item.kern ?? null,
+      prompt: item.prompt,
+      metasprache: item.metasprache ?? [],
+      payload: item.payload,
+      solution: item.solution ?? null,
+      feedback: resolveFeedbackInteractive(item.feedback, item.level, emptyCtx),
+      display: item.display ?? { metric: 'none' },
+      beleg: item.beleg ?? [],
+      beleghinweis: null,
+    }
+  }
+
+  const q = { ...item.corpusQuery }
+  const ankerLemma = lemma ?? q.lemma
+  q.lemma = ankerLemma
+  const rows = (corpus?.queryRelation?.(q) ?? []).map(r => ({
+    lemma: r.lemma,
+    frequency: Number(r.frequency),
+    logDice: Number(r.logDice),
+  }))
+
+  const byLogDice = rows
+  const byFreq = sortedByFreq(rows)
+  const ctx = buildPlaceholderContext({ byLogDice, byFreq, lemma: ankerLemma })
+  const bindCtx = { bindings: item.bindings ?? {}, byLogDice, byFreq }
+
+  // payload: Direktiven + (nicht-selected) Platzhalter — payload trägt nie selected.
+  let payload = resolvePayloadDirectives(item.payload, bindCtx)
+  payload = fillDeep(payload, ctx)
+
+  // F2-Belegsatz (belege.db) + Zielwörter für die clientseitige Markier-Prüfung.
+  let beleghinweis = null
+  if (payload.belegQuery) {
+    const partner = payload.belegQuery.partner
+    if (corpus?.fetchBeleg) {
+      const beleg = corpus.fetchBeleg(ankerLemma, partner)
+      if (beleg) { payload.sentence = beleg.satz; beleghinweis = beleg.quelle }
+    }
+    // Zielwörter (Anker + stärkster Partner): der Client matcht tolerant, weil
+    // exakte Token-Indizes im flektierten Belegsatz nicht vorliegen (Spec §11.2).
+    payload.targetWords = [ankerLemma, partner].filter(Boolean)
+    delete payload.belegQuery
+  }
+
+  const solution = fillDeep(resolveSolution(item.solution, { payload, bindCtx }), ctx)
+
+  return {
+    id: item.id,
+    format: item.format,
+    level: item.level,
+    kern: item.kern ?? null,
+    prompt: fillStringInteractive(item.prompt, ctx),
+    metasprache: item.metasprache ?? [],
+    payload,
+    solution,
+    feedback: resolveFeedbackInteractive(item.feedback, item.level, ctx),
+    display: item.display ?? { metric: 'none' },
+    beleg: item.beleg ?? [],
+    beleghinweis,
+  }
+}
+
+/** Mehrere Items interaktiv auflösen (Reihenfolge bleibt erhalten). */
+export function resolveItemsInteractive(items, deps) {
+  return items.map(it => resolveItemInteractive(it, deps))
+}
+
 export default resolveItem
