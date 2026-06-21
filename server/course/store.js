@@ -53,6 +53,9 @@ const stmts = {
   materialsByStation: db.prepare(`
     SELECT * FROM course_materials WHERE station_id = ? ORDER BY kind, position, id
   `),
+  getMaterial: db.prepare(`
+    SELECT * FROM course_materials WHERE id = ?
+  `),
   progressForUser: db.prepare(`
     SELECT station_id, status, updated_at FROM course_progress WHERE user_id = ?
   `),
@@ -159,6 +162,12 @@ export function listTasks(stationId, { level, format } = {}) {
     : stmts.tasksByStation.all(stationId)
   const tasks = rows.map(mapTask)
   return format ? tasks.filter(t => t.format === format) : tasks
+}
+
+/** Einzelnes Material (für Download-Lookup) oder null. */
+export function getMaterial(id) {
+  const row = stmts.getMaterial.get(id)
+  return row ? mapMaterial(row) : null
 }
 
 /** Material einer Station, optional nach Niveau und/oder Art gefiltert. */
