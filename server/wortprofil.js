@@ -161,7 +161,7 @@ function queryRelationRaw(lemma, pos, rel, limit, minFreq, minDice) {
   return stmts().relation.all(lemma.toLowerCase(), pos, rel, minFreq, minDice, limit)
 }
 
-function queryRelation(lemma, pos, relCode, limit = 30, minFreq = 5, minDice = 0) {
+export function queryRelation(lemma, pos, relCode, limit = 30, minFreq = 5, minDice = 0) {
   if (!VALID_POS.has(pos)) {
     logger.warn({ lemma, pos, relCode }, 'queryRelation: unbekannte POS')
     return []
