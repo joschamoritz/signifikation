@@ -153,6 +153,97 @@ const TASKS = [
     beleg: [{ key: 'reder-2006', kontext: 'fachlich' }],
   },
 
+  // — zweite Varianten (Untervarianten b) desselben Aufgabentyps) —
+  {
+    id: 's1-f1-alltag2-daz', station: 1, format: 'F1', level: 'DaZ', source: 'static',
+    kern: 'wortpartner-erkennen',
+    prompt: 'Welche Wörter gehören zusammen? Ziehe jeden Partner auf das Wort, zu dem er passt.',
+    metasprache: ['Wörter, die zusammenpassen'],
+    payload: {
+      anchors: [
+        { id: 'a1', label: 'Musik' },
+        { id: 'a2', label: 'ein Foto' },
+        { id: 'a3', label: 'Sport' },
+      ],
+      candidates: [
+        { id: 'c1', label: 'hören' },
+        { id: 'c2', label: 'machen' },
+        { id: 'c3', label: 'treiben' },
+      ],
+      multiplePerAnchor: false,
+    },
+    display: { showMetrics: false, metric: 'none' },
+    solution: { map: { a1: ['c1'], a2: ['c2'], a3: ['c3'] } },
+    feedback: {
+      byLevel: {
+        DaZ: {
+          onCorrect: 'Genau – „Musik hören", „ein Foto machen", „Sport treiben". Diese Wörter sind feste Partner.',
+          onWrong: 'Fast! Sprich die Paare laut – was klingt richtig? „Musik … hören".',
+        },
+      },
+      tonalitaet: 'woerterbuch-nuechtern',
+    },
+    beleg: [{ key: 'reder-2006', kontext: 'fachlich' }],
+  },
+
+  {
+    id: 's1-f2-markieren2-daz', station: 1, format: 'F2', level: 'DaZ', source: 'static',
+    kern: 'wortpartner-markieren',
+    prompt: 'Markiere die zwei Wörter, die ein festes Wortpaar bilden.',
+    metasprache: ['Wörter, die zusammenpassen'],
+    payload: {
+      sentence: 'Am Abend muss ich die Hausaufgaben machen.',
+      markTask: 'kollokation',
+    },
+    display: { showMetrics: false, metric: 'none' },
+    solution: { spans: [{ text: 'Hausaufgaben machen', tokenRange: [5, 7], label: 'Wortpartner' }] },
+    feedback: {
+      byLevel: {
+        DaZ: {
+          onCorrect: 'Richtig – „Hausaufgaben machen" gehört als festes Wortpaar zusammen.',
+          onWrong: 'Suche das Nomen und sein Verb: „Hausaufgaben … machen".',
+        },
+      },
+      tonalitaet: 'woerterbuch-nuechtern',
+    },
+    beleg: [{ key: 'bildung-rp-kollokationen', kontext: 'fachlich' }],
+  },
+
+  {
+    id: 's1-f3-uebersetzen2-daz', station: 1, format: 'F3', level: 'DaZ', source: 'static',
+    kern: 'kontrast-uebersetzen',
+    prompt: 'Was sagt man auf Deutsch? Wähle die richtige Verbindung – wörtlich übersetzen klappt nicht.',
+    metasprache: ['Wörter, die zusammenpassen'],
+    payload: {
+      compareDimension: 'uebersetzung',
+      frame: 'Ich ___ Hunger.',
+      variants: [
+        { id: 'v1', label: 'habe', typical: true },
+        { id: 'v2', label: 'bin (engl. „I am hungry" wörtlich)', typical: false },
+      ],
+      requireJustification: false,
+    },
+    display: { showMetrics: false, metric: 'none' },
+    solution: {
+      preferred: ['v1'],
+      rubric: {
+        criteria: ['wählt „habe Hunger"', 'erkennt, dass die wörtliche Übersetzung nicht passt'],
+        minHits: 1,
+      },
+    },
+    feedback: {
+      byLevel: {
+        DaZ: {
+          onCorrect: 'Richtig – im Deutschen sagt man „Hunger haben". Im Englischen „to be hungry" (= Hunger sein). Jede Sprache hat eigene Partner.',
+          onWrong: 'Im Deutschen passt „Hunger haben", nicht „Hunger sein". Kollokationen kann man nicht Wort für Wort übersetzen.',
+        },
+      },
+      merksatz: 'Wörterbücher übersetzen Wörter — Korpora übersetzen Konventionen.',
+      tonalitaet: 'woerterbuch-nuechtern',
+    },
+    beleg: [{ key: 'reder-2006', kontext: 'fachlich' }],
+  },
+
   // ════════════════════════════ SekI ════════════════════════════
   // erkennen + selbst bilden · „Kollokation = typische Wortverbindung"
   // Formate F1–F3. typisch/untypisch + grobe Häufigkeit, OHNE logDice.
@@ -160,7 +251,7 @@ const TASKS = [
   {
     id: 's1-f1-entscheidung-verb-seki', station: 1, format: 'F1', level: 'SekI', source: 'corpus-template',
     kern: 'kollokation-zuordnen',
-    prompt: 'Welche Verben passen typisch zu „Entscheidung"? Ordne die typischen Partner zu.',
+    prompt: 'Welche Verben passen typisch zu „Entscheidung"? Ziehe die typischen Partner auf das Wort.',
     metasprache: ['Kollokation', 'typische Wortverbindung'],
     corpusQuery: Q_ENTSCHEIDUNG_VERB,
     bindings: { answer: [1, 2], near: { rankRange: [4, 10] }, mid: { rankRange: [12, 20] } },
@@ -350,42 +441,6 @@ const TASKS = [
       tonalitaet: 'woerterbuch-nuechtern',
     },
     beleg: [{ key: 'steyer-2000', kontext: 'korpus' }, { key: 'bubenhofer-2015', kontext: 'fachlich' }],
-  },
-
-  {
-    id: 's1-f4-fehler-luecke-sek2', station: 1, format: 'F4', level: 'SekII', source: 'corpus-template',
-    kern: 'luecke-adjektiv',
-    prompt: '„Ihm ist ein ___ Fehler unterlaufen." Wähle die typischste Option und begründe deine Wahl.',
-    metasprache: ['Kollokation', 'Frequenz', 'logDice', 'Assoziationsstärke'],
-    corpusQuery: Q_FEHLER_ADJ,
-    bindings: { answer: ['logDice:1'], contrastPair: ['logDice:1', 'freq:1'], near: { rankRange: [3, 8] } },
-    payload: {
-      sentence: 'Ihm ist ein ___ Fehler unterlaufen.',
-      // Optionen: typischstes + häufigstes Adjektiv + ein schwächerer Distraktor.
-      options: '@from:bindings',
-      requireJustification: true,
-    },
-    display: { showMetrics: true, metric: 'both' },
-    solution: {
-      correctOptionId: '@from:bindings.answer',
-      rubric: {
-        criteria: ['wählt „{{logDice:1.lemma}}"', 'begründet mit Bindungsstärke (logDice), nicht nur mit Häufigkeit'],
-        minHits: 1,
-        accepts: ['„{{freq:1.lemma}}" als verständlich, aber unspezifischer einordnen'],
-      },
-    },
-    feedback: {
-      byLevel: {
-        SekII: {
-          onCorrect: 'Richtig – „{{logDice:1.lemma}} Fehler" ist am stärksten gebunden (logDice {{logDice:1.logDice}}).',
-          onChoice: {
-            '@selected': '„{{selected.lemma}} Fehler": logDice {{selected.logDice}}. „{{logDice:1.lemma}}" bindet mit {{logDice:1.logDice}} spezifischer an „Fehler". „{{freq:1.lemma}}" ist sogar häufiger (f {{freq:1.frequency}}), aber unspezifisch.',
-          },
-        },
-      },
-      tonalitaet: 'woerterbuch-nuechtern',
-    },
-    beleg: [{ key: 'steyer-2000', kontext: 'korpus' }],
   },
 
   {
