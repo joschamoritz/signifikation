@@ -203,10 +203,30 @@ function NiveauSwitcher({ niveau, onChange }) {
   )
 }
 
+// Aufgaben gleichen Typs (Format) als Untervarianten nummerieren: „1 a)", „1 b)",
+// „2", „3 a)" … — gleicher Aufgabentyp bekommt dieselbe Nummer mit Buchstaben,
+// einzelne Aufgaben nur die Nummer.
+function buildTaskLabels(tasks) {
+  const order = []
+  const total = {}
+  for (const t of tasks) {
+    if (!order.includes(t.format)) order.push(t.format)
+    total[t.format] = (total[t.format] ?? 0) + 1
+  }
+  const seen = {}
+  return tasks.map((t) => {
+    seen[t.format] = (seen[t.format] ?? 0) + 1
+    const no = order.indexOf(t.format) + 1
+    const letter = total[t.format] > 1 ? ` ${String.fromCharCode(96 + seen[t.format])})` : ''
+    return `${no}${letter}`
+  })
+}
+
 // ── Bereich „Üben" — Aufgaben der gewaehlten Stufe ──────────────────────
 function UebenPanel({ stationId, niveau }) {
   const [tasks, setTasks] = useState([])
   const [state, setState] = useState('loading')
+  const taskLabels = buildTaskLabels(tasks)
   // „Eigenes Lemma" (AP9): gewähltes Wort + Infos, global über Niveaus hinweg.
   const [lemma, setLemma] = useState(null)
   const [lemmaInfo, setLemmaInfo] = useState(null)
@@ -276,7 +296,7 @@ function UebenPanel({ stationId, niveau }) {
           <ol className="course-task-list">
             {tasks.map((task, i) => (
               <li key={task.id} className="course-task-item">
-                <TaskPlayer task={task} index={i + 1} />
+                <TaskPlayer task={task} index={taskLabels[i]} />
               </li>
             ))}
           </ol>

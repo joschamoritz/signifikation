@@ -64,7 +64,11 @@ export default function DataTask({ task, index }) {
         <table className="course-data-table">
           <thead>
             <tr>
-              {columns.map((c) => <th key={c} scope="col">{COL_LABEL[c] ?? c}</th>)}
+              {columns.map((c) => (
+                <th key={c} scope="col" className={c === 'verbindung' ? '' : 'course-data-th-num'}>
+                  {COL_LABEL[c] ?? c}
+                </th>
+              ))}
             </tr>
           </thead>
           <tbody>
