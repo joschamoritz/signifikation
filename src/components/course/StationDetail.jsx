@@ -32,6 +32,19 @@ const KIND_META = {
 }
 const KIND_ORDER = ['arbeitsblatt', 'loesung', 'unterrichtsentwurf', 'beamer']
 
+// Stations-Glyph aus order_no (1–5). Detail-Kopf zeigt die richtige Station.
+const STATION_GLYPHS = ['', '①', '②', '③', '④', '⑤']
+
+// Ein-Satz-Lernziel je Station (niveau-übergreifend, daher OHNE logDice-Begriff —
+// gilt auch in der DaZ/SekI-Schnupper-Ansicht von ④/⑤). Keyed auf order_no.
+const STATION_GOALS = {
+  1: 'Typische Wortpartner einer Stufe erkennen, vergleichen und am Korpus belegen — statt zu raten.',
+  2: 'Wortarten als Werkzeug nutzen: Bausteine und Baupläne typischer Wortverbindungen über ihre Funktion bestimmen.',
+  3: 'Typische Wortverbindungen in der Satzstruktur verorten — Satzglieder, Slots und Abhängigkeiten erkennen.',
+  4: 'Verstehen, wie ein Korpus misst, welche Wortverbindungen wirklich typisch sind — und wo die Grenzen der Methode liegen.',
+  5: 'Eine eigene sprachliche Frage am Korpus prüfen: Hypothese aufstellen, Befund deuten, begründet Stellung nehmen.',
+}
+
 function sortMaterials(materials) {
   return [...materials].sort(
     (a, b) => KIND_ORDER.indexOf(a.kind) - KIND_ORDER.indexOf(b.kind),
@@ -149,7 +162,7 @@ function StationHead({ station, state }) {
   return (
     <header className="course-head">
       <div className="course-head-top">
-        <span className="course-head-glyph" aria-hidden="true">①</span>
+        <span className="course-head-glyph" aria-hidden="true">{STATION_GLYPHS[station.orderNo] ?? ''}</span>
         <h2 className="course-head-title">{station.title}</h2>
         {station.ipa && (
           <span className="course-head-ipa" aria-label={`Aussprache: ${station.ipa}`}>
@@ -161,8 +174,7 @@ function StationHead({ station, state }) {
         <p className="course-head-category">{station.category}</p>
       )}
       <p className="course-head-goal">
-        Typische Wortpartner einer Stufe erkennen, vergleichen und am Korpus
-        belegen — statt zu raten.
+        {STATION_GOALS[station.orderNo] ?? ''}
       </p>
     </header>
   )
