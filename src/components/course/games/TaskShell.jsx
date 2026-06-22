@@ -10,8 +10,7 @@ export function TaskHead({ task, index }) {
   return (
     <div className="course-task-head-block">
       <div className="course-task-head">
-        <span className="course-task-format">Aufgabe</span>
-        {index != null && <span className="course-task-no" aria-hidden="true">{index}</span>}
+        <span className="course-task-format">{index != null ? `Aufgabe ${index}` : 'Aufgabe'}</span>
       </div>
       <p className="course-task-prompt">{task.prompt}</p>
       {meta.length > 0 && (
