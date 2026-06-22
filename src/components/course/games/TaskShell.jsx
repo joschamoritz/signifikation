@@ -11,8 +11,7 @@ export function TaskHead({ task, index }) {
     <div className="course-task-head-block">
       <div className="course-task-head">
         {index != null && <span className="course-task-no" aria-hidden="true">{index}</span>}
-        <span className="course-task-format">Aufgabe · {task.format}</span>
-        {task.kern && <span className="course-task-kern">{task.kern}</span>}
+        <span className="course-task-format">Aufgabe</span>
       </div>
       <p className="course-task-prompt">{task.prompt}</p>
       {meta.length > 0 && (

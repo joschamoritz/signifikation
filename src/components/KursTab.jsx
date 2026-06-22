@@ -1,5 +1,7 @@
-import { memo, useRef, useCallback } from 'react'
+import { memo, useRef, useCallback, useState } from 'react'
 import TabHeader from './TabHeader'
+import Sheet from './ui/Sheet'
+import KursNote from './KursNote'
 import { useActiveSnapCard } from '../hooks/useActiveSnapCard'
 import { useScrollPersist } from '../hooks/useScrollPersist'
 import StationDetail from './course/StationDetail'
@@ -67,6 +69,10 @@ function KursTab({ gesamtausgabe = false, onNavigateToKonto }) {
   const entriesRef = useRef(null)
   const activeCard = useActiveSnapCard(entriesRef)
   useScrollPersist(entriesRef, 'kurs')
+
+  // Anm./Manicula („Was ist der Kurs?") — Einheitlichkeit mit Spielmodi & Klassenraum.
+  const [desktopInfoOpen, setDesktopInfoOpen] = useState(false)
+  const [sheetOpen, setSheetOpen] = useState(false)
 
   const stationId = useCourseStation()
 
@@ -168,6 +174,28 @@ function KursTab({ gesamtausgabe = false, onNavigateToKonto }) {
 
           </ol>
 
+          {/* ── Anmerkung: nur Desktop (mobil via ☞ Bottom Sheet) ── */}
+          <section className="test-footnote desktop-footnote" aria-label="Anmerkung: Was ist der Kurs?">
+            <button
+              className="test-footnote-toggle"
+              type="button"
+              onClick={() => setDesktopInfoOpen(v => !v)}
+              aria-expanded={desktopInfoOpen}
+              aria-controls="desktop-kurs-note"
+            >
+              <span className="test-footnote-label" aria-hidden="true">Anm.</span>
+              <span className="test-footnote-title">Was ist der Kurs? Und die Niveaustufen?</span>
+              <span className="test-footnote-chevron" aria-hidden="true">▾</span>
+            </button>
+            <div
+              id="desktop-kurs-note"
+              className={`test-footnote-body${desktopInfoOpen ? ' open' : ''}`}
+              role="region"
+            >
+              <KursNote footnotesClass="test-footnote-footnotes" />
+            </div>
+          </section>
+
           {/* ── Vertikale Badge-Navigation (nur mobil) ───────── */}
           <nav className="snap-nav" aria-label="Kurs-Navigation">
             <div className="snap-nav-games">
@@ -181,10 +209,31 @@ function KursTab({ gesamtausgabe = false, onNavigateToKonto }) {
                 >{mod.glyph}</button>
               ))}
             </div>
+            <button
+              className="snap-nav-info"
+              type="button"
+              onClick={() => setSheetOpen(true)}
+              aria-label="Was ist der Kurs? – Erklärung öffnen"
+            >☞</button>
             <div className="snap-nav-spacer" aria-hidden="true" />
           </nav>
         </main>
       </div>
+
+      {/* ── Info Bottom Sheet (mobil) ───────────────────────── */}
+      <Sheet open={sheetOpen} onClose={() => setSheetOpen(false)} aria-label="Was ist der Kurs?">
+        <Sheet.Header />
+        <div className="info-sheet-header">
+          <span className="info-sheet-label" aria-hidden="true">Anm.</span>
+          <h2 className="info-sheet-title">Was ist der Kurs?</h2>
+          <button className="info-sheet-close" type="button" onClick={() => setSheetOpen(false)} aria-label="Schließen">✕</button>
+        </div>
+        <Sheet.Body>
+          <div className="info-sheet-body">
+            <KursNote footnotesClass="info-sheet-footnotes" />
+          </div>
+        </Sheet.Body>
+      </Sheet>
     </div>
   )
 }

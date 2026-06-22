@@ -8,20 +8,29 @@
   padding: 16px 0 48px;
 }
 
+/* Kopf wie im Spielmodus: zentrierte rote Pille, Zurück-Pfeil links absolut
+   (back-btn aus globals.css). Sorgt für Einheitlichkeit der drei Tabs. */
 .course-detail-bar {
+  position: relative;
   display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 14px;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  margin-bottom: 18px;
 }
 
-.course-detail-overline {
+.course-detail-badge {
+  display: inline-block;
   font-family: var(--font-sans);
-  font-size: 9px;
-  letter-spacing: 0.16em;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: var(--disabled);
+  color: var(--primary);
+  background: var(--error-bg);
+  border: 1px solid var(--wrong-border);
+  border-radius: 4px;
+  padding: 2px 10px;
 }
 
 .course-detail-error {
@@ -105,11 +114,24 @@
 
 /* ── Niveau-Umschalter ─────────────────────────────────────── */
 .course-niveau {
+  margin-bottom: 18px;
+}
+
+.course-niveau-row {
   display: flex;
   align-items: center;
   gap: 12px;
-  margin-bottom: 18px;
   flex-wrap: wrap;
+}
+
+.course-niveau-hint {
+  font-family: var(--font-serif);
+  font-size: 0.78rem;
+  font-style: italic;
+  line-height: 1.5;
+  color: var(--muted);
+  margin: 8px 0 0;
+  text-wrap: pretty;
 }
 
 .course-niveau-label {
@@ -561,6 +583,11 @@
   font: inherit;
 }
 .course-match-anchor--armed { border-color: var(--accent); cursor: pointer; }
+.course-match-anchor--over {
+  border-color: var(--primary);
+  background: var(--error-bg);
+  box-shadow: inset 0 0 0 1px var(--primary);
+}
 .course-match-anchor-label {
   font-family: var(--font-serif);
   font-size: 1.02rem;
@@ -607,6 +634,27 @@
 .course-match-chip--picked { border-color: var(--primary); background: var(--surface2); }
 .course-match-chip--placed { background: var(--bg); border-style: dashed; }
 .course-match-chip:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+/* Pool-Karten sind ziehbar: touch-action none, damit das Ziehen nicht scrollt. */
+.course-match-chip--pool { touch-action: none; user-select: none; -webkit-user-select: none; }
+.course-match-chip--dragging { opacity: 0.35; }
+
+/* Mitgezogenes Geist-Element, folgt dem Finger/Cursor (pointer-events: none,
+   damit elementFromPoint den Anker darunter findet). */
+.course-match-drag-ghost {
+  position: fixed;
+  transform: translate(-50%, -50%);
+  z-index: 1000;
+  pointer-events: none;
+  font-family: var(--font-serif);
+  font-size: 0.92rem;
+  color: var(--text);
+  background: var(--bg);
+  border: 1px solid var(--primary);
+  border-radius: 3px;
+  padding: 7px 12px;
+  box-shadow: 0 4px 14px rgba(60, 40, 30, 0.18);
+  opacity: 0.95;
+}
 .course-match-metric, .course-variant-metric {
   font-family: var(--font-sans);
   font-size: 0.66rem;
@@ -643,6 +691,25 @@
   color: var(--text);
   margin: 4px 0 16px;
 }
+
+/* Lücke im Satz/Rahmen: dezentes unterstrichenes Feld statt CJK-Klammern.
+   Leer = goldener Unterstrich; gefüllt = rote, gebundene Wortwahl. */
+.course-gap {
+  display: inline-block;
+  min-width: 3.2em;
+  text-align: center;
+  font-weight: 700;
+  color: var(--muted);
+  border-bottom: 2px solid var(--accent);
+  padding: 0 6px 1px;
+  margin: 0 2px;
+  border-radius: 1px;
+}
+.course-gap--filled {
+  color: var(--primary);
+  border-bottom-color: var(--primary);
+  background: var(--error-bg);
+}
 .course-variants {
   display: flex;
   flex-direction: column;
@@ -674,6 +741,17 @@
 .course-justify {
   display: block;
   margin-top: 14px;
+}
+/* Single-Choice-Begründung (Sek I): Fieldset ohne Default-Rahmen. */
+.course-justify-choice {
+  border: none;
+  margin: 16px 0 0;
+  padding: 0;
+  min-width: 0;
+}
+.course-justify-choice .course-justify-label {
+  padding: 0;
+  margin-bottom: 8px;
 }
 .course-justify-label {
   display: block;
@@ -767,12 +845,29 @@
 .course-pickrow-mark.course-fb--wrong { color: var(--error); }
 
 /* ── Eigenes Lemma (AP9) ────────────────────────────────────── */
+/* Bewusst ans Ende der Übungen gerückt und optisch zurückgenommen — die
+   kuratierten Beispiele haben Vorrang. */
+.course-lemma-section {
+  margin-top: 30px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border-lt);
+}
+.course-lemma-section-lead {
+  font-family: var(--font-serif);
+  font-size: 0.85rem;
+  font-style: italic;
+  line-height: 1.55;
+  color: var(--muted);
+  margin: 0 0 12px;
+  text-wrap: pretty;
+}
+
 .course-lemma {
   border: 1px solid var(--border);
   border-radius: 3px;
   background: var(--surface2);
   padding: 14px 16px;
-  margin-bottom: 22px;
+  margin-bottom: 0;
 }
 
 .course-lemma-label {
