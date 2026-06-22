@@ -766,6 +766,125 @@
 .course-pickrow-mark.course-fb--correct { color: var(--success); }
 .course-pickrow-mark.course-fb--wrong { color: var(--error); }
 
+/* ── Eigenes Lemma (AP9) ────────────────────────────────────── */
+.course-lemma {
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  background: var(--surface2);
+  padding: 14px 16px;
+  margin-bottom: 22px;
+}
+
+.course-lemma-label {
+  display: block;
+  font-family: var(--font-sans);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--accent-dk);
+}
+.course-lemma-hint {
+  font-family: var(--font-serif);
+  font-size: 0.85rem;
+  color: var(--muted);
+  margin: 5px 0 10px;
+}
+.course-lemma-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.course-lemma-input {
+  flex: 1;
+  min-width: 0;
+  font-family: var(--font-serif);
+  font-size: 0.95rem;
+  color: var(--text);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 9px 11px;
+}
+.course-lemma-input:focus-visible { outline: 2px solid var(--primary); outline-offset: 1px; }
+.course-lemma-submit {
+  font-family: var(--font-sans);
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #fff;
+  background: var(--primary);
+  border: none;
+  border-radius: 3px;
+  padding: 9px 18px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.course-lemma-submit:hover:not(:disabled) { background: var(--primary-hi); }
+.course-lemma-submit:disabled { opacity: 0.4; cursor: default; }
+.course-lemma-submit:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+.course-lemma-error {
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-size: 0.85rem;
+  color: var(--error);
+  margin: 8px 0 0;
+}
+
+.course-lemma--active {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  border-color: var(--accent);
+}
+.course-lemma-active-text {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.course-lemma-badge {
+  font-family: var(--font-sans);
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--accent-dk);
+  border: 1px solid var(--accent);
+  border-radius: 2px;
+  padding: 1px 6px;
+}
+.course-lemma-word {
+  font-family: var(--font-serif);
+  font-size: 1.05rem;
+  color: var(--text);
+}
+.course-lemma-count {
+  font-family: var(--font-sans);
+  font-size: 0.72rem;
+  color: var(--muted);
+}
+.course-lemma-actions {
+  display: flex;
+  gap: 16px;
+  align-items: baseline;
+}
+.course-lemma-link {
+  font-family: var(--font-serif);
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--primary);
+  background: none;
+  border: none;
+  border-bottom: 1px solid transparent;
+  padding: 2px 0;
+  cursor: pointer;
+}
+.course-lemma-link:hover { border-bottom-color: var(--accent); }
+.course-lemma-link:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+.course-lemma-link--muted { color: var(--muted); font-weight: 400; }
+
 @media (prefers-reduced-motion: reduce) {
   .course-material-card,
   .course-niveau-btn,

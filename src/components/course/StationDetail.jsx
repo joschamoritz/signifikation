@@ -12,8 +12,10 @@
 import { useEffect, useState } from 'react'
 import { API } from '../../config'
 import { apiGet, ApiError } from '../../api/client'
+import { apiFetch } from '../../utils/apiFetch'
 import { useGlobalNiveau, NIVEAU_LEVELS, NIVEAU_LABELS } from './useGlobalNiveau'
 import TaskPlayer from './games/TaskPlayer'
+import CustomLemmaBar from './CustomLemmaBar'
 
 const SECTIONS = [
   { id: 'ueben',    label: 'Üben' },
@@ -192,6 +194,9 @@ function NiveauSwitcher({ niveau, onChange }) {
 function UebenPanel({ stationId, niveau }) {
   const [tasks, setTasks] = useState([])
   const [state, setState] = useState('loading')
+  // „Eigenes Lemma" (AP9): gewähltes Wort + Infos, global über Niveaus hinweg.
+  const [lemma, setLemma] = useState(null)
+  const [lemmaInfo, setLemmaInfo] = useState(null)
 
   useEffect(() => {
     let cancelled = false
@@ -199,8 +204,10 @@ function UebenPanel({ stationId, niveau }) {
     setState('loading')
     ;(async () => {
       try {
+        const params = new URLSearchParams({ level: niveau, resolve: 'interactive' })
+        if (lemma) params.set('lemma', lemma)
         const json = await apiGet(
-          `${API}/course/stations/${stationId}/tasks?level=${niveau}&resolve=interactive`,
+          `${API}/course/stations/${stationId}/tasks?${params.toString()}`,
           { signal: controller.signal },
         )
         if (cancelled) return
@@ -208,11 +215,29 @@ function UebenPanel({ stationId, niveau }) {
         setState('ready')
       } catch (err) {
         if (cancelled || err?.name === 'AbortError') return
+        // 422 = Lemma nicht geeignet (sollte durch Validierung vorab selten sein).
+        if (err instanceof ApiError && err.status === 422) { setLemma(null); setLemmaInfo(null) }
         setState('error')
       }
     })()
     return () => { cancelled = true; controller.abort() }
-  }, [stationId, niveau])
+  }, [stationId, niveau, lemma])
+
+  async function openWorksheet() {
+    if (!lemma) return
+    try {
+      const params = new URLSearchParams({ lemma, level: niveau, kind: 'arbeitsblatt' })
+      const res = await apiFetch(
+        `${API}/course/stations/${stationId}/worksheet?${params.toString()}`,
+        { credentials: 'include' },
+      )
+      if (!res.ok) return
+      const html = await res.text()
+      const url = URL.createObjectURL(new Blob([html], { type: 'text/html' }))
+      window.open(url, '_blank', 'noopener')
+      setTimeout(() => URL.revokeObjectURL(url), 60000)
+    } catch { /* Öffnen fehlgeschlagen — Lehrkraft kann erneut versuchen */ }
+  }
 
   return (
     <section
@@ -221,6 +246,14 @@ function UebenPanel({ stationId, niveau }) {
       id="course-panel-ueben"
       aria-labelledby="course-tab-ueben"
     >
+      <CustomLemmaBar
+        applied={lemma}
+        appliedInfo={lemmaInfo}
+        onApply={(w, info) => { setLemma(w); setLemmaInfo(info) }}
+        onClear={() => { setLemma(null); setLemmaInfo(null) }}
+        onOpenWorksheet={openWorksheet}
+      />
+
       {state === 'loading' && <p className="course-muted">Lädt …</p>}
       {state === 'error' && (
         <p className="course-detail-error" role="alert">Aufgaben konnten nicht geladen werden.</p>
@@ -231,7 +264,8 @@ function UebenPanel({ stationId, niveau }) {
       {state === 'ready' && tasks.length > 0 && (
         <>
           <p className="course-panel-lead">
-            Aufgaben für <strong>{NIVEAU_LABELS[niveau]}</strong>. Prüfe deine
+            Aufgaben für <strong>{NIVEAU_LABELS[niveau]}</strong>
+            {lemma ? <> · Wort: <strong>{lemma}</strong></> : null}. Prüfe deine
             Lösung — das Feedback nutzt echte Korpusdaten.
           </p>
           <ol className="course-task-list">
