@@ -6,10 +6,10 @@ import StationDetail from './course/StationDetail'
 import { useCourseStation, openCourseStation, closeCourseStation } from './course/courseRouting'
 import '../styles/course.css'
 
-// Lernpfad-Stationen laut Kurs-Tab-IA.md (Ebene 1). `apiId` markiert die
-// Stationen, die im Kurs-Backend bereits Inhalt haben (course_stations) und
-// daher die Detailansicht öffnen; die übrigen folgen (AP10) und bleiben
-// „In Entwicklung".
+// Lernpfad-Stationen laut Kurs-Tab-IA.md (Ebene 1). `apiId` mappt auf die
+// course_stations-Zeile (Backend-Inhalt). Alle fünf Stationen haben seit AP10
+// interaktiven Content und öffnen die Detailansicht; Druckmaterial für ②–⑤
+// folgt (AP20), die „Üben"-Aufgaben sind aber vollständig.
 const KURS_MODULES = [
   {
     id: 'wortpartner',
@@ -23,6 +23,7 @@ const KURS_MODULES = [
   },
   {
     id: 'funktion',
+    apiId: 's2',
     glyph: '②',
     marginalia: 'SYNT.',
     title: 'Wörter mit Funktion',
@@ -32,6 +33,7 @@ const KURS_MODULES = [
   },
   {
     id: 'dependenz',
+    apiId: 's3',
     glyph: '③',
     marginalia: 'DEP.',
     title: 'Wer hängt an wem?',
@@ -41,6 +43,7 @@ const KURS_MODULES = [
   },
   {
     id: 'korpus',
+    apiId: 's4',
     glyph: '④',
     marginalia: 'TEOR.',
     title: 'Texte, die zählen',
@@ -50,6 +53,7 @@ const KURS_MODULES = [
   },
   {
     id: 'recherche',
+    apiId: 's5',
     glyph: '⑤',
     marginalia: 'ANWND.',
     title: 'Belegen statt raten',
