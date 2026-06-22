@@ -41,9 +41,16 @@ const STATION = {
   },
 }
 
-// Wiederkehrende Korpus-Abfragen (Engine-Spec §2).
+// Wiederkehrende Korpus-Abfragen (Engine-Spec §2). Anker gegen die echten DBs
+// verifiziert (2026-06-22): Hilfe/~OBJA leisten(ld10,4); Ziel/~OBJA
+// erreichen(11,7)/verfolgen(10,5); Maßnahme/~OBJA ergreifen(10,7)/treffen(10,1);
+// Mehrheit/ATTR absolut(ld10,4) typisch vs. groß(f9524) nur häufig.
 const Q_ENTSCHEIDUNG_VERB = { lemma: 'Entscheidung', pos: 'Substantiv', relation: '~OBJA', minFrequency: 5, limit: 25, filter: { singleWordOnly: true } }
 const Q_FEHLER_ADJ        = { lemma: 'Fehler',       pos: 'Substantiv', relation: 'ATTR',   minFrequency: 5, limit: 25, filter: { singleWordOnly: true } }
+const Q_HILFE_VERB        = { lemma: 'Hilfe',         pos: 'Substantiv', relation: '~OBJA', minFrequency: 5, limit: 25, filter: { singleWordOnly: true } }
+const Q_VERANTWORTUNG_VERB = { lemma: 'Verantwortung', pos: 'Substantiv', relation: '~OBJA', minFrequency: 5, limit: 25, filter: { singleWordOnly: true } }
+const Q_MASSNAHME_VERB    = { lemma: 'Maßnahme',      pos: 'Substantiv', relation: '~OBJA', minFrequency: 5, limit: 25, filter: { singleWordOnly: true } }
+const Q_MEHRHEIT_ADJ      = { lemma: 'Mehrheit',      pos: 'Substantiv', relation: 'ATTR',   minFrequency: 5, limit: 25, filter: { singleWordOnly: true } }
 
 const TASKS = [
   // ════════════════════════════ DaZ ════════════════════════════
@@ -53,7 +60,7 @@ const TASKS = [
   {
     id: 's1-f1-alltag-daz', station: 1, format: 'F1', level: 'DaZ', source: 'static',
     kern: 'wortpartner-erkennen',
-    prompt: 'Welche Wörter gehören zusammen? Ziehe die Partner zusammen.',
+    prompt: 'Welche Wörter gehören zusammen? Ziehe jeden Partner auf das Wort, zu dem er passt.',
     metasprache: ['Wörter, die zusammenpassen'],
     payload: {
       anchors: [
@@ -87,20 +94,23 @@ const TASKS = [
     kern: 'wortpartner-markieren',
     // Kuratierter, einfacher Satz (DaZ braucht kontrollierte Eingabe; echte
     // Korpussätze sind für Sprachanfänger oft zu komplex). Echte Belege werden
-    // ab SekI über belegQuery eingespielt.
-    prompt: 'Markiere die zwei Wörter, die zusammengehören.',
+    // ab SekI über belegQuery eingespielt. Bewusst ANDERES Wortpaar als in F1
+    // („Fehler machen" statt „Entscheidung treffen"), damit die Lösung von F1
+    // nicht 1:1 wiederholt wird — und es führt das Lemma „Fehler" der höheren
+    // Stufen ein.
+    prompt: 'Markiere die zwei Wörter, die ein festes Wortpaar bilden.',
     metasprache: ['Wörter, die zusammenpassen'],
     payload: {
-      sentence: 'Wir müssen heute eine Entscheidung treffen.',
+      sentence: 'Heute darf ich keinen Fehler machen.',
       markTask: 'kollokation',
     },
     display: { showMetrics: false, metric: 'none' },
-    solution: { spans: [{ text: 'Entscheidung treffen', tokenRange: [4, 6], label: 'Wortpartner' }] },
+    solution: { spans: [{ text: 'Fehler machen', tokenRange: [4, 6], label: 'Wortpartner' }] },
     feedback: {
       byLevel: {
         DaZ: {
-          onCorrect: 'Richtig – „Entscheidung treffen" gehört zusammen.',
-          onWrong: 'Suche das Nomen und sein Verb: „Entscheidung … treffen".',
+          onCorrect: 'Richtig – „Fehler machen" gehört als festes Wortpaar zusammen.',
+          onWrong: 'Suche das Nomen und sein Verb: „Fehler … machen".',
         },
       },
       tonalitaet: 'woerterbuch-nuechtern',
@@ -118,7 +128,7 @@ const TASKS = [
       frame: '___ Regen',
       variants: [
         { id: 'v1', label: 'starker', typical: true },
-        { id: 'v2', label: 'strong (wörtlich aus dem Englischen)', typical: false },
+        { id: 'v2', label: 'schwerer (engl. „heavy rain" wörtlich)', typical: false },
       ],
       requireJustification: false,
     },
@@ -174,6 +184,32 @@ const TASKS = [
   },
 
   {
+    id: 's1-f1-verantwortung-verb-seki', station: 1, format: 'F1', level: 'SekI', source: 'corpus-template',
+    kern: 'kollokation-zuordnen',
+    prompt: 'Welche Verben passen typisch zu „Verantwortung"? Ziehe die typischen Partner auf das Wort.',
+    metasprache: ['Kollokation', 'typische Wortverbindung'],
+    corpusQuery: Q_VERANTWORTUNG_VERB,
+    bindings: { answer: [1, 2], near: { rankRange: [4, 10] }, mid: { rankRange: [12, 20] } },
+    payload: {
+      anchors: [{ id: 'a1', label: 'Verantwortung' }],
+      candidates: '@from:bindings',
+      multiplePerAnchor: true,
+    },
+    display: { showMetrics: false, metric: 'none' },
+    solution: { map: { a1: '@from:bindings.answer' } },
+    feedback: {
+      byLevel: {
+        SekI: {
+          onCorrect: '„Verantwortung {{top.lemma}}" ist eine sehr typische Verbindung – sie kommt im Korpus besonders oft vor.',
+          onWrong: '„{{selected.lemma}}" passt seltener zu „Verantwortung". Typisch ist „{{top.lemma}}".',
+        },
+      },
+      tonalitaet: 'woerterbuch-nuechtern',
+    },
+    beleg: [{ key: 'steyer-2000', kontext: 'korpus' }],
+  },
+
+  {
     id: 's1-f2-entscheidung-markieren-seki', station: 1, format: 'F2', level: 'SekI', source: 'corpus-template',
     kern: 'kollokation-markieren',
     prompt: 'Markiere im echten Beispielsatz die typische Wortverbindung.',
@@ -200,37 +236,74 @@ const TASKS = [
   },
 
   {
-    id: 's1-f3-entscheidung-vergleich-seki', station: 1, format: 'F3', level: 'SekI', source: 'corpus-template',
+    id: 's1-f3-hilfe-vergleich-seki', station: 1, format: 'F3', level: 'SekI', source: 'corpus-template',
     kern: 'variantenvergleich-verb',
-    prompt: '„eine Entscheidung ___" – welches Verb klingt natürlich? Wähle und begründe in einem Satz.',
+    // Single-Choice-Begründung (statt Freitext): SekI kreuzt die Begründung an.
+    prompt: '„Hilfe ___" – welches Verb ist der typische Partner? Wähle das Verb und kreuze die passende Begründung an.',
     metasprache: ['Kollokation', 'typische Wortverbindung'],
-    corpusQuery: Q_ENTSCHEIDUNG_VERB,
+    corpusQuery: Q_HILFE_VERB,
     bindings: { answer: [1], contrastPair: ['logDice:1', 'logDice:last'] },
     payload: {
-      frame: 'eine Entscheidung ___',
+      frame: 'Hilfe ___',
       compareDimension: 'typikalitaet',
       variants: '@from:bindings.contrastPair',
-      requireJustification: true,
-    },
-    display: { showMetrics: false, metric: 'none' },
-    solution: {
-      preferred: '@from:bindings.answer',
-      rubric: {
-        criteria: ['wählt „{{top.lemma}}" als typisch', 'begründet mit dem Natürlichkeitsempfinden'],
-        minHits: 1,
-        accepts: ['Hinweis, dass die andere Variante „komisch"/ungewohnt klingt'],
+      requireJustification: false,
+      justificationChoice: {
+        prompt: 'Woran erkennst du den typischen Partner?',
+        options: [
+          { id: 'r1', label: 'Daran, dass beide Wörter im Korpus auffällig oft gemeinsam vorkommen.', correct: true, feedback: 'Genau – den typischen Partner erkennt man daran, dass beide Wörter im Korpus oft gemeinsam stehen.' },
+          { id: 'r2', label: 'Daran, dass das Verb kürzer und einfacher ist.', correct: false, feedback: 'Die Länge des Verbs entscheidet nicht – es geht darum, welche Wörter üblicherweise zusammen vorkommen.' },
+          { id: 'r3', label: 'Beide Verben sind ohnehin gleich üblich.', correct: false, feedback: 'Nicht ganz – einer der Partner kommt mit „Hilfe" deutlich häufiger vor als der andere.' },
+        ],
       },
     },
+    display: { showMetrics: false, metric: 'none' },
+    solution: { preferred: '@from:bindings.answer' },
     feedback: {
       byLevel: {
         SekI: {
-          onCorrect: '„eine Entscheidung {{top.lemma}}" klingt natürlich – das ist die typische Verbindung.',
+          onCorrect: '„Hilfe {{top.lemma}}" klingt natürlich – das ist die typische Verbindung.',
           onWrong: '„{{selected.lemma}}" hört man hier seltener. Typisch ist „{{top.lemma}}".',
         },
       },
       tonalitaet: 'woerterbuch-nuechtern',
     },
     beleg: [{ key: 'bildung-rp-kollokationen', kontext: 'fachlich' }],
+  },
+
+  {
+    id: 's1-f3-massnahme-vergleich-seki', station: 1, format: 'F3', level: 'SekI', source: 'corpus-template',
+    kern: 'variantenvergleich-verb',
+    prompt: '„Maßnahme ___" – welches Verb ist der typische Partner? Wähle das Verb und kreuze die passende Begründung an.',
+    metasprache: ['Kollokation', 'typische Wortverbindung'],
+    corpusQuery: Q_MASSNAHME_VERB,
+    bindings: { answer: [1], contrastPair: ['logDice:1', 'logDice:last'] },
+    payload: {
+      frame: 'Maßnahme ___',
+      compareDimension: 'typikalitaet',
+      variants: '@from:bindings.contrastPair',
+      requireJustification: false,
+      justificationChoice: {
+        prompt: 'Warum ist diese Verbindung typischer?',
+        options: [
+          { id: 'r1', label: 'Weil sie im Korpus viel häufiger gemeinsam auftreten.', correct: true, feedback: 'Richtig – typische Partner stehen im Korpus auffällig oft beieinander.' },
+          { id: 'r2', label: 'Weil das Wort vornehmer klingt.', correct: false, feedback: 'Der Klang allein entscheidet nicht; entscheidend ist das gemeinsame Vorkommen im Korpus.' },
+          { id: 'r3', label: 'Weil man das Verb auch mit jedem anderen Nomen nutzen kann.', correct: false, feedback: 'Im Gegenteil – ein typischer Partner bindet sich gerade an dieses Nomen, nicht an beliebige.' },
+        ],
+      },
+    },
+    display: { showMetrics: false, metric: 'none' },
+    solution: { preferred: '@from:bindings.answer' },
+    feedback: {
+      byLevel: {
+        SekI: {
+          onCorrect: '„Maßnahme {{top.lemma}}" ist die typische Verbindung.',
+          onWrong: '„{{selected.lemma}}" passt hier seltener. Typisch ist „{{top.lemma}}".',
+        },
+      },
+      tonalitaet: 'woerterbuch-nuechtern',
+    },
+    beleg: [{ key: 'steyer-2000', kontext: 'korpus' }],
   },
 
   // ════════════════════════════ SekII ════════════════════════════
@@ -313,6 +386,43 @@ const TASKS = [
       tonalitaet: 'woerterbuch-nuechtern',
     },
     beleg: [{ key: 'steyer-2000', kontext: 'korpus' }],
+  },
+
+  {
+    id: 's1-f4-mehrheit-luecke-sek2', station: 1, format: 'F4', level: 'SekII', source: 'corpus-template',
+    kern: 'luecke-adjektiv',
+    // Frischer Anker mit demselben häufig-≠-typisch-Kontrast wie „Fehler":
+    // „groß" ist häufiger (f hoch), „absolut" spezifischer gebunden (logDice hoch).
+    prompt: '„Bei der Abstimmung erreichte der Antrag eine ___ Mehrheit." Wähle die am spezifischsten gebundene Option und begründe deine Wahl.',
+    metasprache: ['Kollokation', 'Frequenz', 'logDice', 'Assoziationsstärke'],
+    corpusQuery: Q_MEHRHEIT_ADJ,
+    bindings: { answer: ['logDice:1'], contrastPair: ['logDice:1', 'freq:1'], near: { rankRange: [3, 8] } },
+    payload: {
+      sentence: 'Bei der Abstimmung erreichte der Antrag eine ___ Mehrheit.',
+      options: '@from:bindings',
+      requireJustification: true,
+    },
+    display: { showMetrics: true, metric: 'both' },
+    solution: {
+      correctOptionId: '@from:bindings.answer',
+      rubric: {
+        criteria: ['wählt „{{logDice:1.lemma}}"', 'begründet mit Bindungsstärke (logDice), nicht nur mit Häufigkeit'],
+        minHits: 1,
+        accepts: ['„{{freq:1.lemma}} Mehrheit" als korrekt, aber unspezifischer einordnen'],
+      },
+    },
+    feedback: {
+      byLevel: {
+        SekII: {
+          onCorrect: 'Richtig – „{{logDice:1.lemma}} Mehrheit" ist am stärksten gebunden (logDice {{logDice:1.logDice}}).',
+          onChoice: {
+            '@selected': '„{{selected.lemma}} Mehrheit": logDice {{selected.logDice}}. „{{logDice:1.lemma}}" bindet mit {{logDice:1.logDice}} spezifischer; „{{freq:1.lemma}}" ist zwar häufiger (f {{freq:1.frequency}}), aber unspezifischer.',
+          },
+        },
+      },
+      tonalitaet: 'woerterbuch-nuechtern',
+    },
+    beleg: [{ key: 'steyer-2000', kontext: 'korpus' }, { key: 'bubenhofer-2015', kontext: 'fachlich' }],
   },
 
   {
@@ -404,6 +514,55 @@ const TASKS = [
         LK: {
           onCorrect: 'Korrekt. logDice gewichtet Exklusivität: „{{logDice:1.lemma}}" (logDice {{logDice:1.logDice}}) ist für „Fehler" charakteristisch, „{{freq:1.lemma}}" (f {{freq:1.frequency}}) nur häufig. Die Zahl sagt aber nichts über Bedeutung, Kontext oder Korpus-Bias.',
           onWrong: 'Trenne zwei Fragen: „Wie oft?" (Frequenz) und „Wie exklusiv gebunden?" (logDice). Eine hohe Zahl ist kein Urteil über Bedeutung oder Angemessenheit.',
+        },
+      },
+      tonalitaet: 'woerterbuch-nuechtern',
+    },
+    beleg: [{ key: 'bubenhofer-2015', kontext: 'fachlich' }, { key: 'luedeling-walter-2009', kontext: 'fachlich' }],
+  },
+
+  {
+    id: 's1-f5-mehrheit-datenblick-lk', station: 1, format: 'F5', level: 'LK', source: 'corpus-template',
+    kern: 'haeufig-vs-typisch',
+    prompt: 'Deute die Datenlage zu „Mehrheit": Welche Verbindung ist typisch gebunden, welche nur häufig – und was folgt daraus methodisch?',
+    metasprache: ['logDice', 'Assoziationsstärke', 'Korpusvergleich', 'Kookkurrenz'],
+    corpusQuery: Q_MEHRHEIT_ADJ,
+    bindings: { tableRows: ['logDice:1', 'logDice:2', 'freq:1', 'logDice:3', 'logDice:last'], contrastPair: ['freq:1', 'logDice:1'] },
+    payload: {
+      table: '@from:bindings.tableRows',
+      columns: ['verbindung', 'frequency', 'logDice'],
+      questions: [
+        { id: 'q1', text: 'Ordne die Verbindungen grob auf der Skala (zufällig / erkennbar / typisch) ein.', kind: 'compare' },
+        { id: 'q2', text: 'Begründe, warum die häufigste Verbindung nicht automatisch die typischer gebundene ist.', kind: 'explain' },
+        { id: 'q3', text: 'Nenne zwei Dinge, die ein hoher logDice NICHT garantiert.', kind: 'explain' },
+      ],
+    },
+    display: { showMetrics: true, metric: 'both' },
+    solution: {
+      answers: {
+        q2: {
+          rubric: {
+            criteria: [
+              'Frequenz misst nur Rohhäufigkeit',
+              'logDice gewichtet die Exklusivität der Bindung',
+              'die häufigere Verbindung verteilt sich auf viele Nomen (unspezifisch)',
+            ],
+            minHits: 2,
+          },
+        },
+        q3: {
+          rubric: {
+            criteria: ['nichts über Bedeutung/Stilwert', 'nichts über Kontext/Angemessenheit', 'nichts über Korpus-Bias'],
+            minHits: 2,
+          },
+        },
+      },
+    },
+    feedback: {
+      byLevel: {
+        LK: {
+          onCorrect: 'Korrekt. „{{logDice:1.lemma}}" (logDice {{logDice:1.logDice}}) ist für „Mehrheit" charakteristisch gebunden, „{{freq:1.lemma}}" (f {{freq:1.frequency}}) nur häufig. Die Zahl sagt nichts über Bedeutung, Kontext oder Korpus-Bias.',
+          onWrong: 'Trenne „Wie oft?" (Frequenz) von „Wie exklusiv gebunden?" (logDice). Eine hohe Zahl ist kein Urteil über Bedeutung oder Angemessenheit.',
         },
       },
       tonalitaet: 'woerterbuch-nuechtern',
