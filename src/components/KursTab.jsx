@@ -162,7 +162,7 @@ function KursTab({ gesamtausgabe = false, onNavigateToKonto }) {
                             className="test-cta"
                             onClick={() => openStation(mod)}
                           >
-                            {gesamtausgabe ? 'Zur Station' : 'Freischalten'}
+                            {gesamtausgabe ? 'Zur Aufgabe' : 'Freischalten'}
                             <span className="test-cta-arrow" aria-hidden="true">›</span>
                           </button>
                         </>

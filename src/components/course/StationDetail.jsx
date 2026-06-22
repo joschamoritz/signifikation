@@ -203,9 +203,17 @@ function NiveauSwitcher({ niveau, onChange }) {
   )
 }
 
-// Aufgaben gleichen Typs (Format) als Untervarianten nummerieren: „1 a)", „1 b)",
-// „2", „3 a)" … — gleicher Aufgabentyp bekommt dieselbe Nummer mit Buchstaben,
-// einzelne Aufgaben nur die Nummer.
+// Aufgaben nach Typ (Format) gruppieren, damit Untervarianten direkt
+// hintereinander stehen (1 a) vor 1 b)). Stabil → Reihenfolge innerhalb eines
+// Typs und die Erst-Reihenfolge der Typen bleiben erhalten.
+function groupTasksByFormat(tasks) {
+  const order = []
+  for (const t of tasks) if (!order.includes(t.format)) order.push(t.format)
+  return [...tasks].sort((a, b) => order.indexOf(a.format) - order.indexOf(b.format))
+}
+
+// Aufgaben gleichen Typs als Untervarianten nummerieren: „1 a)", „1 b)", „2",
+// „3 a)" … — gleicher Aufgabentyp = gleiche Nummer + Buchstabe, einzelne nur Nummer.
 function buildTaskLabels(tasks) {
   const order = []
   const total = {}
@@ -226,7 +234,8 @@ function buildTaskLabels(tasks) {
 function UebenPanel({ stationId, niveau }) {
   const [tasks, setTasks] = useState([])
   const [state, setState] = useState('loading')
-  const taskLabels = buildTaskLabels(tasks)
+  const orderedTasks = groupTasksByFormat(tasks)
+  const taskLabels = buildTaskLabels(orderedTasks)
   // „Eigenes Lemma" (AP9): gewähltes Wort + Infos, global über Niveaus hinweg.
   const [lemma, setLemma] = useState(null)
   const [lemmaInfo, setLemmaInfo] = useState(null)
@@ -294,7 +303,7 @@ function UebenPanel({ stationId, niveau }) {
             Lösung — das Feedback nutzt echte Korpusdaten.
           </p>
           <ol className="course-task-list">
-            {tasks.map((task, i) => (
+            {orderedTasks.map((task, i) => (
               <li key={task.id} className="course-task-item">
                 <TaskPlayer task={task} index={taskLabels[i]} />
               </li>
