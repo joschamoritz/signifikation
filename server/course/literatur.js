@@ -38,6 +38,20 @@ export const LITERATUR = {
     voll: 'Lüdeling, Anke / Walter, Maik (2009): Korpuslinguistik für Deutsch als Fremdsprache. Sprachvermittlung und Spracherwerbsforschung.',
   },
 
+  // ── Wortarten & Syntax (Station ②/③) ──────────────────────────────
+  'hoffmann-leimbrink-wortarten': {
+    kurz: 'Hoffmann/Leimbrink',
+    voll: 'Hoffmann, Ludger / Leimbrink, Kerstin: Didaktik der Wortarten – Wortarten als Schnittstelle von Wortschatz und Grammatik (DaF); Funktion vor Form.',
+  },
+  'didaktik-wortarten-d2': {
+    kurz: 'Didaktik der Wortarten (D2)',
+    voll: '„D2 Didaktik der Wortarten" – Kritik der rein formalen Wortartklassifikation im Grammatikunterricht.',
+  },
+  'schuetze-2018': {
+    kurz: 'Schütze 2018',
+    voll: 'Schütze, Hinrich (2018): Syntaktische Funktionen und Dependenzen. Foliensatz, CIS/LMU München (Kopf–Dependent, binäre Relationen, einfache Baumanalysen).',
+  },
+
   // ── Korpus selbst (kontext: "korpus") ─────────────────────────────
   'korpus-pipeline': {
     kurz: 'Signifikation-Korpus (wortprofil.db)',

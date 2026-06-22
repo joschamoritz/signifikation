@@ -92,7 +92,8 @@ describe('Station-① Content – DB-Round-Trip (Seeder + Store)', () => {
   it('seedt Station + Tasks und liefert sie über den Store zurück', () => {
     const res = seedCourseContent()
     expect(res.stations).toBeGreaterThanOrEqual(1)
-    expect(res.tasks).toBe(items.length)
+    // Seeder spielt inzwischen alle Stationen ein (AP4 + AP10) → Gesamtzahl ≥ ①.
+    expect(res.tasks).toBeGreaterThanOrEqual(items.length)
 
     const station = courseStore.getStation('s1')
     expect(station).toMatchObject({ id: 's1', orderNo: 1, title: 'Wortpartner & Kollokationen' })

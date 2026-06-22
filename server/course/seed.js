@@ -22,9 +22,13 @@
 import db from '../db.js'
 import logger from '../logger.js'
 import station1 from './content/station-1.js'
+import station2 from './content/station-2.js'
+import station3 from './content/station-3.js'
+import station4 from './content/station-4.js'
+import station5 from './content/station-5.js'
 
-// Alle Stationen, die aus Code geseedet werden. Station ②–⑤ folgen (AP10).
-const STATIONS = [station1]
+// Alle Stationen, die aus Code geseedet werden (Lernpfad ①–⑤, AP4 + AP10).
+const STATIONS = [station1, station2, station3, station4, station5]
 
 const upsertStation = db.prepare(`
   INSERT INTO course_stations (id, order_no, title, ipa, category, beamer_config_json, created_at, updated_at)
