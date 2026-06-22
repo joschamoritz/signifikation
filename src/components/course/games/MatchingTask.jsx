@@ -9,12 +9,6 @@ import { metricLabel } from './fmt'
 
 const DRAG_THRESHOLD = 6 // px, bevor aus einem Tap ein Zug wird
 
-function setsEqual(a, b) {
-  if (a.size !== b.size) return false
-  for (const x of a) if (!b.has(x)) return false
-  return true
-}
-
 export default function MatchingTask({ task, index }) {
   const anchors = task.payload?.anchors ?? []
   const candidates = task.payload?.candidates ?? []
@@ -86,24 +80,26 @@ export default function MatchingTask({ task, index }) {
 
   const result = useMemo(() => {
     if (!checked) return null
-    let correct = true
-    const expectedAll = new Set()
-    for (const a of anchors) {
-      const exp = new Set(map[a.id] ?? [])
-      exp.forEach((id) => expectedAll.add(id))
-      const act = new Set(candsFor(a.id).map((c) => c.id))
-      if (!setsEqual(exp, act)) correct = false
-    }
-    let misplaced = null
+    // Falsch platziert = im falschen Anker (nicht in dessen Lösungsmenge).
+    let wrong = null
     for (const [candId, anchorId] of Object.entries(assignment)) {
-      if (anchorId && !expectedAll.has(candId)) {
-        correct = false
-        if (!misplaced) misplaced = candidates.find((c) => c.id === candId) ?? null
+      if (!anchorId) continue
+      if (!(map[anchorId] ?? []).includes(candId) && !wrong) {
+        wrong = candidates.find((c) => c.id === candId) ?? null
       }
     }
-    return { correct, selected: misplaced }
+    // Fehlend = erwarteter Partner, der (noch) nicht im richtigen Anker liegt.
+    let missingCount = 0
+    for (const a of anchors) {
+      const placed = new Set(candsFor(a.id).map((c) => c.id))
+      for (const id of (map[a.id] ?? [])) if (!placed.has(id)) missingCount++
+    }
+    return { allCorrect: !wrong && missingCount === 0, wrong, missingCount }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [checked])
+
+  // Liegt eine platzierte Karte im richtigen Anker? (für Einfärbung nach Prüfen)
+  const isChipCorrect = (anchorId, candId) => (map[anchorId] ?? []).includes(candId)
 
   function reset() {
     setAssignment({})
@@ -120,7 +116,7 @@ export default function MatchingTask({ task, index }) {
 
       {!checked && (
         <p className="course-hint">
-          Ziehe eine Karte auf das Feld, in das sie gehört — oder tippe Karte und Feld nacheinander an.
+          Ziehe die typischen Partner auf das Feld — es können mehrere sein. (Oder tippe Karte und Feld nacheinander an.)
         </p>
       )}
 
@@ -141,18 +137,22 @@ export default function MatchingTask({ task, index }) {
                 {candsFor(a.id).length === 0 ? (
                   <span className="course-match-placeholder">{armed ? 'hier ablegen' : '…'}</span>
                 ) : (
-                  candsFor(a.id).map((c) => (
-                    <span
-                      key={c.id}
-                      className="course-match-chip course-match-chip--placed"
-                      role="button"
-                      tabIndex={0}
-                      onClick={(e) => { e.stopPropagation(); unassign(c.id) }}
-                      onKeyDown={(e) => { if (e.key === 'Enter') { e.stopPropagation(); unassign(c.id) } }}
-                    >
-                      {c.label}
-                    </span>
-                  ))
+                  candsFor(a.id).map((c) => {
+                    const verdict = checked ? (isChipCorrect(a.id, c.id) ? ' course-match-chip--ok' : ' course-match-chip--bad') : ''
+                    return (
+                      <span
+                        key={c.id}
+                        className={`course-match-chip course-match-chip--placed${verdict}`}
+                        role="button"
+                        tabIndex={checked ? -1 : 0}
+                        onClick={(e) => { e.stopPropagation(); unassign(c.id) }}
+                        onKeyDown={(e) => { if (e.key === 'Enter') { e.stopPropagation(); unassign(c.id) } }}
+                      >
+                        {c.label}
+                        {checked && <span className="course-match-verdict" aria-hidden="true">{isChipCorrect(a.id, c.id) ? '✓' : '✗'}</span>}
+                      </span>
+                    )
+                  })
                 )}
               </span>
             </button>
@@ -198,7 +198,20 @@ export default function MatchingTask({ task, index }) {
       />
 
       {checked && result && (
-        <FeedbackBlock task={task} correct={result.correct} selected={result.selected} />
+        result.allCorrect ? (
+          <FeedbackBlock task={task} correct={true} />
+        ) : result.wrong ? (
+          <FeedbackBlock task={task} correct={false} selected={result.wrong} />
+        ) : (
+          <div className="course-feedback course-fb--wrong" role="status" aria-live="polite">
+            <p className="course-fb-status">Fast</p>
+            <p className="course-fb-text">
+              Was du zugeordnet hast, stimmt — aber es {result.missingCount === 1
+                ? 'fehlt noch ein typischer Partner'
+                : `fehlen noch ${result.missingCount} typische Partner`}. Zieh ihn dazu.
+            </p>
+          </div>
+        )
       )}
     </div>
   )

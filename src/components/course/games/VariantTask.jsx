@@ -115,7 +115,7 @@ export default function VariantTask({ task, index }) {
           <textarea
             className="course-justify-input"
             rows={2}
-            placeholder="Warum klingt diese Variante natürlicher?"
+            placeholder="Begründe deine Wahl in ein, zwei Sätzen."
             value={justification}
             onChange={(e) => setJustification(e.target.value)}
             disabled={checked}

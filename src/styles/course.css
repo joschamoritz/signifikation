@@ -633,6 +633,10 @@
 .course-match-chip:hover { border-color: var(--accent); }
 .course-match-chip--picked { border-color: var(--primary); background: var(--surface2); }
 .course-match-chip--placed { background: var(--bg); border-style: dashed; }
+/* Nach „Prüfen": richtig/falsch platzierte Karten einfärben. */
+.course-match-chip--ok  { border-style: solid; border-color: var(--success); color: var(--success); background: var(--success-bg); }
+.course-match-chip--bad { border-style: solid; border-color: var(--error);   color: var(--error);   background: var(--error-bg); }
+.course-match-verdict { margin-left: 5px; font-weight: 700; }
 .course-match-chip:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
 /* Pool-Karten sind ziehbar: touch-action none, damit das Ziehen nicht scrollt. */
 .course-match-chip--pool { touch-action: none; user-select: none; -webkit-user-select: none; }
@@ -802,6 +806,8 @@
 }
 .course-data-verb { font-family: var(--font-serif); font-size: 0.95rem; }
 .course-data-num { font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
+/* Zahlen-Spaltenköpfe rechtsbündig wie ihre Werte (sonst Header/Wert-Versatz). */
+.course-data-table th.course-data-th-num { text-align: right; }
 
 .course-questions {
   list-style: none;

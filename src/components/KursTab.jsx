@@ -21,7 +21,7 @@ const KURS_MODULES = [
     title: 'Wortpartner & Kollokationen',
     ipa: '[kɔlokaˈt͡si̯oːn]',
     category: 'Lexikologie',
-    definition: 'Für ein Lemma die typischen Wortpartner schätzen, Häufigkeit von Typikalität trennen und mit dem Korpus abgleichen.',
+    definition: 'Für ein Wort die typischen Wortpartner schätzen, häufige von typischen Verbindungen trennen und am Korpus prüfen.',
   },
   {
     id: 'funktion',
@@ -120,12 +120,13 @@ function KursTab({ gesamtausgabe = false, onNavigateToKonto }) {
         <main>
           <ol className="test-entries" aria-label="Kurs-Module" ref={entriesRef}>
 
-            {KURS_MODULES.map((mod) => {
+            {KURS_MODULES.map((mod, idx) => {
               const active = !!mod.apiId
+              const isFirst = idx === 0 // Schmuck-Initiale wie auf der Spielmodi-Startseite
               return (
                 <li
                   key={mod.id}
-                  className={`test-entry${active ? '' : ' test-entry--disabled'}`}
+                  className={`test-entry${isFirst ? ' test-drop-cap' : ''}${active ? '' : ' test-entry--disabled'}`}
                 >
                   <div className="test-entry-number" aria-hidden="true">
                     <span className="test-entry-num-glyph">{mod.glyph}</span>
@@ -133,7 +134,14 @@ function KursTab({ gesamtausgabe = false, onNavigateToKonto }) {
                   </div>
                   <div className="test-entry-body">
                     <div className="test-entry-head">
-                      <h2 className="test-headword">{mod.title}</h2>
+                      {isFirst ? (
+                        <>
+                          <span className="test-dropcap-k" aria-hidden="true">{mod.title.charAt(0)}</span>
+                          <h2 className="test-headword" aria-label={mod.title}>{mod.title.slice(1)}</h2>
+                        </>
+                      ) : (
+                        <h2 className="test-headword">{mod.title}</h2>
+                      )}
                       <span className="test-ipa" aria-label={`Aussprache: ${mod.ipa}`}>{mod.ipa}</span>
                     </div>
                     <div className="test-entry-grammar" aria-hidden="true">
@@ -154,7 +162,7 @@ function KursTab({ gesamtausgabe = false, onNavigateToKonto }) {
                             className="test-cta"
                             onClick={() => openStation(mod)}
                           >
-                            {gesamtausgabe ? 'Öffnen' : 'Freischalten'}
+                            {gesamtausgabe ? 'Zur Station' : 'Freischalten'}
                             <span className="test-cta-arrow" aria-hidden="true">›</span>
                           </button>
                         </>
