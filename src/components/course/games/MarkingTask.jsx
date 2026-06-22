@@ -98,7 +98,7 @@ export default function MarkingTask({ task, index }) {
       </p>
 
       {!checked && targetWords.length === 0 && (
-        <p className="course-hint">Tippe die Wörter an, die zusammengehören.</p>
+        <p className="course-hint">Tippe die zwei Wörter an, die eine typische Verbindung bilden.</p>
       )}
 
       <TaskActions

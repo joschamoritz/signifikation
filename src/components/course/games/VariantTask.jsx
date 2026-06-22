@@ -11,13 +11,19 @@ export default function VariantTask({ task, index }) {
   const frame = task.payload?.frame ?? ''
   const variants = task.payload?.variants ?? []
   const requireJustification = task.payload?.requireJustification ?? false
+  // Single-Choice-Begründung (Sek I): ankreuzbare Begründung statt Freitext.
+  const justifyChoice = task.payload?.justificationChoice ?? null
   const preferred = task.solution?.preferred ?? []
 
   const [choice, setChoice] = useState(null)
   const [justification, setJustification] = useState('')
+  const [reason, setReason] = useState(null)
   const [checked, setChecked] = useState(false)
 
-  const canCheck = !!choice && (!requireJustification || justification.trim().length >= 3)
+  const canCheck = !!choice && (
+    justifyChoice ? !!reason
+      : (!requireJustification || justification.trim().length >= 3)
+  )
 
   const result = useMemo(() => {
     if (!checked || !choice) return null
@@ -26,9 +32,14 @@ export default function VariantTask({ task, index }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [checked])
 
+  const reasonResult = justifyChoice
+    ? justifyChoice.options.find((o) => o.id === reason) ?? null
+    : null
+
   function reset() {
     setChoice(null)
     setJustification('')
+    setReason(null)
     setChecked(false)
   }
 
@@ -40,7 +51,20 @@ export default function VariantTask({ task, index }) {
 
       {frame && (
         <p className="course-frame">
-          {previewLabel ? frame.replace('___', `『${previewLabel}』`) : frame}
+          {frame.includes('___')
+            ? (() => {
+                const [before, after] = frame.split('___')
+                return (
+                  <>
+                    {before}
+                    <span className={`course-gap${previewLabel ? ' course-gap--filled' : ''}`}>
+                      {previewLabel ?? ' '}
+                    </span>
+                    {after}
+                  </>
+                )
+              })()
+            : frame}
         </p>
       )}
 
@@ -64,7 +88,28 @@ export default function VariantTask({ task, index }) {
         })}
       </div>
 
-      {requireJustification && (
+      {justifyChoice ? (
+        <fieldset className="course-justify-choice" disabled={checked}>
+          <legend className="course-justify-label">
+            {justifyChoice.prompt ?? 'Warum passt das besser?'}
+          </legend>
+          <div className="course-variants" role="radiogroup" aria-label="Begründung wählen">
+            {justifyChoice.options.map((o) => (
+              <button
+                key={o.id}
+                type="button"
+                role="radio"
+                aria-checked={reason === o.id}
+                className={`course-variant${reason === o.id ? ' course-variant--sel' : ''}`}
+                onClick={() => !checked && setReason(o.id)}
+                disabled={checked}
+              >
+                <span className="course-variant-label">{o.label}</span>
+              </button>
+            ))}
+          </div>
+        </fieldset>
+      ) : requireJustification ? (
         <label className="course-justify">
           <span className="course-justify-label">Begründung</span>
           <textarea
@@ -76,7 +121,7 @@ export default function VariantTask({ task, index }) {
             disabled={checked}
           />
         </label>
-      )}
+      ) : null}
 
       <TaskActions checked={checked} canCheck={canCheck} onCheck={() => setChecked(true)} onReset={reset} />
 
@@ -86,8 +131,20 @@ export default function VariantTask({ task, index }) {
           correct={result.correct}
           selected={result.selected}
           choiceKey={choice}
-          showRubric={requireJustification}
+          showRubric={requireJustification && !justifyChoice}
         />
+      )}
+
+      {checked && justifyChoice && reasonResult && (
+        <div className={`course-feedback ${reasonResult.correct ? 'course-fb--correct' : 'course-fb--wrong'}`} role="status">
+          <p className="course-fb-status">{reasonResult.correct ? 'Begründung passt' : 'Begründung — noch nicht ganz'}</p>
+          <p className="course-fb-text">
+            {reasonResult.feedback
+              ?? (reasonResult.correct
+                ? 'Genau diese Begründung trägt.'
+                : `Treffender wäre: „${justifyChoice.options.find((o) => o.correct)?.label}".`)}
+          </p>
+        </div>
       )}
     </div>
   )

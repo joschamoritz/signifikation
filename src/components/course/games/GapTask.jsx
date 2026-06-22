@@ -33,16 +33,24 @@ export default function GapTask({ task, index }) {
     setChecked(false)
   }
 
-  // Satz mit gefüllter Lücke (oder Marker) rendern.
-  const filledSentence = chosenLabel
-    ? sentence.replace('___', `『${chosenLabel}』`)
-    : sentence.replace('___', '＿＿＿')
+  // Satz mit gefüllter Lücke (oder leerem Feld) rendern.
+  const [gapBefore, gapAfter] = sentence.includes('___')
+    ? sentence.split('___')
+    : [sentence, '']
 
   return (
     <div className="course-task course-task--gap">
       <TaskHead task={task} index={index} />
 
-      <p className="course-frame">{filledSentence}</p>
+      <p className="course-frame">
+        {gapBefore}
+        {sentence.includes('___') && (
+          <span className={`course-gap${chosenLabel ? ' course-gap--filled' : ''}`}>
+            {chosenLabel ?? ' '}
+          </span>
+        )}
+        {gapAfter}
+      </p>
 
       <div className="course-variants" role="radiogroup" aria-label="Optionen">
         {options.map((o) => {

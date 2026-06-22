@@ -137,12 +137,12 @@ function DetailFrame({ onBack, children }) {
     <div className="test-page course-page">
       <div className="test-wrapper">
         <div className="course-detail">
-          <div className="course-detail-bar">
-            <button type="button" className="back-btn" onClick={onBack}>
-              <span aria-hidden="true">‹</span> Kurs
+          <header className="course-detail-bar">
+            <button type="button" className="back-btn" onClick={onBack} aria-label="Zurück zum Lernpfad">
+              <svg width="10" height="16" viewBox="0 0 10 16" fill="none" aria-hidden="true"><path d="M8.5 1L1.5 8L8.5 15" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>
             </button>
-            <span className="course-detail-overline" aria-hidden="true">Didaktischer Lernpfad</span>
-          </div>
+            <span className="course-detail-badge">Didaktischer Lernpfad</span>
+          </header>
           {children}
         </div>
       </div>
@@ -164,11 +164,6 @@ function StationHead({ station, state }) {
       <div className="course-head-top">
         <span className="course-head-glyph" aria-hidden="true">{STATION_GLYPHS[station.orderNo] ?? ''}</span>
         <h2 className="course-head-title">{station.title}</h2>
-        {station.ipa && (
-          <span className="course-head-ipa" aria-label={`Aussprache: ${station.ipa}`}>
-            [{station.ipa}]
-          </span>
-        )}
       </div>
       {station.category && (
         <p className="course-head-category">{station.category}</p>
@@ -184,20 +179,26 @@ function StationHead({ station, state }) {
 function NiveauSwitcher({ niveau, onChange }) {
   return (
     <div className="course-niveau">
-      <span className="course-niveau-label">Niveau</span>
-      <div className="course-niveau-segment" role="group" aria-label="Niveaustufe wählen">
-        {NIVEAU_LEVELS.map((level) => (
-          <button
-            key={level}
-            type="button"
-            className={`course-niveau-btn${niveau === level ? ' course-niveau-btn--active' : ''}`}
-            aria-pressed={niveau === level}
-            onClick={() => onChange(level)}
-          >
-            {NIVEAU_LABELS[level]}
-          </button>
-        ))}
+      <div className="course-niveau-row">
+        <span className="course-niveau-label">Niveau</span>
+        <div className="course-niveau-segment" role="group" aria-label="Niveaustufe wählen">
+          {NIVEAU_LEVELS.map((level) => (
+            <button
+              key={level}
+              type="button"
+              className={`course-niveau-btn${niveau === level ? ' course-niveau-btn--active' : ''}`}
+              aria-pressed={niveau === level}
+              onClick={() => onChange(level)}
+            >
+              {NIVEAU_LABELS[level]}
+            </button>
+          ))}
+        </div>
       </div>
+      <p className="course-niveau-hint">
+        DaZ · Deutsch als Zweitsprache — Sek I/II · Sekundarstufe — LK · Leistungskurs.
+        Aufgaben und Material passen sich der Stufe an.
+      </p>
     </div>
   )
 }
@@ -258,14 +259,6 @@ function UebenPanel({ stationId, niveau }) {
       id="course-panel-ueben"
       aria-labelledby="course-tab-ueben"
     >
-      <CustomLemmaBar
-        applied={lemma}
-        appliedInfo={lemmaInfo}
-        onApply={(w, info) => { setLemma(w); setLemmaInfo(info) }}
-        onClear={() => { setLemma(null); setLemmaInfo(null) }}
-        onOpenWorksheet={openWorksheet}
-      />
-
       {state === 'loading' && <p className="course-muted">Lädt …</p>}
       {state === 'error' && (
         <p className="course-detail-error" role="alert">Aufgaben konnten nicht geladen werden.</p>
@@ -289,6 +282,22 @@ function UebenPanel({ stationId, niveau }) {
           </ol>
         </>
       )}
+
+      {/* „Eigenes Lemma" bewusst ans Ende: die kuratierten Beispiele haben
+          Vorrang, das eigene Wort ist die nachgelagerte Option. */}
+      <div className="course-lemma-section">
+        <p className="course-lemma-section-lead">
+          Lieber an einem eigenen Wort üben? Die Aufgaben oben füllen sich dann
+          mit echten Korpusbelegen deiner Wahl.
+        </p>
+        <CustomLemmaBar
+          applied={lemma}
+          appliedInfo={lemmaInfo}
+          onApply={(w, info) => { setLemma(w); setLemmaInfo(info) }}
+          onClear={() => { setLemma(null); setLemmaInfo(null) }}
+          onOpenWorksheet={openWorksheet}
+        />
+      </div>
     </section>
   )
 }
