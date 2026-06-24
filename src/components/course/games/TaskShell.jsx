@@ -4,14 +4,20 @@
 
 import { fillSelected } from './fmt'
 
-/** Aufgaben-Kopf: Format-Badge, Prompt, Metasprache-Chips. */
+/**
+ * Aufgaben-Kopf: Format-Badge, Prompt, Metasprache-Chips.
+ * index === false → Badge unterdrücken (der mobile Pager liefert die
+ * fokussierbare „Aufgabe X von N"-Überschrift selbst, sonst doppelt).
+ */
 export function TaskHead({ task, index }) {
   const meta = task.metasprache ?? []
   return (
     <div className="course-task-head-block">
-      <div className="course-task-head">
-        <span className="course-task-format">{index != null ? `Aufgabe ${index}` : 'Aufgabe'}</span>
-      </div>
+      {index !== false && (
+        <div className="course-task-head">
+          <span className="course-task-format">{index != null ? `Aufgabe ${index}` : 'Aufgabe'}</span>
+        </div>
+      )}
       <p className="course-task-prompt">{task.prompt}</p>
       {meta.length > 0 && (
         <ul className="course-task-tags" aria-label="Metasprache">
