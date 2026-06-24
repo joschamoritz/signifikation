@@ -9,10 +9,11 @@
 // Daten kommen aus der Premium-Kurs-API (/api/v1/course/*). Der gesamte Tab ist
 // Premium-gegated (requirePremium serverseitig); 403 wird hier abgefangen.
 
-import { useEffect, useState } from 'react'
-import { API } from '../../config'
+import { useEffect, useRef, useState } from 'react'
+import { API, MOBILE_MEDIA_QUERY } from '../../config'
 import { apiGet, ApiError } from '../../api/client'
 import { apiFetch } from '../../utils/apiFetch'
+import { useMediaQuery } from '../../hooks/useMediaQuery'
 import { useGlobalNiveau, NIVEAU_LEVELS, NIVEAU_LABELS } from './useGlobalNiveau'
 import TaskPlayer from './games/TaskPlayer'
 import CustomLemmaBar from './CustomLemmaBar'
@@ -234,6 +235,7 @@ function buildTaskLabels(tasks) {
 function UebenPanel({ stationId, niveau }) {
   const [tasks, setTasks] = useState([])
   const [state, setState] = useState('loading')
+  const isMobile = useMediaQuery(MOBILE_MEDIA_QUERY)
   const orderedTasks = groupTasksByFormat(tasks)
   const taskLabels = buildTaskLabels(orderedTasks)
   // „Eigenes Lemma" (AP9): gewähltes Wort + Infos, global über Niveaus hinweg.
@@ -281,6 +283,28 @@ function UebenPanel({ stationId, niveau }) {
     } catch { /* Öffnen fehlgeschlagen — Lehrkraft kann erneut versuchen */ }
   }
 
+  // „Eigenes Lemma" als wiederverwendbarer Block — auf Desktop am Ende der
+  // Liste, auf Mobil als letzter Deck-Screen des Pagers.
+  const lemmaLead = (
+    <p className="course-lemma-section-lead">
+      Lieber an einem eigenen Wort üben? Die Aufgaben füllen sich dann mit echten
+      Korpusbelegen deiner Wahl.
+    </p>
+  )
+  const lemmaBar = (
+    <CustomLemmaBar
+      applied={lemma}
+      appliedInfo={lemmaInfo}
+      onApply={(w, info) => { setLemma(w); setLemmaInfo(info) }}
+      onClear={() => { setLemma(null); setLemmaInfo(null) }}
+      onOpenWorksheet={openWorksheet}
+    />
+  )
+
+  // Pager nur, wenn es auch Aufgaben gibt; sonst greift der Hinweis + die
+  // (kurze) Lemma-Sektion unten.
+  const pagerActive = isMobile && state === 'ready' && tasks.length > 0
+
   return (
     <section
       className="course-panel"
@@ -295,39 +319,135 @@ function UebenPanel({ stationId, niveau }) {
       {state === 'ready' && tasks.length === 0 && (
         <p className="course-muted">Für diese Stufe sind noch keine Aufgaben hinterlegt.</p>
       )}
+
       {state === 'ready' && tasks.length > 0 && (
-        <>
-          <p className="course-panel-lead">
-            Aufgaben für <strong>{NIVEAU_LABELS[niveau]}</strong>
-            {lemma ? <> · Wort: <strong>{lemma}</strong></> : null}. Prüfe deine
-            Lösung — das Feedback nutzt echte Korpusdaten.
-          </p>
-          <ol className="course-task-list">
-            {orderedTasks.map((task, i) => (
-              <li key={task.id} className="course-task-item">
-                <TaskPlayer task={task} index={taskLabels[i]} />
-              </li>
-            ))}
-          </ol>
-        </>
+        <p className="course-panel-lead">
+          Aufgaben für <strong>{NIVEAU_LABELS[niveau]}</strong>
+          {lemma ? <> · Wort: <strong>{lemma}</strong></> : null}. Prüfe deine
+          Lösung — das Feedback nutzt echte Korpusdaten.
+        </p>
       )}
 
-      {/* „Eigenes Lemma" bewusst ans Ende: die kuratierten Beispiele haben
-          Vorrang, das eigene Wort ist die nachgelagerte Option. */}
-      <div className="course-lemma-section">
-        <p className="course-lemma-section-lead">
-          Lieber an einem eigenen Wort üben? Die Aufgaben oben füllen sich dann
-          mit echten Korpusbelegen deiner Wahl.
-        </p>
-        <CustomLemmaBar
-          applied={lemma}
-          appliedInfo={lemmaInfo}
-          onApply={(w, info) => { setLemma(w); setLemmaInfo(info) }}
-          onClear={() => { setLemma(null); setLemmaInfo(null) }}
-          onOpenWorksheet={openWorksheet}
+      {pagerActive ? (
+        <UebenPager
+          tasks={orderedTasks}
+          labels={taskLabels}
+          niveau={niveau}
+          lemma={lemma}
+          lemmaLead={lemmaLead}
+          lemmaBar={lemmaBar}
         />
-      </div>
+      ) : (
+        <>
+          {state === 'ready' && tasks.length > 0 && (
+            <ol className="course-task-list">
+              {orderedTasks.map((task, i) => (
+                <li key={task.id} className="course-task-item">
+                  <TaskPlayer task={task} index={taskLabels[i]} />
+                </li>
+              ))}
+            </ol>
+          )}
+
+          {/* „Eigenes Lemma" bewusst ans Ende: die kuratierten Beispiele haben
+              Vorrang, das eigene Wort ist die nachgelagerte Option. */}
+          <div className="course-lemma-section">
+            {lemmaLead}
+            {lemmaBar}
+          </div>
+        </>
+      )}
     </section>
+  )
+}
+
+// ── Mobiler Aufgaben-Pager: eine Aufgabe pro Bildschirm ─────────────────
+// Wischt das lange Scrollen weg (Kurs-AP11-QA §„Zur Mobilen Nutzung"). Letzter
+// Schritt ist die „Eigenes Lemma"-Sektion. Barrierefrei: beim Blättern wandert
+// der Fokus auf die Aufgaben-Überschrift (<h3 tabindex=-1>), die per sr-only
+// „Aufgabe X von N" ansagt; die Fortschrittsleiste ist daher rein dekorativ
+// (aria-hidden), um doppelte Ansagen zu vermeiden.
+export function UebenPager({ tasks, labels, niveau, lemma, lemmaLead, lemmaBar }) {
+  const total = tasks.length
+  const lastIndex = total // Lemma-Schritt liegt hinter der letzten Aufgabe
+  const [step, setStep] = useState(0)
+  const headingRef = useRef(null)
+  const focusPendingRef = useRef(false)
+
+  // Kontextwechsel (Niveau/Lemma/Anzahl) → zurück auf die erste Aufgabe, ohne
+  // dabei den Fokus zu stehlen.
+  useEffect(() => {
+    setStep(0)
+    focusPendingRef.current = false
+  }, [niveau, lemma, total])
+
+  // Fokus nur nach echtem Blättern setzen, nicht beim ersten Render/Reload.
+  useEffect(() => {
+    if (focusPendingRef.current) {
+      headingRef.current?.focus()
+      focusPendingRef.current = false
+    }
+  }, [step])
+
+  const go = (next) => {
+    if (next < 0 || next > lastIndex) return
+    focusPendingRef.current = true
+    setStep(next)
+  }
+
+  const onLemma = step >= total
+  const pct = onLemma ? 100 : Math.round(((step + 1) / total) * 100)
+
+  return (
+    <div className="course-pager">
+      {onLemma ? (
+        <div className="course-pager-screen">
+          <h3 className="course-pager-heading" tabIndex={-1} ref={headingRef}>
+            Eigenes Wort einsetzen
+          </h3>
+          {lemmaLead}
+          {lemmaBar}
+        </div>
+      ) : (
+        <div className="course-pager-screen">
+          <h3 className="course-pager-heading" tabIndex={-1} ref={headingRef}>
+            Aufgabe {labels[step]}
+            <span className="sr-only"> · Aufgabe {step + 1} von {total}</span>
+          </h3>
+          {/* key erzwingt frischen State pro Aufgabe; index=false unterdrückt
+              das Badge, weil die Überschrift oben die Nummer trägt. */}
+          <TaskPlayer key={tasks[step].id} task={tasks[step]} index={false} />
+        </div>
+      )}
+
+      <div className="course-pager-nav">
+        <button
+          type="button"
+          className="course-pager-btn course-pager-btn--prev"
+          onClick={() => go(step - 1)}
+          disabled={step === 0}
+        >
+          Zurück
+        </button>
+        <button
+          type="button"
+          className="course-pager-btn course-pager-btn--next"
+          onClick={() => go(step + 1)}
+          disabled={step >= lastIndex}
+        >
+          {step === total - 1 ? 'Eigenes Wort' : 'Weiter'}
+        </button>
+      </div>
+
+      <div className="course-progress" aria-hidden="true">
+        <span className="course-progress-label">
+          {onLemma ? 'Eigenes Wort' : `Aufgabe ${step + 1} von ${total}`}
+        </span>
+        <span className="course-progress-track">
+          <span className="course-progress-fill" style={{ width: `${pct}%` }} />
+        </span>
+      </div>
+    </div>
   )
 }
 

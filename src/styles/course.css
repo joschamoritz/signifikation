@@ -986,6 +986,108 @@
 .course-lemma-link:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
 .course-lemma-link--muted { color: var(--muted); font-weight: 400; }
 
+/* ── Mobiler Aufgaben-Pager (AP: eine Aufgabe pro Bildschirm) ─────────── */
+/* Nur unterhalb von MOBILE_BREAKPOINT_PX (699px) — exakt die Grenze, an der
+   der JS-Pager (useMediaQuery) greift, damit JS und CSS deckungsgleich sind. */
+@media (max-width: 699px) {
+  .course-pager {
+    /* Platz, damit der letzte Button über die fixierte Leiste scrollen kann. */
+    padding-bottom: 64px;
+  }
+
+  .course-pager-screen {
+    /* Eine Aufgabe füllt mindestens die sichtbare Höhe (Detail-Scroll-Container
+       abzgl. Stations-/Niveau-/Tab-Kopf grob), damit „pro Bildschirm" greift. */
+    min-height: 48vh;
+  }
+
+  .course-pager-heading {
+    font-family: var(--font-sans);
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--accent-dk);
+    margin: 0 0 14px;
+  }
+  /* Programmatischer Fokus (tabindex=-1) soll keinen Rahmen ziehen. */
+  .course-pager-heading:focus { outline: none; }
+
+  .course-pager-nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-top: 26px;
+    padding-top: 18px;
+    border-top: 1px solid var(--border-lt);
+  }
+
+  .course-pager-btn {
+    font-family: var(--font-sans);
+    font-size: 0.85rem;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+    min-height: 44px;
+    padding: 10px 22px;
+    border-radius: 3px;
+    cursor: pointer;
+    transition: background 0.15s, opacity 0.15s, border-color 0.15s;
+  }
+  .course-pager-btn--next {
+    color: #fff;
+    background: var(--primary);
+    border: 1px solid var(--primary);
+  }
+  .course-pager-btn--next:hover:not(:disabled) { background: var(--primary-hi); }
+  .course-pager-btn--prev {
+    color: var(--primary);
+    background: transparent;
+    border: 1px solid var(--border);
+  }
+  .course-pager-btn--prev:hover:not(:disabled) { border-color: var(--accent); }
+  .course-pager-btn:disabled { opacity: 0.35; cursor: default; }
+  .course-pager-btn:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+
+  /* Dezente Fortschrittsleiste, fixiert direkt über der Tab-Bar (gleiche
+     Verankerung wie .snap-nav). Rein dekorativ → aria-hidden im Markup. */
+  .course-progress {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: var(--tabbar-reserve);
+    z-index: 40;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 7px 18px;
+    background: var(--bg);
+    border-top: 1px solid var(--border);
+  }
+  .course-progress-label {
+    font-family: var(--font-sans);
+    font-size: 0.62rem;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    white-space: nowrap;
+  }
+  .course-progress-track {
+    flex: 1;
+    height: 2px;
+    background: var(--border-lt);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .course-progress-fill {
+    display: block;
+    height: 100%;
+    background: var(--accent);
+    transition: width 0.25s ease;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .course-material-card,
   .course-niveau-btn,
@@ -993,7 +1095,9 @@
   .course-check-btn,
   .course-match-chip,
   .course-variant,
-  .course-mark-token {
+  .course-mark-token,
+  .course-pager-btn,
+  .course-progress-fill {
     transition: none;
   }
 }
