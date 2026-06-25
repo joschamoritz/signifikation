@@ -18,7 +18,7 @@ function rowMatchesAnswer(verbindung, answer) {
   return a === v || a.includes(v) || v.includes(a)
 }
 
-export default function DataTask({ task, index }) {
+export default function DataTask({ task, index, onChecked }) {
   const table = task.payload?.table ?? []
   const columns = task.payload?.columns ?? ['verbindung', 'frequency', 'logDice']
   const questions = task.payload?.questions ?? []
@@ -137,7 +137,7 @@ export default function DataTask({ task, index }) {
         ))}
       </ol>
 
-      <TaskActions checked={checked} canCheck={canCheck} onCheck={() => setChecked(true)} onReset={reset} />
+      <TaskActions checked={checked} canCheck={canCheck} onCheck={() => { setChecked(true); onChecked?.() }} onReset={reset} />
 
       {checked && (
         <FeedbackBlock task={task} correct={pickRowQs.length > 0 ? allPicksCorrect : null} />

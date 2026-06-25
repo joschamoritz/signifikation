@@ -21,7 +21,7 @@ function matchesTarget(token, target) {
   return t.slice(0, n) === g.slice(0, n)
 }
 
-export default function MarkingTask({ task, index }) {
+export default function MarkingTask({ task, index, onChecked }) {
   const sentence = task.payload?.sentence ?? ''
   const tokens = useMemo(() => tokenize(sentence), [sentence])
   const targetWords = task.payload?.targetWords ?? []
@@ -104,7 +104,7 @@ export default function MarkingTask({ task, index }) {
       <TaskActions
         checked={checked}
         canCheck={selected.size > 0}
-        onCheck={() => setChecked(true)}
+        onCheck={() => { setChecked(true); onChecked?.() }}
         onReset={reset}
       />
 

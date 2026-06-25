@@ -15,7 +15,9 @@ const REGISTRY = {
   F5: DataTask,     // Datenblick
 }
 
-export default function TaskPlayer({ task, index }) {
+// onChecked: optional, wird beim ersten „Prüfen" einer Aufgabe ausgelöst — der
+// mobile Pager nutzt das, um „erledigt/offen" zu zählen.
+export default function TaskPlayer({ task, index, onChecked }) {
   const Comp = REGISTRY[task?.format]
   if (!Comp) {
     return (
@@ -24,5 +26,5 @@ export default function TaskPlayer({ task, index }) {
       </div>
     )
   }
-  return <Comp task={task} index={index} />
+  return <Comp task={task} index={index} onChecked={onChecked} />
 }
