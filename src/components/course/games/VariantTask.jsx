@@ -7,7 +7,7 @@ import { useMemo, useState } from 'react'
 import { TaskHead, TaskActions, FeedbackBlock } from './TaskShell'
 import { metricLabel } from './fmt'
 
-export default function VariantTask({ task, index }) {
+export default function VariantTask({ task, index, onChecked }) {
   const frame = task.payload?.frame ?? ''
   const variants = task.payload?.variants ?? []
   const requireJustification = task.payload?.requireJustification ?? false
@@ -123,7 +123,7 @@ export default function VariantTask({ task, index }) {
         </label>
       ) : null}
 
-      <TaskActions checked={checked} canCheck={canCheck} onCheck={() => setChecked(true)} onReset={reset} />
+      <TaskActions checked={checked} canCheck={canCheck} onCheck={() => { setChecked(true); onChecked?.() }} onReset={reset} />
 
       {checked && result && (
         <FeedbackBlock

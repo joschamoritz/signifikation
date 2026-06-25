@@ -9,7 +9,7 @@ import { metricLabel } from './fmt'
 
 const DRAG_THRESHOLD = 6 // px, bevor aus einem Tap ein Zug wird
 
-export default function MatchingTask({ task, index }) {
+export default function MatchingTask({ task, index, onChecked }) {
   const anchors = task.payload?.anchors ?? []
   const candidates = task.payload?.candidates ?? []
   const map = task.solution?.map ?? {}
@@ -193,7 +193,7 @@ export default function MatchingTask({ task, index }) {
       <TaskActions
         checked={checked}
         canCheck={assignedCount > 0}
-        onCheck={() => setChecked(true)}
+        onCheck={() => { setChecked(true); onChecked?.() }}
         onReset={reset}
       />
 

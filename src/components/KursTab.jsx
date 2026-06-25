@@ -89,11 +89,15 @@ function KursTab({ gesamtausgabe = false, onNavigateToKonto }) {
 
   // Ebene 2: Station-Detail, sobald ein Stations-Hash gesetzt ist.
   if (stationId) {
+    // Folgestation im Lernpfad (für den Abschluss-Sprung jeder Station).
+    const idx = KURS_MODULES.findIndex((m) => m.apiId === stationId)
+    const next = idx >= 0 ? KURS_MODULES[idx + 1] : null
     return (
       <StationDetail
         stationId={stationId}
         onBack={closeCourseStation}
         onNavigateToKonto={onNavigateToKonto}
+        onOpenNextStation={next ? () => openCourseStation(next.apiId) : null}
       />
     )
   }

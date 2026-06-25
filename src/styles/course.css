@@ -995,6 +995,39 @@
 .course-lemma-link:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
 .course-lemma-link--muted { color: var(--muted); font-weight: 400; }
 
+/* ── Weiter-zur-nächsten-Station (Lernpfad-Abschluss, alle Stationen) ──── */
+.course-next-station {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  font-family: var(--font-sans);
+  font-size: 0.85rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  color: #fff;
+  background: var(--primary);
+  border: 1px solid var(--primary);
+  border-radius: 3px;
+  padding: 11px 22px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.course-next-station:hover { background: var(--primary-hi); }
+.course-next-station:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+/* Übersicht-Variante (letzte Station) zurückgenommen. */
+.course-next-station--overview {
+  color: var(--primary);
+  background: transparent;
+}
+.course-next-station--overview:hover { background: var(--surface2); }
+.course-next-station .test-cta-arrow { font-size: 1rem; }
+/* Desktop: dezent abgesetzt unter der Liste. */
+.course-next-station-row {
+  margin-top: 28px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border-lt);
+}
+
 /* ── Mobiler Aufgaben-Pager (AP: eine Aufgabe pro Bildschirm) ─────────── */
 /* Nur unterhalb von MOBILE_BREAKPOINT_PX (699px) — exakt die Grenze, an der
    der JS-Pager (useMediaQuery) greift, damit JS und CSS deckungsgleich sind. */
@@ -1009,6 +1042,25 @@
     /* Eine Aufgabe füllt mindestens die sichtbare Höhe (Detail-Scroll-Container
        abzgl. Stations-/Niveau-/Tab-Kopf grob), damit „pro Bildschirm" greift. */
     min-height: 48vh;
+  }
+  /* Inaktive Screens bleiben gemountet (Antworten erhalten), aber unsichtbar
+     und aus dem A11y-Baum. Explizit, falls ein Reset [hidden] überschreibt. */
+  .course-pager-screen[hidden] { display: none; }
+
+  /* Abschluss-Screen */
+  .course-pager-end-summary {
+    font-family: var(--font-serif);
+    font-size: 0.98rem;
+    line-height: 1.6;
+    color: var(--text);
+    margin: 0 0 18px;
+    text-wrap: pretty;
+  }
+  .course-pager-end-summary strong { color: var(--primary); }
+  .course-pager-end-actions { margin-bottom: 26px; }
+  .course-pager-end-lemma {
+    padding-top: 20px;
+    border-top: 1px solid var(--border-lt);
   }
 
   .course-pager-heading {

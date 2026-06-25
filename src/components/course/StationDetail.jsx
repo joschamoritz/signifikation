@@ -52,7 +52,7 @@ function sortMaterials(materials) {
   )
 }
 
-export default function StationDetail({ stationId, onBack, onNavigateToKonto }) {
+export default function StationDetail({ stationId, onBack, onNavigateToKonto, onOpenNextStation }) {
   const [niveau] = useGlobalNiveau()
   const [section, setSection] = useState('ueben')
 
@@ -123,7 +123,13 @@ export default function StationDetail({ stationId, onBack, onNavigateToKonto }) 
           </div>
 
           {section === 'ueben' ? (
-            <UebenPanel stationId={stationId} niveau={niveau} />
+            <UebenPanel
+              stationId={stationId}
+              niveau={niveau}
+              orderNo={station?.orderNo}
+              onOpenNextStation={onOpenNextStation}
+              onBack={onBack}
+            />
           ) : (
             <MaterialPanel
               stationId={stationId}
@@ -206,7 +212,7 @@ function buildTaskLabels(tasks) {
 }
 
 // ── Bereich „Üben" — Aufgaben der gewaehlten Stufe ──────────────────────
-function UebenPanel({ stationId, niveau }) {
+function UebenPanel({ stationId, niveau, orderNo, onOpenNextStation, onBack }) {
   const [tasks, setTasks] = useState([])
   const [state, setState] = useState('loading')
   const isMobile = useMediaQuery(MOBILE_MEDIA_QUERY)
@@ -302,6 +308,9 @@ function UebenPanel({ stationId, niveau }) {
           lemma={lemma}
           lemmaLead={lemmaLead}
           lemmaBar={lemmaBar}
+          orderNo={orderNo}
+          onOpenNextStation={onOpenNextStation}
+          onBack={onBack}
         />
       ) : (
         <>
@@ -321,70 +330,123 @@ function UebenPanel({ stationId, niveau }) {
             {lemmaLead}
             {lemmaBar}
           </div>
+
+          {/* Abschluss der Station: Sprung in die nächste (oder zur Übersicht). */}
+          {state === 'ready' && tasks.length > 0 && (
+            <div className="course-next-station-row">
+              <NextStationCta orderNo={orderNo} onOpenNextStation={onOpenNextStation} onBack={onBack} />
+            </div>
+          )}
         </>
       )}
     </section>
   )
 }
 
+// ── Weiter-zur-nächsten-Station-Affordanz (gilt für ALLE Stationen) ─────
+// onOpenNextStation ist gesetzt, solange es eine Folgestation gibt; sonst führt
+// die Aktion zurück in die Kurs-Übersicht. So bekommt jeder Lernpfad seinen
+// Abschluss-Sprung, nicht nur Station ①.
+function NextStationCta({ orderNo, onOpenNextStation, onBack }) {
+  if (onOpenNextStation) {
+    return (
+      <button type="button" className="course-next-station" onClick={onOpenNextStation}>
+        Weiter zu Station {STATION_GLYPHS[orderNo + 1] ?? ''}
+        <span className="test-cta-arrow" aria-hidden="true">›</span>
+      </button>
+    )
+  }
+  return (
+    <button type="button" className="course-next-station course-next-station--overview" onClick={onBack}>
+      Zurück zur Kurs-Übersicht
+      <span className="test-cta-arrow" aria-hidden="true">›</span>
+    </button>
+  )
+}
+
 // ── Mobiler Aufgaben-Pager: eine Aufgabe pro Bildschirm ─────────────────
 // Wischt das lange Scrollen weg (Kurs-AP11-QA §„Zur Mobilen Nutzung"). Letzter
-// Schritt ist die „Eigenes Lemma"-Sektion. Barrierefrei: beim Blättern wandert
-// der Fokus auf die Aufgaben-Überschrift (<h3 tabindex=-1>), die per sr-only
-// „Aufgabe X von N" ansagt; die Fortschrittsleiste ist daher rein dekorativ
-// (aria-hidden), um doppelte Ansagen zu vermeiden.
-export function UebenPager({ tasks, labels, niveau, lemma, lemmaLead, lemmaBar }) {
+// Schritt ist ein Abschluss-Screen (Fortschritt + Sprung zur nächsten Station).
+//
+// Wichtig: ALLE Aufgaben bleiben gemountet (inaktive nur via [hidden]), damit
+// Antworten beim Zurückblättern nicht verloren gehen. Jede Aufgabe meldet ihr
+// erstes „Prüfen" via onChecked → „erledigt/offen"-Zählung.
+//
+// Barrierefrei: beim Blättern wandert der Fokus auf die Überschrift des sicht-
+// baren Screens (<h3 tabindex=-1>), die per sr-only „Aufgabe X von N" ansagt;
+// die Fortschrittslinie ist daher rein dekorativ (aria-hidden).
+export function UebenPager({
+  tasks, labels, niveau, lemma, lemmaLead, lemmaBar,
+  orderNo, onOpenNextStation, onBack,
+}) {
   const total = tasks.length
-  const lastIndex = total // Lemma-Schritt liegt hinter der letzten Aufgabe
+  const endIndex = total // Abschluss-Screen liegt hinter der letzten Aufgabe
   const [step, setStep] = useState(0)
-  const headingRef = useRef(null)
+  const [done, setDone] = useState(() => new Set())
+  const containerRef = useRef(null)
   const focusPendingRef = useRef(false)
 
-  // Kontextwechsel (Niveau/Lemma/Anzahl) → zurück auf die erste Aufgabe, ohne
-  // dabei den Fokus zu stehlen.
+  // Kontextwechsel (Niveau/Lemma/Anzahl) → zurück auf Aufgabe 1, Fortschritt neu.
   useEffect(() => {
     setStep(0)
+    setDone(new Set())
     focusPendingRef.current = false
   }, [niveau, lemma, total])
 
-  // Fokus nur nach echtem Blättern setzen, nicht beim ersten Render/Reload.
+  // Fokus nur nach echtem Blättern auf die Überschrift des sichtbaren Screens —
+  // nicht beim ersten Render/Reload (kein Fokus-Diebstahl).
   useEffect(() => {
     if (focusPendingRef.current) {
-      headingRef.current?.focus()
+      containerRef.current
+        ?.querySelector('.course-pager-screen:not([hidden]) .course-pager-heading')
+        ?.focus()
       focusPendingRef.current = false
     }
   }, [step])
 
   const go = (next) => {
-    if (next < 0 || next > lastIndex) return
+    if (next < 0 || next > endIndex) return
     focusPendingRef.current = true
     setStep(next)
   }
+  const markDone = (id) => setDone((prev) => (prev.has(id) ? prev : new Set(prev).add(id)))
 
-  const onLemma = step >= total
-  const pct = onLemma ? 100 : Math.round(((step + 1) / total) * 100)
+  const onEnd = step >= total
+  const pct = onEnd ? 100 : Math.round(((step + 1) / total) * 100)
 
   return (
-    <div className="course-pager">
-      {onLemma ? (
-        <div className="course-pager-screen">
-          <h3 className="course-pager-heading" tabIndex={-1} ref={headingRef}>
-            Eigenes Wort einsetzen
+    <div className="course-pager" ref={containerRef}>
+      {tasks.map((task, i) => (
+        <div className="course-pager-screen" key={task.id} hidden={i !== step}>
+          <h3 className="course-pager-heading" tabIndex={-1}>
+            Aufgabe {labels[i]}
+            <span className="sr-only">
+              {' '}· Aufgabe {i + 1} von {total}{done.has(task.id) ? ', erledigt' : ''}
+            </span>
           </h3>
+          {/* index=false: Badge entfällt, die Überschrift trägt die Nummer.
+              Bleibt gemountet → Antworten überstehen das Blättern. */}
+          <TaskPlayer task={task} index={false} onChecked={() => markDone(task.id)} />
+        </div>
+      ))}
+
+      {/* Abschluss-Screen */}
+      <div className="course-pager-screen course-pager-end" hidden={!onEnd}>
+        <h3 className="course-pager-heading" tabIndex={-1}>Station abgeschlossen</h3>
+        <p className="course-pager-end-summary">
+          {done.size >= total
+            ? <>Alle <strong>{total}</strong> Aufgaben geprüft — stark.</>
+            : <><strong>{done.size}</strong> von <strong>{total}</strong> Aufgaben geprüft. Du kannst jederzeit zurückblättern.</>}
+        </p>
+        <div className="course-pager-end-actions">
+          <NextStationCta orderNo={orderNo} onOpenNextStation={onOpenNextStation} onBack={onBack} />
+        </div>
+        {/* „Eigenes Lemma" als nachgelagerte Option (UX-Rework im Backlog). */}
+        <div className="course-pager-end-lemma">
           {lemmaLead}
           {lemmaBar}
         </div>
-      ) : (
-        <div className="course-pager-screen">
-          <h3 className="course-pager-heading" tabIndex={-1} ref={headingRef}>
-            Aufgabe {labels[step]}
-            <span className="sr-only"> · Aufgabe {step + 1} von {total}</span>
-          </h3>
-          {/* key erzwingt frischen State pro Aufgabe; index=false unterdrückt
-              das Badge, weil die Überschrift oben die Nummer trägt. */}
-          <TaskPlayer key={tasks[step].id} task={tasks[step]} index={false} />
-        </div>
-      )}
+      </div>
 
       <div className="course-pager-nav">
         <button
@@ -399,15 +461,13 @@ export function UebenPager({ tasks, labels, niveau, lemma, lemmaLead, lemmaBar }
           type="button"
           className="course-pager-btn course-pager-btn--next"
           onClick={() => go(step + 1)}
-          disabled={step >= lastIndex}
+          disabled={step >= endIndex}
         >
-          {step === total - 1 ? 'Eigenes Wort' : 'Weiter'}
+          {step === total - 1 ? 'Abschluss' : 'Weiter'}
         </button>
       </div>
 
-      {/* Dezente Fortschrittslinie ganz am unteren Bildschirmrand, unter der
-          schwebenden Tabbar. Rein dekorativ (aria-hidden) — die Zählung lebt in
-          der Aufgaben-Überschrift, daher hier ohne Text. */}
+      {/* Dezente Fortschrittslinie ganz unten unter der Tabbar; rein dekorativ. */}
       <div className="course-progress" aria-hidden="true">
         <span className="course-progress-fill" style={{ width: `${pct}%` }} />
       </div>
