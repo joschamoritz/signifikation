@@ -32,7 +32,6 @@ function renderPager(props = {}) {
 const heading = () => document.querySelector('.course-pager-heading')
 const nextBtn = () => document.querySelector('.course-pager-btn--next')
 const prevBtn = () => document.querySelector('.course-pager-btn--prev')
-const progressLabel = () => document.querySelector('.course-progress-label')
 const progressFill = () => document.querySelector('.course-progress-fill')
 
 describe('UebenPager', () => {
@@ -41,7 +40,6 @@ describe('UebenPager', () => {
     expect(heading().textContent).toContain('Aufgabe 1 a)')
     // sr-only-Positionsansage in der Überschrift
     expect(heading().textContent).toContain('Aufgabe 1 von 2')
-    expect(progressLabel().textContent).toBe('Aufgabe 1 von 2')
     expect(progressFill().style.width).toBe('50%')
     expect(prevBtn().disabled).toBe(true)
     expect(nextBtn().disabled).toBe(false)
@@ -58,7 +56,6 @@ describe('UebenPager', () => {
     renderPager()
     act(() => { fireEvent.click(nextBtn()) })
     expect(heading().textContent).toContain('Aufgabe 1 b)')
-    expect(progressLabel().textContent).toBe('Aufgabe 2 von 2')
     expect(progressFill().style.width).toBe('100%')
     // Fokus-Management: aktive Aufgaben-Überschrift hat den Fokus
     expect(document.activeElement).toBe(heading())
@@ -77,7 +74,7 @@ describe('UebenPager', () => {
     act(() => { fireEvent.click(nextBtn()) }) // → Lemma
     expect(heading().textContent).toBe('Eigenes Wort einsetzen')
     expect(document.querySelector('[data-testid="lemma-bar"]')).toBeTruthy()
-    expect(progressLabel().textContent).toBe('Eigenes Wort')
+    expect(progressFill().style.width).toBe('100%')
     expect(nextBtn().disabled).toBe(true)
     expect(prevBtn().disabled).toBe(false)
     expect(document.activeElement).toBe(heading())

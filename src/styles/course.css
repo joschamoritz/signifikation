@@ -134,6 +134,15 @@
   text-wrap: pretty;
 }
 
+/* Niveau-Auswahl in der Anm./Manicula der Kurs-Startseite: vom Erklärtext
+   darunter dezent abgesetzt. */
+.course-note-niveau {
+  margin-bottom: 14px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--border-lt);
+}
+.course-note-niveau .course-niveau { margin-bottom: 0; }
+
 .course-niveau-label {
   font-family: var(--font-serif);
   font-style: italic;
@@ -991,8 +1000,9 @@
    der JS-Pager (useMediaQuery) greift, damit JS und CSS deckungsgleich sind. */
 @media (max-width: 699px) {
   .course-pager {
-    /* Platz, damit der letzte Button über die fixierte Leiste scrollen kann. */
-    padding-bottom: 64px;
+    /* Etwas Luft unter dem letzten Button; den Tabbar-Abstand reserviert
+       bereits der Scroll-Container .course-detail. */
+    padding-bottom: 12px;
   }
 
   .course-pager-screen {
@@ -1049,35 +1059,18 @@
   .course-pager-btn:disabled { opacity: 0.35; cursor: default; }
   .course-pager-btn:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
 
-  /* Dezente Fortschrittsleiste, fixiert direkt über der Tab-Bar (gleiche
-     Verankerung wie .snap-nav). Rein dekorativ → aria-hidden im Markup. */
+  /* Dezente Fortschrittslinie ganz unten am Bildschirmrand, unter der
+     schwebenden Tabbar-Pille (die liegt bei bottom: safe-area + gap). Die
+     Linie sitzt in der Safe-Area-Höhe darunter. Rein dekorativ (aria-hidden),
+     ohne Text → die Zählung steht in der Aufgaben-Überschrift. */
   .course-progress {
     position: fixed;
     left: 0;
     right: 0;
-    bottom: var(--tabbar-reserve);
-    z-index: 40;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 7px 18px;
-    background: var(--bg);
-    border-top: 1px solid var(--border);
-  }
-  .course-progress-label {
-    font-family: var(--font-sans);
-    font-size: 0.62rem;
-    font-weight: 600;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    color: var(--muted);
-    white-space: nowrap;
-  }
-  .course-progress-track {
-    flex: 1;
-    height: 2px;
+    bottom: env(safe-area-inset-bottom, 0px);
+    z-index: 150;
+    height: 3px;
     background: var(--border-lt);
-    border-radius: 2px;
     overflow: hidden;
   }
   .course-progress-fill {

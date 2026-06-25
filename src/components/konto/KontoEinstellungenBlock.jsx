@@ -1,6 +1,7 @@
 import { useContext, useEffect, useState, useCallback } from 'react'
 import { ThemeContext } from '../../hooks/useTheme'
 import { usePushNotifications } from '../../hooks/usePushNotifications'
+import { useGlobalNiveau, NIVEAU_LEVELS, NIVEAU_LABELS } from '../course/useGlobalNiveau'
 import { API } from '../../config'
 
 function urlBase64ToUint8Array(base64String) {
@@ -20,6 +21,7 @@ function isWebPushSupported() {
 
 export default function KontoEinstellungenBlock() {
   const { pref, setTheme } = useContext(ThemeContext)
+  const [niveau, setNiveau] = useGlobalNiveau()
 
   // ── Web Push (Browser) ────────────────────────────────────────────
   const [pushEnabled, setPushEnabled] = useState(false)
@@ -138,7 +140,7 @@ export default function KontoEinstellungenBlock() {
           <span className="test-entry-category">Anpassung</span>
         </div>
         <p className="test-definition">
-          Push-Benachrichtigungen, Erscheinungsbild und Sprache konfigurieren.
+          Push-Benachrichtigungen, Kurs-Niveau, Erscheinungsbild und Sprache konfigurieren.
         </p>
 
         <div className="konto-settings-content">
@@ -181,6 +183,23 @@ export default function KontoEinstellungenBlock() {
               </label>
             </div>
           )}
+
+          <div className="konto-setting-item">
+            <div className="konto-setting-info">
+              <span className="konto-setting-label">Kurs-Niveau</span>
+              <span className="konto-setting-desc">Standardstufe für Aufgaben und Material</span>
+            </div>
+            <select
+              className="konto-select"
+              value={niveau}
+              onChange={e => setNiveau(e.target.value)}
+              aria-label="Kurs-Niveau"
+            >
+              {NIVEAU_LEVELS.map(level => (
+                <option key={level} value={level}>{NIVEAU_LABELS[level]}</option>
+              ))}
+            </select>
+          </div>
 
           <div className="konto-setting-item">
             <div className="konto-setting-info">

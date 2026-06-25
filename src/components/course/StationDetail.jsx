@@ -14,7 +14,7 @@ import { API, MOBILE_MEDIA_QUERY } from '../../config'
 import { apiGet, ApiError } from '../../api/client'
 import { apiFetch } from '../../utils/apiFetch'
 import { useMediaQuery } from '../../hooks/useMediaQuery'
-import { useGlobalNiveau, NIVEAU_LEVELS, NIVEAU_LABELS } from './useGlobalNiveau'
+import { useGlobalNiveau, NIVEAU_LABELS } from './useGlobalNiveau'
 import TaskPlayer from './games/TaskPlayer'
 import CustomLemmaBar from './CustomLemmaBar'
 
@@ -53,7 +53,7 @@ function sortMaterials(materials) {
 }
 
 export default function StationDetail({ stationId, onBack, onNavigateToKonto }) {
-  const [niveau, setNiveau] = useGlobalNiveau()
+  const [niveau] = useGlobalNiveau()
   const [section, setSection] = useState('ueben')
 
   const [station, setStation] = useState(null)
@@ -103,8 +103,9 @@ export default function StationDetail({ stationId, onBack, onNavigateToKonto }) 
 
       {stationState === 'ready' && (
         <>
-          <NiveauSwitcher niveau={niveau} onChange={setNiveau} />
-
+          {/* Niveau-Auswahl ist seit dem Redesign zentral (Anm. der Kurs-
+              Startseite + Profil), nicht mehr pro Station. Direkt unter dem
+              Kopf geht es mit den Üben/Material-Tabs los. */}
           <div className="course-sections" role="tablist" aria-label="Bereich">
             {SECTIONS.map((s) => (
               <button
@@ -124,7 +125,11 @@ export default function StationDetail({ stationId, onBack, onNavigateToKonto }) 
           {section === 'ueben' ? (
             <UebenPanel stationId={stationId} niveau={niveau} />
           ) : (
-            <MaterialPanel stationId={stationId} niveau={niveau} />
+            <MaterialPanel
+              stationId={stationId}
+              niveau={niveau}
+              goal={STATION_GOALS[station?.orderNo] ?? ''}
+            />
           )}
         </>
       )}
@@ -169,38 +174,7 @@ function StationHead({ station, state }) {
       {station.category && (
         <p className="course-head-category">{station.category}</p>
       )}
-      <p className="course-head-goal">
-        {STATION_GOALS[station.orderNo] ?? ''}
-      </p>
     </header>
-  )
-}
-
-// ── Niveau-Umschalter ───────────────────────────────────────────────────
-function NiveauSwitcher({ niveau, onChange }) {
-  return (
-    <div className="course-niveau">
-      <div className="course-niveau-row">
-        <span className="course-niveau-label">Niveau</span>
-        <div className="course-niveau-segment" role="group" aria-label="Niveaustufe wählen">
-          {NIVEAU_LEVELS.map((level) => (
-            <button
-              key={level}
-              type="button"
-              className={`course-niveau-btn${niveau === level ? ' course-niveau-btn--active' : ''}`}
-              aria-pressed={niveau === level}
-              onClick={() => onChange(level)}
-            >
-              {NIVEAU_LABELS[level]}
-            </button>
-          ))}
-        </div>
-      </div>
-      <p className="course-niveau-hint">
-        DaZ · Deutsch als Zweitsprache — Sek I/II · Sekundarstufe — LK · Leistungskurs.
-        Aufgaben und Material passen sich der Stufe an.
-      </p>
-    </div>
   )
 }
 
@@ -320,14 +294,6 @@ function UebenPanel({ stationId, niveau }) {
         <p className="course-muted">Für diese Stufe sind noch keine Aufgaben hinterlegt.</p>
       )}
 
-      {state === 'ready' && tasks.length > 0 && (
-        <p className="course-panel-lead">
-          Aufgaben für <strong>{NIVEAU_LABELS[niveau]}</strong>
-          {lemma ? <> · Wort: <strong>{lemma}</strong></> : null}. Prüfe deine
-          Lösung — das Feedback nutzt echte Korpusdaten.
-        </p>
-      )}
-
       {pagerActive ? (
         <UebenPager
           tasks={orderedTasks}
@@ -439,20 +405,18 @@ export function UebenPager({ tasks, labels, niveau, lemma, lemmaLead, lemmaBar }
         </button>
       </div>
 
+      {/* Dezente Fortschrittslinie ganz am unteren Bildschirmrand, unter der
+          schwebenden Tabbar. Rein dekorativ (aria-hidden) — die Zählung lebt in
+          der Aufgaben-Überschrift, daher hier ohne Text. */}
       <div className="course-progress" aria-hidden="true">
-        <span className="course-progress-label">
-          {onLemma ? 'Eigenes Wort' : `Aufgabe ${step + 1} von ${total}`}
-        </span>
-        <span className="course-progress-track">
-          <span className="course-progress-fill" style={{ width: `${pct}%` }} />
-        </span>
+        <span className="course-progress-fill" style={{ width: `${pct}%` }} />
       </div>
     </div>
   )
 }
 
 // ── Bereich „Material" — PDF-Download-Karten ────────────────────────────
-function MaterialPanel({ stationId, niveau }) {
+function MaterialPanel({ stationId, niveau, goal }) {
   const [materials, setMaterials] = useState([])
   const [state, setState] = useState('loading')
 
@@ -484,6 +448,10 @@ function MaterialPanel({ stationId, niveau }) {
       id="course-panel-material"
       aria-labelledby="course-tab-material"
     >
+      {/* Lernziel der Station — bewusst nur hier im Lehrkraft-Bereich, nicht
+          mehr über jeder Übungsseite (steht schon auf der Kurs-Startseite). */}
+      {goal && <p className="course-panel-lead">{goal}</p>}
+
       {state === 'loading' && <p className="course-muted">Lädt …</p>}
       {state === 'error' && (
         <p className="course-detail-error" role="alert">Material konnte nicht geladen werden.</p>
