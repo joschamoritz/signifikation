@@ -5,9 +5,6 @@
 // GESPERRT (kein „Nochmal") und nur über den Reset im Profil neu spielbar. Das
 // Ergebnis (richtig/falsch/Selbstkontrolle) ist ans eingeloggte Konto gebunden.
 //
-// „Eigenes Lemma" (AP9) bleibt frei wiederholbar — keine Persistenz, keine
-// Sperre.
-//
 // Zwei Sperr-Darstellungen:
 //   - bereits abgegeben (Konto-Ergebnis geladen) → kompakte LockedTask-Karte
 //     (die konkrete Auswahl wird bewusst nicht wiederhergestellt)
@@ -20,24 +17,19 @@ import { TaskHead } from './TaskShell'
 
 const LOCKED_NOTE = 'Gespeichert. Im Profil unter „Kurs-Fortschritt" neu spielbar.'
 
-export default function TaskGate({ task, index, result = null, onResult, lemma = null, onChecked }) {
+export default function TaskGate({ task, index, result = null, onResult, onChecked }) {
   // In dieser Sitzung selbst abgegeben → Aufgabe stehen lassen (Feedback
   // sichtbar), nicht durch die Lade-Sperrkarte ersetzen.
   const [selfSubmitted, setSelfSubmitted] = useState(false)
 
   // Geladenes Konto-Ergebnis = bereits früher abgegeben → Sperrkarte.
-  const serverLocked = !lemma && !!result && result.attempts > 0 && !selfSubmitted
+  const serverLocked = !!result && result.attempts > 0 && !selfSubmitted
 
   // Bereits gesperrte Aufgaben dem mobilen Pager als „erledigt" melden.
   useEffect(() => {
     if (serverLocked) onChecked?.()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [serverLocked])
-
-  // Eigenes Lemma: frei wiederholbar, keine Persistenz/Sperre.
-  if (lemma) {
-    return <TaskPlayer task={task} index={index} onChecked={onChecked} />
-  }
 
   if (serverLocked) {
     return <LockedTask task={task} index={index} correct={result.correct} />

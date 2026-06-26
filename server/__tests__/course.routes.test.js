@@ -14,16 +14,7 @@
  */
 
 import express from 'express'
-import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
-
-// „Eigenes Lemma" (AP9): die echte Eignungsprüfung braucht wortprofil.db.
-// Im Test deterministisch mocken — „Gutwort" geeignet, alles andere nicht.
-vi.mock('../customLemma.js', () => ({
-  validateCustomLemma: vi.fn(async ({ q }) =>
-    q === 'Gutwort'
-      ? { mode: 'kollokationen', usable: true, pos: 'Substantiv', count: 25, reason: null }
-      : { mode: 'kollokationen', usable: false, pos: 'Substantiv', count: 2, reason: 'Nicht genug Kollokationen.' }),
-}))
+import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 import db from '../db.js'
 import courseRouter from '../routes/course.js'
@@ -132,7 +123,7 @@ describe('course routes (/api/v1/course)', () => {
   const post = (path, body, h = premiumHeaders) => fetch(`${baseUrl}${path}`, { method: 'POST', headers: h, body: JSON.stringify(body) })
   const del = (path, h = premiumHeaders) => fetch(`${baseUrl}${path}`, { method: 'DELETE', headers: h })
 
-  // ── Zugangsmodell: Üben frei (Login), Material/Lemma Premium ───
+  // ── Zugangsmodell: Üben frei (Login), Material Premium ─────────
   const basicHeaders = headers('user', USER_BASIC)
 
   it('401 ohne Auth (Stationen brauchen Login)', async () => {
@@ -147,11 +138,6 @@ describe('course routes (/api/v1/course)', () => {
 
   it('Material bleibt Premium: 403 für Basic', async () => {
     const res = await get(`/api/v1/course/stations/${PREFIX}-s1/materials`, basicHeaders)
-    expect(res.status).toBe(403)
-  })
-
-  it('tasks?lemma=… bleibt Premium: 403 für Basic', async () => {
-    const res = await get(`/api/v1/course/stations/${PREFIX}-s1/tasks?level=DaZ&resolve=interactive&lemma=Gutwort`, basicHeaders)
     expect(res.status).toBe(403)
   })
 
@@ -254,47 +240,6 @@ describe('course routes (/api/v1/course)', () => {
     // {{selected.*}} bleibt für den Client erhalten, andere Platzhalter gefüllt.
     expect(t.feedback.onWrong).toMatch(/\{\{selected\.lemma\}\}/)
     expect(t.feedback.onCorrect).not.toMatch(/\{\{top/)
-  })
-
-  // ── Eigenes Lemma (AP9) ───────────────────────────────────────
-  it('lemma/validate: geeignetes Wort → usable:true mit count/pos', async () => {
-    const res = await get(`/api/v1/course/lemma/validate?q=Gutwort`)
-    expect(res.status).toBe(200)
-    const json = await res.json()
-    expect(json).toMatchObject({ usable: true, pos: 'Substantiv', count: 25 })
-  })
-
-  it('lemma/validate: ungeeignetes Wort → usable:false mit reason', async () => {
-    const res = await get(`/api/v1/course/lemma/validate?q=Nixwort`)
-    expect(res.status).toBe(200)
-    const json = await res.json()
-    expect(json.usable).toBe(false)
-    expect(json.reason).toBeTruthy()
-  })
-
-  it('lemma/validate ist Premium-gegated (403 für Basic)', async () => {
-    const res = await get(`/api/v1/course/lemma/validate?q=Gutwort`, headers('user', USER_BASIC))
-    expect(res.status).toBe(403)
-  })
-
-  it('tasks mit lemma: ungeeignet → 422 usable:false', async () => {
-    const res = await get(`/api/v1/course/stations/${PREFIX}-s1/tasks?level=DaZ&resolve=interactive&lemma=Nixwort`)
-    expect(res.status).toBe(422)
-    const json = await res.json()
-    expect(json.usable).toBe(false)
-  })
-
-  it('tasks mit lemma: geeignet → 200, lemma im Response, Items aufgelöst', async () => {
-    const res = await get(`/api/v1/course/stations/${PREFIX}-s1/tasks?level=DaZ&resolve=interactive&lemma=Gutwort`)
-    expect(res.status).toBe(200)
-    const json = await res.json()
-    expect(json.lemma).toBe('Gutwort')
-    expect(json.tasks[0].content).toBeUndefined() // aufgelöstes Engine-Item
-  })
-
-  it('worksheet: Nicht-s1-Station → 404 (nur Station ① hat Content)', async () => {
-    const res = await get(`/api/v1/course/stations/${PREFIX}-s1/worksheet?lemma=Gutwort&level=SekII`)
-    expect(res.status).toBe(404)
   })
 
   // ── Material ──────────────────────────────────────────────────

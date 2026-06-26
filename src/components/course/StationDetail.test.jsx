@@ -22,9 +22,6 @@ function renderPager(props = {}) {
       tasks={TASKS}
       labels={LABELS}
       niveau="sek2"
-      lemma={null}
-      lemmaLead={<p>Lemma-Lead</p>}
-      lemmaBar={<div data-testid="lemma-bar">Lemma-Bar</div>}
       {...props}
     />,
   )
@@ -89,8 +86,6 @@ describe('UebenPager', () => {
     expect(heading().textContent).toBe('Station abgeschlossen')
     // „erledigt/offen": nichts geprüft → 0 von 2
     expect(document.querySelector('.course-pager-end-summary').textContent).toContain('0')
-    // Eigenes Lemma ist auf dem Abschluss-Screen eingebettet
-    expect(document.querySelector('[data-testid="lemma-bar"]')).toBeTruthy()
     expect(progressFill().style.width).toBe('100%')
     expect(nextBtn().disabled).toBe(true)
     expect(prevBtn().disabled).toBe(false)
@@ -137,9 +132,6 @@ describe('UebenPager', () => {
           tasks={TASKS}
           labels={LABELS}
           niveau="lk"
-          lemma={null}
-          lemmaLead={<p>Lemma-Lead</p>}
-          lemmaBar={<div data-testid="lemma-bar">Lemma-Bar</div>}
         />,
       )
     })
