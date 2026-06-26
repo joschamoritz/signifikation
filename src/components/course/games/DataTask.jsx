@@ -102,17 +102,21 @@ export default function DataTask({ task, index, onChecked, canRetry = true, lock
             {q.kind === 'pick-row' ? (
               <div className="course-pickrow" role="radiogroup" aria-label={q.text}>
                 {table.map((row, i) => (
-                  <button
+                  <label
                     key={i}
-                    type="button"
-                    role="radio"
-                    aria-checked={picks[q.id] === i}
                     className={`course-pickrow-opt${picks[q.id] === i ? ' course-pickrow-opt--sel' : ''}`}
-                    onClick={() => !checked && setPicks((p) => ({ ...p, [q.id]: i }))}
-                    disabled={checked}
                   >
+                    <input
+                      type="radio"
+                      className="course-radio-input"
+                      name={`pick-${task.id}-${q.id}`}
+                      value={i}
+                      checked={picks[q.id] === i}
+                      onChange={() => setPicks((p) => ({ ...p, [q.id]: i }))}
+                      disabled={checked}
+                    />
                     {row.verbindung}
-                  </button>
+                  </label>
                 ))}
                 {checked && (
                   <span className={`course-pickrow-mark ${perQuestion[q.id] ? 'course-fb--correct' : 'course-fb--wrong'}`}>
