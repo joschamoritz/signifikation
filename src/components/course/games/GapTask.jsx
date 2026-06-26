@@ -62,18 +62,22 @@ export default function GapTask({ task, index, onChecked, canRetry = true, locke
         {options.map((o) => {
           const m = metricLabel(task.display, o)
           return (
-            <button
+            <label
               key={o.id}
-              type="button"
-              role="radio"
-              aria-checked={choice === o.id}
               className={`course-variant${choice === o.id ? ' course-variant--sel' : ''}`}
-              onClick={() => !checked && setChoice(o.id)}
-              disabled={checked}
             >
+              <input
+                type="radio"
+                className="course-radio-input"
+                name={`gap-${task.id}`}
+                value={o.id}
+                checked={choice === o.id}
+                onChange={() => setChoice(o.id)}
+                disabled={checked}
+              />
               <span className="course-variant-label">{o.label}</span>
               {m && <span className="course-variant-metric">{m}</span>}
-            </button>
+            </label>
           )
         })}
       </div>

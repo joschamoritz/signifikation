@@ -78,18 +78,22 @@ export default function VariantTask({ task, index, onChecked, canRetry = true, l
         {variants.map((v) => {
           const m = metricLabel(task.display, v)
           return (
-            <button
+            <label
               key={v.id}
-              type="button"
-              role="radio"
-              aria-checked={choice === v.id}
               className={`course-variant${choice === v.id ? ' course-variant--sel' : ''}`}
-              onClick={() => !checked && setChoice(v.id)}
-              disabled={checked}
             >
+              <input
+                type="radio"
+                className="course-radio-input"
+                name={`variant-${task.id}`}
+                value={v.id}
+                checked={choice === v.id}
+                onChange={() => setChoice(v.id)}
+                disabled={checked}
+              />
               <span className="course-variant-label">{v.label}</span>
               {m && <span className="course-variant-metric">{m}</span>}
-            </button>
+            </label>
           )
         })}
       </div>
@@ -101,17 +105,21 @@ export default function VariantTask({ task, index, onChecked, canRetry = true, l
           </legend>
           <div className="course-variants" role="radiogroup" aria-label="Begründung wählen">
             {justifyChoice.options.map((o) => (
-              <button
+              <label
                 key={o.id}
-                type="button"
-                role="radio"
-                aria-checked={reason === o.id}
                 className={`course-variant${reason === o.id ? ' course-variant--sel' : ''}`}
-                onClick={() => !checked && setReason(o.id)}
-                disabled={checked}
               >
+                {/* disabled erbt das umschließende <fieldset disabled={checked}>. */}
+                <input
+                  type="radio"
+                  className="course-radio-input"
+                  name={`justify-${task.id}`}
+                  value={o.id}
+                  checked={reason === o.id}
+                  onChange={() => setReason(o.id)}
+                />
                 <span className="course-variant-label">{o.label}</span>
-              </button>
+              </label>
             ))}
           </div>
         </fieldset>

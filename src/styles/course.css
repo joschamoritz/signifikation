@@ -785,7 +785,25 @@
 }
 .course-variant:hover { border-color: var(--accent); }
 .course-variant--sel { border-color: var(--primary); border-width: 1px; box-shadow: inset 0 0 0 1px var(--primary); }
-.course-variant:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+/* Fokus liegt auf dem (visuell versteckten) nativen Radio → Label hervorheben. */
+.course-variant:focus-within { outline: 2px solid var(--primary); outline-offset: 2px; }
+.course-variant:has(.course-radio-input:disabled) { cursor: default; }
+
+/* Visuell versteckter, aber fokussierbarer nativer Radio-Input. Trägt das
+   echte Tastaturmodell (Pfeiltasten zwischen den Optionen) + Screenreader-
+   Semantik; das gestylte Label ist die sichtbare Klickfläche. */
+.course-radio-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  border: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
 .course-variant-label {
   font-family: var(--font-serif);
   font-size: 1rem;
@@ -891,7 +909,7 @@
 }
 .course-pickrow-opt:hover { border-color: var(--accent); }
 .course-pickrow-opt--sel { border-color: var(--primary); box-shadow: inset 0 0 0 1px var(--primary); }
-.course-pickrow-opt:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+.course-pickrow-opt:focus-within { outline: 2px solid var(--primary); outline-offset: 2px; }
 .course-pickrow-mark {
   font-family: var(--font-sans);
   font-size: 0.72rem;
