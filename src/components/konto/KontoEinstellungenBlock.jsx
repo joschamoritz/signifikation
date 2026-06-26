@@ -2,6 +2,7 @@ import { useContext, useEffect, useState, useCallback } from 'react'
 import { ThemeContext } from '../../hooks/useTheme'
 import { usePushNotifications } from '../../hooks/usePushNotifications'
 import { useGlobalNiveau, NIVEAU_LEVELS, NIVEAU_LABELS } from '../course/useGlobalNiveau'
+import { apiFetch } from '../../utils/apiFetch'
 import { API } from '../../config'
 
 function urlBase64ToUint8Array(base64String) {
@@ -19,9 +20,27 @@ function isWebPushSupported() {
   )
 }
 
-export default function KontoEinstellungenBlock() {
+export default function KontoEinstellungenBlock({ gesamtausgabe = false }) {
   const { pref, setTheme } = useContext(ThemeContext)
   const [niveau, setNiveau] = useGlobalNiveau()
+
+  // ── Kurs-Fortschritt zurücksetzen (Premium) ───────────────────────
+  // idle → confirm → working → done | error. Setzt alle Aufgaben-Ergebnisse
+  // zurück (Station/alles wieder spielbar), QA Station 1 Abschluss.
+  const [resetState, setResetState] = useState('idle')
+
+  const resetCourse = useCallback(async () => {
+    setResetState('working')
+    try {
+      const res = await apiFetch(`${API}/course/progress`, {
+        method: 'DELETE',
+        credentials: 'include',
+      })
+      setResetState(res.ok ? 'done' : 'error')
+    } catch {
+      setResetState('error')
+    }
+  }, [])
 
   // ── Web Push (Browser) ────────────────────────────────────────────
   const [pushEnabled, setPushEnabled] = useState(false)
@@ -200,6 +219,50 @@ export default function KontoEinstellungenBlock() {
               ))}
             </select>
           </div>
+
+          {gesamtausgabe && (
+            <div className="konto-setting-item">
+              <div className="konto-setting-info">
+                <span className="konto-setting-label">Kurs-Fortschritt</span>
+                <span className="konto-setting-desc">
+                  {resetState === 'done'
+                    ? 'Zurückgesetzt — alle Stationen wieder spielbar.'
+                    : resetState === 'error'
+                      ? 'Zurücksetzen fehlgeschlagen. Bitte erneut versuchen.'
+                      : 'Aufgaben-Ergebnisse löschen und neu spielen'}
+                </span>
+              </div>
+              {resetState === 'confirm' ? (
+                <div className="konto-reset-confirm">
+                  <button
+                    type="button"
+                    className="konto-reset-btn konto-reset-btn--danger"
+                    onClick={resetCourse}
+                  >
+                    Wirklich zurücksetzen
+                  </button>
+                  <button
+                    type="button"
+                    className="konto-reset-btn"
+                    onClick={() => setResetState('idle')}
+                  >
+                    Abbrechen
+                  </button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  className="konto-reset-btn"
+                  disabled={resetState === 'working'}
+                  onClick={() => setResetState('confirm')}
+                >
+                  {resetState === 'working' ? 'Setzt zurück …'
+                    : resetState === 'done' ? 'Erneut zurücksetzen'
+                      : 'Zurücksetzen'}
+                </button>
+              )}
+            </div>
+          )}
 
           <div className="konto-setting-item">
             <div className="konto-setting-info">

@@ -515,3 +515,26 @@ export const courseProgressStationParamsSchema = z.object({ stationId: COURSE_ID
 
 /** PUT /api/v1/course/progress/:stationId (body) */
 export const courseProgressUpdateSchema = z.object({ status: COURSE_STATUS })
+
+// Aufgaben-IDs (course_tasks.id, z.B. 's1-f1-zuordnen-daz-01') — wie
+// COURSE_MATERIAL_ID Buchstaben/Ziffern/Bindestrich erlaubt.
+const COURSE_TASK_ID = z.string().trim()
+  .min(1, 'taskId erforderlich')
+  .max(96, 'taskId zu lang')
+  .regex(/^[A-Za-z0-9-]+$/, 'taskId enthält ungültige Zeichen')
+
+/** GET /api/v1/course/stations/:id/results (query) */
+export const courseResultsQuerySchema = z.object({ level: COURSE_LEVEL.optional() })
+
+/** POST /api/v1/course/stations/:id/tasks/:taskId/result (params) */
+export const courseTaskResultParamsSchema = z.object({ id: COURSE_ID, taskId: COURSE_TASK_ID })
+
+/** POST /api/v1/course/stations/:id/tasks/:taskId/result (body) */
+export const courseTaskResultBodySchema = z.object({
+  level:   COURSE_LEVEL,
+  // true|false geschlossen bewertet, null = reine Selbstkontrolle.
+  correct: z.boolean().nullable(),
+})
+
+/** DELETE /api/v1/course/progress (query) – optional auf eine Station eingrenzen */
+export const courseResetQuerySchema = z.object({ stationId: COURSE_ID.optional() })

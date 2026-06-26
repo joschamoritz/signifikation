@@ -15,9 +15,10 @@ const REGISTRY = {
   F5: DataTask,     // Datenblick
 }
 
-// onChecked: optional, wird beim ersten „Prüfen" einer Aufgabe ausgelöst — der
-// mobile Pager nutzt das, um „erledigt/offen" zu zählen.
-export default function TaskPlayer({ task, index, onChecked }) {
+// onChecked: optional, wird bei „Prüfen" mit dem Ergebnis (true|false|null)
+//   ausgelöst — Pager-Zählung + Persistenz (TaskGate) hängen daran.
+// canRetry/lockedNote: von TaskGate gesetzt — false sperrt „Nochmal" nach Abgabe.
+export default function TaskPlayer({ task, index, onChecked, canRetry = true, lockedNote = null }) {
   const Comp = REGISTRY[task?.format]
   if (!Comp) {
     return (
@@ -26,5 +27,5 @@ export default function TaskPlayer({ task, index, onChecked }) {
       </div>
     )
   }
-  return <Comp task={task} index={index} onChecked={onChecked} />
+  return <Comp task={task} index={index} onChecked={onChecked} canRetry={canRetry} lockedNote={lockedNote} />
 }

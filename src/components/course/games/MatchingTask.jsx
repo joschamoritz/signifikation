@@ -3,13 +3,13 @@
 // Barrierefrei-/Tastatur-Fallback bleibt Tap-to-assign: Karte antippen, dann
 // Anker antippen; eine zugeordnete Karte antippen löst sie wieder.
 
-import { useState, useMemo, useRef } from 'react'
+import { useState, useMemo, useRef, useEffect } from 'react'
 import { TaskHead, TaskActions, FeedbackBlock } from './TaskShell'
 import { metricLabel } from './fmt'
 
 const DRAG_THRESHOLD = 6 // px, bevor aus einem Tap ein Zug wird
 
-export default function MatchingTask({ task, index, onChecked }) {
+export default function MatchingTask({ task, index, onChecked, canRetry = true, lockedNote = null }) {
   const anchors = task.payload?.anchors ?? []
   const candidates = task.payload?.candidates ?? []
   const map = task.solution?.map ?? {}
@@ -95,6 +95,12 @@ export default function MatchingTask({ task, index, onChecked }) {
       for (const id of (map[a.id] ?? [])) if (!placed.has(id)) missingCount++
     }
     return { allCorrect: !wrong && missingCount === 0, wrong, missingCount }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [checked])
+
+  // Ergebnis (richtig/falsch) nach „Prüfen" melden — Persistenz + Pager-Zählung.
+  useEffect(() => {
+    if (checked && result) onChecked?.(result.allCorrect)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [checked])
 
@@ -193,8 +199,10 @@ export default function MatchingTask({ task, index, onChecked }) {
       <TaskActions
         checked={checked}
         canCheck={assignedCount > 0}
-        onCheck={() => { setChecked(true); onChecked?.() }}
+        onCheck={() => setChecked(true)}
         onReset={reset}
+        canReset={canRetry}
+        lockedNote={lockedNote}
       />
 
       {checked && result && (

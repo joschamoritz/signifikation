@@ -28,19 +28,32 @@ export function TaskHead({ task, index }) {
   )
 }
 
-/** „Prüfen" / „Nochmal"-Leiste. */
-export function TaskActions({ checked, canCheck, onCheck, onReset, checkLabel = 'Prüfen' }) {
-  return (
-    <div className="course-task-actions">
-      {!checked ? (
+/**
+ * „Prüfen" / „Nochmal"-Leiste.
+ * @param {boolean} [props.canReset=true]  „Nochmal" anbieten? false → nach
+ *   Abgabe gesperrt (kuratierte Aufgaben werden ans Konto gebunden und sind nur
+ *   über den Reset im Profil neu spielbar). „Eigenes Lemma" bleibt frei (true).
+ * @param {string} [props.lockedNote]  dezenter Hinweis statt „Nochmal".
+ */
+export function TaskActions({ checked, canCheck, onCheck, onReset, checkLabel = 'Prüfen', canReset = true, lockedNote = null }) {
+  if (!checked) {
+    return (
+      <div className="course-task-actions">
         <button type="button" className="course-check-btn" disabled={!canCheck} onClick={onCheck}>
           {checkLabel}
         </button>
-      ) : (
+      </div>
+    )
+  }
+  return (
+    <div className="course-task-actions">
+      {canReset ? (
         <button type="button" className="course-reset-btn" onClick={onReset}>
           Nochmal
         </button>
-      )}
+      ) : lockedNote ? (
+        <p className="course-task-locked-note">{lockedNote}</p>
+      ) : null}
     </div>
   )
 }

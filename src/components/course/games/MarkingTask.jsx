@@ -4,7 +4,7 @@
 // Engine-Spec §11.2). Reicht der Korpussatz nicht für eine exakte Prüfung,
 // wird es zur Selbstkontrolle mit aufgedeckten Zielwörtern.
 
-import { useMemo, useState } from 'react'
+import { useMemo, useState, useEffect } from 'react'
 import { TaskHead, TaskActions, FeedbackBlock } from './TaskShell'
 
 function tokenize(sentence) {
@@ -21,7 +21,7 @@ function matchesTarget(token, target) {
   return t.slice(0, n) === g.slice(0, n)
 }
 
-export default function MarkingTask({ task, index, onChecked }) {
+export default function MarkingTask({ task, index, onChecked, canRetry = true, lockedNote = null }) {
   const sentence = task.payload?.sentence ?? ''
   const tokens = useMemo(() => tokenize(sentence), [sentence])
   const targetWords = task.payload?.targetWords ?? []
@@ -67,6 +67,12 @@ export default function MarkingTask({ task, index, onChecked }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [checked])
 
+  // Ergebnis melden (correct true|false|null — null = reine Selbstkontrolle).
+  useEffect(() => {
+    if (checked && result) onChecked?.(result.correct)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [checked])
+
   function reset() {
     setSelected(new Set())
     setChecked(false)
@@ -104,8 +110,10 @@ export default function MarkingTask({ task, index, onChecked }) {
       <TaskActions
         checked={checked}
         canCheck={selected.size > 0}
-        onCheck={() => { setChecked(true); onChecked?.() }}
+        onCheck={() => setChecked(true)}
         onReset={reset}
+        canReset={canRetry}
+        lockedNote={lockedNote}
       />
 
       {checked && result && (

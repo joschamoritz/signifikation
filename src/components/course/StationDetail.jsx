@@ -9,13 +9,13 @@
 // Daten kommen aus der Premium-Kurs-API (/api/v1/course/*). Der gesamte Tab ist
 // Premium-gegated (requirePremium serverseitig); 403 wird hier abgefangen.
 
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { API, MOBILE_MEDIA_QUERY } from '../../config'
 import { apiGet, ApiError } from '../../api/client'
 import { apiFetch } from '../../utils/apiFetch'
 import { useMediaQuery } from '../../hooks/useMediaQuery'
 import { useGlobalNiveau, NIVEAU_LABELS } from './useGlobalNiveau'
-import TaskPlayer from './games/TaskPlayer'
+import TaskGate from './games/TaskGate'
 import CustomLemmaBar from './CustomLemmaBar'
 
 const SECTIONS = [
@@ -221,6 +221,12 @@ function UebenPanel({ stationId, niveau, orderNo, onOpenNextStation, onBack }) {
   // „Eigenes Lemma" (AP9): gewähltes Wort + Infos, global über Niveaus hinweg.
   const [lemma, setLemma] = useState(null)
   const [lemmaInfo, setLemmaInfo] = useState(null)
+  // Persistierte Aufgaben-Ergebnisse (taskId → {correct, attempts}); nur in der
+  // kuratierten Ansicht (ohne Eigenes Lemma) ans Konto gebunden. resultsReady
+  // verhindert ein kurzes Aufblitzen spielbarer Widgets, bevor die Sperre der
+  // schon abgegebenen Aufgaben geladen ist.
+  const [results, setResults] = useState({})
+  const [resultsReady, setResultsReady] = useState(false)
 
   useEffect(() => {
     let cancelled = false
@@ -246,6 +252,51 @@ function UebenPanel({ stationId, niveau, orderNo, onOpenNextStation, onBack }) {
     })()
     return () => { cancelled = true; controller.abort() }
   }, [stationId, niveau, lemma])
+
+  // Konto-Ergebnisse laden (Fortschritt + Sperre). Im Eigenes-Lemma-Modus
+  // bewusst leer (frei wiederholbar, keine Persistenz).
+  useEffect(() => {
+    if (lemma) { setResults({}); setResultsReady(true); return undefined }
+    let cancelled = false
+    const controller = new AbortController()
+    setResultsReady(false)
+    ;(async () => {
+      try {
+        const json = await apiGet(
+          `${API}/course/stations/${stationId}/results?level=${niveau}`,
+          { signal: controller.signal },
+        )
+        if (cancelled) return
+        const map = {}
+        for (const r of json.results ?? []) map[r.taskId] = r
+        setResults(map)
+      } catch { /* Fortschritt ist optional — Aufgaben bleiben spielbar */ }
+      finally { if (!cancelled) setResultsReady(true) }
+    })()
+    return () => { cancelled = true; controller.abort() }
+  }, [stationId, niveau, lemma])
+
+  // Ergebnis einer Aufgabe nach „Prüfen" ans Konto senden (best effort).
+  const persistResult = useCallback(async (taskId, correct) => {
+    if (lemma) return // Eigenes Lemma wird nicht gespeichert
+    try {
+      const res = await apiFetch(
+        `${API}/course/stations/${stationId}/tasks/${encodeURIComponent(taskId)}/result`,
+        {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ level: niveau, correct }),
+        },
+      )
+      if (!res.ok) return
+      const { result } = await res.json()
+      if (result) setResults((prev) => ({ ...prev, [taskId]: result }))
+    } catch { /* Persistenz best effort — die Aufgabe bleibt lokal bewertet */ }
+  }, [stationId, niveau, lemma])
+
+  // Stations-Fortschritt für die Kopfzeile (gelöste von geladenen Aufgaben).
+  const solvedCount = lemma ? 0 : orderedTasks.filter((t) => results[t.id]?.correct === true).length
 
   async function openWorksheet() {
     if (!lemma) return
@@ -281,9 +332,11 @@ function UebenPanel({ stationId, niveau, orderNo, onOpenNextStation, onBack }) {
     />
   )
 
-  // Pager nur, wenn es auch Aufgaben gibt; sonst greift der Hinweis + die
-  // (kurze) Lemma-Sektion unten.
-  const pagerActive = isMobile && state === 'ready' && tasks.length > 0
+  // Inhalt erst zeigen, wenn auch der Fortschritt geladen ist (sonst blitzen
+  // schon abgegebene Aufgaben kurz spielbar auf). Pager nur, wenn es Aufgaben
+  // gibt; sonst greift der Hinweis + die (kurze) Lemma-Sektion unten.
+  const contentReady = state === 'ready' && resultsReady
+  const pagerActive = isMobile && contentReady && tasks.length > 0
 
   return (
     <section
@@ -292,12 +345,19 @@ function UebenPanel({ stationId, niveau, orderNo, onOpenNextStation, onBack }) {
       id="course-panel-ueben"
       aria-labelledby="course-tab-ueben"
     >
-      {state === 'loading' && <p className="course-muted">Lädt …</p>}
+      {(state === 'loading' || (state === 'ready' && !resultsReady)) && (
+        <p className="course-muted">Lädt …</p>
+      )}
       {state === 'error' && (
         <p className="course-detail-error" role="alert">Aufgaben konnten nicht geladen werden.</p>
       )}
-      {state === 'ready' && tasks.length === 0 && (
+      {contentReady && tasks.length === 0 && (
         <p className="course-muted">Für diese Stufe sind noch keine Aufgaben hinterlegt.</p>
+      )}
+
+      {/* Stations-Fortschritt: gelöste von geladenen Aufgaben (nur kuratiert). */}
+      {contentReady && tasks.length > 0 && !lemma && (
+        <StationProgress solved={solvedCount} total={orderedTasks.length} />
       )}
 
       {pagerActive ? (
@@ -311,14 +371,22 @@ function UebenPanel({ stationId, niveau, orderNo, onOpenNextStation, onBack }) {
           orderNo={orderNo}
           onOpenNextStation={onOpenNextStation}
           onBack={onBack}
+          results={results}
+          onResult={persistResult}
         />
       ) : (
         <>
-          {state === 'ready' && tasks.length > 0 && (
+          {contentReady && tasks.length > 0 && (
             <ol className="course-task-list">
               {orderedTasks.map((task, i) => (
                 <li key={task.id} className="course-task-item">
-                  <TaskPlayer task={task} index={taskLabels[i]} />
+                  <TaskGate
+                    task={task}
+                    index={taskLabels[i]}
+                    result={results[task.id] ?? null}
+                    onResult={(correct) => persistResult(task.id, correct)}
+                    lemma={lemma}
+                  />
                 </li>
               ))}
             </ol>
@@ -332,7 +400,7 @@ function UebenPanel({ stationId, niveau, orderNo, onOpenNextStation, onBack }) {
           </div>
 
           {/* Abschluss der Station: Sprung in die nächste (oder zur Übersicht). */}
-          {state === 'ready' && tasks.length > 0 && (
+          {contentReady && tasks.length > 0 && (
             <div className="course-next-station-row">
               <NextStationCta orderNo={orderNo} onOpenNextStation={onOpenNextStation} onBack={onBack} />
             </div>
@@ -364,6 +432,23 @@ function NextStationCta({ orderNo, onOpenNextStation, onBack }) {
   )
 }
 
+// ── Stations-Fortschritt (gelöste Aufgaben der Stufe) ───────────────────
+// Kontobezogen, bleibt über Sitzungen erhalten (course_task_result). Im
+// Konto unter „Kurs-Fortschritt zurücksetzen" neu spielbar.
+function StationProgress({ solved, total }) {
+  if (!total) return null
+  const pct = Math.round((solved / total) * 100)
+  return (
+    <p className="course-station-progress">
+      <span className="course-station-progress-count">{solved}/{total}</span>
+      {' '}gelöst
+      <span className="course-station-progress-bar" aria-hidden="true">
+        <span className="course-station-progress-fill" style={{ width: `${pct}%` }} />
+      </span>
+    </p>
+  )
+}
+
 // ── Mobiler Aufgaben-Pager: eine Aufgabe pro Bildschirm ─────────────────
 // Wischt das lange Scrollen weg (Kurs-AP11-QA §„Zur Mobilen Nutzung"). Letzter
 // Schritt ist ein Abschluss-Screen (Fortschritt + Sprung zur nächsten Station).
@@ -377,7 +462,7 @@ function NextStationCta({ orderNo, onOpenNextStation, onBack }) {
 // die Fortschrittslinie ist daher rein dekorativ (aria-hidden).
 export function UebenPager({
   tasks, labels, niveau, lemma, lemmaLead, lemmaBar,
-  orderNo, onOpenNextStation, onBack,
+  orderNo, onOpenNextStation, onBack, results = {}, onResult,
 }) {
   const total = tasks.length
   const endIndex = total // Abschluss-Screen liegt hinter der letzten Aufgabe
@@ -426,7 +511,14 @@ export function UebenPager({
           </h3>
           {/* index=false: Badge entfällt, die Überschrift trägt die Nummer.
               Bleibt gemountet → Antworten überstehen das Blättern. */}
-          <TaskPlayer task={task} index={false} onChecked={() => markDone(task.id)} />
+          <TaskGate
+            task={task}
+            index={false}
+            result={results[task.id] ?? null}
+            onResult={(correct) => onResult?.(task.id, correct)}
+            lemma={lemma}
+            onChecked={() => markDone(task.id)}
+          />
         </div>
       ))}
 

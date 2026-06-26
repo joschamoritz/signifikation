@@ -3,7 +3,7 @@
 // solution.answers), explain/compare-Fragen sind Selbstkontrolle (Rubrik nach
 // Abgabe). Kern der Häufig-≠-typisch-Einsicht (Station ④, Brücke aus ①).
 
-import { useMemo, useState } from 'react'
+import { useMemo, useState, useEffect } from 'react'
 import { TaskHead, TaskActions, FeedbackBlock } from './TaskShell'
 import { fmtLogDice, fmtFrequency } from './fmt'
 
@@ -18,7 +18,7 @@ function rowMatchesAnswer(verbindung, answer) {
   return a === v || a.includes(v) || v.includes(a)
 }
 
-export default function DataTask({ task, index, onChecked }) {
+export default function DataTask({ task, index, onChecked, canRetry = true, lockedNote = null }) {
   const table = task.payload?.table ?? []
   const columns = task.payload?.columns ?? ['verbindung', 'frequency', 'logDice']
   const questions = task.payload?.questions ?? []
@@ -49,6 +49,13 @@ export default function DataTask({ task, index, onChecked }) {
   }, [checked])
 
   const allPicksCorrect = pickRowQs.length > 0 && pickRowQs.every((q) => perQuestion[q.id])
+
+  // pick-row-Fragen werden geschlossen bewertet; reine explain/compare-Aufgaben
+  // sind Selbstkontrolle → correct null melden.
+  useEffect(() => {
+    if (checked) onChecked?.(pickRowQs.length > 0 ? allPicksCorrect : null)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [checked])
 
   function reset() {
     setPicks({})
@@ -137,7 +144,7 @@ export default function DataTask({ task, index, onChecked }) {
         ))}
       </ol>
 
-      <TaskActions checked={checked} canCheck={canCheck} onCheck={() => { setChecked(true); onChecked?.() }} onReset={reset} />
+      <TaskActions checked={checked} canCheck={canCheck} onCheck={() => setChecked(true)} onReset={reset} canReset={canRetry} lockedNote={lockedNote} />
 
       {checked && (
         <FeedbackBlock task={task} correct={pickRowQs.length > 0 ? allPicksCorrect : null} />

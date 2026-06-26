@@ -129,6 +129,8 @@ describe('course routes (/api/v1/course)', () => {
 
   const get = (path, h = premiumHeaders) => fetch(`${baseUrl}${path}`, { headers: h })
   const put = (path, body, h = premiumHeaders) => fetch(`${baseUrl}${path}`, { method: 'PUT', headers: h, body: JSON.stringify(body) })
+  const post = (path, body, h = premiumHeaders) => fetch(`${baseUrl}${path}`, { method: 'POST', headers: h, body: JSON.stringify(body) })
+  const del = (path, h = premiumHeaders) => fetch(`${baseUrl}${path}`, { method: 'DELETE', headers: h })
 
   // ── Premium-Gate ──────────────────────────────────────────────
   it('401 ohne Auth', async () => {
@@ -321,6 +323,111 @@ describe('course routes (/api/v1/course)', () => {
 
   it('404 bei Fortschritt auf unbekannte Station', async () => {
     const res = await put(`/api/v1/course/progress/${PREFIX}-unknown`, { status: 'done' })
+    expect(res.status).toBe(404)
+  })
+
+  // ── Aufgaben-Ergebnisse (Persistenz) ──────────────────────────
+  const T_F1_DAZ  = `${PREFIX}-s1-f1-daz`  // F1, DaZ
+  const T_F3_SEK2 = `${PREFIX}-s1-f3-sek2` // F3, SekII
+  const T_F5_SEK2 = `${PREFIX}-s1-f5-sek2` // F5, SekII
+
+  it('results: leer am Anfang', async () => {
+    const res = await get(`/api/v1/course/stations/${PREFIX}-s1/results`)
+    expect(res.status).toBe(200)
+    const { results } = await res.json()
+    expect(results).toEqual([])
+  })
+
+  it('POST result richtig → correct true, attempts 1; GET spiegelt', async () => {
+    const res = await post(`/api/v1/course/stations/${PREFIX}-s1/tasks/${T_F1_DAZ}/result`, { level: 'DaZ', correct: true })
+    expect(res.status).toBe(200)
+    const { result } = await res.json()
+    expect(result).toMatchObject({ taskId: T_F1_DAZ, level: 'DaZ', correct: true, attempts: 1 })
+
+    const got = await (await get(`/api/v1/course/stations/${PREFIX}-s1/results`)).json()
+    expect(got.results.find(r => r.taskId === T_F1_DAZ)).toMatchObject({ correct: true, attempts: 1 })
+  })
+
+  it('POST result mehrfach → Server idempotent, attempts zählen hoch (Sperre ist clientseitig)', async () => {
+    const a = await (await post(`/api/v1/course/stations/${PREFIX}-s1/tasks/${T_F3_SEK2}/result`, { level: 'SekII', correct: false })).json()
+    expect(a.result).toMatchObject({ correct: false, attempts: 1 })
+    const b = await (await post(`/api/v1/course/stations/${PREFIX}-s1/tasks/${T_F3_SEK2}/result`, { level: 'SekII', correct: false })).json()
+    expect(b.result).toMatchObject({ attempts: 2 })
+    // Keine Sperre — auch weit jenseits früherer Limits geht es weiter.
+    const d = await (await post(`/api/v1/course/stations/${PREFIX}-s1/tasks/${T_F3_SEK2}/result`, { level: 'SekII', correct: false })).json()
+    const e = await (await post(`/api/v1/course/stations/${PREFIX}-s1/tasks/${T_F3_SEK2}/result`, { level: 'SekII', correct: false })).json()
+    expect(d.result.attempts).toBe(3)
+    expect(e.result.attempts).toBe(4)
+  })
+
+  it('POST result richtig nach falsch → correct wird true (bestes Resultat bleibt)', async () => {
+    await post(`/api/v1/course/stations/${PREFIX}-s1/tasks/${T_F5_SEK2}/result`, { level: 'SekII', correct: false })
+    const r2 = await (await post(`/api/v1/course/stations/${PREFIX}-s1/tasks/${T_F5_SEK2}/result`, { level: 'SekII', correct: true })).json()
+    expect(r2.result).toMatchObject({ correct: true, attempts: 2 })
+    // Erneuter (falscher) Post macht eine gelöste Aufgabe nicht wieder falsch.
+    const r3 = await (await post(`/api/v1/course/stations/${PREFIX}-s1/tasks/${T_F5_SEK2}/result`, { level: 'SekII', correct: false })).json()
+    expect(r3.result.correct).toBe(true)
+  })
+
+  it('POST result Selbstkontrolle (correct null) → bearbeitet', async () => {
+    // Eigene Station, damit der Null-Fall isoliert vom obigen F5-Test ist.
+    insertStation(`${PREFIX}-sr`, 8004, 'Result-Null')
+    insertTask(`${PREFIX}-sr-f5`, `${PREFIX}-sr`, { format: 'F5', level: 'DaZ', content: { prompt: 'x' }, rubric: {} })
+    const r = await (await post(`/api/v1/course/stations/${PREFIX}-sr/tasks/${PREFIX}-sr-f5/result`, { level: 'DaZ', correct: null })).json()
+    expect(r.result).toMatchObject({ correct: null, attempts: 1 })
+  })
+
+  it('progress.summary enthält gelöst/gesamt je (Station, Niveau)', async () => {
+    const { summary } = await (await get('/api/v1/course/progress')).json()
+    const daz = summary.find(s => s.stationId === `${PREFIX}-s1` && s.level === 'DaZ')
+    expect(daz).toMatchObject({ total: 1, solved: 1 }) // F1-DaZ wurde richtig gelöst
+    const sek2 = summary.find(s => s.stationId === `${PREFIX}-s1` && s.level === 'SekII')
+    expect(sek2.total).toBe(2)
+    expect(sek2.solved).toBe(1) // F5 gelöst, F3 nur falsch
+  })
+
+  it('404 für unbekannte Aufgabe', async () => {
+    const res = await post(`/api/v1/course/stations/${PREFIX}-s1/tasks/${PREFIX}-s1-nope/result`, { level: 'DaZ', correct: true })
+    expect(res.status).toBe(404)
+  })
+
+  it('404 wenn Stufe nicht zur Aufgabe passt', async () => {
+    const res = await post(`/api/v1/course/stations/${PREFIX}-s1/tasks/${T_F1_DAZ}/result`, { level: 'SekII', correct: true })
+    expect(res.status).toBe(404)
+  })
+
+  it('400 bei fehlendem correct / falschem Typ', async () => {
+    expect((await post(`/api/v1/course/stations/${PREFIX}-s1/tasks/${T_F1_DAZ}/result`, { level: 'DaZ' })).status).toBe(400)
+    expect((await post(`/api/v1/course/stations/${PREFIX}-s1/tasks/${T_F1_DAZ}/result`, { level: 'DaZ', correct: 'ja' })).status).toBe(400)
+  })
+
+  it('results ist Premium-gegated (403 Basic, 401 anon)', async () => {
+    expect((await get(`/api/v1/course/stations/${PREFIX}-s1/results`, headers('user', USER_BASIC))).status).toBe(403)
+    expect((await get(`/api/v1/course/stations/${PREFIX}-s1/results`, headers())).status).toBe(401)
+  })
+
+  it('DELETE progress?stationId → setzt nur eine Station zurück', async () => {
+    const res = await del(`/api/v1/course/progress?stationId=${PREFIX}-s1`)
+    expect(res.status).toBe(200)
+    const body = await res.json()
+    expect(body.ok).toBe(true)
+    expect(body.removed).toBeGreaterThan(0)
+    const { results } = await (await get(`/api/v1/course/stations/${PREFIX}-s1/results`)).json()
+    expect(results).toEqual([])
+    // Andere Station (sr) bleibt erhalten.
+    const sr = await (await get(`/api/v1/course/stations/${PREFIX}-sr/results`)).json()
+    expect(sr.results).toHaveLength(1)
+  })
+
+  it('DELETE progress (ohne stationId) → setzt alles zurück', async () => {
+    const res = await del('/api/v1/course/progress')
+    expect(res.status).toBe(200)
+    const sr = await (await get(`/api/v1/course/stations/${PREFIX}-sr/results`)).json()
+    expect(sr.results).toEqual([])
+  })
+
+  it('DELETE progress?stationId unbekannt → 404', async () => {
+    const res = await del(`/api/v1/course/progress?stationId=${PREFIX}-unknown`)
     expect(res.status).toBe(404)
   })
 })

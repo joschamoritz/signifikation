@@ -490,6 +490,44 @@
 .course-reset-btn:hover { border-bottom-color: var(--accent); }
 .course-reset-btn:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
 
+/* Dezenter Hinweis statt „Nochmal", wenn die Aufgabe nach Abgabe gesperrt ist. */
+.course-task-locked-note {
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-size: 0.82rem;
+  color: var(--muted);
+  margin: 8px 0 0;
+}
+
+/* Bereits abgegebene Aufgabe (Konto-Fortschritt) — kompakte Sperrkarte. */
+.course-task--locked .course-feedback { margin-top: 12px; }
+.course-task--locked .course-task-locked-note { margin-top: 6px; }
+
+/* Stations-Fortschritt: gelöste von geladenen Aufgaben. */
+.course-station-progress {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-sans);
+  font-size: 0.78rem;
+  color: var(--muted);
+  margin: 0 0 16px;
+}
+.course-station-progress-count { font-weight: 700; color: var(--text); }
+.course-station-progress-bar {
+  flex: 1;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--border);
+  overflow: hidden;
+}
+.course-station-progress-fill {
+  display: block;
+  height: 100%;
+  background: var(--success);
+  transition: width 0.25s ease;
+}
+
 .course-hint {
   font-family: var(--font-serif);
   font-style: italic;
