@@ -428,7 +428,8 @@
 }
 
 /* ── Mobiles Vollbild-Scroll ───────────────────────────────── */
-@media (max-width: 767px) {
+/* 699px = MOBILE_BREAKPOINT_PX (einheitlich mit JS-Pager/MOBILE_MEDIA_QUERY). */
+@media (max-width: 699px) {
   .course-detail {
     flex: 1;
     min-height: 0;
@@ -486,11 +487,15 @@
   color: var(--primary);
   background: none;
   border: none;
-  border-bottom: 1px solid transparent;
   padding: 4px 0;
   cursor: pointer;
+  /* Tap-Fläche ≥44px (WCAG 2.5.5); Unterstreichung via text-decoration, damit
+     sie am Text bleibt statt am unteren Boxrand. */
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
 }
-.course-reset-btn:hover { border-bottom-color: var(--accent); }
+.course-reset-btn:hover { text-decoration: underline; text-decoration-color: var(--accent); text-underline-offset: 3px; }
 .course-reset-btn:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
 
 /* Dezenter Hinweis statt „Nochmal", wenn die Aufgabe nach Abgabe gesperrt ist. */
@@ -1046,11 +1051,13 @@
   color: var(--primary);
   background: none;
   border: none;
-  border-bottom: 1px solid transparent;
   padding: 2px 0;
   cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
 }
-.course-lemma-link:hover { border-bottom-color: var(--accent); }
+.course-lemma-link:hover { text-decoration: underline; text-decoration-color: var(--accent); text-underline-offset: 3px; }
 .course-lemma-link:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
 .course-lemma-link--muted { color: var(--muted); font-weight: 400; }
 
@@ -1079,6 +1086,33 @@
   background: transparent;
 }
 .course-next-station--overview:hover { background: var(--surface2); }
+
+/* ── A11y: Touch-Targets ≥44px (WCAG 2.5.5) ──────────────────────────
+   Gilt für eigenständige Bedien-Elemente. Mark-Tokens (.course-mark-token =
+   Wörter IM Satz) sind bewusst ausgenommen — Inline-Ausnahme; 44px würde den
+   Satzfluss zerstören. */
+.course-niveau-btn,
+.course-section-tab,
+.course-match-chip,
+.course-variant,
+.course-pickrow-opt,
+.course-check-btn,
+.course-lemma-submit,
+.course-lemma-input,
+.course-next-station {
+  min-height: 44px;
+}
+.course-niveau-btn,
+.course-section-tab,
+.course-pickrow-opt,
+.course-check-btn,
+.course-lemma-submit {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+/* Einzeilige Chips vertikal zentrieren (Basis nutzt baseline). */
+.course-match-chip { align-items: center; }
 .course-next-station .test-cta-arrow { font-size: 1rem; }
 /* Desktop: dezent abgesetzt unter der Liste. */
 .course-next-station-row {
