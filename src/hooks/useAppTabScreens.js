@@ -22,6 +22,7 @@ export function useAppTabScreens({
   lueckenfuellerLemma,
   lfPlayed,
   gesamtausgabeUnlocked,
+  loggedIn,
   serverDatum,
   setActiveTab,
 }) {
@@ -90,6 +91,7 @@ export function useAppTabScreens({
     lfPlayed,
     onPlayLueckenfueller,
     gesamtausgabeUnlocked,
+    loggedIn,
     serverDatum,
     onNavigateToKonto,
   }), [
@@ -97,7 +99,7 @@ export function useAppTabScreens({
     wortzwilling, wortzwillingError, retryWortzwilling, wzPlayed, onPlayWortzwilling,
     zeitenwende, zeitenwendeError, zeitenwendeMissing, retryZeitenwende, zwPlayed, onPlayZeitenwende,
     lueckenfuellerLemma, lfPlayed, onPlayLueckenfueller,
-    gesamtausgabeUnlocked, serverDatum, onNavigateToKonto,
+    gesamtausgabeUnlocked, loggedIn, serverDatum, onNavigateToKonto,
   ])
 
   const goToWortzwillingGame = useCallback(() => startVT(() => {

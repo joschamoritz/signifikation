@@ -45,7 +45,7 @@ export function useAppModel() {
     swLfPlayed,
     setSwLfPlayed,
   } = useDailyContent()
-  const { gesamtausgabeUnlocked, gesamtausgabePermanent, classroomTeacher, customLemma: customLemmaQuota, refreshEntitlements } = useEntitlements()
+  const { gesamtausgabeUnlocked, gesamtausgabePermanent, loggedIn, classroomTeacher, customLemma: customLemmaQuota, refreshEntitlements } = useEntitlements()
   usePaywall({ refreshEntitlements })
 
   const appRef = useRef(null)
@@ -154,6 +154,7 @@ export function useAppModel() {
     lueckenfuellerLemma,
     lfPlayed,
     gesamtausgabeUnlocked,
+    loggedIn,
     serverDatum,
     setActiveTab: navigation.setActiveTab,
     // Spezialwoche

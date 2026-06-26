@@ -68,7 +68,7 @@ const KURS_MODULES = [
   },
 ]
 
-function KursTab({ gesamtausgabe = false, onNavigateToKonto }) {
+function KursTab({ gesamtausgabe = false, loggedIn = false, onNavigateToKonto }) {
   const entriesRef = useRef(null)
   const activeCard = useActiveSnapCard(entriesRef)
   useScrollPersist(entriesRef, 'kurs')
@@ -80,11 +80,11 @@ function KursTab({ gesamtausgabe = false, onNavigateToKonto }) {
   const stationId = useCourseStation()
   const [niveau] = useGlobalNiveau()
 
-  // Stations-Fortschritt (gelöst/gesamt je Niveau) für die Übersicht. Nur bei
-  // freigeschaltetem Kurs laden; best effort (Fortschritt ist optional).
+  // Stations-Fortschritt (gelöst/gesamt je Niveau) für die Übersicht. Üben ist
+  // frei → für jeden eingeloggten Nutzer laden; best effort (optional).
   const [summary, setSummary] = useState([])
   useEffect(() => {
-    if (!gesamtausgabe) { setSummary([]); return undefined }
+    if (!loggedIn) { setSummary([]); return undefined }
     let cancelled = false
     const controller = new AbortController()
     ;(async () => {
@@ -94,7 +94,7 @@ function KursTab({ gesamtausgabe = false, onNavigateToKonto }) {
       } catch { /* Fortschrittsanzeige optional */ }
     })()
     return () => { cancelled = true; controller.abort() }
-  }, [gesamtausgabe, stationId])
+  }, [loggedIn, stationId])
 
   const progressFor = useCallback(
     (apiId) => summary.find((s) => s.stationId === apiId && s.level === niveau) ?? null,
@@ -108,9 +108,10 @@ function KursTab({ gesamtausgabe = false, onNavigateToKonto }) {
 
   const openStation = useCallback((mod) => {
     if (!mod.apiId) return
-    if (!gesamtausgabe) { onNavigateToKonto?.(); return }
+    // Üben ist frei, aber Login nötig (Fortschritt/Sperre ans Konto gebunden).
+    if (!loggedIn) { onNavigateToKonto?.(); return }
     openCourseStation(mod.apiId)
-  }, [gesamtausgabe, onNavigateToKonto])
+  }, [loggedIn, onNavigateToKonto])
 
   // Ebene 2: Station-Detail, sobald ein Stations-Hash gesetzt ist.
   if (stationId) {
@@ -120,6 +121,7 @@ function KursTab({ gesamtausgabe = false, onNavigateToKonto }) {
     return (
       <StationDetail
         stationId={stationId}
+        gesamtausgabe={gesamtausgabe}
         onBack={closeCourseStation}
         onNavigateToKonto={onNavigateToKonto}
         onOpenNextStation={next ? () => openCourseStation(next.apiId) : null}
@@ -139,7 +141,7 @@ function KursTab({ gesamtausgabe = false, onNavigateToKonto }) {
           </div>
           <div className="test-raster-end">
             <span className="test-raster-folio" aria-hidden="true">
-              {gesamtausgabe ? 'Freigeschaltet' : 'Basis'}
+              {gesamtausgabe ? 'Freigeschaltet' : 'Üben frei'}
             </span>
           </div>
         </nav>
@@ -152,7 +154,7 @@ function KursTab({ gesamtausgabe = false, onNavigateToKonto }) {
             {KURS_MODULES.map((mod, idx) => {
               const active = !!mod.apiId
               const isFirst = idx === 0 // Schmuck-Initiale wie auf der Spielmodi-Startseite
-              const prog = active && gesamtausgabe ? progressFor(mod.apiId) : null
+              const prog = active && loggedIn ? progressFor(mod.apiId) : null
               const started = prog && prog.attempted > 0 && prog.total > 0
               return (
                 <li
@@ -186,8 +188,8 @@ function KursTab({ gesamtausgabe = false, onNavigateToKonto }) {
                       {active ? (
                         <>
                           <span className="test-status">
-                            {!gesamtausgabe
-                              ? 'Teil der Gesamtausgabe.'
+                            {!loggedIn
+                              ? 'Üben kostenlos mit Konto.'
                               : started
                                 ? `${prog.solved}/${prog.total} gelöst`
                                 : 'Bereit.'}
@@ -197,7 +199,7 @@ function KursTab({ gesamtausgabe = false, onNavigateToKonto }) {
                             className="test-cta"
                             onClick={() => openStation(mod)}
                           >
-                            {!gesamtausgabe ? 'Freischalten' : started ? 'Weiter' : 'Zur Aufgabe'}
+                            {!loggedIn ? 'Anmelden' : started ? 'Weiter' : 'Zur Aufgabe'}
                             <span className="test-cta-arrow" aria-hidden="true">›</span>
                           </button>
                         </>

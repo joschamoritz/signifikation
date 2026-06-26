@@ -52,7 +52,7 @@ function sortMaterials(materials) {
   )
 }
 
-export default function StationDetail({ stationId, onBack, onNavigateToKonto, onOpenNextStation }) {
+export default function StationDetail({ stationId, gesamtausgabe = false, onBack, onNavigateToKonto, onOpenNextStation }) {
   const [niveau] = useGlobalNiveau()
   const [section, setSection] = useState('ueben')
 
@@ -91,10 +91,12 @@ export default function StationDetail({ stationId, onBack, onNavigateToKonto, on
         setStationState('ready')
       } catch (err) {
         if (cancelled || err?.name === 'AbortError') return
-        // 401 (nicht eingeloggt) und 403 (eingeloggt, aber kein Premium)
-        // führen beide auf den Gesamtausgabe-Hinweis (Login + Upgrade im Konto).
-        const gated = err instanceof ApiError && (err.status === 401 || err.status === 403)
-        setStationState(gated ? 'denied' : 'error')
+        // Üben ist frei, braucht aber Login: 401 → „denied" = Anmelde-Hinweis
+        // (erreichbar nur per Deep-Link; der reguläre Weg über KursTab leitet
+        // Nicht-Eingeloggte vorher zum Konto). Material/Lemma-Premium wird NICHT
+        // hier, sondern im jeweiligen Bereich (403) abgefangen.
+        const needsLogin = err instanceof ApiError && (err.status === 401 || err.status === 403)
+        setStationState(needsLogin ? 'denied' : 'error')
       }
     })()
     return () => { cancelled = true; controller.abort() }
@@ -103,7 +105,7 @@ export default function StationDetail({ stationId, onBack, onNavigateToKonto, on
   if (stationState === 'denied') {
     return (
       <DetailFrame onBack={onBack}>
-        <UnlockNotice onNavigateToKonto={onNavigateToKonto} />
+        <LoginNotice onNavigateToKonto={onNavigateToKonto} />
       </DetailFrame>
     )
   }
@@ -146,14 +148,18 @@ export default function StationDetail({ stationId, onBack, onNavigateToKonto, on
               stationId={stationId}
               niveau={niveau}
               orderNo={station?.orderNo}
+              gesamtausgabe={gesamtausgabe}
               onOpenNextStation={onOpenNextStation}
               onBack={onBack}
+              onNavigateToKonto={onNavigateToKonto}
             />
           ) : (
             <MaterialPanel
               stationId={stationId}
               niveau={niveau}
               goal={STATION_GOALS[station?.orderNo] ?? ''}
+              gesamtausgabe={gesamtausgabe}
+              onNavigateToKonto={onNavigateToKonto}
             />
           )}
         </>
@@ -231,7 +237,7 @@ function buildTaskLabels(tasks) {
 }
 
 // ── Bereich „Üben" — Aufgaben der gewaehlten Stufe ──────────────────────
-function UebenPanel({ stationId, niveau, orderNo, onOpenNextStation, onBack }) {
+function UebenPanel({ stationId, niveau, orderNo, gesamtausgabe = false, onOpenNextStation, onBack, onNavigateToKonto }) {
   const [tasks, setTasks] = useState([])
   const [state, setState] = useState('loading')
   const isMobile = useMediaQuery(MOBILE_MEDIA_QUERY)
@@ -334,14 +340,15 @@ function UebenPanel({ stationId, niveau, orderNo, onOpenNextStation, onBack }) {
   }
 
   // „Eigenes Lemma" als wiederverwendbarer Block — auf Desktop am Ende der
-  // Liste, auf Mobil als letzter Deck-Screen des Pagers.
+  // Liste, auf Mobil als letzter Deck-Screen des Pagers. Premium-Feature:
+  // Nicht-Premium sieht statt der Eingabe einen Upsell-Hinweis.
   const lemmaLead = (
     <p className="course-lemma-section-lead">
       Lieber an einem eigenen Wort üben? Die Aufgaben füllen sich dann mit echten
       Korpusbelegen deiner Wahl.
     </p>
   )
-  const lemmaBar = (
+  const lemmaBar = gesamtausgabe ? (
     <CustomLemmaBar
       applied={lemma}
       appliedInfo={lemmaInfo}
@@ -349,6 +356,17 @@ function UebenPanel({ stationId, niveau, orderNo, onOpenNextStation, onBack }) {
       onClear={() => { setLemma(null); setLemmaInfo(null) }}
       onOpenWorksheet={openWorksheet}
     />
+  ) : (
+    <div className="course-lemma">
+      <p className="course-lemma-hint">
+        Eigenes Wort einsetzen ist Teil der <strong>Gesamtausgabe</strong>.
+      </p>
+      {onNavigateToKonto && (
+        <button type="button" className="course-lemma-link" onClick={onNavigateToKonto}>
+          Zur Gesamtausgabe ›
+        </button>
+      )}
+    </div>
   )
 
   // Inhalt erst zeigen, wenn auch der Fortschritt geladen ist (sonst blitzen
@@ -586,12 +604,15 @@ export function UebenPager({
   )
 }
 
-// ── Bereich „Material" — PDF-Download-Karten ────────────────────────────
-function MaterialPanel({ stationId, niveau, goal }) {
+// ── Bereich „Material" — PDF-Download-Karten (Premium) ──────────────────
+// Das Material (Arbeitsblätter/Lösungen/Entwürfe/Beamer) ist der Premium-Teil
+// des Kurses; Üben bleibt frei. Ohne Gesamtausgabe → Upsell statt Laden.
+function MaterialPanel({ stationId, niveau, goal, gesamtausgabe = false, onNavigateToKonto }) {
   const [materials, setMaterials] = useState([])
   const [state, setState] = useState('loading')
 
   useEffect(() => {
+    if (!gesamtausgabe) return undefined // kein Premium → gar nicht erst laden
     let cancelled = false
     const controller = new AbortController()
     setState('loading')
@@ -610,7 +631,7 @@ function MaterialPanel({ stationId, niveau, goal }) {
       }
     })()
     return () => { cancelled = true; controller.abort() }
-  }, [stationId, niveau])
+  }, [stationId, niveau, gesamtausgabe])
 
   return (
     <section
@@ -623,7 +644,9 @@ function MaterialPanel({ stationId, niveau, goal }) {
           mehr über jeder Übungsseite (steht schon auf der Kurs-Startseite). */}
       {goal && <p className="course-panel-lead">{goal}</p>}
 
-      {state === 'loading' && <p className="course-muted">Lädt …</p>}
+      {!gesamtausgabe && <MaterialPremiumNotice onNavigateToKonto={onNavigateToKonto} />}
+
+      {gesamtausgabe && state === 'loading' && <p className="course-muted">Lädt …</p>}
       {state === 'error' && (
         <p className="course-detail-error" role="alert">Material konnte nicht geladen werden.</p>
       )}
@@ -667,15 +690,35 @@ function MaterialCard({ stationId, material }) {
   )
 }
 
-// ── Premium-Gate (403) ──────────────────────────────────────────────────
-function UnlockNotice({ onNavigateToKonto }) {
+// ── Login-Hinweis (401, nur per Deep-Link erreichbar) ───────────────────
+// Üben ist frei, braucht aber ein Konto (Fortschritt/Sperre kontobezogen).
+function LoginNotice({ onNavigateToKonto }) {
+  return (
+    <div className="course-unlock">
+      <p className="course-head-category">Kurs</p>
+      <h2 className="course-head-title">Zum Üben anmelden</h2>
+      <p className="course-head-goal">
+        Die Übungen sind kostenlos — melde dich an, damit dein Fortschritt
+        gespeichert wird.
+      </p>
+      {onNavigateToKonto && (
+        <button type="button" className="test-cta" onClick={onNavigateToKonto}>
+          Zum Konto <span className="test-cta-arrow" aria-hidden="true">›</span>
+        </button>
+      )}
+    </div>
+  )
+}
+
+// ── Premium-Upsell für den Material-Bereich (403) ───────────────────────
+function MaterialPremiumNotice({ onNavigateToKonto }) {
   return (
     <div className="course-unlock">
       <p className="course-head-category">Gesamtausgabe</p>
-      <h2 className="course-head-title">Kurs ist Teil der Gesamtausgabe</h2>
+      <h2 className="course-head-title">Unterrichtsmaterial ist Teil der Gesamtausgabe</h2>
       <p className="course-head-goal">
-        Stationen, Aufgaben und Unterrichtsmaterial sind mit der Gesamtausgabe
-        freigeschaltet.
+        Arbeitsblätter, Lösungen, Unterrichtsentwürfe und Beamer-Folien sind mit
+        der Gesamtausgabe freigeschaltet. Das Üben bleibt für dich kostenlos.
       </p>
       {onNavigateToKonto && (
         <button type="button" className="test-cta" onClick={onNavigateToKonto}>

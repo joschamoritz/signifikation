@@ -132,15 +132,32 @@ describe('course routes (/api/v1/course)', () => {
   const post = (path, body, h = premiumHeaders) => fetch(`${baseUrl}${path}`, { method: 'POST', headers: h, body: JSON.stringify(body) })
   const del = (path, h = premiumHeaders) => fetch(`${baseUrl}${path}`, { method: 'DELETE', headers: h })
 
-  // ── Premium-Gate ──────────────────────────────────────────────
-  it('401 ohne Auth', async () => {
+  // ── Zugangsmodell: Üben frei (Login), Material/Lemma Premium ───
+  const basicHeaders = headers('user', USER_BASIC)
+
+  it('401 ohne Auth (Stationen brauchen Login)', async () => {
     const res = await get('/api/v1/course/stations', headers())
     expect(res.status).toBe(401)
   })
 
-  it('403 für nicht-Premium (role=user)', async () => {
-    const res = await get('/api/v1/course/stations', headers('user', USER_BASIC))
+  it('Üben ist frei: Basic (role=user) darf Stationen laden', async () => {
+    const res = await get('/api/v1/course/stations', basicHeaders)
+    expect(res.status).toBe(200)
+  })
+
+  it('Material bleibt Premium: 403 für Basic', async () => {
+    const res = await get(`/api/v1/course/stations/${PREFIX}-s1/materials`, basicHeaders)
     expect(res.status).toBe(403)
+  })
+
+  it('tasks?lemma=… bleibt Premium: 403 für Basic', async () => {
+    const res = await get(`/api/v1/course/stations/${PREFIX}-s1/tasks?level=DaZ&resolve=interactive&lemma=Gutwort`, basicHeaders)
+    expect(res.status).toBe(403)
+  })
+
+  it('kuratierte tasks sind frei: 200 für Basic', async () => {
+    const res = await get(`/api/v1/course/stations/${PREFIX}-s1/tasks?level=DaZ&resolve=interactive`, basicHeaders)
+    expect(res.status).toBe(200)
   })
 
   // ── Stationen ─────────────────────────────────────────────────
@@ -401,9 +418,17 @@ describe('course routes (/api/v1/course)', () => {
     expect((await post(`/api/v1/course/stations/${PREFIX}-s1/tasks/${T_F1_DAZ}/result`, { level: 'DaZ', correct: 'ja' })).status).toBe(400)
   })
 
-  it('results ist Premium-gegated (403 Basic, 401 anon)', async () => {
-    expect((await get(`/api/v1/course/stations/${PREFIX}-s1/results`, headers('user', USER_BASIC))).status).toBe(403)
+  it('results sind frei (Login): 200 für Basic, 401 anon', async () => {
+    expect((await get(`/api/v1/course/stations/${PREFIX}-s1/results`, headers('user', USER_BASIC))).status).toBe(200)
     expect((await get(`/api/v1/course/stations/${PREFIX}-s1/results`, headers())).status).toBe(401)
+  })
+
+  it('Basic darf ein Ergebnis speichern (Üben frei, kontobezogen)', async () => {
+    ensureUser(USER_BASIC)
+    const res = await post(`/api/v1/course/stations/${PREFIX}-s1/tasks/${PREFIX}-s1-f1-daz/result`,
+      { level: 'DaZ', correct: true }, headers('user', USER_BASIC))
+    expect(res.status).toBe(200)
+    expect((await res.json()).result).toMatchObject({ correct: true, attempts: 1 })
   })
 
   it('DELETE progress?stationId → setzt nur eine Station zurück', async () => {

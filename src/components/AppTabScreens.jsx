@@ -28,6 +28,7 @@ export default function AppTabScreens({
   lfPlayed,
   onPlayLueckenfueller,
   gesamtausgabeUnlocked,
+  loggedIn,
   serverDatum,
   onNavigateToKonto,
 }) {
@@ -62,6 +63,7 @@ export default function AppTabScreens({
       <Suspense fallback={null}>
         <KursTab
           gesamtausgabe={gesamtausgabeUnlocked}
+          loggedIn={loggedIn}
           onNavigateToKonto={onNavigateToKonto}
         />
       </Suspense>

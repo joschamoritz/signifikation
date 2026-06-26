@@ -76,6 +76,8 @@ function readEntitlements(userId, userRole) {
     : { unlimited: false, allowance: quota.allowance, remaining: quota.remaining }
 
   return {
+    // Login-Status: steuert clientseitig das freie Kurs-Üben (Login statt Premium).
+    loggedIn: true,
     gesamtausgabe: {
       unlocked: unlockedByPayment || unlockedByRole,
       unlockedAt: row?.unlocked_at || null,
@@ -105,6 +107,7 @@ router.get('/api/v1/account/entitlements', optionalAuthUser, (req, res) => {
   try {
     if (!req.user) {
       return res.json({
+        loggedIn: false,
         gesamtausgabe: { unlocked: false, unlockedAt: null, source: 'none' },
         // Anonym: Eigenes Lemma erfordert Login (Verbrauch wird pro Account gezählt).
         customLemma: { unlimited: false, allowance: 0, remaining: 0, requiresLogin: true },
