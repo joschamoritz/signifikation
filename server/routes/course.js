@@ -4,8 +4,10 @@
  * Zugangsmodell (Entscheidung 2026-06-25): „Üben frei (Login), Material Premium".
  *   - Stationen + Üben + Fortschritt: requireAuthUser (jede eingeloggte Rolle,
  *     auch Basic) → Persistenz/Sperre ans Konto gebunden.
- *   - Material, Worksheet, Eigenes-Lemma (lemma=…/lemma/validate): requirePremium
- *     bzw. Premium-Check im Handler — Premium-Nutzen = Lehrmaterial + Extras.
+ *   - Material + Download: requirePremium — Premium-Nutzen = Lehrmaterial.
+ * „Eigenes Lemma" (freie Wort-Eingabe) wurde 2026-06-25 entfernt: änderte die
+ * kuratierten Aufgaben kaum, erzeugte ein unbrauchbares Arbeitsblatt und
+ * untergrub den Kuratierungs-Anspruch. Inhalte sind ausschließlich kuratiert.
  * Kein capability-/session-basiertes Gating wie im Klassenraum — Einzelnutzer-Material.
  *
  * Endpunkte:
@@ -32,8 +34,6 @@ import {
   courseTasksQuerySchema,
   courseMaterialsQuerySchema,
   courseMaterialDownloadParamsSchema,
-  courseLemmaValidateSchema,
-  courseWorksheetQuerySchema,
   courseProgressStationParamsSchema,
   courseProgressUpdateSchema,
   courseResultsQuerySchema,
@@ -44,8 +44,6 @@ import {
 import * as courseStore from '../course/store.js'
 import { makeCorpusAdapter } from '../course/corpusAdapter.js'
 import { resolveItemInteractive } from '../course/resolve.js'
-import { validateCustomLemma } from '../customLemma.js'
-import { buildStationHtml } from '../course/pdf/generate.js'
 import logger from '../logger.js'
 
 const router = express.Router()
@@ -90,22 +88,13 @@ router.get(
   },
 )
 
-/**
- * Wortart, die die corpus-template-Items der Station erwarten (für die
- * Eigenes-Lemma-Eignungsprüfung + Auflösung). Station ① = Substantiv.
- */
-function stationCorpusPos(items) {
-  const corpusItem = items.find(i => i.source === 'corpus-template' && i.corpusQuery?.pos)
-  return corpusItem?.corpusQuery?.pos ?? 'Substantiv'
-}
-
-/** GET /stations/:id/tasks – Aufgaben-Items, optional nach Niveau/Format/Lemma. */
+/** GET /stations/:id/tasks – Aufgaben-Items, optional nach Niveau/Format. */
 router.get(
   `${BASE}/stations/:id/tasks`,
   requireAuthUser,
   validate(courseStationIdParamsSchema, 'params'),
   validate(courseTasksQuerySchema, 'query'),
-  async (req, res) => {
+  (req, res) => {
     try {
       const station = courseStore.getStation(req.params.id)
       if (!station) return res.status(404).json({ error: 'Station nicht gefunden' })
@@ -114,99 +103,25 @@ router.get(
         format: req.query.format,
       })
 
-      // Ohne resolve=interactive → Rohtasks (Druck-/Debug-Pfad, kein Lemma).
+      // Ohne resolve=interactive → Rohtasks (Druck-/Debug-Pfad).
       if (req.query.resolve !== 'interactive') {
         return res.json({ stationId: req.params.id, level: req.query.level ?? null, tasks })
       }
 
       // resolve=interactive: Direktiven + Platzhalter serverseitig auflösen
       // (Korpus liegt nur am Server). selected/chosen + onWrong/onChoice bleiben
-      // erhalten — der Client füllt die Auswahl.
+      // erhalten — der Client füllt die Auswahl. Inhalte sind kuratiert; das
+      // frühere „Eigenes Lemma" (freie Wort-Eingabe) wurde entfernt.
       const items = tasks.map(t => courseStore.taskToEngineItem(t))
-      let lemma // undefined = Anker-Lemma aus dem Content
-
-      // „Eigenes Lemma" (AP9): Template mit gewähltem Wort füllen. Bleibt
-      // Premium-Feature — die Route selbst ist frei (requireAuthUser), aber der
-      // lemma-Pfad ist Premium-gegated; kein Verbrauch des Basic-Kontingents.
-      if (req.query.lemma) {
-        if (req.user.role !== 'premium' && req.user.role !== 'admin') {
-          return res.status(403).json({ error: 'Eigenes Lemma ist Teil der Gesamtausgabe' })
-        }
-        const pos = req.query.pos ?? stationCorpusPos(items)
-        const verdict = await validateCustomLemma({ mode: 'kollokationen', q: req.query.lemma, pos })
-        if (!verdict.usable) {
-          return res.status(422).json({ error: verdict.reason, usable: false, lemma: req.query.lemma })
-        }
-        lemma = req.query.lemma
-      }
-
       const corpus = makeCorpusAdapter()
-      const resolved = items.map(i => resolveItemInteractive(i, { corpus, lemma }))
+      const resolved = items.map(i => resolveItemInteractive(i, { corpus }))
       res.json({
         stationId: req.params.id,
         level: req.query.level ?? null,
-        lemma: lemma ?? null,
         tasks: resolved,
       })
     } catch (err) {
       logger.error({ err, id: req.params.id }, 'Kurs: Tasks laden fehlgeschlagen')
-      serverError(res, err)
-    }
-  },
-)
-
-/**
- * GET /lemma/validate?q=&pos= – Eignungsprüfung fürs Eigenes-Lemma-Template
- * (Premium). Spiegelt die Spiel-Validierung (≥10 Kollokationen); ohne pos wird
- * die Wortart automatisch erkannt. Verbraucht KEIN Kontingent.
- */
-router.get(
-  `${BASE}/lemma/validate`,
-  requirePremium,
-  validate(courseLemmaValidateSchema, 'query'),
-  async (req, res) => {
-    try {
-      const verdict = await validateCustomLemma({ mode: 'kollokationen', q: req.query.q, pos: req.query.pos })
-      res.json({ usable: verdict.usable, pos: verdict.pos ?? null, count: verdict.count ?? 0, reason: verdict.reason })
-    } catch (err) {
-      logger.error({ err, q: req.query.q }, 'Kurs: Lemma-Validierung fehlgeschlagen')
-      serverError(res, err)
-    }
-  },
-)
-
-/**
- * GET /stations/:id/worksheet?lemma=&level=&kind= – Eigenes-Lemma-Arbeitsblatt
- * (bzw. Lösung) als druckbares HTML, live aus dem Korpus gefüllt (Premium).
- *
- * Bewusst HTML, NICHT PDF: die PDF-Pipeline (AP5) braucht Chromium, das im
- * Server-Runtime nie geladen wird. buildStationHtml ist rein/synchron — die
- * Lehrkraft druckt aus dem Browser (Strg+P → PDF).
- */
-router.get(
-  `${BASE}/stations/:id/worksheet`,
-  requirePremium,
-  validate(courseStationIdParamsSchema, 'params'),
-  validate(courseWorksheetQuerySchema, 'query'),
-  async (req, res) => {
-    try {
-      // buildStationHtml nutzt aktuell den Content von Station ① (station-1.js).
-      if (req.params.id !== 's1') {
-        return res.status(404).json({ error: 'Für diese Station gibt es noch kein Eigenes-Lemma-Arbeitsblatt' })
-      }
-      const verdict = await validateCustomLemma({ mode: 'kollokationen', q: req.query.lemma, pos: 'Substantiv' })
-      if (!verdict.usable) {
-        return res.status(422).json({ error: verdict.reason, usable: false })
-      }
-
-      const kind = req.query.kind ?? 'arbeitsblatt'
-      const docs = buildStationHtml({ lemma: req.query.lemma })
-      const doc = docs.find(d => d.kind === kind && (!req.query.level || d.level === req.query.level))
-      if (!doc) return res.status(404).json({ error: 'Arbeitsblatt für dieses Niveau nicht gefunden' })
-
-      res.type('html').send(doc.html)
-    } catch (err) {
-      logger.error({ err, id: req.params.id, lemma: req.query.lemma }, 'Kurs: Eigenes-Lemma-Arbeitsblatt fehlgeschlagen')
       serverError(res, err)
     }
   },

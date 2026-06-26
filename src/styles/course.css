@@ -923,144 +923,6 @@
 .course-pickrow-mark.course-fb--correct { color: var(--success); }
 .course-pickrow-mark.course-fb--wrong { color: var(--error); }
 
-/* ── Eigenes Lemma (AP9) ────────────────────────────────────── */
-/* Bewusst ans Ende der Übungen gerückt und optisch zurückgenommen — die
-   kuratierten Beispiele haben Vorrang. */
-.course-lemma-section {
-  margin-top: 30px;
-  padding-top: 20px;
-  border-top: 1px solid var(--border-lt);
-}
-.course-lemma-section-lead {
-  font-family: var(--font-serif);
-  font-size: 0.85rem;
-  font-style: italic;
-  line-height: 1.55;
-  color: var(--muted);
-  margin: 0 0 12px;
-  text-wrap: pretty;
-}
-
-.course-lemma {
-  border: 1px solid var(--border);
-  border-radius: 3px;
-  background: var(--surface2);
-  padding: 14px 16px;
-  margin-bottom: 0;
-}
-
-.course-lemma-label {
-  display: block;
-  font-family: var(--font-sans);
-  font-size: 0.72rem;
-  font-weight: 600;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--accent-dk);
-}
-.course-lemma-hint {
-  font-family: var(--font-serif);
-  font-size: 0.85rem;
-  color: var(--muted);
-  margin: 5px 0 10px;
-}
-.course-lemma-row {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-.course-lemma-input {
-  flex: 1;
-  min-width: 0;
-  font-family: var(--font-serif);
-  font-size: 0.95rem;
-  color: var(--text);
-  background: var(--bg);
-  border: 1px solid var(--border);
-  border-radius: 3px;
-  padding: 9px 11px;
-}
-.course-lemma-input:focus-visible { outline: 2px solid var(--primary); outline-offset: 1px; }
-.course-lemma-submit {
-  font-family: var(--font-sans);
-  font-size: 0.8rem;
-  font-weight: 600;
-  color: #fff;
-  background: var(--primary);
-  border: none;
-  border-radius: 3px;
-  padding: 9px 18px;
-  cursor: pointer;
-  white-space: nowrap;
-}
-.course-lemma-submit:hover:not(:disabled) { background: var(--primary-hi); }
-.course-lemma-submit:disabled { opacity: 0.4; cursor: default; }
-.course-lemma-submit:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
-.course-lemma-error {
-  font-family: var(--font-serif);
-  font-style: italic;
-  font-size: 0.85rem;
-  color: var(--error);
-  margin: 8px 0 0;
-}
-
-.course-lemma--active {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  flex-wrap: wrap;
-  border-color: var(--accent);
-}
-.course-lemma-active-text {
-  display: flex;
-  align-items: baseline;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-.course-lemma-badge {
-  font-family: var(--font-sans);
-  font-size: 0.62rem;
-  font-weight: 700;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--accent-dk);
-  border: 1px solid var(--accent);
-  border-radius: 2px;
-  padding: 1px 6px;
-}
-.course-lemma-word {
-  font-family: var(--font-serif);
-  font-size: 1.05rem;
-  color: var(--text);
-}
-.course-lemma-count {
-  font-family: var(--font-sans);
-  font-size: 0.72rem;
-  color: var(--muted);
-}
-.course-lemma-actions {
-  display: flex;
-  gap: 16px;
-  align-items: baseline;
-}
-.course-lemma-link {
-  font-family: var(--font-serif);
-  font-size: 0.85rem;
-  font-weight: 700;
-  color: var(--primary);
-  background: none;
-  border: none;
-  padding: 2px 0;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  min-height: 44px;
-}
-.course-lemma-link:hover { text-decoration: underline; text-decoration-color: var(--accent); text-underline-offset: 3px; }
-.course-lemma-link:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
-.course-lemma-link--muted { color: var(--muted); font-weight: 400; }
-
 /* ── Weiter-zur-nächsten-Station (Lernpfad-Abschluss, alle Stationen) ──── */
 .course-next-station {
   display: inline-flex;
@@ -1097,16 +959,13 @@
 .course-variant,
 .course-pickrow-opt,
 .course-check-btn,
-.course-lemma-submit,
-.course-lemma-input,
 .course-next-station {
   min-height: 44px;
 }
 .course-niveau-btn,
 .course-section-tab,
 .course-pickrow-opt,
-.course-check-btn,
-.course-lemma-submit {
+.course-check-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -1151,10 +1010,6 @@
   }
   .course-pager-end-summary strong { color: var(--primary); }
   .course-pager-end-actions { margin-bottom: 26px; }
-  .course-pager-end-lemma {
-    padding-top: 20px;
-    border-top: 1px solid var(--border-lt);
-  }
 
   .course-pager-heading {
     font-family: var(--font-sans);

@@ -16,7 +16,6 @@ import { apiFetch } from '../../utils/apiFetch'
 import { useMediaQuery } from '../../hooks/useMediaQuery'
 import { useGlobalNiveau, NIVEAU_LABELS } from './useGlobalNiveau'
 import TaskGate from './games/TaskGate'
-import CustomLemmaBar from './CustomLemmaBar'
 
 const SECTIONS = [
   { id: 'ueben',    label: 'Üben' },
@@ -148,10 +147,8 @@ export default function StationDetail({ stationId, gesamtausgabe = false, onBack
               stationId={stationId}
               niveau={niveau}
               orderNo={station?.orderNo}
-              gesamtausgabe={gesamtausgabe}
               onOpenNextStation={onOpenNextStation}
               onBack={onBack}
-              onNavigateToKonto={onNavigateToKonto}
             />
           ) : (
             <MaterialPanel
@@ -237,19 +234,15 @@ function buildTaskLabels(tasks) {
 }
 
 // ── Bereich „Üben" — Aufgaben der gewaehlten Stufe ──────────────────────
-function UebenPanel({ stationId, niveau, orderNo, gesamtausgabe = false, onOpenNextStation, onBack, onNavigateToKonto }) {
+function UebenPanel({ stationId, niveau, orderNo, onOpenNextStation, onBack }) {
   const [tasks, setTasks] = useState([])
   const [state, setState] = useState('loading')
   const isMobile = useMediaQuery(MOBILE_MEDIA_QUERY)
   const orderedTasks = groupTasksByFormat(tasks)
   const taskLabels = buildTaskLabels(orderedTasks)
-  // „Eigenes Lemma" (AP9): gewähltes Wort + Infos, global über Niveaus hinweg.
-  const [lemma, setLemma] = useState(null)
-  const [lemmaInfo, setLemmaInfo] = useState(null)
-  // Persistierte Aufgaben-Ergebnisse (taskId → {correct, attempts}); nur in der
-  // kuratierten Ansicht (ohne Eigenes Lemma) ans Konto gebunden. resultsReady
-  // verhindert ein kurzes Aufblitzen spielbarer Widgets, bevor die Sperre der
-  // schon abgegebenen Aufgaben geladen ist.
+  // Persistierte Aufgaben-Ergebnisse (taskId → {correct, attempts}) ans Konto
+  // gebunden. resultsReady verhindert ein kurzes Aufblitzen spielbarer Widgets,
+  // bevor die Sperre der schon abgegebenen Aufgaben geladen ist.
   const [results, setResults] = useState({})
   const [resultsReady, setResultsReady] = useState(false)
 
@@ -259,10 +252,8 @@ function UebenPanel({ stationId, niveau, orderNo, gesamtausgabe = false, onOpenN
     setState('loading')
     ;(async () => {
       try {
-        const params = new URLSearchParams({ level: niveau, resolve: 'interactive' })
-        if (lemma) params.set('lemma', lemma)
         const json = await apiGet(
-          `${API}/course/stations/${stationId}/tasks?${params.toString()}`,
+          `${API}/course/stations/${stationId}/tasks?level=${niveau}&resolve=interactive`,
           { signal: controller.signal },
         )
         if (cancelled) return
@@ -270,18 +261,14 @@ function UebenPanel({ stationId, niveau, orderNo, gesamtausgabe = false, onOpenN
         setState('ready')
       } catch (err) {
         if (cancelled || err?.name === 'AbortError') return
-        // 422 = Lemma nicht geeignet (sollte durch Validierung vorab selten sein).
-        if (err instanceof ApiError && err.status === 422) { setLemma(null); setLemmaInfo(null) }
         setState('error')
       }
     })()
     return () => { cancelled = true; controller.abort() }
-  }, [stationId, niveau, lemma])
+  }, [stationId, niveau])
 
-  // Konto-Ergebnisse laden (Fortschritt + Sperre). Im Eigenes-Lemma-Modus
-  // bewusst leer (frei wiederholbar, keine Persistenz).
+  // Konto-Ergebnisse laden (Fortschritt + Sperre).
   useEffect(() => {
-    if (lemma) { setResults({}); setResultsReady(true); return undefined }
     let cancelled = false
     const controller = new AbortController()
     setResultsReady(false)
@@ -299,11 +286,10 @@ function UebenPanel({ stationId, niveau, orderNo, gesamtausgabe = false, onOpenN
       finally { if (!cancelled) setResultsReady(true) }
     })()
     return () => { cancelled = true; controller.abort() }
-  }, [stationId, niveau, lemma])
+  }, [stationId, niveau])
 
   // Ergebnis einer Aufgabe nach „Prüfen" ans Konto senden (best effort).
   const persistResult = useCallback(async (taskId, correct) => {
-    if (lemma) return // Eigenes Lemma wird nicht gespeichert
     try {
       const res = await apiFetch(
         `${API}/course/stations/${stationId}/tasks/${encodeURIComponent(taskId)}/result`,
@@ -318,56 +304,10 @@ function UebenPanel({ stationId, niveau, orderNo, gesamtausgabe = false, onOpenN
       const { result } = await res.json()
       if (result) setResults((prev) => ({ ...prev, [taskId]: result }))
     } catch { /* Persistenz best effort — die Aufgabe bleibt lokal bewertet */ }
-  }, [stationId, niveau, lemma])
+  }, [stationId, niveau])
 
   // Stations-Fortschritt für die Kopfzeile (gelöste von geladenen Aufgaben).
-  const solvedCount = lemma ? 0 : orderedTasks.filter((t) => results[t.id]?.correct === true).length
-
-  async function openWorksheet() {
-    if (!lemma) return
-    try {
-      const params = new URLSearchParams({ lemma, level: niveau, kind: 'arbeitsblatt' })
-      const res = await apiFetch(
-        `${API}/course/stations/${stationId}/worksheet?${params.toString()}`,
-        { credentials: 'include' },
-      )
-      if (!res.ok) return
-      const html = await res.text()
-      const url = URL.createObjectURL(new Blob([html], { type: 'text/html' }))
-      window.open(url, '_blank', 'noopener')
-      setTimeout(() => URL.revokeObjectURL(url), 60000)
-    } catch { /* Öffnen fehlgeschlagen — Lehrkraft kann erneut versuchen */ }
-  }
-
-  // „Eigenes Lemma" als wiederverwendbarer Block — auf Desktop am Ende der
-  // Liste, auf Mobil als letzter Deck-Screen des Pagers. Premium-Feature:
-  // Nicht-Premium sieht statt der Eingabe einen Upsell-Hinweis.
-  const lemmaLead = (
-    <p className="course-lemma-section-lead">
-      Lieber an einem eigenen Wort üben? Die Aufgaben füllen sich dann mit echten
-      Korpusbelegen deiner Wahl.
-    </p>
-  )
-  const lemmaBar = gesamtausgabe ? (
-    <CustomLemmaBar
-      applied={lemma}
-      appliedInfo={lemmaInfo}
-      onApply={(w, info) => { setLemma(w); setLemmaInfo(info) }}
-      onClear={() => { setLemma(null); setLemmaInfo(null) }}
-      onOpenWorksheet={openWorksheet}
-    />
-  ) : (
-    <div className="course-lemma">
-      <p className="course-lemma-hint">
-        Eigenes Wort einsetzen ist Teil der <strong>Gesamtausgabe</strong>.
-      </p>
-      {onNavigateToKonto && (
-        <button type="button" className="course-lemma-link" onClick={onNavigateToKonto}>
-          Zur Gesamtausgabe ›
-        </button>
-      )}
-    </div>
-  )
+  const solvedCount = orderedTasks.filter((t) => results[t.id]?.correct === true).length
 
   // Inhalt erst zeigen, wenn auch der Fortschritt geladen ist (sonst blitzen
   // schon abgegebene Aufgaben kurz spielbar auf). Pager nur, wenn es Aufgaben
@@ -392,8 +332,8 @@ function UebenPanel({ stationId, niveau, orderNo, gesamtausgabe = false, onOpenN
         <p className="course-muted">Für diese Stufe sind noch keine Aufgaben hinterlegt.</p>
       )}
 
-      {/* Stations-Fortschritt: gelöste von geladenen Aufgaben (nur kuratiert). */}
-      {contentReady && tasks.length > 0 && !lemma && (
+      {/* Stations-Fortschritt: gelöste von geladenen Aufgaben. */}
+      {contentReady && tasks.length > 0 && (
         <StationProgress solved={solvedCount} total={orderedTasks.length} />
       )}
 
@@ -402,9 +342,6 @@ function UebenPanel({ stationId, niveau, orderNo, gesamtausgabe = false, onOpenN
           tasks={orderedTasks}
           labels={taskLabels}
           niveau={niveau}
-          lemma={lemma}
-          lemmaLead={lemmaLead}
-          lemmaBar={lemmaBar}
           orderNo={orderNo}
           onOpenNextStation={onOpenNextStation}
           onBack={onBack}
@@ -422,19 +359,11 @@ function UebenPanel({ stationId, niveau, orderNo, gesamtausgabe = false, onOpenN
                     index={taskLabels[i]}
                     result={results[task.id] ?? null}
                     onResult={(correct) => persistResult(task.id, correct)}
-                    lemma={lemma}
                   />
                 </li>
               ))}
             </ol>
           )}
-
-          {/* „Eigenes Lemma" bewusst ans Ende: die kuratierten Beispiele haben
-              Vorrang, das eigene Wort ist die nachgelagerte Option. */}
-          <div className="course-lemma-section">
-            {lemmaLead}
-            {lemmaBar}
-          </div>
 
           {/* Abschluss der Station: Sprung in die nächste (oder zur Übersicht). */}
           {contentReady && tasks.length > 0 && (
@@ -498,7 +427,7 @@ function StationProgress({ solved, total }) {
 // baren Screens (<h3 tabindex=-1>), die per sr-only „Aufgabe X von N" ansagt;
 // die Fortschrittslinie ist daher rein dekorativ (aria-hidden).
 export function UebenPager({
-  tasks, labels, niveau, lemma, lemmaLead, lemmaBar,
+  tasks, labels, niveau,
   orderNo, onOpenNextStation, onBack, results = {}, onResult,
 }) {
   const total = tasks.length
@@ -508,12 +437,12 @@ export function UebenPager({
   const containerRef = useRef(null)
   const focusPendingRef = useRef(false)
 
-  // Kontextwechsel (Niveau/Lemma/Anzahl) → zurück auf Aufgabe 1, Fortschritt neu.
+  // Kontextwechsel (Niveau/Anzahl) → zurück auf Aufgabe 1, Fortschritt neu.
   useEffect(() => {
     setStep(0)
     setDone(new Set())
     focusPendingRef.current = false
-  }, [niveau, lemma, total])
+  }, [niveau, total])
 
   // Fokus nur nach echtem Blättern auf die Überschrift des sichtbaren Screens —
   // nicht beim ersten Render/Reload (kein Fokus-Diebstahl).
@@ -553,7 +482,6 @@ export function UebenPager({
             index={false}
             result={results[task.id] ?? null}
             onResult={(correct) => onResult?.(task.id, correct)}
-            lemma={lemma}
             onChecked={() => markDone(task.id)}
           />
         </div>
@@ -569,11 +497,6 @@ export function UebenPager({
         </p>
         <div className="course-pager-end-actions">
           <NextStationCta orderNo={orderNo} onOpenNextStation={onOpenNextStation} onBack={onBack} />
-        </div>
-        {/* „Eigenes Lemma" als nachgelagerte Option (UX-Rework im Backlog). */}
-        <div className="course-pager-end-lemma">
-          {lemmaLead}
-          {lemmaBar}
         </div>
       </div>
 

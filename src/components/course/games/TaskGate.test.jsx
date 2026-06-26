@@ -32,12 +32,6 @@ describe('TaskGate', () => {
     expect(lockedCard().textContent).toContain('Nicht gelöst')
   })
 
-  it('Eigenes Lemma → frei spielbar, auch wenn ein Ergebnis vorliegt', () => {
-    render(<TaskGate task={TASK} index="1" lemma="Wort" result={{ correct: true, attempts: 1 }} onResult={vi.fn()} />)
-    expect(lockedCard()).toBeNull()
-    expect(interactive()).toBeTruthy()
-  })
-
   it('meldet bereits gesperrte Aufgaben dem Pager (onChecked)', () => {
     const onChecked = vi.fn()
     render(<TaskGate task={TASK} index="1" result={{ correct: true, attempts: 1 }} onResult={vi.fn()} onChecked={onChecked} />)

@@ -470,32 +470,12 @@ const COURSE_MATERIAL_ID = z.string().trim()
 /** GET /api/v1/course/stations/:id, …/tasks, …/materials (params) */
 export const courseStationIdParamsSchema = z.object({ id: COURSE_ID })
 
-// Eigenes-Lemma fürs Kurs-Template (AP9): Wort wie bei der Spiel-Validierung.
-const COURSE_LEMMA = z.string().trim().min(1).max(60).regex(WORT_REGEX, 'lemma enthält ungültige Zeichen')
-const COURSE_LEMMA_POS = z.enum(['Substantiv', 'Verb', 'Adjektiv'])
-
 /** GET /api/v1/course/stations/:id/tasks (query) */
 export const courseTasksQuerySchema = z.object({
   level:   COURSE_LEVEL.optional(),
   format:  COURSE_FORMAT.optional(),
   // resolve=interactive → Items werden serverseitig mit Korpus aufgelöst (AP8).
   resolve: z.enum(['interactive']).optional(),
-  // lemma → „Eigenes Lemma": Template mit gewähltem Wort füllen (AP9).
-  lemma:   COURSE_LEMMA.optional(),
-  pos:     COURSE_LEMMA_POS.optional(),
-})
-
-/** GET /api/v1/course/lemma/validate (query) – Eignungsprüfung fürs Kurs-Template */
-export const courseLemmaValidateSchema = z.object({
-  q:   COURSE_LEMMA,
-  pos: COURSE_LEMMA_POS.optional(),
-})
-
-/** GET /api/v1/course/stations/:id/worksheet (query) – Eigenes-Lemma-AB als HTML */
-export const courseWorksheetQuerySchema = z.object({
-  lemma: COURSE_LEMMA,
-  level: COURSE_LEVEL.optional(),
-  kind:  z.enum(['arbeitsblatt', 'loesung']).optional(),
 })
 
 /** GET /api/v1/course/stations/:id/materials (query) */
