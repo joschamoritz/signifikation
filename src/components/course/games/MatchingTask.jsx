@@ -4,7 +4,7 @@
 // Anker antippen; eine zugeordnete Karte antippen löst sie wieder.
 
 import { useState, useMemo, useRef, useEffect } from 'react'
-import { TaskHead, TaskActions, FeedbackBlock } from './TaskShell'
+import { TaskHead, TaskActions, FeedbackBlock, FeedbackRegion } from './TaskShell'
 import { metricLabel } from './fmt'
 
 const DRAG_THRESHOLD = 6 // px, bevor aus einem Tap ein Zug wird
@@ -151,8 +151,9 @@ export default function MatchingTask({ task, index, onChecked, canRetry = true, 
                         className={`course-match-chip course-match-chip--placed${verdict}`}
                         role="button"
                         tabIndex={checked ? -1 : 0}
+                        aria-label={`${c.label} – Zuordnung lösen`}
                         onClick={(e) => { e.stopPropagation(); unassign(c.id) }}
-                        onKeyDown={(e) => { if (e.key === 'Enter') { e.stopPropagation(); unassign(c.id) } }}
+                        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); unassign(c.id) } }}
                       >
                         {c.label}
                         {checked && <span className="course-match-verdict" aria-hidden="true">{isChipCorrect(a.id, c.id) ? '✓' : '✗'}</span>}
@@ -175,6 +176,8 @@ export default function MatchingTask({ task, index, onChecked, canRetry = true, 
             <button
               key={c.id}
               type="button"
+              aria-pressed={picked === c.id}
+              aria-label={`${c.label}${picked === c.id ? ' – ausgewählt, Feld zum Ablegen antippen' : ' – zum Zuordnen auswählen'}`}
               className={`course-match-chip course-match-chip--pool${picked === c.id ? ' course-match-chip--picked' : ''}${isDragged ? ' course-match-chip--dragging' : ''}`}
               onPointerDown={(e) => onPointerDown(e, c)}
               onPointerMove={onPointerMove}
@@ -205,22 +208,24 @@ export default function MatchingTask({ task, index, onChecked, canRetry = true, 
         lockedNote={lockedNote}
       />
 
-      {checked && result && (
-        result.allCorrect ? (
-          <FeedbackBlock task={task} correct={true} />
-        ) : result.wrong ? (
-          <FeedbackBlock task={task} correct={false} selected={result.wrong} />
-        ) : (
-          <div className="course-feedback course-fb--wrong" role="status" aria-live="polite">
-            <p className="course-fb-status">Fast</p>
-            <p className="course-fb-text">
-              Was du zugeordnet hast, stimmt — aber es {result.missingCount === 1
-                ? 'fehlt noch ein typischer Partner'
-                : `fehlen noch ${result.missingCount} typische Partner`}. Zieh ihn dazu.
-            </p>
-          </div>
-        )
-      )}
+      <FeedbackRegion>
+        {checked && result && (
+          result.allCorrect ? (
+            <FeedbackBlock task={task} correct={true} />
+          ) : result.wrong ? (
+            <FeedbackBlock task={task} correct={false} selected={result.wrong} />
+          ) : (
+            <div className="course-feedback course-fb--wrong">
+              <p className="course-fb-status">Fast</p>
+              <p className="course-fb-text">
+                Was du zugeordnet hast, stimmt — aber es {result.missingCount === 1
+                  ? 'fehlt noch ein typischer Partner'
+                  : `fehlen noch ${result.missingCount} typische Partner`}. Zieh ihn dazu.
+              </p>
+            </div>
+          )
+        )}
+      </FeedbackRegion>
     </div>
   )
 }

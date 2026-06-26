@@ -5,7 +5,7 @@
 // wird es zur Selbstkontrolle mit aufgedeckten Zielwörtern.
 
 import { useMemo, useState, useEffect } from 'react'
-import { TaskHead, TaskActions, FeedbackBlock } from './TaskShell'
+import { TaskHead, TaskActions, FeedbackBlock, FeedbackRegion } from './TaskShell'
 
 function tokenize(sentence) {
   return (sentence ?? '').split(/\s+/).filter(Boolean)
@@ -116,16 +116,18 @@ export default function MarkingTask({ task, index, onChecked, canRetry = true, l
         lockedNote={lockedNote}
       />
 
-      {checked && result && (
-        <>
-          {result.correct === null && targetWords.length > 0 && (
-            <p className="course-hint">
-              Erwartet: <strong>{targetWords.join(' … ')}</strong>
-            </p>
-          )}
-          <FeedbackBlock task={task} correct={result.correct} />
-        </>
-      )}
+      <FeedbackRegion>
+        {checked && result && (
+          <>
+            {result.correct === null && targetWords.length > 0 && (
+              <p className="course-hint">
+                Erwartet: <strong>{targetWords.join(' … ')}</strong>
+              </p>
+            )}
+            <FeedbackBlock task={task} correct={result.correct} />
+          </>
+        )}
+      </FeedbackRegion>
     </div>
   )
 }

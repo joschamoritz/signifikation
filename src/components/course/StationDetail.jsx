@@ -59,6 +59,23 @@ export default function StationDetail({ stationId, onBack, onNavigateToKonto, on
   const [station, setStation] = useState(null)
   const [stationState, setStationState] = useState('loading') // loading | ready | denied | error
 
+  // Tab-Tastaturmodell (APG): ←/→/↑/↓ wandern zwischen Üben/Material, Home/End
+  // springen an Rand. Fokus folgt der Auswahl (automatische Aktivierung — bei
+  // nur zwei einfachen Panels unkritisch).
+  const tablistRef = useRef(null)
+  function onTabKeyDown(e, idx) {
+    const last = SECTIONS.length - 1
+    let next = null
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown') next = idx === last ? 0 : idx + 1
+    else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') next = idx === 0 ? last : idx - 1
+    else if (e.key === 'Home') next = 0
+    else if (e.key === 'End') next = last
+    if (next == null) return
+    e.preventDefault()
+    setSection(SECTIONS[next].id)
+    tablistRef.current?.querySelectorAll('[role="tab"]')[next]?.focus()
+  }
+
   // ── Station-Kopfdaten (einmalig je Station) ──────────────────────────
   useEffect(() => {
     if (!stationId) return undefined
@@ -106,16 +123,18 @@ export default function StationDetail({ stationId, onBack, onNavigateToKonto, on
           {/* Niveau-Auswahl ist seit dem Redesign zentral (Anm. der Kurs-
               Startseite + Profil), nicht mehr pro Station. Direkt unter dem
               Kopf geht es mit den Üben/Material-Tabs los. */}
-          <div className="course-sections" role="tablist" aria-label="Bereich">
-            {SECTIONS.map((s) => (
+          <div className="course-sections" role="tablist" aria-label="Bereich" ref={tablistRef}>
+            {SECTIONS.map((s, i) => (
               <button
                 key={s.id}
                 role="tab"
                 id={`course-tab-${s.id}`}
                 aria-selected={section === s.id}
                 aria-controls={`course-panel-${s.id}`}
+                tabIndex={section === s.id ? 0 : -1}
                 className={`course-section-tab${section === s.id ? ' course-section-tab--active' : ''}`}
                 onClick={() => setSection(s.id)}
+                onKeyDown={(e) => onTabKeyDown(e, i)}
               >
                 {s.label}
               </button>
