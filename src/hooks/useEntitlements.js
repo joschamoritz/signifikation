@@ -5,6 +5,9 @@ import { apiFetch } from '../utils/apiFetch'
 
 export function useEntitlements() {
   const [gesamtausgabeUnlocked, setGesamtausgabeUnlocked] = useState(() => !!lsGet('sig_gesamtausgabe'))
+  // Login-Status (für freies Kurs-Üben: Login statt Premium). Premium impliziert
+  // eingeloggt → optimistisch aus dem gecachten Premium-Flag vorbelegt.
+  const [loggedIn, setLoggedIn] = useState(() => !!lsGet('sig_gesamtausgabe'))
   const [classroomTeacher, setClassroomTeacher] = useState(false)
   // Eigenes-Lemma-Tageskontingent (Phase 4). Optimistisch aus dem gecachten
   // Premium-Flag vorbelegt, damit ein zurückkehrender Premium-Nutzer sofort
@@ -20,6 +23,8 @@ export function useEntitlements() {
       lsRemove('sig_gesamtausgabe')
     }
     setGesamtausgabeUnlocked(serverUnlocked)
+    // loggedIn: explizites Flag bevorzugt, sonst aus Premium ableiten (Premium ⇒ eingeloggt).
+    setLoggedIn(payload?.loggedIn ?? serverUnlocked)
     setClassroomTeacher(!!payload?.classroomTeacher)
     setCustomLemma(payload?.customLemma ?? null)
   }, [])
@@ -52,6 +57,7 @@ export function useEntitlements() {
     // Alle vier Spielmodi sind dauerhaft frei.
     gesamtausgabeUnlocked,
     gesamtausgabePermanent: gesamtausgabeUnlocked,
+    loggedIn,
     classroomTeacher,
     customLemma,
     refreshEntitlements,

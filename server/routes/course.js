@@ -1,10 +1,12 @@
 /**
  * routes/course.js – Kurs-API unter /api/v1/course/*
  *
- * Premium-only (Kurs-Tab-Planung §0): der gesamte Kurs-Tab ist nur mit
- * Gesamtausgabe zugänglich, NICHT für Schüler freigebbar. Daher hängt jede
- * Route an requirePremium (Premium-Gate). Es gibt KEIN capability-/session-
- * basiertes Gating wie im Klassenraum — der Kurs ist Einzelnutzer-Material.
+ * Zugangsmodell (Entscheidung 2026-06-25): „Üben frei (Login), Material Premium".
+ *   - Stationen + Üben + Fortschritt: requireAuthUser (jede eingeloggte Rolle,
+ *     auch Basic) → Persistenz/Sperre ans Konto gebunden.
+ *   - Material, Worksheet, Eigenes-Lemma (lemma=…/lemma/validate): requirePremium
+ *     bzw. Premium-Check im Handler — Premium-Nutzen = Lehrmaterial + Extras.
+ * Kein capability-/session-basiertes Gating wie im Klassenraum — Einzelnutzer-Material.
  *
  * Endpunkte:
  *   GET  /stations                       – Lernpfad-Stationen (geordnet)
@@ -22,7 +24,7 @@ import express from 'express'
 import { existsSync } from 'node:fs'
 import { basename, dirname, join, resolve as pathResolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { requirePremium } from '../middleware/userAuth.js'
+import { requirePremium, requireAuthUser } from '../middleware/userAuth.js'
 import { serverError } from '../middleware/auth.js'
 import {
   validate,
@@ -55,8 +57,8 @@ const BASE = '/api/v1/course'
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const PDF_DIR = pathResolve(__dirname, '..', 'data', 'course-pdfs')
 
-/** GET /stations – alle Stationen des Lernpfads. */
-router.get(`${BASE}/stations`, requirePremium, (req, res) => {
+/** GET /stations – alle Stationen des Lernpfads (frei, Login genügt). */
+router.get(`${BASE}/stations`, requireAuthUser, (req, res) => {
   try {
     res.json({ stations: courseStore.listStations() })
   } catch (err) {
@@ -68,7 +70,7 @@ router.get(`${BASE}/stations`, requirePremium, (req, res) => {
 /** GET /stations/:id – Station-Detail inkl. verfügbarer Niveaus + Materialarten. */
 router.get(
   `${BASE}/stations/:id`,
-  requirePremium,
+  requireAuthUser,
   validate(courseStationIdParamsSchema, 'params'),
   (req, res) => {
     try {
@@ -100,7 +102,7 @@ function stationCorpusPos(items) {
 /** GET /stations/:id/tasks – Aufgaben-Items, optional nach Niveau/Format/Lemma. */
 router.get(
   `${BASE}/stations/:id/tasks`,
-  requirePremium,
+  requireAuthUser,
   validate(courseStationIdParamsSchema, 'params'),
   validate(courseTasksQuerySchema, 'query'),
   async (req, res) => {
@@ -123,10 +125,13 @@ router.get(
       const items = tasks.map(t => courseStore.taskToEngineItem(t))
       let lemma // undefined = Anker-Lemma aus dem Content
 
-      // „Eigenes Lemma" (AP9): Template mit gewähltem Wort füllen. Der Kurs ist
-      // Premium-only (requirePremium oben) → „Eigenes Lemma unbegrenzt" laut
-      // Entitlement; kein Verbrauch des Basic-Tageskontingents.
+      // „Eigenes Lemma" (AP9): Template mit gewähltem Wort füllen. Bleibt
+      // Premium-Feature — die Route selbst ist frei (requireAuthUser), aber der
+      // lemma-Pfad ist Premium-gegated; kein Verbrauch des Basic-Kontingents.
       if (req.query.lemma) {
+        if (req.user.role !== 'premium' && req.user.role !== 'admin') {
+          return res.status(403).json({ error: 'Eigenes Lemma ist Teil der Gesamtausgabe' })
+        }
         const pos = req.query.pos ?? stationCorpusPos(items)
         const verdict = await validateCustomLemma({ mode: 'kollokationen', q: req.query.lemma, pos })
         if (!verdict.usable) {
@@ -272,7 +277,7 @@ router.get(
  *   summary:  je (Station, Niveau) { total, solved, attempted } für die
  *             Fortschrittsanzeige auf der Kurs-Startseite.
  */
-router.get(`${BASE}/progress`, requirePremium, (req, res) => {
+router.get(`${BASE}/progress`, requireAuthUser, (req, res) => {
   try {
     res.json({
       progress: courseStore.getProgressForUser(req.user.id),
@@ -291,7 +296,7 @@ router.get(`${BASE}/progress`, requirePremium, (req, res) => {
  */
 router.delete(
   `${BASE}/progress`,
-  requirePremium,
+  requireAuthUser,
   validate(courseResetQuerySchema, 'query'),
   (req, res) => {
     try {
@@ -313,7 +318,7 @@ router.delete(
 /** GET /stations/:id/results – Aufgaben-Ergebnisse der Station (je Konto). */
 router.get(
   `${BASE}/stations/:id/results`,
-  requirePremium,
+  requireAuthUser,
   validate(courseStationIdParamsSchema, 'params'),
   validate(courseResultsQuerySchema, 'query'),
   (req, res) => {
@@ -339,7 +344,7 @@ router.get(
  */
 router.post(
   `${BASE}/stations/:id/tasks/:taskId/result`,
-  requirePremium,
+  requireAuthUser,
   validate(courseTaskResultParamsSchema, 'params'),
   validate(courseTaskResultBodySchema, 'body'),
   (req, res) => {
@@ -371,7 +376,7 @@ router.post(
 /** PUT /progress/:stationId – Fortschritt setzen (idle/in-progress/done). */
 router.put(
   `${BASE}/progress/:stationId`,
-  requirePremium,
+  requireAuthUser,
   validate(courseProgressStationParamsSchema, 'params'),
   validate(courseProgressUpdateSchema, 'body'),
   (req, res) => {
