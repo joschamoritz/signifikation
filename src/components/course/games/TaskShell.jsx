@@ -5,9 +5,13 @@
 import { fillSelected } from './fmt'
 
 /**
- * Aufgaben-Kopf: Format-Badge, Prompt, Metasprache-Chips.
+ * Aufgaben-Kopf: Format-Badge (als Überschrift), Prompt, Metasprache-Chips.
  * index === false → Badge unterdrücken (der mobile Pager liefert die
  * fokussierbare „Aufgabe X von N"-Überschrift selbst, sonst doppelt).
+ *
+ * Das Badge ist ein <h3>, damit Screenreader die Desktop-Aufgabenliste per
+ * Überschrift navigieren können (Stationstitel = h2). Optik bleibt via
+ * .course-task-format identisch.
  */
 export function TaskHead({ task, index }) {
   const meta = task.metasprache ?? []
@@ -15,7 +19,7 @@ export function TaskHead({ task, index }) {
     <div className="course-task-head-block">
       {index !== false && (
         <div className="course-task-head">
-          <span className="course-task-format">{index != null ? `Aufgabe ${index}` : 'Aufgabe'}</span>
+          <h3 className="course-task-format">{index != null ? `Aufgabe ${index}` : 'Aufgabe'}</h3>
         </div>
       )}
       <p className="course-task-prompt">{task.prompt}</p>
@@ -24,6 +28,20 @@ export function TaskHead({ task, index }) {
           {meta.map((m) => <li key={m} className="course-task-tag">{m}</li>)}
         </ul>
       )}
+    </div>
+  )
+}
+
+/**
+ * Dauerhaft gemountete Live-Region für das Aufgaben-Feedback. Sie liegt leer im
+ * DOM und wird nach „Prüfen" befüllt — eine erst beim Prüfen gemountete
+ * aria-live-Region wird von vielen Screenreadern verschluckt. Daher tragen die
+ * Feedback-Blöcke darin selbst KEIN role/aria-live mehr.
+ */
+export function FeedbackRegion({ children }) {
+  return (
+    <div className="course-feedback-live" role="status" aria-live="polite">
+      {children}
     </div>
   )
 }
@@ -81,7 +99,7 @@ export function FeedbackBlock({ task, correct, selected = null, choiceKey, showR
     : 'course-fb--neutral'
 
   return (
-    <div className={`course-feedback ${statusClass}`} role="status" aria-live="polite">
+    <div className={`course-feedback ${statusClass}`}>
       <p className="course-fb-status">{statusLabel}</p>
       {text && <p className="course-fb-text">{text}</p>}
 

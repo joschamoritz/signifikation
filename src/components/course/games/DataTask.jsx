@@ -4,7 +4,7 @@
 // Abgabe). Kern der Häufig-≠-typisch-Einsicht (Station ④, Brücke aus ①).
 
 import { useMemo, useState, useEffect } from 'react'
-import { TaskHead, TaskActions, FeedbackBlock } from './TaskShell'
+import { TaskHead, TaskActions, FeedbackBlock, FeedbackRegion } from './TaskShell'
 import { fmtLogDice, fmtFrequency } from './fmt'
 
 const COL_LABEL = { verbindung: 'Verbindung', frequency: 'Frequenz', logDice: 'logDice' }
@@ -146,9 +146,11 @@ export default function DataTask({ task, index, onChecked, canRetry = true, lock
 
       <TaskActions checked={checked} canCheck={canCheck} onCheck={() => setChecked(true)} onReset={reset} canReset={canRetry} lockedNote={lockedNote} />
 
-      {checked && (
-        <FeedbackBlock task={task} correct={pickRowQs.length > 0 ? allPicksCorrect : null} />
-      )}
+      <FeedbackRegion>
+        {checked && (
+          <FeedbackBlock task={task} correct={pickRowQs.length > 0 ? allPicksCorrect : null} />
+        )}
+      </FeedbackRegion>
     </div>
   )
 }

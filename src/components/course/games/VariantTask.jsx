@@ -4,7 +4,7 @@
 // datengestützt (logDice/Frequenz bei SekII+).
 
 import { useMemo, useState, useEffect } from 'react'
-import { TaskHead, TaskActions, FeedbackBlock } from './TaskShell'
+import { TaskHead, TaskActions, FeedbackBlock, FeedbackRegion } from './TaskShell'
 import { metricLabel } from './fmt'
 
 export default function VariantTask({ task, index, onChecked, canRetry = true, lockedNote = null }) {
@@ -131,27 +131,29 @@ export default function VariantTask({ task, index, onChecked, canRetry = true, l
 
       <TaskActions checked={checked} canCheck={canCheck} onCheck={() => setChecked(true)} onReset={reset} canReset={canRetry} lockedNote={lockedNote} />
 
-      {checked && result && (
-        <FeedbackBlock
-          task={task}
-          correct={result.correct}
-          selected={result.selected}
-          choiceKey={choice}
-          showRubric={requireJustification && !justifyChoice}
-        />
-      )}
+      <FeedbackRegion>
+        {checked && result && (
+          <FeedbackBlock
+            task={task}
+            correct={result.correct}
+            selected={result.selected}
+            choiceKey={choice}
+            showRubric={requireJustification && !justifyChoice}
+          />
+        )}
 
-      {checked && justifyChoice && reasonResult && (
-        <div className={`course-feedback ${reasonResult.correct ? 'course-fb--correct' : 'course-fb--wrong'}`} role="status">
-          <p className="course-fb-status">{reasonResult.correct ? 'Begründung passt' : 'Begründung — noch nicht ganz'}</p>
-          <p className="course-fb-text">
-            {reasonResult.feedback
-              ?? (reasonResult.correct
-                ? 'Genau diese Begründung trägt.'
-                : `Treffender wäre: „${justifyChoice.options.find((o) => o.correct)?.label}".`)}
-          </p>
-        </div>
-      )}
+        {checked && justifyChoice && reasonResult && (
+          <div className={`course-feedback ${reasonResult.correct ? 'course-fb--correct' : 'course-fb--wrong'}`}>
+            <p className="course-fb-status">{reasonResult.correct ? 'Begründung passt' : 'Begründung — noch nicht ganz'}</p>
+            <p className="course-fb-text">
+              {reasonResult.feedback
+                ?? (reasonResult.correct
+                  ? 'Genau diese Begründung trägt.'
+                  : `Treffender wäre: „${justifyChoice.options.find((o) => o.correct)?.label}".`)}
+            </p>
+          </div>
+        )}
+      </FeedbackRegion>
     </div>
   )
 }

@@ -4,7 +4,7 @@
 // kontrolle gegen solution.rubric.
 
 import { useMemo, useState, useEffect } from 'react'
-import { TaskHead, TaskActions, FeedbackBlock } from './TaskShell'
+import { TaskHead, TaskActions, FeedbackBlock, FeedbackRegion } from './TaskShell'
 import { metricLabel } from './fmt'
 
 export default function GapTask({ task, index, onChecked, canRetry = true, lockedNote = null }) {
@@ -94,15 +94,17 @@ export default function GapTask({ task, index, onChecked, canRetry = true, locke
 
       <TaskActions checked={checked} canCheck={canCheck} onCheck={() => setChecked(true)} onReset={reset} canReset={canRetry} lockedNote={lockedNote} />
 
-      {checked && result && (
-        <FeedbackBlock
-          task={task}
-          correct={result.correct}
-          selected={result.selected}
-          choiceKey={choice}
-          showRubric={requireJustification}
-        />
-      )}
+      <FeedbackRegion>
+        {checked && result && (
+          <FeedbackBlock
+            task={task}
+            correct={result.correct}
+            selected={result.selected}
+            choiceKey={choice}
+            showRubric={requireJustification}
+          />
+        )}
+      </FeedbackRegion>
     </div>
   )
 }
