@@ -56,6 +56,9 @@ const stmts = {
   getMaterial: db.prepare(`
     SELECT * FROM course_materials WHERE id = ?
   `),
+  getTask: db.prepare(`
+    SELECT * FROM course_tasks WHERE id = ?
+  `),
   progressForUser: db.prepare(`
     SELECT station_id, status, updated_at FROM course_progress WHERE user_id = ?
   `),
@@ -69,6 +72,61 @@ const stmts = {
     SELECT station_id, status, updated_at FROM course_progress
     WHERE user_id = ? AND station_id = ?
   `),
+
+  // ── Aufgaben-Ergebnisse (course_task_result, Migration 0018) ────────
+  resultsForUser: db.prepare(`
+    SELECT task_id, station_id, level, correct, attempts, updated_at
+    FROM course_task_result WHERE user_id = ?
+  `),
+  resultsForStation: db.prepare(`
+    SELECT task_id, station_id, level, correct, attempts, updated_at
+    FROM course_task_result WHERE user_id = ? AND station_id = ?
+  `),
+  getResultRow: db.prepare(`
+    SELECT task_id, station_id, level, correct, attempts, updated_at
+    FROM course_task_result WHERE user_id = ? AND task_id = ?
+  `),
+  // Upsert: attempts inkrementieren (atomar), correct als „bestes" Ergebnis
+  // festhalten — eine einmal richtige Aufgabe bleibt richtig, auch wenn der
+  // Client (sollte nicht) erneut postet.
+  upsertResult: db.prepare(`
+    INSERT INTO course_task_result (user_id, station_id, task_id, level, correct, attempts, updated_at)
+    VALUES (@userId, @stationId, @taskId, @level, @correct, 1, @now)
+    ON CONFLICT(user_id, task_id) DO UPDATE SET
+      attempts   = attempts + 1,
+      correct    = CASE WHEN correct = 1 THEN 1 ELSE excluded.correct END,
+      level      = excluded.level,
+      station_id = excluded.station_id,
+      updated_at = excluded.updated_at
+  `),
+  // Stations-Übersicht: je (Station, Niveau) Gesamtzahl der Aufgaben +
+  // gelöst/bearbeitet des Nutzers (LEFT JOIN → auch unbespielte Stufen mit 0).
+  summaryForUser: db.prepare(`
+    SELECT t.station_id                                    AS stationId,
+           t.level                                         AS level,
+           COUNT(t.id)                                     AS total,
+           COALESCE(SUM(CASE WHEN r.correct = 1 THEN 1 END), 0) AS solved,
+           COUNT(r.task_id)                                AS attempted
+    FROM course_tasks t
+    LEFT JOIN course_task_result r
+      ON r.task_id = t.id AND r.user_id = ?
+    GROUP BY t.station_id, t.level
+  `),
+  // Auto-Stationsstatus: wie viele Aufgaben einer (Station, Niveau) sind
+  // „abgeschlossen" = richtig gelöst oder Selbstkontrolle abgegeben. Vergleich
+  // mit der Gesamtzahl steuert course_progress (done, wenn alle abgeschlossen).
+  countTasksStationLevel: db.prepare(`
+    SELECT COUNT(*) AS n FROM course_tasks WHERE station_id = ? AND level = ?
+  `),
+  countCompletedResults: db.prepare(`
+    SELECT COUNT(*) AS n FROM course_task_result
+    WHERE user_id = ? AND station_id = ? AND level = ?
+      AND (correct = 1 OR correct IS NULL)
+  `),
+  resetAllResults:     db.prepare('DELETE FROM course_task_result WHERE user_id = ?'),
+  resetStationResults: db.prepare('DELETE FROM course_task_result WHERE user_id = ? AND station_id = ?'),
+  resetAllProgress:     db.prepare('DELETE FROM course_progress WHERE user_id = ?'),
+  resetStationProgress: db.prepare('DELETE FROM course_progress WHERE user_id = ? AND station_id = ?'),
 }
 
 // ── Row-Mapper (snake_case → camelCase, JSON parsen) ─────────────────
@@ -121,6 +179,18 @@ function mapProgress(r) {
   return { stationId: r.station_id, status: r.status, updatedAt: r.updated_at }
 }
 
+function mapResult(r) {
+  return {
+    taskId:    r.task_id,
+    stationId: r.station_id,
+    level:     r.level,
+    // SQLite kennt kein Boolean → 1/0/NULL zurück auf true/false/null.
+    correct:   r.correct == null ? null : r.correct === 1,
+    attempts:  r.attempts,
+    updatedAt: r.updated_at,
+  }
+}
+
 function sortByOrder(values, order) {
   return [...values].sort((a, b) => {
     const ia = order.indexOf(a); const ib = order.indexOf(b)
@@ -170,6 +240,12 @@ export function getMaterial(id) {
   return row ? mapMaterial(row) : null
 }
 
+/** Einzelne Aufgabe (für Ergebnis-Persistenz-Validierung) oder null. */
+export function getTask(id) {
+  const row = stmts.getTask.get(id)
+  return row ? mapTask(row) : null
+}
+
 /** Material einer Station, optional nach Niveau und/oder Art gefiltert. */
 export function listMaterials(stationId, { level, kind } = {}) {
   let materials = stmts.materialsByStation.all(stationId).map(mapMaterial)
@@ -215,3 +291,74 @@ export function upsertProgress({ userId, stationId, status }) {
   stmts.upsertProgress.run(userId, stationId, status, Date.now())
   return mapProgress(stmts.getProgressRow.get(userId, stationId))
 }
+
+// ── Aufgaben-Ergebnisse (course_task_result) ─────────────────────────
+
+/** Ergebnisse eines Nutzers, optional auf eine Station eingegrenzt. */
+export function getResultsForUser(userId, stationId = null) {
+  const rows = stationId
+    ? stmts.resultsForStation.all(userId, stationId)
+    : stmts.resultsForUser.all(userId)
+  return rows.map(mapResult)
+}
+
+/**
+ * Ergebnis einer Aufgabe festhalten: attempts +1, correct als „bestes"
+ * Resultat. Aktualisiert den groben Stations-Status (course_progress) gleich
+ * mit: bearbeitet → 'in-progress', alle Aufgaben der Stufe abgeschlossen →
+ * 'done'. Läuft in EINER Transaktion (better-sqlite3, synchron).
+ *
+ * @param {object} p
+ * @param {string} p.userId
+ * @param {string} p.stationId
+ * @param {string} p.taskId
+ * @param {string} p.level   DaZ|SekI|SekII|LK
+ * @param {boolean|null} p.correct  true|false geschlossen bewertet; null = Selbstkontrolle
+ * @returns {object} mapResult-Zeile
+ */
+export const recordTaskResult = db.transaction(({ userId, stationId, taskId, level, correct }) => {
+  const now = Date.now()
+  stmts.upsertResult.run({
+    userId, stationId, taskId, level,
+    correct: correct == null ? null : (correct ? 1 : 0),
+    now,
+  })
+
+  // Groben Stations-Status nachziehen (done, wenn alle Aufgaben der Stufe
+  // gelöst/bearbeitet sind).
+  const total = stmts.countTasksStationLevel.get(stationId, level).n
+  const completed = stmts.countCompletedResults.get(userId, stationId, level).n
+  const status = total > 0 && completed >= total ? 'done' : 'in-progress'
+  stmts.upsertProgress.run(userId, stationId, status, now)
+
+  return mapResult(stmts.getResultRow.get(userId, taskId))
+})
+
+/**
+ * Stations-Übersicht je (Station, Niveau): { stationId, level, total, solved,
+ * attempted }. Für die Fortschrittsanzeige auf der Kurs-Startseite. LEFT JOIN
+ * → auch Stationen ohne Ergebnis erscheinen (solved/attempted = 0).
+ */
+export function getCourseSummary(userId) {
+  return stmts.summaryForUser.all(userId).map((r) => ({
+    stationId: r.stationId,
+    level:     r.level,
+    total:     r.total,
+    solved:    r.solved,
+    attempted: r.attempted,
+  }))
+}
+
+/**
+ * Kurs-Fortschritt eines Nutzers zurücksetzen (Ergebnisse + grober Status),
+ * optional auf eine Station eingegrenzt. Gibt die Anzahl gelöschter
+ * Ergebnis-Zeilen zurück. Atomar.
+ */
+export const resetCourseProgress = db.transaction(({ userId, stationId = null }) => {
+  const res = stationId
+    ? stmts.resetStationResults.run(userId, stationId)
+    : stmts.resetAllResults.run(userId)
+  if (stationId) stmts.resetStationProgress.run(userId, stationId)
+  else stmts.resetAllProgress.run(userId)
+  return res.changes
+})

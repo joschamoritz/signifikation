@@ -57,7 +57,7 @@ export default function KontoTab({ gesamtausgabe, gesamtausgabePermanent, onAuth
             <KontoStatistikenBlock />
 
             {/* ④ Einstellungen */}
-            <KontoEinstellungenBlock />
+            <KontoEinstellungenBlock gesamtausgabe={gesamtausgabe} />
 
             {/* ⑤ Rechtliches & Info */}
             <KontoRechtlichesBlock />

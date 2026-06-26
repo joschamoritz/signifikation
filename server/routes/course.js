@@ -11,8 +11,11 @@
  *   GET  /stations/:id                   – Station-Detail (+ Niveaus + Materialarten)
  *   GET  /stations/:id/tasks?level&format– Aufgaben-Items nach Station (+Niveau/Format)
  *   GET  /stations/:id/materials?level&kind – Material-Liste der Station
- *   GET  /progress                       – kontobezogener Solo-Fortschritt
+ *   GET  /progress                       – kontobezogener Solo-Fortschritt (+ Übersicht)
  *   PUT  /progress/:stationId            – Fortschritt setzen (optional, Solo)
+ *   DELETE /progress                     – Kurs-Fortschritt zurücksetzen (optional ?stationId)
+ *   GET  /stations/:id/results           – Aufgaben-Ergebnisse der Station (je Konto)
+ *   POST /stations/:id/tasks/:taskId/result – Ergebnis einer Aufgabe festhalten
  */
 
 import express from 'express'
@@ -31,6 +34,10 @@ import {
   courseWorksheetQuerySchema,
   courseProgressStationParamsSchema,
   courseProgressUpdateSchema,
+  courseResultsQuerySchema,
+  courseTaskResultParamsSchema,
+  courseTaskResultBodySchema,
+  courseResetQuerySchema,
 } from '../middleware/validate.js'
 import * as courseStore from '../course/store.js'
 import { makeCorpusAdapter } from '../course/corpusAdapter.js'
@@ -259,15 +266,107 @@ router.get(
   },
 )
 
-/** GET /progress – kontobezogener Solo-Fortschritt des Premium-Nutzers. */
+/**
+ * GET /progress – Solo-Fortschritt des Premium-Nutzers.
+ *   progress: grober Stations-Status (idle/in-progress/done)
+ *   summary:  je (Station, Niveau) { total, solved, attempted } für die
+ *             Fortschrittsanzeige auf der Kurs-Startseite.
+ */
 router.get(`${BASE}/progress`, requirePremium, (req, res) => {
   try {
-    res.json({ progress: courseStore.getProgressForUser(req.user.id) })
+    res.json({
+      progress: courseStore.getProgressForUser(req.user.id),
+      summary:  courseStore.getCourseSummary(req.user.id),
+    })
   } catch (err) {
     logger.error({ err, userId: req.user?.id }, 'Kurs: Fortschritt laden fehlgeschlagen')
     serverError(res, err)
   }
 })
+
+/**
+ * DELETE /progress – Kurs-Fortschritt zurücksetzen (Ergebnisse + Status),
+ * optional via ?stationId nur eine Station. Macht Station/alles neu spielbar
+ * (Konto-Einstellungen). Idempotent — auch ohne vorhandene Daten 200.
+ */
+router.delete(
+  `${BASE}/progress`,
+  requirePremium,
+  validate(courseResetQuerySchema, 'query'),
+  (req, res) => {
+    try {
+      if (req.query.stationId && !courseStore.getStation(req.query.stationId)) {
+        return res.status(404).json({ error: 'Station nicht gefunden' })
+      }
+      const removed = courseStore.resetCourseProgress({
+        userId:    req.user.id,
+        stationId: req.query.stationId ?? null,
+      })
+      res.json({ ok: true, removed })
+    } catch (err) {
+      logger.error({ err, userId: req.user?.id }, 'Kurs: Fortschritt zurücksetzen fehlgeschlagen')
+      serverError(res, err)
+    }
+  },
+)
+
+/** GET /stations/:id/results – Aufgaben-Ergebnisse der Station (je Konto). */
+router.get(
+  `${BASE}/stations/:id/results`,
+  requirePremium,
+  validate(courseStationIdParamsSchema, 'params'),
+  validate(courseResultsQuerySchema, 'query'),
+  (req, res) => {
+    try {
+      let results = courseStore.getResultsForUser(req.user.id, req.params.id)
+      if (req.query.level) results = results.filter(r => r.level === req.query.level)
+      res.json({ stationId: req.params.id, results })
+    } catch (err) {
+      logger.error({ err, userId: req.user?.id, id: req.params.id }, 'Kurs: Ergebnisse laden fehlgeschlagen')
+      serverError(res, err)
+    }
+  },
+)
+
+/**
+ * POST /stations/:id/tasks/:taskId/result – Ergebnis einer Aufgabe festhalten.
+ * Body: { level, correct: true|false|null }. attempts wird serverseitig
+ * inkrementiert; correct bleibt „bestes" Resultat. Der Client sperrt eine
+ * kuratierte Aufgabe nach der Abgabe (neu spielbar nur über den Profil-Reset);
+ * der Server bleibt idempotent und hält schlicht das beste Ergebnis.
+ *
+ * „Eigenes Lemma" wird NICHT persistiert — der Client postet dort kein Ergebnis.
+ */
+router.post(
+  `${BASE}/stations/:id/tasks/:taskId/result`,
+  requirePremium,
+  validate(courseTaskResultParamsSchema, 'params'),
+  validate(courseTaskResultBodySchema, 'body'),
+  (req, res) => {
+    try {
+      const task = courseStore.getTask(req.params.taskId)
+      // Aufgabe muss existieren, zur Station gehören und die Stufe muss passen
+      // (task_id ist je Niveau eindeutig) — sonst 404 statt Constraint-Fehler.
+      if (!task || task.stationId !== req.params.id) {
+        return res.status(404).json({ error: 'Aufgabe nicht gefunden' })
+      }
+      if (task.level !== req.body.level) {
+        return res.status(404).json({ error: 'Aufgabe gehört nicht zu dieser Stufe' })
+      }
+      const result = courseStore.recordTaskResult({
+        userId:    req.user.id,
+        stationId: req.params.id,
+        taskId:    req.params.taskId,
+        level:     req.body.level,
+        correct:   req.body.correct,
+      })
+      res.json({ result })
+    } catch (err) {
+      logger.error({ err, userId: req.user?.id, taskId: req.params.taskId }, 'Kurs: Ergebnis speichern fehlgeschlagen')
+      serverError(res, err)
+    }
+  },
+)
 
 /** PUT /progress/:stationId – Fortschritt setzen (idle/in-progress/done). */
 router.put(

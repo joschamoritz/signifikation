@@ -3,11 +3,11 @@
 // optionsspezifisches Feedback über feedback.onChoice; Begründung = Selbst-
 // kontrolle gegen solution.rubric.
 
-import { useMemo, useState } from 'react'
+import { useMemo, useState, useEffect } from 'react'
 import { TaskHead, TaskActions, FeedbackBlock } from './TaskShell'
 import { metricLabel } from './fmt'
 
-export default function GapTask({ task, index, onChecked }) {
+export default function GapTask({ task, index, onChecked, canRetry = true, lockedNote = null }) {
   const sentence = task.payload?.sentence ?? ''
   const options = task.payload?.options ?? []
   const requireJustification = task.payload?.requireJustification ?? false
@@ -24,6 +24,12 @@ export default function GapTask({ task, index, onChecked }) {
     if (!checked || !choice) return null
     const sel = options.find((o) => o.id === choice) ?? null
     return { correct: choice === correctId, selected: sel }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [checked])
+
+  // Geschlossene Bewertung ist die Optionswahl (Begründung = Selbstkontrolle).
+  useEffect(() => {
+    if (checked && result) onChecked?.(result.correct)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [checked])
 
@@ -86,7 +92,7 @@ export default function GapTask({ task, index, onChecked }) {
         </label>
       )}
 
-      <TaskActions checked={checked} canCheck={canCheck} onCheck={() => { setChecked(true); onChecked?.() }} onReset={reset} />
+      <TaskActions checked={checked} canCheck={canCheck} onCheck={() => setChecked(true)} onReset={reset} canReset={canRetry} lockedNote={lockedNote} />
 
       {checked && result && (
         <FeedbackBlock

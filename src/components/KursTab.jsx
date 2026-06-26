@@ -1,4 +1,4 @@
-import { memo, useRef, useCallback, useState } from 'react'
+import { memo, useRef, useCallback, useState, useEffect } from 'react'
 import TabHeader from './TabHeader'
 import Sheet from './ui/Sheet'
 import KursNote from './KursNote'
@@ -6,6 +6,9 @@ import { useActiveSnapCard } from '../hooks/useActiveSnapCard'
 import { useScrollPersist } from '../hooks/useScrollPersist'
 import StationDetail from './course/StationDetail'
 import { useCourseStation, openCourseStation, closeCourseStation } from './course/courseRouting'
+import { useGlobalNiveau } from './course/useGlobalNiveau'
+import { apiGet } from '../api/client'
+import { API } from '../config'
 import '../styles/course.css'
 
 // Lernpfad-Stationen laut Kurs-Tab-IA.md (Ebene 1). `apiId` mappt auf die
@@ -75,6 +78,28 @@ function KursTab({ gesamtausgabe = false, onNavigateToKonto }) {
   const [sheetOpen, setSheetOpen] = useState(false)
 
   const stationId = useCourseStation()
+  const [niveau] = useGlobalNiveau()
+
+  // Stations-Fortschritt (gelöst/gesamt je Niveau) für die Übersicht. Nur bei
+  // freigeschaltetem Kurs laden; best effort (Fortschritt ist optional).
+  const [summary, setSummary] = useState([])
+  useEffect(() => {
+    if (!gesamtausgabe) { setSummary([]); return undefined }
+    let cancelled = false
+    const controller = new AbortController()
+    ;(async () => {
+      try {
+        const json = await apiGet(`${API}/course/progress`, { signal: controller.signal })
+        if (!cancelled) setSummary(json.summary ?? [])
+      } catch { /* Fortschrittsanzeige optional */ }
+    })()
+    return () => { cancelled = true; controller.abort() }
+  }, [gesamtausgabe, stationId])
+
+  const progressFor = useCallback(
+    (apiId) => summary.find((s) => s.stationId === apiId && s.level === niveau) ?? null,
+    [summary, niveau],
+  )
 
   const scrollToCard = useCallback((index) => {
     const items = entriesRef.current?.querySelectorAll('.test-entry')
@@ -127,6 +152,8 @@ function KursTab({ gesamtausgabe = false, onNavigateToKonto }) {
             {KURS_MODULES.map((mod, idx) => {
               const active = !!mod.apiId
               const isFirst = idx === 0 // Schmuck-Initiale wie auf der Spielmodi-Startseite
+              const prog = active && gesamtausgabe ? progressFor(mod.apiId) : null
+              const started = prog && prog.attempted > 0 && prog.total > 0
               return (
                 <li
                   key={mod.id}
@@ -159,14 +186,18 @@ function KursTab({ gesamtausgabe = false, onNavigateToKonto }) {
                       {active ? (
                         <>
                           <span className="test-status">
-                            {gesamtausgabe ? 'Bereit.' : 'Teil der Gesamtausgabe.'}
+                            {!gesamtausgabe
+                              ? 'Teil der Gesamtausgabe.'
+                              : started
+                                ? `${prog.solved}/${prog.total} gelöst`
+                                : 'Bereit.'}
                           </span>
                           <button
                             type="button"
                             className="test-cta"
                             onClick={() => openStation(mod)}
                           >
-                            {gesamtausgabe ? 'Zur Aufgabe' : 'Freischalten'}
+                            {!gesamtausgabe ? 'Freischalten' : started ? 'Weiter' : 'Zur Aufgabe'}
                             <span className="test-cta-arrow" aria-hidden="true">›</span>
                           </button>
                         </>

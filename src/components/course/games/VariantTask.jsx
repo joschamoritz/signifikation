@@ -3,11 +3,11 @@
 // bewertet wird die Variantenwahl (solution.preferred); das Feedback ist
 // datengestützt (logDice/Frequenz bei SekII+).
 
-import { useMemo, useState } from 'react'
+import { useMemo, useState, useEffect } from 'react'
 import { TaskHead, TaskActions, FeedbackBlock } from './TaskShell'
 import { metricLabel } from './fmt'
 
-export default function VariantTask({ task, index, onChecked }) {
+export default function VariantTask({ task, index, onChecked, canRetry = true, lockedNote = null }) {
   const frame = task.payload?.frame ?? ''
   const variants = task.payload?.variants ?? []
   const requireJustification = task.payload?.requireJustification ?? false
@@ -29,6 +29,12 @@ export default function VariantTask({ task, index, onChecked }) {
     if (!checked || !choice) return null
     const sel = variants.find((v) => v.id === choice) ?? null
     return { correct: preferred.includes(choice), selected: sel }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [checked])
+
+  // Geschlossene Bewertung ist die Variantenwahl (Begründung = Selbstkontrolle).
+  useEffect(() => {
+    if (checked && result) onChecked?.(result.correct)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [checked])
 
@@ -123,7 +129,7 @@ export default function VariantTask({ task, index, onChecked }) {
         </label>
       ) : null}
 
-      <TaskActions checked={checked} canCheck={canCheck} onCheck={() => { setChecked(true); onChecked?.() }} onReset={reset} />
+      <TaskActions checked={checked} canCheck={canCheck} onCheck={() => setChecked(true)} onReset={reset} canReset={canRetry} lockedNote={lockedNote} />
 
       {checked && result && (
         <FeedbackBlock

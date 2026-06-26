@@ -1965,6 +1965,35 @@
   color: var(--t-muted);
 }
 
+/* Kurs-Fortschritt zurücksetzen */
+.konto-reset-confirm {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.konto-reset-btn {
+  font-family: var(--t-sans);
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--t-text);
+  background: none;
+  border: 1px solid var(--t-rule);
+  border-radius: 3px;
+  padding: 6px 12px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: border-color 0.15s, color 0.15s;
+}
+.konto-reset-btn:hover:not(:disabled) { border-color: var(--t-text); }
+.konto-reset-btn:disabled { opacity: 0.5; cursor: default; }
+.konto-reset-btn:focus-visible { outline: 2px solid var(--t-accent); outline-offset: 2px; }
+.konto-reset-btn--danger {
+  color: #fff;
+  background: var(--t-red);
+  border-color: var(--t-red);
+}
+.konto-reset-btn--danger:hover:not(:disabled) { background: var(--t-red-hi); border-color: var(--t-red-hi); }
+
 /* Toggle-Switch – dezent, Pergament-Hintergrund */
 .konto-toggle {
   position: relative;
