@@ -128,7 +128,9 @@ const TASKS = [
       frame: '___ Regen',
       variants: [
         { id: 'v1', label: 'starker', typical: true },
-        { id: 'v2', label: 'schwerer (engl. „heavy rain" wörtlich)', typical: false },
+        // Distraktor ohne verräterischen Klammer-Hinweis — die Erklärung (heavy
+        // rain wörtlich) trägt das Feedback, nicht die Antwortoption (AP21-QA).
+        { id: 'v2', label: 'schwerer', typical: false },
       ],
       requireJustification: false,
     },
@@ -219,7 +221,8 @@ const TASKS = [
       frame: 'Ich ___ Hunger.',
       variants: [
         { id: 'v1', label: 'habe', typical: true },
-        { id: 'v2', label: 'bin (engl. „I am hungry" wörtlich)', typical: false },
+        // Distraktor ohne verräterischen Klammer-Hinweis (Erklärung im Feedback).
+        { id: 'v2', label: 'bin', typical: false },
       ],
       requireJustification: false,
     },
