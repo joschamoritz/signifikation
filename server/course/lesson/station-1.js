@@ -84,6 +84,7 @@ export const entwurf1 = {
     'Antizipiertes Tafelbild: „Kollokation = typische Wortverbindung (nicht Wort für Wort übersetzbar)" + Beispielpaare.',
     'Material: Arbeitsblatt + Lösung/Erwartungshorizont (dieselbe Quelle), Beamer-Folien.',
     'Differenzierung: Niveau-Arbeitsblätter (DaZ / Sek I / Sek II / LK) aus derselben Aufgaben-Engine.',
+    'Für Sek II / LK: Vor den datengestützten Aufgaben die beiden Maße kurz einführen — Frequenz f („wie oft kommt die Verbindung vor") und logDice („wie stark sind die beiden Wörter aneinander gebunden"; Skala bis ca. 14, höher = typischer). Kernidee: häufig ≠ typisch. Die Datenfolie „Häufig ist nicht gleich typisch" dient als Anschauung; konkrete Werte liefert das Korpus zur Laufzeit (keine festen Zahlen im Material).',
   ],
 
   belege: ['reder-2006', 'steyer-2000', 'vonbrand-2010', 'klp-deutsch-sek1-g9-2019', 'script-leitfaden-2020'],
