@@ -22,11 +22,16 @@ const REGISTRY = {
 // Kopf/Dependent-Aufgabe fälschlich im VariantTask (keine Varianten → leer).
 const LABEL_MARK_TASKS = new Set(['S-P-O', 'kopf-dependent'])
 
-// Registry-Schlüssel je Aufgabe wählen (markTask hat Vorrang vor Format).
+// Registry-Schlüssel je Aufgabe wählen (Payload-Form hat Vorrang vor Format-
+// Etikett). Station ④ führt Datenblick-Aufgaben (Tabelle + Fragen) teils als F2;
+// ohne diese Korrektur landen sie im MarkingTask (erwartet sentence) → leer.
 function registryKey(task) {
-  const mt = task?.payload?.markTask
+  const p = task?.payload ?? {}
+  const mt = p.markTask
   if (mt && LABEL_MARK_TASKS.has(mt)) return 'LABEL'
   if (mt === 'kollokation') return 'F2'
+  // Tabellen-/Frage-Aufgabe → Datenblick (DataTask), egal wie etikettiert.
+  if (Array.isArray(p.table) && Array.isArray(p.questions)) return 'F5'
   return task?.format
 }
 
