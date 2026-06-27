@@ -471,6 +471,9 @@ export function UebenPager({
         <div className="course-pager-screen" key={task.id} hidden={i !== step}>
           <h3 className="course-pager-heading" tabIndex={-1}>
             Aufgabe {labels[i]}
+            <span className="course-task-niveau" title="Niveaustufe dieser Aufgabe">
+              {NIVEAU_LABELS[niveau] ?? niveau}
+            </span>
             <span className="sr-only">
               {' '}· Aufgabe {i + 1} von {total}{done.has(task.id) ? ', erledigt' : ''}
             </span>

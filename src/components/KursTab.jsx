@@ -2,11 +2,12 @@ import { memo, useRef, useCallback, useState, useEffect } from 'react'
 import TabHeader from './TabHeader'
 import Sheet from './ui/Sheet'
 import KursNote from './KursNote'
+import Colophon from './Colophon'
 import { useActiveSnapCard } from '../hooks/useActiveSnapCard'
 import { useScrollPersist } from '../hooks/useScrollPersist'
 import StationDetail from './course/StationDetail'
 import { useCourseStation, openCourseStation, closeCourseStation } from './course/courseRouting'
-import { useGlobalNiveau } from './course/useGlobalNiveau'
+import { useGlobalNiveau, NIVEAU_LABELS } from './course/useGlobalNiveau'
 import { apiGet } from '../api/client'
 import { API } from '../config'
 import '../styles/course.css'
@@ -140,8 +141,11 @@ function KursTab({ gesamtausgabe = false, loggedIn = false, onNavigateToKonto })
             <span className="test-raster-word">Didaktischer Lernpfad</span>
           </div>
           <div className="test-raster-end">
-            <span className="test-raster-folio" aria-hidden="true">
-              {gesamtausgabe ? 'Freigeschaltet' : 'Üben frei'}
+            <span
+              className="test-raster-folio"
+              aria-label={`Gewählte Niveaustufe: ${NIVEAU_LABELS[niveau] ?? niveau}`}
+            >
+              {NIVEAU_LABELS[niveau] ?? niveau}
             </span>
           </div>
         </nav>
@@ -263,6 +267,9 @@ function KursTab({ gesamtausgabe = false, loggedIn = false, onNavigateToKonto })
             <div className="snap-nav-spacer" aria-hidden="true" />
           </nav>
         </main>
+
+        {/* Desktop-Kolophon (Footer) — wie auf der Spielmodi-Startseite. */}
+        <Colophon />
       </div>
 
       {/* ── Info Bottom Sheet (mobil) ───────────────────────── */}

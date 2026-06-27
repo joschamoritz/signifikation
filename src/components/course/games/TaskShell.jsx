@@ -3,6 +3,7 @@
 // Wörterbuch-Stil, kein Quiz-App-Lärm (Engine-Spec §8 „woerterbuch-nuechtern").
 
 import { fillSelected } from './fmt'
+import { NIVEAU_LABELS } from '../useGlobalNiveau'
 
 /**
  * Aufgaben-Kopf: Format-Badge (als Überschrift), Prompt, Metasprache-Chips.
@@ -15,18 +16,25 @@ import { fillSelected } from './fmt'
  */
 export function TaskHead({ task, index }) {
   const meta = task.metasprache ?? []
+  const niveauLabel = task.level ? (NIVEAU_LABELS[task.level] ?? task.level) : null
   return (
     <div className="course-task-head-block">
       {index !== false && (
         <div className="course-task-head">
           <h3 className="course-task-format">{index != null ? `Aufgabe ${index}` : 'Aufgabe'}</h3>
+          {niveauLabel && (
+            <span className="course-task-niveau" title="Niveaustufe dieser Aufgabe">{niveauLabel}</span>
+          )}
         </div>
       )}
       <p className="course-task-prompt">{task.prompt}</p>
       {meta.length > 0 && (
-        <ul className="course-task-tags" aria-label="Metasprache">
-          {meta.map((m) => <li key={m} className="course-task-tag">{m}</li>)}
-        </ul>
+        <div className="course-task-tags-wrap">
+          <span className="course-task-tags-label" aria-hidden="true">Fachbegriffe</span>
+          <ul className="course-task-tags" aria-label="Fachbegriffe dieser Stufe">
+            {meta.map((m) => <li key={m} className="course-task-tag">{m}</li>)}
+          </ul>
+        </div>
       )}
     </div>
   )
