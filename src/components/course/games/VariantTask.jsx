@@ -5,14 +5,24 @@
 
 import { useMemo, useState, useEffect } from 'react'
 import { TaskHead, TaskActions, FeedbackBlock, FeedbackRegion } from './TaskShell'
-import { metricLabel } from './fmt'
+import { metricLabel, seededShuffle } from './fmt'
 
 export default function VariantTask({ task, index, onChecked, canRetry = true, lockedNote = null }) {
   const frame = task.payload?.frame ?? ''
-  const variants = task.payload?.variants ?? []
+  // Varianten deterministisch mischen, damit die typische nicht stets vorn steht
+  // (Auswertung per Id → Position egal).
+  const variants = useMemo(
+    () => seededShuffle(task.payload?.variants ?? [], task.id),
+    [task.id],
+  )
   const requireJustification = task.payload?.requireJustification ?? false
   // Single-Choice-Begründung (Sek I): ankreuzbare Begründung statt Freitext.
-  const justifyChoice = task.payload?.justificationChoice ?? null
+  // Optionen ebenfalls mischen (sonst ist die richtige Begründung stets r1).
+  const justifyChoice = useMemo(() => {
+    const jc = task.payload?.justificationChoice ?? null
+    if (!jc) return null
+    return { ...jc, options: seededShuffle(jc.options ?? [], `${task.id}:reason`) }
+  }, [task.id, task.payload?.justificationChoice])
   const preferred = task.solution?.preferred ?? []
 
   const [choice, setChoice] = useState(null)

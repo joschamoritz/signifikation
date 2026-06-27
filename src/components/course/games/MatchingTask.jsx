@@ -5,14 +5,20 @@
 
 import { useState, useMemo, useRef, useEffect } from 'react'
 import { TaskHead, TaskActions, FeedbackBlock, FeedbackRegion } from './TaskShell'
-import { metricLabel } from './fmt'
+import { metricLabel, seededShuffle } from './fmt'
 
 const DRAG_THRESHOLD = 6 // px, bevor aus einem Tap ein Zug wird
 
 export default function MatchingTask({ task, index, onChecked, canRetry = true, lockedNote = null }) {
   const anchors = task.payload?.anchors ?? []
-  const candidates = task.payload?.candidates ?? []
+  // Pool deterministisch mischen, damit die Karten nicht in Anker-/Alphabet-
+  // Reihenfolge stehen (Lösung wird per Id geprüft → Position egal).
+  const candidates = useMemo(
+    () => seededShuffle(task.payload?.candidates ?? [], task.id),
+    [task.id],
+  )
   const map = task.solution?.map ?? {}
+  const multiplePerAnchor = task.payload?.multiplePerAnchor ?? false
 
   // candidateId → anchorId | null
   const [assignment, setAssignment] = useState({})
@@ -122,7 +128,7 @@ export default function MatchingTask({ task, index, onChecked, canRetry = true, 
 
       {!checked && (
         <p className="course-hint">
-          Ziehe die typischen Partner auf das Feld — es können mehrere sein. (Oder tippe Karte und Feld nacheinander an.)
+          Ziehe jeden Partner auf das passende Feld{multiplePerAnchor ? ' — es können mehrere sein' : ''}. (Oder tippe Karte und Feld nacheinander an.)
         </p>
       )}
 

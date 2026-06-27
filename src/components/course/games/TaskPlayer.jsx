@@ -3,23 +3,38 @@
 
 import MatchingTask from './MatchingTask'
 import MarkingTask  from './MarkingTask'
+import LabelTask    from './LabelTask'
 import VariantTask  from './VariantTask'
 import GapTask      from './GapTask'
 import DataTask     from './DataTask'
 
 const REGISTRY = {
-  F1: MatchingTask, // Zuordnen
-  F2: MarkingTask,  // Markieren
-  F3: VariantTask,  // Variantenvergleich
-  F4: GapTask,      // Lücke + Begründung
-  F5: DataTask,     // Datenblick
+  F1:    MatchingTask, // Zuordnen
+  F2:    MarkingTask,  // Markieren
+  F3:    VariantTask,  // Variantenvergleich
+  F4:    GapTask,      // Lücke + Begründung
+  F5:    DataTask,     // Datenblick
+  LABEL: LabelTask,    // Funktion zuweisen (S/P/O, Kopf/Dependent)
+}
+
+// Markier-Aufgaben mit Funktionszuweisung (S/P/O, Kopf/Dependent) brauchen die
+// LabelTask – unabhängig vom Format. Sonst landet z. B. die als F3 geführte
+// Kopf/Dependent-Aufgabe fälschlich im VariantTask (keine Varianten → leer).
+const LABEL_MARK_TASKS = new Set(['S-P-O', 'kopf-dependent'])
+
+// Registry-Schlüssel je Aufgabe wählen (markTask hat Vorrang vor Format).
+function registryKey(task) {
+  const mt = task?.payload?.markTask
+  if (mt && LABEL_MARK_TASKS.has(mt)) return 'LABEL'
+  if (mt === 'kollokation') return 'F2'
+  return task?.format
 }
 
 // onChecked: optional, wird bei „Prüfen" mit dem Ergebnis (true|false|null)
 //   ausgelöst — Pager-Zählung + Persistenz (TaskGate) hängen daran.
 // canRetry/lockedNote: von TaskGate gesetzt — false sperrt „Nochmal" nach Abgabe.
 export default function TaskPlayer({ task, index, onChecked, canRetry = true, lockedNote = null }) {
-  const Comp = REGISTRY[task?.format]
+  const Comp = REGISTRY[registryKey(task)]
   if (!Comp) {
     return (
       <div className="course-task">
