@@ -5,13 +5,20 @@
 
 import { useMemo, useState, useEffect } from 'react'
 import { TaskHead, TaskActions, FeedbackBlock, FeedbackRegion } from './TaskShell'
-import { metricLabel } from './fmt'
+import { metricLabel, seededShuffle } from './fmt'
 
 export default function GapTask({ task, index, onChecked, canRetry = true, lockedNote = null }) {
   const sentence = task.payload?.sentence ?? ''
-  const options = task.payload?.options ?? []
+  // Optionen deterministisch mischen (Auswertung per Id → Position egal).
+  const options = useMemo(
+    () => seededShuffle(task.payload?.options ?? [], task.id),
+    [task.id],
+  )
   const requireJustification = task.payload?.requireJustification ?? false
   const correctId = task.solution?.correctOptionId ?? null
+  // Begründungs-Frage aus den Aufgabendaten; neutraler Default statt der früher
+  // hartkodierten „… am typischsten?"-Frage (passte nicht zu Grammatik-Aufgaben).
+  const justifyPrompt = task.payload?.justifyPrompt ?? 'Begründe deine Wahl in ein, zwei Sätzen.'
 
   const [choice, setChoice] = useState(null)
   const [justification, setJustification] = useState('')
@@ -88,7 +95,7 @@ export default function GapTask({ task, index, onChecked, canRetry = true, locke
           <textarea
             className="course-justify-input"
             rows={2}
-            placeholder="Warum ist diese Option am typischsten?"
+            placeholder={justifyPrompt}
             value={justification}
             onChange={(e) => setJustification(e.target.value)}
             disabled={checked}

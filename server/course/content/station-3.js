@@ -156,7 +156,7 @@ const TASKS = [
   {
     id: 's3-f3-kopf-dependent-sek2', station: 3, format: 'F3', level: 'SekII', source: 'corpus-template',
     kern: 'kopf-dependent',
-    prompt: 'Zeichne die Kopf-Dependent-Kante: Welches Wort regiert welches? (Verb → Objekt)',
+    prompt: 'Bestimme die Abhängigkeit: Markiere das regierende Verb als „Kopf" und das abhängige Akkusativobjekt als „Dependent".',
     metasprache: ['Kopf', 'Dependent', 'Dependenz'],
     corpusQuery: Q_ENTSCH_OBJ,
     bindings: { answer: [1] },
@@ -164,6 +164,9 @@ const TASKS = [
       belegQuery: { lemma: 'Entscheidung', partner: '{{top.lemma}}', source: 'belege.db' },
       markTask: 'kopf-dependent',
       labels: ['Kopf', 'Dependent'],
+      // Wort→Label-Mapping für die tolerante Auswertung (Belegsatz ohne
+      // Token-Indizes). {{top.lemma}} = regierendes Verb (Kopf).
+      labelWords: { Kopf: '{{top.lemma}}', Dependent: 'Entscheidung' },
     },
     display: { showMetrics: false, metric: 'none' },
     solution: { spans: [{ label: 'Kopf' }, { label: 'Dependent' }], note: 'Kopf = Verb „{{top.lemma}}", Dependent = Akkusativobjekt „Entscheidung".' },
@@ -194,6 +197,7 @@ const TASKS = [
         { id: 'o3', label: 'Prädikativ' },
       ],
       requireJustification: true,
+      justifyPrompt: 'Begründe: Warum besetzt „Entscheidung" hier diesen Slot?',
     },
     display: { showMetrics: false, metric: 'none' },
     solution: {
@@ -277,6 +281,7 @@ const TASKS = [
         { id: 'o3', label: 'Genitivattribut' },
       ],
       requireJustification: true,
+      justifyPrompt: 'Begründe die Rektion mit der Kasusprobe (wen/was?).',
     },
     display: { showMetrics: false, metric: 'none' },
     solution: {

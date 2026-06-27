@@ -53,3 +53,33 @@ export function metricLabel(display, row) {
   if (showsMetric(display, 'frequency') && row.frequency != null) parts.push(`f ${fmtFrequency(row.frequency)}`)
   return parts.join(' · ')
 }
+
+/**
+ * Deterministischer Shuffle (Fisher–Yates) mit String-Seed: gleiche Aufgabe →
+ * gleiche, aber gegenüber der Quell-Reihenfolge gemischte Anordnung. So steht
+ * die richtige Antwort nicht mehr an fester Stelle (AP21-QA „Reihenfolge"),
+ * bleibt aber über Re-Renders stabil — die Lösung wird per Id geprüft, nicht
+ * per Position. FNV-1a-Hash → mulberry32-PRNG, ohne Fremd-Lib.
+ */
+export function seededShuffle(arr, seed) {
+  const a = Array.isArray(arr) ? [...arr] : []
+  if (a.length < 2) return a
+  let h = 2166136261
+  const s = String(seed ?? '')
+  for (let i = 0; i < s.length; i++) {
+    h ^= s.charCodeAt(i)
+    h = Math.imul(h, 16777619)
+  }
+  let state = h >>> 0
+  const rand = () => {
+    state = (state + 0x6d2b79f5) | 0
+    let t = Math.imul(state ^ (state >>> 15), 1 | state)
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296
+  }
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(rand() * (i + 1))
+    ;[a[i], a[j]] = [a[j], a[i]]
+  }
+  return a
+}
