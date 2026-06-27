@@ -51,6 +51,10 @@ export const LITERATUR = {
     kurz: 'Schütze 2018',
     voll: 'Schütze, Hinrich (2018): Syntaktische Funktionen und Dependenzen. Foliensatz, CIS/LMU München (Kopf–Dependent, binäre Relationen, einfache Baumanalysen).',
   },
+  'gallmann-2015-topologie': {
+    kurz: 'Gallmann 2015',
+    voll: 'Gallmann, Peter (2015): Das topologische Modell. Basisartikel. In: Wöllstein (Hrsg.): Das topologische Modell für die Schule. Baltmannsweiler: Schneider Hohengehren (Felder/Satzklammer, Verschiebeprobe, drei Satzformen).',
+  },
 
   // ── Korpus selbst (kontext: "korpus") ─────────────────────────────
   'korpus-pipeline': {

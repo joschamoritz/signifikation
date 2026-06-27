@@ -100,7 +100,7 @@ function renderVerschiebe(it) {
 // Etikett) ergibt — analog zum Frontend-Dispatcher (TaskPlayer).
 function isLabelTask(it) {
   const mt = it.payload?.markTask
-  return mt === 'S-P-O' || mt === 'kopf-dependent'
+  return mt === 'S-P-O' || mt === 'kopf-dependent' || mt === 'felder'
 }
 function isDataTask(it) {
   const p = it.payload ?? {}

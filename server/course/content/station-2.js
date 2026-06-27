@@ -92,6 +92,35 @@ const TASKS = [
     beleg: [{ key: 'hoffmann-leimbrink-wortarten', kontext: 'fachlich' }],
   },
 
+  {
+    id: 's2-f1-verschiebe-daz', station: 2, format: 'F1', level: 'DaZ', source: 'static',
+    kern: 'verbstellung-v2',
+    // Feldermodell (Gallmann 2015): der klassische DaZ-Stolperstein — das Vorfeld
+    // muss NICHT das Subjekt sein, das finite Verb steht immer an Position 2.
+    prompt: 'Schiebe ein Satzteil ins Vorfeld – vor das Verb. Merke: Das Verb „sucht" bleibt immer an Position 2.',
+    metasprache: ['Vorfeld', 'Verb an Position 2'],
+    payload: {
+      verb: { id: 'vb', text: 'sucht' },
+      chunks: [
+        { id: 'c1', text: 'Der Hund', role: 'wer?' },
+        { id: 'c2', text: 'im Garten', role: 'wo?' },
+        { id: 'c3', text: 'einen Ball', role: 'was?' },
+      ],
+    },
+    display: { showMetrics: false, metric: 'none' },
+    solution: { validVorfeld: ['c1', 'c2', 'c3'] },
+    feedback: {
+      byLevel: {
+        DaZ: {
+          onCorrect: 'Genau – egal welches Satzteil im Vorfeld steht: Das Verb „sucht" bleibt an Position 2.',
+          onWrong: 'Stell genau ein Satzteil ins Vorfeld. Das Verb bleibt direkt dahinter (Position 2).',
+        },
+      },
+      tonalitaet: 'woerterbuch-nuechtern',
+    },
+    beleg: [{ key: 'gallmann-2015-topologie', kontext: 'fachlich' }],
+  },
+
   // ──────────────── SekI · Wortarten bestimmen, Muster benennen ────────────────
   {
     id: 's2-f1-kritik-adj-seki', station: 2, format: 'F1', level: 'SekI', source: 'corpus-template',
@@ -178,6 +207,37 @@ const TASKS = [
     beleg: [{ key: 'bildung-rp-kollokationen', kontext: 'fachlich' }],
   },
 
+  {
+    id: 's2-f3-verschiebe-seki', station: 2, format: 'F3', level: 'SekI', source: 'static',
+    kern: 'verschiebeprobe-satzglied',
+    // Verschiebeprobe als Satzglied-Test: nur was sich als geschlossene Einheit
+    // ins Vorfeld stellen lässt, ist ein Satzglied (Gallmann 2015, Abs. 3.2).
+    prompt: 'Verschiebeprobe: Welche Wortgruppen sind Satzglieder? Schiebe eine geschlossene Einheit ins Vorfeld – die umgedrehte Gruppe „Regel die" ist keine.',
+    metasprache: ['Satzglied', 'Vorfeld', 'Verschiebeprobe'],
+    payload: {
+      verb: { id: 'vb', text: 'erklärt' },
+      chunks: [
+        { id: 'c1', text: 'Der Lehrer', role: 'Subjekt' },
+        { id: 'c2', text: 'heute', role: 'adv. Zeit' },
+        { id: 'c3', text: 'die Regel', role: 'Objekt' },
+        { id: 'c4', text: 'genau', role: 'adv. Art' },
+        { id: 'c5', text: 'Regel die', role: 'kein Satzglied' },
+      ],
+    },
+    display: { showMetrics: false, metric: 'none' },
+    solution: { validVorfeld: ['c1', 'c2', 'c3', 'c4'] },
+    feedback: {
+      byLevel: {
+        SekI: {
+          onCorrect: 'Richtig – ein Satzglied lässt sich als geschlossene Einheit ins Vorfeld schieben. „Regel die" ist nur eine umgedrehte Wortfolge, kein Satzglied.',
+          onWrong: 'Prüfe: Lässt sich die Gruppe als Einheit (in dieser Reihenfolge) ins Vorfeld stellen? Genau dann ist es ein Satzglied.',
+        },
+      },
+      tonalitaet: 'woerterbuch-nuechtern',
+    },
+    beleg: [{ key: 'gallmann-2015-topologie', kontext: 'fachlich' }],
+  },
+
   // ──────────────── SekII · Wortart über Funktion (logDice sichtbar) ────────────────
   {
     id: 's2-f3-funktion-vergleich-sek2', station: 2, format: 'F3', level: 'SekII', source: 'corpus-template',
@@ -216,6 +276,36 @@ const TASKS = [
       tonalitaet: 'woerterbuch-nuechtern',
     },
     beleg: [{ key: 'hoffmann-leimbrink-wortarten', kontext: 'fachlich' }, { key: 'steyer-2000', kontext: 'korpus' }],
+  },
+
+  {
+    id: 's2-f3-verschiebe-sek2', station: 2, format: 'F3', level: 'SekII', source: 'static',
+    kern: 'verschiebeprobe-konstituente',
+    // Konstituenten-Integrität: eine Präpositionalphrase verschiebt sich als
+    // GANZE ins Vorfeld, nicht zur Hälfte (Gallmann 2015, Abs. 3.2).
+    prompt: 'Verschiebeprobe am topologischen Feld: Welche Gruppen sind Satzglieder? Eine Präpositionalphrase muss als Ganzes ins Vorfeld – „auf eine" allein ist kein Satzglied.',
+    metasprache: ['Satzglied', 'Konstituente', 'Präpositionalphrase', 'Vorfeld'],
+    payload: {
+      verb: { id: 'vb', text: 'wartet' },
+      chunks: [
+        { id: 'c1', text: 'Die Journalistin', role: 'Subjekt' },
+        { id: 'c2', text: 'seit Tagen', role: 'adv. Zeit' },
+        { id: 'c3', text: 'auf eine Antwort', role: 'Präpositionalobjekt' },
+        { id: 'c4', text: 'auf eine', role: 'unvollständige PP' },
+      ],
+    },
+    display: { showMetrics: false, metric: 'none' },
+    solution: { validVorfeld: ['c1', 'c2', 'c3'] },
+    feedback: {
+      byLevel: {
+        SekII: {
+          onCorrect: 'Richtig – die Präpositionalphrase „auf eine Antwort" ist eine Konstituente und verschiebt sich nur als Ganzes. „auf eine" ist unvollständig, also kein Satzglied.',
+          onWrong: 'Eine Konstituente lässt sich nur vollständig verschieben. „auf eine" ohne „Antwort" ist kein Satzglied – die PP muss komplett ins Vorfeld.',
+        },
+      },
+      tonalitaet: 'woerterbuch-nuechtern',
+    },
+    beleg: [{ key: 'gallmann-2015-topologie', kontext: 'fachlich' }],
   },
 
   {
@@ -340,6 +430,40 @@ const TASKS = [
       tonalitaet: 'woerterbuch-nuechtern',
     },
     beleg: [{ key: 'hoffmann-leimbrink-wortarten', kontext: 'fachlich' }, { key: 'bubenhofer-2015', kontext: 'fachlich' }],
+  },
+
+  {
+    id: 's2-f4-felder-lk', station: 2, format: 'F4', level: 'LK', source: 'static',
+    kern: 'topologische-felder',
+    // Vollständige Feldanalyse inkl. Satzklammer (Gallmann 2015): das finite
+    // Verb in der linken, das infinite in der rechten Klammer; dazwischen das
+    // Mittelfeld. Interaktiv (Tippen→Feld) statt Freitext.
+    prompt: 'Topologische Feldanalyse: Weise jedem Teil sein Feld zu – Vorfeld, linke Klammer (finites Verb), Mittelfeld und rechte Klammer (infinites Verb).',
+    metasprache: ['Vorfeld', 'linke Satzklammer', 'Mittelfeld', 'rechte Satzklammer'],
+    payload: {
+      sentence: 'Der Hund hat im Garten einen Ball gesucht.',
+      markTask: 'felder',
+      labels: ['Vorfeld', 'linke Klammer', 'Mittelfeld', 'rechte Klammer'],
+    },
+    display: { showMetrics: false, metric: 'none' },
+    solution: {
+      spans: [
+        { text: 'Der Hund', tokenRange: [0, 2], label: 'Vorfeld' },
+        { text: 'hat', tokenRange: [2, 3], label: 'linke Klammer' },
+        { text: 'im Garten einen Ball', tokenRange: [3, 7], label: 'Mittelfeld' },
+        { text: 'gesucht', tokenRange: [7, 8], label: 'rechte Klammer' },
+      ],
+    },
+    feedback: {
+      byLevel: {
+        LK: {
+          onCorrect: 'Korrekt – Vorfeld „Der Hund", linke Klammer „hat" (finit), Mittelfeld „im Garten einen Ball", rechte Klammer „gesucht" (infinit). Die Satzklammer umschließt das Mittelfeld.',
+          onWrong: 'Bestimme die Satzklammer zuerst: finites Verb = linke Klammer, infinites Verb = rechte Klammer. Davor das Vorfeld, dazwischen das Mittelfeld.',
+        },
+      },
+      tonalitaet: 'woerterbuch-nuechtern',
+    },
+    beleg: [{ key: 'gallmann-2015-topologie', kontext: 'fachlich' }],
   },
 
   {
