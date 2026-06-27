@@ -45,9 +45,11 @@ const TASKS = [
         { id: 'c2', label: 'trifft' },
       ],
       multiplePerAnchor: false,
-      // Nach der Aufgabe echte Korpussätze zeigen (Anschaulichkeit, AP21-QA):
-      // „eine Entscheidung treffen" im vollständigen Satzkontext.
-      belegContext: { lemma: 'Entscheidung', partner: 'treffen', limit: 3 },
+      // Belege müssen zur Aufgabe passen: hier geht es um Subjekt+Prädikat
+      // (das Gericht handelt, trifft). Daher Paarung „Gericht"+„treffen" – die
+      // Sätze zeigen das Gericht als Handelnden, NICHT die Objekt-Kollokation
+      // „Entscheidung treffen" mit fremden Subjekten (AP21-QA).
+      belegContext: { lemma: 'Gericht', partner: 'treffen', limit: 3 },
     },
     display: { showMetrics: false, metric: 'none' },
     solution: { map: { a1: ['c1'], a2: ['c2'] } },
