@@ -75,6 +75,26 @@ function renderF2(it) {
     <div class="justify-hint">Markiere im Satz die zusammengehörende Wortverbindung.</div>`
 }
 
+// Funktion zuweisen (S/P/O, Kopf/Dependent): Satz + Beschriftungsauftrag.
+function renderLabel(it) {
+  const q = it.beleghinweis ? `<div class="beleg-quelle">Quelle: ${esc(it.beleghinweis)}</div>` : ''
+  const labels = (it.payload.labels ?? []).map(esc).join(' / ')
+  return `
+    <div class="beleg-satz">${esc(it.payload.sentence ?? '')}</div>${q}
+    <div class="justify-hint">Weise jedem Satzteil seine Funktion zu (${labels}) und schreibe sie darunter.</div>`
+}
+
+// Erkennt Aufgaben, deren Renderer sich aus der Payload-Form (nicht dem Format-
+// Etikett) ergibt — analog zum Frontend-Dispatcher (TaskPlayer).
+function isLabelTask(it) {
+  const mt = it.payload?.markTask
+  return mt === 'S-P-O' || mt === 'kopf-dependent'
+}
+function isDataTask(it) {
+  const p = it.payload ?? {}
+  return Array.isArray(p.table) && Array.isArray(p.questions)
+}
+
 function variantCard(v, display) {
   const parts = []
   if (showFreq(display) && v.frequency != null) parts.push(`Frequenz ${fmtFrequency(v.frequency)}`)
@@ -125,6 +145,10 @@ function renderF5(it, ankerLemma) {
 }
 
 function renderTaskBody(it, ankerLemma) {
+  // Payload-Form hat Vorrang vor dem Format-Etikett (sonst rendern z. B. die als
+  // F2 geführten Datenblick-/Label-Aufgaben leer).
+  if (isLabelTask(it)) return renderLabel(it)
+  if (isDataTask(it)) return renderF5(it, ankerLemma)
   switch (it.format) {
     case 'F1': return renderF1(it)
     case 'F2': return renderF2(it)
@@ -139,6 +163,15 @@ function renderTaskBody(it, ankerLemma) {
 
 function workedSolutionText(it) {
   // Modelliert die Lösung des ersten Items als nachvollziehbares Beispiel.
+  if (isLabelTask(it)) {
+    const parts = (it.solution?.spans ?? []).filter(s => s.text || s.label)
+      .map(s => s.text ? `„${esc(s.text)}" (${esc(s.label)})` : `(${esc(s.label)})`)
+    return parts.length ? parts.join(' · ') : (it.feedback?.onCorrect ? esc(it.feedback.onCorrect) : '')
+  }
+  if (isDataTask(it)) {
+    const a = it.solution?.answers ?? {}
+    return Object.values(a).filter(v => typeof v === 'string').map(v => esc(v)).join(' · ')
+  }
   switch (it.format) {
     case 'F1': {
       const byId = Object.fromEntries((it.payload.candidates ?? []).map(c => [c.id, c.label]))
@@ -255,7 +288,16 @@ export function renderArbeitsblattHtml({ station, level, items, ankerLemma } = {
 
 function solutionDetail(it) {
   const out = []
-  if (it.format === 'F1' && it.solution?.map) {
+  if (isLabelTask(it)) {
+    const parts = (it.solution?.spans ?? []).filter(s => s.text || s.label)
+      .map(s => s.text ? `„${esc(s.text)}" (${esc(s.label)})` : `(${esc(s.label)})`)
+    if (parts.length) out.push(parts.join(' · '))
+    else if (it.feedback?.onCorrect) out.push(esc(it.feedback.onCorrect))
+  } else if (isDataTask(it) && it.solution?.answers) {
+    for (const [qid, ans] of Object.entries(it.solution.answers)) {
+      if (typeof ans === 'string') out.push(`${esc(qid)}: „${esc(ans)}"`)
+    }
+  } else if (it.format === 'F1' && it.solution?.map) {
     const byId = Object.fromEntries((it.payload.candidates ?? []).map(c => [c.id, c.label]))
     const anchById = Object.fromEntries((it.payload.anchors ?? []).map(a => [a.id, a.label]))
     const pairs = Object.entries(it.solution.map).map(([aid, cids]) =>
