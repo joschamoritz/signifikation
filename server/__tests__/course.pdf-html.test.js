@@ -15,6 +15,7 @@ import {
   renderUnterrichtsentwurfHtml,
   renderBeamerHtml,
 } from '../course/pdf/html.js'
+import { buildStationHtml } from '../course/pdf/generate.js'
 import { resolveItems } from '../course/resolve.js'
 import station1 from '../course/content/station-1.js'
 import lesson1 from '../course/lesson/station-1.js'
@@ -146,5 +147,29 @@ describe('Beamer-Folien (Querformat)', () => {
   })
   it('große Type (h1 ≥ 40pt)', () => {
     expect(html).toMatch(/font-size:\s*40pt/)
+  })
+})
+
+describe('buildStationHtml – Schutz gegen leere Korpus-Items (AP21-QA)', () => {
+  const emptyCorpus = { queryRelation() { return [] }, fetchBeleg() { return null } }
+  const fullCorpus = {
+    queryRelation(q) {
+      // genug Zeilen für alle Korpus-Items (Antworten + Distraktoren + Tabellen)
+      return Array.from({ length: 12 }, (_, i) => ({
+        lemma: `${q.lemma}-p${i + 1}`, frequency: 100 - i, logDice: `${(12 - i)}.0000`,
+      }))
+    },
+    fetchBeleg(lemma, partner) { return { satz: `Ein Satz mit ${lemma} ${partner}.`, quelle: 'Korpus' } },
+  }
+
+  it('strictCorpus + leerer Korpus → wirft (statt still leere Arbeitsblätter)', () => {
+    expect(() => buildStationHtml({ stationNo: 1, corpus: emptyCorpus, strictCorpus: true }))
+      .toThrow(/Leere Korpus-Items/)
+  })
+  it('ohne strictCorpus → kein Wurf (Tests/Vorschau bleiben nutzbar)', () => {
+    expect(() => buildStationHtml({ stationNo: 1, corpus: emptyCorpus })).not.toThrow()
+  })
+  it('voller Korpus → strictCorpus wirft nicht', () => {
+    expect(() => buildStationHtml({ stationNo: 1, corpus: fullCorpus, strictCorpus: true })).not.toThrow()
   })
 })

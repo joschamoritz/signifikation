@@ -56,6 +56,23 @@ const LEVEL_ORDER = ['DaZ', 'SekI', 'SekII', 'LK']
 // hier re-exportiert, damit AP5-Aufrufer (Tests/Skripte) stabil bleiben.
 export { makeCorpusAdapter }
 
+/**
+ * Ist ein aufgelöstes corpus-template-Item inhaltsleer? (Korpus nicht verbunden
+ * → leere candidates/variants/options/table → „Arbeitsblatt ohne Inhalt", AP21-QA.)
+ * Nur sinnvoll für corpus-template; static-Items tragen ihren Inhalt selbst.
+ */
+function corpusItemIsEmpty(item) {
+  const p = item.payload ?? {}
+  switch (item.format) {
+    case 'F1': return (p.candidates ?? []).length === 0
+    case 'F2': return !p.sentence
+    case 'F3': return (p.variants ?? []).length === 0
+    case 'F4': return (p.options ?? []).length === 0
+    case 'F5': return (p.table ?? []).length === 0
+    default:   return false
+  }
+}
+
 /** Tasks einer Station nach Niveau gruppieren (Reihenfolge erhalten). */
 function groupByLevel(tasks) {
   const groups = new Map()
@@ -103,15 +120,21 @@ function buildBeamerSlides(content, beamerSpec, corpus) {
  * @param {string} [opts.lemma]      „Eigenes Lemma" (überschreibt corpusQuery.lemma)
  * @returns {Array<{ kind, level, filename, title, html }>}
  */
-export function buildStationHtml({ stationNo = 1, content, lesson, corpus = makeCorpusAdapter(), lemma } = {}) {
+export function buildStationHtml({ stationNo = 1, content, lesson, corpus = makeCorpusAdapter(), lemma, strictCorpus = false } = {}) {
   const entry = STATION_MAP.get(stationNo) ?? STATION_MAP.get(1)
   if (content === undefined) content = entry.content
   if (lesson === undefined) lesson = entry.lesson
   const out = []
   const station = content.station
+  const emptyCorpusItems = [] // {level, id, format} — leere Korpus-Items (Schutz)
 
   for (const [level, tasks] of groupByLevel(content.tasks)) {
     const items = resolveItems(tasks, { corpus, lemma })
+    tasks.forEach((t, i) => {
+      if (t.source === 'corpus-template' && corpusItemIsEmpty(items[i])) {
+        emptyCorpusItems.push({ level, id: t.id, format: t.format })
+      }
+    })
     out.push({
       kind: 'arbeitsblatt', level, title: `Arbeitsblatt – ${station.title} (${level})`,
       filename: `station-${station.orderNo}-arbeitsblatt-${level}.pdf`,
@@ -140,6 +163,16 @@ export function buildStationHtml({ stationNo = 1, content, lesson, corpus = make
       html: renderBeamerHtml({ slides }),
     })
   }
+
+  // Schutz gegen still leere Korpus-Arbeitsblätter (AP21-QA: Sek II/LK „keine
+  // Inhalte", weil bei der Generierung die wortprofil.db nicht verbunden war).
+  if (emptyCorpusItems.length) {
+    const detail = emptyCorpusItems.map(e => `${e.level}/${e.id}(${e.format})`).join(', ')
+    logger.warn({ stationNo: station.orderNo, emptyCorpusItems }, `course/pdf: ${emptyCorpusItems.length} Korpus-Item(s) ohne Inhalt — Korpus-DB verbunden?`)
+    if (strictCorpus) {
+      throw new Error(`Leere Korpus-Items beim PDF-Bau (Station ${station.orderNo}): ${detail}. wortprofil.db/belege.db verbunden? (WORTPROFIL_DB)`)
+    }
+  }
   return out
 }
 
@@ -164,7 +197,10 @@ export async function generateStationPdfs({ stationNo = 1, outDir = DEFAULT_OUT,
     for (const no of stationNos) {
       const entry = STATION_MAP.get(no)
       if (!entry) { logger.warn({ stationNo: no }, 'course/pdf: unbekannte Station, übersprungen'); continue }
-      const docs = buildStationHtml({ stationNo: no, lemma })
+      // strictCorpus nur für die Standard-Material-Generierung: bricht laut ab,
+      // wenn ein Korpus-Item leer ist (DB nicht verbunden). „Eigenes Lemma" darf
+      // einzelne leere Relationen haben → dort nur warnen.
+      const docs = buildStationHtml({ stationNo: no, lemma, strictCorpus: !lemma })
       for (const doc of docs) {
         const pdf = await renderer.render(doc.html)
         const filePath = join(outDir, doc.filename)
