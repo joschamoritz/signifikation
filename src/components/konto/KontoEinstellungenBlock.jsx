@@ -20,7 +20,7 @@ function isWebPushSupported() {
   )
 }
 
-export default function KontoEinstellungenBlock({ gesamtausgabe = false }) {
+export default function KontoEinstellungenBlock() {
   const { pref, setTheme } = useContext(ThemeContext)
   const [niveau, setNiveau] = useGlobalNiveau()
 
@@ -220,49 +220,47 @@ export default function KontoEinstellungenBlock({ gesamtausgabe = false }) {
             </select>
           </div>
 
-          {gesamtausgabe && (
-            <div className="konto-setting-item">
-              <div className="konto-setting-info">
-                <span className="konto-setting-label">Kurs-Fortschritt</span>
-                <span className="konto-setting-desc">
-                  {resetState === 'done'
-                    ? 'Zurückgesetzt — alle Stationen wieder spielbar.'
-                    : resetState === 'error'
-                      ? 'Zurücksetzen fehlgeschlagen. Bitte erneut versuchen.'
-                      : 'Aufgaben-Ergebnisse löschen und neu spielen'}
-                </span>
-              </div>
-              {resetState === 'confirm' ? (
-                <div className="konto-reset-confirm">
-                  <button
-                    type="button"
-                    className="konto-reset-btn konto-reset-btn--danger"
-                    onClick={resetCourse}
-                  >
-                    Wirklich zurücksetzen
-                  </button>
-                  <button
-                    type="button"
-                    className="konto-reset-btn"
-                    onClick={() => setResetState('idle')}
-                  >
-                    Abbrechen
-                  </button>
-                </div>
-              ) : (
+          <div className="konto-setting-item">
+            <div className="konto-setting-info">
+              <span className="konto-setting-label">Kurs-Fortschritt</span>
+              <span className="konto-setting-desc">
+                {resetState === 'done'
+                  ? 'Zurückgesetzt — alle Stationen wieder spielbar.'
+                  : resetState === 'error'
+                    ? 'Zurücksetzen fehlgeschlagen. Bitte erneut versuchen.'
+                    : 'Aufgaben-Ergebnisse löschen und neu spielen'}
+              </span>
+            </div>
+            {resetState === 'confirm' ? (
+              <div className="konto-reset-confirm">
+                <button
+                  type="button"
+                  className="konto-reset-btn konto-reset-btn--danger"
+                  onClick={resetCourse}
+                >
+                  Wirklich zurücksetzen
+                </button>
                 <button
                   type="button"
                   className="konto-reset-btn"
-                  disabled={resetState === 'working'}
-                  onClick={() => setResetState('confirm')}
+                  onClick={() => setResetState('idle')}
                 >
-                  {resetState === 'working' ? 'Setzt zurück …'
-                    : resetState === 'done' ? 'Erneut zurücksetzen'
-                      : 'Zurücksetzen'}
+                  Abbrechen
                 </button>
-              )}
-            </div>
-          )}
+              </div>
+            ) : (
+              <button
+                type="button"
+                className="konto-reset-btn"
+                disabled={resetState === 'working'}
+                onClick={() => setResetState('confirm')}
+              >
+                {resetState === 'working' ? 'Setzt zurück …'
+                  : resetState === 'done' ? 'Erneut zurücksetzen'
+                    : 'Zurücksetzen'}
+              </button>
+            )}
+          </div>
 
           <div className="konto-setting-item">
             <div className="konto-setting-info">

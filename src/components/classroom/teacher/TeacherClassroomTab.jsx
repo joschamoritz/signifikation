@@ -5,6 +5,7 @@
 
 import { TeacherClassroomProvider, useTeacherClassroom, STEPS } from './TeacherClassroomContext'
 import TabHeader          from '../../TabHeader'
+import Colophon           from '../../Colophon'
 import ClassroomIndexStep from './steps/ClassroomIndexStep'
 import SessionListStep from './steps/SessionListStep'
 import SetupStep       from './steps/SetupStep'
@@ -65,6 +66,9 @@ function TeacherClassroomBody() {
         <div className="test-rule--double" role="separator" aria-hidden="true" />
 
         <ClassroomIndexStep />
+
+        {/* Desktop-Kolophon (Footer) — wie auf der Spielmodi-Startseite. */}
+        <Colophon />
       </div>
     </div>
   )

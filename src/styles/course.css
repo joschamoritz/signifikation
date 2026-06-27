@@ -298,6 +298,26 @@
   color: var(--muted);
 }
 
+/* Niveau-Marke der aktuellen Aufgabe — dezenter, gefüllter Chip, optisch
+   abgesetzt vom umrandeten „Aufgabe X"-Badge. Sitzt rechts im Kopf (Desktop)
+   bzw. hinter der Überschrift (mobiler Pager). */
+.course-task-niveau {
+  font-family: var(--font-sans);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--accent-dk);
+  background: var(--bonus-bg-lt);
+  border: 1px solid var(--border-lt);
+  border-radius: 2px;
+  padding: 1px 6px;
+  line-height: 1.4;
+  white-space: nowrap;
+}
+.course-task-head .course-task-niveau { margin-left: auto; }
+.course-pager-heading .course-task-niveau { margin-left: 8px; }
+
 .course-task-prompt {
   font-family: var(--font-serif);
   font-size: 0.95rem;
@@ -307,12 +327,29 @@
   text-wrap: pretty;
 }
 
+/* Fachbegriff-Zeile: kleines Marginal-Label vor den Chips, damit die Wort-
+   gruppe nicht als unbeschrifteter „Kasten" wirkt (AP21-QA). */
+.course-task-tags-wrap {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 6px 8px;
+  margin-top: 10px;
+}
+
+.course-task-tags-label {
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-size: 0.72rem;
+  color: var(--muted);
+}
+
 .course-task-tags {
   list-style: none;
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
-  margin: 10px 0 0;
+  margin: 0;
   padding: 0;
 }
 
@@ -741,6 +778,68 @@
 .course-mark-token--sel { background: var(--accent); color: #2a1f06; border-radius: 2px; }
 .course-mark-token--target { box-shadow: inset 0 -2px 0 var(--success); }
 .course-mark-token:focus-visible { outline: 2px solid var(--primary); outline-offset: 1px; }
+
+/* ── Funktion zuweisen (LabelTask): Palette + beschriftbare Tokens ──── */
+.course-label-palette {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 6px 0 10px;
+}
+.course-label-chip {
+  font-family: var(--font-sans);
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  min-height: 44px; /* Touch-Target (WCAG 2.5.5) */
+  padding: 0 14px;
+  color: var(--accent-dk);
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  cursor: pointer;
+}
+.course-label-chip--active {
+  color: #2a1f06;
+  background: var(--accent);
+  border-color: var(--accent-dk);
+}
+.course-label-chip:focus-visible { outline: 2px solid var(--primary); outline-offset: 1px; }
+
+.course-label-sentence {
+  font-family: var(--font-serif);
+  font-size: 1.05rem;
+  line-height: 2.4;
+  margin: 4px 0 0;
+}
+.course-label-token-wrap { white-space: nowrap; }
+.course-label-token {
+  position: relative;
+  font: inherit;
+  color: var(--text);
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  padding: 1px 2px;
+  cursor: pointer;
+  border-radius: 2px;
+}
+.course-label-token:hover { background: var(--surface2); }
+.course-label-token--set { background: var(--surface2); border-bottom-color: var(--accent); }
+.course-label-token--ok { box-shadow: inset 0 -2px 0 var(--success); }
+.course-label-token--bad { box-shadow: inset 0 -2px 0 var(--error); }
+.course-label-token:focus-visible { outline: 2px solid var(--primary); outline-offset: 1px; }
+/* Funktions-Marke über dem Wort (S/P/O bzw. Kopf/Dependent). */
+.course-label-badge {
+  font-family: var(--font-sans);
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  vertical-align: super;
+  margin-left: 2px;
+  color: var(--accent-dk);
+}
+.course-label-badge--expected { color: var(--success); }
 
 /* ── F3/F4 · Varianten / Lücke ──────────────────────────────── */
 .course-frame {
