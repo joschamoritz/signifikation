@@ -129,3 +129,38 @@ describe('fillStringInteractive', () => {
     expect(out).toBe('schwer vs {{selected.lemma}}')
   })
 })
+
+describe('resolveItemInteractive – belegContext (Anschaulichkeit, AP21-QA)', () => {
+  const corpus = {
+    queryRelation() { return [] },
+    fetchBeleg() { return null },
+    fetchBelege(lemma, partner, { limit } = {}) {
+      return [
+        { satz: `Sie ${partner} eine ${lemma}.`, quelle: 'Korpus · 2019' },
+        { satz: `Eine ${lemma} ${partner} wir.`, quelle: 'Korpus · 2020' },
+        { satz: `Wer ${partner} die ${lemma}?`, quelle: 'Korpus · 2021' },
+      ].slice(0, limit)
+    },
+  }
+
+  it('static-Item mit payload.belegContext → resolved.belegContext gefüllt', () => {
+    const item = {
+      id: 's3-x-daz', station: 3, format: 'F1', level: 'DaZ', source: 'static',
+      prompt: 'p',
+      payload: { anchors: [], candidates: [], belegContext: { lemma: 'Entscheidung', partner: 'treffen', limit: 2 } },
+      solution: {}, feedback: {},
+    }
+    const r = resolveItemInteractive(item, { corpus })
+    expect(r.belegContext).toHaveLength(2)
+    expect(r.belegContext[0].satz).toMatch(/Entscheidung/)
+    expect(r.belegContext[0].quelle).toBeTruthy()
+  })
+
+  it('ohne belegContext → null', () => {
+    const item = {
+      id: 's3-y', station: 3, format: 'F1', level: 'DaZ', source: 'static',
+      prompt: 'p', payload: { anchors: [], candidates: [] }, solution: {}, feedback: {},
+    }
+    expect(resolveItemInteractive(item, { corpus }).belegContext).toBeNull()
+  })
+})

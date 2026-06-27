@@ -129,6 +129,28 @@ export function FeedbackBlock({ task, correct, selected = null, choiceKey, showR
   )
 }
 
+/**
+ * Belegkontext: echte Korpussätze, die NACH der Aufgabe gezeigt werden
+ * (AP21-QA „Anschaulichkeit ist der Kern der App"). Erscheint nur, wenn das
+ * aufgelöste Item belegContext trägt und die Aufgabe geprüft wurde.
+ */
+export function BelegContext({ belege }) {
+  if (!belege?.length) return null
+  return (
+    <div className="course-beleg-context">
+      <p className="course-beleg-context-head">So steht es im echten Text:</p>
+      <ul className="course-beleg-context-list">
+        {belege.map((b, i) => (
+          <li key={i} className="course-beleg-context-item">
+            <span className="course-beleg-context-satz">{b.satz}</span>
+            {b.quelle && <span className="course-beleg-context-quelle">{b.quelle}</span>}
+          </li>
+        ))}
+      </ul>
+    </div>
+  )
+}
+
 /** Wählt onCorrect / onChoice / onWrong und füllt {{selected.*}}. */
 function pickFeedback(fb, correct, selected, choiceKey) {
   if (correct === true) return fb.onCorrect ? fillSelected(fb.onCorrect, selected) : null

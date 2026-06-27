@@ -851,6 +851,48 @@
 }
 .course-label-badge--expected { color: var(--success); }
 
+/* ── Belegkontext: echte Korpussätze nach der Aufgabe (Anschaulichkeit) ── */
+.course-beleg-context {
+  margin-top: 14px;
+  padding: 12px 14px;
+  background: var(--surface-warm);
+  border: 1px solid var(--border-lt);
+  border-left: 3px solid var(--accent);
+  border-radius: 0 4px 4px 0;
+}
+.course-beleg-context-head {
+  font-family: var(--font-sans);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--accent-dk);
+  margin: 0 0 8px;
+}
+.course-beleg-context-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+.course-beleg-context-satz {
+  display: block;
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-size: 0.95rem;
+  line-height: 1.5;
+  color: var(--text);
+}
+.course-beleg-context-quelle {
+  display: block;
+  font-family: var(--font-sans);
+  font-size: 0.66rem;
+  color: var(--muted);
+  margin-top: 2px;
+}
+
 /* ── Verschiebeprobe (Feldermodell): topologisches Feld ─────────────── */
 .course-felder {
   display: flex;

@@ -72,6 +72,20 @@ export function makeCorpusAdapter() {
         return null
       }
     },
+    // Mehrere möglichst vollständige Belegsätze (AP21-QA „Anschaulichkeit"):
+    // Relevanz-Pool holen, nach Vollständigkeit sortieren, die besten `limit` nehmen.
+    fetchBelege(lemma, partner, { limit = 3 } = {}) {
+      if (!lemma || !partner) return []
+      try {
+        const rows = fetchBelegeRaw(lemma, partner, { limit: 15 })
+        return [...rows]
+          .sort((a, b) => scoreBeleg(b.satz) - scoreBeleg(a.satz))
+          .slice(0, limit)
+      } catch (err) {
+        logger.warn({ err, lemma, partner }, 'corpusAdapter: fetchBelege fehlgeschlagen (DB fehlt?)')
+        return []
+      }
+    },
   }
 }
 
