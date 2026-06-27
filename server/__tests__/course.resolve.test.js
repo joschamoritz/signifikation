@@ -20,10 +20,19 @@ const FEHLER_POOL = [
   { lemma: 'dick',   frequency: 19,   logDice: '4.6000' },
 ]
 const ENTSCHEIDUNG_POOL = [
-  { lemma: 'treffen', frequency: 900, logDice: '11.5000' },
-  { lemma: 'fällen',  frequency: 300, logDice: '8.6000' },
-  { lemma: 'fordern', frequency: 500, logDice: '6.0000' },
+  { lemma: 'treffen',   frequency: 900, logDice: '11.5000' },
+  { lemma: 'fällen',    frequency: 300, logDice: '8.6000' },
+  { lemma: 'fordern',   frequency: 500, logDice: '6.0000' },
+  { lemma: 'begründen', frequency: 200, logDice: '5.0000' },
   { lemma: 'kritisieren', frequency: 120, logDice: '4.0000' },
+]
+// Fremd-Lemma-Distraktoren (AP21-QA): abwegige „Lied"-Verben.
+const LIED_POOL = [
+  { lemma: 'singen',      frequency: 800, logDice: '12.3000' },
+  { lemma: 'anstimmen',   frequency: 200, logDice: '8.8000' },
+  { lemma: 'komponieren', frequency: 150, logDice: '8.1000' },
+  { lemma: 'mitsingen',   frequency: 90,  logDice: '6.9000' },
+  { lemma: 'intonieren',  frequency: 30,  logDice: '6.0000' },
 ]
 
 function fakeCorpus(poolByLemma, beleg) {
@@ -58,16 +67,21 @@ describe('resolve – static Item (DaZ)', () => {
   })
 })
 
-describe('resolve – corpus-template F1 (Zuordnen)', () => {
+describe('resolve – corpus-template F1 (Zuordnen + Fremd-Distraktoren)', () => {
   const resolved = resolveItem(getItem('s1-f1-entscheidung-verb-seki'), {
-    corpus: fakeCorpus({ Entscheidung: ENTSCHEIDUNG_POOL }),
+    corpus: fakeCorpus({ Entscheidung: ENTSCHEIDUNG_POOL, Lied: LIED_POOL }),
   })
-  it('@from:bindings → Kandidaten alphabetisch, Antworten markiert', () => {
+  it('@from:bindings → Kandidaten alphabetisch, echte Antworten + abwegige Distraktoren', () => {
     const labels = resolved.payload.candidates.map(c => c.label)
     expect(labels).toEqual([...labels].sort((a, b) => a.localeCompare(b, 'de')))
     const answers = resolved.payload.candidates.filter(c => c.isAnswer).map(c => c.label)
-    // bindings.answer = [1,2] → logDice-Rang 1+2 = treffen, fällen
-    expect(answers.sort()).toEqual(['fällen', 'treffen'])
+    // bindings.answer = [1..5] → die 5 echten Kollokatoren
+    expect(answers).toHaveLength(5)
+    expect(answers).toContain('treffen')
+    // 5 abwegige Distraktoren aus „Lied" – nie Lösung
+    const distractors = resolved.payload.candidates.filter(c => !c.isAnswer).map(c => c.label)
+    expect(distractors).toContain('singen')
+    expect(answers).not.toContain('singen')
   })
   it('solution.map → korrekte candidate-Ids', () => {
     const ids = resolved.solution.map.a1
@@ -176,13 +190,22 @@ describe('resolve – Fremd-Lemma-Distraktoren (AP21-QA)', () => {
 })
 
 describe('resolve – Eigenes Lemma override', () => {
-  it('lemma überschreibt corpusQuery.lemma', () => {
+  it('lemma überschreibt corpusQuery.lemma (Distraktor-Lemma bleibt fix)', () => {
+    const seen = []
     const corpus = {
-      queryRelation(q) { expect(q.lemma).toBe('Antwort'); return ENTSCHEIDUNG_POOL },
+      queryRelation(q) {
+        seen.push(q.lemma)
+        if (q.lemma === 'Antwort') return ENTSCHEIDUNG_POOL
+        if (q.lemma === 'Lied') return LIED_POOL
+        return []
+      },
       fetchBeleg() { return null },
     }
     const resolved = resolveItem(getItem('s1-f1-entscheidung-verb-seki'), { corpus, lemma: 'Antwort' })
-    expect(resolved.payload.candidates.length).toBeGreaterThan(0)
+    // Anker-Query wurde mit „Antwort" gestellt, das Distraktor-Lemma blieb „Lied".
+    expect(seen).toContain('Antwort')
+    expect(seen).toContain('Lied')
+    expect(resolved.payload.candidates.map(c => c.label)).toContain('treffen')
   })
 })
 

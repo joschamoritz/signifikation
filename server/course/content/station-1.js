@@ -52,6 +52,18 @@ const Q_VERANTWORTUNG_VERB = { lemma: 'Verantwortung', pos: 'Substantiv', relati
 const Q_MASSNAHME_VERB    = { lemma: 'Maßnahme',      pos: 'Substantiv', relation: '~OBJA', minFrequency: 5, limit: 25, filter: { singleWordOnly: true } }
 const Q_MEHRHEIT_ADJ      = { lemma: 'Mehrheit',      pos: 'Substantiv', relation: 'ATTR',   minFrequency: 5, limit: 25, filter: { singleWordOnly: true } }
 
+// SekI „echte Entscheidung" (AP21-QA): Antwort-Pools ohne das generische „haben"
+// (schwacher, unspezifischer Partner) + ABWEGIGE Distraktor-Lemmas eines anderen
+// Nomens. Verifiziert gegen wortprofil.db (2026-06-27):
+//   Entscheidung/~OBJA → treffen, fällen, begründen, herbeiführen, überlassen
+//   Verantwortung/~OBJA → übernehmen, tragen, wahrnehmen, nachkommen, entziehen
+//   Lied/~OBJA  → singen, anstimmen, komponieren, mitsingen, intonieren (Distraktoren)
+//   Koffer/~OBJA → packen, auspacken, schleppen, schmuggeln, transportieren (Distraktoren)
+const Q_ENTSCHEIDUNG_VERB_CLEAN  = { ...Q_ENTSCHEIDUNG_VERB,  exclude: ['haben'] }
+const Q_VERANTWORTUNG_VERB_CLEAN = { ...Q_VERANTWORTUNG_VERB, exclude: ['haben', 'werden'] }
+const Q_LIED_DISTRACTOR   = { lemma: 'Lied',   pos: 'Substantiv', relation: '~OBJA', minFrequency: 5, limit: 25, exclude: ['haben', 'schreiben', 'spielen', 'hören', 'widmen', 'präsentieren', 'interpretieren', 'vortragen'], filter: { singleWordOnly: true } }
+const Q_KOFFER_DISTRACTOR = { lemma: 'Koffer', pos: 'Substantiv', relation: '~OBJA', minFrequency: 5, limit: 25, exclude: ['haben', 'packt', 'abgestellt', 'öffnen', 'schnappen', 'mitnehmen'], filter: { singleWordOnly: true } }
+
 const TASKS = [
   // ════════════════════════════ DaZ ════════════════════════════
   // erkennen (rezeptiv) + kontrastiv · Metasprache „Wörter, die zusammenpassen"
@@ -254,10 +266,14 @@ const TASKS = [
   {
     id: 's1-f1-entscheidung-verb-seki', station: 1, format: 'F1', level: 'SekI', source: 'corpus-template',
     kern: 'kollokation-zuordnen',
-    prompt: 'Welche Verben passen typisch zu „Entscheidung"? Ziehe die typischen Partner auf das Wort.',
+    // AP21-QA: echte Entscheidung statt „alles passt irgendwie" — 5 echte
+    // Kollokatoren + 5 abwegige Verben aus „Lied" (Musik), die klar NICHT zu
+    // „Entscheidung" gehören. SuS müssen wirklich unterscheiden.
+    prompt: 'Welche Verben sind typische Partner von „Entscheidung"? Ziehe nur die passenden auf das Wort — manche Verben gehören gar nicht dazu.',
     metasprache: ['Kollokation', 'typische Wortverbindung'],
-    corpusQuery: Q_ENTSCHEIDUNG_VERB,
-    bindings: { answer: [1, 2], near: { rankRange: [4, 10] }, mid: { rankRange: [12, 20] } },
+    corpusQuery: Q_ENTSCHEIDUNG_VERB_CLEAN,
+    distractorQuery: Q_LIED_DISTRACTOR,
+    bindings: { answer: [1, 2, 3, 4, 5], distractors: { rankRange: [1, 5] } },
     payload: {
       anchors: [{ id: 'a1', label: 'Entscheidung' }],
       candidates: '@from:bindings',
@@ -268,8 +284,8 @@ const TASKS = [
     feedback: {
       byLevel: {
         SekI: {
-          onCorrect: '„Entscheidung {{top.lemma}}" ist eine sehr typische Verbindung – sie kommt im Korpus besonders oft vor.',
-          onWrong: '„{{selected.lemma}}" passt seltener zu „Entscheidung". Typisch ist „{{top.lemma}}".',
+          onCorrect: '„Entscheidung {{top.lemma}}" ist eine typische Verbindung – diese Verben stehen im Korpus oft mit „Entscheidung".',
+          onWrong: '„{{selected.lemma}}" ist kein typischer Partner von „Entscheidung". Typisch ist z. B. „{{top.lemma}}".',
         },
       },
       tonalitaet: 'woerterbuch-nuechtern',
@@ -280,10 +296,13 @@ const TASKS = [
   {
     id: 's1-f1-verantwortung-verb-seki', station: 1, format: 'F1', level: 'SekI', source: 'corpus-template',
     kern: 'kollokation-zuordnen',
-    prompt: 'Welche Verben passen typisch zu „Verantwortung"? Ziehe die typischen Partner auf das Wort.',
+    // Distraktoren aus „Koffer" (Gepäck-Verben) — keine Überschneidung mit den
+    // Verantwortung-Partnern (übernehmen/tragen/…).
+    prompt: 'Welche Verben sind typische Partner von „Verantwortung"? Ziehe nur die passenden auf das Wort — manche Verben gehören gar nicht dazu.',
     metasprache: ['Kollokation', 'typische Wortverbindung'],
-    corpusQuery: Q_VERANTWORTUNG_VERB,
-    bindings: { answer: [1, 2], near: { rankRange: [4, 10] }, mid: { rankRange: [12, 20] } },
+    corpusQuery: Q_VERANTWORTUNG_VERB_CLEAN,
+    distractorQuery: Q_KOFFER_DISTRACTOR,
+    bindings: { answer: [1, 2, 3, 4, 5], distractors: { rankRange: [1, 5] } },
     payload: {
       anchors: [{ id: 'a1', label: 'Verantwortung' }],
       candidates: '@from:bindings',
@@ -294,8 +313,8 @@ const TASKS = [
     feedback: {
       byLevel: {
         SekI: {
-          onCorrect: '„Verantwortung {{top.lemma}}" ist eine sehr typische Verbindung – sie kommt im Korpus besonders oft vor.',
-          onWrong: '„{{selected.lemma}}" passt seltener zu „Verantwortung". Typisch ist „{{top.lemma}}".',
+          onCorrect: '„Verantwortung {{top.lemma}}" ist eine typische Verbindung – diese Verben stehen im Korpus oft mit „Verantwortung".',
+          onWrong: '„{{selected.lemma}}" ist kein typischer Partner von „Verantwortung". Typisch ist z. B. „{{top.lemma}}".',
         },
       },
       tonalitaet: 'woerterbuch-nuechtern',

@@ -20,10 +20,19 @@ const FEHLER_POOL = [
   { lemma: 'dick',   frequency: 19,   logDice: '4.6000' },
 ]
 const ENTSCHEIDUNG_POOL = [
-  { lemma: 'treffen', frequency: 900, logDice: '11.5000' },
-  { lemma: 'fällen',  frequency: 300, logDice: '8.6000' },
-  { lemma: 'fordern', frequency: 500, logDice: '6.0000' },
-  { lemma: 'üben',    frequency: 120, logDice: '4.0000' },
+  { lemma: 'treffen',   frequency: 900, logDice: '11.5000' },
+  { lemma: 'fällen',    frequency: 300, logDice: '8.6000' },
+  { lemma: 'fordern',   frequency: 500, logDice: '6.0000' },
+  { lemma: 'begründen', frequency: 200, logDice: '5.0000' },
+  { lemma: 'üben',      frequency: 120, logDice: '4.0000' },
+]
+// Abwegige „Lied"-Distraktoren (AP21-QA Fremd-Lemma-Distraktoren).
+const LIED_POOL = [
+  { lemma: 'singen',      frequency: 800, logDice: '12.3000' },
+  { lemma: 'anstimmen',   frequency: 200, logDice: '8.8000' },
+  { lemma: 'komponieren', frequency: 150, logDice: '8.1000' },
+  { lemma: 'mitsingen',   frequency: 90,  logDice: '6.9000' },
+  { lemma: 'intonieren',  frequency: 30,  logDice: '6.0000' },
 ]
 
 function fakeCorpus(poolByLemma, beleg) {
@@ -47,12 +56,16 @@ describe('resolveItemInteractive – static Item (DaZ)', () => {
 
 describe('resolveItemInteractive – corpus F1 (Zuordnen)', () => {
   const r = resolveItemInteractive(getItem('s1-f1-entscheidung-verb-seki'), {
-    corpus: fakeCorpus({ Entscheidung: ENTSCHEIDUNG_POOL }),
+    corpus: fakeCorpus({ Entscheidung: ENTSCHEIDUNG_POOL, Lied: LIED_POOL }),
   })
-  it('Kandidaten + Antwort-Ids aufgelöst', () => {
-    const answers = r.payload.candidates.filter(c => c.isAnswer).map(c => c.label).sort()
-    expect(answers).toEqual(['fällen', 'treffen'])
-    expect(r.solution.map.a1.length).toBe(2)
+  it('Kandidaten = 5 echte Antworten + abwegige Distraktoren', () => {
+    const answers = r.payload.candidates.filter(c => c.isAnswer).map(c => c.label)
+    expect(answers).toHaveLength(5)
+    expect(answers).toContain('treffen')
+    const distractors = r.payload.candidates.filter(c => !c.isAnswer).map(c => c.label)
+    expect(distractors).toContain('singen')
+    expect(answers).not.toContain('singen')
+    expect(r.solution.map.a1.length).toBe(5)
   })
   it('onCorrect: {{top.lemma}} gefüllt (treffen), keine Platzhalter', () => {
     expect(r.feedback.onCorrect).toMatch(/treffen/)
