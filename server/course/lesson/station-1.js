@@ -96,7 +96,7 @@ export const entwurf1 = {
  */
 export const beamer1 = {
   slides: [
-    { kind: 'title', kicker: 'Signifikation · Kurs · Station ①', title: 'Wortpartner & Kollokationen', lead: '„starker Regen" – aber niemand sagt „strenger Regen". Warum?' },
+    { kind: 'title', kicker: 'Signifikation · Kurs · Station ①', title: 'Wortpartner & Kollokationen', lead: '„starker Regen" – im Englischen aber „heavy rain". Wer Wort für Wort übersetzt, sagt „schwerer Regen". Warum stimmt das nicht?' },
     { kind: 'bullets', kicker: 'Worum geht es?', title: 'Typische Wortverbindungen', bullets: [
       'Manche Wörter treten regelmäßig zusammen auf: „Entscheidung treffen", „schwerer Fehler".',
       'Das nennt man Kollokation – eine typische Wortverbindung.',
