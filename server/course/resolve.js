@@ -63,6 +63,19 @@ function fetchDistractorRows(item, corpus) {
 }
 
 /**
+ * Belegkontext (AP21-QA „Anschaulichkeit"): mehrere echte Korpussätze für ein
+ * Wortpaar, die NACH der Aufgabe gezeigt werden. Konfig liegt in
+ * payload.belegContext { lemma, partner, limit } (überlebt so den DB-Round-Trip).
+ * @returns {Array<{satz,quelle}>|null}
+ */
+function resolveBelegContext(item, corpus) {
+  const bc = item.payload?.belegContext
+  if (!bc || !corpus?.fetchBelege) return null
+  const rows = corpus.fetchBelege(bc.lemma, bc.partner, { limit: bc.limit ?? 3 })
+  return rows.length ? rows : null
+}
+
+/**
  * Löst eine einzelne Rang-Referenz gegen die beiden Pool-Sichten auf.
  * @returns {object|null} corpusRow {lemma, frequency, logDice} oder null
  */
@@ -446,6 +459,7 @@ export function resolveItemInteractive(item, { corpus, lemma } = {}) {
       display: item.display ?? { metric: 'none' },
       beleg: item.beleg ?? [],
       beleghinweis: null,
+      belegContext: resolveBelegContext(item, corpus),
     }
   }
 
@@ -497,6 +511,7 @@ export function resolveItemInteractive(item, { corpus, lemma } = {}) {
     display: item.display ?? { metric: 'none' },
     beleg: item.beleg ?? [],
     beleghinweis,
+    belegContext: resolveBelegContext(item, corpus),
   }
 }
 

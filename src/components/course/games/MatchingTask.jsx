@@ -4,7 +4,7 @@
 // Anker antippen; eine zugeordnete Karte antippen löst sie wieder.
 
 import { useState, useMemo, useRef, useEffect } from 'react'
-import { TaskHead, TaskActions, FeedbackBlock, FeedbackRegion } from './TaskShell'
+import { TaskHead, TaskActions, FeedbackBlock, FeedbackRegion, BelegContext } from './TaskShell'
 import { metricLabel, seededShuffle } from './fmt'
 
 const DRAG_THRESHOLD = 6 // px, bevor aus einem Tap ein Zug wird
@@ -232,6 +232,8 @@ export default function MatchingTask({ task, index, onChecked, canRetry = true, 
           )
         )}
       </FeedbackRegion>
+
+      {checked && <BelegContext belege={task.belegContext} />}
     </div>
   )
 }

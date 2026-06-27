@@ -45,6 +45,9 @@ const TASKS = [
         { id: 'c2', label: 'trifft' },
       ],
       multiplePerAnchor: false,
+      // Nach der Aufgabe echte Korpussätze zeigen (Anschaulichkeit, AP21-QA):
+      // „eine Entscheidung treffen" im vollständigen Satzkontext.
+      belegContext: { lemma: 'Entscheidung', partner: 'treffen', limit: 3 },
     },
     display: { showMetrics: false, metric: 'none' },
     solution: { map: { a1: ['c1'], a2: ['c2'] } },
