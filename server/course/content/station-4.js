@@ -52,7 +52,7 @@ const TASKS = [
       },
       tonalitaet: 'woerterbuch-nuechtern',
     },
-    beleg: [{ key: 'korpus-pipeline', kontext: 'korpus' }],
+    beleg: [{ key: 'korpus-pipeline-schnupper', kontext: 'korpus' }],
   },
 
   {
@@ -76,7 +76,7 @@ const TASKS = [
       },
       tonalitaet: 'woerterbuch-nuechtern',
     },
-    beleg: [{ key: 'korpus-pipeline', kontext: 'korpus' }],
+    beleg: [{ key: 'korpus-pipeline-schnupper', kontext: 'korpus' }],
   },
 
   // ──────────────── SekI · Schnupper „Häufigkeit lesen" (Frequenz, kein logDice) ────────────────
@@ -104,7 +104,7 @@ const TASKS = [
       },
       tonalitaet: 'woerterbuch-nuechtern',
     },
-    beleg: [{ key: 'korpus-pipeline', kontext: 'korpus' }],
+    beleg: [{ key: 'korpus-pipeline-schnupper', kontext: 'korpus' }],
   },
 
   {
@@ -133,7 +133,7 @@ const TASKS = [
       },
       tonalitaet: 'woerterbuch-nuechtern',
     },
-    beleg: [{ key: 'korpus-pipeline', kontext: 'korpus' }],
+    beleg: [{ key: 'korpus-pipeline-schnupper', kontext: 'korpus' }],
   },
 
   // ──────────────── SekII · Frequenz von Typikalität trennen (logDice) ────────────────

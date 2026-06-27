@@ -57,7 +57,7 @@ const TASKS = [
       },
       tonalitaet: 'woerterbuch-nuechtern',
     },
-    beleg: [{ key: 'korpus-pipeline', kontext: 'korpus' }],
+    beleg: [{ key: 'korpus-pipeline-schnupper', kontext: 'korpus' }],
   },
 
   // ──────────────── SekI · einfache Frage am Profil prüfen (kein logDice) ────────────────
@@ -84,7 +84,7 @@ const TASKS = [
       },
       tonalitaet: 'woerterbuch-nuechtern',
     },
-    beleg: [{ key: 'korpus-pipeline', kontext: 'korpus' }],
+    beleg: [{ key: 'korpus-pipeline-schnupper', kontext: 'korpus' }],
   },
 
   {
@@ -109,7 +109,7 @@ const TASKS = [
       },
       tonalitaet: 'woerterbuch-nuechtern',
     },
-    beleg: [{ key: 'korpus-pipeline', kontext: 'beleg-satz' }],
+    beleg: [{ key: 'korpus-pipeline-schnupper', kontext: 'beleg-satz' }],
   },
 
   {

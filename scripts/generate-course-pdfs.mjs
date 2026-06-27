@@ -1,9 +1,10 @@
 // CLI: erzeugt die Kurs-PDFs (Arbeitsblatt/Lösung je Niveau, Unterrichtsentwurf,
-// Beamer) für Station ①. Vorgesehen für lokale Ausführung / CI – NICHT für den
-// Server-Runtime (Playwright/Chromium-Abhängigkeit).
+// Beamer) für eine oder alle Stationen. Vorgesehen für lokale Ausführung / CI –
+// NICHT für den Server-Runtime (Playwright/Chromium-Abhängigkeit).
 //
-//   node scripts/generate-course-pdfs.mjs [--out <dir>] [--lemma <Wort>] [--register]
+//   node scripts/generate-course-pdfs.mjs [--station <1-5|all>] [--out <dir>] [--lemma <Wort>] [--register]
 //
+// --station  Station 1–5 oder "all" (Default: 1)
 // --out      Zielordner (Default server/data/course-pdfs)
 // --lemma    „Eigenes Lemma": überschreibt das Anker-Lemma der corpus-Templates
 // --register course_materials-Zeilen anlegen/aktualisieren (schreibt in die DB)
@@ -21,7 +22,16 @@ function arg(name, fallback = undefined) {
   return next && !next.startsWith('--') ? next : true
 }
 
+function parseStation(raw) {
+  if (!raw || raw === true) return 1
+  if (raw === 'all') return 'all'
+  const n = Number(raw)
+  if (Number.isInteger(n) && n >= 1 && n <= 5) return n
+  logger.error({ raw }, '--station muss 1–5 oder "all" sein'); process.exit(1)
+}
+
 const opts = {
+  stationNo: parseStation(arg('station')),
   outDir: typeof arg('out') === 'string' ? arg('out') : undefined,
   lemma: typeof arg('lemma') === 'string' ? arg('lemma') : undefined,
   register: arg('register') === true,
