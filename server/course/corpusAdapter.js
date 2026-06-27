@@ -81,6 +81,8 @@ export function makeCorpusAdapter() {
         return [...rows]
           .sort((a, b) => scoreBeleg(b.satz) - scoreBeleg(a.satz))
           .slice(0, limit)
+          // Korpus-Whitespace säubern (z. B. „Ein  Gericht" → „Ein Gericht").
+          .map(r => ({ ...r, satz: r.satz.replace(/\s+/g, ' ').trim() }))
       } catch (err) {
         logger.warn({ err, lemma, partner }, 'corpusAdapter: fetchBelege fehlgeschlagen (DB fehlt?)')
         return []
