@@ -74,6 +74,7 @@ export const entwurf2 = {
     'Verschiebeprobe (Gallmann 2015): Nur was sich als geschlossene Einheit ins Vorfeld verschieben lässt, ist ein Satzglied; das finite Verb bleibt an Position 2.',
     'Material: Arbeitsblatt + Erwartungshorizont (Sek I / Sek II differenziert), Beamer-Folien.',
     'Differenzierung: Sek I bis „Bausteine + Satzglied per Verschiebeprobe"; Sek II bis „Wortart über Funktion + Konstituente"; LK bis „Feldanalyse mit Satzklammer + FVG/Konversion".',
+    'LK-Scaffolding: Funktionsverbgefüge (FVG) vorab kurz einführen – festes Verb-Nomen-Gefüge, in dem das Verb semantisch verblasst und das Nomen den Inhalt trägt (z. B. „in Frage stellen", „zur Sprache bringen", „Kritik üben"). Die Aufgabe trägt die Definition zur Sicherheit selbst.',
     'Reihenbezug: Station ① (Kollokationen) → ② (Wortart-Baupläne + Feldermodell) → ③ (Slots/Dependenz).',
   ],
 
