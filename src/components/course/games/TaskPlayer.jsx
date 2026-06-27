@@ -1,20 +1,22 @@
 // Dispatcher: rendert je Aufgaben-Format (F1–F5) die passende interaktive
 // Komponente. Das Item ist bereits serverseitig aufgelöst (resolve=interactive).
 
-import MatchingTask from './MatchingTask'
-import MarkingTask  from './MarkingTask'
-import LabelTask    from './LabelTask'
-import VariantTask  from './VariantTask'
-import GapTask      from './GapTask'
-import DataTask     from './DataTask'
+import MatchingTask   from './MatchingTask'
+import MarkingTask    from './MarkingTask'
+import LabelTask      from './LabelTask'
+import VerschiebeTask from './VerschiebeTask'
+import VariantTask    from './VariantTask'
+import GapTask        from './GapTask'
+import DataTask       from './DataTask'
 
 const REGISTRY = {
-  F1:    MatchingTask, // Zuordnen
-  F2:    MarkingTask,  // Markieren
-  F3:    VariantTask,  // Variantenvergleich
-  F4:    GapTask,      // Lücke + Begründung
-  F5:    DataTask,     // Datenblick
-  LABEL: LabelTask,    // Funktion zuweisen (S/P/O, Kopf/Dependent)
+  F1:         MatchingTask,   // Zuordnen
+  F2:         MarkingTask,    // Markieren
+  F3:         VariantTask,    // Variantenvergleich
+  F4:         GapTask,        // Lücke + Begründung
+  F5:         DataTask,       // Datenblick
+  LABEL:      LabelTask,      // Funktion zuweisen (S/P/O, Kopf/Dependent)
+  VERSCHIEBE: VerschiebeTask, // Verschiebeprobe am topologischen Feld
 }
 
 // Markier-Aufgaben mit Funktionszuweisung (S/P/O, Kopf/Dependent) brauchen die
@@ -30,6 +32,8 @@ function registryKey(task) {
   const mt = p.markTask
   if (mt && LABEL_MARK_TASKS.has(mt)) return 'LABEL'
   if (mt === 'kollokation') return 'F2'
+  // Verschiebeprobe (Feldermodell): Chunks + festes Verb.
+  if (Array.isArray(p.chunks) && p.verb) return 'VERSCHIEBE'
   // Tabellen-/Frage-Aufgabe → Datenblick (DataTask), egal wie etikettiert.
   if (Array.isArray(p.table) && Array.isArray(p.questions)) return 'F5'
   return task?.format
