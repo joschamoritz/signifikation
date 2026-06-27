@@ -89,6 +89,35 @@ const TASKS = [
     beleg: [{ key: 'schuetze-2018', kontext: 'fachlich' }],
   },
 
+  {
+    id: 's3-f2-wermarkieren2-daz', station: 3, format: 'F2', level: 'DaZ', source: 'static',
+    kern: 'akteur-handlung-markieren',
+    prompt: 'Markiere, wer handelt (S) und was er tut (P). Beschrifte mit dem Buchstaben.',
+    metasprache: ['wer? (S)', 'was tut? (P)'],
+    payload: {
+      sentence: 'Die Kinder spielen draußen.',
+      markTask: 'S-P-O',
+      labels: ['S', 'P'],
+    },
+    display: { showMetrics: false, metric: 'none' },
+    solution: {
+      spans: [
+        { text: 'Die Kinder', tokenRange: [0, 2], label: 'S' },
+        { text: 'spielen', tokenRange: [2, 3], label: 'P' },
+      ],
+    },
+    feedback: {
+      byLevel: {
+        DaZ: {
+          onCorrect: 'Richtig – „Die Kinder" (S) handeln, „spielen" (P) ist die Handlung.',
+          onWrong: 'Wer macht etwas? Das ist S. Was tun sie? Das ist P. („draußen" gehört zu keinem von beiden.)',
+        },
+      },
+      tonalitaet: 'woerterbuch-nuechtern',
+    },
+    beleg: [{ key: 'schuetze-2018', kontext: 'fachlich' }],
+  },
+
   // ──────────────── SekI · Satzglieder S/P/O ────────────────
   {
     id: 's3-f1-satzglieder-seki', station: 3, format: 'F1', level: 'SekI', source: 'static',
@@ -145,6 +174,36 @@ const TASKS = [
         SekI: {
           onCorrect: 'Richtig – „Entscheidung" steht im Objekt-Slot, darum das typische Verb „treffen".',
           onWrong: 'Frage: Wer? (S), was geschieht? (P), wen/was? (O). „Entscheidung" ist hier das Objekt.',
+        },
+      },
+      tonalitaet: 'woerterbuch-nuechtern',
+    },
+    beleg: [{ key: 'schuetze-2018', kontext: 'fachlich' }],
+  },
+
+  {
+    id: 's3-f2-spo-markieren2-seki', station: 3, format: 'F2', level: 'SekI', source: 'static',
+    kern: 'spo-markieren',
+    prompt: 'Markiere Subjekt (S), Prädikat (P) und Objekt (O). Beschrifte jeweils mit dem Buchstaben.',
+    metasprache: ['Subjekt', 'Prädikat', 'Objekt'],
+    payload: {
+      sentence: 'Der Richter verkündet das Urteil.',
+      markTask: 'S-P-O',
+      labels: ['S', 'P', 'O'],
+    },
+    display: { showMetrics: false, metric: 'none' },
+    solution: {
+      spans: [
+        { text: 'Der Richter', tokenRange: [0, 2], label: 'S' },
+        { text: 'verkündet', tokenRange: [2, 3], label: 'P' },
+        { text: 'das Urteil', tokenRange: [3, 5], label: 'O' },
+      ],
+    },
+    feedback: {
+      byLevel: {
+        SekI: {
+          onCorrect: 'Richtig – Subjekt (Der Richter), Prädikat (verkündet), Objekt (das Urteil).',
+          onWrong: 'Frage: Wer? → Subjekt. Was geschieht? → Prädikat. Wen/was? → Objekt.',
         },
       },
       tonalitaet: 'woerterbuch-nuechtern',
@@ -298,6 +357,40 @@ const TASKS = [
           onChoice: {
             '@selected': 'Wende die Kasusprobe an: „{{top.lemma}}" + wen/was? → Akkusativobjekt, nicht Dativ/Genitiv.',
           },
+        },
+      },
+      tonalitaet: 'woerterbuch-nuechtern',
+    },
+    beleg: [{ key: 'schuetze-2018', kontext: 'fachlich' }],
+  },
+
+  {
+    id: 's3-f4-satzglieder-lk', station: 3, format: 'F4', level: 'LK', source: 'static',
+    kern: 'satzglied-feinanalyse',
+    // Interaktive Satzgliedanalyse (Tippen→Label) statt reinem Freitext (AP21-QA
+    // „im LK auch Aufgaben zum Schieben/Klicken"). Format F4, aber markTask →
+    // LabelTask im Dispatcher; volle Analyse inkl. adverbialer Bestimmung.
+    prompt: 'Vollständige Satzgliedanalyse: Weise jedem Satzteil seine Funktion zu – Subjekt (S), Prädikat (P), adverbiale Bestimmung (Adv) und Akkusativobjekt (O).',
+    metasprache: ['Satzglied', 'Subjekt', 'Prädikat', 'adverbiale Bestimmung', 'Akkusativobjekt'],
+    payload: {
+      sentence: 'Der Senat trifft nach langer Beratung eine Entscheidung.',
+      markTask: 'S-P-O',
+      labels: ['S', 'P', 'Adv', 'O'],
+    },
+    display: { showMetrics: false, metric: 'none' },
+    solution: {
+      spans: [
+        { text: 'Der Senat', tokenRange: [0, 2], label: 'S' },
+        { text: 'trifft', tokenRange: [2, 3], label: 'P' },
+        { text: 'nach langer Beratung', tokenRange: [3, 6], label: 'Adv' },
+        { text: 'eine Entscheidung', tokenRange: [6, 8], label: 'O' },
+      ],
+    },
+    feedback: {
+      byLevel: {
+        LK: {
+          onCorrect: 'Korrekt – S „Der Senat", P „trifft", adverbiale Bestimmung „nach langer Beratung", O „eine Entscheidung". Das Prädikat regiert das Akkusativobjekt; die adverbiale Bestimmung ist frei verschiebbar (Verschiebeprobe).',
+          onWrong: 'Gehe die Satzglieder durch: Wer? (S) – was geschieht? (P) – wann/wie? (Adv) – wen/was? (O). Die Verschiebeprobe trennt die Satzglieder.',
         },
       },
       tonalitaet: 'woerterbuch-nuechtern',

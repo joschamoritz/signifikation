@@ -63,6 +63,10 @@ export { makeCorpusAdapter }
  */
 function corpusItemIsEmpty(item) {
   const p = item.payload ?? {}
+  // Payload-Form vor Format-Etikett (analog Renderer/Dispatcher):
+  // Label-/Markier-Aufgaben tragen ihren Inhalt im Satz (auch wenn als F3 geführt).
+  if (p.markTask) return !p.sentence
+  if (Array.isArray(p.table) && Array.isArray(p.questions)) return p.table.length === 0
   switch (item.format) {
     case 'F1': return (p.candidates ?? []).length === 0
     case 'F2': return !p.sentence
