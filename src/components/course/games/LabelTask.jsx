@@ -10,7 +10,7 @@
 // es Selbstkontrolle mit aufgedecktem Erwartungsbild.
 
 import { useMemo, useState, useEffect } from 'react'
-import { TaskHead, TaskActions, FeedbackBlock, FeedbackRegion } from './TaskShell'
+import { TaskHead, TaskActions, FeedbackBlock, FeedbackRegion, BelegContext } from './TaskShell'
 
 function tokenize(sentence) {
   return (sentence ?? '').split(/\s+/).filter(Boolean)
@@ -187,6 +187,8 @@ export default function LabelTask({ task, index, onChecked, canRetry = true, loc
           </>
         )}
       </FeedbackRegion>
+
+      {checked && <BelegContext belege={task.belegContext} />}
     </div>
   )
 }

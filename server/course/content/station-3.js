@@ -141,6 +141,8 @@ const TASKS = [
         { id: 'c3', label: 'eine Entscheidung' },
       ],
       multiplePerAnchor: false,
+      // Satzglied-Aufgabe: Beleg zeigt das Gericht als Handelnden (Subjekt + Prädikat).
+      belegContext: { lemma: 'Gericht', partner: 'treffen', limit: 3 },
     },
     display: { showMetrics: false, metric: 'none' },
     solution: { map: { a1: ['c1'], a2: ['c2'], a3: ['c3'] } },
@@ -195,6 +197,8 @@ const TASKS = [
       sentence: 'Der Richter verkündet das Urteil.',
       markTask: 'S-P-O',
       labels: ['S', 'P', 'O'],
+      // Beleg zeigt dieselbe S-P-O-Struktur im echten Satz (Richter verkündet Urteil).
+      belegContext: { lemma: 'Richter', partner: 'verkünden', limit: 3 },
     },
     display: { showMetrics: false, metric: 'none' },
     solution: {

@@ -278,6 +278,8 @@ const TASKS = [
       anchors: [{ id: 'a1', label: 'Entscheidung' }],
       candidates: '@from:bindings',
       multiplePerAnchor: true,
+      // Kollokations-Aufgabe → Beleg zeigt die Objekt-Kollokation „Entscheidung treffen".
+      belegContext: { lemma: 'Entscheidung', partner: 'treffen', limit: 3 },
     },
     display: { showMetrics: false, metric: 'none' },
     solution: { map: { a1: '@from:bindings.answer' } },
@@ -307,6 +309,8 @@ const TASKS = [
       anchors: [{ id: 'a1', label: 'Verantwortung' }],
       candidates: '@from:bindings',
       multiplePerAnchor: true,
+      // „Verantwortung tragen" liefert vollständigere Belegsätze als „übernehmen".
+      belegContext: { lemma: 'Verantwortung', partner: 'tragen', limit: 3 },
     },
     display: { showMetrics: false, metric: 'none' },
     solution: { map: { a1: '@from:bindings.answer' } },
