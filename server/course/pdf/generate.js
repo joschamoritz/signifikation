@@ -22,7 +22,15 @@ import { fileURLToPath } from 'node:url'
 import logger from '../../logger.js'
 import { makeCorpusAdapter } from '../corpusAdapter.js'
 import station1 from '../content/station-1.js'
+import station2 from '../content/station-2.js'
+import station3 from '../content/station-3.js'
+import station4 from '../content/station-4.js'
+import station5 from '../content/station-5.js'
 import lesson1 from '../lesson/station-1.js'
+import lesson2 from '../lesson/station-2.js'
+import lesson3 from '../lesson/station-3.js'
+import lesson4 from '../lesson/station-4.js'
+import lesson5 from '../lesson/station-5.js'
 import { resolveItems, resolveItem } from '../resolve.js'
 import {
   renderArbeitsblattHtml,
@@ -30,6 +38,15 @@ import {
   renderUnterrichtsentwurfHtml,
   renderBeamerHtml,
 } from './html.js'
+
+/** Stationen-Registry: Nummer → { content, lesson }. */
+const STATION_MAP = new Map([
+  [1, { content: station1, lesson: lesson1 }],
+  [2, { content: station2, lesson: lesson2 }],
+  [3, { content: station3, lesson: lesson3 }],
+  [4, { content: station4, lesson: lesson4 }],
+  [5, { content: station5, lesson: lesson5 }],
+])
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const DEFAULT_OUT = pathResolve(__dirname, '..', '..', 'data', 'course-pdfs')
@@ -78,9 +95,18 @@ function buildBeamerSlides(content, beamerSpec, corpus) {
  * Baut alle HTML-Dokumente einer Station (ohne Rendering). Nützlich für Tests/
  * Vorschau. Nutzt den echten Korpus, sofern kein Adapter übergeben wird.
  *
+ * @param {object} [opts]
+ * @param {number} [opts.stationNo]  Station-Nummer 1–5 (Shorthand; content/lesson überschreiben)
+ * @param {object} [opts.content]    Expliziter Content (überschreibt stationNo-Lookup)
+ * @param {object} [opts.lesson]     Explizites Lesson-Objekt (überschreibt stationNo-Lookup)
+ * @param {object} [opts.corpus]     Korpus-Adapter (Default: echte DBs)
+ * @param {string} [opts.lemma]      „Eigenes Lemma" (überschreibt corpusQuery.lemma)
  * @returns {Array<{ kind, level, filename, title, html }>}
  */
-export function buildStationHtml({ content = station1, lesson = lesson1, corpus = makeCorpusAdapter(), lemma } = {}) {
+export function buildStationHtml({ stationNo = 1, content, lesson, corpus = makeCorpusAdapter(), lemma } = {}) {
+  const entry = STATION_MAP.get(stationNo) ?? STATION_MAP.get(1)
+  if (content === undefined) content = entry.content
+  if (lesson === undefined) lesson = entry.lesson
   const out = []
   const station = content.station
 
@@ -118,35 +144,41 @@ export function buildStationHtml({ content = station1, lesson = lesson1, corpus 
 }
 
 /**
- * Erzeugt + schreibt die PDFs einer Station.
+ * Erzeugt + schreibt die PDFs einer Station (oder aller Stationen).
  *
  * @param {object} [opts]
- * @param {string} [opts.outDir]   Zielordner (Default server/data/course-pdfs)
- * @param {string} [opts.lemma]    „Eigenes Lemma" (überschreibt corpusQuery.lemma)
- * @param {boolean} [opts.register] course_materials-Zeilen anlegen (Default false)
+ * @param {number|'all'} [opts.stationNo]  Station-Nummer 1–5 oder 'all'. Default: 1.
+ * @param {string} [opts.outDir]           Zielordner (Default server/data/course-pdfs)
+ * @param {string} [opts.lemma]            „Eigenes Lemma" (überschreibt corpusQuery.lemma)
+ * @param {boolean} [opts.register]        course_materials-Zeilen anlegen (Default false)
  * @returns {Promise<Array<{ kind, level, filename, path, bytes }>>}
  */
-export async function generateStationPdfs({ outDir = DEFAULT_OUT, lemma, register = false } = {}) {
-  const docs = buildStationHtml({ lemma })
+export async function generateStationPdfs({ stationNo = 1, outDir = DEFAULT_OUT, lemma, register = false } = {}) {
+  const stationNos = stationNo === 'all' ? [1, 2, 3, 4, 5] : [Number(stationNo)]
   mkdirSync(outDir, { recursive: true })
 
   const { createRenderer } = await import('./render.js')
   const renderer = await createRenderer()
-  const manifest = []
+  const allManifest = []
   try {
-    for (const doc of docs) {
-      const pdf = await renderer.render(doc.html)
-      const filePath = join(outDir, doc.filename)
-      writeFileSync(filePath, pdf)
-      manifest.push({ kind: doc.kind, level: doc.level, filename: doc.filename, path: filePath, bytes: pdf.length })
-      logger.info({ filename: doc.filename, bytes: pdf.length }, 'course/pdf: geschrieben')
+    for (const no of stationNos) {
+      const entry = STATION_MAP.get(no)
+      if (!entry) { logger.warn({ stationNo: no }, 'course/pdf: unbekannte Station, übersprungen'); continue }
+      const docs = buildStationHtml({ stationNo: no, lemma })
+      for (const doc of docs) {
+        const pdf = await renderer.render(doc.html)
+        const filePath = join(outDir, doc.filename)
+        writeFileSync(filePath, pdf)
+        allManifest.push({ kind: doc.kind, level: doc.level, filename: doc.filename, path: filePath, bytes: pdf.length, stationNo: no })
+        logger.info({ filename: doc.filename, bytes: pdf.length }, 'course/pdf: geschrieben')
+      }
+      if (register) await registerMaterials(entry.content.station, allManifest.filter(m => m.stationNo === no))
     }
   } finally {
     await renderer.close()
   }
 
-  if (register) await registerMaterials(station1.station, manifest)
-  return manifest
+  return allManifest
 }
 
 /**

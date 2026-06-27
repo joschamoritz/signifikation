@@ -57,6 +57,12 @@ export const LITERATUR = {
     kurz: 'Signifikation-Korpus (wortprofil.db)',
     voll: 'Eigene Korpus-Pipeline (öffentliche Korpora: Bundestag, DTA, Leipzig u. a.), spaCy-Dependenzparsing, logDice-Assoziationsmaß. Belegsätze aus belege.db (CC-BY-SA).',
   },
+  // Schnupper-Variante für DaZ/SekI-Blätter (④/⑤): kein „logDice" im Zitattext,
+  // da der Begriff auf diesen Stufen nicht eingeführt wird (Befund 1, AP11-QA).
+  'korpus-pipeline-schnupper': {
+    kurz: 'Signifikation-Korpus',
+    voll: 'Eigene Korpus-Pipeline (öffentliche Korpora: Bundestag, DTA, Leipzig u. a.). Belegsätze aus belege.db (CC-BY-SA).',
+  },
 
   // ── Didaktik/Methodik & Lehrplan (Stundenentwurf) ─────────────────
   'vonbrand-2010': {
