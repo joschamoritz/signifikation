@@ -22,7 +22,7 @@ const REGISTRY = {
 // Markier-Aufgaben mit Funktionszuweisung (S/P/O, Kopf/Dependent) brauchen die
 // LabelTask – unabhängig vom Format. Sonst landet z. B. die als F3 geführte
 // Kopf/Dependent-Aufgabe fälschlich im VariantTask (keine Varianten → leer).
-const LABEL_MARK_TASKS = new Set(['S-P-O', 'kopf-dependent'])
+const LABEL_MARK_TASKS = new Set(['S-P-O', 'kopf-dependent', 'felder'])
 
 // Registry-Schlüssel je Aufgabe wählen (Payload-Form hat Vorrang vor Format-
 // Etikett). Station ④ führt Datenblick-Aufgaben (Tabelle + Fragen) teils als F2;
