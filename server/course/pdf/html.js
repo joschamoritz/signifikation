@@ -84,6 +84,18 @@ function renderLabel(it) {
     <div class="justify-hint">Weise jedem Satzteil seine Funktion zu (${labels}) und schreibe sie darunter.</div>`
 }
 
+// Verschiebeprobe am topologischen Feld (Feldermodell): Druckform zeigt den Satz
+// als Rahmen + die verschiebbaren Satzglieder als Chips.
+function renderVerschiebe(it) {
+  const chunks = it.payload?.chunks ?? []
+  const verb = it.payload?.verb?.text ?? ''
+  const sentence = `___ ${verb} ${chunks.map(c => c.text).join(' ')}`.trim()
+  const chips = chunks.map(c => `<span class="chip">${esc(c.text)}</span>`).join('')
+  return `<div class="frame">${esc(sentence)}</div>
+    <div class="candidates">${chips}</div>
+    <div class="justify-hint">Verschiebeprobe: Setze nacheinander je ein Satzglied ins Vorfeld (vor das Verb). Welche Wortgruppen lassen sich als geschlossene Einheit verschieben?</div>`
+}
+
 // Erkennt Aufgaben, deren Renderer sich aus der Payload-Form (nicht dem Format-
 // Etikett) ergibt — analog zum Frontend-Dispatcher (TaskPlayer).
 function isLabelTask(it) {
@@ -93,6 +105,10 @@ function isLabelTask(it) {
 function isDataTask(it) {
   const p = it.payload ?? {}
   return Array.isArray(p.table) && Array.isArray(p.questions)
+}
+function isVerschiebeTask(it) {
+  const p = it.payload ?? {}
+  return Array.isArray(p.chunks) && !!p.verb
 }
 
 function variantCard(v, display) {
@@ -148,6 +164,7 @@ function renderTaskBody(it, ankerLemma) {
   // Payload-Form hat Vorrang vor dem Format-Etikett (sonst rendern z. B. die als
   // F2 geführten Datenblick-/Label-Aufgaben leer).
   if (isLabelTask(it)) return renderLabel(it)
+  if (isVerschiebeTask(it)) return renderVerschiebe(it)
   if (isDataTask(it)) return renderF5(it, ankerLemma)
   switch (it.format) {
     case 'F1': return renderF1(it)
@@ -167,6 +184,10 @@ function workedSolutionText(it) {
     const parts = (it.solution?.spans ?? []).filter(s => s.text || s.label)
       .map(s => s.text ? `„${esc(s.text)}" (${esc(s.label)})` : `(${esc(s.label)})`)
     return parts.length ? parts.join(' · ') : (it.feedback?.onCorrect ? esc(it.feedback.onCorrect) : '')
+  }
+  if (isVerschiebeTask(it)) {
+    const byId = Object.fromEntries((it.payload?.chunks ?? []).map(c => [c.id, c.text]))
+    return (it.solution?.validVorfeld ?? []).map(id => `„${esc(byId[id] ?? id)}"`).join(', ')
   }
   if (isDataTask(it)) {
     const a = it.solution?.answers ?? {}
@@ -293,6 +314,10 @@ function solutionDetail(it) {
       .map(s => s.text ? `„${esc(s.text)}" (${esc(s.label)})` : `(${esc(s.label)})`)
     if (parts.length) out.push(parts.join(' · '))
     else if (it.feedback?.onCorrect) out.push(esc(it.feedback.onCorrect))
+  } else if (isVerschiebeTask(it)) {
+    const byId = Object.fromEntries((it.payload?.chunks ?? []).map(c => [c.id, c.text]))
+    const valid = (it.solution?.validVorfeld ?? []).map(id => `„${esc(byId[id] ?? id)}"`)
+    if (valid.length) out.push(`verschiebbar ins Vorfeld: ${valid.join(', ')}`)
   } else if (isDataTask(it) && it.solution?.answers) {
     for (const [qid, ans] of Object.entries(it.solution.answers)) {
       if (typeof ans === 'string') out.push(`${esc(qid)}: „${esc(ans)}"`)

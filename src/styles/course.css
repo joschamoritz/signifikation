@@ -851,6 +851,71 @@
 }
 .course-label-badge--expected { color: var(--success); }
 
+/* ── Verschiebeprobe (Feldermodell): topologisches Feld ─────────────── */
+.course-felder {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: stretch;
+  margin: 10px 0 4px;
+}
+.course-feld {
+  flex: 1 1 auto;
+  min-width: 96px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 6px 8px 8px;
+  background: var(--surface-warm);
+  cursor: pointer;
+}
+.course-feld--klammer {
+  flex: 0 0 auto;
+  background: var(--bonus-bg-lt);
+  border-color: var(--accent);
+  cursor: default;
+}
+.course-feld--armed { box-shadow: inset 0 0 0 2px var(--accent); }
+.course-feld-label {
+  display: block;
+  font-family: var(--font-sans);
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--accent-dk);
+  margin-bottom: 5px;
+}
+.course-feld-slot {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  min-height: 38px;
+  align-items: center;
+}
+.course-feld-empty { color: var(--muted); font-style: italic; font-size: 0.85rem; }
+.course-chunk {
+  font-family: var(--font-serif);
+  font-size: 1rem;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 4px 9px;
+  min-height: 36px;
+  cursor: grab;
+  touch-action: none;
+}
+.course-chunk--picked { background: var(--accent); color: #2a1f06; border-color: var(--accent-dk); }
+.course-chunk--verb {
+  font-style: italic;
+  font-weight: 700;
+  background: transparent;
+  border: none;
+  cursor: default;
+  color: var(--accent-dk);
+}
+.course-chunk:focus-visible { outline: 2px solid var(--primary); outline-offset: 1px; }
+
 /* ── F3/F4 · Varianten / Lücke ──────────────────────────────── */
 .course-frame {
   font-family: var(--font-serif);
