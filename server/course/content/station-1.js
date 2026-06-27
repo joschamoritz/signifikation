@@ -364,9 +364,9 @@ const TASKS = [
       justificationChoice: {
         prompt: 'Woran erkennst du den typischen Partner?',
         options: [
-          { id: 'r1', label: 'Daran, dass beide Wörter im Korpus auffällig oft gemeinsam vorkommen.', correct: true, feedback: 'Genau – den typischen Partner erkennt man daran, dass beide Wörter im Korpus oft gemeinsam stehen.' },
-          { id: 'r2', label: 'Daran, dass das Verb kürzer und einfacher ist.', correct: false, feedback: 'Die Länge des Verbs entscheidet nicht – es geht darum, welche Wörter üblicherweise zusammen vorkommen.' },
-          { id: 'r3', label: 'Beide Verben sind ohnehin gleich üblich.', correct: false, feedback: 'Nicht ganz – einer der Partner kommt mit „Hilfe" deutlich häufiger vor als der andere.' },
+          { id: 'r1', label: 'Weil sich diese Verbindung vertraut anhört – man hört und liest sie oft so.', correct: true, feedback: 'Genau – die typische Verbindung klingt vertraut, weil man sie im Deutschen oft verwendet. (Genau das zeigt später auch das Korpus.)' },
+          { id: 'r2', label: 'Weil das Verb kürzer und einfacher ist.', correct: false, feedback: 'Die Länge des Verbs entscheidet nicht – es geht darum, welche Wörter man üblicherweise zusammen verwendet.' },
+          { id: 'r3', label: 'Beide Verben sind ohnehin gleich üblich.', correct: false, feedback: 'Nicht ganz – einen der Partner hört man mit „Hilfe" deutlich häufiger als den anderen.' },
         ],
       },
     },
@@ -399,8 +399,8 @@ const TASKS = [
       justificationChoice: {
         prompt: 'Warum ist diese Verbindung typischer?',
         options: [
-          { id: 'r1', label: 'Weil sie im Korpus viel häufiger gemeinsam auftreten.', correct: true, feedback: 'Richtig – typische Partner stehen im Korpus auffällig oft beieinander.' },
-          { id: 'r2', label: 'Weil das Wort vornehmer klingt.', correct: false, feedback: 'Der Klang allein entscheidet nicht; entscheidend ist das gemeinsame Vorkommen im Korpus.' },
+          { id: 'r1', label: 'Weil man diese Verbindung im Deutschen oft so verwendet – sie klingt typisch.', correct: true, feedback: 'Richtig – typische Partner verwendet man im Deutschen regelmäßig zusammen. (Im Korpus zeigt sich das später als häufiges gemeinsames Vorkommen.)' },
+          { id: 'r2', label: 'Weil das Wort vornehmer klingt.', correct: false, feedback: 'Der Klang allein entscheidet nicht; entscheidend ist, welche Wörter man üblicherweise zusammen verwendet.' },
           { id: 'r3', label: 'Weil man das Verb auch mit jedem anderen Nomen nutzen kann.', correct: false, feedback: 'Im Gegenteil – ein typischer Partner bindet sich gerade an dieses Nomen, nicht an beliebige.' },
         ],
       },
