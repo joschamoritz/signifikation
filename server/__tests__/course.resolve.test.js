@@ -128,6 +128,53 @@ describe('resolve – F2 Belegsatz', () => {
   })
 })
 
+describe('resolve – Fremd-Lemma-Distraktoren (AP21-QA)', () => {
+  const TOR_POOL = [
+    { lemma: 'schießen', frequency: 800, logDice: '12.0000' },
+    { lemma: 'erzielen', frequency: 400, logDice: '10.0000' },
+    { lemma: 'abwehren', frequency: 150, logDice: '9.0000' },
+  ]
+  const item = {
+    id: 'x-distractor', station: 1, format: 'F1', level: 'SekI', source: 'corpus-template',
+    prompt: 'Welche Verben passen zu „Entscheidung"?',
+    corpusQuery: { lemma: 'Entscheidung', pos: 'Substantiv', relation: '~OBJA' },
+    distractorQuery: { lemma: 'Tor', pos: 'Substantiv', relation: '~OBJA' },
+    bindings: { answer: [1, 2], distractors: { rankRange: [1, 2] } },
+    payload: { anchors: [{ id: 'a1', label: 'Entscheidung' }], candidates: '@from:bindings', multiplePerAnchor: true },
+    display: { metric: 'none' },
+    solution: { map: { a1: '@from:bindings.answer' } },
+    feedback: {},
+  }
+  const corpus = {
+    queryRelation(q) {
+      if (q.lemma === 'Entscheidung') return ENTSCHEIDUNG_POOL
+      if (q.lemma === 'Tor') return TOR_POOL
+      return []
+    },
+    fetchBeleg() { return null },
+  }
+  const resolved = resolveItem(item, { corpus })
+
+  it('mischt abwegige Distraktoren des Fremd-Lemmas als Nicht-Antwort bei', () => {
+    const cands = resolved.payload.candidates
+    const labels = cands.map(c => c.label)
+    expect(labels).toContain('treffen')  // echte Antwort (Entscheidung)
+    expect(labels).toContain('schießen') // abwegiger Distraktor (Tor)
+    expect(cands.find(c => c.label === 'schießen').isAnswer).toBe(false)
+    expect(cands.find(c => c.label === 'treffen').isAnswer).toBe(true)
+  })
+  it('nur rankRange-viele Distraktoren (Tor: schießen+erzielen, nicht abwehren)', () => {
+    const labels = resolved.payload.candidates.map(c => c.label)
+    expect(labels).toContain('erzielen')
+    expect(labels).not.toContain('abwehren') // außerhalb rankRange [1,2]
+  })
+  it('solution.map enthält nur die echten Antworten', () => {
+    const ids = resolved.solution.map.a1
+    const answerLabels = resolved.payload.candidates.filter(c => ids.includes(c.id)).map(c => c.label)
+    expect(answerLabels.sort()).toEqual(['fällen', 'treffen'])
+  })
+})
+
 describe('resolve – Eigenes Lemma override', () => {
   it('lemma überschreibt corpusQuery.lemma', () => {
     const corpus = {

@@ -48,6 +48,21 @@ function sortedByFreq(pool) {
 }
 
 /**
+ * Zeilen für die Fremd-Lemma-Distraktoren (item.distractorQuery) holen. Bewusst
+ * UNABHÄNGIG vom Anker-Lemma (auch „Eigenes Lemma" lässt das Distraktor-Lemma
+ * fix), damit die Distraktoren verlässlich abwegig bleiben. ORDER BY logDice DESC
+ * wie queryRelation. Ohne distractorQuery → leer.
+ */
+function fetchDistractorRows(item, corpus) {
+  if (!item.distractorQuery || !corpus?.queryRelation) return []
+  return (corpus.queryRelation({ ...item.distractorQuery }) ?? []).map(r => ({
+    lemma: r.lemma,
+    frequency: Number(r.frequency),
+    logDice: Number(r.logDice),
+  }))
+}
+
+/**
  * Löst eine einzelne Rang-Referenz gegen die beiden Pool-Sichten auf.
  * @returns {object|null} corpusRow {lemma, frequency, logDice} oder null
  */
@@ -143,22 +158,28 @@ const ALPHA = (a, b) => String(a).localeCompare(String(b), 'de')
  * Lösung(en) + Distraktoren aus near/mid, deterministisch alphabetisch sortiert.
  * Markiert jede Karte mit `isAnswer`, vergibt stabile Ids c1…cn.
  */
-function buildCandidates({ bindings, byLogDice, byFreq }) {
+function buildCandidates({ bindings, byLogDice, byFreq, distractorRows = [] }) {
   const answers = resolveRefs(bindings.answer ?? [1], byLogDice, byFreq)
   const answerSet = new Set(answers.map(r => r.lemma))
 
-  const sliceRange = range => {
+  const sliceRange = (range, pool) => {
     if (!range || range.length !== 2) return []
     const [a, b] = range
-    return byLogDice.slice(a - 1, b)
+    return pool.slice(a - 1, b)
   }
-  const near = sliceRange(bindings.near?.rankRange)
-  const mid = sliceRange(bindings.mid?.rankRange)
+  const near = sliceRange(bindings.near?.rankRange, byLogDice)
+  const mid = sliceRange(bindings.mid?.rankRange, byLogDice)
+  // Fremd-Lemma-Distraktoren (AP21-QA, SekI/DaZ-„echte Entscheidung"): bewusst
+  // ABWEGIGE Partner aus einem ANDEREN Lemma, damit nicht jede Karte „irgendwie
+  // passt". Quelle ist die separate distractorQuery (→ distractorRows). Sie sind
+  // nie Lösung.
+  const distractors = sliceRange(bindings.distractors?.rankRange, distractorRows)
 
-  // Lösungen + Distraktoren zusammenführen, nach lemma deduplizieren
+  // Lösungen + Distraktoren zusammenführen, nach lemma deduplizieren. Antworten
+  // haben Vorrang vor (zufällig gleichlautenden) Distraktoren.
   const seen = new Set()
   const pool = []
-  for (const r of [...answers, ...near, ...mid]) {
+  for (const r of [...answers, ...near, ...mid, ...distractors]) {
     if (seen.has(r.lemma)) continue
     seen.add(r.lemma)
     pool.push(r)
@@ -309,7 +330,8 @@ export function resolveItem(item, { corpus, lemma } = {}) {
   const byLogDice = rows // queryRelation liefert bereits ORDER BY logDice DESC
   const byFreq = sortedByFreq(rows)
   const ctx = buildPlaceholderContext({ byLogDice, byFreq, lemma: ankerLemma })
-  const bindCtx = { bindings: item.bindings ?? {}, byLogDice, byFreq }
+  const distractorRows = fetchDistractorRows(item, corpus, lemma)
+  const bindCtx = { bindings: item.bindings ?? {}, byLogDice, byFreq, distractorRows }
 
   // payload: erst Direktiven, dann Platzhalter
   let payload = resolvePayloadDirectives(item.payload, bindCtx)
@@ -439,7 +461,8 @@ export function resolveItemInteractive(item, { corpus, lemma } = {}) {
   const byLogDice = rows
   const byFreq = sortedByFreq(rows)
   const ctx = buildPlaceholderContext({ byLogDice, byFreq, lemma: ankerLemma })
-  const bindCtx = { bindings: item.bindings ?? {}, byLogDice, byFreq }
+  const distractorRows = fetchDistractorRows(item, corpus, lemma)
+  const bindCtx = { bindings: item.bindings ?? {}, byLogDice, byFreq, distractorRows }
 
   // payload: Direktiven + (nicht-selected) Platzhalter — payload trägt nie selected.
   let payload = resolvePayloadDirectives(item.payload, bindCtx)

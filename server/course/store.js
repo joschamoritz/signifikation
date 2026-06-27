@@ -276,6 +276,7 @@ export function taskToEngineItem(task) {
     beleg:       blob.beleg ?? [],
     corpusQuery: blob.corpusQuery,
     bindings:    blob.bindings,
+    distractorQuery: blob.distractorQuery ?? null,
     solution:    task.rubric?.solution ?? null,
     feedback:    task.rubric?.feedback ?? null,
   }

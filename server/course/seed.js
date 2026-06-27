@@ -62,7 +62,13 @@ export function itemToColumns(item, stationId, position, now) {
   }
   const isStatic = item.source === 'static'
   const contentBlob  = isStatic ? base : null
-  const templateBlob = isStatic ? null : { ...base, corpusQuery: item.corpusQuery, bindings: item.bindings ?? {} }
+  const templateBlob = isStatic ? null : {
+    ...base,
+    corpusQuery: item.corpusQuery,
+    bindings: item.bindings ?? {},
+    // Fremd-Lemma-Distraktoren (optional) mit persistieren.
+    ...(item.distractorQuery ? { distractorQuery: item.distractorQuery } : {}),
+  }
   return {
     id:            item.id,
     station_id:    stationId,
