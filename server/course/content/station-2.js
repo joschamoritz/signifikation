@@ -393,7 +393,9 @@ const TASKS = [
   {
     id: 's2-f4-fvg-grenzfall-lk', station: 2, format: 'F4', level: 'LK', source: 'corpus-template',
     kern: 'funktionsverbgefuege',
-    prompt: 'Grenzfall: Ist „{{top.lemma}} Kritik" eine feste Verb-Nomen-Verbindung oder ein Funktionsverbgefüge? Wähle und begründe.',
+    // FVG kurz einführen statt voraussetzen (AP21-QA): Definition + Beispiele im
+    // Prompt, damit der Grenzfall ohne Vorwissen bearbeitbar ist.
+    prompt: 'Ein Funktionsverbgefüge (FVG) ist eine feste Verbindung aus Funktionsverb + Nomen, in der das Verb seine eigene Bedeutung weitgehend verliert und das Nomen den Inhalt trägt (z. B. „in Frage stellen", „zur Sprache bringen"). Grenzfall: Ist „{{top.lemma}} Kritik" ein FVG oder eine (noch) freie, aber feste Verb-Nomen-Verbindung? Wähle und begründe.',
     metasprache: ['Funktionsverbgefüge', 'feste Verb-Nomen-Verbindung', 'logDice'],
     corpusQuery: Q_KRITIK_VERB,
     bindings: { answer: [1] },
@@ -405,6 +407,7 @@ const TASKS = [
         { id: 'o3', label: 'Idiom' },
       ],
       requireJustification: true,
+      justifyPrompt: 'Begründe über Festigkeit (Bindungsstärke) und Durchsichtigkeit der Bedeutung.',
     },
     display: { showMetrics: true, metric: 'both' },
     solution: {
