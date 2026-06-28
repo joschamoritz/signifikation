@@ -163,4 +163,22 @@ describe('resolveItemInteractive – belegContext (Anschaulichkeit, AP21-QA)', (
     }
     expect(resolveItemInteractive(item, { corpus }).belegContext).toBeNull()
   })
+
+  it('adjacent-Flag wird an den Korpus durchgereicht (attributive Belege)', () => {
+    let seenOpts = null
+    const spy = {
+      queryRelation() { return [] },
+      fetchBeleg() { return null },
+      fetchBelege(lemma, partner, opts) { seenOpts = opts; return [{ satz: `${partner}e ${lemma}.`, quelle: 'Q' }] },
+    }
+    const item = {
+      id: 's2-x', station: 2, format: 'F1', level: 'SekI', source: 'static',
+      prompt: 'p',
+      payload: { anchors: [], candidates: [], belegContext: { lemma: 'Kritik', partner: 'scharf', adjacent: true, limit: 3 } },
+      solution: {}, feedback: {},
+    }
+    const r = resolveItemInteractive(item, { corpus: spy })
+    expect(seenOpts).toMatchObject({ adjacent: true, limit: 3 })
+    expect(r.belegContext[0].satz).toBe('scharfe Kritik.')
+  })
 })

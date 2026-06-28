@@ -133,6 +133,8 @@ const TASKS = [
       anchors: [{ id: 'a1', label: 'Kritik' }],
       candidates: '@from:bindings',
       multiplePerAnchor: true,
+      // Attributiver Bauplan Adjektiv+Nomen → Adjazenz-Belege „scharfe Kritik".
+      belegContext: { lemma: 'Kritik', partner: 'scharf', adjacent: true, limit: 3 },
     },
     display: { showMetrics: false, metric: 'none' },
     solution: { map: { a1: '@from:bindings.answer' } },

@@ -71,7 +71,8 @@ function fetchDistractorRows(item, corpus) {
 function resolveBelegContext(item, corpus) {
   const bc = item.payload?.belegContext
   if (!bc || !corpus?.fetchBelege) return null
-  const rows = corpus.fetchBelege(bc.lemma, bc.partner, { limit: bc.limit ?? 3 })
+  // adjacent=true → attributive Adjektiv+Nomen-Belege (z. B. „scharfe Kritik").
+  const rows = corpus.fetchBelege(bc.lemma, bc.partner, { limit: bc.limit ?? 3, adjacent: !!bc.adjacent })
   return rows.length ? rows : null
 }
 
