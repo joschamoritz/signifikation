@@ -255,6 +255,8 @@ const TASKS = [
         { id: 'v2', label: 'Nomen', typical: false },
       ],
       requireJustification: true,
+      // Verb-Nomen-Kollokation → Belege zeigen „Kritik üben" im echten Satz.
+      belegContext: { lemma: 'Kritik', partner: 'üben', limit: 3 },
     },
     display: { showMetrics: true, metric: 'both' },
     solution: {
@@ -408,6 +410,7 @@ const TASKS = [
       ],
       requireJustification: true,
       justifyPrompt: 'Begründe über Festigkeit (Bindungsstärke) und Durchsichtigkeit der Bedeutung.',
+      belegContext: { lemma: 'Kritik', partner: 'üben', limit: 3 },
     },
     display: { showMetrics: true, metric: 'both' },
     solution: {

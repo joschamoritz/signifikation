@@ -4,7 +4,7 @@
 // datengestützt (logDice/Frequenz bei SekII+).
 
 import { useMemo, useState, useEffect } from 'react'
-import { TaskHead, TaskActions, FeedbackBlock, FeedbackRegion } from './TaskShell'
+import { TaskHead, TaskActions, FeedbackBlock, FeedbackRegion, BelegContext } from './TaskShell'
 import { metricLabel, seededShuffle } from './fmt'
 
 export default function VariantTask({ task, index, onChecked, canRetry = true, lockedNote = null }) {
@@ -172,6 +172,8 @@ export default function VariantTask({ task, index, onChecked, canRetry = true, l
           </div>
         )}
       </FeedbackRegion>
+
+      {checked && <BelegContext belege={task.belegContext} />}
     </div>
   )
 }

@@ -266,6 +266,8 @@ const TASKS = [
       ],
       requireJustification: true,
       justifyPrompt: 'Begründe: Warum besetzt „Entscheidung" hier diesen Slot?',
+      // Objekt-Slot → Belege zeigen die Objekt-Kollokation „Entscheidung treffen".
+      belegContext: { lemma: 'Entscheidung', partner: 'treffen', limit: 3 },
     },
     display: { showMetrics: false, metric: 'none' },
     solution: {
