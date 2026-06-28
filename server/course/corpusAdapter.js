@@ -20,6 +20,11 @@ import { fetchBelegeRaw } from '../belege.js'
 
 const MONTHS = /^(Januar|Februar|März|April|Mai|Juni|Juli|August|September|Oktober|November|Dezember)\b/
 
+/** Escaped einen String für die Verwendung in einem RegExp. */
+function escapeRegExp(s) {
+  return String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+}
+
 /**
  * Heuristik-Score: „wirkt das wie ein vollständiger Satz?". Höher = besser.
  * Bestraft typische Korpus-Fragmente (Monats-Reste, Dialog-Präfixe „Name:",
@@ -39,6 +44,9 @@ function scoreBeleg(satz) {
   if (MONTHS.test(s)) sc -= 20                    // „Februar eine … treffen." & Co.
   if (/[=()[\]]/.test(s)) sc -= 8                 // Klammern/Gleichheits-Rauschen
   if (/^\p{Lu}[\wäöüß-]*:/u.test(s)) sc -= 6      // „Kiesinger:" Redner-Präfix
+  // Zusammengeklebte Schlagzeilen: „Headline: „Zitat“ Nächste Headline …"
+  if (/:\s*[„"]/.test(s)) sc -= 14                // Doppelpunkt + öffnendes Zitat
+  if (/[“”"]\s+\p{Lu}/u.test(s)) sc -= 10         // schließendes Zitat + Großanfang (Glue)
   return sc
 }
 
@@ -74,15 +82,29 @@ export function makeCorpusAdapter() {
     },
     // Mehrere möglichst vollständige Belegsätze (AP21-QA „Anschaulichkeit"):
     // Relevanz-Pool holen, nach Vollständigkeit sortieren, die besten `limit` nehmen.
-    fetchBelege(lemma, partner, { limit = 3 } = {}) {
+    //
+    // adjacent=true → attributive Adjektiv+Nomen-Belege („scharfe Kritik"):
+    // Der exakte Lemma-Token „scharf" trifft nur die Adverbform; daher Präfix-
+    // Suche (scharf*) + Nachfilter auf Adjazenz (flektiertes Adjektiv DIREKT vor
+    // dem Nomen). partner = Adjektiv-Lemma, lemma = Nomen.
+    fetchBelege(lemma, partner, { limit = 3, adjacent = false } = {}) {
       if (!lemma || !partner) return []
+      const clean = r => ({ ...r, satz: r.satz.replace(/\s+/g, ' ').trim() })
       try {
+        if (adjacent) {
+          const pool = fetchBelegeRaw(lemma, partner, { limit: 60, prefixCollocate: true })
+          const re = new RegExp(`\\b${escapeRegExp(partner)}\\w*\\s+${escapeRegExp(lemma)}\\w*\\b`, 'i')
+          return pool
+            .filter(r => re.test(r.satz))
+            .sort((a, b) => scoreBeleg(b.satz) - scoreBeleg(a.satz))
+            .slice(0, limit)
+            .map(clean)
+        }
         const rows = fetchBelegeRaw(lemma, partner, { limit: 15 })
         return [...rows]
           .sort((a, b) => scoreBeleg(b.satz) - scoreBeleg(a.satz))
           .slice(0, limit)
-          // Korpus-Whitespace säubern (z. B. „Ein  Gericht" → „Ein Gericht").
-          .map(r => ({ ...r, satz: r.satz.replace(/\s+/g, ' ').trim() }))
+          .map(clean)
       } catch (err) {
         logger.warn({ err, lemma, partner }, 'corpusAdapter: fetchBelege fehlgeschlagen (DB fehlt?)')
         return []

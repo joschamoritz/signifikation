@@ -441,6 +441,8 @@ const TASKS = [
       compareDimension: 'typikalitaet',
       variants: '@from:bindings.contrastPair',
       requireJustification: true,
+      // Attributive Adjazenz-Belege „schwerer Fehler" (die typische Verbindung).
+      belegContext: { lemma: 'Fehler', partner: 'schwer', adjacent: true, limit: 3 },
     },
     display: { showMetrics: true, metric: 'both' },
     solution: {
@@ -482,6 +484,8 @@ const TASKS = [
       sentence: 'Bei der Abstimmung erreichte der Antrag eine ___ Mehrheit.',
       options: '@from:bindings',
       requireJustification: true,
+      // Attributive Adjazenz-Belege „absolute Mehrheit".
+      belegContext: { lemma: 'Mehrheit', partner: 'absolut', adjacent: true, limit: 3 },
     },
     display: { showMetrics: true, metric: 'both' },
     solution: {

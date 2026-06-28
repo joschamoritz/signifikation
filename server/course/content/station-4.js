@@ -185,6 +185,8 @@ const TASKS = [
       compareDimension: 'typikalitaet',
       variants: '@from:bindings.contrastPair',
       requireJustification: true,
+      // Attributive Adjazenz-Belege „blondes Haar" (die typische Verbindung).
+      belegContext: { lemma: 'Haar', partner: 'blond', adjacent: true, limit: 3 },
     },
     display: { showMetrics: true, metric: 'both' },
     solution: {
