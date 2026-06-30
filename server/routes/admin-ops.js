@@ -13,6 +13,22 @@ function getProcessFingerprint() {
   }
 }
 
+// Hintergrund-Job-Status für die Kurs-PDF-Neugenerierung. Playwright/Chromium
+// dauert 1–2 min → der Request darf nicht blockieren; der Job läuft asynchron,
+// das Admin-Panel pollt /admin/course/pdf-status. Modul-Singleton (1 Prozess).
+const coursePdfJob = {
+  running: false, startedAt: null, finishedAt: null,
+  station: null, ok: null, count: 0, error: null,
+}
+function coursePdfStatus() { return { ...coursePdfJob } }
+
+/** station-Eingabe → 'all' | 1–5 | null (ungültig). */
+function parseStationArg(raw) {
+  if (raw == null || raw === 'all') return 'all'
+  const n = Number(raw)
+  return Number.isInteger(n) && n >= 1 && n <= 5 ? n : null
+}
+
 const countStatsRowsStmt = db.prepare(`
   SELECT
     COUNT(*) AS totalRows,
@@ -151,6 +167,51 @@ export function createAdminOpsRouter({
     } catch (err) {
       adminError(res, err)
     }
+  })
+
+  // ── Kurs-PDFs neu generieren (Arbeitsblatt/Lösung/Entwurf/Beamer) ──────
+  router.get('/admin/course/pdf-status', adminLimiter, requireAuth, (_req, res) => {
+    res.json(coursePdfStatus())
+  })
+
+  router.post('/admin/course/regenerate-pdfs', adminLimiter, requireAuth, (req, res) => {
+    if (coursePdfJob.running) {
+      return res.status(409).json({ error: 'PDF-Generierung läuft bereits.', status: coursePdfStatus() })
+    }
+    const station = parseStationArg(req.body?.station)
+    if (station === null) {
+      return res.status(400).json({ error: 'station muss 1–5 oder "all" sein.' })
+    }
+
+    // Job-State setzen und SOFORT antworten – die eigentliche Erzeugung läuft im
+    // Hintergrund (Playwright/Chromium), damit kein Request-/Proxy-Timeout greift.
+    coursePdfJob.running = true
+    coursePdfJob.startedAt = Date.now()
+    coursePdfJob.finishedAt = null
+    coursePdfJob.station = station
+    coursePdfJob.ok = null
+    coursePdfJob.count = 0
+    coursePdfJob.error = null
+    res.status(202).json({ ok: true, message: 'PDF-Generierung gestartet.', status: coursePdfStatus() })
+
+    // Boot-sicherer dynamischer Import: Playwright wird erst hier (lazy) geladen,
+    // nie beim Server-Start. register=true → course_materials werden aktualisiert.
+    ;(async () => {
+      try {
+        const { generateStationPdfs } = await import('../course/pdf/generate.js')
+        const manifest = await generateStationPdfs({ stationNo: station, register: true })
+        coursePdfJob.ok = true
+        coursePdfJob.count = manifest.length
+        logger.info({ station, count: manifest.length }, 'admin: Kurs-PDFs neu generiert + registriert')
+      } catch (err) {
+        coursePdfJob.ok = false
+        coursePdfJob.error = err.message
+        logger.error({ err, station }, 'admin: Kurs-PDF-Generierung fehlgeschlagen')
+      } finally {
+        coursePdfJob.running = false
+        coursePdfJob.finishedAt = Date.now()
+      }
+    })()
   })
 
   return router

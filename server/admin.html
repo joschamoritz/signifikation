@@ -980,6 +980,30 @@
 
         <div class="card">
           <div class="card-head card-head--wrap">
+            <h2>Kursmaterial (PDFs)</h2>
+            <button class="entry-filters-reset" data-action="load-course-pdf-status">↺ Status</button>
+          </div>
+          <p style="color:var(--muted);font-size:0.82rem;margin:0 0 10px">
+            Erzeugt Arbeitsblätter, Lösungen, Unterrichtsentwürfe und Beamer-Folien neu aus dem aktuellen Kurs-Content
+            (Playwright/Chromium, dauert 1–2 min). Läuft im Hintergrund; registriert die PDFs anschließend automatisch.
+          </p>
+          <div class="system-actions">
+            <label for="course-pdf-station">Station</label>
+            <select id="course-pdf-station">
+              <option value="all" selected>Alle Stationen</option>
+              <option value="1">① Kollokationen</option>
+              <option value="2">② Wortarten</option>
+              <option value="3">③ Abhängigkeiten</option>
+              <option value="4">④ Korpus</option>
+              <option value="5">⑤ Recherche</option>
+            </select>
+            <button class="primary-btn" data-action="regenerate-course-pdfs">PDFs neu generieren</button>
+          </div>
+          <pre id="course-pdf-status" class="system-json">Noch nicht gestartet.</pre>
+        </div>
+
+        <div class="card">
+          <div class="card-head card-head--wrap">
             <h2>Performance</h2>
             <button class="entry-filters-reset" data-action="load-performance">↺ Laden</button>
           </div>

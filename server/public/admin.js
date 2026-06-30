@@ -155,6 +155,7 @@ function switchPage(pageId) {
 
   if (pageId === 'system') {
     loadAuditLog()
+    loadCoursePdfStatus()
   }
 
   if (pageId === 'freedays') {
@@ -2270,6 +2271,71 @@ async function loadPerformance() {
   }
 }
 
+// ── Kurs-PDFs neu generieren (Hintergrund-Job + Polling) ──────────────
+let coursePdfPollTimer = null
+
+function renderCoursePdfStatus(data) {
+  const el = document.getElementById('course-pdf-status')
+  if (!el) return
+  if (!data) { el.textContent = 'Status nicht verfügbar.'; return }
+  const st = data.station === 'all' ? 'alle Stationen' : `Station ${data.station}`
+  const lines = []
+  if (data.running) lines.push(`⏳ Läuft … (${st})`)
+  else if (data.ok === true) lines.push(`✓ Fertig: ${data.count} PDF(s) für ${st} erzeugt und registriert.`)
+  else if (data.ok === false) lines.push(`✗ Fehler: ${data.error || 'unbekannt'}`)
+  else lines.push('Noch nicht gestartet.')
+  if (data.startedAt) lines.push(`Start: ${new Date(data.startedAt).toLocaleString('de-DE')}`)
+  if (data.finishedAt) lines.push(`Ende:  ${new Date(data.finishedAt).toLocaleString('de-DE')}`)
+  el.textContent = lines.join('\n')
+}
+
+async function loadCoursePdfStatus() {
+  try {
+    const r = await fetch('/admin/course/pdf-status', {})
+    const data = await r.json()
+    renderCoursePdfStatus(data)
+    return data
+  } catch (err) {
+    renderCoursePdfStatus(null)
+    return null
+  }
+}
+
+function stopCoursePdfPolling() {
+  if (coursePdfPollTimer) { clearInterval(coursePdfPollTimer); coursePdfPollTimer = null }
+}
+
+function startCoursePdfPolling() {
+  stopCoursePdfPolling()
+  coursePdfPollTimer = setInterval(async () => {
+    const data = await loadCoursePdfStatus()
+    if (!data || !data.running) stopCoursePdfPolling()
+  }, 3000)
+}
+
+async function regenerateCoursePdfs() {
+  const station = document.getElementById('course-pdf-station')?.value || 'all'
+  const el = document.getElementById('course-pdf-status')
+  if (el) el.textContent = 'Starte …'
+  try {
+    const r = await fetch('/admin/course/regenerate-pdfs', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ station }),
+    })
+    const data = await r.json()
+    if (!r.ok) {
+      if (data.status) renderCoursePdfStatus(data.status)
+      else if (el) el.textContent = `✗ ${data.error || `HTTP ${r.status}`}`
+      return
+    }
+    renderCoursePdfStatus(data.status)
+    startCoursePdfPolling()
+  } catch (err) {
+    if (el) el.textContent = `✗ Netzwerkfehler: ${err.message}`
+  }
+}
+
 async function loadStatsSummary(daysOverride) {
   const days = String(daysOverride ?? (document.getElementById('stats-days')?.value || '30'))
   const topUsersBody = document.getElementById('stats-top-users-body')
@@ -3226,6 +3292,8 @@ function handleDocumentClick(event) {
   if (action === 'delete-selected-user') return void deleteSelectedUser()
   if (action === 'trigger-backup-restore') return void triggerBackupRestore()
   if (action === 'load-performance') return void loadPerformance()
+  if (action === 'regenerate-course-pdfs') return void regenerateCoursePdfs()
+  if (action === 'load-course-pdf-status') return void loadCoursePdfStatus()
   if (action === 'load-audit-log') return void loadAuditLog()
   if (action === 'reset-audit-filters') return void resetAuditFilters()
   if (action === 'prefill-date') return void prefillDate(target.dataset.value || '')
