@@ -96,12 +96,31 @@ function renderVerschiebe(it) {
     <div class="justify-hint">Verschiebeprobe: Setze nacheinander je ein Satzglied ins Vorfeld (vor das Verb). Welche Wortgruppen lassen sich als geschlossene Einheit verschieben?</div>`
 }
 
+// KWIC/Konkordanz: echte Belegzeilen + Optionen (das wiederkehrende Wort finden).
+function renderKwic(it) {
+  const lines = (it.payload.lines ?? []).map(l =>
+    `<div class="beleg-satz">${esc(l.satz)}${l.quelle ? ` <span class="beleg-quelle">(${esc(l.quelle)})</span>` : ''}</div>`).join('')
+  const opts = (it.payload.options ?? []).map(o => `<span class="chip">${esc(o.label)}</span>`).join('')
+  return `${lines}<div class="candidates">${opts}</div>` +
+    `<div class="justify-hint">Welches Wort steht in (fast) allen Belegen? Kreise es ein.</div>`
+}
+
+// Automatische Annotation: Satz mit Maschinen-Etiketten; das falsche finden.
+function renderAnnotate(it) {
+  const toks = (it.payload.annotations ?? []).map(a =>
+    `${esc(a.text)} <span class="metric">(${esc(a.tag)})</span>`).join(' · ')
+  return `<div class="beleg-satz">${toks}</div>` +
+    `<div class="justify-hint">Ein Etikett ist falsch. Kreise das Wort mit dem Maschinenfehler ein.</div>`
+}
+
 // Erkennt Aufgaben, deren Renderer sich aus der Payload-Form (nicht dem Format-
 // Etikett) ergibt — analog zum Frontend-Dispatcher (TaskPlayer).
 function isLabelTask(it) {
   const mt = it.payload?.markTask
-  return mt === 'S-P-O' || mt === 'kopf-dependent' || mt === 'felder'
+  return mt === 'S-P-O' || mt === 'kopf-dependent' || mt === 'felder' || mt === 'wortart'
 }
+function isKwicTask(it) { return Array.isArray(it.payload?.lines) }
+function isAnnotateTask(it) { return Array.isArray(it.payload?.annotations) }
 function isDataTask(it) {
   const p = it.payload ?? {}
   return Array.isArray(p.table) && Array.isArray(p.questions)
@@ -163,6 +182,8 @@ function renderF5(it, ankerLemma) {
 function renderTaskBody(it, ankerLemma) {
   // Payload-Form hat Vorrang vor dem Format-Etikett (sonst rendern z. B. die als
   // F2 geführten Datenblick-/Label-Aufgaben leer).
+  if (isAnnotateTask(it)) return renderAnnotate(it)
+  if (isKwicTask(it)) return renderKwic(it)
   if (isLabelTask(it)) return renderLabel(it)
   if (isVerschiebeTask(it)) return renderVerschiebe(it)
   if (isDataTask(it)) return renderF5(it, ankerLemma)
@@ -178,8 +199,20 @@ function renderTaskBody(it, ankerLemma) {
 
 // ── Worked Example (solved, §5: vor der ersten Übung) ─────────────────
 
+function kwicSolutionText(it) {
+  const byId = Object.fromEntries((it.payload.options ?? []).map(o => [o.id, o.label]))
+  return `„${esc(byId[it.solution?.correctOptionId] ?? '—')}"`
+}
+function annotateSolutionText(it) {
+  const wrong = (it.payload.annotations ?? []).find(a => a.wrong)
+  if (!wrong) return ''
+  return `„${esc(wrong.text)}" — Maschine: ${esc(wrong.tag)}, richtig: ${esc(wrong.correctTag ?? '—')}`
+}
+
 function workedSolutionText(it) {
   // Modelliert die Lösung des ersten Items als nachvollziehbares Beispiel.
+  if (isAnnotateTask(it)) return annotateSolutionText(it)
+  if (isKwicTask(it)) return kwicSolutionText(it)
   if (isLabelTask(it)) {
     const parts = (it.solution?.spans ?? []).filter(s => s.text || s.label)
       .map(s => s.text ? `„${esc(s.text)}" (${esc(s.label)})` : `(${esc(s.label)})`)
@@ -309,7 +342,12 @@ export function renderArbeitsblattHtml({ station, level, items, ankerLemma } = {
 
 function solutionDetail(it) {
   const out = []
-  if (isLabelTask(it)) {
+  if (isAnnotateTask(it)) {
+    const t = annotateSolutionText(it)
+    if (t) out.push(t)
+  } else if (isKwicTask(it)) {
+    out.push(kwicSolutionText(it))
+  } else if (isLabelTask(it)) {
     const parts = (it.solution?.spans ?? []).filter(s => s.text || s.label)
       .map(s => s.text ? `„${esc(s.text)}" (${esc(s.label)})` : `(${esc(s.label)})`)
     if (parts.length) out.push(parts.join(' · '))

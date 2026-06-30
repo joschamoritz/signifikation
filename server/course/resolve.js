@@ -77,6 +77,26 @@ function resolveBelegContext(item, corpus) {
 }
 
 /**
+ * KWIC/Konkordanz (Station ④/⑤): mehrere echte Belegzeilen werden zum
+ * AUFGABENKÖRPER (nicht nur Anhang). payload.kwic { partner, limit, adjacent }
+ * wird – nach dem Platzhalter-Füllen, analog zu belegQuery – gegen belege.db
+ * aufgelöst und durch payload.lines [{satz,quelle}] + payload.node ersetzt.
+ * Static-Items dürfen payload.lines direkt mitbringen (kuratierte Konkordanz).
+ * Mutiert das übergebene payload und gibt es zurück.
+ */
+function resolveKwic(payload, { corpus, ankerLemma }) {
+  const k = payload.kwic
+  if (!k) return payload
+  if (corpus?.fetchBelege) {
+    const rows = corpus.fetchBelege(ankerLemma, k.partner, { limit: k.limit ?? 4, adjacent: !!k.adjacent })
+    payload.lines = rows.map(r => ({ satz: r.satz, quelle: r.quelle }))
+  }
+  if (!payload.node) payload.node = ankerLemma
+  delete payload.kwic
+  return payload
+}
+
+/**
  * Löst eine einzelne Rang-Referenz gegen die beiden Pool-Sichten auf.
  * @returns {object|null} corpusRow {lemma, frequency, logDice} oder null
  */
@@ -363,6 +383,9 @@ export function resolveItem(item, { corpus, lemma } = {}) {
     delete payload.belegQuery
   }
 
+  // KWIC/Konkordanz als Aufgabenkörper (echte Belegzeilen).
+  resolveKwic(payload, { corpus, ankerLemma })
+
   const solution = resolveSolution(item.solution, { payload, bindCtx })
   // Platzhalter auch im Erwartungshorizont (rubric.criteria etc.) füllen
   const solutionFilled = fillDeep(solution, ctx)
@@ -496,6 +519,9 @@ export function resolveItemInteractive(item, { corpus, lemma } = {}) {
     payload.targetWords = [ankerLemma, partner].filter(Boolean)
     delete payload.belegQuery
   }
+
+  // KWIC/Konkordanz als Aufgabenkörper (echte Belegzeilen).
+  resolveKwic(payload, { corpus, ankerLemma })
 
   const solution = fillDeep(resolveSolution(item.solution, { payload, bindCtx }), ctx)
 
