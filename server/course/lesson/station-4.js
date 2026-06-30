@@ -29,13 +29,13 @@ export const entwurf4 = {
   begruendung: 'Station ④ liefert die empirische Basis, auf der ①–③ ruhen: Woher weiß die App, was typisch ist? Die Unterscheidung Rohfrequenz vs. Assoziationsstärke (logDice) ist nicht nur Fachdetail, sondern der epistemische Kern der Korpuslinguistik. Im KLP Sek II ist das Verhältnis Sprache–Denken–Wirklichkeit explizit ausgewiesen; quantitative Sprachanalyse eröffnet eine wissenschaftspropädeutische Dimension. Die Schnupper-Variante für DaZ/SekI macht denselben Kerngedanken (häufig ≠ typisch) ohne Fachterminus zugänglich.',
 
   dreiklang: {
-    gegenstand: 'Korpus als empirische Textsammlung; Token/Type/Frequenz/Kookkurrenz; Rohfrequenz als Zählmaß versus logDice als Assoziationsmaß der Typikalität (Skala 0–14; je exklusiver die Verbindung, desto höher der Wert).',
-    thema: '„Was Häufigkeit verschweigt" – wie ein Korpus mit logDice misst, welche Wortverbindungen wirklich typisch sind.',
-    splz: 'Die SuS erklären, wie Korpora Typikalität messen, indem sie Rohfrequenz und logDice an Beispielen unterscheiden und begründen, warum die häufigste Verbindung nicht die typischste ist; LK: d. h. im Einzelnen die Grundlogik der logDice-Formel (gemeinsames vs. einzelnes Vorkommen) deuten und auf ein eigenes Beispiel anwenden.',
-    wwlz: 'Die SuS reflektieren kritisch Chancen und Grenzen quantitativer Sprachanalyse, indem sie beurteilen, was eine Assoziationszahl über Sprache aussagt – und was nicht (Bedeutung, Kontext, Stilwert).',
+    gegenstand: 'Die Maschine hinter der Zahl: die Pipeline, mit der das Wortprofil entsteht – Rohtext aus freien Korpora → Lemmatisierung (DWDSmor) → Wortart (POS-Tagging) → Dependenzparsing (wer hängt an wem) → Kookkurrenz entlang der Kanten zählen → logDice als Assoziationsmaß (14 + log₂(2·f(A,B)/(f(A)+f(B))), Skala bis 14). Dazu die Grenzen: Repräsentativität, Annotationsfehler, Korpus-Bias.',
+    thema: '„Was Häufigkeit verschweigt" – wie ein Korpus Schritt für Schritt misst, welche Wortverbindungen wirklich typisch sind, und wo die Methode irrt.',
+    splz: 'Die SuS erklären, wie ein Korpus Typikalität misst, indem sie die Schritte der Pipeline (Grundform, Wortart, Abhängigkeit, Zählen) nachvollziehen und Rohfrequenz von logDice unterscheiden; sie begründen, warum die häufigste Verbindung nicht die typischste ist. LK: d. h. im Einzelnen die logDice-Formel vollständig deuten (Verhältnis, log₂, Obergrenze 14) und die Grenzen der automatischen Annotation benennen.',
+    wwlz: 'Die SuS reflektieren kritisch Chancen und Grenzen quantitativer Sprachanalyse, indem sie beurteilen, was eine Assoziationszahl über Sprache aussagt – und was nicht (Bedeutung, Kontext, Stilwert) – und wie Korpuswahl und Annotationsfehler den Befund prägen.',
     kompetenzbezug: 'KLP Deutsch Sek II 2025, Inhaltsfeld Sprache: Verhältnis von Sprache, Denken und Wirklichkeit; wissenschaftspropädeutische Reflexion; semantische und pragmatische Aspekte.',
   },
-  begruendungStunde: 'Der Einstieg nutzt eine Schätzfrage (Haar-Adjektive: häufigste vs. typischste), die fast alle SuS falsch beantworten – der Überraschungseffekt motiviert das Bedürfnis nach einem Mess-Instrument. Die Erarbeitung führt Korpus, Frequenz und logDice schrittweise ein; die Plateaubildung sichert das Grobraster (häufig ≠ typisch; Skala ~10 = typisch). Die Daten-Folie im Beamer wird live aus der Datenbank gefüllt (keine harten Zahlen im Code). Das wwLz wird durch die Reflexionsphase gesichert: Was sagt die Zahl nicht?',
+  begruendungStunde: 'Der Einstieg nutzt eine Schätzfrage (Haar-Adjektive: häufigste vs. typischste), die fast alle SuS falsch beantworten – der Überraschungseffekt motiviert das Bedürfnis nach einem Mess-Instrument. Die Erarbeitung macht die App-Pipeline sichtbar (Grundform → Wortart → Abhängigkeit → Zählen → logDice) und führt das Maß ein; die Dependenz-Stufe knüpft an ③ an (die Maschine macht automatisch, was dort von Hand geübt wurde). Die Plateaubildung sichert das Grobraster (häufig ≠ typisch; logDice = Bindungsmaß). Die Daten-Folie im Beamer wird live aus der Datenbank gefüllt (keine harten Zahlen im Code). Das wwLz wird durch die Reflexionsphase gesichert: Was sagt die Zahl nicht – und wo irrt die Maschine (Annotation, Korpus-Bias)?',
 
   verlauf: [
     {
@@ -47,8 +47,8 @@ export const entwurf4 = {
     {
       phase: 'II Stundenmitte — Erarbeitung', anteil: 'Anteil 3',
       schritte: [
-        { schritt: 'Korpus-Konzept einführen: Token, Type, Frequenz, Kookkurrenz; Unterschied zur Wörterbuchsuche.', kommentar: 'Konzeptuelle Basis; erklärt rückblickend ①–③ (Woher kamen unsere Daten?).', interaktion: 'Plenum', medien: 'Beamer-Folie 2 (Daten-Strecke)' },
-        { schritt: 'logDice als Bindungsmaß einführen: „nicht wie oft – sondern wie exklusiv"; Skala 0–14; Formel-Grundlogik (LK: f(A,B) / (f(A)+f(B))).', kommentar: 'Kerneinsicht: exklusive Verbindung → hoher Wert; häufige-aber-beliebige Verbindung → niedrig. Lüdeling/Walter 2009; Bubenhofer 2015.', interaktion: 'Plenum → EA', medien: 'Beamer-Folie 3 (logDice-Strecke)' },
+        { schritt: 'Pipeline sichtbar machen: Rohtext (freie Korpora) → Grundform (Lemmatisierung) → Wortart → Abhängigkeit (Dependenz, Brücke zu ③) → Kookkurrenz entlang der Kanten zählen.', kommentar: 'Konzeptuelle Basis; erklärt rückblickend ①–③ (Woher kamen unsere Daten?). Die Dependenz-Stufe zeigt: die Maschine macht automatisch, was in ③ von Hand geübt wurde – darum zählt sie „Entscheidung treffen" auch über Distanz.', interaktion: 'Plenum', medien: 'Beamer-Folie 2 (Pipeline)' },
+        { schritt: 'logDice als Bindungsmaß einführen: „nicht wie oft – sondern wie exklusiv". Formel: 14 + log₂(2·f(A,B)/(f(A)+f(B))). Sek II: Bestandteile + Verhältnis benennen; LK: log₂ + Obergrenze 14 deuten.', kommentar: 'Kerneinsicht: exklusive Verbindung → hoher Wert; häufige-aber-beliebige Verbindung → niedrig. Lüdeling/Walter 2009; Bubenhofer 2015.', interaktion: 'Plenum → EA', medien: 'Beamer-Folie 3 (logDice-Strecke)' },
       ],
     },
     {
@@ -60,7 +60,7 @@ export const entwurf4 = {
     {
       phase: 'II Stundenmitte — Anwendung', anteil: 'Anteil 2',
       schritte: [
-        { schritt: 'AB differenziert: Sek II F2–F4 (Tabelle lesen · häufig-vs-typisch begründen · Skala verorten); LK F4–F5 (Skala + Formel deuten + Methodenkritik).', kommentar: 'Sek II bis Urteil/Begründung; LK bis Formellogik und kritischer Reflexion (Chancen/Grenzen).', interaktion: 'Partnerarbeit', medien: 'Arbeitsblatt (differenziert)' },
+        { schritt: 'AB differenziert: DaZ/SekI Pipeline qualitativ (Grundform · Annotation-Fehler · Konkordanz lesen); Sek II Dependenz-Kante · Tabelle lesen · häufig-vs-typisch · Formel-Bestandteile; LK Formel voll · Methodenkritik · Parser-Grenze · Korpus-Bias.', kommentar: 'DaZ/SekI bis Beobachtung ohne logDice; Sek II bis Maß + Formel-Bestandteile; LK bis Formellogik, Annotations- und Korpuskritik.', interaktion: 'Partnerarbeit', medien: 'Arbeitsblatt (differenziert)' },
       ],
     },
     {
@@ -89,22 +89,22 @@ export const entwurf4 = {
  */
 export const beamer4 = {
   slides: [
-    { kind: 'title', kicker: 'Signifikation · Kurs · Station ④', title: 'Texte, die zählen', lead: '„langes Haar" oder „blondes Haar" – was ist häufiger? Was ist typischer? Und wo liegt der Unterschied?' },
-    { kind: 'bullets', kicker: 'Das Werkzeug: Korpus', title: 'Die App rät nicht – sie misst', bullets: [
-      'Korpus = große, ausgewählte Textsammlung (Bundestag, DTA, Leipzig …).',
-      'Frequenz = wie oft ein Wort vorkommt. Kookkurrenz = wie oft zwei Wörter zusammen.',
-      'Aber: häufig ≠ typisch. Dafür brauchen wir logDice.',
+    { kind: 'title', kicker: 'Signifikation · Kurs · Station ④', title: 'Texte, die zählen', lead: '„langes Haar" oder „blondes Haar" – was ist häufiger? Was ist typischer? Und woher weiß die App das überhaupt?' },
+    { kind: 'bullets', kicker: 'Die Maschine hinter der Zahl', title: 'Wie aus echten Texten ein Wortprofil wird', bullets: [
+      '① Rohtext (Bundestag, Gesetze, DTA, Wikipedia) → ② Grundform (geht/ging/gegangen → gehen).',
+      '③ Wortart bestimmen → ④ Abhängigkeit parsen (wer hängt an wem – wie in ③).',
+      '⑤ Paare entlang der Kanten zählen → darum „Entscheidung treffen" auch über Distanz.',
     ] },
     { kind: 'bullets', kicker: 'Das Maß: logDice', title: 'Nicht wie oft – sondern wie exklusiv', bullets: [
-      'logDice misst, wie sehr zwei Wörter aneinander gebunden sind (Skala 0–14).',
-      '„lang" passt zu vielem → niedrig. „blond" ist für „Haar" charakteristisch → höher.',
-      'Faustformel: ~10 = typisch · ~7 = erkennbar · niedrig = zufällig.',
+      'logDice = 14 + log₂(2·f(A,B) / (f(A)+f(B))). f(A,B) = zusammen, f(A)/f(B) = einzeln.',
+      'Das Verhältnis zählt: „lang" passt zu vielem → niedrig; „blond" bindet an „Haar" → hoch.',
+      'Skala bis 14 (Obergrenze bei maximaler Bindung). Häufig ≠ typisch.',
     ] },
     // Datenfolie live aus wortprofil.db (insertAfter 2, d. h. Folie 4 im PDF).
-    { kind: 'bullets', kicker: 'Methodenkritik (wwLz)', title: 'Was sagt logDice nicht?', bullets: [
-      'Nichts über Bedeutung: eine hohe Bindung macht eine Verbindung nicht schön oder richtig.',
-      'Nichts über Angemessenheit, Stilwert oder Ironie.',
-      'Nichts über die Qualität des Korpus: parlamentarische Texte → andere Muster als Romane.',
+    { kind: 'bullets', kicker: 'Methodenkritik (wwLz)', title: 'Wo die Methode irrt', bullets: [
+      'Die Zahl sagt nichts über Bedeutung, Angemessenheit, Stilwert oder Ironie.',
+      'Jede automatische Annotation ist eine Deutung – Lemmatisierung und Parser können irren.',
+      'Korpus-Bias: parlamentarische Texte → andere Muster als Romane. Wer das Korpus wählt, prägt den Befund.',
     ] },
   ],
   dataFrom: {

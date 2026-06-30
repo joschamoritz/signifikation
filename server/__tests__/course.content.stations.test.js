@@ -38,11 +38,11 @@ const STATIONS = {
   },
   s4: {
     mod: station4, num: 4,
-    expect: { DaZ: ['F1', 'F2'], SekI: ['F1', 'F2'], SekII: ['F2', 'F3', 'F4'], LK: ['F4', 'F5'] },
+    expect: { DaZ: ['F1', 'F2'], SekI: ['F1', 'F2'], SekII: ['F2', 'F3', 'F4', 'F5'], LK: ['F4', 'F5'] },
   },
   s5: {
     mod: station5, num: 5,
-    expect: { DaZ: ['F1'], SekI: ['F1', 'F2', 'F3'], SekII: ['F1', 'F2', 'F3', 'F4'], LK: ['F4', 'F5'] },
+    expect: { DaZ: ['F2'], SekI: ['F1', 'F2', 'F3'], SekII: ['F1', 'F2', 'F3', 'F4'], LK: ['F4', 'F5'] },
   },
 }
 

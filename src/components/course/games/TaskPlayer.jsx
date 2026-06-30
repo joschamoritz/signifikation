@@ -8,6 +8,8 @@ import VerschiebeTask from './VerschiebeTask'
 import VariantTask    from './VariantTask'
 import GapTask        from './GapTask'
 import DataTask       from './DataTask'
+import KwicTask       from './KwicTask'
+import AnnotateTask   from './AnnotateTask'
 
 const REGISTRY = {
   F1:         MatchingTask,   // Zuordnen
@@ -15,14 +17,16 @@ const REGISTRY = {
   F3:         VariantTask,    // Variantenvergleich
   F4:         GapTask,        // Lücke + Begründung
   F5:         DataTask,       // Datenblick
-  LABEL:      LabelTask,      // Funktion zuweisen (S/P/O, Kopf/Dependent)
+  LABEL:      LabelTask,      // Funktion zuweisen (S/P/O, Kopf/Dependent, Wortart)
   VERSCHIEBE: VerschiebeTask, // Verschiebeprobe am topologischen Feld
+  KWIC:       KwicTask,       // Konkordanz lesen (echte Belegzeilen) → Partner finden
+  ANNOTATE:   AnnotateTask,   // automatische Annotation: den Maschinenfehler finden
 }
 
-// Markier-Aufgaben mit Funktionszuweisung (S/P/O, Kopf/Dependent) brauchen die
-// LabelTask – unabhängig vom Format. Sonst landet z. B. die als F3 geführte
-// Kopf/Dependent-Aufgabe fälschlich im VariantTask (keine Varianten → leer).
-const LABEL_MARK_TASKS = new Set(['S-P-O', 'kopf-dependent', 'felder'])
+// Markier-Aufgaben mit Funktionszuweisung (S/P/O, Kopf/Dependent, Wortart)
+// brauchen die LabelTask – unabhängig vom Format. Sonst landet z. B. die als F3
+// geführte Kopf/Dependent-Aufgabe fälschlich im VariantTask (keine Varianten → leer).
+const LABEL_MARK_TASKS = new Set(['S-P-O', 'kopf-dependent', 'felder', 'wortart'])
 
 // Registry-Schlüssel je Aufgabe wählen (Payload-Form hat Vorrang vor Format-
 // Etikett). Station ④ führt Datenblick-Aufgaben (Tabelle + Fragen) teils als F2;
@@ -32,6 +36,10 @@ function registryKey(task) {
   const mt = p.markTask
   if (mt && LABEL_MARK_TASKS.has(mt)) return 'LABEL'
   if (mt === 'kollokation') return 'F2'
+  // Annotation-Fehler finden (automatische Annotation, Station ④).
+  if (Array.isArray(p.annotations)) return 'ANNOTATE'
+  // KWIC/Konkordanz: echte Belegzeilen als Aufgabenkörper.
+  if (Array.isArray(p.lines)) return 'KWIC'
   // Verschiebeprobe (Feldermodell): Chunks + festes Verb.
   if (Array.isArray(p.chunks) && p.verb) return 'VERSCHIEBE'
   // Tabellen-/Frage-Aufgabe → Datenblick (DataTask), egal wie etikettiert.

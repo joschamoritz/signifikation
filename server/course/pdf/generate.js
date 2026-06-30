@@ -65,6 +65,8 @@ function corpusItemIsEmpty(item) {
   const p = item.payload ?? {}
   // Payload-Form vor Format-Etikett (analog Renderer/Dispatcher):
   // Label-/Markier-Aufgaben tragen ihren Inhalt im Satz (auch wenn als F3 geführt).
+  if (Array.isArray(p.annotations)) return p.annotations.length === 0
+  if (Array.isArray(p.lines) || p.kwic) return (p.lines ?? []).length === 0
   if (p.markTask) return !p.sentence
   if (Array.isArray(p.table) && Array.isArray(p.questions)) return p.table.length === 0
   switch (item.format) {
@@ -95,7 +97,12 @@ function buildBeamerSlides(content, beamerSpec, corpus) {
     const item = content.tasks.find(t => t.id === df.itemId)
     if (item) {
       const resolved = resolveItem(item, { corpus })
-      const table = resolved.payload?.table ?? []
+      // Datenfolie aus payload.table (F5) ODER – falls das Item ein Varianten-/
+      // Options-Item ist (F3/F4) – aus dessen Varianten eine Mini-Tabelle bauen.
+      const variants = resolved.payload?.variants ?? resolved.payload?.options ?? []
+      const table = (resolved.payload?.table ?? []).length
+        ? resolved.payload.table
+        : variants.map(v => ({ verbindung: v.label, frequency: v.frequency, logDice: v.logDice }))
       if (table.length) {
         const dataSlide = {
           kind: 'data', kicker: df.kicker, title: df.title,
