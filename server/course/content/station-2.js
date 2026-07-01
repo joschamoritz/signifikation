@@ -470,12 +470,15 @@ const TASKS = [
   {
     id: 's2-f4-funktion-bestimmen-sek2', station: 2, format: 'F4', level: 'SekII', source: 'corpus-template',
     kern: 'funktion-bestimmen',
-    prompt: 'Bestimme die Wortart von „{{top.lemma}}" in „Die Opposition {{top.lemma}} scharfe Kritik." über die Funktion. Wähle und begründe.',
+    prompt: 'Bestimme die Wortart von „{{top.lemma}}" in „Die Opposition will scharfe Kritik {{top.lemma}}." über die Funktion. Wähle und begründe.',
     metasprache: ['Form vs. Funktion', 'Wortart', 'Prädikat'],
     corpusQuery: Q_KRITIK_VERB,
     bindings: { answer: [1] },
     payload: {
-      sentence: 'Die Opposition {{top.lemma}} scharfe ___.',
+      // Modalverb + Infinitiv am Satzende: {{top.lemma}} bleibt Grundform
+      // (wortprofil.db liefert den Infinitiv, keine Konjugation) und steht hier
+      // grammatisch korrekt in der rechten Satzklammer (vgl. Station-3-Muster).
+      sentence: 'Die Opposition will scharfe ___ {{top.lemma}}.',
       options: [
         { id: 'o1', label: 'Kritik (Nomen, Objekt)' },
         { id: 'o2', label: 'kritisch (Adjektiv)' },
@@ -549,73 +552,71 @@ const TASKS = [
   },
 
   {
-    id: 's2-f3-verschiebe2-sek2', station: 2, format: 'F3', level: 'SekII', source: 'static',
-    kern: 'verschiebeprobe-konstituente',
-    prompt: 'Verschiebeprobe am topologischen Feld: Welche Gruppen sind Satzglieder? Eine Präpositionalphrase muss als Ganzes ins Vorfeld – „über eine" allein ist kein Satzglied.',
-    metasprache: ['Satzglied', 'Konstituente', 'Präpositionalphrase', 'Vorfeld'],
+    id: 's2-f4-funktion-vollsatz-sek2', station: 2, format: 'F4', level: 'SekII', source: 'static',
+    kern: 'funktion-vollsatz',
+    // AP21-QA Fachliche Tiefe SekII: statt einer isolierten Wortart-Entscheidung
+    // an EINEM Wort weisen SuS S/P/O dem GANZEN Satz zu und leiten daraus die
+    // Wortart jedes Kerns ab (LabelTask via markTask, wie im LK bei Station ③).
+    prompt: 'Weise dem ganzen Satz seine Satzglieder zu (S/P/O) – und leite daraus ab: Welche Wortart hat das Prädikat, welche der Kern des Objekts?',
+    metasprache: ['Satzglied', 'Subjekt', 'Prädikat', 'Objekt', 'Form vs. Funktion'],
     payload: {
-      verb: { id: 'vb', text: 'denkt' },
-      chunks: [
-        { id: 'c1', text: 'Der Wissenschaftler', role: 'Subjekt' },
-        { id: 'c2', text: 'seit Jahren', role: 'adv. Zeit' },
-        { id: 'c3', text: 'über eine Lösung', role: 'Präpositionalobjekt' },
-        { id: 'c4', text: 'über eine', role: 'unvollständige PP' },
-      ],
-    },
-    display: { showMetrics: false, metric: 'none' },
-    solution: { validVorfeld: ['c1', 'c2', 'c3'] },
-    feedback: {
-      byLevel: {
-        SekII: {
-          onCorrect: 'Richtig – die Präpositionalphrase „über eine Lösung" ist eine Konstituente und verschiebt sich nur als Ganzes. „über eine" ist unvollständig, also kein Satzglied.',
-          onWrong: 'Eine Konstituente lässt sich nur vollständig verschieben. „über eine" ohne „Lösung" ist kein Satzglied – die PP muss komplett ins Vorfeld.',
-        },
-      },
-      tonalitaet: 'woerterbuch-nuechtern',
-    },
-    beleg: [{ key: 'gallmann-2015-topologie', kontext: 'fachlich' }],
-  },
-
-  {
-    id: 's2-f5-form-funktion2-sek2', station: 2, format: 'F5', level: 'SekII', source: 'static',
-    kern: 'form-vs-funktion-konversion',
-    prompt: 'Gleiches Wort, andere Rolle: Woran erkennst du die Wortart von „lesen/Lesen"?',
-    metasprache: ['Form vs. Funktion', 'Konversion'],
-    payload: {
-      table: [
-        { verbindung: 'Die Schülerin liest ein Buch.', frequency: null, logDice: null },
-        { verbindung: 'Das Lesen fällt ihr leicht.', frequency: null, logDice: null },
-      ],
-      columns: ['verbindung'],
-      questions: [
-        { id: 'q1', text: 'In welchem Satz ist „liest/Lesen" ein Verb, in welchem ein Nomen? Begründe über die Funktion.', kind: 'explain' },
-      ],
+      sentence: 'Die Opposition übt scharfe Kritik.',
+      markTask: 'S-P-O',
+      labels: ['S', 'P', 'O'],
+      belegContext: { lemma: 'Kritik', partner: 'üben', limit: 3 },
     },
     display: { showMetrics: false, metric: 'none' },
     solution: {
-      answers: {
-        q1: {
-          rubric: {
-            criteria: [
-              'Satz 1: „liest" = Verb (Prädikat, konjugiert)',
-              'Satz 2: „das Lesen" = Nomen (Artikel, großgeschrieben → Konversion)',
-              'Wortart richtet sich nach der Funktion, nicht nach dem Wortstamm',
-            ],
-            minHits: 2,
-          },
-        },
-      },
+      spans: [
+        { text: 'Die Opposition', tokenRange: [0, 2], label: 'S' },
+        { text: 'übt', tokenRange: [2, 3], label: 'P' },
+        { text: 'scharfe Kritik.', tokenRange: [3, 5], label: 'O' },
+      ],
     },
     feedback: {
       byLevel: {
         SekII: {
-          onCorrect: 'Genau – „liest" ist Prädikat (Verb), „das Lesen" ist durch den Artikel zum Nomen geworden (Konversion). Die Funktion entscheidet.',
-          onWrong: 'Schau auf die Funktion: Wird das Wort konjugiert (Verb) oder steht ein Artikel davor (Nomen)?',
+          onCorrect: 'Richtig – „übt" ist das Prädikat, also ein Verb; „scharfe Kritik" ist das Objekt, dessen Kern „Kritik" ein Nomen ist. Die Satzglied-Funktion bestimmt die Wortart, nicht die Bedeutung.',
+          onWrong: 'Bestimme zuerst die Satzglieder (wer? → S, was geschieht? → P, wen/was? → O) – daraus folgt die Wortart: das Prädikat ist immer ein Verb, der Kern des Objekts hier ein Nomen.',
         },
       },
       tonalitaet: 'woerterbuch-nuechtern',
     },
-    beleg: [{ key: 'didaktik-wortarten-d2', kontext: 'fachlich' }],
+    beleg: [{ key: 'hoffmann-leimbrink-wortarten', kontext: 'fachlich' }, { key: 'schuetze-2018', kontext: 'fachlich' }],
+  },
+
+  {
+    id: 's2-f5-funktion-vollsatz2-sek2', station: 2, format: 'F5', level: 'SekII', source: 'static',
+    kern: 'funktion-vollsatz',
+    // Zweites Vollsatz-Item (AP21-QA Fachliche Tiefe SekII), anderes Lemma-Paar
+    // (Frage/stellen) – bereitet die spätere FVG-Aufgabe im LK-Teil vor, ohne
+    // den Fachbegriff vorwegzunehmen.
+    prompt: 'Weise dem ganzen Satz seine Satzglieder zu (S/P/O) – und leite daraus ab: Welche Wortart hat das Prädikat, welche der Kern des Objekts?',
+    metasprache: ['Satzglied', 'Subjekt', 'Prädikat', 'Objekt', 'Form vs. Funktion'],
+    payload: {
+      sentence: 'Die Journalistin stellt eine kritische Frage.',
+      markTask: 'S-P-O',
+      labels: ['S', 'P', 'O'],
+      belegContext: { lemma: 'Frage', partner: 'stellen', limit: 3 },
+    },
+    display: { showMetrics: false, metric: 'none' },
+    solution: {
+      spans: [
+        { text: 'Die Journalistin', tokenRange: [0, 2], label: 'S' },
+        { text: 'stellt', tokenRange: [2, 3], label: 'P' },
+        { text: 'eine kritische Frage.', tokenRange: [3, 6], label: 'O' },
+      ],
+    },
+    feedback: {
+      byLevel: {
+        SekII: {
+          onCorrect: 'Richtig – „stellt" ist das Prädikat, also ein Verb; „eine kritische Frage" ist das Objekt, dessen Kern „Frage" ein Nomen ist. Die Satzglied-Funktion bestimmt die Wortart, nicht die Bedeutung.',
+          onWrong: 'Bestimme zuerst die Satzglieder (wer? → S, was geschieht? → P, wen/was? → O) – daraus folgt die Wortart: das Prädikat ist immer ein Verb, der Kern des Objekts hier ein Nomen.',
+        },
+      },
+      tonalitaet: 'woerterbuch-nuechtern',
+    },
+    beleg: [{ key: 'hoffmann-leimbrink-wortarten', kontext: 'fachlich' }, { key: 'schuetze-2018', kontext: 'fachlich' }],
   },
 
   // ──────────────── LK · Grenzfälle (FVG, Konversion) ────────────────
@@ -629,7 +630,9 @@ const TASKS = [
     corpusQuery: Q_KRITIK_VERB,
     bindings: { answer: [1] },
     payload: {
-      sentence: 'Die Abgeordnete {{top.lemma}} scharfe Kritik.',
+      // Modalverb + Infinitiv (wie oben): {{top.lemma}} bleibt Grundform, steht
+      // aber grammatisch korrekt am Satzende (rechte Satzklammer).
+      sentence: 'Die Abgeordnete will scharfe Kritik {{top.lemma}}.',
       options: [
         { id: 'o1', label: 'feste Verb-Nomen-Verbindung (Grenzfall zum FVG)' },
         { id: 'o2', label: 'freie Kombination' },
@@ -739,33 +742,37 @@ const TASKS = [
 
   {
     id: 's2-f4-felder2-lk', station: 2, format: 'F4', level: 'LK', source: 'static',
-    kern: 'topologische-felder',
-    prompt: 'Topologische Feldanalyse: Weise jedem Teil sein Feld zu – Vorfeld, linke Klammer (finites Verb), Mittelfeld und rechte Klammer (infinites Verb).',
-    metasprache: ['Vorfeld', 'linke Satzklammer', 'Mittelfeld', 'rechte Satzklammer'],
+    kern: 'topologische-felder-nachfeld',
+    // AP21-QA Literatur-Update: Klett-Schulbuch führt zusätzlich das Nachfeld
+    // ein (Material nach der rechten Klammer, z. B. ein extraponierter
+    // Relativsatz) – Ausklammerung schwerer Attribute ist Standardphänomen.
+    prompt: 'Topologische Feldanalyse mit Nachfeld: Weise jedem Teil sein Feld zu – Vorfeld, linke Klammer (finites Verb), Mittelfeld, rechte Klammer (infinites Verb) und Nachfeld (was nach der rechten Klammer steht).',
+    metasprache: ['Vorfeld', 'linke Satzklammer', 'Mittelfeld', 'rechte Satzklammer', 'Nachfeld'],
     payload: {
-      sentence: 'Die Regierung hat gestern ein Gesetz beschlossen.',
+      sentence: 'Der Ausschuss hat das Gesetz beschlossen, das lange umstritten war.',
       markTask: 'felder',
-      labels: ['Vorfeld', 'linke Klammer', 'Mittelfeld', 'rechte Klammer'],
+      labels: ['Vorfeld', 'linke Klammer', 'Mittelfeld', 'rechte Klammer', 'Nachfeld'],
     },
     display: { showMetrics: false, metric: 'none' },
     solution: {
       spans: [
-        { text: 'Die Regierung', tokenRange: [0, 2], label: 'Vorfeld' },
+        { text: 'Der Ausschuss', tokenRange: [0, 2], label: 'Vorfeld' },
         { text: 'hat', tokenRange: [2, 3], label: 'linke Klammer' },
-        { text: 'gestern ein Gesetz', tokenRange: [3, 6], label: 'Mittelfeld' },
-        { text: 'beschlossen', tokenRange: [6, 7], label: 'rechte Klammer' },
+        { text: 'das Gesetz', tokenRange: [3, 5], label: 'Mittelfeld' },
+        { text: 'beschlossen,', tokenRange: [5, 6], label: 'rechte Klammer' },
+        { text: 'das lange umstritten war.', tokenRange: [6, 10], label: 'Nachfeld' },
       ],
     },
     feedback: {
       byLevel: {
         LK: {
-          onCorrect: 'Korrekt – Vorfeld „Die Regierung", linke Klammer „hat" (finit), Mittelfeld „gestern ein Gesetz", rechte Klammer „beschlossen" (infinit). Die Satzklammer umschließt das Mittelfeld.',
-          onWrong: 'Bestimme die Satzklammer zuerst: finites Verb = linke Klammer, infinites Verb (Partizip) = rechte Klammer. Davor das Vorfeld, dazwischen das Mittelfeld.',
+          onCorrect: 'Korrekt – Vorfeld „Der Ausschuss", linke Klammer „hat" (finit), Mittelfeld „das Gesetz", rechte Klammer „beschlossen" (infinit). Der Relativsatz „das lange umstritten war" steht ausgeklammert im Nachfeld, hinter der Satzklammer.',
+          onWrong: 'Bestimme zuerst die Satzklammer (finit/infinit), dann Vorfeld und Mittelfeld. Alles, was hinter der rechten Klammer folgt – hier der Relativsatz –, gehört ins Nachfeld.',
         },
       },
       tonalitaet: 'woerterbuch-nuechtern',
     },
-    beleg: [{ key: 'gallmann-2015-topologie', kontext: 'fachlich' }],
+    beleg: [{ key: 'gallmann-2015-topologie', kontext: 'fachlich' }, { key: 'klett-feldermodell-schulbuch', kontext: 'fachlich' }],
   },
 
   {

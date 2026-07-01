@@ -28,11 +28,10 @@ const STATION = {
 
 const Q_ENTSCH_OBJ = { lemma: 'Entscheidung', pos: 'Substantiv', relation: '~OBJA', minFrequency: 5, limit: 25, filter: { singleWordOnly: true } }
 // AP21-QA Aufgaben-Ausbau: frische Objekt-Anker, gegen wortprofil.db verifiziert
-// (2026-07-01): Frage/~OBJA → stellen(10,8); Ziel/~OBJA → erreichen(11,7);
-// Beitrag/~OBJA → leisten(12,7). Belege (Nomen+Verb) in belege.db geprüft.
+// (2026-07-01): Frage/~OBJA → stellen(10,8); Ziel/~OBJA → erreichen(11,7).
+// Belege (Nomen+Verb) in belege.db geprüft.
 const Q_FRAGE_OBJ   = { lemma: 'Frage',   pos: 'Substantiv', relation: '~OBJA', minFrequency: 5, limit: 25, filter: { singleWordOnly: true } }
 const Q_ZIEL_OBJ    = { lemma: 'Ziel',    pos: 'Substantiv', relation: '~OBJA', minFrequency: 5, limit: 25, filter: { singleWordOnly: true } }
-const Q_BEITRAG_OBJ = { lemma: 'Beitrag', pos: 'Substantiv', relation: '~OBJA', minFrequency: 5, limit: 25, filter: { singleWordOnly: true } }
 
 const TASKS = [
   // ──────────────── DaZ · Wer tut was? (keine Zahlen) ────────────────
@@ -708,44 +707,32 @@ const TASKS = [
   },
 
   {
-    id: 's3-f5-feinanalyse-lk', station: 3, format: 'F5', level: 'LK', source: 'static',
-    kern: 'slot-feinanalyse',
-    prompt: 'Feinanalyse: Wie verändert sich die syntaktische Funktion von „Entscheidung" über Objekt, Subjekt und Prädikativ/Genitiv?',
-    metasprache: ['Rektion', 'Prädikativ', 'Genitiv', 'syntaktische Funktion'],
+    id: 's3-f5-genitivattribut-lk', station: 3, format: 'F5', level: 'LK', source: 'static',
+    kern: 'genitivattribut',
+    // AP21-QA Klick statt Freitext + mehr Variation: statt der reinen
+    // Erklär-Tabelle jetzt eine eigenständige, anklickbare Aufgabe zum
+    // Genitivattribut (LabelTask via markTask, wie s3-f4-satzglieder-lk).
+    prompt: 'Markiere im Satz Subjekt (S), Prädikat (P), Objekt (O) und das Genitivattribut (Gen) – ein Attribut, das ein Nomen näher bestimmt.',
+    metasprache: ['Satzglied', 'Genitivattribut', 'Subjekt', 'Prädikat', 'Objekt'],
     payload: {
-      table: [
-        { verbindung: 'eine Entscheidung treffen (Akkusativobjekt)', frequency: null, logDice: null },
-        { verbindung: 'die Entscheidung fällt (Subjekt)', frequency: null, logDice: null },
-        { verbindung: 'das ist eine kluge Entscheidung (Prädikativ)', frequency: null, logDice: null },
-        { verbindung: 'die Begründung der Entscheidung (Genitivattribut)', frequency: null, logDice: null },
-      ],
-      columns: ['verbindung'],
-      questions: [
-        { id: 'q1', text: 'Ordne jeder Zeile die syntaktische Funktion zu und erkläre, wie sie den Verb-/Bezugspartner steuert.', kind: 'explain' },
-      ],
+      sentence: 'Die Begründung der Entscheidung überzeugt niemanden.',
+      markTask: 'S-P-O',
+      labels: ['S', 'P', 'O', 'Gen'],
     },
     display: { showMetrics: false, metric: 'none' },
     solution: {
-      answers: {
-        q1: {
-          rubric: {
-            criteria: [
-              'Objekt → Handlungsverben (treffen/fällen)',
-              'Subjekt → Vorgangsverben (fallen/ergehen)',
-              'Prädikativ → Kopulaverb (sein) + Bewertung',
-              'Genitivattribut → Bezug auf ein übergeordnetes Nomen',
-              'die syntaktische Funktion (nicht das Wort) steuert die Partnerwahl',
-            ],
-            minHits: 3,
-          },
-        },
-      },
+      spans: [
+        { text: 'Die Begründung', tokenRange: [0, 2], label: 'S' },
+        { text: 'der Entscheidung', tokenRange: [2, 4], label: 'Gen' },
+        { text: 'überzeugt', tokenRange: [4, 5], label: 'P' },
+        { text: 'niemanden.', tokenRange: [5, 6], label: 'O' },
+      ],
     },
     feedback: {
       byLevel: {
         LK: {
-          onCorrect: 'Korrekt – jede syntaktische Funktion eröffnet einen anderen Partner-Slot. Das Wort bleibt, die Struktur entscheidet über Rektion und typische Verbindung.',
-          onWrong: 'Bestimme je Zeile die Funktion (Objekt/Subjekt/Prädikativ/Genitiv) – daran hängt der jeweils typische Partner.',
+          onCorrect: 'Korrekt – „Die Begründung" ist Subjekt, „der Entscheidung" als Genitivattribut bestimmt „Begründung" näher, „überzeugt" ist das Prädikat, „niemanden" das Akkusativobjekt. Das Genitivattribut ist Teil des Subjekts, aber eine eigene Satzgliedfunktion.',
+          onWrong: 'Suche zuerst S/P/O wie gewohnt. Das Genitivattribut steckt INNERHALB des Subjekts und hängt an einem Nomen („Begründung"), nicht am Verb.',
         },
       },
       tonalitaet: 'woerterbuch-nuechtern',
@@ -754,36 +741,39 @@ const TASKS = [
   },
 
   {
-    id: 's3-f4-rektion2-lk', station: 3, format: 'F4', level: 'LK', source: 'corpus-template',
-    kern: 'rektion',
-    prompt: 'Bestimme die Rektion: In welchem Kasus steht „Beitrag" als Dependent von „{{top.lemma}}"? Wähle und begründe.',
+    id: 's3-f4-rektion-dativ-lk', station: 3, format: 'F4', level: 'LK', source: 'static',
+    kern: 'rektion-dativ',
+    // AP21-QA Mehr Variation LK: bisher liefen beide Rektion-Items immer auf
+    // „Akkusativobjekt" hinaus (Q_ENTSCH_OBJ/Q_BEITRAG_OBJ, beide ~OBJA). Dativ
+    // ist kein erlaubter corpusQuery.relation-Code (RELATIONS-Whitelist) → hier
+    // bewusst static mit einem echten Dativverb, Antwortoptionen nicht in
+    // Standardreihenfolge (Dativobjekt an Position 2, nicht immer 1 richtig).
+    prompt: 'Bestimme die Rektion: In welchem Kasus steht „dieser Entscheidung" als Dependent von „vertraut"? Wähle und begründe.',
     metasprache: ['Rektion', 'Kasus', 'syntaktische Funktion'],
-    corpusQuery: Q_BEITRAG_OBJ,
-    bindings: { answer: [1] },
     payload: {
-      sentence: 'Jedes Mitglied muss seinen Beitrag {{top.lemma}}.',
+      sentence: 'Der Vorstand vertraut dieser Entscheidung.',
       options: [
-        { id: 'o1', label: 'Akkusativobjekt' },
+        { id: 'o1', label: 'Genitivattribut' },
         { id: 'o2', label: 'Dativobjekt' },
-        { id: 'o3', label: 'Genitivattribut' },
+        { id: 'o3', label: 'Akkusativobjekt' },
       ],
       requireJustification: true,
-      justifyPrompt: 'Begründe die Rektion mit der Kasusprobe (wen/was?).',
+      justifyPrompt: 'Begründe die Rektion mit der Kasusprobe (wem?).',
     },
     display: { showMetrics: false, metric: 'none' },
     solution: {
-      correctOptionId: 'o1',
+      correctOptionId: 'o2',
       rubric: {
-        criteria: ['Akkusativobjekt', 'erklärt die Rektion: das Verb „{{top.lemma}}" regiert den Akkusativ', 'Probe „wen/was?"'],
+        criteria: ['Dativobjekt', 'erklärt die Rektion: das Verb „vertrauen" regiert den Dativ (nicht den Akkusativ)', 'Probe „wem?"'],
         minHits: 2,
       },
     },
     feedback: {
       byLevel: {
         LK: {
-          onCorrect: 'Korrekt – „{{top.lemma}}" regiert den Akkusativ; „seinen Beitrag" ist Akkusativobjekt (Probe: wen/was?).',
+          onCorrect: 'Korrekt – „vertrauen" regiert den Dativ; „dieser Entscheidung" ist Dativobjekt (Probe: wem?). Anders als „treffen"/„leisten" verlangt „vertrauen" keinen Akkusativ.',
           onChoice: {
-            '@selected': 'Wende die Kasusprobe an: „{{top.lemma}}" + wen/was? → Akkusativobjekt, nicht Dativ/Genitiv.',
+            '@selected': 'Wende die Kasusprobe an: „vertrauen" + wem? → Dativobjekt. Nicht jedes Verb regiert den Akkusativ.',
           },
         },
       },
@@ -824,44 +814,30 @@ const TASKS = [
   },
 
   {
-    id: 's3-f5-feinanalyse2-lk', station: 3, format: 'F5', level: 'LK', source: 'static',
-    kern: 'slot-feinanalyse',
-    prompt: 'Feinanalyse: Wie verändert sich die syntaktische Funktion von „Frage" über Objekt, Subjekt, Prädikativ und Genitiv?',
-    metasprache: ['Rektion', 'Prädikativ', 'Genitiv', 'syntaktische Funktion'],
+    id: 's3-f5-praedikativ-lk', station: 3, format: 'F5', level: 'LK', source: 'static',
+    kern: 'praedikativ',
+    // AP21-QA Klick statt Freitext + mehr Variation: eigenständige,
+    // anklickbare Aufgabe zum Prädikativ statt reiner Erklär-Tabelle.
+    prompt: 'Markiere im Satz Subjekt (S), das Kopulaverb als Prädikat (P) und das Prädikativ (Präd) – die Eigenschaft, die dem Subjekt zugeschrieben wird.',
+    metasprache: ['Satzglied', 'Prädikativ', 'Kopulaverb', 'Subjekt'],
     payload: {
-      table: [
-        { verbindung: 'eine Frage stellen (Akkusativobjekt)', frequency: null, logDice: null },
-        { verbindung: 'die Frage bleibt offen (Subjekt)', frequency: null, logDice: null },
-        { verbindung: 'das ist eine berechtigte Frage (Prädikativ)', frequency: null, logDice: null },
-        { verbindung: 'die Beantwortung der Frage (Genitivattribut)', frequency: null, logDice: null },
-      ],
-      columns: ['verbindung'],
-      questions: [
-        { id: 'q1', text: 'Ordne jeder Zeile die syntaktische Funktion zu und erkläre, wie sie den Verb-/Bezugspartner steuert.', kind: 'explain' },
-      ],
+      sentence: 'Diese Entscheidung ist mutig.',
+      markTask: 'S-P-O',
+      labels: ['S', 'P', 'Präd'],
     },
     display: { showMetrics: false, metric: 'none' },
     solution: {
-      answers: {
-        q1: {
-          rubric: {
-            criteria: [
-              'Objekt → Handlungsverben (stellen/aufwerfen)',
-              'Subjekt → Vorgangs-/Zustandsverben (bleiben/sich stellen)',
-              'Prädikativ → Kopulaverb (sein) + Bewertung',
-              'Genitivattribut → Bezug auf ein übergeordnetes Nomen',
-              'die syntaktische Funktion (nicht das Wort) steuert die Partnerwahl',
-            ],
-            minHits: 3,
-          },
-        },
-      },
+      spans: [
+        { text: 'Diese Entscheidung', tokenRange: [0, 2], label: 'S' },
+        { text: 'ist', tokenRange: [2, 3], label: 'P' },
+        { text: 'mutig.', tokenRange: [3, 4], label: 'Präd' },
+      ],
     },
     feedback: {
       byLevel: {
         LK: {
-          onCorrect: 'Korrekt – jede syntaktische Funktion eröffnet einen anderen Partner-Slot. Das Wort „Frage" bleibt, die Struktur entscheidet über Rektion und typische Verbindung.',
-          onWrong: 'Bestimme je Zeile die Funktion (Objekt/Subjekt/Prädikativ/Genitiv) – daran hängt der jeweils typische Partner.',
+          onCorrect: 'Korrekt – „ist" ist das Kopulaverb (Prädikat), „mutig" das Prädikativ: es schreibt dem Subjekt „Diese Entscheidung" eine Eigenschaft zu, ohne – anders als ein Objekt – vom Verb regiert zu werden.',
+          onWrong: 'Frage: Welches Verb verbindet nur (Kopulaverb, meist „sein/werden/bleiben")? Welches Wort danach beschreibt eine Eigenschaft des Subjekts? Das ist das Prädikativ.',
         },
       },
       tonalitaet: 'woerterbuch-nuechtern',
