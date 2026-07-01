@@ -78,7 +78,7 @@ export const entwurf2 = {
     'Reihenbezug: Station ① (Kollokationen) → ② (Wortart-Baupläne + Feldermodell) → ③ (Slots/Dependenz).',
   ],
 
-  belege: ['hoffmann-leimbrink-wortarten', 'gallmann-2015-topologie', 'didaktik-wortarten-d2', 'vonbrand-2010', 'klp-deutsch-sek1-g9-2019', 'klp-deutsch-sek2-2025', 'script-leitfaden-2020'],
+  belege: ['hoffmann-leimbrink-wortarten', 'gallmann-2015-topologie', 'klett-feldermodell-schulbuch', 'didaktik-wortarten-d2', 'vonbrand-2010', 'klp-deutsch-sek1-g9-2019', 'klp-deutsch-sek2-2025', 'script-leitfaden-2020'],
 }
 
 export const beamer2 = {
