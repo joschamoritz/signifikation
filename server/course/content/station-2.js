@@ -28,6 +28,9 @@ const STATION = {
 
 const Q_KRITIK_ADJ  = { lemma: 'Kritik',  pos: 'Substantiv', relation: 'ATTR',  minFrequency: 5, limit: 25, filter: { singleWordOnly: true } }
 const Q_KRITIK_VERB = { lemma: 'Kritik',  pos: 'Substantiv', relation: '~OBJA', minFrequency: 5, limit: 25, filter: { singleWordOnly: true } }
+// AP21-QA Aufgaben-Ausbau: „Frage/~OBJA → stellen(10,8)" trägt das klassische
+// Funktionsverbgefüge „in Frage stellen" (gegen wortprofil.db verifiziert 2026-07-01).
+const Q_FRAGE_VERB  = { lemma: 'Frage',   pos: 'Substantiv', relation: '~OBJA', minFrequency: 5, limit: 25, filter: { singleWordOnly: true } }
 
 const TASKS = [
   // ──────────────── DaZ · Bausteine benennen (keine Zahlen) ────────────────
@@ -113,6 +116,94 @@ const TASKS = [
       byLevel: {
         DaZ: {
           onCorrect: 'Genau – egal welches Satzteil im Vorfeld steht: Das Verb „sucht" bleibt an Position 2.',
+          onWrong: 'Stell genau ein Satzteil ins Vorfeld. Das Verb bleibt direkt dahinter (Position 2).',
+        },
+      },
+      tonalitaet: 'woerterbuch-nuechtern',
+    },
+    beleg: [{ key: 'gallmann-2015-topologie', kontext: 'fachlich' }],
+  },
+
+  {
+    id: 's2-f1-bausteine2-daz', station: 2, format: 'F1', level: 'DaZ', source: 'static',
+    kern: 'bausteine-sortieren',
+    prompt: 'Sortiere die Wörter: Welches ist ein Nomen, ein Verb, ein Adjektiv?',
+    metasprache: ['Nomen (Namenwort)', 'Verb (Tunwort)', 'Adjektiv (Wiewort)'],
+    payload: {
+      anchors: [
+        { id: 'a1', label: 'Nomen (Namenwort)' },
+        { id: 'a2', label: 'Verb (Tunwort)' },
+        { id: 'a3', label: 'Adjektiv (Wiewort)' },
+      ],
+      candidates: [
+        { id: 'c1', label: 'Blume' },
+        { id: 'c2', label: 'wachsen' },
+        { id: 'c3', label: 'bunt' },
+      ],
+      multiplePerAnchor: false,
+    },
+    display: { showMetrics: false, metric: 'none' },
+    solution: { map: { a1: ['c1'], a2: ['c2'], a3: ['c3'] } },
+    feedback: {
+      byLevel: {
+        DaZ: {
+          onCorrect: 'Genau – „Blume" ist ein Nomen, „wachsen" ein Verb, „bunt" ein Adjektiv.',
+          onWrong: 'Frage: Ist es ein Ding (Nomen), eine Tätigkeit (Verb) oder eine Eigenschaft (Adjektiv)?',
+        },
+      },
+      tonalitaet: 'woerterbuch-nuechtern',
+    },
+    beleg: [{ key: 'hoffmann-leimbrink-wortarten', kontext: 'fachlich' }],
+  },
+
+  {
+    id: 's2-f2-bauplan-markieren2-daz', station: 2, format: 'F2', level: 'DaZ', source: 'static',
+    kern: 'bauplan-markieren',
+    prompt: 'Markiere im Satz das Adjektiv und das Nomen, die zusammengehören.',
+    metasprache: ['Adjektiv', 'Nomen'],
+    payload: {
+      sentence: 'Der Reporter stellt eine wichtige Frage.',
+      markTask: 'bauplan',
+      labels: ['Adjektiv', 'Nomen'],
+    },
+    display: { showMetrics: false, metric: 'none' },
+    solution: {
+      spans: [
+        { text: 'wichtige', tokenRange: [4, 5], label: 'Adjektiv' },
+        { text: 'Frage', tokenRange: [5, 6], label: 'Nomen' },
+      ],
+    },
+    feedback: {
+      byLevel: {
+        DaZ: {
+          onCorrect: 'Richtig – „wichtige Frage" ist Adjektiv + Nomen.',
+          onWrong: 'Suche das Eigenschaftswort (wichtige) und das Ding-Wort (Frage).',
+        },
+      },
+      tonalitaet: 'woerterbuch-nuechtern',
+    },
+    beleg: [{ key: 'hoffmann-leimbrink-wortarten', kontext: 'fachlich' }],
+  },
+
+  {
+    id: 's2-f1-verschiebe2-daz', station: 2, format: 'F1', level: 'DaZ', source: 'static',
+    kern: 'verbstellung-v2',
+    prompt: 'Schiebe ein Satzteil ins Vorfeld – vor das Verb. Merke: Das Verb „liest" bleibt immer an Position 2.',
+    metasprache: ['Vorfeld', 'Verb an Position 2'],
+    payload: {
+      verb: { id: 'vb', text: 'liest' },
+      chunks: [
+        { id: 'c1', text: 'Das Kind', role: 'wer?' },
+        { id: 'c2', text: 'am Morgen', role: 'wann?' },
+        { id: 'c3', text: 'ein Buch', role: 'was?' },
+      ],
+    },
+    display: { showMetrics: false, metric: 'none' },
+    solution: { validVorfeld: ['c1', 'c2', 'c3'] },
+    feedback: {
+      byLevel: {
+        DaZ: {
+          onCorrect: 'Genau – egal welches Satzteil im Vorfeld steht: Das Verb „liest" bleibt an Position 2.',
           onWrong: 'Stell genau ein Satzteil ins Vorfeld. Das Verb bleibt direkt dahinter (Position 2).',
         },
       },
@@ -232,6 +323,70 @@ const TASKS = [
       byLevel: {
         SekI: {
           onCorrect: 'Richtig – ein Satzglied lässt sich als geschlossene Einheit ins Vorfeld schieben. „Regel die" ist nur eine umgedrehte Wortfolge, kein Satzglied.',
+          onWrong: 'Prüfe: Lässt sich die Gruppe als Einheit (in dieser Reihenfolge) ins Vorfeld stellen? Genau dann ist es ein Satzglied.',
+        },
+      },
+      tonalitaet: 'woerterbuch-nuechtern',
+    },
+    beleg: [{ key: 'gallmann-2015-topologie', kontext: 'fachlich' }],
+  },
+
+  {
+    id: 's2-f1-wortarten-bestimmen-seki', station: 2, format: 'F1', level: 'SekI', source: 'static',
+    kern: 'wortarten-sortieren',
+    prompt: 'Ordne jedes Wort seiner Wortart zu. Achtung: pro Wortart passen mehrere Wörter.',
+    metasprache: ['Wortart', 'Nomen', 'Verb', 'Adjektiv'],
+    payload: {
+      anchors: [
+        { id: 'a1', label: 'Nomen' },
+        { id: 'a2', label: 'Verb' },
+        { id: 'a3', label: 'Adjektiv' },
+      ],
+      candidates: [
+        { id: 'c1', label: 'Regierung' },
+        { id: 'c2', label: 'Kritik' },
+        { id: 'c3', label: 'beschließen' },
+        { id: 'c4', label: 'üben' },
+        { id: 'c5', label: 'scharf' },
+        { id: 'c6', label: 'heftig' },
+      ],
+      multiplePerAnchor: true,
+    },
+    display: { showMetrics: false, metric: 'none' },
+    solution: { map: { a1: ['c1', 'c2'], a2: ['c3', 'c4'], a3: ['c5', 'c6'] } },
+    feedback: {
+      byLevel: {
+        SekI: {
+          onCorrect: 'Genau – „Regierung/Kritik" sind Nomen, „beschließen/üben" Verben, „scharf/heftig" Adjektive.',
+          onWrong: 'Frage bei jedem Wort: Ding (Nomen), Tätigkeit (Verb) oder Eigenschaft (Adjektiv)?',
+        },
+      },
+      tonalitaet: 'woerterbuch-nuechtern',
+    },
+    beleg: [{ key: 'hoffmann-leimbrink-wortarten', kontext: 'fachlich' }],
+  },
+
+  {
+    id: 's2-f3-verschiebe2-seki', station: 2, format: 'F3', level: 'SekI', source: 'static',
+    kern: 'verschiebeprobe-satzglied',
+    prompt: 'Verschiebeprobe: Welche Wortgruppen sind Satzglieder? Schiebe eine geschlossene Einheit ins Vorfeld – die umgedrehte Gruppe „Brot frisches" ist keine.',
+    metasprache: ['Satzglied', 'Vorfeld', 'Verschiebeprobe'],
+    payload: {
+      verb: { id: 'vb', text: 'kauft' },
+      chunks: [
+        { id: 'c1', text: 'Die Kundin', role: 'Subjekt' },
+        { id: 'c2', text: 'im Laden', role: 'adv. Ort' },
+        { id: 'c3', text: 'frisches Brot', role: 'Objekt' },
+        { id: 'c4', text: 'meistens', role: 'adv. Häufigkeit' },
+        { id: 'c5', text: 'Brot frisches', role: 'kein Satzglied' },
+      ],
+    },
+    display: { showMetrics: false, metric: 'none' },
+    solution: { validVorfeld: ['c1', 'c2', 'c3', 'c4'] },
+    feedback: {
+      byLevel: {
+        SekI: {
+          onCorrect: 'Richtig – ein Satzglied lässt sich als geschlossene Einheit ins Vorfeld schieben. „Brot frisches" ist nur eine umgedrehte Wortfolge, kein Satzglied.',
           onWrong: 'Prüfe: Lässt sich die Gruppe als Einheit (in dieser Reihenfolge) ins Vorfeld stellen? Genau dann ist es ein Satzglied.',
         },
       },
@@ -393,6 +548,76 @@ const TASKS = [
     beleg: [{ key: 'didaktik-wortarten-d2', kontext: 'fachlich' }],
   },
 
+  {
+    id: 's2-f3-verschiebe2-sek2', station: 2, format: 'F3', level: 'SekII', source: 'static',
+    kern: 'verschiebeprobe-konstituente',
+    prompt: 'Verschiebeprobe am topologischen Feld: Welche Gruppen sind Satzglieder? Eine Präpositionalphrase muss als Ganzes ins Vorfeld – „über eine" allein ist kein Satzglied.',
+    metasprache: ['Satzglied', 'Konstituente', 'Präpositionalphrase', 'Vorfeld'],
+    payload: {
+      verb: { id: 'vb', text: 'denkt' },
+      chunks: [
+        { id: 'c1', text: 'Der Wissenschaftler', role: 'Subjekt' },
+        { id: 'c2', text: 'seit Jahren', role: 'adv. Zeit' },
+        { id: 'c3', text: 'über eine Lösung', role: 'Präpositionalobjekt' },
+        { id: 'c4', text: 'über eine', role: 'unvollständige PP' },
+      ],
+    },
+    display: { showMetrics: false, metric: 'none' },
+    solution: { validVorfeld: ['c1', 'c2', 'c3'] },
+    feedback: {
+      byLevel: {
+        SekII: {
+          onCorrect: 'Richtig – die Präpositionalphrase „über eine Lösung" ist eine Konstituente und verschiebt sich nur als Ganzes. „über eine" ist unvollständig, also kein Satzglied.',
+          onWrong: 'Eine Konstituente lässt sich nur vollständig verschieben. „über eine" ohne „Lösung" ist kein Satzglied – die PP muss komplett ins Vorfeld.',
+        },
+      },
+      tonalitaet: 'woerterbuch-nuechtern',
+    },
+    beleg: [{ key: 'gallmann-2015-topologie', kontext: 'fachlich' }],
+  },
+
+  {
+    id: 's2-f5-form-funktion2-sek2', station: 2, format: 'F5', level: 'SekII', source: 'static',
+    kern: 'form-vs-funktion-konversion',
+    prompt: 'Gleiches Wort, andere Rolle: Woran erkennst du die Wortart von „lesen/Lesen"?',
+    metasprache: ['Form vs. Funktion', 'Konversion'],
+    payload: {
+      table: [
+        { verbindung: 'Die Schülerin liest ein Buch.', frequency: null, logDice: null },
+        { verbindung: 'Das Lesen fällt ihr leicht.', frequency: null, logDice: null },
+      ],
+      columns: ['verbindung'],
+      questions: [
+        { id: 'q1', text: 'In welchem Satz ist „liest/Lesen" ein Verb, in welchem ein Nomen? Begründe über die Funktion.', kind: 'explain' },
+      ],
+    },
+    display: { showMetrics: false, metric: 'none' },
+    solution: {
+      answers: {
+        q1: {
+          rubric: {
+            criteria: [
+              'Satz 1: „liest" = Verb (Prädikat, konjugiert)',
+              'Satz 2: „das Lesen" = Nomen (Artikel, großgeschrieben → Konversion)',
+              'Wortart richtet sich nach der Funktion, nicht nach dem Wortstamm',
+            ],
+            minHits: 2,
+          },
+        },
+      },
+    },
+    feedback: {
+      byLevel: {
+        SekII: {
+          onCorrect: 'Genau – „liest" ist Prädikat (Verb), „das Lesen" ist durch den Artikel zum Nomen geworden (Konversion). Die Funktion entscheidet.',
+          onWrong: 'Schau auf die Funktion: Wird das Wort konjugiert (Verb) oder steht ein Artikel davor (Nomen)?',
+        },
+      },
+      tonalitaet: 'woerterbuch-nuechtern',
+    },
+    beleg: [{ key: 'didaktik-wortarten-d2', kontext: 'fachlich' }],
+  },
+
   // ──────────────── LK · Grenzfälle (FVG, Konversion) ────────────────
   {
     id: 's2-f4-fvg-grenzfall-lk', station: 2, format: 'F4', level: 'LK', source: 'corpus-template',
@@ -510,6 +735,123 @@ const TASKS = [
       tonalitaet: 'woerterbuch-nuechtern',
     },
     beleg: [{ key: 'didaktik-wortarten-d2', kontext: 'fachlich' }],
+  },
+
+  {
+    id: 's2-f4-felder2-lk', station: 2, format: 'F4', level: 'LK', source: 'static',
+    kern: 'topologische-felder',
+    prompt: 'Topologische Feldanalyse: Weise jedem Teil sein Feld zu – Vorfeld, linke Klammer (finites Verb), Mittelfeld und rechte Klammer (infinites Verb).',
+    metasprache: ['Vorfeld', 'linke Satzklammer', 'Mittelfeld', 'rechte Satzklammer'],
+    payload: {
+      sentence: 'Die Regierung hat gestern ein Gesetz beschlossen.',
+      markTask: 'felder',
+      labels: ['Vorfeld', 'linke Klammer', 'Mittelfeld', 'rechte Klammer'],
+    },
+    display: { showMetrics: false, metric: 'none' },
+    solution: {
+      spans: [
+        { text: 'Die Regierung', tokenRange: [0, 2], label: 'Vorfeld' },
+        { text: 'hat', tokenRange: [2, 3], label: 'linke Klammer' },
+        { text: 'gestern ein Gesetz', tokenRange: [3, 6], label: 'Mittelfeld' },
+        { text: 'beschlossen', tokenRange: [6, 7], label: 'rechte Klammer' },
+      ],
+    },
+    feedback: {
+      byLevel: {
+        LK: {
+          onCorrect: 'Korrekt – Vorfeld „Die Regierung", linke Klammer „hat" (finit), Mittelfeld „gestern ein Gesetz", rechte Klammer „beschlossen" (infinit). Die Satzklammer umschließt das Mittelfeld.',
+          onWrong: 'Bestimme die Satzklammer zuerst: finites Verb = linke Klammer, infinites Verb (Partizip) = rechte Klammer. Davor das Vorfeld, dazwischen das Mittelfeld.',
+        },
+      },
+      tonalitaet: 'woerterbuch-nuechtern',
+    },
+    beleg: [{ key: 'gallmann-2015-topologie', kontext: 'fachlich' }],
+  },
+
+  {
+    id: 's2-f5-konversion2-lk', station: 2, format: 'F5', level: 'LK', source: 'static',
+    kern: 'konversion',
+    prompt: 'Konversion analysieren: Wie wird aus dem Verb „reisen" das Nomen „das Reisen"? Welche grammatischen Marker zeigen den Wortartwechsel?',
+    metasprache: ['Konversion', 'Wortartwechsel', 'Nominalisierung'],
+    payload: {
+      table: [
+        { verbindung: 'sie reisen (Verb, konjugiert)', frequency: null, logDice: null },
+        { verbindung: 'das Reisen (Nomen, Artikel + Großschreibung)', frequency: null, logDice: null },
+      ],
+      columns: ['verbindung'],
+      questions: [
+        { id: 'q1', text: 'Nenne zwei formale Marker, die „das Reisen" als Nomen ausweisen, obwohl der Wortstamm ein Verb ist.', kind: 'explain' },
+      ],
+    },
+    display: { showMetrics: false, metric: 'none' },
+    solution: {
+      answers: {
+        q1: {
+          rubric: {
+            criteria: ['Artikel „das" (Nominalisierung)', 'Großschreibung', 'keine Konjugation / Wegfall der Personalendung', 'Wortart = Funktion, nicht Wortstamm'],
+            minHits: 2,
+          },
+        },
+      },
+    },
+    feedback: {
+      byLevel: {
+        LK: {
+          onCorrect: 'Richtig – Artikel + Großschreibung machen aus dem Verb durch Konversion ein Nomen. Der Wortstamm bleibt, die Wortart wechselt mit der Funktion.',
+          onWrong: 'Achte auf Artikel, Großschreibung und ob das Wort konjugiert wird – das entscheidet die Wortart, nicht der Stamm.',
+        },
+      },
+      tonalitaet: 'woerterbuch-nuechtern',
+    },
+    beleg: [{ key: 'didaktik-wortarten-d2', kontext: 'fachlich' }],
+  },
+
+  {
+    id: 's2-f4-fvg-frage-lk', station: 2, format: 'F4', level: 'LK', source: 'corpus-template',
+    kern: 'funktionsverbgefuege',
+    // „in Frage stellen" ist ein Musterbeispiel für ein Funktionsverbgefüge:
+    // das Verb „stellen" verliert seine räumliche Bedeutung, das Nomen „Frage"
+    // trägt den Inhalt, die Verbindung ist fest und nicht wörtlich zu deuten.
+    prompt: 'Ein Funktionsverbgefüge (FVG) ist eine feste Verbindung aus Funktionsverb + Nomen, in der das Verb seine eigene Bedeutung weitgehend verliert und das Nomen den Inhalt trägt (z. B. „zur Sprache bringen"). Ist „etwas in Frage stellen" ein FVG oder eine freie Kombination? Wähle und begründe.',
+    metasprache: ['Funktionsverbgefüge', 'feste Verb-Nomen-Verbindung', 'logDice'],
+    corpusQuery: Q_FRAGE_VERB,
+    bindings: { answer: [1] },
+    payload: {
+      sentence: 'Die Opposition stellt das Vorhaben in Frage.',
+      options: [
+        { id: 'o1', label: 'Funktionsverbgefüge (feste Verb-Nomen-Verbindung)' },
+        { id: 'o2', label: 'freie Kombination' },
+        { id: 'o3', label: 'Idiom (bildlich, undurchsichtig)' },
+      ],
+      requireJustification: true,
+      justifyPrompt: 'Begründe über Festigkeit (Bindungsstärke) und darüber, dass „stellen" hier nicht räumlich gemeint ist.',
+      // Verb-Nomen-Kollokation → Belege zeigen „Frage stellen / in Frage stellen".
+      belegContext: { lemma: 'Frage', partner: 'stellen', limit: 3 },
+    },
+    display: { showMetrics: true, metric: 'both' },
+    solution: {
+      correctOptionId: 'o1',
+      rubric: {
+        criteria: [
+          'erkennt „in Frage stellen" als Funktionsverbgefüge',
+          'begründet: „stellen" ist nicht räumlich gemeint, „Frage" trägt den Inhalt, die Verbindung ist fest (hoher logDice {{top.logDice}})',
+        ],
+        minHits: 1,
+        accepts: ['Hinweis, dass die Bedeutung insgesamt noch durchsichtig ist → kein vollständiges Idiom'],
+      },
+    },
+    feedback: {
+      byLevel: {
+        LK: {
+          onCorrect: 'Korrekt – „in Frage stellen" ist ein Funktionsverbgefüge: „stellen" verliert seine räumliche Bedeutung, „Frage" trägt den Inhalt, die Verbindung ist fest (logDice {{top.logDice}}). Kein Idiom, weil die Gesamtbedeutung nachvollziehbar bleibt.',
+          onChoice: {
+            '@selected': 'Prüfe Festigkeit und Bedeutung: „stellen" ist hier nicht räumlich, die Verbindung ist fest gebunden (logDice {{top.logDice}}) → Funktionsverbgefüge.',
+          },
+        },
+      },
+      tonalitaet: 'woerterbuch-nuechtern',
+    },
+    beleg: [{ key: 'hoffmann-leimbrink-wortarten', kontext: 'fachlich' }, { key: 'steyer-2000', kontext: 'korpus' }],
   },
 ]
 

@@ -27,6 +27,12 @@ const STATION = {
 }
 
 const Q_ENTSCH_OBJ = { lemma: 'Entscheidung', pos: 'Substantiv', relation: '~OBJA', minFrequency: 5, limit: 25, filter: { singleWordOnly: true } }
+// AP21-QA Aufgaben-Ausbau: frische Objekt-Anker, gegen wortprofil.db verifiziert
+// (2026-07-01): Frage/~OBJA → stellen(10,8); Ziel/~OBJA → erreichen(11,7);
+// Beitrag/~OBJA → leisten(12,7). Belege (Nomen+Verb) in belege.db geprüft.
+const Q_FRAGE_OBJ   = { lemma: 'Frage',   pos: 'Substantiv', relation: '~OBJA', minFrequency: 5, limit: 25, filter: { singleWordOnly: true } }
+const Q_ZIEL_OBJ    = { lemma: 'Ziel',    pos: 'Substantiv', relation: '~OBJA', minFrequency: 5, limit: 25, filter: { singleWordOnly: true } }
+const Q_BEITRAG_OBJ = { lemma: 'Beitrag', pos: 'Substantiv', relation: '~OBJA', minFrequency: 5, limit: 25, filter: { singleWordOnly: true } }
 
 const TASKS = [
   // ──────────────── DaZ · Wer tut was? (keine Zahlen) ────────────────
@@ -123,6 +129,94 @@ const TASKS = [
     beleg: [{ key: 'schuetze-2018', kontext: 'fachlich' }],
   },
 
+  {
+    id: 's3-f1-wertutwas2-daz', station: 3, format: 'F1', level: 'DaZ', source: 'static',
+    kern: 'akteur-handlung',
+    prompt: 'Wer tut was? Ordne zu.',
+    metasprache: ['wer?', 'was tut die Person?'],
+    payload: {
+      anchors: [
+        { id: 'a1', label: 'Wer handelt?' },
+        { id: 'a2', label: 'Was tut er/sie?' },
+      ],
+      candidates: [
+        { id: 'c1', label: 'Der Hund' },
+        { id: 'c2', label: 'bellt' },
+      ],
+      multiplePerAnchor: false,
+    },
+    display: { showMetrics: false, metric: 'none' },
+    solution: { map: { a1: ['c1'], a2: ['c2'] } },
+    feedback: {
+      byLevel: {
+        DaZ: {
+          onCorrect: 'Genau – „Der Hund" handelt (wer?), „bellt" ist die Handlung (was tut er?).',
+          onWrong: 'Frage: Wer macht etwas? Und: Was tut diese Person/dieses Tier?',
+        },
+      },
+      tonalitaet: 'woerterbuch-nuechtern',
+    },
+    beleg: [{ key: 'schuetze-2018', kontext: 'fachlich' }],
+  },
+
+  {
+    id: 's3-f2-wermarkieren3-daz', station: 3, format: 'F2', level: 'DaZ', source: 'static',
+    kern: 'akteur-handlung-markieren',
+    prompt: 'Markiere, wer handelt (S) und was er tut (P). Beschrifte mit dem Buchstaben.',
+    metasprache: ['wer? (S)', 'was tut? (P)'],
+    payload: {
+      sentence: 'Die Sonne scheint hell.',
+      markTask: 'S-P-O',
+      labels: ['S', 'P'],
+    },
+    display: { showMetrics: false, metric: 'none' },
+    solution: {
+      spans: [
+        { text: 'Die Sonne', tokenRange: [0, 2], label: 'S' },
+        { text: 'scheint', tokenRange: [2, 3], label: 'P' },
+      ],
+    },
+    feedback: {
+      byLevel: {
+        DaZ: {
+          onCorrect: 'Richtig – „Die Sonne" (S) handelt, „scheint" (P) ist die Handlung. („hell" beschreibt nur, wie sie scheint.)',
+          onWrong: 'Wer/was macht etwas? Das ist S. Was tut es? Das ist P.',
+        },
+      },
+      tonalitaet: 'woerterbuch-nuechtern',
+    },
+    beleg: [{ key: 'schuetze-2018', kontext: 'fachlich' }],
+  },
+
+  {
+    id: 's3-f2-wermarkieren4-daz', station: 3, format: 'F2', level: 'DaZ', source: 'static',
+    kern: 'akteur-handlung-markieren',
+    prompt: 'Markiere, wer handelt (S) und was er tut (P). Beschrifte mit dem Buchstaben.',
+    metasprache: ['wer? (S)', 'was tut? (P)'],
+    payload: {
+      sentence: 'Die Katze schläft ruhig.',
+      markTask: 'S-P-O',
+      labels: ['S', 'P'],
+    },
+    display: { showMetrics: false, metric: 'none' },
+    solution: {
+      spans: [
+        { text: 'Die Katze', tokenRange: [0, 2], label: 'S' },
+        { text: 'schläft', tokenRange: [2, 3], label: 'P' },
+      ],
+    },
+    feedback: {
+      byLevel: {
+        DaZ: {
+          onCorrect: 'Richtig – „Die Katze" (S) handelt, „schläft" (P) ist die Handlung.',
+          onWrong: 'Wer/was macht etwas? Das ist S. Was tut es? Das ist P. („ruhig" gehört zu keinem von beiden.)',
+        },
+      },
+      tonalitaet: 'woerterbuch-nuechtern',
+    },
+    beleg: [{ key: 'schuetze-2018', kontext: 'fachlich' }],
+  },
+
   // ──────────────── SekI · Satzglieder S/P/O ────────────────
   {
     id: 's3-f1-satzglieder-seki', station: 3, format: 'F1', level: 'SekI', source: 'static',
@@ -212,6 +306,101 @@ const TASKS = [
       byLevel: {
         SekI: {
           onCorrect: 'Richtig – Subjekt (Der Richter), Prädikat (verkündet), Objekt (das Urteil).',
+          onWrong: 'Frage: Wer? → Subjekt. Was geschieht? → Prädikat. Wen/was? → Objekt.',
+        },
+      },
+      tonalitaet: 'woerterbuch-nuechtern',
+    },
+    beleg: [{ key: 'schuetze-2018', kontext: 'fachlich' }],
+  },
+
+  {
+    id: 's3-f1-satzglieder2-seki', station: 3, format: 'F1', level: 'SekI', source: 'static',
+    kern: 'satzglieder-zuordnen',
+    prompt: 'Ordne die Satzteile ihren Satzgliedern zu.',
+    metasprache: ['Satzglied', 'Subjekt', 'Prädikat', 'Objekt'],
+    payload: {
+      anchors: [
+        { id: 'a1', label: 'Subjekt' },
+        { id: 'a2', label: 'Prädikat' },
+        { id: 'a3', label: 'Objekt' },
+      ],
+      candidates: [
+        { id: 'c1', label: 'Der Trainer' },
+        { id: 'c2', label: 'lobt' },
+        { id: 'c3', label: 'die Mannschaft' },
+      ],
+      multiplePerAnchor: false,
+    },
+    display: { showMetrics: false, metric: 'none' },
+    solution: { map: { a1: ['c1'], a2: ['c2'], a3: ['c3'] } },
+    feedback: {
+      byLevel: {
+        SekI: {
+          onCorrect: 'Genau – Subjekt (Der Trainer), Prädikat (lobt), Objekt (die Mannschaft).',
+          onWrong: 'Frage: Wer/was? → Subjekt. Was geschieht? → Prädikat. Wen/was? → Objekt.',
+        },
+      },
+      tonalitaet: 'woerterbuch-nuechtern',
+    },
+    beleg: [{ key: 'schuetze-2018', kontext: 'fachlich' }],
+  },
+
+  {
+    id: 's3-f2-spo-markieren3-seki', station: 3, format: 'F2', level: 'SekI', source: 'static',
+    kern: 'spo-markieren',
+    prompt: 'Markiere Subjekt (S), Prädikat (P) und Objekt (O). Beschrifte jeweils mit dem Buchstaben.',
+    metasprache: ['Subjekt', 'Prädikat', 'Objekt'],
+    payload: {
+      sentence: 'Der Kapitän erzielt das Tor.',
+      markTask: 'S-P-O',
+      labels: ['S', 'P', 'O'],
+      // Beleg zeigt dieselbe S-P-O-Struktur im echten Satz (jemand erzielt ein Tor).
+      belegContext: { lemma: 'Tor', partner: 'erzielen', limit: 3 },
+    },
+    display: { showMetrics: false, metric: 'none' },
+    solution: {
+      spans: [
+        { text: 'Der Kapitän', tokenRange: [0, 2], label: 'S' },
+        { text: 'erzielt', tokenRange: [2, 3], label: 'P' },
+        { text: 'das Tor', tokenRange: [3, 5], label: 'O' },
+      ],
+    },
+    feedback: {
+      byLevel: {
+        SekI: {
+          onCorrect: 'Richtig – Subjekt (Der Kapitän), Prädikat (erzielt), Objekt (das Tor).',
+          onWrong: 'Frage: Wer? → Subjekt. Was geschieht? → Prädikat. Wen/was? → Objekt.',
+        },
+      },
+      tonalitaet: 'woerterbuch-nuechtern',
+    },
+    beleg: [{ key: 'schuetze-2018', kontext: 'fachlich' }],
+  },
+
+  {
+    id: 's3-f2-spo-markieren4-seki', station: 3, format: 'F2', level: 'SekI', source: 'static',
+    kern: 'spo-markieren',
+    prompt: 'Markiere Subjekt (S), Prädikat (P) und Objekt (O). Beschrifte jeweils mit dem Buchstaben.',
+    metasprache: ['Subjekt', 'Prädikat', 'Objekt'],
+    payload: {
+      sentence: 'Die Mannschaft feiert den Sieg.',
+      markTask: 'S-P-O',
+      labels: ['S', 'P', 'O'],
+      belegContext: { lemma: 'Sieg', partner: 'feiern', limit: 3 },
+    },
+    display: { showMetrics: false, metric: 'none' },
+    solution: {
+      spans: [
+        { text: 'Die Mannschaft', tokenRange: [0, 2], label: 'S' },
+        { text: 'feiert', tokenRange: [2, 3], label: 'P' },
+        { text: 'den Sieg', tokenRange: [3, 5], label: 'O' },
+      ],
+    },
+    feedback: {
+      byLevel: {
+        SekI: {
+          onCorrect: 'Richtig – Subjekt (Die Mannschaft), Prädikat (feiert), Objekt (den Sieg).',
           onWrong: 'Frage: Wer? → Subjekt. Was geschieht? → Prädikat. Wen/was? → Objekt.',
         },
       },
@@ -335,6 +524,115 @@ const TASKS = [
     beleg: [{ key: 'schuetze-2018', kontext: 'fachlich' }],
   },
 
+  {
+    id: 's3-f3-kopf-dependent2-sek2', station: 3, format: 'F3', level: 'SekII', source: 'corpus-template',
+    kern: 'kopf-dependent',
+    prompt: 'Bestimme die Abhängigkeit: Markiere das regierende Verb als „Kopf" und das abhängige Akkusativobjekt als „Dependent".',
+    metasprache: ['Kopf', 'Dependent', 'Dependenz'],
+    corpusQuery: Q_FRAGE_OBJ,
+    bindings: { answer: [1] },
+    payload: {
+      belegQuery: { lemma: 'Frage', partner: '{{top.lemma}}', source: 'belege.db' },
+      markTask: 'kopf-dependent',
+      labels: ['Kopf', 'Dependent'],
+      labelWords: { Kopf: '{{top.lemma}}', Dependent: 'Frage' },
+    },
+    display: { showMetrics: false, metric: 'none' },
+    solution: { spans: [{ label: 'Kopf' }, { label: 'Dependent' }], note: 'Kopf = Verb „{{top.lemma}}", Dependent = Akkusativobjekt „Frage".' },
+    feedback: {
+      byLevel: {
+        SekII: {
+          onCorrect: 'Richtig – „{{top.lemma}}" ist der Kopf, „Frage" das abhängige Akkusativobjekt.',
+          onWrong: 'Das Verb regiert das Objekt: „{{top.lemma}}" (Kopf) → „Frage" (Dependent).',
+        },
+      },
+      tonalitaet: 'woerterbuch-nuechtern',
+    },
+    beleg: [{ key: 'schuetze-2018', kontext: 'beleg-satz' }],
+  },
+
+  {
+    id: 's3-f4-slot-bestimmen2-sek2', station: 3, format: 'F4', level: 'SekII', source: 'corpus-template',
+    kern: 'slot-bestimmen',
+    prompt: 'In „ein Ziel {{top.lemma}}" – welchen Slot besetzt „Ziel"? Wähle und begründe.',
+    metasprache: ['Slot', 'Subjekt', 'Objekt'],
+    corpusQuery: Q_ZIEL_OBJ,
+    bindings: { answer: [1] },
+    payload: {
+      sentence: 'Der Vorstand will dieses ehrgeizige Ziel {{top.lemma}}.',
+      options: [
+        { id: 'o1', label: 'Objekt (jemand erreicht es)' },
+        { id: 'o2', label: 'Subjekt (es handelt selbst)' },
+        { id: 'o3', label: 'Prädikativ' },
+      ],
+      requireJustification: true,
+      justifyPrompt: 'Begründe: Warum besetzt „Ziel" hier diesen Slot?',
+      belegContext: { lemma: 'Ziel', partner: 'erreichen', limit: 3 },
+    },
+    display: { showMetrics: false, metric: 'none' },
+    solution: {
+      correctOptionId: 'o1',
+      rubric: {
+        criteria: ['„Ziel" als Objekt', 'verknüpft den Objekt-Slot mit dem Verb „{{top.lemma}}"'],
+        minHits: 1,
+      },
+    },
+    feedback: {
+      byLevel: {
+        SekII: {
+          onCorrect: 'Richtig – hier ist „Ziel" das Objekt (jemand erreicht es), darum „{{top.lemma}}".',
+          onChoice: {
+            '@selected': 'Frage: Wer/was handelt? Der Vorstand. „Ziel" ist das Ziel der Handlung → Objekt-Slot → „{{top.lemma}}".',
+          },
+        },
+      },
+      tonalitaet: 'woerterbuch-nuechtern',
+    },
+    beleg: [{ key: 'schuetze-2018', kontext: 'fachlich' }],
+  },
+
+  {
+    id: 's3-f5-slotwechsel2-sek2', station: 3, format: 'F5', level: 'SekII', source: 'static',
+    kern: 'slot-wechsel',
+    prompt: 'Warum verlangt derselbe Begriff andere Verben, je nach Slot?',
+    metasprache: ['Slot', 'syntaktische Funktion'],
+    payload: {
+      table: [
+        { verbindung: 'Sie führen eine Diskussion. (Diskussion = Objekt)', frequency: null, logDice: null },
+        { verbindung: 'Eine Diskussion entsteht im Plenum. (Diskussion = Subjekt)', frequency: null, logDice: null },
+      ],
+      columns: ['verbindung'],
+      questions: [
+        { id: 'q1', text: 'Erkläre in 2–3 Sätzen, warum der Wechsel vom Objekt- in den Subjekt-Slot einen anderen Verbpartner verlangt.', kind: 'explain' },
+      ],
+    },
+    display: { showMetrics: false, metric: 'none' },
+    solution: {
+      answers: {
+        q1: {
+          rubric: {
+            criteria: [
+              'im Objekt-Slot ist „Diskussion" Ziel einer Handlung → Handlungsverben (führen)',
+              'im Subjekt-Slot ist sie Träger des Geschehens → Vorgangsverben (entstehen/aufkommen)',
+              'der typische Partner hängt von der syntaktischen Funktion ab, nicht nur vom Wort',
+            ],
+            minHits: 2,
+          },
+        },
+      },
+    },
+    feedback: {
+      byLevel: {
+        SekII: {
+          onCorrect: 'Genau – der Slot bestimmt den Partner: Objekt → führen, Subjekt → entstehen/aufkommen. Die Funktion entscheidet.',
+          onWrong: 'Frag, ob „Diskussion" geführt wird (Objekt) oder selbst geschieht (Subjekt) – daran hängt der Verbpartner.',
+        },
+      },
+      tonalitaet: 'woerterbuch-nuechtern',
+    },
+    beleg: [{ key: 'schuetze-2018', kontext: 'fachlich' }],
+  },
+
   // ──────────────── LK · Rektion / Feinanalyse ────────────────
   {
     id: 's3-f4-rektion-lk', station: 3, format: 'F4', level: 'LK', source: 'corpus-template',
@@ -447,6 +745,122 @@ const TASKS = [
       byLevel: {
         LK: {
           onCorrect: 'Korrekt – jede syntaktische Funktion eröffnet einen anderen Partner-Slot. Das Wort bleibt, die Struktur entscheidet über Rektion und typische Verbindung.',
+          onWrong: 'Bestimme je Zeile die Funktion (Objekt/Subjekt/Prädikativ/Genitiv) – daran hängt der jeweils typische Partner.',
+        },
+      },
+      tonalitaet: 'woerterbuch-nuechtern',
+    },
+    beleg: [{ key: 'schuetze-2018', kontext: 'fachlich' }],
+  },
+
+  {
+    id: 's3-f4-rektion2-lk', station: 3, format: 'F4', level: 'LK', source: 'corpus-template',
+    kern: 'rektion',
+    prompt: 'Bestimme die Rektion: In welchem Kasus steht „Beitrag" als Dependent von „{{top.lemma}}"? Wähle und begründe.',
+    metasprache: ['Rektion', 'Kasus', 'syntaktische Funktion'],
+    corpusQuery: Q_BEITRAG_OBJ,
+    bindings: { answer: [1] },
+    payload: {
+      sentence: 'Jedes Mitglied muss seinen Beitrag {{top.lemma}}.',
+      options: [
+        { id: 'o1', label: 'Akkusativobjekt' },
+        { id: 'o2', label: 'Dativobjekt' },
+        { id: 'o3', label: 'Genitivattribut' },
+      ],
+      requireJustification: true,
+      justifyPrompt: 'Begründe die Rektion mit der Kasusprobe (wen/was?).',
+    },
+    display: { showMetrics: false, metric: 'none' },
+    solution: {
+      correctOptionId: 'o1',
+      rubric: {
+        criteria: ['Akkusativobjekt', 'erklärt die Rektion: das Verb „{{top.lemma}}" regiert den Akkusativ', 'Probe „wen/was?"'],
+        minHits: 2,
+      },
+    },
+    feedback: {
+      byLevel: {
+        LK: {
+          onCorrect: 'Korrekt – „{{top.lemma}}" regiert den Akkusativ; „seinen Beitrag" ist Akkusativobjekt (Probe: wen/was?).',
+          onChoice: {
+            '@selected': 'Wende die Kasusprobe an: „{{top.lemma}}" + wen/was? → Akkusativobjekt, nicht Dativ/Genitiv.',
+          },
+        },
+      },
+      tonalitaet: 'woerterbuch-nuechtern',
+    },
+    beleg: [{ key: 'schuetze-2018', kontext: 'fachlich' }],
+  },
+
+  {
+    id: 's3-f4-satzglieder2-lk', station: 3, format: 'F4', level: 'LK', source: 'static',
+    kern: 'satzglied-feinanalyse',
+    prompt: 'Vollständige Satzgliedanalyse: Weise jedem Satzteil seine Funktion zu – Subjekt (S), Prädikat (P), adverbiale Bestimmung (Adv) und Akkusativobjekt (O).',
+    metasprache: ['Satzglied', 'Subjekt', 'Prädikat', 'adverbiale Bestimmung', 'Akkusativobjekt'],
+    payload: {
+      sentence: 'Der Trainer lobt nach dem Spiel die Mannschaft.',
+      markTask: 'S-P-O',
+      labels: ['S', 'P', 'Adv', 'O'],
+    },
+    display: { showMetrics: false, metric: 'none' },
+    solution: {
+      spans: [
+        { text: 'Der Trainer', tokenRange: [0, 2], label: 'S' },
+        { text: 'lobt', tokenRange: [2, 3], label: 'P' },
+        { text: 'nach dem Spiel', tokenRange: [3, 6], label: 'Adv' },
+        { text: 'die Mannschaft', tokenRange: [6, 8], label: 'O' },
+      ],
+    },
+    feedback: {
+      byLevel: {
+        LK: {
+          onCorrect: 'Korrekt – S „Der Trainer", P „lobt", adverbiale Bestimmung „nach dem Spiel", O „die Mannschaft". Das Prädikat regiert das Akkusativobjekt; die adverbiale Bestimmung ist frei verschiebbar (Verschiebeprobe).',
+          onWrong: 'Gehe die Satzglieder durch: Wer? (S) – was geschieht? (P) – wann? (Adv) – wen/was? (O). Die Verschiebeprobe trennt die Satzglieder.',
+        },
+      },
+      tonalitaet: 'woerterbuch-nuechtern',
+    },
+    beleg: [{ key: 'schuetze-2018', kontext: 'fachlich' }],
+  },
+
+  {
+    id: 's3-f5-feinanalyse2-lk', station: 3, format: 'F5', level: 'LK', source: 'static',
+    kern: 'slot-feinanalyse',
+    prompt: 'Feinanalyse: Wie verändert sich die syntaktische Funktion von „Frage" über Objekt, Subjekt, Prädikativ und Genitiv?',
+    metasprache: ['Rektion', 'Prädikativ', 'Genitiv', 'syntaktische Funktion'],
+    payload: {
+      table: [
+        { verbindung: 'eine Frage stellen (Akkusativobjekt)', frequency: null, logDice: null },
+        { verbindung: 'die Frage bleibt offen (Subjekt)', frequency: null, logDice: null },
+        { verbindung: 'das ist eine berechtigte Frage (Prädikativ)', frequency: null, logDice: null },
+        { verbindung: 'die Beantwortung der Frage (Genitivattribut)', frequency: null, logDice: null },
+      ],
+      columns: ['verbindung'],
+      questions: [
+        { id: 'q1', text: 'Ordne jeder Zeile die syntaktische Funktion zu und erkläre, wie sie den Verb-/Bezugspartner steuert.', kind: 'explain' },
+      ],
+    },
+    display: { showMetrics: false, metric: 'none' },
+    solution: {
+      answers: {
+        q1: {
+          rubric: {
+            criteria: [
+              'Objekt → Handlungsverben (stellen/aufwerfen)',
+              'Subjekt → Vorgangs-/Zustandsverben (bleiben/sich stellen)',
+              'Prädikativ → Kopulaverb (sein) + Bewertung',
+              'Genitivattribut → Bezug auf ein übergeordnetes Nomen',
+              'die syntaktische Funktion (nicht das Wort) steuert die Partnerwahl',
+            ],
+            minHits: 3,
+          },
+        },
+      },
+    },
+    feedback: {
+      byLevel: {
+        LK: {
+          onCorrect: 'Korrekt – jede syntaktische Funktion eröffnet einen anderen Partner-Slot. Das Wort „Frage" bleibt, die Struktur entscheidet über Rektion und typische Verbindung.',
           onWrong: 'Bestimme je Zeile die Funktion (Objekt/Subjekt/Prädikativ/Genitiv) – daran hängt der jeweils typische Partner.',
         },
       },
