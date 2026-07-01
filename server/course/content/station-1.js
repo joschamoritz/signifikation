@@ -51,6 +51,16 @@ const Q_HILFE_VERB        = { lemma: 'Hilfe',         pos: 'Substantiv', relatio
 const Q_VERANTWORTUNG_VERB = { lemma: 'Verantwortung', pos: 'Substantiv', relation: '~OBJA', minFrequency: 5, limit: 25, filter: { singleWordOnly: true } }
 const Q_MASSNAHME_VERB    = { lemma: 'Maßnahme',      pos: 'Substantiv', relation: '~OBJA', minFrequency: 5, limit: 25, filter: { singleWordOnly: true } }
 const Q_MEHRHEIT_ADJ      = { lemma: 'Mehrheit',      pos: 'Substantiv', relation: 'ATTR',   minFrequency: 5, limit: 25, filter: { singleWordOnly: true } }
+// AP21-QA Aufgaben-Ausbau: frische Anker, gegen wortprofil.db verifiziert (2026-07-01).
+//   Ziel/~OBJA → erreichen(11,7) verfolgen(10,5) · Beitrag/~OBJA → leisten(12,7, dominant)
+//   Problem/ATTR → groß(f6520) häufig vs. gesundheitlich(10,0)/technisch typisch
+//   Erfolg/ATTR → groß(f6566) häufig vs. sportlich/durchschlagend typisch
+//   Preis/ATTR  → hoch(f8411) häufig vs. niedrig(9,7) typisch gebunden
+const Q_ZIEL_VERB    = { lemma: 'Ziel',    pos: 'Substantiv', relation: '~OBJA', minFrequency: 5, limit: 25, filter: { singleWordOnly: true } }
+const Q_BEITRAG_VERB = { lemma: 'Beitrag', pos: 'Substantiv', relation: '~OBJA', minFrequency: 5, limit: 25, filter: { singleWordOnly: true } }
+const Q_PROBLEM_ADJ  = { lemma: 'Problem', pos: 'Substantiv', relation: 'ATTR',   minFrequency: 5, limit: 25, filter: { singleWordOnly: true } }
+const Q_ERFOLG_ADJ   = { lemma: 'Erfolg',  pos: 'Substantiv', relation: 'ATTR',   minFrequency: 5, limit: 25, filter: { singleWordOnly: true } }
+const Q_PREIS_ADJ    = { lemma: 'Preis',   pos: 'Substantiv', relation: 'ATTR',   minFrequency: 5, limit: 25, filter: { singleWordOnly: true } }
 
 // SekI „echte Entscheidung" (AP21-QA): Antwort-Pools ohne das generische „haben"
 // (schwacher, unspezifischer Partner) + ABWEGIGE Distraktor-Lemmas eines anderen
@@ -423,6 +433,43 @@ const TASKS = [
     beleg: [{ key: 'steyer-2000', kontext: 'korpus' }],
   },
 
+  {
+    id: 's1-f3-ziel-vergleich-seki', station: 1, format: 'F3', level: 'SekI', source: 'corpus-template',
+    kern: 'variantenvergleich-verb',
+    prompt: '„Ein Ziel ___" – welches Verb ist der typische Partner? Wähle das Verb und kreuze die passende Begründung an.',
+    metasprache: ['Kollokation', 'typische Wortverbindung'],
+    corpusQuery: Q_ZIEL_VERB,
+    bindings: { answer: [1], contrastPair: ['logDice:1', 'logDice:last'] },
+    payload: {
+      frame: 'ein Ziel ___',
+      compareDimension: 'typikalitaet',
+      variants: '@from:bindings.contrastPair',
+      requireJustification: false,
+      justificationChoice: {
+        prompt: 'Woran erkennst du den typischen Partner?',
+        options: [
+          { id: 'r1', label: 'Weil man diese Verbindung im Deutschen oft so verwendet – sie klingt typisch.', correct: true, feedback: 'Richtig – „ein Ziel erreichen/verfolgen" verwendet man regelmäßig zusammen. (Im Korpus zeigt sich das später als häufiges gemeinsames Vorkommen.)' },
+          { id: 'r2', label: 'Weil das Verb allgemeiner und für alles brauchbar ist.', correct: false, feedback: 'Im Gegenteil – ein typischer Partner bindet sich gerade an dieses Nomen, nicht an beliebige.' },
+          { id: 'r3', label: 'Weil beide Verben ohnehin gleich üblich sind.', correct: false, feedback: 'Nicht ganz – einen der Partner hört man mit „Ziel" deutlich häufiger als den anderen.' },
+        ],
+      },
+      // Kollokations-Aufgabe → Beleg zeigt die Objekt-Kollokation „Ziel erreichen".
+      belegContext: { lemma: 'Ziel', partner: 'erreichen', limit: 3 },
+    },
+    display: { showMetrics: false, metric: 'none' },
+    solution: { preferred: '@from:bindings.answer' },
+    feedback: {
+      byLevel: {
+        SekI: {
+          onCorrect: '„Ziel {{top.lemma}}" ist die typische Verbindung.',
+          onWrong: '„{{selected.lemma}}" passt hier seltener. Typisch ist „{{top.lemma}}".',
+        },
+      },
+      tonalitaet: 'woerterbuch-nuechtern',
+    },
+    beleg: [{ key: 'steyer-2000', kontext: 'korpus' }],
+  },
+
   // ════════════════════════════ SekII ════════════════════════════
   // Typikalität begründen · „frei – Kollokation – Idiom", Frequenz vs. logDice
   // Formate F3–F5. logDice sichtbar.
@@ -538,6 +585,131 @@ const TASKS = [
               'logDice misst Bindungsstärke, nicht Rohhäufigkeit',
               'das häufigere Adjektiv passt zu vielen Nomen (unspezifisch)',
               'das typischere Adjektiv ist für „Fehler" charakteristisch',
+            ],
+            minHits: 2,
+          },
+        },
+      },
+    },
+    feedback: {
+      byLevel: {
+        SekII: {
+          onCorrect: 'Genau – die häufigste Verbindung ist nicht die typischste. logDice höher = stärker gebunden.',
+          onWrong: 'Vergleiche die Spalten: hohe Frequenz heißt „kommt oft vor", hoher logDice heißt „spezifisch gebunden".',
+        },
+      },
+      merksatz: 'Häufigkeit lügt – logDice misst Typizität.',
+      tonalitaet: 'woerterbuch-nuechtern',
+    },
+    beleg: [{ key: 'bubenhofer-2015', kontext: 'fachlich' }, { key: 'steyer-2000', kontext: 'korpus' }],
+  },
+
+  {
+    id: 's1-f3-problem-vergleich-sek2', station: 1, format: 'F3', level: 'SekII', source: 'corpus-template',
+    kern: 'variantenvergleich-adjektiv',
+    prompt: 'Welches Adjektiv ist für „Problem" typischer? Vergleiche „großes Problem" mit der spezifischer gebundenen Verbindung und begründe – achte auf Häufigkeit UND Bindungsstärke.',
+    metasprache: ['frei', 'Kollokation', 'Frequenz', 'logDice', 'Assoziationsstärke'],
+    corpusQuery: Q_PROBLEM_ADJ,
+    // „groß" ist häufiger (f hoch, logDice niedrig), das spezifische Adjektiv ist
+    // typischer (logDice hoch). Derselbe Pool, zwei Sortierungen.
+    bindings: { answer: ['logDice:1'], contrastPair: ['freq:1', 'logDice:1'] },
+    payload: {
+      frame: '___ Problem',
+      compareDimension: 'typikalitaet',
+      variants: '@from:bindings.contrastPair',
+      requireJustification: true,
+    },
+    display: { showMetrics: true, metric: 'both' },
+    solution: {
+      preferred: '@from:bindings.answer',
+      rubric: {
+        criteria: [
+          'wählt das logDice-stärkere Adjektiv („{{logDice:1.lemma}}") als typischer',
+          'unterscheidet Rohhäufigkeit von Bindungsstärke (logDice)',
+          'erkennt: „{{freq:1.lemma}}" ist häufiger, passt aber zu fast jedem Nomen',
+        ],
+        minHits: 2,
+        accepts: ['„{{freq:1.lemma}} Problem" als nicht-falsch, aber unspezifisch anerkennen'],
+      },
+    },
+    feedback: {
+      byLevel: {
+        SekII: {
+          onCorrect: '„{{logDice:1.lemma}} Problem" bindet spezifisch (logDice {{logDice:1.logDice}}). „{{freq:1.lemma}} Problem" ist zwar häufiger (f {{freq:1.frequency}}), aber „{{freq:1.lemma}}" passt zu fast allem.',
+          onChoice: {
+            '@selected': '„{{selected.lemma}}" hat logDice {{selected.logDice}}. Vergleiche: „{{logDice:1.lemma}}" ist mit logDice {{logDice:1.logDice}} stärker an „Problem" gebunden – Häufigkeit allein entscheidet nicht.',
+          },
+        },
+      },
+      tonalitaet: 'woerterbuch-nuechtern',
+    },
+    beleg: [{ key: 'steyer-2000', kontext: 'korpus' }, { key: 'bubenhofer-2015', kontext: 'fachlich' }],
+  },
+
+  {
+    id: 's1-f4-ziel-luecke-sek2', station: 1, format: 'F4', level: 'SekII', source: 'corpus-template',
+    kern: 'luecke-verb',
+    prompt: '„Um konkurrenzfähig zu bleiben, will das Unternehmen dieses ehrgeizige Ziel unbedingt ___." Wähle den am stärksten gebundenen Verbpartner und begründe deine Wahl.',
+    metasprache: ['Kollokation', 'Frequenz', 'logDice', 'Assoziationsstärke'],
+    corpusQuery: Q_ZIEL_VERB,
+    bindings: { answer: ['logDice:1'], contrastPair: ['logDice:1', 'logDice:last'], near: { rankRange: [3, 8] } },
+    payload: {
+      sentence: 'Um konkurrenzfähig zu bleiben, will das Unternehmen dieses ehrgeizige Ziel unbedingt ___.',
+      options: '@from:bindings',
+      requireJustification: true,
+      // Objekt-Kollokation → Belege zeigen „Ziel erreichen" im echten Satz.
+      belegContext: { lemma: 'Ziel', partner: 'erreichen', limit: 3 },
+    },
+    display: { showMetrics: true, metric: 'both' },
+    solution: {
+      correctOptionId: '@from:bindings.answer',
+      rubric: {
+        criteria: ['wählt „{{logDice:1.lemma}}"', 'begründet mit Bindungsstärke (logDice), nicht nur mit Häufigkeit'],
+        minHits: 1,
+      },
+    },
+    feedback: {
+      byLevel: {
+        SekII: {
+          onCorrect: 'Richtig – „ein Ziel {{logDice:1.lemma}}" ist am stärksten gebunden (logDice {{logDice:1.logDice}}).',
+          onChoice: {
+            '@selected': '„Ziel {{selected.lemma}}": logDice {{selected.logDice}}. „{{logDice:1.lemma}}" bindet mit {{logDice:1.logDice}} spezifischer an „Ziel".',
+          },
+        },
+      },
+      tonalitaet: 'woerterbuch-nuechtern',
+    },
+    beleg: [{ key: 'steyer-2000', kontext: 'korpus' }, { key: 'bubenhofer-2015', kontext: 'fachlich' }],
+  },
+
+  {
+    id: 's1-f5-preis-datenblick-sek2', station: 1, format: 'F5', level: 'SekII', source: 'corpus-template',
+    kern: 'haeufig-vs-typisch',
+    prompt: 'Lies die Tabelle der Adjektiv-Verbindungen zu „Preis" und beantworte die Fragen.',
+    metasprache: ['Frequenz', 'logDice', 'Typikalität', 'Kookkurrenz'],
+    corpusQuery: Q_PREIS_ADJ,
+    bindings: { tableRows: ['logDice:1', 'logDice:2', 'freq:1', 'logDice:3'], contrastPair: ['freq:1', 'logDice:1'] },
+    payload: {
+      table: '@from:bindings.tableRows',
+      columns: ['verbindung', 'frequency', 'logDice'],
+      reveal: ['frequency', 'logDice'],
+      questions: [
+        { id: 'q1', text: 'Welche Verbindung ist am häufigsten?', kind: 'pick-row' },
+        { id: 'q2', text: 'Welche ist am typischsten (höchster logDice)?', kind: 'pick-row' },
+        { id: 'q3', text: 'Erkläre in 2–3 Sätzen, warum die häufigere nicht automatisch die typischere ist.', kind: 'explain' },
+      ],
+    },
+    display: { showMetrics: true, metric: 'both' },
+    solution: {
+      answers: {
+        q1: '@from:bindings.contrastPair[freq]',
+        q2: '@from:bindings.contrastPair[logDice]',
+        q3: {
+          rubric: {
+            criteria: [
+              'logDice misst Bindungsstärke, nicht Rohhäufigkeit',
+              'das häufigere Adjektiv passt zu vielen Nomen (unspezifisch)',
+              'das typischere Adjektiv ist für „Preis" charakteristisch',
             ],
             minHits: 2,
           },
@@ -697,6 +869,156 @@ const TASKS = [
       tonalitaet: 'woerterbuch-nuechtern',
     },
     beleg: [{ key: 'bubenhofer-2015', kontext: 'fachlich' }],
+  },
+
+  {
+    id: 's1-f5-problem-datenblick-lk', station: 1, format: 'F5', level: 'LK', source: 'corpus-template',
+    kern: 'haeufig-vs-typisch',
+    prompt: 'Deute die Datenlage zu „Problem": Welche Verbindung ist typisch gebunden, welche nur häufig – und was folgt daraus methodisch?',
+    metasprache: ['logDice', 'Assoziationsstärke', 'Korpusvergleich', 'Kookkurrenz'],
+    corpusQuery: Q_PROBLEM_ADJ,
+    bindings: { tableRows: ['logDice:1', 'logDice:2', 'freq:1', 'logDice:3', 'logDice:last'], contrastPair: ['freq:1', 'logDice:1'] },
+    payload: {
+      table: '@from:bindings.tableRows',
+      columns: ['verbindung', 'frequency', 'logDice'],
+      questions: [
+        { id: 'q1', text: 'Ordne die Verbindungen grob auf der Skala (zufällig / erkennbar / typisch) ein.', kind: 'compare' },
+        { id: 'q2', text: 'Begründe, warum das häufigste Adjektiv nicht automatisch das typischer gebundene ist.', kind: 'explain' },
+        { id: 'q3', text: 'Nenne zwei Dinge, die ein hoher logDice NICHT garantiert.', kind: 'explain' },
+      ],
+    },
+    display: { showMetrics: true, metric: 'both' },
+    solution: {
+      answers: {
+        q2: {
+          rubric: {
+            criteria: [
+              'Frequenz misst nur Rohhäufigkeit',
+              'logDice gewichtet die Exklusivität der Bindung',
+              'das häufigere Adjektiv („{{freq:1.lemma}}") verteilt sich auf viele Nomen (unspezifisch)',
+            ],
+            minHits: 2,
+          },
+        },
+        q3: {
+          rubric: {
+            criteria: ['nichts über Bedeutung/Stilwert', 'nichts über Kontext/Angemessenheit', 'nichts über Korpus-Bias'],
+            minHits: 2,
+          },
+        },
+      },
+    },
+    feedback: {
+      byLevel: {
+        LK: {
+          onCorrect: 'Korrekt. „{{logDice:1.lemma}}" (logDice {{logDice:1.logDice}}) ist für „Problem" charakteristisch gebunden, „{{freq:1.lemma}}" (f {{freq:1.frequency}}) nur häufig. Die Zahl sagt nichts über Bedeutung, Kontext oder Korpus-Bias.',
+          onWrong: 'Trenne „Wie oft?" (Frequenz) von „Wie exklusiv gebunden?" (logDice). Eine hohe Zahl ist kein Urteil über Bedeutung oder Angemessenheit.',
+        },
+      },
+      tonalitaet: 'woerterbuch-nuechtern',
+    },
+    beleg: [{ key: 'bubenhofer-2015', kontext: 'fachlich' }, { key: 'luedeling-walter-2009', kontext: 'fachlich' }],
+  },
+
+  {
+    id: 's1-f5-erfolg-datenblick-lk', station: 1, format: 'F5', level: 'LK', source: 'corpus-template',
+    kern: 'haeufig-vs-typisch',
+    prompt: 'Deute die Datenlage zu „Erfolg": Welche Adjektiv-Verbindung ist typisch, welche nur häufig – und was sagt der logDice NICHT aus?',
+    metasprache: ['logDice', 'Assoziationsstärke', 'Korpusvergleich', 'Kookkurrenz'],
+    corpusQuery: Q_ERFOLG_ADJ,
+    bindings: { tableRows: ['logDice:1', 'logDice:2', 'freq:1', 'logDice:3', 'logDice:last'], contrastPair: ['freq:1', 'logDice:1'] },
+    payload: {
+      table: '@from:bindings.tableRows',
+      columns: ['verbindung', 'frequency', 'logDice'],
+      questions: [
+        { id: 'q1', text: 'Ordne die Verbindungen grob auf der Skala (zufällig / erkennbar / typisch) ein.', kind: 'compare' },
+        { id: 'q2', text: 'Begründe, warum eine seltenere Verbindung trotzdem hohen logDice haben kann.', kind: 'explain' },
+        { id: 'q3', text: 'Nenne zwei Dinge, die ein hoher logDice NICHT garantiert.', kind: 'explain' },
+      ],
+    },
+    display: { showMetrics: true, metric: 'both' },
+    solution: {
+      answers: {
+        q2: {
+          rubric: {
+            criteria: ['logDice gewichtet das Verhältnis gemeinsames/einzelnes Vorkommen', 'wenn A fast nur mit B auftritt, steigt logDice trotz geringerer Rohfrequenz'],
+            minHits: 1,
+          },
+        },
+        q3: {
+          rubric: {
+            criteria: ['nichts über Bedeutung/Stilwert', 'nichts über Kontext/Angemessenheit', 'nichts über Korpus-Bias'],
+            minHits: 2,
+          },
+        },
+      },
+    },
+    feedback: {
+      byLevel: {
+        LK: {
+          onCorrect: 'Korrekt. logDice gewichtet Exklusivität: „{{logDice:1.lemma}}" (logDice {{logDice:1.logDice}}) ist für „Erfolg" charakteristisch, „{{freq:1.lemma}}" (f {{freq:1.frequency}}) nur häufig. Die Zahl sagt aber nichts über Bedeutung, Kontext oder Korpus-Bias.',
+          onWrong: 'Trenne zwei Fragen: „Wie oft?" (Frequenz) und „Wie exklusiv gebunden?" (logDice). Eine hohe Zahl ist kein Urteil über Bedeutung oder Angemessenheit.',
+        },
+      },
+      tonalitaet: 'woerterbuch-nuechtern',
+    },
+    beleg: [{ key: 'bubenhofer-2015', kontext: 'fachlich' }, { key: 'luedeling-walter-2009', kontext: 'fachlich' }],
+  },
+
+  {
+    id: 's1-f5-beitrag-datenblick-lk', station: 1, format: 'F5', level: 'LK', source: 'corpus-template',
+    kern: 'exklusive-bindung',
+    // Sonderfall: „leisten" ist bei „Beitrag" zugleich das häufigste UND das am
+    // stärksten gebundene Verb (logDice sehr hoch). Genau das ist der LK-Aha:
+    // manche Partner sind hochfrequent UND exklusiv – dann fallen freq und logDice
+    // zusammen. Frage zielt auf die Deutung dieses Sonderfalls.
+    prompt: 'Deute die Datenlage zu „Beitrag": Ein Verb ist zugleich das häufigste und das am stärksten gebundene. Was bedeutet dieser Sonderfall – und wo läge der Unterschied bei einem Nomen wie „Problem"?',
+    metasprache: ['logDice', 'Assoziationsstärke', 'Frequenz', 'Exklusivität'],
+    corpusQuery: Q_BEITRAG_VERB,
+    bindings: { tableRows: ['logDice:1', 'logDice:2', 'logDice:3', 'logDice:last'], contrastPair: ['freq:1', 'logDice:1'] },
+    payload: {
+      table: '@from:bindings.tableRows',
+      columns: ['verbindung', 'frequency', 'logDice'],
+      questions: [
+        { id: 'q1', text: 'Was bedeutet es, wenn dasselbe Verb zugleich das häufigste und das am stärksten gebundene ist?', kind: 'explain' },
+        { id: 'q2', text: 'Bei „großes Problem" fallen häufigste und typischste Verbindung auseinander, bei „Beitrag leisten" nicht. Erkläre den Unterschied.', kind: 'explain' },
+      ],
+    },
+    display: { showMetrics: true, metric: 'both' },
+    solution: {
+      answers: {
+        q1: {
+          rubric: {
+            criteria: [
+              '„{{logDice:1.lemma}}" tritt sehr oft mit „Beitrag" auf UND fast nur mit „Beitrag" (exklusiv)',
+              'hohe Frequenz und hoher logDice schließen sich nicht aus – sie können zusammenfallen',
+            ],
+            minHits: 1,
+          },
+        },
+        q2: {
+          rubric: {
+            criteria: [
+              'bei „Problem" ist das häufigste Adjektiv („groß") unspezifisch (passt zu vielem) → niedriger logDice',
+              'bei „Beitrag" ist der häufigste Partner zugleich exklusiv gebunden → hoher logDice',
+              'die Frage ist immer: verteilt sich der Partner auf viele Nomen oder bindet er spezifisch?',
+            ],
+            minHits: 2,
+          },
+        },
+      },
+    },
+    feedback: {
+      byLevel: {
+        LK: {
+          onCorrect: 'Korrekt – „{{logDice:1.lemma}}" bindet extrem stark an „Beitrag" (logDice {{logDice:1.logDice}}) und ist dennoch hochfrequent: hohe Frequenz und hohe Exklusivität können zusammenfallen. Bei „großes Problem" tun sie es nicht, weil „groß" zu fast jedem Nomen passt.',
+          onWrong: 'Frag nicht nur „wie oft", sondern „wie exklusiv". „{{logDice:1.lemma}}" ist beides; „groß" ist häufig, aber unspezifisch.',
+        },
+      },
+      merksatz: 'Häufig und exklusiv schließen sich nicht aus.',
+      tonalitaet: 'woerterbuch-nuechtern',
+    },
+    beleg: [{ key: 'bubenhofer-2015', kontext: 'fachlich' }, { key: 'luedeling-walter-2009', kontext: 'fachlich' }],
   },
 ]
 
