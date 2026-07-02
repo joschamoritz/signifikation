@@ -5,9 +5,12 @@ import { apiFetch } from '../utils/apiFetch'
 
 export function useEntitlements() {
   const [gesamtausgabeUnlocked, setGesamtausgabeUnlocked] = useState(() => !!lsGet('sig_gesamtausgabe'))
-  // Login-Status (für freies Kurs-Üben: Login statt Premium). Premium impliziert
-  // eingeloggt → optimistisch aus dem gecachten Premium-Flag vorbelegt.
-  const [loggedIn, setLoggedIn] = useState(() => !!lsGet('sig_gesamtausgabe'))
+  // Login-Status (für freies Kurs-Üben: Login statt Premium). Eigenes,
+  // persistentes Flag: ein eingeloggter Basic-Nutzer (kein Premium) hat kein
+  // sig_gesamtausgabe → würde sonst beim App-Start kurz „Anmelden" sehen, bis
+  // /entitlements antwortet. sig_logged_in überbrückt das (Premium impliziert
+  // ebenfalls eingeloggt, daher als Fallback mit ODER verknüpft).
+  const [loggedIn, setLoggedIn] = useState(() => !!lsGet('sig_logged_in') || !!lsGet('sig_gesamtausgabe'))
   const [classroomTeacher, setClassroomTeacher] = useState(false)
   // Eigenes-Lemma-Tageskontingent (Phase 4). Optimistisch aus dem gecachten
   // Premium-Flag vorbelegt, damit ein zurückkehrender Premium-Nutzer sofort
@@ -24,13 +27,16 @@ export function useEntitlements() {
     }
     setGesamtausgabeUnlocked(serverUnlocked)
     // loggedIn: explizites Flag bevorzugt, sonst aus Premium ableiten (Premium ⇒ eingeloggt).
-    setLoggedIn(payload?.loggedIn ?? serverUnlocked)
+    const loggedInNow = payload?.loggedIn ?? serverUnlocked
+    if (loggedInNow) lsSet('sig_logged_in', '1')
+    else lsRemove('sig_logged_in')
+    setLoggedIn(loggedInNow)
     setClassroomTeacher(!!payload?.classroomTeacher)
     setCustomLemma(payload?.customLemma ?? null)
   }, [])
 
   const refreshEntitlements = useCallback(async () => {
-    try {
+    const attempt = async () => {
       const res = await apiFetch(`${API}/account/entitlements`, {
         credentials: 'include',
       })
@@ -41,10 +47,22 @@ export function useEntitlements() {
       const payload = await res.json()
       syncEntitlementsFromResponse(payload)
       return { ok: true, payload }
+    }
+    try {
+      return await attempt()
     } catch {
-      // Server nicht erreichbar – gecachten Wert beibehalten
-      setGesamtausgabeUnlocked(!!lsGet('sig_gesamtausgabe'))
-      return { ok: false, code: 'network_error' }
+      // Netzwerk-Glitch beim App-Start (häufig auf Mobile): einmaliger Retry mit
+      // kurzem Backoff, sonst bliebe ein eingeloggter Nutzer bei „Anmelden"
+      // hängen, ohne dass ihm etwas angezeigt wird. Kein Timing-Hack — echter
+      // Retry gegen einen transienten Fehler.
+      await new Promise((r) => setTimeout(r, 1500))
+      try {
+        return await attempt()
+      } catch {
+        // weiterhin nicht erreichbar – gecachten Wert beibehalten
+        setGesamtausgabeUnlocked(!!lsGet('sig_gesamtausgabe'))
+        return { ok: false, code: 'network_error' }
+      }
     }
   }, [syncEntitlementsFromResponse])
 

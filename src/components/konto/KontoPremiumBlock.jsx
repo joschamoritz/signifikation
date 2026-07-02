@@ -10,9 +10,9 @@ import CheckoutModal from './CheckoutModal'
 const IS_NATIVE = Capacitor.isNativePlatform()
 
 const FEATURES = [
-  { label: 'Eigenes Lemma',  desc: 'Jeden Modus mit selbst gewählten Wörtern – unbegrenzt' },
+  { label: 'Eigenes Lemma',  desc: 'Jeden Modus – auch im Kurs – mit selbst gewählten Wörtern, unbegrenzt' },
   { label: 'Klassenraum',    desc: 'Live-Sessions für den Unterricht' },
-  { label: 'Kurse',          desc: 'Strukturierte Lerneinheiten (in Vorbereitung)' },
+  { label: 'Kurs-Material',  desc: 'Arbeitsblätter, Lösungen & Unterrichtsentwürfe zu jeder Station' },
 ]
 
 export default function KontoPremiumBlock({ auth, gesamtausgabePermanent }) {
@@ -98,7 +98,7 @@ export default function KontoPremiumBlock({ auth, gesamtausgabePermanent }) {
         {gesamtausgabePermanent ? (
           <>
             <p className="test-definition">
-              Unbegrenzt eigene Lemmata, Klassenraum und Kurse.
+              Unbegrenzt eigene Lemmata, Klassenraum und Kurs-Material.
             </p>
             <ul className="konto-premium-features konto-premium-features--active" aria-label="Enthaltene Funktionen">
               {FEATURES.map(f => (
@@ -124,7 +124,7 @@ export default function KontoPremiumBlock({ auth, gesamtausgabePermanent }) {
           <>
             <p className="test-definition">
               Alle vier Spielmodi sind frei. Mit der Gesamtausgabe spielst du
-              jeden Modus mit selbst gewählten Wörtern – unbegrenzt – plus Klassenraum &amp; Kurse.
+              jeden Modus mit selbst gewählten Wörtern – unbegrenzt – plus Klassenraum &amp; Kurs-Material.
             </p>
 
             <ul className="konto-premium-features" aria-label="Enthaltene Funktionen">
