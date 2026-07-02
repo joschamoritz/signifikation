@@ -112,6 +112,8 @@
   text-wrap: balance;
   margin: 0;
 }
+/* Programmatischer Fokus (tabindex=-1, SPA-A11y) soll keinen Rahmen ziehen. */
+.course-head-title:focus { outline: none; }
 
 .course-head-ipa {
   font-family: var(--font-serif);
@@ -1305,9 +1307,12 @@
 .course-next-station--overview:hover { background: var(--surface2); }
 
 /* ── A11y: Touch-Targets ≥44px (WCAG 2.5.5) ──────────────────────────
-   Gilt für eigenständige Bedien-Elemente. Mark-Tokens (.course-mark-token =
-   Wörter IM Satz) sind bewusst ausgenommen — Inline-Ausnahme; 44px würde den
-   Satzfluss zerstören. */
+   Gilt für eigenständige Bedien-Elemente. Bewusst ausgenommen sind alle
+   Inline-Wort-Tokens, die IM Satz sitzen und angetippt werden — .course-mark-token
+   (Markieren), .course-label-token (Funktion zuweisen) und .course-annotate-tok
+   (Annotieren): dort würde eine 44px-Mindesthöhe den Satzfluss zerstören.
+   WCAG 2.5.5 erlaubt die „inline"-Ausnahme genau für solche im Text eingebetteten
+   Ziele. */
 .course-niveau-btn,
 .course-section-tab,
 .course-match-chip,

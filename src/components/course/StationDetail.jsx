@@ -60,6 +60,7 @@ export default function StationDetail({ stationId, gesamtausgabe = false, onBack
   const [station, setStation] = useState(null)
   const [stationState, setStationState] = useState('loading') // loading | ready | denied | error
   const [stationRetryToken, setStationRetryToken] = useState(0)
+  const headingRef = useRef(null)
 
   // Tab-Tastaturmodell (APG): ←/→/↑/↓ wandern zwischen Üben/Material, Home/End
   // springen an Rand. Fokus folgt der Auswahl (automatische Aktivierung — bei
@@ -103,6 +104,16 @@ export default function StationDetail({ stationId, gesamtausgabe = false, onBack
     return () => { cancelled = true; controller.abort() }
   }, [stationId, stationRetryToken])
 
+  // SPA-A11y (F10): Fokus auf die Stations-Überschrift, sobald die Station
+  // geladen ist. StationDetail wird nur gemountet, wenn eine Station geöffnet
+  // wird — ohne Deep-Link erst nach einem Klick (echtes Navigationsereignis),
+  // mit Deep-Link ist die Station das Ziel. In beiden Fällen soll ein
+  // Screenreader ansagen, wo man gelandet ist; ein „generischer" Erst-Load
+  // ohne Station mountet diese Komponente gar nicht → kein Fokus-Diebstahl.
+  useEffect(() => {
+    if (stationState === 'ready') headingRef.current?.focus()
+  }, [stationState])
+
   if (stationState === 'denied') {
     return (
       <DetailFrame onBack={onBack}>
@@ -113,7 +124,7 @@ export default function StationDetail({ stationId, gesamtausgabe = false, onBack
 
   return (
     <DetailFrame onBack={onBack}>
-      <StationHead station={station} state={stationState} />
+      <StationHead station={station} state={stationState} headingRef={headingRef} />
 
       {stationState === 'error' && (
         <p className="course-detail-error" role="alert">
@@ -194,7 +205,7 @@ function DetailFrame({ onBack, children }) {
 }
 
 // ── Stations-Kopf ───────────────────────────────────────────────────────
-function StationHead({ station, state }) {
+function StationHead({ station, state, headingRef }) {
   if (state === 'loading' || !station) {
     return (
       <header className="course-head">
@@ -206,7 +217,8 @@ function StationHead({ station, state }) {
     <header className="course-head">
       <div className="course-head-top">
         <span className="course-head-glyph" aria-hidden="true">{STATION_GLYPHS[station.orderNo] ?? ''}</span>
-        <h2 className="course-head-title">{station.title}</h2>
+        {/* tabIndex=-1: programmatisch fokussierbar (SPA-A11y), nicht im Tab-Fluss. */}
+        <h2 className="course-head-title" ref={headingRef} tabIndex={-1}>{station.title}</h2>
       </div>
       {station.category && (
         <p className="course-head-category">{station.category}</p>
@@ -351,7 +363,10 @@ function UebenPanel({ stationId, niveau, orderNo, onOpenNextStation, onBack }) {
       )}
       {contentReady && tasks.length === 0 && (
         <>
-          <p className="course-muted">Für diese Stufe sind noch keine Aufgaben hinterlegt.</p>
+          <p className="course-muted">
+            Die Aufgaben für <strong>{NIVEAU_LABELS[niveau] ?? niveau}</strong> werden
+            gerade vorbereitet.
+          </p>
           {/* F10: sonst Sackgasse — ohne Aufgaben zeigen weder Pager noch
               Liste unten einen NextStationCta. */}
           <div className="course-next-station-row">
