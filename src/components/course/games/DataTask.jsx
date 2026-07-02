@@ -12,10 +12,16 @@ const COL_LABEL = { verbindung: 'Verbindung', frequency: 'Frequenz', logDice: 'l
 function norm(s) {
   return String(s ?? '').toLowerCase().trim()
 }
+// Exakter Vergleich nach norm() — table.verbindung und solution.answers[qid]
+// werden beide aus derselben resolveRef(...).lemma-Auflösung gespeist
+// (resolve.js buildTable/resolveSolution), sind bei korrekter Antwort also
+// wortgleich. Ein includes()-Fallback ist daher nicht nötig und war der
+// eigentliche Bug (K8): "scharfe kritik".includes("kritik") wertete jede
+// Zeile mit "Kritik" als Treffer für die Frage nach "kritik".
 function rowMatchesAnswer(verbindung, answer) {
   const v = norm(verbindung); const a = norm(answer)
   if (!v || !a) return false
-  return a === v || a.includes(v) || v.includes(a)
+  return a === v
 }
 
 export default function DataTask({ task, index, onChecked, canRetry = true, lockedNote = null }) {

@@ -11,7 +11,7 @@ function tokenize(sentence) {
   return (sentence ?? '').split(/\s+/).filter(Boolean)
 }
 function normalize(token) {
-  return token.toLowerCase().replace(/[.,;:!?»«"„""'’()«»]/g, '')
+  return token.toLowerCase().replace(/[.,;:!?»«"„“”'’()]/g, '')
 }
 function matchesTarget(token, target) {
   const t = normalize(token)
