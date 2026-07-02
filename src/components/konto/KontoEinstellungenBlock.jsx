@@ -35,6 +35,7 @@ export default function KontoEinstellungenBlock() {
       const res = await apiFetch(`${API}/course/progress`, {
         method: 'DELETE',
         credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
       })
       setResetState(res.ok ? 'done' : 'error')
     } catch {
