@@ -25,16 +25,23 @@ export default function MatchingTask({ task, index, onChecked, canRetry = true, 
   const [picked, setPicked] = useState(null) // Tap-Fallback: gewählte Pool-Karte
   const [checked, setChecked] = useState(false)
   const [drag, setDrag] = useState(null) // aktiver Zug: { label, x, y, hover }
+  // A11y: Zuordnungen ansagen (Drag & Tap liefern sonst kein Screenreader-
+  // Feedback). Region unten ist dauerhaft gemountet — sonst schlucken viele
+  // Screenreader die erste Ansage (vgl. FeedbackRegion in TaskShell).
+  const [liveMsg, setLiveMsg] = useState('')
 
   const dragRef = useRef(null) // { candId, label, startX, startY, active }
 
   const pool = candidates.filter((c) => !assignment[c.id])
   const assignedCount = Object.values(assignment).filter(Boolean).length
   const candsFor = (anchorId) => candidates.filter((c) => assignment[c.id] === anchorId)
+  const labelOf = (candId) => candidates.find((c) => c.id === candId)?.label ?? ''
+  const anchorLabelOf = (anchorId) => anchors.find((a) => a.id === anchorId)?.label ?? ''
 
   function assign(candId, anchorId) {
     setAssignment((prev) => ({ ...prev, [candId]: anchorId }))
     setPicked(null)
+    setLiveMsg(`${labelOf(candId)} zu „${anchorLabelOf(anchorId)}" zugeordnet.`)
   }
   function placeInto(anchorId) {
     if (checked || !picked) return
@@ -43,6 +50,7 @@ export default function MatchingTask({ task, index, onChecked, canRetry = true, 
   function unassign(candId) {
     if (checked) return
     setAssignment((prev) => ({ ...prev, [candId]: null }))
+    setLiveMsg(`${labelOf(candId)} – Zuordnung gelöst.`)
   }
 
   function anchorIdAtPoint(x, y) {
@@ -118,6 +126,7 @@ export default function MatchingTask({ task, index, onChecked, canRetry = true, 
     setPicked(null)
     setChecked(false)
     setDrag(null)
+    setLiveMsg('Zuordnungen zurückgesetzt.')
   }
 
   const dragging = !!drag
@@ -125,6 +134,9 @@ export default function MatchingTask({ task, index, onChecked, canRetry = true, 
   return (
     <div className="course-task course-task--matching">
       <TaskHead task={task} index={index} />
+
+      {/* Ansage-Region für Zuordnungen (Drag & Tap) — dauerhaft gemountet. */}
+      <div className="sr-only" role="status" aria-live="polite">{liveMsg}</div>
 
       {!checked && (
         <p className="course-hint">
