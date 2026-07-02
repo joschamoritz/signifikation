@@ -117,6 +117,22 @@ function KursTab({ gesamtausgabe = false, loggedIn = false, onNavigateToKonto })
     [summary, niveau],
   )
 
+  // Gesamtfortschritt über alle Stationen der gewählten Niveaustufe (F-Idee 4,
+  // Nutzerentscheidung 02.07.): macht den Lernpfad-Charakter sichtbar statt nur
+  // isolierte "X/Y gelöst" pro Stationskarte. summaryForUser liefert für jede
+  // Station einen Eintrag (LEFT JOIN, auch unbespielte mit total>0/solved=0),
+  // daher ist die Summe über KURS_MODULES vollständig, sobald summaryReady ist.
+  const overallProgress = loggedIn && summaryReady
+    ? KURS_MODULES.reduce((acc, mod) => {
+        const prog = progressFor(mod.apiId)
+        if (!prog) return acc
+        acc.total += prog.total
+        acc.solved += prog.solved
+        if (prog.attempted > 0) acc.started += 1
+        return acc
+      }, { total: 0, solved: 0, started: 0 })
+    : null
+
   // Üben ist frei, aber Login nötig (Fortschritt/Sperre ans Konto gebunden).
   // Bewusst IMMER die Station öffnen, auch ohne Login: die Stations-Detailseite
   // fängt den 401 selbst ab und zeigt den erklärenden Login-Hinweis (LoginNotice)
@@ -165,6 +181,14 @@ function KursTab({ gesamtausgabe = false, loggedIn = false, onNavigateToKonto })
         </nav>
 
         <div className="test-rule--double" role="separator" aria-hidden="true" />
+
+        {overallProgress && overallProgress.total > 0 && (
+          <p className="course-overview-progress">
+            {overallProgress.started} von {KURS_MODULES.length} Stationen begonnen
+            {' · '}
+            {Math.round((overallProgress.solved / overallProgress.total) * 100)} % aller Aufgaben gelöst
+          </p>
+        )}
 
         <main>
           <ol className="test-entries" aria-label="Kurs-Module" ref={entriesRef} onKeyDown={handleSnapKeyDown}>

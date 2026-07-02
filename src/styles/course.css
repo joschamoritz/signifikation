@@ -3,6 +3,17 @@
    Wörterbuch-Ästhetik, mobile-first. Tokens kommen von .test-page.
    ============================================================ */
 
+/* ── Ebene 1: Kurs-Übersicht (KursTab.jsx) ────────────────────────── */
+/* Gesamtfortschritt über alle Stationen der gewählten Niveaustufe —
+   schlichte Textzeile statt Balken-Widget (Wörterbuch-Ästhetik). */
+.course-overview-progress {
+  font-family: var(--font-serif);
+  font-size: 0.85rem;
+  font-style: italic;
+  color: var(--muted);
+  margin: 14px 0 0;
+}
+
 /* ── Scroll-Rahmen ─────────────────────────────────────────── */
 .course-detail {
   padding: 16px 0 48px;
