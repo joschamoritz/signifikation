@@ -98,31 +98,47 @@ function Sheet({
     }
   }, [open])
 
-  // ── transitionend → unmount ────────────────────────────────────────────────
+  // ── transitionend → unmount (+ Timeout-Fallback) ──────────────────────────
   useEffect(() => {
     const panel = panelRef.current
     if (!panel) return
 
-    function handleTransitionEnd(e) {
-      const relevantProp = variant === 'center' ? 'opacity' : 'transform'
-      if (e.propertyName !== relevantProp) return
-      if (dataState === 'closing') {
-        setMounted(false)
-        mountedRef.current = false
-        setDataState('closed')
-        removeBodyInert()
-        onClose()
-        if (
-          previousFocusRef.current &&
-          typeof previousFocusRef.current.focus === 'function'
-        ) {
-          previousFocusRef.current.focus()
-        }
+    // finalizeClose läuft doppelt geschützt: transitionend ODER ein Timeout
+    // knapp über der längsten CSS-Transition (280ms, s. Sheet.css). Ohne
+    // Fallback bliebe die Sheet bei einem verpassten transitionend-Event
+    // (z. B. Tab wechselt während der Animation, Browser-Edge-Case, CSS wird
+    // zur Laufzeit übersprungen) für immer "closing": mounted bleibt true,
+    // body.inert bleibt gesetzt → der Rest der App wäre dauerhaft nicht mehr
+    // fokussierbar/klickbar. `closed` wird nur einmal verlassen (Guard).
+    let closed = false
+    function finalizeClose() {
+      if (closed) return
+      closed = true
+      setMounted(false)
+      mountedRef.current = false
+      setDataState('closed')
+      removeBodyInert()
+      onClose()
+      if (
+        previousFocusRef.current &&
+        typeof previousFocusRef.current.focus === 'function'
+      ) {
+        previousFocusRef.current.focus()
       }
     }
 
+    function handleTransitionEnd(e) {
+      const relevantProp = variant === 'center' ? 'opacity' : 'transform'
+      if (e.propertyName !== relevantProp) return
+      if (dataState === 'closing') finalizeClose()
+    }
+
     panel.addEventListener('transitionend', handleTransitionEnd)
-    return () => panel.removeEventListener('transitionend', handleTransitionEnd)
+    const fallbackTimer = dataState === 'closing' ? setTimeout(finalizeClose, 400) : null
+    return () => {
+      panel.removeEventListener('transitionend', handleTransitionEnd)
+      if (fallbackTimer) clearTimeout(fallbackTimer)
+    }
   }, [dataState, variant, onClose])
 
   // ── Focus trap ────────────────────────────────────────────────────────────

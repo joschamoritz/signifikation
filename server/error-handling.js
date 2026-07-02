@@ -129,7 +129,12 @@ export function sendErrorResponse(res, err, reqContext = {}) {
 
   // Production: keine sensitiven Details sichtbar machen
   const isProduction = process.env.NODE_ENV === 'production'
-  const isAdmin = reqContext.path?.startsWith('/admin') === true
+  // Details nur an einen bereits AUTHENTIFIZIERTEN Admin zeigen — Pfad-Präfix
+  // allein reicht nicht: express.json()/CORS/CSRF können auf /admin/* schon
+  // VOR requireAuth einen Fehler werfen (z. B. kaputtes JSON-Body), und
+  // reqContext.path matcht dann trotzdem "/admin". requireAuth setzt bei
+  // Erfolg req.adminSessionId — das ist das verlässliche Signal.
+  const isAuthenticatedAdmin = reqContext.authenticated === true
 
   if (cat.status >= 500) {
     logger.error(logContext, `${cat.code}: ${err.message}`)
@@ -138,13 +143,13 @@ export function sendErrorResponse(res, err, reqContext = {}) {
     logger.warn(logContext, `${cat.code}: ${err.message}`)
   }
 
-  // Response: Admin sieht Details, Clients nicht
+  // Response: authentifizierter Admin sieht Details, alle anderen nicht
   const response = {
     error: cat.message,
     code: cat.code,
   }
 
-  if (!isProduction || isAdmin) {
+  if (!isProduction || isAuthenticatedAdmin) {
     response.details = err.message
   }
 
@@ -161,6 +166,8 @@ export function errorHandler(err, req, res, _next) {
     path: req.path,
     ip: req.ip,
     id: req.id,
+    // requireAuth setzt adminSessionId erst NACH erfolgreicher Prüfung.
+    authenticated: !!req.adminSessionId,
   }
 
   sendErrorResponse(res, err, reqContext)
