@@ -5,6 +5,13 @@ on:
     branches: [main]
   pull_request:
 
+# playwright ist seit der Kurs-PDF-Generierung Prod-Dependency; sein postinstall
+# wuerde bei jedem `npm ci` Chromium laden. Der verify-Job braucht keinen Browser,
+# der e2e-Job installiert Chromium explizit (`npx playwright install`) – das ignoriert
+# diese Variable. Also global unterdruecken, um CI nicht unnoetig zu verlangsamen.
+env:
+  PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: 1
+
 jobs:
   verify:
     runs-on: ubuntu-latest

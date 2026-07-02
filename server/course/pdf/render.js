@@ -3,12 +3,14 @@
  *
  * HTML → PDF via Playwright (Chromium). EINZIGER browserabhängiger Schritt der
  * Pipeline. Playwright wird LAZY importiert (dynamic import), damit der normale
- * Server-Runtime auf Hetzner NIE Chromium lädt: PDFs sind kuratiertes,
- * statisches Material und werden per CLI/CI vorerzeugt (als Datei abgelegt,
- * referenziert über course_materials.file_ref), nicht pro Request gerendert.
+ * Server-Runtime beim Start NIE Chromium lädt: PDFs sind kuratiertes, statisches
+ * Material. Sie werden entweder per CLI/CI vorerzeugt ODER on-demand über den
+ * Admin-Button (POST /admin/course/regenerate-pdfs) als Hintergrund-Job – dann
+ * läuft Chromium einmalig auf dem Server. Der Browser liegt in einem festen
+ * Cache (PLAYWRIGHT_BROWSERS_PATH, siehe OPS.md „Kurs-PDF-Generierung"), das
+ * playwright-Paket ist dafür Prod-Dependency.
  *
- * Tooling-Begründung (Kurs-Umsetzung AP5): Playwright ist bereits devDependency
- * (E2E-Tests) → kein neuer Prod-Dep. HTML/CSS gibt volle CD-Kontrolle (DM Sans,
+ * Tooling-Begründung (Kurs-Umsetzung AP5): HTML/CSS gibt volle CD-Kontrolle (DM Sans,
  * Gentium, Rot/Gold, Querformat via @page) und triviale Fußnoten/Tabellen –
  * gegenüber pdfkit/pdf-lib (kein Layout-Engine) und wkhtmltopdf/WeasyPrint
  * (Fremd-Binary/Python, nicht im Stack).
@@ -41,11 +43,26 @@ export async function createRenderer() {
     ({ chromium } = await import('playwright'))
   } catch (err) {
     throw new Error(
-      'Playwright nicht verfügbar. Für die PDF-Erzeugung: `npm i -D playwright` + `npx playwright install chromium`. ' +
+      'Playwright-Paket nicht installiert. Auf dem Server: `npm ci --omit=dev` sollte es liefern ' +
+      '(playwright ist Prod-Dependency). ' +
       `Ursprung: ${err.message}`,
     )
   }
-  const browser = await chromium.launch()
+  let browser
+  try {
+    // --no-sandbox: wir rendern ausschließlich unser eigenes, vertrauenswürdiges
+    // Kurs-HTML (kein Nutzer-Input) auf einem Single-Tenant-VPS; der Chromium-
+    // Sandbox-Setup (User-Namespaces/SUID) ist auf dem Hetzner-Host nicht nötig
+    // und die häufigste Startfehlerquelle bei headless Chromium auf Servern.
+    browser = await chromium.launch({ args: ['--no-sandbox'] })
+  } catch (err) {
+    throw new Error(
+      'Chromium konnte nicht gestartet werden. Browser-Binary fehlt oder System-Libs nicht installiert. ' +
+      'Einmalige Einrichtung siehe OPS.md „Kurs-PDF-Generierung" ' +
+      `(PLAYWRIGHT_BROWSERS_PATH=${process.env.PLAYWRIGHT_BROWSERS_PATH || '(nicht gesetzt)'}). ` +
+      `Ursprung: ${err.message}`,
+    )
+  }
   logger.info('course/pdf: Chromium gestartet')
 
   return {
