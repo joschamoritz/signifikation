@@ -73,7 +73,9 @@ jobs:
             rollback() {
               echo "Rollback auf ${PREV_REV}"
               git checkout --detach "$PREV_REV"
-              npm ci --omit=dev
+              # Chromium NICHT beim Deploy laden (playwright ist Prod-Dep, aber der
+              # Browser wird einmalig manuell installiert – siehe OPS.md).
+              PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1 npm ci --omit=dev
               # Alten dist aus Backup wiederherstellen oder neu bauen
               if [ -d "dist.rollback/" ]; then
                 rm -rf dist/
@@ -96,8 +98,12 @@ jobs:
             git checkout --detach "$DEPLOY_SHA"
             echo "Deploye SHA: $DEPLOY_SHA"
 
-            # Produktions-Abhängigkeiten installieren (kein Build nötig)
-            npm ci --omit=dev
+            # Produktions-Abhängigkeiten installieren (kein Build nötig).
+            # Chromium NICHT hier laden: playwright ist zwar Prod-Dep, der Browser
+            # wird aber einmalig manuell in PLAYWRIGHT_BROWSERS_PATH installiert
+            # (siehe OPS.md „Kurs-PDF-Generierung"). Hält Deploys schnell und
+            # verhindert, dass ein Browser-Download-Fehler den Deploy killt.
+            PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1 npm ci --omit=dev
 
             # Alten dist sichern für schnellen Rollback
             if [ -d "dist/" ]; then

@@ -28,6 +28,13 @@ module.exports = {
       env: {
         NODE_ENV: 'production',
         DOTENV_CONFIG_PATH: '/opt/signifikation/app/.env',
+        // Fester, vom signifikation-User beschreib-/lesbarer Chromium-Cache fuer
+        // die Kurs-PDF-Generierung (Admin-Button → server/course/pdf/render.js).
+        // Deploys laden Chromium NICHT (PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD in
+        // deploy.yml); der Browser wird einmalig manuell hierhin installiert –
+        // siehe OPS.md „Kurs-PDF-Generierung". Muss beim Runtime UND beim
+        // Einmal-Install identisch sein, sonst findet chromium.launch() nichts.
+        PLAYWRIGHT_BROWSERS_PATH: '/opt/signifikation/ms-playwright',
       },
     },
   ],
