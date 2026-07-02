@@ -10,9 +10,11 @@
 // Premium-gegated (requirePremium serverseitig); 403 wird hier abgefangen.
 
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { Capacitor } from '@capacitor/core'
 import { API, MOBILE_MEDIA_QUERY } from '../../config'
 import { apiGet, ApiError } from '../../api/client'
 import { apiFetch } from '../../utils/apiFetch'
+import { downloadAuthenticatedPdf } from '../../utils/downloadPdf'
 import { useMediaQuery } from '../../hooks/useMediaQuery'
 import { useGlobalNiveau, NIVEAU_LABELS } from './useGlobalNiveau'
 import TaskGate from './games/TaskGate'
@@ -599,19 +601,45 @@ function MaterialPanel({ stationId, niveau, goal, gesamtausgabe = false, onNavig
 function MaterialCard({ stationId, material }) {
   const meta = KIND_META[material.kind] ?? { label: material.kind, hint: '' }
   const href = `${API}/course/stations/${stationId}/materials/${encodeURIComponent(material.id)}/download`
+  const filename = `${material.kind}${material.level ? `-${material.level}` : ''}.pdf`
+  const [busy, setBusy] = useState(false)
+  const [failed, setFailed] = useState(false)
+
+  // In der nativen App trägt ein normaler <a href download> keinen Bearer-Header
+  // (Cookies sind cross-origin) → 401. Dort den Klick abfangen und die PDF über
+  // apiFetch (mit Bearer) holen + nativ teilen. Im Web bleibt der Anchor mit
+  // Cookie-Auth unverändert.
+  const onClick = async (e) => {
+    if (!Capacitor.isNativePlatform()) return
+    e.preventDefault()
+    if (busy) return
+    setBusy(true)
+    setFailed(false)
+    try {
+      await downloadAuthenticatedPdf(href, filename)
+    } catch {
+      setFailed(true)
+    } finally {
+      setBusy(false)
+    }
+  }
+
   return (
     <li className="course-material">
-      <a className="course-material-card" href={href} download>
+      <a className="course-material-card" href={href} download onClick={onClick} aria-busy={busy || undefined}>
         <div className="course-material-text">
           <span className="course-material-kind">{meta.label}</span>
           {material.level && (
             <span className="course-material-level">{NIVEAU_LABELS[material.level] ?? material.level}</span>
           )}
           {meta.hint && <span className="course-material-hint">{meta.hint}</span>}
+          {failed && (
+            <span className="course-material-hint" role="alert">Download fehlgeschlagen — bitte erneut versuchen.</span>
+          )}
         </div>
         <span className="course-material-action" aria-hidden="true">
           <span className="course-material-format">PDF</span>
-          <span className="course-material-arrow">↓</span>
+          <span className="course-material-arrow">{busy ? '…' : '↓'}</span>
         </span>
         <span className="sr-only">{meta.label} als PDF herunterladen</span>
       </a>
