@@ -84,15 +84,24 @@ function KursTab({ gesamtausgabe = false, loggedIn = false, onNavigateToKonto })
   // Stations-Fortschritt (gelöst/gesamt je Niveau) für die Übersicht. Üben ist
   // frei → für jeden eingeloggten Nutzer laden; best effort (optional).
   const [summary, setSummary] = useState([])
+  // Verhindert, dass vor der ersten Antwort überall „Bereit." statt der
+  // geladenen Fortschrittszahl steht (sichtbares Nachspringen bei Stammnutzern).
+  const [summaryReady, setSummaryReady] = useState(false)
   useEffect(() => {
-    if (!loggedIn) { setSummary([]); return undefined }
+    if (!loggedIn) { setSummary([]); setSummaryReady(true); return undefined }
+    // Die Übersicht ist nur bei geschlossener Station sichtbar. Während eine
+    // Station offen ist, nicht laden — beim Zurückkehren (stationId → null)
+    // feuert der Effekt erneut und holt den aktualisierten Fortschritt.
+    if (stationId) return undefined
     let cancelled = false
     const controller = new AbortController()
+    setSummaryReady(false)
     ;(async () => {
       try {
         const json = await apiGet(`${API}/course/progress`, { signal: controller.signal })
         if (!cancelled) setSummary(json.summary ?? [])
       } catch { /* Fortschrittsanzeige optional */ }
+      finally { if (!cancelled) setSummaryReady(true) }
     })()
     return () => { cancelled = true; controller.abort() }
   }, [loggedIn, stationId])
@@ -194,9 +203,11 @@ function KursTab({ gesamtausgabe = false, loggedIn = false, onNavigateToKonto })
                           <span className="test-status">
                             {!loggedIn
                               ? 'Üben kostenlos mit Konto.'
-                              : started
-                                ? `${prog.solved}/${prog.total} gelöst`
-                                : 'Bereit.'}
+                              : !summaryReady
+                                ? 'Lädt …'
+                                : started
+                                  ? `${prog.solved}/${prog.total} gelöst`
+                                  : 'Bereit.'}
                           </span>
                           <button
                             type="button"

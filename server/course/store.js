@@ -314,7 +314,9 @@ export function getResultsForUser(userId, stationId = null) {
  * @param {string} p.stationId
  * @param {string} p.taskId
  * @param {string} p.level   DaZ|SekI|SekII|LK
- * @param {boolean|null} p.correct  true|false geschlossen bewertet; null = Selbstkontrolle
+ * @param {boolean|null} p.correct  true|false geschlossen bewertet; null = Selbstkontrolle.
+ *   BEWUSST selbstberichtet: der Client bewertet lokal, der Server prüft nicht
+ *   nach (Solo-Selbstlern-Werkzeug, kein Anti-Cheat — s. routes/course.js + resolve.js).
  * @returns {object} mapResult-Zeile
  */
 export const recordTaskResult = db.transaction(({ userId, stationId, taskId, level, correct }) => {

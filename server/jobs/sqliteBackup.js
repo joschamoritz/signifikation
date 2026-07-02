@@ -93,7 +93,15 @@ export async function runSqliteBackup({ dir = BACKUP_DIR, keep = KEEP_COUNT } = 
       return { integrityFailed: true, detail: integrity }
     }
 
-    await pipeline(createReadStream(tmpPath), createGzip(), createWriteStream(finalPath))
+    try {
+      await pipeline(createReadStream(tmpPath), createGzip(), createWriteStream(finalPath))
+    } catch (err) {
+      // z. B. Disk voll: sonst bleibt die unkomprimierte .tmp-Kopie liegen (die
+      // Rotation matcht nur .db.gz) und füllt bei Wiederholung das Volume.
+      try { unlinkSync(tmpPath) } catch { /* nichts zu tun */ }
+      try { unlinkSync(finalPath) } catch { /* evtl. Teil-Datei */ }
+      throw err
+    }
     unlinkSync(tmpPath)
 
     // Rotation: nur eigene Backup-Dateien anfassen, älteste zuerst löschen

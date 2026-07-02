@@ -92,9 +92,10 @@ export default function StationDetail({ stationId, gesamtausgabe = false, onBack
         if (cancelled || err?.name === 'AbortError') return
         // Üben ist frei, braucht aber Login: 401 → „denied" = Anmelde-Hinweis
         // (erreichbar nur per Deep-Link; der reguläre Weg über KursTab leitet
-        // Nicht-Eingeloggte vorher zum Konto). Material/Lemma-Premium wird NICHT
-        // hier, sondern im jeweiligen Bereich (403) abgefangen.
-        const needsLogin = err instanceof ApiError && (err.status === 401 || err.status === 403)
+        // Nicht-Eingeloggte vorher zum Konto). Die Route ist requireAuthUser,
+        // kann also nur 401 liefern; Material/Lemma-Premium (403) wird im
+        // jeweiligen Bereich abgefangen, nicht hier.
+        const needsLogin = err instanceof ApiError && err.status === 401
         setStationState(needsLogin ? 'denied' : 'error')
       }
     })()
@@ -272,6 +273,8 @@ function UebenPanel({ stationId, niveau, orderNo, onOpenNextStation, onBack }) {
     let cancelled = false
     const controller = new AbortController()
     setResultsReady(false)
+    setResults({}) // alte Ergebnisse verwerfen, sonst rechnet solvedCount kurz
+                   // die Results des alten Niveaus gegen die Tasks des neuen
     ;(async () => {
       try {
         const json = await apiGet(

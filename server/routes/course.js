@@ -44,6 +44,7 @@ import {
 import * as courseStore from '../course/store.js'
 import { makeCorpusAdapter } from '../course/corpusAdapter.js'
 import { resolveItemInteractive } from '../course/resolve.js'
+import { resolveCacheKey, getResolvedTasks, setResolvedTasks } from '../course/resolveCache.js'
 import logger from '../logger.js'
 
 const router = express.Router()
@@ -98,13 +99,13 @@ router.get(
     try {
       const station = courseStore.getStation(req.params.id)
       if (!station) return res.status(404).json({ error: 'Station nicht gefunden' })
-      const tasks = courseStore.listTasks(req.params.id, {
-        level:  req.query.level,
-        format: req.query.format,
-      })
 
       // Ohne resolve=interactive → Rohtasks (Druck-/Debug-Pfad).
       if (req.query.resolve !== 'interactive') {
+        const tasks = courseStore.listTasks(req.params.id, {
+          level:  req.query.level,
+          format: req.query.format,
+        })
         return res.json({ stationId: req.params.id, level: req.query.level ?? null, tasks })
       }
 
@@ -112,9 +113,21 @@ router.get(
       // (Korpus liegt nur am Server). selected/chosen + onWrong/onChoice bleiben
       // erhalten — der Client füllt die Auswahl. Inhalte sind kuratiert; das
       // frühere „Eigenes Lemma" (freie Wort-Eingabe) wurde entfernt.
-      const items = tasks.map(t => courseStore.taskToEngineItem(t))
-      const corpus = makeCorpusAdapter()
-      const resolved = items.map(i => resolveItemInteractive(i, { corpus }))
+      //
+      // Ergebnis ist nutzerunabhängig + deterministisch → pro (Station, Niveau,
+      // Format) cachen, statt bei jedem Aufruf 10–20 Korpus-/FTS-Queries zu fahren.
+      const cacheKey = resolveCacheKey(req.params.id, req.query.level, req.query.format)
+      let resolved = getResolvedTasks(cacheKey)
+      if (!resolved) {
+        const tasks = courseStore.listTasks(req.params.id, {
+          level:  req.query.level,
+          format: req.query.format,
+        })
+        const items = tasks.map(t => courseStore.taskToEngineItem(t))
+        const corpus = makeCorpusAdapter()
+        resolved = items.map(i => resolveItemInteractive(i, { corpus }))
+        setResolvedTasks(cacheKey, resolved)
+      }
       res.json({
         stationId: req.params.id,
         level: req.query.level ?? null,
@@ -254,6 +267,13 @@ router.get(
  * inkrementiert; correct bleibt „bestes" Resultat. Der Client sperrt eine
  * kuratierte Aufgabe nach der Abgabe (neu spielbar nur über den Profil-Reset);
  * der Server bleibt idempotent und hält schlicht das beste Ergebnis.
+ *
+ * BEWUSST: `correct` ist SELBSTBERICHTET. Der Server wertet die Auswahl nicht
+ * gegen die Lösung aus — der Client bewertet lokal (die Lösung liegt im
+ * resolve=interactive-Payload, s. resolve.js). Für ein Solo-Selbstlern-Werkzeug
+ * ohne Schüler-Tracking/Bestenliste ist der Fortschritt eine Lernhilfe, keine
+ * fälschungssichere Metrik. Serverseitige Bewertung erst nötig, wenn der
+ * Fortschritt teachersichtbar/gekoppelt wird (Analyse-2026-07-02.md, K1/K2).
  *
  * „Eigenes Lemma" wird NICHT persistiert — der Client postet dort kein Ergebnis.
  */

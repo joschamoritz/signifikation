@@ -2,8 +2,8 @@
  * store.js – Datenzugriff auf signifikation.db (SQLite) + In-Memory-Caches
  *
  * Öffentliche API (abwärtskompatibel zu alter JSON-Version):
- *   load(file)           – Daten lesen (deep clone)
- *   loadReadOnly(file)   – Daten lesen (kein extra clone nötig, frisches Objekt)
+ *   load(file)           – Daten lesen (frisch aus DB gebaut; Aufrufer darf mutieren)
+ *   loadReadOnly(file)   – Daten lesen (TTL-Cache; Rückgabe wird GETEILT — nicht mutieren!)
  *   save(file, data)     – Daten schreiben (gibt Promise zurück)
  *   loadWortZwilling()   – Wort-Zwilling-Dict
  *   loadZeitenwende()    – Zeitenwende-Dict
