@@ -271,8 +271,11 @@ export function adminError(res, errOrStatus, message, errArg) {
   } else {
     err = errOrStatus
   }
-  // path: '/admin' simuliert Admin-Kontext → Details auch in Production
-  sendErrorResponse(res, err, { path: '/admin' })
+  // adminError wird ausschließlich aus Handlern HINTER requireAuth gerufen
+  // (alle Aufrufer stehen im try/catch einer bereits authentifizierten Admin-
+  // Route) → authenticated bewusst true, damit Details auch in Production
+  // sichtbar bleiben.
+  sendErrorResponse(res, err, { path: '/admin', authenticated: true })
 }
 
 export { IS_PROD }

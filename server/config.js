@@ -75,3 +75,12 @@ if (placeholders.length > 0) {
 for (const group of incompleteOptionalGroups) {
   logger.warn(group, 'Startup: Optionale Variablengruppe unvollständig konfiguriert')
 }
+
+// ALLOW_DEV_AUTH=1 in Produktion ist harmlos (middleware/userAuth.js prüft
+// zusätzlich NODE_ENV !== 'production'), aber ein Zeichen für Config-Drift —
+// jemand hat eine Dev-Umgebungsvariable in die Prod-.env übernommen. Defense-
+// in-Depth: statt still zu bleiben, den Start verweigern, damit das auffällt.
+if (IS_PROD && process.env.ALLOW_DEV_AUTH === '1') {
+  logger.error('Startup: ALLOW_DEV_AUTH=1 in Produktion gesetzt — Config-Drift, Server wird nicht gestartet')
+  process.exit(1)
+}
