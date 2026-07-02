@@ -21,6 +21,7 @@
 
 import db from '../db.js'
 import logger from '../logger.js'
+import { clearResolveCache } from './resolveCache.js'
 import station1 from './content/station-1.js'
 import station2 from './content/station-2.js'
 import station3 from './content/station-3.js'
@@ -111,6 +112,7 @@ export function seedCourseContent() {
     }
   })
   run()
+  clearResolveCache() // Tasks neu eingespielt → alte Auflösungen verwerfen
   logger.info({ stations, tasks }, 'Kurs-Content geseedet')
   return { stations, tasks }
 }

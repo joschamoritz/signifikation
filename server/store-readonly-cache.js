@@ -41,7 +41,9 @@ export function createReadOnlyCache({ ttlMs, onInvalidate, logger }) {
     invalidate,
     invalidateAll,
     startCleanup(intervalMs) {
-      setInterval(cleanup, intervalMs)
+      const t = setInterval(cleanup, intervalMs)
+      t.unref?.() // darf den Prozess bei Shutdown/Vitest nicht am Leben halten
+      return t
     },
   }
 }

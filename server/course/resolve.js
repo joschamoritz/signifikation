@@ -466,6 +466,16 @@ function resolveFeedbackInteractive(feedback, level, ctx) {
  * Löst ein Item für die INTERAKTIVE Ausspielung auf (Selbstlerner, Sofort-
  * Feedback). Gleiche Korpus-Auflösung wie der Druck, aber selektionsabhängige
  * Feedbacktexte bleiben erhalten und `{{selected.*}}` wird NICHT entfernt.
+ *
+ * BEWUSST: Das Ergebnis enthält die volle `solution` (correctOptionId, spans,
+ * map …) und lösungsmarkierte payload-Felder. Der Client bewertet lokal und gibt
+ * Sofort-Feedback — deshalb liegt die Lösung im Payload. Das Kurs-Üben ist ein
+ * SOLO-SELBSTLERN-Werkzeug (kein Schüler-Tracking, keine Bestenliste, kein
+ * gekoppelter Nutzen); wer die Lösung im Netzwerk-Tab abgreift, betrügt nur die
+ * eigene Selbsteinschätzung. Kein Anti-Cheat wie im Klassenraum — das wäre hier
+ * ein unverhältnismäßiger `/check`-Umbau. Trigger für serverseitige Bewertung:
+ * sobald der Kurs-Fortschritt teachersichtbar oder an etwas Wertvolles gekoppelt
+ * wird (siehe planning/Analyse-2026-07-02.md, K1/K2).
  */
 export function resolveItemInteractive(item, { corpus, lemma } = {}) {
   if (item.source === 'static') {
