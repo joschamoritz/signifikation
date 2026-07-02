@@ -10,6 +10,7 @@ import { shareAsImage } from '../utils/shareImage'
 import { lsGet, lsSet } from '../utils/storage'
 import { logError } from '../utils/logError'
 import { useActiveSnapCard } from '../hooks/useActiveSnapCard'
+import { useSnapCardNav } from '../hooks/useSnapCardNav'
 import { useScrollPersist } from '../hooks/useScrollPersist'
 import KollokationNote from './KollokationNote'
 import { MOBILE_MEDIA_QUERY } from '../config'
@@ -110,21 +111,9 @@ function Home({
     lsSet('sig_last_seen_date', dateStr)
   }, [dateStr])
 
-  const scrollToCard = useCallback((index) => {
-    const items = entriesRef.current?.querySelectorAll('.test-entry')
-    items?.[index]?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-  }, [])
-
   const activeCard = useActiveSnapCard(entriesRef)
+  const { scrollToCard, handleSnapKeyDown } = useSnapCardNav(entriesRef, activeCard)
   useScrollPersist(entriesRef, 'home')
-
-  // Pfeiltasten-Navigation (nur mobil)
-  const handleSnapKeyDown = useCallback((e) => {
-    if (!window.matchMedia(MOBILE_MEDIA_QUERY).matches) return
-    const maxIndex = (entriesRef.current?.querySelectorAll('.test-entry').length ?? 1) - 1
-    if (e.key === 'ArrowDown') scrollToCard(Math.min(activeCard + 1, maxIndex))
-    if (e.key === 'ArrowUp')   scrollToCard(Math.max(activeCard - 1, 0))
-  }, [activeCard, scrollToCard])
 
   async function shareImg() {
     if (sharing) return

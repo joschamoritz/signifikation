@@ -26,9 +26,12 @@
   font-weight: 700;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: var(--primary);
-  background: var(--error-bg);
-  border: 1px solid var(--wrong-border);
+  /* Neutrales Navigations-Label, kein Fehlerhinweis — bewusst NICHT
+     --error-bg/--wrong-border (die sind für die Kollokationen-Fehlerfarbe
+     reserviert, s. DESIGN.md); Ton wie andere Sekundär-Badges der Station. */
+  color: var(--muted);
+  background: var(--surface2);
+  border: 1px solid var(--border);
   border-radius: 4px;
   padding: 2px 10px;
 }
@@ -39,6 +42,19 @@
   color: var(--primary);
   margin: 16px 0;
 }
+.course-detail-error-retry {
+  background: none;
+  border: none;
+  color: var(--primary);
+  font-family: var(--font-sans);
+  font-size: 0.85rem;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+  padding: 0;
+  margin-left: 8px;
+}
+.course-detail-error-retry:hover { opacity: 0.7; }
 
 .course-muted {
   font-family: var(--font-serif);

@@ -59,6 +59,7 @@ export default function StationDetail({ stationId, gesamtausgabe = false, onBack
 
   const [station, setStation] = useState(null)
   const [stationState, setStationState] = useState('loading') // loading | ready | denied | error
+  const [stationRetryToken, setStationRetryToken] = useState(0)
 
   // Tab-Tastaturmodell (APG): ←/→/↑/↓ wandern zwischen Üben/Material, Home/End
   // springen an Rand. Fokus folgt der Auswahl (automatische Aktivierung — bei
@@ -92,17 +93,15 @@ export default function StationDetail({ stationId, gesamtausgabe = false, onBack
         setStationState('ready')
       } catch (err) {
         if (cancelled || err?.name === 'AbortError') return
-        // Üben ist frei, braucht aber Login: 401 → „denied" = Anmelde-Hinweis
-        // (erreichbar nur per Deep-Link; der reguläre Weg über KursTab leitet
-        // Nicht-Eingeloggte vorher zum Konto). Die Route ist requireAuthUser,
-        // kann also nur 401 liefern; Material/Lemma-Premium (403) wird im
-        // jeweiligen Bereich abgefangen, nicht hier.
+        // Üben ist frei, braucht aber Login: 401 → „denied" = Anmelde-Hinweis.
+        // Die Route ist requireAuthUser, kann also nur 401 liefern; Material/
+        // Lemma-Premium (403) wird im jeweiligen Bereich abgefangen, nicht hier.
         const needsLogin = err instanceof ApiError && err.status === 401
         setStationState(needsLogin ? 'denied' : 'error')
       }
     })()
     return () => { cancelled = true; controller.abort() }
-  }, [stationId])
+  }, [stationId, stationRetryToken])
 
   if (stationState === 'denied') {
     return (
@@ -118,7 +117,14 @@ export default function StationDetail({ stationId, gesamtausgabe = false, onBack
 
       {stationState === 'error' && (
         <p className="course-detail-error" role="alert">
-          Station konnte nicht geladen werden. Bitte später erneut versuchen.
+          Station konnte nicht geladen werden.
+          <button
+            type="button"
+            className="course-detail-error-retry"
+            onClick={() => setStationRetryToken((t) => t + 1)}
+          >
+            Erneut versuchen
+          </button>
         </p>
       )}
 
@@ -240,6 +246,7 @@ function buildTaskLabels(tasks) {
 function UebenPanel({ stationId, niveau, orderNo, onOpenNextStation, onBack }) {
   const [tasks, setTasks] = useState([])
   const [state, setState] = useState('loading')
+  const [retryToken, setRetryToken] = useState(0)
   const isMobile = useMediaQuery(MOBILE_MEDIA_QUERY)
   const orderedTasks = groupTasksByFormat(tasks)
   const taskLabels = buildTaskLabels(orderedTasks)
@@ -268,7 +275,7 @@ function UebenPanel({ stationId, niveau, orderNo, onOpenNextStation, onBack }) {
       }
     })()
     return () => { cancelled = true; controller.abort() }
-  }, [stationId, niveau])
+  }, [stationId, niveau, retryToken])
 
   // Konto-Ergebnisse laden (Fortschritt + Sperre).
   useEffect(() => {
@@ -331,10 +338,26 @@ function UebenPanel({ stationId, niveau, orderNo, onOpenNextStation, onBack }) {
         <p className="course-muted">Lädt …</p>
       )}
       {state === 'error' && (
-        <p className="course-detail-error" role="alert">Aufgaben konnten nicht geladen werden.</p>
+        <p className="course-detail-error" role="alert">
+          Aufgaben konnten nicht geladen werden.
+          <button
+            type="button"
+            className="course-detail-error-retry"
+            onClick={() => setRetryToken((t) => t + 1)}
+          >
+            Erneut versuchen
+          </button>
+        </p>
       )}
       {contentReady && tasks.length === 0 && (
-        <p className="course-muted">Für diese Stufe sind noch keine Aufgaben hinterlegt.</p>
+        <>
+          <p className="course-muted">Für diese Stufe sind noch keine Aufgaben hinterlegt.</p>
+          {/* F10: sonst Sackgasse — ohne Aufgaben zeigen weder Pager noch
+              Liste unten einen NextStationCta. */}
+          <div className="course-next-station-row">
+            <NextStationCta orderNo={orderNo} onOpenNextStation={onOpenNextStation} onBack={onBack} />
+          </div>
+        </>
       )}
 
       {/* Stations-Fortschritt: gelöste von geladenen Aufgaben. */}
@@ -438,15 +461,23 @@ export function UebenPager({
   const total = tasks.length
   const endIndex = total // Abschluss-Screen liegt hinter der letzten Aufgabe
   const [step, setStep] = useState(0)
-  const [done, setDone] = useState(() => new Set())
+  // Initialstand aus results ableiten (K5): der Pager wird erst gemountet,
+  // wenn resultsReady ist (contentReady in UebenPanel), results ist zu diesem
+  // Zeitpunkt also schon vollständig — bereits gesperrte Aufgaben müssen nicht
+  // erst über den asynchronen TaskGate-onChecked-Callback als "erledigt"
+  // nachgemeldet werden. Sonst zeigt der Abschluss-Screen kurz "X von N"
+  // statt sofort "alle".
+  const doneFromResults = (r) => new Set(Object.keys(r).filter((id) => r[id]?.attempts > 0))
+  const [done, setDone] = useState(() => doneFromResults(results))
   const containerRef = useRef(null)
   const focusPendingRef = useRef(false)
 
   // Kontextwechsel (Niveau/Anzahl) → zurück auf Aufgabe 1, Fortschritt neu.
   useEffect(() => {
     setStep(0)
-    setDone(new Set())
+    setDone(doneFromResults(results))
     focusPendingRef.current = false
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [niveau, total])
 
   // Fokus nur nach echtem Blättern auf die Überschrift des sichtbaren Screens —
@@ -541,6 +572,7 @@ export function UebenPager({
 function MaterialPanel({ stationId, niveau, goal, gesamtausgabe = false, onNavigateToKonto }) {
   const [materials, setMaterials] = useState([])
   const [state, setState] = useState('loading')
+  const [retryToken, setRetryToken] = useState(0)
 
   useEffect(() => {
     if (!gesamtausgabe) return undefined // kein Premium → gar nicht erst laden
@@ -562,7 +594,7 @@ function MaterialPanel({ stationId, niveau, goal, gesamtausgabe = false, onNavig
       }
     })()
     return () => { cancelled = true; controller.abort() }
-  }, [stationId, niveau, gesamtausgabe])
+  }, [stationId, niveau, gesamtausgabe, retryToken])
 
   return (
     <section
@@ -579,7 +611,16 @@ function MaterialPanel({ stationId, niveau, goal, gesamtausgabe = false, onNavig
 
       {gesamtausgabe && state === 'loading' && <p className="course-muted">Lädt …</p>}
       {state === 'error' && (
-        <p className="course-detail-error" role="alert">Material konnte nicht geladen werden.</p>
+        <p className="course-detail-error" role="alert">
+          Material konnte nicht geladen werden.
+          <button
+            type="button"
+            className="course-detail-error-retry"
+            onClick={() => setRetryToken((t) => t + 1)}
+          >
+            Erneut versuchen
+          </button>
+        </p>
       )}
       {state === 'ready' && materials.length === 0 && (
         <p className="course-muted">

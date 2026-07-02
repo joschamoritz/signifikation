@@ -4,6 +4,7 @@ import Sheet from './ui/Sheet'
 import KursNote from './KursNote'
 import Colophon from './Colophon'
 import { useActiveSnapCard } from '../hooks/useActiveSnapCard'
+import { useSnapCardNav } from '../hooks/useSnapCardNav'
 import { useScrollPersist } from '../hooks/useScrollPersist'
 import StationDetail from './course/StationDetail'
 import { useCourseStation, openCourseStation, closeCourseStation } from './course/courseRouting'
@@ -16,7 +17,11 @@ import '../styles/course.css'
 // course_stations-Zeile (Backend-Inhalt). Alle fünf Stationen haben seit AP10
 // interaktiven Content und öffnen die Detailansicht; Druckmaterial für ②–⑤
 // folgt (AP20), die „Üben"-Aufgaben sind aber vollständig.
-const KURS_MODULES = [
+// Exportiert für den Konsistenz-Test (K3): die Reihenfolge hier bestimmt die
+// "Weiter zur nächsten Station"-Sprünge (NextStationCta in StationDetail.jsx),
+// der dort angezeigte Glyph kommt aber aus dem Server-order_no. Beide Quellen
+// müssen übereinstimmen — s. KursTab.orderConsistency.test.js.
+export const KURS_MODULES = [
   {
     id: 'wortpartner',
     apiId: 's1',
@@ -72,6 +77,7 @@ const KURS_MODULES = [
 function KursTab({ gesamtausgabe = false, loggedIn = false, onNavigateToKonto }) {
   const entriesRef = useRef(null)
   const activeCard = useActiveSnapCard(entriesRef)
+  const { scrollToCard, handleSnapKeyDown } = useSnapCardNav(entriesRef, activeCard)
   useScrollPersist(entriesRef, 'kurs')
 
   // Anm./Manicula („Was ist der Kurs?") — Einheitlichkeit mit Spielmodi & Klassenraum.
@@ -111,17 +117,16 @@ function KursTab({ gesamtausgabe = false, loggedIn = false, onNavigateToKonto })
     [summary, niveau],
   )
 
-  const scrollToCard = useCallback((index) => {
-    const items = entriesRef.current?.querySelectorAll('.test-entry')
-    items?.[index]?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-  }, [])
-
+  // Üben ist frei, aber Login nötig (Fortschritt/Sperre ans Konto gebunden).
+  // Bewusst IMMER die Station öffnen, auch ohne Login: die Stations-Detailseite
+  // fängt den 401 selbst ab und zeigt den erklärenden Login-Hinweis (LoginNotice)
+  // — damit sieht ein nicht eingeloggter Nutzer denselben Screen, egal ob er über
+  // diese Liste oder per Deep-Link einsteigt (vorher: hier ein kommentarloser
+  // Direktsprung ins Konto-Tab, per Deep-Link aber die Erklärung).
   const openStation = useCallback((mod) => {
     if (!mod.apiId) return
-    // Üben ist frei, aber Login nötig (Fortschritt/Sperre ans Konto gebunden).
-    if (!loggedIn) { onNavigateToKonto?.(); return }
     openCourseStation(mod.apiId)
-  }, [loggedIn, onNavigateToKonto])
+  }, [])
 
   // Ebene 2: Station-Detail, sobald ein Stations-Hash gesetzt ist.
   if (stationId) {
@@ -162,18 +167,14 @@ function KursTab({ gesamtausgabe = false, loggedIn = false, onNavigateToKonto })
         <div className="test-rule--double" role="separator" aria-hidden="true" />
 
         <main>
-          <ol className="test-entries" aria-label="Kurs-Module" ref={entriesRef}>
+          <ol className="test-entries" aria-label="Kurs-Module" ref={entriesRef} onKeyDown={handleSnapKeyDown}>
 
             {KURS_MODULES.map((mod, idx) => {
-              const active = !!mod.apiId
               const isFirst = idx === 0 // Schmuck-Initiale wie auf der Spielmodi-Startseite
-              const prog = active && loggedIn ? progressFor(mod.apiId) : null
+              const prog = loggedIn ? progressFor(mod.apiId) : null
               const started = prog && prog.attempted > 0 && prog.total > 0
               return (
-                <li
-                  key={mod.id}
-                  className={`test-entry${isFirst ? ' test-drop-cap' : ''}${active ? '' : ' test-entry--disabled'}`}
-                >
+                <li key={mod.id} className={`test-entry${isFirst ? ' test-drop-cap' : ''}`}>
                   <div className="test-entry-number" aria-hidden="true">
                     <span className="test-entry-num-glyph">{mod.glyph}</span>
                     <span className="test-entry-marginalia">{mod.marginalia}</span>
@@ -198,34 +199,23 @@ function KursTab({ gesamtausgabe = false, loggedIn = false, onNavigateToKonto })
                     <p className="test-definition">{mod.definition}</p>
 
                     <div className="test-entry-footer">
-                      {active ? (
-                        <>
-                          <span className="test-status">
-                            {!loggedIn
-                              ? 'Üben kostenlos mit Konto.'
-                              : !summaryReady
-                                ? 'Lädt …'
-                                : started
-                                  ? `${prog.solved}/${prog.total} gelöst`
-                                  : 'Bereit.'}
-                          </span>
-                          <button
-                            type="button"
-                            className="test-cta"
-                            onClick={() => openStation(mod)}
-                          >
-                            {!loggedIn ? 'Anmelden' : started ? 'Weiter' : 'Zur Aufgabe'}
-                            <span className="test-cta-arrow" aria-hidden="true">›</span>
-                          </button>
-                        </>
-                      ) : (
-                        <>
-                          <span className="test-status">In Entwicklung.</span>
-                          <span className="test-cta test-cta--disabled" aria-hidden="true">
-                            Bald verfügbar
-                          </span>
-                        </>
-                      )}
+                      <span className="test-status">
+                        {!loggedIn
+                          ? 'Üben kostenlos mit Konto.'
+                          : !summaryReady
+                            ? 'Lädt …'
+                            : started
+                              ? `${prog.solved}/${prog.total} gelöst`
+                              : 'Bereit.'}
+                      </span>
+                      <button
+                        type="button"
+                        className="test-cta"
+                        onClick={() => openStation(mod)}
+                      >
+                        {!loggedIn ? 'Anmelden' : started ? 'Weiter' : 'Zur Aufgabe'}
+                        <span className="test-cta-arrow" aria-hidden="true">›</span>
+                      </button>
                     </div>
                   </div>
                 </li>
