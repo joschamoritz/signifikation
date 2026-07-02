@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 
 // Deep-Link von der Lehrer-Landingpage (/lehrer): /?tab=klassenraum öffnet
 // direkt den Klassenraum-Tab (für nicht eingeloggte Lehrkräfte → Schüler-/
@@ -17,9 +17,24 @@ function initialTab() {
 export function useAppNavigation({ activePhase, backToHome, startVT }) {
   const [activeTab, setActiveTab] = useState(initialTab)
 
-  // Konto-Tab: einmal gemounted, immer gemounted (lazy-once wie Classroom)
+  // Konto-Tab: einmal gemounted, immer gemounted (lazy-once wie Classroom).
   const kontoMountedRef = useRef(false)
   const [kontoMounted, setKontoMounted] = useState(false)
+  const mountKonto = useCallback(() => {
+    if (kontoMountedRef.current) return
+    kontoMountedRef.current = true
+    setKontoMounted(true)
+  }, [])
+
+  // Mounten an activeTab === 'profil' koppeln, NICHT nur an handleTabChange:
+  // der Tab kann auch direkt über setActiveTab('profil') gesetzt werden
+  // (onNavigateToKonto aus Kurs/EigenesLemma/LoginNotice). Dieser Pfad ging
+  // früher an handleTabChange vorbei → kontoMounted blieb false → der Konto-Tab
+  // rendered dauerhaft leer, und der TabBar-Klick half nicht (handleTabChange
+  // kehrt bei tab===activeTab früh zurück). Der Effekt fängt alle Pfade ab.
+  useEffect(() => {
+    if (activeTab === 'profil') mountKonto()
+  }, [activeTab, mountKonto])
 
   const handleTabChange = useCallback((tab) => {
     if (tab === activeTab) return
@@ -28,13 +43,12 @@ export function useAppNavigation({ activePhase, backToHome, startVT }) {
       startVT(() => backToHome())
     }
 
-    if (tab === 'profil' && !kontoMountedRef.current) {
-      kontoMountedRef.current = true
-      setKontoMounted(true)
-    }
+    // Synchron mounten (statt erst im Effekt), damit der häufige TabBar-Pfad
+    // keinen Leer-Frame zeigt; der Effekt oben ist das Sicherheitsnetz.
+    if (tab === 'profil') mountKonto()
 
     setActiveTab(tab)
-  }, [activePhase, activeTab, backToHome, startVT])
+  }, [activePhase, activeTab, backToHome, startVT, mountKonto])
 
   return {
     activeTab,
