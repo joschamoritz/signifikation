@@ -48,6 +48,9 @@ LogoNetz.png
 planning/
 cookies.txt
 test-results/
+# Kurs-Arbeitsblatt-Design: Prototypen + generierte Vorschauen + lokaler Preview-Server
+# (Source of Truth ist server/course/worksheet/; hier nur Dev-Vorschau)
+design/
 
 # Interne Doku / Arbeitsdateien (nur lokal)
 CLAUDE.md

@@ -37,6 +37,28 @@ export const LITERATUR = {
     kurz: 'Lüdeling/Walter 2009',
     voll: 'Lüdeling, Anke / Walter, Maik (2009): Korpuslinguistik für Deutsch als Fremdsprache. Sprachvermittlung und Spracherwerbsforschung.',
   },
+  // Hausmanns Basis–Kollokator-Dichotomie (die „Momo"-Passage: Anker lichten,
+  // Tisch decken – Basis banal/übersetzbar, Kollokator unvorhersehbar) trägt die
+  // Station-①-Terminologie (SekI: Basis + Kollokator).
+  'hausmann-wortverbindungen': {
+    kurz: 'Hausmann 2004',
+    voll: 'Hausmann, Franz Josef (2004): Was sind eigentlich Kollokationen? In: Steyer, Kathrin (Hrsg.): Wortverbindungen – mehr oder weniger fest. (IDS Jahrbuch 2003). Berlin/New York: de Gruyter, S. 309–334 (Basis–Kollokator-Dichotomie).',
+  },
+
+  // ── Semantik: Bedeutung, Konnotation, semantische Prosodie (Station ①) ──
+  // Löbner Kap. 2 (deskriptive vs. nichtdeskriptive – soziale/expressive –
+  // Bedeutung) + §2.5 Konnotationen trägt den SekII-Block „Denotation/Konnotation".
+  'loebner-semantik': {
+    kurz: 'Löbner 2003',
+    voll: 'Löbner, Sebastian (2003): Semantik. Eine Einführung. Berlin/New York: de Gruyter (de Gruyter Studienbuch), Kap. 2 (deskriptive/soziale/expressive Bedeutung, § 2.5 Konnotationen).',
+  },
+  // Hanks: „semantische Prosodie" (nach Louw 1993) + axiologisches Quale (incite
+  // negativ vs. encourage neutral/positiv) trägt den LK-Block (Wörter „färben"
+  // ihre Umgebung); Bedeutung ist Sache der Analyse, nicht der Frequenz.
+  'hanks-bedeutungen': {
+    kurz: 'Hanks 2011',
+    voll: 'Hanks, Patrick (2011): Wie man aus Wörtern Bedeutungen macht: Semantische Typen treffen Valenzen. In: Engelberg/Holler/Proost (Hrsg.): Sprachliches Wissen zwischen Lexikon und Grammatik. (IDS Jahrbuch 2011). Berlin/Boston: de Gruyter, S. 483–503 (semantische Prosodie nach Louw 1993).',
+  },
 
   // ── Wortarten & Syntax (Station ②/③) ──────────────────────────────
   'hoffmann-leimbrink-wortarten': {
@@ -54,6 +76,12 @@ export const LITERATUR = {
   'gallmann-2015-topologie': {
     kurz: 'Gallmann 2015',
     voll: 'Gallmann, Peter (2015): Das topologische Modell. Basisartikel. In: Wöllstein (Hrsg.): Das topologische Modell für die Schule. Baltmannsweiler: Schneider Hohengehren (Felder/Satzklammer, Verschiebeprobe, drei Satzformen).',
+  },
+  // Operationale Proben (Ersatz-/Umstell-/Verschiebeprobe) empirisch untersucht –
+  // trägt den Station-②-Baustein „Wortart/Satzglied durch Proben statt Raten".
+  'lehmkuhle-2023': {
+    kurz: 'Lehmkuhle 2023',
+    voll: 'Lehmkuhle, Charlotte (2023): Didaktik der satzinternen Großschreibung. Eine Interventionsstudie zur Adjektiv- und Artikel(wort)probe in der 6. Jahrgangsstufe. Masterarbeit, Univ. Münster, Abt. Sprachdidaktik (operationale Proben: Form vs. syntaktische Funktion).',
   },
 
   // ── Korpus selbst (kontext: "korpus") ─────────────────────────────
