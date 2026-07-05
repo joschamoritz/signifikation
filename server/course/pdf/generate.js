@@ -38,6 +38,9 @@ import {
   renderUnterrichtsentwurfHtml,
   renderBeamerHtml,
 } from './html.js'
+import worksheet1 from '../worksheet/station-1.js'
+import worksheet2 from '../worksheet/station-2.js'
+import { renderWorksheetHtml, renderErwartungshorizontHtml } from '../worksheet/render.js'
 
 /** Stationen-Registry: Nummer → { content, lesson }. */
 const STATION_MAP = new Map([
@@ -46,6 +49,13 @@ const STATION_MAP = new Map([
   [3, { content: station3, lesson: lesson3 }],
   [4, { content: station4, lesson: lesson4 }],
   [5, { content: station5, lesson: lesson5 }],
+])
+
+// Neue begleitende Arbeitsblätter (Content-Modell) — verdrängen für diese Stationen
+// das alte „digitale Aufgaben blanko"-AB. ②–⑤ folgen; bis dahin greift der Fallback.
+const WORKSHEET_MAP = new Map([
+  [1, worksheet1],
+  [2, worksheet2],
 ])
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
@@ -139,23 +149,41 @@ export function buildStationHtml({ stationNo = 1, content, lesson, corpus = make
   const station = content.station
   const emptyCorpusItems = [] // {level, id, format} — leere Korpus-Items (Schutz)
 
-  for (const [level, tasks] of groupByLevel(content.tasks)) {
-    const items = resolveItems(tasks, { corpus, lemma })
-    tasks.forEach((t, i) => {
-      if (t.source === 'corpus-template' && corpusItemIsEmpty(items[i])) {
-        emptyCorpusItems.push({ level, id: t.id, format: t.format })
-      }
-    })
-    out.push({
-      kind: 'arbeitsblatt', level, title: `Arbeitsblatt – ${station.title} (${level})`,
-      filename: `station-${station.orderNo}-arbeitsblatt-${level}.pdf`,
-      html: renderArbeitsblattHtml({ station, level, items, ankerLemma: lemma }),
-    })
-    out.push({
-      kind: 'loesung', level, title: `Lösung – ${station.title} (${level})`,
-      filename: `station-${station.orderNo}-loesung-${level}.pdf`,
-      html: renderLoesungHtml({ station, level, items, ankerLemma: lemma }),
-    })
+  // Begleitendes Arbeitsblatt aus dem Content-Modell (statisch, korpus-frei) — nur
+  // wenn KEIN „Eigenes Lemma" gesetzt ist (das personalisiert das alte digitale AB).
+  const worksheet = WORKSHEET_MAP.get(stationNo)
+  if (worksheet && !lemma) {
+    for (const level of Object.keys(worksheet.levels)) {
+      out.push({
+        kind: 'arbeitsblatt', level, title: `Arbeitsblatt – ${station.title} (${level})`,
+        filename: `station-${station.orderNo}-arbeitsblatt-${level}.pdf`,
+        html: renderWorksheetHtml(worksheet, level),
+      })
+      out.push({
+        kind: 'loesung', level, title: `Lösung – ${station.title} (${level})`,
+        filename: `station-${station.orderNo}-loesung-${level}.pdf`,
+        html: renderErwartungshorizontHtml(worksheet, level),
+      })
+    }
+  } else {
+    for (const [level, tasks] of groupByLevel(content.tasks)) {
+      const items = resolveItems(tasks, { corpus, lemma })
+      tasks.forEach((t, i) => {
+        if (t.source === 'corpus-template' && corpusItemIsEmpty(items[i])) {
+          emptyCorpusItems.push({ level, id: t.id, format: t.format })
+        }
+      })
+      out.push({
+        kind: 'arbeitsblatt', level, title: `Arbeitsblatt – ${station.title} (${level})`,
+        filename: `station-${station.orderNo}-arbeitsblatt-${level}.pdf`,
+        html: renderArbeitsblattHtml({ station, level, items, ankerLemma: lemma }),
+      })
+      out.push({
+        kind: 'loesung', level, title: `Lösung – ${station.title} (${level})`,
+        filename: `station-${station.orderNo}-loesung-${level}.pdf`,
+        html: renderLoesungHtml({ station, level, items, ankerLemma: lemma }),
+      })
+    }
   }
 
   if (lesson?.entwurf) {

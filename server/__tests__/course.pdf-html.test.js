@@ -151,6 +151,8 @@ describe('Beamer-Folien (Querformat)', () => {
 })
 
 describe('buildStationHtml – Schutz gegen leere Korpus-Items (AP21-QA)', () => {
+  // Stationen ③–⑤ nutzen weiterhin das digitale-Aufgaben-AB → der Korpus-Schutz
+  // greift dort. ①/② sind seit dem Worksheet-Umbau statisch (korpus-frei), daher ③.
   const emptyCorpus = { queryRelation() { return [] }, fetchBeleg() { return null } }
   const fullCorpus = {
     queryRelation(q) {
@@ -163,13 +165,64 @@ describe('buildStationHtml – Schutz gegen leere Korpus-Items (AP21-QA)', () =>
   }
 
   it('strictCorpus + leerer Korpus → wirft (statt still leere Arbeitsblätter)', () => {
-    expect(() => buildStationHtml({ stationNo: 1, corpus: emptyCorpus, strictCorpus: true }))
+    expect(() => buildStationHtml({ stationNo: 3, corpus: emptyCorpus, strictCorpus: true }))
       .toThrow(/Leere Korpus-Items/)
   })
   it('ohne strictCorpus → kein Wurf (Tests/Vorschau bleiben nutzbar)', () => {
-    expect(() => buildStationHtml({ stationNo: 1, corpus: emptyCorpus })).not.toThrow()
+    expect(() => buildStationHtml({ stationNo: 3, corpus: emptyCorpus })).not.toThrow()
   })
   it('voller Korpus → strictCorpus wirft nicht', () => {
-    expect(() => buildStationHtml({ stationNo: 1, corpus: fullCorpus, strictCorpus: true })).not.toThrow()
+    expect(() => buildStationHtml({ stationNo: 3, corpus: fullCorpus, strictCorpus: true })).not.toThrow()
+  })
+})
+
+describe('buildStationHtml – Station ① nutzt das begleitende Arbeitsblatt (Content-Modell)', () => {
+  const stub = { queryRelation() { return [] }, fetchBeleg() { return null }, fetchBelegeRaw() { return [] } }
+  const docs = buildStationHtml({ stationNo: 1, corpus: stub })
+  const ab = docs.find(d => d.kind === 'arbeitsblatt' && d.level === 'SekI')
+  const lo = docs.find(d => d.kind === 'loesung' && d.level === 'SekI')
+
+  it('AB kommt aus dem Worksheet-Modell (Basis/Kollokator, kein Aufgaben-Klon)', () => {
+    expect(ab).toBeTruthy()
+    expect(ab.html).toMatch(/Kollokator/)
+    expect(ab.html).toMatch(/grünes Haus/)       // AB-eigene Aufgabe, nicht die App-Aufgabe
+    expect(ab.html).not.toMatch(/worked-label/)  // kein altes Worked-Example-Muster
+  })
+  it('kein durchgesickertes Inline-Markup im AB', () => {
+    const body = ab.html.replace(/<style>[\s\S]*?<\/style>/, '')
+    expect(body).not.toMatch(/\*\*/)
+    expect(body).not.toMatch(/\[\^\d/)
+  })
+  it('Lösung ist ein Erwartungshorizont mit aufgelösten Belegen', () => {
+    expect(lo.html).toMatch(/Erwartung/)
+    expect(lo.html).toMatch(/Hausmann, Franz Josef/)
+  })
+  it('AB für alle vier Niveaus vorhanden (DaZ/SekI/SekII/LK)', () => {
+    const levels = docs.filter(d => d.kind === 'arbeitsblatt').map(d => d.level)
+    expect(levels).toEqual(['DaZ', 'SekI', 'SekII', 'LK'])
+  })
+})
+
+describe('buildStationHtml – Station ② nutzt das begleitende Arbeitsblatt (Wortarten)', () => {
+  const stub = { queryRelation() { return [] }, fetchBeleg() { return null }, fetchBelegeRaw() { return [] } }
+  const docs = buildStationHtml({ stationNo: 2, corpus: stub })
+  const abSekII = docs.find(d => d.kind === 'arbeitsblatt' && d.level === 'SekII')
+  const loLK = docs.find(d => d.kind === 'loesung' && d.level === 'LK')
+
+  it('AB für alle vier Niveaus, SekII mit Feldermodell-Tabelle', () => {
+    expect(docs.filter(d => d.kind === 'arbeitsblatt').map(d => d.level)).toEqual(['DaZ', 'SekI', 'SekII', 'LK'])
+    expect(abSekII.html).toMatch(/class="felder"/)
+    expect(abSekII.html).toMatch(/Vorfeld/)
+    expect(abSekII.html).toMatch(/Konversion/)
+  })
+  it('kein durchgesickertes Inline-Markup im AB', () => {
+    const body = abSekII.html.replace(/<style>[\s\S]*?<\/style>/, '')
+    expect(body).not.toMatch(/\*\*/)
+    expect(body).not.toMatch(/\[\^\d/)
+  })
+  it('LK-Lösung: Erwartungshorizont mit Nachfeld + aufgelöstem Beleg', () => {
+    expect(loLK.html).toMatch(/Erwartung/)
+    expect(loLK.html).toMatch(/Nachfeld/)
+    expect(loLK.html).toMatch(/Gallmann/)
   })
 })
