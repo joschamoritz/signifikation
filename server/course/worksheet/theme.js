@@ -33,7 +33,7 @@ body{font-family:'DM Sans',system-ui,sans-serif;font-size:12pt;line-height:1.5;c
 .sheet{width:210mm;min-height:297mm;margin:0 auto;background:var(--bg);padding:16mm 16mm 18mm}
 
 /* Umbruch-Steuerung */
-.wissen,.merke,.skala-wrap,.kontrast-wrap,.datablick,.felder-wrap,.task,.transfer,.footnotes{break-inside:avoid;page-break-inside:avoid}
+.wissen,.merke,.skala-wrap,.kontrast-wrap,.datablick,.felder-wrap,.satzbau-wrap,.task,.transfer,.footnotes{break-inside:avoid;page-break-inside:avoid}
 
 /* Kopf */
 .doc-kicker{font-size:8.5pt;letter-spacing:.22em;text-transform:uppercase;color:var(--muted);font-weight:600}
@@ -106,6 +106,13 @@ table.felder th,table.felder td{border:.7pt solid var(--border-lt);padding:6pt 8
 table.felder thead th{font-size:8pt;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);font-weight:700;background:var(--wissen-bg)}
 table.felder tbody td{font-family:'Gentium Plus',serif;font-size:12pt}
 .felder-note{font-size:9.5pt;color:var(--muted);margin-top:5pt}
+
+/* Satzbau: Satzglieder als beschriftete Bauteile */
+.satzbau-wrap{margin:16pt 0 0}
+.satzbau{display:flex;flex-wrap:wrap;gap:8pt;margin-top:8pt}
+.sg{border:.8pt solid var(--border-lt);padding:6pt 11pt}
+.sg-text{font-family:'Gentium Plus',serif;font-size:13pt}
+.sg-rolle{font-size:8pt;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:700;margin-top:3pt}
 
 /* Aufgaben */
 .tasks{margin-top:18pt}

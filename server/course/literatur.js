@@ -73,6 +73,12 @@ export const LITERATUR = {
     kurz: 'Schütze 2018',
     voll: 'Schütze, Hinrich (2018): Syntaktische Funktionen und Dependenzen. Foliensatz, CIS/LMU München (Kopf–Dependent, binäre Relationen, einfache Baumanalysen).',
   },
+  // Satzglieder als funktionale Einheiten + Primat der Syntax (Valenz): trägt das
+  // Valenz-/Satzglied-Framing in Station ③ (Ergänzung vs. Angabe, Rektion).
+  'agel-2017': {
+    kurz: 'Ágel 2017',
+    voll: 'Ágel, Vilmos (2017): Grammatische Textanalyse. Textglieder, Satzglieder, Wortgruppenglieder. Berlin/Boston: de Gruyter (Satzglieder als funktionale Einheiten; Valenz/Dependenz).',
+  },
   'gallmann-2015-topologie': {
     kurz: 'Gallmann 2015',
     voll: 'Gallmann, Peter (2015): Das topologische Modell. Basisartikel. In: Wöllstein (Hrsg.): Das topologische Modell für die Schule. Baltmannsweiler: Schneider Hohengehren (Felder/Satzklammer, Verschiebeprobe, drei Satzformen).',

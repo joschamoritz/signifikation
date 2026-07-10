@@ -151,28 +151,38 @@ describe('Beamer-Folien (Querformat)', () => {
 })
 
 describe('buildStationHtml – Schutz gegen leere Korpus-Items (AP21-QA)', () => {
-  // Stationen ③–⑤ nutzen weiterhin das digitale-Aufgaben-AB → der Korpus-Schutz
-  // greift dort. ①/② sind seit dem Worksheet-Umbau statisch (korpus-frei), daher ③.
+  // Entkoppelt von realen Stationen (die nach und nach auf das statische
+  // Worksheet-AB umgestellt werden): ein synthetisches corpus-template-Item,
+  // stationNo ohne WORKSHEET_MAP-Eintrag + lesson:null → nur der digitale
+  // AB-Pfad (mit dem Korpus-Schutz) wird geprüft. Kein Nachziehen bei Rollout.
+  const synthTask = {
+    id: 's-test', station: 99, format: 'F1', level: 'SekI', source: 'corpus-template',
+    corpusQuery: { lemma: 'Test', pos: 'Substantiv', relation: '~OBJA', minFrequency: 1, limit: 10 },
+    bindings: { answer: [1, 2] },
+    payload: { anchors: [{ id: 'a1', label: 'Test' }], candidates: '@from:bindings', multiplePerAnchor: true },
+    solution: { map: { a1: '@from:bindings.answer' } },
+    display: { showMetrics: false, metric: 'none' },
+    feedback: { byLevel: { SekI: { onCorrect: 'ok', onWrong: 'no' } }, tonalitaet: 'woerterbuch-nuechtern' },
+    beleg: [],
+  }
+  const content = { station: { orderNo: 99, title: 'Teststation', ipa: null }, tasks: [synthTask] }
+  const base = (corpus, strictCorpus) => ({ stationNo: 99, content, lesson: null, corpus, strictCorpus })
   const emptyCorpus = { queryRelation() { return [] }, fetchBeleg() { return null } }
   const fullCorpus = {
     queryRelation(q) {
-      // genug Zeilen für alle Korpus-Items (Antworten + Distraktoren + Tabellen)
-      return Array.from({ length: 12 }, (_, i) => ({
-        lemma: `${q.lemma}-p${i + 1}`, frequency: 100 - i, logDice: `${(12 - i)}.0000`,
-      }))
+      return Array.from({ length: 6 }, (_, i) => ({ lemma: `${q.lemma}-p${i + 1}`, frequency: 50 - i, logDice: `${6 - i}.0000` }))
     },
     fetchBeleg(lemma, partner) { return { satz: `Ein Satz mit ${lemma} ${partner}.`, quelle: 'Korpus' } },
   }
 
   it('strictCorpus + leerer Korpus → wirft (statt still leere Arbeitsblätter)', () => {
-    expect(() => buildStationHtml({ stationNo: 3, corpus: emptyCorpus, strictCorpus: true }))
-      .toThrow(/Leere Korpus-Items/)
+    expect(() => buildStationHtml(base(emptyCorpus, true))).toThrow(/Leere Korpus-Items/)
   })
   it('ohne strictCorpus → kein Wurf (Tests/Vorschau bleiben nutzbar)', () => {
-    expect(() => buildStationHtml({ stationNo: 3, corpus: emptyCorpus })).not.toThrow()
+    expect(() => buildStationHtml(base(emptyCorpus, false))).not.toThrow()
   })
   it('voller Korpus → strictCorpus wirft nicht', () => {
-    expect(() => buildStationHtml({ stationNo: 3, corpus: fullCorpus, strictCorpus: true })).not.toThrow()
+    expect(() => buildStationHtml(base(fullCorpus, true))).not.toThrow()
   })
 })
 
@@ -224,5 +234,29 @@ describe('buildStationHtml – Station ② nutzt das begleitende Arbeitsblatt (W
     expect(loLK.html).toMatch(/Erwartung/)
     expect(loLK.html).toMatch(/Nachfeld/)
     expect(loLK.html).toMatch(/Gallmann/)
+  })
+})
+
+describe('buildStationHtml – Station ③ nutzt das begleitende Arbeitsblatt (Abhängigkeiten)', () => {
+  const stub = { queryRelation() { return [] }, fetchBeleg() { return null }, fetchBelegeRaw() { return [] } }
+  const docs = buildStationHtml({ stationNo: 3, corpus: stub })
+  const abSekII = docs.find(d => d.kind === 'arbeitsblatt' && d.level === 'SekII')
+
+  it('AB für alle vier Niveaus, mit Satzbau-Block (Kopf/Dependent)', () => {
+    expect(docs.filter(d => d.kind === 'arbeitsblatt').map(d => d.level)).toEqual(['DaZ', 'SekI', 'SekII', 'LK'])
+    expect(abSekII.html).toMatch(/class="satzbau"/)
+    expect(abSekII.html).toMatch(/sg-rolle/)
+    expect(abSekII.html).toMatch(/Dependent/)
+  })
+  it('kein durchgesickertes Inline-Markup im AB', () => {
+    const body = abSekII.html.replace(/<style>[\s\S]*?<\/style>/, '')
+    expect(body).not.toMatch(/\*\*/)
+    expect(body).not.toMatch(/\[\^\d/)
+  })
+  it('SekII-Lösung: Erwartungshorizont mit aufgelösten Belegen (Schütze/Ágel)', () => {
+    const lo = docs.find(d => d.kind === 'loesung' && d.level === 'SekII')
+    expect(lo.html).toMatch(/Erwartung/)
+    expect(lo.html).toMatch(/Schütze, Hinrich/)
+    expect(lo.html).toMatch(/Ágel, Vilmos/)
   })
 })
