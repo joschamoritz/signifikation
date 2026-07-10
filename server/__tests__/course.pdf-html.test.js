@@ -280,3 +280,21 @@ describe('buildStationHtml – Station ④ nutzt das begleitende Arbeitsblatt (K
     expect(body).not.toMatch(/\[\^\d/)
   })
 })
+
+describe('buildStationHtml – Station ⑤ nutzt das begleitende Arbeitsblatt (Recherche)', () => {
+  const stub = { queryRelation() { return [] }, fetchBeleg() { return null }, fetchBelegeRaw() { return [] } }
+  const docs = buildStationHtml({ stationNo: 5, corpus: stub })
+  const abSekII = docs.find(d => d.kind === 'arbeitsblatt' && d.level === 'SekII')
+
+  it('SekII-AB: Forschungszyklus als Pipeline (Hypothese → Befund → Stellungnahme)', () => {
+    expect(docs.filter(d => d.kind === 'arbeitsblatt').map(d => d.level)).toEqual(['DaZ', 'SekI', 'SekII', 'LK'])
+    expect(abSekII.html).toMatch(/class="pipeline"/)
+    expect(abSekII.html).toMatch(/Hypothese/)
+    expect(abSekII.html).toMatch(/Stellungnahme/)
+  })
+  it('kein durchgesickertes Inline-Markup im AB', () => {
+    const body = abSekII.html.replace(/<style>[\s\S]*?<\/style>/, '')
+    expect(body).not.toMatch(/\*\*/)
+    expect(body).not.toMatch(/\[\^\d/)
+  })
+})

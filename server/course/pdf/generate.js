@@ -42,6 +42,7 @@ import worksheet1 from '../worksheet/station-1.js'
 import worksheet2 from '../worksheet/station-2.js'
 import worksheet3 from '../worksheet/station-3.js'
 import worksheet4 from '../worksheet/station-4.js'
+import worksheet5 from '../worksheet/station-5.js'
 import { renderWorksheetHtml, renderErwartungshorizontHtml } from '../worksheet/render.js'
 
 /** Stationen-Registry: Nummer → { content, lesson }. */
@@ -53,13 +54,15 @@ const STATION_MAP = new Map([
   [5, { content: station5, lesson: lesson5 }],
 ])
 
-// Neue begleitende Arbeitsblätter (Content-Modell) — verdrängen für diese Stationen
-// das alte „digitale Aufgaben blanko"-AB. ②–⑤ folgen; bis dahin greift der Fallback.
+// Begleitende Arbeitsblätter (Content-Modell) — verdrängen das alte „digitale
+// Aufgaben blanko"-AB. Alle Stationen ①–⑤ sind umgestellt; der digitale AB-Pfad
+// bleibt nur noch für „Eigenes Lemma" (personalisiertes AB, lemma gesetzt).
 const WORKSHEET_MAP = new Map([
   [1, worksheet1],
   [2, worksheet2],
   [3, worksheet3],
   [4, worksheet4],
+  [5, worksheet5],
 ])
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
