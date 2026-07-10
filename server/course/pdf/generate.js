@@ -40,6 +40,7 @@ import {
 } from './html.js'
 import worksheet1 from '../worksheet/station-1.js'
 import worksheet2 from '../worksheet/station-2.js'
+import worksheet3 from '../worksheet/station-3.js'
 import { renderWorksheetHtml, renderErwartungshorizontHtml } from '../worksheet/render.js'
 
 /** Stationen-Registry: Nummer → { content, lesson }. */
@@ -56,6 +57,7 @@ const STATION_MAP = new Map([
 const WORKSHEET_MAP = new Map([
   [1, worksheet1],
   [2, worksheet2],
+  [3, worksheet3],
 ])
 
 const __dirname = dirname(fileURLToPath(import.meta.url))

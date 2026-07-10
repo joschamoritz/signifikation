@@ -67,6 +67,17 @@ function renderFelder(b) {
     `<table class="felder"><thead><tr>${heads}</tr></thead><tbody><tr>${cells}</tr></tbody></table>${note}</section>`
 }
 
+// Satzbau: Satz als beschriftete Satzglied-Bauteile (Wortgruppe oben, Funktion
+// unten). Buchstaben-/Wort-Label tragen die Bedeutung (nicht Farbe → §5).
+function renderSatzbau(b) {
+  const parts = (b.parts ?? []).map(p =>
+    `<div class="sg"><div class="sg-text">${esc(p.text)}</div>` +
+    (p.rolle ? `<div class="sg-rolle">${esc(p.rolle)}</div>` : '') + `</div>`).join('')
+  const note = b.note ? `<div class="felder-note">${inline(b.note)}</div>` : ''
+  const lbl = b.label ? `<div class="block-label"><span class="ico">◆</span>${esc(b.label)}</div>` : ''
+  return `<section class="satzbau-wrap">${lbl}<div class="satzbau">${parts}</div>${note}</section>`
+}
+
 function renderKontrast(b) {
   const [okHead, noHead] = b.head ?? ['richtig ✓', 'falsch ✗']
   const rows = (b.rows ?? []).map(row => {
@@ -114,7 +125,8 @@ function renderTransfer(b) {
 
 const BLOCK = {
   wissen: renderWissen, merke: renderMerke, skala: renderSkala, felder: renderFelder,
-  kontrast: renderKontrast, datablick: renderDatablick, aufgaben: renderAufgaben, transfer: renderTransfer,
+  satzbau: renderSatzbau, kontrast: renderKontrast, datablick: renderDatablick,
+  aufgaben: renderAufgaben, transfer: renderTransfer,
 }
 
 function renderBlock(b) {
