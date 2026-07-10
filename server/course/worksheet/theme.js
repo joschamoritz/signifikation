@@ -33,7 +33,7 @@ body{font-family:'DM Sans',system-ui,sans-serif;font-size:12pt;line-height:1.5;c
 .sheet{width:210mm;min-height:297mm;margin:0 auto;background:var(--bg);padding:16mm 16mm 18mm}
 
 /* Umbruch-Steuerung */
-.wissen,.merke,.skala-wrap,.kontrast-wrap,.datablick,.felder-wrap,.satzbau-wrap,.task,.transfer,.footnotes{break-inside:avoid;page-break-inside:avoid}
+.wissen,.merke,.skala-wrap,.kontrast-wrap,.datablick,.felder-wrap,.satzbau-wrap,.pipeline-wrap,.task,.transfer,.footnotes{break-inside:avoid;page-break-inside:avoid}
 
 /* Kopf */
 .doc-kicker{font-size:8.5pt;letter-spacing:.22em;text-transform:uppercase;color:var(--muted);font-weight:600}
@@ -106,6 +106,14 @@ table.felder th,table.felder td{border:.7pt solid var(--border-lt);padding:6pt 8
 table.felder thead th{font-size:8pt;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);font-weight:700;background:var(--wissen-bg)}
 table.felder tbody td{font-family:'Gentium Plus',serif;font-size:12pt}
 .felder-note{font-size:9.5pt;color:var(--muted);margin-top:5pt}
+
+/* Pipeline: Prozess-Schritte mit Pfeilen (Korpus-Verarbeitung) */
+.pipeline-wrap{margin:16pt 0 0}
+.pipeline{display:flex;flex-wrap:wrap;align-items:stretch;gap:5pt;margin-top:8pt}
+.pstep{border:.8pt solid var(--border-lt);padding:5pt 9pt}
+.pstep-name{font-weight:600;font-size:11pt}
+.pstep-sub{font-size:8.5pt;color:var(--muted);margin-top:2pt}
+.pipeline .p-arrow{align-self:center;color:var(--primary);font-weight:700;font-size:12pt}
 
 /* Satzbau: Satzglieder als beschriftete Bauteile */
 .satzbau-wrap{margin:16pt 0 0}

@@ -78,6 +78,17 @@ function renderSatzbau(b) {
   return `<section class="satzbau-wrap">${lbl}<div class="satzbau">${parts}</div>${note}</section>`
 }
 
+// Pipeline: horizontale Prozess-Schritte mit Pfeilen (Rohtext → … → logDice).
+function renderPipeline(b) {
+  const steps = (b.steps ?? []).map((s, i) =>
+    (i > 0 ? '<span class="p-arrow" aria-hidden="true">→</span>' : '') +
+    `<div class="pstep"><div class="pstep-name">${esc(s.name)}</div>` +
+    (s.sub ? `<div class="pstep-sub">${esc(s.sub)}</div>` : '') + `</div>`).join('')
+  const note = b.note ? `<div class="felder-note">${inline(b.note)}</div>` : ''
+  return `<section class="pipeline-wrap"><div class="block-label"><span class="ico">◆</span>${esc(b.label)}</div>` +
+    `<div class="pipeline">${steps}</div>${note}</section>`
+}
+
 function renderKontrast(b) {
   const [okHead, noHead] = b.head ?? ['richtig ✓', 'falsch ✗']
   const rows = (b.rows ?? []).map(row => {
@@ -125,8 +136,8 @@ function renderTransfer(b) {
 
 const BLOCK = {
   wissen: renderWissen, merke: renderMerke, skala: renderSkala, felder: renderFelder,
-  satzbau: renderSatzbau, kontrast: renderKontrast, datablick: renderDatablick,
-  aufgaben: renderAufgaben, transfer: renderTransfer,
+  satzbau: renderSatzbau, pipeline: renderPipeline, kontrast: renderKontrast,
+  datablick: renderDatablick, aufgaben: renderAufgaben, transfer: renderTransfer,
 }
 
 function renderBlock(b) {

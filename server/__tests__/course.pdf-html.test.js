@@ -260,3 +260,23 @@ describe('buildStationHtml – Station ③ nutzt das begleitende Arbeitsblatt (A
     expect(lo.html).toMatch(/Ágel, Vilmos/)
   })
 })
+
+describe('buildStationHtml – Station ④ nutzt das begleitende Arbeitsblatt (Korpus)', () => {
+  const stub = { queryRelation() { return [] }, fetchBeleg() { return null }, fetchBelegeRaw() { return [] } }
+  const docs = buildStationHtml({ stationNo: 4, corpus: stub })
+  const abSekII = docs.find(d => d.kind === 'arbeitsblatt' && d.level === 'SekII')
+  const abLK = docs.find(d => d.kind === 'arbeitsblatt' && d.level === 'LK')
+
+  it('SekII-AB mit Pipeline-Block (Kookkurrenz → logDice)', () => {
+    expect(docs.filter(d => d.kind === 'arbeitsblatt').map(d => d.level)).toEqual(['DaZ', 'SekI', 'SekII', 'LK'])
+    expect(abSekII.html).toMatch(/class="pipeline"/)
+    expect(abSekII.html).toMatch(/Kookkurrenz/)
+    expect(abSekII.html).toMatch(/class="p-arrow"/)
+  })
+  it('LK-AB zeigt die logDice-Formel (④ besitzt die Mechanik)', () => {
+    expect(abLK.html).toMatch(/logDice = 14 \+ log₂/)
+    const body = abLK.html.replace(/<style>[\s\S]*?<\/style>/, '')
+    expect(body).not.toMatch(/\*\*/)
+    expect(body).not.toMatch(/\[\^\d/)
+  })
+})
