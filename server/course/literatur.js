@@ -42,7 +42,7 @@ export const LITERATUR = {
   // Station-①-Terminologie (SekI: Basis + Kollokator).
   'hausmann-wortverbindungen': {
     kurz: 'Hausmann 2004',
-    voll: 'Hausmann, Franz Josef (2004): Was sind eigentlich Kollokationen? In: Steyer, Kathrin (Hrsg.): Wortverbindungen – mehr oder weniger fest. (IDS Jahrbuch 2003). Berlin/New York: de Gruyter, S. 309–334 (Basis–Kollokator-Dichotomie).',
+    voll: 'Hausmann, Franz Josef (2004): Was sind eigentlich Kollokationen? In: Steyer, Kathrin (Hrsg.): Wortverbindungen – mehr oder weniger fest. (IDS Jahrbuch 2003). Berlin/New York: de Gruyter, S. 309–334, hier bes. S. 311 f. (Basis–Kollokator-Dichotomie).',
   },
 
   // ── Semantik: Bedeutung, Konnotation, semantische Prosodie (Station ①) ──
@@ -50,14 +50,14 @@ export const LITERATUR = {
   // Bedeutung) + §2.5 Konnotationen trägt den SekII-Block „Denotation/Konnotation".
   'loebner-semantik': {
     kurz: 'Löbner 2003',
-    voll: 'Löbner, Sebastian (2003): Semantik. Eine Einführung. Berlin/New York: de Gruyter (de Gruyter Studienbuch), Kap. 2 (deskriptive/soziale/expressive Bedeutung, § 2.5 Konnotationen).',
+    voll: 'Löbner, Sebastian (2003): Semantik. Eine Einführung. Berlin/New York: de Gruyter (de Gruyter Studienbuch), Kap. 2 „Deskriptive, soziale und expressive Bedeutung" (S. 23 ff.), § 2.5 Konnotationen (S. 48).',
   },
   // Hanks: „semantische Prosodie" (nach Louw 1993) + axiologisches Quale (incite
   // negativ vs. encourage neutral/positiv) trägt den LK-Block (Wörter „färben"
   // ihre Umgebung); Bedeutung ist Sache der Analyse, nicht der Frequenz.
   'hanks-bedeutungen': {
     kurz: 'Hanks 2011',
-    voll: 'Hanks, Patrick (2011): Wie man aus Wörtern Bedeutungen macht: Semantische Typen treffen Valenzen. In: Engelberg/Holler/Proost (Hrsg.): Sprachliches Wissen zwischen Lexikon und Grammatik. (IDS Jahrbuch 2011). Berlin/Boston: de Gruyter, S. 483–503 (semantische Prosodie nach Louw 1993).',
+    voll: 'Hanks, Patrick (2011): Wie man aus Wörtern Bedeutungen macht: Semantische Typen treffen Valenzen. In: Engelberg/Holler/Proost (Hrsg.): Sprachliches Wissen zwischen Lexikon und Grammatik. (IDS Jahrbuch 2011). Berlin/Boston: de Gruyter, S. 483–503, hier S. 497 (semantische Prosodie nach Louw 1993).',
   },
 
   // ── Wortarten & Syntax (Station ②/③) ──────────────────────────────
@@ -77,7 +77,7 @@ export const LITERATUR = {
   // Valenz-/Satzglied-Framing in Station ③ (Ergänzung vs. Angabe, Rektion).
   'agel-2017': {
     kurz: 'Ágel 2017',
-    voll: 'Ágel, Vilmos (2017): Grammatische Textanalyse. Textglieder, Satzglieder, Wortgruppenglieder. Berlin/Boston: de Gruyter (Satzglieder als funktionale Einheiten; Valenz/Dependenz).',
+    voll: 'Ágel, Vilmos (2017): Grammatische Textanalyse. Textglieder, Satzglieder, Wortgruppenglieder. Berlin/Boston: de Gruyter. Satzglieder als funktionale Einheiten (Mesoebene, Kap. 3, S. 99 ff.); Valenz: Komplemente (≈ Ergänzungen, Kap. 3.2, S. 170 ff.) vs. Supplemente (≈ Angaben, Kap. 3.3, S. 215 ff.); Rektion S. 199 f.',
   },
   'gallmann-2015-topologie': {
     kurz: 'Gallmann 2015',
