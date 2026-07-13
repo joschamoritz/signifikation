@@ -91,28 +91,48 @@ export const entwurf1 = {
 }
 
 /**
- * Beamer-Spec. Überwiegend statische Folien; `dataFrom` markiert eine optionale
- * Datenfolie, die der Generator zur Laufzeit mit echten Korpuswerten füllt
+ * Beamer-Spec. Der Beamer TRÄGT NICHT das Wissen (das leistet das begleitende
+ * Arbeitsblatt), sondern stützt drei Plenumsmomente des Verlaufs:
+ *   1. Einstieg (Titel-Hook + Lernziel),
+ *   2. Plenums-Auftakt = „Werkzeug modellieren" (Basis/Kollokator + Kontinuum-
+ *      Skala), bevor die SuS das AB am Stück bearbeiten,
+ *   3. Ergebnissicherung (AB-Merksatz „Typisch = üblich" zur Plateaubildung +
+ *      Daten-Aha „häufig ≠ typisch" als Schlussfolie, Sek II/LK).
+ * Beispiel-Politik: Fachbegriffe/Skala-Labels/Merksatz sind medienübergreifend
+ * IDENTISCH (Konsolidierung); die konkreten Beispielwörter sind hier bewusst
+ * ANDERE als im AB und in der digitalen Station (mehr Kontakt, echtes Üben statt
+ * Abschreiben). „Entscheidung treffen" bleibt als Kurs-Anker (roter Faden ②–⑤)
+ * der Einstiegs-Begriff; die Modellier-Probe läuft auf einem neuen Fall und
+ * nimmt keine AB-Aufgabenlösung vorweg.
+ * `dataFrom` füllt die Schlussfolie zur Laufzeit mit echten Korpuswerten
  * (resolved F5-Item) – nie harte logDice-Zahlen im Quellcode (Datenpolitik).
  */
 export const beamer1 = {
   slides: [
     { kind: 'title', kicker: 'Signifikation · Kurs · Station ①', title: 'Wortpartner & Kollokationen', lead: '„starker Regen" – im Englischen aber „heavy rain". Wer Wort für Wort übersetzt, sagt „schwerer Regen". Warum stimmt das nicht?' },
-    { kind: 'bullets', kicker: 'Worum geht es?', title: 'Typische Wortverbindungen', bullets: [
-      'Manche Wörter treten regelmäßig zusammen auf: „Entscheidung treffen", „schwerer Fehler".',
-      'Das nennt man Kollokation – eine typische Wortverbindung.',
-      'Sie ist nicht frei wählbar und nicht Wort für Wort übersetzbar.',
-    ] },
     { kind: 'bullets', kicker: 'Lernziel', title: 'Was du heute kannst', bullets: [
       'typische von untypischen Wortverbindungen unterscheiden,',
       'die feste Verbindung im echten Satz erkennen,',
       'deine Wahl begründen.',
     ] },
-    // Datenfolie wird hier eingefügt (dataFrom), falls Korpus verfügbar.
-    { kind: 'merksatz', title: 'Wörterbücher übersetzen Wörter — Korpora übersetzen Konventionen.', quelle: 'Reder 2006' },
+    // Werkzeug modellieren (Plenums-Auftakt vor dem Arbeitsblatt) — Begriffe wie
+    // im AB, Beispiele frisch (verraten keine AB-Aufgabenlösung).
+    { kind: 'bullets', kicker: 'Das Werkzeug', title: 'Basis + Kollokator', bullets: [
+      'Eine Kollokation ist eine übliche Wortverbindung: „Entscheidung treffen".',
+      'Basis = das Wort, um das es geht (Entscheidung). Kollokator = der typische Partner (treffen).',
+      'Probe an einem neuen Fall „eine Rede halten": Basis = Rede, Kollokator = halten.',
+    ] },
+    { kind: 'bullets', kicker: 'Das Werkzeug', title: 'Wie fest ist die Verbindung?', bullets: [
+      'frei: „altes Fahrrad" – beliebig kombinierbar, kein festes Muster.',
+      'Kollokation: „reges Interesse" – üblich, aber noch durchschaubar.',
+      'Idiom: „Öl ins Feuer gießen" – fest & bildlich, nicht wörtlich zu verstehen.',
+    ] },
+    // Plateaubildung: exakt der AB-Merksatz, den das Plenum sichert.
+    { kind: 'merksatz', title: 'Typisch heißt nicht richtig oder falsch, sondern üblich.' },
+    // Schlussfolie (Daten-Aha, Sek II/LK): Datenfolie wird hier angehängt (dataFrom).
   ],
-  // Datenfolie aus einem aufgelösten Item (Frequenz/logDice) bauen.
-  dataFrom: { itemId: 's1-f5-fehler-datenblick-sek2', insertAfter: 2, title: 'Häufig ist nicht gleich typisch', kicker: 'Datenblick · „Fehler"' },
+  // Datenfolie aus einem aufgelösten Item (Frequenz/logDice) bauen – ans Ende.
+  dataFrom: { itemId: 's1-f5-fehler-datenblick-sek2', insertAfter: 4, title: 'Häufig ist nicht gleich typisch', kicker: 'Datenblick · „Fehler"' },
 }
 
 export const lesson1 = { entwurf: entwurf1, beamer: beamer1 }

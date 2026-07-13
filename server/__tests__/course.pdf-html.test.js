@@ -143,7 +143,8 @@ describe('Beamer-Folien (Querformat)', () => {
   })
   it('hat eine Titelfolie + Merksatzfolie', () => {
     expect(html).toMatch(/Wortpartner &amp; Kollokationen/)
-    expect(html).toMatch(/Korpora übersetzen Konventionen/)
+    // Merksatzfolie = exakt der AB-Merksatz, den die Plateaubildung sichert.
+    expect(html).toMatch(/Typisch heißt nicht richtig oder falsch, sondern üblich/)
   })
   it('große Type (h1 ≥ 40pt)', () => {
     expect(html).toMatch(/font-size:\s*40pt/)

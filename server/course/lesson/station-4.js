@@ -90,7 +90,7 @@ export const entwurf4 = {
  */
 export const beamer4 = {
   slides: [
-    { kind: 'title', kicker: 'Signifikation · Kurs · Station ④', title: 'Texte, die zählen', lead: '„langes Haar" oder „blondes Haar" – was ist häufiger? Was ist typischer? Und woher weiß die App das überhaupt?' },
+    { kind: 'title', kicker: 'Signifikation · Kurs · Station ④', title: 'Was Häufigkeit verschweigt', lead: '„langes Haar" oder „blondes Haar" – was ist häufiger? Was ist typischer? Und woher weiß die App das überhaupt?' },
     { kind: 'bullets', kicker: 'Die Maschine hinter der Zahl', title: 'Wie aus echten Texten ein Wortprofil wird', bullets: [
       '① Rohtext (Bundestag, Gesetze, DTA, Wikipedia) → ② Grundform (geht/ging/gegangen → gehen).',
       '③ Wortart bestimmen → ④ Abhängigkeit parsen (wer hängt an wem – wie in ③).',
@@ -107,6 +107,8 @@ export const beamer4 = {
       'Jede automatische Annotation ist eine Deutung – Lemmatisierung und Parser können irren.',
       'Korpus-Bias: parlamentarische Texte → andere Muster als Romane. Wer das Korpus wählt, prägt den Befund.',
     ] },
+    // Schlussfolie (Ergebnissicherung): Merksatz wie im Entwurf verankert.
+    { kind: 'merksatz', title: 'Häufigkeit lügt – logDice misst Bindung.' },
   ],
   dataFrom: {
     itemId: 's4-f2-tabelle-lesen-sek2',
