@@ -79,6 +79,7 @@ const TASKS = [
       sentence: 'Das Gericht trifft eine Entscheidung.',
       markTask: 'S-P-O',
       labels: ['S', 'P'],
+      belegContext: { lemma: 'Gericht', partner: 'treffen', limit: 3 },
     },
     display: { showMetrics: false, metric: 'none' },
     solution: {
@@ -260,6 +261,7 @@ const TASKS = [
       sentence: 'Das Parlament trifft eine wichtige Entscheidung.',
       markTask: 'S-P-O',
       labels: ['S', 'P', 'O'],
+      belegContext: { lemma: 'Parlament', partner: 'treffen', limit: 3 },
     },
     display: { showMetrics: false, metric: 'none' },
     solution: {
@@ -330,6 +332,7 @@ const TASKS = [
         { id: 'c3', label: 'die Mannschaft' },
       ],
       multiplePerAnchor: false,
+      belegContext: { lemma: 'Mannschaft', partner: 'loben', limit: 3 },
     },
     display: { showMetrics: false, metric: 'none' },
     solution: { map: { a1: ['c1'], a2: ['c2'], a3: ['c3'] } },
@@ -684,6 +687,7 @@ const TASKS = [
       sentence: 'Der Senat trifft nach langer Beratung eine Entscheidung.',
       markTask: 'S-P-O',
       labels: ['S', 'P', 'Adv', 'O'],
+      belegContext: { lemma: 'Senat', partner: 'treffen', limit: 3 },
     },
     display: { showMetrics: false, metric: 'none' },
     solution: {
@@ -759,6 +763,7 @@ const TASKS = [
       ],
       requireJustification: true,
       justifyPrompt: 'Begründe die Rektion mit der Kasusprobe (wem?).',
+      belegContext: { lemma: 'Entscheidung', partner: 'vertrauen', limit: 3 },
     },
     display: { showMetrics: false, metric: 'none' },
     solution: {
@@ -791,6 +796,7 @@ const TASKS = [
       sentence: 'Der Trainer lobt nach dem Spiel die Mannschaft.',
       markTask: 'S-P-O',
       labels: ['S', 'P', 'Adv', 'O'],
+      belegContext: { lemma: 'Mannschaft', partner: 'loben', limit: 3 },
     },
     display: { showMetrics: false, metric: 'none' },
     solution: {
