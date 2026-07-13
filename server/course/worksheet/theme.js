@@ -25,7 +25,7 @@ export function worksheetCss(fontFaceCss = '') {
   return `${fontFaceCss}
 :root {${TOKENS}}
 *{box-sizing:border-box;margin:0;padding:0}
-html{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+html{-webkit-print-color-adjust:exact;print-color-adjust:exact;background:var(--bg)}
 @page{size:A4;margin:16mm 16mm 18mm}
 body{font-family:'DM Sans',system-ui,sans-serif;font-size:12pt;line-height:1.5;color:var(--text);background:var(--bg)}
 

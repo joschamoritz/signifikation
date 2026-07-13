@@ -26,7 +26,7 @@ export const entwurf3 = {
   begruendung: 'Station ③ integriert die Ergebnisse von ① (Kollokationen) und ② (Wortart-Baupläne) in die Satz-Ebene. Die Einsicht, dass dasselbe Nomen je nach syntaktischer Funktion (Subjekt vs. Objekt) andere typische Verbpartner hat, erschließt die eigentliche Tiefenstruktur von Kollokationen. Der KLP Sek I nennt Satzglieder explizit im Inhaltsfeld Sprache; die Dependenz-Perspektive (Kopf–Dependent) schließt an die wissenschaftspropädeutische Erweiterung für Sek II an.',
 
   dreiklang: {
-    gegenstand: 'Grammatische Abhängigkeiten (Dependenz Kopf–Dependent; syntaktische Funktionen Subjekt/Prädikat/Objekt); Kollokationen besetzen feste grammatische Slots; der Slot (Subjekt vs. Objekt) bestimmt den typischen Verbpartner.',
+    gegenstand: 'Syntaktische Funktionen und Dependenz',
     thema: '„Feste Plätze im Satz" – grammatische Abhängigkeiten erkennen und typische Wortverbindungen in ihren Slots verorten.',
     splz: 'Die SuS verorten typische Wortverbindungen in der Satzstruktur, indem sie Subjekt, Prädikat und Objekt bestimmen und die Rolle des Kollokations-Nomens zeigen; Sek II: d. h. im Einzelnen die Kopf-Dependent-Relation darstellen und am Paar „eine Entscheidung treffen" (Objekt-Slot) / „eine Entscheidung fällt" (Subjekt-Slot) erklären, warum der Slot den Verbpartner bestimmt.',
     wwlz: 'Die SuS beurteilen den Nutzen von Strukturwissen, indem sie einschätzen, was die Slot-Perspektive für das Verstehen von Kollokationen über die bloße Wortliste hinaus leistet.',
