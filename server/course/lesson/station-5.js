@@ -28,7 +28,7 @@ export const entwurf5 = {
   begruendung: 'Station ⑤ ist der didaktische Abschluss der Reihe: Die SuS wenden alle Werkzeuge (Kollokation ①, Wortart ②, Slot ③, logDice ④) in einem eigenen Forschungszyklus an. Das Muster Hypothese → Korpus-Prüfung → Befund-Deutung → Stellungnahme ist wissenschaftspropädeutisch und direkt an die KLP-Sek-II-Kompetenz „Verhältnis Sprache–Denken–Wirklichkeit" angebunden. Von Brand Modell 2 ist hier das richtige Phasenmodell, weil keine neue Regel eingeführt wird, sondern erarbeitetes Wissen in neuem Kontext angewandt wird.',
 
   dreiklang: {
-    gegenstand: 'Forschendes Lernen mit dem Korpus; Zyklus Hypothese → Beleg-Prüfung → Befund-Deutung → begründete Stellungnahme; Korpusabhängigkeit von Befunden (z. B. parlamentarisch geprägtes Korpus → „Diskussion eröffnen" sehr stark).',
+    gegenstand: 'Korpusbasierte Sprachreflexion',
     thema: '„Eine Frage an die Sprache" – eine eigene Hypothese am Korpus prüfen und begründet beantworten.',
     splz: 'Die SuS deuten ihren am Korpus erhobenen Befund und nehmen begründet Stellung, indem sie den Befund mit der eigenen Hypothese abgleichen und die Abweichung erklären; LK: d. h. im Einzelnen zusätzlich die Aussagekraft kritisch einordnen (Korpusabhängigkeit, z. B. am Beispiel „Diskussion eröffnen").',
     wwlz: 'Die SuS reflektieren die Grenzen korpusbasierter Aussagen, indem sie beurteilen, wie das gewählte Korpus das Ergebnis beeinflusst (Korpusart, Frequenzhöhe, Homonyme).',

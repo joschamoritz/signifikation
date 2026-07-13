@@ -35,7 +35,7 @@ export const entwurf1 = {
 
   // II — Dreiklang (§1a: SpLz direktes Präsens + „indem").
   dreiklang: {
-    gegenstand: 'Kollokationen als usuelle, korpusbasiert nachweisbare Wortverbindungen (z. B. „Entscheidung treffen", „schwerer Fehler"); ihre Typikalität ist über Kookkurrenz quantifizierbar.',
+    gegenstand: 'Kollokationen als usuelle Wortverbindungen',
     thema: '„Das passt zusammen" – typische von untypischen Wortverbindungen unterscheiden und am Korpus überprüfen, um den eigenen Ausdruck idiomatisch zu schärfen.',
     splz: 'Die SuS unterscheiden typische von untypischen Wortverbindungen, indem sie zu einem Nomen passende Partner zuordnen, die feste Verbindung im echten Belegsatz markieren und ihre Wahl mit dem Natürlichkeitsempfinden begründen.',
     wwlz: 'Die SuS reflektieren, dass Kollokationen sprachspezifisch sind, indem sie eine wörtliche Übersetzung als unpassend erkennen und die deutsche Konvention benennen.',

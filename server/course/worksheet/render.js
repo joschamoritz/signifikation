@@ -187,7 +187,7 @@ function docShell(titleText, bodyInner, { web = false, fontFaceCss = '' } = {}) 
   const inner = web ? `<div class="sheet">${bodyInner}</div>` : bodyInner
   const head = `<meta charset="utf-8"><title>${esc(titleText)}</title>` +
     (web ? WEBFONTS : '') + `<style>${worksheetCss(fontFaceCss)}</style>`
-  const bg = web ? ` style="background:#e7e2d8;padding:24px"` : ''
+  const bg = web ? ` style="background:var(--bg);padding:24px"` : ''
   return `<!DOCTYPE html><html lang="de"><head>${head}</head><body${bg}>${inner}</body></html>`
 }
 
