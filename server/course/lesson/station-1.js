@@ -41,7 +41,7 @@ export const entwurf1 = {
     wwlz: 'Die SuS reflektieren, dass Kollokationen sprachspezifisch sind, indem sie eine wörtliche Übersetzung als unpassend erkennen und die deutsche Konvention benennen.',
     kompetenzbezug: 'KLP Deutsch Sek I (G9, 2019), Inhaltsfeld 1 Sprache: differenzierten Wortschatz funktional einsetzen; Wortbedeutungen klären.',
   },
-  begruendungStunde: 'Der Einstieg erzeugt das Problem über einen Kontrastfall (wörtliche Übersetzung scheitert), damit die Lerngruppe die Leitfrage selbst formuliert. Die Erarbeitung nutzt ein Worked Example vor der ersten Übung (CLT: germane load erhöhen, extraneous senken). Die Plateaubildung sichert den Begriff „typische Wortverbindung" für alle, bevor die differenzierte Anwendung (Niveau-AB) folgt. Belege + Aufgabe + Hilfe stehen räumlich zusammen (Split-Attention vermieden).',
+  begruendungStunde: 'Die Stunde trennt die beiden Medien in zwei konzentrierte Blöcke, statt sie zu verzahnen – so entfällt der lernhemmende Medienwechsel mitten in der Bearbeitung (Kurs-Didaktik-Standards §5, CLT: extraneous load senken). Das begleitende Arbeitsblatt trägt die Erarbeitung: Es baut das Fachwissen strukturiert auf (Wissens-Infokasten, Merksatz) und lässt es in eigenen Aufgaben erstmals anwenden – auf Papier, mit bleibender Notiz, bewusst redundanzarm (kein Klon der App-Aufgabe). Die digitale Station übernimmt danach die vertiefte Anwendung: viele Einzelfälle mit sofortigem Korpus-Feedback (USP), als eigener, ununterbrochener Block. Die Plateaubildung im Plenum sichert das gemeinsame Zwischenergebnis am Übergang; Belege + Aufgabe + Hilfe stehen auf dem AB räumlich zusammen (Split-Attention vermieden), die Differenzierung läuft über die Niveau-Blätter.',
 
   // II — Stundenverlauf (von Brand Modell 1), Spalten §2.
   verlauf: [
@@ -53,41 +53,41 @@ export const entwurf1 = {
       ],
     },
     {
-      phase: 'II Stundenmitte — Erarbeitung', anteil: 'Anteil 3',
+      phase: 'II Stundenmitte — Erarbeitung (Arbeitsblatt, am Stück)', anteil: 'Anteil 3',
       schritte: [
-        { schritt: 'Worked Example am AB gemeinsam durchgehen (Wortpartner zuordnen).', kommentar: 'Modelliert die Vorgehensweise vor der ersten eigenen Übung (CTML: Worked Example).', interaktion: 'LSG', medien: 'Arbeitsblatt' },
-        { schritt: 'Aufgaben 1–2: typische Partner zuordnen + im echten Belegsatz markieren.', kommentar: 'Rezeptive Sicherung am authentischen Korpusbeleg; Typikalität wird erfahrbar.', interaktion: 'Partnerarbeit', medien: 'Arbeitsblatt / App (optional)' },
+        { schritt: 'Begleit-Arbeitsblatt durchgehend bearbeiten: Wissensblock (Kollokation, Basis + Kollokator, Kontinuum frei–Kollokation–Idiom), Merksatz, dann die eigenen Aufgaben – differenziert nach Niveau.', kommentar: 'Neu erlernen + erste Anwendung auf Papier, ohne Medienwechsel (von Brand): das Fachwissen wird strukturiert erarbeitet und bleibt als Referenz/Notiz. Belege als Fußnoten (Hausmann, Steyer); Differenzierung über das Niveau-AB.', interaktion: 'EA → Partnerarbeit', medien: 'Arbeitsblatt (Wissen + Aufgaben)' },
       ],
     },
     {
-      phase: 'II Stundenmitte — Plateaubildung', anteil: 'Anteil 2',
+      phase: 'II Stundenmitte — Plateaubildung', anteil: 'Anteil 1',
       schritte: [
-        { schritt: 'Zwischensicherung: Begriff „Kollokation = typische Wortverbindung" + Merksatz an der Tafel.', kommentar: 'Sichert das Ergebnis so, dass ALLE weiterarbeiten können (Plateau).', interaktion: 'Plenum', medien: 'Tafel / Beamer' },
+        { schritt: 'Plenums-Sicherung: Merksatz „Typisch = üblich" + zentrale AB-Ergebnisse vergleichen, offene Fragen klären.', kommentar: 'Sichert ein gemeinsames Zwischenergebnis, damit ALLE für die Anwendungsphase arbeitsfähig sind (Plateau) – zugleich Übergang vom Papier zum Gerät.', interaktion: 'Plenum', medien: 'Tafel / Beamer' },
       ],
     },
     {
-      phase: 'II Stundenmitte — Anwendung', anteil: 'Anteil 2',
+      phase: 'II Stundenmitte — Anwendung (digitale Station, am Stück)', anteil: 'Anteil 2',
       schritte: [
-        { schritt: 'Variantenvergleich mit Begründung (differenziert: Niveau-AB).', kommentar: 'Produktive Anwendung; Begründung schult Metasprache + Urteilsvermögen.', interaktion: 'Einzel- → Partnerarbeit', medien: 'Arbeitsblatt (differenziert)' },
+        { schritt: 'Digitale Station ① im Kurs-Tab durchgehend: typische Partner üben – zuordnen, im echten Belegsatz markieren, vergleichen – mit Sofort-Feedback am Korpus.', kommentar: 'Vertiefte, gebrauchsbasierte Anwendung des gesicherten Begriffs: die App liefert viele Einzelfälle mit unmittelbarer Rückmeldung (USP) und ist als eigener Block – nach dem AB – konzentriert bearbeitbar.', interaktion: 'Einzel-/Partnerarbeit', medien: 'Kurs-Tab (digitale Station)' },
       ],
     },
     {
       phase: 'III Stundenabschluss — Ergebnissicherung', anteil: 'Anteil 1',
       schritte: [
-        { schritt: 'Merksatz festhalten; kontrastiver Transfer (Übersetzung) als Rückschau.', kommentar: 'Überprüft den Lernerfolg, verankert das wwLz (Sprachspezifik).', interaktion: 'Plenum', medien: 'Beamer-Schlussfolie' },
+        { schritt: 'Daten-Aha im Plenum (Beamer „häufig ≠ typisch", Sek II/LK) bzw. Rückschau auf die Leitfrage; HA: eigenes Wort wählen und in der digitalen Station ① prüfen.', kommentar: 'Überprüft den Lernerfolg, verankert das wwLz (Sprachspezifik) und schließt den Kreis: das AB stellt die Hypothese, die App prüft sie.', interaktion: 'Plenum → EA (HA)', medien: 'Beamer-Schlussfolie / Kurs-Tab' },
       ],
     },
   ],
 
   // III — Anhang.
   anhang: [
-    'Antizipiertes Tafelbild: „Kollokation = typische Wortverbindung (nicht Wort für Wort übersetzbar)" + Beispielpaare.',
-    'Material: Arbeitsblatt + Lösung/Erwartungshorizont (dieselbe Quelle), Beamer-Folien.',
-    'Differenzierung: Niveau-Arbeitsblätter (DaZ / Sek I / Sek II / LK) aus derselben Aufgaben-Engine.',
-    'Für Sek II / LK: Vor den datengestützten Aufgaben die beiden Maße kurz einführen — Frequenz f („wie oft kommt die Verbindung vor") und logDice („wie stark sind die beiden Wörter aneinander gebunden"; Skala bis ca. 14, höher = typischer). Kernidee: häufig ≠ typisch. Die Datenfolie „Häufig ist nicht gleich typisch" dient als Anschauung; konkrete Werte liefert das Korpus zur Laufzeit (keine festen Zahlen im Material).',
+    'Antizipiertes Tafelbild: „Kollokation = übliche Wortverbindung aus Basis + Kollokator (nicht Wort für Wort übersetzbar)" + Beispielpaare; Merksatz „Typisch = üblich".',
+    'Material: begleitendes Arbeitsblatt (Wissensblock + eigene Aufgaben + Transfer) + Erwartungshorizont (aus demselben Content-Modell) + Beamer-Folien; digitale Station ① im Kurs-Tab.',
+    'Zusammenspiel der Medien (zwei getrennte Blöcke, kein Wechsel mitten in der Bearbeitung): Arbeitsblatt = Erarbeitung (Fachwissen sichern + erste Anwendung auf Papier); digitale Station = vertiefte Anwendung (üben mit Sofort-Feedback am Korpus). Die HA schließt den Kreis (AB stellt die Hypothese → App prüft sie).',
+    'Differenzierung: Niveau-Arbeitsblätter (DaZ / Sek I / Sek II / LK) aus demselben Content-Modell.',
+    'Für Sek II / LK: logDice bleibt Black Box (höher = stärker gebunden, Skala bis ca. 14); die Formel/Mechanik gehört Station ④. Datenfolie „häufig ≠ typisch" nur zur Anschauung; Werte liefert das Korpus zur Laufzeit (keine festen Zahlen im Material).',
   ],
 
-  belege: ['reder-2006', 'steyer-2000', 'vonbrand-2010', 'klp-deutsch-sek1-g9-2019', 'script-leitfaden-2020'],
+  belege: ['reder-2006', 'hausmann-wortverbindungen', 'steyer-2000', 'vonbrand-2010', 'klp-deutsch-sek1-g9-2019', 'script-leitfaden-2020'],
 }
 
 /**

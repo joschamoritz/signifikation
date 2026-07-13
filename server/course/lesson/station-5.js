@@ -34,7 +34,7 @@ export const entwurf5 = {
     wwlz: 'Die SuS reflektieren die Grenzen korpusbasierter Aussagen, indem sie beurteilen, wie das gewählte Korpus das Ergebnis beeinflusst (Korpusart, Frequenzhöhe, Homonyme).',
     kompetenzbezug: 'KLP Deutsch Sek II 2025, Inhaltsfeld Sprache: Verhältnis von Sprache, Denken und Wirklichkeit; semantische und pragmatische Aspekte; wissenschaftspropädeutisches forschendes Lernen; Medien- und Methodenreflexion.',
   },
-  begruendungStunde: 'Der Einstieg nutzt eine Abstimmung („starker Regen" vs. „strömender Regen") als provokante Streitfrage, die das Bauchgefühl gegen den Befund stellt. Die Erarbeitung wiederholt den Forschungszyklus und die logDice-Werkzeuge aus ④ knapp; die Anwendungsphase bildet den Kern (eigene Frage, eigene Hypothese, eigener Befund). Die Ergebnissicherung lässt Befunde vorstellen und führt die Methodenkritik (LK: Korpusabhängigkeit) in die Klasse. Warum Modell 2: Keine neue Regel wird eingeführt – die SuS arbeiten mit dem aus ①–④ Erarbeiteten.',
+  begruendungStunde: 'Die Stunde folgt von Brand Modell 2 (Erarbeitetes anwenden – forschendes Lernen) und trennt die Medien in konzentrierte Blöcke: kein Medienwechsel mitten in der Bearbeitung (Kurs-Didaktik-Standards §5). Der Einstieg stellt das Bauchgefühl gegen den Befund („starker" vs. „strömender Regen"). Das begleitende Arbeitsblatt liefert das methodische Gerüst: Es sichert den Forschungszyklus (Hypothese → prüfen → Befund → Stellungnahme) und lässt die SuS ihre Hypothese formulieren – bevor sie ins Profil schauen (Hypothese-vor-Befund ist methodisch essenziell). Die digitale Station ist dann die eigentliche Mini-Recherche: die Hypothese am Korpus prüfen (Kern der Stunde). Die Ergebnissicherung führt zurück aufs Papier: Befund deuten und begründete Stellungnahme verschriftlichen, LK zusätzlich die Methodenkritik (Korpusabhängigkeit). Warum Modell 2: Keine neue Regel wird eingeführt – die SuS arbeiten mit dem aus ①–④ Erarbeiteten.',
 
   verlauf: [
     {
@@ -44,30 +44,31 @@ export const entwurf5 = {
       ],
     },
     {
-      phase: 'II Stundenmitte — Erarbeitung', anteil: 'Anteil 1',
+      phase: 'II Stundenmitte — Erarbeitung (Arbeitsblatt: methodisches Gerüst, am Stück)', anteil: 'Anteil 2',
       schritte: [
-        { schritt: 'Worked Example am Beamer: Forschungszyklus mit Regen-Beispiel durchspielen (Hypothese → Profil ansehen → Befund „strömend" → deuten → Stellung nehmen).', kommentar: 'Modelliert den Prozess, bevor die SuS selbst forschen (CTML: Worked Example). logDice-Werkzeug aus ④ reaktivieren.', interaktion: 'LSG', medien: 'Beamer-Folie 2 (Forschungszyklus)' },
-        { schritt: 'Hypothesen für eigene/gewählte Fragen notieren (vor dem Blick ins Profil).', kommentar: 'Hypothese-vor-Befund ist methodisch essentiell: Profil beeinflusst das Urteil, wenn es vorher gesehen wird.', interaktion: 'EA', medien: 'AB / Kurs-Tab' },
+        { schritt: 'Kurzer Plenums-Auftakt: Forschungszyklus am Regen-Beispiel durchspielen (Hypothese → Profil → Befund „strömend" → deuten → Stellung nehmen); logDice-Werkzeug aus ④ reaktivieren.', kommentar: 'Modelliert den Prozess, bevor die SuS selbst forschen (CTML: Worked Example).', interaktion: 'LSG', medien: 'Beamer-Folie 2 (Forschungszyklus)' },
+        { schritt: 'Begleit-Arbeitsblatt: Forschungszyklus-Methode sichern und eine eigene/gewählte Frage in eine prüfbare Hypothese fassen – vor dem Blick ins Profil.', kommentar: 'Das AB ist das methodische Gerüst; Hypothese-vor-Befund ist essenziell (das Profil beeinflusst das Urteil, wenn es vorher gesehen wird).', interaktion: 'EA → Partnerarbeit', medien: 'Arbeitsblatt (Wissen + Hypothese)' },
       ],
     },
     {
-      phase: 'II Stundenmitte — Anwendung', anteil: 'Anteil 3',
+      phase: 'II Stundenmitte — Anwendung (digitale Station: Mini-Recherche, am Stück)', anteil: 'Anteil 3',
       schritte: [
-        { schritt: 'Eigene/gewählte Frage: Hypothese → Profil im Kurs-Tab befragen → Top-Verbindungen + Werte notieren → Befund deuten (AB Sek II F1–F4, LK F1–F5 + Methodenkritik).', kommentar: 'Kern der Stunde (Modell 2: Anwenden steht im Zentrum). Feedback-System unterstützt Prozess, gibt nicht die Lösung vor.', interaktion: 'Partner-/Einzelarbeit', medien: 'Kurs-Tab + Arbeitsblatt (differenziert)' },
+        { schritt: 'Digitale Station ⑤ im Kurs-Tab durchgehend: die Hypothese am Korpus prüfen – Profil/Top-Verbindungen + Werte abfragen, Befund erheben.', kommentar: 'Kern der Stunde (Modell 2: Anwenden im Zentrum); die eigentliche Mini-Recherche als eigener, ununterbrochener Block. Das Feedback-System unterstützt den Prozess, gibt die Lösung nicht vor.', interaktion: 'Einzel-/Partnerarbeit', medien: 'Kurs-Tab (digitale Station)' },
       ],
     },
     {
       phase: 'III Stundenabschluss — Ergebnissicherung', anteil: 'Anteil 1',
       schritte: [
-        { schritt: 'Befunde vorstellen: Stimmte die Hypothese? Was überrascht? LK: Korpusabhängigkeit am Beispiel „Diskussion eröffnen" (parlamentarisches Korpus → sehr hoher logDice).', kommentar: 'Verankert wwLz (Grenzen des Befunds); zeigt: Befund ≠ Wahrheit, sondern Korpus-Sicht.', interaktion: 'Plenum', medien: 'Beamer-Folie 3 (Auflösung + Bias)' },
-        { schritt: 'Mini-Stellungnahme verschriftlichen: 3–4 Sätze, datengestützt. HA: LK-Methodenkritik ausformulieren.', kommentar: 'Sichert das SpLz schriftlich; LK-Mehrwert durch Methodenreflexion.', interaktion: 'EA', medien: 'AB' },
+        { schritt: 'Zurück aufs Arbeitsblatt: Befund deuten (Abgleich mit der Hypothese) und begründete Stellungnahme verschriftlichen (3–4 Sätze, datengestützt).', kommentar: 'Sichert das SpLz schriftlich und schließt den Forschungszyklus.', interaktion: 'EA', medien: 'Arbeitsblatt (Stellungnahme)' },
+        { schritt: 'Befunde im Plenum vorstellen; LK: Korpusabhängigkeit am Beispiel „Diskussion eröffnen" (parlamentarisches Korpus → sehr hoher logDice). HA: LK-Methodenkritik ausformulieren.', kommentar: 'Verankert das wwLz (Grenzen des Befunds); Befund ≠ Wahrheit, sondern Korpus-Sicht.', interaktion: 'Plenum', medien: 'Beamer-Folie 3 (Auflösung + Bias)' },
       ],
     },
   ],
 
   anhang: [
     'Antizipiertes Tafelbild: Forschungszyklus-Schema (Hypothese → Prüfen → Deuten → Stellung), Regen-Auflösung.',
-    'Material: AB Sek II (Leitfaden F1–F4) + LK (F1–F5 + Methodenkritik); Worked Example mit Regen-Zyklus.',
+    'Material: begleitendes Arbeitsblatt (Forschungszyklus-Gerüst + Hypothese/Stellungnahme) + Erwartungshorizont (aus demselben Content-Modell) + Beamer-Folien (Regen-Profil live); digitale Station ⑤ im Kurs-Tab.',
+    'Zusammenspiel der Medien (getrennte Blöcke, kein Wechsel mitten in der Bearbeitung): Arbeitsblatt = methodisches Gerüst (Zyklus sichern + Hypothese formulieren) und Abschluss (Stellungnahme); digitale Station = die eigentliche Mini-Recherche (Hypothese am Korpus prüfen). Reihenfolge AB → digitale Station → AB folgt dem Forschungszyklus (Hypothese vor Befund, Stellungnahme nach Befund).',
     'Differenzierung: Sek II bis Befund-Deutung + Stellungnahme; LK bis Methodenkritik (Korpusabhängigkeit, Frequenzhöhe, Homonyme).',
     'LK-Bias-Beispiel: „Diskussion eröffnen" (logDice sehr hoch) als Effekt parlamentarisch geprägter Korpora.',
     'Reihenbezug: Kulmination ①–④; alle Werkzeuge (Kollokation, Wortart, Slot, logDice) fließen zusammen.',
