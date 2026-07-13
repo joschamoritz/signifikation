@@ -82,25 +82,28 @@ export const entwurf2 = {
   belege: ['hoffmann-leimbrink-wortarten', 'gallmann-2015-topologie', 'klett-feldermodell-schulbuch', 'didaktik-wortarten-d2', 'vonbrand-2010', 'klp-deutsch-sek1-g9-2019', 'klp-deutsch-sek2-2025', 'script-leitfaden-2020'],
 }
 
+// Beamer stützt Einstieg + Plenums-Auftakt (Werkzeug modellieren) + Sicherung.
+// Fachbegriffe/Merksatz wie im AB; Beispiele bewusst frisch und ohne Vorgriff auf
+// eine AB-Aufgabenlösung (kein „Kritik üben" → das ist AB-Sek-II-Aufgabe 1).
 export const beamer2 = {
   slides: [
-    { kind: 'title', kicker: 'Signifikation · Kurs · Station ②', title: 'Wörter mit Funktion', lead: '„scharfe Kritik" – aus welchen Bausteinen besteht das? Und wie prüft man, was im Satz zusammengehört?' },
-    { kind: 'bullets', kicker: 'Anknüpfung an Station ①', title: 'Aus welchen Bausteinen?', bullets: [
-      '„schwerer Fehler" · „Entscheidung treffen" – Kollokationen aus Station ①.',
-      'Frage 1: Welche Wortarten stecken in diesen Mustern?',
-      'Bauplan A: Adjektiv + Nomen · Bauplan B: Verb + Nomen.',
+    { kind: 'title', kicker: 'Signifikation · Kurs · Station ②', title: 'Wörter mit Funktion', lead: '„Widerstand leisten", „harter Widerstand" – aus welchen Wortarten bestehen solche Muster? Und wie prüft man, was im Satz wirklich zusammengehört?' },
+    { kind: 'bullets', kicker: 'Das Werkzeug', title: 'Wortarten & Baupläne', bullets: [
+      'Die Kollokationen aus Station ① bestehen aus Wortarten in festen Bauplänen.',
+      'Bauplan A – Adjektiv + Nomen: „harter Widerstand".',
+      'Bauplan B – Nomen + Verb: „Widerstand leisten".',
     ] },
-    { kind: 'bullets', kicker: 'Wie erkennt man Satzglieder?', title: 'Das Feldermodell & die Verschiebeprobe', bullets: [
+    { kind: 'bullets', kicker: 'Das Werkzeug', title: 'Feldermodell & Verschiebeprobe', bullets: [
       'Das finite Verb steht fest an Position 2 – die linke Satzklammer.',
       'Direkt davor das Vorfeld: dort steht genau EIN Satzglied.',
       'Verschiebeprobe: Nur was sich als Ganzes ins Vorfeld schieben lässt, ist ein Satzglied.',
     ] },
-    { kind: 'bullets', kicker: 'Form vs. Funktion', title: '„Kritik üben" – welche Wortart ist üben?', bullets: [
-      '„üben" bedeutet hier nicht trainieren – und trotzdem ist es ein Verb.',
-      'Wortart = Funktion im Satz: „üben" ist das Prädikat (konjugierbar: „übte").',
-      'Merksatz: Die Wortart folgt der Funktion, nicht der Bedeutung.',
+    { kind: 'bullets', kicker: 'Das Werkzeug', title: 'Form oder Funktion?', bullets: [
+      'Die Wortart richtet sich nach der Funktion im Satz, nicht nach der Bedeutung.',
+      'In „Die Stadt führt Gespräche" ist „führt" das Prädikat → Verb (niemand führt hier räumlich).',
+      'Probe: Was sich konjugieren lässt und das Satzverb ist, ist ein Verb.',
     ] },
-    { kind: 'merksatz', title: 'Funktion lässt sich proben: Wortart-Probe und Verschiebeprobe machen Struktur sichtbar.', quelle: 'Gallmann 2015 · Hoffmann/Leimbrink' },
+    { kind: 'merksatz', title: 'Die Wortart folgt der Funktion, nicht der Bedeutung – und die Funktion lässt sich proben.' },
   ],
 }
 

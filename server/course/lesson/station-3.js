@@ -80,20 +80,23 @@ export const entwurf3 = {
   belege: ['schuetze-2018', 'vonbrand-2010', 'klp-deutsch-sek1-g9-2019', 'klp-deutsch-sek2-2025', 'script-leitfaden-2020'],
 }
 
+// Beamer stützt Einstieg + Plenums-Auftakt (Werkzeug modellieren) + Sicherung.
+// Fachbegriffe/Merksatz wie im AB; Slot-Kontrast an einem frischen Nomen
+// („Antrag") statt „Entscheidung treffen/fällt" (= AB-Sek-II-Aufgabe 3).
 export const beamer3 = {
   slides: [
-    { kind: 'title', kicker: 'Signifikation · Kurs · Station ③', title: 'Wer hängt an wem?', lead: '„Er trifft eine Entscheidung." / „Die Entscheidung fällt." – gleicher Wortschatz, andere Verben. Warum?' },
-    { kind: 'bullets', kicker: 'Slot-Kontrast', title: 'Derselbe Wortschatz – zwei Rollen', bullets: [
-      '„Er trifft [eine Entscheidung]O." → Entscheidung = Objekt → treffen / fällen.',
-      '„[Die Entscheidung]S fällt morgen." → Entscheidung = Subjekt → fällt / ergeht.',
+    { kind: 'title', kicker: 'Signifikation · Kurs · Station ③', title: 'Wer hängt an wem?', lead: '„einen Antrag stellen" – aber „der Antrag scheitert". Gleicher Wortschatz, andere Verben. Warum?' },
+    { kind: 'bullets', kicker: 'Das Werkzeug', title: 'Derselbe Wortschatz – zwei Rollen', bullets: [
+      '„Sie stellt [einen Antrag]O." → Antrag im Objekt-Slot → stellen / einbringen.',
+      '„[Der Antrag]S scheitert." → Antrag im Subjekt-Slot → scheitern / eingehen.',
       'S/P/O mit Buchstaben-Label (nicht nur Farbe – wer die Farbe nicht sieht, sieht das Label).',
     ] },
-    { kind: 'bullets', kicker: 'Dependenz (Sek II)', title: 'Kopf und Dependent', bullets: [
-      'treffen → Entscheidung (Verb regiert sein Objekt: Kopf → Dependent).',
-      'Slot = grammatische Rolle, die das Nomen im Satz einnimmt.',
+    { kind: 'bullets', kicker: 'Das Werkzeug', title: 'Kopf und Dependent', bullets: [
+      'stellen → Antrag: das Verb regiert sein Objekt (Kopf → Dependent).',
+      'Slot = die grammatische Rolle, die das Nomen im Satz einnimmt.',
       'Slot-Wechsel (Objekt ↔ Subjekt) → anderer typischer Verbpartner.',
     ] },
-    { kind: 'merksatz', title: 'Kollokationen sind nicht nur Wortpaare – sie sitzen in grammatischen Slots.', quelle: 'Schütze 2018' },
+    { kind: 'merksatz', title: 'Kollokationen sind nicht nur Wortpaare – sie sitzen in grammatischen Slots.' },
   ],
 }
 

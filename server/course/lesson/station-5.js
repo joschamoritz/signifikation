@@ -83,12 +83,13 @@ export const entwurf5 = {
  */
 export const beamer5 = {
   slides: [
-    { kind: 'title', kicker: 'Signifikation · Kurs · Station ⑤', title: 'Belegen statt raten', lead: '„starker Regen" oder „strömender Regen"? Stimmte dein Bauchgefühl – und was sagt das Korpus?' },
-    { kind: 'bullets', kicker: 'Der Forschungszyklus', title: 'Vier Schritte zur Antwort', bullets: [
+    { kind: 'title', kicker: 'Signifikation · Kurs · Station ⑤', title: 'Eine Frage an die Sprache', lead: '„starker Regen" oder „strömender Regen"? Stimmte dein Bauchgefühl – und was sagt das Korpus?' },
+    { kind: 'bullets', kicker: 'Der Forschungszyklus', title: 'Fünf Schritte zur Antwort', bullets: [
       '① Hypothese: Was vermutest du – vor dem Blick ins Profil?',
       '② Prüfen: Top-Verbindungen + Werte im Kurs-Tab nachschlagen.',
-      '③ Deuten: Stimmt die Hypothese? Was überrascht dich?',
-      '④ Stellung nehmen: Beleg schlägt Bauchgefühl – oder auch nicht?',
+      '③ Befund: Was zeigen die Daten – unabhängig von der Vermutung?',
+      '④ Deuten: Hypothese bestätigt oder widerlegt? Was überrascht?',
+      '⑤ Stellung nehmen: begründet und datengestützt.',
     ] },
     // Datenfolie live aus wortprofil.db (Regen-Profil, insertAfter 1).
     { kind: 'bullets', kicker: 'Methodenkritik (wwLz, LK)', title: 'Beleg ≠ Wahrheit', bullets: [
@@ -96,7 +97,7 @@ export const beamer5 = {
       'Beispiel: „Diskussion eröffnen" sehr stark – weil das Korpus viele Plenarprotokolle enthält.',
       'Niedrige Frequenz = weniger belastbar. Homonyme verzerren. Befund ist eine Korpus-Sicht, keine Naturwahrheit.',
     ] },
-    { kind: 'merksatz', title: 'Belegen statt raten – aber Belege sind immer Korpus-Sichten, keine Wahrheiten.', quelle: 'Bubenhofer 2015' },
+    { kind: 'merksatz', title: 'Ein Befund zählt mehr als eine Meinung – aber nur, wenn man ihn deutet.' },
   ],
   dataFrom: {
     itemId: 's5-f3-befund-deuten-sek2',
