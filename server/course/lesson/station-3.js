@@ -32,7 +32,7 @@ export const entwurf3 = {
     wwlz: 'Die SuS beurteilen den Nutzen von Strukturwissen, indem sie einschätzen, was die Slot-Perspektive für das Verstehen von Kollokationen über die bloße Wortliste hinaus leistet.',
     kompetenzbezug: 'KLP Deutsch Sek I (G9) 2019, Inhaltsfeld 1 Sprache – Satzebene: Satzglieder, Satzbaupläne. KLP Deutsch Sek II 2025, Inhaltsfeld Sprache – syntaktische Aspekte; semantische und pragmatische Aspekte.',
   },
-  begruendungStunde: 'Der Einstieg nutzt den Kontrast „Er trifft eine Entscheidung" / „Die Entscheidung fällt" als kognitiven Konflikt: gleicher Wortschatz, andere Verben – warum? Das erzeugt den Bedarf für die Slot-Analyse. Die Erarbeitung führt Satzglieder (Sek I) und Kopf-Dependent (Sek II) am selben Beispiel ein; die Plateaubildung sichert die Frageprobe als Werkzeug für alle Niveaus. S/P/O-Labels statt Farbcodierung entsprechen §5 (Bedeutung nie nur über Farbe).',
+  begruendungStunde: 'Die Stunde trennt die beiden Medien in zwei konzentrierte Blöcke, statt sie zu verzahnen – so entfällt der lernhemmende Medienwechsel mitten in der Bearbeitung (Kurs-Didaktik-Standards §5). Der Einstieg nutzt den Kontrast „Er trifft eine Entscheidung" / „Die Entscheidung fällt" als kognitiven Konflikt (gleicher Wortschatz, andere Verben → Bedarf für die Slot-Analyse). Das begleitende Arbeitsblatt trägt danach die Erarbeitung: Satzglieder + operationale Proben (Sek I) und Valenz/Dependenz Kopf–Dependent (Sek II) werden – nach kurzem Plenums-Auftakt – strukturiert erarbeitet und erstmals angewandt. Die digitale Station übernimmt die vertiefte Anwendung (S/P/O bestimmen, Kopf-Dependent markieren, Slot bestimmen) als eigener Block. S/P/O-Labels statt Farbcodierung entsprechen §5 (Bedeutung nie nur über Farbe).',
 
   verlauf: [
     {
@@ -42,22 +42,22 @@ export const entwurf3 = {
       ],
     },
     {
-      phase: 'II Stundenmitte — Erarbeitung', anteil: 'Anteil 3',
+      phase: 'II Stundenmitte — Erarbeitung (Arbeitsblatt, am Stück)', anteil: 'Anteil 3',
       schritte: [
-        { schritt: 'Worked Example: „Das Gericht trifft eine Entscheidung." → Subjekt S / Prädikat P / Objekt O mit Buchstaben beschriften; Frageprobe einführen (Wer? / Was tut? / Wen/Was?).', kommentar: 'Buchstaben-Label statt Farbe (§5 Barrierearmut); Probe als Werkzeug für alle Niveaus.', interaktion: 'LSG', medien: 'Arbeitsblatt / Beamer' },
-        { schritt: 'Slot-Kontrast erarbeiten: Entscheidung als Objekt → treffen/fällen; als Subjekt → fällt/ergeht. Sek II: Kopf-Dependent-Kante zeichnen (Verb regiert Objekt).', kommentar: 'Kernbefund: gleiche Wortform, anderer Slot → anderer Verbpartner; Dependenz als formale Abbildung (Schütze 2018).', interaktion: 'Plenum → EA', medien: 'Beamer-Folie 2, Tafel' },
+        { schritt: 'Kurzer Plenums-Auftakt: „Das Gericht trifft eine Entscheidung." → S/P/O mit Buchstaben beschriften, Frageprobe einführen (Wer? / Was tut? / Wen-Was?).', kommentar: 'Modelliert das Werkzeug; Buchstaben-Label statt Farbe (§5 Barrierearmut).', interaktion: 'Plenum → LSG', medien: 'Beamer / Tafel' },
+        { schritt: 'Begleit-Arbeitsblatt durchgehend bearbeiten: Wissensblöcke (Satzglieder + operationale Proben; Valenz/Dependenz Kopf–Dependent; „der Slot bestimmt den Partner"), Merksatz, dann die eigenen Aufgaben – differenziert nach Niveau.', kommentar: 'Neu erlernen + erste Anwendung auf Papier, am Stück; das Satzglied-/Dependenz-Wissen bleibt als Referenz. Belege (Gallmann, Lehmkuhle, Schütze, Ágel).', interaktion: 'EA → Partnerarbeit', medien: 'Arbeitsblatt (Wissen + Aufgaben)' },
       ],
     },
     {
-      phase: 'II Stundenmitte — Plateaubildung', anteil: 'Anteil 2',
+      phase: 'II Stundenmitte — Plateaubildung', anteil: 'Anteil 1',
       schritte: [
-        { schritt: 'Tafelbild: Frageprobe (Wer? → S; Was tut? → P; Wen/Was? → O) + Slot-Übersicht sichern.', kommentar: 'Plateau: alle können mit dem Werkzeug weiterarbeiten, bevor die differenzierte Anwendung beginnt.', interaktion: 'Plenum', medien: 'Tafel' },
+        { schritt: 'Plenums-Sicherung: Frageprobe (Wer?→S; Was tut?→P; Wen/Was?→O) + Slot-Übersicht (Objekt- vs. Subjekt-Slot); zentrale AB-Ergebnisse vergleichen.', kommentar: 'Plateau: alle für die Anwendungsphase arbeitsfähig; Übergang vom Papier zum Gerät.', interaktion: 'Plenum', medien: 'Tafel' },
       ],
     },
     {
-      phase: 'II Stundenmitte — Anwendung', anteil: 'Anteil 2',
+      phase: 'II Stundenmitte — Anwendung (digitale Station, am Stück)', anteil: 'Anteil 2',
       schritte: [
-        { schritt: 'AB differenziert: Sek I F1–F2 (Satzglieder mit S/P/O beschriften, Rolle von Nomen bestimmen); Sek II F3–F5 (Kante zeichnen, Slot-Wechsel-Analyse, Brücke zu ④ Korpus).', kommentar: 'Differenzierung: Sek I bis Satzglied-Bestimmung; Sek II bis Dependenz-Darstellung + Slot-Erklärung.', interaktion: 'Partnerarbeit', medien: 'Arbeitsblatt (differenziert)' },
+        { schritt: 'Digitale Station ③ im Kurs-Tab durchgehend: Satzglieder S/P/O bestimmen, Kopf-Dependent markieren, den Slot bestimmen – mit Sofort-Feedback.', kommentar: 'Vertiefte Anwendung der gesicherten Werkzeuge als eigener Block; die App prüft die Bestimmung unmittelbar. Nach dem AB, kein Medienwechsel mitten in der Bearbeitung.', interaktion: 'Einzel-/Partnerarbeit', medien: 'Kurs-Tab (digitale Station)' },
       ],
     },
     {
@@ -71,7 +71,8 @@ export const entwurf3 = {
 
   anhang: [
     'Antizipiertes Tafelbild: Frageprobe-Tabelle (Wer?→S / Was tut?→P / Wen/Was?→O) + Slot-Kontrast „Entscheidung" (Objekt: treffen/fällen; Subjekt: fällt/ergeht).',
-    'Material: Arbeitsblatt + Erwartungshorizont (Sek I / Sek II); Buchstaben-Label S/P/O (nicht nur Farbe).',
+    'Material: begleitendes Arbeitsblatt (Wissen + eigene Aufgaben) + Erwartungshorizont (aus demselben Content-Modell) + Beamer-Folien; digitale Station ③ im Kurs-Tab. Buchstaben-Label S/P/O (nicht nur Farbe).',
+    'Zusammenspiel der Medien (zwei getrennte Blöcke, kein Wechsel mitten in der Bearbeitung): Arbeitsblatt = Erarbeitung (Satzglieder/Proben + Dependenz sichern + erste Anwendung); digitale Station = vertiefte Anwendung (S/P/O, Kopf-Dependent, Slot interaktiv).',
     'Differenzierung: Sek I bis Satzglied-Bestimmung + Nomen-Rolle; Sek II bis Kopf-Dependent + Slot-Wechsel.',
     'Reihenbezug: Station ② (Wortart-Baupläne) → ③ (Slots) → ④ (Korpus misst Slot-Besetzungen).',
   ],

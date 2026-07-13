@@ -35,7 +35,7 @@ export const entwurf4 = {
     wwlz: 'Die SuS reflektieren kritisch Chancen und Grenzen quantitativer Sprachanalyse, indem sie beurteilen, was eine Assoziationszahl über Sprache aussagt – und was nicht (Bedeutung, Kontext, Stilwert) – und wie Korpuswahl und Annotationsfehler den Befund prägen.',
     kompetenzbezug: 'KLP Deutsch Sek II 2025, Inhaltsfeld Sprache: Verhältnis von Sprache, Denken und Wirklichkeit; wissenschaftspropädeutische Reflexion; semantische und pragmatische Aspekte.',
   },
-  begruendungStunde: 'Der Einstieg nutzt eine Schätzfrage (Haar-Adjektive: häufigste vs. typischste), die fast alle SuS falsch beantworten – der Überraschungseffekt motiviert das Bedürfnis nach einem Mess-Instrument. Die Erarbeitung macht die App-Pipeline sichtbar (Grundform → Wortart → Abhängigkeit → Zählen → logDice) und führt das Maß ein; die Dependenz-Stufe knüpft an ③ an (die Maschine macht automatisch, was dort von Hand geübt wurde). Die Plateaubildung sichert das Grobraster (häufig ≠ typisch; logDice = Bindungsmaß). Die Daten-Folie im Beamer wird live aus der Datenbank gefüllt (keine harten Zahlen im Code). Das wwLz wird durch die Reflexionsphase gesichert: Was sagt die Zahl nicht – und wo irrt die Maschine (Annotation, Korpus-Bias)?',
+  begruendungStunde: 'Die Stunde trennt die beiden Medien in zwei konzentrierte Blöcke, statt sie zu verzahnen – so entfällt der lernhemmende Medienwechsel mitten in der Bearbeitung (Kurs-Didaktik-Standards §5). Der Einstieg nutzt eine Schätzfrage (Haar-Adjektive: häufigste vs. typischste), die fast alle SuS falsch beantworten – der Überraschungseffekt motiviert das Bedürfnis nach einem Mess-Instrument. Das begleitende Arbeitsblatt trägt die Erarbeitung: die App-Pipeline (Grundform → Wortart → Abhängigkeit(③) → Zählen → logDice) und das Maß werden – nach kurzem Plenums-Auftakt – strukturiert erarbeitet und erstmals angewandt (LK mit voller Formel). Die digitale Station übernimmt die vertiefte Anwendung am echten Korpus (Konkordanz, Annotationsfehler, häufig-vs-typisch) als eigener Block; die Live-Datenfolie kommt aus der Datenbank (keine harten Zahlen im Code). Das wwLz wird durch die Reflexionsphase gesichert: Was sagt die Zahl nicht – und wo irrt die Maschine (Annotation, Korpus-Bias)?',
 
   verlauf: [
     {
@@ -45,22 +45,22 @@ export const entwurf4 = {
       ],
     },
     {
-      phase: 'II Stundenmitte — Erarbeitung', anteil: 'Anteil 3',
+      phase: 'II Stundenmitte — Erarbeitung (Arbeitsblatt, am Stück)', anteil: 'Anteil 3',
       schritte: [
-        { schritt: 'Pipeline sichtbar machen: Rohtext (freie Korpora) → Grundform (Lemmatisierung) → Wortart → Abhängigkeit (Dependenz, Brücke zu ③) → Kookkurrenz entlang der Kanten zählen.', kommentar: 'Konzeptuelle Basis; erklärt rückblickend ①–③ (Woher kamen unsere Daten?). Die Dependenz-Stufe zeigt: die Maschine macht automatisch, was in ③ von Hand geübt wurde – darum zählt sie „Entscheidung treffen" auch über Distanz.', interaktion: 'Plenum', medien: 'Beamer-Folie 2 (Pipeline)' },
-        { schritt: 'logDice als Bindungsmaß einführen: „nicht wie oft – sondern wie exklusiv". Formel: 14 + log₂(2·f(A,B)/(f(A)+f(B))). Sek II: Bestandteile + Verhältnis benennen; LK: log₂ + Obergrenze 14 deuten.', kommentar: 'Kerneinsicht: exklusive Verbindung → hoher Wert; häufige-aber-beliebige Verbindung → niedrig. Lüdeling/Walter 2009; Bubenhofer 2015.', interaktion: 'Plenum → EA', medien: 'Beamer-Folie 3 (logDice-Strecke)' },
+        { schritt: 'Kurzer Plenums-Auftakt: App-Pipeline sichtbar machen (Rohtext → Grundform → Wortart → Abhängigkeit (③) → Kookkurrenz zählen → logDice) und das Maß einführen („nicht wie oft – sondern wie exklusiv").', kommentar: 'Konzeptueller Rahmen; erklärt rückblickend ①–③. Die Dependenz-Stufe zeigt: die Maschine macht automatisch, was in ③ von Hand geübt wurde. Lüdeling/Walter 2009; Bubenhofer 2015.', interaktion: 'Plenum', medien: 'Beamer-Folien 2–3 (Pipeline, logDice)' },
+        { schritt: 'Begleit-Arbeitsblatt durchgehend bearbeiten: Wissensblöcke (Korpus/Pipeline; Frequenz vs. Assoziationsmaß; Korpus-Bias; LK: logDice-Formel), Merksatz, dann die eigenen Aufgaben – differenziert nach Niveau.', kommentar: 'Neu erlernen + erste Anwendung auf Papier, am Stück; Formel/Grenzen bleiben als Referenz. DaZ/SekI ohne logDice-Term, LK mit voller Formel.', interaktion: 'EA → Partnerarbeit', medien: 'Arbeitsblatt (Wissen + Aufgaben)' },
       ],
     },
     {
-      phase: 'II Stundenmitte — Plateaubildung', anteil: 'Anteil 2',
+      phase: 'II Stundenmitte — Plateaubildung', anteil: 'Anteil 1',
       schritte: [
-        { schritt: 'Tafelbild: „häufig ≠ typisch" + Skala-Grobraster (didaktische Faustregel: ~10 typisch · ~7 erkennbar · niedrig zufällig). Auflösung der Schätzfrage.', kommentar: 'Plateau: alle können das Grobraster für die nachfolgende AB-Arbeit anwenden. Datenfaustregel ist didaktische Setzung, kein fester Grenzwert.', interaktion: 'Plenum', medien: 'Tafel / Beamer (Live-Daten)' },
+        { schritt: 'Plenums-Sicherung: „häufig ≠ typisch" + Skala-Grobraster (~10 typisch · ~7 erkennbar · niedrig zufällig); Auflösung der Schätzfrage (Live-Datenfolie).', kommentar: 'Plateau: alle für die Anwendungsphase arbeitsfähig; Übergang zum Gerät. Datenfaustregel ist didaktische Setzung, kein fester Grenzwert.', interaktion: 'Plenum', medien: 'Tafel / Beamer (Live-Daten)' },
       ],
     },
     {
-      phase: 'II Stundenmitte — Anwendung', anteil: 'Anteil 2',
+      phase: 'II Stundenmitte — Anwendung (digitale Station, am Stück)', anteil: 'Anteil 2',
       schritte: [
-        { schritt: 'AB differenziert: DaZ/SekI Pipeline qualitativ (Grundform · Annotation-Fehler · Konkordanz lesen); Sek II Dependenz-Kante · Tabelle lesen · häufig-vs-typisch · Formel-Bestandteile; LK Formel voll · Methodenkritik · Parser-Grenze · Korpus-Bias.', kommentar: 'DaZ/SekI bis Beobachtung ohne logDice; Sek II bis Maß + Formel-Bestandteile; LK bis Formellogik, Annotations- und Korpuskritik.', interaktion: 'Partnerarbeit', medien: 'Arbeitsblatt (differenziert)' },
+        { schritt: 'Digitale Station ④ im Kurs-Tab durchgehend: Konkordanz lesen, Annotationsfehler finden, Pipeline-Schritte ordnen, Frequenz vs. logDice vergleichen – mit Sofort-Feedback an echten Korpuswerten.', kommentar: 'Vertiefte Anwendung am realen Korpus als eigener Block; die App zeigt echte Werte. Nach dem AB, kein Medienwechsel mitten in der Bearbeitung.', interaktion: 'Einzel-/Partnerarbeit', medien: 'Kurs-Tab (digitale Station)' },
       ],
     },
     {
@@ -74,7 +74,8 @@ export const entwurf4 = {
 
   anhang: [
     'Antizipiertes Tafelbild: „häufig ≠ typisch" + Skala-Grobraster (~10 typisch · ~7 erkennbar) + Haar-Beispiel.',
-    'Material: Arbeitsblatt + Erwartungshorizont (Sek II / LK); Worked Example aus Haar-Tabelle (Frequenz vs. logDice).',
+    'Material: begleitendes Arbeitsblatt (Wissen + eigene Aufgaben) + Erwartungshorizont (aus demselben Content-Modell) + Beamer-Folien (Live-Datenfolie); digitale Station ④ im Kurs-Tab.',
+    'Zusammenspiel der Medien (zwei getrennte Blöcke, kein Wechsel mitten in der Bearbeitung): Arbeitsblatt = Erarbeitung (Pipeline/logDice sichern + erste Anwendung); digitale Station = vertiefte Anwendung (Konkordanz, Annotationsfehler, häufig-vs-typisch an echten Daten).',
     'Differenzierung: Sek II bis Urteil/Begründung; LK bis Formellogik + Methodenkritik (2 Dinge, die hoher logDice nicht garantiert).',
     'Beamer-Datenfolie wird zur Laufzeit aus wortprofil.db gefüllt (keine harten Zahlen im Code – Datenpolitik AP5).',
     'Reihenbezug: erklärt rückblickend ①–③ (Woher die Zahlen?); bereitet ⑤ (eigene Recherche) vor.',

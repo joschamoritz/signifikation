@@ -32,7 +32,7 @@ export const entwurf2 = {
     wwlz: 'Die SuS beurteilen den Nutzen operationaler Proben, indem sie erkennen, dass die Verschiebeprobe die Funktion nachweisbar macht, während eine auswendig gelernte Definition das nicht leistet.',
     kompetenzbezug: 'KLP Deutsch Sek I (G9) 2019, Inhaltsfeld 1 Sprache – Wort- und Satzebene: Wortarten unterscheiden, Satzglieder über Proben bestimmen. KLP Deutsch Sek II 2025, Inhaltsfeld Sprache – morphologische und syntaktische Aspekte.',
   },
-  begruendungStunde: 'Der Einstieg knüpft an die aus ① bekannten Kollokationen an und erzeugt über zwei Fragen den Lernbedarf: „Aus welchen Bausteinen?" (Wortarten) und „Wie erkennt man, was zusammengehört?" (Satzglied/Funktion). Die Erarbeitung modelliert je ein Worked Example (Bauplan + Verschiebeprobe, Blaupause §5: CLT). Das Feldermodell wird nicht als Definition, sondern als entdeckendes, falsifizierbares Verfahren eingeführt (Verb an Position 2; nur ein vollständiges Satzglied geht ins Vorfeld – „Regel die" o. Ä. scheitert sichtbar). Die Plateaubildung sichert beide Proben für alle, bevor die differenzierte Anwendung folgt. Das Form-vs-Funktion-Aha bei „Kritik üben" verankert das Sek-II-Ziel als kognitive Überraschung.',
+  begruendungStunde: 'Die Stunde trennt die beiden Medien in zwei konzentrierte Blöcke, statt sie zu verzahnen – so entfällt der lernhemmende Medienwechsel mitten in der Bearbeitung (Kurs-Didaktik-Standards §5). Das begleitende Arbeitsblatt trägt die Erarbeitung: Wortart- und Feldermodell-Wissen werden – nach kurzer Plenums-Einführung der beiden Proben – strukturiert erarbeitet und erstmals angewandt. Die Verschiebeprobe wird dabei als falsifizierbares Verfahren eingeführt (finites Verb an Position 2; „Regel die" scheitert sichtbar), nicht als Definition (Gallmann 2015). Die digitale Station übernimmt danach die vertiefte Anwendung (Wortart/Bauplan bestimmen, Verschiebeprobe interaktiv) als eigener, ununterbrochener Block. Das Form-vs-Funktion-Aha bei „Kritik üben" verankert das Sek-II-Ziel als kognitive Überraschung.',
 
   verlauf: [
     {
@@ -42,22 +42,22 @@ export const entwurf2 = {
       ],
     },
     {
-      phase: 'II Stundenmitte — Erarbeitung', anteil: 'Anteil 3',
+      phase: 'II Stundenmitte — Erarbeitung (Arbeitsblatt, am Stück)', anteil: 'Anteil 3',
       schritte: [
-        { schritt: 'Worked Example A: „scharfe Kritik" → scharf = Adjektiv, Kritik = Nomen → Bauplan Adjektiv+Nomen.', kommentar: 'Modelliert die Wortart-Bestimmung vor der ersten Übung (CTML: Worked Example).', interaktion: 'LSG', medien: 'Beamer-Folie 2 (Baupläne)' },
-        { schritt: 'Feldermodell einführen: das finite Verb steht fest an Position 2 (linke Satzklammer); davor das Vorfeld. Worked Example B (Verschiebeprobe): „Der Lehrer erklärt heute die Regel." – nacheinander „heute" / „die Regel" ins Vorfeld schieben; das Verb bleibt an Position 2. „Regel die" scheitert → kein Satzglied.', kommentar: 'Operationalisiert „Funktion im Satz" als falsifizierbares Verfahren (Gallmann 2015, Abs. 3.2); macht Satzglied-Grenzen sichtbar statt sie zu behaupten.', interaktion: 'Plenum → LSG', medien: 'Beamer-Folie 3 (Feldermodell), Tafel' },
+        { schritt: 'Kurzer Plenums-Auftakt beider Proben: Bauplan „scharfe Kritik" (Adj+Nomen) und Verschiebeprobe „Der Lehrer erklärt heute die Regel." (Verb an Position 2; „Regel die" scheitert → kein Satzglied).', kommentar: 'Modelliert die beiden Werkzeuge, bevor die SuS selbst arbeiten; operationalisiert „Funktion" als falsifizierbares Verfahren (Gallmann 2015).', interaktion: 'Plenum → LSG', medien: 'Beamer-Folien 2–3' },
+        { schritt: 'Begleit-Arbeitsblatt durchgehend bearbeiten: Wissensblöcke (Wortarten-Systematik + Baupläne; topologisches Feldermodell mit Verschiebeprobe), Merksatz, dann die eigenen Aufgaben – differenziert nach Niveau.', kommentar: 'Neu erlernen + erste Anwendung auf Papier, am Stück; das Fachwissen bleibt als Referenz/Notiz. Belege als Fußnoten; Differenzierung über das Niveau-AB.', interaktion: 'EA → Partnerarbeit', medien: 'Arbeitsblatt (Wissen + Aufgaben)' },
       ],
     },
     {
-      phase: 'II Stundenmitte — Plateaubildung', anteil: 'Anteil 2',
+      phase: 'II Stundenmitte — Plateaubildung', anteil: 'Anteil 1',
       schritte: [
-        { schritt: 'Tafelbild sichern: Bauplan-Übersicht (Adj+N / V+N) + Feldermodell-Skizze (Vorfeld | linke Klammer | Mittelfeld | rechte Klammer) + zwei Proben („Was tut das Wort?" / „Lässt es sich als Ganzes ins Vorfeld schieben?").', kommentar: 'Plateau: beide Werkzeuge so sichern, dass ALLE die differenzierte Anwendung beginnen können.', interaktion: 'Plenum', medien: 'Tafel / Beamer' },
+        { schritt: 'Plenums-Sicherung: Bauplan-Übersicht (Adj+N / V+N) + Feldermodell-Skizze + beide Proben; zentrale AB-Ergebnisse vergleichen.', kommentar: 'Sichert ein gemeinsames Zwischenergebnis (Plateau), damit ALLE für die Anwendungsphase arbeitsfähig sind – Übergang vom Papier zum Gerät.', interaktion: 'Plenum', medien: 'Tafel / Beamer' },
       ],
     },
     {
-      phase: 'II Stundenmitte — Anwendung', anteil: 'Anteil 2',
+      phase: 'II Stundenmitte — Anwendung (digitale Station, am Stück)', anteil: 'Anteil 2',
       schritte: [
-        { schritt: 'AB differenziert: Sek I (Bausteine sortieren/markieren + Verschiebeprobe Satzglied); Sek II (Wortart über Funktion; Konstituenten-Verschiebeprobe an der Präpositionalphrase); LK (vollständige Feldanalyse mit Satzklammer; FVG-Grenzfall; Konversion).', kommentar: 'Differenzierung nach Niveau-AB; Verschiebeprobe und Feldanalyse staffeln die grammatische Tiefe.', interaktion: 'Partnerarbeit', medien: 'Arbeitsblatt (differenziert) / Kurs-Tab' },
+        { schritt: 'Digitale Station ② im Kurs-Tab durchgehend: Wortarten und Baupläne bestimmen, die Verschiebeprobe interaktiv anwenden – mit Sofort-Feedback.', kommentar: 'Vertiefte Anwendung der gesicherten Werkzeuge als eigener Block; die App prüft die Proben unmittelbar. Bewusst nach dem AB, kein Medienwechsel mitten in der Bearbeitung.', interaktion: 'Einzel-/Partnerarbeit', medien: 'Kurs-Tab (digitale Station)' },
       ],
     },
     {
@@ -72,7 +72,8 @@ export const entwurf2 = {
   anhang: [
     'Antizipiertes Tafelbild: Bauplan-Tabelle (Adj+N / V+N) + Feldermodell-Skizze (Vorfeld | linke Satzklammer | Mittelfeld | rechte Satzklammer) + zwei Proben.',
     'Verschiebeprobe (Gallmann 2015): Nur was sich als geschlossene Einheit ins Vorfeld verschieben lässt, ist ein Satzglied; das finite Verb bleibt an Position 2.',
-    'Material: Arbeitsblatt + Erwartungshorizont (Sek I / Sek II differenziert), Beamer-Folien.',
+    'Material: begleitendes Arbeitsblatt (Wissen + eigene Aufgaben) + Erwartungshorizont (aus demselben Content-Modell) + Beamer-Folien; digitale Station ② im Kurs-Tab.',
+    'Zusammenspiel der Medien (zwei getrennte Blöcke, kein Wechsel mitten in der Bearbeitung): Arbeitsblatt = Erarbeitung (Wortart-/Feldermodell-Wissen sichern + erste Anwendung); digitale Station = vertiefte Anwendung (Wortart/Bauplan bestimmen, Verschiebeprobe interaktiv).',
     'Differenzierung: Sek I bis „Bausteine + Satzglied per Verschiebeprobe"; Sek II bis „Wortart über Funktion + Konstituente"; LK bis „Feldanalyse mit Satzklammer + FVG/Konversion".',
     'LK-Scaffolding: Funktionsverbgefüge (FVG) vorab kurz einführen – festes Verb-Nomen-Gefüge, in dem das Verb semantisch verblasst und das Nomen den Inhalt trägt (z. B. „in Frage stellen", „zur Sprache bringen", „Kritik üben"). Die Aufgabe trägt die Definition zur Sicherheit selbst.',
     'Reihenbezug: Station ① (Kollokationen) → ② (Wortart-Baupläne + Feldermodell) → ③ (Slots/Dependenz).',
