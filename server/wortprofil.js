@@ -405,6 +405,154 @@ export async function fetchCollocationSample(lemma, pos = 'Substantiv', {
   return [...new Set(band)].sort((a, b) => a.localeCompare(b, 'de'))
 }
 
+// ── Syntagmatische Muster fürs Archiv (Bubenhofer 2015, S. 2) ─────────────────
+// Zeigt zu jedem Kollokator: Relations-/Musterbeschreibung, absolute Frequenz,
+// logDice (Signifikanz), Anteil an allen erfassten Verbindungen und die typische
+// Stellung des Kollokators relativ zum Lemma. WICHTIG: der Prozentwert ist der
+// Anteil UNTER DEN ERFASSTEN (min-count/min-dice-gefilterten) Kollokationen des
+// Lemmas – NICHT Bubenhofers Muster-Anteil (Anteil eines Musters an den Belegen
+// EINER Kollokation) und keine echte Korpus-Grundgesamtheit. Entsprechend
+// beschriften. Die Stellung ist grammatisch begründet (typische Wortstellung je
+// Relation), nicht korpusstatistisch gemessen – daher „typisch", kein Messwert.
+
+// Typische Stellung des Kollokators relativ zum Lemma, aus Sicht des Lemmas.
+// Berücksichtigt die Perspektive: bei inversen Relationen (~) ist das Lemma der
+// Dependent, der Kollokator der Kopf, deshalb dreht sich die Stellung.
+// Wortarten mit reichem Kollokationsprofil – als Netzknoten für sekundäre
+// Kollokatoren geeignet (Adverbien/Pronomen bewusst ausgenommen).
+const BASE_POS = new Set(['Substantiv', 'Verb', 'Adjektiv'])
+
+const REL_POSITION = {
+  // direkte Relationen: Lemma ist Kopf
+  ATTR:    'vor',       // geeignete Maßnahme – Adjektivattribut vor dem Nomen
+  GMOD:    'nach',      // Maßnahme der Regierung – Genitivattribut nachgestellt
+  KON:     'variabel',  // Koordination beidseitig
+  OBJA:    'variabel',  // Objekt im Mittelfeld, Stellung je nach Satzbau
+  OBJD:    'variabel',
+  SUBJA:   'variabel',  // Subjekt meist vor dem Verb, aber fokusabhängig
+  ADV:     'variabel',
+  PRED:    'nach',      // Kopula + Prädikativ nachgestellt
+  PP:      'nach',      // Präpositionalgruppe meist nachgestellt
+  // inverse Relationen: Lemma ist Dependent, Kollokator ist Kopf
+  '~ATTR':  'nach',     // Lemma=Adjektiv vor dem (Kollokator-)Nomen → Nomen danach
+  '~GMOD':  'vor',      // Kopfnomen vor dem Genitiv-Lemma → Kollokator davor
+  '~OBJA':  'variabel',
+  '~OBJD':  'variabel',
+  '~SUBJA': 'nach',     // Subjekt-Lemma, finites Verb (Kollokator) in V2 danach
+  '~ADV':   'variabel',
+}
+
+/**
+ * Syntagmatische Muster eines Lemmas fürs Archiv.
+ * Liefert die stärksten Kollokatoren über alle Relationen, angereichert mit
+ * frequency, logDice, Prozentanteil (an der Summe aller erfassten Frequenzen)
+ * und typischer Stellung. Deterministisch sortiert nach logDice (kein Shuffle →
+ * cache-/SSR-stabil). Bewusst OHNE Spiel-Bezug: es werden alle Relationen
+ * gemischt gezeigt, nicht das Runden-Lösungsset.
+ *
+ * @returns {{ total:number, patterns: Array<{
+ *   kollokator, pos, relation, muster, prep, frequency, logDice, anteil, stellung
+ * }> }}
+ */
+export function fetchSyntagmaticPatterns(lemma, pos = 'Substantiv', { limit = 10, minFreq = 5 } = {}) {
+  if (!VALID_POS.has(pos)) {
+    logger.warn({ lemma, pos }, 'fetchSyntagmaticPatterns: unbekannte POS')
+    return { total: 0, patterns: [] }
+  }
+  try {
+    const database = db()
+    const low = lemma.toLowerCase()
+    // Summe ALLER erfassten Frequenzen des Lemmas (Nenner für den Anteil).
+    const totalRow = database
+      .prepare('SELECT SUM(frequency) AS s FROM collocations WHERE lemma = ? AND pos = ?')
+      .get(low, pos)
+    const total = totalRow?.s || 0
+    // dep_pos != 'Pronomen': Funktionswörter (die/er/sie/wir …) sind zwar echte
+    // Subjekt-/Objekt-Kollokatoren, fürs Wörterbuch-Archiv aber Rauschen. Der
+    // Nenner `total` (oben) bleibt bewusst die volle erfasste Menge inkl.
+    // Pronomen → „Anteil an allen erfassten Verbindungen" bleibt korrekt.
+    const rows = database.prepare(`
+      SELECT relation, relation_description, dep_lemma, dep_pos, prep, frequency, logDice
+      FROM collocations
+      WHERE lemma = ? AND pos = ? AND frequency >= ? AND dep_pos != 'Pronomen'
+      ORDER BY logDice DESC
+      LIMIT ?
+    `).all(low, pos, minFreq, limit)
+
+    const patterns = rows.map((r) => ({
+      kollokator: normalizeLemma(r.dep_lemma, r.dep_pos),
+      pos:        r.dep_pos,
+      relation:   r.relation,
+      muster:     r.relation_description,
+      prep:       r.prep || '',
+      frequency:  r.frequency,
+      logDice:    Number(r.logDice.toFixed(2)),
+      anteil:     total ? Number((100 * r.frequency / total).toFixed(1)) : 0,
+      stellung:   REL_POSITION[r.relation] || 'variabel',
+    }))
+    return { total, patterns }
+  } catch (err) {
+    logger.warn({ err, lemma, pos }, 'fetchSyntagmaticPatterns fehlgeschlagen')
+    return { total: 0, patterns: [] }
+  }
+}
+
+/**
+ * Sekundäre Kollokatoren fürs Archiv (Kollokatoren der Kollokatoren, 1 Hop).
+ * Nimmt die stärksten `baseCount` Kollokatoren des Lemmas als Basis und fragt
+ * für jede Basis deren eigene stärkste `perBase` Kollokatoren ab. So wird das
+ * „Wortnetz" um ein Lemma sichtbar (z.B. Maßnahme → ergreifen → Initiative/
+ * Konsequenz …). Bewusst flach (1 Hop) und schmal (Top-2 Basis) gehalten, um
+ * die Zahl der Folgeabfragen klein zu halten (≈ 1 + baseCount Aufrufe).
+ *
+ * Das Ausgangs-Lemma wird aus den sekundären Treffern entfernt (sonst zeigt
+ * jede Basis nur auf das Lemma zurück). Basen ohne abfragbare POS (z.B.
+ * Pronomen) oder mehrwortige Kollokatoren werden übersprungen.
+ *
+ * @returns {Array<{ base:string, pos:string, relation:string,
+ *   collocates: Array<{ kollokator, pos, logDice, frequency }> }>}
+ */
+export function fetchSecondaryCollocates(lemma, pos = 'Substantiv', {
+  baseCount = 2,
+  perBase = 5,
+} = {}) {
+  const { patterns } = fetchSyntagmaticPatterns(lemma, pos, { limit: 12 })
+  const lemmaLow = lemma.toLowerCase()
+
+  // Basen: stärkste Kollokatoren mit abfragbarer POS + Einzelwort, dedupliziert.
+  // Nur Substantiv/Verb/Adjektiv als Netzknoten – Adverbien haben oft dünne,
+  // historisch verrauschte Kollokationsprofile (z.B. „dahin" → OCR-Varianten).
+  const bases = []
+  const seenBase = new Set()
+  for (const p of patterns) {
+    const key = p.kollokator.toLowerCase()
+    if (!BASE_POS.has(p.pos)) continue
+    if (p.kollokator.includes(' ')) continue
+    if (key === lemmaLow || seenBase.has(key)) continue
+    seenBase.add(key)
+    bases.push(p)
+    if (bases.length >= baseCount) break
+  }
+
+  const out = []
+  for (const base of bases) {
+    const { patterns: sub } = fetchSyntagmaticPatterns(base.kollokator, base.pos, { limit: perBase + 4 })
+    const collocates = []
+    const seen = new Set([lemmaLow, base.kollokator.toLowerCase()])
+    for (const s of sub) {
+      const key = s.kollokator.toLowerCase()
+      if (seen.has(key) || s.kollokator.includes(' ')) continue
+      seen.add(key)
+      collocates.push({ kollokator: s.kollokator, pos: s.pos, logDice: s.logDice, frequency: s.frequency })
+      if (collocates.length >= perBase) break
+    }
+    if (collocates.length) {
+      out.push({ base: base.kollokator, pos: base.pos, relation: base.relation, collocates })
+    }
+  }
+  return out
+}
+
 /**
  * Bonusfrage abrufen – Äquivalent zu dwds.js fetchBonusQuestion().
  */

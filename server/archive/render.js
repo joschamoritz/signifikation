@@ -14,6 +14,14 @@
 
 export const BASE_URL = 'https://signifikation.de'
 
+// Typische Stellung des Partnerworts relativ zum Stichwort (aus wortprofil.js
+// REL_POSITION) → lesbares Label fuer die Muster-Tabelle.
+const STELLUNG_LABEL = {
+  vor:      '‹ davor',
+  nach:     'danach ›',
+  variabel: '↔ frei',
+}
+
 /** HTML-Escape fuer Text-Knoten und Attribute. */
 export function escapeHtml(value) {
   return String(value ?? '')
@@ -133,16 +141,90 @@ function collocationBlurb(lemma, wortart) {
 }
 
 /**
+ * Muster-Tabelle: je Kollokator eine Zeile mit Beziehung, typischer Stellung,
+ * Anteil, absoluter Frequenz und logDice. patterns = fetchSyntagmaticPatterns().
+ * Enthaelt eine Kurz-Legende, die die Kennzahlen erklaert (Nutzer-Wunsch:
+ * „alle Kennzahlen, mit Erklaerung").
+ */
+function renderPatternTable(patterns) {
+  if (!patterns.length) return ''
+  const rows = patterns.map((p) => `      <tr>
+        <td class="arc-mt-koll">${escapeHtml(p.kollokator)}</td>
+        <td class="arc-mt-rel">${escapeHtml(p.muster)}${p.prep ? ` <span class="arc-mt-prep">(${escapeHtml(p.prep)})</span>` : ''}</td>
+        <td class="arc-mt-pos">${escapeHtml(STELLUNG_LABEL[p.stellung] || p.stellung)}</td>
+        <td class="arc-mt-num">${p.anteil}&#8239;%</td>
+        <td class="arc-mt-num">${p.frequency.toLocaleString('de-DE')}</td>
+        <td class="arc-mt-num">${p.logDice.toFixed(2)}</td>
+      </tr>`).join('\n')
+  return `<div class="arc-mt-scroll">
+    <table class="arc-muster-tabelle">
+      <thead><tr>
+        <th scope="col">Partnerwort</th>
+        <th scope="col">Beziehung</th>
+        <th scope="col">Stellung</th>
+        <th scope="col" class="arc-mt-num">Anteil</th>
+        <th scope="col" class="arc-mt-num">Frequenz</th>
+        <th scope="col" class="arc-mt-num">logDice</th>
+      </tr></thead>
+      <tbody>
+${rows}
+      </tbody>
+    </table>
+    </div>
+    <p class="arc-mt-legende"><strong>logDice</strong> misst die Stärke der Verbindung (höher = typischer, theoret. Maximum 14). <strong>Frequenz</strong> ist die absolute Häufigkeit der Verbindung im Korpus. <strong>Anteil</strong> ist der Anteil dieser Verbindung an allen erfassten Verbindungen des Stichworts. <strong>Stellung</strong> ist die typische Position des Partnerworts relativ zum Stichwort.</p>`
+}
+
+/**
+ * Wortnetz: sekundaere Kollokatoren (Kollokatoren der staerksten Kollokatoren).
+ * netz = fetchSecondaryCollocates().
+ */
+function renderWortnetz(lemma, netz) {
+  if (!netz.length) return ''
+  const items = netz.map((n) => `<li><span class="arc-netz-base">${escapeHtml(n.base)}</span> <span class="arc-netz-arrow" aria-hidden="true">→</span> ${n.collocates.map((c) => `<span class="arc-netz-word">${escapeHtml(c.kollokator)}</span>`).join(' · ')}</li>`).join('\n      ')
+  return `<section class="arc-block arc-netz">
+    <p class="arc-block-label">Wortnetz</p>
+    <p class="arc-netz-intro">Womit sich die stärksten Partnerwörter von „${escapeHtml(lemma)}" ihrerseits verbinden:</p>
+    <ul class="arc-netz-list">
+      ${items}
+    </ul>
+  </section>`
+}
+
+/**
+ * Ein einzelner Beleg als Keyword-in-Context (KWiC), wenn die Dreiteilung
+ * vorliegt; sonst als schlichtes Zitat. b = { satz, quelle, kwic? }.
+ */
+function renderBeleg(b) {
+  const quelle = b.quelle ? `<figcaption class="arc-beleg-quelle">${escapeHtml(b.quelle)}</figcaption>` : ''
+  if (b.kwic) {
+    return `<figure class="arc-beleg arc-kwic">
+      <div class="arc-kwic-line">
+        <span class="arc-kwic-left">${escapeHtml(b.kwic.left)}</span>
+        <span class="arc-kwic-key">${escapeHtml(b.kwic.keyword)}</span>
+        <span class="arc-kwic-right">${escapeHtml(b.kwic.right)}</span>
+      </div>
+      ${quelle}
+    </figure>`
+  }
+  return `<figure class="arc-beleg"><blockquote class="arc-beleg-satz">${escapeHtml(b.satz)}</blockquote>${quelle}</figure>`
+}
+
+/**
  * Einzelseite fuer ein Lemma: /wort/:slug
  * entry = Ergebnis von toPublicEntry(); siblings = [{ slug, lemma }] fuer interne Links.
  * extras = {
  *   thema?: { datum, text, quelle },        // Tagesthema (oeffentlich)
- *   belege?: [{ satz, quelle }],            // Korpus-Belegsaetze
- *   kollokationen?: string[],               // typische Kollokatoren OHNE die Top-Loesung
+ *   detail?: buildWortDetail(entry),        // { pos, total, patterns, netz, belege }
  * }
+ * detail.patterns  = syntagmatische Muster (Top-Kollokatoren mit Kennzahlen)
+ * detail.netz      = sekundaere Kollokatoren (Wortnetz)
+ * detail.belege    = KWiC-Belege ({ satz, quelle, tokens, kwic })
  */
 export function renderWortPage(entry, siblings = [], extras = {}) {
-  const { thema = null, belege = [], kollokationen = [] } = extras
+  const { thema = null, detail = null } = extras
+  const patterns = detail?.patterns || []
+  const netz = detail?.netz || []
+  const belege = detail?.belege || []
   const defs = entry.definitionen.length ? entry.definitionen : []
   const primaryDef = defs[0] || ''
   const title = `${entry.lemma}${entry.wortart ? ', ' + entry.wortart : ''} – Bedeutung | Signifikation`
@@ -186,20 +268,22 @@ export function renderWortPage(entry, siblings = [], extras = {}) {
   </section>`
     : ''
 
-  const kollSampleHtml = kollokationen.length
-    ? `<p class="arc-koll-intro">Im Korpus verbindet sich „${escapeHtml(entry.lemma)}" u. a. mit:</p>
-    <ul class="arc-koll-words">${kollokationen.map((w) => `<li>${escapeHtml(w)}</li>`).join('')}</ul>`
+  const musterHtml = patterns.length
+    ? `<p class="arc-muster-intro">Die typischsten Verbindungen von „${escapeHtml(entry.lemma)}" im Korpus (syntagmatische Muster):</p>
+    ${renderPatternTable(patterns)}`
     : ''
   const kollHtml = `<section class="arc-block arc-koll">
     <p class="arc-block-label">Kollokationen</p>
     <p>${collocationBlurb(entry.lemma, entry.wortart)}</p>
-    ${kollSampleHtml}
+    ${musterHtml}
   </section>`
+
+  const netzHtml = renderWortnetz(entry.lemma, netz)
 
   const belegeHtml = belege.length
     ? `<section class="arc-block arc-belege">
     <p class="arc-block-label">Aus dem Korpus</p>
-    ${belege.map((b) => `<figure class="arc-beleg"><blockquote class="arc-beleg-satz">${escapeHtml(b.satz)}</blockquote>${b.quelle ? `<figcaption class="arc-beleg-quelle">${escapeHtml(b.quelle)}</figcaption>` : ''}</figure>`).join('')}
+    ${belege.map(renderBeleg).join('')}
   </section>`
     : ''
 
@@ -222,6 +306,7 @@ export function renderWortPage(entry, siblings = [], extras = {}) {
   </article>
 ${themaHtml}
 ${kollHtml}
+${netzHtml}
 ${belegeHtml}
 ${relatedHtml}
 ${footer()}`

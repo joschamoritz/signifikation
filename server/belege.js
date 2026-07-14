@@ -242,12 +242,48 @@ export function fetchBelegeRaw(lemma, collocate, { limit = 20, prefixCollocate =
 }
 
 /**
+ * Zerlegt tokenisierte Wörter in KWiC-Kontext (Keyword in Context): den Bereich
+ * vor dem ersten hervorgehobenen Token, das Keyword selbst und den Bereich
+ * danach. Zusammenhängende hl-Tokens (z.B. mehrteilige Formen) zählen als ein
+ * Keyword. Gibt null zurück, wenn kein hervorgehobenes Token existiert (dann
+ * fällt der Aufrufer auf den ungeteilten Satz zurück).
+ *
+ * @returns {{left:string, keyword:string, right:string}|null}
+ */
+function splitKwic(tokens) {
+  const start = tokens.findIndex(t => t.hl)
+  if (start === -1) return null
+  let end = start
+  while (end + 1 < tokens.length && tokens[end + 1].hl) end++
+
+  // Tokens ab dem zweiten mit ihrem ws-Flag zu einem String fügen.
+  const join = (from, to) => {
+    let out = ''
+    for (let i = from; i <= to; i++) {
+      if (i > from && tokens[i].ws) out += ' '
+      out += tokens[i].w
+    }
+    return out
+  }
+  return {
+    left:    start > 0 ? join(0, start - 1) : '',
+    keyword: join(start, end),
+    right:   end + 1 < tokens.length ? join(end + 1, tokens.length - 1) : '',
+  }
+}
+
+/**
  * Belegsätze NUR für ein Lemma (ohne Kollokator) – für das SEO-Wort-Archiv.
  * Liefert die relevantesten Sätze deterministisch (kein Shuffle → stabil für
  * HTTP-Cache/SSR). Bewusst KEIN Kollokator-Match, damit hier kein Spiel-
  * Lösungsset entsteht; es sind authentische Korpus-Belege des Worts.
  *
- * @returns {Array<{satz:string, quelle:string}>}
+ * Zusätzlich zum Rohsatz werden Tokens (mit hl-Flag am Lemma) und die
+ * KWiC-Dreiteilung (left/keyword/right) geliefert, damit das Archiv den Beleg
+ * als Keyword-in-Context darstellen kann. Beides ist additiv – ältere Aufrufer,
+ * die nur satz/quelle lesen, bleiben unberührt.
+ *
+ * @returns {Array<{satz:string, quelle:string, tokens:Array, kwic:object|null}>}
  */
 export function fetchBelegeForLemma(lemma, { limit = 2 } = {}) {
   const s = stmts()
@@ -262,10 +298,16 @@ export function fetchBelegeForLemma(lemma, { limit = 2 } = {}) {
       seen.add(key)
       return true
     })
-    return unique.slice(0, limit).map(r => ({
-      satz: r.satz,
-      quelle: r.jahr ? `${r.zitation} · ${r.jahr}` : r.zitation,
-    }))
+    return unique.slice(0, limit).map(r => {
+      // collocate='' → nur das Lemma wird hervorgehoben (kein Spiel-Lösungswort).
+      const tokens = tokenize(r.satz, lemma, '')
+      return {
+        satz: r.satz,
+        quelle: r.jahr ? `${r.zitation} · ${r.jahr}` : r.zitation,
+        tokens,
+        kwic: splitKwic(tokens),
+      }
+    })
   } catch (err) {
     logger.warn({ err }, `Lemma-Belege-Suche fehlgeschlagen: ${lemma}`)
     return []

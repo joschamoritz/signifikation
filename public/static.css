@@ -345,6 +345,39 @@ nav.legal a:hover { color: #9b1c1c }
 .arc-koll-words li { font-family: 'Gentium Plus', Georgia, serif; font-size: 0.92rem; color: #1a1a18; background: #f3f1ed; border: 0.5px solid #e8e2d8; border-radius: 4px; padding: 3px 10px; }
 .arc-koll-words li::before { display: none; }
 
+/* ── Syntagmatische Muster-Tabelle ─────────────────────────── */
+.arc-muster-intro { margin-top: 14px; font-size: 0.9rem; color: #1a1a18; }
+/* Auf schmalen Screens horizontal scrollen statt den Body zu sprengen. */
+.arc-mt-scroll { margin-top: 10px; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.arc-muster-tabelle { border-collapse: collapse; width: 100%; font-family: 'DM Sans', system-ui, sans-serif; font-size: 0.82rem; }
+.arc-muster-tabelle th, .arc-muster-tabelle td { text-align: left; padding: 6px 10px 6px 0; border-bottom: 0.5px solid #e8e2d8; white-space: nowrap; }
+.arc-muster-tabelle thead th { font-size: 0.68rem; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: #8a7f6e; border-bottom-width: 0.9px; border-bottom-color: #d4c9b0; }
+.arc-mt-koll { font-family: 'Gentium Plus', Georgia, serif; font-size: 0.98rem; color: #1a1a18; }
+.arc-mt-rel { color: #4a4438; }
+.arc-mt-prep { color: #9b1c1c; }
+.arc-mt-pos { color: #8a7f6e; font-variant-numeric: tabular-nums; }
+.arc-muster-tabelle td.arc-mt-num, .arc-muster-tabelle th.arc-mt-num { text-align: right; font-variant-numeric: tabular-nums; color: #4a4438; }
+/* Höhere Spezifität als `.arc-block p` (0,1,1), damit die feine, gedämpfte
+   Legende nicht die Body-Größe/-Farbe erbt. */
+.arc-block p.arc-mt-legende { margin-top: 10px; font-family: 'DM Sans', system-ui, sans-serif; font-size: 0.72rem; line-height: 1.55; color: #8a7f6e; }
+.arc-mt-legende strong { color: #4a4438; font-weight: 600; }
+
+/* ── Wortnetz (sekundäre Kollokatoren) ─────────────────────── */
+.arc-netz-intro { margin-top: 0; font-size: 0.9rem; color: #1a1a18; }
+.arc-netz-list { list-style: none; padding: 0; margin: 10px 0 0; }
+.arc-netz-list li { margin: 0 0 8px; line-height: 1.6; }
+.arc-netz-list li::before { display: none; }
+.arc-netz-base { font-family: 'Gentium Plus', Georgia, serif; font-size: 1rem; color: #9b1c1c; }
+.arc-netz-arrow { color: #c9a84c; margin: 0 4px; }
+.arc-netz-word { font-family: 'DM Sans', system-ui, sans-serif; font-size: 0.86rem; color: #4a4438; }
+
+/* ── Belege als Keyword-in-Context (KWiC) ──────────────────── */
+.arc-kwic { padding-left: 0; border-left: none; }
+.arc-kwic-line { display: flex; align-items: baseline; gap: 6px; font-family: 'Gentium Plus', Georgia, serif; font-size: 1rem; line-height: 1.55; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.arc-kwic-left { flex: 1 1 0; text-align: right; color: #6a6058; white-space: nowrap; }
+.arc-kwic-key { flex: 0 0 auto; font-weight: 700; color: #9b1c1c; padding: 0 2px; }
+.arc-kwic-right { flex: 1 1 0; text-align: left; color: #6a6058; white-space: nowrap; }
+
 /* ── Dark Mode ────────────────────────────────────────────── */
 @media (prefers-color-scheme: dark) {
   body {
@@ -386,4 +419,18 @@ nav.legal a:hover { color: #9b1c1c }
   .arc-koll a, .arc-thema-quelle a { color: #e05555; }
   .arc-thema-quelle { color: #8a8070; }
   .arc-koll-words li { background: #2a2420; border-color: #3a3028; color: #f0ebe4; }
+
+  .arc-muster-intro, .arc-netz-intro { color: #f0ebe4; }
+  .arc-muster-tabelle th, .arc-muster-tabelle td { border-bottom-color: #3a3028; }
+  .arc-muster-tabelle thead th { color: #8a8070; border-bottom-color: #4a3f30; }
+  .arc-mt-koll { color: #f0ebe4; }
+  .arc-mt-rel, .arc-mt-num { color: #c0b8b0; }
+  .arc-mt-prep { color: #e05555; }
+  .arc-mt-pos { color: #8a8070; }
+  .arc-block p.arc-mt-legende { color: #8a8070; }
+  .arc-mt-legende strong { color: #c0b8b0; }
+  .arc-netz-base { color: #e05555; }
+  .arc-netz-word { color: #c0b8b0; }
+  .arc-kwic-left, .arc-kwic-right { color: #9a9088; }
+  .arc-kwic-key { color: #e05555; }
 }
