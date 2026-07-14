@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { getDailyMedal } from '../utils/gameLogic'
 import DayComplete from './DayComplete'
 import Sheet from './ui/Sheet'
