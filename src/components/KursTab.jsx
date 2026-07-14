@@ -254,7 +254,7 @@ function KursTab({ gesamtausgabe = false, loggedIn = false, onNavigateToKonto })
               className={`test-footnote-body${desktopInfoOpen ? ' open' : ''}`}
               role="region"
             >
-              <KursNote footnotesClass="test-footnote-footnotes" />
+              <KursNote footnotesClass="test-footnote-footnotes" loggedIn={loggedIn} />
             </div>
           </section>
 
@@ -306,7 +306,7 @@ function KursTab({ gesamtausgabe = false, loggedIn = false, onNavigateToKonto })
         </div>
         <Sheet.Body>
           <div className="info-sheet-body">
-            <KursNote footnotesClass="info-sheet-footnotes" />
+            <KursNote footnotesClass="info-sheet-footnotes" loggedIn={loggedIn} />
           </div>
         </Sheet.Body>
       </Sheet>

@@ -223,6 +223,42 @@
 }
 .course-note-niveau .course-niveau { margin-bottom: 0; }
 
+/* Kurs-Fortschritt zurücksetzen — in der Anm./Manicula direkt unter der
+   Niveau-Auswahl (nur eingeloggt, s. KursNote.jsx). Teilt sich Row/Label/Hint
+   mit dem Niveau-Umschalter; hier nur die Button-Optik. Eigener Namensraum
+   (course-note-reset-*), NICHT .course-reset-btn — die Klasse ist bereits vom
+   „Nochmal"-Button in TaskShell belegt (Text-Link-Optik, s. unten). */
+.course-note-reset {
+  margin-top: 12px;
+}
+.course-note-reset-confirm {
+  display: inline-flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.course-note-reset-btn {
+  font-family: var(--font-sans);
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text);
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 6px 12px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
+}
+.course-note-reset-btn:hover:not(:disabled) { border-color: var(--text); }
+.course-note-reset-btn:disabled { opacity: 0.5; cursor: default; }
+.course-note-reset-btn:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+.course-note-reset-btn--danger {
+  color: #fff;
+  background: var(--primary);
+  border-color: var(--primary);
+}
+.course-note-reset-btn--danger:hover:not(:disabled) { background: var(--primary-hi); border-color: var(--primary-hi); }
+
 .course-niveau-label {
   font-family: var(--font-serif);
   font-style: italic;
