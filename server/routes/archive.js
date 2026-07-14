@@ -15,8 +15,7 @@
 import express from 'express'
 import { getArchiveEntries, getArchiveEntry, getArchiveSiblings, getArchiveSlugs } from '../archive/index.js'
 import { renderWortPage, renderArchivIndex, renderSitemap, renderNotFound, slugifyLemma } from '../archive/render.js'
-import { fetchBelegeForLemma } from '../belege.js'
-import { fetchCollocationSample } from '../wortprofil.js'
+import { buildWortDetail } from '../archive/detail.js'
 import logger from '../logger.js'
 
 const router = express.Router()
@@ -48,20 +47,13 @@ router.get('/wort/:slug', async (req, res) => {
     if (!entry) {
       return res.status(404).type('html').set('Cache-Control', 'public, max-age=300').send(renderNotFound())
     }
-    // Korpus-Belege fuers Lemma (graceful: [] wenn belege.db fehlt). Bewusst
-    // ohne Kollokator → kein Spiel-Loesungsset.
-    const belege = fetchBelegeForLemma(entry.lemma, { limit: 2 })
-    // Kollokations-Stichprobe OHNE die Top-Loesung (siehe fetchCollocationSample).
-    // wortart kann Zusaetze tragen ("Substantiv, feminin") → erstes Wort als pos.
-    const pos = (entry.wortart || 'Substantiv').split(/[,\s/]/)[0] || 'Substantiv'
-    let kollokationen = []
-    try {
-      kollokationen = await fetchCollocationSample(entry.lemma, pos)
-    } catch (err) {
-      logger.warn({ err, lemma: entry.lemma }, 'Kollokations-Sample fehlgeschlagen')
-    }
+    // Vollständiges Detail-Datenpaket (syntagmatische Muster, Wortnetz, KWiC-
+    // Belege). Fehlertolerant: fehlt eine DB, bleiben die Blöcke leer, die Seite
+    // rendert trotzdem. Das Archiv zeigt nur vergangene Tage → die Top-
+    // Kollokatoren sind keine offene Lösung eines kommenden Spieltags.
+    const detail = buildWortDetail(entry, { patternLimit: 10, belegLimit: 2 })
     res.type('html').set('Cache-Control', CACHE_CONTROL)
-      .send(renderWortPage(entry, getArchiveSiblings(slug, 8), { thema: entry.thema, belege, kollokationen }))
+      .send(renderWortPage(entry, getArchiveSiblings(slug, 8), { thema: entry.thema, detail }))
   } catch (err) {
     logger.error({ err, slug: req.params.slug }, 'Wort-Seiten-Rendering fehlgeschlagen')
     res.status(500).type('html').send(renderNotFound())

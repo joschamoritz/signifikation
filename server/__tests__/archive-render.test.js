@@ -95,15 +95,30 @@ describe('renderWortPage', () => {
   })
 })
 
-describe('renderWortPage – Zusatzinhalt (Thema + Belege + Kollokationen)', () => {
+describe('renderWortPage – Zusatzinhalt (Thema + Muster + Wortnetz + KWiC-Belege)', () => {
   const entry = toPublicEntry({ lemma: 'Wasser', wortart: 'Substantiv', definitionen: ['H₂O'] }, ['2024-01-01'])
+  const detail = {
+    pos: 'Substantiv',
+    total: 1000,
+    patterns: [
+      { kollokator: 'trinken', pos: 'Verb', relation: '~OBJA', muster: 'ist Akkusativobjekt von', prep: '', frequency: 340, logDice: 9.42, anteil: 3.4, stellung: 'variabel' },
+      { kollokator: 'klar', pos: 'Adjektiv', relation: 'ATTR', muster: 'Adjektivattribut', prep: '', frequency: 210, logDice: 8.7, anteil: 2.1, stellung: 'vor' },
+    ],
+    netz: [
+      { base: 'trinken', pos: 'Verb', relation: '~OBJA', collocates: [
+        { kollokator: 'Bier', pos: 'Substantiv', logDice: 9.1, frequency: 120 },
+        { kollokator: 'Kaffee', pos: 'Substantiv', logDice: 8.8, frequency: 90 },
+      ] },
+    ],
+    belege: [
+      { satz: 'Das Wasser des Sees war klar.', quelle: 'Beispielkorpus 2019 · CC BY-SA',
+        kwic: { left: 'Das', keyword: 'Wasser', right: 'des Sees war klar.' } },
+      { satz: 'Ohne Wasser kein Leben.', quelle: 'Beispielkorpus 2020', kwic: null },
+    ],
+  }
   const html = renderWortPage(entry, [], {
     thema: { datum: '2025-03-22', text: 'Weltwassertag – warum Wasser knapp wird.', quelle: 'https://example.org/wasser' },
-    belege: [
-      { satz: 'Das Wasser des Sees war klar.', quelle: 'Beispielkorpus 2019 · CC BY-SA' },
-      { satz: 'Ohne Wasser kein Leben.', quelle: 'Beispielkorpus 2020' },
-    ],
-    kollokationen: ['fließend', 'klar', 'sauber'],
+    detail,
   })
   it('rendert das Tagesthema mit Datum, langer Beschreibung und Quelle', () => {
     expect(html).toContain('Thema des Tages')
@@ -111,28 +126,42 @@ describe('renderWortPage – Zusatzinhalt (Thema + Belege + Kollokationen)', () 
     expect(html).toContain('Weltwassertag – warum Wasser knapp wird.')
     expect(html).toContain('href="https://example.org/wasser"')
   })
-  it('rendert die Kollokations-Stichprobe als Wörter ohne Werte/Rang', () => {
-    expect(html).toContain('verbindet sich')
-    for (const w of ['fließend', 'klar', 'sauber']) expect(html).toContain(`<li>${w}</li>`)
-    // Die Chips selbst duerfen keine Zahlen (logDice/Rang) enthalten.
-    const chips = html.match(/<ul class="arc-koll-words">.*?<\/ul>/s)[0]
-    expect(chips).not.toMatch(/\d/)
+  it('rendert die Muster-Tabelle mit Kennzahlen + Legende', () => {
+    expect(html).toContain('syntagmatische Muster')
+    expect(html).toContain('<table class="arc-muster-tabelle">')
+    expect(html).toContain('trinken')
+    expect(html).toContain('ist Akkusativobjekt von')
+    expect(html).toContain('9.42')           // logDice
+    expect(html).toContain('3.4&#8239;%')     // Anteil
+    expect(html).toContain('davor')           // Stellung 'vor'
+    expect(html).toContain('logDice</strong> misst') // Legende
   })
-  it('rendert Korpus-Belege mit Quelle', () => {
+  it('rendert das Wortnetz (sekundäre Kollokatoren)', () => {
+    expect(html).toContain('Wortnetz')
+    expect(html).toContain('arc-netz-base')
+    for (const w of ['Bier', 'Kaffee']) expect(html).toContain(w)
+  })
+  it('rendert Belege als KWiC (Keyword zentriert) mit Quelle', () => {
     expect(html).toContain('Aus dem Korpus')
-    expect(html).toContain('Das Wasser des Sees war klar.')
+    expect(html).toContain('arc-kwic-key')
+    expect(html).toContain('des Sees war klar.')
     expect(html).toContain('Beispielkorpus 2019 · CC BY-SA')
+    // Beleg ohne kwic fällt auf schlichtes Zitat zurück.
+    expect(html).toContain('Ohne Wasser kein Leben.')
   })
   it('escaped Beleg-Inhalt (kein HTML-Durchschlag)', () => {
-    const evil = renderWortPage(entry, [], { belege: [{ satz: '<img src=x onerror=alert(1)>', quelle: '<b>x</b>' }] })
+    const evil = renderWortPage(entry, [], { detail: { patterns: [], netz: [], belege: [
+      { satz: '<img src=x onerror=alert(1)>', quelle: '<b>x</b>', kwic: null },
+    ] } })
     expect(evil).not.toContain('<img src=x')
     expect(evil).toContain('&lt;img src=x')
   })
-  it('laesst Thema/Belege/Kollokationen weg, wenn nicht vorhanden', () => {
+  it('laesst Thema/Muster/Wortnetz/Belege weg, wenn nicht vorhanden', () => {
     const bare = renderWortPage(entry)
     expect(bare).not.toContain('Thema des Tages')
     expect(bare).not.toContain('Aus dem Korpus')
-    expect(bare).not.toContain('verbindet sich')
+    expect(bare).not.toContain('syntagmatische Muster')
+    expect(bare).not.toContain('Wortnetz')
   })
 })
 

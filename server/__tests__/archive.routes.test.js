@@ -31,12 +31,21 @@ vi.mock('../store.js', () => ({
 
 vi.mock('../belege.js', () => ({
   fetchBelegeForLemma: vi.fn((lemma) =>
-    lemma === 'Öl' ? [{ satz: 'Das Öl floss langsam.', quelle: 'Testkorpus 2018 · CC BY-SA' }] : []),
+    lemma === 'Öl'
+      ? [{ satz: 'Das Öl floss langsam.', quelle: 'Testkorpus 2018 · CC BY-SA',
+          kwic: { left: 'Das', keyword: 'Öl', right: 'floss langsam.' } }]
+      : []),
 }))
 
 vi.mock('../wortprofil.js', () => ({
-  fetchCollocationSample: vi.fn(async (lemma) =>
-    lemma === 'Öl' ? ['flüssig', 'zähflüssig'] : []),
+  fetchSyntagmaticPatterns: vi.fn((lemma) =>
+    lemma === 'Öl'
+      ? { total: 500, patterns: [
+          { kollokator: 'flüssig', pos: 'Adjektiv', relation: 'ATTR', muster: 'Adjektivattribut', prep: '', frequency: 210, logDice: 9.1, anteil: 4.2, stellung: 'vor' },
+          { kollokator: 'zähflüssig', pos: 'Adjektiv', relation: 'ATTR', muster: 'Adjektivattribut', prep: '', frequency: 80, logDice: 8.3, anteil: 1.6, stellung: 'vor' },
+        ] }
+      : { total: 0, patterns: [] }),
+  fetchSecondaryCollocates: vi.fn(() => []),
 }))
 
 const { default: archiveRouter } = await import('../routes/archive.js')
@@ -72,15 +81,18 @@ describe('SEO-Archiv-Routen', () => {
     }
   })
 
-  it('zeigt Tagesthema (mit Datum), Korpus-Beleg und Kollokations-Stichprobe', async () => {
+  it('zeigt Tagesthema (mit Datum), KWiC-Beleg und Muster-Tabelle', async () => {
     const html = await (await fetch(`${baseUrl}/wort/oel`)).text()
     expect(html).toContain('Tag des Öls')
     expect(html).toContain('14. März 2020') // Datum des Auftretens
     expect(html).toContain('Aus dem Korpus')
-    expect(html).toContain('Das Öl floss langsam.')
+    // KWiC-Beleg: Satz in Spans zerlegt (left | keyword | right).
+    expect(html).toContain('arc-kwic-key')
+    expect(html).toContain('floss langsam.')  // rechter KWiC-Kontext
     expect(html).toContain('Testkorpus 2018 · CC BY-SA')
-    expect(html).toContain('<li>flüssig</li>')
-    expect(html).toContain('<li>zähflüssig</li>')
+    expect(html).toContain('<table class="arc-muster-tabelle">')
+    expect(html).toContain('flüssig')
+    expect(html).toContain('zähflüssig')
   })
 
   it('indexiert KEINE rein zukuenftigen Lemmata', async () => {
