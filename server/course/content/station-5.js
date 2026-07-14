@@ -25,7 +25,7 @@
 const STATION = {
   id: 's5',
   orderNo: 5,
-  title: 'Belegen statt raten',
+  title: 'Korpusbelege',
   ipa: 'ʁeˈʃɛʁʃə',
   category: 'wortprofil',
   beamerConfig: { slideTracks: ['logdice'] },

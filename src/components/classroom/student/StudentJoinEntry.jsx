@@ -19,27 +19,19 @@ import { navigate } from '../routing'
 import KioskShell from './KioskShell'
 import TabHeader from '../../TabHeader'
 import Sheet from '../../ui/Sheet'
+import JoinCodeForm from './JoinCodeForm'
 import { useActiveSnapCard } from '../../../hooks/useActiveSnapCard'
+import { useSwipeHint } from '../../../hooks/useSwipeHint'
 import { peekKioskSession } from './hooks/useStudentSession'
 import ClassroomStudentNote from './ClassroomStudentNote'
 
-const QrScanner = lazy(() => import('./QrScanner'))
 const ClassroomTeacherDemo = lazy(() => import('../teacher/demo/ClassroomTeacherDemo'))
 
-function normalizeCode(raw) {
-  return String(raw || '')
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9-]/g, '')
-    .slice(0, 30)
-}
-
 export default function StudentJoinEntry({ initialNotice = null, embedded = false, onNavigateToKonto = null }) {
-  const [code, setCode]       = useState('')
   // Fehlerhinweis: explizit übergebener initialNotice (Tests) ODER ein von
   // NameState bei ungültigem Code hinterlegter, transienter sessionStorage-
   // Hinweis (einmalig lesen + löschen, damit er nach Reload nicht klebt).
-  const [error, setError]     = useState(() => {
+  const [initialError] = useState(() => {
     if (initialNotice) return initialNotice
     try {
       const n = sessionStorage.getItem('classroom:joinNotice')
@@ -47,15 +39,12 @@ export default function StudentJoinEntry({ initialNotice = null, embedded = fals
     } catch {}
     return null
   })
-  const [shake, setShake]     = useState(false)
-  const [scanning, setScanning] = useState(false)
   // Deep-Link von der Lehrer-Landingpage: /?tab=klassenraum&demo=1 öffnet die
   // login-freie Vorschau direkt (nur in der eingebetteten Tab-Ansicht).
   const [showDemo, setShowDemo] = useState(() => {
     if (!embedded || typeof window === 'undefined') return false
     try { return new URLSearchParams(window.location.search).get('demo') === '1' } catch { return false }
   })
-  const inputRef              = useRef(null)
 
   // Persistierte Sitzung einmalig beim Mount lesen (für die „Fortsetzen"-Karte).
   const [resume] = useState(() => (embedded ? peekKioskSession() : null))
@@ -71,51 +60,7 @@ export default function StudentJoinEntry({ initialNotice = null, embedded = fals
     const items = entriesRef.current?.querySelectorAll('.test-entry')
     items?.[i]?.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }, [])
-
-  function handleChange(e) {
-    const v = normalizeCode(e.target.value)
-    setCode(v)
-    if (error) setError(null)
-  }
-
-  function handlePaste(e) {
-    const txt = (e.clipboardData || window.clipboardData)?.getData('text') || ''
-    if (!txt) return
-    e.preventDefault()
-    setCode(normalizeCode(txt))
-  }
-
-  function go(raw) {
-    const c = normalizeCode(raw)
-    if (c.length < 4) {
-      setError('Zugangscode zu kurz.')
-      triggerShake()
-      return
-    }
-    navigate(`/c/${encodeURIComponent(c)}`)
-  }
-
-  function handleSubmit(e) {
-    e.preventDefault()
-    go(code)
-  }
-
-  function triggerShake() {
-    setShake(true)
-    setTimeout(() => setShake(false), 320)
-    try { inputRef.current?.focus() } catch {}
-  }
-
-  if (scanning) {
-    return (
-      <Suspense fallback={null}>
-        <QrScanner
-          onResult={(c) => { setScanning(false); go(c) }}
-          onClose={() => setScanning(false)}
-        />
-      </Suspense>
-    )
-  }
+  const { show: showSwipeHint, fade: swipeHintFade, onInteract: handleEntriesScroll } = useSwipeHint('klassenraum-student', embedded)
 
   // Login-freie Lehrer-Vorschau (② Sitzungen in der Nicht-Premium-Ansicht).
   if (showDemo) {
@@ -129,44 +74,6 @@ export default function StudentJoinEntry({ initialNotice = null, embedded = fals
     )
   }
 
-  // Gemeinsames Code-Eingabe-Formular (auch in der Karte wiederverwendet).
-  const codeForm = (
-    <form onSubmit={handleSubmit} noValidate>
-      <label htmlFor="classroom-kiosk-code" style={{ position: 'absolute', left: -9999 }}>
-        Zugangscode
-      </label>
-      <input
-        id="classroom-kiosk-code"
-        ref={inputRef}
-        type="text"
-        inputMode="text"
-        autoComplete="off"
-        autoCapitalize="none"
-        spellCheck={false}
-        className={`classroom-kiosk__code-field ${shake ? 'classroom-kiosk__input--shake' : ''}`}
-        value={code}
-        onChange={handleChange}
-        onPaste={handlePaste}
-        placeholder="hier eintippen"
-        maxLength={30}
-        data-testid="classroom-kiosk-code-input"
-      />
-      {error && (
-        <p className="classroom-kiosk__hint classroom-kiosk__hint--error" data-testid="classroom-kiosk-code-error">
-          {error}
-        </p>
-      )}
-      <button
-        type="submit"
-        className="btn-primary btn-full"
-        disabled={code.length < 4}
-        data-testid="classroom-kiosk-code-submit"
-      >
-        Beitreten
-      </button>
-    </form>
-  )
-
   // Schlichtes Panel — Vollroute /c (KioskShell-Vollbild).
   const inner = (
     <div className="classroom-kiosk__panel">
@@ -175,15 +82,7 @@ export default function StudentJoinEntry({ initialNotice = null, embedded = fals
       <p className="classroom-kiosk__lead">
         Tipp den Zugangscode deiner Lehrkraft ein – oder scanne den QR-Code.
       </p>
-      {codeForm}
-      <button
-        type="button"
-        className="btn-ghost classroom-kiosk__skip"
-        onClick={() => { setError(null); setScanning(true) }}
-        data-testid="classroom-kiosk-scan-btn"
-      >
-        QR-Code scannen
-      </button>
+      <JoinCodeForm initialError={initialError} />
     </div>
   )
 
@@ -214,7 +113,7 @@ export default function StudentJoinEntry({ initialNotice = null, embedded = fals
         <div className="test-rule--double" role="separator" aria-hidden="true" />
 
         <main>
-          <ol className="test-entries" aria-label="Klassenraum" ref={entriesRef} data-testid="classroom-student-index">
+          <ol className="test-entries" aria-label="Klassenraum" ref={entriesRef} data-testid="classroom-student-index" onScroll={handleEntriesScroll}>
 
             {/* ① Beitreten ─────────────────────────────────────── */}
             <li className="test-entry test-drop-cap">
@@ -238,15 +137,7 @@ export default function StudentJoinEntry({ initialNotice = null, embedded = fals
                 </p>
 
                 <div className="classroom-student-entry__form">
-                  {codeForm}
-                  <button
-                    type="button"
-                    className="test-cta classroom-student-entry__scan"
-                    onClick={() => { setError(null); setScanning(true) }}
-                    data-testid="classroom-kiosk-scan-btn"
-                  >
-                    QR-Code scannen
-                  </button>
+                  <JoinCodeForm initialError={initialError} scanButtonClassName="test-cta classroom-student-entry__scan" />
                 </div>
               </div>
             </li>
@@ -369,6 +260,18 @@ export default function StudentJoinEntry({ initialNotice = null, embedded = fals
             aria-label="Was ist der Klassenraum? – Erklärung öffnen"
           >☞</button>
         </nav>
+
+        {/* ── Mobiler Bedienhinweis (einmal pro Sitzung) ──────────── */}
+        {showSwipeHint && (
+          <p
+            className={`swipe-hint${swipeHintFade ? ' swipe-hint--fade' : ''}`}
+            aria-hidden="true"
+          >
+            <span className="swipe-hint__glyph">↕</span> Weitere Karten wischen
+            {' · '}
+            <span className="swipe-hint__glyph">☞</span> so funktioniert&apos;s
+          </p>
+        )}
 
         {/* ── Info Bottom Sheet (nur mobil erreichbar) ─────────── */}
         <Sheet open={sheetOpen} onClose={() => setSheetOpen(false)} aria-label="Was ist der Klassenraum?">

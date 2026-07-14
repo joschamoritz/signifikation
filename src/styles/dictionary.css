@@ -1933,6 +1933,19 @@
   border-top: 1px solid var(--t-rule-lt);
 }
 
+/* Zwischenüberschrift für einen abgetrennten Unterabschnitt innerhalb einer
+   .konto-settings-content-Liste (z. B. „Kurs" im Gesamtausgabe-Block — macht
+   sichtbar, dass diese Einstellungen NICHT an den Premium-Kauf gekoppelt sind). */
+.konto-settings-subheading {
+  font-family: var(--t-sans);
+  font-size: 8.5px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--t-accent);
+  margin: 2px 0 10px;
+}
+
 .konto-setting-item {
   display: flex;
   align-items: center;
@@ -2382,4 +2395,53 @@
   .test-entry {
     padding-top: 16px;
   }
+}
+
+/* ── Swipe-Hint: einmalig pro Sitzung, mobil, alle Tabs mit Snap-Card-Nav ──
+   Schwebt über dem Snap-Inhalt, blendet nach erster Scroll-Interaktion oder
+   nach 8s aus (useSwipeHint-Hook). Kein Kasten-Look: dezent translucentes
+   Pergament + Blur statt Rahmen. Zeilenumbruch statt nowrap, da der ☞-Teil
+   den Text auf schmalen Screens zweizeilig werden lassen kann. */
+.swipe-hint {
+  position: fixed;
+  left: 50%;
+  bottom: calc(78px + env(safe-area-inset-bottom, 0px));
+  transform: translateX(-50%);
+  z-index: 5;
+  margin: 0;
+  max-width: min(90vw, 340px);
+  padding: 6px 16px;
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-size: 0.8rem;
+  line-height: 1.4;
+  color: var(--muted);
+  text-align: center;
+  pointer-events: none;
+  background: color-mix(in srgb, var(--bg) 80%, transparent);
+  backdrop-filter: blur(2px);
+  border-radius: var(--radius);
+  opacity: 0;
+  animation: swipeHintIn 0.5s ease-out 0.4s forwards;
+}
+.swipe-hint__glyph {
+  font-style: normal;
+  color: var(--accent-dk);
+  margin-right: 2px;
+}
+.swipe-hint--fade {
+  animation: none;
+  opacity: 0;
+  transition: opacity 0.4s ease-in;
+}
+@keyframes swipeHintIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@media (min-width: 700px) {
+  .swipe-hint { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .swipe-hint { animation: none; opacity: 1; }
+  .swipe-hint--fade { transition: none; opacity: 0; }
 }

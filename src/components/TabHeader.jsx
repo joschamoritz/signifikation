@@ -5,7 +5,7 @@ import {
   computeStreak,
 } from '../utils/homeUtils'
 
-export default function TabHeader() {
+export default function TabHeader({ extraRight = null }) {
   const streak = computeStreak()
   const today = new Date()
   const dateStr = localDateStr(today)
@@ -20,6 +20,7 @@ export default function TabHeader() {
         </time>
       </p>
       <div className="test-title-right">
+        {extraRight}
         {streak > 0 && (
           <span className="test-title-streak" aria-label={`${streak} Tage Streak`}>
             🔥 {streak}

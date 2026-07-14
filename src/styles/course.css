@@ -3,15 +3,66 @@
    Wörterbuch-Ästhetik, mobile-first. Tokens kommen von .test-page.
    ============================================================ */
 
-/* ── Ebene 1: Kurs-Übersicht (KursTab.jsx) ────────────────────────── */
-/* Gesamtfortschritt über alle Stationen der gewählten Niveaustufe —
-   schlichte Textzeile statt Balken-Widget (Wörterbuch-Ästhetik). */
-.course-overview-progress {
-  font-family: var(--font-serif);
-  font-size: 0.85rem;
-  font-style: italic;
-  color: var(--muted);
-  margin: 14px 0 0;
+/* ── Niveau-Select (natives <select>, Wörterbuch-Kürzel statt App-Dropdown) ── */
+.niveau-select-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.niveau-select {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: var(--t-sans);
+  color: var(--t-muted);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.niveau-select:hover,
+.niveau-select:focus-visible {
+  color: var(--t-accent);
+}
+
+.niveau-select:focus-visible {
+  outline: 2px solid var(--t-accent);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+.niveau-select-chevron {
+  pointer-events: none;
+  color: inherit;
+}
+
+/* Desktop-Variante: ersetzt die frühere statische Folio-Anzeige oben rechts. */
+.niveau-select--folio {
+  font-size: 9px;
+  letter-spacing: 0.1em;
+}
+.niveau-select--folio .niveau-select {
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  padding-right: 10px;
+}
+.niveau-select--folio .niveau-select-chevron {
+  font-size: 7px;
+  margin-left: -8px;
+}
+
+/* Mobile-Variante: sitzt im TabHeader (test-title-right) neben dem Streak-Flame,
+   nur beim Kurs-Tab (per extraRight-Prop injiziert). */
+.niveau-select--compact .niveau-select {
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding-right: 12px;
+}
+.niveau-select--compact .niveau-select-chevron {
+  font-size: 8px;
+  margin-left: -10px;
 }
 
 /* ── Scroll-Rahmen ─────────────────────────────────────────── */

@@ -6,9 +6,11 @@ import Colophon from './Colophon'
 import { useActiveSnapCard } from '../hooks/useActiveSnapCard'
 import { useSnapCardNav } from '../hooks/useSnapCardNav'
 import { useScrollPersist } from '../hooks/useScrollPersist'
+import { useSwipeHint } from '../hooks/useSwipeHint'
 import StationDetail from './course/StationDetail'
 import { useCourseStation, openCourseStation, closeCourseStation } from './course/courseRouting'
-import { useGlobalNiveau, NIVEAU_LABELS } from './course/useGlobalNiveau'
+import { useGlobalNiveau } from './course/useGlobalNiveau'
+import NiveauSelect from './course/NiveauSelect'
 import { apiGet } from '../api/client'
 import { API } from '../config'
 import '../styles/course.css'
@@ -27,8 +29,8 @@ export const KURS_MODULES = [
     apiId: 's1',
     glyph: '①',
     marginalia: 'KOLLO.',
-    title: 'Wortpartner & Kollokationen',
-    ipa: '[kɔlokaˈt͡si̯oːn]',
+    title: 'Wortpartner',
+    ipa: '[ˈvɔʁtˌpaʁtnɐ]',
     category: 'Lexikologie',
     definition: 'Für ein Wort die typischen Wortpartner schätzen, häufige von typischen Verbindungen trennen und am Korpus prüfen.',
   },
@@ -37,8 +39,8 @@ export const KURS_MODULES = [
     apiId: 's2',
     glyph: '②',
     marginalia: 'SYNT.',
-    title: 'Wörter mit Funktion',
-    ipa: '[ˈvœʁtɐ mɪt fʊŋkˈtsi̯oːn]',
+    title: 'Wortfunktionen',
+    ipa: '[ˈvɔʁtfʊŋkˌtsi̯oːnən]',
     category: 'Syntax',
     definition: 'Subjekt, Objekt und Prädikativ verstehen — Wörter über ihre Funktion im Satz erkennen.',
   },
@@ -47,8 +49,8 @@ export const KURS_MODULES = [
     apiId: 's3',
     glyph: '③',
     marginalia: 'DEP.',
-    title: 'Wer hängt an wem?',
-    ipa: '[ˈveːɐ̯ hɛŋt an veːm]',
+    title: 'Abhängigkeiten',
+    ipa: '[apˈhɛŋɪçkaɪtn̩]',
     category: 'Syntax',
     definition: 'Grammatische Abhängigkeiten lesen: welche Wörter regieren welche — Dependenzen im Satz erkennen.',
   },
@@ -57,8 +59,8 @@ export const KURS_MODULES = [
     apiId: 's4',
     glyph: '④',
     marginalia: 'TEOR.',
-    title: 'Texte, die zählen',
-    ipa: '[ˈtɛkstə diː ˈtsɛːlən]',
+    title: 'Annotation',
+    ipa: '[anotaˈtsi̯oːn]',
     category: 'Theorie',
     definition: 'Wie entstehen Textkorpora? Repräsentativität, automatische Annotation und die Grenzen der Methode.',
   },
@@ -67,8 +69,8 @@ export const KURS_MODULES = [
     apiId: 's5',
     glyph: '⑤',
     marginalia: 'ANWND.',
-    title: 'Belegen statt raten',
-    ipa: '[bəˈleːɡən ʃtat ˈʁaːtn̩]',
+    title: 'Korpusbelege',
+    ipa: '[ˈkɔʁpʊsbəˌleːɡə]',
     category: 'Anwendung',
     definition: 'Eigene Fragestellung in einem kleinen Beispielkorpus — eine Behauptung am echten Beleg prüfen.',
   },
@@ -79,13 +81,14 @@ function KursTab({ gesamtausgabe = false, loggedIn = false, onNavigateToKonto })
   const activeCard = useActiveSnapCard(entriesRef)
   const { scrollToCard, handleSnapKeyDown } = useSnapCardNav(entriesRef, activeCard)
   useScrollPersist(entriesRef, 'kurs')
+  const { show: showSwipeHint, fade: swipeHintFade, onInteract: handleEntriesScroll } = useSwipeHint('kurs')
 
   // Anm./Manicula („Was ist der Kurs?") — Einheitlichkeit mit Spielmodi & Klassenraum.
   const [desktopInfoOpen, setDesktopInfoOpen] = useState(false)
   const [sheetOpen, setSheetOpen] = useState(false)
 
   const stationId = useCourseStation()
-  const [niveau] = useGlobalNiveau()
+  const [niveau, setNiveau] = useGlobalNiveau()
 
   // Stations-Fortschritt (gelöst/gesamt je Niveau) für die Übersicht. Üben ist
   // frei → für jeden eingeloggten Nutzer laden; best effort (optional).
@@ -117,22 +120,6 @@ function KursTab({ gesamtausgabe = false, loggedIn = false, onNavigateToKonto })
     [summary, niveau],
   )
 
-  // Gesamtfortschritt über alle Stationen der gewählten Niveaustufe (F-Idee 4,
-  // Nutzerentscheidung 02.07.): macht den Lernpfad-Charakter sichtbar statt nur
-  // isolierte "X/Y gelöst" pro Stationskarte. summaryForUser liefert für jede
-  // Station einen Eintrag (LEFT JOIN, auch unbespielte mit total>0/solved=0),
-  // daher ist die Summe über KURS_MODULES vollständig, sobald summaryReady ist.
-  const overallProgress = loggedIn && summaryReady
-    ? KURS_MODULES.reduce((acc, mod) => {
-        const prog = progressFor(mod.apiId)
-        if (!prog) return acc
-        acc.total += prog.total
-        acc.solved += prog.solved
-        if (prog.attempted > 0) acc.started += 1
-        return acc
-      }, { total: 0, solved: 0, started: 0 })
-    : null
-
   // Üben ist frei, aber Login nötig (Fortschritt/Sperre ans Konto gebunden).
   // Bewusst IMMER die Station öffnen, auch ohne Login: die Stations-Detailseite
   // fängt den 401 selbst ab und zeigt den erklärenden Login-Hinweis (LoginNotice)
@@ -163,7 +150,16 @@ function KursTab({ gesamtausgabe = false, loggedIn = false, onNavigateToKonto })
   return (
     <div className="test-page kurs-tab">
       <div className="test-wrapper">
-        <TabHeader />
+        <TabHeader
+          extraRight={
+            <NiveauSelect
+              niveau={niveau}
+              onChange={setNiveau}
+              className="niveau-select--compact"
+              ariaLabel="Niveaustufe wählen — gilt für Aufgaben und Material aller Stationen"
+            />
+          }
+        />
 
         <nav className="test-raster" aria-label="Kurs-Übersicht">
           <span className="test-raster-label" aria-hidden="true">Kurs</span>
@@ -171,27 +167,19 @@ function KursTab({ gesamtausgabe = false, loggedIn = false, onNavigateToKonto })
             <span className="test-raster-word">Didaktischer Lernpfad</span>
           </div>
           <div className="test-raster-end">
-            <span
-              className="test-raster-folio"
-              aria-label={`Gewählte Niveaustufe: ${NIVEAU_LABELS[niveau] ?? niveau}`}
-            >
-              {NIVEAU_LABELS[niveau] ?? niveau}
-            </span>
+            <NiveauSelect
+              niveau={niveau}
+              onChange={setNiveau}
+              className="niveau-select--folio"
+              ariaLabel="Niveaustufe wählen — gilt für Aufgaben und Material aller Stationen"
+            />
           </div>
         </nav>
 
         <div className="test-rule--double" role="separator" aria-hidden="true" />
 
-        {overallProgress && overallProgress.total > 0 && (
-          <p className="course-overview-progress">
-            {overallProgress.started} von {KURS_MODULES.length} Stationen begonnen
-            {' · '}
-            {Math.round((overallProgress.solved / overallProgress.total) * 100)} % aller Aufgaben gelöst
-          </p>
-        )}
-
         <main>
-          <ol className="test-entries" aria-label="Kurs-Module" ref={entriesRef} onKeyDown={handleSnapKeyDown}>
+          <ol className="test-entries" aria-label="Kurs-Module" ref={entriesRef} onKeyDown={handleSnapKeyDown} onScroll={handleEntriesScroll}>
 
             {KURS_MODULES.map((mod, idx) => {
               const isFirst = idx === 0 // Schmuck-Initiale wie auf der Spielmodi-Startseite
@@ -289,13 +277,24 @@ function KursTab({ gesamtausgabe = false, loggedIn = false, onNavigateToKonto })
               onClick={() => setSheetOpen(true)}
               aria-label="Was ist der Kurs? – Erklärung öffnen"
             >☞</button>
-            <div className="snap-nav-spacer" aria-hidden="true" />
           </nav>
         </main>
 
         {/* Desktop-Kolophon (Footer) — wie auf der Spielmodi-Startseite. */}
         <Colophon />
       </div>
+
+      {/* ── Mobiler Bedienhinweis (einmal pro Sitzung) ──────────── */}
+      {showSwipeHint && (
+        <p
+          className={`swipe-hint${swipeHintFade ? ' swipe-hint--fade' : ''}`}
+          aria-hidden="true"
+        >
+          <span className="swipe-hint__glyph">↕</span> Weitere Stationen wischen
+          {' · '}
+          <span className="swipe-hint__glyph">☞</span> mehr dazu
+        </p>
+      )}
 
       {/* ── Info Bottom Sheet (mobil) ───────────────────────── */}
       <Sheet open={sheetOpen} onClose={() => setSheetOpen(false)} aria-label="Was ist der Kurs?">

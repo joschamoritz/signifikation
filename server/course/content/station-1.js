@@ -32,7 +32,7 @@
 const STATION = {
   id: 's1',
   orderNo: 1,
-  title: 'Wortpartner & Kollokationen',
+  title: 'Wortpartner',
   ipa: 'kɔlokaˈt͡si̯oːn',
   category: 'wortprofil',
   beamerConfig: {
