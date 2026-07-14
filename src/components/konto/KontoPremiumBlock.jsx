@@ -1,10 +1,11 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Capacitor } from '@capacitor/core'
 import { API } from '../../config'
 import { apiFetch } from '../../utils/apiFetch'
 import { IAP } from '../../plugins/iap.js'
 import { restoreIapPurchases } from '../../utils/iapRestore'
 import { logError } from '../../utils/logError'
+import { useGlobalNiveau, NIVEAU_LEVELS, NIVEAU_LABELS } from '../course/useGlobalNiveau'
 import CheckoutModal from './CheckoutModal'
 
 const IS_NATIVE = Capacitor.isNativePlatform()
@@ -20,6 +21,28 @@ export default function KontoPremiumBlock({ auth, gesamtausgabePermanent }) {
   const [loginHint, setLoginHint] = useState(false)
   const [restoreStatus, setRestoreStatus] = useState(null) // 'busy' | 'none' | 'not-found' | 'error' | null
   const [restoreMessage, setRestoreMessage] = useState(null)
+
+  // ── Kurs-Niveau + Kurs-Fortschritt ─────────────────────────────────
+  // Kurs-Üben ist seit 25.06. für jeden eingeloggten Account gratis (nicht an
+  // die Gesamtausgabe gekoppelt) — sitzt trotzdem hier, weil es die einzige
+  // „Kurs"-Rubrik im Konto-Tab ist. Läuft daher in BEIDEN Zweigen unten
+  // (gekauft/nicht gekauft) identisch, mit eigener Zwischenüberschrift.
+  const [niveau, setNiveau] = useGlobalNiveau()
+  const [resetState, setResetState] = useState('idle')
+
+  const resetCourse = useCallback(async () => {
+    setResetState('working')
+    try {
+      const res = await apiFetch(`${API}/course/progress`, {
+        method: 'DELETE',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+      })
+      setResetState(res.ok ? 'done' : 'error')
+    } catch {
+      setResetState('error')
+    }
+  }, [])
 
   function handleBuyClick() {
     if (!auth.isLoggedIn) {
@@ -93,6 +116,69 @@ export default function KontoPremiumBlock({ auth, gesamtausgabePermanent }) {
           <span className="test-pos">Lizenz</span>
           <span className="test-pos-rule" />
           <span className="test-entry-category">Premium</span>
+        </div>
+
+        <div className="konto-settings-content">
+          <p className="konto-settings-subheading">Kurs — gratis für jeden eingeloggten Account</p>
+
+          <div className="konto-setting-item">
+            <div className="konto-setting-info">
+              <span className="konto-setting-label">Kurs-Niveau</span>
+              <span className="konto-setting-desc">Standardstufe für Aufgaben und Material</span>
+            </div>
+            <select
+              className="konto-select"
+              value={niveau}
+              onChange={e => setNiveau(e.target.value)}
+              aria-label="Kurs-Niveau"
+            >
+              {NIVEAU_LEVELS.map(level => (
+                <option key={level} value={level}>{NIVEAU_LABELS[level]}</option>
+              ))}
+            </select>
+          </div>
+
+          <div className="konto-setting-item">
+            <div className="konto-setting-info">
+              <span className="konto-setting-label">Kurs-Fortschritt</span>
+              <span className="konto-setting-desc">
+                {resetState === 'done'
+                  ? 'Zurückgesetzt — alle Stationen wieder spielbar.'
+                  : resetState === 'error'
+                    ? 'Zurücksetzen fehlgeschlagen. Bitte erneut versuchen.'
+                    : 'Aufgaben-Ergebnisse löschen und neu spielen'}
+              </span>
+            </div>
+            {resetState === 'confirm' ? (
+              <div className="konto-reset-confirm">
+                <button
+                  type="button"
+                  className="konto-reset-btn konto-reset-btn--danger"
+                  onClick={resetCourse}
+                >
+                  Wirklich zurücksetzen
+                </button>
+                <button
+                  type="button"
+                  className="konto-reset-btn"
+                  onClick={() => setResetState('idle')}
+                >
+                  Abbrechen
+                </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                className="konto-reset-btn"
+                disabled={resetState === 'working'}
+                onClick={() => setResetState('confirm')}
+              >
+                {resetState === 'working' ? 'Setzt zurück …'
+                  : resetState === 'done' ? 'Erneut zurücksetzen'
+                    : 'Zurücksetzen'}
+              </button>
+            )}
+          </div>
         </div>
 
         {gesamtausgabePermanent ? (

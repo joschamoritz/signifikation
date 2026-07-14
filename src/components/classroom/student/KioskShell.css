@@ -779,8 +779,21 @@
   --t-red-hi:    var(--primary-hi);
 }
 
-/* Code-Eingabe innerhalb der ① Beitreten-Karte (Wörterbuch-Index). */
+/* Code-Eingabe innerhalb der ① Beitreten-Karte (Wörterbuch-Index). Definiert
+   --k-* selbst (statt sich auf den .classroom-kiosk-Ahnen zu verlassen) —
+   wird auch vom Lehrer-Index (ClassroomIndexStep) genutzt, dessen Seiten-
+   Wrapper KEIN .classroom-kiosk ist (kein min-height:100vh/Page-BG hier). */
 .classroom-student-entry__form {
+  --k-bg:        var(--bg);
+  --k-card:      var(--surface);
+  --k-text:      var(--text);
+  --k-muted:     var(--muted);
+  --k-rule:      var(--border);
+  --k-rule-lt:   var(--border-lt);
+  --k-accent:    var(--primary);
+  --k-gold:      var(--accent);
+  --k-error:     var(--error);
+  --k-disabled:  var(--disabled);
   margin-top: 10px;
 }
 /* QR-Scan als zurückhaltender Zweitweg unter dem Beitreten-Button. */

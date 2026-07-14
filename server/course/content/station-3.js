@@ -20,7 +20,7 @@
 const STATION = {
   id: 's3',
   orderNo: 3,
-  title: 'Wer hängt an wem?',
+  title: 'Abhängigkeiten',
   ipa: 'ˈzat͡sˌɡliːdɐ',
   category: 'wortprofil',
   beamerConfig: { slideTracks: [] },

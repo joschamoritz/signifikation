@@ -31,7 +31,7 @@
 const STATION = {
   id: 's4',
   orderNo: 4,
-  title: 'Texte, die zählen',
+  title: 'Annotation',
   ipa: 'ˈkɔʁpʊs',
   category: 'wortprofil',
   beamerConfig: { slideTracks: ['daten', 'logdice'] },

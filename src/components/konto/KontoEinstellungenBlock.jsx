@@ -1,8 +1,8 @@
 import { useContext, useEffect, useState, useCallback } from 'react'
 import { ThemeContext } from '../../hooks/useTheme'
 import { usePushNotifications } from '../../hooks/usePushNotifications'
-import { useGlobalNiveau, NIVEAU_LEVELS, NIVEAU_LABELS } from '../course/useGlobalNiveau'
-import { apiFetch } from '../../utils/apiFetch'
+import { HINTS_DISABLED_KEY } from '../../hooks/useSwipeHint'
+import { lsGet, lsSet, lsRemove } from '../../utils/storage'
 import { API } from '../../config'
 
 function urlBase64ToUint8Array(base64String) {
@@ -22,25 +22,14 @@ function isWebPushSupported() {
 
 export default function KontoEinstellungenBlock() {
   const { pref, setTheme } = useContext(ThemeContext)
-  const [niveau, setNiveau] = useGlobalNiveau()
 
-  // ── Kurs-Fortschritt zurücksetzen (Premium) ───────────────────────
-  // idle → confirm → working → done | error. Setzt alle Aufgaben-Ergebnisse
-  // zurück (Station/alles wieder spielbar), QA Station 1 Abschluss.
-  const [resetState, setResetState] = useState('idle')
-
-  const resetCourse = useCallback(async () => {
-    setResetState('working')
-    try {
-      const res = await apiFetch(`${API}/course/progress`, {
-        method: 'DELETE',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-      })
-      setResetState(res.ok ? 'done' : 'error')
-    } catch {
-      setResetState('error')
-    }
+  // ── Bedienhinweise (↕ wischen / ☞ tippen) dauerhaft ein-/ausschalten ──
+  const [hintsEnabled, setHintsEnabled] = useState(() => !lsGet(HINTS_DISABLED_KEY))
+  const handleHintsToggle = useCallback((e) => {
+    const enabled = e.target.checked
+    setHintsEnabled(enabled)
+    if (enabled) lsRemove(HINTS_DISABLED_KEY)
+    else lsSet(HINTS_DISABLED_KEY, '1')
   }, [])
 
   // ── Web Push (Browser) ────────────────────────────────────────────
@@ -160,7 +149,7 @@ export default function KontoEinstellungenBlock() {
           <span className="test-entry-category">Anpassung</span>
         </div>
         <p className="test-definition">
-          Push-Benachrichtigungen, Kurs-Niveau, Erscheinungsbild und Sprache konfigurieren.
+          Push-Benachrichtigungen, Bedienhinweise, Erscheinungsbild und Sprache konfigurieren.
         </p>
 
         <div className="konto-settings-content">
@@ -206,61 +195,17 @@ export default function KontoEinstellungenBlock() {
 
           <div className="konto-setting-item">
             <div className="konto-setting-info">
-              <span className="konto-setting-label">Kurs-Niveau</span>
-              <span className="konto-setting-desc">Standardstufe für Aufgaben und Material</span>
+              <span className="konto-setting-label">Bedienhinweise</span>
+              <span className="konto-setting-desc">Kurze Tipps beim Öffnen der App (↕, ☞)</span>
             </div>
-            <select
-              className="konto-select"
-              value={niveau}
-              onChange={e => setNiveau(e.target.value)}
-              aria-label="Kurs-Niveau"
-            >
-              {NIVEAU_LEVELS.map(level => (
-                <option key={level} value={level}>{NIVEAU_LABELS[level]}</option>
-              ))}
-            </select>
-          </div>
-
-          <div className="konto-setting-item">
-            <div className="konto-setting-info">
-              <span className="konto-setting-label">Kurs-Fortschritt</span>
-              <span className="konto-setting-desc">
-                {resetState === 'done'
-                  ? 'Zurückgesetzt — alle Stationen wieder spielbar.'
-                  : resetState === 'error'
-                    ? 'Zurücksetzen fehlgeschlagen. Bitte erneut versuchen.'
-                    : 'Aufgaben-Ergebnisse löschen und neu spielen'}
-              </span>
-            </div>
-            {resetState === 'confirm' ? (
-              <div className="konto-reset-confirm">
-                <button
-                  type="button"
-                  className="konto-reset-btn konto-reset-btn--danger"
-                  onClick={resetCourse}
-                >
-                  Wirklich zurücksetzen
-                </button>
-                <button
-                  type="button"
-                  className="konto-reset-btn"
-                  onClick={() => setResetState('idle')}
-                >
-                  Abbrechen
-                </button>
-              </div>
-            ) : (
-              <button
-                type="button"
-                className="konto-reset-btn"
-                disabled={resetState === 'working'}
-                onClick={() => setResetState('confirm')}
-              >
-                {resetState === 'working' ? 'Setzt zurück …'
-                  : resetState === 'done' ? 'Erneut zurücksetzen'
-                    : 'Zurücksetzen'}
-              </button>
-            )}
+            <label className="konto-toggle" aria-label="Bedienhinweise">
+              <input
+                type="checkbox"
+                checked={hintsEnabled}
+                onChange={handleHintsToggle}
+              />
+              <span className="konto-toggle-slider" aria-hidden="true" />
+            </label>
           </div>
 
           <div className="konto-setting-item">

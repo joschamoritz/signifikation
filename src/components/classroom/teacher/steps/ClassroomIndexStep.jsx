@@ -15,13 +15,15 @@
 // (verlustfrei: „Neue Sitzung" aus der Liste + zurück = wartende Lobby).
 
 import { useRef, useState, useCallback } from 'react'
-import { navigate } from '../../routing'
 import { useTeacherClassroom } from '../TeacherClassroomContext'
 import { useSessionsList } from '../hooks/useSessionsList'
 import { useActiveSnapCard } from '../../../../hooks/useActiveSnapCard'
+import { useSwipeHint } from '../../../../hooks/useSwipeHint'
 import { lsGet, lsSet } from '../../../../utils/storage'
 import Sheet from '../../../ui/Sheet'
 import ClassroomHowItWorksNote from '../components/ClassroomHowItWorksNote'
+import JoinCodeForm from '../../student/JoinCodeForm'
+import '../../student/KioskShell.css'
 
 const FIRSTRUN_HINT_KEY = 'sig_classroom_firstrun_hint'
 
@@ -45,6 +47,7 @@ export default function ClassroomIndexStep() {
     const items = entriesRef.current?.querySelectorAll('.test-entry')
     items?.[i]?.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }, [])
+  const { show: showSwipeHint, fade: swipeHintFade, onInteract: handleEntriesScroll } = useSwipeHint('klassenraum-teacher')
 
   const sessionCount = sessions.length
   const sessionStatus = loading
@@ -82,7 +85,7 @@ export default function ClassroomIndexStep() {
       )}
 
       <main>
-      <ol className="test-entries" aria-label="Klassenraum" ref={entriesRef} data-testid="classroom-index">
+      <ol className="test-entries" aria-label="Klassenraum" ref={entriesRef} data-testid="classroom-index" onScroll={handleEntriesScroll}>
 
         {/* ① Beitreten — auch Lehrkräfte können selbst mitspielen ─ */}
         <li className="test-entry test-drop-cap">
@@ -105,17 +108,8 @@ export default function ClassroomIndexStep() {
               Tritt selbst einer Sitzung bei — zum Ausprobieren oder mit
               Kolleg:innen. Code eingeben oder QR scannen.
             </p>
-            <div className="test-entry-footer">
-              <span className="test-status">Code von der Lehrkraft.</span>
-              <button
-                type="button"
-                className="test-cta"
-                onClick={() => navigate('/c')}
-                data-testid="classroom-index-join"
-              >
-                Zur Beitritts-Seite
-                <span className="test-cta-arrow" aria-hidden="true"> →</span>
-              </button>
+            <div className="classroom-student-entry__form">
+              <JoinCodeForm scanButtonClassName="test-cta classroom-student-entry__scan" />
             </div>
           </div>
         </li>
@@ -201,6 +195,18 @@ export default function ClassroomIndexStep() {
           aria-label="So funktioniert der Klassenraum – Erklärung öffnen"
         >☞</button>
       </nav>
+
+      {/* ── Mobiler Bedienhinweis (einmal pro Sitzung) ──────────── */}
+      {showSwipeHint && (
+        <p
+          className={`swipe-hint${swipeHintFade ? ' swipe-hint--fade' : ''}`}
+          aria-hidden="true"
+        >
+          <span className="swipe-hint__glyph">↕</span> Weitere Karten wischen
+          {' · '}
+          <span className="swipe-hint__glyph">☞</span> so funktioniert&apos;s
+        </p>
+      )}
 
       {/* ── Info Bottom Sheet (nur mobil erreichbar) ─────────── */}
       <Sheet open={sheetOpen} onClose={() => setSheetOpen(false)} aria-label="So funktioniert der Klassenraum">

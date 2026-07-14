@@ -20,7 +20,7 @@
 const STATION = {
   id: 's2',
   orderNo: 2,
-  title: 'Wörter mit Funktion',
+  title: 'Wortfunktionen',
   ipa: 'ˈvɔʁtˌʔaːɐ̯tn̩',
   category: 'wortprofil',
   beamerConfig: { slideTracks: ['spektrum'] },

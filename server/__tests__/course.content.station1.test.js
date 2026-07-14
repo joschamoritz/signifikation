@@ -96,7 +96,7 @@ describe('Station-① Content – DB-Round-Trip (Seeder + Store)', () => {
     expect(res.tasks).toBeGreaterThanOrEqual(items.length)
 
     const station = courseStore.getStation('s1')
-    expect(station).toMatchObject({ id: 's1', orderNo: 1, title: 'Wortpartner & Kollokationen' })
+    expect(station).toMatchObject({ id: 's1', orderNo: 1, title: 'Wortpartner' })
     expect(courseStore.getStationLevels('s1')).toEqual(['DaZ', 'SekI', 'SekII', 'LK'])
 
     const all = courseStore.listTasks('s1')
