@@ -347,7 +347,7 @@ nav.legal a:hover { color: #9b1c1c }
 
 /* ── Musternetz (SVG, Variante B) ──────────────────────────── */
 .arc-netzviz .mn-net { margin-top: 6px; }
-.mn-net-svg { width: 100%; max-width: 400px; height: auto; display: block; margin: 0 auto; }
+.mn-net-svg { width: 100%; max-width: 500px; height: auto; display: block; margin: 0 auto; }
 .mn-edge { stroke: #9b1c1c; }
 .mn-edge--gray { stroke: #c4bfbc; }
 .mn-sector { font-family: 'DM Sans', system-ui, sans-serif; font-size: 8.5px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; fill: #776c5e; }

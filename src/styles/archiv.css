@@ -4,40 +4,39 @@
 
 .archiv-page { padding-bottom: var(--tabbar-reserve); }
 
-.av-head { margin-top: 8px; }
-.av-overline { font-family: var(--font-sans); font-size: 0.68rem; font-weight: 600; letter-spacing: 0.2em; text-transform: uppercase; color: var(--muted); margin: 0 0 6px; }
-.av-title { font-family: var(--font-serif); font-size: 1.9rem; font-weight: 700; color: var(--text); margin: 0; }
-.av-subtitle { font-family: var(--font-sans); font-size: 0.9rem; color: var(--muted); margin: 6px 0 0; line-height: 1.5; }
-
-/* ── Suche ─────────────────────────────────────────────────── */
-.av-search-wrap { margin: 18px 0 10px; }
+/* ── Suche (mit Lupe, dezent-hochwertig) ───────────────────── */
+.av-search-wrap { position: relative; margin: 22px 0 4px; }
+.av-search-icon { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--muted); pointer-events: none; }
 .av-search {
   width: 100%; box-sizing: border-box;
   font-family: var(--font-sans); font-size: 0.95rem;
-  padding: 10px 14px; color: var(--text);
+  padding: 11px 14px 11px 40px; color: var(--text);
   background: var(--surface); border: 1px solid var(--border);
   border-radius: var(--radius);
+  transition: border-color 0.15s, box-shadow 0.15s;
 }
 .av-search::placeholder { color: var(--disabled); }
-.av-search:focus { outline: none; border-color: var(--accent); }
+.av-search:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 18%, transparent); }
 
-/* ── Liste (alphabetisch gruppiert) ────────────────────────── */
-.av-empty { font-family: var(--font-sans); font-size: 0.9rem; color: var(--muted); margin: 24px 0; text-align: center; }
-.av-list { margin-top: 8px; }
-.av-group { margin-top: 14px; }
-.av-group-letter { font-family: var(--font-serif); font-size: 1.1rem; font-weight: 700; color: var(--primary); margin: 0 0 4px; }
+/* ── Liste (alphabetisch gruppiert, Wörterbuch-Look wie SSR) ─ */
+.av-empty { font-family: var(--font-sans); font-size: 0.9rem; color: var(--muted); margin: 32px 0; text-align: center; }
+.av-list { margin-top: 6px; }
+.av-group { margin-top: 4px; }
+.av-group-letter { font-family: var(--font-sans); font-size: 9px; font-weight: 700; letter-spacing: 0.2em; color: var(--primary); margin: 24px 0 2px; }
 .av-index-list { list-style: none; padding: 0; margin: 0; }
-.av-index-list li { margin: 0; }
+.av-index-list li { margin: 0; border-bottom: 0.5px solid var(--border-lt); }
+.av-index-list li::before { display: none; }
 .av-index-item {
-  display: flex; flex-direction: column; gap: 2px;
+  display: flex; align-items: baseline; justify-content: space-between; gap: 16px;
   width: 100%; text-align: left; cursor: pointer;
-  background: none; border: none; border-bottom: 0.5px solid var(--border-lt);
-  padding: 9px 2px; color: inherit;
+  background: none; border: none; padding: 11px 4px; color: inherit;
+  transition: background-color 0.12s;
 }
+.av-index-item:hover { background: color-mix(in srgb, var(--primary) 4%, transparent); }
 .av-index-item:hover .av-index-word { color: var(--primary); }
-.av-index-word { font-family: var(--font-serif); font-size: 1.05rem; color: var(--text); }
-.av-index-def { font-family: var(--font-sans); font-size: 0.8rem; color: var(--muted); line-height: 1.4; }
-.av-ipa { font-family: var(--font-ipa); color: var(--muted); font-size: 0.9em; }
+.av-index-word { font-family: var(--font-serif); font-size: 1.15rem; color: var(--text); flex: 0 0 auto; }
+.av-index-def { font-family: var(--font-sans); font-size: 0.82rem; color: var(--muted); text-align: right; line-height: 1.45; flex: 1 1 40%; }
+.av-ipa { font-family: var(--font-ipa); font-style: italic; color: var(--muted); font-size: 0.78rem; margin-left: 8px; }
 
 /* ── Detail ────────────────────────────────────────────────── */
 .av-back {
@@ -99,7 +98,7 @@
 @media (prefers-color-scheme: dark) { .mn-net { --gray-node: #6b6460; --gray-line: #6b6460; } }
 :root[data-theme="dark"] .mn-net { --gray-node: #6b6460; --gray-line: #6b6460; }
 :root[data-theme="light"] .mn-net { --gray-node: #a8a29e; --gray-line: #c4bfbc; }
-.mn-net-svg { width: 100%; max-width: 360px; height: auto; display: block; margin: 0 auto; }
+.mn-net-svg { width: 100%; max-width: 500px; height: auto; display: block; margin: 0 auto; }
 .mn-edge { stroke: var(--primary); }
 .mn-edge--gray { stroke: var(--gray-line, var(--border)); }
 .mn-sector { font-family: var(--font-sans); font-size: 8px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; fill: var(--muted); }

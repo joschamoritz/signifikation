@@ -187,6 +187,7 @@ function renderMusterNetz(lemma, patterns, netz) {
   if (!patterns || patterns.length < 2) return ''
   const { W, H, cx, cy, nodes, edges, sectors } = computeNetzLayout({ patterns, netz, maxNodes: 6 })
   const n = (v) => Number(v).toFixed(1)
+  const centerW = Math.max(46, lemma.length * 7.6 + 24) // Pille passt sich der Wortlänge an
   const edgesSvg = edges.map((e) =>
     `<line x1="${n(e.x1)}" y1="${n(e.y1)}" x2="${n(e.x2)}" y2="${n(e.y2)}" class="mn-edge${e.gray ? ' mn-edge--gray' : ''}" stroke-width="${e.w.toFixed(1)}" opacity="${e.opacity.toFixed(2)}" />`).join('')
   const sectorsSvg = sectors.map((s) =>
@@ -200,8 +201,8 @@ function renderMusterNetz(lemma, patterns, netz) {
       <svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Musternetz für ${escapeHtml(lemma)}" class="mn-net-svg">
         <title>Musternetz für ${escapeHtml(lemma)}</title>
         ${edgesSvg}${sectorsSvg}${nodesSvg}
-        <circle cx="${cx}" cy="${cy}" r="18" class="mn-center" />
-        <text x="${cx}" y="${cy + 4}" text-anchor="middle" class="mn-center-label">${escapeHtml(lemma)}</text>
+        <rect x="${n(cx - centerW / 2)}" y="${cy - 14}" width="${n(centerW)}" height="28" rx="14" class="mn-center" />
+        <text x="${cx}" y="${cy + 4.5}" text-anchor="middle" class="mn-center-label">${escapeHtml(lemma)}</text>
       </svg>
       <p class="mn-caption">Partnerwörter gruppiert nach grammatischer Beziehung. Größe = Stärke (logDice), graue Punkte = Wortnetz.</p>
     </div>
