@@ -1,8 +1,20 @@
 import { memo, useState, useEffect, useCallback, useMemo } from 'react'
 import TabHeader from './TabHeader'
+import MusterNetz from './archiv/MusterNetz'
 import { apiGet } from '../api/client'
 import { API } from '../config'
 import '../styles/archiv.css'
+
+// Mobil weniger Knoten, damit die Labels nicht überlappen.
+function useMaxNodes() {
+  const [n, setN] = useState(() => (typeof window !== 'undefined' && window.innerWidth < 560 ? 4 : 6))
+  useEffect(() => {
+    const onResize = () => setN(window.innerWidth < 560 ? 4 : 6)
+    window.addEventListener('resize', onResize)
+    return () => window.removeEventListener('resize', onResize)
+  }, [])
+  return n
+}
 
 // Typische Stellung des Partnerworts relativ zum Stichwort (Server: REL_POSITION).
 const STELLUNG_LABEL = { vor: '‹ davor', nach: 'danach ›', variabel: '↔ frei' }
@@ -27,6 +39,7 @@ function Beleg({ b }) {
 
 /** Detail-Ansicht eines Worts: Muster-Tabelle, Wortnetz, KWiC-Belege. */
 function WortDetail({ data, loading, onBack }) {
+  const maxNodes = useMaxNodes()
   const patterns = data?.detail?.patterns || []
   const netz = data?.detail?.netz || []
   const belege = data?.detail?.belege || []
@@ -50,6 +63,13 @@ function WortDetail({ data, loading, onBack }) {
               </ol>
             ) : null}
           </article>
+
+          {patterns.length ? (
+            <section className="av-block">
+              <p className="av-block-label">Musternetz</p>
+              <MusterNetz lemma={data.lemma} patterns={patterns} netz={netz} maxNodes={maxNodes} />
+            </section>
+          ) : null}
 
           {patterns.length ? (
             <section className="av-block">
