@@ -422,6 +422,13 @@ export async function fetchCollocationSample(lemma, pos = 'Substantiv', {
 // Kollokatoren geeignet (Adverbien/Pronomen bewusst ausgenommen).
 const BASE_POS = new Set(['Substantiv', 'Verb', 'Adjektiv'])
 
+// Hilfs-/Funktions-/Stützverben: als Netzknoten liefern sie diffuse, wenig
+// aussagekräftige Kollokate (haben → „so"/„noch"). Im primären Muster bleiben
+// sie sichtbar (z.B. „Erinnerung haben"), nur nicht als Wortnetz-Basis.
+const SKIP_NETZ_BASE = new Set([
+  'haben', 'sein', 'werden', 'machen', 'tun', 'geben', 'lassen',
+])
+
 const REL_POSITION = {
   // direkte Relationen: Lemma ist Kopf
   ATTR:    'vor',       // geeignete Maßnahme – Adjektivattribut vor dem Nomen
@@ -454,7 +461,7 @@ const REL_POSITION = {
  *   kollokator, pos, relation, muster, prep, frequency, logDice, anteil, stellung
  * }> }}
  */
-export function fetchSyntagmaticPatterns(lemma, pos = 'Substantiv', { limit = 10, minFreq = 5 } = {}) {
+export function fetchSyntagmaticPatterns(lemma, pos = 'Substantiv', { limit = 10, minFreq = 5, withTotal = true } = {}) {
   if (!VALID_POS.has(pos)) {
     logger.warn({ lemma, pos }, 'fetchSyntagmaticPatterns: unbekannte POS')
     return { total: 0, patterns: [] }
@@ -463,10 +470,11 @@ export function fetchSyntagmaticPatterns(lemma, pos = 'Substantiv', { limit = 10
     const database = db()
     const low = lemma.toLowerCase()
     // Summe ALLER erfassten Frequenzen des Lemmas (Nenner für den Anteil).
-    const totalRow = database
-      .prepare('SELECT SUM(frequency) AS s FROM collocations WHERE lemma = ? AND pos = ?')
-      .get(low, pos)
-    const total = totalRow?.s || 0
+    // Übersprungen (withTotal=false), wenn der Aufrufer keinen Anteil braucht
+    // (sekundäre Kollokatoren) – spart eine SUM-Aggregation pro Basis.
+    const total = withTotal
+      ? (database.prepare('SELECT SUM(frequency) AS s FROM collocations WHERE lemma = ? AND pos = ?').get(low, pos)?.s || 0)
+      : 0
     // dep_pos != 'Pronomen': Funktionswörter (die/er/sie/wir …) sind zwar echte
     // Subjekt-/Objekt-Kollokatoren, fürs Wörterbuch-Archiv aber Rauschen. Der
     // Nenner `total` (oben) bleibt bewusst die volle erfasste Menge inkl.
@@ -527,6 +535,7 @@ export function fetchSecondaryCollocates(lemma, pos = 'Substantiv', {
   for (const p of patterns) {
     const key = p.kollokator.toLowerCase()
     if (!BASE_POS.has(p.pos)) continue
+    if (SKIP_NETZ_BASE.has(key)) continue
     if (p.kollokator.includes(' ')) continue
     if (key === lemmaLow || seenBase.has(key)) continue
     seenBase.add(key)
@@ -536,7 +545,8 @@ export function fetchSecondaryCollocates(lemma, pos = 'Substantiv', {
 
   const out = []
   for (const base of bases) {
-    const { patterns: sub } = fetchSyntagmaticPatterns(base.kollokator, base.pos, { limit: perBase + 4 })
+    // withTotal:false – für das Netz zählt nur logDice/Frequenz, kein Anteil.
+    const { patterns: sub } = fetchSyntagmaticPatterns(base.kollokator, base.pos, { limit: perBase + 4, withTotal: false })
     const collocates = []
     const seen = new Set([lemmaLow, base.kollokator.toLowerCase()])
     for (const s of sub) {
