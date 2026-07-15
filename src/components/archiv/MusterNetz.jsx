@@ -22,6 +22,9 @@ export default function MusterNetz({ lemma, patterns = [], netz = [], maxNodes =
   )
 
   const { W, H, cx, cy, nodes, edges, sectors } = layout
+  // Zentrum als Pille, deren Breite zum Stichwort passt (lange Wörter passen
+  // nicht in einen festen Kreis). Grobe Schätzung aus der Zeichenzahl.
+  const centerW = Math.max(46, lemma.length * 7.6 + 24)
 
   return (
     <div className="mn-net">
@@ -52,9 +55,9 @@ export default function MusterNetz({ lemma, patterns = [], netz = [], maxNodes =
             <title>{`${n.label} (Wortnetz von ${n.base})`}</title>
           </circle>
         ))}
-        {/* Zentrum */}
-        <circle cx={cx} cy={cy} r={18} className="mn-center" />
-        <text x={cx} y={cy + 4} textAnchor="middle" className="mn-center-label">{lemma}</text>
+        {/* Zentrum (Pille passt sich der Wortlänge an) */}
+        <rect x={cx - centerW / 2} y={cy - 14} width={centerW} height={28} rx={14} className="mn-center" />
+        <text x={cx} y={cy + 4.5} textAnchor="middle" className="mn-center-label">{lemma}</text>
       </svg>
       <p className="mn-caption" aria-live="polite">
         {active ? (

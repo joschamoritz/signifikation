@@ -13,15 +13,13 @@ const TABS = [
     ),
   },
   {
-    id: 'klassenraum',
-    label: 'Klassenraum',
-    teacherOnly: true,
+    id: 'archiv',
+    label: 'Archiv',
+    // Lupe – Nachschlagen/Suchen, klar unterscheidbar vom Kurs-Buch.
     icon: () => (
       <svg width="25" height="25" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-        <rect x="3" y="4" width="18" height="14" rx="2" />
-        <path d="M3 8h18" />
-        <path d="M8 18v2" />
-        <path d="M16 18v2" />
+        <circle cx="11" cy="11" r="7" />
+        <path d="M20 20l-3.8-3.8" />
       </svg>
     ),
   },
@@ -36,12 +34,15 @@ const TABS = [
     ),
   },
   {
-    id: 'archiv',
-    label: 'Archiv',
+    id: 'klassenraum',
+    label: 'Klassenraum',
+    teacherOnly: true,
     icon: () => (
       <svg width="25" height="25" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-        <path d="M4 5.5A1.5 1.5 0 015.5 4H9a2 2 0 012 2v13a1.5 1.5 0 00-1.5-1.5h-4A1.5 1.5 0 014 16V5.5z"/>
-        <path d="M20 5.5A1.5 1.5 0 0018.5 4H15a2 2 0 00-2 2v13a1.5 1.5 0 011.5-1.5h4A1.5 1.5 0 0020 16V5.5z"/>
+        <rect x="3" y="4" width="18" height="14" rx="2" />
+        <path d="M3 8h18" />
+        <path d="M8 18v2" />
+        <path d="M16 18v2" />
       </svg>
     ),
   },

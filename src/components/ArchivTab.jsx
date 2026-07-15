@@ -184,59 +184,78 @@ function ArchivTab() {
     return (
       <div className="test-page archiv-page">
         <TabHeader />
-        <WortDetail data={detail} loading={detailLoading} onBack={closeWort} />
+        <div className="test-wrapper">
+          <WortDetail data={detail} loading={detailLoading} onBack={closeWort} />
+        </div>
       </div>
     )
   }
 
+  const count = woerter?.length || 0
+
   return (
     <div className="test-page archiv-page">
       <TabHeader />
-      <header className="av-head">
-        <p className="av-overline">Wörterbuch · Archiv</p>
-        <h2 className="av-title">Archiv</h2>
-        <p className="av-subtitle">Alle bisher gespielten Wörter — mit typischen Verbindungen, Belegen und Kennzahlen.</p>
-      </header>
+      <div className="test-wrapper">
+        {/* Header-Band (desktop-only via .test-raster) – Einheitlichkeit mit den
+            anderen Tabs; Titel steckt im Band-Label, kein separater h2. */}
+        <nav className="test-raster" aria-label="Archiv">
+          <span className="test-raster-label" aria-hidden="true">Archiv</span>
+          <div className="test-raster-words">
+            <span className="test-raster-word">Nachschlagen</span>
+          </div>
+          <div className="test-raster-end">
+            <span className="test-raster-folio" aria-hidden="true">
+              {count > 0 ? `${count} ${count === 1 ? 'Eintrag' : 'Einträge'}` : ''}
+            </span>
+          </div>
+        </nav>
+        <div className="test-rule--double" role="separator" aria-hidden="true" />
 
-      <div className="av-search-wrap">
-        <input
-          type="search"
-          className="av-search"
-          placeholder="Wort suchen …"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          aria-label="Wort im Archiv suchen"
-        />
-      </div>
-
-      {error ? (
-        <p className="av-empty">Archiv derzeit nicht verfügbar.</p>
-      ) : woerter === null ? (
-        <p className="av-empty">Lädt …</p>
-      ) : groups.length === 0 ? (
-        <p className="av-empty">{query ? 'Kein Treffer.' : 'Noch keine Archiv-Einträge.'}</p>
-      ) : (
-        <div className="av-list">
-          {groups.map(([letter, items]) => (
-            <div key={letter} className="av-group">
-              <p className="av-group-letter">{letter}</p>
-              <ul className="av-index-list">
-                {items.map((w) => (
-                  <li key={w.slug}>
-                    <button type="button" className="av-index-item" onClick={() => openWort(w.slug)}>
-                      <span className="av-index-word">
-                        {w.lemma}
-                        {w.ipa ? <span className="av-ipa"> [{w.ipa}]</span> : null}
-                      </span>
-                      {w.definition ? <span className="av-index-def">{w.definition}</span> : null}
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ))}
+        <div className="av-search-wrap">
+          <svg className="av-search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <circle cx="11" cy="11" r="7" />
+            <path d="M20 20l-3.8-3.8" />
+          </svg>
+          <input
+            type="search"
+            className="av-search"
+            placeholder="Wort suchen …"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            aria-label="Wort im Archiv suchen"
+          />
         </div>
-      )}
+
+        {error ? (
+          <p className="av-empty">Archiv derzeit nicht verfügbar.</p>
+        ) : woerter === null ? (
+          <p className="av-empty">Lädt …</p>
+        ) : groups.length === 0 ? (
+          <p className="av-empty">{query ? 'Kein Treffer.' : 'Noch keine Archiv-Einträge.'}</p>
+        ) : (
+          <div className="av-list">
+            {groups.map(([letter, items]) => (
+              <div key={letter} className="av-group">
+                <p className="av-group-letter">{letter}</p>
+                <ul className="av-index-list">
+                  {items.map((w) => (
+                    <li key={w.slug}>
+                      <button type="button" className="av-index-item" onClick={() => openWort(w.slug)}>
+                        <span className="av-index-word">
+                          {w.lemma}
+                          {w.ipa ? <span className="av-ipa"> [{w.ipa}]</span> : null}
+                        </span>
+                        {w.definition ? <span className="av-index-def">{w.definition}</span> : null}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   )
 }
