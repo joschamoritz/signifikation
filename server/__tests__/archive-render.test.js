@@ -136,10 +136,12 @@ describe('renderWortPage – Zusatzinhalt (Thema + Muster + Wortnetz + KWiC-Bele
     expect(html).toContain('davor')           // Stellung 'vor'
     expect(html).toContain('logDice</strong> misst') // Legende
   })
-  it('rendert das Wortnetz (sekundäre Kollokatoren)', () => {
-    expect(html).toContain('Wortnetz')
-    expect(html).toContain('arc-netz-base')
-    for (const w of ['Bier', 'Kaffee']) expect(html).toContain(w)
+  it('rendert das Musternetz mit sekundären Kollokatoren als graue Satelliten', () => {
+    expect(html).toContain('class="arc-block arc-netzviz"')
+    expect(html).toContain('Musternetz')
+    expect(html).toContain('mn-node-sec')
+    // Sekundäre Kollokatoren erscheinen als Satelliten-Titel im SVG.
+    for (const w of ['Bier', 'Kaffee']) expect(html).toContain(`${w} (Wortnetz von`)
   })
   it('rendert Belege als KWiC (Keyword zentriert) mit Quelle', () => {
     expect(html).toContain('Aus dem Korpus')

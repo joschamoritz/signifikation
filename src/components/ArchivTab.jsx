@@ -1,9 +1,21 @@
 import { memo, useState, useEffect, useCallback, useMemo } from 'react'
 import TabHeader from './TabHeader'
+import Colophon from './Colophon'
 import MusterNetz from './archiv/MusterNetz'
+import { collocationBlurbLead, BLURB_LOGDICE_NOTE } from '../../server/archive/blurb.js'
 import { apiGet } from '../api/client'
 import { API } from '../config'
 import '../styles/archiv.css'
+
+// Typische Stellung des Partnerworts relativ zum Stichwort (Server: REL_POSITION).
+const STELLUNG_LABEL = { vor: '‹ davor', nach: 'danach ›', variabel: '↔ frei' }
+
+// Chevron wie in StationDetail (globale .back-btn).
+const CHEVRON = (
+  <svg width="10" height="16" viewBox="0 0 10 16" fill="none" aria-hidden="true">
+    <path d="M8.5 1L1.5 8L8.5 15" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+)
 
 // Mobil weniger Knoten, damit die Labels nicht überlappen.
 function useMaxNodes() {
@@ -15,9 +27,6 @@ function useMaxNodes() {
   }, [])
   return n
 }
-
-// Typische Stellung des Partnerworts relativ zum Stichwort (Server: REL_POSITION).
-const STELLUNG_LABEL = { vor: '‹ davor', nach: 'danach ›', variabel: '↔ frei' }
 
 /** Ein Beleg als Keyword-in-Context, sonst als schlichtes Zitat. */
 function Beleg({ b }) {
@@ -37,21 +46,26 @@ function Beleg({ b }) {
   )
 }
 
-/** Detail-Ansicht eines Worts: Muster-Tabelle, Wortnetz, KWiC-Belege. */
-function WortDetail({ data, loading, onBack }) {
-  const maxNodes = useMaxNodes()
+/** Detail-Ansicht eines Worts: überlagert den Tab-Header, mit Zurück-Pfeil. */
+function WortDetail({ data, loading, onBack, onPlayToday, maxNodes }) {
   const patterns = data?.detail?.patterns || []
   const netz = data?.detail?.netz || []
   const belege = data?.detail?.belege || []
+  const [showAllBelege, setShowAllBelege] = useState(false)
+  const shownBelege = showAllBelege ? belege : belege.slice(0, 3)
+
   return (
     <div className="av-detail">
-      <button type="button" className="av-back" onClick={onBack}>‹ Archiv</button>
+      <header className="av-detail-bar">
+        <button type="button" className="back-btn" onClick={onBack} aria-label="Zurück zum Archiv">{CHEVRON}</button>
+        <span className="av-detail-badge">Wörterbuch-Archiv</span>
+      </header>
+
       {loading || !data ? (
         <p className="av-loading">Lädt …</p>
       ) : (
         <>
           <article className="av-entry">
-            <p className="av-overline">Wörterbuch-Archiv</p>
             <h2 className="av-headword">
               {data.lemma}
               {data.ipa ? <span className="av-ipa"> [{data.ipa}]</span> : null}
@@ -62,18 +76,17 @@ function WortDetail({ data, loading, onBack }) {
                 {data.definitionen.map((d, i) => <li key={i}>{d}</li>)}
               </ol>
             ) : null}
+            <p className="av-play">
+              <button type="button" className="av-play-link" onClick={() => onPlayToday?.()}>Heutiges Wort spielen →</button>
+            </p>
           </article>
 
           {patterns.length ? (
             <section className="av-block">
-              <p className="av-block-label">Musternetz</p>
-              <MusterNetz lemma={data.lemma} patterns={patterns} netz={netz} maxNodes={maxNodes} />
-            </section>
-          ) : null}
-
-          {patterns.length ? (
-            <section className="av-block">
-              <p className="av-block-label">Syntagmatische Muster</p>
+              <p className="av-block-label">Kollokationen</p>
+              <p className="av-koll-blurb">
+                {collocationBlurbLead(data.lemma, data.wortart)} {BLURB_LOGDICE_NOTE}
+              </p>
               <p className="av-muster-intro">Die typischsten Verbindungen von „{data.lemma}" im Korpus:</p>
               <div className="av-mt-scroll">
                 <table className="av-muster-tabelle">
@@ -112,26 +125,22 @@ function WortDetail({ data, loading, onBack }) {
             </section>
           ) : null}
 
-          {netz.length ? (
+          {patterns.length ? (
             <section className="av-block">
-              <p className="av-block-label">Wortnetz</p>
-              <p className="av-netz-intro">Womit sich die stärksten Partnerwörter von „{data.lemma}" ihrerseits verbinden:</p>
-              <ul className="av-netz-list">
-                {netz.map((n, i) => (
-                  <li key={i}>
-                    <span className="av-netz-base">{n.base}</span>
-                    <span className="av-netz-arrow" aria-hidden="true"> → </span>
-                    {n.collocates.map((c) => c.kollokator).join(' · ')}
-                  </li>
-                ))}
-              </ul>
+              <p className="av-block-label">Musternetz</p>
+              <MusterNetz lemma={data.lemma} patterns={patterns} netz={netz} maxNodes={maxNodes} />
             </section>
           ) : null}
 
           {belege.length ? (
             <section className="av-block">
               <p className="av-block-label">Aus dem Korpus</p>
-              {belege.map((b, i) => <Beleg key={i} b={b} />)}
+              {shownBelege.map((b, i) => <Beleg key={i} b={b} />)}
+              {belege.length > 3 && !showAllBelege ? (
+                <button type="button" className="av-more" onClick={() => setShowAllBelege(true)}>
+                  Mehr Belege anzeigen ({belege.length - 3}) ▾
+                </button>
+              ) : null}
             </section>
           ) : null}
         </>
@@ -140,13 +149,14 @@ function WortDetail({ data, loading, onBack }) {
   )
 }
 
-function ArchivTab() {
+function ArchivTab({ onPlayToday }) {
   const [woerter, setWoerter] = useState(null) // null = lädt
   const [error, setError] = useState(null)
   const [query, setQuery] = useState('')
   const [selected, setSelected] = useState(null) // slug
   const [detail, setDetail] = useState(null)
   const [detailLoading, setDetailLoading] = useState(false)
+  const maxNodes = useMaxNodes()
 
   useEffect(() => {
     let alive = true
@@ -183,10 +193,10 @@ function ArchivTab() {
   if (selected) {
     return (
       <div className="test-page archiv-page">
-        <TabHeader />
         <div className="test-wrapper">
-          <WortDetail data={detail} loading={detailLoading} onBack={closeWort} />
+          <WortDetail data={detail} loading={detailLoading} onBack={closeWort} onPlayToday={onPlayToday} maxNodes={maxNodes} />
         </div>
+        <Colophon />
       </div>
     )
   }
@@ -256,6 +266,7 @@ function ArchivTab() {
           </div>
         )}
       </div>
+      <Colophon />
     </div>
   )
 }
