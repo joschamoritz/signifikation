@@ -1,0 +1,94 @@
+/* Archiv-Tab (In-App). Nutzt globale --Tokens → Dark Mode automatisch.
+   Klassen-Präfix av- (archiv view), damit nichts mit den SSR-arc-*-Stilen
+   oder home/course kollidiert. */
+
+.archiv-page { padding-bottom: var(--tabbar-reserve); }
+
+.av-head { margin-top: 8px; }
+.av-overline { font-family: var(--font-sans); font-size: 0.68rem; font-weight: 600; letter-spacing: 0.2em; text-transform: uppercase; color: var(--muted); margin: 0 0 6px; }
+.av-title { font-family: var(--font-serif); font-size: 1.9rem; font-weight: 700; color: var(--text); margin: 0; }
+.av-subtitle { font-family: var(--font-sans); font-size: 0.9rem; color: var(--muted); margin: 6px 0 0; line-height: 1.5; }
+
+/* ── Suche ─────────────────────────────────────────────────── */
+.av-search-wrap { margin: 18px 0 10px; }
+.av-search {
+  width: 100%; box-sizing: border-box;
+  font-family: var(--font-sans); font-size: 0.95rem;
+  padding: 10px 14px; color: var(--text);
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+.av-search::placeholder { color: var(--disabled); }
+.av-search:focus { outline: none; border-color: var(--accent); }
+
+/* ── Liste (alphabetisch gruppiert) ────────────────────────── */
+.av-empty { font-family: var(--font-sans); font-size: 0.9rem; color: var(--muted); margin: 24px 0; text-align: center; }
+.av-list { margin-top: 8px; }
+.av-group { margin-top: 14px; }
+.av-group-letter { font-family: var(--font-serif); font-size: 1.1rem; font-weight: 700; color: var(--primary); margin: 0 0 4px; }
+.av-index-list { list-style: none; padding: 0; margin: 0; }
+.av-index-list li { margin: 0; }
+.av-index-item {
+  display: flex; flex-direction: column; gap: 2px;
+  width: 100%; text-align: left; cursor: pointer;
+  background: none; border: none; border-bottom: 0.5px solid var(--border-lt);
+  padding: 9px 2px; color: inherit;
+}
+.av-index-item:hover .av-index-word { color: var(--primary); }
+.av-index-word { font-family: var(--font-serif); font-size: 1.05rem; color: var(--text); }
+.av-index-def { font-family: var(--font-sans); font-size: 0.8rem; color: var(--muted); line-height: 1.4; }
+.av-ipa { font-family: var(--font-ipa); color: var(--muted); font-size: 0.9em; }
+
+/* ── Detail ────────────────────────────────────────────────── */
+.av-back {
+  display: inline-block; background: none; border: none; cursor: pointer;
+  font-family: var(--font-sans); font-size: 0.85rem; color: var(--primary);
+  padding: 4px 0; margin: 6px 0 10px;
+}
+.av-loading { font-family: var(--font-sans); color: var(--muted); }
+.av-entry { }
+.av-headword { font-family: var(--font-serif); font-size: 2rem; font-weight: 700; color: var(--text); margin: 0; }
+.av-pos {
+  display: inline-block; font-family: var(--font-sans); font-size: 0.72rem;
+  letter-spacing: 0.06em; text-transform: uppercase; color: var(--primary);
+  background: var(--error-bg); border: 0.5px solid var(--wrong-border);
+  border-radius: var(--radius-sm); padding: 2px 7px; margin-top: 8px;
+}
+.av-defs { margin: 12px 0 0; padding-left: 1.2em; }
+.av-defs.single { list-style: none; padding-left: 0; }
+.av-defs li { font-family: var(--font-serif); font-size: 1.02rem; line-height: 1.55; color: var(--text); margin-bottom: 4px; }
+
+.av-block { margin-top: 24px; padding-top: 16px; border-top: 0.9px solid var(--border); }
+.av-block-label { font-family: var(--font-sans); font-size: 0.6rem; font-weight: 600; letter-spacing: 0.2em; text-transform: uppercase; color: var(--muted); margin: 0 0 10px; }
+
+/* Muster-Tabelle */
+.av-muster-intro { font-family: var(--font-sans); font-size: 0.9rem; color: var(--text); margin: 0; }
+.av-mt-scroll { margin-top: 10px; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.av-muster-tabelle { border-collapse: collapse; width: 100%; font-family: var(--font-sans); font-size: 0.82rem; }
+.av-muster-tabelle th, .av-muster-tabelle td { text-align: left; padding: 6px 10px 6px 0; border-bottom: 0.5px solid var(--border-lt); white-space: nowrap; }
+.av-muster-tabelle thead th { font-size: 0.66rem; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); border-bottom: 0.9px solid var(--border); }
+.av-muster-tabelle td.av-mt-num, .av-muster-tabelle th.av-mt-num { text-align: right; font-variant-numeric: tabular-nums; }
+.av-mt-koll { font-family: var(--font-serif); font-size: 0.98rem; color: var(--text); }
+.av-mt-rel { color: var(--text); }
+.av-mt-prep { color: var(--primary); }
+.av-mt-pos { color: var(--muted); }
+.av-mt-num { color: var(--text); }
+.av-mt-legende { margin-top: 10px; font-family: var(--font-sans); font-size: 0.72rem; line-height: 1.55; color: var(--muted); }
+.av-mt-legende strong { color: var(--text); font-weight: 600; }
+
+/* Wortnetz */
+.av-netz-intro { font-family: var(--font-sans); font-size: 0.9rem; color: var(--text); margin: 0; }
+.av-netz-list { list-style: none; padding: 0; margin: 10px 0 0; }
+.av-netz-list li { margin: 0 0 8px; line-height: 1.6; font-family: var(--font-sans); font-size: 0.86rem; color: var(--text); }
+.av-netz-base { font-family: var(--font-serif); font-size: 1rem; color: var(--primary); }
+.av-netz-arrow { color: var(--accent); }
+
+/* KWiC-Belege */
+.av-beleg { margin: 0 0 14px; }
+.av-beleg:last-child { margin-bottom: 0; }
+.av-beleg-satz { font-family: var(--font-serif); font-style: italic; font-size: 1rem; line-height: 1.55; color: var(--text); margin: 0; padding-left: 14px; border-left: 2px solid var(--accent); }
+.av-kwic-line { display: flex; align-items: baseline; gap: 6px; font-family: var(--font-serif); font-size: 1rem; line-height: 1.55; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.av-kwic-left { flex: 1 1 0; text-align: right; color: var(--muted); white-space: nowrap; }
+.av-kwic-key { flex: 0 0 auto; font-weight: 700; color: var(--primary); padding: 0 2px; }
+.av-kwic-right { flex: 1 1 0; text-align: left; color: var(--muted); white-space: nowrap; }
+.av-beleg-quelle { display: block; font-family: var(--font-sans); font-size: 0.72rem; color: var(--muted); margin-top: 4px; }

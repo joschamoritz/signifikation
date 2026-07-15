@@ -5,6 +5,10 @@ import Home from './Home'
 // laden, damit CheckoutModal/Konto-Bloecke nicht im Initial-Chunk landen.
 const KursTab = lazy(() => import('./KursTab'))
 
+// Archiv-Tab: eigene JSON-API + arc-Darstellung; lazy, da die meisten Nutzer
+// primär spielen und das Nachschlagewerk seltener öffnen.
+const ArchivTab = lazy(() => import('./ArchivTab'))
+
 export default function AppTabScreens({
   phase,
   lemmata,
@@ -66,6 +70,11 @@ export default function AppTabScreens({
           loggedIn={loggedIn}
           onNavigateToKonto={onNavigateToKonto}
         />
+      </Suspense>
+    ),
+    archiv: (
+      <Suspense fallback={null}>
+        <ArchivTab />
       </Suspense>
     ),
     // profil wird als PersistentKontoTab außerhalb von TabTransition gerendert

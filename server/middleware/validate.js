@@ -73,6 +73,11 @@ export const qQuerySchema = z.object({
   q: z.string().min(1, 'q erforderlich'),
 })
 
+/** GET /api/v1/woerter (Archiv-Tab-Liste, optionale Suche q=) */
+export const woerterQuerySchema = z.object({
+  q: z.string().max(60).optional(),
+})
+
 /** GET /api/bonus (query: id=) */
 export const bonusQuerySchema = z.object({
   id: z.string().min(1, 'id erforderlich'),
