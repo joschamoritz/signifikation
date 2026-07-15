@@ -517,14 +517,20 @@ export function fetchSyntagmaticPatterns(lemma, pos = 'Substantiv', { limit = 10
  * jede Basis nur auf das Lemma zurück). Basen ohne abfragbare POS (z.B.
  * Pronomen) oder mehrwortige Kollokatoren werden übersprungen.
  *
+ * `patterns` kann übergeben werden, wenn der Aufrufer die Muster bereits geholt
+ * hat (buildWortDetail) → spart eine doppelte SELECT+SUM-Abfrage auf demselben
+ * Lemma. Fehlt es, wird ohne SUM geholt (das Netz braucht keinen Anteil).
+ *
  * @returns {Array<{ base:string, pos:string, relation:string,
  *   collocates: Array<{ kollokator, pos, logDice, frequency }> }>}
  */
 export function fetchSecondaryCollocates(lemma, pos = 'Substantiv', {
   baseCount = 2,
   perBase = 5,
+  patterns = null,
 } = {}) {
-  const { patterns } = fetchSyntagmaticPatterns(lemma, pos, { limit: 12 })
+  const basePatterns = patterns
+    ?? fetchSyntagmaticPatterns(lemma, pos, { limit: 12, withTotal: false }).patterns
   const lemmaLow = lemma.toLowerCase()
 
   // Basen: stärkste Kollokatoren mit abfragbarer POS + Einzelwort, dedupliziert.
@@ -532,7 +538,7 @@ export function fetchSecondaryCollocates(lemma, pos = 'Substantiv', {
   // historisch verrauschte Kollokationsprofile (z.B. „dahin" → OCR-Varianten).
   const bases = []
   const seenBase = new Set()
-  for (const p of patterns) {
+  for (const p of basePatterns) {
     const key = p.kollokator.toLowerCase()
     if (!BASE_POS.has(p.pos)) continue
     if (SKIP_NETZ_BASE.has(key)) continue
