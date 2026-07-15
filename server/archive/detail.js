@@ -45,7 +45,8 @@ export function buildWortDetail(entry, { patternLimit = 10, belegLimit = 2 } = {
     logger.warn({ err, lemma: entry.lemma }, 'buildWortDetail: Muster fehlgeschlagen')
   }
   try {
-    netz = fetchSecondaryCollocates(entry.lemma, pos)
+    // Bereits geholte Muster durchreichen → keine doppelte SELECT+SUM-Abfrage.
+    netz = fetchSecondaryCollocates(entry.lemma, pos, { patterns })
   } catch (err) {
     logger.warn({ err, lemma: entry.lemma }, 'buildWortDetail: Wortnetz fehlgeschlagen')
   }

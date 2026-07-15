@@ -31,7 +31,7 @@ export default function MusterNetz({ lemma, patterns = [], netz = [], maxNodes =
         {edges.map((e, i) => (
           <line key={i} x1={e.x1} y1={e.y1} x2={e.x2} y2={e.y2}
             className={e.gray ? 'mn-edge mn-edge--gray' : 'mn-edge'}
-            strokeWidth={e.w} style={{ opacity: e.opacity }} />
+            strokeWidth={e.w} opacity={e.opacity} />
         ))}
         {/* Sektor-Labels */}
         {sectors.map((s, i) => (
