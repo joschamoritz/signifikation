@@ -52,7 +52,7 @@ router.get('/wort/:slug', async (req, res) => {
     // Belege). Fehlertolerant: fehlt eine DB, bleiben die Blöcke leer, die Seite
     // rendert trotzdem. Das Archiv zeigt nur vergangene Tage → die Top-
     // Kollokatoren sind keine offene Lösung eines kommenden Spieltags.
-    const detail = buildWortDetail(entry, { patternLimit: 10, belegLimit: 2 })
+    const detail = buildWortDetail(entry, { patternLimit: 10, belegLimit: 5 })
     res.type('html').set('Cache-Control', CACHE_CONTROL)
       .send(renderWortPage(entry, getArchiveSiblings(slug, 8), { thema: entry.thema, detail }))
   } catch (err) {
@@ -97,7 +97,8 @@ router.get('/api/v1/woerter/:slug', (req, res) => {
     if (!entry) {
       return res.status(404).set('Cache-Control', 'public, max-age=300').json({ error: 'Wort nicht im Archiv', code: 'NOT_FOUND' })
     }
-    const detail = buildWortDetail(entry, { patternLimit: 10, belegLimit: 3 })
+    // Mehr Belege fürs Aufklappmenü im App-Tab (zeigt 3, „Mehr anzeigen" enthüllt Rest).
+    const detail = buildWortDetail(entry, { patternLimit: 10, belegLimit: 8 })
     res.set('Cache-Control', CACHE_CONTROL).json({
       slug: entry.slug,
       lemma: entry.lemma,

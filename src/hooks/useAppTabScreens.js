@@ -63,6 +63,11 @@ export function useAppTabScreens({
     }),
   } : null, [hasLueckenfueller, startVT, setPhase])
   const onNavigateToKonto = useCallback(() => setActiveTab('profil'), [setActiveTab])
+  // Archiv „Heutiges Wort spielen" → zurück zum Spielmodi-Tag.
+  const onGoToSpielmodi = useCallback(() => startVT(() => {
+    setPhase('home')
+    setActiveTab('spielmodi')
+  }), [startVT, setPhase, setActiveTab])
 
   // useMemo statt Komponenten-Aufruf pro Render: die Elemente behalten ihre
   // Identitaet, solange sich keine Abhaengigkeit aendert — React bailed dann
@@ -94,12 +99,13 @@ export function useAppTabScreens({
     loggedIn,
     serverDatum,
     onNavigateToKonto,
+    onGoToSpielmodi,
   }), [
     phase, lemmata, apiError, thema, playedGames, allPlayed, onStart,
     wortzwilling, wortzwillingError, retryWortzwilling, wzPlayed, onPlayWortzwilling,
     zeitenwende, zeitenwendeError, zeitenwendeMissing, retryZeitenwende, zwPlayed, onPlayZeitenwende,
     lueckenfuellerLemma, lfPlayed, onPlayLueckenfueller,
-    gesamtausgabeUnlocked, loggedIn, serverDatum, onNavigateToKonto,
+    gesamtausgabeUnlocked, loggedIn, serverDatum, onNavigateToKonto, onGoToSpielmodi,
   ])
 
   const goToWortzwillingGame = useCallback(() => startVT(() => {

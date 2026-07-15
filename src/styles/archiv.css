@@ -39,13 +39,10 @@
 .av-ipa { font-family: var(--font-ipa); font-style: italic; color: var(--muted); font-size: 0.78rem; margin-left: 8px; }
 
 /* ── Detail ────────────────────────────────────────────────── */
-.av-back {
-  display: inline-block; background: none; border: none; cursor: pointer;
-  font-family: var(--font-sans); font-size: 0.85rem; color: var(--primary);
-  padding: 4px 0; margin: 6px 0 10px;
-}
+/* Detail-Kopfleiste mit Zurück-Pfeil (globale .back-btn) – analog StationDetail. */
+.av-detail-bar { display: flex; align-items: center; gap: 12px; padding: 6px 0 14px; }
+.av-detail-badge { font-family: var(--font-sans); font-size: 0.62rem; font-weight: 600; letter-spacing: 0.2em; text-transform: uppercase; color: var(--muted); }
 .av-loading { font-family: var(--font-sans); color: var(--muted); }
-.av-entry { }
 .av-headword { font-family: var(--font-serif); font-size: 2rem; font-weight: 700; color: var(--text); margin: 0; }
 .av-pos {
   display: inline-block; font-family: var(--font-sans); font-size: 0.72rem;
@@ -57,8 +54,27 @@
 .av-defs.single { list-style: none; padding-left: 0; }
 .av-defs li { font-family: var(--font-serif); font-size: 1.02rem; line-height: 1.55; color: var(--text); margin-bottom: 4px; }
 
+/* „Heutiges Wort spielen" (wechselt zum Spielmodi-Tab) */
+.av-play { margin: 16px 0 0; }
+.av-play-link {
+  background: none; border: none; cursor: pointer; padding: 0;
+  font-family: var(--font-sans); font-size: 0.9rem; color: var(--primary);
+  border-bottom: 1px solid transparent;
+}
+.av-play-link:hover { border-bottom-color: var(--primary); }
+
 .av-block { margin-top: 24px; padding-top: 16px; border-top: 0.9px solid var(--border); }
 .av-block-label { font-family: var(--font-sans); font-size: 0.6rem; font-weight: 600; letter-spacing: 0.2em; text-transform: uppercase; color: var(--muted); margin: 0 0 10px; }
+
+/* Kollokationen-Erklärtext (Template pro Wortart, aus blurb.js) */
+.av-koll-blurb { font-family: var(--font-sans); font-size: 0.9rem; line-height: 1.6; color: var(--text); margin: 0 0 14px; }
+
+/* „Mehr Belege anzeigen"-Aufklapper */
+.av-more {
+  display: inline-block; margin-top: 10px; background: none; border: none; cursor: pointer;
+  font-family: var(--font-sans); font-size: 0.82rem; color: var(--primary);
+}
+.av-more:hover { text-decoration: underline; }
 
 /* Muster-Tabelle */
 .av-muster-intro { font-family: var(--font-sans); font-size: 0.9rem; color: var(--text); margin: 0; }
@@ -74,13 +90,6 @@
 .av-mt-num { color: var(--text); }
 .av-mt-legende { margin-top: 10px; font-family: var(--font-sans); font-size: 0.72rem; line-height: 1.55; color: var(--muted); }
 .av-mt-legende strong { color: var(--text); font-weight: 600; }
-
-/* Wortnetz */
-.av-netz-intro { font-family: var(--font-sans); font-size: 0.9rem; color: var(--text); margin: 0; }
-.av-netz-list { list-style: none; padding: 0; margin: 10px 0 0; }
-.av-netz-list li { margin: 0 0 8px; line-height: 1.6; font-family: var(--font-sans); font-size: 0.86rem; color: var(--text); }
-.av-netz-base { font-family: var(--font-serif); font-size: 1rem; color: var(--primary); }
-.av-netz-arrow { color: var(--accent); }
 
 /* KWiC-Belege */
 .av-beleg { margin: 0 0 14px; }

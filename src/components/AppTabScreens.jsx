@@ -35,6 +35,7 @@ export default function AppTabScreens({
   loggedIn,
   serverDatum,
   onNavigateToKonto,
+  onGoToSpielmodi,
 }) {
   return {
     spielmodi: phase === 'home' ? (
@@ -74,7 +75,7 @@ export default function AppTabScreens({
     ),
     archiv: (
       <Suspense fallback={null}>
-        <ArchivTab />
+        <ArchivTab onPlayToday={onGoToSpielmodi} />
       </Suspense>
     ),
     // profil wird als PersistentKontoTab außerhalb von TabTransition gerendert

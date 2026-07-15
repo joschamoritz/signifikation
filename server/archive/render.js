@@ -13,6 +13,7 @@
  */
 
 import { computeNetzLayout } from './netzLayout.js'
+import { collocationBlurbLead, BLURB_LOGDICE_NOTE } from './blurb.js'
 
 export const BASE_URL = 'https://signifikation.de'
 
@@ -125,21 +126,12 @@ function footer() {
 
 /**
  * Einzelseite fuer ein Lemma: /wort/:slug
- * Erklaertext zu den Kollokationen je Wortart – beschreibt die typischen
- * Relationstypen, OHNE konkrete Kollokatoren (= Spiel-Loesung) zu nennen.
+ * Erklaertext zu den Kollokationen je Wortart (gemeinsames blurb.js, damit App
+ * und SSR denselben Wortlaut zeigen) – OHNE konkrete Kollokatoren.
  */
 function collocationBlurb(lemma, wortart) {
-  const w = escapeHtml(lemma)
-  const byPos = {
-    Substantiv: `Als Substantiv steht „${w}" im Korpus in charakteristischen Verbindungen — mit beschreibenden Adjektiven, mit Verben, zu denen es als Subjekt oder Objekt gehört, und mit eng verwandten weiteren Substantiven.`,
-    Verb: `Als Verb verbindet sich „${w}" im Korpus typischerweise mit bestimmten Subjekten und Objekten sowie mit charakteristischen Adverbien.`,
-    Adjektiv: `Als Adjektiv bestimmt „${w}" im Korpus bevorzugt bestimmte Substantive näher und tritt mit typischen Verben und Gradangaben auf.`,
-    Adverb: `Als Adverb modifiziert „${w}" im Korpus charakteristische Verben und Adjektive.`,
-  }
-  // Wortart kann Zusaetze tragen ("Substantiv, feminin") → auf das erste Wort normalisieren.
-  const posKey = String(wortart || '').split(/[,\s/]/)[0]
-  const lead = byPos[posKey] || `„${w}" tritt im Korpus in charakteristischen Wortverbindungen (Kollokationen) auf.`
-  return `${lead} Wie typisch eine Verbindung ist, misst Signifikation mit dem logDice-Wert. <a href="/ueber.html#kollokation">Mehr über Kollokationen und die Methodik →</a>`
+  const lead = collocationBlurbLead(escapeHtml(lemma), wortart)
+  return `${lead} ${BLURB_LOGDICE_NOTE} <a href="/ueber.html#kollokation">Mehr über Kollokationen und die Methodik →</a>`
 }
 
 /**
@@ -206,22 +198,6 @@ function renderMusterNetz(lemma, patterns, netz) {
       </svg>
       <p class="mn-caption">Partnerwörter gruppiert nach grammatischer Beziehung. Größe = Stärke (logDice), graue Punkte = Wortnetz.</p>
     </div>
-  </section>`
-}
-
-/**
- * Wortnetz: sekundaere Kollokatoren (Kollokatoren der staerksten Kollokatoren).
- * netz = fetchSecondaryCollocates().
- */
-function renderWortnetz(lemma, netz) {
-  if (!netz.length) return ''
-  const items = netz.map((n) => `<li><span class="arc-netz-base">${escapeHtml(n.base)}</span> <span class="arc-netz-arrow" aria-hidden="true">→</span> ${n.collocates.map((c) => `<span class="arc-netz-word">${escapeHtml(c.kollokator)}</span>`).join(' · ')}</li>`).join('\n      ')
-  return `<section class="arc-block arc-netz">
-    <p class="arc-block-label">Wortnetz</p>
-    <p class="arc-netz-intro">Womit sich die stärksten Partnerwörter von „${escapeHtml(lemma)}" ihrerseits verbinden:</p>
-    <ul class="arc-netz-list">
-      ${items}
-    </ul>
   </section>`
 }
 
@@ -313,8 +289,9 @@ export function renderWortPage(entry, siblings = [], extras = {}) {
     ${musterHtml}
   </section>`
 
+  // Musternetz-Visualisierung ersetzt den früheren Text-„Wortnetz"-Block (die
+  // grauen Satelliten zeigen dasselbe). renderWortnetz bleibt ungenutzt.
   const netzVizHtml = renderMusterNetz(entry.lemma, patterns, netz)
-  const netzHtml = renderWortnetz(entry.lemma, netz)
 
   const belegeHtml = belege.length
     ? `<section class="arc-block arc-belege">
@@ -341,9 +318,8 @@ export function renderWortPage(entry, siblings = [], extras = {}) {
     <p class="arc-play"><a href="/">Heutiges Wort spielen →</a></p>
   </article>
 ${themaHtml}
-${netzVizHtml}
 ${kollHtml}
-${netzHtml}
+${netzVizHtml}
 ${belegeHtml}
 ${relatedHtml}
 ${footer()}`
