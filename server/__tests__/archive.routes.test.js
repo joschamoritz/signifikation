@@ -128,4 +128,40 @@ describe('SEO-Archiv-Routen', () => {
     expect(xml).toContain('<loc>https://signifikation.de/archiv</loc>')
     expect(xml).not.toContain('zukunftswort')
   })
+
+  // ── JSON-API für den In-App-Archiv-Tab ──────────────────────────
+  it('GET /api/v1/woerter liefert vergangene Woerter als JSON (ohne zukuenftige)', async () => {
+    const res = await fetch(`${baseUrl}/api/v1/woerter`)
+    expect(res.status).toBe(200)
+    expect(res.headers.get('content-type')).toContain('application/json')
+    const json = await res.json()
+    const lemmata = json.woerter.map((w) => w.lemma)
+    expect(lemmata).toContain('Öl')
+    expect(lemmata).toContain('Haus')
+    expect(lemmata).not.toContain('Zukunftswort')
+    // Liste enthaelt nur leichte Felder (keine internen/Loesungs-Felder).
+    expect(JSON.stringify(json)).not.toContain('GEHEIMLOESUNG')
+  })
+
+  it('GET /api/v1/woerter?q= filtert nach Lemma', async () => {
+    const json = await (await fetch(`${baseUrl}/api/v1/woerter?q=${encodeURIComponent('öl')}`)).json()
+    expect(json.woerter.map((w) => w.lemma)).toEqual(['Öl'])
+  })
+
+  it('GET /api/v1/woerter/:slug liefert Detail mit Muster + KWiC-Belegen', async () => {
+    const res = await fetch(`${baseUrl}/api/v1/woerter/oel`)
+    expect(res.status).toBe(200)
+    const json = await res.json()
+    expect(json.lemma).toBe('Öl')
+    expect(json.detail.patterns.map((p) => p.kollokator)).toContain('flüssig')
+    expect(json.detail.belege[0].kwic.keyword).toBe('Öl')
+    // Keine internen Felder im Detail-JSON.
+    expect(JSON.stringify(json)).not.toContain('GEHEIMLOESUNG')
+  })
+
+  it('GET /api/v1/woerter/:slug liefert 404-JSON fuer Unbekanntes', async () => {
+    const res = await fetch(`${baseUrl}/api/v1/woerter/gibtsnicht`)
+    expect(res.status).toBe(404)
+    expect((await res.json()).code).toBe('NOT_FOUND')
+  })
 })
