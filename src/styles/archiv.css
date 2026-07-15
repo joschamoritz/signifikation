@@ -92,3 +92,25 @@
 .av-kwic-key { flex: 0 0 auto; font-weight: 700; color: var(--primary); padding: 0 2px; }
 .av-kwic-right { flex: 1 1 0; text-align: left; color: var(--muted); white-space: nowrap; }
 .av-beleg-quelle { display: block; font-family: var(--font-sans); font-size: 0.72rem; color: var(--muted); margin-top: 4px; }
+
+/* ── Musternetz (Variante B) ───────────────────────────────── */
+/* Logo-Grautöne als scoped Tokens (globals.css hat sie nicht). */
+.mn-net { margin-top: 10px; --gray-node: #a8a29e; --gray-line: #c4bfbc; }
+@media (prefers-color-scheme: dark) { .mn-net { --gray-node: #6b6460; --gray-line: #6b6460; } }
+:root[data-theme="dark"] .mn-net { --gray-node: #6b6460; --gray-line: #6b6460; }
+:root[data-theme="light"] .mn-net { --gray-node: #a8a29e; --gray-line: #c4bfbc; }
+.mn-net-svg { width: 100%; max-width: 360px; height: auto; display: block; margin: 0 auto; }
+.mn-edge { stroke: var(--primary); }
+.mn-edge--gray { stroke: var(--gray-line, var(--border)); }
+.mn-sector { font-family: var(--font-sans); font-size: 8px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; fill: var(--muted); }
+.mn-node { fill: var(--primary); cursor: pointer; transition: fill 0.12s; }
+.mn-node--active { fill: var(--accent-dk, var(--accent)); }
+.mn-node-g:focus { outline: none; }
+.mn-node-g:focus .mn-node { stroke: var(--accent); stroke-width: 2; }
+.mn-node-g:hover .mn-node { fill: var(--primary-hi, var(--primary)); }
+.mn-node-label { font-family: var(--font-sans); font-size: 8.5px; fill: var(--text); pointer-events: none; }
+.mn-node-sec { fill: var(--gray-node, var(--muted)); }
+.mn-center { fill: var(--primary); }
+.mn-center-label { font-family: var(--font-serif); font-size: 12px; font-weight: 700; fill: #fff; pointer-events: none; }
+.mn-caption { font-family: var(--font-sans); font-size: 0.75rem; color: var(--muted); text-align: center; margin: 8px 0 0; line-height: 1.5; min-height: 2.2em; }
+.mn-caption strong { color: var(--text); }

@@ -345,6 +345,19 @@ nav.legal a:hover { color: #9b1c1c }
 .arc-koll-words li { font-family: 'Gentium Plus', Georgia, serif; font-size: 0.92rem; color: #1a1a18; background: #f3f1ed; border: 0.5px solid #e8e2d8; border-radius: 4px; padding: 3px 10px; }
 .arc-koll-words li::before { display: none; }
 
+/* ── Musternetz (SVG, Variante B) ──────────────────────────── */
+.arc-netzviz .mn-net { margin-top: 6px; }
+.mn-net-svg { width: 100%; max-width: 400px; height: auto; display: block; margin: 0 auto; }
+.mn-edge { stroke: #9b1c1c; }
+.mn-edge--gray { stroke: #c4bfbc; }
+.mn-sector { font-family: 'DM Sans', system-ui, sans-serif; font-size: 8.5px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; fill: #776c5e; }
+.mn-node { fill: #9b1c1c; }
+.mn-node-label { font-family: 'DM Sans', system-ui, sans-serif; font-size: 9px; fill: #1a1a18; }
+.mn-node-sec { fill: #a8a29e; }
+.mn-center { fill: #9b1c1c; }
+.mn-center-label { font-family: 'Gentium Plus', Georgia, serif; font-size: 12.5px; font-weight: 700; fill: #fff; }
+.mn-caption { font-family: 'DM Sans', system-ui, sans-serif; font-size: 0.75rem; color: #776c5e; text-align: center; margin: 8px 0 0; line-height: 1.5; }
+
 /* ── Syntagmatische Muster-Tabelle ─────────────────────────── */
 .arc-muster-intro { margin-top: 14px; font-size: 0.9rem; color: #1a1a18; }
 /* Auf schmalen Screens horizontal scrollen statt den Body zu sprengen. */
@@ -419,6 +432,16 @@ nav.legal a:hover { color: #9b1c1c }
   .arc-koll a, .arc-thema-quelle a { color: #e05555; }
   .arc-thema-quelle { color: #8a8070; }
   .arc-koll-words li { background: #2a2420; border-color: #3a3028; color: #f0ebe4; }
+
+  /* Musternetz: Logo-Dark-Palette */
+  .mn-edge { stroke: #c0302a; }
+  .mn-edge--gray { stroke: #6b6460; }
+  .mn-sector { fill: #8a8070; }
+  .mn-node { fill: #c0302a; }
+  .mn-node-label { fill: #f0ebe4; }
+  .mn-node-sec { fill: #6b6460; }
+  .mn-center { fill: #c0302a; }
+  .mn-caption { color: #8a8070; }
 
   .arc-muster-intro, .arc-netz-intro { color: #f0ebe4; }
   .arc-muster-tabelle th, .arc-muster-tabelle td { border-bottom-color: #3a3028; }
