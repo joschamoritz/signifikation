@@ -39,9 +39,15 @@
 .av-ipa { font-family: var(--font-ipa); font-style: italic; color: var(--muted); font-size: 0.78rem; margin-left: 8px; }
 
 /* ── Detail ────────────────────────────────────────────────── */
-/* Detail-Kopfleiste mit Zurück-Pfeil (globale .back-btn) – analog StationDetail. */
-.av-detail-bar { display: flex; align-items: center; gap: 12px; padding: 6px 0 14px; }
-.av-detail-badge { font-family: var(--font-sans); font-size: 0.62rem; font-weight: 600; letter-spacing: 0.2em; text-transform: uppercase; color: var(--muted); }
+/* Detail-Kopfleiste mit Zurück-Pfeil – wie StationDetail: zentrierte Badge,
+   Zurück-Pfeil links absolut. position:relative macht die Bar zum Bezugsrahmen
+   der absoluten .back-btn (sonst springt sie in die Viewport-Ecke). */
+.av-detail-bar { position: relative; display: flex; align-items: center; justify-content: center; min-height: 44px; margin-bottom: 16px; }
+.av-detail-badge {
+  display: inline-block; font-family: var(--font-sans); font-size: 0.7rem; font-weight: 700;
+  letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted);
+  background: var(--surface2); border: 1px solid var(--border); border-radius: 4px; padding: 2px 10px;
+}
 .av-loading { font-family: var(--font-sans); color: var(--muted); }
 .av-headword { font-family: var(--font-serif); font-size: 2rem; font-weight: 700; color: var(--text); margin: 0; }
 .av-pos {
