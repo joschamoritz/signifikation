@@ -1,7 +1,8 @@
-import { memo, useState, useEffect, useCallback, useMemo } from 'react'
+import { memo, useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import TabHeader from './TabHeader'
 import Colophon from './Colophon'
 import MusterNetz from './archiv/MusterNetz'
+import ArchivLetterRail from './archiv/ArchivLetterRail'
 import { collocationBlurbLead, BLURB_LOGDICE_NOTE } from '../../server/archive/blurb.js'
 import { apiGet } from '../api/client'
 import { API } from '../config'
@@ -157,6 +158,8 @@ function ArchivTab({ onPlayToday }) {
   const [detail, setDetail] = useState(null)
   const [detailLoading, setDetailLoading] = useState(false)
   const maxNodes = useMaxNodes()
+  const scrollerRef = useRef(null)
+  const groupEls = useRef(new Map()) // Buchstabe → DOM-Knoten der Gruppe (fürs Register)
 
   useEffect(() => {
     let alive = true
@@ -189,6 +192,8 @@ function ArchivTab({ onPlayToday }) {
     }
     return [...map.entries()]
   }, [woerter, query])
+
+  const letters = useMemo(() => groups.map(([l]) => l), [groups])
 
   if (selected) {
     return (
@@ -243,7 +248,9 @@ function ArchivTab({ onPlayToday }) {
           />
         </div>
 
-        <div className="av-scroll">
+        <ArchivLetterRail letters={letters} scrollerRef={scrollerRef} groupEls={groupEls} />
+
+        <div className="av-scroll" ref={scrollerRef}>
           {error ? (
             <p className="av-empty">Archiv derzeit nicht verfügbar.</p>
           ) : woerter === null ? (
@@ -253,7 +260,12 @@ function ArchivTab({ onPlayToday }) {
           ) : (
             <div className="av-list">
               {groups.map(([letter, items]) => (
-                <div key={letter} className="av-group">
+                <div
+                  key={letter}
+                  className="av-group"
+                  data-letter={letter}
+                  ref={(el) => { if (el) groupEls.current.set(letter, el); else groupEls.current.delete(letter) }}
+                >
                   <p className="av-group-letter">{letter}</p>
                   <ul className="av-index-list">
                     {items.map((w) => (

@@ -15,6 +15,9 @@
    scrollt normal), erst mobil (siehe @media unten) wird er zum flex:1-Scroller. */
 .av-scroll { min-width: 0; }
 
+/* Buchstaben-Register: nur mobil (siehe @media unten), sonst unsichtbar. */
+.av-rail, .av-rail-bubble { display: none; }
+
 /* ── Suche (mit Lupe, dezent-hochwertig) ───────────────────── */
 .av-search-wrap { position: relative; margin: 22px 0 4px; }
 .av-search-icon { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--muted); pointer-events: none; }
@@ -179,4 +182,86 @@
     min-height: 44px;
     -webkit-tap-highlight-color: transparent;
   }
+
+  /* ── Buchstaben-Register (Daumen-Index links, wie snap-nav) ──
+     Content bekommt links Platz, damit das Register nicht überlappt. */
+  .archiv-page .av-search-wrap { margin-left: 40px; }
+  .archiv-page .av-scroll { padding-left: 38px; }
+
+  .av-rail {
+    display: flex;
+    position: fixed;
+    left: 0;
+    top: env(safe-area-inset-top, 0px);
+    bottom: var(--tabbar-reserve);
+    z-index: 50;
+    width: 30px;
+    align-items: stretch;
+    touch-action: none; /* Zeigergesten gehören dem Register, nicht dem Scroll */
+    -webkit-tap-highlight-color: transparent;
+  }
+  .av-rail-inner {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1px;
+    padding: 4px 0;
+  }
+  .av-rail-item {
+    background: none;
+    border: none;
+    padding: 0;
+    width: 100%;
+    line-height: 1;
+    color: var(--muted);
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    transition: color 0.18s ease, transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  .av-rail-item--letter {
+    font-family: var(--font-sans);
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    padding: 2px 0;
+  }
+  .av-rail-item--dot {
+    font-size: 0.6rem;
+    color: var(--disabled);
+    padding: 1px 0;
+  }
+  .av-rail-item--active {
+    color: var(--primary);
+    transform: scale(1.35);
+  }
+
+  /* Vergrößerte Blase beim Ziehen (iOS-Adressbuch-Gefühl). */
+  .av-rail-bubble {
+    display: flex;
+    position: fixed;
+    left: 40px;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 60;
+    width: 64px;
+    height: 64px;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font-serif);
+    font-size: 2rem;
+    font-weight: 700;
+    color: #fff;
+    background: var(--primary);
+    border-radius: 50%;
+    box-shadow: 0 6px 20px color-mix(in srgb, var(--primary) 45%, transparent);
+    pointer-events: none;
+  }
+}
+
+/* Feineinstellung/Bewegungsarmut: kein „Zoom" der aktiven Marke. */
+@media (max-width: 767px) and (prefers-reduced-motion: reduce) {
+  .av-rail-item { transition: color 0.18s ease; }
+  .av-rail-item--active { transform: none; }
 }
