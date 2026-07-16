@@ -4,6 +4,17 @@
 
 .archiv-page { padding-bottom: var(--tabbar-reserve); }
 
+/* Doppeltipp-Zoom auf interaktiven Flächen unterbinden (Pinch-Zoom bleibt via
+   viewport maximum-scale erhalten – Accessibility). Harmlos auf Desktop. */
+.archiv-page button,
+.archiv-page input,
+.archiv-page a,
+.archiv-page .mn-node-g { touch-action: manipulation; }
+
+/* Innerer Scroll-Container – auf Desktop ein neutraler Block (die ganze Seite
+   scrollt normal), erst mobil (siehe @media unten) wird er zum flex:1-Scroller. */
+.av-scroll { min-width: 0; }
+
 /* ── Suche (mit Lupe, dezent-hochwertig) ───────────────────── */
 .av-search-wrap { position: relative; margin: 22px 0 4px; }
 .av-search-icon { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--muted); pointer-events: none; }
@@ -128,3 +139,44 @@
 .mn-center-label { font-family: var(--font-serif); font-size: 12px; font-weight: 700; fill: #fff; pointer-events: none; }
 .mn-caption { font-family: var(--font-sans); font-size: 0.75rem; color: var(--muted); text-align: center; margin: 8px 0 0; line-height: 1.5; min-height: 2.2em; }
 .mn-caption strong { color: var(--text); }
+
+/* ── Mobil (<768px): eigener Scroll-Container ──────────────────
+   dictionary.css macht .test-page auf Mobil zu height:100dvh; overflow:hidden
+   (flex-Spalte) und .test-wrapper zu flex:1; min-height:0; padding:0. Ohne
+   inneren Scroller wird der Archiv-Inhalt abgeschnitten (Liste UND Detail).
+   Analog zum Home/Konto-Muster übernimmt hier .av-scroll das Scrollen. */
+@media (max-width: 767px) {
+  /* Tabbar-Reserve wandert auf den Scroller (die Seite ist fix & overflow:hidden). */
+  .archiv-page { padding-bottom: 0; }
+
+  .archiv-page .av-scroll {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-y: contain;
+    padding: 4px 20px calc(16px + var(--tabbar-reserve));
+  }
+
+  /* Detail: Zurück-Leiste soll oben nicht am Rand kleben. */
+  .archiv-page .av-scroll--detail {
+    padding-top: 8px;
+  }
+
+  /* Suchfeld bleibt oben stehen, nur die Liste scrollt. Horizontaler Abstand
+     als MARGIN (nicht padding) – so wandert das absolut positionierte Lupen-
+     Icon mit dem Wrap mit und bleibt am Feldrand ausgerichtet. */
+  .archiv-page .av-search-wrap {
+    flex-shrink: 0;
+    margin: 12px 20px 4px;
+  }
+
+  /* iOS zoomt bei Fokus rein, wenn font-size < 16px → auf 16px anheben. */
+  .archiv-page .av-search { font-size: 16px; }
+
+  /* Bequemes Tap-Target für die Index-Einträge (≥44px). */
+  .archiv-page .av-index-item {
+    min-height: 44px;
+    -webkit-tap-highlight-color: transparent;
+  }
+}

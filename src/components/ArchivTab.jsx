@@ -194,7 +194,11 @@ function ArchivTab({ onPlayToday }) {
     return (
       <div className="test-page archiv-page">
         <div className="test-wrapper">
-          <WortDetail data={detail} loading={detailLoading} onBack={closeWort} onPlayToday={onPlayToday} maxNodes={maxNodes} />
+          {/* Innerer Scroll-Container (mobil: flex:1; overflow-y:auto) – ohne ihn
+              würde der Detail-Inhalt bei der fixen 100dvh-Höhe abgeschnitten. */}
+          <div className="av-scroll av-scroll--detail">
+            <WortDetail data={detail} loading={detailLoading} onBack={closeWort} onPlayToday={onPlayToday} maxNodes={maxNodes} />
+          </div>
         </div>
         <Colophon />
       </div>
@@ -222,6 +226,8 @@ function ArchivTab({ onPlayToday }) {
         </nav>
         <div className="test-rule--double" role="separator" aria-hidden="true" />
 
+        {/* Suchfeld bleibt mobil oben fixiert (flex-shrink:0), die Liste
+            darunter scrollt im inneren av-scroll-Container. */}
         <div className="av-search-wrap">
           <svg className="av-search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
             <circle cx="11" cy="11" r="7" />
@@ -237,34 +243,36 @@ function ArchivTab({ onPlayToday }) {
           />
         </div>
 
-        {error ? (
-          <p className="av-empty">Archiv derzeit nicht verfügbar.</p>
-        ) : woerter === null ? (
-          <p className="av-empty">Lädt …</p>
-        ) : groups.length === 0 ? (
-          <p className="av-empty">{query ? 'Kein Treffer.' : 'Noch keine Archiv-Einträge.'}</p>
-        ) : (
-          <div className="av-list">
-            {groups.map(([letter, items]) => (
-              <div key={letter} className="av-group">
-                <p className="av-group-letter">{letter}</p>
-                <ul className="av-index-list">
-                  {items.map((w) => (
-                    <li key={w.slug}>
-                      <button type="button" className="av-index-item" onClick={() => openWort(w.slug)}>
-                        <span className="av-index-word">
-                          {w.lemma}
-                          {w.ipa ? <span className="av-ipa"> [{w.ipa}]</span> : null}
-                        </span>
-                        {w.definition ? <span className="av-index-def">{w.definition}</span> : null}
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ))}
-          </div>
-        )}
+        <div className="av-scroll">
+          {error ? (
+            <p className="av-empty">Archiv derzeit nicht verfügbar.</p>
+          ) : woerter === null ? (
+            <p className="av-empty">Lädt …</p>
+          ) : groups.length === 0 ? (
+            <p className="av-empty">{query ? 'Kein Treffer.' : 'Noch keine Archiv-Einträge.'}</p>
+          ) : (
+            <div className="av-list">
+              {groups.map(([letter, items]) => (
+                <div key={letter} className="av-group">
+                  <p className="av-group-letter">{letter}</p>
+                  <ul className="av-index-list">
+                    {items.map((w) => (
+                      <li key={w.slug}>
+                        <button type="button" className="av-index-item" onClick={() => openWort(w.slug)}>
+                          <span className="av-index-word">
+                            {w.lemma}
+                            {w.ipa ? <span className="av-ipa"> [{w.ipa}]</span> : null}
+                          </span>
+                          {w.definition ? <span className="av-index-def">{w.definition}</span> : null}
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
       <Colophon />
     </div>
