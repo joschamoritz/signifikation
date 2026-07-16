@@ -248,9 +248,8 @@ function ArchivTab({ onPlayToday }) {
           />
         </div>
 
-        <ArchivLetterRail letters={letters} scrollerRef={scrollerRef} groupEls={groupEls} />
-
         <div className="av-scroll" ref={scrollerRef}>
+          <ArchivLetterRail letters={letters} scrollerRef={scrollerRef} groupEls={groupEls} />
           {error ? (
             <p className="av-empty">Archiv derzeit nicht verfügbar.</p>
           ) : woerter === null ? (

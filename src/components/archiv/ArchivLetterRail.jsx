@@ -1,13 +1,30 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 
-// Vertikales Buchstaben-Register (Daumen-Index wie im Adressbuch), nur mobil.
+// Vertikales Buchstaben-Register zum Springen zu den alphabetischen Gruppen.
+// Mobil: Daumen-Index am linken Rand (Tippen + Ziehen, wie im Adressbuch).
+// Desktop: Randnotiz-Register in der Textspalte (Buchstaben statt Ziffern, wie
+// die .test-entry-number-Spalte der anderen Tabs), Klick springt.
 // „Verdichtet": zeigt nur vorhandene Buchstaben und dünnt bei Platzmangel auf
 // eine repräsentative Auswahl aus – dazwischen ein · als Sammelpunkt, der beim
-// Ziehen/Tippen trotzdem zum nächstliegenden Buchstaben springt.
+// Ziehen/Tippen/Klick trotzdem zum nächstliegenden Buchstaben springt.
 
-const SLOT_PX = 30      // Höhe, die eine Marke im Register „beansprucht"
-const MIN_ROWS = 6      // darunter lohnt kein Ausdünnen
-const PAD_TOP = 8       // Abstand der angesprungenen Gruppe zum Scroller-Rand
+const SLOT_PX = 28          // Höhe, die eine Marke im Register „beansprucht"
+const MIN_ROWS = 6          // darunter lohnt kein Ausdünnen
+const PAD_CONTAINER = 8     // Abstand der Gruppe zum Rand (innerer Scroller, mobil)
+const PAD_WINDOW = 96       // dito bei Fensterscroll (Desktop) – Luft nach oben
+const DESKTOP_VPAD = 150    // vertikaler Reserveraum bei Fensterscroll (Sticky-Ränder)
+
+/** Nächster scrollbarer Vorfahr von `node`; sonst der Dokument-Scroller (Fenster). */
+function resolveScroller(node) {
+  let el = node
+  while (el && el !== document.body && el !== document.documentElement) {
+    const oy = getComputedStyle(el).overflowY
+    if ((oy === 'auto' || oy === 'scroll') && el.scrollHeight > el.clientHeight + 1) return el
+    el = el.parentElement
+  }
+  return document.scrollingElement || document.documentElement
+}
+const isWindowScroller = (s) => s === document.scrollingElement || s === document.documentElement
 
 /** Baut aus allen vorhandenen Buchstaben die (ggf. verdichtete) Register-Liste.
  *  Jedes Item trägt sein Ziel (`target`) – auch die ·-Punkte sind ansteuerbar. */
@@ -35,25 +52,29 @@ export default function ArchivLetterRail({ letters, scrollerRef, groupEls }) {
   const [dragLetter, setDragLetter] = useState(null) // ≠ null ⇒ Overlay-Blase sichtbar
 
   // Verfügbare Höhe messen → wie viele Marken passen (Ausdünn-Schwelle).
+  // Mobil misst die Leiste selbst; bei Fensterscroll (Desktop) die Viewport-Höhe.
   useLayoutEffect(() => {
     const el = navRef.current
     if (!el || typeof ResizeObserver === 'undefined') return
     const measure = () => {
-      const h = el.clientHeight
+      const win = isWindowScroller(resolveScroller(scrollerRef.current))
+      const h = win ? window.innerHeight - DESKTOP_VPAD : el.clientHeight
       if (h > 0) setMaxRows(Math.max(MIN_ROWS, Math.floor(h / SLOT_PX)))
     }
     measure()
     const ro = new ResizeObserver(measure)
     ro.observe(el)
-    return () => ro.disconnect()
-  }, [])
+    window.addEventListener('resize', measure)
+    return () => { ro.disconnect(); window.removeEventListener('resize', measure) }
+  }, [scrollerRef])
 
   const items = useMemo(() => buildRail(letters, maxRows), [letters, maxRows])
 
   // Aktiven Buchstaben mitführen: oberste sichtbare Gruppe (Top-30%-Zone).
   useEffect(() => {
-    const scroller = scrollerRef.current
-    if (!scroller || typeof IntersectionObserver === 'undefined') return
+    if (typeof IntersectionObserver === 'undefined') return
+    const scroller = resolveScroller(scrollerRef.current)
+    const root = isWindowScroller(scroller) ? null : scroller
     const visible = new Set()
     const io = new IntersectionObserver(
       (entries) => {
@@ -66,7 +87,7 @@ export default function ArchivLetterRail({ letters, scrollerRef, groupEls }) {
           if (visible.has(l)) { setActive(l); break }
         }
       },
-      { root: scroller, rootMargin: '0px 0px -70% 0px', threshold: 0 },
+      { root, rootMargin: '0px 0px -70% 0px', threshold: 0 },
     )
     for (const l of letters) {
       const el = groupEls.current.get(l)
@@ -77,10 +98,15 @@ export default function ArchivLetterRail({ letters, scrollerRef, groupEls }) {
 
   function scrollToLetter(letter) {
     const el = groupEls.current.get(letter)
-    const scroller = scrollerRef.current
-    if (!el || !scroller) return
-    const delta = el.getBoundingClientRect().top - scroller.getBoundingClientRect().top
-    scroller.scrollTo({ top: scroller.scrollTop + delta - PAD_TOP, behavior: 'auto' })
+    if (!el) return
+    const scroller = resolveScroller(scrollerRef.current)
+    if (isWindowScroller(scroller)) {
+      const top = el.getBoundingClientRect().top + window.scrollY - PAD_WINDOW
+      window.scrollTo({ top, behavior: 'auto' })
+    } else {
+      const delta = el.getBoundingClientRect().top - scroller.getBoundingClientRect().top
+      scroller.scrollTo({ top: scroller.scrollTop + delta - PAD_CONTAINER, behavior: 'auto' })
+    }
   }
 
   // Finger-/Zeigerposition → nächstliegendes Item (Layout-unabhängig gemessen).

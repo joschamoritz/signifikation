@@ -265,3 +265,59 @@
   .av-rail-item { transition: color 0.18s ease; }
   .av-rail-item--active { transform: none; }
 }
+
+/* ── Desktop (≥768px): Randnotiz-Register in der Textspalte ────
+   Statt Ziehen (Touch) hier Klick + Hover. Das Register sitzt als schmale
+   Spalte links IN der Liste (wie die .test-entry-number-Randnotizen der
+   anderen Tabs), ein feiner Haarstrich trennt es vom Wortindex. Ganze Seite
+   scrollt → Register per position:sticky, aktiver Buchstabe mit Goldring. */
+@media (min-width: 768px) {
+  .av-scroll { position: relative; padding-left: 56px; }
+  .av-rail-bubble { display: none; } /* keine Blase am Desktop (Maus, kein Scrubbing) */
+
+  .av-rail {
+    display: block;
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 44px;
+    border-right: 0.5px solid var(--border-lt);
+  }
+  .av-rail-inner {
+    position: sticky;
+    top: 96px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    max-height: calc(100vh - 140px);
+  }
+  .av-rail-item {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 26px;
+    box-sizing: border-box;
+    padding: 0;
+    background: none;
+    border: 1.5px solid transparent; /* Platz für den Aktiv-Ring reservieren (kein Springen) */
+    border-radius: 50%;
+    line-height: 1;
+    color: var(--muted);
+    cursor: pointer;
+    transition: color 0.15s ease, border-color 0.15s ease;
+  }
+  .av-rail-item--letter { font-family: var(--font-serif); font-size: 0.95rem; font-weight: 600; }
+  .av-rail-item--dot { font-size: 0.7rem; color: var(--disabled); height: 18px; }
+  .av-rail-item:hover { color: var(--primary); }
+  .av-rail-item--active {
+    color: var(--accent);
+    border-color: var(--accent); /* Goldring – Echo der ①②③-Randnotiz */
+  }
+  .av-rail-item:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+}
