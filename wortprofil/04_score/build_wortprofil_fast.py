@@ -75,6 +75,13 @@ def init_wortprofil_db(conn: sqlite3.Connection):
         CREATE INDEX IF NOT EXISTS idx_collocations_lookup
             ON collocations (lemma, pos, logDice DESC)
     """)
+    # Archiv/fetchSyntagmaticPatterns: sortiert ueber ALLE Relationen nach
+    # logDice — dieser Index liefert die Sortierung direkt (kein TEMP B-TREE)
+    # und filtert frequency/dep_pos ohne Row-Lookup (Review 2026-07-18).
+    conn.execute("""
+        CREATE INDEX IF NOT EXISTS idx_collocations_top
+            ON collocations (lemma, pos, logDice DESC, frequency, dep_pos)
+    """)
     conn.execute("""
         CREATE TABLE IF NOT EXISTS build_info (
             key   TEXT PRIMARY KEY,

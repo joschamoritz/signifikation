@@ -152,6 +152,18 @@ function stmts() {
         ORDER BY dep_lemma
       `),
       lemmaExists: database.prepare('SELECT 1 FROM collocations WHERE lemma = ? LIMIT 1'),
+      // Syntagmatische Muster (Archiv): nutzt idx_collocations_top
+      // (lemma, pos, logDice DESC, frequency, dep_pos) → Sortierung kommt aus
+      // dem Index (kein TEMP B-TREE), frequency/dep_pos werden im Index
+      // gefiltert; Row-Lookups nur für die LIMIT-Treffer.
+      synTotal: database.prepare('SELECT SUM(frequency) AS s FROM collocations WHERE lemma = ? AND pos = ?'),
+      synPatterns: database.prepare(`
+        SELECT relation, relation_description, dep_lemma, dep_pos, prep, frequency, logDice
+        FROM collocations
+        WHERE lemma = ? AND pos = ? AND frequency >= ? AND dep_pos != 'Pronomen'
+        ORDER BY logDice DESC
+        LIMIT ?
+      `),
     }
   }
   return _stmts
@@ -467,25 +479,16 @@ export function fetchSyntagmaticPatterns(lemma, pos = 'Substantiv', { limit = 10
     return { total: 0, patterns: [] }
   }
   try {
-    const database = db()
     const low = lemma.toLowerCase()
     // Summe ALLER erfassten Frequenzen des Lemmas (Nenner für den Anteil).
     // Übersprungen (withTotal=false), wenn der Aufrufer keinen Anteil braucht
     // (sekundäre Kollokatoren) – spart eine SUM-Aggregation pro Basis.
-    const total = withTotal
-      ? (database.prepare('SELECT SUM(frequency) AS s FROM collocations WHERE lemma = ? AND pos = ?').get(low, pos)?.s || 0)
-      : 0
+    const total = withTotal ? (stmts().synTotal.get(low, pos)?.s || 0) : 0
     // dep_pos != 'Pronomen': Funktionswörter (die/er/sie/wir …) sind zwar echte
     // Subjekt-/Objekt-Kollokatoren, fürs Wörterbuch-Archiv aber Rauschen. Der
     // Nenner `total` (oben) bleibt bewusst die volle erfasste Menge inkl.
     // Pronomen → „Anteil an allen erfassten Verbindungen" bleibt korrekt.
-    const rows = database.prepare(`
-      SELECT relation, relation_description, dep_lemma, dep_pos, prep, frequency, logDice
-      FROM collocations
-      WHERE lemma = ? AND pos = ? AND frequency >= ? AND dep_pos != 'Pronomen'
-      ORDER BY logDice DESC
-      LIMIT ?
-    `).all(low, pos, minFreq, limit)
+    const rows = stmts().synPatterns.all(low, pos, minFreq, limit)
 
     const patterns = rows.map((r) => ({
       kollokator: normalizeLemma(r.dep_lemma, r.dep_pos),
