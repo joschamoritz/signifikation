@@ -22,10 +22,13 @@ vi.mock('../store.js', () => ({
     },
     { id: 'b', lemma: 'Haus', wortart: 'Substantiv', ipa: 'haʊ̯s', definitionen: ['Gebäude'], runden: {} },
     { id: 'c', lemma: 'Zukunftswort', wortart: 'Substantiv', definitionen: ['nur zukuenftig'] },
+    { id: 'd', lemma: 'Wiederkehr', wortart: 'Substantiv', definitionen: ['schon gespielt, kommt wieder'] },
   ]),
   loadKalender: vi.fn(() => ({
     '2020-03-14': { ids: ['a', 'b'], thema_kurz: 'Tag des Öls' },
+    '2021-05-01': { ids: ['d'] }, // vergangen …
     '2999-12-31': { ids: ['c'] }, // nur Zukunft → darf nicht indexiert werden
+    '2999-06-01': { ids: ['d'] }, // … aber erneut geplant → komplett raus (Loesungsleak)
   })),
 }))
 
@@ -100,6 +103,17 @@ describe('SEO-Archiv-Routen', () => {
     expect(res.status).toBe(404)
     const index = await (await fetch(`${baseUrl}/archiv`)).text()
     expect(index).not.toContain('Zukunftswort')
+  })
+
+  it('schliesst wiederverwendete Lemmata (vergangen + erneut geplant) KOMPLETT aus', async () => {
+    // Loesungsleak-Schutz: Die Detailseite listet die staerksten Kollokatoren –
+    // bei einem kuenftig erneut geplanten Wort waere das die ablesbare Loesung.
+    expect((await fetch(`${baseUrl}/wort/wiederkehr`)).status).toBe(404)
+    expect(await (await fetch(`${baseUrl}/archiv`)).text()).not.toContain('Wiederkehr')
+    expect(await (await fetch(`${baseUrl}/sitemap.xml`)).text()).not.toContain('wiederkehr')
+    const json = await (await fetch(`${baseUrl}/api/v1/woerter`)).json()
+    expect(json.woerter.map((w) => w.lemma)).not.toContain('Wiederkehr')
+    expect((await fetch(`${baseUrl}/api/v1/woerter/wiederkehr`)).status).toBe(404)
   })
 
   it('GET /wort/Öl leitet kanonisch auf /wort/oel um (301)', async () => {

@@ -4,7 +4,11 @@
  * Datenschicht fuer das indexierbare Inhalts-Archiv (SEO).
  * Aggregiert die in `kalender` geplanten und bereits VERGANGENEN Tage zu einer
  * Liste oeffentlicher Lemma-Eintraege. Heutige und zukuenftige Tage bleiben
- * aussen vor – sonst waeren tagesaktuelle Loesungen ableitbar.
+ * aussen vor – sonst waeren tagesaktuelle Loesungen ableitbar. Das gilt auch
+ * fuer WIEDERVERWENDETE Lemmata: Ein Slug, der zusaetzlich an einem heutigen/
+ * kuenftigen Tag geplant ist, wird KOMPLETT ausgeschlossen (nicht nur dessen
+ * Zukunfts-Datum), denn die Detailseite listet die staerksten Kollokatoren –
+ * faktisch das Loesungsset des kommenden Spieltags (buildMixedRound = Top-3).
  *
  * Quelle ist SQLite (store.load/loadKalender), nicht die statischen koll-*.json:
  * SQLite ist die primaere Laufzeit-Persistenz und liefert volle Jahres-Daten.
@@ -36,9 +40,24 @@ function buildIndex() {
 
   const kalender = loadKalender() || {}
 
-  // slug → { lemma, latestDate, dates:Set }. Bei Slug-Kollision (zwei IDs,
-  // gleicher transliterierter Wortlaut) gewinnt der Eintrag des juengsten Tages
-  // fuer die Anzeige; alle Tage werden trotzdem gesammelt.
+  // Pass 1: Slugs mit heutigem/kuenftigem Spieltag sammeln. Ausschluss per
+  // SLUG (nicht per ID), damit auch ein zweiter Kalender-Eintrag mit anderer
+  // ID, aber gleichem Wortlaut, die Loesung nicht vorab verraten kann.
+  const futureSlugs = new Set()
+  for (const [datum, entry] of Object.entries(kalender)) {
+    if (!datum || datum < today) continue
+    const ids = Array.isArray(entry?.ids) ? entry.ids : []
+    for (const id of ids) {
+      const lem = byId.get(String(id))
+      if (!lem) continue
+      const slug = slugifyLemma(lem.lemma)
+      if (slug) futureSlugs.add(slug)
+    }
+  }
+
+  // Pass 2: slug → { lemma, latestDate, dates:Set }. Bei Slug-Kollision (zwei
+  // IDs, gleicher transliterierter Wortlaut) gewinnt der Eintrag des juengsten
+  // Tages fuer die Anzeige; alle Tage werden trotzdem gesammelt.
   const bySlugRaw = new Map()
   for (const [datum, entry] of Object.entries(kalender)) {
     if (!datum || datum >= today) continue // nur strikt vergangene Tage
@@ -47,7 +66,7 @@ function buildIndex() {
       const lem = byId.get(String(id))
       if (!lem) continue
       const slug = slugifyLemma(lem.lemma)
-      if (!slug) continue
+      if (!slug || futureSlugs.has(slug)) continue // kuenftig erneut geplant → raus
       // Lange Beschreibung bevorzugt, sonst Kurztitel; Quelle optional.
       const themaText = (entry?.thema || entry?.thema_kurz || '').trim()
       const themaQuelle = (entry?.thema_quelle || '').trim()

@@ -8,9 +8,10 @@
  * auseinanderdriften (DRY).
  *
  * Datenschutz/R1: Eingang ist ein bereits gewhitelistetes public entry
- * (toPublicEntry). Das Archiv enthält ausschließlich strikt VERGANGENE Tage
- * (siehe server/archive/index.js) – die hier gezeigten Top-Kollokatoren sind
- * also keine offene Lösung eines noch kommenden Spieltags, sondern das
+ * (toPublicEntry). Das Archiv enthält ausschließlich strikt VERGANGENE Tage;
+ * Slugs mit erneutem künftigen Spieltag sind komplett ausgeschlossen (siehe
+ * server/archive/index.js) – die hier gezeigten Top-Kollokatoren sind also
+ * keine offene Lösung eines noch kommenden Spieltags, sondern das
  * Nachschlage-Profil eines bereits gespielten Worts (wie DWDS Wortprofil).
  *
  * Alle Aufrufe sind fehlertolerant: fehlt eine DB (belege.db/wortprofil.db),
