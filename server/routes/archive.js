@@ -50,8 +50,9 @@ router.get('/wort/:slug', async (req, res) => {
     }
     // Vollständiges Detail-Datenpaket (syntagmatische Muster, Wortnetz, KWiC-
     // Belege). Fehlertolerant: fehlt eine DB, bleiben die Blöcke leer, die Seite
-    // rendert trotzdem. Das Archiv zeigt nur vergangene Tage → die Top-
-    // Kollokatoren sind keine offene Lösung eines kommenden Spieltags.
+    // rendert trotzdem. Der Index enthält nur vergangene Tage und schließt
+    // Slugs mit erneutem künftigen Spieltag komplett aus (archive/index.js) →
+    // die Top-Kollokatoren sind keine offene Lösung eines kommenden Spieltags.
     const detail = buildWortDetail(entry, { patternLimit: 10, belegLimit: 5 })
     res.type('html').set('Cache-Control', CACHE_CONTROL)
       .send(renderWortPage(entry, getArchiveSiblings(slug, 8), { thema: entry.thema, detail }))
