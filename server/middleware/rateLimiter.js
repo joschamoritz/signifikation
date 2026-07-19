@@ -205,6 +205,20 @@ export const debugLogLimiter = rateLimit({
   message: { error: 'Zu viele Debug-Logs. Bitte kurz warten.' },
 })
 
+// Archiv-Detail (SSR /wort/:slug + JSON /api/v1/woerter/:slug): buildWortDetail
+// aggregiert mehrere synchrone DB-Queries (inkl. FTS5 auf belege.db) und
+// blockiert die Event-Loop. Das Ergebnis ist zwar 1h memoisiert (query-cache),
+// aber ein Scan über viele VERSCHIEDENE Slugs erzeugt lauter Cache-Misses →
+// deckeln. 60/min lässt normales Blättern und Crawler locker durch.
+const archiveDetailStore = new CleanupStore(60_000)
+export const archiveDetailLimiter = rateLimit({
+  windowMs: 60_000, max: 60,
+  store: archiveDetailStore,
+  keyGenerator: getClientIp,
+  standardHeaders: true, legacyHeaders: false,
+  message: { error: 'Zu viele Anfragen, bitte kurz warten.' },
+})
+
 // Eigenes-Lemma (validate/play): Korpus-Queries; für Basic-Nutzer offen.
 // 40/Minute reicht für die debounced Live-Prüfung, deckelt aber Spam.
 export const customLemmaLimiter = rateLimit({

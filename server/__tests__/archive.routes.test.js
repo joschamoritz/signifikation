@@ -178,4 +178,13 @@ describe('SEO-Archiv-Routen', () => {
     expect(res.status).toBe(404)
     expect((await res.json()).code).toBe('NOT_FOUND')
   })
+
+  it('memoisiert das Wort-Detail: wiederholter Abruf trifft die DB-Schicht nicht erneut', async () => {
+    const { fetchSyntagmaticPatterns } = await import('../wortprofil.js')
+    await fetch(`${baseUrl}/wort/oel`) // Cache warm (buildWortDetailCached)
+    const calls = fetchSyntagmaticPatterns.mock.calls.length
+    await fetch(`${baseUrl}/wort/oel`)
+    await fetch(`${baseUrl}/wort/oel?x=1`) // Query-String umgeht den HTTP-Cache, nicht die Memoisierung
+    expect(fetchSyntagmaticPatterns.mock.calls.length).toBe(calls)
+  })
 })

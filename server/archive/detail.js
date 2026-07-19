@@ -19,6 +19,7 @@
  */
 import { fetchSyntagmaticPatterns, fetchSecondaryCollocates } from '../wortprofil.js'
 import { fetchBelegeForLemma } from '../belege.js'
+import { getCachedQuery } from '../query-cache.js'
 import logger from '../logger.js'
 
 /** wortart kann Zusätze tragen ("Substantiv, feminin") → erstes Wort als POS. */
@@ -58,4 +59,21 @@ export function buildWortDetail(entry, { patternLimit = 10, belegLimit = 2 } = {
   }
 
   return { pos, total, patterns, netz, belege }
+}
+
+/**
+ * Memoisierte Variante für die Request-Pfade (SSR + JSON-API).
+ *
+ * buildWortDetail feuert 5–6 SYNCHRONE Queries (inkl. FTS5 auf belege.db) und
+ * blockiert damit die Event-Loop des einzigen Prozesses. Der HTTP-Cache-Header
+ * ist per Query-String umgehbar und nginx cached nicht → ohne Memoisierung
+ * rechnet jeder Request (Crawler!) voll neu. Inhalte ändern sich höchstens
+ * täglich; 1h TTL (query-cache, LRU-gedeckelt) entspricht dem Cache-Control
+ * der Routen. Bewusst auch leere Ergebnisse cachen: Lemmata ohne
+ * Wortprofil-Treffer sollen nicht bei jedem Hit neu rechnen.
+ */
+export function buildWortDetailCached(entry, { patternLimit = 10, belegLimit = 2 } = {}) {
+  const pos = normalizePos(entry.wortart)
+  const key = `wortdetail:${String(entry.lemma).toLowerCase()}:${pos}:${patternLimit}:${belegLimit}`
+  return getCachedQuery(key, () => buildWortDetail(entry, { patternLimit, belegLimit }))
 }
