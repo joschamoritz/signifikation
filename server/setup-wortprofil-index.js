@@ -21,6 +21,7 @@
  * wortprofil/04_score/build_wortprofil_fast.py.
  */
 
+import './env.js' // .env laden – WORTPROFIL_DB kann dort gesetzt sein (Hetzner)
 import Database from 'better-sqlite3'
 import { fileURLToPath } from 'url'
 import { dirname, resolve } from 'path'
