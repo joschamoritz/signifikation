@@ -15,8 +15,9 @@
 import express from 'express'
 import { getArchiveEntries, getArchiveEntry, getArchiveSiblings, getArchiveSlugs } from '../archive/index.js'
 import { renderWortPage, renderArchivIndex, renderSitemap, renderNotFound, slugifyLemma } from '../archive/render.js'
-import { buildWortDetail } from '../archive/detail.js'
+import { buildWortDetailCached } from '../archive/detail.js'
 import { validate, woerterQuerySchema } from '../middleware/validate.js'
+import { archiveDetailLimiter } from '../middleware/rateLimiter.js'
 import logger from '../logger.js'
 
 const router = express.Router()
@@ -34,7 +35,7 @@ router.get('/archiv', (_req, res) => {
   }
 })
 
-router.get('/wort/:slug', async (req, res) => {
+router.get('/wort/:slug', archiveDetailLimiter, async (req, res) => {
   try {
     const slug = slugifyLemma(req.params.slug)
 
@@ -53,7 +54,7 @@ router.get('/wort/:slug', async (req, res) => {
     // rendert trotzdem. Der Index enthält nur vergangene Tage und schließt
     // Slugs mit erneutem künftigen Spieltag komplett aus (archive/index.js) →
     // die Top-Kollokatoren sind keine offene Lösung eines kommenden Spieltags.
-    const detail = buildWortDetail(entry, { patternLimit: 10, belegLimit: 5 })
+    const detail = buildWortDetailCached(entry, { patternLimit: 10, belegLimit: 5 })
     res.type('html').set('Cache-Control', CACHE_CONTROL)
       .send(renderWortPage(entry, getArchiveSiblings(slug, 8), { thema: entry.thema, detail }))
   } catch (err) {
@@ -91,7 +92,7 @@ router.get('/api/v1/woerter', validate(woerterQuerySchema, 'query'), (req, res) 
 })
 
 // GET /api/v1/woerter/:slug – vollständiges Wort-Detail (Muster, Wortnetz, KWiC).
-router.get('/api/v1/woerter/:slug', (req, res) => {
+router.get('/api/v1/woerter/:slug', archiveDetailLimiter, (req, res) => {
   try {
     const slug = slugifyLemma(req.params.slug)
     const entry = getArchiveEntry(slug)
@@ -99,7 +100,7 @@ router.get('/api/v1/woerter/:slug', (req, res) => {
       return res.status(404).set('Cache-Control', 'public, max-age=300').json({ error: 'Wort nicht im Archiv', code: 'NOT_FOUND' })
     }
     // Mehr Belege fürs Aufklappmenü im App-Tab (zeigt 3, „Mehr anzeigen" enthüllt Rest).
-    const detail = buildWortDetail(entry, { patternLimit: 10, belegLimit: 8 })
+    const detail = buildWortDetailCached(entry, { patternLimit: 10, belegLimit: 8 })
     res.set('Cache-Control', CACHE_CONTROL).json({
       slug: entry.slug,
       lemma: entry.lemma,
