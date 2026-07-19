@@ -20,6 +20,7 @@ export default [
       'test-results/**',
       'wortprofil/**', // Python-Pipeline + venv – kein Projekt-JS
       '.claude/**',    // Claude Code Worktrees – nur lokal, nicht in CI
+      'design/**',     // lokale Design-Prototypen (untracked) – nicht Teil der App
     ],
   },
   js.configs.recommended,
