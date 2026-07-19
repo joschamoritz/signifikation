@@ -48,7 +48,7 @@ function Beleg({ b }) {
 }
 
 /** Detail-Ansicht eines Worts: überlagert den Tab-Header, mit Zurück-Pfeil. */
-function WortDetail({ data, loading, onBack, onPlayToday, maxNodes }) {
+function WortDetail({ data, loading, error, onRetry, onBack, onPlayToday, maxNodes }) {
   const patterns = data?.detail?.patterns || []
   const netz = data?.detail?.netz || []
   const belege = data?.detail?.belege || []
@@ -62,8 +62,13 @@ function WortDetail({ data, loading, onBack, onPlayToday, maxNodes }) {
         <span className="av-detail-badge">Wörterbuch-Archiv</span>
       </header>
 
-      {loading || !data ? (
+      {loading ? (
         <p className="av-loading">Lädt …</p>
+      ) : error || !data ? (
+        <div className="av-detail-fail">
+          <p className="av-empty">Eintrag konnte nicht geladen werden.</p>
+          <button type="button" className="av-more" onClick={onRetry}>Erneut versuchen</button>
+        </div>
       ) : (
         <>
           <article className="av-entry">
@@ -157,9 +162,14 @@ function ArchivTab({ onPlayToday }) {
   const [selected, setSelected] = useState(null) // slug
   const [detail, setDetail] = useState(null)
   const [detailLoading, setDetailLoading] = useState(false)
+  const [detailError, setDetailError] = useState(false)
   const maxNodes = useMaxNodes()
   const scrollerRef = useRef(null)
   const groupEls = useRef(new Map()) // Buchstabe → DOM-Knoten der Gruppe (fürs Register)
+  // Laufende Request-Nummer: Antworten älterer Requests werden verworfen –
+  // sonst überschreibt bei schnellem Wortwechsel eine spät eintreffende
+  // Antwort (Wort A) das bereits angezeigte neuere Wort B.
+  const detailReqRef = useRef(0)
 
   useEffect(() => {
     let alive = true
@@ -170,15 +180,30 @@ function ArchivTab({ onPlayToday }) {
   }, [])
 
   const openWort = useCallback((slug) => {
+    const reqId = ++detailReqRef.current
     setSelected(slug)
     setDetail(null)
+    setDetailError(false)
     setDetailLoading(true)
     apiGet(`${API}/woerter/${slug}`)
-      .then((d) => { setDetail(d); setDetailLoading(false) })
-      .catch(() => { setDetailLoading(false) })
+      .then((d) => {
+        if (detailReqRef.current !== reqId) return // veraltet: inzwischen anderes Wort geöffnet
+        setDetail(d)
+        setDetailLoading(false)
+      })
+      .catch(() => {
+        if (detailReqRef.current !== reqId) return
+        setDetailError(true)
+        setDetailLoading(false)
+      })
   }, [])
 
-  const closeWort = useCallback(() => { setSelected(null); setDetail(null) }, [])
+  const closeWort = useCallback(() => {
+    detailReqRef.current++ // laufende Antwort verwerfen
+    setSelected(null)
+    setDetail(null)
+    setDetailError(false)
+  }, [])
 
   // Alphabetisch gruppiert (nach erstem Buchstaben), lokal gefiltert.
   const groups = useMemo(() => {
@@ -202,7 +227,15 @@ function ArchivTab({ onPlayToday }) {
           {/* Innerer Scroll-Container (mobil: flex:1; overflow-y:auto) – ohne ihn
               würde der Detail-Inhalt bei der fixen 100dvh-Höhe abgeschnitten. */}
           <div className="av-scroll av-scroll--detail">
-            <WortDetail data={detail} loading={detailLoading} onBack={closeWort} onPlayToday={onPlayToday} maxNodes={maxNodes} />
+            <WortDetail
+              data={detail}
+              loading={detailLoading}
+              error={detailError}
+              onRetry={() => openWort(selected)}
+              onBack={closeWort}
+              onPlayToday={onPlayToday}
+              maxNodes={maxNodes}
+            />
           </div>
         </div>
         <Colophon />

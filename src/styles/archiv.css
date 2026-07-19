@@ -96,6 +96,10 @@
 }
 .av-more:hover { text-decoration: underline; }
 
+/* Fehlerzustand der Detail-Ansicht (fehlgeschlagener Fetch): Meldung + Retry */
+.av-detail-fail { text-align: center; }
+.av-detail-fail .av-empty { margin-bottom: 0; }
+
 /* Muster-Tabelle */
 .av-muster-intro { font-family: var(--font-sans); font-size: 0.9rem; color: var(--text); margin: 0; }
 .av-mt-scroll { margin-top: 10px; overflow-x: auto; -webkit-overflow-scrolling: touch; }
