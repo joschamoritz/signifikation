@@ -9,10 +9,11 @@ import CheckoutModal, { PRICE_OPTIONS } from './CheckoutModal'
 
 const IS_NATIVE = Capacitor.isNativePlatform()
 
+// Stärkstes Kaufargument (Lehrkräfte-Paket) zuerst.
 const FEATURES = [
+  { label: 'Kurs-Material',  desc: 'Kompletter Unterrichtsentwurf, Arbeitsblätter in 4 Differenzierungsstufen, Erwartungshorizont & Beamer-Folien — zu jeder Station' },
+  { label: 'Klassenraum',    desc: 'Live-Quiz mit der ganzen Klasse — Beitritt per QR-Code, ohne Schüler-Accounts' },
   { label: 'Eigenes Lemma',  desc: 'Jeden Modus – auch im Kurs – mit selbst gewählten Wörtern, unbegrenzt' },
-  { label: 'Klassenraum',    desc: 'Live-Sessions für den Unterricht' },
-  { label: 'Kurs-Material',  desc: 'Arbeitsblätter, Lösungen & Unterrichtsentwürfe zu jeder Station' },
 ]
 
 export default function KontoPremiumBlock({ auth, gesamtausgabePermanent }) {
@@ -115,7 +116,7 @@ export default function KontoPremiumBlock({ auth, gesamtausgabePermanent }) {
         {gesamtausgabePermanent ? (
           <>
             <p className="test-definition">
-              Unbegrenzt eigene Lemmata, Klassenraum und Kurs-Material.
+              Kurs-Material, Klassenraum und unbegrenzt eigene Lemmata.
             </p>
             <ul className="konto-premium-features konto-premium-features--active" aria-label="Enthaltene Funktionen">
               {FEATURES.map(f => (

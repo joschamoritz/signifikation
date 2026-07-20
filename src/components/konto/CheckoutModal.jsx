@@ -158,7 +158,7 @@ export default function CheckoutModal({ isOpen, onClose, onSuccess }) {
             {/* Kaufgegenstand exakt benennen: Die Spielmodi sind gratis – hier
                 stehen nur die tatsächlich freigeschalteten Premium-Funktionen
                 (App-Review-Guideline 2.3.1, keine irreführende Paywall). */}
-            <p className="konto-checkout-once">Eigenes Lemma unbegrenzt · Klassenraum · Kurs-Material — dauerhaft freigeschaltet</p>
+            <p className="konto-checkout-once">Unterrichtsmaterial · Klassenraum · Unbegrenzte Lemmata — dauerhaft freigeschaltet</p>
           </div>
 
           {!IS_NATIVE && (
