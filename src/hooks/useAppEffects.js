@@ -16,6 +16,6 @@ export function useAppEffects({
   }, [appRef, phase])
 
   // Hinweis: Die Persistenz der Kollokationen-Ergebnisse haengt jetzt am
-  // Finish-Ereignis in useKollokationenGame (Phasenwechsel → 'results'),
+  // handleRoundComplete in useKollokationenGame (direkt beim Auswerten),
   // nicht mehr an einem render-getriebenen Effekt hier.
 }

@@ -51,10 +51,10 @@ export function saveLFHistory(dateStr, medal, emoji) {
   saveHistory('sig_lf_history', dateStr, medal, emoji)
 }
 
-export function savePlayedGame({ keys, lemmaId, lemmaName, lemmaPos, total, medal, lemmataLength, scores }) {
+export function savePlayedGame({ keys, lemmaId, lemmaName, lemmaPos, total, medal, lemmataLength, scores, selected }) {
   const played = getPlayedToday(keys.todayKey)
   const index = played.findIndex((entry) => entry.id === lemmaId)
-  const nextEntry = { id: lemmaId, lemma: lemmaName, pos: lemmaPos, total, medal, scores }
+  const nextEntry = { id: lemmaId, lemma: lemmaName, pos: lemmaPos, total, medal, scores, selected }
 
   if (index >= 0) played[index] = nextEntry
   else played.push(nextEntry)
