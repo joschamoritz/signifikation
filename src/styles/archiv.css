@@ -196,6 +196,9 @@
     display: flex;
     position: fixed;
     left: 0;
+    /* top wird von ArchivLetterRail per Inline-Style auf den Listenanfang
+       gesetzt (Oberkante .av-scroll) – env() ist nur der Fallback bis zur
+       ersten Messung. */
     top: env(safe-area-inset-top, 0px);
     bottom: var(--tabbar-reserve);
     z-index: 50;
