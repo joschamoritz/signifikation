@@ -8,7 +8,7 @@ import Sheet from '../ui/Sheet'
 import ExternalLink from '../ExternalLink'
 import './CheckoutModal.css'
 
-const PRICE_OPTIONS = [
+export const PRICE_OPTIONS = [
   { value: '6.99', label: '6,99 €', sub: 'Petit',   productId: 'de.signifikation.gesamtausgabe.petit'  },
   { value: '9.99', label: '9,99 €', sub: 'Korpus',  productId: 'de.signifikation.gesamtausgabe.korpus' },
   { value: '14.99', label: '14,99 €', sub: 'Cicero', productId: 'de.signifikation.gesamtausgabe.cicero' },
@@ -73,7 +73,7 @@ export default function CheckoutModal({ isOpen, onClose, onSuccess }) {
     })
     if (result.status === 'cancelled') return
     if (result.status === 'pending') {
-      setCheckoutError('Kauf wartet auf Bestätigung (z.B. Famigliengenehmigung). Du erhältst eine Mitteilung, sobald er abgeschlossen ist.')
+      setCheckoutError('Kauf wartet auf Bestätigung (z. B. Familienfreigabe). Du erhältst eine Mitteilung, sobald er abgeschlossen ist.')
       return
     }
     const res = await apiFetch(`${API}/iap/verify`, {
@@ -155,7 +155,10 @@ export default function CheckoutModal({ isOpen, onClose, onSuccess }) {
                 </button>
               ))}
             </div>
-            <p className="konto-checkout-once">Alle Spielmodi · dauerhaft freigeschaltet</p>
+            {/* Kaufgegenstand exakt benennen: Die Spielmodi sind gratis – hier
+                stehen nur die tatsächlich freigeschalteten Premium-Funktionen
+                (App-Review-Guideline 2.3.1, keine irreführende Paywall). */}
+            <p className="konto-checkout-once">Eigenes Lemma unbegrenzt · Klassenraum · Kurs-Material — dauerhaft freigeschaltet</p>
           </div>
 
           {!IS_NATIVE && (

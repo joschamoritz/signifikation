@@ -5,7 +5,7 @@ import { apiFetch } from '../../utils/apiFetch'
 import { IAP } from '../../plugins/iap.js'
 import { restoreIapPurchases } from '../../utils/iapRestore'
 import { logError } from '../../utils/logError'
-import CheckoutModal from './CheckoutModal'
+import CheckoutModal, { PRICE_OPTIONS } from './CheckoutModal'
 
 const IS_NATIVE = Capacitor.isNativePlatform()
 
@@ -20,6 +20,23 @@ export default function KontoPremiumBlock({ auth, gesamtausgabePermanent }) {
   const [loginHint, setLoginHint] = useState(false)
   const [restoreStatus, setRestoreStatus] = useState(null) // 'busy' | 'none' | 'not-found' | 'error' | null
   const [restoreMessage, setRestoreMessage] = useState(null)
+  const [teaserPrice, setTeaserPrice] = useState(null)
+
+  // Teaser-Preis auf iOS aus StoreKit (Storefront-Währung des Nutzers) statt
+  // hardcoded EUR – auf Nicht-Euro-Storefronts (z. B. CH) stimmt „6,99 €"
+  // sonst nicht mit dem Preis im Kauf-Sheet überein.
+  useEffect(() => {
+    if (!IS_NATIVE || gesamtausgabePermanent) return
+    let cancelled = false
+    IAP.getProducts({ productIds: PRICE_OPTIONS.map(o => o.productId) })
+      .then(({ products }) => {
+        if (cancelled) return
+        const cheapest = products.find(p => p.id === PRICE_OPTIONS[0].productId)
+        if (cheapest?.price) setTeaserPrice(cheapest.price)
+      })
+      .catch(() => {}) // Fallback bleibt der EUR-Preis
+    return () => { cancelled = true }
+  }, [gesamtausgabePermanent])
 
   function handleBuyClick() {
     if (!auth.isLoggedIn) {
@@ -142,7 +159,7 @@ export default function KontoPremiumBlock({ auth, gesamtausgabePermanent }) {
             <div className="konto-subscription-unlock">
               <button className="konto-iap-cta" type="button" onClick={handleBuyClick}>
                 <span>Gesamtausgabe freischalten</span>
-                <span className="konto-iap-cta-price">ab 6,99 €</span>
+                <span className="konto-iap-cta-price">ab {teaserPrice || '6,99 €'}</span>
               </button>
               {loginHint && (
                 <p className="konto-login-hint" role="alert">

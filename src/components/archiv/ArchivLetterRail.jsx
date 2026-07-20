@@ -53,12 +53,19 @@ export default function ArchivLetterRail({ letters, scrollerRef, groupEls }) {
 
   // Verfügbare Höhe messen → wie viele Marken passen (Ausdünn-Schwelle).
   // Mobil misst die Leiste selbst; bei Fensterscroll (Desktop) die Viewport-Höhe.
+  // Mobil zusätzlich: Die fixe Rail beginnt erst am Listenanfang (Oberkante des
+  // inneren Scrollers), nicht an der Viewport-Oberkante – sonst fängt die
+  // touch-action:none-Spalte auch Wischgesten über Header und Suchfeld ab.
   useLayoutEffect(() => {
     const el = navRef.current
     if (!el || typeof ResizeObserver === 'undefined') return
     const measure = () => {
-      const win = isWindowScroller(resolveScroller(scrollerRef.current))
-      const h = win ? window.innerHeight - DESKTOP_VPAD : el.clientHeight
+      const sc = scrollerRef.current
+      // Mobil hat .av-scroll overflow-y:auto (Media Query) – daran erkennen wir
+      // das Layout robuster als am tatsächlichen Scroll-Überhang der Liste.
+      const mobile = sc && /(auto|scroll)/.test(getComputedStyle(sc).overflowY)
+      el.style.top = mobile ? `${Math.max(0, sc.getBoundingClientRect().top)}px` : ''
+      const h = mobile ? el.clientHeight : window.innerHeight - DESKTOP_VPAD
       if (h > 0) setMaxRows(Math.max(MIN_ROWS, Math.floor(h / SLOT_PX)))
     }
     measure()
@@ -66,7 +73,11 @@ export default function ArchivLetterRail({ letters, scrollerRef, groupEls }) {
     ro.observe(el)
     window.addEventListener('resize', measure)
     return () => { ro.disconnect(); window.removeEventListener('resize', measure) }
-  }, [scrollerRef])
+    // letters als Dep: Beim allerersten Mount ist die Liste noch leer → die
+    // Rail rendert null und navRef.current ist hier null. Erst wenn die
+    // Buchstaben da sind, existiert das Element – ohne die Dep liefe der
+    // Effekt nie wieder (kein Observer, kein top, maxRows bliebe Startwert).
+  }, [scrollerRef, letters])
 
   const items = useMemo(() => buildRail(letters, maxRows), [letters, maxRows])
 
