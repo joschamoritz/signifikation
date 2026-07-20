@@ -125,6 +125,21 @@
 .av-kwic-right { flex: 1 1 0; text-align: left; color: var(--muted); white-space: nowrap; }
 .av-beleg-quelle { display: block; font-family: var(--font-sans); font-size: 0.72rem; color: var(--muted); margin-top: 4px; }
 
+/* Lange, unbrechbare Tokens (URLs, Komposita, Quellennamen) umbrechen, statt den
+   mobilen Scroll-Container horizontal aufzuziehen (.av-scroll ist durch
+   overflow-y:auto implizit auch horizontal scrollbar). KWIC-Zeilen bleiben
+   bewusst nowrap – die haben ihren eigenen internen Scroll. */
+.av-headword,
+.av-defs li,
+.av-koll-blurb,
+.av-beleg-satz,
+.av-beleg-quelle,
+.av-index-def {
+  overflow-wrap: anywhere;
+}
+/* Langes Lemma soll schrumpfen/umbrechen dürfen (Basis: flex:0 0 auto). */
+.av-index-word { flex: 0 1 auto; min-width: 0; overflow-wrap: anywhere; }
+
 /* ── Musternetz (Variante B) ───────────────────────────────── */
 /* Logo-Grautöne als scoped Tokens (globals.css hat sie nicht). */
 .mn-net { margin-top: 10px; --gray-node: #a8a29e; --gray-line: #c4bfbc; }
@@ -160,6 +175,10 @@
     flex: 1;
     min-height: 0;
     overflow-y: auto;
+    /* Garantie: der Scroll-Container scrollt nie horizontal. Die bewusst breiten
+       Widgets (Muster-Tabelle, KWIC-Zeilen) haben ihren eigenen overflow-x:auto
+       und bleiben davon unberührt. */
+    overflow-x: hidden;
     -webkit-overflow-scrolling: touch;
     overscroll-behavior-y: contain;
     padding: 4px 20px calc(16px + var(--tabbar-reserve));
