@@ -70,32 +70,89 @@
   padding: 16px 0 48px;
 }
 
-/* Kopf wie im Spielmodus: zentrierte rote Pille, Zurück-Pfeil links absolut
-   (back-btn aus globals.css). Sorgt für Einheitlichkeit der drei Tabs. */
-.course-detail-bar {
-  position: relative;
+/* Kompakte Kopfzeile: Zurück + „① Titel" + Material-Affordanz in EINER Zeile.
+   Mobil sticky (s. Media-Query unten), damit die Orientierung beim Scrollen der
+   Aufgabe stehen bleibt. Der back-btn (globals.css, sonst position:absolute)
+   wird hier in den Flex-Fluss geholt. */
+.course-topbar {
   display: flex;
   align-items: center;
-  justify-content: center;
+  gap: 8px;
   min-height: 44px;
-  margin-bottom: 18px;
+  margin-bottom: 16px;
 }
 
-.course-detail-badge {
-  display: inline-block;
+.course-topbar .back-btn {
+  position: static;
+  flex: none;
+  padding: 10px 6px 10px 0;
+}
+
+.course-topbar-title {
+  flex: 1 1 auto;
+  min-width: 0;
+  margin: 0;
+  font-family: var(--font-serif);
+  font-size: 1.15rem;
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: 0.01em;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.course-topbar-title:focus { outline: none; }
+
+.course-topbar-glyph {
+  color: var(--accent);
+  font-weight: 700;
+  margin-right: 6px;
+}
+
+.course-topbar-loading {
+  color: var(--muted);
+  font-style: italic;
+  font-weight: 400;
+}
+
+/* „Material" — dezente Affordanz statt gleichrangiger Tab; öffnet das Sheet. */
+.course-material-link {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  min-height: 44px;
+  padding: 8px 2px 8px 8px;
   font-family: var(--font-sans);
   font-size: 0.7rem;
   font-weight: 700;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
-  /* Neutrales Navigations-Label, kein Fehlerhinweis — bewusst NICHT
-     --error-bg/--wrong-border (die sind für die Kollokationen-Fehlerfarbe
-     reserviert, s. DESIGN.md); Ton wie andere Sekundär-Badges der Station. */
-  color: var(--muted);
-  background: var(--surface2);
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  padding: 2px 10px;
+  color: var(--primary);
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+.course-material-link:hover { color: var(--accent-dk); }
+.course-material-link:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+.course-material-link-arrow { font-size: 0.85rem; }
+
+/* Solved-Zähler als kompakter Chip in der Kopfzeile (nur mobiler Pager — der
+   Desktop-Balken .course-station-progress bleibt in der Liste). Ersetzt den
+   ~48px-Fortschrittsblock über der Aufgabe. */
+.course-topbar-progress {
+  flex: none;
+  font-family: var(--font-sans);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--accent-dk);
+  white-space: nowrap;
 }
 
 .course-detail-error {
@@ -126,33 +183,9 @@
 }
 
 /* ── Stations-Kopf ─────────────────────────────────────────── */
-.course-head {
-  padding-bottom: 18px;
-  border-bottom: 2px solid var(--accent);
-  margin-bottom: 18px;
-}
-
-.course-head-skeleton {
-  font-family: var(--font-serif);
-  font-style: italic;
-  color: var(--muted);
-}
-
-.course-head-top {
-  display: flex;
-  align-items: baseline;
-  flex-wrap: wrap;
-  gap: 6px 12px;
-}
-
-.course-head-glyph {
-  font-family: var(--font-serif);
-  font-size: 1.3rem;
-  font-weight: 700;
-  color: var(--accent);
-  line-height: 1;
-}
-
+/* .course-head*-Titel/Kategorie/Ziel werden weiterhin von den Login-/Premium-
+   Hinweisen (.course-unlock) genutzt; der frühere Stations-Kopf-Block
+   (.course-head/-top/-glyph/-skeleton) entfiel mit der kompakten .course-topbar. */
 .course-head-title {
   font-family: var(--font-serif);
   font-size: 1.5rem;
@@ -306,43 +339,6 @@
 .course-niveau-btn:focus-visible {
   outline: 2px solid var(--primary);
   outline-offset: -2px;
-}
-
-/* ── Bereich-Tabs (Üben / Material) ────────────────────────── */
-.course-sections {
-  display: flex;
-  gap: 24px;
-  border-bottom: 1px solid var(--border);
-  margin-bottom: 20px;
-}
-
-.course-section-tab {
-  font-family: var(--font-serif);
-  font-size: 1rem;
-  font-weight: 700;
-  color: var(--muted);
-  background: none;
-  border: none;
-  border-bottom: 2px solid transparent;
-  padding: 8px 2px 10px;
-  margin-bottom: -1px;
-  cursor: pointer;
-  transition: color 0.15s, border-color 0.15s;
-}
-
-.course-section-tab:hover {
-  color: var(--text);
-}
-
-.course-section-tab--active {
-  color: var(--primary);
-  border-bottom-color: var(--primary);
-}
-
-.course-section-tab:focus-visible {
-  outline: 2px solid var(--primary);
-  outline-offset: 3px;
-  border-radius: 2px;
 }
 
 /* ── Panel-Gemeinsames ─────────────────────────────────────── */
@@ -583,13 +579,37 @@
 /* ── Mobiles Vollbild-Scroll ───────────────────────────────── */
 /* 699px = MOBILE_BREAKPOINT_PX (einheitlich mit JS-Pager/MOBILE_MEDIA_QUERY). */
 @media (max-width: 699px) {
+  /* App-Shell: fixe Kopfzeile · EIN scrollender Aufgabenkörper · fixe Nav unten.
+     So verdeckt die untere Leiste nie Aufgabeninhalt (ein Sticky-Overlay täte
+     das bei hohen Aufgaben). Die bounded Höhe kommt aus dem Flex-Chain der
+     .test-wrapper; .course-detail scrollt selbst nicht mehr. */
   .course-detail {
     flex: 1;
     min-height: 0;
-    overflow-y: auto;
-    -webkit-overflow-scrolling: touch;
-    overscroll-behavior-y: contain;
-    padding: 10px 18px calc(28px + var(--tabbar-reserve, 0px));
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    padding: 0 18px calc(28px + var(--tabbar-reserve, 0px));
+  }
+
+  /* Kompakte Kopfzeile bleibt oben (flex-none). Bleed über die Container-Ränder
+     (−18px) + Trennlinie zum scrollenden Körper. */
+  .course-topbar {
+    flex: none;
+    margin: 0 -18px 12px;
+    padding: 10px 18px;
+    background: var(--bg, #faf9f7);
+    border-bottom: 1px solid var(--border-lt);
+  }
+
+  /* Üben-Panel erbt die Resthöhe → der Pager-Screen darin kann scrollen. Das
+     Material-Panel liegt im Sheet (nicht unter .course-detail) und bleibt außen
+     vor. */
+  .course-detail .course-panel {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
   }
 }
 
@@ -1401,7 +1421,6 @@
    WCAG 2.5.5 erlaubt die „inline"-Ausnahme genau für solche im Text eingebetteten
    Ziele. */
 .course-niveau-btn,
-.course-section-tab,
 .course-match-chip,
 .course-variant,
 .course-pickrow-opt,
@@ -1410,7 +1429,6 @@
   min-height: 44px;
 }
 .course-niveau-btn,
-.course-section-tab,
 .course-pickrow-opt,
 .course-check-btn {
   display: inline-flex;
@@ -1431,20 +1449,50 @@
 /* Nur unterhalb von MOBILE_BREAKPOINT_PX (699px) — exakt die Grenze, an der
    der JS-Pager (useMediaQuery) greift, damit JS und CSS deckungsgleich sind. */
 @media (max-width: 699px) {
+  /* App-Shell: der Pager füllt die Resthöhe und trägt EINEN scrollenden
+     Aufgaben-Screen + eine fixe Nav am Fuß. */
   .course-pager {
-    /* Etwas Luft unter dem letzten Button; den Tabbar-Abstand reserviert
-       bereits der Scroll-Container .course-detail. */
-    padding-bottom: 12px;
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
   }
 
+  /* Der aktive Screen (die anderen sind display:none) ist der einzige Scroll-
+     Bereich; er füllt die Höhe zwischen Kopf und Nav. Kein min-height/48vh mehr
+     — die Höhe kommt aus dem Flex-Chain, sodass die Nav nie Inhalt verdeckt. */
   .course-pager-screen {
-    /* Eine Aufgabe füllt mindestens die sichtbare Höhe (Detail-Scroll-Container
-       abzgl. Stations-/Niveau-/Tab-Kopf grob), damit „pro Bildschirm" greift. */
-    min-height: 48vh;
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-y: contain;
+    padding-bottom: 8px;
   }
   /* Inaktive Screens bleiben gemountet (Antworten erhalten), aber unsichtbar
      und aus dem A11y-Baum. Explizit, falls ein Reset [hidden] überschreibt. */
   .course-pager-screen[hidden] { display: none; }
+
+  /* Scroll-Hinweis: dezenter Fade am unteren Rand, solange unten noch Inhalt
+     liegt (JS setzt --more, s. UebenPager). Echtes sticky-Element mit negativer
+     Marge → verschleiert leicht die letzte sichtbare Zeile, ohne die Scrollhöhe
+     zu verändern; am Ende (kein --more) verschwindet er → „Prüfen" bleibt klar. */
+  .course-pager-fade {
+    position: sticky;
+    bottom: 0;
+    display: block;
+    height: 28px;
+    margin-top: -28px;
+    background: linear-gradient(to top, var(--bg, #faf9f7), transparent);
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.15s;
+  }
+  .course-pager-screen--more .course-pager-fade { opacity: 1; }
+
+  /* Etwas ruhigere Abstände im Pager (kein Inhaltsverlust). */
+  .course-pager-screen .course-task-head-block { margin-bottom: 10px; }
+  .course-pager-screen .course-task-actions { margin-top: 12px; }
 
   /* Abschluss-Screen */
   .course-pager-end-summary {
@@ -1465,46 +1513,60 @@
     letter-spacing: 0.12em;
     text-transform: uppercase;
     color: var(--accent-dk);
-    margin: 0 0 14px;
+    margin: 0 0 10px;
   }
   /* Programmatischer Fokus (tabindex=-1) soll keinen Rahmen ziehen. */
   .course-pager-heading:focus { outline: none; }
 
+  /* Fixe Nav am Fuß des Pagers (flex-none, NICHT sticky): scrollt nie über den
+     Aufgabenkörper, bleibt aber immer sichtbar. Bleed über die Container-Ränder
+     (−18px); der Container reserviert unten bereits die Tabbar-Höhe. */
   .course-pager-nav {
+    flex: none;
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 12px;
-    margin-top: 26px;
-    padding-top: 18px;
+    margin: 0 -18px;
+    padding: 10px 18px 4px;
+    background: var(--bg, #faf9f7);
     border-top: 1px solid var(--border-lt);
   }
 
+  /* Wörterbuch-Navigation statt App-Buttons: quiet Serif-Link + Chevron
+     (Ästhetik wie .test-cta), keine Fläche/Rahmen. */
   .course-pager-btn {
-    font-family: var(--font-sans);
-    font-size: 0.85rem;
-    font-weight: 600;
-    letter-spacing: 0.03em;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
     min-height: 44px;
-    padding: 10px 22px;
-    border-radius: 3px;
-    cursor: pointer;
-    transition: background 0.15s, opacity 0.15s, border-color 0.15s;
-  }
-  .course-pager-btn--next {
-    color: #fff;
-    background: var(--primary);
-    border: 1px solid var(--primary);
-  }
-  .course-pager-btn--next:hover:not(:disabled) { background: var(--primary-hi); }
-  .course-pager-btn--prev {
+    padding: 8px 2px;
+    font-family: var(--font-serif);
+    font-size: 0.92rem;
+    font-weight: 700;
+    letter-spacing: 0.01em;
     color: var(--primary);
-    background: transparent;
-    border: 1px solid var(--border);
+    background: none;
+    border: none;
+    cursor: pointer;
+    transition: color 0.15s, opacity 0.15s;
   }
-  .course-pager-btn--prev:hover:not(:disabled) { border-color: var(--accent); }
-  .course-pager-btn:disabled { opacity: 0.35; cursor: default; }
-  .course-pager-btn:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+  .course-pager-btn:hover:not(:disabled) { color: var(--accent-dk); }
+  .course-pager-btn:disabled { color: var(--muted); opacity: 0.4; cursor: default; }
+  .course-pager-btn:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 3px;
+    border-radius: 2px;
+  }
+  .course-pager-chevron {
+    font-family: var(--font-serif);
+    font-style: normal;
+    font-size: 1.15rem;
+    line-height: 1;
+    transition: transform 0.15s;
+  }
+  .course-pager-btn--next:hover:not(:disabled) .course-pager-chevron { transform: translateX(2px); }
+  .course-pager-btn--prev:hover:not(:disabled) .course-pager-chevron { transform: translateX(-2px); }
 
   /* Dezente Fortschrittslinie ganz unten am Bildschirmrand, unter der
      schwebenden Tabbar-Pille (die liegt bei bottom: safe-area + gap). Die
@@ -1531,12 +1593,13 @@
 @media (prefers-reduced-motion: reduce) {
   .course-material-card,
   .course-niveau-btn,
-  .course-section-tab,
   .course-check-btn,
   .course-match-chip,
   .course-variant,
   .course-mark-token,
   .course-pager-btn,
+  .course-pager-chevron,
+  .course-pager-fade,
   .course-progress-fill {
     transition: none;
   }

@@ -1,13 +1,14 @@
 // Ebene 2 des Kurs-Tabs: Station-Detail (Kurs-Tab-IA.md §„Ebene 2").
 //
 // Aufbau (mobile-first, Woerterbuch-Aesthetik, kein Quiz-App-Look):
-//   - schmale Kopfzeile mit Zurueck-Affordanz
-//   - Stations-Kopf: Titel · IPA · Kategorie · 1-Satz-Lernziel
-//   - Niveau-Umschalter (DaZ/SekI/SekII/LK) — global gemerkt, steuert beide Bereiche
-//   - zwei Bereiche als Tabs: „Üben" (Aufgaben der Stufe) / „Material" (PDF-Downloads)
+//   - EINE kompakte, mobil sticky Kopfzeile: Zurueck · „① Titel" · Material-Link
+//   - Übungsaufgaben der gewaehlten Stufe (mobil als Ein-Aufgabe-Pager)
+//   - „Material" (PDF-Downloads, Lehrkraft/Premium) öffnet als Bottom-Sheet,
+//     nicht mehr als gleichrangiger Tab — spart je Übungs-Screen die Tab-Leiste
+//   - Niveau-Umschalter (DaZ/SekI/SekII/LK) liegt zentral im Kurs-Kopf/Profil
 //
-// Daten kommen aus der Premium-Kurs-API (/api/v1/course/*). Der gesamte Tab ist
-// Premium-gegated (requirePremium serverseitig); 403 wird hier abgefangen.
+// Daten kommen aus der Premium-Kurs-API (/api/v1/course/*). Üben ist frei
+// (requireAuthUser → 401 = Login-Hinweis), Material ist Premium (403).
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Capacitor } from '@capacitor/core'
@@ -18,11 +19,7 @@ import { downloadAuthenticatedPdf } from '../../utils/downloadPdf'
 import { useMediaQuery } from '../../hooks/useMediaQuery'
 import { useGlobalNiveau, NIVEAU_LABELS } from './useGlobalNiveau'
 import TaskGate from './games/TaskGate'
-
-const SECTIONS = [
-  { id: 'ueben',    label: 'Üben' },
-  { id: 'material', label: 'Material' },
-]
+import Sheet from '../ui/Sheet'
 
 // Material-Arten → Klartext + Reihenfolge der Download-Karten (IA-Reihenfolge:
 // Arbeitsblatt · Lösung · Unterrichtsentwurf · Beamer).
@@ -55,29 +52,14 @@ function sortMaterials(materials) {
 
 export default function StationDetail({ stationId, gesamtausgabe = false, onBack, onNavigateToKonto, onOpenNextStation }) {
   const [niveau] = useGlobalNiveau()
-  const [section, setSection] = useState('ueben')
+  const [materialOpen, setMaterialOpen] = useState(false)
 
   const [station, setStation] = useState(null)
   const [stationState, setStationState] = useState('loading') // loading | ready | denied | error
   const [stationRetryToken, setStationRetryToken] = useState(0)
+  // Solved-Zähler des Üben-Pagers, in die Kopfzeile gespiegelt (mobiler Chip).
+  const [uebenProgress, setUebenProgress] = useState(null)
   const headingRef = useRef(null)
-
-  // Tab-Tastaturmodell (APG): ←/→/↑/↓ wandern zwischen Üben/Material, Home/End
-  // springen an Rand. Fokus folgt der Auswahl (automatische Aktivierung — bei
-  // nur zwei einfachen Panels unkritisch).
-  const tablistRef = useRef(null)
-  function onTabKeyDown(e, idx) {
-    const last = SECTIONS.length - 1
-    let next = null
-    if (e.key === 'ArrowRight' || e.key === 'ArrowDown') next = idx === last ? 0 : idx + 1
-    else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') next = idx === 0 ? last : idx - 1
-    else if (e.key === 'Home') next = 0
-    else if (e.key === 'End') next = last
-    if (next == null) return
-    e.preventDefault()
-    setSection(SECTIONS[next].id)
-    tablistRef.current?.querySelectorAll('[role="tab"]')[next]?.focus()
-  }
 
   // ── Station-Kopfdaten (einmalig je Station) ──────────────────────────
   useEffect(() => {
@@ -86,6 +68,7 @@ export default function StationDetail({ stationId, gesamtausgabe = false, onBack
     const controller = new AbortController()
     setStationState('loading')
     setStation(null)
+    setUebenProgress(null)
     ;(async () => {
       try {
         const json = await apiGet(`${API}/course/stations/${stationId}`, { signal: controller.signal })
@@ -116,16 +99,21 @@ export default function StationDetail({ stationId, gesamtausgabe = false, onBack
 
   if (stationState === 'denied') {
     return (
-      <DetailFrame onBack={onBack}>
+      <DetailFrame onBack={onBack} station={null} loading={false}>
         <LoginNotice onNavigateToKonto={onNavigateToKonto} />
       </DetailFrame>
     )
   }
 
   return (
-    <DetailFrame onBack={onBack}>
-      <StationHead station={station} state={stationState} headingRef={headingRef} />
-
+    <DetailFrame
+      onBack={onBack}
+      station={station}
+      loading={stationState === 'loading'}
+      headingRef={headingRef}
+      progress={uebenProgress}
+      onOpenMaterial={stationState === 'ready' ? () => setMaterialOpen(true) : null}
+    >
       {stationState === 'error' && (
         <p className="course-detail-error" role="alert">
           Station konnte nicht geladen werden.
@@ -140,90 +128,83 @@ export default function StationDetail({ stationId, gesamtausgabe = false, onBack
       )}
 
       {stationState === 'ready' && (
-        <>
-          {/* Niveau-Auswahl ist seit dem Redesign zentral (Anm. der Kurs-
-              Startseite + Profil), nicht mehr pro Station. Direkt unter dem
-              Kopf geht es mit den Üben/Material-Tabs los. */}
-          <div className="course-sections" role="tablist" aria-label="Bereich" ref={tablistRef}>
-            {SECTIONS.map((s, i) => (
-              <button
-                key={s.id}
-                role="tab"
-                id={`course-tab-${s.id}`}
-                aria-selected={section === s.id}
-                aria-controls={`course-panel-${s.id}`}
-                tabIndex={section === s.id ? 0 : -1}
-                className={`course-section-tab${section === s.id ? ' course-section-tab--active' : ''}`}
-                onClick={() => setSection(s.id)}
-                onKeyDown={(e) => onTabKeyDown(e, i)}
-              >
-                {s.label}
-              </button>
-            ))}
-          </div>
-
-          {section === 'ueben' ? (
-            <UebenPanel
-              stationId={stationId}
-              niveau={niveau}
-              orderNo={station?.orderNo}
-              onOpenNextStation={onOpenNextStation}
-              onBack={onBack}
-            />
-          ) : (
-            <MaterialPanel
-              stationId={stationId}
-              niveau={niveau}
-              goal={STATION_GOALS[station?.orderNo] ?? ''}
-              gesamtausgabe={gesamtausgabe}
-              onNavigateToKonto={onNavigateToKonto}
-            />
-          )}
-        </>
+        <UebenPanel
+          stationId={stationId}
+          niveau={niveau}
+          orderNo={station?.orderNo}
+          onOpenNextStation={onOpenNextStation}
+          onBack={onBack}
+          onProgressChange={setUebenProgress}
+        />
       )}
+
+      {/* Material (Lehrkraft-PDFs) ist kein gleichrangiger Tab mehr, sondern ein
+          Bottom-Sheet über die „Material"-Affordanz im Kopf — so bleibt der
+          Übungs-Flow frei von der 64px-Tab-Leiste (1-Screen-Ziel). */}
+      <Sheet
+        open={materialOpen}
+        onClose={() => setMaterialOpen(false)}
+        aria-label="Unterrichtsmaterial dieser Station"
+      >
+        <Sheet.Header />
+        <Sheet.Body>
+          <MaterialPanel
+            stationId={stationId}
+            niveau={niveau}
+            goal={STATION_GOALS[station?.orderNo] ?? ''}
+            gesamtausgabe={gesamtausgabe}
+            onNavigateToKonto={onNavigateToKonto}
+          />
+        </Sheet.Body>
+      </Sheet>
     </DetailFrame>
   )
 }
 
-// ── Rahmen (Scroll-Container, Zurueck-Leiste) ──────────────────────────
-function DetailFrame({ onBack, children }) {
+// ── Rahmen (Scroll-Container + kompakter, sticky Kopf) ─────────────────
+// Der frühere getrennte Aufbau (Zurück-Leiste + großer Stations-Kopf +
+// Üben/Material-Tabs) kostete mobil ~226px, bevor eine Aufgabe sichtbar war.
+// Jetzt: EINE kompakte, mobil sticky Kopfzeile (Zurück + „① Titel" + Material-
+// Link); Material öffnet als Bottom-Sheet. Orientierung + Zurück bleiben beim
+// Scrollen der Aufgabe stehen.
+function DetailFrame({ onBack, station, loading = false, headingRef, onOpenMaterial, progress = null, children }) {
   return (
     <div className="test-page course-page">
       <div className="test-wrapper">
         <div className="course-detail">
-          <header className="course-detail-bar">
+          <header className="course-topbar">
             <button type="button" className="back-btn" onClick={onBack} aria-label="Zurück zum Lernpfad">
               <svg width="10" height="16" viewBox="0 0 10 16" fill="none" aria-hidden="true"><path d="M8.5 1L1.5 8L8.5 15" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>
             </button>
-            <span className="course-detail-badge">Didaktischer Lernpfad</span>
+            {/* tabIndex=-1: programmatisch fokussierbar (SPA-A11y), nicht im Tab-Fluss. */}
+            <h2 className="course-topbar-title" ref={headingRef} tabIndex={-1}>
+              {station ? (
+                <>
+                  <span className="course-topbar-glyph" aria-hidden="true">{STATION_GLYPHS[station.orderNo] ?? ''}</span>
+                  {station.title}
+                </>
+              ) : loading ? (
+                <span className="course-topbar-loading">Lädt …</span>
+              ) : null}
+            </h2>
+            {progress && progress.total > 0 && (
+              <span
+                className="course-topbar-progress"
+                aria-label={`${progress.solved} von ${progress.total} Aufgaben gelöst`}
+              >
+                {progress.solved}/{progress.total}
+              </span>
+            )}
+            {onOpenMaterial && (
+              <button type="button" className="course-material-link" onClick={onOpenMaterial}>
+                Material<span className="course-material-link-arrow" aria-hidden="true"> ↓</span>
+              </button>
+            )}
           </header>
           {children}
         </div>
       </div>
     </div>
-  )
-}
-
-// ── Stations-Kopf ───────────────────────────────────────────────────────
-function StationHead({ station, state, headingRef }) {
-  if (state === 'loading' || !station) {
-    return (
-      <header className="course-head">
-        <p className="course-head-skeleton" aria-hidden="true">Lädt …</p>
-      </header>
-    )
-  }
-  return (
-    <header className="course-head">
-      <div className="course-head-top">
-        <span className="course-head-glyph" aria-hidden="true">{STATION_GLYPHS[station.orderNo] ?? ''}</span>
-        {/* tabIndex=-1: programmatisch fokussierbar (SPA-A11y), nicht im Tab-Fluss. */}
-        <h2 className="course-head-title" ref={headingRef} tabIndex={-1}>{station.title}</h2>
-      </div>
-      {station.category && (
-        <p className="course-head-category">{station.category}</p>
-      )}
-    </header>
   )
 }
 
@@ -255,7 +236,7 @@ function buildTaskLabels(tasks) {
 }
 
 // ── Bereich „Üben" — Aufgaben der gewaehlten Stufe ──────────────────────
-function UebenPanel({ stationId, niveau, orderNo, onOpenNextStation, onBack }) {
+function UebenPanel({ stationId, niveau, orderNo, onOpenNextStation, onBack, onProgressChange }) {
   const [tasks, setTasks] = useState([])
   const [state, setState] = useState('loading')
   const [retryToken, setRetryToken] = useState(0)
@@ -339,13 +320,15 @@ function UebenPanel({ stationId, niveau, orderNo, onOpenNextStation, onBack }) {
   const contentReady = state === 'ready' && resultsReady
   const pagerActive = isMobile && contentReady && tasks.length > 0
 
+  // Solved-Zähler an den Kopf melden — aber nur im mobilen Pager, wo der Chip
+  // den Fortschrittsblock über der Aufgabe ersetzt (Desktop-Liste behält ihn).
+  useEffect(() => {
+    onProgressChange?.(pagerActive ? { solved: solvedCount, total: orderedTasks.length } : null)
+  }, [onProgressChange, pagerActive, solvedCount, orderedTasks.length])
+  useEffect(() => () => onProgressChange?.(null), [onProgressChange])
+
   return (
-    <section
-      className="course-panel"
-      role="tabpanel"
-      id="course-panel-ueben"
-      aria-labelledby="course-tab-ueben"
-    >
+    <section className="course-panel">
       {(state === 'loading' || (state === 'ready' && !resultsReady)) && (
         <p className="course-muted">Lädt …</p>
       )}
@@ -375,8 +358,9 @@ function UebenPanel({ stationId, niveau, orderNo, onOpenNextStation, onBack }) {
         </>
       )}
 
-      {/* Stations-Fortschritt: gelöste von geladenen Aufgaben. */}
-      {contentReady && tasks.length > 0 && (
+      {/* Stations-Fortschritt: gelöste von geladenen Aufgaben. Im mobilen Pager
+          trägt der Kopf-Chip diese Info → Block nur in der Desktop-Liste. */}
+      {contentReady && tasks.length > 0 && !pagerActive && (
         <StationProgress solved={solvedCount} total={orderedTasks.length} />
       )}
 
@@ -487,6 +471,17 @@ export function UebenPager({
   const containerRef = useRef(null)
   const focusPendingRef = useRef(false)
 
+  // Scroll-Hinweis: markiert den aktiven Screen als „--more", solange unten noch
+  // Inhalt liegt (contained scroll bei hohen Aufgaben) → CSS blendet einen Fade
+  // ein und nimmt ihn am Ende weg, damit „Prüfen" nie verschleiert wird.
+  const updateMore = useCallback((el) => {
+    if (!el) return
+    el.classList.toggle(
+      'course-pager-screen--more',
+      el.scrollHeight - el.scrollTop - el.clientHeight > 4,
+    )
+  }, [])
+
   // Kontextwechsel (Niveau/Anzahl) → zurück auf Aufgabe 1, Fortschritt neu.
   useEffect(() => {
     setStep(0)
@@ -506,6 +501,18 @@ export function UebenPager({
     }
   }, [step])
 
+  // Scroll-Hinweis am aktiven Screen aktuell halten: initial, beim Blättern und
+  // wenn der Inhalt wächst (Feedback nach „Prüfen") — via ResizeObserver.
+  useEffect(() => {
+    const active = containerRef.current?.querySelector('.course-pager-screen:not([hidden])')
+    if (!active) return undefined
+    updateMore(active)
+    const ro = new ResizeObserver(() => updateMore(active))
+    ro.observe(active)
+    if (active.firstElementChild) ro.observe(active.firstElementChild)
+    return () => ro.disconnect()
+  }, [step, updateMore])
+
   const go = (next) => {
     if (next < 0 || next > endIndex) return
     focusPendingRef.current = true
@@ -519,7 +526,12 @@ export function UebenPager({
   return (
     <div className="course-pager" ref={containerRef}>
       {tasks.map((task, i) => (
-        <div className="course-pager-screen" key={task.id} hidden={i !== step}>
+        <div
+          className="course-pager-screen"
+          key={task.id}
+          hidden={i !== step}
+          onScroll={(e) => updateMore(e.currentTarget)}
+        >
           <h3 className="course-pager-heading" tabIndex={-1}>
             Aufgabe {labels[i]}
             <span className="course-task-niveau" title="Niveaustufe dieser Aufgabe">
@@ -538,11 +550,17 @@ export function UebenPager({
             onResult={(correct) => onResult?.(task.id, correct)}
             onChecked={() => markDone(task.id)}
           />
+          {/* Scroll-Hinweis (letztes Kind → sticky am Boden des Scrollbereichs). */}
+          <span className="course-pager-fade" aria-hidden="true" />
         </div>
       ))}
 
       {/* Abschluss-Screen */}
-      <div className="course-pager-screen course-pager-end" hidden={!onEnd}>
+      <div
+        className="course-pager-screen course-pager-end"
+        hidden={!onEnd}
+        onScroll={(e) => updateMore(e.currentTarget)}
+      >
         <h3 className="course-pager-heading" tabIndex={-1}>Station abgeschlossen</h3>
         <p className="course-pager-end-summary">
           {done.size >= total
@@ -552,6 +570,7 @@ export function UebenPager({
         <div className="course-pager-end-actions">
           <NextStationCta orderNo={orderNo} onOpenNextStation={onOpenNextStation} onBack={onBack} />
         </div>
+        <span className="course-pager-fade" aria-hidden="true" />
       </div>
 
       <div className="course-pager-nav">
@@ -561,6 +580,7 @@ export function UebenPager({
           onClick={() => go(step - 1)}
           disabled={step === 0}
         >
+          <span className="course-pager-chevron" aria-hidden="true">‹</span>
           Zurück
         </button>
         <button
@@ -570,6 +590,7 @@ export function UebenPager({
           disabled={step >= endIndex}
         >
           {step === total - 1 ? 'Abschluss' : 'Weiter'}
+          <span className="course-pager-chevron" aria-hidden="true">›</span>
         </button>
       </div>
 
@@ -612,12 +633,7 @@ function MaterialPanel({ stationId, niveau, goal, gesamtausgabe = false, onNavig
   }, [stationId, niveau, gesamtausgabe, retryToken])
 
   return (
-    <section
-      className="course-panel"
-      role="tabpanel"
-      id="course-panel-material"
-      aria-labelledby="course-tab-material"
-    >
+    <section className="course-panel course-panel--material">
       {/* Lernziel der Station — bewusst nur hier im Lehrkraft-Bereich, nicht
           mehr über jeder Übungsseite (steht schon auf der Kurs-Startseite). */}
       {goal && <p className="course-panel-lead">{goal}</p>}
