@@ -2341,6 +2341,16 @@
     margin-top: 10px;
     padding-top: 8px;
   }
+
+  /* Statistiken: eingeloggt (4 Trefferquote-Balken + Trend) läuft sonst ~60px
+     über den Snap-Screen. Nur auf kurzen Screens dichter — größere Phones
+     behalten die luftigen Abstände. Kein Inhalt entfällt. */
+  .konto-stats-content { margin-top: 8px; }
+  .konto-stat-card { padding: 8px 0; }
+  .konto-history-section { margin-top: 10px; padding-top: 8px; }
+  .konto-trend { margin-top: 8px; padding-top: 6px; }
+  .konto-heatmap-wrapper { gap: 5px; }
+  .konto-bars { gap: 5px; }
 }
 
 /* ── iPad Landscape: kompaktere Vertikale ───────────────────── */
