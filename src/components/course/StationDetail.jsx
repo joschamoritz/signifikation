@@ -730,8 +730,9 @@ function MaterialPremiumNotice({ onNavigateToKonto }) {
       <p className="course-head-category">Gesamtausgabe</p>
       <h2 className="course-head-title">Unterrichtsmaterial ist Teil der Gesamtausgabe</h2>
       <p className="course-head-goal">
-        Arbeitsblätter, Lösungen, Unterrichtsentwürfe und Beamer-Folien sind mit
-        der Gesamtausgabe freigeschaltet. Das Üben bleibt für dich kostenlos.
+        Unterrichtsentwurf, Arbeitsblätter in vier Differenzierungsstufen,
+        Erwartungshorizont und Beamer-Folien sind mit der Gesamtausgabe
+        freigeschaltet. Das Üben bleibt für dich kostenlos.
       </p>
       {onNavigateToKonto && (
         <button type="button" className="test-cta" onClick={onNavigateToKonto}>
