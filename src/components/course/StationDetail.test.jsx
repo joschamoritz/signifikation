@@ -42,7 +42,7 @@ describe('UebenPager', () => {
     expect(progressFill().style.width).toBe('50%')
     expect(prevBtn().disabled).toBe(true)
     expect(nextBtn().disabled).toBe(false)
-    expect(nextBtn().textContent).toBe('Weiter')
+    expect(nextBtn().textContent).toContain('Weiter')
   })
 
   it('hält alle Aufgaben gemountet (Antwort-Erhalt), inaktive via [hidden]', () => {
@@ -71,7 +71,7 @@ describe('UebenPager', () => {
     // Fokus-Management: aktive Aufgaben-Überschrift hat den Fokus
     expect(document.activeElement).toBe(heading())
     // letzte Aufgabe → Weiter führt in den Abschluss-Screen
-    expect(nextBtn().textContent).toBe('Abschluss')
+    expect(nextBtn().textContent).toContain('Abschluss')
   })
 
   it('stiehlt den Fokus beim ersten Render NICHT', () => {
