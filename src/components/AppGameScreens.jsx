@@ -4,10 +4,9 @@ import WortZwillingSelection from './WortZwillingSelection'
 import ZeitenwendeSelection from './ZeitenwendeSelection'
 import LueckenfuellerSelection from './LueckenfuellerSelection'
 import { useEdgeSwipeBack } from '../hooks/useEdgeSwipeBack'
-// Quiz und Results sind groß und werden erst nach Lemma-Wahl gebraucht.
+// Quiz ist groß und wird erst nach Lemma-Wahl gebraucht.
 // BelegePanel mit logDice-Sortierung wird automatisch mit-lazy-geladen.
-const Quiz    = lazy(() => import('./Quiz'))
-const Results = lazy(() => import('./Results'))
+const Quiz = lazy(() => import('./Quiz'))
 
 function ScreenFallback() {
   return (
@@ -36,7 +35,7 @@ export default function AppGameScreens({
   selectedLemma,
   handleRoundComplete,
   onBackToSelection,
-  roundScores,
+  savedSelected,
   handleRestart,
   wortzwilling,
   onWortzwillingBack,
@@ -93,7 +92,6 @@ export default function AppGameScreens({
       case 'zeitenwende-selection': return onZeitenwendeSelectionBack
       case 'lueckenfueller-selection': return onLueckenfuellerSelectionBack
       case 'quiz': return onBackToSelection
-      case 'results': return onBackToSelection
       case 'custom-play': return onExitCustomGame
       case 'wortzwilling': return onWortzwillingBack
       case 'zeitenwende': return onZeitenwendeBack
@@ -184,17 +182,9 @@ export default function AppGameScreens({
             currentRound={0}
             onRoundComplete={handleRoundComplete}
             onBack={onBackToSelection}
-            serverDatum={serverDatum}
-          />
-        </Suspense>
-      )}
-      {phase === 'results' && selectedLemma && (
-        <Suspense fallback={<ScreenFallback />}>
-          <Results
-            lemma={selectedLemma}
-            roundScores={roundScores}
             onRestart={handleRestart}
-            onToSelection={onBackToSelection}
+            serverDatum={serverDatum}
+            savedResult={savedSelected ? { selected: savedSelected } : null}
           />
         </Suspense>
       )}

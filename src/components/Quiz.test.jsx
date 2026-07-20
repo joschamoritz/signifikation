@@ -125,13 +125,9 @@ describe('Quiz – Smoketest', () => {
     expect(auswerten.disabled).toBe(false)
     fireEvent.click(auswerten)
 
-    // onRoundComplete erst nach Weiter
-    expect(onRoundComplete).not.toHaveBeenCalled()
-
-    fireEvent.click(screen.getByRole('button', { name: /Weiter/ }))
-
+    // onRoundComplete feuert direkt beim Auswerten, kein Extra-Klick mehr
     expect(onRoundComplete).toHaveBeenCalledOnce()
-    expect(onRoundComplete).toHaveBeenCalledWith(10)
+    expect(onRoundComplete).toHaveBeenCalledWith(10, expect.arrayContaining(['eins', 'zwei', 'drei']))
   })
 
   it('Submit-Pfad: gemischte Picks (nearPool + midPool) → Teilpunkte', () => {
@@ -150,9 +146,8 @@ describe('Quiz – Smoketest', () => {
     fireEvent.click(getOption('acht'))
 
     fireEvent.click(screen.getByRole('button', { name: 'Auswerten' }))
-    fireEvent.click(screen.getByRole('button', { name: /Weiter/ }))
 
-    expect(onRoundComplete).toHaveBeenCalledWith(5)
+    expect(onRoundComplete).toHaveBeenCalledWith(5, expect.arrayContaining(['sechs', 'sieben', 'acht']))
   })
 
   it('Auswerten ist deaktiviert bevor 3 Wörter gewählt sind', () => {

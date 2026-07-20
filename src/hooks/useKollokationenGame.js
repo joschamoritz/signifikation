@@ -7,8 +7,11 @@ export function useKollokationenGame({ keys, serverDatum, lemmata }) {
   const [phase, setPhase] = useState('home')
   const [selectedLemma, setSelectedLemma] = useState(null)
   const [roundScores, setRoundScores] = useState([])
+  // Ansicht einer bereits gespielten Runde (Klick auf "Ergebnis ansehen"):
+  // Quiz zeigt sich dann direkt im ausgewerteten Zustand, keine eigene
+  // Ergebnis-Phase mehr.
+  const [savedSelected, setSavedSelected] = useState(null)
 
-  const freshKollRef = useRef(false)
   const inGameRef = useRef(false)
 
   useEffect(() => {
@@ -28,26 +31,28 @@ export function useKollokationenGame({ keys, serverDatum, lemmata }) {
       setPhase('home')
       setSelectedLemma(null)
       setRoundScores([])
+      setSavedSelected(null)
     }
 
     window.addEventListener('popstate', onPop)
     return () => window.removeEventListener('popstate', onPop)
   }, [])
 
-  useEffect(() => {
-    if (roundScores.length === 1 && phase === 'quiz') {
-      freshKollRef.current = true
-      setPhase('results')
-    }
-  }, [phase, roundScores.length])
+  const handleLemmaSelect = useCallback((lemma) => {
+    setSelectedLemma(lemma)
+    setRoundScores([])
+    setSavedSelected(null)
+    setPhase('quiz')
+  }, [])
 
-  const persistResults = useCallback(() => {
-    if (phase !== 'results' || !selectedLemma || roundScores.length === 0) return
-    // Selbst gewählte Lemmata (Eigenes Lemma) sind reines Üben: nicht in die
-    // Tageswertung/Statistik schreiben.
-    if (selectedLemma.isCustom) return
+  // Wird direkt beim Auswerten in Quiz aufgerufen (kein Extra-Klick/Phase
+  // mehr) — persistiert das Ergebnis und meldet die Tagesstatistik.
+  const handleRoundComplete = useCallback((score, selectedWords) => {
+    setRoundScores([score])
 
-    const total     = roundScores.reduce((sum, value) => sum + value, 0)
+    if (!selectedLemma || selectedLemma.isCustom) return
+
+    const total     = score
     const maxPoints = 10
     const medal     = getMedal(total, maxPoints)
 
@@ -59,33 +64,12 @@ export function useKollokationenGame({ keys, serverDatum, lemmata }) {
       total,
       medal,
       lemmataLength: lemmata?.length,
-      scores: roundScores,
+      scores: [score],
+      selected: selectedWords,
     })
 
-    if (freshKollRef.current && serverDatum) {
-      freshKollRef.current = false
-      postStat('kollokationen', serverDatum, total, 10)
-    }
-  }, [keys, lemmata?.length, phase, roundScores, selectedLemma, serverDatum])
-
-  // Persistenz an das Finish-Ereignis binden (Phasenwechsel → 'results'),
-  // nicht an die Callback-Identitaet im Render-Zyklus eines Parent-Effekts.
-  // persistResults ist intern idempotent (Phase-Guard + freshKollRef), daher
-  // ist ein erneutes Feuern bei Identitaetswechsel unkritisch.
-  useEffect(() => {
-    if (phase !== 'results') return
-    persistResults()
-  }, [phase, persistResults])
-
-  const handleLemmaSelect = useCallback((lemma) => {
-    setSelectedLemma(lemma)
-    setRoundScores([])
-    setPhase('quiz')
-  }, [])
-
-  const handleRoundComplete = useCallback((score) => {
-    setRoundScores((prev) => [...prev, score])
-  }, [])
+    if (serverDatum) postStat('kollokationen', serverDatum, total, 10)
+  }, [keys, lemmata, selectedLemma, serverDatum])
 
   const openPlayedResult = useCallback((lemmaId) => {
     const played = getPlayedToday(keys.todayKey).find((entry) => entry.id === lemmaId)
@@ -94,12 +78,14 @@ export function useKollokationenGame({ keys, serverDatum, lemmata }) {
 
     setSelectedLemma(lemma)
     setRoundScores(played.scores ?? [])
-    setPhase('results')
+    setSavedSelected(played.selected ?? [])
+    setPhase('quiz')
   }, [keys.todayKey, lemmata])
 
   const resetToHome = useCallback(() => {
     setSelectedLemma(null)
     setRoundScores([])
+    setSavedSelected(null)
     setPhase('home')
   }, [])
 
@@ -109,6 +95,7 @@ export function useKollokationenGame({ keys, serverDatum, lemmata }) {
     selectedLemma,
     currentRound: 0,
     roundScores,
+    savedSelected,
     bonusQuestion: null,
     isBonus: false,
     handleLemmaSelect,

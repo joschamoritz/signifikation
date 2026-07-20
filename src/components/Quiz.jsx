@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect, useRef, useCallback } from 'react'
-import { getRoundOptions, calculateMixedScore, shuffle } from '../utils/gameLogic'
+import { getRoundOptions, calculateMixedScore, shuffle, getMedal } from '../utils/gameLogic'
 import { useBelege } from '../hooks/useBelege'
 import { lsGet, lsSet } from '../utils/storage'
 import BelegePanel from './BelegePanel'
@@ -25,16 +25,20 @@ export default function Quiz({
   onProgress,               // Classroom: Entwurf spiegeln (Reload, 7.2)
   initialSelected = null,   // Classroom: Auswahl aus dem Entwurf
   serverDatum = null,       // Tages-Seed fuer das Score-Label (Server-Tag statt Client-Uhr)
+  savedResult = null,       // Bereits gespielte Runde ansehen: { selected } → Quiz startet ausgewertet
+  onRestart,                // "Zur Startseite" (nur nach Auswertung sichtbar)
 }) {
   // Klassenraum: dieselbe Quiz-Optik, aber ohne Joker/Belege/Sofort-Feedback
   // (server-autoritativ; Joker/Feedback braeuchten die Loesung `rang`). Eine
   // Abgabe via onSubmit({ selected }); Aufloesung gibt die Lehrkraft frei.
   const isClassroom = mode === 'classroom'
   const submittedRef = useRef(false)
-  const [selected, setSelected]   = useState(() =>
-    isClassroom && Array.isArray(initialSelected) ? initialSelected.slice(0, 3) : [],
-  )
-  const [submitted, setSubmitted] = useState(false)
+  const [selected, setSelected]   = useState(() => {
+    if (isClassroom && Array.isArray(initialSelected)) return initialSelected.slice(0, 3)
+    if (savedResult?.selected) return savedResult.selected.slice(0, 3)
+    return []
+  })
+  const [submitted, setSubmitted] = useState(() => !!savedResult)
   const [showBelegHint, setShowBelegHint] = useState(() => !lsGet(BELEG_HINT_KEY))
 
   const kollokatoren = useMemo(() => lemma.runden?.kollokatoren ?? [], [lemma])
@@ -98,9 +102,20 @@ export default function Quiz({
     if (shouldSkip) onRoundCompleteRef.current(0)
   }, [shouldSkip])
 
+  // Direkt beim Auswerten melden (kein separater Ergebnis-Screen/Extra-Klick
+  // mehr): der Screen bleibt derselbe und zeigt die Auswertung inline.
+  // savedResult-Ansicht (schon gespielte Runde) meldet nichts erneut.
+  useEffect(() => {
+    if (submitted && !savedResult && !isClassroom) {
+      onRoundCompleteRef.current(calculateMixedScore(selected, kollokatoren), selected)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [submitted])
+
   if (shouldSkip) return null
 
   const roundScore = submitted ? calculateMixedScore(selected, kollokatoren) : null
+  const medal       = submitted ? getMedal(roundScore, 10) : null
 
   function resetJokerTimer() {
     if (jokerUsed || submitted) return
@@ -324,43 +339,45 @@ export default function Quiz({
               </span>
             )}
           </div>
+          <p className="results-medal">{medal.emoji}&thinsp;{medal.label}</p>
         </div>
       )}
 
-      <footer className="quiz-footer">
-        {!submitted ? (
-          <>
-            <span className="select-count" aria-live="polite" aria-atomic="true">{selected.length} / 3 gewählt</span>
-            <button
-              className="quiz-cta"
-              type="button"
-              disabled={selected.length !== 3}
-              onClick={() => {
-                if (selected.length !== 3) return
-                if (isClassroom) {
-                  // Server-autoritativ: keine lokale Auswertung, eine Abgabe.
-                  if (submittedRef.current) return
-                  submittedRef.current = true
-                  onSubmit?.({ selected })
-                  return
-                }
-                setSubmitted(true)
-              }}
-            >
-              {isClassroom ? 'Abgeben' : 'Auswerten'}
-              <span className="quiz-cta-arrow" aria-hidden="true"> →</span>
-            </button>
-          </>
-        ) : (
+      {submitted && !isClassroom && (
+        <div className="results-actions">
+          <button className="btn-secondary" type="button" onClick={onBack}>
+            Alle Wörter ansehen
+          </button>
+          <button className="btn-primary" type="button" onClick={onRestart}>
+            Zur Startseite
+          </button>
+        </div>
+      )}
+
+      {!submitted && (
+        <footer className="quiz-footer">
+          <span className="select-count" aria-live="polite" aria-atomic="true">{selected.length} / 3 gewählt</span>
           <button
             className="quiz-cta"
             type="button"
-            onClick={() => onRoundComplete(roundScore)}
+            disabled={selected.length !== 3}
+            onClick={() => {
+              if (selected.length !== 3) return
+              if (isClassroom) {
+                // Server-autoritativ: keine lokale Auswertung, eine Abgabe.
+                if (submittedRef.current) return
+                submittedRef.current = true
+                onSubmit?.({ selected })
+                return
+              }
+              setSubmitted(true)
+            }}
           >
-            Weiter<span className="quiz-cta-arrow" aria-hidden="true"> →</span>
+            {isClassroom ? 'Abgeben' : 'Auswerten'}
+            <span className="quiz-cta-arrow" aria-hidden="true"> →</span>
           </button>
-        )}
-      </footer>
+        </footer>
+      )}
     </div>
   )
 }
