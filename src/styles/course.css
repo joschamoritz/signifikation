@@ -636,22 +636,22 @@
   margin-top: 16px;
 }
 
+/* Wörterbuch-CTA statt gefülltem Button (wie .quiz-cta bei Kollokationen). */
 .course-check-btn {
-  font-family: var(--font-sans);
-  font-size: 0.82rem;
-  font-weight: 600;
-  letter-spacing: 0.03em;
-  color: #fff;
-  background: var(--primary);
+  font-family: var(--font-serif);
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--primary);
+  background: none;
   border: none;
-  border-radius: 3px;
-  padding: 9px 20px;
+  border-radius: 0;
+  padding: 6px 2px;
   cursor: pointer;
-  transition: background 0.15s, opacity 0.15s;
+  transition: color 0.15s;
 }
-.course-check-btn:hover:not(:disabled) { background: var(--primary-hi); }
-.course-check-btn:disabled { opacity: 0.4; cursor: default; }
-.course-check-btn:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+.course-check-btn:hover:not(:disabled) { color: var(--primary-hi); text-decoration: underline; text-underline-offset: 4px; }
+.course-check-btn:disabled { color: var(--disabled); cursor: default; }
+.course-check-btn:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; border-radius: 2px; }
 
 .course-reset-btn {
   font-family: var(--font-serif);
@@ -1388,30 +1388,26 @@
 .course-pickrow-mark.course-fb--wrong { color: var(--error); }
 
 /* ── Weiter-zur-nächsten-Station (Lernpfad-Abschluss, alle Stationen) ──── */
+/* Wörterbuch-CTA statt gefülltem Button — Serif, rot, Chevron nudged bei Hover. */
 .course-next-station {
   display: inline-flex;
   align-items: baseline;
   gap: 6px;
-  font-family: var(--font-sans);
-  font-size: 0.85rem;
-  font-weight: 600;
-  letter-spacing: 0.03em;
-  color: #fff;
-  background: var(--primary);
-  border: 1px solid var(--primary);
-  border-radius: 3px;
-  padding: 11px 22px;
-  cursor: pointer;
-  transition: background 0.15s;
-}
-.course-next-station:hover { background: var(--primary-hi); }
-.course-next-station:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
-/* Übersicht-Variante (letzte Station) zurückgenommen. */
-.course-next-station--overview {
+  font-family: var(--font-serif);
+  font-size: 0.95rem;
+  font-weight: 700;
   color: var(--primary);
-  background: transparent;
+  background: none;
+  border: none;
+  border-radius: 0;
+  padding: 0;
+  cursor: pointer;
+  transition: color 0.15s;
 }
-.course-next-station--overview:hover { background: var(--surface2); }
+.course-next-station:hover { color: var(--primary-hi); }
+.course-next-station:hover .test-cta-arrow { transform: translateX(3px); }
+.course-next-station:focus-visible { outline: 2px solid var(--primary); outline-offset: 3px; border-radius: 2px; }
+.course-next-station--overview { color: var(--primary); }
 
 /* ── A11y: Touch-Targets ≥44px (WCAG 2.5.5) ──────────────────────────
    Gilt für eigenständige Bedien-Elemente. Bewusst ausgenommen sind alle
