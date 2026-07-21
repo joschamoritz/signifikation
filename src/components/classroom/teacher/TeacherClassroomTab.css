@@ -1350,12 +1350,19 @@
 }
 
 /* ── Live-Step ───────────────────────────────────────────────────── */
+/* Fortschritt („n/m fertig" + Balken) bleibt beim Scrollen der Teilnehmerliste
+   oben stehen — die Lehrkraft verliert den Überblick sonst genau bei großen
+   Klassen. Hintergrund + Trennlinie decken den durchscrollenden Inhalt. */
 .classroom-progress {
-  background: transparent;
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  background: var(--classroom-bg);
   border: none;
+  border-bottom: 1px solid var(--border);
   border-radius: 0;
-  padding: 0;
-  margin-bottom: 22px;
+  padding: 10px 0 12px;
+  margin-bottom: 16px;
 }
 
 .classroom-progress__label {
