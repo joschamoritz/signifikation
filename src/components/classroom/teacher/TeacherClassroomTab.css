@@ -727,6 +727,50 @@
 }
 .classroom-mode-card.classroom-card--active .classroom-mode-card__name { color: var(--primary); }
 
+/* Progressive Disclosure (P1): kompakte Auswahl-Zeilen (einzeilig, ohne
+   Dauer-Beschreibung) → ~50px statt ~155px je Modus. */
+.classroom-mode-card--compact {
+  padding-top: 13px;
+  padding-bottom: 13px;
+  min-height: 48px;
+}
+
+/* Eingeklappt: nur der gewählte Modus (mit Beschreibung) + Ändern-Toggle. */
+.classroom-mode-picker--chosen {
+  display: block;
+}
+.classroom-mode-card--chosen {
+  /* Kein Button mehr, aber gleiche Wörterbuch-Optik wie die aktive Karte. */
+  cursor: default;
+}
+.classroom-mode-change {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 10px;
+  padding: 6px 2px;
+  min-height: 44px;
+  font-family: var(--font-sans);
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--muted);
+  background: none;
+  border: none;
+  cursor: pointer;
+  border-bottom: 1px solid transparent;
+  transition: color 0.15s, border-color 0.15s;
+}
+.classroom-mode-change:hover {
+  color: var(--primary);
+  border-bottom-color: var(--primary);
+}
+.classroom-mode-change:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
 /* ── Lemma-Picker ────────────────────────────────────────────────── */
 .classroom-lemma-picker {
   display: flex;
