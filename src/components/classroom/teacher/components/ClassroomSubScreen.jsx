@@ -20,7 +20,10 @@ export default function ClassroomSubScreen({
 
   return (
     <div className="screen selection-screen classroom-subscreen" data-testid={testId}>
-      <header className="selection-header">
+      {/* Kompakte Titel-Leiste bleibt beim Scrollen oben (sticky) — Zurück +
+          Titel immer erreichbar. Der back-btn (globals: position:absolute)
+          positioniert sich relativ zu dieser sticky (= positionierten) Leiste. */}
+      <header className="classroom-subscreen__bar">
         <button
           className="back-btn"
           type="button"
@@ -33,14 +36,16 @@ export default function ClassroomSubScreen({
           </svg>
         </button>
         <h1 className="classroom-subscreen__title">{title}</h1>
-        {(label || lead) && (
-          <div className="selection-thema-block">
-            {label && <span className="selection-thema-label">{label}</span>}
-            <hr className="selection-thema-rule" aria-hidden="true" />
-            {lead && <p className="selection-thema">{lead}</p>}
-          </div>
-        )}
       </header>
+
+      {/* Kontext-Block (Label · Lead) scrollt bewusst weg — nicht dauerhaft nötig. */}
+      {(label || lead) && (
+        <div className="selection-thema-block classroom-subscreen__thema">
+          {label && <span className="selection-thema-label">{label}</span>}
+          <hr className="selection-thema-rule" aria-hidden="true" />
+          {lead && <p className="selection-thema">{lead}</p>}
+        </div>
+      )}
 
       {children}
     </div>

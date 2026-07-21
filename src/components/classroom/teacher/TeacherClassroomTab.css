@@ -274,6 +274,21 @@
   box-sizing: border-box;
 }
 
+/* P3 — sticky Titel-Leiste (Zurück + Titel bleiben beim Scrollen oben).
+   Sie ist positioniert (sticky) → der back-btn (globals: position:absolute)
+   verankert sich an ihr, nicht mehr am hohen .screen, und scrollt nicht weg. */
+.classroom-subscreen__bar {
+  position: sticky;
+  top: env(safe-area-inset-top, 0px);
+  z-index: 6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  margin-bottom: 14px;
+  background: var(--classroom-bg);
+}
+
 .classroom-subscreen__title {
   font-family: var(--font-serif);
   font-size: 1.2rem;
@@ -282,6 +297,17 @@
   letter-spacing: 0.01em;
   margin: 0;
   text-align: center;
+}
+
+/* Kontext-Block (Label · Lead) scrollt unter der Leiste weg. */
+.classroom-subscreen__thema {
+  margin-bottom: 18px;
+}
+
+/* LIVE-Step: der (ebenfalls sticky) Fortschritt klebt UNTER der 44px-Titel-
+   Leiste, nicht darüber — sonst überlagern sich zwei Sticky-Zonen bei top:0. */
+.classroom-subscreen .classroom-progress {
+  top: calc(env(safe-area-inset-top, 0px) + 44px);
 }
 
 .classroom-subscreen__intro {
