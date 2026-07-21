@@ -107,13 +107,22 @@
 .av-muster-tabelle th, .av-muster-tabelle td { text-align: left; padding: 6px 10px 6px 0; border-bottom: 0.5px solid var(--border-lt); white-space: nowrap; }
 .av-muster-tabelle thead th { font-size: 0.66rem; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); border-bottom: 0.9px solid var(--border); }
 .av-muster-tabelle td.av-mt-num, .av-muster-tabelle th.av-mt-num { text-align: right; font-variant-numeric: tabular-nums; }
-.av-mt-koll { font-family: var(--font-serif); font-size: 0.98rem; color: var(--text); }
+.av-mt-koll { font-family: var(--font-serif); font-size: 1.02rem; font-weight: 700; color: var(--primary); }
 .av-mt-rel { color: var(--text); }
+.av-mt-rel-pill {
+  display: inline-block; background: var(--surface2); border: 0.5px solid var(--border-lt);
+  border-radius: 4px; padding: 2px 9px; font-size: 0.78rem; white-space: nowrap;
+}
 .av-mt-prep { color: var(--primary); }
 .av-mt-pos { color: var(--muted); }
 .av-mt-num { color: var(--text); }
 .av-mt-legende { margin-top: 10px; font-family: var(--font-sans); font-size: 0.72rem; line-height: 1.55; color: var(--muted); }
 .av-mt-legende strong { color: var(--text); font-weight: 600; }
+
+/* Anm.-Glossar der grammatischen Beziehungen (unterhalb der Muster-Tabelle) */
+.av-rel-glossar-list { display: flex; flex-direction: column; gap: 10px; margin: 0; }
+.av-rel-glossar-item dt { font-family: var(--font-serif); font-weight: 700; font-size: 0.85rem; color: var(--text); margin: 0 0 2px; }
+.av-rel-glossar-item dd { font-family: var(--font-sans); font-size: 0.8rem; line-height: 1.5; color: var(--muted); margin: 0; }
 
 /* KWiC-Belege */
 .av-beleg { margin: 0 0 14px; }
@@ -142,11 +151,12 @@
 
 /* ── Musternetz (Variante B) ───────────────────────────────── */
 /* Logo-Grautöne als scoped Tokens (globals.css hat sie nicht). */
-.mn-net { margin-top: 10px; --gray-node: #a8a29e; --gray-line: #c4bfbc; }
+.mn-net { position: relative; margin-top: 10px; --gray-node: #a8a29e; --gray-line: #c4bfbc; }
 @media (prefers-color-scheme: dark) { .mn-net { --gray-node: #6b6460; --gray-line: #6b6460; } }
 :root[data-theme="dark"] .mn-net { --gray-node: #6b6460; --gray-line: #6b6460; }
 :root[data-theme="light"] .mn-net { --gray-node: #a8a29e; --gray-line: #c4bfbc; }
-.mn-net-svg { width: 100%; max-width: 500px; height: auto; display: block; margin: 0 auto; }
+.mn-net-svg { width: 100%; max-width: 500px; height: auto; display: block; margin: 0 auto; touch-action: none; cursor: grab; }
+.mn-net-svg:active { cursor: grabbing; }
 .mn-edge { stroke: var(--primary); }
 .mn-edge--gray { stroke: var(--gray-line, var(--border)); }
 .mn-sector { font-family: var(--font-sans); font-size: 8px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; fill: var(--muted); }
@@ -157,10 +167,22 @@
 .mn-node-g:hover .mn-node { fill: var(--primary-hi, var(--primary)); }
 .mn-node-label { font-family: var(--font-sans); font-size: 8.5px; fill: var(--text); pointer-events: none; }
 .mn-node-sec { fill: var(--gray-node, var(--muted)); }
+.mn-node-sec-label { font-family: var(--font-sans); font-size: 6.5px; fill: var(--muted); pointer-events: none; transition: opacity 0.15s; }
 .mn-center { fill: var(--primary); }
 .mn-center-label { font-family: var(--font-serif); font-size: 12px; font-weight: 700; fill: #fff; pointer-events: none; }
 .mn-caption { font-family: var(--font-sans); font-size: 0.75rem; color: var(--muted); text-align: center; margin: 8px 0 0; line-height: 1.5; min-height: 2.2em; }
 .mn-caption strong { color: var(--text); }
+
+.mn-net-controls { position: absolute; top: 4px; right: 4px; display: flex; gap: 4px; }
+.mn-zoom-btn {
+  width: 26px; height: 26px; padding: 0; border-radius: 50%;
+  border: 1px solid var(--border); background: var(--surface); color: var(--text);
+  font-family: var(--font-sans); font-size: 0.95rem; line-height: 1;
+  display: flex; align-items: center; justify-content: center; cursor: pointer;
+}
+.mn-zoom-btn:disabled { opacity: 0.35; cursor: default; }
+.mn-zoom-btn:hover:not(:disabled) { border-color: var(--primary); color: var(--primary); }
+.mn-zoom-reset { font-size: 0.8rem; }
 
 /* ── Mobil (<768px): eigener Scroll-Container ──────────────────
    dictionary.css macht .test-page auf Mobil zu height:100dvh; overflow:hidden

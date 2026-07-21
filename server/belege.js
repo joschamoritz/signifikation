@@ -241,12 +241,22 @@ export function fetchBelegeRaw(lemma, collocate, { limit = 20, prefixCollocate =
   }
 }
 
+// Maximale Anzahl Kontext-Wörter je Seite (wie DWDS): begrenzt die Breite von
+// left/right auf ein vorhersehbares Maß, damit das Keyword in der App über
+// mehrere Belegzeilen hinweg zuverlässig untereinander zentriert steht — bei
+// unbegrenztem Kontext variiert die Breite pro Satz zu stark (F-Feedback:
+// „Keyword in Context ... nicht immer genau untereinander zentral").
+const MAX_KWIC_CONTEXT_WORDS = 8
+
 /**
  * Zerlegt tokenisierte Wörter in KWiC-Kontext (Keyword in Context): den Bereich
  * vor dem ersten hervorgehobenen Token, das Keyword selbst und den Bereich
  * danach. Zusammenhängende hl-Tokens (z.B. mehrteilige Formen) zählen als ein
  * Keyword. Gibt null zurück, wenn kein hervorgehobenes Token existiert (dann
  * fällt der Aufrufer auf den ungeteilten Satz zurück).
+ *
+ * left/right werden auf MAX_KWIC_CONTEXT_WORDS Wörter gekürzt (mit „…"), damit
+ * die Zeilenbreite je Beleg vorhersehbar bleibt.
  *
  * @returns {{left:string, keyword:string, right:string}|null}
  */
@@ -265,11 +275,20 @@ function splitKwic(tokens) {
     }
     return out
   }
-  return {
-    left:    start > 0 ? join(0, start - 1) : '',
-    keyword: join(start, end),
-    right:   end + 1 < tokens.length ? join(end + 1, tokens.length - 1) : '',
+
+  let left = ''
+  if (start > 0) {
+    const from = Math.max(0, start - MAX_KWIC_CONTEXT_WORDS)
+    left = (from > 0 ? '… ' : '') + join(from, start - 1)
   }
+
+  let right = ''
+  if (end + 1 < tokens.length) {
+    const to = Math.min(tokens.length - 1, end + MAX_KWIC_CONTEXT_WORDS)
+    right = join(end + 1, to) + (to < tokens.length - 1 ? ' …' : '')
+  }
+
+  return { left, keyword: join(start, end), right }
 }
 
 /**

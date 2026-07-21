@@ -4,6 +4,7 @@ import Colophon from './Colophon'
 import MusterNetz from './archiv/MusterNetz'
 import ArchivLetterRail from './archiv/ArchivLetterRail'
 import { collocationBlurbLead, BLURB_LOGDICE_NOTE } from '../../server/archive/blurb.js'
+import { glossaryForPatterns } from '../../server/archive/relGlossar.js'
 import { apiGet } from '../api/client'
 import { API } from '../config'
 import '../styles/archiv.css'
@@ -54,6 +55,8 @@ function WortDetail({ data, loading, error, onRetry, onBack, onPlayToday, maxNod
   const belege = data?.detail?.belege || []
   const [showAllBelege, setShowAllBelege] = useState(false)
   const shownBelege = showAllBelege ? belege : belege.slice(0, 3)
+  const [glossarOpen, setGlossarOpen] = useState(false)
+  const glossar = data ? glossaryForPatterns(patterns, data.lemma) : []
 
   return (
     <div className="av-detail">
@@ -111,7 +114,9 @@ function WortDetail({ data, loading, error, onRetry, onBack, onPlayToday, maxNod
                       <tr key={i}>
                         <td className="av-mt-koll">{p.kollokator}</td>
                         <td className="av-mt-rel">
-                          {p.muster}{p.prep ? <span className="av-mt-prep"> ({p.prep})</span> : null}
+                          <span className="av-mt-rel-pill">
+                            {p.muster}{p.prep ? <span className="av-mt-prep"> ({p.prep})</span> : null}
+                          </span>
                         </td>
                         <td className="av-mt-pos">{STELLUNG_LABEL[p.stellung] || p.stellung}</td>
                         <td className="av-mt-num">{p.anteil}&#8239;%</td>
@@ -128,6 +133,36 @@ function WortDetail({ data, loading, error, onRetry, onBack, onPlayToday, maxNod
                 <strong>Anteil</strong> ist der Anteil dieser Verbindung an allen erfassten Verbindungen des Stichworts.{' '}
                 <strong>Stellung</strong> ist die typische Position des Partnerworts relativ zum Stichwort.
               </p>
+
+              {glossar.length ? (
+                <section className="test-footnote" aria-label="Anmerkung: Was bedeuten die Beziehungen?">
+                  <button
+                    type="button"
+                    className="test-footnote-toggle"
+                    onClick={() => setGlossarOpen((v) => !v)}
+                    aria-expanded={glossarOpen}
+                    aria-controls="av-rel-glossar"
+                  >
+                    <span className="test-footnote-label" aria-hidden="true">Anm.</span>
+                    <span className="test-footnote-title">Was bedeuten die Beziehungen?</span>
+                    <span className="test-footnote-chevron" aria-hidden="true">▾</span>
+                  </button>
+                  <div
+                    id="av-rel-glossar"
+                    className={`test-footnote-body${glossarOpen ? ' open' : ''}`}
+                    role="region"
+                  >
+                    <dl className="av-rel-glossar-list">
+                      {glossar.map((g) => (
+                        <div className="av-rel-glossar-item" key={g.label}>
+                          <dt>{g.label}</dt>
+                          <dd>{g.text}</dd>
+                        </div>
+                      ))}
+                    </dl>
+                  </div>
+                </section>
+              ) : null}
             </section>
           ) : null}
 
