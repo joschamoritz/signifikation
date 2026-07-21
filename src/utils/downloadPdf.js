@@ -1,11 +1,12 @@
 import { Capacitor } from '@capacitor/core'
 import { apiFetch } from './apiFetch'
 
-// Authentifizierter PDF-Download (Kurs-Material). Problem: ein einfacher
-// <a href download> navigiert die native iOS-WKWebView direkt zur URL — OHNE
-// Authorization-Bearer (Cookies sind dort cross-origin) → 401. Deshalb holen wir
-// die Datei über apiFetch (setzt den Bearer) als Blob und speichern/teilen sie
-// nativ; im Web bleibt Cookie-Auth und der Blob-Download funktioniert ohnehin.
+// Authentifizierter Datei-Download (Kurs-Material, PDF oder DOCX). Problem: ein
+// einfacher <a href download> navigiert die native iOS-WKWebView direkt zur URL
+// — OHNE Authorization-Bearer (Cookies sind dort cross-origin) → 401. Deshalb
+// holen wir die Datei über apiFetch (setzt den Bearer) als Blob und
+// speichern/teilen sie nativ; im Web bleibt Cookie-Auth und der Blob-Download
+// funktioniert ohnehin.
 
 function blobToBase64(blob) {
   return new Promise((resolve, reject) => {
@@ -17,9 +18,9 @@ function blobToBase64(blob) {
 }
 
 /**
- * Lädt eine geschützte PDF-Datei und liefert sie an den Nutzer aus.
+ * Lädt eine geschützte Datei (PDF/DOCX) und liefert sie an den Nutzer aus.
  * @param {string} url  Voll qualifizierte Download-URL (Premium-gegated, Bearer nötig)
- * @param {string} filename  Dateiname für Speichern/Teilen (inkl. .pdf)
+ * @param {string} filename  Dateiname für Speichern/Teilen (inkl. Endung)
  * @throws bei HTTP-Fehler (z. B. 401/404) — Aufrufer zeigt eine Meldung
  */
 export async function downloadAuthenticatedPdf(url, filename) {

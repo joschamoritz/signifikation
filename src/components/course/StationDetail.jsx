@@ -673,7 +673,10 @@ function MaterialPanel({ stationId, niveau, goal, gesamtausgabe = false, onNavig
 function MaterialCard({ stationId, material }) {
   const meta = KIND_META[material.kind] ?? { label: material.kind, hint: '' }
   const href = `${API}/course/stations/${stationId}/materials/${encodeURIComponent(material.id)}/download`
-  const filename = `${material.kind}${material.level ? `-${material.level}` : ''}.pdf`
+  // Format (PDF/DOCX) aus der registrierten Datei ablesen — dieselbe Material-Art
+  // (kind) kann als PDF und als editierbares DOCX vorliegen (Bonus-Premium).
+  const format = material.fileRef?.toLowerCase().endsWith('.docx') ? 'docx' : 'pdf'
+  const filename = `${material.kind}${material.level ? `-${material.level}` : ''}.${format}`
   const [busy, setBusy] = useState(false)
   const [failed, setFailed] = useState(false)
 
@@ -710,10 +713,10 @@ function MaterialCard({ stationId, material }) {
           )}
         </div>
         <span className="course-material-action" aria-hidden="true">
-          <span className="course-material-format">PDF</span>
+          <span className="course-material-format">{format.toUpperCase()}</span>
           <span className="course-material-arrow">{busy ? '…' : '↓'}</span>
         </span>
-        <span className="sr-only">{meta.label} als PDF herunterladen</span>
+        <span className="sr-only">{meta.label} als {format.toUpperCase()} herunterladen</span>
       </a>
     </li>
   )

@@ -18,6 +18,7 @@
 import { mkdirSync, writeFileSync } from 'node:fs'
 import { resolve as pathResolve, dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { Packer } from 'docx'
 
 import logger from '../../logger.js'
 import { makeCorpusAdapter } from '../corpusAdapter.js'
@@ -44,6 +45,7 @@ import worksheet3 from '../worksheet/station-3.js'
 import worksheet4 from '../worksheet/station-4.js'
 import worksheet5 from '../worksheet/station-5.js'
 import { renderWorksheetHtml, renderErwartungshorizontHtml } from '../worksheet/render.js'
+import { renderWorksheetDocx, renderErwartungshorizontDocx } from '../worksheet/docx.js'
 
 /** Stationen-Registry: Nummer → { content, lesson }. */
 const STATION_MAP = new Map([
@@ -223,14 +225,17 @@ export function buildStationHtml({ stationNo = 1, content, lesson, corpus = make
 }
 
 /**
- * Erzeugt + schreibt die PDFs einer Station (oder aller Stationen).
+ * Erzeugt + schreibt die PDFs einer Station (oder aller Stationen). Für
+ * Arbeitsblatt/Lösung aus dem Worksheet-Modell entsteht zusätzlich eine
+ * editierbare DOCX-Fassung (Bonus-Premium, `format: 'docx'` im Manifest;
+ * gleicher `kind` wie das PDF-Geschwister).
  *
  * @param {object} [opts]
  * @param {number|'all'} [opts.stationNo]  Station-Nummer 1–5 oder 'all'. Default: 1.
  * @param {string} [opts.outDir]           Zielordner (Default server/data/course-pdfs)
  * @param {string} [opts.lemma]            „Eigenes Lemma" (überschreibt corpusQuery.lemma)
  * @param {boolean} [opts.register]        course_materials-Zeilen anlegen (Default false)
- * @returns {Promise<Array<{ kind, level, filename, path, bytes }>>}
+ * @returns {Promise<Array<{ kind, level, filename, path, bytes, format? }>>}
  */
 export async function generateStationPdfs({ stationNo = 1, outDir = DEFAULT_OUT, lemma, register = false } = {}) {
   const stationNos = stationNo === 'all' ? [1, 2, 3, 4, 5] : [Number(stationNo)]
@@ -247,12 +252,26 @@ export async function generateStationPdfs({ stationNo = 1, outDir = DEFAULT_OUT,
       // wenn ein Korpus-Item leer ist (DB nicht verbunden). „Eigenes Lemma" darf
       // einzelne leere Relationen haben → dort nur warnen.
       const docs = buildStationHtml({ stationNo: no, lemma, strictCorpus: !lemma })
+      // DOCX (Bonus-Premium, editierbar) nur für Arbeitsblatt/Lösung aus dem
+      // Worksheet-Content-Modell — nicht für „Eigenes Lemma" (kein Modell dafür)
+      // und nicht für Unterrichtsentwurf/Beamer (aus dem alten html.js-Pfad).
+      const worksheet = !lemma ? WORKSHEET_MAP.get(no) : null
       for (const doc of docs) {
         const pdf = await renderer.render(doc.html)
         const filePath = join(outDir, doc.filename)
         writeFileSync(filePath, pdf)
         allManifest.push({ kind: doc.kind, level: doc.level, filename: doc.filename, path: filePath, bytes: pdf.length, stationNo: no })
         logger.info({ filename: doc.filename, bytes: pdf.length }, 'course/pdf: geschrieben')
+
+        if (worksheet && (doc.kind === 'arbeitsblatt' || doc.kind === 'loesung')) {
+          const buildDocx = doc.kind === 'arbeitsblatt' ? renderWorksheetDocx : renderErwartungshorizontDocx
+          const docxBuffer = await Packer.toBuffer(buildDocx(worksheet, doc.level))
+          const docxFilename = doc.filename.replace(/\.pdf$/, '.docx')
+          const docxPath = join(outDir, docxFilename)
+          writeFileSync(docxPath, docxBuffer)
+          allManifest.push({ kind: doc.kind, level: doc.level, filename: docxFilename, path: docxPath, bytes: docxBuffer.length, stationNo: no, format: 'docx' })
+          logger.info({ filename: docxFilename, bytes: docxBuffer.length }, 'course/pdf: geschrieben')
+        }
       }
       if (register) await registerMaterials(entry.content.station, allManifest.filter(m => m.stationNo === no))
     }
@@ -264,7 +283,13 @@ export async function generateStationPdfs({ stationNo = 1, outDir = DEFAULT_OUT,
 }
 
 /**
- * Registriert erzeugte PDFs als course_materials (kind/level/file_ref, source=static).
+ * Registriert erzeugte PDFs (+ ggf. DOCX-Geschwister) als course_materials
+ * (kind/level/file_ref, source=static). Gleicher `kind` für PDF und DOCX
+ * derselben Aufgabe (Format unterscheidet sich nur über die Datei-Endung in
+ * file_ref) — die id trägt daher ein `-docx`-Suffix, damit beide Zeilen
+ * nebeneinander bestehen; da DOCX-Einträge im Manifest direkt nach ihrem
+ * PDF-Geschwister eingefügt werden, sortiert `position` sie auch direkt
+ * dahinter (ORDER BY kind, position, id).
  * Separat gehalten + lazy db-Import: Tests/Vorschau brauchen keine DB-Schreibzugriffe.
  */
 export async function registerMaterials(station, manifest) {
@@ -277,7 +302,7 @@ export async function registerMaterials(station, manifest) {
   `)
   const now = Date.now()
   manifest.forEach((m, i) => {
-    const id = `${station.id}-${m.kind}${m.level ? `-${m.level}` : ''}`
+    const id = `${station.id}-${m.kind}${m.level ? `-${m.level}` : ''}${m.format === 'docx' ? '-docx' : ''}`
     stmt.run({
       id, station_id: station.id, kind: m.kind, level: m.level ?? null,
       title: m.filename, file_ref: m.filename, position: i, now,
