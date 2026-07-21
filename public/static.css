@@ -365,8 +365,9 @@ nav.legal a:hover { color: #9b1c1c }
 .arc-muster-tabelle { border-collapse: collapse; width: 100%; font-family: 'DM Sans', system-ui, sans-serif; font-size: 0.82rem; }
 .arc-muster-tabelle th, .arc-muster-tabelle td { text-align: left; padding: 6px 10px 6px 0; border-bottom: 0.5px solid #e8e2d8; white-space: nowrap; }
 .arc-muster-tabelle thead th { font-size: 0.68rem; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: #8a7f6e; border-bottom-width: 0.9px; border-bottom-color: #d4c9b0; }
-.arc-mt-koll { font-family: 'Gentium Plus', Georgia, serif; font-size: 0.98rem; color: #1a1a18; }
+.arc-mt-koll { font-family: 'Gentium Plus', Georgia, serif; font-size: 1.02rem; font-weight: 700; color: #9b1c1c; }
 .arc-mt-rel { color: #4a4438; }
+.arc-mt-rel-pill { display: inline-block; background: #f3f1ed; border: 0.5px solid #e8e2d8; border-radius: 4px; padding: 2px 9px; font-size: 0.78rem; white-space: nowrap; }
 .arc-mt-prep { color: #9b1c1c; }
 .arc-mt-pos { color: #8a7f6e; font-variant-numeric: tabular-nums; }
 .arc-muster-tabelle td.arc-mt-num, .arc-muster-tabelle th.arc-mt-num { text-align: right; font-variant-numeric: tabular-nums; color: #4a4438; }
@@ -374,6 +375,24 @@ nav.legal a:hover { color: #9b1c1c }
    Legende nicht die Body-Größe/-Farbe erbt. */
 .arc-block p.arc-mt-legende { margin-top: 10px; font-family: 'DM Sans', system-ui, sans-serif; font-size: 0.72rem; line-height: 1.55; color: #8a7f6e; }
 .arc-mt-legende strong { color: #4a4438; font-weight: 600; }
+
+/* ── Anm.-Glossar der grammatischen Beziehungen (natives <details>, kein JS) ── */
+.arc-footnote { border-top: 2px solid #1a1a18; margin-top: 10px; padding: 0; }
+.arc-footnote summary {
+  display: flex; align-items: center; gap: 12px; padding: 14px 0; cursor: pointer;
+  border-bottom: 1px solid #e8e2d8; list-style: none;
+  font-family: 'Gentium Plus', Georgia, serif; font-style: italic; font-size: 0.9rem; color: #1a1a18;
+}
+.arc-footnote summary::-webkit-details-marker { display: none; }
+.arc-footnote summary::after { content: '▾'; margin-left: auto; color: #8a7f6e; font-size: 0.75rem; }
+.arc-footnote[open] summary::after { content: '▴'; }
+.arc-footnote-label {
+  font-family: 'DM Sans', system-ui, sans-serif; font-size: 9px; font-weight: 600;
+  letter-spacing: 0.2em; text-transform: uppercase; color: #8a7f6e; flex-shrink: 0;
+}
+.arc-rel-glossar-list { display: flex; flex-direction: column; gap: 10px; margin: 0; padding: 16px 0 6px; }
+.arc-rel-glossar-item dt { font-family: 'Gentium Plus', Georgia, serif; font-weight: 700; font-size: 0.85rem; color: #1a1a18; margin: 0 0 2px; }
+.arc-rel-glossar-item dd { font-family: 'DM Sans', system-ui, sans-serif; font-size: 0.8rem; line-height: 1.5; color: #8a7f6e; margin: 0; }
 
 /* ── Wortnetz (sekundäre Kollokatoren) ─────────────────────── */
 .arc-netz-intro { margin-top: 0; font-size: 0.9rem; color: #1a1a18; }
@@ -446,8 +465,9 @@ nav.legal a:hover { color: #9b1c1c }
   .arc-muster-intro, .arc-netz-intro { color: #f0ebe4; }
   .arc-muster-tabelle th, .arc-muster-tabelle td { border-bottom-color: #3a3028; }
   .arc-muster-tabelle thead th { color: #8a8070; border-bottom-color: #4a3f30; }
-  .arc-mt-koll { color: #f0ebe4; }
+  .arc-mt-koll { color: #e05555; }
   .arc-mt-rel, .arc-mt-num { color: #c0b8b0; }
+  .arc-mt-rel-pill { background: #2a2420; border-color: #3a3028; color: #c0b8b0; }
   .arc-mt-prep { color: #e05555; }
   .arc-mt-pos { color: #8a8070; }
   .arc-block p.arc-mt-legende { color: #8a8070; }
@@ -456,4 +476,11 @@ nav.legal a:hover { color: #9b1c1c }
   .arc-netz-word { color: #c0b8b0; }
   .arc-kwic-left, .arc-kwic-right { color: #9a9088; }
   .arc-kwic-key { color: #e05555; }
+
+  .arc-footnote { border-top-color: #f0ebe4; }
+  .arc-footnote summary { color: #f0ebe4; border-bottom-color: #3a3028; }
+  .arc-footnote summary::after { color: #8a8070; }
+  .arc-footnote-label { color: #8a8070; }
+  .arc-rel-glossar-item dt { color: #f0ebe4; }
+  .arc-rel-glossar-item dd { color: #8a8070; }
 }

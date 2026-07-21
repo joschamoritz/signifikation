@@ -14,6 +14,7 @@
 
 import { computeNetzLayout } from './netzLayout.js'
 import { collocationBlurbLead, BLURB_LOGDICE_NOTE } from './blurb.js'
+import { glossaryForPatterns } from './relGlossar.js'
 
 export const BASE_URL = 'https://signifikation.de'
 
@@ -138,18 +139,30 @@ function collocationBlurb(lemma, wortart) {
  * Muster-Tabelle: je Kollokator eine Zeile mit Beziehung, typischer Stellung,
  * Anteil, absoluter Frequenz und logDice. patterns = fetchSyntagmaticPatterns().
  * Enthaelt eine Kurz-Legende, die die Kennzahlen erklaert (Nutzer-Wunsch:
- * „alle Kennzahlen, mit Erklaerung").
+ * „alle Kennzahlen, mit Erklaerung") sowie ein aufklappbares Glossar (natives
+ * <details>, kein JS) fuer die grammatischen Fachbegriffe der Beziehung-Spalte.
  */
-function renderPatternTable(patterns) {
+function renderPatternTable(patterns, lemma) {
   if (!patterns.length) return ''
   const rows = patterns.map((p) => `      <tr>
         <td class="arc-mt-koll">${escapeHtml(p.kollokator)}</td>
-        <td class="arc-mt-rel">${escapeHtml(p.muster)}${p.prep ? ` <span class="arc-mt-prep">(${escapeHtml(p.prep)})</span>` : ''}</td>
+        <td class="arc-mt-rel"><span class="arc-mt-rel-pill">${escapeHtml(p.muster)}${p.prep ? ` <span class="arc-mt-prep">(${escapeHtml(p.prep)})</span>` : ''}</span></td>
         <td class="arc-mt-pos">${escapeHtml(STELLUNG_LABEL[p.stellung] || p.stellung)}</td>
         <td class="arc-mt-num">${p.anteil}&#8239;%</td>
         <td class="arc-mt-num">${p.frequency.toLocaleString('de-DE')}</td>
         <td class="arc-mt-num">${p.logDice.toFixed(2)}</td>
       </tr>`).join('\n')
+  // lemma kommt hier bereits HTML-escaped an (Aufrufer), glossaryForPatterns
+  // baut den Text nur per Platzhalter-Ersetzung zusammen → kein Re-Escaping.
+  const glossar = glossaryForPatterns(patterns, lemma)
+  const glossarHtml = glossar.length
+    ? `<details class="arc-footnote">
+      <summary><span class="arc-footnote-label">Anm.</span> Was bedeuten die Beziehungen?</summary>
+      <dl class="arc-rel-glossar-list">
+${glossar.map((g) => `        <div class="arc-rel-glossar-item"><dt>${escapeHtml(g.label)}</dt><dd>${g.text}</dd></div>`).join('\n')}
+      </dl>
+    </details>`
+    : ''
   return `<div class="arc-mt-scroll">
     <table class="arc-muster-tabelle">
       <thead><tr>
@@ -165,7 +178,8 @@ ${rows}
       </tbody>
     </table>
     </div>
-    <p class="arc-mt-legende"><strong>logDice</strong> misst die Stärke der Verbindung (höher = typischer, theoret. Maximum 14). <strong>Frequenz</strong> ist die absolute Häufigkeit der Verbindung im Korpus. <strong>Anteil</strong> ist der Anteil dieser Verbindung an allen erfassten Verbindungen des Stichworts. <strong>Stellung</strong> ist die typische Position des Partnerworts relativ zum Stichwort.</p>`
+    <p class="arc-mt-legende"><strong>logDice</strong> misst die Stärke der Verbindung (höher = typischer, theoret. Maximum 14). <strong>Frequenz</strong> ist die absolute Häufigkeit der Verbindung im Korpus. <strong>Anteil</strong> ist der Anteil dieser Verbindung an allen erfassten Verbindungen des Stichworts. <strong>Stellung</strong> ist die typische Position des Partnerworts relativ zum Stichwort.</p>
+    ${glossarHtml}`
 }
 
 /**
@@ -281,7 +295,7 @@ export function renderWortPage(entry, siblings = [], extras = {}) {
 
   const musterHtml = patterns.length
     ? `<p class="arc-muster-intro">Die typischsten Verbindungen von „${escapeHtml(entry.lemma)}" im Korpus (syntagmatische Muster):</p>
-    ${renderPatternTable(patterns)}`
+    ${renderPatternTable(patterns, escapeHtml(entry.lemma))}`
     : ''
   const kollHtml = `<section class="arc-block arc-koll">
     <p class="arc-block-label">Kollokationen</p>
