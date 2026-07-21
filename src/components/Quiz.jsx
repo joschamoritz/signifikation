@@ -175,7 +175,7 @@ export default function Quiz({
 
   return (
     <div className="screen quiz-screen" onClick={resetJokerTimer}>
-      {onBack && !submitted && !isClassroom && (
+      {onBack && !isClassroom && (
         <button className="back-btn" type="button" onClick={onBack} aria-label="Zurück zur Wortauswahl"><svg width="10" height="16" viewBox="0 0 10 16" fill="none" aria-hidden="true"><path d="M8.5 1L1.5 8L8.5 15" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg></button>
       )}
       <header className="quiz-header">
@@ -345,11 +345,8 @@ export default function Quiz({
 
       {submitted && !isClassroom && (
         <div className="results-actions">
-          <button className="btn-secondary" type="button" onClick={onBack}>
-            Alle Wörter ansehen
-          </button>
           <button className="btn-primary" type="button" onClick={onRestart}>
-            Zur Startseite
+            Zur Startseite<span className="test-cta-arrow" aria-hidden="true"> →</span>
           </button>
         </div>
       )}
