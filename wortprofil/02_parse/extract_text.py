@@ -1,9 +1,29 @@
 """
-Phase 2 – Textextraktion
+Phase 2 – Textextraktion (v2)
 Alle Korpora → JSONL (ein Dokument pro Zeile)
 
-Schema:
-  {"id": "...", "text": "...", "quelle": "...", "genre": "...", "epoche": "...", "jahr": null}
+v2-Schema (DB-Neuaufbau.md, Abschnitt 3.1):
+  {
+    "id": "...", "text": "...normalisiert (K3+K4)...",
+    "quelle": "...", "genre": "...", "epoche": "...", "jahr": 1699,
+    "titel": "...",   # NEU – aus TEI-Header/Metadaten
+    "autor": "...",   # NEU – wo verfügbar
+    "ref":   "..."    # NEU – fertige Dokument-Referenz für die App
+  }
+
+Neuerungen gegenüber v1 (siehe planning/DB-Neuaufbau.md, Abschnitt 2.1):
+  K3  Dehyphenierung:  "Stu-\\ndenten" → "Studenten"  (Ausnahme: echte
+      Bindestrich-Komposita am Zeilenende bleiben, Heuristik über Groß-/
+      Kleinschreibung der Fortsetzung). Auch OCR-Trennstrich "¬" (Reichstag).
+  K4  Unicode-Normalisierung (NFC) + Glyphen-Tabelle für historische
+      Typografie (ſ→s, aͤ→ä, oͤ→ö, uͤ→ü, ꝛ→r …), abgeleitet aus den echten
+      DTA-/GEI-Beispieldateien.
+  K5  Jahr-Extraktion pro Korpus (TEI-Header, Dateiname, GEI-/Pitaval-
+      Metadaten) – Ziel Gate B: ≥95 % der Dokumente mit Jahr, wo ableitbar.
+  Neue Felder titel/autor/ref pro Korpus (Tabelle „ref pro Korpus", 3.1).
+
+Ausgabe nach 02_parsed_v2/ – die alten JSONL in 02_parsed/ bleiben
+unangetastet.
 
 Aufruf:
   python extract_text.py                   # alle Korpora
@@ -24,36 +44,216 @@ import os
 import re
 import sys
 import tarfile
+import unicodedata
 import zipfile
 from pathlib import Path
 from xml.etree import ElementTree as ET
 
-sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace")
-
 KORPORA = Path(__file__).parent.parent / "01_download" / "korpora"
-ZIEL    = Path(__file__).parent.parent / "02_parsed"
+ZIEL    = Path(__file__).parent.parent / "02_parsed_v2"
 ZIEL.mkdir(exist_ok=True)
+
+# Optionales Sampling-Limit (Env EXTRACT_SAMPLE_LIMIT): jeder Extraktor stoppt,
+# sobald so viele Dokumente gesammelt sind. Für schnelle Mini-Runs / Stichproben
+# (Gate A, Phase-C-Subset) – produktiv (None) unbegrenzt.
+SAMPLE_LIMIT = int(os.environ.get("EXTRACT_SAMPLE_LIMIT", "0")) or None
+
+
+def _limit_erreicht(eintraege: list) -> bool:
+    return SAMPLE_LIMIT is not None and len(eintraege) >= SAMPLE_LIMIT
+
+
+# ── K4: Unicode-Normalisierung + historische Glyphen ────────────────────────
+#
+# Aus den echten DTA-/GEI-Beispieldateien abgeleitet (dta-kern/abel_leibmedicus_1699:
+# ſ 10.662×, kombinierendes e über Vokal U+0364 2.996×, ꝛ 45×). Griechische
+# Buchstaben und akzentuierte Latein-Zeichen (æ, œ, è, à …) sind ECHT (Zitate)
+# und werden bewusst NICHT angetastet. NFKC wäre zu aggressiv (bricht Griechisch,
+# Ligaturen, Hochstellungen) → gezielte NFC + Translation-Tabelle.
+
+# Einzel-Glyphen → Zielbuchstabe (str.translate-Tabelle)
+_GLYPHEN = {
+    0x017F: "s",   # ſ  LATIN SMALL LETTER LONG S
+    0x1E9B: "s",   # ẛ  LATIN SMALL LETTER LONG S WITH DOT ABOVE
+    0xA75B: "r",   # ꝛ  LATIN SMALL LETTER R ROTUNDA
+    0xA75A: "R",   # Ꝛ  LATIN CAPITAL LETTER R ROTUNDA
+}
+GLYPH_TABLE = {k: v for k, v in _GLYPHEN.items()}
+
+# Kombinierendes e über Vokal (U+0364) → Umlaut. NFC bildet keine
+# Präkompositform, deshalb explizit ersetzen (vor der Einzel-Glyphen-Tabelle).
+_KOMBI_E = {
+    "aͤ": "ä", "oͤ": "ö", "uͤ": "ü",
+    "Aͤ": "Ä", "Oͤ": "Ö", "Uͤ": "Ü",
+    "eͤ": "e",  # selten; kombinierendes e über e → e
+}
+
+# Unsichtbare / weiche Steuerzeichen, die restlos entfernt werden
+_UNSICHTBAR = {
+    0xFEFF: None,  # ZERO WIDTH NO-BREAK SPACE (BOM-Reste, GEI 296×)
+    0x200B: None,  # ZERO WIDTH SPACE
+    0x200C: None,  # ZERO WIDTH NON-JOINER
+    0x200D: None,  # ZERO WIDTH JOINER
+    0x00AD: None,  # SOFT HYPHEN (verbleibende, nach Dehyphenierung)
+}
+
+
+def normalisiere_glyphen(text: str) -> str:
+    """NFC + kombinierendes-e-Auflösung + historische Einzel-Glyphen."""
+    text = unicodedata.normalize("NFC", text)
+    for kombi, ziel in _KOMBI_E.items():
+        if kombi in text:
+            text = text.replace(kombi, ziel)
+    return text.translate(GLYPH_TABLE)
+
+
+# ── K3: Dehyphenierung ──────────────────────────────────────────────────────
+
+# Fortsetzung mit Kleinbuchstabe → Silbentrennung (Bindestrich weg);
+# Großbuchstabe → echtes Bindestrich-Kompositum (Bindestrich bleibt).
+_RE_TRENN_ZEILE = re.compile(r"(\w)[-‐‑][ \t]*\n[ \t]*(\w)")
+# OCR-Trennstrich ¬ (Reichstagsprotokolle): immer zusammenfügen.
+_RE_TRENN_NOTSIGN = re.compile(r"(\w)¬[ \t]*\n?[ \t]*(\w)")
+# Weicher Trennstrich am Zeilenumbruch: entfernen (fügt zusammen).
+_RE_SOFT_HYPHEN = re.compile(r"­(?:[ \t]*\n[ \t]*)?")
+
+
+def _trenn_join(m: "re.Match") -> str:
+    a, b = m.group(1), m.group(2)
+    return a + b if b.islower() else a + "-" + b
+
+
+def dehyphenate(text: str) -> str:
+    """Silbentrennung am Zeilenende auflösen (K3).
+
+    „Stu-\\ndenten" → „Studenten"; „Nord-\\nSüd" → „Nord-Süd" (Kompositum
+    bleibt, da Fortsetzung großgeschrieben); „Gesetz¬ entwurfs" → „Gesetzentwurfs".
+    """
+    text = _RE_SOFT_HYPHEN.sub("", text)
+    text = _RE_TRENN_NOTSIGN.sub(r"\1\2", text)
+    text = _RE_TRENN_ZEILE.sub(_trenn_join, text)
+    return text
+
+
+# ── Whitespace-Normalisierung + Gesamt-Pipeline ─────────────────────────────
+
+def bereinige_text(text: str) -> str:
+    """Leerzeichen normalisieren, überzählige Leerzeilen zusammenfassen."""
+    text = text.replace("\r\n", "\n").replace("\r", "\n")
+    text = re.sub(r"[ \t]+", " ", text)
+    text = re.sub(r" *\n *", "\n", text)
+    text = re.sub(r"\n{3,}", "\n\n", text)
+    return text.strip()
+
+
+def normalisiere_text(text: str) -> str:
+    """Vollständige Text-Aufbereitung: Zeilenenden → K4 (Glyphen) →
+    K3 (Dehyphenierung) → unsichtbare Zeichen entfernen → Whitespace.
+
+    Zeilenenden werden zuerst auf \\n normalisiert, damit die
+    Trennstrich-Regex auch CRLF-Dateien (z. B. Pitaval) erfasst."""
+    text = text.replace("\r\n", "\n").replace("\r", "\n")
+    text = normalisiere_glyphen(text)
+    text = dehyphenate(text)
+    text = text.translate(_UNSICHTBAR)
+    return bereinige_text(text)
+
+
+# ── Referenz-/Metadaten-Helfer ──────────────────────────────────────────────
+
+def jahr_aus_dateiname(name: str) -> "int | None":
+    """Letztes plausibles vierstelliges Jahr aus dem Dateinamen (DTA-Konvention
+    ‚autor_titel_JAHR' → Jahr steht am Ende)."""
+    jahre = re.findall(r"(1[0-9]{3}|20[0-2][0-9])", name)
+    return int(jahre[-1]) if jahre else None
+
+
+def _bau_ref(nachname: str, titel: str, jahr: "int | None",
+             fallback_label: str, stem: str) -> str:
+    """Baut „Nachname: Titel. Jahr"; fällt auf „Label: stem" zurück, damit
+    ref nie leer ist (Gate B: 100 % ref oder bewusster Fallback)."""
+    if titel and nachname:
+        base = f"{nachname}: {titel}"
+    elif titel:
+        base = titel
+    else:
+        return f"{fallback_label}: {stem}"
+    if jahr:
+        # doppelte Interpunktion vermeiden, wenn der Titel schon auf .!? endet
+        sep = " " if base.endswith((".", "!", "?")) else ". "
+        base += f"{sep}{jahr}"
+    return base
+
+
+def _clean_stem(name: str) -> str:
+    """Dateiname-Stamm ohne .txt/.TEI-P5-Reste (dibilit: ‚…_1888.txt.xml')."""
+    stem = Path(name).stem
+    for suffix in (".txt", ".TEI-P5"):
+        if stem.endswith(suffix):
+            stem = stem[: -len(suffix)]
+    return stem
+
+
+def tei_header_metadata(root) -> "tuple[str, str, str, int | None]":
+    """Extrahiert (titel, nachname, autor, tei_jahr) aus einem
+    namespace-bereinigten TEI-Root im DTA-Basisformat.
+
+    titel  = <title type="main"> (voller TEI-Titel, User-Entscheidung 2026-07-22)
+    autor  = "Nachname, Vorname"; nachname separat für die ref-Bildung.
+    tei_jahr aus den Datumsangaben in <sourceDesc> (Quell-Jahr, nicht das
+    Digitalisierungsdatum in fileDesc/publicationStmt).
+    """
+    hdr = root.find(".//teiHeader")
+    if hdr is None:
+        return "", "", "", None
+
+    titel = ""
+    for t in hdr.iter("title"):
+        if t.get("type") == "main":
+            titel = " ".join("".join(t.itertext()).split())
+            if titel:
+                break
+    if not titel:
+        t = hdr.find(".//title")
+        if t is not None:
+            titel = " ".join("".join(t.itertext()).split())
+
+    nachname = vorname = ""
+    for a in hdr.iter("author"):
+        pers = a.find(".//persName")
+        if pers is not None:
+            nachname = (pers.findtext("surname") or "").strip()
+            vorname = (pers.findtext("forename") or "").strip()
+        else:
+            nachname = " ".join("".join(a.itertext()).split())
+        if nachname or vorname:
+            break
+    autor = ", ".join(x for x in (nachname, vorname) if x)
+
+    tei_jahr = None
+    sd = hdr.find(".//sourceDesc")
+    if sd is not None:
+        for d in sd.iter("date"):
+            m = re.search(r"\b(1[0-9]{3}|20[0-2][0-9])\b", d.text or "")
+            if m:
+                tei_jahr = int(m.group(1))
+                break
+    return titel, nachname, autor, tei_jahr
 
 
 # ── Hilfs-Funktionen ───────────────────────────────────────────────────────
 
-def schreibe_jsonl(datei: Path, eintraege: list[dict]):
+def schreibe_jsonl(datei: Path, eintraege: list):
     with datei.open("w", encoding="utf-8") as f:
         for e in eintraege:
             f.write(json.dumps(e, ensure_ascii=False) + "\n")
     print(f"  [OK] {datei.name}: {len(eintraege):,} Dokumente")
 
 
-def bereinige_text(text: str) -> str:
-    """Leerzeichen normalisieren, Zeilenumbrüche innerhalb von Sätzen entfernen."""
-    text = re.sub(r"[ \t]+", " ", text)
-    text = re.sub(r"\n{3,}", "\n\n", text)
-    return text.strip()
-
-
 def tei_text_aus_element(elem) -> str:
     """Rekursiv Plaintext aus TEI-Element extrahieren.
-    Überspringt: teiHeader, note, fw (Kolumnentitel), pb (Seitenumbrüche), figure."""
+    Überspringt für den TEXTKÖRPER: teiHeader (→ Metadaten separat!), note,
+    fw (Kolumnentitel), pb (Seitenumbrüche), figure."""
     SKIP_TAGS = {"teiHeader", "note", "fw", "pb", "figure", "figDesc",
                  "front", "back", "trailer", "byline", "closer", "opener"}
 
@@ -71,25 +271,23 @@ def tei_text_aus_element(elem) -> str:
         if tag in {"p", "l", "ab", "lg", "div", "head", "sp", "stage"}:
             buf.append("\n")
 
-    buf: list[str] = []
+    buf: list = []
     _text(elem, buf)
-    return bereinige_text("".join(buf))
-
-
-def jahr_aus_dateiname(name: str) -> int | None:
-    """Versucht ein vierstelliges Jahr aus dem Dateinamen zu extrahieren."""
-    m = re.search(r"(\b1[0-9]{3}\b|\b20[0-2][0-9]\b)", name)
-    return int(m.group(1)) if m else None
+    return normalisiere_text("".join(buf))
 
 
 # ── Extraktoren ────────────────────────────────────────────────────────────
 
-def extrahiere_gesetze() -> list[dict]:
-    """GII-XML-Format: <norm> → <textdaten><text><Content><P>"""
+def extrahiere_gesetze() -> list:
+    """GII-XML: <norm> → <textdaten><text><Content><P>.
+    ref = Einzelnorm-Bezeichnung + Gesetzeskürzel („§ 242 BGB");
+    jahr aus <ausfertigung-datum> (Gesetzes-Ebene)."""
     print("\n── Gesetze")
     basis = KORPORA / "gesetze"
     eintraege = []
     for gesetz_dir in sorted(basis.iterdir()):
+        if _limit_erreicht(eintraege):
+            break
         if not gesetz_dir.is_dir():
             continue
         for xml_datei in gesetz_dir.glob("*.xml"):
@@ -97,18 +295,19 @@ def extrahiere_gesetze() -> list[dict]:
                 root = ET.parse(xml_datei).getroot()
             except ET.ParseError:
                 continue
-            jurabk = root.findtext(".//jurabk") or gesetz_dir.name
+            jurabk = (root.findtext(".//jurabk") or gesetz_dir.name).strip()
+            m = re.search(r"\b(1[0-9]{3}|20[0-2][0-9])\b",
+                          root.findtext(".//ausfertigung-datum") or "")
+            law_jahr = int(m.group(1)) if m else None
             for i, norm in enumerate(root.findall(".//norm")):
                 textdaten = norm.find("textdaten")
                 if textdaten is None:
                     continue
-                # Text aus allen P-Elementen sammeln
                 teile = []
                 for p in textdaten.iter("P"):
                     txt = "".join(p.itertext()).strip()
                     if txt:
                         teile.append(txt)
-                # Auch Content/Title etc.
                 for tag in ("Title", "Subtitle"):
                     for el in textdaten.iter(tag):
                         txt = "".join(el.itertext()).strip()
@@ -116,36 +315,51 @@ def extrahiere_gesetze() -> list[dict]:
                             teile.insert(0, txt)
                 if not teile:
                     continue
+                enbez = (norm.findtext(".//enbez") or "").strip()
+                ref = f"{enbez} {jurabk}".strip() if enbez else jurabk
                 eintraege.append({
                     "id":     f"gesetze/{gesetz_dir.name}/{i:04d}",
-                    "text":   bereinige_text("\n".join(teile)),
+                    "text":   normalisiere_text("\n".join(teile)),
                     "quelle": "gesetze",
                     "genre":  "recht",
                     "epoche": "modern",
-                    "jahr":   None,
+                    "jahr":   law_jahr,
+                    "titel":  jurabk,
+                    "autor":  "",
+                    "ref":    ref,
                 })
     return eintraege
 
 
-def extrahiere_bundestag_xml() -> list[dict]:
-    """DIP-XML: <dbtplenarprotokoll> → <rede>/<p> und <tagesordnungspunkt>/<p>"""
+def _bundestag_ref(stem: str) -> "tuple[str, int | None]":
+    """‚WP01_0001_1949-09-07' → („BT-PlPr. 01/1, 07.09.1949", 1949)."""
+    m = re.match(r"WP(\d+)_(\d+)_(\d{4})-(\d{2})-(\d{2})", stem)
+    if not m:
+        j = jahr_aus_dateiname(stem)
+        return f"BT-PlPr. {stem}", j
+    wp, num, y, mo, d = m.groups()
+    ref = f"BT-PlPr. {int(wp):02d}/{int(num)}, {d}.{mo}.{y}"
+    return ref, int(y)
+
+
+def extrahiere_bundestag_xml() -> list:
+    """DIP-XML: <dbtplenarprotokoll> → <rede>/<p> und <tagesordnungspunkt>/<p>.
+    ref = Protokoll-Kennung aus dem Dateinamen (alle Reden einer Sitzung teilen sie)."""
     print("\n── Bundestagskorpus (XML)")
     basis = KORPORA / "bundestagskorpus"
     eintraege = []
     for xml_datei in sorted(basis.glob("*.xml")):
-        # Jahr aus Dateiname (z.B. WP19_0001_2017-10-24)
-        m = re.search(r"(\d{4})-\d{2}-\d{2}", xml_datei.stem)
-        jahr = int(m.group(1)) if m else None
+        if _limit_erreicht(eintraege):
+            break
+        ref, jahr = _bundestag_ref(xml_datei.stem)
         try:
             root = ET.parse(xml_datei).getroot()
         except ET.ParseError:
             continue
-        # Namespace entfernen für einfacheres Parsen
         for elem in root.iter():
             if "}" in elem.tag:
                 elem.tag = elem.tag.split("}", 1)[1]
 
-        # Reden extrahieren
         for rede in root.iter("rede"):
             teile = []
             for p in rede.iter("p"):
@@ -156,14 +370,16 @@ def extrahiere_bundestag_xml() -> list[dict]:
                 rede_id = rede.get("id", "")
                 eintraege.append({
                     "id":     f"bundestag/{xml_datei.stem}/{rede_id or len(eintraege)}",
-                    "text":   bereinige_text("\n".join(teile)),
+                    "text":   normalisiere_text("\n".join(teile)),
                     "quelle": "bundestag",
                     "genre":  "parlament",
                     "epoche": "modern",
                     "jahr":   jahr,
+                    "titel":  "",
+                    "autor":  "",
+                    "ref":    ref,
                 })
 
-        # Prozedurale <p>-Absätze außerhalb von <rede>
         for top in root.iter("tagesordnungspunkt"):
             teile = []
             for child in top:
@@ -174,17 +390,21 @@ def extrahiere_bundestag_xml() -> list[dict]:
             if teile:
                 eintraege.append({
                     "id":     f"bundestag/{xml_datei.stem}/top_{len(eintraege)}",
-                    "text":   bereinige_text("\n".join(teile)),
+                    "text":   normalisiere_text("\n".join(teile)),
                     "quelle": "bundestag",
                     "genre":  "parlament",
                     "epoche": "modern",
                     "jahr":   jahr,
+                    "titel":  "",
+                    "autor":  "",
+                    "ref":    ref,
                 })
     return eintraege
 
 
-def extrahiere_leipzig() -> list[dict]:
-    """Leipzig tar.gz: *-sentences.txt → ID\\tSatz, gebündelt zu ~100 Sätzen pro Eintrag."""
+def extrahiere_leipzig() -> list:
+    """Leipzig tar.gz: *-sentences.txt → ID\\tSatz, gebündelt zu ~100 Sätzen.
+    ref = Korpus + Jahrgang (keine Dokument-Metadaten verfügbar)."""
     print("\n── Leipzig Corpora")
     eintraege = []
     BUENDELGROESSE = 100
@@ -192,7 +412,8 @@ def extrahiere_leipzig() -> list[dict]:
     for korpus in ("deu_news", "deu_newscrawl"):
         basis = KORPORA / korpus
         for tgz in sorted(basis.glob("*.tar.gz")):
-            # Jahr aus Dateiname
+            if _limit_erreicht(eintraege):
+                break
             m = re.search(r"_(\d{4})_", tgz.name)
             jahr = int(m.group(1)) if m else None
             try:
@@ -200,7 +421,6 @@ def extrahiere_leipzig() -> list[dict]:
             except Exception as e:
                 print(f"    [SKIP] {tgz.name}: {e}")
                 continue
-            # sentences.txt finden
             try:
                 satz_member = next(
                     (m for m in tf.getmembers() if m.name.endswith("-sentences.txt")), None
@@ -220,28 +440,33 @@ def extrahiere_leipzig() -> list[dict]:
             except Exception as e:
                 print(f"    [SKIP] {tgz.name}: {e}")
 
-            # In Bündel aufteilen
+            ref = f"Leipzig ({korpus})" + (f" {jahr}" if jahr else "")
             for i in range(0, len(saetze), BUENDELGROESSE):
                 buendel = saetze[i:i + BUENDELGROESSE]
                 eintraege.append({
                     "id":     f"{korpus}/{tgz.stem}/{i // BUENDELGROESSE:05d}",
-                    "text":   " ".join(buendel),
+                    "text":   normalisiere_text(" ".join(buendel)),
                     "quelle": korpus,
                     "genre":  "zeitung",
                     "epoche": "modern",
                     "jahr":   jahr,
+                    "titel":  "",
+                    "autor":  "",
+                    "ref":    ref,
                 })
     return eintraege
 
 
-def extrahiere_pol_reden() -> list[dict]:
-    """Politische Reden XML: <collection><text><rohtext>"""
+def extrahiere_pol_reden() -> list:
+    """Politische Reden XML: <text person= titel= datum=><rohtext>.
+    ref = „Redner, Datum"."""
     print("\n── Politische Reden")
     basis = KORPORA / "politische-reden"
     eintraege = []
     for xml_datei in sorted(basis.glob("*.xml")):
+        if _limit_erreicht(eintraege):
+            break
         try:
-            # Encoding-Probleme abfangen
             inhalt = xml_datei.read_bytes()
             for enc in ("utf-8", "utf-8-sig", "iso-8859-1", "windows-1252"):
                 try:
@@ -256,49 +481,94 @@ def extrahiere_pol_reden() -> list[dict]:
         for text_elem in root.iter("text"):
             rohtext = text_elem.findtext("rohtext", "").strip()
             if not rohtext:
-                # Direkt Textinhalt
                 rohtext = "".join(text_elem.itertext()).strip()
             if rohtext and len(rohtext) > 50:
-                # Metadaten
                 datum = text_elem.get("date") or text_elem.get("datum") or ""
-                jahr = int(datum[:4]) if datum and datum[:4].isdigit() else None
+                jahr = int(datum[:4]) if datum[:4].isdigit() else None
+                person = (text_elem.get("person") or "").strip()
+                titel = (text_elem.get("titel") or "").strip()
+                if person and datum:
+                    ref = f"{person}, {datum}"
+                elif person:
+                    ref = person
+                else:
+                    ref = titel or f"Politische Rede {xml_datei.stem}"
                 eintraege.append({
                     "id":     f"pol_reden/{xml_datei.stem}/{len(eintraege)}",
-                    "text":   bereinige_text(rohtext),
+                    "text":   normalisiere_text(rohtext),
                     "quelle": "pol_reden",
                     "genre":  "rede",
                     "epoche": "modern",
                     "jahr":   jahr,
+                    "titel":  titel,
+                    "autor":  person,
+                    "ref":    ref,
                 })
     return eintraege
 
 
-def extrahiere_german_commons() -> list[dict]:
-    """German Commons .txt: HuggingFace-Dokumente durch Doppel-Newline getrennt.
+def _gc_block_meta(block: str, quelle: str) -> "tuple[str, int | None, str]":
+    """Dokument-Metadaten aus dem Kopf eines German-Commons-Blocks.
 
-    Jedes HF-Dokument kann mehrere KB bis MB groß sein (z.B. eine vollständige
-    Reichstagssitzung). Um den spaCy-5000-Zeichen-Limit zu umgehen, werden
-    lange Dokumente zusätzlich in Absätze (~500–3000 Zeichen) aufgeteilt.
+    reichtagsprotokolle: Band + Jahr aus dem Sitzungskopf („Band 428.",
+      „… 21. Mai 1930 …") → ref „Reichstagsprotokoll, Bd. 428 (1930)".
+    dibiphil: erste nicht-leere Zeile = Werktitel → ref „DiBiPhil: <Titel>".
     """
+    kopf = block[:600]
+    if quelle == "reichtagsprotokolle":
+        m_band = re.search(r"Band\s+(\d+)", kopf)
+        m_jahr = re.search(r"\b(18[6-9]\d|19[0-4]\d)\b", kopf)
+        band = m_band.group(1) if m_band else ""
+        jahr = int(m_jahr.group(1)) if m_jahr else None
+        ref = "Reichstagsprotokoll"
+        if band:
+            ref += f", Bd. {band}"
+        if jahr:
+            ref += f" ({jahr})"
+        return "", jahr, ref
+    # dibiphil (und generisches german_commons)
+    titel = ""
+    for zeile in kopf.splitlines():
+        if zeile.strip():
+            titel = zeile.strip()[:120]
+            break
+    label = "DiBiPhil" if quelle == "dibiphil" else "German Commons"
+    ref = f"{label}: {titel}" if titel else f"{label}-Korpus"
+    return titel, None, ref
+
+
+def extrahiere_german_commons() -> list:
+    """German Commons .txt: HuggingFace-Dokumente durch Doppel-Newline getrennt.
+    Lange Dokumente (ganze Reichstags-Bände, mehrere MB) werden in ~3000-Zeichen-
+    Abschnitte geteilt; Dokument-Metadaten aus dem Blockkopf werden auf alle
+    Abschnitte propagiert (→ Jahr-Abdeckung trotz Chunking)."""
     print("\n── German Commons")
     basis = KORPORA / "german-commons"
     META = {
         "reichtagsprotokolle.txt": ("reichtagsprotokolle", "parlament",  "historisch"),
         "dibiphil.txt":            ("dibiphil",             "literatur",  "historisch"),
     }
-    CHUNK_MAX = 3000   # Absätze länger als dies werden nochmals geteilt
+    CHUNK_MAX = 3000
     eintraege = []
     for txt_datei in sorted(basis.glob("*.txt")):
+        if _limit_erreicht(eintraege):
+            break
         quelle, genre, epoche = META.get(txt_datei.name, ("german_commons", "diverses", "historisch"))
-        inhalt = txt_datei.read_text(encoding="utf-8", errors="replace")
+        if SAMPLE_LIMIT:  # Sampling: nur den Dateianfang lesen statt der ganzen GB-Datei
+            with txt_datei.open(encoding="utf-8", errors="replace") as fh:
+                inhalt = fh.read(4_000_000)
+        else:
+            inhalt = txt_datei.read_text(encoding="utf-8", errors="replace")
         n = 0
-        for abschnitt in inhalt.split("\n\n"):
-            text = bereinige_text(abschnitt)
-            if len(text) < 100:
+        for block in inhalt.split("\n\n"):
+            if _limit_erreicht(eintraege):
+                break
+            block = normalisiere_text(block)
+            if len(block) < 100:
                 continue
-            # Lange HF-Dokumente weiter in Absätze splitten
-            teile = [text] if len(text) <= CHUNK_MAX else [
-                text[j:j + CHUNK_MAX] for j in range(0, len(text), CHUNK_MAX)
+            titel, jahr, ref = _gc_block_meta(block, quelle)
+            teile = [block] if len(block) <= CHUNK_MAX else [
+                block[j:j + CHUNK_MAX] for j in range(0, len(block), CHUNK_MAX)
             ]
             for teil in teile:
                 teil = teil.strip()
@@ -309,7 +579,10 @@ def extrahiere_german_commons() -> list[dict]:
                         "quelle": quelle,
                         "genre":  genre,
                         "epoche": epoche,
-                        "jahr":   None,
+                        "jahr":   jahr,
+                        "titel":  titel,
+                        "autor":  "",
+                        "ref":    ref,
                     })
                     n += 1
         print(f"  {txt_datei.name}: {n:,} Abschnitte")
@@ -322,50 +595,63 @@ def extrahiere_tei_verzeichnis(
     genre: str,
     epoche: str,
     glob: str = "**/*.xml",
-) -> list[dict]:
-    """Generischer TEI-Extraktor für Verzeichnisse mit TEI-P5-Dateien."""
+    ref_label: "str | None" = None,
+) -> list:
+    """Generischer TEI-Extraktor für DTA-Basisformat-Verzeichnisse.
+    Metadaten (titel/autor/jahr/ref) aus dem TEI-Header; Jahr bevorzugt aus
+    dem Dateinamen (DTA-Konvention), sonst aus <sourceDesc>."""
+    label = ref_label or quelle
     eintraege = []
     for xml_datei in sorted(basis.glob(glob)):
+        if _limit_erreicht(eintraege):
+            break
         try:
             root = ET.parse(xml_datei).getroot()
         except ET.ParseError:
             continue
-        # Namespace entfernen
         for elem in root.iter():
             if "}" in elem.tag:
                 elem.tag = elem.tag.split("}", 1)[1]
-        # Text-Element finden
         text_elem = root.find(".//text")
         if text_elem is None:
-            text_elem = root  # Fallback
+            text_elem = root
         text = tei_text_aus_element(text_elem)
         if len(text) < 50:
             continue
+        stem = _clean_stem(xml_datei.name)
+        titel, nachname, autor, tei_jahr = tei_header_metadata(root)
+        jahr = jahr_aus_dateiname(stem) or tei_jahr
+        ref = _bau_ref(nachname, titel, jahr, label, stem)
         eintraege.append({
-            "id":     f"{quelle}/{xml_datei.stem}",
+            "id":     f"{quelle}/{stem}",
             "text":   text,
             "quelle": quelle,
             "genre":  genre,
             "epoche": epoche,
-            "jahr":   jahr_aus_dateiname(xml_datei.stem),
+            "jahr":   jahr,
+            "titel":  titel,
+            "autor":  autor,
+            "ref":    ref,
         })
     return eintraege
 
 
-def extrahiere_tei_zip(
-    zip_pfad: Path,
-    quelle: str,
-    genre: str,
-    epoche: str,
-) -> list[dict]:
-    """TEI-Extraktor für ZIP-Archive (z.B. GEI-Digital)."""
+def extrahiere_gei_digital() -> list:
+    """GEI-Digital (Schulbücher) als ZIP mit TEI/MODS-Metadaten.
+    ref = „Titel (PPN…)"; Jahr aus <publicationStmt><date> bzw. mods:dateIssued."""
+    print("\n── GEI-Digital (Schulbücher)")
+    zip_pfad = KORPORA / "gei-digital" / "schulbuchevolution_gei-digital.zip"
+    if not zip_pfad.exists():
+        print("  [SKIP] ZIP nicht gefunden")
+        return []
     eintraege = []
     with zipfile.ZipFile(zip_pfad) as z:
         xml_names = [n for n in z.namelist() if n.endswith(".xml")]
         for name in sorted(xml_names):
+            if _limit_erreicht(eintraege):
+                break
             try:
-                data = z.read(name)
-                root = ET.fromstring(data)
+                root = ET.fromstring(z.read(name))
             except ET.ParseError:
                 continue
             for elem in root.iter():
@@ -378,19 +664,54 @@ def extrahiere_tei_zip(
             if len(text) < 50:
                 continue
             stem = Path(name).stem
+            hdr = root.find(".//teiHeader")
+
+            titel = part = autor = ""
+            jahr = None
+            ppn = ""
+            if hdr is not None:
+                ewt = (hdr.findtext(".//entireWorkTitle") or "").strip()
+                tm = ""
+                for t in hdr.iter("title"):
+                    if t.get("type") == "main":
+                        tm = " ".join("".join(t.itertext()).split())
+                        break
+                titel = (ewt or tm).strip().strip("[]").strip()
+                part = (hdr.findtext(".//part") or "").strip()
+                for tag in ("date", "dateIssued"):
+                    el = hdr.find(f".//{tag}")
+                    if el is not None:
+                        m = re.search(r"\b(1[0-9]{3}|20[0-2][0-9])\b", el.text or "")
+                        if m:
+                            jahr = int(m.group(1))
+                            break
+                editors = [" ".join("".join(e.itertext()).split()) for e in hdr.iter("editor")]
+                autor = "; ".join(x for x in editors if x)
+            m = re.search(r"(PPN\w+)", stem)
+            ppn = m.group(1) if m else stem
+
+            ref = titel or stem
+            if ppn:
+                ref = f"{ref} ({ppn})"
+            titel_feld = titel
+            if part and part not in titel:
+                titel_feld = f"{titel} – {part}" if titel else part
             eintraege.append({
-                "id":     f"{quelle}/{stem}",
+                "id":     f"gei_digital/{stem}",
                 "text":   text,
-                "quelle": quelle,
-                "genre":  genre,
-                "epoche": epoche,
-                "jahr":   jahr_aus_dateiname(stem),
+                "quelle": "gei_digital",
+                "genre":  "schulbuch",
+                "epoche": "historisch",
+                "jahr":   jahr,
+                "titel":  titel_feld,
+                "autor":  autor,
+                "ref":    ref,
             })
     return eintraege
 
 
-def extrahiere_ref_fnh() -> list[dict]:
-    """Frühneuhochdeutsch: CorA-XML in tar.gz → <token>/<tok_anno utf=...>"""
+def extrahiere_ref_fnh() -> list:
+    """Frühneuhochdeutsch: CorA-XML in tar.gz → <token>/<tok_anno utf=…>."""
     print("\n── Ref.-Korpus Frühneuhochdeutsch")
     tgz = KORPORA / "ref-fruehneuhochdeutsch" / "ReF-v1.0.2.tar.gz"
     if not tgz.exists():
@@ -400,6 +721,8 @@ def extrahiere_ref_fnh() -> list[dict]:
     with tarfile.open(tgz) as tf:
         xml_members = [m for m in tf.getmembers() if m.name.endswith(".xml")]
         for member in sorted(xml_members, key=lambda m: m.name):
+            if _limit_erreicht(eintraege):
+                break
             try:
                 f = tf.extractfile(member)
                 root = ET.fromstring(f.read())
@@ -416,7 +739,7 @@ def extrahiere_ref_fnh() -> list[dict]:
                     woerter.append(utf)
                 elif utf in {".", "!", "?"}:
                     woerter.append(utf + "\n")
-            text = bereinige_text(" ".join(woerter).replace(" \n", "\n"))
+            text = normalisiere_text(" ".join(woerter).replace(" \n", "\n"))
             if len(text) < 50:
                 continue
             stem = Path(member.name).stem
@@ -426,15 +749,19 @@ def extrahiere_ref_fnh() -> list[dict]:
                 "quelle": "ref_fnh",
                 "genre":  "historisch",
                 "epoche": "fruehneuhochdeutsch",
-                "jahr":   None,
+                "jahr":   jahr_aus_dateiname(stem),
+                "titel":  "",
+                "autor":  "",
+                "ref":    f"Ref.-Korpus Frühneuhochdeutsch: {stem}",
             })
     return eintraege
 
 
 # ── Neuer Pitaval ─────────────────────────────────────────────────────────
 
-def extrahiere_pitaval() -> list[dict]:
-    """Neuer Pitaval: ZIP mit TXT-Dateien (ISO-8859-1)"""
+def extrahiere_pitaval() -> list:
+    """Neuer Pitaval: ZIP mit TXT-Dateien (ISO-8859-1).
+    Dateiname ‚Bd10_1846_1_<Titel>_<hist. Jahre>.txt' → Band + Jahr + Falltitel."""
     print("\n── Neuer Pitaval (1842–1890)")
     zip_pfad = KORPORA / "neuer-pitaval" / "Pitaval.zip"
     if not zip_pfad.exists():
@@ -444,18 +771,35 @@ def extrahiere_pitaval() -> list[dict]:
     with zipfile.ZipFile(zip_pfad) as z:
         txt_namen = [n for n in z.namelist() if n.endswith(".txt")]
         for name in sorted(txt_namen):
+            if _limit_erreicht(eintraege):
+                break
             try:
                 raw = z.read(name)
-                text = raw.decode("iso-8859-1", errors="replace")
+                # Pitaval-TXT sind UTF-8 (Em-Dash \xe2\x80\x94) – iso-8859-1
+                # erzeugte früher Mojibake („1578â1612"). UTF-8 zuerst versuchen.
+                for enc in ("utf-8", "windows-1252", "iso-8859-1"):
+                    try:
+                        text = raw.decode(enc)
+                        break
+                    except UnicodeDecodeError:
+                        continue
+                else:
+                    text = raw.decode("iso-8859-1", errors="replace")
             except Exception:
                 continue
-            text = bereinige_text(text)
+            text = normalisiere_text(text)
             if len(text) < 100:
                 continue
             stem = Path(name).stem
-            # Jahreszahl aus Dateiname: Bd10_1846_...
-            m = re.search(r"_(\d{4})_", stem)
-            jahr = int(m.group(1)) if m else None
+            m = re.match(r"Bd(\d+)_(\d{4})_\d+_([^_]+)", stem)
+            if m:
+                band, jahr, falltitel = m.group(1), int(m.group(2)), m.group(3)
+                ref = f"Der Neue Pitaval, Bd. {int(band)} ({jahr})"
+            else:
+                mj = re.search(r"_(\d{4})_", stem)
+                jahr = int(mj.group(1)) if mj else None
+                falltitel = ""
+                ref = f"Der Neue Pitaval ({stem})"
             eintraege.append({
                 "id":     f"pitaval/{stem}",
                 "text":   text,
@@ -463,50 +807,19 @@ def extrahiere_pitaval() -> list[dict]:
                 "genre":  "kriminalliteratur",
                 "epoche": "19. Jahrhundert",
                 "jahr":   jahr,
+                "titel":  falltitel,
+                "autor":  "",
+                "ref":    ref,
             })
     return eintraege
 
 
 # ── MediaWiki-Dumps (Wikibooks / Wikivoyage) ───────────────────────────────
 
-def _strip_wikitext(wikitext: str) -> str:
-    """Entfernt WikiText-Markup und gibt lesbaren Fließtext zurück."""
-    t = wikitext
-    # Kommentare, ref-Tags, nowiki entfernen
-    t = re.sub(r"<!--.*?-->", " ", t, flags=re.DOTALL)
-    t = re.sub(r"<ref[^>]*>.*?</ref>", " ", t, flags=re.DOTALL)
-    t = re.sub(r"<ref[^/]*/?>", " ", t)
-    t = re.sub(r"<[^>]+>", " ", t)   # restliche HTML-Tags
-    # Tabellen komplett entfernen
-    t = re.sub(r"\{\|.*?\|\}", " ", t, flags=re.DOTALL)
-    # Templates: einfache {{...}} entfernen (max. 3 Ebenen)
-    for _ in range(4):
-        t = re.sub(r"\{\{[^{}]*\}\}", " ", t)
-    # Bilder/Dateien: [[Datei:...]] [[File:...]] entfernen
-    t = re.sub(r"\[\[(Datei|File|Bild|Image|Kategorie|Category):[^\]]*\]\]",
-               " ", t, flags=re.IGNORECASE)
-    # Wikilinks: [[Ziel|Text]] → Text, [[Text]] → Text
-    t = re.sub(r"\[\[(?:[^|\]]+\|)?([^\]]+)\]\]", r"\1", t)
-    # Externe Links: [URL Text] → Text
-    t = re.sub(r"\[https?://\S+\s+([^\]]+)\]", r"\1", t)
-    t = re.sub(r"\[https?://\S+\]", " ", t)
-    # Formatierung: '''fett''' / ''kursiv''
-    t = re.sub(r"'{2,3}", "", t)
-    # Überschriften: ==Text== → Text
-    t = re.sub(r"=+\s*(.+?)\s*=+", r"\1\n", t)
-    # Aufzählungszeichen
-    t = re.sub(r"^[*#:;]+\s*", "", t, flags=re.MULTILINE)
-    # Mehrfache Leerzeilen
-    t = re.sub(r"\n{3,}", "\n\n", t)
-    return t.strip()
-
-
 def extrahiere_tei_bz2(bz2_pfad: Path, quelle: str, genre: str,
-                        epoche: str) -> list[dict]:
-    """
-    TEI-Korpus als bz2-komprimierte XML-Datei (teiCorpus mit mehreren TEI-Elementen).
-    Format: Wikibooks, Wikivoyage (von Zenodo via DWDS/BBAW konvertiert).
-    """
+                       epoche: str, ref_label: str) -> list:
+    """TEI-Korpus als bz2-komprimierte XML-Datei (teiCorpus mit mehreren TEI).
+    Format: Wikibooks, Wikivoyage. ref = „<Label>: <Artikeltitel>"."""
     import bz2
     print(f"\n── {quelle} ({bz2_pfad.name})")
     if not bz2_pfad.exists():
@@ -515,10 +828,8 @@ def extrahiere_tei_bz2(bz2_pfad: Path, quelle: str, genre: str,
 
     NS = "http://www.tei-c.org/ns/1.0"
     SKIP_TAGS = {f"{{{NS}}}{t}" for t in ("teiHeader", "note", "fw", "pb", "lb")}
-    BODY_TAGS  = {f"{{{NS}}}{t}" for t in ("p", "l", "ab", "div", "seg")}
 
     def tei_text(element) -> str:
-        """Rekursiv Text aus TEI-Element sammeln."""
         teile = []
         if element.tag in SKIP_TAGS:
             return ""
@@ -534,21 +845,20 @@ def extrahiere_tei_bz2(bz2_pfad: Path, quelle: str, genre: str,
     with bz2.open(bz2_pfad, "rb") as fh:
         context = ET.iterparse(fh, events=("end",))
         for event, elem in context:
-            # Jedes <TEI>-Element = ein Dokument (Buch/Artikel)
             if elem.tag != f"{{{NS}}}TEI":
                 continue
-            # Titel aus teiHeader
+            if _limit_erreicht(eintraege):
+                break
             titel_el = elem.find(f".//{{{NS}}}title[@type='main']")
             if titel_el is None:
                 titel_el = elem.find(f".//{{{NS}}}title")
             titel = titel_el.text.strip() if titel_el is not None and titel_el.text else "unbekannt"
 
-            # Body-Text extrahieren
             body = elem.find(f".//{{{NS}}}body")
             if body is None:
                 elem.clear()
                 continue
-            text = bereinige_text(tei_text(body))
+            text = normalisiere_text(tei_text(body))
             if len(text) < 150:
                 elem.clear()
                 continue
@@ -559,6 +869,9 @@ def extrahiere_tei_bz2(bz2_pfad: Path, quelle: str, genre: str,
                 "genre":  genre,
                 "epoche": epoche,
                 "jahr":   None,
+                "titel":  titel,
+                "autor":  "",
+                "ref":    f"{ref_label}: {titel}",
             })
             elem.clear()
             if len(eintraege) % 1000 == 0:
@@ -568,8 +881,9 @@ def extrahiere_tei_bz2(bz2_pfad: Path, quelle: str, genre: str,
 
 # ── Bundestag PDFs (WP01–WP18) ────────────────────────────────────────────
 
-def extrahiere_bundestag_pdf() -> list[dict]:
-    """Bundestag Plenarprotokolle WP01–WP18 als PDF → Text via PyMuPDF."""
+def extrahiere_bundestag_pdf() -> list:
+    """Bundestag Plenarprotokolle WP01–WP18 als PDF → Text via PyMuPDF.
+    ref = Protokoll-Kennung aus dem Dateinamen (K3 greift auf PDF-Silbentrennung)."""
     print("\n── Bundestag PDFs (WP01–WP18)")
     pdf_verz = KORPORA / "bundestagskorpus"
     if not pdf_verz.exists():
@@ -589,6 +903,8 @@ def extrahiere_bundestag_pdf() -> list[dict]:
     eintraege = []
     fehler = 0
     for pdf_pfad in pdfs:
+        if _limit_erreicht(eintraege):
+            break
         try:
             doc = fitz.open(str(pdf_pfad))
             seiten_text = []
@@ -597,16 +913,14 @@ def extrahiere_bundestag_pdf() -> list[dict]:
                 if t.strip():
                     seiten_text.append(t.strip())
             doc.close()
-            text = bereinige_text("\n\n".join(seiten_text))
+            text = normalisiere_text("\n\n".join(seiten_text))
         except Exception:
             fehler += 1
             continue
         if len(text) < 200:
             continue
         stem = pdf_pfad.stem
-        # Jahreszahl aus Dateiname: WP01_0001_1949-09-07
-        m = re.search(r"(\d{4})-\d{2}-\d{2}", stem)
-        jahr = int(m.group(1)) if m else None
+        ref, jahr = _bundestag_ref(stem)
         eintraege.append({
             "id":     f"bundestag_pdf/{stem}",
             "text":   text,
@@ -614,6 +928,9 @@ def extrahiere_bundestag_pdf() -> list[dict]:
             "genre":  "parlamentssprache",
             "epoche": "Gegenwart",
             "jahr":   jahr,
+            "titel":  "",
+            "autor":  "",
+            "ref":    ref,
         })
         if len(eintraege) % 500 == 0:
             print(f"  {len(eintraege):,}/{len(pdfs):,} PDFs ...", flush=True)
@@ -629,31 +946,30 @@ KORPORA_KONFIG = {
     "leipzig":         (extrahiere_leipzig,           "leipzig.jsonl"),
     "pol_reden":       (extrahiere_pol_reden,         "pol_reden.jsonl"),
     "german_commons":  (extrahiere_german_commons,    "german_commons.jsonl"),
-    "gei_digital": (
-        lambda: extrahiere_tei_zip(
-            KORPORA / "gei-digital" / "schulbuchevolution_gei-digital.zip",
-            "gei_digital", "schulbuch", "historisch"
-        ), "gei_digital.jsonl"
-    ),
+    "gei_digital":     (extrahiere_gei_digital,        "gei_digital.jsonl"),
     "dta_kern": (
         lambda: extrahiere_tei_verzeichnis(
-            KORPORA / "dta-kern", "dta_kern", "literatur", "historisch"
+            KORPORA / "dta-kern", "dta_kern", "literatur", "historisch",
+            ref_label="Deutsches Textarchiv"
         ), "dta_kern.jsonl"
     ),
     "dta_erweiterungen": (
         lambda: extrahiere_tei_verzeichnis(
-            KORPORA / "dta-erweiterungen", "dta_erweiterungen", "literatur", "historisch"
+            KORPORA / "dta-erweiterungen", "dta_erweiterungen", "literatur", "historisch",
+            ref_label="Deutsches Textarchiv"
         ), "dta_erweiterungen.jsonl"
     ),
     "dibilit": (
         lambda: extrahiere_tei_verzeichnis(
             KORPORA / "dibilit" / "deutschestextarchiv-DiBiLit-Korpus-38503b7" / "data",
-            "dibilit", "literatur", "historisch", glob="**/*.txt.xml"
+            "dibilit", "literatur", "historisch", glob="**/*.txt.xml",
+            ref_label="DiBiLit"
         ), "dibilit.jsonl"
     ),
     "dta_github": (
         lambda: sum([
-            extrahiere_tei_verzeichnis(KORPORA / repo, repo, genre, "historisch")
+            extrahiere_tei_verzeichnis(KORPORA / repo, repo, genre, "historisch",
+                                       ref_label="Deutsches Textarchiv")
             for repo, genre in [
                 ("humboldt-publizistik",  "wissenschaft"),
                 ("jean-paul-briefe",      "brief"),
@@ -669,7 +985,8 @@ KORPORA_KONFIG = {
     "ref_mhd": (
         lambda: extrahiere_tei_verzeichnis(
             KORPORA / "ref-mittelhochdeutsch" / "tei",
-            "ref_mhd", "historisch", "mittelhochdeutsch"
+            "ref_mhd", "historisch", "mittelhochdeutsch",
+            ref_label="Ref.-Korpus Mittelhochdeutsch"
         ), "ref_mhd.jsonl"
     ),
     "ref_fnh":      (extrahiere_ref_fnh, "ref_fnh.jsonl"),
@@ -677,13 +994,13 @@ KORPORA_KONFIG = {
     "wikibooks": (
         lambda: extrahiere_tei_bz2(
             KORPORA / "wikibooks" / "wikibooks-20260101.xml.bz2",
-            "wikibooks", "lehrtext", "Gegenwart"
+            "wikibooks", "lehrtext", "Gegenwart", ref_label="Wikibooks"
         ), "wikibooks.jsonl"
     ),
     "wikivoyage": (
         lambda: extrahiere_tei_bz2(
             KORPORA / "wikivoyage" / "wikivoyage-20260101.xml.bz2",
-            "wikivoyage", "reisefuehrer", "Gegenwart"
+            "wikivoyage", "reisefuehrer", "Gegenwart", ref_label="Wikivoyage"
         ), "wikivoyage.jsonl"
     ),
     "bundestag_pdf": (extrahiere_bundestag_pdf, "bundestag_pdf.jsonl"),
@@ -691,7 +1008,14 @@ KORPORA_KONFIG = {
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Phase 2: Textextraktion → JSONL")
+    # UTF-8-Konsolenausgabe erzwingen (Windows-cp1252); nur beim direkten
+    # Skript-Aufruf, nicht beim Import (sonst bricht pytests stdout-Capture).
+    try:
+        sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace")
+    except (AttributeError, ValueError):
+        pass
+
+    parser = argparse.ArgumentParser(description="Phase 2 (v2): Textextraktion → JSONL")
     parser.add_argument("--only", choices=list(KORPORA_KONFIG.keys()),
                         help="Nur ein Korpus verarbeiten")
     parser.add_argument("--dry-run", action="store_true",
