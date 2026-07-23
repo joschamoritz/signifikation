@@ -32,6 +32,7 @@ Aufruf:
 
 Verfügbare --only-Werte:
   gesetze, bundestag, leipzig, pol_reden, german_commons,
+  german_commons_justiz, wikipedia,
   gei_digital, dta_kern, dta_erweiterungen, dibilit,
   dta_github, ref_mhd, ref_fnh,
   pitaval, wikibooks, wikivoyage, bundestag_pdf
@@ -589,6 +590,208 @@ def extrahiere_german_commons() -> list:
     return eintraege
 
 
+# ── German Commons: Justiz-Splits (BGH/BVerfG/BPatG/BVerwG/BAG/BFH) ─────────
+#
+# Diese Splits kommen (anders als reichtagsprotokolle/dibiphil) als .jsonl mit
+# id/source/license/text je Zeile aus download_german_commons.py, weil ihre
+# id-Werte Gericht+Datum+Aktenzeichen kodieren – zu schade, das wie beim
+# TXT-Format wegzuwerfen (Plan-Ziel „dokumentgenaue Quellennachweise").
+#
+# id-Format variiert je Gericht (Stichproben 2026-07-22, n=1 je Gericht):
+#   BAG_2010-07-13_9_AZR_287_09_NA.txt
+#   BFH_NV_2014-07-01_I_B_193_13_STRE201450436.txt
+#   BGH_Zivilsenat-11_NA_2021-01-12_XI_ZR_589_19_NA_NA_0.txt
+#   BPatG_TechnBeschw_NA_2015-10-15_17_W-pat_8_13_NA_0.txt
+#   BVerfG_2010-04-14_S_1_BvL_0008_08_NA_Privatisierung-Kliniken-Hamburg_126_29.txt
+# Gemeinsam ist nur: ein ISO-Datum (YYYY-MM-DD) steht irgendwo im id-String.
+# ref wird deshalb bewusst NICHT als vollständig formatierte Rechtszitation
+# rekonstruiert (Court-spezifische Az.-Syntax ist zu uneinheitlich für n=1-
+# Stichproben) – stattdessen generisch: Gerichtsname, Datum, plus die übrigen
+# id-Tokens (NA-Platzhalter/Padding entfernt) als "Az."-Näherung. Ehrliche
+# Einschränkung, dokumentiert wie F5/lemma_corpus_freq (DB-Neuaufbau.md 3.3).
+
+_RE_ISO_DATUM = re.compile(r"^(\d{4})-(\d{2})-(\d{2})$")
+
+# split-Dateiname (ohne .jsonl) -> (Gerichtsname, quelle, genre, epoche)
+JUSTIZ_META = {
+    "bverfg":               ("Bundesverfassungsgericht", "bverfg",               "rechtsprechung", "modern"),
+    "bverfg_amtlich":       ("Bundesverfassungsgericht (Amtliche Sammlung)", "bverfg_amtlich", "rechtsprechung", "modern"),
+    "bgh":                  ("Bundesgerichtshof",         "bgh",                  "rechtsprechung", "modern"),
+    "bgh_strafsachen_hist": ("Bundesgerichtshof (Strafsachen, 20. Jh.)", "bgh_strafsachen_hist", "rechtsprechung", "historisch"),
+    "bverwg":               ("Bundesverwaltungsgericht",  "bverwg",               "rechtsprechung", "modern"),
+    "bpatg":                ("Bundespatentgericht",       "bpatg",                "rechtsprechung", "modern"),
+    "bag":                  ("Bundesarbeitsgericht",      "bag",                  "rechtsprechung", "modern"),
+    "bfh":                  ("Bundesfinanzhof",           "bfh",                  "rechtsprechung", "modern"),
+}
+
+
+def _justiz_ref(gericht: str, stem: str) -> "tuple[str, int | None]":
+    """Baut (ref, jahr) aus einem German-Commons-Justiz-id (siehe Kommentar
+    oben). Fällt auf „Gericht: stem" zurück, wenn kein Datum gefunden wird.
+
+    Wichtig: „Az." ist bewusst KEINE formatierte Rechtszitation (die Az.-
+    Syntax – „/" vs. „." vs. Klammern – unterscheidet sich je Gericht, siehe
+    z. B. BVerwG „8 B 149.03" vs. BGH „XI ZR 589/19"; aus n=1-Stichproben pro
+    Gericht wäre eine automatische Interpunktion-Rekonstruktion Rätselraten).
+    Stattdessen werden die id-Tokens roh (leerzeichengetrennt, NA-Platzhalter
+    und ein einzelner Padding-Index „0" am Ende entfernt) angehängt – weniger
+    hübsch, aber nicht falsch."""
+    tokens = stem.split("_")
+    datum_idx = next(
+        (i for i, t in enumerate(tokens) if _RE_ISO_DATUM.match(t)), None
+    )
+    if datum_idx is None:
+        return f"{gericht}: {stem}", None
+
+    jahr, monat, tag = (int(x) for x in tokens[datum_idx].split("-"))
+    datum_str = f"{tag:02d}.{monat:02d}.{jahr:04d}"
+
+    # tokens[0] ist das Gericht selbst (BGH/BAG/…) – nicht Teil von "vor".
+    vor = [t for t in tokens[1:datum_idx] if t and t != "NA"]
+    nach = [t for t in tokens[datum_idx + 1:] if t and t != "NA"]
+    if nach and nach[-1] == "0":
+        nach = nach[:-1]  # Padding-Index am Ende (z. B. "..._NA_0")
+
+    ref = f"{gericht}, {datum_str}"
+    if vor:
+        ref += f" – {' '.join(vor)}"
+    if nach:
+        ref += f", Az. {' '.join(nach)}"
+    return ref, jahr
+
+
+def extrahiere_german_commons_justiz() -> list:
+    """German Commons Justiz-Splits (.jsonl aus download_german_commons.py):
+    id/source/license/text je Zeile. Ein Eintrag pro Entscheidung (kein
+    Chunking nötig – Entscheidungen sind typischerweise deutlich kürzer als
+    die Reichstags-Bände)."""
+    basis = KORPORA / "german-commons"
+    eintraege = []
+    for dateiname, (gericht, quelle, genre, epoche) in JUSTIZ_META.items():
+        jsonl_datei = basis / f"{dateiname}.jsonl"
+        if not jsonl_datei.exists():
+            continue
+        n = 0
+        with jsonl_datei.open(encoding="utf-8") as f:
+            for zeile in f:
+                if _limit_erreicht(eintraege):
+                    break
+                zeile = zeile.strip()
+                if not zeile:
+                    continue
+                try:
+                    obj = json.loads(zeile)
+                except json.JSONDecodeError:
+                    continue
+                text = normalisiere_text(obj.get("text") or "")
+                if len(text) < 100:
+                    continue
+                stem = _clean_stem(obj.get("id") or f"{quelle}/{n:07d}")
+                ref, jahr = _justiz_ref(gericht, stem)
+                eintraege.append({
+                    "id":     f"{quelle}/{stem}",
+                    "text":   text,
+                    "quelle": quelle,
+                    "genre":  genre,
+                    "epoche": epoche,
+                    "jahr":   jahr,
+                    "titel":  "",
+                    "autor":  "",
+                    "ref":    ref,
+                })
+                n += 1
+        print(f"  {dateiname}.jsonl: {n:,} Entscheidungen ({gericht})")
+    return eintraege
+
+
+# ── Wikipedia (nur belege.db, siehe extract_text.py-Modul-Docstring / F1) ───
+#
+# Eingabe: wikiextractor-Ausgabe (download_wikipedia.py) – Verzeichnisbaum mit
+# Dateien wie AA/wiki_00, jeweils mehrere <doc id=".." url=".." title="..">
+# Text </doc>-Blöcke. wikiextractor entfernt Infoboxen/Referenzen bereits
+# strukturell (Templates werden nicht expandiert); Tabellen/Listen-Reste und
+# Navigations-Fragmente filtern wir zusätzlich heuristisch pro Absatz.
+
+_RE_WIKI_DOC = re.compile(
+    r'<doc id="(?P<id>[^"]*)" url="(?P<url>[^"]*)" title="(?P<title>[^"]*)">'
+    r'(?P<body>.*?)</doc>', re.DOTALL,
+)
+WIKI_STUB_MIN = 500       # Artikel unter dieser Gesamtlänge (nach Filterung) verwerfen
+WIKI_PARA_MIN = 150       # Absätze unter dieser Länge sind meist Listen-/Tabellenreste
+
+
+def _wiki_absatz_ok(absatz: str) -> bool:
+    """Heuristischer Fließtext-Filter (Task-Vorgabe: Infoboxen/Tabellen/Listen/
+    Navigation raus). wikiextractor liefert i. d. R. schon reinen Fließtext;
+    das hier fängt Reste ab: sehr kurze Fragmente (Listenpunkte, Navigation),
+    Absätze ohne Satzzeichen (keine echten Sätze) und OCR-/Symbol-Rauschen."""
+    if len(absatz) < WIKI_PARA_MIN:
+        return False
+    if not re.search(r"[.!?]", absatz):
+        return False
+    letters = sum(c.isalpha() for c in absatz)
+    if letters / len(absatz) < 0.6:
+        return False
+    return True
+
+
+def _wiki_url(titel: str) -> str:
+    import urllib.parse
+    return "https://de.wikipedia.org/wiki/" + urllib.parse.quote(titel.replace(" ", "_"))
+
+
+def extrahiere_wikipedia() -> list:
+    """Liest die wikiextractor-Ausgabe (01_download/korpora/wikipedia/extracted/)
+    und baut daraus das v2-Schema. jahr bleibt leer (kein sinnvolles
+    Artikel-Jahr); ref = Titel + de.wikipedia.org/wiki/-URL (Task-Vorgabe)."""
+    print("\n── Wikipedia (dewiki)")
+    basis = KORPORA / "wikipedia" / "extracted"
+    if not basis.exists():
+        print("  [SKIP] Verzeichnis nicht gefunden – erst download_wikipedia.py ausführen")
+        return []
+    eintraege = []
+    n_dateien = n_artikel = n_stubs = 0
+    for datei in sorted(basis.rglob("wiki_*")):
+        if _limit_erreicht(eintraege):
+            break
+        n_dateien += 1
+        inhalt = datei.read_text(encoding="utf-8", errors="replace")
+        for m in _RE_WIKI_DOC.finditer(inhalt):
+            if _limit_erreicht(eintraege):
+                break
+            titel = m.group("title").strip()
+            wiki_id = m.group("id").strip()
+            body = m.group("body")
+            # Erste Zeile im Body ist meist der wiederholte Titel (wikiextractor-
+            # Konvention) – als eigener Absatz ohnehin zu kurz/uninformativ, raus.
+            absaetze = [a.strip() for a in body.split("\n") if a.strip()]
+            if absaetze and absaetze[0] == titel:
+                absaetze = absaetze[1:]
+            gefiltert = [normalisiere_text(a) for a in absaetze if _wiki_absatz_ok(a)]
+            text = "\n\n".join(a for a in gefiltert if a)
+            if len(text) < WIKI_STUB_MIN:
+                n_stubs += 1
+                continue
+            eintraege.append({
+                "id":     f"wikipedia/{wiki_id or titel}",
+                "text":   text,
+                "quelle": "wikipedia",
+                "genre":  "enzyklopaedie",
+                "epoche": "Gegenwart",
+                "jahr":   None,
+                "titel":  titel,
+                "autor":  "",
+                "ref":    f"{titel}. Wikipedia. {_wiki_url(titel)}",
+            })
+            n_artikel += 1
+        if n_dateien % 200 == 0:
+            print(f"  {n_dateien:,} wiki_*-Dateien · {n_artikel:,} Artikel "
+                  f"({n_stubs:,} Stubs verworfen) ...", flush=True)
+    print(f"  {n_dateien:,} Dateien gelesen · {n_artikel:,} Artikel · "
+          f"{n_stubs:,} Stubs verworfen")
+    return eintraege
+
+
 def extrahiere_tei_verzeichnis(
     basis: Path,
     quelle: str,
@@ -946,6 +1149,8 @@ KORPORA_KONFIG = {
     "leipzig":         (extrahiere_leipzig,           "leipzig.jsonl"),
     "pol_reden":       (extrahiere_pol_reden,         "pol_reden.jsonl"),
     "german_commons":  (extrahiere_german_commons,    "german_commons.jsonl"),
+    "german_commons_justiz": (extrahiere_german_commons_justiz, "german_commons_justiz.jsonl"),
+    "wikipedia":       (extrahiere_wikipedia,          "wikipedia.jsonl"),
     "gei_digital":     (extrahiere_gei_digital,        "gei_digital.jsonl"),
     "dta_kern": (
         lambda: extrahiere_tei_verzeichnis(

@@ -504,6 +504,9 @@ DATEIEN = [
     "pol_reden.jsonl",
     "bundestag_xml.jsonl",
     "german_commons.jsonl",
+    "german_commons_justiz.jsonl",
+    # wikipedia.jsonl bewusst NICHT hier: nur für belege.db (F1/build_belege_v2.py),
+    # nicht für wortprofil.db (Qualitätsentscheidung DB-Neuaufbau.md, Abschnitt 4).
     "leipzig.jsonl",
     "dibilit.jsonl",
     "dta_kern.jsonl",
