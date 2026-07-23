@@ -51,8 +51,11 @@ from pathlib import Path
 from xml.etree import ElementTree as ET
 
 KORPORA = Path(__file__).parent.parent / "01_download" / "korpora"
-ZIEL    = Path(__file__).parent.parent / "02_parsed_v2"
-ZIEL.mkdir(exist_ok=True)
+# Ausgabeverzeichnis per Env überschreibbar (Gate A / Phase-C-Subset bauen ihre
+# Mini-/Subset-JSONL in ein separates Verzeichnis, damit 02_parsed_v2/ – die
+# Vollausgabe – unangetastet bleibt; Grundregel „nichts in-place").
+ZIEL = Path(os.environ.get("EXTRACT_OUT_DIR") or (Path(__file__).parent.parent / "02_parsed_v2"))
+ZIEL.mkdir(parents=True, exist_ok=True)
 
 # Optionales Sampling-Limit (Env EXTRACT_SAMPLE_LIMIT): jeder Extraktor stoppt,
 # sobald so viele Dokumente gesammelt sind. Für schnelle Mini-Runs / Stichproben
@@ -292,6 +295,8 @@ def extrahiere_gesetze() -> list:
         if not gesetz_dir.is_dir():
             continue
         for xml_datei in gesetz_dir.glob("*.xml"):
+            if _limit_erreicht(eintraege):
+                break
             try:
                 root = ET.parse(xml_datei).getroot()
             except ET.ParseError:
@@ -301,6 +306,8 @@ def extrahiere_gesetze() -> list:
                           root.findtext(".//ausfertigung-datum") or "")
             law_jahr = int(m.group(1)) if m else None
             for i, norm in enumerate(root.findall(".//norm")):
+                if _limit_erreicht(eintraege):
+                    break
                 textdaten = norm.find("textdaten")
                 if textdaten is None:
                     continue
@@ -362,6 +369,8 @@ def extrahiere_bundestag_xml() -> list:
                 elem.tag = elem.tag.split("}", 1)[1]
 
         for rede in root.iter("rede"):
+            if _limit_erreicht(eintraege):
+                break
             teile = []
             for p in rede.iter("p"):
                 txt = "".join(p.itertext()).strip()
@@ -382,6 +391,8 @@ def extrahiere_bundestag_xml() -> list:
                 })
 
         for top in root.iter("tagesordnungspunkt"):
+            if _limit_erreicht(eintraege):
+                break
             teile = []
             for child in top:
                 if child.tag == "p":
@@ -443,6 +454,8 @@ def extrahiere_leipzig() -> list:
 
             ref = f"Leipzig ({korpus})" + (f" {jahr}" if jahr else "")
             for i in range(0, len(saetze), BUENDELGROESSE):
+                if _limit_erreicht(eintraege):
+                    break
                 buendel = saetze[i:i + BUENDELGROESSE]
                 eintraege.append({
                     "id":     f"{korpus}/{tgz.stem}/{i // BUENDELGROESSE:05d}",
@@ -480,6 +493,8 @@ def extrahiere_pol_reden() -> list:
         except Exception:
             continue
         for text_elem in root.iter("text"):
+            if _limit_erreicht(eintraege):
+                break
             rohtext = text_elem.findtext("rohtext", "").strip()
             if not rohtext:
                 rohtext = "".join(text_elem.itertext()).strip()

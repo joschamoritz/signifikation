@@ -519,6 +519,9 @@ DATEIEN = [
     "wikibooks.jsonl",
     "wikivoyage.jsonl",
     "bundestag_pdf.jsonl",
+    # Gate-A-Canary-Korpus (run_gate_a.py) – existiert nur unter gate_a/parsed/,
+    # in 02_parsed_v2/ (Produktion) nie vorhanden → dort einfach [SKIP].
+    "testkorpus_canary.jsonl",
 ]
 
 
@@ -533,6 +536,9 @@ def main():
     parser.add_argument("--only", help="Nur diese Datei verarbeiten (ohne .jsonl)")
     parser.add_argument("--input-dir", default=str(PARSED_DIR_DEFAULT),
                         help="Eingabeverzeichnis (Standard: 02_parsed_v2)")
+    parser.add_argument("--db", default=str(DB_PATH),
+                        help="Ziel-DB (Standard: 03_deps/triples_v2.db) – für "
+                             "Gate-A-/Subset-Builds auf eine separate Datei umbiegen")
     parser.add_argument("--workers", type=int, default=1,
                         help="Anzahl spaCy-Prozesse (Standard: 1)")
     parser.add_argument("--limit", type=int, default=None,
@@ -548,11 +554,13 @@ def main():
     args = parser.parse_args()
 
     input_dir = Path(args.input_dir)
+    db_path = Path(args.db)
+    db_path.parent.mkdir(parents=True, exist_ok=True)
 
     if args.reset and not args.benchmark:
         for suffix in ("", "-shm", "-wal"):
-            Path(str(DB_PATH) + suffix).unlink(missing_ok=True)
-        print("[RESET] triples_v2.db + Fortschritt gelöscht.")
+            Path(str(db_path) + suffix).unlink(missing_ok=True)
+        print(f"[RESET] {db_path.name} + Fortschritt gelöscht.")
 
     nlp = lade_modell(use_dwdsmor=not args.no_dwdsmor)
 
@@ -571,7 +579,7 @@ def main():
         return
 
     # ── Normal-Modus ────────────────────────────────────────────────────────
-    conn = sqlite3.connect(DB_PATH)
+    conn = sqlite3.connect(db_path)
     init_db(conn)
 
     gesamt = 0
@@ -584,7 +592,7 @@ def main():
         gesamt += verarbeite_datei(pfad, nlp, conn, workers=args.workers, limit=args.limit)
 
     conn.close()
-    print(f"\n=== Fertig. {gesamt:,} Triples-Upserts. DB: {DB_PATH} ===")
+    print(f"\n=== Fertig. {gesamt:,} Triples-Upserts. DB: {db_path} ===")
 
 
 if __name__ == "__main__":
