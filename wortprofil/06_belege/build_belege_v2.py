@@ -98,6 +98,8 @@ QUELLEN_META = {
         "Deutsches Textarchiv – DTA Novellenschatz. deutschestextarchiv.de", "CC BY-SA 4.0"),
     "dta-soldatenbriefe": (
         "Deutsches Textarchiv – DTA Soldatenbriefe. deutschestextarchiv.de", "CC BY-SA 4.0"),
+    "dta-stimm-los": (
+        "Deutsches Textarchiv – DTA Stimm-los. deutschestextarchiv.de", "CC BY-SA 4.0"),
     "dta-dingler": (
         "Deutsches Textarchiv – Dinglers Polytechnisches Journal (1820–1931). "
         "deutschestextarchiv.de", "CC BY-SA 4.0"),
