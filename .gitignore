@@ -72,6 +72,7 @@ ios/.DS_Store
 wortprofil/01_download/korpora/
 wortprofil/wortprofil-env/
 wortprofil/02_parsed/
+wortprofil/02_parsed_v2/
 wortprofil/03_deps/
 wortprofil/05_db/
 wortprofil/06_belege/belege.db

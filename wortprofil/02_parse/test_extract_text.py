@@ -296,3 +296,81 @@ def test_ref_ref_mhd():
                quelle_pfad=KORPORA / "ref-mittelhochdeutsch" / "tei")[0]
     _assert_v2_felder(d)
     assert isinstance(d["ref"], str) and d["ref"].strip()
+
+
+# ── German Commons Justiz (BGH/BVerfG/BPatG/BVerwG/BAG/BFH) ─────────────────
+# _justiz_ref ist eine reine Funktion → Tests laufen ohne Download, direkt
+# gegen echte id-Stichproben aus dem HuggingFace-Datensatz (2026-07-22 geprüft).
+
+@pytest.mark.parametrize("gericht,stem,erwartet_ref,erwartet_jahr", [
+    ("Bundesarbeitsgericht", "BAG_2010-07-13_9_AZR_287_09_NA",
+     "Bundesarbeitsgericht, 13.07.2010, Az. 9 AZR 287 09", 2010),
+    ("Bundesfinanzhof", "BFH_NV_2014-07-01_I_B_193_13_STRE201450436",
+     "Bundesfinanzhof, 01.07.2014 – NV, Az. I B 193 13 STRE201450436", 2014),
+    ("Bundesgerichtshof", "BGH_Zivilsenat-11_NA_2021-01-12_XI_ZR_589_19_NA_NA_0",
+     "Bundesgerichtshof, 12.01.2021 – Zivilsenat-11, Az. XI ZR 589 19", 2021),
+    ("Bundesgerichtshof (Strafsachen, 20. Jh.)",
+     "BGH_Strafsenat-5_NA_1987-08-25_5_StR_212_87_NA_NA_NA",
+     "Bundesgerichtshof (Strafsachen, 20. Jh.), 25.08.1987 – Strafsenat-5, Az. 5 StR 212 87", 1987),
+    ("Bundespatentgericht", "BPatG_TechnBeschw_NA_2015-10-15_17_W-pat_8_13_NA_0",
+     "Bundespatentgericht, 15.10.2015 – TechnBeschw, Az. 17 W-pat 8 13", 2015),
+    ("Bundesverfassungsgericht", "BVerfG_2001-03-14_K_2_BvR_0567_99_NA_NA_NA_NA",
+     "Bundesverfassungsgericht, 14.03.2001, Az. K 2 BvR 0567 99", 2001),
+    ("Bundesverfassungsgericht (Amtliche Sammlung)",
+     "BVerfG_2010-04-14_S_1_BvL_0008_08_NA_Privatisierung-Kliniken-Hamburg_126_29",
+     "Bundesverfassungsgericht (Amtliche Sammlung), 14.04.2010, "
+     "Az. S 1 BvL 0008 08 Privatisierung-Kliniken-Hamburg 126 29", 2010),
+    ("Bundesverwaltungsgericht", "BVerwG_2003-12-04_B_8_B_149_03_NA_0",
+     "Bundesverwaltungsgericht, 04.12.2003, Az. B 8 B 149 03", 2003),
+])
+def test_justiz_ref(gericht, stem, erwartet_ref, erwartet_jahr):
+    ref, jahr = E._justiz_ref(gericht, stem)
+    assert ref == erwartet_ref
+    assert jahr == erwartet_jahr
+
+
+def test_justiz_ref_ohne_datum_faellt_zurueck():
+    ref, jahr = E._justiz_ref("Bundesgerichtshof", "BGH_kaputte_id_ohne_datum")
+    assert ref == "Bundesgerichtshof: BGH_kaputte_id_ohne_datum"
+    assert jahr is None
+
+
+def test_ref_german_commons_justiz():
+    docs = _first("german_commons_justiz", limit=3,
+                  quelle_pfad=KORPORA / "german-commons" / "bverfg.jsonl")
+    for d in docs:
+        _assert_v2_felder(d)
+        assert d["genre"] == "rechtsprechung"
+    assert any(d["quelle"] == "bverfg" for d in docs)
+
+
+# ── Wikipedia (nur belege.db) ────────────────────────────────────────────────
+
+@pytest.mark.parametrize("absatz,erwartet", [
+    ("Berlin ist die Hauptstadt der Bundesrepublik Deutschland und mit rund "
+     "3,7 Millionen Einwohnern die bevölkerungsreichste Stadt des Landes. "
+     "Die Stadt liegt im Nordosten Deutschlands an der Spree.", True),
+    ("• Berlin\n• Hamburg\n• München", False),          # Liste, kein Satzzeichen
+    ("Kurzer Satz.", False),                              # unter WIKI_PARA_MIN
+    ("1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20.", False),  # Zahlen-/Tabellenrest
+    ("Siehe auch: Liste der Hauptstädte, Kategorie:Bundesland, Portal:Deutschland "
+     "und weitere verwandte Themen ohne echten Fließtext hier drin stehen", False),
+])
+def test_wiki_absatz_ok(absatz, erwartet):
+    assert E._wiki_absatz_ok(absatz) == erwartet
+
+
+def test_wiki_url():
+    assert E._wiki_url("Berlin") == "https://de.wikipedia.org/wiki/Berlin"
+    assert E._wiki_url("Alt Berlin") == "https://de.wikipedia.org/wiki/Alt_Berlin"
+    assert E._wiki_url("Nürnberg") == "https://de.wikipedia.org/wiki/N%C3%BCrnberg"
+
+
+def test_ref_wikipedia():
+    d = _first("wikipedia", limit=1,
+               quelle_pfad=KORPORA / "wikipedia" / "extracted")[0]
+    _assert_v2_felder(d)
+    assert d["quelle"] == "wikipedia"
+    assert d["jahr"] is None
+    assert d["ref"].startswith(f"{d['titel']}. Wikipedia. https://de.wikipedia.org/wiki/")
+    assert len(d["text"]) >= E.WIKI_STUB_MIN
