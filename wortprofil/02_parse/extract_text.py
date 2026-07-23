@@ -242,6 +242,17 @@ def tei_header_metadata(root) -> "tuple[str, str, str, int | None]":
             if m:
                 tei_jahr = int(m.group(1))
                 break
+    if tei_jahr is None:
+        # Fallback für Briefkorpora (jean-paul-briefe, humboldt-digital): das
+        # Datum steht dort in <correspDesc><correspAction><date when="…">,
+        # nicht in <sourceDesc> (Gate B: 58,8 % Jahr-Abdeckung in dta_github,
+        # weil dieser Fall bislang übersprungen wurde).
+        for d in hdr.iter("date"):
+            when = d.get("when") or d.get("when-iso") or d.get("notBefore") or ""
+            m = re.search(r"(1[0-9]{3}|20[0-2][0-9])", when)
+            if m:
+                tei_jahr = int(m.group(1))
+                break
     return titel, nachname, autor, tei_jahr
 
 
@@ -928,6 +939,20 @@ def extrahiere_gei_digital() -> list:
     return eintraege
 
 
+def _fnh_header_jahr(root) -> "int | None":
+    """Jahr aus dem CorA-Klartext-Header (<header>corpus: …\\ndate: 1644\\n…</header>)
+    – Gate B fand 0 % Jahr-Abdeckung, obwohl 88 % der Header ein ‚date:'-Feld
+    tragen (nur nie geparst)."""
+    hdr = root.find("header")
+    if hdr is None or not hdr.text:
+        return None
+    m = re.search(r"^date:\s*(.*)$", hdr.text, re.MULTILINE)
+    if not m:
+        return None
+    jahre = re.findall(r"(1[0-9]{3}|20[0-2][0-9])", m.group(1))
+    return int(jahre[-1]) if jahre else None
+
+
 def extrahiere_ref_fnh() -> list:
     """Frühneuhochdeutsch: CorA-XML in tar.gz → <token>/<tok_anno utf=…>."""
     print("\n── Ref.-Korpus Frühneuhochdeutsch")
@@ -961,16 +986,18 @@ def extrahiere_ref_fnh() -> list:
             if len(text) < 50:
                 continue
             stem = Path(member.name).stem
+            jahr = _fnh_header_jahr(root) or jahr_aus_dateiname(stem)
+            ref = f"Ref.-Korpus Frühneuhochdeutsch: {stem}" + (f" ({jahr})" if jahr else "")
             eintraege.append({
                 "id":     f"ref_fnh/{stem}",
                 "text":   text,
                 "quelle": "ref_fnh",
                 "genre":  "historisch",
                 "epoche": "fruehneuhochdeutsch",
-                "jahr":   jahr_aus_dateiname(stem),
+                "jahr":   jahr,
                 "titel":  "",
                 "autor":  "",
-                "ref":    f"Ref.-Korpus Frühneuhochdeutsch: {stem}",
+                "ref":    ref,
             })
     return eintraege
 
