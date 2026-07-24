@@ -44,10 +44,29 @@ const STATION_GOALS = {
   5: 'Eine eigene sprachliche Frage am Korpus prüfen: Hypothese aufstellen, Befund deuten, begründet Stellung nehmen.',
 }
 
-function sortMaterials(materials) {
-  return [...materials].sort(
-    (a, b) => KIND_ORDER.indexOf(a.kind) - KIND_ORDER.indexOf(b.kind),
-  )
+// PDF/DOCX-Geschwister derselben Art+Stufe (gleicher `kind`+`level`, unterscheidet
+// sich nur über die Dateiendung in fileRef) zu EINER Karte mit mehreren Download-
+// Chips zusammenfassen, statt sie als zwei eigenständige Karten zu listen.
+const FORMAT_ORDER = ['pdf', 'docx']
+function formatOf(material) {
+  return material.fileRef?.toLowerCase().endsWith('.docx') ? 'docx' : 'pdf'
+}
+
+function groupMaterials(materials) {
+  const groups = new Map()
+  for (const material of materials) {
+    const key = `${material.kind}__${material.level ?? ''}`
+    if (!groups.has(key)) groups.set(key, { kind: material.kind, level: material.level, items: [] })
+    groups.get(key).items.push(material)
+  }
+  return [...groups.values()]
+    .sort((a, b) => KIND_ORDER.indexOf(a.kind) - KIND_ORDER.indexOf(b.kind))
+    .map((group) => ({
+      ...group,
+      items: [...group.items].sort(
+        (a, b) => FORMAT_ORDER.indexOf(formatOf(a)) - FORMAT_ORDER.indexOf(formatOf(b)),
+      ),
+    }))
 }
 
 export default function StationDetail({ stationId, gesamtausgabe = false, onBack, onNavigateToKonto, onOpenNextStation }) {
@@ -622,7 +641,7 @@ function MaterialPanel({ stationId, niveau, goal, gesamtausgabe = false, onNavig
           { signal: controller.signal },
         )
         if (cancelled) return
-        setMaterials(sortMaterials(json.materials ?? []))
+        setMaterials(json.materials ?? [])
         setState('ready')
       } catch (err) {
         if (cancelled || err?.name === 'AbortError') return
@@ -661,8 +680,12 @@ function MaterialPanel({ stationId, niveau, goal, gesamtausgabe = false, onNavig
       )}
       {state === 'ready' && materials.length > 0 && (
         <ul className="course-materials">
-          {materials.map((material) => (
-            <MaterialCard key={material.id} stationId={stationId} material={material} />
+          {groupMaterials(materials).map((group) => (
+            <MaterialCard
+              key={`${group.kind}__${group.level ?? ''}`}
+              stationId={stationId}
+              group={group}
+            />
           ))}
         </ul>
       )}
@@ -670,18 +693,45 @@ function MaterialPanel({ stationId, niveau, goal, gesamtausgabe = false, onNavig
   )
 }
 
-function MaterialCard({ stationId, material }) {
-  const meta = KIND_META[material.kind] ?? { label: material.kind, hint: '' }
+// Eine Karte pro Art+Stufe (Arbeitsblatt/Lösung/…), mit einem Download-Chip je
+// verfügbarem Format (PDF, ggf. DOCX) nebeneinander — statt zwei eigenständigen
+// Karten für dieselbe Aufgabe.
+function MaterialCard({ stationId, group }) {
+  const meta = KIND_META[group.kind] ?? { label: group.kind, hint: '' }
+  return (
+    <li className="course-material">
+      <div className="course-material-card">
+        <div className="course-material-text">
+          <span className="course-material-kind">{meta.label}</span>
+          {group.level && (
+            <span className="course-material-level">{NIVEAU_LABELS[group.level] ?? group.level}</span>
+          )}
+          {meta.hint && <span className="course-material-hint">{meta.hint}</span>}
+        </div>
+        <div className="course-material-formats">
+          {group.items.map((material) => (
+            <MaterialFormatLink
+              key={material.id}
+              stationId={stationId}
+              material={material}
+              kindLabel={meta.label}
+            />
+          ))}
+        </div>
+      </div>
+    </li>
+  )
+}
+
+function MaterialFormatLink({ stationId, material, kindLabel }) {
   const href = `${API}/course/stations/${stationId}/materials/${encodeURIComponent(material.id)}/download`
-  // Format (PDF/DOCX) aus der registrierten Datei ablesen — dieselbe Material-Art
-  // (kind) kann als PDF und als editierbares DOCX vorliegen (Bonus-Premium).
-  const format = material.fileRef?.toLowerCase().endsWith('.docx') ? 'docx' : 'pdf'
+  const format = formatOf(material)
   const filename = `${material.kind}${material.level ? `-${material.level}` : ''}.${format}`
   const [busy, setBusy] = useState(false)
   const [failed, setFailed] = useState(false)
 
   // In der nativen App trägt ein normaler <a href download> keinen Bearer-Header
-  // (Cookies sind cross-origin) → 401. Dort den Klick abfangen und die PDF über
+  // (Cookies sind cross-origin) → 401. Dort den Klick abfangen und die Datei über
   // apiFetch (mit Bearer) holen + nativ teilen. Im Web bleibt der Anchor mit
   // Cookie-Auth unverändert.
   const onClick = async (e) => {
@@ -700,25 +750,20 @@ function MaterialCard({ stationId, material }) {
   }
 
   return (
-    <li className="course-material">
-      <a className="course-material-card" href={href} download onClick={onClick} aria-busy={busy || undefined}>
-        <div className="course-material-text">
-          <span className="course-material-kind">{meta.label}</span>
-          {material.level && (
-            <span className="course-material-level">{NIVEAU_LABELS[material.level] ?? material.level}</span>
-          )}
-          {meta.hint && <span className="course-material-hint">{meta.hint}</span>}
-          {failed && (
-            <span className="course-material-hint" role="alert">Download fehlgeschlagen — bitte erneut versuchen.</span>
-          )}
-        </div>
-        <span className="course-material-action" aria-hidden="true">
-          <span className="course-material-format">{format.toUpperCase()}</span>
-          <span className="course-material-arrow">{busy ? '…' : '↓'}</span>
-        </span>
-        <span className="sr-only">{meta.label} als {format.toUpperCase()} herunterladen</span>
-      </a>
-    </li>
+    <a
+      className={`course-material-format-link${failed ? ' course-material-format-link--failed' : ''}`}
+      href={href}
+      download
+      onClick={onClick}
+      aria-busy={busy || undefined}
+    >
+      <span className="course-material-format">{format.toUpperCase()}</span>
+      <span className="course-material-arrow" aria-hidden="true">{busy ? '…' : failed ? '!' : '↓'}</span>
+      <span className="sr-only">
+        {kindLabel} als {format.toUpperCase()}
+        {failed ? ' — Download fehlgeschlagen, erneut versuchen' : ' herunterladen'}
+      </span>
+    </a>
   )
 }
 
