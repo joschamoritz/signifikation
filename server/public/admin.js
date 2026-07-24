@@ -2563,9 +2563,10 @@ async function analyzeLueckenfueller() {
       </div>`
     }).join('')
 
+    const neuHinweis = data.neuesLemma ? ' · noch kein Lemma – wird beim Generieren neu angelegt' : ''
     out.innerHTML = `
       <div style="margin:12px 0 16px"><span style="color:#166534;font-weight:700">✓ Geeignet – ${data.rounds} Runden generierbar</span></div>
-      <div style="font-size:0.82rem;color:var(--muted);margin-bottom:8px">Wortart: ${esc(data.pos || '—')}</div>
+      <div style="font-size:0.82rem;color:var(--muted);margin-bottom:8px">Wortart: ${esc(data.pos || '—')}${neuHinweis}</div>
       <div>${roundsHtml}</div>
     `
   } catch (e) { out.innerHTML = `<div class="status error">Netzwerkfehler: ${esc(e.message)}</div>` }
@@ -2607,7 +2608,8 @@ async function analyzeEntryLueckenfueller() {
       out.innerHTML = `<div class="status warn">${esc(data.reason || 'Nicht genug Material verfügbar.')}</div>`
       return
     }
-    out.innerHTML = `<article class="inline-analysis-card"><div class="inline-analysis-head"><strong>${esc(lemma)}</strong><span class="inline-analysis-badge is-success">${esc(String(data.rounds || 0))} Runden</span></div><p>Geeignet für Lückenfüller. Wortart: ${esc(data.pos || '—')}</p></article>`
+    const neuHinweis = data.neuesLemma ? ' (noch kein Lemma – wird beim Generieren neu angelegt)' : ''
+    out.innerHTML = `<article class="inline-analysis-card"><div class="inline-analysis-head"><strong>${esc(lemma)}</strong><span class="inline-analysis-badge is-success">${esc(String(data.rounds || 0))} Runden</span></div><p>Geeignet für Lückenfüller. Wortart: ${esc(data.pos || '—')}${esc(neuHinweis)}</p></article>`
   } catch (err) {
     out.innerHTML = `<div class="status error">Analyse fehlgeschlagen: ${esc(err.message)}</div>`
   }
@@ -2637,7 +2639,11 @@ async function generateLueckenfueller() {
       if (statusEl) { statusEl.style.color = 'var(--danger, #c0392b)'; statusEl.textContent = `Nicht möglich: ${data.reason || 'Kein Material verfügbar'}` }
       return
     }
-    if (statusEl) { statusEl.style.color = 'var(--success, #27ae60)'; statusEl.textContent = `✓ Lückenfüller generiert für „${data.lemma}" – ${data.rounds} Runden` }
+    if (statusEl) {
+      statusEl.style.color = 'var(--success, #27ae60)'
+      const neuHinweis = data.neuAngelegt ? ` (neues Lemma angelegt, Wortart: ${data.pos})` : ''
+      statusEl.textContent = `✓ Lückenfüller generiert für „${data.lemma}" – ${data.rounds} Runden${neuHinweis}`
+    }
   } catch (err) {
     if (statusEl) { statusEl.style.color = 'var(--danger, #c0392b)'; statusEl.textContent = `Fehler: ${err.message}` }
   }
