@@ -9,17 +9,20 @@
  */
 import express from 'express'
 import db from '../db.js'
-import { requireAuth } from '../middleware/auth.js'
+import { requireAuth, serverError } from '../middleware/auth.js'
 import { adminLimiter } from '../middleware/rateLimiter.js'
+import {
+  validate,
+  adminPushTemplateBodySchema,
+  adminPushTemplateIdParamsSchema,
+  adminPushSendSchema,
+} from '../middleware/validate.js'
 import logger from '../logger.js'
 import { PLACEHOLDERS, listTemplatesWithPreview, renderTemplateById } from '../notifications/templates.js'
 import { sendPushToAll, sendPushToUser, getSubscriberCount } from '../notifications/sender.js'
 import { auditCreate } from '../audit.js'
 
 const router = express.Router()
-
-const TITLE_MAX = 120
-const BODY_MAX = 300
 
 const getTemplateStmt = db.prepare(`SELECT id, category FROM push_templates WHERE id = ?`)
 const insertTemplateStmt = db.prepare(`
@@ -31,21 +34,10 @@ const updateTemplateStmt = db.prepare(`
 `)
 const deleteTemplateStmt = db.prepare(`DELETE FROM push_templates WHERE id = ?`)
 
-/**
- * Validiert title/body/enabled aus dem Request-Body.
- * @returns {{ ok: true, title, body, enabled } | { ok: false, error }}
- */
-function validateTemplateInput(body) {
-  const title = String(body?.title ?? '').trim()
-  const text = String(body?.body ?? '').trim()
-
-  if (!title) return { ok: false, error: 'Titel erforderlich' }
-  if (title.length > TITLE_MAX) return { ok: false, error: `Titel max. ${TITLE_MAX} Zeichen` }
-  if (!text) return { ok: false, error: 'Text erforderlich' }
-  if (text.length > BODY_MAX) return { ok: false, error: `Text max. ${BODY_MAX} Zeichen` }
-
-  const enabled = body?.enabled === false || body?.enabled === 0 ? 0 : 1
-  return { ok: true, title, body: text, enabled }
+// enabled kommt als boolean ODER 0/1 rein (Legacy-Aufrufer) - fuer die DB
+// (INTEGER-Spalte) immer auf 0/1 normalisieren.
+function enabledToDb(enabled) {
+  return enabled === false || enabled === 0 ? 0 : 1
 }
 
 // ── Templates ─────────────────────────────────────────────────────
@@ -59,65 +51,66 @@ router.get('/admin/push/templates', adminLimiter, requireAuth, (_req, res) => {
     })
   } catch (err) {
     logger.error({ err }, 'push/templates GET fehlgeschlagen')
-    res.status(500).json({ error: 'Interner Fehler' })
+    serverError(res, err)
   }
 })
 
-router.post('/admin/push/templates', adminLimiter, requireAuth, (req, res) => {
-  const input = validateTemplateInput(req.body)
-  if (!input.ok) return res.status(400).json({ error: input.error })
-
+router.post('/admin/push/templates', adminLimiter, requireAuth, validate(adminPushTemplateBodySchema), (req, res) => {
+  const { title, body, enabled } = req.body
   try {
     const now = Date.now()
-    const result = insertTemplateStmt.run(input.title, input.body, input.enabled, now, now)
+    const result = insertTemplateStmt.run(title, body, enabledToDb(enabled), now, now)
     logger.info({ id: result.lastInsertRowid }, 'Push-Template angelegt')
     res.status(201).json({ ok: true, id: result.lastInsertRowid })
   } catch (err) {
     logger.error({ err }, 'push/templates POST fehlgeschlagen')
-    res.status(500).json({ error: 'Interner Fehler' })
+    serverError(res, err)
   }
 })
 
-router.put('/admin/push/templates/:id', adminLimiter, requireAuth, (req, res) => {
-  const id = Number(req.params.id)
-  if (!Number.isInteger(id) || id <= 0) {
-    return res.status(400).json({ error: 'Ungültige ID' })
-  }
-
-  const input = validateTemplateInput(req.body)
-  if (!input.ok) return res.status(400).json({ error: input.error })
-
-  try {
-    if (!getTemplateStmt.get(id)) {
-      return res.status(404).json({ error: 'Template nicht gefunden' })
+router.put(
+  '/admin/push/templates/:id',
+  adminLimiter,
+  requireAuth,
+  validate(adminPushTemplateIdParamsSchema, 'params'),
+  validate(adminPushTemplateBodySchema),
+  (req, res) => {
+    const id = req.params.id
+    const { title, body, enabled } = req.body
+    try {
+      if (!getTemplateStmt.get(id)) {
+        return res.status(404).json({ error: 'Template nicht gefunden' })
+      }
+      updateTemplateStmt.run(title, body, enabledToDb(enabled), Date.now(), id)
+      logger.info({ id }, 'Push-Template aktualisiert')
+      res.json({ ok: true })
+    } catch (err) {
+      logger.error({ err, id }, 'push/templates PUT fehlgeschlagen')
+      serverError(res, err)
     }
-    updateTemplateStmt.run(input.title, input.body, input.enabled, Date.now(), id)
-    logger.info({ id }, 'Push-Template aktualisiert')
-    res.json({ ok: true })
-  } catch (err) {
-    logger.error({ err, id }, 'push/templates PUT fehlgeschlagen')
-    res.status(500).json({ error: 'Interner Fehler' })
-  }
-})
+  },
+)
 
-router.delete('/admin/push/templates/:id', adminLimiter, requireAuth, (req, res) => {
-  const id = Number(req.params.id)
-  if (!Number.isInteger(id) || id <= 0) {
-    return res.status(400).json({ error: 'Ungültige ID' })
-  }
-
-  try {
-    const result = deleteTemplateStmt.run(id)
-    if (result.changes === 0) {
-      return res.status(404).json({ error: 'Template nicht gefunden' })
+router.delete(
+  '/admin/push/templates/:id',
+  adminLimiter,
+  requireAuth,
+  validate(adminPushTemplateIdParamsSchema, 'params'),
+  (req, res) => {
+    const id = req.params.id
+    try {
+      const result = deleteTemplateStmt.run(id)
+      if (result.changes === 0) {
+        return res.status(404).json({ error: 'Template nicht gefunden' })
+      }
+      logger.info({ id }, 'Push-Template gelöscht')
+      res.json({ ok: true })
+    } catch (err) {
+      logger.error({ err, id }, 'push/templates DELETE fehlgeschlagen')
+      serverError(res, err)
     }
-    logger.info({ id }, 'Push-Template gelöscht')
-    res.json({ ok: true })
-  } catch (err) {
-    logger.error({ err, id }, 'push/templates DELETE fehlgeschlagen')
-    res.status(500).json({ error: 'Interner Fehler' })
-  }
-})
+  },
+)
 
 // ── Manueller Versand ─────────────────────────────────────────────
 
@@ -127,15 +120,12 @@ router.delete('/admin/push/templates/:id', adminLimiter, requireAuth, (req, res)
  * mode 'template' – gerendertes Template sofort an alle Geräte
  * mode 'self'     – Freitext-Test nur an die Geräte des eingeloggten Admins
  */
-router.post('/admin/push/send', adminLimiter, requireAuth, async (req, res) => {
-  const mode = req.body?.mode
+router.post('/admin/push/send', adminLimiter, requireAuth, validate(adminPushSendSchema), async (req, res) => {
+  const { mode } = req.body
 
   let payload
   if (mode === 'template') {
-    const id = Number(req.body?.templateId)
-    if (!Number.isInteger(id) || id <= 0) {
-      return res.status(400).json({ error: 'Ungültige Template-ID' })
-    }
+    const id = req.body.templateId
     // Guardrail: Streak-Templates sind an einzelne gefährdete Nutzer adressiert
     // und werden ausschließlich vom abendlichen Streak-Saver-Job (19:00) an die
     // jeweilige Zielgruppe versandt – niemals als Broadcast an alle Geräte.
@@ -151,16 +141,8 @@ router.post('/admin/push/send', adminLimiter, requireAuth, async (req, res) => {
       return res.status(400).json({ error: 'Template enthält heute leere Platzhalter – nicht versendbar' })
     }
     payload = rendered
-  } else if (mode === 'free' || mode === 'self') {
-    const title = String(req.body?.title ?? '').trim()
-    const body = String(req.body?.body ?? '').trim()
-    if (!title) return res.status(400).json({ error: 'Titel erforderlich' })
-    if (title.length > TITLE_MAX) return res.status(400).json({ error: `Titel max. ${TITLE_MAX} Zeichen` })
-    if (!body) return res.status(400).json({ error: 'Text erforderlich' })
-    if (body.length > BODY_MAX) return res.status(400).json({ error: `Text max. ${BODY_MAX} Zeichen` })
-    payload = { title, body }
   } else {
-    return res.status(400).json({ error: 'mode muss "free", "template" oder "self" sein' })
+    payload = { title: req.body.title, body: req.body.body }
   }
 
   try {
@@ -190,7 +172,7 @@ router.post('/admin/push/send', adminLimiter, requireAuth, async (req, res) => {
     res.json({ ok: true, ...result })
   } catch (err) {
     logger.error({ err }, 'push/send fehlgeschlagen')
-    res.status(500).json({ error: 'Versand fehlgeschlagen' })
+    serverError(res, err)
   }
 })
 

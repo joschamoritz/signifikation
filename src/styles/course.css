@@ -105,7 +105,7 @@
 .course-topbar-title:focus { outline: none; }
 
 .course-topbar-glyph {
-  color: var(--accent);
+  color: var(--accent-dk);
   font-weight: 700;
   margin-right: 6px;
 }
@@ -384,7 +384,7 @@
   font-family: var(--font-serif);
   font-size: 0.95rem;
   font-weight: 700;
-  color: var(--accent);
+  color: var(--accent-dk);
   line-height: 1;
 }
 

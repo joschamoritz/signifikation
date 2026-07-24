@@ -91,10 +91,17 @@ export default function JoinCodeForm({ initialError = null, scanButtonClassName 
           onPaste={handlePaste}
           placeholder="hier eintippen"
           maxLength={30}
+          aria-invalid={!!error}
+          aria-describedby={error ? 'classroom-kiosk-code-error' : undefined}
           data-testid="classroom-kiosk-code-input"
         />
         {error && (
-          <p className="classroom-kiosk__hint classroom-kiosk__hint--error" data-testid="classroom-kiosk-code-error">
+          <p
+            id="classroom-kiosk-code-error"
+            role="alert"
+            className="classroom-kiosk__hint classroom-kiosk__hint--error"
+            data-testid="classroom-kiosk-code-error"
+          >
             {error}
           </p>
         )}
