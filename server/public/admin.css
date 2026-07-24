@@ -231,7 +231,7 @@ body {
 
 .ghost-btn--small {
   padding: 7px 11px;
-  min-height: 40px;
+  min-height: 44px;
   font-size: 0.76rem;
 }
 
@@ -254,6 +254,9 @@ body {
 }
 
 .danger-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   background: transparent;
   color: #991b1b;
   border: 1.5px solid #fecaca;
@@ -261,6 +264,7 @@ body {
   padding: 10px 14px;
   font-size: 0.82rem;
   font-weight: 600;
+  min-height: 44px;
 }
 
 .danger-btn:hover:not(:disabled) {
@@ -416,8 +420,8 @@ body {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 40px;
-  height: 40px;
+  width: 44px;
+  height: 44px;
   border: 1px solid var(--border);
   border-radius: var(--radius);
   background: var(--surface);
@@ -493,8 +497,8 @@ body {
 }
 
 .week-nav-btn {
-  min-width: 40px;
-  min-height: 40px;
+  min-width: 44px;
+  min-height: 44px;
   padding-inline: 0;
   text-align: center;
   color: var(--primary);
@@ -875,13 +879,27 @@ body {
 }
 
 .entry-select-col {
-  width: 42px;
+  width: 44px;
   text-align: center;
+  padding: 0;
 }
 
-.entry-select-col input[type="checkbox"] {
-  width: 14px;
-  height: 14px;
+/* Trefferfläche der Auswahl-Checkboxen auf 44x44 (Apple HIG / WCAG 2.5.8),
+   ohne das Häkchen selbst optisch aufzublähen. */
+.cb-hit {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  min-height: 44px;
+  margin: 0;
+  cursor: pointer;
+}
+
+.entry-select-col input[type="checkbox"],
+.users-select-col input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
   accent-color: var(--primary);
   cursor: pointer;
 }
@@ -1225,12 +1243,11 @@ body {
   font-size: 0.72rem;
 }
 
-.users-table th input[type="checkbox"],
-.users-table td input[type="checkbox"] {
-  width: 14px;
-  height: 14px;
-  accent-color: var(--primary);
-  cursor: pointer;
+.users-table th.users-select-col,
+.users-table td.users-select-col {
+  width: 44px;
+  padding: 0;
+  text-align: center;
 }
 
 .users-table-wrap {
@@ -1582,7 +1599,10 @@ label {
 input[type="date"],
 input[type="text"],
 input[type="url"],
-input[type="password"] {
+input[type="email"],
+input[type="number"],
+input[type="password"],
+textarea {
   width: 100%;
   padding: 10px 12px;
   border: 1.5px solid var(--border);
@@ -1592,6 +1612,18 @@ input[type="password"] {
   color: var(--text);
   background: var(--bg);
   transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+textarea {
+  resize: vertical;
+  min-height: 84px;
+  line-height: 1.5;
+}
+
+textarea:focus-visible {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(155, 28, 28, 0.08);
+  outline: none;
 }
 input:focus-visible {
   border-color: var(--primary);
@@ -1888,7 +1920,12 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
 .extra-toggle {
   background: none;
   border: none;
-  padding: 0;
+  /* Trefferfläche auf 44px; negatives Margin hält den optischen Fluss. */
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 11px 6px;
+  margin: -11px -6px;
   font-size: 0.78rem;
   color: var(--muted);
   cursor: pointer;
@@ -1927,7 +1964,9 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
 .cal-nav { display: flex; align-items: center; justify-content: space-between; }
 .cal-title { font-weight: 600; font-size: 0.95rem; font-family: var(--font-serif); color: var(--text); }
 
-.cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+/* minmax(0,1fr) statt 1fr: sonst erzwingt der Zelleninhalt eine
+   Mindestbreite und das Kalendergitter läuft auf schmalen Screens über. */
+.cal-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; }
 .cal-dow { text-align: center; font-size: 0.72rem; font-weight: 600; color: var(--muted); padding: 4px 0; }
 .cal-day {
   aspect-ratio: 1;
@@ -2479,4 +2518,238 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
   gap: 6px;
   align-items: center;
   flex-shrink: 0;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   MOBILE-OPTIMIERUNG
+   Ergänzt die Breakpoints weiter oben. Steht bewusst am Dateiende,
+   damit auch später definierte Komponenten (Spezialwoche, JSON-
+   Import) erfasst werden und die Regeln in der Kaskade gewinnen.
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Zeitraum-Filterzeile (früher Inline-Style, dadurch von keinem
+   Breakpoint erfasst). */
+.range-filter-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.range-filter-row label {
+  font-size: 0.83rem;
+  white-space: nowrap;
+  margin-bottom: 0;
+}
+
+/* Dialog darf die Tastatur nicht überlaufen. */
+.json-import-dialog {
+  max-height: 88vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.json-import-dialog-body {
+  overflow-y: auto;
+}
+
+@media (max-width: 860px) {
+  /* Notch / Home-Indicator */
+  body {
+    padding-left: max(12px, env(safe-area-inset-left));
+    padding-right: max(12px, env(safe-area-inset-right));
+    padding-bottom: max(32px, env(safe-area-inset-bottom));
+  }
+
+  /* iOS Safari zoomt bei Fokus auf Felder unter 16px hinein – und
+     zoomt nicht von selbst zurück. Betrifft jedes Formular. */
+  input[type="date"],
+  input[type="text"],
+  input[type="url"],
+  input[type="email"],
+  input[type="number"],
+  input[type="password"],
+  select,
+  textarea,
+  .json-import-textarea,
+  .extra-fields input,
+  .filter-select {
+    font-size: 16px;
+  }
+
+  /* Speichern/Löschen dauerhaft erreichbar statt am Ende eines
+     Formulars mit 25 Feldern. */
+  .entry-form-actions {
+    position: sticky;
+    bottom: 0;
+    z-index: 15;
+    margin-top: 4px;
+    padding: 10px 0 max(10px, env(safe-area-inset-bottom));
+    background: var(--bg);
+    border-top: 1px solid var(--border-lt);
+  }
+
+  .range-filter-row .filter-select {
+    flex: 1;
+    min-width: 0;
+  }
+}
+
+@media (max-width: 560px) {
+  .stats-tiles {
+    grid-template-columns: 1fr;
+  }
+
+  /* Beim horizontalen Wischen die Ankerspalte stehen lassen.
+     box-shadow statt border, weil border-collapse die Rahmen einer
+     sticky-Zelle beim Scrollen verschluckt. */
+  .entry-table th:first-child,
+  .entry-table td:first-child,
+  .users-table th:first-child,
+  .users-table td:first-child {
+    position: sticky;
+    left: 0;
+    z-index: 2;
+    background: var(--surface);
+    box-shadow: 1px 0 0 var(--border-lt), inset 0 -1px 0 var(--border-lt);
+  }
+
+  .entry-table th:first-child,
+  .users-table th:first-child {
+    z-index: 3;
+    background: var(--surface2);
+  }
+
+  /* 7 Tageskarten à 132px = ~970px Scrollstrecke. Als Karussell
+     bleibt die Woche in einem Screen erfassbar. */
+  .week-preview-grid {
+    display: flex;
+    grid-template-columns: none;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 4px;
+  }
+
+  .week-preview-card {
+    flex: 0 0 78%;
+    scroll-snap-align: start;
+    min-height: 112px;
+  }
+
+  /* Höhe kommt als Inline-Style aus admin.js (renderStats) – bei
+     nur ~300px Breite bleibt sonst kaum Plotfläche neben der
+     Legende übrig. */
+  .stats-chart-wrap {
+    height: 210px !important;
+  }
+
+  .login-card-head h2 {
+    font-size: 1.9rem;
+    letter-spacing: 0.1em;
+  }
+}
+
+/* ── Mobile-Bereichsauswahl ──────────────────────────────────── */
+.mobile-nav {
+  display: none;
+}
+
+@media (max-width: 860px) {
+  .mobile-nav {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    position: sticky;
+    top: 0;
+    z-index: 30;
+    /* zieht die Leiste über das body-Padding an den Viewport-Rand */
+    margin: -16px -12px 2px;
+    padding: 10px 12px;
+    background: var(--bg);
+    border-bottom: 1px solid var(--border-lt);
+  }
+
+  .mobile-nav label {
+    margin-bottom: 0;
+    white-space: nowrap;
+  }
+
+  .mobile-nav select {
+    flex: 1;
+    min-width: 0;
+    min-height: 44px;
+    font-family: var(--font-serif);
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--primary);
+    background: var(--surface);
+  }
+
+  /* Die Sidebar wandert unter den Inhalt: oben klebt die kompakte
+     Auswahl, der Inhalt beginnt sofort, und die vollständige
+     Navigation samt Backup/Abmelden bleibt am Seitenende erreichbar. */
+  .admin-main { order: 1; }
+  .admin-sidebar { order: 2; }
+}
+
+/* ── Entwurfs-Wiederherstellung (Tageseintrag) ───────────────── */
+.entry-draft-banner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 14px;
+  padding: 12px 14px;
+  border: 1px solid rgba(201, 168, 76, 0.55);
+  border-left: 3px solid var(--accent);
+  border-radius: var(--radius);
+  background: #fdfaf1;
+  font-size: 0.84rem;
+  color: var(--text);
+}
+
+/* höhere Spezifität als das globale .is-hidden weiter oben */
+.entry-draft-banner.is-hidden {
+  display: none;
+}
+
+.entry-draft-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+@media (max-width: 560px) {
+  .entry-draft-banner,
+  .entry-draft-actions {
+    align-items: stretch;
+  }
+
+  .entry-draft-actions {
+    width: 100%;
+  }
+
+  .entry-draft-actions > * {
+    flex: 1;
+  }
+}
+
+/* Grid-/Flex-Items haben als Auto-Minimum ihre Inhaltsbreite. Ohne
+   min-width:0 sprengt die Tabelle mit min-width:560px die 1fr-Spalte
+   und schiebt die gesamte Seite über den Viewport hinaus – der
+   overflow:auto-Wrapper der Tabelle kommt dann nie zum Zug. */
+.admin-main,
+.admin-page,
+.admin-page > .card,
+.entry-editor-card,
+.entry-section,
+.dashboard-panel {
+  min-width: 0;
+}
+
+.entry-table-wrap,
+.users-table-wrap {
+  max-width: 100%;
 }
