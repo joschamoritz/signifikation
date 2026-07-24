@@ -1,5 +1,8 @@
 import Capacitor
 import StoreKit
+import os.log
+
+private let iapLog = Logger(subsystem: "de.signifikation.app", category: "IAPPlugin")
 
 @objc(IAPPlugin)
 public class IAPPlugin: CAPPlugin, CAPBridgedPlugin {
@@ -109,11 +112,20 @@ public class IAPPlugin: CAPPlugin, CAPBridgedPlugin {
             return
         }
         Task {
+            var found = false
             for await result in Transaction.currentEntitlements {
                 if case .verified(let tx) = result, tx.id == transactionId {
                     await tx.finish()
+                    found = true
                     break
                 }
+            }
+            // Kein Fehlerfall im engeren Sinn (Transaktion kann bereits in
+            // einem frueheren Lauf finish()t worden sein), aber ein
+            // stummer Erfolg waere hier irrefuehrend beim Debuggen von
+            // haengenden Kaeufen - daher geloggt statt komplett stumm.
+            if !found {
+                iapLog.warning("finishTransaction: keine passende Transaktion \(transactionId) in currentEntitlements gefunden")
             }
             call.resolve()
         }

@@ -19,6 +19,7 @@ import express from 'express'
 import db from '../db.js'
 import logger from '../logger.js'
 import { requirePremium } from '../middleware/userAuth.js'
+import { serverError } from '../middleware/auth.js'
 import { requireCapability } from '../middleware/requireCapability.js'
 import { findParticipantByToken } from '../classroom/store.js'
 import {
@@ -50,6 +51,8 @@ import {
   classroomSubmitSchema,
   classroomListSessionsQuerySchema,
   classroomSessionIdParamsSchema,
+  classroomAssignmentIdParamsSchema,
+  classroomParticipantKickParamsSchema,
 } from '../middleware/validate.js'
 import {
   createSession,
@@ -76,6 +79,8 @@ import {
   getDashboard,
   getSessionResults,
   getParticipantReveal,
+  buildStudentView,
+  buildSafePrompt,
 } from '../classroom/store.js'
 import { fetchLemma, fetchZeitenwende } from '../wortprofil.js'
 import { fetchWortZwilling } from '../wortzwilling.js'
@@ -282,37 +287,10 @@ async function buildContentSnapshot(mode, lemmata) {
   return { byLemma }
 }
 
-// ── Whitelist-Serialisierung fuer Schueler-View (T-2.6 / T-6.4) ─
-//
-// INVARIANTE (R1): Diese Funktion gibt ausschliesslich Felder zurueck,
-// die Schueler sehen duerfen. Felder, die NIEMALS exponiert werden:
-//   - notiz / link (interne Redaktionsnotizen)
-//   - rang (verrät Ranking in Kollokationen → Antwort)
-//   - periode (verrät Loesung in Zeitenwende → Antwort)
-//   - zuordnung (verrät Zone in Wort-Zwilling → Antwort)
-//   - kollokator (verrät Antwort in Lueckenfueller)
-//   - detail_json, raw_answer, content_snapshot anderer Lemmata
-//
-// Aenderungen hier muessen den Audit-Test T-6.4 bestehen:
-//   server/__tests__/classroom.routes.test.js → 'view whitelist'
-
-// Delegiert an die Modus-Registry (P2). Die eigentliche, modus-spezifische
-// Whitelist liegt in modes/<mode>.js (inkl. buildSafeRound fuer Lueckenfueller).
-// Der Snapshot-Typ-Guard + leerer Default bleiben hier, damit das Verhalten
-// gegenueber der frueheren Inline-Variante identisch ist.
-function buildSafePrompt(mode, snapshot) {
-  if (!snapshot || typeof snapshot !== 'object') return {}
-  const m = getMode(mode)
-  return m ? m.buildSafePrompt(snapshot) : {}
-}
-
-// Submissions fuer einen Teilnehmer laden (fuer Fortschrittsberechnung)
-const getParticipantSubmissionsStmt = db.prepare(`
-  SELECT DISTINCT lemma_id, round_index
-  FROM classroom_submission
-  WHERE participant_id = ? AND assignment_id = ?
-  ORDER BY lemma_id, round_index
-`)
+// buildSafePrompt/buildStudentView (R1-Whitelist fuer die Schueler-Sicht)
+// leben in ../classroom/store.js (Domaenenschicht) — Architektur-Review
+// 2026-07-24: die sicherheitskritischste Funktion der App gehoert nicht in
+// die Transport-Schicht und braucht einen isolierten Unit-Test.
 
 // Wiederkehrende Statements einmalig vorbereiten statt pro Request neu
 // kompilieren (better-sqlite3 kompiliert synchron im Hauptthread) — Code-Review H1.
@@ -325,107 +303,6 @@ const countSubmittedPartsStmt = db.prepare(
 const getAssignmentModeStmt = db.prepare(
   'SELECT mode FROM classroom_assignment WHERE id = ?',
 )
-
-const getRoundsCountFromSnapshot = (snapshot) =>
-  Array.isArray(snapshot?.rounds) ? snapshot.rounds.length : 1
-
-function buildStudentView(participant, session, assignment, meta = {}) {
-  const lemmaIds = assignment.lemmaIds || []
-  const rows = getParticipantSubmissionsStmt.all(participant.id, assignment.id)
-
-  // Fuer Lueckenfueller: zaehle Runden pro Lemma
-  const roundsPerLemma = {}
-  for (const r of rows) {
-    if (!roundsPerLemma[r.lemma_id]) roundsPerLemma[r.lemma_id] = new Set()
-    roundsPerLemma[r.lemma_id].add(r.round_index)
-  }
-
-  // Fortschritt: Lemmata, bei denen alle Runden eingereicht sind. Iteriert
-  // ueber ALLE Lemmata des Assignments (nicht nur eingereichte), damit der
-  // GF-4-Skip unten auch unspielbare, nie eingereichte Lemmata erfasst.
-  const doneLemmaIds = new Set()
-  for (const lemmaId of lemmaIds) {
-    const snap = assignment.contentSnapshot?.byLemma?.[lemmaId]
-    const totalRounds = assignment.mode === 'lueckenfueller'
-      ? getRoundsCountFromSnapshot(snap)
-      : 1
-    // GF-4: Ein Lueckenfueller-Lemma ohne Runden (Content-Generierung
-    // fehlgeschlagen) ist unspielbar — jeder Submit liefert INVALID_INPUT.
-    // Als „erledigt" behandeln, damit die Klasse nicht ewig auf currentRound:
-    // null haengt, sondern zum naechsten spielbaren Lemma springt.
-    if (totalRounds <= 0) {
-      doneLemmaIds.add(lemmaId)
-      continue
-    }
-    if ((roundsPerLemma[lemmaId]?.size || 0) >= totalRounds) {
-      doneLemmaIds.add(lemmaId)
-    }
-  }
-
-  // Aktuelles Lemma = erstes in der Liste, das noch nicht fertig ist
-  const currentLemmaId = lemmaIds.find(id => !doneLemmaIds.has(id)) || null
-  const allDone = doneLemmaIds.size >= lemmaIds.length
-
-  // P3: Der content_snapshot (beim Anlegen eingefroren, D4) ist die ALLEINIGE
-  // View-Quelle — kein DB-Reload des Lemmas mehr. lemma/ipa/definition liegen
-  // bereits im Snapshot (fuer alle Modi, inkl. synthetischer „wz:"-Paare, die gar
-  // keine DB-Zeile haben). Das vermeidet einen Read pro /me/view und haelt die
-  // Schueler-Sicht konsistent mit dem eingefrorenen Stand.
-  // R1: Nur das aktuelle Lemma wird gewhitelistet ausgeliefert, nie alle.
-  let currentLemmaData = null
-  if (currentLemmaId && !allDone) {
-    const snap = assignment.contentSnapshot?.byLemma?.[currentLemmaId]
-    if (snap) {
-      // Aktueller Runden-Index fuer Lueckenfueller: erste noch NICHT
-      // abgegebene Runde (luckentolerant). `.size` waere bei out-of-order
-      // Abgaben falsch — die Menge {2} haette size 1 und zeigte faelschlich
-      // Runde 1, obwohl Runde 0 fehlt und Runde 2 schon abgegeben ist. Die
-      // erste Luecke ist der korrekte „naechste" Index; bei in-order-Spiel
-      // (Normalfall) ist sie identisch mit .size.
-      const submittedRounds = roundsPerLemma[currentLemmaId] || new Set()
-      let currentRoundIndex = 0
-      while (submittedRounds.has(currentRoundIndex)) currentRoundIndex += 1
-
-      // Prompt ist mode-spezifisch und gewhitelistet
-      const safePrompt = buildSafePrompt(assignment.mode, snap)
-      // Fuer Lueckenfueller: nur die aktuelle Runde zeigen
-      if (assignment.mode === 'lueckenfueller' && Array.isArray(safePrompt.rounds)) {
-        safePrompt.currentRound = safePrompt.rounds[currentRoundIndex] || null
-        safePrompt.roundIndex   = currentRoundIndex
-        delete safePrompt.rounds  // alle Runden verschweigen, nur aktuelle
-      }
-
-      currentLemmaData = {
-        // WHITELIST (R1): nur diese Felder sind fuer Schueler bestimmt
-        id:     currentLemmaId,
-        lemma:  snap.lemma,
-        ipa:    snap.ipa,
-        prompt: safePrompt,
-        // oeffentliche Definition aus dem Snapshot (KEIN notiz)
-        definition: snap.definition || '',
-      }
-    }
-  }
-
-  return {
-    sessionId:     session.id,
-    sessionStatus: session.status,
-    assignment: {
-      id:         assignment.id,
-      mode:       assignment.mode,
-      lemmaCount: lemmaIds.length,
-      // W2-T2: Reihenfolge-Position fuer „Modus X von N" im Kiosk.
-      index:      meta.index ?? 0,
-      total:      meta.total ?? 1,
-    },
-    currentLemma: currentLemmaData,
-    progress: {
-      submittedCount: doneLemmaIds.size,
-      totalLemmata:   lemmaIds.length,
-      done:           allDone,
-    },
-  }
-}
 
 // ── GET /api/v1/classroom/demo-content (public) ─────────────────
 // Inhalte der login-freien Lehrer-Demo (Klassenraum-Vorschau).
@@ -475,6 +352,7 @@ router.post(
   '/api/v1/classroom/sessions/:id/duplicate',
   classroomWriteLimiter,
   requireCapability('session:manage'),
+  validate(classroomSessionIdParamsSchema, 'params'),
   validate(classroomDuplicateSessionSchema),
   (req, res) => {
     const sourceId      = req.params.id
@@ -700,6 +578,7 @@ router.post(
   '/api/v1/classroom/sessions/:id/assignments',
   classroomWriteLimiter,
   requireCapability('session:manage'),
+  validate(classroomSessionIdParamsSchema, 'params'),
   validate(classroomCreateAssignmentSchema),
   async (req, res) => {
     const { mode, lemmaIds } = req.body
@@ -748,6 +627,7 @@ router.post(
   '/api/v1/classroom/sessions/:id/assignments/bulk',
   classroomWriteLimiter,
   requireCapability('session:manage'),
+  validate(classroomSessionIdParamsSchema, 'params'),
   validate(classroomCreateAssignmentsSchema),
   async (req, res) => {
     const { blocks } = req.body
@@ -797,6 +677,7 @@ router.delete(
   '/api/v1/classroom/sessions/:id/assignments/:aid',
   classroomWriteLimiter,
   requireCapability('session:manage'),
+  validate(classroomAssignmentIdParamsSchema, 'params'),
   (req, res) => {
     const result = removeAssignment({
       sessionId:    req.params.id,
@@ -812,6 +693,7 @@ router.post(
   '/api/v1/classroom/sessions/:id/start',
   classroomWriteLimiter,
   requireCapability('session:manage'),
+  validate(classroomSessionIdParamsSchema, 'params'),
   validate(classroomStartSessionSchema),
   (req, res) => {
     const sessionId    = req.params.id
@@ -842,6 +724,7 @@ router.post(
   '/api/v1/classroom/sessions/:id/finish',
   classroomWriteLimiter,
   requireCapability('session:manage'),
+  validate(classroomSessionIdParamsSchema, 'params'),
   validate(classroomFinishSessionSchema),
   (req, res) => {
     try {
@@ -871,7 +754,7 @@ router.post(
       })
     } catch (err) {
       logger.error({ err }, 'classroom finishSession crashed')
-      return res.status(500).json({ error: 'Interner Serverfehler' })
+      return serverError(res, err)
     }
   },
 )
@@ -895,7 +778,7 @@ router.delete(
       return res.status(204).end()
     } catch (err) {
       logger.error({ err }, 'classroom deleteSession crashed')
-      return res.status(500).json({ error: 'Interner Serverfehler' })
+      return serverError(res, err)
     }
   },
 )
@@ -905,6 +788,7 @@ router.post(
   '/api/v1/classroom/sessions/:id/pause',
   classroomWriteLimiter,
   requireCapability('session:manage'),
+  validate(classroomSessionIdParamsSchema, 'params'),
   validate(classroomPauseSessionSchema),
   (req, res) => {
     try {
@@ -923,7 +807,7 @@ router.post(
       })
     } catch (err) {
       logger.error({ err }, 'classroom pauseSession crashed')
-      return res.status(500).json({ error: 'Interner Serverfehler' })
+      return serverError(res, err)
     }
   },
 )
@@ -933,6 +817,7 @@ router.post(
   '/api/v1/classroom/sessions/:id/resume',
   classroomWriteLimiter,
   requireCapability('session:manage'),
+  validate(classroomSessionIdParamsSchema, 'params'),
   validate(classroomResumeSessionSchema),
   (req, res) => {
     try {
@@ -950,7 +835,7 @@ router.post(
       })
     } catch (err) {
       logger.error({ err }, 'classroom resumeSession crashed')
-      return res.status(500).json({ error: 'Interner Serverfehler' })
+      return serverError(res, err)
     }
   },
 )
@@ -964,6 +849,7 @@ router.post(
   '/api/v1/classroom/sessions/:id/next-assignment',
   classroomWriteLimiter,
   requireCapability('session:manage'),
+  validate(classroomSessionIdParamsSchema, 'params'),
   validate(classroomNextAssignmentSchema),
   (req, res) => {
     try {
@@ -1021,7 +907,7 @@ router.post(
       })
     } catch (err) {
       logger.error({ err }, 'classroom nextAssignment crashed')
-      return res.status(500).json({ error: 'Interner Serverfehler' })
+      return serverError(res, err)
     }
   },
 )
@@ -1031,7 +917,9 @@ router.post(
 // KEIN Live-Leaderboard, KEINE Einzelantworten.
 router.get(
   '/api/v1/classroom/sessions/:id/dashboard',
+  classroomReadLimiter,
   requireCapability('session:manage'),
+  validate(classroomSessionIdParamsSchema, 'params'),
   (req, res) => {
     try {
       const result = getDashboard({
@@ -1042,7 +930,7 @@ router.get(
       return res.json(result)
     } catch (err) {
       logger.error({ err }, 'classroom getDashboard crashed')
-      return res.status(500).json({ error: 'Interner Serverfehler' })
+      return serverError(res, err)
     }
   },
 )
@@ -1054,6 +942,7 @@ router.get(
 // Nur fuer beendete Sessions (store gibt sonst SESSION_NOT_ENDED zurueck).
 router.get(
   '/api/v1/classroom/sessions/:id/results',
+  classroomReadLimiter,
   requireCapability('session:manage'),
   validate(classroomSessionIdParamsSchema, 'params'),
   (req, res) => {
@@ -1066,7 +955,7 @@ router.get(
       return res.json(result)
     } catch (err) {
       logger.error({ err }, 'classroom getSessionResults crashed')
-      return res.status(500).json({ error: 'Interner Serverfehler' })
+      return serverError(res, err)
     }
   },
 )
@@ -1124,7 +1013,7 @@ router.post(
       })
     } catch (err) {
       logger.error({ err }, 'classroom join crashed')
-      return res.status(500).json({ error: 'Interner Serverfehler' })
+      return serverError(res, err)
     }
   },
 )
@@ -1169,7 +1058,7 @@ router.get(
       return res.json(view)
     } catch (err) {
       logger.error({ err }, 'classroom me/view crashed')
-      return res.status(500).json({ error: 'Interner Serverfehler' })
+      return serverError(res, err)
     }
   },
 )
@@ -1189,7 +1078,7 @@ router.get(
       return res.json(result)
     } catch (err) {
       logger.error({ err }, 'classroom me/reveal crashed')
-      return res.status(500).json({ error: 'Interner Serverfehler' })
+      return serverError(res, err)
     }
   },
 )
@@ -1259,7 +1148,7 @@ router.post(
       return res.json({ accepted: true })
     } catch (err) {
       logger.error({ err }, 'classroom submit crashed')
-      return res.status(500).json({ error: 'Interner Serverfehler' })
+      return serverError(res, err)
     }
   },
 )
@@ -1284,7 +1173,7 @@ router.post(
       return res.json({ ok: true, status: session?.status || 'unknown' })
     } catch (err) {
       logger.error({ err }, 'classroom heartbeat crashed')
-      return res.status(500).json({ error: 'Interner Serverfehler' })
+      return serverError(res, err)
     }
   },
 )
@@ -1292,6 +1181,7 @@ router.post(
 // ── T-2.10 POST /api/v1/classroom/me/leave ─────────────────────
 router.post(
   '/api/v1/classroom/me/leave',
+  classroomWriteLimiter,
   requireParticipantAuth,
   (req, res) => {
     try {
@@ -1305,7 +1195,7 @@ router.post(
       return res.status(204).end()
     } catch (err) {
       logger.error({ err }, 'classroom leave crashed')
-      return res.status(500).json({ error: 'Interner Serverfehler' })
+      return serverError(res, err)
     }
   },
 )
@@ -1319,6 +1209,7 @@ router.post(
   '/api/v1/classroom/sessions/:id/participants/:pid/kick',
   classroomWriteLimiter,
   requireCapability('session:manage'),
+  validate(classroomParticipantKickParamsSchema, 'params'),
   (req, res) => {
     try {
       const sessionId     = req.params.id
@@ -1334,7 +1225,7 @@ router.post(
       return res.json({ ok: true })
     } catch (err) {
       logger.error({ err }, 'classroom kick crashed')
-      return res.status(500).json({ error: 'Interner Serverfehler' })
+      return serverError(res, err)
     }
   },
 )

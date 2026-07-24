@@ -10,6 +10,7 @@
  */
 
 import db from './db.js'
+import { isPremiumRole } from './middleware/userAuth.js'
 
 export const BASE_ALLOWANCE = 1
 const TIMEZONE = process.env.TIMEZONE || 'Europe/Berlin'
@@ -41,8 +42,6 @@ export function getUsageToday(userId, date = todayBerlin()) {
 export function incrementUsage(userId, date = todayBerlin()) {
   incrUsageStmt.run(userId, date)
 }
-
-const isPremiumRole = (role) => role === 'premium' || role === 'admin'
 
 // Atomar zaehlen+pruefen in EINEM Statement: das fruehere Muster
 // getQuota() → ... → incrementUsage() war ein Read-Check-Write-Race —

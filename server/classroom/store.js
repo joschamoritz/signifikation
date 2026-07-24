@@ -15,7 +15,7 @@ import { createHmac, randomUUID } from 'crypto'
 import db from '../db.js'
 import logger from '../logger.js'
 import { generateUniqueJoinCode } from './join-code.js'
-import { scoreSubmission, roundCountFor, VALID_MODES } from './modes/index.js'
+import { scoreSubmission, roundCountFor, VALID_MODES, getMode } from './modes/index.js'
 import { parseJsonSafe } from './json-safe.js'
 import {
   extractDistractors,
@@ -290,6 +290,15 @@ const stmts = {
     FROM classroom_submission s
     JOIN classroom_score_record sc ON sc.submission_id = s.id
     WHERE s.session_id = ? AND s.participant_id = ?
+  `),
+  // Fortschrittsberechnung fuer buildStudentView: welche Runden hat DIESER
+  // Teilnehmer fuer DIESES Assignment bereits eingereicht (unabhaengig vom
+  // Scoring-Ergebnis — auch falsche Antworten zaehlen als "eingereicht").
+  getParticipantSubmissionRounds: db.prepare(`
+    SELECT DISTINCT lemma_id, round_index
+    FROM classroom_submission
+    WHERE participant_id = ? AND assignment_id = ?
+    ORDER BY lemma_id, round_index
   `),
   listSessionSubmissionsForDashboard: db.prepare(`
     SELECT s.lemma_id, s.assignment_id, s.participant_id, s.round_index, sc.score, sc.max_score, sc.correct
@@ -1371,6 +1380,135 @@ export function getParticipantReveal({ sessionId, participantId }) {
   }
 
   return { revealed: true, byKey }
+}
+
+// ── Whitelist-Serialisierung fuer Schueler-View (T-2.6 / T-6.4) ─
+//
+// INVARIANTE (R1): Diese Funktion gibt ausschliesslich Felder zurueck,
+// die Schueler sehen duerfen. Felder, die NIEMALS exponiert werden:
+//   - notiz / link (interne Redaktionsnotizen)
+//   - rang (verrät Ranking in Kollokationen → Antwort)
+//   - periode (verrät Loesung in Zeitenwende → Antwort)
+//   - zuordnung (verrät Zone in Wort-Zwilling → Antwort)
+//   - kollokator (verrät Antwort in Lueckenfueller)
+//   - detail_json, raw_answer, content_snapshot anderer Lemmata
+//
+// Aenderungen hier muessen bestehen:
+//   - server/__tests__/classroom.routes.test.js → 'view whitelist' (T-6.4, Integrationstest ueber HTTP)
+//   - server/__tests__/classroom.buildStudentView.test.js (isolierter Unit-Test)
+//
+// Verschoben aus server/routes/classroom.js (Architektur-Review 2026-07-24):
+// die sicherheitskritischste Funktion der App gehoert in die Domaenenschicht,
+// nicht in die Transport-Schicht — und braucht einen isolierten Unit-Test
+// statt nur Integrationstests ueber HTTP.
+
+// Delegiert an die Modus-Registry. Die eigentliche, modus-spezifische
+// Whitelist liegt in modes/<mode>.js (inkl. buildSafeRound fuer Lueckenfueller).
+export function buildSafePrompt(mode, snapshot) {
+  if (!snapshot || typeof snapshot !== 'object') return {}
+  const m = getMode(mode)
+  return m ? m.buildSafePrompt(snapshot) : {}
+}
+
+const getRoundsCountFromSnapshot = (snapshot) =>
+  Array.isArray(snapshot?.rounds) ? snapshot.rounds.length : 1
+
+export function buildStudentView(participant, session, assignment, meta = {}) {
+  const lemmaIds = assignment.lemmaIds || []
+  const rows = stmts.getParticipantSubmissionRounds.all(participant.id, assignment.id)
+
+  // Fuer Lueckenfueller: zaehle Runden pro Lemma
+  const roundsPerLemma = {}
+  for (const r of rows) {
+    if (!roundsPerLemma[r.lemma_id]) roundsPerLemma[r.lemma_id] = new Set()
+    roundsPerLemma[r.lemma_id].add(r.round_index)
+  }
+
+  // Fortschritt: Lemmata, bei denen alle Runden eingereicht sind. Iteriert
+  // ueber ALLE Lemmata des Assignments (nicht nur eingereichte), damit der
+  // GF-4-Skip unten auch unspielbare, nie eingereichte Lemmata erfasst.
+  const doneLemmaIds = new Set()
+  for (const lemmaId of lemmaIds) {
+    const snap = assignment.contentSnapshot?.byLemma?.[lemmaId]
+    const totalRounds = assignment.mode === 'lueckenfueller'
+      ? getRoundsCountFromSnapshot(snap)
+      : 1
+    // GF-4: Ein Lueckenfueller-Lemma ohne Runden (Content-Generierung
+    // fehlgeschlagen) ist unspielbar — jeder Submit liefert INVALID_INPUT.
+    // Als „erledigt" behandeln, damit die Klasse nicht ewig auf currentRound:
+    // null haengt, sondern zum naechsten spielbaren Lemma springt.
+    if (totalRounds <= 0) {
+      doneLemmaIds.add(lemmaId)
+      continue
+    }
+    if ((roundsPerLemma[lemmaId]?.size || 0) >= totalRounds) {
+      doneLemmaIds.add(lemmaId)
+    }
+  }
+
+  // Aktuelles Lemma = erstes in der Liste, das noch nicht fertig ist
+  const currentLemmaId = lemmaIds.find(id => !doneLemmaIds.has(id)) || null
+  const allDone = doneLemmaIds.size >= lemmaIds.length
+
+  // P3: Der content_snapshot (beim Anlegen eingefroren, D4) ist die ALLEINIGE
+  // View-Quelle — kein DB-Reload des Lemmas mehr. lemma/ipa/definition liegen
+  // bereits im Snapshot (fuer alle Modi, inkl. synthetischer „wz:"-Paare, die gar
+  // keine DB-Zeile haben). Das vermeidet einen Read pro /me/view und haelt die
+  // Schueler-Sicht konsistent mit dem eingefrorenen Stand.
+  // R1: Nur das aktuelle Lemma wird gewhitelistet ausgeliefert, nie alle.
+  let currentLemmaData = null
+  if (currentLemmaId && !allDone) {
+    const snap = assignment.contentSnapshot?.byLemma?.[currentLemmaId]
+    if (snap) {
+      // Aktueller Runden-Index fuer Lueckenfueller: erste noch NICHT
+      // abgegebene Runde (luckentolerant). `.size` waere bei out-of-order
+      // Abgaben falsch — die Menge {2} haette size 1 und zeigte faelschlich
+      // Runde 1, obwohl Runde 0 fehlt und Runde 2 schon abgegeben ist. Die
+      // erste Luecke ist der korrekte „naechste" Index; bei in-order-Spiel
+      // (Normalfall) ist sie identisch mit .size.
+      const submittedRounds = roundsPerLemma[currentLemmaId] || new Set()
+      let currentRoundIndex = 0
+      while (submittedRounds.has(currentRoundIndex)) currentRoundIndex += 1
+
+      // Prompt ist mode-spezifisch und gewhitelistet
+      const safePrompt = buildSafePrompt(assignment.mode, snap)
+      // Fuer Lueckenfueller: nur die aktuelle Runde zeigen
+      if (assignment.mode === 'lueckenfueller' && Array.isArray(safePrompt.rounds)) {
+        safePrompt.currentRound = safePrompt.rounds[currentRoundIndex] || null
+        safePrompt.roundIndex   = currentRoundIndex
+        delete safePrompt.rounds  // alle Runden verschweigen, nur aktuelle
+      }
+
+      currentLemmaData = {
+        // WHITELIST (R1): nur diese Felder sind fuer Schueler bestimmt
+        id:     currentLemmaId,
+        lemma:  snap.lemma,
+        ipa:    snap.ipa,
+        prompt: safePrompt,
+        // oeffentliche Definition aus dem Snapshot (KEIN notiz)
+        definition: snap.definition || '',
+      }
+    }
+  }
+
+  return {
+    sessionId:     session.id,
+    sessionStatus: session.status,
+    assignment: {
+      id:         assignment.id,
+      mode:       assignment.mode,
+      lemmaCount: lemmaIds.length,
+      // W2-T2: Reihenfolge-Position fuer „Modus X von N" im Kiosk.
+      index:      meta.index ?? 0,
+      total:      meta.total ?? 1,
+    },
+    currentLemma: currentLemmaData,
+    progress: {
+      submittedCount: doneLemmaIds.size,
+      totalLemmata:   lemmaIds.length,
+      done:           allDone,
+    },
+  }
 }
 
 // ── Test-Helper (nur fuer Tests verwenden) ──────────────────────────

@@ -3,6 +3,7 @@ import { ThemeContext } from '../../hooks/useTheme'
 import { usePushNotifications } from '../../hooks/usePushNotifications'
 import { HINTS_DISABLED_KEY } from '../../hooks/useSwipeHint'
 import { lsGet, lsSet, lsRemove } from '../../utils/storage'
+import { apiFetch } from '../../utils/apiFetch'
 import { API } from '../../config'
 
 function urlBase64ToUint8Array(base64String) {
@@ -46,7 +47,7 @@ export default function KontoEinstellungenBlock() {
 
   useEffect(() => {
     if (!pushSupported) return
-    fetch(`${API}/push/status`, { credentials: 'include' })
+    apiFetch(`${API}/push/status`, { credentials: 'include' })
       .then(r => r.ok ? r.json() : null)
       .then(data => {
         if (data?.subscribed && data?.platform === 'web') setPushEnabled(true)
@@ -61,7 +62,7 @@ export default function KontoEinstellungenBlock() {
       setPushError('Benachrichtigungen wurden nicht erlaubt.')
       return
     }
-    const vapidRes = await fetch(`${API}/push/vapid-public-key`)
+    const vapidRes = await apiFetch(`${API}/push/vapid-public-key`)
     if (!vapidRes.ok) {
       setPushError('Push-Dienst momentan nicht verfügbar.')
       return
@@ -79,7 +80,7 @@ export default function KontoEinstellungenBlock() {
       return
     }
     const subJson = webPushSub.toJSON()
-    const res = await fetch(`${API}/push/subscribe`, {
+    const res = await apiFetch(`${API}/push/subscribe`, {
       method: 'POST',
       credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
@@ -103,7 +104,7 @@ export default function KontoEinstellungenBlock() {
     const registration = await navigator.serviceWorker.ready
     const webPushSub = await registration.pushManager.getSubscription()
     if (webPushSub) {
-      await fetch(`${API}/push/unsubscribe`, {
+      await apiFetch(`${API}/push/unsubscribe`, {
         method: 'DELETE',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },

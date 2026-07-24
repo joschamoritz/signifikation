@@ -1,4 +1,5 @@
 import { Capacitor } from '@capacitor/core'
+import { BACKEND_ORIGINS } from './backendOrigins.js'
 
 const NATIVE_TOKEN_KEY = 'sig_native_bearer'
 
@@ -95,9 +96,39 @@ export function setNativeBearerToken(token) {
   })()
 }
 
+// Defense-in-depth: das Bearer-Token ist Vollzugang zur Session und darf
+// niemals an eine Fremd-Origin gehen (z.B. ein extern gehosteter Material-
+// Download-Link). Aktuell rufen alle Aufrufstellen apiFetch() ausschliesslich
+// mit first-party-URLs auf - dieser Check schuetzt gegen kuenftige Aufrufe
+// mit einer Fremd-URL. Im Zweifel (unparsebar) wird NICHT angehaengt -
+// anders als der CSRF-Header in installCsrfFetch.js faellt dieser Check
+// also bewusst "closed", weil ein fehlender Bearer-Token hoechstens zu
+// einem 401 fuehrt, ein geleaktes Token aber ein echtes Sicherheitsproblem waere.
+function isOwnBackendUrl(url) {
+  try {
+    const currentOrigin = typeof window !== 'undefined' ? window.location.origin : ''
+    if (typeof url === 'string') {
+      if (url.startsWith('/') && !url.startsWith('//')) return true
+      const parsed = new URL(url, currentOrigin || undefined)
+      return parsed.origin === currentOrigin || BACKEND_ORIGINS.has(parsed.origin)
+    }
+    if (url instanceof URL) {
+      return url.origin === currentOrigin || BACKEND_ORIGINS.has(url.origin)
+    }
+    if (url instanceof Request) {
+      const parsed = new URL(url.url, currentOrigin || undefined)
+      return parsed.origin === currentOrigin || BACKEND_ORIGINS.has(parsed.origin)
+    }
+  } catch {
+    return false
+  }
+  return false
+}
+
 export function apiFetch(url, options = {}) {
   if (!Capacitor.isNativePlatform()) return fetch(url, options)
   if (!cachedToken) return fetch(url, options)
+  if (!isOwnBackendUrl(url)) return fetch(url, options)
   const headers = new Headers(options.headers)
   headers.set('Authorization', `Bearer ${cachedToken}`)
   return fetch(url, { ...options, headers })

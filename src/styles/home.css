@@ -423,7 +423,7 @@
 }
 
 .selection-thema-quelle a {
-  color: var(--accent);
+  color: var(--accent-dk);
   text-decoration: none;
 }
 
@@ -511,7 +511,7 @@
   font-weight: 700;
   letter-spacing: 0.15em;
   text-transform: uppercase;
-  color: var(--accent);
+  color: var(--accent-dk);
   flex-shrink: 0;
 }
 /* i-Button direkt am vs.-Streifen, kein linker Rahmen */
@@ -585,6 +585,14 @@
   text-align: left;
   outline: none;
   counter-increment: lemma-entry;
+}
+/* Sichtbarer Fokusring als Fallback fuer den :has()-Hover-Effekt oben,
+   der in Browsern ohne :has()-Support (z.B. Firefox <121) sonst der
+   einzige Fokusindikator waere. */
+.lemma-card-main:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: -2px;
+  border-radius: 2px;
 }
 .lemma-card-main::before {
   content: counter(lemma-entry) ".";
@@ -900,9 +908,10 @@
   border-bottom: 1px solid var(--border-lt);
   padding: 0 0 3px;
   outline: none;
-  transition: border-color 0.15s;
+  transition: border-color 0.15s, border-bottom-width 0.15s;
 }
-.eigenes-lemma-input:focus { border-bottom-color: var(--primary); }
+/* Fokus-Cue ueber Farbe UND Linienstaerke (nicht nur Farbe, WCAG 1.4.1) */
+.eigenes-lemma-input:focus { border-bottom-color: var(--primary); border-bottom-width: 2px; padding-bottom: 2px; }
 .eigenes-lemma-input::placeholder {
   color: var(--disabled);
   font-weight: 400;
