@@ -26,8 +26,13 @@ export function worksheetCss(fontFaceCss = '') {
 :root {${TOKENS}}
 *{box-sizing:border-box;margin:0;padding:0}
 html{-webkit-print-color-adjust:exact;print-color-adjust:exact;background:var(--bg)}
-@page{size:A4;margin:16mm 16mm 18mm}
-body{font-family:'DM Sans',system-ui,sans-serif;font-size:12pt;line-height:1.5;color:var(--text);background:var(--bg)}
+/* margin:0 statt @page-margin, weil Chromiums Druck-Engine den Hintergrund von
+   html/body NICHT in die @page-Randbox malt (bekannte Chromium/Puppeteer-
+   Einschränkung) — das ergäbe einen weißen Rand ums Blatt. Der Rand kommt
+   stattdessen als body-padding, innerhalb der bemalten Seite. Fürs Web-Preview
+   überschreibt das inline style="padding:24px" (docShell) dieses Padding wieder. */
+@page{size:A4;margin:0}
+body{font-family:'DM Sans',system-ui,sans-serif;font-size:12pt;line-height:1.5;color:var(--text);background:var(--bg);padding:16mm 16mm 18mm}
 
 /* Bildschirm-Vorschau: A4-Blatt sichtbar. Im Druck neutralisiert (s. @media print). */
 .sheet{width:210mm;min-height:297mm;margin:0 auto;background:var(--bg);padding:16mm 16mm 18mm}

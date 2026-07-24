@@ -31,7 +31,11 @@ export function documentCss(fontFaceCss = '') {
 :root {${TOKENS}}
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html { -webkit-print-color-adjust: exact; print-color-adjust: exact; background: var(--bg); }
-@page { size: A4; margin: 16mm 16mm 18mm; }
+/* margin:0 statt @page-margin, weil Chromiums Druck-Engine den Hintergrund von
+   html/body NICHT in die @page-Randbox malt (bekannte Chromium/Puppeteer-
+   Einschränkung) — das ergäbe einen weißen Rand ums Blatt. Der Rand kommt
+   stattdessen als body-padding, innerhalb der bemalten Seite. */
+@page { size: A4; margin: 0; }
 
 body {
   font-family: 'DM Sans', system-ui, sans-serif;
@@ -39,6 +43,7 @@ body {
   line-height: 1.5;
   color: var(--text);
   background: var(--bg);
+  padding: 16mm 16mm 18mm;
 }
 
 /* ── Kopfzeile (einzige CD-Stelle: Gentium + Rot + Goldlinie) ── */
