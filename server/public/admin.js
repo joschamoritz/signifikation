@@ -153,6 +153,12 @@ function switchPage(pageId) {
     loadUsersOverview()
   }
 
+  if (pageId === 'stats') {
+    // Beim Dashboard-Start werden die Diagramme übersprungen (Chart.js ist
+    // dann noch nicht geladen) – hier also frisch rendern.
+    loadStats()
+  }
+
   if (pageId === 'system') {
     loadAuditLog()
     loadCoursePdfStatus()
@@ -178,6 +184,50 @@ function switchPage(pageId) {
   if (pageId === 'metrics') {
     loadProductMetrics()
   }
+
+  syncMobileNav()
+}
+
+// ── Mobile-Navigation ─────────────────────────────────────
+// Spiegelt die Sidebar-Navigation in ein <select>, das auf schmalen
+// Screens sticky über dem Inhalt sitzt. Ohne das müsste man sich auf
+// dem Handy bei jedem Seitenwechsel an ~830px Navigationsblock
+// vorbeiscrollen. Wird aus dem DOM erzeugt, damit die Bereiche nicht
+// an zwei Stellen gepflegt werden müssen.
+function buildMobileNav() {
+  const select = document.getElementById('mobile-nav-select')
+  if (!select) return
+
+  select.innerHTML = Array.from(document.querySelectorAll('.admin-nav .nav-group-block')).map((group) => {
+    const label = esc(group.querySelector('.nav-group-label')?.textContent?.trim() || '')
+    const options = Array.from(group.querySelectorAll('.nav-item')).map((item) => {
+      const text = esc(item.textContent.trim())
+      if (item.dataset.page) return `<option value="page:${esc(item.dataset.page)}">${text}</option>`
+      const href = item.getAttribute('href')
+      return href ? `<option value="href:${esc(href)}">${text}</option>` : ''
+    }).join('')
+    return `<optgroup label="${label}">${options}</optgroup>`
+  }).join('')
+
+  syncMobileNav()
+}
+
+function syncMobileNav() {
+  const select = document.getElementById('mobile-nav-select')
+  if (!select) return
+  const activeId = document.querySelector('.admin-page.is-active')?.id?.replace(/^page-/, '')
+  if (activeId) select.value = `page:${activeId}`
+}
+
+function handleMobileNavChange(value) {
+  if (value.startsWith('href:')) {
+    window.location.href = value.slice(5)
+    return
+  }
+  // switchPage kann bei ungespeicherten Änderungen abbrechen – syncMobileNav
+  // setzt das Select dann auf die tatsächlich aktive Seite zurück.
+  switchPage(value.slice(5))
+  syncMobileNav()
 }
 
 function refreshDashboard() {
@@ -216,6 +266,7 @@ function setEntryDirtyState(isDirty) {
 function captureEntryFormSnapshot() {
   entryFormSnapshot = readEntryFormState()
   setEntryDirtyState(false)
+  clearEntryDraft()
 }
 
 function updateEntryDirtyState() {
@@ -226,6 +277,88 @@ function updateEntryDirtyState() {
   const current = readEntryFormState()
   const isDirty = ENTRY_FIELD_IDS.some((id) => current[id] !== entryFormSnapshot[id])
   setEntryDirtyState(isDirty)
+  if (isDirty) scheduleEntryDraftSave()
+  else clearEntryDraft()
+}
+
+// ── Entwurfsschutz für den Tageseintrag ───────────────────
+// Mobile Browser beenden Hintergrund-Tabs regelmäßig. Ohne
+// Zwischenspeicher wären die bis zu 25 ausgefüllten Felder dann
+// ersatzlos verloren – ein In-App-confirm() greift dabei nicht.
+const ENTRY_DRAFT_KEY = 'sig-admin-entry-draft'
+let entryDraftTimer = null
+
+function readStoredEntryDraft() {
+  try {
+    const raw = window.localStorage.getItem(ENTRY_DRAFT_KEY)
+    if (!raw) return null
+    const draft = JSON.parse(raw)
+    return draft && typeof draft === 'object' && draft.fields ? draft : null
+  } catch {
+    return null
+  }
+}
+
+function persistEntryDraft() {
+  try {
+    window.localStorage.setItem(ENTRY_DRAFT_KEY, JSON.stringify({
+      savedAt: Date.now(),
+      fields: readEntryFormState(),
+    }))
+  } catch {
+    // Privater Modus oder Speicher voll – der Entwurfsschutz ist optional.
+  }
+}
+
+function scheduleEntryDraftSave() {
+  if (entryDraftTimer) window.clearTimeout(entryDraftTimer)
+  entryDraftTimer = window.setTimeout(persistEntryDraft, 800)
+}
+
+function clearEntryDraft() {
+  if (entryDraftTimer) {
+    window.clearTimeout(entryDraftTimer)
+    entryDraftTimer = null
+  }
+  try {
+    window.localStorage.removeItem(ENTRY_DRAFT_KEY)
+  } catch {
+    // nichts zu tun
+  }
+}
+
+function hideEntryDraftBanner() {
+  document.getElementById('entry-draft-banner')?.classList.add('is-hidden')
+}
+
+function offerEntryDraft() {
+  const draft = readStoredEntryDraft()
+  const banner = document.getElementById('entry-draft-banner')
+  if (!draft || !banner) return
+
+  const textEl = document.getElementById('entry-draft-text')
+  if (textEl) {
+    const when = new Date(draft.savedAt || Date.now()).toLocaleString('de-DE')
+    const datum = draft.fields.datum ? ` für ${draft.fields.datum}` : ''
+    textEl.textContent = `Ungespeicherter Entwurf${datum} vom ${when} gefunden.`
+  }
+  banner.classList.remove('is-hidden')
+}
+
+function restoreEntryDraft() {
+  const draft = readStoredEntryDraft()
+  if (!draft) {
+    hideEntryDraftBanner()
+    return
+  }
+  applyEntryFields(draft.fields)
+  updateEntryDirtyState()
+  hideEntryDraftBanner()
+}
+
+function discardEntryDraft() {
+  clearEntryDraft()
+  hideEntryDraftBanner()
 }
 
 function clearInlineAnalysisOutputs() {
@@ -235,20 +368,25 @@ function clearInlineAnalysisOutputs() {
   })
 }
 
-function restoreEntryFormSnapshot() {
-  if (!entryFormSnapshot) return
+function applyEntryFields(fields) {
   ENTRY_FIELD_IDS.forEach((id) => {
     const el = document.getElementById(id)
-    if (el) el.value = entryFormSnapshot[id] || ''
+    if (el) el.value = fields[id] || ''
   })
   hideAllExtraFields()
-  if (entryFormSnapshot.n1 || entryFormSnapshot.l1) showExtraFields('koll-extras-1')
-  if (entryFormSnapshot.n2 || entryFormSnapshot.l2) showExtraFields('koll-extras-2')
-  if (entryFormSnapshot.n3 || entryFormSnapshot.l3) showExtraFields('koll-extras-3')
-  if (entryFormSnapshot['wz-notiz'] || entryFormSnapshot['wz-link']) showExtraFields('wz-extras')
-  if (entryFormSnapshot['zw-notiz'] || entryFormSnapshot['zw-link']) showExtraFields('zw-extras')
+  if (fields.n1 || fields.l1) showExtraFields('koll-extras-1')
+  if (fields.n2 || fields.l2) showExtraFields('koll-extras-2')
+  if (fields.n3 || fields.l3) showExtraFields('koll-extras-3')
+  if (fields['wz-notiz'] || fields['wz-link']) showExtraFields('wz-extras')
+  if (fields['zw-notiz'] || fields['zw-link']) showExtraFields('zw-extras')
   updateModeIndicators()
+}
+
+function restoreEntryFormSnapshot() {
+  if (!entryFormSnapshot) return
+  applyEntryFields(entryFormSnapshot)
   setEntryDirtyState(false)
+  clearEntryDraft()
 }
 
 function confirmDiscardEntryChanges(contextLabel = 'fortfahren') {
@@ -299,6 +437,21 @@ function createTemporaryDownload(blob, filename) {
   a.download = filename
   a.click()
   URL.revokeObjectURL(url)
+}
+
+// Inline-Meldung im System-Bereich – ersetzt blockierende alert()-Dialoge,
+// die auf Mobilgeräten die Tastatur schließen und den Viewport umbauen.
+function setSystemMessage(message, tone = 'info') {
+  const msgEl = document.getElementById('system-msg')
+  if (!msgEl) return
+  msgEl.textContent = message || ''
+  msgEl.classList.remove('is-hidden', 'is-error', 'is-success')
+  if (!message) {
+    msgEl.classList.add('is-hidden')
+    return
+  }
+  if (tone === 'error') msgEl.classList.add('is-error')
+  if (tone === 'success') msgEl.classList.add('is-success')
 }
 
 function setFreeDayMessage(message, tone = 'info') {
@@ -660,10 +813,15 @@ async function doLogin() {
 }
 
 async function downloadBackup() {
+  setSystemMessage('')
   const r = await fetch('/admin/backup')
-  if (!r.ok) { alert('Backup fehlgeschlagen.'); return }
+  if (!r.ok) {
+    setSystemMessage('Backup fehlgeschlagen.', 'error')
+    return
+  }
   const blob = await r.blob()
   createTemporaryDownload(blob, `signifikation-backup-${new Date().toISOString().slice(0,10)}.json`)
+  setSystemMessage('Backup heruntergeladen.', 'success')
 }
 
 function triggerBackupRestore() {
@@ -699,10 +857,10 @@ async function restoreBackupFile(event) {
     if (!response.ok) throw new Error(data.error || `HTTP ${response.status}`)
 
     const restored = data.restored || {}
-    alert(`Backup wiederhergestellt: ${restored.lemmata || 0} Lemmata, ${restored.kalender || 0} Kalendertage.`)
+    setSystemMessage(`Backup wiederhergestellt: ${restored.lemmata || 0} Lemmata, ${restored.kalender || 0} Kalendertage.`, 'success')
     refreshDashboard()
   } catch (err) {
-    alert(`Backup-Restore fehlgeschlagen: ${err.message}`)
+    setSystemMessage(`Backup-Restore fehlgeschlagen: ${err.message}`, 'error')
   } finally {
     event.target.value = ''
   }
@@ -774,6 +932,7 @@ fetch('/admin/kalender').then(r => {
 
 function initDashboard() {
   switchPage('dashboard')
+  offerEntryDraft()
   loadKalender()
   loadFreeDays({ silent: true })
   loadStats()
@@ -1117,7 +1276,7 @@ async function editTag(datum) {
   selectedCalendarDate = datum
   const res  = await fetch(`/admin/tag/${datum}`, {})
   const data = await res.json()
-  if (!res.ok) return alert(`Fehler: ${data.error}`)
+  if (!res.ok) return setStatus(`Fehler: ${data.error}`, 'error')
   document.getElementById('datum').value = datum
   document.getElementById('w1').value = data.woerter[0] || ''
   document.getElementById('w2').value = data.woerter[1] || ''
@@ -1272,7 +1431,7 @@ function renderEntryTable() {
     const checked = selectedEntryDates.has(datum) ? 'checked' : ''
 
     return `<tr>
-      <td class="entry-select-col"><input type="checkbox" ${checked} data-action="toggle-entry-selection" data-datum="${datum}"></td>
+      <td class="entry-select-col"><label class="cb-hit"><input type="checkbox" ${checked} data-action="toggle-entry-selection" data-datum="${datum}" aria-label="Eintrag ${esc(datum)} auswählen"></label></td>
       <td><strong>${esc(formatMmdd(datum))}</strong><br><span class="entry-hint">${esc(datum)}</span></td>
       <td><div class="mode-summary-list">${summaryHtml}</div></td>
       <td><div class="entry-chip-wrap">${modeChips(entry)}</div></td>
@@ -1943,7 +2102,7 @@ async function loadUsersOverview() {
         const safeUserId = encodeURIComponent(String(user.id || ''))
         const safeRawUserId = esc(String(user.id || ''))
         return `<tr>
-          <td><input type="checkbox" class="user-select-checkbox" data-user-id="${safeRawUserId}"></td>
+          <td class="users-select-col"><label class="cb-hit"><input type="checkbox" class="user-select-checkbox" data-user-id="${safeRawUserId}" aria-label="${esc(user.email || user.name || 'Nutzer')} auswählen"></label></td>
           <td>${esc(user.name || '—')}</td>
           <td>${esc(user.email || '—')}</td>
           <td>${esc(roleLabel(user.role || 'user'))}</td>
@@ -2363,6 +2522,29 @@ function exportStats(format) {
   window.open(url, '_blank', 'noopener')
 }
 
+// Chart.js (~70 KB gzip) lag als render-blockierendes <script> im <head> und
+// verzögerte damit sogar den Login-Screen. Es wird jetzt erst beim ersten
+// Öffnen der Statistiken nachgeladen.
+let chartJsPromise = null
+
+function ensureChartJs() {
+  if (window.Chart) return Promise.resolve()
+  if (chartJsPromise) return chartJsPromise
+
+  chartJsPromise = new Promise((resolve, reject) => {
+    const script = document.createElement('script')
+    script.src = '/admin-assets/vendor/chart.umd.min.js'
+    script.onload = () => resolve()
+    script.onerror = () => {
+      chartJsPromise = null
+      reject(new Error('Chart.js konnte nicht geladen werden.'))
+    }
+    document.head.appendChild(script)
+  })
+
+  return chartJsPromise
+}
+
 function renderStats(data, out) {
   if (!data.length) {
     out.innerHTML = '<div style="color:var(--muted);font-size:0.85rem">Noch keine Statistik vorhanden.</div>'
@@ -2395,11 +2577,29 @@ function renderStats(data, out) {
 
   out.innerHTML = html
 
+  // Diagramme nur zeichnen, wenn die Statistik-Seite wirklich sichtbar ist.
+  // loadStats() läuft auch beim Dashboard-Start; dort kostete Chart.js
+  // ~70 KB gzip und zwei Chart-Instanzen, ohne dass etwas zu sehen war.
+  if (!document.getElementById('page-stats')?.classList.contains('is-active')) return
+
+  ensureChartJs()
+    .then(() => renderStatsCharts(last7, todayEntry))
+    .catch(() => {
+      const wrap = document.getElementById('stats-dist-wrap')
+      if (wrap) wrap.innerHTML = '<div style="color:var(--muted);font-size:0.85rem;padding:12px 0">Diagramme konnten nicht geladen werden.</div>'
+    })
+}
+
+function renderStatsCharts(last7, todayEntry) {
+  // Der Nutzer kann zwischen Laden und Zeichnen weitergewechselt haben.
+  const trendCanvas = document.getElementById('stats-trend-canvas')
+  if (!trendCanvas) return
+
   if (statsChartTrend) { statsChartTrend.destroy(); statsChartTrend = null }
   if (statsChartDist)  { statsChartDist.destroy();  statsChartDist  = null }
 
   const trendLabels = last7.map((d) => formatIsoDate(d.datum))
-  statsChartTrend = new Chart(document.getElementById('stats-trend-canvas').getContext('2d'), {
+  statsChartTrend = new Chart(trendCanvas.getContext('2d'), {
     type: 'line',
     data: {
       labels: trendLabels,
@@ -2626,7 +2826,11 @@ function resetLueckenfuellerAnalysis() {
 async function generateLueckenfueller() {
   const lemmaName = (document.getElementById('lf-id')?.value || '').trim()
   const statusEl  = document.getElementById('lf-generate-status')
-  if (!lemmaName) { alert('Bitte zuerst einen Lemma-Namen eingeben.'); return }
+  if (!lemmaName) {
+    if (statusEl) { statusEl.style.display = 'block'; statusEl.style.color = 'var(--danger, #c0392b)'; statusEl.textContent = 'Bitte zuerst einen Lemma-Namen eingeben.' }
+    document.getElementById('lf-id')?.focus()
+    return
+  }
   if (statusEl) { statusEl.style.display = 'block'; statusEl.style.color = 'var(--muted)'; statusEl.textContent = `Generiere Lückenfüller für „${lemmaName}" …` }
   try {
     const res  = await fetch('/admin/lueckenfueller/generate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ lemmaName }) })
@@ -2915,6 +3119,15 @@ function openJsonImportDialog() {
     document.getElementById('json-import-day').innerHTML = ''
   }
   dialog.showModal()
+
+  // Tap aufs Backdrop schließt den Dialog – auf dem Handy sind das ✕ oben
+  // rechts und der Abbrechen-Button je nach Tastaturhöhe schwer erreichbar.
+  if (!dialog.dataset.backdropBound) {
+    dialog.dataset.backdropBound = '1'
+    dialog.addEventListener('click', (event) => {
+      if (event.target === dialog) dialog.close()
+    })
+  }
 }
 
 function onJsonImportInput() {
@@ -3261,6 +3474,8 @@ function handleDocumentClick(event) {
   if (action === 'preview-current-lemma') return void previewCurrentLemma()
   if (action === 'preview-current-day') return void previewCurrentDay()
   if (action === 'reset-entry-form') return void restoreEntryFormSnapshot()
+  if (action === 'restore-entry-draft') return void restoreEntryDraft()
+  if (action === 'discard-entry-draft') return void discardEntryDraft()
   if (action === 'open-json-import') return void openJsonImportDialog()
   if (action === 'confirm-json-import') return void runJsonImport()
   if (action === 'close-json-import') return void document.getElementById('json-import-dialog')?.close()
@@ -3452,7 +3667,7 @@ function renderClassroomStats(d) {
         return `<tr>
           <td style="width:130px">${esc(m.mode)}</td>
           <td><div style="display:flex;align-items:center;gap:8px">
-            <div style="flex:1;height:8px;background:var(--border-light);border-radius:4px">
+            <div style="flex:1;height:8px;background:var(--border-lt);border-radius:4px">
               <div style="width:${w}%;height:8px;background:var(--primary);border-radius:4px"></div>
             </div>
             <span style="min-width:32px;text-align:right;font-size:0.82rem">${fmt(m.count)}</span>
@@ -3784,7 +3999,7 @@ function renderMetricsTeachers(d) {
     return `<tr>
       <td style="width:140px">${esc(label)}</td>
       <td><div style="display:flex;align-items:center;gap:8px">
-        <div style="flex:1;height:8px;background:var(--border-light);border-radius:4px">
+        <div style="flex:1;height:8px;background:var(--border-lt);border-radius:4px">
           <div style="width:${w}%;height:8px;background:var(--primary);border-radius:4px"></div>
         </div>
         <span style="min-width:32px;text-align:right;font-size:0.82rem">${metricsFmt(n)}</span>
@@ -3831,6 +4046,7 @@ function handleDocumentChange(event) {
   if (target.id === 'audit-limit' || target.id === 'audit-action' || target.id === 'audit-resource' || target.id === 'audit-status' || target.id === 'audit-from' || target.id === 'audit-to') return void loadAuditLog()
   if (target.id === 'classroom-days') return void loadClassroomStats()
   if (target.id === 'metrics-days') return void loadProductMetrics()
+  if (target.id === 'mobile-nav-select') return void handleMobileNavChange(target.value)
 }
 
 function handleDocumentInput(event) {
@@ -3865,6 +4081,17 @@ document.addEventListener('click', handleDocumentClick)
 document.addEventListener('change', handleDocumentChange)
 document.addEventListener('input', handleDocumentInput)
 document.addEventListener('keydown', handleDocumentKeydown)
+
+buildMobileNav()
+
+// Der Debounce reicht nicht, wenn das System den Tab sofort beendet –
+// beim Wegblenden daher direkt schreiben.
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'hidden' && entryFormDirty) persistEntryDraft()
+})
+window.addEventListener('pagehide', () => {
+  if (entryFormDirty) persistEntryDraft()
+})
 
 // ── Zeitenwende – Wortanalyse ─────────────────────────────
 async function analyzeZeitenwende() {
