@@ -107,6 +107,21 @@ def merge_parts(part_dbs: list, out_db: Path):
     return n, total
 
 
+def shard_done(part_db: Path, shard_basis: str) -> bool:
+    """True, wenn die Teil-DB existiert und parse_deps_v2 den Shard als vollständig
+    (parse_progress.done=1) markiert hat → beim Resume überspringen."""
+    if not part_db.exists():
+        return False
+    try:
+        c = sqlite3.connect(f"file:{part_db}?mode=ro", uri=True)
+        row = c.execute("SELECT done FROM parse_progress WHERE datei=?",
+                        (f"{shard_basis}.jsonl",)).fetchone()
+        c.close()
+        return row is not None and int(row[0]) == 1
+    except sqlite3.Error:
+        return False
+
+
 def main():
     if hasattr(sys.stdout, "reconfigure"):
         try:
@@ -126,9 +141,16 @@ def main():
     ap.add_argument("--no-dwdsmor", action="store_true")
     ap.add_argument("--workdir", default=None)
     ap.add_argument("--keep-work", action="store_true")
+    ap.add_argument("--resume", action="store_true",
+                    help="Vorhandene Shards + Teil-DBs im workdir wiederverwenden: "
+                         "fertige Shards überspringen, angefangene ab Checkpoint fortsetzen "
+                         "(für den Tage-Lauf – Absturz kostet nur den laufenden Shard). "
+                         "Impliziert --keep-work.")
     ap.add_argument("--include-wikipedia", action="store_true",
                     help="wikipedia.jsonl zusätzlich parsen (F1-A/B 'mit wiki')")
     args = ap.parse_args()
+    if args.resume:
+        args.keep_work = True
 
     input_dir = Path(args.input_dir)
     out_db = Path(args.out_db)
@@ -154,18 +176,30 @@ def main():
     # Modell-Load (~40s) fällt PRO Shard an → nicht zu viele kleine Shards.
     # Große Dateien bekommen bis zu --shards Teile, kleine genau 1 → wenige,
     # etwa gleich große Jobs, minimaler Load-Overhead bei guter Balance.
+    meta_pfad = workdir / "_shard_meta.json"
     t_shard0 = time.perf_counter()
-    groessen = {b: pfad.stat().st_size for b, pfad in dateien}
-    max_groesse = max(groessen.values()) if groessen else 1
-    jobs = []
-    total_tokens = 0
-    for basis, pfad in dateien:
-        s_i = max(1, round(args.shards * groessen[basis] / max_groesse))
-        erzeugt, tok = shard_datei(pfad, s_i, shard_dir, basis)
-        total_tokens += tok
-        jobs.extend(erzeugt)
-    print(f"Shard-Phase: {len(jobs)} Shards (adaptiv), {total_tokens:,} split-Tokens "
-          f"in {time.perf_counter()-t_shard0:.1f}s")
+    vorhandene_shards = sorted(p.stem for p in shard_dir.glob("*.jsonl"))
+    if args.resume and vorhandene_shards and meta_pfad.exists():
+        # Resume: nicht neu sharden — vorhandene Shards + gespeicherte Token-Zahl nutzen.
+        meta = json.loads(meta_pfad.read_text(encoding="utf-8"))
+        jobs = meta["jobs"]
+        total_tokens = meta["total_tokens"]
+        print(f"[RESUME] {len(jobs)} vorhandene Shards aus {shard_dir} wiederverwendet "
+              f"({total_tokens:,} split-Tokens).")
+    else:
+        groessen = {b: pfad.stat().st_size for b, pfad in dateien}
+        max_groesse = max(groessen.values()) if groessen else 1
+        jobs = []
+        total_tokens = 0
+        for basis, pfad in dateien:
+            s_i = max(1, round(args.shards * groessen[basis] / max_groesse))
+            erzeugt, tok = shard_datei(pfad, s_i, shard_dir, basis)
+            total_tokens += tok
+            jobs.extend(erzeugt)
+        meta_pfad.write_text(json.dumps({"jobs": jobs, "total_tokens": total_tokens},
+                                        ensure_ascii=False), encoding="utf-8")
+        print(f"Shard-Phase: {len(jobs)} Shards (adaptiv), {total_tokens:,} split-Tokens "
+              f"in {time.perf_counter()-t_shard0:.1f}s")
 
     # ── Parse-Phase (Prozess-Pool) ───────────────────────────────────────────
     t_parse0 = time.perf_counter()
@@ -173,7 +207,11 @@ def main():
 
     def cmd_for(job):
         c = [PY, "-u", str(PARSE_SCRIPT), "--only", job,
-             "--input-dir", str(shard_dir), "--db", str(part_dir / f"{job}.db"), "--reset"]
+             "--input-dir", str(shard_dir), "--db", str(part_dir / f"{job}.db")]
+        # Ohne --resume: jeden Shard frisch (--reset). Mit --resume: KEIN --reset →
+        # parse_deps_v2 setzt via parse_progress (Chunk-Offset, K8) am Checkpoint fort.
+        if not args.resume:
+            c += ["--reset"]
         if args.limit:
             c += ["--limit", str(args.limit)]
         if args.no_dwdsmor:
@@ -181,7 +219,15 @@ def main():
         return c
 
     laufend = {}   # Popen -> job
-    warteschlange = list(jobs)
+    # Resume: bereits vollständige Shards (parse_progress.done=1) überspringen.
+    if args.resume:
+        offen = [j for j in jobs if not shard_done(part_dir / f"{j}.db", j)]
+        n_skip = len(jobs) - len(offen)
+        print(f"[RESUME] {n_skip} Shards bereits fertig, {len(offen)} offen (davon einige "
+              f"ggf. mit Teil-Fortschritt).")
+        warteschlange = offen
+    else:
+        warteschlange = list(jobs)
     logdir = workdir / "logs"
     logdir.mkdir(exist_ok=True)
     fertig = 0
@@ -194,9 +240,11 @@ def main():
         p = subprocess.Popen(cmd_for(job), stdout=logf, stderr=subprocess.STDOUT)
         laufend[p] = (job, logf)
 
+    n_start = len(warteschlange)
     for _ in range(min(args.pool, len(warteschlange))):
         starte_naechsten()
 
+    fehler = []
     while laufend:
         for p in list(laufend.keys()):
             rc = p.poll()
@@ -205,13 +253,27 @@ def main():
                 logf.close()
                 fertig += 1
                 status = "OK" if rc == 0 else f"FEHLER rc={rc}"
-                print(f"  [{fertig}/{len(jobs)}] {job}: {status}", flush=True)
+                if rc != 0:
+                    fehler.append(job)
+                print(f"  [{fertig}/{n_start}] {job}: {status}", flush=True)
                 starte_naechsten()
         if laufend:
             time.sleep(0.5)
+    if fehler:
+        print(f"\n⚠️  {len(fehler)} Shard(s) mit Fehler: {fehler}")
+        print("   → Ursache in workdir/logs/<shard>.log prüfen, dann erneut mit --resume "
+              "(fertige Shards werden übersprungen, nur die fehlerhaften laufen neu).")
     t_parse = time.perf_counter() - t_parse0
-    print(f"\nParse-Phase: {t_parse:.1f}s "
-          f"({total_tokens/t_parse:,.0f} split-Tok/s aggregiert über {args.pool} Prozesse)")
+    durchsatz = "" if args.resume else f" ({total_tokens/t_parse:,.0f} split-Tok/s aggregiert über {args.pool} Prozesse)"
+    print(f"\nParse-Phase: {t_parse:.1f}s{durchsatz}")
+
+    # Bei Shard-Fehlern NICHT mergen: sonst entstünde eine unvollständige triples-DB,
+    # die wie fertig aussieht. workdir bleibt erhalten → erneut mit --resume starten.
+    if fehler:
+        print(f"\n[ABBRUCH] {len(fehler)} Shard(s) fehlgeschlagen — Merge übersprungen, "
+              f"out-db NICHT gebaut. workdir behalten: {workdir}")
+        print("Nach Fehleranalyse erneut mit --resume starten.")
+        sys.exit(1)
 
     # ── Merge-Phase ──────────────────────────────────────────────────────────
     for suffix in ("", "-shm", "-wal"):
