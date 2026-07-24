@@ -1,6 +1,11 @@
 """
-Zählt Tokens (Wörter via split()) je JSONL-Datei in 02_parsed/.
+Zählt Tokens (Wörter via split()) je JSONL-Datei.
 Gruppiert nach quelle-Wert.
+
+Aufruf:
+    python count_tokens.py                    # Standard-Verzeichnis 02_parsed
+    python count_tokens.py 02_parsed_v2       # anderes Verzeichnis (Phase C)
+    python count_tokens.py 02_parsed_v2_subset
 """
 import json
 import sys
@@ -31,11 +36,17 @@ if __name__ == "__main__":
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
+    parsed_dir = PARSED_DIR
+    if len(sys.argv) > 1:
+        arg = Path(sys.argv[1])
+        parsed_dir = arg if arg.is_absolute() else (Path(__file__).parent / arg)
+
     total_tokens = 0
+    print(f"Verzeichnis: {parsed_dir}")
     print(f"{'Datei':<35} {'Quelle':<28} {'Tokens':>14} {'Dokumente':>10}")
     print("-" * 92)
 
-    for path in sorted(PARSED_DIR.glob("*.jsonl")):
+    for path in sorted(parsed_dir.glob("*.jsonl")):
         qt, qd = count_file(path)
         file_tokens = sum(qt.values())
         total_tokens += file_tokens

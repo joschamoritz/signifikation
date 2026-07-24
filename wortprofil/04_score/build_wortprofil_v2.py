@@ -104,7 +104,12 @@ def init_wortprofil_db(conn: sqlite3.Connection):
     conn.execute("PRAGMA page_size=16384")       # Größere Pages: weniger I/O
     conn.execute("PRAGMA journal_mode=WAL")
     conn.execute("PRAGMA synchronous=NORMAL")
-    conn.execute("PRAGMA cache_size=-65536")     # 64 MB Cache
+    conn.execute("PRAGMA cache_size=-1048576")   # 1 GB Cache (weniger HDD-Reads)
+    # temp_store=MEMORY: die großen GROUP BY/ORDER BY (Marginals + iter_collocations
+    # über Mio. Triples) sortieren im RAM statt in temp-Dateien. Ohne das läuft der
+    # externe Sort als random-I/O auf der HDD → Build hängt (in Phase C beobachtet:
+    # 17 min bei „Lade Marginals", nur ~8 s aktive Zeit). Auch für Phase E essenziell.
+    conn.execute("PRAGMA temp_store=MEMORY")
     conn.execute("""
         CREATE TABLE IF NOT EXISTS collocations (
             id                   INTEGER PRIMARY KEY,

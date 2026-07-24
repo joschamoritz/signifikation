@@ -505,8 +505,11 @@ DATEIEN = [
     "bundestag_xml.jsonl",
     "german_commons.jsonl",
     "german_commons_justiz.jsonl",
-    # wikipedia.jsonl bewusst NICHT hier: nur für belege.db (F1/build_belege_v2.py),
-    # nicht für wortprofil.db (Qualitätsentscheidung DB-Neuaufbau.md, Abschnitt 4).
+    # wikipedia.jsonl: F1 REVIDIERT 2026-07-24 (Phase-C-A/B-Test) — jetzt AUCH ins
+    # wortprofil (nicht nur belege). Der Subset-A/B zeigte +39 % Kollokationen /
+    # +33 % Lemmata; die enzyklopädische logDice-Verzerrung wird zugunsten der
+    # Abdeckung akzeptiert (User-Entscheidung). Kostet +40 % Parse-Zeit.
+    "wikipedia.jsonl",
     "leipzig.jsonl",
     "dibilit.jsonl",
     "dta_kern.jsonl",
