@@ -129,6 +129,22 @@ export const analyzeZWendeQuerySchema = z.object({
 })
 
 /**
+ * GET /admin/analyze-lueckenfueller (query) – Eignungsprüfung für ein
+ * beliebiges Wort, unabhängig davon, ob es bereits als Lemma existiert
+ * (pos optional: fehlt sie, probiert der Handler alle drei Wortarten).
+ */
+export const analyzeLueckenfuellerQuerySchema = z.object({
+  q:   z.string().min(1, 'q= erforderlich').max(100),
+  pos: POS.optional(),
+})
+
+/** POST /admin/lueckenfueller/generate – legt bei Bedarf ein neues Lemma an. */
+export const lueckenfuellerGenerateSchema = z.object({
+  lemmaName: z.string().min(1, 'lemmaName erforderlich').max(100),
+  pos:       POS.optional(),
+})
+
+/**
  * GET /api/v1/custom-lemma/validate (query) – Eignungsprüfung für Eigenes-Lemma.
  * Wort-Zwilling braucht ein Paar (a & b), die anderen Modi ein Einzelwort (q).
  */
