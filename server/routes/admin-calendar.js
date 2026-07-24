@@ -9,6 +9,8 @@ export function createAdminCalendarRouter({
   analyzeKollQuerySchema,
   analyzeWZQuerySchema,
   analyzeZWendeQuerySchema,
+  analyzeLueckenfuellerQuerySchema,
+  lueckenfuellerGenerateSchema,
   adminBulkDeleteCalendarSchema,
   adminBulkImportCalendarSchema,
   adminPreviewLemmaSchema,
@@ -482,54 +484,77 @@ export function createAdminCalendarRouter({
     }
   })
 
-  router.post('/admin/lueckenfueller/generate', adminLimiter, requireAuth, async (req, res) => {
-    const { lemmaName } = req.body
-    if (!lemmaName || typeof lemmaName !== 'string' || !lemmaName.trim()) {
-      return res.status(400).json({ error: 'lemmaName fehlt' })
-    }
+  const LUECKENFUELLER_POS_CANDIDATEN = ['Substantiv', 'Verb', 'Adjektiv']
+
+  // Ermittelt Wortart + buildLueckenfueller-Ergebnis für ein Wort. Existiert
+  // bereits ein Lemma dazu, gilt zwingend dessen Wortart (eine ID/Zeile pro
+  // Wort). Sonst: ohne Vorgabe alle drei Wortarten testen (analog
+  // analyzeKollokationForPos) statt ein POS-Feld in der UI zu erzwingen —
+  // Lückenfüller ist nicht mehr an ein vorher über Kollokationen angelegtes
+  // Lemma gebunden.
+  async function resolveLueckenfuellerCandidate(lemma, existingPos, posParam) {
+    const candidates = existingPos ? [existingPos] : posParam ? [posParam] : LUECKENFUELLER_POS_CANDIDATEN
+    const attempts = await Promise.all(
+      candidates.map((pos) => buildLueckenfueller(lemma, pos).then((result) => ({ pos, result }))),
+    )
+    return attempts.find((a) => a.result) || attempts[0]
+  }
+
+  router.post('/admin/lueckenfueller/generate', adminLimiter, requireAuth, validate(lueckenfuellerGenerateSchema), async (req, res) => {
+    const { lemmaName, pos: posParam } = req.body
+    const name = lemmaName.trim()
     try {
       const { byLemma } = getLemmataIndex()
-      const entry = byLemma.get(lemmaName.trim())
-      if (!entry) return res.status(404).json({ error: `Lemma „${lemmaName}" nicht in der Datenbank gefunden` })
+      const existing = byLemma.get(name)
+      const best = await resolveLueckenfuellerCandidate(name, existing?.pos, posParam)
+      if (!best.result) return res.json({ ok: false, reason: 'Nicht genug Material (Pool zu klein oder keine blankbaren Sätze)' })
 
-      const result = await buildLueckenfueller(entry.lemma, entry.pos)
-      if (!result) return res.json({ ok: false, reason: 'Nicht genug Material (Pool zu klein oder keine blankbaren Sätze)' })
+      let entry = existing
+      let neuAngelegt = false
+      if (!entry) {
+        logger.info(`Lege neues Lemma „${name}" (${best.pos}) für Lückenfüller an …`)
+        entry = await fetchLemma(name, best.pos)
+        neuAngelegt = true
+      }
 
-      stmts.upsertLemma.run(lemmaToRow({ ...entry, lueckenfueller: result }))
+      stmts.upsertLemma.run(lemmaToRow({ ...entry, lueckenfueller: best.result }))
       invalidateCache('lemmata.json')
 
-      logger.info(`Lückenfüller generiert für „${entry.lemma}" (${entry.id}): ${result.length} Runden`)
-      res.json({ ok: true, lemma: entry.lemma, id: entry.id, rounds: result.length })
+      logger.info(`Lückenfüller generiert für „${entry.lemma}" (${entry.id}): ${best.result.length} Runden${neuAngelegt ? ' — neues Lemma angelegt' : ''}`)
+      res.json({ ok: true, lemma: entry.lemma, id: entry.id, pos: entry.pos, rounds: best.result.length, neuAngelegt })
     } catch (err) {
       serverError(res, err)
     }
   })
 
-  // Analyse-Endpunkt: prüft Eignung ohne zu speichern
-  router.get('/admin/analyze-lueckenfueller', adminLimiter, requireAuth, validate(qQuerySchema, 'query'), async (req, res) => {
-    const { q: lemmaName } = req.query
+  // Analyse-Endpunkt: prüft Eignung ohne zu speichern — auch für Woerter, die
+  // noch kein Lemma haben.
+  router.get('/admin/analyze-lueckenfueller', adminLimiter, requireAuth, validate(analyzeLueckenfuellerQuerySchema, 'query'), async (req, res) => {
+    const { q: lemmaName, pos: posParam } = req.query
+    const name = lemmaName.trim()
     try {
       const { byLemma } = getLemmataIndex()
-      const entry = byLemma.get(lemmaName.trim())
-      if (!entry) return res.status(404).json({ error: `Lemma „${lemmaName}" nicht in der Datenbank gefunden` })
+      const existing = byLemma.get(name)
+      const best = await resolveLueckenfuellerCandidate(name, existing?.pos, posParam)
 
-      const result = await buildLueckenfueller(entry.lemma, entry.pos)
-      if (!result) return res.json({
+      if (!best.result) return res.json({
         ok: false,
         usable: false,
-        lemma: entry.lemma,
-        pos: entry.pos,
+        lemma: name,
+        pos: best.pos,
+        neuesLemma: !existing,
         reason: 'Nicht genug Material (Pool zu klein oder keine blankbaren Sätze)',
       })
 
       res.json({
         ok: true,
         usable: true,
-        lemma: entry.lemma,
-        pos: entry.pos,
-        rounds: result.length,
-        roundTypes: result.map(r => r.type),
-        preview: result.map(r => ({
+        lemma: name,
+        pos: best.pos,
+        neuesLemma: !existing,
+        rounds: best.result.length,
+        roundTypes: best.result.map(r => r.type),
+        preview: best.result.map(r => ({
           type: r.type,
           kollokator: r.kollokator ?? r.sentences?.map(s => s.kollokator).join(' / '),
           punkte: r.punkte,
