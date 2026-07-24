@@ -34,10 +34,20 @@ Damit brauchst du auf der SSD nur ~35–40 GB (nicht ~70). Das HDD-Problem aus P
 
 > `<SSD>` unten = ein Pfad auf deiner SSD mit ~40 GB frei (z. B. `C:\wortprofil_v2` oder eine andere SSD-Partition).
 
-## 3. Parse starten (Phase D)
+## 3. Parse starten (Phase D) — empfohlen: Auto-Restart-Wrapper
+
+**So läuft es ohne tägliches Eingreifen durch** (der Wrapper resumt bei jedem Absturz automatisch):
 
 ```powershell
 cd D:\Schule\Kollokade\wortprofil
+.\phase_c\phase_d_run.ps1 -SsdDb "<SSD>\triples_v2.db"
+```
+
+Der Wrapper startet `parallel_parse.py` und setzt bei Absturz selbstständig mit `--resume` fort (60 s Pause, bis zu 200×). Bricht nur ab, wenn 3 Läufe hintereinander in < 120 s scheitern (= echter Fehler, kein normaler Absturz). Parameter: `-WorkDir` (HDD, Standard gesetzt), `-Pool 4`, `-Shards 6`.
+
+**Alternativ ohne Wrapper** (manuelles Resume bei Absturz):
+
+```powershell
 .\wortprofil-env\Scripts\python.exe -u phase_c\parallel_parse.py `
   --input-dir 02_parsed_v2 `
   --out-db "<SSD>\triples_v2.db" `
@@ -48,7 +58,6 @@ cd D:\Schule\Kollokade\wortprofil
 - `--pool 4` — bei 4 Prozessen der RAM-sichere Peak (8 Prozesse crashten in Phase C).
 - `--shards 6` — große Dateien (wikipedia, leipzig, gei) werden adaptiv geteilt; kleine bleiben 1 Shard.
 - `--resume` — von Anfang an setzen: bei Absturz kostet ein Neustart nur den laufenden Shard.
-- Log landet in `phase_c\logs\phase_d.log`.
 
 ## 4. Fortschritt prüfen (täglicher 10-Sekunden-Blick)
 
@@ -60,7 +69,9 @@ Zeigt: fertige / laufende / offene Shards, committete Chunks, Triple-Summe, letz
 
 ## 5. Bei Absturz (Strom, Windows-Update, RAM-Spike)
 
-Einfach **denselben Startbefehl aus Schritt 3 erneut ausführen**. `--resume` erkennt fertige Shards (überspringt sie), setzt angefangene ab dem letzten Chunk-Checkpoint fort. Verifiziert in Phase C: kein Datenverlust, keine Doppelzählung.
+**Mit dem Wrapper (Schritt 3):** passiert automatisch — er resumt selbst. Du musst nichts tun, solange der Wrapper-Prozess lebt. Nur ein **Windows-Neustart** beendet auch den Wrapper; dann das PowerShell-Fenster wieder öffnen und den Wrapper-Befehl erneut ausführen (er nimmt den Lauf per `--resume` genau dort auf). Wer das auch abfangen will, legt eine Verknüpfung auf `phase_d_run.ps1` in den Autostart (`shell:startup`).
+
+**Ohne Wrapper:** einfach denselben Startbefehl erneut ausführen. `--resume` erkennt fertige Shards (überspringt sie), setzt angefangene ab dem letzten Chunk-Checkpoint fort. Verifiziert in Phase C: kein Datenverlust, keine Doppelzählung.
 
 Falls einzelne Shards mit Fehler enden: Ursache in `_work_triples_v2\logs\<shard>.log` prüfen, dann erneut mit `--resume` (nur die fehlerhaften laufen neu). Bei Shard-Fehlern wird die `triples_v2.db` **nicht** gebaut (kein „falsches Fertig").
 
