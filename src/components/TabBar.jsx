@@ -1,3 +1,5 @@
+import { useEffect, useRef, useState } from 'react'
+import { hapticLight } from '../utils/haptics'
 import '../styles/tabbar.css'
 
 // Outline-Icons (WhatsApp-/SF-Symbols-Linienstil) – schlanke, klare Striche.
@@ -58,23 +60,81 @@ const TABS = [
   },
 ]
 
+// Scroll-Edge (iOS 26): solange Inhalt unter der Leiste durchläuft, hebt sie
+// sich vom Content ab; am Seitenende – oder wenn die Seite gar nicht scrollt –
+// wird sie flach. Ein ResizeObserver auf <body> fängt Tab-Wechsel und
+// nachgeladenen Content, ohne dass ein Scroll-Event nötig wäre.
+function useScrollEdge() {
+  const [flat, setFlat] = useState(true)
+
+  useEffect(() => {
+    let frame = 0
+
+    const measure = () => {
+      frame = 0
+      const scrollable = document.documentElement.scrollHeight - window.innerHeight
+      setFlat(scrollable <= 8 || window.scrollY >= scrollable - 8)
+    }
+    const schedule = () => {
+      if (!frame) frame = requestAnimationFrame(measure)
+    }
+
+    measure()
+    window.addEventListener('scroll', schedule, { passive: true })
+    window.addEventListener('resize', schedule)
+    const observer = new ResizeObserver(schedule)
+    observer.observe(document.body)
+
+    return () => {
+      if (frame) cancelAnimationFrame(frame)
+      window.removeEventListener('scroll', schedule)
+      window.removeEventListener('resize', schedule)
+      observer.disconnect()
+    }
+  }, [])
+
+  return flat
+}
+
 export default function TabBar({ activeTab, onTabChange, showClassroomTab = false }) {
   const visibleTabs = TABS.filter((t) => !t.teacherOnly || showClassroomTab)
   const activeIndex = visibleTabs.findIndex((t) => t.id === activeTab)
+  const flat = useScrollEdge()
+
+  // Zähler alterniert die beiden identischen Morph-Keyframes (tabbar.css) –
+  // ein Namenswechsel startet die Animation zuverlässig neu, auch wenn der
+  // vorherige Wechsel noch läuft. 0 = Erstmount, da soll nichts animieren.
+  const prevTab = useRef(activeTab)
+  const [morphTick, setMorphTick] = useState(0)
+  useEffect(() => {
+    if (prevTab.current === activeTab) return
+    prevTab.current = activeTab
+    setMorphTick((tick) => tick + 1)
+  }, [activeTab])
+
+  const handleTabClick = (id) => {
+    if (id !== activeTab) hapticLight()
+    onTabChange(id)
+  }
+
   return (
-    <nav className="tab-bar" aria-label="Hauptnavigation">
+    <nav className={`tab-bar${flat ? ' tab-bar--flat' : ''}`} aria-label="Hauptnavigation">
       <div className="tab-bar-inner" style={{ '--tab-count': visibleTabs.length }}>
         {/* Gleitende Glas-Kapsel hinter dem aktiven Tab (iOS-26-Stil, rein dekorativ) */}
         <span
           className="tab-bar-indicator"
           aria-hidden="true"
-          style={{ '--active-index': activeIndex < 0 ? 0 : activeIndex, opacity: activeIndex < 0 ? 0 : undefined }}
+          style={{
+            '--active-index': activeIndex < 0 ? 0 : activeIndex,
+            opacity: activeIndex < 0 ? 0 : undefined,
+            animationName: morphTick === 0 ? 'none' : (morphTick % 2 ? 'tabMorphA' : 'tabMorphB'),
+          }}
         />
         {visibleTabs.map(({ id, label, icon: Icon }) => (
           <button
             key={id}
             className={`tab-bar-btn${activeTab === id ? ' tab-bar-btn--active' : ''}`}
-            onClick={() => onTabChange(id)}
+            onClick={() => handleTabClick(id)}
             aria-label={label}
             aria-current={activeTab === id ? 'page' : undefined}
             type="button"
