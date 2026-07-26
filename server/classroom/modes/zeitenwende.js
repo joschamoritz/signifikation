@@ -23,7 +23,7 @@ export default {
     const words = await resolveZeitenwende(lemma, {
       fetchZeitenwende: deps.fetchZeitenwende,
       logWarn: (err, l) =>
-        deps.logger?.warn({ err, lemma: l }, 'classroom fetchZeitenwende fehlgeschlagen — Fallback aufs gespeicherte Feld'),
+        deps.logger?.warn({ err, lemma: l }, 'classroom fetchZeitenwende fehlgeschlagen – Fallback aufs gespeicherte Feld'),
     })
     return {
       lemma:      lemma.lemma,

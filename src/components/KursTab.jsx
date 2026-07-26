@@ -42,7 +42,7 @@ export const KURS_MODULES = [
     title: 'Wortfunktionen',
     ipa: '[ˈvɔʁtfʊŋkˌtsi̯oːnən]',
     category: 'Syntax',
-    definition: 'Subjekt, Objekt und Prädikativ verstehen — Wörter über ihre Funktion im Satz erkennen.',
+    definition: 'Subjekt, Objekt und Prädikativ verstehen – Wörter über ihre Funktion im Satz erkennen.',
   },
   {
     id: 'dependenz',
@@ -52,7 +52,7 @@ export const KURS_MODULES = [
     title: 'Abhängigkeiten',
     ipa: '[apˈhɛŋɪçkaɪtn̩]',
     category: 'Syntax',
-    definition: 'Grammatische Abhängigkeiten lesen: welche Wörter regieren welche — Dependenzen im Satz erkennen.',
+    definition: 'Grammatische Abhängigkeiten lesen: welche Wörter regieren welche – Dependenzen im Satz erkennen.',
   },
   {
     id: 'korpus',
@@ -72,7 +72,7 @@ export const KURS_MODULES = [
     title: 'Korpusbelege',
     ipa: '[ˈkɔʁpʊsbəˌleːɡə]',
     category: 'Anwendung',
-    definition: 'Eigene Fragestellung in einem kleinen Beispielkorpus — eine Behauptung am echten Beleg prüfen.',
+    definition: 'Eigene Fragestellung in einem kleinen Beispielkorpus – eine Behauptung am echten Beleg prüfen.',
   },
 ]
 
@@ -156,7 +156,7 @@ function KursTab({ gesamtausgabe = false, loggedIn = false, onNavigateToKonto })
               niveau={niveau}
               onChange={setNiveau}
               className="niveau-select--compact"
-              ariaLabel="Niveaustufe wählen — gilt für Aufgaben und Material aller Stationen"
+              ariaLabel="Niveaustufe wählen – gilt für Aufgaben und Material aller Stationen"
             />
           }
         />
@@ -171,7 +171,7 @@ function KursTab({ gesamtausgabe = false, loggedIn = false, onNavigateToKonto })
               niveau={niveau}
               onChange={setNiveau}
               className="niveau-select--folio"
-              ariaLabel="Niveaustufe wählen — gilt für Aufgaben und Material aller Stationen"
+              ariaLabel="Niveaustufe wählen – gilt für Aufgaben und Material aller Stationen"
             />
           </div>
         </nav>

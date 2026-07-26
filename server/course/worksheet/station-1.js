@@ -97,7 +97,7 @@ const SekII = {
       type: 'wissen', label: 'Wissen · Frequenz und Assoziationsstärke',
       paras: [
         'Eine Kollokation ist eine **usuelle** (übliche) Wortverbindung – abzugrenzen von der freien Kombination und vom Idiom.[^1] Ob zwei Wörter typisch zusammengehören, lässt sich am **Korpus** messen. Dabei sind **zwei** Größen zu trennen:',
-        ' — **Frequenz**: *wie oft* eine Verbindung vorkommt.\n — **Assoziationsstärke** (logDice): *wie exklusiv* zwei Wörter aneinander gebunden sind.',
+        ' – **Frequenz**: *wie oft* eine Verbindung vorkommt.\n – **Assoziationsstärke** (logDice): *wie exklusiv* zwei Wörter aneinander gebunden sind.',
         '„großer Fehler“ ist **häufiger**, „schwerer Fehler“ ist **typischer**: *groß* passt zu fast allem, *schwer* bindet spezifisch an *Fehler*.[^2][^3]',
       ],
       forward: 'logDice bleibt hier eine Black Box: höher = stärker gebunden (Skala bis 14). **Wie** ein Korpus das genau misst – Formel, Grenzen – lernst du in **Station ④**.',

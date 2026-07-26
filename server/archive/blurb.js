@@ -22,24 +22,24 @@ function stableIndex(str, mod) {
 
 const BY_POS = {
   Substantiv: (w) => [
-    `Als Substantiv steht „${w}“ im Korpus in charakteristischen Verbindungen — mit beschreibenden Adjektiven, mit Verben, zu denen es als Subjekt oder Objekt gehört, und mit eng verwandten weiteren Substantiven.`,
+    `Als Substantiv steht „${w}“ im Korpus in charakteristischen Verbindungen – mit beschreibenden Adjektiven, mit Verben, zu denen es als Subjekt oder Objekt gehört, und mit eng verwandten weiteren Substantiven.`,
     `„${w}“ ist als Substantiv im Korpus fest in typische Wortverbindungen eingebunden: mit Adjektiven, die es näher bestimmen, mit Verben, denen es als Subjekt oder Objekt zugeordnet ist, sowie mit verwandten Substantiven.`,
-    `Im Korpus tritt das Substantiv „${w}“ bevorzugt mit bestimmten Adjektiven, Verben und benachbarten Substantiven auf — die folgende Übersicht zeigt die charakteristischsten dieser Verbindungen.`,
+    `Im Korpus tritt das Substantiv „${w}“ bevorzugt mit bestimmten Adjektiven, Verben und benachbarten Substantiven auf – die folgende Übersicht zeigt die charakteristischsten dieser Verbindungen.`,
   ],
   Verb: (w) => [
     `Als Verb verbindet sich „${w}“ im Korpus typischerweise mit bestimmten Subjekten und Objekten sowie mit charakteristischen Adverbien.`,
     `„${w}“ verbindet sich als Verb im Korpus bevorzugt mit bestimmten Subjekten und Objekten sowie mit typischen Adverbien.`,
-    `Im Korpus tritt das Verb „${w}“ gemeinsam mit charakteristischen Subjekten, Objekten und Adverbien auf — die folgende Übersicht zeigt die auffälligsten dieser Verbindungen.`,
+    `Im Korpus tritt das Verb „${w}“ gemeinsam mit charakteristischen Subjekten, Objekten und Adverbien auf – die folgende Übersicht zeigt die auffälligsten dieser Verbindungen.`,
   ],
   Adjektiv: (w) => [
     `Als Adjektiv bestimmt „${w}“ im Korpus bevorzugt bestimmte Substantive näher und tritt mit typischen Verben und Gradangaben auf.`,
     `„${w}“ bestimmt als Adjektiv im Korpus bevorzugt bestimmte Substantive näher und verbindet sich mit typischen Verben und Gradangaben.`,
-    `Im Korpus begleitet das Adjektiv „${w}“ bevorzugt bestimmte Substantive und tritt mit charakteristischen Verben und Gradangaben auf — die folgende Übersicht zeigt die auffälligsten dieser Verbindungen.`,
+    `Im Korpus begleitet das Adjektiv „${w}“ bevorzugt bestimmte Substantive und tritt mit charakteristischen Verben und Gradangaben auf – die folgende Übersicht zeigt die auffälligsten dieser Verbindungen.`,
   ],
   Adverb: (w) => [
     `Als Adverb modifiziert „${w}“ im Korpus charakteristische Verben und Adjektive.`,
     `„${w}“ modifiziert als Adverb im Korpus charakteristische Verben und Adjektive.`,
-    `Im Korpus tritt das Adverb „${w}“ bevorzugt gemeinsam mit bestimmten Verben und Adjektiven auf — die folgende Übersicht zeigt die auffälligsten dieser Verbindungen.`,
+    `Im Korpus tritt das Adverb „${w}“ bevorzugt gemeinsam mit bestimmten Verben und Adjektiven auf – die folgende Übersicht zeigt die auffälligsten dieser Verbindungen.`,
   ],
 }
 

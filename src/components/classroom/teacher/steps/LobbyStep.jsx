@@ -135,7 +135,7 @@ export default function LobbyStep() {
       testId="classroom-lobby"
       title="Lobby"
       label="Live-Sitzung"
-      lead="Teile den Code — warte auf die Klasse."
+      lead="Teile den Code – warte auf die Klasse."
       backLabel="Zurück zur Übersicht"
       onBack={() => dispatch({ type: 'GO_TO_LIST' })}
     >

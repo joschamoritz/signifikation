@@ -216,7 +216,7 @@ export function buildStationHtml({ stationNo = 1, content, lesson, corpus = make
   // Inhalte", weil bei der Generierung die wortprofil.db nicht verbunden war).
   if (emptyCorpusItems.length) {
     const detail = emptyCorpusItems.map(e => `${e.level}/${e.id}(${e.format})`).join(', ')
-    logger.warn({ stationNo: station.orderNo, emptyCorpusItems }, `course/pdf: ${emptyCorpusItems.length} Korpus-Item(s) ohne Inhalt — Korpus-DB verbunden?`)
+    logger.warn({ stationNo: station.orderNo, emptyCorpusItems }, `course/pdf: ${emptyCorpusItems.length} Korpus-Item(s) ohne Inhalt – Korpus-DB verbunden?`)
     if (strictCorpus) {
       throw new Error(`Leere Korpus-Items beim PDF-Bau (Station ${station.orderNo}): ${detail}. wortprofil.db/belege.db verbunden? (WORTPROFIL_DB)`)
     }

@@ -81,7 +81,7 @@ const SekI = {
       type: 'wissen', label: 'Wissen · Wie findet man Satzglieder? – die Proben',
       paras: [
         'Satzglieder erkennt man nicht am Gefühl, sondern mit **operationalen Proben**:[^2]',
-        ' — **Frageprobe**: „Wer/was?“ → S · „Was tut/geschieht?“ → P · „Wen/was?“ → Akkusativobjekt.\n — **Umstellprobe**: Nur ein **ganzes** Satzglied lässt sich als Einheit ins **Vorfeld** schieben (vor das Verb).[^1]\n — **Ersatzprobe**: Ein Satzglied lässt sich durch **ein** Wort (z. B. ein Pronomen) ersetzen.[^2]',
+        ' – **Frageprobe**: „Wer/was?“ → S · „Was tut/geschieht?“ → P · „Wen/was?“ → Akkusativobjekt.\n – **Umstellprobe**: Nur ein **ganzes** Satzglied lässt sich als Einheit ins **Vorfeld** schieben (vor das Verb).[^1]\n – **Ersatzprobe**: Ein Satzglied lässt sich durch **ein** Wort (z. B. ein Pronomen) ersetzen.[^2]',
       ],
     },
     { type: 'merke', text: 'Ein Satzglied lässt sich **als Ganzes** verschieben und durch **ein** Wort ersetzen.' },
@@ -123,7 +123,7 @@ const SekII = {
       type: 'wissen', label: 'Wissen · Der Slot bestimmt den Partner',
       paras: [
         'Ein Kollokations-Nomen sitzt in einem **Slot** – einer grammatischen Rolle. Der Slot bestimmt den typischen Verbpartner:',
-        ' — **Objekt-Slot**: „eine Entscheidung *treffen* / *fällen*“.\n — **Subjekt-Slot**: „die Entscheidung *fällt* / *ergeht*“.',
+        ' – **Objekt-Slot**: „eine Entscheidung *treffen* / *fällen*“.\n – **Subjekt-Slot**: „die Entscheidung *fällt* / *ergeht*“.',
         'Gleiches Wort, anderer Slot → anderer Partner. So verklammern sich Kollokation (①) und Satzstruktur (③).',
       ],
     },
@@ -155,7 +155,7 @@ const LK = {
       type: 'wissen', label: 'Wissen · Ergänzungsklassen und Grenzfälle',
       paras: [
         'Ergänzungen treten in **Klassen** auf: Akkusativ-, Dativ-, Genitiv- und Präpositionalobjekt. Zwei **Grenzfälle** sind keine Objekte, obwohl ein Nomen dem Verb folgt:[^2]',
-        ' — **Prädikativ** (bei den Kopulaverben *sein / werden / bleiben*): „Er ist *ein guter Lehrer*.“ – eine Gleichsetzung, kein Objekt.\n — **Genitivattribut**: „das Urteil *des Gerichts*“ – hängt am **Nomen**, nicht am Verb.',
+        ' – **Prädikativ** (bei den Kopulaverben *sein / werden / bleiben*): „Er ist *ein guter Lehrer*.“ – eine Gleichsetzung, kein Objekt.\n – **Genitivattribut**: „das Urteil *des Gerichts*“ – hängt am **Nomen**, nicht am Verb.',
       ],
     },
     {

@@ -88,7 +88,7 @@ export default function SessionCodeCard({ code }) {
           // eslint-disable-next-line react/no-danger -- SVG kommt aus der qrcode-Lib, kein User-Input
           dangerouslySetInnerHTML={{ __html: qrSvg }}
           onClick={() => setZoomed(true)}
-          aria-label="QR-Code zum Beitreten — tippen für Vollbild"
+          aria-label="QR-Code zum Beitreten – tippen für Vollbild"
           data-testid="classroom-code-qr-button"
         />
       )}

@@ -98,7 +98,7 @@ export default function VerschiebeTask({ task, index, onChecked, canRetry = true
   const reasonText = {
     leer: 'Im Vorfeld steht noch nichts. Zieh ein Satzglied vor das Verb.',
     mehrere: 'Es steht mehr als ein Satzglied im Vorfeld. Im Aussagesatz passt dort genau eines.',
-    'kein-satzglied': 'Das ist kein verschiebbares Satzglied — es lässt sich nicht als geschlossene Einheit ins Vorfeld stellen.',
+    'kein-satzglied': 'Das ist kein verschiebbares Satzglied – es lässt sich nicht als geschlossene Einheit ins Vorfeld stellen.',
   }
 
   return (

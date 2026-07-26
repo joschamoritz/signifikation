@@ -24,7 +24,7 @@ const MODES = [
     label: 'Wort-Zwilling',
     ipa: '[ˈvɔʁtˌtsvɪlɪŋ]',
     cat: 'Komparativ',
-    desc: 'Zwei bedeutungsnahe Wörter — zwei unterschiedliche Kollokationsprofile. Ordne zehn Kollokationen dem richtigen Lemma zu.',
+    desc: 'Zwei bedeutungsnahe Wörter – zwei unterschiedliche Kollokationsprofile. Ordne zehn Kollokationen dem richtigen Lemma zu.',
   },
   {
     id: 'zeitenwende',
@@ -38,7 +38,7 @@ const MODES = [
     label: 'Lückenfüller',
     ipa: '[ˈlʏkənˌfʏlɐ]',
     cat: 'Konstruktiv',
-    desc: 'Ein echter Korpussatz mit fehlender Kollokation — welches Wort gehört in die Lücke? Drei Runden, vier Optionen, zehn Punkte.',
+    desc: 'Ein echter Korpussatz mit fehlender Kollokation – welches Wort gehört in die Lücke? Drei Runden, vier Optionen, zehn Punkte.',
   },
 ]
 

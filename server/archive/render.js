@@ -254,7 +254,7 @@ export function renderWortPage(entry, siblings = [], extras = {}) {
   const primaryDef = defs[0] || ''
   const title = `${entry.lemma}${entry.wortart ? ', ' + entry.wortart : ''} – Bedeutung | Signifikation`
   const description = primaryDef
-    ? `${entry.lemma}${entry.wortart ? ' (' + entry.wortart + ')' : ''}: ${primaryDef} — Wörterbuch-Eintrag aus dem Signifikation-Archiv.`
+    ? `${entry.lemma}${entry.wortart ? ' (' + entry.wortart + ')' : ''}: ${primaryDef} – Wörterbuch-Eintrag aus dem Signifikation-Archiv.`
     : `${entry.lemma}: Wörterbuch-Eintrag aus dem Signifikation-Archiv, dem täglichen linguistischen Quiz aus eigenen Korpusdaten.`
 
   const jsonLd = {

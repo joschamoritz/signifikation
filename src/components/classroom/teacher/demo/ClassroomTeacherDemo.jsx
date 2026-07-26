@@ -164,7 +164,7 @@ export default function ClassroomTeacherDemo({ onBack = noop, onGoPremium = noop
 
       {/* II — Schüleransicht (statisch, nur ansehen) ──────────────────── */}
       <section className="classroom-section" aria-labelledby="demo-student-label">
-        <span id="demo-student-label" className="classroom-section__label">II · Das sehen deine Schüler</span>
+        <span id="demo-student-label" className="classroom-section__label">II · Das sehen deine Schüler:innen</span>
 
         <div className="classroom-kiosk classroom-preview classroom-demo-preview">
           <p className="classroom-preview__banner" role="note">

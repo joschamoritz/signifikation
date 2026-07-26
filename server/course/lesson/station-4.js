@@ -39,32 +39,32 @@ export const entwurf4 = {
 
   verlauf: [
     {
-      phase: 'I Stundeneröffnung — Einstieg', anteil: 'Anteil 1',
+      phase: 'I Stundeneröffnung – Einstieg', anteil: 'Anteil 1',
       schritte: [
         { schritt: 'Schätzfrage: „Welches Adjektiv kommt am häufigsten mit ‚Haar\' vor? Welches ist am typischsten?“ → Abstimmung (Handzeichen), Ergebnisse sichern.', kommentar: 'Fast alle nennen das Häufigste als das Typischste → Hypothese, die der Befund widerlegt. Erzeugt kognitiven Bedarf für ein Mess-Instrument.', interaktion: 'Plenum', medien: 'Beamer-Folie 1 (Schätzfrage)' },
       ],
     },
     {
-      phase: 'II Stundenmitte — Erarbeitung (Arbeitsblatt, am Stück)', anteil: 'Anteil 3',
+      phase: 'II Stundenmitte – Erarbeitung (Arbeitsblatt, am Stück)', anteil: 'Anteil 3',
       schritte: [
         { schritt: 'Kurzer Plenums-Auftakt: App-Pipeline sichtbar machen (Rohtext → Grundform → Wortart → Abhängigkeit (③) → Kookkurrenz zählen → logDice) und das Maß einführen („nicht wie oft – sondern wie exklusiv“).', kommentar: 'Konzeptueller Rahmen; erklärt rückblickend ①–③. Die Dependenz-Stufe zeigt: die Maschine macht automatisch, was in ③ von Hand geübt wurde. Lüdeling/Walter 2009; Bubenhofer 2015.', interaktion: 'Plenum', medien: 'Beamer-Folien 2–3 (Pipeline, logDice)' },
         { schritt: 'Begleit-Arbeitsblatt durchgehend bearbeiten: Wissensblöcke (Korpus/Pipeline; Frequenz vs. Assoziationsmaß; Korpus-Bias; LK: logDice-Formel), Merksatz, dann die eigenen Aufgaben – differenziert nach Niveau.', kommentar: 'Neu erlernen + erste Anwendung auf Papier, am Stück; Formel/Grenzen bleiben als Referenz. DaZ/SekI ohne logDice-Term, LK mit voller Formel.', interaktion: 'EA → Partnerarbeit', medien: 'Arbeitsblatt (Wissen + Aufgaben)' },
       ],
     },
     {
-      phase: 'II Stundenmitte — Plateaubildung', anteil: 'Anteil 1',
+      phase: 'II Stundenmitte – Plateaubildung', anteil: 'Anteil 1',
       schritte: [
         { schritt: 'Plenums-Sicherung: „häufig ≠ typisch“ + Skala-Grobraster (~10 typisch · ~7 erkennbar · niedrig zufällig); Auflösung der Schätzfrage (Live-Datenfolie).', kommentar: 'Plateau: alle für die Anwendungsphase arbeitsfähig; Übergang zum Gerät. Datenfaustregel ist didaktische Setzung, kein fester Grenzwert.', interaktion: 'Plenum', medien: 'Tafel / Beamer (Live-Daten)' },
       ],
     },
     {
-      phase: 'II Stundenmitte — Anwendung (digitale Station, am Stück)', anteil: 'Anteil 2',
+      phase: 'II Stundenmitte – Anwendung (digitale Station, am Stück)', anteil: 'Anteil 2',
       schritte: [
         { schritt: 'Digitale Station ④ im Kurs-Tab durchgehend: Konkordanz lesen, Annotationsfehler finden, Pipeline-Schritte ordnen, Frequenz vs. logDice vergleichen – mit Sofort-Feedback an echten Korpuswerten.', kommentar: 'Vertiefte Anwendung am realen Korpus als eigener Block; die App zeigt echte Werte. Nach dem AB, kein Medienwechsel mitten in der Bearbeitung.', interaktion: 'Einzel-/Partnerarbeit', medien: 'Kurs-Tab (digitale Station)' },
       ],
     },
     {
-      phase: 'III Stundenabschluss — Ergebnissicherung + Reflexion', anteil: 'Anteil 1',
+      phase: 'III Stundenabschluss – Ergebnissicherung + Reflexion', anteil: 'Anteil 1',
       schritte: [
         { schritt: 'Auflösung Hypothese; wwLz: „Was sagt ein hoher logDice-Wert nicht?“ (Bedeutung, Angemessenheit, Ironie, Kontext). Merksatz: „Häufigkeit lügt – logDice misst Bindung.“', kommentar: 'Verankert das wwLz (Methodenkritik); bereitet ⑤ (eigene Recherche) vor.', interaktion: 'Plenum', medien: 'Beamer-Folie 4 (Reflexion)' },
         { schritt: 'Transfer/HA: eigenes Wort wählen, Frequenz und logDice der Top-Verbindungen vergleichen; Fazit in einem Satz.', kommentar: 'Sichert eigenständigen Umgang mit dem Messkonzept.', interaktion: 'EA', medien: 'Kurs-Tab' },

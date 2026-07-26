@@ -36,32 +36,32 @@ export const entwurf2 = {
 
   verlauf: [
     {
-      phase: 'I Stundeneröffnung — Einstieg', anteil: 'Anteil 1',
+      phase: 'I Stundeneröffnung – Einstieg', anteil: 'Anteil 1',
       schritte: [
         { schritt: 'Rückgriff ①: „schwerer Fehler“ und „Entscheidung treffen“ an der Tafel. Doppelimpuls: „Aus welchen Bausteinen bestehen diese Verbindungen?“ und „Wie prüft man, was im Satz zusammengehört?“', kommentar: 'Aktiviert Vorwissen aus ①; formuliert den Bedarf nach Beschreibungssprache (Wortarten) UND nach einer Probe für Satzglieder (Funktion).', interaktion: 'Plenum / LSG', medien: 'Beamer-Folie 1 (Anknüpfung)' },
       ],
     },
     {
-      phase: 'II Stundenmitte — Erarbeitung (Arbeitsblatt, am Stück)', anteil: 'Anteil 3',
+      phase: 'II Stundenmitte – Erarbeitung (Arbeitsblatt, am Stück)', anteil: 'Anteil 3',
       schritte: [
         { schritt: 'Kurzer Plenums-Auftakt beider Proben: Bauplan „scharfe Kritik“ (Adj+Nomen) und Verschiebeprobe „Der Lehrer erklärt heute die Regel.“ (Verb an Position 2; „Regel die“ scheitert → kein Satzglied).', kommentar: 'Modelliert die beiden Werkzeuge, bevor die SuS selbst arbeiten; operationalisiert „Funktion“ als falsifizierbares Verfahren (Gallmann 2015).', interaktion: 'Plenum → LSG', medien: 'Beamer-Folien 2–3' },
         { schritt: 'Begleit-Arbeitsblatt durchgehend bearbeiten: Wissensblöcke (Wortarten-Systematik + Baupläne; topologisches Feldermodell mit Verschiebeprobe), Merksatz, dann die eigenen Aufgaben – differenziert nach Niveau.', kommentar: 'Neu erlernen + erste Anwendung auf Papier, am Stück; das Fachwissen bleibt als Referenz/Notiz. Belege als Fußnoten; Differenzierung über das Niveau-AB.', interaktion: 'EA → Partnerarbeit', medien: 'Arbeitsblatt (Wissen + Aufgaben)' },
       ],
     },
     {
-      phase: 'II Stundenmitte — Plateaubildung', anteil: 'Anteil 1',
+      phase: 'II Stundenmitte – Plateaubildung', anteil: 'Anteil 1',
       schritte: [
         { schritt: 'Plenums-Sicherung: Bauplan-Übersicht (Adj+N / V+N) + Feldermodell-Skizze + beide Proben; zentrale AB-Ergebnisse vergleichen.', kommentar: 'Sichert ein gemeinsames Zwischenergebnis (Plateau), damit ALLE für die Anwendungsphase arbeitsfähig sind – Übergang vom Papier zum Gerät.', interaktion: 'Plenum', medien: 'Tafel / Beamer' },
       ],
     },
     {
-      phase: 'II Stundenmitte — Anwendung (digitale Station, am Stück)', anteil: 'Anteil 2',
+      phase: 'II Stundenmitte – Anwendung (digitale Station, am Stück)', anteil: 'Anteil 2',
       schritte: [
         { schritt: 'Digitale Station ② im Kurs-Tab durchgehend: Wortarten und Baupläne bestimmen, die Verschiebeprobe interaktiv anwenden – mit Sofort-Feedback.', kommentar: 'Vertiefte Anwendung der gesicherten Werkzeuge als eigener Block; die App prüft die Proben unmittelbar. Bewusst nach dem AB, kein Medienwechsel mitten in der Bearbeitung.', interaktion: 'Einzel-/Partnerarbeit', medien: 'Kurs-Tab (digitale Station)' },
       ],
     },
     {
-      phase: 'III Stundenabschluss — Ergebnissicherung', anteil: 'Anteil 1',
+      phase: 'III Stundenabschluss – Ergebnissicherung', anteil: 'Anteil 1',
       schritte: [
         { schritt: 'Form-vs-Funktion-Aha: „Kritik üben“ – „üben“ ist Prädikat → Verb, auch wenn es nicht „trainieren“ bedeutet. Merksatz: „Die Wortart folgt der Funktion, nicht der Bedeutung – und die Funktion lässt sich proben.“', kommentar: 'Verankert das Sek-II-Lernziel und verklammert beide Werkzeuge (Wortart-Probe + Verschiebeprobe).', interaktion: 'Plenum', medien: 'Beamer-Schlussfolie' },
         { schritt: 'Transfer/HA: eigenen Beispielsatz wählen, Baupläne + Felder bestimmen; am Kurs-Tab überprüfen.', kommentar: 'wwLz: Übertrag auf eigenes Material; Verschiebeprobe selbstständig anwenden.', interaktion: 'EA', medien: 'Kurs-Tab' },

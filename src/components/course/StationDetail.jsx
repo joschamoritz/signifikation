@@ -37,10 +37,10 @@ const STATION_GLYPHS = ['', '①', '②', '③', '④', '⑤']
 // Ein-Satz-Lernziel je Station (niveau-übergreifend, daher OHNE logDice-Begriff —
 // gilt auch in der DaZ/SekI-Schnupper-Ansicht von ④/⑤). Keyed auf order_no.
 const STATION_GOALS = {
-  1: 'Typische Wortpartner einer Stufe erkennen, vergleichen und am Korpus belegen — statt zu raten.',
+  1: 'Typische Wortpartner einer Stufe erkennen, vergleichen und am Korpus belegen – statt zu raten.',
   2: 'Wortarten als Werkzeug nutzen: Bausteine und Baupläne typischer Wortverbindungen über ihre Funktion bestimmen.',
-  3: 'Typische Wortverbindungen in der Satzstruktur verorten — Satzglieder, Slots und Abhängigkeiten erkennen.',
-  4: 'Verstehen, wie ein Korpus misst, welche Wortverbindungen wirklich typisch sind — und wo die Grenzen der Methode liegen.',
+  3: 'Typische Wortverbindungen in der Satzstruktur verorten – Satzglieder, Slots und Abhängigkeiten erkennen.',
+  4: 'Verstehen, wie ein Korpus misst, welche Wortverbindungen wirklich typisch sind – und wo die Grenzen der Methode liegen.',
   5: 'Eine eigene sprachliche Frage am Korpus prüfen: Hypothese aufstellen, Befund deuten, begründet Stellung nehmen.',
 }
 
@@ -761,7 +761,7 @@ function MaterialFormatLink({ stationId, material, kindLabel }) {
       <span className="course-material-arrow" aria-hidden="true">{busy ? '…' : failed ? '!' : '↓'}</span>
       <span className="sr-only">
         {kindLabel} als {format.toUpperCase()}
-        {failed ? ' — Download fehlgeschlagen, erneut versuchen' : ' herunterladen'}
+        {failed ? ' – Download fehlgeschlagen, erneut versuchen' : ' herunterladen'}
       </span>
     </a>
   )

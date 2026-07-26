@@ -206,7 +206,7 @@ function kwicSolutionText(it) {
 function annotateSolutionText(it) {
   const wrong = (it.payload.annotations ?? []).find(a => a.wrong)
   if (!wrong) return ''
-  return `„${esc(wrong.text)}“ — Maschine: ${esc(wrong.tag)}, richtig: ${esc(wrong.correctTag ?? '—')}`
+  return `„${esc(wrong.text)}“ – Maschine: ${esc(wrong.tag)}, richtig: ${esc(wrong.correctTag ?? '—')}`
 }
 
 function workedSolutionText(it) {

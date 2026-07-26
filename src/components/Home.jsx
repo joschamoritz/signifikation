@@ -299,7 +299,7 @@ function Home({
               headword="Wort-Zwilling"
               ipa="[ˈvɔʁtˌtsvɪlɪŋ]"
               ipaAriaLabel="Aussprache: [ˈvɔʁtˌtsvɪlɪŋ]"
-              definition="Zwei bedeutungsnahe Wörter — zwei unterschiedliche Kollokationsprofile. Ordne zehn Kollokatoren der richtigen Basis zu."
+              definition="Zwei bedeutungsnahe Wörter – zwei unterschiedliche Kollokationsprofile. Ordne zehn Kollokatoren der richtigen Basis zu."
               available={!!wortzwilling}
               played={wzPlayed}
               playedLabel={wortzwilling ? `${wortzwilling.wortA} / ${wortzwilling.wortB}` : null}
@@ -349,7 +349,7 @@ function Home({
               headword="Lückenfüller"
               ipa="[ˈlʏkənˌfʏlɐ]"
               ipaAriaLabel="Aussprache: [ˈlʏkənˌfʏlɐ]"
-              definition="Ein echter Korpussatz mit fehlendem Kollokator — welches Wort gehört in die Lücke? Drei Runden: Auswahl, Doppellücke, freie Eingabe."
+              definition="Ein echter Korpussatz mit fehlendem Kollokator – welches Wort gehört in die Lücke? Drei Runden: Auswahl, Doppellücke, freie Eingabe."
               available={!!lueckenfuellerLemma?.lueckenfueller}
               played={lfPlayed}
               playedLabel={lueckenfuellerLemma?.lemma ?? null}
