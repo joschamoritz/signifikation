@@ -156,7 +156,7 @@ function KursTab({ gesamtausgabe = false, loggedIn = false, onNavigateToKonto })
               niveau={niveau}
               onChange={setNiveau}
               className="niveau-select--compact"
-              ariaLabel="Niveaustufe wählen – gilt für Aufgaben und Material aller Stationen"
+              ariaLabel="Differenzierungsstufe wählen – gilt für Aufgaben und Material aller Stationen"
             />
           }
         />
@@ -171,7 +171,7 @@ function KursTab({ gesamtausgabe = false, loggedIn = false, onNavigateToKonto })
               niveau={niveau}
               onChange={setNiveau}
               className="niveau-select--folio"
-              ariaLabel="Niveaustufe wählen – gilt für Aufgaben und Material aller Stationen"
+              ariaLabel="Differenzierungsstufe wählen – gilt für Aufgaben und Material aller Stationen"
             />
           </div>
         </nav>
@@ -246,7 +246,7 @@ function KursTab({ gesamtausgabe = false, loggedIn = false, onNavigateToKonto })
               aria-controls="desktop-kurs-note"
             >
               <span className="test-footnote-label" aria-hidden="true">Anm.</span>
-              <span className="test-footnote-title">Was ist der Kurs? Und die Niveaustufen?</span>
+              <span className="test-footnote-title">Was ist der Kurs? Und die Differenzierungsstufen?</span>
               <span className="test-footnote-chevron" aria-hidden="true">▾</span>
             </button>
             <div

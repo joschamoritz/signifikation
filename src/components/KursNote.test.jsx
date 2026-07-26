@@ -20,8 +20,9 @@ describe('KursNote — Kurs-Fortschritt-Reset', () => {
 
   it('zeigt die Niveau-Auswahl immer, den Reset aber nur eingeloggt', () => {
     render(<KursNote footnotesClass="fn" loggedIn={false} />)
-    // Niveau-Auswahl da (Segment-Buttons)
-    expect(screen.getByRole('group', { name: /niveaustufe/i })).toBeTruthy()
+    // Niveau-Auswahl da (Segment-Buttons). Das Label heisst seit dem
+    // Terminologie-Register „Differenzierungsstufe" statt „Niveaustufe".
+    expect(screen.getByRole('group', { name: /differenzierungsstufe/i })).toBeTruthy()
     // Reset NICHT da
     expect(screen.queryByRole('button', { name: /zurücksetzen/i })).toBeNull()
   })
