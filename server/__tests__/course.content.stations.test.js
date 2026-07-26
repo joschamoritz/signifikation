@@ -153,7 +153,16 @@ describe('Stationen ②–⑤ – DB-Round-Trip (Seeder + Store)', () => {
   })
 })
 
-describe('Stationen ②–⑤ – echte Korpus-Auflösung (falls wortprofil.db verfügbar)', () => {
+// Eigenes Timeout statt der Vitest-Vorgabe von 5 s: wortprofil.db ist ~2,6 GB
+// gross und wird readonly mit 512 MB mmap geoeffnet. Isoliert liegt sie im
+// OS-Dateicache und der Test laeuft in ~90 ms; im Gesamtlauf verdraengen die
+// vorher laufenden Testdateien den Cache, der Kaltzugriff dauert dann Sekunden
+// und riss den Test sporadisch ins Timeout (~6 s). Das ist reine I/O-Latenz,
+// kein Fehler im Code — geprueft wird Korrektheit, nicht Geschwindigkeit.
+// (fileParallelism ist bereits aus, Parallellast scheidet als Ursache aus.)
+const CORPUS_TIMEOUT_MS = 30_000
+
+describe('Stationen ②–⑤ – echte Korpus-Auflösung (falls wortprofil.db verfügbar)', { timeout: CORPUS_TIMEOUT_MS }, () => {
   it('Anker-Lemmata existieren in wortprofil.db', () => {
     if (!lemmaExistsInWortprofil('Kritik')) return // DB im Lauf nicht verfügbar → soft skip
     const anchors = new Set()
