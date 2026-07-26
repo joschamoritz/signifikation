@@ -233,7 +233,7 @@ const TASKS = [
       byLevel: {
         SekI: {
           onCorrect: '„{{top.lemma}} Kritik“ ist ein typischer Bauplan: Adjektiv + Nomen.',
-          onWrong: '„{{selected.lemma}}“ passt seltener zu „Kritik“. Typisch ist z. B. „{{top.lemma}}“.',
+          onWrong: '„{{selected.lemma}}“ ist bei „Kritik“ weniger üblich. Typisch ist z. B. „{{top.lemma}}“.',
         },
       },
       tonalitaet: 'woerterbuch-nuechtern',
@@ -292,7 +292,7 @@ const TASKS = [
       byLevel: {
         SekI: {
           onCorrect: '„{{top.lemma}} Kritik“ klingt natürlich – Adjektiv + Nomen, typische Verbindung.',
-          onWrong: '„{{selected.lemma}}“ passt seltener. Typisch ist „{{top.lemma}}“.',
+          onWrong: '„{{selected.lemma}}“ ist hier weniger üblich. Typisch ist „{{top.lemma}}“.',
         },
       },
       tonalitaet: 'woerterbuch-nuechtern',
