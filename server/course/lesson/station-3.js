@@ -36,32 +36,32 @@ export const entwurf3 = {
 
   verlauf: [
     {
-      phase: 'I Stundeneröffnung — Einstieg', anteil: 'Anteil 1',
+      phase: 'I Stundeneröffnung – Einstieg', anteil: 'Anteil 1',
       schritte: [
         { schritt: 'Zwei Sätze an der Tafel: „Er trifft eine Entscheidung.“ / „Die Entscheidung fällt morgen.“ Impuls: „Beide Male ‚Entscheidung\' – aber andere Verben. Warum?“', kommentar: 'Kognitiver Konflikt; macht Slot-Abhängigkeit als Problem sichtbar (Sachaspekt: Verb ≠ frei wählbar bei gegebenem Nomen).', interaktion: 'Plenum / LSG', medien: 'Beamer-Folie 1 (Slot-Kontrast)' },
       ],
     },
     {
-      phase: 'II Stundenmitte — Erarbeitung (Arbeitsblatt, am Stück)', anteil: 'Anteil 3',
+      phase: 'II Stundenmitte – Erarbeitung (Arbeitsblatt, am Stück)', anteil: 'Anteil 3',
       schritte: [
         { schritt: 'Kurzer Plenums-Auftakt: „Das Gericht trifft eine Entscheidung.“ → S/P/O mit Buchstaben beschriften, Frageprobe einführen (Wer? / Was tut? / Wen-Was?).', kommentar: 'Modelliert das Werkzeug; Buchstaben-Label statt Farbe (§5 Barrierearmut).', interaktion: 'Plenum → LSG', medien: 'Beamer / Tafel' },
         { schritt: 'Begleit-Arbeitsblatt durchgehend bearbeiten: Wissensblöcke (Satzglieder + operationale Proben; Valenz/Dependenz Kopf–Dependent; „der Slot bestimmt den Partner“), Merksatz, dann die eigenen Aufgaben – differenziert nach Niveau.', kommentar: 'Neu erlernen + erste Anwendung auf Papier, am Stück; das Satzglied-/Dependenz-Wissen bleibt als Referenz. Belege (Gallmann, Lehmkuhle, Schütze, Ágel).', interaktion: 'EA → Partnerarbeit', medien: 'Arbeitsblatt (Wissen + Aufgaben)' },
       ],
     },
     {
-      phase: 'II Stundenmitte — Plateaubildung', anteil: 'Anteil 1',
+      phase: 'II Stundenmitte – Plateaubildung', anteil: 'Anteil 1',
       schritte: [
         { schritt: 'Plenums-Sicherung: Frageprobe (Wer?→S; Was tut?→P; Wen/Was?→O) + Slot-Übersicht (Objekt- vs. Subjekt-Slot); zentrale AB-Ergebnisse vergleichen.', kommentar: 'Plateau: alle für die Anwendungsphase arbeitsfähig; Übergang vom Papier zum Gerät.', interaktion: 'Plenum', medien: 'Tafel' },
       ],
     },
     {
-      phase: 'II Stundenmitte — Anwendung (digitale Station, am Stück)', anteil: 'Anteil 2',
+      phase: 'II Stundenmitte – Anwendung (digitale Station, am Stück)', anteil: 'Anteil 2',
       schritte: [
         { schritt: 'Digitale Station ③ im Kurs-Tab durchgehend: Satzglieder S/P/O bestimmen, Kopf-Dependent markieren, den Slot bestimmen – mit Sofort-Feedback.', kommentar: 'Vertiefte Anwendung der gesicherten Werkzeuge als eigener Block; die App prüft die Bestimmung unmittelbar. Nach dem AB, kein Medienwechsel mitten in der Bearbeitung.', interaktion: 'Einzel-/Partnerarbeit', medien: 'Kurs-Tab (digitale Station)' },
       ],
     },
     {
-      phase: 'III Stundenabschluss — Ergebnissicherung', anteil: 'Anteil 1',
+      phase: 'III Stundenabschluss – Ergebnissicherung', anteil: 'Anteil 1',
       schritte: [
         { schritt: 'Auflösung: Slot-Wechsel-Analyse – warum *treffen* ≠ *fallen* (Objekt- vs. Subjekt-Slot); Merksatz: „Kollokationen sind nicht nur Wortpaare, sie sitzen in grammatischen Slots.“', kommentar: 'Verankert wwLz (Nutzen von Strukturwissen); bereitet Brücke zu ④ (Korpus misst Slot-Besetzungen) vor.', interaktion: 'Plenum', medien: 'Beamer-Folie 3 (Schluss)' },
         { schritt: 'Transfer/HA: eigenes Nomen wählen, beide Slots suchen; am Kurs-Tab überprüfen.', kommentar: 'Produktive Anwendung des Slot-Konzepts auf eigenem Vokabular.', interaktion: 'EA', medien: 'Kurs-Tab' },

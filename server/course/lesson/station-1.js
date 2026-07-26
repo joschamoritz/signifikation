@@ -46,32 +46,32 @@ export const entwurf1 = {
   // II — Stundenverlauf (von Brand Modell 1), Spalten §2.
   verlauf: [
     {
-      phase: 'I Stundeneröffnung — Einstieg', anteil: 'Anteil 1',
+      phase: 'I Stundeneröffnung – Einstieg', anteil: 'Anteil 1',
       schritte: [
         { schritt: 'Impuls: zwei Wortverbindungen im Vergleich („starker Regen“ ✓ / „strong rain“ wörtlich ✗).', kommentar: 'Aktiviert Vorwissen, erzeugt kognitiven Konflikt → Sachaspekt: Konvention vs. wörtliche Bedeutung.', interaktion: 'Plenum / LSG', medien: 'Beamer-Folien 1–2' },
         { schritt: 'Leitfrage entwickeln: „Warum klingt das eine richtig, das andere nicht?“', kommentar: 'Problemorientierung; macht das Lernziel transparent.', interaktion: 'Plenum', medien: 'Tafel' },
       ],
     },
     {
-      phase: 'II Stundenmitte — Erarbeitung (Arbeitsblatt, am Stück)', anteil: 'Anteil 3',
+      phase: 'II Stundenmitte – Erarbeitung (Arbeitsblatt, am Stück)', anteil: 'Anteil 3',
       schritte: [
         { schritt: 'Begleit-Arbeitsblatt durchgehend bearbeiten: Wissensblock (Kollokation, Basis + Kollokator, Kontinuum frei–Kollokation–Idiom), Merksatz, dann die eigenen Aufgaben – differenziert nach Niveau.', kommentar: 'Neu erlernen + erste Anwendung auf Papier, ohne Medienwechsel (von Brand): das Fachwissen wird strukturiert erarbeitet und bleibt als Referenz/Notiz. Belege als Fußnoten (Hausmann, Steyer); Differenzierung über das Niveau-AB.', interaktion: 'EA → Partnerarbeit', medien: 'Arbeitsblatt (Wissen + Aufgaben)' },
       ],
     },
     {
-      phase: 'II Stundenmitte — Plateaubildung', anteil: 'Anteil 1',
+      phase: 'II Stundenmitte – Plateaubildung', anteil: 'Anteil 1',
       schritte: [
         { schritt: 'Plenums-Sicherung: Merksatz „Typisch = üblich“ + zentrale AB-Ergebnisse vergleichen, offene Fragen klären.', kommentar: 'Sichert ein gemeinsames Zwischenergebnis, damit ALLE für die Anwendungsphase arbeitsfähig sind (Plateau) – zugleich Übergang vom Papier zum Gerät.', interaktion: 'Plenum', medien: 'Tafel / Beamer' },
       ],
     },
     {
-      phase: 'II Stundenmitte — Anwendung (digitale Station, am Stück)', anteil: 'Anteil 2',
+      phase: 'II Stundenmitte – Anwendung (digitale Station, am Stück)', anteil: 'Anteil 2',
       schritte: [
         { schritt: 'Digitale Station ① im Kurs-Tab durchgehend: typische Partner üben – zuordnen, im echten Belegsatz markieren, vergleichen – mit Sofort-Feedback am Korpus.', kommentar: 'Vertiefte, gebrauchsbasierte Anwendung des gesicherten Begriffs: die App liefert viele Einzelfälle mit unmittelbarer Rückmeldung (USP) und ist als eigener Block – nach dem AB – konzentriert bearbeitbar.', interaktion: 'Einzel-/Partnerarbeit', medien: 'Kurs-Tab (digitale Station)' },
       ],
     },
     {
-      phase: 'III Stundenabschluss — Ergebnissicherung', anteil: 'Anteil 1',
+      phase: 'III Stundenabschluss – Ergebnissicherung', anteil: 'Anteil 1',
       schritte: [
         { schritt: 'Daten-Aha im Plenum (Beamer „häufig ≠ typisch“, Sek II/LK) bzw. Rückschau auf die Leitfrage; HA: eigenes Wort wählen und in der digitalen Station ① prüfen.', kommentar: 'Überprüft den Lernerfolg, verankert das wwLz (Sprachspezifik) und schließt den Kreis: das AB stellt die Hypothese, die App prüft sie.', interaktion: 'Plenum → EA (HA)', medien: 'Beamer-Schlussfolie / Kurs-Tab' },
       ],

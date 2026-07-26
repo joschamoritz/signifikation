@@ -140,7 +140,7 @@ export default function MatchingTask({ task, index, onChecked, canRetry = true, 
 
       {!checked && (
         <p className="course-hint">
-          Ziehe jeden Partner auf das passende Feld{multiplePerAnchor ? ' — es können mehrere sein' : ''}. (Oder tippe Karte und Feld nacheinander an.)
+          Ziehe jeden Partner auf das passende Feld{multiplePerAnchor ? ' – es können mehrere sein' : ''}. (Oder tippe Karte und Feld nacheinander an.)
         </p>
       )}
 

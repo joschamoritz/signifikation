@@ -24,11 +24,11 @@
  * Reiner Text ohne HTML, geteilt für App-Tab und (potenziell) SSR-Seite.
  */
 export const REL_EXPLAIN = {
-  SUBJA:    'Der Kollokator ist das Subjekt im Aktivsatz — die handelnde Größe (z. B. „Der Ausschuss beschließt …“).',
-  SUBJP:    'Der Kollokator ist das Subjekt im Passivsatz — dasjenige, mit dem etwas geschieht (z. B. „Das Gesetz wird beschlossen“).',
+  SUBJA:    'Der Kollokator ist das Subjekt im Aktivsatz – die handelnde Größe (z. B. „Der Ausschuss beschließt …“).',
+  SUBJP:    'Der Kollokator ist das Subjekt im Passivsatz – dasjenige, mit dem etwas geschieht (z. B. „Das Gesetz wird beschlossen“).',
   OBJA:     'Der Kollokator ist das Akkusativobjekt zu „%lemma%“: die Ergänzung im 4. Fall (wen oder was?).',
   OBJD:     'Der Kollokator ist das Dativobjekt zu „%lemma%“: die Ergänzung im 3. Fall (wem?).',
-  ATTR:     'Der Kollokator steht als Attribut bei „%lemma%“ und beschreibt dieses Wort näher — meist ein Adjektiv oder Partizip.',
+  ATTR:     'Der Kollokator steht als Attribut bei „%lemma%“ und beschreibt dieses Wort näher – meist ein Adjektiv oder Partizip.',
   GMOD:     'Der Kollokator ist ein Genitivattribut zu „%lemma%“: Er steht im 2. Fall, meist als „des/der …“.',
   KON:      'Der Kollokator ist mit „%lemma%“ gleichrangig verbunden, meist durch „und“ oder „oder“ (Koordination).',
   ADV:      'Der Kollokator ist eine adverbiale Bestimmung zu „%lemma%“: Er sagt, wie, wann oder wo (z. B. „scharf kritisieren“).',

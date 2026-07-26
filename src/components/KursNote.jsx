@@ -77,7 +77,7 @@ export default function KursNote({ footnotesClass, loggedIn = false }) {
             </div>
             <p className="course-niveau-hint">
               {resetState === 'done'
-                ? 'Zurückgesetzt — alle Stationen wieder spielbar.'
+                ? 'Zurückgesetzt – alle Stationen wieder spielbar.'
                 : resetState === 'error'
                   ? 'Zurücksetzen fehlgeschlagen. Bitte erneut versuchen.'
                   : 'Löscht deine Aufgaben-Ergebnisse; alle Stationen sind wieder spielbar.'}

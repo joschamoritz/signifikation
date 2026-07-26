@@ -47,7 +47,7 @@ export function useQuickStartSession() {
       dispatch({ type: 'GO_TO_LOBBY', sessionId: session.id })
       // busy bleibt true bis zum Step-Wechsel — verhindert Doppel-Tipp.
     } catch (err) {
-      setError(err?.message || 'Schnellstart fehlgeschlagen — versuch es manuell.')
+      setError(err?.message || 'Schnellstart fehlgeschlagen – versuch es manuell.')
       setBusy(false)
     }
   }, [busy, available, todayIds, dispatch])

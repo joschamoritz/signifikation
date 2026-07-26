@@ -157,7 +157,7 @@ export default function LiveStep() {
       testId="classroom-live"
       title="Live"
       label={modeLabel || 'Live-Sitzung'}
-      lead="Die Klasse spielt — du behältst den Überblick."
+      lead="Die Klasse spielt – du behältst den Überblick."
       backLabel="Zurück zur Übersicht"
       onBack={() => setConfirmLeave(true)}
     >

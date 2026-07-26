@@ -297,7 +297,7 @@ const TASKS = [
     // AP21-QA: echte Entscheidung statt „alles passt irgendwie“ — 5 echte
     // Kollokatoren + 5 abwegige Verben aus „Lied“ (Musik), die klar NICHT zu
     // „Entscheidung“ gehören. SuS müssen wirklich unterscheiden.
-    prompt: 'Welche Verben sind typische Partner von „Entscheidung“? Ziehe nur die passenden auf das Wort — manche Verben gehören gar nicht dazu.',
+    prompt: 'Welche Verben sind typische Partner von „Entscheidung“? Ziehe nur die passenden auf das Wort – manche Verben gehören gar nicht dazu.',
     metasprache: ['Kollokation', 'typische Wortverbindung'],
     corpusQuery: Q_ENTSCHEIDUNG_VERB_CLEAN,
     distractorQuery: Q_LIED_DISTRACTOR,
@@ -333,7 +333,7 @@ const TASKS = [
     kern: 'kollokation-zuordnen',
     // Distraktoren aus „Koffer“ (Gepäck-Verben) — keine Überschneidung mit den
     // Verantwortung-Partnern (übernehmen/tragen/…).
-    prompt: 'Welche Verben sind typische Partner von „Verantwortung“? Ziehe nur die passenden auf das Wort — manche Verben gehören gar nicht dazu.',
+    prompt: 'Welche Verben sind typische Partner von „Verantwortung“? Ziehe nur die passenden auf das Wort – manche Verben gehören gar nicht dazu.',
     metasprache: ['Kollokation', 'typische Wortverbindung'],
     corpusQuery: Q_VERANTWORTUNG_VERB_CLEAN,
     distractorQuery: Q_KOFFER_DISTRACTOR,
@@ -888,7 +888,7 @@ const TASKS = [
           onWrong: 'Schau auf das Verhältnis: nicht „wie oft“, sondern „wie exklusiv“. Eine seltene, aber fast ausschließliche Verbindung schlägt eine häufige, beliebige.',
         },
       },
-      merksatz: 'Nicht wie oft — sondern wie exklusiv.',
+      merksatz: 'Nicht wie oft – sondern wie exklusiv.',
       tonalitaet: 'woerterbuch-nuechtern',
     },
     beleg: [{ key: 'bubenhofer-2015', kontext: 'fachlich' }],

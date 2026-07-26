@@ -58,7 +58,7 @@ export default {
     const rounds = await resolveLueckenfueller(lemma, {
       buildLueckenfueller: deps.buildLueckenfueller,
       logWarn: (err, l) =>
-        deps.logger?.warn({ err, lemma: l }, 'classroom buildLueckenfueller fehlgeschlagen — Fallback aufs gespeicherte Feld'),
+        deps.logger?.warn({ err, lemma: l }, 'classroom buildLueckenfueller fehlgeschlagen – Fallback aufs gespeicherte Feld'),
     })
     return {
       lemma:      lemma.lemma,

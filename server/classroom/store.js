@@ -455,7 +455,7 @@ export function createSession({ teacherUserId, title = null, settings = {} }) {
     } catch (err) {
       // Nur Code-Kollision ist retrybar; alles andere weiterreichen.
       if (err?.code === 'SQLITE_CONSTRAINT_UNIQUE' && attempt < CODE_INSERT_MAX_ATTEMPTS - 1) {
-        logger.warn({ attempt }, 'classroom join-code collision beim Insert — neuer Code, Retry')
+        logger.warn({ attempt }, 'classroom join-code collision beim Insert – neuer Code, Retry')
         continue
       }
       throw err
@@ -987,7 +987,7 @@ export function submitAnswer({
   // laut: SCORING_FAILED + error-Log, statt einer stillen Null-Punkte-Stunde.
   const lemmaSnapshot = assignment.contentSnapshot?.byLemma?.[lemmaId]
   if (!lemmaSnapshot || Object.keys(lemmaSnapshot).length === 0) {
-    logger.error({ sessionId, assignmentId, lemmaId }, 'Leerer content_snapshot fuer Lemma — Scoring abgebrochen')
+    logger.error({ sessionId, assignmentId, lemmaId }, 'Leerer content_snapshot fuer Lemma – Scoring abgebrochen')
     return { error: 'SCORING_FAILED' }
   }
 

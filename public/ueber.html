@@ -16,7 +16,7 @@
         "name": "Was ist eine Kollokation?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "Kollokationen sind charakteristische syntagmatische Wortverbindungen, in denen ein Element (die Basis) den anderen Bestandteil (den Kollokator) semantisch selegiert. Man sagt 'blondes Haar' und nicht 'gelbes Haar' — nicht weil Letzteres grammatisch falsch wäre, sondern weil der konventionalisierte Sprachgebrauch 'blond' als typischen Kollokator von 'Haar' fordert."
+          "text": "Kollokationen sind charakteristische syntagmatische Wortverbindungen, in denen ein Element (die Basis) den anderen Bestandteil (den Kollokator) semantisch selegiert. Man sagt 'blondes Haar' und nicht 'gelbes Haar' – nicht weil Letzteres grammatisch falsch wäre, sondern weil der konventionalisierte Sprachgebrauch 'blond' als typischen Kollokator von 'Haar' fordert."
         }
       },
       {
@@ -24,7 +24,7 @@
         "name": "Was ist der logDice-Wert?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "Der logDice-Wert ist ein statistisches Assoziationsmaß für Kookkurrenzen im Korpus. Er setzt die gemeinsamen Vorkommen zweier Wörter ins Verhältnis zu ihren jeweiligen Einzelhäufigkeiten — je höher der Wert, desto charakteristischer und nicht-zufälliger die Wortverbindung."
+          "text": "Der logDice-Wert ist ein statistisches Assoziationsmaß für Kookkurrenzen im Korpus. Er setzt die gemeinsamen Vorkommen zweier Wörter ins Verhältnis zu ihren jeweiligen Einzelhäufigkeiten – je höher der Wert, desto charakteristischer und nicht-zufälliger die Wortverbindung."
         }
       },
       {
@@ -40,7 +40,7 @@
         "name": "Was bedeutet der Name Signifikation?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "In der Linguistik bezeichnet Signifikation den Prozess der Bedeutungsgebung — das Verhältnis zwischen einem sprachlichen Zeichen und dem, wofür es steht. Gleichzeitig steckt im Wort das Ende von 'Kollokation', und der zugrundeliegende logDice-Wert misst eine statistische Signifikanz."
+          "text": "In der Linguistik bezeichnet Signifikation den Prozess der Bedeutungsgebung – das Verhältnis zwischen einem sprachlichen Zeichen und dem, wofür es steht. Gleichzeitig steckt im Wort das Ende von 'Kollokation', und der zugrundeliegende logDice-Wert fragt danach, welche Wortverbindungen bedeutsam und nicht bloß zufällig sind."
         }
       }
     ]
@@ -261,9 +261,9 @@
     diese Bedeutungen bereits in sich: anzeigen, andeuten, auf etwas hindeuten; meinen, bezeichnen.
   </p>
   <p>
-    Nicht zuletzt beruhen die App und die Auswertung der Daten auf dem logDice-Wert, der genau das misst: eine statistische <strong>Signifikanz</strong> zwischen
-    Wörtern, eine im besten Fall bedeutsame und eindeutig nicht zufällige sprachliche Verbindung. Daneben steckt im Wort das Ende von <em>Kollokation</em>, 
-    die in diesem Projekt eine nicht ganz unwichtige Rolle spielt. 
+    Nicht zuletzt beruhen die App und die Auswertung der Daten auf dem logDice-Wert, der genau danach fragt: Welche Verbindungen zwischen Wörtern sind
+    <strong>bedeutsam</strong> und nicht bloß zufällig? Daneben steckt im Wort das Ende von <em>Kollokation</em>,
+    die in diesem Projekt eine nicht ganz unwichtige Rolle spielt.
 
   </p>
 
@@ -332,11 +332,11 @@
   <div class="pipeline">
     <details class="pipeline-step">
       <summary><strong>Korpusauswahl</strong></summary>
-      <div class="pipeline-step-body">Recherche und Auswahl geeigneter Quellen — ausschließlich Korpora unter offenen Lizenzen (CC BY, CC BY-SA, Gemeinfrei), die Weiterverarbeitung und Weitergabe der abgeleiteten Ergebnisse erlauben. Die Texte spannen einen Zeitraum vom Mittelhochdeutschen bis zur Gegenwartssprache.</div>
+      <div class="pipeline-step-body">Recherche und Auswahl geeigneter Quellen – ausschließlich Korpora unter offenen Lizenzen (CC BY, CC BY-SA, Gemeinfrei), die Weiterverarbeitung und Weitergabe der abgeleiteten Ergebnisse erlauben. Die Texte spannen einen Zeitraum vom Mittelhochdeutschen bis zur Gegenwartssprache.</div>
     </details>
     <details class="pipeline-step">
       <summary><strong>Normalisierung</strong></summary>
-      <div class="pipeline-step-body">Alle Quellen werden in ein einheitliches JSONL-Format überführt und mit Metadaten angereichert: <code>text, quelle, genre, epoche, jahr</code>. Das Entstehungsjahr jedes Textes wird dabei bewahrt — Grundlage für die spätere Zeitreise-Auswertung nach Jahrzehnten.</div>
+      <div class="pipeline-step-body">Alle Quellen werden in ein einheitliches JSONL-Format überführt und mit Metadaten angereichert: <code>text, quelle, genre, epoche, jahr</code>. Das Entstehungsjahr jedes Textes wird dabei bewahrt – Grundlage für die spätere Zeitreise-Auswertung nach Jahrzehnten.</div>
     </details>
     <details class="pipeline-step">
       <summary><strong>Relationen-Mapping</strong></summary>
@@ -348,7 +348,7 @@
     </details>
     <details class="pipeline-step">
       <summary><strong>Frequenz-Aggregation</strong></summary>
-      <div class="pipeline-step-body">Aus der Tripel-Datenbank werden Unigramm-Häufigkeiten f<sub>a</sub> und f<sub>b</sub> sowie Paarfrequenzen f<sub>ab</sub> berechnet. Die Zählung erfolgt getrennt nach Wortart und Relationstyp — das ist entscheidend, um lexikalische Ambiguität zu kontrollieren: <em>laufen</em> (Verb) und <em>Laufen</em> (Substantiv) teilen dasselbe Lemma, haben aber grundlegend verschiedene Kollokationsprofile. Ohne diese Trennung würden ihre Frequenzen zusammengefasst, was den logDice-Score für beide verfälscht. Dasselbe gilt für syntaktische Rollen: Ein Wort, das typischerweise als Subjekt auftritt, kann als Objekt ein ganz anderes Kollokationsverhalten zeigen. Nur durch die kombinierte Kontrolle nach Wortart <em>und</em> Relation lassen sich sprachlich sinnvolle Assoziationsmaße berechnen.</div>
+      <div class="pipeline-step-body">Aus der Tripel-Datenbank werden Unigramm-Häufigkeiten f<sub>a</sub> und f<sub>b</sub> sowie Paarfrequenzen f<sub>ab</sub> berechnet. Die Zählung erfolgt getrennt nach Wortart und Relationstyp – das ist entscheidend, um lexikalische Ambiguität zu kontrollieren: <em>laufen</em> (Verb) und <em>Laufen</em> (Substantiv) teilen dasselbe Lemma, haben aber grundlegend verschiedene Kollokationsprofile. Ohne diese Trennung würden ihre Frequenzen zusammengefasst, was den logDice-Score für beide verfälscht. Dasselbe gilt für syntaktische Rollen: Ein Wort, das typischerweise als Subjekt auftritt, kann als Objekt ein ganz anderes Kollokationsverhalten zeigen. Nur durch die kombinierte Kontrolle nach Wortart <em>und</em> Relation lassen sich sprachlich sinnvolle Assoziationsmaße berechnen.</div>
     </details>
     <details class="pipeline-step">
       <summary><strong>logDice-Berechnung und Ranking</strong></summary>
@@ -521,7 +521,7 @@
       <li id="fn-1">Saussure, F. de (1916): <em>Cours de linguistique générale</em>. Paris: Payot, S.&thinsp;97–103.<a href="#ref-1" class="fn-back" aria-label="Zurück zum Text">↑</a></li>
       <li id="fn-2">Eco, U. (1972): <em>Einführung in die Semiotik</em>. München: Fink, S.&thinsp;26.<a href="#ref-2" class="fn-back" aria-label="Zurück zum Text">↑</a></li>
       <li id="fn-3">Perkuhn, R. / Keibel, H. / Kupietz, M. (2012): <em>Korpuslinguistik</em>. Fink, Paderborn, S.&thinsp;101.<a href="#ref-3" class="fn-back" aria-label="Zurück zum Text">↑</a></li>
-      <li id="fn-4">Hausmann, F.&thinsp;J. (2003): Was sind eigentlich Kollokationen? In: Steyer, K. (Hrsg.): <em>Wortverbindungen — mehr oder weniger fest</em>. Berlin/New York: de Gruyter, S.&thinsp;309–334.<a href="#ref-4" class="fn-back" aria-label="Zurück zum Text">↑</a></li>
+      <li id="fn-4">Hausmann, F.&thinsp;J. (2004): Was sind eigentlich Kollokationen? In: Steyer, K. (Hrsg.): <em>Wortverbindungen – mehr oder weniger fest</em> (IDS-Jahrbuch 2003). Berlin/New York: de Gruyter, S.&thinsp;309–334.<a href="#ref-4" class="fn-back" aria-label="Zurück zum Text">↑</a></li>
       <li id="fn-5">Carstensen, K.-U. u.&thinsp;a. (Hrsg.) (2010): <em>Computerlinguistik und Sprachtechnologie</em>. Spektrum, Heidelberg, S.&thinsp;490.<a href="#ref-5" class="fn-back" aria-label="Zurück zum Text">↑</a></li>
       <li id="fn-6">Rychlý, P. (2008): A Lexicographer-Friendly Association Score. In: <em>Proceedings of Recent Advances in Slavonic Natural Language Processing (RASLAN 2008)</em>, S.&thinsp;6–9.<a href="#ref-6" class="fn-back" aria-label="Zurück zum Text">↑</a></li>
     </ol>

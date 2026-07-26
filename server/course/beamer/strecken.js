@@ -331,10 +331,10 @@ function datenPipeline(k) {
     <div class="flow">${steps}</div>`)
 }
 const SPIELE = [
-  ['①', '<b>Kollokationen</b> — die 3 stärksten Verbindungen in Reihenfolge'],
-  ['②', '<b>Wort-Zwilling</b> — zwei ähnliche Wörter an ihren Kollokationen erkennen'],
-  ['③', '<b>Zeitenwende</b> — Kollokation vor oder nach 2000?'],
-  ['④', '<b>Lückenfüller</b> — Kollokation im echten Korpussatz ergänzen'],
+  ['①', '<b>Kollokationen</b> – die 3 stärksten Verbindungen in Reihenfolge'],
+  ['②', '<b>Wort-Zwilling</b> – zwei ähnliche Wörter an ihren Kollokationen erkennen'],
+  ['③', '<b>Zeitenwende</b> – Kollokation vor oder nach 2000?'],
+  ['④', '<b>Lückenfüller</b> – Kollokation im echten Korpussatz ergänzen'],
 ]
 function datenSpiele(k) {
   const rows = SPIELE.map(([t, desc]) =>

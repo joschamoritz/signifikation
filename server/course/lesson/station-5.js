@@ -38,26 +38,26 @@ export const entwurf5 = {
 
   verlauf: [
     {
-      phase: 'I Stundeneröffnung — Einstieg', anteil: 'Anteil 1',
+      phase: 'I Stundeneröffnung – Einstieg', anteil: 'Anteil 1',
       schritte: [
         { schritt: 'Abstimmung: „Welches Adjektiv passt typischer zu ‚Regen\': stark oder strömend?“ – Ergebnisse sammeln. Offene Streitfrage stehen lassen.', kommentar: 'Fast alle tippen auf „stark“ (Bauchgefühl); der Befund wird der Korpus liefern. Forschungsbedürfnis erzeugen.', interaktion: 'Plenum', medien: 'Beamer-Folie 1 (Provokation)' },
       ],
     },
     {
-      phase: 'II Stundenmitte — Erarbeitung (Arbeitsblatt: methodisches Gerüst, am Stück)', anteil: 'Anteil 2',
+      phase: 'II Stundenmitte – Erarbeitung (Arbeitsblatt: methodisches Gerüst, am Stück)', anteil: 'Anteil 2',
       schritte: [
         { schritt: 'Kurzer Plenums-Auftakt: Forschungszyklus am Regen-Beispiel durchspielen (Hypothese → Profil → Befund „strömend“ → deuten → Stellung nehmen); logDice-Werkzeug aus ④ reaktivieren.', kommentar: 'Modelliert den Prozess, bevor die SuS selbst forschen (CTML: Worked Example).', interaktion: 'LSG', medien: 'Beamer-Folie 2 (Forschungszyklus)' },
         { schritt: 'Begleit-Arbeitsblatt: Forschungszyklus-Methode sichern und eine eigene/gewählte Frage in eine prüfbare Hypothese fassen – vor dem Blick ins Profil.', kommentar: 'Das AB ist das methodische Gerüst; Hypothese-vor-Befund ist essenziell (das Profil beeinflusst das Urteil, wenn es vorher gesehen wird).', interaktion: 'EA → Partnerarbeit', medien: 'Arbeitsblatt (Wissen + Hypothese)' },
       ],
     },
     {
-      phase: 'II Stundenmitte — Anwendung (digitale Station: Mini-Recherche, am Stück)', anteil: 'Anteil 3',
+      phase: 'II Stundenmitte – Anwendung (digitale Station: Mini-Recherche, am Stück)', anteil: 'Anteil 3',
       schritte: [
         { schritt: 'Digitale Station ⑤ im Kurs-Tab durchgehend: die Hypothese am Korpus prüfen – Profil/Top-Verbindungen + Werte abfragen, Befund erheben.', kommentar: 'Kern der Stunde (Modell 2: Anwenden im Zentrum); die eigentliche Mini-Recherche als eigener, ununterbrochener Block. Das Feedback-System unterstützt den Prozess, gibt die Lösung nicht vor.', interaktion: 'Einzel-/Partnerarbeit', medien: 'Kurs-Tab (digitale Station)' },
       ],
     },
     {
-      phase: 'III Stundenabschluss — Ergebnissicherung', anteil: 'Anteil 1',
+      phase: 'III Stundenabschluss – Ergebnissicherung', anteil: 'Anteil 1',
       schritte: [
         { schritt: 'Zurück aufs Arbeitsblatt: Befund deuten (Abgleich mit der Hypothese) und begründete Stellungnahme verschriftlichen (3–4 Sätze, datengestützt).', kommentar: 'Sichert das SpLz schriftlich und schließt den Forschungszyklus.', interaktion: 'EA', medien: 'Arbeitsblatt (Stellungnahme)' },
         { schritt: 'Befunde im Plenum vorstellen; LK: Korpusabhängigkeit am Beispiel „Diskussion eröffnen“ (parlamentarisches Korpus → sehr hoher logDice). HA: LK-Methodenkritik ausformulieren.', kommentar: 'Verankert das wwLz (Grenzen des Befunds); Befund ≠ Wahrheit, sondern Korpus-Sicht.', interaktion: 'Plenum', medien: 'Beamer-Folie 3 (Auflösung + Bias)' },
