@@ -314,7 +314,12 @@ const TASKS = [
     feedback: {
       byLevel: {
         SekI: {
-          onCorrect: '„Entscheidung {{top.lemma}}“ ist eine typische Verbindung – diese Verben stehen im Korpus oft mit „Entscheidung“.',
+          // Die Kandidaten kommen aus einem nach logDice sortierten Ranking
+          // (wortprofil.js: ORDER BY logDice DESC). Eine Aussage ueber
+          // Korpus-HAEUFIGKEIT waere davon nicht gedeckt und widerspraeche dem
+          // SekII-Feedback derselben Station („ist zwar haeufiger, aber passt
+          // zu fast allem"). Deshalb Usualitaet statt Frequenz.
+          onCorrect: '„Entscheidung {{top.lemma}}“ ist eine typische Verbindung – diese Verben verbindet man im Deutschen üblicherweise mit „Entscheidung“.',
           onWrong: '„{{selected.lemma}}“ ist kein typischer Partner von „Entscheidung“. Typisch ist z. B. „{{top.lemma}}“.',
         },
       },
@@ -345,7 +350,7 @@ const TASKS = [
     feedback: {
       byLevel: {
         SekI: {
-          onCorrect: '„Verantwortung {{top.lemma}}“ ist eine typische Verbindung – diese Verben stehen im Korpus oft mit „Verantwortung“.',
+          onCorrect: '„Verantwortung {{top.lemma}}“ ist eine typische Verbindung – diese Verben verbindet man im Deutschen üblicherweise mit „Verantwortung“.',
           onWrong: '„{{selected.lemma}}“ ist kein typischer Partner von „Verantwortung“. Typisch ist z. B. „{{top.lemma}}“.',
         },
       },
@@ -398,7 +403,7 @@ const TASKS = [
         options: [
           { id: 'r1', label: 'Weil sich diese Verbindung vertraut anhört – man hört und liest sie oft so.', correct: true, feedback: 'Genau – die typische Verbindung klingt vertraut, weil man sie im Deutschen oft verwendet. (Genau das zeigt später auch das Korpus.)' },
           { id: 'r2', label: 'Weil das Verb kürzer und einfacher ist.', correct: false, feedback: 'Die Länge des Verbs entscheidet nicht – es geht darum, welche Wörter man üblicherweise zusammen verwendet.' },
-          { id: 'r3', label: 'Beide Verben sind ohnehin gleich üblich.', correct: false, feedback: 'Nicht ganz – einen der Partner hört man mit „Hilfe“ deutlich häufiger als den anderen.' },
+          { id: 'r3', label: 'Beide Verben sind ohnehin gleich üblich.', correct: false, feedback: 'Nicht ganz – einer der beiden verbindet sich mit „Hilfe“ deutlich enger als der andere.' },
         ],
       },
     },
@@ -408,7 +413,7 @@ const TASKS = [
       byLevel: {
         SekI: {
           onCorrect: '„Hilfe {{top.lemma}}“ klingt natürlich – das ist die typische Verbindung.',
-          onWrong: '„{{selected.lemma}}“ hört man hier seltener. Typisch ist „{{top.lemma}}“.',
+          onWrong: '„{{selected.lemma}}“ ist hier kein üblicher Partner. Typisch ist „{{top.lemma}}“.',
         },
       },
       tonalitaet: 'woerterbuch-nuechtern',
@@ -431,7 +436,7 @@ const TASKS = [
       justificationChoice: {
         prompt: 'Warum ist diese Verbindung typischer?',
         options: [
-          { id: 'r1', label: 'Weil man diese Verbindung im Deutschen oft so verwendet – sie klingt typisch.', correct: true, feedback: 'Richtig – typische Partner verwendet man im Deutschen regelmäßig zusammen. (Im Korpus zeigt sich das später als häufiges gemeinsames Vorkommen.)' },
+          { id: 'r1', label: 'Weil man diese Verbindung im Deutschen oft so verwendet – sie klingt typisch.', correct: true, feedback: 'Richtig – typische Partner verwendet man im Deutschen regelmäßig zusammen. (Im Korpus zeigt sich das später als besonders enge Bindung.)' },
           { id: 'r2', label: 'Weil das Wort vornehmer klingt.', correct: false, feedback: 'Der Klang allein entscheidet nicht; entscheidend ist, welche Wörter man üblicherweise zusammen verwendet.' },
           { id: 'r3', label: 'Weil man das Verb auch mit jedem anderen Nomen nutzen kann.', correct: false, feedback: 'Im Gegenteil – ein typischer Partner bindet sich gerade an dieses Nomen, nicht an beliebige.' },
         ],
@@ -443,7 +448,7 @@ const TASKS = [
       byLevel: {
         SekI: {
           onCorrect: '„Maßnahme {{top.lemma}}“ ist die typische Verbindung.',
-          onWrong: '„{{selected.lemma}}“ passt hier seltener. Typisch ist „{{top.lemma}}“.',
+          onWrong: '„{{selected.lemma}}“ ist hier weniger üblich. Typisch ist „{{top.lemma}}“.',
         },
       },
       tonalitaet: 'woerterbuch-nuechtern',
@@ -466,9 +471,9 @@ const TASKS = [
       justificationChoice: {
         prompt: 'Woran erkennst du den typischen Partner?',
         options: [
-          { id: 'r1', label: 'Weil man diese Verbindung im Deutschen oft so verwendet – sie klingt typisch.', correct: true, feedback: 'Richtig – „ein Ziel erreichen/verfolgen“ verwendet man regelmäßig zusammen. (Im Korpus zeigt sich das später als häufiges gemeinsames Vorkommen.)' },
+          { id: 'r1', label: 'Weil man diese Verbindung im Deutschen oft so verwendet – sie klingt typisch.', correct: true, feedback: 'Richtig – „ein Ziel erreichen/verfolgen“ verwendet man regelmäßig zusammen. (Im Korpus zeigt sich das später als besonders enge Bindung.)' },
           { id: 'r2', label: 'Weil das Verb allgemeiner und für alles brauchbar ist.', correct: false, feedback: 'Im Gegenteil – ein typischer Partner bindet sich gerade an dieses Nomen, nicht an beliebige.' },
-          { id: 'r3', label: 'Weil beide Verben ohnehin gleich üblich sind.', correct: false, feedback: 'Nicht ganz – einen der Partner hört man mit „Ziel“ deutlich häufiger als den anderen.' },
+          { id: 'r3', label: 'Weil beide Verben ohnehin gleich üblich sind.', correct: false, feedback: 'Nicht ganz – einer der beiden verbindet sich mit „Ziel“ deutlich enger als der andere.' },
         ],
       },
       // Kollokations-Aufgabe → Beleg zeigt die Objekt-Kollokation „Ziel erreichen“.
@@ -480,7 +485,7 @@ const TASKS = [
       byLevel: {
         SekI: {
           onCorrect: '„Ziel {{top.lemma}}“ ist die typische Verbindung.',
-          onWrong: '„{{selected.lemma}}“ passt hier seltener. Typisch ist „{{top.lemma}}“.',
+          onWrong: '„{{selected.lemma}}“ ist hier weniger üblich. Typisch ist „{{top.lemma}}“.',
         },
       },
       tonalitaet: 'woerterbuch-nuechtern',

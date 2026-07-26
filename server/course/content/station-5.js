@@ -221,7 +221,7 @@ const TASKS = [
       byLevel: {
         SekI: {
           onCorrect: '„{{top.lemma}}er Regen“ ist eine typische Verbindung – das Profil bestätigt deine Vermutung.',
-          onWrong: '„{{selected.lemma}}“ passt seltener. Typisch ist „{{top.lemma}}“.',
+          onWrong: '„{{selected.lemma}}“ ist hier weniger üblich. Typisch ist „{{top.lemma}}“.',
         },
       },
       tonalitaet: 'woerterbuch-nuechtern',
@@ -306,7 +306,7 @@ const TASKS = [
       byLevel: {
         SekI: {
           onCorrect: '„{{top.lemma}}es Wetter“ ist eine typische Verbindung – das Profil bestätigt deine Vermutung.',
-          onWrong: '„{{selected.lemma}}“ passt seltener. Typisch ist „{{top.lemma}}“.',
+          onWrong: '„{{selected.lemma}}“ ist hier weniger üblich. Typisch ist „{{top.lemma}}“.',
         },
       },
       tonalitaet: 'woerterbuch-nuechtern',
