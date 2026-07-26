@@ -128,7 +128,11 @@ describe('Station-① Content – DB-Round-Trip (Seeder + Store)', () => {
   })
 })
 
-describe('Station-① Content – echte Korpusdaten (falls wortprofil.db verfügbar)', () => {
+// Siehe course.content.stations.test.js: wortprofil.db ist ~2,6 GB gross, der
+// Kaltzugriff im Gesamtlauf dauert Sekunden und sprengt das 5-s-Default.
+const CORPUS_TIMEOUT_MS = 30_000
+
+describe('Station-① Content – echte Korpusdaten (falls wortprofil.db verfügbar)', { timeout: CORPUS_TIMEOUT_MS }, () => {
   it('Anker-Lemmata existieren in wortprofil.db', () => {
     const anchors = [...new Set(
       items.filter(i => i.source === 'corpus-template').map(i => i.corpusQuery.lemma),

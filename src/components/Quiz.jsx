@@ -187,9 +187,13 @@ export default function Quiz({
             <button className="joker-btn" type="button" onClick={e => { e.stopPropagation(); activateJoker() }} aria-label="Hinweis aktivieren" title="Hinweis"><em>i</em></button>
           )}
         </p>
+        {/* Regulaer sind es 10 Optionen (Top-3 + 7 schwaechere Kollokatoren,
+            fest in den Daten). Der Hinweis erscheint nur bei Abweichung — ohne
+            die Bezugsgroesse „statt 10" war die nackte Zahl aber wertlos: Wer
+            das zum ersten Mal sieht, weiss nicht, dass hier etwas fehlt. */}
         {options.length < 10 && (
           <p className="quiz-options-hint" aria-live="polite">
-            <em>{options.length} Kollokatoren verfügbar</em>
+            <em>Heute nur {options.length} statt 10 Kollokatoren</em>
           </p>
         )}
       </header>
