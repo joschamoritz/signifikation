@@ -108,7 +108,7 @@ export default function KursNote({ footnotesClass, loggedIn = false }) {
       </p>
       <ol className={footnotesClass}>
         <li>Die Stufung folgt dem Prinzip der Binnendifferenzierung: gleicher Gegenstand, gestaffelte kognitive Anforderung.</li>
-        <li>Eigenes Wortprofil, berechnet auf Basis freier deutschsprachiger Korpora (CC&nbsp;BY-SA), syntaktisch annotiert mit dem ZDL-Dependenzparser (BBAW).</li>
+        <li>Eigenes Wortprofil, berechnet auf Basis freier deutschsprachiger Korpora (CC&nbsp;BY-SA), syntaktisch annotiert mit dem spaCy-Modell <code>de_zdl_lg</code> (BBAW/ZDL), Dependenzen nach Universal Dependencies.</li>
       </ol>
     </>
   )

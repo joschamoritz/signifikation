@@ -93,7 +93,7 @@ export const LITERATUR = {
   // ── Korpus selbst (kontext: "korpus") ─────────────────────────────
   'korpus-pipeline': {
     kurz: 'Signifikation-Korpus (wortprofil.db)',
-    voll: 'Eigene Korpus-Pipeline (öffentliche Korpora: Bundestag, DTA, Leipzig u. a.), spaCy-Dependenzparsing, logDice-Assoziationsmaß. Belegsätze aus belege.db (CC-BY-SA).',
+    voll: 'Eigene Korpus-Pipeline (öffentliche Korpora: Bundestag, DTA, Leipzig u. a.), Dependenzparsing mit dem spaCy-Modell de_zdl_lg (BBAW/ZDL) nach Universal Dependencies, logDice-Assoziationsmaß. Belegsätze aus belege.db (CC-BY-SA).',
   },
   // Schnupper-Variante für DaZ/SekI-Blätter (④/⑤): kein „logDice" im Zitattext,
   // da der Begriff auf diesen Stufen nicht eingeführt wird (Befund 1, AP11-QA).

@@ -166,7 +166,7 @@ ${glossar.map((g) => `        <div class="arc-rel-glossar-item"><dt>${escapeHtml
   return `<div class="arc-mt-scroll">
     <table class="arc-muster-tabelle">
       <thead><tr>
-        <th scope="col">Partnerwort</th>
+        <th scope="col">Kollokator</th>
         <th scope="col">Beziehung</th>
         <th scope="col">Stellung</th>
         <th scope="col" class="arc-mt-num">Anteil</th>
@@ -178,7 +178,7 @@ ${rows}
       </tbody>
     </table>
     </div>
-    <p class="arc-mt-legende"><strong>logDice</strong> misst die Stärke der Verbindung (höher = typischer, theoret. Maximum 14). <strong>Frequenz</strong> ist die absolute Häufigkeit der Verbindung im Korpus. <strong>Anteil</strong> ist der Anteil dieser Verbindung an allen erfassten Verbindungen des Stichworts. <strong>Stellung</strong> ist die typische Position des Partnerworts relativ zum Stichwort.</p>
+    <p class="arc-mt-legende"><strong>Kollokator</strong> ist das Partnerwort, das sich mit der Basis verbindet. <strong>logDice</strong> misst die Stärke der Verbindung (höher = typischer, theoret. Maximum 14). <strong>Frequenz</strong> ist die absolute Häufigkeit der Verbindung im Korpus. <strong>Anteil</strong> ist der Anteil dieser Verbindung an allen erfassten Verbindungen der Basis. <strong>Stellung</strong> ist die typische Position des Kollokators relativ zur Basis.</p>
     ${glossarHtml}`
 }
 
@@ -210,7 +210,7 @@ function renderMusterNetz(lemma, patterns, netz) {
         <rect x="${n(cx - centerW / 2)}" y="${cy - 14}" width="${n(centerW)}" height="28" rx="14" class="mn-center" />
         <text x="${cx}" y="${cy + 4.5}" text-anchor="middle" class="mn-center-label">${escapeHtml(lemma)}</text>
       </svg>
-      <p class="mn-caption">Partnerwörter gruppiert nach grammatischer Beziehung. Größe = Stärke (logDice), graue Punkte = Wortnetz.</p>
+      <p class="mn-caption">Kollokatoren gruppiert nach grammatischer Beziehung. Größe = Stärke (logDice), graue Punkte = Wortnetz.</p>
     </div>
   </section>`
 }

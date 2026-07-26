@@ -377,7 +377,7 @@ export default function Zeitenwende({
             )}
             {ipa && <hr className="dict-entry-rule" aria-hidden="true" />}
           </div>
-          <p className="zw-subtitle">Wann war diese Kollokation von <em>{lemma}</em> gebräuchlicher?</p>
+          <p className="zw-subtitle">Wann war diese Verbindung mit <em>{lemma}</em> gebräuchlicher?</p>
         </header>
       )}
 
@@ -408,7 +408,7 @@ export default function Zeitenwende({
           key={round}
           ref={cardRef}
           className={cardClass}
-          aria-label={`Kollokation: ${currentWord.wort}`}
+          aria-label={`Kollokator: ${currentWord.wort}`}
           onTouchStart={handleTouchStart}
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}

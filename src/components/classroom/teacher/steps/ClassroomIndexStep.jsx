@@ -132,7 +132,7 @@ export default function ClassroomIndexStep() {
             </div>
             <p className="test-definition">
               Lege eine neue Live-Sitzung an oder setze eine laufende fort —
-              Modus, Wörter, ein Beitrittscode für die ganze Klasse.
+              Modus, Wörter, ein Zugangscode für die ganze Klasse.
             </p>
             <div className="test-entry-footer">
               <span className="test-status">{sessionStatus}</span>
