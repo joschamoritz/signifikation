@@ -25,7 +25,7 @@ export default function LobbyStep() {
   const [allowLateJoin, setAllowLateJoin] = useState(true)
 
   // Initial-Load: aktueller Session-Snapshot + Teilnehmer.
-  // (Auch unter „lobby" liefert der Dashboard-Endpunkt diese Daten.)
+  // (Auch unter „lobby“ liefert der Dashboard-Endpunkt diese Daten.)
   useEffect(() => {
     let cancelled = false
     if (!sessionId) return undefined

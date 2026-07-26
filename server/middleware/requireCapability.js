@@ -82,7 +82,7 @@ function pickSessionId(req, fallback) {
 // Schueler-Capabilities: hier bevorzugen wir den Participant (Bearer-Token),
 // auch wenn gleichzeitig ein Lehrer-Cookie anliegt. Sonst scheitert der Submit,
 // wenn ein eingeloggter Lehrer im selben Browser als Schueler beitritt
-// (Cookie + Bearer): der Teacher hat keine sessionId → „sessionId fehlt".
+// (Cookie + Bearer): der Teacher hat keine sessionId → „sessionId fehlt“.
 const PARTICIPANT_CAPABILITIES = new Set(['submission:write', 'view:student'])
 
 /**

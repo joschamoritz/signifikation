@@ -540,7 +540,7 @@ if (!hasColumn('lemmata', 'lueckenfueller')) {
       ['Aus echten Texten: »{lemma}«', 'Heute täglich neu – korpusbasiert.'],
       ['{wortA} oder {wortB}?',       'Spür dem feinen Unterschied nach.'],
       ['Zwei Wörter, ein Rätsel',     '{wortA} und {wortB} – was unterscheidet sie?'],
-      ['Kannst du die Lücke füllen?', '„{lueckensatz}"'],
+      ['Kannst du die Lücke füllen?', '„{lueckensatz}“'],
       ['Signifikation · {wochentag}', '{lemmata}'],
       ['Signifikation · Heute',       'Thema: {thema}'],
     ]

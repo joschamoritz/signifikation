@@ -1,4 +1,4 @@
-// Root des Lehrer-Tabs „Klassenraum".
+// Root des Lehrer-Tabs „Klassenraum“.
 //
 // Mountet den Reducer-Context und rendert den Step, der gerade aktiv ist.
 // Wörterbuch-Stil: Container limitiert auf 680px (Setup/Lobby).

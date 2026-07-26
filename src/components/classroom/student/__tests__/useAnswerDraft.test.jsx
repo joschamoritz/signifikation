@@ -18,7 +18,7 @@ describe('useAnswerDraft (7.2)', () => {
     act(() => { first.result.current[1](['stark', 'groß']) })
     expect(readDraft(key)).toEqual(['stark', 'groß'])
 
-    // „Reload": neuer Mount mit gleichem Key → Wert ist wieder da.
+    // „Reload“: neuer Mount mit gleichem Key → Wert ist wieder da.
     first.unmount()
     const second = renderHook(() => useAnswerDraft(key, []))
     expect(second.result.current[0]).toEqual(['stark', 'groß'])

@@ -1,5 +1,5 @@
 /**
- * customLemmaQuota.js – Tageskontingent fürs „Eigenes Lemma"-Feature.
+ * customLemmaQuota.js – Tageskontingent fürs „Eigenes Lemma“-Feature.
  *
  * Modell (Phase 4):
  *   - Premium (Rolle premium/admin): unbegrenzt.

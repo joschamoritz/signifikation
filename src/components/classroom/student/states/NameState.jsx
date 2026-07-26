@@ -1,7 +1,7 @@
 // T-5.3 — S2 Spitzname-Eingabe.
 //
 // D15: Pflicht, max 20 Zeichen. Skip-Link nutzt vom Server den Default
-// „Schüler:in N" (wenn displayName beim /join leer übergeben wird).
+// „Schüler:in N“ (wenn displayName beim /join leer übergeben wird).
 //
 // Submit ruft kioskFetch.joinSession({ code, displayName }). Bei 409 (Name
 // vergeben) bleibt der Schüler auf S2 mit Fehler-Hint. Bei 404 (INVALID_CODE)
@@ -85,7 +85,7 @@ export default function NameState() {
     e.preventDefault()
     const trimmed = name.trim()
     if (trimmed.length === 0) {
-      setError('Bitte einen Spitznamen eingeben oder „Ohne Namen beitreten" anklicken.')
+      setError('Bitte einen Spitznamen eingeben oder „Ohne Namen beitreten“ anklicken.')
       try { inputRef.current?.focus() } catch {}
       return
     }
@@ -93,7 +93,7 @@ export default function NameState() {
   }
 
   function handleSkip() {
-    // Leerer displayName → Server vergibt Default „Schüler:in N".
+    // Leerer displayName → Server vergibt Default „Schüler:in N“.
     doJoin('')
   }
 

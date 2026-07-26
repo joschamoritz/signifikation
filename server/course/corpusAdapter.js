@@ -26,8 +26,8 @@ function escapeRegExp(s) {
 }
 
 /**
- * Heuristik-Score: „wirkt das wie ein vollständiger Satz?". Höher = besser.
- * Bestraft typische Korpus-Fragmente (Monats-Reste, Dialog-Präfixe „Name:",
+ * Heuristik-Score: „wirkt das wie ein vollständiger Satz?“. Höher = besser.
+ * Bestraft typische Korpus-Fragmente (Monats-Reste, Dialog-Präfixe „Name:“,
  * Klein-Anfang, Klammer-/Gleichheits-Rauschen) und sehr kurze/lange Sätze.
  */
 function scoreBeleg(satz) {
@@ -41,11 +41,11 @@ function scoreBeleg(satz) {
   if (/[.!?]['"»)\]]?$/.test(s)) sc += 4         // vollständige Satz-Endung
   if (/^[A-ZÄÖÜ]/.test(s)) sc += 2               // Groß-Anfang
   else sc -= 6                                    // Klein-Anfang → Fragment
-  if (MONTHS.test(s)) sc -= 20                    // „Februar eine … treffen." & Co.
+  if (MONTHS.test(s)) sc -= 20                    // „Februar eine … treffen.“ & Co.
   if (/[=()[\]]/.test(s)) sc -= 8                 // Klammern/Gleichheits-Rauschen
-  if (/^\p{Lu}[\wäöüß-]*:/u.test(s)) sc -= 6      // „Kiesinger:" Redner-Präfix
-  // Zusammengeklebte Schlagzeilen: „Headline: „Zitat“ Nächste Headline …"
-  if (/:\s*[„"]/.test(s)) sc -= 14                // Doppelpunkt + öffnendes Zitat
+  if (/^\p{Lu}[\wäöüß-]*:/u.test(s)) sc -= 6      // „Kiesinger:“ Redner-Präfix
+  // Zusammengeklebte Schlagzeilen: „Headline: „Zitat“ Nächste Headline …“
+  if (/:\s*[„“]/.test(s)) sc -= 14                // Doppelpunkt + öffnendes Zitat
   if (/[“”"]\s+\p{Lu}/u.test(s)) sc -= 10         // schließendes Zitat + Großanfang (Glue)
   return sc
 }
@@ -72,7 +72,7 @@ export function makeCorpusAdapter() {
         const rows = fetchBelegeRaw(lemma, partner, { limit: 12 })
         if (!rows.length) return null
         // Besten Satz wählen statt blind den ersten: viele Korpus-Belege sind
-        // abgeschnittene Fragmente (z. B. „Februar eine Entscheidung treffen.").
+        // abgeschnittene Fragmente (z. B. „Februar eine Entscheidung treffen.“).
         // Wir bevorzugen einen vollständig wirkenden Satz.
         return [...rows].sort((a, b) => scoreBeleg(b.satz) - scoreBeleg(a.satz))[0] ?? rows[0]
       } catch (err) {
@@ -80,11 +80,11 @@ export function makeCorpusAdapter() {
         return null
       }
     },
-    // Mehrere möglichst vollständige Belegsätze (AP21-QA „Anschaulichkeit"):
+    // Mehrere möglichst vollständige Belegsätze (AP21-QA „Anschaulichkeit“):
     // Relevanz-Pool holen, nach Vollständigkeit sortieren, die besten `limit` nehmen.
     //
-    // adjacent=true → attributive Adjektiv+Nomen-Belege („scharfe Kritik"):
-    // Der exakte Lemma-Token „scharf" trifft nur die Adverbform; daher Präfix-
+    // adjacent=true → attributive Adjektiv+Nomen-Belege („scharfe Kritik“):
+    // Der exakte Lemma-Token „scharf“ trifft nur die Adverbform; daher Präfix-
     // Suche (scharf*) + Nachfilter auf Adjazenz (flektiertes Adjektiv DIREKT vor
     // dem Nomen). partner = Adjektiv-Lemma, lemma = Nomen.
     fetchBelege(lemma, partner, { limit = 3, adjacent = false } = {}) {

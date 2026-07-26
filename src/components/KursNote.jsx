@@ -1,4 +1,4 @@
-// Erklaertext „Was ist der Kurs?" für die Anm./Manicula auf der Kurs-Startseite
+// Erklaertext „Was ist der Kurs?“ für die Anm./Manicula auf der Kurs-Startseite
 // (Einheitlichkeit mit Spielmodi & Klassenraum). Erklärt den Lernpfad und die
 // vier Niveaustufen — Single Source für Desktop-Fußnote und Mobile-Sheet.
 // Seit dem Üben-Redesign sitzen hier auch die zentrale Niveau-Auswahl UND das
@@ -97,7 +97,7 @@ export default function KursNote({ footnotesClass, loggedIn = false }) {
       </p>
       <ul className="course-note-levels">
         <li><strong>DaZ</strong> — Deutsch als Zweitsprache: feste Wortpaare erkennen, rein sprachlich, ohne Zahlen.</li>
-        <li><strong>Sek&nbsp;I</strong> — Sekundarstufe&nbsp;I: typische von untypischen Verbindungen unterscheiden („oft / selten").</li>
+        <li><strong>Sek&nbsp;I</strong> — Sekundarstufe&nbsp;I: typische von untypischen Verbindungen unterscheiden („oft / selten“).</li>
         <li><strong>Sek&nbsp;II</strong> — Sekundarstufe&nbsp;II: Häufigkeit von Bindungsstärke trennen (Frequenz vs.&nbsp;logDice).</li>
         <li><strong>LK</strong> — Leistungskurs: Daten quantifizieren und die Methode kritisch einordnen.</li>
       </ul>

@@ -139,7 +139,7 @@ function collocationBlurb(lemma, wortart) {
  * Muster-Tabelle: je Kollokator eine Zeile mit Beziehung, typischer Stellung,
  * Anteil, absoluter Frequenz und logDice. patterns = fetchSyntagmaticPatterns().
  * Enthaelt eine Kurz-Legende, die die Kennzahlen erklaert (Nutzer-Wunsch:
- * „alle Kennzahlen, mit Erklaerung") sowie ein aufklappbares Glossar (natives
+ * „alle Kennzahlen, mit Erklaerung“) sowie ein aufklappbares Glossar (natives
  * <details>, kein JS) fuer die grammatischen Fachbegriffe der Beziehung-Spalte.
  */
 function renderPatternTable(patterns, lemma) {
@@ -294,7 +294,7 @@ export function renderWortPage(entry, siblings = [], extras = {}) {
     : ''
 
   const musterHtml = patterns.length
-    ? `<p class="arc-muster-intro">Die typischsten Verbindungen von „${escapeHtml(entry.lemma)}" im Korpus (syntagmatische Muster):</p>
+    ? `<p class="arc-muster-intro">Die typischsten Verbindungen von „${escapeHtml(entry.lemma)}“ im Korpus (syntagmatische Muster):</p>
     ${renderPatternTable(patterns, escapeHtml(entry.lemma))}`
     : ''
   const kollHtml = `<section class="arc-block arc-koll">
@@ -303,7 +303,7 @@ export function renderWortPage(entry, siblings = [], extras = {}) {
     ${musterHtml}
   </section>`
 
-  // Musternetz-Visualisierung ersetzt den früheren Text-„Wortnetz"-Block (die
+  // Musternetz-Visualisierung ersetzt den früheren Text-„Wortnetz“-Block (die
   // grauen Satelliten zeigen dasselbe). renderWortnetz bleibt ungenutzt.
   const netzVizHtml = renderMusterNetz(entry.lemma, patterns, netz)
 
@@ -399,7 +399,7 @@ ${footer()}`
   })
 }
 
-/** robots-„noindex"-404 fuer unbekannte Slugs. */
+/** robots-„noindex“-404 fuer unbekannte Slugs. */
 export function renderNotFound() {
   const bodyInner = `  <a class="back" href="/archiv">‹ Archiv</a>
   <header>

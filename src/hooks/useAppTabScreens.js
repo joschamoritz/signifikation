@@ -63,7 +63,7 @@ export function useAppTabScreens({
     }),
   } : null, [hasLueckenfueller, startVT, setPhase])
   const onNavigateToKonto = useCallback(() => setActiveTab('profil'), [setActiveTab])
-  // Archiv „Heutiges Wort spielen" → zurück zum Spielmodi-Tag.
+  // Archiv „Heutiges Wort spielen“ → zurück zum Spielmodi-Tag.
   const onGoToSpielmodi = useCallback(() => startVT(() => {
     setPhase('home')
     setActiveTab('spielmodi')

@@ -3,7 +3,7 @@
 // dauerhaft — erscheint also bei jedem echten App-Start neu), verschwindet
 // nach erster Scroll-Interaktion oder spätestens nach 8 s. Kann in den
 // Einstellungen dauerhaft abgeschaltet werden (lsGet/lsSet, siehe
-// KontoEinstellungenBlock „Bedienhinweise").
+// KontoEinstellungenBlock „Bedienhinweise“).
 import { useState, useRef, useCallback, useEffect } from 'react'
 import { lsGet } from '../utils/storage'
 import { MOBILE_MEDIA_QUERY } from '../config'

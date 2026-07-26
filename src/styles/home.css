@@ -456,7 +456,7 @@
 
 /* Nummerierung wie bei Kollokationen (Nachschlagewerk-Optik): Einzel-Einträge
    in Zeitenwende/Lückenfüller zählen pro .lemma-card-main (Basisregel greift),
-   das „＋" des eigenen Lemmas richtet sich über dasselbe Gutter aus. */
+   das „＋“ des eigenen Lemmas richtet sich über dasselbe Gutter aus. */
 
 /* Wort-Zwilling: ein Wortpaar = ein Eintrag → nur einmal pro Paar zählen,
    Nummer am ersten Wort, leeres Gutter am zweiten (Ausrichtung bleibt). */
@@ -924,7 +924,7 @@
 .eigenes-lemma-status--error { color: var(--error); }
 .eigenes-lemma-status--locked { color: var(--accent-dk); }
 
-/* „Spielen" – wie der Lemma-Pfeil/CTA, rechts ausgerichtet */
+/* „Spielen“ – wie der Lemma-Pfeil/CTA, rechts ausgerichtet */
 .eigenes-lemma-play {
   flex-shrink: 0;
   align-self: center;
@@ -994,7 +994,7 @@
 }
 .eigenes-lemma-cta:hover .eigenes-lemma-cta__arrow { transform: translateX(3px); }
 
-/* Wort-Zwilling: „vs."-Linie zwischen den beiden Eingabefeldern */
+/* Wort-Zwilling: „vs.“-Linie zwischen den beiden Eingabefeldern */
 .eigenes-lemma-vs {
   display: flex;
   align-items: center;
@@ -1002,7 +1002,7 @@
   padding: 6px 0;
 }
 
-/* IPA + Definition nach „✓ Spielbar" (Einzelwort-Modi) */
+/* IPA + Definition nach „✓ Spielbar“ (Einzelwort-Modi) */
 .eigenes-lemma-enrich {
   font-family: var(--font-serif);
   font-size: 0.82rem;

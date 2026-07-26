@@ -1,4 +1,4 @@
-// Erklaertext „So funktioniert der Klassenraum" — Single Source fuer die
+// Erklaertext „So funktioniert der Klassenraum“ — Single Source fuer die
 // Desktop-Fußnote und das Mobile-Sheet auf der Klassenraum-Landing.
 //
 // Loest die fruheren eigenstaendigen Unterseiten HowToStep (① Anleitung) und

@@ -24,7 +24,7 @@ export default function KontoPremiumBlock({ auth, gesamtausgabePermanent }) {
   const [teaserPrice, setTeaserPrice] = useState(null)
 
   // Teaser-Preis auf iOS aus StoreKit (Storefront-Währung des Nutzers) statt
-  // hardcoded EUR – auf Nicht-Euro-Storefronts (z. B. CH) stimmt „6,99 €"
+  // hardcoded EUR – auf Nicht-Euro-Storefronts (z. B. CH) stimmt „6,99 €“
   // sonst nicht mit dem Preis im Kauf-Sheet überein.
   useEffect(() => {
     if (!IS_NATIVE || gesamtausgabePermanent) return

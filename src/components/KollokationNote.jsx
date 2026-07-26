@@ -1,4 +1,4 @@
-// Erklaertext „Was ist eine Kollokation?" — Single Source (Review 2026-06-11,
+// Erklaertext „Was ist eine Kollokation?“ — Single Source (Review 2026-06-11,
 // F-M7): stand vorher wortgleich zweimal in Home.jsx (Desktop-Fußnote +
 // Mobile-Sheet); inhaltliche Korrekturen mussten doppelt erfolgen.
 export default function KollokationNote({ footnotesClass }) {

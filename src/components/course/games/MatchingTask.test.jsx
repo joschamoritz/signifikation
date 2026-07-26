@@ -39,7 +39,7 @@ describe('MatchingTask – Zuordnung + A11y-Ansagen', () => {
     render(<MatchingTask task={TASK} index="1" onChecked={vi.fn()} />)
     expect(status().textContent).toBe('') // dauerhaft gemountet, anfangs leer
     tapAssign('bellen', 'Hund')
-    expect(status().textContent).toBe('bellen zu „Hund" zugeordnet.')
+    expect(status().textContent).toBe('bellen zu „Hund“ zugeordnet.')
   })
 
   it('sagt das Lösen einer Zuordnung an', () => {

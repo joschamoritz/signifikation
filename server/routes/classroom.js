@@ -222,7 +222,7 @@ function synthWzLemma(id, pair) {
   }
 }
 
-// Laedt die Lemmata fuer ein Assignment: echte IDs aus der DB, „wz:"-Paar-IDs
+// Laedt die Lemmata fuer ein Assignment: echte IDs aus der DB, „wz:“-Paar-IDs
 // (Wort-Zwilling) als synthetische Objekte. → { lemmata, missing }.
 function loadAssignmentLemmata(lemmaIds) {
   const realIds = lemmaIds.filter((id) => !parseWzId(id))
@@ -351,7 +351,7 @@ function buildStudentView(participant, session, assignment, meta = {}) {
       : 1
     // GF-4: Ein Lueckenfueller-Lemma ohne Runden (Content-Generierung
     // fehlgeschlagen) ist unspielbar — jeder Submit liefert INVALID_INPUT.
-    // Als „erledigt" behandeln, damit die Klasse nicht ewig auf currentRound:
+    // Als „erledigt“ behandeln, damit die Klasse nicht ewig auf currentRound:
     // null haengt, sondern zum naechsten spielbaren Lemma springt.
     if (totalRounds <= 0) {
       doneLemmaIds.add(lemmaId)
@@ -368,7 +368,7 @@ function buildStudentView(participant, session, assignment, meta = {}) {
 
   // P3: Der content_snapshot (beim Anlegen eingefroren, D4) ist die ALLEINIGE
   // View-Quelle — kein DB-Reload des Lemmas mehr. lemma/ipa/definition liegen
-  // bereits im Snapshot (fuer alle Modi, inkl. synthetischer „wz:"-Paare, die gar
+  // bereits im Snapshot (fuer alle Modi, inkl. synthetischer „wz:“-Paare, die gar
   // keine DB-Zeile haben). Das vermeidet einen Read pro /me/view und haelt die
   // Schueler-Sicht konsistent mit dem eingefrorenen Stand.
   // R1: Nur das aktuelle Lemma wird gewhitelistet ausgeliefert, nie alle.
@@ -380,7 +380,7 @@ function buildStudentView(participant, session, assignment, meta = {}) {
       // abgegebene Runde (luckentolerant). `.size` waere bei out-of-order
       // Abgaben falsch — die Menge {2} haette size 1 und zeigte faelschlich
       // Runde 1, obwohl Runde 0 fehlt und Runde 2 schon abgegeben ist. Die
-      // erste Luecke ist der korrekte „naechste" Index; bei in-order-Spiel
+      // erste Luecke ist der korrekte „naechste“ Index; bei in-order-Spiel
       // (Normalfall) ist sie identisch mit .size.
       const submittedRounds = roundsPerLemma[currentLemmaId] || new Set()
       let currentRoundIndex = 0
@@ -414,7 +414,7 @@ function buildStudentView(participant, session, assignment, meta = {}) {
       id:         assignment.id,
       mode:       assignment.mode,
       lemmaCount: lemmaIds.length,
-      // W2-T2: Reihenfolge-Position fuer „Modus X von N" im Kiosk.
+      // W2-T2: Reihenfolge-Position fuer „Modus X von N“ im Kiosk.
       index:      meta.index ?? 0,
       total:      meta.total ?? 1,
     },
@@ -468,7 +468,7 @@ router.post(
 )
 
 // ── W4 POST /api/v1/classroom/sessions/:id/duplicate ────────────
-// „Mit neuer Klasse wiederholen": klont Titel + Assignment-Bloecke in eine
+// „Mit neuer Klasse wiederholen“: klont Titel + Assignment-Bloecke in eine
 // frische Lobby-Session mit neuem Join-Code (ohne Teilnehmer/Abgaben).
 // requireCapability prueft session:manage auf der QUELL-Session (:id).
 router.post(
@@ -508,7 +508,7 @@ function lemmaModeFilter(mode) {
   // live aus Korpus/Belegen generiert (fetchZeitenwende / buildLueckenfueller /
   // fetchLemma). Jedes kuratierte Lemma ist also wählbar; ob es genug Eignung
   // hat, zeigt die Schüleransicht-Vorschau. (Früher beschränkte Zeitenwende auf
-  // ein gespeichertes runden.zeitenwende-Feld → „Keine Treffer" für eigene
+  // ein gespeichertes runden.zeitenwende-Feld → „Keine Treffer“ für eigene
   // Lemmata, obwohl der Content live erzeugbar ist.) wortzwilling nutzt ohnehin
   // den Paar-Picker, nicht diesen Endpoint.
   void mode
@@ -1254,7 +1254,7 @@ router.post(
       // direkt das naechste Lemma sieht.
       notifyStudentViewUpdated(participant.id, { reason: 'submission' })
       // D5: Dem Schueler wird der Score NICHT mit der Submit-Antwort verraten
-      // (auch nicht „nur im State") — er kommt erst nach Freigabe via /me/reveal.
+      // (auch nicht „nur im State“) — er kommt erst nach Freigabe via /me/reveal.
       // Nur die Annahme bestaetigen.
       return res.json({ accepted: true })
     } catch (err) {

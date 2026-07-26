@@ -3,7 +3,7 @@
 // Akquise-Baustein 1: Eine Lehrkraft OHNE Premium/Login sieht den echten
 // Ablauf einer Live-Sitzung — Modus wählen, Schüleransicht ansehen, Beitritt
 // verstehen — ohne dass serverseitig etwas angelegt wird (kein FK, kein
-// Premium-Verschenken). Bewusst „scharf gezogen":
+// Premium-Verschenken). Bewusst „scharf gezogen“:
 //   • Wortauswahl NUR aus festen Tageswörtern (kein freies Suchen wie Premium).
 //   • Schüleransicht ist STATISCH (eingebaute Demo-Inhalte, nicht /preview).
 //   • onSubmit ist ein No-Op — nichts wird gewertet.

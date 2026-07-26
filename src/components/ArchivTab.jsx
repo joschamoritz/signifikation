@@ -96,7 +96,7 @@ function WortDetail({ data, loading, error, onRetry, onBack, onPlayToday, maxNod
               <p className="av-koll-blurb">
                 {collocationBlurbLead(data.lemma, data.wortart)} {BLURB_LOGDICE_NOTE}
               </p>
-              <p className="av-muster-intro">Die typischsten Verbindungen von „{data.lemma}" im Korpus:</p>
+              <p className="av-muster-intro">Die typischsten Verbindungen von „{data.lemma}“ im Korpus:</p>
               <div className="av-mt-scroll">
                 <table className="av-muster-tabelle">
                   <thead>
@@ -128,7 +128,7 @@ function WortDetail({ data, loading, error, onRetry, onBack, onPlayToday, maxNod
                 </table>
               </div>
               <p className="av-mt-legende">
-                <strong>Kollokator</strong> ist das Partnerwort, das sich mit der Basis „{data.lemma}" verbindet.{' '}
+                <strong>Kollokator</strong> ist das Partnerwort, das sich mit der Basis „{data.lemma}“ verbindet.{' '}
                 <strong>logDice</strong> misst die Stärke der Verbindung (höher = typischer, theoret. Maximum 14).{' '}
                 <strong>Frequenz</strong> ist die absolute Häufigkeit im Korpus.{' '}
                 <strong>Anteil</strong> ist der Anteil dieser Verbindung an allen erfassten Verbindungen der Basis.{' '}

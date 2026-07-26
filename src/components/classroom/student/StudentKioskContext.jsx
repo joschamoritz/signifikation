@@ -3,14 +3,14 @@
 // Eine Quelle der Wahrheit fuer den Schueler-State innerhalb /c/:code.
 // Bewusst NICHT in localStorage — D6: Token lebt nur in sessionStorage,
 // geht beim Tab-Close verloren. Persistenz uebernimmt useStudentSession (T-5.8),
-// dieser Context ist „purely in-memory + reducer".
+// dieser Context ist „purely in-memory + reducer“.
 //
 // State-Maschine:
 //   'name'      – S2: Spitzname-Eingabe (Default beim Mount mit Code in URL)
 //   'waiting'   – S3: Lobby, warte auf session:started
 //   'playing'   – S4: aktuelles Lemma spielen
 //   'submitted' – S5: Antwort eingereicht, warte auf Auflösung
-//   'ended'     – Session beendet, „Danke fürs Mitspielen"
+//   'ended'     – Session beendet, „Danke fürs Mitspielen“
 //
 // 'join' (S1) lebt in StudentJoinEntry, nicht hier — es laeuft eine Ebene
 // hoeher, weil ohne Code keine Kiosk-Route existiert.
@@ -42,10 +42,10 @@ export function initialState(code) {
     submittedResult: null,        // { score, maxScore, correct } vom Server
     // W4-S4: Verlauf aller Runden im aktuellen Block (z. B. 3 Lemmata bei
     // Kollokationen). Speist die Rundenauswertung in S5. Wird beim Modus-
-    // Wechsel geleert. Scores zeigen wir erst nach „Auflösung freigeben".
+    // Wechsel geleert. Scores zeigen wir erst nach „Auflösung freigeben“.
     roundResults:    [],          // [{ key, lemmaId, lemma, score, maxScore, correct }]
     revealed:        false,       // abgeleitet aus sessionStatus (finished/aborted), nur in SET_VIEW (P4)
-    // Schritt 4 (C1): item-genaue Aufloesung vom Server, byKey „<lemmaId>:<round>".
+    // Schritt 4 (C1): item-genaue Aufloesung vom Server, byKey „<lemmaId>:<round>“.
     // Wird erst nach Freigabe geladen (R1-Gate serverseitig).
     revealData:      null,        // { byKey: { [key]: { mode, score, maxScore, items, solution } } } | null
     notice:          null,        // info-Hinweise an die UI

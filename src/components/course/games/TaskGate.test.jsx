@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
 // Sichert die Sperr-Logik von TaskGate (Nutzerentscheidung 2026-06-25):
-// kuratierte Aufgaben sind nach Abgabe gesperrt, „Eigenes Lemma" bleibt frei.
+// kuratierte Aufgaben sind nach Abgabe gesperrt, „Eigenes Lemma“ bleibt frei.
 import { render, cleanup } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import TaskGate from './TaskGate'
@@ -21,13 +21,13 @@ describe('TaskGate', () => {
     expect(interactive()).toBeTruthy()
   })
 
-  it('mit geladenem Ergebnis (richtig) → Sperrkarte „Gelöst"', () => {
+  it('mit geladenem Ergebnis (richtig) → Sperrkarte „Gelöst“', () => {
     render(<TaskGate task={TASK} index="1" result={{ correct: true, attempts: 1 }} onResult={vi.fn()} />)
     expect(lockedCard()).toBeTruthy()
     expect(lockedCard().textContent).toContain('Gelöst')
   })
 
-  it('mit geladenem Ergebnis (falsch) → Sperrkarte „Nicht gelöst"', () => {
+  it('mit geladenem Ergebnis (falsch) → Sperrkarte „Nicht gelöst“', () => {
     render(<TaskGate task={TASK} index="1" result={{ correct: false, attempts: 1 }} onResult={vi.fn()} />)
     expect(lockedCard().textContent).toContain('Nicht gelöst')
   })

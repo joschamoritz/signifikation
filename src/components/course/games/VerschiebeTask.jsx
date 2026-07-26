@@ -1,7 +1,7 @@
 // Verschiebeprobe am topologischen Feld (Feldermodell, Gallmann 2015). Die/der
 // Lernende zieht (oder tippt) Satzglieder zwischen Mittelfeld und Vorfeld. Kern-
 // einsicht: Im Aussagesatz (V2) steht GENAU EIN Satzglied im Vorfeld, das finite
-// Verb bleibt fest an Position 2 (linke Satzklammer). So wird „Satzglied" über
+// Verb bleibt fest an Position 2 (linke Satzklammer). So wird „Satzglied“ über
 // Verschiebbarkeit erfahrbar — statt die Probe zum Selbstzweck zu üben.
 //
 // Bedienung: Chunk antippen wählt ihn aus, dann Zielfeld antippen; oder Chunk

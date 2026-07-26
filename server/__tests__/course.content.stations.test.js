@@ -81,7 +81,7 @@ describe.each(Object.entries(STATIONS))('Station %s – Content (Engine-Spec + D
       // Lint 3: feedback.byLevel enthält das Item-Level
       expect(item.feedback?.byLevel?.[item.level], `${item.id} feedback[${item.level}]`).toBeTruthy()
 
-      // Lint 4 (+ Schnupper ④/⑤): DaZ/SekI ohne logDice. Frequenz („oft/selten")
+      // Lint 4 (+ Schnupper ④/⑤): DaZ/SekI ohne logDice. Frequenz („oft/selten“)
       // ist nur als metric 'frequency' erlaubt; logDice/both NIE.
       if (item.level === 'DaZ' || item.level === 'SekI') {
         expect(['none', 'frequency', undefined], `${item.id} metric`).toContain(item.display?.metric)
@@ -160,7 +160,7 @@ describe('Stationen ②–⑤ – echte Korpus-Auflösung (falls wortprofil.db v
     for (const { mod } of Object.values(STATIONS)) {
       for (const it of mod.tasks) if (it.source === 'corpus-template') anchors.add(it.corpusQuery.lemma)
     }
-    for (const lemma of anchors) expect(lemmaExistsInWortprofil(lemma), `Anker „${lemma}"`).toBe(true)
+    for (const lemma of anchors) expect(lemmaExistsInWortprofil(lemma), `Anker „${lemma}“`).toBe(true)
   })
 
   it('ein corpus-template-Item löst mit echten Werten auf (Haar/ATTR, ④ SekII)', () => {

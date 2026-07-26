@@ -68,7 +68,7 @@ describe('SetupStep (T-4.4 / W2-T2)', () => {
     expect(screen.queryByTestId('classroom-block-1')).toBeNull()
   })
 
-  it('CTA „Lobby öffnen" ist disabled ohne vollständigen Block', () => {
+  it('CTA „Lobby öffnen“ ist disabled ohne vollständigen Block', () => {
     renderSetup()
     expect(screen.getByTestId('classroom-setup-submit').hasAttribute('disabled')).toBe(true)
   })
@@ -79,7 +79,7 @@ describe('SetupStep (T-4.4 / W2-T2)', () => {
     expect(screen.getByTestId('classroom-setup-submit').hasAttribute('disabled')).toBe(true)
   })
 
-  it('„Schüleransicht testen" je Block ist disabled ohne vollständige Auswahl', () => {
+  it('„Schüleransicht testen“ je Block ist disabled ohne vollständige Auswahl', () => {
     renderSetup()
     expect(screen.getByTestId('classroom-block-preview-0').hasAttribute('disabled')).toBe(true)
   })
@@ -102,13 +102,13 @@ describe('SetupStep (T-4.4 / W2-T2)', () => {
     expect(screen.queryByTestId('classroom-block-1')).toBeNull()
   })
 
-  it('Vorbereiten-Modus: CTA „Für später vorbereiten" statt „Lobby öffnen"', () => {
+  it('Vorbereiten-Modus: CTA „Für später vorbereiten“ statt „Lobby öffnen“', () => {
     render(<TeacherClassroomProvider><PrepareSetup /></TeacherClassroomProvider>)
     expect(screen.getByTestId('classroom-setup-submit').textContent).toMatch(/Für später vorbereiten/)
     expect(screen.queryByText(/Lobby öffnen/)).toBeNull()
   })
 
-  it('W2-T2: legt bei „Lobby öffnen" alle Blöcke per bulk an', async () => {
+  it('W2-T2: legt bei „Lobby öffnen“ alle Blöcke per bulk an', async () => {
     createSession.mockResolvedValue({ id: 'sess-1', code: 'abc', status: 'lobby' })
     addAssignments.mockResolvedValue({ assignments: [{ id: 'a0' }, { id: 'a1' }] })
     renderSetup()

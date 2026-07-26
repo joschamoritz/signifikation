@@ -1,9 +1,9 @@
-// Ebene 2 des Kurs-Tabs: Station-Detail (Kurs-Tab-IA.md §„Ebene 2").
+// Ebene 2 des Kurs-Tabs: Station-Detail (Kurs-Tab-IA.md §„Ebene 2“).
 //
 // Aufbau (mobile-first, Woerterbuch-Aesthetik, kein Quiz-App-Look):
-//   - EINE kompakte, mobil sticky Kopfzeile: Zurueck · „① Titel" · Material-Link
+//   - EINE kompakte, mobil sticky Kopfzeile: Zurueck · „① Titel“ · Material-Link
 //   - Übungsaufgaben der gewaehlten Stufe (mobil als Ein-Aufgabe-Pager)
-//   - „Material" (PDF-Downloads, Lehrkraft/Premium) öffnet als Bottom-Sheet,
+//   - „Material“ (PDF-Downloads, Lehrkraft/Premium) öffnet als Bottom-Sheet,
 //     nicht mehr als gleichrangiger Tab — spart je Übungs-Screen die Tab-Leiste
 //   - Niveau-Umschalter (DaZ/SekI/SekII/LK) liegt zentral im Kurs-Kopf/Profil
 //
@@ -96,7 +96,7 @@ export default function StationDetail({ stationId, gesamtausgabe = false, onBack
         setStationState('ready')
       } catch (err) {
         if (cancelled || err?.name === 'AbortError') return
-        // Üben ist frei, braucht aber Login: 401 → „denied" = Anmelde-Hinweis.
+        // Üben ist frei, braucht aber Login: 401 → „denied“ = Anmelde-Hinweis.
         // Die Route ist requireAuthUser, kann also nur 401 liefern; Material/
         // Lemma-Premium (403) wird im jeweiligen Bereich abgefangen, nicht hier.
         const needsLogin = err instanceof ApiError && err.status === 401
@@ -110,7 +110,7 @@ export default function StationDetail({ stationId, gesamtausgabe = false, onBack
   // geladen ist. StationDetail wird nur gemountet, wenn eine Station geöffnet
   // wird — ohne Deep-Link erst nach einem Klick (echtes Navigationsereignis),
   // mit Deep-Link ist die Station das Ziel. In beiden Fällen soll ein
-  // Screenreader ansagen, wo man gelandet ist; ein „generischer" Erst-Load
+  // Screenreader ansagen, wo man gelandet ist; ein „generischer“ Erst-Load
   // ohne Station mountet diese Komponente gar nicht → kein Fokus-Diebstahl.
   useEffect(() => {
     if (stationState === 'ready') headingRef.current?.focus()
@@ -158,7 +158,7 @@ export default function StationDetail({ stationId, gesamtausgabe = false, onBack
       )}
 
       {/* Material (Lehrkraft-PDFs) ist kein gleichrangiger Tab mehr, sondern ein
-          Bottom-Sheet über die „Material"-Affordanz im Kopf — so bleibt der
+          Bottom-Sheet über die „Material“-Affordanz im Kopf — so bleibt der
           Übungs-Flow frei von der 64px-Tab-Leiste (1-Screen-Ziel). */}
       <Sheet
         open={materialOpen}
@@ -183,7 +183,7 @@ export default function StationDetail({ stationId, gesamtausgabe = false, onBack
 // ── Rahmen (Scroll-Container + kompakter, sticky Kopf) ─────────────────
 // Der frühere getrennte Aufbau (Zurück-Leiste + großer Stations-Kopf +
 // Üben/Material-Tabs) kostete mobil ~226px, bevor eine Aufgabe sichtbar war.
-// Jetzt: EINE kompakte, mobil sticky Kopfzeile (Zurück + „① Titel" + Material-
+// Jetzt: EINE kompakte, mobil sticky Kopfzeile (Zurück + „① Titel“ + Material-
 // Link); Material öffnet als Bottom-Sheet. Orientierung + Zurück bleiben beim
 // Scrollen der Aufgabe stehen.
 function DetailFrame({ onBack, station, loading = false, headingRef, onOpenMaterial, progress = null, children }) {
@@ -236,8 +236,8 @@ function groupTasksByFormat(tasks) {
   return [...tasks].sort((a, b) => order.indexOf(a.format) - order.indexOf(b.format))
 }
 
-// Aufgaben gleichen Typs als Untervarianten nummerieren: „1 a)", „1 b)", „2",
-// „3 a)" … — gleicher Aufgabentyp = gleiche Nummer + Buchstabe, einzelne nur Nummer.
+// Aufgaben gleichen Typs als Untervarianten nummerieren: „1 a)“, „1 b)“, „2“,
+// „3 a)“ … — gleicher Aufgabentyp = gleiche Nummer + Buchstabe, einzelne nur Nummer.
 function buildTaskLabels(tasks) {
   const order = []
   const total = {}
@@ -254,7 +254,7 @@ function buildTaskLabels(tasks) {
   })
 }
 
-// ── Bereich „Üben" — Aufgaben der gewaehlten Stufe ──────────────────────
+// ── Bereich „Üben“ — Aufgaben der gewaehlten Stufe ──────────────────────
 function UebenPanel({ stationId, niveau, orderNo, onOpenNextStation, onBack, onProgressChange }) {
   const [tasks, setTasks] = useState([])
   const [state, setState] = useState('loading')
@@ -312,7 +312,7 @@ function UebenPanel({ stationId, niveau, orderNo, onOpenNextStation, onBack, onP
     return () => { cancelled = true; controller.abort() }
   }, [stationId, niveau])
 
-  // Ergebnis einer Aufgabe nach „Prüfen" ans Konto senden (best effort).
+  // Ergebnis einer Aufgabe nach „Prüfen“ ans Konto senden (best effort).
   const persistResult = useCallback(async (taskId, correct) => {
     try {
       const res = await apiFetch(
@@ -446,7 +446,7 @@ function NextStationCta({ orderNo, onOpenNextStation, onBack }) {
 
 // ── Stations-Fortschritt (gelöste Aufgaben der Stufe) ───────────────────
 // Kontobezogen, bleibt über Sitzungen erhalten (course_task_result). Im
-// Konto unter „Kurs-Fortschritt zurücksetzen" neu spielbar.
+// Konto unter „Kurs-Fortschritt zurücksetzen“ neu spielbar.
 function StationProgress({ solved, total }) {
   if (!total) return null
   const pct = Math.round((solved / total) * 100)
@@ -462,15 +462,15 @@ function StationProgress({ solved, total }) {
 }
 
 // ── Mobiler Aufgaben-Pager: eine Aufgabe pro Bildschirm ─────────────────
-// Wischt das lange Scrollen weg (Kurs-AP11-QA §„Zur Mobilen Nutzung"). Letzter
+// Wischt das lange Scrollen weg (Kurs-AP11-QA §„Zur Mobilen Nutzung“). Letzter
 // Schritt ist ein Abschluss-Screen (Fortschritt + Sprung zur nächsten Station).
 //
 // Wichtig: ALLE Aufgaben bleiben gemountet (inaktive nur via [hidden]), damit
 // Antworten beim Zurückblättern nicht verloren gehen. Jede Aufgabe meldet ihr
-// erstes „Prüfen" via onChecked → „erledigt/offen"-Zählung.
+// erstes „Prüfen“ via onChecked → „erledigt/offen“-Zählung.
 //
 // Barrierefrei: beim Blättern wandert der Fokus auf die Überschrift des sicht-
-// baren Screens (<h3 tabindex=-1>), die per sr-only „Aufgabe X von N" ansagt;
+// baren Screens (<h3 tabindex=-1>), die per sr-only „Aufgabe X von N“ ansagt;
 // die Fortschrittslinie ist daher rein dekorativ (aria-hidden).
 export function UebenPager({
   tasks, labels, niveau,
@@ -490,9 +490,9 @@ export function UebenPager({
   const containerRef = useRef(null)
   const focusPendingRef = useRef(false)
 
-  // Scroll-Hinweis: markiert den aktiven Screen als „--more", solange unten noch
+  // Scroll-Hinweis: markiert den aktiven Screen als „--more“, solange unten noch
   // Inhalt liegt (contained scroll bei hohen Aufgaben) → CSS blendet einen Fade
-  // ein und nimmt ihn am Ende weg, damit „Prüfen" nie verschleiert wird.
+  // ein und nimmt ihn am Ende weg, damit „Prüfen“ nie verschleiert wird.
   const updateMore = useCallback((el) => {
     if (!el) return
     el.classList.toggle(
@@ -521,7 +521,7 @@ export function UebenPager({
   }, [step])
 
   // Scroll-Hinweis am aktiven Screen aktuell halten: initial, beim Blättern und
-  // wenn der Inhalt wächst (Feedback nach „Prüfen") — via ResizeObserver.
+  // wenn der Inhalt wächst (Feedback nach „Prüfen“) — via ResizeObserver.
   useEffect(() => {
     const active = containerRef.current?.querySelector('.course-pager-screen:not([hidden])')
     if (!active) return undefined
@@ -621,7 +621,7 @@ export function UebenPager({
   )
 }
 
-// ── Bereich „Material" — PDF-Download-Karten (Premium) ──────────────────
+// ── Bereich „Material“ — PDF-Download-Karten (Premium) ──────────────────
 // Das Material (Arbeitsblätter/Lösungen/Entwürfe/Beamer) ist der Premium-Teil
 // des Kurses; Üben bleibt frei. Ohne Gesamtausgabe → Upsell statt Laden.
 function MaterialPanel({ stationId, niveau, goal, gesamtausgabe = false, onNavigateToKonto }) {

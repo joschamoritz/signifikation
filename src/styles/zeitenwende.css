@@ -319,7 +319,7 @@
   cursor: default;
 }
 
-/* Seitenakzent (links für „vor", rechts für „nach") — transparent bis Auswahl */
+/* Seitenakzent (links für „vor“, rechts für „nach“) — transparent bis Auswahl */
 .zw-choice-btn--pre  { box-shadow: inset 3px 0 0 transparent; }
 .zw-choice-btn--post { box-shadow: inset -3px 0 0 transparent; }
 

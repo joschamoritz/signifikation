@@ -1,18 +1,18 @@
 // Klassenraum-Index — die Landing-Ansicht des Lehrer-Tabs.
 //
 // Wörterbuch-Index des Klassenraum-Modus (analog zur Spielmodi-Startseite).
-// Variante A (2026-06-13): Die fruheren reinen Textkarten „Anleitung" und
-// „Beitritt" sind keine eigenen Index-Eintraege mehr — ihr Inhalt liegt jetzt
+// Variante A (2026-06-13): Die fruheren reinen Textkarten „Anleitung“ und
+// „Beitritt“ sind keine eigenen Index-Eintraege mehr — ihr Inhalt liegt jetzt
 // als Anmerkung unten (Desktop-Fußnote) bzw. hinter der Manicula ☞ (Mobile),
-// exakt wie „Was ist eine Kollokation?" auf der Spielmodi-Startseite. Dadurch
+// exakt wie „Was ist eine Kollokation?“ auf der Spielmodi-Startseite. Dadurch
 // bleiben die Prime-Slots fuer das, was zaehlt:
 //   ① Beitreten — selbst einer Sitzung beitreten (Route /c), auch für
 //                 Lehrkräfte (Ausprobieren / mit Kolleg:innen mitspielen)
 //   ② Sitzungen  — Session-Verwaltung (STEPS.LIST)
 //
 // Einheitliche Tab-IA: Nicht-Premium sieht dieselben Slots — ① Beitreten +
-// ② Sitzungen (dort die login-freie Lehrer-Demo). „Vorbereiten" entfiel
-// (verlustfrei: „Neue Sitzung" aus der Liste + zurück = wartende Lobby).
+// ② Sitzungen (dort die login-freie Lehrer-Demo). „Vorbereiten“ entfiel
+// (verlustfrei: „Neue Sitzung“ aus der Liste + zurück = wartende Lobby).
 
 import { useRef, useState, useCallback } from 'react'
 import { useTeacherClassroom } from '../TeacherClassroomContext'
