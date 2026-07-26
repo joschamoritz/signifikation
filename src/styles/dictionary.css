@@ -1079,7 +1079,7 @@
   }
 
   .snap-nav-btn--complete {
-    color: var(--accent);
+    color: var(--accent-dk);
     font-size: 1.15rem;
     margin-top: 4px;
     border-top: 0.5px solid rgba(201, 168, 76, 0.3);
@@ -1204,7 +1204,7 @@
 .info-sheet-body sup {
   font-size: 0.65rem;
   vertical-align: super;
-  color: var(--accent);
+  color: var(--accent-dk);
   font-weight: 600;
 }
 
@@ -1345,9 +1345,9 @@
 }
 
 .konto-subscription-badge--free {
-  color: var(--accent);
+  color: var(--accent-dk);
   background: transparent;
-  border: 1px solid var(--accent);
+  border: 1px solid var(--accent-dk);
 }
 
 .konto-subscription-note {

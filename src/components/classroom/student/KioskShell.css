@@ -725,6 +725,8 @@
 .classroom-kiosk__name-field:focus {
   outline: none;
   border-bottom-color: var(--k-accent);
+  border-bottom-width: 2.5px;
+  padding-bottom: 7px;
 }
 
 /* Skip-Link mittig unter dem Beitreten-Button. */
@@ -761,6 +763,8 @@
 .classroom-kiosk__code-field:focus {
   outline: none;
   border-bottom-color: var(--k-accent);
+  border-bottom-width: 3px;
+  padding-bottom: 7px;
 }
 
 /* Embedded-Einstieg im Klassenraum-Tab: Wörterbuch-Tokens für den geteilten
@@ -937,6 +941,8 @@
 .classroom-kiosk__lf-input:focus {
   outline: none;
   border-bottom-color: var(--k-accent);
+  border-bottom-width: 2.5px;
+  padding-bottom: 7px;
 }
 
 /* ── F5: Schueler-Einstieg eingebettet im Klassenraum-Tab ───────────── */

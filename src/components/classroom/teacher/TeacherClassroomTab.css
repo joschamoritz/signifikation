@@ -559,6 +559,8 @@
 .classroom-headword-input:focus {
   outline: none;
   border-bottom-color: var(--primary);
+  border-bottom-width: 2.5px;
+  padding-bottom: 5px;
 }
 
 /* Unaufdringlicher Zusatz im Section-Label (z. B. „(1–5)“). */
@@ -676,6 +678,8 @@
 .classroom-input:focus {
   outline: none;
   border-bottom-color: var(--classroom-accent);
+  border-bottom-width: 2.5px;
+  padding-bottom: 9px;
 }
 
 .classroom-toggle {
@@ -927,6 +931,8 @@
 .classroom-wz-field:focus {
   outline: none;
   border-bottom-color: var(--primary);
+  border-bottom-width: 2.5px;
+  padding-bottom: 7px;
 }
 .classroom-wz-sep {
   font-family: var(--font-serif);

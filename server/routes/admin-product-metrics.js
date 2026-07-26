@@ -18,6 +18,7 @@
  */
 
 import express from 'express'
+import { isPremiumRole } from '../middleware/userAuth.js'
 import db from '../db.js'
 import { todayBerlin } from '../customLemmaQuota.js'
 
@@ -137,8 +138,6 @@ const retentionStmt = db.prepare(`
     ) THEN 1 ELSE 0 END) AS returned
   FROM cohort
 `)
-
-const isPremiumRole = (role) => role === 'premium' || role === 'admin'
 
 export function createAdminProductMetricsRouter({
   adminLimiter,

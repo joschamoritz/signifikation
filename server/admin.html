@@ -6,9 +6,15 @@
   <title>Signifikation – Admin</title>
   <link rel="stylesheet" href="/fonts/fonts.css">
   <link rel="stylesheet" href="/admin-assets/admin.css">
-  <!-- Lokal gebündelt statt CDN (Review 2026-06-10: Supply-Chain-Risiko im
-       Admin-Kontext). Update: neue Version nach server/public/vendor/ legen. -->
-  <script src="/admin-assets/vendor/chart.umd.min.js"></script>
+  <!-- Beide Subsets werden auf jeder Seite gebraucht; ohne Preload startet der
+       Download erst nach dem Parsen von admin.css. -->
+  <link rel="preload" href="/fonts/dm-sans-latin.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="/fonts/gentium-plus-400-latin.woff2" as="font" type="font/woff2" crossorigin>
+  <!-- Chart.js liegt lokal statt am CDN (Review 2026-06-10: Supply-Chain-
+       Risiko im Admin-Kontext). Update: neue Version nach server/public/
+       vendor/ legen. Geladen wird es nicht mehr hier, sondern per
+       ensureChartJs() in admin.js beim ersten Öffnen der Statistiken –
+       als <script> im <head> blockierte es sonst den Login-Screen. -->
 </head>
 <body>
 
@@ -22,11 +28,11 @@
       <p class="login-subtitle"><span class="login-subtitle-ornament">§</span> Admin-Bereich</p>
       <div class="login-field">
         <label for="login-email">Admin-E-Mail</label>
-        <input type="email" id="login-email" placeholder="admin@example.com" data-enter-action="login">
+        <input type="email" id="login-email" placeholder="admin@example.com" autocomplete="username" inputmode="email" autocapitalize="off" autocorrect="off" data-enter-action="login">
       </div>
       <div class="login-field">
         <label for="login-password">Passwort</label>
-        <input type="password" id="login-password" placeholder="••••••••" data-enter-action="login">
+        <input type="password" id="login-password" placeholder="••••••••" autocomplete="current-password" data-enter-action="login">
       </div>
       <div class="login-error" id="login-error" role="alert" aria-live="assertive">E-Mail oder Passwort falsch.</div>
       <button id="login-btn" data-action="login">Anmelden</button>
@@ -80,6 +86,14 @@
     </aside>
 
     <main class="admin-main">
+      <!-- Kompakte Bereichsauswahl für Handys; Inhalt wird in admin.js aus
+           der Sidebar-Navigation gespiegelt, damit nichts doppelt gepflegt
+           werden muss. Auf Desktop per CSS ausgeblendet. -->
+      <div class="mobile-nav">
+        <label for="mobile-nav-select">Bereich</label>
+        <select id="mobile-nav-select" aria-label="Admin-Bereich wählen"></select>
+      </div>
+
       <header class="admin-topbar">
         <div class="topbar-copy">
           <h2 id="page-title">Dashboard</h2>
@@ -203,6 +217,16 @@
               <span id="entry-dirty-indicator" class="entry-dirty-indicator">Alles gespeichert</span>
               <button type="button" id="entry-reset-btn" class="entry-filters-reset" data-action="reset-entry-form" disabled>Entwurf zurücksetzen</button>
               <button type="button" class="entry-filters-reset" data-action="open-json-import">JSON importieren</button>
+            </div>
+          </div>
+
+          <!-- Wiederherstellung eines Entwurfs, den der Browser verworfen hat
+               (auf Mobilgeräten wird der Tab im Hintergrund oft beendet). -->
+          <div class="entry-draft-banner is-hidden" id="entry-draft-banner" role="status">
+            <span id="entry-draft-text">Ungespeicherter Entwurf gefunden.</span>
+            <div class="entry-draft-actions">
+              <button type="button" class="ghost-btn ghost-btn--small" data-action="restore-entry-draft">Wiederherstellen</button>
+              <button type="button" class="entry-filters-reset" data-action="discard-entry-draft">Verwerfen</button>
             </div>
           </div>
 
@@ -435,11 +459,11 @@
             <table class="entry-table">
               <thead>
                 <tr>
-                  <th>Auswahl</th>
-                  <th>Datum</th>
-                  <th>Inhalte</th>
-                  <th>Modi</th>
-                  <th>Aktion</th>
+                  <th scope="col">Auswahl</th>
+                  <th scope="col">Datum</th>
+                  <th scope="col">Inhalte</th>
+                  <th scope="col">Modi</th>
+                  <th scope="col">Aktion</th>
                 </tr>
               </thead>
               <tbody id="entry-table-body">
@@ -481,10 +505,10 @@
               <table class="users-table">
                 <thead>
                   <tr>
-                    <th>Name</th>
-                    <th>Rolle</th>
-                    <th>Plays</th>
-                    <th>Ø Score</th>
+                    <th scope="col">Name</th>
+                    <th scope="col">Rolle</th>
+                    <th scope="col">Plays</th>
+                    <th scope="col">Ø Score</th>
                   </tr>
                 </thead>
                 <tbody id="stats-top-users-body">
@@ -640,12 +664,12 @@
             <table class="users-table">
               <thead>
                 <tr>
-                  <th><input type="checkbox" id="users-select-all"></th>
-                  <th>Name</th>
-                  <th>E-Mail</th>
-                  <th>Rolle</th>
-                  <th>Registriert</th>
-                  <th>Aktion</th>
+                  <th scope="col" class="users-select-col"><label class="cb-hit"><input type="checkbox" id="users-select-all" aria-label="Alle Nutzer auswählen"></label></th>
+                  <th scope="col">Name</th>
+                  <th scope="col">E-Mail</th>
+                  <th scope="col">Rolle</th>
+                  <th scope="col">Registriert</th>
+                  <th scope="col">Aktion</th>
                 </tr>
               </thead>
               <tbody id="users-table-body">
@@ -686,10 +710,10 @@
                 <table class="users-table">
                   <thead>
                     <tr>
-                      <th>Datum</th>
-                      <th>Modus</th>
-                      <th>Plays</th>
-                      <th>Ø Score</th>
+                      <th scope="col">Datum</th>
+                      <th scope="col">Modus</th>
+                      <th scope="col">Plays</th>
+                      <th scope="col">Ø Score</th>
                     </tr>
                   </thead>
                   <tbody id="user-recent-body">
@@ -880,8 +904,8 @@
               <p class="section-label">Produkt</p>
               <h2>Kennzahlen</h2>
             </div>
-            <div style="display:flex; gap:8px; align-items:center">
-              <label for="metrics-days" style="font-size:0.83rem; white-space:nowrap">Zeitraum</label>
+            <div class="range-filter-row">
+              <label for="metrics-days">Zeitraum</label>
               <select id="metrics-days" class="filter-select">
                 <option value="7">7 Tage</option>
                 <option value="30" selected>30 Tage</option>
@@ -904,8 +928,8 @@
               <p class="section-label">Klassenraum</p>
               <h2>Statistiken</h2>
             </div>
-            <div style="display:flex; gap:8px; align-items:center">
-              <label for="classroom-days" style="font-size:0.83rem; white-space:nowrap">Zeitraum</label>
+            <div class="range-filter-row">
+              <label for="classroom-days">Zeitraum</label>
               <select id="classroom-days" class="filter-select">
                 <option value="7">7 Tage</option>
                 <option value="30" selected>30 Tage</option>
@@ -932,7 +956,7 @@
           <p class="entry-hint" id="demo-content-status"></p>
 
           <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(250px, 1fr)); gap:16px; margin-top:12px">
-            <fieldset style="border:1px solid var(--border-light); border-radius:8px; padding:12px 14px; min-width:0">
+            <fieldset style="border:1px solid var(--border-lt); border-radius:8px; padding:12px 14px; min-width:0">
               <legend style="font-weight:500; padding:0 6px">Kollokationen</legend>
               <label style="display:block; font-size:0.8rem; color:var(--muted); margin-bottom:8px">Lemma<input type="text" id="demo-kol-lemma" style="width:100%; margin-top:3px"></label>
               <label style="display:block; font-size:0.8rem; color:var(--muted); margin-bottom:8px">IPA<input type="text" id="demo-kol-ipa" style="width:100%; margin-top:3px"></label>
@@ -940,21 +964,21 @@
               <label style="display:block; font-size:0.8rem; color:var(--muted)">Wörter (Kandidaten)<textarea id="demo-kol-words" rows="3" style="width:100%; margin-top:3px"></textarea></label>
             </fieldset>
 
-            <fieldset style="border:1px solid var(--border-light); border-radius:8px; padding:12px 14px; min-width:0">
+            <fieldset style="border:1px solid var(--border-lt); border-radius:8px; padding:12px 14px; min-width:0">
               <legend style="font-weight:500; padding:0 6px">Wort-Zwilling</legend>
               <label style="display:block; font-size:0.8rem; color:var(--muted); margin-bottom:8px">Wort A<input type="text" id="demo-wz-a" style="width:100%; margin-top:3px"></label>
               <label style="display:block; font-size:0.8rem; color:var(--muted); margin-bottom:8px">Wort B<input type="text" id="demo-wz-b" style="width:100%; margin-top:3px"></label>
               <label style="display:block; font-size:0.8rem; color:var(--muted)">Wörter (zuzuordnen)<textarea id="demo-wz-words" rows="3" style="width:100%; margin-top:3px"></textarea></label>
             </fieldset>
 
-            <fieldset style="border:1px solid var(--border-light); border-radius:8px; padding:12px 14px; min-width:0">
+            <fieldset style="border:1px solid var(--border-lt); border-radius:8px; padding:12px 14px; min-width:0">
               <legend style="font-weight:500; padding:0 6px">Zeitenwende</legend>
               <label style="display:block; font-size:0.8rem; color:var(--muted); margin-bottom:8px">Lemma<input type="text" id="demo-zw-lemma" style="width:100%; margin-top:3px"></label>
               <label style="display:block; font-size:0.8rem; color:var(--muted); margin-bottom:8px">IPA<input type="text" id="demo-zw-ipa" style="width:100%; margin-top:3px"></label>
               <label style="display:block; font-size:0.8rem; color:var(--muted)">Wörter<textarea id="demo-zw-words" rows="3" style="width:100%; margin-top:3px"></textarea></label>
             </fieldset>
 
-            <fieldset style="border:1px solid var(--border-light); border-radius:8px; padding:12px 14px; min-width:0">
+            <fieldset style="border:1px solid var(--border-lt); border-radius:8px; padding:12px 14px; min-width:0">
               <legend style="font-weight:500; padding:0 6px">Lückenfüller</legend>
               <label style="display:block; font-size:0.8rem; color:var(--muted); margin-bottom:8px">Lemma<input type="text" id="demo-lf-lemma" style="width:100%; margin-top:3px"></label>
               <label style="display:block; font-size:0.8rem; color:var(--muted); margin-bottom:8px">IPA<input type="text" id="demo-lf-ipa" style="width:100%; margin-top:3px"></label>
@@ -975,6 +999,7 @@
             <a class="ghost-btn" href="/admin/social-cards">Social Cards öffnen</a>
           </div>
           <input type="file" id="backup-restore-input" accept="application/json,.json" hidden>
+          <p class="entry-hint is-hidden" id="system-msg" role="status" aria-live="polite"></p>
           <pre id="system-health-json" class="system-json">Health-Daten werden geladen …</pre>
         </div>
 
@@ -1061,11 +1086,11 @@
             <table class="users-table audit-table">
               <thead>
                 <tr>
-                  <th>Zeit</th>
-                  <th>Aktion</th>
-                  <th>Ressource</th>
-                  <th>Status</th>
-                  <th>Änderungen</th>
+                  <th scope="col">Zeit</th>
+                  <th scope="col">Aktion</th>
+                  <th scope="col">Ressource</th>
+                  <th scope="col">Status</th>
+                  <th scope="col">Änderungen</th>
                 </tr>
               </thead>
               <tbody id="audit-table-body">

@@ -124,3 +124,45 @@ describe('apiFetch.initNativeBearerToken – Capacitor-Plugin-Proxy-Robustheit',
     expect(thenAccess).not.toHaveBeenCalled()
   })
 })
+
+describe('apiFetch – Bearer-Token nur an eigene Backend-Origin', () => {
+  async function setupNativeWithToken() {
+    vi.doMock('@capacitor/core', () => ({
+      Capacitor: { isNativePlatform: () => true, getPlatform: () => 'ios' },
+    }))
+    vi.doMock('@aparajita/capacitor-secure-storage', () => ({
+      SecureStorage: {
+        get: async () => 'geheimes-token',
+        set: async () => {},
+        remove: async () => {},
+      },
+    }))
+    const mod = await import('./apiFetch.js')
+    await mod.initNativeBearerToken()
+    return mod
+  }
+
+  it('haengt den Bearer-Token an eine relative URL an', async () => {
+    const { apiFetch } = await setupNativeWithToken()
+    globalThis.fetch = vi.fn(() => Promise.resolve(new Response('{}')))
+    await apiFetch('/api/v1/account/me')
+    const [, options] = globalThis.fetch.mock.calls[0]
+    expect(options.headers.get('Authorization')).toBe('Bearer geheimes-token')
+  })
+
+  it('haengt den Bearer-Token an die eigene Backend-Origin (signifikation.de) an', async () => {
+    const { apiFetch } = await setupNativeWithToken()
+    globalThis.fetch = vi.fn(() => Promise.resolve(new Response('{}')))
+    await apiFetch('https://signifikation.de/api/v1/account/me')
+    const [, options] = globalThis.fetch.mock.calls[0]
+    expect(options.headers.get('Authorization')).toBe('Bearer geheimes-token')
+  })
+
+  it('haengt den Bearer-Token NICHT an eine fremde Origin an', async () => {
+    const { apiFetch } = await setupNativeWithToken()
+    globalThis.fetch = vi.fn(() => Promise.resolve(new Response('{}')))
+    await apiFetch('https://evil.example.com/steal')
+    const [, options] = globalThis.fetch.mock.calls[0]
+    expect(options?.headers?.get?.('Authorization')).toBeFalsy()
+  })
+})

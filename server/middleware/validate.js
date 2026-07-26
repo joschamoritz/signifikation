@@ -252,6 +252,58 @@ export const adminRetentionQuerySchema = productDaysWindowSchema
 /** GET /admin/classroom/teachers (query) */
 export const adminClassroomTeachersQuerySchema = productDaysWindowSchema
 
+// ── Bonus-Tage (free_days) Schemas ──────────────────────────────
+
+/** POST /admin/free-days (body) */
+export const adminFreeDayBodySchema = z.object({
+  date: DATUM_ISO,
+  label: z.string().trim().max(100).optional().default(''),
+  bonus_count: z.coerce.number().int().min(0).max(50).optional().default(0),
+})
+
+/** DELETE /admin/free-days/:date (params) */
+export const adminFreeDayParamsSchema = z.object({
+  date: DATUM_ISO,
+})
+
+// ── Push-Benachrichtigungen Schemas ─────────────────────────────
+
+const PUSH_TITLE = z.string().trim().min(1, 'Titel erforderlich').max(120, 'Titel max. 120 Zeichen')
+const PUSH_BODY  = z.string().trim().min(1, 'Text erforderlich').max(300, 'Text max. 300 Zeichen')
+
+/** POST /admin/push/templates, PUT /admin/push/templates/:id (body) */
+export const adminPushTemplateBodySchema = z.object({
+  title: PUSH_TITLE,
+  body: PUSH_BODY,
+  // Legacy-Aufrufer senden enabled als 0/1 statt boolean - beides akzeptieren.
+  enabled: z.union([z.boolean(), z.literal(0), z.literal(1)]).optional().default(1),
+})
+
+/** PUT/DELETE /admin/push/templates/:id (params) */
+export const adminPushTemplateIdParamsSchema = z.object({
+  id: z.coerce.number().int().positive('Ungültige ID'),
+})
+
+/**
+ * POST /admin/push/send (body) — mode-abhaengige Pflichtfelder:
+ *   mode=template → templateId erforderlich
+ *   mode=free|self → title + body erforderlich
+ */
+export const adminPushSendSchema = z.object({
+  mode: z.enum(['free', 'template', 'self'], { errorMap: () => ({ message: 'mode muss "free", "template" oder "self" sein' }) }),
+  templateId: z.coerce.number().int().positive('Ungültige Template-ID').optional(),
+  title: z.string().trim().max(120, `Titel max. 120 Zeichen`).optional(),
+  body: z.string().trim().max(300, `Text max. 300 Zeichen`).optional(),
+}).superRefine((value, ctx) => {
+  if (value.mode === 'template' && !value.templateId) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Ungültige Template-ID', path: ['templateId'] })
+  }
+  if (value.mode === 'free' || value.mode === 'self') {
+    if (!value.title) ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Titel erforderlich', path: ['title'] })
+    if (!value.body) ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Text erforderlich', path: ['body'] })
+  }
+})
+
 /** GET /admin/audit-log (query) */
 export const adminAuditLogQuerySchema = z.object({
   action: z.enum(['CREATE', 'UPDATE', 'DELETE']).optional(),
@@ -452,6 +504,18 @@ export const classroomListSessionsQuerySchema = z.object({
 /** GET /api/v1/classroom/sessions/:id/results (W2-T4) — Params */
 export const classroomSessionIdParamsSchema = z.object({
   id: z.string().trim().min(1, 'Session-ID erforderlich').max(128, 'Session-ID zu lang'),
+})
+
+/** DELETE /api/v1/classroom/sessions/:id/assignments/:aid — Params */
+export const classroomAssignmentIdParamsSchema = z.object({
+  id: z.string().trim().min(1, 'Session-ID erforderlich').max(128, 'Session-ID zu lang'),
+  aid: z.string().trim().min(1, 'Assignment-ID erforderlich').max(128, 'Assignment-ID zu lang'),
+})
+
+/** POST /api/v1/classroom/sessions/:id/participants/:pid/kick — Params */
+export const classroomParticipantKickParamsSchema = z.object({
+  id: z.string().trim().min(1, 'Session-ID erforderlich').max(128, 'Session-ID zu lang'),
+  pid: z.string().trim().min(1, 'Participant-ID erforderlich').max(128, 'Participant-ID zu lang'),
 })
 
 // ── Kurs (Course) Schemas ───────────────────────────────────────
