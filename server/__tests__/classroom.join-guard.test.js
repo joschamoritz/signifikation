@@ -121,7 +121,7 @@ describe('join-guard – Alerts + Anti-DoS-Invarianten', () => {
 
   it('globaler Zaehler waechst nicht unbegrenzt (Cap → kein Speicherleck/Fenster-Drift)', () => {
     // Weit ueber die Schwelle hinaus auf distinct Codes. Beobachtbar: nach
-    // Fensterablauf ist alles verfallen — kein „Ueberhang", der laenger blockt.
+    // Fensterablauf ist alles verfallen — kein „Ueberhang“, der laenger blockt.
     for (let i = 0; i < JOIN_GUARD_MAX_FAILURES_GLOBAL + 200; i++) recordJoinFailure(`flood-${i}`, now)
     expect(isJoinBlocked('frisch', now)).toBe(true)
     expect(isJoinBlocked('frisch', now + JOIN_GUARD_WINDOW_MS)).toBe(false)

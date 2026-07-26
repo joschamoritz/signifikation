@@ -4,7 +4,7 @@
  * DOCX-Renderer für die Kurs-Arbeitsblätter (Bonus-Premium: editierbares Material).
  * Nimmt dasselbe Content-Modell wie render.js (worksheet/station-N.js) + eine
  * Niveaustufe und baut ein docx.Document. Bewusst "clean & editierbar" statt
- * CD-pixelgenau (Entscheidung planning/archive „Kurs-Material-Ueberarbeitung" §2.3):
+ * CD-pixelgenau (Entscheidung planning/archive „Kurs-Material-Ueberarbeitung“ §2.3):
  * Standardfonts (Calibri), keine Web-/Custom-Fonts, einfache Fußnotenliste am
  * Dokumentende statt native Word-Fußnoten.
  *

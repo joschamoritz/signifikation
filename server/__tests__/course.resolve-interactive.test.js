@@ -26,7 +26,7 @@ const ENTSCHEIDUNG_POOL = [
   { lemma: 'begründen', frequency: 200, logDice: '5.0000' },
   { lemma: 'üben',      frequency: 120, logDice: '4.0000' },
 ]
-// Abwegige „Lied"-Distraktoren (AP21-QA Fremd-Lemma-Distraktoren).
+// Abwegige „Lied“-Distraktoren (AP21-QA Fremd-Lemma-Distraktoren).
 const LIED_POOL = [
   { lemma: 'singen',      frequency: 800, logDice: '12.3000' },
   { lemma: 'anstimmen',   frequency: 200, logDice: '8.8000' },

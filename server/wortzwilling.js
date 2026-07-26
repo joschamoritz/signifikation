@@ -88,7 +88,7 @@ export async function fetchWortZwilling(wortA, wortB, pos = 'Substantiv') {
   }
 
   if (top5A.length < 5 || top5B.length < 5) {
-    logger.warn(`WortZwilling: Nicht genug distinkte Kollokatoren für „${wortA}" / „${wortB}" (A: ${top5A.length}/5, B: ${top5B.length}/5)`)
+    logger.warn(`WortZwilling: Nicht genug distinkte Kollokatoren für „${wortA}“ / „${wortB}“ (A: ${top5A.length}/5, B: ${top5B.length}/5)`)
     return null
   }
 

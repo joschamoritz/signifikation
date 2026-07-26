@@ -139,7 +139,7 @@ function collocationBlurb(lemma, wortart) {
  * Muster-Tabelle: je Kollokator eine Zeile mit Beziehung, typischer Stellung,
  * Anteil, absoluter Frequenz und logDice. patterns = fetchSyntagmaticPatterns().
  * Enthaelt eine Kurz-Legende, die die Kennzahlen erklaert (Nutzer-Wunsch:
- * „alle Kennzahlen, mit Erklaerung") sowie ein aufklappbares Glossar (natives
+ * „alle Kennzahlen, mit Erklaerung“) sowie ein aufklappbares Glossar (natives
  * <details>, kein JS) fuer die grammatischen Fachbegriffe der Beziehung-Spalte.
  */
 function renderPatternTable(patterns, lemma) {
@@ -166,7 +166,7 @@ ${glossar.map((g) => `        <div class="arc-rel-glossar-item"><dt>${escapeHtml
   return `<div class="arc-mt-scroll">
     <table class="arc-muster-tabelle">
       <thead><tr>
-        <th scope="col">Partnerwort</th>
+        <th scope="col">Kollokator</th>
         <th scope="col">Beziehung</th>
         <th scope="col">Stellung</th>
         <th scope="col" class="arc-mt-num">Anteil</th>
@@ -178,7 +178,7 @@ ${rows}
       </tbody>
     </table>
     </div>
-    <p class="arc-mt-legende"><strong>logDice</strong> misst die Stärke der Verbindung (höher = typischer, theoret. Maximum 14). <strong>Frequenz</strong> ist die absolute Häufigkeit der Verbindung im Korpus. <strong>Anteil</strong> ist der Anteil dieser Verbindung an allen erfassten Verbindungen des Stichworts. <strong>Stellung</strong> ist die typische Position des Partnerworts relativ zum Stichwort.</p>
+    <p class="arc-mt-legende"><strong>Kollokator</strong> ist das Partnerwort, das sich mit der Basis verbindet. <strong>logDice</strong> misst die Stärke der Verbindung (höher = typischer, theoret. Maximum 14). <strong>Frequenz</strong> ist die absolute Häufigkeit der Verbindung im Korpus. <strong>Anteil</strong> ist der Anteil dieser Verbindung an allen erfassten Verbindungen der Basis. <strong>Stellung</strong> ist die typische Position des Kollokators relativ zur Basis.</p>
     ${glossarHtml}`
 }
 
@@ -210,7 +210,7 @@ function renderMusterNetz(lemma, patterns, netz) {
         <rect x="${n(cx - centerW / 2)}" y="${cy - 14}" width="${n(centerW)}" height="28" rx="14" class="mn-center" />
         <text x="${cx}" y="${cy + 4.5}" text-anchor="middle" class="mn-center-label">${escapeHtml(lemma)}</text>
       </svg>
-      <p class="mn-caption">Partnerwörter gruppiert nach grammatischer Beziehung. Größe = Stärke (logDice), graue Punkte = Wortnetz.</p>
+      <p class="mn-caption">Kollokatoren gruppiert nach grammatischer Beziehung. Größe = Stärke (logDice), graue Punkte = Wortnetz.</p>
     </div>
   </section>`
 }
@@ -254,7 +254,7 @@ export function renderWortPage(entry, siblings = [], extras = {}) {
   const primaryDef = defs[0] || ''
   const title = `${entry.lemma}${entry.wortart ? ', ' + entry.wortart : ''} – Bedeutung | Signifikation`
   const description = primaryDef
-    ? `${entry.lemma}${entry.wortart ? ' (' + entry.wortart + ')' : ''}: ${primaryDef} — Wörterbuch-Eintrag aus dem Signifikation-Archiv.`
+    ? `${entry.lemma}${entry.wortart ? ' (' + entry.wortart + ')' : ''}: ${primaryDef} – Wörterbuch-Eintrag aus dem Signifikation-Archiv.`
     : `${entry.lemma}: Wörterbuch-Eintrag aus dem Signifikation-Archiv, dem täglichen linguistischen Quiz aus eigenen Korpusdaten.`
 
   const jsonLd = {
@@ -294,7 +294,7 @@ export function renderWortPage(entry, siblings = [], extras = {}) {
     : ''
 
   const musterHtml = patterns.length
-    ? `<p class="arc-muster-intro">Die typischsten Verbindungen von „${escapeHtml(entry.lemma)}" im Korpus (syntagmatische Muster):</p>
+    ? `<p class="arc-muster-intro">Die typischsten Verbindungen von „${escapeHtml(entry.lemma)}“ im Korpus (syntagmatische Muster):</p>
     ${renderPatternTable(patterns, escapeHtml(entry.lemma))}`
     : ''
   const kollHtml = `<section class="arc-block arc-koll">
@@ -303,7 +303,7 @@ export function renderWortPage(entry, siblings = [], extras = {}) {
     ${musterHtml}
   </section>`
 
-  // Musternetz-Visualisierung ersetzt den früheren Text-„Wortnetz"-Block (die
+  // Musternetz-Visualisierung ersetzt den früheren Text-„Wortnetz“-Block (die
   // grauen Satelliten zeigen dasselbe). renderWortnetz bleibt ungenutzt.
   const netzVizHtml = renderMusterNetz(entry.lemma, patterns, netz)
 
@@ -399,7 +399,7 @@ ${footer()}`
   })
 }
 
-/** robots-„noindex"-404 fuer unbekannte Slugs. */
+/** robots-„noindex“-404 fuer unbekannte Slugs. */
 export function renderNotFound() {
   const bodyInner = `  <a class="back" href="/archiv">‹ Archiv</a>
   <header>

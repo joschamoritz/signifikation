@@ -1,5 +1,5 @@
 /**
- * routes/custom-lemma.js – Routen für das „Eigenes Lemma"-Feature.
+ * routes/custom-lemma.js – Routen für das „Eigenes Lemma“-Feature.
  *
  * Gating (Phase 4):
  *   - Jeder eingeloggte Nutzer darf validieren (Live-Vorabprüfung, kein Verbrauch).
@@ -28,8 +28,8 @@ function secondsUntilBerlinReset(now = new Date()) {
   return Math.max(1, Math.ceil((nextMidnight - berlin) / 1000))
 }
 
-// Kontingent erschöpft: 429 (semantisch „jetzt nicht, morgen wieder") + Retry-
-// After, statt 403 (das hiesse „grundsätzlich verboten"). Der Client (EigenesLemma)
+// Kontingent erschöpft: 429 (semantisch „jetzt nicht, morgen wieder“) + Retry-
+// After, statt 403 (das hiesse „grundsätzlich verboten“). Der Client (EigenesLemma)
 // verzweigt auf res.ok, nicht auf den Status → nicht-breaking für Web + iOS-Bundle.
 function sendQuotaExhausted(res, allowance) {
   res.set('Retry-After', String(secondsUntilBerlinReset()))

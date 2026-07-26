@@ -1,7 +1,7 @@
 {
   "name": "Signifikation – Tägliches Linguistik-Quiz",
   "short_name": "Signifikation",
-  "description": "Tägliches Linguistik-Quiz: Kollokationsanalyse, Wortgeschichte und semantische Verwandtschaft – empirisch ermittelt aus deutschsprachigen Korpusdaten.",
+  "description": "Tägliches Linguistik-Quiz: Kollokationsanalyse, Wortgeschichte, semantische Verwandtschaft und Lückentexte – empirisch ermittelt aus deutschsprachigen Korpusdaten.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
@@ -10,7 +10,7 @@
   "dir": "ltr",
   "theme_color": "#faf9f7",
   "background_color": "#faf9f7",
-  "categories": ["education", "games", "education"],
+  "categories": ["education", "games", "books"],
   "icons": [
     {
       "src": "/icon-192.png",

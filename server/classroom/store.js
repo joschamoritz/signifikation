@@ -230,7 +230,7 @@ const stmts = {
   `),
   // Reconnect nach transientem Disconnect (left_at noch NULL) → connected=1.
   // WICHTIG: left_at wird NICHT mehr genullt — ein gekickter/verlassener
-  // Teilnehmer (left_at gesetzt) darf nicht per Heartbeat „wiederauferstehen"
+  // Teilnehmer (left_at gesetzt) darf nicht per Heartbeat „wiederauferstehen“
   // (Audit ⚠️). requireParticipantAuth blockt left_at ohnehin mit 403; das
   // `AND left_at IS NULL` schließt das schmale In-flight-Race.
   heartbeatParticipant: db.prepare(`
@@ -464,7 +464,7 @@ export function createSession({ teacherUserId, title = null, settings = {} }) {
     } catch (err) {
       // Nur Code-Kollision ist retrybar; alles andere weiterreichen.
       if (err?.code === 'SQLITE_CONSTRAINT_UNIQUE' && attempt < CODE_INSERT_MAX_ATTEMPTS - 1) {
-        logger.warn({ attempt }, 'classroom join-code collision beim Insert — neuer Code, Retry')
+        logger.warn({ attempt }, 'classroom join-code collision beim Insert – neuer Code, Retry')
         continue
       }
       throw err
@@ -534,7 +534,7 @@ export function deleteSession({ sessionId, teacherUserId }) {
   return { ok: true }
 }
 
-// W4 — „Mit neuer Klasse wiederholen": klont Titel + alle Assignment-Bloecke
+// W4 — „Mit neuer Klasse wiederholen“: klont Titel + alle Assignment-Bloecke
 // (Modus, Lemmata, eingefrorener content_snapshot) in eine frische Session im
 // Status 'lobby' mit neuem Join-Code. Teilnehmer/Abgaben/Scores werden bewusst
 // NICHT uebernommen — es ist eine neue Stunde. Funktioniert aus jedem Status
@@ -996,7 +996,7 @@ export function submitAnswer({
   // laut: SCORING_FAILED + error-Log, statt einer stillen Null-Punkte-Stunde.
   const lemmaSnapshot = assignment.contentSnapshot?.byLemma?.[lemmaId]
   if (!lemmaSnapshot || Object.keys(lemmaSnapshot).length === 0) {
-    logger.error({ sessionId, assignmentId, lemmaId }, 'Leerer content_snapshot fuer Lemma — Scoring abgebrochen')
+    logger.error({ sessionId, assignmentId, lemmaId }, 'Leerer content_snapshot fuer Lemma – Scoring abgebrochen')
     return { error: 'SCORING_FAILED' }
   }
 
@@ -1435,7 +1435,7 @@ export function buildStudentView(participant, session, assignment, meta = {}) {
       : 1
     // GF-4: Ein Lueckenfueller-Lemma ohne Runden (Content-Generierung
     // fehlgeschlagen) ist unspielbar — jeder Submit liefert INVALID_INPUT.
-    // Als „erledigt" behandeln, damit die Klasse nicht ewig auf currentRound:
+    // Als „erledigt“ behandeln, damit die Klasse nicht ewig auf currentRound:
     // null haengt, sondern zum naechsten spielbaren Lemma springt.
     if (totalRounds <= 0) {
       doneLemmaIds.add(lemmaId)
@@ -1452,7 +1452,7 @@ export function buildStudentView(participant, session, assignment, meta = {}) {
 
   // P3: Der content_snapshot (beim Anlegen eingefroren, D4) ist die ALLEINIGE
   // View-Quelle — kein DB-Reload des Lemmas mehr. lemma/ipa/definition liegen
-  // bereits im Snapshot (fuer alle Modi, inkl. synthetischer „wz:"-Paare, die gar
+  // bereits im Snapshot (fuer alle Modi, inkl. synthetischer „wz:“-Paare, die gar
   // keine DB-Zeile haben). Das vermeidet einen Read pro /me/view und haelt die
   // Schueler-Sicht konsistent mit dem eingefrorenen Stand.
   // R1: Nur das aktuelle Lemma wird gewhitelistet ausgeliefert, nie alle.
@@ -1464,7 +1464,7 @@ export function buildStudentView(participant, session, assignment, meta = {}) {
       // abgegebene Runde (luckentolerant). `.size` waere bei out-of-order
       // Abgaben falsch — die Menge {2} haette size 1 und zeigte faelschlich
       // Runde 1, obwohl Runde 0 fehlt und Runde 2 schon abgegeben ist. Die
-      // erste Luecke ist der korrekte „naechste" Index; bei in-order-Spiel
+      // erste Luecke ist der korrekte „naechste“ Index; bei in-order-Spiel
       // (Normalfall) ist sie identisch mit .size.
       const submittedRounds = roundsPerLemma[currentLemmaId] || new Set()
       let currentRoundIndex = 0
@@ -1498,7 +1498,7 @@ export function buildStudentView(participant, session, assignment, meta = {}) {
       id:         assignment.id,
       mode:       assignment.mode,
       lemmaCount: lemmaIds.length,
-      // W2-T2: Reihenfolge-Position fuer „Modus X von N" im Kiosk.
+      // W2-T2: Reihenfolge-Position fuer „Modus X von N“ im Kiosk.
       index:      meta.index ?? 0,
       total:      meta.total ?? 1,
     },

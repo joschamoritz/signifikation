@@ -37,7 +37,7 @@ export const LITERATUR = {
     kurz: 'Lüdeling/Walter 2009',
     voll: 'Lüdeling, Anke / Walter, Maik (2009): Korpuslinguistik für Deutsch als Fremdsprache. Sprachvermittlung und Spracherwerbsforschung.',
   },
-  // Hausmanns Basis–Kollokator-Dichotomie (die „Momo"-Passage: Anker lichten,
+  // Hausmanns Basis–Kollokator-Dichotomie (die „Momo“-Passage: Anker lichten,
   // Tisch decken – Basis banal/übersetzbar, Kollokator unvorhersehbar) trägt die
   // Station-①-Terminologie (SekI: Basis + Kollokator).
   'hausmann-wortverbindungen': {
@@ -47,13 +47,13 @@ export const LITERATUR = {
 
   // ── Semantik: Bedeutung, Konnotation, semantische Prosodie (Station ①) ──
   // Löbner Kap. 2 (deskriptive vs. nichtdeskriptive – soziale/expressive –
-  // Bedeutung) + §2.5 Konnotationen trägt den SekII-Block „Denotation/Konnotation".
+  // Bedeutung) + §2.5 Konnotationen trägt den SekII-Block „Denotation/Konnotation“.
   'loebner-semantik': {
     kurz: 'Löbner 2003',
-    voll: 'Löbner, Sebastian (2003): Semantik. Eine Einführung. Berlin/New York: de Gruyter (de Gruyter Studienbuch), Kap. 2 „Deskriptive, soziale und expressive Bedeutung" (S. 23 ff.), § 2.5 Konnotationen (S. 48).',
+    voll: 'Löbner, Sebastian (2003): Semantik. Eine Einführung. Berlin/New York: de Gruyter (de Gruyter Studienbuch), Kap. 2 „Deskriptive, soziale und expressive Bedeutung“ (S. 23 ff.), § 2.5 Konnotationen (S. 48).',
   },
-  // Hanks: „semantische Prosodie" (nach Louw 1993) + axiologisches Quale (incite
-  // negativ vs. encourage neutral/positiv) trägt den LK-Block (Wörter „färben"
+  // Hanks: „semantische Prosodie“ (nach Louw 1993) + axiologisches Quale (incite
+  // negativ vs. encourage neutral/positiv) trägt den LK-Block (Wörter „färben“
   // ihre Umgebung); Bedeutung ist Sache der Analyse, nicht der Frequenz.
   'hanks-bedeutungen': {
     kurz: 'Hanks 2011',
@@ -67,7 +67,7 @@ export const LITERATUR = {
   },
   'didaktik-wortarten-d2': {
     kurz: 'Didaktik der Wortarten (D2)',
-    voll: '„D2 Didaktik der Wortarten" – Kritik der rein formalen Wortartklassifikation im Grammatikunterricht.',
+    voll: '„D2 Didaktik der Wortarten“ – Kritik der rein formalen Wortartklassifikation im Grammatikunterricht.',
   },
   'schuetze-2018': {
     kurz: 'Schütze 2018',
@@ -84,7 +84,7 @@ export const LITERATUR = {
     voll: 'Gallmann, Peter (2015): Das topologische Modell. Basisartikel. In: Wöllstein (Hrsg.): Das topologische Modell für die Schule. Baltmannsweiler: Schneider Hohengehren (Felder/Satzklammer, Verschiebeprobe, drei Satzformen).',
   },
   // Operationale Proben (Ersatz-/Umstell-/Verschiebeprobe) empirisch untersucht –
-  // trägt den Station-②-Baustein „Wortart/Satzglied durch Proben statt Raten".
+  // trägt den Station-②-Baustein „Wortart/Satzglied durch Proben statt Raten“.
   'lehmkuhle-2023': {
     kurz: 'Lehmkuhle 2023',
     voll: 'Lehmkuhle, Charlotte (2023): Didaktik der satzinternen Großschreibung. Eine Interventionsstudie zur Adjektiv- und Artikel(wort)probe in der 6. Jahrgangsstufe. Masterarbeit, Univ. Münster, Abt. Sprachdidaktik (operationale Proben: Form vs. syntaktische Funktion).',
@@ -93,9 +93,9 @@ export const LITERATUR = {
   // ── Korpus selbst (kontext: "korpus") ─────────────────────────────
   'korpus-pipeline': {
     kurz: 'Signifikation-Korpus (wortprofil.db)',
-    voll: 'Eigene Korpus-Pipeline (öffentliche Korpora: Bundestag, DTA, Leipzig u. a.), spaCy-Dependenzparsing, logDice-Assoziationsmaß. Belegsätze aus belege.db (CC-BY-SA).',
+    voll: 'Eigene Korpus-Pipeline (öffentliche Korpora: Bundestag, DTA, Leipzig u. a.), Dependenzparsing mit dem spaCy-Modell de_zdl_lg (BBAW/ZDL) nach Universal Dependencies, logDice-Assoziationsmaß. Belegsätze aus belege.db (CC-BY-SA).',
   },
-  // Schnupper-Variante für DaZ/SekI-Blätter (④/⑤): kein „logDice" im Zitattext,
+  // Schnupper-Variante für DaZ/SekI-Blätter (④/⑤): kein „logDice“ im Zitattext,
   // da der Begriff auf diesen Stufen nicht eingeführt wird (Befund 1, AP11-QA).
   'korpus-pipeline-schnupper': {
     kurz: 'Signifikation-Korpus',
@@ -127,7 +127,7 @@ export const LITERATUR = {
 
 /** Volle Zitation oder ein lesbarer Fallback (statt leerer Fußnote). */
 export function citation(key) {
-  return LITERATUR[key]?.voll ?? `Quelle „${key}" (siehe Kurs-Literatur).`
+  return LITERATUR[key]?.voll ?? `Quelle „${key}“ (siehe Kurs-Literatur).`
 }
 
 /** Kurzform für enge Stellen (Item-Fuß). */

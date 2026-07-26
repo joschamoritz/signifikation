@@ -162,12 +162,12 @@ export default function VariantTask({ task, index, onChecked, canRetry = true, l
 
         {checked && justifyChoice && reasonResult && (
           <div className={`course-feedback ${reasonResult.correct ? 'course-fb--correct' : 'course-fb--wrong'}`}>
-            <p className="course-fb-status">{reasonResult.correct ? 'Begründung passt' : 'Begründung — noch nicht ganz'}</p>
+            <p className="course-fb-status">{reasonResult.correct ? 'Begründung passt' : 'Begründung – noch nicht ganz'}</p>
             <p className="course-fb-text">
               {reasonResult.feedback
                 ?? (reasonResult.correct
                   ? 'Genau diese Begründung trägt.'
-                  : `Treffender wäre: „${justifyChoice.options.find((o) => o.correct)?.label}".`)}
+                  : `Treffender wäre: „${justifyChoice.options.find((o) => o.correct)?.label}“.`)}
             </p>
           </div>
         )}

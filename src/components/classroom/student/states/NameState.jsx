@@ -1,7 +1,7 @@
 // T-5.3 — S2 Spitzname-Eingabe.
 //
 // D15: Pflicht, max 20 Zeichen. Skip-Link nutzt vom Server den Default
-// „Schüler:in N" (wenn displayName beim /join leer übergeben wird).
+// „Schüler:in N“ (wenn displayName beim /join leer übergeben wird).
 //
 // Submit ruft kioskFetch.joinSession({ code, displayName }). Bei 409 (Name
 // vergeben) bleibt der Schüler auf S2 mit Fehler-Hint. Bei 404 (INVALID_CODE)
@@ -17,8 +17,8 @@ const MAX_NAME = 20
 // Schuelerfreundliche Beitritts-Fehlermeldungen je stabilem Server-Code
 // (statt der technischen mapError-Texte). Code kommt aus der Join-Response.
 const JOIN_ERROR_TEXT = {
-  SESSION_FULL:       'Die Sitzung ist voll (höchstens 50 Teilnehmende).',
-  LATE_JOIN_DISABLED: 'Die Sitzung hat schon begonnen — frag deine Lehrkraft, ob du noch beitreten kannst.',
+  SESSION_FULL:       'Die Sitzung ist voll (höchstens 50 Plätze).',
+  LATE_JOIN_DISABLED: 'Die Sitzung hat schon begonnen – frag deine Lehrkraft, ob du noch beitreten kannst.',
   INVALID_STATE:      'Diese Sitzung ist gerade nicht aktiv.',
   NO_ASSIGNMENT:      'Die Sitzung ist noch nicht bereit. Bitte kurz warten.',
 }
@@ -64,7 +64,7 @@ export default function NameState() {
           try {
             sessionStorage.setItem(
               'classroom:joinNotice',
-              'Dieser Code stimmt nicht — bitte prüfen und neu eingeben.',
+              'Dieser Code stimmt nicht – bitte prüfen und neu eingeben.',
             )
           } catch {}
           navigate('/c')
@@ -85,7 +85,7 @@ export default function NameState() {
     e.preventDefault()
     const trimmed = name.trim()
     if (trimmed.length === 0) {
-      setError('Bitte einen Spitznamen eingeben oder „Ohne Namen beitreten" anklicken.')
+      setError('Bitte einen Spitznamen eingeben oder „Ohne Namen beitreten“ anklicken.')
       try { inputRef.current?.focus() } catch {}
       return
     }
@@ -93,7 +93,7 @@ export default function NameState() {
   }
 
   function handleSkip() {
-    // Leerer displayName → Server vergibt Default „Schüler:in N".
+    // Leerer displayName → Server vergibt Default „Schüler:in N“.
     doJoin('')
   }
 

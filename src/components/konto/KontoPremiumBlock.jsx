@@ -11,9 +11,12 @@ const IS_NATIVE = Capacitor.isNativePlatform()
 
 // Stärkstes Kaufargument (Lehrkräfte-Paket) zuerst.
 const FEATURES = [
-  { label: 'Kurs-Material',  desc: 'Kompletter Unterrichtsentwurf, Arbeitsblätter in 4 Differenzierungsstufen, Erwartungshorizont & Beamer-Folien — zu jeder Station' },
-  { label: 'Klassenraum',    desc: 'Live-Quiz mit der ganzen Klasse — Beitritt per QR-Code, ohne Schüler-Accounts' },
-  { label: 'Eigenes Lemma',  desc: 'Jeden Modus – auch im Kurs – mit selbst gewählten Wörtern, unbegrenzt' },
+  { label: 'Unterrichtsmaterial',  desc: 'Kompletter Unterrichtsentwurf, Arbeitsblätter in 4 Differenzierungsstufen, Erwartungshorizont & Beamer-Folien – zu jeder Station' },
+  { label: 'Klassenraum',          desc: 'Live-Quiz mit der ganzen Klasse – Beitritt per QR-Code, ohne Konto für die Klasse' },
+  // „Unbegrenzte Lemmata" beschreibt hier die gekaufte LEISTUNG. Der
+  // Feature-Name bleibt „Eigenes Lemma" — Basic hat das Feature ebenfalls,
+  // nur auf ein Spiel pro Tag begrenzt.
+  { label: 'Unbegrenzte Lemmata',  desc: 'Jeden Modus – auch im Kurs – mit selbst gewählten Wörtern, ohne Tageslimit' },
 ]
 
 export default function KontoPremiumBlock({ auth, gesamtausgabePermanent }) {
@@ -24,7 +27,7 @@ export default function KontoPremiumBlock({ auth, gesamtausgabePermanent }) {
   const [teaserPrice, setTeaserPrice] = useState(null)
 
   // Teaser-Preis auf iOS aus StoreKit (Storefront-Währung des Nutzers) statt
-  // hardcoded EUR – auf Nicht-Euro-Storefronts (z. B. CH) stimmt „6,99 €"
+  // hardcoded EUR – auf Nicht-Euro-Storefronts (z. B. CH) stimmt „6,99 €“
   // sonst nicht mit dem Preis im Kauf-Sheet überein.
   useEffect(() => {
     if (!IS_NATIVE || gesamtausgabePermanent) return
@@ -110,13 +113,16 @@ export default function KontoPremiumBlock({ auth, gesamtausgabePermanent }) {
         <div className="test-entry-grammar">
           <span className="test-pos">Lizenz</span>
           <span className="test-pos-rule" />
-          <span className="test-entry-category">Premium</span>
+          {/* Kategorie analog zu „täglich" bei den Spielmodi – und sachlich
+              richtig: Einmalkauf, dauerhaft freigeschaltet. „Premium" waere
+              die einzige Stelle, an der das Produkt nicht „Gesamtausgabe" heisst. */}
+          <span className="test-entry-category">dauerhaft</span>
         </div>
 
         {gesamtausgabePermanent ? (
           <>
             <p className="test-definition">
-              Kurs-Material, Klassenraum und unbegrenzt eigene Lemmata.
+              Unterrichtsmaterial, Klassenraum und unbegrenzt eigene Lemmata.
             </p>
             <ul className="konto-premium-features konto-premium-features--active" aria-label="Enthaltene Funktionen">
               {FEATURES.map(f => (
@@ -142,7 +148,7 @@ export default function KontoPremiumBlock({ auth, gesamtausgabePermanent }) {
           <>
             <p className="test-definition">
               Alle vier Spielmodi sind frei. Mit der Gesamtausgabe spielst du
-              jeden Modus mit selbst gewählten Wörtern – unbegrenzt – plus Klassenraum &amp; Kurs-Material.
+              jeden Modus mit selbst gewählten Wörtern – unbegrenzt – plus Klassenraum &amp; Unterrichtsmaterial.
             </p>
 
             <ul className="konto-premium-features" aria-label="Enthaltene Funktionen">

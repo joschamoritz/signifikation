@@ -1,7 +1,7 @@
 /**
  * server/course/content/station-3.js
  *
- * Aufgaben-Items für Station ③ „Wer hängt an wem?" (grammatische
+ * Aufgaben-Items für Station ③ „Wer hängt an wem?“ (grammatische
  * Abhängigkeiten), über alle vier Niveaustufen (AP10). Muster wie station-1.js.
  *
  * Quellen: planning/Kurs-Station-3-Abhaengigkeiten.md, planning/Kurs-Differenzierung.md
@@ -13,7 +13,7 @@
  * eingespielt wird. Satzglieder werden mit Buchstaben-Label (S/P/O) markiert,
  * nie nur über Farbe (Barrierearmut, Blaupause §3).
  *
- * Slot-Aha (verifiziert 2026-06-21): „Entscheidung" als OBJEKT → treffen (11,5)/
+ * Slot-Aha (verifiziert 2026-06-21): „Entscheidung“ als OBJEKT → treffen (11,5)/
  * fällen; als SUBJEKT → fällt/ergeht/erfolgt. Derselbe Lemma, andere Verben.
  */
 
@@ -51,9 +51,9 @@ const TASKS = [
       ],
       multiplePerAnchor: false,
       // Belege müssen zur Aufgabe passen: hier geht es um Subjekt+Prädikat
-      // (das Gericht handelt, trifft). Daher Paarung „Gericht"+„treffen" – die
+      // (das Gericht handelt, trifft). Daher Paarung „Gericht“+„treffen“ – die
       // Sätze zeigen das Gericht als Handelnden, NICHT die Objekt-Kollokation
-      // „Entscheidung treffen" mit fremden Subjekten (AP21-QA).
+      // „Entscheidung treffen“ mit fremden Subjekten (AP21-QA).
       belegContext: { lemma: 'Gericht', partner: 'treffen', limit: 3 },
     },
     display: { showMetrics: false, metric: 'none' },
@@ -61,7 +61,7 @@ const TASKS = [
     feedback: {
       byLevel: {
         DaZ: {
-          onCorrect: 'Genau – „Das Gericht" handelt (wer?), „trifft" ist die Handlung (was tut es?).',
+          onCorrect: 'Genau – „Das Gericht“ handelt (wer?), „trifft“ ist die Handlung (was tut es?).',
           onWrong: 'Frage: Wer macht etwas? Und: Was tut diese Person?',
         },
       },
@@ -91,7 +91,7 @@ const TASKS = [
     feedback: {
       byLevel: {
         DaZ: {
-          onCorrect: 'Richtig – „Das Gericht" (S) handelt, „trifft" (P) ist die Handlung.',
+          onCorrect: 'Richtig – „Das Gericht“ (S) handelt, „trifft“ (P) ist die Handlung.',
           onWrong: 'Wer macht etwas? Das ist S. Was tut die Person? Das ist P.',
         },
       },
@@ -120,8 +120,8 @@ const TASKS = [
     feedback: {
       byLevel: {
         DaZ: {
-          onCorrect: 'Richtig – „Die Kinder" (S) handeln, „spielen" (P) ist die Handlung.',
-          onWrong: 'Wer macht etwas? Das ist S. Was tun sie? Das ist P. („draußen" gehört zu keinem von beiden.)',
+          onCorrect: 'Richtig – „Die Kinder“ (S) handeln, „spielen“ (P) ist die Handlung.',
+          onWrong: 'Wer macht etwas? Das ist S. Was tun sie? Das ist P. („draußen“ gehört zu keinem von beiden.)',
         },
       },
       tonalitaet: 'woerterbuch-nuechtern',
@@ -150,7 +150,7 @@ const TASKS = [
     feedback: {
       byLevel: {
         DaZ: {
-          onCorrect: 'Genau – „Der Hund" handelt (wer?), „bellt" ist die Handlung (was tut er?).',
+          onCorrect: 'Genau – „Der Hund“ handelt (wer?), „bellt“ ist die Handlung (was tut er?).',
           onWrong: 'Frage: Wer macht etwas? Und: Was tut diese Person/dieses Tier?',
         },
       },
@@ -179,7 +179,7 @@ const TASKS = [
     feedback: {
       byLevel: {
         DaZ: {
-          onCorrect: 'Richtig – „Die Sonne" (S) handelt, „scheint" (P) ist die Handlung. („hell" beschreibt nur, wie sie scheint.)',
+          onCorrect: 'Richtig – „Die Sonne“ (S) handelt, „scheint“ (P) ist die Handlung. („hell“ beschreibt nur, wie sie scheint.)',
           onWrong: 'Wer/was macht etwas? Das ist S. Was tut es? Das ist P.',
         },
       },
@@ -208,8 +208,8 @@ const TASKS = [
     feedback: {
       byLevel: {
         DaZ: {
-          onCorrect: 'Richtig – „Die Katze" (S) handelt, „schläft" (P) ist die Handlung.',
-          onWrong: 'Wer/was macht etwas? Das ist S. Was tut es? Das ist P. („ruhig" gehört zu keinem von beiden.)',
+          onCorrect: 'Richtig – „Die Katze“ (S) handelt, „schläft“ (P) ist die Handlung.',
+          onWrong: 'Wer/was macht etwas? Das ist S. Was tut es? Das ist P. („ruhig“ gehört zu keinem von beiden.)',
         },
       },
       tonalitaet: 'woerterbuch-nuechtern',
@@ -274,8 +274,8 @@ const TASKS = [
     feedback: {
       byLevel: {
         SekI: {
-          onCorrect: 'Richtig – „Entscheidung" steht im Objekt-Slot, darum das typische Verb „treffen".',
-          onWrong: 'Frage: Wer? (S), was geschieht? (P), wen/was? (O). „Entscheidung" ist hier das Objekt.',
+          onCorrect: 'Richtig – „Entscheidung“ steht im Objekt-Slot, darum das typische Verb „treffen“.',
+          onWrong: 'Frage: Wer? (S), was geschieht? (P), wen/was? (O). „Entscheidung“ ist hier das Objekt.',
         },
       },
       tonalitaet: 'woerterbuch-nuechtern',
@@ -415,7 +415,7 @@ const TASKS = [
   {
     id: 's3-f3-kopf-dependent-sek2', station: 3, format: 'F3', level: 'SekII', source: 'corpus-template',
     kern: 'kopf-dependent',
-    prompt: 'Bestimme die Abhängigkeit: Markiere das regierende Verb als „Kopf" und das abhängige Akkusativobjekt als „Dependent".',
+    prompt: 'Bestimme die Abhängigkeit: Markiere das regierende Verb als „Kopf“ und das abhängige Akkusativobjekt als „Dependent“.',
     metasprache: ['Kopf', 'Dependent', 'Dependenz'],
     corpusQuery: Q_ENTSCH_OBJ,
     bindings: { answer: [1] },
@@ -428,12 +428,12 @@ const TASKS = [
       labelWords: { Kopf: '{{top.lemma}}', Dependent: 'Entscheidung' },
     },
     display: { showMetrics: false, metric: 'none' },
-    solution: { spans: [{ label: 'Kopf' }, { label: 'Dependent' }], note: 'Kopf = Verb „{{top.lemma}}", Dependent = Akkusativobjekt „Entscheidung".' },
+    solution: { spans: [{ label: 'Kopf' }, { label: 'Dependent' }], note: 'Kopf = Verb „{{top.lemma}}“, Dependent = Akkusativobjekt „Entscheidung“.' },
     feedback: {
       byLevel: {
         SekII: {
-          onCorrect: 'Richtig – „{{top.lemma}}" ist der Kopf, „Entscheidung" das abhängige Akkusativobjekt.',
-          onWrong: 'Das Verb regiert das Objekt: „{{top.lemma}}" (Kopf) → „Entscheidung" (Dependent).',
+          onCorrect: 'Richtig – „{{top.lemma}}“ ist der Kopf, „Entscheidung“ das abhängige Akkusativobjekt.',
+          onWrong: 'Das Verb regiert das Objekt: „{{top.lemma}}“ (Kopf) → „Entscheidung“ (Dependent).',
         },
       },
       tonalitaet: 'woerterbuch-nuechtern',
@@ -444,7 +444,7 @@ const TASKS = [
   {
     id: 's3-f4-slot-bestimmen-sek2', station: 3, format: 'F4', level: 'SekII', source: 'corpus-template',
     kern: 'slot-bestimmen',
-    prompt: 'In „eine Entscheidung {{top.lemma}}" – welchen Slot besetzt „Entscheidung"? Wähle und begründe.',
+    prompt: 'In „eine Entscheidung {{top.lemma}}“ – welchen Slot besetzt „Entscheidung“? Wähle und begründe.',
     metasprache: ['Slot', 'Subjekt', 'Objekt'],
     corpusQuery: Q_ENTSCH_OBJ,
     bindings: { answer: [1] },
@@ -456,24 +456,24 @@ const TASKS = [
         { id: 'o3', label: 'Prädikativ' },
       ],
       requireJustification: true,
-      justifyPrompt: 'Begründe: Warum besetzt „Entscheidung" hier diesen Slot?',
-      // Objekt-Slot → Belege zeigen die Objekt-Kollokation „Entscheidung treffen".
+      justifyPrompt: 'Begründe: Warum besetzt „Entscheidung“ hier diesen Slot?',
+      // Objekt-Slot → Belege zeigen die Objekt-Kollokation „Entscheidung treffen“.
       belegContext: { lemma: 'Entscheidung', partner: 'treffen', limit: 3 },
     },
     display: { showMetrics: false, metric: 'none' },
     solution: {
       correctOptionId: 'o1',
       rubric: {
-        criteria: ['„Entscheidung" als Objekt', 'verknüpft den Objekt-Slot mit dem Verb „{{top.lemma}}"'],
+        criteria: ['„Entscheidung“ als Objekt', 'verknüpft den Objekt-Slot mit dem Verb „{{top.lemma}}“'],
         minHits: 1,
       },
     },
     feedback: {
       byLevel: {
         SekII: {
-          onCorrect: 'Richtig – hier ist „Entscheidung" das Objekt (jemand trifft sie), darum „{{top.lemma}}".',
+          onCorrect: 'Richtig – hier ist „Entscheidung“ das Objekt (jemand trifft sie), darum „{{top.lemma}}“.',
           onChoice: {
-            '@selected': 'Frage: Wer/was handelt? Das Gremium. „Entscheidung" ist das Ziel der Handlung → Objekt-Slot → „{{top.lemma}}".',
+            '@selected': 'Frage: Wer/was handelt? Das Gremium. „Entscheidung“ ist das Ziel der Handlung → Objekt-Slot → „{{top.lemma}}“.',
           },
         },
       },
@@ -505,7 +505,7 @@ const TASKS = [
         q1: {
           rubric: {
             criteria: [
-              'im Objekt-Slot ist „Entscheidung" Ziel einer Handlung → Handlungsverben (treffen/fällen)',
+              'im Objekt-Slot ist „Entscheidung“ Ziel einer Handlung → Handlungsverben (treffen/fällen)',
               'im Subjekt-Slot ist sie Träger des Geschehens → Vorgangsverben (fallen/ergehen)',
               'der typische Partner hängt von der syntaktischen Funktion ab, nicht nur vom Wort',
             ],
@@ -518,7 +518,7 @@ const TASKS = [
       byLevel: {
         SekII: {
           onCorrect: 'Genau – der Slot bestimmt den Partner: Objekt → treffen/fällen, Subjekt → fallen/ergehen. Die Funktion entscheidet.',
-          onWrong: 'Frag, ob „Entscheidung" handelt (Subjekt) oder ob mit ihr gehandelt wird (Objekt) – daran hängt der Verbpartner.',
+          onWrong: 'Frag, ob „Entscheidung“ handelt (Subjekt) oder ob mit ihr gehandelt wird (Objekt) – daran hängt der Verbpartner.',
         },
       },
       tonalitaet: 'woerterbuch-nuechtern',
@@ -529,7 +529,7 @@ const TASKS = [
   {
     id: 's3-f3-kopf-dependent2-sek2', station: 3, format: 'F3', level: 'SekII', source: 'corpus-template',
     kern: 'kopf-dependent',
-    prompt: 'Bestimme die Abhängigkeit: Markiere das regierende Verb als „Kopf" und das abhängige Akkusativobjekt als „Dependent".',
+    prompt: 'Bestimme die Abhängigkeit: Markiere das regierende Verb als „Kopf“ und das abhängige Akkusativobjekt als „Dependent“.',
     metasprache: ['Kopf', 'Dependent', 'Dependenz'],
     corpusQuery: Q_FRAGE_OBJ,
     bindings: { answer: [1] },
@@ -540,12 +540,12 @@ const TASKS = [
       labelWords: { Kopf: '{{top.lemma}}', Dependent: 'Frage' },
     },
     display: { showMetrics: false, metric: 'none' },
-    solution: { spans: [{ label: 'Kopf' }, { label: 'Dependent' }], note: 'Kopf = Verb „{{top.lemma}}", Dependent = Akkusativobjekt „Frage".' },
+    solution: { spans: [{ label: 'Kopf' }, { label: 'Dependent' }], note: 'Kopf = Verb „{{top.lemma}}“, Dependent = Akkusativobjekt „Frage“.' },
     feedback: {
       byLevel: {
         SekII: {
-          onCorrect: 'Richtig – „{{top.lemma}}" ist der Kopf, „Frage" das abhängige Akkusativobjekt.',
-          onWrong: 'Das Verb regiert das Objekt: „{{top.lemma}}" (Kopf) → „Frage" (Dependent).',
+          onCorrect: 'Richtig – „{{top.lemma}}“ ist der Kopf, „Frage“ das abhängige Akkusativobjekt.',
+          onWrong: 'Das Verb regiert das Objekt: „{{top.lemma}}“ (Kopf) → „Frage“ (Dependent).',
         },
       },
       tonalitaet: 'woerterbuch-nuechtern',
@@ -556,7 +556,7 @@ const TASKS = [
   {
     id: 's3-f4-slot-bestimmen2-sek2', station: 3, format: 'F4', level: 'SekII', source: 'corpus-template',
     kern: 'slot-bestimmen',
-    prompt: 'In „ein Ziel {{top.lemma}}" – welchen Slot besetzt „Ziel"? Wähle und begründe.',
+    prompt: 'In „ein Ziel {{top.lemma}}“ – welchen Slot besetzt „Ziel“? Wähle und begründe.',
     metasprache: ['Slot', 'Subjekt', 'Objekt'],
     corpusQuery: Q_ZIEL_OBJ,
     bindings: { answer: [1] },
@@ -568,23 +568,23 @@ const TASKS = [
         { id: 'o3', label: 'Prädikativ' },
       ],
       requireJustification: true,
-      justifyPrompt: 'Begründe: Warum besetzt „Ziel" hier diesen Slot?',
+      justifyPrompt: 'Begründe: Warum besetzt „Ziel“ hier diesen Slot?',
       belegContext: { lemma: 'Ziel', partner: 'erreichen', limit: 3 },
     },
     display: { showMetrics: false, metric: 'none' },
     solution: {
       correctOptionId: 'o1',
       rubric: {
-        criteria: ['„Ziel" als Objekt', 'verknüpft den Objekt-Slot mit dem Verb „{{top.lemma}}"'],
+        criteria: ['„Ziel“ als Objekt', 'verknüpft den Objekt-Slot mit dem Verb „{{top.lemma}}“'],
         minHits: 1,
       },
     },
     feedback: {
       byLevel: {
         SekII: {
-          onCorrect: 'Richtig – hier ist „Ziel" das Objekt (jemand erreicht es), darum „{{top.lemma}}".',
+          onCorrect: 'Richtig – hier ist „Ziel“ das Objekt (jemand erreicht es), darum „{{top.lemma}}“.',
           onChoice: {
-            '@selected': 'Frage: Wer/was handelt? Der Vorstand. „Ziel" ist das Ziel der Handlung → Objekt-Slot → „{{top.lemma}}".',
+            '@selected': 'Frage: Wer/was handelt? Der Vorstand. „Ziel“ ist das Ziel der Handlung → Objekt-Slot → „{{top.lemma}}“.',
           },
         },
       },
@@ -614,7 +614,7 @@ const TASKS = [
         q1: {
           rubric: {
             criteria: [
-              'im Objekt-Slot ist „Diskussion" Ziel einer Handlung → Handlungsverben (führen)',
+              'im Objekt-Slot ist „Diskussion“ Ziel einer Handlung → Handlungsverben (führen)',
               'im Subjekt-Slot ist sie Träger des Geschehens → Vorgangsverben (entstehen/aufkommen)',
               'der typische Partner hängt von der syntaktischen Funktion ab, nicht nur vom Wort',
             ],
@@ -627,7 +627,7 @@ const TASKS = [
       byLevel: {
         SekII: {
           onCorrect: 'Genau – der Slot bestimmt den Partner: Objekt → führen, Subjekt → entstehen/aufkommen. Die Funktion entscheidet.',
-          onWrong: 'Frag, ob „Diskussion" geführt wird (Objekt) oder selbst geschieht (Subjekt) – daran hängt der Verbpartner.',
+          onWrong: 'Frag, ob „Diskussion“ geführt wird (Objekt) oder selbst geschieht (Subjekt) – daran hängt der Verbpartner.',
         },
       },
       tonalitaet: 'woerterbuch-nuechtern',
@@ -639,7 +639,7 @@ const TASKS = [
   {
     id: 's3-f4-rektion-lk', station: 3, format: 'F4', level: 'LK', source: 'corpus-template',
     kern: 'rektion',
-    prompt: 'Bestimme die Rektion: In welchem Kasus steht „Entscheidung" als Dependent von „{{top.lemma}}"? Wähle und begründe.',
+    prompt: 'Bestimme die Rektion: In welchem Kasus steht „Entscheidung“ als Dependent von „{{top.lemma}}“? Wähle und begründe.',
     metasprache: ['Rektion', 'Kasus', 'syntaktische Funktion'],
     corpusQuery: Q_ENTSCH_OBJ,
     bindings: { answer: [1] },
@@ -657,16 +657,16 @@ const TASKS = [
     solution: {
       correctOptionId: 'o1',
       rubric: {
-        criteria: ['Akkusativobjekt', 'erklärt die Rektion: das Verb „{{top.lemma}}" regiert den Akkusativ', 'Probe „wen/was?"'],
+        criteria: ['Akkusativobjekt', 'erklärt die Rektion: das Verb „{{top.lemma}}“ regiert den Akkusativ', 'Probe „wen/was?“'],
         minHits: 2,
       },
     },
     feedback: {
       byLevel: {
         LK: {
-          onCorrect: 'Korrekt – „{{top.lemma}}" regiert den Akkusativ; „eine Entscheidung" ist Akkusativobjekt (Probe: wen/was?).',
+          onCorrect: 'Korrekt – „{{top.lemma}}“ regiert den Akkusativ; „eine Entscheidung“ ist Akkusativobjekt (Probe: wen/was?).',
           onChoice: {
-            '@selected': 'Wende die Kasusprobe an: „{{top.lemma}}" + wen/was? → Akkusativobjekt, nicht Dativ/Genitiv.',
+            '@selected': 'Wende die Kasusprobe an: „{{top.lemma}}“ + wen/was? → Akkusativobjekt, nicht Dativ/Genitiv.',
           },
         },
       },
@@ -679,7 +679,7 @@ const TASKS = [
     id: 's3-f4-satzglieder-lk', station: 3, format: 'F4', level: 'LK', source: 'static',
     kern: 'satzglied-feinanalyse',
     // Interaktive Satzgliedanalyse (Tippen→Label) statt reinem Freitext (AP21-QA
-    // „im LK auch Aufgaben zum Schieben/Klicken"). Format F4, aber markTask →
+    // „im LK auch Aufgaben zum Schieben/Klicken“). Format F4, aber markTask →
     // LabelTask im Dispatcher; volle Analyse inkl. adverbialer Bestimmung.
     prompt: 'Vollständige Satzgliedanalyse: Weise jedem Satzteil seine Funktion zu – Subjekt (S), Prädikat (P), adverbiale Bestimmung (Adv) und Akkusativobjekt (O).',
     metasprache: ['Satzglied', 'Subjekt', 'Prädikat', 'adverbiale Bestimmung', 'Akkusativobjekt'],
@@ -701,7 +701,7 @@ const TASKS = [
     feedback: {
       byLevel: {
         LK: {
-          onCorrect: 'Korrekt – S „Der Senat", P „trifft", adverbiale Bestimmung „nach langer Beratung", O „eine Entscheidung". Das Prädikat regiert das Akkusativobjekt; die adverbiale Bestimmung ist frei verschiebbar (Verschiebeprobe).',
+          onCorrect: 'Korrekt – S „Der Senat“, P „trifft“, adverbiale Bestimmung „nach langer Beratung“, O „eine Entscheidung“. Das Prädikat regiert das Akkusativobjekt; die adverbiale Bestimmung ist frei verschiebbar (Verschiebeprobe).',
           onWrong: 'Gehe die Satzglieder durch: Wer? (S) – was geschieht? (P) – wann/wie? (Adv) – wen/was? (O). Die Verschiebeprobe trennt die Satzglieder.',
         },
       },
@@ -735,8 +735,8 @@ const TASKS = [
     feedback: {
       byLevel: {
         LK: {
-          onCorrect: 'Korrekt – „Die Begründung" ist Subjekt, „der Entscheidung" als Genitivattribut bestimmt „Begründung" näher, „überzeugt" ist das Prädikat, „niemanden" das Akkusativobjekt. Das Genitivattribut ist Teil des Subjekts, aber eine eigene Satzgliedfunktion.',
-          onWrong: 'Suche zuerst S/P/O wie gewohnt. Das Genitivattribut steckt INNERHALB des Subjekts und hängt an einem Nomen („Begründung"), nicht am Verb.',
+          onCorrect: 'Korrekt – „Die Begründung“ ist Subjekt, „der Entscheidung“ als Genitivattribut bestimmt „Begründung“ näher, „überzeugt“ ist das Prädikat, „niemanden“ das Akkusativobjekt. Das Genitivattribut ist Teil des Subjekts, aber eine eigene Satzgliedfunktion.',
+          onWrong: 'Suche zuerst S/P/O wie gewohnt. Das Genitivattribut steckt INNERHALB des Subjekts und hängt an einem Nomen („Begründung“), nicht am Verb.',
         },
       },
       tonalitaet: 'woerterbuch-nuechtern',
@@ -748,11 +748,11 @@ const TASKS = [
     id: 's3-f4-rektion-dativ-lk', station: 3, format: 'F4', level: 'LK', source: 'static',
     kern: 'rektion-dativ',
     // AP21-QA Mehr Variation LK: bisher liefen beide Rektion-Items immer auf
-    // „Akkusativobjekt" hinaus (Q_ENTSCH_OBJ/Q_BEITRAG_OBJ, beide ~OBJA). Dativ
+    // „Akkusativobjekt“ hinaus (Q_ENTSCH_OBJ/Q_BEITRAG_OBJ, beide ~OBJA). Dativ
     // ist kein erlaubter corpusQuery.relation-Code (RELATIONS-Whitelist) → hier
     // bewusst static mit einem echten Dativverb, Antwortoptionen nicht in
     // Standardreihenfolge (Dativobjekt an Position 2, nicht immer 1 richtig).
-    prompt: 'Bestimme die Rektion: In welchem Kasus steht „dieser Entscheidung" als Dependent von „vertraut"? Wähle und begründe.',
+    prompt: 'Bestimme die Rektion: In welchem Kasus steht „dieser Entscheidung“ als Dependent von „vertraut“? Wähle und begründe.',
     metasprache: ['Rektion', 'Kasus', 'syntaktische Funktion'],
     payload: {
       sentence: 'Der Vorstand vertraut dieser Entscheidung.',
@@ -769,16 +769,16 @@ const TASKS = [
     solution: {
       correctOptionId: 'o2',
       rubric: {
-        criteria: ['Dativobjekt', 'erklärt die Rektion: das Verb „vertrauen" regiert den Dativ (nicht den Akkusativ)', 'Probe „wem?"'],
+        criteria: ['Dativobjekt', 'erklärt die Rektion: das Verb „vertrauen“ regiert den Dativ (nicht den Akkusativ)', 'Probe „wem?“'],
         minHits: 2,
       },
     },
     feedback: {
       byLevel: {
         LK: {
-          onCorrect: 'Korrekt – „vertrauen" regiert den Dativ; „dieser Entscheidung" ist Dativobjekt (Probe: wem?). Anders als „treffen"/„leisten" verlangt „vertrauen" keinen Akkusativ.',
+          onCorrect: 'Korrekt – „vertrauen“ regiert den Dativ; „dieser Entscheidung“ ist Dativobjekt (Probe: wem?). Anders als „treffen“/„leisten“ verlangt „vertrauen“ keinen Akkusativ.',
           onChoice: {
-            '@selected': 'Wende die Kasusprobe an: „vertrauen" + wem? → Dativobjekt. Nicht jedes Verb regiert den Akkusativ.',
+            '@selected': 'Wende die Kasusprobe an: „vertrauen“ + wem? → Dativobjekt. Nicht jedes Verb regiert den Akkusativ.',
           },
         },
       },
@@ -810,7 +810,7 @@ const TASKS = [
     feedback: {
       byLevel: {
         LK: {
-          onCorrect: 'Korrekt – S „Der Trainer", P „lobt", adverbiale Bestimmung „nach dem Spiel", O „die Mannschaft". Das Prädikat regiert das Akkusativobjekt; die adverbiale Bestimmung ist frei verschiebbar (Verschiebeprobe).',
+          onCorrect: 'Korrekt – S „Der Trainer“, P „lobt“, adverbiale Bestimmung „nach dem Spiel“, O „die Mannschaft“. Das Prädikat regiert das Akkusativobjekt; die adverbiale Bestimmung ist frei verschiebbar (Verschiebeprobe).',
           onWrong: 'Gehe die Satzglieder durch: Wer? (S) – was geschieht? (P) – wann? (Adv) – wen/was? (O). Die Verschiebeprobe trennt die Satzglieder.',
         },
       },
@@ -842,8 +842,8 @@ const TASKS = [
     feedback: {
       byLevel: {
         LK: {
-          onCorrect: 'Korrekt – „ist" ist das Kopulaverb (Prädikat), „mutig" das Prädikativ: es schreibt dem Subjekt „Diese Entscheidung" eine Eigenschaft zu, ohne – anders als ein Objekt – vom Verb regiert zu werden.',
-          onWrong: 'Frage: Welches Verb verbindet nur (Kopulaverb, meist „sein/werden/bleiben")? Welches Wort danach beschreibt eine Eigenschaft des Subjekts? Das ist das Prädikativ.',
+          onCorrect: 'Korrekt – „ist“ ist das Kopulaverb (Prädikat), „mutig“ das Prädikativ: es schreibt dem Subjekt „Diese Entscheidung“ eine Eigenschaft zu, ohne – anders als ein Objekt – vom Verb regiert zu werden.',
+          onWrong: 'Frage: Welches Verb verbindet nur (Kopulaverb, meist „sein/werden/bleiben“)? Welches Wort danach beschreibt eine Eigenschaft des Subjekts? Das ist das Prädikativ.',
         },
       },
       tonalitaet: 'woerterbuch-nuechtern',

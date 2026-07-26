@@ -1,11 +1,11 @@
 /**
  * routes/course.js – Kurs-API unter /api/v1/course/*
  *
- * Zugangsmodell (Entscheidung 2026-06-25): „Üben frei (Login), Material Premium".
+ * Zugangsmodell (Entscheidung 2026-06-25): „Üben frei (Login), Material Premium“.
  *   - Stationen + Üben + Fortschritt: requireAuthUser (jede eingeloggte Rolle,
  *     auch Basic) → Persistenz/Sperre ans Konto gebunden.
  *   - Material + Download: requirePremium — Premium-Nutzen = Lehrmaterial.
- * „Eigenes Lemma" (freie Wort-Eingabe) wurde 2026-06-25 entfernt: änderte die
+ * „Eigenes Lemma“ (freie Wort-Eingabe) wurde 2026-06-25 entfernt: änderte die
  * kuratierten Aufgaben kaum, erzeugte ein unbrauchbares Arbeitsblatt und
  * untergrub den Kuratierungs-Anspruch. Inhalte sind ausschließlich kuratiert.
  * Kein capability-/session-basiertes Gating wie im Klassenraum — Einzelnutzer-Material.
@@ -112,7 +112,7 @@ router.get(
       // resolve=interactive: Direktiven + Platzhalter serverseitig auflösen
       // (Korpus liegt nur am Server). selected/chosen + onWrong/onChoice bleiben
       // erhalten — der Client füllt die Auswahl. Inhalte sind kuratiert; das
-      // frühere „Eigenes Lemma" (freie Wort-Eingabe) wurde entfernt.
+      // frühere „Eigenes Lemma“ (freie Wort-Eingabe) wurde entfernt.
       //
       // Ergebnis ist nutzerunabhängig + deterministisch → pro (Station, Niveau,
       // Format) cachen, statt bei jedem Aufruf 10–20 Korpus-/FTS-Queries zu fahren.
@@ -264,7 +264,7 @@ router.get(
 /**
  * POST /stations/:id/tasks/:taskId/result – Ergebnis einer Aufgabe festhalten.
  * Body: { level, correct: true|false|null }. attempts wird serverseitig
- * inkrementiert; correct bleibt „bestes" Resultat. Der Client sperrt eine
+ * inkrementiert; correct bleibt „bestes“ Resultat. Der Client sperrt eine
  * kuratierte Aufgabe nach der Abgabe (neu spielbar nur über den Profil-Reset);
  * der Server bleibt idempotent und hält schlicht das beste Ergebnis.
  *
@@ -275,7 +275,7 @@ router.get(
  * fälschungssichere Metrik. Serverseitige Bewertung erst nötig, wenn der
  * Fortschritt teachersichtbar/gekoppelt wird (Analyse-2026-07-02.md, K1/K2).
  *
- * „Eigenes Lemma" wird NICHT persistiert — der Client postet dort kein Ergebnis.
+ * „Eigenes Lemma“ wird NICHT persistiert — der Client postet dort kein Ergebnis.
  */
 router.post(
   `${BASE}/stations/:id/tasks/:taskId/result`,

@@ -237,8 +237,12 @@ const [confirmDelete, setConfirmDelete] = useState(false)
               <dd>{sessionData.user.email}</dd>
             </div>
             <div>
-              <dt>Rolle</dt>
-              <dd>{accountData?.role === 'premium' ? 'Premium' : 'Basis'}</dd>
+              {/* Das Produkt heisst durchgehend „Gesamtausgabe", nicht
+                  „Premium" (nur der DB-Rollenwert lautet so). „Basiszugang"
+                  statt „Basis", weil „Basis" im Kollokations-Sinn bereits das
+                  Bezugswort bezeichnet — siehe planning/Terminologie.md. */}
+              <dt>Zugang</dt>
+              <dd>{accountData?.role === 'premium' ? 'Gesamtausgabe' : 'Basiszugang'}</dd>
             </div>
           </dl>
 

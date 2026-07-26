@@ -1,7 +1,7 @@
 /**
  * server/course/content/station-2.js
  *
- * Aufgaben-Items für Station ② „Wörter mit Funktion" (Wortarten als Werkzeug),
+ * Aufgaben-Items für Station ② „Wörter mit Funktion“ (Wortarten als Werkzeug),
  * über alle vier Niveaustufen (AP10). Muster wie content/station-1.js.
  *
  * Quellen: planning/Kurs-Station-2-Wortarten.md, planning/Kurs-Differenzierung.md
@@ -14,7 +14,7 @@
  *
  * Anker (gegen echte DBs verifiziert, 2026-06-21):
  *   Kritik/ATTR  → scharf (11,0) heftig (10,4) …       (Bauplan Adjektiv + Nomen)
- *   Kritik/~OBJA → üben (12,3, top!) stoßen äußern …   (der „Kritik üben"-Aha)
+ *   Kritik/~OBJA → üben (12,3, top!) stoßen äußern …   (der „Kritik üben“-Aha)
  */
 
 const STATION = {
@@ -28,8 +28,8 @@ const STATION = {
 
 const Q_KRITIK_ADJ  = { lemma: 'Kritik',  pos: 'Substantiv', relation: 'ATTR',  minFrequency: 5, limit: 25, filter: { singleWordOnly: true } }
 const Q_KRITIK_VERB = { lemma: 'Kritik',  pos: 'Substantiv', relation: '~OBJA', minFrequency: 5, limit: 25, filter: { singleWordOnly: true } }
-// AP21-QA Aufgaben-Ausbau: „Frage/~OBJA → stellen(10,8)" trägt das klassische
-// Funktionsverbgefüge „in Frage stellen" (gegen wortprofil.db verifiziert 2026-07-01).
+// AP21-QA Aufgaben-Ausbau: „Frage/~OBJA → stellen(10,8)“ trägt das klassische
+// Funktionsverbgefüge „in Frage stellen“ (gegen wortprofil.db verifiziert 2026-07-01).
 const Q_FRAGE_VERB  = { lemma: 'Frage',   pos: 'Substantiv', relation: '~OBJA', minFrequency: 5, limit: 25, filter: { singleWordOnly: true } }
 
 const TASKS = [
@@ -57,7 +57,7 @@ const TASKS = [
     feedback: {
       byLevel: {
         DaZ: {
-          onCorrect: 'Genau – „Kritik" ist ein Nomen, „üben" ein Verb, „scharf" ein Adjektiv.',
+          onCorrect: 'Genau – „Kritik“ ist ein Nomen, „üben“ ein Verb, „scharf“ ein Adjektiv.',
           onWrong: 'Frage: Ist es ein Ding (Nomen), eine Tätigkeit (Verb) oder eine Eigenschaft (Adjektiv)?',
         },
       },
@@ -86,7 +86,7 @@ const TASKS = [
     feedback: {
       byLevel: {
         DaZ: {
-          onCorrect: 'Richtig – „scharfe Kritik" ist Adjektiv + Nomen.',
+          onCorrect: 'Richtig – „scharfe Kritik“ ist Adjektiv + Nomen.',
           onWrong: 'Suche das Eigenschaftswort (scharfe) und das Ding-Wort (Kritik).',
         },
       },
@@ -100,7 +100,7 @@ const TASKS = [
     kern: 'verbstellung-v2',
     // Feldermodell (Gallmann 2015): der klassische DaZ-Stolperstein — das Vorfeld
     // muss NICHT das Subjekt sein, das finite Verb steht immer an Position 2.
-    prompt: 'Schiebe ein Satzteil ins Vorfeld – vor das Verb. Merke: Das Verb „sucht" bleibt immer an Position 2.',
+    prompt: 'Schiebe ein Satzteil ins Vorfeld – vor das Verb. Merke: Das Verb „sucht“ bleibt immer an Position 2.',
     metasprache: ['Vorfeld', 'Verb an Position 2'],
     payload: {
       verb: { id: 'vb', text: 'sucht' },
@@ -115,7 +115,7 @@ const TASKS = [
     feedback: {
       byLevel: {
         DaZ: {
-          onCorrect: 'Genau – egal welches Satzteil im Vorfeld steht: Das Verb „sucht" bleibt an Position 2.',
+          onCorrect: 'Genau – egal welches Satzteil im Vorfeld steht: Das Verb „sucht“ bleibt an Position 2.',
           onWrong: 'Stell genau ein Satzteil ins Vorfeld. Das Verb bleibt direkt dahinter (Position 2).',
         },
       },
@@ -147,7 +147,7 @@ const TASKS = [
     feedback: {
       byLevel: {
         DaZ: {
-          onCorrect: 'Genau – „Blume" ist ein Nomen, „wachsen" ein Verb, „bunt" ein Adjektiv.',
+          onCorrect: 'Genau – „Blume“ ist ein Nomen, „wachsen“ ein Verb, „bunt“ ein Adjektiv.',
           onWrong: 'Frage: Ist es ein Ding (Nomen), eine Tätigkeit (Verb) oder eine Eigenschaft (Adjektiv)?',
         },
       },
@@ -176,7 +176,7 @@ const TASKS = [
     feedback: {
       byLevel: {
         DaZ: {
-          onCorrect: 'Richtig – „wichtige Frage" ist Adjektiv + Nomen.',
+          onCorrect: 'Richtig – „wichtige Frage“ ist Adjektiv + Nomen.',
           onWrong: 'Suche das Eigenschaftswort (wichtige) und das Ding-Wort (Frage).',
         },
       },
@@ -188,7 +188,7 @@ const TASKS = [
   {
     id: 's2-f1-verschiebe2-daz', station: 2, format: 'F1', level: 'DaZ', source: 'static',
     kern: 'verbstellung-v2',
-    prompt: 'Schiebe ein Satzteil ins Vorfeld – vor das Verb. Merke: Das Verb „liest" bleibt immer an Position 2.',
+    prompt: 'Schiebe ein Satzteil ins Vorfeld – vor das Verb. Merke: Das Verb „liest“ bleibt immer an Position 2.',
     metasprache: ['Vorfeld', 'Verb an Position 2'],
     payload: {
       verb: { id: 'vb', text: 'liest' },
@@ -203,7 +203,7 @@ const TASKS = [
     feedback: {
       byLevel: {
         DaZ: {
-          onCorrect: 'Genau – egal welches Satzteil im Vorfeld steht: Das Verb „liest" bleibt an Position 2.',
+          onCorrect: 'Genau – egal welches Satzteil im Vorfeld steht: Das Verb „liest“ bleibt an Position 2.',
           onWrong: 'Stell genau ein Satzteil ins Vorfeld. Das Verb bleibt direkt dahinter (Position 2).',
         },
       },
@@ -216,7 +216,7 @@ const TASKS = [
   {
     id: 's2-f1-kritik-adj-seki', station: 2, format: 'F1', level: 'SekI', source: 'corpus-template',
     kern: 'bauplan-adj-nomen',
-    prompt: 'Welche Adjektive passen typisch zu „Kritik"? Ordne die typischen Partner zu.',
+    prompt: 'Welche Adjektive passen typisch zu „Kritik“? Ordne die typischen Partner zu.',
     metasprache: ['Wortart', 'Bauplan (Adjektiv + Nomen)'],
     corpusQuery: Q_KRITIK_ADJ,
     bindings: { answer: [1, 2], near: { rankRange: [4, 10] }, mid: { rankRange: [12, 20] } },
@@ -224,7 +224,7 @@ const TASKS = [
       anchors: [{ id: 'a1', label: 'Kritik' }],
       candidates: '@from:bindings',
       multiplePerAnchor: true,
-      // Attributiver Bauplan Adjektiv+Nomen → Adjazenz-Belege „scharfe Kritik".
+      // Attributiver Bauplan Adjektiv+Nomen → Adjazenz-Belege „scharfe Kritik“.
       belegContext: { lemma: 'Kritik', partner: 'scharf', adjacent: true, limit: 3 },
     },
     display: { showMetrics: false, metric: 'none' },
@@ -232,8 +232,8 @@ const TASKS = [
     feedback: {
       byLevel: {
         SekI: {
-          onCorrect: '„{{top.lemma}} Kritik" ist ein typischer Bauplan: Adjektiv + Nomen.',
-          onWrong: '„{{selected.lemma}}" passt seltener zu „Kritik". Typisch ist z. B. „{{top.lemma}}".',
+          onCorrect: '„{{top.lemma}} Kritik“ ist ein typischer Bauplan: Adjektiv + Nomen.',
+          onWrong: '„{{selected.lemma}}“ ist bei „Kritik“ weniger üblich. Typisch ist z. B. „{{top.lemma}}“.',
         },
       },
       tonalitaet: 'woerterbuch-nuechtern',
@@ -258,8 +258,8 @@ const TASKS = [
     feedback: {
       byLevel: {
         SekI: {
-          onCorrect: 'Genau – „{{top.lemma}} Kritik" folgt dem Bauplan Adjektiv + Nomen.',
-          onWrong: 'Suche das Adjektiv (Eigenschaft) und das Nomen „Kritik".',
+          onCorrect: 'Genau – „{{top.lemma}} Kritik“ folgt dem Bauplan Adjektiv + Nomen.',
+          onWrong: 'Suche das Adjektiv (Eigenschaft) und das Nomen „Kritik“.',
         },
       },
       tonalitaet: 'woerterbuch-nuechtern',
@@ -270,7 +270,7 @@ const TASKS = [
   {
     id: 's2-f3-bauplan-vergleich-seki', station: 2, format: 'F3', level: 'SekI', source: 'corpus-template',
     kern: 'bauplan-benennen',
-    prompt: 'Beide folgen dem Bauplan Adjektiv + Nomen – welches Adjektiv ist für „Kritik" typisch? Wähle und begründe.',
+    prompt: 'Beide folgen dem Bauplan Adjektiv + Nomen – welches Adjektiv ist für „Kritik“ typisch? Wähle und begründe.',
     metasprache: ['Wortart', 'Bauplan (Adjektiv + Nomen)'],
     corpusQuery: Q_KRITIK_ADJ,
     bindings: { answer: [1], contrastPair: ['logDice:1', 'logDice:last'] },
@@ -284,15 +284,15 @@ const TASKS = [
     solution: {
       preferred: '@from:bindings.answer',
       rubric: {
-        criteria: ['wählt „{{top.lemma}}" als typisch', 'erkennt den Bauplan Adjektiv + Nomen'],
+        criteria: ['wählt „{{top.lemma}}“ als typisch', 'erkennt den Bauplan Adjektiv + Nomen'],
         minHits: 1,
       },
     },
     feedback: {
       byLevel: {
         SekI: {
-          onCorrect: '„{{top.lemma}} Kritik" klingt natürlich – Adjektiv + Nomen, typische Verbindung.',
-          onWrong: '„{{selected.lemma}}" passt seltener. Typisch ist „{{top.lemma}}".',
+          onCorrect: '„{{top.lemma}} Kritik“ klingt natürlich – Adjektiv + Nomen, typische Verbindung.',
+          onWrong: '„{{selected.lemma}}“ ist hier weniger üblich. Typisch ist „{{top.lemma}}“.',
         },
       },
       tonalitaet: 'woerterbuch-nuechtern',
@@ -305,7 +305,7 @@ const TASKS = [
     kern: 'verschiebeprobe-satzglied',
     // Verschiebeprobe als Satzglied-Test: nur was sich als geschlossene Einheit
     // ins Vorfeld stellen lässt, ist ein Satzglied (Gallmann 2015, Abs. 3.2).
-    prompt: 'Verschiebeprobe: Welche Wortgruppen sind Satzglieder? Schiebe eine geschlossene Einheit ins Vorfeld – die umgedrehte Gruppe „Regel die" ist keine.',
+    prompt: 'Verschiebeprobe: Welche Wortgruppen sind Satzglieder? Schiebe eine geschlossene Einheit ins Vorfeld – die umgedrehte Gruppe „Regel die“ ist keine.',
     metasprache: ['Satzglied', 'Vorfeld', 'Verschiebeprobe'],
     payload: {
       verb: { id: 'vb', text: 'erklärt' },
@@ -322,7 +322,7 @@ const TASKS = [
     feedback: {
       byLevel: {
         SekI: {
-          onCorrect: 'Richtig – ein Satzglied lässt sich als geschlossene Einheit ins Vorfeld schieben. „Regel die" ist nur eine umgedrehte Wortfolge, kein Satzglied.',
+          onCorrect: 'Richtig – ein Satzglied lässt sich als geschlossene Einheit ins Vorfeld schieben. „Regel die“ ist nur eine umgedrehte Wortfolge, kein Satzglied.',
           onWrong: 'Prüfe: Lässt sich die Gruppe als Einheit (in dieser Reihenfolge) ins Vorfeld stellen? Genau dann ist es ein Satzglied.',
         },
       },
@@ -357,7 +357,7 @@ const TASKS = [
     feedback: {
       byLevel: {
         SekI: {
-          onCorrect: 'Genau – „Regierung/Kritik" sind Nomen, „beschließen/üben" Verben, „scharf/heftig" Adjektive.',
+          onCorrect: 'Genau – „Regierung/Kritik“ sind Nomen, „beschließen/üben“ Verben, „scharf/heftig“ Adjektive.',
           onWrong: 'Frage bei jedem Wort: Ding (Nomen), Tätigkeit (Verb) oder Eigenschaft (Adjektiv)?',
         },
       },
@@ -369,7 +369,7 @@ const TASKS = [
   {
     id: 's2-f3-verschiebe2-seki', station: 2, format: 'F3', level: 'SekI', source: 'static',
     kern: 'verschiebeprobe-satzglied',
-    prompt: 'Verschiebeprobe: Welche Wortgruppen sind Satzglieder? Schiebe eine geschlossene Einheit ins Vorfeld – die umgedrehte Gruppe „Brot frisches" ist keine.',
+    prompt: 'Verschiebeprobe: Welche Wortgruppen sind Satzglieder? Schiebe eine geschlossene Einheit ins Vorfeld – die umgedrehte Gruppe „Brot frisches“ ist keine.',
     metasprache: ['Satzglied', 'Vorfeld', 'Verschiebeprobe'],
     payload: {
       verb: { id: 'vb', text: 'kauft' },
@@ -386,7 +386,7 @@ const TASKS = [
     feedback: {
       byLevel: {
         SekI: {
-          onCorrect: 'Richtig – ein Satzglied lässt sich als geschlossene Einheit ins Vorfeld schieben. „Brot frisches" ist nur eine umgedrehte Wortfolge, kein Satzglied.',
+          onCorrect: 'Richtig – ein Satzglied lässt sich als geschlossene Einheit ins Vorfeld schieben. „Brot frisches“ ist nur eine umgedrehte Wortfolge, kein Satzglied.',
           onWrong: 'Prüfe: Lässt sich die Gruppe als Einheit (in dieser Reihenfolge) ins Vorfeld stellen? Genau dann ist es ein Satzglied.',
         },
       },
@@ -399,7 +399,7 @@ const TASKS = [
   {
     id: 's2-f3-funktion-vergleich-sek2', station: 2, format: 'F3', level: 'SekII', source: 'corpus-template',
     kern: 'form-vs-funktion',
-    prompt: 'In „{{top.lemma}} Kritik" – welche Wortart hat „{{top.lemma}}"? Entscheide über die Funktion im Satz.',
+    prompt: 'In „{{top.lemma}} Kritik“ – welche Wortart hat „{{top.lemma}}“? Entscheide über die Funktion im Satz.',
     metasprache: ['Form vs. Funktion', 'Wortart', 'logDice'],
     corpusQuery: Q_KRITIK_VERB,
     bindings: { answer: [1] },
@@ -412,23 +412,23 @@ const TASKS = [
         { id: 'v2', label: 'Nomen', typical: false },
       ],
       requireJustification: true,
-      // Verb-Nomen-Kollokation → Belege zeigen „Kritik üben" im echten Satz.
+      // Verb-Nomen-Kollokation → Belege zeigen „Kritik üben“ im echten Satz.
       belegContext: { lemma: 'Kritik', partner: 'üben', limit: 3 },
     },
     display: { showMetrics: true, metric: 'both' },
     solution: {
       preferred: ['v1'],
       rubric: {
-        criteria: ['erkennt „{{top.lemma}}" als Verb (Prädikat)', 'begründet über die Funktion, nicht über die Bedeutung'],
+        criteria: ['erkennt „{{top.lemma}}“ als Verb (Prädikat)', 'begründet über die Funktion, nicht über die Bedeutung'],
         minHits: 1,
       },
     },
     feedback: {
       byLevel: {
         SekII: {
-          onCorrect: 'Richtig – „{{top.lemma}}" ist hier das Prädikat, also ein Verb. „{{top.lemma}} Kritik" bindet stark (logDice {{top.logDice}}).',
+          onCorrect: 'Richtig – „{{top.lemma}}“ ist hier das Prädikat, also ein Verb. „{{top.lemma}} Kritik“ bindet stark (logDice {{top.logDice}}).',
           onChoice: {
-            '@selected': 'Die Wortart hängt an der Funktion im Satz: „{{top.lemma}}" ist das Prädikat → Verb, unabhängig von der Bedeutung.',
+            '@selected': 'Die Wortart hängt an der Funktion im Satz: „{{top.lemma}}“ ist das Prädikat → Verb, unabhängig von der Bedeutung.',
           },
         },
       },
@@ -442,7 +442,7 @@ const TASKS = [
     kern: 'verschiebeprobe-konstituente',
     // Konstituenten-Integrität: eine Präpositionalphrase verschiebt sich als
     // GANZE ins Vorfeld, nicht zur Hälfte (Gallmann 2015, Abs. 3.2).
-    prompt: 'Verschiebeprobe am topologischen Feld: Welche Gruppen sind Satzglieder? Eine Präpositionalphrase muss als Ganzes ins Vorfeld – „auf eine" allein ist kein Satzglied.',
+    prompt: 'Verschiebeprobe am topologischen Feld: Welche Gruppen sind Satzglieder? Eine Präpositionalphrase muss als Ganzes ins Vorfeld – „auf eine“ allein ist kein Satzglied.',
     metasprache: ['Satzglied', 'Konstituente', 'Präpositionalphrase', 'Vorfeld'],
     payload: {
       verb: { id: 'vb', text: 'wartet' },
@@ -458,8 +458,8 @@ const TASKS = [
     feedback: {
       byLevel: {
         SekII: {
-          onCorrect: 'Richtig – die Präpositionalphrase „auf eine Antwort" ist eine Konstituente und verschiebt sich nur als Ganzes. „auf eine" ist unvollständig, also kein Satzglied.',
-          onWrong: 'Eine Konstituente lässt sich nur vollständig verschieben. „auf eine" ohne „Antwort" ist kein Satzglied – die PP muss komplett ins Vorfeld.',
+          onCorrect: 'Richtig – die Präpositionalphrase „auf eine Antwort“ ist eine Konstituente und verschiebt sich nur als Ganzes. „auf eine“ ist unvollständig, also kein Satzglied.',
+          onWrong: 'Eine Konstituente lässt sich nur vollständig verschieben. „auf eine“ ohne „Antwort“ ist kein Satzglied – die PP muss komplett ins Vorfeld.',
         },
       },
       tonalitaet: 'woerterbuch-nuechtern',
@@ -470,7 +470,7 @@ const TASKS = [
   {
     id: 's2-f4-funktion-bestimmen-sek2', station: 2, format: 'F4', level: 'SekII', source: 'corpus-template',
     kern: 'funktion-bestimmen',
-    prompt: 'Bestimme die Wortart von „{{top.lemma}}" in „Die Opposition will scharfe Kritik {{top.lemma}}." über die Funktion. Wähle und begründe.',
+    prompt: 'Bestimme die Wortart von „{{top.lemma}}“ in „Die Opposition will scharfe Kritik {{top.lemma}}.“ über die Funktion. Wähle und begründe.',
     metasprache: ['Form vs. Funktion', 'Wortart', 'Prädikat'],
     corpusQuery: Q_KRITIK_VERB,
     bindings: { answer: [1] },
@@ -490,16 +490,16 @@ const TASKS = [
     solution: {
       correctOptionId: 'o1',
       rubric: {
-        criteria: ['„Kritik" als Nomen/Objekt', 'bestimmt die Wortart über die syntaktische Funktion'],
+        criteria: ['„Kritik“ als Nomen/Objekt', 'bestimmt die Wortart über die syntaktische Funktion'],
         minHits: 1,
       },
     },
     feedback: {
       byLevel: {
         SekII: {
-          onCorrect: 'Richtig – „Kritik" ist das Akkusativobjekt (Nomen); „{{top.lemma}}" ist das Verb. Wortart = Funktion im Satz.',
+          onCorrect: 'Richtig – „Kritik“ ist das Akkusativobjekt (Nomen); „{{top.lemma}}“ ist das Verb. Wortart = Funktion im Satz.',
           onChoice: {
-            '@selected': 'Prüfe die Funktion: Was tut das Wort im Satz? „Kritik" ist das Objekt von „{{top.lemma}}".',
+            '@selected': 'Prüfe die Funktion: Was tut das Wort im Satz? „Kritik“ ist das Objekt von „{{top.lemma}}“.',
           },
         },
       },
@@ -512,7 +512,7 @@ const TASKS = [
     id: 's2-f5-form-funktion-sek2', station: 2, format: 'F5', level: 'SekII', source: 'static',
     kern: 'form-vs-funktion-konversion',
     // Form vs. Funktion / Konversion: nicht korpus-volatil → bewusst static.
-    prompt: 'Gleiches Wort, andere Rolle: Woran erkennst du die Wortart von „üben"?',
+    prompt: 'Gleiches Wort, andere Rolle: Woran erkennst du die Wortart von „üben“?',
     metasprache: ['Form vs. Funktion', 'Konversion'],
     payload: {
       table: [
@@ -521,7 +521,7 @@ const TASKS = [
       ],
       columns: ['verbindung'],
       questions: [
-        { id: 'q1', text: 'In welchem Satz ist „üben/Üben" ein Verb, in welchem ein Nomen? Begründe über die Funktion.', kind: 'explain' },
+        { id: 'q1', text: 'In welchem Satz ist „üben/Üben“ ein Verb, in welchem ein Nomen? Begründe über die Funktion.', kind: 'explain' },
       ],
     },
     display: { showMetrics: false, metric: 'none' },
@@ -530,8 +530,8 @@ const TASKS = [
         q1: {
           rubric: {
             criteria: [
-              'Satz 1: „übt" = Verb (Prädikat, konjugiert)',
-              'Satz 2: „das Üben" = Nomen (Artikel, großgeschrieben → Konversion)',
+              'Satz 1: „übt“ = Verb (Prädikat, konjugiert)',
+              'Satz 2: „das Üben“ = Nomen (Artikel, großgeschrieben → Konversion)',
               'Wortart richtet sich nach der Funktion, nicht nach dem Wortstamm',
             ],
             minHits: 2,
@@ -542,7 +542,7 @@ const TASKS = [
     feedback: {
       byLevel: {
         SekII: {
-          onCorrect: 'Genau – „übt" ist Prädikat (Verb), „das Üben" ist durch den Artikel zum Nomen geworden (Konversion). Die Funktion entscheidet.',
+          onCorrect: 'Genau – „übt“ ist Prädikat (Verb), „das Üben“ ist durch den Artikel zum Nomen geworden (Konversion). Die Funktion entscheidet.',
           onWrong: 'Schau auf die Funktion: Wird das Wort konjugiert (Verb) oder steht ein Artikel davor (Nomen)?',
         },
       },
@@ -576,7 +576,7 @@ const TASKS = [
     feedback: {
       byLevel: {
         SekII: {
-          onCorrect: 'Richtig – „übt" ist das Prädikat, also ein Verb; „scharfe Kritik" ist das Objekt, dessen Kern „Kritik" ein Nomen ist. Die Satzglied-Funktion bestimmt die Wortart, nicht die Bedeutung.',
+          onCorrect: 'Richtig – „übt“ ist das Prädikat, also ein Verb; „scharfe Kritik“ ist das Objekt, dessen Kern „Kritik“ ein Nomen ist. Die Satzglied-Funktion bestimmt die Wortart, nicht die Bedeutung.',
           onWrong: 'Bestimme zuerst die Satzglieder (wer? → S, was geschieht? → P, wen/was? → O) – daraus folgt die Wortart: das Prädikat ist immer ein Verb, der Kern des Objekts hier ein Nomen.',
         },
       },
@@ -610,7 +610,7 @@ const TASKS = [
     feedback: {
       byLevel: {
         SekII: {
-          onCorrect: 'Richtig – „stellt" ist das Prädikat, also ein Verb; „eine kritische Frage" ist das Objekt, dessen Kern „Frage" ein Nomen ist. Die Satzglied-Funktion bestimmt die Wortart, nicht die Bedeutung.',
+          onCorrect: 'Richtig – „stellt“ ist das Prädikat, also ein Verb; „eine kritische Frage“ ist das Objekt, dessen Kern „Frage“ ein Nomen ist. Die Satzglied-Funktion bestimmt die Wortart, nicht die Bedeutung.',
           onWrong: 'Bestimme zuerst die Satzglieder (wer? → S, was geschieht? → P, wen/was? → O) – daraus folgt die Wortart: das Prädikat ist immer ein Verb, der Kern des Objekts hier ein Nomen.',
         },
       },
@@ -625,7 +625,7 @@ const TASKS = [
     kern: 'funktionsverbgefuege',
     // FVG kurz einführen statt voraussetzen (AP21-QA): Definition + Beispiele im
     // Prompt, damit der Grenzfall ohne Vorwissen bearbeitbar ist.
-    prompt: 'Ein Funktionsverbgefüge (FVG) ist eine feste Verbindung aus Funktionsverb + Nomen, in der das Verb seine eigene Bedeutung weitgehend verliert und das Nomen den Inhalt trägt (z. B. „in Frage stellen", „zur Sprache bringen"). Grenzfall: Ist „{{top.lemma}} Kritik" ein FVG oder eine (noch) freie, aber feste Verb-Nomen-Verbindung? Wähle und begründe.',
+    prompt: 'Ein Funktionsverbgefüge (FVG) ist eine feste Verbindung aus Funktionsverb + Nomen, in der das Verb seine eigene Bedeutung weitgehend verliert und das Nomen den Inhalt trägt (z. B. „in Frage stellen“, „zur Sprache bringen“). Grenzfall: Ist „{{top.lemma}} Kritik“ ein FVG oder eine (noch) freie, aber feste Verb-Nomen-Verbindung? Wähle und begründe.',
     metasprache: ['Funktionsverbgefüge', 'feste Verb-Nomen-Verbindung', 'logDice'],
     corpusQuery: Q_KRITIK_VERB,
     bindings: { answer: [1] },
@@ -648,7 +648,7 @@ const TASKS = [
       rubric: {
         criteria: [
           'erkennt die feste Bindung (sehr hoher logDice {{top.logDice}})',
-          'ordnet „{{top.lemma}} Kritik" zwischen freier Kombination und Idiom ein (FVG-nah)',
+          'ordnet „{{top.lemma}} Kritik“ zwischen freier Kombination und Idiom ein (FVG-nah)',
         ],
         minHits: 1,
         accepts: ['Hinweis, dass die Bedeutung weitgehend kompositionell bleibt → kein vollständiges Idiom'],
@@ -657,7 +657,7 @@ const TASKS = [
     feedback: {
       byLevel: {
         LK: {
-          onCorrect: 'Korrekt – „{{top.lemma}} Kritik" ist eine sehr feste Verb-Nomen-Verbindung (logDice {{top.logDice}}), in der Forschung ein Grenzfall zum Funktionsverbgefüge. Kein Idiom (Bedeutung bleibt durchsichtig).',
+          onCorrect: 'Korrekt – „{{top.lemma}} Kritik“ ist eine sehr feste Verb-Nomen-Verbindung (logDice {{top.logDice}}), in der Forschung ein Grenzfall zum Funktionsverbgefüge. Kein Idiom (Bedeutung bleibt durchsichtig).',
           onChoice: {
             '@selected': 'Prüfe Festigkeit und Durchsichtigkeit: hoher logDice ({{top.logDice}}) → fest; Bedeutung bleibt nachvollziehbar → kein Idiom.',
           },
@@ -693,7 +693,7 @@ const TASKS = [
     feedback: {
       byLevel: {
         LK: {
-          onCorrect: 'Korrekt – Vorfeld „Der Hund", linke Klammer „hat" (finit), Mittelfeld „im Garten einen Ball", rechte Klammer „gesucht" (infinit). Die Satzklammer umschließt das Mittelfeld.',
+          onCorrect: 'Korrekt – Vorfeld „Der Hund“, linke Klammer „hat“ (finit), Mittelfeld „im Garten einen Ball“, rechte Klammer „gesucht“ (infinit). Die Satzklammer umschließt das Mittelfeld.',
           onWrong: 'Bestimme die Satzklammer zuerst: finites Verb = linke Klammer, infinites Verb = rechte Klammer. Davor das Vorfeld, dazwischen das Mittelfeld.',
         },
       },
@@ -705,7 +705,7 @@ const TASKS = [
   {
     id: 's2-f5-konversion-lk', station: 2, format: 'F5', level: 'LK', source: 'static',
     kern: 'konversion',
-    prompt: 'Konversion analysieren: Wie wird aus dem Verb „üben" das Nomen „das Üben"? Welche grammatischen Marker zeigen den Wortartwechsel?',
+    prompt: 'Konversion analysieren: Wie wird aus dem Verb „üben“ das Nomen „das Üben“? Welche grammatischen Marker zeigen den Wortartwechsel?',
     metasprache: ['Konversion', 'Wortartwechsel', 'Nominalisierung'],
     payload: {
       table: [
@@ -714,7 +714,7 @@ const TASKS = [
       ],
       columns: ['verbindung'],
       questions: [
-        { id: 'q1', text: 'Nenne zwei formale Marker, die „das Üben" als Nomen ausweisen, obwohl der Wortstamm ein Verb ist.', kind: 'explain' },
+        { id: 'q1', text: 'Nenne zwei formale Marker, die „das Üben“ als Nomen ausweisen, obwohl der Wortstamm ein Verb ist.', kind: 'explain' },
       ],
     },
     display: { showMetrics: false, metric: 'none' },
@@ -722,7 +722,7 @@ const TASKS = [
       answers: {
         q1: {
           rubric: {
-            criteria: ['Artikel „das" (Nominalisierung)', 'Großschreibung', 'keine Konjugation / Wegfall der Personalendung', 'Wortart = Funktion, nicht Wortstamm'],
+            criteria: ['Artikel „das“ (Nominalisierung)', 'Großschreibung', 'keine Konjugation / Wegfall der Personalendung', 'Wortart = Funktion, nicht Wortstamm'],
             minHits: 2,
           },
         },
@@ -766,7 +766,7 @@ const TASKS = [
     feedback: {
       byLevel: {
         LK: {
-          onCorrect: 'Korrekt – Vorfeld „Der Ausschuss", linke Klammer „hat" (finit), Mittelfeld „das Gesetz", rechte Klammer „beschlossen" (infinit). Der Relativsatz „das lange umstritten war" steht ausgeklammert im Nachfeld, hinter der Satzklammer.',
+          onCorrect: 'Korrekt – Vorfeld „Der Ausschuss“, linke Klammer „hat“ (finit), Mittelfeld „das Gesetz“, rechte Klammer „beschlossen“ (infinit). Der Relativsatz „das lange umstritten war“ steht ausgeklammert im Nachfeld, hinter der Satzklammer.',
           onWrong: 'Bestimme zuerst die Satzklammer (finit/infinit), dann Vorfeld und Mittelfeld. Alles, was hinter der rechten Klammer folgt – hier der Relativsatz –, gehört ins Nachfeld.',
         },
       },
@@ -778,7 +778,7 @@ const TASKS = [
   {
     id: 's2-f5-konversion2-lk', station: 2, format: 'F5', level: 'LK', source: 'static',
     kern: 'konversion',
-    prompt: 'Konversion analysieren: Wie wird aus dem Verb „reisen" das Nomen „das Reisen"? Welche grammatischen Marker zeigen den Wortartwechsel?',
+    prompt: 'Konversion analysieren: Wie wird aus dem Verb „reisen“ das Nomen „das Reisen“? Welche grammatischen Marker zeigen den Wortartwechsel?',
     metasprache: ['Konversion', 'Wortartwechsel', 'Nominalisierung'],
     payload: {
       table: [
@@ -787,7 +787,7 @@ const TASKS = [
       ],
       columns: ['verbindung'],
       questions: [
-        { id: 'q1', text: 'Nenne zwei formale Marker, die „das Reisen" als Nomen ausweisen, obwohl der Wortstamm ein Verb ist.', kind: 'explain' },
+        { id: 'q1', text: 'Nenne zwei formale Marker, die „das Reisen“ als Nomen ausweisen, obwohl der Wortstamm ein Verb ist.', kind: 'explain' },
       ],
     },
     display: { showMetrics: false, metric: 'none' },
@@ -795,7 +795,7 @@ const TASKS = [
       answers: {
         q1: {
           rubric: {
-            criteria: ['Artikel „das" (Nominalisierung)', 'Großschreibung', 'keine Konjugation / Wegfall der Personalendung', 'Wortart = Funktion, nicht Wortstamm'],
+            criteria: ['Artikel „das“ (Nominalisierung)', 'Großschreibung', 'keine Konjugation / Wegfall der Personalendung', 'Wortart = Funktion, nicht Wortstamm'],
             minHits: 2,
           },
         },
@@ -816,10 +816,10 @@ const TASKS = [
   {
     id: 's2-f4-fvg-frage-lk', station: 2, format: 'F4', level: 'LK', source: 'corpus-template',
     kern: 'funktionsverbgefuege',
-    // „in Frage stellen" ist ein Musterbeispiel für ein Funktionsverbgefüge:
-    // das Verb „stellen" verliert seine räumliche Bedeutung, das Nomen „Frage"
+    // „in Frage stellen“ ist ein Musterbeispiel für ein Funktionsverbgefüge:
+    // das Verb „stellen“ verliert seine räumliche Bedeutung, das Nomen „Frage“
     // trägt den Inhalt, die Verbindung ist fest und nicht wörtlich zu deuten.
-    prompt: 'Ein Funktionsverbgefüge (FVG) ist eine feste Verbindung aus Funktionsverb + Nomen, in der das Verb seine eigene Bedeutung weitgehend verliert und das Nomen den Inhalt trägt (z. B. „zur Sprache bringen"). Ist „etwas in Frage stellen" ein FVG oder eine freie Kombination? Wähle und begründe.',
+    prompt: 'Ein Funktionsverbgefüge (FVG) ist eine feste Verbindung aus Funktionsverb + Nomen, in der das Verb seine eigene Bedeutung weitgehend verliert und das Nomen den Inhalt trägt (z. B. „zur Sprache bringen“). Ist „etwas in Frage stellen“ ein FVG oder eine freie Kombination? Wähle und begründe.',
     metasprache: ['Funktionsverbgefüge', 'feste Verb-Nomen-Verbindung', 'logDice'],
     corpusQuery: Q_FRAGE_VERB,
     bindings: { answer: [1] },
@@ -831,8 +831,8 @@ const TASKS = [
         { id: 'o3', label: 'Idiom (bildlich, undurchsichtig)' },
       ],
       requireJustification: true,
-      justifyPrompt: 'Begründe über Festigkeit (Bindungsstärke) und darüber, dass „stellen" hier nicht räumlich gemeint ist.',
-      // Verb-Nomen-Kollokation → Belege zeigen „Frage stellen / in Frage stellen".
+      justifyPrompt: 'Begründe über Festigkeit (Bindungsstärke) und darüber, dass „stellen“ hier nicht räumlich gemeint ist.',
+      // Verb-Nomen-Kollokation → Belege zeigen „Frage stellen / in Frage stellen“.
       belegContext: { lemma: 'Frage', partner: 'stellen', limit: 3 },
     },
     display: { showMetrics: true, metric: 'both' },
@@ -840,8 +840,8 @@ const TASKS = [
       correctOptionId: 'o1',
       rubric: {
         criteria: [
-          'erkennt „in Frage stellen" als Funktionsverbgefüge',
-          'begründet: „stellen" ist nicht räumlich gemeint, „Frage" trägt den Inhalt, die Verbindung ist fest (hoher logDice {{top.logDice}})',
+          'erkennt „in Frage stellen“ als Funktionsverbgefüge',
+          'begründet: „stellen“ ist nicht räumlich gemeint, „Frage“ trägt den Inhalt, die Verbindung ist fest (hoher logDice {{top.logDice}})',
         ],
         minHits: 1,
         accepts: ['Hinweis, dass die Bedeutung insgesamt noch durchsichtig ist → kein vollständiges Idiom'],
@@ -850,9 +850,9 @@ const TASKS = [
     feedback: {
       byLevel: {
         LK: {
-          onCorrect: 'Korrekt – „in Frage stellen" ist ein Funktionsverbgefüge: „stellen" verliert seine räumliche Bedeutung, „Frage" trägt den Inhalt, die Verbindung ist fest (logDice {{top.logDice}}). Kein Idiom, weil die Gesamtbedeutung nachvollziehbar bleibt.',
+          onCorrect: 'Korrekt – „in Frage stellen“ ist ein Funktionsverbgefüge: „stellen“ verliert seine räumliche Bedeutung, „Frage“ trägt den Inhalt, die Verbindung ist fest (logDice {{top.logDice}}). Kein Idiom, weil die Gesamtbedeutung nachvollziehbar bleibt.',
           onChoice: {
-            '@selected': 'Prüfe Festigkeit und Bedeutung: „stellen" ist hier nicht räumlich, die Verbindung ist fest gebunden (logDice {{top.logDice}}) → Funktionsverbgefüge.',
+            '@selected': 'Prüfe Festigkeit und Bedeutung: „stellen“ ist hier nicht räumlich, die Verbindung ist fest gebunden (logDice {{top.logDice}}) → Funktionsverbgefüge.',
           },
         },
       },

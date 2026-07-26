@@ -4,10 +4,10 @@
  * Querformat-Beamer-Folien (16:9) auf Basis von tools/instagram-kollokation.html.
  * Die vier Strecken der Instagram-Vorlage werden den Kurs-Stationen zugeordnet:
  *
- *   Strecke „Spektrum"   (Was ist eine Kollokation?) → Station ①  Kollokationen
- *   Strecke „Übersetzen" (Konventionen wechseln)     → Station ①  Kollokationen
- *   Strecke „logDice"    (Wie exklusiv?)             → Station ④  Korpus
- *   Strecke „Daten"      (Woher kommen die Daten?)    → Station ④  Korpus
+ *   Strecke „Spektrum“   (Was ist eine Kollokation?) → Station ①  Kollokationen
+ *   Strecke „Übersetzen“ (Konventionen wechseln)     → Station ①  Kollokationen
+ *   Strecke „logDice“    (Wie exklusiv?)             → Station ④  Korpus
+ *   Strecke „Daten“      (Woher kommen die Daten?)    → Station ④  Korpus
  *
  * Corporate Design der Vorlage bleibt erhalten (Pergament/Rot/Gold, Gentium +
  * DM Sans, rote Randstreifen, Goldlinien), Type ist beamertauglich groß.
@@ -25,7 +25,7 @@ const esc = (s) => String(s ?? '')
   .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
   .replace(/"/g, '&quot;')
 
-/** Zahl → deutsches Dezimalkomma: 10.6 → „10,6". */
+/** Zahl → deutsches Dezimalkomma: 10.6 → „10,6“. */
 const v = (n) => String(n).replace('.', ',')
 
 // ── CSS (Querformat, CD der Instagram-Vorlage) ───────────────────────────────
@@ -222,7 +222,7 @@ function cover(no, title, sub) {
 </section>`
 }
 
-// ── Strecke „Spektrum" (Station ①) ───────────────────────────────────────────
+// ── Strecke „Spektrum“ (Station ①) ───────────────────────────────────────────
 function spektrumHook(k, d) {
   return slide(k, `
     <h1 class="h-title">Was ist eine Kollokation?</h1>
@@ -232,7 +232,7 @@ function spektrumHook(k, d) {
       <div class="pair"><span class="mk no">·</span><span class="pw no">${esc(d.weak.word)}</span><span class="pv">logDice ${v(d.weak.val)}</span></div>
     </div>
     ${dudenRule}
-    <p class="tag">Beide grammatisch korrekt — aber „${esc(d.strong.adj)}" ist die typische Verbindung zu „${esc(d.lemma)}".</p>`)
+    <p class="tag">Beide grammatisch korrekt — aber „${esc(d.strong.adj)}“ ist die typische Verbindung zu „${esc(d.lemma)}“.</p>`)
 }
 function spektrumSpektrum(k, d) {
   return slide(k, `
@@ -254,10 +254,10 @@ function spektrumDaten(k, d) {
       <div class="stat"><div class="stat-val">logDice</div><div class="stat-lbl">Assoziationswert</div><div class="stat-desc">Je höher, desto charakteristischer die Verbindung im Korpus.</div></div>
       <div class="stat"><div class="stat-val">≈ 2 Mrd.</div><div class="stat-lbl">Textwörter</div><div class="stat-desc">Datenbasis aus freien deutschsprachigen Korpora (CC&nbsp;BY-SA).</div></div>
     </div>
-    <p class="tag">Beispiel: „${esc(d.strong.word)}" erreicht logDice ${v(d.strong.val)} (Frequenz ${d.strong.freq.toLocaleString('de-DE')}).</p>`)
+    <p class="tag">Beispiel: „${esc(d.strong.word)}“ erreicht logDice ${v(d.strong.val)} (Frequenz ${d.strong.freq.toLocaleString('de-DE')}).</p>`)
 }
 
-// ── Strecke „logDice" (Station ④) ────────────────────────────────────────────
+// ── Strecke „logDice“ (Station ④) ────────────────────────────────────────────
 function logdiceHook(k, d) {
   return slide(k, `
     <h1 class="h-title">Nicht wie oft —<br>sondern wie exklusiv.</h1>
@@ -283,7 +283,7 @@ function logdiceFormel(k, d) {
         <div class="fpart"><span class="fkey">f(B)</span><span class="fdesc">B allein im Korpus</span></div>
       </div>
     </div>
-    <p class="fnote">Je exklusiver die Verbindung, desto näher an 14 — „${esc(d.strong.word)}" liegt bei ${v(d.strong.val)}.</p>`)
+    <p class="fnote">Je exklusiver die Verbindung, desto näher an 14 — „${esc(d.strong.word)}“ liegt bei ${v(d.strong.val)}.</p>`)
 }
 function logdiceSkala(k, d) {
   const [dim, mid, hot] = d.scale
@@ -302,10 +302,10 @@ function logdiceSkala(k, d) {
         ${item('dim', dim)}${item('mid', mid)}${item('hot', hot)}
       </div>
     </div>
-    <p class="tag">Alle Werte für „${esc(d.lemma)}" — live aus dem Signifikation-Korpus.</p>`)
+    <p class="tag">Alle Werte für „${esc(d.lemma)}“ — live aus dem Signifikation-Korpus.</p>`)
 }
 
-// ── Strecke „Daten" (Station ④) ──────────────────────────────────────────────
+// ── Strecke „Daten“ (Station ④) ──────────────────────────────────────────────
 const KORPORA = ['Bundestag-Protokolle', 'Gesetze im Internet', 'German Pol. Speeches',
   'Reichstagsprotokolle', 'Deutsches Textarchiv', 'DiBiLit', 'GEI-Digital', 'Wikibooks']
 function datenZahl(k, d, dbSize) {
@@ -313,7 +313,7 @@ function datenZahl(k, d, dbSize) {
     <h1 class="h-title">Woher weiß Signifikation, was typisch ist?</h1>
     <div><div class="bignum">2.190.000.000</div><div class="bigunit">Textwörter · 15 freie Korpora</div></div>
     <div class="chips">${KORPORA.map(c => `<span class="chip">${esc(c)}</span>`).join('')}</div>
-    <p class="live">Wortprofil-DB <b>${esc(dbSize)}</b> · stärkste Verbindung zu „${esc(d.lemma)}": <b>${esc(d.strong.word)}</b> (logDice ${v(d.strong.val)})</p>`)
+    <p class="live">Wortprofil-DB <b>${esc(dbSize)}</b> · stärkste Verbindung zu „${esc(d.lemma)}“: <b>${esc(d.strong.word)}</b> (logDice ${v(d.strong.val)})</p>`)
 }
 const PIPELINE = [
   ['①', 'Korpusauswahl', '15 freie Korpora · CC BY-SA · ~2,19 Mrd. Wörter'],
@@ -331,10 +331,10 @@ function datenPipeline(k) {
     <div class="flow">${steps}</div>`)
 }
 const SPIELE = [
-  ['①', '<b>Kollokationen</b> — die 3 stärksten Verbindungen in Reihenfolge'],
-  ['②', '<b>Wort-Zwilling</b> — zwei ähnliche Wörter an ihren Kollokationen erkennen'],
-  ['③', '<b>Zeitenwende</b> — Kollokation vor oder nach 2000?'],
-  ['④', '<b>Lückenfüller</b> — Kollokation im echten Korpussatz ergänzen'],
+  ['①', '<b>Kollokationen</b> – die 3 stärksten Verbindungen in Reihenfolge'],
+  ['②', '<b>Wort-Zwilling</b> – zwei ähnliche Wörter an ihren Kollokationen erkennen'],
+  ['③', '<b>Zeitenwende</b> – Kollokation vor oder nach 2000?'],
+  ['④', '<b>Lückenfüller</b> – Kollokation im echten Korpussatz ergänzen'],
 ]
 function datenSpiele(k) {
   const rows = SPIELE.map(([t, desc]) =>
@@ -345,7 +345,7 @@ function datenSpiele(k) {
     <p class="tag">Alle Daten aus echten deutschen Texten — gerankt nach logDice.</p>`)
 }
 
-// ── Strecke „Übersetzen" (Station ①, redaktionell) ───────────────────────────
+// ── Strecke „Übersetzen“ (Station ①, redaktionell) ───────────────────────────
 function uebHook(k) {
   return slide(k, `
     <h1 class="h-title">Übersetzen heißt:<br>Konventionen wechseln.</h1>
@@ -360,7 +360,7 @@ function uebHook(k) {
       </div>
     </div>
     ${dudenRule}
-    <p class="tr-note">„stark" heißt strong — aber Regen verlangt heavy.</p>`)
+    <p class="tr-note">„stark“ heißt strong — aber Regen verlangt heavy.</p>`)
 }
 const TR_ROWS = [
   ['starker Regen', 'strong rain', 'heavy rain'],

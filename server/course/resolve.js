@@ -49,7 +49,7 @@ function sortedByFreq(pool) {
 
 /**
  * Zeilen für die Fremd-Lemma-Distraktoren (item.distractorQuery) holen. Bewusst
- * UNABHÄNGIG vom Anker-Lemma (auch „Eigenes Lemma" lässt das Distraktor-Lemma
+ * UNABHÄNGIG vom Anker-Lemma (auch „Eigenes Lemma“ lässt das Distraktor-Lemma
  * fix), damit die Distraktoren verlässlich abwegig bleiben. ORDER BY logDice DESC
  * wie queryRelation. Ohne distractorQuery → leer.
  */
@@ -63,7 +63,7 @@ function fetchDistractorRows(item, corpus) {
 }
 
 /**
- * Belegkontext (AP21-QA „Anschaulichkeit"): mehrere echte Korpussätze für ein
+ * Belegkontext (AP21-QA „Anschaulichkeit“): mehrere echte Korpussätze für ein
  * Wortpaar, die NACH der Aufgabe gezeigt werden. Konfig liegt in
  * payload.belegContext { lemma, partner, limit } (überlebt so den DB-Round-Trip).
  * @returns {Array<{satz,quelle}>|null}
@@ -71,7 +71,7 @@ function fetchDistractorRows(item, corpus) {
 function resolveBelegContext(item, corpus) {
   const bc = item.payload?.belegContext
   if (!bc || !corpus?.fetchBelege) return null
-  // adjacent=true → attributive Adjektiv+Nomen-Belege (z. B. „scharfe Kritik").
+  // adjacent=true → attributive Adjektiv+Nomen-Belege (z. B. „scharfe Kritik“).
   const rows = corpus.fetchBelege(bc.lemma, bc.partner, { limit: bc.limit ?? 3, adjacent: !!bc.adjacent })
   return rows.length ? rows : null
 }
@@ -203,7 +203,7 @@ function buildCandidates({ bindings, byLogDice, byFreq, distractorRows = [] }) {
   }
   const near = sliceRange(bindings.near?.rankRange, byLogDice)
   const mid = sliceRange(bindings.mid?.rankRange, byLogDice)
-  // Fremd-Lemma-Distraktoren (AP21-QA, SekI/DaZ-„echte Entscheidung"): bewusst
+  // Fremd-Lemma-Distraktoren (AP21-QA, SekI/DaZ-„echte Entscheidung“): bewusst
   // ABWEGIGE Partner aus einem ANDEREN Lemma, damit nicht jede Karte „irgendwie
   // passt". Quelle ist die separate distractorQuery (→ distractorRows). Sie sind
   // nie Lösung.
@@ -328,7 +328,7 @@ function resolveFeedback(feedback, level, ctx) {
  * @param {object} item  Engine-Spec-Item (aus content/* oder DB-gemappt)
  * @param {object} deps
  * @param {object} deps.corpus  Adapter: { queryRelation(q)→rows[], fetchBeleg(lemma,partner)→{satz,quelle}|null }
- * @param {string} [deps.lemma] Anker-Lemma im „Eigenes Lemma"-Modus (überschreibt corpusQuery.lemma)
+ * @param {string} [deps.lemma] Anker-Lemma im „Eigenes Lemma“-Modus (überschreibt corpusQuery.lemma)
  * @returns {object} resolved item: { id, format, level, prompt, payload, solution, feedback, beleg, display, beleghinweis }
  */
 export function resolveItem(item, { corpus, lemma } = {}) {
@@ -374,7 +374,7 @@ export function resolveItem(item, { corpus, lemma } = {}) {
   // Belegsatz (F2/F4): belegQuery → echter Satz aus belege.db
   let beleghinweis = null
   if (payload.belegQuery && corpus?.fetchBeleg) {
-    const partner = payload.belegQuery.partner // bereits gefüllt (z. B. „treffen")
+    const partner = payload.belegQuery.partner // bereits gefüllt (z. B. „treffen“)
     const beleg = corpus.fetchBeleg(ankerLemma, partner)
     if (beleg) {
       payload.sentence = beleg.satz
@@ -433,7 +433,7 @@ function placeholderValueInteractive(path, ctx) {
 /**
  * Füllt {{…}} in einem String für den interaktiven Kontext: selected/chosen
  * bleiben literal stehen, alle anderen Platzhalter werden ersetzt (unauflösbare
- * → „—", damit nie ein Platzhalter „durchleckt").
+ * → „—“, damit nie ein Platzhalter „durchleckt“).
  */
 export function fillStringInteractive(str, ctx) {
   if (typeof str !== 'string') return str

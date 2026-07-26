@@ -17,7 +17,7 @@ export default function GapTask({ task, index, onChecked, canRetry = true, locke
   const requireJustification = task.payload?.requireJustification ?? false
   const correctId = task.solution?.correctOptionId ?? null
   // Begründungs-Frage aus den Aufgabendaten; neutraler Default statt der früher
-  // hartkodierten „… am typischsten?"-Frage (passte nicht zu Grammatik-Aufgaben).
+  // hartkodierten „… am typischsten?“-Frage (passte nicht zu Grammatik-Aufgaben).
   const justifyPrompt = task.payload?.justifyPrompt ?? 'Begründe deine Wahl in ein, zwei Sätzen.'
 
   const [choice, setChoice] = useState(null)

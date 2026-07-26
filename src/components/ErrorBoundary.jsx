@@ -1,5 +1,10 @@
 import { Component } from 'react'
+import { Capacitor } from '@capacitor/core'
 import { logError } from '../utils/logError'
+
+// In der nativen App gibt es keine „Seite“, die man neu laden koennte — dort
+// heisst dieselbe Aktion fuer den Nutzer „App neu starten“.
+const IS_NATIVE = Capacitor.isNativePlatform()
 
 // Erkennt Lazy-Chunk-Lade-Fehler. Treten typischerweise auf, wenn nach einem
 // Deployment die alten gehashten Bundle-Dateien nicht mehr existieren und der
@@ -77,8 +82,8 @@ export default class ErrorBoundary extends Component {
           </p>
           <p style={{ fontSize: '0.875rem', color: 'var(--muted)', maxWidth: 320 }}>
             {chunkError
-              ? 'Die App wurde aktualisiert. Bitte lade die Seite neu, damit die neueste Version geladen wird.'
-              : 'Ein unerwarteter Fehler ist aufgetreten. Bitte lade die Seite neu.'}
+              ? `Die App wurde aktualisiert. Bitte ${IS_NATIVE ? 'starte die App neu' : 'lade die Seite neu'}, damit die neueste Version geladen wird.`
+              : `Ein unerwarteter Fehler ist aufgetreten. Bitte ${IS_NATIVE ? 'starte die App neu' : 'lade die Seite neu'}.`}
           </p>
           <button
             className="btn-primary"
@@ -87,7 +92,7 @@ export default class ErrorBoundary extends Component {
               clearCachesAndReload()
             }}
           >
-            Seite neu laden
+            {IS_NATIVE ? 'App neu starten' : 'Seite neu laden'}
           </button>
         </div>
       )

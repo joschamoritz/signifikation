@@ -36,7 +36,7 @@ describe('AnnotateTask – Maschinenfehler finden', () => {
   it('falsch getaggtes Wort getippt → onChecked(true) + Korrektur sichtbar', () => {
     const onChecked = vi.fn()
     render(<AnnotateTask task={TASK} index="1" onChecked={onChecked} />)
-    fireEvent.click(toks()[1]) // „Bank"
+    fireEvent.click(toks()[1]) // „Bank“
     fireEvent.click(checkBtn())
     expect(onChecked).toHaveBeenCalledWith(true)
     expect(document.querySelector('.course-annotate-tag--fix')?.textContent).toContain('Substantiv')
@@ -45,7 +45,7 @@ describe('AnnotateTask – Maschinenfehler finden', () => {
   it('korrekt getaggtes Wort getippt → onChecked(false)', () => {
     const onChecked = vi.fn()
     render(<AnnotateTask task={TASK} index="1" onChecked={onChecked} />)
-    fireEvent.click(toks()[2]) // „steht" (richtig getaggt)
+    fireEvent.click(toks()[2]) // „steht“ (richtig getaggt)
     fireEvent.click(checkBtn())
     expect(onChecked).toHaveBeenCalledWith(false)
   })

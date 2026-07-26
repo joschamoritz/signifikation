@@ -44,7 +44,7 @@
 }
 .lehrer-link:hover { color: #9b1c1c; }
 
-/* Schritte „So funktioniert's". */
+/* Schritte „So funktioniert's“. */
 .lehrer-steps { list-style: none; counter-reset: step; margin: 4px 0 0; padding: 0; }
 .lehrer-step {
   counter-increment: step;
@@ -72,7 +72,7 @@
 .lehrer-mode-name { font-family: 'Gentium Plus', Georgia, serif; font-weight: 700; font-size: 1rem; }
 .lehrer-mode-desc { display: block; font-size: 0.9rem; color: #4a443c; margin-top: 2px; }
 
-/* „Warum anders" – Bullets mit Gold-Punkt. */
+/* „Warum anders“ – Bullets mit Gold-Punkt. */
 .lehrer-why { list-style: none; margin: 4px 0 0; padding: 0; }
 .lehrer-why li {
   padding: 9px 0 9px 22px; position: relative;

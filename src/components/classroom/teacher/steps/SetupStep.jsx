@@ -48,7 +48,7 @@ function blocksFromDraft(draft) {
 export default function SetupStep() {
   const { state, dispatch } = useTeacherClassroom()
   const draft = state.setupDraft || {}
-  // „Vorbereiten" (② Index-Karte): gleiche Maske, aber nach dem Anlegen NICHT
+  // „Vorbereiten“ (② Index-Karte): gleiche Maske, aber nach dem Anlegen NICHT
   // in die Lobby springen — die Sitzung wartet in der Liste auf ihren Einsatz.
   const prepare = draft.intent === 'prepare'
 

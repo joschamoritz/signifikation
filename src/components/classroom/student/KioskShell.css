@@ -482,7 +482,7 @@
 }
 
 /* Read-only Recap der eigenen Antwort (Wartephase): entkastelte Linien-Liste,
-   neutrales ·-Bullet — KEIN ✓ (das wuerde vor der Freigabe „korrekt" suggerieren). */
+   neutrales ·-Bullet — KEIN ✓ (das wuerde vor der Freigabe „korrekt“ suggerieren). */
 .classroom-kiosk__reslabel {
   display: block;
   font-family: 'DM Sans', system-ui, sans-serif;
@@ -632,7 +632,7 @@
   border-bottom: 1px dashed var(--k-rule-lt);
 }
 
-/* Entkastelter Abschluss-Link „Zur App" — Wörterbuch-Stil statt Block-Button. */
+/* Entkastelter Abschluss-Link „Zur App“ — Wörterbuch-Stil statt Block-Button. */
 .classroom-kiosk__textlink {
   display: inline-flex;
   align-items: center;
@@ -701,7 +701,7 @@
   font-style: italic;
 }
 
-/* Spitzname als unterstrichenes „Headword"-Feld (kein Kasten). */
+/* Spitzname als unterstrichenes „Headword“-Feld (kein Kasten). */
 .classroom-kiosk__name-field {
   width: 100%;
   box-sizing: border-box;
@@ -735,7 +735,7 @@
   margin: 4px auto 0;
 }
 
-/* Zugangscode als unterstrichenes „Headword"-Feld (Grossbuchstaben). */
+/* Zugangscode als unterstrichenes „Headword“-Feld (Grossbuchstaben). */
 .classroom-kiosk__code-field {
   width: 100%;
   box-sizing: border-box;

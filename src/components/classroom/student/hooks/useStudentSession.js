@@ -8,7 +8,7 @@
 //      sessionStorage. Bei /me/view-401 (Token weg) löschen wir wieder.
 //   5. Heartbeat alle ~8 s gegen den HTTP-Endpunkt — auch wenn der Socket
 //      lebt (Idempotenz auf Server-Seite, identisch zum alten Pattern).
-//   6. Cleanup beim Unmount + Auto-Leave-Effekt fuer „verlassen".
+//   6. Cleanup beim Unmount + Auto-Leave-Effekt fuer „verlassen“.
 //
 // Bewusst NICHT localStorage (D6) — Token soll mit Browser-Restart sterben.
 
@@ -62,7 +62,7 @@ export function clearKioskSession() {
 /**
  * Public: persistierte Sitzung lesen, ohne Seiteneffekt. Liefert
  * { code, sessionId, participantId, token, displayName } oder null.
- * Genutzt vom eingebetteten Schueler-Einstieg fuer die „Fortsetzen"-Karte.
+ * Genutzt vom eingebetteten Schueler-Einstieg fuer die „Fortsetzen“-Karte.
  */
 export function peekKioskSession() {
   const s = readStorage()

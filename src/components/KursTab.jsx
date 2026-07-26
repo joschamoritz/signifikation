@@ -18,7 +18,7 @@ import '../styles/course.css'
 // Lernpfad-Stationen laut Kurs-Tab-IA.md (Ebene 1). `apiId` mappt auf die
 // course_stations-Zeile (Backend-Inhalt). Alle fünf Stationen haben seit AP10
 // interaktiven Content und öffnen die Detailansicht; Druckmaterial für ②–⑤
-// folgt (AP20), die „Üben"-Aufgaben sind aber vollständig.
+// folgt (AP20), die „Üben“-Aufgaben sind aber vollständig.
 // Exportiert für den Konsistenz-Test (K3): die Reihenfolge hier bestimmt die
 // "Weiter zur nächsten Station"-Sprünge (NextStationCta in StationDetail.jsx),
 // der dort angezeigte Glyph kommt aber aus dem Server-order_no. Beide Quellen
@@ -42,7 +42,7 @@ export const KURS_MODULES = [
     title: 'Wortfunktionen',
     ipa: '[ˈvɔʁtfʊŋkˌtsi̯oːnən]',
     category: 'Syntax',
-    definition: 'Subjekt, Objekt und Prädikativ verstehen — Wörter über ihre Funktion im Satz erkennen.',
+    definition: 'Subjekt, Objekt und Prädikativ verstehen – Wörter über ihre Funktion im Satz erkennen.',
   },
   {
     id: 'dependenz',
@@ -52,7 +52,7 @@ export const KURS_MODULES = [
     title: 'Abhängigkeiten',
     ipa: '[apˈhɛŋɪçkaɪtn̩]',
     category: 'Syntax',
-    definition: 'Grammatische Abhängigkeiten lesen: welche Wörter regieren welche — Dependenzen im Satz erkennen.',
+    definition: 'Grammatische Abhängigkeiten lesen: welche Wörter regieren welche – Dependenzen im Satz erkennen.',
   },
   {
     id: 'korpus',
@@ -72,7 +72,7 @@ export const KURS_MODULES = [
     title: 'Korpusbelege',
     ipa: '[ˈkɔʁpʊsbəˌleːɡə]',
     category: 'Anwendung',
-    definition: 'Eigene Fragestellung in einem kleinen Beispielkorpus — eine Behauptung am echten Beleg prüfen.',
+    definition: 'Eigene Fragestellung in einem kleinen Beispielkorpus – eine Behauptung am echten Beleg prüfen.',
   },
 ]
 
@@ -83,7 +83,7 @@ function KursTab({ gesamtausgabe = false, loggedIn = false, onNavigateToKonto })
   useScrollPersist(entriesRef, 'kurs')
   const { show: showSwipeHint, fade: swipeHintFade, onInteract: handleEntriesScroll } = useSwipeHint('kurs')
 
-  // Anm./Manicula („Was ist der Kurs?") — Einheitlichkeit mit Spielmodi & Klassenraum.
+  // Anm./Manicula („Was ist der Kurs?“) — Einheitlichkeit mit Spielmodi & Klassenraum.
   const [desktopInfoOpen, setDesktopInfoOpen] = useState(false)
   const [sheetOpen, setSheetOpen] = useState(false)
 
@@ -93,7 +93,7 @@ function KursTab({ gesamtausgabe = false, loggedIn = false, onNavigateToKonto })
   // Stations-Fortschritt (gelöst/gesamt je Niveau) für die Übersicht. Üben ist
   // frei → für jeden eingeloggten Nutzer laden; best effort (optional).
   const [summary, setSummary] = useState([])
-  // Verhindert, dass vor der ersten Antwort überall „Bereit." statt der
+  // Verhindert, dass vor der ersten Antwort überall „Bereit.“ statt der
   // geladenen Fortschrittszahl steht (sichtbares Nachspringen bei Stammnutzern).
   const [summaryReady, setSummaryReady] = useState(false)
   useEffect(() => {
@@ -156,7 +156,7 @@ function KursTab({ gesamtausgabe = false, loggedIn = false, onNavigateToKonto })
               niveau={niveau}
               onChange={setNiveau}
               className="niveau-select--compact"
-              ariaLabel="Niveaustufe wählen — gilt für Aufgaben und Material aller Stationen"
+              ariaLabel="Differenzierungsstufe wählen – gilt für Aufgaben und Material aller Stationen"
             />
           }
         />
@@ -171,7 +171,7 @@ function KursTab({ gesamtausgabe = false, loggedIn = false, onNavigateToKonto })
               niveau={niveau}
               onChange={setNiveau}
               className="niveau-select--folio"
-              ariaLabel="Niveaustufe wählen — gilt für Aufgaben und Material aller Stationen"
+              ariaLabel="Differenzierungsstufe wählen – gilt für Aufgaben und Material aller Stationen"
             />
           </div>
         </nav>
@@ -246,7 +246,7 @@ function KursTab({ gesamtausgabe = false, loggedIn = false, onNavigateToKonto })
               aria-controls="desktop-kurs-note"
             >
               <span className="test-footnote-label" aria-hidden="true">Anm.</span>
-              <span className="test-footnote-title">Was ist der Kurs? Und die Niveaustufen?</span>
+              <span className="test-footnote-title">Was ist der Kurs? Und die Differenzierungsstufen?</span>
               <span className="test-footnote-chevron" aria-hidden="true">▾</span>
             </button>
             <div

@@ -342,7 +342,7 @@ export function createAdminCalendarRouter({
 
       for (const [i, wort] of woerter.entries()) {
         const pos = (positionen?.[i] || 'Substantiv')
-        logger.info(`Lade DWDS-Daten für „${wort}" (${pos}) …`)
+        logger.info(`Lade DWDS-Daten für „${wort}“ (${pos}) …`)
         const entry = await fetchLemma(wort, pos)
         entry.notiz = notizen[i] || ''
         entry.link = links[i] || ''
@@ -352,7 +352,7 @@ export function createAdminCalendarRouter({
         const { byId } = getLemmataIndex()
         const existing = byId.get(entry.id)
         if (!existing || !existing.ipa || !existing.definitionen?.length) {
-          logger.info(`Lade Wiktionary-Daten für „${wort}" …`)
+          logger.info(`Lade Wiktionary-Daten für „${wort}“ …`)
           const wikt = await fetchWiktionary(wort).catch(() => ({ ipa: '', definitionen: [] }))
           entry.ipa = wikt.ipa
           entry.definitionen = wikt.definitionen
@@ -372,7 +372,7 @@ export function createAdminCalendarRouter({
       let wzEntry = null
       let zwillingOk = null
       if (Array.isArray(zwilling_paar) && zwilling_paar.length === 2 && zwilling_paar[0] && zwilling_paar[1]) {
-        logger.info(`Lade Wort-Zwilling-Daten für „${zwilling_paar[0]}" / „${zwilling_paar[1]}" …`)
+        logger.info(`Lade Wort-Zwilling-Daten für „${zwilling_paar[0]}“ / „${zwilling_paar[1]}“ …`)
         try {
           const wz = await fetchWortZwilling(zwilling_paar[0].trim(), zwilling_paar[1].trim(), zwilling_pos)
           if (wz) {
@@ -380,7 +380,7 @@ export function createAdminCalendarRouter({
             zwillingOk = true
           } else {
             zwillingOk = false
-            logger.warn(`Wort-Zwilling: nicht genug distinkte Kollokatoren für „${zwilling_paar.join(' / ')}"`)
+            logger.warn(`Wort-Zwilling: nicht genug distinkte Kollokatoren für „${zwilling_paar.join(' / ')}“`)
           }
         } catch (err) {
           zwillingOk = false
@@ -391,16 +391,16 @@ export function createAdminCalendarRouter({
       let zwEntry = null
       let zeitenwendeOk = null
       if (zeitenwende_lemma?.trim()) {
-        logger.info(`Lade Zeitenwende-Daten für „${zeitenwende_lemma}" …`)
+        logger.info(`Lade Zeitenwende-Daten für „${zeitenwende_lemma}“ …`)
         try {
           const zw = await fetchZeitenwende(zeitenwende_lemma.trim())
           if (zw) {
             zwEntry = { ...zw, notiz: zeitenwende_notiz || '', link: zeitenwende_link || '' }
             zeitenwendeOk = true
-            logger.info(`Zeitenwende geladen: ${zw.words.length} Wörter für „${zw.lemma}"`)
+            logger.info(`Zeitenwende geladen: ${zw.words.length} Wörter für „${zw.lemma}“`)
           } else {
             zeitenwendeOk = false
-            logger.warn(`Zeitenwende: nicht genug distinkte Kollokatoren für „${zeitenwende_lemma}"`)
+            logger.warn(`Zeitenwende: nicht genug distinkte Kollokatoren für „${zeitenwende_lemma}“`)
           }
         } catch (err) {
           zeitenwendeOk = false
@@ -448,7 +448,7 @@ export function createAdminCalendarRouter({
           continue 
         }
         
-        logger.info(`Backfill: Lade Wiktionary-Daten für „${entry.lemma}" …`)
+        logger.info(`Backfill: Lade Wiktionary-Daten für „${entry.lemma}“ …`)
         const wikt = await fetchWiktionary(entry.lemma).catch(() => ({ ipa: '', definitionen: [] }))
         entry.ipa = wikt.ipa
         entry.definitionen = wikt.definitionen
@@ -477,7 +477,7 @@ export function createAdminCalendarRouter({
       stmts.upsertLemma.run(lemmaToRow({ ...entry, lueckenfueller: result }))
       invalidateCache('lemmata.json')
 
-      logger.info(`Lückenfüller gespeichert für „${entry.lemma}" (${id}): ${result.length} Runden`)
+      logger.info(`Lückenfüller gespeichert für „${entry.lemma}“ (${id}): ${result.length} Runden`)
       res.json({ ok: true, lemma: entry.lemma, rounds: result.length, data: result })
     } catch (err) {
       serverError(res, err)
@@ -512,7 +512,7 @@ export function createAdminCalendarRouter({
       let entry = existing
       let neuAngelegt = false
       if (!entry) {
-        logger.info(`Lege neues Lemma „${name}" (${best.pos}) für Lückenfüller an …`)
+        logger.info(`Lege neues Lemma „${name}“ (${best.pos}) für Lückenfüller an …`)
         entry = await fetchLemma(name, best.pos)
         neuAngelegt = true
       }
@@ -520,7 +520,7 @@ export function createAdminCalendarRouter({
       stmts.upsertLemma.run(lemmaToRow({ ...entry, lueckenfueller: best.result }))
       invalidateCache('lemmata.json')
 
-      logger.info(`Lückenfüller generiert für „${entry.lemma}" (${entry.id}): ${best.result.length} Runden${neuAngelegt ? ' — neues Lemma angelegt' : ''}`)
+      logger.info(`Lückenfüller generiert für „${entry.lemma}“ (${entry.id}): ${best.result.length} Runden${neuAngelegt ? ' — neues Lemma angelegt' : ''}`)
       res.json({ ok: true, lemma: entry.lemma, id: entry.id, pos: entry.pos, rounds: best.result.length, neuAngelegt })
     } catch (err) {
       serverError(res, err)

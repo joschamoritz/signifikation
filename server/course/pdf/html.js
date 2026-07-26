@@ -169,7 +169,7 @@ function renderF5(it, ankerLemma) {
     if (cols.includes('logDice') && showLd) tds.push(`<td class="num">${fmtLogDice(r.logDice)}</td>`)
     return `<tr>${tds.join('')}</tr>`
   }).join('')
-  const caption = ankerLemma ? `<caption>Verbindungen zu „${esc(ankerLemma)}"</caption>` : ''
+  const caption = ankerLemma ? `<caption>Verbindungen zu „${esc(ankerLemma)}“</caption>` : ''
   const questions = (it.payload.questions ?? []).map((q, i) =>
     `<div class="question"><span class="q-no">${i + 1})</span> ${esc(q.text)}` +
     (q.kind === 'explain' ? `<div class="justify-line"></div><div class="justify-line"></div>` : '') +
@@ -201,12 +201,12 @@ function renderTaskBody(it, ankerLemma) {
 
 function kwicSolutionText(it) {
   const byId = Object.fromEntries((it.payload.options ?? []).map(o => [o.id, o.label]))
-  return `„${esc(byId[it.solution?.correctOptionId] ?? '—')}"`
+  return `„${esc(byId[it.solution?.correctOptionId] ?? '—')}“`
 }
 function annotateSolutionText(it) {
   const wrong = (it.payload.annotations ?? []).find(a => a.wrong)
   if (!wrong) return ''
-  return `„${esc(wrong.text)}" — Maschine: ${esc(wrong.tag)}, richtig: ${esc(wrong.correctTag ?? '—')}`
+  return `„${esc(wrong.text)}“ – Maschine: ${esc(wrong.tag)}, richtig: ${esc(wrong.correctTag ?? '—')}`
 }
 
 function workedSolutionText(it) {
@@ -215,12 +215,12 @@ function workedSolutionText(it) {
   if (isKwicTask(it)) return kwicSolutionText(it)
   if (isLabelTask(it)) {
     const parts = (it.solution?.spans ?? []).filter(s => s.text || s.label)
-      .map(s => s.text ? `„${esc(s.text)}" (${esc(s.label)})` : `(${esc(s.label)})`)
+      .map(s => s.text ? `„${esc(s.text)}“ (${esc(s.label)})` : `(${esc(s.label)})`)
     return parts.length ? parts.join(' · ') : (it.feedback?.onCorrect ? esc(it.feedback.onCorrect) : '')
   }
   if (isVerschiebeTask(it)) {
     const byId = Object.fromEntries((it.payload?.chunks ?? []).map(c => [c.id, c.text]))
-    return (it.solution?.validVorfeld ?? []).map(id => `„${esc(byId[id] ?? id)}"`).join(', ')
+    return (it.solution?.validVorfeld ?? []).map(id => `„${esc(byId[id] ?? id)}“`).join(', ')
   }
   if (isDataTask(it)) {
     const a = it.solution?.answers ?? {}
@@ -231,17 +231,17 @@ function workedSolutionText(it) {
       const byId = Object.fromEntries((it.payload.candidates ?? []).map(c => [c.id, c.label]))
       const anchById = Object.fromEntries((it.payload.anchors ?? []).map(a => [a.id, a.label]))
       const pairs = Object.entries(it.solution?.map ?? {})
-        .map(([aid, cids]) => `„${esc(anchById[aid] ?? aid)} ${(Array.isArray(cids) ? cids : [cids]).map(c => esc(byId[c] ?? c)).join('/')}"`)
+        .map(([aid, cids]) => `„${esc(anchById[aid] ?? aid)} ${(Array.isArray(cids) ? cids : [cids]).map(c => esc(byId[c] ?? c)).join('/')}“`)
       return pairs.join(' · ')
     }
     case 'F3': {
       const byId = Object.fromEntries((it.payload.variants ?? []).map(v => [v.id, v.label]))
-      const pref = (it.solution?.preferred ?? []).map(id => `„${esc(byId[id] ?? id)}"`)
+      const pref = (it.solution?.preferred ?? []).map(id => `„${esc(byId[id] ?? id)}“`)
       return pref.join(', ')
     }
     case 'F4': {
       const byId = Object.fromEntries((it.payload.options ?? []).map(o => [o.id, o.label]))
-      return `„${esc(byId[it.solution?.correctOptionId] ?? '—')}"`
+      return `„${esc(byId[it.solution?.correctOptionId] ?? '—')}“`
     }
     case 'F5': {
       const a = it.solution?.answers ?? {}
@@ -349,32 +349,32 @@ function solutionDetail(it) {
     out.push(kwicSolutionText(it))
   } else if (isLabelTask(it)) {
     const parts = (it.solution?.spans ?? []).filter(s => s.text || s.label)
-      .map(s => s.text ? `„${esc(s.text)}" (${esc(s.label)})` : `(${esc(s.label)})`)
+      .map(s => s.text ? `„${esc(s.text)}“ (${esc(s.label)})` : `(${esc(s.label)})`)
     if (parts.length) out.push(parts.join(' · '))
     else if (it.feedback?.onCorrect) out.push(esc(it.feedback.onCorrect))
   } else if (isVerschiebeTask(it)) {
     const byId = Object.fromEntries((it.payload?.chunks ?? []).map(c => [c.id, c.text]))
-    const valid = (it.solution?.validVorfeld ?? []).map(id => `„${esc(byId[id] ?? id)}"`)
+    const valid = (it.solution?.validVorfeld ?? []).map(id => `„${esc(byId[id] ?? id)}“`)
     if (valid.length) out.push(`verschiebbar ins Vorfeld: ${valid.join(', ')}`)
   } else if (isDataTask(it) && it.solution?.answers) {
     for (const [qid, ans] of Object.entries(it.solution.answers)) {
-      if (typeof ans === 'string') out.push(`${esc(qid)}: „${esc(ans)}"`)
+      if (typeof ans === 'string') out.push(`${esc(qid)}: „${esc(ans)}“`)
     }
   } else if (it.format === 'F1' && it.solution?.map) {
     const byId = Object.fromEntries((it.payload.candidates ?? []).map(c => [c.id, c.label]))
     const anchById = Object.fromEntries((it.payload.anchors ?? []).map(a => [a.id, a.label]))
     const pairs = Object.entries(it.solution.map).map(([aid, cids]) =>
-      `„${esc(anchById[aid] ?? aid)} ${(Array.isArray(cids) ? cids : [cids]).map(c => esc(byId[c] ?? c)).join('/')}"`)
+      `„${esc(anchById[aid] ?? aid)} ${(Array.isArray(cids) ? cids : [cids]).map(c => esc(byId[c] ?? c)).join('/')}“`)
     out.push(pairs.join(' · '))
   } else if (it.format === 'F3' && it.solution?.preferred) {
     const byId = Object.fromEntries((it.payload.variants ?? []).map(v => [v.id, v.label]))
-    out.push((it.solution.preferred).map(id => `„${esc(byId[id] ?? id)}"`).join(', '))
+    out.push((it.solution.preferred).map(id => `„${esc(byId[id] ?? id)}“`).join(', '))
   } else if (it.format === 'F4' && it.solution?.correctOptionId) {
     const byId = Object.fromEntries((it.payload.options ?? []).map(o => [o.id, o.label]))
-    out.push(`„${esc(byId[it.solution.correctOptionId] ?? '—')}"`)
+    out.push(`„${esc(byId[it.solution.correctOptionId] ?? '—')}“`)
   } else if (it.format === 'F5' && it.solution?.answers) {
     for (const [qid, ans] of Object.entries(it.solution.answers)) {
-      if (typeof ans === 'string') out.push(`${esc(qid)}: „${esc(ans)}"`)
+      if (typeof ans === 'string') out.push(`${esc(qid)}: „${esc(ans)}“`)
     }
   } else if (it.feedback?.onCorrect) {
     out.push(esc(it.feedback.onCorrect))

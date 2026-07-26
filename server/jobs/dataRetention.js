@@ -11,7 +11,7 @@
  * der Audit-Trail bleibt 2 Jahre für Forensik nachvollziehbar.
  *
  * custom_lemma_usage (Audit 2026-06-15): wächst mit ~1 Zeile pro Account/Tag,
- * an dem das „Eigene Lemma" gespielt wird — unbegrenzt, ohne Cleanup. Das
+ * an dem das „Eigene Lemma“ gespielt wird — unbegrenzt, ohne Cleanup. Das
  * Tageskontingent prüft nur das HEUTIGE Datum, alles Ältere ist toter Ballast.
  * Gleiche 24-Monats-Frist wie oben. payments wird BEWUSST nicht angefasst
  * (Buchhaltung/Belegpflicht).

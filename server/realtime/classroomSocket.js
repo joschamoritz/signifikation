@@ -573,7 +573,7 @@ export function notifySessionResumed(sessionId, payload) {
 // Whitelist-Serialisierung aus /me/view. Stattdessen senden wir nur ein
 // Signal + unkritische Metadaten (mode, index, total); der Schueler-Kiosk
 // holt die gewhitelistete neue Aufgabe per GET /me/view nach (gleiches
-// Muster wie 'view:updated'). Der Plan-Wortlaut „mit content_snapshot"
+// Muster wie 'view:updated'). Der Plan-Wortlaut „mit content_snapshot“
 // wird hier zugunsten von R1 bewusst nicht woertlich umgesetzt.
 export function notifyAssignmentChanged(sessionId, payload) {
   if (!nsps.length || !sessionId) return

@@ -33,11 +33,11 @@ import { makeWzId } from '../classroom/content.js'
 // Kollokationen werden im Klassenraum live aus wortprofil.db generiert
 // (buildContentSnapshot → resolveKollokatoren → fetchLemma). Im Test ist die
 // 2-GB-Korpus-DB nicht deterministisch verfuegbar — wir mocken fetchLemma so,
-// dass es „leer" liefert; dadurch greift der Fallback auf das gespeicherte
+// dass es „leer“ liefert; dadurch greift der Fallback auf das gespeicherte
 // runden.kollokatoren-Feld der Test-Fixtures (stark/groß/klein …).
 vi.mock('../wortprofil.js', () => ({
   fetchLemma: vi.fn(async () => ({ runden: { kollokatoren: [] } })),
-  // Zeitenwende ebenfalls live (Vereinheitlichung): im Test „leer" → Fallback
+  // Zeitenwende ebenfalls live (Vereinheitlichung): im Test „leer“ → Fallback
   // aufs gespeicherte runden.zeitenwende-Feld der Fixtures.
   fetchZeitenwende: vi.fn(async () => null),
 }))
@@ -55,7 +55,7 @@ vi.mock('../wortzwilling.js', () => ({
 }))
 
 // Lückenfüller ebenfalls live (belege.db nicht deterministisch im Test) →
-// „null" → Fallback aufs gespeicherte lemma.lueckenfueller.rounds der Fixtures.
+// „null“ → Fallback aufs gespeicherte lemma.lueckenfueller.rounds der Fixtures.
 vi.mock('../lueckenfueller.js', () => ({
   buildLueckenfueller: vi.fn(async () => null),
 }))
@@ -493,10 +493,10 @@ describe('classroom routes', () => {
       expect(JSON.stringify(body)).not.toContain('stark')
     })
 
-    it('Dual-Auth: eingeloggter Lehrer + Schueler-Token → Participant-Vorrang (kein „sessionId fehlt")', async () => {
+    it('Dual-Auth: eingeloggter Lehrer + Schueler-Token → Participant-Vorrang (kein „sessionId fehlt“)', async () => {
       // Realfall (Praxistest): Lehrer im selben Browser eingeloggt (Dev-Header
       // bzw. Cookie) UND als Schueler beigetreten (Bearer). submission:write muss
-      // den Participant bevorzugen, sonst 400 „sessionId fehlt" (Teacher hat keine).
+      // den Participant bevorzugen, sonst 400 „sessionId fehlt“ (Teacher hat keine).
       const res = await fetch(`${baseUrl}/api/v1/classroom/me/submit`, {
         method: 'POST',
         headers: {
@@ -1470,7 +1470,7 @@ describe('classroom routes', () => {
       const view = await res.json()
       expect(view.assignment?.id).toBe(assignmentId)
       expect(view.assignment?.mode).toBe('kollokationen')
-      // „Submitted-Flag": das einzige Lemma ist abgegeben → done.
+      // „Submitted-Flag“: das einzige Lemma ist abgegeben → done.
       expect(view.progress.done).toBe(true)
       expect(view.progress.submittedCount).toBe(1)
     })

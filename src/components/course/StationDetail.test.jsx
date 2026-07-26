@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 // Verifiziert den mobilen Aufgaben-Pager: eine Aufgabe pro Bildschirm,
 // Weiter/Zurück, Fokus-Management, Antwort-Erhalt (alle Screens gemountet) und
-// Abschluss-Screen mit „erledigt/offen" + Sprung zur nächsten Station.
+// Abschluss-Screen mit „erledigt/offen“ + Sprung zur nächsten Station.
 import { render, fireEvent, act, cleanup } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { UebenPager } from './StationDetail'
@@ -84,7 +84,7 @@ describe('UebenPager', () => {
     act(() => { fireEvent.click(nextBtn()) }) // → Aufgabe 2
     act(() => { fireEvent.click(nextBtn()) }) // → Abschluss
     expect(heading().textContent).toBe('Station abgeschlossen')
-    // „erledigt/offen": nichts geprüft → 0 von 2
+    // „erledigt/offen“: nichts geprüft → 0 von 2
     expect(document.querySelector('.course-pager-end-summary').textContent).toContain('0')
     expect(progressFill().style.width).toBe('100%')
     expect(nextBtn().disabled).toBe(true)

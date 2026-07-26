@@ -3,7 +3,7 @@
  *
  * Reine Tests der Druck-Auflösung (server/course/resolve.js): Korpus-Direktiven
  * (@from:bindings…), Platzhalter ({{top.lemma}} …), Frequenz-/logDice-Sortierung
- * und der „selected ist interaktiv-only"-Pfad. KEIN DB-Zugriff – der Korpus wird
+ * und der „selected ist interaktiv-only“-Pfad. KEIN DB-Zugriff – der Korpus wird
  * als deterministischer Fake hereingereicht.
  */
 
@@ -11,7 +11,7 @@ import { describe, expect, it } from 'vitest'
 import { resolveItem, fmtLogDice, fmtFrequency, fillString } from '../course/resolve.js'
 import station1 from '../course/content/station-1.js'
 
-// Fake-Pool für „Fehler"/ATTR: schwer = typischster (logDice hoch), groß = häufigster (freq hoch).
+// Fake-Pool für „Fehler“/ATTR: schwer = typischster (logDice hoch), groß = häufigster (freq hoch).
 const FEHLER_POOL = [
   { lemma: 'schwer', frequency: 1177, logDice: '8.5000' },
   { lemma: 'grob',   frequency: 200,  logDice: '7.8000' },
@@ -26,7 +26,7 @@ const ENTSCHEIDUNG_POOL = [
   { lemma: 'begründen', frequency: 200, logDice: '5.0000' },
   { lemma: 'kritisieren', frequency: 120, logDice: '4.0000' },
 ]
-// Fremd-Lemma-Distraktoren (AP21-QA): abwegige „Lied"-Verben.
+// Fremd-Lemma-Distraktoren (AP21-QA): abwegige „Lied“-Verben.
 const LIED_POOL = [
   { lemma: 'singen',      frequency: 800, logDice: '12.3000' },
   { lemma: 'anstimmen',   frequency: 200, logDice: '8.8000' },
@@ -78,7 +78,7 @@ describe('resolve – corpus-template F1 (Zuordnen + Fremd-Distraktoren)', () =>
     // bindings.answer = [1..5] → die 5 echten Kollokatoren
     expect(answers).toHaveLength(5)
     expect(answers).toContain('treffen')
-    // 5 abwegige Distraktoren aus „Lied" – nie Lösung
+    // 5 abwegige Distraktoren aus „Lied“ – nie Lösung
     const distractors = resolved.payload.candidates.filter(c => !c.isAnswer).map(c => c.label)
     expect(distractors).toContain('singen')
     expect(answers).not.toContain('singen')
@@ -150,7 +150,7 @@ describe('resolve – Fremd-Lemma-Distraktoren (AP21-QA)', () => {
   ]
   const item = {
     id: 'x-distractor', station: 1, format: 'F1', level: 'SekI', source: 'corpus-template',
-    prompt: 'Welche Verben passen zu „Entscheidung"?',
+    prompt: 'Welche Verben passen zu „Entscheidung“?',
     corpusQuery: { lemma: 'Entscheidung', pos: 'Substantiv', relation: '~OBJA' },
     distractorQuery: { lemma: 'Tor', pos: 'Substantiv', relation: '~OBJA' },
     bindings: { answer: [1, 2], distractors: { rankRange: [1, 2] } },
@@ -202,7 +202,7 @@ describe('resolve – Eigenes Lemma override', () => {
       fetchBeleg() { return null },
     }
     const resolved = resolveItem(getItem('s1-f1-entscheidung-verb-seki'), { corpus, lemma: 'Antwort' })
-    // Anker-Query wurde mit „Antwort" gestellt, das Distraktor-Lemma blieb „Lied".
+    // Anker-Query wurde mit „Antwort“ gestellt, das Distraktor-Lemma blieb „Lied“.
     expect(seen).toContain('Antwort')
     expect(seen).toContain('Lied')
     expect(resolved.payload.candidates.map(c => c.label)).toContain('treffen')

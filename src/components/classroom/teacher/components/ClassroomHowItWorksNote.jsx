@@ -1,4 +1,4 @@
-// Erklaertext „So funktioniert der Klassenraum" — Single Source fuer die
+// Erklaertext „So funktioniert der Klassenraum“ — Single Source fuer die
 // Desktop-Fußnote und das Mobile-Sheet auf der Klassenraum-Landing.
 //
 // Loest die fruheren eigenstaendigen Unterseiten HowToStep (① Anleitung) und
@@ -9,9 +9,10 @@ export default function ClassroomHowItWorksNote() {
   return (
     <>
       <p>
-        Der Klassenraum macht aus dem täglichen Wortspiel eine gemeinsame
-        Live-Stunde: Du steuerst von vorn, die Klasse spielt gleichzeitig auf
-        den eigenen Geräten — <strong>anonym, ohne Anmeldung</strong>.
+        Der Klassenraum macht aus den Spielmodi eine gemeinsame Live-Stunde:
+        Du wählst die Wörter und steuerst von vorn, die Klasse spielt
+        gleichzeitig auf den eigenen Geräten — <strong>anonym, ohne
+        Anmeldung</strong>.
       </p>
       <p>
         <strong>1 · Sitzung anlegen.</strong> Wähle einen Spielmodus und ein bis
@@ -19,7 +20,7 @@ export default function ClassroomHowItWorksNote() {
       </p>
       <p>
         <strong>2 · Code teilen.</strong> Die Klasse öffnet signifikation.de,
-        geht auf Klassenraum und tippt den Beitrittscode ein — oder scannt den
+        geht auf Klassenraum und tippt den Zugangscode ein — oder scannt den
         QR-Code aus der Lobby. Ein kurzer Spitzname genügt, ein echter Name ist
         nicht nötig.
       </p>
@@ -28,8 +29,8 @@ export default function ClassroomHowItWorksNote() {
         alle spielen synchron, und du siehst die Auswertung live.
       </p>
       <p>
-        Nach der Stunde werden die Spitznamen automatisch anonymisiert — es
-        bleibt nichts Persönliches gespeichert.
+        Spätestens zwei Tage nach der Stunde werden die Spitznamen automatisch
+        anonymisiert — es bleibt nichts Persönliches gespeichert.
       </p>
     </>
   )

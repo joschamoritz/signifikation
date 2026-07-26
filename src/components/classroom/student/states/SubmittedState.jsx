@@ -76,8 +76,8 @@ function ZeitenwendeRecap({ rawAnswer }) {
 function LueckenfuellerRecap({ rawAnswer }) {
   return (
     <p className="classroom-kiosk__hint" data-testid="classroom-kiosk-recap-lf">
-      {rawAnswer?.value ? `Eingabe: „${rawAnswer.value}"` :
-       rawAnswer?.selected ? `Auswahl: „${rawAnswer.selected}"` :
+      {rawAnswer?.value ? `Eingabe: „${rawAnswer.value}“` :
+       rawAnswer?.selected ? `Auswahl: „${rawAnswer.selected}“` :
        Array.isArray(rawAnswer?.answers) ? `Eingaben: ${rawAnswer.answers.join(', ')}` :
        'Antwort abgegeben.'}
     </p>
@@ -152,12 +152,12 @@ export default function SubmittedState() {
 
   // W4-S4: Bei Mehrrunden-Modi (z. B. 3 Lemmata Kollokationen) zeigen wir eine
   // Auswertung ALLER Runden statt nur der letzten Antwort. roundResults hält den
-  // Runden-Verlauf (Lemma + „abgegeben"); Scores kommen NICHT vom Submit (D5),
+  // Runden-Verlauf (Lemma + „abgegeben“); Scores kommen NICHT vom Submit (D5),
   // sondern erst nach Freigabe aus revealData (Server-autoritativ).
   const rounds = Array.isArray(state.roundResults) ? state.roundResults : []
   const isMultiRound = rounds.length > 1
 
-  // Schritt 4 (C1): item-genaue Auflösung, vom Server byKey „<lemmaId>:<round>".
+  // Schritt 4 (C1): item-genaue Auflösung, vom Server byKey „<lemmaId>:<round>“.
   // Den Key aus roundResults nehmen: currentLemma ist nach Sessionende null
   // (allDone), die Runde bleibt aber im Verlauf erhalten (Code-Review M4).
   const revealByKey = state.revealData?.byKey || {}

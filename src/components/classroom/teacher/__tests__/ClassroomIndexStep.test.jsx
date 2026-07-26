@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
 //
-// Backlog 2026-07-14: „Beitreten" im Lehrer-Index brauchte bisher einen
+// Backlog 2026-07-14: „Beitreten“ im Lehrer-Index brauchte bisher einen
 // Extra-Klick zur separaten Beitritts-Seite (/c). Jetzt sitzt das Code-Formular
 // (JoinCodeForm, geteilt mit StudentJoinEntry) direkt in der Karte.
 import { render, screen, cleanup } from '@testing-library/react'

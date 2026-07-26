@@ -182,14 +182,14 @@ export default function Quiz({
         <span className="quiz-game-badge">Kollokationen</span>
         <h1 className="quiz-lemma-word">{lemma.lemma}</h1>
         <p id="quiz-instruction" className="quiz-instruction">
-          Wähle die 3 stärksten Kollokationen von <strong>{lemma.lemma}</strong>
+          Wähle die 3 stärksten Kollokatoren zu <strong>{lemma.lemma}</strong>
           {!submitted && !jokerUsed && jokerVisible && (
             <button className="joker-btn" type="button" onClick={e => { e.stopPropagation(); activateJoker() }} aria-label="Hinweis aktivieren" title="Hinweis"><em>i</em></button>
           )}
         </p>
         {options.length < 10 && (
           <p className="quiz-options-hint" aria-live="polite">
-            <em>{options.length} Kollokationen verfügbar</em>
+            <em>{options.length} Kollokatoren verfügbar</em>
           </p>
         )}
       </header>
