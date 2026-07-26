@@ -1,9 +1,9 @@
 /**
  * server/course/content/station-4.js
  *
- * Aufgaben-Items für Station ④ „Texte, die zählen" (AP10/AP21-QA-Redesign).
+ * Aufgaben-Items für Station ④ „Texte, die zählen“ (AP10/AP21-QA-Redesign).
  *
- * NEUE IDENTITÄT (AP21-QA): Nicht „mehr Kollokationen ranken" (das ist ①),
+ * NEUE IDENTITÄT (AP21-QA): Nicht „mehr Kollokationen ranken“ (das ist ①),
  * sondern DIE MASCHINE HINTER DER ZAHL verstehen. Rückgrat = die echte Pipeline,
  * mit der das Wortprofil gebaut wurde (wortprofil/03_parse + 04_score):
  *   1 Rohtext aus freien Korpora (Bundestag, Gesetze, DTA, Wikipedia)
@@ -56,7 +56,7 @@ const TASKS = [
   {
     id: 's4-f1-grundform-daz', station: 4, format: 'F1', level: 'DaZ', source: 'static',
     kern: 'lemmatisierung',
-    prompt: 'Bevor die App zählt, sucht sie zu jedem Wort die Grundform. Welche Wörter gehören zur Grundform „gehen"? Ordne zu.',
+    prompt: 'Bevor die App zählt, sucht sie zu jedem Wort die Grundform. Welche Wörter gehören zur Grundform „gehen“? Ordne zu.',
     metasprache: ['Grundform'],
     payload: {
       anchors: [{ id: 'a1', label: 'gehen' }],
@@ -73,8 +73,8 @@ const TASKS = [
     feedback: {
       byLevel: {
         DaZ: {
-          onCorrect: 'Genau – „geht", „ging" und „gegangen" sind Formen von „gehen". So fasst die App Wörter zusammen, bevor sie zählt.',
-          onWrong: '„gegessen" gehört zu „essen". Die anderen drei sind Formen von „gehen".',
+          onCorrect: 'Genau – „geht“, „ging“ und „gegangen“ sind Formen von „gehen“. So fasst die App Wörter zusammen, bevor sie zählt.',
+          onWrong: '„gegessen“ gehört zu „essen“. Die anderen drei sind Formen von „gehen“.',
         },
       },
       tonalitaet: 'woerterbuch-nuechtern',
@@ -86,7 +86,7 @@ const TASKS = [
   {
     id: 's4-f2-kwic-daz', station: 4, format: 'F2', level: 'DaZ', source: 'corpus-template',
     kern: 'konkordanz-lesen',
-    prompt: 'Das sind echte Sätze aus dem Korpus. Welches Wort steht in fast jedem Satz neben „Regen"? Lies und wähle.',
+    prompt: 'Das sind echte Sätze aus dem Korpus. Welches Wort steht in fast jedem Satz neben „Regen“? Lies und wähle.',
     metasprache: ['Korpus', 'Beleg'],
     corpusQuery: Q_REGEN_ADJ,
     bindings: { answer: ['freq:1'], near: { rankRange: [4, 6] } },
@@ -99,8 +99,8 @@ const TASKS = [
     feedback: {
       byLevel: {
         DaZ: {
-          onCorrect: 'Richtig – „{{freq:1.lemma}}" steht in allen Sätzen neben „Regen". So sieht ein Korpus aus: viele echte Sätze.',
-          onWrong: 'Lies noch einmal: Welches Wort kommt in jedem Satz vor? Es ist „{{freq:1.lemma}}".',
+          onCorrect: 'Richtig – „{{freq:1.lemma}}“ steht in allen Sätzen neben „Regen“. So sieht ein Korpus aus: viele echte Sätze.',
+          onWrong: 'Lies noch einmal: Welches Wort kommt in jedem Satz vor? Es ist „{{freq:1.lemma}}“.',
         },
       },
       tonalitaet: 'woerterbuch-nuechtern',
@@ -112,7 +112,7 @@ const TASKS = [
   {
     id: 's4-f1-grundform2-daz', station: 4, format: 'F1', level: 'DaZ', source: 'static',
     kern: 'lemmatisierung',
-    prompt: 'Bevor die App zählt, sucht sie zu jedem Wort die Grundform. Welche Wörter gehören zur Grundform „sprechen"? Ordne zu.',
+    prompt: 'Bevor die App zählt, sucht sie zu jedem Wort die Grundform. Welche Wörter gehören zur Grundform „sprechen“? Ordne zu.',
     metasprache: ['Grundform'],
     payload: {
       anchors: [{ id: 'a1', label: 'sprechen' }],
@@ -129,8 +129,8 @@ const TASKS = [
     feedback: {
       byLevel: {
         DaZ: {
-          onCorrect: 'Genau – „spricht", „sprach" und „gesprochen" sind Formen von „sprechen". „gesungen" gehört zu „singen".',
-          onWrong: '„gesungen" gehört zu „singen". Die anderen drei sind Formen von „sprechen".',
+          onCorrect: 'Genau – „spricht“, „sprach“ und „gesprochen“ sind Formen von „sprechen“. „gesungen“ gehört zu „singen“.',
+          onWrong: '„gesungen“ gehört zu „singen“. Die anderen drei sind Formen von „sprechen“.',
         },
       },
       tonalitaet: 'woerterbuch-nuechtern',
@@ -141,7 +141,7 @@ const TASKS = [
   {
     id: 's4-f1-grundform3-daz', station: 4, format: 'F1', level: 'DaZ', source: 'static',
     kern: 'lemmatisierung',
-    prompt: 'Welche Wörter gehören zur Grundform „essen"? Ordne zu.',
+    prompt: 'Welche Wörter gehören zur Grundform „essen“? Ordne zu.',
     metasprache: ['Grundform'],
     payload: {
       anchors: [{ id: 'a1', label: 'essen' }],
@@ -158,8 +158,8 @@ const TASKS = [
     feedback: {
       byLevel: {
         DaZ: {
-          onCorrect: 'Genau – „isst", „aß" und „gegessen" sind Formen von „essen". „gefahren" gehört zu „fahren".',
-          onWrong: '„gefahren" gehört zu „fahren". Die anderen drei sind Formen von „essen".',
+          onCorrect: 'Genau – „isst“, „aß“ und „gegessen“ sind Formen von „essen“. „gefahren“ gehört zu „fahren“.',
+          onWrong: '„gefahren“ gehört zu „fahren“. Die anderen drei sind Formen von „essen“.',
         },
       },
       tonalitaet: 'woerterbuch-nuechtern',
@@ -171,7 +171,7 @@ const TASKS = [
   {
     id: 's4-f2-kwic-wetter-daz', station: 4, format: 'F2', level: 'DaZ', source: 'corpus-template',
     kern: 'konkordanz-lesen',
-    prompt: 'Das sind echte Sätze aus dem Korpus. Welches Wort steht in fast jedem Satz neben „Wetter"? Lies und wähle.',
+    prompt: 'Das sind echte Sätze aus dem Korpus. Welches Wort steht in fast jedem Satz neben „Wetter“? Lies und wähle.',
     metasprache: ['Korpus', 'Beleg'],
     corpusQuery: Q_WETTER_ADJ,
     bindings: { answer: ['freq:1'], near: { rankRange: [4, 6] } },
@@ -184,8 +184,8 @@ const TASKS = [
     feedback: {
       byLevel: {
         DaZ: {
-          onCorrect: 'Richtig – „{{freq:1.lemma}}" steht in diesen Sätzen neben „Wetter". So sieht ein Korpus aus: viele echte Sätze.',
-          onWrong: 'Lies noch einmal: Welches Wort kommt in fast jedem Satz vor? Es ist „{{freq:1.lemma}}".',
+          onCorrect: 'Richtig – „{{freq:1.lemma}}“ steht in diesen Sätzen neben „Wetter“. So sieht ein Korpus aus: viele echte Sätze.',
+          onWrong: 'Lies noch einmal: Welches Wort kommt in fast jedem Satz vor? Es ist „{{freq:1.lemma}}“.',
         },
       },
       tonalitaet: 'woerterbuch-nuechtern',
@@ -196,7 +196,7 @@ const TASKS = [
   {
     id: 's4-f2-kwic-wind-daz', station: 4, format: 'F2', level: 'DaZ', source: 'corpus-template',
     kern: 'konkordanz-lesen',
-    prompt: 'Echte Sätze aus dem Korpus. Welches Wort steht in fast jedem Satz neben „Wind"? Lies und wähle.',
+    prompt: 'Echte Sätze aus dem Korpus. Welches Wort steht in fast jedem Satz neben „Wind“? Lies und wähle.',
     metasprache: ['Korpus', 'Beleg'],
     corpusQuery: Q_WIND_ADJ,
     bindings: { answer: ['freq:1'], near: { rankRange: [4, 6] } },
@@ -209,8 +209,8 @@ const TASKS = [
     feedback: {
       byLevel: {
         DaZ: {
-          onCorrect: 'Richtig – „{{freq:1.lemma}}" steht in diesen Sätzen neben „Wind". Genau solche echten Sätze zählt die App.',
-          onWrong: 'Lies noch einmal: Welches Wort kommt in fast jedem Satz vor? Es ist „{{freq:1.lemma}}".',
+          onCorrect: 'Richtig – „{{freq:1.lemma}}“ steht in diesen Sätzen neben „Wind“. Genau solche echten Sätze zählt die App.',
+          onWrong: 'Lies noch einmal: Welches Wort kommt in fast jedem Satz vor? Es ist „{{freq:1.lemma}}“.',
         },
       },
       tonalitaet: 'woerterbuch-nuechtern',
@@ -274,8 +274,8 @@ const TASKS = [
     feedback: {
       byLevel: {
         SekI: {
-          onCorrect: 'Richtig – „der Kiefer" ist hier der Knochen, nicht der Baum (die Kiefer). Die Maschine hat das „der" übersehen. Jede Auszeichnung ist eine Deutung – und kann falsch sein.',
-          onWrong: 'Ein Wort hat zwei Bedeutungen. „Der Kiefer" (Knochen) oder „die Kiefer" (Baum)? Das „Der" verrät es.',
+          onCorrect: 'Richtig – „der Kiefer“ ist hier der Knochen, nicht der Baum (die Kiefer). Die Maschine hat das „der“ übersehen. Jede Auszeichnung ist eine Deutung – und kann falsch sein.',
+          onWrong: 'Ein Wort hat zwei Bedeutungen. „Der Kiefer“ (Knochen) oder „die Kiefer“ (Baum)? Das „Der“ verrät es.',
         },
       },
       tonalitaet: 'woerterbuch-nuechtern',
@@ -287,7 +287,7 @@ const TASKS = [
   {
     id: 's4-f2-kwic-seki', station: 4, format: 'F2', level: 'SekI', source: 'static',
     kern: 'konkordanz-zaehlen',
-    prompt: 'So zählt die App: Sie sammelt echte Sätze. Welches Wort steht in fast allen Belegen neben „Haar"?',
+    prompt: 'So zählt die App: Sie sammelt echte Sätze. Welches Wort steht in fast allen Belegen neben „Haar“?',
     metasprache: ['Korpus', 'Konkordanz', 'Beleg'],
     payload: {
       node: 'Haar',
@@ -308,8 +308,8 @@ const TASKS = [
     feedback: {
       byLevel: {
         SekI: {
-          onCorrect: 'Genau – „kurz" steht in jedem Beleg. Die App zählt genau das: wie oft zwei Wörter in echten Texten zusammen vorkommen.',
-          onWrong: 'Lies die Belege: Welches Adjektiv taucht in jedem Satz auf? Es ist „kurz".',
+          onCorrect: 'Genau – „kurz“ steht in jedem Beleg. Die App zählt genau das: wie oft zwei Wörter in echten Texten zusammen vorkommen.',
+          onWrong: 'Lies die Belege: Welches Adjektiv taucht in jedem Satz auf? Es ist „kurz“.',
         },
       },
       tonalitaet: 'woerterbuch-nuechtern',
@@ -371,8 +371,8 @@ const TASKS = [
     feedback: {
       byLevel: {
         SekI: {
-          onCorrect: 'Richtig – ein „Ball", der „ins Tor rollt", ist der Spielball, nicht das Tanzfest. Die Maschine hat den Kontext übersehen. Jede Auszeichnung ist eine Deutung – und kann falsch sein.',
-          onWrong: 'Ein Wort hat zwei Bedeutungen: „der Ball" als Tanzfest oder als Spielgerät. Was „ins Tor rollt", verrät es.',
+          onCorrect: 'Richtig – ein „Ball“, der „ins Tor rollt“, ist der Spielball, nicht das Tanzfest. Die Maschine hat den Kontext übersehen. Jede Auszeichnung ist eine Deutung – und kann falsch sein.',
+          onWrong: 'Ein Wort hat zwei Bedeutungen: „der Ball“ als Tanzfest oder als Spielgerät. Was „ins Tor rollt“, verrät es.',
         },
       },
       tonalitaet: 'woerterbuch-nuechtern',
@@ -384,7 +384,7 @@ const TASKS = [
   {
     id: 's4-f2-kwic2-seki', station: 4, format: 'F2', level: 'SekI', source: 'static',
     kern: 'konkordanz-zaehlen',
-    prompt: 'So zählt die App: Sie sammelt echte Sätze. Welches Verb steht in fast allen Belegen neben „Ziel"?',
+    prompt: 'So zählt die App: Sie sammelt echte Sätze. Welches Verb steht in fast allen Belegen neben „Ziel“?',
     metasprache: ['Korpus', 'Konkordanz', 'Beleg'],
     payload: {
       node: 'Ziel',
@@ -405,8 +405,8 @@ const TASKS = [
     feedback: {
       byLevel: {
         SekI: {
-          onCorrect: 'Genau – „erreichen" steht in jedem Beleg. Die App zählt genau das: wie oft zwei Wörter in echten Texten zusammen vorkommen.',
-          onWrong: 'Lies die Belege: Welches Verb taucht in jedem Satz auf? Es ist „erreichen".',
+          onCorrect: 'Genau – „erreichen“ steht in jedem Beleg. Die App zählt genau das: wie oft zwei Wörter in echten Texten zusammen vorkommen.',
+          onWrong: 'Lies die Belege: Welches Verb taucht in jedem Satz auf? Es ist „erreichen“.',
         },
       },
       tonalitaet: 'woerterbuch-nuechtern',
@@ -416,11 +416,11 @@ const TASKS = [
 
   // ════════════════ SekII · Maß + erste Methodenreflexion (logDice) ════════════════
 
-  // Schritt 4: Dependenz-Brücke – warum „Entscheidung treffen" über Distanz?
+  // Schritt 4: Dependenz-Brücke – warum „Entscheidung treffen“ über Distanz?
   {
     id: 's4-f4-dependenz-sek2', station: 4, format: 'F4', level: 'SekII', source: 'static',
     kern: 'dependenz-kante',
-    prompt: 'Die App zählt keine Nachbarn, sondern grammatische Paare (wie in ③). Darum findet sie „Entscheidung treffen" auch über Distanz. Markiere das Verb und sein Objekt.',
+    prompt: 'Die App zählt keine Nachbarn, sondern grammatische Paare (wie in ③). Darum findet sie „Entscheidung treffen“ auch über Distanz. Markiere das Verb und sein Objekt.',
     metasprache: ['Dependenz', 'Kopf', 'Objekt'],
     payload: {
       sentence: 'Das Gericht traf nach langer, öffentlicher Beratung eine schwierige Entscheidung.',
@@ -431,13 +431,13 @@ const TASKS = [
     display: { showMetrics: false, metric: 'none' },
     solution: {
       spans: [{ label: 'Verb' }, { label: 'Objekt' }],
-      note: 'Verb „traf" + Objekt „Entscheidung" – im Satz weit getrennt, grammatisch direkt verbunden.',
+      note: 'Verb „traf“ + Objekt „Entscheidung“ – im Satz weit getrennt, grammatisch direkt verbunden.',
     },
     feedback: {
       byLevel: {
         SekII: {
-          onCorrect: 'Genau – „traf" und „Entscheidung" stehen weit auseinander, hängen aber direkt zusammen (Verb + Akkusativobjekt). Der Parser zieht diese Kante; deshalb zählt die App das Paar, nicht die Nachbarschaft.',
-          onWrong: 'Suche das Verb und das Nomen, das von ihm abhängt (sein Objekt): „traf" … „Entscheidung". Die Wörter dazwischen gehören nicht dazu.',
+          onCorrect: 'Genau – „traf“ und „Entscheidung“ stehen weit auseinander, hängen aber direkt zusammen (Verb + Akkusativobjekt). Der Parser zieht diese Kante; deshalb zählt die App das Paar, nicht die Nachbarschaft.',
+          onWrong: 'Suche das Verb und das Nomen, das von ihm abhängt (sein Objekt): „traf“ … „Entscheidung“. Die Wörter dazwischen gehören nicht dazu.',
         },
       },
       tonalitaet: 'woerterbuch-nuechtern',
@@ -449,7 +449,7 @@ const TASKS = [
   {
     id: 's4-f2-tabelle-lesen-sek2', station: 4, format: 'F2', level: 'SekII', source: 'corpus-template',
     kern: 'tabelle-lesen',
-    prompt: 'Jetzt das Maß: Lies die Tabelle zu „Haar". Welche Adjektiv-Verbindung ist am häufigsten, welche am typischsten (höchster logDice)?',
+    prompt: 'Jetzt das Maß: Lies die Tabelle zu „Haar“. Welche Adjektiv-Verbindung ist am häufigsten, welche am typischsten (höchster logDice)?',
     metasprache: ['Kookkurrenz', 'Typikalität', 'Frequenz', 'logDice'],
     corpusQuery: Q_HAAR_ADJ,
     bindings: { tableRows: ['logDice:1', 'logDice:2', 'freq:1', 'logDice:3'], contrastPair: ['freq:1', 'logDice:1'] },
@@ -473,7 +473,7 @@ const TASKS = [
       byLevel: {
         SekII: {
           onCorrect: 'Genau – die häufigste Verbindung ist nicht die typischste. Frequenz und logDice sagen Verschiedenes.',
-          onWrong: 'Frequenz = „wie oft", logDice = „wie spezifisch gebunden". Vergleiche die beiden Spalten.',
+          onWrong: 'Frequenz = „wie oft“, logDice = „wie spezifisch gebunden“. Vergleiche die beiden Spalten.',
         },
       },
       merksatz: 'Häufigkeit zählt – logDice misst Typizität.',
@@ -486,7 +486,7 @@ const TASKS = [
   {
     id: 's4-f3-haeufig-vs-typisch-sek2', station: 4, format: 'F3', level: 'SekII', source: 'corpus-template',
     kern: 'haeufig-vs-typisch',
-    prompt: 'Häufigste vs. typischste Verbindung zu „Haar": Welche ist typischer? Begründe den Unterschied.',
+    prompt: 'Häufigste vs. typischste Verbindung zu „Haar“: Welche ist typischer? Begründe den Unterschied.',
     metasprache: ['Typikalität', 'Frequenz', 'logDice'],
     corpusQuery: Q_HAAR_ADJ,
     bindings: { answer: ['logDice:1'], contrastPair: ['freq:1', 'logDice:1'] },
@@ -495,7 +495,7 @@ const TASKS = [
       compareDimension: 'typikalitaet',
       variants: '@from:bindings.contrastPair',
       requireJustification: true,
-      // Attributive Adjazenz-Belege „blondes Haar" (die typische Verbindung).
+      // Attributive Adjazenz-Belege „blondes Haar“ (die typische Verbindung).
       belegContext: { lemma: 'Haar', partner: 'blond', adjacent: true, limit: 3 },
     },
     display: { showMetrics: true, metric: 'both' },
@@ -503,8 +503,8 @@ const TASKS = [
       preferred: '@from:bindings.answer',
       rubric: {
         criteria: [
-          'wählt „{{logDice:1.lemma}}" als typischer (höherer logDice)',
-          'erkennt: „{{freq:1.lemma}}" ist häufiger, aber unspezifischer',
+          'wählt „{{logDice:1.lemma}}“ als typischer (höherer logDice)',
+          'erkennt: „{{freq:1.lemma}}“ ist häufiger, aber unspezifischer',
           'logDice misst Bindungsstärke, nicht Rohhäufigkeit',
         ],
         minHits: 2,
@@ -513,9 +513,9 @@ const TASKS = [
     feedback: {
       byLevel: {
         SekII: {
-          onCorrect: '„{{logDice:1.lemma}} Haar" bindet spezifisch (logDice {{logDice:1.logDice}}). „{{freq:1.lemma}} Haar" ist häufiger (f {{freq:1.frequency}}), aber „{{freq:1.lemma}}" passt zu vielem.',
+          onCorrect: '„{{logDice:1.lemma}} Haar“ bindet spezifisch (logDice {{logDice:1.logDice}}). „{{freq:1.lemma}} Haar“ ist häufiger (f {{freq:1.frequency}}), aber „{{freq:1.lemma}}“ passt zu vielem.',
           onChoice: {
-            '@selected': '„{{selected.lemma}}" hat logDice {{selected.logDice}}. „{{logDice:1.lemma}}" ist mit {{logDice:1.logDice}} stärker an „Haar" gebunden.',
+            '@selected': '„{{selected.lemma}}“ hat logDice {{selected.logDice}}. „{{logDice:1.lemma}}“ ist mit {{logDice:1.logDice}} stärker an „Haar“ gebunden.',
           },
         },
       },
@@ -561,7 +561,7 @@ const TASKS = [
       byLevel: {
         SekII: {
           onCorrect: 'Richtig – entscheidend ist das Verhältnis von gemeinsamem zu einzelnem Vorkommen: Treten A und B fast nur miteinander auf, wird der Bruch groß und logDice hoch. (log₂ macht daraus eine Skala, +14 ist die Obergrenze – dazu mehr im LK.)',
-          onWrong: 'Schau auf den Bruch 2·f(A,B) / (f(A)+f(B)): Nicht „wie oft", sondern „wie exklusiv" treten A und B zusammen auf.',
+          onWrong: 'Schau auf den Bruch 2·f(A,B) / (f(A)+f(B)): Nicht „wie oft“, sondern „wie exklusiv“ treten A und B zusammen auf.',
         },
       },
       merksatz: 'Nicht wie oft – sondern wie exklusiv.',
@@ -574,7 +574,7 @@ const TASKS = [
   {
     id: 's4-f4-dependenz2-sek2', station: 4, format: 'F4', level: 'SekII', source: 'static',
     kern: 'dependenz-kante',
-    prompt: 'Die App zählt keine Nachbarn, sondern grammatische Paare (wie in ③). Darum findet sie „Beitrag leisten" auch über Distanz. Markiere das Verb und sein Objekt.',
+    prompt: 'Die App zählt keine Nachbarn, sondern grammatische Paare (wie in ③). Darum findet sie „Beitrag leisten“ auch über Distanz. Markiere das Verb und sein Objekt.',
     metasprache: ['Dependenz', 'Kopf', 'Objekt'],
     payload: {
       sentence: 'Der Verein leistete über viele Jahre einen wichtigen Beitrag.',
@@ -585,13 +585,13 @@ const TASKS = [
     display: { showMetrics: false, metric: 'none' },
     solution: {
       spans: [{ label: 'Verb' }, { label: 'Objekt' }],
-      note: 'Verb „leistete" + Objekt „Beitrag" – im Satz weit getrennt, grammatisch direkt verbunden.',
+      note: 'Verb „leistete“ + Objekt „Beitrag“ – im Satz weit getrennt, grammatisch direkt verbunden.',
     },
     feedback: {
       byLevel: {
         SekII: {
-          onCorrect: 'Genau – „leistete" und „Beitrag" stehen weit auseinander, hängen aber direkt zusammen (Verb + Akkusativobjekt). Der Parser zieht diese Kante; deshalb zählt die App das Paar, nicht die Nachbarschaft.',
-          onWrong: 'Suche das Verb und das Nomen, das von ihm abhängt (sein Objekt): „leistete" … „Beitrag". Die Wörter dazwischen gehören nicht dazu.',
+          onCorrect: 'Genau – „leistete“ und „Beitrag“ stehen weit auseinander, hängen aber direkt zusammen (Verb + Akkusativobjekt). Der Parser zieht diese Kante; deshalb zählt die App das Paar, nicht die Nachbarschaft.',
+          onWrong: 'Suche das Verb und das Nomen, das von ihm abhängt (sein Objekt): „leistete“ … „Beitrag“. Die Wörter dazwischen gehören nicht dazu.',
         },
       },
       tonalitaet: 'woerterbuch-nuechtern',
@@ -603,7 +603,7 @@ const TASKS = [
   {
     id: 's4-f3-problem-typisch-sek2', station: 4, format: 'F3', level: 'SekII', source: 'corpus-template',
     kern: 'haeufig-vs-typisch',
-    prompt: 'Häufigste vs. typischste Adjektiv-Verbindung zu „Problem": Welche ist typischer? Begründe den Unterschied zwischen „großes Problem" und der spezifischer gebundenen Verbindung.',
+    prompt: 'Häufigste vs. typischste Adjektiv-Verbindung zu „Problem“: Welche ist typischer? Begründe den Unterschied zwischen „großes Problem“ und der spezifischer gebundenen Verbindung.',
     metasprache: ['Typikalität', 'Frequenz', 'logDice'],
     corpusQuery: Q_PROBLEM_ADJ,
     bindings: { answer: ['logDice:1'], contrastPair: ['freq:1', 'logDice:1'] },
@@ -618,8 +618,8 @@ const TASKS = [
       preferred: '@from:bindings.answer',
       rubric: {
         criteria: [
-          'wählt „{{logDice:1.lemma}}" als typischer (höherer logDice)',
-          'erkennt: „{{freq:1.lemma}}" ist häufiger, aber unspezifischer',
+          'wählt „{{logDice:1.lemma}}“ als typischer (höherer logDice)',
+          'erkennt: „{{freq:1.lemma}}“ ist häufiger, aber unspezifischer',
           'logDice misst Bindungsstärke, nicht Rohhäufigkeit',
         ],
         minHits: 2,
@@ -628,9 +628,9 @@ const TASKS = [
     feedback: {
       byLevel: {
         SekII: {
-          onCorrect: '„{{logDice:1.lemma}} Problem" bindet spezifisch (logDice {{logDice:1.logDice}}). „{{freq:1.lemma}} Problem" ist häufiger (f {{freq:1.frequency}}), aber „{{freq:1.lemma}}" passt zu vielem.',
+          onCorrect: '„{{logDice:1.lemma}} Problem“ bindet spezifisch (logDice {{logDice:1.logDice}}). „{{freq:1.lemma}} Problem“ ist häufiger (f {{freq:1.frequency}}), aber „{{freq:1.lemma}}“ passt zu vielem.',
           onChoice: {
-            '@selected': '„{{selected.lemma}}" hat logDice {{selected.logDice}}. „{{logDice:1.lemma}}" ist mit {{logDice:1.logDice}} stärker an „Problem" gebunden.',
+            '@selected': '„{{selected.lemma}}“ hat logDice {{selected.logDice}}. „{{logDice:1.lemma}}“ ist mit {{logDice:1.logDice}} stärker an „Problem“ gebunden.',
           },
         },
       },
@@ -645,14 +645,14 @@ const TASKS = [
   {
     id: 's4-f4-methodenkritik-lk', station: 4, format: 'F4', level: 'LK', source: 'corpus-template',
     kern: 'logdice-deuten',
-    prompt: 'Deute logDice {{logDice:1.logDice}} für „{{logDice:1.lemma}} Haar": Wähle die korrekte Aussage und begründe – inklusive einer Grenze des Maßes.',
+    prompt: 'Deute logDice {{logDice:1.logDice}} für „{{logDice:1.lemma}} Haar“: Wähle die korrekte Aussage und begründe – inklusive einer Grenze des Maßes.',
     metasprache: ['Assoziationsmaß', 'Skala bis 14', 'Korpus-Bias'],
     corpusQuery: Q_HAAR_ADJ,
     bindings: { answer: ['logDice:1'] },
     payload: {
-      sentence: 'Aussage über „{{logDice:1.lemma}} Haar" (logDice {{logDice:1.logDice}}): ___',
+      sentence: 'Aussage über „{{logDice:1.lemma}} Haar“ (logDice {{logDice:1.logDice}}): ___',
       options: [
-        { id: 'o1', label: 'stark an „Haar" gebunden – sagt aber nichts über Bedeutung/Kontext' },
+        { id: 'o1', label: 'stark an „Haar“ gebunden – sagt aber nichts über Bedeutung/Kontext' },
         { id: 'o2', label: 'die schönste Verbindung' },
         { id: 'o3', label: 'die einzig korrekte Verbindung' },
       ],
@@ -672,9 +672,9 @@ const TASKS = [
     feedback: {
       byLevel: {
         LK: {
-          onCorrect: 'Korrekt – logDice {{logDice:1.logDice}} zeigt: „{{logDice:1.lemma}}" ist exklusiv an „Haar" gebunden. Die Zahl sagt nichts über Bedeutung, Stilwert, Kontext oder Korpus-Zusammensetzung.',
+          onCorrect: 'Korrekt – logDice {{logDice:1.logDice}} zeigt: „{{logDice:1.lemma}}“ ist exklusiv an „Haar“ gebunden. Die Zahl sagt nichts über Bedeutung, Stilwert, Kontext oder Korpus-Zusammensetzung.',
           onChoice: {
-            '@selected': 'logDice ist ein statistisches Bindungsmaß – kein Werturteil. Trenne „stark gebunden" von „schön/korrekt".',
+            '@selected': 'logDice ist ein statistisches Bindungsmaß – kein Werturteil. Trenne „stark gebunden“ von „schön/korrekt“.',
           },
         },
       },
@@ -731,12 +731,12 @@ const TASKS = [
   {
     id: 's4-f5-parser-grenze-lk', station: 4, format: 'F5', level: 'LK', source: 'static',
     kern: 'parser-grenze',
-    prompt: 'Beim Dependenzparsing muss die Maschine entscheiden, wer im Satz der „Kopf" ist. „Ich lege den Schlüssel auf den Tisch." – zwei mögliche Analysen der Präpositionalphrase:',
+    prompt: 'Beim Dependenzparsing muss die Maschine entscheiden, wer im Satz der „Kopf“ ist. „Ich lege den Schlüssel auf den Tisch.“ – zwei mögliche Analysen der Präpositionalphrase:',
     metasprache: ['Dependenz', 'Kopf', 'Annotation'],
     payload: {
       table: [
-        { verbindung: 'A · „Tisch" hängt direkt am Verb „legen" (Inhaltswort als Kopf; „auf" ist nur Markierung)' },
-        { verbindung: 'B · „auf" hängt am Verb, „Tisch" hängt an „auf" (Präposition als Kopf)' },
+        { verbindung: 'A · „Tisch“ hängt direkt am Verb „legen“ (Inhaltswort als Kopf; „auf“ ist nur Markierung)' },
+        { verbindung: 'B · „auf“ hängt am Verb, „Tisch“ hängt an „auf“ (Präposition als Kopf)' },
       ],
       columns: ['verbindung'],
       questions: [
@@ -751,8 +751,8 @@ const TASKS = [
         q2: {
           rubric: {
             criteria: [
-              'UD nutzt Inhaltswort-Primat: „Tisch" hängt am Verb, „auf" ist Markierung (case)',
-              'hängt der Parser falsch (z. B. „auf" als Kopf), wird das Paar „legen … Tisch" nicht als solches gezählt',
+              'UD nutzt Inhaltswort-Primat: „Tisch“ hängt am Verb, „auf“ ist Markierung (case)',
+              'hängt der Parser falsch (z. B. „auf“ als Kopf), wird das Paar „legen … Tisch“ nicht als solches gezählt',
               'Annotationsfehler verfälschen direkt die Kollokationsstatistik',
             ],
             minHits: 2,
@@ -763,8 +763,8 @@ const TASKS = [
     feedback: {
       byLevel: {
         LK: {
-          onCorrect: 'Korrekt – Universal Dependencies wählt das Inhaltswort als Kopf: „Tisch" hängt am Verb, „auf" ist nur die Fallmarkierung. Hängt der Parser falsch, zählt die App das Paar „legen … Tisch" nicht – ein Annotationsfehler verzerrt die Statistik.',
-          onWrong: 'Unser Parser folgt dem Inhaltswort-Primat (UD): das Nomen „Tisch" ist Kopf, die Präposition „auf" nur Markierung.',
+          onCorrect: 'Korrekt – Universal Dependencies wählt das Inhaltswort als Kopf: „Tisch“ hängt am Verb, „auf“ ist nur die Fallmarkierung. Hängt der Parser falsch, zählt die App das Paar „legen … Tisch“ nicht – ein Annotationsfehler verzerrt die Statistik.',
+          onWrong: 'Unser Parser folgt dem Inhaltswort-Primat (UD): das Nomen „Tisch“ ist Kopf, die Präposition „auf“ nur Markierung.',
         },
       },
       tonalitaet: 'woerterbuch-nuechtern',
@@ -776,7 +776,7 @@ const TASKS = [
   {
     id: 's4-f5-korpusbias-lk', station: 4, format: 'F5', level: 'LK', source: 'corpus-template',
     kern: 'korpusbias',
-    prompt: 'Datenblick „Diskussion": Welches Verb bindet am stärksten – und was verrät das über das Korpus?',
+    prompt: 'Datenblick „Diskussion“: Welches Verb bindet am stärksten – und was verrät das über das Korpus?',
     metasprache: ['Korpusabhängigkeit', 'Korpus-Bias', 'Validität', 'logDice'],
     corpusQuery: Q_DISK_VERB,
     // logDice:1 ist hier zugleich freq:1 (eröffnen) → 4. Zeile = logDice:4 statt
@@ -786,7 +786,7 @@ const TASKS = [
       table: '@from:bindings.tableRows',
       columns: ['verbindung', 'frequency', 'logDice'],
       questions: [
-        { id: 'q1', text: 'Welches Verb bindet am stärksten an „Diskussion"?', kind: 'pick-row' },
+        { id: 'q1', text: 'Welches Verb bindet am stärksten an „Diskussion“?', kind: 'pick-row' },
         { id: 'q2', text: 'Begründe, wie die Zusammensetzung des Korpus (z. B. viele parlamentarische Texte) diesen Befund beeinflussen kann.', kind: 'explain' },
         { id: 'q3', text: 'Nenne zwei Faktoren, die die Verlässlichkeit eines Korpus-Befunds einschränken.', kind: 'explain' },
       ],
@@ -798,8 +798,8 @@ const TASKS = [
         q2: {
           rubric: {
             criteria: [
-              '„{{logDice:1.lemma}}" ist sehr stark gebunden (logDice {{logDice:1.logDice}})',
-              'ein parlamentarisch/amtlich geprägtes Korpus hebt „Diskussion {{logDice:1.lemma}}/schließen" an',
+              '„{{logDice:1.lemma}}“ ist sehr stark gebunden (logDice {{logDice:1.logDice}})',
+              'ein parlamentarisch/amtlich geprägtes Korpus hebt „Diskussion {{logDice:1.lemma}}/schließen“ an',
               'Befunde sind korpusabhängig',
             ],
             minHits: 2,
@@ -816,8 +816,8 @@ const TASKS = [
     feedback: {
       byLevel: {
         LK: {
-          onCorrect: 'Korrekt – „{{logDice:1.lemma}}" bindet extrem stark (logDice {{logDice:1.logDice}}). Das dürfte u. a. am hohen Anteil parlamentarischer/amtlicher Texte liegen: Befunde sind korpusabhängig.',
-          onWrong: 'Hoher logDice heißt „stark gebunden" – aber frage immer, woher die Daten stammen. Das Korpus prägt den Befund.',
+          onCorrect: 'Korrekt – „{{logDice:1.lemma}}“ bindet extrem stark (logDice {{logDice:1.logDice}}). Das dürfte u. a. am hohen Anteil parlamentarischer/amtlicher Texte liegen: Befunde sind korpusabhängig.',
+          onWrong: 'Hoher logDice heißt „stark gebunden“ – aber frage immer, woher die Daten stammen. Das Korpus prägt den Befund.',
         },
       },
       merksatz: 'Ein Beleg stützt ein Urteil – er ersetzt nicht den Blick auf seine Quelle.',
@@ -829,14 +829,14 @@ const TASKS = [
   {
     id: 's4-f4-methodenkritik2-lk', station: 4, format: 'F4', level: 'LK', source: 'corpus-template',
     kern: 'logdice-deuten',
-    prompt: 'Deute logDice {{logDice:1.logDice}} für „{{logDice:1.lemma}} Applaus": Wähle die korrekte Aussage und begründe – inklusive einer Grenze des Maßes.',
+    prompt: 'Deute logDice {{logDice:1.logDice}} für „{{logDice:1.lemma}} Applaus“: Wähle die korrekte Aussage und begründe – inklusive einer Grenze des Maßes.',
     metasprache: ['Assoziationsmaß', 'Skala bis 14', 'Korpus-Bias'],
     corpusQuery: Q_APPLAUS_ADJ,
     bindings: { answer: ['logDice:1'] },
     payload: {
-      sentence: 'Aussage über „{{logDice:1.lemma}} Applaus" (logDice {{logDice:1.logDice}}): ___',
+      sentence: 'Aussage über „{{logDice:1.lemma}} Applaus“ (logDice {{logDice:1.logDice}}): ___',
       options: [
-        { id: 'o1', label: 'stark an „Applaus" gebunden – sagt aber nichts über Bedeutung/Kontext' },
+        { id: 'o1', label: 'stark an „Applaus“ gebunden – sagt aber nichts über Bedeutung/Kontext' },
         { id: 'o2', label: 'die schönste Verbindung' },
         { id: 'o3', label: 'die einzig korrekte Verbindung' },
       ],
@@ -857,9 +857,9 @@ const TASKS = [
     feedback: {
       byLevel: {
         LK: {
-          onCorrect: 'Korrekt – logDice {{logDice:1.logDice}} zeigt: „{{logDice:1.lemma}}" ist exklusiv an „Applaus" gebunden. Die Zahl sagt nichts über Bedeutung, Stilwert, Kontext oder Korpus-Zusammensetzung.',
+          onCorrect: 'Korrekt – logDice {{logDice:1.logDice}} zeigt: „{{logDice:1.lemma}}“ ist exklusiv an „Applaus“ gebunden. Die Zahl sagt nichts über Bedeutung, Stilwert, Kontext oder Korpus-Zusammensetzung.',
           onChoice: {
-            '@selected': 'logDice ist ein statistisches Bindungsmaß – kein Werturteil. Trenne „stark gebunden" von „schön/korrekt".',
+            '@selected': 'logDice ist ein statistisches Bindungsmaß – kein Werturteil. Trenne „stark gebunden“ von „schön/korrekt“.',
           },
         },
       },
@@ -871,17 +871,17 @@ const TASKS = [
   {
     id: 's4-f5-annotationsgrenze-lk', station: 4, format: 'F5', level: 'LK', source: 'static',
     kern: 'annotation-grenze',
-    prompt: 'Beim POS-Tagging muss die Maschine jedem Wort eine Wortart zuweisen. „Die Läufer wurden ausgetauscht." – „Läufer" ist mehrdeutig (Sportler / Teppich / Schachfigur). Zwei mögliche Annotationen:',
+    prompt: 'Beim POS-Tagging muss die Maschine jedem Wort eine Wortart zuweisen. „Die Läufer wurden ausgetauscht.“ – „Läufer“ ist mehrdeutig (Sportler / Teppich / Schachfigur). Zwei mögliche Annotationen:',
     metasprache: ['Annotation', 'POS-Tagging', 'Homonym'],
     payload: {
       table: [
-        { verbindung: 'A · „Läufer" = Person (Sportler), Verb „austauschen" = auswechseln' },
-        { verbindung: 'B · „Läufer" = Gegenstand (Schachfigur/Teppich), Verb „austauschen" = ersetzen' },
+        { verbindung: 'A · „Läufer“ = Person (Sportler), Verb „austauschen“ = auswechseln' },
+        { verbindung: 'B · „Läufer“ = Gegenstand (Schachfigur/Teppich), Verb „austauschen“ = ersetzen' },
       ],
       columns: ['verbindung'],
       questions: [
-        { id: 'q1', text: 'Warum kann die Maschine „Läufer" hier nicht sicher zuordnen, und wovon hängt die richtige Deutung ab?', kind: 'explain' },
-        { id: 'q2', text: 'Wenn der Tagger „Läufer" systematisch falsch deutet: Welche Folge hat das für die Kollokationsstatistik? Begründe.', kind: 'explain' },
+        { id: 'q1', text: 'Warum kann die Maschine „Läufer“ hier nicht sicher zuordnen, und wovon hängt die richtige Deutung ab?', kind: 'explain' },
+        { id: 'q2', text: 'Wenn der Tagger „Läufer“ systematisch falsch deutet: Welche Folge hat das für die Kollokationsstatistik? Begründe.', kind: 'explain' },
       ],
     },
     display: { showMetrics: false, metric: 'none' },
@@ -890,7 +890,7 @@ const TASKS = [
         q1: {
           rubric: {
             criteria: [
-              '„Läufer" ist ein Homonym – dieselbe Form, verschiedene Bedeutungen',
+              '„Läufer“ ist ein Homonym – dieselbe Form, verschiedene Bedeutungen',
               'nur der weitere Kontext (hier unentschieden) entscheidet die Lesart',
               'die Maschine tagt nach Wahrscheinlichkeit, nicht nach Verstehen',
             ],
@@ -912,7 +912,7 @@ const TASKS = [
     feedback: {
       byLevel: {
         LK: {
-          onCorrect: 'Korrekt – „Läufer" ist ein Homonym; ohne eindeutigen Kontext rät der Tagger. Ordnet er systematisch falsch zu, vermischen sich die Kollokationszahlen der Lesarten – der Annotationsfehler verzerrt die Statistik.',
+          onCorrect: 'Korrekt – „Läufer“ ist ein Homonym; ohne eindeutigen Kontext rät der Tagger. Ordnet er systematisch falsch zu, vermischen sich die Kollokationszahlen der Lesarten – der Annotationsfehler verzerrt die Statistik.',
           onWrong: 'Ein Homonym hat mehrere Bedeutungen bei gleicher Form. Tagt die Maschine falsch, zählt sie Belege in der falschen Klasse – die Statistik kippt.',
         },
       },

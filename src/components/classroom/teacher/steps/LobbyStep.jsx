@@ -25,7 +25,7 @@ export default function LobbyStep() {
   const [allowLateJoin, setAllowLateJoin] = useState(true)
 
   // Initial-Load: aktueller Session-Snapshot + Teilnehmer.
-  // (Auch unter „lobby" liefert der Dashboard-Endpunkt diese Daten.)
+  // (Auch unter „lobby“ liefert der Dashboard-Endpunkt diese Daten.)
   useEffect(() => {
     let cancelled = false
     if (!sessionId) return undefined
@@ -135,7 +135,7 @@ export default function LobbyStep() {
       testId="classroom-lobby"
       title="Lobby"
       label="Live-Sitzung"
-      lead="Teile den Code — warte auf die Klasse."
+      lead="Teile den Code – warte auf die Klasse."
       backLabel="Zurück zur Übersicht"
       onBack={() => dispatch({ type: 'GO_TO_LIST' })}
     >

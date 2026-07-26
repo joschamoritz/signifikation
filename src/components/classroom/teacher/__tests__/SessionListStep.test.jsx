@@ -54,7 +54,7 @@ describe('SessionListStep (T-4.3)', () => {
     expect(document.querySelector('.classroom-empty__ornament')).toBeTruthy()
   })
 
-  it('rendert eine Session-Karte und den Floating-CTA „+ Neue Session"', async () => {
+  it('rendert eine Session-Karte und den Floating-CTA „+ Neue Session“', async () => {
     listSessions.mockResolvedValue({
       sessions: [{
         id: 's1',

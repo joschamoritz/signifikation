@@ -43,7 +43,7 @@ export function assertCompleteMode(mode) {
   }
   for (const fn of REQUIRED_FNS) {
     if (typeof mode[fn] !== 'function') {
-      throw new Error(`Modus-Registry: Modus "${mode.id}" unvollstaendig — Funktion "${fn}" fehlt`)
+      throw new Error(`Modus-Registry: Modus "${mode.id}" unvollstaendig – Funktion "${fn}" fehlt`)
     }
   }
   return mode

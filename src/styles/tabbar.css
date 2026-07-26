@@ -1,6 +1,6 @@
 /* ── Tab Bar (schwebende Liquid-Glass-Pill) ─────────────────────
    Bewusste DESIGN-Abweichung (radius>4px + dezenter Schatten): die
-   Leiste schwebt wie eine iOS-26-„Insel". Glas bleibt pergament-getönt
+   Leiste schwebt wie eine iOS-26-„Insel“. Glas bleibt pergament-getönt
    und matt (niedrige Saturation), Schatten warm statt Material-grau. */
 .tab-bar {
   position: fixed;
@@ -74,7 +74,7 @@
 
 /* ── Scroll-Edge-Effekt ──────────────────────────────────────
    iOS 26 trennt die Leiste vom Inhalt, solange Content darunter
-   durchläuft, und lässt sie „flach werden", sobald nichts mehr
+   durchläuft, und lässt sie „flach werden“, sobald nichts mehr
    dahinter liegt (Seitenende oder nicht scrollbare Seite).
    Klasse wird in TabBar.jsx gesetzt. */
 .tab-bar--flat {
@@ -112,7 +112,7 @@
   height: 100%;
 }
 
-/* Gleitende, angehobene Glas-„Lens" hinter dem aktiven Tab (iOS-26-Signature).
+/* Gleitende, angehobene Glas-„Lens“ hinter dem aktiven Tab (iOS-26-Signature).
    Heller als die Leiste + Lift-Schatten + Lichtkante → wirkt wie eine
    schwebende Glas-Blase; das Akzent-Signal trägt der rote Icon+Label-Inhalt.
    Position/Breite aus --active-index / --tab-count; gleitet beim Wechsel. */
@@ -139,7 +139,7 @@
 }
 
 /* Morph: die Kapsel zieht sich in Bewegungsrichtung lang und schnappt zurück –
-   sie „fließt" zum neuen Tab statt starr zu rutschen. Zwei identische
+   sie „fließt“ zum neuen Tab statt starr zu rutschen. Zwei identische
    Keyframe-Sets, weil TabBar.jsx zwischen ihnen alterniert; nur so startet die
    Animation bei jedem Wechsel sicher neu (auch bei schnellen Taps). */
 @keyframes tabMorphA {

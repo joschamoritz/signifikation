@@ -1,7 +1,7 @@
 /**
  * server/course/lesson/station-3.js
  *
- * Unterrichtsentwurf + Beamer-Spec für Station ③ „Wer hängt an wem?"
+ * Unterrichtsentwurf + Beamer-Spec für Station ③ „Wer hängt an wem?“
  * (grammatische Abhängigkeiten / Slots). Folgt Kurs-Didaktik-Standards §1/§1a/§2/§3/§4.
  *
  * Quelle: planning/Kurs-Station-3-Abhaengigkeiten.md §6 + planning/Kurs-Didaktik-Standards.
@@ -14,7 +14,7 @@ export const entwurf3 = {
   niveau: 'SekI',
   uv: 'Sprache unter der Lupe – Wortverbindungen zwischen freier Wahl und festem Muster',
   sequenz: 'Station ③ · Wer hängt an wem? (Grammatische Abhängigkeiten)',
-  stundenthema: '„Feste Plätze im Satz" – Grammatische Abhängigkeiten erkennen und typische Wortverbindungen in ihren Slots verorten',
+  stundenthema: '„Feste Plätze im Satz“ – Grammatische Abhängigkeiten erkennen und typische Wortverbindungen in ihren Slots verorten',
   phasenmodell: 'von Brand, Modell 1 (neu erlernen · sichern · anwenden)',
 
   uvZiele: [
@@ -27,50 +27,50 @@ export const entwurf3 = {
 
   dreiklang: {
     gegenstand: 'Syntaktische Funktionen und Dependenz',
-    thema: '„Feste Plätze im Satz" – grammatische Abhängigkeiten erkennen und typische Wortverbindungen in ihren Slots verorten.',
-    splz: 'Die SuS verorten typische Wortverbindungen in der Satzstruktur, indem sie Subjekt, Prädikat und Objekt bestimmen und die Rolle des Kollokations-Nomens zeigen; Sek II: d. h. im Einzelnen die Kopf-Dependent-Relation darstellen und am Paar „eine Entscheidung treffen" (Objekt-Slot) / „eine Entscheidung fällt" (Subjekt-Slot) erklären, warum der Slot den Verbpartner bestimmt.',
+    thema: '„Feste Plätze im Satz“ – grammatische Abhängigkeiten erkennen und typische Wortverbindungen in ihren Slots verorten.',
+    splz: 'Die SuS verorten typische Wortverbindungen in der Satzstruktur, indem sie Subjekt, Prädikat und Objekt bestimmen und die Rolle des Kollokations-Nomens zeigen; Sek II: d. h. im Einzelnen die Kopf-Dependent-Relation darstellen und am Paar „eine Entscheidung treffen“ (Objekt-Slot) / „eine Entscheidung fällt“ (Subjekt-Slot) erklären, warum der Slot den Verbpartner bestimmt.',
     wwlz: 'Die SuS beurteilen den Nutzen von Strukturwissen, indem sie einschätzen, was die Slot-Perspektive für das Verstehen von Kollokationen über die bloße Wortliste hinaus leistet.',
     kompetenzbezug: 'KLP Deutsch Sek I (G9) 2019, Inhaltsfeld 1 Sprache – Satzebene: Satzglieder, Satzbaupläne. KLP Deutsch Sek II 2025, Inhaltsfeld Sprache – syntaktische Aspekte; semantische und pragmatische Aspekte.',
   },
-  begruendungStunde: 'Die Stunde trennt die beiden Medien in zwei konzentrierte Blöcke, statt sie zu verzahnen – so entfällt der lernhemmende Medienwechsel mitten in der Bearbeitung (Kurs-Didaktik-Standards §5). Der Einstieg nutzt den Kontrast „Er trifft eine Entscheidung" / „Die Entscheidung fällt" als kognitiven Konflikt (gleicher Wortschatz, andere Verben → Bedarf für die Slot-Analyse). Das begleitende Arbeitsblatt trägt danach die Erarbeitung: Satzglieder + operationale Proben (Sek I) und Valenz/Dependenz Kopf–Dependent (Sek II) werden – nach kurzem Plenums-Auftakt – strukturiert erarbeitet und erstmals angewandt. Die digitale Station übernimmt die vertiefte Anwendung (S/P/O bestimmen, Kopf-Dependent markieren, Slot bestimmen) als eigener Block. S/P/O-Labels statt Farbcodierung entsprechen §5 (Bedeutung nie nur über Farbe).',
+  begruendungStunde: 'Die Stunde trennt die beiden Medien in zwei konzentrierte Blöcke, statt sie zu verzahnen – so entfällt der lernhemmende Medienwechsel mitten in der Bearbeitung (Kurs-Didaktik-Standards §5). Der Einstieg nutzt den Kontrast „Er trifft eine Entscheidung“ / „Die Entscheidung fällt“ als kognitiven Konflikt (gleicher Wortschatz, andere Verben → Bedarf für die Slot-Analyse). Das begleitende Arbeitsblatt trägt danach die Erarbeitung: Satzglieder + operationale Proben (Sek I) und Valenz/Dependenz Kopf–Dependent (Sek II) werden – nach kurzem Plenums-Auftakt – strukturiert erarbeitet und erstmals angewandt. Die digitale Station übernimmt die vertiefte Anwendung (S/P/O bestimmen, Kopf-Dependent markieren, Slot bestimmen) als eigener Block. S/P/O-Labels statt Farbcodierung entsprechen §5 (Bedeutung nie nur über Farbe).',
 
   verlauf: [
     {
-      phase: 'I Stundeneröffnung — Einstieg', anteil: 'Anteil 1',
+      phase: 'I Stundeneröffnung – Einstieg', anteil: 'Anteil 1',
       schritte: [
-        { schritt: 'Zwei Sätze an der Tafel: „Er trifft eine Entscheidung." / „Die Entscheidung fällt morgen." Impuls: „Beide Male ‚Entscheidung\' – aber andere Verben. Warum?"', kommentar: 'Kognitiver Konflikt; macht Slot-Abhängigkeit als Problem sichtbar (Sachaspekt: Verb ≠ frei wählbar bei gegebenem Nomen).', interaktion: 'Plenum / LSG', medien: 'Beamer-Folie 1 (Slot-Kontrast)' },
+        { schritt: 'Zwei Sätze an der Tafel: „Er trifft eine Entscheidung.“ / „Die Entscheidung fällt morgen.“ Impuls: „Beide Male ‚Entscheidung\' – aber andere Verben. Warum?“', kommentar: 'Kognitiver Konflikt; macht Slot-Abhängigkeit als Problem sichtbar (Sachaspekt: Verb ≠ frei wählbar bei gegebenem Nomen).', interaktion: 'Plenum / LSG', medien: 'Beamer-Folie 1 (Slot-Kontrast)' },
       ],
     },
     {
-      phase: 'II Stundenmitte — Erarbeitung (Arbeitsblatt, am Stück)', anteil: 'Anteil 3',
+      phase: 'II Stundenmitte – Erarbeitung (Arbeitsblatt, am Stück)', anteil: 'Anteil 3',
       schritte: [
-        { schritt: 'Kurzer Plenums-Auftakt: „Das Gericht trifft eine Entscheidung." → S/P/O mit Buchstaben beschriften, Frageprobe einführen (Wer? / Was tut? / Wen-Was?).', kommentar: 'Modelliert das Werkzeug; Buchstaben-Label statt Farbe (§5 Barrierearmut).', interaktion: 'Plenum → LSG', medien: 'Beamer / Tafel' },
-        { schritt: 'Begleit-Arbeitsblatt durchgehend bearbeiten: Wissensblöcke (Satzglieder + operationale Proben; Valenz/Dependenz Kopf–Dependent; „der Slot bestimmt den Partner"), Merksatz, dann die eigenen Aufgaben – differenziert nach Niveau.', kommentar: 'Neu erlernen + erste Anwendung auf Papier, am Stück; das Satzglied-/Dependenz-Wissen bleibt als Referenz. Belege (Gallmann, Lehmkuhle, Schütze, Ágel).', interaktion: 'EA → Partnerarbeit', medien: 'Arbeitsblatt (Wissen + Aufgaben)' },
+        { schritt: 'Kurzer Plenums-Auftakt: „Das Gericht trifft eine Entscheidung.“ → S/P/O mit Buchstaben beschriften, Frageprobe einführen (Wer? / Was tut? / Wen-Was?).', kommentar: 'Modelliert das Werkzeug; Buchstaben-Label statt Farbe (§5 Barrierearmut).', interaktion: 'Plenum → LSG', medien: 'Beamer / Tafel' },
+        { schritt: 'Begleit-Arbeitsblatt durchgehend bearbeiten: Wissensblöcke (Satzglieder + operationale Proben; Valenz/Dependenz Kopf–Dependent; „der Slot bestimmt den Partner“), Merksatz, dann die eigenen Aufgaben – differenziert nach Niveau.', kommentar: 'Neu erlernen + erste Anwendung auf Papier, am Stück; das Satzglied-/Dependenz-Wissen bleibt als Referenz. Belege (Gallmann, Lehmkuhle, Schütze, Ágel).', interaktion: 'EA → Partnerarbeit', medien: 'Arbeitsblatt (Wissen + Aufgaben)' },
       ],
     },
     {
-      phase: 'II Stundenmitte — Plateaubildung', anteil: 'Anteil 1',
+      phase: 'II Stundenmitte – Plateaubildung', anteil: 'Anteil 1',
       schritte: [
         { schritt: 'Plenums-Sicherung: Frageprobe (Wer?→S; Was tut?→P; Wen/Was?→O) + Slot-Übersicht (Objekt- vs. Subjekt-Slot); zentrale AB-Ergebnisse vergleichen.', kommentar: 'Plateau: alle für die Anwendungsphase arbeitsfähig; Übergang vom Papier zum Gerät.', interaktion: 'Plenum', medien: 'Tafel' },
       ],
     },
     {
-      phase: 'II Stundenmitte — Anwendung (digitale Station, am Stück)', anteil: 'Anteil 2',
+      phase: 'II Stundenmitte – Anwendung (digitale Station, am Stück)', anteil: 'Anteil 2',
       schritte: [
         { schritt: 'Digitale Station ③ im Kurs-Tab durchgehend: Satzglieder S/P/O bestimmen, Kopf-Dependent markieren, den Slot bestimmen – mit Sofort-Feedback.', kommentar: 'Vertiefte Anwendung der gesicherten Werkzeuge als eigener Block; die App prüft die Bestimmung unmittelbar. Nach dem AB, kein Medienwechsel mitten in der Bearbeitung.', interaktion: 'Einzel-/Partnerarbeit', medien: 'Kurs-Tab (digitale Station)' },
       ],
     },
     {
-      phase: 'III Stundenabschluss — Ergebnissicherung', anteil: 'Anteil 1',
+      phase: 'III Stundenabschluss – Ergebnissicherung', anteil: 'Anteil 1',
       schritte: [
-        { schritt: 'Auflösung: Slot-Wechsel-Analyse – warum *treffen* ≠ *fallen* (Objekt- vs. Subjekt-Slot); Merksatz: „Kollokationen sind nicht nur Wortpaare, sie sitzen in grammatischen Slots."', kommentar: 'Verankert wwLz (Nutzen von Strukturwissen); bereitet Brücke zu ④ (Korpus misst Slot-Besetzungen) vor.', interaktion: 'Plenum', medien: 'Beamer-Folie 3 (Schluss)' },
+        { schritt: 'Auflösung: Slot-Wechsel-Analyse – warum *treffen* ≠ *fallen* (Objekt- vs. Subjekt-Slot); Merksatz: „Kollokationen sind nicht nur Wortpaare, sie sitzen in grammatischen Slots.“', kommentar: 'Verankert wwLz (Nutzen von Strukturwissen); bereitet Brücke zu ④ (Korpus misst Slot-Besetzungen) vor.', interaktion: 'Plenum', medien: 'Beamer-Folie 3 (Schluss)' },
         { schritt: 'Transfer/HA: eigenes Nomen wählen, beide Slots suchen; am Kurs-Tab überprüfen.', kommentar: 'Produktive Anwendung des Slot-Konzepts auf eigenem Vokabular.', interaktion: 'EA', medien: 'Kurs-Tab' },
       ],
     },
   ],
 
   anhang: [
-    'Antizipiertes Tafelbild: Frageprobe-Tabelle (Wer?→S / Was tut?→P / Wen/Was?→O) + Slot-Kontrast „Entscheidung" (Objekt: treffen/fällen; Subjekt: fällt/ergeht).',
+    'Antizipiertes Tafelbild: Frageprobe-Tabelle (Wer?→S / Was tut?→P / Wen/Was?→O) + Slot-Kontrast „Entscheidung“ (Objekt: treffen/fällen; Subjekt: fällt/ergeht).',
     'Material: begleitendes Arbeitsblatt (Wissen + eigene Aufgaben) + Erwartungshorizont (aus demselben Content-Modell) + Beamer-Folien; digitale Station ③ im Kurs-Tab. Buchstaben-Label S/P/O (nicht nur Farbe).',
     'Zusammenspiel der Medien (zwei getrennte Blöcke, kein Wechsel mitten in der Bearbeitung): Arbeitsblatt = Erarbeitung (Satzglieder/Proben + Dependenz sichern + erste Anwendung); digitale Station = vertiefte Anwendung (S/P/O, Kopf-Dependent, Slot interaktiv).',
     'Differenzierung: Sek I bis Satzglied-Bestimmung + Nomen-Rolle; Sek II bis Kopf-Dependent + Slot-Wechsel.',
@@ -82,13 +82,13 @@ export const entwurf3 = {
 
 // Beamer stützt Einstieg + Plenums-Auftakt (Werkzeug modellieren) + Sicherung.
 // Fachbegriffe/Merksatz wie im AB; Slot-Kontrast an einem frischen Nomen
-// („Antrag") statt „Entscheidung treffen/fällt" (= AB-Sek-II-Aufgabe 3).
+// („Antrag“) statt „Entscheidung treffen/fällt“ (= AB-Sek-II-Aufgabe 3).
 export const beamer3 = {
   slides: [
-    { kind: 'title', kicker: 'Signifikation · Kurs · Station ③', title: 'Wer hängt an wem?', lead: '„einen Antrag stellen" – aber „der Antrag scheitert". Gleicher Wortschatz, andere Verben. Warum?' },
+    { kind: 'title', kicker: 'Signifikation · Kurs · Station ③', title: 'Wer hängt an wem?', lead: '„einen Antrag stellen“ – aber „der Antrag scheitert“. Gleicher Wortschatz, andere Verben. Warum?' },
     { kind: 'bullets', kicker: 'Das Werkzeug', title: 'Derselbe Wortschatz – zwei Rollen', bullets: [
-      '„Sie stellt [einen Antrag]O." → Antrag im Objekt-Slot → stellen / einbringen.',
-      '„[Der Antrag]S scheitert." → Antrag im Subjekt-Slot → scheitern / eingehen.',
+      '„Sie stellt [einen Antrag]O.“ → Antrag im Objekt-Slot → stellen / einbringen.',
+      '„[Der Antrag]S scheitert.“ → Antrag im Subjekt-Slot → scheitern / eingehen.',
       'S/P/O mit Buchstaben-Label (nicht nur Farbe – wer die Farbe nicht sieht, sieht das Label).',
     ] },
     { kind: 'bullets', kicker: 'Das Werkzeug', title: 'Kopf und Dependent', bullets: [

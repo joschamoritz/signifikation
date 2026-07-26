@@ -5,7 +5,7 @@
 // Reicht die bestehenden Bausteine wieder: getTodayLemmata + createSession +
 // addAssignments + GO_TO_LOBBY. Wenn es heute keine Kollokationen-Tageswörter
 // gibt (kein Kalendereintrag), ist der Schnellstart NICHT verfügbar (available
-// = false) — die UI zeigt dann nur den normalen „Neue Sitzung"-Weg.
+// = false) — die UI zeigt dann nur den normalen „Neue Sitzung“-Weg.
 
 import { useState, useEffect, useCallback } from 'react'
 import { useTeacherClassroom } from '../TeacherClassroomContext'
@@ -47,7 +47,7 @@ export function useQuickStartSession() {
       dispatch({ type: 'GO_TO_LOBBY', sessionId: session.id })
       // busy bleibt true bis zum Step-Wechsel — verhindert Doppel-Tipp.
     } catch (err) {
-      setError(err?.message || 'Schnellstart fehlgeschlagen — versuch es manuell.')
+      setError(err?.message || 'Schnellstart fehlgeschlagen – versuch es manuell.')
       setBusy(false)
     }
   }, [busy, available, todayIds, dispatch])

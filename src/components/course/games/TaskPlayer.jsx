@@ -47,9 +47,9 @@ function registryKey(task) {
   return task?.format
 }
 
-// onChecked: optional, wird bei „Prüfen" mit dem Ergebnis (true|false|null)
+// onChecked: optional, wird bei „Prüfen“ mit dem Ergebnis (true|false|null)
 //   ausgelöst — Pager-Zählung + Persistenz (TaskGate) hängen daran.
-// canRetry/lockedNote: von TaskGate gesetzt — false sperrt „Nochmal" nach Abgabe.
+// canRetry/lockedNote: von TaskGate gesetzt — false sperrt „Nochmal“ nach Abgabe.
 export default function TaskPlayer({ task, index, onChecked, canRetry = true, lockedNote = null }) {
   const Comp = REGISTRY[registryKey(task)]
   if (!Comp) {

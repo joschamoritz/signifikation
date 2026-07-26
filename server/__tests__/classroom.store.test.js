@@ -1152,7 +1152,7 @@ describe('classroom/store', () => {
     // einen winzigen Epoch-Wert und waehlen `now` klein. Bedingung ist
     // `finished_at <= threshold`; reale Zeilen (finished_at ~1.7e12) liegen weit
     // ueber jeder hier abgeleiteten Schwelle und werden so nie erfasst.
-    const AGED = 1_000_000 // ~1970, beliebig „alt"
+    const AGED = 1_000_000 // ~1970, beliebig „alt“
 
     // Beendete Session mit 1 Teilnehmer (Klarname) + 1 Submission; finished_at
     // wird auf `agedAt` zurueckdatiert.

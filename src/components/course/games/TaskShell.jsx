@@ -1,6 +1,6 @@
 // Geteiltes Gerüst der interaktiven Aufgaben: Kopf (Prompt + Metasprache),
 // Feedback-Block (datengestützt, niveauabhängig) und Beleg-Hinweis.
-// Wörterbuch-Stil, kein Quiz-App-Lärm (Engine-Spec §8 „woerterbuch-nuechtern").
+// Wörterbuch-Stil, kein Quiz-App-Lärm (Engine-Spec §8 „woerterbuch-nuechtern“).
 
 import { fillSelected } from './fmt'
 import { NIVEAU_LABELS } from '../useGlobalNiveau'
@@ -8,7 +8,7 @@ import { NIVEAU_LABELS } from '../useGlobalNiveau'
 /**
  * Aufgaben-Kopf: Format-Badge (als Überschrift), Prompt, Metasprache-Chips.
  * index === false → Badge unterdrücken (der mobile Pager liefert die
- * fokussierbare „Aufgabe X von N"-Überschrift selbst, sonst doppelt).
+ * fokussierbare „Aufgabe X von N“-Überschrift selbst, sonst doppelt).
  *
  * Das Badge ist ein <h3>, damit Screenreader die Desktop-Aufgabenliste per
  * Überschrift navigieren können (Stationstitel = h2). Optik bleibt via
@@ -23,7 +23,7 @@ export function TaskHead({ task, index }) {
         <div className="course-task-head">
           <h3 className="course-task-format">{index != null ? `Aufgabe ${index}` : 'Aufgabe'}</h3>
           {niveauLabel && (
-            <span className="course-task-niveau" title="Niveaustufe dieser Aufgabe">{niveauLabel}</span>
+            <span className="course-task-niveau" title="Differenzierungsstufe dieser Aufgabe">{niveauLabel}</span>
           )}
         </div>
       )}
@@ -42,7 +42,7 @@ export function TaskHead({ task, index }) {
 
 /**
  * Dauerhaft gemountete Live-Region für das Aufgaben-Feedback. Sie liegt leer im
- * DOM und wird nach „Prüfen" befüllt — eine erst beim Prüfen gemountete
+ * DOM und wird nach „Prüfen“ befüllt — eine erst beim Prüfen gemountete
  * aria-live-Region wird von vielen Screenreadern verschluckt. Daher tragen die
  * Feedback-Blöcke darin selbst KEIN role/aria-live mehr.
  */
@@ -55,11 +55,11 @@ export function FeedbackRegion({ children }) {
 }
 
 /**
- * „Prüfen" / „Nochmal"-Leiste.
- * @param {boolean} [props.canReset=true]  „Nochmal" anbieten? false → nach
+ * „Prüfen“ / „Nochmal“-Leiste.
+ * @param {boolean} [props.canReset=true]  „Nochmal“ anbieten? false → nach
  *   Abgabe gesperrt (kuratierte Aufgaben werden ans Konto gebunden und sind nur
- *   über den Reset im Profil neu spielbar). „Eigenes Lemma" bleibt frei (true).
- * @param {string} [props.lockedNote]  dezenter Hinweis statt „Nochmal".
+ *   über den Reset im Profil neu spielbar). „Eigenes Lemma“ bleibt frei (true).
+ * @param {string} [props.lockedNote]  dezenter Hinweis statt „Nochmal“.
  */
 export function TaskActions({ checked, canCheck, onCheck, onReset, checkLabel = 'Prüfen', canReset = true, lockedNote = null }) {
   if (!checked) {
@@ -123,7 +123,7 @@ export function FeedbackBlock({ task, correct, selected = null, choiceKey, showR
         </div>
       )}
 
-      {fb.merksatz && <p className="course-fb-merksatz">„{fb.merksatz}"</p>}
+      {fb.merksatz && <p className="course-fb-merksatz">„{fb.merksatz}“</p>}
       {beleg && <p className="course-fb-beleg">Beleg: {beleg}</p>}
     </div>
   )
@@ -131,7 +131,7 @@ export function FeedbackBlock({ task, correct, selected = null, choiceKey, showR
 
 /**
  * Belegkontext: echte Korpussätze, die NACH der Aufgabe gezeigt werden
- * (AP21-QA „Anschaulichkeit ist der Kern der App"). Erscheint nur, wenn das
+ * (AP21-QA „Anschaulichkeit ist der Kern der App“). Erscheint nur, wenn das
  * aufgelöste Item belegContext trägt und die Aufgabe geprüft wurde.
  */
 export function BelegContext({ belege }) {

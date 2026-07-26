@@ -1,7 +1,7 @@
 // Verschiebeprobe am topologischen Feld (Feldermodell, Gallmann 2015). Die/der
 // Lernende zieht (oder tippt) Satzglieder zwischen Mittelfeld und Vorfeld. Kern-
 // einsicht: Im Aussagesatz (V2) steht GENAU EIN Satzglied im Vorfeld, das finite
-// Verb bleibt fest an Position 2 (linke Satzklammer). So wird „Satzglied" über
+// Verb bleibt fest an Position 2 (linke Satzklammer). So wird „Satzglied“ über
 // Verschiebbarkeit erfahrbar — statt die Probe zum Selbstzweck zu üben.
 //
 // Bedienung: Chunk antippen wählt ihn aus, dann Zielfeld antippen; oder Chunk
@@ -98,7 +98,7 @@ export default function VerschiebeTask({ task, index, onChecked, canRetry = true
   const reasonText = {
     leer: 'Im Vorfeld steht noch nichts. Zieh ein Satzglied vor das Verb.',
     mehrere: 'Es steht mehr als ein Satzglied im Vorfeld. Im Aussagesatz passt dort genau eines.',
-    'kein-satzglied': 'Das ist kein verschiebbares Satzglied — es lässt sich nicht als geschlossene Einheit ins Vorfeld stellen.',
+    'kein-satzglied': 'Das ist kein verschiebbares Satzglied – es lässt sich nicht als geschlossene Einheit ins Vorfeld stellen.',
   }
 
   return (

@@ -283,7 +283,7 @@ export function renderTemplateById(id, date = new Date()) {
 export function listTemplatesWithPreview(date = new Date()) {
   const dailyCtx = buildContext(date)
   // Streak-Templates mit Beispielwert vorschauen (sonst wäre {streak} immer
-  // "missing" und die Vorschau bliebe leer/„nicht versendbar").
+  // "missing" und die Vorschau bliebe leer/„nicht versendbar“).
   const streakCtx = buildContext(date, { streak: '5' })
   return listAllTemplatesStmt.all().map(t => {
     const ctx = t.category === 'streak' ? streakCtx : dailyCtx

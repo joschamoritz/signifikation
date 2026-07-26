@@ -7,14 +7,14 @@ export function useEntitlements() {
   const [gesamtausgabeUnlocked, setGesamtausgabeUnlocked] = useState(() => !!lsGet('sig_gesamtausgabe'))
   // Login-Status (für freies Kurs-Üben: Login statt Premium). Eigenes,
   // persistentes Flag: ein eingeloggter Basic-Nutzer (kein Premium) hat kein
-  // sig_gesamtausgabe → würde sonst beim App-Start kurz „Anmelden" sehen, bis
+  // sig_gesamtausgabe → würde sonst beim App-Start kurz „Anmelden“ sehen, bis
   // /entitlements antwortet. sig_logged_in überbrückt das (Premium impliziert
   // ebenfalls eingeloggt, daher als Fallback mit ODER verknüpft).
   const [loggedIn, setLoggedIn] = useState(() => !!lsGet('sig_logged_in') || !!lsGet('sig_gesamtausgabe'))
   const [classroomTeacher, setClassroomTeacher] = useState(false)
   // Eigenes-Lemma-Tageskontingent (Phase 4). Optimistisch aus dem gecachten
   // Premium-Flag vorbelegt, damit ein zurückkehrender Premium-Nutzer sofort
-  // „unbegrenzt" sieht; Server-Antwort ist maßgeblich.
+  // „unbegrenzt“ sieht; Server-Antwort ist maßgeblich.
   const [customLemma, setCustomLemma] = useState(() => (lsGet('sig_gesamtausgabe') ? { unlimited: true } : null))
 
   const syncEntitlementsFromResponse = useCallback((payload) => {
@@ -52,7 +52,7 @@ export function useEntitlements() {
       return await attempt()
     } catch {
       // Netzwerk-Glitch beim App-Start (häufig auf Mobile): einmaliger Retry mit
-      // kurzem Backoff, sonst bliebe ein eingeloggter Nutzer bei „Anmelden"
+      // kurzem Backoff, sonst bliebe ein eingeloggter Nutzer bei „Anmelden“
       // hängen, ohne dass ihm etwas angezeigt wird. Kein Timing-Hack — echter
       // Retry gegen einen transienten Fehler.
       await new Promise((r) => setTimeout(r, 1500))

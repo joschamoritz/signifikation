@@ -227,7 +227,7 @@ function synthWzLemma(id, pair) {
   }
 }
 
-// Laedt die Lemmata fuer ein Assignment: echte IDs aus der DB, „wz:"-Paar-IDs
+// Laedt die Lemmata fuer ein Assignment: echte IDs aus der DB, „wz:“-Paar-IDs
 // (Wort-Zwilling) als synthetische Objekte. → { lemmata, missing }.
 function loadAssignmentLemmata(lemmaIds) {
   const realIds = lemmaIds.filter((id) => !parseWzId(id))
@@ -345,7 +345,7 @@ router.post(
 )
 
 // ── W4 POST /api/v1/classroom/sessions/:id/duplicate ────────────
-// „Mit neuer Klasse wiederholen": klont Titel + Assignment-Bloecke in eine
+// „Mit neuer Klasse wiederholen“: klont Titel + Assignment-Bloecke in eine
 // frische Lobby-Session mit neuem Join-Code (ohne Teilnehmer/Abgaben).
 // requireCapability prueft session:manage auf der QUELL-Session (:id).
 router.post(
@@ -386,7 +386,7 @@ function lemmaModeFilter(mode) {
   // live aus Korpus/Belegen generiert (fetchZeitenwende / buildLueckenfueller /
   // fetchLemma). Jedes kuratierte Lemma ist also wählbar; ob es genug Eignung
   // hat, zeigt die Schüleransicht-Vorschau. (Früher beschränkte Zeitenwende auf
-  // ein gespeichertes runden.zeitenwende-Feld → „Keine Treffer" für eigene
+  // ein gespeichertes runden.zeitenwende-Feld → „Keine Treffer“ für eigene
   // Lemmata, obwohl der Content live erzeugbar ist.) wortzwilling nutzt ohnehin
   // den Paar-Picker, nicht diesen Endpoint.
   void mode
@@ -1143,7 +1143,7 @@ router.post(
       // direkt das naechste Lemma sieht.
       notifyStudentViewUpdated(participant.id, { reason: 'submission' })
       // D5: Dem Schueler wird der Score NICHT mit der Submit-Antwort verraten
-      // (auch nicht „nur im State") — er kommt erst nach Freigabe via /me/reveal.
+      // (auch nicht „nur im State“) — er kommt erst nach Freigabe via /me/reveal.
       // Nur die Annahme bestaetigen.
       return res.json({ accepted: true })
     } catch (err) {

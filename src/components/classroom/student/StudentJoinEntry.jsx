@@ -12,7 +12,7 @@
 //   • embedded (Klassenraum-Tab) → Wörterbuch-Index im test-entry-Karten-
 //     Design, analog zum Lehrer-Index: ① Beitreten (Code/QR), ② Fortsetzen
 //     (nur wenn eine Sitzung in sessionStorage liegt), plus die Anmerkung
-//     „Was ist der Klassenraum?" (Desktop-Fußnote / Mobile-Manicula ☞).
+//     „Was ist der Klassenraum?“ (Desktop-Fußnote / Mobile-Manicula ☞).
 
 import { useState, useRef, useCallback, lazy, Suspense } from 'react'
 import { navigate } from '../routing'
@@ -46,10 +46,10 @@ export default function StudentJoinEntry({ initialNotice = null, embedded = fals
     try { return new URLSearchParams(window.location.search).get('demo') === '1' } catch { return false }
   })
 
-  // Persistierte Sitzung einmalig beim Mount lesen (für die „Fortsetzen"-Karte).
+  // Persistierte Sitzung einmalig beim Mount lesen (für die „Fortsetzen“-Karte).
   const [resume] = useState(() => (embedded ? peekKioskSession() : null))
 
-  // Anmerkung „Was ist der Klassenraum?" — Desktop-Fußnote + Mobile-Sheet.
+  // Anmerkung „Was ist der Klassenraum?“ — Desktop-Fußnote + Mobile-Sheet.
   const [sheetOpen,       setSheetOpen]       = useState(false)
   const [desktopInfoOpen, setDesktopInfoOpen] = useState(false)
 
@@ -80,7 +80,7 @@ export default function StudentJoinEntry({ initialNotice = null, embedded = fals
       <p className="classroom-kiosk__overline">Live-Sitzung · Beitreten</p>
       <h1 className="classroom-kiosk__title">Klassenraum</h1>
       <p className="classroom-kiosk__lead">
-        Tipp den Zugangscode deiner Lehrkraft ein – oder scanne den QR-Code.
+        Tipp den Zugangscode deiner Lehrkraft ein — oder scanne den QR-Code.
       </p>
       <JoinCodeForm initialError={initialError} />
     </div>

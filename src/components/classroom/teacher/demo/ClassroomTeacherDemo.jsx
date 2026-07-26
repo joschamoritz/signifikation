@@ -3,7 +3,7 @@
 // Akquise-Baustein 1: Eine Lehrkraft OHNE Premium/Login sieht den echten
 // Ablauf einer Live-Sitzung — Modus wählen, Schüleransicht ansehen, Beitritt
 // verstehen — ohne dass serverseitig etwas angelegt wird (kein FK, kein
-// Premium-Verschenken). Bewusst „scharf gezogen":
+// Premium-Verschenken). Bewusst „scharf gezogen“:
 //   • Wortauswahl NUR aus festen Tageswörtern (kein freies Suchen wie Premium).
 //   • Schüleransicht ist STATISCH (eingebaute Demo-Inhalte, nicht /preview).
 //   • onSubmit ist ein No-Op — nichts wird gewertet.
@@ -164,7 +164,7 @@ export default function ClassroomTeacherDemo({ onBack = noop, onGoPremium = noop
 
       {/* II — Schüleransicht (statisch, nur ansehen) ──────────────────── */}
       <section className="classroom-section" aria-labelledby="demo-student-label">
-        <span id="demo-student-label" className="classroom-section__label">II · Das sehen deine Schüler</span>
+        <span id="demo-student-label" className="classroom-section__label">II · Das sehen deine Schüler:innen</span>
 
         <div className="classroom-kiosk classroom-preview classroom-demo-preview">
           <p className="classroom-preview__banner" role="note">

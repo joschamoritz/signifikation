@@ -64,7 +64,7 @@ export default function SessionCodeCard({ code }) {
   if (!code) return null
 
   // Schriftgröße an Code-Länge koppeln → höchstens ~2 Zeilen, auch bei langen
-  // Codes wie „nomen-redaktion".
+  // Codes wie „nomen-redaktion“.
   const len = code.length
   const codeSize =
     len <= 7  ? 'clamp(44px, 11vw, 104px)' :
@@ -88,7 +88,7 @@ export default function SessionCodeCard({ code }) {
           // eslint-disable-next-line react/no-danger -- SVG kommt aus der qrcode-Lib, kein User-Input
           dangerouslySetInnerHTML={{ __html: qrSvg }}
           onClick={() => setZoomed(true)}
-          aria-label="QR-Code zum Beitreten — tippen für Vollbild"
+          aria-label="QR-Code zum Beitreten – tippen für Vollbild"
           data-testid="classroom-code-qr-button"
         />
       )}

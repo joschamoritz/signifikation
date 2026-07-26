@@ -34,7 +34,7 @@ export function useStudentSocket({ token, enabled = true, onRefreshView, onSessi
   const [connected, setConnected]       = useState(false)
   // reconnecting = wir waren schon mal verbunden, sind es jetzt nicht und der
   // Manager versucht (per Backoff oben) gerade die Wiederverbindung. Steuert
-  // den dezenten „Verbindung wird wiederhergestellt…"-Hinweis in der Shell.
+  // den dezenten „Verbindung wird wiederhergestellt…“-Hinweis in der Shell.
   const [reconnecting, setReconnecting] = useState(false)
   const [error, setError]               = useState(null)
   const socketRef     = useRef(null)
@@ -88,7 +88,7 @@ export function useStudentSocket({ token, enabled = true, onRefreshView, onSessi
         })
         socket.on('connect_error', (err) => {
           setError(err?.message || 'Socket-Fehler')
-          // Erst-Connect fehlgeschlagen ist kein „reconnect"; nur wenn wir
+          // Erst-Connect fehlgeschlagen ist kein „reconnect“; nur wenn wir
           // schon einmal verbunden waren, ist das ein echter Wiederaufbau.
           if (everConnected.current) setReconnecting(true)
         })

@@ -1,10 +1,10 @@
 // Wiederverwendbares Code-Eingabe-Formular fürs Klassenraum-Beitreten: Text-
-// Feld (mit Paste-Normalisierung) + Submit + „QR-Code scannen"-Button, der
+// Feld (mit Paste-Normalisierung) + Submit + „QR-Code scannen“-Button, der
 // auf den Vollbild-Scanner umschaltet (QrScanner ist selbst fixed/inset:0,
 // deckt also unabhängig von der Einbettung den ganzen Viewport ab).
 //
 // Genutzt vom Schüler-Einstieg (StudentJoinEntry, Vollroute + eingebettete
-// Karte) UND vom Lehrer-Index (ClassroomIndexStep „① Beitreten" — Ausprobieren
+// Karte) UND vom Lehrer-Index (ClassroomIndexStep „① Beitreten“ — Ausprobieren
 // ohne Extra-Klick zur separaten Beitritts-Seite).
 import { useState, useRef, lazy, Suspense } from 'react'
 import { navigate } from '../routing'

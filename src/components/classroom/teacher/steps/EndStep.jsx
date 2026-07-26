@@ -5,7 +5,7 @@
 // Datenquelle: GET /sessions/:id/results — bewusst OHNE Klarnamen-Zuordnung
 // zu einzelnen Antworten (D7 gilt auch nach Session-Ende).
 //
-// „Namen zeigen" (off by default) listet nur die Teilnehmer-Roster aus dem
+// „Namen zeigen“ (off by default) listet nur die Teilnehmer-Roster aus dem
 // Dashboard — niemals verknuepft mit einzelnen Antworten.
 // Export-Button NICHT hier — Welle 2 (D10).
 

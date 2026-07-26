@@ -52,7 +52,7 @@ export function isJoinBlocked(code, now = Date.now()) {
   globalFailures = globalFailures.filter((t) => now - t < WINDOW_MS)
   if (globalFailures.length >= MAX_FAILURES_GLOBAL) {
     reportAlert('join_guard_global',
-      `Classroom-Join-Guard: globale Schwelle aktiv (${globalFailures.length} Fehlversuche/10min) — breiter Enumerationsversuch?`)
+      `Classroom-Join-Guard: globale Schwelle aktiv (${globalFailures.length} Fehlversuche/10min) – breiter Enumerationsversuch?`)
     return true
   }
 

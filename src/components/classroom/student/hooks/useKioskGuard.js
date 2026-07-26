@@ -3,7 +3,7 @@
 // Zwei Schutzmechanismen:
 //   1. Multi-Tab-Sperre via BroadcastChannel mit Holder-Election.
 //      Jeder Tab hat eine (t, id)-Signatur (Mount-Zeit + Zufalls-ID). Der
-//      Tab mit der KLEINSTEN Signatur ist der „Holder" und darf spielen;
+//      Tab mit der KLEINSTEN Signatur ist der „Holder“ und darf spielen;
 //      alle spaeteren Tabs sperren sich.
 //
 //      Ablauf beim Oeffnen eines zweiten Tabs:
@@ -14,7 +14,7 @@
 //      Damit sperrt sich immer der NEUE Tab, der erste bleibt spielbar.
 //
 //   2. beforeunload-Warning, solange state ∈ {playing, submitted}.
-//      Browser zeigt seinen generischen „Wirklich verlassen?"-Dialog —
+//      Browser zeigt seinen generischen „Wirklich verlassen?“-Dialog —
 //      verhindert versehentliches Reload mitten im Spiel.
 //
 // Browser ohne BroadcastChannel (sehr alt) bekommen keine Multi-Tab-
@@ -33,7 +33,7 @@ function hasBroadcastChannel() {
   return typeof window !== 'undefined' && typeof window.BroadcastChannel === 'function'
 }
 
-// Vergleicht zwei (t, id)-Signaturen. < 0 ⇒ a ist „aelter" (Holder-Vorrang).
+// Vergleicht zwei (t, id)-Signaturen. < 0 ⇒ a ist „aelter“ (Holder-Vorrang).
 function olderThan(a, b) {
   if (a.t !== b.t) return a.t - b.t
   return a.id < b.id ? -1 : a.id > b.id ? 1 : 0

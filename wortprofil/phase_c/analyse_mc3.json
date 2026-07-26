@@ -1,0 +1,768 @@
+{
+  "label": "mc3",
+  "db": "C:\\Users\\JOSCHA~1\\AppData\\Local\\Temp\\claude\\D--Schule-Kollokade\\7438df8d-42cf-4ad9-bd3a-49efad55e9a0\\scratchpad\\db\\wp_mc3.db",
+  "kennzahlen": {
+    "collocations": 573507,
+    "distinct_lemma_pos": 36129,
+    "relationen": {
+      "~ATTR": 64065,
+      "ATTR": 64065,
+      "KON": 61210,
+      "~SUBJA": 54117,
+      "SUBJA": 54117,
+      "~ADV": 47249,
+      "ADV": 47249,
+      "~OBJA": 44442,
+      "OBJA": 44442,
+      "PP": 38005,
+      "~GMOD": 25788,
+      "GMOD": 25788,
+      "~PRED": 1485,
+      "PRED": 1485
+    },
+    "build_info": {
+      "built_at": "2026-07-24T10:36:06Z",
+      "pipeline_version": "v2",
+      "git_commit": "20da90a",
+      "source_db": "triples_subset.db",
+      "korpora": "bag, bfh, bgh, bgh_strafsachen_hist, bpatg, bundestag, bundestagskorpus_pdf, bverfg, bverfg_amtlich, bverwg, deu_news, deu_newscrawl, dibilit, dibiphil, dta-dingler, dta-patiententexte, dta-soldatenbriefe, dta_erweiterungen, dta_kern, gei_digital, gesetze, humboldt-digital, humboldt-publizistik, jean-paul-briefe, neuer_pitaval, pol_reden, ref_fnh, ref_mhd, reichtagsprotokolle, testkorpus, wikibooks, wikivoyage",
+      "min_count": "3",
+      "min_dice": "0.0",
+      "n_direct": "336361",
+      "n_inverse": "237146",
+      "n_filtered": "6022",
+      "n_lemma_corpus_freq": "896184"
+    },
+    "lemma_corpus_freq": 896184
+  },
+  "f12": {
+    "global_top": [
+      {
+        "verb": "machen",
+        "n_listen": 3120,
+        "freq_sum": 62502,
+        "n_heads": 2732,
+        "aux": false
+      },
+      {
+        "verb": "geben",
+        "n_listen": 2798,
+        "freq_sum": 62312,
+        "n_heads": 2548,
+        "aux": false
+      },
+      {
+        "verb": "haben",
+        "n_listen": 2377,
+        "freq_sum": 107176,
+        "n_heads": 2008,
+        "aux": true
+      },
+      {
+        "verb": "lassen",
+        "n_listen": 2149,
+        "freq_sum": 36881,
+        "n_heads": 1881,
+        "aux": false
+      },
+      {
+        "verb": "kommen",
+        "n_listen": 1932,
+        "freq_sum": 40937,
+        "n_heads": 1873,
+        "aux": false
+      },
+      {
+        "verb": "werden",
+        "n_listen": 1822,
+        "freq_sum": 35465,
+        "n_heads": 1661,
+        "aux": true
+      },
+      {
+        "verb": "sagen",
+        "n_listen": 1771,
+        "freq_sum": 45543,
+        "n_heads": 1693,
+        "aux": false
+      },
+      {
+        "verb": "sehen",
+        "n_listen": 1602,
+        "freq_sum": 34205,
+        "n_heads": 1468,
+        "aux": false
+      },
+      {
+        "verb": "finden",
+        "n_listen": 1586,
+        "freq_sum": 27285,
+        "n_heads": 1391,
+        "aux": false
+      },
+      {
+        "verb": "bleiben",
+        "n_listen": 1562,
+        "freq_sum": 20236,
+        "n_heads": 1465,
+        "aux": false
+      },
+      {
+        "verb": "nehmen",
+        "n_listen": 1493,
+        "freq_sum": 22582,
+        "n_heads": 1372,
+        "aux": false
+      },
+      {
+        "verb": "stehen",
+        "n_listen": 1459,
+        "freq_sum": 22740,
+        "n_heads": 1414,
+        "aux": false
+      },
+      {
+        "verb": "halten",
+        "n_listen": 1450,
+        "freq_sum": 20882,
+        "n_heads": 1345,
+        "aux": false
+      },
+      {
+        "verb": "bringen",
+        "n_listen": 1442,
+        "freq_sum": 17925,
+        "n_heads": 1279,
+        "aux": false
+      },
+      {
+        "verb": "führen",
+        "n_listen": 1304,
+        "freq_sum": 16066,
+        "n_heads": 1155,
+        "aux": false
+      },
+      {
+        "verb": "gehen",
+        "n_listen": 1228,
+        "freq_sum": 28693,
+        "n_heads": 1172,
+        "aux": false
+      },
+      {
+        "verb": "erhalten",
+        "n_listen": 1177,
+        "freq_sum": 13214,
+        "n_heads": 1114,
+        "aux": false
+      },
+      {
+        "verb": "liegen",
+        "n_listen": 1124,
+        "freq_sum": 17247,
+        "n_heads": 1101,
+        "aux": false
+      },
+      {
+        "verb": "zeigen",
+        "n_listen": 943,
+        "freq_sum": 13718,
+        "n_heads": 838,
+        "aux": false
+      },
+      {
+        "verb": "stellen",
+        "n_listen": 913,
+        "freq_sum": 13191,
+        "n_heads": 813,
+        "aux": false
+      },
+      {
+        "verb": "bestehen",
+        "n_listen": 878,
+        "freq_sum": 10237,
+        "n_heads": 772,
+        "aux": false
+      },
+      {
+        "verb": "gehören",
+        "n_listen": 785,
+        "freq_sum": 7353,
+        "n_heads": 691,
+        "aux": false
+      },
+      {
+        "verb": "ziehen",
+        "n_listen": 773,
+        "freq_sum": 9169,
+        "n_heads": 712,
+        "aux": false
+      },
+      {
+        "verb": "setzen",
+        "n_listen": 770,
+        "freq_sum": 9024,
+        "n_heads": 710,
+        "aux": false
+      },
+      {
+        "verb": "tragen",
+        "n_listen": 742,
+        "freq_sum": 10110,
+        "n_heads": 686,
+        "aux": false
+      }
+    ],
+    "obja_top": [
+      {
+        "verb": "geben",
+        "n_nomen": 1546,
+        "freq_sum": 20136,
+        "avg_dice": 1.336,
+        "aux": false
+      },
+      {
+        "verb": "haben",
+        "n_nomen": 1288,
+        "freq_sum": 39289,
+        "avg_dice": 1.524,
+        "aux": true
+      },
+      {
+        "verb": "machen",
+        "n_nomen": 1022,
+        "freq_sum": 19912,
+        "avg_dice": 1.36,
+        "aux": false
+      },
+      {
+        "verb": "sehen",
+        "n_nomen": 626,
+        "freq_sum": 8371,
+        "avg_dice": 1.909,
+        "aux": false
+      },
+      {
+        "verb": "bringen",
+        "n_nomen": 589,
+        "freq_sum": 6017,
+        "avg_dice": 2.258,
+        "aux": false
+      },
+      {
+        "verb": "finden",
+        "n_nomen": 564,
+        "freq_sum": 7767,
+        "avg_dice": 2.274,
+        "aux": false
+      },
+      {
+        "verb": "lassen",
+        "n_nomen": 549,
+        "freq_sum": 12252,
+        "avg_dice": 1.739,
+        "aux": false
+      },
+      {
+        "verb": "erhalten",
+        "n_nomen": 543,
+        "freq_sum": 5096,
+        "avg_dice": 2.893,
+        "aux": false
+      },
+      {
+        "verb": "nehmen",
+        "n_nomen": 523,
+        "freq_sum": 7449,
+        "avg_dice": 2.344,
+        "aux": false
+      },
+      {
+        "verb": "führen",
+        "n_nomen": 510,
+        "freq_sum": 5243,
+        "avg_dice": 2.489,
+        "aux": false
+      },
+      {
+        "verb": "halten",
+        "n_nomen": 483,
+        "freq_sum": 5353,
+        "avg_dice": 2.264,
+        "aux": false
+      },
+      {
+        "verb": "gehören",
+        "n_nomen": 327,
+        "freq_sum": 1999,
+        "avg_dice": 3.175,
+        "aux": false
+      },
+      {
+        "verb": "bekommen",
+        "n_nomen": 309,
+        "freq_sum": 2601,
+        "avg_dice": 3.408,
+        "aux": false
+      },
+      {
+        "verb": "tragen",
+        "n_nomen": 287,
+        "freq_sum": 3890,
+        "avg_dice": 3.33,
+        "aux": false
+      },
+      {
+        "verb": "zeigen",
+        "n_nomen": 282,
+        "freq_sum": 4550,
+        "avg_dice": 2.732,
+        "aux": false
+      },
+      {
+        "verb": "nennen",
+        "n_nomen": 273,
+        "freq_sum": 3579,
+        "avg_dice": 2.982,
+        "aux": false
+      },
+      {
+        "verb": "stellen",
+        "n_nomen": 268,
+        "freq_sum": 3677,
+        "avg_dice": 2.67,
+        "aux": false
+      },
+      {
+        "verb": "setzen",
+        "n_nomen": 260,
+        "freq_sum": 2718,
+        "avg_dice": 3.128,
+        "aux": false
+      },
+      {
+        "verb": "bilden",
+        "n_nomen": 237,
+        "freq_sum": 1896,
+        "avg_dice": 3.678,
+        "aux": false
+      },
+      {
+        "verb": "suchen",
+        "n_nomen": 235,
+        "freq_sum": 1990,
+        "avg_dice": 3.485,
+        "aux": false
+      },
+      {
+        "verb": "brauchen",
+        "n_nomen": 232,
+        "freq_sum": 2346,
+        "avg_dice": 3.34,
+        "aux": false
+      },
+      {
+        "verb": "verlieren",
+        "n_nomen": 215,
+        "freq_sum": 1895,
+        "avg_dice": 3.858,
+        "aux": false
+      },
+      {
+        "verb": "bestehen",
+        "n_nomen": 214,
+        "freq_sum": 1321,
+        "avg_dice": 2.91,
+        "aux": false
+      },
+      {
+        "verb": "schaffen",
+        "n_nomen": 213,
+        "freq_sum": 2327,
+        "avg_dice": 3.742,
+        "aux": false
+      },
+      {
+        "verb": "gewinnen",
+        "n_nomen": 212,
+        "freq_sum": 1914,
+        "avg_dice": 3.733,
+        "aux": false
+      }
+    ],
+    "obja_total_kollokationen": 44442,
+    "obja_aux_kollokationen": 1388,
+    "obja_aux_anteil_pct": 3.12,
+    "nomen_mit_obja_verben": 6617,
+    "nomen_mit_aux_in_top3": 289,
+    "nomen_mit_aux_in_top3_pct": 4.37
+  },
+  "rausch_stichprobe": [
+    {
+      "lemma": "klug",
+      "pos": "Adjektiv",
+      "relation": "KON",
+      "beschreibung": "Koordination",
+      "kollokator": "vorsichtig",
+      "kollokator_pos": "Adjektiv",
+      "prep": "",
+      "frequency": 4,
+      "logDice": 8.549
+    },
+    {
+      "lemma": "gewählt",
+      "pos": "Adjektiv",
+      "relation": "~ATTR",
+      "beschreibung": "ist Adjektivattribut von",
+      "kollokator": "schriftart",
+      "kollokator_pos": "Substantiv",
+      "prep": "",
+      "frequency": 3,
+      "logDice": 7.678
+    },
+    {
+      "lemma": "garten",
+      "pos": "Substantiv",
+      "relation": "KON",
+      "beschreibung": "Koordination",
+      "kollokator": "landhaus",
+      "kollokator_pos": "Substantiv",
+      "prep": "",
+      "frequency": 5,
+      "logDice": 7.537
+    },
+    {
+      "lemma": "staatlich",
+      "pos": "Adjektiv",
+      "relation": "~ATTR",
+      "beschreibung": "ist Adjektivattribut von",
+      "kollokator": "schule",
+      "kollokator_pos": "Substantiv",
+      "prep": "",
+      "frequency": 17,
+      "logDice": 7.502
+    },
+    {
+      "lemma": "überplanmäßig",
+      "pos": "Adjektiv",
+      "relation": "~ATTR",
+      "beschreibung": "ist Adjektivattribut von",
+      "kollokator": "ausgabe",
+      "kollokator_pos": "Substantiv",
+      "prep": "",
+      "frequency": 9,
+      "logDice": 7.479
+    },
+    {
+      "lemma": "stattgehabn",
+      "pos": "Adjektiv",
+      "relation": "~ATTR",
+      "beschreibung": "ist Adjektivattribut von",
+      "kollokator": "wahl",
+      "kollokator_pos": "Substantiv",
+      "prep": "",
+      "frequency": 3,
+      "logDice": 5.957
+    },
+    {
+      "lemma": "anzahl",
+      "pos": "Substantiv",
+      "relation": "ATTR",
+      "beschreibung": "Adjektivattribut",
+      "kollokator": "zunehmend",
+      "kollokator_pos": "Adjektiv",
+      "prep": "",
+      "frequency": 3,
+      "logDice": 5.715
+    },
+    {
+      "lemma": "gesetz",
+      "pos": "Substantiv",
+      "relation": "ATTR",
+      "beschreibung": "Adjektivattribut",
+      "kollokator": "erlassend",
+      "kollokator_pos": "Adjektiv",
+      "prep": "",
+      "frequency": 5,
+      "logDice": 5.677
+    },
+    {
+      "lemma": "kläger",
+      "pos": "Substantiv",
+      "relation": "~SUBJA",
+      "beschreibung": "ist Subjekt von",
+      "kollokator": "widersprechen",
+      "kollokator_pos": "Verb",
+      "prep": "",
+      "frequency": 8,
+      "logDice": 5.428
+    },
+    {
+      "lemma": "aufgabe",
+      "pos": "Substantiv",
+      "relation": "GMOD",
+      "beschreibung": "Genitivattribut",
+      "kollokator": "kommune",
+      "kollokator_pos": "Substantiv",
+      "prep": "",
+      "frequency": 3,
+      "logDice": 4.795
+    },
+    {
+      "lemma": "gestatten",
+      "pos": "Verb",
+      "relation": "OBJA",
+      "beschreibung": "Akkusativobjekt",
+      "kollokator": "anfrage",
+      "kollokator_pos": "Substantiv",
+      "prep": "",
+      "frequency": 3,
+      "logDice": 4.636
+    },
+    {
+      "lemma": "gerichtsstand",
+      "pos": "Substantiv",
+      "relation": "ATTR",
+      "beschreibung": "Adjektivattribut",
+      "kollokator": "besonder",
+      "kollokator_pos": "Adjektiv",
+      "prep": "",
+      "frequency": 4,
+      "logDice": 4.625
+    },
+    {
+      "lemma": "enthalten",
+      "pos": "Verb",
+      "relation": "ADV",
+      "beschreibung": "Adverbialbestimmung",
+      "kollokator": "mit",
+      "kollokator_pos": "Adverb",
+      "prep": "",
+      "frequency": 5,
+      "logDice": 3.905
+    },
+    {
+      "lemma": "abwarten",
+      "pos": "Verb",
+      "relation": "KON",
+      "beschreibung": "Koordination",
+      "kollokator": "nehmen",
+      "kollokator_pos": "Verb",
+      "prep": "",
+      "frequency": 3,
+      "logDice": 3.894
+    },
+    {
+      "lemma": "auch",
+      "pos": "Adverb",
+      "relation": "~ADV",
+      "beschreibung": "modifiziert (Adverb)",
+      "kollokator": "dünken",
+      "kollokator_pos": "Verb",
+      "prep": "",
+      "frequency": 6,
+      "logDice": 3.603
+    },
+    {
+      "lemma": "überschreiten",
+      "pos": "Verb",
+      "relation": "SUBJA",
+      "beschreibung": "Subjekt (aktiv)",
+      "kollokator": "er",
+      "kollokator_pos": "Pronomen",
+      "prep": "",
+      "frequency": 48,
+      "logDice": 3.597
+    },
+    {
+      "lemma": "starten",
+      "pos": "Verb",
+      "relation": "SUBJA",
+      "beschreibung": "Subjekt (aktiv)",
+      "kollokator": "wer",
+      "kollokator_pos": "Pronomen",
+      "prep": "",
+      "frequency": 4,
+      "logDice": 3.569
+    },
+    {
+      "lemma": "erinnerung",
+      "pos": "Substantiv",
+      "relation": "ATTR",
+      "beschreibung": "Adjektivattribut",
+      "kollokator": "alt",
+      "kollokator_pos": "Adjektiv",
+      "prep": "",
+      "frequency": 4,
+      "logDice": 3.396
+    },
+    {
+      "lemma": "ernte",
+      "pos": "Substantiv",
+      "relation": "ATTR",
+      "beschreibung": "Adjektivattribut",
+      "kollokator": "neu",
+      "kollokator_pos": "Adjektiv",
+      "prep": "",
+      "frequency": 7,
+      "logDice": 3.322
+    },
+    {
+      "lemma": "kind",
+      "pos": "Substantiv",
+      "relation": "~OBJA",
+      "beschreibung": "ist Akkusativobjekt von",
+      "kollokator": "packen",
+      "kollokator_pos": "Verb",
+      "prep": "",
+      "frequency": 3,
+      "logDice": 3.271
+    },
+    {
+      "lemma": "tweet",
+      "pos": "Substantiv",
+      "relation": "ATTR",
+      "beschreibung": "Adjektivattribut",
+      "kollokator": "weiter",
+      "kollokator_pos": "Adjektiv",
+      "prep": "",
+      "frequency": 3,
+      "logDice": 3.133
+    },
+    {
+      "lemma": "deutsch",
+      "pos": "Adjektiv",
+      "relation": "~ATTR",
+      "beschreibung": "ist Adjektivattribut von",
+      "kollokator": "sinn",
+      "kollokator_pos": "Substantiv",
+      "prep": "",
+      "frequency": 7,
+      "logDice": 2.909
+    },
+    {
+      "lemma": "arbeiten",
+      "pos": "Verb",
+      "relation": "PP",
+      "beschreibung": "Präpositionalphrase (vor)",
+      "kollokator": "auge",
+      "kollokator_pos": "Substantiv",
+      "prep": "vor",
+      "frequency": 3,
+      "logDice": 2.869
+    },
+    {
+      "lemma": "danach",
+      "pos": "Adverb",
+      "relation": "~ADV",
+      "beschreibung": "modifiziert (Adverb)",
+      "kollokator": "gewinnen",
+      "kollokator_pos": "Verb",
+      "prep": "",
+      "frequency": 3,
+      "logDice": 2.782
+    },
+    {
+      "lemma": "gut",
+      "pos": "Adjektiv",
+      "relation": "~ATTR",
+      "beschreibung": "ist Adjektivattribut von",
+      "kollokator": "kundschaft",
+      "kollokator_pos": "Substantiv",
+      "prep": "",
+      "frequency": 3,
+      "logDice": 2.739
+    },
+    {
+      "lemma": "bruder",
+      "pos": "Substantiv",
+      "relation": "~OBJA",
+      "beschreibung": "ist Akkusativobjekt von",
+      "kollokator": "finden",
+      "kollokator_pos": "Verb",
+      "prep": "",
+      "frequency": 8,
+      "logDice": 2.512
+    },
+    {
+      "lemma": "niemand",
+      "pos": "Pronomen",
+      "relation": "~OBJA",
+      "beschreibung": "ist Akkusativobjekt von",
+      "kollokator": "finden",
+      "kollokator_pos": "Verb",
+      "prep": "",
+      "frequency": 7,
+      "logDice": 2.309
+    },
+    {
+      "lemma": "bleiben",
+      "pos": "Verb",
+      "relation": "KON",
+      "beschreibung": "Koordination",
+      "kollokator": "landen",
+      "kollokator_pos": "Verb",
+      "prep": "",
+      "frequency": 3,
+      "logDice": 1.482
+    },
+    {
+      "lemma": "werden",
+      "pos": "Verb",
+      "relation": "PP",
+      "beschreibung": "Präpositionalphrase (von)",
+      "kollokator": "arbeiten",
+      "kollokator_pos": "Substantiv",
+      "prep": "von",
+      "frequency": 4,
+      "logDice": 1.013
+    },
+    {
+      "lemma": "herankommen",
+      "pos": "Verb",
+      "relation": "SUBJA",
+      "beschreibung": "Subjekt (aktiv)",
+      "kollokator": "wir",
+      "kollokator_pos": "Pronomen",
+      "prep": "",
+      "frequency": 4,
+      "logDice": 0.827
+    }
+  ],
+  "abdeckung": {
+    "tageslemmata": 6,
+    "abgedeckt": 6,
+    "details": [
+      {
+        "lemma": "Erinnerung",
+        "pos": "Substantiv",
+        "n_kollokationen": 53
+      },
+      {
+        "lemma": "Zukunft",
+        "pos": "Substantiv",
+        "n_kollokationen": 109
+      },
+      {
+        "lemma": "Baum",
+        "pos": "Verb",
+        "n_kollokationen": 153
+      },
+      {
+        "lemma": "Freiheit",
+        "pos": "Substantiv",
+        "n_kollokationen": 207
+      },
+      {
+        "lemma": "Wort",
+        "pos": "Adjektiv",
+        "n_kollokationen": 525
+      },
+      {
+        "lemma": "Haus",
+        "pos": "Substantiv",
+        "n_kollokationen": 540
+      }
+    ]
+  }
+}

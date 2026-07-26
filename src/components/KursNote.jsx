@@ -1,6 +1,6 @@
-// Erklaertext „Was ist der Kurs?" für die Anm./Manicula auf der Kurs-Startseite
+// Erklaertext „Was ist der Kurs?“ für die Anm./Manicula auf der Kurs-Startseite
 // (Einheitlichkeit mit Spielmodi & Klassenraum). Erklärt den Lernpfad und die
-// vier Niveaustufen — Single Source für Desktop-Fußnote und Mobile-Sheet.
+// vier Differenzierungsstufen — Single Source für Desktop-Fußnote und Mobile-Sheet.
 // Seit dem Üben-Redesign sitzen hier auch die zentrale Niveau-Auswahl UND das
 // Zurücksetzen des Kurs-Fortschritts (beides bewusst NICHT im Konto-Tab —
 // gehört sachlich zum Kurs, nicht zu den allgemeinen Einstellungen). Der Reset
@@ -77,7 +77,7 @@ export default function KursNote({ footnotesClass, loggedIn = false }) {
             </div>
             <p className="course-niveau-hint">
               {resetState === 'done'
-                ? 'Zurückgesetzt — alle Stationen wieder spielbar.'
+                ? 'Zurückgesetzt – alle Stationen wieder spielbar.'
                 : resetState === 'error'
                   ? 'Zurücksetzen fehlgeschlagen. Bitte erneut versuchen.'
                   : 'Löscht deine Aufgaben-Ergebnisse; alle Stationen sind wieder spielbar.'}
@@ -92,12 +92,12 @@ export default function KursNote({ footnotesClass, loggedIn = false }) {
         und — wo vorhanden — fertiges Unterrichtsmaterial.
       </p>
       <p>
-        Jede Aufgabe gibt es in <strong>vier Niveaustufen</strong>, die dieselbe
+        Jede Aufgabe gibt es in <strong>vier Differenzierungsstufen</strong>, die dieselbe
         Idee unterschiedlich tief fassen:<sup>1</sup>
       </p>
       <ul className="course-note-levels">
         <li><strong>DaZ</strong> — Deutsch als Zweitsprache: feste Wortpaare erkennen, rein sprachlich, ohne Zahlen.</li>
-        <li><strong>Sek&nbsp;I</strong> — Sekundarstufe&nbsp;I: typische von untypischen Verbindungen unterscheiden („oft / selten").</li>
+        <li><strong>Sek&nbsp;I</strong> — Sekundarstufe&nbsp;I: typische von untypischen Verbindungen unterscheiden („üblich / ungewöhnlich“).</li>
         <li><strong>Sek&nbsp;II</strong> — Sekundarstufe&nbsp;II: Häufigkeit von Bindungsstärke trennen (Frequenz vs.&nbsp;logDice).</li>
         <li><strong>LK</strong> — Leistungskurs: Daten quantifizieren und die Methode kritisch einordnen.</li>
       </ul>
@@ -108,7 +108,7 @@ export default function KursNote({ footnotesClass, loggedIn = false }) {
       </p>
       <ol className={footnotesClass}>
         <li>Die Stufung folgt dem Prinzip der Binnendifferenzierung: gleicher Gegenstand, gestaffelte kognitive Anforderung.</li>
-        <li>Eigenes Wortprofil, berechnet auf Basis freier deutschsprachiger Korpora (CC&nbsp;BY-SA), syntaktisch annotiert mit dem ZDL-Dependenzparser (BBAW).</li>
+        <li>Eigenes Wortprofil, berechnet auf Basis freier deutschsprachiger Korpora (CC&nbsp;BY-SA), syntaktisch annotiert mit dem spaCy-Modell <code>de_zdl_lg</code> (BBAW/ZDL), Dependenzen nach Universal Dependencies.</li>
       </ol>
     </>
   )

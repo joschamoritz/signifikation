@@ -1,7 +1,7 @@
 // T-4.5 / T-4.6 — Teilnehmer-Liste in Lobby und Live-Step.
 //
 // Lobby: Status-Dot pulsiert wenn connected. Live: Dot wird gefuellt sobald
-// abgegeben wurde, „abwesend" kursiv nach connected=false (Server sendet
+// abgegeben wurde, „abwesend“ kursiv nach connected=false (Server sendet
 // student:left mit Grund nach 60s laut Phase 3).
 //
 // Wir akzeptieren NICHT die Live-Einzelantworten (D7) — nur Identitaet +

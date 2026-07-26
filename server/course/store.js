@@ -86,7 +86,7 @@ const stmts = {
     SELECT task_id, station_id, level, correct, attempts, updated_at
     FROM course_task_result WHERE user_id = ? AND task_id = ?
   `),
-  // Upsert: attempts inkrementieren (atomar), correct als „bestes" Ergebnis
+  // Upsert: attempts inkrementieren (atomar), correct als „bestes“ Ergebnis
   // festhalten — eine einmal richtige Aufgabe bleibt richtig, auch wenn der
   // Client (sollte nicht) erneut postet.
   upsertResult: db.prepare(`
@@ -113,7 +113,7 @@ const stmts = {
     GROUP BY t.station_id, t.level
   `),
   // Auto-Stationsstatus: wie viele Aufgaben einer (Station, Niveau) sind
-  // „abgeschlossen" = richtig gelöst oder Selbstkontrolle abgegeben. Vergleich
+  // „abgeschlossen“ = richtig gelöst oder Selbstkontrolle abgegeben. Vergleich
   // mit der Gesamtzahl steuert course_progress (done, wenn alle abgeschlossen).
   countTasksStationLevel: db.prepare(`
     SELECT COUNT(*) AS n FROM course_tasks WHERE station_id = ? AND level = ?
@@ -304,7 +304,7 @@ export function getResultsForUser(userId, stationId = null) {
 }
 
 /**
- * Ergebnis einer Aufgabe festhalten: attempts +1, correct als „bestes"
+ * Ergebnis einer Aufgabe festhalten: attempts +1, correct als „bestes“
  * Resultat. Aktualisiert den groben Stations-Status (course_progress) gleich
  * mit: bearbeitet → 'in-progress', alle Aufgaben der Stufe abgeschlossen →
  * 'done'. Läuft in EINER Transaktion (better-sqlite3, synchron).

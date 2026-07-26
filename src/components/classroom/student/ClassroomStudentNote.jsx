@@ -1,4 +1,4 @@
-// Erklaertext „Was ist der Klassenraum?" — Schueler-Perspektive. Single Source
+// Erklaertext „Was ist der Klassenraum?“ — Schueler-Perspektive. Single Source
 // fuer die Desktop-Fußnote und das Mobile-Sheet im eingebetteten Schueler-
 // Einstieg (analog ClassroomHowItWorksNote auf der Lehrer-Seite und
 // KollokationNote auf der Spielmodi-Startseite).
@@ -16,8 +16,8 @@ export default function ClassroomStudentNote() {
         Spitznamen.
       </p>
       <p>
-        Nach der Stunde wird dein Spitzname automatisch anonymisiert; es bleibt
-        nichts Persönliches gespeichert.
+        Spätestens zwei Tage nach der Stunde wird dein Spitzname automatisch
+        anonymisiert; es bleibt nichts Persönliches gespeichert.
       </p>
     </>
   )

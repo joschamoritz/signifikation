@@ -1,10 +1,10 @@
 /**
  * server/course/content/station-5.js
  *
- * Aufgaben-Items für Station ⑤ „Belegen statt raten" (AP10/AP21-QA-Redesign).
+ * Aufgaben-Items für Station ⑤ „Belegen statt raten“ (AP10/AP21-QA-Redesign).
  *
  * NEUE IDENTITÄT (AP21-QA): forschendes Lernen / data-driven learning. Nicht
- * „Profil ansehen" (das unklare „Schau im Profil nach" der QA), sondern ein
+ * „Profil ansehen“ (das unklare „Schau im Profil nach“ der QA), sondern ein
  * echter Forschungszyklus an ECHTEN Belegen:
  *   Hypothese (vor dem Befund) → am Korpus/Beleg prüfen → Befund deuten →
  *   begründet Stellung nehmen → Geltung des eigenen Befunds beurteilen.
@@ -49,11 +49,11 @@ const Q_APPLAUS_ADJ    = { lemma: 'Applaus',  pos: 'Substantiv', relation: 'ATTR
 const TASKS = [
   // ════════════════ DaZ · behaupten → an echten Sätzen prüfen ════════════════
 
-  // Vermutung an der Konkordanz prüfen (statt „Schau im Profil nach").
+  // Vermutung an der Konkordanz prüfen (statt „Schau im Profil nach“).
   {
     id: 's5-f2-vermutung-daz', station: 5, format: 'F2', level: 'DaZ', source: 'corpus-template',
     kern: 'vermutung-pruefen',
-    prompt: 'Sagt man „einen Fehler machen" oder „einen Fehler tun"? Rate nicht – schau in echte Sätze. Welches Verb steht wirklich neben „Fehler"?',
+    prompt: 'Sagt man „einen Fehler machen“ oder „einen Fehler tun“? Rate nicht – schau in echte Sätze. Welches Verb steht wirklich neben „Fehler“?',
     metasprache: ['Vermutung', 'Beleg', 'prüfen'],
     corpusQuery: Q_FEHLER_VERB,
     bindings: { answer: ['freq:1'], near: { rankRange: [4, 6] } },
@@ -66,8 +66,8 @@ const TASKS = [
     feedback: {
       byLevel: {
         DaZ: {
-          onCorrect: 'Richtig – in den echten Sätzen steht „{{freq:1.lemma}}", nicht „tun". So prüfst du eine Vermutung: am Beleg, nicht im Bauchgefühl.',
-          onWrong: 'Lies die Sätze noch einmal: Welches Verb steht wirklich neben „Fehler"? Es ist „{{freq:1.lemma}}".',
+          onCorrect: 'Richtig – in den echten Sätzen steht „{{freq:1.lemma}}“, nicht „tun“. So prüfst du eine Vermutung: am Beleg, nicht im Bauchgefühl.',
+          onWrong: 'Lies die Sätze noch einmal: Welches Verb steht wirklich neben „Fehler“? Es ist „{{freq:1.lemma}}“.',
         },
       },
       tonalitaet: 'woerterbuch-nuechtern',
@@ -92,8 +92,8 @@ const TASKS = [
     feedback: {
       byLevel: {
         DaZ: {
-          onCorrect: 'Genau – „Bestellung {{top.lemma}}" gehört zusammen. Der echte Satz belegt es.',
-          onWrong: 'Suche das Nomen „Bestellung" und das Verb, das dazugehört.',
+          onCorrect: 'Genau – „Bestellung {{top.lemma}}“ gehört zusammen. Der echte Satz belegt es.',
+          onWrong: 'Suche das Nomen „Bestellung“ und das Verb, das dazugehört.',
         },
       },
       tonalitaet: 'woerterbuch-nuechtern',
@@ -104,7 +104,7 @@ const TASKS = [
   {
     id: 's5-f2-vermutung2-daz', station: 5, format: 'F2', level: 'DaZ', source: 'corpus-template',
     kern: 'vermutung-pruefen',
-    prompt: 'Sagt man „eine Frage stellen" oder „eine Frage geben"? Rate nicht – schau in echte Sätze. Welches Verb steht wirklich neben „Frage"?',
+    prompt: 'Sagt man „eine Frage stellen“ oder „eine Frage geben“? Rate nicht – schau in echte Sätze. Welches Verb steht wirklich neben „Frage“?',
     metasprache: ['Vermutung', 'Beleg', 'prüfen'],
     corpusQuery: Q_FRAGE_VERB,
     bindings: { answer: ['freq:1'], near: { rankRange: [4, 6] } },
@@ -117,8 +117,8 @@ const TASKS = [
     feedback: {
       byLevel: {
         DaZ: {
-          onCorrect: 'Richtig – in den echten Sätzen steht „{{freq:1.lemma}}". So prüfst du eine Vermutung: am Beleg, nicht im Bauchgefühl.',
-          onWrong: 'Lies die Sätze noch einmal: Welches Verb steht wirklich neben „Frage"? Es ist „{{freq:1.lemma}}".',
+          onCorrect: 'Richtig – in den echten Sätzen steht „{{freq:1.lemma}}“. So prüfst du eine Vermutung: am Beleg, nicht im Bauchgefühl.',
+          onWrong: 'Lies die Sätze noch einmal: Welches Verb steht wirklich neben „Frage“? Es ist „{{freq:1.lemma}}“.',
         },
       },
       tonalitaet: 'woerterbuch-nuechtern',
@@ -129,7 +129,7 @@ const TASKS = [
   {
     id: 's5-f2-vermutung3-daz', station: 5, format: 'F2', level: 'DaZ', source: 'corpus-template',
     kern: 'vermutung-pruefen',
-    prompt: 'Sagt man „ein Ziel erreichen" oder „ein Ziel schaffen"? Rate nicht – schau in echte Sätze. Welches Verb steht wirklich neben „Ziel"?',
+    prompt: 'Sagt man „ein Ziel erreichen“ oder „ein Ziel schaffen“? Rate nicht – schau in echte Sätze. Welches Verb steht wirklich neben „Ziel“?',
     metasprache: ['Vermutung', 'Beleg', 'prüfen'],
     corpusQuery: Q_ZIEL_VERB,
     bindings: { answer: ['freq:1'], near: { rankRange: [4, 6] } },
@@ -142,8 +142,8 @@ const TASKS = [
     feedback: {
       byLevel: {
         DaZ: {
-          onCorrect: 'Richtig – in den echten Sätzen steht „{{freq:1.lemma}}". Belege zeigen, was man wirklich sagt.',
-          onWrong: 'Lies die Sätze noch einmal: Welches Verb steht wirklich neben „Ziel"? Es ist „{{freq:1.lemma}}".',
+          onCorrect: 'Richtig – in den echten Sätzen steht „{{freq:1.lemma}}“. Belege zeigen, was man wirklich sagt.',
+          onWrong: 'Lies die Sätze noch einmal: Welches Verb steht wirklich neben „Ziel“? Es ist „{{freq:1.lemma}}“.',
         },
       },
       tonalitaet: 'woerterbuch-nuechtern',
@@ -167,8 +167,8 @@ const TASKS = [
     feedback: {
       byLevel: {
         DaZ: {
-          onCorrect: 'Genau – „Gespräch {{top.lemma}}" gehört zusammen. Der echte Satz belegt es.',
-          onWrong: 'Suche das Nomen „Gespräch" und das Verb, das dazugehört.',
+          onCorrect: 'Genau – „Gespräch {{top.lemma}}“ gehört zusammen. Der echte Satz belegt es.',
+          onWrong: 'Suche das Nomen „Gespräch“ und das Verb, das dazugehört.',
         },
       },
       tonalitaet: 'woerterbuch-nuechtern',
@@ -192,8 +192,8 @@ const TASKS = [
     feedback: {
       byLevel: {
         DaZ: {
-          onCorrect: 'Genau – „Beitrag {{top.lemma}}" gehört zusammen. Der echte Satz belegt es.',
-          onWrong: 'Suche das Nomen „Beitrag" und das Verb, das dazugehört.',
+          onCorrect: 'Genau – „Beitrag {{top.lemma}}“ gehört zusammen. Der echte Satz belegt es.',
+          onWrong: 'Suche das Nomen „Beitrag“ und das Verb, das dazugehört.',
         },
       },
       tonalitaet: 'woerterbuch-nuechtern',
@@ -206,7 +206,7 @@ const TASKS = [
   {
     id: 's5-f1-vermutung-seki', station: 5, format: 'F1', level: 'SekI', source: 'corpus-template',
     kern: 'vermutung-zuordnen',
-    prompt: 'Du vermutest, welche Adjektive typisch zu „Regen" passen. Prüfe am Profil und ordne die passenden Partner zu.',
+    prompt: 'Du vermutest, welche Adjektive typisch zu „Regen“ passen. Prüfe am Profil und ordne die passenden Partner zu.',
     metasprache: ['Vermutung', 'prüfen'],
     corpusQuery: Q_REGEN_ADJ,
     bindings: { answer: ['logDice:1', 'logDice:2'], near: { rankRange: [6, 14] } },
@@ -220,8 +220,8 @@ const TASKS = [
     feedback: {
       byLevel: {
         SekI: {
-          onCorrect: '„{{top.lemma}}er Regen" ist eine typische Verbindung – das Profil bestätigt deine Vermutung.',
-          onWrong: '„{{selected.lemma}}" passt seltener. Typisch ist „{{top.lemma}}".',
+          onCorrect: '„{{top.lemma}}er Regen“ ist eine typische Verbindung – das Profil bestätigt deine Vermutung.',
+          onWrong: '„{{selected.lemma}}“ ist hier weniger üblich. Typisch ist „{{top.lemma}}“.',
         },
       },
       tonalitaet: 'woerterbuch-nuechtern',
@@ -232,7 +232,7 @@ const TASKS = [
   {
     id: 's5-f2-markieren-seki', station: 5, format: 'F2', level: 'SekI', source: 'corpus-template',
     kern: 'beleg-markieren',
-    prompt: 'Prüfe deine Vermutung am echten Beleg: Markiere die typische Verbindung mit „Regen".',
+    prompt: 'Prüfe deine Vermutung am echten Beleg: Markiere die typische Verbindung mit „Regen“.',
     metasprache: ['Beleg', 'prüfen'],
     corpusQuery: Q_REGEN_ADJ,
     bindings: { answer: ['logDice:1'] },
@@ -245,8 +245,8 @@ const TASKS = [
     feedback: {
       byLevel: {
         SekI: {
-          onCorrect: 'Genau – „{{top.lemma}}er Regen" ist die typische Verbindung im Beleg.',
-          onWrong: 'Suche „Regen" und sein typisches Adjektiv im Satz.',
+          onCorrect: 'Genau – „{{top.lemma}}er Regen“ ist die typische Verbindung im Beleg.',
+          onWrong: 'Suche „Regen“ und sein typisches Adjektiv im Satz.',
         },
       },
       tonalitaet: 'woerterbuch-nuechtern',
@@ -257,7 +257,7 @@ const TASKS = [
   {
     id: 's5-f3-hypothese-pruefen-seki', station: 5, format: 'F3', level: 'SekI', source: 'corpus-template',
     kern: 'hypothese-pruefen',
-    prompt: 'Viele tippen auf „stark". Prüfe am Profil: Welches Adjektiv ist die typische Verbindung mit „Regen"? Begründe.',
+    prompt: 'Viele tippen auf „stark“. Prüfe am Profil: Welches Adjektiv ist die typische Verbindung mit „Regen“? Begründe.',
     metasprache: ['Vermutung', 'prüfen', 'Befund'],
     corpusQuery: Q_REGEN_ADJ,
     bindings: { answer: ['logDice:1'], contrastPair: ['freq:1', 'logDice:1'] },
@@ -272,15 +272,15 @@ const TASKS = [
     solution: {
       preferred: '@from:bindings.answer',
       rubric: {
-        criteria: ['wählt „{{top.lemma}}" als typisch', 'erkennt, dass die Vermutung („stark") nicht die typischste Verbindung ist'],
+        criteria: ['wählt „{{top.lemma}}“ als typisch', 'erkennt, dass die Vermutung („stark“) nicht die typischste Verbindung ist'],
         minHits: 1,
       },
     },
     feedback: {
       byLevel: {
         SekI: {
-          onCorrect: 'Überraschung: „{{top.lemma}}er Regen" ist die typische Verbindung. „stark" hört man zwar oft, aber die Belege zeigen etwas anderes.',
-          onWrong: 'Prüfe am Beleg statt zu raten: Typisch ist „{{top.lemma}}", nicht unbedingt das erste Bauchgefühl.',
+          onCorrect: 'Überraschung: „{{top.lemma}}er Regen“ ist die typische Verbindung. „stark“ hört man zwar oft, aber die Belege zeigen etwas anderes.',
+          onWrong: 'Prüfe am Beleg statt zu raten: Typisch ist „{{top.lemma}}“, nicht unbedingt das erste Bauchgefühl.',
         },
       },
       tonalitaet: 'woerterbuch-nuechtern',
@@ -291,7 +291,7 @@ const TASKS = [
   {
     id: 's5-f1-vermutung2-seki', station: 5, format: 'F1', level: 'SekI', source: 'corpus-template',
     kern: 'vermutung-zuordnen',
-    prompt: 'Du vermutest, welche Adjektive typisch zu „Wetter" passen. Prüfe am Profil und ordne die passenden Partner zu.',
+    prompt: 'Du vermutest, welche Adjektive typisch zu „Wetter“ passen. Prüfe am Profil und ordne die passenden Partner zu.',
     metasprache: ['Vermutung', 'prüfen'],
     corpusQuery: Q_WETTER_ADJ,
     bindings: { answer: ['logDice:1', 'logDice:2'], near: { rankRange: [6, 14] } },
@@ -305,8 +305,8 @@ const TASKS = [
     feedback: {
       byLevel: {
         SekI: {
-          onCorrect: '„{{top.lemma}}es Wetter" ist eine typische Verbindung – das Profil bestätigt deine Vermutung.',
-          onWrong: '„{{selected.lemma}}" passt seltener. Typisch ist „{{top.lemma}}".',
+          onCorrect: '„{{top.lemma}}es Wetter“ ist eine typische Verbindung – das Profil bestätigt deine Vermutung.',
+          onWrong: '„{{selected.lemma}}“ ist hier weniger üblich. Typisch ist „{{top.lemma}}“.',
         },
       },
       tonalitaet: 'woerterbuch-nuechtern',
@@ -317,7 +317,7 @@ const TASKS = [
   {
     id: 's5-f2-markieren2-seki', station: 5, format: 'F2', level: 'SekI', source: 'corpus-template',
     kern: 'beleg-markieren',
-    prompt: 'Prüfe deine Vermutung am echten Beleg: Markiere die typische Verbindung mit „Rede" (Nomen + Verb).',
+    prompt: 'Prüfe deine Vermutung am echten Beleg: Markiere die typische Verbindung mit „Rede“ (Nomen + Verb).',
     metasprache: ['Beleg', 'prüfen'],
     corpusQuery: Q_REDE_VERB,
     bindings: { answer: ['logDice:1'] },
@@ -330,8 +330,8 @@ const TASKS = [
     feedback: {
       byLevel: {
         SekI: {
-          onCorrect: 'Genau – „Rede {{top.lemma}}" ist die typische Verbindung im Beleg.',
-          onWrong: 'Suche „Rede" und sein typisches Verb im Satz.',
+          onCorrect: 'Genau – „Rede {{top.lemma}}“ ist die typische Verbindung im Beleg.',
+          onWrong: 'Suche „Rede“ und sein typisches Verb im Satz.',
         },
       },
       tonalitaet: 'woerterbuch-nuechtern',
@@ -342,7 +342,7 @@ const TASKS = [
   {
     id: 's5-f3-hypothese-pruefen2-seki', station: 5, format: 'F3', level: 'SekI', source: 'corpus-template',
     kern: 'hypothese-pruefen',
-    prompt: 'Viele tippen bei „ein Ziel ___" auf „schaffen". Prüfe am Profil: Welches Verb ist die typische Verbindung mit „Ziel"? Begründe.',
+    prompt: 'Viele tippen bei „ein Ziel ___“ auf „schaffen“. Prüfe am Profil: Welches Verb ist die typische Verbindung mit „Ziel“? Begründe.',
     metasprache: ['Vermutung', 'prüfen', 'Befund'],
     corpusQuery: Q_ZIEL_VERB,
     bindings: { answer: ['logDice:1'], contrastPair: ['logDice:1', 'logDice:last'] },
@@ -357,15 +357,15 @@ const TASKS = [
     solution: {
       preferred: '@from:bindings.answer',
       rubric: {
-        criteria: ['wählt „{{top.lemma}}" als typisch', 'erkennt, dass die erste Vermutung nicht die typischste Verbindung sein muss'],
+        criteria: ['wählt „{{top.lemma}}“ als typisch', 'erkennt, dass die erste Vermutung nicht die typischste Verbindung sein muss'],
         minHits: 1,
       },
     },
     feedback: {
       byLevel: {
         SekI: {
-          onCorrect: '„Ziel {{top.lemma}}" ist die typische Verbindung – die Belege zeigen es, nicht das Bauchgefühl.',
-          onWrong: 'Prüfe am Beleg statt zu raten: Typisch ist „{{top.lemma}}".',
+          onCorrect: '„Ziel {{top.lemma}}“ ist die typische Verbindung – die Belege zeigen es, nicht das Bauchgefühl.',
+          onWrong: 'Prüfe am Beleg statt zu raten: Typisch ist „{{top.lemma}}“.',
         },
       },
       tonalitaet: 'woerterbuch-nuechtern',
@@ -379,7 +379,7 @@ const TASKS = [
   {
     id: 's5-f1-zuordnen-sek2', station: 5, format: 'F1', level: 'SekII', source: 'corpus-template',
     kern: 'profil-befragen',
-    prompt: 'Forschungszyklus, Schritt 1–2: Notiere zuerst (innerlich) deine Hypothese, dann befrage das Profil zu „Regen" und ordne die typischsten Adjektive zu.',
+    prompt: 'Forschungszyklus, Schritt 1–2: Notiere zuerst (innerlich) deine Hypothese, dann befrage das Profil zu „Regen“ und ordne die typischsten Adjektive zu.',
     metasprache: ['Hypothese', 'Befund', 'Beleg'],
     corpusQuery: Q_REGEN_ADJ,
     bindings: { answer: ['logDice:1', 'logDice:2'], near: { rankRange: [4, 10] }, mid: { rankRange: [12, 20] } },
@@ -393,8 +393,8 @@ const TASKS = [
     feedback: {
       byLevel: {
         SekII: {
-          onCorrect: '„{{logDice:1.lemma}} Regen" bindet am stärksten (logDice {{logDice:1.logDice}}).',
-          onWrong: '„{{selected.lemma}}" (logDice {{selected.logDice}}) ist schwächer gebunden als „{{logDice:1.lemma}}" ({{logDice:1.logDice}}).',
+          onCorrect: '„{{logDice:1.lemma}} Regen“ bindet am stärksten (logDice {{logDice:1.logDice}}).',
+          onWrong: '„{{selected.lemma}}“ (logDice {{selected.logDice}}) ist schwächer gebunden als „{{logDice:1.lemma}}“ ({{logDice:1.logDice}}).',
         },
       },
       tonalitaet: 'woerterbuch-nuechtern',
@@ -406,7 +406,7 @@ const TASKS = [
   {
     id: 's5-f2-markieren-sek2', station: 5, format: 'F2', level: 'SekII', source: 'corpus-template',
     kern: 'beleg-pruefen',
-    prompt: 'Forschungszyklus, Schritt 3: Prüfe deinen Befund am echten Beleg. Markiere die typische Verbindung mit „Regen".',
+    prompt: 'Forschungszyklus, Schritt 3: Prüfe deinen Befund am echten Beleg. Markiere die typische Verbindung mit „Regen“.',
     metasprache: ['Befund', 'Beleg'],
     corpusQuery: Q_REGEN_ADJ,
     bindings: { answer: ['logDice:1'] },
@@ -419,8 +419,8 @@ const TASKS = [
     feedback: {
       byLevel: {
         SekII: {
-          onCorrect: 'Genau – „{{top.lemma}} Regen" (logDice {{top.logDice}}) steht so auch im echten Beleg.',
-          onWrong: 'Der Befund war „{{top.lemma}}" – suche diese Verbindung im Satz.',
+          onCorrect: 'Genau – „{{top.lemma}} Regen“ (logDice {{top.logDice}}) steht so auch im echten Beleg.',
+          onWrong: 'Der Befund war „{{top.lemma}}“ – suche diese Verbindung im Satz.',
         },
       },
       tonalitaet: 'woerterbuch-nuechtern',
@@ -432,7 +432,7 @@ const TASKS = [
   {
     id: 's5-f3-befund-deuten-sek2', station: 5, format: 'F3', level: 'SekII', source: 'corpus-template',
     kern: 'befund-deuten',
-    prompt: 'Forschungszyklus, Schritt 4: Hypothese „stark" vs. Befund – welche Verbindung mit „Regen" ist typischer? Deute die Abweichung.',
+    prompt: 'Forschungszyklus, Schritt 4: Hypothese „stark“ vs. Befund – welche Verbindung mit „Regen“ ist typischer? Deute die Abweichung.',
     metasprache: ['Hypothese', 'Befund', 'Frequenz', 'logDice'],
     corpusQuery: Q_REGEN_ADJ,
     bindings: { answer: ['logDice:1'], contrastPair: ['freq:1', 'logDice:1'] },
@@ -447,8 +447,8 @@ const TASKS = [
       preferred: '@from:bindings.answer',
       rubric: {
         criteria: [
-          'wählt „{{logDice:1.lemma}}" (höchster logDice) als typisch',
-          'erklärt: „{{freq:1.lemma}}" ist häufiger, aber unspezifischer',
+          'wählt „{{logDice:1.lemma}}“ (höchster logDice) als typisch',
+          'erklärt: „{{freq:1.lemma}}“ ist häufiger, aber unspezifischer',
           'Beleg schlägt Bauchgefühl',
         ],
         minHits: 2,
@@ -457,9 +457,9 @@ const TASKS = [
     feedback: {
       byLevel: {
         SekII: {
-          onCorrect: '„{{logDice:1.lemma}} Regen" ist mit logDice {{logDice:1.logDice}} am typischsten. „{{freq:1.lemma}}" kommt zwar oft vor (f {{freq:1.frequency}}), bindet aber schwächer – das Sprachgefühl lag daneben.',
+          onCorrect: '„{{logDice:1.lemma}} Regen“ ist mit logDice {{logDice:1.logDice}} am typischsten. „{{freq:1.lemma}}“ kommt zwar oft vor (f {{freq:1.frequency}}), bindet aber schwächer – das Sprachgefühl lag daneben.',
           onChoice: {
-            '@selected': '„{{selected.lemma}}" hat logDice {{selected.logDice}}. Der Befund: „{{logDice:1.lemma}}" ({{logDice:1.logDice}}) ist typischer – belegen statt raten.',
+            '@selected': '„{{selected.lemma}}“ hat logDice {{selected.logDice}}. Der Befund: „{{logDice:1.lemma}}“ ({{logDice:1.logDice}}) ist typischer – belegen statt raten.',
           },
         },
       },
@@ -472,7 +472,7 @@ const TASKS = [
   {
     id: 's5-f4-stellung-sek2', station: 5, format: 'F4', level: 'SekII', source: 'corpus-template',
     kern: 'stellung-nehmen',
-    prompt: 'Forschungszyklus, Schritt 5: „Bei dem Unwetter fiel ___ Regen." Wähle die datengestützt beste Variante und begründe mit deinem Befund.',
+    prompt: 'Forschungszyklus, Schritt 5: „Bei dem Unwetter fiel ___ Regen.“ Wähle die datengestützt beste Variante und begründe mit deinem Befund.',
     metasprache: ['Befund', 'Stellungnahme', 'logDice'],
     corpusQuery: Q_REGEN_ADJ,
     bindings: { answer: ['logDice:1'], contrastPair: ['logDice:1', 'freq:1'], near: { rankRange: [3, 8] } },
@@ -485,16 +485,16 @@ const TASKS = [
     solution: {
       correctOptionId: '@from:bindings.answer',
       rubric: {
-        criteria: ['wählt „{{logDice:1.lemma}}"', 'begründet mit dem Korpus-Befund (logDice), nicht mit dem Bauchgefühl'],
+        criteria: ['wählt „{{logDice:1.lemma}}“', 'begründet mit dem Korpus-Befund (logDice), nicht mit dem Bauchgefühl'],
         minHits: 1,
       },
     },
     feedback: {
       byLevel: {
         SekII: {
-          onCorrect: 'Richtig – „{{logDice:1.lemma}} Regen" ist datengestützt die typischste Wahl (logDice {{logDice:1.logDice}}).',
+          onCorrect: 'Richtig – „{{logDice:1.lemma}} Regen“ ist datengestützt die typischste Wahl (logDice {{logDice:1.logDice}}).',
           onChoice: {
-            '@selected': '„{{selected.lemma}}" (logDice {{selected.logDice}}) ist schwächer gebunden als „{{logDice:1.lemma}}" ({{logDice:1.logDice}}). Stütze dein Urteil auf den Befund.',
+            '@selected': '„{{selected.lemma}}“ (logDice {{selected.logDice}}) ist schwächer gebunden als „{{logDice:1.lemma}}“ ({{logDice:1.logDice}}). Stütze dein Urteil auf den Befund.',
           },
         },
       },
@@ -507,7 +507,7 @@ const TASKS = [
   {
     id: 's5-f2-markieren2-sek2', station: 5, format: 'F2', level: 'SekII', source: 'corpus-template',
     kern: 'beleg-pruefen',
-    prompt: 'Forschungszyklus, Schritt 3: Prüfe deinen Befund am echten Beleg. Markiere die typische Verbindung mit „Beitrag" (Nomen + Verb).',
+    prompt: 'Forschungszyklus, Schritt 3: Prüfe deinen Befund am echten Beleg. Markiere die typische Verbindung mit „Beitrag“ (Nomen + Verb).',
     metasprache: ['Befund', 'Beleg'],
     corpusQuery: Q_BEITRAG_VERB,
     bindings: { answer: ['logDice:1'] },
@@ -520,8 +520,8 @@ const TASKS = [
     feedback: {
       byLevel: {
         SekII: {
-          onCorrect: 'Genau – „Beitrag {{top.lemma}}" (logDice {{top.logDice}}) steht so auch im echten Beleg – eine der am stärksten gebundenen Verbindungen im Korpus.',
-          onWrong: 'Der Befund war „{{top.lemma}}" – suche diese Verbindung im Satz.',
+          onCorrect: 'Genau – „Beitrag {{top.lemma}}“ (logDice {{top.logDice}}) steht so auch im echten Beleg – eine der am stärksten gebundenen Verbindungen im Korpus.',
+          onWrong: 'Der Befund war „{{top.lemma}}“ – suche diese Verbindung im Satz.',
         },
       },
       tonalitaet: 'woerterbuch-nuechtern',
@@ -533,7 +533,7 @@ const TASKS = [
   {
     id: 's5-f4-stellung2-sek2', station: 5, format: 'F4', level: 'SekII', source: 'corpus-template',
     kern: 'stellung-nehmen',
-    prompt: 'Forschungszyklus, Schritt 5: „Für das Wochenende ist ___ Wetter angesagt." Wähle die datengestützt beste Variante und begründe mit deinem Befund.',
+    prompt: 'Forschungszyklus, Schritt 5: „Für das Wochenende ist ___ Wetter angesagt.“ Wähle die datengestützt beste Variante und begründe mit deinem Befund.',
     metasprache: ['Befund', 'Stellungnahme', 'logDice'],
     corpusQuery: Q_WETTER_ADJ,
     bindings: { answer: ['logDice:1'], contrastPair: ['logDice:1', 'freq:1'], near: { rankRange: [3, 8] } },
@@ -546,16 +546,16 @@ const TASKS = [
     solution: {
       correctOptionId: '@from:bindings.answer',
       rubric: {
-        criteria: ['wählt „{{logDice:1.lemma}}"', 'begründet mit dem Korpus-Befund (logDice), nicht mit dem Bauchgefühl'],
+        criteria: ['wählt „{{logDice:1.lemma}}“', 'begründet mit dem Korpus-Befund (logDice), nicht mit dem Bauchgefühl'],
         minHits: 1,
       },
     },
     feedback: {
       byLevel: {
         SekII: {
-          onCorrect: 'Richtig – „{{logDice:1.lemma}}es Wetter" ist datengestützt eine typische Wahl (logDice {{logDice:1.logDice}}).',
+          onCorrect: 'Richtig – „{{logDice:1.lemma}}es Wetter“ ist datengestützt eine typische Wahl (logDice {{logDice:1.logDice}}).',
           onChoice: {
-            '@selected': '„{{selected.lemma}}" (logDice {{selected.logDice}}) ist schwächer gebunden als „{{logDice:1.lemma}}" ({{logDice:1.logDice}}). Stütze dein Urteil auf den Befund.',
+            '@selected': '„{{selected.lemma}}“ (logDice {{selected.logDice}}) ist schwächer gebunden als „{{logDice:1.lemma}}“ ({{logDice:1.logDice}}). Stütze dein Urteil auf den Befund.',
           },
         },
       },
@@ -569,7 +569,7 @@ const TASKS = [
   {
     id: 's5-f4-stellung-lk', station: 5, format: 'F4', level: 'LK', source: 'corpus-template',
     kern: 'datengestuetzte-stellungnahme',
-    prompt: '„Bei dem Unwetter fiel ___ Regen." Wähle datengestützt und formuliere eine kurze Stellungnahme, die den Befund einordnet.',
+    prompt: '„Bei dem Unwetter fiel ___ Regen.“ Wähle datengestützt und formuliere eine kurze Stellungnahme, die den Befund einordnet.',
     metasprache: ['Befund', 'Stellungnahme', 'Validität'],
     corpusQuery: Q_REGEN_ADJ,
     bindings: { answer: ['logDice:1'], contrastPair: ['logDice:1', 'freq:1'], near: { rankRange: [3, 8] } },
@@ -583,7 +583,7 @@ const TASKS = [
       correctOptionId: '@from:bindings.answer',
       rubric: {
         criteria: [
-          'wählt „{{logDice:1.lemma}}" und stützt sich auf den logDice-Befund',
+          'wählt „{{logDice:1.lemma}}“ und stützt sich auf den logDice-Befund',
           'ordnet die Aussagekraft ein (z. B. Frequenzhöhe, Eindeutigkeit)',
         ],
         minHits: 2,
@@ -592,9 +592,9 @@ const TASKS = [
     feedback: {
       byLevel: {
         LK: {
-          onCorrect: 'Korrekt – „{{logDice:1.lemma}} Regen" (logDice {{logDice:1.logDice}}) ist datengestützt die typische Wahl. Eine gute Stellungnahme nennt auch die Belastbarkeit des Befunds.',
+          onCorrect: 'Korrekt – „{{logDice:1.lemma}} Regen“ (logDice {{logDice:1.logDice}}) ist datengestützt die typische Wahl. Eine gute Stellungnahme nennt auch die Belastbarkeit des Befunds.',
           onChoice: {
-            '@selected': '„{{selected.lemma}}" (logDice {{selected.logDice}}) bindet schwächer als „{{logDice:1.lemma}}". Belege deine Stellungnahme – und benenne die Grenzen.',
+            '@selected': '„{{selected.lemma}}“ (logDice {{selected.logDice}}) bindet schwächer als „{{logDice:1.lemma}}“. Belege deine Stellungnahme – und benenne die Grenzen.',
           },
         },
       },
@@ -607,16 +607,16 @@ const TASKS = [
   {
     id: 's5-f5-absence-lk', station: 5, format: 'F5', level: 'LK', source: 'static',
     kern: 'absence-of-evidence',
-    prompt: 'Jemand behauptet: „Eine Reise antreten gibt es nicht – in meinen 10 Chatnachrichten habe ich keinen einzigen Beleg gefunden." Beurteile diesen Schluss.',
+    prompt: 'Jemand behauptet: „Eine Reise antreten gibt es nicht – in meinen 10 Chatnachrichten habe ich keinen einzigen Beleg gefunden.“ Beurteile diesen Schluss.',
     metasprache: ['Beleg', 'Validität', 'Generalisierung'],
     payload: {
       table: [
-        { verbindung: 'Korpus A: 10 eigene Chatnachrichten – kein Beleg für „eine Reise antreten"' },
+        { verbindung: 'Korpus A: 10 eigene Chatnachrichten – kein Beleg für „eine Reise antreten“' },
         { verbindung: 'Korpus B: 2 Mrd. Wörter Zeitungs-/Literaturtexte – zahlreiche Belege' },
       ],
       columns: ['verbindung'],
       questions: [
-        { id: 'q1', text: 'Ist der Schluss „gibt es nicht" gültig? Begründe, was aus dem Nichtvorkommen in einem kleinen Korpus folgt – und was nicht.', kind: 'explain' },
+        { id: 'q1', text: 'Ist der Schluss „gibt es nicht“ gültig? Begründe, was aus dem Nichtvorkommen in einem kleinen Korpus folgt – und was nicht.', kind: 'explain' },
         { id: 'q2', text: 'Welche zwei Eigenschaften müsste ein Korpus haben, damit ein Nichtvorkommen überhaupt etwas bedeutet?', kind: 'explain' },
       ],
     },
@@ -626,9 +626,9 @@ const TASKS = [
         q1: {
           rubric: {
             criteria: [
-              'der Schluss ist ungültig: aus Nichtvorkommen folgt nicht „gibt es nicht" (absence of evidence ≠ evidence of absence)',
+              'der Schluss ist ungültig: aus Nichtvorkommen folgt nicht „gibt es nicht“ (absence of evidence ≠ evidence of absence)',
               '10 Nachrichten sind viel zu klein; seltene Verbindungen brauchen große Korpora',
-              'ein Befund gilt zunächst nur für das untersuchte Korpus, nicht für „die Sprache"',
+              'ein Befund gilt zunächst nur für das untersuchte Korpus, nicht für „die Sprache“',
             ],
             minHits: 2,
           },
@@ -645,7 +645,7 @@ const TASKS = [
       byLevel: {
         LK: {
           onCorrect: 'Korrekt – aus dem Nichtvorkommen in 10 Nachrichten folgt nichts. Seltene Verbindungen brauchen große Korpora; ein Befund gilt erst einmal nur für das untersuchte Korpus.',
-          onWrong: 'Trenne „nicht gefunden" von „gibt es nicht". 10 Nachrichten sind viel zu klein – absence of evidence ist nicht evidence of absence.',
+          onWrong: 'Trenne „nicht gefunden“ von „gibt es nicht“. 10 Nachrichten sind viel zu klein – absence of evidence ist nicht evidence of absence.',
         },
       },
       merksatz: 'Nicht gefunden heißt nicht: gibt es nicht.',
@@ -658,12 +658,12 @@ const TASKS = [
   {
     id: 's5-f5-geltung-lk', station: 5, format: 'F5', level: 'LK', source: 'static',
     kern: 'geltungsbereich',
-    prompt: 'Du hast am Korpus (geschriebenes Deutsch, v. a. 20. Jh.) herausgefunden: „strömender Regen" ist die typische Verbindung. Für welche Aussage darf dein Befund gelten?',
+    prompt: 'Du hast am Korpus (geschriebenes Deutsch, v. a. 20. Jh.) herausgefunden: „strömender Regen“ ist die typische Verbindung. Für welche Aussage darf dein Befund gelten?',
     metasprache: ['Geltungsbereich', 'Validität', 'Korpusabhängigkeit'],
     payload: {
       table: [
-        { verbindung: 'A · „Im geschriebenen Deutsch des 20. Jh. ist strömender Regen eine typische Verbindung."' },
-        { verbindung: 'B · „Alle Deutschsprachigen sagen heute immer strömender Regen."' },
+        { verbindung: 'A · „Im geschriebenen Deutsch des 20. Jh. ist strömender Regen eine typische Verbindung.“' },
+        { verbindung: 'B · „Alle Deutschsprachigen sagen heute immer strömender Regen.“' },
       ],
       columns: ['verbindung'],
       questions: [
@@ -702,7 +702,7 @@ const TASKS = [
   {
     id: 's5-f4-stellung2-lk', station: 5, format: 'F4', level: 'LK', source: 'corpus-template',
     kern: 'datengestuetzte-stellungnahme',
-    prompt: '„Am Ende der Aufführung gab es ___ Applaus." Wähle datengestützt und formuliere eine kurze Stellungnahme, die den Befund einordnet.',
+    prompt: '„Am Ende der Aufführung gab es ___ Applaus.“ Wähle datengestützt und formuliere eine kurze Stellungnahme, die den Befund einordnet.',
     metasprache: ['Befund', 'Stellungnahme', 'Validität'],
     corpusQuery: Q_APPLAUS_ADJ,
     bindings: { answer: ['logDice:1'], contrastPair: ['logDice:1', 'freq:1'], near: { rankRange: [3, 8] } },
@@ -717,7 +717,7 @@ const TASKS = [
       correctOptionId: '@from:bindings.answer',
       rubric: {
         criteria: [
-          'wählt „{{logDice:1.lemma}}" und stützt sich auf den logDice-Befund',
+          'wählt „{{logDice:1.lemma}}“ und stützt sich auf den logDice-Befund',
           'ordnet die Aussagekraft ein (z. B. Frequenzhöhe, Textsortenbindung)',
         ],
         minHits: 2,
@@ -726,9 +726,9 @@ const TASKS = [
     feedback: {
       byLevel: {
         LK: {
-          onCorrect: 'Korrekt – „{{logDice:1.lemma}}er Applaus" (logDice {{logDice:1.logDice}}) ist datengestützt die typische Wahl. Eine gute Stellungnahme nennt auch die Belastbarkeit (z. B. eher Feuilleton-/Berichts-Sprache).',
+          onCorrect: 'Korrekt – „{{logDice:1.lemma}}er Applaus“ (logDice {{logDice:1.logDice}}) ist datengestützt die typische Wahl. Eine gute Stellungnahme nennt auch die Belastbarkeit (z. B. eher Feuilleton-/Berichts-Sprache).',
           onChoice: {
-            '@selected': '„{{selected.lemma}}" (logDice {{selected.logDice}}) bindet schwächer als „{{logDice:1.lemma}}". Belege deine Stellungnahme – und benenne die Grenzen.',
+            '@selected': '„{{selected.lemma}}“ (logDice {{selected.logDice}}) bindet schwächer als „{{logDice:1.lemma}}“. Belege deine Stellungnahme – und benenne die Grenzen.',
           },
         },
       },
@@ -741,11 +741,11 @@ const TASKS = [
   {
     id: 's5-f5-repraesentativitaet-lk', station: 5, format: 'F5', level: 'LK', source: 'static',
     kern: 'repraesentativitaet-grenze',
-    prompt: 'Du hast „tosender Applaus" als typische Verbindung in einem Korpus aus Zeitungsberichten gefunden. Ein Mitschüler folgert: „Also reden auch Jugendliche im Chat so." Beurteile diesen Schluss.',
+    prompt: 'Du hast „tosender Applaus“ als typische Verbindung in einem Korpus aus Zeitungsberichten gefunden. Ein Mitschüler folgert: „Also reden auch Jugendliche im Chat so.“ Beurteile diesen Schluss.',
     metasprache: ['Repräsentativität', 'Textsorte', 'Validität'],
     payload: {
       table: [
-        { verbindung: 'Korpus A: Zeitungsberichte (Feuilleton, Kultur) – „tosender Applaus" häufig' },
+        { verbindung: 'Korpus A: Zeitungsberichte (Feuilleton, Kultur) – „tosender Applaus“ häufig' },
         { verbindung: 'Korpus B: Chatnachrichten Jugendlicher – müsste erst untersucht werden' },
       ],
       columns: ['verbindung'],
@@ -762,7 +762,7 @@ const TASKS = [
             criteria: [
               'der Schluss ist ungültig: ein Zeitungskorpus repräsentiert nicht die Jugendsprache',
               'ein Befund gilt zunächst nur für die Textsorten, aus denen das Korpus besteht',
-              '„tosender Applaus" ist ein gehobener/schriftsprachlicher Ausdruck',
+              '„tosender Applaus“ ist ein gehobener/schriftsprachlicher Ausdruck',
             ],
             minHits: 2,
           },
@@ -778,7 +778,7 @@ const TASKS = [
     feedback: {
       byLevel: {
         LK: {
-          onCorrect: 'Korrekt – ein Zeitungskorpus ist nicht repräsentativ für Jugendsprache. „tosender Applaus" ist schriftsprachlich; für eine Aussage über Chatsprache bräuchte man ein passend zusammengesetztes Korpus.',
+          onCorrect: 'Korrekt – ein Zeitungskorpus ist nicht repräsentativ für Jugendsprache. „tosender Applaus“ ist schriftsprachlich; für eine Aussage über Chatsprache bräuchte man ein passend zusammengesetztes Korpus.',
           onWrong: 'Frag: Wofür ist dieses Korpus repräsentativ? Ein Befund aus Zeitungstexten gilt nicht automatisch für Jugend-Chats.',
         },
       },
@@ -824,7 +824,7 @@ const TASKS = [
     feedback: {
       byLevel: {
         LK: {
-          onCorrect: 'Korrekt – drei Belege sind eine winzige Stichprobe; der hohe logDice kann Zufall sein. Verlässlich wird ein Assoziationsmaß erst mit hinreichender Frequenz. „Selten, aber stark gebunden" ist ein Verdacht, kein Beweis.',
+          onCorrect: 'Korrekt – drei Belege sind eine winzige Stichprobe; der hohe logDice kann Zufall sein. Verlässlich wird ein Assoziationsmaß erst mit hinreichender Frequenz. „Selten, aber stark gebunden“ ist ein Verdacht, kein Beweis.',
           onWrong: 'Denk an die Stichprobengröße: Bei drei Belegen streut jeder Wert stark. Ein hoher logDice braucht auch eine tragfähige Frequenz.',
         },
       },

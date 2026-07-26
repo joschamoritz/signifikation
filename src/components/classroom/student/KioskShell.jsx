@@ -8,7 +8,7 @@
 //
 // Die Tab-Bar des Haupt-App-Layouts wird in App.jsx bereits umgangen, weil
 // /c/:code seinen eigenen Renderzweig hat. KioskShell ist also der gesamte
-// Viewport. AuthBanner (§7 Spezialfall „eingeloggter User") sitzt am Ende.
+// Viewport. AuthBanner (§7 Spezialfall „eingeloggter User“) sitzt am Ende.
 
 import { useEffect, useRef, useState } from 'react'
 import { navigate } from '../routing'
@@ -101,7 +101,7 @@ function ExitConfirmModal({ open, onClose, onConfirm }) {
  *   onLeave           — callback nach bestätigtem Verlassen
  *   loggedInUserLabel — wenn gesetzt: zeigt unten den Auth-Banner
  *   confirmExit       — wenn false, kein Modal (z. B. beim S5 'ended'-State)
- *   reconnecting      — wenn true: dezenter „Verbindung wird wiederhergestellt…"-
+ *   reconnecting      — wenn true: dezenter „Verbindung wird wiederhergestellt…“-
  *                       Hinweis (W2-T5). Der Spielscreen bleibt darunter erhalten.
  *   toast             — kurzer Hinweis-Text (Submit-Fehler), 3s sichtbar
  */

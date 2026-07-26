@@ -100,3 +100,9 @@ tools/
 icons/
 kw20-2026.json
 .secrets/
+
+# Phase-C-Artefakte (Testdaten/DBs – zu groß für Git)
+wortprofil/02_parsed_v2_subset/
+wortprofil/phase_c/db/
+wortprofil/gate_a/
+wortprofil/gate_b/

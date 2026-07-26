@@ -74,7 +74,7 @@
 .av-defs.single { list-style: none; padding-left: 0; }
 .av-defs li { font-family: var(--font-serif); font-size: 1.02rem; line-height: 1.55; color: var(--text); margin-bottom: 4px; }
 
-/* „Heutiges Wort spielen" (wechselt zum Spielmodi-Tab) */
+/* „Heutiges Wort spielen“ (wechselt zum Spielmodi-Tab) */
 .av-play { margin: 16px 0 0; }
 .av-play-link {
   background: none; border: none; cursor: pointer; padding: 0;
@@ -89,7 +89,7 @@
 /* Kollokationen-Erklärtext (Template pro Wortart, aus blurb.js) */
 .av-koll-blurb { font-family: var(--font-sans); font-size: 0.9rem; line-height: 1.6; color: var(--text); margin: 0 0 14px; }
 
-/* „Mehr Belege anzeigen"-Aufklapper */
+/* „Mehr Belege anzeigen“-Aufklapper */
 .av-more {
   display: inline-block; margin-top: 10px; background: none; border: none; cursor: pointer;
   font-family: var(--font-sans); font-size: 0.82rem; color: var(--primary);
@@ -308,7 +308,7 @@
   }
 }
 
-/* Feineinstellung/Bewegungsarmut: kein „Zoom" der aktiven Marke. */
+/* Feineinstellung/Bewegungsarmut: kein „Zoom“ der aktiven Marke. */
 @media (max-width: 767px) and (prefers-reduced-motion: reduce) {
   .av-rail-item { transition: color 0.18s ease; }
   .av-rail-item--active { transform: none; }

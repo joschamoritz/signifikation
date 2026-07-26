@@ -10,7 +10,7 @@
   --classroom-rule-lt: var(--border-lt);
   --classroom-accent:  var(--primary);
   --classroom-gold:    var(--accent);
-  --classroom-warning: #c2740c; /* Amber: „offline/hängt" — bewusst distinkt von Gold (verbunden) und Rot (abgegeben) */
+  --classroom-warning: #c2740c; /* Amber: „offline/hängt“ — bewusst distinkt von Gold (verbunden) und Rot (abgegeben) */
   --classroom-disabled: var(--disabled);
   --classroom-card-bg: var(--surface);
 
@@ -237,7 +237,7 @@
   border-bottom: none;
 }
 
-/* Index-Teaser „Vorbereiten" — gedämpft wie der ⑤-Eintrag der Startseite. */
+/* Index-Teaser „Vorbereiten“ — gedämpft wie der ⑤-Eintrag der Startseite. */
 .classroom-entry--disabled {
   opacity: 0.6;
 }
@@ -407,7 +407,7 @@
 .classroom-session-repeat:hover { color: var(--primary); }
 .classroom-session-repeat:disabled { color: var(--disabled); cursor: default; }
 
-/* „Mit neuer Klasse wiederholen" — Abschluss-Aktion der Auswertung. */
+/* „Mit neuer Klasse wiederholen“ — Abschluss-Aktion der Auswertung. */
 .classroom-end-repeat__hint {
   font-family: var(--font-serif);
   font-style: italic;
@@ -467,7 +467,7 @@
   cursor: default;
 }
 
-/* Primärer Wörterbuch-CTA — roter Text, KEIN Kasten (wie „Quiz starten →"
+/* Primärer Wörterbuch-CTA — roter Text, KEIN Kasten (wie „Quiz starten →“
    auf der Startseite). Verankert durch die Haarlinie über der Aktionszeile. */
 .classroom-cta {
   display: inline-flex;
@@ -535,7 +535,7 @@
   cursor: default;
 }
 
-/* Klassen-Name als „Headword"-Feld: serif, nur unterstrichen (kein Kasten). */
+/* Klassen-Name als „Headword“-Feld: serif, nur unterstrichen (kein Kasten). */
 .classroom-headword-input {
   width: 100%;
   box-sizing: border-box;
@@ -563,7 +563,7 @@
   padding-bottom: 5px;
 }
 
-/* Unaufdringlicher Zusatz im Section-Label (z. B. „(1–5)"). */
+/* Unaufdringlicher Zusatz im Section-Label (z. B. „(1–5)“). */
 .classroom-section__hint {
   font-weight: 400;
   letter-spacing: 0.04em;
@@ -1014,7 +1014,7 @@
 }
 
 /* ── Code-Karte (Lobby) ──────────────────────────────────────────── */
-/* Code „frei" auf Pergament — kein Kasten. Der riesige Code ist das Headword
+/* Code „frei“ auf Pergament — kein Kasten. Der riesige Code ist das Headword
    der Lobby (Beamer-lesbar), darunter QR + Text-Aktionen. */
 .classroom-code-card {
   background: transparent;
@@ -1313,13 +1313,13 @@
   color: var(--classroom-muted);
 }
 
-/* „N offline"-Hinweis im Teilnehmer-Label (Amber, Audit-Finding). */
+/* „N offline“-Hinweis im Teilnehmer-Label (Amber, Audit-Finding). */
 .classroom-section__warn {
   color: var(--classroom-warning);
   font-weight: 600;
 }
 
-/* „Sitzung verlassen"-Sheet (Back-Interception im Live-Step). */
+/* „Sitzung verlassen“-Sheet (Back-Interception im Live-Step). */
 .classroom-leave-sheet {
   display: flex;
   flex-direction: column;
@@ -1382,7 +1382,7 @@
 }
 
 /* ── Live-Step ───────────────────────────────────────────────────── */
-/* Fortschritt („n/m fertig" + Balken) bleibt beim Scrollen der Teilnehmerliste
+/* Fortschritt („n/m fertig“ + Balken) bleibt beim Scrollen der Teilnehmerliste
    oben stehen — die Lehrkraft verliert den Überblick sonst genau bei großen
    Klassen. Hintergrund + Trennlinie decken den durchscrollenden Inhalt. */
 .classroom-progress {
@@ -1679,7 +1679,7 @@
   color: var(--classroom-muted);
 }
 
-/* Trefferquote-Semantik (auch auf .classroom-aggregate__pct in „Auffälligste Fragen"). */
+/* Trefferquote-Semantik (auch auf .classroom-aggregate__pct in „Auffälligste Fragen“). */
 .classroom-rate--low  { color: #991b1b; }
 .classroom-rate--mid  { color: #92400e; }
 .classroom-rate--high { color: #166534; }
@@ -1883,7 +1883,7 @@
 .classroom-sort__opt:focus-visible { outline: 2px solid var(--classroom-accent); outline-offset: 2px; }
 .classroom-sort__sep { color: var(--classroom-muted); }
 
-/* Modus-Gruppen-Überschrift (nur bei Mehr-Modi-Sessions, „Reihenfolge"). */
+/* Modus-Gruppen-Überschrift (nur bei Mehr-Modi-Sessions, „Reihenfolge“). */
 .classroom-prolemma-group {
   margin: 20px 0 0;
   padding-top: 14px;

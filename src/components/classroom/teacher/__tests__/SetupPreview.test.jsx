@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
 //
-// W2-T1 — Teacher-Preview „Schüleransicht testen".
+// W2-T1 — Teacher-Preview „Schüleransicht testen“.
 // Deckt ab: öffnet/schließt, sendet KEINE Submission, rendert pro Modus,
 // schaltet lokal weiter (Lemma + Lückenfüller-Runden).
 

@@ -136,7 +136,7 @@ describe('Station-① Content – echte Korpusdaten (falls wortprofil.db verfüg
     // Falls die Korpus-DB im Testlauf nicht verfügbar ist, nicht hart scheitern.
     if (!lemmaExistsInWortprofil('Entscheidung')) return
     for (const lemma of anchors) {
-      expect(lemmaExistsInWortprofil(lemma), `Anker „${lemma}"`).toBe(true)
+      expect(lemmaExistsInWortprofil(lemma), `Anker „${lemma}“`).toBe(true)
     }
   })
 })

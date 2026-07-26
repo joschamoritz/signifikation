@@ -245,7 +245,7 @@ export function fetchBelegeRaw(lemma, collocate, { limit = 20, prefixCollocate =
 // left/right auf ein vorhersehbares Maß, damit das Keyword in der App über
 // mehrere Belegzeilen hinweg zuverlässig untereinander zentriert steht — bei
 // unbegrenztem Kontext variiert die Breite pro Satz zu stark (F-Feedback:
-// „Keyword in Context ... nicht immer genau untereinander zentral").
+// „Keyword in Context ... nicht immer genau untereinander zentral“).
 const MAX_KWIC_CONTEXT_WORDS = 8
 
 /**
@@ -255,7 +255,7 @@ const MAX_KWIC_CONTEXT_WORDS = 8
  * Keyword. Gibt null zurück, wenn kein hervorgehobenes Token existiert (dann
  * fällt der Aufrufer auf den ungeteilten Satz zurück).
  *
- * left/right werden auf MAX_KWIC_CONTEXT_WORDS Wörter gekürzt (mit „…"), damit
+ * left/right werden auf MAX_KWIC_CONTEXT_WORDS Wörter gekürzt (mit „…“), damit
  * die Zeilenbreite je Beleg vorhersehbar bleibt.
  *
  * @returns {{left:string, keyword:string, right:string}|null}

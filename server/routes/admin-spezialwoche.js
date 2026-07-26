@@ -103,10 +103,10 @@ export function createAdminSpezialwocheRouter({
 
       // Lemmata direkt in wortprofil.db prüfen (nicht Kalender-Index)
       if (!lemmaExistsInWortprofil(lemma_id)) {
-        return res.status(404).json({ error: `Feld „Lemma": „${lemma_id}" nicht in wortprofil.db gefunden` })
+        return res.status(404).json({ error: `Feld „Lemma“: „${lemma_id}“ nicht in wortprofil.db gefunden` })
       }
       if (lueckenfueller_id && !lemmaExistsInWortprofil(lueckenfueller_id)) {
-        return res.status(404).json({ error: `Feld „Lückenfüller-Lemma": „${lueckenfueller_id}" nicht in wortprofil.db gefunden` })
+        return res.status(404).json({ error: `Feld „Lückenfüller-Lemma“: „${lueckenfueller_id}“ nicht in wortprofil.db gefunden` })
       }
 
       let zwilling_kollokatoren = []

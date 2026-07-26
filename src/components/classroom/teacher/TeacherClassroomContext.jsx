@@ -40,7 +40,7 @@ function reducer(state, action) {
       // Zurück zur Landing-Ansicht (Klassenraum-Index), Flow komplett zurücksetzen.
       return { ...initialState }
     case 'GO_TO_LIST':
-      // Session-Verwaltung öffnen (aus dem Index ① oder als „zurück" aus Lobby/Setup/Ende).
+      // Session-Verwaltung öffnen (aus dem Index ① oder als „zurück“ aus Lobby/Setup/Ende).
       return { ...initialState, currentStep: STEPS.LIST }
     case 'RESUME_SESSION':
       // Lehrer klickt auf eine bereits laufende Session in der Liste.

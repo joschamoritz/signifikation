@@ -132,7 +132,7 @@ describe('WaitingState (T-5.4)', () => {
 describe('SubmittedState (T-5.7)', () => {
   afterEach(() => cleanup())
 
-  it('rendert „Abgegeben." vor Reveal', () => {
+  it('rendert „Abgegeben.“ vor Reveal', () => {
     const s = {
       ...initialState('morgentau'),
       currentState:    KIOSK_STATES.SUBMITTED,
@@ -147,7 +147,7 @@ describe('SubmittedState (T-5.7)', () => {
     expect(screen.queryByTestId('classroom-kiosk-reveal')).toBeNull()
   })
 
-  it('zeigt Auflösung im ended-State + Link „Zur App"', () => {
+  it('zeigt Auflösung im ended-State + Link „Zur App“', () => {
     const s = {
       ...initialState('morgentau'),
       currentState:    KIOSK_STATES.ENDED,
@@ -235,7 +235,7 @@ describe('SubmittedState (T-5.7)', () => {
     expect(screen.getByText(/stark, groß, klein/)).toBeTruthy()
   })
 
-  it('zeigt „Sitzung beendet" wenn kein Submit erfolgte', () => {
+  it('zeigt „Sitzung beendet“ wenn kein Submit erfolgte', () => {
     const s = {
       ...initialState('morgentau'),
       currentState:  KIOSK_STATES.ENDED,

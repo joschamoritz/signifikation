@@ -25,7 +25,7 @@ describe('extractCode (F5 — QR-Text → Beitritts-Code)', () => {
   })
 
   it('ignoriert fremde URLs ohne /c/-Pfad gibt aber Pfad-losen Text als Code zurueck', () => {
-    // https://example.com/foo → kein /c/, Pfad „foo" ist kein Code-Text → der
+    // https://example.com/foo → kein /c/, Pfad „foo“ ist kein Code-Text → der
     // gesamte String wird normalisiert: httpsexamplecomfoo (>=4) → als Code.
     // Wichtiger Realfall: ein QR mit reinem Code bleibt nutzbar, fremde Links
     // werden serverseitig beim /join eh als INVALID_CODE abgelehnt.
@@ -36,7 +36,7 @@ describe('extractCode (F5 — QR-Text → Beitritts-Code)', () => {
 describe('StudentJoinEntry — QR-Scan-Button (F5)', () => {
   afterEach(() => { cleanup(); sessionStorage.clear() })
 
-  it('rendert den „QR-Code scannen"-Button', () => {
+  it('rendert den „QR-Code scannen“-Button', () => {
     render(<StudentJoinEntry />)
     expect(screen.getByTestId('classroom-kiosk-scan-btn')).toBeTruthy()
   })
@@ -50,7 +50,7 @@ describe('StudentJoinEntry — QR-Scan-Button (F5)', () => {
   })
 })
 
-describe('StudentJoinEntry — „Fortsetzen"-Karte (W4)', () => {
+describe('StudentJoinEntry — „Fortsetzen“-Karte (W4)', () => {
   afterEach(() => { cleanup(); sessionStorage.clear() })
 
   it('zeigt die Fortsetzen-Karte, wenn eine Sitzung persistiert ist', () => {

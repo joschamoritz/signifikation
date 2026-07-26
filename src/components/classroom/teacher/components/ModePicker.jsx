@@ -1,9 +1,9 @@
 // T-4.4 — Modus-Picker (Setup Schritt A).
 //
-// Progressive Disclosure (P1 „SETUP entzerren"): vor der Wahl kompakte
+// Progressive Disclosure (P1 „SETUP entzerren“): vor der Wahl kompakte
 // Auswahl-Zeilen (Headword + IPA + Kategorie, einzeilig); nach der Wahl klappt
 // der Picker auf die gewählte Zeile zusammen — mit Beschreibung als Bestätigung
-// — plus „Anderer Modus"-Toggle. So kostet die Modus-Sektion im Arbeitszustand
+// — plus „Anderer Modus“-Toggle. So kostet die Modus-Sektion im Arbeitszustand
 // ~120px statt ~650px (4 dauerhaft aufgeklappte Beschreibungs-Karten).
 //
 // Einspaltige Wörterbuch-Einträge, single-select (D2). Hover + Auswahl im
@@ -24,7 +24,7 @@ const MODES = [
     label: 'Wort-Zwilling',
     ipa: '[ˈvɔʁtˌtsvɪlɪŋ]',
     cat: 'Komparativ',
-    desc: 'Zwei bedeutungsnahe Wörter — zwei unterschiedliche Kollokationsprofile. Ordne zehn Kollokationen dem richtigen Lemma zu.',
+    desc: 'Zwei bedeutungsnahe Wörter – zwei unterschiedliche Kollokationsprofile. Ordne zehn Kollokationen dem richtigen Lemma zu.',
   },
   {
     id: 'zeitenwende',
@@ -38,7 +38,7 @@ const MODES = [
     label: 'Lückenfüller',
     ipa: '[ˈlʏkənˌfʏlɐ]',
     cat: 'Konstruktiv',
-    desc: 'Ein echter Korpussatz mit fehlender Kollokation — welches Wort gehört in die Lücke? Drei Runden, vier Optionen, zehn Punkte.',
+    desc: 'Ein echter Korpussatz mit fehlender Kollokation – welches Wort gehört in die Lücke? Drei Runden, vier Optionen, zehn Punkte.',
   },
 ]
 
@@ -53,7 +53,7 @@ function ModeHead({ mode }) {
 }
 
 export default function ModePicker({ value, onChange }) {
-  // Nach der Wahl eingeklappt; „Anderer Modus" öffnet die volle Liste erneut.
+  // Nach der Wahl eingeklappt; „Anderer Modus“ öffnet die volle Liste erneut.
   const [expanded, setExpanded] = useState(false)
   const selected = MODES.find((m) => m.id === value) || null
   const collapsed = !!selected && !expanded

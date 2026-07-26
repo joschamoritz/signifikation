@@ -22,7 +22,7 @@ export function shuffleArr(arr) {
  * Entscheidung (User, Praxistest): IMMER live aus wortprofil.db generieren —
  * dieselbe Quelle wie das Anlegen eines Tageslemmas (fetchLemma →
  * buildMixedRound: Top-3 staerkste Kollokate + 7 Distraktoren). Das gespeicherte
- * `runden.kollokatoren`-Feld ist teils leer/veraltet (z. B. „Barrikade": im
+ * `runden.kollokatoren`-Feld ist teils leer/veraltet (z. B. „Barrikade“: im
  * Tagesspiel ok, aber leeres gespeichertes Feld → Klassenraum 0 Optionen).
  *
  * Defensiver Fallback: Schlaegt der Live-Abruf fehl (wortprofil.db nicht
@@ -64,7 +64,7 @@ export async function resolveKollokatoren(lemma, { fetchLemma, logWarn } = {}) {
 /**
  * Zeitenwende-Wörter für den Klassenraum.
  *
- * Vereinheitlichung (Plan „Datenarchitektur-Vereinheitlichung", Option A):
+ * Vereinheitlichung (Plan „Datenarchitektur-Vereinheitlichung“, Option A):
  * analog zu resolveKollokatoren wird Zeitenwende IMMER live aus wortprofil.db
  * generiert (fetchZeitenwende → pre/post-distinktive Wörter), mit Fallback auf
  * das gespeicherte runden.zeitenwende-Feld. So ist jedes korpusgeeignete Wort
@@ -140,7 +140,7 @@ export async function resolveLueckenfueller(lemma, { buildLueckenfueller, logWar
 // Ein Wort-Zwilling ist ein PAAR (wortA, wortB), das live aus zwei Wort-
 // profilen generiert wird (fetchWortZwilling). Es passt nicht ins Lemma-ID-
 // Modell des Pickers. Damit die Assignment-Pipeline (lemma_ids: string[])
-// unveraendert bleibt, kodieren wir das Paar als synthetische „wz:"-ID.
+// unveraendert bleibt, kodieren wir das Paar als synthetische „wz:“-ID.
 
 const WZ_PREFIX = 'wz:'
 
@@ -149,7 +149,7 @@ export function makeWzId(wortA, wortB, pos = 'Substantiv') {
   return `${WZ_PREFIX}${encodeURIComponent(wortA)}:${encodeURIComponent(wortB)}:${encodeURIComponent(pos)}`
 }
 
-/** Parst eine „wz:"-ID zurueck → { wortA, wortB, pos } oder null. */
+/** Parst eine „wz:“-ID zurueck → { wortA, wortB, pos } oder null. */
 export function parseWzId(id) {
   if (typeof id !== 'string' || !id.startsWith(WZ_PREFIX)) return null
   const parts = id.slice(WZ_PREFIX.length).split(':')

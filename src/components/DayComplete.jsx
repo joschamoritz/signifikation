@@ -23,7 +23,7 @@ export default function DayComplete({ onClose, playedGames = [], wzPlayed = null
   const kollMax   = playedGames.length * 10
   const kollMedal = getMedal(kollTotal, kollMax)
 
-  // „Perfekter Tag": alle gespielten Modi mit Goldmedaille
+  // „Perfekter Tag“: alle gespielten Modi mit Goldmedaille
   const isPerfect =
     kollMedal.label === 'Gold' &&
     (!wzPlayed || wzPlayed.medal?.label === 'Gold') &&
