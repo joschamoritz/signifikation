@@ -1181,11 +1181,11 @@ describe('classroom/store', () => {
       db.prepare(`SELECT display_name FROM classroom_participant WHERE id = ?`)
         .get(participantId)?.display_name
 
-    it('Stufe A: anonymisiert display_name nach 48 h, ohne zu loeschen', () => {
+    it('Stufe A: anonymisiert display_name nach 24 h, ohne zu loeschen', () => {
       const { session, participant } = finishedSessionWithData()
       expect(nameOf(participant.id)).toBe('Max Mustermann')
 
-      // now = AGED + 48 h + 1 s → Stufe A greift, Stufe B (30 Tage) nicht.
+      // now = AGED + 24 h + 1 s → Stufe A greift, Stufe B (30 Tage) nicht.
       const res = runClassroomRetention({ now: AGED + DEFAULT_NAME_ANONYMIZE_MS + 1000 })
       expect(res.anonymized).toBeGreaterThanOrEqual(1)
       expect(res.deleted).toBe(0)
@@ -1195,7 +1195,7 @@ describe('classroom/store', () => {
       expect(getSessionById(session.id)).toBeTruthy()
     })
 
-    it('laesst Sessions juenger als 48 h unberuehrt', () => {
+    it('laesst Sessions juenger als die Anonymisierungsfrist unberuehrt', () => {
       const { session, participant } = finishedSessionWithData('Erika')
       // now nur 1 h nach (gekuenstelt-altem) Ende → kein Fenster erreicht.
       const res = runClassroomRetention({ now: AGED + 60 * 60 * 1000 })
@@ -1214,6 +1214,61 @@ describe('classroom/store', () => {
       // Bereits anonymisierte Zeile (== Platzhalter) wird nicht erneut angefasst.
       expect(second.anonymized).toBe(0)
       expect(nameOf(participant.id)).toBe(ANONYMIZED_DISPLAY_NAME)
+    })
+
+    // Stufe D — classroom_telemetry.teacher_id war der einzige Personenbezug
+    // ohne Loeschfrist. Die Tests setzen telemetryAnonymizeAfterMs winzig statt
+    // `now` hochzudrehen: so bleiben die Schwellen von Stufe A/B negativ und
+    // koennen keine Sessions anderer Tests mitreissen.
+    const TELE_SESSION = 'test-stufe-d-session'
+    const insertTelemetryRow = (ts) =>
+      db.prepare(`
+        INSERT INTO classroom_telemetry (ts, event, session_id, teacher_id, payload_json)
+        VALUES (?, ?, ?, ?, '{}')
+      `).run(ts, 'classroom_test_stufe_d', TELE_SESSION, TEACHER_A)
+    const telemetryRow = () =>
+      db.prepare(`SELECT ts, event, teacher_id FROM classroom_telemetry WHERE session_id = ?`)
+        .get(TELE_SESSION)
+    const dropTelemetryRows = () =>
+      db.prepare(`DELETE FROM classroom_telemetry WHERE session_id = ?`).run(TELE_SESSION)
+
+    it('Stufe D: entfernt teacher_id aus alter Telemetrie, Event bleibt erhalten', () => {
+      dropTelemetryRows()
+      insertTelemetryRow(AGED)
+      expect(telemetryRow().teacher_id).toBe(TEACHER_A)
+
+      const res = runClassroomRetention({ now: AGED + 1000, telemetryAnonymizeAfterMs: 500 })
+      expect(res.telemetryAnonymized).toBeGreaterThanOrEqual(1)
+      // Stufe A/B duerfen dabei nicht mitlaufen.
+      expect(res.deleted).toBe(0)
+
+      const row = telemetryRow()
+      expect(row.teacher_id).toBeNull()
+      expect(row.event).toBe('classroom_test_stufe_d') // Metrik-Traeger bleibt
+      expect(row.ts).toBe(AGED)
+      dropTelemetryRows()
+    })
+
+    it('Stufe D: laesst junge Telemetrie unberuehrt', () => {
+      dropTelemetryRows()
+      insertTelemetryRow(AGED)
+
+      // Schwelle liegt VOR dem Event → nichts zu tun.
+      const res = runClassroomRetention({ now: AGED + 1000, telemetryAnonymizeAfterMs: 5000 })
+      expect(res.telemetryAnonymized).toBe(0)
+      expect(telemetryRow().teacher_id).toBe(TEACHER_A)
+      dropTelemetryRows()
+    })
+
+    it('Stufe D: ist idempotent', () => {
+      dropTelemetryRows()
+      insertTelemetryRow(AGED)
+      const opts = { now: AGED + 1000, telemetryAnonymizeAfterMs: 500 }
+
+      expect(runClassroomRetention(opts).telemetryAnonymized).toBeGreaterThanOrEqual(1)
+      // teacher_id IS NULL faellt aus der WHERE-Klausel → zweiter Lauf ist ein No-op.
+      expect(runClassroomRetention(opts).telemetryAnonymized).toBe(0)
+      dropTelemetryRows()
     })
 
     it('Stufe B: loescht Session + Teilnehmer + Submissions nach 30 Tagen (CASCADE)', () => {

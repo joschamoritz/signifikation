@@ -55,10 +55,20 @@ export const DEFAULT_AUTO_END_IDLE_MS = 90 * 60 * 1000
 //   Stufe B — Hard-Delete: 30 Tage nach finished_at wird die ganze Session
 //     geloescht (CASCADE raeumt Assignments/Participants/Submissions/Scores/
 //     Capabilities mit weg). Deckelt das Tabellenwachstum endgueltig.
-//   classroom_telemetry bleibt unberuehrt — bereits pseudonym (kein
-//     display_name), traegt die §14-Metriken.
+//   Stufe D — classroom_telemetry: teacher_id nach 30 Tagen auf NULL.
+//     Die Tabelle enthaelt keine participant_id und damit keinen Bezug zu
+//     einzelnen Schueler:innen, wohl aber ueber teacher_id einen direkten
+//     Personenbezug zur Lehrkraft — und der hatte bisher als einziger keine
+//     Loeschfrist. Geloescht wird nur die Kennung, nicht das Event: die
+//     §14-Metriken (Aktivierungs-/Completion-Rate) laufen ausschliesslich ueber
+//     event/ts/session_id, und getTeacherStats liest teacher_user_id aus
+//     classroom_session, nicht aus der Telemetrie. Einziger Leser von
+//     telemetry.teacher_id ist getRecentEvents (Debug, Default-Fenster 7 Tage).
+//     30 Tage = dieselbe Grenze wie der Session-Hard-Delete, danach ist die
+//     Telemetrie vollstaendig pseudonym.
 export const DEFAULT_NAME_ANONYMIZE_MS = 24 * 60 * 60 * 1000      // 24 h (H2: Klartext-Spitznamen Minderjähriger kürzer halten; Lehrkraft-Review am Folgetag bleibt möglich)
 export const DEFAULT_HARD_DELETE_MS    = 30 * 24 * 60 * 60 * 1000 // 30 Tage
+export const DEFAULT_TELEMETRY_ANONYMIZE_MS = 30 * 24 * 60 * 60 * 1000 // 30 Tage
 export const ANONYMIZED_DISPLAY_NAME   = 'Schüler:in'
 // W4-U2: nie gestartete Lobby-Sessions (Lehrer legt an, zieht Join-Code,
 // startet aber nie) erreichen weder das Auto-End (nur 'running') noch die
@@ -152,6 +162,15 @@ const stmts = {
   // Retention Stufe A (E1/D9): display_name beendeter Sessions anonymisieren,
   // sobald finished_at aelter als das Fenster ist. Nur Zeilen, die noch nicht
   // anonymisiert sind (!= Platzhalter) → idempotent, kein Re-Write je Sweep.
+  // Stufe D — nur die Lehrkraft-Kennung entfernen, Event und Zeitstempel
+  // bleiben stehen (Metriken haengen nicht an teacher_id). Idempotent: NULL
+  // wird von der WHERE-Klausel ausgeschlossen.
+  anonymizeStaleTelemetry: db.prepare(`
+    UPDATE classroom_telemetry
+    SET teacher_id = NULL
+    WHERE teacher_id IS NOT NULL
+      AND ts < @threshold
+  `),
   anonymizeStaleParticipants: db.prepare(`
     UPDATE classroom_participant
     SET display_name = @placeholder
@@ -652,6 +671,7 @@ export function runClassroomRetention({
   anonymizeAfterMs = DEFAULT_NAME_ANONYMIZE_MS,
   hardDeleteAfterMs = DEFAULT_HARD_DELETE_MS,
   lobbyAbandonMs = DEFAULT_LOBBY_ABANDON_MS,
+  telemetryAnonymizeAfterMs = DEFAULT_TELEMETRY_ANONYMIZE_MS,
 } = {}) {
   // Stufe A — display_name anonymisieren (idempotent via != Platzhalter).
   const anonResult = stmts.anonymizeStaleParticipants.run({
@@ -689,10 +709,15 @@ export function runClassroomRetention({
     'lobby-cleanup',
   )
 
-  if (anonymized > 0 || deleted > 0 || lobbyDeleted > 0) {
-    logger.info({ anonymized, deleted, lobbyDeleted }, 'classroom retention sweep')
+  // Stufe D — Lehrkraft-Kennung aus alten Telemetrie-Events entfernen.
+  const telemetryAnonymized = stmts.anonymizeStaleTelemetry.run({
+    threshold: now - telemetryAnonymizeAfterMs,
+  }).changes
+
+  if (anonymized > 0 || deleted > 0 || lobbyDeleted > 0 || telemetryAnonymized > 0) {
+    logger.info({ anonymized, deleted, lobbyDeleted, telemetryAnonymized }, 'classroom retention sweep')
   }
-  return { anonymized, deleted, lobbyDeleted }
+  return { anonymized, deleted, lobbyDeleted, telemetryAnonymized }
 }
 
 // ── Assignments ─────────────────────────────────────────────────────
