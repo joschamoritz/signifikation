@@ -553,7 +553,7 @@ export function UebenPager({
         >
           <h3 className="course-pager-heading" tabIndex={-1}>
             Aufgabe {labels[i]}
-            <span className="course-task-niveau" title="Niveaustufe dieser Aufgabe">
+            <span className="course-task-niveau" title="Differenzierungsstufe dieser Aufgabe">
               {NIVEAU_LABELS[niveau] ?? niveau}
             </span>
             <span className="sr-only">

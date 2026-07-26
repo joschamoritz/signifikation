@@ -1,6 +1,6 @@
 // Erklaertext „Was ist der Kurs?“ für die Anm./Manicula auf der Kurs-Startseite
 // (Einheitlichkeit mit Spielmodi & Klassenraum). Erklärt den Lernpfad und die
-// vier Niveaustufen — Single Source für Desktop-Fußnote und Mobile-Sheet.
+// vier Differenzierungsstufen — Single Source für Desktop-Fußnote und Mobile-Sheet.
 // Seit dem Üben-Redesign sitzen hier auch die zentrale Niveau-Auswahl UND das
 // Zurücksetzen des Kurs-Fortschritts (beides bewusst NICHT im Konto-Tab —
 // gehört sachlich zum Kurs, nicht zu den allgemeinen Einstellungen). Der Reset
@@ -92,7 +92,7 @@ export default function KursNote({ footnotesClass, loggedIn = false }) {
         und — wo vorhanden — fertiges Unterrichtsmaterial.
       </p>
       <p>
-        Jede Aufgabe gibt es in <strong>vier Niveaustufen</strong>, die dieselbe
+        Jede Aufgabe gibt es in <strong>vier Differenzierungsstufen</strong>, die dieselbe
         Idee unterschiedlich tief fassen:<sup>1</sup>
       </p>
       <ul className="course-note-levels">

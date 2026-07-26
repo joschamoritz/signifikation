@@ -4,7 +4,7 @@
 // useGlobalNiveau-Zustand gebunden.
 import { NIVEAU_LEVELS, NIVEAU_LABELS } from './useGlobalNiveau'
 
-export default function NiveauSelect({ niveau, onChange, className = '', ariaLabel = 'Niveaustufe wählen' }) {
+export default function NiveauSelect({ niveau, onChange, className = '', ariaLabel = 'Differenzierungsstufe wählen' }) {
   return (
     <span className={`niveau-select-wrap ${className}`.trim()}>
       <select

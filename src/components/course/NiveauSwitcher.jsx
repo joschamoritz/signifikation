@@ -9,7 +9,7 @@ export default function NiveauSwitcher({ niveau, onChange, label = 'Niveau', hin
     <div className="course-niveau">
       <div className="course-niveau-row">
         <span className="course-niveau-label">{label}</span>
-        <div className="course-niveau-segment" role="group" aria-label="Niveaustufe wählen">
+        <div className="course-niveau-segment" role="group" aria-label="Differenzierungsstufe wählen">
           {NIVEAU_LEVELS.map((level) => (
             <button
               key={level}

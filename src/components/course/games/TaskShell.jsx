@@ -23,7 +23,7 @@ export function TaskHead({ task, index }) {
         <div className="course-task-head">
           <h3 className="course-task-format">{index != null ? `Aufgabe ${index}` : 'Aufgabe'}</h3>
           {niveauLabel && (
-            <span className="course-task-niveau" title="Niveaustufe dieser Aufgabe">{niveauLabel}</span>
+            <span className="course-task-niveau" title="Differenzierungsstufe dieser Aufgabe">{niveauLabel}</span>
           )}
         </div>
       )}

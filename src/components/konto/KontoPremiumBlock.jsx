@@ -11,9 +11,12 @@ const IS_NATIVE = Capacitor.isNativePlatform()
 
 // Stärkstes Kaufargument (Lehrkräfte-Paket) zuerst.
 const FEATURES = [
-  { label: 'Kurs-Material',  desc: 'Kompletter Unterrichtsentwurf, Arbeitsblätter in 4 Niveaustufen, Erwartungshorizont & Beamer-Folien – zu jeder Station' },
-  { label: 'Klassenraum',    desc: 'Live-Quiz mit der ganzen Klasse – Beitritt per QR-Code, ohne Konto für die Klasse' },
-  { label: 'Eigenes Lemma',  desc: 'Jeden Modus – auch im Kurs – mit selbst gewählten Wörtern, unbegrenzt' },
+  { label: 'Unterrichtsmaterial',  desc: 'Kompletter Unterrichtsentwurf, Arbeitsblätter in 4 Differenzierungsstufen, Erwartungshorizont & Beamer-Folien – zu jeder Station' },
+  { label: 'Klassenraum',          desc: 'Live-Quiz mit der ganzen Klasse – Beitritt per QR-Code, ohne Konto für die Klasse' },
+  // „Unbegrenzte Lemmata" beschreibt hier die gekaufte LEISTUNG. Der
+  // Feature-Name bleibt „Eigenes Lemma" — Basic hat das Feature ebenfalls,
+  // nur auf ein Spiel pro Tag begrenzt.
+  { label: 'Unbegrenzte Lemmata',  desc: 'Jeden Modus – auch im Kurs – mit selbst gewählten Wörtern, ohne Tageslimit' },
 ]
 
 export default function KontoPremiumBlock({ auth, gesamtausgabePermanent }) {
@@ -119,7 +122,7 @@ export default function KontoPremiumBlock({ auth, gesamtausgabePermanent }) {
         {gesamtausgabePermanent ? (
           <>
             <p className="test-definition">
-              Kurs-Material, Klassenraum und unbegrenzt eigene Lemmata.
+              Unterrichtsmaterial, Klassenraum und unbegrenzt eigene Lemmata.
             </p>
             <ul className="konto-premium-features konto-premium-features--active" aria-label="Enthaltene Funktionen">
               {FEATURES.map(f => (
@@ -145,7 +148,7 @@ export default function KontoPremiumBlock({ auth, gesamtausgabePermanent }) {
           <>
             <p className="test-definition">
               Alle vier Spielmodi sind frei. Mit der Gesamtausgabe spielst du
-              jeden Modus mit selbst gewählten Wörtern – unbegrenzt – plus Klassenraum &amp; Kurs-Material.
+              jeden Modus mit selbst gewählten Wörtern – unbegrenzt – plus Klassenraum &amp; Unterrichtsmaterial.
             </p>
 
             <ul className="konto-premium-features" aria-label="Enthaltene Funktionen">
