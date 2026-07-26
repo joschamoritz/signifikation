@@ -9,10 +9,17 @@
   transform: translateX(-50%);
   width: min(calc(100% - 2 * var(--tabbar-side)), 460px);
   height: var(--tabbar-h);
-  background: rgba(255, 255, 255, 0.55); /* frostig-weiss, heller als Pergament -> liest als Glas-Schicht */
+  background-color: rgba(255, 255, 255, 0.55); /* frostig-weiss, heller als Pergament -> liest als Glas-Schicht */
+  /* Wölbung: Licht sammelt sich oben, schwaches Gegenlicht unten – lässt die
+     flache Fläche als gebogener Glaskörper lesen (iOS-26-Signature). */
+  background-image: linear-gradient(to bottom,
+                      rgba(255, 255, 255, 0.34) 0%,
+                      rgba(255, 255, 255, 0.06) 42%,
+                      rgba(255, 255, 255, 0) 64%,
+                      rgba(255, 255, 255, 0.10) 100%);
   backdrop-filter: blur(26px) saturate(1.5);
   -webkit-backdrop-filter: blur(26px) saturate(1.5);
-  border: 0.5px solid rgba(120, 95, 65, 0.20);
+  border: 0.5px solid rgba(120, 95, 65, 0.16);
   border-radius: calc(var(--tabbar-h) / 2); /* volle Pille – runde Enden wie iOS */
   /* warmer Lift-Schatten + helle Innen-Lichtkante oben (spekulare Glas-Tiefe) */
   box-shadow: 0 8px 24px -10px rgba(60, 40, 30, 0.22),
@@ -20,20 +27,81 @@
               inset 0 0.5px 0 rgba(255, 255, 255, 0.55);
   display: flex;
   z-index: 200;
+  transition: box-shadow 0.28s ease-out, background-color 0.28s ease-out,
+              border-color 0.28s ease-out;
+}
+
+/* Specular Highlight: Gradient-Kontur statt Volltonrand. Streiflicht oben links
+   und an den Pillen-Enden, dunkle Zone in der Mitte – so brechen echte
+   Glaskanten das Licht. Als Ring über `mask-composite`, damit nur der Rand
+   gefärbt wird und die Fläche frei bleibt. */
+@supports ((mask-composite: exclude) or (-webkit-mask-composite: xor)) {
+  .tab-bar::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    padding: 1px;
+    background: linear-gradient(148deg,
+                  rgba(255, 255, 255, 0.95) 0%,
+                  rgba(255, 255, 255, 0.30) 26%,
+                  rgba(255, 255, 255, 0) 50%,
+                  rgba(255, 255, 255, 0.14) 74%,
+                  rgba(255, 255, 255, 0.62) 100%);
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    mask-composite: exclude;
+    pointer-events: none;
+    z-index: 2;
+  }
+
+  [data-theme="dark"] .tab-bar::before {
+    background: linear-gradient(148deg,
+                  rgba(255, 255, 255, 0.42) 0%,
+                  rgba(255, 255, 255, 0.12) 26%,
+                  rgba(255, 255, 255, 0) 50%,
+                  rgba(255, 255, 255, 0.06) 74%,
+                  rgba(255, 255, 255, 0.24) 100%);
+  }
 }
 
 /* Fallback ohne backdrop-filter: deckender, damit Inhalt nicht durchscheint */
 @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-  .tab-bar { background: rgba(255, 255, 255, 0.92); }
-  [data-theme="dark"] .tab-bar { background: rgba(36, 30, 24, 0.96); }
+  .tab-bar { background-color: rgba(255, 255, 255, 0.92); }
+  [data-theme="dark"] .tab-bar { background-color: rgba(36, 30, 24, 0.96); }
+}
+
+/* ── Scroll-Edge-Effekt ──────────────────────────────────────
+   iOS 26 trennt die Leiste vom Inhalt, solange Content darunter
+   durchläuft, und lässt sie „flach werden“, sobald nichts mehr
+   dahinter liegt (Seitenende oder nicht scrollbare Seite).
+   Klasse wird in TabBar.jsx gesetzt. */
+.tab-bar--flat {
+  background-color: rgba(255, 255, 255, 0.42);
+  border-color: rgba(120, 95, 65, 0.10);
+  box-shadow: 0 3px 10px -8px rgba(60, 40, 30, 0.14),
+              inset 0 0.5px 0 rgba(255, 255, 255, 0.45);
 }
 
 [data-theme="dark"] .tab-bar {
-  background: rgba(36, 30, 24, 0.6);
+  background-color: rgba(36, 30, 24, 0.6);
+  background-image: linear-gradient(to bottom,
+                      rgba(255, 255, 255, 0.09) 0%,
+                      rgba(255, 255, 255, 0.02) 42%,
+                      rgba(255, 255, 255, 0) 64%,
+                      rgba(255, 255, 255, 0.04) 100%);
   border-color: rgba(255, 255, 255, 0.10);
   box-shadow: 0 8px 26px -10px rgba(0, 0, 0, 0.55),
               0 2px 6px -4px rgba(0, 0, 0, 0.4),
               inset 0 0.5px 0 rgba(255, 255, 255, 0.12);
+}
+
+[data-theme="dark"] .tab-bar--flat {
+  background-color: rgba(36, 30, 24, 0.46);
+  border-color: rgba(255, 255, 255, 0.06);
+  box-shadow: 0 3px 12px -8px rgba(0, 0, 0, 0.4),
+              inset 0 0.5px 0 rgba(255, 255, 255, 0.09);
 }
 
 /* Innerer Wrapper – füllt die Kapsel, Bezug für den gleitenden Indikator */
@@ -55,6 +123,7 @@
   width: calc(100% / var(--tab-count) - 8px);
   left: calc(var(--active-index) * 100% / var(--tab-count) + 4px);
   transform: translateY(-50%);
+  transform-origin: center;
   border-radius: calc((var(--tabbar-h) - 12px) / 2); /* volle Pille, konzentrisch */
   background: color-mix(in srgb, var(--surface) 88%, transparent);
   border: 0.5px solid rgba(255, 255, 255, 0.7);
@@ -63,7 +132,26 @@
               inset 0 1px 0 rgba(255, 255, 255, 0.9);
   pointer-events: none;
   z-index: 0;
-  transition: left 0.34s ease-out, opacity 0.2s ease-out;
+  /* iOS-Spring: minimaler Überschwung am Ziel statt trockenem ease-out */
+  transition: left 0.42s cubic-bezier(0.34, 1.28, 0.64, 1), opacity 0.2s ease-out;
+  animation-duration: 0.42s;
+  animation-timing-function: cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+/* Morph: die Kapsel zieht sich in Bewegungsrichtung lang und schnappt zurück –
+   sie „fließt“ zum neuen Tab statt starr zu rutschen. Zwei identische
+   Keyframe-Sets, weil TabBar.jsx zwischen ihnen alterniert; nur so startet die
+   Animation bei jedem Wechsel sicher neu (auch bei schnellen Taps). */
+@keyframes tabMorphA {
+  0%   { transform: translateY(-50%) scaleX(1); }
+  42%  { transform: translateY(-50%) scaleX(1.16); }
+  100% { transform: translateY(-50%) scaleX(1); }
+}
+
+@keyframes tabMorphB {
+  0%   { transform: translateY(-50%) scaleX(1); }
+  42%  { transform: translateY(-50%) scaleX(1.16); }
+  100% { transform: translateY(-50%) scaleX(1); }
 }
 
 [data-theme="dark"] .tab-bar-indicator {
@@ -805,7 +893,7 @@
   font-size: 0.95rem;
   letter-spacing: 0;
   text-transform: none;
-  color: var(--accent);
+  color: var(--accent-dk);
   line-height: 1;
 }
 
@@ -918,8 +1006,12 @@
 
   .tab-bar-label { transition: none; }
 
-  /* Kapsel springt statt zu gleiten */
-  .tab-bar-indicator { transition: opacity 0.2s ease-out; }
+  /* Kapsel springt statt zu gleiten – und morpht nicht.
+     !important, weil TabBar.jsx den animation-name inline setzt. */
+  .tab-bar-indicator {
+    transition: opacity 0.2s ease-out;
+    animation-name: none !important;
+  }
 
   .konto-auth-card::before {
     animation: none;

@@ -1,7 +1,7 @@
 import express from 'express'
-import { requireAuthUser, optionalAuthUser } from '../middleware/userAuth.js'
+import { requireAuthUser, optionalAuthUser, isPremiumRole } from '../middleware/userAuth.js'
 import { authFeatureFlags } from '../auth/index.js'
-import { IS_PROD } from '../middleware/auth.js'
+import { IS_PROD, serverError } from '../middleware/auth.js'
 import { deleteUserTx } from './admin-users-data.js'
 import { validate, accountIdParamsSchema } from '../middleware/validate.js'
 import { getQuota } from '../customLemmaQuota.js'
@@ -68,7 +68,7 @@ function readEntitlements(userId, userRole) {
   ensureEntitlementStmt.run(userId, now, now)
   const row = getEntitlementStmt.get(userId)
   const unlockedByPayment = !!row?.gesamtausgabe_unlocked
-  const unlockedByRole = userRole === 'premium'
+  const unlockedByRole = isPremiumRole(userRole)
 
   const quota = getQuota({ userId, role: userRole })
   const customLemma = quota.unlimited
@@ -84,7 +84,7 @@ function readEntitlements(userId, userRole) {
       source: unlockedByPayment ? (row?.source || 'none') : unlockedByRole ? 'admin-role' : 'none',
     },
     // Klassenraum (Lehrkraft-Bereich): nur fuer Premium-/Admin-Konten sichtbar.
-    classroomTeacher: userRole === 'premium' || userRole === 'admin',
+    classroomTeacher: isPremiumRole(userRole),
     // Eigenes-Lemma-Tageskontingent (Phase 4). Premium = unbegrenzt.
     customLemma,
   }
@@ -142,7 +142,7 @@ router.get('/api/v1/account/stats', requireAuthUser, (req, res) => {
     res.json(payload)
   } catch (err) {
     logger.error({ err }, 'Konto-Statistik-Abruf fehlgeschlagen')
-    res.status(500).json({ error: 'Interner Serverfehler' })
+    serverError(res, err)
   }
 })
 
@@ -155,8 +155,9 @@ router.get('/api/v1/account/sessions', requireAuthUser, (req, res) => {
       ORDER BY createdAt DESC
     `).all(req.user.id, new Date().toISOString())
     res.json({ sessions: rows })
-  } catch {
-    res.status(500).json({ error: 'Interner Serverfehler' })
+  } catch (err) {
+    logger.error({ err }, 'Sessions-Abruf fehlgeschlagen')
+    serverError(res, err)
   }
 })
 
@@ -167,8 +168,9 @@ router.delete('/api/v1/account/sessions/:id', requireAuthUser, validate(accountI
     ).run(req.params.id, req.user.id)
     if (result.changes === 0) return res.status(404).json({ error: 'Session nicht gefunden' })
     res.json({ ok: true })
-  } catch {
-    res.status(500).json({ error: 'Interner Serverfehler' })
+  } catch (err) {
+    logger.error({ err }, 'Session-Loeschung fehlgeschlagen')
+    serverError(res, err)
   }
 })
 
@@ -186,7 +188,7 @@ router.delete('/api/v1/account/me', requireAuthUser, (req, res) => {
     res.json({ ok: true })
   } catch (err) {
     logger.error({ err }, 'Account-Löschung fehlgeschlagen')
-    res.status(500).json({ error: 'Interner Serverfehler' })
+    serverError(res, err)
   }
 })
 

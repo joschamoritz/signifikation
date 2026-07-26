@@ -11,28 +11,10 @@
 //
 // Pendant im Backend: server/middleware/auth.js (CSRF_HEADER_VALUE)
 
+import { BACKEND_ORIGINS } from './backendOrigins.js'
+
 const CSRF_HEADER_VALUE = 'signifikation-app'
 const STATE_CHANGING = new Set(['POST', 'PUT', 'DELETE', 'PATCH'])
-
-// Eigene Backend-Origins, an die der CSRF-Header in jedem Fall gehört –
-// auch bei cross-origin Requests aus dem Native-WebView.
-const BACKEND_ORIGINS = new Set([
-  'https://signifikation.de',
-  'http://localhost:3001',
-  'http://localhost:5173',
-])
-
-// VITE_API_BASE kann zur Build-Zeit eine weitere Backend-Origin liefern
-// (z. B. Staging). Diese ergänzen wir dynamisch zur Allowlist.
-try {
-  const apiBase = import.meta.env?.VITE_API_BASE
-  if (apiBase) {
-    const parsed = new URL(apiBase, 'https://example.invalid')
-    if (parsed.origin && parsed.origin !== 'https://example.invalid') {
-      BACKEND_ORIGINS.add(parsed.origin)
-    }
-  }
-} catch { /* import.meta nicht verfügbar (Tests u.ä.) – egal */ }
 
 function shouldAttachCsrfHeader(url) {
   try {

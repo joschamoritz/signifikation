@@ -168,7 +168,15 @@ app.use('/admin', csrfProtect)
 app.use('/api', csrfProtect)
 
 // ── Admin-Assets (CSS/JS für admin.html) ─────────────────────
-app.use('/admin-assets', express.static(join(__dirname, 'public')))
+app.use('/admin-assets', express.static(join(__dirname, 'public'), {
+  setHeaders(res) {
+    // Kein immutable/1 Jahr wie bei den Fonts: die Dateinamen enthalten
+    // keinen Hash, ein Deploy würde sonst nicht durchschlagen. Eine Stunde
+    // reicht, um die 304-Roundtrips innerhalb einer Sitzung zu sparen –
+    // auf Mobilfunk sind das ~100 ms pro Datei bei jedem Seitenaufruf.
+    res.setHeader('Cache-Control', 'public, max-age=3600')
+  },
+}))
 app.use('/fonts', express.static(join(__dirname, '../public/fonts'), {
   setHeaders(res) {
     // Font-Dateinamen sind stabil → 1 Jahr immutable cachen, verhindert

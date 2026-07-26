@@ -145,7 +145,9 @@ export default function DayComplete({ onClose, playedGames = [], wzPlayed = null
 
       <div className="dc-footer">
         {streak > 0 && (
-          <p className="dc-streak">🔥 {streak} {streak === 1 ? 'Tag' : 'Tage'}</p>
+          <p className="dc-streak" aria-label={`${streak} ${streak === 1 ? 'Tag' : 'Tage'} Streak`}>
+            🔥 {streak} {streak === 1 ? 'Tag' : 'Tage'}
+          </p>
         )}
         <p className="dc-ornament" aria-hidden="true">· · ·</p>
         <p className="dc-colophon">Der Eintrag für diesen Tag ist beschlossen.</p>
