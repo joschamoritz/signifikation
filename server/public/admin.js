@@ -2625,7 +2625,7 @@ async function generateLueckenfueller() {
   const lemmaName = (document.getElementById('lf-id')?.value || '').trim()
   const statusEl  = document.getElementById('lf-generate-status')
   if (!lemmaName) { alert('Bitte zuerst einen Lemma-Namen eingeben.'); return }
-  if (statusEl) { statusEl.style.display = 'block'; statusEl.style.color = 'var(--muted)'; statusEl.textContent = `Generiere Lückenfüller für „${lemmaName}" …` }
+  if (statusEl) { statusEl.style.display = 'block'; statusEl.style.color = 'var(--muted)'; statusEl.textContent = `Generiere Lückenfüller für „${lemmaName}“ …` }
   try {
     const res  = await fetch('/admin/lueckenfueller/generate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ lemmaName }) })
     const data = await res.json()
@@ -2637,7 +2637,7 @@ async function generateLueckenfueller() {
       if (statusEl) { statusEl.style.color = 'var(--danger, #c0392b)'; statusEl.textContent = `Nicht möglich: ${data.reason || 'Kein Material verfügbar'}` }
       return
     }
-    if (statusEl) { statusEl.style.color = 'var(--success, #27ae60)'; statusEl.textContent = `✓ Lückenfüller generiert für „${data.lemma}" – ${data.rounds} Runden` }
+    if (statusEl) { statusEl.style.color = 'var(--success, #27ae60)'; statusEl.textContent = `✓ Lückenfüller generiert für „${data.lemma}“ – ${data.rounds} Runden` }
   } catch (err) {
     if (statusEl) { statusEl.style.color = 'var(--danger, #c0392b)'; statusEl.textContent = `Fehler: ${err.message}` }
   }
@@ -2991,7 +2991,7 @@ function runJsonImport() {
   }
 
   if (!Array.isArray(data.woerter) || data.woerter.length !== 3) {
-    errEl.textContent = 'Pflichtfeld „woerter" fehlt oder enthält nicht genau 3 Einträge.'
+    errEl.textContent = 'Pflichtfeld „woerter“ fehlt oder enthält nicht genau 3 Einträge.'
     return
   }
 

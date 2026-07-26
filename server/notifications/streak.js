@@ -5,7 +5,7 @@
  * die Serie reißt – einmal abends um 19:00 Europe/Berlin, zusätzlich zum
  * 08:00-Broadcast (scheduler.js). Zielgruppe (alle Bedingungen):
  *   1. eingeloggt (stats.user_id != '')
- *   2. hat GESTERN (Berlin) gespielt  → Serie ist „lebendig"
+ *   2. hat GESTERN (Berlin) gespielt  → Serie ist „lebendig“
  *   3. hat HEUTE (Berlin) noch NICHT gespielt → Serie in Gefahr
  *   4. hat mindestens ein Push-Gerät registriert
  *   5. aktuelle Serienlänge >= MIN_STREAK
@@ -20,7 +20,7 @@
  * Catch-up wie scheduler.js: app_state.streak_push_last_sent merkt sich den
  * letzten Versandtag (Berlin-Datum); ein verpasster 19:00-Lauf wird beim Boot
  * nachgeholt – aber NUR innerhalb eines Abendfensters (19–22 Uhr), damit kein
- * „Serie endet heute"-Push mitten in der Nacht des Folgetags rausgeht.
+ * „Serie endet heute“-Push mitten in der Nacht des Folgetags rausgeht.
  * Idempotent über das Berlin-Datum.
  */
 import cron from 'node-cron'
@@ -104,7 +104,7 @@ const getStreakCandidatesStmt = db.prepare(`
  * werden aufeinanderfolgende Tage rückwärts gezählt.
  *
  * @param {Iterable<string>} playedDates
- * @param {string} todayStr  Berlin-Datum „heute" (YYYY-MM-DD)
+ * @param {string} todayStr  Berlin-Datum „heute“ (YYYY-MM-DD)
  * @returns {number}
  */
 export function computeStreakFromDates(playedDates, todayStr) {

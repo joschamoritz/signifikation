@@ -358,8 +358,8 @@ function FreeRound({ round, onScore }) {
     const t = (token || '').toLowerCase()
     // Exakter Match oder startsWith-Toleranz für Flexionsformen. Die
     // Mindestlänge muss fuer BEIDE Seiten gelten: prueft man nur die Loesung
-    // (k.length >= MIN), zaehlt jedes Praefix der Loesung — bei „treffen" waere
-    // schon die Eingabe „t" richtig gewesen.
+    // (k.length >= MIN), zaehlt jedes Praefix der Loesung — bei „treffen“ waere
+    // schon die Eingabe „t“ richtig gewesen.
     const MIN = 4
     const near = (a, b) => a.length >= MIN && b.length >= MIN && (a.startsWith(b) || b.startsWith(a))
     return v === k || v === t || near(v, k) || near(v, t)

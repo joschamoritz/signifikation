@@ -3,7 +3,7 @@
  *
  * Realtime-Tests fuer Classroom (T-3.1 / T-3.2 / T-3.3).
  * Mitigation fuer R-2 (Race-Conditions im Socket-Layer): die Race-Pfade
- * unter „Reconnect-Window" sind hier explizit abgesichert.
+ * unter „Reconnect-Window“ sind hier explizit abgesichert.
  *
  * Test-Strategie:
  *   - Echter Socket.io-Server auf Random-Port pro Suite

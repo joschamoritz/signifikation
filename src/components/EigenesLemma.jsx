@@ -1,4 +1,4 @@
-// Premium-Feature „Eigenes Lemma" – erscheint als weiterer Wörterbuch-Eintrag
+// Premium-Feature „Eigenes Lemma“ – erscheint als weiterer Wörterbuch-Eintrag
 // unter den Tageslemmata. Eingeklappt eine ruhige Zeile, aufgeklappt eine
 // Eingabe-Karte, die Typografie und Layout der Lemma-Karten spiegelt.
 //
@@ -8,11 +8,11 @@
 // requiresLogin? }.
 //
 // Modi: Kollokationen / Zeitenwende / Lückenfüller nehmen ein Wort (q);
-// Wort-Zwilling zwei Wörter (a/b) – dort gestapelt mit „vs."-Linie.
+// Wort-Zwilling zwei Wörter (a/b) – dort gestapelt mit „vs.“-Linie.
 //
 // Live-Vorabprüfung gegen /custom-lemma/validate (debounced, verbraucht nichts);
-// „Spielen" holt /custom-lemma/play (verbraucht 1) und reicht das Ergebnis an
-// onPlay weiter. Nach „spielbar" werden (Einzelwort-Modi) IPA + Definition über
+// „Spielen“ holt /custom-lemma/play (verbraucht 1) und reicht das Ergebnis an
+// onPlay weiter. Nach „spielbar“ werden (Einzelwort-Modi) IPA + Definition über
 // useWiktionary nachgeladen.
 
 import { useEffect, useRef, useState } from 'react'

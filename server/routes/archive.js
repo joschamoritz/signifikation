@@ -99,7 +99,7 @@ router.get('/api/v1/woerter/:slug', archiveDetailLimiter, (req, res) => {
     if (!entry) {
       return res.status(404).set('Cache-Control', 'public, max-age=300').json({ error: 'Wort nicht im Archiv', code: 'NOT_FOUND' })
     }
-    // Mehr Belege fürs Aufklappmenü im App-Tab (zeigt 3, „Mehr anzeigen" enthüllt Rest).
+    // Mehr Belege fürs Aufklappmenü im App-Tab (zeigt 3, „Mehr anzeigen“ enthüllt Rest).
     const detail = buildWortDetailCached(entry, { patternLimit: 10, belegLimit: 8 })
     res.set('Cache-Control', CACHE_CONTROL).json({
       slug: entry.slug,

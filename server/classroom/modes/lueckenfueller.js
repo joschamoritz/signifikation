@@ -1,7 +1,7 @@
 /**
  * server/classroom/modes/lueckenfueller.js
  *
- * Modus „Lueckenfueller" — gebuendeltes Modus-Wissen (Code-Review P2).
+ * Modus „Lueckenfueller“ — gebuendeltes Modus-Wissen (Code-Review P2).
  * Besonderheit: mehrere Runden pro Lemma (round_index). Drei Runden-Typen
  * (choice/double/free) mit je eigener Whitelist + Scoring.
  */
@@ -105,7 +105,7 @@ export default {
   },
 
   extractItems(row) {
-    // Eine Runde pro Submission (round_index). Gilt als „richtig", wenn Punkte.
+    // Eine Runde pro Submission (round_index). Gilt als „richtig“, wenn Punkte.
     return [{ key: `r${Number(row.round_index) || 0}`, isCorrect: (Number(row.score) || 0) > 0 }]
   },
 

@@ -1,6 +1,6 @@
 /**
  * customLemma.js – Eignungsprüfung für selbst gewählte Lemmata (Premium-Feature
- * „Eigenes Lemma"). Spiegelt die Admin-Analyse-Tools, prüft aber gegen die
+ * „Eigenes Lemma“). Spiegelt die Admin-Analyse-Tools, prüft aber gegen die
  * tatsächlichen Spielanforderungen pro Modus (nicht die laxere Admin-`usable`-
  * Heuristik), damit nur wirklich spielbare Wörter durchgelassen werden.
  *

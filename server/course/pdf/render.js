@@ -7,7 +7,7 @@
  * Material. Sie werden entweder per CLI/CI vorerzeugt ODER on-demand über den
  * Admin-Button (POST /admin/course/regenerate-pdfs) als Hintergrund-Job – dann
  * läuft Chromium einmalig auf dem Server. Der Browser liegt in einem festen
- * Cache (PLAYWRIGHT_BROWSERS_PATH, siehe OPS.md „Kurs-PDF-Generierung"), das
+ * Cache (PLAYWRIGHT_BROWSERS_PATH, siehe OPS.md „Kurs-PDF-Generierung“), das
  * playwright-Paket ist dafür Prod-Dependency.
  *
  * Tooling-Begründung (Kurs-Umsetzung AP5): HTML/CSS gibt volle CD-Kontrolle (DM Sans,
@@ -58,7 +58,7 @@ export async function createRenderer() {
   } catch (err) {
     throw new Error(
       'Chromium konnte nicht gestartet werden. Browser-Binary fehlt oder System-Libs nicht installiert. ' +
-      'Einmalige Einrichtung siehe OPS.md „Kurs-PDF-Generierung" ' +
+      'Einmalige Einrichtung siehe OPS.md „Kurs-PDF-Generierung“ ' +
       `(PLAYWRIGHT_BROWSERS_PATH=${process.env.PLAYWRIGHT_BROWSERS_PATH || '(nicht gesetzt)'}). ` +
       `Ursprung: ${err.message}`,
     )

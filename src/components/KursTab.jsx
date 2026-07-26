@@ -18,7 +18,7 @@ import '../styles/course.css'
 // Lernpfad-Stationen laut Kurs-Tab-IA.md (Ebene 1). `apiId` mappt auf die
 // course_stations-Zeile (Backend-Inhalt). Alle fünf Stationen haben seit AP10
 // interaktiven Content und öffnen die Detailansicht; Druckmaterial für ②–⑤
-// folgt (AP20), die „Üben"-Aufgaben sind aber vollständig.
+// folgt (AP20), die „Üben“-Aufgaben sind aber vollständig.
 // Exportiert für den Konsistenz-Test (K3): die Reihenfolge hier bestimmt die
 // "Weiter zur nächsten Station"-Sprünge (NextStationCta in StationDetail.jsx),
 // der dort angezeigte Glyph kommt aber aus dem Server-order_no. Beide Quellen
@@ -83,7 +83,7 @@ function KursTab({ gesamtausgabe = false, loggedIn = false, onNavigateToKonto })
   useScrollPersist(entriesRef, 'kurs')
   const { show: showSwipeHint, fade: swipeHintFade, onInteract: handleEntriesScroll } = useSwipeHint('kurs')
 
-  // Anm./Manicula („Was ist der Kurs?") — Einheitlichkeit mit Spielmodi & Klassenraum.
+  // Anm./Manicula („Was ist der Kurs?“) — Einheitlichkeit mit Spielmodi & Klassenraum.
   const [desktopInfoOpen, setDesktopInfoOpen] = useState(false)
   const [sheetOpen, setSheetOpen] = useState(false)
 
@@ -93,7 +93,7 @@ function KursTab({ gesamtausgabe = false, loggedIn = false, onNavigateToKonto })
   // Stations-Fortschritt (gelöst/gesamt je Niveau) für die Übersicht. Üben ist
   // frei → für jeden eingeloggten Nutzer laden; best effort (optional).
   const [summary, setSummary] = useState([])
-  // Verhindert, dass vor der ersten Antwort überall „Bereit." statt der
+  // Verhindert, dass vor der ersten Antwort überall „Bereit.“ statt der
   // geladenen Fortschrittszahl steht (sichtbares Nachspringen bei Stammnutzern).
   const [summaryReady, setSummaryReady] = useState(false)
   useEffect(() => {

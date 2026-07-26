@@ -65,7 +65,7 @@ export const demoContentSchema = z.object({
   lueckenfueller: z.object({
     lemma: lemmaFields,
     sentence: z.string().trim().min(3).max(300)
-      .refine((s) => s.includes('_____'), { message: 'Der Satz braucht eine Lücke „_____" (fünf Unterstriche).' }),
+      .refine((s) => s.includes('_____'), { message: 'Der Satz braucht eine Lücke „_____“ (fünf Unterstriche).' }),
     options: wordList(2, 6),
   }),
 })

@@ -66,7 +66,7 @@ describe('EndStep (W2-T4)', () => {
     await waitFor(() => {
       expect(screen.getByTestId('classroom-end-cards')).toBeTruthy()
     })
-    // Kein „Neue Session"-Button mehr auf der Ergebnisseite (Wunsch: nur der
+    // Kein „Neue Session“-Button mehr auf der Ergebnisseite (Wunsch: nur der
     // Zurück-Pfeil oben). Der Zurück-Button der Subscreen-Hülle bleibt.
     expect(screen.queryByTestId('classroom-end-new')).toBeNull()
     expect(screen.getByTestId('classroom-subscreen-back')).toBeTruthy()
@@ -101,7 +101,7 @@ describe('EndStep (W2-T4)', () => {
       expect(screen.getByTestId('classroom-end-dist')).toBeTruthy()
     })
     // Optionen + Anteile sind im DOM (auch wenn das <details> zugeklappt ist).
-    // „klar" erscheint in der Lösungszeile UND in der Verteilung → getAllByText.
+    // „klar“ erscheint in der Lösungszeile UND in der Verteilung → getAllByText.
     expect(screen.getAllByText('klar').length).toBeGreaterThanOrEqual(1)
     expect(screen.getByText('100 %')).toBeTruthy()
     expect(screen.getByText('75 %')).toBeTruthy()
@@ -130,7 +130,7 @@ describe('EndStep (W2-T4)', () => {
     const lemmataOrder = screen.getAllByRole('heading', { level: 3 }).map((h) => h.textContent)
     expect(lemmataOrder).toEqual(['Alpha', 'Beta'])
 
-    // Nach „Schwierigkeit": niedrigste Trefferquote (Beta 30 %) zuerst.
+    // Nach „Schwierigkeit“: niedrigste Trefferquote (Beta 30 %) zuerst.
     fireEvent.click(screen.getByText('Schwierigkeit'))
     const lemmataDiff = screen.getAllByRole('heading', { level: 3 }).map((h) => h.textContent)
     expect(lemmataDiff).toEqual(['Beta', 'Alpha'])
@@ -153,7 +153,7 @@ describe('EndStep (W2-T4)', () => {
     expect(screen.queryByTestId('classroom-end-cards')).toBeNull()
   })
 
-  it('„Namen zeigen" ist standardmäßig off (kein Name sichtbar)', async () => {
+  it('„Namen zeigen“ ist standardmäßig off (kein Name sichtbar)', async () => {
     getSessionResults.mockResolvedValue({
       session: { id: 's1', status: 'finished', title: null, finishedAt: 1 },
       totals: { participants: 1, submissions: 1 },

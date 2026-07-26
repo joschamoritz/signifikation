@@ -90,17 +90,17 @@ export const POS_ROUNDS = {
 // Bonuskandidaten je Wortart
 const POS_BONUS = {
   Substantiv: [
-    { relCode: 'PRED',   label: 'Prädikativ',      question: lemma => `Welches Adjektiv kann „${lemma}" prädikativ beschreiben?` },
-    { relCode: 'GMOD',   label: 'Genitivattribut', question: lemma => `Welches Wort steht häufig mit „${lemma}" im Genitiv?` },
-    { relCode: '~GMOD',  label: 'Genitivattribut', question: lemma => `Von welchem Nomen ist „${lemma}" oft ein Genitivattribut?` },
-    { relCode: '~SUBJA', label: 'Subjekt-Verb',    question: lemma => `Welches Verb verbindet sich mit „${lemma}" als Subjekt?` },
+    { relCode: 'PRED',   label: 'Prädikativ',      question: lemma => `Welches Adjektiv kann „${lemma}“ prädikativ beschreiben?` },
+    { relCode: 'GMOD',   label: 'Genitivattribut', question: lemma => `Welches Wort steht häufig mit „${lemma}“ im Genitiv?` },
+    { relCode: '~GMOD',  label: 'Genitivattribut', question: lemma => `Von welchem Nomen ist „${lemma}“ oft ein Genitivattribut?` },
+    { relCode: '~SUBJA', label: 'Subjekt-Verb',    question: lemma => `Welches Verb verbindet sich mit „${lemma}“ als Subjekt?` },
   ],
   Verb: [
-    { relCode: 'SUBJA', label: 'Subjekt',            question: lemma => `Welches Wort steht typisch als Subjekt von „${lemma}"?` },
-    { relCode: 'PP',    label: 'Präpositionalgruppe', question: lemma => `Welche Präpositionalgruppe passt zu „${lemma}"?` },
+    { relCode: 'SUBJA', label: 'Subjekt',            question: lemma => `Welches Wort steht typisch als Subjekt von „${lemma}“?` },
+    { relCode: 'PP',    label: 'Präpositionalgruppe', question: lemma => `Welche Präpositionalgruppe passt zu „${lemma}“?` },
   ],
   Adjektiv: [
-    { relCode: 'ADV',   label: 'Adverbialbestimmung', question: lemma => `Welches Adverb modifiziert „${lemma}"?` },
+    { relCode: 'ADV',   label: 'Adverbialbestimmung', question: lemma => `Welches Adverb modifiziert „${lemma}“?` },
   ],
 }
 
@@ -311,14 +311,14 @@ export async function fetchRelation(lemma, pos, relCode) {
     const cacheKey = `rel:${lemma}:${pos}:${relCode}`
     const data = getCachedQuery(cacheKey, () => {
       // PRED_REV: Verben für Adjektive – kombiniert zwei Quellen:
-      // 1) ~ADV: Adjektiv als Adverbialbestimmung (z.B. „krank feiern")
-      // 2) PRED rückwärts: Adjektiv als Prädikativ (z.B. „sein/werden/machen + krank")
+      // 1) ~ADV: Adjektiv als Adverbialbestimmung (z.B. „krank feiern“)
+      // 2) PRED rückwärts: Adjektiv als Prädikativ (z.B. „sein/werden/machen + krank“)
       // PRED wurde in build_wortprofil.py nicht invertiert, daher Rückwärtsquery nötig.
       // Beide immer zusammenführen – mehr Quellen = vollständigere Ergebnisse.
       // PRED_REV: Verben für Adjektive – kombiniert drei Quellen:
       // 1) ~ADV als Adjektiv: adverbiale Verwendung, Parser-Tag = Adjektiv
-      // 2) ~ADV als Adverb:   adverbiale Verwendung, Parser-Tag = Adverb (z.B. „krank feiern")
-      // 3) PRED rückwärts:    prädikative Verwendung (z.B. „sein/werden/machen + krank")
+      // 2) ~ADV als Adverb:   adverbiale Verwendung, Parser-Tag = Adverb (z.B. „krank feiern“)
+      // 3) PRED rückwärts:    prädikative Verwendung (z.B. „sein/werden/machen + krank“)
       if (relCode === 'PRED_REV') {
         const adjAdvRows  = queryRelation(lemma, 'Adjektiv', '~ADV')
         const advAdvRows  = queryRelation(lemma, 'Adverb',   '~ADV')
@@ -425,7 +425,7 @@ export async function fetchCollocationSample(lemma, pos = 'Substantiv', {
 // Lemmas – NICHT Bubenhofers Muster-Anteil (Anteil eines Musters an den Belegen
 // EINER Kollokation) und keine echte Korpus-Grundgesamtheit. Entsprechend
 // beschriften. Die Stellung ist grammatisch begründet (typische Wortstellung je
-// Relation), nicht korpusstatistisch gemessen – daher „typisch", kein Messwert.
+// Relation), nicht korpusstatistisch gemessen – daher „typisch“, kein Messwert.
 
 // Typische Stellung des Kollokators relativ zum Lemma, aus Sicht des Lemmas.
 // Berücksichtigt die Perspektive: bei inversen Relationen (~) ist das Lemma der
@@ -435,8 +435,8 @@ export async function fetchCollocationSample(lemma, pos = 'Substantiv', {
 const BASE_POS = new Set(['Substantiv', 'Verb', 'Adjektiv'])
 
 // Hilfs-/Funktions-/Stützverben: als Netzknoten liefern sie diffuse, wenig
-// aussagekräftige Kollokate (haben → „so"/„noch"). Im primären Muster bleiben
-// sie sichtbar (z.B. „Erinnerung haben"), nur nicht als Wortnetz-Basis.
+// aussagekräftige Kollokate (haben → „so“/„noch“). Im primären Muster bleiben
+// sie sichtbar (z.B. „Erinnerung haben“), nur nicht als Wortnetz-Basis.
 const SKIP_NETZ_BASE = new Set([
   'haben', 'sein', 'werden', 'machen', 'tun', 'geben', 'lassen',
 ])
@@ -487,7 +487,7 @@ export function fetchSyntagmaticPatterns(lemma, pos = 'Substantiv', { limit = 10
     // dep_pos != 'Pronomen': Funktionswörter (die/er/sie/wir …) sind zwar echte
     // Subjekt-/Objekt-Kollokatoren, fürs Wörterbuch-Archiv aber Rauschen. Der
     // Nenner `total` (oben) bleibt bewusst die volle erfasste Menge inkl.
-    // Pronomen → „Anteil an allen erfassten Verbindungen" bleibt korrekt.
+    // Pronomen → „Anteil an allen erfassten Verbindungen“ bleibt korrekt.
     const rows = stmts().synPatterns.all(low, pos, minFreq, limit)
 
     const patterns = rows.map((r) => ({
@@ -512,7 +512,7 @@ export function fetchSyntagmaticPatterns(lemma, pos = 'Substantiv', { limit = 10
  * Sekundäre Kollokatoren fürs Archiv (Kollokatoren der Kollokatoren, 1 Hop).
  * Nimmt die stärksten `baseCount` Kollokatoren des Lemmas als Basis und fragt
  * für jede Basis deren eigene stärkste `perBase` Kollokatoren ab. So wird das
- * „Wortnetz" um ein Lemma sichtbar (z.B. Maßnahme → ergreifen → Initiative/
+ * „Wortnetz“ um ein Lemma sichtbar (z.B. Maßnahme → ergreifen → Initiative/
  * Konsequenz …). Bewusst flach (1 Hop) und schmal (Top-2 Basis) gehalten, um
  * die Zahl der Folgeabfragen klein zu halten (≈ 1 + baseCount Aufrufe).
  *
@@ -538,7 +538,7 @@ export function fetchSecondaryCollocates(lemma, pos = 'Substantiv', {
 
   // Basen: stärkste Kollokatoren mit abfragbarer POS + Einzelwort, dedupliziert.
   // Nur Substantiv/Verb/Adjektiv als Netzknoten – Adverbien haben oft dünne,
-  // historisch verrauschte Kollokationsprofile (z.B. „dahin" → OCR-Varianten).
+  // historisch verrauschte Kollokationsprofile (z.B. „dahin“ → OCR-Varianten).
   const bases = []
   const seenBase = new Set()
   for (const p of basePatterns) {
@@ -681,7 +681,7 @@ export async function fetchZeitenwende(lemma) {
 
     return { lemma, words }
   } catch (err) {
-    logger.warn({ err }, `fetchZeitenwende: Fehler bei „${lemma}"`)
+    logger.warn({ err }, `fetchZeitenwende: Fehler bei „${lemma}“`)
     return null
   }
 }

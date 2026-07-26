@@ -32,7 +32,7 @@ describe('VariantTask – native Radios (F3)', () => {
     expect(r.some((el) => el.checked)).toBe(false)
   })
 
-  it('Auswahl setzt checked + aktiviert „Prüfen"', () => {
+  it('Auswahl setzt checked + aktiviert „Prüfen“', () => {
     render(<VariantTask task={TASK} index="1" onChecked={vi.fn()} />)
     expect(checkBtn().disabled).toBe(true)
     fireEvent.click(radios()[0])
@@ -40,7 +40,7 @@ describe('VariantTask – native Radios (F3)', () => {
     expect(checkBtn().disabled).toBe(false)
   })
 
-  it('nach „Prüfen" sind die Radios gesperrt (disabled)', () => {
+  it('nach „Prüfen“ sind die Radios gesperrt (disabled)', () => {
     const onChecked = vi.fn()
     render(<VariantTask task={TASK} index="1" onChecked={onChecked} />)
     // Varianten werden gemischt → Auswahl per Wert, nicht per Position.

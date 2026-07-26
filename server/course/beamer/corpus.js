@@ -5,16 +5,16 @@
  *
  * Zieht für ein Anker-Lemma die stärksten Adjektiv-Attribute (Relation ATTR,
  * ORDER BY logDice DESC) und leitet daraus ab:
- *   - spektrum: das typischste Kollokat (Hook „blondes Haar")
+ *   - spektrum: das typischste Kollokat (Hook „blondes Haar“)
  *   - logdice:  strong/mid/weak + 0–14-Skala (alle logDice-Zahlen live)
  *   - daten:    reale DB-Größe + eine echte Top-Verbindung als Ergebnis-Beleg
  *
  * Bewusst lemmatisiert: queryRelation liefert Grundformen (`blond`), keine
  * Flexionsformen. Für natürlich lesbare Phrasen flektieren wir attributiv
  * (starke Deklination, Nom. Sg.) über eine kleine Genus-Tabelle für die
- * kuratierten Anker; bei unbekanntem Genus fällt die Anzeige auf „adj · Lemma".
+ * kuratierten Anker; bei unbekanntem Genus fällt die Anzeige auf „adj · Lemma“.
  *
- * Die englischen Übersetzungs-Beispiele (Strecke „Übersetzen") sind NICHT aus
+ * Die englischen Übersetzungs-Beispiele (Strecke „Übersetzen“) sind NICHT aus
  * dem Korpus ableitbar (einsprachig deutsch) und bleiben redaktionell.
  */
 
@@ -46,7 +46,7 @@ function inflectAttributive(adj, gender) {
   return stem + end
 }
 
-/** Anzeige-Phrase „blondes Haar" (mit Genus) oder neutral „blond · Haar". */
+/** Anzeige-Phrase „blondes Haar“ (mit Genus) oder neutral „blond · Haar“. */
 function phrase(adj, lemma) {
   const flx = inflectAttributive(adj, GENDER[lemma])
   return flx ? `${flx} ${lemma}` : `${adj} · ${lemma}`
@@ -67,7 +67,7 @@ function pick(row, lemma) {
 
 /**
  * Liest alle Live-Werte für ein Anker-Lemma.
- * @param {string} lemma   Anker-Substantiv (Default „Haar")
+ * @param {string} lemma   Anker-Substantiv (Default „Haar“)
  * @returns {{ lemma, ok, strong, mid, weak, scale, db }}
  */
 export function getCorpusData(lemma = 'Haar') {
@@ -117,7 +117,7 @@ function dbBytes() {
   try { return statSync(DB_PATH).size } catch { return null }
 }
 
-/** Bytes → „2,13 GB". */
+/** Bytes → „2,13 GB“. */
 export function fmtBytes(bytes) {
   if (!bytes) return '—'
   const gb = bytes / 1e9

@@ -1,6 +1,6 @@
 // Geteilte Vollbild-Unterseite des Lehrer-Tabs.
 //
-// Spiegelt die „Modus-Detail/Wortauswahl"-Optik der App (LemmaSelection):
+// Spiegelt die „Modus-Detail/Wortauswahl“-Optik der App (LemmaSelection):
 // absoluter Zurück-Pfeil oben links, zentrierter Serif-Titel, optionaler
 // Thema-Block (Label · Linie · Lead). Reine Hülle — Inhalt kommt als children.
 

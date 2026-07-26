@@ -5,10 +5,10 @@
  *
  * Bewusst KLEIN + konservativ: nur unmissverständliche Beleidigungen/Slurs,
  * Abgleich gegen NORMALISIERTE exakte Token bzw. die normalisierte
- * Gesamt-Zeichenkette — KEIN Teilwort-Matching. Damit werden „f u c k",
- * „f4ck", „F.U.C.K", „Arsch-Loch" erkannt, aber legitime Namen wie „Cassie"
- * (enthält „ass") oder „Klassenfuchs" NICHT fälschlich blockiert
- * („Scunthorpe-Problem" vermieden). Kreative Varianten fängt die Lehrkraft per
+ * Gesamt-Zeichenkette — KEIN Teilwort-Matching. Damit werden „f u c k“,
+ * „f4ck“, „F.U.C.K“, „Arsch-Loch“ erkannt, aber legitime Namen wie „Cassie“
+ * (enthält „ass“) oder „Klassenfuchs“ NICHT fälschlich blockiert
+ * („Scunthorpe-Problem“ vermieden). Kreative Varianten fängt die Lehrkraft per
  * Kick ab — der Filter soll nur das Schlimmste vom Beamer fernhalten.
  *
  * Liste bewusst hier inline (das Repo ist privat). Erweitern bei Bedarf.
@@ -47,8 +47,8 @@ function normalize(s) {
 
 /**
  * true, wenn der Spitzname gesperrt ist. Prüft (1) die komplett normalisierte
- * Zeichenkette (fängt „f u c k", „arsch.loch") und (2) jedes an Trennern
- * gesplittete Token einzeln normalisiert (fängt „du idiot HURE").
+ * Zeichenkette (fängt „f u c k“, „arsch.loch“) und (2) jedes an Trennern
+ * gesplittete Token einzeln normalisiert (fängt „du idiot HURE“).
  */
 export function isBlockedNickname(name) {
   if (!name) return false

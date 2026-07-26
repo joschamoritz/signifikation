@@ -1,7 +1,7 @@
 /**
  * server/course/worksheet/station-4.js
  *
- * Content-Modell des begleitenden Arbeitsblatts zu Station ④ „Texte, die zählen"
+ * Content-Modell des begleitenden Arbeitsblatts zu Station ④ „Texte, die zählen“
  * (Korpus verstehen). Begleitet die digitale Station (Fachwissen + eigene
  * Aufgaben), dupliziert sie nicht.
  * Quelle: planning/Kurs-Station-4-Korpus.md, planning/Kurs-Konzept-Progression.md.
@@ -44,12 +44,12 @@ const DaZ = {
     {
       type: 'aufgaben',
       items: [
-        { op: 'Grundform:', prompt: ' Schreibe die Grundform auf.', fields: [{ label: 'lief / gelaufen →', width: 120 }, { label: 'Häuser →', width: 120 }], erwartung: '„lief / gelaufen" → *laufen*. „Häuser" → *Haus*.' },
+        { op: 'Grundform:', prompt: ' Schreibe die Grundform auf.', fields: [{ label: 'lief / gelaufen →', width: 120 }, { label: 'Häuser →', width: 120 }], erwartung: '„lief / gelaufen“ → *laufen*. „Häuser“ → *Haus*.' },
         {
           op: 'Suche:', prompt: ' Welches Wort steht in *beiden* Sätzen? Schreibe es auf – genau solche Wörter, die immer wieder vorkommen, sucht der Computer.',
           extraHtml: '<div style="margin-top:5pt;font-size:12.5pt;line-height:1.9">1.&nbsp; Das Parlament muss eine Entscheidung treffen.<br>2.&nbsp; Am Ende hat er diese Entscheidung getroffen.</div>',
           fields: [{ label: 'Gemeinsames Wort:', width: 170 }],
-          erwartung: '„Entscheidung" – der Computer sucht genau solche wiederkehrenden Wörter. (Und „treffen/getroffen" haben dieselbe *Grundform* – so erkennt er sie als dasselbe Wort.)',
+          erwartung: '„Entscheidung“ – der Computer sucht genau solche wiederkehrenden Wörter. (Und „treffen/getroffen“ haben dieselbe *Grundform* – so erkennt er sie als dasselbe Wort.)',
         },
         { op: 'Sammle:', prompt: ' Woraus besteht ein Korpus? Nenne zwei Textsorten (wo Texte herkommen).', answerLines: 1, erwartung: 'z. B. Zeitung, Buch, Rede, Roman, Nachrichten.' },
       ],
@@ -90,11 +90,11 @@ const SekI = {
       items: [
         { op: 'Textsorten:', prompt: ' Nenne drei Textsorten, die in einem Korpus stecken können.', answerLines: 1, erwartung: 'z. B. Zeitungsartikel, politische Rede, Roman, Nachrichten, Blog, Gesetzestext.' },
         {
-          op: 'Konkordanz:', prompt: ' Welches Verb steht in allen drei Belegen neben „Entscheidung"? Kreise es ein.',
+          op: 'Konkordanz:', prompt: ' Welches Verb steht in allen drei Belegen neben „Entscheidung“? Kreise es ein.',
           extraHtml: '<div style="margin-top:5pt;font-size:11.5pt;line-height:1.9;font-family:\'Gentium Plus\',serif">… musste eine wichtige <b>Entscheidung treffen</b>.<br>… will die <b>Entscheidung</b> erst morgen <b>treffen</b>.<br>… hat eine mutige <b>Entscheidung</b> ge<b>troffen</b>.</div>',
-          erwartung: '„treffen" – die typische Verbindung „Entscheidung treffen".',
+          erwartung: '„treffen“ – die typische Verbindung „Entscheidung treffen“.',
         },
-        { op: 'Annotation prüfen:', prompt: ' Die Maschine hat eine Wortart falsch bestimmt. Finde den Fehler: „Die (Artikel) Kinder (Nomen) laufen (Nomen) schnell (Adjektiv)."', answerLines: 1, erwartung: '„laufen" ist ein *Verb*, kein Nomen. Auch die Maschine irrt sich – ein Annotationsfehler.' },
+        { op: 'Annotation prüfen:', prompt: ' Die Maschine hat eine Wortart falsch bestimmt. Finde den Fehler: „Die (Artikel) Kinder (Nomen) laufen (Nomen) schnell (Adjektiv).“', answerLines: 1, erwartung: '„laufen“ ist ein *Verb*, kein Nomen. Auch die Maschine irrt sich – ein Annotationsfehler.' },
       ],
     },
     { type: 'transfer', text: 'Sieh dir in der **Kurs-Station ④** eine Konkordanz an und finde das wiederkehrende Muster.' },
@@ -126,26 +126,26 @@ const SekII = {
     },
     {
       type: 'datablick', label: 'Datenblick · dieselben Zahlen wie in ①',
-      caption: 'Adjektiv-Partner von „Fehler" – hier verstehst du, wie sie zustande kommen.',
+      caption: 'Adjektiv-Partner von „Fehler“ – hier verstehst du, wie sie zustande kommen.',
       rows: [
         { verb: 'schwerer Fehler', frequency: '1 177', logDice: '8,47', mark: true },
         { verb: 'großer Fehler', frequency: '2 047', logDice: '6,49', mark: true },
       ],
-      note: '„großer Fehler" ist **häufiger**, „schwerer Fehler" hat den höheren **logDice** – die Zahl trennt *häufig* von *typisch*.',
+      note: '„großer Fehler“ ist **häufiger**, „schwerer Fehler“ hat den höheren **logDice** – die Zahl trennt *häufig* von *typisch*.',
     },
     {
       type: 'wissen', label: 'Wissen · Der blinde Fleck: Korpus-Bias',
       paras: [
-        'Ein Korpus ist immer ein **Ausschnitt**. Was als „typisch" erscheint, hängt von den enthaltenen Texten ab (**Korpus-Bias**): Ein parlamentarisch geprägtes Korpus zeigt andere Verbindungen als ein Roman-Korpus. Dazu kommen **Annotationsfehler** der Maschine.',
+        'Ein Korpus ist immer ein **Ausschnitt**. Was als „typisch“ erscheint, hängt von den enthaltenen Texten ab (**Korpus-Bias**): Ein parlamentarisch geprägtes Korpus zeigt andere Verbindungen als ein Roman-Korpus. Dazu kommen **Annotationsfehler** der Maschine.',
       ],
     },
     { type: 'merke', text: 'Die Zahl misst Bindung, nicht Bedeutung – und sie kennt nur die Texte, die im Korpus stehen.' },
     {
       type: 'aufgaben',
       items: [
-        { op: 'Erkläre', prompt: ' am Datenblick, warum die *häufigere* Verbindung („großer Fehler") nicht die *typischere* ist.', answerLines: 2, erwartung: 'logDice misst Exklusivität, nicht Rohhäufigkeit. „groß" passt zu fast jedem Nomen (unspezifisch → niedriger logDice); „schwer" bindet spezifisch an „Fehler" (höherer logDice). Häufig ≠ typisch.' },
+        { op: 'Erkläre', prompt: ' am Datenblick, warum die *häufigere* Verbindung („großer Fehler“) nicht die *typischere* ist.', answerLines: 2, erwartung: 'logDice misst Exklusivität, nicht Rohhäufigkeit. „groß“ passt zu fast jedem Nomen (unspezifisch → niedriger logDice); „schwer“ bindet spezifisch an „Fehler“ (höherer logDice). Häufig ≠ typisch.' },
         { op: 'Ordne', prompt: ' die Pipeline-Schritte in die richtige Reihenfolge: *Kookkurrenz zählen · Grundform · Wortart · Rohtext · logDice*.', answerLines: 1, erwartung: 'Rohtext → Grundform → Wortart → Kookkurrenz zählen → logDice.' },
-        { op: 'Korpus-Bias:', prompt: ' Unser Korpus ist stark parlamentarisch/publizistisch geprägt. Nenne eine Verbindung, die dadurch überrepräsentiert sein könnte.', answerLines: 2, erwartung: 'z. B. „Debatte führen", „Antrag stellen", „Diskussion eröffnen", „Maßnahme ergreifen" – politisch/medial geprägte Kollokationen erscheinen dort typischer als in der Alltagssprache.' },
+        { op: 'Korpus-Bias:', prompt: ' Unser Korpus ist stark parlamentarisch/publizistisch geprägt. Nenne eine Verbindung, die dadurch überrepräsentiert sein könnte.', answerLines: 2, erwartung: 'z. B. „Debatte führen“, „Antrag stellen“, „Diskussion eröffnen“, „Maßnahme ergreifen“ – politisch/medial geprägte Kollokationen erscheinen dort typischer als in der Alltagssprache.' },
       ],
     },
     { type: 'transfer', text: 'Vergleiche in der **Kurs-Station ④** Frequenz und logDice einer Verbindung – wo fallen sie auseinander?' },
@@ -168,7 +168,7 @@ const LK = {
     {
       type: 'wissen', label: 'Wissen · Was die Zahl nicht sagt',
       paras: [
-        'logDice sagt **nichts** über Bedeutung oder Stilwert, nichts über Angemessenheit und nichts über **Korpus-Bias**. Dazu kommen **Annotationsfehler**: Bei **Homonymen** – „die *Bank*" (Sitzbank vs. Geldinstitut) – kann die Maschine Wortart oder Abhängigkeit verwechseln und die Zählung verfälschen.[^2]',
+        'logDice sagt **nichts** über Bedeutung oder Stilwert, nichts über Angemessenheit und nichts über **Korpus-Bias**. Dazu kommen **Annotationsfehler**: Bei **Homonymen** – „die *Bank*“ (Sitzbank vs. Geldinstitut) – kann die Maschine Wortart oder Abhängigkeit verwechseln und die Zählung verfälschen.[^2]',
       ],
     },
     { type: 'merke', text: 'logDice ist ein Maß für **Exklusivität** – kein Urteil über Bedeutung.' },
@@ -176,7 +176,7 @@ const LK = {
       type: 'aufgaben',
       items: [
         { op: 'Formel deuten:', prompt: ' Erkläre am Term, warum eine *seltene*, aber exklusive Verbindung einen höheren logDice bekommt als eine *häufige*, aber beliebige.[^1]', answerLines: 2, erwartung: 'Entscheidend ist das Verhältnis f(A,B) zu f(A)+f(B). Kommt A fast nur mit B vor, ist der Bruch groß → hoher logDice, auch bei kleiner Rohfrequenz. Ein häufiges, aber beliebig kombinierbares Wort verteilt sich auf viele Partner → kleiner Bruch → niedriger logDice.' },
-        { op: 'Homonym:', prompt: ' „Die Bank" kann zwei Dinge bedeuten. Erkläre, wie daraus ein Annotationsfehler entstehen kann.', answerLines: 2, erwartung: 'Die Wortform „Bank" ist mehrdeutig (Homonym). Das automatische Tagging/Parsing entscheidet aus dem Kontext; bei unklarem Kontext ordnet es die falsche Lesart oder Abhängigkeit zu – und die Kookkurrenzzählung wird verfälscht.' },
+        { op: 'Homonym:', prompt: ' „Die Bank“ kann zwei Dinge bedeuten. Erkläre, wie daraus ein Annotationsfehler entstehen kann.', answerLines: 2, erwartung: 'Die Wortform „Bank“ ist mehrdeutig (Homonym). Das automatische Tagging/Parsing entscheidet aus dem Kontext; bei unklarem Kontext ordnet es die falsche Lesart oder Abhängigkeit zu – und die Kookkurrenzzählung wird verfälscht.' },
         { op: 'Validität:', prompt: ' Nenne zwei Bedingungen, unter denen ein Korpusbefund *nicht* verallgemeinerbar ist.', answerLines: 2, erwartung: 'z. B. (1) zu kleines/zu einseitiges Korpus (Bias – nur eine Textsorte); (2) zu geringe Frequenz der Verbindung (statistisch nicht belastbar). → weiter in Station ⑤.' },
       ],
     },

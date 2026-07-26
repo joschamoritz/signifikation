@@ -46,7 +46,7 @@ export function showsMetric(display, which) {
   return false
 }
 
-/** Kurzes Metrik-Label „logDice 8,5 · f 1.177" je nach display. */
+/** Kurzes Metrik-Label „logDice 8,5 · f 1.177“ je nach display. */
 export function metricLabel(display, row) {
   const parts = []
   if (showsMetric(display, 'logDice') && row.logDice != null) parts.push(`logDice ${fmtLogDice(row.logDice)}`)
@@ -57,7 +57,7 @@ export function metricLabel(display, row) {
 /**
  * Deterministischer Shuffle (Fisher–Yates) mit String-Seed: gleiche Aufgabe →
  * gleiche, aber gegenüber der Quell-Reihenfolge gemischte Anordnung. So steht
- * die richtige Antwort nicht mehr an fester Stelle (AP21-QA „Reihenfolge"),
+ * die richtige Antwort nicht mehr an fester Stelle (AP21-QA „Reihenfolge“),
  * bleibt aber über Re-Renders stabil — die Lösung wird per Id geprüft, nicht
  * per Position. FNV-1a-Hash → mulberry32-PRNG, ohne Fremd-Lib.
  */

@@ -41,7 +41,7 @@ export default function MatchingTask({ task, index, onChecked, canRetry = true, 
   function assign(candId, anchorId) {
     setAssignment((prev) => ({ ...prev, [candId]: anchorId }))
     setPicked(null)
-    setLiveMsg(`${labelOf(candId)} zu „${anchorLabelOf(anchorId)}" zugeordnet.`)
+    setLiveMsg(`${labelOf(candId)} zu „${anchorLabelOf(anchorId)}“ zugeordnet.`)
   }
   function placeInto(anchorId) {
     if (checked || !picked) return
@@ -112,7 +112,7 @@ export default function MatchingTask({ task, index, onChecked, canRetry = true, 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [checked])
 
-  // Ergebnis (richtig/falsch) nach „Prüfen" melden — Persistenz + Pager-Zählung.
+  // Ergebnis (richtig/falsch) nach „Prüfen“ melden — Persistenz + Pager-Zählung.
   useEffect(() => {
     if (checked && result) onChecked?.(result.allCorrect)
     // eslint-disable-next-line react-hooks/exhaustive-deps

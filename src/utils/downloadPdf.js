@@ -30,7 +30,7 @@ export async function downloadAuthenticatedPdf(url, filename) {
 
   if (Capacitor.isNativePlatform()) {
     // Bewährtes Muster (vgl. shareImage.js): base64 → Cache-Datei → Share-Sheet,
-    // damit der Nutzer die PDF in „Dateien" sichern oder weitergeben kann.
+    // damit der Nutzer die PDF in „Dateien“ sichern oder weitergeben kann.
     const { Filesystem, Directory } = await import('@capacitor/filesystem')
     const { Share } = await import('@capacitor/share')
     const base64 = await blobToBase64(blob)

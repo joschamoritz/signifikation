@@ -165,7 +165,7 @@ export default function LemmaPicker({ value = [], onChange, mode = null }) {
       {hasQuery && error && <p className="classroom-error">{error}</p>}
 
       {hasQuery && !loading && !error && items.length === 0 && (
-        <p className="classroom-lemma-picker__hint">Keine Treffer für „{query.trim()}". Wählbar sind nur kuratierte Lemmata.</p>
+        <p className="classroom-lemma-picker__hint">Keine Treffer für „{query.trim()}“. Wählbar sind nur kuratierte Lemmata.</p>
       )}
 
       {hasQuery && !loading && !error && items.length > 0 && (

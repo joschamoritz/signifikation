@@ -36,7 +36,7 @@ function SectionErrorFallback({ label = 'Dieser Bereich' }) {
 // kann <App> ueber Routen entscheiden, ohne dass die Hook-Reihenfolge in
 // <App> abhaengig von der aktuellen URL waechst oder schrumpft (das war ein
 // realer Bug — Pfadwechsel von / auf /c/CODE liess React die Hooks unterhalb
-// der Branch verschwinden und warf „Rendered fewer hooks than expected").
+// der Branch verschwinden und warf „Rendered fewer hooks than expected“).
 function MainAppShell() {
   const {
     appRef,

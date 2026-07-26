@@ -168,9 +168,9 @@ describe('Lueckenfueller – Smoketest', () => {
   })
 
   // Regression: die Mindestlaenge fuer die startsWith-Toleranz galt nur der
-  // Loesung, nicht der Eingabe — bei kollokator „antwort" zaehlte deshalb jedes
+  // Loesung, nicht der Eingabe — bei kollokator „antwort“ zaehlte deshalb jedes
   // Praefix, auch ein einzelner Buchstabe.
-  it.each(['a', 'an', 'ant'])('Free-Runde: Praefix „%s" ist zu kurz → score=0', (eingabe) => {
+  it.each(['a', 'an', 'ant'])('Free-Runde: Praefix „%s“ ist zu kurz → score=0', (eingabe) => {
     const onFinish = vi.fn()
     render(
       <Lueckenfueller
@@ -199,7 +199,7 @@ describe('Lueckenfueller – Smoketest', () => {
       />
     )
 
-    // „antworten" vs. Loesung „antwort" — gemeinsamer Stamm >= 4 Zeichen
+    // „antworten“ vs. Loesung „antwort“ — gemeinsamer Stamm >= 4 Zeichen
     fireEvent.change(document.querySelector('.lf-free-input'), { target: { value: 'antworten' } })
     fireEvent.click(screen.getByRole('button', { name: 'Auswerten' }))
     fireEvent.click(screen.getByRole('button', { name: /Ergebnis ansehen/ }))

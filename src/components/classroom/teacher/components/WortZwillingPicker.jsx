@@ -2,7 +2,7 @@
 //
 // Ein Wort-Zwilling ist ein PAAR (wortA, wortB), das live aus zwei Wort-
 // profilen generiert wird. Es passt nicht in den Lemma-Picker. Diese Komponente
-// liefert das Paar als synthetische „wz:"-ID an block.lemmaIds — so bleibt die
+// liefert das Paar als synthetische „wz:“-ID an block.lemmaIds — so bleibt die
 // Assignment-Pipeline (lemma_ids: string[]) unveraendert.
 
 import { useEffect, useState } from 'react'

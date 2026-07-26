@@ -83,7 +83,7 @@ export default function LiveStep() {
   // "hat irgendeine Runde abgegeben" — das war die Mehrdeutigkeit aus 3.3.
   const submittedCount = enrichedParticipants.filter((p) => p.submitted).length
   const totalCount = enrichedParticipants.filter((p) => !p.leftAt).length
-  // „away" = dabei, aber gerade offline und noch nicht fertig — wer hängt/Netz
+  // „away“ = dabei, aber gerade offline und noch nicht fertig — wer hängt/Netz
   // verloren hat. Fuer den Lehrer der kritischste Blick (Audit-Finding).
   const awayCount = enrichedParticipants.filter((p) => !p.leftAt && !p.submitted && !p.connected).length
   const pct = totalCount > 0 ? Math.round((submittedCount / totalCount) * 100) : 0

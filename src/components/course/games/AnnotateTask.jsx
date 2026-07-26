@@ -1,8 +1,8 @@
-// Automatische Annotation (Station ④). Die „Maschine" (spaCy/DWDSmor) hat einen
+// Automatische Annotation (Station ④). Die „Maschine“ (spaCy/DWDSmor) hat einen
 // Satz ausgezeichnet – jedes Wort trägt das maschinelle Etikett (Grundform/
 // Wortart/Abhängigkeit). Genau eine Auszeichnung ist falsch; die/der Lernende
 // tippt das Wort mit dem Maschinenfehler an. Macht die Grenze der automatischen
-// Annotation erfahrbar („die Maschine rät – und irrt"). Auswertung geschlossen
+// Annotation erfahrbar („die Maschine rät – und irrt“). Auswertung geschlossen
 // über das wrong-Flag in payload.annotations.
 
 import { useMemo, useState, useEffect } from 'react'

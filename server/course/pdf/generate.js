@@ -58,7 +58,7 @@ const STATION_MAP = new Map([
 
 // Begleitende Arbeitsblätter (Content-Modell) — verdrängen das alte „digitale
 // Aufgaben blanko"-AB. Alle Stationen ①–⑤ sind umgestellt; der digitale AB-Pfad
-// bleibt nur noch für „Eigenes Lemma" (personalisiertes AB, lemma gesetzt).
+// bleibt nur noch für „Eigenes Lemma“ (personalisiertes AB, lemma gesetzt).
 const WORKSHEET_MAP = new Map([
   [1, worksheet1],
   [2, worksheet2],
@@ -77,7 +77,7 @@ export { makeCorpusAdapter }
 
 /**
  * Ist ein aufgelöstes corpus-template-Item inhaltsleer? (Korpus nicht verbunden
- * → leere candidates/variants/options/table → „Arbeitsblatt ohne Inhalt", AP21-QA.)
+ * → leere candidates/variants/options/table → „Arbeitsblatt ohne Inhalt“, AP21-QA.)
  * Nur sinnvoll für corpus-template; static-Items tragen ihren Inhalt selbst.
  */
 function corpusItemIsEmpty(item) {
@@ -147,7 +147,7 @@ function buildBeamerSlides(content, beamerSpec, corpus) {
  * @param {object} [opts.content]    Expliziter Content (überschreibt stationNo-Lookup)
  * @param {object} [opts.lesson]     Explizites Lesson-Objekt (überschreibt stationNo-Lookup)
  * @param {object} [opts.corpus]     Korpus-Adapter (Default: echte DBs)
- * @param {string} [opts.lemma]      „Eigenes Lemma" (überschreibt corpusQuery.lemma)
+ * @param {string} [opts.lemma]      „Eigenes Lemma“ (überschreibt corpusQuery.lemma)
  * @returns {Array<{ kind, level, filename, title, html }>}
  */
 export function buildStationHtml({ stationNo = 1, content, lesson, corpus = makeCorpusAdapter(), lemma, strictCorpus = false } = {}) {
@@ -159,7 +159,7 @@ export function buildStationHtml({ stationNo = 1, content, lesson, corpus = make
   const emptyCorpusItems = [] // {level, id, format} — leere Korpus-Items (Schutz)
 
   // Begleitendes Arbeitsblatt aus dem Content-Modell (statisch, korpus-frei) — nur
-  // wenn KEIN „Eigenes Lemma" gesetzt ist (das personalisiert das alte digitale AB).
+  // wenn KEIN „Eigenes Lemma“ gesetzt ist (das personalisiert das alte digitale AB).
   const worksheet = WORKSHEET_MAP.get(stationNo)
   if (worksheet && !lemma) {
     for (const level of Object.keys(worksheet.levels)) {
@@ -233,7 +233,7 @@ export function buildStationHtml({ stationNo = 1, content, lesson, corpus = make
  * @param {object} [opts]
  * @param {number|'all'} [opts.stationNo]  Station-Nummer 1–5 oder 'all'. Default: 1.
  * @param {string} [opts.outDir]           Zielordner (Default server/data/course-pdfs)
- * @param {string} [opts.lemma]            „Eigenes Lemma" (überschreibt corpusQuery.lemma)
+ * @param {string} [opts.lemma]            „Eigenes Lemma“ (überschreibt corpusQuery.lemma)
  * @param {boolean} [opts.register]        course_materials-Zeilen anlegen (Default false)
  * @returns {Promise<Array<{ kind, level, filename, path, bytes, format? }>>}
  */
@@ -249,11 +249,11 @@ export async function generateStationPdfs({ stationNo = 1, outDir = DEFAULT_OUT,
       const entry = STATION_MAP.get(no)
       if (!entry) { logger.warn({ stationNo: no }, 'course/pdf: unbekannte Station, übersprungen'); continue }
       // strictCorpus nur für die Standard-Material-Generierung: bricht laut ab,
-      // wenn ein Korpus-Item leer ist (DB nicht verbunden). „Eigenes Lemma" darf
+      // wenn ein Korpus-Item leer ist (DB nicht verbunden). „Eigenes Lemma“ darf
       // einzelne leere Relationen haben → dort nur warnen.
       const docs = buildStationHtml({ stationNo: no, lemma, strictCorpus: !lemma })
       // DOCX (Bonus-Premium, editierbar) nur für Arbeitsblatt/Lösung aus dem
-      // Worksheet-Content-Modell — nicht für „Eigenes Lemma" (kein Modell dafür)
+      // Worksheet-Content-Modell — nicht für „Eigenes Lemma“ (kein Modell dafür)
       // und nicht für Unterrichtsentwurf/Beamer (aus dem alten html.js-Pfad).
       const worksheet = !lemma ? WORKSHEET_MAP.get(no) : null
       for (const doc of docs) {

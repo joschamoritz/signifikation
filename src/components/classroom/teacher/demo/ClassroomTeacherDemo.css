@@ -6,7 +6,7 @@
   padding-bottom: 96px; /* Platz für die untere TabBar */
 }
 
-/* „Wort des Tages" — eine Linie, keine Box. */
+/* „Wort des Tages“ — eine Linie, keine Box. */
 .classroom-demo-word {
   display: flex;
   align-items: baseline;
@@ -61,7 +61,7 @@
   padding-top: 16px;
 }
 
-/* „Beispiel"-Overline über der Code-Karte. */
+/* „Beispiel“-Overline über der Code-Karte. */
 .classroom-demo-example-tag {
   font-family: var(--font-sans, 'DM Sans'), system-ui, sans-serif;
   font-size: 9px;

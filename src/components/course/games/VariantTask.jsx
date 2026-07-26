@@ -167,7 +167,7 @@ export default function VariantTask({ task, index, onChecked, canRetry = true, l
               {reasonResult.feedback
                 ?? (reasonResult.correct
                   ? 'Genau diese Begründung trägt.'
-                  : `Treffender wäre: „${justifyChoice.options.find((o) => o.correct)?.label}".`)}
+                  : `Treffender wäre: „${justifyChoice.options.find((o) => o.correct)?.label}“.`)}
             </p>
           </div>
         )}

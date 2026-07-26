@@ -1,4 +1,4 @@
-// W2-T1 — Teacher-Preview „Schüleransicht testen".
+// W2-T1 — Teacher-Preview „Schüleransicht testen“.
 //
 // Rendert die ECHTE Schüler-Spielkomponente (classroom/student/games/*) im
 // Kiosk-Look, aber vollständig lokal:
@@ -210,7 +210,7 @@ export default function SetupPreview({ mode, lemmaIds, onClose }) {
 
           {status === 'ready' && !done && currentLemma && !Game && (
             <p className="classroom-kiosk__hint classroom-kiosk__hint--error">
-              Unbekannter Spielmodus „{mode || '—'}".
+              Unbekannter Spielmodus „{mode || '—'}“.
             </p>
           )}
 

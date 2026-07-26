@@ -1,7 +1,7 @@
 /**
  * server/classroom/modes/kollokationen.js
  *
- * Modus „Kollokationen" — gebuendeltes Modus-Wissen (Code-Review P2).
+ * Modus „Kollokationen“ — gebuendeltes Modus-Wissen (Code-Review P2).
  * Ein Objekt mit allen Pflicht-Funktionen, die die Klassenraum-Pipeline pro
  * Modus braucht: Scoring, Content-Snapshot, Schueler-Whitelist, Reporting,
  * Reveal. Reine Funktionen + Delegation an die bestehenden Bausteine
@@ -57,7 +57,7 @@ export default {
     // hits: [{ word, rang, points }] — als Distraktor gilt eine gewaehlte,
     // aber nicht optimale Kollokation (Rang > 3 ⇒ points < 3). Der haeufigste
     // ist der groesste "Stolperstein".
-    // rang != null schliesst „nicht gefundene" Phantom-Picks aus (Scoring
+    // rang != null schliesst „nicht gefundene“ Phantom-Picks aus (Scoring
     // setzt rang:null/points:0 fuer Woerter ausserhalb der Optionen) — sonst
     // verschmutzen sie die Distraktor-Statistik (Code-Review M2).
     const hits = Array.isArray(detail.hits) ? detail.hits : []

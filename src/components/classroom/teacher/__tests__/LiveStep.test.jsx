@@ -48,7 +48,7 @@ describe('LiveStep (T-4.6)', () => {
   beforeEach(() => { vi.clearAllMocks() })
   afterEach(() => { cleanup() })
 
-  it('rendert Fortschrittsbalken und „Auflösung freigeben"-CTA', async () => {
+  it('rendert Fortschrittsbalken und „Auflösung freigeben“-CTA', async () => {
     getDashboard.mockResolvedValue({
       session: { id: 's1', code: 'morgentau', status: 'running' },
       assignment: { id: 'a1', mode: 'kollokationen', contentSnapshot: { lemmata: [] }, lemmaIds: ['l1'] },
@@ -62,7 +62,7 @@ describe('LiveStep (T-4.6)', () => {
     expect(screen.getByText(/fertig/i)).toBeTruthy()
   })
 
-  it('W2-T2: zeigt „Modus X von N" und „Nächster Modus" bei mehreren Blöcken', async () => {
+  it('W2-T2: zeigt „Modus X von N“ und „Nächster Modus“ bei mehreren Blöcken', async () => {
     getDashboard.mockResolvedValue({
       session: { id: 's1', code: 'morgentau', status: 'running' },
       assignment: { id: 'a1', mode: 'kollokationen', contentSnapshot: { lemmata: [] }, lemmaIds: ['l1'] },
@@ -81,7 +81,7 @@ describe('LiveStep (T-4.6)', () => {
     expect(screen.queryByTestId('classroom-live-finish')).toBeNull()
   })
 
-  it('zeigt „N offline" wenn Teilnehmer abwesend sind', async () => {
+  it('zeigt „N offline“ wenn Teilnehmer abwesend sind', async () => {
     getDashboard.mockResolvedValue({
       session: { id: 's1', code: 'morgentau', status: 'running' },
       assignment: { id: 'a1', mode: 'kollokationen', contentSnapshot: { lemmata: [] }, lemmaIds: ['l1'] },
@@ -96,7 +96,7 @@ describe('LiveStep (T-4.6)', () => {
     expect(screen.getByTestId('classroom-live-away').textContent).toMatch(/1 offline/)
   })
 
-  it('Back-Pfeil öffnet das „Sitzung verlassen"-Sheet statt still zu navigieren', async () => {
+  it('Back-Pfeil öffnet das „Sitzung verlassen“-Sheet statt still zu navigieren', async () => {
     getDashboard.mockResolvedValue({
       session: { id: 's1', code: 'morgentau', status: 'running' },
       assignment: { id: 'a1', mode: 'kollokationen', contentSnapshot: { lemmata: [] }, lemmaIds: ['l1'] },

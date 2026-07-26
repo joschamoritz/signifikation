@@ -1,7 +1,7 @@
 /**
  * server/classroom/modes/zeitenwende.js
  *
- * Modus „Zeitenwende" — gebuendeltes Modus-Wissen (Code-Review P2).
+ * Modus „Zeitenwende“ — gebuendeltes Modus-Wissen (Code-Review P2).
  * 10 Woerter, je 'pre'/'post' (vor/nach 2000) einschaetzen.
  */
 

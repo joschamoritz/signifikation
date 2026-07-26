@@ -1,6 +1,6 @@
 // Globaler Niveau-Zustand fuer den Kurs-Tab (DaZ / Sek I / Sek II / LK).
 //
-// „Global gemerkt" laut Kurs-Tab-IA §Niveau-Umschalter: wer LK waehlt, bleibt
+// „Global gemerkt“ laut Kurs-Tab-IA §Niveau-Umschalter: wer LK waehlt, bleibt
 // LK ueber Stationen hinweg. Persistenz in localStorage; ein Modul-Store mit
 // Listenern haelt parallel gemountete Verbraucher synchron.
 

@@ -4,11 +4,11 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 // Mobil: Daumen-Index am linken Rand (Tippen + Ziehen, wie im Adressbuch).
 // Desktop: Randnotiz-Register in der Textspalte (Buchstaben statt Ziffern, wie
 // die .test-entry-number-Spalte der anderen Tabs), Klick springt.
-// „Verdichtet": zeigt nur vorhandene Buchstaben und dünnt bei Platzmangel auf
+// „Verdichtet“: zeigt nur vorhandene Buchstaben und dünnt bei Platzmangel auf
 // eine repräsentative Auswahl aus – dazwischen ein · als Sammelpunkt, der beim
 // Ziehen/Tippen/Klick trotzdem zum nächstliegenden Buchstaben springt.
 
-const SLOT_PX = 28          // Höhe, die eine Marke im Register „beansprucht"
+const SLOT_PX = 28          // Höhe, die eine Marke im Register „beansprucht“
 const MIN_ROWS = 6          // darunter lohnt kein Ausdünnen
 const PAD_CONTAINER = 8     // Abstand der Gruppe zum Rand (innerer Scroller, mobil)
 const PAD_WINDOW = 96       // dito bei Fensterscroll (Desktop) – Luft nach oben

@@ -1,7 +1,7 @@
 /**
  * server/classroom/modes/wortzwilling.js
  *
- * Modus „Wort-Zwilling" — gebuendeltes Modus-Wissen (Code-Review P2).
+ * Modus „Wort-Zwilling“ — gebuendeltes Modus-Wissen (Code-Review P2).
  * Besonderheit: paar-basiert (wortA/wortB) statt lemma-basiert; der
  * content_snapshot kennt beide Quellen (Live-Paar via wzPair, Fallback aufs
  * gespeicherte Feld).

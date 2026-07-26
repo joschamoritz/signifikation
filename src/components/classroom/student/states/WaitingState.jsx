@@ -1,7 +1,7 @@
 // T-5.4 — S3 Warten.
 //
 // Bewusst KEINE Liste anderer Teilnehmer (sozialer Druck vermeiden).
-// Eigener Name oben rechts als Chip („ich bin drin"). Pulsierender Gold-Punkt.
+// Eigener Name oben rechts als Chip („ich bin drin“). Pulsierender Gold-Punkt.
 //
 // Der State-Übergang nach 'playing' passiert nicht hier, sondern in
 // useStudentSession: sobald /me/view ein currentLemma + status=running
@@ -34,7 +34,7 @@ export default function WaitingState() {
       </p>
       <h1 className="classroom-kiosk__title">Warte, gleich geht&apos;s los.</h1>
 
-      {/* role=status: der Wechsel zu „spielen" passiert per Server-Push ohne
+      {/* role=status: der Wechsel zu „spielen“ passiert per Server-Push ohne
           Nutzeraktion — Screenreader bekommen wenigstens die Warte-Ansage. */}
       <p className="classroom-kiosk__lead" role="status" style={{ marginTop: 18, marginBottom: 0 }}>
         <span className="classroom-kiosk__pulse" aria-hidden="true" />

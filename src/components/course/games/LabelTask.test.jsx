@@ -43,11 +43,11 @@ describe('LabelTask – Funktion zuweisen', () => {
   it('S-P-O: korrekte Zuordnung über Token-Indizes → onChecked(true)', () => {
     const onChecked = vi.fn()
     render(<LabelTask task={SPO_TASK} index="1" onChecked={onChecked} />)
-    // S auf „Das" + „Gericht"
+    // S auf „Das“ + „Gericht“
     fireEvent.click(chipByText('S'))
     fireEvent.click(tokens()[0])
     fireEvent.click(tokens()[1])
-    // P auf „trifft"
+    // P auf „trifft“
     fireEvent.click(chipByText('P'))
     fireEvent.click(tokens()[2])
     fireEvent.click(checkBtn())
@@ -58,7 +58,7 @@ describe('LabelTask – Funktion zuweisen', () => {
     const onChecked = vi.fn()
     render(<LabelTask task={SPO_TASK} index="1" onChecked={onChecked} />)
     fireEvent.click(chipByText('S'))
-    fireEvent.click(tokens()[2]) // „trifft" fälschlich als S
+    fireEvent.click(tokens()[2]) // „trifft“ fälschlich als S
     fireEvent.click(checkBtn())
     expect(onChecked).toHaveBeenCalledWith(false)
   })

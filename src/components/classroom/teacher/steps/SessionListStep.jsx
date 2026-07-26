@@ -1,7 +1,7 @@
 // T-4.3 — T1 Sessionliste.
 //
 // Empty-State im Wörterbuch-Stil (Drop-Cap "K", kursiver Hinweis).
-// CTA „+ Neue Session" ist die einzige primaere Aktion auf diesem Screen —
+// CTA „+ Neue Session“ ist die einzige primaere Aktion auf diesem Screen —
 // als sticky bottom button (Mobile-first) realisiert.
 //
 // Pagination-Schwelle bewusst bei 50 (limit) — wenn eine Lehrkraft mehr

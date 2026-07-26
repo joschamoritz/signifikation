@@ -64,7 +64,7 @@ export default function SessionCodeCard({ code }) {
   if (!code) return null
 
   // Schriftgröße an Code-Länge koppeln → höchstens ~2 Zeilen, auch bei langen
-  // Codes wie „nomen-redaktion".
+  // Codes wie „nomen-redaktion“.
   const len = code.length
   const codeSize =
     len <= 7  ? 'clamp(44px, 11vw, 104px)' :

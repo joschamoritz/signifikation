@@ -88,7 +88,7 @@ export default function ClassroomGameWrapper({ onSubmitOverride = null, onToast 
     return (
       <div className="classroom-kiosk__game">
         <p className="classroom-kiosk__hint classroom-kiosk__hint--error">
-          Unbekannter Spielmodus „{mode || '—'}". Bitte Lehrkraft informieren.
+          Unbekannter Spielmodus „{mode || '—'}“. Bitte Lehrkraft informieren.
         </p>
       </div>
     )

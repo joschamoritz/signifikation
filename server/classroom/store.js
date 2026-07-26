@@ -230,7 +230,7 @@ const stmts = {
   `),
   // Reconnect nach transientem Disconnect (left_at noch NULL) → connected=1.
   // WICHTIG: left_at wird NICHT mehr genullt — ein gekickter/verlassener
-  // Teilnehmer (left_at gesetzt) darf nicht per Heartbeat „wiederauferstehen"
+  // Teilnehmer (left_at gesetzt) darf nicht per Heartbeat „wiederauferstehen“
   // (Audit ⚠️). requireParticipantAuth blockt left_at ohnehin mit 403; das
   // `AND left_at IS NULL` schließt das schmale In-flight-Race.
   heartbeatParticipant: db.prepare(`
@@ -525,7 +525,7 @@ export function deleteSession({ sessionId, teacherUserId }) {
   return { ok: true }
 }
 
-// W4 — „Mit neuer Klasse wiederholen": klont Titel + alle Assignment-Bloecke
+// W4 — „Mit neuer Klasse wiederholen“: klont Titel + alle Assignment-Bloecke
 // (Modus, Lemmata, eingefrorener content_snapshot) in eine frische Session im
 // Status 'lobby' mit neuem Join-Code. Teilnehmer/Abgaben/Scores werden bewusst
 // NICHT uebernommen — es ist eine neue Stunde. Funktioniert aus jedem Status

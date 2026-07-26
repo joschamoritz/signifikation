@@ -2,7 +2,7 @@
 // Dispatcher-Routing: Payload-Form hat Vorrang vor dem Format-Etikett.
 // Regression AP21-QA: Station ④ führt Datenblick-Aufgaben (Tabelle + Fragen)
 // teils als F2 — sie müssen trotzdem im DataTask landen, nicht im MarkingTask
-// (sonst „keine Inhalte", weil MarkingTask einen sentence erwartet).
+// (sonst „keine Inhalte“, weil MarkingTask einen sentence erwartet).
 import { render, cleanup } from '@testing-library/react'
 import { afterEach, describe, expect, it } from 'vitest'
 import TaskPlayer from './TaskPlayer'
