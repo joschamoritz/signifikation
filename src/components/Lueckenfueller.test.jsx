@@ -167,6 +167,46 @@ describe('Lueckenfueller – Smoketest', () => {
     expect(onFinish).toHaveBeenCalledWith({ score: 0, scores: [0] })
   })
 
+  // Regression: die Mindestlaenge fuer die startsWith-Toleranz galt nur der
+  // Loesung, nicht der Eingabe — bei kollokator „antwort" zaehlte deshalb jedes
+  // Praefix, auch ein einzelner Buchstabe.
+  it.each(['a', 'an', 'ant'])('Free-Runde: Praefix „%s" ist zu kurz → score=0', (eingabe) => {
+    const onFinish = vi.fn()
+    render(
+      <Lueckenfueller
+        data={[makeFreeRound()]}
+        lemmaName="Wandel"
+        onBack={vi.fn()}
+        onFinish={onFinish}
+      />
+    )
+
+    fireEvent.change(document.querySelector('.lf-free-input'), { target: { value: eingabe } })
+    fireEvent.click(screen.getByRole('button', { name: 'Auswerten' }))
+    fireEvent.click(screen.getByRole('button', { name: /Ergebnis ansehen/ }))
+
+    expect(onFinish).toHaveBeenCalledWith({ score: 0, scores: [0] })
+  })
+
+  it('Free-Runde: Flexionsform ab 4 Zeichen zaehlt weiterhin → volle Punkte', () => {
+    const onFinish = vi.fn()
+    render(
+      <Lueckenfueller
+        data={[makeFreeRound()]}
+        lemmaName="Wandel"
+        onBack={vi.fn()}
+        onFinish={onFinish}
+      />
+    )
+
+    // „antworten" vs. Loesung „antwort" — gemeinsamer Stamm >= 4 Zeichen
+    fireEvent.change(document.querySelector('.lf-free-input'), { target: { value: 'antworten' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Auswerten' }))
+    fireEvent.click(screen.getByRole('button', { name: /Ergebnis ansehen/ }))
+
+    expect(onFinish).toHaveBeenCalledWith({ score: 3, scores: [3] })
+  })
+
   it('Submit-Pfad: alle drei Rundentypen hintereinander → onFinish mit Gesamt-Score', () => {
     const onFinish = vi.fn()
     const data = [makeChoiceRound(), makeDoubleRound(), makeFreeRound()]

@@ -103,7 +103,9 @@ const TASKS = [
       byLevel: {
         DaZ: {
           onCorrect: 'Genau – diese Wörter passen zusammen: „Zähne putzen", „den Tisch decken", „eine Entscheidung treffen".',
-          onWrong: 'Fast! Diese Wörter gehören als feste Partner zusammen. Sprich sie laut – was klingt richtig?',
+          // „Sprich sie laut – was klingt richtig?" setzt muttersprachliche
+          // Intuition voraus — genau das, was DaZ-Lernende erst aufbauen.
+          onWrong: 'Fast! Diese Wörter gehören fest zusammen. Sieh dir die Nomen an: Welches Verb passt zu „Zähne“, welches zu „Tisch“?',
         },
       },
       tonalitaet: 'woerterbuch-nuechtern',
@@ -132,7 +134,9 @@ const TASKS = [
       byLevel: {
         DaZ: {
           onCorrect: 'Richtig – „Fehler machen" gehört als festes Wortpaar zusammen.',
-          onWrong: 'Suche das Nomen und sein Verb: „Fehler … machen".',
+          // Der alte Hinweis nannte die vollstaendige Loesung („Fehler … machen")
+          // und war damit kein Scaffold, sondern die Antwort.
+          onWrong: 'Suche das Nomen und das Verb, das dazugehört. Welche zwei Wörter bilden das Paar?',
         },
       },
       tonalitaet: 'woerterbuch-nuechtern',
@@ -143,7 +147,10 @@ const TASKS = [
   {
     id: 's1-f3-uebersetzen-daz', station: 1, format: 'F3', level: 'DaZ', source: 'static',
     kern: 'kontrast-uebersetzen',
-    prompt: 'Was sagt man auf Deutsch? Wähle die richtige Verbindung – wörtlich übersetzen klappt nicht.',
+    // Der frühere Zusatz „wörtlich übersetzen klappt nicht" nahm die Loesung
+    // vorweg: bei zwei Optionen, von denen eine die woertliche Uebersetzung ist,
+    // war die Aufgabe ohne Kollokationswissen loesbar. Erklaerung erst im Feedback.
+    prompt: 'Was sagt man auf Deutsch?',
     metasprache: ['Wörter, die zusammenpassen'],
     payload: {
       compareDimension: 'uebersetzung',
@@ -168,10 +175,14 @@ const TASKS = [
       byLevel: {
         DaZ: {
           onCorrect: 'Richtig – im Deutschen sagt man „starker Regen". Im Englischen „heavy rain" (= schwerer Regen). Jede Sprache hat eigene Partner.',
-          onWrong: 'Im Deutschen passt „starker Regen". Kollokationen kann man nicht Wort für Wort übersetzen.',
+          onWrong: 'Im Deutschen passt „starker Regen“. Solche Wortpaare kann man nicht Wort für Wort übersetzen.',
         },
       },
-      merksatz: 'Wörterbücher übersetzen Wörter — Korpora übersetzen Konventionen.',
+      // DaZ-Merksatz im Register der deklarierten Metasprache: „Konventionen"
+      // liegt weit ueber „Woerter, die zusammenpassen". Der Kurs-Claim
+      // „Woerterbuecher uebersetzen Woerter — Korpora uebersetzen Konventionen"
+      // bleibt fuer die hoeheren Stufen und den Beamer erhalten.
+      merksatz: 'Jede Sprache hat ihre eigenen Wortpaare.',
       tonalitaet: 'woerterbuch-nuechtern',
     },
     beleg: [{ key: 'reder-2006', kontext: 'fachlich' }],
@@ -236,7 +247,10 @@ const TASKS = [
   {
     id: 's1-f3-uebersetzen2-daz', station: 1, format: 'F3', level: 'DaZ', source: 'static',
     kern: 'kontrast-uebersetzen',
-    prompt: 'Was sagt man auf Deutsch? Wähle die richtige Verbindung – wörtlich übersetzen klappt nicht.',
+    // Der frühere Zusatz „wörtlich übersetzen klappt nicht" nahm die Loesung
+    // vorweg: bei zwei Optionen, von denen eine die woertliche Uebersetzung ist,
+    // war die Aufgabe ohne Kollokationswissen loesbar. Erklaerung erst im Feedback.
+    prompt: 'Was sagt man auf Deutsch?',
     metasprache: ['Wörter, die zusammenpassen'],
     payload: {
       compareDimension: 'uebersetzung',
@@ -260,10 +274,14 @@ const TASKS = [
       byLevel: {
         DaZ: {
           onCorrect: 'Richtig – im Deutschen sagt man „Hunger haben". Im Englischen „to be hungry" (= Hunger sein). Jede Sprache hat eigene Partner.',
-          onWrong: 'Im Deutschen passt „Hunger haben", nicht „Hunger sein". Kollokationen kann man nicht Wort für Wort übersetzen.',
+          onWrong: 'Im Deutschen passt „Hunger haben“, nicht „Hunger sein“. Solche Wortpaare kann man nicht Wort für Wort übersetzen.',
         },
       },
-      merksatz: 'Wörterbücher übersetzen Wörter — Korpora übersetzen Konventionen.',
+      // DaZ-Merksatz im Register der deklarierten Metasprache: „Konventionen"
+      // liegt weit ueber „Woerter, die zusammenpassen". Der Kurs-Claim
+      // „Woerterbuecher uebersetzen Woerter — Korpora uebersetzen Konventionen"
+      // bleibt fuer die hoeheren Stufen und den Beamer erhalten.
+      merksatz: 'Jede Sprache hat ihre eigenen Wortpaare.',
       tonalitaet: 'woerterbuch-nuechtern',
     },
     beleg: [{ key: 'reder-2006', kontext: 'fachlich' }],

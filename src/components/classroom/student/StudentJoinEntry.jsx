@@ -80,7 +80,7 @@ export default function StudentJoinEntry({ initialNotice = null, embedded = fals
       <p className="classroom-kiosk__overline">Live-Sitzung · Beitreten</p>
       <h1 className="classroom-kiosk__title">Klassenraum</h1>
       <p className="classroom-kiosk__lead">
-        Tipp den Zugangscode deiner Lehrkraft ein – oder scanne den QR-Code.
+        Tipp den Zugangscode deiner Lehrkraft ein — oder scanne den QR-Code.
       </p>
       <JoinCodeForm initialError={initialError} />
     </div>

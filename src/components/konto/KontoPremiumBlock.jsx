@@ -11,9 +11,9 @@ const IS_NATIVE = Capacitor.isNativePlatform()
 
 // Stärkstes Kaufargument (Lehrkräfte-Paket) zuerst.
 const FEATURES = [
-  { label: 'Kurs-Material',  desc: 'Kompletter Unterrichtsentwurf, Arbeitsblätter in 4 Differenzierungsstufen, Erwartungshorizont & Beamer-Folien — zu jeder Station' },
-  { label: 'Klassenraum',    desc: 'Live-Quiz mit der ganzen Klasse — Beitritt per QR-Code, ohne Schüler-Accounts' },
-  { label: 'Eigenes Lemma',  desc: 'Jeden Modus – auch im Kurs – mit selbst gewählten Wörtern, unbegrenzt' },
+  { label: 'Kurs-Material',  desc: 'Kompletter Unterrichtsentwurf, Arbeitsblätter in 4 Niveaustufen, Erwartungshorizont & Beamer-Folien — zu jeder Station' },
+  { label: 'Klassenraum',    desc: 'Live-Quiz mit der ganzen Klasse — Beitritt per QR-Code, ohne Konto für die Klasse' },
+  { label: 'Eigenes Lemma',  desc: 'Jeden Modus — auch im Kurs — mit selbst gewählten Wörtern, unbegrenzt' },
 ]
 
 export default function KontoPremiumBlock({ auth, gesamtausgabePermanent }) {

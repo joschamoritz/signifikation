@@ -53,4 +53,4 @@ export function collocationBlurbLead(lemma, wortart) {
 }
 
 /** Gemeinsamer Zusatzsatz zur Methodik (ohne den POS-Lead). */
-export const BLURB_LOGDICE_NOTE = 'Wie typisch eine Verbindung ist, misst Signifikation mit dem logDice-Wert.'
+export const BLURB_LOGDICE_NOTE = 'Wie stark eine Verbindung gebunden ist, misst der logDice-Wert (theoretisches Maximum: 14).'

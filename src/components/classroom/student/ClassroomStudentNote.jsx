@@ -16,8 +16,8 @@ export default function ClassroomStudentNote() {
         Spitznamen.
       </p>
       <p>
-        Nach der Stunde wird dein Spitzname automatisch anonymisiert; es bleibt
-        nichts Persönliches gespeichert.
+        Spätestens zwei Tage nach der Stunde wird dein Spitzname automatisch
+        anonymisiert; es bleibt nichts Persönliches gespeichert.
       </p>
     </>
   )

@@ -101,7 +101,7 @@ function WortDetail({ data, loading, error, onRetry, onBack, onPlayToday, maxNod
                 <table className="av-muster-tabelle">
                   <thead>
                     <tr>
-                      <th scope="col">Partnerwort</th>
+                      <th scope="col">Kollokator</th>
                       <th scope="col">Beziehung</th>
                       <th scope="col">Stellung</th>
                       <th scope="col" className="av-mt-num">Anteil</th>
@@ -128,10 +128,11 @@ function WortDetail({ data, loading, error, onRetry, onBack, onPlayToday, maxNod
                 </table>
               </div>
               <p className="av-mt-legende">
+                <strong>Kollokator</strong> ist das Partnerwort, das sich mit der Basis „{data.lemma}" verbindet.{' '}
                 <strong>logDice</strong> misst die Stärke der Verbindung (höher = typischer, theoret. Maximum 14).{' '}
                 <strong>Frequenz</strong> ist die absolute Häufigkeit im Korpus.{' '}
-                <strong>Anteil</strong> ist der Anteil dieser Verbindung an allen erfassten Verbindungen des Stichworts.{' '}
-                <strong>Stellung</strong> ist die typische Position des Partnerworts relativ zum Stichwort.
+                <strong>Anteil</strong> ist der Anteil dieser Verbindung an allen erfassten Verbindungen der Basis.{' '}
+                <strong>Stellung</strong> ist die typische Position des Kollokators relativ zur Basis.
               </p>
 
               {glossar.length ? (
