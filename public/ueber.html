@@ -82,18 +82,28 @@
   <p class="section-label" id="das-spiel">Das Spiel</p>
 
   <h2 id="projekt">Das Projekt</h2>
+  <dl class="steckbrief">
+    <dt>Autor</dt>
+    <dd>Joscha Fresmann, Lehrkraft für Deutsch und Geschichte</dd>
+    <dt>Entstehung</dt>
+    <dd>Entwicklung ab März 2026 · Web-Version seit April 2026 · iOS-Testphase seit Mai 2026 · Store-Release ausstehend</dd>
+    <dt>Datenbasis</dt>
+    <dd>2,19&thinsp;Mrd. Tokens aus 15 offen lizenzierten Korpora</dd>
+    <dt>Verfahren</dt>
+    <dd>Syntaktische Dependenzanalyse (spaCy <code>de_zdl_lg</code>), logDice</dd>
+    <dt>Spielmodi</dt>
+    <dd>Kollokationen, Wort-Zwilling, Zeitenwende, Lückenfüller</dd>
+  </dl>
   <p>
-    Signifikation ist ein Bildungsprojekt von <strong>Joscha Fresmann</strong>.
-    Wie funktioniert Sprache wirklich – nicht nach offiziellen Regelwerken, sondern musterhaft, anhand konkreter Texte?
-    Diese Frage hat mich schon im Studium der Sprachwissenschaft beschäftigt, und sie begleitet mich als Lehrkraft für Deutsch und Geschichte bis heute.
-    Aus ihr und dem Wunsch, linguistische Konzepte spielerisch zugänglich zu machen, ist dieses Projekt entstanden. Grundlage der verschiedenen Spielmodi sind statistisch berechnete Kollokationen
-    aus über zwei Milliarden Tokens deutschsprachiger Texte, die ich aus unterschiedlichen Korpora selbst zusammengetragen habe.
-    (s.&thinsp;<a href="#korpora">Verwendete Korpora</a>).
-  </p>
-  <p>
-    Mein Ziel mit diesem Projekt ist es also, linguistische Konzepte kurzweilig erlebbar zu machen und sie dabei mit fachlichem Anspruch zu erklären, so gut es geht.
-    Das Projekt richtet sich damit an alle Sprachinteressierten, Studierenden, Schülerinnen
-    und Schüler und alle, die sich unsere Sprache mal ein bisschen genauer anschauen wollen.
+    Die Idee zu Signifikation kam aus einem einfachen Wunsch: linguistische Konzepte spielerisch
+    zugänglich machen – und sie dabei mit fachlichem Anspruch erklären, statt sie wegzuvereinfachen.
+    Kollokationen bieten sich dafür an, weil man sie nicht aus Regeln ableiten kann, sondern nur
+    an echten Texten zeigen. Genau dafür braucht es Daten, und so ist aus dem Ausprobieren ein
+    größeres Projekt geworden: offen lizenzierte deutschsprachige Korpora zusammentragen,
+    syntaktisch analysieren, daraus ein eigenes Wortprofil berechnen
+    (s.&thinsp;<a href="#daten">Die Daten</a>). Herausgekommen sind vier Spielmodi für
+    Sprachinteressierte, Studierende und den Unterricht – für alle, die sich unsere Sprache
+    einmal genauer anschauen wollen.
   </p>
 
   <h2 id="warum">Warum Signifikation?</h2>
@@ -114,20 +124,33 @@
 
   <h2 id="kollokation">Was ist eine Kollokation?</h2>
   <p>
-    Eine Kollokation ist eine einfache Wortverbindung, bei der zwei oder mehr Wörter
-    <strong>überzufällig häufig</strong> gemeinsam auftreten, also häufiger als der bloße
-    Zufall es erwarten ließe.<a href="#fn-3" id="ref-3" class="footnote-ref">3</a>
+    Eine <strong>Kollokation</strong> ist eine Wortverbindung, die im Sprachgebrauch üblich ist,
+    ohne dass die Grammatik sie erzwingen würde. Was genau als Kollokation gilt, wird dabei
+    unterschiedlich bestimmt – je nachdem, ob man fragt, wie man sie findet, oder was sie ausmacht.
   </p>
   <p>
-    Der Begriff wird in der Linguistik in unterschiedlichen Bedeutungen gebraucht. Eine engere
-    Bestimmung geht auf F.&thinsp;J. Hausmann zurück: Kollokationen sind
-    <strong>charakteristische Wortpaare</strong>, bei denen ein Wort (die <strong>Basis</strong>)
-    ein bestimmtes anderes (den <strong>Kollokator</strong>) geradezu verlangt. Man sagt zum Beispiel eher
-    <em>blondes Haar</em> und nicht <em>gelbes Haar</em>, nicht weil Letzteres falsch wäre,
+    <strong>Korpuslinguistisch</strong> wird eine Kollokation über ihr Vorkommen bestimmt: Zwei
+    Wörter treten in großen Textmengen <strong>überzufällig häufig</strong> gemeinsam auf, also
+    häufiger, als es der Zufall erwarten ließe.<a href="#fn-3" id="ref-3" class="footnote-ref">3</a>
+    Das ist eine Messvorschrift – sie sagt nichts über Bedeutung, lässt sich dafür automatisch auf
+    Milliarden von Wörtern anwenden.
+  </p>
+  <p>
+    <strong>Lexikografisch</strong> bestimmt F.&thinsp;J. Hausmann die Kollokation über die Rollen
+    der beteiligten Wörter: Ein Wort trägt die Bedeutung (die <strong>Basis</strong>) und wählt sich
+    seinen Partner (den <strong>Kollokator</strong>). Man sagt eher
+    <em>blondes Haar</em> als <em>gelbes Haar</em> – nicht weil Letzteres falsch wäre,
     sondern weil der Sprachgebrauch <em>blond</em> als den gewohnten Partner von <em>Haar</em>
     einfordert.<a href="#fn-4" id="ref-4" class="footnote-ref">4</a> Kollokationen liegen damit zwischen ganz freien Verbindungen wie
     <em>rotes Auto</em> und festen Idiomen wie <em>ins Gras beißen</em>: inhaltlich begründet,
     aber sprachlich konventionalisiert.
+  </p>
+  <p>
+    Die Statistik liefert die Kandidaten, die semantische Beschreibung entscheidet, welche davon
+    etwas erzählen. Häufigkeit allein genügt nämlich nicht – <em>in der</em> kommt millionenfach vor
+    und ist trotzdem keine Kollokation. Signifikation nutzt deshalb beides: Der logDice-Wert misst
+    nicht rohe Häufigkeit, sondern die <strong>Bindungsstärke</strong> zweier Wörter
+    (s.&thinsp;<a href="#logdice">Der logDice-Wert</a>).
   </p>
   <p>
     Methodisch lassen sich zwei Zugänge zur Kollokationsuntersuchung unterscheiden. Statistische Verfahren suchen nach häufigen
@@ -141,10 +164,10 @@
 
   <h2 id="logdice">Der logDice-Wert</h2>
   <p>
-    Der <strong>logDice-Wert</strong><a href="#fn-6" id="ref-6" class="footnote-ref">6</a> ist ein faszinierendes statistisches Assoziationsmaß,
-    das quantifiziert, wie charakteristisch das gemeinsame Auftreten zweier Wörter im
-    Vergleich zu ihrer zufällig zu erwartenden Kookkurrenz ist. Dieser Wert entscheidet quasi allein darüber, welche Kollokationen ganz oben in den Spielen auftauchen.
-    Die ganz ganz simple Formel dafür lautet:
+    Der <strong>logDice-Wert</strong><a href="#fn-6" id="ref-6" class="footnote-ref">6</a> ist ein statistisches Assoziationsmaß.
+    Er quantifiziert, wie charakteristisch das gemeinsame Auftreten zweier Wörter im
+    Vergleich zu ihrer zufällig zu erwartenden Kookkurrenz ist – und entscheidet damit darüber,
+    welche Kollokationen in den Spielen oben stehen. Die Formel dafür lautet:
   </p>
   <p class="formula-block">
     logDice(a, b) &nbsp;=&nbsp; 14 + log<sub>2</sub>( 2 · f<sub>ab</sub> / (f<sub>a</sub> + f<sub>b</sub>) )
@@ -152,10 +175,9 @@
   <p>
     Dabei bezeichnet f<sub>ab</sub> die Häufigkeit des gemeinsamen Vorkommens
     (die <strong>Paarfrequenz</strong>), f<sub>a</sub> und f<sub>b</sub> die jeweiligen Einzelhäufigkeiten
-    beider Wörter im Gesamtkorpus. Der Maximalwert 14 wird rein theoretisch erreicht, wenn
-    beide Wörter ausschließlich miteinander auftreten. Werte ≥ 0 signalisieren schon eine
-    überdurchschnittliche Assoziation; linguistisch aussagekräftige Kollokationen
-    liegen in der Praxis meist zwischen 5 und 12.
+    beider Wörter im Gesamtkorpus. Der Maximalwert 14 wird nur theoretisch erreicht – dann,
+    wenn beide Wörter ausschließlich miteinander auftreten. In der Praxis bleiben die Werte
+    deutlich darunter; linguistisch aussagekräftige Kollokationen liegen meist zwischen 5 und 12.
   </p>
   <p>
     Im Vergleich zu anderen Maßen wie dem
@@ -164,7 +186,8 @@
     weil sein geringer f<sub>a</sub>-Wert den Quotienten deckelt.
     Gegenüber der reinen Häufigkeit hat logDice den Vorteil, häufige Funktionswörter
     (<em>sein</em>, <em>haben</em>, <em>und</em>) zugunsten semantisch gehaltvoller
-    Verbindungen zu benachteiligen. Die Ergebnisse des logDice-Wertes sind natürlich nur so gut, wie die zugrunde liegende Auswahl der Korpora es zulässt.
+    Verbindungen zu benachteiligen. Die Ergebnisse sind dabei nur so gut wie die zugrunde
+    liegende Auswahl der Korpora.
   </p>
 
   <h2 id="daten">Die Daten</h2>
@@ -180,7 +203,7 @@
     </details>
     <details class="pipeline-step">
       <summary><strong>Normalisierung</strong></summary>
-      <div class="pipeline-step-body">Alle Quellen werden in ein einheitliches JSONL-Format überführt und mit Metadaten angereichert: <code>text, quelle, genre, epoche, jahr</code>. Das Entstehungsjahr jedes Textes wird dabei bewahrt – Grundlage für die spätere Zeitreise-Auswertung nach Jahrzehnten.</div>
+      <div class="pipeline-step-body">Alle Quellen werden in ein einheitliches JSONL-Format überführt und mit Metadaten angereichert: <code>text, quelle, genre, epoche, jahr</code>. Das Entstehungsjahr jedes Textes wird dabei bewahrt – Grundlage für die spätere Auswertung nach Jahrzehnten im Modus <em>Zeitenwende</em>.</div>
     </details>
     <details class="pipeline-step">
       <summary><strong>Relationen-Mapping</strong></summary>
@@ -205,7 +228,7 @@
     einer Kollokation werden Originalsätze mit beiden Wörtern gesucht und mit
     vollständiger Quellenangabe und Lizenzhinweis angezeigt. Der Index umfasst
     über 50&thinsp;Millionen Sätze aus neun Korpora. Für die
-    <strong>Zeitreise</strong>-Runde werden die Tripel nach Entstehungsjahrzehnt
+    <strong>Zeitenwende</strong>-Runde werden die Tripel nach Entstehungsjahrzehnt
     gruppiert, sodass Verschiebungen im Kollokationsverhalten über Jahrhunderte
     sichtbar werden. Die <strong>Wort-Zwilling</strong>-Runde vergleicht die
     logDice-Profile zweier ähnlicher Wörter direkt gegeneinander.
