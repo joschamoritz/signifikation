@@ -67,7 +67,14 @@ MIN_LEN_TEXT = 20        # Dokument/Chunk unter dieser Länge überspringen
 
 # Batch/Flush
 BATCH_SIZE = 500         # nlp.pipe-Batch
-FLUSH_EVERY = 10_000     # Chunks: Aggregat in die DB flushen + Checkpoint setzen
+# Chunks: Aggregat in die DB flushen + Checkpoint setzen.
+# 2.000 statt 10.000 (Phase D, 2026-07-28): Bei ~465 split-Tokens/Chunk und
+# ~1.150 Tok/s je Worker bedeutete 10.000 einen Checkpoint nur alle ~67 min —
+# für einen Tage-Lauf zu grob (Absturz = bis zu 67 min Rework je Worker) und das
+# pending-Dict wuchs bis ~14 GB RAM je Worker. 2.000 → Checkpoint alle ~13 min
+# und deutlich niedrigere RAM-Peaks; die zusätzlichen Commits sind gegenüber der
+# Parse-Zeit vernachlässigbar.
+FLUSH_EVERY = 2_000
 
 # Min. Wortlänge (Zeichen) für ein Lemma
 MIN_LEN = 2
