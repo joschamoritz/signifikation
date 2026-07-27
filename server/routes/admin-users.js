@@ -48,6 +48,7 @@ export function createAdminUsersRouter(deps) {
     adminUsersBulkUpdateSchema,
     countUsersStmt,
     countUsersByRoleStmt,
+    countUsersFilteredStmt,
     listUsersStmt,
     getUserDetailsStmt,
     getUserStatsByGameStmt,
@@ -93,17 +94,20 @@ export function createAdminUsersRouter(deps) {
   }
 
   router.get('/admin/users', adminLimiter, requireAuth, validate(adminUsersQuerySchema, 'query'), (req, res) => {
-    const { limit, role, q } = req.query
+    // limit/offset kommen aus adminUsersQuerySchema bereits als Zahlen
+    // (Default 50 / 0).
+    const { limit, offset, role, q } = req.query
     try {
       const search = (q || '').trim()
-      const rows = listUsersStmt.all({
-        limit,
+      const filterParams = {
         role: role || '',
         q: search,
         qLike: `%${search}%`,
-      })
+      }
+      const rows = listUsersStmt.all({ ...filterParams, limit, offset })
 
       const total = countUsersStmt.get()?.total || 0
+      const filtered = countUsersFilteredStmt.get(filterParams)?.total || 0
       const roleCounts = countUsersByRoleStmt.get() || { premium: 0, users: 0 }
 
       const now = Date.now()
@@ -118,6 +122,12 @@ export function createAdminUsersRouter(deps) {
           premium: Number(roleCounts.premium || 0),
           newLast7Days: Number(growth.newLast7Days || 0),
           newLast30Days: Number(growth.newLast30Days || 0),
+        },
+        page: {
+          limit,
+          offset,
+          filtered,
+          hasMore: offset + rows.length < filtered,
         },
         users: rows.map(mapUserRow),
       })
