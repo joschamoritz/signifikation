@@ -80,7 +80,10 @@ let selectedDashboardDate = ''
 const selectedEntryDates = new Set()
 let sessionRefreshTimer = null
 let usersSearchTimer = null
+let entrySearchTimer = null
 let usersOverviewAbortController = null
+const USERS_PAGE_SIZE = 50
+let usersOffset = 0
 let currentAuditEntries = []
 let freeDaysData = []
 let entryFormSnapshot = null
@@ -613,6 +616,16 @@ function roleLabel(role) {
   if (role === 'admin') return 'Admin'
   if (role === 'premium') return 'Premium'
   return 'User'
+}
+
+/**
+ * Leer-/Lade-/Fehlerzeile für die Karten-Tabellen (Einträge, Nutzer, Audit).
+ * `role` + `.table-message`, damit die Zeile auch im Karten-Layout (≤560px)
+ * über die volle Breite läuft und ohne Feldlabel bleibt. `text` muss bereits
+ * escaped sein.
+ */
+function tableMessageRow(colspan, cls, text) {
+  return `<tr role="row"><td role="cell" colspan="${colspan}" class="${cls} table-message">${text}</td></tr>`
 }
 
 function getSelectedUserIdsFromTable() {
@@ -1416,7 +1429,7 @@ function renderEntryTable() {
   countEl.textContent = `${filtered.length} von ${entries.length} Einträgen`
 
   if (!filtered.length) {
-    tbody.innerHTML = '<tr><td colspan="5" class="entry-empty">Keine Einträge für den aktuellen Filter.</td></tr>'
+    tbody.innerHTML = tableMessageRow(5, 'entry-empty', 'Keine Einträge für den aktuellen Filter.')
     updateEntryBulkState([])
     return
   }
@@ -1430,12 +1443,12 @@ function renderEntryTable() {
     const summaryHtml = renderModeGroupSummary(entry)
     const checked = selectedEntryDates.has(datum) ? 'checked' : ''
 
-    return `<tr>
-      <td class="entry-select-col"><label class="cb-hit"><input type="checkbox" ${checked} data-action="toggle-entry-selection" data-datum="${datum}" aria-label="Eintrag ${esc(datum)} auswählen"></label></td>
-      <td><strong>${esc(formatMmdd(datum))}</strong><br><span class="entry-hint">${esc(datum)}</span></td>
-      <td><div class="mode-summary-list">${summaryHtml}</div></td>
-      <td><div class="entry-chip-wrap">${modeChips(entry)}</div></td>
-      <td>
+    return `<tr role="row">
+      <td role="cell" data-label="Auswahl" class="entry-select-col"><label class="cb-hit"><input type="checkbox" ${checked} data-action="toggle-entry-selection" data-datum="${datum}" aria-label="Eintrag ${esc(datum)} auswählen"></label></td>
+      <td role="cell" data-label="Datum"><strong>${esc(formatMmdd(datum))}</strong><br><span class="entry-hint">${esc(datum)}</span></td>
+      <td role="cell" data-label="Inhalte" class="cell-stack"><div class="mode-summary-list">${summaryHtml}</div></td>
+      <td role="cell" data-label="Modi" class="cell-stack"><div class="entry-chip-wrap">${modeChips(entry)}</div></td>
+      <td role="cell" data-label="Aktion">
         <div class="entry-row-actions">
           <button class="entry-action-btn" data-action="edit-tag" data-datum="${datum}">Bearbeiten</button>
           <button class="entry-action-btn" data-action="focus-calendar-date" data-value="${datum}">Im Kalender</button>
@@ -1447,7 +1460,26 @@ function renderEntryTable() {
   updateEntryBulkState(visibleDates)
 }
 
+/**
+ * Die Eintragsliste wird komplett neu gerendert (Filter über alle Kalendertage
+ * + innerHTML der Tabelle). Ohne Debounce passiert das bei jedem Tastenanschlag –
+ * gleiches Muster wie scheduleUsersOverviewLoad.
+ */
+function scheduleEntryTableRender() {
+  if (entrySearchTimer) {
+    window.clearTimeout(entrySearchTimer)
+  }
+  entrySearchTimer = window.setTimeout(() => {
+    entrySearchTimer = null
+    renderEntryTable()
+  }, 200)
+}
+
 function resetEntryFilters() {
+  if (entrySearchTimer) {
+    window.clearTimeout(entrySearchTimer)
+    entrySearchTimer = null
+  }
   const searchInput = document.getElementById('entry-search')
   const modeFilter = document.getElementById('entry-mode-filter')
   if (searchInput) searchInput.value = ''
@@ -1748,7 +1780,7 @@ async function loadAuditLog() {
   const countEl = document.getElementById('audit-count')
   if (!tbody) return
 
-  tbody.innerHTML = '<tr><td colspan="5" class="users-empty">Audit-Log wird geladen …</td></tr>'
+  tbody.innerHTML = tableMessageRow(5, 'users-empty', 'Audit-Log wird geladen …')
 
   try {
     const params = new URLSearchParams({ limit })
@@ -1770,7 +1802,7 @@ async function loadAuditLog() {
       countEl.textContent = `${entries.length} Einträge angezeigt${totalMatches !== entries.length ? ` (insgesamt ${totalMatches} Treffer)` : ''}`
     }
     if (!entries.length) {
-      tbody.innerHTML = '<tr><td colspan="5" class="users-empty">Noch keine Audit-Einträge vorhanden.</td></tr>'
+      tbody.innerHTML = tableMessageRow(5, 'users-empty', 'Noch keine Audit-Einträge vorhanden.')
       return
     }
 
@@ -1780,19 +1812,19 @@ async function loadAuditLog() {
       const resource = entry.resourceId ? `${entry.resource || '—'}:${entry.resourceId}` : (entry.resource || '—')
       const status = entry.status || '—'
       const changes = summarizeAuditChanges(entry.changes)
-      return `<tr>
-        <td>${esc(time)}</td>
-        <td>${esc(action)}</td>
-        <td>${esc(resource)}</td>
-        <td>${esc(status)}</td>
-        <td><button class="entry-action-btn" data-action="show-audit-entry-details" data-index="${index}">${esc(changes)}</button></td>
+      return `<tr role="row">
+        <td role="cell" data-label="Zeit">${esc(time)}</td>
+        <td role="cell" data-label="Aktion">${esc(action)}</td>
+        <td role="cell" data-label="Ressource">${esc(resource)}</td>
+        <td role="cell" data-label="Status">${esc(status)}</td>
+        <td role="cell" data-label="Änderungen" class="cell-stack"><button class="entry-action-btn" data-action="show-audit-entry-details" data-index="${index}">${esc(changes)}</button></td>
       </tr>`
     }).join('')
     showAuditEntryDetails(entries[0])
     renderAdminActivity(entries.slice(0, 5))
   } catch (err) {
     if (countEl) countEl.textContent = 'Audit-Log konnte nicht geladen werden.'
-    tbody.innerHTML = `<tr><td colspan="5" class="users-empty">Audit-Log konnte nicht geladen werden: ${esc(err.message)}</td></tr>`
+    tbody.innerHTML = tableMessageRow(5, 'users-empty', `Audit-Log konnte nicht geladen werden: ${esc(err.message)}`)
   }
 }
 
@@ -2063,7 +2095,36 @@ function updateDashboardFromStats(data) {
   metricScore.textContent = maxSum > 0 ? `Ø ${((scoreSum / maxSum) * 10).toFixed(1)} / 10` : 'Ø - / 10'
 }
 
-async function loadUsersOverview() {
+function renderUserRow(user) {
+  const created = user.createdAt ? new Date(user.createdAt).toLocaleDateString('de-DE') : '—'
+  const isSelected = user.id === selectedUserId
+  const safeUserId = encodeURIComponent(String(user.id || ''))
+  const safeRawUserId = esc(String(user.id || ''))
+  return `<tr role="row">
+    <td role="cell" class="users-select-col" data-label="Auswahl"><label class="cb-hit"><input type="checkbox" class="user-select-checkbox" data-user-id="${safeRawUserId}" aria-label="${esc(user.email || user.name || 'Nutzer')} auswählen"></label></td>
+    <td role="cell" data-label="Name">${esc(user.name || '—')}</td>
+    <td role="cell" data-label="E-Mail">${esc(user.email || '—')}</td>
+    <td role="cell" data-label="Rolle">${esc(roleLabel(user.role || 'user'))}</td>
+    <td role="cell" data-label="Registriert">${esc(created)}</td>
+    <td role="cell" data-label="Aktion"><button class="entry-action-btn" data-action="select-user" data-user-id="${safeUserId}">${isSelected ? 'Ausgewählt' : 'Details'}</button></td>
+  </tr>`
+}
+
+/** Zeigt/versteckt „Weitere laden" und schreibt den Ladefortschritt daneben. */
+function updateUsersPagingState({ loaded = 0, filtered = 0, hasMore = false, busy = false } = {}) {
+  const wrap = document.getElementById('users-paging')
+  const btn = document.getElementById('users-load-more-btn')
+  const info = document.getElementById('users-paging-info')
+  if (!wrap || !btn || !info) return
+
+  wrap.classList.toggle('is-hidden', !hasMore && loaded >= filtered)
+  btn.classList.toggle('is-hidden', !hasMore)
+  btn.disabled = busy
+  btn.textContent = busy ? 'Lade …' : 'Weitere laden'
+  info.textContent = filtered ? `${loaded} von ${filtered} angezeigt` : ''
+}
+
+async function loadUsersOverview({ append = false } = {}) {
   const summary = document.getElementById('users-summary')
   const tbody = document.getElementById('users-table-body')
   if (!summary || !tbody) return
@@ -2076,12 +2137,20 @@ async function loadUsersOverview() {
   const search = (document.getElementById('users-search')?.value || '').trim()
   const role = document.getElementById('users-role-filter')?.value || ''
 
-  const params = new URLSearchParams({ limit: '50' })
+  // Jeder Filterwechsel beginnt wieder bei Seite 1 – nur „Weitere laden" hängt an.
+  if (!append) usersOffset = 0
+
+  const params = new URLSearchParams({ limit: String(USERS_PAGE_SIZE), offset: String(usersOffset) })
   if (search) params.set('q', search)
   if (role) params.set('role', role)
 
-  summary.textContent = 'Nutzerdaten werden geladen …'
-  tbody.innerHTML = '<tr><td colspan="6" class="users-empty">Lade …</td></tr>'
+  if (append) {
+    updateUsersPagingState({ loaded: usersOffset, filtered: usersOffset, hasMore: true, busy: true })
+  } else {
+    summary.textContent = 'Nutzerdaten werden geladen …'
+    tbody.innerHTML = tableMessageRow(6, 'users-empty', 'Lade …')
+    updateUsersPagingState()
+  }
 
   try {
     const response = await fetch(`/admin/users?${params.toString()}`, { signal: usersOverviewAbortController.signal })
@@ -2091,31 +2160,29 @@ async function loadUsersOverview() {
     const info = data.summary || {}
     summary.textContent = `Gesamt: ${info.total || 0} · User: ${info.users || 0} · Premium: ${info.premium || 0} · Neu 30 Tage: ${info.newLast30Days || 0}`
 
+    const page = data.page || {}
     const users = Array.isArray(data.users) ? data.users : []
-    if (!users.length) {
-      tbody.innerHTML = '<tr><td colspan="6" class="users-empty">Keine Nutzer gefunden.</td></tr>'
-      clearSelectedUser('Keine Nutzer ausgewählt.')
-    } else {
-      tbody.innerHTML = users.map((user) => {
-        const created = user.createdAt ? new Date(user.createdAt).toLocaleDateString('de-DE') : '—'
-        const isSelected = user.id === selectedUserId
-        const safeUserId = encodeURIComponent(String(user.id || ''))
-        const safeRawUserId = esc(String(user.id || ''))
-        return `<tr>
-          <td class="users-select-col"><label class="cb-hit"><input type="checkbox" class="user-select-checkbox" data-user-id="${safeRawUserId}" aria-label="${esc(user.email || user.name || 'Nutzer')} auswählen"></label></td>
-          <td>${esc(user.name || '—')}</td>
-          <td>${esc(user.email || '—')}</td>
-          <td>${esc(roleLabel(user.role || 'user'))}</td>
-          <td>${esc(created)}</td>
-          <td><button class="entry-action-btn" data-action="select-user" data-user-id="${safeUserId}">${isSelected ? 'Ausgewählt' : 'Details'}</button></td>
-        </tr>`
-      }).join('')
+    usersOffset += users.length
 
+    if (!users.length && !append) {
+      tbody.innerHTML = tableMessageRow(6, 'users-empty', 'Keine Nutzer gefunden.')
+      clearSelectedUser('Keine Nutzer ausgewählt.')
+      updateUsersPagingState()
+    } else {
+      const rowsHtml = users.map(renderUserRow).join('')
+      if (append) tbody.insertAdjacentHTML('beforeend', rowsHtml)
+      else tbody.innerHTML = rowsHtml
+
+      updateUsersPagingState({
+        loaded: usersOffset,
+        filtered: Number(page.filtered || usersOffset),
+        hasMore: !!page.hasMore,
+      })
       updateUsersBulkState()
 
       if (selectedUserId && users.some((user) => user.id === selectedUserId)) {
         await selectUser(selectedUserId, { keepScroll: true })
-      } else {
+      } else if (!append) {
         clearSelectedUser('Wähle einen Nutzer aus der Tabelle, um Details zu sehen.')
       }
     }
@@ -2124,14 +2191,21 @@ async function loadUsersOverview() {
   } catch (err) {
     if (err.name === 'AbortError') return
     summary.textContent = `Nutzer konnten nicht geladen werden: ${err.message}`
-    tbody.innerHTML = '<tr><td colspan="6" class="users-empty">Fehler beim Laden.</td></tr>'
-    clearSelectedUser('Nutzerdetails konnten nicht geladen werden.')
+    if (!append) {
+      tbody.innerHTML = tableMessageRow(6, 'users-empty', 'Fehler beim Laden.')
+      clearSelectedUser('Nutzerdetails konnten nicht geladen werden.')
+    }
+    updateUsersPagingState({ loaded: usersOffset, filtered: usersOffset, hasMore: !!append })
     updateUsersBulkState()
   } finally {
     usersOverviewAbortController = null
     const roleBtn = document.getElementById('user-role-save-btn')
     if (roleBtn) roleBtn.disabled = !selectedUserId
   }
+}
+
+function loadMoreUsers() {
+  loadUsersOverview({ append: true })
 }
 
 function scheduleUsersOverviewLoad() {
@@ -3509,6 +3583,7 @@ function handleDocumentClick(event) {
   if (action === 'clear-users-selection') return void clearUsersBulkSelection()
   if (action === 'run-users-bulk-action') return void runUsersBulkAction()
   if (action === 'reset-users-filters') return void resetUsersFilters()
+  if (action === 'load-more-users') return void loadMoreUsers()
   if (action === 'save-selected-user-role') return void saveSelectedUserRole()
   if (action === 'delete-selected-user') return void deleteSelectedUser()
   if (action === 'trigger-backup-restore') return void triggerBackupRestore()
@@ -4051,7 +4126,7 @@ function handleDocumentChange(event) {
 
 function handleDocumentInput(event) {
   const target = event.target
-  if (target.id === 'entry-search') return void renderEntryTable()
+  if (target.id === 'entry-search') return void scheduleEntryTableRender()
   if (target.id === 'users-search') return void scheduleUsersOverviewLoad()
   if (target.id === 'audit-search') return void loadAuditLog()
   if (target.id === 'json-import-textarea') return void onJsonImportInput()

@@ -225,6 +225,71 @@ describe('admin routes integration', () => {
     expect(Array.isArray(payload.entries)).toBe(true)
   })
 
+  it('GET /admin/users blaettert ueber offset ohne Ueberschneidung', async () => {
+    // Drei Nutzer mit gemeinsamem, eindeutigem Suchbegriff und fester
+    // Reihenfolge (ORDER BY createdAt DESC) – so ist die Seitenfolge
+    // deterministisch pruefbar.
+    const marker = `paging${Date.now().toString(36)}`
+    const baseTime = Date.now()
+    const created = []
+    for (let i = 0; i < 3; i += 1) {
+      const userId = `admin-test-${marker}-${i}`
+      const iso = new Date(baseTime - i * 1000).toISOString()
+      insertUserStmt.run({
+        id: userId,
+        name: `${marker} Nutzer ${i}`,
+        email: `${marker}-${i}@example.test`,
+        emailVerified: 1,
+        image: null,
+        createdAt: iso,
+        updatedAt: iso,
+      })
+      testUserIds.add(userId)
+      created.push(userId)
+    }
+
+    const fetchPage = async (offset) => {
+      const response = await fetch(`${baseUrl}/admin/users?q=${marker}&limit=2&offset=${offset}`, {
+        headers: adminHeaders(token),
+      })
+      expect(response.status).toBe(200)
+      return response.json()
+    }
+
+    const first = await fetchPage(0)
+    expect(first.users.map((user) => user.id)).toEqual([created[0], created[1]])
+    expect(first.page).toMatchObject({ limit: 2, offset: 0, filtered: 3, hasMore: true })
+
+    const second = await fetchPage(2)
+    expect(second.users.map((user) => user.id)).toEqual([created[2]])
+    expect(second.page).toMatchObject({ limit: 2, offset: 2, filtered: 3, hasMore: false })
+
+    // summary.total bleibt die Gesamtzahl, filtered nur die Treffer
+    expect(first.summary.total).toBeGreaterThanOrEqual(3)
+  })
+
+  it('GET /admin/users nutzt Defaults ohne Query-Parameter', async () => {
+    // Express 5 baut req.query bei jedem Zugriff neu, die Zod-Defaults aus
+    // validate() kommen im Handler nicht an – ohne eigene Ableitung liefe
+    // die Abfrage in einen fehlenden LIMIT-Parameter.
+    const response = await fetch(`${baseUrl}/admin/users`, {
+      headers: adminHeaders(token),
+    })
+    const payload = await response.json()
+
+    expect(response.status).toBe(200)
+    expect(payload.page).toMatchObject({ limit: 50, offset: 0 })
+    expect(payload.users.length).toBeLessThanOrEqual(50)
+  })
+
+  it('GET /admin/users lehnt ein zu grosses limit ab', async () => {
+    const response = await fetch(`${baseUrl}/admin/users?limit=500`, {
+      headers: adminHeaders(token),
+    })
+
+    expect(response.status).toBe(400)
+  })
+
   it('GET /admin/users/:id/stats liefert nur Statistikdaten', async () => {
     const userId = createTestUser({ role: 'premium' })
     testUserIds.add(userId)

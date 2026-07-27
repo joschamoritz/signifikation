@@ -456,18 +456,20 @@
             <button class="danger-btn" id="entry-bulk-delete-btn" data-action="bulk-delete-selected-dates" disabled>Ausgewählte löschen</button>
           </div>
           <div class="entry-table-wrap">
-            <table class="entry-table">
-              <thead>
-                <tr>
-                  <th scope="col">Auswahl</th>
-                  <th scope="col">Datum</th>
-                  <th scope="col">Inhalte</th>
-                  <th scope="col">Modi</th>
-                  <th scope="col">Aktion</th>
+            <!-- role="…": im Karten-Layout (≤560px) setzt CSS display:block,
+                 was die Tabellensemantik entfernt – die Rollen halten sie. -->
+            <table class="entry-table cards-on-mobile" role="table">
+              <thead role="rowgroup">
+                <tr role="row">
+                  <th scope="col" role="columnheader">Auswahl</th>
+                  <th scope="col" role="columnheader">Datum</th>
+                  <th scope="col" role="columnheader">Inhalte</th>
+                  <th scope="col" role="columnheader">Modi</th>
+                  <th scope="col" role="columnheader">Aktion</th>
                 </tr>
               </thead>
-              <tbody id="entry-table-body">
-                <tr><td colspan="5" class="entry-empty">Kalenderdaten werden geladen …</td></tr>
+              <tbody id="entry-table-body" role="rowgroup">
+                <tr role="row"><td role="cell" colspan="5" class="entry-empty table-message">Kalenderdaten werden geladen …</td></tr>
               </tbody>
             </table>
           </div>
@@ -661,21 +663,25 @@
           </div>
           <div id="users-summary" class="users-summary">Nutzerdaten werden geladen …</div>
           <div class="users-table-wrap">
-            <table class="users-table">
-              <thead>
-                <tr>
-                  <th scope="col" class="users-select-col"><label class="cb-hit"><input type="checkbox" id="users-select-all" aria-label="Alle Nutzer auswählen"></label></th>
-                  <th scope="col">Name</th>
-                  <th scope="col">E-Mail</th>
-                  <th scope="col">Rolle</th>
-                  <th scope="col">Registriert</th>
-                  <th scope="col">Aktion</th>
+            <table class="users-table cards-on-mobile" role="table">
+              <thead role="rowgroup">
+                <tr role="row">
+                  <th scope="col" role="columnheader" class="users-select-col"><label class="cb-hit"><input type="checkbox" id="users-select-all" aria-label="Alle Nutzer auswählen"></label></th>
+                  <th scope="col" role="columnheader">Name</th>
+                  <th scope="col" role="columnheader">E-Mail</th>
+                  <th scope="col" role="columnheader">Rolle</th>
+                  <th scope="col" role="columnheader">Registriert</th>
+                  <th scope="col" role="columnheader">Aktion</th>
                 </tr>
               </thead>
-              <tbody id="users-table-body">
-                <tr><td colspan="6" class="users-empty">Noch keine Daten geladen.</td></tr>
+              <tbody id="users-table-body" role="rowgroup">
+                <tr role="row"><td role="cell" colspan="6" class="users-empty table-message">Noch keine Daten geladen.</td></tr>
               </tbody>
             </table>
+          </div>
+          <div class="users-paging is-hidden" id="users-paging">
+            <button class="entry-filters-reset" id="users-load-more-btn" data-action="load-more-users">Weitere laden</button>
+            <span class="entry-hint" id="users-paging-info"></span>
           </div>
         </div>
 
@@ -1083,18 +1089,18 @@
           </div>
           <p class="entry-hint" id="audit-count">0 Einträge</p>
           <div class="users-table-wrap">
-            <table class="users-table audit-table">
-              <thead>
-                <tr>
-                  <th scope="col">Zeit</th>
-                  <th scope="col">Aktion</th>
-                  <th scope="col">Ressource</th>
-                  <th scope="col">Status</th>
-                  <th scope="col">Änderungen</th>
+            <table class="users-table audit-table cards-on-mobile" role="table">
+              <thead role="rowgroup">
+                <tr role="row">
+                  <th scope="col" role="columnheader">Zeit</th>
+                  <th scope="col" role="columnheader">Aktion</th>
+                  <th scope="col" role="columnheader">Ressource</th>
+                  <th scope="col" role="columnheader">Status</th>
+                  <th scope="col" role="columnheader">Änderungen</th>
                 </tr>
               </thead>
-              <tbody id="audit-table-body">
-                <tr><td colspan="5" class="users-empty">Audit-Log wird geladen …</td></tr>
+              <tbody id="audit-table-body" role="rowgroup">
+                <tr role="row"><td role="cell" colspan="5" class="users-empty table-message">Audit-Log wird geladen …</td></tr>
               </tbody>
             </table>
           </div>

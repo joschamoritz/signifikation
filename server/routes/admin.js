@@ -29,6 +29,7 @@ import { createAdminProductMetricsRouter } from './admin-product-metrics.js'
 import {
   countUsersStmt,
   countUsersByRoleStmt,
+  countUsersFilteredStmt,
   listUsersStmt,
   getUserDetailsStmt,
   getUserStatsByGameStmt,
@@ -83,6 +84,7 @@ router.use(createAdminUsersRouter({
   adminUsersBulkUpdateSchema,
   countUsersStmt,
   countUsersByRoleStmt,
+  countUsersFilteredStmt,
   listUsersStmt,
   getUserDetailsStmt,
   getUserStatsByGameStmt,

@@ -33,7 +33,23 @@ export const listUsersStmt = db.prepare(`
     OR COALESCE(up.role, 'user') = @role
   )
   ORDER BY u.createdAt DESC
-  LIMIT @limit
+  LIMIT @limit OFFSET @offset
+`)
+
+/** Trefferzahl derselben Filterung wie listUsersStmt – Basis für „Weitere laden". */
+export const countUsersFilteredStmt = db.prepare(`
+  SELECT COUNT(*) AS total
+  FROM user u
+  LEFT JOIN user_profiles up ON up.user_id = u.id
+  WHERE (
+    @q = ''
+    OR u.email LIKE @qLike
+    OR u.name LIKE @qLike
+  )
+  AND (
+    @role = ''
+    OR COALESCE(up.role, 'user') = @role
+  )
 `)
 
 export const getUserDetailsStmt = db.prepare(`

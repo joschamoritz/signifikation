@@ -2753,3 +2753,118 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
 .users-table-wrap {
   max-width: 100%;
 }
+
+/* ── Nutzerliste: Nachladen ──────────────────────────────────── */
+.users-paging {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+}
+
+@media (max-width: 560px) {
+  .users-paging {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .users-paging #users-load-more-btn {
+    width: 100%;
+  }
+}
+
+/* ── Datentabellen als Kartenliste (schmale Screens) ──────────
+   Einträge, Nutzer und Audit-Log haben 5–6 Spalten; als Tabelle
+   bleibt davon auf 375px nur horizontales Wischen. Ab hier wird
+   jede Zeile eine Karte, die Spaltenüberschrift steht als Label
+   je Feld (data-label).
+
+   display:block nimmt den Tabellenelementen ihre implizite
+   Semantik – deshalb stehen die ARIA-Rollen (table/rowgroup/row/
+   cell) im Markup, sonst liest ein Screenreader nur noch Fließtext.
+   Muss NACH dem 560px-Block mit min-width:560px stehen. */
+@media (max-width: 560px) {
+  .cards-on-mobile,
+  .cards-on-mobile tbody,
+  .cards-on-mobile tr {
+    display: block;
+    min-width: 0;
+    width: auto;
+  }
+
+  /* Die Beschriftung steht jetzt in jeder Zelle. */
+  .cards-on-mobile thead {
+    display: none;
+  }
+
+  .cards-on-mobile tr {
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--border-lt);
+    background: var(--surface);
+  }
+
+  .cards-on-mobile tr:last-child {
+    border-bottom: 0;
+  }
+
+  .cards-on-mobile td {
+    display: grid;
+    grid-template-columns: 88px minmax(0, 1fr);
+    gap: 10px;
+    align-items: start;
+    width: auto;
+    padding: 3px 0;
+    border-bottom: 0;
+    text-align: left;
+    vertical-align: baseline;
+  }
+
+  .cards-on-mobile td::before {
+    content: attr(data-label);
+    font-size: 0.66rem;
+    line-height: 1.6;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  /* Zellen mit Listen, Chips oder Button-Gruppen: Label darüber statt
+     daneben, sonst bleiben dem Inhalt keine 180px. */
+  .cards-on-mobile td.cell-stack {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 2px;
+    padding: 5px 0;
+  }
+
+  /* Auswahl-Spalte: im Tabellenmodus 44px breit und zentriert,
+     als Karte gelten die normalen Zellenregeln. */
+  .cards-on-mobile td.users-select-col,
+  .cards-on-mobile td.entry-select-col {
+    width: auto;
+    padding: 3px 0;
+    text-align: left;
+  }
+
+  .cards-on-mobile td.users-select-col .cb-hit,
+  .cards-on-mobile td.entry-select-col .cb-hit {
+    justify-content: flex-start;
+  }
+
+  /* Leer-/Lade-/Fehlermeldungen laufen über die volle Breite. */
+  .cards-on-mobile td.table-message {
+    display: block;
+    padding: 12px;
+  }
+
+  .cards-on-mobile td.table-message::before {
+    content: none;
+  }
+
+  /* Ohne horizontales Scrollen braucht es keine Ankerspalte mehr. */
+  .cards-on-mobile th:first-child,
+  .cards-on-mobile td:first-child {
+    position: static;
+    box-shadow: none;
+  }
+}
