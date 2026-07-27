@@ -24,15 +24,27 @@ import time
 from pathlib import Path
 
 
-def shard_status(part_db: Path, shard_basis: str):
-    """(offset_chunks, done, n_triples) für einen Shard. (None,…) wenn keine DB."""
+def shard_status(part_db: Path, shard_basis: str, exakt: bool = False):
+    """(offset_chunks, done, n_triples) für einen Shard. (None,…) wenn keine DB.
+
+    WICHTIG (Fix 2026-07-28): Standardmäßig KEIN `COUNT(*) FROM triples` — das ist
+    ein voller Tabellenscan und wurde bei Millionen Zeilen auf der HDD, parallel zu
+    4 schreibenden Workern, so langsam, dass der Monitor minutenlang hing. Stattdessen
+    `MAX(rowid)` (rechtester B-Baum-Knoten, O(log n)) als sehr gute Näherung für die
+    Zahl der eingefügten distinkten Triples. Mit --exakt erzwingt man den echten COUNT
+    (nur sinnvoll, wenn der Lauf steht). `busy_timeout` verhindert zusätzlich Blockieren
+    an Schreib-Locks."""
     if not part_db.exists():
         return None, False, 0
     try:
-        c = sqlite3.connect(f"file:{part_db}?mode=ro", uri=True)
+        c = sqlite3.connect(f"file:{part_db}?mode=ro", uri=True, timeout=5.0)
+        c.execute("PRAGMA busy_timeout=3000")
         row = c.execute("SELECT offset, done FROM parse_progress WHERE datei=?",
                         (f"{shard_basis}.jsonl",)).fetchone()
-        n_tri = c.execute("SELECT COUNT(*) FROM triples").fetchone()[0]
+        if exakt:
+            n_tri = c.execute("SELECT COUNT(*) FROM triples").fetchone()[0]
+        else:
+            n_tri = c.execute("SELECT COALESCE(MAX(rowid), 0) FROM triples").fetchone()[0]
         c.close()
         if row is None:
             return 0, False, n_tri
@@ -50,6 +62,10 @@ def main():
 
     ap = argparse.ArgumentParser()
     ap.add_argument("--workdir", required=True)
+    ap.add_argument("--exakt", action="store_true",
+                    help="Exakte Triple-Zahlen per COUNT(*) statt MAX(rowid)-Näherung. "
+                         "Voller Tabellenscan je Teil-DB — bei laufendem Parse langsam, "
+                         "nur für den Endstand sinnvoll.")
     args = ap.parse_args()
     workdir = Path(args.workdir)
     part_dir = workdir / "parts"
@@ -68,7 +84,7 @@ def main():
     zeilen = []
     for job in jobs:
         pdb = part_dir / f"{job}.db"
-        offset, done, n_tri = shard_status(pdb, job)
+        offset, done, n_tri = shard_status(pdb, job, exakt=args.exakt)
         chunks_total += (offset or 0)
         tri_total += n_tri
         if pdb.exists():
@@ -87,7 +103,8 @@ def main():
     jetzt = time.time()
     print(f"=== parallel_parse Monitor: {workdir.name} ===")
     print(f"Shards: {len(jobs)}  |  fertig {n_done}  ·  in Arbeit {n_arbeit}  ·  offen {n_offen}")
-    print(f"Chunks committet: {chunks_total:,}  |  Triples (Summe Teil-DBs): {tri_total:,}")
+    tri_label = "Triples (Summe Teil-DBs)" if args.exakt else "Triples ca. (Summe Teil-DBs)"
+    print(f"Chunks committet: {chunks_total:,}  |  {tri_label}: {tri_total:,}")
     if letzte_akt:
         alter_min = (jetzt - letzte_akt) / 60
         warn = "  ⚠️ evtl. hängt/steht" if (alter_min > 20 and n_offen + n_arbeit > 0) else ""
