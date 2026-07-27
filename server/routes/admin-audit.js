@@ -13,9 +13,10 @@ export function createAdminAuditRouter({
 
   router.get('/admin/audit-log', adminLimiter, requireAuth, validate(adminAuditLogQuerySchema, 'query'), (req, res) => {
     try {
-      const { action, resource, status, q, from: fromRaw, to: toRaw } = req.query
+      // limit ist im Schema deklariert (10–500, Default 100) und kommt
+      // bereits als Zahl an.
+      const { action, resource, status, q, from: fromRaw, to: toRaw, limit } = req.query
 
-      const limit = Math.min(500, Math.max(10, parseInt(req.query.limit) || 100))
       const from = fromRaw ? new Date(fromRaw) : null
       const to = toRaw ? new Date(toRaw) : null
 

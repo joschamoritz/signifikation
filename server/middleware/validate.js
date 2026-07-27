@@ -13,13 +13,25 @@ export function validate(schema, source = 'body') {
       const message = result.error?.errors?.[0]?.message || 'Ungültige Eingabe'
       return res.status(400).json({ error: message })
     }
-    // req.body kann direkt ersetzt werden; req.query/params sind in Express 5
-    // getter-only → bestehendes Objekt in-place ERSETZEN (nicht mergen):
-    // erst alle vorhandenen Keys löschen, dann die validierten Daten zuweisen.
-    // Sonst blieben nicht-deklarierte Query-Params auf req[source] liegen.
     if (source === 'body') {
       req.body = result.data
+    } else if (source === 'query') {
+      // Express 5 definiert req.query als Getter, der die Query bei JEDEM
+      // Zugriff neu aus der URL parst (express/lib/request.js, kein Cache).
+      // Eine In-place-Mutation landet damit auf einem Wegwerf-Objekt – die
+      // Coercion (z.coerce) und die .default()-Werte kämen im Handler nie an.
+      // Deshalb den Getter durch eine eigene Data-Property ersetzen.
+      // Nebeneffekt (gewollt): nicht deklarierte Query-Parameter sind ab hier
+      // weg – der Handler sieht genau das, was das Schema erlaubt.
+      Object.defineProperty(req, 'query', {
+        value: result.data,
+        writable: true,
+        enumerable: true,
+        configurable: true,
+      })
     } else {
+      // req.params ist eine gewöhnliche Property – in-place ERSETZEN
+      // (erst leeren, dann zuweisen), damit der Router-Kontext erhalten bleibt.
       const target = req[source]
       for (const key of Object.keys(target)) delete target[key]
       Object.assign(target, result.data)
@@ -322,6 +334,11 @@ export const adminPushSendSchema = z.object({
 
 /** GET /admin/audit-log (query) */
 export const adminAuditLogQuerySchema = z.object({
+  // Seit die Query-Validierung ihr Ergebnis wirklich durchreicht, muss limit
+  // hier deklariert sein – sonst fiele der Parameter des Clients weg.
+  // Untergrenze bewusst 1 (nicht die frühere Handler-Klammer von 10): das
+  // Dashboard holt sich mit limit=5 die letzten fünf Vorgänge.
+  limit: z.coerce.number().int().min(1).max(500).optional().default(100),
   action: z.enum(['CREATE', 'UPDATE', 'DELETE']).optional(),
   resource: z.string().trim().max(80).optional(),
   status: z.enum(['SUCCESS', 'FAILED']).optional(),
