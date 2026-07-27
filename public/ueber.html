@@ -47,162 +47,7 @@
   }
   </script>
   <link rel="stylesheet" href="/static.css" />
-  <style>
-    .korpora-tabelle { width: 100%; border-collapse: collapse; font-size: 0.85rem; margin: 16px 0 12px; }
-    .korpora-tabelle th { font-family: 'DM Sans', system-ui, sans-serif; font-size: 9px; font-weight: 600; letter-spacing: 0.2em; text-transform: uppercase; color: #8a7f6e; border-bottom: 1.5px solid #d4c9b0; padding: 4px 8px 6px; text-align: left; }
-    .korpora-tabelle td { padding: 6px 8px; border-bottom: 0.5px solid #e8e2d8; color: #1a1a18; vertical-align: top; }
-    .korpora-tabelle tr:last-child td { border-bottom: none; }
-    .korpora-tabelle td:nth-child(3) { white-space: nowrap; }
-    @media (max-width: 600px) {
-      .korpora-tabelle th:nth-child(2),
-      .korpora-tabelle td:nth-child(2),
-      .korpora-tabelle th:nth-child(4),
-      .korpora-tabelle td:nth-child(4) { display: none; }
-    }
-    .korpora-tabelle a { color: #9b1c1c; }
-    .lizenz-tag { display: inline-block; font-size: 0.75em; font-family: 'DM Sans', system-ui, sans-serif; font-weight: 600; letter-spacing: 0.05em; color: #5a5248; background: #f0ede8; padding: 1px 5px; border-radius: 3px; }
-    .pipeline { display: flex; flex-direction: column; gap: 4px; margin-bottom: 16px; counter-reset: pipeline-counter; }
-    .pipeline-step { counter-increment: pipeline-counter; border: 0.5px solid #e8e2d8; border-radius: 4px; background: #faf9f7; }
-    .pipeline-step summary {
-      list-style: none;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      padding: 9px 12px;
-      cursor: pointer;
-      font-size: 0.93rem;
-      color: #1a1a18;
-      user-select: none;
-    }
-    .pipeline-step summary::-webkit-details-marker { display: none; }
-    .pipeline-step summary::before {
-      content: counter(pipeline-counter);
-      flex-shrink: 0;
-      font-family: 'DM Sans', system-ui, sans-serif;
-      font-size: 9px;
-      font-weight: 700;
-      color: #9b1c1c;
-      background: #f0ede8;
-      width: 16px;
-      height: 16px;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      line-height: 16px;
-      text-align: center;
-    }
-    .pipeline-step summary::after {
-      content: '▸';
-      margin-left: auto;
-      font-size: 0.7rem;
-      color: #8a7f6e;
-      transition: transform 0.15s;
-    }
-    .pipeline-step[open] summary::after { transform: rotate(90deg); }
-    .pipeline-step[open] { background: #f7f5f0; }
-    .pipeline-step[open] summary { border-bottom: 0.5px solid #e8e2d8; }
-    .pipeline-step-body { padding: 10px 12px 10px 38px; font-size: 0.9rem; color: #1a1a18; line-height: 1.6; }
-    .formula-block { font-family: 'Courier New', Courier, monospace; font-size: 0.88rem; background: #f0ede8; padding: 10px 14px; border-radius: 4px; border-left: 3px solid #d4c9b0; color: #1a1a18; margin: 12px 0; }
-    .korpus-chart-wrap { margin: 16px 0 20px; }
-    .korpus-bar { display: flex; height: 18px; border-radius: 3px; overflow: hidden; gap: 2px; }
-    .korpus-seg { height: 100%; transition: opacity 0.15s; }
-    .korpus-seg:hover { opacity: 0.75; }
-    .korpus-legend { display: grid; grid-template-columns: 1fr 1fr; gap: 7px 20px; margin: 12px 0 8px; }
-    .korpus-legend-item { display: flex; align-items: baseline; gap: 7px; font-size: 0.82rem; }
-    .korpus-dot { display: inline-block; width: 9px; height: 9px; border-radius: 2px; flex-shrink: 0; position: relative; top: 1px; }
-    .korpus-legend-label { flex: 1; color: #1a1a18; font-family: 'Gentium Plus', serif; }
-    .korpus-legend-val { font-family: 'DM Sans', system-ui, sans-serif; font-size: 0.75em; color: #8a7f6e; white-space: nowrap; }
-    .korpus-total { font-family: 'DM Sans', system-ui, sans-serif; font-size: 0.75rem; color: #8a7f6e; text-align: right; margin: 4px 0 0; }
-
-    /* ── Seiten-Layout mit Inhaltsverzeichnis ──────────────────── */
-    .page-layout {
-      display: flex;
-      align-items: flex-start;
-      justify-content: center;
-      gap: 48px;
-    }
-    .page-toc {
-      display: none;
-      width: 148px;
-      flex-shrink: 0;
-      position: sticky;
-      top: 32px;
-      align-self: flex-start;
-      padding-top: 24px;
-    }
-    @media (min-width: 940px) { .page-toc { display: block; } }
-    .toc-heading {
-      font-family: 'DM Sans', system-ui, sans-serif;
-      font-size: 9px;
-      font-weight: 600;
-      letter-spacing: 0.25em;
-      text-transform: uppercase;
-      color: #8a7f6e;
-      margin-bottom: 14px;
-    }
-    .toc-list {
-      list-style: none;
-      padding: 0;
-      margin: 0;
-      display: flex;
-      flex-direction: column;
-      gap: 0;
-    }
-    .toc-list li { padding-left: 0; }
-    .toc-list li::before { display: none; }
-    .toc-item a {
-      font-family: 'DM Sans', system-ui, sans-serif;
-      text-decoration: none;
-      display: block;
-      line-height: 1.3;
-      color: #8a7f6e;
-      transition: color 0.15s;
-    }
-    .toc-item a:hover { color: #9b1c1c; }
-    .toc-section a {
-      font-size: 9px;
-      font-weight: 700;
-      letter-spacing: 0.2em;
-      text-transform: uppercase;
-      color: #5a5248;
-      margin-top: 16px;
-      padding-bottom: 5px;
-      border-bottom: 0.5px solid #e8e2d8;
-    }
-    .toc-section:first-child a { margin-top: 0; }
-    .toc-sub a {
-      font-size: 0.78rem;
-      padding: 3px 0 3px 8px;
-      border-left: 2px solid transparent;
-    }
-    .toc-sub a:hover { border-left-color: #c9a84c; }
-
-    /* Wrapper innerhalb des Flex-Layouts ohne auto-margins */
-    .page-layout > .wrapper {
-      margin: 0;
-      flex: 1 1 auto;
-      min-width: 0;
-    }
-
-    /* Fußnoten-Links */
-    .footnote-ref {
-      color: #9b1c1c;
-      text-decoration: none;
-      font-size: 0.8em;
-      vertical-align: super;
-      line-height: 0;
-    }
-    .footnote-ref:hover { text-decoration: underline; }
-    .fn-back {
-      font-size: 0.78em;
-      color: #8a7f6e;
-      text-decoration: none;
-      margin-left: 5px;
-    }
-    .fn-back:hover { color: #9b1c1c; }
-    .footnotes ol li { margin-bottom: 8px; }
-  </style>
+  <link rel="stylesheet" href="/ueber.css" />
 </head>
 <body>
 <div class="page-layout">
@@ -292,8 +137,7 @@
     Abhängigkeitsrelationen, die mithilfe eines Relationen-Mapping durch die Software spaCy ausgewertet wurden. (s.&thinsp;<a href="#daten">Die Daten</a>).
     Fehler können bei der großen Anzahl an Daten natürlich passieren.
   </p>
-<br>
-  <p class="section-label" id="methodik">Die Methodik</p>
+  <p class="section-label section-break" id="methodik">Die Methodik</p>
 
   <h2 id="logdice">Der logDice-Wert</h2>
   <p>
@@ -365,12 +209,12 @@
     gruppiert, sodass Verschiebungen im Kollokationsverhalten über Jahrhunderte
     sichtbar werden. Die <strong>Wort-Zwilling</strong>-Runde vergleicht die
     logDice-Profile zweier ähnlicher Wörter direkt gegeneinander.
-  </p><br>
+  </p>
 
-  <p class="section-label" id="quellen">Die Quellen</p>
+  <p class="section-label section-break" id="quellen">Die Quellen</p>
 
   <h2 id="korpora">Verwendete Korpora</h2>
-  <p style="font-size:0.82rem; color:#8a7f6e; margin-bottom:4px;">
+  <p class="tabellen-hinweis">
     Korpora ohne Belegeindex fließen in das Wortprofil ein, werden aktuell aber nicht für
     den Textbeleg-Index verwendet (da historische Sprache für Spieler eher schwer zugänglich ist).
   </p>
@@ -399,7 +243,7 @@
         <th>Korpus</th>
         <th>Inhalt</th>
         <th>Lizenz</th>
-        <th style="text-align:right;">Tokens</th>
+        <th class="num">Tokens</th>
         <th>Quelle</th>
       </tr>
     </thead>
@@ -408,110 +252,110 @@
         <td>Wortschatz-Korpus Leipzig</td>
         <td>Zeitungsnachrichten (deu_news, deu_newscrawl)</td>
         <td><span class="lizenz-tag">CC BY</span></td>
-        <td style="text-align:right;">535 Mio.</td>
+        <td class="num">535 Mio.</td>
         <td><a href="https://wortschatz.uni-leipzig.de" target="_blank" rel="noopener">Universität Leipzig</a></td>
       </tr>
       <tr>
         <td>Bundestag-Protokolle (DIP)</td>
         <td>Plenarprotokolle des Deutschen Bundestags (XML + PDF)</td>
         <td><span class="lizenz-tag">Datenlizenz Deutschland BY 2.0</span></td>
-        <td style="text-align:right;">298 Mio.</td>
+        <td class="num">298 Mio.</td>
         <td><a href="https://dip.bundestag.de" target="_blank" rel="noopener">dip.bundestag.de</a></td>
       </tr>
       <tr>
         <td>German Political Speeches Corpus</td>
         <td>Politische Reden (Bundesregierung, 1984–2019)</td>
         <td><span class="lizenz-tag">CC BY-SA</span></td>
-        <td style="text-align:right;">11 Mio.</td>
+        <td class="num">11 Mio.</td>
         <td><a href="https://doi.org/10.5281/zenodo.3611246" target="_blank" rel="noopener">Zenodo 3611246</a></td>
       </tr>
       <tr>
         <td>Gesetze im Internet</td>
         <td>Bundesgesetze und -verordnungen</td>
         <td><span class="lizenz-tag">Gemeinfrei</span> § 5 UrhG</td>
-        <td style="text-align:right;">19 Mio.</td>
+        <td class="num">19 Mio.</td>
         <td><a href="https://www.gesetze-im-internet.de" target="_blank" rel="noopener">gesetze-im-internet.de</a></td>
       </tr>
       <tr>
         <td>Wikibooks auf Deutsch</td>
         <td>Freie Lehr- und Sachbücher</td>
         <td><span class="lizenz-tag">CC BY-SA 3.0</span></td>
-        <td style="text-align:right;">28 Mio.</td>
+        <td class="num">28 Mio.</td>
         <td><a href="https://doi.org/10.5281/zenodo.8081095" target="_blank" rel="noopener">Zenodo 8081095</a></td>
       </tr>
       <tr>
         <td>Wikivoyage auf Deutsch</td>
         <td>Freier Reiseführer</td>
         <td><span class="lizenz-tag">CC BY-SA 3.0</span></td>
-        <td style="text-align:right;">17 Mio.</td>
+        <td class="num">17 Mio.</td>
         <td><a href="https://doi.org/10.5281/zenodo.7568517" target="_blank" rel="noopener">Zenodo 7568517</a></td>
       </tr>
       <tr>
         <td>DiBiLit</td>
         <td>Digitale Bibliothek Literatur (Belletristik, 19.–20. Jh.)</td>
         <td><span class="lizenz-tag">CC BY-SA 4.0</span></td>
-        <td style="text-align:right;">93 Mio.</td>
+        <td class="num">93 Mio.</td>
         <td><a href="https://doi.org/10.5281/zenodo.5786725" target="_blank" rel="noopener">Zenodo 5786725</a></td>
       </tr>
       <tr>
         <td>Der Neue Pitaval</td>
         <td>Kriminalgeschichten (1842–1890)</td>
         <td><span class="lizenz-tag">CC BY-SA 4.0</span></td>
-        <td style="text-align:right;">6 Mio.</td>
+        <td class="num">6 Mio.</td>
         <td><a href="https://doi.org/10.5281/zenodo.6682897" target="_blank" rel="noopener">Zenodo 6682897</a></td>
       </tr>
       <tr>
         <td>Reichstagsprotokolle</td>
         <td>Stenographische Berichte des Deutschen Reichstags (1867–1942) · nur Wortprofil</td>
         <td><span class="lizenz-tag">CC BY-SA 4.0</span></td>
-        <td style="text-align:right;">256 Mio.</td>
+        <td class="num">256 Mio.</td>
         <td><a href="https://huggingface.co/datasets/coral-nlp/german-commons" target="_blank" rel="noopener">German Commons</a></td>
       </tr>
       <tr>
         <td>DiBiPhil</td>
         <td>Digitale Bibliothek Philosophie · nur Wortprofil</td>
         <td><span class="lizenz-tag">CC BY-SA 4.0</span></td>
-        <td style="text-align:right;">13 Mio.</td>
+        <td class="num">13 Mio.</td>
         <td><a href="https://huggingface.co/datasets/coral-nlp/german-commons" target="_blank" rel="noopener">German Commons</a></td>
       </tr>
       <tr>
         <td>Deutsches Textarchiv – Kernkorpus &amp; Erweiterungen</td>
         <td>Belletristische, wissenschaftliche und Gebrauchstexte (17.–20. Jh.) · nur Wortprofil</td>
         <td><span class="lizenz-tag">CC BY-SA 4.0</span></td>
-        <td style="text-align:right;">320 Mio.</td>
+        <td class="num">320 Mio.</td>
         <td><a href="https://www.deutschestextarchiv.de" target="_blank" rel="noopener">deutschestextarchiv.de</a></td>
       </tr>
       <tr>
         <td>DTA Sondersammlungen</td>
         <td>Edition Humboldt Digital, Jean-Paul-Briefe, Dinglers Polytechnisches Journal, Patiententexte, Novellenschatz, Soldatenbriefe, Stimm-los · nur Wortprofil</td>
         <td><span class="lizenz-tag">CC BY-SA 4.0</span></td>
-        <td style="text-align:right;">81 Mio.</td>
+        <td class="num">81 Mio.</td>
         <td><a href="https://github.com/deutschestextarchiv" target="_blank" rel="noopener">DTA GitHub</a></td>
       </tr>
       <tr>
         <td>GEI-Digital</td>
         <td>Historische Schulbücher (17.–20. Jh.) · nur Wortprofil</td>
         <td><span class="lizenz-tag">Public Domain</span></td>
-        <td style="text-align:right;">506 Mio.</td>
+        <td class="num">506 Mio.</td>
         <td><a href="https://doi.org/10.5281/zenodo.15729290" target="_blank" rel="noopener">Zenodo 15729290</a></td>
       </tr>
       <tr>
         <td>Referenzkorpus Frühneuhochdeutsch</td>
         <td>Frühneuhochdeutsche Texte (1350–1650) · nur Wortprofil</td>
         <td><span class="lizenz-tag">CC BY-SA 4.0</span></td>
-        <td style="text-align:right;">3 Mio.</td>
+        <td class="num">3 Mio.</td>
         <td><a href="https://www.linguistics.ruhr-uni-bochum.de/ref/" target="_blank" rel="noopener">Ruhr-Universität Bochum</a></td>
       </tr>
       <tr>
         <td>Referenzkorpus Mittelhochdeutsch</td>
         <td>Mittelhochdeutsche Texte (1050–1350) · nur Wortprofil</td>
         <td><span class="lizenz-tag">CC BY-SA 4.0</span></td>
-        <td style="text-align:right;">3 Mio.</td>
+        <td class="num">3 Mio.</td>
         <td><a href="https://www.linguistics.ruhr-uni-bochum.de/rem/" target="_blank" rel="noopener">Ruhr-Universität Bochum</a></td>
       </tr>
     </tbody>
   </table>
-  <p style="font-size:0.78rem; color:#8a7f6e; margin-top:6px;">
+  <p class="tabellen-fussnote">
     Tokens gezählt als Leerzeichen-getrennte Wortformen (inkl. Interpunktion).
   </p>
 
