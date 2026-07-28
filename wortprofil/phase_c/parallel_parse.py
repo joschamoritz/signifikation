@@ -140,6 +140,12 @@ def main():
     ap.add_argument("--limit", type=int, default=None, help="Max. Chunks pro Shard (Test)")
     ap.add_argument("--no-dwdsmor", action="store_true")
     ap.add_argument("--workdir", default=None)
+    ap.add_argument("--parts-dir", default=None,
+                    help="Verzeichnis fuer die Teil-DBs, getrennt vom workdir. "
+                         "WICHTIG fuer grosse Laeufe: die Teil-DBs bekommen bei jedem "
+                         "Checkpoint Random-I/O in wachsende Indizes -> gehoeren auf SSD. "
+                         "Die Shards (sequenzielles Lesen) koennen auf einer HDD bleiben. "
+                         "Standard: <workdir>/parts")
     ap.add_argument("--keep-work", action="store_true")
     ap.add_argument("--resume", action="store_true",
                     help="Vorhandene Shards + Teil-DBs im workdir wiederverwenden: "
@@ -157,9 +163,11 @@ def main():
     out_db.parent.mkdir(parents=True, exist_ok=True)
     workdir = Path(args.workdir) if args.workdir else (out_db.parent / f"_work_{out_db.stem}")
     shard_dir = workdir / "shards"
-    part_dir = workdir / "parts"
+    part_dir = Path(args.parts_dir) if args.parts_dir else (workdir / "parts")
     for d in (shard_dir, part_dir):
         d.mkdir(parents=True, exist_ok=True)
+    if args.parts_dir:
+        print(f"Teil-DBs: {part_dir}")
 
     # Dateiliste
     if args.dateien:

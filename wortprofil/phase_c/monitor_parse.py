@@ -87,13 +87,18 @@ def main():
 
     ap = argparse.ArgumentParser()
     ap.add_argument("--workdir", required=True)
+    ap.add_argument("--parts-dir", default=None,
+                    help="Verzeichnis der Teil-DBs, falls per --parts-dir vom workdir "
+                         "getrennt (Standard: <workdir>/parts)")
     ap.add_argument("--exakt", action="store_true",
                     help="Exakte Triple-Zahlen per COUNT(*) statt MAX(rowid)-Näherung. "
                          "Voller Tabellenscan je Teil-DB — bei laufendem Parse langsam, "
                          "nur für den Endstand sinnvoll.")
     args = ap.parse_args()
     workdir = Path(args.workdir)
-    part_dir = workdir / "parts"
+    part_dir = Path(args.parts_dir) if args.parts_dir else (workdir / "parts")
+    if not part_dir.exists() and (workdir / "parts").exists():
+        part_dir = workdir / "parts"
     meta_pfad = workdir / "_shard_meta.json"
     if not meta_pfad.exists():
         print(f"Kein _shard_meta.json in {workdir} — Shard-Phase noch nicht durch oder falscher Pfad.")
