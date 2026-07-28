@@ -21,6 +21,7 @@ import json
 import sqlite3
 import sys
 import time
+from datetime import datetime, timedelta
 from pathlib import Path
 
 
@@ -53,6 +54,30 @@ def shard_status(part_db: Path, shard_basis: str, exakt: bool = False):
         return None, False, 0
 
 
+# Gemessene split-Tokens je Chunk (Stichprobe aus den echten Shards, Phase D).
+# Fuer Korpora ohne Messwert der gewichtete Schnitt.
+TOK_PRO_CHUNK = {
+    "gesetze": 119, "pol_reden": 470, "bundestag_xml": 390,
+    "german_commons": 465, "wikipedia": 397, "leipzig": 474,
+}
+TOK_PRO_CHUNK_DEFAULT = 413
+
+
+def lade_korpus_tokens(root: Path) -> dict:
+    """Voll-Tokenzahlen je Korpus-Datei aus den build_subset-Stats (falls vorhanden).
+    Basis fuer die Token-basierte Fortschrittsanzeige — Shards unterscheiden sich um
+    Faktor ~50 in der Groesse, eine Shard-Prozentzahl waere irrefuehrend."""
+    stats = root / "02_parsed_v2_subset" / "_subset_stats.json"
+    if not stats.exists():
+        return {}
+    try:
+        d = json.loads(stats.read_text(encoding="utf-8"))
+        return {name[:-6]: info["voll_tokens"]
+                for name, info in d.get("pro_datei", {}).items()}
+    except (json.JSONDecodeError, KeyError):
+        return {}
+
+
 def main():
     if hasattr(sys.stdout, "reconfigure"):
         try:
@@ -78,8 +103,16 @@ def main():
     jobs = meta["jobs"]
     total_tokens = meta.get("total_tokens", 0)
 
+    # Token-Basis fuer die Fortschrittsanzeige: je Korpus die Voll-Tokenzahl,
+    # gleichmaessig auf seine Shards verteilt.
+    korpus_tokens = lade_korpus_tokens(Path(__file__).parent.parent)
+    shards_je_korpus: dict = {}
+    for j in jobs:
+        shards_je_korpus[j.rsplit("__", 1)[0]] = shards_je_korpus.get(j.rsplit("__", 1)[0], 0) + 1
+
     n_done = n_arbeit = n_offen = 0
     chunks_total = tri_total = 0
+    tokens_fertig = 0.0
     letzte_akt = 0.0
     zeilen = []
     for job in jobs:
@@ -87,6 +120,16 @@ def main():
         offset, done, n_tri = shard_status(pdb, job, exakt=args.exakt)
         chunks_total += (offset or 0)
         tri_total += n_tri
+
+        korpus = job.rsplit("__", 1)[0]
+        shard_tok = korpus_tokens.get(korpus, 0) / max(1, shards_je_korpus.get(korpus, 1))
+        if done:
+            tokens_fertig += shard_tok
+        elif offset:
+            # Teil-Fortschritt ueber die gemessenen Tokens/Chunk des Korpus schaetzen,
+            # nach oben auf die Shard-Groesse begrenzt.
+            tpc = TOK_PRO_CHUNK.get(korpus, TOK_PRO_CHUNK_DEFAULT)
+            tokens_fertig += min(offset * tpc, shard_tok) if shard_tok else offset * tpc
         if pdb.exists():
             letzte_akt = max(letzte_akt, pdb.stat().st_mtime)
         if done:
@@ -110,6 +153,12 @@ def main():
         warn = "  ⚠️ evtl. hängt/steht" if (alter_min > 20 and n_offen + n_arbeit > 0) else ""
         print(f"Letzte DB-Aktivität: vor {alter_min:,.1f} min{warn}")
 
+    # Fortschritt in TOKENS (nicht in Shards — die unterscheiden sich um Faktor ~50)
+    if total_tokens and tokens_fertig:
+        pct = tokens_fertig / total_tokens * 100
+        print(f"Fortschritt: {tokens_fertig/1e6:,.0f} von {total_tokens/1e6:,.0f} Mio. Tokens "
+              f"= {pct:,.1f} %")
+
     # Durchsatz + ETA aus dem letzten Snapshot
     snap_pfad = workdir / "_monitor_last.json"
     if snap_pfad.exists():
@@ -117,20 +166,20 @@ def main():
             last = json.loads(snap_pfad.read_text(encoding="utf-8"))
             dt = jetzt - last["t"]
             d_chunks = chunks_total - last["chunks"]
+            d_tokens = tokens_fertig - last.get("tokens", 0)
             if dt > 0 and d_chunks > 0:
-                rate = d_chunks / dt
                 print(f"Seit letztem Check ({dt/3600:,.1f} h): +{d_chunks:,} Chunks "
-                      f"→ {rate*3600:,.0f} Chunks/h")
-                # grobe ETA: verbleibende Arbeit ~ (offene+laufende Shards / fertige) proportional
-                if n_done > 0:
-                    rest_frac = (n_arbeit + n_offen) / len(jobs)
-                    getan_frac = n_done / len(jobs)
-                    if getan_frac > 0:
-                        # ETA über bisher committete Chunks vs. Rate (nur grobe Orientierung)
-                        print(f"Fortschritt: {getan_frac*100:,.1f} % der Shards fertig")
+                      f"→ {d_chunks/dt*3600:,.0f} Chunks/h")
+            if dt > 0 and d_tokens > 0 and total_tokens:
+                tok_s = d_tokens / dt
+                rest_h = (total_tokens - tokens_fertig) / tok_s / 3600
+                fertig_am = datetime.now() + timedelta(hours=rest_h)
+                print(f"Durchsatz: {tok_s:,.0f} Tok/s  →  ETA noch {rest_h:,.1f} h "
+                      f"({rest_h/24:,.1f} Tage), fertig ca. {fertig_am:%d.%m. %H:%M}")
         except (json.JSONDecodeError, KeyError):
             pass
-    snap_pfad.write_text(json.dumps({"t": jetzt, "chunks": chunks_total}), encoding="utf-8")
+    snap_pfad.write_text(json.dumps({"t": jetzt, "chunks": chunks_total,
+                                     "tokens": tokens_fertig}), encoding="utf-8")
 
     # Einzel-Shards (nur nicht-fertige, damit die Liste kurz bleibt)
     offen_liste = [(j, z, n) for j, z, n in zeilen if z != "OK"]
