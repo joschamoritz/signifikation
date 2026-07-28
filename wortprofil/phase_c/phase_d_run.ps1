@@ -17,11 +17,15 @@
 #   .\phase_c\phase_d_run.ps1 -SsdDb "C:\wortprofil_v2\triples_v2.db"
 
 param(
-    [string]$SsdDb   = "C:\wortprofil_v2\triples_v2.db",
-    [string]$WorkDir = "D:\Schule\Kollokade\wortprofil\_work_triples_v2",
-    [int]$Pool       = 4,
-    [int]$Shards     = 6,
-    [int]$MaxTries   = 200
+    [string]$SsdDb    = "C:\wortprofil_v2\triples_v2.db",
+    [string]$WorkDir  = "D:\Schule\Kollokade\wortprofil\_work_triples_v2",
+    # Teil-DBs auf die SSD: sie bekommen bei jedem Checkpoint Random-I/O in
+    # wachsende Indizes. Auf der HDD saettigte das die Platte (Disk-Time 125 %)
+    # und halbierte den Durchsatz, waehrend die CPU zu 80 % idle war.
+    [string]$PartsDir = "C:\wortprofil_v2\parts",
+    [int]$Pool        = 4,
+    [int]$Shards      = 6,
+    [int]$MaxTries    = 200
 )
 
 $ErrorActionPreference = "Continue"
@@ -33,6 +37,7 @@ New-Item -ItemType Directory -Force -Path "phase_c\logs" | Out-Null
 Write-Host "Phase D Wrapper gestartet."
 Write-Host "  Ziel-DB : $SsdDb"
 Write-Host "  WorkDir : $WorkDir"
+Write-Host "  PartsDir: $PartsDir"
 Write-Host "  Pool    : $Pool   Shards: $Shards"
 Write-Host "  Log     : $log"
 
@@ -42,7 +47,7 @@ for ($i = 1; $i -le $MaxTries; $i++) {
     Write-Host "======== Versuch $i / $MaxTries - $stamp ========"
     $t0 = Get-Date
 
-    & $py -u "phase_c\parallel_parse.py" --input-dir "02_parsed_v2" --out-db $SsdDb --workdir $WorkDir --pool $Pool --shards $Shards --resume 2>&1 | Tee-Object -FilePath $log -Append
+    & $py -u "phase_c\parallel_parse.py" --input-dir "02_parsed_v2" --out-db $SsdDb --workdir $WorkDir --parts-dir $PartsDir --pool $Pool --shards $Shards --resume 2>&1 | Tee-Object -FilePath $log -Append
 
     $rc = $LASTEXITCODE
     $dauer = ((Get-Date) - $t0).TotalSeconds
