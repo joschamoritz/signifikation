@@ -27,10 +27,20 @@ Der Trick: **Arbeitsverzeichnis auf die HDD, nur die Ziel-DB auf die SSD.**
 | Was | Wohin | Warum |
 |---|---|---|
 | `--input-dir 02_parsed_v2` | HDD (liegt schon dort) | wird nur **sequenziell** gelesen → HDD ok |
-| `--workdir` (shards ~24 GB + parts ~35 GB) | **HDD** | Parse ist CPU-gebunden, Writes gebündelt; Shards/Parts nur sequenziell gelesen → HDD ok |
+| `--workdir` (shards ~24 GB) | **HDD** | Shards werden nur sequenziell gelesen → HDD ok |
+| `--parts-dir` (Teil-DBs ~35 GB) | **SSD** | ⚠️ **muss SSD** — siehe Warnung unten |
 | `--out-db triples_v2.db` (~35 GB) | **SSD** | wird in Phase E per `GROUP BY` (random-I/O) gelesen → **muss SSD** |
 
-Damit brauchst du auf der SSD nur ~35–40 GB (nicht ~70). Das HDD-Problem aus Phase C betraf **nur** den random-I/O-`GROUP BY` von `build_wortprofil` — das sequenzielle Parse-Lesen/Schreiben ist auf der HDD unkritisch.
+> ⚠️ **Teil-DBs gehören zwingend auf die SSD** (Lehre aus dem echten Lauf, 2026-07-28).
+> Ursprünglich lagen sie mit im workdir auf der HDD. Nach ~6 h halbierte sich der
+> Durchsatz (9.200 → 4.800 Tok/s): Jeder Checkpoint schreibt **Random-I/O in wachsende
+> Indizes**; solange die DBs klein sind, verdeckt der Page-Cache das, mit jedem GB wird
+> es langsamer. Messwerte damals: CPU-Takt am Maximum, CPU-Last nur 12–20 %, aber HDD
+> bei **125 % Disk-Time**, WAL-Dateien 274–347 MB. Nach dem Umzug auf SSD: HDD 0 %,
+> **8.540 Tok/s (+78 %)**. Der Umzug im laufenden Betrieb ist gefahrlos möglich
+> (Prozesse stoppen, `parts/*` inkl. `-wal`/`-shm` verschieben, mit `--resume` weiter).
+
+SSD-Bedarf damit ~70–75 GB (Teil-DBs + Ziel-DB); die Teil-DBs werden nach dem Merge frei.
 
 > `<SSD>` unten = ein Pfad auf deiner SSD mit ~40 GB frei (z. B. `C:\wortprofil_v2` oder eine andere SSD-Partition).
 
@@ -40,7 +50,7 @@ Damit brauchst du auf der SSD nur ~35–40 GB (nicht ~70). Das HDD-Problem aus P
 
 ```powershell
 cd D:\Schule\Kollokade\wortprofil
-.\phase_c\phase_d_run.ps1 -SsdDb "<SSD>\triples_v2.db"
+.\phase_c\phase_d_run.ps1 -SsdDb "<SSD>\triples_v2.db" -PartsDir "<SSD>\parts"
 ```
 
 Der Wrapper startet `parallel_parse.py` und setzt bei Absturz selbstständig mit `--resume` fort (60 s Pause, bis zu 200×). Bricht nur ab, wenn 3 Läufe hintereinander in < 120 s scheitern (= echter Fehler, kein normaler Absturz). Parameter: `-WorkDir` (HDD, Standard gesetzt), `-Pool 4`, `-Shards 6`.
@@ -62,10 +72,12 @@ Der Wrapper startet `parallel_parse.py` und setzt bei Absturz selbstständig mit
 ## 4. Fortschritt prüfen (täglicher 10-Sekunden-Blick)
 
 ```powershell
-.\wortprofil-env\Scripts\python.exe phase_c\monitor_parse.py --workdir "D:\Schule\Kollokade\wortprofil\_work_triples_v2"
+.\wortprofil-env\Scripts\python.exe phase_c\monitor_parse.py --workdir "D:\Schule\Kollokade\wortprofil\_work_triples_v2" --parts-dir "C:\wortprofil_v2\parts"
 ```
 
-Zeigt: fertige / laufende / offene Shards, committete Chunks, Triple-Summe, letzte DB-Aktivität, und (ab dem 2. Aufruf) den Durchsatz seit dem letzten Check. „⚠️ evtl. hängt/steht" erscheint, wenn > 20 min keine DB-Aktivität bei offenen Shards.
+Zeigt: fertige / laufende / offene Shards, **Token-Fortschritt in Prozent**, Durchsatz in Tok/s, Rest-Laufzeit und voraussichtlichen Fertigstellungszeitpunkt (ab dem 2. Aufruf). „⚠️ evtl. hängt/steht" erscheint, wenn > 20 min keine DB-Aktivität bei offenen Shards.
+
+Sparsam aufrufen (1–2× am Tag): Jeder Aufruf liest alle Teil-DBs und konkurriert mit den Workern um I/O.
 
 ## 5. Bei Absturz (Strom, Windows-Update, RAM-Spike)
 
