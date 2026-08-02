@@ -90,6 +90,8 @@ def main():
     ap.add_argument("--parts-dir", default=None,
                     help="Verzeichnis der Teil-DBs, falls per --parts-dir vom workdir "
                          "getrennt (Standard: <workdir>/parts)")
+    ap.add_argument("--done-parts-dir", default=None,
+                    help="Zusaetzliches Verzeichnis mit ausgelagerten FERTIGEN Teil-DBs")
     ap.add_argument("--exakt", action="store_true",
                     help="Exakte Triple-Zahlen per COUNT(*) statt MAX(rowid)-Näherung. "
                          "Voller Tabellenscan je Teil-DB — bei laufendem Parse langsam, "
@@ -99,6 +101,7 @@ def main():
     part_dir = Path(args.parts_dir) if args.parts_dir else (workdir / "parts")
     if not part_dir.exists() and (workdir / "parts").exists():
         part_dir = workdir / "parts"
+    done_dir = Path(args.done_parts_dir) if args.done_parts_dir else None
     meta_pfad = workdir / "_shard_meta.json"
     if not meta_pfad.exists():
         print(f"Kein _shard_meta.json in {workdir} — Shard-Phase noch nicht durch oder falscher Pfad.")
@@ -122,6 +125,8 @@ def main():
     zeilen = []
     for job in jobs:
         pdb = part_dir / f"{job}.db"
+        if not pdb.exists() and done_dir is not None and (done_dir / f"{job}.db").exists():
+            pdb = done_dir / f"{job}.db"
         offset, done, n_tri = shard_status(pdb, job, exakt=args.exakt)
         chunks_total += (offset or 0)
         tri_total += n_tri
@@ -135,8 +140,12 @@ def main():
             # nach oben auf die Shard-Groesse begrenzt.
             tpc = TOK_PRO_CHUNK.get(korpus, TOK_PRO_CHUNK_DEFAULT)
             tokens_fertig += min(offset * tpc, shard_tok) if shard_tok else offset * tpc
-        if pdb.exists():
-            letzte_akt = max(letzte_akt, pdb.stat().st_mtime)
+        # Aktivitaet auch am -wal messen: SQLite schreibt im WAL-Modus zuerst dorthin,
+        # die .db-Datei bleibt zwischen Checkpoints unveraendert. Ohne das meldet der
+        # Monitor faelschlich "keine Aktivitaet", waehrend die Worker voll schreiben.
+        for kandidat in (pdb, Path(str(pdb) + "-wal")):
+            if kandidat.exists():
+                letzte_akt = max(letzte_akt, kandidat.stat().st_mtime)
         if done:
             n_done += 1
             zustand = "OK"

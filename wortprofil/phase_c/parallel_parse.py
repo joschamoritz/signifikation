@@ -107,6 +107,17 @@ def merge_parts(part_dbs: list, out_db: Path):
     return n, total
 
 
+def finde_part_db(job: str, part_dir: Path, done_dir: "Path | None") -> Path:
+    """Pfad der Teil-DB eines Shards: bevorzugt das aktive parts-Verzeichnis,
+    sonst das ausgelagerte done-Verzeichnis (fertige Shards, z. B. auf HDD
+    verschoben um SSD-Platz freizugeben)."""
+    aktiv = part_dir / f"{job}.db"
+    if aktiv.exists() or done_dir is None:
+        return aktiv
+    ausgelagert = done_dir / f"{job}.db"
+    return ausgelagert if ausgelagert.exists() else aktiv
+
+
 def shard_done(part_db: Path, shard_basis: str) -> bool:
     """True, wenn die Teil-DB existiert und parse_deps_v2 den Shard als vollständig
     (parse_progress.done=1) markiert hat → beim Resume überspringen."""
@@ -146,6 +157,12 @@ def main():
                          "Checkpoint Random-I/O in wachsende Indizes -> gehoeren auf SSD. "
                          "Die Shards (sequenzielles Lesen) koennen auf einer HDD bleiben. "
                          "Standard: <workdir>/parts")
+    ap.add_argument("--done-parts-dir", default=None,
+                    help="Zusaetzliches, nur lesend genutztes Verzeichnis mit bereits "
+                         "FERTIGEN Teil-DBs. Zweck: fertige Shards von der SSD auf eine "
+                         "grosse HDD auslagern (sie werden nur noch sequenziell fuer den "
+                         "Merge gelesen), waehrend die aktiven Shards schnell auf der SSD "
+                         "weiterlaufen. Wird bei der done-Erkennung UND beim Merge beruecksichtigt.")
     ap.add_argument("--keep-work", action="store_true")
     ap.add_argument("--resume", action="store_true",
                     help="Vorhandene Shards + Teil-DBs im workdir wiederverwenden: "
@@ -211,7 +228,11 @@ def main():
 
     # ── Parse-Phase (Prozess-Pool) ───────────────────────────────────────────
     t_parse0 = time.perf_counter()
-    part_dbs = [part_dir / f"{j}.db" for j in jobs]
+    done_dir = Path(args.done_parts_dir) if args.done_parts_dir else None
+    if done_dir:
+        print(f"Ausgelagerte fertige Teil-DBs: {done_dir}")
+    # Fuer den Merge: je Shard der tatsaechliche Ort (aktiv oder ausgelagert).
+    part_dbs = [finde_part_db(j, part_dir, done_dir) for j in jobs]
 
     def cmd_for(job):
         c = [PY, "-u", str(PARSE_SCRIPT), "--only", job,
@@ -229,7 +250,7 @@ def main():
     laufend = {}   # Popen -> job
     # Resume: bereits vollständige Shards (parse_progress.done=1) überspringen.
     if args.resume:
-        offen = [j for j in jobs if not shard_done(part_dir / f"{j}.db", j)]
+        offen = [j for j in jobs if not shard_done(finde_part_db(j, part_dir, done_dir), j)]
         n_skip = len(jobs) - len(offen)
         print(f"[RESUME] {n_skip} Shards bereits fertig, {len(offen)} offen (davon einige "
               f"ggf. mit Teil-Fortschritt).")
