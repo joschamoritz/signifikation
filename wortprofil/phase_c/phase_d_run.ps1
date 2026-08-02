@@ -23,6 +23,9 @@ param(
     # wachsende Indizes. Auf der HDD saettigte das die Platte (Disk-Time 125 %)
     # und halbierte den Durchsatz, waehrend die CPU zu 80 % idle war.
     [string]$PartsDir = "C:\wortprofil_v2\parts",
+    # Fertige Teil-DBs koennen auf eine grosse HDD ausgelagert werden (nur noch
+    # sequenzielles Lesen beim Merge) - haelt die SSD frei fuer die aktiven Shards.
+    [string]$DonePartsDir = "D:\Schule\Kollokade\wortprofil\_work_triples_v2\parts_done",
     [int]$Pool        = 4,
     [int]$Shards      = 6,
     [int]$MaxTries    = 200
@@ -47,7 +50,7 @@ for ($i = 1; $i -le $MaxTries; $i++) {
     Write-Host "======== Versuch $i / $MaxTries - $stamp ========"
     $t0 = Get-Date
 
-    & $py -u "phase_c\parallel_parse.py" --input-dir "02_parsed_v2" --out-db $SsdDb --workdir $WorkDir --parts-dir $PartsDir --pool $Pool --shards $Shards --resume 2>&1 | Tee-Object -FilePath $log -Append
+    & $py -u "phase_c\parallel_parse.py" --input-dir "02_parsed_v2" --out-db $SsdDb --workdir $WorkDir --parts-dir $PartsDir --done-parts-dir $DonePartsDir --pool $Pool --shards $Shards --resume 2>&1 | Tee-Object -FilePath $log -Append
 
     $rc = $LASTEXITCODE
     $dauer = ((Get-Date) - $t0).TotalSeconds
