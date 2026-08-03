@@ -81,9 +81,16 @@ def shard_datei(pfad: Path, shards: int, out_dir: Path, basisname: str):
 
 
 def merge_parts(part_dbs: list, out_db: Path):
-    """Alle Teil-triples-DBs in out_db mergen (UPSERT count += count)."""
+    """Alle Teil-triples-DBs in out_db mergen (UPSERT count += count).
+
+    Die Ziel-DB wird als WITHOUT ROWID angelegt (siehe parse_deps_v2.init_db):
+    44 % kleiner und 2,8× schneller geschrieben — bei dieser Zeilenzahl der
+    Unterschied zwischen „passt auf die SSD" und „passt nicht"."""
     conn = sqlite3.connect(out_db)
-    P.init_db(conn)
+    P.init_db(conn, without_rowid=True)
+    # Grosser Cache + RAM-Sortierung: der Merge schreibt verstreut in den PK-Baum.
+    conn.execute("PRAGMA cache_size=-2097152")   # 2 GB
+    conn.execute("PRAGMA temp_store=MEMORY")
     for i, part in enumerate(part_dbs):
         if not Path(part).exists():
             continue

@@ -302,10 +302,25 @@ def extrahiere_triples(doc) -> list[tuple]:
 
 # ── Datenbank ───────────────────────────────────────────────────────────────
 
-def init_db(conn: sqlite3.Connection):
+def init_db(conn: sqlite3.Connection, without_rowid: bool = False):
+    """Schema anlegen. `without_rowid=True` für die gemergte Gesamt-DB (Phase D):
+
+    Bei einer normalen (rowid-)Tabelle legt SQLite die acht PK-Spalten ZWEIMAL ab —
+    in der Datentabelle und im PK-Index. Bei Hunderten Millionen Zeilen ist das der
+    dominierende Kostenfaktor. Gemessen an einer echten Teil-DB (3,16 Mio. Zeilen):
+    rowid 135 B/Zeile, WITHOUT ROWID 76 B/Zeile → **44 % kleiner und 2,8× schneller
+    geschrieben**. Für die Voll-DB bedeutet das ~30 GB statt ~70 GB (passte sonst
+    nicht auf die SSD) und zusätzlich Phase-E-Vorteile: die Zeilen liegen physisch
+    in PK-Reihenfolge, was der GROUP-BY-Reihenfolge von build_wortprofil_v2
+    entspricht → weniger externes Sortieren.
+
+    Die Teil-DBs der Worker bleiben bewusst rowid-basiert (Standard): dort wird
+    zeilenweise per UPSERT geschrieben, und `MAX(rowid)` dient dem Monitor als
+    billige Fortschrittsnäherung.
+    """
     conn.execute("PRAGMA journal_mode=WAL")
     conn.execute("PRAGMA synchronous=NORMAL")
-    conn.execute("""
+    conn.execute(f"""
         CREATE TABLE IF NOT EXISTS triples (
             head_lemma  TEXT    NOT NULL,
             head_pos    TEXT    NOT NULL,
@@ -319,7 +334,7 @@ def init_db(conn: sqlite3.Connection):
             dep_case    TEXT    NOT NULL DEFAULT '',
             dep_number  TEXT    NOT NULL DEFAULT '',
             PRIMARY KEY (head_lemma, head_pos, relation, dep_lemma, dep_pos, prep, quelle, jahr)
-        )
+        ){' WITHOUT ROWID' if without_rowid else ''}
     """)
     conn.execute("""
         CREATE TABLE IF NOT EXISTS parse_progress (
