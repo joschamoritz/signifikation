@@ -111,6 +111,86 @@ def test_jahr_aus_dateiname(name, jahr):
     assert E.jahr_aus_dateiname(name) == jahr
 
 
+# Regression: die alte Fassung ohne Ziffern-Grenzen las Ziffernfolgen aus
+# Dokument-IDs als Jahreszahl. In Phase E (2026-08-03) an 3.251 Dokumenten
+# nachgewiesen; die Beispiele hier sind echte IDs aus 02_parsed_v2.
+@pytest.mark.parametrize("name", [
+    "H0021024",        # humboldt-digital → las 1024
+    "H0002928",
+    "tab010539",       # dta-dingler → las 1053
+    "tab001537",
+    "510287",          # dta_erweiterungen → las 1028
+    "510575",          # → las 1057
+    "pj001",
+    "STRE201450436",   # Justiz-Aktenzeichen
+])
+def test_jahr_aus_dateiname_keine_id_ziffern(name):
+    """Eine Ziffernfolge INNERHALB einer längeren Zahl ist kein Jahr."""
+    assert E.jahr_aus_dateiname(name) is None
+
+
+@pytest.mark.parametrize("name,jahr", [
+    # freistehende Jahre bleiben erkennbar, auch neben langen Zahlen
+    ("H0021024_1827", 1827),
+    ("tab010539_1848", 1848),
+    ("bd10_1846_1_titel", 1846),
+])
+def test_jahr_aus_dateiname_neben_id(name, jahr):
+    assert E.jahr_aus_dateiname(name) == jahr
+
+
+@pytest.mark.parametrize("jahr,quelle,erwartet", [
+    # innerhalb des Bereichs → unverändert
+    (1827, "humboldt-digital", 1827),
+    (1848, "dta-dingler", 1848),
+    (1699, "dta_kern", 1699),
+    (1644, "ref_fnh", 1644),
+    (2024, "deu_news", 2024),
+    # außerhalb → verworfen, NICHT korrigiert
+    (1024, "humboldt-digital", None),
+    (1053, "dta-dingler", None),
+    (1028, "dta_erweiterungen", None),
+    (1350, "dta_kern", None),        # vor dem Korpus-Zeitraum
+    (2030, "deu_news", None),        # Zukunft
+    (1800, "deu_news", None),        # Nachrichtenkorpus beginnt 1990
+    # unbekannte Quelle → großzügiger Default, fängt aber < 1400 ab
+    (1024, "irgendwas", None),
+    (1500, "irgendwas", 1500),
+    # kein Jahr bleibt kein Jahr
+    (None, "dta_kern", None),
+    (0, "dta_kern", None),
+])
+def test_jahr_plausibel(jahr, quelle, erwartet):
+    assert E.jahr_plausibel(jahr, quelle) == erwartet
+
+
+def test_pruefe_jahre_verwirft_und_bereinigt_ref():
+    """Der zentrale Wächter muss das Jahr AUCH aus ref entfernen — sonst stünde
+    das erfundene Jahr weiter in der Beleg-Zitation der App."""
+    eintraege = [
+        {"quelle": "dta_erweiterungen", "jahr": 1028,
+         "ref": "Milichius: Dominus abstulit. 1028"},
+        {"quelle": "humboldt-digital", "jahr": 1024,
+         "ref": "Humboldt: Digital Methodology (1024)"},
+        {"quelle": "dta-dingler", "jahr": 1053, "ref": "Dingler: tab010539, 1053"},
+        # plausibel → unangetastet
+        {"quelle": "dta_kern", "jahr": 1699, "ref": "Abel: Leibmedicus. 1699"},
+        # kein Jahr → unangetastet
+        {"quelle": "wikipedia", "jahr": None, "ref": "Artikel"},
+    ]
+    verworfen, je_quelle = E.pruefe_jahre(eintraege)
+    assert verworfen == 3
+    assert je_quelle == {"dta_erweiterungen": 1, "humboldt-digital": 1, "dta-dingler": 1}
+    assert eintraege[0] == {"quelle": "dta_erweiterungen", "jahr": None,
+                            "ref": "Milichius: Dominus abstulit"}
+    assert eintraege[1]["ref"] == "Humboldt: Digital Methodology"
+    assert eintraege[2]["ref"] == "Dingler: tab010539"
+    # plausibles Jahr bleibt vollständig erhalten
+    assert eintraege[3] == {"quelle": "dta_kern", "jahr": 1699,
+                            "ref": "Abel: Leibmedicus. 1699"}
+    assert eintraege[4]["ref"] == "Artikel"
+
+
 def test_bundestag_ref():
     assert E._bundestag_ref("WP01_0001_1949-09-07") == ("BT-PlPr. 01/1, 07.09.1949", 1949)
     ref, jahr = E._bundestag_ref("WP18_0002_2013-11-18")
