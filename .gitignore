@@ -107,3 +107,8 @@ wortprofil/phase_c/db/
 wortprofil/gate_a/
 wortprofil/gate_b/
 wortprofil/_work_*/
+# SQLite-Temp + Pass-1-Marginalen-Cache der Build-Skripte (--tmp-dir, GB-groß)
+wortprofil/_tmp/
+# Tageslemmata-Auszüge für validate_v2.py --tageslemmata-json: enthalten die
+# LÖSUNGEN kommender Spieltage. Dieses Repo ist öffentlich → niemals committen.
+wortprofil/phase_c/tageslemmata_*.json

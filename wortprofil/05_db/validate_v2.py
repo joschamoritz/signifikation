@@ -19,6 +19,7 @@ Exit-Code: 0 wenn keine FAILs, sonst 1 (SKIP zählt nicht als Fehlschlag).
 
 import argparse
 import json
+import re
 import sqlite3
 import sys
 from dataclasses import dataclass, field
@@ -241,7 +242,184 @@ def test9(belege: "sqlite3.Connection | None") -> Result:
 
 
 # ── Golden Query 10: Tageslemmata der letzten ~60 Tage ──────────────────────
-def test10(wp: sqlite3.Connection, kalender_db: "Path | None", tage: int = 60) -> Result:
+# Der Plan verlangt „jedes muss weiterhin genug Kollokatoren für ALLE GESPIELTEN
+# MODI liefern" — reine Lemma-Präsenz genügt dafür nicht. Die tatsächlich
+# gespielten Runden stehen je Lemma in lemmata.rundenInfo (relCode je Runde),
+# genau die Codes, die server/wortprofil.js an fetchRelation gibt.
+REL_ALIAS = {"OBJ": "OBJA", "~OBJ": "~OBJA"}   # identisch zu server/wortprofil.js
+
+# Rundenstruktur je Wortart — 1:1 aus server/wortprofil.js (POS_ROUNDS).
+POS_ROUNDS = {
+    "Substantiv": [("nomen", "KON"), ("verben", "~OBJ"), ("adjektive", "ATTR")],
+    "Verb":       [("objekte", "OBJ"), ("verben", "KON"), ("adverbien", "ADV")],
+    "Adjektiv":   [("nomen", "~ATTR"), ("verben", "PRED_REV"), ("adjektive", "KON")],
+}
+
+# Zeitenwende-Schwellen aus server/wortprofil.js (ZW_*): der Modus braucht
+# Kollokatoren ab Dekade 1950, aufgeteilt am Schnitt 2000 in pre/post; ein Wort
+# muss 5–14 Zeichen lang sein und dem Wortregex entsprechen.
+ZW_MIN_JAHRZEHNT = 1950
+ZW_CUTOFF = 2000
+ZW_MIN_LEN, ZW_MAX_LEN = 5, 14
+ZW_WORD_REGEX = re.compile(r"^[a-zäöüß][a-zA-ZäöüÄÖÜß]*$")
+ZW_MIN_PRO_BUCKET = 3   # mind. so viele brauchbare Wörter je Seite des Schnitts
+
+# Das Spiel „Kollokationen" zeigt KEINE getrennten Nomen-/Verben-/Adjektiv-Runden
+# mehr, sondern EINE Runde mit den Top-Kollokatoren eines Lemmas über alle
+# Wortarten hinweg (User-Auskunft 2026-08-03, Code: mergeKollokatoren() in
+# server/customLemma.js). Die drei POS_ROUNDS-Relationen werden dort weiterhin
+# abgefragt, aber zu einer nach Lemma deduplizierten, nach logDice sortierten
+# Liste zusammengeführt. Maßgeblich ist deshalb die GESAMTZAHL im Pool, nicht
+# eine Untergrenze je Relation.
+MIN_KOLLOKATOREN = 10          # = MIN_KOLLOKATIONEN in server/customLemma.js
+LIMIT_PRO_RELATION = 30        # = LIMIT in fetchRelation
+
+
+def _relation_woerter(wp: sqlite3.Connection, lemma: str, pos: str,
+                      relcode: str, limit: int = LIMIT_PRO_RELATION) -> set:
+    """Top-Kollokatoren einer Relation — mit der Abfrage-Logik aus
+    server/wortprofil.js (fetchRelation: LIMIT 30, nach logDice absteigend).
+
+    PRED_REV ist der Pseudo-RelCode der App (Rückwärtssuche über PRED). Hier wird
+    stattdessen die gleichwertige `~PRED`-Abfrage genutzt: seit Phase E existieren
+    echte ~PRED-Einträge, und beide liefern nachweislich dasselbe Ergebnis
+    (verifiziert für grün/groß/hoch: gleiche Kollokatoren, gleiche logDice, gleiche
+    Reihenfolge) — nur läuft PRED_REV über einen Skip-Scan (~1200 ms) statt über
+    einen Index-Seek (< 1 ms).
+    """
+    rel = REL_ALIAS.get(relcode, relcode)
+    if rel == "PRED_REV":
+        rel = "~PRED"
+    rows = wp.execute(
+        "SELECT dep_lemma FROM collocations "
+        "WHERE lemma = ? AND pos = ? AND relation = ? "
+        "ORDER BY logDice DESC LIMIT ?",
+        (lemma, pos, rel, limit)).fetchall()
+    # gleiche Aussortierung wie mergeKollokatoren(): keine Mehrwortausdrücke,
+    # keine Ein-Zeichen-Lemmata
+    return {r[0] for r in rows if " " not in r[0] and len(r[0]) > 1}
+
+
+def _merge_kollokatoren(wp: sqlite3.Connection, lemma: str, pos: str) -> tuple[set, list]:
+    """Spiegelt mergeKollokatoren() aus server/customLemma.js: alle drei
+    POS_ROUNDS-Relationen abfragen und zu EINER nach Lemma deduplizierten Liste
+    zusammenführen — das ist, was das Spiel heute anzeigt."""
+    pool: set = set()
+    detail: list[str] = []
+    for runde, relcode in POS_ROUNDS.get(pos, []):
+        woerter = _relation_woerter(wp, lemma, pos, relcode)
+        detail.append(f"{runde}={len(woerter)}")
+        pool |= woerter
+    return pool, detail
+
+
+def _zeitenwende_brauchbar(wp: sqlite3.Connection, lemma: str) -> tuple[int, int]:
+    """(pre, post) — Zahl brauchbarer Zeitenwende-Wörter je Seite des Schnitts 2000.
+    Repliziert die Filter aus fetchZeitenwende (Länge, Regex, nicht das Lemma selbst)."""
+    if not _table_exists(wp, "zeitreise"):
+        return (0, 0)
+    key = lemma.lower()
+    stamm = key[:4]
+    rows = wp.execute(
+        "SELECT dep_lemma, jahrzehnt FROM zeitreise WHERE lemma = ? AND jahrzehnt >= ?",
+        (key, ZW_MIN_JAHRZEHNT)).fetchall()
+    pre, post = set(), set()
+    for dep_lemma, jz in rows:
+        w = dep_lemma.lower()
+        if not (ZW_MIN_LEN <= len(dep_lemma) <= ZW_MAX_LEN):
+            continue
+        if not ZW_WORD_REGEX.match(dep_lemma):
+            continue
+        if w == key or w.startswith(stamm):
+            continue
+        (pre if jz < ZW_CUTOFF else post).add(w)
+    return (len(pre), len(post))
+
+
+def test10_json(wp: sqlite3.Connection, json_pfad: "Path | None",
+                min_pool: int = MIN_KOLLOKATOREN) -> Result:
+    """Golden Query 10, Variante mit echten Tageslemmata aus einer JSON-Datei.
+
+    Format (eine Liste, ein Objekt je Tag):
+        {"datum": "...", "nomen": "...", "verb": "...", "adjektiv": "...",
+         "zwilling_paar": ["...", "..."], "zeitenwende_lemma": "..."}
+
+    Geprüft wird für jedes Feld genau das, was der zugehörige Spielmodus zur
+    Laufzeit abfragt:
+
+    * Modus 1 „Kollokationen": EINE Runde mit den Top-Kollokatoren über alle
+      Wortarten — der zusammengeführte, nach Lemma deduplizierte Pool aus
+      mergeKollokatoren(); Schwelle MIN_KOLLOKATIONEN aus server/customLemma.js.
+      (Getrennte Nomen-/Verben-/Adjektiv-Runden gibt es im Spiel nicht mehr; die
+      Einzelwerte je Relation werden nur noch als Diagnose ausgegeben.)
+    * Modus 2 „Wort-Zwilling": beide Wörter des Paars über dasselbe
+      Substantiv-Profil (server/wortzwilling.js baut je Wort ein buildProfile()).
+    * Modus 3 „Zeitenwende": pre/post-Abdeckung der zeitreise-Tabelle mit den
+      Filtern aus fetchZeitenwende.
+    """
+    if json_pfad is None:
+        return Result(10, "Tageslemmata (JSON)", SKIP, "kein --tageslemmata-json angegeben")
+    json_pfad = Path(json_pfad)
+    if not json_pfad.exists():
+        return Result(10, "Tageslemmata (JSON)", SKIP, f"Datei nicht gefunden: {json_pfad}")
+    tage = json.loads(json_pfad.read_text(encoding="utf-8"))
+    if isinstance(tage, dict):
+        tage = [tage]
+
+    probleme: list[str] = []
+    details: list[str] = []
+    n_slots = 0      # Lemma × Modus (ein Spiel-Slot)
+    n_pruefungen = 0  # einzelne Runden bzw. Zeitenwende-Seiten
+
+    def pruefe(lemma: str, pos: str, etikett: str):
+        nonlocal n_slots, n_pruefungen
+        if not lemma:
+            return
+        n_slots += 1
+        n_pruefungen += 1
+        key = lemma.lower()
+        pool, zeilen = _merge_kollokatoren(wp, key, pos)
+        details.append(f"{lemma} [{etikett}/{pos}]: POOL={len(pool)} "
+                       f"({' '.join(zeilen)})")
+        if len(pool) < min_pool:
+            probleme.append(f"{lemma} ({etikett}, {pos}) Pool={len(pool)} "
+                            f"< {min_pool} [{' '.join(zeilen)}]")
+
+    for tag in tage:
+        datum = tag.get("datum", "?")
+        pruefe(tag.get("nomen"), "Substantiv", f"{datum} nomen")
+        pruefe(tag.get("verb"), "Verb", f"{datum} verb")
+        pruefe(tag.get("adjektiv"), "Adjektiv", f"{datum} adjektiv")
+        for w in (tag.get("zwilling_paar") or []):
+            pruefe(w, "Substantiv", f"{datum} zwilling")
+        zw = tag.get("zeitenwende_lemma")
+        if zw:
+            n_slots += 1
+            n_pruefungen += 2      # pre und post
+            pre, post = _zeitenwende_brauchbar(wp, zw)
+            details.append(f"{zw} [{datum} zeitenwende]: pre={pre} post={post}")
+            if pre < ZW_MIN_PRO_BUCKET or post < ZW_MIN_PRO_BUCKET:
+                probleme.append(f"{zw} ({datum} zeitenwende) pre={pre} post={post} "
+                                f"(je >= {ZW_MIN_PRO_BUCKET} nötig)")
+
+    bericht = " | ".join(details)
+    if probleme:
+        return Result(10, "Tageslemmata (JSON)", FAIL,
+                       f"{len(probleme)} von {n_pruefungen} Einzelprüfungen zu dünn "
+                       f"({n_slots} Spiel-Slots aus {json_pfad.name}): "
+                       f"{probleme[:25]}"
+                       + (" …" if len(probleme) > 25 else "")
+                       + f"\n    Vollbild (erste 25): {' | '.join(details[:25])}"
+                       + (" …" if len(details) > 25 else ""))
+    return Result(10, "Tageslemmata (JSON)", PASS,
+                  f"alle {n_pruefungen} Einzelprüfungen über {n_slots} Spiel-Slots aus "
+                  f"{json_pfad.name} bestanden (Kollokations-Pool >= {min_pool}, "
+                  f">= {ZW_MIN_PRO_BUCKET} Zeitenwende-Wörter je Seite)"
+                  f"\n    {bericht}")
+
+
+def test10(wp: sqlite3.Connection, kalender_db: "Path | None", tage: int = 60,
+           min_pool: int = MIN_KOLLOKATOREN) -> Result:
     if kalender_db is None:
         return Result(10, "Tageslemmata (letzte 60 Tage)", SKIP,
                        "kein --kalender-db angegeben (Produktions-signifikation.db nötig)")
@@ -265,23 +443,48 @@ def test10(wp: sqlite3.Connection, kalender_db: "Path | None", tage: int = 60) -
                            f"keine kalender-Einträge der letzten {tage} Tage gefunden")
         platzhalter = ",".join("?" * len(lemma_ids))
         lemmata = kdb.execute(
-            f"SELECT id, lemma FROM lemmata WHERE id IN ({platzhalter})", tuple(lemma_ids)
+            f"SELECT id, lemma, pos, rundenInfo FROM lemmata WHERE id IN ({platzhalter})",
+            tuple(lemma_ids)
         ).fetchall()
     finally:
         kdb.close()
-    fehlend = []
-    for _, lemma in lemmata:
-        row = wp.execute("SELECT COUNT(*) FROM collocations WHERE lemma = ?",
-                         (lemma.lower(),)).fetchone()
-        if row[0] == 0:
+    if not lemmata:
+        return Result(10, "Tageslemmata (letzte 60 Tage)", SKIP,
+                       f"kalender verweist auf {len(lemma_ids)} ids, "
+                       f"aber keine davon steht in lemmata")
+
+    fehlend, duenn, details = [], [], []
+    for _id, lemma, pos, runden_json in lemmata:
+        key = (lemma or "").lower()
+        gesamt = wp.execute("SELECT COUNT(*) FROM collocations WHERE lemma = ?",
+                            (key,)).fetchone()[0]
+        if gesamt == 0:
             fehlend.append(lemma)
+            continue
+        # Wie in der JSON-Variante: maßgeblich ist der zusammengeführte Pool
+        # (das Spiel zeigt eine Runde über alle Wortarten), nicht die einzelne
+        # Relation. lemmata.rundenInfo dient nur noch der POS-Bestätigung.
+        pool, pro_runde = _merge_kollokatoren(wp, key, pos)
+        details.append(f"{lemma} ({pos}): POOL={len(pool)} ({' '.join(pro_runde)})"
+                       if pro_runde
+                       else f"{lemma} ({pos}): unbekannte POS, {gesamt} Kollokationen")
+        if pro_runde and len(pool) < min_pool:
+            duenn.append(f"{lemma}: Pool={len(pool)}")
+
+    kurz_details = " | ".join(details[:12]) + (" …" if len(details) > 12 else "")
     if fehlend:
         kurz = fehlend[:20]
         mehr = "…" if len(fehlend) > 20 else ""
         return Result(10, "Tageslemmata (letzte 60 Tage)", FAIL,
-                       f"{len(fehlend)}/{len(lemmata)} Tageslemmata ohne Kollokatoren: {kurz}{mehr}")
+                       f"{len(fehlend)}/{len(lemmata)} Tageslemmata ohne Kollokatoren: "
+                       f"{kurz}{mehr}. Pools: {kurz_details}")
+    if duenn:
+        return Result(10, "Tageslemmata (letzte 60 Tage)", FAIL,
+                       f"{len(duenn)} Lemma(ta) mit Kollokations-Pool < {min_pool}: "
+                       f"{duenn[:20]}. Pools: {kurz_details}")
     return Result(10, "Tageslemmata (letzte 60 Tage)", PASS,
-                  f"alle {len(lemmata)} Tageslemmata liefern Kollokatoren")
+                  f"alle {len(lemmata)} Tageslemmata liefern einen Kollokations-Pool "
+                  f">= {min_pool}. {kurz_details}")
 
 
 # ── Golden Query 11: Lemma-Normalisierung (Phase E2) ────────────────────────
@@ -408,6 +611,16 @@ def main():
     parser.add_argument("--wortprofil-db", required=True, help="Zu prüfende wortprofil_v2.db")
     parser.add_argument("--belege-db", help="Zu prüfende belege_v2.db (optional)")
     parser.add_argument("--kalender-db", help="signifikation.db für Test 10 (optional)")
+    parser.add_argument("--tageslemmata-json",
+                        help="JSON mit echten Tageslemmata für Test 10 (Liste von "
+                             "{datum, nomen, verb, adjektiv, zwilling_paar, "
+                             "zeitenwende_lemma}). Hat Vorrang vor --kalender-db, "
+                             "weil die lokale signifikation.db nur Dev-Seed-Daten "
+                             "mit unbrauchbaren Wortarten enthält. "
+                             "ACHTUNG: Solche Dateien enthalten die LÖSUNGEN kommender "
+                             "Spieltage und dürfen nicht ins Git — dieses Repository ist "
+                             "öffentlich. wortprofil/phase_c/tageslemmata_*.json steht "
+                             "deshalb in .gitignore.")
     parser.add_argument("--old-wortprofil-db", help="alte wortprofil.db zum Kennzahlen-Vergleich")
     parser.add_argument("--old-belege-db", help="alte belege.db zum Kennzahlen-Vergleich")
     parser.add_argument("--report", help="Markdown-Report schreiben (Pfad)")
@@ -427,7 +640,10 @@ def main():
             if fn in (test6, test7, test9):
                 r = fn(belege)
             elif fn is test10:
-                r = fn(wp, args.kalender_db)
+                # Echte Tageslemmata schlagen die kalender-Tabelle: die lokale
+                # signifikation.db enthält nur Dev-Seed-Daten („Baum" als Verb).
+                r = (test10_json(wp, args.tageslemmata_json)
+                     if args.tageslemmata_json else fn(wp, args.kalender_db))
             else:
                 r = fn(wp)
         except sqlite3.OperationalError as e:

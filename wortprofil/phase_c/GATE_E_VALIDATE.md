@@ -1,0 +1,46 @@
+# Golden-Query-Report: Gate E: wortprofil_v2 Voll-Build (min_count 3)
+
+Erstellt: 2026-08-03 22:23
+
+**7 PASS · 0 FAIL · 4 SKIP** (von 11 Tests)
+
+| # | Test | Status | Detail |
+|---|---|---|---|
+| 1 | Lüge + OBJA-Kollokatoren | PASS | auftischen vorhanden, tischen fehlt (194 Kollokatoren) |
+| 2 | Elend → Substantiv (POS-Mehrheit) | PASS | Substantiv dominiert: {'Adjektiv': 28984, 'Substantiv': 79146, 'Verb': 37} |
+| 3 | grün (Adj.) → ~PRED-Einträge | PASS | ~PRED vorhanden: ['anfangen', 'begehren', 'bleiben', 'erscheinen', 'fangen', 'scheinen', 'zusammensetzen'] |
+| 4 | Tisch + ATTR | PASS | rund+gedeckt vorhanden, 564 ATTR-Kollokatoren, logDice plausibel |
+| 5 | Zeitreise: Dekaden-Abdeckung | PASS | 84 Dekaden, davon 16284125 Einträge zwischen 1880 und 1940 |
+| 6 | Belege: Paare mit ≥2 Belegen + ref | SKIP | keine belege-DB übergeben |
+| 7 | Belege: keine 'Lizenz unbekannt' | SKIP | keine belege-DB übergeben |
+| 8 | Bindestrich-Lemma (E-Mail) | PASS | 'e-mail' als Lemma vorhanden |
+| 9 | Kein Glyphen-Rest (ſ) | SKIP | keine belege-DB übergeben |
+| 10 | Tageslemmata (JSON) | PASS | alle 98 Einzelprüfungen über 84 Spiel-Slots aus tageslemmata_2026-08.json bestanden (Kollokations-Pool >= 10, >= 3 Zeitenwende-Wörter je Seite)
+    Eis [2026-08-03 nomen/Substantiv]: POOL=56 (nomen=18 verben=8 adjektive=30) \| tauchen [2026-08-03 verb/Verb]: POOL=89 (objekte=30 verben=30 adverbien=30) \| eisig [2026-08-03 adjektiv/Adjektiv]: POOL=60 (nomen=30 verben=0 adjektive=30) \| Eis [2026-08-03 zwilling/Substantiv]: POOL=56 (nomen=18 verben=8 adjektive=30) \| Schnee [2026-08-03 zwilling/Substantiv]: POOL=90 (nomen=30 verben=30 adjektive=30) \| Norden [2026-08-03 zeitenwende]: pre=132 post=436 \| Tagebuch [2026-08-04 nomen/Substantiv]: POOL=87 (nomen=30 verben=30 adjektive=30) \| verstecken [2026-08-04 verb/Verb]: POOL=90 (objekte=30 verben=30 adverbien=30) \| heimlich [2026-08-04 adjektiv/Adjektiv]: POOL=60 (nomen=30 verben=0 adjektive=30) \| Versteck [2026-08-04 zwilling/Substantiv]: POOL=90 (nomen=30 verben=30 adjektive=30) \| Zuflucht [2026-08-04 zwilling/Substantiv]: POOL=89 (nomen=30 verben=30 adjektive=30) \| Tagebuch [2026-08-04 zeitenwende]: pre=49 post=130 \| Mythos [2026-08-05 nomen/Substantiv]: POOL=90 (nomen=30 verben=30 adjektive=30) \| verehren [2026-08-05 verb/Verb]: POOL=90 (objekte=30 verben=30 adverbien=30) \| berühmt [2026-08-05 adjektiv/Adjektiv]: POOL=61 (nomen=30 verben=1 adjektive=30) \| Ruhm [2026-08-05 zwilling/Substantiv]: POOL=88 (nomen=30 verben=30 adjektive=30) \| Ansehen [2026-08-05 zwilling/Substantiv]: POOL=90 (nomen=30 verben=30 adjektive=30) \| Star [2026-08-05 zeitenwende]: pre=124 post=666 \| Verbindung [2026-08-06 nomen/Substantiv]: POOL=90 (nomen=30 verben=30 adjektive=30) \| vernetzen [2026-08-06 verb/Verb]: POOL=90 (objekte=30 verben=30 adverbien=30) \| digital [2026-08-06 adjektiv/Adjektiv]: POOL=60 (nomen=30 verben=0 adjektive=30) \| Information [2026-08-06 zwilling/Substantiv]: POOL=88 (nomen=30 verben=30 adjektive=30) \| Nachricht [2026-08-06 zwilling/Substantiv]: POOL=90 (nomen=30 verben=30 adjektive=30) \| Netz [2026-08-06 zeitenwende]: pre=271 post=844 \| Bier [2026-08-07 nomen/Substantiv]: POOL=89 (nomen=30 verben=30 adjektive=30) \| brauen [2026-08-07 verb/Verb]: POOL=89 (objekte=30 verben=30 adverbien=30) \| herb [2026-08-07 adjektiv/Adjektiv]: POOL=63 (nomen=30 verben=3 adjektive=30) \| Bier [2026-08-07 zwilling/Substantiv]: POOL=89 (nomen=30 verben=30 adjektive=30) \| Wein [2026-08-07 zwilling/Substantiv]: POOL=89 (nomen=30 verben=30 adjektive=30) \| Kneipe [2026-08-07 zeitenwende]: pre=56 post=180 \| Katze [2026-08-08 nomen/Substantiv]: POOL=89 (nomen=30 verben=30 adjektive=30) \| schnurren [2026-08-08 verb/Verb]: POOL=54 (objekte=17 verben=30 adverbien=7) \| zahm [2026-08-08 adjektiv/Adjektiv]: POOL=64 (nomen=30 verben=4 adjektive=30) \| Haustier [2026-08-08 zwilling/Substantiv]: POOL=90 (nomen=30 verben=30 adjektive=30) \| Nutztier [2026-08-08 zwilling/Substantiv]: POOL=63 (nomen=30 verben=6 adjektive=27) \| Haustier [2026-08-08 zeitenwende]: pre=16 post=89 \| Volk [2026-08-09 nomen/Substantiv]: POOL=90 (nomen=30 verben=30 adjektive=30) \| bewahren [2026-08-09 verb/Verb]: POOL=90 (objekte=30 verben=30 adverbien=30) \| bedroht [2026-08-09 adjektiv/Adjektiv]: POOL=61 (nomen=30 verben=1 adjektive=30) \| Sprache [2026-08-09 zwilling/Substantiv]: POOL=85 (nomen=30 verben=30 adjektive=30) \| Dialekt [2026-08-09 zwilling/Substantiv]: POOL=88 (nomen=30 verben=30 adjektive=30) \| Vielfalt [2026-08-09 zeitenwende]: pre=259 post=879 \| Museum [2026-08-10 nomen/Substantiv]: POOL=90 (nomen=30 verben=30 adjektive=30) \| ausstellen [2026-08-10 verb/Verb]: POOL=89 (objekte=30 verben=30 adverbien=30) \| öffentlich [2026-08-10 adjektiv/Adjektiv]: POOL=61 (nomen=30 verben=1 adjektive=30) \| Museum [2026-08-10 zwilling/Substantiv]: POOL=90 (nomen=30 verben=30 adjektive=30) \| Galerie [2026-08-10 zwilling/Substantiv]: POOL=90 (nomen=30 verben=30 adjektive=30) \| Kunst [2026-08-10 zeitenwende]: pre=542 post=1101 \| Verfassung [2026-08-11 nomen/Substantiv]: POOL=90 (nomen=30 verben=30 adjektive=30) \| beschließen [2026-08-11 verb/Verb]: POOL=90 (objekte=30 verben=30 adverbien=30) \| gültig [2026-08-11 adjektiv/Adjektiv]: POOL=66 (nomen=30 verben=6 adjektive=30) \| Verfassung [2026-08-11 zwilling/Substantiv]: POOL=90 (nomen=30 verben=30 adjektive=30) \| Gesetz [2026-08-11 zwilling/Substantiv]: POOL=88 (nomen=30 verben=30 adjektive=30) \| Demokratie [2026-08-11 zeitenwende]: pre=367 post=830 \| Finsternis [2026-08-12 nomen/Substantiv]: POOL=90 (nomen=30 verben=30 adjektive=30) \| verdunkeln [2026-08-12 verb/Verb]: POOL=90 (objekte=30 verben=30 adverbien=30) \| dunkel [2026-08-12 adjektiv/Adjektiv]: POOL=68 (nomen=30 verben=8 adjektive=30) \| Sonne [2026-08-12 zwilling/Substantiv]: POOL=90 (nomen=30 verben=30 adjektive=30) \| Mond [2026-08-12 zwilling/Substantiv]: POOL=90 (nomen=30 verben=30 adjektive=30) \| Himmel [2026-08-12 zeitenwende]: pre=224 post=235 \| Schrift [2026-08-13 nomen/Substantiv]: POOL=88 (nomen=30 verben=30 adjektive=30) \| greifen [2026-08-13 verb/Verb]: POOL=90 (objekte=30 verben=30 adverbien=30) \| geschickt [2026-08-13 adjektiv/Adjektiv]: POOL=63 (nomen=30 verben=3 adjektive=30) \| Hand [2026-08-13 zwilling/Substantiv]: POOL=90 (nomen=30 verben=30 adjektive=30) \| Finger [2026-08-13 zwilling/Substantiv]: POOL=89 (nomen=30 verben=30 adjektive=30) \| Norm [2026-08-13 zeitenwende]: pre=222 post=696 \| Wahl [2026-08-14 nomen/Substantiv]: POOL=90 (nomen=30 verben=30 adjektive=30) \| regieren [2026-08-14 verb/Verb]: POOL=90 (objekte=30 verben=30 adverbien=30) \| knapp [2026-08-14 adjektiv/Adjektiv]: POOL=60 (nomen=30 verben=0 adjektive=30) \| Wahl [2026-08-14 zwilling/Substantiv]: POOL=90 (nomen=30 verben=30 adjektive=30) \| Abstimmung [2026-08-14 zwilling/Substantiv]: POOL=90 (nomen=30 verben=30 adjektive=30) \| Partei [2026-08-14 zeitenwende]: pre=786 post=2030 \| Brauch [2026-08-15 nomen/Substantiv]: POOL=90 (nomen=30 verben=30 adjektive=30) \| segnen [2026-08-15 verb/Verb]: POOL=89 (objekte=29 verben=30 adverbien=30) \| heilig [2026-08-15 adjektiv/Adjektiv]: POOL=63 (nomen=30 verben=3 adjektive=30) \| Brauch [2026-08-15 zwilling/Substantiv]: POOL=90 (nomen=30 verben=30 adjektive=30) \| Sitte [2026-08-15 zwilling/Substantiv]: POOL=90 (nomen=30 verben=30 adjektive=30) \| Glaube [2026-08-15 zeitenwende]: pre=121 post=290 \| Fan [2026-08-16 nomen/Substantiv]: POOL=90 (nomen=30 verben=30 adjektive=30) \| begeistern [2026-08-16 verb/Verb]: POOL=90 (objekte=30 verben=30 adverbien=30) \| legendär [2026-08-16 adjektiv/Adjektiv]: POOL=50 (nomen=30 verben=0 adjektive=20) \| Musik [2026-08-16 zwilling/Substantiv]: POOL=89 (nomen=30 verben=30 adjektive=30) \| Klang [2026-08-16 zwilling/Substantiv]: POOL=89 (nomen=30 verben=30 adjektive=30) \| Musik [2026-08-16 zeitenwende]: pre=435 post=1579 |
+| 11 | Lemma-Normalisierung (thier→tier) | SKIP | Tabelle lemma_corrections fehlt (Phase E2 noch nicht gelaufen) |
+
+## Kennzahlen
+
+| Kennzahl | Wert | zum Vergleich (alt) |
+|---|---|---|
+| collocations | 25,726,750 | 9,311,475 |
+| distinct_lemma | 1,030,294 | – |
+| lemma_corpus_freq | 25,922,727 | – |
+| zeitreise_zeilen | 61,199,161 | – |
+| zeitreise_dekaden | 84 | – |
+| wortprofil_db_bytes | 18 GB | 3 GB |
+
+### build_info
+
+- **built_at**: 2026-08-03T19:22:25Z
+- **pipeline_version**: v2
+- **git_commit**: 9e991d6
+- **source_db**: triples_v2.db
+- **korpora**: bag, bfh, bgh, bgh_strafsachen_hist, bpatg, bundestag, bundestagskorpus_pdf, bverfg, bverfg_amtlich, bverwg, deu_news, deu_newscrawl, dibilit, dibiphil, dta-dingler, dta-novellenschatz, dta-patiententexte, dta-soldatenbriefe, dta-stimm-los, dta_erweiterungen, dta_kern, gei_digital, gesetze, humboldt-digital, humboldt-publizistik, jean-paul-briefe, neuer_pitaval, pol_reden, ref_fnh, ref_mhd, reichtagsprotokolle, wikibooks, wikipedia, wikivoyage
+- **min_count**: 3
+- **min_dice**: 0.0
+- **n_direct**: 16638398
+- **n_inverse**: 9088352
+- **n_filtered**: 19466255
+- **n_lemma_corpus_freq**: 25922727
+- **triples_zeilen**: 526463326
