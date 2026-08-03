@@ -32,6 +32,11 @@ import re
 import sys
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+# Einzige Quelle der Wahrheit für die erlaubten Jahresbereiche: der Extraktor
+# selbst. Eine Kopie hier würde auseinanderlaufen.
+from extract_text import jahr_plausibel  # noqa: E402
+
 ROOT = Path(__file__).parent.parent
 
 # Korpora, für die laut extract_text.py strukturell kein Jahr ableitbar ist
@@ -52,6 +57,8 @@ def scan_datei(pfad: Path, ist_neu: bool) -> dict:
         "dokumente": 0,
         "zeichen": 0,
         "mit_jahr": 0,
+        "jahr_unplausibel": 0,
+        "jahr_unplausibel_beispiele": [],
         "mit_ref": 0,
         "glyph_treffer": 0,
         "glyph_beispiele": [],
@@ -72,8 +79,18 @@ def scan_datei(pfad: Path, ist_neu: bool) -> dict:
             stats["dokumente"] += 1
             text = d.get("text", "") or ""
             stats["zeichen"] += len(text)
-            if d.get("jahr") is not None:
+            jahr = d.get("jahr")
+            if jahr is not None:
                 stats["mit_jahr"] += 1
+                # Ein Jahr zu HABEN genügt nicht — es muss auch stimmen können.
+                # Genau diese Prüfung fehlte, weshalb 7.330 Dokumente mit
+                # erfundenen Jahren aus Dokument-IDs durch Gate B kamen und erst
+                # in Phase E auffielen (extract_text.jahr_plausibel).
+                if jahr_plausibel(jahr, d.get("quelle", "")) is None:
+                    stats["jahr_unplausibel"] += 1
+                    if len(stats["jahr_unplausibel_beispiele"]) < 5:
+                        stats["jahr_unplausibel_beispiele"].append(
+                            f"{d.get('id', '?')}={jahr}")
             if ist_neu:
                 if (d.get("ref") or "").strip():
                     stats["mit_ref"] += 1
@@ -143,14 +160,24 @@ def main():
 
         jahr_exempt = name in KEIN_JAHR_ABLEITBAR
         jahr_ok = jahr_exempt or (neu["dokumente"] > 0 and neu["mit_jahr"] / neu["dokumente"] >= 0.95)
+        # Plausibilität ist NICHT verhandelbar und nicht von KEIN_JAHR_ABLEITBAR
+        # ausgenommen: ein erfundenes Jahr ist schlimmer als ein fehlendes, weil
+        # es unentdeckt in Dekaden-Histogramm, ref und Jahr-Filter wandert.
+        jahr_plausibel_ok = neu["jahr_unplausibel"] == 0
         ref_ok = neu["dokumente"] > 0 and neu["mit_ref"] == neu["dokumente"]
         glyph_ok = neu["glyph_treffer"] == 0
         trenn_ok = neu["trennstrich_treffer"] == 0
 
-        status = "OK" if (jahr_ok and ref_ok and glyph_ok and trenn_ok) else "PRÜFEN"
+        status = "OK" if (jahr_ok and jahr_plausibel_ok and ref_ok
+                          and glyph_ok and trenn_ok) else "PRÜFEN"
         if not jahr_ok:
             probleme.append(f"**{name}**: Jahr-Abdeckung nur {jahr_pct} (Ziel ≥95%, "
                              f"{neu['mit_jahr']}/{neu['dokumente']} Dokumente)")
+        if not jahr_plausibel_ok:
+            probleme.append(
+                f"**{name}**: {neu['jahr_unplausibel']:,} Dokumente mit UNPLAUSIBLEM Jahr "
+                f"(außerhalb des Bereichs der Quelle, siehe extract_text.JAHR_BEREICH) "
+                f"– Beispiele: {neu['jahr_unplausibel_beispiele']}")
         if not ref_ok:
             probleme.append(f"**{name}**: ref fehlt bei {neu['dokumente'] - neu['mit_ref']} "
                              f"von {neu['dokumente']} Dokumenten")
@@ -171,6 +198,7 @@ def main():
             "alt_dok": alt["dokumente"] if alt else None,
             "alt_zeichen": alt["zeichen"] if alt else None,
             "jahr_pct": jahr_pct + (" (n/a)" if jahr_exempt else ""),
+            "jahr_unplausibel": neu["jahr_unplausibel"],
             "ref_pct": ref_pct,
             "glyph": neu["glyph_treffer"],
             "trenn": neu["trennstrich_treffer"],
@@ -186,14 +214,15 @@ def main():
     lines.append(f"**{len(zeilen_tabelle)} Korpora geprüft · {n_probleme} Auffälligkeiten**\n")
 
     lines.append("\n## Pro-Korpus-Tabelle\n")
-    lines.append("| Korpus | Dok. neu | Dok. alt | Zeichen neu | Zeichen alt | Jahr-Abdeckung | ref-Abdeckung | ſ-Treffer | Trennstrich-Reste | Status |")
-    lines.append("|---|---|---|---|---|---|---|---|---|---|")
+    lines.append("| Korpus | Dok. neu | Dok. alt | Zeichen neu | Zeichen alt | Jahr-Abdeckung | Jahr unplausibel | ref-Abdeckung | ſ-Treffer | Trennstrich-Reste | Status |")
+    lines.append("|---|---|---|---|---|---|---|---|---|---|---|")
     for r in zeilen_tabelle:
         alt_dok = f"{r['alt_dok']:,}" if r["alt_dok"] is not None else "–"
         alt_zeichen = f"{r['alt_zeichen']:,}" if r["alt_zeichen"] is not None else "–"
         lines.append(
             f"| {r['name']} | {r['neu_dok']:,} | {alt_dok} | {r['neu_zeichen']:,} | {alt_zeichen} | "
-            f"{r['jahr_pct']} | {r['ref_pct']} | {r['glyph']} | {r['trenn']} | {r['status']} |"
+            f"{r['jahr_pct']} | {r['jahr_unplausibel']:,} | {r['ref_pct']} | {r['glyph']} | "
+            f"{r['trenn']} | {r['status']} |"
         )
 
     lines.append("\n## Summen\n")
