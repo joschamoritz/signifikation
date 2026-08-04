@@ -1,0 +1,12 @@
+# Arbeitsartefakte, jederzeit aus wortprofil_v2.db reproduzierbar.
+# Achtung: .gitignore kennt keine Kommentare am Zeilenende - sie wuerden Teil
+# des Musters und das Muster damit wirkungslos.
+
+# scan_lemmas.py
+inventar.db
+# build_corrections.py
+verworfen.db
+# report.py
+impact.json
+# make_testdb.py
+test_merge*.db*
