@@ -34,13 +34,39 @@ Aufruf:
 
 import argparse
 import json
+import os
 import re
+import shutil
 import sqlite3
 import sys
 from pathlib import Path
 
 PARSED_DIR_DEFAULT = Path(__file__).parent.parent / "02_parsed_v2"
 OUT_DB_DEFAULT     = Path(__file__).parent / "belege_v2.db"
+
+# Temp-Verzeichnis für SQLite (Betriebsregel 3): NICHT auf das Systemlaufwerk.
+# Der belege_fts(belege_fts)='rebuild'-Schritt sortiert die Terme aller Sätze
+# extern -- zweistellige GB temporärer Dateien sind möglich.
+TMP_DIR_DEFAULT = Path(__file__).parent.parent / "_tmp"
+
+# Abbruchschwelle für freien Platz auf dem Ziel-Laufwerk (Betriebsregel 1).
+MIN_FREE_GB = 10.0
+
+
+def redirect_tmp(tmp_dir: Path):
+    """TMP/TEMP/TMPDIR/SQLITE_TMPDIR auf tmp_dir umlenken.
+
+    Muss VOR dem ersten sqlite3.connect passieren. Auf Windows liest SQLite
+    TMP/TEMP -- SQLITE_TMPDIR allein genügt dort nicht.
+    """
+    tmp_dir.mkdir(parents=True, exist_ok=True)
+    for var in ("SQLITE_TMPDIR", "TMPDIR", "TMP", "TEMP"):
+        os.environ[var] = str(tmp_dir)
+
+
+def free_gb(pfad: Path) -> float:
+    ziel = pfad if pfad.exists() else pfad.parent
+    return shutil.disk_usage(ziel).free / 2**30
 
 
 # ── Vollständige Quellen-Metadaten ────────────────────────────────────────────
@@ -239,11 +265,11 @@ MAX_SATZ_LEN = 400
 BATCH = 100_000
 
 
-def init_db(conn: sqlite3.Connection):
+def init_db(conn: sqlite3.Connection, cache_mb: int = 256):
     conn.execute("PRAGMA page_size=16384")
     conn.execute("PRAGMA journal_mode=WAL")
     conn.execute("PRAGMA synchronous=NORMAL")
-    conn.execute("PRAGMA cache_size=-131072")   # 128 MB
+    conn.execute(f"PRAGMA cache_size=-{cache_mb * 1024}")
     conn.execute("""
         CREATE TABLE IF NOT EXISTS dokumente (
             doc_id INTEGER PRIMARY KEY,
@@ -282,7 +308,7 @@ def init_db(conn: sqlite3.Connection):
 def verarbeite_jsonl(jsonl_path: Path, conn: sqlite3.Connection,
                      next_doc_id: int, next_satz_id: int,
                      min_jahr, qualitaetsfilter: bool,
-                     quellen_gesehen: set) -> tuple[int, int, int]:
+                     quellen_gesehen: set, out_db: Path) -> tuple[int, int, int]:
     """Eine v2-JSONL verarbeiten. Gibt (nächste doc_id, nächste satz_id, Satzzahl)
     zurück. doc_id/satz_id werden explizit vergeben → batched executemany möglich."""
     print(f"\n── {jsonl_path.name}"
@@ -349,7 +375,15 @@ def verarbeite_jsonl(jsonl_path: Path, conn: sqlite3.Connection,
 
             if len(satz_batch) >= BATCH:
                 flush()
-                print(f"  {n_saetze:,} Sätze / {n_docs:,} Dok. ...", flush=True)
+                frei = free_gb(out_db)
+                print(f"  {n_saetze:,} Sätze / {n_docs:,} Dok. ... "
+                      f"(frei {frei:.1f} GB)", flush=True)
+                if frei < MIN_FREE_GB:
+                    print(f"[ABBRUCH] Weniger als {MIN_FREE_GB:.0f} GB frei "
+                          f"auf dem Ziel-Laufwerk -- Lauf gestoppt, keine "
+                          f"unvollständige DB weiterschreiben.")
+                    conn.close()
+                    sys.exit(1)
 
     flush()
     extra = f" ({n_skip_jahr:,} Dok. < {min_jahr} übersprungen)" if n_skip_jahr else ""
@@ -372,11 +406,25 @@ def main():
     parser.add_argument("--out-db", default=str(OUT_DB_DEFAULT),
                         help="Ausgabe belege_v2.db (Standard: 06_belege/belege_v2.db)")
     parser.add_argument("--reset", action="store_true", help="DB neu anlegen")
+    parser.add_argument("--tmp-dir", default=str(TMP_DIR_DEFAULT),
+                        help="SQLite-Temp-Verzeichnis (Betriebsregel 3; Standard: "
+                             "wortprofil/_tmp auf D:, NICHT das Systemlaufwerk)")
+    parser.add_argument("--cache-mb", type=int, default=256,
+                        help="SQLite Page-Cache in MB (Standard 256)")
     args = parser.parse_args()
 
     parsed_dir = Path(args.parsed_dir)
     out_db = Path(args.out_db)
     out_db.parent.mkdir(parents=True, exist_ok=True)
+
+    tmp_dir = Path(args.tmp_dir)
+    redirect_tmp(tmp_dir)   # muss vor dem ersten sqlite3.connect passieren
+    print(f"Temp:     {tmp_dir}  (TMP/TEMP/SQLITE_TMPDIR umgelenkt, "
+          f"{free_gb(tmp_dir):.0f} GB frei)")
+    print(f"Frei auf Ziel-Laufwerk: {free_gb(out_db):.1f} GB", flush=True)
+    if free_gb(out_db) < MIN_FREE_GB:
+        print(f"[ABBRUCH] Weniger als {MIN_FREE_GB:.0f} GB frei auf dem Ziel-Laufwerk.")
+        sys.exit(1)
 
     if args.reset:
         for suffix in ("", "-shm", "-wal"):
@@ -394,7 +442,7 @@ def main():
     print(f"Korpora: {', '.join(k[0] for k in korpora)}")
 
     conn = sqlite3.connect(out_db)
-    init_db(conn)
+    init_db(conn, cache_mb=args.cache_mb)
 
     doc_id = conn.execute("SELECT COALESCE(MAX(doc_id), 0) FROM dokumente").fetchone()[0]
     satz_id = conn.execute("SELECT COALESCE(MAX(id), 0) FROM saetze").fetchone()[0]
@@ -407,7 +455,7 @@ def main():
             print(f"  [SKIP] {pfad} nicht gefunden")
             continue
         doc_id, satz_id, n = verarbeite_jsonl(
-            pfad, conn, doc_id, satz_id, min_jahr, qfilter, quellen_gesehen)
+            pfad, conn, doc_id, satz_id, min_jahr, qfilter, quellen_gesehen, out_db)
         gesamt += n
 
     # quellen-Tabelle (eine Zeile je gesehenem Korpus)
@@ -417,10 +465,22 @@ def main():
             "INSERT OR REPLACE INTO quellen(quelle, zitation, lizenz) VALUES (?,?,?)",
             (quelle, zit, liz))
     conn.commit()
+    conn.execute("PRAGMA wal_checkpoint(TRUNCATE)")
+
+    # Indizes NACH dem Bulk-Insert (Betriebsregel 3c) -- Hot-Path-Joins
+    # (saetze -> dokumente -> quellen) und Jahr-Filter (Gate F #4).
+    print("\nBaue Indizes ...", flush=True)
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_saetze_docid ON saetze(doc_id)")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_dokumente_quelle ON dokumente(quelle)")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_dokumente_jahr ON dokumente(jahr)")
+    conn.commit()
 
     # FTS5 external content aus der saetze-Tabelle aufbauen.
-    print("\nBaue FTS5-Index (external content rebuild) ...")
+    print("Baue FTS5-Index (external content rebuild) ...", flush=True)
     conn.execute("INSERT INTO belege_fts(belege_fts) VALUES('rebuild')")
+    conn.commit()
+    conn.execute("PRAGMA wal_checkpoint(TRUNCATE)")
+    conn.execute("ANALYZE")
     conn.commit()
 
     n_docs = conn.execute("SELECT COUNT(*) FROM dokumente").fetchone()[0]
