@@ -13,7 +13,7 @@
  * Der Spieldaten-Aufbau (play) folgt in 2b zusammen mit der UI.
  */
 
-import { POS_ROUNDS, fetchRelation, fetchLemma, fetchZeitenwende, fetchZeitenwendeAnalyze } from './wortprofil.js'
+import { POS_ROUNDS, fetchRelation, fetchLemma, fetchZeitenwende, fetchZeitenwendeAnalyze, posByFrequency } from './wortprofil.js'
 import { fetchWortZwilling } from './wortzwilling.js'
 import { buildLueckenfueller } from './lueckenfueller.js'
 import { fetchWiktionary } from './wiktionary.js'
@@ -45,15 +45,37 @@ async function mergeKollokatoren(lemma, pos) {
 }
 
 /**
- * Ermittelt die Wortart mit den meisten Kollokationen (Auto-Erkennung, wenn der
- * Nutzer keine POS angibt) – analog zur Admin-`/analyze-kollokation`-Route.
+ * Ermittelt die Wortart eines Lemmas (Auto-Erkennung, wenn der Nutzer keine POS
+ * angibt).
+ *
+ * Maßgeblich ist die Korpus-Häufigkeit je Wortart, nicht mehr die Anzahl
+ * gefundener Kollokatoren („Elend"-Fix, Golden Query #2). Die Kollokator-Anzahl
+ * war als Kriterium verzerrt: jede Runde ist auf 30 Treffer gedeckelt, und die
+ * Substantiv-Runden füllen dieses Limit fast immer, die Adjektiv-Runden fast
+ * nie – „deutsch" wäre so als Substantiv durchgegangen (90 gegen 62), obwohl es
+ * mit 3,1 Mio. gegen 60 k Vorkommen eindeutig ein Adjektiv ist.
+ *
+ * Die Spielbarkeit bleibt trotzdem gewahrt: die häufigste Wortart wird nur dann
+ * genommen, wenn sie auch genug Kollokatoren liefert; sonst geht es der
+ * Häufigkeit nach weiter. Nebeneffekt: im Normalfall genügt EIN
+ * mergeKollokatoren()-Aufruf statt drei.
  */
 async function bestKollokationPos(lemma) {
-  const analyses = await Promise.all(
-    POS_CANDIDATES.map(async (pos) => ({ pos, count: (await mergeKollokatoren(lemma, pos)).length })),
-  )
-  analyses.sort((a, b) => b.count - a.count)
-  return analyses[0]
+  const nachHaeufigkeit = posByFrequency(lemma).map(r => r.pos)
+  const reihenfolge = [
+    ...nachHaeufigkeit,
+    ...POS_CANDIDATES.filter(p => !nachHaeufigkeit.includes(p)),
+  ]
+
+  let beste = null
+  for (const pos of reihenfolge) {
+    const count = (await mergeKollokatoren(lemma, pos)).length
+    if (count >= MIN_KOLLOKATIONEN) return { pos, count }
+    if (!beste || count > beste.count) beste = { pos, count }
+  }
+  // Kein Kandidat spielbar → besten Versuch zurückgeben, damit die Begründung
+  // („nur N von 10") den tatsächlich erreichbaren Bestwert nennt.
+  return beste ?? { pos: POS_CANDIDATES[0], count: 0 }
 }
 
 async function validateKollokationen(q, pos) {

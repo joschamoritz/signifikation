@@ -11,12 +11,14 @@ vi.mock('../wortprofil.js', () => ({
   fetchLemma: vi.fn(),
   fetchZeitenwende: vi.fn(),
   fetchZeitenwendeAnalyze: vi.fn(),
+  // Default: keine Häufigkeitsdaten → Reihenfolge fällt auf POS_CANDIDATES zurück
+  posByFrequency: vi.fn(() => []),
 }))
 vi.mock('../wortzwilling.js', () => ({ fetchWortZwilling: vi.fn() }))
 vi.mock('../lueckenfueller.js', () => ({ buildLueckenfueller: vi.fn() }))
 vi.mock('../wiktionary.js', () => ({ fetchWiktionary: vi.fn(async () => ({ ipa: 'ˈaʁ̥çiːf', definitionen: ['Sammlung'] })) }))
 
-import { fetchRelation, fetchLemma, fetchZeitenwende, fetchZeitenwendeAnalyze } from '../wortprofil.js'
+import { fetchRelation, fetchLemma, fetchZeitenwende, fetchZeitenwendeAnalyze, posByFrequency } from '../wortprofil.js'
 import { fetchWortZwilling } from '../wortzwilling.js'
 import { buildLueckenfueller } from '../lueckenfueller.js'
 import { validateCustomLemma, buildCustomPlay, MIN_KOLLOKATIONEN } from '../customLemma.js'
@@ -47,12 +49,50 @@ describe('validateCustomLemma – Kollokationen', () => {
     expect(res.reason).toContain(String(MIN_KOLLOKATIONEN))
   })
 
-  it('Auto-POS: wählt die Wortart mit den meisten Kollokationen', async () => {
+  it('Auto-POS ohne Häufigkeitsdaten: erste spielbare Wortart gewinnt', async () => {
+    posByFrequency.mockReturnValueOnce([])
     fetchRelation.mockImplementation((_lemma, pos) => Promise.resolve(pos === 'Verb' ? kolls(15) : kolls(3)))
     const res = await validateCustomLemma({ mode: 'kollokationen', q: 'laufen' })
     expect(res.pos).toBe('Verb')
     expect(res.usable).toBe(true)
     expect(res.count).toBe(15)
+  })
+
+  // „Elend"-Fix: die Kollokator-ANZAHL ist als Kriterium verzerrt (Runden sind
+  // auf 30 gedeckelt, Substantiv-Runden füllen das Limit fast immer). Maßgeblich
+  // ist die Korpus-Häufigkeit – auch wenn eine andere Wortart mehr Kollokatoren
+  // liefert.
+  it('Auto-POS folgt der Korpus-Häufigkeit, nicht der Kollokator-Anzahl', async () => {
+    posByFrequency.mockReturnValueOnce([
+      { pos: 'Adjektiv', freq: 3_118_719 },
+      { pos: 'Substantiv', freq: 60_126 },
+    ])
+    // Substantiv hätte MEHR Kollokatoren – darf trotzdem nicht gewinnen.
+    fetchRelation.mockImplementation((_lemma, pos) =>
+      Promise.resolve(pos === 'Substantiv' ? kolls(30) : kolls(12)))
+    const res = await validateCustomLemma({ mode: 'kollokationen', q: 'deutsch' })
+    expect(res.pos).toBe('Adjektiv')
+    expect(res.count).toBe(12)
+  })
+
+  it('Auto-POS überspringt die häufigste Wortart, wenn sie nicht spielbar ist', async () => {
+    posByFrequency.mockReturnValueOnce([
+      { pos: 'Substantiv', freq: 900 },
+      { pos: 'Verb', freq: 100 },
+    ])
+    fetchRelation.mockImplementation((_lemma, pos) => Promise.resolve(pos === 'Verb' ? kolls(15) : kolls(4)))
+    const res = await validateCustomLemma({ mode: 'kollokationen', q: 'Grenzfall' })
+    expect(res.pos).toBe('Verb')
+    expect(res.usable).toBe(true)
+  })
+
+  it('kein Kandidat spielbar → bester Versuch wird als Begründung gemeldet', async () => {
+    posByFrequency.mockReturnValueOnce([{ pos: 'Substantiv', freq: 10 }, { pos: 'Verb', freq: 5 }])
+    fetchRelation.mockImplementation((_lemma, pos) => Promise.resolve(pos === 'Verb' ? kolls(7) : kolls(2)))
+    const res = await validateCustomLemma({ mode: 'kollokationen', q: 'Nische' })
+    expect(res.usable).toBe(false)
+    expect(res.count).toBe(7)
+    expect(res.pos).toBe('Verb')
   })
 
   it('dedupliziert nach Lemma (höchstes logDice gewinnt)', async () => {

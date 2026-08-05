@@ -2,10 +2,31 @@
  * belege.js – Belegsatz-Suche aus eigenem CC-BY-SA-Korpus
  *
  * Ersetzt den DWDS-Aufruf in public.js /api/v1/belege.
- * Liest aus 06_belege/belege.db (FTS5-Index, gebaut von build_belege.py).
  *
  * DB-Pfad: Umgebungsvariable BELEGE_DB, sonst lokaler Pfad.
- * Für Railway: BELEGE_DB=/data/belege.db (Persistent Volume)
+ *
+ * ── Zwei Schemata, ein Modul (Phase G, DB-Neuaufbau) ─────────────────────────
+ * v1 (belege.db, bis 2026-08): eine flache FTS5-Tabelle `belege(satz, quelle,
+ *    zitation, jahr)` — die volle Zitation redundant in jeder Zeile, nur
+ *    Korpus-, keine Dokument-Ebene.
+ * v2 (belege_v2.db, ab Phase F): FTS5 external content über `saetze`, plus
+ *    normalisierte `dokumente` (dokumentgenaue `ref`, jahr, genre, epoche) und
+ *    `quellen` (Korpus-Zitation + Lizenz). Anzeige:
+ *    „Abel: Leibmedicus (1699) · Deutsches Textarchiv · CC BY-SA 4.0".
+ *
+ * Das Schema wird beim Öffnen erkannt (Tabelle `saetze` vorhanden?). Beide
+ * Pfade liefern nach außen dieselbe Datenform. Grund für die Doppelspurigkeit:
+ * Code-Deploy (GitHub Actions) und DB-Umschaltung (Env-Var + PM2-Restart) sind
+ * zwei getrennte Schritte, und der Rollback ist ausdrücklich „Env zurück +
+ * Restart" — beides funktioniert nur, wenn dieselbe Version beide DBs liest.
+ *
+ * ── Rückwärts-Varianten-Fallback (DB-Neuaufbau §3.5) ─────────────────────────
+ * Phase E2 hat historische Schreibvarianten in wortprofil_v2 normalisiert
+ * (`thier` → `tier`), die Belegtexte bleiben aber authentisch. Bis Phase F2 die
+ * Lemma-Spalte der Belege nachzieht, würde die Kopplung wortprofil↔belege
+ * brechen: das Spiel fragt nach `tier`, im Korpus steht `thier`. Deshalb liest
+ * dieses Modul `lemma_corrections` aus der Wortprofil-DB rückwärts und ergänzt
+ * die FTS-Query um die Varianten: Suche nach „tier" → ("tier" OR "thier").
  */
 
 import Database from 'better-sqlite3'
@@ -23,6 +44,7 @@ const DB_PATH = process.env.BELEGE_DB
 const MMAP_BYTES = (parseInt(process.env.BELEGE_MMAP_MB ?? '2048', 10)) * 1024 * 1024
 
 let _db = null
+let _schema = null   // 'v1' | 'v2' – nach dem ersten erfolgreichen Öffnen gesetzt
 function db() {
   if (!_db) {
     try {
@@ -30,7 +52,10 @@ function db() {
       _db.pragma('cache_size = -131072')        // 128 MB Page-Cache
       _db.pragma(`mmap_size = ${MMAP_BYTES}`)   // konfigurierbar per BELEGE_MMAP_MB
       _db.pragma('temp_store = MEMORY')
-      logger.info(`Belege-DB geladen: ${DB_PATH}`)
+      _schema = _db
+        .prepare("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'saetze'")
+        .get() ? 'v2' : 'v1'
+      logger.info(`Belege-DB geladen (Schema ${_schema}): ${DB_PATH}`)
     } catch (err) {
       logger.warn({ err }, `Belege-DB nicht verfügbar: ${DB_PATH}`)
       return null
@@ -42,37 +67,59 @@ function db() {
 // Prepared Statements einmalig nach DB-Init — better-sqlite3 cached
 // prepare() NICHT intern, jeder Aufruf kompiliert das SQL neu. Die drei
 // Statements hier liegen auf dem Belege-Hotpath des Spiels (Review 2026-06-10).
+//
+// Beide Schemata liefern dieselben Spalten: satz, ref, jahr, zitation, lizenz
+// (v1 kennt ref/lizenz nicht → NULL). formatQuelle() baut daraus den Anzeige-
+// String. Die v2-Joins sind reine PK-/rowid-Lookups (EXPLAIN QUERY PLAN in
+// Gate F geprüft), der Jahr-Filter läuft über dokumente.jahr.
+const V2_SELECT = `
+  SELECT s.satz AS satz, d.ref AS ref, d.jahr AS jahr,
+         q.zitation AS zitation, q.lizenz AS lizenz
+  FROM belege_fts
+  JOIN saetze s    ON s.id     = belege_fts.rowid
+  JOIN dokumente d ON d.doc_id = s.doc_id
+  JOIN quellen q   ON q.quelle = d.quelle
+  WHERE belege_fts MATCH ?`
+
+const V1_SELECT = `
+  SELECT satz, NULL AS ref, jahr, zitation, NULL AS lizenz
+  FROM belege
+  WHERE belege MATCH ?`
+
 let _stmts = null
 function stmts() {
   const database = db()
   if (!database) return null
   if (!_stmts) {
+    const base = _schema === 'v2' ? V2_SELECT : V1_SELECT
+    const jahrFilter = _schema === 'v2' ? 'd.jahr' : 'jahr'
     _stmts = {
-      topByYear: database.prepare(`
-        SELECT satz, quelle, zitation, jahr
-        FROM belege
-        WHERE belege MATCH ?
-          AND jahr >= ? AND jahr <= ?
-        ORDER BY rank
-        LIMIT ?
-      `),
-      top: database.prepare(`
-        SELECT satz, quelle, zitation, jahr
-        FROM belege
-        WHERE belege MATCH ?
-        ORDER BY rank
-        LIMIT ?
-      `),
-      raw: database.prepare(`
-        SELECT satz, zitation, jahr
-        FROM belege
-        WHERE belege MATCH ?
-        ORDER BY rank
-        LIMIT ?
-      `),
+      topByYear: database.prepare(
+        `${base} AND ${jahrFilter} >= ? AND ${jahrFilter} <= ? ORDER BY rank LIMIT ?`),
+      top: database.prepare(`${base} ORDER BY rank LIMIT ?`),
+      // raw teilt sich das Statement mit top – die Spalten sind identisch,
+      // fetchBelegeRaw ignoriert die nicht gebrauchten schlicht.
+      raw: database.prepare(`${base} ORDER BY rank LIMIT ?`),
     }
   }
   return _stmts
+}
+
+/**
+ * Baut den Anzeige-String einer Fundstelle.
+ *
+ * v2: „ref (Jahr) · Korpus-Zitation · Lizenz" — Dokument, Korpus und Lizenz
+ *     getrennt (DB-Neuaufbau §3.4). Das Jahr wird nur angehängt, wenn es nicht
+ *     ohnehin schon in der ref steht („BT-PlPr. 07/143, 23.01.1975",
+ *     „Leipzig (deu_news) 2016") – sonst stünde es doppelt.
+ * v1: „Zitation · Jahr" wie bisher (die Lizenz steckt dort im Zitations-String).
+ */
+function formatQuelle(r) {
+  if (!r.ref) return r.jahr ? `${r.zitation} · ${r.jahr}` : r.zitation
+  const dok = r.jahr && !String(r.ref).includes(String(r.jahr))
+    ? `${r.ref} (${r.jahr})`
+    : r.ref
+  return [dok, r.zitation, r.lizenz].filter(Boolean).join(' · ')
 }
 
 /**
@@ -90,10 +137,14 @@ function matchesLemma(wordLow, lemmaLow) {
 /**
  * Tokenisiert einen Satz und markiert Wörter, die mit lemma oder collocate beginnen.
  * Gibt das DWDS-kompatible tokens-Format zurück: [{w, ws, hl}]
+ *
+ * Die Hervorhebung kennt dieselben historischen Schreibvarianten wie die Suche
+ * (§3.5). Sonst fände die FTS-Query zwar einen Satz über „Critik", die Anzeige
+ * markierte darin aber nichts — mit der Folge, dass die KWiC-Zerlegung im Archiv
+ * leer ausfällt und im Spiel das gesuchte Wort unmarkiert bliebe.
  */
 function tokenize(sentence, lemma, collocate) {
-  const lemmaLow     = lemma.toLowerCase()
-  const collocateLow = collocate.toLowerCase()
+  const formen = [...suchformen(lemma), ...suchformen(collocate)]
 
   // Wörter und Interpunktion splitten, Leerzeichen als ws-Flag merken
   const parts = sentence.split(/(\s+)/)
@@ -108,7 +159,7 @@ function tokenize(sentence, lemma, collocate) {
     if (!part) continue
 
     const wordLow = part.replace(/[.,;:!?"""''()[\]]/g, '').toLowerCase()
-    const hl = matchesLemma(wordLow, lemmaLow) || matchesLemma(wordLow, collocateLow)
+    const hl = formen.some(f => matchesLemma(wordLow, f))
 
     tokens.push({ w: part, ws: expectWs, hl })
     expectWs = false
@@ -117,14 +168,75 @@ function tokenize(sentence, lemma, collocate) {
   return tokens
 }
 
+// ── Rückwärts-Varianten aus lemma_corrections (§3.5) ─────────────────────────
+// Map: modernes Lemma → historische Schreibvarianten, die im Korpustext stehen
+// („tier" → ["thier"]). Wird einmal lazy aus der Wortprofil-DB gelesen (11.005
+// freigegebene Zeilen, ~10 ms) und danach im Speicher gehalten; die Verbindung
+// wird sofort wieder geschlossen. Fehlt die Tabelle (alte wortprofil.db) oder
+// die DB selbst, bleibt die Map leer → Verhalten exakt wie vorher.
+let _varianten = null
+function varianten() {
+  if (_varianten) return _varianten
+  _varianten = new Map()
+  const wortprofilPath = process.env.WORTPROFIL_DB
+    ?? resolve(__dirname, '..', 'wortprofil', '05_db', 'wortprofil.db')
+  let wdb = null
+  try {
+    wdb = new Database(wortprofilPath, { readonly: true, fileMustExist: true })
+    const rows = wdb
+      .prepare('SELECT alt, korrekt FROM lemma_corrections WHERE freigegeben = 1')
+      .all()
+    for (const { alt, korrekt } of rows) {
+      const key = String(korrekt).toLowerCase()
+      const list = _varianten.get(key)
+      if (list) { if (!list.includes(alt)) list.push(alt) }
+      else _varianten.set(key, [alt])
+    }
+    logger.info(`Belege: ${_varianten.size} Lemmata mit historischen Schreibvarianten geladen`)
+  } catch (err) {
+    logger.info({ err: err.message }, 'Belege: kein lemma_corrections-Mapping – Variantensuche inaktiv')
+  } finally {
+    try { wdb?.close() } catch { /* egal */ }
+  }
+  return _varianten
+}
+
+const escFts = s => String(s).replace(/"/g, '""')
+
+/**
+ * Alle Formen, unter denen ein Wort im Korpustext stehen kann: das Wort selbst
+ * plus seine historischen Schreibvarianten aus lemma_corrections, alle klein.
+ * Ohne Mapping (v1-DB) bleibt es bei genau einer Form – Verhalten wie vorher.
+ */
+function suchformen(word) {
+  const low = String(word ?? '').toLowerCase()
+  if (!low) return []
+  const alts = varianten().get(low)
+  return alts ? [low, ...alts.map(a => a.toLowerCase())] : [low]
+}
+
+/**
+ * Baut den FTS5-Ausdruck für EIN Suchwort, wahlweise mit den historischen
+ * Schreibvarianten: „tier" → ("tier" OR "thier").
+ *
+ * Die Formen werden immer als Phrase gequotet – auch im Prefix-Fall. Ein nacktes
+ * `e-mail*` wäre ein FTS5-Syntaxfehler; `"e-mail"*` ist ein gültiges Phrasen-
+ * Präfix. Seit F7 (Bindestrich-Lemmata zugelassen) ist das kein Randfall mehr.
+ */
+function ftsTerm(word, { prefix = false, mitVarianten = false } = {}) {
+  const low = String(word ?? '').toLowerCase()
+  if (!low) return '""'
+  const formen = mitVarianten ? suchformen(word) : [low]
+  const teile = formen.map(f => (prefix ? `"${escFts(f)}"*` : `"${escFts(f)}"`))
+  return teile.length === 1 ? teile[0] : `(${teile.join(' OR ')})`
+}
+
 /**
  * Baut einen FTS5-MATCH-Ausdruck aus lemma + collocate.
  * FTS5 sucht case-insensitiv nach Wort-Tokens.
  */
-function buildFtsQuery(lemma, collocate) {
-  // Anführungszeichen escapen (FTS5-Syntax)
-  const esc = s => s.replace(/"/g, '""')
-  return `"${esc(lemma)}" "${esc(collocate)}"`
+function buildFtsQuery(lemma, collocate, opts = {}) {
+  return `${ftsTerm(lemma, opts)} AND ${ftsTerm(collocate, opts)}`
 }
 
 /**
@@ -135,11 +247,37 @@ function buildFtsQuery(lemma, collocate) {
  *
  * Mindestlänge 4 Zeichen, damit kurze Wörter nicht zu viele False Positives erzeugen.
  */
-function buildFtsQueryPrefix(lemma, collocate) {
-  const esc = s => s.replace(/"/g, '""')
-  const collLow = collocate.toLowerCase()
-  const collPart = collLow.length >= 4 ? `${collLow}*` : `"${esc(collocate)}"`
-  return `"${esc(lemma)}" ${collPart}`
+function buildFtsQueryPrefix(lemma, collocate, opts = {}) {
+  return `${ftsTerm(lemma, opts)} AND ${ftsTerm(collocate, { ...opts, prefix: String(collocate).length >= 4 })}`
+}
+
+// Ab wie vielen Treffern die moderne Schreibung allein als ausreichend gilt.
+const MIN_TREFFER_OHNE_VARIANTEN = 2
+
+/**
+ * Führt eine FTS-Suche ZWEISTUFIG aus: zuerst nur mit der modernen Schreibung,
+ * und erst wenn die (fast) nichts findet, ein zweites Mal mit den historischen
+ * Varianten aus lemma_corrections.
+ *
+ * Warum nicht beides in einem `OR`-Ausdruck: FTS5 rankt nach BM25, und BM25
+ * gewichtet seltene Terme höher. `("wasser" OR "waßer")` liefert deshalb fast
+ * ausschließlich die historische Schreibung, obwohl „Wasser" millionenfach
+ * modern belegt ist — im Archiv standen dadurch fünf von fünf Belegen in
+ * Schreibung des 19. Jahrhunderts. Der Variantenzweig ist ein Auffangnetz für
+ * die wortprofil↔belege-Kopplung im Fenster bis Phase F2 (§3.5), kein
+ * gleichberechtigter Suchbegriff.
+ *
+ * @param {(mitVarianten: boolean) => string} bauQuery  erzeugt den MATCH-Ausdruck
+ * @param {(q: string) => Array} suche                  führt die Query aus
+ */
+function sucheMitVariantenFallback(bauQuery, suche) {
+  const modern = bauQuery(false)
+  const rows = suche(modern)
+  if (rows.length >= MIN_TREFFER_OHNE_VARIANTEN) return rows
+  const historisch = bauQuery(true)
+  if (historisch === modern) return rows          // keine Varianten bekannt
+  const mitVarianten = suche(historisch)
+  return mitVarianten.length > rows.length ? mitVarianten : rows
 }
 
 /**
@@ -167,20 +305,20 @@ export function fetchBelege(lemma, collocate, { limit = 5, year = null } = {}) {
   const pool = limit * 3
 
   try {
-    const ftsQuery = buildFtsQuery(lemma, collocate)
+    const bauQuery = v => buildFtsQuery(lemma, collocate, { mitVarianten: v })
 
     let rows
     // Mit Jahres-Filter zuerst versuchen, dann ohne
     if (year) {
       const y = parseInt(year)
-      rows = s.topByYear.all(ftsQuery, y - 15, y + 15, pool)
+      rows = sucheMitVariantenFallback(bauQuery, q => s.topByYear.all(q, y - 15, y + 15, pool))
 
       // Zu wenige Treffer → ohne Jahres-Filter
       if (rows.length < 2) {
-        rows = s.top.all(ftsQuery, pool)
+        rows = sucheMitVariantenFallback(bauQuery, q => s.top.all(q, pool))
       }
     } else {
-      rows = s.top.all(ftsQuery, pool)
+      rows = sucheMitVariantenFallback(bauQuery, q => s.top.all(q, pool))
     }
 
     // Deduplizieren (gleicher Satz aus verschiedenen Quellen)
@@ -195,12 +333,7 @@ export function fetchBelege(lemma, collocate, { limit = 5, year = null } = {}) {
     // Zufällig limit Belege aus dem Relevanz-Pool wählen
     return shuffle(unique).slice(0, limit).map(r => ({
       tokens: tokenize(r.satz, lemma, collocate),
-      // Vollständige Zitation aus build_belege.py (QUELLEN_META), z.B.:
-      // "Barbaresi, A. (2019). German Political Speeches Corpus … · CC BY-SA"
-      // Optional mit Jahr wenn vorhanden
-      quelle: r.jahr
-        ? `${r.zitation} · ${r.jahr}`
-        : r.zitation,
+      quelle: formatQuelle(r),
     }))
   } catch (err) {
     logger.warn({ err }, `Belege-Suche fehlgeschlagen: ${lemma}+${collocate}`)
@@ -218,10 +351,11 @@ export function fetchBelegeRaw(lemma, collocate, { limit = 20, prefixCollocate =
   if (!s) return []
 
   try {
-    const ftsQuery = prefixCollocate
-      ? buildFtsQueryPrefix(lemma, collocate)
-      : buildFtsQuery(lemma, collocate)
-    const rows = s.raw.all(ftsQuery, limit)
+    const bau = prefixCollocate ? buildFtsQueryPrefix : buildFtsQuery
+    const rows = sucheMitVariantenFallback(
+      v => bau(lemma, collocate, { mitVarianten: v }),
+      q => s.raw.all(q, limit),
+    )
 
     const seen = new Set()
     return rows
@@ -233,7 +367,7 @@ export function fetchBelegeRaw(lemma, collocate, { limit = 20, prefixCollocate =
       })
       .map(r => ({
         satz: r.satz,
-        quelle: r.jahr ? `${r.zitation} · ${r.jahr}` : r.zitation,
+        quelle: formatQuelle(r),
       }))
   } catch (err) {
     logger.warn({ err }, `fetchBelegeRaw fehlgeschlagen: ${lemma}+${collocate}`)
@@ -307,9 +441,11 @@ function splitKwic(tokens) {
 export function fetchBelegeForLemma(lemma, { limit = 2 } = {}) {
   const s = stmts()
   if (!s) return []
-  const esc = str => String(str).replace(/"/g, '""')
   try {
-    const rows = s.top.all(`"${esc(lemma)}"`, limit * 4)
+    const rows = sucheMitVariantenFallback(
+      v => ftsTerm(lemma, { mitVarianten: v }),
+      q => s.top.all(q, limit * 4),
+    )
     const seen = new Set()
     const unique = rows.filter(r => {
       const key = r.satz.trim().toLowerCase()
@@ -322,7 +458,7 @@ export function fetchBelegeForLemma(lemma, { limit = 2 } = {}) {
       const tokens = tokenize(r.satz, lemma, '')
       return {
         satz: r.satz,
-        quelle: r.jahr ? `${r.zitation} · ${r.jahr}` : r.zitation,
+        quelle: formatQuelle(r),
         tokens,
         kwic: splitKwic(tokens),
       }

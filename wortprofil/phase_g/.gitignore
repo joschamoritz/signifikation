@@ -1,0 +1,10 @@
+# Arbeitsdateien aus Phase G – nicht versionieren.
+#
+# _lemmata_prod.txt ist der Lemma-Bestand aus der produktiven signifikation.db
+# und enthält auch die BEREITS GEPLANTEN künftigen Spielwörter. Genau deshalb
+# schließt das öffentliche Archiv Slugs mit künftigem Spieltag komplett aus
+# (server/archive/index.js) – eine Kopie im Repo würde diesen Schutz aushebeln.
+_lemmata_prod.txt
+
+# Messergebnisse: Momentaufnahmen, gehören in die Session-Doku, nicht ins Repo.
+latenz_*.txt
