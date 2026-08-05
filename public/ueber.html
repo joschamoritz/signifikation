@@ -88,7 +88,7 @@
     <dt>Entstehung</dt>
     <dd>Entwicklung ab März 2026 · Web-Version seit April 2026 · iOS-Testphase seit Mai 2026 · Store-Release ausstehend</dd>
     <dt>Datenbasis</dt>
-    <dd>2,19&thinsp;Mrd. Tokens aus 15 offen lizenzierten Korpora</dd>
+    <dd>3,45&thinsp;Mrd. Tokens aus 18 offen lizenzierten Korpora</dd>
     <dt>Verfahren</dt>
     <dd>Syntaktische Dependenzanalyse (spaCy <code>de_zdl_lg</code>), logDice</dd>
     <dt>Spielmodi</dt>
@@ -226,8 +226,10 @@
     Zusätzlich zur Kollokationsdatenbank entsteht aus denselben Korpora ein
     <strong>Volltextindex</strong> (SQLite FTS5) für die Belegsuche. Beim Anklicken
     einer Kollokation werden Originalsätze mit beiden Wörtern gesucht und mit
-    vollständiger Quellenangabe und Lizenzhinweis angezeigt. Der Index umfasst
-    über 50&thinsp;Millionen Sätze aus neun Korpora. Für die
+    vollständiger Quellenangabe und Lizenzhinweis angezeigt – seit August 2026
+    <strong>dokumentgenau</strong>, also mit Titel, Autor und Jahr der einzelnen
+    Fundstelle statt nur des Korpusnamens. Der Index umfasst
+    141,7&thinsp;Millionen Sätze aus 3,48&thinsp;Millionen Dokumenten und 23 Quellen. Für die
     <strong>Zeitenwende</strong>-Runde werden die Tripel nach Entstehungsjahrzehnt
     gruppiert, sodass Verschiebungen im Kollokationsverhalten über Jahrhunderte
     sichtbar werden. Die <strong>Wort-Zwilling</strong>-Runde vergleicht die
@@ -238,26 +240,31 @@
 
   <h2 id="korpora">Verwendete Korpora</h2>
   <p class="tabellen-hinweis">
-    Korpora ohne Belegeindex fließen in das Wortprofil ein, werden aktuell aber nicht für
-    den Textbeleg-Index verwendet (da historische Sprache für Spieler eher schwer zugänglich ist).
+    Alle Korpora fließen in das Wortprofil ein. Für den Textbeleg-Index gilt zusätzlich:
+    Die historischen Archivkorpora werden erst ab dem Erscheinungsjahr 1830 und mit
+    Qualitätsfilter herangezogen (ältere Sprachstufen sind für Spielende schwer
+    zugänglich); die mittelhochdeutschen und frühneuhochdeutschen Referenzkorpora sowie
+    die Gerichtsentscheidungen bleiben ganz außen vor.
   </p>
 
   <div class="korpus-chart-wrap">
     <div class="korpus-bar">
-      <div class="korpus-seg" style="flex: 0 0 24.4%; background: #9b1c1c;" title="Presse &amp; Nachrichtentexte: 535 Mio. Tokens"></div>
-      <div class="korpus-seg" style="flex: 0 0 25.8%; background: #4f46e5;" title="Politik &amp; Parlament: 565 Mio. Tokens"></div>
-      <div class="korpus-seg" style="flex: 0 0 42.3%; background: #b45309;" title="Archivkorpora (17.–20. Jh.): 926 Mio. Tokens"></div>
-      <div class="korpus-seg" style="flex: 0 0 4.5%; background: #166534;" title="Belletristik: 99 Mio. Tokens"></div>
-      <div class="korpus-seg" style="flex: 0 0 2.9%; background: #8a7f6e;" title="Sachtext &amp; Recht: 64 Mio. Tokens"></div>
+      <div class="korpus-seg" style="flex: 0 0 29.7%; background: #c9a84c;" title="Enzyklopädie &amp; Sachtext: 1.026 Mio. Tokens"></div>
+      <div class="korpus-seg" style="flex: 0 0 15.5%; background: #9b1c1c;" title="Presse &amp; Nachrichtentexte: 535 Mio. Tokens"></div>
+      <div class="korpus-seg" style="flex: 0 0 15.9%; background: #4f46e5;" title="Politik &amp; Parlament: 550 Mio. Tokens"></div>
+      <div class="korpus-seg" style="flex: 0 0 9.6%; background: #8a7f6e;" title="Recht &amp; Rechtsprechung: 330 Mio. Tokens"></div>
+      <div class="korpus-seg" style="flex: 0 0 26.4%; background: #b45309;" title="Archivkorpora (15.–20. Jh.): 912 Mio. Tokens"></div>
+      <div class="korpus-seg" style="flex: 0 0 2.9%; background: #166534;" title="Belletristik: 99 Mio. Tokens"></div>
     </div>
     <div class="korpus-legend">
-      <div class="korpus-legend-item"><span class="korpus-dot" style="background:#9b1c1c;"></span><span class="korpus-legend-label">Presse &amp; Nachrichtentexte</span><span class="korpus-legend-val">535 Mio. · 24&thinsp;%</span></div>
-      <div class="korpus-legend-item"><span class="korpus-dot" style="background:#4f46e5;"></span><span class="korpus-legend-label">Politik &amp; Parlament</span><span class="korpus-legend-val">565 Mio. · 26&thinsp;%</span></div>
-      <div class="korpus-legend-item"><span class="korpus-dot" style="background:#b45309;"></span><span class="korpus-legend-label">Archivkorpora (17.–20.&thinsp;Jh.)</span><span class="korpus-legend-val">926 Mio. · 42&thinsp;%</span></div>
-      <div class="korpus-legend-item"><span class="korpus-dot" style="background:#166534;"></span><span class="korpus-legend-label">Belletristik</span><span class="korpus-legend-val">99 Mio. · 5&thinsp;%</span></div>
-      <div class="korpus-legend-item"><span class="korpus-dot" style="background:#8a7f6e;"></span><span class="korpus-legend-label">Sachtext &amp; Recht</span><span class="korpus-legend-val">64 Mio. · 3&thinsp;%</span></div>
+      <div class="korpus-legend-item"><span class="korpus-dot" style="background:#c9a84c;"></span><span class="korpus-legend-label">Enzyklopädie &amp; Sachtext</span><span class="korpus-legend-val">1.026 Mio. · 30&thinsp;%</span></div>
+      <div class="korpus-legend-item"><span class="korpus-dot" style="background:#b45309;"></span><span class="korpus-legend-label">Archivkorpora (15.–20.&thinsp;Jh.)</span><span class="korpus-legend-val">912 Mio. · 26&thinsp;%</span></div>
+      <div class="korpus-legend-item"><span class="korpus-dot" style="background:#4f46e5;"></span><span class="korpus-legend-label">Politik &amp; Parlament</span><span class="korpus-legend-val">550 Mio. · 16&thinsp;%</span></div>
+      <div class="korpus-legend-item"><span class="korpus-dot" style="background:#9b1c1c;"></span><span class="korpus-legend-label">Presse &amp; Nachrichtentexte</span><span class="korpus-legend-val">535 Mio. · 16&thinsp;%</span></div>
+      <div class="korpus-legend-item"><span class="korpus-dot" style="background:#8a7f6e;"></span><span class="korpus-legend-label">Recht &amp; Rechtsprechung</span><span class="korpus-legend-val">330 Mio. · 10&thinsp;%</span></div>
+      <div class="korpus-legend-item"><span class="korpus-dot" style="background:#166534;"></span><span class="korpus-legend-label">Belletristik</span><span class="korpus-legend-val">99 Mio. · 3&thinsp;%</span></div>
     </div>
-    <p class="korpus-total">Gesamt: 2,19&thinsp;Mrd. Tokens aus 15 Korpora</p>
+    <p class="korpus-total">Gesamt: 3,45&thinsp;Mrd. Tokens aus 18 Korpora</p>
   </div>
 
   <table class="korpora-tabelle">
@@ -272,6 +279,13 @@
     </thead>
     <tbody>
       <tr>
+        <td>Wikipedia (dewiki)</td>
+        <td>Freie Enzyklopädie – Artikelfließtext, 2,26 Mio. Artikel</td>
+        <td><span class="lizenz-tag">CC BY-SA 4.0</span></td>
+        <td class="num">980 Mio.</td>
+        <td><a href="https://de.wikipedia.org" target="_blank" rel="noopener">Wikimedia Foundation</a></td>
+      </tr>
+      <tr>
         <td>Wortschatz-Korpus Leipzig</td>
         <td>Zeitungsnachrichten (deu_news, deu_newscrawl)</td>
         <td><span class="lizenz-tag">CC BY</span></td>
@@ -280,10 +294,17 @@
       </tr>
       <tr>
         <td>Bundestag-Protokolle (DIP)</td>
-        <td>Plenarprotokolle des Deutschen Bundestags (XML + PDF)</td>
+        <td>Plenarprotokolle des Deutschen Bundestags (XML + PDF). Die Daten sind bei <a href="https://dip.bundestag.de" target="_blank" rel="noopener">dip.bundestag.de</a> kostenfrei verfügbar.</td>
         <td><span class="lizenz-tag">Datenlizenz Deutschland BY 2.0</span></td>
-        <td class="num">298 Mio.</td>
+        <td class="num">289 Mio.</td>
         <td><a href="https://dip.bundestag.de" target="_blank" rel="noopener">dip.bundestag.de</a></td>
+      </tr>
+      <tr>
+        <td>Entscheidungen der Bundesgerichte</td>
+        <td>BVerfG, BGH (inkl. Strafsachen 20.&thinsp;Jh.), BVerwG, BPatG, BAG, BFH · nur Wortprofil</td>
+        <td><span class="lizenz-tag">CC0 1.0</span> (amtliche Werke)</td>
+        <td class="num">311 Mio.</td>
+        <td><a href="https://huggingface.co/datasets/coral-nlp/german-commons" target="_blank" rel="noopener">German Commons</a></td>
       </tr>
       <tr>
         <td>German Political Speeches Corpus</td>
@@ -329,37 +350,37 @@
       </tr>
       <tr>
         <td>Reichstagsprotokolle</td>
-        <td>Stenographische Berichte des Deutschen Reichstags (1867–1942) · nur Wortprofil</td>
+        <td>Stenographische Berichte des Deutschen Reichstags (1867–1942)</td>
         <td><span class="lizenz-tag">CC BY-SA 4.0</span></td>
-        <td class="num">256 Mio.</td>
+        <td class="num">250 Mio.</td>
         <td><a href="https://huggingface.co/datasets/coral-nlp/german-commons" target="_blank" rel="noopener">German Commons</a></td>
       </tr>
       <tr>
         <td>DiBiPhil</td>
-        <td>Digitale Bibliothek Philosophie · nur Wortprofil</td>
+        <td>Digitale Bibliothek Philosophie</td>
         <td><span class="lizenz-tag">CC BY-SA 4.0</span></td>
         <td class="num">13 Mio.</td>
         <td><a href="https://huggingface.co/datasets/coral-nlp/german-commons" target="_blank" rel="noopener">German Commons</a></td>
       </tr>
       <tr>
         <td>Deutsches Textarchiv – Kernkorpus &amp; Erweiterungen</td>
-        <td>Belletristische, wissenschaftliche und Gebrauchstexte (17.–20. Jh.) · nur Wortprofil</td>
+        <td>Belletristische, wissenschaftliche und Gebrauchstexte (15.–20. Jh.) · Belege ab 1830</td>
         <td><span class="lizenz-tag">CC BY-SA 4.0</span></td>
-        <td class="num">320 Mio.</td>
+        <td class="num">312 Mio.</td>
         <td><a href="https://www.deutschestextarchiv.de" target="_blank" rel="noopener">deutschestextarchiv.de</a></td>
       </tr>
       <tr>
         <td>DTA Sondersammlungen</td>
-        <td>Edition Humboldt Digital, Jean-Paul-Briefe, Dinglers Polytechnisches Journal, Patiententexte, Novellenschatz, Soldatenbriefe, Stimm-los · nur Wortprofil</td>
+        <td>Edition Humboldt Digital, Jean-Paul-Briefe, Dinglers Polytechnisches Journal, Patiententexte, Novellenschatz, Soldatenbriefe, Stimm-los · Belege ab 1830</td>
         <td><span class="lizenz-tag">CC BY-SA 4.0</span></td>
         <td class="num">81 Mio.</td>
         <td><a href="https://github.com/deutschestextarchiv" target="_blank" rel="noopener">DTA GitHub</a></td>
       </tr>
       <tr>
         <td>GEI-Digital</td>
-        <td>Historische Schulbücher (17.–20. Jh.) · nur Wortprofil</td>
+        <td>Historische Schulbücher (17.–20. Jh.) · Belege ab 1830</td>
         <td><span class="lizenz-tag">Public Domain</span></td>
-        <td class="num">506 Mio.</td>
+        <td class="num">501 Mio.</td>
         <td><a href="https://doi.org/10.5281/zenodo.15729290" target="_blank" rel="noopener">Zenodo 15729290</a></td>
       </tr>
       <tr>
@@ -379,7 +400,14 @@
     </tbody>
   </table>
   <p class="tabellen-fussnote">
-    Tokens gezählt als Leerzeichen-getrennte Wortformen (inkl. Interpunktion).
+    Tokens gezählt als Leerzeichen-getrennte Wortformen (inkl. Interpunktion); Stand August 2026.
+    Jeder angezeigte Beleg nennt zusätzlich sein einzelnes Quelldokument, die Korpus-Zitation
+    und die Lizenz. Die aus diesen Korpora abgeleitete Kollokationsdatenbank steht wegen der
+    enthaltenen Share-alike-Korpora unter
+    <a href="https://creativecommons.org/licenses/by-sa/4.0/deed.de" target="_blank" rel="noopener">CC BY-SA 4.0</a>.
+    Die Wikimedia-Inhalte (Wikipedia, Wikibooks, Wikivoyage) stammen von der Wikimedia
+    Foundation und ihren Autorinnen und Autoren; Änderungen: Aus den Artikeltexten wurden
+    Einzelsätze extrahiert und statistisch ausgewertet.
   </p>
 
   <div class="footnotes" id="literatur">

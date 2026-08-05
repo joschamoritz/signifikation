@@ -424,7 +424,7 @@ def test_ref_german_commons_justiz():
     assert any(d["quelle"] == "bverfg" for d in docs)
 
 
-# ── Wikipedia (nur belege.db) ────────────────────────────────────────────────
+# ── Wikipedia (belege_v2 UND wortprofil_v2 – F1 revidiert 2026-07-24) ────────
 
 @pytest.mark.parametrize("absatz,erwartet", [
     ("Berlin ist die Hauptstadt der Bundesrepublik Deutschland und mit rund "

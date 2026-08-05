@@ -2,8 +2,10 @@
 Wikipedia (dewiki) – Dump-Download + wikiextractor-Extraktion
 Quelle: dumps.wikimedia.org/dewiki/latest | Lizenz: CC BY-SA 4.0
 
-Nur für belege.db bestimmt (DB-Neuaufbau.md, F1) – NICHT in die
-parse_deps-DATEIEN-Liste für wortprofil.db aufnehmen.
+Fuer BEIDE Datenbanken (belege_v2 und wortprofil_v2). Die urspruengliche
+F1-Entscheidung (2026-07-22) lautete "nur belege"; sie wurde am 2026-07-24 nach
+dem Phase-C-A/B-Test revidiert (+39 % Kollokationen, +33 % Lemmata) – wikipedia.jsonl
+steht seitdem auch in parse_deps_v2.DATEIEN.
 
 Ablauf:
   1. dewiki-latest-pages-articles.xml.bz2 herunterladen (~7,3 GB, Resume via
