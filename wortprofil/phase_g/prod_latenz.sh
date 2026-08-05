@@ -76,11 +76,28 @@ for paar in "${PAARE[@]}"; do
 done
 
 echo
-# Seiten ohne eigenen Antwort-Cache-Key-Trick: hier ist der ERSTE Wert der
-# aussagekräftige (SSR-Seiten cachen intern 1 h, siehe buildWortDetailCached).
-for pfad in "/wort/wasser" "/archiv" "/api/v1/heute"; do
-  t=$(curl -s -o /dev/null -w '%{time_total}' --max-time 30 "$BASIS$pfad?cb=$RANDOM" 2>/dev/null || echo 99)
-  printf '%-26s %9ss %10s\n' "$pfad" "$t" "(1 Lauf)"
+# Das Archiv kennt NUR gespielte Lemmata. `/wort/wasser` stand hier lange fest
+# verdrahtet und lieferte in Wahrheit die „Eintrag nicht gefunden"-Seite: 1,4 kB
+# ohne einen einzigen Korpusbeleg, gemessen 0,14 s statt der echten 0,33 s. Die
+# Zeile sah unauffällig aus und maß gar nichts. Deshalb wird das Lemma jetzt aus
+# `/archiv` gezogen; `alkohol` ist nur der Notnagel, falls das fehlschlägt.
+ARCHIV_LEMMA=$(curl -s --max-time 20 "$BASIS/archiv" 2>/dev/null \
+  | grep -o 'href="/wort/[^"]*"' | sed 's|href="/wort/||; s|"||' | grep -v '^archiv$' \
+  | head -1)
+ARCHIV_LEMMA=${ARCHIV_LEMMA:-alkohol}
+
+# SSR-Seiten cachen intern 1 h (buildWortDetailCached) und der Cache-Key ist das
+# Lemma, nicht die Query — `?cb=` bustet ihn also NICHT. Aussagekräftig ist der
+# erste Abruf nach einem Neustart bzw. nach Ablauf der Stunde.
+for pfad in "/wort/$ARCHIV_LEMMA" "/archiv" "/api/v1/heute"; do
+  t=$(curl -s -o /tmp/prod_latenz_seite.$$ -w '%{time_total}' --max-time 30 "$BASIS$pfad?cb=$RANDOM" 2>/dev/null || echo 99)
+  hinweis="(1 Lauf)"
+  case "$pfad" in
+    /wort/*) grep -q 'Aus dem Korpus' /tmp/prod_latenz_seite.$$ \
+               || hinweis="(1 Lauf, OHNE Belege!)" ;;
+  esac
+  printf '%-26s %9ss %10s\n' "$pfad" "$t" "$hinweis"
+  rm -f /tmp/prod_latenz_seite.$$
 done
 
 echo
