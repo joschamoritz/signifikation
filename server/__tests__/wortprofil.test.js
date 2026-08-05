@@ -58,6 +58,46 @@ beforeAll(() => {
   ins.run('konto', 'Substantiv', 'KON', 'konto-Substantiv-KON', 'ist koordiniert mit',
     'haben', 'haben', 'Substantiv', 300, 7.0)
 
+  // ── Datenlage für die kasusgenaue Objekt-Beschriftung ─────────────────────
+  // REKTION_SCHWELLE ist 0,9: erst ab 90 % Anteil unter den bestimmbaren Kasus
+  // (Acc/Dat/Gen — Nom und Leerwerte zählen nicht mit) wird beschriftet.
+  const insK = db.prepare(`INSERT INTO collocations
+    (lemma, pos, relation, relation_full, relation_description, form,
+     dep_lemma, dep_pos, frequency, logDice, dep_case)
+    VALUES (?, 'Verb', 'OBJA', ?, 'Akkusativobjekt', ?, ?, 'Substantiv', ?, ?, ?)`)
+  const objekte = [
+    // eindeutig Dativ (98 %) → „Dativobjekt"
+    ['folgen', 'ruf', 900, 9.5, 'Dat'],
+    ['folgen', 'beispiel', 800, 9.1, 'Dat'],
+    ['folgen', 'einladung', 700, 8.8, 'Dat'],
+    ['folgen', 'sache', 50, 6.0, 'Acc'],
+    // eindeutig Akkusativ; „wein"/„wasser" tragen KEINEN bestimmbaren Kasus und
+    // müssen trotzdem dasselbe Etikett bekommen wie „bier" (Konsistenzfall)
+    ['trinken', 'bier', 900, 9.5, 'Acc'],
+    ['trinken', 'wein', 800, 9.2, ''],
+    ['trinken', 'wasser', 700, 8.9, 'Nom'],
+    // gemischt (55 % / 45 %) → neutral
+    ['danken', 'gast', 550, 9.0, 'Acc'],
+    ['danken', 'helfer', 450, 8.6, 'Dat'],
+    // nur Nom und leer → gar keine Grundlage → neutral
+    ['tun', 'ding', 900, 9.4, 'Nom'],
+    ['tun', 'arbeit', 800, 9.0, ''],
+  ]
+  for (const [verb, obj, f, ld, kasus] of objekte) {
+    insK.run(verb, `${verb}-Verb-OBJA`, obj, obj, f, ld, kasus)
+  }
+  // Rückrichtung: Basis ist das Nomen, das Verb steht im Kollokator. Der Kasus
+  // muss über die Rektion DIESES Verbs kommen, nicht aus der Zeile selbst.
+  const insR = db.prepare(`INSERT INTO collocations
+    (lemma, pos, relation, relation_full, relation_description, form,
+     dep_lemma, dep_pos, frequency, logDice, dep_case)
+    VALUES (?, 'Substantiv', '~OBJA', ?, 'ist Akkusativobjekt von', ?, ?, 'Verb', ?, ?, '')`)
+  for (const [nomen, verb, f, ld] of [
+    ['ruf', 'folgen', 900, 9.5], ['bier', 'trinken', 900, 9.5], ['gast', 'danken', 550, 9.0],
+  ]) {
+    insR.run(nomen, `${nomen}-Substantiv-~OBJA`, verb, verb, f, ld)
+  }
+
   // Häufigkeiten für die Wortart-Ermittlung („deutsch" ist erdrückend Adjektiv,
   // hätte aber nach der alten Kollokator-Anzahl als Substantiv gewonnen).
   const lcf = db.prepare('INSERT INTO lemma_corpus_freq VALUES (?, ?, ?, ?)')
@@ -147,6 +187,58 @@ describe('AUX-Anzeigefilter (F12)', () => {
     const wp = await ladeModul({ hideAux: true })
     const woerter = wp.queryRelation('Konto', 'Substantiv', 'KON').map(r => r.lemma)
     expect(woerter).toEqual(['Haben'])   // normalizeLemma schreibt Substantive groß
+  })
+})
+
+describe('kasusgenaue Objekt-Beschriftung (Phase G, Terminologie)', () => {
+  const muster = (wp, verb) =>
+    wp.fetchSyntagmaticPatterns(verb, 'Verb', { limit: 10 })
+      .patterns.filter(p => p.relation === 'OBJA').map(p => p.muster)
+
+  it('beschriftet ein Dativ-Verb als Dativobjekt statt als Akkusativobjekt', async () => {
+    const wp = await ladeModul({ hideAux: false })
+    expect(muster(wp, 'folgen')).toEqual(Array(4).fill('Dativobjekt'))
+  })
+
+  it('lässt ein Akkusativ-Verb bei Akkusativobjekt', async () => {
+    const wp = await ladeModul({ hideAux: false })
+    expect(muster(wp, 'trinken')).toEqual(Array(3).fill('Akkusativobjekt'))
+  })
+
+  // Der eigentliche Grund für die Aggregation über das Verb: „wein" (leer) und
+  // „wasser" (Nom-Artefakt) tragen keinen bestimmbaren Kasus. Zeilenweise
+  // beschriftet stünde „Bier — Akkusativobjekt" neben „Wein — Objekt", ohne dass
+  // es dafür einen sprachlichen Grund gäbe.
+  it('beschriftet alle Objekte eines Verbs gleich, auch ohne Kasus in der Zeile', async () => {
+    const wp = await ladeModul({ hideAux: false })
+    expect(new Set(muster(wp, 'trinken')).size).toBe(1)
+  })
+
+  it('bleibt neutral, wenn die Kasus im Verb gemischt sind', async () => {
+    const wp = await ladeModul({ hideAux: false })
+    // danken: 55 % Acc / 45 % Dat — unter der Schwelle. Genau dieser Fall wurde
+    // an echten Daten als Fehlurteil gemessen (dominant wäre Acc, richtig Dat).
+    expect(muster(wp, 'danken')).toEqual(['Objekt', 'Objekt'])
+  })
+
+  it('bleibt neutral, wenn es gar keinen bestimmbaren Kasus gibt', async () => {
+    const wp = await ladeModul({ hideAux: false })
+    expect(muster(wp, 'tun')).toEqual(['Objekt', 'Objekt'])
+  })
+
+  it('nutzt in der Rückrichtung die Rektion des Kollokator-Verbs', async () => {
+    const wp = await ladeModul({ hideAux: false })
+    const rueck = (nomen) => wp.queryRelation(nomen, 'Substantiv', '~OBJA')
+      .map(r => r.relation_description)
+    expect(rueck('Ruf')).toEqual(['ist Dativobjekt von'])
+    expect(rueck('Bier')).toEqual(['ist Akkusativobjekt von'])
+    expect(rueck('Gast')).toEqual(['ist Objekt von'])
+  })
+
+  it('lässt andere Relationen unangetastet', async () => {
+    const wp = await ladeModul({ hideAux: false })
+    const { patterns } = wp.fetchSyntagmaticPatterns('Konto', 'Substantiv', { limit: 5 })
+    expect(patterns.find(p => p.relation === 'KON')?.muster).toBe('ist koordiniert mit')
   })
 })
 
