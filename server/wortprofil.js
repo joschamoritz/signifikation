@@ -116,9 +116,64 @@ function normalizeLemma(lemma, pos) {
 const VALID_POS     = new Set(['Substantiv', 'Verb', 'Adjektiv', 'Adverb'])
 const VALID_RELCODE = new Set([
   'SUBJA', 'OBJA', 'OBJD', 'ATTR', 'GMOD', 'KON', 'ADV', 'PRED', 'PP',
-  '~SUBJA', '~OBJA', '~OBJD', '~ATTR', '~GMOD', '~ADV',
-  'PRED_REV', // Pseudo-RelCode: Rückwärtssuche über PRED (dep_lemma = adjektiv)
+  '~SUBJA', '~OBJA', '~OBJD', '~ATTR', '~GMOD', '~ADV', '~PRED',
+  'PRED_REV', // Pseudo-RelCode: Adjektiv→Verben, führt ~PRED und ~ADV zusammen
 ])
+
+// Wortarten, unter denen ein Lemma spielbar sein kann (Reihenfolge = Tie-Break).
+const POS_CANDIDATES = ['Substantiv', 'Verb', 'Adjektiv']
+
+// ── Hilfsverben im Anzeige-Layer (Entscheidung F12) ──────────────────────────
+// F12 hat entschieden, AUX-Verben NICHT in der DB zu filtern, sondern optional
+// erst bei der Anzeige — analog zu F11 (Pronomen). Der Mechanismus steht hier,
+// ist aber per Default AUS, weil die Messung an der fertigen v2-DB gegen das
+// Filtern spricht (18 Lemmata, 12 × 50 Ziehungen der Spieloptionen):
+//
+//   • `sein` und `werden` erscheinen in KEINER Anzeige-Oberfläche — weder in den
+//     Spieloptionen noch im Archiv, Lückenfüller oder Wort-Zwilling.
+//   • `haben` erscheint in 7,0 % der Spieloptionen, konzentriert auf drei
+//     Lemmata (Erfolg 42 %, Recht 28 %, Chance 14 %), bei neun weiteren nie.
+//     Nie unter den Top-3, also nie als Lösung. Im Archiv 1× unter den Top-10.
+//   • Genau dort sind es Funktionsverbgefüge („Erfolg haben", „Recht haben") —
+//     fachlich korrekte Kollokationen. Ein Filter entfernte richtige Inhalte,
+//     kein Rauschen.
+//
+// Einschalten mit WORTPROFIL_HIDE_AUX=1; greift dann an allen Stellen, an denen
+// Kollokatoren angezeigt werden (queryRelation speist Spiel, Wort-Zwilling,
+// Lückenfüller und „Eigenes Lemma"; fetchSyntagmaticPatterns das Archiv).
+const AUX_LEMMATA = new Set(['haben', 'sein', 'werden'])
+const HIDE_AUX = process.env.WORTPROFIL_HIDE_AUX === '1'
+
+/** true, wenn dieser Kollokator laut F12-Regel ausgeblendet werden soll. */
+function istVersteckterAux(depLemma, depPos) {
+  return HIDE_AUX && depPos === 'Verb' && AUX_LEMMATA.has(String(depLemma).toLowerCase())
+}
+
+// Der Filter greift NACH dem SQL-LIMIT (F12: nicht in der DB filtern). Ohne
+// Ausgleich lieferte eine Top-10-Liste dann 9 Zeilen. Bei aktivem Filter wird
+// deshalb um höchstens drei Zeilen überfragt und danach auf `limit` gekürzt.
+const AUX_LIMIT_PUFFER = HIDE_AUX ? AUX_LEMMATA.size : 0
+
+// ── Schema-Erkennung (Phase G, DB-Neuaufbau) ─────────────────────────────────
+// wortprofil_v2 bringt zwei Dinge, die v1 nicht hat und die hier gebraucht
+// werden: echte `~PRED`-Zeilen (PRED ist jetzt INVERTIBLE) und die Tabelle
+// `lemma_corpus_freq`. Erkannt wird das an `build_info.pipeline_version`.
+//
+// Warum überhaupt zwei Pfade: Code-Deploy und DB-Umschaltung (Env-Var) sind
+// getrennte Schritte, und der Rollback ist „Env zurück + Restart" — beides
+// setzt voraus, dass dieselbe Server-Version auch die alte DB noch lesen kann.
+let _schema = null
+function schema() {
+  if (!_schema) {
+    let version = null
+    try {
+      version = db().prepare("SELECT value FROM build_info WHERE key = 'pipeline_version'").get()?.value
+    } catch { /* build_info fehlt → v1 */ }
+    _schema = version === 'v2' ? 'v2' : 'v1'
+    logger.info(`Wortprofil-Schema: ${_schema}`)
+  }
+  return _schema
+}
 
 // Prepared Statements einmalig nach DB-Init — better-sqlite3 cached
 // prepare() NICHT intern, jeder Aufruf kompilierte das SQL neu
@@ -152,6 +207,9 @@ function stmts() {
         ORDER BY dep_lemma
       `),
       lemmaExists: database.prepare('SELECT 1 FROM collocations WHERE lemma = ? LIMIT 1'),
+      // Zähler für kanonischesLemma – laufen über idx_lemma_pos bzw. dessen Präfix.
+      lemmaCount: database.prepare('SELECT count(*) AS n FROM collocations WHERE lemma = ? AND pos = ?'),
+      lemmaCountByPos: database.prepare('SELECT pos, count(*) AS n FROM collocations WHERE lemma = ? GROUP BY pos'),
       // Syntagmatische Muster (Archiv): nutzt idx_collocations_top
       // (lemma, pos, logDice DESC, frequency, dep_pos) → Sortierung kommt aus
       // dem Index (kein TEMP B-TREE), frequency/dep_pos werden im Index
@@ -164,13 +222,140 @@ function stmts() {
         ORDER BY logDice DESC
         LIMIT ?
       `),
+      // POS-Häufigkeit eines Lemmas („Elend"-Fix, siehe bestPosByFrequency).
+      // v2 nutzt lemma_corpus_freq: höchstens ~25 Zeilen je (lemma, pos), damit
+      // bei kaltem Cache vorhersehbar schnell. v1 kennt die Tabelle nicht und
+      // muss über collocations summieren (Rollback-Pfad, seltener Fall).
+      posFreq: schema() === 'v2'
+        ? database.prepare(`
+            SELECT pos, SUM(freq) AS f
+            FROM lemma_corpus_freq
+            WHERE lemma = ?
+            GROUP BY pos
+          `)
+        : database.prepare(`
+            SELECT pos, SUM(frequency) AS f
+            FROM collocations
+            WHERE lemma = ?
+            GROUP BY pos
+          `),
     }
   }
   return _stmts
 }
 
+/**
+ * Wortarten eines Lemmas, absteigend nach Korpus-Häufigkeit („Elend"-Fix,
+ * Golden Query #2).
+ *
+ * Vorher wurde die Wortart über die ANZAHL distinkter Kollokatoren bestimmt
+ * (`bestKollokationPos` in customLemma.js). Dieses Maß ist verzerrt: jede Runde
+ * ist auf 30 Treffer gedeckelt, und die Substantiv-Runden (KON, ~OBJA, ATTR)
+ * füllen dieses Limit fast immer, die Adjektiv-Runden fast nie. Ergebnis in v2:
+ * „deutsch" käme als Substantiv heraus (90 vs. 62 Kollokatoren), obwohl es mit
+ * 3,1 Mio. gegen 60 k Vorkommen erdrückend ein Adjektiv ist. „Elend" ging nur
+ * zufällig richtig aus. Die Häufigkeit entscheidet das eindeutig richtig.
+ *
+ * @returns {Array<{pos: string, freq: number}>} nur POS_CANDIDATES, kann leer sein
+ */
+export function posByFrequency(lemma) {
+  try {
+    const rows = stmts().posFreq.all(kanonischesLemma(lemma))
+    return rows
+      .filter(r => POS_CANDIDATES.includes(r.pos))
+      .map(r => ({ pos: r.pos, freq: r.f || 0 }))
+      .sort((a, b) => b.freq - a.freq
+        || POS_CANDIDATES.indexOf(a.pos) - POS_CANDIDATES.indexOf(b.pos))
+  } catch (err) {
+    logger.warn({ err, lemma }, 'posByFrequency fehlgeschlagen')
+    return []
+  }
+}
+
+// ── Kanonische Lemmaform („präzise"-Fix) ─────────────────────────────────────
+// v2 führt Schreibvarianten desselben Worts auf EIN Lemma zusammen — welches,
+// entscheidet dwdsmors Lexikon, und das ist nicht immer die Form, die jemand
+// eintippt oder im Wörterbuch nachschlägt:
+//
+//   präzise →   0 Kollokationen, präzis  →   797      (v1 war 112 / 103 gesplittet)
+//   böse    →   6,               bös     → 1.982
+//   Frieden →   0 (Substantiv),  Friede  → 2.525
+//   Gedanken→   0 (Substantiv),  Gedanke → 4.359
+//
+// Umgekehrt gewinnt manchmal die -e-Form (spröde 281 / spröd 0, weise 733 / weis 0),
+// es gibt also keine Richtungsregel — nur die Datenlage entscheidet.
+//
+// Deshalb: findet eine Abfrage zu wenig, werden morphologische Varianten geprüft
+// und diejenige mit den MEISTEN Kollokationen genommen. Angezeigt wird weiterhin
+// das ursprüngliche Wort — nur die Abfrage wandert. Ein bereits gesundes Lemma
+// wird nie angefasst (Schwelle unten), es kann also nichts verschlechtert werden.
+const KANONISCH_SCHWELLE = 50   // ab so vielen Zeilen gilt ein Lemma als gesund
+
+/** Morphologische Kandidaten für ein Lemma – bewusst klein und regelhaft. */
+function lemmaVarianten(low) {
+  const v = []
+  if (low.endsWith('e')) v.push(low.slice(0, -1))          // präzise → präzis
+  else v.push(`${low}e`)                                    // spröd   → spröde
+  if (low.endsWith('n') && low.length > 3) v.push(low.slice(0, -1)) // Frieden → Friede
+  return v.filter(x => x.length >= 3 && x !== low)
+}
+
+// Gedeckelt, weil die Schlüssel aus Nutzereingaben stammen („Eigenes Lemma"
+// lässt beliebige Wörter zu). Ohne Deckel wäre das ein langsames Leck auf einem
+// Server mit 3,7 GB RAM. Map hält Einfügereihenfolge → ältester Eintrag zuerst.
+const KANONISCH_CACHE_MAX = 10000
+const _kanonisch = new Map()
+
+function merkeKanonisch(key, wert) {
+  if (_kanonisch.size >= KANONISCH_CACHE_MAX) {
+    _kanonisch.delete(_kanonisch.keys().next().value)
+  }
+  _kanonisch.set(key, wert)
+}
+
+/**
+ * Liefert die Lemmaform, unter der in dieser DB tatsächlich Daten liegen.
+ * @param {string} lemma  Eingabeform (wird kleingeschrieben)
+ * @param {string|null} pos  Wortart einschränken, oder null für „über alle"
+ * @returns {string} kleingeschriebene Lemmaform für die Abfrage
+ */
+function kanonischesLemma(lemma, pos = null) {
+  const low = String(lemma).toLowerCase()
+  const key = `${low}|${pos ?? '*'}`
+  const gecacht = _kanonisch.get(key)
+  if (gecacht !== undefined) return gecacht
+
+  let ergebnis = low
+  try {
+    // Ohne bekannte Wortart zählt die STÄRKSTE Wortart, nicht die Summe: „Frieden"
+    // hat als Substantiv 0 Zeilen, über alle Wortarten aber 62 (Adjektiv- und
+    // Verb-Artefakte). Die Summe läge damit über der Schwelle und der Fallback
+    // würde nicht greifen, obwohl das Wort als Substantiv unbrauchbar ist.
+    const zaehle = pos
+      ? (l) => stmts().lemmaCount.get(l, pos)?.n ?? 0
+      : (l) => stmts().lemmaCountByPos.all(l)
+          .filter(r => POS_CANDIDATES.includes(r.pos))
+          .reduce((max, r) => Math.max(max, r.n), 0)
+    let beste = zaehle(low)
+    if (beste < KANONISCH_SCHWELLE) {
+      for (const kand of lemmaVarianten(low)) {
+        const n = zaehle(kand)
+        if (n > beste) { beste = n; ergebnis = kand }
+      }
+      if (ergebnis !== low) {
+        logger.debug({ lemma: low, kanonisch: ergebnis, pos, zeilen: beste },
+          'wortprofil: auf kanonische Lemmaform ausgewichen')
+      }
+    }
+  } catch (err) {
+    logger.warn({ err, lemma }, 'kanonischesLemma fehlgeschlagen – nutze Eingabeform')
+  }
+  merkeKanonisch(key, ergebnis)
+  return ergebnis
+}
+
 function queryRelationRaw(lemma, pos, rel, limit, minFreq, minDice) {
-  return stmts().relation.all(lemma.toLowerCase(), pos, rel, minFreq, minDice, limit)
+  return stmts().relation.all(kanonischesLemma(lemma, pos), pos, rel, minFreq, minDice, limit)
 }
 
 export function queryRelation(lemma, pos, relCode, limit = 30, minFreq = 5, minDice = 0) {
@@ -184,57 +369,74 @@ export function queryRelation(lemma, pos, relCode, limit = 30, minFreq = 5, minD
     return []
   }
 
-  let rows = queryRelationRaw(lemma, pos, rel, limit, minFreq, minDice)
+  const abfrageLimit = limit + AUX_LIMIT_PUFFER
+  let rows = queryRelationRaw(lemma, pos, rel, abfrageLimit, minFreq, minDice)
 
   // Adaptiver Fallback: minFreq schrittweise senken wenn zu wenig Treffer
   if (rows.length < 10 && minFreq > 1) {
-    rows = queryRelationRaw(lemma, pos, rel, limit, 2, minDice)
+    rows = queryRelationRaw(lemma, pos, rel, abfrageLimit, 2, minDice)
     if (rows.length < 10) {
-      rows = queryRelationRaw(lemma, pos, rel, limit, 1, minDice)
+      rows = queryRelationRaw(lemma, pos, rel, abfrageLimit, 1, minDice)
     }
     if (rows.length > 0)
       logger.debug({ lemma, pos, relCode: rel, count: rows.length }, 'queryRelation: minFreq-Fallback aktiv')
   }
 
-  return rows.map(r => ({
-    form:                 r.form,
-    lemma:                normalizeLemma(r.dep_lemma, r.dep_pos),
-    frequency:            r.frequency,
-    logDice:              String(r.logDice.toFixed(4)),
-    pos:                  r.dep_pos,
-    relation:             r.relation_full,
-    relation_description: r.relation_description,
-    concord_id:           null,
-    has_concord:          false,
-    has_mwe:              false,
-  }))
+  // F12: Hilfsverben erst hier ausblenden, nicht in der DB. Per Default inaktiv.
+  return rows
+    .filter(r => !istVersteckterAux(r.dep_lemma, r.dep_pos))
+    .map(r => ({
+      form:                 r.form,
+      lemma:                normalizeLemma(r.dep_lemma, r.dep_pos),
+      frequency:            r.frequency,
+      logDice:              String(r.logDice.toFixed(4)),
+      pos:                  r.dep_pos,
+      relation:             r.relation_full,
+      relation_description: r.relation_description,
+      concord_id:           null,
+      has_concord:          false,
+      has_mwe:              false,
+    }))
+    .slice(0, limit)
 }
 
 /**
  * Rückwärtsabfrage: Verben die `lemma` als prädikatives Adjektiv verwenden.
- * Nutzt den bestehenden Index auf (dep_lemma, relation, lemma).
- * Ersetzt ~ADV für Adjektive, da PRED in build_wortprofil.py nicht invertiert wird.
+ *
+ * NUR NOCH ROLLBACK-PFAD (v1). In wortprofil.db v1 wurde PRED nicht invertiert,
+ * es gab also keine `~PRED`-Zeilen und diese Rückwärtssuche war der einzige Weg.
+ * Sie filtert auf `dep_lemma`, wofür kein Index existiert → Skip-Scan über jedes
+ * distinkte (lemma, pos)-Präfix. In v2 sind das 1.030.294 statt 275.536 Präfixe;
+ * gemessen 1213 ms gegen < 1 ms für die echte `~PRED`-Abfrage bei identischem
+ * Ergebnis (Gate-E-Report, Abschnitt 7). Deshalb nimmt v2 diesen Weg nicht mehr.
  */
 function queryRelationReverse(lemma, depPos, rel, limit = 30, minFreq = 5, minDice = 0) {
-  let rows = stmts().relationReverse.all(lemma.toLowerCase(), depPos, rel, minFreq, minDice, limit)
+  const kanon = kanonischesLemma(lemma, depPos)
+  let rows = stmts().relationReverse.all(kanon, depPos, rel, minFreq, minDice, limit)
 
   // Adaptiver Fallback
   if (rows.length < 10 && minFreq > 1) {
-    rows = stmts().relationReverse.all(lemma.toLowerCase(), depPos, rel, 1, minDice, limit)
+    rows = stmts().relationReverse.all(kanon, depPos, rel, 1, minDice, limit)
   }
 
-  return rows.map(r => ({
-    form:                 r.dep_lemma,
-    lemma:                normalizeLemma(r.dep_lemma, r.dep_pos),
-    frequency:            r.frequency,
-    logDice:              String(r.logDice.toFixed(4)),
-    pos:                  r.dep_pos,
-    relation:             rel,
-    relation_description: 'prädikativ verwendet mit',
-    concord_id:           null,
-    has_concord:          false,
-    has_mwe:              false,
-  }))
+  // Hier steht dep_lemma für das Adjektiv und `lemma` für das Verb — die
+  // Spalten sind gegenüber queryRelation getauscht (Rückwärtsabfrage). Der
+  // AUX-Filter muss deshalb auf den ausgegebenen Kollokator prüfen, also auf
+  // r.dep_lemma/r.dep_pos in der SELECT-Umbenennung dieser Query.
+  return rows
+    .filter(r => !istVersteckterAux(r.dep_lemma, r.dep_pos))
+    .map(r => ({
+      form:                 r.dep_lemma,
+      lemma:                normalizeLemma(r.dep_lemma, r.dep_pos),
+      frequency:            r.frequency,
+      logDice:              String(r.logDice.toFixed(4)),
+      pos:                  r.dep_pos,
+      relation:             rel,
+      relation_description: 'prädikativ verwendet mit',
+      concord_id:           null,
+      has_concord:          false,
+      has_mwe:              false,
+    }))
 }
 
 function shuffle(arr) {
@@ -310,19 +512,22 @@ export async function fetchRelation(lemma, pos, relCode) {
   try {
     const cacheKey = `rel:${lemma}:${pos}:${relCode}`
     const data = getCachedQuery(cacheKey, () => {
-      // PRED_REV: Verben für Adjektive – kombiniert zwei Quellen:
-      // 1) ~ADV: Adjektiv als Adverbialbestimmung (z.B. „krank feiern“)
-      // 2) PRED rückwärts: Adjektiv als Prädikativ (z.B. „sein/werden/machen + krank“)
-      // PRED wurde in build_wortprofil.py nicht invertiert, daher Rückwärtsquery nötig.
-      // Beide immer zusammenführen – mehr Quellen = vollständigere Ergebnisse.
-      // PRED_REV: Verben für Adjektive – kombiniert drei Quellen:
+      // PRED_REV: Verben für Adjektive – führt drei Quellen zusammen:
       // 1) ~ADV als Adjektiv: adverbiale Verwendung, Parser-Tag = Adjektiv
       // 2) ~ADV als Adverb:   adverbiale Verwendung, Parser-Tag = Adverb (z.B. „krank feiern“)
-      // 3) PRED rückwärts:    prädikative Verwendung (z.B. „sein/werden/machen + krank“)
+      // 3) prädikative Verwendung (z.B. „bleiben/scheinen/wirken + grün“)
+      //
+      // Quelle 3 kommt in v2 aus echten `~PRED`-Zeilen (PRED ist seit
+      // build_wortprofil_v2.py INVERTIBLE), in v1 weiterhin aus der langsamen
+      // Rückwärtssuche. Der Name PRED_REV bleibt als Pseudo-RelCode erhalten:
+      // er steht in gespeicherten `lemmata.rundenInfo`-Einträgen und in den
+      // Kurs-Inhalten, ist also Teil der Datenform nach außen.
       if (relCode === 'PRED_REV') {
         const adjAdvRows  = queryRelation(lemma, 'Adjektiv', '~ADV')
         const advAdvRows  = queryRelation(lemma, 'Adverb',   '~ADV')
-        const predRows    = queryRelationReverse(lemma, 'Adjektiv', 'PRED')
+        const predRows    = schema() === 'v2'
+          ? queryRelation(lemma, 'Adjektiv', '~PRED')
+          : queryRelationReverse(lemma, 'Adjektiv', 'PRED')
         const seen        = new Set()
         const merged      = []
         for (const r of [...adjAdvRows, ...advAdvRows, ...predRows]) {
@@ -479,7 +684,7 @@ export function fetchSyntagmaticPatterns(lemma, pos = 'Substantiv', { limit = 10
     return { total: 0, patterns: [] }
   }
   try {
-    const low = lemma.toLowerCase()
+    const low = kanonischesLemma(lemma, pos)
     // Summe ALLER erfassten Frequenzen des Lemmas (Nenner für den Anteil).
     // Übersprungen (withTotal=false), wenn der Aufrufer keinen Anteil braucht
     // (sekundäre Kollokatoren) – spart eine SUM-Aggregation pro Basis.
@@ -488,19 +693,25 @@ export function fetchSyntagmaticPatterns(lemma, pos = 'Substantiv', { limit = 10
     // Subjekt-/Objekt-Kollokatoren, fürs Wörterbuch-Archiv aber Rauschen. Der
     // Nenner `total` (oben) bleibt bewusst die volle erfasste Menge inkl.
     // Pronomen → „Anteil an allen erfassten Verbindungen“ bleibt korrekt.
-    const rows = stmts().synPatterns.all(low, pos, minFreq, limit)
+    const rows = stmts().synPatterns.all(low, pos, minFreq, limit + AUX_LIMIT_PUFFER)
 
-    const patterns = rows.map((r) => ({
-      kollokator: normalizeLemma(r.dep_lemma, r.dep_pos),
-      pos:        r.dep_pos,
-      relation:   r.relation,
-      muster:     r.relation_description,
-      prep:       r.prep || '',
-      frequency:  r.frequency,
-      logDice:    Number(r.logDice.toFixed(2)),
-      anteil:     total ? Number((100 * r.frequency / total).toFixed(1)) : 0,
-      stellung:   REL_POSITION[r.relation] || 'variabel',
-    }))
+    // F12 (AUX) wird wie der Pronomen-Filter oben behandelt: erst bei der
+    // Anzeige, und `total` bleibt die volle erfasste Menge, damit der Anteil
+    // weiterhin „Anteil an allen erfassten Verbindungen" bedeutet.
+    const patterns = rows
+      .filter((r) => !istVersteckterAux(r.dep_lemma, r.dep_pos))
+      .map((r) => ({
+        kollokator: normalizeLemma(r.dep_lemma, r.dep_pos),
+        pos:        r.dep_pos,
+        relation:   r.relation,
+        muster:     r.relation_description,
+        prep:       r.prep || '',
+        frequency:  r.frequency,
+        logDice:    Number(r.logDice.toFixed(2)),
+        anteil:     total ? Number((100 * r.frequency / total).toFixed(1)) : 0,
+        stellung:   REL_POSITION[r.relation] || 'variabel',
+      }))
+      .slice(0, limit)
     return { total, patterns }
   } catch (err) {
     logger.warn({ err, lemma, pos }, 'fetchSyntagmaticPatterns fehlgeschlagen')
@@ -614,7 +825,7 @@ const ZW_WORD_REGEX    = /^[a-zäöüß][a-zA-ZäöüÄÖÜß]*$/
  */
 export async function fetchZeitenwende(lemma) {
   try {
-    const rows = stmts().zeitreise.all(lemma.toLowerCase(), ZW_MIN_JAHRZEHNT)
+    const rows = stmts().zeitreise.all(kanonischesLemma(lemma), ZW_MIN_JAHRZEHNT)
 
     if (!rows.length) return null
 
@@ -691,7 +902,7 @@ export async function fetchZeitenwende(lemma) {
  * Gibt { lemma, usable, preCandidates, postCandidates, words? } zurück.
  */
 export async function fetchZeitenwendeAnalyze(lemma) {
-  const rows = stmts().zeitreise.all(lemma.toLowerCase(), ZW_MIN_JAHRZEHNT)
+  const rows = stmts().zeitreise.all(kanonischesLemma(lemma), ZW_MIN_JAHRZEHNT)
 
   if (!rows.length) return null
 
@@ -734,7 +945,7 @@ export async function fetchZeitenwendeAnalyze(lemma) {
  */
 export function lemmaExistsInWortprofil(lemma) {
   try {
-    const row = stmts().lemmaExists.get(lemma.toLowerCase())
+    const row = stmts().lemmaExists.get(kanonischesLemma(lemma))
     return !!row
   } catch {
     return false
