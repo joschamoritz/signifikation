@@ -67,8 +67,28 @@ jobs:
             cd /opt/signifikation/app
 
             PREV_REV=$(git rev-parse HEAD)
-            APP_PORT=$(grep -oP '(?<=^PORT=)\d+' /opt/signifikation/app/.env 2>/dev/null || echo 3001)
-            DB_FILE=$(grep -oP '(?<=^APP_DB=).+' /opt/signifikation/app/.env 2>/dev/null || echo "/opt/signifikation/app/server/data/signifikation.db")
+
+            # Port/DB-Pfad aus der .env lesen — aber ueber sudo -u signifikation,
+            # nicht direkt: Die .env gehoert signifikation und ist seit dem
+            # v2-Umschalten (2026-08-05) korrekterweise 600. Der deploy-User kann
+            # sie nicht mehr lesen; das fruehere nackte `grep` scheiterte deshalb
+            # still und der Fallback liess den Healthcheck gegen Port 3001 laufen,
+            # waehrend die App auf 3000 lauscht → jeder Deploy rollte zurueck,
+            # obwohl der Server in 0,9 s oben war.
+            ENV_FILE=/opt/signifikation/app/.env
+            APP_PORT=$(sudo -u signifikation bash -lc "grep -oP '(?<=^PORT=)\d+' $ENV_FILE" 2>/dev/null || true)
+            DB_FILE=$(sudo -u signifikation bash -lc "grep -oP '(?<=^APP_DB=).+' $ENV_FILE" 2>/dev/null || true)
+
+            # Beim Port NICHT raten: ein falscher Port laesst den Healthcheck
+            # zuverlaessig scheitern und loest einen unnoetigen Rollback aus.
+            if [ -z "$APP_PORT" ]; then
+              echo "FEHLER: PORT konnte nicht aus $ENV_FILE gelesen werden (Rechte? Zeile fehlt?)."
+              echo "        Abbruch vor dem Deploy – der Healthcheck wuerde sonst gegen einen geratenen Port pruefen."
+              exit 1
+            fi
+            # APP_DB darf fehlen (dann gilt der Default aus server/db.js).
+            [ -n "$DB_FILE" ] || DB_FILE=/opt/signifikation/app/server/data/signifikation.db
+            echo "Healthcheck-Port: $APP_PORT · DB: $DB_FILE"
 
             rollback() {
               echo "Rollback auf ${PREV_REV}"
