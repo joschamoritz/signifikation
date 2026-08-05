@@ -16,38 +16,11 @@
 
 import logger from '../logger.js'
 import { queryRelation } from '../wortprofil.js'
-import { fetchBelegeRaw } from '../belege.js'
-
-const MONTHS = /^(Januar|Februar|März|April|Mai|Juni|Juli|August|September|Oktober|November|Dezember)\b/
+import { fetchBelegeRaw, scoreBeleg } from '../belege.js'
 
 /** Escaped einen String für die Verwendung in einem RegExp. */
 function escapeRegExp(s) {
   return String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-}
-
-/**
- * Heuristik-Score: „wirkt das wie ein vollständiger Satz?“. Höher = besser.
- * Bestraft typische Korpus-Fragmente (Monats-Reste, Dialog-Präfixe „Name:“,
- * Klein-Anfang, Klammer-/Gleichheits-Rauschen) und sehr kurze/lange Sätze.
- */
-function scoreBeleg(satz) {
-  const s = String(satz ?? '').trim()
-  if (!s) return -1e9
-  let sc = 0
-  const wc = s.split(/\s+/).length
-  if (wc < 5) sc -= 25
-  else if (wc <= 22) sc += 10 - Math.abs(12 - wc) * 0.4
-  else sc -= (wc - 22) * 0.6
-  if (/[.!?]['"»)\]]?$/.test(s)) sc += 4         // vollständige Satz-Endung
-  if (/^[A-ZÄÖÜ]/.test(s)) sc += 2               // Groß-Anfang
-  else sc -= 6                                    // Klein-Anfang → Fragment
-  if (MONTHS.test(s)) sc -= 20                    // „Februar eine … treffen.“ & Co.
-  if (/[=()[\]]/.test(s)) sc -= 8                 // Klammern/Gleichheits-Rauschen
-  if (/^\p{Lu}[\wäöüß-]*:/u.test(s)) sc -= 6      // „Kiesinger:“ Redner-Präfix
-  // Zusammengeklebte Schlagzeilen: „Headline: „Zitat“ Nächste Headline …“
-  if (/:\s*[„“]/.test(s)) sc -= 14                // Doppelpunkt + öffnendes Zitat
-  if (/[“”"]\s+\p{Lu}/u.test(s)) sc -= 10         // schließendes Zitat + Großanfang (Glue)
-  return sc
 }
 
 /** Echter Korpus-Adapter (wortprofil.db + belege.db). */

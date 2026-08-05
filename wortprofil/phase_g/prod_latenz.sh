@@ -20,9 +20,11 @@
 # misst man ab dem zweiten Lauf den Cache und nicht die Datenbank — die erste
 # Fassung dieses Skripts lieferte deshalb für „Zeit+haben" dieselben 0,09 s wie
 # für ein seltenes Paar. Jeder Lauf bekommt darum ein anderes `year`, also einen
-# eigenen Cache-Key und eine echte DB-Abfrage. Nebeneffekt: damit wird der
-# jahrgefilterte Pfad gemessen, der laut Gate F nicht langsamer ist als der
-# ungefilterte.
+# eigenen Cache-Key und eine echte DB-Abfrage.
+#
+# Seit dem Latenz-Fix (2026-08-05) ist `year` kein eigener SQL-Pfad mehr, sondern
+# ein JavaScript-Filter über denselben Fenster-Pool. Der Cache-Buster misst damit
+# genau den Pfad, den auch das Spiel nimmt — vorher war es der langsamere.
 
 set -uo pipefail
 
@@ -31,13 +33,15 @@ JAHRE=(1975 1985 1995 2005 2015)
 
 # Paare aus dem Gate-F-Report: von sehr selten bis sehr häufig. Die häufigen sind
 # die interessanten — dort verschneidet FTS5 zwei lange Trefferlisten.
+# Die Kommentare nennen die LOKAL gemessene DB-Zeit nach dem Latenz-Fix
+# (Median über 10 Läufe, warmer Page-Cache) und in Klammern den Stand davor.
 PAARE=(
-  "Lüge:auftischen"      # sehr selten  – unter 15 ms lokal
-  "Freund:treu"          # selten
-  "Tisch:rund"           # mittel
-  "Angst:haben"          # häufig       – ~280 ms lokal
-  "Recht:haben"          # sehr häufig  – ~590 ms lokal
-  "Zeit:haben"           # extrem       – ~822 ms lokal
+  "Lüge:auftischen"      # sehr selten  –   3 ms  (vorher   1 ms)
+  "Freund:treu"          # selten       –   8 ms  (vorher  12 ms)
+  "Tisch:rund"           # mittel       –  24 ms  (vorher  35 ms)
+  "Angst:haben"          # häufig       –  50 ms  (vorher 284 ms)
+  "Recht:haben"          # sehr häufig  –  76 ms  (vorher 568 ms)
+  "Zeit:haben"           # extrem       – 125 ms  (vorher 839 ms)
 )
 
 median() {
@@ -73,6 +77,10 @@ for pfad in "/wort/wasser" "/archiv" "/api/v1/heute"; do
 done
 
 echo
-echo "Richtwerte: alles unter 1 s ist unauffällig. Sticht ein häufiges Paar"
-echo "(Zeit/Recht/Angst + haben) deutlich heraus, ist der erste Hebel"
-echo "BELEGE_MMAP_MB in der .env — nach OBEN, nicht nach unten."
+echo "Richtwerte seit dem Latenz-Fix: die DB-Zeit selbst liegt lokal bei 3-125 ms"
+echo "(siehe PAARE oben), der Rest ist TLS + nginx + Netz. Bleibt ein häufiges"
+echo "Paar deutlich über einer halben Sekunde, ist die Fenstersuche vermutlich"
+echo "gar nicht aktiv — sie greift NUR im v2-Schema und NUR ohne Prefix-Query."
+echo "Dann zuerst prüfen: zeigt das Log beim Start 'Belege-DB geladen (Schema v2)'?"
+echo
+echo "BELEGE_MMAP_MB ist hier KEIN Hebel: mit und ohne mmap gemessen identisch."
