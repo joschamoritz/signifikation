@@ -184,13 +184,28 @@ function stmts() {
     const database = db()
     _stmts = {
       relation: database.prepare(`
-        SELECT form, dep_lemma, dep_pos, frequency, logDice, relation_full, relation_description
+        SELECT form, dep_lemma, dep_pos, frequency, logDice, relation_full,
+               relation_description
         FROM collocations
         WHERE lemma = ? AND pos = ? AND relation = ?
           AND frequency >= ? AND logDice >= ?
         ORDER BY logDice DESC
         LIMIT ?
       `),
+      // Kasusverteilung der Objekte eines Verbs (siehe verbRektion). Läuft über
+      // idx_lemma_pos, das Ergebnis wird je Verb einmal berechnet und gecacht.
+      // `dep_case` gibt es erst ab v2 (§3.3) — im Rollback-Fall auf v1 bleibt das
+      // Statement null und alle Objekte heißen neutral „Objekt", statt dass die
+      // Vorbereitung an der fehlenden Spalte scheitert.
+      rektion: schema() === 'v2'
+        ? database.prepare(`
+            SELECT dep_case AS k, SUM(frequency) AS f
+            FROM collocations
+            WHERE lemma = ? AND pos = 'Verb' AND relation = 'OBJA'
+              AND dep_case IN ('Acc','Dat','Gen')
+            GROUP BY dep_case
+          `)
+        : null,
       relationReverse: database.prepare(`
         SELECT lemma AS dep_lemma, pos AS dep_pos, frequency, logDice
         FROM collocations
@@ -216,7 +231,8 @@ function stmts() {
       // gefiltert; Row-Lookups nur für die LIMIT-Treffer.
       synTotal: database.prepare('SELECT SUM(frequency) AS s FROM collocations WHERE lemma = ? AND pos = ?'),
       synPatterns: database.prepare(`
-        SELECT relation, relation_description, dep_lemma, dep_pos, prep, frequency, logDice
+        SELECT relation, relation_description, dep_lemma, dep_pos, prep,
+               frequency, logDice
         FROM collocations
         WHERE lemma = ? AND pos = ? AND frequency >= ? AND dep_pos != 'Pronomen'
         ORDER BY logDice DESC
@@ -354,6 +370,96 @@ function kanonischesLemma(lemma, pos = null) {
   return ergebnis
 }
 
+// ── Kasusgenaue Objekt-Beschriftung (Phase G, Terminologie) ──────────────────
+//
+// `OBJD` existiert in triples_v2 nicht: der `iobj`-Zweig feuert mit `de_zdl_lg`
+// nie, alle Objekte landen in `OBJA` (= UD-`obj`, „direktes Objekt", kasusfrei).
+// Die gebaute `relation_description` sagt trotzdem pauschal „Akkusativobjekt" —
+// bei `helfen + Mensch` (Dativ, Frequenz 7.103) also nachweislich falsch.
+//
+// Gemessene Verteilung über die 1.110.799 OBJA-Zeilen:
+//   Acc 679.716 · leer 215.080 · Dat 114.810 · Nom 88.970 · Gen 12.223
+//
+// Ohne bestimmbaren Kasus wird bewusst NICHT geraten (Entscheidung 2026-08-06):
+// „leer" heißt, der Parser konnte den Kasus nicht bestimmen, und `Nom` ist in
+// einer Objektrelation ein Parser-Artefakt („wort ← haben"). Beides bekommt das
+// neutrale „Objekt" — in einer Lernanwendung soll keine Kasusangabe stehen, die
+// sich nicht belegen lässt.
+const OBJ_KASUS = { Acc: 'Akkusativobjekt', Dat: 'Dativobjekt', Gen: 'Genitivobjekt' }
+const OBJ_NEUTRAL = 'Objekt'
+
+// Ab welchem Anteil ein Kasus als Rektion des Verbs gilt. Gemessen an 22 Verben
+// mit grammatisch eindeutiger Rektion: bei 90 % sind 13 korrekt beschriftet,
+// **0 falsch**, 9 fallen ins neutrale „Objekt". Der Abstand nach unten ist
+// bewusst groß — das höchste FALSCHE Verb liegt bei 82 % (`bedürfen` → Dat,
+// richtig wäre Gen), das niedrigste richtige bei 88 % (`schaden` → Dat).
+const REKTION_SCHWELLE = 0.9
+
+const REKTION_CACHE_MAX = 5000
+const _rektion = new Map()
+
+/**
+ * Kasus, den ein Verb bei seinen Objekten regiert — oder `null`, wenn die Daten
+ * das nicht hergeben.
+ *
+ * **Warum nicht der Kasus der einzelnen Zeile:** `dep_case` steht zwar in jeder
+ * `OBJA`-Zeile, ist aber zu verrauscht, um einzelne Kollokationen zu etikettieren.
+ * Gegen 22 Verben mit bekannter Rektion gemessen tragen nur **90,2 %** der Zeilen
+ * den grammatisch richtigen Kasus. Zeilenweise beschriftet ergäbe das zwei
+ * sichtbare Fehler: `helfen + sich` erschiene als „Akkusativobjekt" (falsch,
+ * helfen regiert Dativ), und innerhalb desselben Verbs stünden gleichartige
+ * Kollokatoren unterschiedlich da („Bier — Akkusativobjekt" neben „Wein —
+ * Objekt", nur weil der Parser einmal einen Kasus fand und einmal nicht).
+ *
+ * Rektion ist ohnehin eine Eigenschaft des **Verbs**, nicht des einzelnen
+ * Objekts — genau so steht es auch im Kurs-Arbeitsblatt zu Station 3. Deshalb
+ * wird über alle Objekte des Verbs aggregiert und nur bei klarer Mehrheit
+ * beschriftet. `Nom` und Leerwerte zählen dabei nicht mit: ein Nominativobjekt
+ * gibt es nicht, das ist ein Parser-Artefakt (bei `tun` 23 % der Zeilen).
+ *
+ * Nicht erkannt werden dadurch u. a. `helfen` (Dat 74 %) und alle Genitiv-Verben
+ * (`gedenken`, `bedürfen`, `harren` — der Parser trifft den Genitiv nicht). Die
+ * zeigen „Objekt" statt einer falschen Angabe.
+ */
+function verbRektion(verbLemma) {
+  const key = String(verbLemma ?? '').toLowerCase()
+  if (!key) return null
+  if (_rektion.has(key)) return _rektion.get(key)
+
+  let ergebnis = null
+  try {
+    const rows = stmts().rektion?.all(key) ?? []
+    const summe = rows.reduce((s, r) => s + r.f, 0)
+    if (summe > 0) {
+      const top = rows.reduce((a, b) => (b.f > a.f ? b : a))
+      if (top.f / summe >= REKTION_SCHWELLE) ergebnis = top.k
+    }
+  } catch (err) {
+    logger.debug({ err, verbLemma }, 'verbRektion fehlgeschlagen – neutrale Beschriftung')
+  }
+
+  if (_rektion.size >= REKTION_CACHE_MAX) _rektion.delete(_rektion.keys().next().value)
+  _rektion.set(key, ergebnis)
+  return ergebnis
+}
+
+/**
+ * Ersetzt die gebaute `relation_description` für Objekt-Relationen durch eine
+ * kasusgenaue. Alle anderen Relationen bleiben unangetastet.
+ *
+ * `OBJA`: Basis ist das Verb. `~OBJA`: Basis ist das Nomen, das Verb steht im
+ * Kollokator — in beiden Fällen entscheidet die Rektion desselben Verbs.
+ */
+function kasusBeschriftung(relation, row, basisLemma, fallback) {
+  if (relation === 'OBJA') {
+    return OBJ_KASUS[verbRektion(basisLemma)] ?? OBJ_NEUTRAL
+  }
+  if (relation === '~OBJA') {
+    return `ist ${OBJ_KASUS[verbRektion(row.dep_lemma)] ?? OBJ_NEUTRAL} von`
+  }
+  return fallback
+}
+
 function queryRelationRaw(lemma, pos, rel, limit, minFreq, minDice) {
   return stmts().relation.all(kanonischesLemma(lemma, pos), pos, rel, minFreq, minDice, limit)
 }
@@ -383,6 +489,7 @@ export function queryRelation(lemma, pos, relCode, limit = 30, minFreq = 5, minD
   }
 
   // F12: Hilfsverben erst hier ausblenden, nicht in der DB. Per Default inaktiv.
+  const basis = kanonischesLemma(lemma, pos)
   return rows
     .filter(r => !istVersteckterAux(r.dep_lemma, r.dep_pos))
     .map(r => ({
@@ -392,7 +499,7 @@ export function queryRelation(lemma, pos, relCode, limit = 30, minFreq = 5, minD
       logDice:              String(r.logDice.toFixed(4)),
       pos:                  r.dep_pos,
       relation:             r.relation_full,
-      relation_description: r.relation_description,
+      relation_description: kasusBeschriftung(rel, r, basis, r.relation_description),
       concord_id:           null,
       has_concord:          false,
       has_mwe:              false,
@@ -704,7 +811,7 @@ export function fetchSyntagmaticPatterns(lemma, pos = 'Substantiv', { limit = 10
         kollokator: normalizeLemma(r.dep_lemma, r.dep_pos),
         pos:        r.dep_pos,
         relation:   r.relation,
-        muster:     r.relation_description,
+        muster:     kasusBeschriftung(r.relation, r, low, r.relation_description),
         prep:       r.prep || '',
         frequency:  r.frequency,
         logDice:    Number(r.logDice.toFixed(2)),
