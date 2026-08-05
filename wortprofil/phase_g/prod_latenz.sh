@@ -48,10 +48,17 @@ median() {
   printf '%s\n' "$@" | sort -n | awk '{a[NR]=$1} END {print (NR%2) ? a[(NR+1)/2] : (a[NR/2]+a[NR/2+1])/2}'
 }
 
+# Abstand zwischen zwei Beleg-Abfragen. `belegeLimiter` erlaubt 30 Anfragen je
+# 60 s und Client-IP (server/middleware/rateLimiter.js). 6 Paare x 5 Jahre sind
+# genau 30 — ohne Pause landet der Lauf also auf der Kante, und ein zweiter Lauf
+# in derselben Minute misst 429er statt der Datenbank. 3 s halten uns bei 20/min.
+PAUSE=${PAUSE:-3}
+
 hole() {
   curl -s -o /dev/null -w '%{time_total}' --max-time 30 --get \
     --data-urlencode "lemma=$1" --data-urlencode "collocate=$2" --data-urlencode "year=$3" \
     "$BASIS/api/v1/belege" 2>/dev/null || echo 99
+  sleep "$PAUSE"
 }
 
 echo "Basis: $BASIS   (${#JAHRE[@]} Läufe je Abfrage mit verschiedenem year, Median)"
