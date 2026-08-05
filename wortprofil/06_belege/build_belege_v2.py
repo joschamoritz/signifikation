@@ -256,7 +256,8 @@ DEFAULT_KORPORA = [
     ("dta_erweiterungen.jsonl", 1830, True),
     ("dta_github.jsonl",        1830, True),
     ("gei_digital.jsonl",       1830, True),
-    # NEU: Wikipedia (nur belege, nachrangig; Datei aus Schritt A4)
+    # NEU: Wikipedia (hier nachrangige Belegquelle; seit der F1-Revision
+    # 2026-07-24 ausserdem im wortprofil, siehe parse_deps_v2.DATEIEN)
     ("wikipedia.jsonl",         None, False),
 ]
 

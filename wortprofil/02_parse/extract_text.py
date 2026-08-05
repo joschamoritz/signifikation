@@ -860,7 +860,7 @@ def extrahiere_german_commons_justiz() -> list:
     return eintraege
 
 
-# ── Wikipedia (nur belege.db, siehe extract_text.py-Modul-Docstring / F1) ───
+# ── Wikipedia (belege_v2 UND wortprofil_v2 – F1 revidiert 2026-07-24) ───────
 #
 # Eingabe: wikiextractor-Ausgabe (download_wikipedia.py) – Verzeichnisbaum mit
 # Dateien wie AA/wiki_00, jeweils mehrere <doc id=".." url=".." title="..">
