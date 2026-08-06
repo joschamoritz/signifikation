@@ -80,6 +80,20 @@ function baueFixture(pfad) {
       db.prepare('UPDATE saetze SET satz = ? WHERE id = ?').run(
         `Der Einsiedler kam allein aus seiner Klause und blieb still, Satz ${i}.`, i)
     }
+
+    // Paar, das AUSSCHLIESSLICH flektiert im Text steht — die Grundformen
+    // „digital" und „Gesundheitsanwendung" kommen nirgends vor. Genau der Fall,
+    // für den es den Flexions-Fallback gibt. Über mehrere Dokumente verteilt
+    // (ungerade rowids = Füllsätze, es geht also kein „Haus + bauen" verloren).
+    for (const [n, id] of [41, 51, 61, 71, 81, 91].entries()) {
+      db.prepare('UPDATE saetze SET satz = ? WHERE id = ?').run(
+        `Die digitalen Gesundheitsanwendungen wurden im Verzeichnis geprüft, Fall ${n + 1}.`, id)
+    }
+
+    // Gegenprobe zur Mindestlänge: „Tor" ist zu kurz zum Prefixen, darf also
+    // NICHT über „Tortenheber" gefunden werden.
+    db.prepare('UPDATE saetze SET satz = ? WHERE id = ?').run(
+      'Die Tortenheber lagen ordentlich sortiert auf dem Tisch bereit.', 101)
   })()
 
   db.exec("INSERT INTO belege_fts(belege_fts) VALUES('rebuild')")
@@ -146,6 +160,41 @@ describe('belege.js – Fenstersuche', () => {
 
   it('gibt bei einem Paar ohne Treffer eine leere Liste zurück', () => {
     expect(belege.fetchBelege('Nashorn', 'jodeln', { limit: 5 })).toEqual([])
+  })
+})
+
+describe('belege.js – Flexions-Fallback', () => {
+  it('findet ein Paar, das nur flektiert im Text steht', () => {
+    // Ohne Fallback wäre das Ergebnis leer: im Text steht nur „digitalen
+    // Gesundheitsanwendungen", nie die beiden Grundformen.
+    const rows = belege.fetchBelege('digital', 'Gesundheitsanwendung', { limit: 3 })
+    expect(rows.length).toBeGreaterThan(0)
+    for (const r of rows) {
+      expect(r.tokens.map(t => t.w).join(' ')).toMatch(/digitalen Gesundheitsanwendungen/)
+    }
+  })
+
+  it('markiert die flektierten Formen im gefundenen Beleg', () => {
+    // Sonst fände die Suche zwar Sätze, die Anzeige hätte darin aber nichts
+    // hervorzuheben – im Archiv fiele die KWiC-Zerlegung leer aus.
+    const [erster] = belege.fetchBelege('digital', 'Gesundheitsanwendung', { limit: 1 })
+    const markiert = erster.tokens.filter(t => t.hl).map(t => t.w)
+    expect(markiert).toContain('digitalen')
+    expect(markiert).toContain('Gesundheitsanwendungen')
+  })
+
+  it('prefixt keine Wörter unter vier Zeichen', () => {
+    // „Tor" darf nicht über „Tortenheber" gefunden werden – sonst produziert der
+    // Fallback bei kurzen Lemmata sachfremde Belege.
+    expect(belege.fetchBelege('Tor', 'Tisch', { limit: 5 })).toEqual([])
+  })
+
+  it('lässt Paare unberührt, die schon in Grundform gefunden werden', () => {
+    // „Haus + bauen" steht als Grundform im Text; der Fallback darf hier gar
+    // nicht erst anspringen und keine anderen Sätze hereinziehen.
+    for (const r of belege.fetchBelege('Haus', 'bauen', { limit: 5 })) {
+      expect(r.tokens.map(t => t.w).join(' ')).toMatch(/Haus bauen/)
+    }
   })
 })
 
