@@ -395,26 +395,27 @@ nav.legal a:hover { color: #9b1c1c }
 .arc-rel-glossar-item dd { font-family: 'DM Sans', system-ui, sans-serif; font-size: 0.8rem; line-height: 1.5; color: #8a7f6e; margin: 0; }
 
 /* ── Registerprofil („Typisch für") ────────────────────────── */
-/* Der Faktor steht rechtsbündig auf einer Grundlinie, damit die Zeilen als
-   Skala lesbar sind — die Reihenfolge ist absteigend und trägt die Aussage. */
+/* Der Wert steht DIREKT hinter dem Namen, nicht rechtsbündig: als ausformulierte
+   Angabe („9-mal so oft wie üblich") würde er sonst mit einer halben Zeile Lücke
+   dahinter hängen. Umbruch erlaubt — auf schmalen Geräten rutscht der Wert unter
+   den Namen, statt die Zeile zu sprengen. */
 .arc-register-liste { list-style: none; margin: 0; padding: 0; }
 .arc-register-liste li {
-  display: flex; align-items: baseline; gap: 10px;
-  padding: 7px 0; border-bottom: 0.5px solid #e8e2d8;
+  display: flex; flex-wrap: wrap; align-items: baseline; column-gap: 10px; row-gap: 2px;
+  padding: 8px 0; border-bottom: 0.5px solid #e8e2d8;
 }
 .arc-register-liste li:last-child { border-bottom: none; }
 .arc-register-name {
-  font-family: 'Gentium Plus', Georgia, serif; font-size: 1rem; color: #1a1a18;
+  font-family: 'Gentium Plus', Georgia, serif; font-size: 1.02rem; color: #1a1a18;
 }
-.arc-register-faktor {
-  margin-left: auto; font-family: 'DM Sans', system-ui, sans-serif;
-  font-size: 0.85rem; font-weight: 600; font-variant-numeric: tabular-nums;
-  color: #9b1c1c; flex-shrink: 0;
+.arc-register-wert {
+  font-family: 'DM Sans', system-ui, sans-serif; font-size: 0.78rem;
+  font-variant-numeric: tabular-nums; color: #9b1c1c;
 }
 /* Höhere Spezifität als `.arc-block p`, wie bei .arc-mt-legende. */
-.arc-block p.arc-register-legende {
-  margin-top: 12px; font-family: 'DM Sans', system-ui, sans-serif;
-  font-size: 0.72rem; line-height: 1.55; color: #8a7f6e;
+.arc-block p.arc-register-methodik {
+  font-family: 'DM Sans', system-ui, sans-serif; font-size: 0.8rem;
+  line-height: 1.55; color: #8a7f6e; padding: 14px 0 6px; margin: 0;
 }
 
 /* ── Wortnetz (sekundäre Kollokatoren) ─────────────────────── */
@@ -497,8 +498,8 @@ nav.legal a:hover { color: #9b1c1c }
   .arc-mt-legende strong { color: #c0b8b0; }
   .arc-register-liste li { border-bottom-color: #3a3028; }
   .arc-register-name { color: #f0ebe4; }
-  .arc-register-faktor { color: #e05555; }
-  .arc-block p.arc-register-legende { color: #8a8070; }
+  .arc-register-wert { color: #e05555; }
+  .arc-block p.arc-register-methodik { color: #8a8070; }
   .arc-netz-base { color: #e05555; }
   .arc-netz-word { color: #c0b8b0; }
   .arc-kwic-left, .arc-kwic-right { color: #9a9088; }

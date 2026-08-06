@@ -5,7 +5,7 @@ import MusterNetz from './archiv/MusterNetz'
 import ArchivLetterRail from './archiv/ArchivLetterRail'
 import { collocationBlurbLead, BLURB_LOGDICE_NOTE } from '../../server/archive/blurb.js'
 import { glossaryForPatterns } from '../../server/archive/relGlossar.js'
-import { REGISTER_KORPUS_TEXT } from '../../server/register.js'
+import { REGISTER_METHODIK, REGISTER_ANM_TITEL, faktorText } from '../../server/register.js'
 import { apiGet } from '../api/client'
 import { API } from '../config'
 import '../styles/archiv.css'
@@ -58,6 +58,7 @@ function WortDetail({ data, loading, error, onRetry, onBack, onPlayToday, maxNod
   const [showAllBelege, setShowAllBelege] = useState(false)
   const shownBelege = showAllBelege ? belege : belege.slice(0, 3)
   const [glossarOpen, setGlossarOpen] = useState(false)
+  const [registerAnmOpen, setRegisterAnmOpen] = useState(false)
   const glossar = data ? glossaryForPatterns(patterns, data.lemma) : []
 
   return (
@@ -185,14 +186,32 @@ function WortDetail({ data, loading, error, onRetry, onBack, onPlayToday, maxNod
                 {register.map((r, i) => (
                   <li key={i}>
                     <span className="av-register-name">{r.register}</span>
-                    <span className="av-register-faktor">{String(r.faktor).replace('.', ',')}×</span>
+                    <span className="av-register-wert">{faktorText(r.faktor)}</span>
                   </li>
                 ))}
               </ul>
-              <p className="av-register-legende">
-                „{data.lemma}“ kommt in diesen Textsorten so viel häufiger vor, als es die
-                Gesamthäufigkeit des Wortes erwarten ließe. Grundlage sind {REGISTER_KORPUS_TEXT}.
-              </p>
+              {/* Methodik in die Klappbox, wie beim Beziehungs-Glossar darüber:
+                  der Erklärtext ist länger als der Inhalt, den er erklärt. */}
+              <section className="test-footnote" aria-label={`Anmerkung: ${REGISTER_ANM_TITEL}`}>
+                <button
+                  type="button"
+                  className="test-footnote-toggle"
+                  onClick={() => setRegisterAnmOpen((v) => !v)}
+                  aria-expanded={registerAnmOpen}
+                  aria-controls="av-register-anm"
+                >
+                  <span className="test-footnote-label" aria-hidden="true">Anm.</span>
+                  <span className="test-footnote-title">{REGISTER_ANM_TITEL}</span>
+                  <span className="test-footnote-chevron" aria-hidden="true">▾</span>
+                </button>
+                <div
+                  id="av-register-anm"
+                  className={`test-footnote-body${registerAnmOpen ? ' open' : ''}`}
+                  role="region"
+                >
+                  <p className="av-register-methodik">{REGISTER_METHODIK}</p>
+                </div>
+              </section>
             </section>
           ) : null}
 

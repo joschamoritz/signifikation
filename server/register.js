@@ -71,13 +71,40 @@ export const REGISTER = {
 export const AUSGESCHLOSSEN = ['ref_fnh', 'ref_mhd']
 
 /**
- * Quellenangabe unter dem Registerprofil. Bewusst gerundet und ohne die exakte
- * Tokenzahl — die stünde sonst an zwei Stellen und liefe beim nächsten
- * DB-Aufbau auseinander. Die genauen Werte loggt `waermeRegisterAuf()`.
+ * Erklärung der Kennzahl, für die aufklappbare „Anm."-Box unter dem Block.
+ *
+ * Steht bewusst NICHT dauerhaft unter jedem Eintrag: Der Text ist länger als der
+ * Inhalt, den er erklärt, und wiederholt sich auf jeder Wortseite. Das Archiv hat
+ * für genau diesen Fall schon ein Muster — die „Anm."-Klappbox unter der
+ * Muster-Tabelle.
+ *
+ * Die Tokenzahl ist gerundet und steht nur hier; die exakten Werte loggt
+ * `waermeRegisterAuf()` beim Start, damit beide nicht auseinanderlaufen.
  */
-export const REGISTER_KORPUS_TEXT =
-  '34 Korpora mit rund 2,2 Milliarden Wortvorkommen, von Gerichtsentscheidungen '
-  + 'über Zeitungstexte bis zu historischen Briefen'
+export const REGISTER_METHODIK =
+  'Verglichen wird, wie dicht ein Wort in einer Textsorte vorkommt — gemessen am '
+  + 'Durchschnitt über alle Texte. „9-mal so oft wie üblich" heißt also: In dieser '
+  + 'Textsorte steht das Wort auf gleich viel Text neunmal so häufig wie sonst. '
+  + 'Grundlage sind 34 Korpora mit rund 2,2 Milliarden Wortvorkommen, von '
+  + 'Gerichtsentscheidungen über Zeitungstexte bis zu historischen Briefen. '
+  + 'Aufgeführt sind nur Textsorten, in denen das Wort mindestens doppelt so dicht '
+  + 'vorkommt wie im Schnitt — bei vielen Wörtern trifft das auf keine zu.'
+
+/** Überschrift der Klappbox, im Duktus des Beziehungs-Glossars darüber. */
+export const REGISTER_ANM_TITEL = 'Wie ist „so oft wie üblich" gemeint?'
+
+/**
+ * Die Kennzahl in Worten: „9-mal so oft wie üblich".
+ *
+ * **Gerundet auf ganze Zahlen.** Die Nachkommastelle (8,9×) täuscht eine
+ * Genauigkeit vor, die die Daten nicht hergeben: Der Faktor hängt an der
+ * Korpuszusammensetzung, nicht an einer Messung mit Fehlerbalken. Und „8,9×"
+ * ist Statistiker-Deutsch — verglichen wird eine Dichte mit einer erwarteten
+ * Dichte, was ohne Vorwissen nicht lesbar ist.
+ */
+export function faktorText(faktor) {
+  return `${Math.round(faktor)}-mal so oft wie üblich`
+}
 
 const KORPUS_ZU_REGISTER = new Map()
 for (const [reg, korpora] of Object.entries(REGISTER)) {
