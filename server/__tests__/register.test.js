@@ -8,7 +8,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   REGISTER, AUSGESCHLOSSEN, MIN_FAKTOR, MIN_FREQ_REGISTER,
-  registerFuer, pruefeVollstaendigkeit, fasseSummenZusammen, baueProfil,
+  registerFuer, pruefeVollstaendigkeit, fasseSummenZusammen, baueProfil, faktorText,
 } from '../register.js'
 
 /** Zwei gleich große Register à 1 Mio. Token, plus ein ausgeschlossenes. */
@@ -58,6 +58,25 @@ describe('fasseSummenZusammen', () => {
       { quelle: 'deu_news', f: 700 }, { quelle: 'deu_newscrawl', f: 300 },
     ])
     expect(proRegister.get('Presse')).toBe(1000)
+  })
+})
+
+describe('faktorText – die Kennzahl in Worten', () => {
+  it('rundet auf ganze Zahlen', () => {
+    // 8,9× hat eine Nachkommastelle, die die Daten nicht hergeben.
+    expect(faktorText(8.9)).toBe('9-mal so oft wie üblich')
+    expect(faktorText(2.4)).toBe('2-mal so oft wie üblich')
+    expect(faktorText(16.6)).toBe('17-mal so oft wie üblich')
+  })
+
+  it('bleibt an der Schwelle bei einer sinnvollen Angabe', () => {
+    expect(faktorText(MIN_FAKTOR)).toBe('2-mal so oft wie üblich')
+  })
+
+  it('nennt keine Zahl mit Komma', () => {
+    for (const f of [2.0, 2.5, 3.7, 8.9, 20.4]) {
+      expect(faktorText(f)).not.toMatch(/[.,]\d/)
+    }
   })
 })
 

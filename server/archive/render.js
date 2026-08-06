@@ -15,7 +15,7 @@
 import { computeNetzLayout } from './netzLayout.js'
 import { collocationBlurbLead, BLURB_LOGDICE_NOTE } from './blurb.js'
 import { glossaryForPatterns } from './relGlossar.js'
-import { REGISTER_KORPUS_TEXT } from '../register.js'
+import { REGISTER_METHODIK, REGISTER_ANM_TITEL, faktorText } from '../register.js'
 
 export const BASE_URL = 'https://signifikation.de'
 
@@ -317,9 +317,15 @@ export function renderWortPage(entry, siblings = [], extras = {}) {
     ? `<section class="arc-block arc-register">
     <p class="arc-block-label">Typisch für</p>
     <ul class="arc-register-liste">
-${register.map((r) => `      <li><span class="arc-register-name">${escapeHtml(r.register)}</span> <span class="arc-register-faktor">${String(r.faktor).replace('.', ',')}×</span></li>`).join('\n')}
+${register.map((r) => `      <li>
+        <span class="arc-register-name">${escapeHtml(r.register)}</span>
+        <span class="arc-register-wert">${escapeHtml(faktorText(r.faktor))}</span>
+      </li>`).join('\n')}
     </ul>
-    <p class="arc-register-legende">„${escapeHtml(entry.lemma)}“ kommt in diesen Textsorten so viel häufiger vor, als es die Gesamthäufigkeit des Wortes erwarten ließe. Grundlage sind ${REGISTER_KORPUS_TEXT}.</p>
+    <details class="arc-footnote">
+      <summary><span class="arc-footnote-label">Anm.</span> ${escapeHtml(REGISTER_ANM_TITEL)}</summary>
+      <p class="arc-register-methodik">${escapeHtml(REGISTER_METHODIK)}</p>
+    </details>
   </section>`
     : ''
 
