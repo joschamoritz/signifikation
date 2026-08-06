@@ -30,6 +30,7 @@ import { fileURLToPath } from 'url'
 import { dirname, resolve } from 'path'
 import logger from './logger.js'
 import { getCachedQuery } from './query-cache.js'
+import { pruefeVollstaendigkeit, fasseSummenZusammen, baueProfil } from './register.js'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 
@@ -238,6 +239,19 @@ function stmts() {
         ORDER BY logDice DESC
         LIMIT ?
       `),
+      // Registerprofil (server/register.js). Beide Statements gibt es nur ab v2 —
+      // `lemma_corpus_freq` ist eine v2-Tabelle.
+      lemmaKorpusFreq: schema() === 'v2'
+        ? database.prepare('SELECT quelle, freq FROM lemma_corpus_freq WHERE lemma = ? AND pos = ?')
+        : null,
+      // ⚠️ Voller Scan über 25,87 Mio. Zeilen (COVERING INDEX idx_lcf_quelle),
+      // gemessen konstant ~1,8 s — auch bei Wiederholung, da hilft kein Cache.
+      // Darf deshalb NIE in einem Request laufen: better-sqlite3 ist synchron
+      // und der Server ein einzelner Prozess, das wären 1,8 s Stillstand für
+      // alle. Wird einmalig beim Start über waermeRegisterAuf() gezogen.
+      korpusSummen: schema() === 'v2'
+        ? database.prepare('SELECT quelle, SUM(freq) AS f FROM lemma_corpus_freq GROUP BY quelle')
+        : null,
       // POS-Häufigkeit eines Lemmas („Elend"-Fix, siehe bestPosByFrequency).
       // v2 nutzt lemma_corpus_freq: höchstens ~25 Zeilen je (lemma, pos), damit
       // bei kaltem Cache vorhersehbar schnell. v1 kennt die Tabelle nicht und
@@ -505,6 +519,75 @@ export function queryRelation(lemma, pos, relCode, limit = 30, minFreq = 5, minD
       has_mwe:              false,
     }))
     .slice(0, limit)
+}
+
+// ── Registerprofil ───────────────────────────────────────────────────────────
+// Die Register-Summen kosten einen vollen Index-Scan (~1,8 s) und ändern sich
+// nie — die DB ist statisch und readonly. Deshalb genau einmal berechnen.
+let _registerSummen = null
+
+/**
+ * Berechnet die Register-Summen vorab. Beim Serverstart aufrufen, damit die
+ * 1,8 s nicht auf dem ersten Archiv-Aufruf landen (better-sqlite3 ist synchron,
+ * der Server ein einzelner Prozess).
+ *
+ * Idempotent und nicht fatal: schlägt es fehl, bleibt das Registerprofil leer
+ * und der Rest des Archivs funktioniert weiter.
+ */
+export function waermeRegisterAuf() {
+  if (_registerSummen) return _registerSummen
+  const s = stmts()
+  if (!s?.korpusSummen) {
+    logger.info('Registerprofil inaktiv (kein v2-Schema / keine DB)')
+    _registerSummen = { proRegister: new Map(), gesamt: 0 }
+    return _registerSummen
+  }
+  const t0 = Date.now()
+  try {
+    const korpusSummen = s.korpusSummen.all()
+    // register.js ist bewusst abhängigkeitsfrei (das Frontend importiert es) und
+    // loggt selbst nicht — die Befunde landen hier.
+    const { fehlend, unbekannt } = pruefeVollstaendigkeit(korpusSummen.map(r => r.quelle))
+    if (fehlend.length) {
+      logger.warn({ fehlend },
+        'Registerprofil: Korpora ohne Zuordnung – sie fehlen im Erwartungswert, Faktoren leicht verzerrt')
+    }
+    if (unbekannt.length) logger.debug({ unbekannt }, 'Registerprofil: zugeordnete Korpora fehlen in der DB')
+    _registerSummen = fasseSummenZusammen(korpusSummen)
+    logger.info(
+      { korpora: korpusSummen.length, register: _registerSummen.proRegister.size,
+        token: _registerSummen.gesamt, ms: Date.now() - t0 },
+      'Registerprofil: Korpus-Summen berechnet')
+  } catch (err) {
+    logger.warn({ err }, 'Registerprofil: Summen nicht berechenbar – Profil bleibt leer')
+    _registerSummen = { proRegister: new Map(), gesamt: 0 }
+  }
+  return _registerSummen
+}
+
+/**
+ * „In welcher Textsorte ist dieses Wort auffällig häufig?"
+ *
+ * Liefert bis zu `limit` Register mit dem Faktor beobachtet/erwartet, absteigend.
+ * Leeres Array, wenn das Wort kein Profil hat — das ist ein gültiges Ergebnis
+ * und keine Störung: `Jahr` und `Tor` liegen überall bei ~1,6× und fallen unter
+ * MIN_FAKTOR. Details zur Metrik in server/register.js.
+ *
+ * @returns {Array<{register: string, faktor: number, frequenz: number}>}
+ */
+export function fetchRegisterProfil(lemma, pos = 'Substantiv', { limit = 3 } = {}) {
+  if (!VALID_POS.has(pos)) return []
+  try {
+    const s = stmts()
+    if (!s?.lemmaKorpusFreq) return []
+    const summen = _registerSummen ?? waermeRegisterAuf()
+    if (!summen.gesamt) return []
+    const zeilen = s.lemmaKorpusFreq.all(kanonischesLemma(lemma, pos), pos)
+    return baueProfil(zeilen, summen, { limit })
+  } catch (err) {
+    logger.warn({ err, lemma, pos }, 'fetchRegisterProfil fehlgeschlagen')
+    return []
+  }
 }
 
 /**

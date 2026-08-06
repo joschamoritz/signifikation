@@ -26,6 +26,7 @@ import { loginLimiter, registerLimiter } from './middleware/rateLimiter.js'
 import { initializeIndices } from './store.js'
 import { errorHandler, AppError } from './error-handling.js'
 import { ensureWortprofilDb } from './init-wortprofil.js'
+import { waermeRegisterAuf } from './wortprofil.js'
 import publicRouter from './routes/public.js'
 import adminRouter  from './routes/admin.js'
 import accountRouter from './routes/account.js'
@@ -289,6 +290,17 @@ const WORTPROFIL_TIMEOUT_MS = 130_000  // etwas mehr als curl --max-time 120
   }
 
   initializeIndices()
+
+  // Registerprofil: die Korpus-Summen sind ein voller Index-Scan über 25,87 Mio.
+  // Zeilen (~1,8 s) und ändern sich nie. Hier einmal ziehen, statt den ersten
+  // Archiv-Aufruf damit zu belasten — better-sqlite3 ist synchron, das wären
+  // sonst 1,8 s Stillstand für alle gleichzeitigen Anfragen. Nicht fatal.
+  try {
+    waermeRegisterAuf()
+  } catch (err) {
+    logger.warn({ err }, 'Registerprofil-Vorwärmung fehlgeschlagen – Profil bleibt leer')
+  }
+
   startSessionCleanup()
   startPushScheduler()
   startStreakSaverScheduler()

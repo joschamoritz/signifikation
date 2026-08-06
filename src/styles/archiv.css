@@ -119,6 +119,21 @@
 .av-mt-legende { margin-top: 10px; font-family: var(--font-sans); font-size: 0.72rem; line-height: 1.55; color: var(--muted); }
 .av-mt-legende strong { color: var(--text); font-weight: 600; }
 
+/* Registerprofil („Typisch für") – spiegelt .arc-register-* aus static.css,
+   damit App-Tab und SSR-Seite identisch aussehen. */
+.av-register-liste { list-style: none; margin: 0; padding: 0; }
+.av-register-liste li {
+  display: flex; align-items: baseline; gap: 10px;
+  padding: 7px 0; border-bottom: 0.5px solid var(--border-lt);
+}
+.av-register-liste li:last-child { border-bottom: none; }
+.av-register-name { font-family: var(--font-serif); font-size: 1rem; color: var(--text); }
+.av-register-faktor {
+  margin-left: auto; font-family: var(--font-sans); font-size: 0.85rem; font-weight: 600;
+  font-variant-numeric: tabular-nums; color: var(--primary); flex-shrink: 0;
+}
+.av-register-legende { margin-top: 12px; font-family: var(--font-sans); font-size: 0.72rem; line-height: 1.55; color: var(--muted); }
+
 /* Anm.-Glossar der grammatischen Beziehungen (unterhalb der Muster-Tabelle) */
 .av-rel-glossar-list { display: flex; flex-direction: column; gap: 10px; margin: 0; }
 .av-rel-glossar-item dt { font-family: var(--font-serif); font-weight: 700; font-size: 0.85rem; color: var(--text); margin: 0 0 2px; }
