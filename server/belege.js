@@ -72,6 +72,30 @@
  * und behalten `ORDER BY rank`: dort expandiert FTS5 auf viele Terme, und die
  * Fenster verschlechterten die Messung von 1,2 s auf 9,1 s.
  *
+ * ── Flexions-Fallback (2026-08-06) ───────────────────────────────────────────
+ * `collocations` wird aus LEMMATISIERTEN Parses gebaut, `belege_fts` indiziert
+ * dagegen die OBERFLÄCHENFORMEN der Sätze. Für Paare, die im Deutschen praktisch
+ * nur flektiert vorkommen, klafft dort eine Lücke: `digital + Gesundheitsanwendung`
+ * hat 463 Belege in der Kollokationstabelle, aber **null** Sätze mit den beiden
+ * Grundformen — im Text steht immer „digitale Gesundheitsanwendungen". Dasselbe
+ * bei `Krieg + siebenjährig` („Siebenjährigen Krieges"). Die Anzeige sagte dann
+ * „Keine Korpusbelege vorhanden", obwohl der Bestand voll davon ist.
+ *
+ * Deshalb: findet die Suche über die Grundformen GAR NICHTS, läuft ein zweiter
+ * Durchgang mit beiden Termen als Phrasen-Präfix. Beide, weil die Flexion in der
+ * Regel beide Seiten trifft (Adjektivendung + Genitiv/Plural am Nomen).
+ *
+ * An 400 echten Kollokationspaaren (frequency ≥ 200, logDice ≥ 6) gemessen:
+ *   • 13 % finden über die Grundformen nichts — dort greift der Fallback,
+ *   • er repariert davon 35 von 52 (der Rest ist echt selten im Bestand),
+ *   • Kosten p50 8 ms · p95 133 ms · max 356 ms (warm; der allererste
+ *     Prefix-Lauf nach dem Start kostete einmalig 1,9 s, Cold-Cache).
+ *
+ * Die übrigen 87 % zahlen NICHTS: der Fallback läuft erst bei null Treffern, und
+ * eine erfolglose Fenstersuche kostet gemessen 1–2 ms. Das ist der Grund für die
+ * harte Schwelle „exakt null" statt „zu wenige" — better-sqlite3 ist synchron und
+ * der Server ein einzelner Prozess, jeder unnötige Prefix-Lauf blockiert alle.
+ *
  * Der Jahr-Filter (`year`) läuft ebenfalls in JavaScript über denselben Pool; in
  * SQL kostete er nach dem Sprung 7–8 s, weil FTS5 bis zum nächsten passenden
  * Jahrgang weiterläuft. Der Fallback „unter 2 Treffer → ohne Jahr" gilt
@@ -440,6 +464,10 @@ function buildFtsQuery(lemma, collocate, opts = {}) {
   return `${ftsTerm(lemma, opts)} AND ${ftsTerm(collocate, opts)}`
 }
 
+// Ab dieser Wortlänge ist ein Prefix-Term vertretbar. Darunter wird die Menge
+// der zufälligen Mitläufer zu groß („Tor"* fände Torte, Tornado, Torpedo).
+const PREFIX_MIN_LEN = 4
+
 /**
  * FTS5-Query mit Prefix-Matching für den Kollokator.
  * Findet auch flektierte Formen: spannend* → spannende/spannenden/spannendem.
@@ -449,7 +477,23 @@ function buildFtsQuery(lemma, collocate, opts = {}) {
  * Mindestlänge 4 Zeichen, damit kurze Wörter nicht zu viele False Positives erzeugen.
  */
 function buildFtsQueryPrefix(lemma, collocate, opts = {}) {
-  return `${ftsTerm(lemma, opts)} AND ${ftsTerm(collocate, { ...opts, prefix: String(collocate).length >= 4 })}`
+  return `${ftsTerm(lemma, opts)} AND ${ftsTerm(collocate, { ...opts, prefix: String(collocate).length >= PREFIX_MIN_LEN })}`
+}
+
+/**
+ * Wie `buildFtsQuery`, aber BEIDE Terme als Phrasen-Präfix — der Flexions-Fallback
+ * aus dem Modulkopf. Beide, weil die deutsche Flexion in der Regel beide Seiten
+ * trifft: „digitale Gesundheitsanwendungen", „Siebenjährigen Krieges".
+ *
+ * Die Hervorhebung zieht automatisch mit: `matchesLemma()` vergleicht Wörter ab
+ * vier Zeichen ohnehin per `startsWith`, markiert „digitale" für „digital" also
+ * schon heute. Der Fallback nutzt dieselbe Schwelle, damit Suche und Anzeige
+ * nicht auseinanderlaufen — sonst fände die Query Sätze, in denen die Anzeige
+ * nichts zu markieren hätte (leere KWiC-Zerlegung im Archiv).
+ */
+function buildFtsQueryFlexion(lemma, collocate, opts = {}) {
+  const mitPrefix = w => ({ ...opts, prefix: String(w ?? '').length >= PREFIX_MIN_LEN })
+  return `${ftsTerm(lemma, mitPrefix(lemma))} AND ${ftsTerm(collocate, mitPrefix(collocate))}`
 }
 
 // Ab wie vielen Treffern die moderne Schreibung allein als ausreichend gilt.
@@ -556,7 +600,16 @@ export function fetchBelege(lemma, collocate, { limit = 5, year = null } = {}) {
 
   try {
     const bauQuery = v => buildFtsQuery(lemma, collocate, { mitVarianten: v })
-    const unique = dedupe(sucheMitVariantenFallback(bauQuery, q => holePool(q, ziel)))
+    let unique = dedupe(sucheMitVariantenFallback(bauQuery, q => holePool(q, ziel)))
+
+    // Flexions-Fallback (Modulkopf): nur bei GAR KEINEM Treffer, und `prefix: true`
+    // schaltet dabei bewusst auf `ORDER BY rank` — die Fenster sind bei
+    // Prefix-Queries langsamer, nicht schneller.
+    if (unique.length === 0) {
+      const bauFlexion = v => buildFtsQueryFlexion(lemma, collocate, { mitVarianten: v })
+      unique = dedupe(sucheMitVariantenFallback(
+        bauFlexion, q => holePool(q, ziel, { prefix: true })))
+    }
 
     let auswahl = unique
     if (year) {
