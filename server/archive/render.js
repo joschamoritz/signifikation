@@ -15,6 +15,7 @@
 import { computeNetzLayout } from './netzLayout.js'
 import { collocationBlurbLead, BLURB_LOGDICE_NOTE } from './blurb.js'
 import { glossaryForPatterns } from './relGlossar.js'
+import { REGISTER_KORPUS_TEXT } from '../register.js'
 
 export const BASE_URL = 'https://signifikation.de'
 
@@ -239,17 +240,19 @@ function renderBeleg(b) {
  * entry = Ergebnis von toPublicEntry(); siblings = [{ slug, lemma }] fuer interne Links.
  * extras = {
  *   thema?: { datum, text, quelle },        // Tagesthema (oeffentlich)
- *   detail?: buildWortDetail(entry),        // { pos, total, patterns, netz, belege }
+ *   detail?: buildWortDetail(entry),        // { pos, total, patterns, netz, belege, register }
  * }
  * detail.patterns  = syntagmatische Muster (Top-Kollokatoren mit Kennzahlen)
  * detail.netz      = sekundaere Kollokatoren (Wortnetz)
  * detail.belege    = KWiC-Belege ({ satz, quelle, tokens, kwic })
+ * detail.register  = Registerprofil ({ register, faktor, frequenz }), ggf. leer
  */
 export function renderWortPage(entry, siblings = [], extras = {}) {
   const { thema = null, detail = null } = extras
   const patterns = detail?.patterns || []
   const netz = detail?.netz || []
   const belege = detail?.belege || []
+  const register = detail?.register || []
   const defs = entry.definitionen.length ? entry.definitionen : []
   const primaryDef = defs[0] || ''
   const title = `${entry.lemma}${entry.wortart ? ', ' + entry.wortart : ''} – Bedeutung | Signifikation`
@@ -307,6 +310,19 @@ export function renderWortPage(entry, siblings = [], extras = {}) {
   // grauen Satelliten zeigen dasselbe). renderWortnetz bleibt ungenutzt.
   const netzVizHtml = renderMusterNetz(entry.lemma, patterns, netz)
 
+  // Registerprofil: nur zeigen, wenn es eins gibt. Ein Wort ohne auffälliges
+  // Register (`alt`, `arbeiten`) bekommt keinen leeren Block, sondern gar keinen —
+  // ein Kasten mit „—" sähe nach Datenlücke aus, ist aber ein echter Befund.
+  const registerHtml = register.length
+    ? `<section class="arc-block arc-register">
+    <p class="arc-block-label">Typisch für</p>
+    <ul class="arc-register-liste">
+${register.map((r) => `      <li><span class="arc-register-name">${escapeHtml(r.register)}</span> <span class="arc-register-faktor">${String(r.faktor).replace('.', ',')}×</span></li>`).join('\n')}
+    </ul>
+    <p class="arc-register-legende">„${escapeHtml(entry.lemma)}“ kommt in diesen Textsorten so viel häufiger vor, als es die Gesamthäufigkeit des Wortes erwarten ließe. Grundlage sind ${REGISTER_KORPUS_TEXT}.</p>
+  </section>`
+    : ''
+
   const belegeHtml = belege.length
     ? `<section class="arc-block arc-belege">
     <p class="arc-block-label">Aus dem Korpus</p>
@@ -334,6 +350,7 @@ export function renderWortPage(entry, siblings = [], extras = {}) {
 ${themaHtml}
 ${kollHtml}
 ${netzVizHtml}
+${registerHtml}
 ${belegeHtml}
 ${relatedHtml}
 ${footer()}`

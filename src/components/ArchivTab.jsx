@@ -5,6 +5,7 @@ import MusterNetz from './archiv/MusterNetz'
 import ArchivLetterRail from './archiv/ArchivLetterRail'
 import { collocationBlurbLead, BLURB_LOGDICE_NOTE } from '../../server/archive/blurb.js'
 import { glossaryForPatterns } from '../../server/archive/relGlossar.js'
+import { REGISTER_KORPUS_TEXT } from '../../server/register.js'
 import { apiGet } from '../api/client'
 import { API } from '../config'
 import '../styles/archiv.css'
@@ -53,6 +54,7 @@ function WortDetail({ data, loading, error, onRetry, onBack, onPlayToday, maxNod
   const patterns = data?.detail?.patterns || []
   const netz = data?.detail?.netz || []
   const belege = data?.detail?.belege || []
+  const register = data?.detail?.register || []
   const [showAllBelege, setShowAllBelege] = useState(false)
   const shownBelege = showAllBelege ? belege : belege.slice(0, 3)
   const [glossarOpen, setGlossarOpen] = useState(false)
@@ -171,6 +173,26 @@ function WortDetail({ data, loading, error, onRetry, onBack, onPlayToday, maxNod
             <section className="av-block">
               <p className="av-block-label">Musternetz</p>
               <MusterNetz lemma={data.lemma} patterns={patterns} netz={netz} maxNodes={maxNodes} />
+            </section>
+          ) : null}
+
+          {/* Kein Profil → gar kein Block. Ein leerer Kasten sähe nach Datenlücke
+              aus; „kein auffälliges Register“ ist aber ein echter Befund. */}
+          {register.length ? (
+            <section className="av-block">
+              <p className="av-block-label">Typisch für</p>
+              <ul className="av-register-liste">
+                {register.map((r, i) => (
+                  <li key={i}>
+                    <span className="av-register-name">{r.register}</span>
+                    <span className="av-register-faktor">{String(r.faktor).replace('.', ',')}×</span>
+                  </li>
+                ))}
+              </ul>
+              <p className="av-register-legende">
+                „{data.lemma}“ kommt in diesen Textsorten so viel häufiger vor, als es die
+                Gesamthäufigkeit des Wortes erwarten ließe. Grundlage sind {REGISTER_KORPUS_TEXT}.
+              </p>
             </section>
           ) : null}
 

@@ -17,7 +17,7 @@
  * Alle Aufrufe sind fehlertolerant: fehlt eine DB (belege.db/wortprofil.db),
  * bleibt der jeweilige Block leer, die Seite rendert trotzdem.
  */
-import { fetchSyntagmaticPatterns, fetchSecondaryCollocates } from '../wortprofil.js'
+import { fetchSyntagmaticPatterns, fetchSecondaryCollocates, fetchRegisterProfil } from '../wortprofil.js'
 import { fetchBelegeForLemma } from '../belege.js'
 import { getCachedQuery } from '../query-cache.js'
 import logger from '../logger.js'
@@ -30,7 +30,7 @@ export function normalizePos(wortart) {
 /**
  * Baut das vollständige Detail-Datenpaket für ein Lemma.
  * @param {{lemma:string, wortart?:string}} entry  public entry (toPublicEntry)
- * @returns {{ pos:string, total:number, patterns:Array, netz:Array, belege:Array }}
+ * @returns {{ pos:string, total:number, patterns:Array, netz:Array, belege:Array, register:Array }}
  */
 export function buildWortDetail(entry, { patternLimit = 10, belegLimit = 2 } = {}) {
   const pos = normalizePos(entry.wortart)
@@ -38,6 +38,7 @@ export function buildWortDetail(entry, { patternLimit = 10, belegLimit = 2 } = {
   let total = 0
   let netz = []
   let belege = []
+  let register = []
 
   try {
     const res = fetchSyntagmaticPatterns(entry.lemma, pos, { limit: patternLimit })
@@ -57,8 +58,15 @@ export function buildWortDetail(entry, { patternLimit = 10, belegLimit = 2 } = {
   } catch (err) {
     logger.warn({ err, lemma: entry.lemma }, 'buildWortDetail: Belege fehlgeschlagen')
   }
+  try {
+    // Leeres Ergebnis ist hier ein gültiger Befund („kein Registerprofil"),
+    // kein Fehler — die Anzeige lässt den Block dann weg.
+    register = fetchRegisterProfil(entry.lemma, pos)
+  } catch (err) {
+    logger.warn({ err, lemma: entry.lemma }, 'buildWortDetail: Registerprofil fehlgeschlagen')
+  }
 
-  return { pos, total, patterns, netz, belege }
+  return { pos, total, patterns, netz, belege, register }
 }
 
 /**
