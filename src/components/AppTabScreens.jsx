@@ -13,6 +13,8 @@ export default function AppTabScreens({
   phase,
   lemmata,
   apiError,
+  apiErrorKind,
+  onRetryDailyContent,
   thema,
   playedGames,
   allPlayed,
@@ -43,6 +45,8 @@ export default function AppTabScreens({
         onStart={onStart}
         loading={!lemmata && !apiError}
         error={apiError}
+        errorKind={apiErrorKind}
+        onRetryDailyContent={onRetryDailyContent}
         lemmata={lemmata || []}
         thema={thema || ''}
         playedGames={playedGames}

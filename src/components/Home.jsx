@@ -4,7 +4,7 @@ import DayComplete from './DayComplete'
 import Sheet from './ui/Sheet'
 import {
   WEEKDAYS, MONTHS,
-  localDateStr, getISOWeek, computeStreak, streakFlames, buildShareText,
+  localDateStr, getISOWeek, parseISODateLocal, computeStreak, streakFlames, buildShareText,
 } from '../utils/homeUtils'
 import { shareAsImage } from '../utils/shareImage'
 import { lsGet, lsSet } from '../utils/storage'
@@ -20,7 +20,7 @@ import LegalLinks from './LegalLinks'
 import { memo } from 'react'
 
 function Home({
-  onStart, loading, error, lemmata = [],
+  onStart, loading, error, errorKind = null, onRetryDailyContent, lemmata = [],
   thema = '',
   playedGames = [], allPlayed = false,
   wortzwilling = null, wortzwillingError = false, onRetryWortzwilling,
@@ -56,7 +56,12 @@ function Home({
   const streak     = computeStreak()
   const today      = new Date()
   const dateStr    = localDateStr(today)
-  const kw         = getISOWeek(today)
+  // Angezeigtes Datum folgt dem Server (Europe/Berlin), nicht der Geraetezeit —
+  // sonst steht in westlichen Zeitzonen abends der Vortag ueber den Woertern
+  // des naechsten Tages. `dateStr` bleibt bewusst geraetelokal, weil daran die
+  // localStorage-Schluessel und die Streak-Logik haengen.
+  const displayDate = parseISODateLocal(serverDatum) ?? today
+  const kw         = getISOWeek(displayDate)
   const hasPlayed  = playedGames.length > 0 || !!wzPlayed || !!zwPlayed || !!lfPlayed
 
   const totalPoints    = playedGames.reduce((s, g) => s + g.total, 0)
@@ -148,8 +153,8 @@ function Home({
           <p className="test-overline">Tägliches Wortspiel · Linguistik</p>
           <h1 className="test-title">Signifikation</h1>
           <p className="test-subtitle">
-            <time dateTime={dateStr}>
-              {`${WEEKDAYS[today.getDay()]}, ${today.getDate()}. ${MONTHS[today.getMonth()]} ${today.getFullYear()}`}
+            <time dateTime={localDateStr(displayDate)}>
+              {`${WEEKDAYS[displayDate.getDay()]}, ${displayDate.getDate()}. ${MONTHS[displayDate.getMonth()]} ${displayDate.getFullYear()}`}
             </time>
           </p>
           <div className="test-title-right">
@@ -198,7 +203,7 @@ function Home({
             </div>
           )}
           <div className="test-raster-end">
-            <span className="test-raster-folio" aria-hidden="true">KW {kw} · {today.getFullYear()}</span>
+            <span className="test-raster-folio" aria-hidden="true">KW {kw} · {displayDate.getFullYear()}</span>
             {hasPlayed && (
               <button
                 className="test-title-share test-raster-share"
@@ -253,7 +258,21 @@ function Home({
 
                 {/* Gespielte Wörter */}
                 {error && (
-                  <p className="test-game-error">Kein Eintrag für heute verfügbar.</p>
+                  <p className="test-game-error">
+                    {errorKind === 'missing'
+                      ? 'Für heute ist noch kein Wort eingeplant.'
+                      : errorKind === 'server'
+                        ? 'Der Server antwortet gerade nicht.'
+                        : 'Keine Verbindung zum Server. Bitte prüfe deine Internetverbindung.'}
+                    {errorKind !== 'missing' && onRetryDailyContent && (
+                      <>
+                        {' '}
+                        <button className="test-game-error-retry" type="button" onClick={onRetryDailyContent}>
+                          Erneut versuchen
+                        </button>
+                      </>
+                    )}
+                  </p>
                 )}
                 {!error && playedGames.length > 0 && (
                   <ul className="test-played-list">
@@ -353,39 +372,20 @@ function Home({
               available={!!lueckenfuellerLemma?.lueckenfueller}
               played={lfPlayed}
               playedLabel={lueckenfuellerLemma?.lemma ?? null}
+              // Der Lückenfüller-Lemma kommt aus /heute — ein Ladefehler dort
+              // darf hier nicht als "heute nicht eingeplant" erscheinen.
+              errorState={!!error && errorKind !== 'missing'}
+              onRetry={onRetryDailyContent}
               onPlay={onPlayLueckenfueller}
               statusText={
-                !lueckenfuellerLemma?.lueckenfueller ? 'Heute nicht verfügbar.'
+                error && errorKind !== 'missing' ? 'Der Eintrag konnte gerade nicht geladen werden.'
+                : !lueckenfuellerLemma?.lueckenfueller ? 'Heute nicht verfügbar.'
                 : lfPlayed ? 'Gespielt.'
                 : 'Noch nicht gespielt.'
               }
               ctaText={lfPlayed ? 'Ergebnis ansehen' : 'Lückenfüller starten'}
               ctaAriaLabel={lfPlayed ? 'Ergebnis ansehen: Lückenfüller' : 'Lückenfüller starten'}
             />
-
-            {/* ── ⑤ Platzhalter (i.V.) ─────────────────────── */}
-            <li className="test-entry test-entry--disabled" aria-hidden="true">
-              <div className="test-entry-number">
-                <span className="test-entry-num-glyph">⑤</span>
-                <span className="test-entry-marginalia">i.V.</span>
-              </div>
-              <div className="test-entry-body">
-                <div className="test-entry-head">
-                  <h2 className="test-headword">???</h2>
-                  <span className="test-ipa">[ˈfʁaːɡəˌtsaɪ̯çən]</span>
-                </div>
-                <div className="test-entry-grammar" aria-hidden="true">
-                  <span className="test-pos">Wortspiel</span>
-                  <span className="test-pos-rule" />
-                  <span className="test-entry-category">in Arbeit</span>
-                </div>
-                <p className="test-definition">noch nicht lemmatisiert. — Belege in Bearbeitung; Aufnahme in späteren Auflagen vorgesehen.</p>
-                <div className="test-entry-footer">
-                  <span className="test-status">Demnächst verfügbar.</span>
-                  <span className="test-cta test-cta--disabled" aria-hidden="true">—</span>
-                </div>
-              </div>
-            </li>
 
           </ol>
         </main>
@@ -415,7 +415,7 @@ function Home({
         {/* ── Vertikale Badge-Navigation (nur mobil) ───────── */}
         <nav className="snap-nav" aria-label="Spielmodus-Navigation">
           <div className="snap-nav-games">
-            {[['①','Kollokationen'],['②','Wort-Zwilling'],['③','Zeitenwende'],['④','Lückenfüller'],['⑤','In Vorbereitung']].map(([glyph, label], i) => (
+            {[['①','Kollokationen'],['②','Wort-Zwilling'],['③','Zeitenwende'],['④','Lückenfüller']].map(([glyph, label], i) => (
               <button
                 key={label}
                 type="button"

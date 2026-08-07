@@ -1,11 +1,12 @@
-import { useCallback, useReducer, useState } from 'react'
+import { useCallback, useEffect, useReducer, useState } from 'react'
 import { API } from '../config'
 import { lsGet, lsParse } from '../utils/storage'
 import { loadHeuteCache, saveHeuteCache } from '../utils/heuteCache'
 import { useApiResource } from './useApiResource'
 
 const initialState = {
-  lemmata: null, apiError: null, isOfflineFallback: false, serverDatum: null,
+  lemmata: null, apiError: null, apiErrorKind: null,
+  isOfflineFallback: false, serverDatum: null,
   thema: '', themaKurz: '', themaQuelle: '', lueckenfuellerLemma: null,
   wortzwilling: null, wortzwillingError: false,
   zeitenwende: null, zeitenwendeStatus: 'idle',
@@ -14,7 +15,7 @@ const initialState = {
 
 function heuteFields(payload, offline) {
   return {
-    isOfflineFallback: offline, apiError: null,
+    isOfflineFallback: offline, apiError: null, apiErrorKind: null,
     serverDatum: payload.datum, lemmata: payload.lemmata,
     thema: payload.thema || '', themaKurz: payload.thema_kurz || '',
     themaQuelle: payload.thema_quelle || '',
@@ -26,8 +27,8 @@ function reducer(state, action) {
   switch (action.type) {
     case 'HEUTE_LOADED':         return { ...state, ...heuteFields(action.payload, false) }
     case 'OFFLINE_FALLBACK':     return { ...state, ...heuteFields(action.payload, true) }
-    case 'HEUTE_ERROR':          return { ...state, apiError: action.payload }
-    case 'HEUTE_RESET_ERROR':    return { ...state, apiError: null }
+    case 'HEUTE_ERROR':          return { ...state, apiError: action.payload.message, apiErrorKind: action.payload.kind }
+    case 'HEUTE_RESET_ERROR':    return { ...state, apiError: null, apiErrorKind: null }
     case 'WORTZWILLING_LOADING': return { ...state, wortzwilling: null, wortzwillingError: false }
     case 'WORTZWILLING_LOADED':  return { ...state, wortzwilling: action.payload, wortzwillingError: false }
     case 'WORTZWILLING_ERROR':   return { ...state, wortzwillingError: true }
@@ -67,7 +68,12 @@ export function useDailyContent() {
     parseResponse: async (r) => {
       if (r.ok) return r.json()
       const body = await r.json().catch(() => ({}))
-      throw new Error(body?.error || `HTTP ${r.status}`)
+      // Status mitführen: der Aufrufer muss "heute ist nichts eingeplant" (404)
+      // von "Server nicht erreichbar" unterscheiden können. Ein Netzwerkfehler
+      // lässt fetch selbst verwerfen — dort gibt es kein err.status.
+      const err = new Error(body?.error || `HTTP ${r.status}`)
+      err.status = r.status
+      throw err
     },
     onSuccess: (payload) => {
       dispatch({ type: 'HEUTE_LOADED', payload })
@@ -80,7 +86,10 @@ export function useDailyContent() {
         dispatch({ type: 'OFFLINE_FALLBACK', payload: cached })
         seedPlayed(cached.datum)
       } else {
-        dispatch({ type: 'HEUTE_ERROR', payload: err.message })
+        const kind = err?.status === 404 ? 'missing'
+          : err?.status ? 'server'
+          : 'offline'
+        dispatch({ type: 'HEUTE_ERROR', payload: { message: err.message, kind } })
       }
     },
   })
@@ -135,6 +144,16 @@ export function useDailyContent() {
     dispatch({ type: 'HEUTE_RESET_ERROR' })
     setContentRequestId((n) => n + 1)
   }, [])
+
+  // Kommt das Netz zurueck, den Tagesinhalt automatisch nachladen. Ohne das
+  // bleibt der Fehlerzustand bis zum App-Neustart stehen — der CTA ist
+  // solange deaktiviert, es gaebe also keinen Weg zurueck.
+  useEffect(() => {
+    if (state.apiErrorKind !== 'offline') return undefined
+    const onOnline = () => retryDailyContent()
+    window.addEventListener('online', onOnline)
+    return () => window.removeEventListener('online', onOnline)
+  }, [state.apiErrorKind, retryDailyContent])
 
   return {
     ...state,

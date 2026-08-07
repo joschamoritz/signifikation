@@ -27,6 +27,23 @@ function applyTheme(theme) {
   applyNativeStatusBar(theme)
 }
 
+/**
+ * Setzt das Theme VOR dem ersten Render.
+ *
+ * useTheme() wendet das Theme in einem Effect an — also erst nach dem Mount.
+ * Bis dahin gilt der Light-Default aus globals.css, und Dark-Mode-Nutzer sahen
+ * beim Kaltstart kurz das helle Pergament aufblitzen. Auf iOS faellt das
+ * besonders auf, weil davor schon der Splash in #faf9f7 stand.
+ *
+ * Bewusst hier und nicht als Inline-Skript in index.html: `scriptSrc: 'self'`
+ * wuerde ein Inline-Skript blockieren.
+ */
+export function applyStoredThemeEarly() {
+  try {
+    applyTheme(resolveTheme(localStorage.getItem(STORAGE_KEY) ?? 'auto'))
+  } catch { /* localStorage gesperrt (Private Mode) – Light-Default bleibt */ }
+}
+
 export function useTheme() {
   const [pref, setPref] = useState(() => {
     return localStorage.getItem(STORAGE_KEY) ?? 'auto'

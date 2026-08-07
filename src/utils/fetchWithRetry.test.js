@@ -83,12 +83,15 @@ describe('fetchWithRetry', () => {
       return originalSetTimeout(fn, 0)  // sofort ausfuehren
     })
 
-    await fetchWithRetry('http://example.com', {}, 2, 400).catch(() => {})
+    // Zeitlimit bewusst weit oberhalb der Backoff-Werte, damit sich die beiden
+    // Timer-Sorten im Protokoll sauber trennen lassen.
+    await fetchWithRetry('http://example.com', {}, 2, 400, 50_000).catch(() => {})
 
     // Vitest-/Node-Interna koennen kleine setTimeout-Aufrufe (1–5ms) einstreuen
     // (z.B. fuer Promise-Scheduling im Worker). Wir filtern nur die echten
-    // Backoff-Delays heraus — alles >= 100ms ist garantiert von fetchWithRetry.
-    const backoffDelays = delays.filter((d) => d >= 100)
+    // Backoff-Delays heraus — alles >= 100ms und unterhalb des Zeitlimits ist
+    // garantiert von fetchWithRetry.
+    const backoffDelays = delays.filter((d) => d >= 100 && d < 50_000)
     // Erster Retry: 400ms (400 * 2^0), zweiter: 800ms (400 * 2^1)
     expect(backoffDelays[0]).toBe(400)
     expect(backoffDelays[1]).toBe(800)
@@ -100,6 +103,38 @@ describe('fetchWithRetry', () => {
 
     await fetchWithRetry('http://example.com', options)
 
-    expect(fetch).toHaveBeenCalledWith('http://example.com', options)
+    // Zusaetzlich zum uebergebenen Options-Objekt haengt jeder Versuch sein
+    // eigenes Abort-Signal an (Zeitlimit).
+    expect(fetch).toHaveBeenCalledWith('http://example.com', expect.objectContaining({
+      headers: { Authorization: 'Bearer token' },
+      signal: expect.any(AbortSignal),
+    }))
+  })
+
+  it('bricht einen hängenden Request nach dem Zeitlimit ab', async () => {
+    global.fetch = vi.fn().mockImplementation((_url, { signal }) => new Promise((_resolve, reject) => {
+      signal.addEventListener('abort', () => reject(new DOMException('Aborted', 'AbortError')))
+    }))
+
+    const promise = fetchWithRetry('http://example.com', {}, 0, 400, 8000)
+    await Promise.all([
+      vi.advanceTimersByTimeAsync(8000),
+      expect(promise).rejects.toThrow('Zeitüberschreitung'),
+    ])
+    expect(fetch).toHaveBeenCalledTimes(1)
+  })
+
+  it('reicht einen Abbruch des Aufrufers unverändert als AbortError durch', async () => {
+    const controller = new AbortController()
+    global.fetch = vi.fn().mockImplementation((_url, { signal }) => new Promise((_resolve, reject) => {
+      signal.addEventListener('abort', () => reject(new DOMException('Aborted', 'AbortError')))
+    }))
+
+    const promise = fetchWithRetry('http://example.com', { signal: controller.signal }, 2, 400)
+    controller.abort()
+
+    await expect(promise).rejects.toMatchObject({ name: 'AbortError' })
+    // Kein Retry nach einem Abbruch des Aufrufers.
+    expect(fetch).toHaveBeenCalledTimes(1)
   })
 })

@@ -15,7 +15,14 @@
   --k-error:     var(--error);
   --k-disabled:  var(--disabled);
 
-  min-height: 100vh;
+  /* Der Kiosk ist eine Vollbildroute AUSSERHALB der AppShell und erbt deren
+     Safe-Area-Paddings aus globals.css deshalb nicht. Ohne die folgenden
+     Insets laeuft der Header auf Geraeten mit Notch/Dynamic Island unter die
+     Statusleiste — und das ist der erste Bildschirm, den ein Reviewer beim
+     Test des Klassenraums sieht. */
+  min-height: 100dvh;
+  padding-left:  env(safe-area-inset-left, 0px);
+  padding-right: env(safe-area-inset-right, 0px);
   background: var(--k-bg);
   color:      var(--k-text);
   font-family: 'DM Sans', system-ui, sans-serif;
@@ -29,7 +36,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding: 14px 18px 12px;
+  padding: max(14px, env(safe-area-inset-top, 0px)) 18px 12px;
   border-bottom: 1px solid var(--k-rule-lt);
   background: var(--k-bg);
 }
@@ -378,7 +385,8 @@
 .classroom-kiosk__toast {
   position: fixed;
   left: 50%;
-  bottom: 24px;
+  /* Sonst liegt der Toast unter dem Home-Indicator. */
+  bottom: calc(24px + env(safe-area-inset-bottom, 0px));
   transform: translateX(-50%);
   background: var(--k-text);
   color: #faf9f7;
@@ -962,7 +970,13 @@
   align-items: center;
   justify-content: center;
   gap: 18px;
-  padding: 24px;
+  /* Vollbild-Overlay ueber der Kamera — Abbrechen-Knopf und Hinweistext
+     duerfen nicht unter Statusleiste oder Home-Indicator geraten. */
+  padding:
+    max(24px, env(safe-area-inset-top, 0px))
+    max(24px, env(safe-area-inset-right, 0px))
+    max(24px, env(safe-area-inset-bottom, 0px))
+    max(24px, env(safe-area-inset-left, 0px));
 }
 .classroom-qr-scanner__frame {
   position: relative;
