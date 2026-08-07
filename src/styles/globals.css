@@ -331,6 +331,26 @@ button { font-family: inherit; cursor: pointer; border: none }
 /* Chevron/Pfeil in CTAs nudged bei Hover (nutzt .test-cta-arrow, sofern gesetzt). */
 @media (hover: hover) { .btn-primary:hover:not(:disabled) .test-cta-arrow { transform: translateX(3px) } }
 .btn-primary .test-cta-arrow { font-family: var(--font-serif); font-style: normal; transition: transform 0.15s }
+
+/* Dark Mode: Der randlose CTA traegt hier zu wenig Kontrast — --primary
+   (#c0302a) auf --surface (#2a2420) ergibt nur 2,70:1, auf --bg 3,19:1. Das
+   Markenrot bleibt unveraendert (Entscheidung 2026-08-07); stattdessen bekommt
+   der Button eine helle Traegerflaeche: #c0302a auf #f2ede5 = 4,87:1.
+   Hover aendert deshalb die Flaeche und NICHT die Schriftfarbe — --primary-hi
+   (#d94040) laege auf derselben Flaeche nur bei 3,79:1.
+   Deaktiviert bleibt flaechenlos (von 1.4.3 ausgenommen, und eine helle Flaeche
+   unter grauem Text saehe nach aktiv aus). */
+[data-theme="dark"] .btn-primary:not(:disabled) {
+  background: #f2ede5;
+  border-radius: 3px;
+  padding: 8px 16px;
+}
+@media (hover: hover) {
+  [data-theme="dark"] .btn-primary:hover:not(:disabled) {
+    color: var(--primary);
+    background: #fbf7f1;
+  }
+}
 .btn-full { width: 100% }
 .btn-ghost {
   background: none;

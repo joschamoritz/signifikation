@@ -225,6 +225,13 @@ export default function Quiz({
               {submitted && STATE_ICON[state] && (
                 <span className="option-icon" aria-hidden="true">{STATE_ICON[state]}</span>
               )}
+              {/* Vor dem Auswerten war die Auswahl allein farblich markiert
+                  (Rahmen links + Tonung). Die Rangziffer wurde zwar schon
+                  berechnet, landete aber nur im aria-label. Sichtbar gerendert
+                  traegt sie die Information jetzt auch ohne Farbwahrnehmung. */}
+              {!submitted && rank && (
+                <span className="option-rank" aria-hidden="true">{rank}</span>
+              )}
               {opt.wort}
               {submitted && opt.log_dice != null && (
                 <span className="logdice" aria-hidden="true">{opt.log_dice}</span>
