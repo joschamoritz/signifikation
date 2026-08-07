@@ -310,6 +310,8 @@ nav.legal a:hover { color: #9b1c1c }
 .arc-defs li:last-child { border-bottom: none; }
 .arc-defs.single li { padding-left: 0; }
 .arc-defs.single li::before { content: none; }
+.arc-defs-quelle { font-family: 'DM Sans', system-ui, sans-serif; font-size: 0.72rem; color: #776c5e; margin-top: 10px; font-style: italic; }
+.arc-defs-quelle a { color: inherit; text-decoration: underline; text-underline-offset: 2px; }
 .arc-meta { font-family: 'DM Sans', system-ui, sans-serif; font-size: 0.8rem; color: #8a7f6e; margin-top: 22px; line-height: 1.6; }
 .arc-play { margin-top: 24px; }
 .arc-play a { font-family: 'Gentium Plus', serif; font-weight: 700; color: #9b1c1c; text-decoration: none; border-bottom: 1px solid transparent; }

@@ -3,6 +3,7 @@ import TabHeader from './TabHeader'
 import Colophon from './Colophon'
 import MusterNetz from './archiv/MusterNetz'
 import ArchivLetterRail from './archiv/ArchivLetterRail'
+import WiktionaryHinweis from './WiktionaryHinweis'
 import { collocationBlurbLead, BLURB_LOGDICE_NOTE } from '../../server/archive/blurb.js'
 import { glossaryForPatterns } from '../../server/archive/relGlossar.js'
 import { REGISTER_METHODIK, REGISTER_ANM_TITEL, faktorText } from '../../server/register.js'
@@ -84,9 +85,12 @@ function WortDetail({ data, loading, error, onRetry, onBack, onPlayToday, maxNod
             </h2>
             {data.wortart ? <span className="av-pos">{data.wortart}</span> : null}
             {data.definitionen?.length ? (
-              <ol className={`av-defs${data.definitionen.length === 1 ? ' single' : ''}`}>
-                {data.definitionen.map((d, i) => <li key={i}>{d}</li>)}
-              </ol>
+              <>
+                <ol className={`av-defs${data.definitionen.length === 1 ? ' single' : ''}`}>
+                  {data.definitionen.map((d, i) => <li key={i}>{d}</li>)}
+                </ol>
+                <WiktionaryHinweis lemma={data.lemma} />
+              </>
             ) : null}
             <p className="av-play">
               <button type="button" className="av-play-link" onClick={() => onPlayToday?.()}>Heutiges Wort spielen →</button>

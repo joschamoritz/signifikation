@@ -15,7 +15,7 @@
   <header>
     <p class="overline">Rechtliche Angaben</p>
     <h1>Datenschutz <span class="ipa">[ˈdaːtn̩ˌʃʊt͡s]</span></h1>
-    <p class="subtitle">Stand: April 2026</p>
+    <p class="subtitle">Stand: August 2026</p>
   </header>
 
   <hr class="rule-double" />
@@ -61,6 +61,26 @@
   </p>
 
   <p>
+    <strong>Anmeldung über Apple oder Google</strong><br />
+    Statt E-Mail und Passwort kannst du dich mit deiner Apple-ID oder deinem
+    Google-Konto anmelden. Dabei werden wir von
+    <strong>Apple Inc.</strong> (One Apple Park Way, Cupertino, USA) bzw.
+    <strong>Google Ireland Ltd.</strong> (Gordon House, Barrow Street, Dublin,
+    Irland) über deine Kennung, deinen Namen und deine E-Mail-Adresse
+    unterrichtet; bei „Mit Apple anmelden“ kannst du dich für eine
+    weitergeleitete Apple-Relay-Adresse entscheiden, sodass wir deine echte
+    Adresse nicht erhalten. Umgekehrt übermitteln wir bei der Anmeldung nur die
+    für die Authentifizierung nötigen Angaben. Zu deinem Konto speichern wir die
+    Provider-Kennung sowie die von dort ausgestellten Zugriffs- und
+    Aktualisierungs-Token. Meldest du dich später mit derselben E-Mail-Adresse
+    über einen anderen Weg an, werden die Zugänge zu einem Konto verknüpft.
+    Bei Apple erfolgt eine Übermittlung in die USA auf Grundlage der
+    EU-Standardvertragsklauseln. Alle diese Daten werden bei Kontolöschung
+    entfernt.
+    Rechtsgrundlage: Art.&nbsp;6 Abs.&nbsp;1 lit.&nbsp;b DSGVO.
+  </p>
+
+  <p>
     <strong>Session-Cookie</strong><br />
     Nach dem Einloggen wird ein technisch notwendiger Session-Cookie gesetzt
     (<code>better-auth.session_token</code>, httpOnly, SameSite=Lax). Er dient
@@ -70,6 +90,28 @@
     er keiner gesonderten Einwilligung (§&nbsp;25 Abs.&nbsp;2 Nr.&nbsp;2 TDDDG).
     Weitere Cookies werden nicht gesetzt.
     Rechtsgrundlage: Art.&nbsp;6 Abs.&nbsp;1 lit.&nbsp;b DSGVO.
+  </p>
+
+  <p>
+    <strong>Anmeldung in der iOS-App (Schlüsselbund)</strong><br />
+    In der iOS-App lässt sich die Anmeldung technisch nicht über einen Cookie
+    abbilden. Stattdessen wird ein Sitzungs-Token im
+    <strong>Schlüsselbund (Keychain) des Geräts</strong> abgelegt und bei jeder
+    Anfrage an unseren Server mitgesendet. Das Token verlässt das Gerät nur in
+    Richtung signifikation.de, wird beim Abmelden gelöscht und dient
+    ausschließlich der Authentifizierung.
+    Rechtsgrundlage: Art.&nbsp;6 Abs.&nbsp;1 lit.&nbsp;b DSGVO.
+  </p>
+
+  <p>
+    <strong>Sitzungsdaten</strong><br />
+    Zu einer aktiven Anmeldung speichern wir zusätzlich IP-Adresse und
+    Browserkennung (User-Agent), damit du deine aktiven Sitzungen im
+    Konto-Bereich einsehen und beenden kannst und ungewöhnliche Zugriffe
+    auffallen. Diese Angaben werden mit dem Ablauf der Sitzung, spätestens nach
+    30&nbsp;Tagen, gelöscht.
+    Rechtsgrundlage: Art.&nbsp;6 Abs.&nbsp;1 lit.&nbsp;f DSGVO (berechtigtes
+    Interesse an der Kontosicherheit).
   </p>
 
   <p>
@@ -97,6 +139,24 @@
     Der Zahlungsstatus und die Zahlungs-ID werden als Lizenznachweis gespeichert und
     zur Erfüllung steuerrechtlicher Aufbewahrungspflichten für <strong>10 Jahre</strong>
     aufbewahrt (§&nbsp;147 AO).
+    Rechtsgrundlage: Art.&nbsp;6 Abs.&nbsp;1 lit.&nbsp;b und lit.&nbsp;c DSGVO.
+  </p>
+
+  <p>
+    <strong>Zahlungsabwicklung in der iOS-App (Apple)</strong><br />
+    Beim Erwerb der Gesamtausgabe in der iOS-App läuft die Zahlung
+    ausschließlich über den In-App-Kauf von <strong>Apple Inc.</strong>
+    (One Apple Park Way, Cupertino, USA). <strong>Es findet in diesem Fall keine
+    Übermittlung an Mollie statt.</strong> Den Kaufvorgang wickelt Apple mit den
+    Daten deiner Apple-ID ab; wir erhalten weder Zahlungsmittel noch Name oder
+    Rechnungsanschrift, sondern ausschließlich die von Apple signierte
+    Kaufbestätigung mit Transaktions- und Produktkennung. Damit ein Kauf dem
+    richtigen Konto zugeordnet werden kann, übermitteln wir an Apple eine aus
+    deiner Konto-Kennung abgeleitete Pseudonym-Kennung
+    (<code>appAccountToken</code>) – deine E-Mail-Adresse oder deinen Namen
+    erhält Apple von uns nicht. Die Übermittlung in die USA erfolgt auf
+    Grundlage der EU-Standardvertragsklauseln. Datenschutzhinweise von Apple:
+    <a href="https://www.apple.com/legal/privacy/de-ww/" target="_blank" rel="noopener noreferrer">apple.com/legal/privacy</a>.
     Rechtsgrundlage: Art.&nbsp;6 Abs.&nbsp;1 lit.&nbsp;b und lit.&nbsp;c DSGVO.
   </p>
 
@@ -138,7 +198,10 @@
     schlüssel, bei der iOS-App das Gerätetoken von Apple. Diese Daten dienen
     ausschließlich dem Versand der Benachrichtigungen und werden gelöscht, sobald du
     die Benachrichtigungen deaktivierst oder dein Konto löschst. Die Zustellung
-    erfolgt über den Push-Dienst deines Browser- bzw. Geräteherstellers.
+    erfolgt über den Push-Dienst deines Browser- bzw. Geräteherstellers – bei der
+    iOS-App über den Apple Push Notification service (<strong>Apple Inc.</strong>,
+    Cupertino, USA), wobei die Übermittlung in die USA auf Grundlage der
+    EU-Standardvertragsklauseln erfolgt.
     Rechtsgrundlage: Art.&nbsp;6 Abs.&nbsp;1 lit.&nbsp;a DSGVO (Einwilligung), die du
     jederzeit widerrufen kannst.
   </p>

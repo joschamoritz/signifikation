@@ -4,6 +4,7 @@ import SelectionThema from './SelectionThema'
 import EigenesLemma from './EigenesLemma'
 import { logError } from '../utils/logError'
 import ExternalLink from './ExternalLink'
+import WiktionaryHinweis from './WiktionaryHinweis'
 
 
 export default function LemmaSelection({ lemmata, thema, themaKurz, themaQuelle, playedIds = [], onSelect, onViewResult, onBack, spezialLemma = null, customLemma = null, onCustomPlay, onShowPremium }) {
@@ -188,6 +189,8 @@ export default function LemmaSelection({ lemmata, thema, themaKurz, themaQuelle,
 
         {/* ── Eigenes Lemma (Premium) ─── */}
         <EigenesLemma mode="kollokationen" customLemma={customLemma} onPlay={onCustomPlay} onShowPremium={onShowPremium} />
+
+        <WiktionaryHinweis />
       </div>
 
     </div>

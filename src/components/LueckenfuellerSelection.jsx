@@ -3,6 +3,7 @@ import { useWiktionary } from '../hooks/useWiktionary'
 import SelectionThema from './SelectionThema'
 import EigenesLemma from './EigenesLemma'
 import ExternalLink from './ExternalLink'
+import WiktionaryHinweis from './WiktionaryHinweis'
 
 export default function LueckenfuellerSelection({ data, thema, themaKurz, themaQuelle, onPlay, onViewDaily, lfPlayed = null, onBack, spezialwoche = null, swLfPlayed = null, onPlaySpezial, onViewSpezial, customLemma = null, onCustomPlay, onShowPremium }) {
   const { lemma, pos, notiz, link } = data ?? {}
@@ -107,6 +108,8 @@ export default function LueckenfuellerSelection({ data, thema, themaKurz, themaQ
 
         {/* ── Eigenes Lemma (Premium) ─── */}
         <EigenesLemma mode="lueckenfueller" customLemma={customLemma} onPlay={onCustomPlay} onShowPremium={onShowPremium} />
+
+        <WiktionaryHinweis />
       </div>
     </div>
   )
