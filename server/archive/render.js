@@ -274,8 +274,15 @@ export function renderWortPage(entry, siblings = [], extras = {}) {
     url: `${BASE_URL}/wort/${entry.slug}`,
   }
 
+  // Bedeutungen stammen aus de.wiktionary.org (CC BY-SA 4.0) und werden
+  // gekuerzt uebernommen — Namensnennung, Lizenzangabe und Bearbeitungshinweis
+  // sind Lizenzpflicht und muessen auch auf der oeffentlich indexierten
+  // SSR-Seite stehen, nicht nur in der App.
   const defsHtml = defs.length
     ? `<ol class="arc-defs${defs.length === 1 ? ' single' : ''}">${defs.map((d) => `<li>${escapeHtml(d)}</li>`).join('')}</ol>`
+      + `<p class="arc-defs-quelle">Bedeutungen und Lautschrift: `
+      + `<a href="https://de.wiktionary.org/wiki/${encodeURIComponent(entry.lemma)}" rel="noopener noreferrer">Wiktionary</a>, gekürzt · `
+      + `<a href="https://creativecommons.org/licenses/by-sa/4.0/deed.de" rel="license noopener noreferrer">CC BY-SA 4.0</a></p>`
     : ''
 
   const datesHtml = entry.dates.length

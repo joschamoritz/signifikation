@@ -1,0 +1,53 @@
+SCHRIFTLIZENZEN — Signifikation
+================================================================================
+
+Dieses Verzeichnis enthält woff2-Subsets zweier Schriftfamilien, die unter der
+SIL Open Font License 1.1 (OFL) stehen. Die OFL verlangt in Bedingung 2, dass
+bei JEDER Weitergabe der Font-Software der Copyright-Vermerk und der
+Lizenztext beiliegen. Das Bündeln der woff2-Dateien in `dist/` und damit in das
+iOS-App-Bundle ist eine solche Weitergabe.
+
+Enthaltene Dateien:
+  gentium-plus-400-latin.woff2, gentium-plus-400-latin-ext.woff2,
+  gentium-plus-400-italic-latin.woff2, gentium-plus-400-italic-latin-ext.woff2,
+  gentium-plus-700-latin.woff2, gentium-plus-700-latin-ext.woff2
+  dm-sans-latin.woff2, dm-sans-latin-ext.woff2
+
+Änderung gegenüber dem Original: Die Schriften wurden auf die Zeichenvorräte
+"latin" und "latin-ext" reduziert und nach woff2 konvertiert. Die Dateien
+wurden nicht umbenannt und die Reserved Font Names nicht verwendet.
+
+
+--------------------------------------------------------------------------------
+1. GENTIUM PLUS
+--------------------------------------------------------------------------------
+
+Projektseite: https://software.sil.org/gentium/
+
+    >>> HIER DEN COPYRIGHT-VERMERK AUS DER ORIGINAL-OFL.txt DES
+    >>> GENTIUM-PLUS-DOWNLOADS EINSETZEN (Zeile "Copyright (c) …, SIL
+    >>> International …, with Reserved Font Name …").
+
+
+--------------------------------------------------------------------------------
+2. DM SANS
+--------------------------------------------------------------------------------
+
+Projektseite: https://fonts.google.com/specimen/DM+Sans
+
+    >>> HIER DEN COPYRIGHT-VERMERK AUS DER ORIGINAL-OFL.txt DES
+    >>> DM-SANS-DOWNLOADS EINSETZEN.
+
+
+--------------------------------------------------------------------------------
+3. LIZENZTEXT
+--------------------------------------------------------------------------------
+
+    >>> HIER DEN VOLLSTÄNDIGEN, WÖRTLICHEN TEXT DER
+    >>> "SIL OPEN FONT LICENSE Version 1.1 - 26 February 2007" EINSETZEN.
+    >>>
+    >>> Quelle: https://openfontlicense.org/open-font-license-official-text/
+    >>> oder die OFL.txt aus dem jeweiligen Font-Download.
+    >>>
+    >>> Bitte wörtlich kopieren — eine sinngemäße Wiedergabe erfüllt die
+    >>> Lizenzbedingung nicht.

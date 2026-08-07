@@ -3,6 +3,7 @@ import { useWiktionary } from '../hooks/useWiktionary'
 import SelectionThema from './SelectionThema'
 import EigenesLemma from './EigenesLemma'
 import ExternalLink from './ExternalLink'
+import WiktionaryHinweis from './WiktionaryHinweis'
 
 export default function ZeitenwendeSelection({ data, thema, themaKurz, themaQuelle, onPlay, onViewDaily, zwPlayed = null, onBack, spezialwoche = null, swZwPlayed = null, onPlaySpezial, onViewSpezial, customLemma = null, onCustomPlay, onShowPremium }) {
   const { lemma, ipa: savedIpa, definitionen: savedDefs, notiz, link } = data ?? {}
@@ -106,6 +107,8 @@ export default function ZeitenwendeSelection({ data, thema, themaKurz, themaQuel
 
         {/* ── Eigenes Lemma (Premium) ─── */}
         <EigenesLemma mode="zeitenwende" customLemma={customLemma} onPlay={onCustomPlay} onShowPremium={onShowPremium} />
+
+        <WiktionaryHinweis />
       </div>
     </div>
   )

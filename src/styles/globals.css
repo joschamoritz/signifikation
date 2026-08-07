@@ -462,3 +462,20 @@ button { font-family: inherit; cursor: pointer; border: none }
 @media (prefers-reduced-motion: reduce) {
   .dc-date, .dc-colophon { animation: none; opacity: 1 }
 }
+
+/* Lizenzhinweis fuer uebernommene Wiktionary-Inhalte (CC BY-SA 4.0).
+   Bewusst zurueckhaltend: erfuellt die Namensnennungspflicht, ohne die
+   Woerterbuch-Optik zu stoeren. --muted liegt bei 4,88:1 gegen Pergament
+   und damit auch in dieser Groesse ueber der AA-Schwelle. */
+.wiktionary-hinweis {
+  font-family: var(--font-sans);
+  font-size: 0.72rem;
+  color: var(--muted);
+  margin-top: 10px;
+  font-style: italic;
+}
+.wiktionary-hinweis a {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}

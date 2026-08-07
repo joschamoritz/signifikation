@@ -3,6 +3,7 @@ import { useWiktionary } from '../hooks/useWiktionary'
 import SelectionThema from './SelectionThema'
 import EigenesLemma from './EigenesLemma'
 import ExternalLink from './ExternalLink'
+import WiktionaryHinweis from './WiktionaryHinweis'
 
 function WZEntry({ lemma, pos }) {
   const { ipa, definitionen, loading } = useWiktionary({ lemma })
@@ -134,6 +135,8 @@ export default function WortZwillingSelection({ data, thema, themaKurz, themaQue
 
           {/* ── Eigenes Wort-Paar (Premium) ─── */}
           <EigenesLemma mode="wortzwilling" customLemma={customLemma} onPlay={onCustomPlay} onShowPremium={onShowPremium} />
+
+          <WiktionaryHinweis />
       </div>
     </div>
   )
