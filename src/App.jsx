@@ -69,8 +69,15 @@ function MainAppShell() {
   return (
     <>
       <AppShell phase={phase} showTabBar={showTabBar} activeTab={activeTab} appRef={appRef}>
-        <AppGameScreens {...appGameScreensProps} />
-        <TabTransition activeTab={activeTab} tabs={tabScreens} />
+        {/* Eigene Grenzen fuer Spiele und Tabs: ohne sie riss eine Exception in
+            Quiz/Home/Archiv/Kurs die GESAMTE App auf die globale Fehler-UI, und
+            der Nutzer kam nicht einmal mehr zur TabBar zurueck. */}
+        <ErrorBoundary fallback={<SectionErrorFallback label="Dieses Wortspiel" />}>
+          <AppGameScreens {...appGameScreensProps} />
+        </ErrorBoundary>
+        <ErrorBoundary fallback={<SectionErrorFallback label="Dieser Bereich" />}>
+          <TabTransition activeTab={activeTab} tabs={tabScreens} />
+        </ErrorBoundary>
         <Suspense fallback={null}>
           {kontoMounted ? (
             <ErrorBoundary fallback={<SectionErrorFallback label="Das Konto" />}>

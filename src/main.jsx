@@ -10,7 +10,12 @@ import { Capacitor } from '@capacitor/core'
 import './index.css'
 import { installCsrfFetch } from './utils/installCsrfFetch.js'
 import { initNativeBearerToken } from './utils/apiFetch.js'
+import { applyStoredThemeEarly } from './hooks/useTheme.js'
 import App from './App.jsx'
+
+// Direkt nach den Imports, noch vor jedem Render: sonst blitzt bei
+// Dark-Mode-Nutzern das helle Pergament auf, bis useTheme() im Effect greift.
+applyStoredThemeEarly()
 
 if (typeof window !== 'undefined' && window.__sigDebugPost) {
   window.__sigDebugPost('info', 'main.jsx', 'imports done, platform=' + (Capacitor?.getPlatform?.() || 'unknown'))
@@ -119,6 +124,11 @@ function renderApp() {
     }
     // Universal Links (Classroom-QR öffnet die App) — fire-and-forget, nativ-only.
     import('./utils/initDeepLinks.js').then((m) => m.initDeepLinks()).catch(() => {})
+    // StoreKit-Transaktionen (Ask-to-Buy, abgebrochene Käufe) müssen ab dem
+    // App-Start beobachtet werden — nicht erst beim Öffnen des Konto-Tabs.
+    import('./utils/iapTransactionListener.js')
+      .then((m) => m.initIapTransactionListener())
+      .catch(() => {})
   } catch (err) {
     if (typeof window !== 'undefined' && window.__sigDebugPost) {
       window.__sigDebugPost('error', 'main.jsx', 'renderApp threw: ' + (err?.message || err), err?.stack)

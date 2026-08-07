@@ -8,6 +8,21 @@ export function localDateStr(d) {
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`
 }
 
+/**
+ * Wandelt ein ISO-Datum („2026-08-07“) in ein Date um MITTERNACHT LOKALER ZEIT.
+ *
+ * Bewusst nicht `new Date(str)`: Das parst nach ISO-8601 als UTC-Mitternacht,
+ * womit in Zeitzonen westlich von Greenwich der Vortag herauskaeme — genau der
+ * Fehler, den wir hier vermeiden wollen. Gibt bei ungueltiger Eingabe null
+ * zurueck, damit der Aufrufer auf das Geraetedatum zurueckfallen kann.
+ */
+export function parseISODateLocal(str) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(str ?? ''))
+  if (!m) return null
+  const d = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]))
+  return Number.isNaN(d.getTime()) ? null : d
+}
+
 export function getISOWeek(d) {
   const date = new Date(d)
   date.setHours(0, 0, 0, 0)

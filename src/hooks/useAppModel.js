@@ -18,6 +18,8 @@ export function useAppModel() {
   const {
     lemmata,
     apiError,
+    apiErrorKind,
+    retryDailyContent,
     serverDatum,
     thema,
     themaKurz,
@@ -139,6 +141,8 @@ export function useAppModel() {
     setPhase,
     lemmata,
     apiError,
+    apiErrorKind,
+    retryDailyContent,
     thema,
     playedGames,
     allPlayed,
