@@ -259,6 +259,9 @@ const [confirmDelete, setConfirmDelete] = useState(false)
             <div className="konto-auth-delete-confirm">
               <p className="konto-auth-note konto-auth-note--error">
                 Konto wirklich löschen? Alle Daten werden unwiderruflich entfernt.
+                Eine über den App Store erworbene Gesamtausgabe bleibt an deine
+                Apple-ID gebunden und lässt sich später mit „Kauf wiederherstellen“
+                erneut freischalten.
               </p>
               <button
                 className="konto-auth-inline-link konto-auth-inline-link--danger"

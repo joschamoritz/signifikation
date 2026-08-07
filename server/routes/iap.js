@@ -175,7 +175,16 @@ function verifyAppleJWS(jws) {
 // Prüft die inhaltlichen Felder eines verifizierten JWS-Payloads.
 // Liefert null wenn ok, sonst einen Ablehnungsgrund (für Log + 400).
 // Exportiert für Unit-Tests (Flag-Kombinationen ohne echtes Apple-JWS).
-export function rejectReasonForPayload(payload, claimedProductId, userId) {
+// `allowUnclaimedForeignToken` lockert ausschliesslich im Restore-Pfad die
+// Token-Bindung: Der appAccountToken wird beim Kauf aus der damaligen user.id
+// abgeleitet und ist im signierten JWS eingefroren. Loescht jemand sein Konto
+// und legt ein neues an, passt der Token nie wieder — der bezahlte
+// Non-Consumable waere dauerhaft verloren (Guideline 3.1.1 verlangt aber einen
+// funktionierenden Restore, 5.1.1(v) erlaubt keine Kontoloeschung, die Kaeufe
+// vernichtet). Missbrauch bleibt ausgeschlossen, weil unlockForUser jede
+// bereits beanspruchte Transaktion global sperrt: freigeschaltet wird nur, was
+// aktuell keinem Account gehoert.
+export function rejectReasonForPayload(payload, claimedProductId, userId, { allowUnclaimedForeignToken = false } = {}) {
   if (payload.productId !== claimedProductId) {
     return `productId-Mismatch (${payload.productId} ≠ ${claimedProductId})`
   }
@@ -184,6 +193,12 @@ export function rejectReasonForPayload(payload, claimedProductId, userId) {
   }
   if (payload.bundleId !== APP_BUNDLE_ID) {
     return `bundleId ${payload.bundleId}`
+  }
+  // Apple setzt revocationDate, wenn ein Kauf erstattet oder widerrufen wurde.
+  // Transaction.updates feuert auch fuer solche Transaktionen — ohne diese
+  // Pruefung schaltete eine Erstattung die Gesamtausgabe erneut frei.
+  if (payload.revocationDate != null) {
+    return `Transaktion widerrufen (${payload.revocationReason ?? 'ohne Grund'})`
   }
   if (payload.environment !== 'Production') {
     if (!(payload.environment === 'Sandbox' && sandboxAllowed())) {
@@ -197,7 +212,11 @@ export function rejectReasonForPayload(payload, claimedProductId, userId) {
     : null
   if (token && token !== '00000000-0000-0000-0000-000000000000') {
     if (token !== deriveAppAccountToken(userId)) {
-      return 'appAccountToken gehört zu einem anderen Account'
+      if (!allowUnclaimedForeignToken) {
+        return 'appAccountToken gehört zu einem anderen Account'
+      }
+      logger.warn({ userId, transactionId: payload.transactionId },
+        'Apple IAP Restore: Token eines anderen Accounts – Freischaltung nur, wenn die Transaktion unbeansprucht ist')
     }
   } else if (accountTokenRequired()) {
     return 'appAccountToken fehlt (IAP_REQUIRE_ACCOUNT_TOKEN aktiv)'
@@ -308,7 +327,8 @@ router.post('/api/v1/iap/restore', iapVerifyLimiter, requireAuthUser, validate(i
       continue
     }
 
-    const rejectReason = rejectReasonForPayload(payload, productId, userId)
+    const rejectReason = rejectReasonForPayload(payload, productId, userId,
+      { allowUnclaimedForeignToken: true })
     if (rejectReason) {
       logger.warn({ reason: rejectReason, userId }, 'Apple IAP Restore: Payload abgelehnt')
       continue

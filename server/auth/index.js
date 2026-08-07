@@ -60,6 +60,20 @@ if (APPLE_CLIENT_ID && appleClientSecret) {
   }
 }
 
+// Guideline 4.8: Wer einen Drittanbieter-Login anbietet, muss "Mit Apple
+// anmelden" als gleichwertige Option danebenstellen. Beide Provider haengen
+// hier an getrennten Env-Bedingungen — faellt Apple aus (abgelaufenes .p8,
+// falsche Team-ID), wuerde der Server bisher still weiterlaufen und die App
+// nur noch Google anbieten. Das ist eine Ablehnung, die erst im laufenden
+// Betrieb auftritt. Deshalb in Produktion lieber gar nicht starten.
+if (IS_PROD && socialProviders.google && !socialProviders.apple) {
+  throw new Error(
+    'Google-Login ist aktiv, Sign in with Apple aber nicht (Guideline 4.8). '
+    + 'Apple-Konfiguration pruefen (BETTER_AUTH_APPLE_CLIENT_ID, APPLE_TEAM_ID, '
+    + 'APPLE_KEY_ID, .p8-Key) oder Google-Login deaktivieren.'
+  )
+}
+
 const PASSWORD_RESET_DELIVERY = (process.env.PASSWORD_RESET_DELIVERY || (IS_PROD ? 'disabled' : 'log')).trim().toLowerCase()
 const PASSWORD_RESET_WEBHOOK_URL = process.env.PASSWORD_RESET_WEBHOOK_URL?.trim()
 
