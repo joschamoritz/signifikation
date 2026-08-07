@@ -1,10 +1,8 @@
 import { useState, useEffect } from 'react'
 import { Capacitor } from '@capacitor/core'
-import { API } from '../../config'
-import { apiFetch } from '../../utils/apiFetch'
 import { IAP } from '../../plugins/iap.js'
 import { restoreIapPurchases } from '../../utils/iapRestore'
-import { logError } from '../../utils/logError'
+import { ENTITLEMENTS_CHANGED_EVENT } from '../../utils/iapTransactionListener'
 import CheckoutModal, { PRICE_OPTIONS } from './CheckoutModal'
 
 const IS_NATIVE = Capacitor.isNativePlatform()
@@ -55,6 +53,15 @@ export default function KontoPremiumBlock({ auth, gesamtausgabePermanent }) {
   // dass der Nutzer erst den Kauf-Dialog öffnen muss.
   async function handleRestoreClick() {
     if (restoreStatus === 'busy') return
+    // Ohne Session antwortet /iap/restore mit 401, und der Servertext
+    // ("Nicht autorisiert") landete wortwoertlich beim Nutzer — genau im
+    // Szenario "App geloescht, neu installiert, Kauf wiederherstellen".
+    if (!auth.isLoggedIn) {
+      setLoginHint(true)
+      setRestoreStatus('error')
+      setRestoreMessage('Bitte melde dich zuerst an, um deinen Kauf wiederherzustellen.')
+      return
+    }
     setRestoreStatus('busy')
     setRestoreMessage(null)
     const result = await restoreIapPurchases()
@@ -69,34 +76,14 @@ export default function KontoPremiumBlock({ auth, gesamtausgabePermanent }) {
   }
 
   const { loadSession } = auth
+  // Der StoreKit-Listener selbst haengt seit August 2026 global am App-Start
+  // (src/utils/iapTransactionListener.js) — hier wird nur noch die Anzeige
+  // aktualisiert, wenn dort etwas freigeschaltet wurde.
   useEffect(() => {
-    if (!IS_NATIVE) return
-    let listener = null
-    const setup = async () => {
-      listener = await IAP.addListener('transactionUpdate', async (data) => {
-        try {
-          const res = await apiFetch(`${API}/iap/verify`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            credentials: 'include',
-            body: JSON.stringify({
-              jwsRepresentation: data.jwsRepresentation,
-              productId: data.productId,
-            }),
-          })
-          if (res.ok) {
-            await IAP.finishTransaction({ transactionId: data.transactionId }).catch((err) => {
-              logError('KontoPremiumBlock.finishTransaction', err)
-            })
-            loadSession?.()
-          }
-        } catch (err) {
-          logError('KontoPremiumBlock.iapVerify', err)
-        }
-      })
-    }
-    setup()
-    return () => { listener?.remove() }
+    if (!IS_NATIVE) return undefined
+    const onChanged = () => { loadSession?.() }
+    window.addEventListener(ENTITLEMENTS_CHANGED_EVENT, onChanged)
+    return () => window.removeEventListener(ENTITLEMENTS_CHANGED_EVENT, onChanged)
   }, [loadSession])
 
   return (

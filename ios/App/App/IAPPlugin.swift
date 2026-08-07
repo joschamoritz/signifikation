@@ -22,11 +22,16 @@ public class IAPPlugin: CAPPlugin, CAPBridgedPlugin {
         updatesTask = Task.detached { [weak self] in
             for await verificationResult in Transaction.updates {
                 if case .verified(let transaction) = verificationResult {
+                    // retainUntilConsumed: Transaction.updates emittiert
+                    // unfertige Transaktionen direkt beim Kaltstart — teils
+                    // bevor die WebView den JS-Listener registriert hat. Ohne
+                    // dieses Flag verwirft Capacitor solche Ereignisse still,
+                    // und Ask-to-Buy-Freigaben gingen verloren.
                     self?.notifyListeners("transactionUpdate", data: [
                         "productId":         transaction.productID,
                         "transactionId":     String(transaction.id),
                         "jwsRepresentation": verificationResult.jwsRepresentation,
-                    ])
+                    ], retainUntilConsumed: true)
                 }
             }
         }

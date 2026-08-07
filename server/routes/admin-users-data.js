@@ -111,6 +111,33 @@ const deleteClassroomSessionsByTeacherStmt = db.prepare(`
   WHERE teacher_user_id = ?
 `)
 
+// Die folgenden drei Tabellen haengen ohne Foreign Key am Nutzer und wurden
+// deshalb beim Loeschen nicht mit abgeraeumt — sie ueberlebten die Loeschung
+// bis zum Ablauf ihrer jeweiligen Retention-Frist (Guideline 5.1.1(v)).
+const deleteCustomLemmaUsageStmt = db.prepare(`
+  DELETE FROM custom_lemma_usage
+  WHERE user_id = ?
+`)
+
+const anonymizeTelemetryTeacherStmt = db.prepare(`
+  UPDATE classroom_telemetry
+  SET teacher_id = NULL
+  WHERE teacher_id = ?
+`)
+
+// verification ist ueber die E-Mail-Adresse verknuepft (better-auth-Schema),
+// nicht ueber die user.id — offene Passwort-Reset-Token blieben sonst liegen.
+const deleteVerificationByIdentifierStmt = db.prepare(`
+  DELETE FROM verification
+  WHERE identifier = ?
+`)
+
+const getUserEmailForDeleteStmt = db.prepare(`
+  SELECT email
+  FROM user
+  WHERE id = ?
+`)
+
 const deleteUserStmt = db.prepare(`
   DELETE FROM user
   WHERE id = ?
@@ -149,9 +176,16 @@ export const getUsersByIdsStmt = db.prepare(`
 `)
 
 export const deleteUserTx = db.transaction((userId) => {
+  // E-Mail vor dem Loeschen lesen: verification haengt am identifier, nicht an
+  // der user.id, und waere danach nicht mehr zuzuordnen.
+  const email = getUserEmailForDeleteStmt.get(userId)?.email ?? null
+
   deleteUserProfileStmt.run(userId)
   deleteUserEntitlementsStmt.run(userId)
   deleteUserStatsStmt.run(userId)
+  deleteCustomLemmaUsageStmt.run(userId)
+  anonymizeTelemetryTeacherStmt.run(userId)
+  if (email) deleteVerificationByIdentifierStmt.run(email)
   deleteClassroomSessionsByTeacherStmt.run(userId)
   deleteUserStmt.run(userId)
 })
