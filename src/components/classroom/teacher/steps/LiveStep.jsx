@@ -8,7 +8,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useTeacherClassroom } from '../TeacherClassroomContext'
-import { getDashboard, finishSession, pauseSession, resumeSession, nextAssignment } from '../hooks/useTeacherSession'
+import { getDashboard, finishSession, pauseSession, resumeSession, nextAssignment, kickParticipant } from '../hooks/useTeacherSession'
 import { useTeacherSocket } from '../hooks/useTeacherSocket'
 import ParticipantList from '../components/ParticipantList'
 import ClassroomSubScreen from '../components/ClassroomSubScreen'
@@ -67,6 +67,19 @@ export default function LiveStep() {
   }), [dispatch, refresh, sessionId])
 
   useTeacherSocket({ sessionId, enabled: !!sessionId, handlers })
+
+  // Rauswurf auch waehrend der laufenden Sitzung: genau dann, wenn der Beamer
+  // laeuft und die Klasse zuschaut, braucht die Lehrkraft ihn am dringendsten.
+  // Der Blocklisten-Filter fuer Spitznamen setzt bewusst auf diesen Backstop.
+  const handleKick = useCallback(async (participantId) => {
+    if (!sessionId || !participantId) return
+    try {
+      await kickParticipant(sessionId, participantId)
+    } catch (err) {
+      setError(err?.message || 'Teilnehmer konnte nicht entfernt werden.')
+    }
+    refresh()
+  }, [sessionId, refresh])
 
   // Runden pro Teilnehmer = Lemma-Anzahl des aktuellen Blocks (Server).
   const lemmataTotal = dashboard?.lemmataPerAssignment || 1
@@ -200,7 +213,7 @@ export default function LiveStep() {
             </span>
           )}
         </span>
-        <ParticipantList participants={enrichedParticipants} mode="live" />
+        <ParticipantList participants={enrichedParticipants} mode="live" onKick={handleKick} />
       </section>
 
       {perLemma.length > 0 && (

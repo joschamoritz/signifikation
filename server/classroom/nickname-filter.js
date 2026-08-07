@@ -61,5 +61,12 @@ export function isBlockedNickname(name) {
   return false
 }
 
+/**
+ * Gleicher Abgleich, sprechender Name für Nicht-Namensfelder — etwa die
+ * Freitext-Antworten im Lückenfüller, die in der Ergebnisansicht (ggf. am
+ * Beamer) als „Häufigste Fehlantwort“ auftauchen.
+ */
+export const isBlockedText = isBlockedNickname
+
 // Nur für Tests.
 export { BLOCKLIST as __BLOCKLIST }

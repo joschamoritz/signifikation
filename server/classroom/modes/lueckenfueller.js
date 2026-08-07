@@ -9,7 +9,19 @@
 import { scoreLueckenfueller } from '../scoring/index.js'
 import { resolveLueckenfueller } from '../content.js'
 import { parseJsonSafe } from '../json-safe.js'
+import { isBlockedText } from '../nickname-filter.js'
 import { roundTypeLabel, itemRow } from './_format.js'
+
+// Freitext-Antworten sind die einzige Stelle im Klassenraum, an der ein Schueler
+// beliebigen Text erzeugt, der spaeter der ganzen Klasse gezeigt werden kann
+// (Ergebnisansicht „Haeufigste Fehlantwort“, CSV-Export). Der Spitznamen-Filter
+// greift hier nicht — deshalb vor der Aggregation abgleichen (Guideline 1.2).
+const FILTERED_LABEL = '[gefiltert]'
+
+function safeDistractor(value) {
+  const s = String(value)
+  return isBlockedText(s) ? FILTERED_LABEL : s
+}
 
 // ── Whitelist einer einzelnen Runde (R1) ───────────────────────────
 // buildLueckenfueller liefert die Felder `satzMitLuecke` (Satz mit _____) und
@@ -87,7 +99,7 @@ export default {
     if (detail.type === 'free') {
       // free hat keinen Distraktor-Pool; nur eine falsche Eingabe zaehlt.
       if (detail.value != null && (Number(row.correct) || 0) === 0) {
-        return [String(detail.value)]
+        return [safeDistractor(detail.value)]
       }
       return []
     }
