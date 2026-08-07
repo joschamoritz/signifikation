@@ -63,8 +63,15 @@ jobs:
           echo "=== Entitlements ==="
           security cms -D -i "$PP_PATH" | sed -n '/<key>Entitlements<\/key>/,/<\/dict>/p'
 
-      - name: Set Build Number
+      - name: Set Version and Build Number
         run: |
+          # Marketing-Version aus package.json ableiten. Vorher stand sie fest
+          # im project.pbxproj (1.2), waehrend package.json 1.1.0 sagte — beim
+          # App-Store-Release lehnt App Store Connect eine zweite Einreichung
+          # mit derselben Version ab, und das faellt erst beim Upload auf.
+          MARKETING_VERSION=$(node -p "require('./package.json').version")
+          echo "Marketing version: $MARKETING_VERSION"
+
           # Offset als Variable statt magischer Zahl im Ausdruck: run_number
           # haengt am Workflow (Umbenennen/Repo-Migration setzt ihn zurueck!).
           # Bei Bedarf BUILD_NUMBER_OFFSET als Repository-Variable setzen,
@@ -72,7 +79,10 @@ jobs:
           OFFSET="${{ vars.IOS_BUILD_NUMBER_OFFSET || '-74' }}"
           BUILD_NUMBER=$(( ${{ github.run_number }} + OFFSET ))
           echo "Build number: $BUILD_NUMBER (run_number=${{ github.run_number }}, offset=$OFFSET)"
-          cd ios/App && xcrun agvtool new-version -all $BUILD_NUMBER
+
+          cd ios/App
+          xcrun agvtool new-marketing-version "$MARKETING_VERSION"
+          xcrun agvtool new-version -all $BUILD_NUMBER
 
       - name: Build and Archive
         run: |

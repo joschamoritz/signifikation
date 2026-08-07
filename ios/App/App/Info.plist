@@ -51,6 +51,8 @@
 	<false/>
 	<key>NSCameraUsageDescription</key>
 	<string>Die Kamera wird nur zum Scannen des QR-Codes verwendet, um einem Klassenraum beizutreten.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>Zum Speichern deines Ergebnisbildes in der Fotos-App.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>
