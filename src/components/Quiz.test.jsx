@@ -130,6 +130,34 @@ describe('Quiz – Smoketest', () => {
     expect(onRoundComplete).toHaveBeenCalledWith(10, expect.arrayContaining(['eins', 'zwei', 'drei']))
   })
 
+  it('Auswahl ist nicht nur farblich markiert: Rangziffer wird sichtbar gerendert', () => {
+    render(
+      <Quiz
+        lemma={makeLemma()}
+        currentRound={0}
+        onRoundComplete={vi.fn()}
+      />
+    )
+
+    // Vor der Auswahl gibt es keine Rangziffern.
+    expect(document.querySelectorAll('.options-grid .option-rank')).toHaveLength(0)
+
+    fireEvent.click(getOption('eins'))
+    fireEvent.click(getOption('zwei'))
+    fireEvent.click(getOption('drei'))
+
+    // Die Rangziffer haengt an der Klickreihenfolge, nicht an der DOM-Position
+    // (displayOptions ist gemischt) — deshalb pro Option pruefen.
+    expect(document.querySelectorAll('.options-grid .option-rank')).toHaveLength(3)
+    expect(getOption('eins').querySelector('.option-rank').textContent).toBe('1')
+    expect(getOption('zwei').querySelector('.option-rank').textContent).toBe('2')
+    expect(getOption('drei').querySelector('.option-rank').textContent).toBe('3')
+
+    // Nach dem Auswerten uebernimmt das Ergebnis-Icon (✓/✗/→).
+    fireEvent.click(screen.getByRole('button', { name: 'Auswerten' }))
+    expect(document.querySelectorAll('.options-grid .option-rank')).toHaveLength(0)
+  })
+
   it('Submit-Pfad: gemischte Picks (nearPool + midPool) → Teilpunkte', () => {
     const onRoundComplete = vi.fn()
     render(

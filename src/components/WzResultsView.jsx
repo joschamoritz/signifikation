@@ -96,7 +96,11 @@ export default function WzResultsView({ data, zoneA, zoneB, onBack, ipaA, ipaB }
                       className={`wz-chip wz-chip--${correct ? 'correct' : 'wrong'}${openBeleg === w ? ' wz-chip--beleg-active' : ''}`}
                       onClick={() => loadWZBeleg(w)}
                       title="Belege anzeigen"
-                      aria-label={`${w} – Belege anzeigen`}
+                      // Das ✓/✗ daneben steht auf aria-hidden, und ein
+                      // aria-label ersetzt den Inhalt — ohne den Zusatz erfuhren
+                      // VoiceOver-Nutzende ihr Ergebnis ueberhaupt nicht.
+                      // Muster wie in Quiz.jsx (STATE_LABEL im Label).
+                      aria-label={`${w} – ${correct ? 'richtig' : 'falsch'} zugeordnet, Belege anzeigen`}
                       aria-pressed={openBeleg === w}
                     >
                       <span>{w}</span>

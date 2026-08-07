@@ -631,8 +631,17 @@
   vertical-align: middle;
   animation: classroom-kiosk-pulse 1.8s ease-in-out infinite;
 }
+/* Der Block erfasste bisher nur __pulse-dot; die drei uebrigen Animationen
+   dieser Datei liefen weiter (zwei endlose Pulse plus das Fehler-Wackeln des
+   Code-Feldes). Beim Eingabefeld bleibt der Fehler ohne Wackeln erkennbar —
+   .classroom-kiosk__input--shake setzt zusaetzlich border-color: var(--k-error). */
 @media (prefers-reduced-motion: reduce) {
-  .classroom-kiosk__pulse-dot { animation: none; }
+  .classroom-kiosk__pulse-dot,
+  .classroom-kiosk__reconnect-dot,
+  .classroom-kiosk__pulse,
+  .classroom-kiosk__input--shake {
+    animation: none !important;
+  }
 }
 
 .classroom-kiosk__rounds__detail {

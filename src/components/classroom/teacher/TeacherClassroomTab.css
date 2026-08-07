@@ -2027,3 +2027,16 @@
   font-family: var(--font-serif, 'Gentium Plus'), Georgia, serif; font-style: italic;
   font-size: 0.85rem; color: var(--muted); margin: 6px 0 0;
 }
+
+/* Bewegung reduzieren (Guideline: App-Bedienungshilfen "Reduzierte Bewegung").
+   Die drei Status-Punkte pulsieren endlos — in der Teilnehmerliste einer pro
+   verbundener Person gleichzeitig. Genau das soll die Systemeinstellung
+   abschalten. Die Farbe bleibt, der Zustand ist ausserdem als Klartext
+   danebengeschrieben (ParticipantList.jsx), geht also nicht verloren. */
+@media (prefers-reduced-motion: reduce) {
+  .classroom-status-dot--running,
+  .classroom-card__dot--running,
+  .classroom-participant__dot--connected {
+    animation: none !important;
+  }
+}

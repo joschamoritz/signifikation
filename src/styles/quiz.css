@@ -204,6 +204,24 @@
 .option.wrong   .option-icon { background: var(--error);   color: #fff }
 .option.missed  .option-icon { background: var(--bonus);    color: #fff }
 
+/* Rangziffer der Auswahl (1–3), sichtbar vor dem Auswerten. Traegt dieselbe
+   Information wie die farbige Markierung, damit die Auswahl nicht allein
+   ueber Farbe erkennbar ist. Geometrie bewusst wie .option-icon. */
+.option-rank {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  font-size: 0.68rem;
+  font-weight: 700;
+  margin-right: 4px;
+  flex-shrink: 0;
+  background: var(--primary);
+  color: #fff;
+}
+
 /* Feedback strip */
 .round-feedback {
   display: flex;
