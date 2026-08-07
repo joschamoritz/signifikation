@@ -15,7 +15,13 @@
                     <imageView key="view" userInteractionEnabled="NO" contentMode="scaleAspectFill" horizontalHuggingPriority="251" verticalHuggingPriority="251" image="Splash" id="snD-IY-ifK">
                         <rect key="frame" x="0.0" y="0.0" width="375" height="667"/>
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
-                        <color key="backgroundColor" systemColor="systemBackgroundColor"/>
+                        <!-- Feste Pergamentfarbe #faf9f7 statt systemBackgroundColor:
+                             letzteres ist ein DYNAMISCHER Wert (weiss im Light Mode,
+                             SCHWARZ im Dark Mode). Da das Splash-PNG in der Bildmitte
+                             transparent ist, lag dort im Dark Mode ein schwarzer Balken
+                             ueber die volle Breite. Mit der festen Farbe deckt sich der
+                             transparente Bereich mit dem opaken Rand des Bildes. -->
+                        <color key="backgroundColor" red="0.98039215686274506" green="0.97647058823529409" blue="0.96862745098039216" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
                     </imageView>
                 </viewController>
                 <placeholder placeholderIdentifier="IBFirstResponder" id="iYj-Kq-Ea1" userLabel="First Responder" sceneMemberID="firstResponder"/>
@@ -25,8 +31,5 @@
     </scenes>
     <resources>
         <image name="Splash" width="1366" height="1366"/>
-        <systemColor name="systemBackgroundColor">
-            <color white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
-        </systemColor>
     </resources>
 </document>
