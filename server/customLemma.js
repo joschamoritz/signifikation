@@ -17,6 +17,7 @@ import { POS_ROUNDS, fetchRelation, fetchLemma, fetchZeitenwende, fetchZeitenwen
 import { fetchWortZwilling } from './wortzwilling.js'
 import { buildLueckenfueller } from './lueckenfueller.js'
 import { fetchWiktionary } from './wiktionary.js'
+import { isBlockedText } from './classroom/nickname-filter.js'
 
 export const MIN_KOLLOKATIONEN = 10
 const POS_CANDIDATES = ['Substantiv', 'Verb', 'Adjektiv']
@@ -136,7 +137,31 @@ async function validateLueckenfueller(q, pos) {
  * @param {{ mode: string, q?: string, a?: string, b?: string, pos?: string }} input
  * @returns {Promise<{ mode: string, usable: boolean, reason: string|null, [k:string]: any }>}
  */
+/**
+ * Weist gesperrte Wörter ab, bevor überhaupt das Korpus befragt wird.
+ *
+ * Die Korpus-Schwellen (genug Kollokatoren/Belege) sind sonst die einzige
+ * inhaltliche Hürde — gängige Beleidigungen und Slurs überschreiten sie in
+ * einem Korpus aus Bundestagsprotokollen und historischen Texten mühelos, und
+ * die dazu ausgespielten Belegsätze sind redaktionell ungeprüft (Guideline
+ * 1.1.1). Die Begründung bleibt bewusst neutral: eine explizite Sperrmeldung
+ * wäre selbst schon eine Einladung, die Liste auszuprobieren.
+ *
+ * Gilt für BEIDE Einstiege — Validierung und Spielaufbau.
+ */
+function blockedLemmaVerdict({ mode, q, a, b }) {
+  for (const wort of [q, a, b]) {
+    if (wort && isBlockedText(wort)) {
+      return { mode, usable: false, reason: 'Für dieses Wort steht kein Spielmaterial bereit.' }
+    }
+  }
+  return null
+}
+
 export async function validateCustomLemma({ mode, q, pos, a, b }) {
+  const blocked = blockedLemmaVerdict({ mode, q, a, b })
+  if (blocked) return blocked
+
   switch (mode) {
     case 'kollokationen':  return validateKollokationen(q, pos)
     case 'wortzwilling':   return validateWortzwilling(a, b, pos)
@@ -157,6 +182,9 @@ export async function validateCustomLemma({ mode, q, pos, a, b }) {
  * UI-Phase, sobald die exakte Frontend-Datenform verifiziert ist.
  */
 export async function buildCustomPlay({ mode, q, pos, a, b }) {
+  const blocked = blockedLemmaVerdict({ mode, q, a, b })
+  if (blocked) return { usable: false, reason: blocked.reason }
+
   switch (mode) {
     case 'kollokationen': {
       const verdict = await validateKollokationen(q, pos)

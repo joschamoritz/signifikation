@@ -17,6 +17,10 @@ export const WZ_MAX_SCORE = 10
 export const ZW_MAX_SCORE = 10
 export const KOLL_PICKS = 3
 
+// Maximale Laenge einer Freitext-Antwort, die persistiert wird. Deckt sich mit
+// dem maxLength des Eingabefeldes (ClassroomGameLueckenfueller.jsx).
+export const FREE_ANSWER_MAX_LEN = 60
+
 export function clampInt(value, min, max) {
   const n = Number(value) || 0
   return Math.max(min, Math.min(max, n))
@@ -199,11 +203,17 @@ export function scoreLueckenfueller(round, rawAnswer) {
   if (round.type === 'free') {
     const punkte = Number(round.punkte) || 0
     const hit = matchesFree(rawAnswer?.value, round.kollokator, round.token)
+    // Das 60-Zeichen-Limit des Eingabefeldes ist rein clientseitig; rawAnswer
+    // ist ein opakes Objekt und darf bis 8000 Zeichen JSON gross sein. Hier
+    // kappen, bevor der Wert persistiert und spaeter in der Ergebnisansicht
+    // (ggf. am Beamer) angezeigt wird.
+    const raw = rawAnswer?.value
+    const value = typeof raw === 'string' ? raw.slice(0, FREE_ANSWER_MAX_LEN) : raw ?? null
     return {
       score: hit ? punkte : 0,
       maxScore: punkte,
       correct: hit ? 1 : 0,
-      detail: { type: 'free', value: rawAnswer?.value ?? null, kollokator: round.kollokator },
+      detail: { type: 'free', value, kollokator: round.kollokator },
     }
   }
   return { score: 0, maxScore: 0, correct: 0, detail: { type: round.type, reason: 'unknown-type' } }
