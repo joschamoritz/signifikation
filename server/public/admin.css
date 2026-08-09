@@ -862,8 +862,34 @@ body {
 
 .entry-list-controls {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 220px auto;
+  grid-template-columns: minmax(0, 1fr) 200px 190px auto;
   gap: 8px;
+}
+
+.entry-pagination {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+}
+
+.entry-pagination #entry-page-info {
+  margin: 0;
+}
+
+.entry-pagination select {
+  margin-left: auto;
+}
+
+@media (max-width: 560px) {
+  .entry-pagination {
+    align-items: stretch;
+  }
+
+  .entry-pagination select {
+    margin-left: 0;
+  }
 }
 
 .entry-bulk-controls {
@@ -2550,6 +2576,12 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
 }
 
 .json-import-dialog-body {
+  /* min-height:0 ist noetig, damit ein Flex-Kind ueberhaupt schrumpfen und
+     seinen eigenen Scrollbereich bekommen kann – sonst waechst der ganze
+     Dialog ueber max-height hinaus und Kopf-/Fusszeile (✕, Abbrechen)
+     werden unerreichbar, sobald Textarea + Array-Auswahl viel Platz brauchen. */
+  flex: 1 1 auto;
+  min-height: 0;
   overflow-y: auto;
 }
 
