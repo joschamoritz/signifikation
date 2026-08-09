@@ -81,6 +81,8 @@ const selectedEntryDates = new Set()
 let sessionRefreshTimer = null
 let usersSearchTimer = null
 let entrySearchTimer = null
+let entryTablePage = 1
+let entryPageSize = 25
 let usersOverviewAbortController = null
 const USERS_PAGE_SIZE = 50
 let usersOffset = 0
@@ -1408,10 +1410,12 @@ function renderEntryTable() {
 
   const search = (document.getElementById('entry-search')?.value || '').trim().toLowerCase()
   const modeFilter = document.getElementById('entry-mode-filter')?.value || 'all'
+  const sortOrder = document.getElementById('entry-sort')?.value || 'date-asc'
+  entryPageSize = parseInt(document.getElementById('entry-page-size')?.value, 10) || entryPageSize
 
   const entries = getCalendarEntries()
 
-  const filtered = entries.filter(({ datum, entry }) => {
+  let filtered = entries.filter(({ datum, entry }) => {
     const hasKoll = !!entry?.lemmata?.length
     const groupedText = getModeGroups(entry).flatMap((group) => group.items || []).join(' ').toLowerCase()
     const formattedDate = formatIsoDate(toIsoFromMMDD(datum)).toLowerCase()
@@ -1426,20 +1430,34 @@ function renderEntryTable() {
     return true
   })
 
+  // getCalendarEntries() liefert bereits aufsteigend sortiert – bei "date-desc" nur umdrehen.
+  if (sortOrder === 'date-desc') filtered = filtered.slice().reverse()
+
   countEl.textContent = `${filtered.length} von ${entries.length} Einträgen`
 
   if (!filtered.length) {
     tbody.innerHTML = tableMessageRow(5, 'entry-empty', 'Keine Einträge für den aktuellen Filter.')
     updateEntryBulkState([])
+    entryTablePage = 1
+    renderEntryPagination(0, 0, 1)
     return
   }
 
+  // Auswahl-Bereinigung + Massenauswahl beziehen sich weiterhin auf ALLE
+  // gefilterten Treffer (nicht nur die aktuell sichtbare Seite) – sonst
+  // würde "Alle sichtbaren wählen" bei Paginierung nur die erste Seite treffen.
   const visibleDates = filtered.map((item) => item.datum)
   visibleDates.forEach((datum) => {
     if (selectedEntryDates.has(datum) && !kalenderData[datum]) selectedEntryDates.delete(datum)
   })
 
-  tbody.innerHTML = filtered.map(({ datum, iso, entry }) => {
+  const totalPages = Math.max(1, Math.ceil(filtered.length / entryPageSize))
+  if (entryTablePage > totalPages) entryTablePage = totalPages
+  if (entryTablePage < 1) entryTablePage = 1
+  const pageStart = (entryTablePage - 1) * entryPageSize
+  const pageItems = filtered.slice(pageStart, pageStart + entryPageSize)
+
+  tbody.innerHTML = pageItems.map(({ datum, iso, entry }) => {
     const summaryHtml = renderModeGroupSummary(entry)
     const checked = selectedEntryDates.has(datum) ? 'checked' : ''
 
@@ -1458,6 +1476,25 @@ function renderEntryTable() {
   }).join('')
 
   updateEntryBulkState(visibleDates)
+  renderEntryPagination(filtered.length, pageItems.length, totalPages)
+}
+
+function renderEntryPagination(filteredCount, pageItemCount, totalPages) {
+  const infoEl = document.getElementById('entry-page-info')
+  const prevBtn = document.getElementById('entry-page-prev-btn')
+  const nextBtn = document.getElementById('entry-page-next-btn')
+  if (!infoEl || !prevBtn || !nextBtn) return
+
+  infoEl.textContent = filteredCount
+    ? `Seite ${entryTablePage} von ${totalPages} (${pageItemCount} von ${filteredCount} angezeigt)`
+    : 'Seite 1 von 1'
+  prevBtn.disabled = entryTablePage <= 1
+  nextBtn.disabled = entryTablePage >= totalPages
+}
+
+function goToEntryPage(delta) {
+  entryTablePage += delta
+  renderEntryTable()
 }
 
 /**
@@ -1471,6 +1508,7 @@ function scheduleEntryTableRender() {
   }
   entrySearchTimer = window.setTimeout(() => {
     entrySearchTimer = null
+    entryTablePage = 1
     renderEntryTable()
   }, 200)
 }
@@ -1482,8 +1520,11 @@ function resetEntryFilters() {
   }
   const searchInput = document.getElementById('entry-search')
   const modeFilter = document.getElementById('entry-mode-filter')
+  const sortSelect = document.getElementById('entry-sort')
   if (searchInput) searchInput.value = ''
   if (modeFilter) modeFilter.value = 'all'
+  if (sortSelect) sortSelect.value = 'date-asc'
+  entryTablePage = 1
   renderEntryTable()
 }
 
@@ -3672,6 +3713,8 @@ function handleDocumentClick(event) {
   if (action === 'load-kalender') return void loadKalender()
   if (action === 'reset-entry-filters') return void resetEntryFilters()
   if (action === 'select-all-visible-entries') return void selectAllVisibleEntries()
+  if (action === 'entry-page-prev') return void goToEntryPage(-1)
+  if (action === 'entry-page-next') return void goToEntryPage(1)
   if (action === 'clear-entry-selection') return void clearEntrySelection()
   if (action === 'bulk-delete-selected-dates') return void bulkDeleteSelectedDates()
   if (action === 'load-stats') return void loadStats()
@@ -4220,7 +4263,10 @@ function handleDocumentChange(event) {
   const target = event.target
   if (target.id === 'calendar-csv-input') return void importCalendarCsv(event)
   if (target.id === 'backup-restore-input') return void restoreBackupFile(event)
-  if (target.id === 'entry-mode-filter') return void renderEntryTable()
+  if (target.id === 'entry-mode-filter' || target.id === 'entry-sort' || target.id === 'entry-page-size') {
+    entryTablePage = 1
+    return void renderEntryTable()
+  }
   if (target.id === 'stats-days') return void loadStats()
   if (target.id === 'users-bulk-action') return void updateUsersBulkState()
   if (target.id === 'users-role-filter') return void loadUsersOverview()

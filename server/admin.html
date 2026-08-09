@@ -447,6 +447,10 @@
               <option value="zeitenwende">Zeitenwende</option>
               <option value="lueckenfueller">Lückenfüller</option>
             </select>
+            <select id="entry-sort">
+              <option value="date-asc">Datum ↑ nächster zuerst</option>
+              <option value="date-desc">Datum ↓ neuester zuerst</option>
+            </select>
             <button data-action="reset-entry-filters" class="entry-filters-reset">Filter zurücksetzen</button>
           </div>
           <div class="entry-bulk-controls">
@@ -474,6 +478,16 @@
             </table>
           </div>
           <p class="entry-hint" id="entry-count">0 Einträge</p>
+          <div class="entry-pagination" id="entry-pagination">
+            <button class="entry-filters-reset" id="entry-page-prev-btn" data-action="entry-page-prev">‹ Zurück</button>
+            <span class="entry-hint" id="entry-page-info">Seite 1 von 1</span>
+            <button class="entry-filters-reset" id="entry-page-next-btn" data-action="entry-page-next">Weiter ›</button>
+            <select id="entry-page-size" aria-label="Einträge pro Seite">
+              <option value="25">25 / Seite</option>
+              <option value="50">50 / Seite</option>
+              <option value="100">100 / Seite</option>
+            </select>
+          </div>
         </div>
       </section>
 
