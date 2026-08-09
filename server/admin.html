@@ -1124,7 +1124,9 @@
     <div id="json-import-day-wrap" style="display:none; margin-top:10px">
       <label for="json-import-day" style="font-size:0.83rem; font-weight:500; display:block; margin-bottom:4px">Welchen Tag importieren?</label>
       <select id="json-import-day" class="filter-select" style="width:100%"></select>
+      <button type="button" class="entry-filters-reset" id="json-import-all-btn" data-action="confirm-json-import-all" style="width:100%; margin-top:8px">Alle Tage direkt speichern</button>
     </div>
+    <p id="json-import-progress" class="json-import-error" role="status" aria-live="polite"></p>
     <p id="json-import-error" class="json-import-error" role="alert"></p>
     <div class="json-import-actions">
       <button type="button" class="entry-filters-reset" data-action="close-json-import">Abbrechen</button>

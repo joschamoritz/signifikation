@@ -3342,6 +3342,114 @@ function runJsonImport() {
   }
 }
 
+// Sammel-Import: speichert alle Einträge eines ADMIN-JSON-EXPORT-Arrays direkt
+// über /admin/tag, ohne den Umweg über das Formular – für Wochen-/Mehrtages-
+// Importe, bei denen sonst pro Tag „Formular befüllen“ + „Speichern“ nötig wäre.
+async function runBulkJsonImport() {
+  const raw        = document.getElementById('json-import-textarea').value.trim()
+  const errEl       = document.getElementById('json-import-error')
+  const progressEl  = document.getElementById('json-import-progress')
+  errEl.textContent = ''
+  progressEl.textContent = ''
+
+  // Falls im Textfeld noch ungeparster Text steht, zuerst wie gewohnt parsen.
+  if (raw) {
+    const jsonText = raw.replace(/^---[^\n]*---\s*/m, '').trim().replace(/,\s*$/, '')
+    let parsed
+    try { parsed = JSON.parse(jsonText) } catch {
+      errEl.textContent = 'Ungültiges JSON – bitte nochmal prüfen.'
+      return
+    }
+    if (Array.isArray(parsed)) {
+      _jsonImportArray = parsed
+      _populateJsonImportSelect(parsed)
+    } else {
+      errEl.textContent = 'Für den Sammel-Import wird ein Array von Tagen erwartet, kein einzelnes Objekt.'
+      return
+    }
+  }
+
+  if (!Array.isArray(_jsonImportArray) || _jsonImportArray.length === 0) {
+    errEl.textContent = 'Kein Array geladen.'
+    return
+  }
+
+  const entries = _jsonImportArray
+  const invalid = entries
+    .map((entry, i) => ({ entry, i }))
+    .filter(({ entry }) => !entry.datum || !Array.isArray(entry.woerter) || entry.woerter.length !== 3)
+  if (invalid.length > 0) {
+    errEl.textContent = `Eintrag ${invalid[0].i + 1} hat kein Datum oder nicht genau 3 „woerter“ – bitte JSON prüfen.`
+    return
+  }
+
+  const dateRange = entries.length > 1 ? `${entries[0].datum} bis ${entries[entries.length - 1].datum}` : entries[0].datum
+  const ok = confirmAction(`${entries.length} Tage direkt speichern (${dateRange})?`, [
+    'Bereits vorhandene Einträge an diesen Daten werden überschrieben.',
+    'Die Einträge werden ohne Formular-Zwischenschritt direkt gespeichert.',
+  ])
+  if (!ok) return
+
+  const allBtn  = document.getElementById('json-import-all-btn')
+  const fillBtn = document.querySelector('[data-action="confirm-json-import"]')
+  if (allBtn)  allBtn.disabled = true
+  if (fillBtn) fillBtn.disabled = true
+
+  const okDates = []
+  const failed  = []
+
+  for (let i = 0; i < entries.length; i++) {
+    const data = entries[i]
+    progressEl.textContent = `Importiere ${i + 1}/${entries.length} – ${data.datum}${data.thema ? ' (' + data.thema + ')' : ''} …`
+    try {
+      const res = await fetch('/admin/tag', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          datum:      data.datum,
+          woerter:    data.woerter,
+          positionen: Array.isArray(data.positionen) && data.positionen.length === 3
+            ? data.positionen : ['Substantiv', 'Verb', 'Adjektiv'],
+          notizen:      [data.notizen?.[0] || '', data.notizen?.[1] || '', data.notizen?.[2] || ''],
+          links:        [data.links?.[0] || '', data.links?.[1] || '', data.links?.[2] || ''],
+          definitionen: ['', '', ''],
+          thema:        data.thema || '',
+          thema_kurz:   data.thema_kurz || '',
+          thema_quelle: data.thema_quelle || '',
+          zwilling_paar: Array.isArray(data.zwilling_paar) && data.zwilling_paar.length === 2
+            && data.zwilling_paar[0] && data.zwilling_paar[1] ? data.zwilling_paar : null,
+          zwilling_pos:      data.zwilling_pos || 'Substantiv',
+          zwilling_notiz:    data.zwilling_notiz || '',
+          zwilling_link:     data.zwilling_link || '',
+          zeitenwende_lemma: data.zeitenwende_lemma || '',
+          zeitenwende_notiz: data.zeitenwende_notiz || '',
+          zeitenwende_link:  data.zeitenwende_link || '',
+          lueckenfueller_id: data.lueckenfueller_id || '',
+        }),
+      })
+      const resData = await res.json()
+      if (!res.ok) throw new Error(resData.error || `HTTP ${res.status}`)
+      okDates.push(data.datum)
+    } catch (err) {
+      failed.push(`${data.datum}: ${err.message}`)
+    }
+  }
+
+  progressEl.textContent = ''
+  if (allBtn)  allBtn.disabled = false
+  if (fillBtn) fillBtn.disabled = false
+
+  await loadKalender()
+
+  if (failed.length === 0) {
+    document.getElementById('json-import-dialog').close()
+    setStatus(`${okDates.length} Tage importiert: ${okDates.join(', ')}`, 'ok')
+  } else {
+    errEl.textContent = `${okDates.length} von ${entries.length} gespeichert. Fehlgeschlagen: ${failed.join(' · ')}`
+    setStatus(`Sammel-Import: ${okDates.length} OK, ${failed.length} fehlgeschlagen – Details im Dialog.`, 'error')
+  }
+}
+
 // ── Push-Benachrichtigungen ──────────────────────────────
 function setPushHint(id, message, tone = 'info') {
   const el = document.getElementById(id)
@@ -3552,6 +3660,7 @@ function handleDocumentClick(event) {
   if (action === 'discard-entry-draft') return void discardEntryDraft()
   if (action === 'open-json-import') return void openJsonImportDialog()
   if (action === 'confirm-json-import') return void runJsonImport()
+  if (action === 'confirm-json-import-all') return void runBulkJsonImport()
   if (action === 'close-json-import') return void document.getElementById('json-import-dialog')?.close()
   if (action === 'save-tag') return void saveTag()
   if (action === 'delete-current-tag') return void deleteCurrentTag()
