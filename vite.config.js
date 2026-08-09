@@ -93,41 +93,32 @@ export default defineConfig({
         globIgnores: ['**/realtime-vendor-*.js'],
         maximumFileSizeToCacheInBytes: 512 * 1024,
       },
+      // EINZIGE Quelle des Web-App-Manifests. Frueher lag daneben ein
+      // gepflegtes public/manifest.webmanifest — das wurde beim Build von
+      // dieser generierten Datei ueberschrieben und deshalb NIE ausgeliefert.
+      // Ausgespielt wurde eine duennere Fassung ohne description, categories
+      // und orientation und mit rotem statt pergamentfarbenem theme_color.
+      // Der gepflegte Inhalt steht jetzt hier; die Public-Datei ist entfernt.
+      // Wer hier etwas aendert, aendert das, was Nutzer wirklich bekommen.
       manifest: {
-        name: 'Signifikation',
+        name: 'Signifikation – Tägliches Linguistik-Quiz',
         short_name: 'Signifikation',
-        description: 'Tägliches linguistisches Quiz aus eigenen Korpusdaten',
-        theme_color: '#9b1c1c',
-        background_color: '#faf9f7',
-        display: 'standalone',
-        lang: 'de',
+        description: 'Tägliches Linguistik-Quiz: Kollokationsanalyse, Wortgeschichte, semantische Verwandtschaft und Lückentexte – empirisch ermittelt aus deutschsprachigen Korpusdaten.',
         start_url: '/',
         scope: '/',
+        display: 'standalone',
+        orientation: 'portrait',
+        lang: 'de-DE',
+        dir: 'ltr',
+        theme_color: '#faf9f7',
+        background_color: '#faf9f7',
+        categories: ['education', 'games', 'books'],
         icons: [
-          {
-            src: 'icon-192.png',
-            sizes: '192x192',
-            type: 'image/png',
-            purpose: 'any',
-          },
-          {
-            src: 'icon-192.png',
-            sizes: '192x192',
-            type: 'image/png',
-            purpose: 'maskable',
-          },
-          {
-            src: 'icon-512.png',
-            sizes: '512x512',
-            type: 'image/png',
-            purpose: 'any',
-          },
-          {
-            src: 'icon-512.png',
-            sizes: '512x512',
-            type: 'image/png',
-            purpose: 'maskable',
-          },
+          { src: '/icon-192.png',      sizes: '192x192',   type: 'image/png', purpose: 'any' },
+          { src: '/icon-512.png',      sizes: '512x512',   type: 'image/png', purpose: 'any' },
+          { src: '/icon-1024.png',     sizes: '1024x1024', type: 'image/png', purpose: 'any' },
+          { src: '/icon-192-dark.png', sizes: '192x192',   type: 'image/png', purpose: 'maskable' },
+          { src: '/icon-512-dark.png', sizes: '512x512',   type: 'image/png', purpose: 'maskable' },
         ],
       },
     }),

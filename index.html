@@ -6,7 +6,9 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" media="(prefers-color-scheme: light)" />
     <link rel="icon" type="image/svg+xml" href="/favicon-dark.svg" media="(prefers-color-scheme: dark)" />
     <link rel="apple-touch-icon" sizes="180x180" href="/icon-180.png" />
-    <link rel="manifest" href="/manifest.webmanifest" />
+    <!-- Der Manifest-Link wird von vite-plugin-pwa beim Build injiziert.
+         Hier bewusst keiner von Hand: der erzeugte im dist/ einen zweiten,
+         identischen Eintrag. Inhalt des Manifests: vite.config.js -->
     <link rel="preload" href="/fonts/gentium-plus-400-latin.woff2" as="font" type="font/woff2" crossorigin />
     <link rel="preload" href="/fonts/dm-sans-latin.woff2" as="font" type="font/woff2" crossorigin />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=5.0" />
