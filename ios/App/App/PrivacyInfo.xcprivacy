@@ -82,6 +82,23 @@
         <string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string>
       </array>
     </dict>
+    <!-- Bootstrap- und Asset-Ladefehler gehen per window.__sigDebugPost
+         (Inline-Skript in index.html) an POST /api/v1/debug/log und werden
+         dort im Ring-Buffer und in den Server-Logs gehalten: Meldung,
+         Stacktrace, URL, User-Agent, serverseitig ergaenzt um die IP.
+         Kein Nutzerbezug im Payload, deshalb nicht als verknuepft deklariert. -->
+    <dict>
+      <key>NSPrivacyCollectedDataType</key>
+      <string>NSPrivacyCollectedDataTypeCrashData</string>
+      <key>NSPrivacyCollectedDataTypeLinked</key>
+      <false/>
+      <key>NSPrivacyCollectedDataTypeTracking</key>
+      <false/>
+      <key>NSPrivacyCollectedDataTypePurposes</key>
+      <array>
+        <string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string>
+      </array>
+    </dict>
     <dict>
       <key>NSPrivacyCollectedDataType</key>
       <string>NSPrivacyCollectedDataTypePurchaseHistory</string>
