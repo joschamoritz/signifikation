@@ -1,11 +1,16 @@
 /**
  * sender.js – Push-Benachrichtigungen versenden
  *
- * Unterstützt Web Push (via web-push) und iOS APNs (via node-apn).
+ * Unterstützt Web Push (via web-push) und iOS APNs (via @parse/node-apn).
  * VAPID- und APNs-Konfiguration werden beim Modul-Load aus den Env-Variablen initialisiert.
  */
 import webpush from 'web-push'
-import apn from 'node-apn'
+// @parse/node-apn statt node-apn: das Original ist bei 3.0.0 eingefroren und
+// zieht jsonwebtoken@8 und node-forge@0.7 mit (beide mit offenen Advisories,
+// kein Upstream-Fix) sowie ein http2-Polyfill als GitHub-Tarball. Der Fork
+// nutzt Nodes natives http2 und aktuelle Abhängigkeiten; die hier verwendete
+// API (Provider, Notification, send) ist unverändert.
+import apn from '@parse/node-apn'
 import db from '../db.js'
 import logger from '../logger.js'
 
