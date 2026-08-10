@@ -76,8 +76,15 @@ export function deriveAppAccountToken(userId) {
 
 // ── Prepared Statements ────────────────────────────────────────
 
+// user_id IS NOT NULL: eine Transaktion gilt nur als "beansprucht", solange
+// der Kauf noch einem lebenden Account gehoert. Migration 0020 setzt
+// payments.user_id bei Kontoloeschung auf NULL statt die Zeile zu loeschen
+// (Aufbewahrungspflicht §147 AO) -- ohne die Einschraenkung wuerde die
+// verwaiste Zeile den Restore-Pfad fuer den neu registrierten Account
+// blockieren (Apple-Guideline 5.1.1(v) verlangt aber einen funktionierenden
+// Restore, siehe rejectReasonForPayload oben).
 const getTransactionStmt = db.prepare(
-  `SELECT id FROM payments WHERE id = ?`
+  `SELECT id FROM payments WHERE id = ? AND user_id IS NOT NULL`
 )
 
 const ensureEntitlementStmt = db.prepare(`
@@ -106,9 +113,20 @@ const setPremiumRoleStmt = db.prepare(`
     updated_at = excluded.updated_at
 `)
 
+// ON CONFLICT statt INSERT OR IGNORE: eine verwaiste Zeile (user_id NULL,
+// siehe getTransactionStmt-Kommentar) wird beim Restore auf den neuen
+// Account reklaimt, statt stillschweigend zu bleiben. Der WHERE-Zusatz
+// verhindert, dass eine noch lebende Zuordnung (Cross-Account-Replay)
+// ueberschrieben wird -- das darf laut vorgelagertem Idempotenz-Check in
+// unlockForUser ohnehin nie passieren, ist hier aber eine zweite Sperre.
 const insertPaymentStmt = db.prepare(`
-  INSERT OR IGNORE INTO payments (id, user_id, amount, currency, status, product, processed_at)
+  INSERT INTO payments (id, user_id, amount, currency, status, product, processed_at)
   VALUES (?, ?, ?, 'EUR', 'paid', 'gesamtausgabe', ?)
+  ON CONFLICT(id) DO UPDATE SET
+    user_id      = excluded.user_id,
+    amount       = excluded.amount,
+    processed_at = excluded.processed_at
+  WHERE payments.user_id IS NULL
 `)
 
 const getUserEmailStmt = db.prepare(
