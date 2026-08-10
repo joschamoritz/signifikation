@@ -65,20 +65,33 @@ function getTransporter() {
 // Rahmen aller Systemmails (Wörterbuch-Ästhetik wie die App: Pergament,
 // Serifen, roter Akzent). Inline-Styles sind in E-Mails Pflicht – Gmail und
 // Outlook strippen <style>-Blöcke.
+//
+// ⚠️ Schriftgrößen ausschließlich in ganzzahligen px, niemals in rem/em.
+// SpamAssassins Regel __FONT_INVIS liest jede Größe als versteckten Text, die
+// mit einer Null beginnt — und für rem gilt das ohne untere Schranke:
+//
+//   font(?:-size)?\s*:\s*(?: 0*[01](?:\.\d+)?(?:px|pt|Q|vw|vh|vmin)
+//                          | 0+(?:\.\d+)?(?:cm|mm|pc|ch|rem|lh|vmax|%) …)
+//
+// `font-size:0.7rem` sind 11 gut lesbare Pixel, matchen aber `0+(?:\.\d+)?rem`.
+// Zusammen mit einer regulären Message-ID (__MSGID_OK_HOST) ergibt das
+// FONT_INVIS_MSGID, −2,5 Punkte. Bei px greift die Regel nur unter 2px, ganze
+// px-Werte sind also unbedenklich. Nebenbei ist px in E-Mail-Clients ohnehin
+// zuverlässiger, weil die Root-Schriftgröße dort unbekannt ist.
 function renderLayout({ kicker, title, lead, bodyHtml, footerHtml }) {
   return `<!DOCTYPE html>
 <html lang="de">
 <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
 <body style="font-family:Georgia,serif;background:#faf9f7;margin:0;padding:0">
 <div style="max-width:560px;margin:40px auto;padding:32px 40px;background:#faf9f7;border:1px solid #e2ddd6">
-  <p style="font-size:0.72rem;letter-spacing:0.12em;text-transform:uppercase;color:#9b7c4d;margin:0 0 24px">Signifikation &middot; ${kicker}</p>
-  <h1 style="font-size:1.4rem;color:#1a1310;margin:0 0 6px;font-weight:normal">${title}</h1>
-  <p style="color:#5a4e45;margin:0 0 32px;font-size:0.9rem">${lead}</p>
+  <p style="font-size:12px;letter-spacing:0.12em;text-transform:uppercase;color:#9b7c4d;margin:0 0 24px">Signifikation &middot; ${kicker}</p>
+  <h1 style="font-size:22px;color:#1a1310;margin:0 0 6px;font-weight:normal">${title}</h1>
+  <p style="color:#5a4e45;margin:0 0 32px;font-size:14px">${lead}</p>
 
 ${bodyHtml}
 
   <hr style="border:none;border-top:1px solid #e2ddd6;margin-bottom:20px">
-  <p style="font-size:0.7rem;color:#9a8e85;text-align:center;margin:0;line-height:1.6">
+  <p style="font-size:11px;color:#9a8e85;text-align:center;margin:0;line-height:1.6">
 ${footerHtml}
   </p>
 </div>
@@ -111,24 +124,18 @@ const RECHNUNG_ANSCHRIFT_TEXT = 'Joscha Moritz Fresmann · Im Romberg 10 · 4565
 // Schriftfarbe bewusst #ffffff statt des Pergament-Tons #faf9f7: der wäre exakt
 // die Hintergrundfarbe von Body und Container, und Textfarbe gleich
 // Hintergrundfarbe ist ein Muster, das Spamfilter als versteckten Text lesen
-// können.
-//
-// Ehrlichkeitshalber: Als Ursache der SpamAssassin-Regel FONT_INVIS_MSGID
-// (−2,5) war das eine Vermutung, die sich NICHT bestätigt hat — die Regel
-// blieb nach der Umstellung unverändert. Übrig bleibt vermutlich ihr zweiter
-// Teil, die „suspicious message ID": die vergibt der Versanddienstleister
-// (`…@mailjet.com` statt der eigenen Domain), darauf haben wir keinen Zugriff.
-// Die Farbänderung bleibt trotzdem, weil sie das fragilere Muster beseitigt.
+// können. (Ursache von FONT_INVIS_MSGID war das nicht — die lag an den
+// rem-Schriftgrößen, siehe renderLayout.)
 function renderButton(url, label) {
   return `  <p style="margin:0 0 28px">
-    <a href="${url}" style="display:inline-block;padding:13px 26px;background:#9b1c1c;color:#ffffff;text-decoration:none;font-size:0.92rem;letter-spacing:0.02em">${label}</a>
+    <a href="${url}" style="display:inline-block;padding:13px 26px;background:#9b1c1c;color:#ffffff;text-decoration:none;font-size:15px;letter-spacing:0.02em">${label}</a>
   </p>`
 }
 
 // Öffnungs- und Klick-Tracking abschalten. Systemmails sind kein Marketing –
 // ein Zählpixel im Passwort-Reset widerspricht der Zusage „Keine Analyse- oder
-// Tracking-Tools" in der Datenschutzerklärung. Nebeneffekt: die unsichtbaren
-// 1x1-Bilder kosten bei SpamAssassin 2,5 Punkte (Regel FONT_INVIS_MSGID).
+// Tracking-Tools" in der Datenschutzerklärung. Nebeneffekt: die 1x1-Bilder
+// kosteten bei SpamAssassin 0,5 Punkte (Bilder ohne alt-Attribut).
 //
 // Mailjet wertet diese Header aus (0 = aus) und überschreibt damit die
 // Kontoeinstellung. Andere Anbieter ignorieren sie – Brevo kennt gar keinen
@@ -173,7 +180,7 @@ export async function sendPurchaseConfirmation({ to, purchaseDate, amount }) {
     kicker: 'Bestellbestätigung',
     title: 'Gesamtausgabe freigeschaltet',
     lead: 'Vielen Dank für deinen Kauf.',
-    bodyHtml: `  <table style="width:100%;border-collapse:collapse;margin-bottom:32px;font-size:0.88rem">
+    bodyHtml: `  <table style="width:100%;border-collapse:collapse;margin-bottom:32px;font-size:14px">
     <tr style="border-bottom:1px solid #e2ddd6">
       <td style="padding:10px 0;color:#7a6e65">Produkt</td>
       <td style="padding:10px 0;text-align:right;color:#1a1310">Gesamtausgabe – Signifikation</td>
@@ -192,12 +199,12 @@ export async function sendPurchaseConfirmation({ to, purchaseDate, amount }) {
     </tr>
   </table>
 
-  <p style="font-size:0.78rem;color:#7a6e65;line-height:1.65;margin-bottom:14px">
+  <p style="font-size:12px;color:#7a6e65;line-height:1.65;margin-bottom:14px">
     <strong style="color:#5a4e45">Widerrufsrecht:</strong> Da du vor dem Kauf der sofortigen Bereitstellung
     der digitalen Inhalte ausdrücklich zugestimmt und dein Wissen vom Erlöschen des Widerrufsrechts bestätigt
     hast, ist das Widerrufsrecht gemäß §&nbsp;356 Abs.&nbsp;5 BGB mit Freischaltung der Gesamtausgabe erloschen.
   </p>
-  <p style="font-size:0.78rem;color:#7a6e65;line-height:1.65;margin-bottom:32px">
+  <p style="font-size:12px;color:#7a6e65;line-height:1.65;margin-bottom:32px">
     Vollständige <a href="https://signifikation.de/nutzungsbedingungen.html" style="color:#9b1c1c;text-decoration:none">Nutzungsbedingungen</a>
     &middot; Fragen: <a href="mailto:info@signifikation.de" style="color:#9b1c1c;text-decoration:none">info@signifikation.de</a>
   </p>`,
@@ -241,15 +248,15 @@ export async function sendPasswordResetMail({ to, url, expiresInMinutes = 60 }) 
     lead: 'Du hast angefragt, dein Passwort zurückzusetzen.',
     bodyHtml: `${renderButton(url, 'Passwort zurücksetzen')}
 
-  <p style="font-size:0.82rem;color:#5a4e45;line-height:1.65;margin:0 0 14px">
+  <p style="font-size:13px;color:#5a4e45;line-height:1.65;margin:0 0 14px">
     Der Link ist ${expiresInMinutes}&nbsp;Minuten gültig und kann nur einmal verwendet werden.
     Falls der Button nicht funktioniert, kopiere diese Adresse in die Adresszeile deines Browsers:
   </p>
-  <p style="font-size:0.72rem;color:#7a6e65;line-height:1.5;word-break:break-all;margin:0 0 32px">
+  <p style="font-size:12px;color:#7a6e65;line-height:1.5;word-break:break-all;margin:0 0 32px">
     <a href="${url}" style="color:#9b1c1c;text-decoration:none">${url}</a>
   </p>
 
-  <p style="font-size:0.78rem;color:#7a6e65;line-height:1.65;margin-bottom:32px">
+  <p style="font-size:12px;color:#7a6e65;line-height:1.65;margin-bottom:32px">
     <strong style="color:#5a4e45">Du warst das nicht?</strong> Dann ignoriere diese E-Mail einfach –
     ohne den Link bleibt dein Passwort unverändert. Fragen:
     <a href="mailto:info@signifikation.de" style="color:#9b1c1c;text-decoration:none">info@signifikation.de</a>
@@ -288,7 +295,7 @@ export async function sendWelcomeMail({ to, name, verificationUrl }) {
   const verifyHtml = verificationUrl
     ? `${renderButton(verificationUrl, 'E-Mail-Adresse bestätigen')}
 
-  <p style="font-size:0.78rem;color:#7a6e65;line-height:1.65;margin:0 0 32px">
+  <p style="font-size:12px;color:#7a6e65;line-height:1.65;margin:0 0 32px">
     Die Bestätigung ist freiwillig – dein Konto funktioniert auch ohne. Sie stellt nur sicher,
     dass wir dich erreichen, falls du einmal dein Passwort zurücksetzen musst.
   </p>`
@@ -298,12 +305,12 @@ export async function sendWelcomeMail({ to, name, verificationUrl }) {
     kicker: 'Willkommen',
     title: 'Dein Konto ist angelegt',
     lead: `${anrede} schön, dass du dabei bist.`,
-    bodyHtml: `  <p style="font-size:0.88rem;color:#5a4e45;line-height:1.7;margin:0 0 24px">
+    bodyHtml: `  <p style="font-size:14px;color:#5a4e45;line-height:1.7;margin:0 0 24px">
     Ab sofort merkt sich Signifikation deine Ergebnisse, deine Serie und deinen Fortschritt im Kurs –
     auf allen Geräten, auf denen du angemeldet bist.
   </p>
 
-  <table style="width:100%;border-collapse:collapse;margin-bottom:32px;font-size:0.88rem">
+  <table style="width:100%;border-collapse:collapse;margin-bottom:32px;font-size:14px">
     <tr style="border-bottom:1px solid #e2ddd6">
       <td style="padding:10px 0;color:#7a6e65">Täglich</td>
       <td style="padding:10px 0;text-align:right;color:#1a1310">Vier Wortspiele, jeden Tag neu</td>
@@ -319,7 +326,7 @@ export async function sendWelcomeMail({ to, name, verificationUrl }) {
   </table>
 
 ${verifyHtml}
-  <p style="font-size:0.78rem;color:#7a6e65;line-height:1.65;margin-bottom:32px">
+  <p style="font-size:12px;color:#7a6e65;line-height:1.65;margin-bottom:32px">
     Fragen? Antworte einfach auf diese E-Mail oder schreib an
     <a href="mailto:info@signifikation.de" style="color:#9b1c1c;text-decoration:none">info@signifikation.de</a>.
   </p>`,
