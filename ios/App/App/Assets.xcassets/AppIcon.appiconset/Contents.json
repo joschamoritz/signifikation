@@ -17,6 +17,18 @@
       "size": "1024x1024",
       "filename": "AppIcon-512@2x-dark.png",
       "platform": "ios"
+    },
+    {
+      "appearances": [
+        {
+          "appearance": "luminosity",
+          "value": "tinted"
+        }
+      ],
+      "idiom": "universal",
+      "size": "1024x1024",
+      "filename": "AppIcon-512@2x-tinted.png",
+      "platform": "ios"
     }
   ],
   "info": {
