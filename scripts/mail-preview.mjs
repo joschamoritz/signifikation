@@ -9,8 +9,8 @@
 // zugestellt. So laesst sich das Layout pruefen, ohne jemandem eine Mail zu
 // schicken.
 //
-// Auf dem Server ist --send der Funktionstest fuer die Gmail-Zugangsdaten:
-// laeuft er durch und die Mail kommt an, stimmen GMAIL_USER/GMAIL_APP_PASSWORD.
+// Auf dem Server ist --send der Funktionstest fuer die Zugangsdaten: laeuft er
+// durch und die Mail kommt an, stimmen SMTP_USER/SMTP_PASSWORD samt Host/Port.
 import '../server/env.js'
 
 import { mkdir, writeFile } from 'fs/promises'
@@ -33,15 +33,15 @@ if (!recipient) {
   process.env.MAIL_TRANSPORT = 'json'
   // jsonTransport authentifiziert sich nicht; die Werte muessen nur gesetzt
   // sein, damit isMailConfigured() nicht vorher abbricht.
-  process.env.GMAIL_USER ||= 'vorschau@signifikation.de'
-  process.env.GMAIL_APP_PASSWORD ||= 'vorschau'
+  process.env.SMTP_USER ||= 'vorschau@signifikation.de'
+  process.env.SMTP_PASSWORD ||= 'vorschau'
 }
 
 const { isMailConfigured, sendPasswordResetMail, sendPurchaseConfirmation, sendWelcomeMail } =
   await import('../server/mailer.js')
 
 if (recipient && !isMailConfigured()) {
-  console.error('GMAIL_USER/GMAIL_APP_PASSWORD fehlen – ohne die kann nichts verschickt werden.')
+  console.error('SMTP_USER/SMTP_PASSWORD (bzw. GMAIL_USER/GMAIL_APP_PASSWORD) fehlen – ohne die geht nichts.')
   console.error('Erwartete Env-Datei: ' + (process.env.DOTENV_CONFIG_PATH || '<Projektwurzel>/.env'))
   process.exit(1)
 }
