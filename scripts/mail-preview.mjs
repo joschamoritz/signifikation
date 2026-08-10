@@ -71,11 +71,38 @@ for (const name of selected) {
 }
 
 if (recipient) {
+  // Wichtig: Willkommens- und Kaufmail schlucken Versandfehler absichtlich
+  // (der Registrierungs- bzw. Webhook-Flow darf nicht kippen) und geben dann
+  // null zurueck. Als Testwerkzeug muss dieses Skript den Fehlschlag trotzdem
+  // hart melden – sonst meldet es "verschickt", obwohl nichts rausging.
+  let failed = 0
+
   for (const name of selected) {
-    await mails[name]()
-    console.log(`✓ ${name} an ${recipient} verschickt`)
+    try {
+      const info = await mails[name]()
+      if (!info) {
+        console.error(`✗ ${name}: Versand fehlgeschlagen (Grund steht in der Logzeile darueber)`)
+        failed++
+        continue
+      }
+      console.log(`✓ ${name} an ${recipient} verschickt${info.messageId ? `  ${info.messageId}` : ''}`)
+    } catch (err) {
+      console.error(`✗ ${name}: ${err.message}`)
+      failed++
+    }
   }
-  console.log('\nKommt nichts an: Spam-Ordner pruefen, dann das Log auf "konnte nicht gesendet werden".')
+
+  if (failed) {
+    console.error(`\n${failed} von ${selected.length} Mails NICHT verschickt.`)
+    console.error('Bei "Connection timeout" / ETIMEDOUT kommt die SMTP-Verbindung gar nicht erst')
+    console.error('zustande – dann liegt es nicht an den Zugangsdaten, sondern am gesperrten Port.')
+    console.error('Hetzner sperrt bei Cloud-Servern ausgehend 25/465/587, bis die Freigabe')
+    console.error('beantragt ist. Port pruefen:')
+    console.error('  timeout 5 bash -c "cat < /dev/null > /dev/tcp/smtp.gmail.com/465" && echo offen || echo blockiert')
+    process.exit(1)
+  }
+
+  console.log('\nKommt trotz "verschickt" nichts an: Spam-Ordner pruefen.')
   process.exit(0)
 }
 
