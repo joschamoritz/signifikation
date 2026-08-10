@@ -5,11 +5,6 @@ const config: CapacitorConfig = {
   appName: 'Signifikation',
   webDir: 'dist',
   plugins: {
-    SplashScreen: {
-      launchShowDuration: 0,
-      backgroundColor: '#faf9f7',
-      showSpinner: false,
-    },
     PushNotifications: {
       presentationOptions: ['badge', 'sound', 'alert'],
     },
