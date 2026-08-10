@@ -3,7 +3,6 @@
    ============================================================ */
 
 @import '/fonts/fonts.css';
-@import '../components/ui/primitives.css';
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0 }
 

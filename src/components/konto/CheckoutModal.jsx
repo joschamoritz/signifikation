@@ -4,6 +4,7 @@ import { API } from '../../config'
 import { apiFetch } from '../../utils/apiFetch'
 import { IAP } from '../../plugins/iap.js'
 import { restoreIapPurchases } from '../../utils/iapRestore'
+import { logError } from '../../utils/logError'
 import Sheet from '../ui/Sheet'
 import ExternalLink from '../ExternalLink'
 import './CheckoutModal.css'
@@ -20,20 +21,48 @@ export default function CheckoutModal({ isOpen, onClose, onSuccess }) {
   const [agreed, setAgreed] = useState(IS_NATIVE)
   const [isBusy, setIsBusy] = useState(false)
   const [checkoutError, setCheckoutError] = useState(null)
-  const [selectedPrice, setSelectedPrice] = useState('6.99')
+  const [selectedPrice, setSelectedPrice] = useState('9.99')
   const [iapProducts, setIapProducts] = useState([])
+  // null = noch nicht geprueft, true/false = Ergebnis von getProducts
+  const [productsAvailable, setProductsAvailable] = useState(null)
 
   const selectedOption = PRICE_OPTIONS.find(o => o.value === selectedPrice)
 
-  // Auf iOS: StoreKit-Preise laden (displayPrice in Storekonto-Währung des Nutzers)
+  // Auf iOS: StoreKit-Preise laden (displayPrice in Storekonto-Währung des Nutzers).
+  //
+  // Der Fehlerfall war frueher unsichtbar: .catch(() => {}) schluckte alles, und
+  // getLivePrice fiel auf die fest eingetragenen Labels zurueck — die exakt den
+  // echten Preisen entsprechen. Der Kauf-Screen sah also normal aus, und erst
+  // beim Tippen kam "Produkt nicht gefunden" aus IAPPlugin.swift. Genau so ist
+  // am 2026-08-07 eine Einreichung gescheitert (die drei Produkte standen in
+  // App Store Connect auf "Vom Entwickler abgelehnt" und wurden von StoreKit
+  // nicht ausgeliefert). Jetzt sichtbar machen statt still weiterlaufen.
   useEffect(() => {
     if (!isOpen || !IS_NATIVE) return
     let cancelled = false
+    setProductsAvailable(null)
     IAP.getProducts({ productIds: PRICE_OPTIONS.map(o => o.productId) })
-      .then(({ products }) => { if (!cancelled) setIapProducts(products) })
-      .catch(() => {})
+      .then(({ products }) => {
+        if (cancelled) return
+        setIapProducts(products || [])
+        const complete = (products || []).length === PRICE_OPTIONS.length
+        setProductsAvailable(complete)
+        if (!complete) {
+          logError('CheckoutModal.getProducts.incomplete',
+            new Error(`StoreKit lieferte ${products?.length ?? 0} von ${PRICE_OPTIONS.length} Produkten`))
+        }
+      })
+      .catch((err) => {
+        if (cancelled) return
+        setProductsAvailable(false)
+        logError('CheckoutModal.getProducts', err)
+      })
     return () => { cancelled = true }
   }, [isOpen])
+
+  // Nur auf Native relevant: im Web gibt es kein StoreKit, dort zaehlen die
+  // EUR-Labels und der Mollie-Pfad.
+  const iapUnavailable = IS_NATIVE && productsAvailable === false
 
   // Preis anzeigen: StoreKit-displayPrice auf iOS, sonst hardcoded EUR
   function getLivePrice(option) {
@@ -188,7 +217,14 @@ export default function CheckoutModal({ isOpen, onClose, onSuccess }) {
             </p>
           )}
 
-          {!agreed && !checkoutError && (
+          {iapUnavailable && !checkoutError && (
+            <p className="konto-checkout-error" role="alert">
+              Der Kauf ist gerade nicht verfügbar – der App Store liefert die
+              Produkte nicht aus. Bitte versuche es später noch einmal.
+            </p>
+          )}
+
+          {!agreed && !checkoutError && !iapUnavailable && (
             <p className="konto-checkout-hint">
               Bitte Zustimmung oben bestätigen.
             </p>
@@ -198,7 +234,7 @@ export default function CheckoutModal({ isOpen, onClose, onSuccess }) {
             className="konto-iap-cta"
             type="button"
             onClick={handleCheckout}
-            disabled={!agreed || isBusy}
+            disabled={!agreed || isBusy || iapUnavailable}
           >
             <span>{isBusy ? 'Wird verarbeitet …' : 'Jetzt kaufen'}</span>
             {!isBusy && <span className="konto-iap-cta-price">{getLivePrice(selectedOption)}</span>}
