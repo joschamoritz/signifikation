@@ -12,7 +12,10 @@ vi.mock('nodemailer', () => ({
   default: { createTransport: vi.fn(() => ({ sendMail: sendMailMock })) },
 }))
 
-// mailer.js liest die Gmail-Credentials auf Modulebene → vor dem Import setzen.
+// mailer.js liest die Credentials auf Modulebene → vor dem Import setzen.
+// Bewusst die alten GMAIL_*-Namen: damit deckt die Suite gleich mit ab, dass
+// der Rückfall von SMTP_USER/SMTP_PASSWORD auf sie funktioniert (nötig, damit
+// eine laufende Umstellung den Versand nicht zwischen zwei Deploys abwürgt).
 process.env.GMAIL_USER = 'test@signifikation.de'
 process.env.GMAIL_APP_PASSWORD = 'xxxx xxxx xxxx xxxx'
 
@@ -33,6 +36,12 @@ describe('mailer', () => {
 
   it('isMailConfigured meldet den konfigurierten Transport', () => {
     expect(isMailConfigured()).toBe(true)
+  })
+
+  it('nimmt die GMAIL_*-Werte als Rückfall und setzt sie als Absender', async () => {
+    await sendWelcomeMail({ to: 'neu@test.local' })
+
+    expect(lastMail().from).toBe('"Signifikation" <test@signifikation.de>')
   })
 
   describe('Passwort-Reset', () => {

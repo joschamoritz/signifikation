@@ -151,7 +151,7 @@ if (PASSWORD_RESET_DELIVERY === 'webhook' && !PASSWORD_RESET_WEBHOOK_URL) {
 }
 
 if (PASSWORD_RESET_DELIVERY === 'email' && !isMailConfigured()) {
-  logger.warn('PASSWORD_RESET_DELIVERY=email, aber GMAIL_USER/GMAIL_APP_PASSWORD fehlen – Passwort-Reset bleibt deaktiviert')
+  logger.warn('PASSWORD_RESET_DELIVERY=email, aber SMTP_USER/SMTP_PASSWORD fehlen – Passwort-Reset bleibt deaktiviert')
 }
 
 
@@ -163,7 +163,7 @@ if (PASSWORD_RESET_DELIVERY === 'email' && !isMailConfigured()) {
 const WELCOME_MAIL_ENABLED = isMailConfigured()
 
 if (!WELCOME_MAIL_ENABLED) {
-  logger.warn('GMAIL_USER/GMAIL_APP_PASSWORD fehlen – keine Willkommens- und Bestellbestaetigungsmails')
+  logger.warn('SMTP_USER/SMTP_PASSWORD fehlen – keine Willkommens- und Bestellbestaetigungsmails')
 }
 
 async function sendWelcomeWithVerification({ user, url }) {

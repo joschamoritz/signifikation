@@ -1,9 +1,22 @@
 import nodemailer from 'nodemailer'
 import logger from './logger.js'
 
-const GMAIL_USER = process.env.GMAIL_USER?.trim()
-const GMAIL_APP_PASSWORD = process.env.GMAIL_APP_PASSWORD?.trim()
-const GMAIL_FROM = process.env.GMAIL_FROM?.trim() || GMAIL_USER
+// Zugangsdaten des Mailversands. Die SMTP_*-Namen sind die neuen, die GMAIL_*
+// bleiben als Rückfall bestehen: der Server soll während einer Umstellung nicht
+// zwischen zwei Deploys stumm werden, und ein Rollback auf Gmail muss ohne
+// Codeänderung möglich sein.
+const SMTP_USER = process.env.SMTP_USER?.trim() || process.env.GMAIL_USER?.trim()
+const SMTP_PASSWORD = process.env.SMTP_PASSWORD?.trim() || process.env.GMAIL_APP_PASSWORD?.trim()
+
+// Absender im From-Header. Muss beim Anbieter als verifizierter Absender
+// hinterlegt sein, sonst lehnt er die Annahme ab (Brevo: Domain verifizieren).
+const MAIL_FROM = process.env.MAIL_FROM?.trim() || process.env.GMAIL_FROM?.trim() || SMTP_USER
+
+// Ohne SMTP_HOST läuft es weiter über Gmail. `service: 'gmail'` fährt dabei
+// fest auf Port 465 – auf dem Hetzner-Server ist der gesperrt (25/465 zu,
+// 587 offen), deshalb ist der Port getrennt überschreibbar.
+const SMTP_HOST = process.env.SMTP_HOST?.trim()
+const SMTP_PORT = Number.parseInt(process.env.SMTP_PORT ?? '', 10)
 
 let _transporter = null
 
@@ -11,15 +24,8 @@ let _transporter = null
 // Passwort-Reset und Verifikationsmail gar nicht erst anzubieten, wenn kein
 // Transport konfiguriert ist – sonst klickt der Nutzer ins Leere.
 export function isMailConfigured() {
-  return !!(GMAIL_USER && GMAIL_APP_PASSWORD)
+  return !!(SMTP_USER && SMTP_PASSWORD)
 }
-
-// Ausweichport. `service: 'gmail'` fährt fest auf 465 (TLS ab Verbindungsaufbau);
-// Hetzner sperrt bei Cloud-Servern ausgehend 25/465/587, bis man die Freigabe
-// beantragt. Ist nur ein Teil davon offen, lässt sich hier ohne Codeänderung
-// umstellen – z. B. SMTP_PORT=587 (STARTTLS auf demselben Gmail-Host).
-const SMTP_HOST = process.env.SMTP_HOST?.trim() || 'smtp.gmail.com'
-const SMTP_PORT = Number.parseInt(process.env.SMTP_PORT ?? '', 10)
 
 function getTransporter() {
   if (_transporter) return _transporter
@@ -31,18 +37,19 @@ function getTransporter() {
     return _transporter
   }
   if (!isMailConfigured()) {
-    throw new Error('GMAIL_USER oder GMAIL_APP_PASSWORD nicht konfiguriert')
+    throw new Error('SMTP_USER/SMTP_PASSWORD (oder GMAIL_USER/GMAIL_APP_PASSWORD) nicht konfiguriert')
   }
 
-  const auth = { user: GMAIL_USER, pass: GMAIL_APP_PASSWORD }
+  const auth = { user: SMTP_USER, pass: SMTP_PASSWORD }
 
-  if (Number.isFinite(SMTP_PORT) || process.env.SMTP_HOST) {
+  if (SMTP_HOST || Number.isFinite(SMTP_PORT)) {
+    const host = SMTP_HOST || 'smtp.gmail.com'
     const port = Number.isFinite(SMTP_PORT) ? SMTP_PORT : 587
-    logger.info({ host: SMTP_HOST, port }, 'Mailtransport aus SMTP_HOST/SMTP_PORT')
+    logger.info({ host, port }, 'Mailtransport aus SMTP_HOST/SMTP_PORT')
     // secure=true nur auf 465 (implizites TLS); 587 startet unverschlüsselt
     // und hebt per STARTTLS ab – requireTLS erzwingt, dass das auch passiert.
     _transporter = nodemailer.createTransport({
-      host: SMTP_HOST,
+      host,
       port,
       secure: port === 465,
       requireTLS: port !== 465,
@@ -111,7 +118,7 @@ async function deliver({ to, subject, text, html, context }) {
   try {
     const transporter = getTransporter()
     const info = await transporter.sendMail({
-      from: `"Signifikation" <${GMAIL_FROM}>`,
+      from: `"Signifikation" <${MAIL_FROM}>`,
       to,
       subject,
       text,
