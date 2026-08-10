@@ -113,6 +113,20 @@ function renderButton(url, label) {
   </p>`
 }
 
+// Öffnungs- und Klick-Tracking abschalten. Systemmails sind kein Marketing –
+// ein Zählpixel im Passwort-Reset widerspricht der Zusage „Keine Analyse- oder
+// Tracking-Tools" in der Datenschutzerklärung. Nebeneffekt: die unsichtbaren
+// 1x1-Bilder kosten bei SpamAssassin 2,5 Punkte (Regel FONT_INVIS_MSGID).
+//
+// Mailjet wertet diese Header aus (0 = aus) und überschreibt damit die
+// Kontoeinstellung. Andere Anbieter ignorieren sie – Brevo kennt gar keinen
+// Weg, das Tracking bei Transaktionsmails abzuschalten, weshalb die Header
+// dort wirkungslos bleiben.
+const NO_TRACKING_HEADERS = {
+  'X-Mailjet-TrackOpen': '0',
+  'X-Mailjet-TrackClick': '0',
+}
+
 // Liefert das nodemailer-Info-Objekt (truthy) oder null bei Fehlschlag.
 async function deliver({ to, subject, text, html, context }) {
   try {
@@ -123,6 +137,7 @@ async function deliver({ to, subject, text, html, context }) {
       subject,
       text,
       html,
+      headers: NO_TRACKING_HEADERS,
     })
     logger.info({ to }, `${context} gesendet`)
     return info ?? null

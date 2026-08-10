@@ -44,6 +44,18 @@ describe('mailer', () => {
     expect(lastMail().from).toBe('"Signifikation" <test@signifikation.de>')
   })
 
+  // Ein Zählpixel im Passwort-Reset widerspricht der Zusage „Keine Analyse-
+  // oder Tracking-Tools" in der Datenschutzerklärung – und kostet bei
+  // SpamAssassin 2,5 Punkte (FONT_INVIS_MSGID).
+  it('schaltet Öffnungs- und Klick-Tracking ab', async () => {
+    await sendPasswordResetMail({ to: 'nutzer@test.local', url: 'https://signifikation.de/x' })
+
+    expect(lastMail().headers).toMatchObject({
+      'X-Mailjet-TrackOpen': '0',
+      'X-Mailjet-TrackClick': '0',
+    })
+  })
+
   describe('Passwort-Reset', () => {
     const URL = 'https://signifikation.de/api/v1/auth/reset-password/tok123?callbackURL=%2F'
 
