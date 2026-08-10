@@ -57,8 +57,24 @@ ${footerHtml}
 </html>`
 }
 
-const IMPRESSUM_HTML = `    Joscha Moritz Fresmann &middot; Im Romberg 10 &middot; 45657 Recklinghausen`
-const IMPRESSUM_TEXT = 'Joscha Moritz Fresmann · Im Romberg 10 · 45657 Recklinghausen'
+// Fußzeile für Willkommens- und Reset-Mail: nur Verweise, keine Anschrift.
+// Beides sind reine Transaktionsmails ohne Werbung; die Anbieterkennzeichnung
+// liegt einen Klick entfernt auf der verlinkten Impressumsseite.
+const LINK_STYLE = 'color:#9a8e85;text-decoration:underline'
+const LINKS_FOOTER_HTML = `    <a href="https://signifikation.de/impressum.html" style="${LINK_STYLE}">Impressum</a>
+    &middot; <a href="https://signifikation.de/datenschutz.html" style="${LINK_STYLE}">Datenschutz</a>
+    &middot; <a href="https://signifikation.de/nutzungsbedingungen.html" style="${LINK_STYLE}">Nutzungsbedingungen</a>`
+const LINKS_FOOTER_TEXT = `Impressum:            https://signifikation.de/impressum.html
+Datenschutz:          https://signifikation.de/datenschutz.html
+Nutzungsbedingungen:  https://signifikation.de/nutzungsbedingungen.html`
+
+// Die Bestellbestätigung ist die Rechnung zum Kauf und behält deshalb die
+// vollständige Anschrift: § 14 Abs. 4 UStG bzw. § 33 UStDV (Kleinbetrags-
+// rechnung) verlangen Name UND Anschrift des leistenden Unternehmers im
+// Beleg selbst – ein Link darauf genügt dafür nicht. Lehrkräfte reichen den
+// Beleg außerdem zur Steuer ein.
+const RECHNUNG_ANSCHRIFT_HTML = `    Joscha Moritz Fresmann &middot; Im Romberg 10 &middot; 45657 Recklinghausen`
+const RECHNUNG_ANSCHRIFT_TEXT = 'Joscha Moritz Fresmann · Im Romberg 10 · 45657 Recklinghausen'
 
 // Ein grosser, klickbarer Button. Kein <button>, kein Flex – in E-Mail-Clients
 // trägt nur ein <a> mit Inline-Padding zuverlässig.
@@ -129,7 +145,7 @@ export async function sendPurchaseConfirmation({ to, purchaseDate, amount }) {
     Vollständige <a href="https://signifikation.de/nutzungsbedingungen.html" style="color:#9b1c1c;text-decoration:none">Nutzungsbedingungen</a>
     &middot; Fragen: <a href="mailto:info@signifikation.de" style="color:#9b1c1c;text-decoration:none">info@signifikation.de</a>
   </p>`,
-    footerHtml: `${IMPRESSUM_HTML}<br>
+    footerHtml: `${RECHNUNG_ANSCHRIFT_HTML}<br>
     Gemäß §&nbsp;19 UStG wird keine Umsatzsteuer ausgewiesen.`,
   })
 
@@ -152,7 +168,7 @@ Nutzungsbedingungen: https://signifikation.de/nutzungsbedingungen.html
 Fragen: info@signifikation.de
 
 ---
-${IMPRESSUM_TEXT}
+${RECHNUNG_ANSCHRIFT_TEXT}
 Gemäß § 19 UStG wird keine Umsatzsteuer ausgewiesen.`
 
   // Fehlgeschlagene Mail darf die Webhook-Verarbeitung nicht blockieren
@@ -182,7 +198,7 @@ export async function sendPasswordResetMail({ to, url, expiresInMinutes = 60 }) 
     ohne den Link bleibt dein Passwort unverändert. Fragen:
     <a href="mailto:info@signifikation.de" style="color:#9b1c1c;text-decoration:none">info@signifikation.de</a>
   </p>`,
-    footerHtml: IMPRESSUM_HTML,
+    footerHtml: LINKS_FOOTER_HTML,
   })
 
   const text = `Signifikation – Passwort zurücksetzen
@@ -199,7 +215,7 @@ dein Passwort unverändert.
 Fragen: info@signifikation.de
 
 ---
-${IMPRESSUM_TEXT}`
+${LINKS_FOOTER_TEXT}`
 
   const info = await deliver({ to, subject: 'Passwort zurücksetzen – Signifikation', text, html, context: 'Passwort-Reset-Mail' })
   if (!info) throw new Error('Passwort-Reset-Mail konnte nicht gesendet werden')
@@ -248,10 +264,10 @@ export async function sendWelcomeMail({ to, name, verificationUrl }) {
 
 ${verifyHtml}
   <p style="font-size:0.78rem;color:#7a6e65;line-height:1.65;margin-bottom:32px">
-    <a href="https://signifikation.de" style="color:#9b1c1c;text-decoration:none">signifikation.de</a>
-    &middot; Fragen: <a href="mailto:info@signifikation.de" style="color:#9b1c1c;text-decoration:none">info@signifikation.de</a>
+    Fragen? Antworte einfach auf diese E-Mail oder schreib an
+    <a href="mailto:info@signifikation.de" style="color:#9b1c1c;text-decoration:none">info@signifikation.de</a>.
   </p>`,
-    footerHtml: IMPRESSUM_HTML,
+    footerHtml: LINKS_FOOTER_HTML,
   })
 
   const text = `Signifikation – Willkommen
@@ -269,10 +285,10 @@ ${verificationUrl ? `
 E-Mail-Adresse bestätigen (freiwillig – dein Konto funktioniert auch ohne):
 ${verificationUrl}
 ` : ''}
-signifikation.de · Fragen: info@signifikation.de
+Fragen? Antworte einfach auf diese E-Mail oder schreib an info@signifikation.de.
 
 ---
-${IMPRESSUM_TEXT}`
+${LINKS_FOOTER_TEXT}`
 
   return deliver({ to, subject: 'Willkommen bei Signifikation', text, html, context: 'Willkommensmail' })
 }

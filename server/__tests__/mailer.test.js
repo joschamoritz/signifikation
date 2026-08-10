@@ -87,6 +87,41 @@ describe('mailer', () => {
     })
   })
 
+  // Die Postanschrift steht bewusst NUR in der Bestellbestaetigung: sie ist der
+  // Rechnungsbeleg (§ 14 Abs. 4 UStG / § 33 UStDV verlangen Name und Anschrift
+  // im Beleg selbst). Willkommens- und Reset-Mail sind reine Transaktionsmails
+  // und verlinken stattdessen das Impressum.
+  describe('Anschrift nur im Rechnungsbeleg', () => {
+    const ANSCHRIFT = /Im Romberg 10/
+
+    it('Willkommensmail verlinkt das Impressum statt die Anschrift zu nennen', async () => {
+      await sendWelcomeMail({ to: 'neu@test.local', name: 'Anna' })
+
+      const mail = lastMail()
+      expect(mail.html).not.toMatch(ANSCHRIFT)
+      expect(mail.text).not.toMatch(ANSCHRIFT)
+      expect(mail.html).toContain('https://signifikation.de/impressum.html')
+      expect(mail.text).toContain('https://signifikation.de/impressum.html')
+    })
+
+    it('Passwort-Reset-Mail verlinkt das Impressum statt die Anschrift zu nennen', async () => {
+      await sendPasswordResetMail({ to: 'nutzer@test.local', url: 'https://signifikation.de/x' })
+
+      const mail = lastMail()
+      expect(mail.html).not.toMatch(ANSCHRIFT)
+      expect(mail.text).not.toMatch(ANSCHRIFT)
+      expect(mail.html).toContain('https://signifikation.de/impressum.html')
+    })
+
+    it('Bestellbestaetigung behaelt die Anschrift (Pflichtangabe im Beleg)', async () => {
+      await sendPurchaseConfirmation({ to: 'kunde@test.local', purchaseDate: Date.now(), amount: '9.99' })
+
+      const mail = lastMail()
+      expect(mail.html).toMatch(ANSCHRIFT)
+      expect(mail.text).toMatch(ANSCHRIFT)
+    })
+  })
+
   describe('Bestellbestaetigung', () => {
     it('formatiert Betrag und Datum deutsch und weist § 19 UStG aus', async () => {
       await sendPurchaseConfirmation({
