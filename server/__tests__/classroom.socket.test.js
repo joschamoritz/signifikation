@@ -88,7 +88,7 @@ function setupSessionWithStudent() {
 }
 
 function connectTeacher(baseUrl, sessionId, opts = {}) {
-  return ioClient(`${baseUrl}/cr2`, {
+  return ioClient(`${baseUrl}/classroom`, {
     transports: ['websocket'],
     forceNew: true,
     auth: { sessionId },
@@ -98,7 +98,7 @@ function connectTeacher(baseUrl, sessionId, opts = {}) {
 }
 
 function connectStudent(baseUrl, token) {
-  return ioClient(`${baseUrl}/cr2`, {
+  return ioClient(`${baseUrl}/classroom`, {
     transports: ['websocket'],
     forceNew: true,
     auth: { token },
@@ -160,7 +160,7 @@ describe('classroom socket (T-3.1 / T-3.2 / T-3.3)', () => {
   // ── T-3.1: Auth-Reject ─────────────────────────────────────────
 
   it('lehnt Connect ohne Cookie/Token ab (UNAUTHORIZED)', async () => {
-    const socket = ioClient(`${baseUrl}/cr2`, {
+    const socket = ioClient(`${baseUrl}/classroom`, {
       transports: ['websocket'],
       forceNew: true,
       timeout: 2000,
@@ -175,7 +175,7 @@ describe('classroom socket (T-3.1 / T-3.2 / T-3.3)', () => {
     const otherTeacher = `${TEACHER}-foreign`
     ensureUser(otherTeacher)
 
-    const socket = ioClient(`${baseUrl}/cr2`, {
+    const socket = ioClient(`${baseUrl}/classroom`, {
       transports: ['websocket'],
       forceNew: true,
       auth: { sessionId: session.id },
@@ -260,7 +260,7 @@ describe('classroom socket (T-3.1 / T-3.2 / T-3.3)', () => {
     expect(payload.sessionId).toBe(session.id)
   })
 
-  // ── W4-S2: Dual-Namespace (/classroom neu + /cr2 Legacy) ───────
+  // ── W4-S2: Namespace /classroom (Legacy-Alias /cr2 entfallen 2026-08-10) ──
 
   it('Client auf dem neuen /classroom-Namespace kann verbinden', async () => {
     const { session } = setupSessionWithStudent()
@@ -274,18 +274,18 @@ describe('classroom socket (T-3.1 / T-3.2 / T-3.3)', () => {
     await expect(awaitConnect(teacher)).resolves.toBeUndefined()
   })
 
-  it('Broadcast erreicht Lehrer auf /classroom UND Schueler auf /cr2 (Cross-Namespace)', async () => {
+  it('Broadcast erreicht Lehrer und Schueler im selben Namespace', async () => {
     const { session, participant } = setupSessionWithStudent()
 
-    // Lehrer auf NEUEM Namespace, Schueler auf LEGACY-Namespace — wie waehrend
-    // eines Deploys (alt-gecachter Schueler-Client, frisch geladener Lehrer).
+    // Beide Parteien auf /classroom. Frueher pruefte dieser Test das Fan-out
+    // ueber den Legacy-Alias /cr2; der ist entfallen.
     const teacher = ioClient(`${baseUrl}/classroom`, {
       transports: ['websocket'], forceNew: true,
       auth: { sessionId: session.id },
       extraHeaders: { 'x-dev-user-id': TEACHER },
       timeout: 4000,
     })
-    const student = connectStudent(baseUrl, participant.token) // /cr2
+    const student = connectStudent(baseUrl, participant.token)
     openSockets.push(teacher, student)
     await Promise.all([awaitConnect(teacher), awaitConnect(student)])
 

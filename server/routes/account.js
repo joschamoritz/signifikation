@@ -3,7 +3,6 @@ import { requireAuthUser, optionalAuthUser, isPremiumRole } from '../middleware/
 import { authFeatureFlags } from '../auth/index.js'
 import { IS_PROD, serverError } from '../middleware/auth.js'
 import { deleteUserTx } from './admin-users-data.js'
-import { validate, accountIdParamsSchema } from '../middleware/validate.js'
 import { getQuota } from '../customLemmaQuota.js'
 import db from '../db.js'
 import logger from '../logger.js'
@@ -146,33 +145,12 @@ router.get('/api/v1/account/stats', requireAuthUser, (req, res) => {
   }
 })
 
-router.get('/api/v1/account/sessions', requireAuthUser, (req, res) => {
-  try {
-    const rows = db.prepare(`
-      SELECT id, createdAt, ipAddress, userAgent, expiresAt
-      FROM session
-      WHERE userId = ? AND expiresAt > ?
-      ORDER BY createdAt DESC
-    `).all(req.user.id, new Date().toISOString())
-    res.json({ sessions: rows })
-  } catch (err) {
-    logger.error({ err }, 'Sessions-Abruf fehlgeschlagen')
-    serverError(res, err)
-  }
-})
-
-router.delete('/api/v1/account/sessions/:id', requireAuthUser, validate(accountIdParamsSchema, 'params'), (req, res) => {
-  try {
-    const result = db.prepare(
-      'DELETE FROM session WHERE id = ? AND userId = ?'
-    ).run(req.params.id, req.user.id)
-    if (result.changes === 0) return res.status(404).json({ error: 'Session nicht gefunden' })
-    res.json({ ok: true })
-  } catch (err) {
-    logger.error({ err }, 'Session-Loeschung fehlgeschlagen')
-    serverError(res, err)
-  }
-})
+// Hier lagen bis 2026-08-10 GET/DELETE /api/v1/account/sessions fuer eine
+// Geraeteverwaltung ("Angemeldete Geraete"). Das Feature wurde nie gebaut —
+// es gab keinen einzigen Aufrufer, nur die Routen und das passende CSS
+// (.konto-device*, ebenfalls entfernt). Entscheidung 2026-08-10: wird auch
+// nicht mehr gebaut. Sessions laufen ueber die Ablaufzeit aus, und
+// invalidate-all-sessions.js bleibt als Notfallwerkzeug.
 
 router.delete('/api/v1/account/me', requireAuthUser, (req, res) => {
   try {

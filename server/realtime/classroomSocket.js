@@ -4,11 +4,9 @@
  * Realtime-Layer fuer den Klassenraum (Phase 3).
  *
  * Architektur:
- *   - Socket.io-Namespace `/classroom` (W4-S2). Der alte Name `/cr2` wird als
- *     Legacy-Alias weiter bedient, damit waehrend des Deploy-Fensters alte
- *     (gecachte) Clients nicht abreissen; Emits fan-out an beide Namespaces
- *     (siehe emitToRoom). LEGACY_NAMESPACE entfernen, sobald keine alten
- *     Clients mehr aktiv sein koennen.
+ *   - Socket.io-Namespace `/classroom` (W4-S2). Der Legacy-Alias `/cr2` ist
+ *     am 2026-08-10 entfallen — Clients verbinden seit 2026-06-13 nur noch
+ *     `/classroom`.
  *   - Zwei Rooms pro Session:
  *       classroom:<sessionId>:teacher    — Lehrkraft-Sockets (Live-Dashboard)
  *       classroom:<sessionId>:students   — alle Schueler-Sockets (Broadcasts)
@@ -73,11 +71,11 @@ const DEFAULT_CONNECT_RATE_LIMIT = 50              // Connects pro IP / Fenster
 const DEFAULT_CONNECT_RATE_WINDOW_MS = 60_000
 
 // ── Modulzustand (SINGLE-NODE-ANNAHME, P5) ──────────────────────────
-// nsps wird beim Setup gesetzt (Liste: [/classroom, /cr2]). Helper (notify*)
+// nsp wird beim Setup gesetzt (/classroom). Helper (notify*)
 // und Timer-Logik lesen ueber Closure-Referenz. Ohne Setup sind alle Helper
 // No-Ops (relevant fuer Route-Tests ohne Socket-Server).
 //
-// WICHTIG: nsps, disconnectTimers und connectAttempts sind MODUL-LOKAL —
+// WICHTIG: nsp, disconnectTimers und connectAttempts sind MODUL-LOKAL —
 // also pro Node-Prozess. Der Klassenraum-Realtime ist bewusst auf EINEN
 // einzigen Node-Prozess ausgelegt (Use-Case: <=50 Teilnehmer/Schulstunde):
 //   - notify*-Broadcasts erreichen nur Sockets, die mit DIESEM Prozess
@@ -90,15 +88,13 @@ const DEFAULT_CONNECT_RATE_WINDOW_MS = 60_000
 // es doch in einem Cluster laeuft (assertSingleNode unten). Horizontal-Scaling
 // (Redis-Adapter) ist fuer diesen Use-Case bewusst NICHT vorgesehen.
 //
-// W4-S2 (De-Brand): Primaerer Namespace ist `/classroom`. `/cr2` bleibt als
-// Legacy-Alias erhalten, damit waehrend des Deploy-Fensters alte (gecachte)
-// Clients, die noch `/cr2` verbinden, NICHT abreissen. Beide Namespaces teilen
-// dieselbe Middleware + Connection-Logik; Emits gehen per emitToRoom() an
-// BEIDE (Socket.io-Rooms sind pro Namespace isoliert). LEGACY_NAMESPACE
-// entfernen, sobald keine alten Clients mehr aktiv sein koennen.
-const PRIMARY_NAMESPACE = '/classroom'
-const LEGACY_NAMESPACE  = '/cr2'
-let nsps = []  // [primary, legacy] — gesetzt in setupClassroomSocket
+// W4-S2 (De-Brand): Namespace ist `/classroom`. Der Legacy-Alias `/cr2` war
+// nur fuer das Deploy-Fenster gedacht und ist am 2026-08-10 entfallen — er
+// hat bis dahin JEDES Room-Event doppelt gesendet, weil Socket.io-Rooms pro
+// Namespace isoliert sind. Beide Clients verbinden seit 2026-06-13 nur noch
+// `/classroom` (useStudentSocket.js, useTeacherSocket.js).
+const CLASSROOM_NAMESPACE = '/classroom'
+let nsp = null  // gesetzt in setupClassroomSocket
 let RECONNECT_WINDOW_MS = DEFAULT_RECONNECT_WINDOW_MS
 let HELLO_TIMEOUT_MS = DEFAULT_HELLO_TIMEOUT_MS
 let CONNECT_RATE_LIMIT = DEFAULT_CONNECT_RATE_LIMIT
@@ -246,7 +242,7 @@ function scheduleDisconnectTimeout(sessionId, participantId) {
       logger.warn({ err, participantId }, 'classroom leaveParticipant on timeout fehlgeschlagen')
     }
     trackParticipantDropped(sessionId, participantId)
-    if (!nsps.length) return
+    if (!nsp) return
     // student:left zwecks Anzeige im Live-Dashboard (reason: 'timeout').
     emitToRoom(roomTeacher(sessionId), 'student:left', {
       participantId,
@@ -260,17 +256,15 @@ function scheduleDisconnectTimeout(sessionId, participantId) {
 }
 
 function hasOpenSocketsForParticipant(participantId) {
-  if (!nsps.length) return false
-  // Ueber alle Namespaces pruefen — der Socket des Teilnehmers kann waehrend
-  // des Deploy-Fensters auf /classroom ODER /cr2 haengen.
+  if (!nsp) return false
   const room = roomParticipant(participantId)
-  return nsps.some((n) => (n.adapter?.rooms?.get(room)?.size ?? 0) > 0)
+  return (nsp.adapter?.rooms?.get(room)?.size ?? 0) > 0
 }
 
 // ── Setup ───────────────────────────────────────────────────────────
 
 // Auth-Middleware fuer den Klassenraum-Namespace. Identisch fuer /classroom
-// und den Legacy-Alias /cr2 (W4-S2) — daher als benannte Funktion extrahiert.
+// (W4-S2) — daher als benannte Funktion extrahiert.
 async function classroomSocketAuth(socket, next) {
   try {
     // Hinter nginx ist handshake.address die Proxy-IP — das Limit wuerde
@@ -341,7 +335,7 @@ async function classroomSocketAuth(socket, next) {
 
 /**
  * setupClassroomSocket(io, options) – registriert den /classroom-Namespace
- * (plus Legacy-Alias /cr2) auf einer bestehenden Socket.io-Server-Instanz.
+ * auf einer bestehenden Socket.io-Server-Instanz.
  *
  * Options:
  *   reconnectWindowMs    – default 5 Min (D6). In Tests deutlich kleiner.
@@ -360,18 +354,12 @@ export function setupClassroomSocket(io, options = {}) {
   CONNECT_RATE_LIMIT     = options.connectRateLimit     ?? DEFAULT_CONNECT_RATE_LIMIT
   CONNECT_RATE_WINDOW_MS = options.connectRateWindowMs  ?? DEFAULT_CONNECT_RATE_WINDOW_MS
 
-  // Primaerer Namespace zuerst + Legacy-Alias /cr2 (W4-S2, Deploy-Fenster).
-  // Beide teilen Auth-Middleware und Connection-Handler; Emits fan-out per
-  // emitToRoom() an alle. nsps[0] (/classroom) ist der bevorzugte Rueckgabewert.
-  nsps = [PRIMARY_NAMESPACE, LEGACY_NAMESPACE].map((name) => {
-    const n = io.of(name)
-    n.use(classroomSocketAuth)
-    n.on('connection', (socket) => onSocketConnected(socket))
-    return n
-  })
+  nsp = io.of(CLASSROOM_NAMESPACE)
+  nsp.use(classroomSocketAuth)
+  nsp.on('connection', (socket) => onSocketConnected(socket))
 
-  logger.info({ namespaces: [PRIMARY_NAMESPACE, LEGACY_NAMESPACE] }, 'classroom socket namespaces initialisiert')
-  return nsps[0]
+  logger.info({ namespace: CLASSROOM_NAMESPACE }, 'classroom socket namespace initialisiert')
+  return nsp
 }
 
 function onSocketConnected(socket) {
@@ -502,48 +490,47 @@ function onSocketDisconnect(socket, reason) {
 // Alle Helper sind No-Ops, wenn setupClassroomSocket nicht gerufen
 // wurde (Unit-Test-Pfad ohne Socket-Server).
 
-// Emit an einen Room ueber ALLE aktiven Namespaces (/classroom + /cr2).
-// Waehrend des Deploy-Fensters koennen Lehrer und Schueler einer Session auf
-// verschiedenen Namespaces haengen (neuer Client → /classroom, alt-gecachter
-// Client → /cr2). Socket.io-Rooms sind pro Namespace isoliert, also muss jeder
-// Broadcast an beide gehen, sonst sehen sich die Parteien nicht.
+// Emit an einen Room im /classroom-Namespace. Bis 2026-08-10 lief das ueber
+// eine Liste aus zwei Namespaces (/classroom + Legacy /cr2), weil
+// Socket.io-Rooms pro Namespace isoliert sind — jedes Event ging also doppelt
+// raus. Der Alias ist entfallen, damit auch das Fan-out.
 function emitToRoom(room, event, payload) {
-  for (const n of nsps) n.to(room).emit(event, payload)
+  nsp?.to(room).emit(event, payload)
 }
 
 export function notifyStudentJoined(sessionId, payload) {
-  if (!nsps.length || !sessionId) return
+  if (!nsp || !sessionId) return
   emitToRoom(roomTeacher(sessionId), 'student:joined', payload)
 }
 
 export function notifyStudentLeft(sessionId, payload) {
-  if (!nsps.length || !sessionId) return
+  if (!nsp || !sessionId) return
   emitToRoom(roomTeacher(sessionId), 'student:left', payload)
 }
 
 export function notifyStudentHeartbeat(sessionId, payload) {
-  if (!nsps.length || !sessionId) return
+  if (!nsp || !sessionId) return
   emitToRoom(roomTeacher(sessionId), 'student:heartbeat', payload)
 }
 
 export function notifySubmissionReceived(sessionId, payload) {
-  if (!nsps.length || !sessionId) return
+  if (!nsp || !sessionId) return
   emitToRoom(roomTeacher(sessionId), 'submission:received', payload)
 }
 
 export function notifyParticipantProgress(sessionId, payload) {
-  if (!nsps.length || !sessionId) return
+  if (!nsp || !sessionId) return
   emitToRoom(roomTeacher(sessionId), 'participant:progress', payload)
 }
 
 export function notifySessionStarted(sessionId, payload) {
-  if (!nsps.length || !sessionId) return
+  if (!nsp || !sessionId) return
   emitToRoom(roomStudents(sessionId), 'session:started', payload)
   emitToRoom(roomTeacher(sessionId), 'session:started', payload)
 }
 
 export function notifySessionFinished(sessionId, payload) {
-  if (!nsps.length || !sessionId) return
+  if (!nsp || !sessionId) return
   emitToRoom(roomStudents(sessionId), 'session:finished', payload)
   emitToRoom(roomTeacher(sessionId), 'session:finished', payload)
 }
@@ -554,13 +541,13 @@ export function notifySessionFinished(sessionId, payload) {
 // eines Abort-Flows hier wieder ergaenzen (Muster wie notifySessionFinished).
 
 export function notifySessionPaused(sessionId, payload) {
-  if (!nsps.length || !sessionId) return
+  if (!nsp || !sessionId) return
   emitToRoom(roomStudents(sessionId), 'session:paused', payload)
   emitToRoom(roomTeacher(sessionId), 'session:paused', payload)
 }
 
 export function notifySessionResumed(sessionId, payload) {
-  if (!nsps.length || !sessionId) return
+  if (!nsp || !sessionId) return
   emitToRoom(roomStudents(sessionId), 'session:resumed', payload)
   emitToRoom(roomTeacher(sessionId), 'session:resumed', payload)
 }
@@ -576,13 +563,13 @@ export function notifySessionResumed(sessionId, payload) {
 // Muster wie 'view:updated'). Der Plan-Wortlaut „mit content_snapshot“
 // wird hier zugunsten von R1 bewusst nicht woertlich umgesetzt.
 export function notifyAssignmentChanged(sessionId, payload) {
-  if (!nsps.length || !sessionId) return
+  if (!nsp || !sessionId) return
   emitToRoom(roomStudents(sessionId), 'assignment:changed', payload)
   emitToRoom(roomTeacher(sessionId), 'assignment:changed', payload)
 }
 
 export function notifyStudentViewUpdated(participantId, payload) {
-  if (!nsps.length || !participantId) return
+  if (!nsp || !participantId) return
   emitToRoom(roomParticipant(participantId), 'view:updated', payload)
 }
 
@@ -613,5 +600,5 @@ export function __getConnectAttemptCountForTests() {
 }
 
 export function __getNamespaceForTests() {
-  return nsps[0] ?? null
+  return nsp ?? null
 }
