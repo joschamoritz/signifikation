@@ -12,10 +12,10 @@ const USER_AGENT = 'Signifikation/1.0 (signifikation.de; Bildungsprojekt)'
 // Namensnennung, Lizenzangabe mit Link und einen Hinweis auf Bearbeitungen —
 // wir uebernehmen die Bedeutungen gekuerzt und ohne Wikitext-Markup. Quelle und
 // Lizenz reisen deshalb mit der Antwort, damit die Anzeige sie ausgeben kann.
-export const WIKTIONARY_LICENSE = 'CC BY-SA 4.0'
-export const WIKTIONARY_LICENSE_URL = 'https://creativecommons.org/licenses/by-sa/4.0/deed.de'
+const WIKTIONARY_LICENSE = 'CC BY-SA 4.0'
+const WIKTIONARY_LICENSE_URL = 'https://creativecommons.org/licenses/by-sa/4.0/deed.de'
 
-export function wiktionaryPageUrl(lemma) {
+function wiktionaryPageUrl(lemma) {
   return `https://de.wiktionary.org/wiki/${encodeURIComponent(String(lemma || '').trim())}`
 }
 

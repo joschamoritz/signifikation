@@ -126,7 +126,7 @@ export const LITERATUR = {
 }
 
 /** Volle Zitation oder ein lesbarer Fallback (statt leerer Fußnote). */
-export function citation(key) {
+function citation(key) {
   return LITERATUR[key]?.voll ?? `Quelle „${key}“ (siehe Kurs-Literatur).`
 }
 

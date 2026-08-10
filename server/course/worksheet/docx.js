@@ -29,7 +29,7 @@ const FONT = 'Calibri'
 
 // ── Inline-Markup: **fett** / *kursiv* / [^n] → TextRun[] ─────────────
 
-export function inlineRuns(text, opts = {}) {
+function inlineRuns(text, opts = {}) {
   const src = String(text ?? '')
   const runs = []
   // Reihenfolge: erst Fußnoten-Marker abspalten (hochgestellt), dann fett/kursiv

@@ -767,51 +767,6 @@ export async function fetchLemma(lemma, pos = 'Substantiv') {
   }
 }
 
-// ── Öffentliche Kollokations-Stichprobe (SEO-Wort-Archiv) ─────────────────────
-// WICHTIG: Die Lösung des Kollokationen-Spiels sind die TOP 3 Kollokatoren
-// (buildOptions: items.slice(0,3)). Diese Stichprobe überspringt daher die
-// stärksten COLLOC_SAMPLE_SKIP_TOP (Top 3 + Sicherheitsmarge) und zeigt nur
-// schwächere, alphabetisch sortierte Verbindungen ohne logDice-Werte — echte
-// Kollokationen, aber kein Spiel-Lösungsset/Ranking.
-const COLLOC_SAMPLE_SKIP_TOP = 5
-const COLLOC_SAMPLE_MIN_SCORE = 5
-const COLLOC_SAMPLE_COUNT = 6
-
-/**
- * Liefert eine kleine, anzeigbare Auswahl typischer Kollokatoren eines Lemmas,
- * BEWUSST ohne die stärksten (= Spiel-Lösung) und ohne Stärke-Angaben.
- * @returns {Promise<string[]>} alphabetisch sortierte Wörter (kann leer sein)
- */
-export async function fetchCollocationSample(lemma, pos = 'Substantiv', {
-  skipTop = COLLOC_SAMPLE_SKIP_TOP,
-  minScore = COLLOC_SAMPLE_MIN_SCORE,
-  count = COLLOC_SAMPLE_COUNT,
-} = {}) {
-  const rounds  = POS_ROUNDS[pos] ?? POS_ROUNDS.Substantiv
-  const results = await Promise.allSettled(
-    rounds.map(round => fetchRelation(lemma, pos, round.relCode))
-  )
-  // Über alle Relationen dedupliziert (höchstes logDice gewinnt), wie im Spiel.
-  const seen = new Map()
-  for (const res of results) {
-    if (res.status !== 'fulfilled') continue
-    for (const item of res.value) {
-      const key = item.lemma.toLowerCase()
-      const existing = seen.get(key)
-      if (!existing || parseFloat(item.logDice) > parseFloat(existing.logDice)) seen.set(key, item)
-    }
-  }
-  const lemmaLow = lemma.toLowerCase()
-  const band = [...seen.values()]
-    .sort((a, b) => parseFloat(b.logDice) - parseFloat(a.logDice))
-    .slice(skipTop) // Top-N (= Lösung) nie zeigen
-    .filter(i => i.lemma && !i.lemma.includes(' ') && i.lemma.toLowerCase() !== lemmaLow
-      && parseFloat(i.logDice) >= minScore)
-    .slice(0, count)
-    .map(i => i.lemma)
-  return [...new Set(band)].sort((a, b) => a.localeCompare(b, 'de'))
-}
-
 // ── Syntagmatische Muster fürs Archiv (Bubenhofer 2015, S. 2) ─────────────────
 // Zeigt zu jedem Kollokator: Relations-/Musterbeschreibung, absolute Frequenz,
 // logDice (Signifikanz), Anteil an allen erfassten Verbindungen und die typische

@@ -215,39 +215,6 @@
   color: var(--primary);
 }
 
-/* ── Klassenraum-Index-Einträge ─────────────────────────────────────
-   Wörterbuch-Einträge der Landing-Ansicht (① Anleitung … ④ Vorbereiten).
-   Optisch wie .test-entry (Spielmodi/Kurs), aber mit eigenen Klassen, damit
-   das mobile Snap-Karten-Layout der .test-entry NICHT greift. */
-.classroom-entries {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-}
-
-.classroom-entry {
-  display: grid;
-  grid-template-columns: 28px 1fr;
-  gap: 0 20px;
-  padding: 24px 0 22px;
-  border-bottom: 1px solid var(--t-rule-lt);
-  position: relative;
-}
-.classroom-entry:last-child {
-  border-bottom: none;
-}
-
-/* Index-Teaser „Vorbereiten“ — gedämpft wie der ⑤-Eintrag der Startseite. */
-.classroom-entry--disabled {
-  opacity: 0.6;
-}
-.classroom-entry--disabled .test-headword {
-  color: var(--t-disabled);
-}
-.classroom-entry--disabled .test-entry-category {
-  color: var(--t-disabled);
-  border-color: var(--t-rule);
-}
 
 /* Status-Punkt vor dem Status-Text (Session-Karten). */
 .classroom-status-dot {
@@ -328,47 +295,6 @@
   text-align: center;
 }
 
-/* Schritt-Liste als Wörterbuch-Einträge (Doppellinie oben/unten, 1px-Trenner). */
-.classroom-steps {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  border-top: 2.5px double var(--border);
-  border-bottom: 2.5px double var(--border);
-}
-.classroom-step {
-  display: grid;
-  grid-template-columns: 26px 1fr;
-  gap: 0 16px;
-  padding: 16px 4px;
-}
-.classroom-step + .classroom-step {
-  border-top: 1px solid var(--border-lt);
-}
-.classroom-step__num {
-  font-family: var(--font-serif);
-  font-size: 1rem;
-  font-weight: 700;
-  color: var(--accent-dk);
-  line-height: 1.4;
-  user-select: none;
-}
-.classroom-step__title {
-  font-family: var(--font-serif);
-  font-size: 1.1rem;
-  font-weight: 700;
-  color: var(--text);
-  margin: 0 0 3px;
-  line-height: 1.2;
-}
-.classroom-step__text {
-  font-family: var(--font-serif);
-  font-size: 0.9rem;
-  font-style: italic;
-  line-height: 1.55;
-  color: var(--muted);
-  margin: 0;
-}
 
 /* ── Session-Karten (Lemma-Card-Optik) ──────────────────────────────
    Nutzen die globalen .lemma-card*-Klassen (Nummer · Headword · Meta · ›).
@@ -515,13 +441,6 @@
   align-items: center;
   gap: 16px;
 }
-/* Ende: Aktionen gestapelt + zentrierter Schließen-Link. */
-.classroom-end-actions {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-.classroom-end-close { align-self: center; }
 .classroom-link-cta.classroom-link-cta--muted {
   color: var(--muted);
   font-weight: 400;
@@ -1426,26 +1345,6 @@
   transition: width 240ms ease-out;
 }
 
-.classroom-lemma-mirror {
-  background: transparent;
-  border-left: 2px solid var(--accent);
-  padding: 4px 0 4px 14px;
-  margin: 18px 0;
-  font-family: 'Gentium Plus', Georgia, serif;
-  font-style: italic;
-  color: var(--classroom-muted);
-  font-size: 0.95rem;
-  line-height: 1.5;
-}
-
-.classroom-lemma-mirror__title {
-  font-style: normal;
-  font-weight: 700;
-  color: var(--classroom-text);
-  font-size: 1.05rem;
-  margin: 0 0 4px;
-}
-
 .classroom-aggregate {
   list-style: none;
   margin: 16px 0 0;
@@ -1518,34 +1417,6 @@
   color: var(--classroom-muted);
 }
 
-/* Trefferquote-Balken */
-.classroom-bar {
-  position: relative;
-  height: 22px;
-  border-radius: 4px;
-  background: var(--classroom-rule-lt);
-  overflow: hidden;
-}
-
-.classroom-bar__fill {
-  position: absolute;
-  inset: 0 auto 0 0;
-  background: var(--classroom-accent);
-  border-radius: 4px 0 0 4px;
-  transition: width 0.4s ease;
-  min-width: 2px;
-}
-
-.classroom-bar__label {
-  position: absolute;
-  right: 8px;
-  top: 50%;
-  transform: translateY(-50%);
-  font-family: 'DM Sans', system-ui, sans-serif;
-  font-size: 0.8rem;
-  font-weight: 600;
-  color: var(--classroom-text);
-}
 
 .classroom-result-card__meta {
   display: flex;

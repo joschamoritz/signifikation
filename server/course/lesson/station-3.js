@@ -9,7 +9,7 @@
  * KLP: Sek I G9 2019 IF 1 Sprache – Satzebene (Satzglieder); Sek II 2025 IF Sprache (syntaktisch).
  */
 
-export const entwurf3 = {
+const entwurf3 = {
   stationNo: 3,
   niveau: 'SekI',
   uv: 'Sprache unter der Lupe – Wortverbindungen zwischen freier Wahl und festem Muster',
@@ -83,7 +83,7 @@ export const entwurf3 = {
 // Beamer stützt Einstieg + Plenums-Auftakt (Werkzeug modellieren) + Sicherung.
 // Fachbegriffe/Merksatz wie im AB; Slot-Kontrast an einem frischen Nomen
 // („Antrag“) statt „Entscheidung treffen/fällt“ (= AB-Sek-II-Aufgabe 3).
-export const beamer3 = {
+const beamer3 = {
   slides: [
     { kind: 'title', kicker: 'Signifikation · Kurs · Station ③', title: 'Wer hängt an wem?', lead: '„einen Antrag stellen“ – aber „der Antrag scheitert“. Gleicher Wortschatz, andere Verben. Warum?' },
     { kind: 'bullets', kicker: 'Das Werkzeug', title: 'Derselbe Wortschatz – zwei Rollen', bullets: [

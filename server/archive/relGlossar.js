@@ -53,7 +53,7 @@ const OBJEKT_EXPLAIN = {
 /** Relationen, deren Erklärung vom Etikett abhängt statt vom Code. */
 const KASUS_RELATIONEN = new Set(['OBJA', '~OBJA'])
 
-export const REL_EXPLAIN = {
+const REL_EXPLAIN = {
   SUBJA:    'Der Kollokator ist das Subjekt im Aktivsatz – die handelnde Größe (z. B. „Der Ausschuss beschließt …“).',
   SUBJP:    'Der Kollokator ist das Subjekt im Passivsatz – dasjenige, mit dem etwas geschieht (z. B. „Das Gesetz wird beschlossen“).',
   OBJA:     OBJEKT_EXPLAIN['Akkusativobjekt'],

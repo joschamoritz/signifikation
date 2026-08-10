@@ -16,7 +16,7 @@
  * Gegenstand, daher „am Korpus überprüfen“ im Thema zulässig (§1a).
  */
 
-export const entwurf1 = {
+const entwurf1 = {
   stationNo: 1,
   niveau: 'SekI',
   uv: 'Sprache unter der Lupe – Wortverbindungen zwischen freier Wahl und festem Muster',
@@ -107,7 +107,7 @@ export const entwurf1 = {
  * `dataFrom` füllt die Schlussfolie zur Laufzeit mit echten Korpuswerten
  * (resolved F5-Item) – nie harte logDice-Zahlen im Quellcode (Datenpolitik).
  */
-export const beamer1 = {
+const beamer1 = {
   slides: [
     { kind: 'title', kicker: 'Signifikation · Kurs · Station ①', title: 'Wortpartner & Kollokationen', lead: '„starker Regen“ – im Englischen aber „heavy rain“. Wer Wort für Wort übersetzt, sagt „schwerer Regen“. Warum stimmt das nicht?' },
     { kind: 'bullets', kicker: 'Lernziel', title: 'Was du heute kannst', bullets: [

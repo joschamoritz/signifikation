@@ -38,7 +38,7 @@ export function fillSelected(text, selected) {
 }
 
 /** Sichtbare Metrik laut item.display (Niveau-Steuerung, Engine-Spec §5). */
-export function showsMetric(display, which) {
+function showsMetric(display, which) {
   if (!display || display.showMetrics === false) return false
   const m = display.metric
   if (which === 'logDice')   return m === 'logDice' || m === 'both'

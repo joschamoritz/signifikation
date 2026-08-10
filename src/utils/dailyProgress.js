@@ -5,7 +5,6 @@ export function makeDailyKeys(datum) {
   // datum ist YYYY-MM-DD
   return {
     todayKey: `sig_${datum}`,
-    todayZRKey: `sig_zr_${datum}`,
     dateStr: datum,
   }
 }
@@ -31,12 +30,8 @@ function saveHistory(storageKey, dateStr, medal, emoji) {
   lsSet(storageKey, JSON.stringify(history.slice(0, 365)))
 }
 
-export function saveKollHistory(dateStr, medal, emoji) {
+function saveKollHistory(dateStr, medal, emoji) {
   saveHistory('sig_koll_history', dateStr, medal, emoji)
-}
-
-export function saveZRHistory(dateStr, medal, emoji) {
-  saveHistory('sig_zr_history', dateStr, medal, emoji)
 }
 
 export function saveWZHistory(dateStr, medal, emoji) {

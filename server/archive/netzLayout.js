@@ -15,7 +15,7 @@
 // Relation (Roh-Code aus der collocations-Tabelle) → grammatischer Sektor.
 // Nur nicht-leere Sektoren werden gezeichnet; die kanonische Reihenfolge legt
 // die Anordnung rund ums Stichwort fest (im Uhrzeigersinn ab oben).
-export const REL_GROUP = {
+const REL_GROUP = {
   ATTR: 'Attribut', '~ATTR': 'Attribut',
   OBJA: 'Objekt/Subjekt', '~OBJA': 'Objekt/Subjekt',
   OBJD: 'Objekt/Subjekt', '~OBJD': 'Objekt/Subjekt',
@@ -25,7 +25,7 @@ export const REL_GROUP = {
   ADV: 'Adverbial',
   PRED: 'Prädikativ',
 }
-export const GROUP_ORDER = ['Attribut', 'Objekt/Subjekt', 'Koordination', 'Genitiv', 'Adverbial', 'Prädikativ']
+const GROUP_ORDER = ['Attribut', 'Objekt/Subjekt', 'Koordination', 'Genitiv', 'Adverbial', 'Prädikativ']
 
 const DEG = Math.PI / 180
 function polar(cx, cy, r, deg) {

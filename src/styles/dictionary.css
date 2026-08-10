@@ -462,17 +462,6 @@
   line-height: 0.95;
 }
 
-/* ── Abschnitt-Titel ───────────────────────────────────────── */
-.test-section-label {
-  font-family: var(--t-sans);
-  font-size: 9px;
-  font-weight: 600;
-  letter-spacing: 0.28em;
-  text-transform: uppercase;
-  color: var(--t-muted);
-  padding: 20px 0 8px;
-}
-
 /* ── Fußnote / Anmerkung ───────────────────────────────────── */
 .test-footnote {
   border-top: 2px solid var(--t-text);
@@ -605,7 +594,6 @@
   white-space: nowrap;
 }
 
-
 /* ── Gespielte Wörter (in Einträgen) ──────────────────────── */
 .test-played-list {
   list-style: none;
@@ -645,7 +633,6 @@
   padding-top: 4px;
 }
 
-
 .test-game-error {
   font-family: var(--t-sans);
   font-size: 0.82rem;
@@ -664,12 +651,6 @@
   padding: 0;
 }
 .test-game-error-retry:hover { opacity: 0.7 }
-
-/* ── Share-Zeile ───────────────────────────────────────────── */
-.test-share-row {
-  padding: 24px 0 8px;
-  text-align: center;
-}
 
 /* ── Kolophon (Footer) ─────────────────────────────────────── */
 .test-colophon {
@@ -701,44 +682,6 @@
   outline: 2px solid var(--accent);
   outline-offset: 4px;
   border-radius: 2px;
-}
-
-.test-colophon-links {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 4px;
-  flex-wrap: wrap;
-  list-style: none;
-  padding: 0;
-  margin: 0 0 10px;
-}
-
-.test-colophon-links li {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.test-colophon-links li + li::before {
-  content: '·';
-  color: var(--t-rule);
-  font-size: 0.9rem;
-}
-
-.test-colophon-links a {
-  font-family: var(--t-sans);
-  font-size: 0.7rem;
-  letter-spacing: 0.05em;
-  color: var(--t-muted);
-  text-decoration: none;
-  border-bottom: 1px solid transparent;
-  transition: color 0.15s, border-color 0.15s;
-}
-
-.test-colophon-links a:hover {
-  color: var(--t-text);
-  border-bottom-color: var(--t-rule);
 }
 
 .test-colophon-edition {
@@ -1222,25 +1165,6 @@
   line-height: 1.5;
 }
 
-/* Nummerierte Schritt-Liste in einem Info-Sheet (z. B. Klassenraum-Anleitung). */
-.info-sheet-steps {
-  margin: 0 0 0.9em;
-  padding-left: 1.4em;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-.info-sheet-steps li {
-  font-family: var(--font-serif);
-  font-size: 0.875rem;
-  line-height: 1.6;
-  color: var(--text);
-}
-.info-sheet-steps li::marker {
-  color: var(--accent-dk);
-  font-weight: 700;
-}
-
 /* ── Share Bottom Sheet – Inhalts-Styles (Shell liegt in Sheet.css) ── */
 .share-sheet-header {
   display: flex;
@@ -1298,93 +1222,6 @@
 }
 
 /* ── Konto Tab ─────────────────────────────────────────────── */
-
-/* Abonnement-Status – Wörterbuch-Lemma-Stil statt Karten */
-.konto-subscription-status {
-  margin-top: 24px;
-  padding-top: 16px;
-  border-top: 1px solid var(--t-rule);
-}
-
-.konto-subscription-header {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  margin-bottom: 8px;
-}
-
-.konto-subscription-label {
-  font-family: var(--t-sans);
-  font-size: 8.5px;
-  font-weight: 600;
-  letter-spacing: 0.15em;
-  text-transform: uppercase;
-  color: var(--t-muted);
-}
-
-.konto-subscription-badge {
-  font-family: var(--t-sans);
-  font-size: 8.5px;
-  font-weight: 600;
-  letter-spacing: 0.15em;
-  text-transform: uppercase;
-  padding: 1px 6px;
-  border-radius: 2px;
-}
-
-.konto-subscription-badge--active {
-  color: var(--t-red);
-  background: transparent;
-  border: 1px solid var(--t-red);
-}
-
-.konto-subscription-badge--locked {
-  color: var(--t-muted);
-  background: transparent;
-  border: 1px solid var(--t-rule-lt);
-}
-
-.konto-subscription-badge--free {
-  color: var(--accent-dk);
-  background: transparent;
-  border: 1px solid var(--accent-dk);
-}
-
-.konto-subscription-note {
-  font-family: var(--t-serif);
-  font-size: 0.85rem;
-  line-height: 1.6;
-  color: var(--t-text);
-  margin: 0;
-}
-
-.konto-subscription-note--free {
-  color: var(--t-accent);
-  font-weight: 500;
-  margin-top: 14px;
-  display: flex;
-  align-items: baseline;
-  gap: 6px;
-}
-
-.konto-free-star {
-  font-size: 0.65rem;
-  opacity: 0.7;
-  flex-shrink: 0;
-}
-
-.konto-buy-anyway {
-  background: none;
-  border: none;
-  font-family: var(--t-sans);
-  font-size: 0.78rem;
-  color: var(--muted);
-  cursor: pointer;
-  padding: 4px 0;
-  margin-top: 4px;
-  min-height: 44px;
-  text-align: left;
-}
 
 .konto-subscription-unlock {
   margin-top: 16px;
@@ -1535,65 +1372,10 @@
   line-height: 1.45;
 }
 
-/* Placeholder – kursiv wie Wörterbuch-Verweis */
-.konto-placeholder {
-  margin-top: 16px;
-  padding: 12px 0;
-  border-top: 1px solid var(--t-rule-lt);
-}
-
-.konto-placeholder-text {
-  font-family: var(--t-serif);
-  font-size: 0.875rem;
-  font-style: italic;
-  color: var(--t-muted);
-  margin: 0;
-}
-
 /* ── Konto Checkout (inline im Konto-Tab) ───────────────────── */
 
 .konto-checkout {
   margin-top: 12px;
-}
-
-.konto-checkout-features {
-  list-style: none;
-  padding: 10px 0 14px;
-  margin: 0 0 14px;
-  border-top: 1px solid var(--t-rule-lt);
-  border-bottom: 1px solid var(--t-rule-lt);
-}
-
-.konto-checkout-features li {
-  font-family: var(--t-serif);
-  font-size: 0.85rem;
-  line-height: 1.7;
-  color: var(--t-text);
-  padding-left: 16px;
-  position: relative;
-}
-
-.konto-checkout-features li::before {
-  content: '—';
-  position: absolute;
-  left: 0;
-  color: var(--t-red);
-  font-size: 0.75rem;
-  top: 0.15em;
-}
-
-.konto-checkout-price {
-  display: flex;
-  align-items: baseline;
-  gap: 10px;
-  margin-bottom: 16px;
-}
-
-.konto-checkout-amount {
-  font-family: var(--t-serif);
-  font-size: 1.3rem;
-  font-weight: 400;
-  color: var(--t-red);
 }
 
 .konto-checkout-once {
@@ -2174,48 +1956,6 @@
 .test-entry--spezialwoche {
   border-top: 2px solid var(--t-rule-lt);
   margin-top: 8px;
-}
-
-.test-entry-spezial-badge {
-  font-family: var(--t-sans);
-  font-size: 0.68rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--t-accent);
-  background: rgba(201, 168, 76, 0.12);
-  border: 1px solid rgba(201, 168, 76, 0.3);
-  border-radius: 4px;
-  padding: 2px 7px;
-  align-self: center;
-  white-space: nowrap;
-}
-
-/* Mode-Reihen unter dem Spezialwoche-Eintrag */
-.test-spezial-modes {
-  display: grid;
-  gap: 2px;
-  margin-top: 12px;
-  border-top: 1px solid var(--t-rule-lt);
-  padding-top: 10px;
-}
-
-.test-spezial-mode-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  padding: 4px 0;
-}
-
-.test-spezial-mode-label {
-  font-family: var(--t-sans);
-  font-size: 0.78rem;
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: var(--t-muted, var(--t-disabled));
-  flex-shrink: 0;
 }
 
 /* Kleine Variante des test-cta für die Mode-Zeilen */

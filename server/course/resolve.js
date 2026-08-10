@@ -552,9 +552,4 @@ export function resolveItemInteractive(item, { corpus, lemma } = {}) {
   }
 }
 
-/** Mehrere Items interaktiv auflösen (Reihenfolge bleibt erhalten). */
-export function resolveItemsInteractive(items, deps) {
-  return items.map(it => resolveItemInteractive(it, deps))
-}
-
 export default resolveItem

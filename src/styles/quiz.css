@@ -49,15 +49,6 @@
 .round-dot--bonus         { background: var(--bonus-bg); opacity: 0.5 }
 .round-dot--bonus.active  { background: var(--bonus); width: 24px; border-radius: 4px; opacity: 1 }
 
-.round-title {
-  font-family: var(--font-serif);
-  font-size: 1rem;
-  font-weight: 700;
-  color: var(--muted);
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
 .quiz-instruction { font-size: 0.875rem; color: var(--muted); max-width: 340px }
 @media (min-width: 768px) {
   .quiz-instruction { max-width: 520px; }
@@ -352,175 +343,18 @@
 .quiz-cta-arrow { font-weight: 700 }
 
 /* Bonus-Tag im Quiz-Header */
-.bonus-tag {
-  font-family: var(--font-sans);
-  font-size: 9px;
-  font-weight: 600;
-  letter-spacing: 0.25em;
-  text-transform: uppercase;
-  color: var(--accent-dk);
-  background: none;
-  border: 0.5px solid var(--accent);
-  border-radius: 2px;
-  padding: 2px 8px;
-}
 
 /* Bonus-Optionen (1 aus 3) */
-.bonus-options {
-  display: flex;
-  flex-direction: column;
-  gap: 0;
-  flex: 1;
-  border-top: 2px solid var(--border);
-  border-bottom: 2px solid var(--border);
-}
-.bonus-option {
-  background: transparent;
-  border: none;
-  border-left: 3px solid transparent;
-  border-top: 1px solid var(--border-lt);
-  border-radius: 0;
-  padding: 14px 12px 14px 14px;
-  font-size: 1.05rem;
-  font-weight: 600;
-  font-family: var(--font-serif);
-  color: var(--text);
-  text-align: left;
-  cursor: pointer;
-  transition: border-left-color 0.12s, background 0.12s, color 0.12s;
-  animation: optionIn 0.2s ease both;
-}
-.bonus-options .bonus-option:first-child { border-top-color: transparent }
 @media (hover: hover) {
   .bonus-option:hover:not(:disabled) {
     border-left-color: var(--primary);
     background: color-mix(in srgb, var(--primary) 4%, transparent);
   }
 }
-.bonus-option:active:not(:disabled) { transform: scale(0.985) }
-.bonus-option.selected {
-  border-left-color: var(--primary);
-  background: color-mix(in srgb, var(--primary) 6%, transparent);
-  color: var(--primary);
-}
-.bonus-option.correct {
-  border-left-color: var(--success);
-  background: var(--success-bg);
-  color: var(--success);
-}
-.bonus-option.wrong {
-  border-left-color: var(--error);
-  background: var(--error-bg);
-  color: var(--error);
-}
-
-/* ── Freier Bonuspunkt ─────────────────────────────────────── */
-.free-bonus-card {
-  background: transparent;
-  border: none;
-  border-top: 1px solid var(--border);
-  border-bottom: 1px solid var(--border);
-  border-radius: 0;
-  padding: 1.25rem 0;
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-}
-.free-bonus-quote {
-  margin: 0;
-  padding: 0 0 0 1rem;
-  border-left: 3px solid var(--primary);
-  font-style: italic;
-  color: var(--muted);
-}
-.free-bonus-quote p { margin: 0 0 .25rem; font-size: .95rem; }
-.free-bonus-quote footer { font-size: .8rem; font-style: normal; }
-.free-bonus-text {
-  margin: 0;
-  font-size: .9rem;
-  color: var(--muted);
-  line-height: 1.5;
-}
 
 /* ============================================================
    RESULTS SCREEN
    ============================================================ */
-.results-screen {
-  justify-content: center;
-  gap: 24px;
-  padding-block: 32px;
-}
-
-.results-header {
-  text-align: center;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-  padding-bottom: 4px;
-}
-.results-title-wrap {
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-.lemma-played-title {
-  font-family: var(--font-serif);
-  font-size: 2.4rem;
-  font-weight: 700;
-  color: var(--text);
-  letter-spacing: 0.01em;
-  animation: inkFlow 200ms ease-out both;
-  transition: opacity 0.7s ease;
-}
-.lemma-played-title--veiled { opacity: 0; }
-.sine-errore {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-family: var(--font-serif);
-  font-size: 0.95rem;
-  letter-spacing: 0.22em;
-  text-transform: uppercase;
-  color: var(--accent-dk);
-  opacity: 1;
-  transition: opacity 0.7s ease;
-  pointer-events: none;
-}
-.sine-errore--out { opacity: 0; }
-.results-meta {
-  font-family: var(--font-serif);
-  font-size: 0.9rem;
-  font-style: italic;
-  color: var(--muted);
-  margin: 0;
-  letter-spacing: 0.02em;
-}
-.results-meta-sep {
-  color: var(--border);
-  font-style: normal;
-}
-.results-definitionen {
-  width: 100%;
-  border-top: 1px solid var(--border-lt);
-  padding-top: 12px;
-  margin-top: 12px;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  text-align: left;
-}
-.results-definition-item {
-  font-family: var(--font-serif);
-  font-size: 0.85rem;
-  font-style: italic;
-  color: var(--muted);
-  line-height: 1.55;
-  margin: 0;
-}
 
 /* Score-Banner – Kolophon-Stil */
 .results-score-banner {
@@ -558,12 +392,6 @@
   margin: 0;
 }
 
-.thresholds {
-  display: flex;
-  justify-content: center;
-  gap: 8px;
-  flex-wrap: wrap;
-}
 .threshold {
   font-family: var(--font-sans);
   font-size: 0.75rem;
@@ -573,99 +401,9 @@
   border: 0.5px solid var(--border);
   transition: all 0.2s;
 }
-.threshold.reached {
-  color: var(--primary);
-  border-color: var(--primary);
-  background: var(--error-bg);
-}
 
 /* Wortprofil-Karte in Results */
-.wortprofil-card {
-  background: var(--surface2);
-  border: 1px solid var(--border-lt);
-  border-left: 3px solid var(--accent);
-  border-radius: var(--radius);
-  padding: 14px 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 0;
-}
-.wortprofil-title {
-  font-family: var(--font-sans);
-  font-size: 0.7rem;
-  font-weight: 700;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--accent-dk);
-}
-.wortprofil-row {
-  display: flex;
-  flex-direction: column;
-}
-.wortprofil-label {
-  font-size: 0.78rem;
-  font-weight: 600;
-  color: var(--muted);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-}
-.wortprofil-desc { display: none; }
-.wortprofil-items {
-  display: flex;
-  flex-direction: column;
-  gap: 0;
-  margin-top: 10px;
-}
-.wortprofil-item {
-  display: grid;
-  grid-template-columns: 1.4rem 1fr 40px auto;
-  align-items: center;
-  gap: 10px;
-  width: 100%;
-  padding: 8px 6px;
-  border-radius: var(--radius-sm);
-  border: none;
-  border-bottom: 1px solid var(--border-lt);
-  background: transparent;
-  text-align: left;
-  cursor: pointer;
-  transition: background 0.12s;
-}
-.wortprofil-item:last-child { border-bottom: none; }
 .wortprofil-item:hover,
-.wortprofil-item.option--beleg-active {
-  background: var(--surface);
-}
-.wortprofil-item-rank {
-  font-family: var(--font-sans);
-  font-size: 0.7rem;
-  color: var(--muted);
-  line-height: 1;
-}
-.wortprofil-item-word {
-  font-family: var(--font-serif);
-  font-size: 1rem;
-  font-style: italic;
-  color: var(--text);
-}
-.wortprofil-item-bar {
-  display: block;
-  height: 3px;
-  border-radius: 2px;
-  background: linear-gradient(
-    to right,
-    var(--accent) var(--str, 50%),
-    var(--border-lt) var(--str, 50%)
-  );
-}
-.wortprofil-item .logdice {
-  background: transparent;
-  padding: 0;
-  font-size: 0.72rem;
-  color: var(--muted);
-  text-align: right;
-  min-width: 2rem;
-}
 
 /* Einmaliger Belege-Hinweis nach erster Auswertung */
 .beleg-hint {
@@ -688,9 +426,6 @@
 @media (max-width: 499px) {
   .quiz-screen          { gap: 10px; }
   .quiz-lemma-word      { font-size: 2rem; }
-  .results-screen       { padding-block: 14px 20px; gap: 16px; }
-  .lemma-played-title   { font-size: 1.9rem; }
-  .wortprofil-card      { padding: 12px 14px; }
   .results-score-num    { font-size: 1.75rem; }
 }
 
@@ -748,15 +483,3 @@
   border-radius: 3px;
   padding: 1px 5px;
 }
-.wortprofil-header {
-  margin-bottom: 12px;
-}
-.wortprofil-extern {
-  margin-left: 6px;
-  font-size: 0.65rem;
-  color: var(--muted);
-  text-decoration: none;
-  opacity: 0.6;
-  vertical-align: super;
-}
-.wortprofil-extern:hover { opacity: 1; }

@@ -36,7 +36,7 @@ export function lemmaToRow(lemma) {
   }
 }
 
-export function buildLemmataIndex(list) {
+function buildLemmataIndex(list) {
   return {
     byId: new Map(list.map((lemma) => [lemma.id, lemma])),
     byLemma: new Map(list.map((lemma) => [lemma.lemma, lemma])),

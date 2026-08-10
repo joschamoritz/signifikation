@@ -50,7 +50,7 @@ function writeStorage(value) {
 }
 
 /** Public: Persistenz-Helfer. Wird im JoinEntry/State nach erfolgreichem /join genutzt. */
-export function persistKioskSession({ code, sessionId, participantId, token, displayName }) {
+function persistKioskSession({ code, sessionId, participantId, token, displayName }) {
   if (!token || !sessionId || !participantId) return
   writeStorage({ code, sessionId, participantId, token, displayName: displayName || '' })
 }
