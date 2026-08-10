@@ -26,6 +26,15 @@ vi.mock('../mailer.js', () => ({
   sendPurchaseConfirmation: vi.fn(),
 }))
 
+// ── GeoIP mocken (deterministisch statt von der echten, gitignoreten
+// Länderdatenbank abzuhängen -- Default null = fail-open, wie ohne Datenbank) ──
+const geoipMock = vi.hoisted(() => ({
+  lookupCountry: vi.fn(() => null),
+}))
+vi.mock('../geoip.js', () => ({
+  lookupCountry: geoipMock.lookupCountry,
+}))
+
 const { default: paymentsRouter } = await import('../routes/payments.js')
 
 // ── DB-Helfer ────────────────────────────────────────────────────
@@ -92,6 +101,8 @@ describe('payments routes integration', () => {
   beforeEach(() => {
     mollieMock.create.mockReset()
     mollieMock.get.mockReset()
+    geoipMock.lookupCountry.mockReset()
+    geoipMock.lookupCountry.mockReturnValue(null)
   })
 
   // ── Checkout ───────────────────────────────────────────────────
@@ -149,6 +160,61 @@ describe('payments routes integration', () => {
 
     expect(res.status).toBe(200)
     expect(payload.checkoutUrl).toBe('https://mollie.test/checkout/tr_checkout_ok')
+    expect(mollieMock.create).toHaveBeenCalledOnce()
+  })
+
+  // ── Mollie-Deutschland-Beschränkung, Stufe 2 (GeoIP-Backstop) ───
+
+  it('Checkout: lehnt eindeutig nicht-deutsche IP mit 403 ab', async () => {
+    const userId = createTestUser()
+    testUserIds.add(userId)
+    geoipMock.lookupCountry.mockReturnValue('FR')
+
+    const res = await fetch(`${baseUrl}/api/v1/payments/checkout`, {
+      method: 'POST',
+      headers: devHeaders(userId),
+      body: JSON.stringify({ price: '9.99', agreedToDigitalWaiver: true }),
+    })
+
+    expect(res.status).toBe(403)
+    expect(mollieMock.create).not.toHaveBeenCalled()
+  })
+
+  it('Checkout: lässt unbekannte IP durch (fail-open, kein Block ohne Datenbank/bei IPv6)', async () => {
+    const userId = createTestUser()
+    testUserIds.add(userId)
+    geoipMock.lookupCountry.mockReturnValue(null)
+    mollieMock.create.mockResolvedValue({
+      id: 'tr_checkout_unknown_ip',
+      getCheckoutUrl: () => 'https://mollie.test/checkout/tr_checkout_unknown_ip',
+    })
+
+    const res = await fetch(`${baseUrl}/api/v1/payments/checkout`, {
+      method: 'POST',
+      headers: devHeaders(userId),
+      body: JSON.stringify({ price: '9.99', agreedToDigitalWaiver: true }),
+    })
+
+    expect(res.status).toBe(200)
+    expect(mollieMock.create).toHaveBeenCalledOnce()
+  })
+
+  it('Checkout: eine deutsche IP wird nicht geblockt', async () => {
+    const userId = createTestUser()
+    testUserIds.add(userId)
+    geoipMock.lookupCountry.mockReturnValue('DE')
+    mollieMock.create.mockResolvedValue({
+      id: 'tr_checkout_de',
+      getCheckoutUrl: () => 'https://mollie.test/checkout/tr_checkout_de',
+    })
+
+    const res = await fetch(`${baseUrl}/api/v1/payments/checkout`, {
+      method: 'POST',
+      headers: devHeaders(userId),
+      body: JSON.stringify({ price: '9.99', agreedToDigitalWaiver: true }),
+    })
+
+    expect(res.status).toBe(200)
     expect(mollieMock.create).toHaveBeenCalledOnce()
   })
 
