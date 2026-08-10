@@ -44,12 +44,31 @@ describe('mailer', () => {
     expect(lastMail().from).toBe('"Signifikation" <test@signifikation.de>')
   })
 
-  // Textfarbe gleich Hintergrundfarbe (#faf9f7) ist ein Muster, das Spamfilter
-  // als versteckten Text lesen können — sichtbar war der Buttontext nur durch
-  // den eigenen roten Inline-Hintergrund. Als Ursache der Regel
-  // FONT_INVIS_MSGID hat sich das zwar nicht bestätigt (die blieb nach der
-  // Änderung bestehen), das Muster ist aber unabhängig davon fragil und soll
-  // beim nächsten Design-Tweak nicht zurückkommen.
+  // Nachbau von SpamAssassins __FONT_INVIS (rulesrc/sandbox/jhardin/
+  // 20_misc_testing.cf). Zusammen mit einer regulären Message-ID ergibt ein
+  // Treffer die Regel FONT_INVIS_MSGID und kostet 2,5 Punkte. Der Auslöser
+  // waren rem-Schriftgrößen: `0+(?:\.\d+)?rem` erfasst jede Angabe unter
+  // 1rem, also auch gut lesbare 0.7rem. Deshalb nur ganzzahlige px.
+  const FONT_INVIS = /<(?!style)[a-z]+\s[^>]{1,80}(?:font(?:-size)?\s*:\s*(?:0*[01](?:\.\d+)?(?:px|pt|Q|vw|vh|vmin)|0+(?:\.\d+)?(?:cm|mm|pc|ch|rem|lh|vmax|%)|0+(?:\.0\d*)(?:em|ex|in))(?:\s[a-z]|\s*[;'])|['"\s;]color\s*:\s*transparent\s*[;'])[^>]{0,80}>[a-z0-9]/i
+
+  it('löst SpamAssassins __FONT_INVIS in keiner Vorlage aus', async () => {
+    await sendPasswordResetMail({ to: 'nutzer@test.local', url: 'https://signifikation.de/x' })
+    expect(lastMail().html).not.toMatch(FONT_INVIS)
+
+    await sendWelcomeMail({ to: 'neu@test.local', verificationUrl: 'https://signifikation.de/v' })
+    expect(lastMail().html).not.toMatch(FONT_INVIS)
+
+    await sendPurchaseConfirmation({ to: 'kunde@test.local', purchaseDate: Date.now(), amount: '9.99' })
+    expect(lastMail().html).not.toMatch(FONT_INVIS)
+  })
+
+  it('erkennt eine rem-Schriftgröße als Rückfall (Gegenprobe zur Regex)', () => {
+    expect('<p style="font-size:0.7rem;color:#333">Text').toMatch(FONT_INVIS)
+    expect('<p style="font-size:11px;color:#333">Text').not.toMatch(FONT_INVIS)
+  })
+
+  // Textfarbe gleich Hintergrundfarbe (#faf9f7) ist ein davon unabhängiges
+  // Muster, das Spamfilter ebenfalls als versteckten Text lesen können.
   it('nutzt keine Textfarbe, die exakt der Hintergrundfarbe entspricht', async () => {
     await sendPasswordResetMail({ to: 'nutzer@test.local', url: 'https://signifikation.de/x' })
     expect(lastMail().html).not.toContain('color:#faf9f7')
