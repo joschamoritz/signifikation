@@ -129,6 +129,12 @@ router.post('/api/v1/payments/checkout', requireAuthUser, validate(checkoutSchem
       description: 'Gesamtausgabe – Signifikation',
       redirectUrl: `${BASE_URL}/?payment=success`,
       webhookUrl: `${BASE_URL}/api/v1/payments/webhook`,
+      // Kaufweg über die Website ist laut Nutzungsbedingungen §3 auf
+      // Wohnsitz Deutschland beschränkt (Nutzer bestätigt das im Checkout
+      // per Checkbox). Mollie kann den Checkout selbst nicht hart auf ein
+      // Land sperren -- restrictPaymentMethodsToCountry schraenkt nur die
+      // angebotenen Zahlungsmethoden auf in Deutschland uebliche ein.
+      restrictPaymentMethodsToCountry: 'DE',
       metadata: {
         userId: req.user.id,
         product: GESAMTAUSGABE_PRODUCT,
