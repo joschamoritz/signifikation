@@ -82,7 +82,8 @@ describe('mailer', () => {
     it('schluckt Versandfehler, damit die Registrierung nicht kippt', async () => {
       sendMailMock.mockRejectedValueOnce(new Error('SMTP down'))
 
-      await expect(sendWelcomeMail({ to: 'neu@test.local' })).resolves.toBeUndefined()
+      // null statt Wurf: der Aufrufer (better-auth sign-up) laeuft weiter
+      await expect(sendWelcomeMail({ to: 'neu@test.local' })).resolves.toBeNull()
     })
   })
 
@@ -107,7 +108,7 @@ describe('mailer', () => {
         to: 'kunde@test.local',
         purchaseDate: Date.now(),
         amount: '19.00',
-      })).resolves.toBeUndefined()
+      })).resolves.toBeNull()
     })
   })
 })
