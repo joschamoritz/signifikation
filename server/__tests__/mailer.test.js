@@ -44,11 +44,12 @@ describe('mailer', () => {
     expect(lastMail().from).toBe('"Signifikation" <test@signifikation.de>')
   })
 
-  // SpamAssassin vergleicht Textfarben mit dem Seitenhintergrund und löst
-  // dabei einen abweichenden Inline-Hintergrund (roter Button) nicht auf.
-  // Text im Pergament-Ton #faf9f7 gilt dort als unsichtbar und kostete
-  // 2,5 Punkte (FONT_INVIS_MSGID). Beim nächsten Design-Tweak an den
-  // Vorlagen darf das nicht zurückkommen.
+  // Textfarbe gleich Hintergrundfarbe (#faf9f7) ist ein Muster, das Spamfilter
+  // als versteckten Text lesen können — sichtbar war der Buttontext nur durch
+  // den eigenen roten Inline-Hintergrund. Als Ursache der Regel
+  // FONT_INVIS_MSGID hat sich das zwar nicht bestätigt (die blieb nach der
+  // Änderung bestehen), das Muster ist aber unabhängig davon fragil und soll
+  // beim nächsten Design-Tweak nicht zurückkommen.
   it('nutzt keine Textfarbe, die exakt der Hintergrundfarbe entspricht', async () => {
     await sendPasswordResetMail({ to: 'nutzer@test.local', url: 'https://signifikation.de/x' })
     expect(lastMail().html).not.toContain('color:#faf9f7')
