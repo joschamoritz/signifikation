@@ -14,6 +14,13 @@ export function isMailConfigured() {
   return !!(GMAIL_USER && GMAIL_APP_PASSWORD)
 }
 
+// Ausweichport. `service: 'gmail'` fährt fest auf 465 (TLS ab Verbindungsaufbau);
+// Hetzner sperrt bei Cloud-Servern ausgehend 25/465/587, bis man die Freigabe
+// beantragt. Ist nur ein Teil davon offen, lässt sich hier ohne Codeänderung
+// umstellen – z. B. SMTP_PORT=587 (STARTTLS auf demselben Gmail-Host).
+const SMTP_HOST = process.env.SMTP_HOST?.trim() || 'smtp.gmail.com'
+const SMTP_PORT = Number.parseInt(process.env.SMTP_PORT ?? '', 10)
+
 function getTransporter() {
   if (_transporter) return _transporter
   // Trockenlauf für scripts/mail-preview.mjs: nodemailer baut die Nachricht
@@ -26,10 +33,25 @@ function getTransporter() {
   if (!isMailConfigured()) {
     throw new Error('GMAIL_USER oder GMAIL_APP_PASSWORD nicht konfiguriert')
   }
-  _transporter = nodemailer.createTransport({
-    service: 'gmail',
-    auth: { user: GMAIL_USER, pass: GMAIL_APP_PASSWORD },
-  })
+
+  const auth = { user: GMAIL_USER, pass: GMAIL_APP_PASSWORD }
+
+  if (Number.isFinite(SMTP_PORT) || process.env.SMTP_HOST) {
+    const port = Number.isFinite(SMTP_PORT) ? SMTP_PORT : 587
+    logger.info({ host: SMTP_HOST, port }, 'Mailtransport aus SMTP_HOST/SMTP_PORT')
+    // secure=true nur auf 465 (implizites TLS); 587 startet unverschlüsselt
+    // und hebt per STARTTLS ab – requireTLS erzwingt, dass das auch passiert.
+    _transporter = nodemailer.createTransport({
+      host: SMTP_HOST,
+      port,
+      secure: port === 465,
+      requireTLS: port !== 465,
+      auth,
+    })
+    return _transporter
+  }
+
+  _transporter = nodemailer.createTransport({ service: 'gmail', auth })
   return _transporter
 }
 
