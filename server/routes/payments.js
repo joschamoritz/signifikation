@@ -7,6 +7,7 @@ import db from '../db.js'
 import logger from '../logger.js'
 import { sendPurchaseConfirmation } from '../mailer.js'
 import { auditSecurity } from '../audit.js'
+import { lookupCountry } from '../geoip.js'
 
 const IS_PROD = process.env.NODE_ENV === 'production'
 const MOLLIE_API_KEY = process.env.MOLLIE_API_KEY?.trim()
@@ -121,6 +122,24 @@ router.post('/api/v1/payments/checkout', requireAuthUser, validate(checkoutSchem
     const existing = getPaidPaymentStmt.get(req.user.id, GESAMTAUSGABE_PRODUCT)
     if (existing) {
       return res.status(409).json({ error: 'Gesamtausgabe bereits erworben' })
+    }
+
+    // Mollie-Deutschland-Beschränkung, Stufe 2: technischer Backstop zur
+    // Selbstauskunfts-Checkbox (Stufe 1). lookupCountry ist bewusst
+    // fail-open -- liefert null bei IPv6, fehlender Datenbank oder unbekannter
+    // IP, blockiert also nie fälschlich. Nur ein EINDEUTIG erkanntes
+    // Nicht-Deutschland wird abgelehnt.
+    const country = lookupCountry(req.ip)
+    if (country && country !== 'DE') {
+      logger.warn({ userId: req.user.id, country }, 'Checkout: IP außerhalb Deutschlands abgelehnt')
+      auditSecurity(
+        'CHECKOUT_REJECT_COUNTRY',
+        { userId: req.user.id, country },
+        { ip: req.ip, status: 'FAIL' }
+      )
+      return res.status(403).json({
+        error: 'Der Kauf über die Website ist auf Deutschland beschränkt.',
+      })
     }
 
     const client = getMollie()

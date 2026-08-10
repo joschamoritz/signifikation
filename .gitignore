@@ -85,6 +85,7 @@ server/data/classroom-exports/
 server/data/backups/
 server/data/course-pdfs/
 server/data/beamer-pdfs/
+server/data/geoip/
 # Git-Bundles (lokale Repo-Snapshots, gehoeren nicht ins Repo)
 *.bundle
 wortprofil/00_setup/wordprofile-src
