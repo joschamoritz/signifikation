@@ -241,6 +241,56 @@ describe('unlockForUser (Cross-Account-Replay)', () => {
   })
 })
 
+describe('unlockForUser (Restore nach Kontoloeschung, Migration 0020)', () => {
+  const userOld = `iap-deleted-${Date.now()}`
+  const userNew = `iap-rejoined-${Date.now()}`
+  const txId = `tx-orphan-${Date.now()}`
+  const origId = `orig-orphan-${Date.now()}`
+
+  function ensureUser(id) {
+    db.prepare(`INSERT OR IGNORE INTO user (id, email, name, emailVerified, createdAt, updatedAt)
+                VALUES (?, ?, ?, 1, ?, ?)`)
+      .run(id, `${id}@test.local`, id, Date.now(), Date.now())
+  }
+
+  beforeAll(() => {
+    ensureUser(userOld)
+    ensureUser(userNew)
+  })
+
+  afterAll(() => {
+    db.prepare('DELETE FROM payments WHERE id = ?').run(origId)
+    for (const u of [userOld, userNew]) {
+      db.prepare('DELETE FROM user_entitlements WHERE user_id = ?').run(u)
+      db.prepare('DELETE FROM user_profiles WHERE user_id = ?').run(u)
+      db.prepare('DELETE FROM user WHERE id = ?').run(u)
+    }
+  })
+
+  it('geloeschtes Konto: payments-Zeile bleibt (SET NULL) statt zu verschwinden', () => {
+    expect(unlockForUser(userOld, txId, origId, VALID_PRODUCT_ID)).toBe(true)
+
+    // Kontoloeschung nachgestellt: FK ON DELETE SET NULL (Migration 0020)
+    // darf die payments-Zeile nicht mitreissen (§147-AO-Aufbewahrungspflicht).
+    db.prepare('DELETE FROM user WHERE id = ?').run(userOld)
+
+    const row = db.prepare('SELECT user_id FROM payments WHERE id = ?').get(origId)
+    expect(row).toBeTruthy()
+    expect(row.user_id).toBeNull()
+  })
+
+  it('neu registrierter Account kann den verwaisten Kauf per Restore reklaimen', () => {
+    expect(unlockForUser(userNew, `${txId}-restore`, origId, VALID_PRODUCT_ID)).toBe(true)
+
+    const row = db.prepare('SELECT user_id FROM payments WHERE id = ?').get(origId)
+    expect(row.user_id).toBe(userNew)
+
+    const ent = db.prepare(
+      'SELECT gesamtausgabe_unlocked FROM user_entitlements WHERE user_id = ?').get(userNew)
+    expect(ent?.gesamtausgabe_unlocked).toBe(1)
+  })
+})
+
 describe('deriveAppAccountToken', () => {
   it('ist deterministisch und unterscheidet User', () => {
     expect(deriveAppAccountToken('user-a')).toBe(deriveAppAccountToken('user-a'))
