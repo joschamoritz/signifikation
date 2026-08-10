@@ -23,6 +23,8 @@
 }
 .korpora-tabelle a { color: #9b1c1c; }
 .lizenz-tag { display: inline-block; font-size: 0.75em; font-family: 'DM Sans', system-ui, sans-serif; font-weight: 600; letter-spacing: 0.05em; color: #5a5248; background: #f0ede8; padding: 1px 5px; border-radius: 3px; }
+/* Erlaeutert die eine Tabellenzeile, die zwei Korpora zusammenfasst (DTA). */
+.korpus-hinweis { font-size: 0.8em; font-style: italic; color: #776c5e; white-space: nowrap; }
 
 /* Hinweiszeilen ueber/unter der Tabelle (vorher inline style="") */
 .tabellen-hinweis { font-size: 0.82rem; color: #8a7f6e; margin-bottom: 4px; }
@@ -219,6 +221,7 @@
   .korpora-tabelle td { color: #f0ebe4; border-bottom-color: #3a3028; }
   .korpora-tabelle a { color: #e05555; }
   .lizenz-tag { color: #c0b8b0; background: #2a2420; }
+  .korpus-hinweis { color: #9a9080; }
   .tabellen-hinweis, .tabellen-fussnote { color: #8a8070; }
 
   .pipeline-step { border-color: #3a3028; background: #221c17; }

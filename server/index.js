@@ -25,7 +25,6 @@ import { auth } from './auth/index.js'
 import { loginLimiter, registerLimiter } from './middleware/rateLimiter.js'
 import { initializeIndices } from './store.js'
 import { errorHandler, AppError } from './error-handling.js'
-import { ensureWortprofilDb } from './init-wortprofil.js'
 import { waermeRegisterAuf } from './wortprofil.js'
 import publicRouter from './routes/public.js'
 import adminRouter  from './routes/admin.js'
@@ -261,18 +260,14 @@ app.use((err, req, res, next) => {
 })
 
 // ── Startup Initialization ──────────────────────────────────
-const WORTPROFIL_TIMEOUT_MS = 130_000  // etwas mehr als curl --max-time 120
+// Hier lief bis 2026-08-10 ein ensureWortprofilDb() hinter einem
+// Promise.race-Timeout: ein Auto-Download der Wortprofil-DB aus der
+// Railway-Zeit. Auf Hetzner war der Aufruf ein sofortiger No-op (weder
+// RAILWAY_PROJECT_ID noch WORTPROFIL_AUTODOWNLOAD gesetzt) und zeigte
+// ausserdem auf die v1-DB, die es seit dem v2-Umstieg nicht mehr gibt.
+// Railway wird nicht mehr genutzt — entfernt.
 
 ;(async () => {
-  // ensureWortprofilDb kann 2+ GB laden – Timeout verhindert infinites Hängen.
-  // Fehler sind nicht fatal: Server startet, Wortprofil-Queries liefern dann nur null.
-  await Promise.race([
-    ensureWortprofilDb(),
-    new Promise((_, reject) =>
-      setTimeout(() => reject(new Error('Wortprofil-Download-Timeout')), WORTPROFIL_TIMEOUT_MS)
-    ),
-  ]).catch(err => logger.warn({ err }, 'Wortprofil-Init übersprungen – Server startet trotzdem'))
-
   // Versionierte Migrationen aus server/migrations/ anwenden, bevor Caches
   // gebaut werden. Baseline-Migrationen aus db.js sind bereits gelaufen.
   await runMigrations().catch((err) => {
