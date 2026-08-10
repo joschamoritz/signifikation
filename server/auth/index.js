@@ -4,6 +4,7 @@ import db from '../db.js'
 import logger from '../logger.js'
 import { initAppleClientSecret } from './apple-client-secret.js'
 import { ALLOWED_ORIGINS, CAPACITOR_ORIGINS } from '../config/origins.js'
+import { isMailConfigured, sendPasswordResetMail, sendWelcomeMail } from '../mailer.js'
 
 const IS_PROD = process.env.NODE_ENV === 'production'
 const APP_PORT = process.env.PORT || 3001
@@ -74,18 +75,30 @@ if (IS_PROD && socialProviders.google && !socialProviders.apple) {
   )
 }
 
-const PASSWORD_RESET_DELIVERY = (process.env.PASSWORD_RESET_DELIVERY || (IS_PROD ? 'disabled' : 'log')).trim().toLowerCase()
+// 'email' ist der Regelweg (Nodemailer/Gmail, derselbe Transport wie die
+// Bestellbestätigung). 'webhook' bleibt als Ausweichweg bestehen, 'log' ist
+// reines Dev-Werkzeug und in Produktion verboten.
+const PASSWORD_RESET_DELIVERY = (process.env.PASSWORD_RESET_DELIVERY || (IS_PROD ? 'email' : 'log')).trim().toLowerCase()
 const PASSWORD_RESET_WEBHOOK_URL = process.env.PASSWORD_RESET_WEBHOOK_URL?.trim()
 
 if (IS_PROD && PASSWORD_RESET_DELIVERY === 'log') {
   throw new Error('PASSWORD_RESET_DELIVERY=log ist in Produktion nicht erlaubt – Reset-URLs dürfen nicht geloggt werden')
 }
 
+// Ohne konfigurierten Mailtransport waere 'email' eine Sackgasse: der Nutzer
+// bekaeme "Link versendet" zu sehen und nie eine Mail. Dann lieber das Feature
+// gar nicht anbieten – das Frontend blendet es ueber passwordResetEnabled aus.
 const PASSWORD_RESET_ENABLED = PASSWORD_RESET_DELIVERY === 'log'
   || (PASSWORD_RESET_DELIVERY === 'webhook' && !!PASSWORD_RESET_WEBHOOK_URL)
+  || (PASSWORD_RESET_DELIVERY === 'email' && isMailConfigured())
 
 
 async function sendPasswordReset({ user, url }) {
+  if (PASSWORD_RESET_DELIVERY === 'email') {
+    await sendPasswordResetMail({ to: user.email, url })
+    return
+  }
+
   if (PASSWORD_RESET_DELIVERY === 'webhook' && PASSWORD_RESET_WEBHOOK_URL) {
     const response = await fetch(PASSWORD_RESET_WEBHOOK_URL, {
       method: 'POST',
@@ -137,8 +150,24 @@ if (PASSWORD_RESET_DELIVERY === 'webhook' && !PASSWORD_RESET_WEBHOOK_URL) {
   logger.warn('PASSWORD_RESET_DELIVERY=webhook, aber PASSWORD_RESET_WEBHOOK_URL fehlt')
 }
 
-if (IS_PROD && PASSWORD_RESET_DELIVERY === 'log') {
-  logger.warn('PASSWORD_RESET_DELIVERY=log ist fuer Produktion nicht empfohlen')
+if (PASSWORD_RESET_DELIVERY === 'email' && !isMailConfigured()) {
+  logger.warn('PASSWORD_RESET_DELIVERY=email, aber GMAIL_USER/GMAIL_APP_PASSWORD fehlen – Passwort-Reset bleibt deaktiviert')
+}
+
+
+// Willkommensmail nach der Registrierung, mit optionalem Bestaetigungslink.
+// requireEmailVerification bleibt bewusst aus: das Konto ist sofort nutzbar,
+// die Bestaetigung nur ein Angebot. Wuerde der Login daran haengen, sperrte
+// jede Zustellstoerung saemtliche Neuregistrierungen aus – inklusive der des
+// App-Store-Reviewers.
+const WELCOME_MAIL_ENABLED = isMailConfigured()
+
+if (!WELCOME_MAIL_ENABLED) {
+  logger.warn('GMAIL_USER/GMAIL_APP_PASSWORD fehlen – keine Willkommens- und Bestellbestaetigungsmails')
+}
+
+async function sendWelcomeWithVerification({ user, url }) {
+  await sendWelcomeMail({ to: user.email, name: user.name, verificationUrl: url })
 }
 
 
@@ -189,5 +218,14 @@ export const auth = betterAuth({
     requireEmailVerification: false,
     ...(PASSWORD_RESET_ENABLED ? { sendResetPassword: sendPasswordReset } : {}),
   },
+  // sendOnSignUp greift auch bei requireEmailVerification: false – better-auth
+  // legt die Session trotzdem sofort an (api/routes/sign-up.mjs). Social-Logins
+  // laufen nicht hierdurch, deren Adresse gilt beim Provider als verifiziert.
+  ...(WELCOME_MAIL_ENABLED ? {
+    emailVerification: {
+      sendOnSignUp: true,
+      sendVerificationEmail: sendWelcomeWithVerification,
+    },
+  } : {}),
   plugins: [bearer()],
 })
