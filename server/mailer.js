@@ -107,9 +107,16 @@ const RECHNUNG_ANSCHRIFT_TEXT = 'Joscha Moritz Fresmann · Im Romberg 10 · 4565
 
 // Ein grosser, klickbarer Button. Kein <button>, kein Flex – in E-Mail-Clients
 // trägt nur ein <a> mit Inline-Padding zuverlässig.
+//
+// Schriftfarbe bewusst #ffffff statt des Pergament-Tons #faf9f7: der ist exakt
+// die Hintergrundfarbe von Body und Container. SpamAssassin prüft Textfarbe
+// gegen den Seitenhintergrund und löst den eigenen `background:#9b1c1c` des
+// Buttons dabei nicht auf – für den Filter stand dort unsichtbarer Text
+// (Regel FONT_INVIS_MSGID, −2,5 Punkte). Optisch ist der Unterschied
+// zwischen #faf9f7 und #ffffff auf rotem Grund nicht wahrnehmbar.
 function renderButton(url, label) {
   return `  <p style="margin:0 0 28px">
-    <a href="${url}" style="display:inline-block;padding:13px 26px;background:#9b1c1c;color:#faf9f7;text-decoration:none;font-size:0.92rem;letter-spacing:0.02em">${label}</a>
+    <a href="${url}" style="display:inline-block;padding:13px 26px;background:#9b1c1c;color:#ffffff;text-decoration:none;font-size:0.92rem;letter-spacing:0.02em">${label}</a>
   </p>`
 }
 
