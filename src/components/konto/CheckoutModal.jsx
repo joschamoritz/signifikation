@@ -199,6 +199,7 @@ export default function CheckoutModal({ isOpen, onClose, onSuccess }) {
                 onChange={(e) => setAgreed(e.target.checked)}
               />
               <span className="konto-checkout-legal-text">
+                Ich bestätige, dass ich meinen <strong>Wohnsitz in Deutschland</strong> habe.
                 Ich stimme ausdrücklich zu, dass Sie mit der Ausführung des Vertrages vor
                 Ablauf der Widerrufsfrist beginnen. Ich habe zur Kenntnis genommen, dass ich
                 mein <strong>Widerrufsrecht mit Beginn der Ausführung des Vertrages verliere</strong>{' '}
