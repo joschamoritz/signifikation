@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { API } from '../config'
+import { API, WEB_ORIGIN } from '../config'
 import { apiFetch, setNativeBearerToken } from '../utils/apiFetch'
 import { isAppleNativeAvailable, signInWithAppleNative } from '../utils/appleSignIn'
 
@@ -203,12 +203,39 @@ export function useKontoAuth({ onAuthStateChange = () => {} }) {
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
-    const token = params.get('token')
-    if (!token) return
 
-    setMode('reset-complete')
-    setResetToken(token)
-    setNotice({ type: 'success', text: 'Bitte neues Passwort setzen.' })
+    const token = params.get('token')
+    if (token) {
+      setMode('reset-complete')
+      setResetToken(token)
+      setNotice({ type: 'success', text: 'Bitte neues Passwort setzen.' })
+      return
+    }
+
+    // Rückkehr aus der E-Mail-Bestätigung. better-auth hängt bei Misserfolg
+    // ein `error=` an dieselbe callbackURL (TOKEN_EXPIRED, INVALID_TOKEN …).
+    if (!params.has('verified')) return
+
+    const verifyError = params.get('error')
+    setNotice(verifyError
+      ? {
+        type: 'error',
+        text: verifyError === 'TOKEN_EXPIRED'
+          ? 'Der Bestätigungslink ist abgelaufen. Dein Konto funktioniert trotzdem – melde dich einfach an.'
+          : 'Der Bestätigungslink war ungültig. Dein Konto funktioniert trotzdem – melde dich einfach an.',
+      }
+      : { type: 'success', text: 'E-Mail-Adresse bestätigt.' })
+
+    // Parameter aus der Adresszeile nehmen, damit ein Reload die Meldung nicht
+    // wiederholt (gleiches Vorgehen wie nach dem Passwort-Reset).
+    params.delete('verified')
+    params.delete('error')
+    const nextSearch = params.toString()
+    window.history.replaceState(
+      {},
+      '',
+      `${window.location.pathname}${nextSearch ? `?${nextSearch}` : ''}${window.location.hash}`,
+    )
   }, [])
 
   const handleAuthSubmit = useCallback(async (event) => {
@@ -239,7 +266,10 @@ export function useKontoAuth({ onAuthStateChange = () => {} }) {
       const isRegister = mode === 'register'
       const endpoint = isRegister ? `${API}/auth/sign-up/email` : `${API}/auth/sign-in/email`
       const payload = isRegister
-        ? { name: name.trim(), email: cleanEmail, password }
+        // callbackURL landet im Bestätigungslink der Willkommensmail. Relativ
+        // gehalten, damit better-auth ihn gegen die eigene baseURL auflöst –
+        // in der nativen App gibt es keine sinnvolle absolute Web-Origin.
+        ? { name: name.trim(), email: cleanEmail, password, callbackURL: '/?tab=konto&verified=1' }
         : { email: cleanEmail, password }
 
       const response = await apiFetch(endpoint, {
@@ -299,7 +329,12 @@ export function useKontoAuth({ onAuthStateChange = () => {} }) {
     setNotice(null)
 
     try {
-      const redirectTo = `${window.location.origin}${window.location.pathname}`
+      // Bewusst WEB_ORIGIN statt window.location.origin: in der nativen App
+      // wäre das capacitor://localhost, und der Mail-Link öffnet sich im
+      // Systembrowser, der dorthin nicht zurückspringen kann. `tab=konto`
+      // sorgt dafür, dass die Zielseite direkt die Konto-Karte zeigt —
+      // better-auth hängt den Token per searchParams.set daran an.
+      const redirectTo = `${WEB_ORIGIN}/?tab=konto`
       const response = await apiFetch(`${API}/auth/request-password-reset`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

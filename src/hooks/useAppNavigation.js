@@ -2,13 +2,20 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 
 // Deep-Link von der Lehrer-Landingpage (/lehrer): /?tab=klassenraum öffnet
 // direkt den Klassenraum-Tab (für nicht eingeloggte Lehrkräfte → Schüler-/
-// Demo-Ansicht). Bewusst nur 'klassenraum', um keine Mount-Sonderfälle für
-// Konto/Kurs zu erzeugen (die werden lazy via handleTabChange gemountet).
+// Demo-Ansicht).
+//
+// /?tab=konto kommt aus den Systemmails: der Passwort-Reset-Link landet mit
+// `?token=…` hier, die E-Mail-Bestätigung mit `?verified=1`. Beides zeigt seine
+// Rückmeldung in der Konto-Karte — ohne diesen Sprung sähe der Nutzer nach dem
+// Klick auf den Mail-Link nur die Startseite. `token` allein reicht ebenfalls,
+// damit ältere Reset-Links (ohne tab-Parameter) nicht ins Leere laufen.
 function initialTab() {
   if (typeof window === 'undefined') return 'spielmodi'
   try {
-    if (new URLSearchParams(window.location.search).get('tab') === 'klassenraum') {
-      return 'klassenraum'
+    const params = new URLSearchParams(window.location.search)
+    if (params.get('tab') === 'klassenraum') return 'klassenraum'
+    if (params.get('tab') === 'konto' || params.has('token') || params.has('verified')) {
+      return 'profil'
     }
   } catch { /* ungültige URL → Default */ }
   return 'spielmodi'

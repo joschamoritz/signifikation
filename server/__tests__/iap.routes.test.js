@@ -1,9 +1,14 @@
 import express from 'express'
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 
-// Mailer mocken (kein Mailversand, kein nodemailer-Init in Tests)
+// Mailer mocken (kein Mailversand, kein nodemailer-Init in Tests).
+// isMailConfigured/sendWelcomeMail/sendPasswordResetMail werden von
+// auth/index.js gezogen, das ueber middleware/userAuth.js mitgeladen wird.
 vi.mock('../mailer.js', () => ({
+  isMailConfigured: vi.fn(() => false),
   sendPurchaseConfirmation: vi.fn(),
+  sendPasswordResetMail: vi.fn(),
+  sendWelcomeMail: vi.fn(),
 }))
 
 const {

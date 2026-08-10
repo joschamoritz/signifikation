@@ -22,8 +22,13 @@ vi.mock('@mollie/api-client', () => ({
 }))
 
 // ── Mailer mocken (kein Mailversand in Tests) ────────────────────
+// isMailConfigured/sendWelcomeMail/sendPasswordResetMail werden von
+// auth/index.js gezogen, das ueber middleware/userAuth.js mitgeladen wird.
 vi.mock('../mailer.js', () => ({
+  isMailConfigured: vi.fn(() => false),
   sendPurchaseConfirmation: vi.fn(),
+  sendPasswordResetMail: vi.fn(),
+  sendWelcomeMail: vi.fn(),
 }))
 
 // ── GeoIP mocken (deterministisch statt von der echten, gitignoreten
