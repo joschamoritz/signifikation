@@ -10,6 +10,12 @@
 // pdf:beamer/pdf:course). Ohne diese Datei bleibt server/geoip.js inaktiv
 // (fail-open) -- Stufe 1 (Checkbox-Selbstauskunft) greift trotzdem weiter.
 
+// .env vor logger.js laden -- setzt NODE_ENV=production auf dem Server,
+// bevor logger.js entscheidet, ob es den (nur als devDependency
+// installierten) pino-pretty-Transport braucht. Gleiches Muster wie
+// server/index.js:1.
+import '../server/env.js'
+
 import { mkdirSync, writeFileSync } from 'node:fs'
 import { resolve, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
