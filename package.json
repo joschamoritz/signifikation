@@ -25,7 +25,8 @@
     "seed:dev": "node server/seed-dev.js",
     "pdf:course": "node scripts/generate-course-pdfs.mjs",
     "pdf:beamer": "node scripts/generate-beamer-strecken.mjs --html",
-    "geoip:update": "node scripts/update-geoip.mjs"
+    "geoip:update": "node scripts/update-geoip.mjs",
+    "mail:preview": "node scripts/mail-preview.mjs"
   },
   "dependencies": {
     "@aparajita/capacitor-secure-storage": "^8.0.0",

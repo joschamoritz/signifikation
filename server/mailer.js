@@ -16,6 +16,13 @@ export function isMailConfigured() {
 
 function getTransporter() {
   if (_transporter) return _transporter
+  // Trockenlauf für scripts/mail-preview.mjs: nodemailer baut die Nachricht
+  // vollständig, verschickt sie aber nicht, sondern gibt sie als JSON zurück.
+  // Nur so lassen sich die Mails ansehen, ohne echte Zustellung zu riskieren.
+  if (process.env.MAIL_TRANSPORT === 'json') {
+    _transporter = nodemailer.createTransport({ jsonTransport: true })
+    return _transporter
+  }
   if (!isMailConfigured()) {
     throw new Error('GMAIL_USER oder GMAIL_APP_PASSWORD nicht konfiguriert')
   }
@@ -61,10 +68,11 @@ function renderButton(url, label) {
   </p>`
 }
 
+// Liefert das nodemailer-Info-Objekt (truthy) oder null bei Fehlschlag.
 async function deliver({ to, subject, text, html, context }) {
   try {
     const transporter = getTransporter()
-    await transporter.sendMail({
+    const info = await transporter.sendMail({
       from: `"Signifikation" <${GMAIL_FROM}>`,
       to,
       subject,
@@ -72,10 +80,10 @@ async function deliver({ to, subject, text, html, context }) {
       html,
     })
     logger.info({ to }, `${context} gesendet`)
-    return true
+    return info ?? null
   } catch (err) {
     logger.error({ err, to }, `${context} konnte nicht gesendet werden`)
-    return false
+    return null
   }
 }
 
@@ -148,7 +156,7 @@ ${IMPRESSUM_TEXT}
 Gemäß § 19 UStG wird keine Umsatzsteuer ausgewiesen.`
 
   // Fehlgeschlagene Mail darf die Webhook-Verarbeitung nicht blockieren
-  await deliver({ to, subject: 'Bestellbestätigung – Gesamtausgabe freigeschaltet', text, html, context: 'Bestellbestätigung' })
+  return deliver({ to, subject: 'Bestellbestätigung – Gesamtausgabe freigeschaltet', text, html, context: 'Bestellbestätigung' })
 }
 
 // Passwort-Reset. Wirft bei Fehlschlag, damit better-auth den Aufruf als
@@ -193,8 +201,9 @@ Fragen: info@signifikation.de
 ---
 ${IMPRESSUM_TEXT}`
 
-  const sent = await deliver({ to, subject: 'Passwort zurücksetzen – Signifikation', text, html, context: 'Passwort-Reset-Mail' })
-  if (!sent) throw new Error('Passwort-Reset-Mail konnte nicht gesendet werden')
+  const info = await deliver({ to, subject: 'Passwort zurücksetzen – Signifikation', text, html, context: 'Passwort-Reset-Mail' })
+  if (!info) throw new Error('Passwort-Reset-Mail konnte nicht gesendet werden')
+  return info
 }
 
 // Willkommensmail nach der Registrierung. Der Bestätigungslink ist optional –
@@ -265,5 +274,5 @@ signifikation.de · Fragen: info@signifikation.de
 ---
 ${IMPRESSUM_TEXT}`
 
-  await deliver({ to, subject: 'Willkommen bei Signifikation', text, html, context: 'Willkommensmail' })
+  return deliver({ to, subject: 'Willkommen bei Signifikation', text, html, context: 'Willkommensmail' })
 }
