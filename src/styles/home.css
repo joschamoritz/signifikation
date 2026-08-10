@@ -1,41 +1,9 @@
 /* ============================================================
    HOME SCREEN + FEEDBACK MODAL + SELECTION SCREEN + LEMMA CARDS
    ============================================================ */
-.home-screen {
-  gap: 20px;
-  padding-block: 48px 32px;
-}
 
-.home-header { text-align: center }
 
-.app-logo {
-  width: 210px;
-  height: auto;
-  display: block;
-  margin-inline: auto;
-  transition: width 0.3s ease;
-}
-.app-logo--small {
-  width: 130px;
-}
-@media (max-width: 480px) {
-  .app-logo { width: 170px; }
-  .app-logo--small { width: 110px; }
-}
 
-.beta-badge {
-  display: inline-block;
-  margin-top: 8px;
-  padding: 2px 8px;
-  background: var(--primary);
-  color: #fff;
-  font-size: 0.7rem;
-  font-weight: 700;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  border-radius: 4px;
-  opacity: 0.85;
-}
 
 
 .feedback-hint {
@@ -53,13 +21,6 @@
   text-underline-offset: 2px;
 }
 /* ── Tagesabschluss ─────────────────────────────── */
-.dc-grip {
-  width: 36px;
-  height: 4px;
-  background: var(--border);
-  border-radius: 2px;
-  margin: 0 auto 20px;
-}
 .dc-header {
   text-align: center;
   margin-bottom: 20px;
@@ -194,15 +155,6 @@
   cursor: default;
 }
 
-.legal-footer {
-  margin-top: 24px;
-  padding-top: 16px;
-  border-top: 1px solid var(--border);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
-}
 .legal-links {
   display: flex;
   gap: 16px;
@@ -215,48 +167,11 @@
   text-decoration: none;
 }
 .legal-links a:hover { text-decoration: underline }
-.build-info {
-  font-size: 0.72rem;
-  color: var(--muted);
-  opacity: 0.6;
-}
 
-.feedback-link {
-  color: var(--muted);
-  text-decoration: underline;
-}
 
-.home-date {
-  text-align: center;
-  font-size: 0.88rem;
-  color: var(--muted);
-  font-weight: 500;
-}
 
 /* (Streak-Pill-Gruppe entfernt — toter Code; sichtbare Streak nutzt .test-streak / .test-title-streak) */
 
-.toggle-arrow {
-  font-size: 1.2rem;
-  color: var(--muted);
-  transition: transform 0.2s;
-  display: inline-block;
-}
-.toggle-arrow--open { transform: rotate(90deg) }
-.home-card-text {
-  font-size: 0.875rem;
-  color: var(--muted);
-  line-height: 1.6;
-}
-.home-card-text--dropcap::first-letter {
-  font-family: var(--font-serif);
-  font-size: 2.8em;
-  font-weight: 700;
-  line-height: 0.85;
-  float: left;
-  margin-right: 4px;
-  color: var(--text);
-  animation: inkSeep 1200ms ease-out 200ms both;
-}
 /* Tinte sickert leicht ins Papier */
 @keyframes inkSeep {
   from { text-shadow: 0 0 0 transparent }
@@ -271,40 +186,7 @@
   color: var(--muted);
   letter-spacing: 0.01em;
 }
-.home-card-footnotes {
-  margin-top: 12px;
-  padding-left: 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-.home-card-footnotes li {
-  font-size: 0.72rem;
-  color: var(--muted);
-  line-height: 1.5;
-  opacity: 0.8;
-}
-.home-card-text sup {
-  font-size: 0.65rem;
-  vertical-align: super;
-  color: var(--primary);
-  font-weight: 600;
-}
-.home-card-text em {
-  font-style: italic;
-  color: var(--text);
-}
 
-.home-error {
-  font-size: 0.85rem;
-  color: var(--error);
-  text-align: center;
-  padding: 10px;
-  background: var(--error-bg);
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--wrong-border);
-}
-.home-error small { font-size: 0.75rem; color: var(--muted) }
 
 /* (Spielkarten-Gruppe .game-card* / .game-played* entfernt — toter Code,
    in keiner JSX referenziert; die Startseite nutzt .test-entry-Einträge) */
@@ -333,30 +215,6 @@
   line-height: 1;
   cursor: default;
 }
-.history-dots {
-  display: flex;
-  gap: 5px;
-  align-items: center;
-}
-.history-dot {
-  display: block;
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  border: 1.5px solid transparent;
-  animation: fadeIn 100ms ease-out both;
-}
-.history-dot:nth-child(1) { animation-delay: 0ms }
-.history-dot:nth-child(2) { animation-delay: 20ms }
-.history-dot:nth-child(3) { animation-delay: 40ms }
-.history-dot:nth-child(4) { animation-delay: 60ms }
-.history-dot:nth-child(5) { animation-delay: 80ms }
-.history-dot:nth-child(6) { animation-delay: 100ms }
-.history-dot:nth-child(7) { animation-delay: 120ms }
-.history-dot--gold    { background: #f59e0b; border-color: #d97706 }
-.history-dot--silber  { background: #9ca3af; border-color: #6b7280 }
-.history-dot--bronze  { background: #b45309; border-color: #92400e }
-.history-dot--ueben   { background: var(--surface2); border-color: var(--border) }
 
 /* ============================================================
    SELECTION SCREEN + LEMMA CARDS
@@ -522,23 +380,6 @@
 }
 
 
-.secondary-selection-footer {
-  display: flex;
-  justify-content: flex-end;
-  padding-top: 4px;
-}
-
-.secondary-selection-play-btn {
-  min-width: 180px;
-  text-align: center;
-  justify-content: center;
-}
-
-.selection-prompt {
-  font-size: 0.95rem;
-  color: var(--text);
-  font-weight: 500;
-}
 
 .lemma-cards {
   display: flex;
@@ -646,13 +487,6 @@
 }
 .lemma-notiz-link:hover { text-decoration: underline }
 
-.results-notiz {
-  margin-top: 10px;
-  font-size: 0.88rem;
-  color: var(--muted);
-  text-align: center;
-  justify-content: center;
-}
 
 .lemma-info { flex: 1; display: flex; flex-direction: column; gap: 4px }
 
@@ -697,20 +531,6 @@
   100% { background-position: -200% 0 }
 }
 
-.lemma-wortart-chip {
-  display: inline-block;
-  font-family: var(--font-sans);
-  font-size: 0.68rem;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--accent-dk);
-  background: none;
-  border: 0.5px solid var(--accent);
-  border-radius: 2px;
-  padding: 1px 7px;
-  align-self: flex-start;
-}
 
 .lemma-definition {
   margin-top: 6px;
@@ -782,16 +602,9 @@
 .lemma-card--played .lemma-card-main:hover .lemma-name { color: var(--text) }
 .lemma-card--played .lemma-arrow { color: var(--success); font-size: 1rem; transform: none !important }
 
-.selection-hint {
-  text-align: center;
-  color: var(--muted);
-  font-size: 0.82rem;
-}
 
 @media (prefers-reduced-motion: reduce) {
-  .history-dot,
-  .lemma-card-wrap,
-  .home-card-text--dropcap::first-letter {
+  .lemma-card-wrap {
     animation: none !important;
   }
 }
@@ -1030,11 +843,4 @@
   margin: 0;
 }
 
-/* Zeitraum-Zeile unter dem Lemmanamen */
-.lemma-spezial-zeitraum {
-  font-size: 0.75rem;
-  color: var(--muted);
-  margin-top: 2px;
-  font-style: italic;
-}
 

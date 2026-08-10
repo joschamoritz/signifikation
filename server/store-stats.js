@@ -7,11 +7,11 @@ function computeSinceDate(days) {
   return d.toISOString().slice(0, 10)
 }
 
-export function createEmptyDistribution() {
+function createEmptyDistribution() {
   return Array(11).fill(0)
 }
 
-export function normalizeDistribution(distRaw) {
+function normalizeDistribution(distRaw) {
   const parsed = typeof distRaw === 'string' ? parseJson(distRaw, []) : distRaw
   if (!Array.isArray(parsed)) return []
 
@@ -22,7 +22,7 @@ export function normalizeDistribution(distRaw) {
   return dist
 }
 
-export function aggregateStatsRows(rows, logger) {
+function aggregateStatsRows(rows, logger) {
   const result = {}
 
   for (const row of rows) {
@@ -49,7 +49,7 @@ export function aggregateStatsRows(rows, logger) {
   return result
 }
 
-export function mapStatsRows(rows) {
+function mapStatsRows(rows) {
   return rows.map((row) => ({
     datum: row.datum,
     spiel: row.spiel,
@@ -61,13 +61,13 @@ export function mapStatsRows(rows) {
   }))
 }
 
-export function toNonNegativeInt(value) {
+function toNonNegativeInt(value) {
   const parsed = Number.parseInt(String(value ?? 0), 10)
   if (!Number.isFinite(parsed) || parsed < 0) return 0
   return parsed
 }
 
-export function sanitizeStatsRow(row) {
+function sanitizeStatsRow(row) {
   if (!row || typeof row !== 'object') {
     throw new Error('Ungueltige Stats-Zeile im Backup')
   }
@@ -94,15 +94,15 @@ export function sanitizeStatsRow(row) {
   }
 }
 
-export function getNormalizedScoreBucket(score, max) {
+function getNormalizedScoreBucket(score, max) {
   return Math.min(10, Math.max(0, Math.round((score || 0) / (max || 1) * 10)))
 }
 
-export function sortMmddKeys(keys) {
+function sortMmddKeys(keys) {
   return sortDatumKeys(keys)
 }
 
-export function buildStatsWindow(stats, days) {
+function buildStatsWindow(stats, days) {
   const orderedDates = sortMmddKeys(Object.keys(stats || {}))
   const selectedDates = orderedDates.slice(-days)
 
@@ -353,7 +353,7 @@ export function createStatsStore({ db, stmts, logger }) {
   }
 }
 
-export function buildStatsTimeline(stats, days) {
+function buildStatsTimeline(stats, days) {
   const orderedDates = sortMmddKeys(Object.keys(stats || {}))
   return orderedDates.slice(-days).map((datum) => ({ datum, ...(stats[datum] || {}) }))
 }

@@ -46,7 +46,7 @@ function contentHeight(rows, streak) {
   )
 }
 
-export async function generateShareImage(playedGames, wzPlayed, streak, zwPlayed = null, lfPlayed = null) {
+async function generateShareImage(playedGames, wzPlayed, streak, zwPlayed = null, lfPlayed = null) {
   await document.fonts.ready
 
   // Zeilen aufbauen

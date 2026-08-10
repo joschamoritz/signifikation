@@ -9,7 +9,7 @@
  * KLP: Sek I G9 2019 IF 1 Sprache (Wortarten); Sek II 2025 IF Sprache (morphologisch).
  */
 
-export const entwurf2 = {
+const entwurf2 = {
   stationNo: 2,
   niveau: 'SekI',
   uv: 'Sprache unter der Lupe – Wortverbindungen zwischen freier Wahl und festem Muster',
@@ -85,7 +85,7 @@ export const entwurf2 = {
 // Beamer stützt Einstieg + Plenums-Auftakt (Werkzeug modellieren) + Sicherung.
 // Fachbegriffe/Merksatz wie im AB; Beispiele bewusst frisch und ohne Vorgriff auf
 // eine AB-Aufgabenlösung (kein „Kritik üben“ → das ist AB-Sek-II-Aufgabe 1).
-export const beamer2 = {
+const beamer2 = {
   slides: [
     { kind: 'title', kicker: 'Signifikation · Kurs · Station ②', title: 'Wörter mit Funktion', lead: '„Widerstand leisten“, „harter Widerstand“ – aus welchen Wortarten bestehen solche Muster? Und wie prüft man, was im Satz wirklich zusammengehört?' },
     { kind: 'bullets', kicker: 'Das Werkzeug', title: 'Wortarten & Baupläne', bullets: [

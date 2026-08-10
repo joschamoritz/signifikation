@@ -11,7 +11,7 @@
  *   wissenschaftspropädeutisches forschendes Lernen.
  */
 
-export const entwurf5 = {
+const entwurf5 = {
   stationNo: 5,
   niveau: 'SekII',
   uv: 'Sprache unter der Lupe – Wortverbindungen zwischen freier Wahl und festem Muster',
@@ -81,7 +81,7 @@ export const entwurf5 = {
  * Beamer-Spec Station ⑤. dataFrom bindet live die Regen-Daten ein
  * (s5-f3-befund-deuten-sek2 – Regen/ATTR, logDice-Spalte) → keine harten Zahlen.
  */
-export const beamer5 = {
+const beamer5 = {
   slides: [
     { kind: 'title', kicker: 'Signifikation · Kurs · Station ⑤', title: 'Eine Frage an die Sprache', lead: '„starker Regen“ oder „strömender Regen“? Stimmte dein Bauchgefühl – und was sagt das Korpus?' },
     { kind: 'bullets', kicker: 'Der Forschungszyklus', title: 'Fünf Schritte zur Antwort', bullets: [

@@ -23,7 +23,7 @@ import { getCachedQuery } from '../query-cache.js'
 import logger from '../logger.js'
 
 /** wortart kann Zusätze tragen ("Substantiv, feminin") → erstes Wort als POS. */
-export function normalizePos(wortart) {
+function normalizePos(wortart) {
   return (String(wortart || 'Substantiv').split(/[,\s/]/)[0]) || 'Substantiv'
 }
 

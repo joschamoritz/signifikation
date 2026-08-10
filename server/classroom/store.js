@@ -858,10 +858,6 @@ export function listAssignments(sessionId) {
   return stmts.listAssignmentsBySession.all(sessionId).map(normalizeAssignmentRow)
 }
 
-export function getAssignmentById(assignmentId) {
-  return normalizeAssignmentRow(stmts.getAssignmentById.get(assignmentId))
-}
-
 export function removeAssignment({ sessionId, assignmentId, teacherUserId }) {
   const session = stmts.getSessionById.get(sessionId)
   if (!session) return { error: 'NOT_FOUND' }
@@ -1114,17 +1110,6 @@ export function submitAnswer({
 export function hasCapability({ sessionId, subjectKind, subjectId, capability }) {
   const row = stmts.hasCapability.get(sessionId, subjectKind, subjectId, capability)
   return !!row
-}
-
-export function grantCapability({ sessionId, subjectKind, subjectId, capability }) {
-  stmts.insertCapability.run({
-    id: randomUUID(),
-    session_id: sessionId,
-    subject_kind: subjectKind,
-    subject_id: subjectId,
-    capability,
-    granted_at: nowMs(),
-  })
 }
 
 export function revokeCapability({ sessionId, subjectKind, subjectId }) {

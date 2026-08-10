@@ -12,7 +12,7 @@
  * (Häufigkeit ohne logDice-Begrifflichkeit). Beamer-Datenfolie live aus wortprofil.db.
  */
 
-export const entwurf4 = {
+const entwurf4 = {
   stationNo: 4,
   niveau: 'SekII',
   uv: 'Sprache unter der Lupe – Wortverbindungen zwischen freier Wahl und festem Muster',
@@ -88,7 +88,7 @@ export const entwurf4 = {
  * Beamer-Spec Station ④. dataFrom bindet live die Haar-Tabelle (Frequenz + logDice)
  * aus dem SekII-F2-Item ein → nie harte Zahlen im Quellcode (Datenpolitik AP5).
  */
-export const beamer4 = {
+const beamer4 = {
   slides: [
     { kind: 'title', kicker: 'Signifikation · Kurs · Station ④', title: 'Was Häufigkeit verschweigt', lead: '„langes Haar“ oder „blondes Haar“ – was ist häufiger? Was ist typischer? Und woher weiß die App das überhaupt?' },
     { kind: 'bullets', kicker: 'Die Maschine hinter der Zahl', title: 'Wie aus echten Texten ein Wortprofil wird', bullets: [

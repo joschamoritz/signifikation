@@ -48,7 +48,7 @@ const lemmaFields = z.object({
   ipa: z.string().trim().max(80).optional().default(''),
 })
 
-export const demoContentSchema = z.object({
+const demoContentSchema = z.object({
   kollokationen: z.object({
     lemma: lemmaFields.extend({ definition: z.string().trim().max(300).optional().default('') }),
     words: wordList(3, 12),

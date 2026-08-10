@@ -17,7 +17,7 @@ export function loadKalenderRows(rows, logger) {
   return result
 }
 
-export function getKalenderEntries(obj) {
+function getKalenderEntries(obj) {
   return Object.entries(obj || {})
 }
 
@@ -42,7 +42,7 @@ export function normalizeKalenderShape(raw) {
 
 // ── Wort-Zwilling ────────────────────────────────────────────────
 
-export function normalizeWortzwillingEntry(row, logger) {
+function normalizeWortzwillingEntry(row, logger) {
   return {
     wortA:       row.wortA,
     wortB:       row.wortB,

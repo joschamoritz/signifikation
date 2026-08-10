@@ -292,7 +292,7 @@ export async function generateStationPdfs({ stationNo = 1, outDir = DEFAULT_OUT,
  * dahinter (ORDER BY kind, position, id).
  * Separat gehalten + lazy db-Import: Tests/Vorschau brauchen keine DB-Schreibzugriffe.
  */
-export async function registerMaterials(station, manifest) {
+async function registerMaterials(station, manifest) {
   const db = (await import('../../db.js')).default
   const stmt = db.prepare(`
     INSERT INTO course_materials (id, station_id, kind, level, title, source, file_ref, position, created_at, updated_at)

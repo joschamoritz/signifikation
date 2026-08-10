@@ -61,8 +61,6 @@ PERFORMANCE.md
 wortprofil/CLAUDE.md
 wortprofil/KORPORA.md
 
-server/check-diacollo-corpora.mjs
-
 # iOS Build-Artefakte
 ios/App/DerivedData/
 ios/App/build/

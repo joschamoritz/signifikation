@@ -36,8 +36,6 @@ export function writeDraft(key, value) {
   } catch {}
 }
 
-export function clearDraft(key) { writeDraft(key, null) }
-
 /** Loescht ALLE Entwuerfe, deren Key mit `base` beginnt (alle Runden/Zonen
  *  eines Lemmas). Nach erfolgreicher Abgabe aus dem Wrapper aufgerufen. */
 export function clearDraftPrefix(base) {

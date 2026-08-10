@@ -82,14 +82,4 @@ export async function createRenderer() {
   }
 }
 
-/** Bequemlichkeit: ein einzelnes HTML rendern (eigener Browser-Lifecycle). */
-export async function htmlToPdf(html) {
-  const r = await createRenderer()
-  try {
-    return await r.render(html)
-  } finally {
-    await r.close()
-  }
-}
-
-export default { createRenderer, htmlToPdf }
+export default { createRenderer }

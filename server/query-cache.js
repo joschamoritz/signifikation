@@ -55,35 +55,6 @@ export function getCachedQuery(key, fetcher) {
 }
 
 /**
- * Invalidiert einen Cache-Eintrag.
- * @param {string} key  Cache-Schlüssel
- */
-export function invalidateCache(key) {
-  if (cache.delete(key)) {
-    metrics.evictions++
-    logger.debug({ key }, 'Cache invalidiert')
-  }
-}
-
-/**
- * Invalidiert alle Cache-Einträge mit Pattern-Matching.
- * @param {RegExp} pattern  Regex zum Matching von Keys
- */
-export function invalidateCachePattern(pattern) {
-  let count = 0
-  for (const key of cache.keys()) {
-    if (pattern.test(key)) {
-      cache.delete(key)
-      count++
-    }
-  }
-  if (count > 0) {
-    metrics.evictions += count
-    logger.debug({ pattern: pattern.source, count }, 'Cache-Pattern invalidiert')
-  }
-}
-
-/**
  * Gibt Cache-Metriken zurück.
  */
 export function getCacheMetrics() {
