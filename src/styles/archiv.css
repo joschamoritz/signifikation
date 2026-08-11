@@ -57,6 +57,17 @@
    Zurück-Pfeil links absolut. position:relative macht die Bar zum Bezugsrahmen
    der absoluten .back-btn (sonst springt sie in die Viewport-Ecke). */
 .av-detail-bar { position: relative; display: flex; align-items: center; justify-content: center; min-height: 44px; margin-bottom: 16px; }
+
+/* Abstand der Zurück-Leiste zur Oberkante. Stand frueher als `padding-top: 8px`
+   in @media (max-width: 767px) — ab 768px (iPad) fehlte er damit komplett und
+   der Pfeil sass 4px unter dem Bildschirmrand. Jetzt breitenunabhaengig und
+   safe-area-bewusst; die Ansicht liegt in .app--home (padding: 0), es gibt also
+   keinen Rahmen, der das sonst uebernaehme.
+   Doppelte Klasse fuer die Spezifitaet: die mobile Regel weiter unten setzt
+   `padding` als Shorthand und wuerde eine gleichspezifische Zeile schlagen. */
+.archiv-page .av-scroll.av-scroll--detail {
+  padding-top: var(--overlay-top-inset);
+}
 .av-detail-badge {
   display: inline-block; font-family: var(--font-sans); font-size: 0.7rem; font-weight: 700;
   letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted);
@@ -220,11 +231,6 @@
     -webkit-overflow-scrolling: touch;
     overscroll-behavior-y: contain;
     padding: 4px 20px calc(16px + var(--tabbar-reserve));
-  }
-
-  /* Detail: Zurück-Leiste soll oben nicht am Rand kleben. */
-  .archiv-page .av-scroll--detail {
-    padding-top: 8px;
   }
 
   /* Suchfeld bleibt oben stehen, nur die Liste scrollt. Horizontaler Abstand
