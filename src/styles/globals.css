@@ -46,6 +46,14 @@
   --tabbar-gap:  10px;          /* Abstand zur unteren Kante / Safe-Area */
   --tabbar-side: 14px;          /* seitlicher Abstand */
   --tabbar-reserve: calc(env(safe-area-inset-bottom, 0px) + var(--tabbar-gap) + var(--tabbar-h));
+  /* Oberer Abstand fuer Ansichten, die den Tab-Header ueberlagern, statt im
+     gepolsterten .app-Rahmen zu sitzen (Archiv-Detail, Klassenraum-Unterseiten).
+     .app--home setzt padding:0 — diese Ansichten muessen ihren Abstand also
+     selbst mitbringen. Als calc() statt max(): so bleiben unter dem Notch
+     IMMER 16px Luft, waehrend max(16px, env()) auf Geraeten mit grossem Inset
+     gar nichts mehr dazugibt und auf dem iPad (env = 20px … 0px im Split View)
+     die Leiste an der Oberkante kleben liess. */
+  --overlay-top-inset: calc(env(safe-area-inset-top, 0px) + 16px);
 }
 
 /* ── Dark Mode ────────────────────────────────────────────── */

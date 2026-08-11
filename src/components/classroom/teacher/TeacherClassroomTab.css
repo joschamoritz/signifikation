@@ -234,6 +234,11 @@
    Spiegeln die Modus-Detail-Optik der App (.selection-screen): zentrierter
    Titel + Thema-Block, Inhalt als Wörterbuch-Einträge. */
 .selection-screen.classroom-subscreen {
+  /* Polster der Titel-Leiste an EINER Stelle, weil die zweite sticky Zone
+     (.classroom-progress) darunter einrasten muss und die Hoehen sonst
+     auseinanderlaufen. 16px wie --overlay-top-inset; hier ohne env(), das
+     steckt bereits im `top` der Leiste. */
+  --subscreen-bar-pad: 16px;
   max-width: 680px;
   width: 100%;
   margin-inline: auto;
@@ -251,9 +256,24 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 44px;
+  /* Luft ueber dem Zurueck-Pfeil. Bewusst als Polster und NICHT als groesseres
+     `top`: die Leiste soll buendig an der Safe Area kleben, sonst scrollt
+     Inhalt sichtbar durch die Luecke darueber. Ohne das Polster sass der Pfeil
+     exakt auf der Safe-Area-Kante — auf dem iPhone vom Notch kaschiert, auf
+     dem iPad (20px, im Split View 0px) kaum zu treffen.
+     min-height muss das Polster mitzaehlen (box-sizing: border-box), sonst
+     frisst es nur die Inhaltshoehe und die Leiste bleibt 44px hoch. */
+  min-height: calc(44px + var(--subscreen-bar-pad, 16px));
+  padding-top: var(--subscreen-bar-pad, 16px);
   margin-bottom: 14px;
   background: var(--classroom-bg);
+}
+
+/* Der Pfeil ist absolut positioniert (globals.css) und richtet sich damit an
+   der PADDING-Box aus — `top: 0` setzt ihn trotz Polster wieder an die
+   Oberkante. Deshalb explizit um dasselbe Mass nach unten. */
+.classroom-subscreen__bar .back-btn {
+  top: var(--subscreen-bar-pad, 16px);
 }
 
 .classroom-subscreen__title {
@@ -271,10 +291,12 @@
   margin-bottom: 18px;
 }
 
-/* LIVE-Step: der (ebenfalls sticky) Fortschritt klebt UNTER der 44px-Titel-
-   Leiste, nicht darüber — sonst überlagern sich zwei Sticky-Zonen bei top:0. */
+/* LIVE-Step: der (ebenfalls sticky) Fortschritt klebt UNTER der Titel-Leiste,
+   nicht darüber — sonst überlagern sich zwei Sticky-Zonen bei top:0. Deren
+   Hoehe ist 44px min-height PLUS Polster; --subscreen-bar-pad haelt beides
+   gekoppelt (hier stand vorher eine feste 44). */
 .classroom-subscreen .classroom-progress {
-  top: calc(env(safe-area-inset-top, 0px) + 44px);
+  top: calc(env(safe-area-inset-top, 0px) + 44px + var(--subscreen-bar-pad, 16px));
 }
 
 .classroom-subscreen__intro {
