@@ -16,6 +16,7 @@ const {
   deriveAppAccountToken,
   rejectReasonForPayload,
   unlockForUser,
+  isEntitlementActive,
 } = await import('../routes/iap.js')
 const { default: db } = await import('../db.js')
 
@@ -243,6 +244,19 @@ describe('unlockForUser (Cross-Account-Replay)', () => {
     // Restore kann zum selben Kauf eine neue transactionId liefern —
     // die Sperre muss auch ueber originalTransactionId greifen.
     expect(unlockForUser(userB, `${txId}-2`, origId, VALID_PRODUCT_ID)).toBe(false)
+  })
+
+  // Die Antwort von /verify und /restore ist `newlyUnlocked || isEntitlementActive`.
+  // Genau hier lag der Fehler: Fuer userB ist BEIDES false — frueher meldete die
+  // Route trotzdem `unlocked: true`, der Client rief finishTransaction, und der
+  // Kauf war bei Apple erledigt, ohne dass je ein Entitlement entstand.
+  it('gesperrter Zweit-Account gilt auch nach dem Fehlschlag als nicht freigeschaltet', () => {
+    expect(isEntitlementActive(userA)).toBe(true)
+    expect(isEntitlementActive(userB)).toBe(false)
+  })
+
+  it('unbekannter Nutzer ist nicht freigeschaltet', () => {
+    expect(isEntitlementActive('gibt-es-nicht')).toBe(false)
   })
 })
 

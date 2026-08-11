@@ -16,6 +16,11 @@ import { roundTypeLabel, itemRow } from './_format.js'
 // beliebigen Text erzeugt, der spaeter der ganzen Klasse gezeigt werden kann
 // (Ergebnisansicht „Haeufigste Fehlantwort“, CSV-Export). Der Spitznamen-Filter
 // greift hier nicht — deshalb vor der Aggregation abgleichen (Guideline 1.2).
+//
+// Betrifft ZWEI Runden-Typen: `free` (ein Eingabefeld) und `double` (zwei
+// Eingabefelder, siehe DoubleRound in ClassroomGameLueckenfueller.jsx). `double`
+// liefert zwar auch `options` mit, rendert aber trotzdem freie Textfelder — der
+// Filter darf hier also nicht fehlen.
 const FILTERED_LABEL = '[gefiltert]'
 
 function safeDistractor(value) {
@@ -107,7 +112,7 @@ export default {
       const slots = Array.isArray(detail.slots) ? detail.slots : []
       return slots
         .filter((s) => s && s.correct === false && s.given != null && s.given !== '')
-        .map((s) => String(s.given))
+        .map((s) => safeDistractor(s.given))
     }
     return []
   },

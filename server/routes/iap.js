@@ -133,6 +133,19 @@ const getUserEmailStmt = db.prepare(
   `SELECT email FROM user WHERE id = ?`
 )
 
+// Tatsaechlicher Freischaltzustand des Kontos. Gebraucht, um verify/restore
+// wahrheitsgemaess zu beantworten: unlockForUser meldet nur, ob GERADE
+// freigeschaltet wurde — nicht, ob das Konto bereits freigeschaltet IST.
+const isUnlockedStmt = db.prepare(
+  `SELECT 1 AS ok FROM user_entitlements WHERE user_id = ? AND gesamtausgabe_unlocked = 1`
+)
+
+// Exportiert für Tests (Cross-Account-Szenario: unlockForUser meldet false,
+// und das Konto ist auch tatsaechlich nicht freigeschaltet).
+export function isEntitlementActive(userId) {
+  return !!isUnlockedStmt.get(userId)
+}
+
 // ── JWS-Verifikation (StoreKit 2, ES256) ──────────────────────
 
 function verifyAppleJWS(jws) {
@@ -312,6 +325,14 @@ router.post('/api/v1/iap/verify', iapVerifyLimiter, requireAuthUser, validate(ia
     ? String(payload.originalTransactionId) : null
   const newlyUnlocked = unlockForUser(userId, transactionId, originalTransactionId, productId)
 
+  // `newlyUnlocked === false` hat zwei sehr verschiedene Ursachen: Die
+  // Transaktion gehoert bereits DIESEM Konto (dann ist alles in Ordnung) oder
+  // sie ist global auf einen ANDEREN Account gebucht (dann wurde nichts
+  // freigeschaltet). Frueher meldeten beide Faelle `unlocked: true`; der Client
+  // rief daraufhin finishTransaction, der Kauf galt bei Apple als erledigt und
+  // Transaction.updates lieferte ihn nie wieder — bezahlt, nicht geliefert.
+  const unlocked = newlyUnlocked || isEntitlementActive(userId)
+
   if (newlyUnlocked) {
     const userRow = getUserEmailStmt.get(userId)
     if (userRow?.email) {
@@ -323,7 +344,7 @@ router.post('/api/v1/iap/verify', iapVerifyLimiter, requireAuthUser, validate(ia
     }
   }
 
-  res.json({ success: true, unlocked: true })
+  res.json({ success: true, unlocked })
 })
 
 // ── POST /api/v1/iap/restore ───────────────────────────────────
@@ -358,7 +379,13 @@ router.post('/api/v1/iap/restore', iapVerifyLimiter, requireAuthUser, validate(i
     if (unlockForUser(userId, transactionId, originalTransactionId, productId)) anyUnlocked = true
   }
 
-  res.json({ success: true, unlocked: anyUnlocked })
+  // Gleiche Wahrheitspflicht wie bei /verify — hier zusaetzlich gegen den
+  // Zweit-Tipp: Wer schon freigeschaltet ist, bekam bisher „Kein gueltiger Kauf
+  // gefunden“ zu sehen, weil unlockForUser beim zweiten Lauf nichts mehr zu tun
+  // hat. Genau das probiert ein Reviewer aber aus.
+  const unlocked = anyUnlocked || isEntitlementActive(userId)
+
+  res.json({ success: true, unlocked })
 })
 
 // ── GET /api/v1/iap/app-account-token ──────────────────────────
