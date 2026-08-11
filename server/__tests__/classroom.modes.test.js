@@ -47,3 +47,52 @@ describe('classroom modes registry (P2)', () => {
       .toThrow(/unbekannter Modus/)
   })
 })
+
+// Guideline 1.2: Schueler-Freitext kann als „Haeufigste Fehlantwort“ in der
+// Nachbesprechung landen — ggf. am Beamer vor der Klasse. Der Lueckenfueller
+// hat ZWEI Freitext-Runden: `free` (ein Feld) und `double` (zwei Felder).
+// `double` war zunaechst ungefiltert; dieser Block haelt beide Pfade fest.
+describe('lueckenfueller: Freitext-Distraktoren werden gefiltert', () => {
+  const lf = getMode('lueckenfueller')
+
+  function row(detail) {
+    return { detail_json: JSON.stringify(detail), correct: 0 }
+  }
+
+  it('free: gesperrter Text wird ersetzt', () => {
+    expect(lf.extractDistractors(row({ type: 'free', value: 'Arschloch' })))
+      .toEqual(['[gefiltert]'])
+  })
+
+  it('free: harmlose Fehlantwort bleibt stehen', () => {
+    expect(lf.extractDistractors(row({ type: 'free', value: 'werfen' })))
+      .toEqual(['werfen'])
+  })
+
+  it('double: gesperrter Slot wird ersetzt, harmloser bleibt', () => {
+    const detail = {
+      type: 'double',
+      slots: [
+        { index: 0, expected: 'stellen', given: 'Arschloch', correct: false },
+        { index: 1, expected: 'treffen', given: 'werfen', correct: false },
+      ],
+    }
+    expect(lf.extractDistractors(row(detail))).toEqual(['[gefiltert]', 'werfen'])
+  })
+
+  it('double: Leetspeak und Trennzeichen werden mitgefangen', () => {
+    const detail = {
+      type: 'double',
+      slots: [{ index: 0, expected: 'stellen', given: 'f.u.c.k', correct: false }],
+    }
+    expect(lf.extractDistractors(row(detail))).toEqual(['[gefiltert]'])
+  })
+
+  it('double: richtige Slots liefern gar keinen Distraktor', () => {
+    const detail = {
+      type: 'double',
+      slots: [{ index: 0, expected: 'stellen', given: 'stellen', correct: true }],
+    }
+    expect(lf.extractDistractors(row(detail))).toEqual([])
+  })
+})

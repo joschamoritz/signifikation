@@ -116,6 +116,14 @@ export default function CheckoutModal({ isOpen, onClose, onSuccess }) {
     })
     const data = await res.json().catch(() => ({}))
     if (!res.ok) throw new Error(data.error || 'Freischaltung fehlgeschlagen.')
+    // 200 heißt „verstanden“, nicht „freigeschaltet“: Gehört die Transaktion
+    // bereits einem anderen Konto, ist nichts freigeschaltet. Dann NICHT
+    // finishTransaction rufen — unfinished bleibt sie in Transaction.updates
+    // und kann nach dem Anmelden am richtigen Konto erneut verifiziert werden.
+    if (!data.unlocked) {
+      throw new Error('Dieser Kauf ist bereits einem anderen Konto zugeordnet. '
+        + 'Bitte melde dich mit dem Konto an, mit dem du gekauft hast.')
+    }
     // Transaktion erst nach erfolgreicher Server-Bestätigung abschließen
     await IAP.finishTransaction({ transactionId: result.transactionId }).catch(() => {})
     onSuccess?.()

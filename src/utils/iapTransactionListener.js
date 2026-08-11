@@ -48,6 +48,13 @@ export function initIapTransactionListener() {
       })
       if (!res.ok) return
 
+      // 200 allein genuegt nicht: Gehoert die Transaktion einem anderen Konto,
+      // antwortet der Server `unlocked: false` und es wurde nichts
+      // freigeschaltet. Dann unfinished lassen, damit Transaction.updates sie
+      // nach einem Kontowechsel erneut liefert.
+      const verifyResult = await res.json().catch(() => ({}))
+      if (!verifyResult.unlocked) return
+
       // Erst nach der Server-Bestaetigung abschliessen — sonst gilt der Kauf
       // bei Apple als erledigt, waehrend er bei uns nie ankam.
       await IAP.finishTransaction({ transactionId: data.transactionId }).catch((err) => {

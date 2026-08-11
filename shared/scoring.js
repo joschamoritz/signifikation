@@ -21,6 +21,14 @@ export const KOLL_PICKS = 3
 // dem maxLength des Eingabefeldes (ClassroomGameLueckenfueller.jsx).
 export const FREE_ANSWER_MAX_LEN = 60
 
+// Das 60-Zeichen-Limit der Eingabefelder ist rein clientseitig; rawAnswer ist
+// ein opakes Objekt und darf bis 8000 Zeichen JSON gross sein. Beide
+// Freitext-Runden (`free` und `double`) kappen deshalb hier, bevor der Wert
+// persistiert und spaeter in der Ergebnisansicht (ggf. am Beamer) gezeigt wird.
+function capFreeAnswer(raw) {
+  return typeof raw === 'string' ? raw.slice(0, FREE_ANSWER_MAX_LEN) : raw ?? null
+}
+
 export function clampInt(value, min, max) {
   const n = Number(value) || 0
   return Math.max(min, Math.min(max, n))
@@ -191,7 +199,7 @@ export function scoreLueckenfueller(round, rawAnswer) {
       const given = String(answers[i] ?? '')
       const ok = expected !== '' && expected === given
       if (ok) score += 1
-      slots.push({ index: i, expected, given: answers[i] ?? null, correct: ok })
+      slots.push({ index: i, expected, given: capFreeAnswer(answers[i]), correct: ok })
     }
     return {
       score,
@@ -203,12 +211,7 @@ export function scoreLueckenfueller(round, rawAnswer) {
   if (round.type === 'free') {
     const punkte = Number(round.punkte) || 0
     const hit = matchesFree(rawAnswer?.value, round.kollokator, round.token)
-    // Das 60-Zeichen-Limit des Eingabefeldes ist rein clientseitig; rawAnswer
-    // ist ein opakes Objekt und darf bis 8000 Zeichen JSON gross sein. Hier
-    // kappen, bevor der Wert persistiert und spaeter in der Ergebnisansicht
-    // (ggf. am Beamer) angezeigt wird.
-    const raw = rawAnswer?.value
-    const value = typeof raw === 'string' ? raw.slice(0, FREE_ANSWER_MAX_LEN) : raw ?? null
+    const value = capFreeAnswer(rawAnswer?.value)
     return {
       score: hit ? punkte : 0,
       maxScore: punkte,

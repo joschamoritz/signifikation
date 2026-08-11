@@ -13,6 +13,8 @@ import {
   evaluateCollocationPicks,
   calculateMixedScore,
   matchesFree,
+  scoreLueckenfueller,
+  FREE_ANSWER_MAX_LEN,
   KOLL_MAX_SCORE,
   KOLL_PICKS,
   WZ_MAX_SCORE,
@@ -265,5 +267,48 @@ describe('matchesFree', () => {
   it('Token-Präfix wird ebenfalls respektiert', () => {
     // token 'arbeitete' ist >= 4 Zeichen → Präfix-Toleranz greift auch
     expect(matchesFree('arbeitet', 'arbeiten', 'arbeitete')).toBe(true)
+  })
+})
+
+// ── Freitext-Kappung ─────────────────────────────────────────────────────────
+// Das maxLength der Eingabefelder ist rein clientseitig; rawAnswer darf bis
+// 8000 Zeichen JSON gross sein. Beide Freitext-Runden muessen serverseitig
+// kappen, bevor der Wert in der Ergebnisansicht (ggf. am Beamer) landet.
+describe('scoreLueckenfueller: Freitext wird auf FREE_ANSWER_MAX_LEN gekappt', () => {
+  const LANG = 'x'.repeat(500)
+
+  it('free: value wird gekappt', () => {
+    const res = scoreLueckenfueller(
+      { type: 'free', punkte: 2, kollokator: 'stellen' },
+      { value: LANG },
+    )
+    expect(res.detail.value).toHaveLength(FREE_ANSWER_MAX_LEN)
+  })
+
+  it('double: given wird in jedem Slot gekappt', () => {
+    const res = scoreLueckenfueller(
+      { type: 'double', sentences: [{ kollokator: 'stellen' }, { kollokator: 'treffen' }] },
+      { answers: [LANG, LANG] },
+    )
+    for (const slot of res.detail.slots) {
+      expect(slot.given).toHaveLength(FREE_ANSWER_MAX_LEN)
+    }
+  })
+
+  it('double: korrekte Antwort bleibt unveraendert und zaehlt weiter', () => {
+    const res = scoreLueckenfueller(
+      { type: 'double', sentences: [{ kollokator: 'stellen' }, { kollokator: 'treffen' }] },
+      { answers: ['stellen', 'treffen'] },
+    )
+    expect(res.score).toBe(2)
+    expect(res.detail.slots.map((s) => s.given)).toEqual(['stellen', 'treffen'])
+  })
+
+  it('double: fehlende Antwort bleibt null (kein "null"-String)', () => {
+    const res = scoreLueckenfueller(
+      { type: 'double', sentences: [{ kollokator: 'stellen' }] },
+      { answers: [] },
+    )
+    expect(res.detail.slots[0].given).toBeNull()
   })
 })
