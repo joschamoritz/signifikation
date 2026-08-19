@@ -20,13 +20,33 @@
  * zwei getrennte Schritte, und der Rollback ist ausdrücklich „Env zurück +
  * Restart" — beides funktioniert nur, wenn dieselbe Version beide DBs liest.
  *
- * ── Rückwärts-Varianten-Fallback (DB-Neuaufbau §3.5) ─────────────────────────
- * Phase E2 hat historische Schreibvarianten in wortprofil_v2 normalisiert
- * (`thier` → `tier`), die Belegtexte bleiben aber authentisch. Bis Phase F2 die
- * Lemma-Spalte der Belege nachzieht, würde die Kopplung wortprofil↔belege
- * brechen: das Spiel fragt nach `tier`, im Korpus steht `thier`. Deshalb liest
- * dieses Modul `lemma_corrections` aus der Wortprofil-DB rückwärts und ergänzt
- * die FTS-Query um die Varianten: Suche nach „tier" → ("tier" OR "thier").
+ * ── Lemma-Suche (Phase F2, seit 2026-08-17) ──────────────────────────────────
+ * `belege_v2.db` trägt seit F2 eine zweite, additive FTS5-Tabelle `lemmata_fts`
+ * (contentless, `detail=none`, nur Inhaltswörter) — pro Satz die LEMMA-Folge
+ * statt der Wortformen, mit demselben `lemma_corrections`-Mapping wie
+ * `wortprofil_v2` (thier→tier ist darin schon normalisiert). Das ist jetzt der
+ * PRIMÄRE Suchweg: eine Suche nach den kanonischen Lemmata aus `wortprofil_v2`
+ * (z. B. „digital" + „Gesundheitsanwendung") findet damit auch Sätze, in denen
+ * nur die flektierte Form steht („digitale Gesundheitsanwendungen") — ohne
+ * Prefix-Raten und ohne die alte Varianten-Liste, die bis F2 nötig war (siehe
+ * Git-Historie für den entfernten Rückwärts-Varianten-Fallback aus Phase G:
+ * er las `lemma_corrections` rückwärts und hängte `("tier" OR "thier")` an die
+ * Wortform-Query — überflüssig, seit die Lemma-Spalte selbst normalisiert ist).
+ *
+ * `lemmata_fts` ist contentless (kein Klartext abrufbar) — eine Suche liefert
+ * nur `rowid`e (= `saetze.id`), die per PK-Lookup zu vollen Zeilen werden
+ * (`bySatzId`). Fenster-Sampling (siehe unten) funktioniert auf `lemmata_fts`
+ * genauso wie auf `belege_fts`: `detail=none` betrifft nur Positions-/Spalten-
+ * Detailtiefe, nicht die rowid-Struktur, an der die Fenster ansetzen.
+ *
+ * Die Wortform-Suche (`belege_fts`) bleibt als FALLBACK: läuft nur, wenn der
+ * Lemma-Pool zu klein ausfällt (< `POOL_MIN`, z. B. weil ein Wort in
+ * `lemmata_fts` nicht denselben Lemma-Ausschlag hat wie in `wortprofil_v2` —
+ * annotate_lemmata.py lief ohne Dependenzparser/dwdsmor, rekonstruiert trennbare
+ * Verben deshalb seltener als `parse_deps_v2.py`; „auftischen" findet sich in
+ * der Praxis trotzdem meist, siehe Session 2026-08-17). Alte DBs ohne
+ * `lemmata_fts` (Rollback-Fall) fallen automatisch komplett auf die
+ * Wortform-Suche zurück (`hasLemmaFts()` prüft das Schema einmalig).
  *
  * ── Zufalls-Fenster statt `ORDER BY rank` (Gate G, Latenz-Fix) ───────────────
  * `ORDER BY rank` zwingt FTS5, JEDEN Treffer nach BM25 zu bewerten, bevor die
@@ -188,9 +208,58 @@ function stmts() {
 }
 
 /**
+ * Prüft einmalig, ob die geöffnete DB die F2-Tabelle `lemmata_fts` hat.
+ * Alte v2-DBs ohne F2 (Rollback, oder vor dem Deploy) liefern false — die
+ * Aufrufer fallen dann automatisch komplett auf die Wortform-Suche zurück.
+ */
+let _hasLemmaFts = null
+function hasLemmaFts() {
+  if (_hasLemmaFts !== null) return _hasLemmaFts
+  const database = db()
+  _hasLemmaFts = !!(database && _schema === 'v2' && database
+    .prepare("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'lemmata_fts'")
+    .get())
+  return _hasLemmaFts
+}
+
+// lemmata_fts ist contentless: eine Suche liefert nur rowids (= saetze.id),
+// die per PK-Lookup zu vollen Zeilen werden. Dieselben Spalten wie V2_SELECT,
+// damit dedupe()/besteBelege()/tokenize()/formatQuelle() unverändert greifen.
+const LEMMA_AUF = `
+  SELECT lemmata_fts.rowid AS id FROM lemmata_fts
+  WHERE lemmata_fts MATCH ? AND lemmata_fts.rowid > ? LIMIT ?`
+const LEMMA_AB = `
+  SELECT lemmata_fts.rowid AS id FROM lemmata_fts
+  WHERE lemmata_fts MATCH ? AND lemmata_fts.rowid < ?
+  ORDER BY lemmata_fts.rowid DESC LIMIT ?`
+const BY_SATZ_ID = `
+  SELECT s.satz AS satz, d.ref AS ref, d.jahr AS jahr, s.doc_id AS doc_id,
+         q.zitation AS zitation, q.lizenz AS lizenz
+  FROM saetze s
+  JOIN dokumente d ON d.doc_id = s.doc_id
+  JOIN quellen q   ON q.quelle = d.quelle
+  WHERE s.id = ?`
+
+let _lemmaStmts = null
+function lemmaStmts() {
+  if (!hasLemmaFts()) return null
+  if (!_lemmaStmts) {
+    const database = db()
+    _lemmaStmts = {
+      auf: database.prepare(LEMMA_AUF),
+      ab: database.prepare(LEMMA_AB),
+      bySatzId: database.prepare(BY_SATZ_ID),
+    }
+  }
+  return _lemmaStmts
+}
+
+/**
  * Höchste rowid der Belege — die Obergrenze für die Zufalls-Startpunkte.
  * `id` ist INTEGER PRIMARY KEY, `MAX(id)` also ein B-Tree-Seek, kein Scan.
- * Nur im v2-Schema definiert; v1 nutzt keine Fenster.
+ * Nur im v2-Schema definiert; v1 nutzt keine Fenster. Gilt für `belege_fts`
+ * UND `lemmata_fts` gleichermaßen — beide teilen denselben rowid-Raum
+ * (`lemmata_fts.rowid` = `saetze.id`, additiv beim F2-Lauf vergeben).
  */
 function maxRowid() {
   if (_maxRowid !== null) return _maxRowid
@@ -287,6 +356,42 @@ function holePool(query, ziel, { seed = null, prefix = false } = {}) {
   return rows
 }
 
+/**
+ * Wie `holePool()`, aber über `lemmata_fts` (Phase F2): dieselbe Fenster-Logik,
+ * liefert aber nur `id`s (contentless), die hier per PK-Lookup (`bySatzId`) zu
+ * vollen Zeilen im selben Format wie `holePool()` werden. `null` wenn F2 nicht
+ * verfügbar ist (Aufrufer prüfen das vorher über `hasLemmaFts()`).
+ */
+function holePoolLemma(query, ziel, { seed = null } = {}) {
+  const s = lemmaStmts()
+  const max = maxRowid()
+  if (!s || !max) return []
+
+  const proFenster = Math.max(MIN_PRO_FENSTER, Math.ceil(ziel / (FENSTER_AUF + FENSTER_AB)))
+  const { auf, ab } = fraktionen(seed)
+  const fenster = [
+    ...auf.map(f => s.auf.all(query, Math.floor(max * f), proFenster)),
+    ...ab.map(f => s.ab.all(query, Math.floor(max * f), proFenster)),
+  ]
+
+  const ids = []
+  for (let i = 0; ; i++) {
+    let gefunden = false
+    for (const f of fenster) {
+      if (i < f.length) { ids.push(f[i].id); gefunden = true }
+    }
+    if (!gefunden) break
+  }
+  if (ids.length < ziel) for (const r of s.auf.all(query, 0, ziel)) ids.push(r.id)
+
+  const rows = []
+  for (const id of new Set(ids)) {
+    const row = s.bySatzId.get(id)
+    if (row) rows.push(row)
+  }
+  return rows
+}
+
 /** Entfernt Sätze, die (aus verschiedenen Quellen oder Fenstern) doppelt kommen. */
 function dedupe(rows) {
   const seen = new Set()
@@ -347,29 +452,49 @@ function formatQuelle(r) {
   return [dok, r.zitation, r.lizenz].filter(Boolean).join(' · ')
 }
 
+// Mindestlänge des Verb-Stamms für den Konjugations-Fallback in matchesLemma
+// (siehe dort) — verhindert Kollisionen mit kurzen, unverwandten Wörtern
+// ("leben" → Stamm "leb" bliebe sonst zu kurz und würde "lebhaft" markieren).
+const VERB_STAMM_MIN_LEN = 4
+
 /**
  * Prüft ob ein bereinigtes Wort zu einem Lemma gehört.
  * Kurze Lemmata (< 4 Zeichen) werden exakt verglichen, um False Positives
  * zu vermeiden ("er" würde sonst "erklären", "erhöhen" usw. markieren).
- * Längere Lemmata nutzen startsWith für Flexionsformen ("Tisch" → "Tisches").
+ * Längere Lemmata nutzen startsWith für Flexionsformen, die den Lemma-Stamm
+ * ERGÄNZEN ("Tisch" → "Tisches").
+ *
+ * Zusätzlicher Verb-Fallback (gefunden 2026-08-19, sichtbar geworden durch die
+ * F2-Lemma-Suche: die findet jetzt deutlich mehr konjugierte Belege, deren
+ * Hervorhebung vorher schlicht nie geprüft wurde): Deutsche Verbkonjugation
+ * ERSETZT die Infinitiv-Endung „-en"/„-n" oft, statt sie zu ergänzen —
+ * "verblassen" → "verblasst" ist KEIN startsWith-Treffer, weil die konjugierte
+ * Form kürzer ist als der Infinitiv. Fallback: Infinitiv-Endung abschneiden und
+ * den verbleibenden Stamm ebenfalls per startsWith prüfen, aber erst ab
+ * `VERB_STAMM_MIN_LEN` Zeichen Stammlänge.
  */
 function matchesLemma(wordLow, lemmaLow) {
   if (!lemmaLow) return false
   if (lemmaLow.length < 4) return wordLow === lemmaLow
-  return wordLow.startsWith(lemmaLow)
+  if (wordLow.startsWith(lemmaLow)) return true
+  const stamm = lemmaLow.endsWith('en') ? lemmaLow.slice(0, -2)
+    : lemmaLow.endsWith('n') ? lemmaLow.slice(0, -1)
+    : null
+  return !!stamm && stamm.length >= VERB_STAMM_MIN_LEN && wordLow.startsWith(stamm)
 }
 
 /**
  * Tokenisiert einen Satz und markiert Wörter, die mit lemma oder collocate beginnen.
  * Gibt das DWDS-kompatible tokens-Format zurück: [{w, ws, hl}]
  *
- * Die Hervorhebung kennt dieselben historischen Schreibvarianten wie die Suche
- * (§3.5). Sonst fände die FTS-Query zwar einen Satz über „Critik", die Anzeige
- * markierte darin aber nichts — mit der Folge, dass die KWiC-Zerlegung im Archiv
- * leer ausfällt und im Spiel das gesuchte Wort unmarkiert bliebe.
+ * `matchesLemma()` vergleicht per `startsWith` (ab vier Zeichen), markiert
+ * „Rechnungen" für „Rechnung" also unabhängig davon, ob der Satz über die
+ * Lemma- oder die Wortform-Suche gefunden wurde.
  */
 function tokenize(sentence, lemma, collocate) {
-  const formen = [...suchformen(lemma), ...suchformen(collocate)]
+  const formen = [lemma, collocate]
+    .map(w => String(w ?? '').toLowerCase())
+    .filter(Boolean)
 
   // Wörter und Interpunktion splitten, Leerzeichen als ws-Flag merken
   const parts = sentence.split(/(\s+)/)
@@ -393,72 +518,24 @@ function tokenize(sentence, lemma, collocate) {
   return tokens
 }
 
-// ── Rückwärts-Varianten aus lemma_corrections (§3.5) ─────────────────────────
-// Map: modernes Lemma → historische Schreibvarianten, die im Korpustext stehen
-// („tier" → ["thier"]). Wird einmal lazy aus der Wortprofil-DB gelesen (11.005
-// freigegebene Zeilen, ~10 ms) und danach im Speicher gehalten; die Verbindung
-// wird sofort wieder geschlossen. Fehlt die Tabelle (alte wortprofil.db) oder
-// die DB selbst, bleibt die Map leer → Verhalten exakt wie vorher.
-let _varianten = null
-function varianten() {
-  if (_varianten) return _varianten
-  _varianten = new Map()
-  const wortprofilPath = process.env.WORTPROFIL_DB
-    ?? resolve(__dirname, '..', 'wortprofil', '05_db', 'wortprofil.db')
-  let wdb = null
-  try {
-    wdb = new Database(wortprofilPath, { readonly: true, fileMustExist: true })
-    const rows = wdb
-      .prepare('SELECT alt, korrekt FROM lemma_corrections WHERE freigegeben = 1')
-      .all()
-    for (const { alt, korrekt } of rows) {
-      const key = String(korrekt).toLowerCase()
-      const list = _varianten.get(key)
-      if (list) { if (!list.includes(alt)) list.push(alt) }
-      else _varianten.set(key, [alt])
-    }
-    logger.info(`Belege: ${_varianten.size} Lemmata mit historischen Schreibvarianten geladen`)
-  } catch (err) {
-    logger.info({ err: err.message }, 'Belege: kein lemma_corrections-Mapping – Variantensuche inaktiv')
-  } finally {
-    try { wdb?.close() } catch { /* egal */ }
-  }
-  return _varianten
-}
-
 const escFts = s => String(s).replace(/"/g, '""')
 
 /**
- * Alle Formen, unter denen ein Wort im Korpustext stehen kann: das Wort selbst
- * plus seine historischen Schreibvarianten aus lemma_corrections, alle klein.
- * Ohne Mapping (v1-DB) bleibt es bei genau einer Form – Verhalten wie vorher.
+ * Baut den FTS5-Ausdruck für EIN Suchwort. Immer als Phrase gequotet – auch im
+ * Prefix-Fall. Ein nacktes `e-mail*` wäre ein FTS5-Syntaxfehler; `"e-mail"*`
+ * ist ein gültiges Phrasen-Präfix. Seit F7 (Bindestrich-Lemmata zugelassen)
+ * ist das kein Randfall mehr.
  */
-function suchformen(word) {
-  const low = String(word ?? '').toLowerCase()
-  if (!low) return []
-  const alts = varianten().get(low)
-  return alts ? [low, ...alts.map(a => a.toLowerCase())] : [low]
-}
-
-/**
- * Baut den FTS5-Ausdruck für EIN Suchwort, wahlweise mit den historischen
- * Schreibvarianten: „tier" → ("tier" OR "thier").
- *
- * Die Formen werden immer als Phrase gequotet – auch im Prefix-Fall. Ein nacktes
- * `e-mail*` wäre ein FTS5-Syntaxfehler; `"e-mail"*` ist ein gültiges Phrasen-
- * Präfix. Seit F7 (Bindestrich-Lemmata zugelassen) ist das kein Randfall mehr.
- */
-function ftsTerm(word, { prefix = false, mitVarianten = false } = {}) {
+function ftsTerm(word, { prefix = false } = {}) {
   const low = String(word ?? '').toLowerCase()
   if (!low) return '""'
-  const formen = mitVarianten ? suchformen(word) : [low]
-  const teile = formen.map(f => (prefix ? `"${escFts(f)}"*` : `"${escFts(f)}"`))
-  return teile.length === 1 ? teile[0] : `(${teile.join(' OR ')})`
+  return prefix ? `"${escFts(low)}"*` : `"${escFts(low)}"`
 }
 
 /**
  * Baut einen FTS5-MATCH-Ausdruck aus lemma + collocate.
- * FTS5 sucht case-insensitiv nach Wort-Tokens.
+ * FTS5 sucht case-insensitiv nach Wort-Tokens. Dient sowohl der Lemma- als
+ * auch der Wortform-Suche (Terme sind in beiden Fällen einfache Phrasen).
  */
 function buildFtsQuery(lemma, collocate, opts = {}) {
   return `${ftsTerm(lemma, opts)} AND ${ftsTerm(collocate, opts)}`
@@ -496,44 +573,46 @@ function buildFtsQueryFlexion(lemma, collocate, opts = {}) {
   return `${ftsTerm(lemma, mitPrefix(lemma))} AND ${ftsTerm(collocate, mitPrefix(collocate))}`
 }
 
-// Ab wie vielen Treffern die moderne Schreibung allein als ausreichend gilt.
-const MIN_TREFFER_OHNE_VARIANTEN = 2
-
-/**
- * Führt eine FTS-Suche ZWEISTUFIG aus: zuerst nur mit der modernen Schreibung,
- * und erst wenn die (fast) nichts findet, ein zweites Mal mit den historischen
- * Varianten aus lemma_corrections.
- *
- * Warum nicht beides in einem `OR`-Ausdruck: FTS5 rankt nach BM25, und BM25
- * gewichtet seltene Terme höher. `("wasser" OR "waßer")` liefert deshalb fast
- * ausschließlich die historische Schreibung, obwohl „Wasser" millionenfach
- * modern belegt ist — im Archiv standen dadurch fünf von fünf Belegen in
- * Schreibung des 19. Jahrhunderts. Der Variantenzweig ist ein Auffangnetz für
- * die wortprofil↔belege-Kopplung im Fenster bis Phase F2 (§3.5), kein
- * gleichberechtigter Suchbegriff.
- *
- * Seit dem Latenz-Fix rankt v2 nicht mehr nach BM25, das Argument gilt dort aber
- * unverändert: die historischen Korpora liegen als geschlossener rowid-Block
- * (`dibilit` bis `gei_digital`), ein `OR`-Ausdruck würde die Fenster, die in
- * diesen Block fallen, komplett mit alter Schreibung füllen.
- *
- * @param {(mitVarianten: boolean) => string} bauQuery  erzeugt den MATCH-Ausdruck
- * @param {(q: string) => Array} suche                  führt die Query aus
- */
-function sucheMitVariantenFallback(bauQuery, suche) {
-  const modern = bauQuery(false)
-  const rows = suche(modern)
-  if (rows.length >= MIN_TREFFER_OHNE_VARIANTEN) return rows
-  const historisch = bauQuery(true)
-  if (historisch === modern) return rows          // keine Varianten bekannt
-  const mitVarianten = suche(historisch)
-  return mitVarianten.length > rows.length ? mitVarianten : rows
-}
-
 // Wie groß der Pool je angefragtem Beleg sein soll, und wie groß mindestens.
 // Zwölf mal `limit` sind bei limit=5 die gemessenen ~64 Zeilen (2–11 ms).
+// Dieselbe Schwelle entscheidet jetzt auch, ob der Lemma-Pool (Tier 1) allein
+// ausreicht oder die Wortform-Suche (Tier 2/3) noch ergänzen muss.
 const POOL_JE_BELEG = 12
 const POOL_MIN = 48
+
+/**
+ * Zwei-Term-Suche (lemma + collocate), dreistufig, jede Stufe nur bei Bedarf:
+ *
+ *  1. **Lemma-Suche** (`lemmata_fts`, Phase F2) — findet Sätze unabhängig von
+ *     Flexion und historischer Schreibung (beides steckt schon in der
+ *     gespeicherten Lemma-Folge). Übersprungen, wenn F2 nicht verfügbar ist.
+ *  2. **Wortform-Suche, exakt** (`belege_fts`) — nur wenn Tier 1 den Pool nicht
+ *     bis `POOL_MIN` füllt (z. B. weil `annotate_lemmata.py` ohne Dependenz-
+ *     parser lief und ein trennbares Verb nicht rekonstruiert hat).
+ *  3. **Wortform-Suche, Flexions-Fallback** (Prefix auf beiden Seiten) — nur
+ *     wenn Tier 1+2 zusammen GAR NICHTS finden. Deckt die Fälle ab, in denen
+ *     ein Paar praktisch nur flektiert vorkommt („digitale
+ *     Gesundheitsanwendungen") und auch die Lemma-Suche aus Tagging-Gründen
+ *     leer blieb.
+ *
+ * @param {string} lemma
+ * @param {string} collocate
+ * @param {number} ziel    Poolgröße für Tier 1/2
+ * @param {{seed?: string}} opts
+ */
+function holeZweiTermPool(lemma, collocate, ziel, { seed = null } = {}) {
+  let pool = hasLemmaFts()
+    ? holePoolLemma(buildFtsQuery(lemma, collocate), ziel, { seed })
+    : []
+  if (pool.length < POOL_MIN) {
+    const exakt = holePool(buildFtsQuery(lemma, collocate), ziel, { seed })
+    pool = dedupe([...pool, ...exakt])
+  }
+  if (pool.length === 0) {
+    pool = holePool(buildFtsQueryFlexion(lemma, collocate), ziel, { seed, prefix: true })
+  }
+  return pool
+}
 
 // Wie viele Belege je Korpus erlaubt sind, in Runden aufsteigend. Erst wenn eine
 // Runde `limit` nicht füllt, wird die nächste großzügiger.
@@ -599,17 +678,7 @@ export function fetchBelege(lemma, collocate, { limit = 5, year = null } = {}) {
   const ziel = Math.max(limit * POOL_JE_BELEG, POOL_MIN)
 
   try {
-    const bauQuery = v => buildFtsQuery(lemma, collocate, { mitVarianten: v })
-    let unique = dedupe(sucheMitVariantenFallback(bauQuery, q => holePool(q, ziel)))
-
-    // Flexions-Fallback (Modulkopf): nur bei GAR KEINEM Treffer, und `prefix: true`
-    // schaltet dabei bewusst auf `ORDER BY rank` — die Fenster sind bei
-    // Prefix-Queries langsamer, nicht schneller.
-    if (unique.length === 0) {
-      const bauFlexion = v => buildFtsQueryFlexion(lemma, collocate, { mitVarianten: v })
-      unique = dedupe(sucheMitVariantenFallback(
-        bauFlexion, q => holePool(q, ziel, { prefix: true })))
-    }
+    const unique = dedupe(holeZweiTermPool(lemma, collocate, ziel))
 
     let auswahl = unique
     if (year) {
@@ -637,19 +706,24 @@ export function fetchBelege(lemma, collocate, { limit = 5, year = null } = {}) {
  * Eine Vorsortierung hier würde ihnen die Auswahl vorwegnehmen — die besten
  * `scoreBeleg()`-Sätze liegen um zwölf Wörter, der Lückenfüller will die langen.
  *
- * `prefixCollocate` schaltet auch die Fenstersuche ab (siehe Modulkopf): bei
- * einer Prefix-Query wäre sie langsamer als BM25, nicht schneller.
+ * `prefixCollocate` schaltet die Fenstersuche der Wortform-Ebene ab (siehe
+ * Modulkopf): bei einer Prefix-Query wäre sie langsamer als BM25, nicht
+ * schneller. Betrifft nur die Wortform-Stufe — die Lemma-Suche (Tier 1)
+ * braucht kein Prefix, weil sie ohnehin auf der Grundform sucht.
  */
 export function fetchBelegeRaw(lemma, collocate, { limit = 20, prefixCollocate = false } = {}) {
   const s = stmts()
   if (!s) return []
 
   try {
-    const bau = prefixCollocate ? buildFtsQueryPrefix : buildFtsQuery
-    const rows = sucheMitVariantenFallback(
-      v => bau(lemma, collocate, { mitVarianten: v }),
-      q => holePool(q, limit, { prefix: prefixCollocate }),
-    )
+    let rows = hasLemmaFts()
+      ? holePoolLemma(buildFtsQuery(lemma, collocate), limit)
+      : []
+    if (rows.length < limit) {
+      const bau = prefixCollocate ? buildFtsQueryPrefix : buildFtsQuery
+      const surface = holePool(bau(lemma, collocate), limit, { prefix: prefixCollocate })
+      rows = dedupe([...rows, ...surface])
+    }
 
     return dedupe(rows)
       .slice(0, limit)
@@ -734,11 +808,15 @@ export function fetchBelegeForLemma(lemma, { limit = 2 } = {}) {
   const s = stmts()
   if (!s) return []
   const ziel = Math.max(limit * POOL_JE_BELEG, POOL_MIN)
+  const seed = String(lemma).toLowerCase()
   try {
-    const rows = sucheMitVariantenFallback(
-      v => ftsTerm(lemma, { mitVarianten: v }),
-      q => holePool(q, ziel, { seed: String(lemma).toLowerCase() }),
-    )
+    let rows = hasLemmaFts()
+      ? holePoolLemma(ftsTerm(lemma), ziel, { seed })
+      : []
+    if (rows.length < POOL_MIN) {
+      const surface = holePool(ftsTerm(lemma), ziel, { seed })
+      rows = dedupe([...rows, ...surface])
+    }
     return besteBelege(dedupe(rows), limit).map(r => {
       // collocate='' → nur das Lemma wird hervorgehoben (kein Spiel-Lösungswort).
       const tokens = tokenize(r.satz, lemma, '')

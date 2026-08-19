@@ -94,6 +94,7 @@ function baueFixture(pfad) {
     // NICHT über „Tortenheber" gefunden werden.
     db.prepare('UPDATE saetze SET satz = ? WHERE id = ?').run(
       'Die Tortenheber lagen ordentlich sortiert auf dem Tisch bereit.', 101)
+
   })()
 
   db.exec("INSERT INTO belege_fts(belege_fts) VALUES('rebuild')")
