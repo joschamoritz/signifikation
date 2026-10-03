@@ -2794,3 +2794,23 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
     box-shadow: none;
   }
 }
+
+/* ── Unterricht (Abgaben aus /unterricht/-Tools) ─────────── */
+.unterricht-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.ut-abgabe { padding: 12px 0 14px; border-bottom: 1px solid var(--border-lt); }
+.ut-abgabe.ut-veraltet { opacity: 0.55; }
+.ut-kopf { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.ut-kopf strong { font-size: 1rem; }
+.ut-kopf .freeday-delete-btn { margin-left: auto; }
+.ut-1992 { margin: 6px 0; font-size: 0.85rem; color: var(--text-muted, #666); }
+.ut-tabelle { width: 100%; border-collapse: collapse; font-size: 0.88rem; margin-top: 6px; }
+.ut-tabelle th, .ut-tabelle td { text-align: left; vertical-align: top; padding: 5px 8px; border-top: 1px solid var(--border-lt); }
+.ut-tabelle th { width: 22%; font-weight: 600; }
+.ut-tabelle td:last-child { width: 18%; white-space: nowrap; }
+.ut-details { margin-top: 6px; font-size: 0.88rem; }
+.ut-details summary { cursor: pointer; }
+.ut-stempel { display: inline-block; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; border: 1.5px solid currentColor; border-radius: 4px; padding: 0 6px; }
+.ut-belegt { color: #2f6b3a; }
+.ut-vermutet { color: #a0620c; }
+.ut-ungeklaert { color: #a3221b; }
+.ut-ohne { color: #888; }

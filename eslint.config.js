@@ -21,6 +21,7 @@ export default [
       'wortprofil/**', // Python-Pipeline + venv – kein Projekt-JS
       '.claude/**',    // Claude Code Worktrees – nur lokal, nicht in CI
       'design/**',     // lokale Design-Prototypen (untracked) – nicht Teil der App
+      'public/unterricht/**', // generierte Unterrichtstools (Quelle + bauen.py im Unterrichts-Vault)
     ],
   },
   js.configs.recommended,

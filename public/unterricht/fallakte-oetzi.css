@@ -1,0 +1,167 @@
+:root{
+    --kraft:#c9a46a; --papier:#fbf6ea; --papier-2:#f3ead4;
+    --tinte:#2b2620; --tinte-2:#5a5046; --linie:#d9ccb0;
+    --kork:#b98c5a; --faden:#b3261e;
+    --belegt:#2f6b3a; --vermutet:#a0620c; --ungeklaert:#a3221b;
+    --blau:#24476b; --forscher:#1f5f74;
+    --schatten:0 2px 6px rgba(43,38,32,.22);
+    --schreibmaschine:"American Typewriter","Courier New",Courier,monospace;
+    --text:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,Roboto,sans-serif;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0; padding:0;}
+  body{font-family:var(--text); color:var(--tinte); background:var(--kork); font-size:17px; line-height:1.45; -webkit-text-size-adjust:100%;}
+  button{font:inherit; color:inherit; -webkit-tap-highlight-color:transparent; touch-action:manipulation; cursor:pointer;}
+  textarea,input{font:inherit; color:var(--tinte);}
+  [hidden]{display:none !important;}
+
+  /* ---------- Deckblatt ---------- */
+  #deckblatt{min-height:100vh; display:flex; align-items:center; justify-content:center; padding:24px;}
+  .mappe{position:relative; width:min(720px,100%); background:var(--kraft); border-radius:6px 14px 14px 6px; box-shadow:0 8px 24px rgba(0,0,0,.35); padding:42px 40px 34px;}
+  .mappe::before{content:""; position:absolute; top:-22px; left:34px; width:190px; height:30px; background:var(--kraft); border-radius:10px 10px 0 0;}
+  .mappe .etikett{background:var(--papier); border:2px solid var(--tinte-2); padding:18px 22px; transform:rotate(-.6deg);}
+  .mappe h1{font-family:var(--schreibmaschine); font-size:30px; margin:0 0 4px; letter-spacing:.04em;}
+  .mappe .az{font-family:var(--schreibmaschine); font-size:16px; color:var(--tinte-2); margin:0;}
+  .mappe .stempel-gross{position:absolute; right:26px; top:-8px; z-index:3; background:rgba(251,246,234,.6); transform:rotate(9deg); font-family:var(--schreibmaschine); font-size:22px; color:var(--ungeklaert); border:3px solid var(--ungeklaert); padding:4px 12px; border-radius:6px;}
+  .mappe .auftrag{background:var(--papier); margin-top:20px; padding:16px 20px; border-left:5px solid var(--faden);}
+  .mappe .auftrag p{margin:0 0 8px;} .mappe .auftrag ol{margin:0; padding-left:22px;} .mappe .auftrag li{margin-bottom:4px;}
+  .mappe label{display:block; margin-top:18px; font-family:var(--schreibmaschine); font-size:15px;}
+  .mappe input{width:100%; margin-top:6px; padding:12px 14px; border:2px solid var(--tinte-2); background:var(--papier); border-radius:4px; font-size:18px;}
+  .btn-gross{display:block; width:100%; margin-top:20px; padding:16px; font-size:19px; font-family:var(--schreibmaschine); background:var(--tinte); color:var(--papier); border:0; border-radius:6px; letter-spacing:.05em;}
+
+  /* ---------- Kopfleiste ---------- */
+  #akte header{position:sticky; top:0; z-index:30; background:var(--tinte); color:var(--papier); display:flex; align-items:center; gap:10px; flex-wrap:wrap; padding:10px 14px; padding-top:max(10px, env(safe-area-inset-top));}
+  #akte header .titel{font-family:var(--schreibmaschine); font-size:18px; letter-spacing:.05em; margin-right:auto;}
+  #akte header .titel small{display:block; font-size:13px; opacity:.75; letter-spacing:0;}
+  .kbtn{background:var(--papier); color:var(--tinte); border:0; border-radius:6px; padding:10px 14px; font-size:16px; font-weight:600; min-height:44px;}
+  .kbtn.rot{background:var(--faden); color:#fff;} .kbtn.offen{background:var(--belegt); color:#fff;}
+  .fortschritt{font-size:14px; opacity:.9;}
+
+  /* ---------- Hinweisleiste ---------- */
+  #leiste{position:relative; z-index:7; max-width:1200px; margin:14px auto 0; padding:0 14px;}
+  #leiste .inner{background:#fff8c6; border-left:6px solid var(--belegt); box-shadow:var(--schatten); padding:12px 16px; display:flex; gap:12px; align-items:center; flex-wrap:wrap;}
+  #leiste .inner.warten{border-left-color:var(--vermutet);}
+  #leiste .inner b{font-family:var(--schreibmaschine);}
+  #leiste .inner span{flex:1 1 300px;}
+
+  /* ---------- Wand ---------- */
+  #wand{position:relative; padding:18px 14px 40px; max-width:1200px; margin:0 auto;}
+  #faeden{position:absolute; left:0; top:0; width:100%; height:100%; pointer-events:none; overflow:visible; z-index:5;}
+  .fragen{display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin-bottom:56px; position:relative; z-index:6;}
+  .frage{background:#fff8c6; border:0; box-shadow:var(--schatten); padding:16px 12px 18px; min-height:96px; text-align:center; font-family:var(--schreibmaschine); font-size:21px; transform:rotate(-1deg); position:relative;}
+  .frage:nth-child(2){transform:rotate(.8deg);} .frage:nth-child(3){transform:rotate(-.4deg);}
+  .frage .n{display:block; font-size:13px; color:var(--tinte-2); margin-bottom:4px;}
+  .frage .zahl{display:block; font-family:var(--text); font-size:13px; color:var(--tinte-2); margin-top:6px;}
+  .frage.gesperrt{background:#e9e0c9; color:#9a8f7e;}
+  .frage.ziel{outline:4px dashed var(--faden); outline-offset:4px; animation:puls 1s ease-in-out infinite alternate;}
+  @keyframes puls{from{outline-color:var(--faden);} to{outline-color:rgba(179,38,30,.3);}}
+  @media (prefers-reduced-motion:reduce){.frage.ziel{animation:none;}}
+  .abschnitt{font-family:var(--schreibmaschine); color:var(--papier); font-size:17px; letter-spacing:.06em; margin:26px 4px 12px; display:flex; align-items:center; gap:10px; position:relative; z-index:6;}
+  .abschnitt::after{content:""; flex:1; border-top:2px dashed rgba(251,246,234,.55);}
+  .karten{display:grid; grid-template-columns:repeat(auto-fill,minmax(210px,1fr)); gap:22px 16px; position:relative; z-index:6;}
+  .karte{position:relative; background:var(--papier); box-shadow:var(--schatten); padding:26px 12px 12px; min-height:170px; display:flex; flex-direction:column;}
+  .karte:nth-child(odd){transform:rotate(-.7deg);} .karte:nth-child(even){transform:rotate(.6deg);}
+  .karte.neu{background:#eef4f8;}
+  .karte.aktiv{outline:4px solid var(--faden); outline-offset:3px;}
+  .karte.fertig::after{content:"✓"; position:absolute; left:8px; top:4px; font-weight:700; color:var(--belegt);}
+  .karte .oeffnen{all:unset; display:flex; flex-direction:column; flex:1; cursor:pointer;}
+  .karte .kopf{display:flex; align-items:center; gap:8px; margin-bottom:6px;}
+  .karte .ico{width:46px; height:46px; flex:0 0 auto; color:var(--tinte);}
+  .karte .ico img{width:46px; height:46px; object-fit:cover; border:2px solid #fff; box-shadow:0 1px 3px rgba(0,0,0,.3);}
+  .karte .nr{font-family:var(--schreibmaschine); font-size:13px; color:var(--tinte-2);}
+  .karte h3{margin:0; font-size:17px; line-height:1.2;}
+  .karte .tag{position:absolute; top:6px; right:8px; font-size:11px; font-weight:700; letter-spacing:.06em; padding:2px 6px; border-radius:3px;}
+  .tag.pflicht{background:var(--tinte); color:var(--papier);} .tag.zusatz{color:var(--tinte-2); border:1px solid var(--tinte-2);} .tag.neu{background:var(--blau); color:#fff;}
+  .karte .erkenntnis{font-size:14.5px; color:var(--tinte-2); margin-top:auto; padding-top:8px; border-top:1px dashed var(--linie);}
+  .karte .erkenntnis.leer{font-style:italic; opacity:.75;}
+  .karte .mini-stempel{display:inline-block; margin-top:6px;}
+  .nadel{position:absolute; top:-12px; left:50%; transform:translateX(-50%); width:44px; height:44px; border:0; background:none; padding:0; z-index:8;}
+  .nadel span{display:block; width:22px; height:22px; margin:11px auto; border-radius:50%; background:var(--faden); box-shadow:inset -3px -3px 0 rgba(0,0,0,.25), 0 2px 3px rgba(0,0,0,.35);}
+  .karte.aktiv .nadel span{background:#ffcc33;}
+  .gesperrt-box{background:rgba(43,38,32,.55); color:var(--papier); border:2px dashed rgba(251,246,234,.6); border-radius:8px; padding:22px; text-align:center; position:relative; z-index:6;}
+  .gesperrt-box .sm{font-family:var(--schreibmaschine); font-size:20px; display:block; margin-bottom:6px;}
+  #modusleiste{position:fixed; left:50%; bottom:max(18px, env(safe-area-inset-bottom)); transform:translateX(-50%); z-index:40; background:var(--faden); color:#fff; padding:12px 18px; border-radius:30px; font-weight:600; box-shadow:0 4px 14px rgba(0,0,0,.35); display:flex; gap:12px; align-items:center; max-width:calc(100% - 24px);}
+  #modusleiste button{background:#fff; color:var(--faden); border:0; border-radius:20px; padding:6px 12px; font-weight:700;}
+
+  /* ---------- Stempel ---------- */
+  .stempel{font-family:var(--schreibmaschine); text-transform:uppercase; letter-spacing:.08em; font-weight:700; border:2.5px solid currentColor; border-radius:5px; padding:2px 8px; display:inline-block; transform:rotate(-4deg);}
+  .st-belegt{color:var(--belegt);} .st-vermutet{color:var(--vermutet);} .st-ungeklaert{color:var(--ungeklaert);}
+  .stempelreihe{display:flex; gap:10px; flex-wrap:wrap; margin:10px 0 4px;}
+  .stbtn{background:var(--papier); border:2.5px solid currentColor; border-radius:6px; padding:10px 14px; min-height:48px; font-family:var(--schreibmaschine); font-weight:700; letter-spacing:.08em; text-transform:uppercase; font-size:16px; flex:1 1 140px;}
+  .stbtn small{display:block; font-family:var(--text); font-weight:400; text-transform:none; letter-spacing:0; font-size:12.5px; color:var(--tinte-2);}
+  .stbtn.an{color:#fff !important;}
+  .stbtn.st-belegt.an{background:var(--belegt);} .stbtn.st-vermutet.an{background:var(--vermutet);} .stbtn.st-ungeklaert.an{background:var(--ungeklaert);}
+  .stbtn.an small{color:rgba(255,255,255,.85);}
+
+  /* ---------- Overlays ---------- */
+  .ov{position:fixed; inset:0; z-index:50; background:rgba(30,24,18,.55); display:flex; align-items:flex-start; justify-content:center; overflow-y:auto; -webkit-overflow-scrolling:touch; padding:24px 12px 60px;}
+  .blatt{background:var(--papier); width:min(780px,100%); box-shadow:0 10px 30px rgba(0,0,0,.4); padding:26px 26px 22px; position:relative;}
+  .blatt .zu{position:absolute; top:10px; right:10px; width:44px; height:44px; border:0; background:var(--papier-2); border-radius:50%; font-size:24px; line-height:1;}
+  .blatt .ueber{font-family:var(--schreibmaschine); font-size:14px; color:var(--tinte-2); margin:0 0 2px;}
+  .blatt h2{font-family:var(--schreibmaschine); font-size:25px; margin:0 0 12px; padding-right:50px;}
+  .blatt .bild{float:right; width:120px; height:120px; margin:0 0 10px 16px; color:var(--tinte); background:var(--papier-2); border:1px solid var(--linie); padding:8px;}
+  .galerie{display:flex; gap:10px; flex-wrap:wrap; margin:4px 0 12px;}
+  .galerie figure{margin:0; flex:1 1 200px; max-width:340px; background:#fff; padding:6px 6px 4px; box-shadow:var(--schatten);}
+  .galerie figure:nth-child(odd){transform:rotate(-.8deg);} .galerie figure:nth-child(even){transform:rotate(.7deg);}
+  .galerie img{width:100%; height:200px; object-fit:cover; display:block;}
+  .galerie figcaption{font-size:12.5px; color:var(--tinte-2); padding-top:4px;}
+  .roentgen-box{position:relative; margin:4px 0 12px; background:#000;}
+  .roentgen-box img{width:100%; height:auto; display:block;}
+  .roentgen-box .markierung{position:absolute; left:69.5%; top:47.5%; width:13%; aspect-ratio:1; transform:translate(-50%,-50%); border:4px solid #ffd34d; border-radius:50%; box-shadow:0 0 0 3px rgba(0,0,0,.4);}
+  .blatt p{margin:0 0 10px;}
+  .blatt .buch{font-size:15px; color:var(--blau); font-weight:600; margin:6px 0 10px;}
+  .credit{font-size:12px; color:var(--tinte-2); margin:-6px 0 10px;}
+  .ermittlungsfrage{clear:both; background:#fff8c6; padding:12px 14px; margin:14px 0 8px; border-left:5px solid var(--vermutet); font-size:18px;}
+  .ermittlungsfrage b{font-family:var(--schreibmaschine);}
+  .feld-label{display:block; font-weight:700; margin:14px 0 6px;}
+  textarea{width:100%; min-height:84px; padding:10px 12px; border:2px solid var(--linie); background:#fff; border-radius:4px; resize:vertical; font-size:17px;}
+  textarea:focus,input:focus{outline:3px solid var(--blau); outline-offset:1px;}
+  textarea[readonly]{background:var(--papier-2);}
+  .feldzeile{display:flex; gap:8px; align-items:center; justify-content:space-between; flex-wrap:wrap; margin-top:4px;}
+  .klein-btn{border:1.5px solid var(--tinte-2); background:#fff; border-radius:20px; padding:6px 12px; font-size:14px; min-height:36px;}
+  .forscher-btn{border:0; background:var(--forscher); color:#fff; border-radius:22px; padding:10px 16px; font-weight:600; min-height:44px;}
+  .hilfe{background:#e6f1f4; border-left:5px solid var(--forscher); padding:10px 14px; margin:10px 0; font-size:16px;}
+  .hilfe b{color:var(--forscher);}
+  .verbund{display:flex; gap:8px; flex-wrap:wrap; margin-top:6px;}
+  .vbtn{border:2px solid var(--faden); background:#fff; color:var(--faden); border-radius:22px; padding:8px 14px; font-weight:600; min-height:44px;}
+  .vbtn.an{background:var(--faden); color:#fff;} .vbtn:disabled{opacity:.4; border-color:#999; color:#999;}
+  .fussleiste{display:flex; justify-content:flex-end; align-items:center; gap:10px; margin-top:18px; flex-wrap:wrap;}
+  .btn{border:0; border-radius:6px; padding:12px 18px; font-weight:700; min-height:48px; background:var(--tinte); color:var(--papier);}
+  .btn.hell{background:var(--papier-2); color:var(--tinte);} .btn.gruen{background:var(--belegt); color:#fff;} .btn.blau{background:var(--blau); color:#fff;}
+  .bericht h3{font-family:var(--schreibmaschine); font-size:19px; margin:20px 0 6px; border-bottom:2px solid var(--tinte); padding-bottom:4px;}
+  .bericht ul.belege{margin:4px 0 8px; padding-left:20px; font-size:15px; color:var(--tinte-2);} .bericht ul.belege li{margin-bottom:4px;}
+  .chips{display:flex; gap:8px; flex-wrap:wrap; margin:6px 0;}
+  .chip{border:2px solid var(--tinte-2); background:#fff; border-radius:22px; padding:8px 14px; min-height:44px;}
+  .chip.an{background:var(--tinte); color:var(--papier); border-color:var(--tinte);} .chip:disabled{opacity:.6;}
+  .archiv{background:#ece5d3; border:2px dashed #9b8f78; padding:12px 16px; margin:8px 0 14px; position:relative; color:#5d5446;}
+  .archiv .abgelegt{position:absolute; right:12px; top:8px; transform:rotate(6deg); font-family:var(--schreibmaschine); color:#8a7f6c; border:2px solid #8a7f6c; padding:1px 8px; font-size:13px; border-radius:4px;}
+  .zaehler{font-size:14px; color:var(--tinte-2); text-align:right;} .zaehler.ok{color:var(--belegt); font-weight:700;}
+  .hinweis{background:var(--papier-2); padding:10px 14px; border-left:4px solid var(--blau); font-size:15px; margin:10px 0;}
+  .meldung{font-weight:700; color:var(--belegt);} .meldung.fehler{color:var(--ungeklaert);}
+  .code-eingabe{font-family:var(--schreibmaschine); font-size:36px; letter-spacing:.4em; text-align:center; width:220px; padding:10px; border:3px solid var(--tinte); background:#fff; border-radius:6px; display:block; margin:14px auto;}
+  .codefehler{color:var(--ungeklaert); font-weight:700; text-align:center;}
+  .wackeln{animation:wackel .35s;}
+  @keyframes wackel{0%,100%{transform:translateX(0);} 25%{transform:translateX(-8px);} 75%{transform:translateX(8px);}}
+  footer.quelle{max-width:1200px; margin:0 auto; padding:10px 18px 30px; color:rgba(251,246,234,.9); font-size:12.5px;}
+  footer.quelle button{background:none; border:1px solid rgba(251,246,234,.5); color:rgba(251,246,234,.85); border-radius:4px; padding:4px 8px; font-size:12px; margin-top:6px;}
+
+  /* ---------- Druck (Abgabe als PDF) ---------- */
+  #druck{display:none;}
+  @media print{
+    body{background:#fff;}
+    body > *:not(#druck){display:none !important;}
+    #druck{display:block; font-family:var(--text); color:#000; font-size:12pt; padding:0 4mm;}
+    #druck h1{font-family:var(--schreibmaschine); font-size:18pt; margin:0 0 2mm;}
+    #druck h2{font-size:13pt; margin:5mm 0 1.5mm; border-bottom:1px solid #000;}
+    #druck p{margin:0 0 2mm;}
+    #druck table{border-collapse:collapse; width:100%; font-size:10.5pt;}
+    #druck td,#druck th{border:1px solid #999; padding:1.5mm 2mm; vertical-align:top; text-align:left;}
+    #druck .klein{font-size:9pt; color:#444;}
+    @page{size:A4; margin:14mm;}
+  }
+
+  @media (max-width:700px){
+    .fragen{grid-template-columns:1fr; gap:10px; margin-bottom:40px;}
+    .frage{min-height:0; font-size:18px;}
+    .blatt{padding:20px 16px;}
+  }

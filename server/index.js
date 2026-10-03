@@ -37,6 +37,7 @@ import paymentsRouter from './routes/payments.js'
 import iapRouter from './routes/iap.js'
 import pushRouter from './routes/push.js'
 import archiveRouter from './routes/archive.js'
+import unterrichtRouter from './routes/unterricht.js'
 import { startPushScheduler } from './notifications/scheduler.js'
 import { startStreakSaverScheduler } from './notifications/streak.js'
 import { setupClassroomSocket } from './realtime/classroomSocket.js'
@@ -219,6 +220,7 @@ app.use('/', courseRouter)
 app.use('/', paymentsRouter)
 app.use('/', iapRouter)
 app.use('/', pushRouter)
+app.use('/', unterrichtRouter)
 
 // SEO-Archiv: /archiv, /wort/:slug, /sitemap.xml. Bewusst VOR express.static
 // und dem SPA-Fallback – die dynamische Sitemap hat damit Vorrang vor einer

@@ -74,6 +74,7 @@
             <button class="nav-item" data-action="switch-page" data-page="spezialwoche">Wort der Woche</button>
             <button class="nav-item" data-action="switch-page" data-page="push">Benachrichtigungen</button>
             <button class="nav-item" data-action="switch-page" data-page="classroom">Klassenraum</button>
+            <button class="nav-item" data-action="switch-page" data-page="unterricht">Unterricht</button>
             <button class="nav-item" data-action="switch-page" data-page="system">System</button>
           </div>
         </div>
@@ -937,6 +938,22 @@
           </div>
           <div id="metrics-output">
             <div class="users-empty">Kennzahlen werden geladen …</div>
+          </div>
+        </div>
+      </section>
+
+      <section class="admin-page" id="page-unterricht" data-title="Unterricht" data-subtitle="Abgaben aus den Unterrichts-Tools unter /unterricht/.">
+        <div class="card">
+          <div class="card-head card-head--wrap">
+            <h2>Fallakte Ötzi <span class="label-hint">/unterricht/fallakte-oetzi.html</span></h2>
+            <div class="unterricht-actions">
+              <button class="entry-filters-reset" data-action="load-unterricht">↺ Laden</button>
+              <button class="entry-filters-reset freeday-delete-btn" data-action="delete-unterricht-alle">Alle löschen</button>
+            </div>
+          </div>
+          <p class="section-copy">Pro Team zählt die letzte Abgabe; ältere Abgaben desselben Teams sind grau. Nach der Bewertung löschen.</p>
+          <div id="unterricht-list">
+            <div class="users-empty">Wird geladen …</div>
           </div>
         </div>
       </section>

@@ -41,6 +41,8 @@ const wanted = walk(DIST)
   // ausgenommen (siehe vite.config.js) — Runtime-Cache via StaleWhileRevalidate.
   // Muss daher hier ebenfalls uebersprungen werden, sonst false-positiver Fehler.
   .filter((p) => !/(^|\/)realtime-vendor-[^/]*\.js$/.test(p))
+  // unterricht/ (statische Unterrichts-Tools) ebenso bewusst ausgenommen.
+  .filter((p) => !p.startsWith('unterricht/'))
 
 const missing = wanted.filter((p) => !manifestUrls.has(p))
 
