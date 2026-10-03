@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<!--
+  ============================================================
+  FALLAKTE ÖTZI – Geschichte 6e – ASGSG Marl – G6.1 DS 6 (08.10.2026)
+
+  Eine Datei, keine externen Aufrufe (keine Webfonts, kein CDN, Bilder
+  eingebettet): beim Öffnen wird nichts nachgeladen.
+  Gespeichert wird nur im Browser des iPads (localStorage).
+
+  EINSTELLUNGEN (ganz unten im Skript):
+    var CODE = "4719";        Code für die neuen Beweise
+    var ABGABE_URL = "";      leer = Abgabe als PDF/AirDrop
+                              Adresse = Bericht wird dorthin geschickt
+
+  Fakten nach: Südtiroler Archäologiemuseum (iceman.it), abgerufen
+  03.10.2026; Geschichte und Geschehen 1 (Klett), S. 18–19.
+  Fotos: © Südtiroler Archäologiemuseum, Fotos Harald Wisthaler
+  (www.iceman.it) – frei für Schulzwecke mit Copyright-Angabe (FAQ).
+  ============================================================
+-->
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>Fallakte Ötzi</title>
+<link rel="stylesheet" href="fallakte-oetzi.css">
+</head>
+<body>
+
+<!-- ======================= DECKBLATT ======================= -->
+<section id="deckblatt">
+  <div class="mappe">
+    <div class="stempel-gross">VERTRAULICH</div>
+    <div class="etikett">
+      <p class="az">Aktenzeichen 19-09-1991 / Tisenjoch</p>
+      <h1>Sonderkommission Ötzi</h1>
+      <p class="az">Leichenfund im Gletscher, 3210 m</p>
+    </div>
+    <div class="auftrag">
+      <p><b>Ihr seid das Ermittlerteam.</b> Es ist das Jahr 1992. Ihr wisst nur, was in dieser Akte steht.</p>
+      <ol>
+        <li>Öffnet die <b>Beweisstücke</b>. Die mit <b>PFLICHT</b> zuerst.</li>
+        <li>Beantwortet die <b>Ermittlungsfrage</b> auf jeder Karte.</li>
+        <li>Gebt eurer Antwort einen <b>Stempel</b>: belegt, vermutet oder ungeklärt.</li>
+        <li>Zieht <b>rote Fäden</b> vom Beweisstück zu der Frage an der Wand.</li>
+        <li>Nicht weiter? Tippt auf <b>„Forscherin fragen"</b>.</li>
+      </ol>
+    </div>
+    <label for="teamFeld">Ermittlerteam (eure Vornamen)</label>
+    <input id="teamFeld" autocomplete="off" maxlength="80" placeholder="z. B. Lea und Tom">
+    <button class="btn-gross" id="startBtn">Akte öffnen</button>
+  </div>
+</section>
+
+<!-- ======================= AKTE ======================= -->
+<section id="akte" hidden>
+  <header>
+    <div class="titel">SOKO ÖTZI <small id="kopfTeam"></small></div>
+    <span class="fortschritt" id="fortschritt"></span>
+    <button class="kbtn" id="hilfeBtn">So geht's</button>
+    <button class="kbtn" id="berichtBtn">Bericht</button>
+    <button class="kbtn rot" id="neuBtn">Neue Beweise</button>
+  </header>
+
+  <div id="leiste" hidden><div class="inner" id="leisteInner"></div></div>
+
+  <div id="wand">
+    <svg id="faeden" aria-hidden="true"></svg>
+    <div class="fragen" id="fragen"></div>
+    <div class="abschnitt">BEWEISSTÜCKE · STAND 1992</div>
+    <div class="karten" id="kartenA"></div>
+    <div class="abschnitt" id="abschnittB">NEUE BEWEISE</div>
+    <div class="gesperrt-box" id="sperreB"><span class="sm">GESPERRT</span>Neue Beweise gibt es erst, wenn euer Bericht 1992 abgeschlossen ist – und ihr den Code bekommt.</div>
+    <div class="karten" id="kartenB" hidden></div>
+  </div>
+
+  <footer class="quelle">
+    ASGSG Marl · Geschichte 6e · Urheberrecht: Joscha Fresmann ·
+    Fakten nach: Südtiroler Archäologiemuseum Bozen (iceman.it) und Geschichte und Geschehen 1 (Klett), S. 18–19 ·
+    Fotos: © Südtiroler Archäologiemuseum, Harald Wisthaler (www.iceman.it) · Röntgenbild: Krankenhaus Bozen (Ospedale Regionale) ·
+    Zeichnungen: vereinfachte Skizzen.<br>
+    <button id="resetBtn">Akte zurücksetzen</button>
+  </footer>
+</section>
+
+<div id="modusleiste" hidden><span>Tippt jetzt auf die Frage, zu der der Faden führt.</span><button id="abbrechenBtn">Abbrechen</button></div>
+
+<div class="ov" id="ovKarte" hidden><div class="blatt" id="blattKarte"></div></div>
+<div class="ov" id="ovBericht" hidden><div class="blatt bericht" id="blattBericht"></div></div>
+<div class="ov" id="ovCode" hidden><div class="blatt" id="blattCode"></div></div>
+<div class="ov" id="ovHilfe" hidden><div class="blatt">
+  <button class="zu" data-zu="ovHilfe" aria-label="Schließen">×</button>
+  <p class="ueber">So arbeitet ihr</p>
+  <h2>Die drei Stempel</h2>
+  <p><span class="stempel st-belegt">belegt</span> &nbsp;Es steht direkt im Beweisstück. <i>„Belegt ist, dass …"</i></p>
+  <p><span class="stempel st-vermutet">vermutet</span> &nbsp;Ihr schließt es aus Hinweisen, sicher ist es nicht. <i>„Vermutlich …"</i></p>
+  <p><span class="stempel st-ungeklaert">ungeklärt</span> &nbsp;Dazu sagen die Beweise nichts. <i>„Das wissen wir nicht."</i></p>
+  <div class="hilfe"><b>Trick für den Stempel:</b> Zeigt euch das Beweisstück die Antwort – oder müsst ihr sie euch denken? Zeigen = belegt. Denken = vermutet.</div>
+  <h2 style="margin-top:20px">Rote Fäden</h2>
+  <p>Tippt auf die <b>rote Nadel</b> oben an einem Beweisstück, dann auf die <b>Frage</b>, die es beantwortet. Noch einmal dasselbe – und der Faden ist wieder weg. Ihr könnt die Fäden auch im geöffneten Beweisstück ganz unten setzen.</p>
+  <h2 style="margin-top:20px">Nicht weiter?</h2>
+  <p>Jedes Beweisstück hat den Knopf <b>„Forscherin fragen"</b>. Der erste Tipp zeigt, wo ihr schauen müsst. Der zweite hilft beim Satz.</p>
+  <p><b>Seite nicht schließen und nicht neu laden.</b></p>
+  <div class="fussleiste"><button class="btn" data-zu="ovHilfe">Verstanden</button></div>
+</div></div>
+
+<!-- Druckfassung für die Abgabe -->
+<div id="druck"></div>
+
+<script src="fallakte-oetzi.js"></script>
+</body>
+</html>

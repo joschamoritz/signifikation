@@ -219,6 +219,19 @@ export const archiveDetailLimiter = rateLimit({
   message: { error: 'Zu viele Anfragen, bitte kurz warten.' },
 })
 
+// Unterrichts-Abgaben (/api/v1/unterricht/abgabe): ohne Login, aber eine
+// ganze Klasse sitzt hinter EINER Schul-IP (NAT) und gibt in denselben
+// Minuten ab. 60/Minute pro IP lässt 15 Teams samt Wiederholungen durch,
+// deckelt aber automatisierten Spam auf die Tabelle.
+const unterrichtAbgabeStore = new CleanupStore(60_000)
+export const unterrichtAbgabeLimiter = rateLimit({
+  windowMs: 60_000, max: 60,
+  store: unterrichtAbgabeStore,
+  keyGenerator: getClientIp,
+  standardHeaders: true, legacyHeaders: false,
+  message: { error: 'Zu viele Abgaben. Bitte kurz warten.' },
+})
+
 // Eigenes-Lemma (validate/play): Korpus-Queries; für Basic-Nutzer offen.
 // 40/Minute reicht für die debounced Live-Prüfung, deckelt aber Spam.
 export const customLemmaLimiter = rateLimit({

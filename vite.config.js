@@ -90,7 +90,10 @@ export default defineConfig({
         // (Socket.io), die erste Netz-Holung des Chunks ist also unkritisch.
         // scripts/check-precache.mjs ignoriert realtime-vendor entsprechend.
         globPatterns: ['**/*.{js,css,html,webmanifest}'],
-        globIgnores: ['**/realtime-vendor-*.js'],
+        // unterricht/: statische Unterrichts-Tools (public/unterricht/) mit
+        // eingebetteten Bildern – nur für Schulklassen, nicht für jeden
+        // App-Nutzer beim SW-Install vorladen.
+        globIgnores: ['**/realtime-vendor-*.js', 'unterricht/**'],
         maximumFileSizeToCacheInBytes: 512 * 1024,
       },
       // EINZIGE Quelle des Web-App-Manifests. Frueher lag daneben ein

@@ -20,8 +20,12 @@ precacheAndRoute(self.__WB_MANIFEST)
 // /archiv, /wort/:slug, /sitemap.xml werden server-seitig gerendert (kein
 // Precache-File) – ohne Denylist wuerde der NavigationRoute dafuer die SPA-Shell
 // ausliefern (Klick landet auf der Startseite; nur ein Hard-Reload umgeht den SW).
+//
+// /unterricht/ sind eigenständige statische Unterrichts-Tools (nicht im
+// Precache) – ohne Denylist bekäme ein Gerät mit installiertem SW dort die
+// App-Shell statt des Tools.
 registerRoute(new NavigationRoute(createHandlerBoundToURL('index.html'), {
-  denylist: [/^\/admin/, /^\/api\//, /^\/socket\.io\//, /^\/archiv/, /^\/wort\//, /^\/sitemap\.xml/],
+  denylist: [/^\/admin/, /^\/api\//, /^\/socket\.io\//, /^\/archiv/, /^\/wort\//, /^\/sitemap\.xml/, /^\/unterricht\//],
 }))
 
 // ── Runtime Caching ───────────────────────────────────────────────────────────
