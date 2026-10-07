@@ -1,0 +1,260 @@
+/* HANDELSREISE – Inszenierung: Kontorbuch und Pergament.
+   Schrift: Gentium Plus (OFL, liegt lokal unter /fonts). Keine Gradienten für Linien. */
+@import url('/fonts/fonts.css');
+
+:root {
+  --pergament: #f1e4c3;
+  --pergament-hell: #f8efd8;
+  --pergament-dunkel: #e2cfa2;
+  --tinte: #3b2a1a;
+  --tinte-hell: #6e5638;
+  --rot: #8e2a1e;
+  --siegel: #a3281d;
+  --siegel-dunkel: #6f1810;
+  --gold: #b8892b;
+  --gruen: #3f6b34;
+  --see: #3d6a8a;
+  --land: #7a5230;
+  --wueste: #b8892b;
+  --tisch: #4a3423;
+  --schrift: 'Gentium Plus', 'Iowan Old Style', 'Palatino', Georgia, serif;
+}
+
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  background: var(--tisch);
+  color: var(--tinte);
+  font-family: var(--schrift);
+  font-size: 18px;
+  line-height: 1.45;
+  min-height: 100vh;
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) 0 env(safe-area-inset-left);
+}
+button { font-family: inherit; font-size: inherit; color: inherit; cursor: pointer; }
+h1, h2, h3 { font-weight: 700; line-height: 1.15; margin: 0 0 8px; }
+h2 { font-size: 1.55em; }
+h3 { font-size: 1.1em; margin-top: 14px; }
+p { margin: 0 0 10px; }
+.ueber { font-size: 0.78em; letter-spacing: 0.12em; text-transform: uppercase; color: var(--rot); margin-bottom: 4px; }
+.unter { font-style: italic; color: var(--tinte-hell); margin-top: -4px; }
+.klein, small { font-size: 0.82em; color: var(--tinte-hell); }
+.beleg { font-size: 0.8em; color: var(--tinte-hell); font-style: italic; }
+.meldung { color: var(--rot); font-weight: 700; min-height: 1.2em; margin: 6px 0; }
+.meldung:empty { margin: 0; min-height: 0; }
+
+/* ---------- Titelblatt ---------- */
+.titelblatt { min-height: calc(100vh - 60px); display: flex; align-items: center; justify-content: center; padding: 24px 16px; }
+.pergament {
+  background: var(--pergament);
+  border: 1px solid var(--pergament-dunkel);
+  outline: 3px double var(--tinte-hell);
+  outline-offset: -12px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+  border-radius: 4px;
+  max-width: 640px; width: 100%;
+  padding: 40px 44px 34px;
+}
+.pergament h1 { font-size: 3em; text-align: center; letter-spacing: 0.06em; margin: 4px 0 0; }
+.pergament .ueber { text-align: center; }
+.zeit { text-align: center; font-style: italic; font-size: 1.15em; color: var(--rot); margin-bottom: 14px; }
+.leitfrage { text-align: center; font-size: 1.15em; border-top: 1px solid var(--tinte-hell); border-bottom: 1px solid var(--tinte-hell); padding: 10px 0; margin: 0 0 16px; }
+.regeln p { font-size: 0.95em; }
+label { display: block; font-weight: 700; margin: 12px 0 4px; }
+label small { display: block; font-weight: 400; }
+input, textarea {
+  width: 100%; font-family: inherit; font-size: 1em; color: var(--tinte);
+  background: var(--pergament-hell); border: 1px solid var(--tinte-hell); border-radius: 3px;
+  padding: 10px 12px;
+}
+textarea { resize: vertical; line-height: 1.4; }
+input:focus, textarea:focus { outline: 2px solid var(--gold); outline-offset: 1px; }
+
+/* ---------- Knöpfe ---------- */
+.btn, .btn-gross {
+  background: var(--siegel); color: #fff8ec; border: 0; border-radius: 4px;
+  padding: 12px 22px; font-weight: 700; min-height: 48px;
+  box-shadow: 0 2px 0 var(--siegel-dunkel);
+}
+.btn-gross { display: block; width: 100%; margin-top: 18px; font-size: 1.15em; }
+.btn:active, .btn-gross:active { transform: translateY(1px); box-shadow: none; }
+.btn[disabled] { opacity: 0.45; cursor: default; }
+.btn.hell { background: var(--pergament-hell); color: var(--tinte); border: 1px solid var(--tinte-hell); box-shadow: none; }
+.btn.hell.an { background: var(--gruen); color: #fff; border-color: var(--gruen); }
+.btn.gruen { background: var(--gruen); box-shadow: 0 2px 0 #24401d; }
+.kbtn { background: transparent; color: var(--pergament); border: 1px solid var(--pergament-dunkel); border-radius: 4px; padding: 8px 12px; min-height: 44px; }
+.linkbtn { background: none; border: 0; padding: 0; text-decoration: underline; color: inherit; font-size: inherit; }
+.fussleiste { display: flex; flex-wrap: wrap; gap: 10px; justify-content: flex-end; margin-top: 16px; }
+
+/* ---------- Kopf ---------- */
+.kopf {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 10px 18px;
+  padding: 10px 16px; color: var(--pergament);
+  border-bottom: 1px solid #6b4c33;
+}
+.haus { display: flex; align-items: center; gap: 10px; flex: 1 1 220px; min-width: 0; }
+.haus b { display: block; font-size: 1.1em; }
+.haus small { color: var(--pergament-dunkel); }
+.werte { display: flex; gap: 8px; flex-wrap: wrap; }
+.wert { background: var(--pergament); color: var(--tinte); border-radius: 3px; padding: 3px 10px; text-align: center; min-width: 70px; }
+.wert small { display: block; font-size: 0.68em; letter-spacing: 0.08em; text-transform: uppercase; color: var(--tinte-hell); }
+.wert b { font-size: 1.05em; }
+.knoepfe { display: flex; gap: 8px; }
+
+/* ---------- Spielfläche ---------- */
+.spielflaeche { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 6fr); gap: 16px; padding: 16px; max-width: 1280px; margin: 0 auto; }
+.kartenfeld, .tafel {
+  background: var(--pergament); border-radius: 4px; padding: 14px 16px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+}
+.kartenfeld { align-self: start; }
+.ortinfo { font-size: 0.9em; margin: 10px 2px 0; }
+
+.schritte { display: flex; list-style: none; padding: 0; margin: 0 0 14px; gap: 4px; counter-reset: s; }
+.schritte li {
+  flex: 1; text-align: center; font-size: 0.78em; padding: 5px 2px; border-radius: 3px;
+  background: var(--pergament-dunkel); color: var(--tinte-hell); counter-increment: s;
+}
+.schritte li::before { content: counter(s) " · "; }
+.schritte li.an { background: var(--tinte); color: var(--pergament); font-weight: 700; }
+
+/* ---------- Karte ---------- */
+.weltkarte { width: 100%; height: auto; display: block; background: var(--pergament-hell); border-radius: 3px; }
+.k-rahmen { fill: none; stroke: var(--tinte-hell); stroke-width: 1.5; }
+.k-rahmen2 { fill: none; stroke: var(--tinte-hell); stroke-width: 0.6; }
+.k-rose path { fill: var(--tinte-hell); opacity: 0.6; }
+.k-rose text { font-size: 9px; fill: var(--tinte-hell); font-family: var(--schrift); }
+.d-meer { fill: #d9e3dc; stroke: #8fa9b4; stroke-width: 1.2; }
+.d-fluss, .d-niger { fill: none; stroke: #8fa9b4; stroke-width: 3; stroke-linecap: round; }
+.d-name { font-family: var(--schrift); font-style: italic; font-size: 13px; fill: #6d8794; text-anchor: middle; letter-spacing: 0.08em; }
+.d-klein { font-family: var(--schrift); font-style: italic; font-size: 10px; fill: #7b8c8f; text-anchor: middle; }
+.d-berg path { fill: none; stroke: var(--tinte-hell); stroke-width: 1.2; opacity: 0.7; }
+.d-duene path { fill: none; stroke: var(--wueste); stroke-width: 1.3; opacity: 0.6; }
+.k-weg { stroke-width: 3; stroke-linecap: round; fill: none; }
+.k-see { stroke: var(--see); stroke-dasharray: 8 6; }
+.k-fluss { stroke: var(--see); stroke-dasharray: 2 5; stroke-width: 4; }
+.k-land { stroke: var(--land); stroke-dasharray: 10 4 2 4; }
+.k-wueste { stroke: var(--wueste); stroke-dasharray: 3 6; stroke-width: 4; }
+.k-aktiv { stroke: var(--rot); stroke-width: 5; }
+.k-zeichen { font-size: 14px; fill: var(--tinte-hell); font-family: var(--schrift); }
+.k-punkt { fill: var(--tinte); stroke: var(--pergament-hell); stroke-width: 2; }
+.k-name { font-size: 13px; font-weight: 700; fill: var(--tinte); font-family: var(--schrift); paint-order: stroke; stroke: var(--pergament-hell); stroke-width: 3px; }
+.k-treffer { fill: var(--gold); opacity: 0.18; }
+.k-ziel { cursor: pointer; }
+.k-ziel .k-punkt { fill: var(--gold); }
+.k-gewaehlt .k-treffer { fill: var(--rot); opacity: 0.3; }
+.k-gewaehlt .k-punkt { fill: var(--rot); }
+
+/* ---------- Siegel ---------- */
+.siegel { flex: none; }
+.siegel-rand { fill: var(--siegel); }
+.siegel-innen { fill: var(--siegel); stroke: var(--siegel-dunkel); stroke-width: 2; }
+.siegel-ring { fill: none; stroke: #c9493b; stroke-width: 1.5; }
+.siegel-text { fill: #f6d9c9; font-family: var(--schrift); font-weight: 700; font-size: 34px; }
+
+/* ---------- Karten und Tafeln ---------- */
+.spielkarte, .nachricht {
+  border: 2px solid var(--tinte-hell); border-radius: 6px; padding: 16px 18px;
+  background: var(--pergament-hell);
+}
+.nachricht { border-color: var(--rot); }
+.wahl2, .wahl4 { display: grid; gap: 10px; margin: 14px 0 4px; }
+.wahl2 { grid-template-columns: 1fr 1fr; }
+.wahl4 { grid-template-columns: 1fr 1fr; }
+.wahlbtn {
+  background: var(--pergament); border: 2px solid var(--tinte-hell); border-radius: 6px;
+  padding: 14px 12px; min-height: 64px; font-weight: 700; text-align: center;
+}
+.wahlbtn.an { background: var(--tinte); color: var(--pergament); border-color: var(--tinte); }
+.folge { border-top: 1px solid var(--tinte-hell); margin-top: 12px; padding-top: 10px; }
+.buchstelle { background: var(--pergament); border-left: 4px solid var(--gold); padding: 10px 12px; font-size: 0.9em; margin-top: 8px; }
+
+/* ---------- Markt ---------- */
+.preise { width: 100%; border-collapse: collapse; margin: 6px 0; }
+.preise th, .preise td { padding: 6px 6px; border-bottom: 1px solid var(--pergament-dunkel); text-align: left; vertical-align: middle; }
+.preise thead th { font-size: 0.75em; text-transform: uppercase; letter-spacing: 0.06em; color: var(--tinte-hell); }
+.preise .zahl { text-align: center; font-variant-numeric: tabular-nums; }
+.preise.klein { font-size: 0.85em; }
+.preise .aktion { text-align: right; white-space: nowrap; }
+.stern { color: var(--gold); }
+.mbtn { border-radius: 4px; padding: 8px 6px; min-height: 44px; min-width: 46px; margin: 2px 0 2px 4px; font-weight: 700; border: 1px solid var(--tinte-hell); }
+.mbtn.kauf { background: var(--gruen); color: #fff; border-color: var(--gruen); }
+.mbtn.verk { background: var(--pergament-hell); }
+.mbtn.alle { font-weight: 400; }
+.anderswo { margin-top: 12px; }
+.anderswo summary { cursor: pointer; font-size: 0.88em; color: var(--tinte-hell); padding: 6px 0; }
+
+/* ---------- Reise ---------- */
+.ziele { display: grid; gap: 8px; margin: 8px 0 12px; }
+.zielbtn {
+  display: grid; grid-template-columns: 1fr auto; gap: 2px 10px; align-items: center; text-align: left;
+  background: var(--pergament-hell); border: 2px solid var(--tinte-hell); border-radius: 6px; padding: 10px 14px; min-height: 56px;
+}
+.zielbtn small { grid-column: 1; }
+.zielbtn .gefahr { grid-column: 2; grid-row: 1 / span 2; }
+.zielbtn.an { border-color: var(--rot); background: #f6dccf; }
+.gefahr { font-size: 0.82em; white-space: nowrap; }
+.gefahr.g0 { color: var(--gruen); }
+.gefahr.g1 { color: var(--gruen); }
+.gefahr.g2 { color: var(--gold); }
+.gefahr.g3 { color: var(--rot); font-weight: 700; }
+.schutzbox { border: 1px dashed var(--tinte-hell); border-radius: 6px; padding: 10px 14px; }
+.schutzbox h3 { margin-top: 0; }
+.schutz-an { color: var(--gruen); font-weight: 700; }
+
+/* ---------- Ergebnis, Bilanz ---------- */
+.ereignisliste { padding-left: 20px; }
+.ereignisliste li { margin-bottom: 8px; }
+.e-unglueck { color: var(--rot); font-weight: 700; }
+.e-regel, .e-abgabe { color: var(--tinte-hell); }
+.gross { font-size: 1.4em; }
+.balkenreihe { display: flex; gap: 8px; align-items: flex-end; height: 160px; margin: 10px 0 16px; padding: 0 4px; border-bottom: 2px solid var(--tinte-hell); }
+.balken { flex: 1; height: 100%; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; position: relative; }
+.balken span { width: 70%; background: var(--gold); border-radius: 2px 2px 0 0; min-height: 2px; }
+.balken small { position: absolute; bottom: -22px; }
+.balken b { font-size: 0.8em; }
+.fakten { margin-top: 30px; }
+
+/* ---------- Overlay ---------- */
+.ov { position: fixed; inset: 0; background: rgba(30, 20, 12, 0.6); display: flex; align-items: flex-start; justify-content: center; padding: 30px 16px; overflow-y: auto; z-index: 10; }
+.ov[hidden] { display: none; }
+.blatt { background: var(--pergament); border-radius: 4px; max-width: 720px; width: 100%; padding: 26px 28px; position: relative; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5); }
+.zu { position: absolute; top: 8px; right: 10px; background: none; border: 0; font-size: 2em; line-height: 1; padding: 4px 10px; min-height: 44px; }
+.kontor { list-style: none; padding: 0; margin: 0 0 8px; }
+.kontor li { display: flex; gap: 10px; padding: 4px 0; border-bottom: 1px dotted var(--tinte-hell); font-size: 0.92em; }
+.betrag { flex: none; width: 3.2em; text-align: right; font-variant-numeric: tabular-nums; font-weight: 700; }
+.betrag.plus { color: var(--gruen); }
+.betrag.minus { color: var(--rot); }
+.kontor .k-nachricht { font-style: italic; color: var(--tinte-hell); }
+.kontor .k-unglueck { color: var(--rot); font-weight: 700; }
+.hilfe-liste li { margin-bottom: 8px; }
+.quellen { font-size: 0.88em; padding-left: 18px; }
+.quellen li { margin-bottom: 6px; }
+
+/* ---------- Fußzeile ---------- */
+.quelle { color: var(--pergament-dunkel); font-size: 0.75em; text-align: center; padding: 14px 16px 24px; }
+
+/* ---------- Schmal (iPad hochkant, Handy) ---------- */
+@media (max-width: 860px) {
+  .spielflaeche { grid-template-columns: 1fr; padding: 10px; }
+  .kartenfeld { order: 2; }
+  .pergament { padding: 30px 22px; }
+  .pergament h1 { font-size: 2.3em; }
+}
+@media (max-width: 520px) {
+  body { font-size: 16px; }
+  .wahl2, .wahl4 { grid-template-columns: 1fr; }
+  .preise .aktion { white-space: normal; }
+}
+
+/* ---------- Druck: nur der Bericht ---------- */
+#druck { display: none; }
+@media print {
+  body { background: #fff; color: #000; font-size: 11pt; }
+  #app, #fuss, .ov { display: none !important; }
+  #druck { display: block; }
+  .druck h1 { font-size: 18pt; }
+  .druck h2 { font-size: 12pt; margin-top: 14pt; }
+  .kontor li { border-bottom: 1px solid #ccc; }
+}
