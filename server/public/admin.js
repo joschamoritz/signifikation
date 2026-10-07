@@ -3093,7 +3093,69 @@ function renderUnterrichtAbgabe(a, veraltet) {
     </div>`
 }
 
+const HR_RAUM = { seide: 'Seidenstraße', hanse: 'Hanse', sahara: 'Sahara' }
+const HR_HYP = { lage: 'die Lage der Stadt', ware: 'die wertvollste Ware', schutz: 'Schutz und Zusammenarbeit', glueck: 'Glück' }
+
+function renderHandelsreiseAbgabe(a, veraltet) {
+  const b = a.bericht || {}
+  const h = a.hypothese || {}
+  const bi = a.bilanz || {}
+  const zeit = new Date(a.created_at).toLocaleString('de-DE', { dateStyle: 'short', timeStyle: 'short' })
+  const frage = (f, text) => `<tr><th>${esc(f)}</th><td colspan="2">${esc(text || '–')}</td></tr>`
+  const buch = (a.kontorbuch || []).map((z) => `<li>${esc(z)}</li>`).join('')
+  return `
+    <div class="ut-abgabe${veraltet ? ' ut-veraltet' : ''}">
+      <div class="ut-kopf">
+        <strong>${esc(a.team)}</strong>
+        <span class="label-hint">${esc(a.haus || '')} · ${esc(HR_RAUM[a.raum] || a.raum || '')} · ${esc(zeit)}${veraltet ? ' · ältere Abgabe' : ''}</span>
+        <button class="entry-filters-reset freeday-delete-btn" data-action="delete-unterricht" data-id="${Number(a.id)}">Löschen</button>
+      </div>
+      <p class="ut-1992"><b>Vermutung:</b> ${esc(HR_HYP[h.wahl] || '–')}${h.text ? ` (${esc(h.text)})` : ''} · <b>Bilanz:</b> ${Number(bi.start) || 0} → ${Number(bi.ende) || 0} Silber · Unglücke: ${Number(bi.unglueck) || 0} · Schutz: ${esc(bi.schutz || '–')}</p>
+      <table class="ut-tabelle">
+        ${frage('1. Was hat euer Handelshaus gerettet oder ruiniert?', b.f1)}
+        ${frage('2. Hat eure Vermutung gestimmt?', b.f2)}
+        ${frage('3. Was fehlt im Spiel, das im Buch steht?', b.f3)}
+      </table>
+      <details class="ut-details"><summary>Kontorbuch (${(a.kontorbuch || []).length} Einträge)</summary><ul>${buch || '<li>Leer.</li>'}</ul></details>
+    </div>`
+}
+
+async function loadHandelsreiseAbgaben() {
+  const listEl = document.getElementById('unterricht-hr-list')
+  if (!listEl) return
+  listEl.innerHTML = '<div class="users-empty">Wird geladen …</div>'
+  try {
+    const res = await fetch('/admin/unterricht/abgaben?aufgabe=handelsreise')
+    if (!res.ok) throw new Error(`HTTP ${res.status}`)
+    const { abgaben } = await res.json()
+    if (!Array.isArray(abgaben) || !abgaben.length) {
+      listEl.innerHTML = '<div class="users-empty">Noch keine Abgaben.</div>'
+      return
+    }
+    const gesehen = new Set()
+    const teams = new Set(abgaben.map((a) => (a.team || '').trim().toLowerCase()))
+    const html = abgaben.map((a) => {
+      const key = (a.team || '').trim().toLowerCase()
+      const veraltet = gesehen.has(key)
+      gesehen.add(key)
+      return renderHandelsreiseAbgabe(a, veraltet)
+    }).join('')
+    listEl.innerHTML = `<p class="section-copy">${abgaben.length} Abgaben von ${teams.size} Teams.</p>${html}`
+  } catch (err) {
+    listEl.innerHTML = `<div class="users-empty" style="color:#991b1b">Fehler: ${esc(err.message)}</div>`
+  }
+}
+
+async function deleteHandelsreiseAlle() {
+  if (!confirmAction('Alle Abgaben der Handelsreise löschen?', ['Das kann nicht rückgängig gemacht werden.'])) return
+  try {
+    const res = await fetch('/admin/unterricht/abgaben?aufgabe=handelsreise', { method: 'DELETE', headers: { 'Content-Type': 'application/json' } })
+    if (res.ok) await loadHandelsreiseAbgaben()
+  } catch { /* ignore */ }
+}
+
 async function loadUnterrichtAbgaben() {
+  loadHandelsreiseAbgaben()
   const listEl = document.getElementById('unterricht-list')
   if (!listEl) return
   listEl.innerHTML = '<div class="users-empty">Wird geladen …</div>'
@@ -3842,6 +3904,7 @@ function handleDocumentClick(event) {
   if (action === 'load-unterricht') return void loadUnterrichtAbgaben()
   if (action === 'delete-unterricht') return void deleteUnterrichtAbgabe(target.dataset.id || '')
   if (action === 'delete-unterricht-alle') return void deleteUnterrichtAlle()
+  if (action === 'delete-unterricht-hr-alle') return void deleteHandelsreiseAlle()
   if (action === 'load-spezialwochen') return void loadSpezialwochen()
   if (action === 'save-spezialwoche') return void saveSpezialwoche()
   if (action === 'clear-sw-form') return void clearSwForm()

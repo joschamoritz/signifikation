@@ -128,6 +128,32 @@ describe('unterricht routes', () => {
     expect(res.status).toBe(400)
   })
 
+  it('speichert eine Handelsreise-Abgabe und lehnt falsche Werte ab', async () => {
+    const team = `${PREFIX}-hr`
+    const hr = {
+      aufgabe: 'handelsreise', team, haus: 'Haus Morgenstern', raum: 'hanse', code: '4821',
+      hypothese: { wahl: 'lage', text: 'Lübeck liegt gut.' },
+      bericht: { f1: 'Der Sturm in Runde 1 (Kontorbuch).', f2: 'Nein, Schutz.', f3: 'Sklavenhandel, S. 31.' },
+      bilanz: { start: 30, ende: 154, unglueck: 1, schutz: 'Mitglied der Hanse' },
+      entscheidungen: { h1: 'a', h2: 'b' },
+      kontorbuch: ['Runde 1: Kauf: 8 Salz in Lübeck (-16)'],
+    }
+    const ok = await fetch(`${baseUrl}/api/v1/unterricht/abgabe`, { method: 'POST', headers: jsonHeaders, body: JSON.stringify(hr) })
+    expect(ok.status).toBe(200)
+    const row = db.prepare('SELECT aufgabe, payload FROM unterricht_abgabe WHERE team = ?').get(team)
+    expect(row.aufgabe).toBe('handelsreise')
+    expect(JSON.parse(row.payload).bilanz.ende).toBe(154)
+
+    const falsch = await fetch(`${baseUrl}/api/v1/unterricht/abgabe`, {
+      method: 'POST', headers: jsonHeaders, body: JSON.stringify({ ...hr, raum: 'atlantis' }),
+    })
+    expect(falsch.status).toBe(400)
+    const zuLang = await fetch(`${baseUrl}/api/v1/unterricht/abgabe`, {
+      method: 'POST', headers: jsonHeaders, body: JSON.stringify({ ...hr, bericht: { ...hr.bericht, f1: 'x'.repeat(801) } }),
+    })
+    expect(zuLang.status).toBe(400)
+  })
+
   it('GET /admin/unterricht/abgaben verlangt Admin-Login', async () => {
     const res = await fetch(`${baseUrl}/admin/unterricht/abgaben`)
     expect(res.status).toBe(401)

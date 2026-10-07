@@ -21,12 +21,13 @@ import { adminLimiter, unterrichtAbgabeLimiter } from '../middleware/rateLimiter
 const router = express.Router()
 
 // Neue Tools hier eintragen – unbekannte Aufgaben werden abgewiesen.
-export const AUFGABEN = ['fallakte-oetzi']
+export const AUFGABEN = ['fallakte-oetzi', 'handelsreise']
 
 // ── Zod-Schemata ─────────────────────────────────────────────────────────────
 
 const stempelSchema = z.enum(['belegt', 'vermutet', 'ungeklaert']).nullable()
 const freitext = (max) => z.string().max(max, `Text zu lang (max. ${max} Zeichen)`)
+const teamSchema = z.string().trim().min(1, 'Teamname fehlt').max(80, 'Teamname zu lang')
 
 const karteSchema = z.object({
   titel:   freitext(80),
@@ -35,9 +36,9 @@ const karteSchema = z.object({
   tipps:   z.number().int().min(0).max(5),
 })
 
-export const abgabeSchema = z.object({
-  aufgabe: z.enum(AUFGABEN),
-  team:    z.string().trim().min(1, 'Teamname fehlt').max(80, 'Teamname zu lang'),
+const fallakteSchema = z.object({
+  aufgabe: z.literal('fallakte-oetzi'),
+  team:    teamSchema,
   bericht1992: z.object({
     wer:      freitext(600),
     wie:      z.string().max(40).nullable(),
@@ -52,6 +53,31 @@ export const abgabeSchema = z.object({
   karten: z.record(z.string().regex(/^[a-z][0-9]{1,2}$/), karteSchema)
     .refine((k) => Object.keys(k).length <= 20, 'Zu viele Beweisstücke'),
 })
+
+// Handelsreise (G8.1): Reisebericht + Spielverlauf. Bewertet wird der Bericht.
+const handelsreiseSchema = z.object({
+  aufgabe:   z.literal('handelsreise'),
+  team:      teamSchema,
+  haus:      freitext(40),
+  raum:      z.enum(['seide', 'hanse', 'sahara']),
+  code:      z.string().regex(/^(\d{4})?$/),
+  hypothese: z.object({
+    wahl: z.enum(['lage', 'ware', 'schutz', 'glueck']).nullable(),
+    text: freitext(300),
+  }),
+  bericht: z.object({ f1: freitext(800), f2: freitext(800), f3: freitext(800) }),
+  bilanz: z.object({
+    start:    z.number().int().min(0).max(100000),
+    ende:     z.number().int().min(0).max(100000),
+    unglueck: z.number().int().min(0).max(10),
+    schutz:   freitext(120),
+  }),
+  entscheidungen: z.record(z.string().regex(/^[a-z][0-9]$/), z.enum(['a', 'b']))
+    .refine((k) => Object.keys(k).length <= 10, 'Zu viele Entscheidungen'),
+  kontorbuch: z.array(freitext(160)).max(80),
+})
+
+export const abgabeSchema = z.discriminatedUnion('aufgabe', [fallakteSchema, handelsreiseSchema])
 
 const aufgabeQuerySchema = z.object({
   aufgabe: z.enum(AUFGABEN).default('fallakte-oetzi'),
@@ -88,9 +114,10 @@ function stmts() {
 // ── Öffentlich: Abgabe ───────────────────────────────────────────────────────
 
 router.post('/api/v1/unterricht/abgabe', unterrichtAbgabeLimiter, validate(abgabeSchema), (req, res) => {
-  const { aufgabe, team, bericht1992, abschluss, karten } = req.body
+  // req.body ist von Zod bereinigt (unbekannte Felder verworfen)
+  const { aufgabe, team, ...inhalt } = req.body
   try {
-    const info = stmts().insert.run(aufgabe, team, JSON.stringify({ bericht1992, abschluss, karten }), Date.now())
+    const info = stmts().insert.run(aufgabe, team, JSON.stringify(inhalt), Date.now())
     logger.info({ aufgabe, id: info.lastInsertRowid }, 'Unterrichts-Abgabe gespeichert')
     res.json({ ok: true })
   } catch (err) {

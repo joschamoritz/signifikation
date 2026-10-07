@@ -104,7 +104,7 @@ export const RAEUME = {
   sahara: {
     name: 'Sahara',
     untertitel: 'Salz gegen Gold',
-    startorte: ['timbuktu'],   // Start in Taghaza wäre klar im Vorteil (Simulation 2026-10-07)
+    startorte: ['timbuktu', 'taghaza'],   // verteilt, sonst drücken alle denselben Markt (Simulation Klassenmarkt 2026-10-07)
     intro: 'Ihr seid ein Handelshaus am Rand der Sahara. Salz aus Taghaza wird gegen Gold aus dem Süden getauscht. Aus dem Norden kommen Tuche und Kupfer. Wer die Wüste durchquert, braucht Wasser – und eine Karawane.',
     introBeleg: 'S. 30 VT5, S. 31 VT7, D1',
     waren: {
@@ -124,11 +124,11 @@ export const RAEUME = {
     },
     preise: {
       taghaza:  { salz: 2, gold: 9, elfenbein: 8, tuche: 3, kupfer: 3 },
-      timbuktu: { salz: 5, gold: 5, elfenbein: 5, tuche: 6, kupfer: 6 },
-      djenne:   { salz: 8, gold: 3, elfenbein: 3, tuche: 7, kupfer: 7 },
+      timbuktu: { salz: 7, gold: 4, elfenbein: 6, tuche: 7, kupfer: 7 },
+      djenne:   { salz: 9, gold: 3, elfenbein: 3, tuche: 8, kupfer: 8 },
     },
     strecken: [
-      { a: 'taghaza', b: 'timbuktu', risiko: 0.4, art: 'wueste', name: 'durch die Wüste' },
+      { a: 'taghaza', b: 'timbuktu', risiko: 0.32, art: 'wueste', name: 'durch die Wüste' },
       { a: 'timbuktu', b: 'djenne', risiko: 0.1, art: 'fluss', name: 'auf dem Niger' },
     ],
     schutz: {
@@ -457,8 +457,74 @@ export function risiko(team, zielOrt, ereignis, kontext = {}) {
     if (x.ohne && flags[x.ohne]) continue
     r *= x.faktor
   }
-  if (kontext.verkehr) r *= kontext.verkehr   // Klassenmarkt: viele Unbeschützte auf einer Strecke
+  // Klassenmarkt: Wo viele ohne Schutz dieselbe Strecke fahren, wird es gefährlicher
+  if (kontext.verkehr && !hatSchutz({ ...team, flags })) r *= kontext.verkehr[streckenSchluessel(s.a, s.b)] || 1
   return Math.min(0.9, Math.max(0, r))
+}
+
+export function streckenSchluessel(a, b) { return a < b ? `${a}|${b}` : `${b}|${a}` }
+
+/** Hat das Team den Schutz seines Raums (Hanse, Geleit, Karawane für diese Reise)? */
+export function hatSchutz(team) {
+  const id = RAEUME[team.raum].schutz.id
+  if (id === 'karawane') return !!((team.reise && team.reise.karawane) || (team.flags && team.flags.karawane))
+  return !!(team.flags && team.flags[id])
+}
+
+/* ================= Klassenmarkt (Server) ================= */
+// Rechnet aus den Abgaben einer Runde den Kontext der Abrechnung und die
+// Marktfaktoren der nächsten Runde. abgaben: [{ raum, ort, ziel, schutz, verkaeufe: { ware: menge } }]
+export const SAETTIGUNG = 0.5        // alle Teams eines Raums verkaufen dieselbe Ware am selben Ort → Preis × 0.5
+export const ERHOLUNG = 0.2          // je Runde erholt sich ein gedrückter Preis um 0.2 Richtung 1
+export const VERKEHR_JE_TEAM = 0.15  // jedes weitere unbeschützte Team auf derselben Strecke: Gefahr × 1.15
+
+export function abrechnungsKontext(abgaben, teamsJeRaum) {
+  const kontext = {}
+  for (const raumId of Object.keys(RAEUME)) {
+    const imRaum = abgaben.filter((a) => a.raum === raumId)
+    const zahl = teamsJeRaum[raumId] || 0
+    const mitglieder = imRaum.filter((a) => a.schutz).length
+    const verkehr = {}
+    const ohne = {}
+    for (const a of imRaum) {
+      if (a.schutz || !a.ziel || a.ziel === a.ort) continue
+      const k = streckenSchluessel(a.ort, a.ziel)
+      ohne[k] = (ohne[k] || 0) + 1
+    }
+    for (const [k, n] of Object.entries(ohne)) if (n > 1) verkehr[k] = Math.min(1.6, 1 + VERKEHR_JE_TEAM * (n - 1))
+    kontext[raumId] = { hanseAnteil: raumId === 'hanse' && zahl ? mitglieder / zahl : 0.5, verkehr }
+  }
+  return kontext
+}
+
+export function neueFaktoren(alt, abgaben, teamsJeRaum) {
+  const neu = {}
+  for (const [raumId, R] of Object.entries(RAEUME)) {
+    neu[raumId] = {}
+    for (const ort of Object.keys(R.orte)) {
+      neu[raumId][ort] = {}
+      for (const w of Object.keys(R.waren)) {
+        const f = ((alt[raumId] || {})[ort] || {})[w] ?? 1
+        neu[raumId][ort][w] = Math.min(1, Math.round((f + ERHOLUNG) * 100) / 100)
+      }
+    }
+    const zahl = teamsJeRaum[raumId] || 0
+    if (!zahl) continue
+    const verkaeufer = {}
+    for (const a of abgaben.filter((x) => x.raum === raumId)) {
+      for (const [w, n] of Object.entries(a.verkaeufe || {})) {
+        if (n > 0 && neu[raumId][a.ort] && w in neu[raumId][a.ort]) {
+          const k = `${a.ort}|${w}`
+          verkaeufer[k] = (verkaeufer[k] || 0) + 1
+        }
+      }
+    }
+    for (const [k, n] of Object.entries(verkaeufer)) {
+      const [ort, w] = k.split('|')
+      neu[raumId][ort][w] = Math.max(0.5, Math.round(neu[raumId][ort][w] * (1 - SAETTIGUNG * (n / zahl)) * 100) / 100)
+    }
+  }
+  return neu
 }
 
 export function gefahrStufe(r) {

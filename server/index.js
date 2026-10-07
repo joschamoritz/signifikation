@@ -41,6 +41,7 @@ import unterrichtRouter from './routes/unterricht.js'
 import { startPushScheduler } from './notifications/scheduler.js'
 import { startStreakSaverScheduler } from './notifications/streak.js'
 import { setupClassroomSocket } from './realtime/classroomSocket.js'
+import { setupHandelsreiseSocket } from './realtime/handelsreiseSocket.js'
 import { startClassroomAutoEnd } from './jobs/classroomAutoEnd.js'
 import { startClassroomRetention } from './jobs/classroomRetention.js'
 import { startSqliteBackup } from './jobs/sqliteBackup.js'
@@ -320,6 +321,7 @@ app.use((err, req, res, next) => {
     },
   })
   setupClassroomSocket(io)
+  setupHandelsreiseSocket(io)   // Unterrichtstool G8.1 (Klassenmarkt)
   // Auto-End nach Inaktivitaet (D8) — nach dem Socket-Setup, damit die
   // session:finished-Broadcasts greifen.
   startClassroomAutoEnd()
