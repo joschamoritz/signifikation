@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<!--
+  ============================================================
+  HANDELSREISE – Geschichte 8a/8e – ASGSG Marl – G8.1 (Abschluss Kapitel 1)
+
+  Ein Handelshaus reist in fünf Runden durch einen von drei Handelsräumen
+  (Seidenstraße, Hanse, Sahara). Regeln und Daten: handelsreise-regeln.js.
+  Gespeichert wird im Browser des iPads (localStorage). Ohne Klassenmarkt
+  rechnet das Gerät mit Basispreisen und Basisrisiko.
+
+  Alle Zahlen sind Spielwerte. Kartentexte nach Geschichte und Geschehen 2
+  (Klett), S. 24–33; Pest nach Praxis Geschichte 4/2021 und 2/2023.
+  Keine Musterlösung im Tool – die Deutung ist die Aufgabe.
+  ============================================================
+-->
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>Handelsreise</title>
+<link rel="stylesheet" href="handelsreise.css">
+</head>
+<body>
+
+<main id="app" aria-live="polite"></main>
+
+<div class="ov" id="ov" hidden><div class="blatt" id="ovBlatt"></div></div>
+
+<footer class="quelle" id="fuss">
+  ASGSG Marl · Geschichte 8 · G8.1 Handelsreise · Urheberrecht: Joscha Fresmann ·
+  Alle Zahlen sind Spielwerte · Kartentexte nach Geschichte und Geschehen 2 (Klett), S. 24–33 ·
+  <button type="button" id="quellenBtn" class="linkbtn">Woher stammt das?</button> ·
+  <button type="button" id="resetBtn" class="linkbtn">Neu anfangen</button>
+</footer>
+
+<script type="module" src="handelsreise.js"></script>
+</body>
+</html>

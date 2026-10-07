@@ -25,6 +25,9 @@ jobs:
           VITE_API_BASE: https://signifikation.de
         run: npm run build
 
+      - name: Remove web-only content (Unterrichtstools)
+        run: node scripts/strip-web-only.mjs
+
       - name: Sync iOS
         run: npx cap sync ios
 
