@@ -22,32 +22,38 @@ export const RAEUME = {
     name: 'Seidenstraße',
     untertitel: 'Von Venedig bis nach China',
     startorte: ['venedig'],
-    intro: 'Ihr seid ein Handelshaus aus Venedig. Europäer schätzen Seide, Gewürze und Porzellan aus dem fernen Osten als Luxus. In Richtung China gehen Glas und Fertigwaren. Der Weg ist weit – aber die Mongolen schützen Reisende in ihrem Reich.',
-    introBeleg: 'S. 28 VT1, VT2',
+    intro: 'Ihr seid ein Handelshaus aus Venedig. Europäer schätzen Seide, Gewürze, Porzellan und Pelze aus dem Osten als Luxus. In Richtung China gehen Glas und Fertigwaren. Der Weg ist weit – aber die Mongolen schützen Reisende in ihrem Reich.',
+    introBeleg: 'S. 28 VT1, VT2; S. 29 D1',
     waren: {
       seide:     { name: 'Seide' },
       gewuerze:  { name: 'Gewürze' },
       porzellan: { name: 'Porzellan' },
+      pelze:     { name: 'Pelze' },
       glas:      { name: 'Glas' },
       fertig:    { name: 'Fertigwaren' },
     },
     orte: {
-      venedig: { name: 'Venedig', x: 50, y: 100, angebot: ['glas', 'fertig'],
+      venedig: { name: 'Venedig', x: 45, y: 95, angebot: ['glas', 'fertig'],
         text: 'Italienische Kaufleute bringen Waren aus Asien nach Europa.', beleg: 'S. 28 VT1' },
-      bagdad: { name: 'Bagdad · Damaskus', x: 185, y: 175, angebot: ['gewuerze'],
-        text: 'Bis hierher segeln die Italiener, an die Ostküste des Mittelmeers.', beleg: 'S. 28 VT1' },
-      quinsai: { name: 'Quinsai', x: 345, y: 95, angebot: ['seide', 'porzellan'],
+      bagdad: { name: 'Bagdad · Damaskus', x: 150, y: 170, angebot: ['gewuerze'],
+        text: 'Bis hierher segeln die Italiener, an die Ostküste des Mittelmeers. Hier teilt sich der Weg: über Land nach Samarkand oder übers Meer nach China.', beleg: 'S. 28 VT1, S. 29 D1' },
+      samarkand: { name: 'Samarkand', x: 240, y: 90, angebot: ['pelze'],
+        text: 'Handelsstadt an der Hauptroute der Seidenstraße, mitten in Zentralasien. Dass hier Pelze aus der Steppe gehandelt werden, ist vereinfacht.', beleg: 'S. 29 D1, S. 28 VT1' },
+      quinsai: { name: 'Quinsai', x: 360, y: 140, angebot: ['seide', 'porzellan'],
         text: 'Hangzhou in China. Marco Polo nennt sie die glanzvollste Stadt der Welt.', beleg: 'S. 29 Q2' },
     },
     // Spielwerte. ★ = Angebot (hier kann man kaufen).
     preise: {
-      venedig: { seide: 9, gewuerze: 8, porzellan: 9, glas: 2, fertig: 3 },
-      bagdad:  { seide: 6, gewuerze: 4, porzellan: 6, glas: 5, fertig: 5 },
-      quinsai: { seide: 3, gewuerze: 6, porzellan: 3, glas: 8, fertig: 7 },
+      venedig:   { seide: 9, gewuerze: 8, porzellan: 9, pelze: 7, glas: 2, fertig: 3 },
+      bagdad:    { seide: 7, gewuerze: 4, porzellan: 7, pelze: 5, glas: 4, fertig: 4 },
+      samarkand: { seide: 5, gewuerze: 6, porzellan: 5, pelze: 2, glas: 6, fertig: 6 },
+      quinsai:   { seide: 3, gewuerze: 6, porzellan: 3, pelze: 5, glas: 8, fertig: 7 },
     },
     strecken: [
-      { a: 'venedig', b: 'bagdad', risiko: 0.2, art: 'see', name: 'übers Mittelmeer' },
-      { a: 'bagdad', b: 'quinsai', risiko: 0.35, art: 'land', name: 'über die Seidenstraße' },
+      { a: 'venedig', b: 'bagdad', risiko: 0.25, art: 'see', name: 'übers Mittelmeer' },
+      { a: 'bagdad', b: 'samarkand', risiko: 0.3, art: 'land', name: 'über Persien' },
+      { a: 'samarkand', b: 'quinsai', risiko: 0.35, art: 'land', name: 'an der Wüste Taklamakan vorbei' },
+      { a: 'bagdad', b: 'quinsai', risiko: 0.45, art: 'see', name: 'übers Meer, wie Marco Polo zurück', kurve: [250, 300] },
     ],
     schutz: {
       id: 'geleit', name: 'Geleitbrief der Mongolen', kosten: 5, dauer: 'spiel',
@@ -88,10 +94,10 @@ export const RAEUME = {
       nowgorod: { pelze: 2, wachs: 2, salz: 7, wein: 8, tuche: 8, metall: 7 },
     },
     strecken: [
-      { a: 'london', b: 'luebeck', risiko: 0.2, art: 'see', name: 'über die Nordsee' },
-      { a: 'london', b: 'koeln', risiko: 0.15, art: 'see', name: 'über Nordsee und Rhein' },
-      { a: 'koeln', b: 'luebeck', risiko: 0.2, art: 'land', name: 'über Land' },
-      { a: 'luebeck', b: 'nowgorod', risiko: 0.25, art: 'see', name: 'über die Ostsee' },
+      { a: 'london', b: 'luebeck', risiko: 0.25, art: 'see', name: 'über die Nordsee' },
+      { a: 'london', b: 'koeln', risiko: 0.2, art: 'see', name: 'über Nordsee und Rhein' },
+      { a: 'koeln', b: 'luebeck', risiko: 0.25, art: 'land', name: 'über Land' },
+      { a: 'luebeck', b: 'nowgorod', risiko: 0.3, art: 'see', name: 'über die Ostsee' },
     ],
     schutz: {
       id: 'hanse', name: 'Mitglied der Hanse', kosten: 6, dauer: 'spiel',
@@ -105,7 +111,7 @@ export const RAEUME = {
     name: 'Sahara',
     untertitel: 'Salz gegen Gold',
     startorte: ['timbuktu', 'taghaza'],   // verteilt, sonst drücken alle denselben Markt (Simulation Klassenmarkt 2026-10-07)
-    intro: 'Ihr seid ein Handelshaus am Rand der Sahara. Salz aus Taghaza wird gegen Gold aus dem Süden getauscht. Aus dem Norden kommen Tuche und Kupfer. Wer die Wüste durchquert, braucht Wasser – und eine Karawane.',
+    intro: 'Ihr seid ein Handelshaus am Rand der Sahara. Salz aus Taghaza wird gegen Gold aus dem Süden getauscht. Aus dem Norden, über Sidschilmasa, kommen Tuche und Kupfer vom Mittelmeer. Wer die Wüste durchquert, braucht Wasser – und eine Karawane.',
     introBeleg: 'S. 30 VT5, S. 31 VT7, D1',
     waren: {
       salz:      { name: 'Salz' },
@@ -115,21 +121,25 @@ export const RAEUME = {
       kupfer:    { name: 'Kupfer' },
     },
     orte: {
-      taghaza:  { name: 'Taghaza', x: 175, y: 40, angebot: ['salz', 'tuche', 'kupfer'],
-        text: 'Salz aus der Wüste. Karawanen aus dem Norden bringen Tuche und Kupfer mit (Spielabstraktion).', beleg: 'S. 31 VT7, S. 32 Q2' },
-      timbuktu: { name: 'Timbuktu', x: 220, y: 185, angebot: ['gold'],
+      sidschilmasa: { name: 'Sidschilmasa', x: 95, y: 40, angebot: ['tuche', 'kupfer'],
+        text: 'Handelszentrum am Atlasgebirge. Hierher bringen Händler vom Mittelmeer und aus Nordafrika Tuche und Kupfer.', beleg: 'S. 31 D1, VT7' },
+      taghaza:  { name: 'Taghaza', x: 170, y: 110, angebot: ['salz'],
+        text: 'Salz aus der Wüste. Das Wasser hier ist salzig.', beleg: 'S. 31 VT7, S. 32 Q2' },
+      timbuktu: { name: 'Timbuktu', x: 250, y: 195, angebot: ['gold'],
         text: 'Zentrum des Handels und der Bildung, am Rand der Wüste und nahe dem Niger.', beleg: 'S. 30 VT5' },
-      djenne:   { name: 'Djenné', x: 120, y: 235, angebot: ['gold', 'elfenbein'],
+      djenne:   { name: 'Djenné', x: 140, y: 238, angebot: ['gold', 'elfenbein'],
         text: 'Von hier kommt das Gold. Salz ist hier besonders gefragt.', beleg: 'S. 31 VT7' },
     },
     preise: {
-      taghaza:  { salz: 2, gold: 9, elfenbein: 8, tuche: 3, kupfer: 3 },
-      timbuktu: { salz: 7, gold: 4, elfenbein: 6, tuche: 7, kupfer: 7 },
-      djenne:   { salz: 9, gold: 3, elfenbein: 3, tuche: 8, kupfer: 8 },
+      sidschilmasa: { salz: 5, gold: 10, elfenbein: 9, tuche: 2, kupfer: 2 },
+      taghaza:      { salz: 2, gold: 8, elfenbein: 7, tuche: 4, kupfer: 4 },
+      timbuktu:     { salz: 7, gold: 4, elfenbein: 6, tuche: 6, kupfer: 6 },
+      djenne:       { salz: 9, gold: 3, elfenbein: 3, tuche: 8, kupfer: 8 },
     },
     strecken: [
-      { a: 'taghaza', b: 'timbuktu', risiko: 0.32, art: 'wueste', name: 'durch die Wüste' },
-      { a: 'timbuktu', b: 'djenne', risiko: 0.1, art: 'fluss', name: 'auf dem Niger' },
+      { a: 'sidschilmasa', b: 'taghaza', risiko: 0.3, art: 'wueste', name: 'durch die nördliche Wüste' },
+      { a: 'taghaza', b: 'timbuktu', risiko: 0.35, art: 'wueste', name: 'zehn Tage durch die Wüste' },
+      { a: 'timbuktu', b: 'djenne', risiko: 0.12, art: 'fluss', name: 'auf dem Niger' },
     ],
     schutz: {
       id: 'karawane', name: 'Mit einer Karawane reisen', kosten: 2, dauer: 'reise',
@@ -215,7 +225,7 @@ export const KARTEN = {
     b: { text: 'Wir nehmen trotzdem Wachen mit', folgen: { risikoReise: 0.8 },
       folgeText: 'Die Wachen machen eure nächste Reise etwas sicherer.' },
     beleg: 'S. 29 Q3: Johannes von Plano Carpini, 1247 vom Papst zu den Mongolen geschickt. Er schreibt, Räuber und Diebe gebe es dort nicht – und im selben Bericht, die Mongolen äßen in Notlagen Menschenfleisch. Ein Bericht mit Standpunkt.',
-    spielregel: 'Wie gefährlich die Reise wirklich war, bestimmt im Spiel die Spielregel, nicht der Bericht.',
+    spielregel: 'Ob ihr dem Mönch glaubt, ändert die Gefahr auf der Straße nicht – ein Bericht macht keinen Weg sicherer. Wie gefährlich die Wege sind, folgt im Spiel aus dem Buch (Gefahren der Reisen S. 24 VT1, Schutz durch die Mongolen S. 28 VT2); die Zahlen dazu sind Spielwerte.',
   },
   s3: {
     titel: 'Glaubt ihr Marco Polo?',
@@ -269,6 +279,23 @@ export const KARTEN = {
     spielregel: 'Der Laden und sein Vorteil sind Spielregeln.',
   },
 }
+
+// Was die Teams VOR der Bestätigung sehen: eine Richtung, keine Zahl, keine Auflösung.
+const HINWEISE = {
+  h1: ['Kostet einmalig Silber. Wer dazugehört, reist mit anderen zusammen.', 'Spart Silber. Ihr bleibt auf euch allein gestellt.'],
+  h2: ['Kostet etwas Silber. Mehr Schiffe, mehr Sicherheit?', 'Kostet nichts. Ein Schiff allein ist schneller – und angreifbarer.'],
+  h3: ['Ihr erfahrt etwas – und verratet etwas.', 'Ihr verratet nichts – und erfahrt nichts.'],
+  h4: ['Kostet nichts. Aber Köln hat seine eigenen Regeln.', 'Kostet Silber und der Weg über Land hat seine Tücken.'],
+  h5: ['Ob das Kontor euch hilft, hängt davon ab, wer ihr seid.', 'Sicher teuer, aber dann ist Ruhe.'],
+  s1: ['Kostet einmalig Silber. Die Mongolen beherrschen die Straßen.', 'Spart Silber. Ihr verlasst euch auf euer Glück.'],
+  s2: ['Spart Silber – wenn der Mönch recht hat.', 'Ihr bleibt vorsichtig, egal was erzählt wird.'],
+  s3: ['Kostet Silber. Lohnt sich, wenn Marco Polo nicht übertreibt.', 'Spart Silber. Vielleicht verpasst ihr etwas.'],
+  s4: ['Kostet Silber. Wer versteht, verhandelt anders.', 'Kostet nichts. Ob man euch versteht?'],
+  a1: ['Kostet Silber. Kamele tragen mehr.', 'Spart Silber. Ihr bleibt bei dem, was ihr tragen könnt.'],
+  a2: ['Kostet Silber, aber Wasser ist in der Wüste kostbar.', 'Mehr Platz für Ware – und weniger Wasser.'],
+  a3: ['Kostet Silber. Lohnt sich, wenn der Bericht stimmt – und ihr nach Timbuktu kommt.', 'Spart Silber. Berichte können übertreiben.'],
+}
+for (const [id, [a, b]] of Object.entries(HINWEISE)) { KARTEN[id].a.hinweis = a; KARTEN[id].b.hinweis = b }
 
 /* ================= Ereignisse ================= */
 // mod.preis: [{ orte|'alle', waren|'alle', faktor }]
@@ -337,16 +364,37 @@ export const EREIGNISSE = {
     beleg: 'Praxis Geschichte 4/2021 und 2/2023: Die Pest kam im 14. Jahrhundert aus China entlang der Handelswege nach Europa. Nicht im Schulbuch.',
     mod: { risiko: [{ faktor: 1.3 }], preis: [{ orte: 'alle', waren: 'alle', faktor: 0.85 }] },
   },
+  e11: {
+    titel: 'Luxus für Europas Reiche', raum: 'seide',
+    text: 'In Venedig wollen Adlige und reiche Bürger mehr Seide, Porzellan und Gewürze denn je. Dort steigen die Preise für Waren aus dem Osten.',
+    beleg: 'S. 28 VT1: Adlige und reiche Bürger in Europa schätzten diese Waren als Luxusgüter. Die Preissteigerung ist eine Spielabstraktion.',
+    mod: { preis: [{ orte: ['venedig'], waren: ['seide', 'porzellan', 'gewuerze', 'pelze'], faktor: 1.3 }] },
+  },
+  e12: {
+    titel: 'Am Rand der Wüste Taklamakan', raum: 'seide',
+    text: 'Zwischen Samarkand und China führt der Weg an der Wüste Taklamakan vorbei. Ohne Geleit der Mongolen ist die Strecke jetzt besonders gefährlich.',
+    beleg: 'S. 29 D1: Die Hauptroute führt um die Wüste Taklamakan. S. 28 VT2: Schutz durch die Mongolen.',
+    mod: { risiko: [{ strecke: ['samarkand', 'quinsai'], faktor: 1.5, ohne: 'geleit' }] },
+  },
+  e13: {
+    titel: 'Gold für Italien', raum: 'sahara',
+    text: 'Händler vom Mittelmeer suchen Gold. In Sidschilmasa zahlen sie dafür jetzt besonders gut.',
+    beleg: 'S. 31 VT7: Das Gold wurde weiter bis nach Italien transportiert. Der höhere Preis ist eine Spielabstraktion.',
+    mod: { preis: [{ orte: ['sidschilmasa'], waren: ['gold'], faktor: 1.3 }] },
+  },
 }
 
 // Ablauf ohne Spielleitung (und Vorschlag für die Lehrkraft): Runde → Raum → Ereignis
 export const STANDARD_PLAN = [
-  { seide: 'e1',   hanse: 'e2', sahara: 'e5' },
-  { seide: 'e8',   hanse: 'e3', sahara: 'e6' },
-  { seide: 'ruhe', hanse: 'e9', sahara: 'e7' },
-  { seide: 'e10',  hanse: 'e10', sahara: 'e10' },
-  { seide: 'ruhe', hanse: 'e4', sahara: 'ruhe' },
+  { seide: 'e1',  hanse: 'e2', sahara: 'e5' },
+  { seide: 'e8',  hanse: 'e3', sahara: 'e6' },
+  { seide: 'e11', hanse: 'e9', sahara: 'e7' },
+  { seide: 'e10', hanse: 'e10', sahara: 'e10' },
+  { seide: 'e12', hanse: 'e4', sahara: 'e13' },
 ]
+
+// Mehrere Stationen in einer Runde (Eilreise): kostet Silber, Gefahr beider Strecken
+export const EIL_KOSTEN = 3
 
 export const HYPOTHESEN = {
   lage:   'die Lage der Stadt',
@@ -434,11 +482,38 @@ export function hanseFaktor(anteil) {
 }
 
 /**
- * Gefahr einer Reise (0–0.9). schutzReise: Schutz, der nur für diese Reise gekauft wurde.
+ * Mögliche Ziele: bleiben, Nachbarorte, Eilreise über einen Nachbarort.
+ * [{ ort, ueber: null|ort, strecken: [s1, s2?] }]
  */
-export function risiko(team, zielOrt, ereignis, kontext = {}) {
+export function ziele(raumId, ortId) {
+  const liste = [{ ort: ortId, ueber: null, strecken: [] }]
+  const direkt = nachbarn(raumId, ortId)
+  for (const n of direkt) liste.push({ ort: n.ort, ueber: null, strecken: [n.strecke] })
+  for (const n of direkt) {
+    for (const m of nachbarn(raumId, n.ort)) {
+      if (m.ort === ortId || direkt.some((d) => d.ort === m.ort) || liste.some((l) => l.ort === m.ort && l.ueber)) continue
+      liste.push({ ort: m.ort, ueber: n.ort, strecken: [n.strecke, m.strecke] })
+    }
+  }
+  return liste
+}
+
+/**
+ * Gefahr einer Reise (0–0.9). ueber: Zwischenstation bei der Eilreise –
+ * dann gilt die Gefahr beider Strecken (1 − Überleben × Überleben).
+ */
+export function risiko(team, zielOrt, ereignis, kontext = {}, ueber = null) {
   if (zielOrt === team.ort) return 0
-  const s = strecke(team.raum, team.ort, zielOrt)
+  if (ueber) {
+    const r1 = streckenRisiko(team, team.ort, ueber, ereignis, kontext)
+    const r2 = streckenRisiko(team, ueber, zielOrt, ereignis, kontext)
+    return Math.min(0.9, 1 - (1 - r1) * (1 - r2))
+  }
+  return streckenRisiko(team, team.ort, zielOrt, ereignis, kontext)
+}
+
+function streckenRisiko(team, von, nach, ereignis, kontext) {
+  const s = strecke(team.raum, von, nach)
   if (!s) return 0
   const flags = { ...team.flags, ...(team.reise && team.reise.karawane ? { karawane: true } : {}) }
   let r = s.risiko
@@ -488,8 +563,11 @@ export function abrechnungsKontext(abgaben, teamsJeRaum) {
     const ohne = {}
     for (const a of imRaum) {
       if (a.schutz || !a.ziel || a.ziel === a.ort) continue
-      const k = streckenSchluessel(a.ort, a.ziel)
-      ohne[k] = (ohne[k] || 0) + 1
+      const legs = a.ueber ? [[a.ort, a.ueber], [a.ueber, a.ziel]] : [[a.ort, a.ziel]]
+      for (const [x, y] of legs) {
+        const k = streckenSchluessel(x, y)
+        ohne[k] = (ohne[k] || 0) + 1
+      }
     }
     for (const [k, n] of Object.entries(ohne)) if (n > 1) verkehr[k] = Math.min(1.6, 1 + VERKEHR_JE_TEAM * (n - 1))
     kontext[raumId] = { hanseAnteil: raumId === 'hanse' && zahl ? mitglieder / zahl : 0.5, verkehr }
@@ -529,8 +607,8 @@ export function neueFaktoren(alt, abgaben, teamsJeRaum) {
 
 export function gefahrStufe(r) {
   if (r <= 0) return 0
-  if (r < 0.12) return 1
-  if (r < 0.25) return 2
+  if (r < 0.15) return 1
+  if (r < 0.3) return 2
   return 3
 }
 
@@ -620,30 +698,39 @@ function buchen(team, wareId, menge, silber) {
 export function reiseAbrechnen(team, ereignis, seed, kontext = {}) {
   const raum = RAEUME[team.raum]
   const ziel = team.reise ? team.reise.ziel : team.ort
+  const ueber = team.reise && team.reise.ueber && team.reise.ueber !== ziel ? team.reise.ueber : null
   const eintraege = []
-  const r = risiko(team, ziel, ereignis, kontext)
-  const s = strecke(team.raum, team.ort, ziel)
+  const r = risiko(team, ziel, ereignis, kontext, ueber)
+  // Für Text und Unglück zählt die gefährlichere Strecke
+  const s = ueber
+    ? [strecke(team.raum, team.ort, ueber), strecke(team.raum, ueber, ziel)].sort((x, y) => y.risiko - x.risiko)[0]
+    : strecke(team.raum, team.ort, ziel)
 
   if (ziel !== team.ort) {
     const wurf = zufall(`${seed}|${team.team}|${team.runde}`)
+    const weg = ueber ? `über ${raum.orte[ueber].name}` : s.name
     if (wurf < r) {
+      // Ein Drittel der Ladung geht verloren: häufiger Unglück, seltener Ruin
       const verloren = {}
       for (const [w, n] of Object.entries(team.ladung)) {
-        const weg = Math.ceil(n / 2)
-        verloren[w] = weg
-        team.ladung[w] = n - weg
+        const anteil = Math.ceil(n / 3)
+        verloren[w] = anteil
+        team.ladung[w] = n - anteil
         if (!team.ladung[w]) delete team.ladung[w]
       }
       let silberWeg = 0
       if (!Object.keys(verloren).length) { silberWeg = Math.min(team.silber, 4); team.silber -= silberWeg }
       eintraege.push({ art: 'unglueck', strecke: s.art, verloren, silber: -silberWeg, risiko: r, text: unglueckText(s.art, ereignis) })
     } else {
-      eintraege.push({ art: 'reise', text: `Sicher angekommen in ${raum.orte[ziel].name} (${s.name}).`, risiko: r })
+      eintraege.push({ art: 'reise', risiko: r, text: `${glueckText(s.art, r, wurf)} Ihr kommt in ${raum.orte[ziel].name} an (${weg}).` })
     }
+    // Eilreise durch Köln: Auch was nur durch Köln fährt, fällt unter das Stapelrecht (S. 30 VT3)
+    if (ueber === 'koeln') { team.ort = 'koeln'; eintraege.push(...stapelrecht(team, ereignis)) }
     team.ort = ziel
     eintraege.push(...ankunft(team, ereignis))
   } else {
-    eintraege.push({ art: 'reise', text: `Ihr bleibt in ${raum.orte[ziel].name}.`, risiko: 0 })
+    team.blieb = true
+    eintraege.push({ art: 'reise', risiko: 0, text: `Ihr bleibt in ${raum.orte[ziel].name} und hört euch um: In der nächsten Runde kennt ihr die aktuellen Preise aller Orte.` })
   }
 
   for (const e of eintraege) team.log.push({ runde: team.runde, ...e })
@@ -660,28 +747,44 @@ function unglueckText(art, ereignis) {
   })[art] || 'Unglück unterwegs. Ein Teil eurer Ladung ist verloren.'
 }
 
+// Auf einer sicheren Reise passiert trotzdem etwas – je gefährlicher, desto knapper
+function glueckText(art, r, wurf) {
+  const knapp = r > 0.15 && wurf < r + 0.12
+  const texte = {
+    see: ['Ruhige See.', 'Ein Sturm zieht auf – ihr könnt gerade noch in einen Hafen ausweichen.'],
+    land: ['Die Straße ist frei.', 'Am Wegrand lauern Räuber – sie lassen euch ziehen.'],
+    wueste: ['Die Brunnen sind voll.', 'Am letzten Brunnen ist kaum noch Wasser – es reicht gerade so.'],
+    fluss: ['Der Niger trägt euch ruhig.', 'Ein Boot schlägt fast um – die Ladung bleibt an Bord.'],
+  }
+  const t = texte[art] || ['Alles ruhig.', 'Knapp vorbei!']
+  return knapp ? `Knapp! ${t[1]}` : t[0]
+}
+
+function stapelrecht(team, ereignis) {
+  if (team.raum !== 'hanse' || !Object.keys(team.ladung).length) return []
+  if (team.flags.koelnFrei) {
+    delete team.flags.koelnFrei
+    return [{ art: 'regel', text: 'Ihr habt Köln umgangen: Das Stapelrecht gilt diesmal nicht für euch.' }]
+  }
+  let erloes = 0
+  const verkauft = {}
+  for (const [w, n] of Object.entries(team.ladung)) {
+    const k = Math.ceil(n / 2)
+    erloes += k * preis('hanse', 'koeln', w, ereignis)
+    verkauft[w] = k
+    team.ladung[w] = n - k
+    if (!team.ladung[w]) delete team.ladung[w]
+  }
+  team.silber += erloes
+  return [{ art: 'regel', verkauft, silber: erloes,
+    text: `Stapelrecht: Ihr musstet die Hälfte eurer Ladung in Köln anbieten. Kölner Kaufleute zahlen ${erloes} Silber.` }]
+}
+
 function ankunft(team, ereignis) {
   const e = []
   // Stapelrecht Köln (gilt immer, S. 30 VT3)
   if (team.raum === 'hanse' && team.ort === 'koeln' && Object.keys(team.ladung).length) {
-    if (team.flags.koelnFrei) {
-      delete team.flags.koelnFrei
-      e.push({ art: 'regel', text: 'Ihr habt Köln umgangen: Das Stapelrecht gilt diesmal nicht für euch.' })
-    } else {
-      let erloes = 0
-      const verkauft = {}
-      for (const [w, n] of Object.entries(team.ladung)) {
-        const k = Math.ceil(n / 2)
-        const p = preis('hanse', 'koeln', w, ereignis)
-        erloes += k * p
-        verkauft[w] = k
-        team.ladung[w] = n - k
-        if (!team.ladung[w]) delete team.ladung[w]
-      }
-      team.silber += erloes
-      e.push({ art: 'regel', verkauft, silber: erloes,
-        text: `Stapelrecht: Ihr musstet die Hälfte eurer Ladung in Köln anbieten. Kölner Kaufleute zahlen ${erloes} Silber.` })
-    }
+    e.push(...stapelrecht(team, ereignis))
   }
   for (const a of (ereignis && ereignis.mod && ereignis.mod.ankunft) || []) {
     if (!passtOrt(a.orte, team.ort)) continue
@@ -699,8 +802,30 @@ export function rundeAbschliessen(team) {
   // wert = Kasse + Ladung zum Basispreis am Ort (sonst sieht jeder Einkauf wie ein Verlust aus)
   team.verlauf.push({ runde: team.runde, silber: team.silber, wert: team.silber + ladungWert(team, null), ort: team.ort, ladung: ladungSumme(team) })
   team.mods = {}
+  // Wer geblieben ist, hat sich umgehört: aktuelle Preise aller Orte in der nächsten Runde
+  if (team.blieb) { team.mods.info = true; team.mods.infoGrund = 'bleiben'; delete team.blieb }
   team.reise = null
   team.runde += 1
+}
+
+/**
+ * Warum ein Preis vom üblichen Preis abweicht – für die Pfeile im Markt.
+ * Gibt { faktor, gruende: [{ richtung: 'auf'|'ab', text }] } zurück.
+ */
+export function preisGruende(raumId, ortId, wareId, ereignis, marktFaktor = 1) {
+  const gruende = []
+  let faktor = 1
+  for (const p of (ereignis && ereignis.mod && ereignis.mod.preis) || []) {
+    if (passtOrt(p.orte, ortId) && passtWare(p.waren, wareId)) {
+      faktor *= p.faktor
+      gruende.push({ richtung: p.faktor > 1 ? 'auf' : 'ab', text: `Nachricht „${ereignis.titel}“` })
+    }
+  }
+  if (marktFaktor < 1) {
+    faktor *= marktFaktor
+    gruende.push({ richtung: 'ab', text: 'In der letzten Runde haben hier mehrere Handelshäuser diese Ware verkauft – der Markt ist voll.' })
+  }
+  return { faktor, gruende }
 }
 
 /** Wert der Ladung am aktuellen Ort (für die Bilanz). */

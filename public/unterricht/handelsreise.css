@@ -21,7 +21,9 @@
 }
 
 * { box-sizing: border-box; }
-html { -webkit-text-size-adjust: 100%; }
+html { -webkit-text-size-adjust: 100%; touch-action: manipulation; }
+/* Schnelles Tippen soll nicht zoomen (Doppeltipp-Zoom in Safari) */
+button, a, [role="button"], .k-ziel { touch-action: manipulation; -webkit-tap-highlight-color: transparent; user-select: none; -webkit-user-select: none; }
 body {
   margin: 0;
   background: var(--tisch);
@@ -232,6 +234,16 @@ input:focus, textarea:focus { outline: 2px solid var(--gold); outline-offset: 1p
 .quellen { font-size: 0.88em; padding-left: 18px; }
 .quellen li { margin-bottom: 6px; }
 
+/* ---------- Preise, Entscheidung, Eilreise ---------- */
+.auf { color: var(--gruen); font-size: 0.85em; }
+.ab { color: var(--rot); font-size: 0.85em; }
+.marktbericht { background: var(--pergament-hell); border-left: 4px solid var(--gold); padding: 8px 12px; font-size: 0.88em; margin: 8px 0; }
+.marktbericht ul { margin: 4px 0 0; padding-left: 4px; list-style: none; }
+.marktbericht li { margin: 2px 0; }
+.vorwahl { border-top: 1px dashed var(--tinte-hell); margin-top: 12px; padding-top: 10px; }
+.zielbtn.eil { border-style: dashed; }
+.d-wueste { fill: #ead9a8; stroke: var(--wueste); stroke-width: 1; stroke-dasharray: 3 3; }
+
 /* ---------- Klassenmarkt ---------- */
 .netz { font-size: 0.85em; white-space: nowrap; margin-left: 6px; }
 .netz.an { color: #9fd18f; }
@@ -282,7 +294,8 @@ input:focus, textarea:focus { outline: 2px solid var(--gold); outline-offset: 1p
 .lteams .nr { flex: none; width: 1.8em; height: 1.8em; border-radius: 50%; background: var(--siegel); color: #fff; text-align: center; font-weight: 700; font-size: 0.85em; line-height: 1.8em; }
 .lteams .tn { flex: 1; min-width: 0; }
 .lteams .tn small { display: block; }
-.lteams .tw { font-weight: 700; font-variant-numeric: tabular-nums; }
+.lteams .tw { font-weight: 700; font-variant-numeric: tabular-nums; text-align: right; }
+.lteams .tw small { display: block; font-weight: 400; font-size: 0.75em; }
 .lteams .tf { width: 1.2em; text-align: center; color: var(--gruen); font-weight: 700; }
 .lteams .tx { background: none; border: 1px solid var(--tinte-hell); border-radius: 3px; padding: 0 8px; min-height: 32px; color: var(--rot); }
 .lteams .leer { color: var(--tinte-hell); font-style: italic; }
