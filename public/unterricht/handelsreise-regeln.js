@@ -36,7 +36,7 @@ export const RAEUME = {
       venedig: { name: 'Venedig', x: 45, y: 95, angebot: ['glas', 'fertig'],
         text: 'Italienische Kaufleute bringen Waren aus Asien nach Europa.', beleg: 'S. 28 VT1' },
       bagdad: { name: 'Bagdad · Damaskus', x: 150, y: 170, angebot: ['gewuerze'],
-        text: 'Bis hierher segeln die Italiener, an die Ostküste des Mittelmeers. Hier teilt sich der Weg: über Land nach Samarkand oder übers Meer nach China.', beleg: 'S. 28 VT1, S. 29 D1' },
+        text: 'Die Italiener segeln bis an die Ostküste des Mittelmeers, von dort geht es über Land nach Bagdad oder Damaskus. Hier teilt sich der Weg: über Land nach Samarkand oder vom Persischen Golf übers Meer nach China.', beleg: 'S. 28 VT1, VT4; S. 29 D1' },
       samarkand: { name: 'Samarkand', x: 240, y: 90, angebot: ['pelze'],
         text: 'Handelsstadt an der Hauptroute der Seidenstraße, mitten in Zentralasien. Dass hier Pelze aus der Steppe gehandelt werden, ist vereinfacht.', beleg: 'S. 29 D1, S. 28 VT1' },
       quinsai: { name: 'Quinsai', x: 360, y: 140, angebot: ['seide', 'porzellan'],
@@ -50,10 +50,10 @@ export const RAEUME = {
       quinsai:   { seide: 3, gewuerze: 6, porzellan: 3, pelze: 5, glas: 8, fertig: 7 },
     },
     strecken: [
-      { a: 'venedig', b: 'bagdad', risiko: 0.25, art: 'see', name: 'übers Mittelmeer' },
+      { a: 'venedig', b: 'bagdad', risiko: 0.25, art: 'see', name: 'übers Mittelmeer, dann über Land' },
       { a: 'bagdad', b: 'samarkand', risiko: 0.3, art: 'land', name: 'über Persien' },
       { a: 'samarkand', b: 'quinsai', risiko: 0.35, art: 'land', name: 'an der Wüste Taklamakan vorbei' },
-      { a: 'bagdad', b: 'quinsai', risiko: 0.45, art: 'see', name: 'übers Meer, wie Marco Polo zurück', kurve: [250, 300] },
+      { a: 'bagdad', b: 'quinsai', risiko: 0.45, art: 'see', name: 'vom Persischen Golf übers Meer – so kam Marco Polo vermutlich zurück', kurve: [250, 300] },
     ],
     schutz: {
       id: 'geleit', name: 'Geleitbrief der Mongolen', kosten: 5, dauer: 'spiel',
@@ -81,7 +81,7 @@ export const RAEUME = {
       london:   { name: 'London', x: 45, y: 160, angebot: ['tuche'],
         text: 'Hier liegt der Stalhof, ein Kontor der Hanse.', beleg: 'S. 24 VT1, D1' },
       koeln:    { name: 'Köln', x: 140, y: 225, angebot: ['wein', 'metall'],
-        text: 'Mächtige Handelsstadt am Rhein. Hier gilt das Stapelrecht.', beleg: 'S. 30 VT1–VT3' },
+        text: 'Mächtige Handelsstadt am Rhein. Hier gilt das Stapelrecht: Wer ankommt oder durchfährt, muss seine Waren drei Tage in der Stadt zum Verkauf anbieten.', beleg: 'S. 30 VT1–VT3' },
       luebeck:  { name: 'Lübeck', x: 200, y: 120, angebot: ['salz'],
         text: 'Die mächtigste Hansestadt an der Ostsee. Salz kommt aus dem nahen Lüneburg.', beleg: 'S. 24 D1' },
       nowgorod: { name: 'Nowgorod', x: 355, y: 55, angebot: ['pelze', 'wachs'],
@@ -104,7 +104,7 @@ export const RAEUME = {
       text: 'Mitglieder reisen gemeinsam. Je mehr Handelshäuser Mitglied sind, desto sicherer. Gilt bis Spielende.',
       beleg: 'S. 24 VT1: Kaufleute organisierten gemeinsame Handelsreisen, so konnten sie sich besser vor Gefahren schützen.',
     },
-    karten: ['h1', 'h2', 'h3', 'h4', 'h5'],
+    karten: ['h1', 'h2', 'h6', 'h3', 'h4'],   // h5 (Streit im Stalhof) ruht – fachlich heikel, s. Review
   },
 
   sahara: {
@@ -128,7 +128,7 @@ export const RAEUME = {
       timbuktu: { name: 'Timbuktu', x: 250, y: 195, angebot: ['gold'],
         text: 'Zentrum des Handels und der Bildung, am Rand der Wüste und nahe dem Niger.', beleg: 'S. 30 VT5' },
       djenne:   { name: 'Djenné', x: 140, y: 238, angebot: ['gold', 'elfenbein'],
-        text: 'Von hier kommt das Gold. Salz ist hier besonders gefragt.', beleg: 'S. 31 VT7' },
+        text: 'Hier wird das Gold aus dem Süden gehandelt. Salz ist hier besonders gefragt.', beleg: 'S. 31 VT7, D1' },
     },
     preise: {
       sidschilmasa: { salz: 5, gold: 10, elfenbein: 9, tuche: 2, kupfer: 2 },
@@ -146,7 +146,7 @@ export const RAEUME = {
       text: 'Ihr schließt euch einer großen Karawane an. Gilt nur für diese Reise.',
       beleg: 'S. 30 VT5: Timbuktu lag an wichtigen Handelsrouten, sodass dort zahlreiche Karawanen mit ihren Kamelen hielten.',
     },
-    karten: ['a1', 'a2', 'a3'],
+    karten: ['a2', 'a3', 'a1'],
   },
 }
 
@@ -158,13 +158,13 @@ export const RAEUME = {
 export const KARTEN = {
   h1: {
     titel: 'Der Hanse beitreten?',
-    text: 'In Lübeck haben sich Kaufleute zusammengeschlossen. Sie reisen gemeinsam und dürfen die Kontore in London und Nowgorod nutzen – mit Lagerhaus, Hafen und eigenem Gericht. Der Beitrag kostet 6 Silber.',
+    text: 'Kaufleute aus Lübeck und vielen anderen Städten haben sich zur Hanse zusammengeschlossen. Sie reisen gemeinsam und nutzen die Kontore in London und Nowgorod. Mitmachen kostet euch 6 Silber.',
     a: { text: 'Wir treten bei', folgen: { silber: -6, flag: 'hanse' },
       folgeText: 'Ihr seid Mitglied der Hanse. Eure Reisen werden sicherer – umso mehr, je mehr Handelshäuser mitmachen.' },
     b: { text: 'Wir bleiben unabhängig', folgen: {},
       folgeText: 'Ihr spart das Geld und reist auf eigene Faust. Beitreten könnt ihr später noch.' },
-    beleg: 'S. 24 VT1: Kaufleute schlossen sich zu Vereinigungen zusammen, organisierten gemeinsame Handelsreisen und unterhielten Kontore wie den Stalhof in London und den Peterhof in Nowgorod.',
-    spielregel: 'Höhe des Beitrags und Stärke des Schutzes sind Spielwerte.',
+    beleg: 'S. 24 VT1: Kaufleute schlossen sich zusammen, reisten gemeinsam und hatten eigene Niederlassungen, die Kontore – etwa den Stalhof in London und den Peterhof in Nowgorod.',
+    spielregel: 'Den Beitrag haben wir ausgedacht. In Wirklichkeit gehörte man über das Bürgerrecht einer Hansestadt dazu. Ab dem 14. Jahrhundert übernahmen die Städte den Schutz der Kaufleute (S. 24 VT2).',
   },
   h2: {
     titel: 'Im Konvoi oder allein?',
@@ -174,7 +174,7 @@ export const KARTEN = {
     b: { text: 'Allein, dafür billiger', folgen: {},
       folgeText: 'Ihr spart das Geld. Die Gefahr bleibt, wie sie ist.' },
     beleg: 'S. 24 VT1: Gemeinsame Handelsreisen – „so konnten sie sich besser vor Gefahren schützen“.',
-    spielregel: 'Kosten und Wirkung sind Spielwerte.',
+    spielregel: 'Kosten und Wirkung sind im Spiel ausgedacht.',
   },
   h3: {
     titel: 'Neuigkeiten im Kontor',
@@ -182,40 +182,51 @@ export const KARTEN = {
     a: { text: 'Wir reden mit', folgen: { info: true },
       folgeText: 'Ihr erfahrt die aktuellen Preise in allen Städten eures Handelsraums – die anderen erfahren dafür eure Pläne.' },
     b: { text: 'Wir schweigen', folgen: {},
-      folgeText: 'Eure Pläne bleiben geheim. Ihr kennt nur die Preise des Ortes, an dem ihr seid.' },
-    beleg: 'S. 24 VT1: In den Kontoren tauschte man außer Waren auch Informationen aus – über Geschäftsideen ebenso wie über Lebensweise und Kultur.',
+      folgeText: 'Eure Pläne bleiben geheim. Die Preise in den anderen Städten kennt ihr weiter nicht.' },
+    beleg: 'S. 24 VT1: In den Kontoren tauschten die Kaufleute nicht nur Waren, sondern auch Neuigkeiten und Ideen aus.',
     spielregel: 'Was die anderen mit euren Plänen machen, bildet das Spiel nicht ab.',
   },
   h4: {
     titel: 'Köln umgehen?',
     text: 'Wer Waren den Rhein hinauf bringt, muss in Köln halten. Die Waren werden auf andere Schiffe umgeladen und müssen drei Tage in der Stadt zum Verkauf angeboten werden. Ihr könntet Fuhrleute bezahlen und Köln über Land umgehen: 3 Silber.',
     a: { text: 'Wir halten uns an das Stapelrecht', folgen: {},
-      folgeText: 'Kommt ihr nach Köln, verkauft ihr dort die Hälfte eurer Ladung zum Kölner Preis.' },
+      folgeText: 'Kommt ihr nach Köln oder fahrt hindurch, kaufen Kölner Kaufleute euch die Hälfte eurer Ladung zum Kölner Preis ab.' },
     b: { text: 'Wir umgehen Köln', folgen: { silber: -3, koelnFrei: true, risikoReise: 1.3 },
       folgeText: 'Beim nächsten Besuch in Köln gilt das Stapelrecht für euch nicht. Der Umweg über Land macht eure nächste Reise aber gefährlicher.' },
-    beleg: 'S. 30 VT3: 1259 erhielt Köln das Stapelrecht – alle über Köln transportierten Waren mussten drei Tage in der Stadt zum Verkauf angeboten werden.',
-    spielregel: 'Ob und wie man Köln umgehen konnte, steht nicht im Buch. Kosten und Gefahr sind Spielwerte.',
+    beleg: 'S. 30 VT3: Seit 1259 hatte Köln das Stapelrecht. Waren, die über Köln transportiert wurden, mussten drei Tage in der Stadt zum Verkauf „angeboten“ werden.',
+    spielregel: 'Im Buch steht „anbieten“. Dass Kölner Kaufleute euch die Hälfte abkaufen, ist im Spiel ausgedacht – ebenso, ob und wie man Köln umgehen konnte.',
   },
   h5: {
     titel: 'Streit im Stalhof',
-    text: 'Ein Londoner Händler behauptet, ihr hättet ihm schlechte Ware verkauft. Er verlangt 4 Silber. Mitglieder der Hanse können vor das Gericht des Kontors gehen.',
-    a: { text: 'Vor das Gericht des Kontors', folgen: { bedingt: { flag: 'hanse', ja: {}, nein: { silber: -4 } } },
-      folgeText: 'Mitglieder: Das Kontor gibt euch recht, ihr zahlt nichts. Nicht-Mitglieder: Das Kontor ist nicht zuständig, ihr müsst trotzdem zahlen.' },
+    text: 'Ein anderer Hansekaufmann behauptet, ihr hättet ihm schlechte Ware verkauft. Er verlangt 4 Silber. Streit unter Kaufleuten der Hanse klärt das Gericht des Kontors.',
+    a: { text: 'Vor das Gericht des Kontors', folgen: { bedingt: { flag: 'hanse', ja: { silber: -1 }, nein: { silber: -4 } } },
+      folgeText: 'Mitglieder: Das Gericht hört beide Seiten und findet einen Vergleich – ihr zahlt 1 Silber. Nicht-Mitglieder: Das Kontor ist nicht zuständig, ihr müsst die 4 Silber zahlen.' },
     b: { text: 'Wir zahlen, damit Ruhe ist', folgen: { silber: -4 },
       folgeText: 'Ihr zahlt 4 Silber.' },
-    beleg: 'S. 24 VT1: Die Kontore hatten Lagerhallen, manchmal eigene Hafenanlagen und ein eigenes Gericht.',
-    spielregel: 'Der Streitfall ist erfunden, das Gericht im Kontor ist belegt.',
+    beleg: 'S. 24 VT1: Zu den Kontoren gehörten Lager, teils eigene Häfen und ein eigenes Gericht.',
+    spielregel: 'Der Streitfall und der Vergleich sind ausgedacht. Das Gericht im Kontor steht im Buch.',
+  },
+
+  h6: {
+    titel: 'Ein Lager im Kontor',
+    text: 'In den Kontoren gibt es Lagerhallen. Für 4 Silber mietet ihr dort Platz. Dann könnt ihr mehr Ware auf einmal umschlagen.',
+    a: { text: 'Wir mieten Lagerplatz', folgen: { silber: -4, laderaum: 2 },
+      folgeText: 'Ihr könnt ab jetzt 2 Ladungen mehr transportieren.' },
+    b: { text: 'Wir kommen so zurecht', folgen: {},
+      folgeText: 'Ihr spart das Geld.' },
+    beleg: 'S. 24 VT1: Zu den Kontoren gehörten Lagerhallen.',
+    spielregel: 'Preis und zusätzlicher Platz sind im Spiel ausgedacht.',
   },
 
   s1: {
     titel: 'Ein Geleitbrief der Mongolen',
-    text: 'Die Mongolen beherrschen die Gegenden rund um die Seidenstraße. Für 5 Silber bekommt ihr einen Geleitbrief, der euch unter ihren Schutz stellt.',
+    text: 'Die Mongolen beherrschen die Gegenden rund um die Seidenstraße. Für 5 Silber bekommt ihr einen Geleitbrief – einen Schutzbrief, der euch unter ihren Schutz stellt.',
     a: { text: 'Wir kaufen den Geleitbrief', folgen: { silber: -5, flag: 'geleit' },
       folgeText: 'Ihr reist unter dem Schutz der Mongolen. Eure Reisen werden sicherer.' },
     b: { text: 'Wir sparen das Geld', folgen: {},
       folgeText: 'Ihr reist ohne Schutzbrief. Kaufen könnt ihr ihn später noch.' },
-    beleg: 'S. 28 VT2: Die Mongolen zeigten sich gastfreundlich gegenüber ausländischen Reisenden und Kaufleuten und boten ihnen Schutz. Das ließ den Handel aufblühen.',
-    spielregel: 'Das Buch nennt keine Kosten. Preis und Wirkung sind Spielwerte.',
+    beleg: 'S. 28 VT2: Im 13. Jahrhundert eroberten die Mongolen weite Teile Asiens. Fremden Kaufleuten boten sie Schutz, und der Handel blühte auf. Achtung: Um 1350 zerfiel ihr Reich schon – der Schutz galt vor allem im 13. Jahrhundert.',
+    spielregel: 'Das Buch nennt keine Kosten. Preis und Wirkung sind im Spiel ausgedacht.',
   },
   s2: {
     titel: 'Ein Mönch berichtet',
@@ -224,8 +235,8 @@ export const KARTEN = {
       folgeText: 'Ihr spart 2 Silber. Ohne Wachen ist eure nächste Reise gefährlicher – egal, was der Mönch erzählt.' },
     b: { text: 'Wir nehmen trotzdem Wachen mit', folgen: { risikoReise: 0.8 },
       folgeText: 'Die Wachen machen eure nächste Reise etwas sicherer.' },
-    beleg: 'S. 29 Q3: Johannes von Plano Carpini, 1247 vom Papst zu den Mongolen geschickt. Er schreibt, Räuber und Diebe gebe es dort nicht – und im selben Bericht, die Mongolen äßen in Notlagen Menschenfleisch. Ein Bericht mit Standpunkt.',
-    spielregel: 'Ob ihr dem Mönch glaubt, ändert die Gefahr auf der Straße nicht – ein Bericht macht keinen Weg sicherer. Wie gefährlich die Wege sind, folgt im Spiel aus dem Buch (Gefahren der Reisen S. 24 VT1, Schutz durch die Mongolen S. 28 VT2); die Zahlen dazu sind Spielwerte.',
+    beleg: 'S. 29 Q3: Johannes von Plano Carpini, 1247 als Gesandter zu den Mongolen geschickt. Er schreibt, Räuber und Diebe gebe es bei den Mongolen nicht – im selben Bericht aber auch, sie äßen in Notlagen Menschenfleisch. Er beschreibt, wie die Mongolen untereinander leben. Ob fremde Kaufleute auf den Straßen sicher waren, sagt er nicht.',
+    spielregel: 'Ein Bericht macht keinen Weg sicherer. Dass Reisen gefährlich waren und Schutz half, steht im Buch (S. 24 VT1, S. 28 VT2) – die Zahlen dazu sind ausgedacht.',
   },
   s3: {
     titel: 'Glaubt ihr Marco Polo?',
@@ -235,7 +246,7 @@ export const KARTEN = {
     b: { text: 'Klingt übertrieben', folgen: {},
       folgeText: 'Ihr spart das Geld und bleibt vorsichtig.' },
     beleg: 'S. 29 Q2: Marco Polo über Quinsai (1298). S. 28, Randspalte: Ob Marco Polo wirklich selbst nach China reiste oder sich nur davon erzählen ließ, wissen wir nicht.',
-    spielregel: 'Lasttiere und Laderaum sind Spielwerte.',
+    spielregel: 'Lasttiere und Laderaum sind im Spiel ausgedacht.',
   },
   s4: {
     titel: 'Ein Dolmetscher?',
@@ -245,18 +256,18 @@ export const KARTEN = {
     b: { text: 'Wir verhandeln mit Händen und Füßen', folgen: { verkaufRunde: 0.9 },
       folgeText: 'In dieser Runde verkauft ihr eure Waren etwas billiger.' },
     beleg: 'S. 28 VT3: Der Handel auf der Seidenstraße verband Kulturen. Schriften unterschiedlicher Sprachen und Religionen verbreiteten sich.',
-    spielregel: 'Dass ein Dolmetscher bessere Preise bringt, ist eine Spielregel.',
+    spielregel: 'Dass ein Dolmetscher bessere Preise bringt, ist im Spiel ausgedacht.',
   },
 
   a1: {
     titel: 'Kamele kaufen?',
-    text: 'Karawanen ziehen mit ihren Kamelen durch die Wüste. Für 5 Silber kauft ihr eigene Kamele und könnt mehr laden.',
-    a: { text: 'Wir kaufen Kamele', folgen: { silber: -5, laderaum: 3 },
-      folgeText: 'Ihr könnt ab jetzt 3 Ladungen mehr transportieren.' },
+    text: 'Karawanen ziehen mit ihren Kamelen durch die Wüste. Für 4 Silber kauft ihr eigene Kamele und könnt mehr laden.',
+    a: { text: 'Wir kaufen Kamele', folgen: { silber: -4, laderaum: 2 },
+      folgeText: 'Ihr könnt ab jetzt 2 Ladungen mehr transportieren.' },
     b: { text: 'Wir kommen so zurecht', folgen: {},
       folgeText: 'Ihr spart das Geld.' },
     beleg: 'S. 30 VT5: In Timbuktu hielten zahlreiche Karawanen mit ihren Kamelen.',
-    spielregel: 'Preis und Laderaum sind Spielwerte.',
+    spielregel: 'Preis und Laderaum sind im Spiel ausgedacht.',
   },
   a2: {
     titel: 'Wasser oder Salz?',
@@ -266,7 +277,7 @@ export const KARTEN = {
     b: { text: 'Mehr Ware', folgen: { laderaumRunde: 2, risikoReise: 1.5, nurArt: 'wueste' },
       folgeText: 'In dieser Runde könnt ihr 2 Ladungen mehr kaufen. Führt eure nächste Reise durch die Wüste, ist sie gefährlicher.' },
     beleg: 'S. 32 Q2: Ibn Battuta verbrachte zehn Tage in Taghaza. Das Wasser dort ist salzig. Man nimmt einen Wasservorrat für die Wüstenstrecke mit, für die man zehn Tage braucht und auf der man selten Wasser findet.',
-    spielregel: 'Kosten und Wirkung sind Spielwerte.',
+    spielregel: 'Kosten und Wirkung sind im Spiel ausgedacht.',
   },
   a3: {
     titel: 'Ein Laden in Timbuktu?',
@@ -275,8 +286,8 @@ export const KARTEN = {
       folgeText: 'Ab jetzt verkauft ihr in Timbuktu teurer.' },
     b: { text: 'Wir trauen dem Bericht nicht', folgen: {},
       folgeText: 'Ihr spart das Geld.' },
-    beleg: 'S. 33 Q4: Leo Africanus über Timbuktu – die Bewohner seien sehr reich, vor allem die Ausländer. Achtung: Leo schreibt um 1510, viel später als unser Spiel.',
-    spielregel: 'Der Laden und sein Vorteil sind Spielregeln.',
+    beleg: 'S. 33 Q4: Leo Africanus schreibt, die Bewohner Timbuktus seien sehr reich, vor allem die Fremden. Achtung: Leo schreibt um 1510, viel später als unser Spiel – und er schaut als Fremder auf die Stadt.',
+    spielregel: 'Der Laden und sein Vorteil sind im Spiel ausgedacht.',
   },
 }
 
@@ -286,10 +297,11 @@ const HINWEISE = {
   h2: ['Kostet etwas Silber. Mehr Schiffe, mehr Sicherheit?', 'Kostet nichts. Ein Schiff allein ist schneller – und angreifbarer.'],
   h3: ['Ihr erfahrt etwas – und verratet etwas.', 'Ihr verratet nichts – und erfahrt nichts.'],
   h4: ['Kostet nichts. Aber Köln hat seine eigenen Regeln.', 'Kostet Silber und der Weg über Land hat seine Tücken.'],
-  h5: ['Ob das Kontor euch hilft, hängt davon ab, wer ihr seid.', 'Sicher teuer, aber dann ist Ruhe.'],
+  h5: ['Ob das Kontor zuständig ist, hängt davon ab, wer ihr seid.', 'Sicher teuer, aber dann ist Ruhe.'],
+  h6: ['Kostet Silber. Mehr Platz für Ware.', 'Spart Silber. Ihr bleibt bei dem, was ihr tragen könnt.'],
   s1: ['Kostet einmalig Silber. Die Mongolen beherrschen die Straßen.', 'Spart Silber. Ihr verlasst euch auf euer Glück.'],
   s2: ['Spart Silber – wenn der Mönch recht hat.', 'Ihr bleibt vorsichtig, egal was erzählt wird.'],
-  s3: ['Kostet Silber. Lohnt sich, wenn Marco Polo nicht übertreibt.', 'Spart Silber. Vielleicht verpasst ihr etwas.'],
+  s3: ['Kostet Silber. Lohnt sich, wenn Marco Polo nicht übertreibt.', 'Spart Silber. Ihr bleibt bei dem, was ihr tragen könnt.'],
   s4: ['Kostet Silber. Wer versteht, verhandelt anders.', 'Kostet nichts. Ob man euch versteht?'],
   a1: ['Kostet Silber. Kamele tragen mehr.', 'Spart Silber. Ihr bleibt bei dem, was ihr tragen könnt.'],
   a2: ['Kostet Silber, aber Wasser ist in der Wüste kostbar.', 'Mehr Platz für Ware – und weniger Wasser.'],
@@ -307,13 +319,13 @@ export const EREIGNISSE = {
   e1: {
     titel: 'Geleit der Mongolen', raum: 'seide',
     text: 'Die Mongolen sichern die Straßen. Wer einen Geleitbrief hat, reist jetzt besonders sicher. Wer keinen hat, fällt auf.',
-    beleg: 'S. 28 VT2, S. 29 Q3',
+    beleg: 'S. 28 VT2. Achtung: Das galt vor allem im 13. Jahrhundert.',
     mod: { risiko: [{ faktor: 0.6, mit: 'geleit' }, { faktor: 1.3, ohne: 'geleit' }] },
   },
   e2: {
     titel: 'Stapelrecht in Köln', raum: 'hanse',
-    text: 'Köln besteht auf seinem Recht: Wer ankommt, muss die Hälfte seiner Ladung in der Stadt verkaufen.',
-    beleg: 'S. 30 VT3 (1259)',
+    text: 'Köln besteht auf seinem Recht: Wer ankommt oder durchfährt, muss seine Waren in der Stadt anbieten. Kölner Kaufleute kaufen die Hälfte.',
+    beleg: 'S. 30 VT3 (Stapelrecht seit 1259). Dass sie die Hälfte kaufen, ist im Spiel ausgedacht.',
     mod: {},
   },
   e3: {
@@ -324,9 +336,9 @@ export const EREIGNISSE = {
   },
   e4: {
     titel: 'Die Hanse greift zu den Waffen', raum: 'hanse',
-    text: 'Der Städtebund verteidigt den freien Handel seiner Kaufleute. Wer nicht Mitglied ist, zahlt in jeder Hansestadt 4 Silber.',
-    beleg: 'S. 24 VT2: Die Städte führten sogar Kriege, wenn der freie Handel bedroht war. Die Abgabe für Nicht-Mitglieder ist eine Spielabstraktion.',
-    mod: { ankunft: [{ orte: 'alle', silber: 4, mitglied: 0 }] },
+    text: 'Der Städtebund verteidigt den freien Handel seiner Kaufleute. Wer nicht dazugehört, zahlt in den Hansestädten Köln und Lübeck 4 Silber.',
+    beleg: 'S. 24 VT2: Die Städte schlossen Bündnisse und führten sogar Kriege, wenn der freie Handel bedroht war. Die Abgabe für Nicht-Mitglieder ist im Spiel ausgedacht. London und Nowgorod waren Kontorstädte, keine Hansestädte.',
+    mod: { ankunft: [{ orte: ['koeln', 'luebeck'], silber: 4, mitglied: 0 }] },
   },
   e5: {
     titel: 'Zehn Tage Wüste', raum: 'sahara',
@@ -337,37 +349,37 @@ export const EREIGNISSE = {
   e6: {
     titel: 'Salz gegen Gold', raum: 'sahara',
     text: 'Im Süden wird das Salz knapp. In Timbuktu und Djenné ist es jetzt besonders gefragt.',
-    beleg: 'S. 31 VT7: Salz aus Taghaza wurde gegen Gold aus Djenné getauscht.',
+    beleg: 'S. 31 VT7: Salz aus Taghaza wurde „gegen Gold und Sklaven“ aus Djenné getauscht. Das Spiel lässt den Menschenhandel bewusst weg – darüber sprecht ihr am Ende.',
     mod: { preis: [{ orte: ['timbuktu', 'djenne'], waren: ['salz'], faktor: 1.5 }] },
   },
   e7: {
-    titel: 'Der König von Mali baut', raum: 'sahara',
-    text: 'Der König lässt in Timbuktu eine große Moschee bauen. Kostbare Tuche und Kupfer sind dort jetzt sehr gefragt.',
-    beleg: 'S. 33 Q3: Mansa Musa soll die Djinger-ber-Moschee 1325 in Auftrag gegeben haben. Die höhere Nachfrage ist eine Spielabstraktion.',
+    titel: 'Timbuktu wächst', raum: 'sahara',
+    text: 'Timbuktu ist ein Zentrum des Handels und der Gelehrsamkeit. Moscheen und Schulen ziehen Menschen an. Kostbare Tuche und Kupfer sind dort jetzt sehr gefragt.',
+    beleg: 'S. 30 VT5 und S. 31 VT8: Timbuktu als Zentrum von Handel und Bildung. S. 33 Q3: Mansa Musa soll um 1325 die große Lehmmoschee in Auftrag gegeben haben. Die höhere Nachfrage ist im Spiel ausgedacht.',
     mod: { preis: [{ orte: ['timbuktu'], waren: ['tuche', 'kupfer'], faktor: 1.4 }] },
   },
   e8: {
     titel: 'Gerücht aus Quinsai', raum: 'seide',
     text: 'In Venedig erzählt man sich, in Quinsai werde mehr gehandelt als irgendwo sonst. Glas und Fertigwaren seien dort begehrt.',
-    beleg: 'S. 29 Q2 (Marco Polo). Ob das Gerücht stimmt, entscheidet ihr.',
+    beleg: 'S. 29 Q2 (Marco Polo über Quinsai) und S. 28 VT1 (nach China gingen Glas und Fertigwaren). Ob das Gerücht stimmt, entscheidet ihr.',
     mod: { preis: [{ orte: ['quinsai'], waren: ['glas', 'fertig'], faktor: 1.2 }] },
   },
   e9: {
     titel: 'Hafenzoll', raum: 'hanse',
     text: 'In London und Lübeck verlangen die Zollherren eine Abgabe: 3 Silber. Mitglieder der Hanse zahlen nur 1 Silber.',
-    beleg: 'S. 24 Q1: Hafenszene in Hamburg mit Zollherr und Schreiber. Zollrecht als Vorrecht der Städte: Praxis Geschichte 2/2023. Die Abstufung ist eine Spielabstraktion.',
+    beleg: 'S. 24 Q1: Hafenszene in Hamburg (Bild von 1497) mit Zollherr und Schreiber. Zollrecht als Vorrecht der Städte: Praxis Geschichte 2/2023. Die Abstufung ist im Spiel ausgedacht.',
     mod: { ankunft: [{ orte: ['london', 'luebeck'], silber: 3, mitglied: 1 }] },
   },
   e10: {
-    titel: 'Die Pest kommt über die Handelswege', raum: 'alle',
-    text: 'Eine Seuche breitet sich entlang der Handelswege aus. Jede Reise wird gefährlicher, und in den Städten kaufen die Menschen weniger.',
-    beleg: 'Praxis Geschichte 4/2021 und 2/2023: Die Pest kam im 14. Jahrhundert aus China entlang der Handelswege nach Europa. Nicht im Schulbuch.',
+    titel: 'Die Pest kommt über die Handelswege', raum: ['seide', 'hanse'],
+    text: 'Eine Seuche breitet sich entlang der Handelswege aus. In Europa stirbt in wenigen Jahren etwa ein Drittel der Menschen. Reisen werden gefährlicher, in den Städten wird weniger gekauft.',
+    beleg: 'Praxis Geschichte 4/2021 und 2/2023: Die Pest kam im 14. Jahrhundert aus Asien entlang der Handelswege nach Europa, etwa ein Drittel der Bevölkerung starb. Nicht im Schulbuch. Im Spiel ist sie nur ein Risiko – das Leid der Menschen kann es nicht zeigen.',
     mod: { risiko: [{ faktor: 1.3 }], preis: [{ orte: 'alle', waren: 'alle', faktor: 0.85 }] },
   },
   e11: {
     titel: 'Luxus für Europas Reiche', raum: 'seide',
     text: 'In Venedig wollen Adlige und reiche Bürger mehr Seide, Porzellan und Gewürze denn je. Dort steigen die Preise für Waren aus dem Osten.',
-    beleg: 'S. 28 VT1: Adlige und reiche Bürger in Europa schätzten diese Waren als Luxusgüter. Die Preissteigerung ist eine Spielabstraktion.',
+    beleg: 'S. 28 VT1: Adlige und reiche Bürger in Europa schätzten diese Waren als Luxusgüter. Die Preissteigerung ist im Spiel ausgedacht.',
     mod: { preis: [{ orte: ['venedig'], waren: ['seide', 'porzellan', 'gewuerze', 'pelze'], faktor: 1.3 }] },
   },
   e12: {
@@ -379,8 +391,14 @@ export const EREIGNISSE = {
   e13: {
     titel: 'Gold für Italien', raum: 'sahara',
     text: 'Händler vom Mittelmeer suchen Gold. In Sidschilmasa zahlen sie dafür jetzt besonders gut.',
-    beleg: 'S. 31 VT7: Das Gold wurde weiter bis nach Italien transportiert. Der höhere Preis ist eine Spielabstraktion.',
+    beleg: 'S. 31 VT7: Das Gold wurde weiter bis nach Italien gebracht. Der höhere Preis ist im Spiel ausgedacht.',
     mod: { preis: [{ orte: ['sidschilmasa'], waren: ['gold'], faktor: 1.3 }] },
+  },
+  e14: {
+    titel: 'Nachricht von einer Seuche', raum: 'sahara',
+    text: 'Händler aus dem Norden erzählen von einer schrecklichen Seuche an den Küsten des Mittelmeers. Ob sie auch Westafrika erreichte, wissen Historikerinnen und Historiker nicht sicher.',
+    beleg: 'Praxis Geschichte 4/2021: Pest im 14. Jahrhundert entlang der Handelswege. Ob sie Westafrika erreichte, ist in der Forschung umstritten. Im Spiel ändert sich in dieser Runde nichts.',
+    mod: {},
   },
 }
 
@@ -389,12 +407,15 @@ export const STANDARD_PLAN = [
   { seide: 'e1',  hanse: 'e2', sahara: 'e5' },
   { seide: 'e8',  hanse: 'e3', sahara: 'e6' },
   { seide: 'e11', hanse: 'e9', sahara: 'e7' },
-  { seide: 'e10', hanse: 'e10', sahara: 'e10' },
+  { seide: 'e10', hanse: 'e10', sahara: 'e14' },
   { seide: 'e12', hanse: 'e4', sahara: 'e13' },
 ]
 
-// Mehrere Stationen in einer Runde (Eilreise): kostet Silber, Gefahr beider Strecken
-export const EIL_KOSTEN = 3
+// Mehrere Stationen in einer Runde (Eilreise): kostet Silber, Gefahr beider Strecken,
+// höchstens halbe Ladung (Tiere und Schiffe werden gehetzt). Review 08.10.: ohne diese
+// Grenze war die Eilreise in der Seidenstraße mit Abstand die beste Wahl.
+export const EIL_KOSTEN = 4
+export function eilLadung(team) { return Math.floor(laderaum(team) / 2) }
 
 export const HYPOTHESEN = {
   lage:   'die Lage der Stadt',
@@ -425,10 +446,18 @@ export function zufall(seedText) {
 
 /* ================= Hilfsfunktionen ================= */
 
+/** Gilt ein Ereignis für diesen Raum? raum: 'alle', eine Raum-Id oder eine Liste. */
+export function ereignisPasst(e, raumId) {
+  return !!e && (e.raum === 'alle' || e.raum === raumId || (Array.isArray(e.raum) && e.raum.includes(raumId)))
+}
+
+/** Nur eigene Schlüssel – schützt vor 'constructor', '__proto__' usw. aus Nutzereingaben. */
+export function hat(obj, key) { return typeof key === 'string' && obj != null && Object.prototype.hasOwnProperty.call(obj, key) }
+
 export function ereignisFuer(raumId, runde, plan) {
   const zeile = (plan || STANDARD_PLAN)[runde - 1] || {}
-  const id = zeile[raumId] || 'ruhe'
-  return { id, ...(EREIGNISSE[id] || EREIGNISSE.ruhe) }
+  const id = hat(zeile, raumId) && hat(EREIGNISSE, zeile[raumId]) ? zeile[raumId] : 'ruhe'
+  return { id, ...EREIGNISSE[id] }
 }
 
 export function nachbarn(raumId, ortId) {
@@ -591,7 +620,7 @@ export function neueFaktoren(alt, abgaben, teamsJeRaum) {
     const verkaeufer = {}
     for (const a of abgaben.filter((x) => x.raum === raumId)) {
       for (const [w, n] of Object.entries(a.verkaeufe || {})) {
-        if (n > 0 && neu[raumId][a.ort] && w in neu[raumId][a.ort]) {
+        if (n > 0 && hat(neu[raumId], a.ort) && hat(neu[raumId][a.ort], w)) {
           const k = `${a.ort}|${w}`
           verkaeufer[k] = (verkaeufer[k] || 0) + 1
         }
@@ -707,7 +736,7 @@ export function reiseAbrechnen(team, ereignis, seed, kontext = {}) {
     : strecke(team.raum, team.ort, ziel)
 
   if (ziel !== team.ort) {
-    const wurf = zufall(`${seed}|${team.team}|${team.runde}`)
+    const wurf = zufall(`${seed}|${team.seedId || team.team}|${team.runde}`)
     const weg = ueber ? `über ${raum.orte[ueber].name}` : s.name
     if (wurf < r) {
       // Ein Drittel der Ladung geht verloren: häufiger Unglück, seltener Ruin
@@ -777,7 +806,7 @@ function stapelrecht(team, ereignis) {
   }
   team.silber += erloes
   return [{ art: 'regel', verkauft, silber: erloes,
-    text: `Stapelrecht: Ihr musstet die Hälfte eurer Ladung in Köln anbieten. Kölner Kaufleute zahlen ${erloes} Silber.` }]
+    text: `Stapelrecht: Ihr musstet eure Waren in Köln anbieten. Kölner Kaufleute kaufen euch die Hälfte ab und zahlen ${erloes} Silber.` }]
 }
 
 function ankunft(team, ereignis) {

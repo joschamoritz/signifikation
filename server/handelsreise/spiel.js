@@ -13,13 +13,16 @@
 import { randomBytes, randomInt } from 'node:crypto'
 import {
   RAEUME, EREIGNISSE, STANDARD_PLAN, RUNDEN, START_SILBER,
-  abrechnungsKontext, neueFaktoren,
+  abrechnungsKontext, neueFaktoren, ereignisPasst, hat,
 } from '../../public/unterricht/handelsreise-regeln.js'
 
 export const MAX_TEAMS = 40
 export const LEBENSDAUER_MS = 6 * 60 * 60 * 1000
 
 const spiele = new Map()
+
+// Verfallene Spiele regelmäßig entfernen (nicht nur beim Anlegen eines neuen)
+setInterval(() => aufraeumen(), 15 * 60 * 1000).unref()
 
 function neuerCode() {
   for (let i = 0; i < 50; i++) {
@@ -47,6 +50,7 @@ export function spielAnlegen() {
     faktorenRunde: {},          // eingefroren für die laufende Runde
     abrechnung: null,           // { runde, seed, kontext }
     teams: new Map(),
+    naechsteNr: 1,              // Teamnummern bleiben eindeutig, auch nach Entfernen
   }
   spiele.set(code, s)
   return s
@@ -76,12 +80,20 @@ function raumZuteilen(s) {
   return kandidaten[randomInt(kandidaten.length)]
 }
 
-export function teamBeitreten(s, { name, haus }) {
+export function teamBeitreten(s, { name, haus, socketId = null }) {
   // Gleiche Vornamen + gleiches Haus = dasselbe Team (Doppeltipp, iPad zurückgesetzt)
   const schluessel = (n, h) => `${String(n).trim().toLowerCase()}|${String(h || '').trim().toLowerCase()}`
-  for (const t of s.teams.values()) if (schluessel(t.name, t.haus) === schluessel(name, haus)) return { team: t, wieder: true }
-  if (s.teams.size >= MAX_TEAMS) return { fehler: 'voll' }
   if (s.status === 'ende') return { fehler: 'ende' }
+  for (const t of s.teams.values()) {
+    if (schluessel(t.name, t.haus) !== schluessel(name, haus)) continue
+    if (t.socketId && t.socketId === socketId) return { team: t, wieder: true }
+    if (!t.verbunden) {
+      // Wiedereinstieg (iPad zurückgesetzt): neues Token, das alte Gerät verliert den Zugang
+      t.token = randomBytes(18).toString('base64url')
+      return { team: t, wieder: true }
+    }
+  }
+  if (s.teams.size >= MAX_TEAMS) return { fehler: 'voll' }
   const raum = raumZuteilen(s)
   const starts = RAEUME[raum].startorte
   const imRaum = [...s.teams.values()].filter((t) => t.raum === raum).length
@@ -90,13 +102,14 @@ export function teamBeitreten(s, { name, haus }) {
     token: randomBytes(18).toString('base64url'),
     name: String(name).trim().slice(0, 80),
     haus: String(haus || '').trim().slice(0, 40),
-    nr: s.teams.size + 1,
+    nr: s.naechsteNr++,
     raum,
     ort: starts[imRaum % starts.length],
     hypothese: null,
     abgaben: {},                // runde → { ort, ziel, schutz, verkaeufe }
     staende: {},                // runde → { ort, silber, wert, unglueck, schutz, karawanen }
     verbunden: true,
+    socketId,
   }
   s.teams.set(team.id, team)
   return { team }
@@ -109,10 +122,9 @@ export function teamPerToken(s, token) {
 
 /** Ereignis für einen Raum in der nächsten (noch nicht freigegebenen) oder laufenden Runde setzen. */
 export function ereignisSetzen(s, runde, raum, ereignisId) {
-  if (!RAEUME[raum] || !EREIGNISSE[ereignisId]) return false
-  const e = EREIGNISSE[ereignisId]
-  if (e.raum !== 'alle' && e.raum !== raum) return false
-  if (runde < 1 || runde > RUNDEN) return false
+  if (!hat(RAEUME, raum) || !hat(EREIGNISSE, ereignisId)) return false
+  if (!ereignisPasst(EREIGNISSE[ereignisId], raum)) return false
+  if (!Number.isInteger(runde) || runde < 1 || runde > RUNDEN) return false
   if (runde < s.runde || (runde === s.runde && s.status !== 'lobby')) return false   // laufende Runde nicht mehr ändern
   s.plan[runde - 1][raum] = ereignisId
   return true
@@ -131,11 +143,11 @@ export function rundeFreigeben(s) {
 export function abgabeSpeichern(s, team, d) {
   if (s.status !== 'laeuft' || d.runde !== s.runde) return false
   const R = RAEUME[team.raum]
-  if (!R.orte[d.ort] || !R.orte[d.ziel]) return false
-  const ueber = d.ueber && R.orte[d.ueber] ? d.ueber : null
+  if (!hat(R.orte, d.ort) || !hat(R.orte, d.ziel)) return false
+  const ueber = hat(R.orte, d.ueber) ? d.ueber : null
   const verkaeufe = {}
   for (const [w, n] of Object.entries(d.verkaeufe || {})) {
-    if (R.waren[w] && Number.isInteger(n) && n > 0 && n <= 50) verkaeufe[w] = n
+    if (hat(R.waren, w) && Number.isInteger(n) && n > 0 && n <= 50) verkaeufe[w] = n
   }
   team.abgaben[s.runde] = { ort: d.ort, ziel: d.ziel, ueber, schutz: !!d.schutz, verkaeufe }
   team.ort = d.ort
@@ -147,7 +159,7 @@ export function standSpeichern(s, team, d) {
   if (!Number.isInteger(runde) || runde < 1 || runde > RUNDEN + 1) return false
   const zahl = (x) => (Number.isFinite(x) ? Math.max(0, Math.min(100000, Math.round(x))) : 0)
   team.staende[runde] = {
-    ort: RAEUME[team.raum].orte[d.ort] ? d.ort : team.ort,
+    ort: hat(RAEUME[team.raum].orte, d.ort) ? d.ort : team.ort,
     silber: zahl(d.silber), wert: zahl(d.wert),
     unglueck: !!d.unglueck, schutz: !!d.schutz, karawanen: zahl(d.karawanen),
   }

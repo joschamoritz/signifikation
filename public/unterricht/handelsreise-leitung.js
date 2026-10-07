@@ -3,7 +3,7 @@
   Ablauf: Spiel anlegen → Code an die Tafel → Runde freigeben → wenn alle
   losgereist sind: abrechnen → … → nach Runde 5: Auswertung.
 */
-import { RAEUME, EREIGNISSE, RUNDEN, START_SILBER, HYPOTHESEN } from './handelsreise-regeln.js'
+import { RAEUME, EREIGNISSE, RUNDEN, START_SILBER, HYPOTHESEN, ereignisPasst } from './handelsreise-regeln.js'
 import { raumKarte } from './handelsreise-karten.js'
 
 const KEY = 'handelsreise-leitung-v1'
@@ -75,7 +75,7 @@ function ereignisWahl(raumId) {
   if (runde > RUNDEN) return ''
   const aktuell = z.plan[runde - 1][raumId]
   const offen = z.status !== 'laeuft'
-  const optionen = Object.entries(EREIGNISSE).filter(([, e]) => e.raum === 'alle' || e.raum === raumId)
+  const optionen = Object.entries(EREIGNISSE).filter(([, e]) => ereignisPasst(e, raumId))
     .map(([id, e]) => `<option value="${id}"${id === aktuell ? ' selected' : ''}>${esc(e.titel)}</option>`).join('')
   return `<label class="ewahl">${offen ? `Nachricht für Runde ${runde}` : `Nachricht Runde ${runde}`}
     <select data-raum="${raumId}" data-runde="${runde}"${offen ? '' : ' disabled'}>${optionen}</select></label>`
@@ -104,49 +104,52 @@ function mittel(xs) { return xs.length ? Math.round(xs.reduce((a, b) => a + b, 0
 function auswertungAnsicht() {
   const teams = z.teams
   const endwert = (t) => (t.staende[RUNDEN + 1] ? t.staende[RUNDEN + 1].silber : t.wert)
-  const mitSchutz = (t) => Object.values(t.abgaben || {}).some((a) => a.schutz) || Object.values(t.staende || {}).some((s) => s.schutz)
+  // Reisen eines Hauses (Bleiben zählt nicht) mit der Angabe, ob der Schutz auf DIESER Reise galt
+  const reisen = (t) => Object.entries(t.abgaben || {})
+    .map(([r, ab]) => ({ r, ab, st: t.staende[r] }))
+    .filter((x) => x.ab.ziel !== x.ab.ort && x.st)
+  // „Geschützt“ ist ein Haus, wenn es auf mindestens der Hälfte seiner Reisen Schutz hatte
+  const geschuetzt = (t) => { const rs = reisen(t); return rs.length > 0 && rs.filter((x) => x.ab.schutz).length * 2 >= rs.length }
+  const quote = (u, n) => (n ? `${Math.round((u / n) * 100)} % <small>(${u} von ${n})</small>` : '–')
 
-  // Reisen mit und ohne Schutz: wie oft ein Unglück?
-  let reisenMit = 0, unglMit = 0, reisenOhne = 0, unglOhne = 0
-  for (const t of teams) {
-    for (const [r, a] of Object.entries(t.abgaben || {})) {
-      if (a.ziel === a.ort) continue
-      const st = t.staende[r]
-      if (!st) continue
-      if (a.schutz) { reisenMit++; if (st.unglueck) unglMit++ } else { reisenOhne++; if (st.unglueck) unglOhne++ }
+  const zeile = (name, ts) => {
+    let rm = 0, um = 0, ro = 0, uo = 0
+    for (const t of ts) for (const x of reisen(t)) {
+      if (x.ab.schutz) { rm++; if (x.st.unglueck) um++ } else { ro++; if (x.st.unglueck) uo++ }
     }
+    const mit = ts.filter(geschuetzt), ohne = ts.filter((t) => !geschuetzt(t))
+    return `<tr><th>${name}</th><td>${mittel(mit.map(endwert))} <small>(${mit.length})</small></td><td>${mittel(ohne.map(endwert))} <small>(${ohne.length})</small></td><td>${quote(um, rm)}</td><td>${quote(uo, ro)}</td></tr>`
   }
-  const quote = (u, n) => (n ? `${Math.round((u / n) * 100)} %` : '–')
+  const raumZeilen = Object.entries(RAEUME).map(([id, R]) => zeile(esc(R.name), teams.filter((t) => t.raum === id))).join('')
+  const schutzTab = `<table class="ltab"><thead><tr><th>Raum</th><th>Wert am Ende<br><small>mit Schutz (Häuser)</small></th><th>Wert am Ende<br><small>ohne Schutz (Häuser)</small></th><th>Unglücke auf Reisen<br><small>mit Schutz</small></th><th>Unglücke auf Reisen<br><small>ohne Schutz</small></th></tr></thead><tbody>${raumZeilen}${zeile('<i>alle</i>', teams)}</tbody></table>`
 
-  const schutzZeile = `<table class="ltab"><thead><tr><th></th><th>Handelshäuser</th><th>Wert am Ende (Mittel)</th><th>Reisen</th><th>davon mit Unglück</th></tr></thead><tbody>
-    <tr><th>mit Schutz</th><td>${teams.filter(mitSchutz).length}</td><td>${mittel(teams.filter(mitSchutz).map(endwert))}</td><td>${reisenMit}</td><td>${quote(unglMit, reisenMit)}</td></tr>
-    <tr><th>ohne Schutz</th><td>${teams.filter((t) => !mitSchutz(t)).length}</td><td>${mittel(teams.filter((t) => !mitSchutz(t)).map(endwert))}</td><td>${reisenOhne}</td><td>${quote(unglOhne, reisenOhne)}</td></tr>
-  </tbody></table>`
-
-  const raumZeilen = Object.entries(RAEUME).map(([id, R]) => {
+  const verlaufZeilen = Object.entries(RAEUME).map(([id, R]) => {
     const ts = teams.filter((t) => t.raum === id)
     const verlauf = Array.from({ length: RUNDEN }, (_, i) => mittel(ts.map((t) => (t.staende[i + 1] ? t.staende[i + 1].wert : null)).filter((x) => x != null)))
     return `<tr><th>${esc(R.name)}</th><td>${ts.length}</td><td>${START_SILBER}</td>${verlauf.map((v) => `<td>${v}</td>`).join('')}<td><b>${mittel(ts.map(endwert))}</b></td></tr>`
   }).join('')
-  const raumTab = `<table class="ltab"><thead><tr><th>Raum</th><th>Häuser</th><th>Start</th>${Array.from({ length: RUNDEN }, (_, i) => `<th>R${i + 1}</th>`).join('')}<th>Ende</th></tr></thead><tbody>${raumZeilen}</tbody></table>`
+  const verlaufTab = `<table class="ltab"><thead><tr><th>Raum</th><th>Häuser</th><th>Start</th>${Array.from({ length: RUNDEN }, (_, i) => `<th>R${i + 1}</th>`).join('')}<th>Ende</th></tr></thead><tbody>${verlaufZeilen}</tbody></table>`
 
   const hyp = Object.entries(HYPOTHESEN).map(([id, txt]) => {
-    const n = teams.filter((t) => t.hypothese === id).length
-    const w = mittel(teams.filter((t) => t.hypothese === id).map(endwert))
-    return `<tr><th>${esc(txt)}</th><td>${n}</td><td>${w}</td></tr>`
+    const ts = teams.filter((t) => t.hypothese === id)
+    return `<tr><th>${esc(txt)}</th><td>${ts.length}</td><td>${mittel(ts.map(endwert))}</td></tr>`
   }).join('')
 
-  const rang = [...teams].sort((a, b) => endwert(b) - endwert(a)).slice(0, 5)
-    .map((t) => `<li>${zeigeName(t)} <small>${esc(RAEUME[t.raum].name)}</small> – ${endwert(t)}</li>`).join('')
+  // Bestenliste je Raum – die Räume haben unterschiedliche Preise, ein Gesamtranking wäre unfair
+  const rang = Object.entries(RAEUME).map(([id, R]) => {
+    const besten = teams.filter((t) => t.raum === id).sort((x, y) => endwert(y) - endwert(x)).slice(0, 2)
+    return `<li><b>${esc(R.name)}:</b> ${besten.map((t) => `${zeigeName(t)} – ${endwert(t)}`).join(' · ') || '–'}</li>`
+  }).join('')
 
   return `<div class="lauswertung">
-    <section><h2>Hat sich Schutz gelohnt?</h2>${schutzZeile}
-      <p class="klein">Schutz: Hanse-Mitglied, Geleitbrief oder mindestens einmal mit Karawane. Unglücke zählen nur bei Reisen, nicht beim Bleiben.</p></section>
-    <section><h2>Die drei Handelsräume</h2>${raumTab}<p class="klein">Mittlerer Wert der Handelshäuser nach jeder Runde.</p></section>
+    <section><h2>Hat sich Schutz gelohnt?</h2>${schutzTab}
+      <p class="klein">„Mit Schutz“: Haus hatte auf mindestens der Hälfte seiner Reisen Schutz (Hanse, Geleitbrief, Karawane). Unglücke zählen nur auf Reisen, und nur so, wie der Schutz auf genau dieser Reise war. <b>Kleine Zahlen:</b> Ein Unglück mehr oder weniger verändert die Prozente stark – Glück spielt mit.</p></section>
+    <section><h2>Die drei Handelsräume</h2>${verlaufTab}<p class="klein">Mittlerer Wert der Häuser nach jeder Runde. Die Räume haben verschiedene Waren und Preise – ihre Werte lassen sich nur grob vergleichen.</p></section>
     <section class="lzwei"><div><h2>Eure Vermutungen am Anfang</h2><table class="ltab"><thead><tr><th>Was entscheidet?</th><th>Häuser</th><th>Wert am Ende</th></tr></thead><tbody>${hyp}</tbody></table></div>
-      <div><h2>Die reichsten Häuser</h2><ol class="lrang">${rang}</ol></div></section>
+      <div><h2>Die erfolgreichsten Häuser je Raum</h2><ul class="lrang">${rang}</ul></div></section>
     <section class="lfrage"><h2>Und jetzt die eigentliche Frage</h2>
-      <p>Die Zahlen zeigen, was die <b>Spielregeln</b> belohnt haben. Wer hat die Regeln gemacht – und was fehlt im Spiel, das im Buch steht?</p></section>
+      <p>Die Zahlen zeigen, was die <b>Spielregeln</b> belohnt haben. Wer hat die Regeln gemacht? Steht im Buch, dass Schutz sich so lohnt – oder erklärt das Buch Köln und Timbuktu nicht gerade über ihre <b>Lage</b>?</p>
+      <p>Und: Im Buch steht „Salz gegen Gold <b>und Sklaven</b>“. Was verändert es, dass das Spiel die Menschen weglässt?</p></section>
   </div>`
 }
 
@@ -176,7 +179,7 @@ document.addEventListener('click', (ev) => {
   }
   if (a === 'entfernen') {
     const team = z.teams.find((x) => x.id === t.dataset.id)
-    if (team && confirm(`„${hausName(team)}“ (${team.name}) aus dem Spiel entfernen? Das Gerät spielt dann ohne Klassenmarkt weiter.`)) befehl('leitung:entfernen', { id: team.id })
+    if (team && confirm(`„${hausName(team)}“ (${team.name}) aus dem Spiel entfernen? Das iPad erfährt es sofort und kann ohne Klassenmarkt weiterspielen.`)) befehl('leitung:entfernen', { id: team.id })
   }
   if (a === 'ansicht') { ansicht = ansicht === 'spiel' ? 'auswertung' : 'spiel'; zeichnen() }
   if (a === 'namen') { namenZeigen = !namenZeigen; zeichnen() }

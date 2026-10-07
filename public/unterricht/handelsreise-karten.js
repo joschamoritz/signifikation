@@ -94,7 +94,10 @@ export function raumKarte(raumId, { hier = null, auswahl = null, ueber = null, k
     const o = R.orte[sg.ort]
     if (!o) continue
     const i = (proOrt[sg.ort] = (proOrt[sg.ort] || 0) + 1) - 1
-    const dx = (i % 3) * 30 - 30, dy = Math.floor(i / 3) * 26 - 15
+    // Ein Siegel: auf dem Ort. Mehrere (Beamer): Raster ÜBER dem Ort, damit der Name lesbar bleibt
+    const viele = siegelAuf.filter((x) => x.ort === sg.ort).length > 1
+    const dx = viele ? (i % 4) * 32 - 63 : -15
+    const dy = viele ? -44 - Math.floor(i / 4) * 32 : -15
     s += `<g transform="translate(${o.x + dx} ${o.y + dy})">${siegel(sg.buchstabe, 30, sg.farbe).replace('<svg ', '<svg x="0" y="0" ')}</g>`
   }
   return s + '</svg>'
