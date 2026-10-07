@@ -132,11 +132,12 @@ export function abgabeSpeichern(s, team, d) {
   if (s.status !== 'laeuft' || d.runde !== s.runde) return false
   const R = RAEUME[team.raum]
   if (!R.orte[d.ort] || !R.orte[d.ziel]) return false
+  const ueber = d.ueber && R.orte[d.ueber] ? d.ueber : null
   const verkaeufe = {}
   for (const [w, n] of Object.entries(d.verkaeufe || {})) {
     if (R.waren[w] && Number.isInteger(n) && n > 0 && n <= 50) verkaeufe[w] = n
   }
-  team.abgaben[s.runde] = { ort: d.ort, ziel: d.ziel, schutz: !!d.schutz, verkaeufe }
+  team.abgaben[s.runde] = { ort: d.ort, ziel: d.ziel, ueber, schutz: !!d.schutz, verkaeufe }
   team.ort = d.ort
   return true
 }

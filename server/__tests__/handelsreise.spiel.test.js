@@ -5,7 +5,7 @@ import {
   teamEntfernen, _alleLoeschen,
 } from '../handelsreise/spiel.js'
 import {
-  abrechnungsKontext, neueFaktoren, risiko, neuesTeam, reiseAbrechnen, RUNDEN,
+  abrechnungsKontext, neueFaktoren, risiko, neuesTeam, reiseAbrechnen, rundeAbschliessen, ziele, RUNDEN,
 } from '../../public/unterricht/handelsreise-regeln.js'
 
 afterEach(() => _alleLoeschen())
@@ -133,6 +133,31 @@ describe('Handelsreise – Regeln des Klassenmarkts', () => {
     expect(risiko(t, 'nowgorod', null, { hanseAnteil: 1 })).toBeLessThan(risiko(t, 'nowgorod', null, { hanseAnteil: 0.25 }))
     const k = abrechnungsKontext([{ raum: 'hanse', ort: 'luebeck', ziel: 'nowgorod', schutz: true }], { hanse: 4 })
     expect(k.hanse.hanseAnteil).toBe(0.25)
+  })
+
+  it('bietet Eilreisen über eine Zwischenstation an – mit Stapelrecht bei Durchfahrt durch Köln', () => {
+    const z = ziele('hanse', 'london').find((x) => x.ort === 'nowgorod')
+    expect(z.ueber).toBe('luebeck')
+    const t = neuesTeam({ team: 'K', haus: '', raum: 'hanse', ort: 'luebeck' })
+    t.ladung = { salz: 6 }
+    t.reise = { ziel: 'london', ueber: 'koeln' }
+    const ein = reiseAbrechnen(t, null, 'egal', {})
+    expect(ein.some((e) => e.text.startsWith('Stapelrecht'))).toBe(true)
+    expect(t.ort).toBe('london')
+    // Im Klassenmarkt zählen beide Strecken der Eilreise
+    const k = abrechnungsKontext([
+      { raum: 'hanse', ort: 'london', ziel: 'nowgorod', ueber: 'luebeck', schutz: false },
+      { raum: 'hanse', ort: 'luebeck', ziel: 'nowgorod', schutz: false },
+    ], { hanse: 2 })
+    expect(k.hanse.verkehr['luebeck|nowgorod']).toBeCloseTo(1.15)
+  })
+
+  it('wer bleibt, kennt in der nächsten Runde die aktuellen Preise', () => {
+    const t = neuesTeam({ team: 'B', haus: '', raum: 'seide', ort: 'venedig' })
+    t.reise = { ziel: 'venedig' }
+    reiseAbrechnen(t, null, 'x', {})
+    rundeAbschliessen(t)
+    expect(t.mods.info).toBe(true)
   })
 
   it('rechnet mit gleichem Seed auf jedem Gerät gleich ab', () => {

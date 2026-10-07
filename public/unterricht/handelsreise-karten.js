@@ -4,7 +4,7 @@
   nach den Karten D1, S. 24/29/31). Orientierungskarte: heutige Küstenlinien,
   stark vereinfacht, Längen-/Breitengrade als Koordinaten.
 */
-import { RAEUME, nachbarn, hash } from './handelsreise-regeln.js'
+import { RAEUME, ziele as zieleVon, hash } from './handelsreise-regeln.js'
 
 const esc = (t) => String(t ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]))
 
@@ -33,45 +33,57 @@ const DEKO = {
     <path class="d-fluss" d="M140 225 C150 205 128 196 136 176 C142 162 120 150 104 150"/>
     <text x="150" y="196" class="d-klein">Rhein</text>`,
   seide: `
-    <path class="d-meer" d="M40 120 C70 112 96 132 120 140 C140 146 156 152 172 166 C170 182 150 190 124 186 C100 182 78 196 52 190 C34 186 22 170 26 150 C28 136 32 124 40 120 Z"/>
+    <path class="d-meer" d="M14 118 C40 108 70 122 96 132 C118 140 134 150 142 164 C136 180 112 186 86 182 C62 178 40 194 20 190 L14 190 Z"/>
     <text x="70" y="166" class="d-name">Mittelmeer</text>
-    <g class="d-berg"><path d="M232 150 l10 -16 l10 16 Z"/><path d="M248 150 l12 -20 l12 20 Z"/><path d="M266 150 l9 -14 l9 14 Z"/></g>
-    <text x="254" y="166" class="d-klein">Gebirge</text>
-    <text x="250" y="60" class="d-name">Mongolenreich</text>
-    <path class="d-meer" d="M372 70 C384 100 380 150 368 196 L392 196 L392 70 Z"/>`,
+    <path class="d-meer" d="M170 262 C180 230 220 214 270 214 C310 214 336 200 370 196 C382 196 390 200 392 206 L392 262 Z"/>
+    <text x="230" y="250" class="d-name">Indischer Ozean</text>
+    <g class="d-berg"><path d="M180 128 l9 -14 l9 14 Z"/><path d="M194 128 l11 -18 l11 18 Z"/></g>
+    <ellipse cx="318" cy="78" rx="34" ry="12" class="d-wueste"/>
+    <text x="318" y="82" class="d-klein">Taklamakan</text>
+    <text x="300" y="44" class="d-name">Mongolenreich</text>`,
   sahara: `
+    <path class="d-meer" d="M12 12 L392 12 L392 22 C300 26 200 20 120 24 C70 26 30 22 12 30 Z"/>
+    <text x="250" y="22" class="d-klein">Mittelmeer</text>
+    <g class="d-berg"><path d="M40 62 l8 -12 l8 12 Z"/><path d="M54 62 l10 -16 l10 16 Z"/><path d="M128 50 l8 -12 l8 12 Z"/></g>
+    <text x="34" y="78" class="d-klein">Atlas</text>
     <g class="d-duene">${Array.from({ length: 18 }, (_, i) => {
-      const x = 40 + ((i * 53) % 300), y = 40 + ((i * 37) % 110)
+      const x = 60 + ((i * 53) % 300), y = 80 + ((i * 37) % 90)
       return `<path d="M${x} ${y} q8 -7 16 0"/>`
     }).join('')}</g>
-    <text x="270" y="110" class="d-name">Sahara</text>
-    <path class="d-niger" d="M20 262 C60 250 96 246 120 236 C150 224 186 196 222 186 C262 176 300 196 322 228 C332 244 340 256 350 264"/>
-    <text x="300" y="214" class="d-klein">Niger</text>
-    <path class="d-meer" d="M12 40 L34 40 C28 80 30 120 22 160 L12 160 Z"/>
-    <text x="16" y="34" class="d-klein">Atlantik</text>`,
+    <text x="300" y="120" class="d-name">Sahara</text>
+    <path class="d-niger" d="M30 262 C70 252 110 248 140 238 C170 228 210 204 250 195 C290 188 320 206 340 232 C350 246 356 256 364 264"/>
+    <text x="320" y="214" class="d-klein">Niger</text>`,
 }
 
 /**
  * Raumkarte. siegelAuf: [{ ort, buchstabe, farbe }] – Siegel an Orten (Gerät: eines, Beamer: alle Teams).
  * hier/auswahl/klickbar nur im Gerät.
  */
-export function raumKarte(raumId, { hier = null, auswahl = null, klickbar = false, siegelAuf = [] } = {}) {
+export function raumKarte(raumId, { hier = null, auswahl = null, ueber = null, klickbar = false, siegelAuf = [] } = {}) {
   const R = RAEUME[raumId]
-  const ziele = klickbar && hier ? nachbarn(raumId, hier).map((n) => n.ort) : []
+  // Anklickbar: direkte Ziele und Eilreise-Ziele (die Karte wählt bei Eilreise die Zwischenstation mit)
+  const zielListe = klickbar && hier ? zieleVon(raumId, hier).filter((z) => z.ort !== hier) : []
+  const ziele = zielListe.map((z) => z.ort)
+  const legs = auswahl && hier && auswahl !== hier ? (ueber ? [[hier, ueber], [ueber, auswahl]] : [[hier, auswahl]]) : []
   let s = `<svg class="weltkarte" viewBox="0 0 400 270" role="img" aria-label="Karte: ${esc(R.name)}">`
   s += `<g class="deko">${DEKO[raumId] || ''}</g>`
   s += '<rect x="4" y="4" width="392" height="262" class="k-rahmen"/><rect x="10" y="10" width="380" height="250" class="k-rahmen2"/>'
   s += '<g class="k-rose" transform="translate(360 228)"><path d="M0 -18 L4 0 L0 18 L-4 0 Z"/><path d="M-18 0 L0 4 L18 0 L0 -4 Z"/><text y="-21" text-anchor="middle">N</text></g>'
   for (const st of R.strecken) {
     const a = R.orte[st.a], b = R.orte[st.b]
-    const aktiv = auswahl && hier && ((st.a === hier && st.b === auswahl) || (st.b === hier && st.a === auswahl))
-    s += `<line x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}" class="k-weg k-${st.art}${aktiv ? ' k-aktiv' : ''}"/>`
+    const aktiv = legs.some(([x, y]) => (st.a === x && st.b === y) || (st.a === y && st.b === x))
+    // Seewege um Land herum als Kurve (kurve = Kontrollpunkt)
+    const [mx, my] = st.kurve ? [(a.x + 2 * st.kurve[0] + b.x) / 4, (a.y + 2 * st.kurve[1] + b.y) / 4] : [(a.x + b.x) / 2, (a.y + b.y) / 2]
+    s += st.kurve
+      ? `<path d="M${a.x} ${a.y} Q${st.kurve[0]} ${st.kurve[1]} ${b.x} ${b.y}" class="k-weg k-${st.art}${aktiv ? ' k-aktiv' : ''}"/>`
+      : `<line x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}" class="k-weg k-${st.art}${aktiv ? ' k-aktiv' : ''}"/>`
     const zeichen = { see: '≈', land: '⁂', wueste: '∴', fluss: '≈' }[st.art]
-    s += `<text x="${(a.x + b.x) / 2}" y="${(a.y + b.y) / 2 - 6}" text-anchor="middle" class="k-zeichen">${zeichen}</text>`
+    s += `<text x="${mx}" y="${my - 6}" text-anchor="middle" class="k-zeichen">${zeichen}</text>`
   }
   for (const [id, o] of Object.entries(R.orte)) {
     const ziel = ziele.includes(id)
-    s += `<g class="k-ort${ziel ? ' k-ziel' : ''}${auswahl === id ? ' k-gewaehlt' : ''}"${ziel ? ` data-ziel="${id}" role="button" tabindex="0" aria-label="Nach ${esc(o.name)}"` : ''}>`
+    const zEintrag = zielListe.find((z) => z.ort === id)
+    s += `<g class="k-ort${ziel ? ' k-ziel' : ''}${auswahl === id ? ' k-gewaehlt' : ''}"${ziel ? ` data-ziel="${id}"${zEintrag.ueber ? ` data-ueber="${zEintrag.ueber}"` : ''} role="button" tabindex="0" aria-label="Nach ${esc(o.name)}"` : ''}>`
     if (ziel) s += `<circle cx="${o.x}" cy="${o.y}" r="22" class="k-treffer"/>`
     s += `<circle cx="${o.x}" cy="${o.y}" r="7" class="k-punkt"/>`
     s += `<text x="${o.x}" y="${o.y < 200 ? o.y + 24 : o.y - 14}" text-anchor="middle" class="k-name">${esc(o.name)}</text></g>`
@@ -109,7 +121,7 @@ const INSELN = [
 const GEO = {
   venedig: [12.3, 45.4], bagdad: [44.4, 33.3], quinsai: [120.2, 30.3],
   london: [-0.1, 51.5], koeln: [7, 50.9], luebeck: [10.7, 53.9], nowgorod: [31.3, 58.5],
-  taghaza: [-4.9, 23.6], timbuktu: [-3, 16.8], djenne: [-4.6, 13.9],
+  sidschilmasa: [-4.3, 31.3], taghaza: [-4.9, 23.6], timbuktu: [-3, 16.8], djenne: [-4.6, 13.9], samarkand: [67, 39.7],
 }
 const pfad = (pkt) => 'M' + pkt.map(([x, y]) => `${x} ${-y}`).join(' L') + ' Z'
 

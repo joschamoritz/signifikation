@@ -7,7 +7,7 @@
 */
 import {
   RAEUME, KARTEN, HYPOTHESEN, RUNDEN, START_SILBER, EREIGNISSE, STANDARD_PLAN,
-  neuesTeam, ereignisFuer, nachbarn, preis, verkaufspreis, ladungSumme, laderaum,
+  neuesTeam, ereignisFuer, ziele, preisGruende, EIL_KOSTEN, preis, verkaufspreis, ladungSumme, laderaum,
   risiko, gefahrStufe, karteFuer, karteAnwenden, handeln, reiseAbrechnen,
   rundeAbschliessen, hatSchutz, ladungWert,
 } from './handelsreise-regeln.js'
@@ -140,6 +140,13 @@ const raum = () => RAEUME[team.raum]
 const ortName = (id) => raum().orte[id].name
 const wareName = (id) => raum().waren[id].name
 const initiale = () => ((team.haus || team.team || 'H').trim()[0] || 'H').toUpperCase()
+
+// ▲/▼ gegenüber dem üblichen Preis
+function pfeil(faktor) {
+  if (faktor > 1.001) return ' <span class="auf" title="teurer als üblich">▲</span>'
+  if (faktor < 0.999) return ' <span class="ab" title="billiger als üblich">▼</span>'
+  return ''
+}
 
 function gefahrPunkte(r) {
   const s = gefahrStufe(r)
@@ -274,7 +281,7 @@ const ANSICHT = {
       <p class="klein">Ob es gefährlich wird, hängt auch davon ab, wie viele andere ohne Schutz dieselbe Strecke fahren.</p>
       ${ohneNetz ? `<div class="buchstelle"><b>Keine Verbindung zum Klassenmarkt.</b> Fragt eure Lehrkraft. Wenn sie es sagt:
         <div class="fussleiste"><button type="button" class="btn hell" data-akt="offline">Ohne Klassenmarkt abrechnen</button></div></div>` : ''}
-    </div>`, null, { auswahl: r.ziel })
+    </div>`, null, { auswahl: r.ziel, ueber: r.ueber })
   },
 
   ereignis() {
@@ -293,10 +300,16 @@ const ANSICHT = {
     const wahl = team.karten[k.id]
     let unten
     if (!wahl) {
+      // Zweistufig: erst auswählen (Hinweis auf mögliche Folgen), dann festlegen
+      const vor = team.kartenVorwahl && team.kartenVorwahl.id === k.id ? team.kartenVorwahl.wahl : null
       unten = `<div class="wahl2">
-        <button type="button" class="wahlbtn" data-wahl="a">${esc(k.a.text)}</button>
-        <button type="button" class="wahlbtn" data-wahl="b">${esc(k.b.text)}</button>
-      </div>`
+        <button type="button" class="wahlbtn${vor === 'a' ? ' an' : ''}" data-wahl="a">${esc(k.a.text)}</button>
+        <button type="button" class="wahlbtn${vor === 'b' ? ' an' : ''}" data-wahl="b">${esc(k.b.text)}</button>
+      </div>
+      ${vor ? `<div class="vorwahl"><p><b>Möglich ist:</b> ${esc(k[vor].hinweis || '')}</p>
+        <p class="klein">Besprecht euch. Noch könnt ihr umentscheiden.</p>
+        <div class="fussleiste"><button type="button" class="btn" data-akt="karte-festlegen">Entscheidung festlegen</button></div></div>`
+        : '<p class="klein">Tippt eine Möglichkeit an. Festgelegt wird erst danach.</p>'}`
     } else {
       unten = `<div class="folge"><p class="ueber">Ihr habt entschieden: ${esc(k[wahl].text)}</p><p>${esc(k[wahl].folgeText)}</p></div>
         <div class="buchstelle"><b>Das steht im Buch:</b> ${esc(k.beleg)}<br><i>Spielregel:</i> ${esc(k.spielregel)}</div>
@@ -308,15 +321,17 @@ const ANSICHT = {
   markt(schluss = false) {
     const R = raum(), e = ereignis(), mf = faktorenOrt(team.ort)
     const angebot = R.orte[team.ort].angebot
+    const bericht = []   // Marktbericht: warum Preise heute anders sind
     const zeilen = Object.keys(R.waren).map((w) => {
       const hat = team.ladung[w] || 0
       const kauf = angebot.includes(w) ? preis(team.raum, team.ort, w, e, mf[w] || 1) : null
       const verk = verkaufspreis(team, w, e, mf[w] || 1)
-      const gedrueckt = (mf[w] || 1) < 1 ? ' <span class="gedrueckt" title="Preis gedrückt: In der letzten Runde haben hier viele diese Ware verkauft">▼</span>' : ''
+      const g = preisGruende(team.raum, team.ort, w, e, mf[w] || 1)
+      for (const x of g.gruende) bericht.push({ ware: wareName(w), ...x })
       return `<tr>
         <th>${esc(wareName(w))}${angebot.includes(w) ? ' <span class="stern" title="hier im Angebot">★</span>' : ''}</th>
-        <td class="zahl">${kauf != null ? kauf : '–'}</td>
-        <td class="zahl">${verk}${gedrueckt}</td>
+        <td class="zahl">${kauf != null ? kauf : '–'}${kauf != null ? pfeil(g.faktor) : ''}</td>
+        <td class="zahl">${verk}${pfeil(g.faktor)}</td>
         <td class="zahl"><b>${hat}</b></td>
         <td class="aktion">
           ${!schluss && kauf != null ? `<button type="button" class="mbtn kauf" data-kauf="${w}" aria-label="1 ${esc(wareName(w))} kaufen">+1</button>` : ''}
@@ -327,8 +342,9 @@ const ANSICHT = {
     const hinweis = schluss
       ? 'Die Reise ist vorbei. Verkauft, was ihr noch geladen habt – was übrig bleibt, zählt nicht mit.'
       : 'Kaufen könnt ihr nur Waren mit ★. Verkaufen könnt ihr alles, was ihr geladen habt.'
-    const saettigung = team.online && Object.values(mf).some((f) => f < 1)
-      ? '<p class="klein">▼ = Preis gedrückt: In der letzten Runde haben hier viele Handelshäuser dieselbe Ware verkauft.</p>' : ''
+    const saettigung = bericht.length
+      ? `<div class="marktbericht"><b>Marktbericht:</b><ul>${bericht.map((x) => `<li><span class="${x.richtung === 'auf' ? 'auf' : 'ab'}">${x.richtung === 'auf' ? '▲' : '▼'}</span> ${esc(x.ware)}: ${esc(x.text)}</li>`).join('')}</ul></div>`
+      : '<p class="klein">Marktbericht: Heute gelten hier die üblichen Preise.</p>'
     return spiel(`<div class="markt">
       <p class="ueber">${schluss ? 'Ende der Reise' : `Runde ${team.runde} · Markt`}</p>
       <h2>${titel}</h2>
@@ -343,15 +359,17 @@ const ANSICHT = {
 
   reise() {
     const R = raum(), e = ereignis()
-    const wahl = team.reise || { ziel: null, karawane: false }
-    const ziele = [{ ort: team.ort, strecke: null }, ...nachbarn(team.raum, team.ort)]
+    const wahl = team.reise || { ziel: null, ueber: null, karawane: false }
     const tmp = { ...team, reise: wahl }
-    const optionen = ziele.map(({ ort, strecke }) => {
-      const r = risiko(tmp, ort, e, kontext())
-      return `<button type="button" class="zielbtn${wahl.ziel === ort ? ' an' : ''}" data-ziel="${ort}">
-        <b>${ort === team.ort ? `In ${esc(ortName(ort))} bleiben` : `Nach ${esc(ortName(ort))}`}</b>
-        <small>${strecke ? esc(strecke.name) : 'keine Reise'}</small>
-        ${gefahrPunkte(r)}</button>`
+    const optionen = ziele(team.raum, team.ort).map(({ ort, ueber, strecken }) => {
+      const r = risiko(tmp, ort, e, kontext(), ueber)
+      const an = wahl.ziel === ort && (wahl.ueber || null) === ueber
+      let titel, unter
+      if (ort === team.ort) { titel = `In ${esc(ortName(ort))} bleiben`; unter = 'keine Reise · ihr hört euch um: nächste Runde kennt ihr alle aktuellen Preise' }
+      else if (ueber) { titel = `Eilreise nach ${esc(ortName(ort))}`; unter = `über ${esc(ortName(ueber))}, ohne Halt · kostet ${EIL_KOSTEN} Silber, zwei Strecken = mehr Gefahr` }
+      else { titel = `Nach ${esc(ortName(ort))}`; unter = esc(strecken[0].name) }
+      return `<button type="button" class="zielbtn${ueber ? ' eil' : ''}${an ? ' an' : ''}" data-ziel="${ort}"${ueber ? ` data-ueber="${ueber}"` : ''}>
+        <b>${titel}</b><small>${unter}</small>${gefahrPunkte(r)}</button>`
     }).join('')
     const sch = R.schutz
     let schutz
@@ -374,7 +392,7 @@ const ANSICHT = {
         <button type="button" class="btn hell" data-akt="zurueck-markt">Zurück zum Markt</button>
         <button type="button" class="btn" data-akt="losreisen"${wahl.ziel ? '' : ' disabled'}>${knopf}</button>
       </div>
-    </div>`, 'reise', { auswahl: wahl.ziel, klickbar: true })
+    </div>`, 'reise', { auswahl: wahl.ziel, ueber: wahl.ueber, klickbar: true })
   },
 
   ergebnis() {
@@ -449,9 +467,10 @@ function anderswo() {
   const kopfzeile = orte.map((o) => `<th>${esc(ortName(o))}</th>`).join('')
   const zeilen = Object.keys(R.waren).map((w) => `<tr><th>${esc(wareName(w))}</th>${orte.map((o) => {
     const p = aktuell ? preis(team.raum, o, w, e, faktorenOrt(o)[w] || 1) : R.preise[o][w]
-    return `<td class="zahl">${p}${R.orte[o].angebot.includes(w) ? '★' : ''}</td>`
+    const f = aktuell ? preisGruende(team.raum, o, w, e, faktorenOrt(o)[w] || 1).faktor : 1
+    return `<td class="zahl">${p}${R.orte[o].angebot.includes(w) ? '★' : ''}${pfeil(f)}</td>`
   }).join('')}</tr>`).join('')
-  return `<details class="anderswo"${aktuell ? ' open' : ''}><summary>${aktuell ? 'Aktuelle Preise in den anderen Städten (aus dem Kontor)' : 'Übliche Preise in den anderen Städten (ohne Neuigkeiten)'}</summary>
+  return `<details class="anderswo"${aktuell ? ' open' : ''}><summary>${aktuell ? (team.mods.infoGrund === 'bleiben' ? 'Aktuelle Preise in den anderen Städten (ihr habt euch umgehört)' : 'Aktuelle Preise in den anderen Städten (aus dem Kontor)') : 'Übliche Preise in den anderen Städten (ohne Neuigkeiten)'}</summary>
     <table class="preise klein"><thead><tr><th></th>${kopfzeile}</tr></thead><tbody>${zeilen}</tbody></table></details>`
 }
 
@@ -635,8 +654,16 @@ const AKTION = {
     }
     weiter(karteFuer(team) ? 'karte' : 'markt')
   },
+  'karte-festlegen'() {
+    const k = karteFuer(team)
+    const v = team.kartenVorwahl
+    if (!k || !v || v.id !== k.id || team.karten[k.id]) return
+    team.log.push({ runde: team.runde, ...karteAnwenden(team, k.id, v.wahl) })
+    delete team.kartenVorwahl
+    speichern(); zeichnen()
+  },
   'weiter-markt'() { weiter('markt') },
-  'weiter-reise'() { if (!team.reise) team.reise = { ziel: null, karawane: false }; weiter('reise') },
+  'weiter-reise'() { if (!team.reise) team.reise = { ziel: null, ueber: null, karawane: false }; weiter('reise') },
   'zurueck-markt'() { weiter('markt') },
   'schutz-kaufen'() {
     const s = raum().schutz
@@ -656,10 +683,15 @@ const AKTION = {
       team.silber -= s.kosten
       team.log.push({ runde: team.runde, art: 'schutz', silber: -s.kosten, text: s.name })
     } else r.karawane = false
+    if (r.ueber && r.ziel !== team.ort) {
+      if (team.silber < EIL_KOSTEN) { meldung = 'Für die Eilreise reicht euer Silber nicht.'; return zeichnen() }
+      team.silber -= EIL_KOSTEN
+      team.log.push({ runde: team.runde, art: 'schutz', silber: -EIL_KOSTEN, text: `Eilreise über ${ortName(r.ueber)}` })
+    }
     if (team.online) {
       const verkaeufe = {}
       for (const x of team.log) if (x.runde === team.runde && x.art === 'verkauf' && x.ort === team.ort) verkaeufe[x.ware] = (verkaeufe[x.ware] || 0) + x.menge
-      senden('team:abgabe', { runde: team.runde, ort: team.ort, ziel: r.ziel, schutz: hatSchutz(team), verkaeufe })
+      senden('team:abgabe', { runde: team.runde, ort: team.ort, ziel: r.ziel, ueber: r.ueber || null, schutz: hatSchutz(team), verkaeufe })
       team.phase = 'unterwegs'
       abgleichen(team.online.z)   // falls die Lehrkraft schon abgerechnet hat
       return window.scrollTo(0, 0)
@@ -700,14 +732,14 @@ document.addEventListener('click', (ev) => {
   if (d.hyp) { team.hypothese.wahl = d.hyp; team.hypothese.text = $('hypText').value; speichern(); return zeichnen() }
   if (d.wahl) {
     const k = karteFuer(team)
-    if (!team.karten[k.id]) team.log.push({ runde: team.runde, ...karteAnwenden(team, k.id, d.wahl) })
+    if (!team.karten[k.id]) team.kartenVorwahl = { id: k.id, wahl: d.wahl }
     speichern(); return zeichnen()
   }
   const e = ereignis(), mf = faktorenOrt(team.ort)
   if (d.kauf) { meldung = handeln(team, d.kauf, 1, e, mf) || ''; speichern(); return zeichnen() }
   if (d.verk) { meldung = handeln(team, d.verk, -1, e, mf) || ''; speichern(); return zeichnen() }
   if (d.verkalle) { meldung = handeln(team, d.verkalle, -(team.ladung[d.verkalle] || 0), e, mf) || ''; speichern(); return zeichnen() }
-  if (d.ziel && team.phase === 'reise') { team.reise.ziel = d.ziel; speichern(); return zeichnen() }
+  if (d.ziel && team.phase === 'reise') { team.reise.ziel = d.ziel; team.reise.ueber = d.ueber || null; speichern(); return zeichnen() }
 })
 
 document.addEventListener('keydown', (ev) => {

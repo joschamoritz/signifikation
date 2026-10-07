@@ -101,7 +101,7 @@ export function setupHandelsreiseSocket(io) {
     socket.on('team:abgabe', (d) => {
       const { s, t } = teamAus(d)
       if (!s || !d) return
-      if (abgabeSpeichern(s, t, { runde: d.runde, ort: d.ort, ziel: d.ziel, schutz: d.schutz, verkaeufe: d.verkaeufe })) leitungSenden(s)
+      if (abgabeSpeichern(s, t, { runde: d.runde, ort: d.ort, ziel: d.ziel, ueber: d.ueber, schutz: d.schutz, verkaeufe: d.verkaeufe })) leitungSenden(s)
     })
 
     socket.on('team:stand', (d) => {
