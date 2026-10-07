@@ -47,6 +47,28 @@ export function istAdmin(cookieHeader) {
 const antworten = (ack, daten) => { if (typeof ack === 'function') ack(daten) }
 const text = (x, max) => (typeof x === 'string' ? x.trim().slice(0, max) : '')
 
+// ── Begrenzungen (Review 08.10.) ─────────────────────────────────────────
+// Eine Schulklasse sitzt meist hinter EINER öffentlichen IP – die Grenzen sind
+// deshalb großzügig für 14 iPads mit Wiederverbindungen, aber eng genug gegen
+// Skripte. Die IP wird nur im Speicher gezählt, nicht gespeichert.
+const CONNECTS_PRO_MINUTE = 150
+const BEITRITTE_PRO_SOCKET = 8        // falsche Codes durchprobieren
+const EVENTS_PRO_10S = 40             // ein normales Gerät sendet wenige Ereignisse je Runde
+const connects = new Map()            // ip → { n, start }
+setInterval(() => { const jetzt = Date.now(); for (const [ip, e] of connects) if (jetzt - e.start > 60_000) connects.delete(ip) }, 5 * 60_000).unref()
+
+function clientIp(socket) {
+  const xff = socket.handshake.headers['x-forwarded-for']
+  return (typeof xff === 'string' && xff.length > 0) ? xff.split(',')[0].trim() : (socket.handshake.address || 'unknown')
+}
+function connectErlaubt(ip) {
+  const jetzt = Date.now()
+  const e = connects.get(ip)
+  if (!e || jetzt - e.start > 60_000) { connects.set(ip, { n: 1, start: jetzt }); return true }
+  e.n++
+  return e.n <= CONNECTS_PRO_MINUTE
+}
+
 export function setupHandelsreiseSocket(io) {
   const nsp = io.of(NAMESPACE)
 
@@ -54,11 +76,34 @@ export function setupHandelsreiseSocket(io) {
     nsp.to(`hr:${s.code}:teams`).emit('zustand', zustandFuerTeams(s))
     nsp.to(`hr:${s.code}:leitung`).emit('leitung:zustand', zustandFuerLeitung(s))
   }
-  function leitungSenden(s) { nsp.to(`hr:${s.code}:leitung`).emit('leitung:zustand', zustandFuerLeitung(s)) }
+  // Beamer-Updates bündeln: viele Team-Meldungen kurz hintereinander → ein Update
+  const leitungTimer = new Map()
+  function leitungSenden(s) {
+    if (leitungTimer.has(s.code)) return
+    leitungTimer.set(s.code, setTimeout(() => {
+      leitungTimer.delete(s.code)
+      nsp.to(`hr:${s.code}:leitung`).emit('leitung:zustand', zustandFuerLeitung(s))
+    }, 250))
+  }
+
+  nsp.use((socket, next) => {
+    if (!connectErlaubt(clientIp(socket))) return next(new Error('RATE_LIMITED'))
+    next()
+  })
 
   nsp.on('connection', (socket) => {
-    const admin = istAdmin(socket.handshake.headers.cookie)
     let teamRef = null   // { code, id }
+    let beitritte = 0
+    let fenster = { n: 0, start: Date.now() }
+
+    // Ereignisse je Socket drosseln (Spam-Schutz)
+    socket.use((_packet, next) => {
+      const jetzt = Date.now()
+      if (jetzt - fenster.start > 10_000) fenster = { n: 0, start: jetzt }
+      if (++fenster.n > EVENTS_PRO_10S) return next(new Error('RATE_LIMITED'))
+      next()
+    })
+    socket.on('error', () => { /* gedrosselte Ereignisse still verwerfen */ })
 
     function teamAus(d) {
       const s = spielHolen(text(d && d.code, 8))
@@ -69,13 +114,16 @@ export function setupHandelsreiseSocket(io) {
 
     // ── Teams ─────────────────────────────────────────────
     socket.on('team:beitreten', (d, ack) => {
+      if (++beitritte > BEITRITTE_PRO_SOCKET) return antworten(ack, { ok: false, fehler: 'zuviele' })
       const s = spielHolen(text(d && d.code, 8))
       if (!s) return antworten(ack, { ok: false, fehler: 'unbekannt' })
       const name = text(d.name, 80)
       if (!name) return antworten(ack, { ok: false, fehler: 'name' })
-      const r = teamBeitreten(s, { name, haus: text(d.haus, 40) })
+      const r = teamBeitreten(s, { name, haus: text(d.haus, 40), socketId: socket.id })
       if (r.fehler) return antworten(ack, { ok: false, fehler: r.fehler })
       socket.join(`hr:${s.code}:teams`)
+      r.team.verbunden = true
+      r.team.socketId = socket.id
       teamRef = { code: s.code, id: r.team.id }
       antworten(ack, { ok: true, id: r.team.id, token: r.team.token, raum: r.team.raum, ort: r.team.ort, zustand: zustandFuerTeams(s) })
       leitungSenden(s)
@@ -86,6 +134,7 @@ export function setupHandelsreiseSocket(io) {
       if (!s) return antworten(ack, { ok: false, fehler: 'unbekannt' })
       socket.join(`hr:${s.code}:teams`)
       t.verbunden = true
+      t.socketId = socket.id
       teamRef = { code: s.code, id: t.id }
       antworten(ack, { ok: true, zustand: zustandFuerTeams(s) })
       leitungSenden(s)
@@ -114,13 +163,14 @@ export function setupHandelsreiseSocket(io) {
       if (!teamRef) return
       const s = spielHolen(teamRef.code)
       const t = s && s.teams.get(teamRef.id)
-      if (t) { t.verbunden = false; leitungSenden(s) }
+      // Nur trennen, wenn kein neuerer Socket das Team übernommen hat
+      if (t && t.socketId === socket.id) { t.verbunden = false; leitungSenden(s) }
     })
 
     // ── Spielleitung ──────────────────────────────────────
     function leitung(ereignisName, fn) {
       socket.on(ereignisName, (d, ack) => {
-        if (!admin) return antworten(ack, { ok: false, fehler: 'login' })
+        if (!istAdmin(socket.handshake.headers.cookie)) return antworten(ack, { ok: false, fehler: 'login' })
         fn(d || {}, ack)
       })
     }
@@ -168,14 +218,16 @@ export function setupHandelsreiseSocket(io) {
     leitung('leitung:entfernen', (d, ack) => {
       const s = spielHolen(text(d.code, 8))
       if (!s) return antworten(ack, { ok: false, fehler: 'unbekannt' })
+      const team = s.teams.get(text(d.id, 32))
       const ok = teamEntfernen(s, text(d.id, 32))
+      if (ok && team && team.socketId) nsp.to(team.socketId).emit('zustand', { ...zustandFuerTeams(s), entfernt: true })
       antworten(ack, { ok })
       if (ok) leitungSenden(s)
     })
 
     leitung('leitung:loeschen', (d, ack) => {
       const s = spielHolen(text(d.code, 8))
-      if (s) { nsp.to(`hr:${s.code}:teams`).emit('zustand', { ...zustandFuerTeams(s), status: 'ende' }); spielLoeschen(s.code) }
+      if (s) { nsp.to(`hr:${s.code}:teams`).emit('zustand', { ...zustandFuerTeams(s), geloescht: true }); spielLoeschen(s.code) }
       antworten(ack, { ok: true })
     })
   })

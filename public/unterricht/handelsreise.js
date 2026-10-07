@@ -9,7 +9,7 @@ import {
   RAEUME, KARTEN, HYPOTHESEN, RUNDEN, START_SILBER, EREIGNISSE, STANDARD_PLAN,
   neuesTeam, ereignisFuer, ziele, preisGruende, EIL_KOSTEN, preis, verkaufspreis, ladungSumme, laderaum,
   risiko, gefahrStufe, karteFuer, karteAnwenden, handeln, reiseAbrechnen,
-  rundeAbschliessen, hatSchutz, ladungWert,
+  rundeAbschliessen, hatSchutz, ladungWert, eilLadung,
 } from './handelsreise-regeln.js'
 import { siegel, raumKarte, orientierungsKarte } from './handelsreise-karten.js'
 
@@ -24,20 +24,39 @@ let startMeldung = ''
 let verbinde = false   // Doppeltipp beim Beitreten verhindern
 const startWerte = { code: '', team: '', haus: '' }
 
+// Spielstände, die älter als 12 Stunden sind, gehören zu einer anderen Stunde
+// (geteilte iPads, Test am Vortag) und werden verworfen.
+const MAX_ALTER_MS = 12 * 60 * 60 * 1000
+
+function standGueltig(s) {
+  if (!s || s.version !== 1 || !RAEUME[s.raum] || !RAEUME[s.raum].orte[s.ort]) return false
+  if (!s.gespeichert || Date.now() - s.gespeichert > MAX_ALTER_MS) return false
+  return true
+}
+
 function laden() {
   try {
     const r = localStorage.getItem(KEY)
-    if (r) { const s = JSON.parse(r); if (s && s.version === 1) team = s }
+    if (r) {
+      const s = JSON.parse(r)
+      if (standGueltig(s)) team = s
+      else localStorage.removeItem(KEY)
+    }
   } catch { /* privat oder gesperrt: ohne Speicher weiter */ }
 }
 function speichern() {
+  if (!team) return
+  team.gespeichert = Date.now()
   try { localStorage.setItem(KEY, JSON.stringify(team)) } catch { /* s. o. */ }
 }
 
 /* ================= Klassenmarkt ================= */
 // team.online = { code, token, id, z } – z ist der letzte Zustand vom Server:
 // { runde, status: lobby|laeuft|abgerechnet|ende, ereignisse, faktoren, abrechnung }
-const netz = { socket: null, verbunden: false }
+const netz = { socket: null, verbunden: false, getrenntSeit: null }
+// Der Knopf „ohne Klassenmarkt“ erscheint erst nach längerer Trennung –
+// sonst klicken Teams ihn beim Aufwachen des iPads versehentlich.
+const OFFLINE_KNOPF_NACH_MS = 20 * 1000
 
 function ereignis() {
   const r = Math.min(team.runde, RUNDEN)
@@ -47,6 +66,10 @@ function ereignis() {
 }
 function faktorenOrt(ort) { return (((team.faktoren || {})[team.runde] || {})[ort]) || {} }
 
+function lange_getrennt() {
+  return !netz.verbunden && netz.getrenntSeit && Date.now() - netz.getrenntSeit > OFFLINE_KNOPF_NACH_MS
+}
+
 function socketVerbinden(onConnect) {
   if (typeof window.io !== 'function') return false
   if (netz.socket) { if (onConnect) (netz.verbunden ? onConnect() : netz.socket.once('connect', onConnect)); return true }
@@ -54,18 +77,33 @@ function socketVerbinden(onConnect) {
   netz.socket = s
   s.on('connect', () => {
     netz.verbunden = true
+    netz.getrenntSeit = null
     if (team && team.online) {
       s.emit('team:wieder', { code: team.online.code, token: team.online.token }, (res) => {
-        if (res && res.ok) abgleichen(res.zustand)
+        if (res && res.ok) { nachholen(); abgleichen(res.zustand) }
         else if (res && res.fehler === 'unbekannt') { team.online.verloren = true; speichern(); zeichnen() }
       })
     }
     zeichnen()
   })
-  s.on('disconnect', () => { netz.verbunden = false; zeichnen() })
+  s.on('disconnect', () => {
+    netz.verbunden = false
+    netz.getrenntSeit = Date.now()
+    zeichnen()
+    setTimeout(zeichnen, OFFLINE_KNOPF_NACH_MS + 500)
+  })
   s.on('zustand', (z) => abgleichen(z))
   if (onConnect) s.once('connect', onConnect)
   return true
+}
+
+// Was während eines Funklochs nicht ankam, nach dem Wiederverbinden erneut senden.
+// Der Server überschreibt Abgaben und Stände einfach, doppeltes Senden schadet nicht.
+function nachholen() {
+  if (!team || !team.online) return
+  if (team.hypothese.wahl) senden('team:hypothese', { wahl: team.hypothese.wahl })
+  if (team.phase === 'unterwegs' && team.reise && team.reise.abgabe) senden('team:abgabe', team.reise.abgabe)
+  if (team.runde > RUNDEN && ['bilanz', 'bericht'].includes(team.phase)) standMelden(true)
 }
 
 const LAEUFT = ['ereignis', 'karte', 'markt', 'reise', 'unterwegs', 'warten']
@@ -73,8 +111,15 @@ const LAEUFT = ['ereignis', 'karte', 'markt', 'reise', 'unterwegs', 'warten']
 /** Den Stand des Geräts mit dem Zustand des Klassenmarkts abgleichen. */
 function abgleichen(z) {
   if (!team || !team.online || !z) return
+  if (z.geloescht || z.entfernt) {
+    // Spiel gelöscht oder Team entfernt: Gerät soll ohne Klassenmarkt weiterspielen können
+    team.online.verloren = true
+    netz.getrenntSeit = 0
+    speichern(); return zeichnen()
+  }
   team.online.z = z
   team.online.verloren = false
+  const vorher = team.phase
   if (z.runde >= 1 && z.runde <= RUNDEN) {
     team.ereignisse = team.ereignisse || {}
     team.faktoren = team.faktoren || {}
@@ -83,7 +128,20 @@ function abgleichen(z) {
   }
   if (['raum', 'hypothese'].includes(team.phase) || team.runde > RUNDEN || !z.runde) { speichern(); return zeichnen() }
 
-  // Runden verpasst (z. B. später beigetreten oder lange offline): vorspulen
+  // 1. Liegt die Abrechnung der eigenen Runde vor, gilt sie – auch wenn die
+  //    Lehrkraft schon die nächste Runde freigegeben hat (iPad hat geschlafen).
+  const ab = z.abrechnung
+  if (ab && ab.runde === team.runde && LAEUFT.includes(team.phase)) {
+    if (team.phase !== 'unterwegs') {
+      team.reise = { ziel: team.ort, karawane: false }
+      team.log.push({ runde: team.runde, art: 'regel', text: 'Ihr wart nicht rechtzeitig fertig und bleibt diese Runde, wo ihr seid.' })
+    }
+    reiseAbrechnen(team, ereignis(), ab.seed, (ab.kontext || {})[team.raum] || {})
+    team.phase = 'ergebnis'
+    standMelden()
+  }
+
+  // 2. Weiter zurück (spät beigetreten, lange offline): vorspulen
   while (team.runde < z.runde && LAEUFT.includes(team.phase)) {
     if (team.phase !== 'warten') {
       team.reise = { ziel: team.ort }
@@ -94,25 +152,20 @@ function abgleichen(z) {
     team.phase = 'warten'
   }
 
-  if (team.runde === z.runde) {
-    const ab = z.abrechnung
-    if (ab && ab.runde === team.runde && LAEUFT.includes(team.phase)) {
-      if (team.phase !== 'unterwegs') {
-        team.reise = { ziel: team.ort, karawane: false }
-        team.log.push({ runde: team.runde, art: 'regel', text: 'Ihr wart nicht rechtzeitig fertig und bleibt diese Runde, wo ihr seid.' })
-      }
-      reiseAbrechnen(team, ereignis(), ab.seed, (ab.kontext || {})[team.raum] || {})
-      team.phase = 'ergebnis'
-      standMelden()
-    } else if (team.phase === 'warten' && z.status === 'laeuft') {
-      team.phase = 'ereignis'
-    }
-  }
+  // 3. Freigabe der Runde, auf die das Gerät wartet
+  if (team.runde === z.runde && team.phase === 'warten' && z.status === 'laeuft') team.phase = 'ereignis'
+
+  if (vorher !== team.phase && ['ereignis', 'ergebnis'].includes(team.phase)) netz.signal = true
   speichern(); zeichnen()
 }
 
+/** Gibt true zurück, wenn gesendet wurde. */
 function senden(ereignisName, daten) {
-  if (netz.socket && netz.verbunden && team.online) netz.socket.emit(ereignisName, { code: team.online.code, token: team.online.token, ...daten })
+  if (netz.socket && netz.verbunden && team.online) {
+    netz.socket.emit(ereignisName, { code: team.online.code, token: team.online.token, ...daten })
+    return true
+  }
+  return false
 }
 
 function standMelden(ende = false) {
@@ -127,7 +180,7 @@ function standMelden(ende = false) {
 
 function offlineWeiter() {
   team.online = null
-  team.log.push({ runde: team.runde, art: 'regel', text: 'Ohne Klassenmarkt weitergespielt: Preise und Gefahren gelten wie im Buch-Grundwert.' })
+  team.log.push({ runde: team.runde, art: 'regel', text: 'Ohne Klassenmarkt weitergespielt: Preise und Gefahren gelten wie üblich, die anderen Häuser wirken nicht mehr auf euch.' })
   if (team.phase === 'warten') team.phase = 'ereignis'
   else if (team.phase === 'unterwegs') { reiseAbrechnen(team, ereignis(), 'geraet', {}); team.phase = 'ergebnis' }
   speichern(); zeichnen()
@@ -169,7 +222,7 @@ function kopf() {
       ? `<span class="netz an" title="Klassenmarkt verbunden">● Klassenmarkt ${esc(team.online.code)}</span>`
       : '<span class="netz aus" title="Keine Verbindung">● keine Verbindung</span>'
   }
-  return `<header class="kopf">
+  return `<header class="kopf${netz.signal ? ' signal' : ''}">
     <div class="haus">${siegel(initiale(), 44)}<div><b>${esc(team.haus || 'Handelshaus')}</b><small>${esc(team.team)} · ${esc(raum().name)} ${netzAnzeige}</small></div></div>
     <div class="werte">
       <span class="wert"><small>Runde</small><b>${Math.min(team.runde, RUNDEN)} / ${RUNDEN}</b></span>
@@ -186,6 +239,7 @@ function kopf() {
 
 function schritte(aktiv) {
   const liste = [['ereignis', 'Nachricht'], ['karte', 'Entscheidung'], ['markt', 'Markt'], ['reise', 'Reise']]
+  if (team && team.online) liste.push(['warten', 'Abrechnung'])
   return `<ol class="schritte">${liste.map(([id, name]) => `<li class="${id === aktiv ? 'an' : ''}">${name}</li>`).join('')}</ol>`
 }
 
@@ -213,6 +267,7 @@ const ANSICHT = {
         <div class="regeln">
           <p><b>Ihr seid ein Handelshaus.</b> Ihr reist fünf Runden lang von Stadt zu Stadt, kauft und verkauft Waren und entscheidet, wie viel Schutz ihr euch leistet.</p>
           <p>Die Karten erzählen, was im Buch steht. <b>Alle Zahlen sind Spielwerte</b> – Preise aus dem Mittelalter kennen wir dafür nicht. Die Karten und Räume stammen aus verschiedenen Jahrhunderten; das Spiel setzt sie „um 1350“ zusammen.</p>
+          <p class="klein">Bitte nicht im privaten Safari-Fenster spielen – sonst geht euer Stand verloren.</p>
         </div>
         <label for="codeFeld">Raumcode von der Tafel</label>
         <input id="codeFeld" autocomplete="off" inputmode="numeric" maxlength="4" placeholder="z. B. 4821" value="${esc(startWerte.code)}">
@@ -257,7 +312,7 @@ const ANSICHT = {
 
   warten() {
     const z = team.online && team.online.z
-    const ohneNetz = team.online && (!netz.verbunden || team.online.verloren)
+    const ohneNetz = team.online && (team.online.verloren || lange_getrennt())
     const text = team.runde === 1 && (!z || !z.runde)
       ? 'Alle Handelshäuser machen sich bereit. Gleich gibt eure Lehrkraft die erste Runde frei.'
       : `Die anderen Handelshäuser sind noch unterwegs. Gleich gibt eure Lehrkraft Runde ${team.runde} frei.`
@@ -265,23 +320,31 @@ const ANSICHT = {
       <p class="ueber">Klassenmarkt · Raumcode ${esc(team.online ? team.online.code : '')}</p>
       <h2>Wartet auf die Freigabe</h2>
       <p>${text}</p>
+      <p class="hinweis-gross">Nichts tippen – euer iPad springt von selbst weiter.</p>
       <p class="klein">Schaut solange ins Kontorbuch oder auf die Karte: Wo wollt ihr als Nächstes hin?</p>
-      ${ohneNetz ? `<div class="buchstelle"><b>${team.online.verloren ? 'Dieses Spiel gibt es auf dem Server nicht mehr.' : 'Keine Verbindung zum Klassenmarkt.'}</b> Fragt eure Lehrkraft. Wenn sie es sagt:
+      ${ohneNetz ? `<div class="buchstelle"><b>${team.online.verloren ? 'Dieses Spiel gibt es auf dem Server nicht mehr – oder euer Haus wurde entfernt.' : 'Seit einer Weile keine Verbindung zum Klassenmarkt.'}</b> Fragt eure Lehrkraft. Wenn sie es sagt:
         <div class="fussleiste"><button type="button" class="btn hell" data-akt="offline">Ohne Klassenmarkt weiterspielen</button></div></div>` : ''}
-    </div>`, null)
+    </div>`, 'warten')
   },
 
   unterwegs() {
     const r = team.reise || {}
-    const ohneNetz = !netz.verbunden || (team.online && team.online.verloren)
+    const ohneNetz = (team.online && team.online.verloren) || lange_getrennt()
+    const teile = [r.ziel === team.ort ? `Ihr bleibt in ${esc(ortName(team.ort))}` : `Ziel: ${esc(ortName(r.ziel))}`]
+    if (r.ueber) teile.push(`Eilreise über ${esc(ortName(r.ueber))}`)
+    if (r.karawane) teile.push('mit Karawane')
+    else if (hatSchutz(team)) teile.push(`mit Schutz (${esc(raum().schutz.name)})`)
+    else teile.push('ohne Schutz')
     return spiel(`<div class="nachricht warten">
       <p class="ueber">Runde ${team.runde} · unterwegs</p>
       <h2>${r.ziel === team.ort ? `Ihr wartet in ${esc(ortName(team.ort))}` : `Unterwegs nach ${esc(ortName(r.ziel))}`}</h2>
-      <p>Eure Entscheidungen sind abgeschickt. Wenn alle so weit sind, rechnet eure Lehrkraft die Runde ab – dann erfahrt ihr, wie eure Reise ausgegangen ist.</p>
+      <p class="schutz-an">Abgeschickt ✓ · ${teile.join(' · ')}</p>
+      <p>Wenn alle so weit sind, rechnet eure Lehrkraft die Runde ab – dann erfahrt ihr, wie eure Reise ausgegangen ist.</p>
+      <p class="hinweis-gross">Nichts tippen – euer iPad springt von selbst weiter.</p>
       <p class="klein">Ob es gefährlich wird, hängt auch davon ab, wie viele andere ohne Schutz dieselbe Strecke fahren.</p>
-      ${ohneNetz ? `<div class="buchstelle"><b>Keine Verbindung zum Klassenmarkt.</b> Fragt eure Lehrkraft. Wenn sie es sagt:
+      ${ohneNetz ? `<div class="buchstelle"><b>${team.online && team.online.verloren ? 'Dieses Spiel gibt es auf dem Server nicht mehr – oder euer Haus wurde entfernt.' : 'Seit einer Weile keine Verbindung zum Klassenmarkt.'}</b> Fragt eure Lehrkraft. Wenn sie es sagt:
         <div class="fussleiste"><button type="button" class="btn hell" data-akt="offline">Ohne Klassenmarkt abrechnen</button></div></div>` : ''}
-    </div>`, null, { auswahl: r.ziel, ueber: r.ueber })
+    </div>`, 'warten', { auswahl: r.ziel, ueber: r.ueber })
   },
 
   ereignis() {
@@ -302,10 +365,11 @@ const ANSICHT = {
     if (!wahl) {
       // Zweistufig: erst auswählen (Hinweis auf mögliche Folgen), dann festlegen
       const vor = team.kartenVorwahl && team.kartenVorwahl.id === k.id ? team.kartenVorwahl.wahl : null
-      unten = `<div class="wahl2">
-        <button type="button" class="wahlbtn${vor === 'a' ? ' an' : ''}" data-wahl="a">${esc(k.a.text)}</button>
-        <button type="button" class="wahlbtn${vor === 'b' ? ' an' : ''}" data-wahl="b">${esc(k.b.text)}</button>
-      </div>
+      const knopf = (w) => {
+        const zuTeuer = kartenKosten(k, w) > team.silber
+        return `<button type="button" class="wahlbtn${vor === w ? ' an' : ''}" data-wahl="${w}"${zuTeuer ? ' disabled' : ''}>${esc(k[w].text)}${zuTeuer ? '<small>Dafür reicht euer Silber nicht.</small>' : ''}</button>`
+      }
+      unten = `<div class="wahl2">${knopf('a')}${knopf('b')}</div>
       ${vor ? `<div class="vorwahl"><p><b>Möglich ist:</b> ${esc(k[vor].hinweis || '')}</p>
         <p class="klein">Besprecht euch. Noch könnt ihr umentscheiden.</p>
         <div class="fussleiste"><button type="button" class="btn" data-akt="karte-festlegen">Entscheidung festlegen</button></div></div>`
@@ -334,7 +398,7 @@ const ANSICHT = {
         <td class="zahl">${verk}${pfeil(g.faktor)}</td>
         <td class="zahl"><b>${hat}</b></td>
         <td class="aktion">
-          ${!schluss && kauf != null ? `<button type="button" class="mbtn kauf" data-kauf="${w}" aria-label="1 ${esc(wareName(w))} kaufen">+1</button>` : ''}
+          ${!schluss && kauf != null ? `<button type="button" class="mbtn kauf" data-kauf="${w}" aria-label="1 ${esc(wareName(w))} kaufen"${team.silber < kauf || ladungSumme(team) >= laderaum(team) ? ' disabled' : ''}>+1</button>` : ''}
           ${hat ? `<button type="button" class="mbtn verk" data-verk="${w}" aria-label="1 ${esc(wareName(w))} verkaufen">−1</button><button type="button" class="mbtn verk alle" data-verkalle="${w}">alle</button>` : ''}
         </td></tr>`
     }).join('')
@@ -349,9 +413,10 @@ const ANSICHT = {
       <p class="ueber">${schluss ? 'Ende der Reise' : `Runde ${team.runde} · Markt`}</p>
       <h2>${titel}</h2>
       <p class="klein">${hinweis}</p>
+      ${schluss ? '' : `<p class="klein knapp">Noch ${team.silber} Silber · Platz für ${laderaum(team) - ladungSumme(team)} weitere Ladungen</p>`}
+      <p class="meldung">${esc(meldung)}</p>
       <table class="preise"><thead><tr><th>Ware</th><th>Kaufen für</th><th>Verkaufen für</th><th>Geladen</th><th class="aktion">Handeln</th></tr></thead><tbody>${zeilen}</tbody></table>
       ${saettigung}
-      <p class="meldung">${esc(meldung)}</p>
       ${schluss ? '' : anderswo()}
       <div class="fussleiste"><button type="button" class="btn" data-akt="${schluss ? 'bilanz' : 'weiter-reise'}">${schluss ? 'Bilanz ziehen' : 'Weiter zur Reise'}</button></div>
     </div>`, schluss ? null : 'markt')
@@ -364,11 +429,16 @@ const ANSICHT = {
     const optionen = ziele(team.raum, team.ort).map(({ ort, ueber, strecken }) => {
       const r = risiko(tmp, ort, e, kontext(), ueber)
       const an = wahl.ziel === ort && (wahl.ueber || null) === ueber
-      let titel, unter
-      if (ort === team.ort) { titel = `In ${esc(ortName(ort))} bleiben`; unter = 'keine Reise · ihr hört euch um: nächste Runde kennt ihr alle aktuellen Preise' }
-      else if (ueber) { titel = `Eilreise nach ${esc(ortName(ort))}`; unter = `über ${esc(ortName(ueber))}, ohne Halt · kostet ${EIL_KOSTEN} Silber, zwei Strecken = mehr Gefahr` }
+      let titel, unter, gesperrt = false
+      if (ort === team.ort) { titel = `In ${esc(ortName(ort))} bleiben`; unter = 'keine Reise · ihr hört euch um: nächste Runde kennt ihr die aktuellen Preise aller Orte' }
+      else if (ueber) {
+        gesperrt = ladungSumme(team) > eilLadung(team)
+        titel = `Eilreise nach ${esc(ortName(ort))}`
+        unter = `über ${esc(ortName(ueber))}, ohne Halt · kostet ${EIL_KOSTEN} Silber · höchstens ${eilLadung(team)} Ladungen · zwei Strecken = mehr Gefahr`
+        if (gesperrt) unter += ' · <b>zu viel geladen</b>'
+      }
       else { titel = `Nach ${esc(ortName(ort))}`; unter = esc(strecken[0].name) }
-      return `<button type="button" class="zielbtn${ueber ? ' eil' : ''}${an ? ' an' : ''}" data-ziel="${ort}"${ueber ? ` data-ueber="${ueber}"` : ''}>
+      return `<button type="button" class="zielbtn${ueber ? ' eil' : ''}${an ? ' an' : ''}" data-ziel="${ort}"${ueber ? ` data-ueber="${ueber}"` : ''}${gesperrt ? ' disabled' : ''}>
         <b>${titel}</b><small>${unter}</small>${gefahrPunkte(r)}</button>`
     }).join('')
     const sch = R.schutz
@@ -381,13 +451,16 @@ const ANSICHT = {
       schutz = `<p>${esc(sch.text)}</p><button type="button" class="btn hell${wahl.karawane ? ' an' : ''}" data-akt="karawane">${wahl.karawane ? '✓ ' : ''}${esc(sch.name)} (${sch.kosten} Silber)</button>`
     }
     const knopf = wahl.ziel === team.ort ? 'Runde beenden' : 'Losreisen'
+    const kosten = reiseKosten(wahl)
+    const zusammen = wahl.ziel ? `<p class="klein knapp">${wahl.ziel === team.ort ? 'Ihr bleibt.' : `Ziel ${esc(ortName(wahl.ziel))}${wahl.ueber ? ' (Eilreise)' : ''}`}${kosten ? ` · kostet zusammen ${kosten} Silber` : ''} · danach könnt ihr nichts mehr ändern.</p>` : ''
     return spiel(`<div class="reise">
       <p class="ueber">Runde ${team.runde} · Reise</p>
       <h2>Wohin geht die Reise?</h2>
-      <p class="klein">Tippt auf ein Ziel – hier oder auf der Karte.${team.online ? ' Fahren viele ohne Schutz dieselbe Strecke, wird sie gefährlicher.' : ''}</p>
+      <p class="klein">Tippt auf ein Ziel<span class="nur-breit"> – hier oder auf der Karte</span>.${team.online ? ' Fahren viele ohne Schutz dieselbe Strecke, wird sie gefährlicher.' : ''}</p>
       <div class="ziele">${optionen}</div>
       <div class="schutzbox"><h3>Schutz</h3>${schutz}<p class="beleg">${esc(sch.beleg)}</p></div>
       <p class="meldung">${esc(meldung)}</p>
+      ${zusammen}
       <div class="fussleiste">
         <button type="button" class="btn hell" data-akt="zurueck-markt">Zurück zum Markt</button>
         <button type="button" class="btn" data-akt="losreisen"${wahl.ziel ? '' : ' disabled'}>${knopf}</button>
@@ -448,7 +521,7 @@ const ANSICHT = {
       <p class="klein">Belegt eure Antworten: Nennt eine Karte, eine Runde aus dem Kontorbuch oder eine Buchseite.</p>
       ${frage('f1', '1. Was hat euer Handelshaus gerettet oder ruiniert?', 'Belegt mit einer Karte, einer Runde oder einer Buchstelle.')}
       ${frage('f2', '2. Hat eure Vermutung vom Anfang gestimmt?', `Ihr habt vermutet: ${esc(HYPOTHESEN[team.hypothese.wahl] || '–')}. Begründet mit eurem Spiel und dem der Klasse.`)}
-      ${frage('f3', '3. Was fehlt im Spiel, das im Buch steht?', 'Denkt an die Seiten 24–33.')}
+      ${frage('f3', '3. Wer hat die Regeln gemacht? Welche Spielregel hat entschieden, ob sich Schutz lohnt – und was fehlt im Spiel, das im Buch steht?', 'Denkt an die Seiten 24–33 und an „Woher stammt das?“ unten auf der Seite.')}
       <p class="meldung">${esc(meldung)}</p>
       <div class="fussleiste">
         <button type="button" class="btn hell" data-akt="kontorbuch">Kontorbuch ansehen</button>
@@ -464,14 +537,39 @@ function anderswo() {
   const R = raum(), e = ereignis()
   const orte = Object.keys(R.orte).filter((o) => o !== team.ort)
   const aktuell = !!team.mods.info
+  if (!aktuell) {
+    // Ohne Neuigkeiten kennt ihr keine Preise – nur, was wo angeboten und gefragt ist
+    const zeilen = orte.map((o) => `<li><b>${esc(ortName(o))}:</b> bietet ${R.orte[o].angebot.map((w) => esc(wareName(w))).join(', ')} · gefragt: ${gefragt(o).map((w) => esc(wareName(w))).join(', ')}</li>`).join('')
+    return `<div class="anderswo"><p class="klein"><b>Andere Städte</b> – die Preise dort kennt ihr nicht. Wer in einer Stadt bleibt und sich umhört (oder im Kontor mitredet), erfährt sie für die nächste Runde.</p><ul class="klein orte-liste">${zeilen}</ul></div>`
+  }
   const kopfzeile = orte.map((o) => `<th>${esc(ortName(o))}</th>`).join('')
   const zeilen = Object.keys(R.waren).map((w) => `<tr><th>${esc(wareName(w))}</th>${orte.map((o) => {
-    const p = aktuell ? preis(team.raum, o, w, e, faktorenOrt(o)[w] || 1) : R.preise[o][w]
-    const f = aktuell ? preisGruende(team.raum, o, w, e, faktorenOrt(o)[w] || 1).faktor : 1
+    const p = preis(team.raum, o, w, e, faktorenOrt(o)[w] || 1)
+    const f = preisGruende(team.raum, o, w, e, faktorenOrt(o)[w] || 1).faktor
     return `<td class="zahl">${p}${R.orte[o].angebot.includes(w) ? '★' : ''}${pfeil(f)}</td>`
   }).join('')}</tr>`).join('')
-  return `<details class="anderswo"${aktuell ? ' open' : ''}><summary>${aktuell ? (team.mods.infoGrund === 'bleiben' ? 'Aktuelle Preise in den anderen Städten (ihr habt euch umgehört)' : 'Aktuelle Preise in den anderen Städten (aus dem Kontor)') : 'Übliche Preise in den anderen Städten (ohne Neuigkeiten)'}</summary>
+  return `<details class="anderswo" open><summary>${team.mods.infoGrund === 'bleiben' ? 'Aktuelle Preise in den anderen Städten (ihr habt euch umgehört)' : 'Aktuelle Preise in den anderen Städten (aus dem Kontor)'}</summary>
     <table class="preise klein"><thead><tr><th></th>${kopfzeile}</tr></thead><tbody>${zeilen}</tbody></table></details>`
+}
+
+// Was eine Stadt besonders braucht: die zwei teuersten Waren, die sie nicht selbst anbietet
+function gefragt(ort) {
+  const R = raum()
+  return Object.keys(R.waren).filter((w) => !R.orte[ort].angebot.includes(w))
+    .sort((a, b) => R.preise[ort][b] - R.preise[ort][a]).slice(0, 2)
+}
+
+// Kosten einer Kartenwahl (für die Sperre bei zu wenig Silber)
+function kartenKosten(k, w) {
+  let f = k[w].folgen
+  if (f.bedingt) f = team.flags[f.bedingt.flag] ? f.bedingt.ja : f.bedingt.nein
+  return f.silber < 0 ? -f.silber : 0
+}
+
+// Was die gewählte Reise zusätzlich kostet
+function reiseKosten(r) {
+  if (!r || !r.ziel || r.ziel === team.ort) return 0
+  return (r.karawane ? raum().schutz.kosten : 0) + (r.ueber ? EIL_KOSTEN : 0)
 }
 
 function bilanzDaten() {
@@ -526,22 +624,24 @@ function hilfeHtml() {
     <li><b>Nachricht:</b> Was gerade in eurem Handelsraum passiert. Es gilt für diese Runde.</li>
     <li><b>Entscheidung:</b> Eine Karte mit zwei Möglichkeiten. Danach seht ihr, was im Buch dazu steht.</li>
     <li><b>Markt:</b> Kaufen (nur Waren mit ★) und verkaufen. Euer Laderaum ist begrenzt.</li>
-    <li><b>Reise:</b> Ziel wählen, Schutz überlegen, losreisen. Je mehr Punkte ●, desto gefährlicher. Bei einem Unglück verliert ihr die Hälfte eurer Ladung.</li>
+    <li><b>Reise:</b> Ziel wählen, Schutz überlegen, losreisen. Je mehr Punkte ●, desto gefährlicher. Bei einem Unglück verliert ihr ein Drittel eurer Ladung. Eine Eilreise überspringt eine Stadt: teurer, gefährlicher und nur mit halber Ladung.</li>
   </ol>
   <p><b>Klassenmarkt:</b> Eure Lehrkraft gibt jede Runde frei und rechnet sie ab, wenn alle losgereist sind. Was die anderen tun, wirkt auf euch: Verkaufen viele dieselbe Ware am selben Ort, sinkt dort der Preis. Fahren viele ohne Schutz dieselbe Strecke, wird sie gefährlicher. Und die Hanse schützt umso besser, je mehr Handelshäuser Mitglied sind.</p>
   <p>Nach fünf Runden gibt es einen letzten Markttag. Dann zieht ihr Bilanz und schreibt euren Reisebericht.</p>
-  <p><b>Seite nicht schließen und nicht neu laden.</b> Euer Stand ist im iPad gespeichert.</p>
+  <p><b>Bleiben:</b> Wer eine Runde in seiner Stadt bleibt, hört sich um und kennt in der nächsten Runde die Preise aller Städte. Sonst kennt ihr nur die Preise dort, wo ihr seid.</p>
+  <p><b>iPad gesperrt oder Seite neu geladen?</b> Einfach weiterspielen – euer Stand ist im iPad gespeichert. Nur nicht im privaten Fenster spielen.</p>
   <div class="fussleiste"><button type="button" class="btn" data-akt="zu">Verstanden</button></div>`
 }
 
 function quellenHtml() {
-  const zeilen = Object.values(KARTEN).map((k) => `<li><b>${esc(k.titel)}:</b> ${esc(k.beleg)} <i>${esc(k.spielregel)}</i></li>`).join('')
+  const imSpiel = new Set(Object.values(RAEUME).flatMap((R) => R.karten))
+  const zeilen = Object.entries(KARTEN).filter(([id]) => imSpiel.has(id)).map(([, k]) => `<li><b>${esc(k.titel)}:</b> ${esc(k.beleg)} <i>${esc(k.spielregel)}</i></li>`).join('')
   const ereig = Object.values(EREIGNISSE).filter((e) => e.beleg).map((e) => `<li><b>${esc(e.titel)}:</b> ${esc(e.beleg)}</li>`).join('')
   return `<p class="ueber">Woher stammt das?</p><h2>Quellen der Karten</h2>
-  <p>Das Spiel ist eine <b>Darstellung</b>: Jemand hat entschieden, was hineinkommt und was nicht. Die Texte der Karten stützen sich auf <i>Geschichte und Geschehen 2</i> (Klett), Seiten 24–33. <b>Alle Zahlen sind Spielwerte.</b> Was nur Spielregel ist, steht bei jeder Karte dabei.</p>
-  <h3>Entscheidungskarten</h3><ul class="quellen">${zeilen}</ul>
-  <h3>Nachrichten</h3><ul class="quellen">${ereig}</ul>
-  <h3>Waren, Orte und Karten</h3><p class="klein">Seidenstraße: S. 28 VT1. Hanse: S. 24 D1, S. 30 VT2. Sahara: S. 31 VT7 und D1. Welche Ware an welchem Ort günstig ist, ist vereinfacht. Die Karten sind selbst gezeichnete Skizzen; die Orientierungskarte zeigt heutige Küsten.</p>`
+  <p>Das Spiel ist eine <b>Darstellung</b>: Jemand hat entschieden, was hineinkommt und was nicht. Die Texte der Karten stützen sich auf <i>Geschichte und Geschehen 2</i> (Klett), Seiten 24–33. <b>Alle Zahlen sind im Spiel ausgedacht.</b> Was ausgedacht ist, steht bei jeder Karte dabei. Und: Das Spiel lässt den Menschenhandel weg, obwohl das Buch ihn nennt (S. 31 VT7, S. 33 Q4).</p>
+  <details class="quellen-details" open><summary><b>Entscheidungskarten</b></summary><ul class="quellen">${zeilen}</ul></details>
+  <details class="quellen-details"><summary><b>Nachrichten</b></summary><ul class="quellen">${ereig}</ul></details>
+  <h3>Waren, Orte und Karten</h3><p class="klein">Seidenstraße: S. 28 VT1. Samarkand: S. 29 D1. Hanse: S. 24 D1, S. 30 VT2. Sahara: S. 31 VT7 und D1, Sidschilmasa auf D1. Welche Ware an welchem Ort günstig ist, ist vereinfacht. Die Karten sind selbst gezeichnete Skizzen; die Orientierungskarte zeigt heutige Küsten.</p>`
 }
 
 /* ================= Druckfassung ================= */
@@ -554,7 +654,7 @@ function druckHtml() {
     <p>Bilanz: ${START_SILBER} → ${team.silber} Silber</p>
     <h2>1. Was hat euer Handelshaus gerettet oder ruiniert?</h2><p>${esc(b.f1).replace(/\n/g, '<br>')}</p>
     <h2>2. Hat eure Vermutung vom Anfang gestimmt?</h2><p>${esc(b.f2).replace(/\n/g, '<br>')}</p>
-    <h2>3. Was fehlt im Spiel, das im Buch steht?</h2><p>${esc(b.f3).replace(/\n/g, '<br>')}</p>
+    <h2>3. Wer hat die Regeln gemacht – und was fehlt im Spiel?</h2><p>${esc(b.f3).replace(/\n/g, '<br>')}</p>
     <h2>Kontorbuch</h2>${kontorbuchHtml()}
     <p class="klein">ASGSG Marl · Geschichte 8 · G8.1 Handelsreise · Alle Zahlen sind Spielwerte</p>
   </div>`
@@ -572,7 +672,7 @@ function nutzlast() {
     bericht: { f1: team.bericht.f1 || '', f2: team.bericht.f2 || '', f3: team.bericht.f3 || '' },
     bilanz: { start: START_SILBER, ende: team.silber, unglueck: bilanzDaten().unglueck, schutz: bilanzDaten().schutz },
     entscheidungen: Object.fromEntries(Object.entries(team.karten).map(([id, w]) => [id, w])),
-    kontorbuch: kontorbuchZeilen().flatMap((r) => r.zeilen.map((z) => `${r.titel}: ${z.text}${z.silber ? ` (${z.silber > 0 ? '+' : ''}${z.silber})` : ''}`.slice(0, 140))).slice(0, 60),
+    kontorbuch: kontorbuchZeilen().flatMap((r) => r.zeilen.map((z) => `${r.titel}: ${z.text}${z.silber ? ` (${z.silber > 0 ? '+' : ''}${z.silber})` : ''}`.slice(0, 140))).slice(-60),
   }
 }
 
@@ -583,6 +683,7 @@ function abschicken() {
     headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'signifikation-app' },
     body: JSON.stringify(nutzlast()),
   }).then((r) => {
+    if (r.status === 400) return r.json().then((j) => { meldung = `Der Bericht wurde nicht angenommen: ${j.error || 'ungültige Eingabe'}. Sagt eurer Lehrkraft Bescheid und sichert ihn als PDF.` })
     if (!r.ok) throw new Error('HTTP ' + r.status)
     team.abgegeben = true; meldung = 'Abgegeben ✓'
   }).catch(() => {
@@ -598,6 +699,7 @@ function zeichnen() {
   document.body.dataset.phase = phase
   if (fokus && $(fokus) && $(fokus).tagName === 'TEXTAREA') $(fokus).focus()
   meldung = ''
+  netz.signal = false
 }
 
 function weiter(phase) { team.phase = phase; speichern(); zeichnen(); window.scrollTo(0, 0) }
@@ -626,12 +728,14 @@ const AKTION = {
     const ok = socketVerbinden(() => {
       netz.socket.emit('team:beitreten', { code, name, haus }, (res) => {
         verbinde = false
+        if (team) return   // spätes Ack nach erneutem Tippen: bestehendes Team nicht überschreiben
         if (!res || !res.ok) {
-          startMeldung = res && res.fehler === 'unbekannt' ? 'Diesen Raumcode gibt es nicht. Schaut noch einmal an die Tafel.' : 'Beitreten hat nicht geklappt. Versucht es noch einmal.'
+          startMeldung = ({ unbekannt: 'Diesen Raumcode gibt es nicht. Schaut noch einmal an die Tafel.', voll: 'Das Spiel ist voll. Sagt eurer Lehrkraft Bescheid.', ende: 'Dieses Spiel ist schon vorbei.', zuviele: 'Zu viele Versuche. Ladet die Seite neu und versucht es noch einmal.' })[res && res.fehler] || 'Beitreten hat nicht geklappt. Versucht es noch einmal.'
           return zeichnen()
         }
         team = neuesTeam({ team: name, haus, raum: res.raum, ort: res.ort })
         team.online = { code, token: res.token, id: res.id, z: null }
+        team.seedId = res.id   // eigener Würfel, auch bei gleichen Vornamen
         team.phase = 'raum'
         abgleichen(res.zustand)
         window.scrollTo(0, 0)
@@ -678,20 +782,23 @@ const AKTION = {
     const r = team.reise
     if (!r || !r.ziel) return
     const s = raum().schutz
-    if (r.karawane && r.ziel !== team.ort) {
-      if (team.silber < s.kosten) { meldung = 'Für die Karawane reicht euer Silber nicht.'; return zeichnen() }
+    if (r.ziel === team.ort) { r.karawane = false; r.ueber = null }
+    if (r.ueber && ladungSumme(team) > eilLadung(team)) { meldung = `Für die Eilreise habt ihr zu viel geladen (höchstens ${eilLadung(team)}).`; return zeichnen() }
+    // Erst prüfen, ob alles zusammen bezahlbar ist – dann buchen
+    if (team.silber < reiseKosten(r)) { meldung = `Dafür reicht euer Silber nicht (nötig: ${reiseKosten(r)}).`; return zeichnen() }
+    if (r.karawane) {
       team.silber -= s.kosten
       team.log.push({ runde: team.runde, art: 'schutz', silber: -s.kosten, text: s.name })
-    } else r.karawane = false
-    if (r.ueber && r.ziel !== team.ort) {
-      if (team.silber < EIL_KOSTEN) { meldung = 'Für die Eilreise reicht euer Silber nicht.'; return zeichnen() }
+    }
+    if (r.ueber) {
       team.silber -= EIL_KOSTEN
       team.log.push({ runde: team.runde, art: 'schutz', silber: -EIL_KOSTEN, text: `Eilreise über ${ortName(r.ueber)}` })
     }
     if (team.online) {
       const verkaeufe = {}
       for (const x of team.log) if (x.runde === team.runde && x.art === 'verkauf' && x.ort === team.ort) verkaeufe[x.ware] = (verkaeufe[x.ware] || 0) + x.menge
-      senden('team:abgabe', { runde: team.runde, ort: team.ort, ziel: r.ziel, ueber: r.ueber || null, schutz: hatSchutz(team), verkaeufe })
+      r.abgabe = { runde: team.runde, ort: team.ort, ziel: r.ziel, ueber: r.ueber || null, schutz: hatSchutz(team), verkaeufe }
+      senden('team:abgabe', r.abgabe)   // geht bei Funkloch nach dem Wiederverbinden erneut raus
       team.phase = 'unterwegs'
       abgleichen(team.online.z)   // falls die Lehrkraft schon abgerechnet hat
       return window.scrollTo(0, 0)

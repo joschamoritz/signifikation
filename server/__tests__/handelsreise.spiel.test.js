@@ -35,15 +35,53 @@ describe('Handelsreise – Klassenmarkt', () => {
     expect(JSON.stringify(zustandFuerTeams(s))).not.toContain('Lea')
   })
 
-  it('nimmt gleiche Vornamen und gleiches Haus als dasselbe Team (Doppeltipp)', () => {
+  it('nimmt gleiche Vornamen und gleiches Haus vom selben Gerät als dasselbe Team (Doppeltipp)', () => {
     const s = spielAnlegen()
-    const a = teamBeitreten(s, { name: 'Lea und Tom', haus: 'Haus Morgenstern' })
-    const b = teamBeitreten(s, { name: ' lea und tom ', haus: 'haus morgenstern' })
+    const a = teamBeitreten(s, { name: 'Lea und Tom', haus: 'Haus Morgenstern', socketId: 'sock-1' })
+    const b = teamBeitreten(s, { name: ' lea und tom ', haus: 'haus morgenstern', socketId: 'sock-1' })
     expect(b.team).toBe(a.team)
     expect(b.wieder).toBe(true)
     expect(s.teams.size).toBe(1)
-    teamBeitreten(s, { name: 'Lea und Tom', haus: 'Haus Abendstern' })
+    teamBeitreten(s, { name: 'Lea und Tom', haus: 'Haus Abendstern', socketId: 'sock-2' })
     expect(s.teams.size).toBe(2)
+  })
+
+  it('übernimmt ein gleichnamiges Team nur, wenn dessen Gerät getrennt ist – mit neuem Token', () => {
+    const s = spielAnlegen()
+    const { team } = teamBeitreten(s, { name: 'Mia', haus: 'Haus Salz', socketId: 'alt' })
+    const altesToken = team.token
+    // Gerät noch verbunden: ein anderes Gerät mit gleichem Namen bekommt ein eigenes Team
+    const fremd = teamBeitreten(s, { name: 'Mia', haus: 'Haus Salz', socketId: 'neu' })
+    expect(fremd.team).not.toBe(team)
+    teamEntfernen(s, fremd.team.id)
+    // Gerät getrennt (iPad zurückgesetzt): Wiedereinstieg mit neuem Token, altes Token ungültig
+    team.verbunden = false
+    const wieder = teamBeitreten(s, { name: 'Mia', haus: 'Haus Salz', socketId: 'neu' })
+    expect(wieder.team).toBe(team)
+    expect(team.token).not.toBe(altesToken)
+    expect(teamPerToken(s, altesToken)).toBeNull()
+  })
+
+  it('weist präparierte Schlüssel wie constructor und hasOwnProperty ab', () => {
+    const s = spielAnlegen()
+    const { team } = teamBeitreten(s, { name: 'X', haus: '' })
+    rundeFreigeben(s)
+    expect(abgabeSpeichern(s, team, { runde: 1, ort: 'constructor', ziel: 'constructor' })).toBe(false)
+    expect(abgabeSpeichern(s, team, { runde: 1, ort: team.ort, ziel: team.ort, ueber: '__proto__', verkaeufe: { hasOwnProperty: 3, toString: 2 } })).toBe(true)
+    expect(team.abgaben[1].ueber).toBeNull()
+    expect(team.abgaben[1].verkaeufe).toEqual({})
+    expect(ereignisSetzen(s, 2, 'constructor', 'e1')).toBe(false)
+    expect(ereignisSetzen(s, 2, 'seide', 'toString')).toBe(false)
+    abrechnen(s)
+    expect(typeof Object.prototype.hasOwnProperty).toBe('function')
+    // Auch direkt im Regelmodul: Verkäufe an „constructor“ verändern nichts Globales
+    neueFaktoren({}, [{ raum: 'hanse', ort: 'constructor', verkaeufe: { hasOwnProperty: 1 } }], { hanse: 1 })
+    expect(typeof Object.hasOwnProperty).toBe('function')
+  })
+
+  it('Pest gilt nur für Seidenstraße und Hanse', () => {
+    expect(ereignisSetzen(spielAnlegen(), 1, 'sahara', 'e10')).toBe(false)
+    expect(ereignisSetzen(spielAnlegen(), 1, 'hanse', 'e10')).toBe(true)
   })
 
   it('entfernt ein Team auf Wunsch der Spielleitung', () => {
@@ -72,7 +110,7 @@ describe('Handelsreise – Klassenmarkt', () => {
     const s = spielAnlegen()
     expect(ereignisSetzen(s, 1, 'hanse', 'e5')).toBe(false)     // Wüste gehört zur Sahara
     expect(ereignisSetzen(s, 1, 'hanse', 'e9')).toBe(true)
-    expect(ereignisSetzen(s, 1, 'sahara', 'e10')).toBe(true)    // Pest gilt überall
+    expect(ereignisSetzen(s, 1, 'sahara', 'e14')).toBe(true)    // Seuchen-Nachricht für die Sahara (Pest dort umstritten)
     rundeFreigeben(s)
     expect(ereignisSetzen(s, 1, 'hanse', 'e4')).toBe(false)
     expect(ereignisSetzen(s, 2, 'hanse', 'e4')).toBe(true)
