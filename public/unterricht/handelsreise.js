@@ -9,7 +9,7 @@ import {
   RAEUME, KARTEN, HYPOTHESEN, RUNDEN, START_SILBER, EREIGNISSE, STANDARD_PLAN,
   neuesTeam, ereignisFuer, ziele, preisGruende, EIL_KOSTEN, preis, verkaufspreis, ladungSumme, laderaum,
   risiko, gefahrStufe, karteFuer, karteAnwenden, handeln, reiseAbrechnen,
-  rundeAbschliessen, hatSchutz, ladungWert, eilLadung,
+  rundeAbschliessen, hatSchutz, ladungWert, eilLadung, reiseProbe,
 } from './handelsreise-regeln.js'
 import { siegel, raumKarte, orientierungsKarte } from './handelsreise-karten.js'
 
@@ -136,7 +136,7 @@ function abgleichen(z) {
       team.reise = { ziel: team.ort, karawane: false }
       team.log.push({ runde: team.runde, art: 'regel', text: 'Ihr wart nicht rechtzeitig fertig und bleibt diese Runde, wo ihr seid.' })
     }
-    reiseAbrechnen(team, ereignis(), ab.seed, (ab.kontext || {})[team.raum] || {})
+    abrechnenMitProbe(ab.seed, (ab.kontext || {})[team.raum] || {})
     team.phase = 'ergebnis'
     standMelden()
   }
@@ -159,6 +159,12 @@ function abgleichen(z) {
   speichern(); zeichnen()
 }
 
+// Reise abrechnen und für die Gegenprobe am Beamer festhalten, wie knapp es war
+function abrechnenMitProbe(seed, kontext) {
+  team.probe = reiseProbe(team, ereignis(), seed, kontext)
+  return reiseAbrechnen(team, ereignis(), seed, kontext)
+}
+
 /** Gibt true zurück, wenn gesendet wurde. */
 function senden(ereignisName, daten) {
   if (netz.socket && netz.verbunden && team.online) {
@@ -174,6 +180,7 @@ function standMelden(ende = false) {
     runde: ende ? RUNDEN + 1 : team.runde, ort: team.ort, silber: team.silber,
     wert: team.silber + (ende ? 0 : ladungWert(team, null)), unglueck,
     schutz: hatSchutz(team), karawanen: team.log.filter((x) => x.art === 'schutz' && x.text.includes('Karawane')).length,
+    probe: ende ? null : team.probe || null,
     ende,
   })
 }
@@ -287,8 +294,8 @@ const ANSICHT = {
       <p class="ueber">Euer Handelsraum, ausgelost</p>
       <h2>${esc(R.name)}</h2>
       <p class="unter">${esc(R.untertitel)}</p>
-      <p>${esc(R.intro)}</p>
-      <p class="beleg">Im Buch: ${esc(R.introBeleg)}</p>
+      <p>${esc((R.introStart || {})[team.ort] || R.intro)}</p>
+      <p class="beleg">Im Buch: ${esc((R.introStartBeleg || {})[team.ort] || R.introBeleg)}</p>
       <p>Ihr startet in <b>${esc(ortName(team.ort))}</b> mit <b>${START_SILBER} Silber</b> und Platz für <b>${team.laderaum} Ladungen</b>.</p>
       <div class="orient-gross">${orientierungsKarte(team.raum)}<p class="klein">Wo liegt euer Handelsraum? Heutige Umrisse, zur Orientierung.</p></div>
       <div class="fussleiste"><button type="button" class="btn" data-akt="weiter-hypothese">Weiter</button></div>
@@ -525,9 +532,10 @@ const ANSICHT = {
       <p class="meldung">${esc(meldung)}</p>
       <div class="fussleiste">
         <button type="button" class="btn hell" data-akt="kontorbuch">Kontorbuch ansehen</button>
-        <button type="button" class="btn hell" data-akt="pdf">Als PDF sichern</button>
+        <button type="button" class="btn hell" data-akt="pdf" title="Am iPad: Im Druckfenster die Vorschau mit zwei Fingern aufziehen, dann Teilen → In Dateien sichern">Als PDF sichern</button>
         ${ABGABE_URL ? `<button type="button" class="btn gruen" data-akt="abschicken">${team.abgegeben ? 'Noch einmal schicken' : 'Bericht abschicken'}</button>` : ''}
       </div>
+      <p class="klein">PDF am iPad: „Als PDF sichern“ tippen, im Druckfenster die Vorschau mit zwei Fingern aufziehen, dann oben „Teilen“ → „In Dateien sichern“ oder AirDrop.</p>
       ${team.abgegeben ? '<p class="schutz-an">Abgegeben ✓ – ihr könnt verbessern und noch einmal schicken, es zählt der letzte.</p>' : ''}
     </div>`, null)
   },
@@ -744,7 +752,10 @@ const AKTION = {
     if (!ok) { verbinde = false; startMeldung = 'Der Klassenmarkt ist nicht erreichbar. Fragt eure Lehrkraft.'; zeichnen() }
     setTimeout(() => { if (!team && verbinde) { verbinde = false; startMeldung = 'Keine Verbindung zum Klassenmarkt. Prüft das WLAN und tippt noch einmal.'; zeichnen() } }, 8000)
   },
-  'weiter-hypothese'() { weiter('hypothese') },
+  'weiter-hypothese'() {
+    weiter('hypothese')
+    if (!team.hilfeGezeigt) { team.hilfeGezeigt = true; speichern(); overlay(hilfeHtml()) }
+  },
   los() {
     team.hypothese.text = $('hypText').value.trim()
     if (!team.hypothese.wahl) { meldung = 'Wählt zuerst eine Vermutung.'; speichern(); return zeichnen() }

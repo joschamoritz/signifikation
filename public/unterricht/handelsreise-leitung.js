@@ -16,6 +16,7 @@ let namenZeigen = false
 let meldung = ''
 let socket = null
 let login = null          // null = unbekannt, true/false
+let probeVariante = 'ohne' // Gegenprobe: ohne | alle | doppelt
 
 function codeMerken(code) { try { code ? localStorage.setItem(KEY, code) : localStorage.removeItem(KEY) } catch { /* egal */ } }
 function codeGemerkt() { try { return localStorage.getItem(KEY) } catch { return null } }
@@ -147,10 +148,61 @@ function auswertungAnsicht() {
     <section><h2>Die drei Handelsräume</h2>${verlaufTab}<p class="klein">Mittlerer Wert der Häuser nach jeder Runde. Die Räume haben verschiedene Waren und Preise – ihre Werte lassen sich nur grob vergleichen.</p></section>
     <section class="lzwei"><div><h2>Eure Vermutungen am Anfang</h2><table class="ltab"><thead><tr><th>Was entscheidet?</th><th>Häuser</th><th>Wert am Ende</th></tr></thead><tbody>${hyp}</tbody></table></div>
       <div><h2>Die erfolgreichsten Häuser je Raum</h2><ul class="lrang">${rang}</ul></div></section>
+    ${gegenprobe(teams, endwert, geschuetzt)}
     <section class="lfrage"><h2>Und jetzt die eigentliche Frage</h2>
       <p>Die Zahlen zeigen, was die <b>Spielregeln</b> belohnt haben. Wer hat die Regeln gemacht? Steht im Buch, dass Schutz sich so lohnt – oder erklärt das Buch Köln und Timbuktu nicht gerade über ihre <b>Lage</b>?</p>
       <p>Und: Im Buch steht „Salz gegen Gold <b>und Sklaven</b>“. Was verändert es, dass das Spiel die Menschen weglässt?</p></section>
   </div>`
+}
+
+/**
+ * Gegenprobe: dieselben Würfel, dieselben Entscheidungen – nur eine Regel anders.
+ * Jedes Gerät meldet je Reise den Würfel und die Gefahr mit und ohne Schutz.
+ * Wert am Ende ist geschätzt: Ein Unglück kostet ein Drittel der Ladung.
+ */
+function gegenprobe(teams, endwert, geschuetzt) {
+  const VARIANTEN = {
+    ohne: { name: 'Schutz wirkt nicht', gefahr: (p) => p.rOhne },
+    alle: { name: 'Alle haben Schutz', gefahr: (p) => p.rMit },
+    doppelt: { name: 'Alle Wege doppelt so gefährlich', gefahr: (p, gespielt) => Math.min(0.9, gespielt * 2) },
+  }
+  const v = VARIANTEN[probeVariante] || VARIANTEN.ohne
+  let ungGespielt = 0, ungVariante = 0, reisen = 0
+  const neu = new Map()
+  for (const t of teams) {
+    let delta = 0
+    for (const [r, ab] of Object.entries(t.abgaben || {})) {
+      const st = t.staende[r]
+      if (!st || !st.probe || ab.ziel === ab.ort) continue
+      const p = st.probe
+      const gespielt = ab.schutz ? p.rMit : p.rOhne
+      const vorher = !!st.unglueck
+      const nachher = p.wurf < v.gefahr(p, gespielt)
+      reisen++
+      if (vorher) ungGespielt++
+      if (nachher) ungVariante++
+      const verlust = Math.round(p.ladung / 3)
+      if (vorher && !nachher) delta += verlust
+      if (!vorher && nachher) delta -= verlust
+    }
+    neu.set(t.id, Math.max(0, endwert(t) + delta))
+  }
+  if (!reisen) return '<section><h2>Gegenprobe</h2><p class="klein">Noch keine Reisen mit Daten für die Gegenprobe.</p></section>'
+  const zeilen = Object.entries(RAEUME).map(([id, R]) => {
+    const ts = teams.filter((x) => x.raum === id)
+    const mit = ts.filter(geschuetzt), ohne = ts.filter((x) => !geschuetzt(x))
+    const bester = (werte) => { const b = [...ts].sort((a, c) => werte(c) - werte(a))[0]; return b ? esc(b.haus || 'Haus ' + b.nr) : '–' }
+    return `<tr><th>${esc(R.name)}</th>
+      <td>${mittel(mit.map(endwert))} → <b>${mittel(mit.map((x) => neu.get(x.id)))}</b></td>
+      <td>${mittel(ohne.map(endwert))} → <b>${mittel(ohne.map((x) => neu.get(x.id)))}</b></td>
+      <td>${bester(endwert)} → <b>${bester((x) => neu.get(x.id))}</b></td></tr>`
+  }).join('')
+  const knoepfe = Object.entries(VARIANTEN).map(([k, x]) => `<button class="btn ${k === probeVariante ? '' : 'hell'}" data-akt="probe" data-v="${k}">${x.name}</button>`).join(' ')
+  return `<section class="lprobe"><h2>Gegenprobe: Was wäre, wenn die Regel anders wäre?</h2>
+    <p>Dieselben Würfel, dieselben Entscheidungen – nur eine Regel anders. ${knoepfe}</p>
+    <p class="gross">Unglücke auf ${reisen} Reisen: gespielt <b>${ungGespielt}</b> → mit „${v.name}“ <b>${ungVariante}</b></p>
+    <table class="ltab"><thead><tr><th>Raum</th><th>Wert am Ende<br><small>Häuser mit Schutz</small></th><th>Wert am Ende<br><small>Häuser ohne Schutz</small></th><th>Bestes Haus</th></tr></thead><tbody>${zeilen}</tbody></table>
+    <p class="klein">Geschätzt: Ein Unglück kostet ein Drittel der Ladung; Folgen für spätere Runden sind nicht nachgerechnet. Die Regel hat die Lehrkraft gemacht – und man kann sie ändern.</p></section>`
 }
 
 function zeichnen() {
@@ -159,9 +211,12 @@ function zeichnen() {
   else if (!login) html = `<section class="lmitte pergament"><h1>Handelsreise</h1><p>Die Spielleitung braucht den Admin-Login.</p><p><a href="/admin" class="btn">Zum Admin-Login</a></p><p class="klein">Nach dem Anmelden diese Seite neu laden.</p><p class="meldung">${esc(meldung)}</p></section>`
   else if (!z) html = `<section class="lmitte pergament"><h1>Handelsreise</h1><p class="zeit">Spielleitung</p>
     <p>Legt ein neues Spiel an. Der Raumcode erscheint groß oben – die Teams geben ihn auf der Startseite ein.</p>
-    <button class="btn-gross" data-akt="neu">Neues Spiel anlegen</button><p class="meldung">${esc(meldung)}</p></section>`
+    <button class="btn-gross" data-akt="neu">Neues Spiel anlegen</button>
+    <p class="klein" style="margin-top:22px">Oder ein laufendes Spiel öffnen (z. B. auf einem anderen Gerät):</p>
+    <p class="oeffnen"><input id="codeOeffnen" inputmode="numeric" maxlength="4" placeholder="Raumcode"> <button class="btn hell" data-akt="oeffnen">Öffnen</button></p>
+    <p class="meldung">${esc(meldung)}</p></section>`
   else html = kopf() + (ansicht === 'spiel' ? spielAnsicht() : auswertungAnsicht()) +
-    `<p class="klein lende"><button class="linkbtn" data-akt="neu-fragen">Neues Spiel anlegen</button> · <button class="linkbtn" data-akt="loeschen">Spiel beenden und löschen</button></p>`
+    `<p class="klein lende"><button class="linkbtn" data-akt="neu-fragen">Neues Spiel anlegen</button> · <button class="linkbtn" data-akt="anderes">Anderes Spiel öffnen</button> · <button class="linkbtn" data-akt="loeschen">Spiel beenden und löschen</button></p>`
   $('app').innerHTML = html
 }
 
@@ -170,6 +225,15 @@ document.addEventListener('click', (ev) => {
   if (!t) return
   const a = t.dataset.akt
   if (a === 'neu') befehl('leitung:neu')
+  if (a === 'oeffnen') {
+    const code = ($('codeOeffnen').value || '').trim()
+    socket.emit('leitung:oeffnen', { code }, (r) => {
+      if (r && r.ok) { z = r.zustand; codeMerken(z.code); meldung = '' } else meldung = 'Ein Spiel mit diesem Code gibt es nicht (mehr).'
+      zeichnen()
+    })
+  }
+  if (a === 'anderes') { z = null; codeMerken(null); zeichnen() }
+  if (a === 'probe') { probeVariante = t.dataset.v; zeichnen() }
   if (a === 'neu-fragen' && confirm('Ein neues Spiel anlegen? Das laufende bleibt noch bis heute Abend erreichbar.')) befehl('leitung:neu')
   if (a === 'freigeben') befehl('leitung:freigeben')
   if (a === 'abrechnen') {

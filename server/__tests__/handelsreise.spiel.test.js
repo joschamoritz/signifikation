@@ -5,7 +5,7 @@ import {
   teamEntfernen, _alleLoeschen,
 } from '../handelsreise/spiel.js'
 import {
-  abrechnungsKontext, neueFaktoren, risiko, neuesTeam, reiseAbrechnen, rundeAbschliessen, ziele, RUNDEN,
+  abrechnungsKontext, neueFaktoren, risiko, neuesTeam, reiseAbrechnen, rundeAbschliessen, ziele, reiseProbe, karteAnwenden, RUNDEN,
 } from '../../public/unterricht/handelsreise-regeln.js'
 
 afterEach(() => _alleLoeschen())
@@ -196,6 +196,34 @@ describe('Handelsreise – Regeln des Klassenmarkts', () => {
     reiseAbrechnen(t, null, 'x', {})
     rundeAbschliessen(t)
     expect(t.mods.info).toBe(true)
+  })
+
+  it('Gegenprobe: Würfel und Gefahr mit/ohne Schutz werden gemeldet und geprüft gespeichert', () => {
+    const t = neuesTeam({ team: 'G', haus: '', raum: 'sahara', ort: 'timbuktu' })
+    t.reise = { ziel: 'taghaza', karawane: false }
+    const p = reiseProbe(t, null, 'seed-1', {})
+    expect(p.rMit).toBeLessThan(p.rOhne)
+    expect(p.wurf).toBeGreaterThanOrEqual(0)
+    const s = spielAnlegen()
+    const { team } = teamBeitreten(s, { name: 'G', haus: '' })
+    standSpeichern(s, team, { runde: 1, ort: team.ort, silber: 10, wert: 20, probe: { wurf: 2, rMit: 'x', rOhne: 0.3 } })
+    expect(team.staende[1].probe).toBeNull()
+    standSpeichern(s, team, { runde: 1, ort: team.ort, silber: 10, wert: 20, probe: p })
+    expect(team.staende[1].probe.rOhne).toBeCloseTo(p.rOhne)
+  })
+
+  it('Karten mit Belohnung zahlen erst am Zielort aus (Bücher für Timbuktu)', () => {
+    const t = neuesTeam({ team: 'B', haus: '', raum: 'sahara', ort: 'djenne' })
+    karteAnwenden(t, 'a4', 'a')
+    expect(t.silber).toBe(26)
+    t.reise = { ziel: 'djenne' }
+    reiseAbrechnen(t, null, 'x', {})
+    expect(t.silber).toBe(26)
+    t.reise = { ziel: 'timbuktu' }
+    t.ladung = {}
+    reiseAbrechnen(t, null, 'egal', {})
+    expect(t.flags.bonus).toBeUndefined()
+    expect(t.log.some((e) => e.text && e.text.startsWith('Gelehrte'))).toBe(true)
   })
 
   it('rechnet mit gleichem Seed auf jedem Gerät gleich ab', () => {

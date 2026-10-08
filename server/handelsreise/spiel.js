@@ -162,9 +162,19 @@ export function standSpeichern(s, team, d) {
     ort: hat(RAEUME[team.raum].orte, d.ort) ? d.ort : team.ort,
     silber: zahl(d.silber), wert: zahl(d.wert),
     unglueck: !!d.unglueck, schutz: !!d.schutz, karawanen: zahl(d.karawanen),
+    probe: probePruefen(d.probe),
   }
   if (!d.ende) team.ort = team.staende[runde].ort
   return true
+}
+
+// Gegenprobe: Würfel und Gefahr mit/ohne Schutz – nur Zahlen zwischen 0 und 1, Ladungswert begrenzt
+function probePruefen(p) {
+  if (!p || typeof p !== 'object') return null
+  const anteil = (x) => (Number.isFinite(x) ? Math.max(0, Math.min(1, x)) : null)
+  const wurf = anteil(p.wurf), rMit = anteil(p.rMit), rOhne = anteil(p.rOhne)
+  if (wurf == null || rMit == null || rOhne == null) return null
+  return { wurf, rMit, rOhne, ladung: Number.isFinite(p.ladung) ? Math.max(0, Math.min(10000, Math.round(p.ladung))) : 0 }
 }
 
 export function abrechnen(s) {

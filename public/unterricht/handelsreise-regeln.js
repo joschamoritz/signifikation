@@ -21,7 +21,12 @@ export const RAEUME = {
   seide: {
     name: 'Seidenstraße',
     untertitel: 'Von Venedig bis nach China',
-    startorte: ['venedig'],
+    startorte: ['venedig', 'quinsai'],
+    // Nicht nur Europäer handelten: Je nach Startort spielt ihr aus Venedig oder aus China
+    introStart: {
+      quinsai: 'Ihr seid ein Handelshaus aus Quinsai in China. Eure Stadt ist eine der größten der Welt – selbst der Venezianer Marco Polo staunt über ihre Märkte. Seide und Porzellan sind hier günstig, aus dem Westen kommen Glas und Fertigwaren. Die Mongolen herrschen über China und schützen die Wege.',
+    },
+    introStartBeleg: { quinsai: 'S. 28 VT1, VT2; S. 29 Q2, D1' },
     intro: 'Ihr seid ein Handelshaus aus Venedig. Europäer schätzen Seide, Gewürze, Porzellan und Pelze aus dem Osten als Luxus. In Richtung China gehen Glas und Fertigwaren. Der Weg ist weit – aber die Mongolen schützen Reisende in ihrem Reich.',
     introBeleg: 'S. 28 VT1, VT2; S. 29 D1',
     waren: {
@@ -60,7 +65,7 @@ export const RAEUME = {
       text: 'Mit dem Geleitbrief steht ihr unter dem Schutz der Mongolen. Gilt bis Spielende.',
       beleg: 'S. 28 VT2: Die Mongolen boten ausländischen Reisenden und Kaufleuten Schutz.',
     },
-    karten: ['s1', 's2', 's3', 's4'],
+    karten: ['s1', 's2', 's3', 's4', 's5'],
   },
 
   hanse: {
@@ -146,7 +151,7 @@ export const RAEUME = {
       text: 'Ihr schließt euch einer großen Karawane an. Gilt nur für diese Reise.',
       beleg: 'S. 30 VT5: Timbuktu lag an wichtigen Handelsrouten, sodass dort zahlreiche Karawanen mit ihren Kamelen hielten.',
     },
-    karten: ['a2', 'a3', 'a1'],
+    karten: ['a2', 'a3', 'a1', 'a4', 'a5'],
   },
 }
 
@@ -188,7 +193,7 @@ export const KARTEN = {
   },
   h4: {
     titel: 'Köln umgehen?',
-    text: 'Wer Waren den Rhein hinauf bringt, muss in Köln halten. Die Waren werden auf andere Schiffe umgeladen und müssen drei Tage in der Stadt zum Verkauf angeboten werden. Ihr könntet Fuhrleute bezahlen und Köln über Land umgehen: 3 Silber.',
+    text: 'Köln gehört zur Hanse – und trotzdem gilt sein Stapelrecht auch für Hansekaufleute. Wer Waren den Rhein hinauf bringt, muss in Köln halten. Die Waren werden auf andere Schiffe umgeladen und müssen drei Tage in der Stadt zum Verkauf angeboten werden. Ihr könntet Fuhrleute bezahlen und Köln über Land umgehen: 3 Silber.',
     a: { text: 'Wir halten uns an das Stapelrecht', folgen: {},
       folgeText: 'Kommt ihr nach Köln oder fahrt hindurch, kaufen Kölner Kaufleute euch die Hälfte eurer Ladung zum Kölner Preis ab.' },
     b: { text: 'Wir umgehen Köln', folgen: { silber: -3, koelnFrei: true, risikoReise: 1.3 },
@@ -259,6 +264,36 @@ export const KARTEN = {
     spielregel: 'Dass ein Dolmetscher bessere Preise bringt, ist im Spiel ausgedacht.',
   },
 
+  s5: {
+    titel: 'Papier aus China',
+    text: 'In China stellt man Papier her – leichter und billiger als Pergament. Ein Händler bietet euch einen Ballen für 3 Silber an. Im Westen kennt man es noch kaum.',
+    a: { text: 'Wir nehmen Papier mit', folgen: { silber: -3, bonus: { orte: ['venedig', 'bagdad'], silber: 9, text: 'Papier aus China ist gefragt' } },
+      folgeText: 'Kommt ihr nach Venedig oder Bagdad, zahlt man euch für das Papier 9 Silber.' },
+    b: { text: 'Kennen wir nicht, lassen wir', folgen: {},
+      folgeText: 'Ihr spart das Geld.' },
+    beleg: 'S. 28 VT1: Chinesische Erfindungen wie Papier und Schwarzpulver fanden über die Seidenstraße ihren Weg nach Westen.',
+    spielregel: 'Preis und Gewinn sind im Spiel ausgedacht.',
+  },
+  a4: {
+    titel: 'Bücher für Timbuktu',
+    text: 'In Timbuktu gibt es Schulen und Bibliotheken. Gelehrte suchen Abschriften von Büchern. Ein Händler aus dem Norden bietet euch welche an: 4 Silber.',
+    a: { text: 'Wir kaufen die Bücher', folgen: { silber: -4, bonus: { orte: ['timbuktu'], silber: 10, text: 'Gelehrte in Timbuktu kaufen eure Bücher' } },
+      folgeText: 'Kommt ihr nach Timbuktu, zahlen euch die Gelehrten 10 Silber.' },
+    b: { text: 'Bücher sind nichts für uns', folgen: {},
+      folgeText: 'Ihr spart das Geld.' },
+    beleg: 'S. 31 VT8: Timbuktu war ein Zentrum der Wissenschaft, mit Koranschulen und Bibliotheken. S. 33 D3: Rund 300 000 alte Handschriften aus Timbuktu sind erhalten.',
+    spielregel: 'Preis und Gewinn sind im Spiel ausgedacht.',
+  },
+  a5: {
+    titel: 'Ein Gelehrter reist mit',
+    text: 'Ein Gelehrter aus Marokko will mit euch durch die Wüste reisen und alles aufschreiben, was er sieht. Er zahlt 3 Silber, braucht aber Platz für Wasser und Gepäck.',
+    a: { text: 'Wir nehmen ihn mit', folgen: { silber: 3, laderaumRunde: -2 },
+      folgeText: 'Ihr bekommt 3 Silber. In dieser Runde habt ihr 2 Ladungen weniger Platz.' },
+    b: { text: 'Kein Platz', folgen: {},
+      folgeText: 'Ihr reist ohne ihn.' },
+    beleg: 'S. 32 Q2: Ibn Battuta, ein arabischer Gelehrter, bereiste im 14. Jahrhundert Westafrika und schrieb seine Eindrücke auf. Seine Schilderungen gehören zu den wenigen schriftlichen Quellen über das Mali-Reich jener Zeit.',
+    spielregel: 'Dass er mit euch reist, ist ausgedacht. Was Reisende wie er aufschrieben, ist heute eine Quelle – auch in eurem Buch.',
+  },
   a1: {
     titel: 'Kamele kaufen?',
     text: 'Karawanen ziehen mit ihren Kamelen durch die Wüste. Für 4 Silber kauft ihr eigene Kamele und könnt mehr laden.',
@@ -306,6 +341,9 @@ const HINWEISE = {
   a1: ['Kostet Silber. Kamele tragen mehr.', 'Spart Silber. Ihr bleibt bei dem, was ihr tragen könnt.'],
   a2: ['Kostet Silber, aber Wasser ist in der Wüste kostbar.', 'Mehr Platz für Ware – und weniger Wasser.'],
   a3: ['Kostet Silber. Lohnt sich, wenn der Bericht stimmt – und ihr nach Timbuktu kommt.', 'Spart Silber. Berichte können übertreiben.'],
+  a4: ['Kostet Silber. Lohnt sich nur, wenn ihr nach Timbuktu kommt.', 'Spart Silber.'],
+  a5: ['Bringt Silber, kostet Platz.', 'Ihr behaltet euren Platz.'],
+  s5: ['Kostet Silber. Lohnt sich, wenn ihr in den Westen kommt.', 'Spart Silber.'],
 }
 for (const [id, [a, b]] of Object.entries(HINWEISE)) { KARTEN[id].a.hinweis = a; KARTEN[id].b.hinweis = b }
 
@@ -324,8 +362,8 @@ export const EREIGNISSE = {
   },
   e2: {
     titel: 'Stapelrecht in Köln', raum: 'hanse',
-    text: 'Köln besteht auf seinem Recht: Wer ankommt oder durchfährt, muss seine Waren in der Stadt anbieten. Kölner Kaufleute kaufen die Hälfte.',
-    beleg: 'S. 30 VT3 (Stapelrecht seit 1259). Dass sie die Hälfte kaufen, ist im Spiel ausgedacht.',
+    text: 'Köln besteht auf seinem Recht: Wer ankommt oder durchfährt, muss seine Waren in der Stadt anbieten – auch Kaufleute der Hanse, obwohl Köln selbst zur Hanse gehört. Kölner Kaufleute kaufen die Hälfte.',
+    beleg: 'S. 30 VT1: Köln war Mitglied der Hanse. S. 30 VT3: Stapelrecht seit 1259. Der Schutz der Hanse half also nicht gegen die Vorrechte einer Stadt. Dass die Kölner die Hälfte kaufen, ist im Spiel ausgedacht.',
     mod: {},
   },
   e3: {
@@ -682,6 +720,7 @@ export function karteAnwenden(team, kartenId, wahl) {
   if (f.verkaufRunde) team.mods.verkaufRunde = f.verkaufRunde
   if (f.risikoReise) { team.mods.risikoReise = f.risikoReise; team.mods.nurArt = k[wahl].folgen.nurArt || null }
   if (f.koelnFrei) team.flags.koelnFrei = true
+  if (f.bonus) team.flags.bonus = [...(team.flags.bonus || []), f.bonus]
   if (f.info) team.mods.info = true
   team.karten[kartenId] = wahl
   return { art: 'karte', karte: kartenId, wahl, text: `Entscheidung „${k.titel}“ – ${k[wahl].text}`, silber: team.silber - vorher }
@@ -724,6 +763,25 @@ function buchen(team, wareId, menge, silber) {
  * seed: auf dem Server je Runde fest; im Gerät aus Team und Runde.
  * Gibt die Kontorbuch-Einträge der Reise zurück.
  */
+/**
+ * Für die Gegenprobe am Beamer: Würfel und Gefahr dieser Reise mit und ohne Schutz.
+ * Muss VOR reiseAbrechnen aufgerufen werden (danach steht das Team schon am Ziel).
+ */
+export function reiseProbe(team, ereignis, seed, kontext = {}) {
+  const ziel = team.reise ? team.reise.ziel : team.ort
+  if (ziel === team.ort) return null
+  const ueber = team.reise && team.reise.ueber && team.reise.ueber !== ziel ? team.reise.ueber : null
+  const id = RAEUME[team.raum].schutz.id
+  const mit = { ...team, flags: { ...team.flags, [id]: true }, reise: { ...team.reise, karawane: id === 'karawane' } }
+  const ohne = { ...team, flags: { ...team.flags, [id]: false }, reise: { ...team.reise, karawane: false } }
+  const r = (x) => Math.round(risiko(x, ziel, ereignis, kontext, ueber) * 1000) / 1000
+  return {
+    wurf: Math.round(zufall(`${seed}|${team.seedId || team.team}|${team.runde}`) * 1000) / 1000,
+    rMit: r(mit), rOhne: r(ohne),
+    ladung: ladungWert({ ...team, ort: ziel }, null),
+  }
+}
+
 export function reiseAbrechnen(team, ereignis, seed, kontext = {}) {
   const raum = RAEUME[team.raum]
   const ziel = team.reise ? team.reise.ziel : team.ort
@@ -753,6 +811,18 @@ export function reiseAbrechnen(team, ereignis, seed, kontext = {}) {
     } else {
       eintraege.push({ art: 'reise', risiko: r, text: `${glueckText(s.art, r, wurf)} Ihr kommt in ${raum.orte[ziel].name} an (${weg}).` })
     }
+    // Klassenmarkt sichtbar machen: warum die Gefahr so war
+    if (kontext.verkehr && !hatSchutz(team)) {
+      const legs = ueber ? [[team.ort, ueber], [ueber, ziel]] : [[team.ort, ziel]]
+      const f = Math.max(...legs.map(([a, b]) => kontext.verkehr[streckenSchluessel(a, b)] || 1))
+      if (f > 1) {
+        const andere = Math.round((f - 1) / VERKEHR_JE_TEAM)
+        eintraege.push({ art: 'regel', text: `Auf eurer Strecke waren noch ${andere} ${andere === 1 ? 'Handelshaus' : 'Handelshäuser'} ohne Schutz unterwegs – das machte sie gefährlicher.` })
+      }
+    }
+    if (team.raum === 'hanse' && team.flags.hanse && kontext.hanseAnteil != null && kontext.verkehr) {
+      eintraege.push({ art: 'regel', text: `In dieser Runde waren ${Math.round(kontext.hanseAnteil * 100)} % der Handelshäuser in der Hanse – je mehr, desto besser schützt sie.` })
+    }
     // Eilreise durch Köln: Auch was nur durch Köln fährt, fällt unter das Stapelrecht (S. 30 VT3)
     if (ueber === 'koeln') { team.ort = 'koeln'; eintraege.push(...stapelrecht(team, ereignis)) }
     team.ort = ziel
@@ -761,6 +831,14 @@ export function reiseAbrechnen(team, ereignis, seed, kontext = {}) {
     team.blieb = true
     eintraege.push({ art: 'reise', risiko: 0, text: `Ihr bleibt in ${raum.orte[ziel].name} und hört euch um: In der nächsten Runde kennt ihr die aktuellen Preise aller Orte.` })
   }
+
+  // Belohnungen aus Karten (Papier, Bücher), sobald man am Ort ist – auch beim Bleiben
+  const offen = []
+  for (const b of team.flags.bonus || []) {
+    if (b.orte.includes(team.ort)) { team.silber += b.silber; eintraege.push({ art: 'regel', silber: b.silber, text: `${b.text}: +${b.silber} Silber.` }) }
+    else offen.push(b)
+  }
+  if (team.flags.bonus) { if (offen.length) team.flags.bonus = offen; else delete team.flags.bonus }
 
   for (const e of eintraege) team.log.push({ runde: team.runde, ...e })
   return eintraege
