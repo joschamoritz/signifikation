@@ -358,3 +358,9 @@ input:focus, textarea:focus { outline: 2px solid var(--gold); outline-offset: 1p
   .druck h2 { font-size: 12pt; margin-top: 14pt; }
   .kontor li { border-bottom: 1px solid #ccc; }
 }
+
+/* ---------- Spielleitung: Spiel öffnen, Gegenprobe ---------- */
+.oeffnen { display: flex; gap: 10px; justify-content: center; }
+.oeffnen input { width: 9em; text-align: center; font-size: 1.2em; letter-spacing: 0.15em; }
+.lprobe { border: 3px double var(--gold); }
+.lprobe .btn { margin: 4px 2px; }
