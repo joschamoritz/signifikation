@@ -13,7 +13,7 @@ import logger from '../logger.js'
 import {
   spielAnlegen, spielHolen, teamBeitreten, teamPerToken, ereignisSetzen,
   rundeFreigeben, abgabeSpeichern, standSpeichern, abrechnen,
-  zustandFuerTeams, zustandFuerLeitung, spielLoeschen, teamEntfernen,
+  zustandFuerTeams, zustandFuerLeitung, spielLoeschen, teamEntfernen, vorzeitigBeenden,
 } from '../handelsreise/spiel.js'
 
 const NAMESPACE = '/handelsreise'
@@ -211,6 +211,14 @@ export function setupHandelsreiseSocket(io) {
       const s = spielHolen(text(d.code, 8))
       if (!s) return antworten(ack, { ok: false, fehler: 'unbekannt' })
       const r = abrechnen(s)
+      antworten(ack, r.ok ? { ok: true } : { ok: false, fehler: r.fehler })
+      if (r.ok) senden(s)
+    })
+
+    leitung('leitung:schluss', (d, ack) => {
+      const s = spielHolen(text(d.code, 8))
+      if (!s) return antworten(ack, { ok: false, fehler: 'unbekannt' })
+      const r = vorzeitigBeenden(s)
       antworten(ack, r.ok ? { ok: true } : { ok: false, fehler: r.fehler })
       if (r.ok) senden(s)
     })

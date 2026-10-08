@@ -40,7 +40,7 @@ function verbinden() {
 function befehl(name, daten = {}) {
   socket.emit(name, { code: z && z.code, ...daten }, (res) => {
     if (res && res.ok && res.zustand) { z = res.zustand; codeMerken(z.code) }
-    if (res && !res.ok) meldung = ({ laeuft: 'Die Runde läuft schon.', ende: 'Alle Runden sind gespielt.', login: 'Nicht angemeldet.', unbekannt: 'Spiel nicht gefunden.' })[res.fehler] || 'Hat nicht geklappt.'
+    if (res && !res.ok) meldung = ({ laeuft: 'Die Runde läuft schon.', ende: 'Das Spiel ist beendet.', login: 'Nicht angemeldet.', unbekannt: 'Spiel nicht gefunden.' })[res.fehler] || 'Hat nicht geklappt.'
     zeichnen()
   })
 }
@@ -56,13 +56,13 @@ function kopf() {
   if (z.status === 'laeuft') {
     steuerung = `<button class="btn" data-akt="abrechnen">Runde ${z.runde} abrechnen <small>(${fertig}/${z.teams.length} losgereist)</small></button>`
   } else if (z.runde < RUNDEN) {
-    steuerung = `<button class="btn" data-akt="freigeben"${z.teams.length ? '' : ' disabled'}>Runde ${naechste} freigeben</button>`
+    steuerung = `<button class="btn" data-akt="freigeben"${z.teams.length ? '' : ' disabled'}>Runde ${naechste} freigeben</button>${z.status === 'abgerechnet' ? ' <button class="btn hell" data-akt="schluss">Spiel hier beenden</button>' : ''}`
   } else {
-    steuerung = '<span class="status">Alle fünf Runden gespielt.</span>'
+    steuerung = `<span class="status">${z.letzteRunde < RUNDEN ? `Nach Runde ${z.letzteRunde} beendet.` : 'Alle fünf Runden gespielt.'}</span>`
   }
   const statusText = { lobby: 'Teams treten bei', laeuft: `Runde ${z.runde} läuft`, abgerechnet: `Runde ${z.runde} abgerechnet`, ende: 'Spiel beendet' }[z.status]
   return `<header class="lkopf">
-    <div class="code"><small>Raumcode</small><b>${esc(z.code)}</b><span>signifikation.de/unterricht/handelsreise.html</span></div>
+    <img class="qr" src="handelsreise-qr.svg" alt="QR-Code zur Spielseite" width="120" height="120"><div class="code"><small>Raumcode</small><b>${esc(z.code)}</b><span>signifikation.de/unterricht/handelsreise.html</span></div>
     <div class="lstatus"><b>${statusText}</b><span>${z.teams.length} Handelshäuser</span></div>
     <div class="lsteuer">${steuerung}
       <button class="btn hell" data-akt="ansicht">${ansicht === 'spiel' ? 'Auswertung' : 'Zurück zum Spiel'}</button>
@@ -236,6 +236,7 @@ document.addEventListener('click', (ev) => {
   if (a === 'probe') { probeVariante = t.dataset.v; zeichnen() }
   if (a === 'neu-fragen' && confirm('Ein neues Spiel anlegen? Das laufende bleibt noch bis heute Abend erreichbar.')) befehl('leitung:neu')
   if (a === 'freigeben') befehl('leitung:freigeben')
+  if (a === 'schluss' && confirm(`Spiel nach Runde ${z.runde} beenden? Die iPads gehen direkt zum letzten Markttag.`)) befehl('leitung:schluss')
   if (a === 'abrechnen') {
     const offen = z.teams.filter((x) => !x.fertig).length
     if (offen && !confirm(`${offen} Handelshäuser sind noch nicht losgereist. Sie bleiben dann diese Runde, wo sie sind. Trotzdem abrechnen?`)) return

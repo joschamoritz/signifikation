@@ -132,7 +132,7 @@ export function ereignisSetzen(s, runde, raum, ereignisId) {
 
 export function rundeFreigeben(s) {
   if (s.status === 'laeuft') return { fehler: 'laeuft' }
-  if (s.runde >= RUNDEN) return { fehler: 'ende' }
+  if (s.status === 'ende' || s.runde >= (s.letzteRunde || RUNDEN)) return { fehler: 'ende' }
   s.runde += 1
   s.status = 'laeuft'
   // Marktfaktoren dieser Runde einfrieren (die Abrechnung berechnet schon die der nächsten)
@@ -185,7 +185,15 @@ export function abrechnen(s) {
   const zahl = teamsJeRaum(s)
   s.abrechnung = { runde: s.runde, seed: randomBytes(8).toString('hex'), kontext: abrechnungsKontext(abgaben, zahl) }
   s.faktoren = neueFaktoren(s.faktoren, abgaben, zahl)   // gelten ab der nächsten Runde
-  s.status = s.runde >= RUNDEN ? 'ende' : 'abgerechnet'
+  s.status = s.runde >= (s.letzteRunde || RUNDEN) ? 'ende' : 'abgerechnet'
+  return { ok: true }
+}
+
+/** Wenn die Zeit reißt: nach der zuletzt abgerechneten Runde Schluss. */
+export function vorzeitigBeenden(s) {
+  if (s.status !== 'abgerechnet') return { fehler: s.status === 'laeuft' ? 'laeuft' : 'ende' }
+  s.letzteRunde = s.runde
+  s.status = 'ende'
   return { ok: true }
 }
 
@@ -199,6 +207,7 @@ export function zustandFuerTeams(s) {
     ereignisse: runde ? { ...s.plan[runde - 1] } : {},
     faktoren: s.faktorenRunde || {},
     abrechnung: s.abrechnung,
+    letzteRunde: s.letzteRunde || RUNDEN,
   }
 }
 
