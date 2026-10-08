@@ -59,11 +59,13 @@ const netz = { socket: null, verbunden: false, getrenntSeit: null }
 const OFFLINE_KNOPF_NACH_MS = 20 * 1000
 
 function ereignis() {
-  const r = Math.min(team.runde, RUNDEN)
+  const r = Math.min(team.runde, letzte())
   const id = (team.ereignisse || {})[r]
   if (id && EREIGNISSE[id]) return { id, ...EREIGNISSE[id] }
   return ereignisFuer(team.raum, r, STANDARD_PLAN)
 }
+// Letzte Runde: 5, oder früher, wenn die Lehrkraft das Spiel beendet hat
+function letzte() { return (team && team.online && team.online.z && team.online.z.letzteRunde) || RUNDEN }
 function faktorenOrt(ort) { return (((team.faktoren || {})[team.runde] || {})[ort]) || {} }
 
 function lange_getrennt() {
@@ -103,7 +105,7 @@ function nachholen() {
   if (!team || !team.online) return
   if (team.hypothese.wahl) senden('team:hypothese', { wahl: team.hypothese.wahl })
   if (team.phase === 'unterwegs' && team.reise && team.reise.abgabe) senden('team:abgabe', team.reise.abgabe)
-  if (team.runde > RUNDEN && ['bilanz', 'bericht'].includes(team.phase)) standMelden(true)
+  if (team.runde > letzte() && ['bilanz', 'bericht'].includes(team.phase)) standMelden(true)
 }
 
 const LAEUFT = ['ereignis', 'karte', 'markt', 'reise', 'unterwegs', 'warten']
@@ -126,7 +128,9 @@ function abgleichen(z) {
     if (z.ereignisse && z.ereignisse[team.raum]) team.ereignisse[z.runde] = z.ereignisse[team.raum]
     if (z.faktoren && z.faktoren[team.raum]) team.faktoren[z.runde] = z.faktoren[team.raum]
   }
-  if (['raum', 'hypothese'].includes(team.phase) || team.runde > RUNDEN || !z.runde) { speichern(); return zeichnen() }
+  // Lehrkraft hat das Spiel vorzeitig beendet: wartende Geräte direkt zum letzten Markttag
+  if (team.phase === 'warten' && team.runde > letzte()) { team.phase = 'schlussmarkt'; netz.signal = true; speichern(); return zeichnen() }
+  if (['raum', 'hypothese'].includes(team.phase) || team.runde > letzte() || !z.runde) { speichern(); return zeichnen() }
 
   // 1. Liegt die Abrechnung der eigenen Runde vor, gilt sie – auch wenn die
   //    Lehrkraft schon die nächste Runde freigegeben hat (iPad hat geschlafen).
@@ -154,6 +158,8 @@ function abgleichen(z) {
 
   // 3. Freigabe der Runde, auf die das Gerät wartet
   if (team.runde === z.runde && team.phase === 'warten' && z.status === 'laeuft') team.phase = 'ereignis'
+  // 4. Lehrkraft hat das Spiel vorzeitig beendet: direkt zum letzten Markttag
+  if (team.phase === 'warten' && team.runde > letzte()) team.phase = 'schlussmarkt'
 
   if (vorher !== team.phase && ['ereignis', 'ergebnis'].includes(team.phase)) netz.signal = true
   speichern(); zeichnen()
@@ -232,7 +238,7 @@ function kopf() {
   return `<header class="kopf${netz.signal ? ' signal' : ''}">
     <div class="haus">${siegel(initiale(), 44)}<div><b>${esc(team.haus || 'Handelshaus')}</b><small>${esc(team.team)} · ${esc(raum().name)} ${netzAnzeige}</small></div></div>
     <div class="werte">
-      <span class="wert"><small>Runde</small><b>${Math.min(team.runde, RUNDEN)} / ${RUNDEN}</b></span>
+      <span class="wert"><small>Runde</small><b>${Math.min(team.runde, letzte())} / ${letzte()}</b></span>
       <span class="wert"><small>Silber</small><b>${team.silber}</b></span>
       <span class="wert"><small>Ladung</small><b>${ladungSumme(team)} / ${laderaum(team)}</b></span>
       <span class="wert"><small>Ort</small><b>${esc(ortName(team.ort))}</b></span>
@@ -484,13 +490,13 @@ const ANSICHT = {
       if (x.art === 'unglueck' && x.silber) extra += `<br><small>Ihr hattet keine Ladung – Räuber nehmen ${-x.silber} Silber.</small>`
       return `<li class="e-${x.art}">${esc(x.text)}${extra}</li>`
     }).join('')
-    const letzte = team.runde >= RUNDEN
+    const istLetzte = team.runde >= letzte()
     return spiel(`<div class="ergebnis">
       <p class="ueber">Runde ${team.runde} · Abrechnung</p>
       <h2>${eintraege.some((x) => x.art === 'unglueck') ? 'Ein schwerer Schlag' : 'Die Runde ist vorbei'}</h2>
       <ul class="ereignisliste">${liste}</ul>
       <p>Ihr habt jetzt <b>${team.silber} Silber</b> und <b>${ladungSumme(team)} Ladungen</b> an Bord.</p>
-      <div class="fussleiste"><button type="button" class="btn" data-akt="naechste">${letzte ? 'Zum letzten Markttag' : 'Weiter'}</button></div>
+      <div class="fussleiste"><button type="button" class="btn" data-akt="naechste">${istLetzte ? 'Zum letzten Markttag' : 'Weiter'}</button></div>
     </div>`, null)
   },
 
@@ -597,7 +603,7 @@ function overlay(html) { $('ovBlatt').innerHTML = `<button type="button" class="
 
 function kontorbuchZeilen() {
   const runden = [...new Set(team.log.map((x) => x.runde))]
-  const titel = (r) => (r === 0 ? 'Gründung' : r > RUNDEN ? 'Letzter Markttag' : `Runde ${r}`)
+  const titel = (r) => (r === 0 ? 'Gründung' : r > letzte() ? 'Letzter Markttag' : `Runde ${r}`)
   const waren = (o) => Object.entries(o).map(([w, n]) => `${n} ${wareName(w)}`).join(', ')
   return runden.map((r) => ({
     titel: titel(r),
@@ -819,7 +825,7 @@ const AKTION = {
   },
   naechste() {
     rundeAbschliessen(team)
-    if (team.runde > RUNDEN) return weiter('schlussmarkt')
+    if (team.runde > letzte()) return weiter('schlussmarkt')
     if (team.online) { team.phase = 'warten'; abgleichen(team.online.z); return window.scrollTo(0, 0) }
     weiter('ereignis')
   },

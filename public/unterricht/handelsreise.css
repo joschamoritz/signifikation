@@ -364,3 +364,4 @@ input:focus, textarea:focus { outline: 2px solid var(--gold); outline-offset: 1p
 .oeffnen input { width: 9em; text-align: center; font-size: 1.2em; letter-spacing: 0.15em; }
 .lprobe { border: 3px double var(--gold); }
 .lprobe .btn { margin: 4px 2px; }
+.lkopf .qr { width: 120px; height: 120px; border-radius: 4px; background: var(--pergament); padding: 4px; }

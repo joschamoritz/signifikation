@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it } from 'vitest'
 import {
   spielAnlegen, spielHolen, teamBeitreten, teamPerToken, ereignisSetzen, rundeFreigeben,
   abgabeSpeichern, standSpeichern, abrechnen, zustandFuerTeams, zustandFuerLeitung, teamsJeRaum,
-  teamEntfernen, _alleLoeschen,
+  teamEntfernen, vorzeitigBeenden, _alleLoeschen,
 } from '../handelsreise/spiel.js'
 import {
   abrechnungsKontext, neueFaktoren, risiko, neuesTeam, reiseAbrechnen, rundeAbschliessen, ziele, reiseProbe, karteAnwenden, RUNDEN,
@@ -115,6 +115,18 @@ describe('Handelsreise – Klassenmarkt', () => {
     expect(ereignisSetzen(s, 1, 'hanse', 'e4')).toBe(false)
     expect(ereignisSetzen(s, 2, 'hanse', 'e4')).toBe(true)
     expect(zustandFuerTeams(s).ereignisse.hanse).toBe('e9')
+  })
+
+  it('kann nach einer abgerechneten Runde vorzeitig beendet werden', () => {
+    const s = spielAnlegen()
+    teamBeitreten(s, { name: 'A', haus: '' })
+    for (let r = 1; r <= 3; r++) { rundeFreigeben(s); abrechnen(s) }
+    rundeFreigeben(s)
+    expect(vorzeitigBeenden(s).fehler).toBe('laeuft')
+    abrechnen(s)
+    expect(vorzeitigBeenden(s).ok).toBe(true)
+    expect(zustandFuerTeams(s).letzteRunde).toBe(4)
+    expect(rundeFreigeben(s).fehler).toBe('ende')
   })
 
   it('endet nach fünf abgerechneten Runden', () => {
