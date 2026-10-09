@@ -87,7 +87,7 @@ function spielAnsicht() {
     const teams = z.teams.filter((t) => t.raum === raumId).sort((a, b) => b.wert - a.wert)
     const siegelAuf = teams.map((t) => ({ ort: t.ort, buchstabe: String(t.nr), farbe: t.fertig && z.status === 'laeuft' ? 'gruen' : '' }))
     const zeilen = teams.map((t) => `<li class="${t.verbunden ? '' : 'getrennt'}">
-      <span class="nr">${t.nr}</span><span class="tn">${zeigeName(t)}<small>${esc(R.orte[t.ort] ? R.orte[t.ort].name : '')}</small></span>
+      <span class="nr">${t.nr}</span><span class="tn">${zeigeName(t)}<small>${esc(R.orte[t.ort] ? R.orte[t.ort].name : '')}${!t.verbunden && t.getrenntSeit ? ` · getrennt seit ${new Date(t.getrenntSeit).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })}` : ''}</small></span>
       <span class="tw" title="Wert = Silber + Ladung zum üblichen Preis">${t.wert}<small>davon Silber ${t.silber}</small></span>${z.status === 'laeuft' ? `<span class="tf">${t.fertig ? '✓' : '…'}</span>` : ''}${namenZeigen ? `<button class="tx" data-akt="entfernen" data-id="${esc(t.id)}" title="Team entfernen">×</button>` : ''}</li>`).join('')
     return `<section class="lraum">
       <h2>${esc(R.name)} <small>${teams.length} Häuser</small></h2>
@@ -97,7 +97,7 @@ function spielAnsicht() {
     </section>`
   }).join('')
   return `<div class="lraeume">${spalten}</div>
-    <p class="klein lhinweis">Zahl = Wert des Handelshauses: Silber plus Ladung zum üblichen Preis am Ort (darunter das Silber in der Kasse). Grünes Siegel = losgereist. Grau = Gerät gerade nicht verbunden.</p>`
+    <p class="klein lhinweis">Zahl = Wert des Handelshauses: Silber plus Ladung zum üblichen Preis am Ort (darunter das Silber in der Kasse). Grünes Siegel = losgereist. Grau = Gerät gerade nicht verbunden – meist hilft: iPad entsperren, auf „Neu verbinden“ tippen oder die Seite neu laden (der Spielstand bleibt).</p>`
 }
 
 function mittel(xs) { return xs.length ? Math.round(xs.reduce((a, b) => a + b, 0) / xs.length) : '–' }

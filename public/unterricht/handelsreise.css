@@ -171,6 +171,8 @@ input:focus, textarea:focus { outline: 2px solid var(--gold); outline-offset: 1p
 .wahlbtn.an { background: var(--tinte); color: var(--pergament); border-color: var(--tinte); }
 .folge { border-top: 1px solid var(--tinte-hell); margin-top: 12px; padding-top: 10px; }
 .buchstelle { background: var(--pergament); border-left: 4px solid var(--gold); padding: 10px 12px; font-size: 0.9em; margin-top: 8px; }
+.netzhinweis { background: var(--pergament); border-left: 4px solid var(--rot); padding: 10px 12px; font-size: 0.9em; margin-bottom: 10px; }
+.netzhinweis .btn { display: block; margin-top: 8px; }
 
 /* ---------- Markt ---------- */
 .preise { width: 100%; border-collapse: collapse; margin: 6px 0; }
