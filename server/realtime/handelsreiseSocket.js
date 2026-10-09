@@ -129,15 +129,18 @@ export function setupHandelsreiseSocket(io) {
       leitungSenden(s)
     })
 
+    // Wiederverbinden – und alle 15 s als Lebenszeichen des Geräts (heilt beide Seiten)
     socket.on('team:wieder', (d, ack) => {
       const { s, t } = teamAus(d)
       if (!s) return antworten(ack, { ok: false, fehler: 'unbekannt' })
+      const neu = !t.verbunden || t.socketId !== socket.id
       socket.join(`hr:${s.code}:teams`)
       t.verbunden = true
+      t.getrenntSeit = null
       t.socketId = socket.id
       teamRef = { code: s.code, id: t.id }
       antworten(ack, { ok: true, zustand: zustandFuerTeams(s) })
-      leitungSenden(s)
+      if (neu) leitungSenden(s)
     })
 
     socket.on('team:hypothese', (d) => {
@@ -164,7 +167,7 @@ export function setupHandelsreiseSocket(io) {
       const s = spielHolen(teamRef.code)
       const t = s && s.teams.get(teamRef.id)
       // Nur trennen, wenn kein neuerer Socket das Team übernommen hat
-      if (t && t.socketId === socket.id) { t.verbunden = false; leitungSenden(s) }
+      if (t && t.socketId === socket.id) { t.verbunden = false; t.getrenntSeit = Date.now(); leitungSenden(s) }
     })
 
     // ── Spielleitung ──────────────────────────────────────

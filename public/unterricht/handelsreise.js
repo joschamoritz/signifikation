@@ -57,6 +57,7 @@ const netz = { socket: null, verbunden: false, getrenntSeit: null }
 // Der Knopf „ohne Klassenmarkt“ erscheint erst nach längerer Trennung –
 // sonst klicken Teams ihn beim Aufwachen des iPads versehentlich.
 const OFFLINE_KNOPF_NACH_MS = 20 * 1000
+const HINWEIS_NACH_MS = 5 * 1000
 
 function ereignis() {
   const r = Math.min(team.runde, letzte())
@@ -68,6 +69,9 @@ function ereignis() {
 function letzte() { return (team && team.online && team.online.z && team.online.z.letzteRunde) || RUNDEN }
 function faktorenOrt(ort) { return (((team.faktoren || {})[team.runde] || {})[ort]) || {} }
 
+function kurz_getrennt() {
+  return !netz.verbunden && netz.getrenntSeit && Date.now() - netz.getrenntSeit > HINWEIS_NACH_MS
+}
 function lange_getrennt() {
   return !netz.verbunden && netz.getrenntSeit && Date.now() - netz.getrenntSeit > OFFLINE_KNOPF_NACH_MS
 }
@@ -92,12 +96,40 @@ function socketVerbinden(onConnect) {
     netz.verbunden = false
     netz.getrenntSeit = Date.now()
     zeichnen()
+    setTimeout(zeichnen, HINWEIS_NACH_MS + 500)
     setTimeout(zeichnen, OFFLINE_KNOPF_NACH_MS + 500)
   })
+  // Abgewiesene Verbindung (z. B. kurz zu viele Geräte): socket.io gibt dann auf – selbst neu versuchen
+  s.on('connect_error', () => { if (!s.active) setTimeout(() => { if (!s.connected) s.connect() }, 3000) })
   s.on('zustand', (z) => abgleichen(z))
   if (onConnect) s.once('connect', onConnect)
   return true
 }
+
+// Lebenszeichen: Das iPad fragt regelmäßig nach (und sofort beim Aufwachen).
+// Antwortet der Server nicht, ist die Verbindung tot, auch wenn das iPad sie
+// noch für offen hält (iPad hat geschlafen, WLAN gewechselt) – dann neu verbinden.
+function pruefen() {
+  const s = netz.socket
+  if (!s || !team || !team.online || team.online.verloren) return
+  if (!s.connected) { if (!s.active) s.connect(); return }
+  s.timeout(5000).emit('team:wieder', { code: team.online.code, token: team.online.token }, (err, res) => {
+    if (!team || !team.online) return
+    if (err) { neuVerbinden(); return }
+    if (res && res.ok) {
+      if (JSON.stringify(res.zustand) !== JSON.stringify(team.online.z)) abgleichen(res.zustand)
+    } else if (res && res.fehler === 'unbekannt') { team.online.verloren = true; speichern(); zeichnen() }
+  })
+}
+function neuVerbinden() {
+  if (!netz.socket) return socketVerbinden()
+  netz.socket.disconnect()
+  netz.socket.connect()
+}
+setInterval(pruefen, 15 * 1000)
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') pruefen() })
+window.addEventListener('pageshow', pruefen)
+window.addEventListener('online', pruefen)
 
 // Was während eines Funklochs nicht ankam, nach dem Wiederverbinden erneut senden.
 // Der Server überschreibt Abgaben und Stände einfach, doppeltes Senden schadet nicht.
@@ -264,8 +296,15 @@ function spiel(inhalt, phase, kartenOpt = {}) {
       <details class="orientbox"><summary>Wo liegt das? Karte mit heutigen Umrissen</summary>${orientierungsKarte(team.raum)}
         <p class="klein">Heutige Küsten, stark vereinfacht – zur Orientierung, keine Karte aus dem Mittelalter. Rot: euer Handelsraum.</p></details>
     </section>
-    <section class="tafel">${phase ? schritte(phase) : ''}${inhalt}</section>
+    <section class="tafel">${netzHinweis()}${phase ? schritte(phase) : ''}${inhalt}</section>
   </div>`
+}
+
+function netzHinweis() {
+  if (!team || !team.online || team.online.verloren || !kurz_getrennt()) return ''
+  return `<div class="netzhinweis" role="status"><b>Keine Verbindung zum Klassenmarkt.</b> Euer Spielstand ist sicher, das iPad versucht es weiter.
+    ${lange_getrennt() ? 'Prüft das WLAN. Hilft das nicht: Seite neu laden – der Spielstand bleibt erhalten.' : ''}
+    <button type="button" class="btn hell" data-akt="neuverbinden">Neu verbinden</button></div>`
 }
 
 /* ================= Ansichten ================= */
@@ -831,8 +870,9 @@ const AKTION = {
   },
   bilanz() { standMelden(true); weiter('bilanz') },
   bericht() { weiter('bericht') },
+  neuverbinden() { neuVerbinden(); zeichnen() },
   offline() {
-    if (!confirm('Ohne Klassenmarkt weiterspielen? Das sollte eure Lehrkraft entscheiden.')) return
+    if (!confirm('Ohne Klassenmarkt weiterspielen? Das sollte eure Lehrkraft entscheiden. Zurück zum Klassenmarkt geht es danach nicht mehr.')) return
     offlineWeiter()
   },
   kontorbuch() { overlay(`<p class="ueber">${esc(team.haus || 'Handelshaus')} · ${esc(team.team)}</p><h2>Kontorbuch</h2>${kontorbuchHtml()}`) },

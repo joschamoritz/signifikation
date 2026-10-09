@@ -224,6 +224,7 @@ export function zustandFuerLeitung(s) {
       fertig: !!t.abgaben[s.runde],
       hypothese: t.hypothese,
       verbunden: t.verbunden,
+      getrenntSeit: t.verbunden ? null : (t.getrenntSeit || null),
       staende: t.staende,
       abgaben: t.abgaben,
       ende: !!t.staende[RUNDEN + 1],
