@@ -37,11 +37,9 @@ import paymentsRouter from './routes/payments.js'
 import iapRouter from './routes/iap.js'
 import pushRouter from './routes/push.js'
 import archiveRouter from './routes/archive.js'
-import unterrichtRouter from './routes/unterricht.js'
 import { startPushScheduler } from './notifications/scheduler.js'
 import { startStreakSaverScheduler } from './notifications/streak.js'
 import { setupClassroomSocket } from './realtime/classroomSocket.js'
-import { setupHandelsreiseSocket } from './realtime/handelsreiseSocket.js'
 import { startClassroomAutoEnd } from './jobs/classroomAutoEnd.js'
 import { startClassroomRetention } from './jobs/classroomRetention.js'
 import { startSqliteBackup } from './jobs/sqliteBackup.js'
@@ -221,7 +219,15 @@ app.use('/', courseRouter)
 app.use('/', paymentsRouter)
 app.use('/', iapRouter)
 app.use('/', pushRouter)
-app.use('/', unterrichtRouter)
+
+// Unterrichts-Tools sind am 17.10.2026 nach unterricht.signifikation.de umgezogen
+// (eigenes Repo „unterricht.signifikation“). Alte Adressen und QR-Codes in
+// Folien leiten dauerhaft dorthin, Dateiname bleibt gleich.
+const UNTERRICHT_ZIEL = 'https://unterricht.signifikation.de'
+app.use('/unterricht', (req, res) => {
+  const qs = req.originalUrl.includes('?') ? req.originalUrl.slice(req.originalUrl.indexOf('?')) : ''
+  res.redirect(301, UNTERRICHT_ZIEL + (req.path === '/' ? '/' : req.path) + qs)
+})
 
 // SEO-Archiv: /archiv, /wort/:slug, /sitemap.xml. Bewusst VOR express.static
 // und dem SPA-Fallback – die dynamische Sitemap hat damit Vorrang vor einer
@@ -321,7 +327,6 @@ app.use((err, req, res, next) => {
     },
   })
   setupClassroomSocket(io)
-  setupHandelsreiseSocket(io)   // Unterrichtstool G8.1 (Klassenmarkt)
   // Auto-End nach Inaktivitaet (D8) — nach dem Socket-Setup, damit die
   // session:finished-Broadcasts greifen.
   startClassroomAutoEnd()

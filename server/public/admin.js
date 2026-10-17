@@ -186,10 +186,6 @@ function switchPage(pageId) {
     loadDemoEditor()
   }
 
-  if (pageId === 'unterricht') {
-    loadUnterrichtAbgaben()
-  }
-
   if (pageId === 'metrics') {
     loadProductMetrics()
   }
@@ -3055,150 +3051,6 @@ async function deleteFreeDay(date) {
   } catch { /* ignore */ }
 }
 
-// ── Unterricht (Abgaben aus /unterricht/-Tools) ───────────
-const UNTERRICHT_AUFGABE = 'fallakte-oetzi'
-const STEMPEL_LABEL = { belegt: 'belegt', vermutet: 'vermutet', ungeklaert: 'ungeklärt' }
-
-function unterrichtStempel(st) {
-  if (!st) return '<span class="ut-stempel ut-ohne">ohne Stempel</span>'
-  return `<span class="ut-stempel ut-${esc(st)}">${esc(STEMPEL_LABEL[st] || st)}</span>`
-}
-
-function renderUnterrichtAbgabe(a, veraltet) {
-  const b = a.bericht1992 || {}
-  const e = a.abschluss || {}
-  const zeit = new Date(a.created_at).toLocaleString('de-DE', { dateStyle: 'short', timeStyle: 'short' })
-  const zeile = (frage, text, st) => `
-    <tr><th>${esc(frage)}</th><td>${esc(text || '–')}</td><td>${unterrichtStempel(st)}</td></tr>`
-  const karten = Object.entries(a.karten || {}).map(([id, k]) => `
-    <tr><th>${esc(id.toUpperCase())} ${esc(k.titel || '')}</th><td>${esc(k.text || '–')}</td>
-    <td>${unterrichtStempel(k.stempel)}${k.tipps ? ` <span class="label-hint">${Number(k.tipps)}× Tipp</span>` : ''}</td></tr>`).join('')
-  return `
-    <div class="ut-abgabe${veraltet ? ' ut-veraltet' : ''}">
-      <div class="ut-kopf">
-        <strong>${esc(a.team)}</strong>
-        <span class="label-hint">${esc(zeit)}${veraltet ? ' · ältere Abgabe' : ''}</span>
-        <button class="entry-filters-reset freeday-delete-btn" data-action="delete-unterricht" data-id="${Number(a.id)}">Löschen</button>
-      </div>
-      <p class="ut-1992"><b>1992:</b> Er starb – ${esc(b.wie || '–')}${b.wieWarum ? ` (${esc(b.wieWarum)})` : ''} · Er war: ${esc(b.wer || '–')}</p>
-      <table class="ut-tabelle">
-        ${zeile('Wer war er?', e.wer, e.werS)}
-        ${zeile('Wie starb er?', e.wie, e.wieS)}
-        ${zeile('Warum?', e.warum, e.warumS)}
-        <tr><th>Museumsschild</th><td colspan="2">${esc(e.schild || '–')}</td></tr>
-      </table>
-      <details class="ut-details"><summary>Antworten zu den Beweisstücken</summary>
-        <table class="ut-tabelle">${karten || '<tr><td>Keine.</td></tr>'}</table>
-      </details>
-    </div>`
-}
-
-const HR_RAUM = { seide: 'Seidenstraße', hanse: 'Hanse', sahara: 'Sahara' }
-const HR_HYP = { lage: 'die Lage der Stadt', ware: 'die wertvollste Ware', schutz: 'Schutz und Zusammenarbeit', glueck: 'Glück' }
-
-function renderHandelsreiseAbgabe(a, veraltet) {
-  const b = a.bericht || {}
-  const h = a.hypothese || {}
-  const bi = a.bilanz || {}
-  const zeit = new Date(a.created_at).toLocaleString('de-DE', { dateStyle: 'short', timeStyle: 'short' })
-  const frage = (f, text) => `<tr><th>${esc(f)}</th><td colspan="2">${esc(text || '–')}</td></tr>`
-  const buch = (a.kontorbuch || []).map((z) => `<li>${esc(z)}</li>`).join('')
-  return `
-    <div class="ut-abgabe${veraltet ? ' ut-veraltet' : ''}">
-      <div class="ut-kopf">
-        <strong>${esc(a.team)}</strong>
-        <span class="label-hint">${esc(a.haus || '')} · ${esc(HR_RAUM[a.raum] || a.raum || '')} · ${esc(zeit)}${veraltet ? ' · ältere Abgabe' : ''}</span>
-        <button class="entry-filters-reset freeday-delete-btn" data-action="delete-unterricht" data-id="${Number(a.id)}">Löschen</button>
-      </div>
-      <p class="ut-1992"><b>Vermutung:</b> ${esc(HR_HYP[h.wahl] || '–')}${h.text ? ` (${esc(h.text)})` : ''} · <b>Bilanz:</b> ${Number(bi.start) || 0} → ${Number(bi.ende) || 0} Silber · Unglücke: ${Number(bi.unglueck) || 0} · Schutz: ${esc(bi.schutz || '–')}</p>
-      <table class="ut-tabelle">
-        ${frage('1. Was hat euer Handelshaus gerettet oder ruiniert?', b.f1)}
-        ${frage('2. Hat eure Vermutung gestimmt?', b.f2)}
-        ${frage('3. Was fehlt im Spiel, das im Buch steht?', b.f3)}
-      </table>
-      <details class="ut-details"><summary>Kontorbuch (${(a.kontorbuch || []).length} Einträge)</summary><ul>${buch || '<li>Leer.</li>'}</ul></details>
-    </div>`
-}
-
-async function loadHandelsreiseAbgaben() {
-  const listEl = document.getElementById('unterricht-hr-list')
-  if (!listEl) return
-  listEl.innerHTML = '<div class="users-empty">Wird geladen …</div>'
-  try {
-    const res = await fetch('/admin/unterricht/abgaben?aufgabe=handelsreise')
-    if (!res.ok) throw new Error(`HTTP ${res.status}`)
-    const { abgaben } = await res.json()
-    if (!Array.isArray(abgaben) || !abgaben.length) {
-      listEl.innerHTML = '<div class="users-empty">Noch keine Abgaben.</div>'
-      return
-    }
-    const gesehen = new Set()
-    const teams = new Set(abgaben.map((a) => (a.team || '').trim().toLowerCase()))
-    const html = abgaben.map((a) => {
-      const key = (a.team || '').trim().toLowerCase()
-      const veraltet = gesehen.has(key)
-      gesehen.add(key)
-      return renderHandelsreiseAbgabe(a, veraltet)
-    }).join('')
-    listEl.innerHTML = `<p class="section-copy">${abgaben.length} Abgaben von ${teams.size} Teams.</p>${html}`
-  } catch (err) {
-    listEl.innerHTML = `<div class="users-empty" style="color:#991b1b">Fehler: ${esc(err.message)}</div>`
-  }
-}
-
-async function deleteHandelsreiseAlle() {
-  if (!confirmAction('Alle Abgaben der Handelsreise löschen?', ['Das kann nicht rückgängig gemacht werden.'])) return
-  try {
-    const res = await fetch('/admin/unterricht/abgaben?aufgabe=handelsreise', { method: 'DELETE', headers: { 'Content-Type': 'application/json' } })
-    if (res.ok) await loadHandelsreiseAbgaben()
-  } catch { /* ignore */ }
-}
-
-async function loadUnterrichtAbgaben() {
-  loadHandelsreiseAbgaben()
-  const listEl = document.getElementById('unterricht-list')
-  if (!listEl) return
-  listEl.innerHTML = '<div class="users-empty">Wird geladen …</div>'
-  try {
-    const res = await fetch(`/admin/unterricht/abgaben?aufgabe=${encodeURIComponent(UNTERRICHT_AUFGABE)}`)
-    if (!res.ok) throw new Error(`HTTP ${res.status}`)
-    const { abgaben } = await res.json()
-    if (!Array.isArray(abgaben) || !abgaben.length) {
-      listEl.innerHTML = '<div class="users-empty">Noch keine Abgaben.</div>'
-      return
-    }
-    // Liste kommt neueste zuerst – die erste Abgabe je Team ist die gültige.
-    const gesehen = new Set()
-    const teams = new Set(abgaben.map((a) => (a.team || '').trim().toLowerCase()))
-    const html = abgaben.map((a) => {
-      const key = (a.team || '').trim().toLowerCase()
-      const veraltet = gesehen.has(key)
-      gesehen.add(key)
-      return renderUnterrichtAbgabe(a, veraltet)
-    }).join('')
-    listEl.innerHTML = `<p class="section-copy">${abgaben.length} Abgaben von ${teams.size} Teams.</p>${html}`
-  } catch (err) {
-    listEl.innerHTML = `<div class="users-empty" style="color:#991b1b">Fehler: ${esc(err.message)}</div>`
-  }
-}
-
-async function deleteUnterrichtAbgabe(id) {
-  if (!id) return
-  if (!confirmAction('Diese Abgabe wirklich löschen?', [`Abgabe Nr. ${id}`])) return
-  try {
-    const res = await fetch(`/admin/unterricht/abgaben/${encodeURIComponent(id)}`, { method: 'DELETE', headers: { 'Content-Type': 'application/json' } })
-    if (res.ok) await loadUnterrichtAbgaben()
-  } catch { /* ignore */ }
-}
-
-async function deleteUnterrichtAlle() {
-  if (!confirmAction('Alle Abgaben der Fallakte Ötzi löschen?', ['Das kann nicht rückgängig gemacht werden.'])) return
-  try {
-    const res = await fetch(`/admin/unterricht/abgaben?aufgabe=${encodeURIComponent(UNTERRICHT_AUFGABE)}`, { method: 'DELETE', headers: { 'Content-Type': 'application/json' } })
-    if (res.ok) await loadUnterrichtAbgaben()
-  } catch { /* ignore */ }
-}
-
 // ── Spezialwoche ──────────────────────────────────────────
 function setSwMessage(message, tone = 'info') {
   const msgEl = document.getElementById('sw-msg')
@@ -3901,10 +3753,6 @@ function handleDocumentClick(event) {
   if (action === 'load-free-days') return void loadFreeDays()
   if (action === 'add-free-day') return void addFreeDay()
   if (action === 'delete-free-day') return void deleteFreeDay(target.dataset.date || '')
-  if (action === 'load-unterricht') return void loadUnterrichtAbgaben()
-  if (action === 'delete-unterricht') return void deleteUnterrichtAbgabe(target.dataset.id || '')
-  if (action === 'delete-unterricht-alle') return void deleteUnterrichtAlle()
-  if (action === 'delete-unterricht-hr-alle') return void deleteHandelsreiseAlle()
   if (action === 'load-spezialwochen') return void loadSpezialwochen()
   if (action === 'save-spezialwoche') return void saveSpezialwoche()
   if (action === 'clear-sw-form') return void clearSwForm()
