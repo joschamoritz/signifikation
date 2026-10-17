@@ -220,15 +220,6 @@ app.use('/', paymentsRouter)
 app.use('/', iapRouter)
 app.use('/', pushRouter)
 
-// Unterrichts-Tools sind am 17.10.2026 nach unterricht.signifikation.de umgezogen
-// (eigenes Repo „unterricht.signifikation“). Alte Adressen und QR-Codes in
-// Folien leiten dauerhaft dorthin, Dateiname bleibt gleich.
-const UNTERRICHT_ZIEL = 'https://unterricht.signifikation.de'
-app.use('/unterricht', (req, res) => {
-  const qs = req.originalUrl.includes('?') ? req.originalUrl.slice(req.originalUrl.indexOf('?')) : ''
-  res.redirect(301, UNTERRICHT_ZIEL + (req.path === '/' ? '/' : req.path) + qs)
-})
-
 // SEO-Archiv: /archiv, /wort/:slug, /sitemap.xml. Bewusst VOR express.static
 // und dem SPA-Fallback – die dynamische Sitemap hat damit Vorrang vor einer
 // statischen dist/sitemap.xml, und /wort-Seiten werden nicht vom SPA-Catch-all
