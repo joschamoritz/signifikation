@@ -13,8 +13,12 @@
  * custom_lemma_usage (Audit 2026-06-15): wächst mit ~1 Zeile pro Account/Tag,
  * an dem das „Eigene Lemma“ gespielt wird — unbegrenzt, ohne Cleanup. Das
  * Tageskontingent prüft nur das HEUTIGE Datum, alles Ältere ist toter Ballast.
- * Gleiche 24-Monats-Frist wie oben. payments wird BEWUSST nicht angefasst
- * (Buchhaltung/Belegpflicht).
+ * Gleiche 24-Monats-Frist wie oben.
+ *
+ * payments (2026-10-19): Buchungsbelege, 8 Jahre ab Ende des Kalenderjahres
+ * (§ 147 Abs. 3 und 4 AO seit 2025). Geloescht werden nur Zeilen ohne Konto
+ * (user_id NULL nach Kontoloeschung, Migration 0020). Solange das Konto besteht,
+ * ist die Zeile Lizenznachweis und Sperre gegen Cross-Account-Replay (iap.js).
  *
  * Täglicher Sweep, gleiches Muster wie classroomRetention: neustart-fest
  * (rechnet gegen persistierte Zeitstempel), idempotent (Mehrfach-Läufe
@@ -39,6 +43,17 @@ const deleteOldAuditStmt = db.prepare(`DELETE FROM audit_log WHERE timestamp < ?
 // die Ereignisse selbst bleiben 24 Monate). entry_hash dient nur der Dublettenpruefung
 // beim Legacy-Import und muss dafuer nicht nachgezogen werden.
 export const AUDIT_IP_RETENTION_MS = 30 * 24 * 60 * 60 * 1000
+
+export const PAYMENT_RETENTION_YEARS = 8
+const deleteOldOrphanPaymentsStmt = db.prepare(`DELETE FROM payments WHERE user_id IS NULL AND processed_at < ?`)
+
+// Erster Moment des Jahres (aktuelles Berliner Jahr - 8) als Unix-Millis. Alles davor
+// gehoert zu einem Kalenderjahr, dessen Frist abgelaufen ist (Beleg 2025 → bis 31.12.2033).
+// Berliner Mitternacht am 1.1. ist 23:00 UTC des Vortags (Winterzeit).
+export function paymentCutoffMs(now) {
+  const year = Number(new Intl.DateTimeFormat('en-CA', { timeZone: TIMEZONE, year: 'numeric' }).format(new Date(now)))
+  return Date.UTC(year - PAYMENT_RETENTION_YEARS, 0, 1) - 60 * 60 * 1000
+}
 const clearOldAuditIpStmt = db.prepare(`UPDATE audit_log SET ip = NULL WHERE ip IS NOT NULL AND timestamp < ?`)
 const deleteOldTelemetryStmt = db.prepare(`DELETE FROM classroom_telemetry WHERE ts < ?`)
 // custom_lemma_usage.date ist ein Berlin-YYYY-MM-DD-String → lexikografischer
@@ -122,6 +137,7 @@ export function runDataRetention({ now = Date.now(), retentionMs = DEFAULT_RETEN
 
   const audit = deleteOldAuditStmt.run(cutoffIso)
   const auditIps = clearOldAuditIpStmt.run(new Date(now - AUDIT_IP_RETENTION_MS).toISOString())
+  const payments = deleteOldOrphanPaymentsStmt.run(paymentCutoffMs(now))
   const telemetry = deleteOldTelemetryStmt.run(cutoffMs)
   const customLemmaUsage = deleteOldCustomLemmaUsageStmt.run(cutoffDate)
 
@@ -139,13 +155,14 @@ export function runDataRetention({ now = Date.now(), retentionMs = DEFAULT_RETEN
   const result = {
     auditDeleted: audit.changes,
     auditIpsCleared: auditIps.changes,
+    paymentsDeleted: payments.changes,
     telemetryDeleted: telemetry.changes,
     customLemmaUsageDeleted: customLemmaUsage.changes,
     statsCompacted,
     legacyExportsRemoved,
     deploySnapshotsRemoved,
   }
-  if (result.auditDeleted > 0 || result.auditIpsCleared > 0 ||result.telemetryDeleted > 0 || result.customLemmaUsageDeleted > 0 || result.statsCompacted > 0 || result.legacyExportsRemoved > 0 || result.deploySnapshotsRemoved > 0) {
+  if (result.auditDeleted > 0 || result.auditIpsCleared > 0 || result.paymentsDeleted > 0 || result.telemetryDeleted > 0 || result.customLemmaUsageDeleted > 0 || result.statsCompacted > 0 || result.legacyExportsRemoved > 0 || result.deploySnapshotsRemoved > 0) {
     logger.info(result, 'Retention-Sweep: alte Eintraege geloescht/kompaktiert')
   }
   return result
