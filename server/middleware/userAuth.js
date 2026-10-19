@@ -43,6 +43,26 @@ const getProfileRoleStmt = db.prepare(`
   WHERE user_id = ?
 `)
 
+// Letzte Aktivität für die Löschfrist inaktiver Konten (jobs/inactiveAccounts.js).
+// Höchstens einmal je Stunde schreiben; eine Aktivität hebt eine Warnung auf.
+const touchActivityStmt = db.prepare(`
+  INSERT INTO user_activity (user_id, last_active_at) VALUES (@userId, @now)
+  ON CONFLICT(user_id) DO UPDATE SET last_active_at = excluded.last_active_at, inactivity_warned_at = NULL
+  WHERE user_activity.last_active_at < @threshold
+`)
+
+export function touchUserActivity(userId, nowMs = Date.now()) {
+  try {
+    touchActivityStmt.run({
+      userId,
+      now: new Date(nowMs).toISOString(),
+      threshold: new Date(nowMs - 60 * 60 * 1000).toISOString(),
+    })
+  } catch (err) {
+    logger.warn({ err, userId }, 'Konnte letzte Aktivitaet nicht vermerken')
+  }
+}
+
 function resolveRoleForUser(userId) {
   try {
     const now = Date.now()
@@ -73,6 +93,7 @@ async function getAuthUserFromSession(req) {
   if (!sessionUser?.id) return null
   const userId = String(sessionUser.id)
   const role = resolveRoleForUser(userId)
+  touchUserActivity(userId)
   return {
     id: userId,
     role,

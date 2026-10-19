@@ -355,3 +355,56 @@ ${LINKS_FOOTER_TEXT}`
 
   return deliver({ to, subject: 'Willkommen bei Signifikation', text, html, context: 'Willkommensmail' })
 }
+
+// Warnung vor der Löschung eines inaktiven Kontos (jobs/inactiveAccounts.js):
+// 24 Monate ohne Anmeldung, die Löschung folgt frühestens 30 Tage nach dieser
+// Mail. Gibt null zurück, wenn der Versand scheitert – dann wird auch nicht
+// gelöscht, denn ohne Warnung keine Löschung.
+export async function sendInactivityWarningMail({ to, name, deleteOn }) {
+  const anrede = name?.trim() ? `Hallo ${name.trim()},` : 'Hallo,'
+  const datum = new Intl.DateTimeFormat('de-DE', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Europe/Berlin' }).format(deleteOn)
+  const url = 'https://signifikation.de/'
+
+  const html = renderLayout({
+    kicker: 'Dein Konto',
+    title: 'Wir löschen dein Konto bald',
+    lead: `${anrede} du hast dich seit zwei Jahren nicht mehr bei Signifikation angemeldet.`,
+    bodyHtml: `  <p style="font-size:14px;color:#5a4e45;line-height:1.7;margin:0 0 24px">
+    Damit wir keine Daten länger als nötig aufbewahren, löschen wir Konten nach zwei Jahren ohne
+    Anmeldung. Dein Konto wird am <strong>${datum}</strong> gelöscht, zusammen mit deinen Ergebnissen
+    und deinem Fortschritt. Hast du die Gesamtausgabe gekauft, hängt sie an diesem Konto.
+  </p>
+
+  <p style="font-size:14px;color:#5a4e45;line-height:1.7;margin:0 0 24px">
+    <strong>Du willst es behalten?</strong> Dann melde dich einfach bis dahin einmal an.
+  </p>
+
+${renderButton(url, 'Zu Signifikation')}
+
+  <p style="font-size:12px;color:#7a6e65;line-height:1.65;margin-bottom:32px">
+    Willst du das Konto nicht mehr, musst du nichts tun. Fragen:
+    <a href="mailto:info@signifikation.de" style="color:#9b1c1c;text-decoration:none">info@signifikation.de</a>
+  </p>`,
+    footerHtml: LINKS_FOOTER_HTML,
+  })
+
+  const text = `Signifikation – Wir löschen dein Konto bald
+
+${anrede} du hast dich seit zwei Jahren nicht mehr bei Signifikation angemeldet.
+
+Damit wir keine Daten länger als nötig aufbewahren, löschen wir Konten nach zwei
+Jahren ohne Anmeldung. Dein Konto wird am ${datum} gelöscht, zusammen mit deinen
+Ergebnissen und deinem Fortschritt. Hast du die Gesamtausgabe gekauft, hängt sie
+an diesem Konto.
+
+Du willst es behalten? Dann melde dich einfach bis dahin einmal an:
+${url}
+
+Willst du das Konto nicht mehr, musst du nichts tun.
+Fragen: info@signifikation.de
+
+---
+${LINKS_FOOTER_TEXT}`
+
+  return deliver({ to, subject: 'Dein Konto wird gelöscht – Signifikation', text, html, context: 'Inaktivitaets-Warnung' })
+}
