@@ -99,11 +99,11 @@ function pruneLegacyExports(cutoffMs) {
 // Pre-Deploy-Snapshots (deploy.yml legt `<DB>.pre-deploy-<Zeit>` an und haelt
 // die letzten drei). Ohne Deploy blieben sie beliebig alt liegen – mit
 // geloeschten Konten darin. Deshalb zusaetzlich nach Alter: nicht aelter als die
-// naechtlichen Sicherungen (SQLITE_BACKUP_KEEP Tage, Default 14). Der Rollback
+// naechtlichen Sicherungen (SQLITE_BACKUP_KEEP Tage, Default 7). Der Rollback
 // braucht nur den Snapshot des laufenden Deploys, und der ist immer frisch.
 const SNAPSHOT_PREFIX = `${basename(DB_PATH)}.pre-deploy-`
 export const SNAPSHOT_MAX_AGE_MS =
-  Math.max(1, parseInt(process.env.SQLITE_BACKUP_KEEP ?? '14', 10) || 14) * 24 * 60 * 60 * 1000
+  Math.max(1, parseInt(process.env.SQLITE_BACKUP_KEEP ?? '7', 10) || 7) * 24 * 60 * 60 * 1000
 
 function pruneDeploySnapshots(now, maxAgeMs = SNAPSHOT_MAX_AGE_MS) {
   const dir = dirname(DB_PATH)

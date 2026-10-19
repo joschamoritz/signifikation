@@ -43,7 +43,7 @@ if (!process.env.SQLITE_BACKUP_DIR && process.env.NODE_ENV === 'production') {
     'und schuetzen NICHT gegen Volume-/Hostverlust. Separates Volume/Offsite-Sync einrichten (docs/OPS.md).'
   )
 }
-const KEEP_COUNT  = Math.max(1, parseInt(process.env.SQLITE_BACKUP_KEEP ?? '14', 10) || 14)
+const KEEP_COUNT  = Math.max(1, parseInt(process.env.SQLITE_BACKUP_KEEP ?? '7', 10) || 7)
 const FILE_PATTERN = /^signifikation-\d{4}-\d{2}-\d{2}\.db\.gz$/
 
 // Einmal pro Tag — Spieldaten ändern sich täglich, Käufe/Accounts selten genug,
