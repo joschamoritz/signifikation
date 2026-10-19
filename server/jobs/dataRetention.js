@@ -35,6 +35,11 @@ const TIMEZONE = process.env.TIMEZONE || 'Europe/Berlin'
 
 // audit_log.timestamp ist ISO-String, classroom_telemetry.ts Unix-Millis.
 const deleteOldAuditStmt = db.prepare(`DELETE FROM audit_log WHERE timestamp < ?`)
+// IP-Adressen im Audit-Log nur 30 Tage (Erkennen von Angriffen braucht sie kurz,
+// die Ereignisse selbst bleiben 24 Monate). entry_hash dient nur der Dublettenpruefung
+// beim Legacy-Import und muss dafuer nicht nachgezogen werden.
+export const AUDIT_IP_RETENTION_MS = 30 * 24 * 60 * 60 * 1000
+const clearOldAuditIpStmt = db.prepare(`UPDATE audit_log SET ip = NULL WHERE ip IS NOT NULL AND timestamp < ?`)
 const deleteOldTelemetryStmt = db.prepare(`DELETE FROM classroom_telemetry WHERE ts < ?`)
 // custom_lemma_usage.date ist ein Berlin-YYYY-MM-DD-String → lexikografischer
 // Vergleich gegen das Cutoff-Datum (gleiches Format, gleiche Zeitzone).
@@ -116,6 +121,7 @@ export function runDataRetention({ now = Date.now(), retentionMs = DEFAULT_RETEN
   const cutoffDate = new Intl.DateTimeFormat('en-CA', { timeZone: TIMEZONE }).format(new Date(cutoffMs))
 
   const audit = deleteOldAuditStmt.run(cutoffIso)
+  const auditIps = clearOldAuditIpStmt.run(new Date(now - AUDIT_IP_RETENTION_MS).toISOString())
   const telemetry = deleteOldTelemetryStmt.run(cutoffMs)
   const customLemmaUsage = deleteOldCustomLemmaUsageStmt.run(cutoffDate)
 
@@ -132,13 +138,14 @@ export function runDataRetention({ now = Date.now(), retentionMs = DEFAULT_RETEN
 
   const result = {
     auditDeleted: audit.changes,
+    auditIpsCleared: auditIps.changes,
     telemetryDeleted: telemetry.changes,
     customLemmaUsageDeleted: customLemmaUsage.changes,
     statsCompacted,
     legacyExportsRemoved,
     deploySnapshotsRemoved,
   }
-  if (result.auditDeleted > 0 || result.telemetryDeleted > 0 || result.customLemmaUsageDeleted > 0 || result.statsCompacted > 0 || result.legacyExportsRemoved > 0 || result.deploySnapshotsRemoved > 0) {
+  if (result.auditDeleted > 0 || result.auditIpsCleared > 0 ||result.telemetryDeleted > 0 || result.customLemmaUsageDeleted > 0 || result.statsCompacted > 0 || result.legacyExportsRemoved > 0 || result.deploySnapshotsRemoved > 0) {
     logger.info(result, 'Retention-Sweep: alte Eintraege geloescht/kompaktiert')
   }
   return result

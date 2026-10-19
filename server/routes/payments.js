@@ -135,7 +135,9 @@ router.post('/api/v1/payments/checkout', requireAuthUser, validate(checkoutSchem
       auditSecurity(
         'CHECKOUT_REJECT_COUNTRY',
         { userId: req.user.id, country },
-        { ip: req.ip, status: 'FAIL' }
+        // Ohne IP: Die Datenschutzerklärung sagt zu, dass die IP für die
+        // Länderprüfung nicht gespeichert wird; das Land genügt als Nachweis.
+        { status: 'FAIL' }
       )
       return res.status(403).json({
         error: 'Der Kauf über die Website ist auf Deutschland beschränkt.',
