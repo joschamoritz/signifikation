@@ -45,6 +45,16 @@ if (!process.env.SQLITE_BACKUP_DIR && process.env.NODE_ENV === 'production') {
 }
 const KEEP_COUNT  = Math.max(1, parseInt(process.env.SQLITE_BACKUP_KEEP ?? '7', 10) || 7)
 const FILE_PATTERN = /^signifikation-\d{4}-\d{2}-\d{2}\.db\.gz$/
+// Reste eines Laufs: die temporäre Kopie und ihre SQLite-Nebendateien. Die
+// Integritätsprüfung öffnet die Kopie und legt dabei -shm/-wal an; die blieben
+// bis Oktober 2026 nach jedem Lauf liegen (leer, aber Ballast).
+const TMP_PATTERN = /^signifikation-\d{4}-\d{2}-\d{2}\.db\.tmp(-wal|-shm|-journal)?$/
+
+function removeTmp(tmpPath) {
+  for (const p of [tmpPath, `${tmpPath}-wal`, `${tmpPath}-shm`, `${tmpPath}-journal`]) {
+    try { unlinkSync(p) } catch { /* nicht vorhanden */ }
+  }
+}
 
 // Einmal pro Tag — Spieldaten ändern sich täglich, Käufe/Accounts selten genug,
 // dass 24 h maximaler Datenverlust akzeptabel ist.
@@ -87,7 +97,7 @@ export async function runSqliteBackup({ dir = BACKUP_DIR, keep = KEEP_COUNT } = 
     // Korruption: Datei verwerfen + laut alerten, statt sie still abzulegen.
     const integrity = verifyBackupIntegrity(tmpPath)
     if (integrity !== 'ok') {
-      try { unlinkSync(tmpPath) } catch { /* nichts zu tun */ }
+      removeTmp(tmpPath)
       logger.error({ integrity, tmpPath }, 'SQLite-Backup-Integritätsprüfung fehlgeschlagen — Backup verworfen')
       reportAlert('backup_integrity_failed', `Backup quick_check fehlgeschlagen: ${integrity}`)
       return { integrityFailed: true, detail: integrity }
@@ -98,15 +108,17 @@ export async function runSqliteBackup({ dir = BACKUP_DIR, keep = KEEP_COUNT } = 
     } catch (err) {
       // z. B. Disk voll: sonst bleibt die unkomprimierte .tmp-Kopie liegen (die
       // Rotation matcht nur .db.gz) und füllt bei Wiederholung das Volume.
-      try { unlinkSync(tmpPath) } catch { /* nichts zu tun */ }
+      removeTmp(tmpPath)
       try { unlinkSync(finalPath) } catch { /* evtl. Teil-Datei */ }
       throw err
     }
-    unlinkSync(tmpPath)
+    removeTmp(tmpPath)
 
     // Rotation: nur eigene Backup-Dateien anfassen, älteste zuerst löschen
     const files = readdirSync(dir).filter(f => FILE_PATTERN.test(f)).sort()
     const toDelete = files.slice(0, Math.max(0, files.length - keep))
+    // Liegengebliebene Reste früherer Läufe (siehe TMP_PATTERN) gleich mit.
+    toDelete.push(...readdirSync(dir).filter(f => TMP_PATTERN.test(f)))
     for (const f of toDelete) {
       try { unlinkSync(join(dir, f)) } catch { /* Rotation darf das Backup nie scheitern lassen */ }
     }
