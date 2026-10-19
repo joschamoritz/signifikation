@@ -44,6 +44,7 @@ import { startClassroomAutoEnd } from './jobs/classroomAutoEnd.js'
 import { startClassroomRetention } from './jobs/classroomRetention.js'
 import { startSqliteBackup } from './jobs/sqliteBackup.js'
 import { startDataRetention } from './jobs/dataRetention.js'
+import { startInactiveAccounts } from './jobs/inactiveAccounts.js'
 import { startZeitenwendePrefetch } from './jobs/zeitenwendePrefetch.js'
 import { ALLOWED_ORIGINS, CAPACITOR_ORIGINS, isAllowedOrigin } from './config/origins.js'
 import { startSessionCleanup } from './auth/session-cleanup.js'
@@ -330,6 +331,8 @@ app.use((err, req, res, next) => {
   // Retention fuer wachsende Log-Tabellen: audit_log + classroom_telemetry
   // nach 24 Monaten aufraeumen (taeglicher Sweep).
   startDataRetention()
+  // Konten nach 24 Monaten ohne Anmeldung loeschen, Warnmail 30 Tage vorher.
+  startInactiveAccounts()
   // Wiktionary-Cache fuer das heutige Zeitenwende-Lemma vorwaermen, damit der
   // erste Tagesaufruf nicht auf den externen Fetch (bis ~6 s) blockiert.
   startZeitenwendePrefetch()
