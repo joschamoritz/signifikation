@@ -35,6 +35,20 @@ describe('sqliteBackup', () => {
     expect([...head]).toEqual([0x1f, 0x8b])
   })
 
+  it('hinterlässt keine Nebendateien und räumt alte Reste (-shm/-wal) mit ab', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'sig-backup-tmp-'))
+    writeFileSync(join(dir, 'signifikation-2026-06-16.db.tmp-shm'), 'x')
+    writeFileSync(join(dir, 'signifikation-2026-06-16.db.tmp-wal'), '')
+    writeFileSync(join(dir, 'signifikation-2026-06-16.db.tmp-notiz.txt'), 'bleibt')
+
+    await runSqliteBackup({ dir, keep: 7 })
+
+    const files = readdirSync(dir)
+    expect(files.filter(f => /\.db\.tmp(-wal|-shm|-journal)?$/.test(f))).toEqual([])
+    expect(files).toContain('signifikation-2026-06-16.db.tmp-notiz.txt')
+    expect(files.filter(f => f.endsWith('.db.gz'))).toHaveLength(1)
+  })
+
   it('listSqliteBackups liefert Einträge absteigend nach Datum', async () => {
     const dir = mkdtempSync(join(tmpdir(), 'sig-backup-list-'))
     writeFileSync(join(dir, 'signifikation-2024-05-01.db.gz'), 'a')
