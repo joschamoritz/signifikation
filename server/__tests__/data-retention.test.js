@@ -1,8 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
-import { join, dirname } from 'path'
+import { join, dirname, basename } from 'path'
 import { mkdirSync, writeFileSync, utimesSync, existsSync, rmSync } from 'fs'
 import db, { DB_PATH } from '../db.js'
-import { runDataRetention, DEFAULT_RETENTION_MS } from '../jobs/dataRetention.js'
+import { runDataRetention, DEFAULT_RETENTION_MS, SNAPSHOT_MAX_AGE_MS } from '../jobs/dataRetention.js'
 
 const NOW = Date.parse('2026-06-10T12:00:00.000Z')
 const OLD_MS = NOW - DEFAULT_RETENTION_MS - 24 * 60 * 60 * 1000 // 1 Tag über der Frist
@@ -115,5 +115,42 @@ describe('dataRetention (Legacy-CSV-Prune, W4-U2)', () => {
     expect(existsSync(LEGACY_EXPORT_DIR)).toBe(false)
     const result = runDataRetention({ now: NOW })
     expect(result.legacyExportsRemoved).toBe(0)
+  })
+})
+
+describe('dataRetention (Pre-Deploy-Snapshots)', () => {
+  const dir = dirname(DB_PATH)
+  const name = (stamp) => join(dir, `${basename(DB_PATH)}.pre-deploy-${stamp}`)
+  const angelegt = []
+
+  afterEach(() => {
+    for (const f of angelegt) if (existsSync(f)) rmSync(f)
+    angelegt.length = 0
+  })
+
+  it('loescht Snapshots aelter als die Sicherungsfrist, behaelt frische', () => {
+    const alt = name('20260501-120000')
+    const frisch = name('20260609-120000')
+    for (const f of [alt, frisch]) { writeFileSync(f, 'x'); angelegt.push(f) }
+    const altMs = NOW - SNAPSHOT_MAX_AGE_MS - 24 * 60 * 60 * 1000
+    utimesSync(alt, altMs / 1000, altMs / 1000)
+    utimesSync(frisch, FRESH_MS / 1000, FRESH_MS / 1000)
+
+    const result = runDataRetention({ now: NOW })
+
+    expect(result.deploySnapshotsRemoved).toBe(1)
+    expect(existsSync(alt)).toBe(false)
+    expect(existsSync(frisch)).toBe(true)
+  })
+
+  it('laesst andere Dateien im Datenverzeichnis in Ruhe', () => {
+    const fremd = join(dir, 'retention-test-fremd.db')
+    writeFileSync(fremd, 'x'); angelegt.push(fremd)
+    const altMs = NOW - SNAPSHOT_MAX_AGE_MS - 24 * 60 * 60 * 1000
+    utimesSync(fremd, altMs / 1000, altMs / 1000)
+
+    runDataRetention({ now: NOW })
+
+    expect(existsSync(fremd)).toBe(true)
   })
 })

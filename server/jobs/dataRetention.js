@@ -22,7 +22,7 @@
  * eigene Indizes nur dafür lohnen sich nicht.
  */
 
-import { join, dirname } from 'path'
+import { join, dirname, basename } from 'path'
 import { existsSync, readdirSync, statSync, unlinkSync, rmdirSync } from 'fs'
 import db, { DB_PATH } from '../db.js'
 import logger from '../logger.js'
@@ -76,6 +76,38 @@ function pruneLegacyExports(cutoffMs) {
   return removed
 }
 
+// Pre-Deploy-Snapshots (deploy.yml legt `<DB>.pre-deploy-<Zeit>` an und haelt
+// die letzten drei). Ohne Deploy blieben sie beliebig alt liegen – mit
+// geloeschten Konten darin. Deshalb zusaetzlich nach Alter: nicht aelter als die
+// naechtlichen Sicherungen (SQLITE_BACKUP_KEEP Tage, Default 14). Der Rollback
+// braucht nur den Snapshot des laufenden Deploys, und der ist immer frisch.
+const SNAPSHOT_PREFIX = `${basename(DB_PATH)}.pre-deploy-`
+export const SNAPSHOT_MAX_AGE_MS =
+  Math.max(1, parseInt(process.env.SQLITE_BACKUP_KEEP ?? '14', 10) || 14) * 24 * 60 * 60 * 1000
+
+function pruneDeploySnapshots(now, maxAgeMs = SNAPSHOT_MAX_AGE_MS) {
+  const dir = dirname(DB_PATH)
+  let removed = 0
+  try {
+    for (const name of readdirSync(dir)) {
+      if (!name.startsWith(SNAPSHOT_PREFIX)) continue
+      const full = join(dir, name)
+      try {
+        const st = statSync(full)
+        if (st.isFile() && st.mtimeMs < now - maxAgeMs) {
+          unlinkSync(full)
+          removed += 1
+        }
+      } catch (err) {
+        logger.warn({ err, file: name }, 'Snapshot-Prune: Datei konnte nicht geprueft/geloescht werden')
+      }
+    }
+  } catch (err) {
+    logger.warn({ err }, 'Snapshot-Prune fehlgeschlagen')
+  }
+  return removed
+}
+
 export function runDataRetention({ now = Date.now(), retentionMs = DEFAULT_RETENTION_MS } = {}) {
   const cutoffMs = now - retentionMs
   const cutoffIso = new Date(cutoffMs).toISOString()
@@ -95,14 +127,18 @@ export function runDataRetention({ now = Date.now(), retentionMs = DEFAULT_RETEN
   // Legacy-CSV-Exports nach derselben 24-Monats-Frist abraeumen.
   const legacyExportsRemoved = pruneLegacyExports(cutoffMs)
 
+  // Pre-Deploy-Snapshots nach eigener, kuerzerer Frist (siehe oben).
+  const deploySnapshotsRemoved = pruneDeploySnapshots(now)
+
   const result = {
     auditDeleted: audit.changes,
     telemetryDeleted: telemetry.changes,
     customLemmaUsageDeleted: customLemmaUsage.changes,
     statsCompacted,
     legacyExportsRemoved,
+    deploySnapshotsRemoved,
   }
-  if (result.auditDeleted > 0 || result.telemetryDeleted > 0 || result.customLemmaUsageDeleted > 0 || result.statsCompacted > 0 || result.legacyExportsRemoved > 0) {
+  if (result.auditDeleted > 0 || result.telemetryDeleted > 0 || result.customLemmaUsageDeleted > 0 || result.statsCompacted > 0 || result.legacyExportsRemoved > 0 || result.deploySnapshotsRemoved > 0) {
     logger.info(result, 'Retention-Sweep: alte Eintraege geloescht/kompaktiert')
   }
   return result
