@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { join, dirname, basename } from 'path'
 import { mkdirSync, writeFileSync, utimesSync, existsSync, rmSync } from 'fs'
 import db, { DB_PATH } from '../db.js'
-import { runDataRetention, DEFAULT_RETENTION_MS, SNAPSHOT_MAX_AGE_MS } from '../jobs/dataRetention.js'
+import { runDataRetention, DEFAULT_RETENTION_MS, SNAPSHOT_MAX_AGE_MS, AUDIT_IP_RETENTION_MS } from '../jobs/dataRetention.js'
 
 const NOW = Date.parse('2026-06-10T12:00:00.000Z')
 const OLD_MS = NOW - DEFAULT_RETENTION_MS - 24 * 60 * 60 * 1000 // 1 Tag über der Frist
@@ -152,5 +152,27 @@ describe('dataRetention (Pre-Deploy-Snapshots)', () => {
     runDataRetention({ now: NOW })
 
     expect(existsSync(fremd)).toBe(true)
+  })
+})
+
+describe('dataRetention (IP im Audit-Log)', () => {
+  const ipVon = (id) => db.prepare(`SELECT ip FROM audit_log WHERE resource_id = ?`).get(id)?.ip
+  afterEach(() => { db.prepare(`DELETE FROM audit_log WHERE resource = ?`).run(`${MARKER}-ip`) })
+
+  function mitIp(timestampMs, id) {
+    db.prepare(`
+      INSERT INTO audit_log (timestamp, action, resource, resource_id, changes_json, admin_key_last4, ip, status, error, entry_hash)
+      VALUES (?, 'TEST', ?, ?, '{}', 'test', '203.0.113.7', 'SUCCESS', NULL, ?)
+    `).run(new Date(timestampMs).toISOString(), `${MARKER}-ip`, id, `${id}-${timestampMs}`)
+  }
+
+  it('leert die IP nach 30 Tagen, der Eintrag bleibt', () => {
+    mitIp(NOW - AUDIT_IP_RETENTION_MS - 24 * 60 * 60 * 1000, 'ip-alt')
+    mitIp(NOW - 24 * 60 * 60 * 1000, 'ip-frisch')
+
+    runDataRetention({ now: NOW })
+
+    expect(ipVon('ip-alt')).toBe(null)
+    expect(ipVon('ip-frisch')).toBe('203.0.113.7')
   })
 })
