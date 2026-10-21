@@ -1,4 +1,5 @@
 import express from 'express'
+import { ergaenzeLueckenfueller } from '../lueckenfuellerAutoGen.js'
 
 export function createAdminCalendarRouter({
   adminLimiter,
@@ -37,6 +38,7 @@ export function createAdminCalendarRouter({
   fetchWiktionary,
   fetchWortZwilling,
   buildLueckenfueller,
+  toId,
   POS_ROUNDS,
   parseCalendarBulkImport,
   buildModeGroups,
@@ -408,6 +410,39 @@ export function createAdminCalendarRouter({
         }
       }
 
+      // Lückenfüller-Runden fehlen bei neuen Wörtern — gleich mit erzeugen,
+      // sonst bleibt der Modus für den Tag leer (siehe lueckenfuellerAutoGen.js).
+      // Scheitert der Bau, wird der Tag trotzdem gespeichert, wie bei Zwilling
+      // und Zeitenwende; die Antwort meldet es.
+      let lueckenfuellerStatus = null
+      try {
+        const lf = await ergaenzeLueckenfueller({
+          lueckenfuellerId: lueckenfueller_id,
+          lemmaEntries,
+          weitereWoerter: [...(Array.isArray(zwilling_paar) ? zwilling_paar : []), zeitenwende_lemma],
+          getLemmataIndex,
+          buildLueckenfueller,
+          resolveCandidate: resolveLueckenfuellerCandidate,
+          fetchLemma,
+          toId,
+        })
+        lueckenfuellerStatus = lf.status
+        if (lf.lemma) {
+          const index = lemmaEntries.findIndex((entry) => entry.id === lf.lemma.id)
+          if (index >= 0) lemmaEntries[index] = lf.lemma
+          else lemmaEntries.push(lf.lemma)
+          logger.info(`Lückenfüller erzeugt für „${lf.lemma.lemma}“ (${lf.id}): ${lf.runden} Runden`)
+        } else if (lf.status && lf.status !== 'vorhanden') {
+          logger.warn(`Lückenfüller „${lueckenfueller_id}“: ${lf.status}`)
+        }
+      } catch (err) {
+        lueckenfuellerStatus = 'fehler'
+        logger.error({ err }, 'Lückenfüller-Fehler')
+      }
+      const lueckenfuellerOk = lueckenfuellerStatus === null
+        ? null
+        : lueckenfuellerStatus === 'vorhanden' || lueckenfuellerStatus === 'erzeugt'
+
       // ── Phase 2: Alles in einer DB-Transaktion atomar schreiben ────
       saveTagAtomically({
         datum,
@@ -430,7 +465,10 @@ export function createAdminCalendarRouter({
         ip: req.ip,
       })
 
-      res.json({ ok: true, datum, ids, zwillingOk, zeitenwendeOk, lueckenfuellerId: lueckenfueller_id || null })
+      res.json({
+        ok: true, datum, ids, zwillingOk, zeitenwendeOk,
+        lueckenfuellerId: lueckenfueller_id || null, lueckenfuellerOk, lueckenfuellerStatus,
+      })
     } catch (err) {
       serverError(res, err)
     }

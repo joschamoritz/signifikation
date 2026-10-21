@@ -1199,6 +1199,18 @@ function prefillDate(isoDate, options = {}) {
   }
 }
 
+// Statuswerte aus server/lueckenfuellerAutoGen.js (plus 'fehler' aus admin-calendar.js)
+function lueckenfuellerMeldung(status) {
+  switch (status) {
+    case 'erzeugt':           return 'Runden erzeugt'
+    case 'vorhanden':         return 'OK'
+    case 'zu-wenig-material': return 'zu wenig Material im Korpus, Wort tauschen'
+    case 'unbekannt':         return 'ID passt zu keinem Wort dieses Tages'
+    case 'fehler':            return 'Fehler beim Erzeugen, Server-Log prüfen'
+    default:                  return 'unbekannter Status'
+  }
+}
+
 async function saveTag() {
   const datum = document.getElementById('datum').value
   const w1    = document.getElementById('w1').value.trim()
@@ -1236,6 +1248,7 @@ async function saveTag() {
   const statusParts = [`DWDS für „${w1}”, „${w2}”, „${w3}”`]
   if (wza && wzb) statusParts.push(`Wort-Zwilling „${wza}” / „${wzb}”`)
   if (zwLemma) statusParts.push(`Zeitenwende für „${zwLemma}”`)
+  if (lfId) statusParts.push(`Lückenfüller „${lfId}”`)
   setStatus(`Rufe ab: ${statusParts.join(' · ')} …`, 'loading')
 
   try {
@@ -1273,7 +1286,8 @@ async function saveTag() {
            : data.zeitenwendeOk === false ? ' · Zeitenwende: nicht genug distinkte Kollokatoren'
            : ''
     }
-    const hasError = data.zwillingOk === false || data.zeitenwendeOk === false
+    if (lfId) msg += ` · Lückenfüller: ${lueckenfuellerMeldung(data.lueckenfuellerStatus)}`
+    const hasError = data.zwillingOk === false || data.zeitenwendeOk === false || data.lueckenfuellerOk === false
     setStatus(msg, hasError ? 'error' : 'ok')
     selectedCalendarDate = datum
     await loadKalender()
@@ -3438,6 +3452,7 @@ async function runBulkJsonImport() {
 
   const okDates = []
   const failed  = []
+  const lfProbleme = []
 
   for (let i = 0; i < entries.length; i++) {
     const data = entries[i]
@@ -3471,6 +3486,9 @@ async function runBulkJsonImport() {
       const resData = await res.json()
       if (!res.ok) throw new Error(resData.error || `HTTP ${res.status}`)
       okDates.push(data.datum)
+      if (resData.lueckenfuellerOk === false) {
+        lfProbleme.push(`${data.datum}: ${lueckenfuellerMeldung(resData.lueckenfuellerStatus)}`)
+      }
     } catch (err) {
       failed.push(`${data.datum}: ${err.message}`)
     }
@@ -3482,9 +3500,14 @@ async function runBulkJsonImport() {
 
   await loadKalender()
 
-  if (failed.length === 0) {
+  if (failed.length === 0 && lfProbleme.length === 0) {
     document.getElementById('json-import-dialog').close()
     setStatus(`${okDates.length} Tage importiert: ${okDates.join(', ')}`, 'ok')
+  } else if (failed.length === 0) {
+    // Tage sind gespeichert, aber an einzelnen fehlt der Lückenfüller —
+    // Dialog offen lassen, damit die Details lesbar bleiben.
+    errEl.textContent = `Alle ${okDates.length} Tage gespeichert. Lückenfüller fehlt: ${lfProbleme.join(' · ')}`
+    setStatus(`Sammel-Import: ${okDates.length} Tage gespeichert, ${lfProbleme.length}× ohne Lückenfüller – Details im Dialog.`, 'error')
   } else {
     errEl.textContent = `${okDates.length} von ${entries.length} gespeichert. Fehlgeschlagen: ${failed.join(' · ')}`
     setStatus(`Sammel-Import: ${okDates.length} OK, ${failed.length} fehlgeschlagen – Details im Dialog.`, 'error')

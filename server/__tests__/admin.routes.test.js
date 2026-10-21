@@ -395,6 +395,49 @@ describe('admin routes integration', () => {
     expect(zeitenwende[datum]).toBeUndefined()
   })
 
+  it('POST /admin/tag meldet den Lückenfüller-Status und speichert den Tag trotzdem', async () => {
+    // Die ID passt zu keinem Wort des Tages — das prüft die Verdrahtung, ohne
+    // die Belege-Datenbank zu brauchen (der Bau selbst ist in
+    // server/lueckenfuellerAutoGen.test.js abgedeckt).
+    const datum = `2026-12-${String((Math.floor(Math.random() * 20) + 10)).padStart(2, '0')}`
+    const response = await fetch(`${baseUrl}/admin/tag`, {
+      method: 'POST',
+      headers: adminHeaders(token),
+      body: JSON.stringify({
+        datum,
+        woerter: ['Haus', 'Baum', 'Wort'],
+        positionen: ['Substantiv', 'Verb', 'Adjektiv'],
+        zwilling_pos: 'Substantiv',
+        lueckenfueller_id: 'gibt-es-heute-nicht',
+      }),
+    })
+    const payload = await response.json()
+
+    expect(response.status).toBe(200)
+    expect(payload.lueckenfuellerOk).toBe(false)
+    expect(payload.lueckenfuellerStatus).toBe('unbekannt')
+    expect(loadReadOnly('kalender.json')[datum]).toBeDefined()
+  })
+
+  it('POST /admin/tag ohne Lückenfüller meldet null statt eines Fehlers', async () => {
+    const datum = `2027-01-${String((Math.floor(Math.random() * 20) + 10)).padStart(2, '0')}`
+    const response = await fetch(`${baseUrl}/admin/tag`, {
+      method: 'POST',
+      headers: adminHeaders(token),
+      body: JSON.stringify({
+        datum,
+        woerter: ['Haus', 'Baum', 'Wort'],
+        positionen: ['Substantiv', 'Verb', 'Adjektiv'],
+        zwilling_pos: 'Substantiv',
+      }),
+    })
+    const payload = await response.json()
+
+    expect(response.status).toBe(200)
+    expect(payload.lueckenfuellerOk).toBeNull()
+    expect(payload.lueckenfuellerStatus).toBeNull()
+  })
+
   it('POST /admin/backup/restore bleibt bei Fehlern atomisch', async () => {
     const originalKalender = loadReadOnly('kalender.json')
     const originalLemmata = loadReadOnly('lemmata.json')

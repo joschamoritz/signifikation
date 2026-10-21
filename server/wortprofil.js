@@ -683,7 +683,7 @@ function buildMixedRound(allItems) {
 
 // ── Öffentliche API (identisch mit dwds.js) ──────────────────────────────────
 
-function toId(word) {
+export function toId(word) {
   return word.toLowerCase()
     .replace(/ä/g, 'ae').replace(/ö/g, 'oe').replace(/ü/g, 'ue')
     .replace(/ß/g, 'ss').replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')
