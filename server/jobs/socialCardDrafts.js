@@ -54,9 +54,9 @@ function exklusiv(fn) {
   return lauf
 }
 
-/** Zeichnet alle Entwürfe ab `abDatum`, denen das Bild fehlt. */
+/** Zeichnet alle Bild-Entwürfe ab `abDatum`, denen das Bild fehlt (Textposts haben keins). */
 async function zeichneFehlende(abDatum, { createRenderer, bildDir }) {
-  const offen = entwuerfeOhneBild(abDatum)
+  const offen = entwuerfeOhneBild(abDatum).filter((e) => e.spec.format !== 'text')
   if (!offen.length) return 0
   mkdirSync(bildDir, { recursive: true })
   const renderer = await createRenderer()

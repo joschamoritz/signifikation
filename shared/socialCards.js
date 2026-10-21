@@ -532,6 +532,19 @@ export function drawCard(ctx, spec) {
   drawFooter(ctx, t, W, y + 40)
 }
 
+// ── Textposts (Bluesky) ───────────────────────────────────────────────────────
+export const BLUESKY_MAX_ZEICHEN = 300
+
+/** Zeichen, wie Bluesky sie zählt (Grapheme: „ä“ oder ein Emoji = 1). */
+export function zeichenZahl(text) {
+  if (typeof Intl !== 'undefined' && Intl.Segmenter) {
+    let n = 0
+    for (const _ of new Intl.Segmenter('de', { granularity: 'grapheme' }).segment(text || '')) n++
+    return n
+  }
+  return [...(text || '')].length
+}
+
 // ── Belegtexte (Tokens aus fetchBelege: { w, ws, hl }) ────────────────────────
 export function belegText(tokens) {
   let text = ''
@@ -540,6 +553,15 @@ export function belegText(tokens) {
     text += t.w
   }
   return text
+}
+
+// Token in Satzzeichen davor, Wort, Satzzeichen danach zerlegen
+const zerlege = (w) => w.match(/^([^\p{L}\p{N}]*)(.*?)([^\p{L}\p{N}]*)$/u)
+
+// Die Hervorhebung kommt aus der Lemma-Suche: „Weißen“ passt zum Kollokator „weiß“.
+function istLuecke(t, colLow) {
+  const wordLow = zerlege(t.w)[2].toLowerCase()
+  return t.hl && (wordLow === colLow || wordLow.startsWith(colLow))
 }
 
 /**
@@ -551,12 +573,18 @@ export function belegLueckentext(tokens, collocate) {
   let text = ''
   for (const t of tokens) {
     if (t.ws && text) text += ' '
-    const [, vor, wort, nach] = t.w.match(/^([^\p{L}\p{N}]*)(.*?)([^\p{L}\p{N}]*)$/u)
-    const wordLow = wort.toLowerCase()
-    if (t.hl && (wordLow === colLow || wordLow.startsWith(colLow))) text += `${vor}______${nach}`
-    else text += t.w
+    if (istLuecke(t, colLow)) {
+      const [, vor, , nach] = zerlege(t.w)
+      text += `${vor}______${nach}`
+    } else text += t.w
   }
   return text
+}
+
+/** Die Wortform, die in der Lücke steht („Weißen“ statt der Grundform „weiß“). */
+export function belegLueckenwort(tokens, collocate) {
+  const t = tokens.find((tok) => istLuecke(tok, collocate.toLowerCase()))
+  return t ? zerlege(t.w)[2] : collocate
 }
 
 // ── Captions & Hashtags ───────────────────────────────────────────────────────

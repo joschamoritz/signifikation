@@ -112,6 +112,9 @@ header h1{font-family:'Gentium Plus',serif;font-size:1.25rem;font-weight:400}
 .pf-caption{width:100%;min-height:110px;resize:vertical;background:var(--input-bg);border:1px solid var(--border);border-radius:6px;color:var(--text);font:inherit;font-size:.82rem;line-height:1.5;padding:8px 10px}
 .pf-caption:focus{outline:none;border-color:var(--gold)}
 .pf-tags{font-size:.74rem;color:var(--muted);line-height:1.6;word-break:break-word}
+.pf-zaehler{font-size:.74rem;color:var(--muted);text-align:right;margin-top:-6px}
+.pf-zaehler.zu-lang{color:#e55;font-weight:600}
+.pf-art{font-size:.72rem;color:var(--muted)}
 .pf-aktionen{display:flex;flex-wrap:wrap;gap:6px}
 .pf-aktionen .btn{width:auto;padding:7px 12px;font-size:.8rem}
 .pf-leer{color:var(--muted);font-size:.9rem;margin-top:24px}
@@ -144,7 +147,7 @@ header h1{font-family:'Gentium Plus',serif;font-size:1.25rem;font-weight:400}
       <button class="btn" id="pf-erzeugen" onclick="erzeugeEntwuerfeJetzt()">Entwürfe für die nächsten 7 Tage erzeugen</button>
       <span class="pf-status" id="pf-status"></span>
     </div>
-    <p class="pf-hint">Der Server legt die Entwürfe jeden Morgen um 04:20 selbst an. Freigeben ist derzeit nur eine Markierung – veröffentlicht wird noch nichts.</p>
+    <p class="pf-hint">Der Server legt die Entwürfe jeden Morgen um 04:20 selbst an – Bildkarten und Textbeiträge im Wechsel. Freigeben ist derzeit nur eine Markierung – veröffentlicht wird noch nichts. Bluesky erlaubt 300 Zeichen je Post.</p>
     <div id="pf-liste"></div>
   </section>
 
@@ -840,6 +843,12 @@ const JSON_POST = { 'Content-Type': 'application/json', 'X-Requested-With': 'sig
 const SLOT_LABEL = {
   T: 'Teaser', A: 'Rätsel', 'A-aufloesung': 'Rätsel – Auflösung',
   X: 'Zitat', B: 'Beleg', 'B-aufloesung': 'Beleg – Auflösung',
+  TB: 'Textbeleg', 'TB-aufloesung': 'Textbeleg – Auflösung',
+}
+
+/** Posttext wie er auf Bluesky landen würde: Caption, darunter die Hashtags. */
+function posttext(caption, hashtags) {
+  return hashtags ? `${caption}\n\n${hashtags}` : caption
 }
 const STATUS_LABEL = { offen: 'offen', freigegeben: 'freigegeben', verworfen: 'verworfen' }
 
@@ -905,12 +914,26 @@ function postfachKarte(e) {
   const pill = document.createElement('span'); pill.className = 'pf-pill ' + e.status; pill.textContent = STATUS_LABEL[e.status] || e.status
   kopf.append(slot, pill)
 
-  const img = document.createElement('img'); img.className = 'pf-bild'; img.loading = 'lazy'
-  img.alt = `${SLOT_LABEL[e.slot] || e.slot} – ${e.datum}`
-  img.src = e.bildUrl
+  let bild
+  if (e.bildUrl) {
+    bild = document.createElement('img'); bild.className = 'pf-bild'; bild.loading = 'lazy'
+    bild.alt = `${SLOT_LABEL[e.slot] || e.slot} – ${e.datum}`
+    bild.src = e.bildUrl
+  } else {
+    bild = document.createElement('span'); bild.className = 'pf-art'; bild.textContent = 'Textbeitrag ohne Bild'
+  }
 
   const caption = document.createElement('textarea'); caption.className = 'pf-caption'
   caption.value = e.caption; caption.spellcheck = false; caption.disabled = e.status !== 'offen'
+
+  const zaehler = document.createElement('div'); zaehler.className = 'pf-zaehler'
+  const zaehle = () => {
+    const n = K.zeichenZahl(posttext(caption.value, e.hashtags))
+    zaehler.textContent = `${n} / ${K.BLUESKY_MAX_ZEICHEN} Zeichen` + (e.hashtags ? ' (mit Hashtags)' : '')
+    zaehler.classList.toggle('zu-lang', n > K.BLUESKY_MAX_ZEICHEN)
+  }
+  caption.addEventListener('input', zaehle)
+  zaehle()
 
   const tags = document.createElement('div'); tags.className = 'pf-tags'; tags.textContent = e.hashtags
 
@@ -925,19 +948,24 @@ function postfachKarte(e) {
   } else {
     aktionen.append(knopf('Zurück auf offen', () => postfachAktion(e.id, { status: 'offen' })))
   }
-  const download = document.createElement('a')
-  download.className = 'btn secondary'; download.textContent = 'PNG laden'
-  download.href = `/admin/social-cards/entwuerfe/${e.id}/bild?download`
+  if (e.bildUrl) {
+    const download = document.createElement('a')
+    download.className = 'btn secondary'; download.textContent = 'PNG laden'
+    download.href = `/admin/social-cards/entwuerfe/${e.id}/bild?download`
+    aktionen.append(download)
+  }
   const kopieren = knopf('Text kopieren', async (ev) => {
     const btn = ev.currentTarget
     try {
-      await navigator.clipboard.writeText(`${caption.value}\n\n${e.hashtags}`)
+      await navigator.clipboard.writeText(posttext(caption.value, e.hashtags))
       btn.textContent = '✓ Kopiert'; setTimeout(() => { btn.textContent = 'Text kopieren' }, 1800)
     } catch {}
   })
-  aktionen.append(download, kopieren)
+  aktionen.append(kopieren)
 
-  karte.append(kopf, img, caption, tags, aktionen)
+  karte.append(kopf, bild, caption, zaehler)
+  if (e.hashtags) karte.append(tags)
+  karte.append(aktionen)
   return karte
 }
 

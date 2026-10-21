@@ -9,8 +9,8 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterAll, afterEach, describe, expect, it, vi } from 'vitest'
 import db from '../db.js'
-import { baueEntwuerfe, verschiebeDatum } from '../socialCards/entwuerfe.js'
-import { belegLueckentext } from '../../shared/socialCards.js'
+import { baueEntwuerfe, kurzQuelle, verschiebeDatum } from '../socialCards/entwuerfe.js'
+import { belegLueckentext, belegLueckenwort, zeichenZahl, BLUESKY_MAX_ZEICHEN } from '../../shared/socialCards.js'
 import { ladeEntwuerfe, setzeStatus } from '../socialCards/store.js'
 import { erzeugeEntwuerfe, erneuereEntwurf } from '../jobs/socialCardDrafts.js'
 
@@ -75,8 +75,43 @@ describe('baueEntwuerfe – Wochenplan', () => {
   })
 
   it('Tag ohne Plan-Slot: nur Teaser; Tag ohne Kalender: nichts', async () => {
-    expect((await baueEntwuerfe(DI, deps())).map((e) => e.slot)).toEqual(['T'])
+    expect((await baueEntwuerfe(SO, deps())).map((e) => e.slot)).toEqual(['T'])
     expect(await baueEntwuerfe('2099-03-20', deps())).toEqual([])
+  })
+
+  it('Dienstag: Textbeleg ohne Bild mit Kurzquelle, Auflösung am Mittwoch mit Satz und Dokumentquelle', async () => {
+    const d = deps()
+    const liste = await baueEntwuerfe(DI, d)
+    expect(liste.map((e) => `${e.datum}|${e.slot}`)).toEqual([`${DI}|T`, `${DI}|TB`, `${MI}|TB-aufloesung`])
+    expect(d.analyzeKollokationBest).toHaveBeenCalledWith('Tisch') // Vortags-Lemma (Montag)
+
+    const [, post, antwort] = liste
+    expect(post.spec.format).toBe('text')
+    expect(post.hashtags).toBe('')
+    expect(post.caption).toBe('„Das ______ Gedächtnis einer Zeit.“\n\nWelches Wort fehlt? (Deutsches Textarchiv · CC BY-SA 4.0)')
+    expect(antwort.spec.reveal).toBe(true)
+    expect(antwort.caption).toBe('Gesucht war „kolloK1“:\n„Das kolloK1 Gedächtnis einer Zeit.“\n\nQuelle: Roman (1890) · CC BY-SA 4.0')
+  })
+
+  it('Textbeleg: Sätze, die den Post über 300 Zeichen bringen, werden übersprungen', async () => {
+    const lang = 'wort '.repeat(40).trim()
+    const d = deps({
+      fetchBelege: (_lemma, koll) => [
+        { quelle: DTA, tokens: tok(`${lang} ${koll} ${lang}.`, koll) },
+        { quelle: DTA, tokens: tok(`Kurz mit ${koll}.`, koll) },
+      ],
+    })
+    const post = (await baueEntwuerfe(DO, d)).find((e) => e.slot === 'TB')
+    expect(post.caption).toContain('„Kurz mit ______.“')
+    expect(zeichenZahl(post.caption)).toBeLessThanOrEqual(BLUESKY_MAX_ZEICHEN)
+  })
+
+  it('kurzQuelle kürzt die Quellenangaben der Korpora', () => {
+    expect(kurzQuelle('Hohmanns Hof. Wikipedia. https://de.wikipedia.org/wiki/Hohmanns_Hof · Wikimedia Foundation. Wikipedia – Die freie Enzyklopädie (de.wikipedia.org) · CC BY-SA 4.0'))
+      .toBe('Wikipedia · CC BY-SA 4.0')
+    expect(kurzQuelle('Plenarprotokoll 19/123 (2019) · Deutscher Bundestag – Dokumentations- und Informationssystem (DIP), dip.bundestag.de · Datenlizenz Deutschland BY 2.0'))
+      .toBe('Deutscher Bundestag · Datenlizenz Deutschland BY 2.0')
+    expect(kurzQuelle('Text (1900) · Neuer Pitaval. Sammlung · CC BY-SA 4.0')).toBe('Neuer Pitaval · CC BY-SA 4.0')
   })
 
   it('überspringt vorhandene Slots ohne Korpusabfrage', async () => {
@@ -110,6 +145,20 @@ describe('baueEntwuerfe – Wochenplan', () => {
     expect(belegLueckentext(tokens, 'hoch')).toBe('drei Stockwerke „______.“')
   })
 
+  it('Auflösungen nennen die Wortform im Satz, nicht die Grundform', async () => {
+    const tokens = [{ w: 'das', ws: false }, { w: 'Weißen', ws: true, hl: true }, { w: 'Haus.', ws: true, hl: true }]
+    expect(belegLueckenwort(tokens, 'weiß')).toBe('Weißen')
+
+    const d = deps({
+      analyzeKollokationBest: async () => ({ kollokatoren: [{ wort: 'weiß', logDice: 10 }] }),
+      fetchBelege: () => [{ quelle: DTA, tokens }],
+    })
+    const liste = await baueEntwuerfe(DO, d)
+    expect(liste.find((e) => e.slot === 'TB-aufloesung').caption).toMatch(/^Gesucht war „Weißen“/)
+    const bildBeleg = (await baueEntwuerfe(FR, d)).find((e) => e.slot === 'B-aufloesung')
+    expect(bildBeleg.spec.data.collocate).toBe('Weißen')
+  })
+
   it('verschiebeDatum rechnet über Monatsgrenzen', () => {
     expect(verschiebeDatum('2099-02-28', 1)).toBe('2099-03-01')
     expect(verschiebeDatum('2099-03-01', -1)).toBe('2099-02-28')
@@ -131,11 +180,15 @@ describe('erzeugeEntwuerfe / erneuereEntwurf', () => {
   it('legt die Woche an, zeichnet jede Karte und ist beim zweiten Lauf ohne Wirkung', async () => {
     const opts = { heute: SO, tage: 7, deps: deps(), createRenderer: fakeRenderer, bildDir }
     const erster = await erzeugeEntwuerfe(opts)
-    // Mo–Fr belegt: 5 Teaser + A + A-Auflösung + X + B + B-Auflösung
-    expect(erster).toMatchObject({ neu: 10, gezeichnet: 10, fehler: [] })
+    // Mo–Fr belegt: 5 Teaser + A + A-Auflösung + X + B + B-Auflösung (Bilder)
+    // plus Di/Do je Textbeleg + Auflösung (ohne Bild)
+    expect(erster).toMatchObject({ neu: 14, gezeichnet: 10, fehler: [] })
     const liste = ladeEntwuerfe(MO, SA)
-    expect(liste).toHaveLength(10)
-    expect(liste.every((e) => e.bild && existsSync(join(bildDir, e.bild)))).toBe(true)
+    expect(liste).toHaveLength(14)
+    const [text, bilder] = [liste.filter((e) => e.spec.format === 'text'), liste.filter((e) => e.spec.format !== 'text')]
+    expect(text.map((e) => e.slot).sort()).toEqual(['TB', 'TB', 'TB-aufloesung', 'TB-aufloesung'])
+    expect(text.every((e) => e.bild === null)).toBe(true)
+    expect(bilder.every((e) => e.bild && existsSync(join(bildDir, e.bild)))).toBe(true)
 
     const zweiter = await erzeugeEntwuerfe({ ...opts, deps: deps() })
     expect(zweiter).toMatchObject({ neu: 0, gezeichnet: 0 })

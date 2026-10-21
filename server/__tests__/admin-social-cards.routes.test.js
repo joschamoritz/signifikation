@@ -93,6 +93,15 @@ describe('admin social-cards Postfach', () => {
     expect((await post('/admin/social-cards/entwuerfe/999999', { status: 'verworfen' })).status).toBe(404)
   })
 
+  it('Textbeiträge haben keine Bild-URL, die Bild-Route antwortet 404', async () => {
+    speichereEntwuerfe([{ datum: DATUM, slot: 'TB', spec: { format: 'text', data: {} }, caption: '„Satz mit ______.“', hashtags: '' }])
+    const res = await fetch(`${baseUrl}/admin/social-cards/entwuerfe?von=${DATUM}&bis=${DATUM}`, { headers: adminHeaders(token) })
+    const text = (await res.json()).entwuerfe.find((e) => e.slot === 'TB')
+    expect(text.bildUrl).toBeNull()
+    const bild = await fetch(`${baseUrl}/admin/social-cards/entwuerfe/${text.id}/bild`, { headers: adminHeaders(token) })
+    expect(bild.status).toBe(404)
+  })
+
   it('liefert das Zeichenmodul für den Editor', async () => {
     const res = await fetch(`${baseUrl}/admin/social-cards/karten.js`, { headers: adminHeaders(token) })
     expect(res.status).toBe(200)

@@ -90,7 +90,11 @@ export function createAdminSocialCardsRouter({
 
   // ── Postfach: automatisch erzeugte Entwürfe (Stufe 1, ohne Veröffentlichen) ──
 
-  const ohneBildpfad = ({ bild: _bild, ...e }) => ({ ...e, bildUrl: `/admin/social-cards/entwuerfe/${e.id}/bild?v=${encodeURIComponent(e.aktualisiertAm)}` })
+  const istText = (e) => e.spec?.format === 'text'
+  const ohneBildpfad = ({ bild: _bild, ...e }) => ({
+    ...e,
+    bildUrl: istText(e) ? null : `/admin/social-cards/entwuerfe/${e.id}/bild?v=${encodeURIComponent(e.aktualisiertAm)}`,
+  })
 
   router.get('/admin/social-cards/entwuerfe', adminLimiter, requireAuth, validate(adminSocialCardsEntwuerfeQuerySchema, 'query'), (req, res) => {
     try {
@@ -115,6 +119,7 @@ export function createAdminSocialCardsRouter({
     try {
       const entwurf = ladeEntwurf(req.params.id)
       if (!entwurf) return res.status(404).json({ error: 'Entwurf nicht gefunden' })
+      if (istText(entwurf)) return res.status(404).json({ error: 'Textbeitrag ohne Bild' })
       const pfad = await bildPfad(entwurf)
       res.setHeader('Cache-Control', 'private, max-age=3600')
       if (req.query.download !== undefined) {
