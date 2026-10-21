@@ -372,6 +372,23 @@ export const adminSocialCardsBelegeSchema = z.object({
   collocate: z.string().min(1).max(100),
 })
 
+/** GET /admin/social-cards/entwuerfe (query) – Fenster, Standard: heute bis +14 Tage */
+export const adminSocialCardsEntwuerfeQuerySchema = z.object({
+  von: DATUM_ISO.optional(),
+  bis: DATUM_ISO.optional(),
+})
+
+/** /admin/social-cards/entwuerfe/:id (params) */
+export const adminSocialCardsEntwurfParamsSchema = z.object({
+  id: z.coerce.number().int().positive(),
+})
+
+/** POST /admin/social-cards/entwuerfe/:id – Caption und/oder Status */
+export const adminSocialCardsEntwurfPatchSchema = z.object({
+  caption: z.string().trim().min(1).max(2200).optional(),
+  status: z.enum(['offen', 'freigegeben', 'verworfen']).optional(),
+}).refine((b) => b.caption !== undefined || b.status !== undefined, { message: 'caption oder status erforderlich' })
+
 // ── IAP Schemas ────────────────────────────────────────────────
 
 const VALID_IAP_PRODUCT_IDS = [

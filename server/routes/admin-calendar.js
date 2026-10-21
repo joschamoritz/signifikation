@@ -1,5 +1,6 @@
 import express from 'express'
 import { ergaenzeLueckenfueller } from '../lueckenfuellerAutoGen.js'
+import { createKollokationAnalyse } from '../kollokationAnalyse.js'
 
 export function createAdminCalendarRouter({
   adminLimiter,
@@ -54,43 +55,7 @@ export function createAdminCalendarRouter({
 }) {
   const router = express.Router()
 
-  async function analyzeKollokationForPos(lemma, pos) {
-    const rounds = POS_ROUNDS[pos] ?? POS_ROUNDS.Substantiv
-    const [roundResults, bonusQ] = await Promise.all([
-      Promise.allSettled(rounds.map((r) => fetchRelation(lemma, pos, r.relCode))),
-      fetchBonusQuestion(lemma, pos).catch(() => null),
-    ])
-
-    // Alle Relationen zusammenführen, deduplizieren, nach logDice sortieren
-    const allRawItems = roundResults.flatMap((r) =>
-      r.status === 'fulfilled'
-        ? r.value.filter((it) => !it.lemma.includes(' ') && it.lemma.length > 1)
-        : []
-    )
-    const seen = new Map()
-    for (const it of allRawItems) {
-      const key = it.lemma.toLowerCase()
-      if (!seen.has(key) || parseFloat(it.logDice) > parseFloat(seen.get(key).logDice)) {
-        seen.set(key, it)
-      }
-    }
-    const kollokatoren = [...seen.values()]
-      .sort((a, b) => parseFloat(b.logDice) - parseFloat(a.logDice))
-      .slice(0, 20)
-      .map((it) => ({ wort: it.lemma, logDice: parseFloat(parseFloat(it.logDice).toFixed(2)) }))
-
-    const usable = kollokatoren.length >= 5
-
-    return {
-      lemma,
-      pos,
-      kollokatoren,
-      bonus: bonusQ,
-      usable,
-      score: kollokatoren.slice(0, 3).reduce((sum, it) => sum + it.logDice, 0),
-      kollCount: kollokatoren.length,
-    }
-  }
+  const { analyzeKollokationForPos, analyzeKollokationBest } = createKollokationAnalyse({ fetchRelation, fetchBonusQuestion, POS_ROUNDS })
 
   router.post('/admin/kalender/bulk-delete', adminLimiter, requireAuth, validate(adminBulkDeleteCalendarSchema), async (req, res) => {
     const { dates } = req.body
@@ -296,14 +261,7 @@ export function createAdminCalendarRouter({
         return res.json({ lemma: result.lemma, pos: result.pos, kollokatoren: result.kollokatoren, bonus: result.bonus, usable: result.usable })
       }
 
-      const posCandidates = ['Substantiv', 'Verb', 'Adjektiv']
-      const analyses = await Promise.all(posCandidates.map((candidate) => analyzeKollokationForPos(lemma, candidate)))
-      analyses.sort((a, b) => {
-        if (b.kollCount !== a.kollCount) return b.kollCount - a.kollCount
-        return b.score - a.score
-      })
-
-      const best = analyses[0]
+      const best = await analyzeKollokationBest(lemma)
       res.json({ lemma: best.lemma, pos: best.pos, kollokatoren: best.kollokatoren, bonus: best.bonus, usable: best.usable })
     } catch (err) {
       adminError(res, err)

@@ -10,9 +10,12 @@ import { load, loadKalender, loadDailyContentMaps, loadMutableDailyContentMaps, 
 import { getCacheMetrics as getQueryCacheMetrics, clearCache as clearQueryCache } from '../query-cache.js'
 import { adminLimiter, loginLimiter, uploadLimiter } from '../middleware/rateLimiter.js'
 import { requireAuth, adminAuth, adminLogout, adminError, serverError } from '../middleware/auth.js'
-import { validate, qQuerySchema, adminTagSchema, analyzeKollQuerySchema, analyzeWZQuerySchema, analyzeZWendeQuerySchema, analyzeLueckenfuellerQuerySchema, lueckenfuellerGenerateSchema, adminUsersQuerySchema, adminSetUserRoleSchema, adminUserIdParamsSchema, adminUsersBulkUpdateSchema, adminBulkDeleteCalendarSchema, adminBulkImportCalendarSchema, adminPreviewLemmaSchema, adminPreviewDayParamsSchema, adminLemmaIdParamsSchema, adminEntwurfIdParamsSchema, adminAuditLogDetailParamsSchema, adminBackupRestoreSchema, adminStatsQuerySchema, adminStatsSummaryQuerySchema, adminStatsExportQuerySchema, adminAuditLogQuerySchema, adminSocialCardsTagesdataSchema, adminSocialCardsBelegeSchema, adminSpezialwocheSchema, adminSpezialwocheParamsSchema, adminClassroomStatsQuerySchema, adminClassroomTeachersQuerySchema, adminPaymentsSummaryQuerySchema, adminCustomLemmaSummaryQuerySchema, adminRetentionQuerySchema } from '../middleware/validate.js'
+import { validate, qQuerySchema, adminTagSchema, analyzeKollQuerySchema, analyzeWZQuerySchema, analyzeZWendeQuerySchema, analyzeLueckenfuellerQuerySchema, lueckenfuellerGenerateSchema, adminUsersQuerySchema, adminSetUserRoleSchema, adminUserIdParamsSchema, adminUsersBulkUpdateSchema, adminBulkDeleteCalendarSchema, adminBulkImportCalendarSchema, adminPreviewLemmaSchema, adminPreviewDayParamsSchema, adminLemmaIdParamsSchema, adminEntwurfIdParamsSchema, adminAuditLogDetailParamsSchema, adminBackupRestoreSchema, adminStatsQuerySchema, adminStatsSummaryQuerySchema, adminStatsExportQuerySchema, adminAuditLogQuerySchema, adminSocialCardsTagesdataSchema, adminSocialCardsBelegeSchema, adminSocialCardsEntwuerfeQuerySchema, adminSocialCardsEntwurfParamsSchema, adminSocialCardsEntwurfPatchSchema, adminSpezialwocheSchema, adminSpezialwocheParamsSchema, adminClassroomStatsQuerySchema, adminClassroomTeachersQuerySchema, adminPaymentsSummaryQuerySchema, adminCustomLemmaSummaryQuerySchema, adminRetentionQuerySchema } from '../middleware/validate.js'
 import { auditCreate, auditUpdate, auditDelete, getAuditLog } from '../audit.js'
 import { ladeOffeneEntwuerfe, ladeEntwurf, entscheideEntwurf } from '../store-entwuerfe.js'
+import { ladeEntwuerfe as ladeSocialEntwuerfe, ladeEntwurf as ladeSocialEntwurf, setzeCaption as setzeSocialCaption, setzeStatus as setzeSocialStatus } from '../socialCards/store.js'
+import { erzeugeEntwuerfe as erzeugeSocialEntwuerfe, erneuereEntwurf as erneuereSocialEntwurf, bildPfad as socialBildPfad, berlinHeute } from '../jobs/socialCardDrafts.js'
+import { verschiebeDatum } from '../socialCards/entwuerfe.js'
 import logger from '../logger.js'
 import { createAdminAuditRouter } from './admin-audit.js'
 import { createAdminUsersRouter } from './admin-users.js'
@@ -232,12 +235,26 @@ router.use(createAdminSocialCardsRouter({
   validate,
   adminSocialCardsTagesdataSchema,
   adminSocialCardsBelegeSchema,
+  adminSocialCardsEntwuerfeQuerySchema,
+  adminSocialCardsEntwurfParamsSchema,
+  adminSocialCardsEntwurfPatchSchema,
   loadKalender,
   loadWortZwilling,
   getLemmataIndex,
   fetchBelege,
+  ladeEntwuerfe: ladeSocialEntwuerfe,
+  ladeEntwurf: ladeSocialEntwurf,
+  setzeCaption: setzeSocialCaption,
+  setzeStatus: setzeSocialStatus,
+  erzeugeEntwuerfe: () => erzeugeSocialEntwuerfe(),
+  erneuereEntwurf: (entwurf) => erneuereSocialEntwurf(entwurf),
+  bildPfad: (entwurf) => socialBildPfad(entwurf),
+  berlinHeute,
+  verschiebeDatum,
+  auditUpdate,
   adminError,
   socialCardsPath: join(__dirname, '../social-cards.html'),
+  kartenModulPath: join(__dirname, '../../shared/socialCards.js'),
 }))
 
 router.use(freeDaysRouter)
