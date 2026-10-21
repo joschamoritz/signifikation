@@ -86,10 +86,10 @@
       <nav class="adm-tabs is-hidden" id="page-tabs" aria-label="Ansicht"></nav>
 
       <section class="admin-page is-active" id="page-dashboard" data-title="Woche" data-subtitle="Diese Woche, Tagesplanung und Systemstand auf einen Blick.">
-        <button type="button" class="vorschlaege-hinweis is-hidden" id="dashboard-vorschlaege-hinweis" data-action="switch-page" data-page="vorschlaege">
+        <a class="vorschlaege-hinweis is-hidden" id="dashboard-vorschlaege-hinweis" href="#vorschlaege">
           <strong id="dashboard-vorschlaege-text">Vorschläge warten</strong>
-          <span>Ansehen und übernehmen →</span>
-        </button>
+          <span class="vorschlaege-hinweis-cta">Ansehen und übernehmen <span aria-hidden="true">→</span></span>
+        </a>
         <div class="dashboard-grid">
           <article class="metric-card metric-card--today" id="metric-today-card">
             <span class="metric-label">Heute geplant</span>
@@ -481,18 +481,14 @@
       </section>
 
       <section class="admin-page" id="page-vorschlaege" data-title="Vorschläge" data-subtitle="Von Claude eingereichte Tage. Im Kalender stehen sie erst, wenn du sie übernimmst.">
-        <div class="vorschlaege-toolbar">
-          <p class="vorschlaege-info">Beim Übernehmen lädt der Server die Korpusdaten und erzeugt den Lückenfüller. Das dauert pro Tag einige Sekunden.</p>
-          <div class="vorschlaege-aktionen">
-            <button type="button" class="ghost-btn" data-action="vorschlaege-laden">Aktualisieren</button>
-            <button type="button" class="primary-btn" data-action="vorschlaege-alle" id="vorschlaege-alle-btn" disabled>Alle übernehmen</button>
-          </div>
-        </div>
+        <p class="vorschlaege-info" id="vorschlaege-info">Beim Übernehmen lädt der Server die Korpusdaten und erzeugt den Lückenfüller. Das dauert pro Tag einige Sekunden.</p>
         <p class="vorschlaege-status" id="vorschlaege-status" role="status" aria-live="polite"></p>
         <div id="vorschlaege-liste"></div>
         <div class="vorschlaege-leer is-hidden" id="vorschlaege-leer">
-          <strong>Keine offenen Vorschläge</strong>
-          <span>Sobald Claude eine Woche einreicht, erscheint sie hier. Unter „Planen“ und an der Navigation zeigt ein Hinweis an, wenn etwas wartet.</span>
+          <p class="adm-overline">Postfach</p>
+          <p class="vorschlaege-leer-titel" id="vorschlaege-leer-titel" tabindex="-1">Keine offenen Vorschläge</p>
+          <p class="vorschlaege-leer-text">Sobald Claude eine Woche einreicht, erscheint sie hier. Unter „Planen“ und an der Navigation zeigt ein Hinweis an, wenn etwas wartet.</p>
+          <p class="vorschlaege-leer-ornament" aria-hidden="true">· · ·</p>
         </div>
       </section>
 

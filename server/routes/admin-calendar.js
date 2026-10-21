@@ -1,6 +1,11 @@
 import express from 'express'
 import { ergaenzeLueckenfueller } from '../lueckenfuellerAutoGen.js'
 
+// Entwürfe, die gerade übernommen werden. Zwischen Statusprüfung und
+// entscheideEntwurf liegt ein await (speichereTag); ein zweiter POST in diesem
+// Fenster würde den Tag doppelt speichern. Ein Node-Prozess → ein Set genügt.
+const laufendeUebernahmen = new Set()
+
 export function createAdminCalendarRouter({
   adminLimiter,
   requireAuth,
@@ -508,10 +513,13 @@ export function createAdminCalendarRouter({
 
   router.post('/admin/entwuerfe/:id/uebernehmen', adminLimiter, requireAuth, validate(adminEntwurfIdParamsSchema, 'params'), async (req, res) => {
     const { id } = req.params
+    const schluessel = String(id)
+    let reserviert = false
     try {
       const entwurf = ladeEntwurf(id)
       if (!entwurf) return res.status(404).json({ error: 'Entwurf nicht gefunden' })
       if (entwurf.status !== 'offen') return res.status(409).json({ error: 'Entwurf ist bereits abgeschlossen' })
+      if (laufendeUebernahmen.has(schluessel)) return res.status(409).json({ error: 'Entwurf wird gerade übernommen' })
 
       // Erneut prüfen: Das Speicherformat kann sich seit dem Push geändert haben.
       const parsed = adminTagSchema.safeParse(entwurf.tag)
@@ -519,11 +527,20 @@ export function createAdminCalendarRouter({
 
       // Erst speichern, dann abschließen: Scheitert das Speichern, bleibt der
       // Entwurf offen und kann erneut übernommen werden.
+      // Reservieren und speichereTag() starten ohne await dazwischen.
+      laufendeUebernahmen.add(schluessel)
+      reserviert = true
       const ergebnis = await speichereTag(parsed.data, { adminSessionId: req.adminSessionId, ip: req.ip })
-      entscheideEntwurf(id, 'uebernommen')
+      // false heißt: Der Entwurf wurde während des Speicherns ersetzt (neuer Push
+      // für dasselbe Datum). Der Tag ist trotzdem gespeichert.
+      if (!entscheideEntwurf(id, 'uebernommen')) {
+        logger.warn({ entwurfId: id, datum: entwurf.datum }, 'Entwurf beim Abschließen nicht mehr offen')
+      }
       res.json({ ...ergebnis, entwurfId: id })
     } catch (err) {
       serverError(res, err)
+    } finally {
+      if (reserviert) laufendeUebernahmen.delete(schluessel)
     }
   })
 
@@ -532,6 +549,8 @@ export function createAdminCalendarRouter({
     try {
       const entwurf = ladeEntwurf(id)
       if (!entwurf) return res.status(404).json({ error: 'Entwurf nicht gefunden' })
+      // Sonst stünde der Tag nach dem laufenden Speichern im Kalender, der Entwurf aber als verworfen.
+      if (laufendeUebernahmen.has(String(id))) return res.status(409).json({ error: 'Entwurf wird gerade übernommen' })
       if (!entscheideEntwurf(id, 'verworfen')) return res.status(409).json({ error: 'Entwurf ist bereits abgeschlossen' })
 
       auditDelete('lemma_entwurf', String(id), { datum: entwurf.datum, woerter: entwurf.tag.woerter }, {

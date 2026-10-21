@@ -506,6 +506,22 @@ describe('admin routes integration', () => {
       expect(nochmal.status).toBe(409)
     })
 
+    it('Paralleles Doppel-Übernehmen speichert den Tag nur einmal', async () => {
+      speichereEntwuerfe([entwurfsTag('2027-02-17')])
+      const id = idFuer('2027-02-17')
+      const anfrage = () => fetch(`${baseUrl}/admin/entwuerfe/${id}/uebernehmen`, {
+        method: 'POST', headers: adminHeaders(token),
+      })
+
+      const antworten = await Promise.all([anfrage(), anfrage()])
+      const status = antworten.map((r) => r.status).sort()
+      expect(status).toEqual([200, 409])
+
+      const abgelehnt = await antworten.find((r) => r.status === 409).json()
+      expect(['Entwurf wird gerade übernommen', 'Entwurf ist bereits abgeschlossen']).toContain(abgelehnt.error)
+      expect(ladeEntwurf(id).status).toBe('uebernommen')
+    })
+
     it('Verwerfen schließt den Entwurf ab, ohne den Kalender anzufassen', async () => {
       speichereEntwuerfe([entwurfsTag('2027-02-13')])
       const id = idFuer('2027-02-13')

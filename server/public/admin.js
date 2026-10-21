@@ -293,6 +293,12 @@ function headActionsHtml(route) {
     return '<a class="adm-cta" href="#planen/tag/neu">Tag anlegen <span aria-hidden="true">→</span></a>'
       + '<button type="button" class="adm-link" data-action="refresh-dashboard">neu laden</button>'
   }
+  if (route.page === 'vorschlaege') {
+    // Zähler und Sperre setzt aktualisiereVorschlagHinweise() (nach jedem Kopf-Neuaufbau).
+    return '<button type="button" class="adm-cta is-hidden" data-action="vorschlaege-alle" id="vorschlaege-alle-btn">'
+      + '<span id="vorschlaege-alle-text">Alle übernehmen</span> <span aria-hidden="true">→</span></button>'
+      + '<button type="button" class="adm-link" data-action="vorschlaege-laden">neu laden</button>'
+  }
   return ''
 }
 
@@ -332,6 +338,8 @@ function applyRouteChrome(route) {
 
   const actionsEl = document.getElementById('page-actions')
   if (actionsEl) actionsEl.innerHTML = headActionsHtml(route)
+  // Der Kopf wurde neu gezeichnet: Zähler und Sperre von „Alle übernehmen“ nachziehen.
+  if (route.page === 'vorschlaege') aktualisiereVorschlagHinweise()
 
   const tabsEl = document.getElementById('page-tabs')
   if (tabsEl) {
@@ -3808,7 +3816,7 @@ function vorschlagLink(url) {
   if (!/^https:\/\//.test(url || '')) return ''
   let host
   try { host = new URL(url).hostname.replace(/^www\./, '') } catch { return '' }
-  return ` <a href="${esc(url)}" target="_blank" rel="noopener noreferrer">${esc(host)}</a>`
+  return ` <a class="vorschlag-quelle" href="${esc(url)}" target="_blank" rel="noopener noreferrer">${esc(host)}<span class="adm-visually-hidden"> (öffnet neues Fenster)</span></a>`
 }
 
 function vorschlagNotizen(tag) {
@@ -3820,26 +3828,51 @@ function vorschlagNotizen(tag) {
   if (tag.zeitenwende_notiz) zeilen.push(`<p><b>${esc(tag.zeitenwende_lemma)}:</b> ${esc(tag.zeitenwende_notiz)}${vorschlagLink(tag.zeitenwende_link)}</p>`)
   if (tag.thema_kurz) zeilen.unshift(`<p class="vorschlag-themakurz">${esc(tag.thema_kurz)}${vorschlagLink(tag.thema_quelle)}</p>`)
   return zeilen.length
-    ? `<details class="vorschlag-details"><summary>Notizen und Links anzeigen</summary>${zeilen.join('')}</details>`
+    ? `<details class="vorschlag-details"><summary>Notizen und Links</summary><div class="vorschlag-notizen">${zeilen.join('')}</div></details>`
     : ''
+}
+
+function vorschlagKopf(entwurf, heute) {
+  const id = esc(entwurf.id)
+  // Echtes Leerzeichen vor „heute“, sonst liest der Screenreader „Mi 21.10.heute“
+  const heuteHtml = entwurf.datum === heute ? ' <span class="vorschlag-heute">heute</span>' : ''
+  return `<div class="vorschlag-kopf">
+    <h3 class="vorschlag-titel" id="vorschlag-${id}-titel" tabindex="-1">
+      <span class="vorschlag-datum">${esc(vorschlagDatumKurz(entwurf.datum))}${heuteHtml}</span>
+      <span class="vorschlag-thema">${esc(entwurf.tag.thema || 'ohne Thema')}</span>
+    </h3>
+  </div>`
 }
 
 function vorschlagKarte(entwurf) {
   const { tag } = entwurf
   const heute = getTodayIso()
-  const datumHtml = `<span class="vorschlag-datum">${esc(vorschlagDatumKurz(entwurf.datum))}${entwurf.datum === heute ? ' <small>heute</small>' : ''}</span>`
-  const themaHtml = `<span class="vorschlag-thema">${esc(tag.thema || 'ohne Thema')}</span>`
+  const id = esc(entwurf.id)
+  // Unsichtbarer Zusatz, damit die vielen gleichnamigen Knöpfe unterscheidbar sind
+  const fuerTag = `<span class="adm-visually-hidden">: ${esc(vorschlagDatumKurz(entwurf.datum))}</span>`
+  const kopf = vorschlagKopf(entwurf, heute)
 
   if (entwurf.erledigt) {
-    return `<article class="vorschlag-karte is-erledigt">
-      <div class="vorschlag-kopf">${datumHtml}${themaHtml}<span class="vorschlag-erledigt-marke">✓ Übernommen</span></div>
-      <p class="vorschlag-meldung ${entwurf.erledigt.ok ? 'is-ok' : 'is-warnung'}">${esc(entwurf.erledigt.text)}</p>
+    return `<article class="vorschlag is-erledigt" data-id="${id}" aria-labelledby="vorschlag-${id}-titel">
+      ${kopf}
+      <div class="vorschlag-meldungen">
+        <p class="vorschlag-meldung ${entwurf.erledigt.ok ? 'is-ok' : 'is-warnung'}">${esc(entwurf.erledigt.text)}</p>
+      </div>
+      <div class="vorschlag-aktionen">
+        <span class="vorschlag-erledigt-marke">Übernommen</span>
+        <a class="adm-link" href="#planen/tag/${esc(entwurf.datum)}">Tag bearbeiten${fuerTag}</a>
+      </div>
     </article>`
   }
 
   const pos = { Substantiv: 'N', Verb: 'V', Adjektiv: 'A' }
   const kollokationen = (tag.woerter || [])
-    .map((wort, i) => `${esc(wort)} <span class="vorschlag-pos">${esc(pos[tag.positionen?.[i]] || '')}</span>`)
+    .map((wort, i) => {
+      const wortart = tag.positionen?.[i]
+      return Object.hasOwn(pos, wortart)
+        ? `${esc(wort)} <span class="vorschlag-pos" aria-hidden="true">${pos[wortart]}</span><span class="adm-visually-hidden">${esc(wortart)}</span>`
+        : esc(wort)
+    })
     .join(' · ')
   const zwilling = tag.zwilling_paar?.length === 2 ? `${esc(tag.zwilling_paar[0])} / ${esc(tag.zwilling_paar[1])}` : '—'
   const lf = lueckenfuellerHerkunft(tag)
@@ -3851,23 +3884,38 @@ function vorschlagKarte(entwurf) {
   if (entwurf.datum < heute) warnungen.push('Das Datum liegt in der Vergangenheit.')
   if (lf.warnung) warnungen.push(`Lückenfüller-ID „${esc(lf.wort)}“ passt zu keinem Wort dieses Tages.`)
 
+  const meldungen = []
+  if (warnungen.length) {
+    meldungen.push(`<div class="vorschlag-meldung is-warnung">
+      <p class="vorschlag-meldung-marke">Vor dem Übernehmen prüfen</p>
+      <ul class="vorschlag-meldung-liste">${warnungen.map((w) => `<li>${w}</li>`).join('')}</ul>
+    </div>`)
+  }
+  if (entwurf.fehler) meldungen.push(`<p class="vorschlag-meldung is-fehler">Übernehmen fehlgeschlagen: ${esc(entwurf.fehler)}</p>`)
+
   const beschaeftigt = entwurf.laeuft
-  return `<article class="vorschlag-karte${warnungen.length ? ' is-warnung' : ''}${beschaeftigt ? ' is-busy' : ''}" data-id="${esc(entwurf.id)}">
-    <div class="vorschlag-kopf">
-      ${datumHtml}${themaHtml}
-      <span class="vorschlag-knoepfe">
-        <button type="button" class="text-btn" data-action="vorschlag-verwerfen" data-id="${esc(entwurf.id)}"${beschaeftigt || vorschlaegeLaufen ? ' disabled' : ''}>Verwerfen</button>
-        <button type="button" class="ghost-btn" data-action="vorschlag-uebernehmen" data-id="${esc(entwurf.id)}"${beschaeftigt || vorschlaegeLaufen ? ' disabled' : ''}>${beschaeftigt ? 'Wird übernommen …' : 'Übernehmen'}</button>
-      </span>
+  // aria-disabled statt disabled: Der Fokus bleibt auf dem Knopf, der Klick-Handler
+  // fängt gesperrte Knöpfe ab (handleDocumentClick).
+  const gesperrt = beschaeftigt || vorschlaegeLaufen ? ' aria-disabled="true"' : ''
+  const ctaInhalt = beschaeftigt
+    ? 'Wird übernommen …'
+    // Der unsichtbare Zusatz steht INNERHALB des Text-Spans: als eigenes Flex-Kind
+    // würde er in Chrome eine zweite Lücke (gap) vor dem Pfeil erzeugen.
+    : `<span>Übernehmen${fuerTag}</span> <span aria-hidden="true">→</span>`
+
+  return `<article class="vorschlag${beschaeftigt ? ' is-busy' : ''}" data-id="${id}" aria-labelledby="vorschlag-${id}-titel">
+    ${kopf}
+    <dl class="vorschlag-modi">
+      <div class="vorschlag-modus"><dt class="vorschlag-label">Kollokationen</dt><dd class="vorschlag-wert">${kollokationen || '—'}</dd></div>
+      <div class="vorschlag-modus"><dt class="vorschlag-label">Wort-Zwilling</dt><dd class="vorschlag-wert">${zwilling}</dd></div>
+      <div class="vorschlag-modus"><dt class="vorschlag-label">Zeitenwende</dt><dd class="vorschlag-wert">${esc(tag.zeitenwende_lemma || '—')}</dd></div>
+      <div class="vorschlag-modus${lf.warnung ? ' is-warnung' : ''}"><dt class="vorschlag-label">Lückenfüller</dt><dd class="vorschlag-wert">${esc(lf.wort)}${lf.herkunft && !lf.warnung ? `<span class="vorschlag-herkunft">${esc(lf.herkunft)}</span>` : ''}</dd></div>
+    </dl>
+    ${meldungen.length ? `<div class="vorschlag-meldungen">${meldungen.join('')}</div>` : ''}
+    <div class="vorschlag-aktionen">
+      <button type="button" class="adm-link" data-action="vorschlag-verwerfen" data-id="${id}"${gesperrt}>Verwerfen${fuerTag}</button>
+      <button type="button" class="adm-cta" data-action="vorschlag-uebernehmen" data-id="${id}"${gesperrt}>${ctaInhalt}</button>
     </div>
-    <div class="vorschlag-modi">
-      <div><span class="vorschlag-label">Kollokationen</span><span class="vorschlag-wert">${kollokationen}</span></div>
-      <div><span class="vorschlag-label">Wort-Zwilling</span><span class="vorschlag-wert">${zwilling}</span></div>
-      <div><span class="vorschlag-label">Zeitenwende</span><span class="vorschlag-wert">${esc(tag.zeitenwende_lemma || '—')}</span></div>
-      <div><span class="vorschlag-label">Lückenfüller</span><span class="vorschlag-wert">${esc(lf.wort)}</span>${lf.herkunft && !lf.warnung ? `<span class="vorschlag-herkunft">${esc(lf.herkunft)}</span>` : ''}</div>
-    </div>
-    ${warnungen.map((w) => `<p class="vorschlag-meldung is-warnung">⚠ ${w}</p>`).join('')}
-    ${entwurf.fehler ? `<p class="vorschlag-meldung is-fehler">Fehler: ${esc(entwurf.fehler)}</p>` : ''}
     ${vorschlagNotizen(tag)}
   </article>`
 }
@@ -3876,6 +3924,11 @@ function renderVorschlaege() {
   const liste = document.getElementById('vorschlaege-liste')
   const leer = document.getElementById('vorschlaege-leer')
   if (!liste || !leer) return
+
+  // Fokus über das Neuzeichnen retten (sonst springt er nach <body>).
+  const aktiv = liste.contains(document.activeElement) ? document.activeElement : null
+  const fokusId = aktiv?.closest('[data-id]')?.dataset.id
+  const fokusAktion = aktiv?.dataset.action
 
   const wochen = new Map()
   for (const entwurf of vorschlaege) {
@@ -3887,11 +3940,25 @@ function renderVorschlaege() {
   liste.innerHTML = Array.from(wochen.values()).map((tage) => {
     const von = tage[0].datum
     const bis = tage[tage.length - 1].datum
-    const kopf = `KW ${isoKalenderwoche(von).woche} · ${von.slice(8, 10)}.${von.slice(5, 7)}.${von === bis ? '' : ` – ${bis.slice(8, 10)}.${bis.slice(5, 7)}.`}`
-    return `<section class="vorschlag-woche"><h3>${esc(kopf)}</h3>${tage.map(vorschlagKarte).join('')}</section>`
+    const spanne = `${von.slice(8, 10)}.${von.slice(5, 7)}.${von === bis ? '' : ` – ${bis.slice(8, 10)}.${bis.slice(5, 7)}.`}`
+    // Bewusst ohne aria-labelledby: Eine benannte <section> wäre ein eigener Landmark (Region).
+    // Das Leerzeichen zwischen den Spans ist nötig, sonst liest der Screenreader „KW 4215.10.“.
+    return `<section class="vorschlag-woche">
+      <h2 class="vorschlag-woche-kopf"><span class="vorschlag-woche-kw">KW ${isoKalenderwoche(von).woche}</span> <span class="vorschlag-woche-spanne">${esc(spanne)}</span></h2>
+      ${tage.map(vorschlagKarte).join('')}
+    </section>`
   }).join('')
 
+  if (fokusId) {
+    // Gesperrte Knöpfe sind aria-disabled (nicht disabled) und bleiben fokussierbar.
+    const ziel = (fokusAktion && liste.querySelector(`[data-id="${CSS.escape(fokusId)}"][data-action="${CSS.escape(fokusAktion)}"]`))
+      || document.getElementById(`vorschlag-${fokusId}-titel`)
+    ziel?.focus({ preventScroll: true })
+  }
+
   leer.classList.toggle('is-hidden', vorschlaege.length > 0)
+  // Erläuterung zum Übernehmen nur, wenn es etwas zu übernehmen gibt
+  document.getElementById('vorschlaege-info')?.classList.toggle('is-hidden', vorschlaege.length === 0)
   aktualisiereVorschlagHinweise()
 }
 
@@ -3913,8 +3980,15 @@ function aktualisiereVorschlagHinweise() {
   }
   const alleBtn = document.getElementById('vorschlaege-alle-btn')
   if (alleBtn) {
-    alleBtn.textContent = offen ? `Alle ${offen} übernehmen` : 'Alle übernehmen'
-    alleBtn.disabled = offen === 0 || vorschlaegeLaufen
+    // Nur den Text-Span ändern; der Pfeil-Span im Knopf bleibt erhalten.
+    const alleText = document.getElementById('vorschlaege-alle-text')
+    if (alleText) alleText.textContent = offen ? `Alle ${offen} übernehmen` : 'Alle übernehmen'
+    // Ohne offene Vorschläge ausblenden statt gesperrt zeigen; während des Laufs
+    // aria-disabled (Fokus bleibt auf dem Knopf, Klick fängt handleDocumentClick ab).
+    alleBtn.classList.toggle('is-hidden', offen === 0)
+    // Auch während einer Einzelübernahme sperren, sonst zählte „Alle“ den laufenden Tag als fehlgeschlagen.
+    if (vorschlaegeLaufen || vorschlaege.some((v) => v.laeuft)) alleBtn.setAttribute('aria-disabled', 'true')
+    else alleBtn.removeAttribute('aria-disabled')
   }
 }
 
@@ -3930,8 +4004,16 @@ async function loadVorschlaege({ silent = false } = {}) {
     const res = await fetch('/admin/entwuerfe')
     const data = await res.json()
     if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`)
-    vorschlaege = data.entwuerfe || []
-    if (!silent) setVorschlaegeStatus('')
+    // Laufzeit-Flags (laeuft/erledigt/fehler) bestehender Einträge behalten: Das Objekt
+    // bleibt dasselbe, damit eine laufende Übernahme es weiter erreicht. Erledigte
+    // Einträge, die der Server nicht mehr liefert, werden nicht wieder eingefügt.
+    const bisher = new Map(vorschlaege.map((v) => [v.id, v]))
+    vorschlaege = (data.entwuerfe || []).map((neu) => {
+      const alt = bisher.get(neu.id)
+      return alt ? Object.assign(alt, neu) : neu
+    })
+    // Die Fortschrittszeile eines laufenden Sammel- oder Einzellaufs nicht löschen
+    if (!silent && !vorschlaegeLaufen && !vorschlaege.some((v) => v.laeuft)) setVorschlaegeStatus('')
     renderVorschlaege()
   } catch (err) {
     if (!silent) setVorschlaegeStatus(`Laden fehlgeschlagen: ${err.message}`, 'error')
@@ -3979,34 +4061,37 @@ async function uebernehmeVorschlag(id) {
 async function uebernehmeEinzelnenVorschlag(id) {
   const entwurf = vorschlaege.find((v) => v.id === id)
   if (!entwurf) return
-  if (entwurf.belegt && !confirmAction(`Eintrag am ${entwurf.datum} ersetzen?`, [
+  if (entwurf.belegt && !confirmAction(`Eintrag am ${vorschlagDatumKurz(entwurf.datum)} ersetzen?`, [
     `Bisher: ${entwurf.belegt.woerter.join(' · ')}`,
     `Neu: ${entwurf.tag.woerter.join(' · ')}`,
   ])) return
+  const datumKurz = vorschlagDatumKurz(entwurf.datum)
+  setVorschlaegeStatus(`Übernehme ${datumKurz} …`, 'loading')
   const ok = await uebernehmeVorschlag(id)
-  setVorschlaegeStatus(ok ? `${entwurf.datum} übernommen.` : `${entwurf.datum} konnte nicht übernommen werden.`, ok ? 'ok' : 'error')
+  setVorschlaegeStatus(ok ? `${datumKurz} übernommen.` : `${datumKurz} konnte nicht übernommen werden.`, ok ? 'ok' : 'error')
   if (ok) loadKalender()
+  else document.querySelector(`[data-action="vorschlag-uebernehmen"][data-id="${CSS.escape(String(id))}"]`)?.focus({ preventScroll: true })
 }
 
 async function uebernehmeAlleVorschlaege() {
   const offen = vorschlaege.filter((v) => !v.erledigt)
   if (!offen.length) return
   const belegt = offen.filter((v) => v.belegt)
-  const details = [`${offen[0].datum} bis ${offen[offen.length - 1].datum}`]
-  if (belegt.length) details.push(`Ersetzt bestehende Einträge an: ${belegt.map((v) => v.datum).join(', ')}`)
+  const details = [`${vorschlagDatumKurz(offen[0].datum)} bis ${vorschlagDatumKurz(offen[offen.length - 1].datum)}`]
+  if (belegt.length) details.push(`Ersetzt bestehende Einträge an: ${belegt.map((v) => vorschlagDatumKurz(v.datum)).join(', ')}`)
   if (!confirmAction(`${offen.length} Vorschläge übernehmen?`, details)) return
 
   vorschlaegeLaufen = true
   let erfolgreich = 0
   for (let i = 0; i < offen.length; i++) {
-    setVorschlaegeStatus(`Übernehme ${i + 1}/${offen.length}: ${offen[i].datum} …`, 'loading')
+    setVorschlaegeStatus(`Übernehme ${i + 1} von ${offen.length}: ${vorschlagDatumKurz(offen[i].datum)} …`, 'loading')
     if (await uebernehmeVorschlag(offen[i].id)) erfolgreich++
   }
   vorschlaegeLaufen = false
   renderVorschlaege()
   const fehlgeschlagen = offen.length - erfolgreich
   setVorschlaegeStatus(
-    fehlgeschlagen ? `${erfolgreich} übernommen, ${fehlgeschlagen} fehlgeschlagen – Details an den Karten.` : `Alle ${erfolgreich} Vorschläge übernommen.`,
+    fehlgeschlagen ? `${erfolgreich} übernommen, ${fehlgeschlagen} fehlgeschlagen – Details stehen am jeweiligen Tag.` : `Alle ${erfolgreich} Vorschläge übernommen.`,
     fehlgeschlagen ? 'error' : 'ok',
   )
   loadKalender()
@@ -4014,7 +4099,9 @@ async function uebernehmeAlleVorschlaege() {
 
 async function verwerfeVorschlag(id) {
   const entwurf = vorschlaege.find((v) => v.id === id)
-  if (!entwurf || !confirmAction(`Vorschlag für ${entwurf.datum} verwerfen?`, [entwurf.tag.thema || entwurf.tag.woerter.join(' · ')])) return
+  if (!entwurf || !confirmAction(`Vorschlag für ${vorschlagDatumKurz(entwurf.datum)} verwerfen?`, [entwurf.tag.thema || entwurf.tag.woerter.join(' · ')])) return
+  const index = vorschlaege.findIndex((v) => v.id === id)
+  let verworfen = false
   try {
     const res = await fetch(`/admin/entwuerfe/${id}/verwerfen`, {
       method: 'POST',
@@ -4024,11 +4111,21 @@ async function verwerfeVorschlag(id) {
     const data = await res.json()
     if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`)
     vorschlaege = vorschlaege.filter((v) => v.id !== id)
-    setVorschlaegeStatus(`Vorschlag für ${entwurf.datum} verworfen.`, 'ok')
+    verworfen = true
+    setVorschlaegeStatus(`Vorschlag für ${vorschlagDatumKurz(entwurf.datum)} verworfen.`, 'ok')
   } catch (err) {
     setVorschlaegeStatus(`Verwerfen fehlgeschlagen: ${err.message}`, 'error')
   }
   renderVorschlaege()
+  if (!verworfen) return
+
+  // Der Eintrag ist weg: Fokus auf die Überschrift des nächsten, sonst des vorigen
+  // Eintrags, sonst auf den Titel des Leerzustands.
+  const nachbar = vorschlaege[index] || vorschlaege[index - 1]
+  const ziel = nachbar
+    ? document.getElementById(`vorschlag-${nachbar.id}-titel`)
+    : document.getElementById('vorschlaege-leer-titel')
+  ziel?.focus({ preventScroll: true })
 }
 
 // ── Push-Benachrichtigungen ──────────────────────────────
@@ -4221,6 +4318,9 @@ function handleDocumentClick(event) {
 
   const target = event.target.closest('[data-action]')
   if (!target) return
+  // Gesperrte Knöpfe (z. B. Vorschläge während einer Übernahme) behalten den Fokus
+  // und lösen keine Aktion aus.
+  if (target.getAttribute('aria-disabled') === 'true') return
 
   const { action } = target.dataset
   if (action === 'login') return void doLogin()

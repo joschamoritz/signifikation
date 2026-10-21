@@ -444,6 +444,12 @@ html:has(.adm-root.has-takeover) {
   .adm-tab[aria-current="page"] {
     border-bottom-color: Highlight;
   }
+
+  /* Ohne Farbunterschied sind Aktionen sonst nicht als Links erkennbar */
+  .adm-cta,
+  .adm-link {
+    text-decoration: underline;
+  }
 }
 
 /* ── Desktop: Abmelden steht schon unten in der Navigationsspalte ── */
