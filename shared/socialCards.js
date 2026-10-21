@@ -147,8 +147,16 @@ function drawFooter(ctx, t, W, y) {
 }
 
 // ── Format A – Rätsel ─────────────────────────────────────────────────────────
-function contentHeightA() {
-  return 180+48 + 28+32 + 3*(72+12)
+// Frage wie im Spiel: Alle drei Antworten sind Kollokatoren, gesucht ist der stärkste.
+const raetselFrage = (lemma) => `Welches Wort ist am stärksten mit „${lemma || 'LEMMA'}“ verbunden?`
+
+function frageZeilen(ctx, W, lemma) {
+  ctx.font = `400 28px ${SANS}`
+  return wrapLines(ctx, raetselFrage(lemma), W - PAD*2)
+}
+
+function contentHeightA(ctx, W, data) {
+  return 180+48 + frageZeilen(ctx, W, data.lemma).length*38 + 22 + 3*(72+12)
 }
 
 function drawFormatA(ctx, t, W, y, data, reveal) {
@@ -169,8 +177,10 @@ function drawFormatA(ctx, t, W, y, data, reveal) {
   }
   y += boxH + 48
 
-  ctx.textAlign = 'center'; ctx.fillStyle = t.MUTED_COL; ctx.font = `400 28px ${SANS}`
-  ctx.fillText('Typische Kollokation im Deutschen', W/2, y+28); y += 28+32
+  const zeilen = frageZeilen(ctx, W, lemma)
+  ctx.textAlign = 'center'; ctx.fillStyle = t.MUTED_COL
+  zeilen.forEach((z, i) => ctx.fillText(z, W/2, y + 28 + i*38))
+  y += zeilen.length*38 + 22
 
   if (!reveal) return drawOptions(ctx, t, W, y, options)
 
@@ -361,7 +371,7 @@ function drawFormatC(ctx, t, W, y, data, reveal) {
 function contentHeightX(headline, body, subtype) {
   if (subtype === 'Zitat') {
     const estLines = Math.ceil((body||'').length / 38) + 1
-    return 40+40 + 130 + estLines*58 + 40 + 60 + 40
+    return 40+40 + estLines*58 + 40 + 60 + 40
   }
   const estH = Math.ceil((headline||'').length / 25) + 1
   const estB = Math.ceil((body||'').length / 45) + 1
@@ -380,10 +390,8 @@ function drawFormatX(ctx, t, W, y, data) {
   const { subtype, xLemma, headline, body } = data
 
   if (subtype === 'Zitat') {
+    // Rote Linie statt großem Anführungszeichen – wie auf der Belegkarte
     drawPill(ctx, t, W, y, 'ZITAT'); y += 40+40
-
-    ctx.fillStyle = t.ACCENT; ctx.font = `bold 130px ${SERIF}`; ctx.textAlign = 'left'
-    ctx.fillText('„', PAD, y+90); y += 40
 
     const lineX = PAD + 14
     const textX = lineX + 26
@@ -513,7 +521,7 @@ export function drawCard(ctx, spec) {
   ctx.fillStyle = t.BORDER_STRIPE; ctx.fillRect(0, 0, W, BORDER); ctx.fillRect(0, H-BORDER, W, BORDER)
 
   let contentH = 400
-  if (fmt === 'A') contentH = contentHeightA()
+  if (fmt === 'A') contentH = contentHeightA(ctx, W, data)
   else if (fmt === 'B') contentH = contentHeightB(data.quoteText, W, data.showOptions)
   else if (fmt === 'C') contentH = contentHeightC()
   else if (fmt === 'X') contentH = contentHeightX(data.headline, data.body, data.subtype)
@@ -588,12 +596,15 @@ export function belegLueckenwort(tokens, collocate) {
 }
 
 // ── Captions & Hashtags ───────────────────────────────────────────────────────
+// Bluesky: höchstens 2–3 Tags pro Post (lange Tag-Blöcke wirken wie Spam und
+// kosten Zeichen) – zwei feste plus einer je Format. Keine Tags, die eine
+// fremde Datenquelle suggerieren (#dwds, #duden): die Daten sind eigene.
 export const HASHTAGS = {
-  primary:    '#signifikation #deutschesprache #linguistik #wortgeschichte #sprachliebe',
-  bildung:    '#deutschunterricht #daf #germanistik #sprachdidaktik #lehrkraefte',
-  wortkultur: '#etymologie #sprachgeschichte #wortschatz #duden #korpuslinguistik',
-  quiz:       '#sprachraetsel #quiz #kollokation #wortwissen #sprachtest',
-  akademisch: '#dwds #sprachwissenschaft #semantik #pragmatik #textlinguistik',
+  primary:    '#Linguistik #DeutscheSprache',
+  quiz:       '#Sprachrätsel',
+  korpus:     '#Korpuslinguistik',
+  bildung:    '#Deutschunterricht',
+  wortschatz: '#Wortschatz',
 }
 
 export const POSTING_HINTS = {
@@ -604,33 +615,34 @@ export const POSTING_HINTS = {
   T: '<strong>Täglich</strong> · 06:45 Uhr · Format T – Teaser (vor dem Quiz)',
 }
 
-export const SUGGESTED_HASHTAG_SET = { A: 'quiz', B: 'bildung', C: 'quiz', X: 'wortkultur', T: 'primary' }
+export const SUGGESTED_HASHTAG_SET = { A: 'quiz', B: 'korpus', C: 'quiz', X: 'korpus', T: 'primary', text: 'korpus' }
 
-/** Hashtag-Zeilen eines Sets (immer mit den primären vorneweg). */
+/** Tag-Zeile eines Sets: die zwei festen Tags plus der des Sets. */
 export function hashtagsFor(set) {
-  return HASHTAGS.primary + '\n' + (set === 'primary' ? '' : (HASHTAGS[set] || ''))
+  return set === 'primary' || !HASHTAGS[set] ? HASHTAGS.primary : `${HASHTAGS.primary} ${HASHTAGS[set]}`
 }
 
+// Lemmata stehen in „…“ wie in der App – Bluesky rendert kein Markdown.
 const CAPTION_TEMPLATES = {
   A: [
-    s => `*${s.lemma}* – und was kommt danach?\n\nDrei Möglichkeiten, eine passt. Welche?\n\nAuflösung morgen früh in der Story.`,
-    s => `Manche Verbindungen klingen selbstverständlich – bis man sie hinterfragt.\n\n*${s.lemma}* + ?\n\nKommentiere deine Antwort, bevor du weiterscrollst.`,
-    s => `Im heutigen Rätsel geht es um *${s.lemma}*.\n\nKannst du den häufigsten Kollokator nennen?\n\n${HASHTAGS.primary}\n${HASHTAGS.quiz}`,
+    s => `„${s.lemma}“ – und was kommt danach?\n\nDrei Kandidaten, aber nur einer ist am stärksten verbunden. Welcher?\n\nAuflösung morgen.`,
+    s => `Manche Verbindungen klingen selbstverständlich – bis man sie hinterfragt.\n\n„${s.lemma}“ + ?\n\nKommentiere deine Antwort, bevor du weiterscrollst.`,
+    s => `Im heutigen Rätsel geht es um „${s.lemma}“.\n\nKannst du den stärksten Kollokator nennen?\n\n${hashtagsFor('quiz')}`,
   ],
   B: [
-    s => `Aus einem echten Text – welches Wort fehlt?\n\n„${s.quote}“\n\nAuflösung morgen früh in der Story.`,
+    s => `Aus einem echten Text – welches Wort fehlt?\n\n„${s.quote}“\n\nAuflösung morgen.`,
     s => `Echte Sprache ist oft präziser als Lehrbuchsprache.\n\n„${s.quote}“\n\nWelches Wort hat der Autor gewählt?`,
-    s => `*${s.lemma}* in der Praxis – ein Beleg aus unserem Korpus.\n\n„${s.quote}“\n\nQuelle: ${s.source}\n\n${HASHTAGS.primary}\n${HASHTAGS.bildung}`,
+    s => `„${s.lemma}“ in der Praxis – ein Beleg aus unserem Korpus.\n\n„${s.quote}“\n\nQuelle: ${s.source}\n\n${hashtagsFor('korpus')}`,
   ],
   C: [
-    s => `Zwei Wörter. Scheinbar ähnlich, tatsächlich verschieden.\n\n*${s.wortA}* und *${s.wortB}* – welche Kollokatoren gehören zu welchem?\n\nAuflösung: morgen.`,
-    s => `Der Unterschied zwischen *${s.wortA}* und *${s.wortB}* ist subtil – aber er ist da.\n\nDie Kollokatoren verraten ihn. Kannst du sie zuordnen?`,
-    s => `Ein klassischer Verwechslungsfall.\n\n*${s.wortA}* vs. *${s.wortB}* – für den Unterricht: Welche Beispiele würdest du wählen?\n\n${HASHTAGS.primary}\n${HASHTAGS.quiz}`,
+    s => `Zwei Wörter. Scheinbar ähnlich, tatsächlich verschieden.\n\n„${s.wortA}“ und „${s.wortB}“ – welche Kollokatoren gehören zu welchem?\n\nAuflösung: morgen.`,
+    s => `Der Unterschied zwischen „${s.wortA}“ und „${s.wortB}“ ist subtil – aber er ist da.\n\nDie Kollokatoren verraten ihn. Kannst du sie zuordnen?`,
+    s => `Ein klassischer Verwechslungsfall.\n\n„${s.wortA}“ vs. „${s.wortB}“ – für den Unterricht: Welche Beispiele würdest du wählen?\n\n${hashtagsFor('quiz')}`,
   ],
   X: [
     s => `${s.headline}\n\n${s.body}`,
-    s => `*${s.xLemma || 'Wort'}* – ${s.headline}\n\n${s.body}\n\nWas von der alten Bedeutung ist noch spürbar?`,
-    s => `Aus der Sprachgeschichte:\n\n${s.body}\n\n${HASHTAGS.primary}\n${HASHTAGS.wortkultur}`,
+    s => `„${s.xLemma || 'Wort'}“ – ${s.headline}\n\n${s.body}\n\nWas von der alten Bedeutung ist noch spürbar?`,
+    s => `Aus der Sprachgeschichte:\n\n${s.body}\n\n${hashtagsFor('wortschatz')}`,
   ],
   T: [
     s => {

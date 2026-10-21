@@ -71,7 +71,21 @@ describe('baueEntwuerfe – Wochenplan', () => {
     expect(opts.map((o) => o.text).sort()).toEqual(['kolloK1', 'kolloK10', 'kolloK5'])
     expect(aufloesung.spec.reveal).toBe(true)
     expect(aufloesung.spec.data.options).toEqual(opts)
-    expect(raetsel.caption).toContain('Gedächtnis')
+    expect(raetsel.caption).toMatch(/^„Gedächtnis“ – und was kommt danach\?/)
+    expect(raetsel.caption).not.toMatch(/\*|häufigst|Story/)
+    expect(raetsel.hashtags).toBe('#Linguistik #DeutscheSprache #Sprachrätsel')
+
+    // Auflösung: Buchstabe der richtigen Antwort, keine Tags. Gedächtnis ist am
+    // Donnerstag erneut geplant → Archivseite gesperrt → kein Link.
+    const buchstabe = 'ABC'[opts.findIndex((o) => o.correct)]
+    expect(aufloesung.caption).toBe(`Auflösung: Am stärksten mit „Gedächtnis“ verbunden ist „kolloK1“ (${buchstabe}).`)
+    expect(aufloesung.hashtags).toBe('')
+  })
+
+  it('Rätsel-Auflösung verlinkt die Archivseite, wenn das Lemma nicht erneut geplant ist', async () => {
+    const ohneWiederholung = { ...KALENDER, [DO]: { ids: ['l3'] } }
+    const auf = (await baueEntwuerfe(MO, deps({ loadKalender: () => ohneWiederholung }))).find((e) => e.slot === 'A-aufloesung')
+    expect(auf.caption).toMatch(/\n\nMehr Verbindungen: signifikation\.de\/wort\/gedaechtnis$/)
   })
 
   it('Tag ohne Plan-Slot: nur Teaser; Tag ohne Kalender: nichts', async () => {
@@ -87,7 +101,8 @@ describe('baueEntwuerfe – Wochenplan', () => {
 
     const [, post, antwort] = liste
     expect(post.spec.format).toBe('text')
-    expect(post.hashtags).toBe('')
+    expect(post.hashtags).toBe('#Linguistik #DeutscheSprache #Korpuslinguistik')
+    expect(antwort.hashtags).toBe('')
     expect(post.caption).toBe('„Das ______ Gedächtnis einer Zeit.“\n\nWelches Wort fehlt? (Deutsches Textarchiv · CC BY-SA 4.0)')
     expect(antwort.spec.reveal).toBe(true)
     expect(antwort.caption).toBe('Gesucht war „kolloK1“:\n„Das kolloK1 Gedächtnis einer Zeit.“\n\nQuelle: Roman (1890) · CC BY-SA 4.0')
@@ -130,6 +145,8 @@ describe('baueEntwuerfe – Wochenplan', () => {
     const aufloesung = liste.find((e) => e.slot === 'B-aufloesung')
     expect(aufloesung.datum).toBe(SA)
     expect(aufloesung.spec.reveal).toBe(true)
+    expect(aufloesung.caption).toBe('Gesucht war „kolloK1“:\n„Das kolloK1 Gedächtnis einer Zeit.“\n\nQuelle: Roman (1890) · CC BY-SA 4.0')
+    expect(aufloesung.hashtags).toBe('')
   })
 
   it('Mittwoch: Zitat ohne Lücke; ohne erlaubten Beleg kein Zitat-Entwurf', async () => {

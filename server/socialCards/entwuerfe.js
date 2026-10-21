@@ -25,6 +25,7 @@ import {
   belegLueckentext, belegLueckenwort, belegText, buildCaption, hashtagsFor, SUGGESTED_HASHTAG_SET,
   zeichenZahl, BLUESKY_MAX_ZEICHEN,
 } from '../../shared/socialCards.js'
+import { slugifyLemma } from '../archive/render.js'
 
 // format 'text' = reiner Textpost ohne Bild; die caption IST der Post.
 export const SLOTS = {
@@ -129,9 +130,35 @@ function dokumentQuelle(quelle) {
 }
 
 const passtInPost = (text) => zeichenZahl(text) <= BLUESKY_MAX_ZEICHEN
+const mitTags = (text, tags) => (tags ? `${text}\n\n${tags}` : text)
+const TEXTBELEG_TAGS = hashtagsFor(SUGGESTED_HASHTAG_SET.text)
 const textbelegPost = (b) => `„${b.text}“\n\nWelches Wort fehlt? (${kurzQuelle(b.quelle)})`
 
-function textbelegAufloesung(b) {
+/**
+ * Archivseite des Lemmas, wie sie am Tag `abDatum` erreichbar ist – oder null.
+ * Regel wie server/archive/index.js: Ist das Lemma an diesem oder einem
+ * späteren Tag noch einmal geplant, bleibt die Seite gesperrt (Lösungsschutz).
+ */
+function archivLink(lemma, abDatum, { loadKalender, getLemmataIndex }) {
+  const slug = slugifyLemma(lemma)
+  if (!slug) return null
+  const { byId } = getLemmataIndex()
+  for (const [datum, entry] of Object.entries(loadKalender())) {
+    if (datum < abDatum) continue
+    const ids = entry?.ids ?? (Array.isArray(entry) ? entry : [])
+    if (ids.some((id) => slugifyLemma(byId.get(id)?.lemma) === slug)) return null
+  }
+  return `signifikation.de/wort/${slug}`
+}
+
+function raetselAufloesung(data, antwort, link) {
+  const buchstabe = 'ABC'[data.options.findIndex((o) => o.correct)]
+  const satz = `Auflösung: Am stärksten mit „${data.lemma}“ verbunden ist „${antwort}“ (${buchstabe}).`
+  return link ? `${satz}\n\nMehr Verbindungen: ${link}` : satz
+}
+
+/** Auflösung eines Belegs (Text- und Bildpost): Wortform, Satz, Dokumentquelle – so viel, wie in einen Post passt. */
+function belegAufloesung(b) {
   const varianten = [
     `Gesucht war „${b.wortform}“:\n„${b.voll}“\n\nQuelle: ${dokumentQuelle(b.quelle)}`,
     `Gesucht war „${b.wortform}“.\n\nQuelle: ${dokumentQuelle(b.quelle)}`,
@@ -168,9 +195,11 @@ async function raetsel(datum, lemma, deps) {
   const aufloesung = verschiebeDatum(datum, 1)
   return [
     entwurf(datum, 'A', { data, meta }, { lemma: lemma.lemma }),
+    // Auflösungen erscheinen als Antwort auf den Post vom Vortag – ohne Tags
     {
       ...entwurf(aufloesung, 'A-aufloesung', { data, meta, reveal: true }, {}),
-      caption: `Auflösung zum Rätsel von gestern: *${lemma.lemma}* – ${antwort.wort}.`,
+      caption: raetselAufloesung(data, antwort.wort, archivLink(lemma.lemma, aufloesung, deps)),
+      hashtags: '',
     },
   ]
 }
@@ -187,7 +216,8 @@ async function lueckenbeleg(datum, lemma, deps) {
     entwurf(datum, 'B', { data, meta }, { lemma: lemma.lemma, quote, source: beleg.quelle }),
     {
       ...entwurf(aufloesung, 'B-aufloesung', { data, meta, reveal: true }, {}),
-      caption: `Auflösung zum Beleg von gestern: Gesucht war „${beleg.wortform}“.\n\nQuelle: ${beleg.quelle}`,
+      caption: belegAufloesung(beleg),
+      hashtags: '',
     },
   ]
 }
@@ -195,7 +225,7 @@ async function lueckenbeleg(datum, lemma, deps) {
 /** Textpost für Bluesky: echter Satz mit Lücke; Auflösung am Folgetag als Antwort. */
 async function textbeleg(datum, lemma, deps) {
   const { kollokatoren } = await deps.analyzeKollokationBest(lemma.lemma)
-  const beleg = findeBeleg(lemma.lemma, kollokatoren, { ...deps, luecke: true, passt: (b) => passtInPost(textbelegPost(b)) })
+  const beleg = findeBeleg(lemma.lemma, kollokatoren, { ...deps, luecke: true, passt: (b) => passtInPost(mitTags(textbelegPost(b), TEXTBELEG_TAGS)) })
   if (!beleg) return []
   const spec = {
     format: 'text',
@@ -204,8 +234,8 @@ async function textbeleg(datum, lemma, deps) {
   }
   const aufloesung = verschiebeDatum(datum, 1)
   return [
-    { datum, slot: 'TB', spec: { datum, ...spec }, caption: textbelegPost(beleg), hashtags: '' },
-    { datum: aufloesung, slot: 'TB-aufloesung', spec: { datum: aufloesung, ...spec, reveal: true }, caption: textbelegAufloesung(beleg), hashtags: '' },
+    { datum, slot: 'TB', spec: { datum, ...spec }, caption: textbelegPost(beleg), hashtags: TEXTBELEG_TAGS },
+    { datum: aufloesung, slot: 'TB-aufloesung', spec: { datum: aufloesung, ...spec, reveal: true }, caption: belegAufloesung(beleg), hashtags: '' },
   ]
 }
 
