@@ -5,6 +5,7 @@ import bcryptjs from 'bcryptjs'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import adminRouter from '../routes/admin.js'
 import { loadReadOnly, save } from '../store.js'
+import { ladeEntwurf, ladeOffeneEntwuerfe, speichereEntwuerfe } from '../store-entwuerfe.js'
 import db from '../db.js'
 
 const BACKUP_RESTORE_BODY_LIMIT = '10mb'
@@ -436,6 +437,114 @@ describe('admin routes integration', () => {
     expect(response.status).toBe(200)
     expect(payload.lueckenfuellerOk).toBeNull()
     expect(payload.lueckenfuellerStatus).toBeNull()
+  })
+
+  describe('Entwurfs-Postfach', () => {
+    // Lückenfüller-ID ohne passendes Wort: hält die Tests unabhängig von der Belege-DB.
+    const entwurfsTag = (datum) => ({
+      datum,
+      woerter: ['Haus', 'Baum', 'Wort'],
+      positionen: ['Substantiv', 'Verb', 'Adjektiv'],
+      zwilling_pos: 'Substantiv',
+      thema: 'Testthema',
+      lueckenfueller_id: 'gibt-es-heute-nicht',
+    })
+    const idFuer = (datum) => ladeOffeneEntwuerfe().find((e) => e.datum === datum).id
+
+    it('GET /admin/entwuerfe liefert offene Entwürfe und verlangt Login', async () => {
+      speichereEntwuerfe([entwurfsTag('2027-02-11')])
+
+      const ohneLogin = await fetch(`${baseUrl}/admin/entwuerfe`)
+      expect(ohneLogin.status).toBe(401)
+
+      const response = await fetch(`${baseUrl}/admin/entwuerfe`, { headers: adminHeaders(token) })
+      const payload = await response.json()
+      expect(response.status).toBe(200)
+      expect(payload.entwuerfe.some((e) => e.datum === '2027-02-11' && e.tag.thema === 'Testthema')).toBe(true)
+    })
+
+    it('GET /admin/entwuerfe meldet, wenn am Datum schon ein Eintrag steht', async () => {
+      await fetch(`${baseUrl}/admin/tag`, {
+        method: 'POST',
+        headers: adminHeaders(token),
+        body: JSON.stringify({
+          datum: '2027-02-15',
+          woerter: ['Haus', 'Baum', 'Wort'],
+          positionen: ['Substantiv', 'Verb', 'Adjektiv'],
+          zwilling_pos: 'Substantiv',
+        }),
+      })
+      speichereEntwuerfe([entwurfsTag('2027-02-15'), entwurfsTag('2027-02-16')])
+
+      const response = await fetch(`${baseUrl}/admin/entwuerfe`, { headers: adminHeaders(token) })
+      const { entwuerfe } = await response.json()
+      const belegt = entwuerfe.find((e) => e.datum === '2027-02-15')
+      const frei = entwuerfe.find((e) => e.datum === '2027-02-16')
+
+      expect(belegt.belegt.woerter).toHaveLength(3)
+      expect(belegt.belegt.woerter[0]).toBe('Haus')
+      expect(frei.belegt).toBeNull()
+    })
+
+    it('Übernehmen speichert den Tag über den normalen Speicherweg und schließt den Entwurf ab', async () => {
+      speichereEntwuerfe([entwurfsTag('2027-02-12')])
+      const id = idFuer('2027-02-12')
+
+      const response = await fetch(`${baseUrl}/admin/entwuerfe/${id}/uebernehmen`, {
+        method: 'POST', headers: adminHeaders(token),
+      })
+      const payload = await response.json()
+
+      expect(response.status).toBe(200)
+      expect(payload).toMatchObject({ ok: true, datum: '2027-02-12', entwurfId: id, lueckenfuellerStatus: 'unbekannt' })
+      expect(loadReadOnly('kalender.json')['2027-02-12']).toBeDefined()
+      expect(ladeEntwurf(id).status).toBe('uebernommen')
+
+      const nochmal = await fetch(`${baseUrl}/admin/entwuerfe/${id}/uebernehmen`, {
+        method: 'POST', headers: adminHeaders(token),
+      })
+      expect(nochmal.status).toBe(409)
+    })
+
+    it('Verwerfen schließt den Entwurf ab, ohne den Kalender anzufassen', async () => {
+      speichereEntwuerfe([entwurfsTag('2027-02-13')])
+      const id = idFuer('2027-02-13')
+
+      const response = await fetch(`${baseUrl}/admin/entwuerfe/${id}/verwerfen`, {
+        method: 'POST', headers: adminHeaders(token),
+      })
+      expect(response.status).toBe(200)
+      expect(ladeEntwurf(id).status).toBe('verworfen')
+      expect(loadReadOnly('kalender.json')['2027-02-13']).toBeUndefined()
+
+      const nochmal = await fetch(`${baseUrl}/admin/entwuerfe/${id}/verwerfen`, {
+        method: 'POST', headers: adminHeaders(token),
+      })
+      expect(nochmal.status).toBe(409)
+    })
+
+    it('meldet unbekannte und ungültige IDs sauber', async () => {
+      const unbekannt = await fetch(`${baseUrl}/admin/entwuerfe/999999/uebernehmen`, {
+        method: 'POST', headers: adminHeaders(token),
+      })
+      expect(unbekannt.status).toBe(404)
+
+      const ungueltig = await fetch(`${baseUrl}/admin/entwuerfe/abc/verwerfen`, {
+        method: 'POST', headers: adminHeaders(token),
+      })
+      expect(ungueltig.status).toBe(400)
+    })
+
+    it('lehnt einen Entwurf ab, der nicht mehr zum Speicherformat passt', async () => {
+      speichereEntwuerfe([{ datum: '2027-02-14', woerter: ['nur', 'zwei'] }])
+      const id = idFuer('2027-02-14')
+
+      const response = await fetch(`${baseUrl}/admin/entwuerfe/${id}/uebernehmen`, {
+        method: 'POST', headers: adminHeaders(token),
+      })
+      expect(response.status).toBe(422)
+      expect(ladeEntwurf(id).status).toBe('offen')
+    })
   })
 
   it('POST /admin/backup/restore bleibt bei Fehlern atomisch', async () => {

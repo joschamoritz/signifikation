@@ -17,6 +17,10 @@ export function createAdminCalendarRouter({
   adminPreviewLemmaSchema,
   adminPreviewDayParamsSchema,
   adminLemmaIdParamsSchema,
+  adminEntwurfIdParamsSchema,
+  ladeOffeneEntwuerfe,
+  ladeEntwurf,
+  entscheideEntwurf,
   load,
   loadDailyContentMaps,
   loadMutableDailyContentMaps,
@@ -328,147 +332,213 @@ export function createAdminCalendarRouter({
     }
   })
 
-  router.post('/admin/tag', adminLimiter, requireAuth, validate(adminTagSchema), async (req, res) => {
+  // Speicherweg eines Kalendertags, gemeinsam für das Formular (POST /admin/tag)
+  // und das Übernehmen eines Entwurfs. Erwartet einen per adminTagSchema
+  // validierten Body und wirft bei Fehlern; die Routen machen daraus eine Antwort.
+  async function speichereTag(body, { adminSessionId, ip }) {
     const {
       datum, woerter, notizen, links, definitionen, positionen,
       thema, thema_kurz, thema_quelle,
       zwilling_paar, zwilling_pos, zwilling_notiz, zwilling_link,
       zeitenwende_lemma, zeitenwende_notiz, zeitenwende_link,
       lueckenfueller_id,
-    } = req.body
+    } = body
 
-    try {
-      // ── Phase 1: Alle Daten async sammeln – noch nichts schreiben ──
-      const lemmaEntries = []
-      const ids = []
+    // ── Phase 1: Alle Daten async sammeln – noch nichts schreiben ──
+    const lemmaEntries = []
+    const ids = []
 
-      for (const [i, wort] of woerter.entries()) {
-        const pos = (positionen?.[i] || 'Substantiv')
-        logger.info(`Lade DWDS-Daten für „${wort}“ (${pos}) …`)
-        const entry = await fetchLemma(wort, pos)
-        entry.notiz = notizen[i] || ''
-        entry.link = links[i] || ''
-        entry.definition = definitionen[i] || ''
-        entry.bonusFrage = await fetchBonusQuestion(wort, pos).catch(() => null)
+    for (const [i, wort] of woerter.entries()) {
+      const pos = (positionen?.[i] || 'Substantiv')
+      logger.info(`Lade DWDS-Daten für „${wort}“ (${pos}) …`)
+      const entry = await fetchLemma(wort, pos)
+      entry.notiz = notizen[i] || ''
+      entry.link = links[i] || ''
+      entry.definition = definitionen[i] || ''
+      entry.bonusFrage = await fetchBonusQuestion(wort, pos).catch(() => null)
 
-        const { byId } = getLemmataIndex()
-        const existing = byId.get(entry.id)
-        if (!existing || !existing.ipa || !existing.definitionen?.length) {
-          logger.info(`Lade Wiktionary-Daten für „${wort}“ …`)
-          const wikt = await fetchWiktionary(wort).catch(() => ({ ipa: '', definitionen: [] }))
-          entry.ipa = wikt.ipa
-          entry.definitionen = wikt.definitionen
-        } else {
-          entry.ipa = existing.ipa
-          entry.definitionen = existing.definitionen
-        }
-
-        if (existing?.lueckenfueller) {
-          entry.lueckenfueller = existing.lueckenfueller
-        }
-
-        lemmaEntries.push(entry)
-        ids.push(entry.id)
+      const { byId } = getLemmataIndex()
+      const existing = byId.get(entry.id)
+      if (!existing || !existing.ipa || !existing.definitionen?.length) {
+        logger.info(`Lade Wiktionary-Daten für „${wort}“ …`)
+        const wikt = await fetchWiktionary(wort).catch(() => ({ ipa: '', definitionen: [] }))
+        entry.ipa = wikt.ipa
+        entry.definitionen = wikt.definitionen
+      } else {
+        entry.ipa = existing.ipa
+        entry.definitionen = existing.definitionen
       }
 
-      let wzEntry = null
-      let zwillingOk = null
-      if (Array.isArray(zwilling_paar) && zwilling_paar.length === 2 && zwilling_paar[0] && zwilling_paar[1]) {
-        logger.info(`Lade Wort-Zwilling-Daten für „${zwilling_paar[0]}“ / „${zwilling_paar[1]}“ …`)
-        try {
-          const wz = await fetchWortZwilling(zwilling_paar[0].trim(), zwilling_paar[1].trim(), zwilling_pos)
-          if (wz) {
-            wzEntry = { ...wz, notiz: zwilling_notiz || '', link: zwilling_link || '' }
-            zwillingOk = true
-          } else {
-            zwillingOk = false
-            logger.warn(`Wort-Zwilling: nicht genug distinkte Kollokatoren für „${zwilling_paar.join(' / ')}“`)
-          }
-        } catch (err) {
-          zwillingOk = false
-          logger.error({ err }, 'Wort-Zwilling-Fehler')
-        }
+      if (existing?.lueckenfueller) {
+        entry.lueckenfueller = existing.lueckenfueller
       }
 
-      let zwEntry = null
-      let zeitenwendeOk = null
-      if (zeitenwende_lemma?.trim()) {
-        logger.info(`Lade Zeitenwende-Daten für „${zeitenwende_lemma}“ …`)
-        try {
-          const zw = await fetchZeitenwende(zeitenwende_lemma.trim())
-          if (zw) {
-            zwEntry = { ...zw, notiz: zeitenwende_notiz || '', link: zeitenwende_link || '' }
-            zeitenwendeOk = true
-            logger.info(`Zeitenwende geladen: ${zw.words.length} Wörter für „${zw.lemma}“`)
-          } else {
-            zeitenwendeOk = false
-            logger.warn(`Zeitenwende: nicht genug distinkte Kollokatoren für „${zeitenwende_lemma}“`)
-          }
-        } catch (err) {
-          zeitenwendeOk = false
-          logger.error({ err }, 'Zeitenwende-Fehler')
-        }
-      }
+      lemmaEntries.push(entry)
+      ids.push(entry.id)
+    }
 
-      // Lückenfüller-Runden fehlen bei neuen Wörtern — gleich mit erzeugen,
-      // sonst bleibt der Modus für den Tag leer (siehe lueckenfuellerAutoGen.js).
-      // Scheitert der Bau, wird der Tag trotzdem gespeichert, wie bei Zwilling
-      // und Zeitenwende; die Antwort meldet es.
-      let lueckenfuellerStatus = null
+    let wzEntry = null
+    let zwillingOk = null
+    if (Array.isArray(zwilling_paar) && zwilling_paar.length === 2 && zwilling_paar[0] && zwilling_paar[1]) {
+      logger.info(`Lade Wort-Zwilling-Daten für „${zwilling_paar[0]}“ / „${zwilling_paar[1]}“ …`)
       try {
-        const lf = await ergaenzeLueckenfueller({
-          lueckenfuellerId: lueckenfueller_id,
-          lemmaEntries,
-          weitereWoerter: [...(Array.isArray(zwilling_paar) ? zwilling_paar : []), zeitenwende_lemma],
-          getLemmataIndex,
-          buildLueckenfueller,
-          resolveCandidate: resolveLueckenfuellerCandidate,
-          fetchLemma,
-          toId,
-        })
-        lueckenfuellerStatus = lf.status
-        if (lf.lemma) {
-          const index = lemmaEntries.findIndex((entry) => entry.id === lf.lemma.id)
-          if (index >= 0) lemmaEntries[index] = lf.lemma
-          else lemmaEntries.push(lf.lemma)
-          logger.info(`Lückenfüller erzeugt für „${lf.lemma.lemma}“ (${lf.id}): ${lf.runden} Runden`)
-        } else if (lf.status && lf.status !== 'vorhanden') {
-          logger.warn(`Lückenfüller „${lueckenfueller_id}“: ${lf.status}`)
+        const wz = await fetchWortZwilling(zwilling_paar[0].trim(), zwilling_paar[1].trim(), zwilling_pos)
+        if (wz) {
+          wzEntry = { ...wz, notiz: zwilling_notiz || '', link: zwilling_link || '' }
+          zwillingOk = true
+        } else {
+          zwillingOk = false
+          logger.warn(`Wort-Zwilling: nicht genug distinkte Kollokatoren für „${zwilling_paar.join(' / ')}“`)
         }
       } catch (err) {
-        lueckenfuellerStatus = 'fehler'
-        logger.error({ err }, 'Lückenfüller-Fehler')
+        zwillingOk = false
+        logger.error({ err }, 'Wort-Zwilling-Fehler')
       }
-      const lueckenfuellerOk = lueckenfuellerStatus === null
-        ? null
-        : lueckenfuellerStatus === 'vorhanden' || lueckenfuellerStatus === 'erzeugt'
+    }
 
-      // ── Phase 2: Alles in einer DB-Transaktion atomar schreiben ────
-      saveTagAtomically({
-        datum,
+    let zwEntry = null
+    let zeitenwendeOk = null
+    if (zeitenwende_lemma?.trim()) {
+      logger.info(`Lade Zeitenwende-Daten für „${zeitenwende_lemma}“ …`)
+      try {
+        const zw = await fetchZeitenwende(zeitenwende_lemma.trim())
+        if (zw) {
+          zwEntry = { ...zw, notiz: zeitenwende_notiz || '', link: zeitenwende_link || '' }
+          zeitenwendeOk = true
+          logger.info(`Zeitenwende geladen: ${zw.words.length} Wörter für „${zw.lemma}“`)
+        } else {
+          zeitenwendeOk = false
+          logger.warn(`Zeitenwende: nicht genug distinkte Kollokatoren für „${zeitenwende_lemma}“`)
+        }
+      } catch (err) {
+        zeitenwendeOk = false
+        logger.error({ err }, 'Zeitenwende-Fehler')
+      }
+    }
+
+    // Lückenfüller-Runden fehlen bei neuen Wörtern — gleich mit erzeugen,
+    // sonst bleibt der Modus für den Tag leer (siehe lueckenfuellerAutoGen.js).
+    // Scheitert der Bau, wird der Tag trotzdem gespeichert, wie bei Zwilling
+    // und Zeitenwende; die Antwort meldet es.
+    let lueckenfuellerStatus = null
+    try {
+      const lf = await ergaenzeLueckenfueller({
+        lueckenfuellerId: lueckenfueller_id,
         lemmaEntries,
-        kalenderEntry: {
-          ids,
-          thema: thema || '',
-          thema_kurz: thema_kurz || '',
-          thema_quelle: thema_quelle || '',
-          lueckenfueller_id: lueckenfueller_id || '',
-        },
-        wzEntry,
-        zwEntry,
+        weitereWoerter: [...(Array.isArray(zwilling_paar) ? zwilling_paar : []), zeitenwende_lemma],
+        getLemmataIndex,
+        buildLueckenfueller,
+        resolveCandidate: resolveLueckenfuellerCandidate,
+        fetchLemma,
+        toId,
       })
+      lueckenfuellerStatus = lf.status
+      if (lf.lemma) {
+        const index = lemmaEntries.findIndex((entry) => entry.id === lf.lemma.id)
+        if (index >= 0) lemmaEntries[index] = lf.lemma
+        else lemmaEntries.push(lf.lemma)
+        logger.info(`Lückenfüller erzeugt für „${lf.lemma.lemma}“ (${lf.id}): ${lf.runden} Runden`)
+      } else if (lf.status && lf.status !== 'vorhanden') {
+        logger.warn(`Lückenfüller „${lueckenfueller_id}“: ${lf.status}`)
+      }
+    } catch (err) {
+      lueckenfuellerStatus = 'fehler'
+      logger.error({ err }, 'Lückenfüller-Fehler')
+    }
+    const lueckenfuellerOk = lueckenfuellerStatus === null
+      ? null
+      : lueckenfuellerStatus === 'vorhanden' || lueckenfuellerStatus === 'erzeugt'
 
-      logger.info(`Eintrag gespeichert: ${datum} → ${ids.join(', ')}`)
+    // ── Phase 2: Alles in einer DB-Transaktion atomar schreiben ────
+    saveTagAtomically({
+      datum,
+      lemmaEntries,
+      kalenderEntry: {
+        ids,
+        thema: thema || '',
+        thema_kurz: thema_kurz || '',
+        thema_quelle: thema_quelle || '',
+        lueckenfueller_id: lueckenfueller_id || '',
+      },
+      wzEntry,
+      zwEntry,
+    })
 
-      auditCreate('kalender', datum, { ids, woerter, zwilling: !!zwilling_paar?.[0], zeitenwende: !!zeitenwende_lemma }, {
+    logger.info(`Eintrag gespeichert: ${datum} → ${ids.join(', ')}`)
+
+    auditCreate('kalender', datum, { ids, woerter, zwilling: !!zwilling_paar?.[0], zeitenwende: !!zeitenwende_lemma }, {
+      adminKey: adminSessionId || 'unknown',
+      ip,
+    })
+
+    return {
+      ok: true, datum, ids, zwillingOk, zeitenwendeOk,
+      lueckenfuellerId: lueckenfueller_id || null, lueckenfuellerOk, lueckenfuellerStatus,
+    }
+  }
+
+  router.post('/admin/tag', adminLimiter, requireAuth, validate(adminTagSchema), async (req, res) => {
+    try {
+      res.json(await speichereTag(req.body, { adminSessionId: req.adminSessionId, ip: req.ip }))
+    } catch (err) {
+      serverError(res, err)
+    }
+  })
+
+  // ── Entwurfs-Postfach: Vorschläge, die per API-Schlüssel hereinkommen ──
+  // Hier nur die Admin-Seite (Session-Login). Übernehmen nutzt speichereTag(),
+  // also exakt denselben Weg wie das Formular inklusive Lückenfüller-Erzeugung.
+
+  router.get('/admin/entwuerfe', adminLimiter, requireAuth, (_req, res) => {
+    try {
+      const { kalender } = loadDailyContentMaps()
+      const { byId } = getLemmataIndex()
+      // Steht am Datum schon ein Eintrag, ersetzt Übernehmen ihn — das Panel warnt.
+      const entwuerfe = ladeOffeneEntwuerfe().map((entwurf) => {
+        const eintrag = kalender[entwurf.datum]
+        if (!eintrag) return { ...entwurf, belegt: null }
+        const ids = Array.isArray(eintrag) ? eintrag : (eintrag.ids ?? [])
+        return { ...entwurf, belegt: { woerter: ids.map((id) => byId.get(id)?.lemma || id) } }
+      })
+      res.json({ entwuerfe })
+    } catch (err) {
+      serverError(res, err)
+    }
+  })
+
+  router.post('/admin/entwuerfe/:id/uebernehmen', adminLimiter, requireAuth, validate(adminEntwurfIdParamsSchema, 'params'), async (req, res) => {
+    const { id } = req.params
+    try {
+      const entwurf = ladeEntwurf(id)
+      if (!entwurf) return res.status(404).json({ error: 'Entwurf nicht gefunden' })
+      if (entwurf.status !== 'offen') return res.status(409).json({ error: 'Entwurf ist bereits abgeschlossen' })
+
+      // Erneut prüfen: Das Speicherformat kann sich seit dem Push geändert haben.
+      const parsed = adminTagSchema.safeParse(entwurf.tag)
+      if (!parsed.success) return res.status(422).json({ error: 'Entwurf passt nicht mehr zum Speicherformat' })
+
+      // Erst speichern, dann abschließen: Scheitert das Speichern, bleibt der
+      // Entwurf offen und kann erneut übernommen werden.
+      const ergebnis = await speichereTag(parsed.data, { adminSessionId: req.adminSessionId, ip: req.ip })
+      entscheideEntwurf(id, 'uebernommen')
+      res.json({ ...ergebnis, entwurfId: id })
+    } catch (err) {
+      serverError(res, err)
+    }
+  })
+
+  router.post('/admin/entwuerfe/:id/verwerfen', adminLimiter, requireAuth, validate(adminEntwurfIdParamsSchema, 'params'), (req, res) => {
+    const { id } = req.params
+    try {
+      const entwurf = ladeEntwurf(id)
+      if (!entwurf) return res.status(404).json({ error: 'Entwurf nicht gefunden' })
+      if (!entscheideEntwurf(id, 'verworfen')) return res.status(409).json({ error: 'Entwurf ist bereits abgeschlossen' })
+
+      auditDelete('lemma_entwurf', String(id), { datum: entwurf.datum, woerter: entwurf.tag.woerter }, {
         adminKey: req.adminSessionId || 'unknown',
         ip: req.ip,
       })
-
-      res.json({
-        ok: true, datum, ids, zwillingOk, zeitenwendeOk,
-        lueckenfuellerId: lueckenfueller_id || null, lueckenfuellerOk, lueckenfuellerStatus,
-      })
+      res.json({ ok: true, entwurfId: id })
     } catch (err) {
       serverError(res, err)
     }

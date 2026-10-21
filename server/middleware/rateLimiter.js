@@ -87,6 +87,7 @@ const pushSubscribeStore = new CleanupStore(60_000)
 const iapVerifyStore = new CleanupStore(60_000)
 const debugLogStore = new CleanupStore(60_000)
 const customLemmaStore = new CleanupStore(60_000)
+const lemmaApiStore = new CleanupStore(15 * 60_000)
 
 export const belegeLimiter = rateLimit({
   windowMs: 60_000, max: 30,
@@ -227,4 +228,14 @@ export const customLemmaLimiter = rateLimit({
   keyGenerator: getClientIp,
   standardHeaders: true, legacyHeaders: false,
   message: { error: 'Zu viele Anfragen. Bitte kurz warten.' },
+})
+
+// Vorschlags-API (Entwurfs-Postfach): Ein paar Pushes pro Woche reichen. Das enge
+// Fenster bremst zugleich das Durchprobieren von Schlüsseln.
+export const lemmaApiLimiter = rateLimit({
+  windowMs: 15 * 60_000, max: 20,
+  store: lemmaApiStore,
+  keyGenerator: getClientIp,
+  standardHeaders: true, legacyHeaders: false,
+  message: { error: 'Zu viele Anfragen an die Vorschlags-API, bitte später erneut versuchen.' },
 })

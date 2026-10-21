@@ -54,6 +54,7 @@
           <div class="nav-group-items">
             <button class="nav-item active" data-action="switch-page" data-page="dashboard">Dashboard</button>
             <button class="nav-item" data-action="switch-page" data-page="entry">Tageseinträge</button>
+            <button class="nav-item" data-action="switch-page" data-page="vorschlaege">Vorschläge<span class="nav-badge is-hidden" id="vorschlaege-badge" aria-label="offene Vorschläge"></span></button>
             <button class="nav-item" data-action="switch-page" data-page="calendar">Kalender</button>
           </div>
         </div>
@@ -107,6 +108,10 @@
       </header>
 
       <section class="admin-page is-active" id="page-dashboard" data-title="Dashboard" data-subtitle="Übersicht mit Health, Tagesplanung und Schnellzugriff.">
+        <button type="button" class="vorschlaege-hinweis is-hidden" id="dashboard-vorschlaege-hinweis" data-action="switch-page" data-page="vorschlaege">
+          <strong id="dashboard-vorschlaege-text">Vorschläge warten</strong>
+          <span>Ansehen und übernehmen →</span>
+        </button>
         <div class="dashboard-grid">
           <article class="metric-card metric-card--today" id="metric-today-card">
             <span class="metric-label">Heute geplant</span>
@@ -488,6 +493,22 @@
               <option value="100">100 / Seite</option>
             </select>
           </div>
+        </div>
+      </section>
+
+      <section class="admin-page" id="page-vorschlaege" data-title="Vorschläge" data-subtitle="Von Claude eingereichte Tage. Im Kalender stehen sie erst, wenn du sie übernimmst.">
+        <div class="vorschlaege-toolbar">
+          <p class="vorschlaege-info">Beim Übernehmen lädt der Server die Korpusdaten und erzeugt den Lückenfüller. Das dauert pro Tag einige Sekunden.</p>
+          <div class="vorschlaege-aktionen">
+            <button type="button" class="ghost-btn" data-action="vorschlaege-laden">Aktualisieren</button>
+            <button type="button" class="primary-btn" data-action="vorschlaege-alle" id="vorschlaege-alle-btn" disabled>Alle übernehmen</button>
+          </div>
+        </div>
+        <p class="vorschlaege-status" id="vorschlaege-status" role="status" aria-live="polite"></p>
+        <div id="vorschlaege-liste"></div>
+        <div class="vorschlaege-leer is-hidden" id="vorschlaege-leer">
+          <strong>Keine offenen Vorschläge</strong>
+          <span>Sobald Claude eine Woche einreicht, erscheint sie hier. Auf dem Dashboard zeigt ein Hinweis an, wenn etwas wartet.</span>
         </div>
       </section>
 
