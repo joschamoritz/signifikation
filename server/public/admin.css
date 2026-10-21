@@ -24,151 +24,9 @@ body {
   background: var(--bg);
   color: var(--text);
   min-height: 100vh;
-  padding: 48px 20px 80px;
+  /* Seitenränder und Navigation übernimmt admin-shell.css (.adm-shell). */
+  padding: 0;
   line-height: 1.5;
-}
-
-/* ── Layout ── */
-.container {
-  max-width: 1160px;
-  margin: 0 auto;
-}
-
-.admin-shell {
-  display: grid;
-  grid-template-columns: 260px 1fr;
-  gap: 18px;
-  align-items: start;
-}
-
-.admin-sidebar {
-  background: var(--surface);
-  border: 1px solid rgba(212, 201, 176, 0.55);
-  border-radius: var(--radius);
-  padding: 18px 12px 14px;
-  position: sticky;
-  top: 18px;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.admin-brand h1 {
-  font-family: var(--font-serif);
-  font-size: 1.7rem;
-  color: var(--primary);
-  line-height: 1.1;
-}
-
-.admin-brand p {
-  font-size: 0.78rem;
-  color: var(--muted);
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  margin-top: 4px;
-}
-
-.admin-nav {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
-
-.nav-group-block {
-  display: grid;
-  gap: 6px;
-}
-
-.nav-group-label {
-  padding: 0 10px;
-  font-size: 0.68rem;
-  color: var(--muted);
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  font-weight: 700;
-}
-
-.nav-group-items {
-  display: grid;
-  gap: 4px;
-}
-
-.nav-item {
-  width: 100%;
-  text-align: left;
-  padding: 11px 12px;
-  border: 1px solid transparent;
-  border-radius: var(--radius);
-  background: transparent;
-  color: var(--text);
-  font-size: 0.86rem;
-  font-weight: 500;
-  min-height: 44px;
-}
-
-.nav-item:hover {
-  border-color: rgba(212, 201, 176, 0.45);
-  background: rgba(243, 241, 237, 0.75);
-}
-
-.nav-item:focus-visible {
-  outline: 2px solid var(--primary);
-  outline-offset: 2px;
-}
-
-.nav-item.active {
-  border-color: rgba(201, 168, 76, 0.5);
-  background: #f8f3e7;
-  color: var(--primary);
-  font-weight: 600;
-}
-
-.nav-link {
-  display: block;
-  text-decoration: none;
-}
-
-.sidebar-actions {
-  display: grid;
-  gap: 8px;
-  padding-top: 14px;
-  border-top: 1px solid var(--border-lt);
-}
-
-.admin-main {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
-
-.admin-topbar {
-  background: var(--surface);
-  border: 1px solid rgba(212, 201, 176, 0.55);
-  border-radius: var(--radius);
-  padding: 16px 18px;
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 18px;
-}
-
-.topbar-copy {
-  display: grid;
-  gap: 4px;
-}
-
-.admin-topbar h2 {
-  font-family: var(--font-serif);
-  font-size: 1.45rem;
-  color: var(--primary);
-  line-height: 1.1;
-}
-
-.top-actions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
 }
 
 .primary-btn {
@@ -221,7 +79,6 @@ body {
 .danger-btn:focus-visible,
 .icon-btn:focus-visible,
 .entry-filters-reset:focus-visible,
-.logout-btn:focus-visible,
 .cal-nav-btn:focus-visible,
 .extra-toggle:focus-visible,
 .login-card-body button:focus-visible {
@@ -516,6 +373,8 @@ body {
   border-radius: var(--radius);
   background: #f7f4ef;
   padding: 11px 10px;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .week-preview-card.has-entry:hover,
@@ -1552,13 +1411,6 @@ header h1 {
   letter-spacing: 0.01em;
   line-height: 1.1;
 }
-.subtitle {
-  font-size: 0.82rem;
-  color: var(--muted);
-  margin-top: 4px;
-  font-family: var(--font-sans);
-}
-
 /* ── Cards ── */
 .card {
   background: var(--surface);
@@ -1675,8 +1527,11 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
 #save-btn:hover:not(:disabled) { background: var(--primary-hi); }
 #save-btn:focus-visible { outline: 2px solid #fff; outline-offset: 2px; box-shadow: 0 0 0 4px var(--primary); }
 
-/* Sekundär-Buttons (Laden, Analysieren, ↺) */
-.card > div button,
+/* Sekundär-Buttons (Laden, Analysieren, ↺)
+   :where() hält die Spezifität bei (0,0,1): Die Regel gilt nur noch für
+   Knöpfe ohne eigene Gestaltung. Vorher (0,1,2) überschrieb sie jede
+   Einzelklasse (.primary-btn, .week-preview-card, .cal-day …). */
+:where(.card > div) button,
 .viz-search button {
   background: transparent;
   color: var(--primary);
@@ -1685,20 +1540,11 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
   font-size: 0.85rem;
   font-weight: 600;
 }
-.card > div button:hover,
+/* Hover mit :where(:hover) statt :hover: dieselbe Spezifität (0,0,1) wie die
+   Basisregel, sonst schlägt (0,1,1) einfache Klassen wie .extra-toggle und
+   färbt deren Hover-Fläche rosa. */
+:where(.card > div) button:where(:hover),
 .viz-search button:hover { background: #fef2f2; }
-
-/* Logout / Backup */
-.logout-btn {
-  background: transparent;
-  color: var(--muted);
-  border: 1.5px solid var(--border);
-  padding: 10px 14px;
-  font-size: 0.82rem;
-  font-weight: 500;
-  min-height: 44px;
-}
-.logout-btn:hover { color: var(--primary); border-color: var(--primary); background: #fef2f2; }
 
 /* Kalender-Navigation */
 .cal-nav-btn {
@@ -2141,51 +1987,26 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
   .dashboard-main-grid {
     grid-template-columns: 1fr;
   }
+
+  /* Mit der Seitenleiste (216 px) bleiben ab 761 px nur ~465–785 px Inhalts-
+     breite. Das Suchfeld bekommt dann eine eigene Zeile statt 0 px Rest. */
+  .entry-list-controls,
+  .users-controls {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .entry-list-controls > input,
+  .users-controls > input {
+    grid-column: 1 / -1;
+  }
 }
 
 @media (max-width: 860px) {
-  body {
-    padding: 16px 12px 32px;
-  }
-
-  .admin-shell {
+  .entry-form-actions {
     grid-template-columns: 1fr;
   }
 
-  .admin-sidebar {
-    position: static;
-  }
-
-  .admin-nav {
-    gap: 12px;
-  }
-
-  .nav-group-items {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .sidebar-actions {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .admin-topbar {
-    flex-direction: column;
-  }
-
-  .top-actions {
-    width: 100%;
-  }
-
-  .top-actions .primary-btn,
-  .top-actions .ghost-btn,
-  .top-actions .danger-btn,
-  .top-actions .text-btn {
-    flex: 1;
-    min-width: 0;
-  }
-
-  .entry-form-actions {
+  .mode-grid {
     grid-template-columns: 1fr;
   }
 
@@ -2218,7 +2039,6 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
 }
 
 @media (max-width: 560px) {
-  .sidebar-actions,
   .dashboard-grid,
   .health-detail-grid,
   .week-preview-grid,
@@ -2227,7 +2047,6 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
     grid-template-columns: 1fr;
   }
 
-  .nav-group-items,
   .quick-actions-grid {
     grid-template-columns: 1fr;
   }
@@ -2399,13 +2218,6 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
 }
 
 @media (max-width: 860px) {
-  /* Notch / Home-Indicator */
-  body {
-    padding-left: max(12px, env(safe-area-inset-left));
-    padding-right: max(12px, env(safe-area-inset-right));
-    padding-bottom: max(32px, env(safe-area-inset-bottom));
-  }
-
   /* iOS Safari zoomt bei Fokus auf Felder unter 16px hinein – und
      zoomt nicht von selbst zurück. Betrifft jedes Formular. */
   input[type="date"],
@@ -2494,49 +2306,6 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
   }
 }
 
-/* ── Mobile-Bereichsauswahl ──────────────────────────────────── */
-.mobile-nav {
-  display: none;
-}
-
-@media (max-width: 860px) {
-  .mobile-nav {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    position: sticky;
-    top: 0;
-    z-index: 30;
-    /* zieht die Leiste über das body-Padding an den Viewport-Rand */
-    margin: -16px -12px 2px;
-    padding: 10px 12px;
-    background: var(--bg);
-    border-bottom: 1px solid var(--border-lt);
-  }
-
-  .mobile-nav label {
-    margin-bottom: 0;
-    white-space: nowrap;
-  }
-
-  .mobile-nav select {
-    flex: 1;
-    min-width: 0;
-    min-height: 44px;
-    font-family: var(--font-serif);
-    font-size: 16px;
-    font-weight: 600;
-    color: var(--primary);
-    background: var(--surface);
-  }
-
-  /* Die Sidebar wandert unter den Inhalt: oben klebt die kompakte
-     Auswahl, der Inhalt beginnt sofort, und die vollständige
-     Navigation samt Backup/Abmelden bleibt am Seitenende erreichbar. */
-  .admin-main { order: 1; }
-  .admin-sidebar { order: 2; }
-}
-
 /* ── Entwurfs-Wiederherstellung (Tageseintrag) ───────────────── */
 .entry-draft-banner {
   display: flex;
@@ -2584,7 +2353,6 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
    min-width:0 sprengt die Tabelle mit min-width:560px die 1fr-Spalte
    und schiebt die gesamte Seite über den Viewport hinaus – der
    overflow:auto-Wrapper der Tabelle kommt dann nie zum Zug. */
-.admin-main,
 .admin-page,
 .admin-page > .card,
 .entry-editor-card,
@@ -2714,19 +2482,6 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
 }
 
 /* ── Vorschläge (Entwurfs-Postfach) ─────────────────────────────────────── */
-
-.nav-badge {
-  float: right;
-  min-width: 22px;
-  padding: 1px 7px;
-  border-radius: 11px;
-  background: var(--primary);
-  color: #fff;
-  font-size: 0.72rem;
-  font-weight: 600;
-  line-height: 1.6;
-  text-align: center;
-}
 
 .vorschlaege-hinweis {
   display: flex;
@@ -2862,7 +2617,8 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
 
 .vorschlaege-leer strong { color: var(--text); font-family: var(--font-serif); font-size: 1.05rem; }
 
-@media (max-width: 760px) {
+/* ≤ 1080 px (statt 760): neben der Seitenleiste sind vier Spalten zu eng */
+@media (max-width: 1080px) {
   .vorschlag-modi { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 

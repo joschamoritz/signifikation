@@ -6,6 +6,9 @@
   <title>Signifikation – Admin</title>
   <link rel="stylesheet" href="/fonts/fonts.css">
   <link rel="stylesheet" href="/admin-assets/admin.css">
+  <!-- Neue Hülle (Navigation, Seitenkopf, Reiter); lädt nach admin.css und
+       überschreibt dessen Variablen (--muted). -->
+  <link rel="stylesheet" href="/admin-assets/admin-shell.css">
   <!-- Beide Subsets werden auf jeder Seite gebraucht; ohne Preload startet der
        Download erst nach dem Parsen von admin.css. -->
   <link rel="preload" href="/fonts/dm-sans-latin.woff2" as="font" type="font/woff2" crossorigin>
@@ -40,74 +43,49 @@
   </div>
 </div>
 
-<div class="container is-hidden" id="main-container">
-  <div class="admin-shell">
-    <aside class="admin-sidebar">
-      <div class="admin-brand">
-        <h1>Signifikation</h1>
-        <p>Admin-Portal</p>
+<div class="adm-root is-hidden" id="main-container">
+  <a class="adm-skip" href="#adm-main" data-action="skip-to-content">Zum Inhalt</a>
+  <div class="adm-shell">
+    <!-- Bereichsnavigation: Desktop als linke Spalte, ab 760 px abwärts als
+         feste Leiste unten (rein per CSS, dasselbe Element). Aktiver Bereich
+         und Zähler werden von admin.js gesetzt. -->
+    <nav class="adm-nav" aria-label="Admin-Bereiche">
+      <div class="adm-brand">
+        <span class="adm-brand-name">Signifikation</span>
+        <span class="adm-overline">Redaktion</span>
       </div>
-
-      <nav class="admin-nav" aria-label="Admin-Bereiche">
-        <div class="nav-group-block">
-          <p class="nav-group-label">Übersicht</p>
-          <div class="nav-group-items">
-            <button class="nav-item active" data-action="switch-page" data-page="dashboard">Dashboard</button>
-            <button class="nav-item" data-action="switch-page" data-page="entry">Tageseinträge</button>
-            <button class="nav-item" data-action="switch-page" data-page="vorschlaege">Vorschläge<span class="nav-badge is-hidden" id="vorschlaege-badge" aria-label="offene Vorschläge"></span></button>
-            <button class="nav-item" data-action="switch-page" data-page="calendar">Kalender</button>
-          </div>
-        </div>
-        <div class="nav-group-block">
-          <p class="nav-group-label">Inhalte</p>
-          <div class="nav-group-items">
-            <a class="nav-item nav-link" href="/admin/social-cards">Social Cards</a>
-            <button class="nav-item" data-action="switch-page" data-page="analytics">Analysen</button>
-            <button class="nav-item" data-action="switch-page" data-page="stats">Statistiken</button>
-            <button class="nav-item" data-action="switch-page" data-page="metrics">Kennzahlen</button>
-          </div>
-        </div>
-        <div class="nav-group-block">
-          <p class="nav-group-label">System</p>
-          <div class="nav-group-items">
-            <button class="nav-item" data-action="switch-page" data-page="users">Nutzer</button>
-            <button class="nav-item" data-action="switch-page" data-page="freedays">Bonus-Tage</button>
-            <button class="nav-item" data-action="switch-page" data-page="spezialwoche">Wort der Woche</button>
-            <button class="nav-item" data-action="switch-page" data-page="push">Benachrichtigungen</button>
-            <button class="nav-item" data-action="switch-page" data-page="classroom">Klassenraum</button>
-            <button class="nav-item" data-action="switch-page" data-page="system">System</button>
-          </div>
-        </div>
-      </nav>
-
-      <div class="sidebar-actions">
-        <button class="logout-btn" data-action="download-backup">Backup</button>
-        <button class="logout-btn" data-action="logout">Abmelden</button>
+      <div class="adm-rule" aria-hidden="true"></div>
+      <ul class="adm-nav-list">
+        <li><a class="adm-nav-item" href="#planen" data-area="planen">Planen</a></li>
+        <li><a class="adm-nav-item" href="#vorschlaege" data-area="vorschlaege">Vorschläge<span class="adm-count is-hidden" id="vorschlaege-badge" aria-hidden="true"></span><span class="adm-visually-hidden" id="vorschlaege-badge-text"></span></a></li>
+        <li><a class="adm-nav-item" href="#nutzer" data-area="nutzer">Nutzer</a></li>
+        <li><a class="adm-nav-item" href="#auswertung/spiele" data-area="auswertung">Auswertung</a></li>
+        <li><a class="adm-nav-item" href="#werkzeuge" data-area="werkzeuge">Werkzeuge</a></li>
+      </ul>
+      <div class="adm-nav-foot">
+        <button type="button" class="adm-link" data-action="logout">Abmelden</button>
       </div>
-    </aside>
+    </nav>
 
-    <main class="admin-main">
-      <!-- Kompakte Bereichsauswahl für Handys; Inhalt wird in admin.js aus
-           der Sidebar-Navigation gespiegelt, damit nichts doppelt gepflegt
-           werden muss. Auf Desktop per CSS ausgeblendet. -->
-      <div class="mobile-nav">
-        <label for="mobile-nav-select">Bereich</label>
-        <select id="mobile-nav-select" aria-label="Admin-Bereich wählen"></select>
-      </div>
-
-      <header class="admin-topbar">
-        <div class="topbar-copy">
-          <h2 id="page-title">Dashboard</h2>
-          <p class="subtitle" id="page-subtitle">Übersicht mit Health, Tagesplanung und Schnellzugriff.</p>
+    <main class="adm-main" id="adm-main" tabindex="-1">
+     <div class="adm-page-wrap">
+      <!-- Gemeinsamer Seitenkopf. Bei Unterseiten (Klasse has-takeover am Root)
+           wird er zur Rückleiste: ‹ links, Titel in der Mitte. -->
+      <header class="adm-head" id="page-head">
+        <a class="adm-back is-hidden" id="page-back" href="#planen" data-action="nav-back">
+          <span class="adm-back-glyph" aria-hidden="true">‹</span>
+          <span class="adm-back-label" id="page-back-label">Planen</span>
+        </a>
+        <div class="adm-head-copy">
+          <p class="adm-overline" id="page-overline">Planen</p>
+          <h1 class="adm-title" id="page-title" tabindex="-1">Woche</h1>
         </div>
-        <div class="top-actions">
-          <button class="primary-btn" data-action="switch-page" data-page="entry">Neuer Tag</button>
-          <button class="ghost-btn" data-action="refresh-dashboard">Aktualisieren</button>
-          <a class="text-btn" href="/admin/social-cards">Social Cards</a>
-        </div>
+        <div class="adm-head-actions" id="page-actions"></div>
       </header>
+      <p class="adm-sub" id="page-subtitle">Diese Woche, Tagesplanung und Systemstand auf einen Blick.</p>
+      <nav class="adm-tabs is-hidden" id="page-tabs" aria-label="Ansicht"></nav>
 
-      <section class="admin-page is-active" id="page-dashboard" data-title="Dashboard" data-subtitle="Übersicht mit Health, Tagesplanung und Schnellzugriff.">
+      <section class="admin-page is-active" id="page-dashboard" data-title="Woche" data-subtitle="Diese Woche, Tagesplanung und Systemstand auf einen Blick.">
         <button type="button" class="vorschlaege-hinweis is-hidden" id="dashboard-vorschlaege-hinweis" data-action="switch-page" data-page="vorschlaege">
           <strong id="dashboard-vorschlaege-text">Vorschläge warten</strong>
           <span>Ansehen und übernehmen →</span>
@@ -210,7 +188,9 @@
         </div>
       </section>
 
-      <section class="admin-page" id="page-entry" data-title="Tageseinträge" data-subtitle="Tagesinhalt planen und automatisch mit Datenquellen anreichern.">
+      <section class="admin-page" id="page-entry" data-title="Tag bearbeiten" data-subtitle="Tagesinhalt planen und automatisch mit Datenquellen anreichern.">
+        <!-- Ladefehler des Tages (von admin.js befüllt): bewusst ganz oben, damit er sichtbar ist. -->
+        <div id="entry-load-error" class="status" role="alert"></div>
         <div class="card entry-editor-card">
           <div class="entry-editor-head">
             <div>
@@ -433,6 +413,11 @@
           <div id="entry-preview-output" class="entry-preview-output"></div>
         </div>
 
+      </section>
+
+      <section class="admin-page" id="page-liste" data-title="Liste" data-subtitle="Alle geplanten Tage mit Suche, Filter und CSV-Import.">
+        <!-- Meldungen zu CSV-Import und Massenlöschen -->
+        <div id="liste-status" class="status" role="status" aria-live="polite"></div>
         <div class="card">
           <div class="card-head card-head--wrap">
             <h2>Geplante Einträge</h2>
@@ -507,11 +492,11 @@
         <div id="vorschlaege-liste"></div>
         <div class="vorschlaege-leer is-hidden" id="vorschlaege-leer">
           <strong>Keine offenen Vorschläge</strong>
-          <span>Sobald Claude eine Woche einreicht, erscheint sie hier. Auf dem Dashboard zeigt ein Hinweis an, wenn etwas wartet.</span>
+          <span>Sobald Claude eine Woche einreicht, erscheint sie hier. Unter „Planen“ und an der Navigation zeigt ein Hinweis an, wenn etwas wartet.</span>
         </div>
       </section>
 
-      <section class="admin-page" id="page-stats" data-title="Statistiken" data-subtitle="Nutzeraktivität und Leistungswerte über alle Spielmodi hinweg.">
+      <section class="admin-page" id="page-stats" data-title="Spiele" data-subtitle="Spielaktivität und Leistungswerte über alle Spielmodi hinweg.">
         <div class="card">
           <div class="card-head">
             <h2>Statistik</h2>
@@ -559,7 +544,7 @@
 
       </section>
 
-      <section class="admin-page" id="page-analytics" data-title="Analysen" data-subtitle="Eignungsprüfung für Kollokation, Wort-Zwilling und Zeitenwende.">
+      <section class="admin-page" id="page-analytics" data-title="Wort prüfen" data-subtitle="Eignung eines Wortes für Kollokation, Wort-Zwilling, Zeitenwende und Lückenfüller prüfen.">
         <div class="analytics-grid">
           <div class="card analysis-card">
             <div class="analysis-card-head">
@@ -630,7 +615,7 @@
 
       </section>
 
-      <section class="admin-page" id="page-calendar" data-title="Kalender" data-subtitle="Monatsübersicht und schnelle Navigation zu geplanten Einträgen.">
+      <section class="admin-page" id="page-calendar" data-title="Monat" data-subtitle="Monatsübersicht und schnelle Navigation zu geplanten Einträgen.">
         <div class="card">
           <h2>Kalender</h2>
           <div class="cal-nav">
@@ -655,7 +640,7 @@
         </div>
       </section>
 
-      <section class="admin-page" id="page-users" data-title="Nutzer" data-subtitle="Aktuelle Nutzerübersicht inkl. Rollen (bestehende API).">
+      <section class="admin-page" id="page-users" data-title="Nutzer" data-subtitle="Nutzerübersicht mit Rollen, Spielstatistik und Verwaltung.">
         <div class="card">
           <div class="card-head card-head--wrap">
             <h2>Nutzerübersicht</h2>
@@ -801,7 +786,7 @@
         </div>
       </section>
 
-      <section class="admin-page" id="page-push" data-title="Benachrichtigungen" data-subtitle="Push-Vorlagen verwalten und Nachrichten manuell versenden.">
+      <section class="admin-page" id="page-push" data-title="Benachrichtigungen" data-subtitle="Vorlagen verwalten und Nachrichten manuell an alle Geräte senden.">
         <div class="card">
           <h2>Nachricht manuell senden</h2>
           <p class="section-copy">
@@ -937,7 +922,7 @@
         </div>
       </section>
 
-      <section class="admin-page" id="page-metrics" data-title="Kennzahlen" data-subtitle="Produkt- und Geschäftszahlen aus vorhandenen Daten – Zahlungen, Lehrer, Eigenes Lemma, Wiederkehr.">
+      <section class="admin-page" id="page-metrics" data-title="Kennzahlen" data-subtitle="Zahlen zu Zahlungen, Lehrkräften, Eigenem Lemma und Wiederkehr.">
         <div class="card">
           <div class="card-head card-head--wrap">
             <div>
@@ -961,7 +946,7 @@
         </div>
       </section>
 
-      <section class="admin-page" id="page-classroom" data-title="Klassenraum" data-subtitle="Telemetrie und Nutzungsstatistiken des Klassenraum-Modus.">
+      <section class="admin-page" id="page-classroom" data-title="Klassenraum" data-subtitle="Nutzung des Klassenraum-Modus: Lehrkräfte, Sitzungen und Teilnahmen.">
         <div class="card">
           <div class="card-head card-head--wrap">
             <div>
@@ -984,6 +969,9 @@
           </div>
         </div>
 
+      </section>
+
+      <section class="admin-page" id="page-klassenraum-demo" data-title="Klassenraum-Demo" data-subtitle="Wörter für die Vorschau, die Lehrkräfte ohne Anmeldung sehen.">
         <div class="card" id="demo-content-card">
           <div class="card-head card-head--wrap">
             <div>
@@ -1029,10 +1017,45 @@
         </div>
       </section>
 
-      <section class="admin-page" id="page-system" data-title="System" data-subtitle="Diagnose, Backup und technische Details.">
-        <div class="card">
+      <section class="admin-page" id="page-werkzeuge" data-title="Werkzeuge" data-subtitle="Inhalte pflegen, Betrieb und selten gebrauchte Aufgaben.">
+        <section class="adm-section">
+          <h2 class="adm-overline">Inhalte pflegen</h2>
+          <ul class="adm-tools">
+            <li><a class="adm-tool" href="#werkzeuge/pruefen"><span class="adm-tool-main"><span class="adm-tool-title">Wort prüfen</span><span class="adm-tool-meta">Eignung für Kollokation, Wort-Zwilling, Zeitenwende und Lückenfüller testen</span></span><span class="adm-tool-go" aria-hidden="true">→</span></a></li>
+            <li><a class="adm-tool" href="#werkzeuge/bonus-tage"><span class="adm-tool-main"><span class="adm-tool-title">Bonus-Tage</span><span class="adm-tool-meta">Tage mit zusätzlichen Spielen für Basic-Nutzer</span></span><span class="adm-tool-go" aria-hidden="true">→</span></a></li>
+            <li><a class="adm-tool" href="#werkzeuge/benachrichtigungen"><span class="adm-tool-main"><span class="adm-tool-title">Benachrichtigungen</span><span class="adm-tool-meta">Vorlagen verwalten, Nachricht an alle Geräte senden</span></span><span class="adm-tool-go" aria-hidden="true">→</span></a></li>
+            <li><a class="adm-tool" href="#planen/liste"><span class="adm-tool-main"><span class="adm-tool-title">CSV-Import</span><span class="adm-tool-meta">Mehrere Tage aus einer Datei in den Kalender übernehmen</span></span><span class="adm-tool-go" aria-hidden="true">→</span></a></li>
+          </ul>
+        </section>
+
+        <section class="adm-section">
+          <h2 class="adm-overline">Betrieb</h2>
+          <ul class="adm-tools">
+            <li><a class="adm-tool" href="#werkzeuge/system?abschnitt=zustand"><span class="adm-tool-main"><span class="adm-tool-title">Systemzustand</span><span class="adm-tool-meta">Server, Datenbanken und Speicher prüfen</span></span><span class="adm-tool-go" aria-hidden="true">→</span></a></li>
+            <li><a class="adm-tool" href="#werkzeuge/system?abschnitt=sicherung"><span class="adm-tool-main"><span class="adm-tool-title">Sicherung</span><span class="adm-tool-meta">Datenbestand herunterladen oder wiederherstellen</span></span><span class="adm-tool-go" aria-hidden="true">→</span></a></li>
+            <li><a class="adm-tool" href="#werkzeuge/system?abschnitt=kursmaterial"><span class="adm-tool-main"><span class="adm-tool-title">Kursmaterial</span><span class="adm-tool-meta">Arbeitsblätter, Lösungen und Folien neu erzeugen</span></span><span class="adm-tool-go" aria-hidden="true">→</span></a></li>
+            <li><a class="adm-tool" href="#werkzeuge/system?abschnitt=protokoll"><span class="adm-tool-main"><span class="adm-tool-title">Änderungsprotokoll</span><span class="adm-tool-meta">Wer hat wann was geändert</span></span><span class="adm-tool-go" aria-hidden="true">→</span></a></li>
+          </ul>
+        </section>
+
+        <section class="adm-section">
+          <h2 class="adm-overline">Selten</h2>
+          <ul class="adm-tools">
+            <li><a class="adm-tool" href="#werkzeuge/klassenraum-demo"><span class="adm-tool-main"><span class="adm-tool-title">Klassenraum-Demo</span><span class="adm-tool-meta">Wörter der Vorschau für Lehrkräfte ohne Anmeldung</span></span><span class="adm-tool-go" aria-hidden="true">→</span></a></li>
+            <li><a class="adm-tool" href="#werkzeuge/wort-der-woche"><span class="adm-tool-main"><span class="adm-tool-title">Wort der Woche</span><span class="adm-tool-meta">Spezial-Lemma für eine Kalenderwoche eintragen</span></span><span class="adm-tool-go" aria-hidden="true">→</span></a></li>
+            <li><a class="adm-tool" href="/admin/social-cards"><span class="adm-tool-main"><span class="adm-tool-title">Social Cards</span><span class="adm-tool-meta">Bilder für soziale Netzwerke erzeugen · eigene Seite</span></span><span class="adm-tool-go" aria-hidden="true">→</span></a></li>
+          </ul>
+        </section>
+
+        <div class="adm-tools-foot">
+          <button type="button" class="adm-link" data-action="logout">Abmelden</button>
+        </div>
+      </section>
+
+      <section class="admin-page" id="page-system" data-title="System" data-subtitle="Zustand, Sicherung, Kursmaterial und Änderungsprotokoll.">
+        <div class="card" id="system-zustand">
           <h2>Systemaktionen</h2>
-          <div class="system-actions">
+          <div class="system-actions" id="system-sicherung">
             <button data-action="load-health">Health aktualisieren</button>
             <button data-action="download-backup">Backup herunterladen</button>
             <button class="entry-filters-reset" data-action="trigger-backup-restore">Backup wiederherstellen</button>
@@ -1043,7 +1066,7 @@
           <pre id="system-health-json" class="system-json">Health-Daten werden geladen …</pre>
         </div>
 
-        <div class="card">
+        <div class="card" id="system-kursmaterial">
           <div class="card-head card-head--wrap">
             <h2>Kursmaterial (PDFs)</h2>
             <button class="entry-filters-reset" data-action="load-course-pdf-status">↺ Status</button>
@@ -1068,7 +1091,7 @@
           <pre id="course-pdf-status" class="system-json">Noch nicht gestartet.</pre>
         </div>
 
-        <div class="card">
+        <div class="card" id="system-performance">
           <div class="card-head card-head--wrap">
             <h2>Performance</h2>
             <button class="entry-filters-reset" data-action="load-performance">↺ Laden</button>
@@ -1079,7 +1102,7 @@
           <pre id="performance-json" class="system-json">Noch keine Performance-Daten geladen.</pre>
         </div>
 
-        <div class="card">
+        <div class="card" id="system-protokoll">
           <div class="card-head card-head--wrap">
             <h2>Audit-Log</h2>
             <button class="entry-filters-reset" data-action="load-audit-log">↺ Laden</button>
@@ -1141,6 +1164,7 @@
           <pre id="audit-detail-json" class="system-json">Audit-Details werden nach Auswahl eines Eintrags angezeigt.</pre>
         </div>
       </section>
+     </div>
     </main>
   </div>
 </div>

@@ -44,7 +44,7 @@ function showMainContainer() {
   const container = document.getElementById('main-container')
   if (!container) return
   container.classList.remove('is-hidden')
-  container.style.display = 'flex'
+  container.style.display = ''
 }
 
 function hideMainContainer() {
@@ -127,116 +127,576 @@ function scheduleSessionRefresh() {
   }, 7 * 60 * 60 * 1000)
 }
 
-function setPageMeta(pageEl) {
+// ── Navigation / Router ───────────────────────────────────
+// Jede Ansicht hat eine Adresse im URL-Hash (#planen, #werkzeuge/system …).
+// Dadurch funktionieren Neuladen, Lesezeichen und Browser-Zurück.
+//
+// Ablauf: Ein Klick auf einen Link (oder navigate()) setzt nur den Hash →
+// 'hashchange' → handleHashChange() prüft den Entwurfsschutz →
+// renderRoute() zeigt Seite, Kopf, Reiter und lädt die Daten.
+// renderRoute() setzt nie selbst einen Hash (nur Weiterleitungen per
+// replaceState), deshalb gibt es keine Schleifen.
+
+const AREA_LABELS = {
+  planen: 'Planen',
+  vorschlaege: 'Vorschläge',
+  nutzer: 'Nutzer',
+  auswertung: 'Auswertung',
+  werkzeuge: 'Werkzeuge',
+}
+
+const AREA_TABS = {
+  planen: [
+    { key: 'woche', label: 'Woche', hash: '#planen' },
+    { key: 'monat', label: 'Monat', hash: '#planen/monat' },
+    { key: 'liste', label: 'Liste', hash: '#planen/liste' },
+  ],
+  auswertung: [
+    { key: 'spiele', label: 'Spiele', hash: '#auswertung/spiele' },
+    { key: 'kennzahlen', label: 'Kennzahlen', hash: '#auswertung/kennzahlen' },
+    { key: 'klassenraum', label: 'Klassenraum', hash: '#auswertung/klassenraum' },
+  ],
+}
+
+const PARENT_PLANEN = { hash: '#planen', label: 'Planen', area: 'planen' }
+const PARENT_WERKZEUGE = { hash: '#werkzeuge', label: 'Werkzeuge', area: 'werkzeuge' }
+
+// Startseite je Bereich (Pfad ohne '#'). Unbekannte Unterrouten eines Bereichs
+// leiten hierhin um; ein Bereichslink gilt nur hier als „exakt aktiv“.
+const AREA_START = {
+  planen: 'planen',
+  vorschlaege: 'vorschlaege',
+  nutzer: 'nutzer',
+  auswertung: 'auswertung/spiele',
+  werkzeuge: 'werkzeuge',
+}
+
+// Pfad (ohne '#') → Seite. 'parent' kennzeichnet Unterseiten mit Rückleiste.
+const ROUTE_TABLE = {
+  'planen': { page: 'dashboard', area: 'planen', tab: 'woche' },
+  'planen/monat': { page: 'calendar', area: 'planen', tab: 'monat' },
+  'planen/liste': { page: 'liste', area: 'planen', tab: 'liste' },
+  'vorschlaege': { page: 'vorschlaege', area: 'vorschlaege' },
+  'nutzer': { page: 'users', area: 'nutzer' },
+  'auswertung/spiele': { page: 'stats', area: 'auswertung', tab: 'spiele' },
+  'auswertung/kennzahlen': { page: 'metrics', area: 'auswertung', tab: 'kennzahlen' },
+  'auswertung/klassenraum': { page: 'classroom', area: 'auswertung', tab: 'klassenraum' },
+  'werkzeuge': { page: 'werkzeuge', area: 'werkzeuge' },
+  'werkzeuge/pruefen': { page: 'analytics', area: 'werkzeuge', parent: PARENT_WERKZEUGE },
+  'werkzeuge/bonus-tage': { page: 'freedays', area: 'werkzeuge', parent: PARENT_WERKZEUGE },
+  'werkzeuge/benachrichtigungen': { page: 'push', area: 'werkzeuge', parent: PARENT_WERKZEUGE },
+  'werkzeuge/wort-der-woche': { page: 'spezialwoche', area: 'werkzeuge', parent: PARENT_WERKZEUGE },
+  'werkzeuge/system': { page: 'system', area: 'werkzeuge', parent: PARENT_WERKZEUGE },
+  'werkzeuge/klassenraum-demo': { page: 'klassenraum-demo', area: 'werkzeuge', parent: PARENT_WERKZEUGE },
+}
+
+// Alte data-page-Werte (Schnellzugriffe auf dem Dashboard, Kalender) →
+// neue Adressen. switchPage() bleibt als dünne Hülle dafür bestehen.
+const LEGACY_PAGE_ROUTES = {
+  dashboard: '#planen',
+  entry: '#planen/tag/neu',
+  vorschlaege: '#vorschlaege',
+  calendar: '#planen/monat',
+  analytics: '#werkzeuge/pruefen',
+  stats: '#auswertung/spiele',
+  metrics: '#auswertung/kennzahlen',
+  users: '#nutzer',
+  freedays: '#werkzeuge/bonus-tage',
+  spezialwoche: '#werkzeuge/wort-der-woche',
+  push: '#werkzeuge/benachrichtigungen',
+  classroom: '#auswertung/klassenraum',
+  system: '#werkzeuge/system',
+}
+
+let routerActive = false
+let currentRouteHash = null
+let currentRoute = null
+let routeRenderToken = 0
+// Verlaufsindex: Jeder gerenderte Eintrag trägt { admIdx } in history.state.
+// Damit lassen sich abgebrochene Navigationen sauber zurückrollen und die
+// „‹“-Schaltfläche weiß, ob der vorherige Eintrag wirklich der Elternbereich ist.
+let currentIdx = 0
+const routeHashByIdx = new Map()
+let suppressHashChange = false
+let suppressTimer = null
+// Elternadresse → Link, über den man die Unterseite betreten hat (Fokus bei Rückkehr).
+const focusMemory = new Map()
+// 'new'   = Formular zeigt einen leeren/neuen Tag,
+// 'edit'  = ein bestehender Tag ist geladen,
+// 'loading' / 'error' = Tag wird geladen bzw. konnte nicht geladen werden (Speichern gesperrt).
+let entryFormMode = 'new'
+
+function isValidIsoDay(value) {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(value || ''))
+  if (!match) return false
+  const [year, month, day] = [Number(match[1]), Number(match[2]), Number(match[3])]
+  const probe = new Date(Date.UTC(year, month - 1, day))
+  return probe.getUTCFullYear() === year && probe.getUTCMonth() === month - 1 && probe.getUTCDate() === day
+}
+
+function isEntryRouteHash(hash) {
+  return /^#planen\/tag\//.test(String(hash || ''))
+}
+
+// Liefert die Route zum Hash, { redirect } für Weiterleitungen oder null für
+// unbekannte Adressen.
+function parseRoute(rawHash) {
+  const raw = String(rawHash || '').replace(/^#\/?/, '')
+  const [pathPart, queryPart = ''] = raw.split('?')
+  const path = pathPart.replace(/\/+$/, '')
+
+  if (path === '') return { redirect: '#planen' }
+
+  if (path === 'planen/tag/neu') {
+    return { page: 'entry', area: 'planen', parent: PARENT_PLANEN, entry: 'neu', key: path }
+  }
+  const dayMatch = /^planen\/tag\/([^/]+)$/.exec(path)
+  if (dayMatch) {
+    if (!isValidIsoDay(dayMatch[1])) return { redirect: `#${AREA_START.planen}` }
+    return { page: 'entry', area: 'planen', parent: PARENT_PLANEN, entry: 'edit', date: dayMatch[1], key: path }
+  }
+
+  // Object.hasOwn: sonst würden #constructor oder #__proto__ Prototyp-Einträge treffen.
+  if (Object.hasOwn(ROUTE_TABLE, path)) {
+    const section = new URLSearchParams(queryPart).get('abschnitt') || ''
+    return { ...ROUTE_TABLE[path], key: path, section: /^[a-z-]+$/.test(section) ? section : '' }
+  }
+
+  // Alte Adressen (#calendar, #stats …) auf die neue Route umleiten.
+  if (Object.hasOwn(LEGACY_PAGE_ROUTES, path)) return { redirect: LEGACY_PAGE_ROUTES[path] }
+
+  // Unbekannte Unterroute eines bekannten Bereichs → Start dieses Bereichs.
+  const firstSegment = path.split('/')[0]
+  if (Object.hasOwn(AREA_START, firstSegment)) return { redirect: `#${AREA_START[firstSegment]}` }
+
+  return null
+}
+
+function setPageMeta({ title = '', subtitle = '', overline = '' } = {}) {
   const titleEl = document.getElementById('page-title')
   const subtitleEl = document.getElementById('page-subtitle')
-  if (!titleEl || !subtitleEl || !pageEl) return
-  titleEl.textContent = pageEl.dataset.title || 'Dashboard'
-  subtitleEl.textContent = pageEl.dataset.subtitle || ''
+  const overlineEl = document.getElementById('page-overline')
+  if (titleEl) titleEl.textContent = title
+  if (subtitleEl) subtitleEl.textContent = subtitle
+  if (overlineEl) {
+    overlineEl.textContent = overline
+    // Keine Überzeile, wenn sie nur den Titel wiederholen würde.
+    overlineEl.classList.toggle('is-hidden', !overline || overline === title)
+  }
+  // „Bonus-Tage · Werkzeuge – Signifikation Admin“; bei Titel = Bereich nur einmal.
+  const context = overline && overline !== title ? ` · ${overline}` : ''
+  document.title = title ? `${title}${context} – Signifikation Admin` : 'Signifikation – Admin'
 }
 
+function headActionsHtml(route) {
+  if (route.area === 'planen' && !route.parent) {
+    return '<a class="adm-cta" href="#planen/tag/neu">Tag anlegen <span aria-hidden="true">→</span></a>'
+      + '<button type="button" class="adm-link" data-action="refresh-dashboard">neu laden</button>'
+  }
+  return ''
+}
+
+// Setzt Seite, Kopf, Reiter, Rückleiste und Navigation – ohne Daten zu laden.
+function applyRouteChrome(route) {
+  const pageEl = document.getElementById(`page-${route.page}`)
+  document.querySelectorAll('.admin-page').forEach((page) => {
+    page.classList.toggle('is-active', page === pageEl)
+  })
+
+  let title = pageEl?.dataset.title || ''
+  let subtitle = pageEl?.dataset.subtitle || ''
+  if (route.entry === 'neu') {
+    title = 'Neuer Tag'
+  } else if (route.entry === 'edit') {
+    title = 'Tag bearbeiten'
+    subtitle = `Tagesinhalt für den ${formatIsoDate(route.date)} bearbeiten und mit Datenquellen anreichern.`
+  }
+
+  const areaLabel = AREA_LABELS[route.area] || ''
+  // In Unterseiten steht der Elternbereich über dem Titel, sonst der Bereich.
+  setPageMeta({ title, subtitle, overline: route.parent ? route.parent.label : areaLabel })
+
+  const root = document.getElementById('main-container')
+  if (root) root.classList.toggle('has-takeover', !!route.parent)
+
+  const backEl = document.getElementById('page-back')
+  if (backEl) {
+    backEl.classList.toggle('is-hidden', !route.parent)
+    if (route.parent) {
+      backEl.setAttribute('href', route.parent.hash)
+      backEl.setAttribute('aria-label', `Zurück zu ${route.parent.label}`)
+      const labelEl = document.getElementById('page-back-label')
+      if (labelEl) labelEl.textContent = route.parent.label
+    }
+  }
+
+  const actionsEl = document.getElementById('page-actions')
+  if (actionsEl) actionsEl.innerHTML = headActionsHtml(route)
+
+  const tabsEl = document.getElementById('page-tabs')
+  if (tabsEl) {
+    const tabs = AREA_TABS[route.area]
+    const showTabs = !!tabs && !route.parent
+    tabsEl.classList.toggle('is-hidden', !showTabs)
+    tabsEl.setAttribute('aria-label', `Ansichten: ${areaLabel}`)
+    tabsEl.innerHTML = showTabs
+      ? tabs.map((tab) => `<a class="adm-tab" href="${tab.hash}"${tab.key === route.tab ? ' aria-current="page"' : ''}>${esc(tab.label)}</a>`).join('')
+      : ''
+  }
+
+  // „page“ nur auf der Startseite des Bereichs; auf Unterseiten und anderen
+  // Reitern markiert „true“ lediglich, in welchem Bereich man sich befindet.
+  const isAreaStart = route.key === AREA_START[route.area]
+  document.querySelectorAll('.adm-nav-item').forEach((item) => {
+    if (item.dataset.area !== route.area) item.removeAttribute('aria-current')
+    else item.setAttribute('aria-current', isAreaStart ? 'page' : 'true')
+  })
+}
+
+// Daten je Route laden (früher in switchPage).
+function runRouteLoaders(route) {
+  switch (route.page) {
+    case 'users':
+      // Nutzerliste wird beim Start schon geladen – nur nachholen, wenn das fehlte.
+      if (!usersLoaded) loadUsersOverview()
+      break
+    case 'stats':
+      // Beim Start werden die Diagramme übersprungen (Chart.js ist dann noch
+      // nicht geladen) – hier also frisch rendern.
+      loadStats()
+      break
+    case 'system':
+      loadAuditLog()
+      loadCoursePdfStatus()
+      break
+    case 'freedays':
+      loadFreeDays()
+      break
+    case 'vorschlaege':
+      loadVorschlaege()
+      break
+    case 'spezialwoche':
+      loadSpezialwochen()
+      break
+    case 'push':
+      loadPushTemplates()
+      break
+    case 'classroom':
+      loadClassroomStats()
+      break
+    case 'klassenraum-demo':
+      loadDemoEditor()
+      break
+    case 'metrics':
+      loadProductMetrics()
+      break
+    case 'liste':
+      renderEntryTable()
+      break
+    case 'calendar':
+      renderCalendar()
+      updateCalendarDetails(selectedCalendarDate)
+      break
+    default:
+      break
+  }
+}
+
+// Zustand des Tagesformulars: Modus setzen und Knöpfe passend sperren.
+// Speichern ist nur im Modus 'new'/'edit' möglich, Löschen nur bei 'edit'.
+function setEntryMode(mode) {
+  entryFormMode = mode
+  const saveBtn = document.getElementById('save-btn')
+  const deleteBtn = document.getElementById('delete-btn')
+  if (saveBtn) saveBtn.disabled = mode === 'error' || mode === 'loading'
+  if (deleteBtn) deleteBtn.disabled = mode !== 'edit'
+}
+
+// Meldung oben auf der Tagesseite (die Statuszeile #status liegt weit unten
+// am Formularende). Leerer Text blendet sie aus.
+function setEntryLoadError(message) {
+  const el = document.getElementById('entry-load-error')
+  if (!el) return
+  el.textContent = ''
+  if (!message) {
+    el.className = 'status'
+    return
+  }
+  el.className = 'status error'
+  const text = document.createElement('span')
+  text.textContent = message
+  const retry = document.createElement('button')
+  retry.type = 'button'
+  retry.className = 'adm-link'
+  retry.dataset.action = 'retry-entry-route'
+  retry.textContent = 'Erneut versuchen'
+  el.append(text, ' ', retry)
+}
+
+function describeEntryLoadError(status, data) {
+  if (status === 401 || status === 403) return 'Die Sitzung ist abgelaufen. Bitte neu anmelden.'
+  if (status === 429) return 'Zu viele Anfragen. Bitte kurz warten und erneut versuchen.'
+  if (status >= 500) return `Der Server meldet einen Fehler (HTTP ${status}).`
+  if (data && typeof data.error === 'string' && data.error) return data.error
+  return `Unerwartete Antwort vom Server (HTTP ${status}).`
+}
+
+async function renderEntryRoute(route, token) {
+  if (route.entry === 'neu') {
+    // Ein bereits angefangener neuer Tag bleibt erhalten (wie früher beim
+    // „Neuer Tag“-Knopf); ein geladener bestehender Tag wird dagegen geleert,
+    // sonst würde „Neuer Tag“ versehentlich diesen Tag überschreiben.
+    // Ohne Snapshot (erster Besuch) gäbe es keine Dirty-Erkennung – dann einmal
+    // initialisieren. keepDraft: ein gespeicherter Entwurf bleibt zur Wiederherstellung.
+    if (entryFormMode !== 'new' || !entryFormSnapshot) {
+      prefillDate(getTodayIso(), { force: true, keepDraft: true })
+    }
+    return
+  }
+
+  // Bestehender Tag? Direkt beim Server fragen statt aus dem Kalender zu raten:
+  // 200 = bearbeiten, 404 = neuer Tag, alles andere = Fehler (nie als „neu“ anbieten,
+  // sonst könnte ein bestehender Tag überschrieben werden).
+  setEntryMode('loading')
+  setEntryLoadError('')
+  const result = await editTag(route.date, { token })
+  if (result.state === 'stale' || token !== routeRenderToken) return
+
+  if (result.state === 'missing') {
+    prefillDate(route.date, { force: true, keepDraft: true })
+    setEntryHead('neu', route.date)
+    return
+  }
+  if (result.state === 'error') {
+    prefillDate(route.date, { force: true, keepDraft: true })
+    setEntryMode('error')
+    setEntryLoadError(`Der Tag ${formatIsoDate(route.date)} konnte nicht geladen werden: ${result.reason} Speichern ist gesperrt, damit kein bestehender Eintrag überschrieben wird.`)
+    setPageMeta({ title: 'Tag konnte nicht geladen werden', subtitle: result.reason, overline: PARENT_PLANEN.label })
+  }
+}
+
+// Kopf der Tagesseite an den Zustand des Formulars anpassen (nach Löschen/Speichern).
+function setEntryHead(kind, isoDate) {
+  if (kind === 'neu') {
+    setPageMeta({
+      title: 'Neuer Tag',
+      subtitle: `Neuen Tageseintrag für den ${formatIsoDate(isoDate)} anlegen.`,
+      overline: PARENT_PLANEN.label,
+    })
+    return
+  }
+  setPageMeta({
+    title: 'Tag bearbeiten',
+    subtitle: `Tagesinhalt für den ${formatIsoDate(isoDate)} bearbeiten und mit Datenquellen anreichern.`,
+    overline: PARENT_PLANEN.label,
+  })
+}
+
+// history.state mit dem Verlaufsindex des aktuellen Eintrags versehen.
+function stampHistory(hash) {
+  const base = window.history.state && typeof window.history.state === 'object' ? window.history.state : {}
+  window.history.replaceState({ ...base, admIdx: currentIdx }, '', hash)
+  routeHashByIdx.set(currentIdx, hash)
+}
+
+// Fokus nach einer vom Nutzer ausgelösten Navigation: Zielabschnitt, der Link,
+// über den man von der Unterseite zurückkehrt, sonst die Seitenüberschrift.
+function focusAfterNavigation(route, hash, { fromChild }) {
+  const titleEl = document.getElementById('page-title')
+  let target = null
+  let preventScroll = true
+
+  if (route.section) {
+    const sectionEl = document.getElementById(`system-${route.section}`)
+    const headingHost = sectionEl?.matches('h2') ? sectionEl : (sectionEl?.closest('.card') || sectionEl)
+    const heading = headingHost?.matches('h2') ? headingHost : headingHost?.querySelector('h2')
+    if (heading) {
+      heading.setAttribute('tabindex', '-1')
+      target = heading
+    }
+  } else if (fromChild) {
+    const href = focusMemory.get(hash)
+    if (href) {
+      target = Array.from(document.querySelectorAll('#adm-main a[href]')).find((a) => a.getAttribute('href') === href) || null
+      preventScroll = false
+    }
+  }
+
+  const focusTarget = target || titleEl
+  focusTarget?.focus({ preventScroll: target ? preventScroll : true })
+  // Verdeckter oder nicht fokussierbarer Link → auf die Überschrift ausweichen.
+  if (target && document.activeElement !== target) titleEl?.focus({ preventScroll: true })
+}
+
+async function renderRoute({ userInitiated = false } = {}) {
+  let hash = window.location.hash
+  let route = parseRoute(hash)
+  if (route?.redirect) {
+    hash = route.redirect
+    route = parseRoute(hash)
+  }
+  if (!route || route.redirect) {
+    hash = `#${AREA_START.planen}`
+    route = parseRoute(hash)
+  }
+
+  const token = ++routeRenderToken
+  const leavingRoute = currentRoute
+  currentRouteHash = hash
+  currentRoute = route
+  // Weiterleitungen und Index in einem Schritt in den Verlauf schreiben (ohne neuen Eintrag).
+  stampHistory(hash)
+
+  applyRouteChrome(route)
+
+  if (route.section) {
+    document.getElementById(`system-${route.section}`)?.scrollIntoView({ block: 'start' })
+  } else if (userInitiated && typeof window.scrollTo === 'function') {
+    window.scrollTo(0, 0)
+  }
+  if (userInitiated) {
+    focusAfterNavigation(route, hash, { fromChild: !!leavingRoute?.parent && leavingRoute.parent.hash === hash })
+  }
+
+  if (route.page === 'entry') await renderEntryRoute(route, token)
+  else runRouteLoaders(route)
+}
+
+// Entwurfsschutz am Formular: nachfragen, wenn ungespeicherte Änderungen verloren
+// gehen würden – beim Verlassen der Tagesseite UND beim Öffnen eines anderen Tages
+// (auch aus Monat/Liste, wo das Formular im Hintergrund noch den Entwurf hält).
+// Der Browser-eigene Schutz beim Schließen/Neuladen des Tabs fehlt bewusst
+// (kein beforeunload); dort greift nur das Zwischenspeichern des Entwurfs.
+function confirmLeaveEntryRoute(nextHash) {
+  if (!entryFormDirty) return true
+  const leaving = isEntryRouteHash(currentRouteHash)
+  const entering = isEntryRouteHash(nextHash)
+  // „Neuer Tag“ behält ein angefangenes neues Formular – nichts geht verloren.
+  if (nextHash === '#planen/tag/neu' && entryFormMode === 'new') return true
+  if (!leaving && !entering) return true
+  const ok = confirmDiscardEntryChanges(entering ? 'den Entwurf zu verwerfen' : 'die Seite zu verlassen')
+  // Bewusst verworfen: den gespeicherten Entwurf nicht beim nächsten Start anbieten.
+  if (ok && entering) clearEntryDraft()
+  return ok
+}
+
+function suppressNextHashChange() {
+  suppressHashChange = true
+  if (suppressTimer) window.clearTimeout(suppressTimer)
+  // Sicherheitsnetz: feuert kein hashchange (gleiche Adresse), Flag nicht hängen lassen.
+  suppressTimer = window.setTimeout(() => { suppressHashChange = false }, 1000)
+}
+
+function handleHashChange() {
+  if (suppressHashChange) {
+    suppressHashChange = false
+    return
+  }
+  if (!routerActive) return
+
+  // Neuer Eintrag (Link, Hash gesetzt) trägt noch keinen Index; Zurück/Vor-
+  // Sprünge landen auf einem Eintrag mit admIdx.
+  const stateIdx = window.history.state?.admIdx
+  const isTraversal = Number.isInteger(stateIdx)
+
+  if (!confirmLeaveEntryRoute(window.location.hash)) {
+    // Abbruch: genau den Schritt rückgängig machen, ohne zu rendern.
+    suppressNextHashChange()
+    if (isTraversal) window.history.go(currentIdx - stateIdx)
+    else window.history.back()
+    return
+  }
+  currentIdx = isTraversal ? stateIdx : currentIdx + 1
+  void renderRoute({ userInitiated: true })
+}
+
+// Programmatische Navigation. Bei gleicher Adresse feuert 'hashchange' nicht –
+// dann wird direkt neu gerendert (z. B. zweimal derselbe Tag).
+function navigate(hash) {
+  const target = String(hash || '').startsWith('#') ? String(hash) : `#${hash}`
+  if (target !== window.location.hash) {
+    window.location.hash = target
+    return
+  }
+  if (!routerActive || !confirmLeaveEntryRoute(target)) return
+  void renderRoute({ userInitiated: true })
+}
+
+// Klick auf einen Hash-Link zur bereits aktiven Adresse → neu rendern.
+function handleRouteLinkClick(event) {
+  const link = event.target.closest?.('a[href^="#"]')
+  if (!link || link.dataset.action) return
+  if (!routerActive || event.defaultPrevented || event.button !== 0) return
+  if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return
+  const target = link.getAttribute('href')
+  // Link merken, über den eine Unterseite betreten wird: Bei der Rückkehr
+  // bekommt genau dieser Link den Fokus.
+  const targetRoute = parseRoute(target)
+  if (targetRoute?.parent) focusMemory.set(targetRoute.parent.hash, target)
+  if (target !== window.location.hash) return
+  event.preventDefault()
+  navigate(target)
+}
+
+// „‹“ der Rückleiste. history.back() nur, wenn der vorherige App-Eintrag wirklich
+// der Elternbereich ist (sonst stünde „‹ Werkzeuge“ vor einem Sprung zum Monat);
+// andernfalls direkt zum Elternbereich.
+function goBackFromSubpage() {
+  const parent = currentRoute?.parent
+  if (!parent) return
+  if (currentIdx > 0) {
+    const previousHash = routeHashByIdx.get(currentIdx - 1)
+    const previousRoute = previousHash ? parseRoute(previousHash) : null
+    if (previousRoute && !previousRoute.redirect && !previousRoute.parent && previousRoute.area === parent.area) {
+      window.history.back()
+      return
+    }
+  }
+  navigate(parent.hash)
+}
+
+// Ändert die Adresse ohne Neurendern (z. B. nach dem Speichern eines neuen Tages).
+function replaceRouteHashSilently(hash) {
+  currentRouteHash = hash
+  currentRoute = parseRoute(hash) || currentRoute
+  stampHistory(hash)
+}
+
+function startRouter() {
+  routerActive = true
+  // Nach einem Neuladen trägt der Eintrag seinen Index noch in history.state.
+  const existingIdx = window.history.state?.admIdx
+  currentIdx = Number.isInteger(existingIdx) ? existingIdx : 0
+  routeHashByIdx.clear()
+  void renderRoute({ userInitiated: false })
+}
+
+function stopRouter() {
+  routerActive = false
+  currentRouteHash = null
+  currentRoute = null
+  routeRenderToken++
+  routeHashByIdx.clear()
+}
+
+window.addEventListener('hashchange', handleHashChange)
+
+// Die mobile Leiste wächst bei großer Schrift mit (Labels brechen um). Ihre echte
+// Höhe als CSS-Variable bereitstellen, damit .adm-main genug Platz darunter lässt.
+function observeNavBarHeight() {
+  const nav = document.querySelector('.adm-nav')
+  if (!nav || typeof ResizeObserver === 'undefined') return
+  const apply = () => {
+    document.documentElement.style.setProperty('--bar-h-actual', `${Math.ceil(nav.getBoundingClientRect().height)}px`)
+  }
+  new ResizeObserver(apply).observe(nav)
+  apply()
+}
+observeNavBarHeight()
+
+// Dünne Hülle für alte data-page-Werte.
 function switchPage(pageId) {
-  const activePage = document.querySelector('.admin-page.is-active')
-  const activePageId = activePage?.id?.replace(/^page-/, '') || ''
-  if (activePageId === 'entry' && pageId !== 'entry' && !confirmDiscardEntryChanges('die Seite zu verlassen')) {
-    return
-  }
-
-  const pages = document.querySelectorAll('.admin-page')
-  pages.forEach((page) => {
-    const isActive = page.id === `page-${pageId}`
-    page.classList.toggle('is-active', isActive)
-    if (isActive) setPageMeta(page)
-  })
-
-  const navItems = document.querySelectorAll('.admin-nav .nav-item[data-page]')
-  navItems.forEach((item) => {
-    item.classList.toggle('active', item.dataset.page === pageId)
-  })
-
-  if (pageId === 'users' && !usersLoaded) {
-    loadUsersOverview()
-  }
-
-  if (pageId === 'stats') {
-    // Beim Dashboard-Start werden die Diagramme übersprungen (Chart.js ist
-    // dann noch nicht geladen) – hier also frisch rendern.
-    loadStats()
-  }
-
-  if (pageId === 'system') {
-    loadAuditLog()
-    loadCoursePdfStatus()
-  }
-
-  if (pageId === 'freedays') {
-    loadFreeDays()
-  }
-
-  if (pageId === 'vorschlaege') {
-    loadVorschlaege()
-  }
-
-  if (pageId === 'spezialwoche') {
-    loadSpezialwochen()
-  }
-
-  if (pageId === 'push') {
-    loadPushTemplates()
-  }
-
-  if (pageId === 'classroom') {
-    loadClassroomStats()
-    loadDemoEditor()
-  }
-
-  if (pageId === 'metrics') {
-    loadProductMetrics()
-  }
-
-  syncMobileNav()
-}
-
-// ── Mobile-Navigation ─────────────────────────────────────
-// Spiegelt die Sidebar-Navigation in ein <select>, das auf schmalen
-// Screens sticky über dem Inhalt sitzt. Ohne das müsste man sich auf
-// dem Handy bei jedem Seitenwechsel an ~830px Navigationsblock
-// vorbeiscrollen. Wird aus dem DOM erzeugt, damit die Bereiche nicht
-// an zwei Stellen gepflegt werden müssen.
-function buildMobileNav() {
-  const select = document.getElementById('mobile-nav-select')
-  if (!select) return
-
-  select.innerHTML = Array.from(document.querySelectorAll('.admin-nav .nav-group-block')).map((group) => {
-    const label = esc(group.querySelector('.nav-group-label')?.textContent?.trim() || '')
-    const options = Array.from(group.querySelectorAll('.nav-item')).map((item) => {
-      const text = esc(item.textContent.trim())
-      if (item.dataset.page) return `<option value="page:${esc(item.dataset.page)}">${text}</option>`
-      const href = item.getAttribute('href')
-      return href ? `<option value="href:${esc(href)}">${text}</option>` : ''
-    }).join('')
-    return `<optgroup label="${label}">${options}</optgroup>`
-  }).join('')
-
-  syncMobileNav()
-}
-
-function syncMobileNav() {
-  const select = document.getElementById('mobile-nav-select')
-  if (!select) return
-  const activeId = document.querySelector('.admin-page.is-active')?.id?.replace(/^page-/, '')
-  if (activeId) select.value = `page:${activeId}`
-}
-
-function handleMobileNavChange(value) {
-  if (value.startsWith('href:')) {
-    window.location.href = value.slice(5)
-    return
-  }
-  // switchPage kann bei ungespeicherten Änderungen abbrechen – syncMobileNav
-  // setzt das Select dann auf die tatsächlich aktive Seite zurück.
-  switchPage(value.slice(5))
-  syncMobileNav()
+  if (Object.hasOwn(LEGACY_PAGE_ROUTES, pageId)) navigate(LEGACY_PAGE_ROUTES[pageId])
 }
 
 function refreshDashboard() {
@@ -273,10 +733,15 @@ function setEntryDirtyState(isDirty) {
   if (resetBtn) resetBtn.disabled = !entryFormDirty
 }
 
-function captureEntryFormSnapshot() {
+// options.keepDraft: ein gespeicherter Entwurf bleibt erhalten. Gilt für das
+// Laden durch den Router – sonst würde ein Direktaufruf von #planen/tag/<datum>
+// den Entwurf löschen, bevor „Wiederherstellen“ angeklickt werden kann.
+// Gelöscht wird er nur nach dem Speichern, bewusstem Verwerfen/Zurücksetzen
+// oder wenn der Nutzer ihn ablehnt.
+function captureEntryFormSnapshot({ keepDraft = false } = {}) {
   entryFormSnapshot = readEntryFormState()
   setEntryDirtyState(false)
-  clearEntryDraft()
+  if (!keepDraft) clearEntryDraft()
 }
 
 function updateEntryDirtyState() {
@@ -362,6 +827,14 @@ function restoreEntryDraft() {
     return
   }
   applyEntryFields(draft.fields)
+  // Gehört der Entwurf zu einem anderen Tag als dem geladenen (z. B. nach einem
+  // Direktaufruf von #planen/tag/<datum>), darf „Löschen“ nicht den geladenen Tag treffen.
+  const draftDate = draft.fields.datum || ''
+  if (entryFormMode === 'edit' && draftDate !== selectedCalendarDate) {
+    selectedCalendarDate = ''
+    setEntryMode('new')
+    if (currentRoute?.entry && isValidIsoDay(draftDate)) setEntryHead('neu', draftDate)
+  }
   updateEntryDirtyState()
   hideEntryDraftBanner()
 }
@@ -913,10 +1386,10 @@ async function importCalendarCsv(event) {
     const data = await response.json().catch(() => ({}))
     if (!response.ok) throw new Error(data.error || `HTTP ${response.status}`)
 
-    setStatus(`${data.importedCount || 0} Einträge per CSV importiert, ${data.replacedCount || 0} ersetzt.`, 'ok')
+    setListStatus(`${data.importedCount || 0} Einträge per CSV importiert, ${data.replacedCount || 0} ersetzt.`, 'ok')
     await loadKalender()
   } catch (err) {
-    setStatus(`CSV-Import fehlgeschlagen: ${err.message}`, 'error')
+    setListStatus(`CSV-Import fehlgeschlagen: ${err.message}`, 'error')
   } finally {
     event.target.value = ''
   }
@@ -928,6 +1401,7 @@ async function doLogout() {
     sessionRefreshTimer = null
   }
   clearToken()
+  stopRouter()
   await fetch('/admin/logout', { method: 'POST', headers: { 'Content-Type': 'application/json' } }).catch(() => {})
   hideMainContainer()
   document.getElementById('login-overlay').classList.remove('hidden')
@@ -951,7 +1425,7 @@ fetch('/admin/kalender').then(r => {
 }).catch(() => {})
 
 function initDashboard() {
-  switchPage('dashboard')
+  startRouter()
   offerEntryDraft()
   loadKalender()
   loadVorschlaege({ silent: true })
@@ -1110,6 +1584,15 @@ function setStatus(msg, type) {
   el.className = `status ${type}`
 }
 
+// Meldungen der Listenansicht (CSV-Import, Massenlöschen): eigene Zeile in
+// #page-liste, da #status zur Tagesseite gehört und dort unsichtbar bliebe.
+function setListStatus(msg, type) {
+  const el = document.getElementById('liste-status')
+  if (!el) return
+  el.textContent = msg
+  el.className = `status ${type}`
+}
+
 
 function renderCalendar() {
   const title = document.getElementById('cal-title')
@@ -1165,7 +1648,6 @@ function renderCalendar() {
 
 function selectCalendarDate(datum) {
   selectedCalendarDate = datum
-  switchPage('calendar')
   renderCalendar()
   updateCalendarDetails(datum)
 }
@@ -1177,9 +1659,14 @@ function changeMonth(delta) {
   renderCalendar()
 }
 
+// Leert das Tagesformular und setzt das Datum. Die Seite selbst zeigt der
+// Router (#planen/tag/…); options.force überspringt die Rückfrage, weil der
+// Router sie beim Seitenwechsel schon gestellt hat. options.keepDraft lässt einen
+// gespeicherten Entwurf bestehen (Router-Pfad). Gibt zurück, ob zurückgesetzt wurde.
 function prefillDate(isoDate, options = {}) {
-  if (!options.force && !confirmDiscardEntryChanges('den Entwurf zu verwerfen')) return
-  switchPage('entry')
+  if (!options.force && !confirmDiscardEntryChanges('den Entwurf zu verwerfen')) return false
+  setEntryMode('new')
+  setEntryLoadError('')
   selectedCalendarDate = ''
   renderCalendar()
   document.getElementById('datum').value = isoDate
@@ -1192,17 +1679,16 @@ function prefillDate(isoDate, options = {}) {
   document.getElementById('wzpos').value = 'Substantiv'
   document.getElementById('form-title').textContent = 'Neuer Tageseintrag'
   document.getElementById('save-btn').textContent   = 'Speichern & APIs abrufen'
-  const deleteBtn = document.getElementById('delete-btn')
-  if (deleteBtn) deleteBtn.disabled = true
   document.getElementById('status').className = 'status'
   document.getElementById('status').textContent = ''
   hideAllExtraFields()
   clearInlineAnalysisOutputs()
   updateModeIndicators()
-  captureEntryFormSnapshot()
+  captureEntryFormSnapshot({ keepDraft: !!options.keepDraft })
   if (typeof window.scrollTo === 'function') {
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
+  return true
 }
 
 // Statuswerte aus server/lueckenfuellerAutoGen.js (plus 'fehler' aus admin-calendar.js)
@@ -1251,6 +1737,12 @@ async function saveTag() {
   const btn = document.getElementById('save-btn')
   btn.disabled = true
 
+  // Speichern dauert (externe Daten werden geladen). Kopf, Adresse und Auswahl
+  // nur nachziehen, wenn der Nutzer währenddessen nicht weiternavigiert ist
+  // und im Formular noch derselbe Tag steht.
+  const saveToken = routeRenderToken
+  const stillOnSavedDay = () => saveToken === routeRenderToken && document.getElementById('datum')?.value === datum
+
   const statusParts = [`DWDS für „${w1}”, „${w2}”, „${w3}”`]
   if (wza && wzb) statusParts.push(`Wort-Zwilling „${wza}” / „${wzb}”`)
   if (zwLemma) statusParts.push(`Zeitenwende für „${zwLemma}”`)
@@ -1295,23 +1787,49 @@ async function saveTag() {
     if (lfId) msg += ` · Lückenfüller: ${lueckenfuellerMeldung(data.lueckenfuellerStatus)}`
     const hasError = data.zwillingOk === false || data.zeitenwendeOk === false || data.lueckenfuellerOk === false
     setStatus(msg, hasError ? 'error' : 'ok')
-    selectedCalendarDate = datum
+    if (stillOnSavedDay()) {
+      selectedCalendarDate = datum
+      setEntryMode('edit')
+      // Der Tag existiert jetzt: Adresse und Kopf entsprechend nachziehen (ohne Neurendern).
+      if (currentRoute?.entry && isValidIsoDay(datum)) {
+        setEntryHead('edit', datum)
+        if (currentRouteHash !== `#planen/tag/${datum}`) replaceRouteHashSilently(`#planen/tag/${datum}`)
+      }
+    }
     await loadKalender()
-    captureEntryFormSnapshot()
+    // Nur den Snapshot erneuern, wenn das Formular noch den gespeicherten Tag zeigt –
+    // sonst würde ein inzwischen geöffneter anderer Tag fälschlich als „gespeichert“ gelten.
+    if (stillOnSavedDay()) captureEntryFormSnapshot()
   } catch (err) {
     setStatus(`Fehler: ${err.message}`, 'error')
   } finally {
-    btn.disabled = false
+    // Nicht entsperren, falls inzwischen ein Tag lädt oder nicht geladen werden konnte.
+    btn.disabled = entryFormMode === 'error' || entryFormMode === 'loading'
   }
 }
 
-async function editTag(datum) {
-  if (!confirmDiscardEntryChanges('den anderen Tag zu laden')) return
-  switchPage('entry')
+// Lädt einen bestehenden Tag ins Formular. Aufgerufen vom Router
+// (#planen/tag/<datum>), der Rückfrage und Seitenwechsel schon erledigt hat.
+// options.token: veraltete Antworten (Nutzer ist inzwischen weiternavigiert) verwerfen.
+// Rückgabe: { state: 'ok' } | { state: 'missing' } (404, Tag existiert nicht) |
+// { state: 'error', reason } | { state: 'stale' }. Das Formular wird nur bei 'ok' verändert.
+async function editTag(datum, options = {}) {
+  let res
+  try {
+    res = await fetch(`/admin/tag/${datum}`, {})
+  } catch {
+    if (options.token != null && options.token !== routeRenderToken) return { state: 'stale' }
+    return { state: 'error', reason: 'Keine Verbindung zum Server.' }
+  }
+  const data = await res.json().catch(() => null)
+  if (options.token != null && options.token !== routeRenderToken) return { state: 'stale' }
+  if (res.status === 404 && data?.error === 'Kein Eintrag') return { state: 'missing' }
+  if (!res.ok || !data || !Array.isArray(data.woerter) || !Array.isArray(data.notizen) || !Array.isArray(data.links)) {
+    return { state: 'error', reason: describeEntryLoadError(res.status, data) }
+  }
   selectedCalendarDate = datum
-  const res  = await fetch(`/admin/tag/${datum}`, {})
-  const data = await res.json()
-  if (!res.ok) return setStatus(`Fehler: ${data.error}`, 'error')
+  setEntryMode('edit')
+  setEntryLoadError('')
   document.getElementById('datum').value = datum
   document.getElementById('w1').value = data.woerter[0] || ''
   document.getElementById('w2').value = data.woerter[1] || ''
@@ -1340,8 +1858,6 @@ async function editTag(datum) {
   document.getElementById('lf-id').value       = data.lueckenfueller_id || ''
   document.getElementById('form-title').textContent = `Eintrag bearbeiten: ${datum}`
   document.getElementById('save-btn').textContent   = 'Aktualisieren & APIs abrufen'
-  const deleteBtn = document.getElementById('delete-btn')
-  if (deleteBtn) deleteBtn.disabled = false
 
   // Extra-Felder aufklappen wenn Daten vorhanden
   hideAllExtraFields()
@@ -1352,12 +1868,13 @@ async function editTag(datum) {
   if (data.zeitenwende_notiz || data.zeitenwende_link) showExtraFields('zw-extras')
   updateModeIndicators()
   clearInlineAnalysisOutputs()
-  captureEntryFormSnapshot()
+  captureEntryFormSnapshot({ keepDraft: true })
 
   if (typeof window.scrollTo === 'function') {
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
   setStatus(`Eintrag ${datum} geladen – Änderungen vornehmen und speichern.`, 'loading')
+  return { state: 'ok' }
 }
 
 async function deleteCurrentTag() {
@@ -1382,7 +1899,11 @@ async function deleteCurrentTag() {
     selectedEntryDates.delete(selectedCalendarDate)
     setStatus(`Eintrag ${selectedCalendarDate} gelöscht.`, 'ok')
     const currentDate = document.getElementById('datum')?.value || new Date().toISOString().slice(0, 10)
-    prefillDate(currentDate)
+    // Kopf nur anpassen, wenn das Formular wirklich zurückgesetzt wurde
+    // (bei abgebrochener Rückfrage zeigt es weiter den alten Stand).
+    if (prefillDate(currentDate) && currentRoute?.entry && isValidIsoDay(currentDate)) {
+      setEntryHead('neu', currentDate)
+    }
     await loadKalender()
   } catch (err) {
     setStatus(`Löschen fehlgeschlagen: ${err.message}`, 'error')
@@ -1394,7 +1915,13 @@ async function deleteCurrentTag() {
 async function loadKalender() {
   try {
     const res  = await fetch('/admin/kalender', {})
-    kalenderData = await res.json()
+    if (!res.ok) throw new Error(`HTTP ${res.status}`)
+    const loaded = await res.json()
+    // Fehlerantworten wie { error: … } nie als Kalender übernehmen.
+    if (!loaded || typeof loaded !== 'object' || Array.isArray(loaded) || typeof loaded.error === 'string') {
+      throw new Error('Ungültige Kalenderantwort')
+    }
+    kalenderData = loaded
 
     for (const datum of [...selectedEntryDates]) {
       if (!kalenderData[datum]) selectedEntryDates.delete(datum)
@@ -1624,10 +2151,10 @@ async function bulkDeleteSelectedDates() {
     if (!response.ok) throw new Error(data.error || `HTTP ${response.status}`)
 
     selectedEntryDates.clear()
-    setStatus(`${data.removedCount || 0} Einträge gelöscht, ${data.skippedCount || 0} übersprungen.`, 'ok')
+    setListStatus(`${data.removedCount || 0} Einträge gelöscht, ${data.skippedCount || 0} übersprungen.`, 'ok')
     await loadKalender()
   } catch (err) {
-    setStatus(`Bulk-Löschen fehlgeschlagen: ${err.message}`, 'error')
+    setListStatus(`Bulk-Löschen fehlgeschlagen: ${err.message}`, 'error')
     const rows = Object.keys(kalenderData || {})
     updateEntryBulkState(rows)
   } finally {
@@ -1641,9 +2168,8 @@ function focusCalendarDate(datum) {
   calYear = year || new Date().getFullYear()
   calMonth = (month || 1) - 1
   selectedCalendarDate = datum
-  renderCalendar()
-  switchPage('calendar')
-  updateCalendarDetails(datum)
+  // Der Router rendert Monat und Tagesdetails mit der gewählten Auswahl.
+  navigate('#planen/monat')
 }
 
 function changeDashboardWeek(delta) {
@@ -1748,8 +2274,7 @@ function updateDashboardDayDetail(datum) {
 
 function editSelectedCalendarDate() {
   if (!selectedCalendarDate) return
-  if (kalenderData[selectedCalendarDate]) editTag(selectedCalendarDate)
-  else prefillDate(selectedCalendarDate)
+  navigate(`#planen/tag/${selectedCalendarDate}`)
 }
 
 function updateDashboardFromKalender() {
@@ -3374,9 +3899,12 @@ function aktualisiereVorschlagHinweise() {
   const offen = vorschlaege.filter((v) => !v.erledigt).length
   const badge = document.getElementById('vorschlaege-badge')
   if (badge) {
+    // Sichtbare Zahl ist aria-hidden; Screenreader lesen den versteckten Text im Link.
     badge.textContent = offen ? String(offen) : ''
     badge.classList.toggle('is-hidden', offen === 0)
   }
+  const badgeText = document.getElementById('vorschlaege-badge-text')
+  if (badgeText) badgeText.textContent = offen ? `, ${offen} offen` : ''
   const hinweis = document.getElementById('dashboard-vorschlaege-hinweis')
   const hinweisText = document.getElementById('dashboard-vorschlaege-text')
   if (hinweis && hinweisText) {
@@ -3689,6 +4217,8 @@ async function submitManualPush(mode) {
 }
 
 function handleDocumentClick(event) {
+  handleRouteLinkClick(event)
+
   const target = event.target.closest('[data-action]')
   if (!target) return
 
@@ -3697,6 +4227,15 @@ function handleDocumentClick(event) {
   if (action === 'download-backup') return void downloadBackup()
   if (action === 'logout') return void doLogout()
   if (action === 'switch-page') return void switchPage(target.dataset.page)
+  if (action === 'nav-back') {
+    event.preventDefault()
+    return void goBackFromSubpage()
+  }
+  if (action === 'skip-to-content') {
+    event.preventDefault()
+    return void document.getElementById('adm-main')?.focus()
+  }
+  if (action === 'retry-entry-route') return void navigate(currentRouteHash || '#planen')
   if (action === 'refresh-dashboard') return void refreshDashboard()
   if (action === 'load-health') return void loadHealth()
   if (action === 'dashboard-week') return void changeDashboardWeek(Number(target.dataset.delta || 0))
@@ -3756,10 +4295,14 @@ function handleDocumentClick(event) {
   if (action === 'load-course-pdf-status') return void loadCoursePdfStatus()
   if (action === 'load-audit-log') return void loadAuditLog()
   if (action === 'reset-audit-filters') return void resetAuditFilters()
-  if (action === 'prefill-date') return void prefillDate(target.dataset.value || '')
+  if (action === 'prefill-date') return void navigate(isValidIsoDay(target.dataset.value) ? `#planen/tag/${target.dataset.value}` : '#planen/tag/neu')
   if (action === 'select-calendar-date') return void selectCalendarDate(target.dataset.value || '')
   if (action === 'focus-calendar-date') return void focusCalendarDate(target.dataset.value || '', target.dataset.iso || '')
-  if (action === 'edit-tag') return void editTag(target.dataset.datum || '')
+  if (action === 'edit-tag') {
+    // Die Eintragsliste liefert data-datum, die Wochenansicht data-value.
+    const datum = target.dataset.datum || target.dataset.value || ''
+    return void navigate(isValidIsoDay(datum) ? `#planen/tag/${datum}` : '#planen/tag/neu')
+  }
   if (action === 'select-user') return void selectUser(target.dataset.userId || '')
   if (action === 'show-audit-entry-details') return void showAuditEntryDetailsByIndex(Number(target.dataset.index || -1))
   if (action === 'load-free-days') return void loadFreeDays()
@@ -4288,7 +4831,6 @@ function handleDocumentChange(event) {
   if (target.id === 'audit-limit' || target.id === 'audit-action' || target.id === 'audit-resource' || target.id === 'audit-status' || target.id === 'audit-from' || target.id === 'audit-to') return void loadAuditLog()
   if (target.id === 'classroom-days') return void loadClassroomStats()
   if (target.id === 'metrics-days') return void loadProductMetrics()
-  if (target.id === 'mobile-nav-select') return void handleMobileNavChange(target.value)
 }
 
 function handleDocumentInput(event) {
@@ -4322,8 +4864,6 @@ document.addEventListener('click', handleDocumentClick)
 document.addEventListener('change', handleDocumentChange)
 document.addEventListener('input', handleDocumentInput)
 document.addEventListener('keydown', handleDocumentKeydown)
-
-buildMobileNav()
 
 // Der Debounce reicht nicht, wenn das System den Tab sofort beendet –
 // beim Wegblenden daher direkt schreiben.

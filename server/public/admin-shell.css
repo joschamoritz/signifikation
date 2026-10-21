@@ -1,0 +1,628 @@
+/* ================================================================
+   Admin-Hülle: Bereichsnavigation, Seitenkopf, Reiter, Rückleiste.
+
+   Lädt nach admin.css (siehe admin.html). Gestaltung nach DESIGN.md,
+   Abschnitt 9: gedrucktes Wörterbuch – Pergament, Linien statt Kästen,
+   keine Schatten, Rot für Aktionen und „aktiv“.
+
+   Präfix adm- = kollisionsfrei neben den Inhaltsklassen in admin.css.
+   Breakpoints (@media, nicht Container-Queries): 760 px und 480 px.
+   ================================================================ */
+
+:root {
+  /* DESIGN.md-Wert; besserer Kontrast als das frühere #8a7f6e. Gilt global
+     auch für die Seiteninhalte (admin.css nutzt var(--muted)). */
+  --muted:     #776c5e;
+  --tint:      color-mix(in srgb, var(--primary) 5%, transparent);
+  --nav-w:     216px;
+  --page-max:  1040px;
+  --text-max:  680px;
+  --tap:       44px;
+  --bar-h:     56px;
+  --safe-b:    env(safe-area-inset-bottom, 0px);
+  /* Echte Höhe der mobilen Leiste (inkl. Safe-Area); admin.js hält sie aktuell,
+     weil die Leiste bei großer Schrift mitwächst. Fallback = Mindesthöhe. */
+  --bar-h-actual: calc(var(--bar-h) + var(--safe-b));
+}
+
+/* ── Shell ─────────────────────────────────────────────────── */
+.adm-root {
+  min-height: 100vh;
+  min-height: 100dvh;
+  background: var(--bg);
+  color: var(--text);
+}
+
+.adm-shell {
+  display: grid;
+  grid-template-columns: var(--nav-w) minmax(0, 1fr);
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
+.adm-main {
+  min-width: 0;
+  padding: 32px 40px 64px;
+}
+
+.adm-main:focus {
+  outline: none;
+}
+
+.adm-page-wrap {
+  max-width: var(--page-max);
+  margin-inline: auto;
+}
+
+/* Nur für Screenreader sichtbar */
+.adm-visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* „Zum Inhalt“: erstes fokussierbares Element, nur bei Fokus sichtbar */
+.adm-skip {
+  position: fixed;
+  top: 8px;
+  left: 8px;
+  z-index: 40;
+  padding: 10px 14px;
+  background: var(--bg);
+  border: 1px solid var(--primary);
+  border-radius: var(--radius);
+  color: var(--primary);
+  font: 600 0.86rem/1.2 var(--font-sans);
+  text-decoration: none;
+  transform: translateY(-200%);
+}
+
+.adm-skip:focus {
+  transform: none;
+}
+
+/* ── Navigation (Desktop: linke Spalte) ────────────────────── */
+.adm-nav {
+  position: sticky;
+  top: 0;
+  align-self: start;
+  height: 100vh;
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  padding: 28px 0 20px;
+  border-right: 1px solid var(--border);
+  background: var(--bg);
+}
+
+.adm-brand {
+  padding: 0 20px 16px;
+}
+
+.adm-brand-name {
+  display: block;
+  font: 400 1.35rem/1.2 var(--font-serif);
+}
+
+/* Doppellinie: 0,9 px + 0,45 px mit 3 px Abstand */
+.adm-rule {
+  height: calc(0.9px + 3px + 0.45px);
+  border-top: 0.9px solid var(--text);
+  border-bottom: 0.45px solid var(--text);
+}
+
+.adm-nav-list {
+  list-style: none;
+}
+
+.adm-nav-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: var(--tap);
+  padding: 0 20px 0 17px;
+  border-left: 3px solid transparent;
+  border-bottom: 1px solid var(--border-lt);
+  color: var(--text);
+  text-decoration: none;
+  font: 400 1.02rem/1.2 var(--font-serif);
+}
+
+.adm-nav-item:hover {
+  color: var(--primary);
+}
+
+/* „page“ = Startseite des Bereichs, „true“ = irgendwo in diesem Bereich;
+   beide sehen gleich aus. */
+.adm-nav-item[aria-current]:not([aria-current="false"]) {
+  border-left-color: var(--primary);
+  background: var(--tint);
+  color: var(--primary);
+}
+
+.adm-nav-item:focus-visible,
+.adm-tab:focus-visible {
+  outline-offset: -2px;
+}
+
+.adm-nav-foot {
+  margin-top: auto;
+  padding: 16px 20px 0;
+}
+
+/* Zähler: rote Marke, weiße Schrift */
+.adm-count {
+  display: inline-block;
+  min-width: 20px;
+  padding: 3px 6px;
+  border-radius: var(--radius);
+  background: var(--primary);
+  color: #fff;
+  font: 700 0.68rem/1 var(--font-sans);
+  text-align: center;
+}
+
+/* ── Typografie-Bausteine ──────────────────────────────────── */
+.adm-overline {
+  font: 600 0.66rem/1.3 var(--font-sans);
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+/* ── Seitenkopf + Reiter ───────────────────────────────────── */
+.adm-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 8px 24px;
+  padding-bottom: 6px;
+}
+
+.adm-head-copy {
+  min-width: 0;
+}
+
+.adm-title {
+  font: 400 1.9rem/1.15 var(--font-serif);
+  color: var(--text);
+  overflow-wrap: anywhere;
+}
+
+.adm-title:focus {
+  outline: none;
+}
+
+.adm-sub {
+  max-width: var(--text-max);
+  margin-bottom: 18px;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.adm-sub:empty {
+  display: none;
+}
+
+.adm-head-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0 20px;
+}
+
+.adm-head-actions:empty {
+  display: none;
+}
+
+.adm-tabs {
+  display: flex;
+  gap: 8px 8px;
+  margin-bottom: 20px;
+  border-bottom: 1px solid var(--border);
+  /* Kein senkrechter Scrollbalken: nur horizontal scrollen, wenn es eng wird. */
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+.adm-tab {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: var(--tap);
+  min-height: var(--tap);
+  padding: 0 12px;
+  border-bottom: 3px solid transparent;
+  color: var(--muted);
+  text-decoration: none;
+  white-space: nowrap;
+  font: 600 0.8rem/1 var(--font-sans);
+  letter-spacing: 0.04em;
+}
+
+.adm-tab:hover {
+  color: var(--text);
+}
+
+.adm-tab[aria-current="page"] {
+  color: var(--primary);
+  border-bottom-color: var(--primary);
+  background: var(--tint);
+}
+
+/* ── Aktionen: roter Serif-CTA, gedämpfter Textlink ────────── */
+.adm-cta,
+.adm-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35em;
+  min-height: var(--tap);
+  padding: 0;
+  background: none;
+  border: 0;
+  cursor: pointer;
+  text-decoration: none;
+  text-underline-offset: 3px;
+}
+
+.adm-cta {
+  font: 700 1rem/1.2 var(--font-serif);
+  color: var(--primary);
+}
+
+.adm-cta:hover {
+  color: var(--primary-hi);
+  text-decoration: underline;
+}
+
+.adm-link {
+  font: 500 0.86rem/1.2 var(--font-sans);
+  color: var(--muted);
+}
+
+.adm-link:hover {
+  color: var(--text);
+  text-decoration: underline;
+}
+
+/* Textlink innerhalb einer Statusmeldung: Farbe der Meldung übernehmen */
+.status .adm-link {
+  color: inherit;
+  text-decoration: underline;
+}
+
+:where(.adm-root) :focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+/* ── Werkzeuge: Linien-Liste ───────────────────────────────── */
+.adm-section + .adm-section {
+  margin-top: 28px;
+}
+
+.adm-section > .adm-overline {
+  display: block;
+  margin-bottom: 8px;
+}
+
+.adm-tools {
+  list-style: none;
+  border-top: 1px solid var(--border);
+}
+
+.adm-tool {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-height: var(--tap);
+  padding: 11px 0;
+  border-bottom: 1px solid var(--border-lt);
+  color: inherit;
+  text-decoration: none;
+}
+
+.adm-tool-main {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.adm-tool-title {
+  font: 400 1.1rem/1.3 var(--font-serif);
+}
+
+.adm-tool-meta {
+  color: var(--muted);
+  font-size: 0.84rem;
+  overflow-wrap: anywhere;
+}
+
+.adm-tool-go {
+  flex: none;
+  color: var(--primary);
+  font: 400 1.2rem/1 var(--font-serif);
+}
+
+.adm-tool:hover .adm-tool-title {
+  color: var(--primary);
+}
+
+.adm-tools-foot {
+  margin-top: 20px;
+}
+
+/* ── Rückleiste für Unterseiten (Klasse has-takeover am Root) ─ */
+.adm-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: var(--tap);
+  color: var(--primary);
+  text-decoration: none;
+}
+
+.adm-back:hover {
+  color: var(--primary-hi);
+}
+
+.adm-back-glyph {
+  font: 400 2rem/1 var(--font-serif);
+}
+
+.adm-back-label {
+  font: 600 0.86rem/1.2 var(--font-sans);
+}
+
+.adm-root.has-takeover .adm-head {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: 0 12px;
+  min-height: var(--bar-h);
+  margin: -32px -40px 20px;
+  padding: 0 28px;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+}
+
+.adm-root.has-takeover .adm-head-copy {
+  grid-column: 2;
+  text-align: center;
+}
+
+.adm-root.has-takeover .adm-back {
+  grid-column: 1;
+  justify-self: start;
+}
+
+.adm-root.has-takeover .adm-title {
+  font-size: 1.15rem;
+}
+
+/* Scrollziele (auch verschachtelte wie #system-sicherung) nicht unter der
+   klebenden Rückleiste verstecken */
+#page-system [id^="system-"] {
+  scroll-margin-top: calc(var(--bar-h) + 16px);
+}
+
+/* Fokus nicht unter der klebenden Rückleiste verdecken */
+html:has(.adm-root.has-takeover) {
+  scroll-padding-top: calc(var(--bar-h) + 8px);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .adm-nav-item,
+  .adm-tab,
+  .adm-cta,
+  .adm-link,
+  .adm-tool-title {
+    transition: color 0.15s, background-color 0.15s, border-color 0.15s;
+  }
+}
+
+/* Windows-Kontrastmodus: Hintergrundtönung entfällt, also Rahmen betonen */
+@media (forced-colors: active) {
+  .adm-nav-item[aria-current]:not([aria-current="false"]) {
+    border-left-color: Highlight;
+  }
+
+  .adm-tab[aria-current="page"] {
+    border-bottom-color: Highlight;
+  }
+}
+
+/* ── Desktop: Abmelden steht schon unten in der Navigationsspalte ── */
+@media (min-width: 761px) {
+  .adm-tools-foot {
+    display: none;
+  }
+}
+
+/* ── Mobil ≤ 760 px: feste Leiste unten ────────────────────── */
+@media (max-width: 760px) {
+  .adm-shell {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  /* Platz unter dem Inhalt aus der echten Leistenhöhe */
+  .adm-main {
+    padding: 12px 16px calc(var(--bar-h-actual) + 28px);
+  }
+
+  html {
+    scroll-padding-bottom: calc(var(--bar-h-actual) + 12px);
+  }
+
+  .adm-nav {
+    position: fixed;
+    inset: auto 0 0 0;
+    z-index: 20;
+    height: auto;
+    flex-direction: row;
+    padding: 0 0 var(--safe-b);
+    border-right: 0;
+    border-top: 1px solid var(--border);
+  }
+
+  .adm-brand,
+  .adm-rule,
+  .adm-nav-foot {
+    display: none;
+  }
+
+  .adm-nav-list {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    align-items: stretch;
+    width: 100%;
+  }
+
+  .adm-nav-list > li {
+    display: flex;
+    min-width: 0;
+  }
+
+  /* Beschriftung bricht um statt überzulaufen (Textvergrößerung); die Leiste
+     wächst mit min-height. Der Zähler steht neben bzw. unter dem Label. */
+  .adm-nav-item {
+    flex: 1 1 auto;
+    flex-wrap: wrap;
+    align-content: center;
+    justify-content: center;
+    gap: 2px 4px;
+    min-width: 0;
+    min-height: var(--bar-h);
+    padding: 6px 2px 4px;
+    border-left: 0;
+    border-bottom: 0;
+    border-top: 3px solid transparent;
+    font: 600 0.72rem/1.1 var(--font-sans);
+    text-align: center;
+    overflow-wrap: anywhere;
+    hyphens: auto;
+  }
+
+  .adm-nav-item[aria-current]:not([aria-current="false"]) {
+    border-left-color: transparent;
+    border-top-color: var(--primary);
+  }
+
+  .adm-nav-item .adm-count {
+    min-width: 17px;
+    padding: 2px 4px;
+    font-size: 0.62rem;
+  }
+
+  @media (forced-colors: active) {
+    .adm-nav-item[aria-current]:not([aria-current="false"]) {
+      border-top-color: Highlight;
+    }
+  }
+
+  /* Unterseiten: Leiste weicht, Rückleiste übernimmt den oberen Rand */
+  .adm-root.has-takeover .adm-nav {
+    display: none;
+  }
+
+  .adm-root.has-takeover .adm-main {
+    padding-bottom: calc(24px + var(--safe-b));
+  }
+
+  html:has(.adm-root.has-takeover) {
+    scroll-padding-bottom: 12px;
+  }
+
+  .adm-root.has-takeover .adm-head {
+    grid-template-columns: var(--tap) minmax(0, 1fr) var(--tap);
+    margin: -12px -16px 12px;
+    padding: 0 4px;
+  }
+
+  /* Trefferfläche des Rückknopfs = die ganze 44-px-Spalte */
+  .adm-root.has-takeover .adm-back {
+    justify-self: stretch;
+    justify-content: center;
+    min-width: var(--tap);
+  }
+
+  .adm-root.has-takeover .adm-back-label {
+    display: none;
+  }
+
+  .adm-title {
+    font-size: 1.5rem;
+  }
+
+  .adm-root.has-takeover .adm-title {
+    font-size: 1.1rem;
+  }
+
+  .adm-tabs {
+    gap: 4px;
+  }
+
+  /* Normaler Kopf mobil: Titel, Untertitel direkt darunter, dann die Aktionen.
+     display:contents löst den Kopf-Container auf, damit sich Titelblock,
+     Untertitel und Aktionen frei ordnen lassen. */
+  .adm-root:not(.has-takeover) .adm-page-wrap {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .adm-root:not(.has-takeover) .adm-head {
+    display: contents;
+  }
+
+  .adm-root:not(.has-takeover) .adm-head-copy {
+    order: 1;
+  }
+
+  .adm-root:not(.has-takeover) .adm-sub {
+    order: 2;
+    margin-top: 4px;
+    margin-bottom: 8px;
+  }
+
+  .adm-root:not(.has-takeover) .adm-head-actions {
+    order: 3;
+    margin-bottom: 8px;
+  }
+
+  .adm-root:not(.has-takeover) .adm-tabs {
+    order: 4;
+  }
+
+  .adm-root:not(.has-takeover) .adm-page-wrap > .admin-page {
+    order: 5;
+  }
+}
+
+@media (max-width: 480px) {
+  .adm-nav-item {
+    font-size: 0.68rem;
+  }
+
+  .adm-head-actions {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .adm-root.has-takeover .adm-head-actions {
+    display: none;
+  }
+}
