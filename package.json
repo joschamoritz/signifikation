@@ -26,6 +26,8 @@
     "pdf:course": "node scripts/generate-course-pdfs.mjs",
     "pdf:beamer": "node scripts/generate-beamer-strecken.mjs --html",
     "geoip:update": "node scripts/update-geoip.mjs",
+    "lemma:key": "node scripts/lemma-api-key.mjs",
+    "lemma:push": "node scripts/lemma-push.mjs",
     "mail:preview": "node scripts/mail-preview.mjs"
   },
   "dependencies": {

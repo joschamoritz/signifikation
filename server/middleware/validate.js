@@ -231,6 +231,19 @@ export const adminLemmaIdParamsSchema = z.object({
   id: z.string().trim().min(1, 'id erforderlich').max(120, 'id zu lang'),
 })
 
+/** POST /admin/entwuerfe/:id/uebernehmen und /verwerfen */
+export const adminEntwurfIdParamsSchema = z.object({
+  id: z.coerce.number().int().positive(),
+})
+
+/** POST /api/v1/lemma-entwuerfe (Vorschlags-API): bis zu zwei Wochen je Push, jedes Datum einmal */
+export const lemmaEntwurfPushSchema = z.object({
+  tage: z.array(adminTagSchema).min(1, 'mindestens ein Tag').max(14, 'höchstens 14 Tage je Push'),
+}).refine(
+  (body) => new Set(body.tage.map((tag) => tag.datum)).size === body.tage.length,
+  { message: 'Jedes Datum darf nur einmal vorkommen', path: ['tage'] },
+)
+
 /** GET /admin/audit-log/:resource/:id */
 export const adminAuditLogDetailParamsSchema = z.object({
   resource: z.string().trim().min(1, 'resource erforderlich').max(80, 'resource zu lang'),

@@ -173,6 +173,10 @@ function switchPage(pageId) {
     loadFreeDays()
   }
 
+  if (pageId === 'vorschlaege') {
+    loadVorschlaege()
+  }
+
   if (pageId === 'spezialwoche') {
     loadSpezialwochen()
   }
@@ -238,6 +242,7 @@ function handleMobileNavChange(value) {
 function refreshDashboard() {
   loadHealth()
   loadKalender()
+  loadVorschlaege({ silent: true })
   loadFreeDays({ silent: true })
   loadStats()
   loadPerformance()
@@ -949,6 +954,7 @@ function initDashboard() {
   switchPage('dashboard')
   offerEntryDraft()
   loadKalender()
+  loadVorschlaege({ silent: true })
   loadFreeDays({ silent: true })
   loadStats()
   loadPerformance()
@@ -3514,6 +3520,268 @@ async function runBulkJsonImport() {
   }
 }
 
+// ── Vorschläge (Entwurfs-Postfach) ───────────────────────
+// Tage, die per Vorschlags-API eingereicht wurden (server/routes/lemma-api.js).
+// Übernehmen läuft serverseitig über denselben Speicherweg wie das Formular.
+
+let vorschlaege = []
+let vorschlaegeLaufen = false
+
+// Gleiche Regel wie toId() in server/wortprofil.js
+function wortZuId(wort) {
+  return String(wort || '').toLowerCase()
+    .replace(/ä/g, 'ae').replace(/ö/g, 'oe').replace(/ü/g, 'ue')
+    .replace(/ß/g, 'ss').replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')
+}
+
+// ISO-Kalenderwoche: Der Donnerstag einer Woche bestimmt Jahr und Nummer.
+function isoKalenderwoche(datum) {
+  const d = new Date(`${datum}T00:00:00Z`)
+  d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7))
+  const jahresbeginn = new Date(Date.UTC(d.getUTCFullYear(), 0, 1))
+  return { jahr: d.getUTCFullYear(), woche: Math.ceil(((d - jahresbeginn) / 86400000 + 1) / 7) }
+}
+
+function vorschlagDatumKurz(datum) {
+  const d = new Date(`${datum}T12:00:00Z`)
+  return `${DAYS_DE[(d.getUTCDay() + 6) % 7]} ${datum.slice(8, 10)}.${datum.slice(5, 7)}.`
+}
+
+function lueckenfuellerHerkunft(tag) {
+  const id = tag.lueckenfueller_id
+  if (!id) return { wort: '—', herkunft: '' }
+  const kandidaten = [
+    ...(tag.woerter || []).map((wort) => ({ wort, herkunft: 'aus den Kollokationen' })),
+    ...(tag.zwilling_paar || []).map((wort) => ({ wort, herkunft: 'aus dem Wort-Zwilling' })),
+    { wort: tag.zeitenwende_lemma, herkunft: 'aus der Zeitenwende' },
+  ]
+  return kandidaten.find((k) => k.wort && wortZuId(k.wort) === id) || { wort: id, herkunft: 'passt zu keinem Wort dieses Tages', warnung: true }
+}
+
+function vorschlagLink(url) {
+  if (!/^https:\/\//.test(url || '')) return ''
+  let host
+  try { host = new URL(url).hostname.replace(/^www\./, '') } catch { return '' }
+  return ` <a href="${esc(url)}" target="_blank" rel="noopener noreferrer">${esc(host)}</a>`
+}
+
+function vorschlagNotizen(tag) {
+  const zeilen = []
+  ;(tag.woerter || []).forEach((wort, i) => {
+    if (tag.notizen?.[i]) zeilen.push(`<p><b>${esc(wort)}:</b> ${esc(tag.notizen[i])}${vorschlagLink(tag.links?.[i])}</p>`)
+  })
+  if (tag.zwilling_notiz) zeilen.push(`<p><b>${esc((tag.zwilling_paar || []).join(' / '))}:</b> ${esc(tag.zwilling_notiz)}${vorschlagLink(tag.zwilling_link)}</p>`)
+  if (tag.zeitenwende_notiz) zeilen.push(`<p><b>${esc(tag.zeitenwende_lemma)}:</b> ${esc(tag.zeitenwende_notiz)}${vorschlagLink(tag.zeitenwende_link)}</p>`)
+  if (tag.thema_kurz) zeilen.unshift(`<p class="vorschlag-themakurz">${esc(tag.thema_kurz)}${vorschlagLink(tag.thema_quelle)}</p>`)
+  return zeilen.length
+    ? `<details class="vorschlag-details"><summary>Notizen und Links anzeigen</summary>${zeilen.join('')}</details>`
+    : ''
+}
+
+function vorschlagKarte(entwurf) {
+  const { tag } = entwurf
+  const heute = getTodayIso()
+  const datumHtml = `<span class="vorschlag-datum">${esc(vorschlagDatumKurz(entwurf.datum))}${entwurf.datum === heute ? ' <small>heute</small>' : ''}</span>`
+  const themaHtml = `<span class="vorschlag-thema">${esc(tag.thema || 'ohne Thema')}</span>`
+
+  if (entwurf.erledigt) {
+    return `<article class="vorschlag-karte is-erledigt">
+      <div class="vorschlag-kopf">${datumHtml}${themaHtml}<span class="vorschlag-erledigt-marke">✓ Übernommen</span></div>
+      <p class="vorschlag-meldung ${entwurf.erledigt.ok ? 'is-ok' : 'is-warnung'}">${esc(entwurf.erledigt.text)}</p>
+    </article>`
+  }
+
+  const pos = { Substantiv: 'N', Verb: 'V', Adjektiv: 'A' }
+  const kollokationen = (tag.woerter || [])
+    .map((wort, i) => `${esc(wort)} <span class="vorschlag-pos">${esc(pos[tag.positionen?.[i]] || '')}</span>`)
+    .join(' · ')
+  const zwilling = tag.zwilling_paar?.length === 2 ? `${esc(tag.zwilling_paar[0])} / ${esc(tag.zwilling_paar[1])}` : '—'
+  const lf = lueckenfuellerHerkunft(tag)
+
+  const warnungen = []
+  if (entwurf.belegt) {
+    warnungen.push(`An diesem Tag steht schon ein Eintrag (${entwurf.belegt.woerter.map(esc).join(' · ')}). Übernehmen ersetzt ihn${entwurf.datum === heute ? ', und der Tag wird gerade gespielt' : ''}.`)
+  }
+  if (entwurf.datum < heute) warnungen.push('Das Datum liegt in der Vergangenheit.')
+  if (lf.warnung) warnungen.push(`Lückenfüller-ID „${esc(lf.wort)}“ passt zu keinem Wort dieses Tages.`)
+
+  const beschaeftigt = entwurf.laeuft
+  return `<article class="vorschlag-karte${warnungen.length ? ' is-warnung' : ''}${beschaeftigt ? ' is-busy' : ''}" data-id="${esc(entwurf.id)}">
+    <div class="vorschlag-kopf">
+      ${datumHtml}${themaHtml}
+      <span class="vorschlag-knoepfe">
+        <button type="button" class="text-btn" data-action="vorschlag-verwerfen" data-id="${esc(entwurf.id)}"${beschaeftigt || vorschlaegeLaufen ? ' disabled' : ''}>Verwerfen</button>
+        <button type="button" class="ghost-btn" data-action="vorschlag-uebernehmen" data-id="${esc(entwurf.id)}"${beschaeftigt || vorschlaegeLaufen ? ' disabled' : ''}>${beschaeftigt ? 'Wird übernommen …' : 'Übernehmen'}</button>
+      </span>
+    </div>
+    <div class="vorschlag-modi">
+      <div><span class="vorschlag-label">Kollokationen</span><span class="vorschlag-wert">${kollokationen}</span></div>
+      <div><span class="vorschlag-label">Wort-Zwilling</span><span class="vorschlag-wert">${zwilling}</span></div>
+      <div><span class="vorschlag-label">Zeitenwende</span><span class="vorschlag-wert">${esc(tag.zeitenwende_lemma || '—')}</span></div>
+      <div><span class="vorschlag-label">Lückenfüller</span><span class="vorschlag-wert">${esc(lf.wort)}</span>${lf.herkunft && !lf.warnung ? `<span class="vorschlag-herkunft">${esc(lf.herkunft)}</span>` : ''}</div>
+    </div>
+    ${warnungen.map((w) => `<p class="vorschlag-meldung is-warnung">⚠ ${w}</p>`).join('')}
+    ${entwurf.fehler ? `<p class="vorschlag-meldung is-fehler">Fehler: ${esc(entwurf.fehler)}</p>` : ''}
+    ${vorschlagNotizen(tag)}
+  </article>`
+}
+
+function renderVorschlaege() {
+  const liste = document.getElementById('vorschlaege-liste')
+  const leer = document.getElementById('vorschlaege-leer')
+  if (!liste || !leer) return
+
+  const wochen = new Map()
+  for (const entwurf of vorschlaege) {
+    const { jahr, woche } = isoKalenderwoche(entwurf.datum)
+    const kw = `${jahr}-${woche}`
+    if (!wochen.has(kw)) wochen.set(kw, [])
+    wochen.get(kw).push(entwurf)
+  }
+  liste.innerHTML = Array.from(wochen.values()).map((tage) => {
+    const von = tage[0].datum
+    const bis = tage[tage.length - 1].datum
+    const kopf = `KW ${isoKalenderwoche(von).woche} · ${von.slice(8, 10)}.${von.slice(5, 7)}.${von === bis ? '' : ` – ${bis.slice(8, 10)}.${bis.slice(5, 7)}.`}`
+    return `<section class="vorschlag-woche"><h3>${esc(kopf)}</h3>${tage.map(vorschlagKarte).join('')}</section>`
+  }).join('')
+
+  leer.classList.toggle('is-hidden', vorschlaege.length > 0)
+  aktualisiereVorschlagHinweise()
+}
+
+function aktualisiereVorschlagHinweise() {
+  const offen = vorschlaege.filter((v) => !v.erledigt).length
+  const badge = document.getElementById('vorschlaege-badge')
+  if (badge) {
+    badge.textContent = offen ? String(offen) : ''
+    badge.classList.toggle('is-hidden', offen === 0)
+  }
+  const hinweis = document.getElementById('dashboard-vorschlaege-hinweis')
+  const hinweisText = document.getElementById('dashboard-vorschlaege-text')
+  if (hinweis && hinweisText) {
+    hinweisText.textContent = offen === 1 ? '1 Vorschlag wartet' : `${offen} Vorschläge warten`
+    hinweis.classList.toggle('is-hidden', offen === 0)
+  }
+  const alleBtn = document.getElementById('vorschlaege-alle-btn')
+  if (alleBtn) {
+    alleBtn.textContent = offen ? `Alle ${offen} übernehmen` : 'Alle übernehmen'
+    alleBtn.disabled = offen === 0 || vorschlaegeLaufen
+  }
+}
+
+function setVorschlaegeStatus(text, tone = 'info') {
+  const el = document.getElementById('vorschlaege-status')
+  if (!el) return
+  el.textContent = text
+  el.dataset.tone = tone
+}
+
+async function loadVorschlaege({ silent = false } = {}) {
+  try {
+    const res = await fetch('/admin/entwuerfe')
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`)
+    vorschlaege = data.entwuerfe || []
+    if (!silent) setVorschlaegeStatus('')
+    renderVorschlaege()
+  } catch (err) {
+    if (!silent) setVorschlaegeStatus(`Laden fehlgeschlagen: ${err.message}`, 'error')
+  }
+}
+
+function speicherErgebnisText(data) {
+  const teile = ['Gespeichert']
+  if (data.zwillingOk === true) teile.push('Wort-Zwilling OK')
+  if (data.zwillingOk === false) teile.push('Wort-Zwilling: nicht genug distinkte Kollokatoren')
+  if (data.zeitenwendeOk === true) teile.push('Zeitenwende OK')
+  if (data.zeitenwendeOk === false) teile.push('Zeitenwende: nicht genug distinkte Kollokatoren')
+  if (data.lueckenfuellerId) teile.push(`Lückenfüller: ${lueckenfuellerMeldung(data.lueckenfuellerStatus)}`)
+  return teile.join(' · ')
+}
+
+async function uebernehmeVorschlag(id) {
+  const entwurf = vorschlaege.find((v) => v.id === id)
+  if (!entwurf || entwurf.erledigt || entwurf.laeuft) return false
+  entwurf.laeuft = true
+  entwurf.fehler = ''
+  renderVorschlaege()
+  try {
+    const res = await fetch(`/admin/entwuerfe/${id}/uebernehmen`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: '{}',
+    })
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`)
+    entwurf.erledigt = {
+      ok: data.zwillingOk !== false && data.zeitenwendeOk !== false && data.lueckenfuellerOk !== false,
+      text: speicherErgebnisText(data),
+    }
+    return true
+  } catch (err) {
+    entwurf.fehler = err.message
+    return false
+  } finally {
+    entwurf.laeuft = false
+    renderVorschlaege()
+  }
+}
+
+async function uebernehmeEinzelnenVorschlag(id) {
+  const entwurf = vorschlaege.find((v) => v.id === id)
+  if (!entwurf) return
+  if (entwurf.belegt && !confirmAction(`Eintrag am ${entwurf.datum} ersetzen?`, [
+    `Bisher: ${entwurf.belegt.woerter.join(' · ')}`,
+    `Neu: ${entwurf.tag.woerter.join(' · ')}`,
+  ])) return
+  const ok = await uebernehmeVorschlag(id)
+  setVorschlaegeStatus(ok ? `${entwurf.datum} übernommen.` : `${entwurf.datum} konnte nicht übernommen werden.`, ok ? 'ok' : 'error')
+  if (ok) loadKalender()
+}
+
+async function uebernehmeAlleVorschlaege() {
+  const offen = vorschlaege.filter((v) => !v.erledigt)
+  if (!offen.length) return
+  const belegt = offen.filter((v) => v.belegt)
+  const details = [`${offen[0].datum} bis ${offen[offen.length - 1].datum}`]
+  if (belegt.length) details.push(`Ersetzt bestehende Einträge an: ${belegt.map((v) => v.datum).join(', ')}`)
+  if (!confirmAction(`${offen.length} Vorschläge übernehmen?`, details)) return
+
+  vorschlaegeLaufen = true
+  let erfolgreich = 0
+  for (let i = 0; i < offen.length; i++) {
+    setVorschlaegeStatus(`Übernehme ${i + 1}/${offen.length}: ${offen[i].datum} …`, 'loading')
+    if (await uebernehmeVorschlag(offen[i].id)) erfolgreich++
+  }
+  vorschlaegeLaufen = false
+  renderVorschlaege()
+  const fehlgeschlagen = offen.length - erfolgreich
+  setVorschlaegeStatus(
+    fehlgeschlagen ? `${erfolgreich} übernommen, ${fehlgeschlagen} fehlgeschlagen – Details an den Karten.` : `Alle ${erfolgreich} Vorschläge übernommen.`,
+    fehlgeschlagen ? 'error' : 'ok',
+  )
+  loadKalender()
+}
+
+async function verwerfeVorschlag(id) {
+  const entwurf = vorschlaege.find((v) => v.id === id)
+  if (!entwurf || !confirmAction(`Vorschlag für ${entwurf.datum} verwerfen?`, [entwurf.tag.thema || entwurf.tag.woerter.join(' · ')])) return
+  try {
+    const res = await fetch(`/admin/entwuerfe/${id}/verwerfen`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: '{}',
+    })
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`)
+    vorschlaege = vorschlaege.filter((v) => v.id !== id)
+    setVorschlaegeStatus(`Vorschlag für ${entwurf.datum} verworfen.`, 'ok')
+  } catch (err) {
+    setVorschlaegeStatus(`Verwerfen fehlgeschlagen: ${err.message}`, 'error')
+  }
+  renderVorschlaege()
+}
+
 // ── Push-Benachrichtigungen ──────────────────────────────
 function setPushHint(id, message, tone = 'info') {
   const el = document.getElementById(id)
@@ -3722,6 +3990,10 @@ function handleDocumentClick(event) {
   if (action === 'reset-entry-form') return void restoreEntryFormSnapshot()
   if (action === 'restore-entry-draft') return void restoreEntryDraft()
   if (action === 'discard-entry-draft') return void discardEntryDraft()
+  if (action === 'vorschlaege-laden') return void loadVorschlaege()
+  if (action === 'vorschlaege-alle') return void uebernehmeAlleVorschlaege()
+  if (action === 'vorschlag-uebernehmen') return void uebernehmeEinzelnenVorschlag(Number(target.dataset.id))
+  if (action === 'vorschlag-verwerfen') return void verwerfeVorschlag(Number(target.dataset.id))
   if (action === 'open-json-import') return void openJsonImportDialog()
   if (action === 'confirm-json-import') return void runJsonImport()
   if (action === 'confirm-json-import-all') return void runBulkJsonImport()

@@ -22,7 +22,8 @@ import { randomUUID } from 'crypto'
 import { toNodeHandler } from 'better-auth/node'
 import { IS_PROD, csrfProtect, csrfProtectUpload } from './middleware/auth.js'
 import { auth } from './auth/index.js'
-import { loginLimiter, registerLimiter } from './middleware/rateLimiter.js'
+import { loginLimiter, registerLimiter, lemmaApiLimiter } from './middleware/rateLimiter.js'
+import { requireLemmaApiKey } from './middleware/lemmaApiKey.js'
 import { initializeIndices } from './store.js'
 import { errorHandler, AppError } from './error-handling.js'
 import { waermeRegisterAuf } from './wortprofil.js'
@@ -37,6 +38,7 @@ import paymentsRouter from './routes/payments.js'
 import iapRouter from './routes/iap.js'
 import pushRouter from './routes/push.js'
 import archiveRouter from './routes/archive.js'
+import lemmaApiRouter, { LEMMA_API_PFAD, LEMMA_API_BODY_LIMIT } from './routes/lemma-api.js'
 import { startPushScheduler } from './notifications/scheduler.js'
 import { startStreakSaverScheduler } from './notifications/streak.js'
 import { setupClassroomSocket } from './realtime/classroomSocket.js'
@@ -129,6 +131,9 @@ app.use('/admin/backup/restore', (req, res, next) => {
   next()
 })
 app.use('/admin/backup/restore', express.json({ limit: BACKUP_RESTORE_BODY_LIMIT }))
+// Vorschlags-API: Eine Woche JSON (~14 KB) passt nicht ins globale Limit.
+// Rate-Limit und Schlüssel werden geprüft, bevor der größere Body geparst wird.
+app.use(LEMMA_API_PFAD, lemmaApiLimiter, requireLemmaApiKey, express.json({ limit: LEMMA_API_BODY_LIMIT }))
 app.use(express.json({ limit: '16kb' }))
 
 // ── Correlation-ID ────────────────────────────────────────────
@@ -220,6 +225,7 @@ app.use('/', courseRouter)
 app.use('/', paymentsRouter)
 app.use('/', iapRouter)
 app.use('/', pushRouter)
+app.use('/', lemmaApiRouter)
 
 // SEO-Archiv: /archiv, /wort/:slug, /sitemap.xml. Bewusst VOR express.static
 // und dem SPA-Fallback – die dynamische Sitemap hat damit Vorrang vor einer
