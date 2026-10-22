@@ -710,7 +710,12 @@ export function createAdminCalendarRouter({
           ? (byId.get(lueckenfuellerId) ?? null)
           : null
         const hasLueckenfueller = !!(lueckenfuellerLemma?.lueckenfueller)
+        // Thema für die Wochenansicht (Planen › Woche); rein lesend, wie /admin/tag/:datum
+        const thema      = Array.isArray(eintrag) ? '' : (eintrag.thema ?? '')
+        const thema_kurz = Array.isArray(eintrag) ? '' : (eintrag.thema_kurz ?? '')
         result[datum] = {
+          thema,
+          thema_kurz,
           lemmata,
           modeGroups: buildModeGroups({
             lemmata,

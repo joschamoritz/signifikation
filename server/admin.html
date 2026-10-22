@@ -82,109 +82,67 @@
         </div>
         <div class="adm-head-actions" id="page-actions"></div>
       </header>
-      <p class="adm-sub" id="page-subtitle">Diese Woche, Tagesplanung und Systemstand auf einen Blick.</p>
+      <p class="adm-sub" id="page-subtitle">Was diese Woche geplant ist und wo noch etwas fehlt.</p>
       <nav class="adm-tabs is-hidden" id="page-tabs" aria-label="Ansicht"></nav>
 
-      <section class="admin-page is-active" id="page-dashboard" data-title="Woche" data-subtitle="Diese Woche, Tagesplanung und Systemstand auf einen Blick.">
-        <a class="vorschlaege-hinweis is-hidden" id="dashboard-vorschlaege-hinweis" href="#vorschlaege">
-          <strong id="dashboard-vorschlaege-text">Vorschläge warten</strong>
-          <span class="vorschlaege-hinweis-cta">Ansehen und übernehmen <span aria-hidden="true">→</span></span>
-        </a>
-        <div class="dashboard-grid">
-          <article class="metric-card metric-card--today" id="metric-today-card">
-            <span class="metric-label">Heute geplant</span>
-            <strong class="metric-value" id="metric-today-status">-</strong>
-            <span class="metric-sub" id="metric-today-sub">Noch nichts geplant</span>
-          </article>
-          <article class="metric-card metric-card--support">
-            <span class="metric-label">Kalendereinträge</span>
-            <strong class="metric-value" id="metric-calendar-days">-</strong>
-            <span class="metric-sub">Zukünftige Tage geplant</span>
-          </article>
-          <article class="metric-card metric-card--support">
-            <span class="metric-label">Plays heute</span>
-            <strong class="metric-value" id="metric-plays-today">-</strong>
-            <span class="metric-sub" id="metric-score-today">Ø - / 10</span>
-          </article>
-          <article class="metric-card metric-card--support">
-            <span class="metric-label">Systemstatus</span>
-            <strong class="metric-value" id="metric-health">-</strong>
-            <span class="metric-sub" id="metric-health-sub">Health nicht geladen</span>
-          </article>
+      <section class="admin-page is-active" id="page-dashboard" data-title="Woche" data-subtitle="Was diese Woche geplant ist und wo noch etwas fehlt.">
+
+        <!-- 1 · Lage: zwei Linienzeilen statt Kennzahl-Kacheln -->
+        <div class="wo-lage">
+          <div class="wo-zeile wo-heute" id="wo-heute">
+            <h2 class="wo-zeile-label" id="wo-heute-label">Heute</h2>
+            <div class="wo-zeile-haupt">
+              <p class="wo-heute-thema is-leer" id="wo-heute-thema">wird geladen …</p>
+              <p class="wo-zeile-meta" id="wo-heute-spiele"></p>
+            </div>
+            <div class="wo-zeile-ende">
+              <span class="wo-status" id="wo-heute-stand"></span>
+              <a class="adm-cta is-hidden" id="wo-heute-anlegen"><span>Tag anlegen</span> <span aria-hidden="true">→</span></a>
+              <a class="adm-link wo-system" id="wo-system" href="#werkzeuge/system?abschnitt=zustand">Systemzustand</a>
+            </div>
+          </div>
+          <!-- Hinweis auf offene Vorschläge (IDs unverändert, von aktualisiereVorschlagHinweise gesteuert) -->
+          <a class="wo-zeile vorschlaege-hinweis is-hidden" id="dashboard-vorschlaege-hinweis" href="#vorschlaege">
+            <span class="wo-zeile-label" aria-hidden="true">Vorschläge</span>
+            <strong class="wo-zeile-haupt" id="dashboard-vorschlaege-text">Vorschläge warten</strong>
+            <span class="vorschlaege-hinweis-cta">Ansehen und übernehmen <span aria-hidden="true">→</span></span>
+          </a>
         </div>
 
-        <div class="dashboard-main-grid">
-          <article class="card dashboard-panel dashboard-panel--primary">
-            <div class="dashboard-panel-head">
-              <div>
-                <p class="section-label">Planung</p>
-                <h2>Wochenansicht</h2>
-                <p class="week-preview-range" id="dashboard-week-label">Diese Woche wird geladen …</p>
-              </div>
-              <div class="week-preview-actions">
-                <button type="button" class="entry-filters-reset week-nav-btn" aria-label="Vorherige Woche" data-action="dashboard-week" data-delta="-1">‹</button>
-                <button type="button" class="entry-filters-reset week-nav-btn" aria-label="Nächste Woche" data-action="dashboard-week" data-delta="1">›</button>
-                <button class="ghost-btn ghost-btn--small" data-action="switch-page" data-page="calendar">Kalender öffnen</button>
-              </div>
+        <!-- 2 · Woche -->
+        <div class="wo-woche">
+          <div class="wo-woche-kopf">
+            <h2 class="wo-woche-titel"><span class="wo-woche-kw" id="wo-woche-kw"></span> <span class="wo-woche-spanne" id="dashboard-week-label">wird geladen …</span></h2>
+            <div class="wo-woche-nav" role="group" aria-label="Woche wechseln">
+              <button type="button" class="adm-link" data-action="dashboard-week" data-delta="-1"><span aria-hidden="true">‹</span> Vorwoche</button>
+              <button type="button" class="adm-link" data-action="dashboard-week-heute" id="wo-woche-heute" aria-disabled="true">Diese Woche</button>
+              <button type="button" class="adm-link" data-action="dashboard-week" data-delta="1">Nächste <span aria-hidden="true">›</span></button>
             </div>
-            <div id="dashboard-calendar-preview" class="week-preview-grid">
-              <div class="preview-empty">Wochenansicht wird geladen …</div>
-            </div>
-            <div class="dashboard-day-detail" id="dashboard-day-detail">
-              <div class="preview-empty">Wähle einen Tag, um die Inhalte im Detail zu sehen.</div>
-            </div>
-          </article>
+          </div>
+          <!-- Legende: für Screenreader überflüssig, jeder Tag trägt seinen Stand als Text -->
+          <p class="wo-legende" id="wo-legende" aria-hidden="true">
+            <span><span class="wo-marke" data-m="k">K</span>Kollokationen</span>
+            <span><span class="wo-marke" data-m="w">W</span>Wort-Zwilling</span>
+            <span><span class="wo-marke" data-m="z">Z</span>Zeitenwende</span>
+            <span><span class="wo-marke" data-m="l">L</span>Lückenfüller</span>
+            <span><span class="wo-marke is-fehlt"></span>fehlt</span>
+          </p>
+          <!-- 7 Tage + 1 Detail, von renderWoche() gefüllt -->
+          <div class="wo-tage" id="dashboard-calendar-preview">
+            <p class="wo-meldung">Woche wird geladen …</p>
+          </div>
+        </div>
 
-          <aside class="dashboard-side-column">
-            <article class="card dashboard-panel dashboard-panel--secondary" id="health-card">
-              <div class="dashboard-panel-head dashboard-panel-head--stacked">
-                <div>
-                  <p class="section-label">Operations</p>
-                  <h2>Systemstatus</h2>
-                  <p class="health-summary" id="health-summary" aria-live="polite">System-Status wird geladen …</p>
-                </div>
-                <button class="icon-btn" data-action="load-health" aria-label="Systemstatus aktualisieren">↺</button>
-              </div>
-              <div class="health-status-row" id="health-badges">
-                <span class="health-status-placeholder">System-Status wird geladen …</span>
-              </div>
-              <div class="health-detail-grid" id="system-health-details">
-                <div class="health-detail-item"><span>Uptime</span><strong>-</strong></div>
-                <div class="health-detail-item"><span>Memory</span><strong>-</strong></div>
-                <div class="health-detail-item"><span>Environment</span><strong>-</strong></div>
-                <div class="health-detail-item"><span>Letzter Eintrag</span><strong>-</strong></div>
-              </div>
-            </article>
-
-            <article class="card dashboard-panel dashboard-panel--secondary dashboard-quick-actions">
-              <div class="dashboard-panel-head dashboard-panel-head--stacked">
-                <div>
-                  <p class="section-label">Schnellzugriff</p>
-                  <h2>Direkt weiterarbeiten</h2>
-                  <p class="quick-actions-copy">Häufige Admin-Aktionen ohne Umweg über die Navigation.</p>
-                </div>
-              </div>
-              <div class="quick-actions-grid">
-                <button class="ghost-btn quick-action-btn" data-action="switch-page" data-page="entry">Neuer Tag</button>
-                <button class="ghost-btn quick-action-btn" data-action="switch-page" data-page="calendar">Kalender</button>
-                <a class="ghost-btn quick-action-btn" href="/admin/social-cards">Social Cards</a>
-                <button class="ghost-btn quick-action-btn" data-action="refresh-dashboard">Aktualisieren</button>
-              </div>
-            </article>
-
-            <article class="card dashboard-panel dashboard-panel--secondary">
-              <div class="dashboard-panel-head dashboard-panel-head--stacked">
-                <div>
-                  <p class="section-label">Aktivität</p>
-                  <h2>Letzte Änderungen</h2>
-                  <p class="quick-actions-copy" id="dashboard-activity-hint" aria-live="polite">Audit-Log wird geladen …</p>
-                </div>
-              </div>
-              <div id="dashboard-activity-list" class="activity-list">
-                <div class="users-empty">Audit-Log wird geladen …</div>
-              </div>
-            </article>
-          </aside>
+        <!-- 3 · Lücken und Stand -->
+        <div class="wo-unten" id="wo-unten">
+          <div class="wo-block">
+            <h2 class="adm-overline wo-block-titel">Lücken · nächste 4 Wochen</h2>
+            <div id="wo-luecken"></div>
+          </div>
+          <div class="wo-block">
+            <h2 class="adm-overline wo-block-titel">Stand</h2>
+            <dl class="wo-stand" id="wo-stand"></dl>
+          </div>
         </div>
       </section>
 

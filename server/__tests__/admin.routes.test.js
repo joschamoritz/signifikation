@@ -179,6 +179,35 @@ describe('admin routes integration', () => {
     expect(typeof payload.modes).toBe('object')
   })
 
+  it('GET /admin/kalender liefert thema und thema_kurz als Strings je Tag', async () => {
+    const vorher = loadReadOnly('kalender.json')
+    const mitThema = '2027-02-03'
+    const ohneThema = '2027-02-04'
+    const altFormat = '2027-02-05'
+    await save('kalender.json', {
+      ...vorher,
+      [mitThema]: { ids: ['haus', 'baum', 'wort'], thema: 'Hausbau', thema_kurz: 'Vom Fundament bis zum Dach.' },
+      [ohneThema]: { ids: ['haus', 'baum', 'wort'] },
+      [altFormat]: ['haus', 'baum', 'wort'],
+    })
+
+    try {
+      const response = await fetch(`${baseUrl}/admin/kalender`, { headers: adminHeaders(token) })
+      const payload = await response.json()
+
+      expect(response.status).toBe(200)
+      expect(payload[mitThema]).toMatchObject({ thema: 'Hausbau', thema_kurz: 'Vom Fundament bis zum Dach.' })
+      // Fehlende Felder und das alte Array-Format liefern leere Strings, nie undefined
+      expect(payload[ohneThema]).toMatchObject({ thema: '', thema_kurz: '' })
+      expect(payload[altFormat]).toMatchObject({ thema: '', thema_kurz: '' })
+      // bestehende Felder bleiben erhalten
+      expect(Array.isArray(payload[mitThema].modeGroups)).toBe(true)
+      expect(Array.isArray(payload[mitThema].lemmata)).toBe(true)
+    } finally {
+      await save('kalender.json', vorher)
+    }
+  })
+
   it('GET /admin/audit-log filtert nach action und status', async () => {
     const response = await fetch(`${baseUrl}/admin/audit-log?action=CREATE&status=SUCCESS&limit=20`, {
       headers: adminHeaders(token),

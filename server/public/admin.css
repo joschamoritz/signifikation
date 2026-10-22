@@ -77,7 +77,6 @@ body {
 .ghost-btn:focus-visible,
 .text-btn:focus-visible,
 .danger-btn:focus-visible,
-.icon-btn:focus-visible,
 .entry-filters-reset:focus-visible,
 .cal-nav-btn:focus-visible,
 .extra-toggle:focus-visible,
@@ -184,28 +183,6 @@ body {
   background: #fbfaf8;
 }
 
-.metric-card--today {
-  background: #fdf8ee;
-  border-color: var(--accent);
-  min-height: 148px;
-  justify-content: space-between;
-}
-
-.metric-card--today.is-empty {
-  background: var(--surface);
-  border-color: var(--border);
-}
-
-.metric-card--today.is-complete {
-  background: #f0fdf4;
-  border-color: #86efac;
-}
-
-.metric-card--today.is-complete .metric-value,
-.metric-card--today.is-complete .metric-sub {
-  color: #166534;
-}
-
 .metric-label {
   font-size: 0.72rem;
   color: var(--muted);
@@ -271,255 +248,6 @@ body {
   letter-spacing: 0.16em;
   text-transform: uppercase;
   font-weight: 700;
-}
-
-.icon-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 44px;
-  height: 44px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  background: var(--surface);
-  color: var(--primary);
-  font-size: 1rem;
-}
-
-.icon-btn:hover {
-  border-color: var(--primary);
-  background: #fef2f2;
-}
-
-.health-summary,
-.quick-actions-copy {
-  font-size: 0.8rem;
-  color: var(--muted);
-}
-
-.health-status-row {
-  display: grid;
-  gap: 8px;
-  margin-bottom: 12px;
-}
-
-.health-status-placeholder {
-  font-size: 0.8rem;
-  color: var(--muted);
-}
-
-.health-detail-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px;
-}
-
-.health-detail-item {
-  border: 1px solid rgba(232, 226, 216, 0.7);
-  border-radius: var(--radius);
-  padding: 10px 11px;
-  background: var(--surface2);
-}
-
-.health-detail-item span {
-  display: block;
-  font-size: 0.7rem;
-  color: var(--muted);
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-.health-detail-item strong {
-  font-family: var(--font-serif);
-  font-size: 1rem;
-  line-height: 1.2;
-}
-
-.week-preview-grid {
-  display: grid;
-  grid-template-columns: repeat(7, minmax(0, 1fr));
-  gap: 8px;
-}
-
-.week-preview-range {
-  font-size: 0.78rem;
-  color: var(--muted);
-}
-
-.week-preview-actions {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-.week-nav-btn {
-  min-width: 44px;
-  min-height: 44px;
-  padding-inline: 0;
-  text-align: center;
-  color: var(--primary);
-  font-size: 1rem;
-  font-weight: 700;
-}
-
-.week-preview-card {
-  display: grid;
-  gap: 4px;
-  align-content: start;
-  text-align: left;
-  min-height: 132px;
-  border: 1px solid rgba(212, 201, 176, 0.5);
-  border-radius: var(--radius);
-  background: #f7f4ef;
-  padding: 11px 10px;
-  min-width: 0;
-  overflow-wrap: anywhere;
-}
-
-.week-preview-card.has-entry:hover,
-.week-preview-card.is-empty:hover {
-  border-color: var(--primary);
-  background: #fbf6f3;
-}
-
-.week-preview-card.is-today {
-  border-color: rgba(201, 168, 76, 0.72);
-  background: #fdf8ee;
-}
-
-.week-preview-card.is-selected {
-  border-color: rgba(155, 28, 28, 0.35);
-  background: #fffdfa;
-  box-shadow: inset 0 0 0 1px rgba(155, 28, 28, 0.08);
-}
-
-.week-preview-card strong {
-  font-family: var(--font-serif);
-  font-size: 1.15rem;
-  color: var(--primary);
-}
-
-.week-preview-day,
-.week-preview-meta {
-  font-size: 0.72rem;
-  color: var(--muted);
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-.week-preview-hint {
-  font-size: 0.78rem;
-  color: var(--text);
-  line-height: 1.35;
-}
-
-.dashboard-day-detail {
-  margin-top: 12px;
-  padding-top: 14px;
-  border-top: 1px solid rgba(212, 201, 176, 0.45);
-  display: grid;
-  gap: 12px;
-}
-
-.dashboard-day-detail-head {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 10px;
-}
-
-.dashboard-day-detail-label {
-  display: block;
-  margin-bottom: 3px;
-  font-size: 0.68rem;
-  color: var(--muted);
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  font-weight: 700;
-}
-
-.dashboard-day-detail-head strong {
-  font-family: var(--font-serif);
-  font-size: 1.1rem;
-  color: var(--primary);
-}
-
-.dashboard-day-detail-meta {
-  font-size: 0.78rem;
-  color: var(--muted);
-}
-
-.dashboard-day-group-list {
-  display: grid;
-  gap: 10px;
-}
-
-.dashboard-day-group {
-  display: grid;
-  gap: 6px;
-  padding: 10px 11px;
-  background: rgba(243, 241, 237, 0.65);
-  border-radius: var(--radius);
-}
-
-.dashboard-day-detail-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.preview-empty {
-  font-size: 0.82rem;
-  color: var(--muted);
-}
-
-.dashboard-quick-actions {
-  display: grid;
-  gap: 12px;
-}
-
-.activity-list {
-  display: grid;
-  gap: 8px;
-}
-
-.activity-item {
-  border: 1px solid var(--border-lt);
-  border-radius: var(--radius);
-  background: var(--surface2);
-  padding: 10px;
-  display: grid;
-  gap: 4px;
-}
-
-.activity-item-head {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  gap: 8px;
-}
-
-.activity-item-head strong {
-  font-size: 0.82rem;
-  color: var(--primary);
-}
-
-.activity-item-head span,
-.activity-item p {
-  font-size: 0.76rem;
-  color: var(--muted);
-}
-
-.quick-actions-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px;
-}
-
-.quick-action-btn {
-  justify-content: flex-start;
-  font-size: 0.78rem;
 }
 
 .entry-form-actions {
@@ -1530,7 +1258,7 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
 /* Sekundär-Buttons (Laden, Analysieren, ↺)
    :where() hält die Spezifität bei (0,0,1): Die Regel gilt nur noch für
    Knöpfe ohne eigene Gestaltung. Vorher (0,1,2) überschrieb sie jede
-   Einzelklasse (.primary-btn, .week-preview-card, .cal-day …). */
+   Einzelklasse (.primary-btn, .wo-tag, .cal-day …). */
 :where(.card > div) button,
 .viz-search button {
   background: transparent;
@@ -1835,6 +1563,8 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
 .cal-dot.wz   { background: var(--accent-dk); }
 .cal-dot.zw   { background: #7c3aed; }
 .cal-dot.free { background: var(--accent); }
+/* Lückenfüller (Badgefarben aus DESIGN.md: Fläche #f3f4f6, Rahmen #d1d5db, Text #374151) */
+.cal-dot.l    { background: #374151; }
 .cal-day.is-free-day {
   border-color: rgba(201, 168, 76, 0.45);
 }
@@ -1977,10 +1707,8 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
   }
 
   .dashboard-grid,
-  .health-detail-grid,
   .stats-summary-cards,
-  .performance-cards,
-  .week-preview-grid {
+  .performance-cards {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
@@ -2040,14 +1768,8 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
 
 @media (max-width: 560px) {
   .dashboard-grid,
-  .health-detail-grid,
-  .week-preview-grid,
   .entry-meta-grid,
   .mode-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .quick-actions-grid {
     grid-template-columns: 1fr;
   }
 
@@ -2065,7 +1787,6 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
   .users-bulk-controls,
   .entry-preview-actions,
   .audit-controls,
-  .week-preview-actions,
   .system-actions,
   .viz-search {
     flex-direction: column;
@@ -2274,23 +1995,6 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
   .users-table th:first-child {
     z-index: 3;
     background: var(--surface2);
-  }
-
-  /* 7 Tageskarten à 132px = ~970px Scrollstrecke. Als Karussell
-     bleibt die Woche in einem Screen erfassbar. */
-  .week-preview-grid {
-    display: flex;
-    grid-template-columns: none;
-    overflow-x: auto;
-    scroll-snap-type: x mandatory;
-    -webkit-overflow-scrolling: touch;
-    padding-bottom: 4px;
-  }
-
-  .week-preview-card {
-    flex: 0 0 78%;
-    scroll-snap-align: start;
-    min-height: 112px;
   }
 
   /* Höhe kommt als Inline-Style aus admin.js (renderStats) – bei
@@ -2510,41 +2214,7 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
   text-transform: uppercase;
 }
 
-/* ── Hinweis auf „Woche“ (#page-dashboard) ── */
-.vorschlaege-hinweis {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 2px 16px;
-  width: 100%;
-  min-height: 44px;
-  margin-bottom: 20px;
-  padding: 10px 0;
-  border: 0;
-  border-top: 1px solid var(--border);
-  border-bottom: 1px solid var(--border);
-  border-radius: 0;
-  background: none;
-  color: var(--text);
-  text-align: left;
-  text-decoration: none;
-  font: inherit;
-  cursor: pointer;
-}
-
-.vorschlaege-hinweis > strong { font: 400 1.1rem/1.3 var(--font-serif); }
-
-.vorschlaege-hinweis-cta {
-  color: var(--primary);
-  font: 700 1rem/1.2 var(--font-serif);
-  text-underline-offset: 3px;
-}
-
-.vorschlaege-hinweis:hover .vorschlaege-hinweis-cta {
-  color: var(--primary-hi);
-  text-decoration: underline;
-}
+/* (Hinweis auf offene Vorschläge: siehe Block „Planen › Woche“ am Dateiende) */
 
 /* ── Gesperrte Aktionen (disabled oder aria-disabled) ── */
 .adm-cta:disabled,
@@ -2973,4 +2643,746 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
 
 @media (forced-colors: active) {
   .vorschlag.is-busy::before { border-left-color: Highlight; }
+}
+
+/* ── Planen › Woche (#page-dashboard) ─────────────────────────────────────
+   DESIGN.md §9: Linien statt Kästen, keine Schatten, Radius ≤ 4 px.
+   Rot = Aktion und „ausgewählt“ (3-px-Strich + 4 % Tönung), Gold nur Deko
+   (Bonus-Marke), Statusfarben nur für „fehlt“ und „nichts geplant“.
+   Wiederverwendet: .adm-cta, .adm-link, .adm-overline, .adm-visually-hidden
+   (admin-shell.css); .vorschlag-modi (dl-Raster aus „Vorschläge“);
+   --status-* und --vorschlag-einzug (:root des Vorschläge-Blocks).
+
+   Umbruch nach der Breite der Seite (Container-Abfrage), nicht nach dem
+   Viewport: Neben der Navigationsspalte ist der Inhalt bei 761–990 px nur
+   450–680 px breit. Schwellen in rem, damit größere Schrift früher auf die
+   Liste umschaltet: ≥ 42.5rem (680 px) sieben Spalten, < 27.5rem (440 px)
+   Zeilen gestapelt, < 20rem (320 px) Tag dreizeilig. Muss NACH dem
+   Vorschläge-Block stehen (Kaskade).
+   ─────────────────────────────────────────────────────────────────────── */
+
+:root {
+  /* Modus-Marken = DESIGN.md-Badgefarben. Wort-Zwilling-Schrift in --accent-ink
+     (admin-shell.css): #a07830 hat auf #fdf8ee nur 3,8 : 1, #85621f 5,3 : 1. */
+  --wo-k-bg: #fef2f2; --wo-k-bd: #fecaca; --wo-k-fg: #9b1c1c;
+  --wo-z-bg: #eff6ff; --wo-z-bd: #bfdbfe; --wo-z-fg: #1d4ed8;
+  --wo-l-bg: #f3f4f6; --wo-l-bd: #d1d5db; --wo-l-fg: #374151;
+  --wo-w-bg: #fdf8ee; --wo-w-bd: #c9a84c; --wo-w-fg: var(--accent-ink);
+  /* 4 % statt 5 %: --muted bleibt auf der Tönung bei 4,55 : 1 */
+  --wo-tint: color-mix(in srgb, var(--primary) 4%, transparent);
+  --wo-label-w: 8.5rem;
+}
+
+#page-dashboard {
+  container: woche / inline-size;
+  gap: 0;
+}
+
+/* ── 1 · Lage: „Heute“ und Vorschläge als Linienzeilen ── */
+.wo-lage {
+  margin: 0 0 28px;
+  border-top: 1px solid var(--border);
+}
+
+/* Grundform (Seite schmaler als 680 px): Ende unter den Hauptteil */
+.wo-zeile {
+  display: grid;
+  grid-template-columns: var(--wo-label-w) minmax(0, 1fr);
+  grid-template-areas:
+    "label haupt"
+    ".     ende";
+  align-items: baseline;
+  gap: 2px 20px;
+  min-height: var(--tap);
+  margin: 0;
+  padding: 10px 0;
+  border: 0;
+  border-bottom: 1px solid var(--border);
+  border-radius: 0;
+  background: none;
+}
+
+.wo-zeile-label {
+  grid-area: label;
+  margin: 0;
+  color: var(--muted);
+  font: 600 0.66rem/1.3 var(--font-sans);
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+}
+
+.wo-zeile-haupt {
+  grid-area: haupt;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0 14px;
+  min-width: 0;
+}
+
+.wo-zeile-ende {
+  grid-area: ende;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: flex-start;
+  gap: 0 18px;
+}
+
+.wo-heute-thema {
+  min-width: 0;
+  margin: 0;
+  font: italic 400 1.1rem/1.3 var(--font-serif);
+  overflow-wrap: break-word;
+}
+
+.wo-heute-thema.is-leer { font-style: normal; }
+
+.wo-zeile-meta {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.86rem;
+}
+
+/* Statuswort: nur Bedeutung (vollständig / fehlt / nichts geplant) */
+.wo-status {
+  font: 600 0.82rem/1.3 var(--font-sans);
+  white-space: nowrap;
+}
+
+.wo-status[data-tone="ok"]   { color: var(--status-ok); }
+.wo-status[data-tone="warn"] { color: var(--status-warn); }
+.wo-status[data-tone="err"]  { color: var(--status-err); }
+
+.wo-system[data-tone="warn"] { color: var(--status-warn); }
+
+/* Heute ist nichts geplant: Warnfläche mit 3-px-Strich. Bewusst im Warnton
+   (wie die Lücken), nicht in Rot: Rot mit Strich + Tönung ist das Signal für
+   „ausgewählt“ (DESIGN.md §4). Fläche und Strich stehen links im Seitenrand,
+   der Text fluchtet; rechts endet die Fläche bündig mit den Linien. */
+.wo-zeile[data-tone="warn"] {
+  margin-inline: calc(-1 * var(--vorschlag-einzug)) 0;
+  padding-inline: calc(var(--vorschlag-einzug) - 3px) 0;
+  border-left: 3px solid var(--status-warn);
+  background: var(--status-warn-bg);
+}
+
+.wo-zeile[data-tone="warn"] .wo-zeile-label { color: var(--status-warn); }
+
+/* Vorschlags-Hinweis (bestehende IDs) als zweite Zeile derselben Liste */
+.vorschlaege-hinweis {
+  color: var(--text);
+  text-align: left;
+  text-decoration: none;
+  font: inherit;
+  cursor: pointer;
+}
+
+.vorschlaege-hinweis > strong { font: 400 1.1rem/1.3 var(--font-serif); }
+
+.vorschlaege-hinweis-cta {
+  grid-area: ende;
+  color: var(--primary);
+  font: 700 1rem/1.2 var(--font-serif);
+  text-underline-offset: 3px;
+}
+
+.vorschlaege-hinweis:hover .vorschlaege-hinweis-cta {
+  color: var(--primary-hi);
+  text-decoration: underline;
+}
+
+/* ── 2 · Woche: KW-Kopf mit Doppellinie, Navigation rechts ── */
+.wo-woche-kopf {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0 20px;
+}
+
+/* Doppellinie 0,9 px + 0,45 px mit 3 px Abstand (wie .vorschlag-woche-kopf) */
+.wo-woche-kopf::after {
+  content: '';
+  flex: 0 0 100%;
+  height: calc(0.9px + 3px + 0.45px);
+  margin-top: 2px;
+  border-top: 0.9px solid var(--text);
+  border-bottom: 0.45px solid var(--text);
+}
+
+.wo-woche-titel {
+  margin: 0;
+  color: var(--text);
+  font: inherit;
+}
+
+.wo-woche-kw {
+  color: var(--muted);
+  font: 600 0.66rem/1.3 var(--font-sans);
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+}
+
+/* Echtes Leerzeichen zwischen KW und Spanne steht im Markup (Screenreader) */
+.wo-woche-spanne {
+  margin-left: 0.3em;
+  font: 400 1.15rem/1.3 var(--font-serif);
+}
+
+.wo-woche-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 18px;
+}
+
+.wo-legende {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 14px;
+  margin: 8px 0 0;
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
+.wo-legende > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+/* ── Tage: mobil-zuerst als Liste, ab 42.5rem sieben Spalten ── */
+.wo-tage {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  margin-top: 6px;
+}
+
+.wo-tag {
+  position: relative;
+  display: grid;
+  grid-template-columns: 4.5rem minmax(0, 1fr) auto;
+  grid-template-areas:
+    "wt    thema marken"
+    "datum thema fuss";
+  align-items: center;
+  gap: 2px 12px;
+  width: 100%;
+  min-width: 0;
+  min-height: 56px;
+  margin: 0;
+  padding: 8px 4px 8px 12px;
+  border: 0;
+  border-bottom: 1px solid var(--border-lt);
+  border-radius: 0;
+  background: none;
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.wo-tag-wt {
+  grid-area: wt;
+  color: var(--muted);
+  font: 600 0.66rem/1.3 var(--font-sans);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.wo-tag-datum {
+  grid-area: datum;
+  font: 400 1.15rem/1.15 var(--font-serif);
+  white-space: nowrap;
+}
+
+/* Thema: höchstens zwei Zeilen, bricht notfalls im Wort (lang="de" → Silbentrennung) */
+.wo-tag-thema {
+  grid-area: thema;
+  display: -webkit-box;
+  min-width: 0;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  font: italic 400 0.95rem/1.3 var(--font-serif);
+  overflow-wrap: anywhere;
+  hyphens: auto;
+}
+
+.wo-tag-thema.is-leer {
+  color: var(--muted);
+  font-style: normal;
+}
+
+.wo-marken {
+  grid-area: marken;
+  justify-self: end;
+  display: flex;
+  gap: 2px;
+}
+
+.wo-tag-fuss {
+  grid-area: fuss;
+  justify-self: end;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 2px 6px;
+}
+
+.wo-tag-fuss:empty { display: none; }
+
+/* Modus-Marke: Buchstabe in Badgefarbe; fehlt = leere, gestrichelte Marke.
+   em statt px: wächst mit der Schriftgröße. 0.625rem = 10 px (≥ 0.6rem). */
+.wo-marke {
+  display: inline-grid;
+  place-items: center;
+  box-sizing: border-box;
+  width: 1.8em;
+  height: 1.8em;
+  border: 1px solid;
+  border-radius: 3px;
+  font: 700 0.625rem/1 var(--font-sans);
+}
+
+.wo-marke[data-m="k"] { background: var(--wo-k-bg); border-color: var(--wo-k-bd); color: var(--wo-k-fg); }
+.wo-marke[data-m="z"] { background: var(--wo-z-bg); border-color: var(--wo-z-bd); color: var(--wo-z-fg); }
+.wo-marke[data-m="l"] { background: var(--wo-l-bg); border-color: var(--wo-l-bd); color: var(--wo-l-fg); }
+.wo-marke[data-m="w"] { background: var(--wo-w-bg); border-color: var(--wo-w-bd); color: var(--wo-w-fg); }
+
+.wo-marke.is-fehlt {
+  border: 1px dashed var(--muted);
+  background: transparent;
+}
+
+.wo-tag-stand {
+  color: var(--status-warn);
+  font: 600 0.76rem/1.3 var(--font-sans);
+  white-space: nowrap;
+}
+
+/* Vergangene Tage: kein Handlungsbedarf mehr, also keine Warnfarbe */
+.wo-tag.is-vergangen .wo-tag-stand { color: var(--muted); }
+
+/* Bonus-Tag: Gold als Deko (DESIGN.md), Schrift in --accent-ink für 4,5 : 1 */
+.wo-bonus {
+  display: inline-block;
+  padding: 1px 8px;
+  border: 1px solid var(--accent);
+  border-radius: var(--radius);
+  color: var(--accent-ink);
+  font: 700 0.7rem/1.4 var(--font-sans);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+/* Heute: Text („heute“) statt Farbe; Wochentag in Textfarbe statt gedämpft */
+.wo-tag[aria-current="date"] .wo-tag-wt { color: var(--text); }
+
+.wo-tag.is-gewaehlt .wo-tag-datum { color: var(--primary); }
+
+/* Hover neutral (Unterstreichung statt Rot): Rot bleibt dem gewählten Tag vorbehalten */
+.wo-tag:not(.is-gewaehlt):hover .wo-tag-datum {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* Ausgewählt: 3-px-Strich (Border, bleibt im Kontrastmodus) + Tönung.
+   Als ::before, damit der Inhalt nicht um 3 px springt. */
+.wo-tag.is-gewaehlt { background: var(--wo-tint); }
+
+.wo-tag.is-gewaehlt::before,
+.wo-detail::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  border-left: 3px solid var(--primary);
+}
+
+.wo-tag:focus-visible { outline-offset: -2px; }
+
+/* ── 3 · Tagesdetail: in der Liste direkt unter dem gewählten Tag ── */
+.wo-tag.is-gewaehlt { border-bottom-color: transparent; }
+
+.wo-detail {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas:
+    "kopf"
+    "modi"
+    "aktionen";
+  min-width: 0;
+  padding: 4px 4px 14px 12px;
+  border-bottom: 1px solid var(--border-lt);
+  background: var(--wo-tint);
+}
+
+.wo-detail-kopf { grid-area: kopf; min-width: 0; }
+
+.wo-detail-over { margin: 0 0 2px; }
+
+.wo-detail-thema {
+  margin: 0;
+  font: 400 1.45rem/1.2 var(--font-serif);
+  overflow-wrap: break-word;
+}
+
+/* Programmatischer Fokus nach dem Neuzeichnen: ohne Ring bei Maus */
+.wo-detail-thema:focus:not(:focus-visible) { outline: none; }
+
+.wo-detail-thema.is-leer {
+  color: var(--muted);
+  font-style: italic;
+}
+
+.wo-detail-kurz {
+  max-width: var(--text-max, 680px);
+  margin: 6px 0 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.wo-detail-bonus {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 10px;
+  margin: 8px 0 0;
+  font-size: 0.86rem;
+}
+
+.wo-detail .vorschlag-modi {
+  grid-area: modi;
+  margin: 14px 0 0;
+}
+
+.wo-detail-aktionen {
+  grid-area: aktionen;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0 20px;
+  margin-top: 6px;
+}
+
+/* ── 4 · Lücken und Stand ── */
+.wo-unten {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 28px;
+  margin-top: 36px;
+}
+
+.wo-block { min-width: 0; }
+
+.wo-block-titel {
+  display: block;
+  margin: 0 0 6px;
+}
+
+.wo-luecken {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--border);
+}
+
+/* Ganze Zeile ist der Link (Muster .adm-tool aus „Werkzeuge“): große
+   Trefferfläche, ruhiger als acht fette CTAs untereinander. */
+.wo-luecke {
+  display: grid;
+  grid-template-columns: 5.5rem minmax(0, 1fr) auto;
+  align-items: baseline;
+  column-gap: 14px;
+  min-height: var(--tap);
+  border-bottom: 1px solid var(--border-lt);
+  color: inherit;
+  text-decoration: none;
+}
+
+.wo-luecke-go {
+  color: var(--primary);
+  font: 400 1rem/1.2 var(--font-serif);
+  white-space: nowrap;
+}
+
+.wo-luecke:hover .wo-luecke-go {
+  color: var(--primary-hi);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.wo-luecke:hover .wo-luecke-datum { color: var(--primary); }
+
+.wo-luecke-datum {
+  font: 700 1rem/1.3 var(--font-serif);
+  white-space: nowrap;
+}
+
+.wo-luecke-haupt {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  padding: 10px 0 8px;
+}
+
+/* Thema: höchstens zwei Zeilen (wie im Tag), bricht notfalls im Wort */
+.wo-luecke-thema {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  font: italic 400 0.95rem/1.3 var(--font-serif);
+  overflow-wrap: anywhere;
+  hyphens: auto;
+}
+
+.wo-luecke-was {
+  color: var(--muted);
+  font-size: 0.84rem;
+  line-height: 1.35;
+}
+
+.wo-luecke.is-heute .wo-luecke-was { color: var(--status-warn); }
+
+.wo-luecken-mehr {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0 14px;
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 0.86rem;
+}
+
+.wo-stand {
+  margin: 0;
+  border-top: 1px solid var(--border);
+}
+
+.wo-stand > div {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 2px 16px;
+  min-height: var(--tap);
+  padding: 10px 0 8px;
+  border-bottom: 1px solid var(--border-lt);
+}
+
+.wo-stand dt {
+  color: var(--muted);
+  font-size: 0.84rem;
+}
+
+.wo-stand dd {
+  margin: 0;
+  font: 400 1rem/1.35 var(--font-serif);
+  text-align: right;
+}
+
+/* Leerzustand „Keine Lücken“: Serif-Titel + Ornament (Overline = Blocktitel) */
+.wo-leer {
+  padding: 22px 0 10px;
+  border-top: 1px solid var(--border);
+  text-align: center;
+}
+
+.wo-leer-titel {
+  margin: 0;
+  font: 400 1.2rem/1.3 var(--font-serif);
+}
+
+.wo-leer-text {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 0.86rem;
+}
+
+.wo-leer-ornament {
+  margin: 10px 0 0;
+  color: var(--accent);
+  font: 400 1.1rem/1 var(--font-serif);
+  letter-spacing: 0.3em;
+}
+
+/* Lade- und Fehlerzeile (Kalender); steht anstelle der Tage im Raster */
+.wo-meldung {
+  grid-column: 1 / -1;
+  margin: 6px 0 0;
+  padding: 8px 12px 8px 11px;
+  border-left: 3px solid var(--border);
+  color: var(--muted);
+  font-size: 0.86rem;
+}
+
+.wo-meldung[data-tone="err"] {
+  border-left-color: var(--status-err);
+  background: var(--status-err-bg);
+  color: var(--status-err);
+}
+
+.wo-meldung .adm-link {
+  color: inherit;
+  text-decoration: underline;
+}
+
+/* Neuer Versuch läuft: Knopf bleibt (Fokus), reagiert aber nicht */
+.wo-meldung .adm-link[aria-disabled="true"] {
+  text-decoration: none;
+  cursor: default;
+}
+
+/* ── Breit (≥ 680 px Seitenbreite): sieben Spalten, Detail darunter ── */
+@container woche (min-width: 42.5rem) {
+  .wo-zeile {
+    grid-template-columns: var(--wo-label-w) minmax(0, 1fr) auto;
+    grid-template-areas: "label haupt ende";
+  }
+
+  .wo-zeile-ende { justify-content: flex-end; }
+
+  .wo-tage { grid-template-columns: repeat(7, minmax(0, 1fr)); }
+
+  .wo-tag {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+    min-height: 0;
+    padding: 10px 8px 12px 11px;
+    border-right: 1px solid var(--border-lt);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .wo-tag:last-of-type { border-right: 0; }
+
+  .wo-tag.is-gewaehlt { border-bottom-color: var(--border); }
+
+  /* Zwei Zeilen Platz, damit die Marken aller Tage auf einer Höhe stehen */
+  .wo-tag-thema {
+    width: 100%;
+    min-height: 2.6em;
+  }
+
+  .wo-marken {
+    flex-wrap: wrap;
+    justify-self: auto;
+  }
+
+  .wo-tag-fuss {
+    justify-content: flex-start;
+    justify-self: auto;
+  }
+
+  /* Im DOM steht das Detail hinter dem gewählten Tag; order schiebt es
+     unter die ganze Woche (alle Tage haben order 0). */
+  .wo-detail {
+    order: 1;
+    grid-column: 1 / -1;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "kopf aktionen"
+      "modi modi";
+    column-gap: 24px;
+    padding: 20px 0 0;
+    border-bottom: 0;
+    background: none;
+  }
+
+  .wo-detail::before { content: none; }
+
+  .wo-detail-aktionen {
+    align-self: start;
+    margin-top: 0;
+  }
+
+  .wo-unten {
+    grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+    gap: 0 40px;
+  }
+}
+
+/* ── Schmal (< 440 px Seitenbreite): Zeilen stapeln ── */
+@container woche (max-width: 27.4375rem) {
+  .wo-zeile {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+      "label"
+      "haupt"
+      "ende";
+  }
+
+  .wo-woche-nav {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .wo-luecke { grid-template-columns: 4.75rem minmax(0, 1fr) auto; column-gap: 10px; }
+
+  .wo-detail-aktionen { justify-content: space-between; }
+}
+
+/* ── Sehr schmal oder große Schrift (< 320 px Seitenbreite bzw. bei großer
+   Schrift): Thema unter Datum und Marken, Marken dürfen umbrechen. Schwelle
+   20rem: Bei 320 px mit Bonus + „3 von 4“ blieben dem Thema sonst nur ~66 px. ── */
+@container woche (max-width: 19.9375rem) {
+  .wo-tag {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "wt    marken"
+      "datum fuss"
+      "thema thema";
+  }
+
+  .wo-marken {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+
+  .wo-luecke {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "datum go"
+      "haupt haupt";
+  }
+
+  .wo-luecke-datum { grid-area: datum; }
+  .wo-luecke-haupt { grid-area: haupt; padding-top: 0; }
+  .wo-luecke-go { grid-area: go; }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .wo-tag,
+  .wo-tag-datum {
+    transition: background-color 0.15s, color 0.15s;
+  }
+}
+
+/* Windows-Kontrastmodus: Tönung und Markenflächen entfallen; Strich und
+   Strichelung tragen die Information. */
+@media (forced-colors: active) {
+  .wo-tag.is-gewaehlt::before,
+  .wo-detail::before,
+
+  /* „Heute: nichts geplant“: gestrichelt statt Highlight – Highlight ist das
+     Auswahlsignal (gewählter Tag) */
+  .wo-zeile[data-tone="warn"] { border-left: 3px dashed CanvasText; }
+
+  .wo-marke { border-color: CanvasText; }
+  .wo-marke.is-fehlt { border-color: GrayText; }
+
+  .wo-tag[aria-current="date"] .wo-tag-wt { text-decoration: underline; }
 }

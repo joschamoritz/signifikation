@@ -14,6 +14,10 @@
      auch für die Seiteninhalte (admin.css nutzt var(--muted)). */
   --muted:     #776c5e;
   --tint:      color-mix(in srgb, var(--primary) 5%, transparent);
+  /* Gold für kleine Schrift (Wort-Zwilling-Marke, Bonus): 5,3 : 1 auf Pergament.
+     --accent (#c9a84c) und --accent-dk (#a07830, nur 3,8 : 1) bleiben für
+     Flächen und Linien. */
+  --accent-ink: #85621f;
   --nav-w:     216px;
   --page-max:  1040px;
   --text-max:  680px;
@@ -449,6 +453,12 @@ html:has(.adm-root.has-takeover) {
   .adm-cta,
   .adm-link {
     text-decoration: underline;
+  }
+
+  /* Gesperrte Aktion (z. B. „Diese Woche“ in der aktuellen Woche) muss auch hier gesperrt wirken */
+  .adm-link[aria-disabled="true"] {
+    color: GrayText;
+    text-decoration: none;
   }
 }
 

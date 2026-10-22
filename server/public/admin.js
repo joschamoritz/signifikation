@@ -103,8 +103,20 @@ function getCurrentDate() {
   return new Date()
 }
 
+// Kalendertag in lokaler Zeit (nicht UTC): toISOString() würde zwischen 0 und
+// 1 Uhr (Winterzeit) bzw. 0 und 2 Uhr (Sommerzeit) noch den Vortag liefern.
+function toLocalIso(date) {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
+}
+
 function getTodayIso() {
-  return getCurrentDate().toISOString().slice(0, 10)
+  return toLocalIso(getCurrentDate())
+}
+
+// Tage auf ein ISO-Datum addieren (rechnet in lokaler Zeit, Sommer-/Winterzeit-fest).
+function addTageIso(iso, n) {
+  const [y, m, d] = iso.split('-').map(Number)
+  return toLocalIso(new Date(y, m - 1, d + n))
 }
 
 function scheduleSessionRefresh() {
@@ -365,15 +377,17 @@ function applyRouteChrome(route) {
 function runRouteLoaders(route) {
   switch (route.page) {
     case 'users':
-      // Nutzerliste wird beim Start schon geladen – nur nachholen, wenn das fehlte.
+      // Beim ersten Öffnen laden; danach bleibt die Liste samt Filtern stehen.
       if (!usersLoaded) loadUsersOverview()
       break
     case 'stats':
-      // Beim Start werden die Diagramme übersprungen (Chart.js ist dann noch
-      // nicht geladen) – hier also frisch rendern.
+      // Lädt bei jedem Öffnen frisch (inkl. Diagramme und Zusammenfassung).
       loadStats()
       break
     case 'system':
+      // Zustand und Performance lädt die Seite selbst (früher hingen sie am Start der Woche).
+      loadHealth()
+      loadPerformance()
       loadAuditLog()
       loadCoursePdfStatus()
       break
@@ -707,15 +721,14 @@ function switchPage(pageId) {
   if (Object.hasOwn(LEGACY_PAGE_ROUTES, pageId)) navigate(LEGACY_PAGE_ROUTES[pageId])
 }
 
+// „neu laden“ in Planen › Woche: nur, was die Woche zeigt. Die übrigen Seiten
+// laden beim Öffnen selbst (runRouteLoaders).
 function refreshDashboard() {
-  loadHealth()
   loadKalender()
   loadVorschlaege({ silent: true })
   loadFreeDays({ silent: true })
-  loadStats()
-  loadPerformance()
-  loadAdminActivity()
-  if (usersLoaded) loadUsersOverview()
+  loadHeuteSpiele()
+  loadHealth()
 }
 
 function normalizeText(value) {
@@ -958,51 +971,45 @@ function setFreeDayMessage(message, tone = 'info') {
   if (tone === 'success') msgEl.classList.add('is-success')
 }
 
-function summarizeAuditEntry(entry) {
-  if (!entry) return 'Keine Aktivität verfügbar.'
-  const action = entry.action || 'Änderung'
-  const resource = entry.resource || 'Ressource'
-  const resourceId = entry.resourceId ? ` ${entry.resourceId}` : ''
-  const status = entry.status === 'FAILED' ? 'fehlgeschlagen' : 'erfolgreich'
-  return `${action} ${resource}${resourceId} · ${status}`
-}
-
-function renderAdminActivity(entries) {
-  const list = document.getElementById('dashboard-activity-list')
-  const hint = document.getElementById('dashboard-activity-hint')
-  if (!list || !hint) return
-
-  if (!Array.isArray(entries) || !entries.length) {
-    list.innerHTML = '<div class="users-empty">Noch keine Admin-Aktivität vorhanden.</div>'
-    hint.textContent = 'Keine Einträge im Audit-Log.'
-    return
-  }
-
-  hint.textContent = `${entries.length} letzte Änderungen aus dem Audit-Log`
-  list.innerHTML = entries.map((entry) => {
-    const time = entry.timestamp ? new Date(entry.timestamp).toLocaleString('de-DE', { dateStyle: 'short', timeStyle: 'short' }) : '—'
-    return `<article class="activity-item"><div class="activity-item-head"><strong>${esc(entry.resource || '—')}</strong><span>${esc(time)}</span></div><p>${esc(summarizeAuditEntry(entry))}</p></article>`
-  }).join('')
-}
-
-async function loadAdminActivity() {
-  try {
-    const response = await fetch('/admin/audit-log?limit=5', {})
-    const data = await response.json().catch(() => ({}))
-    if (!response.ok) throw new Error(data.error || `HTTP ${response.status}`)
-    renderAdminActivity(Array.isArray(data.entries) ? data.entries : [])
-  } catch (err) {
-    renderAdminActivity([])
-    const hint = document.getElementById('dashboard-activity-hint')
-    if (hint) hint.textContent = `Aktivität konnte nicht geladen werden: ${err.message}`
-  }
-}
-
 function formatIsoDate(iso) {
   if (!iso) return ''
   const [y, m, d] = iso.split('-').map(Number)
   if (!y || !m || !d) return iso
   return `${String(d).padStart(2, '0')}.${String(m).padStart(2, '0')}.${y}`
+}
+
+const WOCHENTAGE_LANG = ['Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag', 'Sonntag']
+
+// Zerlegt ein ISO-Datum; wt = Wochentag-Index mit Montag = 0.
+function datumTeile(iso) {
+  const [y, m, d] = iso.split('-').map(Number)
+  return { y, m, d, wt: (new Date(y, m - 1, d).getDay() + 6) % 7 }
+}
+
+// „Do 22.10.“
+function datumKurz(iso) {
+  const t = datumTeile(iso)
+  return `${DAYS_DE[t.wt]} ${String(t.d).padStart(2, '0')}.${String(t.m).padStart(2, '0')}.`
+}
+
+// „Donnerstag, 22. Oktober“ (jahr: true → „… 2026“)
+function datumLang(iso, { jahr = false } = {}) {
+  const t = datumTeile(iso)
+  return `${WOCHENTAGE_LANG[t.wt]}, ${t.d}. ${MONTHS_DE[t.m - 1]}${jahr ? ` ${t.y}` : ''}`
+}
+
+// „9.–15. November 2026“ · „26. Oktober – 1. November 2026“ · „29. Dezember 2026 – 4. Januar 2027“
+function wochenSpanne(montagIso) {
+  const a = datumTeile(montagIso)
+  const e = datumTeile(addTageIso(montagIso, 6))
+  if (a.y !== e.y) return `${a.d}. ${MONTHS_DE[a.m - 1]} ${a.y} – ${e.d}. ${MONTHS_DE[e.m - 1]} ${e.y}`
+  if (a.m !== e.m) return `${a.d}. ${MONTHS_DE[a.m - 1]} – ${e.d}. ${MONTHS_DE[e.m - 1]} ${e.y}`
+  return `${a.d}.–${e.d}. ${MONTHS_DE[e.m - 1]} ${e.y}`
+}
+
+// „A“, „A und B“, „A, B und C“
+function aufzaehlung(namen) {
+  return namen.length < 2 ? namen.join('') : `${namen.slice(0, -1).join(', ')} und ${namen[namen.length - 1]}`
 }
 
 function toIsoFromMMDD(mmdd) {
@@ -1034,25 +1041,6 @@ function parseCalendarDate(mmdd) {
   return new Date(y, m - 1, d)
 }
 
-function startOfDay(date) {
-  const value = new Date(date)
-  value.setHours(0, 0, 0, 0)
-  return value
-}
-
-function formatDayMonth(date) {
-  return date.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' })
-}
-
-function formatWeekRange(startDate, endDate) {
-  const startLabel = formatDayMonth(startDate)
-  const endLabel = formatDayMonth(endDate)
-  if (startDate.getFullYear() === endDate.getFullYear()) {
-    return `${startLabel} - ${endLabel}`
-  }
-  return `${startLabel} ${startDate.getFullYear()} - ${endLabel} ${endDate.getFullYear()}`
-}
-
 function modeChips(entry) {
   const chips = ['<span class="entry-chip mode-koll">Kollokation</span>']
   if (entry?.hasWortZwilling) chips.push('<span class="entry-chip mode-wortzwilling">Wort-Zwilling</span>')
@@ -1078,6 +1066,45 @@ function getCalendarEntries() {
 
 function getModeGroups(entry) {
   return Array.isArray(entry?.modeGroups) ? entry.modeGroups.filter((group) => Array.isArray(group?.items) && group.items.length) : []
+}
+
+// Reihenfolge = Marken, Legende und Detail-Raster (wie Tagesformular, Vorschläge und Server-modeGroups)
+const MODI = [
+  { key: 'kollokationen',  marke: 'k', buchstabe: 'K', label: 'Kollokationen' },
+  { key: 'wortzwilling',   marke: 'w', buchstabe: 'W', label: 'Wort-Zwilling' },
+  { key: 'zeitenwende',    marke: 'z', buchstabe: 'Z', label: 'Zeitenwende' },
+  { key: 'lueckenfueller', marke: 'l', buchstabe: 'L', label: 'Lückenfüller' },
+]
+
+/**
+ * Planungsstand eines Kalendertags – überall gleich: vollständig = alle vier Modi.
+ * Grundlage: modeGroups aus GET /admin/kalender (nur Gruppen mit Inhalt).
+ * Genutzt von Woche und Monat (renderCalendar).
+ * @param {object|null|undefined} entry Kalendereintrag oder leer, wenn der Tag fehlt
+ * @returns {{ modi: Array, anzahl: number, fehlend: Array, zustand: 'leer'|'teilweise'|'vollstaendig' }}
+ */
+function tagesStand(entry) {
+  const vorhanden = new Map(getModeGroups(entry).map((g) => [g.key, g.items]))
+  const modi = MODI.map((m) => ({ ...m, geplant: vorhanden.has(m.key), items: vorhanden.get(m.key) || [] }))
+  const anzahl = modi.filter((m) => m.geplant).length
+  return {
+    modi,
+    anzahl,
+    fehlend: modi.filter((m) => !m.geplant),
+    zustand: anzahl === 0 ? 'leer' : anzahl === MODI.length ? 'vollstaendig' : 'teilweise',
+  }
+}
+
+function istVollstaendig(entry) {
+  return tagesStand(entry).zustand === 'vollstaendig'
+}
+
+// „Lückenfüller fehlt“ · „Wort-Zwilling und Zeitenwende fehlen“ · „nur Kollokationen geplant“ · „nichts geplant“
+function fehltText(stand) {
+  if (stand.zustand === 'leer') return 'nichts geplant'
+  if (stand.anzahl === 1) return `nur ${stand.modi.find((m) => m.geplant).label} geplant`
+  const namen = stand.fehlend.map((m) => m.label)
+  return `${aufzaehlung(namen)} ${namen.length === 1 ? 'fehlt' : 'fehlen'}`
 }
 
 function modeGroupKeyToClass(key) {
@@ -1360,6 +1387,7 @@ async function restoreBackupFile(event) {
     const restored = data.restored || {}
     setSystemMessage(`Backup wiederhergestellt: ${restored.lemmata || 0} Lemmata, ${restored.kalender || 0} Kalendertage.`, 'success')
     refreshDashboard()
+    loadPerformance()   // liegt auf derselben Seite (Werkzeuge › System)
   } catch (err) {
     setSystemMessage(`Backup-Restore fehlgeschlagen: ${err.message}`, 'error')
   } finally {
@@ -1437,88 +1465,42 @@ function initDashboard() {
   offerEntryDraft()
   loadKalender()
   loadVorschlaege({ silent: true })
-  loadFreeDays({ silent: true })
-  loadStats()
-  loadPerformance()
-  loadHealth()
-  loadAdminActivity()
-  loadUsersOverview()
+  loadFreeDays({ silent: true })   // Bonus in Woche und Monat
+  loadHeuteSpiele()                // „Spiele heute“ in der Heute-Zeile
+  loadHealth()                     // ein Wort in der Heute-Zeile
+  // Alle übrigen Seiten (Nutzer, Spiele, System …) laden beim Öffnen selbst (runRouteLoaders).
 }
 
 
-// ── System-Status ─────────────────────────────────────────────────────────────
+// ── System-Zustand ────────────────────────────────────────────────────────────
+function systemInOrdnung(data) {
+  return data?.wortprofilDb === 'ok' && data?.belegeDb === 'ok'
+}
+
+// Füllt den Link in Planen › Woche (ein Wort) und die System-Seite (alle Werte).
+// Jedes Ziel ist optional: fehlt eines, wird das andere trotzdem gefüllt.
 async function loadHealth() {
-  const container = document.getElementById('health-badges')
-  if (!container) return
+  let data = null
+  let fehler = ''
   try {
-    const r    = await fetch('/admin/health')
-    const data = await r.json()
-
-    const dbOk   = s => s === 'ok'
-    const badge  = (label, ok, detail = '') => {
-      const color = ok ? '#166534' : '#991b1b'
-      const bg    = ok ? '#dcfce7' : '#fee2e2'
-      const icon  = ok ? '✓' : '✗'
-      return `<span style="display:inline-flex;align-items:center;gap:4px;
-        font-size:0.75rem;font-weight:500;padding:2px 8px;border-radius:99px;
-        background:${bg};color:${color}">
-        ${icon} ${esc(label)}${detail ? ` <span style="font-weight:400;opacity:.75">${esc(detail)}</span>` : ''}
-      </span>`
-    }
-
-    const upMin  = Math.floor(data.uptime / 60)
-    const uptime = upMin < 60 ? `${upMin} min` : `${Math.floor(upMin / 60)} h`
-    const processLabel = data.process?.pid ? `PID ${data.process.pid}` : 'PID -'
-    const allStable = dbOk(data.wortprofilDb) && dbOk(data.belegeDb)
-
-    container.innerHTML = [
-      badge('Server', true, `${uptime} · ${data.memMb} MB`),
-      badge('wortprofil.db', dbOk(data.wortprofilDb), dbOk(data.wortprofilDb) ? '' : data.wortprofilDb),
-      badge('belege.db', dbOk(data.belegeDb), dbOk(data.belegeDb) ? '' : data.belegeDb),
-      `<span style="font-size:0.72rem;color:var(--muted)">${esc(data.env)}</span>`,
-    ].join('')
-
-    const healthSummary = document.getElementById('health-summary')
-    if (healthSummary) {
-      healthSummary.textContent = allStable
-        ? 'Alle Systeme stabil und erreichbar.'
-        : 'Mindestens ein System braucht Aufmerksamkeit.'
-    }
-
-    const metricHealth = document.getElementById('metric-health')
-    const metricHealthSub = document.getElementById('metric-health-sub')
-    if (metricHealth) metricHealth.textContent = allStable ? 'Stabil' : 'Warnung'
-    if (metricHealthSub) metricHealthSub.textContent = `${uptime} · ${data.memMb} MB · ${processLabel}`
-
-    const details = document.getElementById('system-health-details')
-    if (details) {
-      details.innerHTML = [
-        `<div class="health-detail-item"><span>Uptime</span><strong>${esc(uptime)}</strong></div>`,
-        `<div class="health-detail-item"><span>Memory</span><strong>${esc(String(data.memMb))} MB</strong></div>`,
-        `<div class="health-detail-item"><span>Prozess</span><strong>${esc(processLabel)}</strong></div>`,
-        `<div class="health-detail-item"><span>Environment</span><strong>${esc(data.env)}</strong></div>`,
-        `<div class="health-detail-item"><span>Letzter Eintrag</span><strong>${esc(data.lastEntry || '—')}</strong></div>`,
-      ].join('')
-    }
-
-    const systemJson = document.getElementById('system-health-json')
-    if (systemJson) {
-      systemJson.textContent = JSON.stringify(data, null, 2)
-    }
+    const res = await fetch('/admin/health')
+    data = await res.json().catch(() => null)
+    if (!res.ok || !data) throw new Error(data?.error || `HTTP ${res.status}`)
   } catch (err) {
-    container.innerHTML = `<span style="font-size:0.8rem;color:#991b1b">Health-Check fehlgeschlagen: ${esc(err.message)}</span>`
-    const healthSummary = document.getElementById('health-summary')
-    if (healthSummary) healthSummary.textContent = 'Systemstatus konnte nicht geladen werden.'
-    const metricHealth = document.getElementById('metric-health')
-    const metricHealthSub = document.getElementById('metric-health-sub')
-    if (metricHealth) metricHealth.textContent = 'Fehler'
-    if (metricHealthSub) metricHealthSub.textContent = 'Health nicht erreichbar'
-
-    const systemJson = document.getElementById('system-health-json')
-    if (systemJson) {
-      systemJson.textContent = `Health-Check fehlgeschlagen: ${err.message}`
-    }
+    data = null
+    fehler = err.message || 'unbekannter Fehler'
   }
+
+  const link = document.getElementById('wo-system')
+  if (link) {
+    if (!data) { link.textContent = 'Systemzustand unbekannt'; link.removeAttribute('data-tone') }
+    // Unsichtbares Präfix: „System läuft“ allein sagt als Link nicht, wohin er führt
+    else if (systemInOrdnung(data)) { link.innerHTML = '<span class="adm-visually-hidden">Systemzustand: </span>System läuft'; link.removeAttribute('data-tone') }
+    else { link.innerHTML = '<span class="adm-visually-hidden">Systemzustand: </span>System prüfen'; link.dataset.tone = 'warn' }
+  }
+
+  const json = document.getElementById('system-health-json')
+  if (json) json.textContent = data ? JSON.stringify(data, null, 2) : `Zustand konnte nicht abgerufen werden: ${fehler}`
 }
 
 function toggleExtraFields(targetId) {
@@ -1572,6 +1554,11 @@ function updateModeIndicators() {
 }
 
 let kalenderData = {}
+// Zustand des Kalender-Abrufs: Die Woche zeigt bei 'fehler' eine Meldung statt
+// „nichts geplant“ an jedem Tag.
+let kalenderStatus = 'laden'     // 'laden' | 'ok' | 'fehler'
+let kalenderGeladenUm = null
+let kalenderLaedtNeu = false     // „Erneut versuchen“ läuft
 let calYear, calMonth
 
 const initialNow = getCurrentDate()
@@ -1623,32 +1610,33 @@ function renderCalendar() {
     const key = `${calYear}-${mm}-${dd}`   // YYYY-MM-DD – direkte DB-Key
     const entry       = kalenderData[key]
     const freeDayInfo = getFreeDayInfo(key)
-    const hasKoll     = !!(entry?.lemmata?.length)
-    const hasWZ       = !!(entry?.hasWortZwilling)
-    const hasZW       = !!(entry?.hasZeitenwende)
     const isTodayCell = key === todayIso
     const isFreeDay   = !!freeDayInfo
 
-    // Vollständig = Kollokationen + mind. ein weiteres Spiel eingetragen
-    const hasAny      = hasKoll || hasWZ || hasZW
-    const isComplete  = hasKoll && (hasWZ || hasZW)
-    const stateClass  = isComplete ? 'is-complete' : hasAny ? 'has-entry' : 'no-entry'
+    // Vollständig = alle vier Modi (tagesStand, gleiche Regel wie in der Woche);
+    // pro geplantem Modus ein Punkt (K, W, Z, L).
+    const stand       = tagesStand(entry)
+    const hasEntry    = !!entry
+    const hasAny      = stand.zustand !== 'leer'
+    const isComplete  = stand.zustand === 'vollstaendig'
+    const stateClass  = isComplete ? 'is-complete' : hasEntry ? 'has-entry' : 'no-entry'
 
     const isSelected = key === selectedCalendarDate
     const classes = ['cal-day', stateClass, isTodayCell ? 'is-today' : '', isSelected ? 'is-selected' : '', isFreeDay ? 'is-free-day' : ''].filter(Boolean).join(' ')
 
     let dots = ''
     if (hasAny || isFreeDay) {
+      const dotClass = { k: 'koll', w: 'wz', z: 'zw', l: 'l' }
       dots = `<div class="cal-dots">` +
-        (hasKoll ? '<div class="cal-dot koll"></div>' : '') +
-        (hasWZ   ? '<div class="cal-dot wz"></div>'   : '') +
-        (hasZW   ? '<div class="cal-dot zw"></div>'   : '') +
+        stand.modi.filter((m) => m.geplant).map((m) => `<div class="cal-dot ${dotClass[m.marke]}"></div>`).join('') +
         (isFreeDay ? '<div class="cal-dot free"></div>' : '') +
         `</div>`
     }
 
-    const action = hasAny || isFreeDay ? 'select-calendar-date' : 'prefill-date'
-    html += `<button type="button" class="${classes}" data-action="${action}" data-value="${esc(key)}" aria-label="${hasAny || isFreeDay ? `Datum ${formatIsoDate(key)} öffnen` : `Datum ${formatIsoDate(key)} vorausfüllen`}">${d}${dots}</button>`
+    // Ein vorhandener Kalendereintrag wird geöffnet (auch ohne Modi, z. B. ids: []), sonst vorausgefüllt
+    const opens = hasEntry || isFreeDay
+    const action = opens ? 'select-calendar-date' : 'prefill-date'
+    html += `<button type="button" class="${classes}" data-action="${action}" data-value="${esc(key)}" aria-label="${opens ? `Datum ${formatIsoDate(key)} öffnen` : `Datum ${formatIsoDate(key)} vorausfüllen`}">${d}${dots}</button>`
   }
 
   grid.innerHTML = html
@@ -1906,7 +1894,7 @@ async function deleteCurrentTag() {
 
     selectedEntryDates.delete(selectedCalendarDate)
     setStatus(`Eintrag ${selectedCalendarDate} gelöscht.`, 'ok')
-    const currentDate = document.getElementById('datum')?.value || new Date().toISOString().slice(0, 10)
+    const currentDate = document.getElementById('datum')?.value || getTodayIso()
     // Kopf nur anpassen, wenn das Formular wirklich zurückgesetzt wurde
     // (bei abgebrochener Rückfrage zeigt es weiter den alten Stand).
     if (prefillDate(currentDate) && currentRoute?.entry && isValidIsoDay(currentDate)) {
@@ -1921,6 +1909,11 @@ async function deleteCurrentTag() {
 }
 
 async function loadKalender() {
+  // Nach einem Fehler: Meldung samt Knopf stehen lassen (Fokus!), der Knopf zeigt „wird geladen“.
+  if (kalenderStatus === 'fehler') {
+    kalenderLaedtNeu = true
+    renderWoche()
+  }
   try {
     const res  = await fetch('/admin/kalender', {})
     if (!res.ok) throw new Error(`HTTP ${res.status}`)
@@ -1930,6 +1923,9 @@ async function loadKalender() {
       throw new Error('Ungültige Kalenderantwort')
     }
     kalenderData = loaded
+    kalenderStatus = 'ok'
+    kalenderLaedtNeu = false
+    kalenderGeladenUm = new Date()
 
     for (const datum of [...selectedEntryDates]) {
       if (!kalenderData[datum]) selectedEntryDates.delete(datum)
@@ -1949,6 +1945,8 @@ async function loadKalender() {
     }
   } catch {
     kalenderData = {}
+    kalenderStatus = 'fehler'
+    kalenderLaedtNeu = false
     selectedCalendarDate = ''
     selectedEntryDates.clear()
     renderCalendar()
@@ -2180,11 +2178,6 @@ function focusCalendarDate(datum) {
   navigate('#planen/monat')
 }
 
-function changeDashboardWeek(delta) {
-  dashboardWeekOffset += delta
-  updateDashboardFromKalender()
-}
-
 function updateCalendarDetails(datum) {
   const details = document.getElementById('calendar-details')
   const editBtn = document.getElementById('calendar-edit-btn')
@@ -2229,137 +2222,366 @@ function updateCalendarDetails(datum) {
   `
 }
 
-function updateDashboardDayDetail(datum) {
-  const details = document.getElementById('dashboard-day-detail')
-  if (!details) return
-
-  if (!datum) {
-    details.innerHTML = '<div class="preview-empty">Wähle einen Tag, um die Inhalte im Detail zu sehen.</div>'
-    return
-  }
-
-  const entry = kalenderData?.[datum]
-  if (!entry) {
-    details.innerHTML = `
-      <div class="dashboard-day-detail-head">
-        <div>
-          <span class="dashboard-day-detail-label">Ausgewählter Tag</span>
-          <strong>${esc(formatIsoDate(datum))}</strong>
-        </div>
-        <span class="dashboard-day-detail-meta">Noch kein Eintrag</span>
-      </div>
-      <div class="preview-empty">Für diesen Tag liegt noch keine Planung vor.</div>
-    `
-    return
-  }
-
-  const groups = getModeGroups(entry)
-  const summary = groups.length
-    ? groups.map((group) => {
-      const items = (group.items || []).slice(0, 3).map((item) => `<span class="entry-chip">${esc(item)}</span>`).join('')
-      return `<div class="dashboard-day-group">
-        <span class="entry-chip ${modeGroupKeyToClass(group.key)}">${esc(group.label)}</span>
-        <div class="entry-chip-wrap">${items || '<span class="entry-empty">Keine Inhalte</span>'}</div>
-      </div>`
-    }).join('')
-    : '<div class="preview-empty">Keine Inhalte vorhanden.</div>'
-
-  details.innerHTML = `
-    <div class="dashboard-day-detail-head">
-      <div>
-        <span class="dashboard-day-detail-label">Aktiver Tag</span>
-        <strong>${esc(formatIsoDate(datum))}</strong>
-      </div>
-      <span class="dashboard-day-detail-meta">${groups.length} Modi aktiv</span>
-    </div>
-    <div class="dashboard-day-group-list">${summary}</div>
-    <div class="dashboard-day-detail-actions">
-      <button type="button" class="ghost-btn ghost-btn--small" data-action="edit-tag" data-value="${esc(datum)}">Tag bearbeiten</button>
-      <button type="button" class="ghost-btn ghost-btn--small" data-action="focus-calendar-date" data-value="${esc(datum)}">Im Kalender öffnen</button>
-    </div>
-  `
-}
-
 function editSelectedCalendarDate() {
   if (!selectedCalendarDate) return
   navigate(`#planen/tag/${selectedCalendarDate}`)
 }
 
+// ── Planen › Woche ────────────────────────────────────────────────────────────
+// Heute-Zeile, sieben Tage mit einem Detail-Element, Lücken der nächsten vier
+// Wochen und Stand. Alle Texte lesen Zustand aus kalenderData/kalenderStatus.
+
+const LUECKEN_TAGE = 28
+const LUECKEN_MAX = 8
+let wocheLiveAktiv = false
+
 function updateDashboardFromKalender() {
-  const entries = getCalendarEntries()
-  const metricDays = document.getElementById('metric-calendar-days')
-  const today = getCurrentDate()
-  const todayKey = getTodayIso()
-  const futureEntries = entries.filter((entry) => entry.datum >= todayKey)
-  if (metricDays) metricDays.textContent = String(futureEntries.length)
+  renderHeuteZeile()
+  renderWoche()
+  renderLuecken()
+  renderStand()
+}
 
-  const todayEntry = kalenderData?.[todayKey]
-  const metricToday = document.getElementById('metric-today-status')
-  const metricTodaySub = document.getElementById('metric-today-sub')
-  const metricTodayCard = document.getElementById('metric-today-card')
-  const todayModes = todayEntry ? getModeGroups(todayEntry).length : 0
-  const todayComplete = todayModes >= 4
-  if (metricToday) metricToday.textContent = todayEntry ? 'Geplant' : 'Offen'
-  if (metricTodaySub) metricTodaySub.textContent = todayEntry ? `${todayModes} Spielmodi aktiv` : 'Noch nichts geplant'
-  if (metricTodayCard) {
-    metricTodayCard.classList.toggle('is-empty', !todayEntry)
-    metricTodayCard.classList.toggle('is-complete', !!todayComplete)
+// Montag der Woche (offset 0 = diese Woche, ±1 = Vor-/Nachwoche), als ISO-Datum.
+function wochenMontag(offset) {
+  const heute = getTodayIso()
+  return addTageIso(heute, -datumTeile(heute).wt + offset * 7)
+}
+
+function hatOffenenVorschlag(datum) {
+  return vorschlaege.some((v) => v.datum === datum && !v.erledigt)
+}
+
+function renderWoche() {
+  const host = document.getElementById('dashboard-calendar-preview')
+  if (!host) return
+  const heute = getTodayIso()
+  const montag = wochenMontag(dashboardWeekOffset)
+  const tage = Array.from({ length: 7 }, (_, i) => addTageIso(montag, i))
+  if (!tage.includes(selectedDashboardDate)) selectedDashboardDate = tage.includes(heute) ? heute : montag
+
+  const kw = document.getElementById('wo-woche-kw')
+  if (kw) kw.textContent = `KW ${isoKalenderwoche(montag).woche}`
+  const spanne = document.getElementById('dashboard-week-label')
+  if (spanne) {
+    // Nur bei geändertem Text setzen: Jeder Schreibzugriff löst sonst eine Ansage aus
+    // (loadKalender und loadFreeDays rendern die Woche kurz nacheinander).
+    const text = wochenSpanne(montag)
+    if (spanne.textContent !== text) spanne.textContent = text
+    // erst nach dem ersten Rendern ansagen, sonst meldet der Screenreader das Laden
+    if (!wocheLiveAktiv) {
+      spanne.setAttribute('aria-live', 'polite')
+      wocheLiveAktiv = true
+    }
   }
+  document.getElementById('wo-woche-heute')?.setAttribute('aria-disabled', String(dashboardWeekOffset === 0))
 
-  const preview = document.getElementById('dashboard-calendar-preview')
-  if (!preview) return
-  if (!entries.length) {
-    preview.innerHTML = '<div class="preview-empty">Noch keine Kalendereinträge vorhanden.</div>'
-    selectedDashboardDate = ''
-    updateDashboardDayDetail('')
+  // Ohne Kalender sind Legende sowie Lücken und Stand sinnlos – nur im Fehlerfall ausblenden
+  document.getElementById('wo-legende')?.classList.toggle('is-hidden', kalenderStatus === 'fehler')
+  document.getElementById('wo-unten')?.classList.toggle('is-hidden', kalenderStatus === 'fehler')
+
+  if (kalenderStatus === 'fehler') {
+    // Meldung nur einmal aufbauen: Neu gezeichnet würde der Screenreader sie bei jedem
+    // renderWoche (Wochenwechsel, loadFreeDays) erneut ansagen, und der Fokus ginge verloren.
+    let knopf = host.querySelector('.wo-meldung[data-tone="err"] [data-action="load-kalender"]')
+    if (!knopf) {
+      host.innerHTML = '<p class="wo-meldung" data-tone="err" role="alert">Der Kalender konnte nicht geladen werden. <button type="button" class="adm-link" data-action="load-kalender">Erneut versuchen</button></p>'
+      knopf = host.querySelector('[data-action="load-kalender"]')
+    }
+    knopf.setAttribute('aria-disabled', String(kalenderLaedtNeu))
+    const knopfText = kalenderLaedtNeu ? 'Woche wird geladen …' : 'Erneut versuchen'
+    if (knopf.textContent !== knopfText) knopf.textContent = knopfText
+    return
+  }
+  if (kalenderStatus !== 'ok') {
+    host.innerHTML = '<p class="wo-meldung">Woche wird geladen …</p>'
     return
   }
 
-  const weekLabel = document.getElementById('dashboard-week-label')
-  const baseDate = startOfDay(today)
-  baseDate.setDate(baseDate.getDate() + (dashboardWeekOffset * 7))
-  const startOfWeek = new Date(today)
-  startOfWeek.setHours(0, 0, 0, 0)
-  startOfWeek.setTime(baseDate.getTime())
-  startOfWeek.setDate(baseDate.getDate() - ((baseDate.getDay() + 6) % 7))
-  const endOfWeek = new Date(startOfWeek)
-  endOfWeek.setDate(startOfWeek.getDate() + 6)
-  if (weekLabel) weekLabel.textContent = formatWeekRange(startOfWeek, endOfWeek)
+  // Fokus merken: gleicher Tag, Überschrift des Details oder der Knopf der Fehlermeldung
+  const aktiv = document.activeElement
+  const fokusTag = host.contains(aktiv) ? (aktiv.closest('.wo-tag')?.dataset.value || '') : ''
+  const fokusImDetail = !!aktiv?.closest?.('#dashboard-day-detail')
+  const fokusInMeldung = !!aktiv?.closest?.('.wo-meldung')
 
-  const weekItems = Array.from({ length: 7 }, (_, index) => {
-    const dateObj = new Date(startOfWeek)
-    dateObj.setDate(startOfWeek.getDate() + index)
-    const iso = `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(2, '0')}-${String(dateObj.getDate()).padStart(2, '0')}`
-    return {
-      datum: iso,  // datum ist jetzt immer YYYY-MM-DD
-      label: dateObj.toLocaleDateString('de-DE', { weekday: 'short' }),
-      dayNumber: dateObj.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' }),
-      isToday: iso === todayKey,
-      entry: kalenderData?.[iso] || null,
-    }
+  host.innerHTML = tage.map((datum) => wochenTagHtml(datum, heute)).join('')
+    + '<div class="wo-detail" id="dashboard-day-detail"></div>'
+  const detail = document.getElementById('dashboard-day-detail')
+  host.querySelector(`.wo-tag[data-value="${CSS.escape(selectedDashboardDate)}"]`)?.after(detail)
+  renderTagesDetail(selectedDashboardDate)
+
+  if (fokusTag) host.querySelector(`.wo-tag[data-value="${CSS.escape(fokusTag)}"]`)?.focus({ preventScroll: true })
+  else if (fokusImDetail) detail.querySelector('.wo-detail-thema')?.focus({ preventScroll: true })
+  // „Erneut versuchen“ war erfolgreich: Der Knopf ist weg, der gewählte Tag übernimmt den Fokus
+  else if (fokusInMeldung) host.querySelector(`.wo-tag[data-value="${CSS.escape(selectedDashboardDate)}"]`)?.focus({ preventScroll: true })
+}
+
+function wochenTagHtml(datum, heute) {
+  const entry = kalenderData?.[datum] || null
+  const stand = tagesStand(entry)
+  const t = datumTeile(datum)
+  const istHeute = datum === heute
+  const gewaehlt = datum === selectedDashboardDate
+  const bonus = isFreeAccessDay(datum)
+  const marken = stand.modi.map((m) => (m.geplant
+    ? `<span class="wo-marke" data-m="${m.marke}">${m.buchstabe}</span>`
+    : '<span class="wo-marke is-fehlt"></span>')).join('')
+  const thema = !entry
+    ? '<span class="wo-tag-thema is-leer">nichts geplant</span>'
+    : entry.thema
+      ? `<span class="wo-tag-thema">${esc(entry.thema)}</span>`
+      : '<span class="wo-tag-thema is-leer">ohne Thema</span>'
+  const kurz = stand.zustand === 'leer' ? 'leer' : stand.zustand === 'teilweise' ? `${stand.anzahl} von ${MODI.length}` : ''
+  // Stand für Screenreader. Bei einem Tag ohne Eintrag sagt das sichtbare Thema
+  // („nichts geplant“) es schon – dann kein zweites Mal.
+  const sr = stand.zustand === 'vollstaendig' ? 'vollständig'
+    : stand.zustand === 'leer' ? (entry ? 'nichts geplant' : '')
+      : `${stand.anzahl} von ${MODI.length} Modi, ${fehltText(stand)}`
+  const srTeile = [sr, bonus ? 'Bonus-Tag' : ''].filter(Boolean)
+  // Der Name enthält das sichtbare Datum (WCAG 2.5.3): nur der Wochentag wird ausgeschrieben.
+  // „heute“ sagt aria-current="date" schon.
+  return `<button type="button" class="wo-tag${gewaehlt ? ' is-gewaehlt' : ''}${datum < heute ? ' is-vergangen' : ''}"`
+    + ` data-action="select-dashboard-date" data-value="${esc(datum)}" aria-expanded="${gewaehlt}"`
+    + ` aria-controls="dashboard-day-detail"${istHeute ? ' aria-current="date"' : ''}>`
+    + `<span class="wo-tag-wt"><span class="adm-visually-hidden">${WOCHENTAGE_LANG[t.wt]}, </span><span aria-hidden="true">${DAYS_DE[t.wt]}${istHeute ? ' · heute' : ''}</span></span>`
+    + `<span class="wo-tag-datum">${String(t.d).padStart(2, '0')}.${String(t.m).padStart(2, '0')}.</span>`
+    + thema
+    + `<span class="wo-marken" aria-hidden="true">${marken}</span>`
+    + (srTeile.length ? `<span class="adm-visually-hidden">, ${esc(srTeile.join(', '))}</span>` : '')
+    // ohne Leerraum: :empty blendet den Fuß bei vollständigen Tagen aus
+    + `<span class="wo-tag-fuss" aria-hidden="true">${kurz ? `<span class="wo-tag-stand">${kurz}</span>` : ''}${bonus ? '<span class="wo-bonus">Bonus</span>' : ''}</span>`
+    + '</button>'
+}
+
+// Auswahl: nur Klassen/ARIA umschalten und das Detail umhängen – der Fokus bleibt auf dem Knopf.
+function selectDashboardDay(datum) {
+  const host = document.getElementById('dashboard-calendar-preview')
+  const tag = host?.querySelector(`.wo-tag[data-value="${CSS.escape(datum)}"]`)
+  const detail = document.getElementById('dashboard-day-detail')
+  if (!tag || !detail) return
+  selectedDashboardDate = datum
+  host.querySelectorAll('.wo-tag').forEach((b) => {
+    const an = b === tag
+    b.classList.toggle('is-gewaehlt', an)
+    b.setAttribute('aria-expanded', String(an))
   })
+  tag.after(detail)
+  renderTagesDetail(datum)
+}
 
-  const hasSelectedWeekDate = selectedDashboardDate && weekItems.some((item) => item.datum === selectedDashboardDate)
-  if (!hasSelectedWeekDate) {
-    const preferred = weekItems.find((item) => item.isToday && item.entry)
-      || weekItems.find((item) => item.entry)
-      || weekItems[0]
-    selectedDashboardDate = preferred?.datum || ''
+function changeDashboardWeek(delta) {
+  dashboardWeekOffset += delta
+  selectedDashboardDate = ''
+  renderWoche()   // der Fokus bleibt auf dem Navigationsknopf (liegt außerhalb der Tage)
+}
+
+function zeigeDieseWoche() {
+  if (dashboardWeekOffset === 0) return
+  dashboardWeekOffset = 0
+  selectedDashboardDate = getTodayIso()
+  renderWoche()
+}
+
+function renderTagesDetail(datum) {
+  const detail = document.getElementById('dashboard-day-detail')
+  if (!detail || !datum) return
+  const heute = getTodayIso()
+  const entry = kalenderData?.[datum] || null
+  const stand = tagesStand(entry)
+  const vergangen = datum < heute
+  const bonus = getFreeDayInfo(datum)
+  // Unsichtbarer Zusatz INNERHALB des Text-Spans, sonst entsteht in Chrome eine zweite Flex-Lücke vor dem Pfeil
+  const fuer = `<span class="adm-visually-hidden">: ${esc(datumLang(datum))}</span>`
+  const over = `${datumLang(datum, { jahr: true })}${datum === heute ? ' · heute' : ''}`
+  const bonusHtml = bonus
+    ? `<p class="wo-detail-bonus"><span class="wo-bonus">Bonus</span><span>+${bonus.bonus} Eigene-Lemma-Spiele für Basic${bonus.label ? ` · ${esc(bonus.label)}` : ''}</span></p>`
+    : ''
+
+  if (!entry) {
+    const vorschlag = hatOffenenVorschlag(datum)
+    detail.innerHTML = `<div class="wo-detail-kopf">
+        <p class="adm-overline wo-detail-over">${esc(over)}</p>
+        <h3 class="wo-detail-thema is-leer" tabindex="-1">Noch nichts geplant</h3>
+        ${vorschlag ? '<p class="wo-detail-kurz">Für diesen Tag liegt ein Vorschlag vor.</p>' : ''}${bonusHtml}
+      </div>
+      <div class="wo-detail-aktionen">
+        ${vorschlag ? '<a class="adm-link" href="#vorschlaege">Vorschlag ansehen</a>' : ''}
+        <a class="adm-cta" href="#planen/tag/${esc(datum)}"><span>Tag anlegen${fuer}</span> <span aria-hidden="true">→</span></a>
+      </div>`
+    return
   }
 
-  preview.innerHTML = weekItems.map((item) => {
-    const groups = item.entry ? getModeGroups(item.entry) : []
-    const status = item.entry ? (groups.length ? `${groups.length} Modi` : 'Geplant') : 'Leer'
-    const hint = item.entry ? (groups[0]?.label || 'Eintrag vorhanden') : 'Kein Eintrag'
-    return `<button type="button" class="week-preview-card ${item.isToday ? 'is-today' : ''} ${item.datum === selectedDashboardDate ? 'is-selected' : ''} ${item.entry ? 'has-entry' : 'is-empty'}" data-action="select-dashboard-date" data-value="${esc(item.datum)}">
-      <span class="week-preview-day">${esc(item.label)}</span>
-      <strong>${esc(item.dayNumber)}</strong>
-      <span class="week-preview-meta">${esc(status)}</span>
-      <span class="week-preview-hint">${esc(hint)}</span>
-    </button>`
-  }).join('')
+  const zeile = (m) => {
+    if (!m.geplant) {
+      return `<div class="vorschlag-modus${vergangen ? '' : ' is-warnung'}"><dt class="vorschlag-label">${m.label}</dt>`
+        + `<dd class="vorschlag-wert">${vergangen ? 'nicht geplant' : 'fehlt'}</dd></div>`
+    }
+    const wert = m.items.map(esc).join(m.key === 'wortzwilling' ? ' / ' : ' · ')
+    return `<div class="vorschlag-modus"><dt class="vorschlag-label">${m.label}</dt><dd class="vorschlag-wert">${wert}</dd></div>`
+  }
+  const standText = stand.zustand === 'vollstaendig' ? 'vollständig' : `${stand.anzahl} von ${MODI.length} Modi`
+  detail.innerHTML = `<div class="wo-detail-kopf">
+      <p class="adm-overline wo-detail-over">${esc(over)} · ${standText}</p>
+      <h3 class="wo-detail-thema${entry.thema ? '' : ' is-leer'}" tabindex="-1">${esc(entry.thema || 'ohne Thema')}</h3>
+      ${entry.thema_kurz ? `<p class="wo-detail-kurz">${esc(entry.thema_kurz)}</p>` : ''}${bonusHtml}
+    </div>
+    <dl class="vorschlag-modi">${stand.modi.map(zeile).join('')}</dl>
+    <div class="wo-detail-aktionen">
+      <a class="adm-cta" href="#planen/tag/${esc(datum)}"><span>Tag bearbeiten${fuer}</span> <span aria-hidden="true">→</span></a>
+    </div>`
+}
 
-  updateDashboardDayDetail(selectedDashboardDate)
+function renderHeuteZeile() {
+  const zeile = document.getElementById('wo-heute')
+  if (!zeile) return
+  const heute = getTodayIso()
+  const label = document.getElementById('wo-heute-label')
+  if (label) label.innerHTML = `Heute <span aria-hidden="true">· ${esc(datumKurz(heute))}</span><span class="adm-visually-hidden">, ${esc(datumLang(heute))}</span>`
+  const thema = document.getElementById('wo-heute-thema')
+  const standEl = document.getElementById('wo-heute-stand')
+  const anlegen = document.getElementById('wo-heute-anlegen')
+  if (!thema || !standEl) return
+
+  if (kalenderStatus !== 'ok') {
+    thema.textContent = kalenderStatus === 'fehler' ? 'Kalender nicht geladen' : 'wird geladen …'
+    thema.classList.add('is-leer')
+    standEl.textContent = ''
+    standEl.removeAttribute('data-tone')
+    anlegen?.classList.add('is-hidden')
+    anlegen?.removeAttribute('href')
+    zeile.removeAttribute('data-tone')
+    return
+  }
+
+  const entry = kalenderData?.[heute] || null
+  const stand = tagesStand(entry)
+  thema.textContent = !entry ? 'Für heute ist nichts geplant.' : (entry.thema || 'ohne Thema')
+  thema.classList.toggle('is-leer', !entry || !entry.thema)
+  // Ohne Eintrag sagt der Satz „Für heute ist nichts geplant.“ es schon – kein zweites Mal als Statuswort.
+  standEl.textContent = stand.zustand === 'vollstaendig' ? 'vollständig'
+    : stand.zustand === 'leer' ? (entry ? 'nichts geplant' : '')
+      : `${stand.anzahl} von ${MODI.length} Modi`
+  standEl.dataset.tone = stand.zustand === 'vollstaendig' ? 'ok' : 'warn'
+  // Warnton, nicht Rot: Rot + Strich ist „ausgewählt“ (DESIGN.md §4)
+  if (stand.zustand === 'leer') zeile.dataset.tone = 'warn'
+  else zeile.removeAttribute('data-tone')
+  if (anlegen) {
+    const leer = stand.zustand === 'leer'
+    anlegen.classList.toggle('is-hidden', !leer)
+    // href nur am sichtbaren Link: focusAfterNavigation sucht Links per href und träfe sonst den versteckten
+    if (leer) anlegen.setAttribute('href', `#planen/tag/${heute}`)
+    else anlegen.removeAttribute('href')
+  }
+}
+
+// Alle Spiele eines Tages (auch Lückenfüller). Die Schlüssel der Statistik sind ISO-Daten.
+function zaehleSpieleAm(timeline, iso) {
+  const tag = Array.isArray(timeline) ? timeline.find((t) => t?.datum === iso) : null
+  let plays = 0
+  let scoreSum = 0
+  let maxSum = 0
+  for (const [spiel, b] of Object.entries(tag || {})) {
+    if (spiel === 'datum' || !b || typeof b !== 'object') continue
+    plays += Number(b.plays || 0)
+    scoreSum += Number(b.scoreSum || 0)
+    maxSum += Number(b.maxSum || 0)
+  }
+  return { plays, avg10: maxSum > 0 ? (scoreSum / maxSum) * 10 : null }
+}
+
+async function loadHeuteSpiele() {
+  const el = document.getElementById('wo-heute-spiele')
+  if (!el) return
+  try {
+    // days=2 genügt: Die Zeitreihe enthält heute, sobald gespielt wurde.
+    const res = await fetch('/admin/stats?days=2')
+    const data = await res.json().catch(() => null)
+    if (!res.ok || !Array.isArray(data)) throw new Error(`HTTP ${res.status}`)
+    const { plays, avg10 } = zaehleSpieleAm(data, getTodayIso())
+    const schnitt = avg10 == null ? '' : ` · Ø ${avg10.toLocaleString('de-DE', { minimumFractionDigits: 1, maximumFractionDigits: 1 })} von 10`
+    el.textContent = plays === 0 ? 'noch keine Spiele' : `${plays.toLocaleString('de-DE')} ${plays === 1 ? 'Spiel' : 'Spiele'}${schnitt}`
+  } catch {
+    el.textContent = 'Spielzahlen nicht verfügbar'
+  }
+}
+
+// Die nächsten `anzahl` Tage ab `vonIso` mit Eintrag und Stand.
+function planungsTage(vonIso = getTodayIso(), anzahl = LUECKEN_TAGE) {
+  return Array.from({ length: anzahl }, (_, i) => {
+    const datum = addTageIso(vonIso, i)
+    const entry = kalenderData?.[datum] || null
+    return { datum, entry, stand: tagesStand(entry) }
+  })
+}
+
+function renderLuecken() {
+  const host = document.getElementById('wo-luecken')
+  if (!host) return
+  if (kalenderStatus !== 'ok') {
+    host.innerHTML = ''
+    return
+  }
+  const heute = getTodayIso()
+  const luecken = planungsTage(heute).filter((t) => t.stand.zustand !== 'vollstaendig')
+  if (!luecken.length) {
+    host.innerHTML = '<div class="wo-leer"><p class="wo-leer-titel">Keine Lücken</p>'
+      + '<p class="wo-leer-text">Die nächsten vier Wochen sind vollständig geplant.</p>'
+      + '<p class="wo-leer-ornament" aria-hidden="true">· · ·</p></div>'
+    return
+  }
+  const zeilen = luecken.slice(0, LUECKEN_MAX).map(({ datum, entry, stand }) => {
+    const vorschlag = !entry && hatOffenenVorschlag(datum)
+    const was = vorschlag ? 'Vorschlag liegt vor' : fehltText(stand)
+    const go = vorschlag ? 'ansehen' : entry ? 'ergänzen' : 'anlegen'
+    const href = vorschlag ? '#vorschlaege' : `#planen/tag/${datum}`
+    const istHeute = datum === heute
+    // Wochentag-Kürzel für Screenreader ausschreiben; das Datum bleibt lesbar (WCAG 2.5.3)
+    const t = datumTeile(datum)
+    const datumHtml = `<span class="adm-visually-hidden">${WOCHENTAGE_LANG[t.wt]}, </span><span aria-hidden="true">${DAYS_DE[t.wt]} </span>${String(t.d).padStart(2, '0')}.${String(t.m).padStart(2, '0')}.`
+    return `<li><a class="wo-luecke${istHeute ? ' is-heute' : ''}" href="${esc(href)}" data-datum="${esc(datum)}">`
+      + `<span class="wo-luecke-datum">${datumHtml}</span>`
+      + `<span class="wo-luecke-haupt">${entry?.thema ? `<span class="wo-luecke-thema">${esc(entry.thema)}</span>` : ''}`
+      + `<span class="wo-luecke-was">${istHeute ? 'heute · ' : ''}${esc(was)}</span></span>`
+      + `<span class="wo-luecke-go">${go} <span aria-hidden="true">→</span></span></a></li>`
+  }).join('')
+  const rest = luecken.length - LUECKEN_MAX
+  const bis = addTageIso(heute, LUECKEN_TAGE - 1)
+  const mehr = rest > 0
+    ? `<p class="wo-luecken-mehr">und ${rest} weitere bis ${esc(formatIsoDate(bis).slice(0, 6))} <a class="adm-link" href="#planen/monat">im Monat ansehen</a></p>`
+    : ''
+  // Fokus über das Neuzeichnen retten (auch beim Eintreffen der Vorschläge): gleiche Zeile
+  // (per Datum, href ist bei Vorschlägen gleich), sonst die erste.
+  const aktiv = host.contains(document.activeElement) ? document.activeElement : null
+  const fokusDatum = aktiv?.closest('.wo-luecke')?.dataset.datum || ''
+  const fokusMehr = !!aktiv?.closest('.wo-luecken-mehr')
+  host.innerHTML = `<ul class="wo-luecken">${zeilen}</ul>${mehr}`
+  if (fokusMehr) host.querySelector('.wo-luecken-mehr a')?.focus({ preventScroll: true })
+  else if (fokusDatum) {
+    const ziel = host.querySelector(`.wo-luecke[data-datum="${CSS.escape(fokusDatum)}"]`) || host.querySelector('.wo-luecke')
+    ziel?.focus({ preventScroll: true })
+  }
+}
+
+function renderStand() {
+  const host = document.getElementById('wo-stand')
+  if (!host) return
+  if (kalenderStatus !== 'ok') {
+    host.innerHTML = ''
+    return
+  }
+  const heute = getTodayIso()
+  const zahl = { vollstaendig: 0, teilweise: 0, leer: 0 }
+  planungsTage(heute).forEach((t) => { zahl[t.stand.zustand] += 1 })
+  let bis = null
+  for (let d = heute; istVollstaendig(kalenderData?.[d]); d = addTageIso(d, 1)) bis = d
+  const letzter = Object.keys(kalenderData || {}).filter(isValidIsoDay).sort().pop()
+  const zeile = (dt, dd) => `<div><dt>${dt}</dt><dd>${dd}</dd></div>`
+  host.innerHTML = [
+    zeile('Vollständig geplant bis', bis ? esc(datumKurz(bis)) : 'heute nicht vollständig'),
+    zeile('Letzter geplanter Tag', letzter ? esc(datumKurz(letzter)) : '—'),
+    zeile(`Nächste ${LUECKEN_TAGE} Tage`, `${zahl.vollstaendig} vollständig · ${zahl.teilweise} unvollständig · ${zahl.leer} frei`),
+    zeile('Geladen', kalenderGeladenUm ? `${kalenderGeladenUm.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })} Uhr` : '—'),
+  ].join('')
 }
 
 async function loadAuditLog() {
@@ -2415,7 +2637,6 @@ async function loadAuditLog() {
       </tr>`
     }).join('')
     showAuditEntryDetails(entries[0])
-    renderAdminActivity(entries.slice(0, 5))
   } catch (err) {
     if (countEl) countEl.textContent = 'Audit-Log konnte nicht geladen werden.'
     tbody.innerHTML = tableMessageRow(5, 'users-empty', `Audit-Log konnte nicht geladen werden: ${esc(err.message)}`)
@@ -2644,49 +2865,11 @@ async function loadStats() {
     const data = await r.json()
     if (!r.ok) throw new Error(data.error || `HTTP ${r.status}`)
     renderStats(data, out)
-    updateDashboardFromStats(data)
   } catch (e) {
     out.innerHTML = `<div class="status error">Fehler: ${esc(e.message)}</div>`
-    updateDashboardFromStats([])
   } finally {
     await loadStatsSummary(days)
   }
-}
-
-function updateDashboardFromStats(data) {
-  const metricPlays = document.getElementById('metric-plays-today')
-  const metricScore = document.getElementById('metric-score-today')
-  if (!metricPlays || !metricScore) return
-  if (!Array.isArray(data) || !data.length) {
-    metricPlays.textContent = '0'
-    metricScore.textContent = 'Ø - / 10'
-    return
-  }
-
-  const now = new Date()
-  const todayStr = `${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
-  const todayEntry = data.find((item) => item.datum === todayStr)
-  if (!todayEntry) {
-    metricPlays.textContent = '0'
-    metricScore.textContent = 'Ø - / 10'
-    return
-  }
-
-  const keys = ['kollokationen', 'wortzwilling', 'zeitenwende']
-  let plays = 0
-  let scoreSum = 0
-  let maxSum = 0
-
-  keys.forEach((key) => {
-    const bucket = todayEntry[key]
-    if (!bucket) return
-    plays += Number(bucket.plays || 0)
-    scoreSum += Number(bucket.scoreSum || 0)
-    maxSum += Number(bucket.maxSum || 0)
-  })
-
-  metricPlays.textContent = String(plays)
-  metricScore.textContent = maxSum > 0 ? `Ø ${((scoreSum / maxSum) * 10).toFixed(1)} / 10` : 'Ø - / 10'
 }
 
 function renderUserRow(user) {
@@ -3245,9 +3428,9 @@ function renderStats(data, out) {
 
   out.innerHTML = html
 
-  // Diagramme nur zeichnen, wenn die Statistik-Seite wirklich sichtbar ist.
-  // loadStats() läuft auch beim Dashboard-Start; dort kostete Chart.js
-  // ~70 KB gzip und zwei Chart-Instanzen, ohne dass etwas zu sehen war.
+  // Diagramme nur zeichnen, wenn die Statistik-Seite wirklich sichtbar ist
+  // (der Nutzer kann während des Ladens weitergewechselt sein) – Chart.js
+  // kostet ~70 KB gzip und zwei Chart-Instanzen.
   if (!document.getElementById('page-stats')?.classList.contains('is-active')) return
 
   ensureChartJs()
@@ -3531,6 +3714,7 @@ async function loadFreeDays(options = {}) {
     const { days } = await res.json()
     freeDaysData = Array.isArray(days) ? days : []
     renderCalendar()
+    renderWoche()   // Bonus-Marken in der Woche
     if (selectedCalendarDate) updateCalendarDetails(selectedCalendarDate)
     if (!listEl) return
     if (!freeDaysData.length) {
@@ -3550,6 +3734,7 @@ async function loadFreeDays(options = {}) {
   } catch (err) {
     freeDaysData = []
     renderCalendar()
+    renderWoche()
     if (selectedCalendarDate) updateCalendarDetails(selectedCalendarDate)
     if (listEl) listEl.innerHTML = `<div class="users-empty" style="color:#991b1b">Fehler: ${esc(err.message)}</div>`
   }
@@ -3990,6 +4175,11 @@ function aktualisiereVorschlagHinweise() {
     if (vorschlaegeLaufen || vorschlaege.some((v) => v.laeuft)) alleBtn.setAttribute('aria-disabled', 'true')
     else alleBtn.removeAttribute('aria-disabled')
   }
+  // „Vorschlag liegt vor“ in der Woche hängt an den (später eintreffenden) Vorschlägen.
+  renderLuecken()
+  const detail = document.getElementById('dashboard-day-detail')
+  // Nicht neu zeichnen, solange der Fokus im Detail steht – er ginge sonst verloren.
+  if (detail && !detail.contains(document.activeElement)) renderTagesDetail(selectedDashboardDate)
 }
 
 function setVorschlaegeStatus(text, tone = 'info') {
@@ -4339,11 +4529,8 @@ function handleDocumentClick(event) {
   if (action === 'refresh-dashboard') return void refreshDashboard()
   if (action === 'load-health') return void loadHealth()
   if (action === 'dashboard-week') return void changeDashboardWeek(Number(target.dataset.delta || 0))
-  if (action === 'select-dashboard-date') {
-    selectedDashboardDate = target.dataset.value || ''
-    updateDashboardFromKalender()
-    return
-  }
+  if (action === 'dashboard-week-heute') return void zeigeDieseWoche()
+  if (action === 'select-dashboard-date') return void selectDashboardDay(target.dataset.value || '')
   if (action === 'toggle-extra-fields') return void toggleExtraFields(target.dataset.target || '')
   if (action === 'preview-current-lemma') return void previewCurrentLemma()
   if (action === 'preview-current-day') return void previewCurrentDay()
@@ -4399,7 +4586,7 @@ function handleDocumentClick(event) {
   if (action === 'select-calendar-date') return void selectCalendarDate(target.dataset.value || '')
   if (action === 'focus-calendar-date') return void focusCalendarDate(target.dataset.value || '', target.dataset.iso || '')
   if (action === 'edit-tag') {
-    // Die Eintragsliste liefert data-datum, die Wochenansicht data-value.
+    // Die Eintragsliste liefert data-datum, ältere Aufrufer data-value.
     const datum = target.dataset.datum || target.dataset.value || ''
     return void navigate(isValidIsoDay(datum) ? `#planen/tag/${datum}` : '#planen/tag/neu')
   }
