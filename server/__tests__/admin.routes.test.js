@@ -4,7 +4,7 @@ import { randomUUID } from 'crypto'
 import bcryptjs from 'bcryptjs'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import adminRouter from '../routes/admin.js'
-import { loadReadOnly, save } from '../store.js'
+import { invalidateCache, lemmaToRow, loadReadOnly, save, stmts } from '../store.js'
 import { ladeEntwurf, ladeOffeneEntwuerfe, speichereEntwuerfe } from '../store-entwuerfe.js'
 import db from '../db.js'
 
@@ -468,6 +468,206 @@ describe('admin routes integration', () => {
     expect(payload.lueckenfuellerStatus).toBeNull()
   })
 
+  // Eigene IP für die Lückenfüller-/Kollisions-Tests: Der Admin-Limiter erlaubt 60 Anfragen je Minute und IP,
+  // die übrigen Tests dieser Datei kämen sonst darüber (429).
+  const lfHeaders = () => adminHeaders(token, '198.51.100.62')
+
+  it('POST /admin/tag nimmt für den Lückenfüller ein Wort und speichert die Kennung', async () => {
+    // Wort statt Kennung (so trägt es das Formular ein). „Gibt es heute nicht“ gehört
+    // zu keinem Wort des Tages und hat keine Runden: Status „unbekannt“, ohne Belege-DB.
+    const datum = `2027-03-${String((Math.floor(Math.random() * 20) + 10)).padStart(2, '0')}`
+    const response = await fetch(`${baseUrl}/admin/tag`, {
+      method: 'POST',
+      headers: lfHeaders(),
+      body: JSON.stringify({
+        datum,
+        woerter: ['Haus', 'Baum', 'Wort'],
+        positionen: ['Substantiv', 'Verb', 'Adjektiv'],
+        zwilling_pos: 'Substantiv',
+        lueckenfueller_id: '  Gibt es heute nicht ',
+      }),
+    })
+    const payload = await response.json()
+
+    expect(response.status).toBe(200)
+    expect(payload.lueckenfuellerId).toBe('gibt-es-heute-nicht')
+    expect(payload.lueckenfuellerStatus).toBe('unbekannt')
+    expect(loadReadOnly('kalender.json')[datum].lueckenfueller_id).toBe('gibt-es-heute-nicht')
+  })
+
+  it('POST /admin/tag übersetzt ein Wort über den Namen eines vorhandenen Lemmas, auch bei abweichender Kennung', async () => {
+    const lemma = { id: 'lf-test-kennung-7', lemma: 'Lückenfüller-Testwort', pos: 'Substantiv', lueckenfueller: [{ type: 'single', kollokator: 'x' }] }
+    stmts.upsertLemma.run(lemmaToRow(lemma))
+    invalidateCache('lemmata.json')
+
+    const datum = `2027-04-${String((Math.floor(Math.random() * 20) + 10)).padStart(2, '0')}`
+    const body = (eingabe) => JSON.stringify({
+      datum,
+      woerter: ['Haus', 'Baum', 'Wort'],
+      positionen: ['Substantiv', 'Verb', 'Adjektiv'],
+      zwilling_pos: 'Substantiv',
+      lueckenfueller_id: eingabe,
+    })
+
+    // Wort → Kennung des vorhandenen Lemmas (toId(Wort) wäre eine andere Kennung)
+    const mitWort = await (await fetch(`${baseUrl}/admin/tag`, { method: 'POST', headers: lfHeaders(), body: body('Lückenfüller-Testwort') })).json()
+    expect(mitWort.lueckenfuellerId).toBe('lf-test-kennung-7')
+    expect(mitWort.lueckenfuellerStatus).toBe('vorhanden')
+
+    // Kennung (Altdaten, Entwurfs-Postfach) funktioniert unverändert weiter
+    const mitKennung = await (await fetch(`${baseUrl}/admin/tag`, { method: 'POST', headers: lfHeaders(), body: body('lf-test-kennung-7') })).json()
+    expect(mitKennung.lueckenfuellerId).toBe('lf-test-kennung-7')
+    expect(mitKennung.lueckenfuellerStatus).toBe('vorhanden')
+
+    // GET /admin/tag/:datum liefert zur Kennung das Wort für das Formularfeld mit
+    const geladen = await (await fetch(`${baseUrl}/admin/tag/${datum}`, { headers: lfHeaders() })).json()
+    expect(geladen.lueckenfueller_id).toBe('lf-test-kennung-7')
+    expect(geladen.lueckenfueller_lemma).toBe('Lückenfüller-Testwort')
+  })
+
+  it('GET /admin/lueckenfueller/runden zählt vorhandene Runden (Wort oder Kennung), sonst 0', async () => {
+    stmts.upsertLemma.run(lemmaToRow({ id: 'lf-runden-test-1', lemma: 'Rundentestwort', pos: 'Substantiv', lueckenfueller: [{ type: 'single', kollokator: 'a' }, { type: 'single', kollokator: 'b' }] }))
+    stmts.upsertLemma.run(lemmaToRow({ id: 'lf-runden-test-2', lemma: 'Rundenleerwort', pos: 'Substantiv' }))
+    invalidateCache('lemmata.json')
+
+    const frage = async (q) => {
+      const r = await fetch(`${baseUrl}/admin/lueckenfueller/runden?q=${encodeURIComponent(q)}`, { headers: lfHeaders() })
+      return { status: r.status, body: await r.json() }
+    }
+    expect((await frage('Rundentestwort')).body).toEqual({ vorhandeneRunden: 2 })
+    expect((await frage('lf-runden-test-1')).body).toEqual({ vorhandeneRunden: 2 })
+    expect((await frage('Rundenleerwort')).body).toEqual({ vorhandeneRunden: 0 })
+    expect((await frage('Gibt es nicht')).body).toEqual({ vorhandeneRunden: 0 })
+
+    const ohneLogin = await fetch(`${baseUrl}/admin/lueckenfueller/runden?q=Rundentestwort`)
+    expect(ohneLogin.status).toBe(401)
+    const ohneWort = await fetch(`${baseUrl}/admin/lueckenfueller/runden`, { headers: lfHeaders() })
+    expect(ohneWort.status).toBe(400)
+  })
+
+  it('POST /admin/lueckenfueller/generate überschreibt kein Lemma mit abgeleiteter Kennung, aber anderem Namen', async () => {
+    const original = { id: 'essen', lemma: 'essen', pos: 'Verb', notiz: 'Notiz des Verbs', ipa: 'ˈɛsn̩', lueckenfueller: [{ type: 'single', kollokator: 'gut' }] }
+    stmts.upsertLemma.run(lemmaToRow(original))
+    invalidateCache('lemmata.json')
+
+    const response = await fetch(`${baseUrl}/admin/lueckenfueller/generate`, {
+      method: 'POST',
+      headers: lfHeaders(),
+      body: JSON.stringify({ lemmaName: 'Essen' }),
+    })
+    const payload = await response.json()
+    expect(response.status).toBe(200)
+    expect(payload.ok).toBe(false)
+    expect(payload.reason).toContain('„essen“')
+    expect(payload.reason).toContain('Bitte das vorhandene Wort verwenden')
+
+    // nichts überschrieben
+    const row = stmts.getAllLemmata.all().find((r) => r.id === 'essen')
+    expect(row.lemma).toBe('essen')
+    expect(row.pos).toBe('Verb')
+    expect(row.notiz).toBe('Notiz des Verbs')
+    expect(JSON.parse(row.lueckenfueller)).toEqual(original.lueckenfueller)
+
+    // Die Rundenzählung nutzt dieselbe Zuordnung: das Wort „Essen“ hat keine eigenen Runden, „essen“ eine.
+    const zaehle = async (q) => (await (await fetch(`${baseUrl}/admin/lueckenfueller/runden?q=${encodeURIComponent(q)}`, { headers: lfHeaders() })).json()).vorhandeneRunden
+    expect(await zaehle('essen')).toBe(1)
+    expect(await zaehle('Essen')).toBe(0)
+  })
+
+  describe('Kennungs-Kollision beim Speichern eines Tages', () => {
+    const verb = { id: 'essen', lemma: 'essen', pos: 'Verb', wortart: 'Verb', notiz: 'Notiz des Verbs', link: 'https://example.test/essen', definition: 'Nahrung aufnehmen', ipa: 'ˈɛsn̩', definitionen: ['x'], bonusFrage: { label: 'B', question: 'Q?' }, lueckenfueller: [{ type: 'single', kollokator: 'gut' }] }
+    const zeile = (id) => stmts.getAllLemmata.all().find((r) => r.id === id)
+    const zufallsDatum = (monat) => `2027-${monat}-${String((Math.floor(Math.random() * 20) + 10)).padStart(2, '0')}`
+
+    it('bricht ab, wenn die Kennung eines Wortes zu einem Lemma mit anderer Schreibung gehört: 409, nichts geschrieben', async () => {
+      stmts.upsertLemma.run(lemmaToRow(verb))
+      invalidateCache('lemmata.json')
+      const datum = zufallsDatum('08')
+      const vorher = zeile('essen')
+
+      const response = await fetch(`${baseUrl}/admin/tag`, {
+        method: 'POST',
+        headers: lfHeaders(),
+        body: JSON.stringify({ datum, woerter: ['Haus', 'Essen', 'Wort'], positionen: ['Substantiv', 'Substantiv', 'Adjektiv'], zwilling_pos: 'Substantiv' }),
+      })
+      const payload = await response.json()
+      expect(response.status).toBe(409)
+      expect(payload.error).toBe('Die Kennung „essen“ gehört schon zu „essen“ (Verb). Bitte das vorhandene Wort verwenden.')
+      expect(payload.feld).toBe(1)
+
+      expect(zeile('essen')).toEqual(vorher)                       // fremdes Lemma unverändert
+      expect(loadReadOnly('kalender.json')[datum]).toBeUndefined() // auch der Tag und die anderen Wörter nicht geschrieben
+    })
+
+    it('erlaubt gleichen Namen mit anderer Wortart (Korrektur der Wortart) wie bisher', async () => {
+      stmts.upsertLemma.run(lemmaToRow({ id: 'ton', lemma: 'Ton', pos: 'Substantiv', wortart: 'Substantiv', notiz: 'alt' }))
+      invalidateCache('lemmata.json')
+      const datum = zufallsDatum('09')
+
+      const response = await fetch(`${baseUrl}/admin/tag`, {
+        method: 'POST',
+        headers: lfHeaders(),
+        body: JSON.stringify({ datum, woerter: ['Ton', 'Baum', 'Wort'], positionen: ['Verb', 'Verb', 'Adjektiv'], notizen: ['neu', '', ''], zwilling_pos: 'Substantiv' }),
+      })
+      expect(response.status).toBe(200)
+      const row = zeile('ton')
+      expect(row.lemma).toBe('Ton')
+      expect(row.pos).toBe('Verb')
+      expect(row.notiz).toBe('neu')
+    })
+  })
+
+  it('POST /admin/tag meldet „mehrdeutig“ statt still ein fremdes Lemma zu verwenden, und speichert den Tag trotzdem', async () => {
+    stmts.upsertLemma.run(lemmaToRow({ id: 'essen', lemma: 'essen', pos: 'Verb', lueckenfueller: [{ type: 'single', kollokator: 'gut' }] }))
+    invalidateCache('lemmata.json')
+
+    const datum = `2027-06-${String((Math.floor(Math.random() * 20) + 10)).padStart(2, '0')}`
+    const response = await fetch(`${baseUrl}/admin/tag`, {
+      method: 'POST',
+      headers: lfHeaders(),
+      body: JSON.stringify({
+        datum,
+        woerter: ['Haus', 'Baum', 'Wort'],
+        positionen: ['Substantiv', 'Verb', 'Adjektiv'],
+        zwilling_pos: 'Substantiv',
+        lueckenfueller_id: 'Essen',
+      }),
+    })
+    const payload = await response.json()
+    expect(response.status).toBe(200)
+    expect(payload.lueckenfuellerStatus).toBe('mehrdeutig')
+    expect(payload.lueckenfuellerOk).toBe(false)
+    expect(payload.lueckenfuellerId).toBeNull()
+    expect(loadReadOnly('kalender.json')[datum].lueckenfueller_id).toBe('')
+  })
+
+  it('GET /admin/tag/:datum löst eine als Wort gespeicherte Kennung wie der Spielweg über den Wortnamen auf', async () => {
+    stmts.upsertLemma.run(lemmaToRow({ id: 'lf-wortname-1', lemma: 'Wortnamenlemma', pos: 'Substantiv' }))
+    invalidateCache('lemmata.json')
+    const datum = `2027-07-${String((Math.floor(Math.random() * 20) + 10)).padStart(2, '0')}`
+    await save('kalender.json', { ...loadReadOnly('kalender.json'), [datum]: { ids: [], thema: '', thema_kurz: '', thema_quelle: '', lueckenfueller_id: 'Wortnamenlemma' } })
+    const geladen = await (await fetch(`${baseUrl}/admin/tag/${datum}`, { headers: lfHeaders() })).json()
+    expect(geladen.lueckenfueller_lemma).toBe('Wortnamenlemma')
+  })
+
+  it('GET /admin/tag/:datum liefert kein Wort, wenn die Kennung zu keinem Lemma passt', async () => {
+    const datum = `2027-05-${String((Math.floor(Math.random() * 20) + 10)).padStart(2, '0')}`
+    await fetch(`${baseUrl}/admin/tag`, {
+      method: 'POST',
+      headers: lfHeaders(),
+      body: JSON.stringify({
+        datum,
+        woerter: ['Haus', 'Baum', 'Wort'],
+        positionen: ['Substantiv', 'Verb', 'Adjektiv'],
+        zwilling_pos: 'Substantiv',
+        lueckenfueller_id: 'gibt-es-heute-nicht',
+      }),
+    })
+    const geladen = await (await fetch(`${baseUrl}/admin/tag/${datum}`, { headers: lfHeaders() })).json()
+    expect(geladen.lueckenfueller_id).toBe('gibt-es-heute-nicht')
+    expect(geladen.lueckenfueller_lemma).toBe('')
+  })
+
   describe('Entwurfs-Postfach', () => {
     // Lückenfüller-ID ohne passendes Wort: hält die Tests unabhängig von der Belege-DB.
     const entwurfsTag = (datum) => ({
@@ -578,6 +778,29 @@ describe('admin routes integration', () => {
         method: 'POST', headers: adminHeaders(token),
       })
       expect(ungueltig.status).toBe(400)
+    })
+
+    it('Übernehmen bricht bei einer Kennungs-Kollision ab: 409, fremdes Lemma unverändert, Entwurf bleibt offen', async () => {
+      const verb = { id: 'essen', lemma: 'essen', pos: 'Verb', wortart: 'Verb', notiz: 'Notiz des Verbs', ipa: 'ˈɛsn̩', lueckenfueller: [{ type: 'single', kollokator: 'gut' }] }
+      stmts.upsertLemma.run(lemmaToRow(verb))
+      invalidateCache('lemmata.json')
+      const vorher = stmts.getAllLemmata.all().find((r) => r.id === 'essen')
+
+      speichereEntwuerfe([{ ...entwurfsTag('2027-02-20'), woerter: ['Haus', 'Baum', 'Essen'] }])
+      const id = idFuer('2027-02-20')
+      const response = await fetch(`${baseUrl}/admin/entwuerfe/${id}/uebernehmen`, { method: 'POST', headers: lfHeaders() })
+      const payload = await response.json()
+
+      expect(response.status).toBe(409)
+      expect(payload.error).toContain('Die Kennung „essen“ gehört schon zu „essen“ (Verb)')
+      expect(payload.feld).toBe(2)
+      expect(stmts.getAllLemmata.all().find((r) => r.id === 'essen')).toEqual(vorher)
+      expect(loadReadOnly('kalender.json')['2027-02-20']).toBeUndefined()
+      expect(ladeEntwurf(id).status).toBe('offen')
+
+      // Die Reservierung ist wieder frei: ein zweiter Versuch meldet erneut die Kollision, nicht „wird gerade übernommen“.
+      const nochmal = await (await fetch(`${baseUrl}/admin/entwuerfe/${id}/uebernehmen`, { method: 'POST', headers: lfHeaders() })).json()
+      expect(nochmal.error).toContain('Bitte das vorhandene Wort verwenden')
     })
 
     it('lehnt einen Entwurf ab, der nicht mehr zum Speicherformat passt', async () => {

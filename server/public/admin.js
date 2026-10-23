@@ -424,27 +424,91 @@ function runRouteLoaders(route) {
   }
 }
 
-// Zustand des Tagesformulars: Modus setzen und Knöpfe passend sperren.
-// Speichern ist nur im Modus 'new'/'edit' möglich, Löschen nur bei 'edit'.
-function setEntryMode(mode) {
-  entryFormMode = mode
-  const saveBtn = document.getElementById('save-btn')
-  const deleteBtn = document.getElementById('delete-btn')
-  if (saveBtn) saveBtn.disabled = mode === 'error' || mode === 'loading'
-  if (deleteBtn) deleteBtn.disabled = mode !== 'edit'
+// Ein Wort zum Zustand des Formulars, links in der klebenden Leiste.
+function aktualisiereStand() {
+  const el = document.getElementById('entry-dirty-indicator')
+  if (!el) return
+  let text
+  if (entryFormMode === 'loading') text = 'Tag wird geladen …'
+  else if (entryFormMode === 'error') text = 'Speichern gesperrt'
+  else if (entryFormDirty) text = 'Ungespeicherte Änderungen'
+  else text = entryFormMode === 'edit' ? 'Keine Änderungen' : 'Noch nicht gespeichert'
+  el.textContent = text
+  el.classList.toggle('is-dirty', entryFormDirty && (entryFormMode === 'new' || entryFormMode === 'edit'))
 }
 
-// Meldung oben auf der Tagesseite (die Statuszeile #status liegt weit unten
-// am Formularende). Leerer Text blendet sie aus.
+// Speichern sperren (Fehler/Laden) oder als „läuft“ markieren. aria-disabled statt
+// disabled: Der Knopf behält den Fokus, der Klickverteiler ignoriert ihn.
+function setSpeichernGesperrt(gesperrt, { busy = false } = {}) {
+  const btn = document.getElementById('save-btn')
+  if (!btn) return
+  if (gesperrt || busy) btn.setAttribute('aria-disabled', 'true')
+  else btn.removeAttribute('aria-disabled')
+  btn.classList.toggle('is-busy', busy)
+  const text = document.getElementById('save-btn-text')
+  if (text) text.textContent = busy ? 'Speichert …' : 'Speichern'
+}
+
+// Läuft gerade ein Speichern bzw. Löschen? Dann bleibt „Speichern“ bis zum Ende gesperrt,
+// auch wenn setEntryMode zwischendurch (z. B. nach dem Speichern, vor dem Kalender-Neuladen) läuft.
+let speichertGerade = false
+let loeschtGerade = false
+
+// Zustand des Tagesformulars: Modus setzen und Knöpfe passend sperren.
+// Speichern ist nur im Modus 'new'/'edit' möglich, Löschen nur bei 'edit'
+// (der Abschnitt „Tag löschen“ blendet sich bei gesperrtem Knopf per CSS aus).
+function setEntryMode(mode) {
+  entryFormMode = mode
+  const page = document.getElementById('page-entry')
+  if (page) page.dataset.modus = mode                       // CSS: blass beim Laden
+  const form = document.getElementById('tag-formular')
+  if (form) form.inert = mode === 'loading'                 // altes Formular nicht bedienbar
+  setSpeichernGesperrt(mode === 'error' || mode === 'loading' || speichertGerade || loeschtGerade, { busy: speichertGerade })
+  const deleteBtn = document.getElementById('delete-btn')
+  if (deleteBtn) deleteBtn.disabled = mode !== 'edit'
+  aktualisiereStand()
+  aktualisiereDatumHinweis()
+}
+
+// Warnt, wenn Speichern einen anderen bestehenden Tag ersetzen oder einen zweiten
+// anlegen würde. Nur Anzeige, die Speicherlogik bleibt unverändert.
+function aktualisiereDatumHinweis() {
+  const el = document.getElementById('tag-datum-hinweis')
+  if (!el) return
+  el.textContent = ''
+  el.removeAttribute('data-tone')
+  const datum = document.getElementById('datum')?.value || ''
+  if (!isValidIsoDay(datum) || kalenderStatus !== 'ok') return
+  if (entryFormMode !== 'new' && entryFormMode !== 'edit') return
+  const belegt = !!kalenderData[datum]
+  const geladen = entryFormMode === 'edit' ? selectedCalendarDate : ''
+  if (geladen && datum !== geladen) {
+    el.textContent = belegt
+      ? `Für ${datumKurz(datum)} gibt es schon einen Tag. Speichern ersetzt ihn; ${datumKurz(geladen)} bleibt unverändert.`
+      : `Speichern legt den Tag zusätzlich am ${datumKurz(datum)} an; ${datumKurz(geladen)} bleibt unverändert.`
+  } else if (!geladen && belegt) {
+    el.append(`Für ${datumKurz(datum)} gibt es schon einen Tag. Speichern ersetzt ihn. `)
+    const link = document.createElement('a')
+    link.className = 'adm-link'
+    link.href = `#planen/tag/${datum}`
+    link.textContent = 'Diesen Tag öffnen'
+    el.append(link)
+  } else return
+  el.dataset.tone = 'warn'
+}
+
+// Meldung oben auf der Tagesseite. Leerer Text blendet sie aus.
 function setEntryLoadError(message) {
   const el = document.getElementById('entry-load-error')
   if (!el) return
   el.textContent = ''
   if (!message) {
-    el.className = 'status'
+    el.className = 'tag-meldung'
+    delete el.dataset.tone
     return
   }
-  el.className = 'status error'
+  el.className = 'tag-meldung'
+  el.dataset.tone = 'error'
   const text = document.createElement('span')
   text.textContent = message
   const retry = document.createElement('button')
@@ -471,7 +535,10 @@ async function renderEntryRoute(route, token) {
     // Ohne Snapshot (erster Besuch) gäbe es keine Dirty-Erkennung – dann einmal
     // initialisieren. keepDraft: ein gespeicherter Entwurf bleibt zur Wiederherstellung.
     if (entryFormMode !== 'new' || !entryFormSnapshot) {
+      // Der Formularinhalt gehört jetzt „Neuer Tag“; dessen Entwurf wird angeboten.
+      entryDraftBasis = 'neu'
       prefillDate(getTodayIso(), { force: true, keepDraft: true })
+      offerEntryDraft()
     }
     return
   }
@@ -481,19 +548,28 @@ async function renderEntryRoute(route, token) {
   // sonst könnte ein bestehender Tag überschrieben werden).
   setEntryMode('loading')
   setEntryLoadError('')
+  hideEntryDraftBanner()
   const result = await editTag(route.date, { token })
   if (result.state === 'stale' || token !== routeRenderToken) return
+  // Der Formularinhalt gehört jetzt diesem Tag; sein Entwurf (und nur seiner) wird angeboten.
+  entryDraftBasis = route.date
 
+  if (result.state === 'ok') {
+    offerEntryDraft()
+    return
+  }
   if (result.state === 'missing') {
     prefillDate(route.date, { force: true, keepDraft: true })
     setEntryHead('neu', route.date)
+    offerEntryDraft()
     return
   }
   if (result.state === 'error') {
     prefillDate(route.date, { force: true, keepDraft: true })
     setEntryMode('error')
-    setEntryLoadError(`Der Tag ${formatIsoDate(route.date)} konnte nicht geladen werden: ${result.reason} Speichern ist gesperrt, damit kein bestehender Eintrag überschrieben wird.`)
-    setPageMeta({ title: 'Tag konnte nicht geladen werden', subtitle: result.reason, overline: PARENT_PLANEN.label })
+    setEntryLoadError(`Der Tag ${formatIsoDate(route.date)} konnte nicht geladen werden: ${result.reason} Speichern ist gesperrt, damit kein bestehender Tag überschrieben wird.`)
+    // Der Grund steht schon in der Meldung; der Untertitel wiederholt ihn nicht.
+    setPageMeta({ title: 'Tag konnte nicht geladen werden', subtitle: '', overline: PARENT_PLANEN.label })
   }
 }
 
@@ -596,7 +672,7 @@ function confirmLeaveEntryRoute(nextHash) {
   // „Neuer Tag“ behält ein angefangenes neues Formular – nichts geht verloren.
   if (nextHash === '#planen/tag/neu' && entryFormMode === 'new') return true
   if (!leaving && !entering) return true
-  const ok = confirmDiscardEntryChanges(entering ? 'den Entwurf zu verwerfen' : 'die Seite zu verlassen')
+  const ok = confirmDiscardEntryChanges(entering ? 'verwerfen' : 'die Seite verlassen')
   // Bewusst verworfen: den gespeicherten Entwurf nicht beim nächsten Start anbieten.
   if (ok && entering) clearEntryDraft()
   return ok
@@ -745,12 +821,8 @@ function readEntryFormState() {
 
 function setEntryDirtyState(isDirty) {
   entryFormDirty = !!isDirty
-  const indicator = document.getElementById('entry-dirty-indicator')
+  aktualisiereStand()
   const resetBtn = document.getElementById('entry-reset-btn')
-  if (indicator) {
-    indicator.textContent = entryFormDirty ? 'Ungespeicherte Änderungen' : 'Alles gespeichert'
-    indicator.classList.toggle('is-dirty', entryFormDirty)
-  }
   if (resetBtn) resetBtn.disabled = !entryFormDirty
 }
 
@@ -759,10 +831,16 @@ function setEntryDirtyState(isDirty) {
 // den Entwurf löschen, bevor „Wiederherstellen“ angeklickt werden kann.
 // Gelöscht wird er nur nach dem Speichern, bewusstem Verwerfen/Zurücksetzen
 // oder wenn der Nutzer ihn ablehnt.
-function captureEntryFormSnapshot({ keepDraft = false } = {}) {
-  entryFormSnapshot = readEntryFormState()
+// options.state: der Stand, der tatsächlich gespeichert wurde (nicht der aktuelle Formularinhalt –
+// was während des Speicherns getippt wurde, bleibt ungespeichert).
+function captureEntryFormSnapshot({ keepDraft = false, state = null } = {}) {
+  entryFormSnapshot = state || readEntryFormState()
   setEntryDirtyState(false)
-  if (!keepDraft) clearEntryDraft()
+  if (!keepDraft) {
+    // Gespeichert bzw. bewusst zurückgesetzt: auch ein wartender Entwurf ist erledigt.
+    clearEntryDraft({ auchAngebotenen: true })
+    hideEntryDraftBanner()
+  }
 }
 
 function updateEntryDirtyState() {
@@ -781,12 +859,20 @@ function updateEntryDirtyState() {
 // Mobile Browser beenden Hintergrund-Tabs regelmäßig. Ohne
 // Zwischenspeicher wären die bis zu 25 ausgefüllten Felder dann
 // ersatzlos verloren – ein In-App-confirm() greift dabei nicht.
-const ENTRY_DRAFT_KEY = 'sig-admin-entry-draft'
+// Ein Schlüssel je Tag („…:2026-11-10“, „…:neu“): Der Entwurf eines Tages
+// erscheint nur auf dessen Seite und überschreibt nie den eines anderen.
+const ENTRY_DRAFT_PREFIX = 'sig-admin-entry-draft:'
+const ENTRY_DRAFT_LEGACY_KEY = 'sig-admin-entry-draft'   // ein Schlüssel für alles (bis zu diesem Umbau)
+const ENTRY_DRAFT_MAX_TAGE = 30
 let entryDraftTimer = null
+let entryDraftBasis = 'neu'     // wem der Formularinhalt gehört: 'neu' oder das Datum der Route
+let entryDraftAngeboten = null  // Basis, deren Entwurf gerade im Banner wartet
+
+const draftKey = (basis = entryDraftBasis) => ENTRY_DRAFT_PREFIX + basis
 
 function readStoredEntryDraft() {
   try {
-    const raw = window.localStorage.getItem(ENTRY_DRAFT_KEY)
+    const raw = window.localStorage.getItem(draftKey())
     if (!raw) return null
     const draft = JSON.parse(raw)
     return draft && typeof draft === 'object' && draft.fields ? draft : null
@@ -795,10 +881,18 @@ function readStoredEntryDraft() {
   }
 }
 
+// Nur im Modus „neu“/„bearbeiten“ gehört der Formularinhalt dem Tag; bei Lade- oder
+// Fehlerzustand würde Tippen sonst den echten Entwurf dieses Tages überschreiben/löschen.
+const entryFormGehoertTag = () => entryFormMode === 'new' || entryFormMode === 'edit'
+
 function persistEntryDraft() {
+  if (!entryFormGehoertTag()) return
+  // Ein wartender Entwurf wird nie überschrieben, bevor er behandelt ist.
+  if (entryDraftAngeboten === entryDraftBasis) return
   try {
-    window.localStorage.setItem(ENTRY_DRAFT_KEY, JSON.stringify({
+    window.localStorage.setItem(draftKey(), JSON.stringify({
       savedAt: Date.now(),
+      basis: entryDraftBasis,
       fields: readEntryFormState(),
     }))
   } catch {
@@ -811,34 +905,53 @@ function scheduleEntryDraftSave() {
   entryDraftTimer = window.setTimeout(persistEntryDraft, 800)
 }
 
-function clearEntryDraft() {
+// auchAngebotenen: auch ein im Banner wartender Entwurf wird entfernt
+// (nach dem Speichern, beim bewussten Verwerfen). Sonst bleibt er stehen.
+function clearEntryDraft({ auchAngebotenen = false } = {}) {
   if (entryDraftTimer) {
     window.clearTimeout(entryDraftTimer)
     entryDraftTimer = null
   }
+  if (!entryFormGehoertTag()) return
+  if (!auchAngebotenen && entryDraftAngeboten === entryDraftBasis) return
   try {
-    window.localStorage.removeItem(ENTRY_DRAFT_KEY)
+    window.localStorage.removeItem(draftKey())
   } catch {
     // nichts zu tun
   }
 }
 
 function hideEntryDraftBanner() {
-  document.getElementById('entry-draft-banner')?.classList.add('is-hidden')
+  const banner = document.getElementById('entry-draft-banner')
+  if (banner) banner.hidden = true
+  entryDraftAngeboten = null
 }
 
+// Bietet den Entwurf an, der zu genau diesem Tag (bzw. „Neuer Tag“) gehört –
+// und nur, wenn er sich vom geladenen Stand unterscheidet.
 function offerEntryDraft() {
+  hideEntryDraftBanner()
+  if (entryFormMode !== 'new' && entryFormMode !== 'edit') return
   const draft = readStoredEntryDraft()
   const banner = document.getElementById('entry-draft-banner')
   if (!draft || !banner) return
 
+  const aktuell = readEntryFormState()
+  const anzahl = ENTRY_FIELD_IDS.filter((id) => (draft.fields[id] || '') !== (aktuell[id] || '')).length
+  if (!anzahl) {
+    clearEntryDraft({ auchAngebotenen: true })   // nichts, was fehlt
+    return
+  }
+
+  const d = new Date(draft.savedAt || Date.now())
+  const wann = `${d.getDate()}. ${MONTHS_DE[d.getMonth()]}, ${d.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })} Uhr`
+  entryDraftAngeboten = entryDraftBasis
+  // Erst einblenden, dann den Text setzen: So kündigt die Statusregion ihn zuverlässig an.
+  banner.hidden = false
   const textEl = document.getElementById('entry-draft-text')
   if (textEl) {
-    const when = new Date(draft.savedAt || Date.now()).toLocaleString('de-DE')
-    const datum = draft.fields.datum ? ` für ${draft.fields.datum}` : ''
-    textEl.textContent = `Ungespeicherter Entwurf${datum} vom ${when} gefunden.`
+    textEl.textContent = `Ungespeicherte Änderungen ${entryDraftBasis === 'neu' ? 'an einem neuen Tag' : 'an diesem Tag'} vom ${wann} (${anzahl} ${anzahl === 1 ? 'Feld' : 'Felder'}).`
   }
-  banner.classList.remove('is-hidden')
 }
 
 function restoreEntryDraft() {
@@ -847,6 +960,9 @@ function restoreEntryDraft() {
     hideEntryDraftBanner()
     return
   }
+  // Seit dem Öffnen Getipptes würde durch den Entwurf ersetzt: vorher fragen.
+  if (entryFormDirty && !window.confirm('Es gibt ungespeicherte Änderungen im Formular. Der Entwurf ersetzt sie. Wirklich wiederherstellen?')) return
+  entryDraftAngeboten = null   // vor dem Einsetzen: der Entwurf ist behandelt und darf wieder fortgeschrieben werden
   applyEntryFields(draft.fields)
   // Gehört der Entwurf zu einem anderen Tag als dem geladenen (z. B. nach einem
   // Direktaufruf von #planen/tag/<datum>), darf „Löschen“ nicht den geladenen Tag treffen.
@@ -858,18 +974,71 @@ function restoreEntryDraft() {
   }
   updateEntryDirtyState()
   hideEntryDraftBanner()
+  aktualisiereDatumHinweis()
+  // Der Knopf verschwindet mit dem Banner: Fokus zum Stand, Ergebnis in der Leiste melden.
+  setStatus('Entwurf wiederhergestellt.', 'ok')
+  document.getElementById('entry-dirty-indicator')?.focus()
 }
 
 function discardEntryDraft() {
-  clearEntryDraft()
+  clearEntryDraft({ auchAngebotenen: true })
   hideEntryDraftBanner()
+  setStatus('Entwurf verworfen.', 'ok')
+  document.getElementById('entry-dirty-indicator')?.focus()
 }
 
+// Einmalig: alten Sammelschlüssel auf den Tag umziehen; alte Entwürfe entfernen.
+// Der alte Entwurf landet beim Datum, das in ihm steht (auch wenn er unter
+// „Neuer Tag“ entstand – unterscheidbar ist das nicht).
+function entwuerfeAufraeumen() {
+  try {
+    const grenze = Date.now() - ENTRY_DRAFT_MAX_TAGE * 86400000
+    const alt = window.localStorage.getItem(ENTRY_DRAFT_LEGACY_KEY)
+    if (alt) {
+      let draft = null
+      try { draft = JSON.parse(alt) } catch { /* defekt → unten entfernt */ }
+      if (draft?.fields && typeof draft.fields === 'object') {
+        const basis = isValidIsoDay(draft.fields.datum) ? draft.fields.datum : 'neu'
+        // Hat der Tag schon einen eigenen Entwurf, bleibt der neuere (savedAt) erhalten.
+        let vorhanden = null
+        try { vorhanden = JSON.parse(window.localStorage.getItem(draftKey(basis)) || 'null') } catch { /* defekt → ersetzen */ }
+        if (!vorhanden || (Number(draft.savedAt) || 0) > (Number(vorhanden.savedAt) || 0)) {
+          window.localStorage.setItem(draftKey(basis), JSON.stringify({ ...draft, basis }))
+        }
+      }
+      window.localStorage.removeItem(ENTRY_DRAFT_LEGACY_KEY)
+    }
+    for (let i = window.localStorage.length - 1; i >= 0; i--) {
+      const key = window.localStorage.key(i)
+      if (!key?.startsWith(ENTRY_DRAFT_PREFIX)) continue
+      let d = null
+      try { d = JSON.parse(window.localStorage.getItem(key) || 'null') } catch { /* defekt → entfernen */ }
+      if (!d?.savedAt || d.savedAt < grenze) window.localStorage.removeItem(key)
+    }
+  } catch {
+    // Privater Modus o. Ä. – der Entwurfsschutz ist optional.
+  }
+}
+
+// Setzt alle Ergebnisse, Meldungen und Hinweise des Formulars zurück (neuer Inhalt geladen).
 function clearInlineAnalysisOutputs() {
-  ;['entry-koll-analysis-output', 'entry-wz-analysis-output', 'entry-zw-analysis-output', 'entry-lf-analysis-output'].forEach((id) => {
+  ;['entry-koll-analysis-output', 'entry-wz-analysis-output', 'entry-zw-analysis-output', 'entry-lf-analysis-output', 'entry-preview-output'].forEach((id) => {
     const el = document.getElementById(id)
-    if (el) el.innerHTML = ''
+    if (!el) return
+    el.innerHTML = ''
+    el.classList.remove('is-veraltet')
   })
+  ;['koll', 'wz', 'zw', 'lf'].forEach((modus) => {
+    const live = document.getElementById(`entry-${modus}-live`)
+    if (live) live.textContent = ''
+  })
+  ;['wz', 'zw', 'lf'].forEach((modus) => setModusMeldung(modus, ''))
+  const lfStatus = document.getElementById('lf-generate-status')
+  if (lfStatus) {
+    lfStatus.textContent = ''
+    lfStatus.removeAttribute('data-tone')
+  }
+  loescheAlleFeldFehler()
 }
 
 function applyEntryFields(fields) {
@@ -891,6 +1060,7 @@ function restoreEntryFormSnapshot() {
   applyEntryFields(entryFormSnapshot)
   setEntryDirtyState(false)
   clearEntryDraft()
+  aktualisiereDatumHinweis()
 }
 
 function confirmDiscardEntryChanges(contextLabel = 'fortfahren') {
@@ -1461,8 +1631,10 @@ fetch('/admin/kalender').then(r => {
 }).catch(() => {})
 
 function initDashboard() {
+  // Vor dem Router: Er bietet den Entwurf des geöffneten Tages an, dafür muss ein
+  // alter Sammelschlüssel schon umgezogen sein.
+  entwuerfeAufraeumen()
   startRouter()
-  offerEntryDraft()
   loadKalender()
   loadVorschlaege({ silent: true })
   loadFreeDays({ silent: true })   // Bonus in Woche und Monat
@@ -1503,54 +1675,57 @@ async function loadHealth() {
   if (json) json.textContent = data ? JSON.stringify(data, null, 2) : `Zustand konnte nicht abgerufen werden: ${fehler}`
 }
 
-function toggleExtraFields(targetId) {
+// Notiz und Link: Zustand steht in aria-expanded; das +/− zeichnet die CSS.
+function setzeNebenfelder(targetId, offen) {
   const el = document.getElementById(targetId)
   if (!el) return
-  const open = !el.classList.contains('is-hidden')
-  el.classList.toggle('is-hidden', open)
+  el.classList.toggle('is-hidden', !offen)
   const btn = document.querySelector(`[data-target="${targetId}"]`)
-  if (btn) {
-    btn.textContent = open ? '+ Notiz / Link' : '− Notiz / Link'
-    btn.classList.toggle('is-open', !open)
-  }
+  if (!btn) return
+  btn.setAttribute('aria-expanded', String(offen))
+  // „· ausgefüllt“ am zugeklappten Schalter (CSS)
+  btn.toggleAttribute('data-gefuellt', [...el.querySelectorAll('input, textarea')].some((f) => f.value.trim()))
+}
+
+function toggleExtraFields(targetId) {
+  const el = document.getElementById(targetId)
+  if (el) setzeNebenfelder(targetId, el.classList.contains('is-hidden'))
 }
 
 function showExtraFields(targetId) {
-  const el = document.getElementById(targetId)
-  if (!el) return
-  el.classList.remove('is-hidden')
-  const btn = document.querySelector(`[data-target="${targetId}"]`)
-  if (btn) {
-    btn.textContent = '− Notiz / Link'
-    btn.classList.add('is-open')
-  }
+  setzeNebenfelder(targetId, true)
 }
 
 function hideAllExtraFields() {
-  ;['koll-extras-1', 'koll-extras-2', 'koll-extras-3', 'wz-extras', 'zw-extras'].forEach((id) => {
-    const el = document.getElementById(id)
-    if (el) el.classList.add('is-hidden')
-    const btn = document.querySelector(`[data-target="${id}"]`)
-    if (btn) {
-      btn.textContent = '+ Notiz / Link'
-      btn.classList.remove('is-open')
-    }
-  })
+  ;['koll-extras-1', 'koll-extras-2', 'koll-extras-3', 'wz-extras', 'zw-extras'].forEach((id) => setzeNebenfelder(id, false))
 }
 
+// Kopfwort je Modus: zeigt, was eingetragen ist (leer: „nicht geplant“, bei Kollokationen „Pflicht, noch leer“).
 function updateModeIndicators() {
-  const w1 = document.getElementById('w1')?.value.trim()
-  const w2 = document.getElementById('w2')?.value.trim()
-  const w3 = document.getElementById('w3')?.value.trim()
-  const wza = document.getElementById('wza')?.value.trim()
-  const wzb = document.getElementById('wzb')?.value.trim()
-  const zwLemma = document.getElementById('zw-lemma')?.value.trim()
-  const lfId = document.getElementById('lf-id')?.value.trim()
-
-  document.getElementById('koll-indicator')?.classList.toggle('is-filled', !!(w1 && w2 && w3))
-  document.getElementById('wz-indicator')?.classList.toggle('is-filled', !!(wza && wzb))
-  document.getElementById('zw-indicator')?.classList.toggle('is-filled', !!zwLemma)
-  document.getElementById('lf-indicator')?.classList.toggle('is-filled', !!lfId)
+  const wert = (id) => normalizeText(document.getElementById(id)?.value || '')
+  const setze = (id, text, leer) => {
+    const el = document.getElementById(id)
+    if (!el) return
+    el.textContent = text || leer
+    el.classList.toggle('is-leer', !text)
+  }
+  const koll = ['w1', 'w2', 'w3'].map(wert)
+  setze('koll-indicator', koll.some(Boolean) ? koll.map((w) => w || '–').join(' · ') : '', 'Pflicht, noch leer')
+  const a = wert('wza')
+  const b = wert('wzb')
+  setze('wz-indicator', a || b ? `${a || '–'} / ${b || '–'}` : '', 'nicht geplant')
+  setze('zw-indicator', wert('zw-lemma'), 'nicht geplant')
+  setze('lf-indicator', wert('lf-id'), 'nicht geplant')
+  // Die Vorschau-Knöpfe tragen das jeweilige Wort.
+  ;[1, 2, 3].forEach((n) => {
+    const btn = document.getElementById(`tag-vorschau-${n}`)
+    if (!btn) return
+    const w = wert(`w${n}`)
+    const text = btn.querySelector('.tag-vorschau-text') || btn
+    text.textContent = w || `Wort ${n}`
+    if (w) btn.removeAttribute('aria-disabled')
+    else btn.setAttribute('aria-disabled', 'true')
+  })
 }
 
 let kalenderData = {}
@@ -1573,10 +1748,68 @@ document.getElementById('page-entry')?.addEventListener('input', () => updateMod
 const MONTHS_DE = ['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember']
 const DAYS_DE   = ['Mo','Di','Mi','Do','Fr','Sa','So']
 
+// Meldung in der klebenden Leiste der Tagesseite (neben „Speichern“).
+// type: 'loading' | 'ok' | 'warn' | 'error'; ohne Text oder Typ wird der Ton entfernt.
 function setStatus(msg, type) {
   const el = document.getElementById('status')
-  el.textContent = msg
-  el.className = `status ${type}`
+  if (!el) return
+  el.textContent = ''
+  if (msg) {
+    // Eigenes Element für den Text: mobil schneidet CSS ihn auf eine Zeile, „ansehen“ bleibt sichtbar.
+    const text = document.createElement('span')
+    text.className = 'tag-status-text'
+    text.textContent = msg
+    text.title = msg
+    el.append(text)
+  }
+  if (msg && type) el.dataset.tone = type
+  else el.removeAttribute('data-tone')
+}
+
+// Meldung mit Sprung zur Stelle, um die es geht (z. B. „… nicht übernommen. ansehen“).
+// modus: unsichtbarer Zusatz, damit der Knopf auch allein verständlich ist („ansehen: Wort-Zwilling“).
+function setStatusMitSprung(msg, type, zielId, modus = '') {
+  setStatus(msg, type)
+  const el = document.getElementById('status')
+  const ziel = document.getElementById(zielId)
+  if (!el || !ziel) return
+  const link = document.createElement('button')
+  link.type = 'button'
+  link.className = 'adm-link'
+  link.append('ansehen')
+  if (modus) {
+    const zusatz = document.createElement('span')
+    zusatz.className = 'adm-visually-hidden'
+    zusatz.textContent = `: ${modus}`
+    link.append(zusatz)
+  }
+  link.addEventListener('click', () => {
+    ziel.setAttribute('tabindex', '-1')
+    ziel.scrollIntoView({ block: 'center' })
+    ziel.focus({ preventScroll: true })
+  })
+  el.append(' ', link)
+}
+
+// Meldung eines Modus (Wort-Zwilling, Zeitenwende, Lückenfüller) unter dessen Feldern.
+function setModusMeldung(modus, text, tone) {
+  const el = document.getElementById(`tag-meldung-${modus}`)
+  if (!el) return
+  el.textContent = text || ''
+  if (text && tone) el.dataset.tone = tone
+  else el.removeAttribute('data-tone')
+}
+
+// Statuswerte aus lueckenfuellerAutoGen.js (+ 'fehler'); 'vorhanden' = nichts zu melden
+function lueckenfuellerModusMeldung(status) {
+  switch (status) {
+    case 'erzeugt':           return { text: 'Runden beim Speichern erzeugt.', tone: 'ok' }
+    case 'zu-wenig-material': return { text: 'Nicht übernommen: Zu wenig Material im Korpus. Anderes Wort wählen.', tone: 'warn' }
+    case 'unbekannt':         return { text: 'Nicht übernommen: Das Wort gehört nicht zu diesem Tag und hat noch keine Runden. Erst „Runden erzeugen“, dann speichern.', tone: 'warn' }
+    case 'mehrdeutig':        return { text: 'Nicht übernommen: Die Kennung dieses Wortes gehört schon zu einem anderen Wort. Bitte das vorhandene Wort verwenden.', tone: 'warn' }
+    case 'fehler':            return { text: 'Die Runden konnten nicht erzeugt werden. Bitte im Server-Protokoll nachsehen.', tone: 'error' }
+    default:                  return null
+  }
 }
 
 // Meldungen der Listenansicht (CSV-Import, Massenlöschen): eigene Zeile in
@@ -1660,7 +1893,7 @@ function changeMonth(delta) {
 // Router sie beim Seitenwechsel schon gestellt hat. options.keepDraft lässt einen
 // gespeicherten Entwurf bestehen (Router-Pfad). Gibt zurück, ob zurückgesetzt wurde.
 function prefillDate(isoDate, options = {}) {
-  if (!options.force && !confirmDiscardEntryChanges('den Entwurf zu verwerfen')) return false
+  if (!options.force && !confirmDiscardEntryChanges('verwerfen')) return false
   setEntryMode('new')
   setEntryLoadError('')
   selectedCalendarDate = ''
@@ -1673,18 +1906,22 @@ function prefillDate(isoDate, options = {}) {
   document.getElementById('wza').value   = ''
   document.getElementById('wzb').value   = ''
   document.getElementById('wzpos').value = 'Substantiv'
-  document.getElementById('form-title').textContent = 'Neuer Tageseintrag'
-  document.getElementById('save-btn').textContent   = 'Speichern & APIs abrufen'
-  document.getElementById('status').className = 'status'
-  document.getElementById('status').textContent = ''
+  // Meldung leeren; deleteCurrentTag setzt seine Bestätigung danach
+  setStatus('', '')
   hideAllExtraFields()
   clearInlineAnalysisOutputs()
   updateModeIndicators()
   captureEntryFormSnapshot({ keepDraft: !!options.keepDraft })
-  if (typeof window.scrollTo === 'function') {
-    window.scrollTo({ top: 0, behavior: 'smooth' })
-  }
+  aktualisiereDatumHinweis()
+  scrollNachOben()
   return true
+}
+
+// Weiches Scrollen nur, wenn der Nutzer keine reduzierte Bewegung wünscht.
+function scrollNachOben() {
+  if (typeof window.scrollTo !== 'function') return
+  const weich = typeof window.matchMedia === 'function' && window.matchMedia('(prefers-reduced-motion: no-preference)').matches
+  window.scrollTo({ top: 0, behavior: weich ? 'smooth' : 'auto' })
 }
 
 // Statuswerte aus server/lueckenfuellerAutoGen.js (plus 'fehler' aus admin-calendar.js)
@@ -1694,12 +1931,50 @@ function lueckenfuellerMeldung(status) {
     case 'vorhanden':         return 'OK'
     case 'zu-wenig-material': return 'zu wenig Material im Korpus, Wort tauschen'
     case 'unbekannt':         return 'ID passt zu keinem Wort dieses Tages'
+    case 'mehrdeutig':        return 'Kennung gehört schon zu einem anderen Wort, nicht übernommen'
     case 'fehler':            return 'Fehler beim Erzeugen, Server-Log prüfen'
     default:                  return 'unbekannter Status'
   }
 }
 
+// Fehler je Feld: aria-invalid, kurzer Text unter dem Feld und aria-describedby darauf.
+function setzeFeldFehler(id, text) {
+  const el = document.getElementById(id)
+  if (!el) return
+  el.setAttribute('aria-invalid', 'true')
+  const fehlerId = `${id}-fehler`
+  let p = document.getElementById(fehlerId)
+  if (!p) {
+    p = document.createElement('p')
+    p.id = fehlerId
+    p.className = 'tag-feld-fehler'
+    ;(el.closest('.tag-wert') || el.parentElement).append(p)
+  }
+  p.textContent = text
+  if (el.dataset.beschreibung === undefined) el.dataset.beschreibung = el.getAttribute('aria-describedby') || ''
+  el.setAttribute('aria-describedby', [el.dataset.beschreibung, fehlerId].filter(Boolean).join(' '))
+}
+
+function loescheFeldFehler(id) {
+  const el = document.getElementById(id)
+  if (!el) return
+  el.removeAttribute('aria-invalid')
+  document.getElementById(`${id}-fehler`)?.remove()
+  if (el.dataset.beschreibung !== undefined) {
+    if (el.dataset.beschreibung) el.setAttribute('aria-describedby', el.dataset.beschreibung)
+    else el.removeAttribute('aria-describedby')
+    delete el.dataset.beschreibung
+  }
+}
+
+function loescheAlleFeldFehler() {
+  document.querySelectorAll('#page-entry [aria-invalid]').forEach((el) => loescheFeldFehler(el.id))
+}
+
 async function saveTag() {
+  // Läuft schon, lädt noch, löscht gerade oder der Tag konnte nicht geladen werden: nichts tun (Strg+S eingeschlossen).
+  if (speichertGerade || loeschtGerade) return
+  if (document.getElementById('save-btn')?.getAttribute('aria-disabled') === 'true') return
   const datum = document.getElementById('datum').value
   const w1    = document.getElementById('w1').value.trim()
   const w2    = document.getElementById('w2').value.trim()
@@ -1726,24 +2001,34 @@ async function saveTag() {
   const zwLink    = document.getElementById('zw-link').value.trim()
   const lfId      = document.getElementById('lf-id').value.trim()
 
-  if (!datum || !w1 || !w2 || !w3) {
-    return setStatus('Bitte Datum und alle drei Kollokations-Wörter ausfüllen.', 'error')
+  // Pflichtfelder: fehlende benennen, rot unterstreichen und das erste fokussieren
+  const fehlend = [['datum', 'Datum'], ['w1', 'Wort 1'], ['w2', 'Wort 2'], ['w3', 'Wort 3']]
+    .filter(([id]) => !normalizeText(document.getElementById(id)?.value || ''))
+  loescheAlleFeldFehler()
+  if (fehlend.length) {
+    fehlend.forEach(([id, name]) => setzeFeldFehler(id, `${name} fehlt.`))
+    document.getElementById(fehlend[0][0])?.focus()
+    return setStatus(`Nicht gespeichert: Es ${fehlend.length === 1 ? 'fehlt' : 'fehlen'} ${aufzaehlung(fehlend.map(([, name]) => name))}.`, 'error')
   }
 
-  const btn = document.getElementById('save-btn')
-  btn.disabled = true
+  // Speichern ersetzt einen bestehenden Tag, wenn das Datum nicht der geladene Tag ist
+  // (Neuer Tag mit belegtem Datum, geändertes Datum): vorher bestätigen lassen.
+  const geladenerTag = entryFormMode === 'edit' ? selectedCalendarDate : ''
+  if (kalenderStatus === 'ok' && kalenderData[datum] && datum !== geladenerTag
+      && !confirmAction(`Für ${datumKurz(datum)} gibt es schon einen Tag. Ersetzen?`)) return
 
-  // Speichern dauert (externe Daten werden geladen). Kopf, Adresse und Auswahl
+  // Speichern dauert (die Spieldaten werden berechnet). Kopf, Adresse und Auswahl
   // nur nachziehen, wenn der Nutzer währenddessen nicht weiternavigiert ist
   // und im Formular noch derselbe Tag steht.
   const saveToken = routeRenderToken
   const stillOnSavedDay = () => saveToken === routeRenderToken && document.getElementById('datum')?.value === datum
+  // Der Stand, der gesendet wird: Was während des Speicherns noch getippt wird, gilt danach nicht als gespeichert.
+  const gesendet = readEntryFormState()
 
-  const statusParts = [`DWDS für „${w1}”, „${w2}”, „${w3}”`]
-  if (wza && wzb) statusParts.push(`Wort-Zwilling „${wza}” / „${wzb}”`)
-  if (zwLemma) statusParts.push(`Zeitenwende für „${zwLemma}”`)
-  if (lfId) statusParts.push(`Lückenfüller „${lfId}”`)
-  setStatus(`Rufe ab: ${statusParts.join(' · ')} …`, 'loading')
+  speichertGerade = true
+  setSpeichernGesperrt(true, { busy: true })
+  ;['wz', 'zw', 'lf'].forEach((modus) => setModusMeldung(modus, ''))
+  setStatus('Die Spieldaten werden aus dem Korpus berechnet. Das kann einen Moment dauern.', 'loading')
 
   try {
     const res = await fetch('/admin/tag', {
@@ -1767,22 +2052,35 @@ async function saveTag() {
       }),
     })
     const data = await res.json()
-    if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`)
+    if (!res.ok) {
+      // Kennungs-Kollision (409): Der Server nennt das betroffene Wortfeld; markieren wie ein Pflichtfeld.
+      if (res.status === 409 && Number.isInteger(data.feld) && data.feld >= 0 && data.feld < 3) {
+        setzeFeldFehler(`w${data.feld + 1}`, data.error)
+        document.getElementById(`w${data.feld + 1}`)?.focus()
+      }
+      throw new Error(data.error || `HTTP ${res.status}`)
+    }
 
-    let msg = `Gespeichert: ${datum} → ${data.ids.join(', ')}`
-    if (wza && wzb) {
-      msg += data.zwillingOk === true  ? ' · Wort-Zwilling: OK'
-           : data.zwillingOk === false ? ' · Wort-Zwilling: nicht genug distinkte Kollokatoren'
-           : ''
+    // Der Tag ist gespeichert; was der Server davon nicht übernommen hat, steht
+    // bei dem betroffenen Modus (Warnung, kein Fehler).
+    const uhr = new Date().toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })
+    const probleme = []   // [Modusname, Meldungs-ID]
+    if ((wza && !wzb) || (!wza && wzb)) {
+      setModusMeldung('wz', 'Nicht übernommen: Der Wort-Zwilling braucht beide Wörter.', 'warn')
+      probleme.push(['Wort-Zwilling', 'tag-meldung-wz'])
+    } else if (wza && wzb && data.zwillingOk === false) {
+      setModusMeldung('wz', 'Nicht übernommen: Für dieses Paar gibt es zu wenige eigene Kollokatoren (mindestens 5 je Wort). Anderes Paar wählen oder beide Felder leeren.', 'warn')
+      probleme.push(['Wort-Zwilling', 'tag-meldung-wz'])
     }
-    if (zwLemma) {
-      msg += data.zeitenwendeOk === true  ? ' · Zeitenwende: OK'
-           : data.zeitenwendeOk === false ? ' · Zeitenwende: nicht genug distinkte Kollokatoren'
-           : ''
+    if (zwLemma && data.zeitenwendeOk === false) {
+      setModusMeldung('zw', 'Nicht übernommen: Zu wenige Kollokatoren unterscheiden sich vor und nach 2000. Anderes Wort wählen oder Feld leeren.', 'warn')
+      probleme.push(['Zeitenwende', 'tag-meldung-zw'])
     }
-    if (lfId) msg += ` · Lückenfüller: ${lueckenfuellerMeldung(data.lueckenfuellerStatus)}`
-    const hasError = data.zwillingOk === false || data.zeitenwendeOk === false || data.lueckenfuellerOk === false
-    setStatus(msg, hasError ? 'error' : 'ok')
+    const lf = lfId ? lueckenfuellerModusMeldung(data.lueckenfuellerStatus) : null
+    if (lf) setModusMeldung('lf', lf.text, lf.tone)
+    if (lfId && data.lueckenfuellerOk === false) probleme.push(['Lückenfüller', 'tag-meldung-lf'])
+    if (!probleme.length) setStatus(`Gespeichert um ${uhr} Uhr.`, 'ok')
+    else setStatusMitSprung(`Gespeichert um ${uhr} Uhr – ${aufzaehlung(probleme.map(([name]) => name))} nicht übernommen.`, 'warn', probleme[0][1], probleme[0][0])
     if (stillOnSavedDay()) {
       selectedCalendarDate = datum
       setEntryMode('edit')
@@ -1795,12 +2093,33 @@ async function saveTag() {
     await loadKalender()
     // Nur den Snapshot erneuern, wenn das Formular noch den gespeicherten Tag zeigt –
     // sonst würde ein inzwischen geöffneter anderer Tag fälschlich als „gespeichert“ gelten.
-    if (stillOnSavedDay()) captureEntryFormSnapshot()
+    if (stillOnSavedDay()) {
+      // Ein im Banner wartender Entwurf wird nur mit erledigt, wenn er zum gespeicherten Datum gehört;
+      // sonst bleibt er für das nächste „Neuer Tag“ erhalten.
+      const wartend = entryDraftAngeboten === entryDraftBasis ? readStoredEntryDraft() : null
+      const behalten = !!wartend && (wartend.fields.datum || '') !== datum
+      const basisWechsel = entryDraftBasis !== datum
+      captureEntryFormSnapshot({ keepDraft: true, state: gesendet })
+      if (!behalten) {
+        clearEntryDraft({ auchAngebotenen: true })
+        hideEntryDraftBanner()
+      } else if (basisWechsel) {
+        hideEntryDraftBanner()
+      }
+      // Der Formularinhalt gehört jetzt diesem Tag; ein alter Entwurf unter diesem Datum ist überholt.
+      if (basisWechsel) {
+        entryDraftBasis = datum
+        clearEntryDraft({ auchAngebotenen: true })
+      }
+      // Hat sich das Formular seit dem Absenden geändert, gilt das wieder als ungespeichert.
+      updateEntryDirtyState()
+    }
   } catch (err) {
-    setStatus(`Fehler: ${err.message}`, 'error')
+    setStatus(`Nicht gespeichert: ${err.message}`, 'error')
   } finally {
-    // Nicht entsperren, falls inzwischen ein Tag lädt oder nicht geladen werden konnte.
-    btn.disabled = entryFormMode === 'error' || entryFormMode === 'loading'
+    speichertGerade = false
+    // Nicht entsperren, falls inzwischen ein Tag lädt oder nicht geladen werden konnte (oder ein Löschen läuft).
+    setSpeichernGesperrt(entryFormMode === 'error' || entryFormMode === 'loading' || loeschtGerade)
   }
 }
 
@@ -1851,9 +2170,9 @@ async function editTag(datum, options = {}) {
   document.getElementById('zw-lemma').value    = data.zeitenwende_lemma || ''
   document.getElementById('zw-notiz').value    = data.zeitenwende_notiz || ''
   document.getElementById('zw-link').value     = data.zeitenwende_link  || ''
-  document.getElementById('lf-id').value       = data.lueckenfueller_id || ''
-  document.getElementById('form-title').textContent = `Eintrag bearbeiten: ${datum}`
-  document.getElementById('save-btn').textContent   = 'Aktualisieren & APIs abrufen'
+  // Das Feld zeigt das Wort („Lektüre“), nicht die Kennung („lektuere“); ältere
+  // Antworten ohne Wort fallen auf die Kennung zurück (der Server akzeptiert beides).
+  document.getElementById('lf-id').value       = data.lueckenfueller_lemma || data.lueckenfueller_id || ''
 
   // Extra-Felder aufklappen wenn Daten vorhanden
   hideAllExtraFields()
@@ -1866,45 +2185,64 @@ async function editTag(datum, options = {}) {
   clearInlineAnalysisOutputs()
   captureEntryFormSnapshot({ keepDraft: true })
 
-  if (typeof window.scrollTo === 'function') {
-    window.scrollTo({ top: 0, behavior: 'smooth' })
+  scrollNachOben()
+  // Keine Ladebestätigung mehr: Der Stand „Keine Änderungen“ in der Leiste genügt.
+  setStatus('', '')
+  aktualisiereDatumHinweis()
+  // Gespeichert ist nur eine Kennung, zu der kein Wort gefunden wurde: Das Feld zeigt sie unverändert
+  // (so geht beim nächsten Speichern nichts verloren), die Seite sagt, warum es kein Wort ist.
+  if (data.lueckenfueller_id && !data.lueckenfueller_lemma) {
+    setModusMeldung('lf', `Gespeichert ist die Kennung „${data.lueckenfueller_id}“. Dazu gibt es noch kein Wort mit Runden.`, 'warn')
   }
-  setStatus(`Eintrag ${datum} geladen – Änderungen vornehmen und speichern.`, 'loading')
   return { state: 'ok' }
 }
 
 async function deleteCurrentTag() {
-  if (!selectedCalendarDate) return
-  const ok = confirmAction(`Eintrag ${selectedCalendarDate} wirklich löschen?`, [
-    `Datum: ${formatIsoDate(selectedCalendarDate)}`,
-    'Diese Aktion kann nicht rückgängig gemacht werden.',
-  ])
-  if (!ok) return
+  if (!selectedCalendarDate || loeschtGerade || speichertGerade) return
+  const geloescht = selectedCalendarDate
+  const details = [
+    'Alle vier Modi verschwinden aus dem Kalender.',
+    'Die Wörter und ihre Lückenfüller-Runden bleiben erhalten.',
+    'Das lässt sich nicht rückgängig machen.',
+  ]
+  if (entryFormDirty) details.push('Ungespeicherte Änderungen gehen dabei verloren.')
+  if (!confirmAction(`Tag ${datumLang(geloescht, { jahr: true })} löschen?`, details)) return
 
+  // aria-disabled statt disabled: Bei disabled blendet das CSS den ganzen Abschnitt aus,
+  // und der Fokus ginge verloren. Währenddessen ist auch Speichern (Strg+S) gesperrt.
   const deleteBtn = document.getElementById('delete-btn')
-  if (deleteBtn) deleteBtn.disabled = true
+  deleteBtn?.setAttribute('aria-disabled', 'true')
+  loeschtGerade = true
+  setSpeichernGesperrt(true)
 
   try {
-    const res = await fetch(`/admin/tag/${selectedCalendarDate}`, {
+    const res = await fetch(`/admin/tag/${geloescht}`, {
       method: 'DELETE',
       headers: { 'Content-Type': 'application/json' },
     })
     const data = await res.json().catch(() => ({}))
     if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`)
 
-    selectedEntryDates.delete(selectedCalendarDate)
-    setStatus(`Eintrag ${selectedCalendarDate} gelöscht.`, 'ok')
+    selectedEntryDates.delete(geloescht)
+    delete kalenderData[geloescht]   // sonst hielte der Datumshinweis den gelöschten Tag noch für belegt
     const currentDate = document.getElementById('datum')?.value || getTodayIso()
-    // Kopf nur anpassen, wenn das Formular wirklich zurückgesetzt wurde
-    // (bei abgebrochener Rückfrage zeigt es weiter den alten Stand).
-    if (prefillDate(currentDate) && currentRoute?.entry && isValidIsoDay(currentDate)) {
+    // force: Die Rückfrage zu ungespeicherten Änderungen war Teil der Lösch-Rückfrage.
+    if (prefillDate(currentDate, { force: true }) && currentRoute?.entry && isValidIsoDay(currentDate)) {
       setEntryHead('neu', currentDate)
     }
+    // Erst nach prefillDate, das die Meldung leert; sonst wäre die Bestätigung nie zu sehen.
+    setStatus(`Tag ${formatIsoDate(geloescht)} gelöscht.`, 'ok')
+    // Der Abschnitt „Tag löschen“ ist jetzt weg; der Fokus würde sonst ins Leere fallen.
+    document.getElementById('page-title')?.focus()
     await loadKalender()
   } catch (err) {
-    setStatus(`Löschen fehlgeschlagen: ${err.message}`, 'error')
+    setStatus(`Nicht gelöscht: ${err.message}`, 'error')
+    // Der Knopf ist noch da: Fokus bleibt bzw. kehrt dorthin zurück.
+    deleteBtn?.focus()
   } finally {
-    if (deleteBtn && selectedCalendarDate) deleteBtn.disabled = false
+    loeschtGerade = false
+    deleteBtn?.removeAttribute('aria-disabled')
+    setSpeichernGesperrt(entryFormMode === 'error' || entryFormMode === 'loading' || speichertGerade)
   }
 }
 
@@ -1926,6 +2264,7 @@ async function loadKalender() {
     kalenderStatus = 'ok'
     kalenderLaedtNeu = false
     kalenderGeladenUm = new Date()
+    if (currentRoute?.page === 'entry') aktualisiereDatumHinweis()   // „Datum schon belegt“ erst mit Kalender
 
     for (const datum of [...selectedEntryDates]) {
       if (!kalenderData[datum]) selectedEntryDates.delete(datum)
@@ -1953,6 +2292,7 @@ async function loadKalender() {
     updateDashboardFromKalender()
     renderEntryTable()
     updateCalendarDetails('')
+    if (currentRoute?.page === 'entry') aktualisiereDatumHinweis()
   }
 }
 
@@ -2678,50 +3018,115 @@ async function analyzeKollokation() {
   } catch (e) { out.innerHTML = `<div class="status error">Netzwerkfehler: ${esc(e.message)}</div>` }
 }
 
-async function analyzeEntryKollokation() {
-  const out = document.getElementById('entry-koll-analysis-output')
-  if (!out) return
-  const lemmas = ['w1', 'w2', 'w3'].map((id) => normalizeText(document.getElementById(id)?.value || '')).filter(Boolean)
+// ── Tagesseite: Prüfen der vier Modi ──────────────────────
+const zahlDe = (n) => Number.isFinite(Number(n))
+  ? Number(n).toLocaleString('de-DE', { minimumFractionDigits: 1, maximumFractionDigits: 1 })
+  : '–'
+const ergebnisMeldung = (text, tone = '') => `<p class="tag-erg-meldung"${tone ? ` data-tone="${tone}"` : ''}>${esc(text)}</p>`
+// Schreibt ein Prüfergebnis und sagt nur die Kurzmeldung (erste .tag-erg-meldung) in der
+// zugehörigen Live-Zeile an – nicht die ganze Liste. out.id: „entry-<modus>-analysis-output“.
+function sageErgebnisAn(out, text) {
+  const live = document.getElementById(out.id.replace('-analysis-output', '-live'))
+  if (!live) return
+  // Erst leeren, damit auch derselbe Text (z. B. zweimal „Prüft im Korpus …“) erneut angesagt wird.
+  live.textContent = ''
+  if (text) window.setTimeout(() => { live.textContent = text }, 50)
+}
 
-  if (!lemmas.length) {
-    out.innerHTML = '<div class="users-empty">Trage mindestens ein Kollokationswort ein.</div>'
-    return
-  }
+function schreibeErgebnis(out, html) {
+  out.innerHTML = html
+  sageErgebnisAn(out, out.querySelector('.tag-erg-meldung')?.textContent || '')
+}
 
-  out.innerHTML = '<div class="status loading">Analysiere Wörter aus der Karte …</div>'
+const zeileMitZahl = (wort, zahl, vorzeichen = '') => `<li><span>${esc(wort)}</span><span class="tag-erg-zahl">${vorzeichen}${zahlDe(zahl)}</span></li>`
+
+// Prüfen sperren, solange die Korpusabfrage läuft (schwer; verhindert Doppelklicks).
+async function mitPruefSperre(btn, fn) {
+  if (btn?.getAttribute('aria-disabled') === 'true') return
+  const label = btn?.querySelector('span')?.firstChild   // Textknoten „Prüfen“
+  const alt = label?.textContent
+  btn?.setAttribute('aria-disabled', 'true')
+  btn?.classList.add('is-busy')
+  if (label) label.textContent = 'prüft …'
   try {
-    const results = await Promise.all(lemmas.map(async (lemma) => {
-      const response = await fetch(`/admin/analyze-kollokation?q=${encodeURIComponent(lemma)}`, {})
-      const data = await response.json().catch(() => ({}))
-      if (!response.ok) throw new Error(data.error || `HTTP ${response.status}`)
-      return { lemma, data }
-    }))
-
-    out.innerHTML = results.map(({ lemma, data }) => {
-      const badgeClass = data.usable ? 'is-success' : 'is-error'
-      const badgeText = data.usable ? 'geeignet' : 'nicht geeignet'
-      const chips = Array.isArray(data.kollokatoren) && data.kollokatoren.length
-        ? data.kollokatoren.slice(0, 3).map((item) => `<span class="entry-chip">${esc(item.wort)}</span>`).join('')
-        : '<span class="entry-empty">Keine Kollokationsdaten</span>'
-      return `<article class="inline-analysis-card"><div class="inline-analysis-head"><strong>${esc(lemma)}</strong><span class="inline-analysis-badge ${badgeClass}">${esc(badgeText)}</span></div><div class="entry-chip-wrap">${chips}</div></article>`
-    }).join('')
-  } catch (err) {
-    out.innerHTML = `<div class="status error">Analyse fehlgeschlagen: ${esc(err.message)}</div>`
+    await fn()
+  } finally {
+    btn?.removeAttribute('aria-disabled')
+    btn?.classList.remove('is-busy')
+    if (label) label.textContent = alt
   }
 }
 
-async function previewCurrentLemma() {
-  const out = document.getElementById('entry-preview-output')
-  const lemma = document.getElementById('w1')?.value?.trim() || ''
-  const pos = document.getElementById('p1')?.value || 'Substantiv'
-  if (!out) return
+// Holt eine Prüfantwort; Fehlerantworten werden zu Ausnahmen mit lesbarem Text.
+async function holePruefung(url) {
+  const res = await fetch(url, {})
+  const data = await res.json().catch(() => ({}))
+  if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`)
+  return data
+}
 
-  if (!lemma) {
-    out.innerHTML = '<div class="users-empty">Bitte zuerst Wort 1 ausfüllen, um eine Lemma-Vorschau zu laden.</div>'
+async function analyzeEntryKollokation() {
+  const out = document.getElementById('entry-koll-analysis-output')
+  if (!out) return
+  out.classList.remove('is-veraltet')
+  // Mit der gewählten Wortart: sonst rechnet der Server alle drei und das Ergebnis
+  // könnte für eine andere Wortart gelten als die gespeicherte.
+  const woerter = [1, 2, 3]
+    .map((n) => ({ lemma: normalizeText(document.getElementById(`w${n}`)?.value || ''), pos: document.getElementById(`p${n}`)?.value || 'Substantiv' }))
+    .filter((w) => w.lemma)
+
+  if (!woerter.length) {
+    schreibeErgebnis(out, ergebnisMeldung('Erst mindestens ein Wort eintragen.'))
     return
   }
 
-  out.innerHTML = '<div class="users-empty">Lemma-Vorschau wird geladen …</div>'
+  schreibeErgebnis(out, ergebnisMeldung('Prüft im Korpus …', 'loading'))
+  // allSettled: Scheitert ein Wort, bleiben die Ergebnisse der anderen sichtbar.
+  const antworten = await Promise.allSettled(woerter.map(({ lemma, pos }) =>
+    holePruefung(`/admin/analyze-kollokation?q=${encodeURIComponent(lemma)}&pos=${encodeURIComponent(pos)}`)))
+
+  const geeignet = antworten.filter((a) => a.status === 'fulfilled' && a.value.usable).length
+  // Ein gescheiterter Abruf ist „nicht geprüft“, nicht „nicht geeignet“.
+  const nichtGeprueft = antworten.filter((a) => a.status === 'rejected').length
+  const alle = geeignet === woerter.length
+  const kopf = alle
+    ? (woerter.length === 3 ? 'Alle drei geeignet.' : woerter.length === 2 ? 'Beide geeignet.' : 'Geeignet.')
+    : `${geeignet} von ${woerter.length} geeignet${nichtGeprueft ? ` · ${nichtGeprueft} nicht geprüft` : ''}.`
+
+  const zeilen = woerter.map(({ lemma }, i) => {
+    const antwort = antworten[i]
+    if (antwort.status === 'rejected') {
+      return `<li class="tag-erg-zeile"><span class="tag-erg-wort">${esc(lemma)}</span><span class="tag-erg-urteil" data-tone="error">${esc(`Fehler: ${antwort.reason?.message || 'unbekannt'}`)}</span></li>`
+    }
+    const data = antwort.value
+    const werte = (Array.isArray(data.kollokatoren) ? data.kollokatoren : []).slice(0, 5)
+      .map((k) => `${esc(k.wort)} <span class="tag-erg-zahl">${zahlDe(k.logDice)}</span>`).join(' · ')
+    const urteil = data.usable
+      ? '<span class="tag-erg-urteil" data-tone="ok">geeignet</span>'
+      : '<span class="tag-erg-urteil" data-tone="warn">zu wenige Kollokatoren</span>'
+    return `<li class="tag-erg-zeile"><span class="tag-erg-wort">${esc(lemma)}</span>${werte ? `<span class="tag-erg-werte">${werte}</span>` : ''}${urteil}</li>`
+  }).join('')
+
+  schreibeErgebnis(out, ergebnisMeldung(kopf, alle ? 'ok' : 'warn')
+    + `<ul class="tag-erg-liste">${zeilen}</ul>`
+    + '<p class="tag-erg-fuss">Je Wort die fünf stärksten Kollokatoren im eigenen Korpus; Zahl = logDice (Assoziationsmaß).</p>')
+}
+
+// Vorschau eines der drei Kollokationen-Wörter (Nr. 1–3) als Wörterbuch-Eintrag.
+// Die frühere Tages-Vorschau entfällt: Planen › Woche zeigt dieselben Modi und Wörter.
+async function previewCurrentLemma(index = 1) {
+  const out = document.getElementById('entry-preview-output')
+  const n = [1, 2, 3].includes(index) ? index : 1
+  const lemma = normalizeText(document.getElementById(`w${n}`)?.value || '')
+  const pos = document.getElementById(`p${n}`)?.value || 'Substantiv'
+  if (!out) return
+
+  if (!lemma) {
+    out.innerHTML = ergebnisMeldung(`Erst Wort ${n} eintragen.`)
+    return
+  }
+
+  out.innerHTML = ergebnisMeldung('Vorschau wird geladen …', 'loading')
   try {
     const response = await fetch('/admin/preview/lemma', {
       method: 'POST',
@@ -2731,90 +3136,26 @@ async function previewCurrentLemma() {
     const data = await response.json().catch(() => ({}))
     if (!response.ok) throw new Error(data.error || `HTTP ${response.status}`)
 
-    const defs = Array.isArray(data.definitionen) && data.definitionen.length
-      ? data.definitionen.map((item) => `<li>${esc(item)}</li>`).join('')
-      : '<li>Keine Wiktionary-Bedeutungen vorhanden.</li>'
+    const bedeutungen = Array.isArray(data.definitionen) && data.definitionen.length
+      ? `<ol>${data.definitionen.map((item) => `<li>${esc(item)}</li>`).join('')}</ol>`
+      : 'Keine Bedeutungen vorhanden.'
+    const runden = Array.isArray(data.rundenSummary) && data.rundenSummary.length
+      ? data.rundenSummary.map((round) => `${esc(round.label || round.key)} ${esc(String(round.count || 0))}`).join(' · ')
+      : 'Keine Rundendaten verfügbar.'
+    const bonus = data.bonusFrage
+      ? `${data.bonusFrage.label ? `${esc(data.bonusFrage.label)}: ` : ''}${esc(data.bonusFrage.question || '—')}`
+      : 'Keine Bonusfrage vorhanden.'
 
-    const roundSummary = Array.isArray(data.rundenSummary) && data.rundenSummary.length
-      ? data.rundenSummary.map((round) => `<li>${esc(round.label || round.key)}: ${esc(String(round.count || 0))}</li>`).join('')
-      : '<li>Keine Runden-Daten verfügbar.</li>'
-
-    const bonusHtml = data.bonusFrage
-      ? `<p><strong>${esc(data.bonusFrage.label || 'Bonusfrage')}:</strong> ${esc(data.bonusFrage.question || '—')}</p>`
-      : '<p>Keine Bonusfrage vorhanden.</p>'
-
-    out.innerHTML = `
-      <article class="entry-preview-card">
-        <h3>${esc(data.lemma || lemma)}</h3>
-        <div class="entry-preview-meta">Wortart: ${esc(data.pos || pos)} · IPA: ${esc(data.ipa || '—')}</div>
-        <div class="entry-preview-meta">Runden: ${esc(String(Array.isArray(data.rundenInfo) ? data.rundenInfo.length : 0))}</div>
-      </article>
-      <article class="entry-preview-card">
-        <h3>Rundenübersicht</h3>
-        <ul>${roundSummary}</ul>
-      </article>
-      <article class="entry-preview-card">
-        <h3>Bonus</h3>
-        ${bonusHtml}
-      </article>
-      <article class="entry-preview-card">
-        <h3>Bedeutungen</h3>
-        <ul>${defs}</ul>
-      </article>
-    `
+    out.innerHTML = `<div class="tag-vorschau-eintrag">
+      <p class="tag-vorschau-kopf"><span class="tag-vorschau-wort">${esc(data.lemma || lemma)}</span>${data.ipa ? ` <span class="tag-vorschau-ipa">${esc(data.ipa)}</span>` : ''} <span class="vorschlag-pos">${esc(data.pos || pos)}</span></p>
+      <dl class="tag-dl">
+        <div><dt>Bedeutungen</dt><dd>${bedeutungen}</dd></div>
+        <div><dt>Runden</dt><dd>${runden}</dd></div>
+        <div><dt>Bonusfrage</dt><dd>${bonus}</dd></div>
+      </dl>
+    </div>`
   } catch (err) {
-    out.innerHTML = `<div class="users-empty">Lemma-Vorschau fehlgeschlagen: ${esc(err.message)}</div>`
-  }
-}
-
-async function previewCurrentDay() {
-  const out = document.getElementById('entry-preview-output')
-  const iso = document.getElementById('datum')?.value || ''
-  if (!out) return
-
-  if (!iso) {
-    out.innerHTML = '<div class="users-empty">Bitte zuerst ein Datum wählen.</div>'
-    return
-  }
-
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(iso)) {
-    out.innerHTML = '<div class="users-empty">Ungültiges Datumsformat.</div>'
-    return
-  }
-  const datum = iso
-
-  out.innerHTML = '<div class="users-empty">Tages-Vorschau wird geladen …</div>'
-  try {
-    const response = await fetch(`/admin/preview/day/${encodeURIComponent(datum)}`, {})
-    const data = await response.json().catch(() => ({}))
-    if (!response.ok) throw new Error(data.error || `HTTP ${response.status}`)
-
-    const modes = data.modes || {}
-    const modeChipsHtml = [
-      modes.kollokationen?.enabled ? '<span class="entry-chip mode-koll">Kollokation</span>' : '',
-      modes.wortzwilling?.enabled ? '<span class="entry-chip mode-wortzwilling">Wort-Zwilling</span>' : '',
-      modes.zeitenwende?.enabled ? '<span class="entry-chip mode-zeitenwende">Zeitenwende</span>' : '',
-    ].filter(Boolean).join('') || '<span class="users-empty">Keine Modi aktiv.</span>'
-
-    const grouped = Array.isArray(data.modeGroups)
-      ? data.modeGroups.map((group) => `<div class="mode-summary-group">
-          <span class="entry-chip ${modeGroupKeyToClass(group.key)}">${esc(group.label)}</span>
-          <div class="entry-chip-wrap">${(group.items || []).map((item) => `<span class="entry-chip">${esc(item)}</span>`).join('')}</div>
-        </div>`).join('')
-      : '<span class="users-empty">Keine Inhalte vorhanden.</span>'
-
-    out.innerHTML = `
-      <article class="entry-preview-card">
-        <h3>Tages-Vorschau ${esc(formatIsoDate(toIsoFromMMDD(data.datum || datum)))}</h3>
-        <div class="mode-summary-list">${grouped}</div>
-      </article>
-      <article class="entry-preview-card">
-        <h3>Aktive Modi</h3>
-        <div class="entry-preview-list">${modeChipsHtml}</div>
-      </article>
-    `
-  } catch (err) {
-    out.innerHTML = `<div class="users-empty">Tages-Vorschau fehlgeschlagen: ${esc(err.message)}</div>`
+    out.innerHTML = ergebnisMeldung(`Vorschau fehlgeschlagen: ${err.message}`, 'error')
   }
 }
 
@@ -3527,19 +3868,34 @@ async function analyzeEntryWortZwilling() {
   const pos = document.getElementById('wzpos')?.value || 'Substantiv'
   const out = document.getElementById('entry-wz-analysis-output')
   if (!out) return
+  out.classList.remove('is-veraltet')
   if (!wortA || !wortB) {
-    out.innerHTML = '<div class="users-empty">Bitte Wort A und Wort B ausfüllen.</div>'
+    schreibeErgebnis(out, ergebnisMeldung('Erst beide Wörter eintragen.'))
     return
   }
-  out.innerHTML = '<div class="status loading">Analysiere Wort-Zwilling …</div>'
+  schreibeErgebnis(out, ergebnisMeldung('Prüft im Korpus …', 'loading'))
   try {
-    const res = await fetch(`/admin/analyze-wortzwilling?a=${encodeURIComponent(wortA)}&b=${encodeURIComponent(wortB)}&pos=${encodeURIComponent(pos)}`, {})
-    const data = await res.json().catch(() => ({}))
-    if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`)
-    renderWZAnalyse(data, out)
+    const data = await holePruefung(`/admin/analyze-wortzwilling?a=${encodeURIComponent(wortA)}&b=${encodeURIComponent(wortB)}&pos=${encodeURIComponent(pos)}`)
+    renderTagWortZwilling(data, out)
   } catch (err) {
-    out.innerHTML = `<div class="status error">Analyse fehlgeschlagen: ${esc(err.message)}</div>`
+    schreibeErgebnis(out, ergebnisMeldung(`Prüfen fehlgeschlagen: ${err.message}`, 'error'))
   }
+}
+
+// Ergebnis auf der Tagesseite. renderWZAnalyse bleibt für Werkzeuge › Analyse unverändert.
+function renderTagWortZwilling(data, out) {
+  if (!data.usable) {
+    schreibeErgebnis(out, ergebnisMeldung('Nicht geeignet: zu wenige eigene Kollokatoren (mindestens 5 je Wort).', 'warn'))
+    return
+  }
+  const alle = Array.isArray(data.kollokatoren) ? data.kollokatoren : []
+  const spalte = (kopf, seite, scoreKey) => {
+    const zeilen = alle.filter((k) => k.zuordnung === seite).slice(0, 5).map((k) => zeileMitZahl(k.wort, k[scoreKey])).join('')
+    return `<div class="tag-erg-spalte"><h4 class="tag-erg-kopf">${esc(kopf)}</h4><ol class="tag-erg-knapp">${zeilen}</ol></div>`
+  }
+  schreibeErgebnis(out, ergebnisMeldung('Geeignet: genug eigene Kollokatoren für beide Wörter.', 'ok')
+    + `<div class="tag-erg-spalten">${spalte(data.wortA, 'A', 'scoreA')}${spalte(data.wortB, 'B', 'scoreB')}</div>`
+    + '<p class="tag-erg-fuss">Zahl = logDice zum jeweiligen Wort; gespielt werden nur Kollokatoren, die zu einem der beiden passen.</p>')
 }
 
 function renderWZAnalyse(data, out) {
@@ -3627,42 +3983,73 @@ async function analyzeEntryZeitenwende() {
   const lemma = normalizeText(document.getElementById('zw-lemma')?.value || '')
   const out = document.getElementById('entry-zw-analysis-output')
   if (!out) return
+  out.classList.remove('is-veraltet')
   if (!lemma) {
-    out.innerHTML = '<div class="users-empty">Bitte zuerst ein Lemma eingeben.</div>'
+    schreibeErgebnis(out, ergebnisMeldung('Erst ein Wort eintragen.'))
     return
   }
-  out.innerHTML = '<div class="status loading">Analysiere Zeitenwende …</div>'
+  schreibeErgebnis(out, ergebnisMeldung('Prüft im Korpus …', 'loading'))
   try {
-    const res = await fetch(`/admin/analyze-zeitenwende?q=${encodeURIComponent(lemma)}`, {})
-    const data = await res.json().catch(() => ({}))
-    if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`)
-    renderZWAnalyse(data, out)
+    const data = await holePruefung(`/admin/analyze-zeitenwende?q=${encodeURIComponent(lemma)}`)
+    renderTagZeitenwende(data, out)
   } catch (err) {
-    out.innerHTML = `<div class="status error">Analyse fehlgeschlagen: ${esc(err.message)}</div>`
+    schreibeErgebnis(out, ergebnisMeldung(`Prüfen fehlgeschlagen: ${err.message}`, 'error'))
   }
 }
+
+// Ergebnis auf der Tagesseite. renderZWAnalyse bleibt für Werkzeuge › Zeitenwende unverändert.
+function renderTagZeitenwende(data, out) {
+  const pre = Array.isArray(data.preCandidates) ? data.preCandidates : []
+  const post = Array.isArray(data.postCandidates) ? data.postCandidates : []
+  if (!pre.length && !post.length) {
+    schreibeErgebnis(out, ergebnisMeldung('Keine Zeitenwende-Daten für dieses Wort.', 'warn'))
+    return
+  }
+  const kopf = data.usable
+    ? ergebnisMeldung('Geeignet: genug Kollokatoren, die vor oder nach 2000 typisch sind.', 'ok')
+    : ergebnisMeldung('Nicht geeignet: zu wenige Unterschiede vor und nach 2000.', 'warn')
+  const spalte = (titel, periode, items, key) => {
+    const zeilen = items.slice(0, 5).map((it) => zeileMitZahl(it.wort, it[key], '+')).join('')
+    return `<div class="tag-erg-spalte"><h4 class="tag-erg-kopf tag-erg-kopf--zeit" data-periode="${periode}">${titel}</h4>${zeilen ? `<ol class="tag-erg-knapp">${zeilen}</ol>` : '<p class="tag-erg-fuss">Keine Kandidaten</p>'}</div>`
+  }
+  const spiel = Array.isArray(data.words) && data.words.length
+    ? `<p class="tag-erg-auswahl"><span class="tag-label">Im Spiel</span>${data.words.map((w) => {
+      const periode = w.periode === 'pre' ? 'pre' : 'post'
+      // Leerzeichen vor der Marke; die kurze Marke ist für Screenreader durch „(vor 2000)“ ersetzt.
+      return `${esc(w.wort)} <span class="tag-erg-periode" data-periode="${periode}"><span aria-hidden="true">${periode === 'pre' ? 'vor' : 'nach'}</span><span class="adm-visually-hidden">(${periode === 'pre' ? 'vor' : 'nach'} 2000)</span></span>`
+    }).join(' · ')}</p>`
+    : ''
+  schreibeErgebnis(out, kopf
+    + `<div class="tag-erg-spalten">${spalte('vor 2000', 'pre', pre, 'distPre')}${spalte('nach 2000', 'post', post, 'distPost')}</div>`
+    + spiel
+    + '<p class="tag-erg-fuss">Zahl = Abstand im logDice zwischen den Zeiträumen.</p>')
+}
+
+const LF_TYPEN = { choice: 'Auswahl', double: 'Doppel', free: 'Frei' }
 
 async function analyzeEntryLueckenfueller() {
   const lemma = normalizeText(document.getElementById('lf-id')?.value || '')
   const out = document.getElementById('entry-lf-analysis-output')
   if (!out) return
+  out.classList.remove('is-veraltet')
   if (!lemma) {
-    out.innerHTML = '<div class="users-empty">Bitte zuerst ein Lemma eingeben.</div>'
+    schreibeErgebnis(out, ergebnisMeldung('Erst ein Wort eintragen.'))
     return
   }
-  out.innerHTML = '<div class="status loading">Analysiere Lückenfüller …</div>'
+  schreibeErgebnis(out, ergebnisMeldung('Prüft im Korpus …', 'loading'))
   try {
-    const res = await fetch(`/admin/analyze-lueckenfueller?q=${encodeURIComponent(lemma)}`, {})
-    const data = await res.json().catch(() => ({}))
-    if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`)
+    const data = await holePruefung(`/admin/analyze-lueckenfueller?q=${encodeURIComponent(lemma)}`)
     if (!data.usable) {
-      out.innerHTML = `<div class="status warn">${esc(data.reason || 'Nicht genug Material verfügbar.')}</div>`
+      schreibeErgebnis(out, ergebnisMeldung(data.reason || 'Nicht genug Material verfügbar.', 'warn'))
       return
     }
-    const neuHinweis = data.neuesLemma ? ' (noch kein Lemma – wird beim Generieren neu angelegt)' : ''
-    out.innerHTML = `<article class="inline-analysis-card"><div class="inline-analysis-head"><strong>${esc(lemma)}</strong><span class="inline-analysis-badge is-success">${esc(String(data.rounds || 0))} Runden</span></div><p>Geeignet für Lückenfüller. Wortart: ${esc(data.pos || '—')}${esc(neuHinweis)}</p></article>`
+    const neu = data.neuesLemma ? ' Noch kein Eintrag – „Runden erzeugen“ legt ihn an.' : ''
+    const zeilen = (Array.isArray(data.preview) ? data.preview : []).map((r, i) =>
+      `<li class="tag-erg-zeile"><span class="tag-erg-wort">${i + 1}. ${esc(r.kollokator || '—')}</span><span class="tag-erg-werte">${esc(LF_TYPEN[r.type] || r.type || '')}</span><span class="tag-erg-urteil"><span class="tag-erg-zahl">${esc(String(r.punkte ?? '–'))} Pkt.</span></span></li>`).join('')
+    schreibeErgebnis(out, ergebnisMeldung(`Geeignet: ${data.rounds || 0} Runden · ${data.pos || '—'}.${neu}`, 'ok')
+      + (zeilen ? `<ol class="tag-erg-liste">${zeilen}</ol>` : ''))
   } catch (err) {
-    out.innerHTML = `<div class="status error">Analyse fehlgeschlagen: ${esc(err.message)}</div>`
+    schreibeErgebnis(out, ergebnisMeldung(`Prüfen fehlgeschlagen: ${err.message}`, 'error'))
   }
 }
 
@@ -3674,33 +4061,58 @@ function resetLueckenfuellerAnalysis() {
 }
 
 // ── Lückenfüller – Generieren ─────────────────────────────
-async function generateLueckenfueller() {
-  const lemmaName = (document.getElementById('lf-id')?.value || '').trim()
+async function generateLueckenfueller(btn) {
+  if (btn?.getAttribute('aria-disabled') === 'true') return
+  const lemmaName = normalizeText(document.getElementById('lf-id')?.value || '')
   const statusEl  = document.getElementById('lf-generate-status')
+  const zeige = (text, tone) => {
+    if (!statusEl) return
+    statusEl.textContent = text
+    if (text && tone) statusEl.dataset.tone = tone
+    else statusEl.removeAttribute('data-tone')
+  }
   if (!lemmaName) {
-    if (statusEl) { statusEl.style.display = 'block'; statusEl.style.color = 'var(--danger, #c0392b)'; statusEl.textContent = 'Bitte zuerst einen Lemma-Namen eingeben.' }
+    zeige('Erst ein Wort eintragen.', 'warn')
     document.getElementById('lf-id')?.focus()
     return
   }
-  if (statusEl) { statusEl.style.display = 'block'; statusEl.style.color = 'var(--muted)'; statusEl.textContent = `Generiere Lückenfüller für „${lemmaName}“ …` }
+  btn?.setAttribute('aria-disabled', 'true')
   try {
+    // Das Erzeugen baut vorhandene Runden neu auf; der Speicherweg tut das bewusst nie
+    // (lueckenfuellerAutoGen.js). Gefragt wird nur, wenn das Wort schon Runden hat.
+    // Leichte Abfrage (Lemma-Index, keine Korpusanalyse); scheitert sie, lieber nachfragen.
+    let vorhanden = null   // null: unbekannt
+    try {
+      const info = await holePruefung(`/admin/lueckenfueller/runden?q=${encodeURIComponent(lemmaName)}`)
+      vorhanden = Number(info.vorhandeneRunden) || 0
+    } catch {
+      vorhanden = null
+    }
+    if (vorhanden !== 0) {
+      const satz = vorhanden === null
+        ? 'Hat das Wort schon Runden, werden sie ersetzt – auch für Tage, die schon gespielt wurden.'
+        : `Das Wort hat schon ${vorhanden} ${vorhanden === 1 ? 'Runde' : 'Runden'}. Sie werden ersetzt – auch für Tage, die schon gespielt wurden.`
+      if (!confirmAction(`Runden für „${lemmaName}“ jetzt erzeugen?\n\n${satz}`)) return
+    }
+
+    zeige(`Erzeugt Runden für „${lemmaName}“ …`, 'loading')
     const res  = await fetch('/admin/lueckenfueller/generate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ lemmaName }) })
-    const data = await res.json()
+    const data = await res.json().catch(() => ({}))
     if (!res.ok) {
-      if (statusEl) { statusEl.style.color = 'var(--danger, #c0392b)'; statusEl.textContent = `Fehler: ${data.error || 'Unbekannter Fehler'}` }
+      zeige(`Fehler: ${data.error || `HTTP ${res.status}`}`, 'error')
       return
     }
     if (!data.ok) {
-      if (statusEl) { statusEl.style.color = 'var(--danger, #c0392b)'; statusEl.textContent = `Nicht möglich: ${data.reason || 'Kein Material verfügbar'}` }
+      zeige(`Nicht möglich: ${data.reason || 'Kein Material verfügbar'}`, 'warn')
       return
     }
-    if (statusEl) {
-      statusEl.style.color = 'var(--success, #27ae60)'
-      const neuHinweis = data.neuAngelegt ? ` (neues Lemma angelegt, Wortart: ${data.pos})` : ''
-      statusEl.textContent = `✓ Lückenfüller generiert für „${data.lemma}“ – ${data.rounds} Runden${neuHinweis}`
-    }
+    const neu = data.neuAngelegt ? ` (neu angelegt, ${data.pos})` : ''
+    zeige(`Runden erzeugt: ${data.rounds} für „${data.lemma}“${neu}.`, 'ok')
+    setModusMeldung('lf', '')   // eine ältere „unbekannt“-Meldung ist damit erledigt
   } catch (err) {
-    if (statusEl) { statusEl.style.color = 'var(--danger, #c0392b)'; statusEl.textContent = `Fehler: ${err.message}` }
+    zeige(`Fehler: ${err.message}`, 'error')
+  } finally {
+    btn?.removeAttribute('aria-disabled')
   }
 }
 
@@ -3994,7 +4406,8 @@ function lueckenfuellerHerkunft(tag) {
     ...(tag.zwilling_paar || []).map((wort) => ({ wort, herkunft: 'aus dem Wort-Zwilling' })),
     { wort: tag.zeitenwende_lemma, herkunft: 'aus der Zeitenwende' },
   ]
-  return kandidaten.find((k) => k.wort && wortZuId(k.wort) === id) || { wort: id, herkunft: 'passt zu keinem Wort dieses Tages', warnung: true }
+  // Beide Seiten normalisieren: Der Server nimmt für den Lückenfüller auch ein Wort („Lektüre“) an, nicht nur die Kennung.
+  return kandidaten.find((k) => k.wort && wortZuId(k.wort) === wortZuId(id)) || { wort: id, herkunft: 'passt zu keinem Wort dieses Tages', warnung: true }
 }
 
 function vorschlagLink(url) {
@@ -4216,7 +4629,7 @@ function speicherErgebnisText(data) {
   if (data.zwillingOk === false) teile.push('Wort-Zwilling: nicht genug distinkte Kollokatoren')
   if (data.zeitenwendeOk === true) teile.push('Zeitenwende OK')
   if (data.zeitenwendeOk === false) teile.push('Zeitenwende: nicht genug distinkte Kollokatoren')
-  if (data.lueckenfuellerId) teile.push(`Lückenfüller: ${lueckenfuellerMeldung(data.lueckenfuellerStatus)}`)
+  if (data.lueckenfuellerId || data.lueckenfuellerStatus === 'mehrdeutig') teile.push(`Lückenfüller: ${lueckenfuellerMeldung(data.lueckenfuellerStatus)}`)
   return teile.join(' · ')
 }
 
@@ -4532,9 +4945,15 @@ function handleDocumentClick(event) {
   if (action === 'dashboard-week-heute') return void zeigeDieseWoche()
   if (action === 'select-dashboard-date') return void selectDashboardDay(target.dataset.value || '')
   if (action === 'toggle-extra-fields') return void toggleExtraFields(target.dataset.target || '')
-  if (action === 'preview-current-lemma') return void previewCurrentLemma()
-  if (action === 'preview-current-day') return void previewCurrentDay()
-  if (action === 'reset-entry-form') return void restoreEntryFormSnapshot()
+  if (action === 'preview-current-lemma') return void previewCurrentLemma(Number(target.dataset.index) || 1)
+  if (action === 'reset-entry-form') {
+    // Der Knopf steht neben „Speichern“: ein Fehltipp würde sonst alle Eingaben verwerfen.
+    if (!window.confirm('Ungespeicherte Änderungen verwerfen? Der zuletzt gespeicherte Stand kommt zurück.')) return
+    restoreEntryFormSnapshot()
+    // Der Knopf verschwindet (disabled → ausgeblendet); der Fokus geht zum Stand.
+    document.getElementById('entry-dirty-indicator')?.focus()
+    return
+  }
   if (action === 'restore-entry-draft') return void restoreEntryDraft()
   if (action === 'discard-entry-draft') return void discardEntryDraft()
   if (action === 'vorschlaege-laden') return void loadVorschlaege()
@@ -4543,10 +4962,10 @@ function handleDocumentClick(event) {
   if (action === 'vorschlag-verwerfen') return void verwerfeVorschlag(Number(target.dataset.id))
   if (action === 'save-tag') return void saveTag()
   if (action === 'delete-current-tag') return void deleteCurrentTag()
-  if (action === 'analyze-entry-kollokation') return void analyzeEntryKollokation()
-  if (action === 'analyze-entry-wort-zwilling') return void analyzeEntryWortZwilling()
-  if (action === 'analyze-entry-zeitenwende') return void analyzeEntryZeitenwende()
-  if (action === 'analyze-entry-lueckenfueller') return void analyzeEntryLueckenfueller()
+  if (action === 'analyze-entry-kollokation') return void mitPruefSperre(target, analyzeEntryKollokation)
+  if (action === 'analyze-entry-wort-zwilling') return void mitPruefSperre(target, analyzeEntryWortZwilling)
+  if (action === 'analyze-entry-zeitenwende') return void mitPruefSperre(target, analyzeEntryZeitenwende)
+  if (action === 'analyze-entry-lueckenfueller') return void mitPruefSperre(target, analyzeEntryLueckenfueller)
   if (action === 'trigger-calendar-csv-import') return void triggerCalendarCsvImport()
   if (action === 'load-kalender') return void loadKalender()
   if (action === 'reset-entry-filters') return void resetEntryFilters()
@@ -4565,7 +4984,7 @@ function handleDocumentClick(event) {
   if (action === 'reset-zeitenwende-analysis') return void resetZeitenwendeAnalysis()
   if (action === 'analyze-lueckenfueller') return void analyzeLueckenfueller()
   if (action === 'reset-lueckenfueller-analysis') return void resetLueckenfuellerAnalysis()
-  if (action === 'generate-lueckenfueller') return void generateLueckenfueller()
+  if (action === 'generate-lueckenfueller') return void generateLueckenfueller(target)
   if (action === 'change-month') return void changeMonth(Number(target.dataset.delta || 0))
   if (action === 'edit-selected-calendar-date') return void editSelectedCalendarDate()
   if (action === 'load-users-overview') return void loadUsersOverview()
@@ -5126,15 +5545,49 @@ function handleDocumentInput(event) {
   if (target.id === 'users-search') return void scheduleUsersOverviewLoad()
   if (target.id === 'audit-search') return void loadAuditLog()
   if (ENTRY_FIELD_IDS.includes(target.id)) {
+    // Das Thema ist einzeilig, auch wenn Text mit Zeilenumbrüchen eingefügt wird.
+    if (target.matches?.('textarea[data-einzeilig]') && /\n/.test(target.value)) {
+      target.value = target.value.replace(/\s*\n\s*/g, ' ')
+    }
+    loescheFeldFehler(target.id)
     updateEntryDirtyState()
     updateModeIndicators()
+    if (target.id === 'datum') aktualisiereDatumHinweis()
+    markiereVeraltet(target.id)
   }
+}
+
+// Eingaben geändert: Das Prüfergebnis des Modus gilt noch für den alten Stand.
+const ENTRY_FELD_ZU_ERGEBNIS = { w1: 'koll', w2: 'koll', w3: 'koll', p1: 'koll', p2: 'koll', p3: 'koll', wza: 'wz', wzb: 'wz', wzpos: 'wz', 'zw-lemma': 'zw', 'lf-id': 'lf' }
+
+function markiereVeraltet(feldId) {
+  const modus = ENTRY_FELD_ZU_ERGEBNIS[feldId]
+  const out = modus && document.getElementById(`entry-${modus}-analysis-output`)
+  if (!out?.firstElementChild || out.classList.contains('is-veraltet')) return
+  // Ein laufendes „Prüft im Korpus …“ ist kein Ergebnis.
+  if (out.querySelector('[data-tone="loading"]')) return
+  out.classList.add('is-veraltet')
+  out.insertAdjacentHTML('afterbegin', ergebnisMeldung('Eingaben geändert – das Ergebnis gilt noch für den alten Stand.'))
+  sageErgebnisAn(out, 'Eingaben geändert – das Ergebnis gilt noch für den alten Stand.')
 }
 
 function handleDocumentKeydown(event) {
   const target = event.target
   if (!(target instanceof HTMLElement)) return
+
+  // Strg/⌘ + S speichert den Tag (Redakteursgewohnheit); saveTag ignoriert gesperrte Zustände.
+  if ((event.ctrlKey || event.metaKey) && !event.shiftKey && !event.altKey && String(event.key || '').toLowerCase() === 's' && currentRoute?.page === 'entry') {
+    event.preventDefault()
+    void saveTag()
+    return
+  }
+
   if (event.key !== 'Enter') return
+  // Das Thema steht in einem mitwachsenden Feld, bleibt aber einzeilig.
+  if (target.matches('textarea[data-einzeilig]')) {
+    event.preventDefault()
+    return
+  }
 
   const action = target.dataset.enterAction
   if (!action) return
@@ -5146,6 +5599,20 @@ function handleDocumentKeydown(event) {
   if (action === 'analyze-zeitenwende') return void analyzeZeitenwende()
   if (action === 'analyze-lueckenfueller') return void analyzeLueckenfueller()
 }
+
+// Die Leiste der Tagesseite wächst mobil mit (Meldung, zwei Zeilen). Ihre echte Höhe steuert
+// den Scroll-Abstand (CSS: scroll-padding-bottom), damit fokussierte Felder nie unter ihr liegen.
+;(function beobachteTagLeiste() {
+  const leiste = document.getElementById('tag-leiste')
+  if (!leiste || typeof ResizeObserver === 'undefined') return
+  const setze = () => {
+    const h = Math.ceil(leiste.getBoundingClientRect().height)
+    if (h > 0) document.documentElement.style.setProperty('--tag-leiste-h', `${h}px`)
+    else document.documentElement.style.removeProperty('--tag-leiste-h')
+  }
+  new ResizeObserver(setze).observe(leiste)
+  setze()
+})()
 
 document.addEventListener('click', handleDocumentClick)
 document.addEventListener('change', handleDocumentChange)

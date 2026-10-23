@@ -146,231 +146,275 @@
         </div>
       </section>
 
-      <section class="admin-page" id="page-entry" data-title="Tag bearbeiten" data-subtitle="Tagesinhalt planen und automatisch mit Datenquellen anreichern.">
-        <!-- Ladefehler des Tages (von admin.js befüllt): bewusst ganz oben, damit er sichtbar ist. -->
-        <div id="entry-load-error" class="status" role="alert"></div>
-        <div class="card entry-editor-card">
-          <div class="entry-editor-head">
-            <div>
-              <p class="section-label">Planung</p>
-              <h2 id="form-title">Neuer Tageseintrag</h2>
-              <p class="entry-editor-copy">Kollokationen sind Pflicht. Die weiteren Modi kannst du gezielt ergänzen; externe Daten werden beim Speichern automatisch neu geladen.</p>
-            </div>
-            <div class="entry-editor-status">
-              <span id="entry-dirty-indicator" class="entry-dirty-indicator">Alles gespeichert</span>
-              <button type="button" id="entry-reset-btn" class="entry-filters-reset" data-action="reset-entry-form" disabled>Entwurf zurücksetzen</button>
-            </div>
+      <section class="admin-page" id="page-entry" data-title="Tag bearbeiten" data-subtitle="Tagesinhalt planen; die Spieldaten berechnet der Server beim Speichern aus dem eigenen Korpus.">
+
+        <!-- Ladefehler (setEntryLoadError): leer = unsichtbar, bleibt Alert-Region -->
+        <div id="entry-load-error" class="tag-meldung" role="alert"></div>
+
+        <!-- Entwurf gefunden (offerEntryDraft): nur für genau diesen Tag bzw. „Neuer Tag“.
+             Auf Mobilgeräten wird der Tab im Hintergrund oft beendet. -->
+        <div class="tag-entwurf" id="entry-draft-banner" role="status" hidden>
+          <p class="tag-entwurf-text">
+            <span class="tag-entwurf-marke">Nicht gespeichert</span>
+            <span id="entry-draft-text">Ungespeicherte Änderungen gefunden.</span>
+          </p>
+          <div class="tag-entwurf-aktionen">
+            <button type="button" class="adm-cta" data-action="restore-entry-draft"><span>Wiederherstellen</span> <span aria-hidden="true">→</span></button>
+            <button type="button" class="adm-link" data-action="discard-entry-draft">Verwerfen</button>
           </div>
-
-          <!-- Wiederherstellung eines Entwurfs, den der Browser verworfen hat
-               (auf Mobilgeräten wird der Tab im Hintergrund oft beendet). -->
-          <div class="entry-draft-banner is-hidden" id="entry-draft-banner" role="status">
-            <span id="entry-draft-text">Ungespeicherter Entwurf gefunden.</span>
-            <div class="entry-draft-actions">
-              <button type="button" class="ghost-btn ghost-btn--small" data-action="restore-entry-draft">Wiederherstellen</button>
-              <button type="button" class="entry-filters-reset" data-action="discard-entry-draft">Verwerfen</button>
-            </div>
-          </div>
-
-          <div class="entry-section">
-            <div class="entry-section-head">
-              <div>
-                <h3>Rahmendaten</h3>
-                <p class="form-helper">Datum und Themenzeile steuern Startseite und Spielseiten.</p>
-              </div>
-            </div>
-            <div class="entry-meta-grid">
-              <div class="entry-field entry-field--compact">
-                <label for="datum">Datum</label>
-                <input type="date" id="datum">
-              </div>
-              <div class="entry-field entry-field--span-2">
-                <label for="thema">Tagesthema <span class="label-hint">erscheint auf Startseite und Spielseiten</span></label>
-                <input type="text" id="thema" placeholder="z.B. Tag der Arbeit, Walpurgisnacht …">
-              </div>
-              <div class="entry-field">
-                <label for="thema-kurz">Kurzbeschreibung <span class="label-hint">optional</span></label>
-                <input type="text" id="thema-kurz" placeholder="z.B. Heute ist Internationaler Arbeitstag.">
-              </div>
-              <div class="entry-field">
-                <label for="thema-quelle">Quelle / Link <span class="label-hint">optional</span></label>
-                <input type="text" id="thema-quelle" placeholder="z.B. https://www.dwds.de/… oder DWDS-Korpus">
-              </div>
-            </div>
-          </div>
-
-          <div class="entry-section">
-            <div class="entry-section-head">
-              <div>
-                <h3>Spielmodi</h3>
-                <p class="form-helper">Alle vier Kacheln sind gleichwertige Arbeitsbereiche. Kollokationen bleiben inhaltlich Pflicht, visuell aber nicht dominant.</p>
-              </div>
-            </div>
-
-            <div class="mode-grid">
-              <div class="mode-card">
-                <div class="mode-card-header">
-                  <div>
-                    <span class="mode-card-title">Kollokationen</span>
-                    <p class="mode-card-copy">Drei Wörter mit Wortart festlegen; Notizen und Links bleiben optional.</p>
-                  </div>
-                  <span class="mode-indicator" id="koll-indicator"></span>
-                </div>
-                <div class="woerter">
-                  <div class="wort-group">
-                    <div class="wort-row">
-                      <span class="wort-badge">Wort 1</span>
-                      <input type="text" id="w1" placeholder="Wort 1">
-                      <select id="p1"><option value="Substantiv" selected>Substantiv</option><option value="Verb">Verb</option><option value="Adjektiv">Adjektiv</option></select>
-                    </div>
-                    <button type="button" class="extra-toggle" data-action="toggle-extra-fields" data-target="koll-extras-1">+ Notiz / Link</button>
-                    <div class="extra-fields is-hidden" id="koll-extras-1">
-                      <input type="text" id="n1" placeholder="Notiz">
-                      <input type="url" id="l1" placeholder="Link">
-                    </div>
-                  </div>
-                  <div class="wort-group">
-                    <div class="wort-row">
-                      <span class="wort-badge">Wort 2</span>
-                      <input type="text" id="w2" placeholder="Wort 2">
-                      <select id="p2"><option value="Substantiv">Substantiv</option><option value="Verb" selected>Verb</option><option value="Adjektiv">Adjektiv</option></select>
-                    </div>
-                    <button type="button" class="extra-toggle" data-action="toggle-extra-fields" data-target="koll-extras-2">+ Notiz / Link</button>
-                    <div class="extra-fields is-hidden" id="koll-extras-2">
-                      <input type="text" id="n2" placeholder="Notiz">
-                      <input type="url" id="l2" placeholder="Link">
-                    </div>
-                  </div>
-                  <div class="wort-group">
-                    <div class="wort-row">
-                      <span class="wort-badge">Wort 3</span>
-                      <input type="text" id="w3" placeholder="Wort 3">
-                      <select id="p3"><option value="Substantiv">Substantiv</option><option value="Verb">Verb</option><option value="Adjektiv" selected>Adjektiv</option></select>
-                    </div>
-                    <button type="button" class="extra-toggle" data-action="toggle-extra-fields" data-target="koll-extras-3">+ Notiz / Link</button>
-                    <div class="extra-fields is-hidden" id="koll-extras-3">
-                      <input type="text" id="n3" placeholder="Notiz">
-                      <input type="url" id="l3" placeholder="Link">
-                    </div>
-                  </div>
-                </div>
-                <div class="mode-analysis-inline">
-                  <div class="mode-analysis-inline-head">
-                    <span>Analyse direkt an der Karte</span>
-                    <button type="button" class="entry-filters-reset" data-action="analyze-entry-kollokation">Prüfen</button>
-                  </div>
-                  <div id="entry-koll-analysis-output" class="analysis-output mode-analysis-inline-output" aria-live="polite"></div>
-                </div>
-              </div>
-
-              <div class="mode-card">
-                <div class="mode-card-header">
-                  <div>
-                    <span class="mode-card-title">Wort-Zwilling</span>
-                    <p class="mode-card-copy">Zwei Wörter plus Wortart angeben; die distinkten Kollokatoren werden automatisch ermittelt.</p>
-                  </div>
-                  <span class="mode-indicator" id="wz-indicator"></span>
-                </div>
-                <div class="inline-field-grid inline-field-grid--triple">
-                  <div class="entry-field">
-                    <label for="wza">Wort A</label>
-                    <input type="text" id="wza" placeholder="Wort A">
-                  </div>
-                  <div class="entry-field">
-                    <label for="wzb">Wort B</label>
-                    <input type="text" id="wzb" placeholder="Wort B">
-                  </div>
-                  <div class="entry-field entry-field--compact">
-                    <label for="wzpos">Wortart</label>
-                    <select id="wzpos">
-                      <option value="Substantiv">Substantiv</option>
-                      <option value="Verb">Verb</option>
-                      <option value="Adjektiv">Adjektiv</option>
-                    </select>
-                  </div>
-                </div>
-                <button type="button" class="extra-toggle" data-action="toggle-extra-fields" data-target="wz-extras">+ Notiz / Link</button>
-                <div class="extra-fields is-hidden" id="wz-extras">
-                  <input type="text" id="wz-notiz" placeholder="Notiz (erscheint auf der Auswahlseite)">
-                  <input type="url" id="wz-link" placeholder="Link">
-                </div>
-                <div class="mode-analysis-inline">
-                  <div class="mode-analysis-inline-head">
-                    <span>Analyse direkt an der Karte</span>
-                    <button type="button" class="entry-filters-reset" data-action="analyze-entry-wort-zwilling">Prüfen</button>
-                  </div>
-                  <div id="entry-wz-analysis-output" class="analysis-output mode-analysis-inline-output" aria-live="polite"></div>
-                </div>
-              </div>
-
-              <div class="mode-card">
-                <div class="mode-card-header">
-                  <div>
-                    <span class="mode-card-title">Zeitenwende</span>
-                    <p class="mode-card-copy">Ein Lemma reicht; die Kollokatoren werden vor und nach 2000 automatisch verglichen.</p>
-                  </div>
-                  <span class="mode-indicator" id="zw-indicator"></span>
-                </div>
-                <div class="entry-field">
-                  <label for="zw-lemma">Lemma</label>
-                  <input type="text" id="zw-lemma" placeholder="Lemma">
-                </div>
-                <button type="button" class="extra-toggle" data-action="toggle-extra-fields" data-target="zw-extras">+ Notiz / Link</button>
-                <div class="extra-fields is-hidden" id="zw-extras">
-                  <input type="text" id="zw-notiz" placeholder="Notiz (erscheint auf der Auswahlseite)">
-                  <input type="url" id="zw-link" placeholder="Link">
-                </div>
-                <div class="mode-analysis-inline">
-                  <div class="mode-analysis-inline-head">
-                    <span>Analyse direkt an der Karte</span>
-                    <button type="button" class="entry-filters-reset" data-action="analyze-entry-zeitenwende">Prüfen</button>
-                  </div>
-                  <div id="entry-zw-analysis-output" class="analysis-output mode-analysis-inline-output" aria-live="polite"></div>
-                </div>
-              </div>
-
-              <div class="mode-card">
-                <div class="mode-card-header">
-                  <div>
-                    <span class="mode-card-title">Lückenfüller</span>
-                    <p class="mode-card-copy">Lemma eingeben, Runden generieren und erst dann den Tag speichern.</p>
-                  </div>
-                  <span class="mode-indicator" id="lf-indicator"></span>
-                </div>
-                <div class="entry-field">
-                  <label for="lf-id">Lemma</label>
-                  <div class="inline-action-row">
-                    <input type="text" id="lf-id" placeholder="z.B. Film">
-                    <button type="button" class="entry-filters-reset" data-action="generate-lueckenfueller">Generieren</button>
-                  </div>
-                </div>
-                <p id="lf-generate-status" class="mode-generate-status" aria-live="polite"></p>
-                <div class="mode-analysis-inline">
-                  <div class="mode-analysis-inline-head">
-                    <span>Analyse direkt an der Karte</span>
-                    <button type="button" class="entry-filters-reset" data-action="analyze-entry-lueckenfueller">Prüfen</button>
-                  </div>
-                  <div id="entry-lf-analysis-output" class="analysis-output mode-analysis-inline-output" aria-live="polite"></div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div id="status" class="status" role="status" aria-live="polite"></div>
-
-          <div class="entry-form-actions">
-            <div class="entry-action-copy">Beim Speichern werden die Inhalte neu geladen und der Kalendereintrag direkt aktualisiert.</div>
-            <button id="save-btn" data-action="save-tag">Speichern &amp; APIs abrufen</button>
-            <button id="delete-btn" class="danger-btn" data-action="delete-current-tag" disabled>Eintrag löschen</button>
-          </div>
-
-          <div class="entry-preview-actions">
-            <button type="button" data-action="preview-current-lemma">Lemma-Vorschau</button>
-            <button type="button" data-action="preview-current-day">Tages-Vorschau</button>
-          </div>
-          <div id="entry-preview-output" class="entry-preview-output"></div>
         </div>
 
+        <!-- Alles, was beim Laden eines Tages gesperrt wird (inert, s. setEntryMode) -->
+        <div class="tag-formular" id="tag-formular">
+
+          <!-- 1 · Rahmen -->
+          <section class="tag-abschnitt" aria-labelledby="tag-rahmen-titel">
+            <h2 class="tag-abschnitt-titel" id="tag-rahmen-titel">Rahmen</h2>
+
+            <div class="tag-feld">
+              <label class="tag-label" for="datum">Datum</label>
+              <div class="tag-wert">
+                <input class="tag-eingabe tag-eingabe--datum" type="date" id="datum" required aria-describedby="tag-datum-hinweis">
+                <!-- Datum belegt / geändert (aktualisiereDatumHinweis), sonst leer -->
+                <p class="tag-hinweis" id="tag-datum-hinweis" aria-live="polite"></p>
+              </div>
+            </div>
+
+            <div class="tag-feld">
+              <label class="tag-label" for="thema">Thema</label>
+              <div class="tag-wert">
+                <!-- textarea statt input: lange Themen bleiben mobil ganz sichtbar; Enter erzeugt keinen Umbruch (data-einzeilig) -->
+                <textarea class="tag-eingabe tag-eingabe--gross" id="thema" rows="2" maxlength="200" data-einzeilig placeholder="z. B. Reclams Universal-Bibliothek startet (1867)" aria-describedby="thema-hinweis"></textarea>
+                <p class="tag-hinweis" id="thema-hinweis">Erscheint auf der Startseite und über den Spielen.</p>
+              </div>
+            </div>
+
+            <div class="tag-feld">
+              <label class="tag-label" for="thema-kurz">Kurzbeschreibung <span class="tag-label-zusatz">optional</span></label>
+              <div class="tag-wert">
+                <textarea class="tag-eingabe" id="thema-kurz" rows="2" maxlength="300" placeholder="Ein, zwei Sätze zum Anlass"></textarea>
+              </div>
+            </div>
+
+            <div class="tag-feld">
+              <label class="tag-label" for="thema-quelle">Quelle <span class="tag-label-zusatz">optional</span></label>
+              <div class="tag-wert">
+                <input class="tag-eingabe" type="text" id="thema-quelle" maxlength="500" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Link oder Literaturangabe">
+              </div>
+            </div>
+          </section>
+
+          <!-- 2 · Spielmodi -->
+          <section class="tag-abschnitt" aria-labelledby="tag-modi-titel">
+            <h2 class="tag-abschnitt-titel" id="tag-modi-titel">Spielmodi</h2>
+            <p class="tag-abschnitt-text">Kollokationen braucht jeder Tag, die anderen drei Modi sind optional. Die Spieldaten berechnet der Server beim Speichern aus dem eigenen Korpus.</p>
+
+            <div class="tag-modi">
+
+              <!-- Kollokationen -->
+              <section class="tag-modus" data-pflicht role="group" aria-labelledby="koll-titel">
+                <div class="tag-modus-kopf">
+                  <h3 class="tag-modus-titel" id="koll-titel">
+                    <span class="tag-badge" data-m="k">Kollokationen</span>
+                    <span class="tag-modus-wort is-leer" id="koll-indicator">Pflicht, noch leer</span>
+                  </h3>
+                  <div class="tag-modus-aktionen">
+                    <button type="button" class="adm-cta tag-aktion" data-action="analyze-entry-kollokation"><span>Prüfen<span class="adm-visually-hidden">: Kollokationen</span></span> <span aria-hidden="true">→</span></button>
+                  </div>
+                </div>
+                <p class="tag-modus-text">Drei Wörter mit Wortart. Gespielt werden ihre typischen Kollokatoren.</p>
+
+                <div class="tag-feld">
+                  <label class="tag-label" for="w1">Wort 1</label>
+                  <div class="tag-wert tag-wert--wort">
+                    <input class="tag-eingabe tag-eingabe--wort" type="text" id="w1" maxlength="100" required autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="z. B. Lektüre">
+                    <select class="tag-auswahl" id="p1" aria-label="Wortart von Wort 1"><option value="Substantiv" selected>Substantiv</option><option value="Verb">Verb</option><option value="Adjektiv">Adjektiv</option></select>
+                  </div>
+                  <div class="tag-neben">
+                    <button type="button" class="tag-neben-knopf" data-action="toggle-extra-fields" data-target="koll-extras-1" aria-expanded="false" aria-controls="koll-extras-1">Notiz und Link<span class="adm-visually-hidden"> zu Wort 1</span></button>
+                    <div class="tag-neben-felder is-hidden" id="koll-extras-1">
+                      <label class="tag-label" for="n1">Notiz<span class="adm-visually-hidden"> zu Wort 1</span></label>
+                      <textarea class="tag-eingabe" id="n1" rows="2" maxlength="500" placeholder="Kurzer Begleittext, bis 500 Zeichen"></textarea>
+                      <label class="tag-label" for="l1">Link<span class="adm-visually-hidden"> zu Wort 1</span></label>
+                      <input class="tag-eingabe" type="url" id="l1" maxlength="500" inputmode="url" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="https://…">
+                    </div>
+                  </div>
+                </div>
+
+                <div class="tag-feld">
+                  <label class="tag-label" for="w2">Wort 2</label>
+                  <div class="tag-wert tag-wert--wort">
+                    <input class="tag-eingabe tag-eingabe--wort" type="text" id="w2" maxlength="100" required autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="z. B. zitieren">
+                    <select class="tag-auswahl" id="p2" aria-label="Wortart von Wort 2"><option value="Substantiv">Substantiv</option><option value="Verb" selected>Verb</option><option value="Adjektiv">Adjektiv</option></select>
+                  </div>
+                  <div class="tag-neben">
+                    <button type="button" class="tag-neben-knopf" data-action="toggle-extra-fields" data-target="koll-extras-2" aria-expanded="false" aria-controls="koll-extras-2">Notiz und Link<span class="adm-visually-hidden"> zu Wort 2</span></button>
+                    <div class="tag-neben-felder is-hidden" id="koll-extras-2">
+                      <label class="tag-label" for="n2">Notiz<span class="adm-visually-hidden"> zu Wort 2</span></label>
+                      <textarea class="tag-eingabe" id="n2" rows="2" maxlength="500" placeholder="Kurzer Begleittext, bis 500 Zeichen"></textarea>
+                      <label class="tag-label" for="l2">Link<span class="adm-visually-hidden"> zu Wort 2</span></label>
+                      <input class="tag-eingabe" type="url" id="l2" maxlength="500" inputmode="url" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="https://…">
+                    </div>
+                  </div>
+                </div>
+
+                <div class="tag-feld">
+                  <label class="tag-label" for="w3">Wort 3</label>
+                  <div class="tag-wert tag-wert--wort">
+                    <input class="tag-eingabe tag-eingabe--wort" type="text" id="w3" maxlength="100" required autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="z. B. gelb">
+                    <select class="tag-auswahl" id="p3" aria-label="Wortart von Wort 3"><option value="Substantiv">Substantiv</option><option value="Verb">Verb</option><option value="Adjektiv" selected>Adjektiv</option></select>
+                  </div>
+                  <div class="tag-neben">
+                    <button type="button" class="tag-neben-knopf" data-action="toggle-extra-fields" data-target="koll-extras-3" aria-expanded="false" aria-controls="koll-extras-3">Notiz und Link<span class="adm-visually-hidden"> zu Wort 3</span></button>
+                    <div class="tag-neben-felder is-hidden" id="koll-extras-3">
+                      <label class="tag-label" for="n3">Notiz<span class="adm-visually-hidden"> zu Wort 3</span></label>
+                      <textarea class="tag-eingabe" id="n3" rows="2" maxlength="500" placeholder="Kurzer Begleittext, bis 500 Zeichen"></textarea>
+                      <label class="tag-label" for="l3">Link<span class="adm-visually-hidden"> zu Wort 3</span></label>
+                      <input class="tag-eingabe" type="url" id="l3" maxlength="500" inputmode="url" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="https://…">
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Live-Zeile: nur die Kurzmeldung des Ergebnisses wird vorgelesen, nicht die ganze Liste -->
+                <p class="adm-visually-hidden" id="entry-koll-live" aria-live="polite"></p>
+                <div id="entry-koll-analysis-output" class="tag-ergebnis"></div>
+              </section>
+
+              <!-- Wort-Zwilling -->
+              <section class="tag-modus" role="group" aria-labelledby="wz-titel">
+                <div class="tag-modus-kopf">
+                  <h3 class="tag-modus-titel" id="wz-titel">
+                    <span class="tag-badge" data-m="w">Wort-Zwilling</span>
+                    <span class="tag-modus-wort is-leer" id="wz-indicator">nicht geplant</span>
+                  </h3>
+                  <div class="tag-modus-aktionen">
+                    <button type="button" class="adm-cta tag-aktion" data-action="analyze-entry-wort-zwilling"><span>Prüfen<span class="adm-visually-hidden">: Wort-Zwilling</span></span> <span aria-hidden="true">→</span></button>
+                  </div>
+                </div>
+                <p class="tag-modus-text">Zwei Wörter derselben Wortart. Gespielt werden Kollokatoren, die nur zu einem der beiden passen.</p>
+
+                <div class="tag-feld">
+                  <label class="tag-label" for="wza">Wort A</label>
+                  <div class="tag-wert"><input class="tag-eingabe tag-eingabe--wort" type="text" id="wza" maxlength="100" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="z. B. Klassiker"></div>
+                </div>
+                <div class="tag-feld">
+                  <label class="tag-label" for="wzb">Wort B</label>
+                  <div class="tag-wert"><input class="tag-eingabe tag-eingabe--wort" type="text" id="wzb" maxlength="100" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="z. B. Bestseller"></div>
+                </div>
+                <div class="tag-feld">
+                  <label class="tag-label" for="wzpos">Wortart</label>
+                  <div class="tag-wert">
+                    <select class="tag-auswahl tag-auswahl--kurz" id="wzpos"><option value="Substantiv">Substantiv</option><option value="Verb">Verb</option><option value="Adjektiv">Adjektiv</option></select>
+                  </div>
+                  <div class="tag-neben">
+                    <button type="button" class="tag-neben-knopf" data-action="toggle-extra-fields" data-target="wz-extras" aria-expanded="false" aria-controls="wz-extras">Notiz und Link<span class="adm-visually-hidden"> zum Wort-Zwilling</span></button>
+                    <div class="tag-neben-felder is-hidden" id="wz-extras">
+                      <label class="tag-label" for="wz-notiz">Notiz<span class="adm-visually-hidden"> zum Wort-Zwilling</span></label>
+                      <textarea class="tag-eingabe" id="wz-notiz" rows="2" maxlength="500" placeholder="Erscheint auf der Auswahlseite"></textarea>
+                      <label class="tag-label" for="wz-link">Link<span class="adm-visually-hidden"> zum Wort-Zwilling</span></label>
+                      <input class="tag-eingabe" type="url" id="wz-link" maxlength="500" inputmode="url" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="https://…">
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Ergebnis des Speicherns für diesen Modus (nur bei Problemen) -->
+                <p class="tag-modus-meldung" id="tag-meldung-wz" aria-live="polite"></p>
+                <p class="adm-visually-hidden" id="entry-wz-live" aria-live="polite"></p>
+                <div id="entry-wz-analysis-output" class="tag-ergebnis"></div>
+              </section>
+
+              <!-- Zeitenwende -->
+              <section class="tag-modus" role="group" aria-labelledby="zw-titel">
+                <div class="tag-modus-kopf">
+                  <h3 class="tag-modus-titel" id="zw-titel">
+                    <span class="tag-badge" data-m="z">Zeitenwende</span>
+                    <span class="tag-modus-wort is-leer" id="zw-indicator">nicht geplant</span>
+                  </h3>
+                  <div class="tag-modus-aktionen">
+                    <button type="button" class="adm-cta tag-aktion" data-action="analyze-entry-zeitenwende"><span>Prüfen<span class="adm-visually-hidden">: Zeitenwende</span></span> <span aria-hidden="true">→</span></button>
+                  </div>
+                </div>
+                <p class="tag-modus-text">Ein Wort. Gespielt werden Kollokatoren, die vor oder nach 2000 typisch sind.</p>
+
+                <div class="tag-feld">
+                  <label class="tag-label" for="zw-lemma">Wort</label>
+                  <div class="tag-wert"><input class="tag-eingabe tag-eingabe--wort" type="text" id="zw-lemma" maxlength="100" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="z. B. Taschenbuch"></div>
+                  <div class="tag-neben">
+                    <button type="button" class="tag-neben-knopf" data-action="toggle-extra-fields" data-target="zw-extras" aria-expanded="false" aria-controls="zw-extras">Notiz und Link<span class="adm-visually-hidden"> zur Zeitenwende</span></button>
+                    <div class="tag-neben-felder is-hidden" id="zw-extras">
+                      <label class="tag-label" for="zw-notiz">Notiz<span class="adm-visually-hidden"> zur Zeitenwende</span></label>
+                      <textarea class="tag-eingabe" id="zw-notiz" rows="2" maxlength="500" placeholder="Erscheint auf der Auswahlseite"></textarea>
+                      <label class="tag-label" for="zw-link">Link<span class="adm-visually-hidden"> zur Zeitenwende</span></label>
+                      <input class="tag-eingabe" type="url" id="zw-link" maxlength="500" inputmode="url" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="https://…">
+                    </div>
+                  </div>
+                </div>
+
+                <p class="tag-modus-meldung" id="tag-meldung-zw" aria-live="polite"></p>
+                <p class="adm-visually-hidden" id="entry-zw-live" aria-live="polite"></p>
+                <div id="entry-zw-analysis-output" class="tag-ergebnis"></div>
+              </section>
+
+              <!-- Lückenfüller -->
+              <section class="tag-modus" role="group" aria-labelledby="lf-titel">
+                <div class="tag-modus-kopf">
+                  <h3 class="tag-modus-titel" id="lf-titel">
+                    <span class="tag-badge" data-m="l">Lückenfüller</span>
+                    <span class="tag-modus-wort is-leer" id="lf-indicator">nicht geplant</span>
+                  </h3>
+                  <div class="tag-modus-aktionen">
+                    <button type="button" class="adm-cta tag-aktion" data-action="analyze-entry-lueckenfueller"><span>Prüfen<span class="adm-visually-hidden">: Lückenfüller</span></span> <span aria-hidden="true">→</span></button>
+                  </div>
+                </div>
+                <p class="tag-modus-text">Ein Wort. Ist es eines der Wörter dieses Tages, entstehen die Runden beim Speichern. Für ein anderes Wort vorher „Runden erzeugen“.</p>
+
+                <div class="tag-feld">
+                  <label class="tag-label" for="lf-id">Wort</label>
+                  <div class="tag-wert"><input class="tag-eingabe tag-eingabe--wort" type="text" id="lf-id" maxlength="100" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="z. B. Lektüre"></div>
+                  <div class="tag-neben tag-lf-erzeugen">
+                    <button type="button" class="adm-link" data-action="generate-lueckenfueller">Runden erzeugen</button>
+                    <p id="lf-generate-status" class="tag-hinweis" aria-live="polite"></p>
+                  </div>
+                </div>
+
+                <p class="tag-modus-meldung" id="tag-meldung-lf" aria-live="polite"></p>
+                <p class="adm-visually-hidden" id="entry-lf-live" aria-live="polite"></p>
+                <div id="entry-lf-analysis-output" class="tag-ergebnis"></div>
+              </section>
+            </div>
+          </section>
+        </div>
+
+        <!-- 3 · Klebende Leiste: Stand + Meldung links, Aktionen rechts -->
+        <div class="tag-leiste" id="tag-leiste">
+          <div class="tag-leiste-stand">
+            <span id="entry-dirty-indicator" class="tag-stand" tabindex="-1">Noch nicht gespeichert</span>
+            <p id="status" class="tag-status" role="status" aria-live="polite"></p>
+          </div>
+          <div class="tag-leiste-aktionen">
+            <button type="button" id="entry-reset-btn" class="adm-link" data-action="reset-entry-form" disabled>Änderungen verwerfen</button>
+            <button type="button" id="save-btn" class="adm-cta tag-speichern" data-action="save-tag" aria-keyshortcuts="Control+S Meta+S" title="Speichern (Strg+S)"><span id="save-btn-text">Speichern</span> <span aria-hidden="true">→</span></button>
+          </div>
+        </div>
+
+        <!-- 4 · Vorschau eines Wortes (Wörterbuch-Eintrag, wie das Spiel ihn zeigt) -->
+        <section class="tag-abschnitt tag-vorschau" aria-labelledby="tag-vorschau-titel">
+          <h2 class="tag-abschnitt-titel" id="tag-vorschau-titel">Vorschau</h2>
+          <p class="tag-abschnitt-text">So steht ein Wort im Spiel: Wortart, Lautschrift, Bedeutungen, Runden und Bonusfrage.</p>
+          <div class="tag-vorschau-aktionen" role="group" aria-label="Wort für die Vorschau">
+            <button type="button" class="adm-link" data-action="preview-current-lemma" data-index="1" id="tag-vorschau-1"><span class="adm-visually-hidden">Vorschau: </span><span class="tag-vorschau-text">Wort 1</span></button>
+            <button type="button" class="adm-link" data-action="preview-current-lemma" data-index="2" id="tag-vorschau-2"><span class="adm-visually-hidden">Vorschau: </span><span class="tag-vorschau-text">Wort 2</span></button>
+            <button type="button" class="adm-link" data-action="preview-current-lemma" data-index="3" id="tag-vorschau-3"><span class="adm-visually-hidden">Vorschau: </span><span class="tag-vorschau-text">Wort 3</span></button>
+          </div>
+          <div id="entry-preview-output" class="tag-vorschau-ausgabe" aria-live="polite"></div>
+        </section>
+
+        <!-- 5 · Tag löschen: nur bei bestehendem Tag sichtbar (CSS blendet den Abschnitt bei gesperrtem Knopf aus) -->
+        <section class="tag-abschnitt tag-loeschen" aria-labelledby="tag-loeschen-titel">
+          <h2 class="tag-abschnitt-titel" id="tag-loeschen-titel">Tag löschen</h2>
+          <p class="tag-loeschen-text">Entfernt den Tag mit allen vier Modi aus dem Kalender. Die Wörter selbst und ihre Lückenfüller-Runden bleiben erhalten; der Vorgang steht im Änderungsprotokoll.</p>
+          <button type="button" id="delete-btn" class="tag-loeschen-knopf" data-action="delete-current-tag" disabled>Tag löschen …</button>
+        </section>
       </section>
 
       <section class="admin-page" id="page-liste" data-title="Liste" data-subtitle="Alle geplanten Tage mit Suche, Filter und CSV-Import.">

@@ -79,7 +79,6 @@ body {
 .danger-btn:focus-visible,
 .entry-filters-reset:focus-visible,
 .cal-nav-btn:focus-visible,
-.extra-toggle:focus-visible,
 .login-card-body button:focus-visible {
   outline: 2px solid var(--primary);
   outline-offset: 2px;
@@ -250,78 +249,6 @@ body {
   font-weight: 700;
 }
 
-.entry-form-actions {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(260px, 360px) auto;
-  gap: 8px;
-  align-items: center;
-}
-
-.entry-editor-card {
-  gap: 18px;
-  background: #fcfbf8;
-}
-
-.entry-editor-head {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-.entry-editor-status {
-  display: grid;
-  gap: 8px;
-  justify-items: end;
-}
-
-.entry-dirty-indicator {
-  font-size: 0.76rem;
-  color: var(--muted);
-}
-
-.entry-dirty-indicator.is-dirty {
-  color: #92400e;
-  font-weight: 700;
-}
-
-.entry-editor-copy {
-  font-size: 0.82rem;
-  color: var(--muted);
-  max-width: 72ch;
-}
-
-.entry-section {
-  display: grid;
-  gap: 12px;
-}
-
-.entry-section-head {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 10px;
-}
-
-.entry-section-head h3 {
-  font-family: var(--font-serif);
-  font-size: 1rem;
-  color: var(--primary);
-  line-height: 1.1;
-}
-
-.form-helper {
-  font-size: 0.8rem;
-  color: var(--muted);
-}
-
-.entry-meta-grid {
-  display: grid;
-  grid-template-columns: minmax(180px, 220px) repeat(2, minmax(0, 1fr));
-  gap: 10px;
-  align-items: start;
-}
-
 .entry-field {
   display: grid;
   gap: 4px;
@@ -331,120 +258,12 @@ body {
   max-width: 220px;
 }
 
-.entry-field--span-2 {
-  grid-column: span 2;
-}
-
 .label-hint {
   display: inline;
   font-weight: 400;
   letter-spacing: 0;
   text-transform: none;
   color: var(--muted);
-}
-
-.inline-field-grid {
-  display: grid;
-  gap: 8px;
-}
-
-.inline-field-grid--triple {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-}
-
-.inline-action-row {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 8px;
-  align-items: center;
-}
-
-.entry-action-copy {
-  font-size: 0.78rem;
-  color: var(--muted);
-}
-
-.mode-card-copy {
-  margin-top: 4px;
-  font-size: 0.8rem;
-  color: var(--muted);
-}
-
-.mode-generate-status {
-  font-size: 0.82rem;
-  display: none;
-}
-
-.mode-analysis-inline {
-  display: grid;
-  gap: 8px;
-  padding-top: 6px;
-  border-top: 1px solid rgba(212, 201, 176, 0.45);
-}
-
-.mode-analysis-inline-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-}
-
-.mode-analysis-inline-head span {
-  font-size: 0.72rem;
-  color: var(--muted);
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  font-weight: 700;
-}
-
-.mode-analysis-inline-output {
-  min-height: 0;
-}
-
-.inline-analysis-card {
-  border: 1px solid var(--border-lt);
-  border-radius: var(--radius);
-  background: var(--surface);
-  padding: 10px;
-  display: grid;
-  gap: 6px;
-}
-
-.inline-analysis-card p {
-  font-size: 0.8rem;
-  color: var(--muted);
-}
-
-.inline-analysis-head {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  gap: 8px;
-}
-
-.inline-analysis-head strong {
-  font-family: var(--font-serif);
-  color: var(--primary);
-  font-size: 1rem;
-}
-
-.inline-analysis-badge {
-  border-radius: 999px;
-  padding: 2px 8px;
-  font-size: 0.72rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-}
-
-.inline-analysis-badge.is-success {
-  background: #dcfce7;
-  color: #166534;
-}
-
-.inline-analysis-badge.is-error {
-  background: #fee2e2;
-  color: #991b1b;
 }
 
 .entry-list-controls {
@@ -515,47 +334,6 @@ body {
   height: 18px;
   accent-color: var(--primary);
   cursor: pointer;
-}
-
-.entry-preview-actions {
-  display: inline-flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.entry-preview-output {
-  border: 1px solid var(--border-lt);
-  border-radius: var(--radius);
-  background: var(--surface2);
-  padding: 10px;
-  display: grid;
-  gap: 10px;
-}
-
-.entry-preview-card {
-  border: 1px solid var(--border-lt);
-  border-radius: var(--radius);
-  background: var(--surface);
-  padding: 10px;
-  display: grid;
-  gap: 6px;
-}
-
-.entry-preview-card h3 {
-  font-family: var(--font-serif);
-  font-size: 1rem;
-  color: var(--primary);
-}
-
-.entry-preview-meta {
-  font-size: 0.78rem;
-  color: var(--muted);
-}
-
-.entry-preview-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
 }
 
 .audit-controls {
@@ -1219,19 +997,6 @@ select:focus-visible {
   box-shadow: 0 0 0 3px rgba(155, 28, 28, 0.08);
 }
 
-/* ── Wort-Felder ── */
-.woerter { display: flex; flex-direction: column; gap: 10px; }
-.wort-row { display: flex; gap: 8px; align-items: center; }
-.wort-badge {
-  font-size: 0.72rem;
-  font-weight: 600;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  color: var(--muted);
-  width: 60px;
-  flex-shrink: 0;
-}
-
 /* ── Buttons ── */
 button {
   font-family: var(--font-sans);
@@ -1241,19 +1006,6 @@ button {
   transition: background 0.15s, opacity 0.15s, border-color 0.15s, color 0.15s;
 }
 button:disabled { opacity: 0.4; cursor: not-allowed; }
-
-/* Primär-Button */
-#save-btn {
-  background: var(--primary);
-  color: #fff;
-  padding: 12px 24px;
-  font-size: 0.92rem;
-  font-weight: 600;
-  width: 100%;
-  letter-spacing: 0.02em;
-}
-#save-btn:hover:not(:disabled) { background: var(--primary-hi); }
-#save-btn:focus-visible { outline: 2px solid #fff; outline-offset: 2px; box-shadow: 0 0 0 4px var(--primary); }
 
 /* Sekundär-Buttons (Laden, Analysieren, ↺)
    :where() hält die Spezifität bei (0,0,1): Die Regel gilt nur noch für
@@ -1426,87 +1178,6 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
   display: none;
   padding: 2px 0;
 }
-
-/* ── Modus-Karten (2×2-Grid) ── */
-.mode-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
-  margin-top: 8px;
-}
-.mode-card {
-  background: rgba(243, 241, 237, 0.7);
-  border: 1px solid rgba(212, 201, 176, 0.45);
-  border-radius: var(--radius);
-  padding: 14px 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.mode-card-header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 8px;
-}
-.mode-card-title {
-  font-size: 0.72rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--muted);
-}
-.mode-indicator {
-  width: 10px;
-  height: 10px;
-  border-radius: 999px;
-  background: var(--border);
-  flex-shrink: 0;
-  transition: background 0.2s;
-}
-.mode-indicator.is-filled { background: var(--accent); }
-
-/* ── Wort-Gruppen (innerhalb Kollokation-Card) ── */
-.wort-group {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-/* ── Extra-Felder (Notiz / Link) ── */
-.extra-toggle {
-  background: none;
-  border: none;
-  /* Trefferfläche auf 44px; negatives Margin hält den optischen Fluss. */
-  display: inline-flex;
-  align-items: center;
-  min-height: 44px;
-  padding: 11px 6px;
-  margin: -11px -6px;
-  font-size: 0.78rem;
-  color: var(--muted);
-  cursor: pointer;
-  text-align: left;
-  text-decoration: underline;
-  text-decoration-style: dotted;
-  text-underline-offset: 2px;
-  font-family: var(--font-sans);
-  transition: color 0.15s;
-}
-.extra-toggle:hover,
-.extra-toggle.is-open { color: var(--primary); }
-.extra-fields {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-.extra-fields input {
-  font-size: 0.85rem;
-  border-color: var(--border-lt);
-}
-.extra-fields input::placeholder { font-style: italic; }
-.extra-fields input:focus { border-color: var(--primary); }
 
 .entry-top-actions {
   display: inline-flex;
@@ -1698,14 +1369,6 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
 
 
 @media (max-width: 1080px) {
-  .entry-meta-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .entry-field--span-2 {
-    grid-column: span 1;
-  }
-
   .dashboard-grid,
   .stats-summary-cards,
   .performance-cards {
@@ -1730,20 +1393,8 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
 }
 
 @media (max-width: 860px) {
-  .entry-form-actions {
-    grid-template-columns: 1fr;
-  }
-
-  .mode-grid {
-    grid-template-columns: 1fr;
-  }
-
   .entry-field--compact {
     max-width: none;
-  }
-
-  .inline-field-grid--triple {
-    grid-template-columns: 1fr;
   }
 
   .users-bulk-controls,
@@ -1767,17 +1418,10 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
 }
 
 @media (max-width: 560px) {
-  .dashboard-grid,
-  .entry-meta-grid,
-  .mode-grid {
+  .dashboard-grid {
     grid-template-columns: 1fr;
   }
 
-  .inline-action-row {
-    grid-template-columns: 1fr;
-  }
-
-  .entry-form-actions,
   .entry-list-controls,
   .users-controls {
     grid-template-columns: 1fr;
@@ -1785,7 +1429,6 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
 
   .entry-bulk-controls,
   .users-bulk-controls,
-  .entry-preview-actions,
   .audit-controls,
   .system-actions,
   .viz-search {
@@ -1949,21 +1592,8 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
   input[type="password"],
   select,
   textarea,
-  .extra-fields input,
   .filter-select {
     font-size: 16px;
-  }
-
-  /* Speichern/Löschen dauerhaft erreichbar statt am Ende eines
-     Formulars mit 25 Feldern. */
-  .entry-form-actions {
-    position: sticky;
-    bottom: 0;
-    z-index: 15;
-    margin-top: 4px;
-    padding: 10px 0 max(10px, env(safe-area-inset-bottom));
-    background: var(--bg);
-    border-top: 1px solid var(--border-lt);
   }
 
   .range-filter-row .filter-select {
@@ -2010,57 +1640,12 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
   }
 }
 
-/* ── Entwurfs-Wiederherstellung (Tageseintrag) ───────────────── */
-.entry-draft-banner {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  margin-bottom: 14px;
-  padding: 12px 14px;
-  border: 1px solid rgba(201, 168, 76, 0.55);
-  border-left: 3px solid var(--accent);
-  border-radius: var(--radius);
-  background: #fdfaf1;
-  font-size: 0.84rem;
-  color: var(--text);
-}
-
-/* höhere Spezifität als das globale .is-hidden weiter oben */
-.entry-draft-banner.is-hidden {
-  display: none;
-}
-
-.entry-draft-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-@media (max-width: 560px) {
-  .entry-draft-banner,
-  .entry-draft-actions {
-    align-items: stretch;
-  }
-
-  .entry-draft-actions {
-    width: 100%;
-  }
-
-  .entry-draft-actions > * {
-    flex: 1;
-  }
-}
-
 /* Grid-/Flex-Items haben als Auto-Minimum ihre Inhaltsbreite. Ohne
    min-width:0 sprengt die Tabelle mit min-width:560px die 1fr-Spalte
    und schiebt die gesamte Seite über den Viewport hinaus – der
    overflow:auto-Wrapper der Tabelle kommt dann nie zum Zug. */
 .admin-page,
 .admin-page > .card,
-.entry-editor-card,
-.entry-section,
 .dashboard-panel {
   min-width: 0;
 }
@@ -3385,4 +2970,918 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
   .wo-marke.is-fehlt { border-color: GrayText; }
 
   .wo-tag[aria-current="date"] .wo-tag-wt { text-decoration: underline; }
+}
+
+/* ── Planen › Tag bearbeiten / Neuer Tag (#page-entry) ─────────────────────
+   DESIGN.md §9: Linien statt Kästen, keine Schatten, Radius ≤ 4 px.
+   Eingaben = unterstrichene Serif-Felder (Fokus: roter Unterstrich).
+   Rot = Aktion (Text-CTA) und „läuft gerade“; Statusfarben nur für Bedeutung
+   (Warnung, Fehler, Erfolg) als 3-px-Strich + Fläche; Gold nur in der
+   Wort-Zwilling-Marke. Modus-Marken = DESIGN.md-Badgefarben (--wo-* aus dem
+   Woche-Block). Wiederverwendet: .adm-cta, .adm-link, .adm-overline,
+   .adm-visually-hidden (admin-shell.css), --status-* (Vorschläge-:root),
+   --wo-*-Badgefarben (Woche-:root). Muss NACH dem Woche-Block stehen.
+
+   Umbruch nach der Breite der Seite (Container-Abfrage „tag“), nicht nach
+   dem Viewport – neben der Navigationsspalte ist der Inhalt bei 761–990 px
+   nur 450–680 px breit (gleiche Begründung wie in der Woche). Schwellen in
+   rem: ≥ 40rem (640 px) Label links neben dem Feld und Ergebnisse zweispaltig;
+   < 26rem (416 px) Leiste zweizeilig, Ergebniszeilen gestapelt;
+   < 20rem (320 px) Wort und Wortart untereinander.
+   ─────────────────────────────────────────────────────────────────────── */
+
+:root {
+  /* Unterstrich der Felder: einzige Kennung des Felds, daher ≥ 3 : 1
+     (WCAG 1.4.11). --border (#d4c9b0) hätte nur 1,6 : 1. */
+  --tag-feldlinie: #978b75;
+  /* „Kurzbeschreibung“ in Versalien mit .2em Sperrung ≈ 9,2 rem */
+  --tag-label-w: 9.5rem;
+  /* 4 % statt 5 %: --muted bleibt auf der Tönung bei 4,55 : 1 */
+  --tag-tint: color-mix(in srgb, var(--primary) 4%, transparent);
+  /* Höhe der klebenden Leiste für den Scroll-Abstand; mobil zweizeilig */
+  --tag-leiste-h: 56px;
+}
+
+#page-entry {
+  container: tag / inline-size;
+  gap: 0;
+  width: 100%;
+  max-width: 48rem;
+  margin-inline: auto;
+}
+
+/* Fokus nie unter der klebenden Leiste verstecken (schlägt die Shell-Regel
+   html:has(.adm-root.has-takeover) durch die ID) */
+html:has(#page-entry.is-active) {
+  scroll-padding-bottom: calc(var(--tag-leiste-h) + 16px);
+}
+
+/* ── Meldungen: Ladefehler, Entwurf, Hinweise, Ergebnisse ──
+   Eine Form für alle: 3-px-Strich links + Fläche, Ton über data-tone. */
+#page-entry .tag-meldung,
+#page-entry .tag-erg-meldung,
+#page-entry .tag-modus-meldung,
+#page-entry .tag-hinweis[data-tone] {
+  max-width: var(--text-max, 680px);
+  margin: 0;
+  padding: 8px 12px 8px 11px;
+  border-left: 3px solid var(--border);
+  color: var(--muted);
+  font: 400 0.86rem/1.45 var(--font-sans);
+  overflow-wrap: anywhere;
+}
+
+#page-entry [data-tone="ok"]:is(.tag-meldung, .tag-erg-meldung, .tag-modus-meldung, .tag-hinweis) {
+  border-left-color: var(--status-ok);
+  background: var(--status-ok-bg);
+  color: var(--status-ok);
+}
+
+#page-entry [data-tone="warn"]:is(.tag-meldung, .tag-erg-meldung, .tag-modus-meldung, .tag-hinweis) {
+  border-left-color: var(--status-warn);
+  background: var(--status-warn-bg);
+  color: var(--status-warn);
+}
+
+#page-entry [data-tone="error"]:is(.tag-meldung, .tag-erg-meldung, .tag-modus-meldung, .tag-hinweis) {
+  border-left-color: var(--status-err);
+  background: var(--status-err-bg);
+  color: var(--status-err);
+}
+
+/* Läuft gerade: Rot = aktiv (wie „Vorschläge“), Text bleibt in Textfarbe */
+#page-entry [data-tone="loading"]:is(.tag-meldung, .tag-erg-meldung, .tag-modus-meldung) {
+  border-left-color: var(--primary);
+  background: var(--tag-tint);
+  color: var(--text);
+  font-style: italic;
+}
+
+/* Leer = nicht da (Live-Regionen bleiben im DOM) */
+#page-entry .tag-meldung:empty,
+#page-entry .tag-modus-meldung:empty,
+#page-entry .tag-hinweis:empty,
+#page-entry .tag-ergebnis:empty {
+  display: none;
+}
+
+/* Aktion in einer Meldung (Erneut versuchen, Diesen Tag öffnen): eigene
+   Zeile, volle Trefferhöhe, Farbe der Meldung */
+#page-entry .tag-meldung .adm-link,
+#page-entry .tag-hinweis .adm-link {
+  display: flex;
+  width: fit-content;
+  min-height: var(--tap, 44px);
+  color: inherit;
+  text-decoration: underline;
+}
+
+#page-entry #entry-load-error { margin-bottom: 24px; }
+
+/* Entwurf gefunden: Warnung (ungespeicherte Daten), Aktionen rechts */
+.tag-entwurf {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0 24px;
+  margin: 0 0 24px;
+  padding: 6px 12px 6px 11px;
+  border-left: 3px solid var(--status-warn);
+  background: var(--status-warn-bg);
+  color: var(--status-warn);
+}
+
+/* höhere Spezifität als display:flex, damit hidden greift */
+.tag-entwurf[hidden],
+.tag-entwurf.is-hidden { display: none; }
+
+.tag-entwurf-text {
+  flex: 1 1 18rem;
+  margin: 0;
+  padding: 6px 0;
+  font-size: 0.86rem;
+  line-height: 1.45;
+}
+
+.tag-entwurf-marke {
+  display: block;
+  font: 600 0.66rem/1.3 var(--font-sans);
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+}
+
+.tag-entwurf-aktionen {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0 20px;
+}
+
+.tag-entwurf .adm-link { color: var(--status-warn); }
+
+/* ── Abschnitte: Overline + Doppellinie ── */
+.tag-abschnitt { margin-top: 40px; }
+.tag-formular > .tag-abschnitt:first-child { margin-top: 0; }
+
+.tag-abschnitt-titel {
+  margin: 0;
+  color: var(--muted);
+  font: 600 0.66rem/1.3 var(--font-sans);
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+}
+
+/* Doppellinie 0,9 px + 0,45 px mit 3 px Abstand (wie .adm-rule) */
+.tag-abschnitt-titel::after {
+  content: '';
+  display: block;
+  height: calc(0.9px + 3px + 0.45px);
+  margin-top: 6px;
+  border-top: 0.9px solid var(--text);
+  border-bottom: 0.45px solid var(--text);
+}
+
+.tag-abschnitt-text {
+  max-width: var(--text-max, 680px);
+  margin: 12px 0 0;
+  color: var(--muted);
+  font-size: 0.86rem;
+  line-height: 1.5;
+}
+
+/* ── Felder: mobil-zuerst Label über dem Feld ── */
+.tag-feld {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas:
+    "label"
+    "wert"
+    "neben";
+  row-gap: 0;
+  margin-top: 16px;
+}
+
+#page-entry .tag-label {
+  display: block;
+  margin: 0;
+  color: var(--muted);
+  font: 600 0.66rem/1.3 var(--font-sans);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+
+.tag-feld > .tag-label { grid-area: label; }
+
+/* „optional“ im Label: klein, ohne Versalien (das Leerzeichen davor steht im HTML) */
+.tag-label-zusatz {
+  font-weight: 400;
+  letter-spacing: 0.02em;
+  text-transform: none;
+}
+
+.tag-wert {
+  grid-area: wert;
+  min-width: 0;
+}
+
+/* Wort + Wortart nebeneinander */
+.tag-wert--wort {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 8.5rem;
+  column-gap: 16px;
+  align-items: end;
+}
+
+/* Unterstrichenes Serif-Feld. #page-entry schlägt die globalen
+   input[type=…]-Regeln (0,1,1) inkl. der iOS-16-px-Regel ≤ 860 px. */
+#page-entry .tag-eingabe {
+  display: block;
+  width: 100%;
+  min-height: var(--tap, 44px);
+  margin: 0;
+  padding: 8px 0 6px;
+  border: 0;
+  border-bottom: 1px solid var(--tag-feldlinie);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  color: var(--text);
+  /* iOS zoomt unter 16 px beim Fokus hinein */
+  font: 400 max(16px, 1.05rem)/1.35 var(--font-serif);
+}
+
+#page-entry .tag-eingabe--gross { font-size: max(16px, 1.25rem); }
+#page-entry .tag-eingabe--wort  { font-size: max(16px, 1.2rem); }
+#page-entry .tag-eingabe--datum { max-width: 12rem; }
+
+#page-entry textarea.tag-eingabe {
+  min-height: calc(2 * 1.45em + 14px);
+  line-height: 1.45;
+  resize: vertical;
+  field-sizing: content; /* wächst mit dem Text (Chromium); sonst resize */
+}
+
+/* Einzeiliger Inhalt im mitwachsenden Feld (Thema): eine Zeile hoch, wo
+   field-sizing greift; sonst zwei Zeilen (rows="2") */
+#page-entry textarea.tag-eingabe[data-einzeilig] {
+  min-height: var(--tap, 44px);
+  line-height: 1.3;
+  resize: none;
+}
+
+#page-entry .tag-eingabe::placeholder {
+  color: var(--muted);
+  font-style: italic;
+  opacity: 1;
+}
+
+#page-entry .tag-eingabe:hover:not(:focus) { border-bottom-color: var(--text); }
+
+/* Fokus: roter Unterstrich, 2 px (1 px Rand + 1 px Schatten nach unten) */
+#page-entry .tag-eingabe:focus,
+#page-entry .tag-auswahl:focus {
+  outline: none;
+  border-bottom-color: var(--primary);
+  box-shadow: 0 1px 0 0 var(--primary);
+}
+
+/* Fehler = gestrichelte Unterlinie in Fehlerrot (nicht nur Farbe, und anders als der
+   durchgezogene rote Fokus-Unterstrich). Fokus auf einem ungültigen Feld: zusätzlich Rahmenlinie. */
+#page-entry .tag-eingabe[aria-invalid="true"] {
+  border-bottom-style: dashed;
+  border-bottom-color: var(--status-err);
+  box-shadow: none;
+}
+
+#page-entry .tag-eingabe[aria-invalid="true"]:focus {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+  border-bottom-color: var(--status-err);
+  box-shadow: none;
+}
+
+/* Fehlertext je Feld (id + aria-describedby am Feld) */
+#page-entry .tag-feld-fehler {
+  grid-column: 1 / -1;
+  max-width: var(--text-max, 680px);
+  margin: 6px 0 0;
+  color: var(--status-err);
+  font: 600 0.8rem/1.4 var(--font-sans);
+}
+
+/* Wortart: gleiche Unterstreichung, Sans (Etikett, kein Wort) */
+#page-entry .tag-auswahl {
+  width: 100%;
+  min-height: var(--tap, 44px);
+  margin: 0;
+  padding: 8px 2px 6px 0;
+  border: 0;
+  border-bottom: 1px solid var(--tag-feldlinie);
+  border-radius: 0;
+  background-color: transparent;
+  box-shadow: none;
+  color: var(--text);
+  font: 500 max(16px, 0.9rem)/1.3 var(--font-sans);
+  cursor: pointer;
+}
+
+#page-entry .tag-auswahl--kurz { max-width: 12rem; }
+
+.tag-hinweis {
+  max-width: var(--text-max, 680px);
+  margin: 6px 0 0;
+  color: var(--muted);
+  font-size: 0.8rem;
+  line-height: 1.45;
+}
+
+#page-entry .tag-hinweis[data-tone] { margin-top: 8px; }
+
+/* Prüfergebnis: Meldung so breit wie die Liste darunter */
+#page-entry .tag-erg-meldung { max-width: none; }
+
+/* ── Nebenfelder (Notiz und Link): dezent aufklappbar ── */
+.tag-neben {
+  grid-area: neben;
+  min-width: 0;
+}
+
+#page-entry .tag-neben-knopf {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4em;
+  min-height: var(--tap, 44px);
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--muted);
+  font: 500 0.84rem/1.2 var(--font-sans);
+  text-decoration: none;
+  cursor: pointer;
+}
+
+#page-entry .tag-neben-knopf:hover { color: var(--text); }
+
+/* + / − als Zustandszeichen; „/ ''“ = für Screenreader stumm
+   (aria-expanded sagt es schon). Ältere Browser lesen die erste Zeile. */
+.tag-neben-knopf::before {
+  content: '+';
+  content: '+' / '';
+  display: inline-block;
+  width: 0.8em;
+  font-weight: 700;
+  text-align: center;
+}
+
+.tag-neben-knopf[aria-expanded="true"]::before {
+  content: '−';
+  content: '−' / '';
+}
+
+/* Ausgefüllt, aber zugeklappt: kleiner Vermerk, damit nichts übersehen wird */
+.tag-neben-knopf[data-gefuellt]:not([aria-expanded="true"])::after {
+  content: '· ausgefüllt';
+  color: var(--muted);
+  font-weight: 400;
+}
+
+/* Randnotiz statt Kasten: feine Linie links */
+.tag-neben-felder {
+  display: grid;
+  gap: 0;
+  margin: 0 0 8px;
+  padding: 0 0 4px 14px;
+  border-left: 1px solid var(--border);
+}
+
+/* #page-entry davor: sonst schlägt „#page-entry .tag-label { margin: 0 }“ diese Regeln */
+#page-entry .tag-neben-felder .tag-label { margin-top: 10px; }
+#page-entry .tag-neben-felder .tag-label:first-child { margin-top: 2px; }
+
+/* ── Spielmodi: vier gleich gebaute Abschnitte, getrennt durch Linien ── */
+.tag-modi { margin-top: 4px; }
+
+.tag-modus {
+  padding: 24px 0 28px;
+  border-top: 1px solid var(--border);
+}
+
+.tag-modi > .tag-modus:first-child { border-top: 0; }
+
+.tag-modus-kopf {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas: "titel aktionen";
+  column-gap: 20px;
+  align-items: start;
+}
+
+.tag-modus-titel {
+  grid-area: titel;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  min-width: 0;
+  margin: 0;
+  font: inherit;
+}
+
+/* Modus-Badge nach DESIGN.md §4 (0.7rem/700/.1em, 2px 10px) */
+.tag-badge {
+  display: inline-block;
+  padding: 2px 10px;
+  border: 1px solid;
+  border-radius: var(--radius);
+  font: 700 0.7rem/1.4 var(--font-sans);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.tag-badge[data-m="k"] { background: var(--wo-k-bg); border-color: var(--wo-k-bd); color: var(--wo-k-fg); }
+.tag-badge[data-m="w"] { background: var(--wo-w-bg); border-color: var(--wo-w-bd); color: var(--wo-w-fg); }
+.tag-badge[data-m="z"] { background: var(--wo-z-bg); border-color: var(--wo-z-bd); color: var(--wo-z-fg); }
+.tag-badge[data-m="l"] { background: var(--wo-l-bg); border-color: var(--wo-l-bd); color: var(--wo-l-fg); }
+
+/* Kopfwort wie im Spiel (Badge → Headword): zeigt, was eingetragen ist */
+.tag-modus-wort {
+  max-width: 100%;
+  font: 400 1.45rem/1.2 var(--font-serif);
+  overflow-wrap: anywhere;
+}
+
+.tag-modus-wort.is-leer {
+  color: var(--muted);
+  font-size: 1.1rem;
+  font-style: italic;
+}
+
+/* Pflichtmodus leer: Warnton (Bedeutung: so nicht speicherbar) */
+.tag-modus[data-pflicht] .tag-modus-wort.is-leer { color: var(--status-warn); }
+
+.tag-modus-aktionen {
+  grid-area: aktionen;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0 20px;
+}
+
+/* In-place-Aktion (Prüfen): roter Serif-Text wie .adm-cta, aber normale
+   Stärke – Speichern bleibt die eine fette Hauptaktion der Seite. */
+#page-entry .tag-aktion { font-weight: 400; }
+
+/* Läuft: lesbar, nicht grau wie „gesperrt“ (Muster aus „Vorschläge“) */
+#page-entry .adm-cta.is-busy[aria-disabled="true"] {
+  color: var(--text);
+  font-style: italic;
+}
+
+.tag-modus-text {
+  max-width: var(--text-max, 680px);
+  margin: 8px 0 0;
+  color: var(--muted);
+  font-size: 0.86rem;
+  line-height: 1.5;
+}
+
+#page-entry .tag-modus-meldung { margin-top: 14px; }
+
+/* Lückenfüller: „Runden erzeugen“ unter dem Feld */
+.tag-lf-erzeugen {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0 16px;
+  margin-top: 4px;
+}
+
+/* ── Prüfergebnis: Linien-Liste direkt unter dem Modus ── */
+.tag-ergebnis { margin-top: 18px; }
+
+.tag-erg-liste {
+  margin: 10px 0 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--border-lt);
+}
+
+.tag-erg-zeile {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas:
+    "wort  urteil"
+    "werte werte";
+  column-gap: 14px;
+  row-gap: 2px;
+  align-items: baseline;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border-lt);
+}
+
+.tag-erg-wort {
+  grid-area: wort;
+  min-width: 0;
+  font: 700 1rem/1.3 var(--font-serif);
+  overflow-wrap: anywhere;
+}
+
+.tag-erg-urteil {
+  grid-area: urteil;
+  color: var(--muted);
+  font: 600 0.76rem/1.3 var(--font-sans);
+  white-space: nowrap;
+}
+
+.tag-erg-urteil[data-tone="ok"]    { color: var(--status-ok); }
+.tag-erg-urteil[data-tone="warn"]  { color: var(--status-warn); }
+.tag-erg-urteil[data-tone="error"] { color: var(--status-err); }
+
+.tag-erg-werte {
+  grid-area: werte;
+  min-width: 0;
+  font: 400 0.98rem/1.45 var(--font-serif);
+  overflow-wrap: break-word;
+}
+
+/* Kennzahl (logDice, Abstand, Punkte): klein, gedämpft, Ziffern gleich breit */
+.tag-erg-zahl {
+  color: var(--muted);
+  font: 500 0.72rem/1 var(--font-sans);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* Zwei Spalten (Wort-Zwilling: A | B, Zeitenwende: vor | nach 2000) */
+.tag-erg-spalten {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 16px;
+  margin-top: 12px;
+}
+
+.tag-erg-spalte { min-width: 0; }
+
+.tag-erg-kopf {
+  margin: 0 0 2px;
+  font: 700 1rem/1.3 var(--font-serif);
+}
+
+/* Zeitenwende-Kopf als Overline; „vor 2000“ in Info-Blau (DESIGN.md §2) */
+.tag-erg-kopf--zeit {
+  color: var(--muted);
+  font: 600 0.66rem/1.3 var(--font-sans);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+
+[data-periode="pre"].tag-erg-kopf--zeit,
+.tag-erg-periode[data-periode="pre"] { color: #1d4ed8; }
+
+.tag-erg-knapp {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--border-lt);
+}
+
+.tag-erg-knapp > li {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 5px 0;
+  border-bottom: 1px solid var(--border-lt);
+  font: 400 0.98rem/1.35 var(--font-serif);
+}
+
+.tag-erg-knapp > li > :first-child {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+/* Zeitenwende „Im Spiel“: Fließzeile mit kleinen Zeitmarken */
+.tag-erg-auswahl {
+  margin: 14px 0 0;
+  font: 400 0.98rem/1.7 var(--font-serif);
+}
+
+#page-entry .tag-erg-auswahl .tag-label { display: inline; margin-right: 0.6em; }
+
+.tag-erg-periode {
+  color: var(--muted);
+  font: 600 0.62rem/1 var(--font-sans);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.tag-erg-fuss {
+  max-width: var(--text-max, 680px);
+  margin: 8px 0 0;
+  color: var(--muted);
+  font-size: 0.78rem;
+  line-height: 1.45;
+}
+
+/* Eingaben geändert, Ergebnis gilt noch für den alten Stand */
+.tag-ergebnis.is-veraltet > :not(.tag-erg-meldung) { opacity: 0.55; }
+
+/* ── Klebende Speichern-Leiste (Desktop und mobil) ── */
+.tag-leiste {
+  position: sticky;
+  bottom: 0;
+  /* unter dem klebenden Seitenkopf (.adm-head, z-index 5): die Leiste schiebt sich nicht über ihn */
+  z-index: 4;
+  /* Flex statt Raster: Stand und Aktionen teilen sich eine Zeile, solange
+     beides passt; sonst rutschen die Aktionen rechtsbündig darunter. */
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0 20px;
+  min-height: 56px;
+  margin-top: 8px;
+  padding: 6px 0 max(6px, var(--safe-b, 0px));
+  border-top: 1px solid var(--border);
+  background: var(--bg);
+}
+
+.tag-leiste-stand {
+  flex: 1 1 11rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px 12px;
+  min-width: 0;
+  padding: 4px 0;
+}
+
+/* #entry-dirty-indicator */
+.tag-stand {
+  color: var(--muted);
+  font: 600 0.82rem/1.3 var(--font-sans);
+  white-space: nowrap;
+}
+
+.tag-stand.is-dirty { color: var(--status-warn); }
+.tag-stand:focus:not(:focus-visible) { outline: none; }
+
+/* #status: in der Leiste nur Textfarbe; Fehler/Warnung mit Strich */
+.tag-status {
+  min-width: 0;
+  margin: 0;
+  color: var(--muted);
+  font: 400 0.84rem/1.4 var(--font-sans);
+  overflow-wrap: anywhere;
+}
+
+/* Text + „ansehen“ nebeneinander; mobil schneidet eine Zeile den Text ab (s. u.) */
+.tag-status {
+  display: flex;
+  align-items: baseline;
+  gap: 0 0.5em;
+}
+
+.tag-status-text { min-width: 0; }
+.tag-status .adm-link { flex: none; }
+
+.tag-status:empty { display: none; }
+.tag-status[data-tone="ok"]      { color: var(--status-ok); }
+.tag-status[data-tone="loading"] { color: var(--text); font-style: italic; }
+
+.tag-status[data-tone="warn"],
+.tag-status[data-tone="error"] {
+  padding: 2px 8px 2px 7px;
+  border-left: 3px solid;
+}
+
+.tag-status[data-tone="warn"]  { background: var(--status-warn-bg); color: var(--status-warn); }
+.tag-status[data-tone="error"] { background: var(--status-err-bg);  color: var(--status-err); }
+
+.tag-leiste-aktionen {
+  flex: 0 1 auto;
+  margin-left: auto;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0 28px;
+}
+
+/* „Änderungen verwerfen“ nur, wenn es etwas zu verwerfen gibt */
+#entry-reset-btn:disabled { display: none; }
+
+/* Hauptaktion: roter Serif-Text-CTA, etwas größer als die übrigen */
+#page-entry .tag-speichern { font-size: 1.15rem; }
+
+/* Gesperrt (Tag lädt / konnte nicht geladen werden) */
+#page-entry .tag-speichern[aria-disabled="true"]:not(.is-busy) {
+  color: var(--disabled);
+  text-decoration: none;
+  cursor: default;
+}
+
+/* ── Vorschau (nur falls behalten, s. offene Frage 1) ── */
+.tag-vorschau-aktionen {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 20px;
+  margin-top: 6px;
+}
+
+.tag-vorschau-aktionen .adm-link { min-width: var(--tap, 44px); }
+
+.tag-vorschau-ausgabe { margin-top: 10px; }
+.tag-vorschau-ausgabe:empty { display: none; }
+
+.tag-vorschau-kopf {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0 12px;
+  margin: 0;
+}
+
+.tag-vorschau-wort { font: 700 1.45rem/1.2 var(--font-serif); }
+.tag-vorschau-ipa  { color: var(--muted); font: italic 400 1rem/1.3 var(--font-serif); }
+
+.tag-dl {
+  margin: 10px 0 0;
+  border-top: 1px solid var(--border-lt);
+}
+
+.tag-dl > div {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 2px 20px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border-lt);
+}
+
+.tag-dl dt {
+  color: var(--muted);
+  font: 600 0.66rem/1.3 var(--font-sans);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+
+.tag-dl dd {
+  margin: 0;
+  font: 400 0.98rem/1.45 var(--font-serif);
+}
+
+.tag-dl ol {
+  margin: 0;
+  padding-left: 1.3em;
+}
+
+/* ── Tag löschen: eigener Abschnitt am Seitenende ── */
+.tag-loeschen { margin-top: 64px; }
+
+/* Nur für bestehende Tage (Knopf ist sonst disabled, s. setEntryMode) */
+.tag-loeschen:has(#delete-btn:disabled) { display: none; }
+
+.tag-loeschen-text {
+  max-width: var(--text-max, 680px);
+  margin: 12px 0 0;
+  color: var(--muted);
+  font-size: 0.86rem;
+  line-height: 1.5;
+}
+
+/* Gedämpftes Rot (Fehlerton), Sans, unterstrichen – bewusst anders als der
+   rote Serif-CTA „Speichern“ */
+#page-entry .tag-loeschen-knopf {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--tap, 44px);
+  margin-top: 4px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--status-err);
+  font: 600 0.9rem/1.2 var(--font-sans);
+  text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, currentColor 40%, transparent);
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+#page-entry .tag-loeschen-knopf:hover { text-decoration-color: currentColor; }
+
+/* Läuft gerade: bleibt sichtbar und im Fokus (disabled würde den Abschnitt ausblenden) */
+#page-entry .tag-loeschen-knopf[aria-disabled="true"] {
+  cursor: default;
+  font-style: italic;
+  opacity: 0.7;
+}
+
+/* ── Zustände der Seite (data-modus setzt setEntryMode) ── */
+/* Tag lädt: altes Formular nicht als aktuell ausgeben (dazu inert per JS) */
+#page-entry[data-modus="loading"] .tag-formular { opacity: 0.45; }
+
+/* ── Breit (≥ 640 px Seitenbreite): Label links, Ergebnisse zweispaltig ── */
+@container tag (min-width: 40rem) {
+  .tag-feld {
+    grid-template-columns: var(--tag-label-w) minmax(0, 1fr);
+    grid-template-areas:
+      "label wert"
+      ".     neben";
+    column-gap: 24px;
+    align-items: baseline;
+    margin-top: 10px;
+  }
+
+  /* „optional“ unter das Label statt in die Feldspalte */
+  .tag-label-zusatz {
+    display: block;
+    margin: 2px 0 0;
+  }
+
+  .tag-erg-zeile {
+    grid-template-columns: 9rem minmax(0, 1fr) auto;
+    grid-template-areas: "wort werte urteil";
+  }
+
+  .tag-erg-spalten {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0;
+  }
+
+  .tag-erg-spalte + .tag-erg-spalte {
+    padding-left: 20px;
+    border-left: 1px solid var(--border-lt);
+  }
+
+  .tag-erg-spalte:first-child { padding-right: 20px; }
+
+  .tag-dl > div { grid-template-columns: var(--tag-label-w) minmax(0, 1fr); align-items: baseline; }
+}
+
+/* ── Schmal: Leiste meist zweizeilig. Container-Abfragen können :root nicht
+   setzen – die Höhe für den Scroll-Abstand daher per @media ── */
+@media (max-width: 480px) {
+  :root { --tag-leiste-h: 100px; }
+}
+
+@container tag (max-width: 25.9375rem) {
+  /* Mit „verwerfen“: eigene Zeile, verwerfen links, Speichern rechts –
+     größtmöglicher Abstand gegen Fehltipps (dazu Rückfrage, 4.F) */
+  .tag-leiste-aktionen:has(#entry-reset-btn:not(:disabled)) {
+    flex-basis: 100%;
+    justify-content: space-between;
+  }
+
+  .tag-entwurf-aktionen { width: 100%; justify-content: space-between; }
+
+  /* Meldung in der Leiste: eine Zeile (Einzelheiten stehen am Modus, „ansehen“ führt hin).
+     Das hält die Leiste niedrig, damit sie weniger Felder verdeckt. */
+  .tag-status { flex-wrap: nowrap; white-space: nowrap; }
+  .tag-status-text { overflow: hidden; text-overflow: ellipsis; }
+}
+
+/* ── Sehr schmal oder große Schrift (< 320 px): Wort über Wortart ── */
+@container tag (max-width: 19.9375rem) {
+  .tag-wert--wort { grid-template-columns: minmax(0, 1fr); }
+
+  .tag-modus-kopf {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+      "titel"
+      "aktionen";
+  }
+
+  .tag-modus-aktionen { justify-content: flex-start; }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  #page-entry .tag-eingabe,
+  #page-entry .tag-auswahl {
+    transition: border-color 0.15s, box-shadow 0.15s;
+  }
+
+  #page-entry[data-modus] .tag-formular { transition: opacity 0.15s; }
+}
+
+/* Windows-Kontrastmodus: Flächen entfallen, Striche und Linien bleiben */
+@media (forced-colors: active) {
+  #page-entry .tag-eingabe,
+  #page-entry .tag-auswahl { border-bottom-color: CanvasText; }
+
+  #page-entry .tag-eingabe:focus,
+  #page-entry .tag-auswahl:focus {
+    outline: 2px solid Highlight;
+    outline-offset: 2px;
+  }
+
+  .tag-badge { border-color: CanvasText; }
+
+  /* Fehlerfeld: doppelte Unterlinie statt Farbe */
+  #page-entry .tag-eingabe[aria-invalid="true"] { border-bottom: 3px double CanvasText; }
+
+  #page-entry .tag-loeschen-knopf { color: LinkText; }
+
+  #page-entry .tag-speichern[aria-disabled="true"]:not(.is-busy) { color: GrayText; }
 }

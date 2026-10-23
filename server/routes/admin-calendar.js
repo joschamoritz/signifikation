@@ -1,5 +1,5 @@
 import express from 'express'
-import { ergaenzeLueckenfueller } from '../lueckenfuellerAutoGen.js'
+import { ergaenzeLueckenfueller, ermittleLueckenfuellerId, findeLueckenfuellerLemma } from '../lueckenfuellerAutoGen.js'
 
 // Entwürfe, die gerade übernommen werden. Zwischen Statusprüfung und
 // entscheideEntwurf liegt ein await (speichereTag); ein zweiter POST in diesem
@@ -58,6 +58,20 @@ export function createAdminCalendarRouter({
   logger,
 }) {
   const router = express.Router()
+
+  // Die aus einem Wort abgeleitete Kennung gehört schon zu einem Lemma mit anderer Schreibung
+  // („Essen“ → `essen`, das Verb): Dort darf nichts angelegt oder überschrieben werden.
+  const kollisionsMeldung = (k) => `Die Kennung „${k.id}“ gehört schon zu „${k.lemma}“ (${k.pos}). Bitte das vorhandene Wort verwenden.`
+
+  // Wird in Phase 1 von speichereTag geworfen; die Routen antworten damit 409.
+  function kollisionsFehler(k, feld) {
+    return Object.assign(new Error(kollisionsMeldung(k)), { kollision: true, feld })
+  }
+
+  // Gemeinsame Antwort auf diesen Fehler (Formular und Übernehmen eines Entwurfs).
+  function antworteMitKollision(res, err) {
+    return res.status(409).json({ error: err.message, feld: err.feld })
+  }
 
   async function analyzeKollokationForPos(lemma, pos) {
     const rounds = POS_ROUNDS[pos] ?? POS_ROUNDS.Substantiv
@@ -346,16 +360,29 @@ export function createAdminCalendarRouter({
       thema, thema_kurz, thema_quelle,
       zwilling_paar, zwilling_pos, zwilling_notiz, zwilling_link,
       zeitenwende_lemma, zeitenwende_notiz, zeitenwende_link,
-      lueckenfueller_id,
     } = body
 
     // ── Phase 1: Alle Daten async sammeln – noch nichts schreiben ──
+    // Zuerst prüfen (schnell, ohne Abrufe): Gehört die Kennung eines Wortes schon zu einem Lemma
+    // mit anderer Schreibung, würde saveTagAtomically dessen ganze Zeile ersetzen (Name, Wortart,
+    // Runden, Notiz …). Gleicher Name mit anderer Wortart bleibt erlaubt (Korrektur der Wortart).
+    {
+      const { byId } = getLemmataIndex()
+      for (const [i, wort] of woerter.entries()) {
+        const fremd = byId.get(toId(wort))
+        if (fremd && fremd.lemma !== wort) {
+          logger.warn(`Tag ${datum}: „${wort}“ nicht gespeichert, Kennung „${fremd.id}“ gehört zu „${fremd.lemma}“`)
+          throw kollisionsFehler(fremd, i)
+        }
+      }
+    }
+
     const lemmaEntries = []
     const ids = []
 
     for (const [i, wort] of woerter.entries()) {
       const pos = (positionen?.[i] || 'Substantiv')
-      logger.info(`Lade DWDS-Daten für „${wort}“ (${pos}) …`)
+      logger.info(`Lade Wortprofil-Daten für „${wort}“ (${pos}) …`)
       const entry = await fetchLemma(wort, pos)
       entry.notiz = notizen[i] || ''
       entry.link = links[i] || ''
@@ -425,10 +452,28 @@ export function createAdminCalendarRouter({
     // sonst bleibt der Modus für den Tag leer (siehe lueckenfuellerAutoGen.js).
     // Scheitert der Bau, wird der Tag trotzdem gespeichert, wie bei Zwilling
     // und Zeitenwende; die Antwort meldet es.
+    // Das Formular schickt das Wort, ältere Aufrufer (Entwurfs-Postfach, Altdaten)
+    // die Kennung; gespeichert wird immer die Kennung.
+    // Die bisher für diesen Tag gespeicherte Kennung hat Vorrang, wenn ihr Lemma so heißt wie die Eingabe.
+    const bisherigerEintrag = loadDailyContentMaps().kalender[datum]
+    const zuordnung = ermittleLueckenfuellerId({
+      eingabe: body.lueckenfueller_id,
+      lemmaEntries,
+      getLemmataIndex,
+      toId,
+      bisherigeKennung: Array.isArray(bisherigerEintrag) ? '' : (bisherigerEintrag?.lueckenfueller_id ?? ''),
+    })
+    const lueckenfuellerKennung = zuordnung.kennung
     let lueckenfuellerStatus = null
+    if (zuordnung.mehrdeutig) {
+      // Die aus dem Wort abgeleitete Kennung gehört schon zu einem Lemma mit anderem Namen:
+      // nichts übernehmen (weder anlegen noch zuordnen), der Tag wird trotzdem gespeichert.
+      lueckenfuellerStatus = 'mehrdeutig'
+      logger.warn(`Lückenfüller „${String(body.lueckenfueller_id).trim()}“: Kennung gehört zu einem anderen Wort, nicht übernommen`)
+    }
     try {
-      const lf = await ergaenzeLueckenfueller({
-        lueckenfuellerId: lueckenfueller_id,
+      const lf = zuordnung.mehrdeutig ? { status: 'mehrdeutig' } : await ergaenzeLueckenfueller({
+        lueckenfuellerId: lueckenfuellerKennung,
         lemmaEntries,
         weitereWoerter: [...(Array.isArray(zwilling_paar) ? zwilling_paar : []), zeitenwende_lemma],
         getLemmataIndex,
@@ -443,8 +488,8 @@ export function createAdminCalendarRouter({
         if (index >= 0) lemmaEntries[index] = lf.lemma
         else lemmaEntries.push(lf.lemma)
         logger.info(`Lückenfüller erzeugt für „${lf.lemma.lemma}“ (${lf.id}): ${lf.runden} Runden`)
-      } else if (lf.status && lf.status !== 'vorhanden') {
-        logger.warn(`Lückenfüller „${lueckenfueller_id}“: ${lf.status}`)
+      } else if (lf.status && lf.status !== 'vorhanden' && lf.status !== 'mehrdeutig') {
+        logger.warn(`Lückenfüller „${lueckenfuellerKennung}“: ${lf.status}`)
       }
     } catch (err) {
       lueckenfuellerStatus = 'fehler'
@@ -463,7 +508,7 @@ export function createAdminCalendarRouter({
         thema: thema || '',
         thema_kurz: thema_kurz || '',
         thema_quelle: thema_quelle || '',
-        lueckenfueller_id: lueckenfueller_id || '',
+        lueckenfueller_id: lueckenfuellerKennung,
       },
       wzEntry,
       zwEntry,
@@ -478,7 +523,7 @@ export function createAdminCalendarRouter({
 
     return {
       ok: true, datum, ids, zwillingOk, zeitenwendeOk,
-      lueckenfuellerId: lueckenfueller_id || null, lueckenfuellerOk, lueckenfuellerStatus,
+      lueckenfuellerId: lueckenfuellerKennung || null, lueckenfuellerOk, lueckenfuellerStatus,
     }
   }
 
@@ -486,6 +531,7 @@ export function createAdminCalendarRouter({
     try {
       res.json(await speichereTag(req.body, { adminSessionId: req.adminSessionId, ip: req.ip }))
     } catch (err) {
+      if (err?.kollision) return antworteMitKollision(res, err)
       serverError(res, err)
     }
   })
@@ -538,6 +584,8 @@ export function createAdminCalendarRouter({
       }
       res.json({ ...ergebnis, entwurfId: id })
     } catch (err) {
+      // Entwurf bleibt offen (entscheideEntwurf wurde nicht erreicht); der Fehler steht am Vorschlag.
+      if (err?.kollision) return antworteMitKollision(res, err)
       serverError(res, err)
     } finally {
       if (reserviert) laufendeUebernahmen.delete(schluessel)
@@ -627,13 +675,21 @@ export function createAdminCalendarRouter({
     return attempts.find((a) => a.result) || attempts[0]
   }
 
+  const zuordneLueckenfuellerLemma = (name) => findeLueckenfuellerLemma({ name, getLemmataIndex, toId })
   router.post('/admin/lueckenfueller/generate', adminLimiter, requireAuth, validate(lueckenfuellerGenerateSchema), async (req, res) => {
     const { lemmaName, pos: posParam } = req.body
     const name = lemmaName.trim()
     try {
-      const { byLemma } = getLemmataIndex()
-      const existing = byLemma.get(name)
-      const best = await resolveLueckenfuellerCandidate(name, existing?.pos, posParam)
+      const { lemma: existing, kollision } = zuordneLueckenfuellerLemma(name)
+      // Die abgeleitete Kennung gehört schon zu einem Lemma mit anderem Namen: nichts
+      // anlegen und nichts überschreiben (sonst ersetzt der Upsert dessen Daten).
+      if (kollision) {
+        logger.warn(`Runden erzeugen für „${name}“ abgebrochen: ${kollisionsMeldung(kollision)}`)
+        return res.json({ ok: false, reason: kollisionsMeldung(kollision) })
+      }
+      // Bei Eingabe einer Kennung gilt der Name des vorhandenen Lemmas.
+      const wort = existing?.lemma ?? name
+      const best = await resolveLueckenfuellerCandidate(wort, existing?.pos, posParam)
       if (!best.result) return res.json({ ok: false, reason: 'Nicht genug Material (Pool zu klein oder keine blankbaren Sätze)' })
 
       let entry = existing
@@ -644,6 +700,7 @@ export function createAdminCalendarRouter({
         neuAngelegt = true
       }
 
+      // Ein vorhandenes Lemma bleibt vollständig erhalten, nur die Runden ändern sich.
       stmts.upsertLemma.run(lemmaToRow({ ...entry, lueckenfueller: best.result }))
       invalidateCache('lemmata.json')
 
@@ -654,15 +711,33 @@ export function createAdminCalendarRouter({
     }
   })
 
+  // Anzahl der Lückenfüller-Runden, die ein Lemma schon hat (0: kein Lemma oder keine
+  // Runden). Rein lesend, nur Lemma-Index im Speicher, keine Korpusabfrage. Gleiche
+  // Zuordnung wie Speichern und Erzeugen; das Wort kann auch eine Kennung sein (Altdaten).
+  function zaehleVorhandeneRunden(name) {
+    const { lemma } = zuordneLueckenfuellerLemma(name)
+    return Array.isArray(lemma?.lueckenfueller) ? lemma.lueckenfueller.length : 0
+  }
+
+  // Leichte Abfrage vor „Runden erzeugen“: Erzeugen ersetzt vorhandene Runden, die
+  // Seite fragt deshalb nur nach, wenn es welche gibt.
+  router.get('/admin/lueckenfueller/runden', adminLimiter, requireAuth, validate(analyzeLueckenfuellerQuerySchema, 'query'), (req, res) => {
+    try {
+      res.json({ vorhandeneRunden: zaehleVorhandeneRunden(req.query.q.trim()) })
+    } catch (err) {
+      adminError(res, err)
+    }
+  })
+
   // Analyse-Endpunkt: prüft Eignung ohne zu speichern — auch für Woerter, die
   // noch kein Lemma haben.
   router.get('/admin/analyze-lueckenfueller', adminLimiter, requireAuth, validate(analyzeLueckenfuellerQuerySchema, 'query'), async (req, res) => {
     const { q: lemmaName, pos: posParam } = req.query
     const name = lemmaName.trim()
     try {
-      const { byLemma } = getLemmataIndex()
-      const existing = byLemma.get(name)
-      const best = await resolveLueckenfuellerCandidate(name, existing?.pos, posParam)
+      const { lemma: existing, kollision } = zuordneLueckenfuellerLemma(name)
+      if (kollision) return res.json({ ok: false, usable: false, lemma: name, neuesLemma: false, vorhandeneRunden: 0, reason: kollisionsMeldung(kollision) })
+      const best = await resolveLueckenfuellerCandidate(existing?.lemma ?? name, existing?.pos, posParam)
 
       if (!best.result) return res.json({
         ok: false,
@@ -670,6 +745,7 @@ export function createAdminCalendarRouter({
         lemma: name,
         pos: best.pos,
         neuesLemma: !existing,
+        vorhandeneRunden: zaehleVorhandeneRunden(name),
         reason: 'Nicht genug Material (Pool zu klein oder keine blankbaren Sätze)',
       })
 
@@ -679,6 +755,7 @@ export function createAdminCalendarRouter({
         lemma: name,
         pos: best.pos,
         neuesLemma: !existing,
+        vorhandeneRunden: zaehleVorhandeneRunden(name),
         rounds: best.result.length,
         roundTypes: best.result.map(r => r.type),
         preview: best.result.map(r => ({
@@ -737,7 +814,7 @@ export function createAdminCalendarRouter({
   router.get('/admin/tag/:datum', adminLimiter, requireAuth, (req, res) => {
     if (!/^\d{4}-\d{2}-\d{2}$/.test(req.params.datum)) return res.status(400).json({ error: 'Ungültiges Datumsformat' })
     const { kalender, wortzwilling, zeitenwende } = loadDailyContentMaps()
-    const { byId } = getLemmataIndex()
+    const { byId, byLemma } = getLemmataIndex()
     const kalEintrag = kalender[req.params.datum]
     if (!kalEintrag) return res.status(404).json({ error: 'Kein Eintrag' })
     const ids = Array.isArray(kalEintrag) ? kalEintrag : (kalEintrag.ids ?? [])
@@ -745,6 +822,12 @@ export function createAdminCalendarRouter({
     const thema_kurz        = Array.isArray(kalEintrag) ? '' : (kalEintrag.thema_kurz ?? '')
     const thema_quelle      = Array.isArray(kalEintrag) ? '' : (kalEintrag.thema_quelle ?? '')
     const lueckenfueller_id = Array.isArray(kalEintrag) ? '' : (kalEintrag.lueckenfueller_id ?? '')
+    // Das Formular zeigt das Wort statt der Kennung. Auflösung wie im Spielweg
+    // (routes/public.js: Kennung, sonst Wortname); fehlt das Lemma, bleibt es leer
+    // und die Seite zeigt die Kennung mit einem Hinweis.
+    const lueckenfueller_lemma = lueckenfueller_id
+      ? (byId.get(lueckenfueller_id)?.lemma ?? byLemma.get(lueckenfueller_id)?.lemma ?? '')
+      : ''
     const lemmata = ids.map((id) => byId.get(id)).filter(Boolean)
     const wz = wortzwilling[req.params.datum]
     const ze = zeitenwende[req.params.datum]
@@ -766,6 +849,7 @@ export function createAdminCalendarRouter({
       zeitenwende_notiz: ze?.notiz || '',
       zeitenwende_link: ze?.link || '',
       lueckenfueller_id,
+      lueckenfueller_lemma,
     })
   })
 
