@@ -227,6 +227,15 @@ export async function sendPushToUser(userId, payload) {
 }
 
 /**
+ * Was ist für Benachrichtigungen eingerichtet? Nur Ja/Nein und die Gerätezahl – nie Schlüssel oder Tokens.
+ *
+ * @returns {{ web: boolean, ios: boolean, geraete: number }}
+ */
+export function pushStatus() {
+  return { web: vapidConfigured, ios: !!apnsProvider, geraete: getSubscriberCount() }
+}
+
+/**
  * Anzahl der aktuell gespeicherten Push-Subscriptions (Geräte).
  *
  * @returns {number}

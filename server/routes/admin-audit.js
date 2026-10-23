@@ -1,4 +1,5 @@
 import express from 'express'
+import { AUDIT_SCAN_MAX } from '../audit.js'
 
 export function createAdminAuditRouter({
   adminLimiter,
@@ -6,52 +7,25 @@ export function createAdminAuditRouter({
   validate,
   adminAuditLogQuerySchema,
   adminAuditLogDetailParamsSchema,
-  getAuditLog,
+  getAuditLogForResource,
+  queryAuditLog,
   adminError,
 }) {
   const router = express.Router()
 
   router.get('/admin/audit-log', adminLimiter, requireAuth, validate(adminAuditLogQuerySchema, 'query'), (req, res) => {
     try {
-      // limit ist im Schema deklariert (10–500, Default 100) und kommt
-      // bereits als Zahl an.
-      const { action, resource, status, q, from: fromRaw, to: toRaw, limit } = req.query
-
-      const from = fromRaw ? new Date(fromRaw) : null
-      const to = toRaw ? new Date(toRaw) : null
-
-      const source = getAuditLog(2000)
-      const filtered = source.filter((entry) => {
-        if (action && entry.action !== action) return false
-        if (resource && String(entry.resource || '').toLowerCase() !== resource) return false
-        if (status && entry.status !== status) return false
-
-        if (from || to) {
-          const ts = new Date(entry.timestamp || '')
-          if (Number.isNaN(ts.getTime())) return false
-          if (from && ts < from) return false
-          if (to && ts > to) return false
-        }
-
-        if (q) {
-          const haystack = [
-            entry.action,
-            entry.resource,
-            entry.resourceId,
-            entry.status,
-            JSON.stringify(entry.changes || {}),
-          ].join(' ').toLowerCase()
-          if (!haystack.includes(q)) return false
-        }
-
-        return true
-      })
-
-      const entries = filtered.slice(0, limit)
+      // limit ist im Schema deklariert (1–500, Default 100) und kommt bereits als Zahl an.
+      // Gefiltert wird in audit.js (SQL + Berliner Kalendertage, Suche ohne Groß-/Kleinschreibung).
+      const { action, resource, status, q, from, to, limit } = req.query
+      const { entries, totalMatches, begrenzt } = queryAuditLog({ action, resource, status, q, from, to, limit })
       res.json({
         entries,
         count: entries.length,
-        totalMatches: filtered.length,
+        totalMatches,
+        // true: Es gibt mehr passende Zeilen, als durchsucht werden (AUDIT_SCAN_MAX); die ältesten fehlen.
+        begrenzt,
+        durchsuchtMax: AUDIT_SCAN_MAX,
         timestamp: new Date().toISOString()
       })
     } catch (err) { adminError(res, err) }
@@ -62,9 +36,8 @@ export function createAdminAuditRouter({
       const resource = String(req.params.resource || '').trim().toLowerCase()
       const resourceId = String(req.params.id || '').trim()
       const limit = Math.min(200, Math.max(1, parseInt(req.query.limit) || 50))
-      const entries = getAuditLog(2000)
-        .filter((entry) => String(entry.resource || '').toLowerCase() === resource && String(entry.resourceId || '') === resourceId)
-        .slice(0, limit)
+      // Über den Index (Bereich, Kennung, Zeit) statt die neuesten 2000 Zeilen zu laden und zu sieben
+      const entries = getAuditLogForResource(resource, resourceId, limit)
 
       res.json({
         resource,

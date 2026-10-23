@@ -140,7 +140,7 @@ export function createAdminSpezialwocheRouter({
 
         auditCreate?.('spezialwoche', woche, {
           von, bis, lemma: lemma_id, zwilling_partner,
-        }, req)
+        }, { adminKey: req.adminSessionId || 'unknown', ip: req.ip })
 
         logger.info({ woche, lemma: lemma_id }, 'Spezialwoche gespeichert')
         res.json({
@@ -165,7 +165,7 @@ export function createAdminSpezialwocheRouter({
         if (!existing) return res.status(404).json({ error: `Kein Eintrag für ${woche}` })
 
         deleteSpezialwoche(woche)
-        auditDelete?.('spezialwoche', woche, {}, req)
+        auditDelete?.('spezialwoche', woche, {}, { adminKey: req.adminSessionId || 'unknown', ip: req.ip })
         logger.info({ woche }, 'Spezialwoche gelöscht')
         res.json({ ok: true })
       } catch (err) {

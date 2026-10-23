@@ -265,33 +265,6 @@ body {
   color: var(--muted);
 }
 
-.audit-controls {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: end;
-  gap: 8px;
-}
-
-.audit-controls label {
-  margin-bottom: 0;
-  font-size: 0.76rem;
-  color: var(--muted);
-}
-
-.audit-controls input,
-.audit-controls select {
-  min-width: 120px;
-}
-
-.audit-controls #audit-search {
-  min-width: 220px;
-}
-
-.audit-table td {
-  vertical-align: top;
-}
-
-
 .entry-filters-reset {
   background: transparent;
   color: var(--muted);
@@ -318,21 +291,6 @@ body {
   font-size: 0.75rem;
   background: var(--surface2);
   color: var(--text);
-}
-
-.entry-action-btn {
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  background: transparent;
-  color: var(--primary);
-  font-size: 0.74rem;
-  padding: 8px 10px;
-  min-height: 44px;
-}
-
-.entry-action-btn:hover {
-  border-color: var(--primary);
-  background: #fef2f2;
 }
 
 .entry-hint {
@@ -378,12 +336,6 @@ body {
 
 .users-empty {
   color: var(--muted);
-}
-
-.system-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
 }
 
 .button-soft {
@@ -878,33 +830,6 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
   letter-spacing: 0.08em;
 }
 
-.performance-cards {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 8px;
-}
-
-.performance-card {
-  border: 1px solid var(--border-lt);
-  border-radius: var(--radius);
-  background: var(--surface2);
-  padding: 10px;
-  display: grid;
-  gap: 2px;
-}
-
-.performance-card span {
-  font-size: 0.7rem;
-  color: var(--muted);
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-.performance-card strong {
-  font-family: var(--font-serif);
-  font-size: 1.1rem;
-}
-
 /* ── DiaCollo / Wortanalyse ── */
 .viz-search { display: flex; gap: 8px; }
 .viz-search input { flex: 1; }
@@ -919,8 +844,7 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
 
 @media (max-width: 1080px) {
   .dashboard-grid,
-  .stats-summary-cards,
-  .performance-cards {
+  .stats-summary-cards {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
@@ -934,18 +858,12 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
     max-width: none;
   }
 
-  .audit-controls {
-    gap: 6px;
-  }
-
   .freeday-form-row {
     align-items: stretch;
   }
 
   .users-table th,
-  .users-table td,
-  .audit-table th,
-  .audit-table td {
+  .users-table td {
     font-size: 0.8rem;
     padding: 7px 8px;
   }
@@ -956,27 +874,16 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
     grid-template-columns: 1fr;
   }
 
-  .audit-controls,
-  .system-actions,
   .viz-search {
     flex-direction: column;
     align-items: stretch;
   }
 
-  .audit-controls button,
-  .audit-controls select,
-  .audit-controls input {
-    width: 100%;
-    min-width: 0;
-  }
-
-  .users-table,
-  .audit-table {
+  .users-table {
     min-width: 560px;
   }
 
-  .stats-summary-cards,
-  .performance-cards {
+  .stats-summary-cards {
     grid-template-columns: 1fr;
   }
 }
@@ -1163,87 +1070,6 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
 
 .users-table-wrap {
   max-width: 100%;
-}
-
-/* ── Datentabellen als Kartenliste (schmale Screens) ──────────
-   Einträge, Nutzer und Audit-Log haben 5–6 Spalten; als Tabelle
-   bleibt davon auf 375px nur horizontales Wischen. Ab hier wird
-   jede Zeile eine Karte, die Spaltenüberschrift steht als Label
-   je Feld (data-label).
-
-   display:block nimmt den Tabellenelementen ihre implizite
-   Semantik – deshalb stehen die ARIA-Rollen (table/rowgroup/row/
-   cell) im Markup, sonst liest ein Screenreader nur noch Fließtext.
-   Muss NACH dem 560px-Block mit min-width:560px stehen. */
-@media (max-width: 560px) {
-  .cards-on-mobile,
-  .cards-on-mobile tbody,
-  .cards-on-mobile tr {
-    display: block;
-    min-width: 0;
-    width: auto;
-  }
-
-  /* Die Beschriftung steht jetzt in jeder Zelle. */
-  .cards-on-mobile thead {
-    display: none;
-  }
-
-  .cards-on-mobile tr {
-    padding: 10px 12px;
-    border-bottom: 1px solid var(--border-lt);
-    background: var(--surface);
-  }
-
-  .cards-on-mobile tr:last-child {
-    border-bottom: 0;
-  }
-
-  .cards-on-mobile td {
-    display: grid;
-    grid-template-columns: 88px minmax(0, 1fr);
-    gap: 10px;
-    align-items: start;
-    width: auto;
-    padding: 3px 0;
-    border-bottom: 0;
-    text-align: left;
-    vertical-align: baseline;
-  }
-
-  .cards-on-mobile td::before {
-    content: attr(data-label);
-    font-size: 0.66rem;
-    line-height: 1.6;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: var(--muted);
-  }
-
-  /* Zellen mit Listen, Chips oder Button-Gruppen: Label darüber statt
-     daneben, sonst bleiben dem Inhalt keine 180px. */
-  .cards-on-mobile td.cell-stack {
-    grid-template-columns: minmax(0, 1fr);
-    gap: 2px;
-    padding: 5px 0;
-  }
-
-  /* Leer-/Lade-/Fehlermeldungen laufen über die volle Breite. */
-  .cards-on-mobile td.table-message {
-    display: block;
-    padding: 12px;
-  }
-
-  .cards-on-mobile td.table-message::before {
-    content: none;
-  }
-
-  /* Ohne horizontales Scrollen braucht es keine Ankerspalte mehr. */
-  .cards-on-mobile th:first-child,
-  .cards-on-mobile td:first-child {
-    position: static;
-    box-shadow: none;
-  }
 }
 
 /* ── Vorschläge (Entwurfs-Postfach) ─────────────────────────────────────── */
@@ -3856,7 +3682,7 @@ html:has(#page-entry.is-active) {
 }
 
 /* hidden muss gegen display-Regeln wie .adm-link { display: inline-flex } gewinnen */
-:is(#page-liste, #page-users, #page-user) [hidden],
+:is(#page-liste, #page-users, #page-user, .be-seite) [hidden],
 #page-calendar [hidden] { display: none !important; }
 
 /* ── Meldung (Löschen): Strich + Fläche, Ton über data-tone ── */
@@ -3906,7 +3732,7 @@ html:has(#page-entry.is-active) {
 .li-feld--zeit  { grid-area: zeit; }
 .li-feld--stand { grid-area: stand; }
 
-:is(#page-liste, #page-users, #page-user) .li-label {
+:is(#page-liste, #page-users, #page-user, .be-seite) .li-label {
   display: block;
   margin: 0 0 2px;
   color: var(--muted);
@@ -3916,7 +3742,7 @@ html:has(#page-entry.is-active) {
 }
 
 /* Suchfeld: dezent umrandet (einzige umrandete Eingabe), Linie ≥ 3 : 1 */
-:is(#page-liste, #page-users, #page-user) .li-suche {
+:is(#page-liste, #page-users, #page-user, .be-seite) .li-suche {
   width: 100%;
   min-height: var(--tap);
   margin: 0;
@@ -3929,9 +3755,9 @@ html:has(#page-entry.is-active) {
   font: 400 max(16px, 1rem)/1.3 var(--font-serif);
 }
 
-:is(#page-liste, #page-users, #page-user) .li-suche::placeholder { color: var(--muted); font-style: italic; opacity: 1; }
+:is(#page-liste, #page-users, #page-user, .be-seite) .li-suche::placeholder { color: var(--muted); font-style: italic; opacity: 1; }
 
-:is(#page-liste, #page-users, #page-user) .li-suche::-webkit-search-cancel-button {
+:is(#page-liste, #page-users, #page-user, .be-seite) .li-suche::-webkit-search-cancel-button {
   -webkit-appearance: none;
   appearance: none;
   width: 1.1rem;
@@ -3943,17 +3769,17 @@ html:has(#page-entry.is-active) {
   cursor: pointer;
 }
 
-:is(#page-liste, #page-users, #page-user) .li-suche::-webkit-search-cancel-button:hover { background: var(--text); }
-:is(#page-liste, #page-users, #page-user) .li-suche:hover:not(:focus) { border-color: var(--text); }
+:is(#page-liste, #page-users, #page-user, .be-seite) .li-suche::-webkit-search-cancel-button:hover { background: var(--text); }
+:is(#page-liste, #page-users, #page-user, .be-seite) .li-suche:hover:not(:focus) { border-color: var(--text); }
 
-:is(#page-liste, #page-users, #page-user) .li-suche:focus {
+:is(#page-liste, #page-users, #page-user, .be-seite) .li-suche:focus {
   border-color: var(--primary);
   outline: 1px solid var(--primary);
   outline-offset: 0;
 }
 
 /* Auswahlfelder: unterstrichen wie im Tagesformular */
-:is(#page-liste, #page-users, #page-user) .li-auswahl {
+:is(#page-liste, #page-users, #page-user, .be-seite) .li-auswahl {
   width: 100%;
   min-height: var(--tap);
   margin: 0;
@@ -3968,13 +3794,13 @@ html:has(#page-entry.is-active) {
   cursor: pointer;
 }
 
-:is(#page-liste, #page-users, #page-user) .li-auswahl:focus {
+:is(#page-liste, #page-users, #page-user, .be-seite) .li-auswahl:focus {
   outline: none;
   border-bottom-color: var(--primary);
   box-shadow: 0 1px 0 0 var(--primary);
 }
 
-:is(#page-liste, #page-users, #page-user) .li-auswahl--klein { width: auto; min-width: 4.5rem; }
+:is(#page-liste, #page-users, #page-user, .be-seite) .li-auswahl--klein { width: auto; min-width: 4.5rem; }
 
 /* ── Ergebniszeile: Zahl links, „Filter zurücksetzen“ rechts ── */
 .li-ergebnis {
@@ -4013,7 +3839,7 @@ html:has(#page-entry.is-active) {
   background: var(--bg);
 }
 
-:is(#page-liste, #page-users, #page-user) .li-alle {
+:is(#page-liste, #page-users, #page-user, .be-seite) .li-alle {
   display: inline-flex;
   align-items: center;
   gap: 2px;
@@ -4117,7 +3943,7 @@ html:has(#page-entry.is-active) {
   border-bottom: 1px solid var(--border-lt);
 }
 
-:is(#page-liste, #page-users, #page-user) .li-wahl {
+:is(#page-liste, #page-users, #page-user, .be-seite) .li-wahl {
   grid-area: wahl;
   display: flex;
   align-items: center;
@@ -4320,7 +4146,7 @@ html:has(#page-entry.is-active) {
   .li-stand,
   .li-aktionen { align-self: start; }
 
-  :is(#page-liste, #page-users, #page-user) .li-wahl { margin-top: -2px; }
+  :is(#page-liste, #page-users, #page-user, .be-seite) .li-wahl { margin-top: -2px; }
   .li-datum { padding-top: 9px; }
   .li-haupt { padding-top: 9px; }
   .li-stand { padding-top: 11px; min-width: 5.5rem; }
@@ -4351,17 +4177,17 @@ html:has(#page-entry.is-active) {
 
 @media (prefers-reduced-motion: no-preference) {
   .li-tag { transition: background-color 0.15s; }
-  :is(#page-liste, #page-users, #page-user) .li-suche,
-  :is(#page-liste, #page-users, #page-user) .li-auswahl { transition: border-color 0.15s, box-shadow 0.15s; }
+  :is(#page-liste, #page-users, #page-user, .be-seite) .li-suche,
+  :is(#page-liste, #page-users, #page-user, .be-seite) .li-auswahl { transition: border-color 0.15s, box-shadow 0.15s; }
 }
 
 @media (forced-colors: active) {
   .li-tag.is-gewaehlt::before { border-left-color: Highlight; }
-  :is(#page-liste, #page-users, #page-user) .li-suche { border-color: CanvasText; }
-  :is(#page-liste, #page-users, #page-user) .li-suche::-webkit-search-cancel-button { background: CanvasText; }
-  :is(#page-liste, #page-users, #page-user) .li-auswahl { border-bottom-color: CanvasText; }
-  :is(#page-liste, #page-users, #page-user) .li-suche:focus,
-  :is(#page-liste, #page-users, #page-user) .li-auswahl:focus { outline: 2px solid Highlight; outline-offset: 2px; }
+  :is(#page-liste, #page-users, #page-user, .be-seite) .li-suche { border-color: CanvasText; }
+  :is(#page-liste, #page-users, #page-user, .be-seite) .li-suche::-webkit-search-cancel-button { background: CanvasText; }
+  :is(#page-liste, #page-users, #page-user, .be-seite) .li-auswahl { border-bottom-color: CanvasText; }
+  :is(#page-liste, #page-users, #page-user, .be-seite) .li-suche:focus,
+  :is(#page-liste, #page-users, #page-user, .be-seite) .li-auswahl:focus { outline: 2px solid Highlight; outline-offset: 2px; }
   .li-loeschen { color: LinkText; }
   .li-meldung { border-left-color: CanvasText; }
   .li-go { text-decoration: underline; }
@@ -4894,4 +4720,660 @@ html:has(#page-entry.is-active) {
   .nu-rolle,
   .nu-rolle[data-rolle="premium"] { border-color: CanvasText; color: CanvasText; background: Canvas; }
   .nu-name { text-decoration: underline; }
+}
+
+/* ── Werkzeuge: Übersicht (#page-werkzeuge) und Betrieb ────────────────────
+   Unterseiten: Systemzustand (#page-system), Sicherung (#page-sicherung),
+   Kursmaterial (#page-kursmaterial), Änderungsprotokoll (#page-protokoll).
+
+   DESIGN.md §9: Linien statt Kästen, keine Schatten, Radius ≤ 4 px.
+   Rot = Aktion (Text-CTA) und „aufgeklappt/ausgewählt“ bzw. „läuft gerade“
+   (3-px-Strich + 4 % Tönung); Gold nur Deko; Statusfarben nur für Bedeutung
+   (nicht erreichbar, Sicherung zu alt, fehlgeschlagen, erledigt) – immer
+   zusammen mit einem Wort, nie Farbe allein.
+
+   Wiederverwendet (unverändert): .tag-abschnitt*, .tag-dl, .tag-loeschen,
+   .tag-loeschen-text, .li-meldung, .li-feld, .li-ergebnis, .li-zahl,
+   .li-loeschen, .li-gruppe, .li-monat*, .li-leer*, .nu-stand, .nu-wt,
+   .nu-mehr, .wo-meldung, .adm-cta, .adm-link, .adm-visually-hidden,
+   --status-*, --wo-tint, --tag-feldlinie, --tag-label-w, --vorschlag-einzug.
+   Wiederverwendet mit erweitertem Selektor (Abschnitt 3a): .li-label,
+   .li-suche, .li-auswahl, [hidden] – die Liste :is(#page-liste, #page-users,
+   #page-user) bekommt „.be-seite“ dazu.
+
+   Umbruch nach der Seitenbreite (Container „werkzeuge“ bzw. „betrieb“),
+   nicht nach dem Viewport. Schwellen in rem: ≥ 40rem (640 px) Label links,
+   Stand rechts, Protokoll einzeilig; < 20rem (320 px oder große Schrift)
+   alles untereinander. Muss NACH dem Nutzer-Block stehen (Kaskade).
+   ─────────────────────────────────────────────────────────────────────── */
+
+/* ════════════════ Übersicht: Stand je Werkzeug ════════════════ */
+
+#page-werkzeuge { container: werkzeuge / inline-size; }
+
+/* Raster statt Flex: Der Stand steht schmal unter der Beschreibung, breit rechts davor */
+#page-werkzeuge .adm-tool {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas:
+    "main  go"
+    "stand go";
+  gap: 0 16px;
+}
+
+#page-werkzeuge .adm-tool-main { grid-area: main; }
+#page-werkzeuge .adm-tool-go   { grid-area: go; align-self: center; }
+
+/* Textfarbe statt Muted: hebt den Stand von der Beschreibung ab (Bedeutung trägt das Wort) */
+.adm-tool-stand {
+  grid-area: stand;
+  margin-top: 3px;
+  color: var(--text);
+  font: 500 0.8rem/1.35 var(--font-sans);
+  font-variant-numeric: tabular-nums;
+}
+
+.adm-tool-stand:empty { display: none; }
+
+/* Nur Bedeutung färben; „läuft gerade“ kursiv in Textfarbe (wie im Tagesformular) */
+.adm-tool-stand[data-tone="warn"]    { color: var(--status-warn); font-weight: 600; }
+.adm-tool-stand[data-tone="err"]     { color: var(--status-err);  font-weight: 600; }
+.adm-tool-stand[data-tone="loading"] { color: var(--text); font-style: italic; }
+
+@container werkzeuge (min-width: 40rem) {
+  #page-werkzeuge .adm-tool {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 15rem) auto;
+    grid-template-areas: "main stand go";
+  }
+
+  .adm-tool-stand {
+    margin: 0;
+    text-align: right;
+  }
+}
+
+/* ════════════════ Gemeinsam: Unterseiten Betrieb ════════════════ */
+
+:root {
+  /* „Spielstatistik-Zeilen“ in Versalien mit .2em Sperrung ≈ 10,6 rem */
+  --be-label-w: 11rem;
+}
+
+.be-seite {
+  container: betrieb / inline-size;
+  gap: 0;
+  width: 100%;
+  max-width: 48rem;
+  margin-inline: auto;
+}
+
+/* Erster Abschnitt ohne Abstand (die leere Statuszeile davor ist unsichtbar) */
+.be-seite > .tag-abschnitt:first-child,
+.be-seite > .li-meldung:first-child + .tag-abschnitt { margin-top: 0; }
+
+/* Statuszeile oben auf der Seite bzw. direkt am Auslöser */
+.be-seite > .li-meldung { margin: 0 0 16px; }
+.be-seite .tag-abschnitt .li-meldung { margin: 12px 0 0; }
+
+/* Aktion(en) unter einem Abschnitt: CTA links, gedämpfter Textlink daneben */
+.be-aktionen {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0 24px;
+  margin-top: 8px;
+}
+
+/* Werte in den Angaben: Wert (Serif) + Zusatz (Sans, gedämpft) in einer Zeile */
+.be-dl dd {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0 10px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.be-wert { font: 400 0.98rem/1.45 var(--font-serif); }
+
+/* Bedeutung = Farbe + Wort, in Sans und halbfett (hebt sich auch ohne Farbe ab) */
+.be-wert[data-tone="warn"] { color: var(--status-warn); font: 600 0.9rem/1.45 var(--font-sans); }
+.be-wert[data-tone="err"]  { color: var(--status-err);  font: 600 0.9rem/1.45 var(--font-sans); }
+
+.be-zusatz {
+  color: var(--muted);
+  font: 400 0.8rem/1.4 var(--font-sans);
+}
+
+/* Interne IDs (Konto, Beleg) dürfen überall umbrechen */
+.be-id {
+  font: 400 0.82rem/1.45 ui-monospace, 'Courier New', monospace;
+  overflow-wrap: anywhere;
+}
+
+/* Rohdaten: aufklappbar, ohne Kasten (Linie links wie Notizen) */
+.be-roh { margin-top: 16px; }
+
+.be-roh > summary {
+  width: fit-content;
+  min-height: var(--tap);
+  padding: 12px 0;
+  color: var(--muted);
+  font: 500 0.86rem/1.4 var(--font-sans);
+  cursor: pointer;
+}
+
+.be-roh > summary:hover { color: var(--text); }
+.be-roh > summary::marker { color: var(--muted); }
+
+.be-roh-titel {
+  margin: 8px 0 0;
+  color: var(--muted);
+  font: 600 0.62rem/1.3 var(--font-sans);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+
+.be-roh pre {
+  max-height: 24rem;
+  margin: 4px 0 0;
+  padding: 6px 0 6px 14px;
+  overflow: auto;
+  border-left: 1px solid var(--border);
+  color: var(--text);
+  font: 400 0.76rem/1.5 ui-monospace, 'Courier New', monospace;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.be-roh pre:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+
+/* Linien-Liste (Sicherungsstände, Stationen) */
+.be-liste {
+  margin: 12px 0 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--border-lt);
+}
+
+.be-zeile {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 2px 20px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border-lt);
+}
+
+.be-zeile-haupt { font: 700 0.98rem/1.4 var(--font-serif); }
+
+.be-zeile-meta {
+  min-width: 0;
+  color: var(--muted);
+  font-size: 0.86rem;
+  line-height: 1.45;
+  font-variant-numeric: tabular-nums;
+}
+
+.be-zeile-meta.is-leer { font-style: italic; }
+.be-zeile-meta[data-tone="warn"] { color: var(--status-warn); font-weight: 600; }
+.be-zeile-meta[data-tone="err"]  { color: var(--status-err);  font-weight: 600; }
+.be-zeile-meta[data-tone="loading"] { color: var(--text); font-style: italic; }
+
+/* Feldzeile: unterstrichenes Auswahlfeld + CTA auf einer Grundlinie */
+.be-formzeile {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 8px 24px;
+  margin-top: 16px;
+}
+
+.be-formzeile .li-feld { flex: 0 1 16rem; min-width: 10rem; }
+
+/* Läuft gerade: CTA kursiv in Textfarbe (wie „Speichern“ im Tag) */
+.be-seite .adm-cta.is-busy[aria-disabled="true"] { color: var(--text); font-style: italic; }
+
+/* ════════════════ Systemzustand ════════════════ */
+
+/* Lage: ein Satz in Serif; neutral mit grauem Strich, sonst Strich + Fläche im Ton */
+.be-lage {
+  padding: 2px 0 2px 14px;
+  border-left: 3px solid var(--border);
+}
+
+.be-lage[data-tone="warn"],
+.be-lage[data-tone="err"],
+.be-lage[data-tone="loading"] { padding: 10px 12px 10px 11px; }
+
+.be-lage[data-tone="warn"]    { border-left-color: var(--status-warn); background: var(--status-warn-bg); }
+.be-lage[data-tone="err"]     { border-left-color: var(--status-err);  background: var(--status-err-bg); }
+.be-lage[data-tone="loading"] { border-left-color: var(--primary);     background: var(--wo-tint); }
+
+.be-lage-titel {
+  margin: 0;
+  font: 400 1.35rem/1.3 var(--font-serif);
+  overflow-wrap: anywhere;
+}
+
+.be-lage[data-tone="warn"] .be-lage-titel { color: var(--status-warn); }
+.be-lage[data-tone="err"] .be-lage-titel  { color: var(--status-err); }
+.be-lage[data-tone="loading"] .be-lage-titel { font-style: italic; }
+
+.be-lage-text {
+  max-width: var(--text-max, 680px);
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 0.86rem;
+  line-height: 1.5;
+}
+
+.be-lage-zeit {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0 16px;
+  margin: 2px 0 0;
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.be-lage .adm-link { color: inherit; text-decoration: underline; text-decoration-color: color-mix(in srgb, currentColor 40%, transparent); }
+
+/* ════════════════ Sicherung ════════════════ */
+
+/* Datei-Auswahl: echtes <input type="file"> (fokussierbar, nur unsichtbar) +
+   Label als Auslöser + Dateiname auf einer unterstrichenen Zeile */
+.be-datei {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0 16px;
+  max-width: 32rem;
+  margin-top: 14px;
+  border-bottom: 1px solid var(--tag-feldlinie, #978b75);
+}
+
+.be-datei:focus-within {
+  border-bottom-color: var(--primary);
+  box-shadow: 0 1px 0 0 var(--primary);
+}
+
+.be-datei-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  border: 0;
+  opacity: 0;
+}
+
+/* label: globale Regel (Versalien, Sperrung, Abstand unten) aufheben */
+.be-datei-knopf {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--tap);
+  margin: 0;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--text);
+  font: 600 0.9rem/1.2 var(--font-sans);
+  text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, currentColor 40%, transparent);
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.be-datei-knopf:hover { text-decoration-color: currentColor; }
+
+.be-datei-input:focus-visible + .be-datei-knopf {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+.be-datei-name {
+  min-width: 0;
+  padding: 0 0 6px;
+  color: var(--muted);
+  font: italic 400 0.98rem/1.4 var(--font-serif);
+  overflow-wrap: anywhere;
+}
+
+.be-datei-name.is-gewaehlt { color: var(--text); font-style: normal; }
+
+/* Prüfung vor dem Ersetzen: Warnstrich ohne Fläche (die Fläche bleibt Meldungen vorbehalten) */
+.be-pruefung {
+  max-width: 36rem;
+  margin-top: 18px;
+  padding: 4px 0 4px 14px;
+  border-left: 3px solid var(--status-warn);
+}
+
+.be-pruef-titel {
+  margin: 0;
+  font: 700 1.05rem/1.35 var(--font-serif);
+}
+
+.be-pruef-sub {
+  margin: 2px 0 0;
+  color: var(--muted);
+  font-size: 0.86rem;
+}
+
+.be-vergleich {
+  width: 100%;
+  margin-top: 10px;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+
+.be-vergleich th,
+.be-vergleich td {
+  padding: 6px 0 6px 12px;
+  border-bottom: 1px solid var(--border-lt);
+  text-align: right;
+  font: 400 0.95rem/1.4 var(--font-serif);
+  white-space: nowrap;
+}
+
+.be-vergleich thead th {
+  border-bottom-color: var(--border);
+  color: var(--muted);
+  font: 600 0.62rem/1.3 var(--font-sans);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  white-space: normal;
+}
+
+.be-vergleich th:first-child { padding-left: 0; text-align: left; }
+.be-vergleich th { hyphens: auto; }
+
+.be-vergleich tbody th {
+  font: 500 0.86rem/1.4 var(--font-sans);
+  white-space: normal;
+}
+
+/* Weniger als jetzt: Warnton UND Differenz als Text, z. B. „400 (−10)“ */
+.be-weniger { color: var(--status-warn); font-weight: 700; }
+
+.be-hinweise {
+  margin: 12px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.be-hinweise > li {
+  margin-top: 6px;
+  color: var(--status-warn);
+  font-size: 0.86rem;
+  line-height: 1.45;
+}
+
+.be-hinweise > li[data-tone="err"] { color: var(--status-err); font-weight: 600; }
+
+/* Häkchen mit großer Trefferfläche (Label umschließt das Kästchen) */
+/* label: globale Regel (Versalien, Sperrung, Muted) aufheben */
+.be-check {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin: 0;
+  color: var(--text);
+  font-weight: 400;
+  letter-spacing: 0;
+  text-transform: none;
+  max-width: var(--text-max, 680px);
+  min-height: var(--tap);
+  padding: 12px 0 0;
+  font-size: 0.9rem;
+  line-height: 1.45;
+  cursor: pointer;
+}
+
+.be-check input {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  margin: 0;
+  accent-color: var(--primary);
+}
+
+/* „Inhalte jetzt ersetzen“ steht links neben „Andere Datei wählen“ (.li-loeschen schiebt sonst nach rechts) */
+.be-pruefung .li-loeschen { margin-left: 0; }
+
+.be-check-hinweis {
+  max-width: var(--text-max, 680px);
+  margin: 0 0 0 30px;
+  color: var(--muted);
+  font-size: 0.8rem;
+  line-height: 1.45;
+}
+
+/* ════════════════ Änderungsprotokoll ════════════════ */
+
+/* Filter: Suche über die volle Breite, darunter Paare; breit zwei Zeilen à drei */
+.pr-filter {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-areas:
+    "suche    suche"
+    "bereich  vorgang"
+    "von      bis"
+    "ergebnis .";
+  gap: 12px 16px;
+  align-items: end;
+}
+
+.pr-feld--suche    { grid-area: suche; }
+.pr-feld--bereich  { grid-area: bereich; }
+.pr-feld--vorgang  { grid-area: vorgang; }
+.pr-feld--ergebnis { grid-area: ergebnis; }
+.pr-feld--von      { grid-area: von; }
+.pr-feld--bis      { grid-area: bis; }
+
+/* Datumsfelder unterstrichen wie .li-auswahl; (0,2,0) schlägt die globalen input[type=date]-Regeln */
+.be-seite .be-eingabe {
+  width: 100%;
+  min-height: var(--tap);
+  margin: 0;
+  padding: 8px 0 6px;
+  border: 0;
+  border-bottom: 1px solid var(--tag-feldlinie, #978b75);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  color: var(--text);
+  font: 500 max(16px, 0.9rem)/1.3 var(--font-sans);
+}
+
+.be-seite .be-eingabe:hover:not(:focus) { border-bottom-color: var(--text); }
+
+.be-seite .be-eingabe:focus {
+  outline: none;
+  border-bottom-color: var(--primary);
+  box-shadow: 0 1px 0 0 var(--primary);
+}
+
+/* Tagesgruppen: .li-gruppe/.li-monat (Doppellinie) */
+.pr-liste {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* Eintrag: Fläche und Aktiv-Strich stehen im Seitenrand, der Text fluchtet mit dem Tag */
+.pr-eintrag {
+  position: relative;
+  margin-left: calc(-1 * var(--vorschlag-einzug, 12px));
+  padding-left: var(--vorschlag-einzug, 12px);
+  border-bottom: 1px solid var(--border-lt);
+}
+
+/* Ganze Zeile = Schalter für die Einzelheiten */
+.pr-zeile {
+  display: grid;
+  grid-template-columns: 3.2rem minmax(0, 1fr) 1.2rem;
+  grid-template-areas:
+    "zeit satz auf"
+    ".    meta auf";
+  align-items: baseline;
+  gap: 0 12px;
+  width: 100%;
+  min-height: var(--tap);
+  margin: 0;
+  padding: 9px 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.pr-zeile:focus-visible { outline: 2px solid var(--primary); outline-offset: -2px; }
+
+.pr-zeit {
+  grid-area: zeit;
+  color: var(--muted);
+  font: 500 0.86rem/1.4 var(--font-sans);
+  font-variant-numeric: tabular-nums;
+}
+
+.pr-satz {
+  grid-area: satz;
+  min-width: 0;
+  font: 400 1rem/1.4 var(--font-serif);
+  overflow-wrap: anywhere;
+}
+
+.pr-meta {
+  grid-area: meta;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 10px;
+  color: var(--muted);
+  font: 400 0.8rem/1.4 var(--font-sans);
+}
+
+/* „fehlgeschlagen“ als Wort im Fehlerton */
+.pr-ergebnis { color: var(--status-err); font-weight: 600; }
+
+/* +/− zeichnet die CSS aus aria-expanded; das Zeichen selbst ist aria-hidden */
+.pr-auf {
+  grid-area: auf;
+  justify-self: end;
+  color: var(--muted);
+  font: 400 1.1rem/1 var(--font-serif);
+}
+
+.pr-auf::before { content: '+'; }
+.pr-zeile[aria-expanded="true"] .pr-auf::before { content: '\2212'; }
+
+.pr-zeile:hover .pr-satz { color: var(--primary); }
+
+/* Aufgeklappt = ausgewählt: 3-px-Strich + 4 % Tönung */
+.pr-eintrag.is-offen { background: var(--wo-tint); }
+
+.pr-eintrag.is-offen::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  border-left: 3px solid var(--primary);
+}
+
+.pr-detail { padding: 0 0 14px; }
+.pr-detail .tag-dl { margin-top: 0; }
+
+.pr-detail-hinweis {
+  max-width: var(--text-max, 680px);
+  margin: 8px 0 0;
+  color: var(--muted);
+  font-size: 0.8rem;
+  line-height: 1.45;
+}
+
+.pr-detail .adm-link { min-height: var(--tap); }
+
+/* Änderung „vorher → nachher“ */
+.pr-pfeil { color: var(--muted); }
+
+/* ── Breit (≥ 40rem): Label links, Protokoll einzeilig, Stand rechts ── */
+@container betrieb (min-width: 40rem) {
+  .be-seite .tag-dl > div {
+    grid-template-columns: var(--be-label-w) minmax(0, 1fr);
+    align-items: baseline;
+  }
+
+  .be-zeile {
+    grid-template-columns: var(--be-label-w) minmax(0, 1fr);
+    align-items: baseline;
+  }
+
+  .pr-filter {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-areas:
+      "suche bereich vorgang"
+      "von   bis     ergebnis";
+  }
+
+  .pr-zeile {
+    grid-template-columns: 3.2rem minmax(0, 1fr) minmax(0, 11rem) 1.2rem;
+    grid-template-areas: "zeit satz meta auf";
+  }
+
+  .pr-meta { justify-content: flex-end; text-align: right; }
+
+  /* Einzelheiten fluchten mit dem Satz */
+  .pr-detail { padding-left: calc(3.2rem + 12px); }
+}
+
+/* ── Sehr schmal oder große Schrift (< 20rem): alles untereinander ── */
+@container betrieb (max-width: 19.9375rem) {
+  .pr-filter {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas: "suche" "bereich" "vorgang" "von" "bis" "ergebnis";
+  }
+
+  .pr-zeile {
+    grid-template-columns: minmax(0, 1fr) 1.2rem;
+    grid-template-areas:
+      "zeit auf"
+      "satz auf"
+      "meta auf";
+  }
+
+  .be-formzeile .li-feld { flex-basis: 100%; }
+
+  .be-pruefung { padding-left: 11px; }
+
+  .be-vergleich th,
+  .be-vergleich td { padding-left: 8px; white-space: normal; }
+
+  /* „Kalendertage“ und die Spaltenköpfe dürfen trennen, sonst ist die Tabelle bei 200 % Schrift zu breit */
+  .be-vergleich th { hyphens: auto; overflow-wrap: anywhere; }
+  .be-vergleich thead th { letter-spacing: 0.08em; }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .pr-eintrag { transition: background-color 0.15s; }
+  .pr-satz { transition: color 0.15s; }
+}
+
+/* Windows-Kontrastmodus: Flächen entfallen, Striche und Linien bleiben */
+@media (forced-colors: active) {
+  .pr-eintrag.is-offen::before { border-left-color: Highlight; }
+  .be-lage,
+  .be-pruefung { border-left-color: CanvasText; }
+  .be-datei,
+  .be-seite .be-eingabe { border-bottom-color: CanvasText; }
+  .be-datei:focus-within,
+  .be-seite .be-eingabe:focus { outline: 2px solid Highlight; outline-offset: 2px; }
+  .be-datei-knopf,
+  .pr-zeile { color: LinkText; }
+  .pr-satz { text-decoration: underline; }
 }

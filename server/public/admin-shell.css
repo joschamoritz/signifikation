@@ -199,6 +199,8 @@
 .adm-title {
   font: 400 1.9rem/1.15 var(--font-serif);
   color: var(--text);
+  /* Lange Titel („Änderungsprotokoll“) bei großer Schrift an Silben trennen, erst danach irgendwo brechen */
+  hyphens: auto;
   overflow-wrap: anywhere;
 }
 
@@ -416,12 +418,6 @@
 
 .adm-root.has-takeover .adm-title {
   font-size: 1.15rem;
-}
-
-/* Scrollziele (auch verschachtelte wie #system-sicherung) nicht unter der
-   klebenden Rückleiste verstecken */
-#page-system [id^="system-"] {
-  scroll-margin-top: calc(var(--bar-h) + 16px);
 }
 
 /* Fokus nicht unter der klebenden Rückleiste verdecken */

@@ -6,7 +6,7 @@ import { validate } from '../middleware/validate.js'
 import db from '../db.js'
 import logger from '../logger.js'
 import { sendPurchaseConfirmation } from '../mailer.js'
-import { auditSecurity } from '../audit.js'
+import { auditSecurity, auditSecurityGedrosselt, drosselSchluessel } from '../audit.js'
 import { lookupCountry } from '../geoip.js'
 
 const IS_PROD = process.env.NODE_ENV === 'production'
@@ -206,6 +206,11 @@ const deleteWebhookRetryStmt = db.prepare(`
 
 const getUserEmailStmt = db.prepare(`SELECT email FROM user WHERE id = ?`)
 
+// Zahlungs-IDs von Mollie haben die Form tr_ + Buchstaben/Ziffern. Alles andere (Eingaben von fremden
+// Aufrufern) kommt weder ins Protokoll noch ins Log.
+const MOLLIE_ID_RE = /^tr_[A-Za-z0-9]{1,40}$/
+export const nurMollieId = (wert) => (typeof wert === 'string' && MOLLIE_ID_RE.test(wert) ? wert : undefined)
+
 // ── POST /api/v1/payments/webhook ────────────────────────────
 // Mollie ruft diesen Endpunkt auf, wenn sich der Zahlungsstatus ändert.
 // Sicherheit: IP-Whitelist + Payment-ID-Verifizierung via Mollie-API
@@ -218,14 +223,18 @@ router.post(
   async (req, res) => {
     // ── Security: IP-Whitelist (nur in Production) ────────────
     if (IS_PROD && !isValidMollieIP(req.ip)) {
-      logger.warn({ ip: req.ip, paymentId: req.body?.id }, 'Webhook von unbekannter IP blockiert')
+      const fremdeId = nurMollieId(req.body?.id)
+      logger.warn({ ip: req.ip, paymentId: fremdeId }, 'Webhook von unbekannter IP blockiert')
       // In den Security-Audit-Trail spiegeln: ein Webhook von einer IP
       // ausserhalb der Mollie-Range ist ein Manipulationssignal, kein
       // Routine-Log. Die Mollie-IP-Ranges koennen sich aendern → wiederholte
       // Eintraege hier sind das Alarmsignal, die Whitelist zu pruefen.
-      auditSecurity(
+      // Jeder kann diesen Endpunkt aufrufen: höchstens ein Protokolleintrag je Adresse und Minute (der Rest wird
+      // gezählt), die ID nur in Mollie-Form. Die Antwort an den Aufrufer bleibt unverändert.
+      auditSecurityGedrosselt(
+        drosselSchluessel('WEBHOOK_REJECT', req.ip),
         'WEBHOOK_REJECT',
-        { ip: req.ip, paymentId: req.body?.id, reason: 'IP nicht in Mollie-Whitelist' },
+        { ip: req.ip, paymentId: fremdeId, reason: 'IP nicht in Mollie-Whitelist' },
         { ip: req.ip, status: 'FAIL' }
       )
       return res.status(403).end()

@@ -104,7 +104,6 @@ let usersSearchTimer = null
 let entrySearchTimer = null
 let usersOverviewAbortController = null
 const USERS_PAGE_SIZE = 50
-let currentAuditEntries = []
 let freeDaysData = []
 let entryFormSnapshot = null
 let entryFormDirty = false
@@ -221,8 +220,18 @@ const ROUTE_TABLE = {
   'werkzeuge/benachrichtigungen': { page: 'push', area: 'werkzeuge', parent: PARENT_WERKZEUGE },
   'werkzeuge/wort-der-woche': { page: 'spezialwoche', area: 'werkzeuge', parent: PARENT_WERKZEUGE },
   'werkzeuge/system': { page: 'system', area: 'werkzeuge', parent: PARENT_WERKZEUGE },
+  'werkzeuge/sicherung': { page: 'sicherung', area: 'werkzeuge', parent: PARENT_WERKZEUGE },
+  'werkzeuge/kursmaterial': { page: 'kursmaterial', area: 'werkzeuge', parent: PARENT_WERKZEUGE },
+  'werkzeuge/protokoll': { page: 'protokoll', area: 'werkzeuge', parent: PARENT_WERKZEUGE },
   'werkzeuge/klassenraum-demo': { page: 'klassenraum-demo', area: 'werkzeuge', parent: PARENT_WERKZEUGE },
 }
+
+// Werkzeuge › System hatte vier Abschnitte: #werkzeuge/system?abschnitt=sicherung|kursmaterial|protokoll
+const ALTE_SYSTEM_ABSCHNITTE = Object.freeze({
+  sicherung: '#werkzeuge/sicherung',
+  kursmaterial: '#werkzeuge/kursmaterial',
+  protokoll: '#werkzeuge/protokoll',
+})
 
 // Alte data-page-Werte (Schnellzugriffe auf dem Dashboard, Kalender) →
 // neue Adressen. switchPage() bleibt als dünne Hülle dafür bestehen.
@@ -340,7 +349,7 @@ function parseRoute(rawHash) {
     const tag = d ? `${y}-${m}-${d}` : ''
     const ok = Number(m) >= 1 && Number(m) <= 12 && Number(y) >= 2000 && Number(y) <= 2100 && (!tag || isValidIsoDay(tag))
     if (!ok) return { redirect: '#planen/monat' }
-    return { ...ROUTE_TABLE['planen/monat'], key: 'planen/monat', section: '', monat: `${y}-${m}`, tag }
+    return { ...ROUTE_TABLE['planen/monat'], key: 'planen/monat', monat: `${y}-${m}`, tag }
   }
   if (path.startsWith('planen/monat/')) return { redirect: '#planen/monat' }
 
@@ -354,10 +363,16 @@ function parseRoute(rawHash) {
     return { page: 'user', area: 'nutzer', parent: PARENT_NUTZER, nutzerId: id, key: 'nutzer/konto' }
   }
 
+  // Bis Schritt 7a lagen Zustand, Sicherung, Kursmaterial und Protokoll auf einer Seite (#werkzeuge/system?abschnitt=…).
+  // Alte Lesezeichen und Links führen auf die neue Unterseite; Unbekanntes landet beim Systemzustand.
+  if (path === 'werkzeuge/system' && queryPart) {
+    const ziel = ALTE_SYSTEM_ABSCHNITTE[new URLSearchParams(queryPart).get('abschnitt')] || '#werkzeuge/system'
+    return { redirect: ziel }
+  }
+
   // Object.hasOwn: sonst würden #constructor oder #__proto__ Prototyp-Einträge treffen.
   if (Object.hasOwn(ROUTE_TABLE, path)) {
-    const section = new URLSearchParams(queryPart).get('abschnitt') || ''
-    const route = { ...ROUTE_TABLE[path], key: path, section: /^[a-z-]+$/.test(section) ? section : '' }
+    const route = { ...ROUTE_TABLE[path], key: path }
     if (path === 'planen/liste') route.liste = leseListeQuery(queryPart)
     return route
   }
@@ -482,12 +497,24 @@ function runRouteLoaders(route) {
       // Lädt bei jedem Öffnen frisch (inkl. Diagramme und Zusammenfassung).
       loadStats()
       break
-    case 'system':
-      // Zustand und Performance lädt die Seite selbst (früher hingen sie am Start der Woche).
+    case 'werkzeuge':
+      // Füllt den Stand der Betriebs-Werkzeuge
       loadHealth()
-      loadPerformance()
+      break
+    case 'system':
+      ladeSystemzustand()
+      break
+    case 'sicherung':
+      ladeSicherung()
+      break
+    case 'kursmaterial':
+      ladeKursmaterial()
+      break
+    case 'protokoll':
+      // Jedes Öffnen beginnt mit der ersten Seite und zugeklappten Einträgen
+      protokollLimit = PROTOKOLL_SEITE
+      protokollOffen.clear()
       loadAuditLog()
-      loadCoursePdfStatus()
       break
     case 'freedays':
       loadFreeDays()
@@ -717,14 +744,6 @@ function focusAfterNavigation(route, hash, { fromChild }) {
   if (gewuenscht && (route.page === 'dashboard' || route.page === 'users')) {
     target = document.querySelector(gewuenscht)
     preventScroll = false
-  } else if (route.section) {
-    const sectionEl = document.getElementById(`system-${route.section}`)
-    const headingHost = sectionEl?.matches('h2') ? sectionEl : (sectionEl?.closest('.card') || sectionEl)
-    const heading = headingHost?.matches('h2') ? headingHost : headingHost?.querySelector('h2')
-    if (heading) {
-      heading.setAttribute('tabindex', '-1')
-      target = heading
-    }
   } else if (fromChild) {
     const href = focusMemory.get(hash)
     if (href) {
@@ -766,9 +785,11 @@ async function renderRoute({ userInitiated = false } = {}) {
 
   applyRouteChrome(route)
 
-  if (route.section) {
-    document.getElementById(`system-${route.section}`)?.scrollIntoView({ block: 'start' })
-  } else if (userInitiated && typeof window.scrollTo === 'function') {
+  // Beim Verlassen: Kursmaterial fragt nicht weiter ab; die gewählte Sicherungsdatei (bis 10 MB) wird freigegeben.
+  if (leavingRoute?.page === 'kursmaterial' && route.page !== 'kursmaterial') stoppeKursAbfrage()
+  if (leavingRoute?.page === 'sicherung' && route.page !== 'sicherung') restoreAbbrechenStill()
+
+  if (userInitiated && typeof window.scrollTo === 'function') {
     window.scrollTo(0, 0)
   }
   // Rückkehr aus einer Unterseite desselben Bereichs (auch an eine Stelle wie #planen/monat/2026-11-13)
@@ -1239,21 +1260,6 @@ function createTemporaryDownload(blob, filename) {
   URL.revokeObjectURL(url)
 }
 
-// Inline-Meldung im System-Bereich – ersetzt blockierende alert()-Dialoge,
-// die auf Mobilgeräten die Tastatur schließen und den Viewport umbauen.
-function setSystemMessage(message, tone = 'info') {
-  const msgEl = document.getElementById('system-msg')
-  if (!msgEl) return
-  msgEl.textContent = message || ''
-  msgEl.classList.remove('is-hidden', 'is-error', 'is-success')
-  if (!message) {
-    msgEl.classList.add('is-hidden')
-    return
-  }
-  if (tone === 'error') msgEl.classList.add('is-error')
-  if (tone === 'success') msgEl.classList.add('is-success')
-}
-
 function setFreeDayMessage(message, tone = 'info') {
   const msgEl = document.getElementById('freeday-msg')
   if (!msgEl) return
@@ -1358,37 +1364,6 @@ function roleLabel(role) {
   return 'Basis'
 }
 
-/**
- * Leer-/Lade-/Fehlerzeile für die Karten-Tabelle des Änderungsprotokolls.
- * `role` + `.table-message`, damit die Zeile auch im Karten-Layout (≤560px)
- * über die volle Breite läuft und ohne Feldlabel bleibt. `text` muss bereits
- * escaped sein.
- */
-function tableMessageRow(colspan, cls, text) {
-  return `<tr role="row"><td role="cell" colspan="${colspan}" class="${cls} table-message">${text}</td></tr>`
-}
-
-function summarizeAuditChanges(changes) {
-  if (!changes || typeof changes !== 'object') return '—'
-  const beforeKeys = changes.before && typeof changes.before === 'object' ? Object.keys(changes.before) : []
-  const afterKeys = changes.after && typeof changes.after === 'object' ? Object.keys(changes.after) : []
-  const merged = [...new Set([...beforeKeys, ...afterKeys])]
-  if (!merged.length) return 'Keine Felder protokolliert'
-  return merged.slice(0, 6).join(', ')
-}
-
-function showAuditEntryDetails(entry) {
-  const pre = document.getElementById('audit-detail-json')
-  if (!pre) return
-  pre.textContent = JSON.stringify(entry, null, 2)
-}
-
-function showAuditEntryDetailsByIndex(index) {
-  const entry = currentAuditEntries[index]
-  if (!entry) return
-  showAuditEntryDetails(entry)
-}
-
 // ── Login / Logout ────────────────────────────────────────
 async function doLogin() {
   const emailInput = document.getElementById('login-email')
@@ -1431,61 +1406,6 @@ async function doLogin() {
   btn.textContent = 'Anmelden'
 }
 
-async function downloadBackup() {
-  setSystemMessage('')
-  const r = await fetch('/admin/backup')
-  if (!r.ok) {
-    setSystemMessage('Backup fehlgeschlagen.', 'error')
-    return
-  }
-  const blob = await r.blob()
-  createTemporaryDownload(blob, `signifikation-backup-${new Date().toISOString().slice(0,10)}.json`)
-  setSystemMessage('Backup heruntergeladen.', 'success')
-}
-
-function triggerBackupRestore() {
-  const input = document.getElementById('backup-restore-input')
-  if (input) input.click()
-}
-
-async function restoreBackupFile(event) {
-  const file = event?.target?.files?.[0]
-  if (!file) return
-
-  try {
-    const text = await file.text()
-    const payload = JSON.parse(text)
-    const restoredCounts = [
-      ['Lemmata', payload?.lemmata?.length],
-      ['Kalender', payload?.kalender ? Object.keys(payload.kalender).length : 0],
-      ['Wortzwilling', payload?.wortzwilling ? Object.keys(payload.wortzwilling).length : 0],
-      ['Zeitenwende', payload?.zeitenwende ? Object.keys(payload.zeitenwende).length : 0],
-    ].filter(([, count]) => Number(count) > 0).map(([label, count]) => `${label}: ${count}`)
-    const ok = confirmAction('Backup wirklich wiederherstellen? Der aktuelle Datenbestand wird überschrieben.', [
-      `Datei: ${file.name}`,
-      ...restoredCounts,
-    ])
-    if (!ok) return
-
-    const response = await fetch('/admin/backup/restore', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...payload, confirm: true }),
-    })
-    const data = await response.json().catch(() => ({}))
-    if (!response.ok) throw new Error(data.error || `HTTP ${response.status}`)
-
-    const restored = data.restored || {}
-    setSystemMessage(`Backup wiederhergestellt: ${restored.lemmata || 0} Lemmata, ${restored.kalender || 0} Kalendertage.`, 'success')
-    refreshDashboard()
-    loadPerformance()   // liegt auf derselben Seite (Werkzeuge › System)
-  } catch (err) {
-    setSystemMessage(`Backup-Restore fehlgeschlagen: ${err.message}`, 'error')
-  } finally {
-    event.target.value = ''
-  }
-}
-
 async function doLogout() {
   if (sessionRefreshTimer) {
     window.clearTimeout(sessionRefreshTimer)
@@ -1494,6 +1414,7 @@ async function doLogout() {
   clearToken()
   stopRouter()
   nutzerZuruecksetzen()
+  betriebZuruecksetzen()
   await fetch('/admin/logout', { method: 'POST', headers: { 'Content-Type': 'application/json' } }).catch(() => {})
   hideMainContainer()
   document.getElementById('login-overlay').classList.remove('hidden')
@@ -1530,35 +1451,1135 @@ function initDashboard() {
 }
 
 
-// ── System-Zustand ────────────────────────────────────────────────────────────
-function systemInOrdnung(data) {
-  return data?.wortprofilDb === 'ok' && data?.belegeDb === 'ok'
+// ── Werkzeuge › Betrieb ───────────────────────────────────────────────────────
+// Übersicht (#werkzeuge) mit dem Stand der Betriebs-Werkzeuge und die Unterseiten Systemzustand
+// (#werkzeuge/system), Sicherung (#werkzeuge/sicherung), Kursmaterial (#werkzeuge/kursmaterial)
+// und Änderungsprotokoll (#werkzeuge/protokoll).
+//
+// Zeiten erscheinen in Berliner Zeit, wie die Tagesgrenzen des Servers im Protokoll.
+// Alles, was aus Daten stammt (Protokolleinträge enthalten Eingaben, Dateinamen, E-Mail-Adressen
+// gelöschter Konten), geht nur über esc() bzw. textContent in die Seite. Protokolldaten gelangen weder
+// in die Adresse noch in den Seitentitel noch in die Konsole.
+
+const SICHERUNG_MAX_STUNDEN = 36      // täglicher Lauf + 12 h Spielraum
+const ANTWORT_VERZOEGERT_MS = 100     // mittlere Verzögerung der Ereignisschleife, ab der „verzögert“ steht
+const BACKUP_MAX_BYTES = 10 * 1024 * 1024  // = BACKUP_RESTORE_BODY_LIMIT in server/index.js
+const KURS_ABFRAGE_MS = 3000
+const PROTOKOLL_SEITE = 100
+const PROTOKOLL_MAX = 500             // = Obergrenze von limit im Server-Schema
+
+const BERLIN_ZEIT = new Intl.DateTimeFormat('en-GB', {
+  timeZone: 'Europe/Berlin', year: 'numeric', month: '2-digit', day: '2-digit',
+  hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23',
+})
+
+let healthToken = 0
+let systemToken = 0
+let sicherungListeToken = 0
+let sicherungUmfang = null          // Antwort von GET /admin/backup/umfang (jetziger Stand)
+let restoreDatei = null             // { name, payload, pruefung } – nur im Speicher, nichts wird vor der Bestätigung hochgeladen
+let restoreLaeuft = false
+let kursJob = null                  // letzte Antwort von GET /admin/course/pdf-status
+let kursTimer = null
+let kursMeldungZuletzt = ''
+let protokollLimit = PROTOKOLL_SEITE
+let protokollEintraege = []
+let protokollGesamt = 0
+let protokollBegrenzt = false
+let protokollDurchsuchtMax = 0
+let protokollToken = 0
+let protokollSuchTimer = null
+const protokollOffen = new Set()    // Schlüssel der aufgeklappten Einträge (bleiben bei „weitere anzeigen“ offen)
+
+// ── Formate ──
+
+// Zerlegt einen Zeitpunkt in Berliner Zeit; null bei ungültigem Wert.
+function berlinTeile(wert) {
+  const d = wert instanceof Date ? wert : new Date(wert)
+  if (Number.isNaN(d.getTime())) return null
+  const t = {}
+  for (const p of BERLIN_ZEIT.formatToParts(d)) t[p.type] = p.value
+  const y = Number(t.year)
+  const m = Number(t.month)
+  const tag = Number(t.day)
+  return { y, m, d: tag, hh: t.hour, mm: t.minute, ss: t.second, wt: (new Date(Date.UTC(y, m - 1, tag)).getUTCDay() + 6) % 7, iso: `${t.year}-${t.month}-${t.day}` }
 }
 
-// Füllt den Link in Planen › Woche (ein Wort) und die System-Seite (alle Werte).
-// Jedes Ziel ist optional: fehlt eines, wird das andere trotzdem gefüllt.
-async function loadHealth() {
-  let data = null
-  let fehler = ''
-  try {
-    const res = await fetch('/admin/health')
-    data = await res.json().catch(() => null)
-    if (!res.ok || !data) throw new Error(data?.error || `HTTP ${res.status}`)
-  } catch (err) {
-    data = null
-    fehler = err.message || 'unbekannter Fehler'
-  }
+const zwei = (n) => String(n).padStart(2, '0')
+const uhrText = (t) => `${t.hh}:${t.mm}`
+// „Mi 02.09.2026“
+const datumKurzJahr = (t) => `${DAYS_DE[t.wt]} ${zwei(t.d)}.${zwei(t.m)}.${t.y}`
+// „Mittwoch, 14. Oktober 2026“
+const datumLangBerlin = (t, jahr = true) => `${WOCHENTAGE_LANG[t.wt]}, ${t.d}. ${MONTHS_DE[t.m - 1]}${jahr ? ` ${t.y}` : ''}`
+const mbText = (bytes) => `${(Number(bytes) / 1024 / 1024).toLocaleString('de-DE', { minimumFractionDigits: 1, maximumFractionDigits: 1 })} MB`
+// „83 %“ aus „83.22%“
+const prozentText = (s) => `${Math.round(parseFloat(String(s).replace(',', '.')) || 0)} %`
+const anzahlText = (n, eins, viele) => `${ganzzahlDe(n)} ${Number(n) === 1 ? eins : viele}`
 
+// „heute, 03:12“ · „gestern, 23:40“ · „Mi 21.10., 15:42“ · mit Jahr, wenn nicht dieses Jahr
+function wannText(wert, { uhrzeit = true } = {}) {
+  const t = wert ? berlinTeile(wert) : null
+  if (!t) return '–'
+  const heute = berlinTeile(getCurrentDate())
+  const tage = Math.round((Date.UTC(heute.y, heute.m - 1, heute.d) - Date.UTC(t.y, t.m - 1, t.d)) / 864e5)
+  const zeit = uhrzeit ? `, ${uhrText(t)}` : ''
+  if (tage === 0) return `heute${zeit}`
+  if (tage === 1) return `gestern${zeit}`
+  const jahr = t.y === heute.y ? '' : String(t.y)
+  return `${DAYS_DE[t.wt]} ${zwei(t.d)}.${zwei(t.m)}.${jahr}${zeit}`
+}
+
+// „12 Minuten“ · „5 Stunden“ · „3 Tage“ (für „3 Tage ohne Neustart“)
+function dauerText(ms) {
+  const min = Math.floor(ms / 60000)
+  if (min < 60) return anzahlText(min, 'Minute', 'Minuten')
+  const std = Math.floor(min / 60)
+  if (std < 48) return anzahlText(std, 'Stunde', 'Stunden')
+  return anzahlText(Math.floor(std / 24), 'Tag', 'Tage')
+}
+
+// „Sa 31.10.2026“ aus einem ISO-Tag; alles andere bleibt unverändert
+const tagText = (iso) => (/^\d{4}-\d{2}-\d{2}$/.test(iso || '') ? `${datumKurz(iso)}${iso.slice(0, 4)}` : String(iso || ''))
+// „02.11.“
+const kurzTag = (iso) => (/^\d{4}-\d{2}-\d{2}$/.test(iso || '') ? `${iso.slice(8, 10)}.${iso.slice(5, 7)}.` : String(iso || ''))
+// „KW 45/2026“ aus „2026-W45“
+const kwText = (woche) => {
+  const m = /^(\d{4})-W(\d{2})$/.exec(woche || '')
+  return m ? `KW ${Number(m[2])}/${m[1]}` : String(woche || '')
+}
+
+function betriebZeile(label, wertHtml, zusatzHtml = '') {
+  return `<div><dt>${esc(label)}</dt><dd>${wertHtml}${zusatzHtml ? ` <span class="be-zusatz">${zusatzHtml}</span>` : ''}</dd></div>`
+}
+const betriebWert = (text, ton = '') => `<span class="be-wert"${ton ? ` data-tone="${ton}"` : ''}>${esc(text)}</span>`
+
+async function holeJson(url, options) {
+  const res = await fetch(url, options)
+  const data = await res.json().catch(() => null)
+  if (!res.ok || data === null) {
+    const fehler = new Error(data?.error || `HTTP ${res.status}`)
+    fehler.status = res.status
+    fehler.data = data
+    throw fehler
+  }
+  return data
+}
+
+// Knopf als „läuft gerade“ markieren (aria-disabled statt disabled: Er behält den Fokus)
+function setzeKnopfBusy(knopfId, textId, busy, text) {
+  const btn = document.getElementById(knopfId)
+  if (!btn) return
+  btn.classList.toggle('is-busy', busy)
+  if (busy) btn.setAttribute('aria-disabled', 'true')
+  else btn.removeAttribute('aria-disabled')
+  const textEl = document.getElementById(textId)
+  if (textEl) textEl.textContent = text
+}
+
+// ── Bewertung des Zustands (Übersicht, Woche und Systemseite nutzen dieselbe Regel) ──
+
+function sicherungAlterStunden(h) {
+  const zuletzt = h?.sicherung?.zuletzt
+  if (!zuletzt) return null
+  return (getCurrentDate().getTime() - new Date(zuletzt).getTime()) / 36e5
+}
+
+// Was den Spielbetrieb oder die Datensicherheit betrifft. Push und Mail „nicht eingerichtet“ stehen nur als Hinweis in der Zeile.
+function systemProbleme(h) {
+  const p = []
+  if (h.appDb !== 'ok') p.push({ ton: 'err', text: 'Die Spieldaten-Datenbank antwortet nicht.' })
+  if (h.wortprofilDb !== 'ok') p.push({ ton: 'err', text: 'Das Wortprofil ist nicht erreichbar; Kollokationen und „Wort prüfen“ funktionieren nicht.' })
+  if (h.belegeDb !== 'ok') p.push({ ton: 'warn', text: 'Die Belegsätze sind nicht verfügbar.' })
+  const alter = sicherungAlterStunden(h)
+  if (alter === null) p.push({ ton: 'warn', text: 'Es gibt keine automatische Sicherung.' })
+  else if (alter > SICHERUNG_MAX_STUNDEN) p.push({ ton: 'warn', text: `Die letzte Sicherung ist ${anzahlText(Math.floor(alter), 'Stunde', 'Stunden')} alt.` })
+  return p
+}
+const systemTon = (probleme) => (probleme.some((x) => x.ton === 'err') ? 'err' : probleme.length ? 'warn' : 'ok')
+
+// ── Übersicht: Stand je Werkzeug ──
+
+function setzeStand(id, text, ton = '') {
+  const el = document.getElementById(id)
+  if (!el) return
+  el.textContent = text
+  if (ton) el.dataset.tone = ton
+  else el.removeAttribute('data-tone')
+}
+
+function renderWerkzeugStand(h) {
+  if (!h) {
+    setzeStand('wz-stand-system', 'Zustand unbekannt', 'warn')
+    for (const id of ['wz-stand-sicherung', 'wz-stand-kursmaterial', 'wz-stand-protokoll']) setzeStand(id, '')
+    return
+  }
+  const ton = systemTon(systemProbleme(h))
+  setzeStand('wz-stand-system', { ok: 'Alles in Ordnung', warn: 'Bitte prüfen', err: 'Störung' }[ton], ton === 'ok' ? '' : ton)
+  const alter = sicherungAlterStunden(h)
+  if (alter === null) setzeStand('wz-stand-sicherung', 'Keine Sicherung gefunden', 'warn')
+  else if (alter > SICHERUNG_MAX_STUNDEN) setzeStand('wz-stand-sicherung', `Zuletzt ${wannText(h.sicherung.zuletzt)} · zu alt`, 'warn')
+  else setzeStand('wz-stand-sicherung', `Zuletzt ${wannText(h.sicherung.zuletzt)}`)
+  if (h.kursmaterial?.laeuft) setzeStand('wz-stand-kursmaterial', 'Wird gerade erzeugt …', 'loading')
+  else setzeStand('wz-stand-kursmaterial', h.kursmaterial?.zuletzt ? `Zuletzt erzeugt ${wannText(h.kursmaterial.zuletzt, { uhrzeit: false })}` : 'Noch nicht erzeugt')
+  setzeStand('wz-stand-protokoll', h.protokoll?.zuletzt ? `Letzter Eintrag ${wannText(h.protokoll.zuletzt)}` : '')
+}
+
+// Füllt den Link in Planen › Woche (ein Wort) und den Stand der Übersicht aus einer Antwort von /admin/health.
+function healthAnwenden(data) {
   const link = document.getElementById('wo-system')
   if (link) {
     if (!data) { link.textContent = 'Systemzustand unbekannt'; link.removeAttribute('data-tone') }
     // Unsichtbares Präfix: „System läuft“ allein sagt als Link nicht, wohin er führt
-    else if (systemInOrdnung(data)) { link.innerHTML = '<span class="adm-visually-hidden">Systemzustand: </span>System läuft'; link.removeAttribute('data-tone') }
+    else if (systemTon(systemProbleme(data)) === 'ok') { link.innerHTML = '<span class="adm-visually-hidden">Systemzustand: </span>System läuft'; link.removeAttribute('data-tone') }
     else { link.innerHTML = '<span class="adm-visually-hidden">Systemzustand: </span>System prüfen'; link.dataset.tone = 'warn' }
   }
+  renderWerkzeugStand(data)
+}
 
-  const json = document.getElementById('system-health-json')
-  if (json) json.textContent = data ? JSON.stringify(data, null, 2) : `Zustand konnte nicht abgerufen werden: ${fehler}`
+async function loadHealth() {
+  const token = ++healthToken
+  let data = null
+  try {
+    data = await holeJson('/admin/health')
+  } catch {
+    data = null
+  }
+  if (token !== healthToken) return data
+  healthAnwenden(data)
+  return data
+}
+
+// ── Systemzustand ──
+
+function renderLage(h, { laden = false, fehler = '' } = {}) {
+  const el = document.getElementById('system-lage')
+  if (!el) return
+  if (laden) {
+    el.dataset.tone = 'loading'
+    el.innerHTML = '<p class="be-lage-titel">Zustand wird geprüft …</p>'
+    return
+  }
+  if (!h) {
+    el.dataset.tone = 'err'
+    el.innerHTML = '<p class="be-lage-titel">Zustand unbekannt</p>'
+      + `<p class="be-lage-text">Der Server hat nicht geantwortet (${esc(fehler || 'keine Antwort')}). Ist die Seite noch angemeldet?</p>`
+      + '<p class="be-lage-zeit"><button type="button" class="adm-link" data-action="load-health">Erneut prüfen</button></p>'
+    return
+  }
+  const probleme = systemProbleme(h)
+  const ton = systemTon(probleme)
+  if (ton === 'ok') el.removeAttribute('data-tone')
+  else el.dataset.tone = ton
+  const text = ton === 'ok'
+    ? `Alle Datenbanken sind erreichbar, die letzte Sicherung lief ${wannText(h.sicherung.zuletzt)} Uhr.`
+    : probleme.map((x) => x.text).join(' ')
+  el.innerHTML = `<p class="be-lage-titel">${ton === 'ok' ? 'Alles in Ordnung' : 'Bitte prüfen'}</p>`
+    + `<p class="be-lage-text">${esc(text)}</p>`
+    + `<p class="be-lage-zeit"><span>Geprüft um ${uhrText(berlinTeile(getCurrentDate()))} Uhr</span><button type="button" class="adm-link" data-action="load-health">neu prüfen</button></p>`
+}
+
+// Zwischenspeicher: ohne Anfragen gibt es keine Trefferquote, die man lesen könnte
+function zwischenspeicherZeile(label, cache) {
+  if (!cache || !((cache.hits || 0) + (cache.misses || 0)) && !cache.size) return betriebZeile(label, betriebWert('noch nichts zwischengespeichert'))
+  return betriebZeile(label, betriebWert(`${prozentText(cache.hitRate)} aus dem Zwischenspeicher`), esc(anzahlText(cache.size || 0, 'Eintrag', 'Einträge')))
+}
+
+function renderSystem(h, perf) {
+  const dienste = document.getElementById('system-dienste')
+  const server = document.getElementById('system-server')
+  const werte = document.getElementById('performance-werte')
+  const healthJson = document.getElementById('system-health-json')
+  const perfJson = document.getElementById('performance-json')
+  if (!dienste || !server || !werte) return
+  if (!h) {
+    dienste.innerHTML = ''
+    server.innerHTML = ''
+    werte.innerHTML = ''
+    if (healthJson) healthJson.textContent = 'Keine Daten.'
+    if (perfJson) perfJson.textContent = 'Keine Daten.'
+    return
+  }
+  const datenbank = (status, okZusatz) => {
+    if (status === 'ok') return `${betriebWert('erreichbar')} <span class="be-zusatz">${esc(okZusatz)}</span>`
+    const text = status === 'nicht verfügbar' ? 'nicht verfügbar' : 'nicht erreichbar'
+    return betriebWert(text, 'err') + (String(status).startsWith('error') ? ` <span class="be-zusatz">${esc(String(status).replace(/^error:\s*/, ''))}</span>` : '')
+  }
+  const push = h.push || {}
+  const pushText = push.web && push.ios ? 'eingerichtet für Web und iOS' : push.web ? 'nur für Web eingerichtet' : push.ios ? 'nur für iOS eingerichtet' : 'nicht eingerichtet'
+  const mailDa = !!h.mail?.eingerichtet
+  const alter = sicherungAlterStunden(h)
+  dienste.innerHTML = [
+    `<div><dt>Spieldaten</dt><dd>${datenbank(h.appDb, 'Konten, Kalender, Statistik')}</dd></div>`,
+    `<div><dt>Wortprofil</dt><dd>${datenbank(h.wortprofilDb, 'Kollokationen, Wort prüfen')}</dd></div>`,
+    `<div><dt>Belegsätze</dt><dd>${h.belegeDb === 'ok' ? datenbank('ok', 'Beispielsätze aus dem Korpus') : betriebWert('nicht verfügbar', 'warn')}</dd></div>`,
+    betriebZeile('Benachrichtigungen', betriebWert(pushText, push.web || push.ios ? '' : 'warn'), esc(anzahlText(push.geraete || 0, 'Gerät angemeldet', 'Geräte angemeldet'))),
+    betriebZeile('E-Mail-Versand', betriebWert(mailDa ? 'eingerichtet' : 'nicht eingerichtet', mailDa ? '' : 'warn'), mailDa ? '' : 'Willkommens-Mails werden nicht verschickt'),
+    betriebZeile('Letzte Sicherung', alter === null ? betriebWert('keine gefunden', 'warn') : alter > SICHERUNG_MAX_STUNDEN ? betriebWert(`${wannText(h.sicherung.zuletzt)} Uhr · zu alt`, 'warn') : betriebWert(`${wannText(h.sicherung.zuletzt)} Uhr`), '<a class="adm-link" href="#werkzeuge/sicherung">Sicherung ansehen</a>'),
+    betriebZeile('Letzter geplanter Tag', betriebWert(h.lastEntry && /^\d{4}-\d{2}-\d{2}$/.test(h.lastEntry) ? tagText(h.lastEntry) : '–')),
+  ].join('')
+
+  const gestartet = h.process?.startedAt ? new Date(h.process.startedAt) : null
+  const lag = Number(perf?.eventLoop?.lagAvgMs || 0)
+  server.innerHTML = [
+    gestartet ? betriebZeile('Läuft', betriebWert(`seit ${wannText(gestartet)} Uhr`), esc(`${dauerText(getCurrentDate() - gestartet)} ohne Neustart`)) : '',
+    betriebZeile('Betriebsart', betriebWert(h.env === 'production' ? 'Produktion' : 'Entwicklung')),
+    h.process?.appVersion ? betriebZeile('Version', betriebWert(h.process.appVersion)) : '',
+    betriebZeile('Arbeitsspeicher', betriebWert(`${ganzzahlDe(h.memMb)} MB`)),
+    perf ? betriebZeile('Reaktionszeit', betriebWert(lag < ANTWORT_VERZOEGERT_MS ? 'flüssig' : 'verzögert', lag < ANTWORT_VERZOEGERT_MS ? '' : 'warn'), esc(`Verzögerung im Mittel ${lag.toLocaleString('de-DE')} ms`)) : '',
+  ].join('')
+
+  werte.innerHTML = perf ? [
+    betriebZeile('Datenbank', betriebWert(mbText(perf.db?.sizeBytes)), esc(`dazu ${mbText(perf.db?.walBytes)} noch nicht übernommene Änderungen`)),
+    zwischenspeicherZeile('Suchergebnisse', perf.cache?.query),
+    zwischenspeicherZeile('Belegsätze', perf.cache?.belege),
+    betriebZeile('Konten', betriebWert(ganzzahlDe(perf.entities?.users))),
+    betriebZeile('Klassenräume', betriebWert(anzahlText(perf.entities?.classroomSessions || 0, 'Sitzung', 'Sitzungen'))),
+    betriebZeile('Spielstatistik', betriebWert(anzahlText(perf.rows?.totalPlays || 0, 'Spiel', 'Spiele')), esc(`${ganzzahlDe(perf.rows?.statsRows)} Zeilen, davon ${ganzzahlDe(perf.rows?.identifiedStatsRows)} mit Konto`)),
+  ].join('') : betriebZeile('Messwerte', betriebWert('nicht verfügbar', 'warn'))
+
+  if (healthJson) healthJson.textContent = JSON.stringify(h, null, 2)
+  if (perfJson) perfJson.textContent = perf ? JSON.stringify(perf, null, 2) : 'Keine Daten.'
+}
+
+async function ladeSystemzustand({ fokus = false } = {}) {
+  const token = ++systemToken
+  const lage = document.getElementById('system-lage')
+  const knopf = lage?.querySelector('[data-action="load-health"]')
+  if (knopf) {
+    // Neu prüfen: Der Knopf bleibt stehen (der Fokus geht nicht verloren), zeigt aber, dass geprüft wird
+    knopf.setAttribute('aria-disabled', 'true')
+    knopf.textContent = 'wird geprüft …'
+  } else {
+    renderLage(null, { laden: true })
+  }
+  const [hRes, pRes] = await Promise.allSettled([holeJson('/admin/health'), holeJson('/admin/performance')])
+  const h = hRes.status === 'fulfilled' ? hRes.value : null
+  const perf = pRes.status === 'fulfilled' ? pRes.value : null
+  healthAnwenden(h)
+  if (token !== systemToken || currentRoute?.page !== 'system') return
+  // War der Fokus im ersetzten Bereich (oder nirgends), soll er dort bleiben; woanders hingegangen: in Ruhe lassen
+  const aktiv = document.activeElement
+  const fokusDa = !aktiv || aktiv === document.body || !!lage?.contains(aktiv)
+  renderLage(h, { fehler: hRes.status === 'rejected' ? hRes.reason?.message : '' })
+  renderSystem(h, perf)
+  if (fokus && fokusDa && lage) {
+    // Die Lage ist eine Live-Region; wird sie fokussiert, liest der Screenreader sie darüber: kurz ausschalten, sonst doppelt
+    lage.setAttribute('aria-live', 'off')
+    lage.focus({ preventScroll: true })
+    window.setTimeout(() => lage.setAttribute('aria-live', 'polite'), 800)
+  }
+}
+
+// ── Sicherung ──
+
+const SICHERUNG_ANLASS = { taeglich: 'tägliche Sicherung', manuell: 'von Hand gesichert', 'vor-wiederherstellung': 'vor dem Wiederherstellen' }
+const UMFANG_ZEILEN = [['lemmata', 'Wörter'], ['kalender', 'Kalendertage'], ['wortzwilling', 'Wort-Zwilling'], ['zeitenwende', 'Zeitenwende']]
+const SICHERUNG_TEILE = { lemmata: 'lemmata.json', kalender: 'kalender.json', wortzwilling: 'wortzwilling.json', zeitenwende: 'zeitenwende.json' }
+
+function sicherungFehlerHtml(text) {
+  return `<li><p class="wo-meldung" data-tone="err" role="alert">${esc(text)} <button type="button" class="adm-link" data-action="sicherung-laden">Erneut versuchen</button></p></li>`
+}
+
+async function ladeSicherungsListe() {
+  const token = ++sicherungListeToken
+  const liste = document.getElementById('sicherung-liste')
+  const stand = document.getElementById('sicherung-stand')
+  if (!liste) return
+  if (!liste.children.length) liste.innerHTML = '<li class="be-zeile"><span class="be-zeile-meta" data-tone="loading">wird geladen …</span></li>'
+  try {
+    const data = await holeJson('/admin/backup/sqlite')
+    if (token !== sicherungListeToken) return
+    const sicherungen = Array.isArray(data.backups) ? data.backups : []
+    const neueste = sicherungen.find((s) => s.anlass === 'taeglich')
+    if (stand) stand.textContent = neueste ? `Zuletzt ${wannText(neueste.modifiedAt)} Uhr` : 'Noch keine Sicherung vorhanden'
+    liste.innerHTML = sicherungen.length
+      ? sicherungen.map((s) => {
+        const t = berlinTeile(s.modifiedAt)
+        return `<li class="be-zeile"><span class="be-zeile-haupt">${t ? `${esc(datumKurzJahr(t))}, ${uhrText(t)}` : '–'}</span>`
+          + `<span class="be-zeile-meta">${esc(SICHERUNG_ANLASS[s.anlass] || s.anlass)} · ${esc(mbText(s.sizeBytes))}</span></li>`
+      }).join('')
+      : '<li class="be-zeile"><span class="be-zeile-meta is-leer">noch keine Sicherung vorhanden</span></li>'
+  } catch (err) {
+    if (token !== sicherungListeToken) return
+    if (stand) stand.textContent = ''
+    liste.innerHTML = sicherungFehlerHtml(`Die Sicherungen konnten nicht geladen werden (${err.message}).`)
+  }
+}
+
+function renderSicherungUmfang() {
+  const host = document.getElementById('sicherung-umfang')
+  if (!host) return
+  if (!sicherungUmfang) {
+    host.innerHTML = betriebZeile('Umfang', betriebWert('nicht verfügbar', 'warn'), '<button type="button" class="adm-link" data-action="sicherung-laden">Erneut versuchen</button>')
+    return
+  }
+  host.innerHTML = UMFANG_ZEILEN.map(([k, label]) => betriebZeile(label, betriebWert(ganzzahlDe(sicherungUmfang[k])))).join('')
+    + betriebZeile('Spielstatistik', betriebWert(anzahlText(sicherungUmfang.statsRows, 'Zeile', 'Zeilen')), 'in der Datei ohne Bezug zu Konten zusammengefasst')
+}
+
+async function ladeUmfang() {
+  try {
+    sicherungUmfang = await holeJson('/admin/backup/umfang')
+  } catch {
+    sicherungUmfang = null
+  }
+  renderSicherungUmfang()
+  // Die Prüfung vergleicht mit dem jetzigen Stand: Hat sich dieser geändert, beginnt sie neu (Häkchen aus).
+  if (restoreDatei) renderPruefung()
+}
+
+function ladeSicherung() {
+  return Promise.all([ladeSicherungsListe(), ladeUmfang()])
+}
+
+async function sicherungJetzt() {
+  const btn = document.getElementById('sicherung-jetzt')
+  if (!btn || btn.getAttribute('aria-disabled') === 'true') return
+  setzeKnopfBusy('sicherung-jetzt', 'sicherung-jetzt-text', true, 'Sichert …')
+  setMeldung('sicherung-jetzt-status', 'Sicherung läuft …', 'loading')
+  try {
+    const res = await fetch('/admin/backup/sqlite', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' })
+    const data = await res.json().catch(() => ({}))
+    if (res.status === 409 || data.skipped) {
+      setMeldung('sicherung-jetzt-status', 'Es läuft schon eine Sicherung. Bitte gleich noch einmal versuchen.', 'warn')
+      return
+    }
+    if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`)
+    setMeldung('sicherung-jetzt-status', `Gesichert um ${uhrText(berlinTeile(getCurrentDate()))} Uhr: ${data.datei} (${mbText(data.sizeBytes)}).`, 'ok')
+    void ladeSicherungsListe()
+    void loadHealth()
+  } catch (err) {
+    setMeldung('sicherung-jetzt-status', `Die Sicherung ist fehlgeschlagen: ${err.message}`, 'error')
+  } finally {
+    setzeKnopfBusy('sicherung-jetzt', 'sicherung-jetzt-text', false, 'Jetzt sichern')
+  }
+}
+
+async function downloadBackup() {
+  const btn = document.getElementById('sicherung-download')
+  if (!btn || btn.getAttribute('aria-disabled') === 'true') return
+  setzeKnopfBusy('sicherung-download', 'sicherung-download-text', true, 'Lädt …')
+  setMeldung('sicherung-download-status', '')
+  try {
+    const r = await fetch('/admin/backup')
+    if (!r.ok) throw new Error(`HTTP ${r.status}`)
+    const blob = await r.blob()
+    const name = `signifikation-inhalte-${berlinTeile(getCurrentDate()).iso}.json`
+    createTemporaryDownload(blob, name)
+    setMeldung('sicherung-download-status', `Heruntergeladen: ${name}`, 'ok')
+  } catch (err) {
+    setMeldung('sicherung-download-status', `Der Download ist fehlgeschlagen (${err.message}).`, 'error')
+  } finally {
+    setzeKnopfBusy('sicherung-download', 'sicherung-download-text', false, 'Inhalte herunterladen')
+  }
+}
+
+// Datei lokal prüfen: Nichts wird hochgeladen, bevor bestätigt ist. Die Regeln entsprechen sanitizeBackupBundle
+// (server/routes/admin-backup-utils.js): Alle vier Inhaltsteile müssen vorhanden sein.
+// Liefert { ok: false, fehler } oder { ok: true, exportedAt, zahlen, fehlt }.
+function pruefeSicherung(payload, groesse) {
+  if (groesse > BACKUP_MAX_BYTES) return { ok: false, fehler: `Die Datei ist ${mbText(groesse)} groß; der Server nimmt höchstens 10 MB an.` }
+  if (!payload || typeof payload !== 'object' || !payload.files || typeof payload.files !== 'object') {
+    return { ok: false, fehler: 'Diese Datei ist keine Sicherung von Signifikation. Erwartet wird eine Datei, die hier unter „Inhalte herunterladen“ entstanden ist.' }
+  }
+  const f = payload.files
+  const objekt = (v) => (v && typeof v === 'object' && !Array.isArray(v) ? Object.keys(v).length : null)
+  const zahlen = {
+    lemmata: Array.isArray(f[SICHERUNG_TEILE.lemmata]) ? f[SICHERUNG_TEILE.lemmata].length : null,
+    kalender: objekt(f[SICHERUNG_TEILE.kalender]),
+    wortzwilling: objekt(f[SICHERUNG_TEILE.wortzwilling]),
+    zeitenwende: objekt(f[SICHERUNG_TEILE.zeitenwende]),
+    statsRows: Array.isArray(f['stats-rows.json']) ? f['stats-rows.json'].length : null,
+  }
+  const fehlt = Object.keys(SICHERUNG_TEILE).filter((k) => zahlen[k] === null)
+  const exportedAt = typeof payload.exportedAt === 'string' && !Number.isNaN(Date.parse(payload.exportedAt)) ? payload.exportedAt : null
+  return { ok: true, exportedAt, zahlen, fehlt }
+}
+
+function renderPruefung() {
+  const box = document.getElementById('restore-pruefung')
+  const name = document.getElementById('backup-restore-name')
+  if (!box || !name) return
+  if (!restoreDatei) {
+    box.hidden = true
+    box.innerHTML = ''
+    name.textContent = 'Keine Datei ausgewählt'
+    name.classList.remove('is-gewaehlt')
+    return
+  }
+  name.textContent = restoreDatei.name
+  name.classList.add('is-gewaehlt')
+  const pr = restoreDatei.pruefung
+  box.hidden = false
+  if (!pr.ok) {
+    // Der Grund steht in #restore-status (Live-Region, am Feld verknüpft)
+    box.hidden = true
+    box.innerHTML = ''
+    return
+  }
+  if (pr.server === 'laeuft') {
+    box.innerHTML = '<div class="be-pruefung"><p class="be-pruef-sub">Der Server prüft die Datei …</p></div>'
+    return
+  }
+  const d = pr.exportedAt ? berlinTeile(pr.exportedAt) : null
+  const heute = berlinTeile(getCurrentDate())
+  const tageAlt = d ? Math.floor((Date.UTC(heute.y, heute.m - 1, heute.d) - Date.UTC(d.y, d.m - 1, d.d)) / 864e5) : null
+  const jetzt = sicherungUmfang
+  const zeile = ([k, label]) => {
+    const neu = pr.zahlen[k]
+    const aktuell = jetzt ? jetzt[k] : null
+    const zelle = neu === null
+      ? '<span class="be-weniger">fehlt</span>'
+      : aktuell !== null && neu < aktuell ? `<span class="be-weniger">${esc(ganzzahlDe(neu))} (−${esc(ganzzahlDe(aktuell - neu))})</span>` : esc(ganzzahlDe(neu))
+    return `<tr><th scope="row">${esc(label)}</th><td>${zelle}</td><td>${aktuell === null ? '–' : esc(ganzzahlDe(aktuell))}</td></tr>`
+  }
+  const hinweise = []
+  if (pr.fehlt.length) {
+    hinweise.push({ ton: 'err', text: `In der Datei fehlen ${aufzaehlung(pr.fehlt.map((k) => UMFANG_ZEILEN.find((z) => z[0] === k)[1]))}. Eine unvollständige Datei lässt sich nicht wiederherstellen.` })
+  }
+  if (!jetzt) hinweise.push({ ton: 'err', text: 'Der jetzige Stand auf dem Server konnte nicht geladen werden. Ohne ihn lässt sich nichts vergleichen. Bitte die Seite neu laden.' })
+  if (d && tageAlt >= 1) hinweise.push({ ton: 'warn', text: `Die Datei ist ${anzahlText(tageAlt, 'Tag', 'Tage')} alt. Was seit ${datumLangBerlin(d, false)} geplant oder geändert wurde, geht verloren.` })
+  if (!d) hinweise.push({ ton: 'warn', text: 'Die Datei nennt kein Erstellungsdatum.' })
+  const sperre = pr.fehlt.length > 0 || !jetzt
+  const hatStatistik = pr.zahlen.statsRows !== null
+  box.innerHTML = '<div class="be-pruefung">'
+    + `<p class="be-pruef-titel">${d ? `Sicherung vom ${esc(datumLangBerlin(d))}, ${uhrText(d)} Uhr` : 'Sicherung ohne Datum'}</p>`
+    + '<p class="be-pruef-sub">Vergleich mit dem jetzigen Stand auf dem Server.</p>'
+    + '<table class="be-vergleich"><caption class="adm-visually-hidden">Umfang der Datei und jetziger Stand</caption>'
+    + '<thead><tr><th scope="col">Inhalt</th><th scope="col">in der Datei</th><th scope="col">jetzt</th></tr></thead><tbody>'
+    + UMFANG_ZEILEN.map(zeile).join('')
+    + '</tbody></table>'
+    + (hinweise.length ? `<ul class="be-hinweise">${hinweise.map((h) => `<li${h.ton === 'err' ? ' data-tone="err"' : ''}>${esc(h.text)}</li>`).join('')}</ul>` : '')
+    + (sperre ? '' : (hatStatistik
+      ? '<label class="be-check"><input type="checkbox" id="restore-statistik" aria-describedby="restore-statistik-hinweis"><span>Auch die Spielstatistik ersetzen</span></label>'
+        + '<p class="be-check-hinweis" id="restore-statistik-hinweis">Nicht empfohlen: Die Datei enthält die Statistik nur zusammengefasst. Statistik je Konto, Serien und Bestwerte gingen verloren.</p>'
+      : '')
+      + '<label class="be-check"><input type="checkbox" id="restore-verstanden"><span>Ich habe die Zahlen geprüft. Die jetzigen Inhalte werden ersetzt.</span></label>')
+    + '<div class="be-aktionen">'
+    + (sperre ? '' : '<button type="button" class="li-loeschen" id="restore-ausfuehren" data-action="restore-ausfuehren" aria-disabled="true" aria-describedby="restore-sperre">Inhalte jetzt ersetzen</button>')
+    + '<button type="button" class="adm-link" data-action="restore-abbrechen">Andere Datei wählen</button>'
+    + '</div>'
+    + (sperre ? '' : '<p class="adm-visually-hidden" id="restore-sperre">Erst das Häkchen „Zahlen geprüft“ setzen.</p>')
+    + '</div>'
+}
+
+// Fehler der Dateiprüfung am Feld: aria-invalid und Verweis auf die Meldung
+function markiereDateiFehler(fehler) {
+  const input = document.getElementById('backup-restore-input')
+  if (!input) return
+  if (fehler) {
+    input.setAttribute('aria-invalid', 'true')
+    input.setAttribute('aria-describedby', 'backup-restore-name restore-status')
+  } else {
+    input.removeAttribute('aria-invalid')
+    input.setAttribute('aria-describedby', 'backup-restore-name')
+  }
+}
+
+// Ergebnis der Dateiprüfung ansagen (die Tabelle allein käme nicht über eine Live-Region)
+function sageDateiPruefung(auswahl) {
+  const pr = auswahl.pruefung
+  if (!pr.ok) {
+    markiereDateiFehler(true)
+    setMeldung('restore-status', pr.fehler, 'error')
+  } else if (pr.fehlt.length) {
+    markiereDateiFehler(true)
+    setMeldung('restore-status', 'Die Datei ist unvollständig und lässt sich nicht wiederherstellen.', 'error')
+  } else {
+    markiereDateiFehler(false)
+    setMeldung('restore-status', 'Datei geprüft. Der Vergleich mit dem jetzigen Stand steht unter dem Dateinamen.')
+  }
+}
+
+async function waehleRestoreDatei(file) {
+  setMeldung('restore-status', '')
+  markiereDateiFehler(false)
+  if (!file) {
+    restoreDatei = null
+    renderPruefung()
+    return
+  }
+  let payload = null
+  // Größer als der Server annimmt: gar nicht erst lesen
+  if (file.size <= BACKUP_MAX_BYTES) {
+    try { payload = JSON.parse(await file.text()) } catch { payload = null }
+  }
+  const auswahl = { name: file.name, payload, pruefung: pruefeSicherung(payload, file.size) }
+  restoreDatei = auswahl
+  // Vollständig: Der Server zählt dieselbe Datei nach seinen Regeln (Probelauf, nichts wird geschrieben). So zeigt die Vorschau
+  // genau das, was er ersetzen würde, und nichts als „in Ordnung“, was er danach mit 400 ablehnt.
+  if (auswahl.pruefung.ok && !auswahl.pruefung.fehlt.length) {
+    auswahl.pruefung.server = 'laeuft'
+    renderPruefung()
+    try {
+      const data = await holeJson('/admin/backup/restore/pruefen', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ exportedAt: payload.exportedAt ?? undefined, files: payload.files }),
+      })
+      if (restoreDatei !== auswahl) return
+      auswahl.pruefung.zahlen = { ...data.zahlen, statsRows: data.hatStatistik ? data.zahlen.statsRows : null }
+      auswahl.pruefung.server = 'ok'
+    } catch (err) {
+      if (restoreDatei !== auswahl) return
+      auswahl.pruefung = { ok: false, fehler: err.status === 400 || err.status === 413 ? err.message : `Der Server konnte die Datei nicht prüfen (${err.message}).` }
+    }
+  }
+  renderPruefung()
+  sageDateiPruefung(auswahl)
+}
+
+// Gewählte Datei und Prüfung verwerfen (ohne den Fokus zu bewegen)
+function restoreAbbrechenStill() {
+  restoreDatei = null
+  const input = document.getElementById('backup-restore-input')
+  if (input) input.value = ''
+  markiereDateiFehler(false)
+  renderPruefung()
+}
+
+function restoreAbbrechen() {
+  restoreAbbrechenStill()
+  setMeldung('restore-status', '')
+  document.getElementById('backup-restore-input')?.focus()
+}
+
+// Häkchen „Zahlen geprüft“ entsperrt den Knopf (aria-disabled statt disabled: Er behält den Fokus)
+function aktualisiereRestoreKnopf() {
+  const btn = document.getElementById('restore-ausfuehren')
+  if (!btn || restoreLaeuft) return
+  if (document.getElementById('restore-verstanden')?.checked) {
+    btn.removeAttribute('aria-disabled')
+    btn.removeAttribute('aria-describedby')   // der Hinweis „erst das Häkchen setzen“ gilt nicht mehr
+  } else {
+    btn.setAttribute('aria-disabled', 'true')
+    btn.setAttribute('aria-describedby', 'restore-sperre')
+  }
+}
+
+// „Wiederhergestellt aus der Sicherung vom 14.10.2026: 1.290 Wörter, …“
+function restoreErfolgText(data, exportedAt) {
+  const r = data.restored || {}
+  const d = exportedAt ? berlinTeile(exportedAt) : null
+  const woher = d ? `der Sicherung vom ${zwei(d.d)}.${zwei(d.m)}.${d.y}` : 'der Datei'
+  const teile = [
+    anzahlText(r.lemmata || 0, 'Wort', 'Wörter'),
+    anzahlText(r.kalender || 0, 'Kalendertag', 'Kalendertage'),
+    anzahlText(r.wortzwilling || 0, 'Wort-Zwilling', 'Wort-Zwillinge'),
+    anzahlText(r.zeitenwende || 0, 'Zeitenwende', 'Zeitenwenden'),
+  ]
+  return `Wiederhergestellt aus ${woher}: ${teile.join(', ')}. `
+    + `${data.statistikErsetzt ? 'Die Spielstatistik wurde ersetzt.' : 'Die Spielstatistik blieb unverändert.'}`
+    + `${data.sicherheitskopie ? ` Sicherheitskopie vorher: ${data.sicherheitskopie}.` : ''}`
+}
+
+async function restoreAusfuehren() {
+  const btn = document.getElementById('restore-ausfuehren')
+  if (!btn || restoreLaeuft || !restoreDatei?.pruefung?.ok) return
+  if (btn.getAttribute('aria-disabled') === 'true') {
+    document.getElementById('restore-verstanden')?.focus()
+    return
+  }
+  // Alles, was nach dem await gebraucht wird, jetzt festhalten: Währenddessen kann man die Seite verlassen
+  // oder eine andere Datei wählen, restoreDatei und die Felder sind dann nicht mehr dieselben.
+  const auswahl = restoreDatei
+  const { payload } = auswahl
+  const exportedAt = auswahl.pruefung.exportedAt
+  const mitStatistik = !!document.getElementById('restore-statistik')?.checked
+  restoreLaeuft = true
+  btn.setAttribute('aria-disabled', 'true')
+  btn.textContent = 'Wird ersetzt …'
+  setMeldung('restore-status', '')
+
+  let data
+  try {
+    const res = await fetch('/admin/backup/restore', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ exportedAt: payload.exportedAt ?? undefined, files: payload.files, confirm: true, mitStatistik }),
+    })
+    data = await res.json().catch(() => ({}))
+    if (!res.ok) {
+      throw new Error(res.status === 413 ? 'Die Datei ist größer, als der Server annimmt (höchstens 10 MB).' : (data.error || `HTTP ${res.status}`))
+    }
+  } catch (err) {
+    restoreLaeuft = false
+    const knopf = document.getElementById('restore-ausfuehren')
+    if (knopf && restoreDatei === auswahl) {
+      knopf.textContent = 'Inhalte jetzt ersetzen'
+      aktualisiereRestoreKnopf()
+    }
+    setMeldung('restore-status', `Nicht wiederhergestellt: ${err.message}`, 'error')
+    return
+  }
+
+  // Ab hier ist es geschehen: nur noch aufräumen und melden, nie als Fehler
+  restoreLaeuft = false
+  const nochDieselbe = restoreDatei === auswahl
+  if (nochDieselbe) {
+    restoreDatei = null
+    const input = document.getElementById('backup-restore-input')
+    if (input) input.value = ''
+    markiereDateiFehler(false)
+    renderPruefung()
+  }
+  // Der Knopf ist weg (oder die Seite nicht offen): Bei offener Seite liest die Meldung der Fokus vor.
+  setMeldung('restore-status', restoreErfolgText(data, exportedAt), 'ok', { fokus: nochDieselbe && currentRoute?.page === 'sicherung' })
+  refreshDashboard()
+  void ladeSicherung()
+}
+
+// ── Kursmaterial ──
+
+const KURS_STATIONEN = [
+  { nr: 1, id: 's1', label: 'Kollokationen' },
+  { nr: 2, id: 's2', label: 'Wortarten' },
+  { nr: 3, id: 's3', label: 'Abhängigkeiten' },
+  { nr: 4, id: 's4', label: 'Korpus' },
+  { nr: 5, id: 's5', label: 'Recherche' },
+]
+
+function kursStationText(station) {
+  if (station === 'all' || station == null) return 'alle Stationen'
+  const s = KURS_STATIONEN.find((x) => x.nr === Number(station))
+  return s ? `Station ${s.nr} (${s.label})` : `Station ${station}`
+}
+
+function renderKurs() {
+  const host = document.getElementById('kurs-stationen')
+  if (!host) return
+  const job = kursJob || {}
+  const lauf = !!job.running
+  const stand = new Map((Array.isArray(job.stationen) ? job.stationen : []).map((s) => [s.station, s]))
+  host.innerHTML = KURS_STATIONEN.map((s) => {
+    const eintrag = stand.get(s.id)
+    const betroffen = lauf && (job.station === 'all' || Number(job.station) === s.nr)
+    const meta = betroffen
+      ? '<span class="be-zeile-meta" data-tone="loading">wird gerade erzeugt …</span>'
+      : eintrag
+        ? `<span class="be-zeile-meta">${esc(anzahlText(eintrag.anzahl, 'Datei', 'Dateien'))} · erzeugt ${esc(wannText(eintrag.zuletzt, { uhrzeit: false }))}</span>`
+        : '<span class="be-zeile-meta is-leer">noch nicht erzeugt</span>'
+    return `<li class="be-zeile"><span class="be-zeile-haupt">${s.nr} · ${esc(s.label)}</span>${meta}</li>`
+  }).join('')
+
+  setzeKnopfBusy('course-pdf-start', 'course-pdf-start-text', lauf, lauf ? 'Läuft …' : 'Neu erzeugen')
+
+  // Die Statuszeile ist eine Live-Region: nur neu setzen, wenn sich der Text ändert (nicht bei jeder Abfrage)
+  let text = ''
+  let ton = ''
+  const uhrVon = (ms) => uhrText(berlinTeile(new Date(ms)))
+  if (lauf) {
+    text = `Wird erzeugt: ${kursStationText(job.station)}, gestartet um ${uhrVon(job.startedAt)} Uhr. Das dauert ein bis zwei Minuten je Station.`
+    ton = 'loading'
+  } else if (job.ok === true) {
+    text = `Fertig um ${uhrVon(job.finishedAt)} Uhr: ${anzahlText(job.count, 'Datei', 'Dateien')} für ${kursStationText(job.station)} erzeugt.`
+    ton = 'ok'
+  } else if (job.ok === false) {
+    text = `Fehlgeschlagen um ${uhrVon(job.finishedAt)} Uhr (${kursStationText(job.station)}): ${job.error || 'unbekannter Fehler'}`
+    ton = 'error'
+  }
+  if (text !== kursMeldungZuletzt) {
+    kursMeldungZuletzt = text
+    setMeldung('course-pdf-status', text, ton)
+  }
+}
+
+function stoppeKursAbfrage() {
+  if (kursTimer) {
+    window.clearTimeout(kursTimer)
+    kursTimer = null
+  }
+}
+
+// Abfrage nur, solange die Seite offen und sichtbar ist und ein Lauf unterwegs ist (setTimeout-Kette: keine Überlappung)
+function planeKursAbfrage() {
+  stoppeKursAbfrage()
+  if (!kursJob?.running || currentRoute?.page !== 'kursmaterial' || document.hidden) return
+  kursTimer = window.setTimeout(async () => {
+    kursTimer = null
+    try {
+      const data = await holeJson('/admin/course/pdf-status')
+      if (currentRoute?.page !== 'kursmaterial') return
+      kursJob = data
+    } catch { /* der nächste Versuch kommt */ }
+    renderKurs()
+    planeKursAbfrage()
+  }, KURS_ABFRAGE_MS)
+}
+
+async function ladeKursmaterial() {
+  stoppeKursAbfrage()
+  const host = document.getElementById('kurs-stationen')
+  if (host && !host.children.length) host.innerHTML = '<li class="be-zeile"><span class="be-zeile-meta" data-tone="loading">wird geladen …</span></li>'
+  try {
+    const data = await holeJson('/admin/course/pdf-status')
+    if (currentRoute?.page !== 'kursmaterial') return
+    kursJob = data
+    renderKurs()
+    // Auch ein Lauf aus einem anderen Tab oder vor dem Neuladen wird weiterverfolgt
+    planeKursAbfrage()
+  } catch (err) {
+    if (currentRoute?.page !== 'kursmaterial' || !host) return
+    host.innerHTML = `<li><p class="wo-meldung" data-tone="err" role="alert">Der Stand konnte nicht geladen werden (${esc(err.message)}). <button type="button" class="adm-link" data-action="kurs-laden">Erneut versuchen</button></p></li>`
+  }
+}
+
+async function regenerateCoursePdfs() {
+  const btn = document.getElementById('course-pdf-start')
+  if (!btn || btn.getAttribute('aria-disabled') === 'true') return
+  const station = document.getElementById('course-pdf-station')?.value || 'all'
+  setzeKnopfBusy('course-pdf-start', 'course-pdf-start-text', true, 'Startet …')
+  try {
+    const res = await fetch('/admin/course/regenerate-pdfs', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ station }),
+    })
+    const data = await res.json().catch(() => ({}))
+    // 409: Es läuft schon ein Lauf – dessen Stand zeigen
+    if (!res.ok && !data.status) throw new Error(data.error || `HTTP ${res.status}`)
+    kursJob = { ...(kursJob || {}), ...data.status }
+    renderKurs()
+    planeKursAbfrage()
+  } catch (err) {
+    renderKurs()
+    kursMeldungZuletzt = ''
+    setMeldung('course-pdf-status', `Nicht gestartet: ${err.message}`, 'error')
+  }
+}
+
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) stoppeKursAbfrage()
+  else if (currentRoute?.page === 'kursmaterial') void ladeKursmaterial()
+})
+
+// Rohdaten-Blöcke werden erst fokussierbar, wenn sie überlaufen (WCAG 2.1.1: scrollbare Bereiche per Tastatur).
+// Gemessen wird beim Aufklappen, vorher haben sie keine Größe. „toggle“ bubbelt nicht: Capture am Dokument.
+document.addEventListener('toggle', (event) => {
+  const d = event.target
+  if (!d?.classList?.contains('be-roh') || !d.open) return
+  for (const pre of d.querySelectorAll('pre')) {
+    if (pre.scrollHeight > pre.clientHeight + 1 || pre.scrollWidth > pre.clientWidth + 1) pre.setAttribute('tabindex', '0')
+    else pre.removeAttribute('tabindex')
+  }
+}, true)
+
+// ── Änderungsprotokoll ──
+
+const PROTOKOLL_BEREICHE = { kalender: 'Tage', lemma_entwurf: 'Vorschläge', user: 'Konten', push: 'Benachrichtigungen', spezialwoche: 'Wort der Woche', backup: 'Sicherung', security: 'Anmeldung und Zahlung' }
+const PROTOKOLL_VORGAENGE = {
+  CREATE: 'angelegt oder gespeichert', UPDATE: 'geändert', DELETE: 'gelöscht', LOGIN_SUCCESS: 'angemeldet', LOGIN_FAIL: 'Anmeldung fehlgeschlagen',
+  LOGOUT: 'abgemeldet', SESSIONS_INVALIDATED: 'Sitzungen beendet', CHECKOUT_REJECT_COUNTRY: 'Kauf abgelehnt (Land)', PAYMENT_REJECT: 'Zahlung abgewiesen', WEBHOOK_REJECT: 'Zahlungsmeldung abgewiesen',
+}
+const ANMELDE_GRUENDE = { 'User nicht gefunden': 'unbekannte Adresse', 'keine Admin-Role': 'Konto ohne Admin-Rechte', 'kein Passwort': 'Konto ohne Passwort', 'Passwort falsch': 'falsches Passwort' }
+const PROTOKOLL_FILTER_IDS = ['audit-search', 'audit-resource', 'audit-action', 'audit-status', 'audit-from', 'audit-to']
+
+const fehlgeschlagen = (e) => e.status === 'FAIL' || e.status === 'FAILED'
+const protokollSchluessel = (e) => `${e.timestamp}|${e.action}|${e.resource}|${e.resourceId}`
+
+// Ein Satz je Eintrag (Klartext; esc beim Ausgeben)
+function protokollSatz(e) {
+  const c = e.changes || {}
+  const a = c.after || {}
+  const b = c.before || {}
+  const det = c.details || {}
+  switch (`${e.resource}:${e.action}`) {
+    case 'kalender:CREATE': return `Tag ${tagText(e.resourceId)} gespeichert`
+    case 'kalender:DELETE': return `Tag ${tagText(e.resourceId)} gelöscht`
+    case 'lemma_entwurf:CREATE': {
+      const n = Array.isArray(a.daten) ? a.daten.length : 0
+      const [von, bis] = String(e.resourceId || '').split('..')
+      return n ? `${anzahlText(n, 'Vorschlag', 'Vorschläge')} eingegangen (${kurzTag(von)}–${kurzTag(bis)})` : 'Vorschläge eingegangen'
+    }
+    case 'lemma_entwurf:DELETE': return `Vorschlag für ${b.datum ? tagText(b.datum) : 'einen Tag'} verworfen`
+    case 'user:UPDATE': return `Rolle eines Kontos von ${roleLabel(b.role)} auf ${roleLabel(a.role)} geändert`
+    case 'user:DELETE': return `Konto gelöscht (${b.role ? roleLabel(b.role) : 'Rolle unbekannt'})`
+    case 'push:CREATE': return `Benachrichtigung „${a.title || e.resourceId}“ an alle Geräte gesendet`
+    case 'spezialwoche:CREATE': return `Wort der Woche für ${kwText(e.resourceId)} gespeichert${a.lemma ? `: ${a.lemma}` : ''}`
+    case 'spezialwoche:DELETE': return `Wort der Woche für ${kwText(e.resourceId)} entfernt`
+    case 'backup:CREATE': return 'Datenbank gesichert (von Hand)'
+    case 'backup:UPDATE': {
+      const t = a.exportedAt ? berlinTeile(a.exportedAt) : null
+      return `Inhalte aus einer Sicherung${t ? ` vom ${zwei(t.d)}.${zwei(t.m)}.${t.y}` : ''} wiederhergestellt`
+    }
+    case 'security:LOGIN_SUCCESS': return 'Im Admin-Bereich angemeldet'
+    case 'security:LOGIN_FAIL': return `Anmeldung fehlgeschlagen: ${ANMELDE_GRUENDE[det.reason] || det.reason || 'Grund unbekannt'}`
+    case 'security:LOGOUT': return 'Abgemeldet'
+    case 'security:SESSIONS_INVALIDATED': return det.scope === 'all' ? 'Alle Sitzungen beendet' : 'Sitzungen eines Kontos beendet'
+    case 'security:CHECKOUT_REJECT_COUNTRY': return `Kauf abgelehnt: Aufruf aus dem Ausland${det.country ? ` (${det.country})` : ''}`
+    case 'security:PAYMENT_REJECT': return 'Zahlung abgewiesen: Betrag oder Währung ungültig'
+    case 'security:WEBHOOK_REJECT': return 'Zahlungsmeldung von unbekannter Adresse abgewiesen'
+    default: return `${PROTOKOLL_VORGAENGE[e.action] || e.action || 'Vorgang'} · ${PROTOKOLL_BEREICHE[e.resource] || e.resource || 'Bereich unbekannt'}`
+  }
+}
+
+// Das Protokoll nennt kein „Wer“ (gespeichert sind nur die letzten 4 Zeichen der Sitzungs-ID): Es zeigt die Quelle.
+function protokollQuelle(e) {
+  if (e.adminKeyLast4 === '-api') return 'Vorschlags-Schnittstelle'
+  if (e.ip === 'cli') return 'Kommandozeile auf dem Server'
+  if (e.action === 'WEBHOOK_REJECT' || e.action === 'PAYMENT_REJECT') return 'Zahlungsdienst'
+  if (e.action === 'CHECKOUT_REJECT_COUNTRY') return 'Kasse der Website'
+  if (e.action === 'LOGIN_SUCCESS' || e.action === 'LOGIN_FAIL') return 'Anmeldeseite'
+  return 'Admin-Bereich'
+}
+
+// Lesbare Einzelheiten (dl) und die Rohdaten. Die E-Mail eines gelöschten Kontos steht nur hier.
+function protokollDetail(e, i) {
+  const c = e.changes || {}
+  const a = c.after || {}
+  const b = c.before || {}
+  const det = c.details || {}
+  const t = berlinTeile(e.timestamp)
+  const id = (v) => `<span class="be-id">${esc(v)}</span>`
+  const w = betriebWert
+  const istTag = (v) => /^\d{4}-\d{2}-\d{2}$/.test(v || '')
+  const kontoLink = (v) => (NUTZER_ID_RE.test(v || '') ? `<a class="adm-link" href="${esc(kontoHash(v))}">Konto öffnen</a>` : id(v))
+  const zeilen = [betriebZeile('Zeitpunkt', w(t ? `${datumLangBerlin(t)}, ${uhrText(t)}:${t.ss} Uhr` : '–'))]
+  zeilen.push(betriebZeile('Vorgang', w(PROTOKOLL_VORGAENGE[e.action] || e.action), esc(PROTOKOLL_BEREICHE[e.resource] || e.resource || '')))
+  const k = `${e.resource}:${e.action}`
+  if (e.resource === 'kalender') {
+    if (istTag(e.resourceId) && e.action === 'CREATE') zeilen.push(betriebZeile('Tag', `<a class="adm-link" href="#planen/tag/${esc(e.resourceId)}">${esc(tagText(e.resourceId))} öffnen</a>`))
+    if (k === 'kalender:CREATE') {
+      if (Array.isArray(a.woerter)) zeilen.push(betriebZeile('Wörter', w(a.woerter.join(', '))))
+      zeilen.push(betriebZeile('Weitere Spiele', w(`Wort-Zwilling ${a.zwilling ? 'ja' : 'nein'} · Zeitenwende ${a.zeitenwende ? 'ja' : 'nein'}`)))
+    } else {
+      zeilen.push(betriebZeile('Tag', w(tagText(e.resourceId))))
+      if (b.kalender) {
+        if (b.kalender.thema) zeilen.push(betriebZeile('Thema vorher', w(b.kalender.thema)))
+        zeilen.push(betriebZeile('Gelöscht', w(`${anzahlText((b.kalender.ids || []).length, 'Wort', 'Wörter')} · Wort-Zwilling ${b.wortzwilling ? 'ja' : 'nein'} · Zeitenwende ${b.zeitenwende ? 'ja' : 'nein'}`)))
+      }
+    }
+  } else if (e.resource === 'lemma_entwurf') {
+    if (Array.isArray(a.daten)) zeilen.push(betriebZeile('Tage', w(a.daten.map(kurzTag).join(', '))))
+    if (b.datum) zeilen.push(betriebZeile('Tag', w(tagText(b.datum))))
+    if (Array.isArray(b.woerter)) zeilen.push(betriebZeile('Wörter', w(b.woerter.join(', '))))
+  } else if (e.resource === 'user') {
+    zeilen.push(betriebZeile('Konto', e.action === 'DELETE' ? id(e.resourceId) : kontoLink(e.resourceId), e.action === 'DELETE' ? 'Konto gibt es nicht mehr' : ''))
+    if (k === 'user:UPDATE') zeilen.push(betriebZeile('Rolle', `${w(roleLabel(b.role))} <span class="pr-pfeil" aria-hidden="true">→</span><span class="adm-visually-hidden">geändert auf</span> ${w(roleLabel(a.role))}`))
+    if (k === 'user:DELETE' && b.email) zeilen.push(betriebZeile('E-Mail', w(b.email)))
+  } else if (e.resource === 'push') {
+    if (a.body) zeilen.push(betriebZeile('Text', w(a.body)))
+    if (a.total != null) zeilen.push(betriebZeile('Zugestellt', w(`${ganzzahlDe(a.sent)} von ${ganzzahlDe(a.total)}`), a.failed ? esc(`${ganzzahlDe(a.failed)} fehlgeschlagen`) : ''))
+  } else if (e.resource === 'spezialwoche') {
+    if (a.von) zeilen.push(betriebZeile('Zeitraum', w(`${tagText(a.von)} – ${tagText(a.bis)}`)))
+    if (a.zwilling_partner) zeilen.push(betriebZeile('Wort-Zwilling', w(`${a.lemma} · ${a.zwilling_partner}`)))
+  } else if (e.resource === 'backup') {
+    if (k === 'backup:CREATE') {
+      if (a.datei) zeilen.push(betriebZeile('Datei', id(a.datei), a.sizeBytes ? esc(mbText(a.sizeBytes)) : ''))
+    } else {
+      const ex = a.exportedAt ? berlinTeile(a.exportedAt) : null
+      if (ex) zeilen.push(betriebZeile('Stand der Datei', w(`${datumLangBerlin(ex)}, ${uhrText(ex)} Uhr`)))
+      if (a.zahlen) zeilen.push(betriebZeile('Wiederhergestellt', w(`${anzahlText(a.zahlen.lemmata || 0, 'Wort', 'Wörter')} · ${anzahlText(a.zahlen.kalender || 0, 'Kalendertag', 'Kalendertage')}`)))
+      if (typeof a.mitStatistik === 'boolean') zeilen.push(betriebZeile('Spielstatistik', w(a.mitStatistik ? 'ersetzt' : 'unverändert')))
+      if (a.sicherheitskopie) zeilen.push(betriebZeile('Sicherheitskopie', id(a.sicherheitskopie)))
+    }
+  } else if (e.resource === 'security') {
+    if (det.reason && e.action === 'LOGIN_FAIL') zeilen.push(betriebZeile('Grund', w(ANMELDE_GRUENDE[det.reason] || det.reason)))
+    if (det.reason && e.action !== 'LOGIN_FAIL') zeilen.push(betriebZeile('Grund', w(det.reason)))
+    if (det.country) zeilen.push(betriebZeile('Land', w(det.country)))
+    if (det.deleted != null) zeilen.push(betriebZeile('Beendet', w(anzahlText(det.deleted, 'Sitzung', 'Sitzungen'))))
+    if (det.userId) zeilen.push(betriebZeile('Konto', kontoLink(det.userId)))
+  }
+  zeilen.push(betriebZeile('Ergebnis', w(fehlgeschlagen(e) ? 'fehlgeschlagen' : 'erfolgreich', fehlgeschlagen(e) ? 'err' : ''), e.error ? esc(e.error) : ''))
+  zeilen.push(betriebZeile('Quelle', w(protokollQuelle(e))))
+  if (e.ip && e.ip !== 'cli') zeilen.push(betriebZeile('IP-Adresse', w(e.ip), 'wird nach 30 Tagen entfernt'))
+  const emailHinweis = (k === 'user:DELETE' && b.email)
+    ? '<p class="pr-detail-hinweis">Die E-Mail-Adresse steht hier nur als Nachweis der Löschung. Nicht kopieren oder weitergeben; sie verschwindet mit dem Eintrag nach 24 Monaten.</p>'
+    : ''
+  return `<div class="pr-detail" id="pr-detail-${i}" hidden>`
+    + `<dl class="tag-dl be-dl">${zeilen.join('')}</dl>${emailHinweis}`
+    + `<details class="be-roh"><summary>Rohdaten anzeigen</summary><pre role="region" aria-label="Rohdaten des Eintrags">${esc(JSON.stringify(e, null, 2))}</pre></details>`
+    + '</div>'
+}
+
+function protokollFilter() {
+  const wert = (id) => document.getElementById(id)?.value || ''
+  return { q: wert('audit-search').trim(), resource: wert('audit-resource'), action: wert('audit-action'), status: wert('audit-status'), from: wert('audit-from'), to: wert('audit-to') }
+}
+const protokollFilterAktiv = (f) => !!(f.q || f.resource || f.action || f.status || f.from || f.to)
+
+let protokollLadeTimer = null
+
+async function loadAuditLog() {
+  const liste = document.getElementById('audit-liste')
+  const zaehler = document.getElementById('audit-count')
+  if (!liste) return
+  const token = ++protokollToken
+  if (protokollLadeTimer) window.clearTimeout(protokollLadeTimer)
+  const f = protokollFilter()
+  // „Von“ nach „Bis“: Es kann keine Treffer geben, der Server wird gar nicht erst gefragt
+  if (f.from && f.to && f.from > f.to) {
+    protokollEintraege = []
+    protokollGesamt = 0
+    protokollBegrenzt = false
+    renderProtokoll({ hinweis: 'Das Von-Datum liegt nach dem Bis-Datum. Dazu gibt es keine Einträge.' })
+    return
+  }
+  // Der Ladetext erscheint erst, wenn die Antwort länger als 400 ms braucht (sonst spricht er bei jedem Filter)
+  protokollLadeTimer = window.setTimeout(() => {
+    if (token === protokollToken && zaehler) zaehler.textContent = 'Protokoll wird geladen …'
+  }, 400)
+  const params = new URLSearchParams({ limit: String(protokollLimit) })
+  for (const [k, v] of Object.entries(f)) if (v) params.set(k, v)
+  try {
+    const data = await holeJson(`/admin/audit-log?${params}`)
+    if (token !== protokollToken) return
+    window.clearTimeout(protokollLadeTimer)
+    protokollEintraege = Array.isArray(data.entries) ? data.entries : []
+    protokollGesamt = Number(data.totalMatches ?? protokollEintraege.length)
+    protokollBegrenzt = !!data.begrenzt
+    protokollDurchsuchtMax = Number(data.durchsuchtMax || 0)
+    renderProtokoll()
+  } catch (err) {
+    if (token !== protokollToken) return
+    window.clearTimeout(protokollLadeTimer)
+    protokollEintraege = []
+    // Die Zahlzeile ist die Live-Region: Auch der Fehler wird dort angesagt
+    if (zaehler) zaehler.textContent = 'Das Protokoll konnte nicht geladen werden.'
+    document.getElementById('audit-mehr')?.setAttribute('hidden', '')
+    const reset = document.getElementById('audit-reset')
+    if (reset) reset.hidden = !protokollFilterAktiv(f)
+    liste.innerHTML = `<p class="wo-meldung" data-tone="err">${esc(err.message)} <button type="button" class="adm-link" data-action="audit-laden">Erneut versuchen</button></p>`
+  }
+}
+
+function renderProtokoll({ hinweis = '' } = {}) {
+  const f = protokollFilter()
+  const liste = document.getElementById('audit-liste')
+  const zaehler = document.getElementById('audit-count')
+  const mehr = document.getElementById('audit-mehr')
+  const reset = document.getElementById('audit-reset')
+  if (!liste || !zaehler || !mehr || !reset) return
+  const gezeigt = protokollEintraege
+  const gesamt = protokollGesamt
+  reset.hidden = !protokollFilterAktiv(f)
+  // Von nach Bis: Beide Felder tragen die Meldung
+  for (const id of ['audit-from', 'audit-to']) {
+    const el = document.getElementById(id)
+    if (!el) continue
+    if (hinweis) {
+      el.setAttribute('aria-invalid', 'true')
+      el.setAttribute('aria-describedby', 'audit-count')
+    } else {
+      el.removeAttribute('aria-invalid')
+      el.removeAttribute('aria-describedby')
+    }
+  }
+  const begrenztText = protokollBegrenzt ? ` · nur die neuesten ${ganzzahlDe(protokollDurchsuchtMax)} durchsucht` : ''
+  // Auch „nichts gefunden“ steht in der Zahlzeile: Sie ist die Live-Region, die leere Liste sagt nichts an
+  zaehler.textContent = hinweis || (!gesamt
+    ? (protokollFilterAktiv(f) ? 'Keine Treffer' : 'Noch keine Einträge')
+    : (gezeigt.length < gesamt
+      ? `${ganzzahlDe(gezeigt.length)} von ${anzahlText(gesamt, 'Eintrag', 'Einträgen')} angezeigt`
+      : anzahlText(gesamt, 'Eintrag', 'Einträge')) + begrenztText)
+  const kannMehr = gezeigt.length < gesamt && protokollLimit < PROTOKOLL_MAX
+  mehr.hidden = !kannMehr
+  if (kannMehr) mehr.textContent = `${ganzzahlDe(Math.min(PROTOKOLL_SEITE, PROTOKOLL_MAX - protokollLimit, gesamt - gezeigt.length))} weitere anzeigen`
+
+  if (!gezeigt.length) {
+    // „Filter zurücksetzen“ steht schon neben der Zahl: nicht noch einmal
+    liste.innerHTML = protokollFilterAktiv(f)
+      ? '<div class="li-leer"><p class="li-leer-titel">Keine Einträge</p><p class="li-leer-text">Für diese Filter gibt es keine Einträge.</p></div>'
+      : '<div class="li-leer"><p class="li-leer-titel">Noch keine Einträge</p><p class="li-leer-text">Sobald im Admin-Bereich etwas gespeichert, gelöscht oder angemeldet wird, steht es hier.</p><p class="li-leer-ornament" aria-hidden="true">· · ·</p></div>'
+    return
+  }
+  const gruppen = new Map()
+  gezeigt.forEach((e, i) => {
+    const t = berlinTeile(e.timestamp)
+    const key = t ? t.iso : 'unbekannt'
+    if (!gruppen.has(key)) gruppen.set(key, { t, eintraege: [] })
+    gruppen.get(key).eintraege.push([e, i])
+  })
+  let html = [...gruppen].map(([key, { t, eintraege }]) => {
+    // Wochentag: sichtbar gekürzt, vorgelesen ausgeschrieben, mit Trennung zum Datum (sonst „Fr23.10.2026“)
+    const kopf = t
+      ? `<span class="nu-wt" aria-hidden="true">${DAYS_DE[t.wt]}</span><span class="adm-visually-hidden">${WOCHENTAGE_LANG[t.wt]}, </span>${esc(`${zwei(t.d)}.${zwei(t.m)}.${t.y}`)}`
+      : 'Zeit unbekannt'
+    return `<section class="li-gruppe" aria-labelledby="pr-tag-${esc(key)}">`
+      + `<h2 class="li-monat" id="pr-tag-${esc(key)}"><span class="li-monat-name">${kopf}</span>`
+      + `<span class="li-monat-zahl">${esc(anzahlText(eintraege.length, 'Eintrag', 'Einträge'))}</span></h2>`
+      + '<ol class="pr-liste">' + eintraege.map(([e, i]) => {
+        const offen = protokollOffen.has(protokollSchluessel(e))
+        const zeit = berlinTeile(e.timestamp)
+        return `<li class="pr-eintrag${offen ? ' is-offen' : ''}" data-aktion="${esc(e.action)}">`
+          + `<button type="button" class="pr-zeile" aria-expanded="${offen}" aria-controls="pr-detail-${i}" data-action="audit-detail" data-index="${i}">`
+          + `<span class="pr-zeit">${zeit ? uhrText(zeit) : '–'}</span>`
+          + `<span class="pr-satz">${esc(protokollSatz(e))}</span>`
+          + `<span class="pr-meta"><span>${esc(PROTOKOLL_BEREICHE[e.resource] || e.resource || '')}</span>${fehlgeschlagen(e) ? '<span class="pr-ergebnis">fehlgeschlagen</span>' : ''}</span>`
+          + '<span class="pr-auf" aria-hidden="true"></span></button>'
+          + protokollDetail(e, i).replace(' hidden>', offen ? '>' : ' hidden>') + '</li>'
+      }).join('') + '</ol></section>'
+  }).join('')
+  if (protokollBegrenzt) {
+    html += `<p class="pr-detail-hinweis">Nur die neuesten ${esc(ganzzahlDe(protokollDurchsuchtMax))} Einträge wurden durchsucht. Mit Filtern lässt sich das Protokoll eingrenzen.</p>`
+  } else if (gezeigt.length < gesamt && protokollLimit >= PROTOKOLL_MAX) {
+    html += `<p class="pr-detail-hinweis">Es werden höchstens ${esc(ganzzahlDe(PROTOKOLL_MAX))} Einträge angezeigt. Mit Filtern lässt sich das Protokoll eingrenzen.</p>`
+  }
+  liste.innerHTML = html
+}
+
+function schalteProtokollDetail(btn) {
+  const offen = btn.getAttribute('aria-expanded') !== 'true'
+  btn.setAttribute('aria-expanded', String(offen))
+  const detail = document.getElementById(btn.getAttribute('aria-controls'))
+  if (detail) detail.hidden = !offen
+  btn.closest('.pr-eintrag')?.classList.toggle('is-offen', offen)
+  const e = protokollEintraege[Number(btn.dataset.index)]
+  if (e) {
+    if (offen) protokollOffen.add(protokollSchluessel(e))
+    else protokollOffen.delete(protokollSchluessel(e))
+  }
+}
+
+// Filter geändert: von vorn beginnen (erste Seite, nichts aufgeklappt)
+function protokollNeuLaden() {
+  protokollLimit = PROTOKOLL_SEITE
+  protokollOffen.clear()
+  return loadAuditLog()
+}
+
+function resetAuditFilters() {
+  for (const id of PROTOKOLL_FILTER_IDS) {
+    const el = document.getElementById(id)
+    if (el) el.value = ''
+  }
+  void protokollNeuLaden()
+  document.getElementById('audit-search')?.focus()
+}
+
+function auditMehr() {
+  protokollLimit = Math.min(PROTOKOLL_MAX, protokollLimit + PROTOKOLL_SEITE)
+  // Der Fokus wartet auf der Zahl, bis die längere Liste da ist (der Knopf kann verschwinden)
+  void loadAuditLog().then(() => document.getElementById('audit-count')?.focus({ preventScroll: true }))
+}
+
+function planeProtokollSuche() {
+  if (protokollSuchTimer) window.clearTimeout(protokollSuchTimer)
+  protokollSuchTimer = window.setTimeout(() => {
+    protokollSuchTimer = null
+    void protokollNeuLaden()
+  }, 300)
+}
+
+// Beim Abmelden: Protokolldaten, Suchtext und eine gewählte Sicherungsdatei aus Speicher und Seite entfernen.
+function betriebZuruecksetzen() {
+  stoppeKursAbfrage()
+  if (protokollSuchTimer) window.clearTimeout(protokollSuchTimer)
+  protokollSuchTimer = null
+  protokollToken++
+  protokollEintraege = []
+  protokollGesamt = 0
+  protokollOffen.clear()
+  for (const id of PROTOKOLL_FILTER_IDS) {
+    const el = document.getElementById(id)
+    if (el) el.value = ''
+  }
+  const liste = document.getElementById('audit-liste')
+  if (liste) liste.innerHTML = ''
+  restoreLaeuft = false
+  restoreAbbrechenStill()
+  kursMeldungZuletzt = ''
+  setMeldung('course-pdf-status', '')
 }
 
 // Notiz und Link: Zustand steht in aria-expanded; das +/− zeichnet die CSS.
@@ -3104,86 +4125,6 @@ function renderStand() {
   ].join('')
 }
 
-async function loadAuditLog() {
-  const tbody = document.getElementById('audit-table-body')
-  const limit = document.getElementById('audit-limit')?.value || '100'
-  const action = document.getElementById('audit-action')?.value || ''
-  const resource = document.getElementById('audit-resource')?.value || ''
-  const status = document.getElementById('audit-status')?.value || ''
-  const from = document.getElementById('audit-from')?.value || ''
-  const to = document.getElementById('audit-to')?.value || ''
-  const q = (document.getElementById('audit-search')?.value || '').trim()
-  const countEl = document.getElementById('audit-count')
-  if (!tbody) return
-
-  tbody.innerHTML = tableMessageRow(5, 'users-empty', 'Audit-Log wird geladen …')
-
-  try {
-    const params = new URLSearchParams({ limit })
-    if (action) params.set('action', action)
-    if (resource) params.set('resource', resource)
-    if (status) params.set('status', status)
-    if (from) params.set('from', from)
-    if (to) params.set('to', to)
-    if (q) params.set('q', q)
-
-    const response = await fetch(`/admin/audit-log?${params.toString()}`, {})
-    const data = await response.json().catch(() => ({}))
-    if (!response.ok) throw new Error(data.error || `HTTP ${response.status}`)
-
-    const entries = Array.isArray(data.entries) ? data.entries : []
-    currentAuditEntries = entries
-    if (countEl) {
-      const totalMatches = Number(data.totalMatches || entries.length || 0)
-      countEl.textContent = `${entries.length} Einträge angezeigt${totalMatches !== entries.length ? ` (insgesamt ${totalMatches} Treffer)` : ''}`
-    }
-    if (!entries.length) {
-      tbody.innerHTML = tableMessageRow(5, 'users-empty', 'Noch keine Audit-Einträge vorhanden.')
-      return
-    }
-
-    tbody.innerHTML = entries.map((entry, index) => {
-      const time = entry.timestamp ? new Date(entry.timestamp).toLocaleString('de-DE') : '—'
-      const action = entry.action || '—'
-      const resource = entry.resourceId ? `${entry.resource || '—'}:${entry.resourceId}` : (entry.resource || '—')
-      const status = entry.status || '—'
-      const changes = summarizeAuditChanges(entry.changes)
-      return `<tr role="row">
-        <td role="cell" data-label="Zeit">${esc(time)}</td>
-        <td role="cell" data-label="Aktion">${esc(action)}</td>
-        <td role="cell" data-label="Ressource">${esc(resource)}</td>
-        <td role="cell" data-label="Status">${esc(status)}</td>
-        <td role="cell" data-label="Änderungen" class="cell-stack"><button class="entry-action-btn" data-action="show-audit-entry-details" data-index="${index}">${esc(changes)}</button></td>
-      </tr>`
-    }).join('')
-    showAuditEntryDetails(entries[0])
-  } catch (err) {
-    if (countEl) countEl.textContent = 'Audit-Log konnte nicht geladen werden.'
-    tbody.innerHTML = tableMessageRow(5, 'users-empty', `Audit-Log konnte nicht geladen werden: ${esc(err.message)}`)
-  }
-}
-
-function resetAuditFilters() {
-  const action = document.getElementById('audit-action')
-  const resource = document.getElementById('audit-resource')
-  const status = document.getElementById('audit-status')
-  const from = document.getElementById('audit-from')
-  const to = document.getElementById('audit-to')
-  const search = document.getElementById('audit-search')
-
-  if (action) action.value = ''
-  if (resource) resource.value = ''
-  if (status) status.value = ''
-  if (from) from.value = ''
-  if (to) to.value = ''
-  if (search) search.value = ''
-
-  loadAuditLog()
-}
-
-
-
-
 // ── Kollokation – Wortanalyse ─────────────────────────────
 async function analyzeKollokation() {
   const lemma = document.getElementById('koll-input').value.trim()
@@ -4495,115 +5436,6 @@ function renderTopUsers(topUsers) {
   }).join('')
 }
 
-function renderPerformance(metrics) {
-  const cards = document.getElementById('performance-cards')
-  const json = document.getElementById('performance-json')
-  if (!cards || !json) return
-
-  if (!metrics) {
-    cards.innerHTML = '<div class="users-empty">Keine Performance-Daten verfügbar.</div>'
-    json.textContent = 'Keine Performance-Daten verfügbar.'
-    return
-  }
-
-  const dbMb = ((Number(metrics.db?.sizeBytes || 0)) / 1024 / 1024).toFixed(2)
-  const walMb = ((Number(metrics.db?.walBytes || 0)) / 1024 / 1024).toFixed(2)
-  const queryHitRate = metrics.cache?.query?.hitRate || '0%'
-  const belegeHitRate = metrics.cache?.belege?.hitRate || '0%'
-
-  cards.innerHTML = [
-    `<article class="performance-card"><span>Server</span><strong>${esc(String(metrics.rssMb || 0))} MB RAM</strong><small>Uptime ${esc(String(metrics.uptimeSec || 0))}s</small></article>`,
-    `<article class="performance-card"><span>Datenbank</span><strong>${esc(dbMb)} MB</strong><small>WAL ${esc(walMb)} MB</small></article>`,
-    `<article class="performance-card"><span>Stats</span><strong>${esc(String(metrics.rows?.statsRows || 0))} Zeilen</strong><small>${esc(String(metrics.rows?.totalPlays || 0))} Plays total</small></article>`,
-    `<article class="performance-card"><span>Cache Query</span><strong>${esc(queryHitRate)}</strong><small>${esc(String(metrics.cache?.query?.size || 0))} Keys</small></article>`,
-    `<article class="performance-card"><span>Cache Belege</span><strong>${esc(belegeHitRate)}</strong><small>${esc(String(metrics.cache?.belege?.size || 0))} Keys</small></article>`,
-    `<article class="performance-card"><span>Entitäten</span><strong>${esc(String(metrics.entities?.users || 0))} Nutzer</strong><small>${esc(String(metrics.entities?.classroomSessions || 0))} Klassen-Sessions</small></article>`,
-  ].join('')
-
-  json.textContent = JSON.stringify(metrics, null, 2)
-}
-
-async function loadPerformance() {
-  const cards = document.getElementById('performance-cards')
-  if (cards) cards.innerHTML = '<div class="users-empty">Performance-Daten werden geladen …</div>'
-
-  try {
-    const response = await fetch('/admin/performance', {})
-    const data = await response.json()
-    if (!response.ok) throw new Error(data.error || `HTTP ${response.status}`)
-    renderPerformance(data)
-  } catch (err) {
-    renderPerformance(null)
-    const json = document.getElementById('performance-json')
-    if (json) json.textContent = `Performance konnte nicht geladen werden: ${err.message}`
-  }
-}
-
-// ── Kurs-PDFs neu generieren (Hintergrund-Job + Polling) ──────────────
-let coursePdfPollTimer = null
-
-function renderCoursePdfStatus(data) {
-  const el = document.getElementById('course-pdf-status')
-  if (!el) return
-  if (!data) { el.textContent = 'Status nicht verfügbar.'; return }
-  const st = data.station === 'all' ? 'alle Stationen' : `Station ${data.station}`
-  const lines = []
-  if (data.running) lines.push(`⏳ Läuft … (${st})`)
-  else if (data.ok === true) lines.push(`✓ Fertig: ${data.count} PDF(s) für ${st} erzeugt und registriert.`)
-  else if (data.ok === false) lines.push(`✗ Fehler: ${data.error || 'unbekannt'}`)
-  else lines.push('Noch nicht gestartet.')
-  if (data.startedAt) lines.push(`Start: ${new Date(data.startedAt).toLocaleString('de-DE')}`)
-  if (data.finishedAt) lines.push(`Ende:  ${new Date(data.finishedAt).toLocaleString('de-DE')}`)
-  el.textContent = lines.join('\n')
-}
-
-async function loadCoursePdfStatus() {
-  try {
-    const r = await fetch('/admin/course/pdf-status', {})
-    const data = await r.json()
-    renderCoursePdfStatus(data)
-    return data
-  } catch (err) {
-    renderCoursePdfStatus(null)
-    return null
-  }
-}
-
-function stopCoursePdfPolling() {
-  if (coursePdfPollTimer) { clearInterval(coursePdfPollTimer); coursePdfPollTimer = null }
-}
-
-function startCoursePdfPolling() {
-  stopCoursePdfPolling()
-  coursePdfPollTimer = setInterval(async () => {
-    const data = await loadCoursePdfStatus()
-    if (!data || !data.running) stopCoursePdfPolling()
-  }, 3000)
-}
-
-async function regenerateCoursePdfs() {
-  const station = document.getElementById('course-pdf-station')?.value || 'all'
-  const el = document.getElementById('course-pdf-status')
-  if (el) el.textContent = 'Starte …'
-  try {
-    const r = await fetch('/admin/course/regenerate-pdfs', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ station }),
-    })
-    const data = await r.json()
-    if (!r.ok) {
-      if (data.status) renderCoursePdfStatus(data.status)
-      else if (el) el.textContent = `✗ ${data.error || `HTTP ${r.status}`}`
-      return
-    }
-    renderCoursePdfStatus(data.status)
-    startCoursePdfPolling()
-  } catch (err) {
-    if (el) el.textContent = `✗ Netzwerkfehler: ${err.message}`
-  }
-}
-
 async function loadStatsSummary(daysOverride) {
   const days = String(daysOverride ?? (document.getElementById('stats-days')?.value || '30'))
   const topUsersBody = document.getElementById('stats-top-users-body')
@@ -5839,7 +6671,11 @@ function handleDocumentClick(event) {
   if (!target) return
   // Gesperrte Knöpfe (z. B. Vorschläge während einer Übernahme) behalten den Fokus
   // und lösen keine Aktion aus.
-  if (target.getAttribute('aria-disabled') === 'true') return
+  if (target.getAttribute('aria-disabled') === 'true') {
+    // Der gesperrte Ersetzen-Knopf verweist auf das Häkchen, das ihn freischaltet
+    if (target.dataset.action === 'restore-ausfuehren') document.getElementById('restore-verstanden')?.focus()
+    return
+  }
 
   const { action } = target.dataset
   if (action === 'login') return void doLogin()
@@ -5856,7 +6692,7 @@ function handleDocumentClick(event) {
   }
   if (action === 'retry-entry-route') return void navigate(currentRouteHash || '#planen')
   if (action === 'refresh-dashboard') return void refreshDashboard()
-  if (action === 'load-health') return void loadHealth()
+  if (action === 'load-health') return void (currentRoute?.page === 'system' ? ladeSystemzustand({ fokus: true }) : loadHealth())
   if (action === 'dashboard-week') return void changeDashboardWeek(Number(target.dataset.delta || 0))
   if (action === 'dashboard-week-heute') return void zeigeDieseWoche()
   if (action === 'select-dashboard-date') return void selectDashboardDay(target.dataset.value || '')
@@ -5916,13 +6752,16 @@ function handleDocumentClick(event) {
   if (action === 'save-selected-user-role') return void saveSelectedUserRole()
   if (action === 'export-user') return void exportiereKonto(target.dataset.format)
   if (action === 'delete-selected-user') return void deleteSelectedUser()
-  if (action === 'trigger-backup-restore') return void triggerBackupRestore()
-  if (action === 'load-performance') return void loadPerformance()
+  if (action === 'sicherung-jetzt') return void sicherungJetzt()
+  if (action === 'sicherung-laden') return void ladeSicherung()
+  if (action === 'restore-ausfuehren') return void restoreAusfuehren()
+  if (action === 'restore-abbrechen') return void restoreAbbrechen()
+  if (action === 'kurs-laden') return void ladeKursmaterial()
   if (action === 'regenerate-course-pdfs') return void regenerateCoursePdfs()
-  if (action === 'load-course-pdf-status') return void loadCoursePdfStatus()
-  if (action === 'load-audit-log') return void loadAuditLog()
+  if (action === 'audit-laden') return void loadAuditLog()
+  if (action === 'audit-detail') return void schalteProtokollDetail(target)
+  if (action === 'audit-mehr') return void auditMehr()
   if (action === 'reset-audit-filters') return void resetAuditFilters()
-  if (action === 'show-audit-entry-details') return void showAuditEntryDetailsByIndex(Number(target.dataset.index || -1))
   if (action === 'load-free-days') return void loadFreeDays()
   if (action === 'add-free-day') return void addFreeDay()
   if (action === 'delete-free-day') return void deleteFreeDay(target.dataset.date || '')
@@ -6434,7 +7273,8 @@ function renderMetricsTeachers(d) {
 
 function handleDocumentChange(event) {
   const target = event.target
-  if (target.id === 'backup-restore-input') return void restoreBackupFile(event)
+  if (target.id === 'backup-restore-input') return void waehleRestoreDatei(target.files?.[0])
+  if (target.id === 'restore-verstanden') return void aktualisiereRestoreKnopf()
   if (target.id === 'entry-sort') return void aendereListe({ zeit: target.value, seite: 1 })
   if (target.id === 'entry-mode-filter') return void aendereListe({ stand: target.value, seite: 1 })
   if (target.id === 'entry-page-size') return void aendereListe({ pro: Number(target.value) || LISTE_STANDARD.pro, seite: 1 })
@@ -6445,7 +7285,7 @@ function handleDocumentChange(event) {
   if (target.matches('.user-select-checkbox')) return void waehleNutzer(target.dataset.userId || '', target.checked)
   if (target.id === 'user-detail-role') return void aktualisiereRollenKnopf()
   if (target.dataset.action === 'toggle-entry-selection') return void toggleEntrySelection(target.dataset.datum || '', target.checked)
-  if (target.id === 'audit-limit' || target.id === 'audit-action' || target.id === 'audit-resource' || target.id === 'audit-status' || target.id === 'audit-from' || target.id === 'audit-to') return void loadAuditLog()
+  if (target.id === 'audit-action' || target.id === 'audit-resource' || target.id === 'audit-status' || target.id === 'audit-from' || target.id === 'audit-to') return void protokollNeuLaden()
   if (target.id === 'classroom-days') return void loadClassroomStats()
   if (target.id === 'metrics-days') return void loadProductMetrics()
 }
@@ -6454,7 +7294,7 @@ function handleDocumentInput(event) {
   const target = event.target
   if (target.id === 'entry-search') return void scheduleEntryTableRender()
   if (target.id === 'users-search') return void scheduleUsersOverviewLoad()
-  if (target.id === 'audit-search') return void loadAuditLog()
+  if (target.id === 'audit-search') return void planeProtokollSuche()
   if (ENTRY_FIELD_IDS.includes(target.id)) {
     // Das Thema ist einzeilig, auch wenn Text mit Zeilenumbrüchen eingefügt wird.
     if (target.matches?.('textarea[data-einzeilig]') && /\n/.test(target.value)) {

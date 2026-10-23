@@ -10,8 +10,8 @@ import { loadKalender, loadDailyContentMaps, loadWortZwilling, getLemmataIndex, 
 import { getCacheMetrics as getQueryCacheMetrics, clearCache as clearQueryCache } from '../query-cache.js'
 import { adminLimiter, loginLimiter, uploadLimiter } from '../middleware/rateLimiter.js'
 import { requireAuth, adminAuth, adminLogout, adminError, serverError } from '../middleware/auth.js'
-import { validate, qQuerySchema, adminTagSchema, analyzeKollQuerySchema, analyzeWZQuerySchema, analyzeZWendeQuerySchema, analyzeLueckenfuellerQuerySchema, lueckenfuellerGenerateSchema, adminUsersQuerySchema, adminSetUserRoleSchema, adminUserIdParamsSchema, adminUsersBulkUpdateSchema, adminBulkDeleteCalendarSchema, adminPreviewLemmaSchema, adminPreviewDayParamsSchema, adminLemmaIdParamsSchema, adminEntwurfIdParamsSchema, adminAuditLogDetailParamsSchema, adminBackupRestoreSchema, adminStatsQuerySchema, adminStatsSummaryQuerySchema, adminStatsExportQuerySchema, adminAuditLogQuerySchema, adminSocialCardsTagesdataSchema, adminSocialCardsBelegeSchema, adminSpezialwocheSchema, adminSpezialwocheParamsSchema, adminClassroomStatsQuerySchema, adminClassroomTeachersQuerySchema, adminPaymentsSummaryQuerySchema, adminCustomLemmaSummaryQuerySchema, adminRetentionQuerySchema } from '../middleware/validate.js'
-import { auditCreate, auditUpdate, auditDelete, getAuditLog } from '../audit.js'
+import { validate, qQuerySchema, adminTagSchema, analyzeKollQuerySchema, analyzeWZQuerySchema, analyzeZWendeQuerySchema, analyzeLueckenfuellerQuerySchema, lueckenfuellerGenerateSchema, adminUsersQuerySchema, adminSetUserRoleSchema, adminUserIdParamsSchema, adminUsersBulkUpdateSchema, adminBulkDeleteCalendarSchema, adminPreviewLemmaSchema, adminPreviewDayParamsSchema, adminLemmaIdParamsSchema, adminEntwurfIdParamsSchema, adminAuditLogDetailParamsSchema, adminBackupRestoreSchema, adminBackupPruefenSchema, adminBackupSqliteSchema, adminStatsQuerySchema, adminStatsSummaryQuerySchema, adminStatsExportQuerySchema, adminAuditLogQuerySchema, adminSocialCardsTagesdataSchema, adminSocialCardsBelegeSchema, adminSpezialwocheSchema, adminSpezialwocheParamsSchema, adminClassroomStatsQuerySchema, adminClassroomTeachersQuerySchema, adminPaymentsSummaryQuerySchema, adminCustomLemmaSummaryQuerySchema, adminRetentionQuerySchema } from '../middleware/validate.js'
+import { auditCreate, auditUpdate, auditDelete, getAuditLogForResource, queryAuditLog } from '../audit.js'
 import { ladeOffeneEntwuerfe, ladeEntwurf, entscheideEntwurf } from '../store-entwuerfe.js'
 import logger from '../logger.js'
 import { createAdminAuditRouter } from './admin-audit.js'
@@ -203,7 +203,8 @@ router.use(createAdminAuditRouter({
   validate,
   adminAuditLogQuerySchema,
   adminAuditLogDetailParamsSchema,
-  getAuditLog,
+  getAuditLogForResource,
+  queryAuditLog,
   adminError,
 }))
 
@@ -212,12 +213,16 @@ router.use(createAdminBackupRouter({
   requireAuth,
   validate,
   adminBackupRestoreSchema,
+  adminBackupPruefenSchema,
+  adminBackupSqliteSchema,
   loadBackupFiles,
   replaceAllAdminData,
   sanitizeBackupBundle,
+  auditCreate,
   auditUpdate,
   adminError,
   serverError,
+  logger,
 }))
 
 

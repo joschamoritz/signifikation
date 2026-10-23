@@ -59,6 +59,26 @@ function db() {
   return _db
 }
 
+/**
+ * Ist die Wortprofil-Datenbank gerade erreichbar? Für den Systemzustand im Admin-Bereich.
+ *
+ * Bewusst OHNE den Abfrage-Zwischenspeicher (fetchRelation hält Ergebnisse 1 h – eine
+ * gelöschte oder kaputte Datenbank bliebe bis zu einer Stunde „ok“) und ohne Korpus-
+ * Abfrage: ein einzelner Lesezugriff auf die Schema-Tabelle, der die offene Verbindung
+ * und die Datei wirklich berührt, aber nur eine Seite liest.
+ *
+ * @returns {'ok'|string} 'ok' oder 'error: …' (ohne Dateipfad, Details stehen im Log)
+ */
+export function wortprofilErreichbar() {
+  try {
+    db().prepare('SELECT 1 FROM sqlite_master LIMIT 1').get()
+    return 'ok'
+  } catch (err) {
+    logger.warn({ err }, 'Wortprofil-DB nicht erreichbar')
+    return 'error: Abfrage fehlgeschlagen'
+  }
+}
+
 // ── RelCode-Mapping (DWDS → eigene DB) ───────────────────────────────────────
 // DWDS kombiniert OBJA+OBJD zu OBJ, wir haben sie getrennt.
 const REL_ALIAS = {

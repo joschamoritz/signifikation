@@ -118,11 +118,12 @@ export const stmts = {
   `),
 }
 
-const _replaceAllAdminDataTx = db.transaction(({ lemmata, kalender, wortzwilling, zeitenwende, statsRows }) => {
+const _replaceAllAdminDataTx = db.transaction(({ lemmata, kalender, wortzwilling, zeitenwende, statsRows }, mitStatistik) => {
   _dailyContentStore.replaceKalender(kalender)
   _dailyContentStore.replaceWortzwilling(wortzwilling)
   _dailyContentStore.replaceZeitenwende(zeitenwende)
-  _statsStore.replaceStatsRows(statsRows)
+  // Die Datei enthält die Statistik nur ohne Konten; sie zu ersetzen löscht die Statistik je Konto.
+  if (mitStatistik) _statsStore.replaceStatsRows(statsRows)
   _saveLemmata(lemmata)
 })
 
@@ -297,8 +298,21 @@ export function loadBackupFiles() {
   }
 }
 
-export function replaceAllAdminData(bundle) {
-  _replaceAllAdminDataTx(bundle)
+/**
+ * Ersetzt Lemmata, Kalender, Wort-Zwilling und Zeitenwende in EINER Transaktion durch den Stand des Bundles.
+ * Die Spielstatistik bleibt unverändert, solange nicht `mitStatistik` gesetzt ist.
+ *
+ * Ein fehlender Teil ist ein Fehler und kein „leer“ (sonst würde die Tabelle geleert):
+ * Das Bundle muss alle vier Inhaltsteile mitbringen (sanitizeBackupBundle prüft das schon, hier als zweite Sicherung).
+ */
+export function replaceAllAdminData(bundle, { mitStatistik = false } = {}) {
+  for (const teil of ['lemmata', 'kalender', 'wortzwilling', 'zeitenwende']) {
+    if (bundle?.[teil] == null) throw new Error(`Wiederherstellen abgebrochen: ${teil} fehlt im Bundle`)
+  }
+  if (mitStatistik && !Array.isArray(bundle.statsRows)) {
+    throw new Error('Wiederherstellen abgebrochen: statsRows fehlt im Bundle')
+  }
+  _replaceAllAdminDataTx(bundle, mitStatistik)
   _readOnlyCache.invalidateAll()
   return Promise.resolve()
 }

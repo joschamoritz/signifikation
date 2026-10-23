@@ -98,7 +98,7 @@
             <div class="wo-zeile-ende">
               <span class="wo-status" id="wo-heute-stand"></span>
               <a class="adm-cta is-hidden" id="wo-heute-anlegen"><span>Tag anlegen</span> <span aria-hidden="true">→</span></a>
-              <a class="adm-link wo-system" id="wo-system" href="#werkzeuge/system?abschnitt=zustand">Systemzustand</a>
+              <a class="adm-link wo-system" id="wo-system" href="#werkzeuge/system">Systemzustand</a>
             </div>
           </div>
           <!-- Hinweis auf offene Vorschläge (IDs unverändert, von aktualisiereVorschlagHinweise gesteuert) -->
@@ -976,7 +976,7 @@
           <h2 class="adm-overline">Inhalte pflegen</h2>
           <ul class="adm-tools">
             <li><a class="adm-tool" href="#werkzeuge/pruefen"><span class="adm-tool-main"><span class="adm-tool-title">Wort prüfen</span><span class="adm-tool-meta">Eignung für Kollokation, Wort-Zwilling, Zeitenwende und Lückenfüller testen</span></span><span class="adm-tool-go" aria-hidden="true">→</span></a></li>
-            <li><a class="adm-tool" href="#werkzeuge/bonus-tage"><span class="adm-tool-main"><span class="adm-tool-title">Bonus-Tage</span><span class="adm-tool-meta">Tage mit zusätzlichen Spielen für Basic-Nutzer</span></span><span class="adm-tool-go" aria-hidden="true">→</span></a></li>
+            <li><a class="adm-tool" href="#werkzeuge/bonus-tage"><span class="adm-tool-main"><span class="adm-tool-title">Bonus-Tage</span><span class="adm-tool-meta">Tage mit zusätzlichen eigenen Spielen für Basis-Konten</span></span><span class="adm-tool-go" aria-hidden="true">→</span></a></li>
             <li><a class="adm-tool" href="#werkzeuge/benachrichtigungen"><span class="adm-tool-main"><span class="adm-tool-title">Benachrichtigungen</span><span class="adm-tool-meta">Vorlagen verwalten, Nachricht an alle Geräte senden</span></span><span class="adm-tool-go" aria-hidden="true">→</span></a></li>
           </ul>
         </section>
@@ -984,10 +984,10 @@
         <section class="adm-section">
           <h2 class="adm-overline">Betrieb</h2>
           <ul class="adm-tools">
-            <li><a class="adm-tool" href="#werkzeuge/system?abschnitt=zustand"><span class="adm-tool-main"><span class="adm-tool-title">Systemzustand</span><span class="adm-tool-meta">Server, Datenbanken und Speicher prüfen</span></span><span class="adm-tool-go" aria-hidden="true">→</span></a></li>
-            <li><a class="adm-tool" href="#werkzeuge/system?abschnitt=sicherung"><span class="adm-tool-main"><span class="adm-tool-title">Sicherung</span><span class="adm-tool-meta">Datenbestand herunterladen oder wiederherstellen</span></span><span class="adm-tool-go" aria-hidden="true">→</span></a></li>
-            <li><a class="adm-tool" href="#werkzeuge/system?abschnitt=kursmaterial"><span class="adm-tool-main"><span class="adm-tool-title">Kursmaterial</span><span class="adm-tool-meta">Arbeitsblätter, Lösungen und Folien neu erzeugen</span></span><span class="adm-tool-go" aria-hidden="true">→</span></a></li>
-            <li><a class="adm-tool" href="#werkzeuge/system?abschnitt=protokoll"><span class="adm-tool-main"><span class="adm-tool-title">Änderungsprotokoll</span><span class="adm-tool-meta">Wer hat wann was geändert</span></span><span class="adm-tool-go" aria-hidden="true">→</span></a></li>
+            <li><a class="adm-tool" href="#werkzeuge/system"><span class="adm-tool-main"><span class="adm-tool-title">Systemzustand</span><span class="adm-tool-meta">Server, Datenbanken und Dienste prüfen</span></span><span class="adm-tool-stand" id="wz-stand-system"></span><span class="adm-tool-go" aria-hidden="true">→</span></a></li>
+            <li><a class="adm-tool" href="#werkzeuge/sicherung"><span class="adm-tool-main"><span class="adm-tool-title">Sicherung</span><span class="adm-tool-meta">Sicherungen ansehen, Inhalte herunterladen oder wiederherstellen</span></span><span class="adm-tool-stand" id="wz-stand-sicherung"></span><span class="adm-tool-go" aria-hidden="true">→</span></a></li>
+            <li><a class="adm-tool" href="#werkzeuge/kursmaterial"><span class="adm-tool-main"><span class="adm-tool-title">Kursmaterial</span><span class="adm-tool-meta">Arbeitsblätter, Lösungen und Folien neu erzeugen</span></span><span class="adm-tool-stand" id="wz-stand-kursmaterial"></span><span class="adm-tool-go" aria-hidden="true">→</span></a></li>
+            <li><a class="adm-tool" href="#werkzeuge/protokoll"><span class="adm-tool-main"><span class="adm-tool-title">Änderungsprotokoll</span><span class="adm-tool-meta">Was wann geändert wurde, Anmeldungen, abgewiesene Zahlungen</span></span><span class="adm-tool-stand" id="wz-stand-protokoll"></span><span class="adm-tool-go" aria-hidden="true">→</span></a></li>
           </ul>
         </section>
 
@@ -1005,116 +1005,156 @@
         </div>
       </section>
 
-      <section class="admin-page" id="page-system" data-title="System" data-subtitle="Zustand, Sicherung, Kursmaterial und Änderungsprotokoll.">
-        <div class="card" id="system-zustand">
-          <h2>Systemaktionen</h2>
-          <div class="system-actions" id="system-sicherung">
-            <button data-action="load-health">Health aktualisieren</button>
-            <button data-action="download-backup">Backup herunterladen</button>
-            <button class="entry-filters-reset" data-action="trigger-backup-restore">Backup wiederherstellen</button>
-            <a class="ghost-btn" href="/admin/social-cards">Social Cards öffnen</a>
+      <section class="admin-page be-seite" id="page-system" data-title="Systemzustand" data-subtitle="Ob Server, Datenbanken und Dienste laufen.">
+        <div class="be-lage" id="system-lage" role="status" aria-live="polite" tabindex="-1"></div>
+
+        <section class="tag-abschnitt" aria-labelledby="system-dienste-titel">
+          <h2 class="tag-abschnitt-titel" id="system-dienste-titel">Datenbanken und Dienste</h2>
+          <dl class="tag-dl be-dl" id="system-dienste"></dl>
+        </section>
+
+        <section class="tag-abschnitt" aria-labelledby="system-server-titel">
+          <h2 class="tag-abschnitt-titel" id="system-server-titel">Server</h2>
+          <dl class="tag-dl be-dl" id="system-server"></dl>
+        </section>
+
+        <section class="tag-abschnitt" aria-labelledby="system-technik-titel">
+          <h2 class="tag-abschnitt-titel" id="system-technik-titel">Zwischenspeicher und Umfang</h2>
+          <dl class="tag-dl be-dl" id="performance-werte"></dl>
+          <details class="be-roh">
+            <summary>Rohdaten anzeigen</summary>
+            <p class="be-roh-titel" id="system-health-json-titel">Zustand (/admin/health)</p>
+            <pre id="system-health-json" role="region" aria-labelledby="system-health-json-titel"></pre>
+            <p class="be-roh-titel" id="performance-json-titel">Messwerte (/admin/performance)</p>
+            <pre id="performance-json" role="region" aria-labelledby="performance-json-titel"></pre>
+          </details>
+        </section>
+      </section>
+
+      <section class="admin-page be-seite" id="page-sicherung" data-title="Sicherung" data-subtitle="Sicherungen ansehen, Inhalte herunterladen oder aus einer Datei wiederherstellen.">
+        <section class="tag-abschnitt" aria-labelledby="sicherung-auto-titel">
+          <h2 class="tag-abschnitt-titel" id="sicherung-auto-titel">Automatische Sicherung</h2>
+          <p class="nu-stand" id="sicherung-stand"></p>
+          <p class="tag-abschnitt-text">Der Server sichert einmal am Tag die komplette Datenbank, auch Konten, Käufe und Klassenräume. Die letzten sieben Tage bleiben erhalten. Zurückspielen lässt sich eine solche Sicherung nur direkt auf dem Server.</p>
+          <ol class="be-liste" id="sicherung-liste" aria-label="Gespeicherte Sicherungen, neueste zuerst"></ol>
+          <div class="be-aktionen">
+            <button type="button" class="adm-cta" id="sicherung-jetzt" data-action="sicherung-jetzt"><span id="sicherung-jetzt-text">Jetzt sichern</span> <span aria-hidden="true">→</span></button>
           </div>
-          <input type="file" id="backup-restore-input" accept="application/json,.json" hidden>
-          <p class="entry-hint is-hidden" id="system-msg" role="status" aria-live="polite"></p>
-          <pre id="system-health-json" class="system-json">Health-Daten werden geladen …</pre>
+          <p class="li-meldung" id="sicherung-jetzt-status" role="status" aria-live="polite"></p>
+        </section>
+
+        <section class="tag-abschnitt" aria-labelledby="sicherung-datei-titel">
+          <h2 class="tag-abschnitt-titel" id="sicherung-datei-titel">Inhalte als Datei</h2>
+          <p class="tag-abschnitt-text">Lädt Wörter, Kalendertage, Wort-Zwilling und Zeitenwende sowie die Spielstatistik ohne Bezug zu Konten als JSON-Datei herunter. Nicht enthalten: Konten, Käufe, Vorschläge, Bonus-Tage, Wort der Woche und Vorlagen für Benachrichtigungen.</p>
+          <dl class="tag-dl be-dl" id="sicherung-umfang" aria-label="Aktueller Umfang"></dl>
+          <div class="be-aktionen">
+            <button type="button" class="adm-cta" data-action="download-backup" id="sicherung-download"><span id="sicherung-download-text">Inhalte herunterladen</span> <span aria-hidden="true">→</span></button>
+          </div>
+          <p class="li-meldung" id="sicherung-download-status" role="status" aria-live="polite"></p>
+        </section>
+
+        <section class="tag-abschnitt tag-loeschen" aria-labelledby="sicherung-restore-titel">
+          <h2 class="tag-abschnitt-titel" id="sicherung-restore-titel">Aus Datei wiederherstellen</h2>
+          <p class="tag-loeschen-text">Ersetzt Wörter, Kalendertage, Wort-Zwilling und Zeitenwende vollständig durch den Stand der Datei. Was seitdem geplant oder geändert wurde, geht verloren. Vorher legt der Server automatisch eine Sicherheitskopie der ganzen Datenbank an.</p>
+          <div class="be-datei">
+            <input type="file" id="backup-restore-input" class="be-datei-input" accept="application/json,.json" aria-describedby="backup-restore-name">
+            <label for="backup-restore-input" class="be-datei-knopf">Datei auswählen …</label>
+            <span class="be-datei-name" id="backup-restore-name">Keine Datei ausgewählt</span>
+          </div>
+          <div id="restore-pruefung" hidden></div>
+          <p class="li-meldung" id="restore-status" role="status" aria-live="polite" tabindex="-1"></p>
+        </section>
+      </section>
+
+      <section class="admin-page be-seite" id="page-kursmaterial" data-title="Kursmaterial" data-subtitle="Arbeitsblätter, Lösungen, Unterrichtsentwürfe und Folien der fünf Kursstationen.">
+        <section class="tag-abschnitt" aria-labelledby="kurs-stand-titel">
+          <h2 class="tag-abschnitt-titel" id="kurs-stand-titel">Stand je Station</h2>
+          <ol class="be-liste" id="kurs-stationen"></ol>
+        </section>
+
+        <section class="tag-abschnitt" aria-labelledby="kurs-neu-titel">
+          <h2 class="tag-abschnitt-titel" id="kurs-neu-titel">Neu erzeugen</h2>
+          <p class="tag-abschnitt-text">Erzeugt Arbeitsblätter, Lösungen, Unterrichtsentwürfe und Beamer-Folien neu aus den aktuellen Kursinhalten und ersetzt die bisherigen Dateien. Arbeitsblatt und Lösung entstehen zusätzlich als bearbeitbare Word-Datei. Dauert ein bis zwei Minuten je Station; die Seite zeigt den Fortschritt, solange sie offen ist.</p>
+          <div class="be-formzeile">
+            <div class="li-feld">
+              <label class="li-label" for="course-pdf-station">Station</label>
+              <select id="course-pdf-station" class="li-auswahl">
+                <option value="all" selected>Alle Stationen</option>
+                <option value="1">1 · Kollokationen</option>
+                <option value="2">2 · Wortarten</option>
+                <option value="3">3 · Abhängigkeiten</option>
+                <option value="4">4 · Korpus</option>
+                <option value="5">5 · Recherche</option>
+              </select>
+            </div>
+            <button type="button" class="adm-cta" id="course-pdf-start" data-action="regenerate-course-pdfs"><span id="course-pdf-start-text">Neu erzeugen</span> <span aria-hidden="true">→</span></button>
+          </div>
+          <p class="li-meldung" id="course-pdf-status" role="status" aria-live="polite"></p>
+        </section>
+      </section>
+
+      <section class="admin-page be-seite" id="page-protokoll" data-title="Änderungsprotokoll" data-subtitle="Was wann geändert wurde, dazu Anmeldungen und abgewiesene Zahlungen. Einträge bleiben 24 Monate erhalten.">
+        <div class="pr-filter" role="search" aria-label="Protokoll filtern">
+          <div class="li-feld pr-feld--suche">
+            <label class="li-label" for="audit-search">Suche</label>
+            <input type="search" id="audit-search" class="li-suche" placeholder="Datum, Wort oder Konto-ID" autocomplete="off" enterkeyhint="search" spellcheck="false" maxlength="120">
+          </div>
+          <div class="li-feld pr-feld--bereich">
+            <label class="li-label" for="audit-resource">Bereich</label>
+            <select id="audit-resource" class="li-auswahl">
+              <option value="">Alle Bereiche</option>
+              <option value="kalender">Tage</option>
+              <option value="lemma_entwurf">Vorschläge</option>
+              <option value="user">Konten</option>
+              <option value="push">Benachrichtigungen</option>
+              <option value="spezialwoche">Wort der Woche</option>
+              <option value="backup">Sicherung</option>
+              <option value="security">Anmeldung und Zahlung</option>
+            </select>
+          </div>
+          <div class="li-feld pr-feld--vorgang">
+            <label class="li-label" for="audit-action">Vorgang</label>
+            <select id="audit-action" class="li-auswahl">
+              <option value="">Alle Vorgänge</option>
+              <option value="CREATE">angelegt oder gespeichert</option>
+              <option value="UPDATE">geändert</option>
+              <option value="DELETE">gelöscht</option>
+              <option value="LOGIN_SUCCESS">angemeldet</option>
+              <option value="LOGIN_FAIL">Anmeldung fehlgeschlagen</option>
+              <option value="LOGOUT">abgemeldet</option>
+              <option value="SESSIONS_INVALIDATED">Sitzungen beendet</option>
+              <option value="CHECKOUT_REJECT_COUNTRY">Kauf abgelehnt (Land)</option>
+              <option value="PAYMENT_REJECT">Zahlung abgewiesen</option>
+              <option value="WEBHOOK_REJECT">Zahlungsmeldung abgewiesen</option>
+            </select>
+          </div>
+          <div class="li-feld pr-feld--von">
+            <label class="li-label" for="audit-from">Von</label>
+            <input type="date" id="audit-from" class="be-eingabe">
+          </div>
+          <div class="li-feld pr-feld--bis">
+            <label class="li-label" for="audit-to">Bis</label>
+            <input type="date" id="audit-to" class="be-eingabe">
+          </div>
+          <div class="li-feld pr-feld--ergebnis">
+            <label class="li-label" for="audit-status">Ergebnis</label>
+            <select id="audit-status" class="li-auswahl">
+              <option value="">Alle</option>
+              <option value="SUCCESS">erfolgreich</option>
+              <option value="FAIL">fehlgeschlagen</option>
+            </select>
+          </div>
         </div>
 
-        <div class="card" id="system-kursmaterial">
-          <div class="card-head card-head--wrap">
-            <h2>Kursmaterial (PDFs)</h2>
-            <button class="entry-filters-reset" data-action="load-course-pdf-status">↺ Status</button>
-          </div>
-          <p style="color:var(--muted);font-size:0.82rem;margin:0 0 10px">
-            Erzeugt Arbeitsblätter, Lösungen, Unterrichtsentwürfe und Beamer-Folien neu aus dem aktuellen Kurs-Content
-            (Playwright/Chromium, dauert 1–2 min). Arbeitsblatt/Lösung entstehen zusätzlich als editierbares DOCX
-            (Bonus-Premium). Läuft im Hintergrund; registriert die Dateien anschließend automatisch.
-          </p>
-          <div class="system-actions">
-            <label for="course-pdf-station">Station</label>
-            <select id="course-pdf-station">
-              <option value="all" selected>Alle Stationen</option>
-              <option value="1">① Kollokationen</option>
-              <option value="2">② Wortarten</option>
-              <option value="3">③ Abhängigkeiten</option>
-              <option value="4">④ Korpus</option>
-              <option value="5">⑤ Recherche</option>
-            </select>
-            <button class="primary-btn" data-action="regenerate-course-pdfs">PDFs neu generieren</button>
-          </div>
-          <pre id="course-pdf-status" class="system-json">Noch nicht gestartet.</pre>
+        <div class="li-ergebnis">
+          <p class="li-zahl" id="audit-count" role="status" aria-live="polite" tabindex="-1"></p>
+          <button type="button" class="adm-link" data-action="reset-audit-filters" id="audit-reset" hidden>Filter zurücksetzen</button>
         </div>
 
-        <div class="card" id="system-performance">
-          <div class="card-head card-head--wrap">
-            <h2>Performance</h2>
-            <button class="entry-filters-reset" data-action="load-performance">↺ Laden</button>
-          </div>
-          <div id="performance-cards" class="performance-cards">
-            <div class="users-empty">Performance-Daten werden geladen …</div>
-          </div>
-          <pre id="performance-json" class="system-json">Noch keine Performance-Daten geladen.</pre>
-        </div>
+        <div id="audit-liste"></div>
 
-        <div class="card" id="system-protokoll">
-          <div class="card-head card-head--wrap">
-            <h2>Audit-Log</h2>
-            <button class="entry-filters-reset" data-action="load-audit-log">↺ Laden</button>
-          </div>
-          <div class="audit-controls">
-            <label for="audit-limit">Anzahl Einträge</label>
-            <select id="audit-limit">
-              <option value="50">50</option>
-              <option value="100" selected>100</option>
-              <option value="200">200</option>
-              <option value="500">500</option>
-            </select>
-            <label for="audit-action">Aktion</label>
-            <select id="audit-action">
-              <option value="">Alle</option>
-              <option value="CREATE">Create</option>
-              <option value="UPDATE">Update</option>
-              <option value="DELETE">Delete</option>
-            </select>
-            <label for="audit-resource">Ressource</label>
-            <select id="audit-resource">
-              <option value="">Alle</option>
-              <option value="kalender">Kalender</option>
-              <option value="user">User</option>
-              <option value="lemmata">Lemmata</option>
-              <option value="wortzwilling">Wortzwilling</option>
-              <option value="zeitenwende">Zeitenwende</option>
-            </select>
-            <label for="audit-status">Status</label>
-            <select id="audit-status">
-              <option value="">Alle</option>
-              <option value="SUCCESS">Success</option>
-              <option value="FAILED">Failed</option>
-            </select>
-            <label for="audit-from">Von</label>
-            <input type="date" id="audit-from">
-            <label for="audit-to">Bis</label>
-            <input type="date" id="audit-to">
-            <input type="text" id="audit-search" placeholder="Suche in Aktion/Entity/Changes …">
-            <button class="entry-filters-reset" data-action="reset-audit-filters">Filter zurücksetzen</button>
-          </div>
-          <p class="entry-hint" id="audit-count">0 Einträge</p>
-          <div class="users-table-wrap">
-            <table class="users-table audit-table cards-on-mobile" role="table">
-              <thead role="rowgroup">
-                <tr role="row">
-                  <th scope="col" role="columnheader">Zeit</th>
-                  <th scope="col" role="columnheader">Aktion</th>
-                  <th scope="col" role="columnheader">Ressource</th>
-                  <th scope="col" role="columnheader">Status</th>
-                  <th scope="col" role="columnheader">Änderungen</th>
-                </tr>
-              </thead>
-              <tbody id="audit-table-body" role="rowgroup">
-                <tr role="row"><td role="cell" colspan="5" class="users-empty table-message">Audit-Log wird geladen …</td></tr>
-              </tbody>
-            </table>
-          </div>
-          <pre id="audit-detail-json" class="system-json">Audit-Details werden nach Auswahl eines Eintrags angezeigt.</pre>
+        <div class="nu-mehr">
+          <button type="button" class="adm-link" data-action="audit-mehr" id="audit-mehr" hidden></button>
         </div>
       </section>
      </div>

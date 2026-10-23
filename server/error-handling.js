@@ -108,6 +108,18 @@ export function categorizeError(err) {
   return 'INTERNAL_ERROR'
 }
 
+// Fehler des Body-Parsers (express.json u. a.) sind Fehler des Aufrufers, keine Serverfehler. Sie tragen `type`
+// (body-parser/raw-body). Die Antwort nennt nur den Grund, nie die Parse-Meldung (die zitiert Teile des Bodys).
+const BODY_PARSER_FEHLER = Object.freeze({
+  'entity.parse.failed': { status: 400, code: 'INVALID_JSON', error: 'Ungültiges JSON' },
+  'entity.verify.failed': { status: 400, code: 'INVALID_BODY', error: 'Ungültige Anfrage' },
+  'request.aborted': { status: 400, code: 'REQUEST_ABORTED', error: 'Anfrage abgebrochen' },
+  'request.size.invalid': { status: 400, code: 'INVALID_BODY', error: 'Ungültige Anfrage' },
+  'entity.too.large': { status: 413, code: 'PAYLOAD_TOO_LARGE', error: 'Anfrage zu groß' },
+  'encoding.unsupported': { status: 415, code: 'UNSUPPORTED_ENCODING', error: 'Nicht unterstützte Kodierung' },
+  'charset.unsupported': { status: 415, code: 'UNSUPPORTED_CHARSET', error: 'Nicht unterstützter Zeichensatz' },
+})
+
 /**
  * Sendet standardisierten Error-Response.
  * @param {Response} res – Express response object
@@ -115,6 +127,12 @@ export function categorizeError(err) {
  * @param {Object} reqContext – Zusätzliche Request-Context (IP, path, user, etc.)
  */
 export function sendErrorResponse(res, err, reqContext = {}) {
+  const bodyFehler = typeof err?.type === 'string' ? BODY_PARSER_FEHLER[err.type] : undefined
+  if (bodyFehler) {
+    logger.warn({ code: bodyFehler.code, type: err.type, ...reqContext }, `${bodyFehler.code}: Body nicht lesbar`)
+    return res.status(bodyFehler.status).json({ error: bodyFehler.error, code: bodyFehler.code })
+  }
+
   const isAppError = err instanceof AppError
   const category = isAppError ? err.category : categorizeError(err)
   const cat = ErrorCategory[category] || ErrorCategory.INTERNAL_ERROR

@@ -38,41 +38,94 @@ function flattenLegacyStatsFormat(statsObj) {
 function normalizeStatsRows(rows) {
   return rows.map((row) => {
     if (!row || typeof row !== 'object') {
-      throw new Error('Ungueltige Stats-Zeile im Backup')
+      throw new BackupDateiFehler('Die Datei enthält eine ungültige Statistik-Zeile.')
     }
 
     const isoDatum = normalizeDatumToIso(row.datum)
     if (!isoDatum) {
-      throw new Error('Stats-Zeile mit ungueltigem datum im Backup')
+      throw new BackupDateiFehler('Die Datei enthält eine Statistik-Zeile mit ungültigem Datum.')
     }
 
     return { ...row, datum: isoDatum }
   })
 }
 
+/** Die Datei ist nicht zu gebrauchen (Format, fehlende Teile): Der Aufrufer antwortet mit 400, nichts wird geändert. */
+export class BackupDateiFehler extends Error {
+  constructor(message) {
+    super(message)
+    this.name = 'BackupDateiFehler'
+    this.status = 400
+  }
+}
+
+/** Die vier Inhaltsteile, die jede Sicherungsdatei enthalten muss (Name in der Datei → Art). */
+const PFLICHTTEILE = [
+  ['lemmata.json', 'liste'],
+  ['kalender.json', 'objekt'],
+  ['wortzwilling.json', 'objekt'],
+  ['zeitenwende.json', 'objekt'],
+]
+
+const istObjekt = (v) => !!v && typeof v === 'object' && !Array.isArray(v)
+
+/**
+ * Prüft die Sicherungsdatei und bringt sie in die Form, die der Store erwartet.
+ *
+ * Fehlt einer der vier Inhaltsteile (oder hat er die falsche Form), wird die Datei abgewiesen:
+ * Ein fehlender Teil darf nie als „leer“ gelten, sonst löschte das Wiederherstellen die Tabelle.
+ * Eine leere Liste bzw. ein leeres Objekt ist dagegen eine gültige Angabe.
+ *
+ * statsRows ist null, wenn die Datei keine Statistik enthält.
+ *
+ * @throws {BackupDateiFehler}
+ */
 export function sanitizeBackupBundle(payload) {
   if (!payload || typeof payload !== 'object' || !payload.files || typeof payload.files !== 'object') {
-    throw new Error('Ungültiges Backup-Format')
+    throw new BackupDateiFehler('Ungültiges Backup-Format')
   }
 
   const files = payload.files
-  const lemmata = Array.isArray(files['lemmata.json']) ? files['lemmata.json'] : []
-  const rawKalender = files['kalender.json'] && typeof files['kalender.json'] === 'object' ? files['kalender.json'] : {}
+  for (const [name, art] of PFLICHTTEILE) {
+    if (files[name] === undefined || files[name] === null) {
+      throw new BackupDateiFehler(`Datei unvollständig: ${name} fehlt`)
+    }
+    if (art === 'liste' ? !Array.isArray(files[name]) : !istObjekt(files[name])) {
+      throw new BackupDateiFehler(`Datei ungültig: ${name} hat nicht das erwartete Format`)
+    }
+  }
+
+  const lemmata = files['lemmata.json']
   // Alte Backup-Formate (datum → id[]) auf neue Shape (datum → { ids, thema }) normalisieren
-  const kalender = normalizeDateKeyedMap(normalizeKalenderShape(rawKalender))
-  const wortzwilling = normalizeDateKeyedMap(files['wortzwilling.json'] && typeof files['wortzwilling.json'] === 'object' ? files['wortzwilling.json'] : {})
-  const zeitenwende = normalizeDateKeyedMap(files['zeitenwende.json'] && typeof files['zeitenwende.json'] === 'object' ? files['zeitenwende.json'] : {})
+  const kalender = normalizeDateKeyedMap(normalizeKalenderShape(files['kalender.json']))
+  const wortzwilling = normalizeDateKeyedMap(files['wortzwilling.json'])
+  const zeitenwende = normalizeDateKeyedMap(files['zeitenwende.json'])
 
   const rawStatsRows = (() => {
     if (Array.isArray(files['stats-rows.json'])) return files['stats-rows.json']
     if (Array.isArray(files['stats.json'])) return files['stats.json']
     // Altes Format: { datum: { spiel: { plays, ... } } } → in Zeilen-Array konvertieren
-    if (files['stats.json'] && typeof files['stats.json'] === 'object') {
-      return flattenLegacyStatsFormat(files['stats.json'])
-    }
-    return []
+    if (istObjekt(files['stats.json'])) return flattenLegacyStatsFormat(files['stats.json'])
+    return null
   })()
-  const statsRows = normalizeStatsRows(rawStatsRows)
+  const statsRows = rawStatsRows ? normalizeStatsRows(rawStatsRows) : null
 
   return { lemmata, kalender, wortzwilling, zeitenwende, statsRows }
+}
+
+/** Dateinamen, die eine Sicherungsdatei enthalten darf (nur diese kommen ins Protokoll). */
+export const BACKUP_DATEINAMEN = Object.freeze(['lemmata.json', 'kalender.json', 'wortzwilling.json', 'zeitenwende.json', 'stats.json', 'stats-rows.json'])
+
+/**
+ * Zahlen je Teil für Antwort, Protokoll und Vorschau. statsRows zählt nur, was tatsächlich ersetzt würde:
+ * ohne `mitStatistik` ist es 0 (die Statistik bleibt), sonst die Zahl der Zeilen in der Datei.
+ */
+export function zaehleBundle(bundle, { mitStatistik = false } = {}) {
+  return {
+    lemmata: bundle.lemmata.length,
+    kalender: Object.keys(bundle.kalender).length,
+    wortzwilling: Object.keys(bundle.wortzwilling).length,
+    zeitenwende: Object.keys(bundle.zeitenwende).length,
+    statsRows: mitStatistik && Array.isArray(bundle.statsRows) ? bundle.statsRows.length : 0,
+  }
 }

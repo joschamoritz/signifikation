@@ -1,9 +1,13 @@
 import express from 'express'
 import { statSync } from 'fs'
-import { join } from 'path'
-import db from '../db.js'
+import { basename } from 'path'
+import db, { DB_PATH } from '../db.js'
 import { belegeVerfuegbar } from '../belege.js'
 import { getEventLoopLagMs, getEventLoopLagLastMs } from '../metrics.js'
+import { wortprofilErreichbar } from '../wortprofil.js'
+import { pushStatus } from '../notifications/sender.js'
+import { isMailConfigured } from '../mailer.js'
+import { listSqliteBackups, sicherungLaeuft } from '../jobs/sqliteBackup.js'
 
 function getProcessFingerprint() {
   return {
@@ -47,6 +51,41 @@ const countUsersStmt = db.prepare(`
   FROM user
 `)
 
+// Systemzustand: nur billige Abfragen (je ein SELECT über Index bzw. Kleinsttabelle).
+const pingAppDbStmt = db.prepare('SELECT 1 AS ok')
+const letzterProtokollEintragStmt = db.prepare('SELECT MAX(timestamp) AS zuletzt FROM audit_log')
+// Kursmaterial: Zeitpunkt der letzten Erzeugung (Millisekunden) und Stand je Station
+const kursMaterialZuletztStmt = db.prepare(`
+  SELECT MAX(COALESCE(updated_at, created_at)) AS zuletzt
+  FROM course_materials
+  WHERE source = 'static'
+`)
+const kursMaterialStationenStmt = db.prepare(`
+  SELECT station_id AS station, COUNT(*) AS anzahl, MAX(COALESCE(updated_at, created_at)) AS zuletzt
+  FROM course_materials
+  WHERE source = 'static'
+  GROUP BY station_id
+  ORDER BY station_id
+`)
+
+function appDbStatus() {
+  try {
+    return pingAppDbStmt.get()?.ok === 1 ? 'ok' : 'error: Abfrage fehlgeschlagen'
+  } catch {
+    return 'error: Abfrage fehlgeschlagen'
+  }
+}
+
+// Neueste TÄGLICHE Sicherung (nur sie zählt für „Sicherung zu alt“; Handsicherungen ersetzen sie nicht)
+function sicherungStatus() {
+  try {
+    const taeglich = listSqliteBackups().filter((b) => b.anlass === 'taeglich')
+    return { zuletzt: taeglich[0]?.modifiedAt ?? null, anzahl: taeglich.length, laeuft: sicherungLaeuft() }
+  } catch {
+    return { zuletzt: null, anzahl: 0, laeuft: false }
+  }
+}
+
 export function createAdminOpsRouter({
   adminLimiter,
   requireAuth,
@@ -54,8 +93,6 @@ export function createAdminOpsRouter({
   getCacheMetrics,
   getQueryCacheMetrics,
   clearQueryCache,
-  fetchRelation,
-  DATA,
   adminError,
   logger,
 }) {
@@ -71,12 +108,12 @@ export function createAdminOpsRouter({
       let dbSizeBytes = 0
       let walSizeBytes = 0
       try {
-        dbSizeBytes = statSync(join(DATA, 'signifikation.db')).size
+        dbSizeBytes = statSync(DB_PATH).size
       } catch {
         dbSizeBytes = 0
       }
       try {
-        walSizeBytes = statSync(join(DATA, 'signifikation.db-wal')).size
+        walSizeBytes = statSync(`${DB_PATH}-wal`).size
       } catch {
         walSizeBytes = 0
       }
@@ -92,7 +129,8 @@ export function createAdminOpsRouter({
         },
         process: getProcessFingerprint(),
         db: {
-          path: join(DATA, 'signifikation.db'),
+          // Nur der Dateiname: kein Serverpfad in der Antwort.
+          datei: basename(DB_PATH),
           sizeBytes: dbSizeBytes,
           walBytes: walSizeBytes,
         },
@@ -116,7 +154,9 @@ export function createAdminOpsRouter({
     }
   })
 
-  router.get('/admin/health', adminLimiter, requireAuth, async (_req, res) => {
+  // Systemzustand: Ein Aufruf liefert alles, was Übersicht, Woche und Systemseite brauchen. Nur billige
+  // Abfragen (Ping, readdir, zwei MAX()), keine Korpus-Abfrage. Keine Pfade, Schlüssel oder Zugangsdaten.
+  router.get('/admin/health', adminLimiter, requireAuth, (_req, res) => {
     let lastEntry = null
     try {
       const kalender = loadKalender()
@@ -126,12 +166,12 @@ export function createAdminOpsRouter({
       lastEntry = null
     }
 
-    let wortprofilDb = 'ok'
-    try {
-      await fetchRelation('haus', 'Substantiv', 'ATTR')
-    } catch (err) {
-      wortprofilDb = `error: ${err.message}`
-    }
+    let protokollZuletzt = null
+    try { protokollZuletzt = letzterProtokollEintragStmt.get()?.zuletzt ?? null } catch { protokollZuletzt = null }
+    let kursZuletzt = null
+    try { kursZuletzt = kursMaterialZuletztStmt.get()?.zuletzt ?? null } catch { kursZuletzt = null }
+    let push = { web: false, ios: false, geraete: 0 }
+    try { push = pushStatus() } catch { /* Zustand „nicht eingerichtet“ */ }
 
     res.json({
       status: 'ok',
@@ -140,8 +180,14 @@ export function createAdminOpsRouter({
       process: getProcessFingerprint(),
       lastEntry,
       memMb: Math.round(process.memoryUsage().rss / 1024 / 1024),
-      wortprofilDb,
+      appDb: appDbStatus(),
+      wortprofilDb: wortprofilErreichbar(),
       belegeDb: belegeVerfuegbar() ? 'ok' : 'nicht verfügbar',
+      push,
+      mail: { eingerichtet: isMailConfigured() },
+      sicherung: sicherungStatus(),
+      kursmaterial: { laeuft: coursePdfJob.running, zuletzt: kursZuletzt },
+      protokoll: { zuletzt: protokollZuletzt },
     })
   })
 
@@ -171,7 +217,9 @@ export function createAdminOpsRouter({
 
   // ── Kurs-PDFs neu generieren (Arbeitsblatt/Lösung/Entwurf/Beamer) ──────
   router.get('/admin/course/pdf-status', adminLimiter, requireAuth, (_req, res) => {
-    res.json(coursePdfStatus())
+    let stationen = []
+    try { stationen = kursMaterialStationenStmt.all() } catch { stationen = [] }
+    res.json({ ...coursePdfStatus(), stationen })
   })
 
   router.post('/admin/course/regenerate-pdfs', adminLimiter, requireAuth, (req, res) => {

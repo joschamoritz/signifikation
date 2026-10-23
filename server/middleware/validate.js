@@ -248,9 +248,21 @@ export const adminAuditLogDetailParamsSchema = z.object({
 /** POST /admin/backup/restore */
 export const adminBackupRestoreSchema = z.object({
   confirm: z.literal(true),
-  exportedAt: z.string().optional(),
+  exportedAt: z.string().max(40).optional(),
+  files: z.record(z.any()),
+  // Die Datei enthält die Spielstatistik nur ohne Konten (zusammengefasst). Sie zu
+  // ersetzen löscht die Statistik je Konto – deshalb nur auf ausdrücklichen Wunsch.
+  mitStatistik: z.boolean().optional().default(false),
+})
+
+/** POST /admin/backup/restore/pruefen – Probelauf: dieselbe Datei, ohne Bestätigung und ohne etwas zu schreiben */
+export const adminBackupPruefenSchema = z.object({
+  exportedAt: z.string().max(40).optional(),
   files: z.record(z.any()),
 })
+
+/** POST /admin/backup/sqlite – ohne Eingaben; ein leeres Objekt (oder gar kein Body) ist erlaubt */
+export const adminBackupSqliteSchema = z.object({}).strict().optional().default({})
 
 /** GET /admin/stats (query) */
 export const adminStatsQuerySchema = z.object({
@@ -341,6 +353,20 @@ export const adminPushSendSchema = z.object({
   }
 })
 
+// 2026-13-01 und 2026-02-30 passen auf das Muster, sind aber keine Tage
+function istKalendertag(text) {
+  const [y, m, d] = text.split('-').map(Number)
+  const t = new Date(Date.UTC(y, m - 1, d))
+  return t.getUTCFullYear() === y && t.getUTCMonth() === m - 1 && t.getUTCDate() === d
+}
+
+/** Alle Vorgänge im Änderungsprotokoll (audit.js: create/update/delete + auditSecurity-Ereignisse) */
+export const AUDIT_ACTIONS = [
+  'CREATE', 'UPDATE', 'DELETE',
+  'LOGIN_SUCCESS', 'LOGIN_FAIL', 'LOGOUT', 'SESSIONS_INVALIDATED',
+  'CHECKOUT_REJECT_COUNTRY', 'PAYMENT_REJECT', 'WEBHOOK_REJECT',
+]
+
 /** GET /admin/audit-log (query) */
 export const adminAuditLogQuerySchema = z.object({
   // Seit die Query-Validierung ihr Ergebnis wirklich durchreicht, muss limit
@@ -348,11 +374,13 @@ export const adminAuditLogQuerySchema = z.object({
   // Untergrenze bewusst 1 (nicht die frühere Handler-Klammer von 10): das
   // Dashboard holt sich mit limit=5 die letzten fünf Vorgänge.
   limit: z.coerce.number().int().min(1).max(500).optional().default(100),
-  action: z.enum(['CREATE', 'UPDATE', 'DELETE']).optional(),
+  // Genau die Vorgänge, die server/audit.js und seine Aufrufer protokollieren.
+  action: z.enum(AUDIT_ACTIONS).optional(),
   resource: z.string().trim().max(80).optional(),
-  status: z.enum(['SUCCESS', 'FAILED']).optional(),
-  from: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'from als YYYY-MM-DD').optional(),
-  to: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'to als YYYY-MM-DD').optional(),
+  // Protokolliert wird 'FAIL' (middleware/auth.js, routes/payments.js); 'FAILED' bleibt für Altlasten und zählt gleich.
+  status: z.enum(['SUCCESS', 'FAIL', 'FAILED']).optional(),
+  from: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'from als YYYY-MM-DD').refine(istKalendertag, 'from ist kein gültiges Datum').optional(),
+  to: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'to als YYYY-MM-DD').refine(istKalendertag, 'to ist kein gültiges Datum').optional(),
   q: z.string().trim().max(120).optional(),
 })
 

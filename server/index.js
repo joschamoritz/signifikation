@@ -24,6 +24,7 @@ import { IS_PROD, csrfProtect, csrfProtectUpload } from './middleware/auth.js'
 import { auth } from './auth/index.js'
 import { loginLimiter, registerLimiter, lemmaApiLimiter } from './middleware/rateLimiter.js'
 import { requireLemmaApiKey } from './middleware/lemmaApiKey.js'
+import { backupRestoreVorschaltung } from './middleware/backupRestoreVorschaltung.js'
 import { initializeIndices } from './store.js'
 import { errorHandler, AppError } from './error-handling.js'
 import { waermeRegisterAuf } from './wortprofil.js'
@@ -57,7 +58,6 @@ import { closeDb } from './db.js'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const PORT      = process.env.PORT || 3001
-const BACKUP_RESTORE_BODY_LIMIT = '10mb'
 
 // ── Letzte Verteidigungslinie für unbehandelte Fehler ─────────
 // Floating Promises (z.B. Fire-and-Forget-Mails) und Fehler ausserhalb von
@@ -120,17 +120,9 @@ app.post('/api/v1/auth/sign-in/email', loginLimiter)
 app.post('/api/v1/auth/sign-up/email', registerLimiter)
 app.all('/api/v1/auth/*splat', toNodeHandler(auth))
 
-// Pre-Flight-Schutz für Backup-Restore: 10-MB-Body nur nach Cookie-Check
-// parsen. Verhindert DoS via 10-MB-Bodies von unauthenticated Origins
-// (Auth läuft im Router danach trotzdem nochmal).
-app.use('/admin/backup/restore', (req, res, next) => {
-  if (req.method === 'POST' && !req.cookies?.['better-auth.session_token']) {
-    logger.warn({ ip: req.ip }, 'Backup-Restore ohne Session-Cookie abgelehnt (pre-flight)')
-    return res.status(401).json({ error: 'Nicht autorisiert' })
-  }
-  next()
-})
-app.use('/admin/backup/restore', express.json({ limit: BACKUP_RESTORE_BODY_LIMIT }))
+// Backup-Restore (und Probelauf): Rate-Limit, Anmeldung und CSRF-Prüfung VOR dem 10-MB-JSON-Parser
+// (middleware/backupRestoreVorschaltung.js). Ohne gültige Sitzung wird kein Body geparst.
+app.use('/admin/backup/restore', ...backupRestoreVorschaltung)
 // Vorschlags-API: Eine Woche JSON (~14 KB) passt nicht ins globale Limit.
 // Rate-Limit und Schlüssel werden geprüft, bevor der größere Body geparst wird.
 app.use(LEMMA_API_PFAD, lemmaApiLimiter, requireLemmaApiKey, express.json({ limit: LEMMA_API_BODY_LIMIT }))

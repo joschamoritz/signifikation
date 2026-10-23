@@ -34,6 +34,9 @@ const NAV_PAGES = {
   'Benachrichtigungen': { route: '#werkzeuge/benachrichtigungen', page: 'push' },
   'Klassenraum': { route: '#auswertung/klassenraum', page: 'classroom' },
   'System': { route: '#werkzeuge/system', page: 'system' },
+  'Sicherung': { route: '#werkzeuge/sicherung', page: 'sicherung' },
+  'Kursmaterial': { route: '#werkzeuge/kursmaterial', page: 'kursmaterial' },
+  'Protokoll': { route: '#werkzeuge/protokoll', page: 'protokoll' },
 }
 
 export async function openNavPage(page, label) {

@@ -850,7 +850,8 @@ describe('admin routes integration', () => {
       body: JSON.stringify(invalidBundle),
     })
 
-    expect(response.status).toBe(500)
+    // Eine kaputte Statistik-Zeile macht die Datei unbrauchbar: 400, bevor irgendetwas geändert wird
+    expect(response.status).toBe(400)
 
     const kalenderAfter = loadReadOnly('kalender.json')
     const lemmataAfter = loadReadOnly('lemmata.json')
