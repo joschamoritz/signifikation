@@ -1,14 +1,7 @@
 import { describe, expect, it } from 'vitest'
-import { parseCalendarBulkImport } from './admin-calendar-utils.js'
 import { sanitizeBackupBundle } from './admin-backup-utils.js'
 
 describe('admin calendar utils', () => {
-  it('normalisiert CSV-Import auf YYYY-MM-DD', () => {
-    expect(parseCalendarBulkImport('date,lemma1,lemma2,lemma3\n2026-12-24,Haus,Baum,Wort')).toEqual([
-      { datum: '2026-12-24', woerter: ['Haus', 'Baum', 'Wort'] },
-    ])
-  })
-
   it('migriert Legacy-MM-DD im Backup auf YYYY-MM-DD', () => {
     const bundle = sanitizeBackupBundle({
       files: {

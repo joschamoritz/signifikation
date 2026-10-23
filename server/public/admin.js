@@ -73,7 +73,13 @@ function esc(s) {
 }
 
 let usersLoaded = false
+// Nur der im Tagesformular geladene Tag (Speichern, Löschen, Datumshinweis, Entwurf).
+// Den Monat steuern monatAnsicht und monatGewaehlt (Planen › Monat).
 let selectedCalendarDate = ''
+// Planen › Monat: angezeigter Monat ('JJJJ-MM'), gewählter Tag (ISO oder leer), Titel als Live-Region aktiv?
+let monatAnsicht = ''
+let monatGewaehlt = ''
+let monatLiveAktiv = false
 let selectedUserId = ''
 let dashboardWeekOffset = 0
 let selectedDashboardDate = ''
@@ -81,8 +87,6 @@ const selectedEntryDates = new Set()
 let sessionRefreshTimer = null
 let usersSearchTimer = null
 let entrySearchTimer = null
-let entryTablePage = 1
-let entryPageSize = 25
 let usersOverviewAbortController = null
 const USERS_PAGE_SIZE = 50
 let usersOffset = 0
@@ -233,6 +237,8 @@ let suppressHashChange = false
 let suppressTimer = null
 // Elternadresse → Link, über den man die Unterseite betreten hat (Fokus bei Rückkehr).
 const focusMemory = new Map()
+// Einmaliges Fokusziel für die nächste Navigation (CSS-Selektor), z. B. „In der Woche zeigen“ → gewählter Tag.
+let naechsterFokus = ''
 // 'new'   = Formular zeigt einen leeren/neuen Tag,
 // 'edit'  = ein bestehender Tag ist geladen,
 // 'loading' / 'error' = Tag wird geladen bzw. konnte nicht geladen werden (Speichern gesperrt).
@@ -248,6 +254,47 @@ function isValidIsoDay(value) {
 
 function isEntryRouteHash(hash) {
   return /^#planen\/tag\//.test(String(hash || ''))
+}
+
+// Zustand der Liste (Planen › Liste) in der Adresse: #planen/liste?q=…&zeit=…&stand=…&seite=…&pro=…
+// Nur Bekanntes kommt durch (Weißliste je Parameter), alles andere fällt auf den Standard zurück.
+const LISTE_STANDARD = Object.freeze({ q: '', zeit: 'kommend', stand: 'alle', seite: 1, pro: 25 })
+const LISTE_ZEITEN = ['kommend', 'vergangen', 'alle']
+const LISTE_STAENDE = ['alle', 'unvollstaendig', 'vollstaendig', 'ohne-wortzwilling', 'ohne-zeitenwende', 'ohne-lueckenfueller']
+const LISTE_GROESSEN = [25, 50, 100]
+
+function leseListeQuery(query) {
+  const p = new URLSearchParams(query)
+  const zahl = (v) => (/^\d{1,4}$/.test(v || '') ? Number(v) : 0)
+  return {
+    q: (p.get('q') || '').slice(0, 100),
+    zeit: LISTE_ZEITEN.includes(p.get('zeit')) ? p.get('zeit') : LISTE_STANDARD.zeit,
+    stand: LISTE_STAENDE.includes(p.get('stand')) ? p.get('stand') : LISTE_STANDARD.stand,
+    seite: zahl(p.get('seite')) || 1,
+    pro: LISTE_GROESSEN.includes(zahl(p.get('pro'))) ? zahl(p.get('pro')) : LISTE_STANDARD.pro,
+  }
+}
+
+function listeHash(z) {
+  const p = new URLSearchParams()
+  if (z.q) p.set('q', z.q)
+  for (const k of ['zeit', 'stand', 'seite', 'pro']) if (z[k] !== LISTE_STANDARD[k]) p.set(k, String(z[k]))
+  const s = p.toString()
+  return s ? `#planen/liste?${s}` : '#planen/liste'
+}
+
+// Letzte Adresse je Reiter: Der Reiter führt dorthin zurück (nur für diese Sitzung).
+const reiterMerker = { monat: '#planen/monat', liste: '#planen/liste' }
+// Seite der Route → Schlüssel in reiterMerker
+const MERKER_SEITEN = { monat: 'calendar', liste: 'liste' }
+
+// Zustand der Seite in die Adresse schreiben: ohne Verlaufseintrag, ohne hashchange, ohne Neurendern.
+// Nur auf der eigenen Seite (loadKalender rendert Monat und Liste auch im Hintergrund).
+function merkeAnsicht(key, hash) {
+  if (currentRoute?.page !== MERKER_SEITEN[key]) return
+  reiterMerker[key] = hash
+  if (hash !== currentRouteHash) replaceRouteHashSilently(hash)
+  document.querySelector('#page-tabs a[aria-current="page"]')?.setAttribute('href', hash)
 }
 
 // Liefert die Route zum Hash, { redirect } für Weiterleitungen oder null für
@@ -268,10 +315,23 @@ function parseRoute(rawHash) {
     return { page: 'entry', area: 'planen', parent: PARENT_PLANEN, entry: 'edit', date: dayMatch[1], key: path }
   }
 
+  // Monat mit Zustand: #planen/monat/2026-11 (Monat) oder #planen/monat/2026-11-13 (Monat + gewählter Tag)
+  const monatMatch = /^planen\/monat\/(\d{4})-(\d{2})(?:-(\d{2}))?$/.exec(path)
+  if (monatMatch) {
+    const [, y, m, d] = monatMatch
+    const tag = d ? `${y}-${m}-${d}` : ''
+    const ok = Number(m) >= 1 && Number(m) <= 12 && Number(y) >= 2000 && Number(y) <= 2100 && (!tag || isValidIsoDay(tag))
+    if (!ok) return { redirect: '#planen/monat' }
+    return { ...ROUTE_TABLE['planen/monat'], key: 'planen/monat', section: '', monat: `${y}-${m}`, tag }
+  }
+  if (path.startsWith('planen/monat/')) return { redirect: '#planen/monat' }
+
   // Object.hasOwn: sonst würden #constructor oder #__proto__ Prototyp-Einträge treffen.
   if (Object.hasOwn(ROUTE_TABLE, path)) {
     const section = new URLSearchParams(queryPart).get('abschnitt') || ''
-    return { ...ROUTE_TABLE[path], key: path, section: /^[a-z-]+$/.test(section) ? section : '' }
+    const route = { ...ROUTE_TABLE[path], key: path, section: /^[a-z-]+$/.test(section) ? section : '' }
+    if (path === 'planen/liste') route.liste = leseListeQuery(queryPart)
+    return route
   }
 
   // Alte Adressen (#calendar, #stats …) auf die neue Route umleiten.
@@ -360,7 +420,8 @@ function applyRouteChrome(route) {
     tabsEl.classList.toggle('is-hidden', !showTabs)
     tabsEl.setAttribute('aria-label', `Ansichten: ${areaLabel}`)
     tabsEl.innerHTML = showTabs
-      ? tabs.map((tab) => `<a class="adm-tab" href="${tab.hash}"${tab.key === route.tab ? ' aria-current="page"' : ''}>${esc(tab.label)}</a>`).join('')
+      // Der aktive Reiter führt zur aktuellen Adresse (auch bei Direktaufruf von #planen/monat/2026-12), die anderen zu ihrer letzten.
+      ? tabs.map((tab) => `<a class="adm-tab" href="${esc((tab.key === route.tab ? currentRouteHash : reiterMerker[tab.key]) || tab.hash)}"${tab.key === route.tab ? ' aria-current="page"' : ''}>${esc(tab.label)}</a>`).join('')
       : ''
   }
 
@@ -413,11 +474,17 @@ function runRouteLoaders(route) {
       loadProductMetrics()
       break
     case 'liste':
-      renderEntryTable()
+      // Ein noch laufender Such-Timer würde den Zustand aus der Adresse (Zurück/Vor) überschreiben.
+      if (entrySearchTimer) {
+        window.clearTimeout(entrySearchTimer)
+        entrySearchTimer = null
+      }
+      listeZustand = { ...route.liste }
+      reiterMerker.liste = currentRouteHash
+      renderListe({ felderErzwingen: true })
       break
     case 'calendar':
-      renderCalendar()
-      updateCalendarDetails(selectedCalendarDate)
+      zeigeMonatAusRoute(route)
       break
     default:
       break
@@ -593,7 +660,11 @@ function setEntryHead(kind, isoDate) {
 // history.state mit dem Verlaufsindex des aktuellen Eintrags versehen.
 function stampHistory(hash) {
   const base = window.history.state && typeof window.history.state === 'object' ? window.history.state : {}
-  window.history.replaceState({ ...base, admIdx: currentIdx }, '', hash)
+  try {
+    window.history.replaceState({ ...base, admIdx: currentIdx }, '', hash)
+  } catch {
+    // Safari wirft bei mehr als 100 Aufrufen in 30 s (SecurityError): Die Adresse bleibt dann stehen, die Seite funktioniert weiter.
+  }
   routeHashByIdx.set(currentIdx, hash)
 }
 
@@ -603,8 +674,13 @@ function focusAfterNavigation(route, hash, { fromChild }) {
   const titleEl = document.getElementById('page-title')
   let target = null
   let preventScroll = true
+  const gewuenscht = naechsterFokus
+  naechsterFokus = ''
 
-  if (route.section) {
+  if (gewuenscht && route.page === 'dashboard') {
+    target = document.querySelector(gewuenscht)
+    preventScroll = false
+  } else if (route.section) {
     const sectionEl = document.getElementById(`system-${route.section}`)
     const headingHost = sectionEl?.matches('h2') ? sectionEl : (sectionEl?.closest('.card') || sectionEl)
     const heading = headingHost?.matches('h2') ? headingHost : headingHost?.querySelector('h2')
@@ -615,7 +691,13 @@ function focusAfterNavigation(route, hash, { fromChild }) {
   } else if (fromChild) {
     const href = focusMemory.get(hash)
     if (href) {
-      target = Array.from(document.querySelectorAll('#adm-main a[href]')).find((a) => a.getAttribute('href') === href) || null
+      // Nur auf der sichtbaren Seite suchen: Woche und Liste führen dieselben Tag-Links, versteckt davor im Dokument.
+      target = Array.from(document.querySelectorAll('#adm-main .admin-page.is-active a[href]')).find((a) => a.getAttribute('href') === href) || null
+      preventScroll = false
+    }
+    // Kein gemerkter Link mehr da (z. B. Tag gelöscht): im Monat auf den Tag, von dem man kam.
+    if (!target && route.page === 'calendar' && route.tag) {
+      target = document.querySelector(`.mo-tag[data-value="${CSS.escape(route.tag)}"]`)
       preventScroll = false
     }
   }
@@ -652,12 +734,18 @@ async function renderRoute({ userInitiated = false } = {}) {
   } else if (userInitiated && typeof window.scrollTo === 'function') {
     window.scrollTo(0, 0)
   }
-  if (userInitiated) {
-    focusAfterNavigation(route, hash, { fromChild: !!leavingRoute?.parent && leavingRoute.parent.hash === hash })
+  // Rückkehr aus einer Unterseite desselben Bereichs (auch an eine Stelle wie #planen/monat/2026-11-13)
+  const fromChild = !!leavingRoute?.parent && leavingRoute.parent.area === route.area
+  if (route.page === 'entry') {
+    if (userInitiated) focusAfterNavigation(route, hash, { fromChild })
+    await renderEntryRoute(route, token)
+  } else {
+    // Beim Betreten der Liste von einer anderen Route beginnt die Auswahl neu: Unsichtbare Auswahl soll nicht mitlöschen.
+    if (route.page === 'liste' && leavingRoute?.page !== 'liste') selectedEntryDates.clear()
+    // Erst füllen, dann fokussieren: Monat und Liste ersetzen ihre Elemente beim Rendern.
+    runRouteLoaders(route)
+    if (userInitiated) focusAfterNavigation(route, hash, { fromChild })
   }
-
-  if (route.page === 'entry') await renderEntryRoute(route, token)
-  else runRouteLoaders(route)
 }
 
 // Entwurfsschutz am Formular: nachfragen, wenn ungespeicherte Änderungen verloren
@@ -730,7 +818,8 @@ function handleRouteLinkClick(event) {
   // Link merken, über den eine Unterseite betreten wird: Bei der Rückkehr
   // bekommt genau dieser Link den Fokus.
   const targetRoute = parseRoute(target)
-  if (targetRoute?.parent) focusMemory.set(targetRoute.parent.hash, target)
+  // Unter der Adresse, an der man gerade steht (z. B. #planen/monat/2026-11-13): Dorthin führt der Rückweg.
+  if (targetRoute?.parent) focusMemory.set(window.location.hash, target)
   if (target !== window.location.hash) return
   event.preventDefault()
   navigate(target)
@@ -1182,58 +1271,6 @@ function aufzaehlung(namen) {
   return namen.length < 2 ? namen.join('') : `${namen.slice(0, -1).join(', ')} und ${namen[namen.length - 1]}`
 }
 
-function toIsoFromMMDD(mmdd) {
-  if (/^\d{4}-\d{2}-\d{2}$/.test(String(mmdd || ''))) return String(mmdd)
-  // Verwendet immer das aktuelle Jahr – kein Vorwärts-Raten, da Einträge jahreslos sind
-  const [mm, dd] = String(mmdd || '').split('-').map(Number)
-  if (!mm || !dd) return ''
-  const year = getCurrentDate().getFullYear()
-  return `${year}-${String(mm).padStart(2, '0')}-${String(dd).padStart(2, '0')}`
-}
-
-function formatMmdd(datum) {
-  // Akzeptiert YYYY-MM-DD oder MM-DD, gibt ein menschenlesbares Datum zurück
-  if (!datum) return ''
-  const parts = datum.split('-')
-  if (parts.length === 3) {
-    // YYYY-MM-DD
-    const [y, m, d] = parts.map(Number)
-    return `${String(d).padStart(2, '0')}.${String(m).padStart(2, '0')}.${y}`
-  }
-  // Fallback MM-DD (Legacy)
-  const [mm, dd] = parts.map(Number)
-  return `${String(dd).padStart(2, '0')}.${String(mm).padStart(2, '0')}.`
-}
-
-function parseCalendarDate(mmdd) {
-  const iso = toIsoFromMMDD(mmdd)
-  const [y, m, d] = iso.split('-').map(Number)
-  return new Date(y, m - 1, d)
-}
-
-function modeChips(entry) {
-  const chips = ['<span class="entry-chip mode-koll">Kollokation</span>']
-  if (entry?.hasWortZwilling) chips.push('<span class="entry-chip mode-wortzwilling">Wort-Zwilling</span>')
-  if (entry?.hasZeitenwende) chips.push('<span class="entry-chip mode-zeitenwende">Zeitenwende</span>')
-  if (entry?.hasLueckenfueller) chips.push('<span class="entry-chip mode-lueckenfueller">Lückenfüller</span>')
-  return chips.join('')
-}
-
-function sortCalendarEntries(entries) {
-  return [...entries].sort((a, b) => a.datum.localeCompare(b.datum))
-}
-
-function getCalendarEntries() {
-  return sortCalendarEntries(
-    Object.entries(kalenderData || {}).map(([datum, entry]) => ({
-      datum,
-      iso: toIsoFromMMDD(datum),
-      dateObj: parseCalendarDate(datum),
-      entry,
-    }))
-  )
-}
-
 function getModeGroups(entry) {
   return Array.isArray(entry?.modeGroups) ? entry.modeGroups.filter((group) => Array.isArray(group?.items) && group.items.length) : []
 }
@@ -1249,7 +1286,7 @@ const MODI = [
 /**
  * Planungsstand eines Kalendertags – überall gleich: vollständig = alle vier Modi.
  * Grundlage: modeGroups aus GET /admin/kalender (nur Gruppen mit Inhalt).
- * Genutzt von Woche und Monat (renderCalendar).
+ * Genutzt von Woche, Monat und Liste.
  * @param {object|null|undefined} entry Kalendereintrag oder leer, wenn der Tag fehlt
  * @returns {{ modi: Array, anzahl: number, fehlend: Array, zustand: 'leer'|'teilweise'|'vollstaendig' }}
  */
@@ -1277,26 +1314,6 @@ function fehltText(stand) {
   return `${aufzaehlung(namen)} ${namen.length === 1 ? 'fehlt' : 'fehlen'}`
 }
 
-function modeGroupKeyToClass(key) {
-  if (key === 'wortzwilling') return 'mode-wortzwilling'
-  if (key === 'zeitenwende') return 'mode-zeitenwende'
-  if (key === 'lueckenfueller') return 'mode-lueckenfueller'
-  return 'mode-koll'
-}
-
-function renderModeGroupSummary(entry, { emptyText = 'Keine Inhalte' } = {}) {
-  const groups = getModeGroups(entry)
-  if (!groups.length) return `<span class="entry-empty">${esc(emptyText)}</span>`
-
-  return groups.map((group) => {
-    const items = group.items.map((item) => `<span class="entry-chip">${esc(item)}</span>`).join('')
-    return `<div class="mode-summary-group">
-      <span class="entry-chip ${modeGroupKeyToClass(group.key)}">${esc(group.label)}</span>
-      <div class="entry-chip-wrap">${items}</div>
-    </div>`
-  }).join('')
-}
-
 function roleLabel(role) {
   if (role === 'admin') return 'Admin'
   if (role === 'premium') return 'Premium'
@@ -1304,7 +1321,7 @@ function roleLabel(role) {
 }
 
 /**
- * Leer-/Lade-/Fehlerzeile für die Karten-Tabellen (Einträge, Nutzer, Audit).
+ * Leer-/Lade-/Fehlerzeile für die Karten-Tabellen (Nutzer, Audit).
  * `role` + `.table-message`, damit die Zeile auch im Karten-Layout (≤560px)
  * über die volle Breite läuft und ohne Feldlabel bleibt. `text` muss bereits
  * escaped sein.
@@ -1565,42 +1582,6 @@ async function restoreBackupFile(event) {
   }
 }
 
-function triggerCalendarCsvImport() {
-  const input = document.getElementById('calendar-csv-input')
-  if (input) input.click()
-}
-
-async function importCalendarCsv(event) {
-  const file = event?.target?.files?.[0]
-  if (!file) return
-
-  try {
-    const csv = await file.text()
-    const lineCount = csv.split(/\r?\n/).filter((line) => line.trim().length > 0).length
-    const ok = confirmAction('CSV-Import jetzt ausführen?', [
-      `Datei: ${file.name}`,
-      `Zeilen erkannt: ${Math.max(lineCount - 1, 0)}`,
-      'Bestehende Einträge am selben Datum werden ersetzt.',
-    ])
-    if (!ok) return
-
-    const response = await fetch('/admin/kalender/bulk-import', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ csv }),
-    })
-    const data = await response.json().catch(() => ({}))
-    if (!response.ok) throw new Error(data.error || `HTTP ${response.status}`)
-
-    setListStatus(`${data.importedCount || 0} Einträge per CSV importiert, ${data.replacedCount || 0} ersetzt.`, 'ok')
-    await loadKalender()
-  } catch (err) {
-    setListStatus(`CSV-Import fehlgeschlagen: ${err.message}`, 'error')
-  } finally {
-    event.target.value = ''
-  }
-}
-
 async function doLogout() {
   if (sessionRefreshTimer) {
     window.clearTimeout(sessionRefreshTimer)
@@ -1734,12 +1715,6 @@ let kalenderData = {}
 let kalenderStatus = 'laden'     // 'laden' | 'ok' | 'fehler'
 let kalenderGeladenUm = null
 let kalenderLaedtNeu = false     // „Erneut versuchen“ läuft
-let calYear, calMonth
-
-const initialNow = getCurrentDate()
-calYear  = initialNow.getFullYear()
-calMonth = initialNow.getMonth()
-
 document.getElementById('datum').value = getTodayIso()
 
 // Indikatoren beim Tippen aktualisieren
@@ -1812,80 +1787,264 @@ function lueckenfuellerModusMeldung(status) {
   }
 }
 
-// Meldungen der Listenansicht (CSV-Import, Massenlöschen): eigene Zeile in
-// #page-liste, da #status zur Tagesseite gehört und dort unsichtbar bliebe.
+// Meldungen der Listenansicht (Massenlöschen): eigene Zeile in #page-liste, da #status
+// zur Tagesseite gehört und dort unsichtbar bliebe. type: 'ok' | 'warn' | 'error' | 'loading'.
 function setListStatus(msg, type) {
   const el = document.getElementById('liste-status')
   if (!el) return
-  el.textContent = msg
-  el.className = `status ${type}`
+  el.textContent = msg || ''
+  if (msg && type) el.dataset.tone = type
+  else el.removeAttribute('data-tone')
 }
 
 
-function renderCalendar() {
-  const title = document.getElementById('cal-title')
-  const grid  = document.getElementById('cal-grid')
-  title.textContent = `${MONTHS_DE[calMonth]} ${calYear}`
+// ── Planen › Monat ────────────────────────────────────────────────────────────
+// Raster aus Tagesknöpfen mit einem Detail (dieselbe Komponente wie in der Woche,
+// renderTagesDetail). Zustand: monatAnsicht, monatGewaehlt – in der Adresse als
+// #planen/monat/JJJJ-MM[-TT] (replaceState, kein Verlaufseintrag).
 
-  let html = DAYS_DE.map(d => `<div class="cal-dow">${d}</div>`).join('')
+const monatVon = (iso) => iso.slice(0, 7)
 
-  const firstDate   = new Date(calYear, calMonth, 1)
-  const firstDow    = (firstDate.getDay() + 6) % 7
-  const daysInMonth = new Date(calYear, calMonth + 1, 0).getDate()
+function monatVerschoben(ym, delta) {
+  const [y, m] = ym.split('-').map(Number)
+  const d = new Date(y, m - 1 + delta, 1)
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+}
 
-  for (let i = 0; i < firstDow; i++) html += `<div class="cal-day empty-slot"></div>`
+// Kurze Adresse für den Normalfall (dieser Monat, heute gewählt oder nichts).
+function monatHash() {
+  const heute = getTodayIso()
+  if (monatAnsicht === monatVon(heute) && (!monatGewaehlt || monatGewaehlt === heute)) return '#planen/monat'
+  return `#planen/monat/${monatGewaehlt || monatAnsicht}`
+}
 
-  const todayIso = getTodayIso()
+function zeigeMonatAusRoute(route) {
+  const heute = getTodayIso()
+  monatAnsicht = route.tag ? monatVon(route.tag) : (route.monat || monatVon(heute))
+  monatGewaehlt = route.tag || (monatVon(heute) === monatAnsicht ? heute : '')
+  reiterMerker.monat = currentRouteHash
+  renderMonat()
+}
 
-  for (let d = 1; d <= daysInMonth; d++) {
-    const mm  = String(calMonth + 1).padStart(2, '0')
-    const dd  = String(d).padStart(2, '0')
-    const key = `${calYear}-${mm}-${dd}`   // YYYY-MM-DD – direkte DB-Key
-    const entry       = kalenderData[key]
-    const freeDayInfo = getFreeDayInfo(key)
-    const isTodayCell = key === todayIso
-    const isFreeDay   = !!freeDayInfo
+function renderMonat() {
+  const host = document.getElementById('cal-grid')
+  if (!host || !monatAnsicht) return
+  const heute = getTodayIso()
+  const [y, m] = monatAnsicht.split('-').map(Number)
+  const tage = Array.from({ length: new Date(y, m, 0).getDate() }, (_, i) => `${monatAnsicht}-${String(i + 1).padStart(2, '0')}`)
+  if (monatGewaehlt && !tage.includes(monatGewaehlt)) monatGewaehlt = ''
 
-    // Vollständig = alle vier Modi (tagesStand, gleiche Regel wie in der Woche);
-    // pro geplantem Modus ein Punkt (K, W, Z, L).
-    const stand       = tagesStand(entry)
-    const hasEntry    = !!entry
-    const hasAny      = stand.zustand !== 'leer'
-    const isComplete  = stand.zustand === 'vollstaendig'
-    const stateClass  = isComplete ? 'is-complete' : hasEntry ? 'has-entry' : 'no-entry'
+  const titel = document.getElementById('cal-title')
+  const titelText = `${MONTHS_DE[m - 1]} ${y}`
+  // Nur bei geändertem Text setzen (jeder Schreibzugriff löst eine Ansage aus)
+  if (titel && titel.textContent !== titelText) titel.textContent = titelText
+  // erst nach dem ersten Rendern ansagen (wie die Woche), sonst meldet der Screenreader das Laden
+  if (titel && !monatLiveAktiv) {
+    titel.setAttribute('aria-live', 'polite')
+    monatLiveAktiv = true
+  }
+  document.getElementById('mo-heute-btn')?.setAttribute('aria-disabled', String(monatAnsicht === monatVon(heute)))
+  const legendeHeute = document.getElementById('mo-legende-heute')
+  if (legendeHeute) legendeHeute.textContent = String(datumTeile(heute).d)
+  document.getElementById('mo-leiste')?.classList.toggle('is-hidden', kalenderStatus === 'fehler')
+  document.querySelector('#page-calendar .mo-wt-kopf')?.classList.toggle('is-hidden', kalenderStatus !== 'ok')
+  const bilanz = document.getElementById('mo-bilanz')
 
-    const isSelected = key === selectedCalendarDate
-    const classes = ['cal-day', stateClass, isTodayCell ? 'is-today' : '', isSelected ? 'is-selected' : '', isFreeDay ? 'is-free-day' : ''].filter(Boolean).join(' ')
-
-    let dots = ''
-    if (hasAny || isFreeDay) {
-      const dotClass = { k: 'koll', w: 'wz', z: 'zw', l: 'l' }
-      dots = `<div class="cal-dots">` +
-        stand.modi.filter((m) => m.geplant).map((m) => `<div class="cal-dot ${dotClass[m.marke]}"></div>`).join('') +
-        (isFreeDay ? '<div class="cal-dot free"></div>' : '') +
-        `</div>`
+  if (kalenderStatus === 'fehler') {
+    if (bilanz) bilanz.textContent = ''
+    // wie renderWoche: Meldung nur einmal aufbauen (Fokus, keine Mehrfachansage)
+    let knopf = host.querySelector('.wo-meldung[data-tone="err"] [data-action="load-kalender"]')
+    if (!knopf) {
+      host.innerHTML = '<p class="wo-meldung" data-tone="err" role="alert">Der Kalender konnte nicht geladen werden. <button type="button" class="adm-link" data-action="load-kalender">Erneut versuchen</button></p>'
+      knopf = host.querySelector('[data-action="load-kalender"]')
     }
-
-    // Ein vorhandener Kalendereintrag wird geöffnet (auch ohne Modi, z. B. ids: []), sonst vorausgefüllt
-    const opens = hasEntry || isFreeDay
-    const action = opens ? 'select-calendar-date' : 'prefill-date'
-    html += `<button type="button" class="${classes}" data-action="${action}" data-value="${esc(key)}" aria-label="${opens ? `Datum ${formatIsoDate(key)} öffnen` : `Datum ${formatIsoDate(key)} vorausfüllen`}">${d}${dots}</button>`
+    knopf.setAttribute('aria-disabled', String(kalenderLaedtNeu))
+    const knopfText = kalenderLaedtNeu ? 'Monat wird geladen …' : 'Erneut versuchen'
+    if (knopf.textContent !== knopfText) knopf.textContent = knopfText
+    return
+  }
+  if (kalenderStatus !== 'ok') {
+    if (bilanz) bilanz.textContent = ''
+    host.innerHTML = '<p class="wo-meldung">Monat wird geladen …</p>'
+    return
   }
 
-  grid.innerHTML = html
+  const z = { vollstaendig: 0, teilweise: 0, leer: 0 }
+  tage.forEach((d) => { z[tagesStand(kalenderData[d]).zustand]++ })
+  if (bilanz) bilanz.textContent = monatBilanzText(z, tage.length)
+
+  // Fokus merken: gleicher Tag, Überschrift des Details oder der Knopf der Fehlermeldung
+  const aktiv = document.activeElement
+  const fokusTag = host.contains(aktiv) ? (aktiv.closest('.mo-tag')?.dataset.value || '') : ''
+  const fokusImDetail = !!aktiv?.closest?.('#calendar-details')
+  const fokusInMeldung = host.contains(aktiv) && !!aktiv.closest('.wo-meldung')
+
+  host.innerHTML = tage.map((d) => monatTagHtml(d, heute)).join('')
+    + (monatGewaehlt
+      ? '<div class="wo-detail mo-detail" id="calendar-details"></div>'
+      : '<p class="mo-hinweis" id="calendar-details">Tag wählen, um Einzelheiten zu sehen.</p>')
+  if (monatGewaehlt) {
+    const detail = document.getElementById('calendar-details')
+    renderTagesDetail(monatGewaehlt, detail, { ansicht: 'monat' })
+    monatDetailPlatzieren()
+  }
+  if (fokusTag) host.querySelector(`.mo-tag[data-value="${CSS.escape(fokusTag)}"]`)?.focus({ preventScroll: true })
+  else if (fokusImDetail) host.querySelector('.wo-detail-thema')?.focus({ preventScroll: true })
+  // „Erneut versuchen“ war erfolgreich: Der Knopf ist weg, der gewählte Tag (sonst die Monatsüberschrift) übernimmt den Fokus
+  else if (fokusInMeldung) {
+    const ziel = monatGewaehlt ? host.querySelector(`.mo-tag[data-value="${CSS.escape(monatGewaehlt)}"]`) : document.getElementById('cal-title')
+    ziel?.focus({ preventScroll: true })
+  }
 }
 
-function selectCalendarDate(datum) {
-  selectedCalendarDate = datum
-  renderCalendar()
-  updateCalendarDetails(datum)
+// Das Detail hängt im DOM hinter dem letzten Tag der Woche des gewählten Tags (Fokusreihenfolge = Optik) und
+// zeigt sich dort über die volle Rasterbreite. In der Tagesliste (eine Spalte) steht es direkt hinter dem Tag.
+function monatDetailPlatzieren() {
+  const host = document.getElementById('cal-grid')
+  const detail = document.getElementById('calendar-details')
+  if (!host || !detail?.classList.contains('mo-detail') || !monatGewaehlt) return
+  const tage = [...host.querySelectorAll('.mo-tag')]
+  const i = tage.findIndex((b) => b.dataset.value === monatGewaehlt)
+  if (i < 0) return
+  const spalten = getComputedStyle(host).gridTemplateColumns.split(' ').length
+  const anker = tage[spalten > 1 ? Math.min(i + 6 - Number(tage[i].dataset.wt), tage.length - 1) : i]
+  if (anker.nextElementSibling === detail) return
+  const aktiv = document.activeElement
+  anker.after(detail)
+  if (aktiv && detail.contains(aktiv) && document.activeElement !== aktiv) aktiv.focus({ preventScroll: true })
 }
 
-function changeMonth(delta) {
-  calMonth += delta
-  if (calMonth > 11) { calMonth = 0;  calYear++ }
-  if (calMonth < 0)  { calMonth = 11; calYear-- }
-  renderCalendar()
+// Wechselt das Raster zwischen Spalten und Tagesliste (Container-Abfrage), ändert sich die Stelle des Details.
+;(function beobachteMonatRaster() {
+  const host = document.getElementById('cal-grid')
+  if (!host || typeof ResizeObserver === 'undefined') return
+  new ResizeObserver(() => monatDetailPlatzieren()).observe(host)
+})()
+
+// „6 von 30 Tagen vollständig · 7 unvollständig · 17 leer“ (Nullwerte entfallen)
+function monatBilanzText(z, anzahl) {
+  if (z.vollstaendig === anzahl) return 'Alle Tage vollständig geplant'
+  if (z.leer === anzahl) return 'Noch nichts geplant'
+  return [`${z.vollstaendig} von ${anzahl} Tagen vollständig`,
+    z.teilweise ? `${z.teilweise} unvollständig` : '',
+    z.leer ? `${z.leer} leer` : ''].filter(Boolean).join(' · ')
+}
+
+function monatTagHtml(datum, heute) {
+  const entry = kalenderData?.[datum] || null
+  const stand = tagesStand(entry)
+  const t = datumTeile(datum)
+  const istHeute = datum === heute
+  const bonus = isFreeAccessDay(datum)
+  const vorschlag = !entry && hatOffenenVorschlag(datum)
+  // Leere Tage tragen keine Marken (30 Zellen mit je vier leeren Marken wären Rauschen)
+  const marken = stand.zustand === 'leer' ? '' : `<span class="wo-marken" aria-hidden="true">${stand.modi.map((mo) => (mo.geplant
+    ? `<span class="wo-marke" data-m="${mo.marke}">${mo.buchstabe}</span>`
+    : '<span class="wo-marke is-fehlt"></span>')).join('')}</span>`
+  const zeichen = (vorschlag ? '<span class="mo-vorschlag"><span class="mo-zeichen-kurz">V</span><span class="mo-zeichen-lang">Vorschlag</span></span>' : '')
+    + (bonus ? '<span class="mo-bonus"><span class="mo-zeichen-kurz">✦</span><span class="mo-zeichen-lang wo-bonus">Bonus</span></span>' : '')
+  // Stand für Screenreader; die Marken und Zeichen sind aria-hidden
+  const sr = [
+    stand.zustand === 'vollstaendig' ? 'vollständig' : stand.zustand === 'leer' ? 'nichts geplant' : `${stand.anzahl} von ${MODI.length} Modi, ${fehltText(stand)}`,
+    bonus ? 'Bonus-Tag' : '',
+    vorschlag ? 'Vorschlag liegt vor' : '',
+  ].filter(Boolean).join(', ')
+  const gewaehlt = datum === monatGewaehlt
+  // Der Name enthält die sichtbare Zahl (WCAG 2.5.3): „Freitag, 13. November, Thema, 3 von 4 Modi …“
+  return `<button type="button" class="mo-tag${gewaehlt ? ' is-gewaehlt' : ''}${datum < heute ? ' is-vergangen' : ''}"`
+    + ` data-action="select-monat-tag" data-value="${esc(datum)}" data-wt="${t.wt}" aria-expanded="${gewaehlt}" aria-controls="calendar-details"${istHeute ? ' aria-current="date"' : ''}>`
+    + `<span class="mo-tag-kopf"><span class="mo-tag-wt" aria-hidden="true">${DAYS_DE[t.wt]}</span>`
+    // Ein einziger versteckter Name („Mittwoch, 14. Oktober, heute“); die sichtbare Zahl bleibt für Screenreader stumm
+    + `<span class="mo-tag-zahl"><span class="adm-visually-hidden">${WOCHENTAGE_LANG[t.wt]}, ${t.d}. ${MONTHS_DE[t.m - 1]}${istHeute ? ', heute' : ''}</span><span aria-hidden="true">${t.d}</span></span>`
+    + (istHeute ? '<span class="mo-heute" aria-hidden="true">heute</span>' : '') + '</span>'
+    + (entry?.thema ? `<span class="mo-tag-thema"><span class="adm-visually-hidden">, </span>${esc(entry.thema)}</span>` : '')
+    + marken
+    + `<span class="mo-tag-zeichen" aria-hidden="true">${zeichen}</span>`
+    + `<span class="adm-visually-hidden">, ${esc(sr)}</span></button>`
+}
+
+// Auswahl ohne Neuzeichnen (wie selectDashboardDay): Der Fokus bleibt auf dem Tag.
+function selectMonatTag(datum, { perZeiger = false } = {}) {
+  const host = document.getElementById('cal-grid')
+  const tag = host?.querySelector(`.mo-tag[data-value="${CSS.escape(datum)}"]`)
+  if (!tag) return
+  monatGewaehlt = datum
+  let detail = document.getElementById('calendar-details')
+  if (!detail?.classList.contains('mo-detail')) {
+    const neu = document.createElement('div')
+    neu.className = 'wo-detail mo-detail'
+    neu.id = 'calendar-details'
+    if (detail) detail.replaceWith(neu)
+    detail = neu
+  }
+  host.querySelectorAll('.mo-tag').forEach((b) => {
+    const an = b === tag
+    b.classList.toggle('is-gewaehlt', an)
+    b.setAttribute('aria-expanded', String(an))
+  })
+  renderTagesDetail(datum, detail, { ansicht: 'monat' })
+  monatDetailPlatzieren()
+  merkeAnsicht('monat', monatHash())
+  // Im Raster steht das Detail unter dem Monat: bei Klick/Tipp ggf. ins Bild holen
+  if (perZeiger && detail.getBoundingClientRect().top > window.innerHeight - 80) {
+    const ruhig = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+    detail.scrollIntoView({ block: 'nearest', behavior: ruhig ? 'auto' : 'smooth' })
+  }
+}
+
+function wechsleMonat(delta) {
+  const heute = getTodayIso()
+  monatAnsicht = monatVerschoben(monatAnsicht || monatVon(heute), delta)
+  monatGewaehlt = monatVon(heute) === monatAnsicht ? heute : ''
+  renderMonat()                       // Der Fokus bleibt auf dem Navigationsknopf (liegt außerhalb der Tage)
+  merkeAnsicht('monat', monatHash())
+}
+
+function zeigeDiesenMonat() {
+  const heute = getTodayIso()
+  if (monatAnsicht === monatVon(heute)) return
+  monatAnsicht = monatVon(heute)
+  monatGewaehlt = heute
+  renderMonat()
+  merkeAnsicht('monat', monatHash())
+}
+
+const MONAT_TASTEN = ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home', 'End', 'PageUp', 'PageDown']
+
+// Pfeile: ein Tag bzw. eine Woche; Pos1/Ende: Wochenanfang/-ende; Bild auf/ab: Vor-/Folgemonat.
+// Über den Monatsrand hinaus wechselt der Monat, und der Zieltag bekommt den Fokus.
+function monatTaste(taste, target) {
+  const datum = target.dataset.value
+  const spalten = getComputedStyle(target.parentElement).gridTemplateColumns.split(' ').length   // 1 = Tagesliste
+  const wt = datumTeile(datum).wt
+  const ersterTag = `${monatAnsicht}-01`
+  const letzterTag = addTageIso(`${monatVerschoben(monatAnsicht, 1)}-01`, -1)
+  let ziel
+  if (taste === 'ArrowLeft') ziel = addTageIso(datum, -1)
+  else if (taste === 'ArrowRight') ziel = addTageIso(datum, 1)
+  else if (taste === 'ArrowUp') ziel = addTageIso(datum, spalten > 1 ? -7 : -1)
+  else if (taste === 'ArrowDown') ziel = addTageIso(datum, spalten > 1 ? 7 : 1)
+  else if (taste === 'Home') ziel = addTageIso(datum, -wt) < ersterTag ? ersterTag : addTageIso(datum, -wt)
+  else if (taste === 'End') ziel = addTageIso(datum, 6 - wt) > letzterTag ? letzterTag : addTageIso(datum, 6 - wt)
+  else {
+    const ym = monatVerschoben(monatVon(datum), taste === 'PageUp' ? -1 : 1)
+    const [y, m] = ym.split('-').map(Number)
+    ziel = `${ym}-${String(Math.min(Number(datum.slice(8)), new Date(y, m, 0).getDate())).padStart(2, '0')}`
+  }
+  if (monatVon(ziel) !== monatAnsicht) wechsleMonat(monatVon(ziel) > monatAnsicht ? 1 : -1)
+  document.querySelector(`#cal-grid .mo-tag[data-value="${CSS.escape(ziel)}"]`)?.focus()
+}
+
+// „In der Woche zeigen“: Woche auf die Woche des Tages stellen, Tag dort gewählt.
+function zeigeWocheVon(datum) {
+  if (!isValidIsoDay(datum)) return
+  const montag = addTageIso(datum, -datumTeile(datum).wt)
+  const diffTage = Math.round((new Date(`${montag}T12:00:00`) - new Date(`${wochenMontag(0)}T12:00:00`)) / 86400000)
+  dashboardWeekOffset = Math.round(diffTage / 7)
+  selectedDashboardDate = datum
+  renderWoche()
+  naechsterFokus = '#dashboard-calendar-preview .wo-tag.is-gewaehlt'
+  navigate('#planen')
 }
 
 // Leert das Tagesformular und setzt das Datum. Die Seite selbst zeigt der
@@ -1897,7 +2056,6 @@ function prefillDate(isoDate, options = {}) {
   setEntryMode('new')
   setEntryLoadError('')
   selectedCalendarDate = ''
-  renderCalendar()
   document.getElementById('datum').value = isoDate
   ;['w1','w2','w3','n1','n2','n3','l1','l2','l3','thema','thema-kurz','thema-quelle','zr','zr-notiz','zr-link','zw-lemma','zw-notiz','zw-link','wz-notiz','wz-link','lf-id'].forEach(id => { const el = document.getElementById(id); if (el) el.value = '' })
   document.getElementById('p1').value    = 'Substantiv'
@@ -2251,6 +2409,8 @@ async function loadKalender() {
   if (kalenderStatus === 'fehler') {
     kalenderLaedtNeu = true
     renderWoche()
+    renderMonat()
+    renderListe()
   }
   try {
     const res  = await fetch('/admin/kalender', {})
@@ -2274,135 +2434,251 @@ async function loadKalender() {
       selectedCalendarDate = ''
     }
 
-    renderCalendar()
     updateDashboardFromKalender()
-    renderEntryTable()
-    if (selectedCalendarDate) {
-      updateCalendarDetails(selectedCalendarDate)
-    } else {
-      updateCalendarDetails('')
-    }
+    renderMonat()
+    renderListe()
   } catch {
     kalenderData = {}
     kalenderStatus = 'fehler'
     kalenderLaedtNeu = false
     selectedCalendarDate = ''
     selectedEntryDates.clear()
-    renderCalendar()
     updateDashboardFromKalender()
-    renderEntryTable()
-    updateCalendarDetails('')
+    renderMonat()
+    renderListe()
     if (currentRoute?.page === 'entry') aktualisiereDatumHinweis()
   }
 }
 
-function renderEntryTable() {
-  const tbody = document.getElementById('entry-table-body')
-  const countEl = document.getElementById('entry-count')
-  if (!tbody || !countEl) return
+// ── Planen › Liste ────────────────────────────────────────────────────────────
+// Linien-Liste, nach Monaten gruppiert. Filter (Suche, Zeitraum, Stand), Seite und
+// Seitengröße stehen in listeZustand und in der Adresse (#planen/liste?q=…&zeit=…).
+// Die Mehrfachauswahl (selectedEntryDates) steht bewusst nicht in der Adresse.
 
-  const search = (document.getElementById('entry-search')?.value || '').trim().toLowerCase()
-  const modeFilter = document.getElementById('entry-mode-filter')?.value || 'all'
-  const sortOrder = document.getElementById('entry-sort')?.value || 'date-asc'
-  entryPageSize = parseInt(document.getElementById('entry-page-size')?.value, 10) || entryPageSize
+let listeZustand = { ...LISTE_STANDARD }
+let loeschtListeGerade = false
+let ansageTimer = null
+// validate.js: adminBulkDeleteCalendarSchema erlaubt höchstens 180 Tage je Anfrage
+const MAX_LOESCHEN = 180
 
-  const entries = getCalendarEntries()
+// Dieselben Weißlisten wie leseListeQuery, für Zustand aus der Bedienung
+function normalisiereListe(z) {
+  return {
+    q: String(z.q ?? '').slice(0, 100),
+    zeit: LISTE_ZEITEN.includes(z.zeit) ? z.zeit : LISTE_STANDARD.zeit,
+    stand: LISTE_STAENDE.includes(z.stand) ? z.stand : LISTE_STANDARD.stand,
+    seite: Math.max(1, Math.floor(Number(z.seite)) || 1),
+    pro: LISTE_GROESSEN.includes(Number(z.pro)) ? Number(z.pro) : LISTE_STANDARD.pro,
+  }
+}
 
-  let filtered = entries.filter(({ datum, entry }) => {
-    const hasKoll = !!entry?.lemmata?.length
-    const groupedText = getModeGroups(entry).flatMap((group) => group.items || []).join(' ').toLowerCase()
-    const formattedDate = formatIsoDate(toIsoFromMMDD(datum)).toLowerCase()
-    const matchesSearch = !search || datum.includes(search) || formattedDate.includes(search) || groupedText.includes(search)
-    if (!matchesSearch) return false
+// Text nur bei Änderung schreiben: Jeder Schreibzugriff auf eine Live-Region löst eine Ansage aus.
+function setzeText(el, text) {
+  if (el && el.textContent !== text) el.textContent = text
+}
 
-    if (modeFilter === 'all') return true
-    if (modeFilter === 'koll') return hasKoll
-    if (modeFilter === 'wortzwilling') return !!entry?.hasWortZwilling
-    if (modeFilter === 'zeitenwende') return !!entry?.hasZeitenwende
-    if (modeFilter === 'lueckenfueller') return !!entry?.hasLueckenfueller
-    return true
+function passtStand(stand, filter) {
+  if (filter === 'unvollstaendig') return stand.zustand !== 'vollstaendig'
+  if (filter === 'vollstaendig') return stand.zustand === 'vollstaendig'
+  if (filter.startsWith('ohne-')) return !stand.modi.find((m) => m.key === filter.slice(5))?.geplant
+  return true
+}
+
+// Eine Filterfunktion für Anzeige, „Alle Treffer wählen“ und die Bereinigung der Auswahl.
+function listeTreffer() {
+  const heute = getTodayIso()
+  const q = listeZustand.q.trim().toLowerCase()
+  let tage = Object.keys(kalenderData || {}).filter(isValidIsoDay).sort()
+  if (listeZustand.zeit === 'kommend') tage = tage.filter((d) => d >= heute)
+  else if (listeZustand.zeit === 'vergangen') tage = tage.filter((d) => d < heute).reverse()
+  return tage.filter((datum) => {
+    const entry = kalenderData[datum]
+    const stand = tagesStand(entry)
+    if (!passtStand(stand, listeZustand.stand)) return false
+    if (!q) return true
+    return [datum, formatIsoDate(datum), datumKurz(datum), datumLang(datum, { jahr: true }), entry?.thema, entry?.thema_kurz,
+      ...stand.modi.flatMap((m) => m.items)].join(' ').toLowerCase().includes(q)
   })
+}
 
-  // getCalendarEntries() liefert bereits aufsteigend sortiert – bei "date-desc" nur umdrehen.
-  if (sortOrder === 'date-desc') filtered = filtered.slice().reverse()
+const istStandardFilter = () => !listeZustand.q && listeZustand.zeit === LISTE_STANDARD.zeit && listeZustand.stand === LISTE_STANDARD.stand
 
-  countEl.textContent = `${filtered.length} von ${entries.length} Einträgen`
+// Ansage der Ergebniszahl erst nach 700 ms Ruhe (beim Tippen sonst bei jedem Zwischenstand)
+function planeAnsage(text) {
+  const el = document.getElementById('entry-ansage')
+  if (!el) return
+  if (ansageTimer) window.clearTimeout(ansageTimer)
+  ansageTimer = window.setTimeout(() => {
+    ansageTimer = null
+    el.textContent = ''
+    el.textContent = text
+  }, 700)
+}
 
-  if (!filtered.length) {
-    tbody.innerHTML = tableMessageRow(5, 'entry-empty', 'Keine Einträge für den aktuellen Filter.')
-    updateEntryBulkState([])
-    entryTablePage = 1
-    renderEntryPagination(0, 0, 1)
+// opts.felderErzwingen: Eingabefelder aus dem Zustand setzen, auch das fokussierte (Zustand kam aus der Adresse)
+// opts.ansage: Änderung der Ergebniszahl ansagen (Nutzer hat gefiltert)
+function renderListe({ felderErzwingen = false, ansage = false } = {}) {
+  const host = document.getElementById('entry-table-body')
+  if (!host) return
+  const setze = (id, wert) => {
+    const el = document.getElementById(id)
+    if (el && (felderErzwingen || el !== document.activeElement) && el.value !== String(wert)) el.value = String(wert)
+  }
+  setze('entry-search', listeZustand.q)
+  setze('entry-sort', listeZustand.zeit)
+  setze('entry-mode-filter', listeZustand.stand)
+  setze('entry-page-size', listeZustand.pro)
+  const zuruecksetzen = document.getElementById('entry-filter-reset')
+  zuruecksetzen.hidden = istStandardFilter()
+  const leiste = document.getElementById('entry-auswahlleiste')
+  const seitenNav = document.getElementById('entry-pagination')
+  const zahl = document.getElementById('entry-count')
+
+  if (kalenderStatus !== 'ok') {
+    leiste.hidden = true
+    seitenNav.hidden = true
+    zahl.parentElement.hidden = true
+    setzeText(zahl, '')
+    if (kalenderStatus === 'fehler') {
+      // Meldung nur einmal aufbauen, damit der Fokus auf „Erneut versuchen“ bleibt
+      let knopf = host.querySelector('.wo-meldung[data-tone="err"] [data-action="load-kalender"]')
+      if (!knopf) {
+        host.innerHTML = '<p class="wo-meldung" data-tone="err" role="alert">Der Kalender konnte nicht geladen werden. <button type="button" class="adm-link" data-action="load-kalender">Erneut versuchen</button></p>'
+        knopf = host.querySelector('[data-action="load-kalender"]')
+      }
+      knopf.setAttribute('aria-disabled', String(kalenderLaedtNeu))
+      const knopfText = kalenderLaedtNeu ? 'Liste wird geladen …' : 'Erneut versuchen'
+      if (knopf.textContent !== knopfText) knopf.textContent = knopfText
+    } else {
+      host.innerHTML = '<p class="wo-meldung">Liste wird geladen …</p>'
+    }
     return
   }
 
-  // Auswahl-Bereinigung + Massenauswahl beziehen sich weiterhin auf ALLE
-  // gefilterten Treffer (nicht nur die aktuell sichtbare Seite) – sonst
-  // würde "Alle sichtbaren wählen" bei Paginierung nur die erste Seite treffen.
-  const visibleDates = filtered.map((item) => item.datum)
-  visibleDates.forEach((datum) => {
-    if (selectedEntryDates.has(datum) && !kalenderData[datum]) selectedEntryDates.delete(datum)
-  })
+  const aktiv = document.activeElement
+  const fokusInMeldung = host.contains(aktiv) && !!aktiv.closest('.wo-meldung')
+  const treffer = listeTreffer()
+  // Die Auswahl gilt nur für Treffer: Was der Filter ausblendet, wird abgewählt.
+  const trefferSet = new Set(treffer)
+  for (const d of [...selectedEntryDates]) if (!trefferSet.has(d)) selectedEntryDates.delete(d)
 
-  const totalPages = Math.max(1, Math.ceil(filtered.length / entryPageSize))
-  if (entryTablePage > totalPages) entryTablePage = totalPages
-  if (entryTablePage < 1) entryTablePage = 1
-  const pageStart = (entryTablePage - 1) * entryPageSize
-  const pageItems = filtered.slice(pageStart, pageStart + entryPageSize)
-
-  tbody.innerHTML = pageItems.map(({ datum, iso, entry }) => {
-    const summaryHtml = renderModeGroupSummary(entry)
-    const checked = selectedEntryDates.has(datum) ? 'checked' : ''
-
-    return `<tr role="row">
-      <td role="cell" data-label="Auswahl" class="entry-select-col"><label class="cb-hit"><input type="checkbox" ${checked} data-action="toggle-entry-selection" data-datum="${datum}" aria-label="Eintrag ${esc(datum)} auswählen"></label></td>
-      <td role="cell" data-label="Datum"><strong>${esc(formatMmdd(datum))}</strong><br><span class="entry-hint">${esc(datum)}</span></td>
-      <td role="cell" data-label="Inhalte" class="cell-stack"><div class="mode-summary-list">${summaryHtml}</div></td>
-      <td role="cell" data-label="Modi" class="cell-stack"><div class="entry-chip-wrap">${modeChips(entry)}</div></td>
-      <td role="cell" data-label="Aktion">
-        <div class="entry-row-actions">
-          <button class="entry-action-btn" data-action="edit-tag" data-datum="${datum}">Bearbeiten</button>
-          <button class="entry-action-btn" data-action="focus-calendar-date" data-value="${datum}">Im Kalender</button>
-        </div>
-      </td>
-    </tr>`
-  }).join('')
-
-  updateEntryBulkState(visibleDates)
-  renderEntryPagination(filtered.length, pageItems.length, totalPages)
-}
-
-function renderEntryPagination(filteredCount, pageItemCount, totalPages) {
-  const infoEl = document.getElementById('entry-page-info')
-  const prevBtn = document.getElementById('entry-page-prev-btn')
-  const nextBtn = document.getElementById('entry-page-next-btn')
-  if (!infoEl || !prevBtn || !nextBtn) return
-
-  infoEl.textContent = filteredCount
-    ? `Seite ${entryTablePage} von ${totalPages} (${pageItemCount} von ${filteredCount} angezeigt)`
-    : 'Seite 1 von 1'
-  prevBtn.disabled = entryTablePage <= 1
-  nextBtn.disabled = entryTablePage >= totalPages
-}
-
-function goToEntryPage(delta) {
-  entryTablePage += delta
-  renderEntryTable()
-}
-
-/**
- * Die Eintragsliste wird komplett neu gerendert (Filter über alle Kalendertage
- * + innerHTML der Tabelle). Ohne Debounce passiert das bei jedem Tastenanschlag –
- * gleiches Muster wie scheduleUsersOverviewLoad.
- */
-function scheduleEntryTableRender() {
-  if (entrySearchTimer) {
-    window.clearTimeout(entrySearchTimer)
+  const seiten = Math.max(1, Math.ceil(treffer.length / listeZustand.pro))
+  if (listeZustand.seite > seiten) {
+    listeZustand = { ...listeZustand, seite: seiten }
+    merkeAnsicht('liste', listeHash(listeZustand))
   }
+  const start = (listeZustand.seite - 1) * listeZustand.pro
+  const seite = treffer.slice(start, start + listeZustand.pro)
+
+  const leer = !treffer.length
+  const zahlText = listeZahlText(treffer.length)
+  const zahlGeaendert = zahl.textContent !== zahlText
+  setzeText(zahl, zahlText)
+  // Ohne Treffer steht „Filter zurücksetzen“ im Leerzustand; „Nichts geplant“ braucht keine Zählzeile darüber
+  zuruecksetzen.hidden = istStandardFilter() || leer
+  zahl.parentElement.hidden = leer && istStandardFilter()
+  if (ansage && zahlGeaendert) planeAnsage(zahlText)
+  leiste.hidden = leer
+  if (leer) {
+    host.innerHTML = listeLeerHtml()
+  } else {
+    const gruppen = new Map()
+    seite.forEach((d) => {
+      const k = monatVon(d)
+      if (!gruppen.has(k)) gruppen.set(k, [])
+      gruppen.get(k).push(d)
+    })
+    const heute = getTodayIso()
+    host.innerHTML = [...gruppen].map(([k, tage]) => {
+      const [y, m] = k.split('-').map(Number)
+      // Überschrift „Mai 2026, 2 Tage“ (versteckter Trenner); keine Region je Monat
+      return '<section class="li-gruppe"><h2 class="li-monat">'
+        + `<span class="li-monat-name">${MONTHS_DE[m - 1]} ${y}</span><span class="adm-visually-hidden">, </span><span class="li-monat-zahl">${tage.length} ${tage.length === 1 ? 'Tag' : 'Tage'}</span></h2>`
+        + `<ul class="li-tage">${tage.map((d) => listeZeileHtml(d, heute)).join('')}</ul></section>`
+    }).join('')
+  }
+  seitenNav.hidden = treffer.length <= LISTE_STANDARD.pro && listeZustand.pro === LISTE_STANDARD.pro
+  setzeText(document.getElementById('entry-page-info'), leer ? '' : `Seite ${listeZustand.seite} von ${seiten} · ${start + 1}–${start + seite.length} von ${treffer.length}`)
+  document.getElementById('entry-page-prev-btn').setAttribute('aria-disabled', String(listeZustand.seite <= 1))
+  document.getElementById('entry-page-next-btn').setAttribute('aria-disabled', String(listeZustand.seite >= seiten))
+  aktualisiereAuswahl(treffer, seite)
+  // „Erneut versuchen“ war erfolgreich: Der Knopf ist weg, die Ergebniszeile übernimmt den Fokus
+  if (fokusInMeldung) (zahl.parentElement.hidden ? document.getElementById('entry-search') : zahl)?.focus({ preventScroll: true })
+}
+
+// „14 kommende Tage · 42 insgesamt“ · „3 von 14 kommenden Tagen“ · „42 Tage“
+function listeZahlText(n) {
+  const heute = getTodayIso()
+  const alle = Object.keys(kalenderData || {}).filter(isValidIsoDay)
+  const basis = listeZustand.zeit === 'kommend' ? alle.filter((d) => d >= heute).length
+    : listeZustand.zeit === 'vergangen' ? alle.filter((d) => d < heute).length : alle.length
+  const wort = {
+    kommend: ['kommender Tag', 'kommende Tage', 'kommenden Tagen'],
+    vergangen: ['vergangener Tag', 'vergangene Tage', 'vergangenen Tagen'],
+    alle: ['Tag', 'Tage', 'Tagen'],
+  }[listeZustand.zeit]
+  if (!listeZustand.q && listeZustand.stand === 'alle') {
+    return `${n} ${n === 1 ? wort[0] : wort[1]}${listeZustand.zeit === 'alle' ? '' : ` · ${alle.length} insgesamt`}`
+  }
+  return `${n} von ${basis} ${wort[2]}`
+}
+
+// Leerzustand: Serif-Titel + Text + Ornament, kein Kasten (wie „Keine Lücken“ in der Woche)
+function listeLeerHtml() {
+  const ohneFilter = istStandardFilter()
+  return '<div class="li-leer">'
+    + `<p class="li-leer-titel">${ohneFilter ? 'Nichts geplant' : 'Keine Treffer'}</p>`
+    + `<p class="li-leer-text">${ohneFilter ? 'Ab heute ist noch kein Tag angelegt.' : 'Für diese Suche gibt es keinen Tag.'}</p>`
+    + (ohneFilter ? '<a class="adm-cta" href="#planen/tag/neu"><span>Tag anlegen</span> <span aria-hidden="true">→</span></a>'
+      : '<button type="button" class="adm-link" data-action="reset-entry-filters">Filter zurücksetzen</button>')
+    + '<p class="li-leer-ornament" aria-hidden="true">· · ·</p></div>'
+}
+
+function listeZeileHtml(datum, heute) {
+  const entry = kalenderData?.[datum] || null
+  const stand = tagesStand(entry)
+  const t = datumTeile(datum)
+  const lang = datumLang(datum, { jahr: true })
+  const koll = stand.modi[0].items.map(esc).join(' · ')
+  // Versteckter „: “ zwischen Bezeichnung und Wert, sonst liest der Screenreader „Wort-ZwillingGlaube / Wissen“
+  const weitere = stand.modi.slice(1).filter((m) => m.geplant)
+    .map((m) => `<li><span class="li-weitere-label">${m.label}</span><span class="adm-visually-hidden">: </span>${m.items.map(esc).join(m.key === 'wortzwilling' ? ' / ' : ' · ')}</li>`).join('')
+  const marken = stand.modi.map((m) => (m.geplant
+    ? `<span class="wo-marke" data-m="${m.marke}">${m.buchstabe}</span>`
+    : '<span class="wo-marke is-fehlt"></span>')).join('')
+  const kurz = stand.zustand === 'teilweise' ? `${stand.anzahl} von ${MODI.length}` : ''
+  const sr = stand.zustand === 'vollstaendig' ? 'vollständig'
+    : stand.zustand === 'leer' ? 'nichts geplant' : `${stand.anzahl} von ${MODI.length} Modi, ${fehltText(stand)}`
+  const gewaehlt = selectedEntryDates.has(datum)
+  return `<li class="li-tag${gewaehlt ? ' is-gewaehlt' : ''}${datum < heute ? ' is-vergangen' : ''}" data-datum="${esc(datum)}">`
+    + `<label class="li-wahl"><input type="checkbox" data-action="toggle-entry-selection" data-datum="${esc(datum)}" aria-label="${esc(lang)} auswählen"${gewaehlt ? ' checked' : ''}></label>`
+    + `<span class="li-datum"><span class="li-wt" aria-hidden="true">${DAYS_DE[t.wt]}</span><span class="adm-visually-hidden">${WOCHENTAGE_LANG[t.wt]}, </span>${String(t.d).padStart(2, '0')}.${String(t.m).padStart(2, '0')}.${datum === heute ? '<span class="li-heute">heute</span>' : ''}</span>`
+    + `<div class="li-haupt"><p class="li-thema${entry?.thema ? '' : ' is-leer'}">${esc(entry?.thema || 'ohne Thema')}</p>`
+    + (koll ? `<p class="li-woerter"><span class="adm-visually-hidden">Kollokationen: </span>${koll}</p>` : '')
+    + (weitere ? `<ul class="li-weitere">${weitere}</ul>` : '') + '</div>'
+    + `<div class="li-stand"><span class="wo-marken" aria-hidden="true">${marken}</span>${kurz ? `<span class="li-stand-text" aria-hidden="true">${kurz}</span>` : ''}<span class="adm-visually-hidden">${esc(sr)}</span></div>`
+    + `<div class="li-aktionen"><a class="li-go" href="#planen/tag/${esc(datum)}">bearbeiten<span class="adm-visually-hidden">: ${esc(lang)}</span></a>`
+    + `<a class="adm-link" href="#planen/monat/${esc(datum)}">im Monat<span class="adm-visually-hidden">: ${esc(lang)}</span></a></div></li>`
+}
+
+// Zustand ändern (mit denselben Weißlisten wie die Adresse), neu zeichnen und in die Adresse schreiben (ohne Verlaufseintrag).
+// fokusSeite: Seitenwechsel – zum Listenanfang scrollen, Fokus auf die Seitenangabe
+function aendereListe(teil, { fokusSeite = false } = {}) {
+  listeZustand = normalisiereListe({ ...listeZustand, ...teil })
+  renderListe({ ansage: true })
+  merkeAnsicht('liste', listeHash(listeZustand))
+  if (fokusSeite) {
+    document.getElementById('entry-count')?.scrollIntoView({ block: 'start' })
+    document.getElementById('entry-page-info')?.focus({ preventScroll: true })
+  }
+}
+
+// Die Suche zeichnet nach 200 ms Pause neu (nicht bei jedem Tastenanschlag).
+function scheduleEntryTableRender() {
+  if (entrySearchTimer) window.clearTimeout(entrySearchTimer)
   entrySearchTimer = window.setTimeout(() => {
     entrySearchTimer = null
-    entryTablePage = 1
-    renderEntryTable()
+    aendereListe({ q: document.getElementById('entry-search')?.value || '', seite: 1 })
   }, 200)
 }
 
@@ -2411,82 +2687,121 @@ function resetEntryFilters() {
     window.clearTimeout(entrySearchTimer)
     entrySearchTimer = null
   }
-  const searchInput = document.getElementById('entry-search')
-  const modeFilter = document.getElementById('entry-mode-filter')
-  const sortSelect = document.getElementById('entry-sort')
-  if (searchInput) searchInput.value = ''
-  if (modeFilter) modeFilter.value = 'all'
-  if (sortSelect) sortSelect.value = 'date-asc'
-  entryTablePage = 1
-  renderEntryTable()
+  aendereListe({ q: '', zeit: LISTE_STANDARD.zeit, stand: LISTE_STANDARD.stand, seite: 1 })
+  // Der Knopf ist jetzt weg (oder die Leer-Meldung ersetzt): Fokus zur Suche
+  document.getElementById('entry-search')?.focus({ preventScroll: true })
 }
 
-function updateEntryBulkState(visibleDates = []) {
-  const count = document.getElementById('entry-bulk-count')
-  const deleteBtn = document.getElementById('entry-bulk-delete-btn')
-  if (!count || !deleteBtn) return
+function goToEntryPage(delta) {
+  aendereListe({ seite: listeZustand.seite + delta }, { fokusSeite: true })
+}
 
-  for (const datum of [...selectedEntryDates]) {
-    if (!kalenderData[datum]) selectedEntryDates.delete(datum)
+// ── Auswahl und Löschen ──────────────────────────────────────────────────────
+
+function aktualisiereAuswahl(treffer = listeTreffer(), seite = null) {
+  const host = document.getElementById('entry-table-body')
+  if (!host) return
+  const seitenTage = seite || [...host.querySelectorAll('.li-tag')].map((li) => li.dataset.datum)
+  const n = selectedEntryDates.size
+  host.querySelectorAll('.li-tag').forEach((li) => {
+    const an = selectedEntryDates.has(li.dataset.datum)
+    li.classList.toggle('is-gewaehlt', an)
+    const cb = li.querySelector('input[type="checkbox"]')
+    if (cb) cb.checked = an
+  })
+  const aufSeite = seitenTage.filter((d) => selectedEntryDates.has(d)).length
+  const master = document.getElementById('entry-select-page')
+  master.checked = seitenTage.length > 0 && aufSeite === seitenTage.length
+  master.indeterminate = aufSeite > 0 && aufSeite < seitenTage.length
+  const zuViele = n > MAX_LOESCHEN
+  // „3 ausgewählt · davon 2 auf anderen Seiten · höchstens 180 auf einmal“: Unsichtbares wird mitgelöscht, also nennen
+  const teile = n ? [`${n} ausgewählt`] : []
+  if (n > aufSeite) teile.push(`davon ${n - aufSeite} auf anderen Seiten`)
+  if (zuViele) teile.push(`höchstens ${MAX_LOESCHEN} auf einmal`)
+  setzeText(document.getElementById('entry-bulk-count'), teile.join(' · '))
+  const alle = document.getElementById('entry-select-all')
+  alle.hidden = !(master.checked && treffer.length > seitenTage.length && n < treffer.length)
+  setzeText(alle, `Alle ${treffer.length} Treffer wählen`)
+  document.getElementById('entry-clear-selection').hidden = n === 0
+  const del = document.getElementById('entry-bulk-delete-btn')
+  del.hidden = n === 0
+  if (!loeschtListeGerade) {
+    setzeText(document.getElementById('entry-bulk-delete-text'), `${n} ${n === 1 ? 'Tag' : 'Tage'} löschen …`)
+    if (zuViele) del.setAttribute('aria-disabled', 'true')
+    else del.removeAttribute('aria-disabled')
   }
-
-  const visibleSelected = visibleDates.filter((datum) => selectedEntryDates.has(datum)).length
-  count.textContent = `${selectedEntryDates.size} ausgewählt${visibleDates.length ? ` (${visibleSelected} sichtbar)` : ''}`
-  deleteBtn.disabled = selectedEntryDates.size === 0
+  document.getElementById('entry-auswahlleiste').classList.toggle('has-auswahl', n > 0)
+  passeAuswahlleisteAn()
 }
 
-function toggleEntrySelection(datum, checked) {
+// Die klebende Leiste hält beim Scrollen Platz frei (scroll-padding-top), damit fokussierte Zeilen nicht
+// darunter liegen. Bei großer Schrift wäre sie zu hoch (> 25 % des Fensters): dann klebt sie nicht.
+function passeAuswahlleisteAn() {
+  const leiste = document.getElementById('entry-auswahlleiste')
+  if (!leiste) return
+  const hoehe = leiste.offsetHeight
+  const zuHoch = hoehe > window.innerHeight * 0.25
+  leiste.classList.toggle('klebt-nicht', zuHoch)
+  const klebt = leiste.classList.contains('has-auswahl') && !zuHoch && hoehe > 0
+  if (klebt) document.documentElement.style.setProperty('--liste-leiste-h', `${hoehe}px`)
+  else document.documentElement.style.removeProperty('--liste-leiste-h')
+}
+
+;(function beobachteAuswahlleiste() {
+  const leiste = document.getElementById('entry-auswahlleiste')
+  if (!leiste || typeof ResizeObserver === 'undefined') return
+  new ResizeObserver(passeAuswahlleisteAn).observe(leiste)
+  window.addEventListener('resize', passeAuswahlleisteAn)
+})()
+
+// Einzelnes Kästchen: ohne Neuzeichnen, der Fokus bleibt.
+function toggleEntrySelection(datum, an) {
   if (!datum) return
-  if (checked) selectedEntryDates.add(datum)
+  if (an) selectedEntryDates.add(datum)
   else selectedEntryDates.delete(datum)
-
-  const rows = Object.keys(kalenderData || {})
-  updateEntryBulkState(rows)
+  aktualisiereAuswahl()
 }
 
+// „Alle auf dieser Seite“: Kästchen im Kopf der Auswahlleiste
+function selectEntriesOnPage(an) {
+  document.querySelectorAll('#entry-table-body .li-tag').forEach((li) => {
+    if (an) selectedEntryDates.add(li.dataset.datum)
+    else selectedEntryDates.delete(li.dataset.datum)
+  })
+  aktualisiereAuswahl()
+}
+
+// „Alle N Treffer wählen“ (über alle Seiten des aktuellen Filters)
 function selectAllVisibleEntries() {
-  const search = (document.getElementById('entry-search')?.value || '').trim().toLowerCase()
-  const modeFilter = document.getElementById('entry-mode-filter')?.value || 'all'
-
-  const visible = getCalendarEntries()
-    .filter(({ datum, entry }) => {
-      const hasKoll = !!entry?.lemmata?.length
-      const groupedText = getModeGroups(entry).flatMap((group) => group.items || []).join(' ').toLowerCase()
-      const formattedDate = formatIsoDate(toIsoFromMMDD(datum)).toLowerCase()
-      const matchesSearch = !search || datum.includes(search) || formattedDate.includes(search) || groupedText.includes(search)
-      if (!matchesSearch) return false
-      if (modeFilter === 'all') return true
-      if (modeFilter === 'koll') return hasKoll
-      if (modeFilter === 'wortzwilling') return !!entry?.hasWortZwilling
-      if (modeFilter === 'zeitenwende') return !!entry?.hasZeitenwende
-      if (modeFilter === 'lueckenfueller') return !!entry?.hasLueckenfueller
-      return true
-    })
-    .map(({ datum }) => datum)
-
-  visible.forEach((datum) => selectedEntryDates.add(datum))
-  renderEntryTable()
+  listeTreffer().forEach((d) => selectedEntryDates.add(d))
+  aktualisiereAuswahl()
+  document.getElementById('entry-select-page')?.focus({ preventScroll: true })   // der Knopf ist jetzt weg
 }
 
 function clearEntrySelection() {
   selectedEntryDates.clear()
-  renderEntryTable()
+  aktualisiereAuswahl()
+  document.getElementById('entry-select-page')?.focus({ preventScroll: true })
 }
 
 async function bulkDeleteSelectedDates() {
-  if (!selectedEntryDates.size) return
-
   const dates = [...selectedEntryDates].sort()
-  const ok = confirmAction(`${dates.length} Einträge wirklich löschen?`, [
-    `Erster Tag: ${formatIsoDate(dates[0])}`,
-    `Letzter Tag: ${formatIsoDate(dates[dates.length - 1])}`,
-    'Diese Aktion kann nicht rückgängig gemacht werden.',
-  ])
-  if (!ok) return
+  if (!dates.length || dates.length > MAX_LOESCHEN || loeschtListeGerade) return
+  const heute = getTodayIso()
+  const vergangen = dates.filter((d) => d < heute).length
+  // Ab 9 Tagen die ersten fünf nennen und den Rest zählen: „vom … bis …“ klänge nach einem lückenlosen Bereich
+  const details = dates.length <= 8
+    ? dates.map((d) => datumLang(d, { jahr: true }))
+    : [...dates.slice(0, 5).map((d) => datumLang(d, { jahr: true })), `und ${dates.length - 5} weitere`]
+  if (dates.includes(heute)) details.push('Darunter ist der heutige Tag, der gerade gespielt wird.')
+  if (vergangen) details.push(`${vergangen} ${vergangen === 1 ? 'Tag liegt' : 'Tage liegen'} in der Vergangenheit.`)
+  details.push('Die Wörter und ihre Lückenfüller-Runden bleiben erhalten; der Vorgang steht im Änderungsprotokoll.', 'Das lässt sich nicht rückgängig machen.')
+  if (!confirmAction(`${dates.length} ${dates.length === 1 ? 'Tag' : 'Tage'} löschen?`, details)) return
 
-  const deleteBtn = document.getElementById('entry-bulk-delete-btn')
-  if (deleteBtn) deleteBtn.disabled = true
-
+  const del = document.getElementById('entry-bulk-delete-btn')
+  loeschtListeGerade = true
+  del.setAttribute('aria-disabled', 'true')          // nicht disabled: Der Fokus bleibt
+  document.getElementById('entry-bulk-delete-text').textContent = 'Wird gelöscht …'
   try {
     const response = await fetch('/admin/kalender/bulk-delete', {
       method: 'POST',
@@ -2495,76 +2810,22 @@ async function bulkDeleteSelectedDates() {
     })
     const data = await response.json().catch(() => ({}))
     if (!response.ok) throw new Error(data.error || `HTTP ${response.status}`)
-
     selectedEntryDates.clear()
-    setListStatus(`${data.removedCount || 0} Einträge gelöscht, ${data.skippedCount || 0} übersprungen.`, 'ok')
+    const weg = data.removedCount || 0
+    setListStatus(`${weg} ${weg === 1 ? 'Tag' : 'Tage'} gelöscht.${data.skippedCount ? ` ${data.skippedCount} gab es schon nicht mehr.` : ''}`, 'ok')
+    loeschtListeGerade = false
     await loadKalender()
+    document.getElementById('liste-status')?.focus()   // der Knopf ist weg
   } catch (err) {
-    setListStatus(`Bulk-Löschen fehlgeschlagen: ${err.message}`, 'error')
-    const rows = Object.keys(kalenderData || {})
-    updateEntryBulkState(rows)
-  } finally {
-    if (deleteBtn) deleteBtn.disabled = selectedEntryDates.size === 0
+    loeschtListeGerade = false
+    setListStatus(`Nicht gelöscht: ${err.message}`, 'error')
+    // Bei einem Netzfehler nach erfolgreichem Löschen wäre die Liste sonst veraltet: neu laden (bereinigt auch die Auswahl)
+    void loadKalender().then(() => {
+      if (!document.activeElement || document.activeElement === document.body) document.getElementById('liste-status')?.focus()
+    })
+    aktualisiereAuswahl()
+    del.focus()
   }
-}
-
-function focusCalendarDate(datum) {
-  // datum ist jetzt YYYY-MM-DD
-  const [year, month] = datum.split('-').map(Number)
-  calYear = year || new Date().getFullYear()
-  calMonth = (month || 1) - 1
-  selectedCalendarDate = datum
-  // Der Router rendert Monat und Tagesdetails mit der gewählten Auswahl.
-  navigate('#planen/monat')
-}
-
-function updateCalendarDetails(datum) {
-  const details = document.getElementById('calendar-details')
-  const editBtn = document.getElementById('calendar-edit-btn')
-  if (!details || !editBtn) return
-
-  if (!datum || (!kalenderData[datum] && !isFreeAccessDay(datum))) {
-    details.innerHTML = '<div class="calendar-detail-empty">Wähle einen Kalendertag mit Eintrag, um Details zu sehen.</div>'
-    editBtn.disabled = true
-    editBtn.textContent = 'Eintrag bearbeiten'
-    selectedCalendarDate = ''
-    return
-  }
-
-  selectedCalendarDate = datum
-  const entry = kalenderData[datum]
-  const freeDayInfo = getFreeDayInfo(datum)
-  editBtn.disabled = false
-  editBtn.textContent = entry ? 'Eintrag bearbeiten' : 'Eintrag anlegen'
-
-  const groupedHtml = entry ? renderModeGroupSummary(entry) : ''
-  const freeDayHtml = freeDayInfo
-    ? `<div class="calendar-detail-free"><strong>Bonus-Tag</strong><span>${esc(freeDayInfo.displayLabel)}</span></div>`
-    : ''
-  const contentHtml = entry
-    ? `<div class="calendar-detail-section">
-        <h3>Inhalte nach Modus</h3>
-        <div class="mode-summary-list">${groupedHtml}</div>
-      </div>
-      <div class="calendar-detail-section">
-        <h3>Modi</h3>
-        <div class="calendar-detail-list">${modeChips(entry)}</div>
-      </div>`
-    : '<div class="calendar-detail-empty">Für diesen Tag gibt es noch keinen Spieleintrag. Du kannst das Datum direkt vorausfüllen.</div>'
-
-  details.innerHTML = `
-    <div class="calendar-detail-head">
-      <strong>${esc(formatIsoDate(datum))}</strong>
-      <span>${esc(datum)}</span>
-    </div>
-    ${freeDayHtml}
-    ${contentHtml}
-  `
-}
-
-function editSelectedCalendarDate() {
-  if (!selectedCalendarDate) return
-  navigate(`#planen/tag/${selectedCalendarDate}`)
 }
 
 // ── Planen › Woche ────────────────────────────────────────────────────────────
@@ -2722,8 +2983,8 @@ function zeigeDieseWoche() {
   renderWoche()
 }
 
-function renderTagesDetail(datum) {
-  const detail = document.getElementById('dashboard-day-detail')
+// Tagesdetail der Woche; im Monat dieselbe Komponente (detail = #calendar-details, ansicht: 'monat').
+function renderTagesDetail(datum, detail = document.getElementById('dashboard-day-detail'), { ansicht = 'woche' } = {}) {
   if (!detail || !datum) return
   const heute = getTodayIso()
   const entry = kalenderData?.[datum] || null
@@ -2733,6 +2994,10 @@ function renderTagesDetail(datum) {
   // Unsichtbarer Zusatz INNERHALB des Text-Spans, sonst entsteht in Chrome eine zweite Flex-Lücke vor dem Pfeil
   const fuer = `<span class="adm-visually-hidden">: ${esc(datumLang(datum))}</span>`
   const over = `${datumLang(datum, { jahr: true })}${datum === heute ? ' · heute' : ''}`
+  // Im Monat als erste, gedämpfte Aktion: die Woche des Tages zeigen
+  const woche = ansicht === 'monat'
+    ? `<button type="button" class="adm-link" data-action="zeige-woche-von" data-value="${esc(datum)}">In der Woche zeigen${fuer}</button>`
+    : ''
   const bonusHtml = bonus
     ? `<p class="wo-detail-bonus"><span class="wo-bonus">Bonus</span><span>+${bonus.bonus} Eigene-Lemma-Spiele für Basic${bonus.label ? ` · ${esc(bonus.label)}` : ''}</span></p>`
     : ''
@@ -2745,7 +3010,7 @@ function renderTagesDetail(datum) {
         ${vorschlag ? '<p class="wo-detail-kurz">Für diesen Tag liegt ein Vorschlag vor.</p>' : ''}${bonusHtml}
       </div>
       <div class="wo-detail-aktionen">
-        ${vorschlag ? '<a class="adm-link" href="#vorschlaege">Vorschlag ansehen</a>' : ''}
+        ${woche}${vorschlag ? '<a class="adm-link" href="#vorschlaege">Vorschlag ansehen</a>' : ''}
         <a class="adm-cta" href="#planen/tag/${esc(datum)}"><span>Tag anlegen${fuer}</span> <span aria-hidden="true">→</span></a>
       </div>`
     return
@@ -2767,7 +3032,7 @@ function renderTagesDetail(datum) {
     </div>
     <dl class="vorschlag-modi">${stand.modi.map(zeile).join('')}</dl>
     <div class="wo-detail-aktionen">
-      <a class="adm-cta" href="#planen/tag/${esc(datum)}"><span>Tag bearbeiten${fuer}</span> <span aria-hidden="true">→</span></a>
+      ${woche}<a class="adm-cta" href="#planen/tag/${esc(datum)}"><span>Tag bearbeiten${fuer}</span> <span aria-hidden="true">→</span></a>
     </div>`
 }
 
@@ -4125,9 +4390,8 @@ async function loadFreeDays(options = {}) {
     if (!res.ok) throw new Error(`HTTP ${res.status}`)
     const { days } = await res.json()
     freeDaysData = Array.isArray(days) ? days : []
-    renderCalendar()
     renderWoche()   // Bonus-Marken in der Woche
-    if (selectedCalendarDate) updateCalendarDetails(selectedCalendarDate)
+    renderMonat()   // … und im Monat
     if (!listEl) return
     if (!freeDaysData.length) {
       listEl.innerHTML = '<div class="users-empty">Keine Bonus-Tage eingetragen.</div>'
@@ -4145,9 +4409,8 @@ async function loadFreeDays(options = {}) {
     listEl.innerHTML = `<div class="freeday-list">${rows}</div>`
   } catch (err) {
     freeDaysData = []
-    renderCalendar()
     renderWoche()
-    if (selectedCalendarDate) updateCalendarDetails(selectedCalendarDate)
+    renderMonat()
     if (listEl) listEl.innerHTML = `<div class="users-empty" style="color:#991b1b">Fehler: ${esc(err.message)}</div>`
   }
 }
@@ -4593,6 +4856,7 @@ function aktualisiereVorschlagHinweise() {
   const detail = document.getElementById('dashboard-day-detail')
   // Nicht neu zeichnen, solange der Fokus im Detail steht – er ginge sonst verloren.
   if (detail && !detail.contains(document.activeElement)) renderTagesDetail(selectedDashboardDate)
+  renderMonat()   // V-Zeichen und Detail im Monat (renderMonat hält den Fokus selbst)
 }
 
 function setVorschlaegeStatus(text, tone = 'info') {
@@ -4966,7 +5230,6 @@ function handleDocumentClick(event) {
   if (action === 'analyze-entry-wort-zwilling') return void mitPruefSperre(target, analyzeEntryWortZwilling)
   if (action === 'analyze-entry-zeitenwende') return void mitPruefSperre(target, analyzeEntryZeitenwende)
   if (action === 'analyze-entry-lueckenfueller') return void mitPruefSperre(target, analyzeEntryLueckenfueller)
-  if (action === 'trigger-calendar-csv-import') return void triggerCalendarCsvImport()
   if (action === 'load-kalender') return void loadKalender()
   if (action === 'reset-entry-filters') return void resetEntryFilters()
   if (action === 'select-all-visible-entries') return void selectAllVisibleEntries()
@@ -4985,8 +5248,10 @@ function handleDocumentClick(event) {
   if (action === 'analyze-lueckenfueller') return void analyzeLueckenfueller()
   if (action === 'reset-lueckenfueller-analysis') return void resetLueckenfuellerAnalysis()
   if (action === 'generate-lueckenfueller') return void generateLueckenfueller(target)
-  if (action === 'change-month') return void changeMonth(Number(target.dataset.delta || 0))
-  if (action === 'edit-selected-calendar-date') return void editSelectedCalendarDate()
+  if (action === 'monat-wechseln') return void wechsleMonat(Number(target.dataset.delta || 0))
+  if (action === 'monat-heute') return void zeigeDiesenMonat()
+  if (action === 'select-monat-tag') return void selectMonatTag(target.dataset.value || '', { perZeiger: event.detail > 0 })
+  if (action === 'zeige-woche-von') return void zeigeWocheVon(target.dataset.value || '')
   if (action === 'load-users-overview') return void loadUsersOverview()
   if (action === 'select-all-users') return void toggleAllUsersSelection(true)
   if (action === 'clear-users-selection') return void clearUsersBulkSelection()
@@ -5001,14 +5266,6 @@ function handleDocumentClick(event) {
   if (action === 'load-course-pdf-status') return void loadCoursePdfStatus()
   if (action === 'load-audit-log') return void loadAuditLog()
   if (action === 'reset-audit-filters') return void resetAuditFilters()
-  if (action === 'prefill-date') return void navigate(isValidIsoDay(target.dataset.value) ? `#planen/tag/${target.dataset.value}` : '#planen/tag/neu')
-  if (action === 'select-calendar-date') return void selectCalendarDate(target.dataset.value || '')
-  if (action === 'focus-calendar-date') return void focusCalendarDate(target.dataset.value || '', target.dataset.iso || '')
-  if (action === 'edit-tag') {
-    // Die Eintragsliste liefert data-datum, ältere Aufrufer data-value.
-    const datum = target.dataset.datum || target.dataset.value || ''
-    return void navigate(isValidIsoDay(datum) ? `#planen/tag/${datum}` : '#planen/tag/neu')
-  }
   if (action === 'select-user') return void selectUser(target.dataset.userId || '')
   if (action === 'show-audit-entry-details') return void showAuditEntryDetailsByIndex(Number(target.dataset.index || -1))
   if (action === 'load-free-days') return void loadFreeDays()
@@ -5522,12 +5779,11 @@ function renderMetricsTeachers(d) {
 
 function handleDocumentChange(event) {
   const target = event.target
-  if (target.id === 'calendar-csv-input') return void importCalendarCsv(event)
   if (target.id === 'backup-restore-input') return void restoreBackupFile(event)
-  if (target.id === 'entry-mode-filter' || target.id === 'entry-sort' || target.id === 'entry-page-size') {
-    entryTablePage = 1
-    return void renderEntryTable()
-  }
+  if (target.id === 'entry-sort') return void aendereListe({ zeit: target.value, seite: 1 })
+  if (target.id === 'entry-mode-filter') return void aendereListe({ stand: target.value, seite: 1 })
+  if (target.id === 'entry-page-size') return void aendereListe({ pro: Number(target.value) || LISTE_STANDARD.pro, seite: 1 })
+  if (target.id === 'entry-select-page') return void selectEntriesOnPage(target.checked)
   if (target.id === 'stats-days') return void loadStats()
   if (target.id === 'users-bulk-action') return void updateUsersBulkState()
   if (target.id === 'users-role-filter') return void loadUsersOverview()
@@ -5579,6 +5835,14 @@ function handleDocumentKeydown(event) {
   if ((event.ctrlKey || event.metaKey) && !event.shiftKey && !event.altKey && String(event.key || '').toLowerCase() === 's' && currentRoute?.page === 'entry') {
     event.preventDefault()
     void saveTag()
+    return
+  }
+
+  // Monatsraster: Pfeiltasten als Abkürzung (alle Tage bleiben per Tab erreichbar, kein Roving-Tabindex)
+  if (target.matches('.mo-tag') && MONAT_TASTEN.includes(event.key)) {
+    if (event.ctrlKey || event.metaKey || event.altKey || event.shiftKey) return
+    event.preventDefault()
+    monatTaste(event.key, target)
     return
   }
 

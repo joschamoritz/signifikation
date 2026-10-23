@@ -78,7 +78,6 @@ body {
 .text-btn:focus-visible,
 .danger-btn:focus-visible,
 .entry-filters-reset:focus-visible,
-.cal-nav-btn:focus-visible,
 .login-card-body button:focus-visible {
   outline: 2px solid var(--primary);
   outline-offset: 2px;
@@ -266,56 +265,6 @@ body {
   color: var(--muted);
 }
 
-.entry-list-controls {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 200px 190px auto;
-  gap: 8px;
-}
-
-.entry-pagination {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
-  margin-top: 10px;
-}
-
-.entry-pagination #entry-page-info {
-  margin: 0;
-}
-
-.entry-pagination select {
-  margin-left: auto;
-}
-
-@media (max-width: 560px) {
-  .entry-pagination {
-    align-items: stretch;
-  }
-
-  .entry-pagination select {
-    margin-left: 0;
-  }
-}
-
-.entry-bulk-controls {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  align-items: center;
-}
-
-.entry-bulk-controls > span {
-  font-size: 0.78rem;
-  color: var(--muted);
-}
-
-.entry-select-col {
-  width: 44px;
-  text-align: center;
-  padding: 0;
-}
-
 /* Trefferfläche der Auswahl-Checkboxen auf 44x44 (Apple HIG / WCAG 2.5.8),
    ohne das Häkchen selbst optisch aufzublähen. */
 .cb-hit {
@@ -328,7 +277,6 @@ body {
   cursor: pointer;
 }
 
-.entry-select-col input[type="checkbox"],
 .users-select-col input[type="checkbox"] {
   width: 18px;
   height: 18px;
@@ -380,54 +328,6 @@ body {
   background: #fef2f2;
 }
 
-.entry-table-wrap {
-  overflow: auto;
-  border: 1px solid var(--border-lt);
-  border-radius: var(--radius);
-}
-
-.entry-table {
-  width: 100%;
-  border-collapse: collapse;
-  min-width: 620px;
-}
-
-.entry-table th,
-.entry-table td {
-  border-bottom: 1px solid var(--border-lt);
-  padding: 8px 10px;
-  text-align: left;
-  font-size: 0.82rem;
-}
-
-.entry-table th {
-  font-size: 0.7rem;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--muted);
-  background: var(--surface2);
-}
-
-.entry-empty {
-  color: var(--muted);
-}
-
-.entry-chip-wrap {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-}
-
-.mode-summary-list {
-  display: grid;
-  gap: 8px;
-}
-
-.mode-summary-group {
-  display: grid;
-  gap: 6px;
-}
-
 .entry-chip {
   display: inline-flex;
   align-items: center;
@@ -437,36 +337,6 @@ body {
   font-size: 0.75rem;
   background: var(--surface2);
   color: var(--text);
-}
-
-.entry-chip.mode-koll {
-  background: #fef2f2;
-  border-color: #fecaca;
-  color: var(--primary);
-}
-
-
-.entry-chip.mode-wortzwilling {
-  background: #fdf8ee;
-  border-color: var(--accent);
-  color: var(--accent-dk);
-}
-
-.entry-chip.mode-zeitenwende {
-  background: #f5f3ff;
-  border-color: #ddd6fe;
-  color: #6d28d9;
-}
-
-.entry-chip.mode-lueckenfueller {
-  background: #ecfdf5;
-  border-color: #6ee7b7;
-  color: #065f46;
-}
-
-.entry-row-actions {
-  display: inline-flex;
-  gap: 6px;
 }
 
 .entry-action-btn {
@@ -495,88 +365,6 @@ body {
 
 .entry-hint.is-success {
   color: #166534;
-}
-
-.calendar-details {
-  border: 1px solid var(--border-lt);
-  border-radius: var(--radius);
-  background: var(--surface2);
-  padding: 10px;
-  display: grid;
-  gap: 8px;
-}
-
-.calendar-detail-empty {
-  color: var(--muted);
-  font-size: 0.82rem;
-}
-
-.calendar-detail-actions {
-  display: inline-flex;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-.calendar-detail-head {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 8px;
-}
-
-.calendar-detail-head strong {
-  font-family: var(--font-serif);
-  font-size: 1.15rem;
-  color: var(--primary);
-}
-
-.calendar-detail-head span {
-  color: var(--muted);
-  font-size: 0.78rem;
-}
-
-.calendar-detail-section {
-  display: grid;
-  gap: 4px;
-}
-
-.calendar-detail-section h3 {
-  font-size: 0.7rem;
-  color: var(--muted);
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-.calendar-detail-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-
-.calendar-detail-list .entry-chip {
-  font-size: 0.78rem;
-}
-
-.calendar-detail-free {
-  display: grid;
-  gap: 2px;
-  padding: 10px;
-  border: 1px solid #fde68a;
-  border-radius: var(--radius);
-  background: #fffbeb;
-}
-
-
-.calendar-detail-free strong {
-  font-size: 0.76rem;
-  color: #92400e;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-}
-
-.calendar-detail-free span {
-  font-size: 0.82rem;
-  color: var(--text);
 }
 
 .users-summary {
@@ -1010,7 +798,7 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
 /* Sekundär-Buttons (Laden, Analysieren, ↺)
    :where() hält die Spezifität bei (0,0,1): Die Regel gilt nur noch für
    Knöpfe ohne eigene Gestaltung. Vorher (0,1,2) überschrieb sie jede
-   Einzelklasse (.primary-btn, .wo-tag, .cal-day …). */
+   Einzelklasse (.primary-btn, .wo-tag, .mo-tag …). */
 :where(.card > div) button,
 .viz-search button {
   background: transparent;
@@ -1025,21 +813,6 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
    färbt deren Hover-Fläche rosa. */
 :where(.card > div) button:where(:hover),
 .viz-search button:hover { background: #fef2f2; }
-
-/* Kalender-Navigation */
-.cal-nav-btn {
-  background: none;
-  color: var(--primary);
-  border: 1.5px solid var(--border);
-  border-radius: var(--radius);
-  padding: 10px 12px;
-  font-size: 1.1rem;
-  font-weight: 700;
-  line-height: 1;
-  min-height: 44px;
-  min-width: 44px;
-}
-.cal-nav-btn:hover { background: #fef2f2; border-color: var(--primary); }
 
 /* ── Status-Meldungen ── */
 .status {
@@ -1179,66 +952,7 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
   padding: 2px 0;
 }
 
-.entry-top-actions {
-  display: inline-flex;
-  gap: 8px;
-  flex-wrap: wrap;
-}
 
-
-/* ── Kalender ── */
-.cal-nav { display: flex; align-items: center; justify-content: space-between; }
-.cal-title { font-weight: 600; font-size: 0.95rem; font-family: var(--font-serif); color: var(--text); }
-
-/* minmax(0,1fr) statt 1fr: sonst erzwingt der Zelleninhalt eine
-   Mindestbreite und das Kalendergitter läuft auf schmalen Screens über. */
-.cal-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; }
-.cal-dow { text-align: center; font-size: 0.72rem; font-weight: 600; color: var(--muted); padding: 4px 0; }
-.cal-day {
-  aspect-ratio: 1;
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 2px;
-  border-radius: var(--radius);
-  font-size: 0.82rem;
-  cursor: default;
-  border: 1.5px solid transparent;
-  transition: border-color 0.15s, background 0.15s;
-  font-family: inherit;
-}
-.cal-day:focus-visible {
-  outline: 2px solid var(--primary);
-  outline-offset: 2px;
-}
-.cal-day.empty-slot {
-  border: none;
-  background: transparent;
-  pointer-events: none;
-}
-.cal-day.no-entry  { color: var(--muted); }
-.cal-day.no-entry:hover { background: #fafafa; border-color: var(--border); cursor: pointer; }
-.cal-day.has-entry { background: #fef9f0; color: var(--text); font-weight: 600; cursor: pointer; }
-.cal-day.has-entry:hover { background: #fef2e0; border-color: var(--accent); }
-.cal-day.is-complete { background: #f0fdf4; color: #166534; font-weight: 700; cursor: pointer; }
-.cal-day.is-complete:hover { background: #dcfce7; border-color: #16a34a; }
-.cal-day.is-today { border-color: var(--primary) !important; }
-.cal-day.is-selected {
-  box-shadow: inset 0 0 0 2px var(--accent-dk);
-}
-.cal-dots { display: flex; gap: 2px; }
-.cal-dot  { width: 5px; height: 5px; border-radius: 50%; }
-.cal-dot.koll { background: var(--primary); }
-.cal-dot.wz   { background: var(--accent-dk); }
-.cal-dot.zw   { background: #7c3aed; }
-.cal-dot.free { background: var(--accent); }
-/* Lückenfüller (Badgefarben aus DESIGN.md: Fläche #f3f4f6, Rahmen #d1d5db, Text #374151) */
-.cal-dot.l    { background: #374151; }
-.cal-day.is-free-day {
-  border-color: rgba(201, 168, 76, 0.45);
-}
 /* ── Statistik ── */
 .stats-tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
 .stats-tile {
@@ -1381,12 +1095,10 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
 
   /* Mit der Seitenleiste (216 px) bleiben ab 761 px nur ~465–785 px Inhalts-
      breite. Das Suchfeld bekommt dann eine eigene Zeile statt 0 px Rest. */
-  .entry-list-controls,
   .users-controls {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .entry-list-controls > input,
   .users-controls > input {
     grid-column: 1 / -1;
   }
@@ -1408,8 +1120,6 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
 
   .users-table th,
   .users-table td,
-  .entry-table th,
-  .entry-table td,
   .audit-table th,
   .audit-table td {
     font-size: 0.8rem;
@@ -1422,12 +1132,10 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
     grid-template-columns: 1fr;
   }
 
-  .entry-list-controls,
   .users-controls {
     grid-template-columns: 1fr;
   }
 
-  .entry-bulk-controls,
   .users-bulk-controls,
   .audit-controls,
   .system-actions,
@@ -1452,7 +1160,6 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
   }
 
   .users-table,
-  .entry-table,
   .audit-table {
     min-width: 560px;
   }
@@ -1610,8 +1317,6 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
   /* Beim horizontalen Wischen die Ankerspalte stehen lassen.
      box-shadow statt border, weil border-collapse die Rahmen einer
      sticky-Zelle beim Scrollen verschluckt. */
-  .entry-table th:first-child,
-  .entry-table td:first-child,
   .users-table th:first-child,
   .users-table td:first-child {
     position: sticky;
@@ -1621,7 +1326,6 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
     box-shadow: 1px 0 0 var(--border-lt), inset 0 -1px 0 var(--border-lt);
   }
 
-  .entry-table th:first-child,
   .users-table th:first-child {
     z-index: 3;
     background: var(--surface2);
@@ -1650,7 +1354,6 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
   min-width: 0;
 }
 
-.entry-table-wrap,
 .users-table-wrap {
   max-width: 100%;
 }
@@ -1740,15 +1443,13 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
 
   /* Auswahl-Spalte: im Tabellenmodus 44px breit und zentriert,
      als Karte gelten die normalen Zellenregeln. */
-  .cards-on-mobile td.users-select-col,
-  .cards-on-mobile td.entry-select-col {
+  .cards-on-mobile td.users-select-col {
     width: auto;
     padding: 3px 0;
     text-align: left;
   }
 
-  .cards-on-mobile td.users-select-col .cb-hit,
-  .cards-on-mobile td.entry-select-col .cb-hit {
+  .cards-on-mobile td.users-select-col .cb-hit {
     justify-content: flex-start;
   }
 
@@ -2959,8 +2660,9 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
 /* Windows-Kontrastmodus: Tönung und Markenflächen entfallen; Strich und
    Strichelung tragen die Information. */
 @media (forced-colors: active) {
+  /* Gewählter Tag und sein Detail: durchgezogener Strich in Highlight (Auswahlsignal) */
   .wo-tag.is-gewaehlt::before,
-  .wo-detail::before,
+  .wo-detail::before { border-left-color: Highlight; }
 
   /* „Heute: nichts geplant“: gestrichelt statt Highlight – Highlight ist das
      Auswahlsignal (gewählter Tag) */
@@ -3884,4 +3586,1008 @@ html:has(#page-entry.is-active) {
   #page-entry .tag-loeschen-knopf { color: LinkText; }
 
   #page-entry .tag-speichern[aria-disabled="true"]:not(.is-busy) { color: GrayText; }
+}
+
+/* ── Planen › Monat (#page-calendar) ──────────────────────────────────────
+   DESIGN.md §9: Raster aus Haarlinien statt Kästen, keine Schatten, Radius
+   ≤ 4 px. Rot = „ausgewählt“ (3-px-Strich + 4 % Tönung) und Aktion; Gold nur
+   Deko (Bonus ✦ in --accent-ink); Statusfarben nur für Bedeutung.
+   Modus-Marken = .wo-marke aus dem Woche-Block (gleiche Farben, gleiches
+   Markup); im schmalen Raster werden sie zu Punkten (Position = Modus,
+   Reihenfolge K · W · Z · L, Legende darüber). Das Tagesdetail ist dieselbe
+   Komponente wie in der Woche (.wo-detail, renderTagesDetail).
+   Wiederverwendet: .adm-cta, .adm-link, .adm-overline, .adm-visually-hidden
+   (admin-shell.css); .wo-marke, .wo-marken, .wo-legende, .wo-bonus,
+   .wo-detail*, .wo-meldung, --wo-* (Woche-Block); .vorschlag-modi.
+
+   Umbruch nach der Seitenbreite (Container „monat“), Schwellen in rem:
+   < 19.25rem (308 px; 7 × 44 px passen nicht mehr) → Tagesliste
+   ≥ 40rem (640 px) → Buchstaben-Marken, höhere Zellen, Detail zweispaltig
+   ≥ 56rem (896 px) → Thema in der Zelle, „Bonus“/„Vorschlag“ ausgeschrieben
+   Muss NACH dem Woche- und dem Tag-Block stehen (Kaskade).
+   ─────────────────────────────────────────────────────────────────────── */
+
+#page-calendar {
+  container: monat / inline-size;
+  gap: 0;
+}
+
+/* ── Kopf: Monat + Bilanz links, Navigation rechts, Doppellinie ── */
+.mo-kopf {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0 20px;
+}
+
+.mo-kopf::after {
+  content: '';
+  flex: 0 0 100%;
+  height: calc(0.9px + 3px + 0.45px);
+  margin-top: 2px;
+  border-top: 0.9px solid var(--text);
+  border-bottom: 0.45px solid var(--text);
+}
+
+.mo-titel {
+  margin: 0;
+  color: var(--text);
+  font: 400 1.35rem/1.25 var(--font-serif);
+}
+
+.mo-titel:focus { outline: none; }
+.mo-titel:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+
+.mo-bilanz {
+  flex: 1 1 100%;
+  order: 1;
+  margin: 0 0 2px;
+  color: var(--muted);
+  font-size: 0.86rem;
+}
+
+/* Doppellinie bleibt ganz unten */
+.mo-kopf::after { order: 2; }
+
+.mo-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 18px;
+}
+
+/* Legende links, „Bonus-Tage verwalten“ rechts */
+.mo-leiste {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0 18px;
+  margin-top: 4px;
+}
+
+.mo-leiste .wo-legende { margin: 0; padding: 6px 0; }
+
+/* Legenden-Muster für heute / Bonus / Vorschlag */
+.mo-legende-heute {
+  font: 700 0.86rem/1 var(--font-serif);
+  color: var(--text);
+  text-decoration: underline 2px;
+  text-underline-offset: 3px;
+}
+
+.mo-legende-zeichen {
+  font: 700 0.7rem/1 var(--font-sans);
+  color: var(--accent-ink);
+}
+
+.mo-legende-zeichen.is-vorschlag { color: var(--text); }
+
+/* ── Wochentage über dem Raster ── */
+.mo-wt-kopf {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  margin-top: 10px;
+  border-bottom: 1px solid var(--border);
+}
+
+.mo-wt-kopf > span {
+  padding: 0 0 6px;
+  color: var(--muted);
+  font: 600 0.66rem/1.3 var(--font-sans);
+  letter-spacing: 0.2em;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+/* ── Raster: Haarlinien rechts und unten, keine Flächen ── */
+.mo-tage {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+}
+
+/* Erster Tag beginnt in seiner Wochentagsspalte (data-wt: Mo = 0) */
+.mo-tag:first-of-type[data-wt="1"] { grid-column-start: 2; }
+.mo-tag:first-of-type[data-wt="2"] { grid-column-start: 3; }
+.mo-tag:first-of-type[data-wt="3"] { grid-column-start: 4; }
+.mo-tag:first-of-type[data-wt="4"] { grid-column-start: 5; }
+.mo-tag:first-of-type[data-wt="5"] { grid-column-start: 6; }
+.mo-tag:first-of-type[data-wt="6"] { grid-column-start: 7; }
+
+.mo-tag {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 5px;
+  min-width: 0;
+  min-height: 3.25rem;               /* 52 px: Trefferfläche ≥ 44 px */
+  margin: 0;
+  padding: 6px 2px 8px;
+  border: 0;
+  border-right: 1px solid var(--border-lt);
+  border-bottom: 1px solid var(--border-lt);
+  border-radius: 0;
+  background: none;
+  color: var(--text);
+  font: inherit;
+  text-align: center;
+  cursor: pointer;
+}
+
+.mo-tag[data-wt="6"] { border-right: 0; }
+
+.mo-tag-kopf {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  min-width: 0;
+}
+
+/* Wochentag nur in der Tagesliste sichtbar (im Raster steht er oben) */
+.mo-tag-wt {
+  display: none;
+  color: var(--muted);
+  font: 600 0.66rem/1.3 var(--font-sans);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+
+.mo-tag-zahl {
+  font: 400 1.05rem/1.1 var(--font-serif);
+  font-variant-numeric: lining-nums tabular-nums;
+}
+
+/* „heute“ als Wort erst ab 40rem; schmal trägt die Unterstreichung es */
+.mo-heute {
+  display: none;
+  color: var(--text);
+  font: 600 0.62rem/1.3 var(--font-sans);
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+}
+
+/* Bonus ✦ / Vorschlag V: in der oberen rechten Ecke, bei beiden untereinander (hält Abstand zur Tageszahl) */
+.mo-tag-zeichen {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 1px;
+  font: 700 0.62rem/1 var(--font-sans);
+}
+
+.mo-tag-zeichen:empty { display: none; }
+
+.mo-bonus { color: var(--accent-ink); }
+.mo-vorschlag { color: var(--text); }
+
+.mo-zeichen-lang { display: none; }
+
+/* Thema: erst ab 56rem sichtbar, darunter nur für Screenreader */
+.mo-tag-thema {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* Marken schmal: Punkte in Modusfarbe, fehlend = hohler Ring */
+.mo-tag .wo-marken {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 3px;
+}
+
+.mo-tag .wo-marke {
+  width: 0.4375rem;                  /* 7 px */
+  height: 0.4375rem;
+  border-radius: 50%;
+  font-size: 0;
+  color: transparent;
+}
+
+.mo-tag .wo-marke[data-m="k"] { background: var(--wo-k-fg); border-color: var(--wo-k-fg); }
+.mo-tag .wo-marke[data-m="w"] { background: var(--wo-w-fg); border-color: var(--wo-w-fg); }
+.mo-tag .wo-marke[data-m="z"] { background: var(--wo-z-fg); border-color: var(--wo-z-fg); }
+.mo-tag .wo-marke[data-m="l"] { background: var(--wo-l-fg); border-color: var(--wo-l-fg); }
+
+.mo-tag .wo-marke.is-fehlt {
+  border: 1px solid var(--muted);
+  background: transparent;
+}
+
+/* Legende im schmalen Raster ebenfalls als Punkte (gleiches Bild wie die Zellen) */
+.mo-leiste .wo-legende .wo-marke {
+  width: 0.4375rem;
+  height: 0.4375rem;
+  border-radius: 50%;
+  font-size: 0;
+  color: transparent;
+}
+
+.mo-leiste .wo-legende .wo-marke[data-m="k"] { background: var(--wo-k-fg); border-color: var(--wo-k-fg); }
+.mo-leiste .wo-legende .wo-marke[data-m="w"] { background: var(--wo-w-fg); border-color: var(--wo-w-fg); }
+.mo-leiste .wo-legende .wo-marke[data-m="z"] { background: var(--wo-z-fg); border-color: var(--wo-z-fg); }
+.mo-leiste .wo-legende .wo-marke[data-m="l"] { background: var(--wo-l-fg); border-color: var(--wo-l-fg); }
+.mo-leiste .wo-legende .wo-marke.is-fehlt { border: 1px solid var(--muted); background: transparent; }
+
+/* ── Zustände ── */
+.mo-tag.is-vergangen .mo-tag-zahl { color: var(--muted); }
+
+.mo-tag[aria-current="date"] .mo-tag-zahl {
+  color: var(--text);
+  font-weight: 700;
+  text-decoration: underline 2px;
+  text-underline-offset: 3px;
+}
+
+/* Hover neutral: Rot bleibt dem gewählten Tag */
+.mo-tag:not(.is-gewaehlt):hover { background: color-mix(in srgb, var(--text) 3%, transparent); }
+
+.mo-tag.is-gewaehlt { background: var(--wo-tint); }
+.mo-tag.is-gewaehlt .mo-tag-zahl { color: var(--primary); }
+
+.mo-tag.is-gewaehlt::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  border-left: 3px solid var(--primary);
+}
+
+.mo-tag:focus-visible { outline-offset: -2px; }
+
+/* ── Detail: dieselbe Komponente wie in der Woche, im Raster unter dem Monat ── */
+.mo-tage > .mo-detail {
+  grid-column: 1 / -1;
+  padding: 18px 0 0;
+  border-bottom: 0;
+  background: none;
+}
+
+.mo-tage > .mo-detail::before { content: none; }
+.mo-tage > .mo-detail:empty { display: none; }
+
+.mo-hinweis {
+  order: 1;
+  grid-column: 1 / -1;
+  margin: 14px 0 0;
+  color: var(--muted);
+  font-size: 0.86rem;
+}
+
+/* ── Breit (≥ 40rem): Buchstaben-Marken, Inhalt linksbündig ── */
+@container monat (min-width: 40rem) {
+  .mo-bilanz { flex-basis: auto; order: 0; margin: 0; }
+  .mo-titel { margin-right: auto; }
+
+  .mo-tag {
+    align-items: flex-start;
+    gap: 8px;
+    min-height: 5.75rem;
+    padding: 8px 6px 10px 9px;
+    text-align: left;
+  }
+
+  .mo-tag-kopf { justify-content: flex-start; }
+  .mo-tag-zahl { font-size: 1.2rem; }
+  .mo-heute { display: inline; }
+
+  .mo-tag .wo-marken { justify-content: flex-start; gap: 2px; }
+
+  /* zurück zur Woche-Marke mit Buchstaben */
+  .mo-tag .wo-marke,
+  .mo-leiste .wo-legende .wo-marke {
+    width: 1.8em;
+    height: 1.8em;
+    border-radius: 3px;
+    font-size: 0.625rem;
+  }
+
+  .mo-tag .wo-marke[data-m="k"],
+  .mo-leiste .wo-legende .wo-marke[data-m="k"] { background: var(--wo-k-bg); border-color: var(--wo-k-bd); color: var(--wo-k-fg); }
+  .mo-tag .wo-marke[data-m="w"],
+  .mo-leiste .wo-legende .wo-marke[data-m="w"] { background: var(--wo-w-bg); border-color: var(--wo-w-bd); color: var(--wo-w-fg); }
+  .mo-tag .wo-marke[data-m="z"],
+  .mo-leiste .wo-legende .wo-marke[data-m="z"] { background: var(--wo-z-bg); border-color: var(--wo-z-bd); color: var(--wo-z-fg); }
+  .mo-tag .wo-marke[data-m="l"],
+  .mo-leiste .wo-legende .wo-marke[data-m="l"] { background: var(--wo-l-bg); border-color: var(--wo-l-bd); color: var(--wo-l-fg); }
+
+  .mo-tag .wo-marke.is-fehlt,
+  .mo-leiste .wo-legende .wo-marke.is-fehlt {
+    border: 1px dashed var(--muted);
+    background: transparent;
+  }
+
+  .mo-tag-zeichen { top: 9px; right: 6px; flex-direction: row; gap: 3px; }
+
+  /* Detail wie in der breiten Woche: Kopf | Aktionen, Modi darunter */
+  .mo-tage > .mo-detail {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "kopf aktionen"
+      "modi modi";
+    column-gap: 24px;
+    padding-top: 22px;
+  }
+
+  .mo-tage > .mo-detail .wo-detail-aktionen { align-self: start; margin-top: 0; }
+}
+
+/* ── Sehr breit (≥ 56rem): Thema in der Zelle, Zeichen ausgeschrieben ── */
+@container monat (min-width: 56rem) {
+  .mo-tag { min-height: 6.5rem; }
+
+  .mo-tag-thema {
+    position: static;
+    display: -webkit-box;
+    width: 100%;
+    height: auto;
+    overflow: hidden;
+    clip-path: none;
+    white-space: normal;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    font: italic 400 0.86rem/1.3 var(--font-serif);
+    overflow-wrap: anywhere;
+    hyphens: auto;
+  }
+
+  .mo-tag-zeichen {
+    position: static;
+    order: 3;
+    flex-direction: row;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 4px 6px;
+  }
+
+  .mo-zeichen-kurz { display: none; }
+  .mo-zeichen-lang { display: inline; }
+
+  .mo-vorschlag .mo-zeichen-lang {
+    color: var(--muted);
+    font: italic 400 0.8rem/1.2 var(--font-serif);
+  }
+}
+
+/* ── Sehr schmal oder große Schrift (< 19.25rem): Tagesliste statt Raster ── */
+@container monat (max-width: 19.1875rem) {
+  .mo-wt-kopf { display: none; }
+
+  .mo-tage {
+    grid-template-columns: minmax(0, 1fr);
+    border-top: 1px solid var(--border);
+  }
+
+  .mo-tag:first-of-type[data-wt] { grid-column-start: auto; }
+
+  .mo-tag {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "kopf  marken"
+      "thema thema";
+    align-items: center;
+    gap: 2px 10px;
+    min-height: var(--tap);
+    padding: 8px 4px 8px 12px;
+    border-right: 0;
+    text-align: left;
+  }
+
+  .mo-tag-kopf { grid-area: kopf; justify-content: flex-start; }
+  .mo-tag-wt { display: inline; min-width: 2.2em; }
+  .mo-heute { display: inline; }
+
+  .mo-tag .wo-marken { grid-area: marken; justify-content: flex-end; }
+
+  .mo-tag-zeichen { position: static; grid-area: kopf; justify-self: end; flex-direction: row; align-items: center; gap: 3px; }
+
+  .mo-tag-thema {
+    grid-area: thema;
+    position: static;
+    width: auto;
+    height: auto;
+    overflow: hidden;
+    clip-path: none;
+    white-space: normal;
+    font: italic 400 0.9rem/1.3 var(--font-serif);
+    overflow-wrap: anywhere;
+  }
+
+  /* Detail direkt unter dem gewählten Tag, mit Tönung + Strich wie in der Woche */
+  .mo-tage > .mo-detail {
+    padding: 4px 4px 14px 12px;
+    border-bottom: 1px solid var(--border-lt);
+    background: var(--wo-tint);
+  }
+
+  .mo-tage > .mo-detail::before { content: ''; }
+  .mo-tag.is-gewaehlt { border-bottom-color: transparent; }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .mo-tag,
+  .mo-tag-zahl { transition: background-color 0.15s, color 0.15s; }
+}
+
+@media (forced-colors: active) {
+  .mo-tag.is-gewaehlt::before,
+  .mo-tage > .mo-detail::before { border-left-color: Highlight; }
+
+  /* Punkte: gefüllt in CanvasText (die Modusfarben-Regeln `[data-m="k"]` haben Spezifität 0,3,0) */
+  .mo-tag .wo-marke[data-m],
+  .mo-leiste .wo-legende .wo-marke[data-m] { border-color: CanvasText; background: CanvasText; color: CanvasText; }
+
+  .mo-tag .wo-marke.is-fehlt,
+  .mo-leiste .wo-legende .wo-marke.is-fehlt { border-color: GrayText; background: Canvas; }
+
+  /* Buchstaben-Marken (ab 40rem): Fläche Canvas, Buchstabe und Rahmen CanvasText */
+  @container monat (min-width: 40rem) {
+    .mo-tag .wo-marke[data-m],
+    .mo-leiste .wo-legende .wo-marke[data-m] { border-color: CanvasText; background: Canvas; color: CanvasText; }
+  }
+
+  .mo-tag,
+  .mo-wt-kopf { border-color: GrayText; }
+}
+
+/* Fokussierte Zeilen nicht unter die klebende Auswahlleiste scrollen (Höhe setzt passeAuswahlleisteAn) */
+:root { scroll-padding-top: var(--liste-leiste-h, 0px); }
+
+/* ── Planen › Liste (#page-liste) ─────────────────────────────────────────
+   Linien-Liste im Wörterbuch-Stil, gruppiert nach Monat (Doppellinie wie die
+   KW-Köpfe der Vorschläge). Keine Tabelle, keine Karten, keine Chips: Modus-
+   Marken aus der Woche. Suchfeld dezent umrandet (DESIGN.md-Ausnahme), übrige
+   Eingaben unterstrichen. „Löschen“ gedämpft-rot wie „Tag löschen“.
+   Container „liste“: < 40rem Zeile zweistufig, ≥ 40rem eine Zeile.
+   ─────────────────────────────────────────────────────────────────────── */
+
+#page-liste {
+  container: liste / inline-size;
+  gap: 0;
+}
+
+/* hidden muss gegen display-Regeln wie .adm-link { display: inline-flex } gewinnen */
+#page-liste [hidden],
+#page-calendar [hidden] { display: none !important; }
+
+/* ── Meldung (Löschen): Strich + Fläche, Ton über data-tone ── */
+.li-meldung {
+  max-width: var(--text-max, 680px);
+  margin: 0 0 16px;
+  padding: 8px 12px 8px 11px;
+  border-left: 3px solid var(--border);
+  color: var(--muted);
+  font: 400 0.86rem/1.45 var(--font-sans);
+  overflow-wrap: anywhere;
+}
+
+.li-meldung:focus { outline: none; }
+.li-meldung:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+
+.li-meldung[data-tone="ok"]      { border-left-color: var(--status-ok);   background: var(--status-ok-bg);   color: var(--status-ok); }
+.li-meldung[data-tone="warn"]    { border-left-color: var(--status-warn); background: var(--status-warn-bg); color: var(--status-warn); }
+.li-meldung[data-tone="error"]   { border-left-color: var(--status-err);  background: var(--status-err-bg);  color: var(--status-err); }
+.li-meldung[data-tone="loading"] { border-left-color: var(--primary); background: var(--wo-tint); color: var(--text); font-style: italic; }
+
+/* Leer: unsichtbar, bleibt aber Live-Region */
+.li-meldung:empty {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  border: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+}
+
+/* ── Filterzeile ── */
+.li-filter {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-areas:
+    "suche suche"
+    "zeit  stand";
+  gap: 12px 16px;
+  align-items: end;
+}
+
+.li-feld { display: flex; flex-direction: column; min-width: 0; }
+.li-feld--suche { grid-area: suche; }
+.li-feld--zeit  { grid-area: zeit; }
+.li-feld--stand { grid-area: stand; }
+
+#page-liste .li-label {
+  display: block;
+  margin: 0 0 2px;
+  color: var(--muted);
+  font: 600 0.66rem/1.3 var(--font-sans);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+
+/* Suchfeld: dezent umrandet (einzige umrandete Eingabe), Linie ≥ 3 : 1 */
+#page-liste .li-suche {
+  width: 100%;
+  min-height: var(--tap);
+  margin: 0;
+  padding: 8px 10px;
+  border: 1px solid var(--tag-feldlinie, #978b75);
+  border-radius: var(--radius);
+  background: transparent;
+  box-shadow: none;
+  color: var(--text);
+  font: 400 max(16px, 1rem)/1.3 var(--font-serif);
+}
+
+#page-liste .li-suche::placeholder { color: var(--muted); font-style: italic; opacity: 1; }
+
+#page-liste .li-suche::-webkit-search-cancel-button {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 1.1rem;
+  height: 1.1rem;
+  margin: 0 0 0 4px;
+  background: var(--muted);
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M3 3l10 10M13 3L3 13' stroke='black' stroke-width='1.6' fill='none'/%3E%3C/svg%3E") center / contain no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M3 3l10 10M13 3L3 13' stroke='black' stroke-width='1.6' fill='none'/%3E%3C/svg%3E") center / contain no-repeat;
+  cursor: pointer;
+}
+
+#page-liste .li-suche::-webkit-search-cancel-button:hover { background: var(--text); }
+#page-liste .li-suche:hover:not(:focus) { border-color: var(--text); }
+
+#page-liste .li-suche:focus {
+  border-color: var(--primary);
+  outline: 1px solid var(--primary);
+  outline-offset: 0;
+}
+
+/* Auswahlfelder: unterstrichen wie im Tagesformular */
+#page-liste .li-auswahl {
+  width: 100%;
+  min-height: var(--tap);
+  margin: 0;
+  padding: 8px 2px 6px 0;
+  border: 0;
+  border-bottom: 1px solid var(--tag-feldlinie, #978b75);
+  border-radius: 0;
+  background-color: transparent;
+  box-shadow: none;
+  color: var(--text);
+  font: 500 max(16px, 0.9rem)/1.3 var(--font-sans);
+  cursor: pointer;
+}
+
+#page-liste .li-auswahl:focus {
+  outline: none;
+  border-bottom-color: var(--primary);
+  box-shadow: 0 1px 0 0 var(--primary);
+}
+
+#page-liste .li-auswahl--klein { width: auto; min-width: 4.5rem; }
+
+/* ── Ergebniszeile: Zahl links, „Filter zurücksetzen“ rechts ── */
+.li-ergebnis {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0 18px;
+  margin-top: 14px;
+}
+
+.li-zahl {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.86rem;
+}
+
+.li-zahl:focus { outline: none; }
+.li-zahl:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+
+/* ── Auswahlleiste: klebt beim Scrollen oben, sobald etwas gewählt ist ── */
+.li-auswahlleiste {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0 18px;
+  min-height: var(--tap);
+  border-bottom: 1px solid var(--border);
+}
+
+/* Klebt nur, solange sie niedrig bleibt (große Schrift: JS setzt .klebt-nicht, wenn sie > 25 % des Fensters einnähme) */
+.li-auswahlleiste.has-auswahl:not(.klebt-nicht) {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  background: var(--bg);
+}
+
+#page-liste .li-alle {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  min-height: var(--tap);
+  margin: 0;
+  color: var(--muted);
+  font: 500 0.86rem/1.2 var(--font-sans);
+  letter-spacing: 0;
+  text-transform: none;
+  cursor: pointer;
+}
+
+.li-alle .cb-box,
+.li-wahl input {
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  accent-color: var(--primary);
+  cursor: pointer;
+}
+
+/* Kästchen auf 44 × 44 Trefferfläche (die Beschriftung zählt mit) */
+.li-alle .cb-box { margin: 13px; }
+
+.li-auswahl-zahl {
+  color: var(--text);
+  font: 600 0.86rem/1.2 var(--font-sans);
+}
+
+/* Gedämpftes Rot wie „Tag löschen“ (#page-entry .tag-loeschen-knopf) */
+.li-loeschen {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--tap);
+  margin-left: auto;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--status-err);
+  font: 600 0.9rem/1.2 var(--font-sans);
+  text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, currentColor 40%, transparent);
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.li-loeschen:hover { text-decoration-color: currentColor; }
+.li-loeschen[aria-disabled="true"] { cursor: default; font-style: italic; opacity: 0.7; }
+
+/* ── Monatsgruppe: Serif-Monat + Zahl, Doppellinie ── */
+.li-gruppe { margin-top: 28px; }
+.li-gruppe:first-child { margin-top: 12px; }
+
+.li-monat {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0 12px;
+  margin: 0;
+  color: var(--text);
+  font: inherit;
+}
+
+.li-monat::after {
+  content: '';
+  flex: 0 0 100%;
+  height: calc(0.9px + 3px + 0.45px);
+  margin-top: 4px;
+  border-top: 0.9px solid var(--text);
+  border-bottom: 0.45px solid var(--text);
+}
+
+.li-monat-name { font: 400 1.15rem/1.3 var(--font-serif); }
+
+.li-monat-zahl {
+  color: var(--muted);
+  font: 600 0.66rem/1.3 var(--font-sans);
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+}
+
+.li-tage {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* ── Ein Tag: mobil zweistufig ── */
+.li-tag {
+  position: relative;
+  display: grid;
+  grid-template-columns: var(--tap) minmax(0, 1fr) auto;
+  grid-template-areas:
+    "wahl datum    stand"
+    ".    haupt    haupt"
+    ".    aktionen aktionen";
+  align-items: center;
+  column-gap: 8px;
+  min-height: 56px;
+  padding: 4px 0 6px;
+  border-bottom: 1px solid var(--border-lt);
+}
+
+#page-liste .li-wahl {
+  grid-area: wahl;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--tap);
+  height: var(--tap);
+  margin: 0;
+  cursor: pointer;
+}
+
+.li-datum {
+  grid-area: datum;
+  font: 700 1.02rem/1.3 var(--font-serif);
+  white-space: nowrap;
+}
+
+.li-wt {
+  margin-right: 0.35em;
+  color: var(--muted);
+  font: 600 0.66rem/1.3 var(--font-sans);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  vertical-align: 0.12em;
+}
+
+.li-heute {
+  margin-left: 0.4em;
+  color: var(--text);
+  font: 600 0.62rem/1.3 var(--font-sans);
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  vertical-align: 0.15em;
+}
+
+.li-haupt {
+  grid-area: haupt;
+  min-width: 0;
+  padding: 2px 0 0;
+}
+
+.li-thema {
+  display: -webkit-box;
+  margin: 0;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  font: italic 400 1rem/1.35 var(--font-serif);
+  overflow-wrap: anywhere;
+  hyphens: auto;
+}
+
+.li-thema.is-leer { color: var(--muted); font-style: normal; }
+
+.li-woerter {
+  margin: 2px 0 0;
+  font: 400 0.95rem/1.4 var(--font-serif);
+  overflow-wrap: break-word;
+}
+
+.li-weitere {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 14px;
+  margin: 2px 0 0;
+  padding: 0;
+  list-style: none;
+  color: var(--muted);
+  font-size: 0.84rem;
+  line-height: 1.45;
+}
+
+/* Ohne min-width: 0 sprengen lange Paare bei großer Schrift die Zeile */
+.li-weitere > li {
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: break-word;
+}
+
+.li-weitere-label {
+  margin-right: 0.4em;
+  font: 600 0.62rem/1.3 var(--font-sans);
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+}
+
+.li-stand {
+  grid-area: stand;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+
+.li-stand-text {
+  color: var(--status-warn);
+  font: 600 0.76rem/1.3 var(--font-sans);
+  white-space: nowrap;
+}
+
+.li-tag.is-vergangen .li-stand-text { color: var(--muted); }
+
+.li-aktionen {
+  grid-area: aktionen;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0 18px;
+}
+
+/* Zeilenaktion: rote Serif ohne Fettung (wie „anlegen/ergänzen“ in den Lücken) */
+.li-go {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--tap);
+  color: var(--primary);
+  font: 400 1rem/1.2 var(--font-serif);
+  text-decoration: none;
+  text-underline-offset: 3px;
+  white-space: nowrap;
+}
+
+.li-go:hover { color: var(--primary-hi); text-decoration: underline; }
+
+/* Ausgewählt: 3-px-Strich + 4 % Tönung (Rot = ausgewählt) */
+.li-tag.is-gewaehlt { background: var(--wo-tint); }
+
+.li-tag.is-gewaehlt::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  border-left: 3px solid var(--primary);
+}
+
+/* Leer-/Lade-/Fehlerzustand der Liste */
+.li-leer {
+  padding: 28px 0 10px;
+  text-align: center;
+}
+
+.li-leer-titel { margin: 0; font: 400 1.2rem/1.3 var(--font-serif); }
+.li-leer-text  { margin: 4px 0 0; color: var(--muted); font-size: 0.86rem; }
+.li-leer .adm-link { margin-top: 4px; }
+
+.li-leer-ornament {
+  margin: 10px 0 0;
+  color: var(--accent);
+  font: 400 1.1rem/1 var(--font-serif);
+  letter-spacing: 0.3em;
+}
+
+/* ── Seiten ── */
+.li-seiten {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0 18px;
+  margin-top: 10px;
+}
+
+.li-seiten-info {
+  color: var(--muted);
+  font-size: 0.86rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.li-seiten-info:focus { outline: none; }
+.li-seiten-info:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+
+.li-seiten-groesse {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
+
+#page-liste .li-seiten-groesse .li-label { margin: 0; }
+
+/* ── Breit (≥ 40rem): eine Zeile je Tag, Filter in einer Zeile ── */
+@container liste (min-width: 40rem) {
+  .li-filter {
+    grid-template-columns: minmax(12rem, 1fr) 11rem 13rem;
+    grid-template-areas: "suche zeit stand";
+    gap: 0 20px;
+  }
+
+  .li-tag {
+    grid-template-columns: var(--tap) 6.75rem minmax(0, 1fr) auto auto;
+    grid-template-areas: "wahl datum haupt stand aktionen";
+    align-items: start;
+    column-gap: 14px;
+    padding: 6px 0 8px;
+  }
+
+  .li-wahl,
+  .li-datum,
+  .li-stand,
+  .li-aktionen { align-self: start; }
+
+  #page-liste .li-wahl { margin-top: -2px; }
+  .li-datum { padding-top: 9px; }
+  .li-haupt { padding-top: 9px; }
+  .li-stand { padding-top: 11px; min-width: 5.5rem; }
+  .li-aktionen { flex-wrap: nowrap; gap: 0 16px; }
+}
+
+/* ── Sehr schmal oder große Schrift (< 20rem): Filter und Aktionen stapeln ── */
+@container liste (max-width: 19.9375rem) {
+  .li-filter {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas: "suche" "zeit" "stand";
+  }
+
+  .li-tag {
+    grid-template-columns: var(--tap) minmax(0, 1fr);
+    grid-template-areas:
+      "wahl datum"
+      ".    stand"
+      ".    haupt"
+      ".    aktionen";
+  }
+
+  .li-stand { flex-direction: row; align-items: center; justify-content: flex-start; gap: 8px; }
+  .li-aktionen { justify-content: space-between; }
+  .li-loeschen { margin-left: 0; }
+  .li-seiten-groesse { margin-left: 0; }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .li-tag { transition: background-color 0.15s; }
+  #page-liste .li-suche,
+  #page-liste .li-auswahl { transition: border-color 0.15s, box-shadow 0.15s; }
+}
+
+@media (forced-colors: active) {
+  .li-tag.is-gewaehlt::before { border-left-color: Highlight; }
+  #page-liste .li-suche { border-color: CanvasText; }
+  #page-liste .li-suche::-webkit-search-cancel-button { background: CanvasText; }
+  #page-liste .li-auswahl { border-bottom-color: CanvasText; }
+  #page-liste .li-suche:focus,
+  #page-liste .li-auswahl:focus { outline: 2px solid Highlight; outline-offset: 2px; }
+  .li-loeschen { color: LinkText; }
+  .li-meldung { border-left-color: CanvasText; }
+  .li-go { text-decoration: underline; }
 }

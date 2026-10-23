@@ -185,7 +185,7 @@ Das Admin-Portal deckt aktuell ab:
 - Tagesplanung und Tageseinträge
 - Inline-Analysen für alle vier Modi
 - Kalender inklusive Bonus-Tage (Zusatz-Kontingent „Eigenes Lemma" für Basic-Nutzer)
-- Bulk-Import und Bulk-Delete für Kalendereinträge
+- Bulk-Delete für Kalendereinträge
 - Nutzerverwaltung inklusive Bulk-Export
 - Audit-Log
 - Backup/Restore und Gist-Backup

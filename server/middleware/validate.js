@@ -210,11 +210,6 @@ export const adminBulkDeleteCalendarSchema = z.object({
   dates: z.array(DATUM_ISO).min(1, 'Mindestens ein Datum erforderlich').max(180, 'Zu viele Datumswerte auf einmal'),
 })
 
-/** POST /admin/kalender/bulk-import */
-export const adminBulkImportCalendarSchema = z.object({
-  csv: z.string().min(1, 'CSV-Inhalt erforderlich').max(1_000_000, 'CSV-Inhalt zu gross'),
-})
-
 /** POST /admin/preview/lemma */
 export const adminPreviewLemmaSchema = z.object({
   lemma: z.string().trim().min(1, 'lemma erforderlich').max(100, 'lemma zu lang'),

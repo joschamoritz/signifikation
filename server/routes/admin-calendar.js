@@ -18,7 +18,6 @@ export function createAdminCalendarRouter({
   analyzeLueckenfuellerQuerySchema,
   lueckenfuellerGenerateSchema,
   adminBulkDeleteCalendarSchema,
-  adminBulkImportCalendarSchema,
   adminPreviewLemmaSchema,
   adminPreviewDayParamsSchema,
   adminLemmaIdParamsSchema,
@@ -26,14 +25,8 @@ export function createAdminCalendarRouter({
   ladeOffeneEntwuerfe,
   ladeEntwurf,
   entscheideEntwurf,
-  load,
   loadDailyContentMaps,
-  loadMutableDailyContentMaps,
-  save,
-  saveDailyContentMaps,
   deleteTagsAtomically,
-  loadWortZwilling,
-  loadZeitenwende,
   getLemmataIndex,
   invalidateCache,
   stmts,
@@ -49,7 +42,6 @@ export function createAdminCalendarRouter({
   buildLueckenfueller,
   toId,
   POS_ROUNDS,
-  parseCalendarBulkImport,
   buildModeGroups,
   auditCreate,
   auditDelete,
@@ -119,6 +111,7 @@ export function createAdminCalendarRouter({
       // kompletten Tabellen neu.
       const removed = []
       const skipped = []
+      const auditDaten = new Map()
 
       for (const datum of dates) {
         const kal = stmts.getKalenderByDatum.get(datum)
@@ -127,78 +120,26 @@ export function createAdminCalendarRouter({
           continue
         }
 
-        const deletedData = {
+        auditDaten.set(datum, {
           kalender: kal,
           wortzwilling: stmts.getWortzwillingByDatum.get(datum) ?? null,
           zeitenwende: stmts.getZeitenwendeByDatum.get(datum) ?? null,
-        }
-
-        removed.push(datum)
-
-        auditDelete('kalender', datum, deletedData, {
-          adminKey: req.adminSessionId || 'unknown',
-          ip: req.ip,
         })
+        removed.push(datum)
       }
 
       if (removed.length > 0) {
         deleteTagsAtomically(removed)
+        // Protokoll erst nach dem erfolgreichen Löschen: Scheitert es, steht keine Löschung im Audit, die nicht stattfand.
+        for (const datum of removed) {
+          auditDelete('kalender', datum, auditDaten.get(datum), {
+            adminKey: req.adminSessionId || 'unknown',
+            ip: req.ip,
+          })
+        }
       }
 
       res.json({ ok: true, removed, skipped, removedCount: removed.length, skippedCount: skipped.length })
-    } catch (err) {
-      adminError(res, err)
-    }
-  })
-
-  router.post('/admin/kalender/bulk-import', adminLimiter, requireAuth, validate(adminBulkImportCalendarSchema), async (req, res) => {
-    try {
-      const entries = parseCalendarBulkImport(req.body.csv)
-      const kalender = loadMutableDailyContentMaps().kalender
-      const lemmataDB = load('lemmata.json')
-      const imported = []
-      const replaced = []
-
-      for (const entry of entries) {
-        const ids = []
-
-        for (const wort of entry.woerter) {
-          const lemma = await fetchLemma(wort, 'Substantiv')
-          const { byId } = getLemmataIndex()
-          if (byId.has(lemma.id)) {
-            const idx = lemmataDB.findIndex((item) => item.id === lemma.id)
-            if (idx >= 0) lemmataDB[idx] = { ...lemmataDB[idx], ...lemma }
-          } else {
-            lemmataDB.push(lemma)
-          }
-          ids.push(lemma.id)
-        }
-
-        const existed = !!kalender[entry.datum]
-        kalender[entry.datum] = { ids, thema: '' }
-        imported.push({ datum: entry.datum, ids, woerter: entry.woerter })
-        if (existed) replaced.push(entry.datum)
-
-        auditCreate('kalender', entry.datum, { ids, woerter: entry.woerter, importedVia: 'csv' }, {
-          adminKey: req.adminSessionId || 'unknown',
-          ip: req.ip,
-        })
-      }
-
-      await save('lemmata.json', lemmataDB)
-      await saveDailyContentMaps({
-        kalender,
-        wortzwilling: loadWortZwilling(),
-        zeitenwende: loadZeitenwende(),
-      })
-
-      res.json({
-        ok: true,
-        importedCount: imported.length,
-        replacedCount: replaced.length,
-        imported,
-        replaced,
-      })
     } catch (err) {
       adminError(res, err)
     }

@@ -336,26 +336,6 @@ describe('admin routes integration', () => {
     expect(Array.isArray(payload.recent)).toBe(true)
   })
 
-  it('POST /admin/kalender/bulk-import importiert CSV-Einträge', async () => {
-    const datum = `2026-12-${String((Math.floor(Math.random() * 20) + 10)).padStart(2, '0')}`
-    const response = await fetch(`${baseUrl}/admin/kalender/bulk-import`, {
-      method: 'POST',
-      headers: adminHeaders(token),
-      body: JSON.stringify({
-        csv: `date,lemma1,lemma2,lemma3\n${datum},Haus,Baum,Wort`,
-      }),
-    })
-    const payload = await response.json()
-
-    expect(response.status).toBe(200)
-    expect(payload.importedCount).toBe(1)
-    expect(Array.isArray(payload.imported)).toBe(true)
-
-    const kalender = loadReadOnly('kalender.json')
-    expect(Array.isArray(kalender[datum]?.ids)).toBe(true)
-    expect(kalender[datum]?.ids).toHaveLength(3)
-  })
-
   it('POST /admin/backup/restore akzeptiert vorhandenes Backup-Format', async () => {
     const backupResponse = await fetch(`${baseUrl}/admin/backup`, {
       headers: adminHeaders(token),

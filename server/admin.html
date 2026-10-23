@@ -57,10 +57,10 @@
       <div class="adm-rule" aria-hidden="true"></div>
       <ul class="adm-nav-list">
         <li><a class="adm-nav-item" href="#planen" data-area="planen">Planen</a></li>
-        <li><a class="adm-nav-item" href="#vorschlaege" data-area="vorschlaege">Vorschläge<span class="adm-count is-hidden" id="vorschlaege-badge" aria-hidden="true"></span><span class="adm-visually-hidden" id="vorschlaege-badge-text"></span></a></li>
+        <li><a class="adm-nav-item" href="#vorschlaege" data-area="vorschlaege">Vor&shy;schlä&shy;ge<span class="adm-count is-hidden" id="vorschlaege-badge" aria-hidden="true"></span><span class="adm-visually-hidden" id="vorschlaege-badge-text"></span></a></li>
         <li><a class="adm-nav-item" href="#nutzer" data-area="nutzer">Nutzer</a></li>
-        <li><a class="adm-nav-item" href="#auswertung/spiele" data-area="auswertung">Auswertung</a></li>
-        <li><a class="adm-nav-item" href="#werkzeuge" data-area="werkzeuge">Werkzeuge</a></li>
+        <li><a class="adm-nav-item" href="#auswertung/spiele" data-area="auswertung">Aus&shy;wer&shy;tung</a></li>
+        <li><a class="adm-nav-item" href="#werkzeuge" data-area="werkzeuge">Werk&shy;zeuge</a></li>
       </ul>
       <div class="adm-nav-foot">
         <button type="button" class="adm-link" data-action="logout">Abmelden</button>
@@ -417,69 +417,64 @@
         </section>
       </section>
 
-      <section class="admin-page" id="page-liste" data-title="Liste" data-subtitle="Alle geplanten Tage mit Suche, Filter und CSV-Import.">
-        <!-- Meldungen zu CSV-Import und Massenlöschen -->
-        <div id="liste-status" class="status" role="status" aria-live="polite"></div>
-        <div class="card">
-          <div class="card-head card-head--wrap">
-            <h2>Geplante Einträge</h2>
-            <div class="entry-top-actions">
-              <button class="entry-filters-reset" data-action="trigger-calendar-csv-import">CSV-Import</button>
-              <button class="entry-filters-reset" data-action="load-kalender">↺ Laden</button>
-            </div>
+      <section class="admin-page" id="page-liste" data-title="Liste" data-subtitle="Alle geplanten Tage durchsuchen und auswählen.">
+        <!-- Meldungen zum Löschen (setListStatus) -->
+        <p id="liste-status" class="li-meldung" role="status" aria-live="polite" tabindex="-1"></p>
+
+        <div class="li-filter" role="search" aria-label="Geplante Tage filtern">
+          <div class="li-feld li-feld--suche">
+            <label class="li-label" for="entry-search">Suche</label>
+            <input type="search" id="entry-search" class="li-suche" placeholder="Datum, Thema oder Wort" autocomplete="off" enterkeyhint="search">
           </div>
-          <input type="file" id="calendar-csv-input" accept=".csv,text/csv" hidden>
-          <div class="entry-list-controls">
-            <input type="text" id="entry-search" placeholder="Nach Datum oder Lemma suchen …">
-            <select id="entry-mode-filter">
-              <option value="all">Alle Modi</option>
-              <option value="koll">Kollokation</option>
-              <option value="wortzwilling">Wort-Zwilling</option>
-              <option value="zeitenwende">Zeitenwende</option>
-              <option value="lueckenfueller">Lückenfüller</option>
+          <div class="li-feld li-feld--zeit">
+            <label class="li-label" for="entry-sort">Zeitraum</label>
+            <select id="entry-sort" class="li-auswahl">
+              <option value="kommend">Ab heute</option>
+              <option value="vergangen">Vergangene</option>
+              <option value="alle">Alle Tage</option>
             </select>
-            <select id="entry-sort">
-              <option value="date-asc">Datum ↑ nächster zuerst</option>
-              <option value="date-desc">Datum ↓ neuester zuerst</option>
-            </select>
-            <button data-action="reset-entry-filters" class="entry-filters-reset">Filter zurücksetzen</button>
           </div>
-          <div class="entry-bulk-controls">
-            <span id="entry-bulk-count">0 ausgewählt</span>
-            <button class="entry-filters-reset" data-action="select-all-visible-entries">Alle sichtbaren wählen</button>
-            <button class="entry-filters-reset" data-action="clear-entry-selection">Auswahl leeren</button>
-            <button class="danger-btn" id="entry-bulk-delete-btn" data-action="bulk-delete-selected-dates" disabled>Ausgewählte löschen</button>
-          </div>
-          <div class="entry-table-wrap">
-            <!-- role="…": im Karten-Layout (≤560px) setzt CSS display:block,
-                 was die Tabellensemantik entfernt – die Rollen halten sie. -->
-            <table class="entry-table cards-on-mobile" role="table">
-              <thead role="rowgroup">
-                <tr role="row">
-                  <th scope="col" role="columnheader">Auswahl</th>
-                  <th scope="col" role="columnheader">Datum</th>
-                  <th scope="col" role="columnheader">Inhalte</th>
-                  <th scope="col" role="columnheader">Modi</th>
-                  <th scope="col" role="columnheader">Aktion</th>
-                </tr>
-              </thead>
-              <tbody id="entry-table-body" role="rowgroup">
-                <tr role="row"><td role="cell" colspan="5" class="entry-empty table-message">Kalenderdaten werden geladen …</td></tr>
-              </tbody>
-            </table>
-          </div>
-          <p class="entry-hint" id="entry-count">0 Einträge</p>
-          <div class="entry-pagination" id="entry-pagination">
-            <button class="entry-filters-reset" id="entry-page-prev-btn" data-action="entry-page-prev">‹ Zurück</button>
-            <span class="entry-hint" id="entry-page-info">Seite 1 von 1</span>
-            <button class="entry-filters-reset" id="entry-page-next-btn" data-action="entry-page-next">Weiter ›</button>
-            <select id="entry-page-size" aria-label="Einträge pro Seite">
-              <option value="25">25 / Seite</option>
-              <option value="50">50 / Seite</option>
-              <option value="100">100 / Seite</option>
+          <div class="li-feld li-feld--stand">
+            <label class="li-label" for="entry-mode-filter">Stand</label>
+            <select id="entry-mode-filter" class="li-auswahl">
+              <option value="alle">Alle</option>
+              <option value="unvollstaendig">Unvollständig</option>
+              <option value="vollstaendig">Vollständig</option>
+              <option value="ohne-wortzwilling">Ohne Wort-Zwilling</option>
+              <option value="ohne-zeitenwende">Ohne Zeitenwende</option>
+              <option value="ohne-lueckenfueller">Ohne Lückenfüller</option>
             </select>
           </div>
         </div>
+
+        <div class="li-ergebnis">
+          <p class="li-zahl" id="entry-count" tabindex="-1"></p>
+          <p class="adm-visually-hidden" id="entry-ansage" role="status" aria-live="polite"></p>
+          <button type="button" class="adm-link" data-action="reset-entry-filters" id="entry-filter-reset" hidden>Filter zurücksetzen</button>
+        </div>
+
+        <div class="li-auswahlleiste" id="entry-auswahlleiste">
+          <label class="li-alle"><input type="checkbox" class="cb-box" id="entry-select-page">Alle auf dieser Seite</label>
+          <span class="li-auswahl-zahl" id="entry-bulk-count" role="status"></span>
+          <button type="button" class="adm-link" data-action="select-all-visible-entries" id="entry-select-all" hidden></button>
+          <button type="button" class="adm-link" data-action="clear-entry-selection" id="entry-clear-selection" hidden>Auswahl aufheben</button>
+          <button type="button" class="li-loeschen" id="entry-bulk-delete-btn" data-action="bulk-delete-selected-dates" hidden><span id="entry-bulk-delete-text">Ausgewählte löschen …</span></button>
+        </div>
+
+        <!-- Monatsgruppen, von renderListe() gefüllt -->
+        <div class="li-liste" id="entry-table-body"><p class="wo-meldung">Liste wird geladen …</p></div>
+
+        <nav class="li-seiten" id="entry-pagination" aria-label="Seiten der Liste" hidden>
+          <button type="button" class="adm-link" id="entry-page-prev-btn" data-action="entry-page-prev"><span aria-hidden="true">‹</span> Zurück</button>
+          <span class="li-seiten-info" id="entry-page-info" tabindex="-1"></span>
+          <button type="button" class="adm-link" id="entry-page-next-btn" data-action="entry-page-next">Weiter <span aria-hidden="true">›</span></button>
+          <span class="li-seiten-groesse">
+            <label class="li-label" for="entry-page-size">pro Seite</label>
+            <select id="entry-page-size" class="li-auswahl li-auswahl--klein">
+              <option value="25">25</option><option value="50">50</option><option value="100">100</option>
+            </select>
+          </span>
+        </nav>
       </section>
 
       <section class="admin-page" id="page-vorschlaege" data-title="Vorschläge" data-subtitle="Von Claude eingereichte Tage. Im Kalender stehen sie erst, wenn du sie übernimmst.">
@@ -613,29 +608,34 @@
 
       </section>
 
-      <section class="admin-page" id="page-calendar" data-title="Monat" data-subtitle="Monatsübersicht und schnelle Navigation zu geplanten Einträgen.">
-        <div class="card">
-          <h2>Kalender</h2>
-          <div class="cal-nav">
-            <button class="cal-nav-btn" data-action="change-month" data-delta="-1">‹</button>
-            <span class="cal-title" id="cal-title"></span>
-            <button class="cal-nav-btn" data-action="change-month" data-delta="1">›</button>
-          </div>
-          <div class="cal-grid" id="cal-grid"></div>
-        </div>
-
-        <div class="card">
-          <div class="card-head card-head--wrap">
-            <h2>Tagesdetails</h2>
-            <div class="calendar-detail-actions">
-              <button class="entry-filters-reset" data-action="switch-page" data-page="freedays">Bonus-Tage verwalten</button>
-              <button id="calendar-edit-btn" data-action="edit-selected-calendar-date" disabled>Eintrag bearbeiten</button>
-            </div>
-          </div>
-          <div id="calendar-details" class="calendar-details">
-            <div class="calendar-detail-empty">Wähle einen Kalendertag mit Eintrag, um Details zu sehen.</div>
+      <section class="admin-page" id="page-calendar" data-title="Monat" data-subtitle="Ein Monat auf einen Blick: was geplant ist und wo noch etwas fehlt.">
+        <div class="mo-kopf">
+          <h2 class="mo-titel" id="cal-title" tabindex="-1">wird geladen …</h2>
+          <p class="mo-bilanz" id="mo-bilanz"></p>
+          <div class="mo-nav" role="group" aria-label="Monat wechseln">
+            <button type="button" class="adm-link" data-action="monat-wechseln" data-delta="-1"><span aria-hidden="true">‹</span> Vormonat</button>
+            <button type="button" class="adm-link" data-action="monat-heute" id="mo-heute-btn" aria-disabled="true">Dieser Monat</button>
+            <button type="button" class="adm-link" data-action="monat-wechseln" data-delta="1">Nächster<span class="adm-visually-hidden"> Monat</span> <span aria-hidden="true">›</span></button>
           </div>
         </div>
+        <div class="mo-leiste" id="mo-leiste">
+          <!-- Legende: für Screenreader überflüssig, jeder Tag trägt seinen Stand als Text -->
+          <p class="wo-legende" id="mo-legende" aria-hidden="true">
+            <span><span class="wo-marke" data-m="k">K</span>Kollokationen</span>
+            <span><span class="wo-marke" data-m="w">W</span>Wort-Zwilling</span>
+            <span><span class="wo-marke" data-m="z">Z</span>Zeitenwende</span>
+            <span><span class="wo-marke" data-m="l">L</span>Lückenfüller</span>
+            <span><span class="wo-marke is-fehlt"></span>fehlt</span>
+            <span><span class="mo-legende-heute" id="mo-legende-heute">23</span>heute</span>
+            <span><span class="mo-legende-zeichen">✦</span>Bonus-Tag</span>
+            <span><span class="mo-legende-zeichen is-vorschlag">V</span>Vorschlag liegt vor</span>
+          </p>
+          <a class="adm-link" href="#werkzeuge/bonus-tage">Bonus-Tage verwalten</a>
+        </div>
+        <div class="mo-wt-kopf" aria-hidden="true"><span>Mo</span><span>Di</span><span>Mi</span><span>Do</span><span>Fr</span><span>Sa</span><span>So</span></div>
+        <!-- Tage + ein Detail, von renderMonat() gefüllt -->
+        <p class="adm-visually-hidden" id="mo-tasten-hinweis">Pfeiltasten wechseln den Tag, Bild auf/ab den Monat.</p>
+        <div class="mo-tage" id="cal-grid" role="group" aria-labelledby="cal-title" aria-describedby="mo-tasten-hinweis"><p class="wo-meldung">Monat wird geladen …</p></div>
       </section>
 
       <section class="admin-page" id="page-users" data-title="Nutzer" data-subtitle="Nutzerübersicht mit Rollen, Spielstatistik und Verwaltung.">
@@ -1022,7 +1022,6 @@
             <li><a class="adm-tool" href="#werkzeuge/pruefen"><span class="adm-tool-main"><span class="adm-tool-title">Wort prüfen</span><span class="adm-tool-meta">Eignung für Kollokation, Wort-Zwilling, Zeitenwende und Lückenfüller testen</span></span><span class="adm-tool-go" aria-hidden="true">→</span></a></li>
             <li><a class="adm-tool" href="#werkzeuge/bonus-tage"><span class="adm-tool-main"><span class="adm-tool-title">Bonus-Tage</span><span class="adm-tool-meta">Tage mit zusätzlichen Spielen für Basic-Nutzer</span></span><span class="adm-tool-go" aria-hidden="true">→</span></a></li>
             <li><a class="adm-tool" href="#werkzeuge/benachrichtigungen"><span class="adm-tool-main"><span class="adm-tool-title">Benachrichtigungen</span><span class="adm-tool-meta">Vorlagen verwalten, Nachricht an alle Geräte senden</span></span><span class="adm-tool-go" aria-hidden="true">→</span></a></li>
-            <li><a class="adm-tool" href="#planen/liste"><span class="adm-tool-main"><span class="adm-tool-title">CSV-Import</span><span class="adm-tool-meta">Mehrere Tage aus einer Datei in den Kalender übernehmen</span></span><span class="adm-tool-go" aria-hidden="true">→</span></a></li>
           </ul>
         </section>
 

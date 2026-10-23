@@ -529,8 +529,9 @@ html:has(.adm-root.has-takeover) {
     border-top: 3px solid transparent;
     font: 600 0.72rem/1.1 var(--font-sans);
     text-align: center;
-    overflow-wrap: anywhere;
-    hyphens: auto;
+    /* Nur an den weichen Trennstellen (&shy;) im Label umbrechen, nicht mitten im Wort */
+    overflow-wrap: break-word;
+    hyphens: manual;
   }
 
   .adm-nav-item[aria-current]:not([aria-current="false"]) {
