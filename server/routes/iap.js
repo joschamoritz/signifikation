@@ -111,6 +111,9 @@ const setPremiumRoleStmt = db.prepare(`
   ON CONFLICT(user_id) DO UPDATE SET
     role       = 'premium',
     updated_at = excluded.updated_at
+  -- Ein Kauf darf ein Admin-Konto nicht auf premium herabstufen (Selbstaussperrung): Dann bleibt die Zeile
+  -- komplett unveraendert (auch updated_at).
+  WHERE user_profiles.role <> 'admin'
 `)
 
 // ON CONFLICT statt INSERT OR IGNORE: eine verwaiste Zeile (user_id NULL,

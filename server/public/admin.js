@@ -80,7 +80,22 @@ let selectedCalendarDate = ''
 let monatAnsicht = ''
 let monatGewaehlt = ''
 let monatLiveAktiv = false
-let selectedUserId = ''
+// Nutzer (#nutzer) und Konto (#nutzer/<id>): Die Liste bleibt beim Wechsel ins Konto und zurück im Speicher.
+let nutzerListe = []            // geladene Zeilen {id,name,email,emailVerified,role,createdAt,gekauft}, Server-Reihenfolge
+let nutzerGefiltert = 0         // Treffer des angewandten Filters (page.filtered)
+let nutzerHatMehr = false       // page.hasMore
+let nutzerSummary = null        // data.summary (total, premium, newLast30Days …)
+let nutzerZustand = 'laden'     // 'laden' | 'fehler' | 'ok'
+let nutzerFehlerText = ''
+let nutzerMehrLaedt = false     // „Weitere laden“ läuft
+let nutzerFilterLaedt = false   // ein Abruf für einen neuen Filter (Suche, Rolle, „neu laden“) ist unterwegs
+let nutzerBeschaeftigt = false  // Sammelaktion (Rolle, Löschen) läuft
+let nutzerFilterAktiv = { q: '', role: '' }  // Filter, zu dem nutzerListe gehört (nicht der noch ungesendete Eingabestand)
+const gewaehlteNutzer = new Set()
+const NUTZER_MAX_SAMMEL = 200   // = validate.js adminUsersBulkUpdateSchema
+let kontoAktuell = null         // letzte Antwort von GET /admin/users/:id
+let kontoAbort = null           // AbortController des Konto-Abrufs
+let kontoBeschaeftigt = false   // Rolle speichern / löschen läuft
 let dashboardWeekOffset = 0
 let selectedDashboardDate = ''
 const selectedEntryDates = new Set()
@@ -89,7 +104,6 @@ let usersSearchTimer = null
 let entrySearchTimer = null
 let usersOverviewAbortController = null
 const USERS_PAGE_SIZE = 50
-let usersOffset = 0
 let currentAuditEntries = []
 let freeDaysData = []
 let entryFormSnapshot = null
@@ -176,6 +190,10 @@ const AREA_TABS = {
 
 const PARENT_PLANEN = { hash: '#planen', label: 'Planen', area: 'planen' }
 const PARENT_WERKZEUGE = { hash: '#werkzeuge', label: 'Werkzeuge', area: 'werkzeuge' }
+const PARENT_NUTZER = { hash: '#nutzer', label: 'Nutzer', area: 'nutzer' }
+// better-auth-IDs: Buchstaben, Ziffern, '-' (32–61 Zeichen); '_' vorsorglich mit erlaubt.
+const NUTZER_ID_RE = /^[A-Za-z0-9_-]{1,128}$/
+const kontoHash = (id) => `#nutzer/${encodeURIComponent(id)}`
 
 // Startseite je Bereich (Pfad ohne '#'). Unbekannte Unterrouten eines Bereichs
 // leiten hierhin um; ein Bereichslink gilt nur hier als „exakt aktiv“.
@@ -326,6 +344,16 @@ function parseRoute(rawHash) {
   }
   if (path.startsWith('planen/monat/')) return { redirect: '#planen/monat' }
 
+  // Konto: #nutzer/<id>. Nur die interne ID steht in der Adresse (kein Name, keine E-Mail, kein Suchtext);
+  // nutzer/x/y leitet die Regel „unbekannte Unterroute → Start des Bereichs“ unten auf #nutzer um.
+  const kontoMatch = /^nutzer\/([^/]+)$/.exec(path)
+  if (kontoMatch) {
+    let id = ''
+    try { id = decodeURIComponent(kontoMatch[1]) } catch { /* kaputte Kodierung → Liste */ }
+    if (!NUTZER_ID_RE.test(id)) return { redirect: '#nutzer' }
+    return { page: 'user', area: 'nutzer', parent: PARENT_NUTZER, nutzerId: id, key: 'nutzer/konto' }
+  }
+
   // Object.hasOwn: sonst würden #constructor oder #__proto__ Prototyp-Einträge treffen.
   if (Object.hasOwn(ROUTE_TABLE, path)) {
     const section = new URLSearchParams(queryPart).get('abschnitt') || ''
@@ -364,6 +392,9 @@ function headActionsHtml(route) {
   if (route.area === 'planen' && !route.parent) {
     return '<a class="adm-cta" href="#planen/tag/neu">Tag anlegen <span aria-hidden="true">→</span></a>'
       + '<button type="button" class="adm-link" data-action="refresh-dashboard">neu laden</button>'
+  }
+  if (route.page === 'users') {
+    return '<button type="button" class="adm-link" data-action="load-users-overview">neu laden</button>'
   }
   if (route.page === 'vorschlaege') {
     // Zähler und Sperre setzt aktualisiereVorschlagHinweise() (nach jedem Kopf-Neuaufbau).
@@ -438,8 +469,14 @@ function applyRouteChrome(route) {
 function runRouteLoaders(route) {
   switch (route.page) {
     case 'users':
-      // Beim ersten Öffnen laden; danach bleibt die Liste samt Filtern stehen.
+      // Beim ersten Öffnen laden; danach bleibt die Liste samt Filtern stehen. Gezeichnet wird immer neu:
+      // Im Konto geänderte Rollen sind im Speicher schon nachgeführt, die Zeilen sollen sie zeigen.
       if (!usersLoaded) loadUsersOverview()
+      else renderNutzerListe()
+      break
+    case 'user':
+      // Das Konto wird bei jedem Öffnen frisch gelesen (Kauf, Rolle und Aktivität ändern sich außerhalb).
+      ladeKonto(route.nutzerId)
       break
     case 'stats':
       // Lädt bei jedem Öffnen frisch (inkl. Diagramme und Zusammenfassung).
@@ -677,7 +714,7 @@ function focusAfterNavigation(route, hash, { fromChild }) {
   const gewuenscht = naechsterFokus
   naechsterFokus = ''
 
-  if (gewuenscht && route.page === 'dashboard') {
+  if (gewuenscht && (route.page === 'dashboard' || route.page === 'users')) {
     target = document.querySelector(gewuenscht)
     preventScroll = false
   } else if (route.section) {
@@ -1314,154 +1351,21 @@ function fehltText(stand) {
   return `${aufzaehlung(namen)} ${namen.length === 1 ? 'fehlt' : 'fehlen'}`
 }
 
+// Die Basis-Rolle heißt in der Oberfläche „Basis“ (Datenbankwert und API: „user“).
 function roleLabel(role) {
   if (role === 'admin') return 'Admin'
   if (role === 'premium') return 'Premium'
-  return 'User'
+  return 'Basis'
 }
 
 /**
- * Leer-/Lade-/Fehlerzeile für die Karten-Tabellen (Nutzer, Audit).
+ * Leer-/Lade-/Fehlerzeile für die Karten-Tabelle des Änderungsprotokolls.
  * `role` + `.table-message`, damit die Zeile auch im Karten-Layout (≤560px)
  * über die volle Breite läuft und ohne Feldlabel bleibt. `text` muss bereits
  * escaped sein.
  */
 function tableMessageRow(colspan, cls, text) {
   return `<tr role="row"><td role="cell" colspan="${colspan}" class="${cls} table-message">${text}</td></tr>`
-}
-
-function getSelectedUserIdsFromTable() {
-  const boxes = document.querySelectorAll('.user-select-checkbox:checked')
-  return [...boxes].map((el) => String(el.dataset.userId || '').trim()).filter(Boolean)
-}
-
-function syncUsersSelectAllState() {
-  const master = document.getElementById('users-select-all')
-  if (!master) return
-
-  const boxes = [...document.querySelectorAll('.user-select-checkbox')]
-  if (!boxes.length) {
-    master.checked = false
-    master.indeterminate = false
-    master.disabled = true
-    return
-  }
-
-  const checkedCount = boxes.filter((box) => box.checked).length
-  master.disabled = false
-  master.checked = checkedCount === boxes.length
-  master.indeterminate = checkedCount > 0 && checkedCount < boxes.length
-}
-
-function updateUsersBulkState() {
-  const countEl = document.getElementById('users-bulk-count')
-  const actionSelect = document.getElementById('users-bulk-action')
-  const runBtn = document.getElementById('users-bulk-run-btn')
-  const roleWrap = document.getElementById('users-bulk-role-wrap')
-  const exportWrap = document.getElementById('users-bulk-export-wrap')
-  const selectedIds = getSelectedUserIdsFromTable()
-  const action = actionSelect?.value || 'setRole'
-
-  syncUsersSelectAllState()
-
-  if (countEl) countEl.textContent = `${selectedIds.length} ausgewählt`
-  if (runBtn) runBtn.disabled = selectedIds.length === 0
-  // classList statt style.display – .is-hidden hat display:none !important,
-  // das inline-style nicht ueberschreiben kann.
-  if (roleWrap) roleWrap.classList.toggle('is-hidden', action !== 'setRole')
-  if (exportWrap) exportWrap.classList.toggle('is-hidden', action !== 'export')
-}
-
-function toggleAllUsersSelection(checked) {
-  const boxes = document.querySelectorAll('.user-select-checkbox')
-  boxes.forEach((box) => {
-    box.checked = !!checked
-  })
-  updateUsersBulkState()
-}
-
-function clearUsersBulkSelection() {
-  const boxes = document.querySelectorAll('.user-select-checkbox')
-  boxes.forEach((box) => {
-    box.checked = false
-  })
-  updateUsersBulkState()
-}
-
-async function runUsersBulkAction() {
-  const ids = getSelectedUserIdsFromTable()
-  if (!ids.length) return
-
-  const actionSelect = document.getElementById('users-bulk-action')
-  const roleSelect = document.getElementById('users-bulk-role')
-  const formatSelect = document.getElementById('users-bulk-format')
-  const runBtn = document.getElementById('users-bulk-run-btn')
-  const summary = document.getElementById('users-summary')
-  const action = actionSelect?.value || 'setRole'
-  const role = roleSelect?.value || 'user'
-  const format = formatSelect?.value === 'csv' ? 'csv' : 'json'
-
-  const actionLabel = action === 'delete' ? 'löschen' : action === 'export' ? `als ${format.toUpperCase()} exportieren` : `auf Rolle ${role}`
-  const ok = confirmAction(`${ids.length} Nutzer wirklich ${actionLabel}?`, [
-    `Auswahl: ${ids.length} Nutzer`,
-    action === 'setRole' ? `Neue Rolle: ${roleLabel(role)}` : `Aktion: ${actionLabel}`,
-  ])
-  if (!ok) return
-
-  if (runBtn) runBtn.disabled = true
-  try {
-    const payload = { action, userIds: ids }
-    if (action === 'setRole') payload.role = role
-    if (action === 'export') payload.format = format
-
-    const response = await fetch('/admin/users/bulk-update', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
-    })
-
-    let data = null
-    if (format === 'csv' && action === 'export') {
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}))
-        throw new Error(errorData.error || `HTTP ${response.status}`)
-      }
-      const csvText = await response.text()
-      const exportedHeader = Number.parseInt(response.headers.get('x-exported-count') || '', 10)
-      const skippedHeader = Number.parseInt(response.headers.get('x-skipped-count') || '', 10)
-      const csvLines = csvText.split(/\r?\n/).filter((line) => line.trim().length > 0)
-      const fallbackExported = Math.max(csvLines.length - 1, 0)
-      const exportedCount = Number.isFinite(exportedHeader) && exportedHeader >= 0 ? exportedHeader : fallbackExported
-      const skippedCount = Number.isFinite(skippedHeader) && skippedHeader >= 0 ? skippedHeader : 0
-      const blob = new Blob([csvText], { type: 'text/csv;charset=utf-8' })
-      createTemporaryDownload(blob, `signifikation-users-bulk-${new Date().toISOString().slice(0, 10)}.csv`)
-      if (summary) summary.textContent = `${exportedCount} Nutzer als CSV exportiert (${skippedCount} übersprungen).`
-      data = {}
-    } else {
-      data = await response.json().catch(() => ({}))
-      if (!response.ok) throw new Error(data.error || `HTTP ${response.status}`)
-    }
-
-    if (action === 'export') {
-      if (format === 'json') {
-        const exportUsers = Array.isArray(data.users) ? data.users : []
-        const blob = new Blob([JSON.stringify(exportUsers, null, 2)], { type: 'application/json' })
-        createTemporaryDownload(blob, `signifikation-users-bulk-${new Date().toISOString().slice(0, 10)}.json`)
-        if (summary) summary.textContent = `${exportUsers.length} Nutzer exportiert (${data.skipped?.length || 0} übersprungen).`
-      }
-    } else if (action === 'delete') {
-      if (summary) summary.textContent = `${data.deletedCount || 0} Nutzer gelöscht (${data.skipped?.length || 0} übersprungen).`
-    } else {
-      if (summary) summary.textContent = `${data.changedCount || 0} Nutzer aktualisiert (${data.skipped?.length || 0} übersprungen).`
-    }
-
-    clearUsersBulkSelection()
-    await loadUsersOverview()
-  } catch (err) {
-    if (summary) summary.textContent = `Bulk-Aktion fehlgeschlagen: ${err.message}`
-  } finally {
-    if (runBtn) runBtn.disabled = getSelectedUserIdsFromTable().length === 0
-  }
 }
 
 function summarizeAuditChanges(changes) {
@@ -1589,6 +1493,7 @@ async function doLogout() {
   }
   clearToken()
   stopRouter()
+  nutzerZuruecksetzen()
   await fetch('/admin/logout', { method: 'POST', headers: { 'Content-Type': 'application/json' } }).catch(() => {})
   hideMainContainer()
   document.getElementById('login-overlay').classList.remove('hidden')
@@ -2457,7 +2362,7 @@ async function loadKalender() {
 
 let listeZustand = { ...LISTE_STANDARD }
 let loeschtListeGerade = false
-let ansageTimer = null
+const ansageTimer = new Map()   // Ansage-Element-ID → Timer (Liste der Tage und Nutzer teilen planeAnsage)
 // validate.js: adminBulkDeleteCalendarSchema erlaubt höchstens 180 Tage je Anfrage
 const MAX_LOESCHEN = 180
 
@@ -2504,15 +2409,15 @@ function listeTreffer() {
 const istStandardFilter = () => !listeZustand.q && listeZustand.zeit === LISTE_STANDARD.zeit && listeZustand.stand === LISTE_STANDARD.stand
 
 // Ansage der Ergebniszahl erst nach 700 ms Ruhe (beim Tippen sonst bei jedem Zwischenstand)
-function planeAnsage(text) {
-  const el = document.getElementById('entry-ansage')
+function planeAnsage(text, id = 'entry-ansage') {
+  const el = document.getElementById(id)
   if (!el) return
-  if (ansageTimer) window.clearTimeout(ansageTimer)
-  ansageTimer = window.setTimeout(() => {
-    ansageTimer = null
+  if (ansageTimer.has(id)) window.clearTimeout(ansageTimer.get(id))
+  ansageTimer.set(id, window.setTimeout(() => {
+    ansageTimer.delete(id)
     el.textContent = ''
     el.textContent = text
-  }, 700)
+  }, 700))
 }
 
 // opts.felderErzwingen: Eingabefelder aus dem Zustand setzen, auch das fokussierte (Zustand kam aus der Adresse)
@@ -2736,22 +2641,32 @@ function aktualisiereAuswahl(treffer = listeTreffer(), seite = null) {
 
 // Die klebende Leiste hält beim Scrollen Platz frei (scroll-padding-top), damit fokussierte Zeilen nicht
 // darunter liegen. Bei großer Schrift wäre sie zu hoch (> 25 % des Fensters): dann klebt sie nicht.
+// Zwei Seiten haben eine solche Leiste (Planen › Liste, Nutzer); nur die sichtbare setzt den Abstand.
+const AUSWAHLLEISTEN = ['entry-auswahlleiste', 'users-auswahlleiste']
+
 function passeAuswahlleisteAn() {
-  const leiste = document.getElementById('entry-auswahlleiste')
-  if (!leiste) return
-  const hoehe = leiste.offsetHeight
-  const zuHoch = hoehe > window.innerHeight * 0.25
-  leiste.classList.toggle('klebt-nicht', zuHoch)
-  const klebt = leiste.classList.contains('has-auswahl') && !zuHoch && hoehe > 0
-  if (klebt) document.documentElement.style.setProperty('--liste-leiste-h', `${hoehe}px`)
+  let klebendeHoehe = 0
+  for (const id of AUSWAHLLEISTEN) {
+    const leiste = document.getElementById(id)
+    if (!leiste) continue
+    const hoehe = leiste.offsetHeight
+    const zuHoch = hoehe > window.innerHeight * 0.25
+    leiste.classList.toggle('klebt-nicht', zuHoch)
+    if (leiste.classList.contains('has-auswahl') && !zuHoch && hoehe > 0) klebendeHoehe = hoehe
+  }
+  if (klebendeHoehe) document.documentElement.style.setProperty('--liste-leiste-h', `${klebendeHoehe}px`)
   else document.documentElement.style.removeProperty('--liste-leiste-h')
 }
 
 ;(function beobachteAuswahlleiste() {
-  const leiste = document.getElementById('entry-auswahlleiste')
-  if (!leiste || typeof ResizeObserver === 'undefined') return
-  new ResizeObserver(passeAuswahlleisteAn).observe(leiste)
-  window.addEventListener('resize', passeAuswahlleisteAn)
+  if (typeof ResizeObserver === 'undefined') return
+  const beobachter = new ResizeObserver(passeAuswahlleisteAn)
+  let gefunden = false
+  for (const id of AUSWAHLLEISTEN) {
+    const leiste = document.getElementById(id)
+    if (leiste) { beobachter.observe(leiste); gefunden = true }
+  }
+  if (gefunden) window.addEventListener('resize', passeAuswahlleisteAn)
 })()
 
 // Einzelnes Kästchen: ohne Neuzeichnen, der Fokus bleibt.
@@ -3459,7 +3374,7 @@ let statsChartTrend = null
 let statsChartDist  = null
 
 const STAT_KEYS   = ['kollokationen', 'wortzwilling', 'zeitenwende']
-const STAT_LABELS = { kollokationen: 'Kollokationen', wortzwilling: 'Wort-Zwilling', zeitenwende: 'Zeitenwende' }
+const STAT_LABELS = { kollokationen: 'Kollokationen', wortzwilling: 'Wort-Zwilling', zeitenwende: 'Zeitenwende', lueckenfueller: 'Lückenfüller' }
 const STAT_COLORS = { kollokationen: '#9b1c1c', wortzwilling: '#15803d', zeitenwende: '#7c3aed' }
 
 async function loadStats() {
@@ -3478,126 +3393,388 @@ async function loadStats() {
   }
 }
 
-function renderUserRow(user) {
-  const created = user.createdAt ? new Date(user.createdAt).toLocaleDateString('de-DE') : '—'
-  const isSelected = user.id === selectedUserId
-  const safeUserId = encodeURIComponent(String(user.id || ''))
-  const safeRawUserId = esc(String(user.id || ''))
-  return `<tr role="row">
-    <td role="cell" class="users-select-col" data-label="Auswahl"><label class="cb-hit"><input type="checkbox" class="user-select-checkbox" data-user-id="${safeRawUserId}" aria-label="${esc(user.email || user.name || 'Nutzer')} auswählen"></label></td>
-    <td role="cell" data-label="Name">${esc(user.name || '—')}</td>
-    <td role="cell" data-label="E-Mail">${esc(user.email || '—')}</td>
-    <td role="cell" data-label="Rolle">${esc(roleLabel(user.role || 'user'))}</td>
-    <td role="cell" data-label="Registriert">${esc(created)}</td>
-    <td role="cell" data-label="Aktion"><button class="entry-action-btn" data-action="select-user" data-user-id="${safeUserId}">${isSelected ? 'Ausgewählt' : 'Details'}</button></td>
-  </tr>`
+// ── Nutzer (#nutzer) und Konto (#nutzer/<id>) ─────────────────────────────────
+// Liste: Suche zuerst, Sammelaktionen erst bei Auswahl (Muster aus Planen › Liste), Linien-Liste statt Tabelle.
+// Konto: Unterseite mit Rückleiste. Adresse und Seitentitel enthalten nie Name, E-Mail oder Suchtext
+// (nur die interne ID), und Nutzerdaten gehören in keine Konsolen-Ausgabe.
+// Admin-Konten lassen sich hier weder ändern noch löschen (der Server lehnt es ebenfalls ab).
+
+const ZAHL_DE = new Intl.NumberFormat('de-DE')
+const ganzzahlDe = (n) => ZAHL_DE.format(Number(n) || 0)
+const kontenText = (n) => `${ganzzahlDe(n)} ${n === 1 ? 'Konto' : 'Konten'}`
+const spieleText = (n) => `${ganzzahlDe(n)} ${n === 1 ? 'Spiel' : 'Spiele'}`
+const nutzerName = (u) => String(u?.name ?? '').trim() || 'ohne Namen'
+
+const ANMELDUNG_TEXT = { credential: 'E-Mail und Passwort', apple: 'Apple', google: 'Google', andere: 'andere' }
+const QUELLE_KAUF_TEXT = { mollie: 'über die Website (Mollie)', 'apple-iap': 'in der iOS-App (App Store)' }
+const QUELLE_ZAHLUNG_TEXT = { mollie: 'Website (Mollie)', apple: 'iOS-App (App Store)', unbekannt: 'Quelle unbekannt' }
+// Löschfrist inaktiver Konten wie server/jobs/inactiveAccounts.js (INACTIVE_DAYS, WARNING_LEAD_DAYS)
+const INAKTIV_TAGE = 730
+const WARNUNG_VORLAUF_TAGE = 30
+const TAG_MS = 24 * 60 * 60 * 1000
+
+// ISO-Zeitstempel (UTC) → lokales Datum 'JJJJ-MM-TT'; leer bei fehlendem oder ungültigem Wert
+function isoTag(iso) {
+  if (!iso) return ''
+  const d = new Date(iso)
+  return Number.isNaN(d.getTime()) ? '' : toLocalIso(d)
 }
 
-/** Zeigt/versteckt „Weitere laden" und schreibt den Ladefortschritt daneben. */
-function updateUsersPagingState({ loaded = 0, filtered = 0, hasMore = false, busy = false } = {}) {
-  const wrap = document.getElementById('users-paging')
-  const btn = document.getElementById('users-load-more-btn')
-  const info = document.getElementById('users-paging-info')
-  if (!wrap || !btn || !info) return
+// „12.03.2026“
+function datumDe(iso) {
+  const tag = isoTag(iso)
+  return tag ? formatIsoDate(tag) : '–'
+}
 
-  wrap.classList.toggle('is-hidden', !hasMore && loaded >= filtered)
-  btn.classList.toggle('is-hidden', !hasMore)
-  btn.disabled = busy
-  btn.textContent = busy ? 'Lade …' : 'Weitere laden'
-  info.textContent = filtered ? `${loaded} von ${filtered} angezeigt` : ''
+// „Donnerstag, 12. März 2026“
+function datumLangDe(iso) {
+  const tag = isoTag(iso)
+  return tag ? datumLang(tag, { jahr: true }) : '–'
+}
+
+// Punkte von 10 mit einer Nachkommastelle und Komma: „7,3“; ohne Wertung „–“
+function punkteDe(scoreSum, maxSum) {
+  if (!(Number(maxSum) > 0)) return '–'
+  return ((Number(scoreSum) / Number(maxSum)) * 10).toLocaleString('de-DE', { minimumFractionDigits: 1, maximumFractionDigits: 1 })
+}
+
+// „Ø“ liest ein Screenreader unklar: Das Zeichen bleibt für Augen, „Durchschnitt“ ist unsichtbar davor.
+const DURCHSCHNITT_HTML = '<span aria-hidden="true">Ø</span><span class="adm-visually-hidden">Durchschnitt </span>'
+
+// „9,99 €“ (reiner Text, beim Einfügen escapen)
+function betragDe(betrag, waehrung = 'EUR') {
+  const n = Number(betrag)
+  const zahl = Number.isFinite(n) ? n.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : String(betrag ?? '')
+  return `${zahl} ${waehrung === 'EUR' ? '€' : waehrung}`
+}
+
+// Meldung in einer Live-Region (.li-meldung). Leerer Text blendet sie aus.
+// fokus: Tastatur dorthin (der Auslöser ist weg). Dann liest der Screenreader die Meldung über den Fokus;
+// die Live-Region ist für diesen Moment aus, sonst käme die Ansage doppelt.
+function setMeldung(id, msg, tone, { fokus = false } = {}) {
+  const el = document.getElementById(id)
+  if (!el) return
+  const fokussieren = fokus && !!msg
+  if (fokussieren) el.setAttribute('aria-live', 'off')
+  el.textContent = msg || ''
+  if (msg && tone) el.dataset.tone = tone
+  else el.removeAttribute('data-tone')
+  if (fokussieren) {
+    el.focus()
+    window.setTimeout(() => el.setAttribute('aria-live', 'polite'), 800)
+  } else if (el.getAttribute('aria-live') === 'off') {
+    el.setAttribute('aria-live', 'polite')
+  }
+}
+
+// Text aus Nutzerdaten für window.confirm(): ohne Steuerzeichen, Zeilenumbrüche und Richtungszeichen, auf max Zeichen gekürzt.
+// Sonst ließe sich ein Name mit Zeilenumbruch als eigene „Zeile“ des Dialogs ausgeben.
+function fuerDialog(text, max = 60) {
+  const sauber = String(text ?? '')
+    .replace(/[\u0000-\u001f\u007f-\u009f\u00ad\u061c\u200b-\u200f\u2028-\u202e\u2060-\u2069\ufeff]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+  return sauber.length > max ? `${sauber.slice(0, max - 1)}…` : sauber
+}
+
+// Eine Live-Region (Konto: Rolle gespeichert, Export) überlebt das Neuzeichnen: Der Knoten bleibt derselbe,
+// nur sein Text ändert sich. Ein neu eingefügter Knoten mit fertigem Text würde nicht angesagt.
+function behalteMeldungen(host, ids, zeichne) {
+  const alt = ids.map((id) => document.getElementById(id)).filter((el) => el && host.contains(el))
+  alt.forEach((el) => el.remove())
+  zeichne()
+  for (const el of alt) {
+    el.textContent = ''
+    el.removeAttribute('data-tone')
+    document.getElementById(el.id)?.replaceWith(el)
+  }
+}
+const setNutzerStatus = (msg, tone, opts) => setMeldung('users-status', msg, tone, opts)
+const setKontoStatus = (msg, tone, opts) => setMeldung('user-status', msg, tone, opts)
+
+// Beim Abmelden: Personendaten aus Speicher und Seite entfernen.
+function nutzerZuruecksetzen() {
+  usersLoaded = false
+  if (usersSearchTimer) window.clearTimeout(usersSearchTimer)
+  usersSearchTimer = null
+  usersOverviewAbortController?.abort()
+  usersOverviewAbortController = null
+  kontoAbort?.abort()
+  kontoAbort = null
+  nutzerListe = []
+  nutzerGefiltert = 0
+  nutzerHatMehr = false
+  nutzerSummary = null
+  nutzerZustand = 'laden'
+  nutzerFehlerText = ''
+  nutzerMehrLaedt = false
+  nutzerFilterLaedt = false
+  nutzerBeschaeftigt = false
+  nutzerFilterAktiv = { q: '', role: '' }
+  gewaehlteNutzer.clear()
+  kontoAktuell = null
+  kontoBeschaeftigt = false
+  for (const id of ['users-table-body', 'user-detail']) {
+    const el = document.getElementById(id)
+    if (el) el.innerHTML = ''
+  }
+  setNutzerStatus('')
+  setKontoStatus('')
+  for (const id of ['users-search', 'users-role-filter']) {
+    const el = document.getElementById(id)
+    if (el) el.value = ''
+  }
+}
+
+// ── Liste ────────────────────────────────────────────────────────────────────
+
+function istStandardNutzerFilter() {
+  return !nutzerFilterAktiv.q && !nutzerFilterAktiv.role
+}
+
+// „2.029 Konten · 4 Premium · 6 neu in 30 Tagen“ · „12 Treffer von 2.029 Konten“
+function nutzerZahlText() {
+  const gesamt = Number(nutzerSummary?.total ?? nutzerGefiltert)
+  if (istStandardNutzerFilter()) {
+    return `${kontenText(gesamt)} · ${ganzzahlDe(nutzerSummary?.premium)} Premium · ${ganzzahlDe(nutzerSummary?.newLast30Days)} neu in 30 Tagen`
+  }
+  return `${ganzzahlDe(nutzerGefiltert)} Treffer von ${kontenText(gesamt)}`
+}
+
+function nutzerZeileHtml(u) {
+  const name = nutzerName(u)
+  const gewaehlt = gewaehlteNutzer.has(u.id)
+  // Admin-Konten haben kein Kästchen: Sie lassen sich nicht für Sammelaktionen auswählen.
+  const wahl = u.role === 'admin'
+    ? '<span class="nu-wahl-frei"></span>'
+    : `<label class="li-wahl"><input type="checkbox" class="user-select-checkbox" data-user-id="${esc(u.id)}" aria-label="${esc(`Auswählen: ${name}, ${u.email}`)}"${gewaehlt ? ' checked' : ''}></label>`
+  const rolle = u.role === 'user'
+    ? `<span class="adm-visually-hidden">Rolle ${esc(roleLabel('user'))}</span>`
+    : `<span class="nu-rolle" data-rolle="${esc(u.role)}"><span class="adm-visually-hidden">Rolle </span>${esc(roleLabel(u.role))}</span>`
+  const kauf = u.gekauft ? '<span class="nu-meta-trenner" aria-hidden="true"> · </span><span class="nu-meta-kauf">gekauft</span>' : ''
+  return `<li class="nu-zeile${gewaehlt ? ' is-gewaehlt' : ''}" data-user-id="${esc(u.id)}">`
+    + wahl
+    + `<a class="nu-name" href="${esc(kontoHash(u.id))}">${esc(name)}</a>`
+    + `<span class="nu-mail">${esc(u.email)}</span>`
+    + `<span class="nu-rolle-zelle">${rolle}</span>`
+    + `<span class="nu-meta"><span class="nu-meta-label">angelegt </span>${esc(datumDe(u.createdAt))}${kauf}</span>`
+    + '</li>'
+}
+
+function nutzerLeerHtml() {
+  const ohneFilter = istStandardNutzerFilter()
+  return '<div class="li-leer">'
+    + `<p class="li-leer-titel">${ohneFilter ? 'Noch keine Konten' : 'Keine Treffer'}</p>`
+    + `<p class="li-leer-text">${ohneFilter ? 'Sobald sich jemand registriert, steht das Konto hier.' : 'Kein Konto passt zu dieser Suche.'}</p>`
+    + (ohneFilter ? '' : '<button type="button" class="adm-link" data-action="reset-users-filters">Filter zurücksetzen</button>')
+    + '<p class="li-leer-ornament" aria-hidden="true">· · ·</p></div>'
+}
+
+// Der Knopf „Weitere laden“ ist gesperrt, solange etwas läuft oder eine Suche aussteht: Sonst käme eine Seite
+// des alten Filters an die Liste des neuen.
+function aktualisiereMehrKnopf() {
+  const knopf = document.getElementById('users-load-more-btn')
+  if (!knopf) return
+  const rest = Math.min(USERS_PAGE_SIZE, Math.max(0, nutzerGefiltert - nutzerListe.length))
+  setzeText(knopf, nutzerMehrLaedt ? 'Wird geladen …' : `Weitere ${ganzzahlDe(rest)} laden`)
+  if (nutzerMehrLaedt || nutzerFilterLaedt || usersSearchTimer) knopf.setAttribute('aria-disabled', 'true')
+  else knopf.removeAttribute('aria-disabled')
+}
+
+// Nach einer Änderung an der Liste im Speicher neu zeichnen. Sind alle geladenen Zeilen weg, obwohl der Filter
+// noch Treffer hat (alles gelöscht oder aus dem Filter gefallen), lädt die erste Seite neu, statt „Noch keine Konten“ zu zeigen.
+function zeichneNutzerNachAenderung() {
+  if (!nutzerListe.length && nutzerGefiltert > 0) {
+    void loadUsersOverview()
+    return
+  }
+  renderNutzerListe()
+}
+
+// neu: nur diese Konten hinten anfügen (Fokus und Scrollposition bleiben), sonst die ganze Liste zeichnen.
+// ansage: Trefferzahl ansagen, wenn sie sich geändert hat; immer: auch bei gleicher Zahl (neuer Filter).
+function renderNutzerListe({ ansage = false, neu = null, immer = false } = {}) {
+  const host = document.getElementById('users-table-body')
+  if (!host) return
+  const leiste = document.getElementById('users-auswahlleiste')
+  const ergebnis = document.getElementById('users-ergebnis')
+  const spalten = document.getElementById('users-spalten')
+  const mehr = document.getElementById('users-paging')
+
+  if (nutzerZustand !== 'ok') {
+    leiste.hidden = true
+    mehr.hidden = true
+    ergebnis.hidden = true
+    spalten.hidden = true
+    passeAuswahlleisteAn()
+    // Nach einem Fehler bleibt Meldung samt Knopf stehen (der Fokus bleibt), der Knopf zeigt „wird geladen“.
+    const knopf = host.querySelector('.wo-meldung[data-tone="err"] [data-action="load-users-overview"]')
+    if (nutzerZustand === 'laden' && knopf) {
+      knopf.setAttribute('aria-disabled', 'true')
+      knopf.textContent = 'Wird geladen …'
+      return
+    }
+    const hatteFokus = host.contains(document.activeElement)
+    host.innerHTML = nutzerZustand === 'laden'
+      ? '<p class="wo-meldung">Konten werden geladen …</p>'
+      : `<p class="wo-meldung" data-tone="err" role="alert">Die Konten konnten nicht geladen werden (${esc(nutzerFehlerText)}). <button type="button" class="adm-link" data-action="load-users-overview">Erneut versuchen</button></p>`
+    // Scheitert „Erneut versuchen“ noch einmal, ist der alte Knopf weg: Der Fokus geht auf den neuen.
+    if (hatteFokus && nutzerZustand === 'fehler') host.querySelector('[data-action="load-users-overview"]')?.focus({ preventScroll: true })
+    return
+  }
+
+  const aktiv = document.activeElement
+  const fokusInMeldung = host.contains(aktiv) && !!aktiv.closest('.wo-meldung')
+  const leer = nutzerListe.length === 0
+  const standard = istStandardNutzerFilter()
+  const zahlEl = document.getElementById('users-summary')
+  const zahlText = nutzerZahlText()
+  const zahlGeaendert = zahlEl.textContent !== zahlText
+  setzeText(zahlEl, zahlText)
+  // Ohne Konten und ohne Filter braucht es keine Zählzeile; ohne Treffer steht „Filter zurücksetzen“ im Leerzustand.
+  ergebnis.hidden = leer && standard
+  document.getElementById('users-filter-reset').hidden = standard || leer
+  if (ansage && (zahlGeaendert || immer)) planeAnsage(zahlText, 'users-ansage')
+  leiste.hidden = leer
+  spalten.hidden = leer
+
+  const liste = host.querySelector('.nu-liste')
+  if (neu && neu.length && liste) {
+    liste.insertAdjacentHTML('beforeend', neu.map(nutzerZeileHtml).join(''))
+  } else {
+    host.innerHTML = leer
+      ? nutzerLeerHtml()
+      : `<ul class="nu-liste" aria-label="Konten">${nutzerListe.map(nutzerZeileHtml).join('')}</ul>`
+  }
+
+  mehr.hidden = !nutzerHatMehr
+  aktualisiereMehrKnopf()
+  setzeText(document.getElementById('users-paging-info'), `${ganzzahlDe(nutzerListe.length)} von ${ganzzahlDe(nutzerGefiltert)} angezeigt`)
+  aktualisiereNutzerAuswahl()
+
+  // „Erneut versuchen“ war erfolgreich: Der Knopf ist weg, die Ergebniszeile (sonst die Suche) übernimmt den Fokus.
+  if (fokusInMeldung) (ergebnis.hidden ? document.getElementById('users-search') : zahlEl)?.focus({ preventScroll: true })
 }
 
 async function loadUsersOverview({ append = false } = {}) {
-  const summary = document.getElementById('users-summary')
-  const tbody = document.getElementById('users-table-body')
-  if (!summary || !tbody) return
-
-  if (usersOverviewAbortController) {
-    usersOverviewAbortController.abort()
+  if (!document.getElementById('users-table-body')) return
+  if (usersSearchTimer) {
+    window.clearTimeout(usersSearchTimer)
+    usersSearchTimer = null
   }
-  usersOverviewAbortController = new AbortController()
+  usersOverviewAbortController?.abort()
+  const controller = new AbortController()
+  usersOverviewAbortController = controller
 
-  const search = (document.getElementById('users-search')?.value || '').trim()
-  const role = document.getElementById('users-role-filter')?.value || ''
-
-  // Jeder Filterwechsel beginnt wieder bei Seite 1 – nur „Weitere laden" hängt an.
-  if (!append) usersOffset = 0
-
-  const params = new URLSearchParams({ limit: String(USERS_PAGE_SIZE), offset: String(usersOffset) })
-  if (search) params.set('q', search)
-  if (role) params.set('role', role)
-
+  const params = new URLSearchParams({ limit: String(USERS_PAGE_SIZE) })
+  let filterGeaendert = false
+  setMeldung('users-mehr-meldung', '')
   if (append) {
-    updateUsersPagingState({ loaded: usersOffset, filtered: usersOffset, hasMore: true, busy: true })
+    nutzerMehrLaedt = true
+    params.set('offset', String(nutzerListe.length))
+    params.set('q', nutzerFilterAktiv.q)
+    params.set('role', nutzerFilterAktiv.role)
+    aktualisiereMehrKnopf()
   } else {
-    summary.textContent = 'Nutzerdaten werden geladen …'
-    tbody.innerHTML = tableMessageRow(6, 'users-empty', 'Lade …')
-    updateUsersPagingState()
+    // Ein neuer Filter beginnt wieder bei Seite 1.
+    const neuerFilter = {
+      q: (document.getElementById('users-search')?.value || '').trim(),
+      role: document.getElementById('users-role-filter')?.value || '',
+    }
+    filterGeaendert = neuerFilter.q !== nutzerFilterAktiv.q || neuerFilter.role !== nutzerFilterAktiv.role
+    nutzerFilterAktiv = neuerFilter
+    params.set('offset', '0')
+    params.set('q', nutzerFilterAktiv.q)
+    params.set('role', nutzerFilterAktiv.role)
+    nutzerMehrLaedt = false
+    nutzerFilterLaedt = true
+    if (nutzerZustand === 'ok' && nutzerListe.length) {
+      // Beim Tippen bleibt die bisherige Liste stehen, bis die neue da ist (kein Flackern, Scrollposition bleibt).
+      // Die Auswahl bleibt, bis die Antwort da ist; dann wird sie auf die neue Liste beschnitten.
+      document.getElementById('users-table-body')?.setAttribute('aria-busy', 'true')
+      aktualisiereMehrKnopf()
+    } else {
+      nutzerListe = []
+      gewaehlteNutzer.clear()
+      nutzerZustand = 'laden'
+      renderNutzerListe()
+    }
   }
+  if (!params.get('q')) params.delete('q')
+  if (!params.get('role')) params.delete('role')
 
   try {
-    const response = await fetch(`/admin/users?${params.toString()}`, { signal: usersOverviewAbortController.signal })
-    const data = await response.json()
+    const response = await fetch(`/admin/users?${params.toString()}`, { signal: controller.signal })
+    const data = await response.json().catch(() => ({}))
     if (!response.ok) throw new Error(data.error || `HTTP ${response.status}`)
 
-    const info = data.summary || {}
-    summary.textContent = `Gesamt: ${info.total || 0} · User: ${info.users || 0} · Premium: ${info.premium || 0} · Neu 30 Tage: ${info.newLast30Days || 0}`
-
-    const page = data.page || {}
-    const users = Array.isArray(data.users) ? data.users : []
-    usersOffset += users.length
-
-    if (!users.length && !append) {
-      tbody.innerHTML = tableMessageRow(6, 'users-empty', 'Keine Nutzer gefunden.')
-      clearSelectedUser('Keine Nutzer ausgewählt.')
-      updateUsersPagingState()
-    } else {
-      const rowsHtml = users.map(renderUserRow).join('')
-      if (append) tbody.insertAdjacentHTML('beforeend', rowsHtml)
-      else tbody.innerHTML = rowsHtml
-
-      updateUsersPagingState({
-        loaded: usersOffset,
-        filtered: Number(page.filtered || usersOffset),
-        hasMore: !!page.hasMore,
-      })
-      updateUsersBulkState()
-
-      if (selectedUserId && users.some((user) => user.id === selectedUserId)) {
-        await selectUser(selectedUserId, { keepScroll: true })
-      } else if (!append) {
-        clearSelectedUser('Wähle einen Nutzer aus der Tabelle, um Details zu sehen.')
+    const geladen = Array.isArray(data.users) ? data.users : []
+    // Neue Konten verschieben die Seiten: schon gezeigte nicht doppelt aufnehmen.
+    const bekannt = new Set(append ? nutzerListe.map((u) => u.id) : [])
+    const neu = geladen.filter((u) => !bekannt.has(u.id))
+    nutzerListe = append ? nutzerListe.concat(neu) : neu
+    // Die Auswahl gilt nur für Konten der neuen Liste (während des Ladens konnte noch in der alten gewählt werden).
+    for (const id of [...gewaehlteNutzer]) if (!nutzerListe.some((u) => u.id === id)) gewaehlteNutzer.delete(id)
+    document.getElementById('users-table-body')?.removeAttribute('aria-busy')
+    nutzerSummary = data.summary || nutzerSummary
+    nutzerGefiltert = Number(data.page?.filtered ?? nutzerListe.length)
+    nutzerHatMehr = !!data.page?.hasMore
+    nutzerZustand = 'ok'
+    nutzerMehrLaedt = false
+    nutzerFilterLaedt = false
+    usersLoaded = true
+    renderNutzerListe({ ansage: !append, immer: filterGeaendert, neu: append ? neu : null })
+    if (append) {
+      if (neu.length) {
+        document.querySelector(`#users-table-body .nu-zeile[data-user-id="${CSS.escape(neu[0].id)}"] .nu-name`)?.focus()
+        planeAnsage(`${ganzzahlDe(neu.length)} weitere ${neu.length === 1 ? 'Konto' : 'Konten'} geladen.`, 'users-ansage')
+      } else {
+        // Nur Bekannte geliefert (neue Konten haben die Seiten verschoben): kein Fokusziel in der Liste, also die Info.
+        planeAnsage('Keine weiteren neuen Konten geladen.', 'users-ansage')
+        const info = document.getElementById('users-paging-info')
+        ;(info && !document.getElementById('users-paging').hidden ? info : document.getElementById('users-summary'))?.focus({ preventScroll: true })
       }
     }
-
-    usersLoaded = true
   } catch (err) {
     if (err.name === 'AbortError') return
-    summary.textContent = `Nutzer konnten nicht geladen werden: ${err.message}`
-    if (!append) {
-      tbody.innerHTML = tableMessageRow(6, 'users-empty', 'Fehler beim Laden.')
-      clearSelectedUser('Nutzerdetails konnten nicht geladen werden.')
+    nutzerMehrLaedt = false
+    nutzerFilterLaedt = false
+    document.getElementById('users-table-body')?.removeAttribute('aria-busy')
+    if (append) {
+      aktualisiereMehrKnopf()
+      // Eigene Meldungszeile am Knopf: Die Seitenmeldung oben läge außerhalb des Blickfelds.
+      setMeldung('users-mehr-meldung', `Weitere Konten konnten nicht geladen werden: ${err.message}`, 'error')
+    } else {
+      gewaehlteNutzer.clear()
+      nutzerZustand = 'fehler'
+      nutzerFehlerText = err.message
+      renderNutzerListe()
     }
-    updateUsersPagingState({ loaded: usersOffset, filtered: usersOffset, hasMore: !!append })
-    updateUsersBulkState()
   } finally {
-    usersOverviewAbortController = null
-    const roleBtn = document.getElementById('user-role-save-btn')
-    if (roleBtn) roleBtn.disabled = !selectedUserId
+    if (usersOverviewAbortController === controller) usersOverviewAbortController = null
   }
 }
 
 function loadMoreUsers() {
-  loadUsersOverview({ append: true })
+  if (nutzerMehrLaedt) return
+  // Steht eine Suche aus oder läuft ein Filterabruf, gehört die nächste Seite nicht an die alte Liste:
+  // Dann wird der ausstehende Filterabruf ausgeführt (bzw. abgewartet) und nichts angehängt.
+  if (usersSearchTimer) {
+    void loadUsersOverview()
+    return
+  }
+  if (nutzerFilterLaedt) return
+  void loadUsersOverview({ append: true })
 }
 
+// Die Suche lädt nach 250 ms Pause (nicht bei jedem Tastenanschlag). Der Suchtext steht nie in der Adresse.
 function scheduleUsersOverviewLoad() {
-  if (usersSearchTimer) {
-    window.clearTimeout(usersSearchTimer)
-  }
+  if (usersSearchTimer) window.clearTimeout(usersSearchTimer)
   usersSearchTimer = window.setTimeout(() => {
-    loadUsersOverview()
+    usersSearchTimer = null
+    void loadUsersOverview()
   }, 250)
+  aktualisiereMehrKnopf()
 }
 
 function resetUsersFilters() {
@@ -3605,203 +3782,678 @@ function resetUsersFilters() {
   const roleFilter = document.getElementById('users-role-filter')
   if (searchInput) searchInput.value = ''
   if (roleFilter) roleFilter.value = ''
-  loadUsersOverview()
+  void loadUsersOverview()
+  // Der Knopf ist jetzt weg: Fokus zur Suche
+  searchInput?.focus({ preventScroll: true })
 }
 
-function clearSelectedUser(message) {
-  selectedUserId = ''
-  const empty = document.getElementById('user-detail-empty')
-  const content = document.getElementById('user-detail-content')
-  const roleBtn = document.getElementById('user-role-save-btn')
-  const roleSelect = document.getElementById('user-detail-role')
-  const userDeleteBtn = document.getElementById('user-delete-btn')
-  if (empty) {
-    empty.textContent = message
-    empty.style.display = 'block'
+// ── Auswahl ──────────────────────────────────────────────────────────────────
+
+function waehlbareNutzer() {
+  return nutzerListe.filter((u) => u.role !== 'admin')
+}
+
+function auswahlNutzer() {
+  return nutzerListe.filter((u) => gewaehlteNutzer.has(u.id))
+}
+
+function aktualisiereNutzerAuswahl() {
+  const host = document.getElementById('users-table-body')
+  if (!host) return
+  const waehlbar = waehlbareNutzer()
+  // Gezählt wird, was wirklich in der Liste steht (nicht, was im Set übrig sein könnte)
+  const n = auswahlNutzer().length
+  host.querySelectorAll('.nu-zeile').forEach((li) => {
+    const an = gewaehlteNutzer.has(li.dataset.userId)
+    li.classList.toggle('is-gewaehlt', an)
+    const cb = li.querySelector('input[type="checkbox"]')
+    if (cb) cb.checked = an
+  })
+  const master = document.getElementById('users-select-all')
+  const aufListe = waehlbar.filter((u) => gewaehlteNutzer.has(u.id)).length
+  master.checked = waehlbar.length > 0 && aufListe === waehlbar.length
+  master.indeterminate = aufListe > 0 && aufListe < waehlbar.length
+  master.disabled = waehlbar.length === 0
+  const zuViele = n > NUTZER_MAX_SAMMEL
+  setzeText(document.getElementById('users-bulk-count'), n ? `${ganzzahlDe(n)} ausgewählt${zuViele ? ` · höchstens ${NUTZER_MAX_SAMMEL} auf einmal` : ''}` : '')
+  document.getElementById('users-clear-selection').hidden = n === 0
+  document.getElementById('users-sammel').hidden = n === 0
+  document.getElementById('users-aktionen-toggle').hidden = n === 0
+  if (n === 0) setzeNutzerAktionen(false)
+  if (!nutzerBeschaeftigt) setzeText(document.getElementById('users-bulk-delete-text'), `${kontenText(n)} löschen …`)
+  for (const knopf of document.querySelectorAll('#users-sammel button')) {
+    if (zuViele || nutzerBeschaeftigt) knopf.setAttribute('aria-disabled', 'true')
+    else knopf.removeAttribute('aria-disabled')
   }
-  if (content) content.style.display = 'none'
-  if (roleBtn) roleBtn.disabled = true
-  if (roleSelect) roleSelect.value = 'user'
-  if (userDeleteBtn) userDeleteBtn.disabled = true
+  // Auch die Rollenauswahl sperren: Bei mehr als 200 Gewählten geht keine Sammelaktion
+  document.getElementById('users-bulk-role').disabled = zuViele
+  document.getElementById('users-auswahlleiste').classList.toggle('has-auswahl', n > 0)
+  passeAuswahlleisteAn()
 }
 
-function renderUserStatsByGame(byGame) {
-  const target = document.getElementById('user-game-stats')
-  if (!target) return
+// Schmal sind die Sammelaktionen hinter „Aktionen …“ eingeklappt, damit die klebende Leiste niedrig bleibt.
+// Breit steht der Knopf nicht da (CSS) und die Aktionen sind immer sichtbar.
+function setzeNutzerAktionen(offen) {
+  const leiste = document.getElementById('users-auswahlleiste')
+  const knopf = document.getElementById('users-aktionen-toggle')
+  if (!leiste || !knopf) return
+  leiste.classList.toggle('aktionen-offen', offen)
+  knopf.setAttribute('aria-expanded', String(offen))
+  knopf.textContent = offen ? 'Aktionen schließen' : 'Aktionen …'
+  passeAuswahlleisteAn()
+}
 
-  if (!Array.isArray(byGame) || byGame.length === 0) {
-    target.innerHTML = '<div class="users-empty">Noch keine spielbezogenen Daten vorhanden.</div>'
-    return
+function toggleNutzerAktionen() {
+  setzeNutzerAktionen(!document.getElementById('users-auswahlleiste').classList.contains('aktionen-offen'))
+}
+
+// Einzelnes Kästchen: ohne Neuzeichnen, der Fokus bleibt.
+function waehleNutzer(id, an) {
+  if (!id || !nutzerListe.some((u) => u.id === id && u.role !== 'admin')) return
+  if (an) gewaehlteNutzer.add(id)
+  else gewaehlteNutzer.delete(id)
+  aktualisiereNutzerAuswahl()
+}
+
+// „Alle angezeigten“: alle geladenen Konten außer Admins
+function waehleAlleNutzer(an) {
+  for (const u of waehlbareNutzer()) {
+    if (an) gewaehlteNutzer.add(u.id)
+    else gewaehlteNutzer.delete(u.id)
   }
-
-  target.innerHTML = byGame.map((gameRow) => {
-    const avg = Number(gameRow.maxSum || 0) > 0
-      ? ((Number(gameRow.scoreSum || 0) / Number(gameRow.maxSum || 0)) * 10).toFixed(1)
-      : '–'
-    const label = STAT_LABELS[gameRow.spiel] || gameRow.spiel
-    return `<div class="user-stat-chip"><strong>${esc(label)}</strong><span>${esc(String(gameRow.plays || 0))} Plays · Ø ${esc(avg)} / 10</span></div>`
-  }).join('')
+  aktualisiereNutzerAuswahl()
 }
 
-function renderUserRecentStats(recent) {
-  const tbody = document.getElementById('user-recent-body')
-  if (!tbody) return
+function leereNutzerAuswahl() {
+  gewaehlteNutzer.clear()
+  aktualisiereNutzerAuswahl()
+  document.getElementById('users-select-all')?.focus({ preventScroll: true })
+}
 
-  if (!Array.isArray(recent) || recent.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="4" class="users-empty">Noch keine Aktivität.</td></tr>'
-    return
+// ── Liste im Speicher nachführen (statt alles von vorn zu laden) ─────────────
+
+// Konten aus der Liste nehmen. geloescht: es gibt sie nicht mehr (Gesamtzahl sinkt), sonst fallen sie nur aus dem Filter.
+function entferneNutzerAusListe(ids, { geloescht = false } = {}) {
+  const weg = new Set(ids)
+  const betroffen = nutzerListe.filter((u) => weg.has(u.id))
+  nutzerListe = nutzerListe.filter((u) => !weg.has(u.id))
+  for (const id of ids) gewaehlteNutzer.delete(id)
+  nutzerGefiltert = Math.max(0, nutzerGefiltert - betroffen.length)
+  if (geloescht && nutzerSummary) {
+    nutzerSummary.total = Math.max(0, Number(nutzerSummary.total || 0) - ids.length)
+    nutzerSummary.premium = Math.max(0, Number(nutzerSummary.premium || 0) - betroffen.filter((u) => u.role === 'premium').length)
+    // „neu in 30 Tagen“ zählt die gelöschten Neuen nicht mehr mit (bekannt nur für geladene Konten)
+    const grenze = Date.now() - 30 * TAG_MS
+    const neue = betroffen.filter((u) => Date.parse(u.createdAt) >= grenze).length
+    nutzerSummary.newLast30Days = Math.max(0, Number(nutzerSummary.newLast30Days || 0) - neue)
   }
-
-  tbody.innerHTML = recent.map((row) => {
-    const avg = Number(row.maxSum || 0) > 0
-      ? ((Number(row.scoreSum || 0) / Number(row.maxSum || 0)) * 10).toFixed(1)
-      : '–'
-    const label = STAT_LABELS[row.spiel] || row.spiel
-    return `<tr>
-      <td>${esc(row.datum)}</td>
-      <td>${esc(label)}</td>
-      <td>${esc(String(row.plays || 0))}</td>
-      <td>Ø ${esc(avg)} / 10</td>
-    </tr>`
-  }).join('')
+  nutzerHatMehr = nutzerListe.length < nutzerGefiltert
 }
 
-function renderUserDetails(data) {
-  const empty = document.getElementById('user-detail-empty')
-  const content = document.getElementById('user-detail-content')
-  const title = document.getElementById('user-detail-title')
-  const subtitle = document.getElementById('user-detail-subtitle')
-  const roleSelect = document.getElementById('user-detail-role')
-  const userDeleteBtn = document.getElementById('user-delete-btn')
-
-  if (!empty || !content || !title || !subtitle || !roleSelect || !userDeleteBtn) return
-
-  const user = data?.user || {}
-  const stats = data?.stats || {}
-
-  selectedUserId = user.id || ''
-  title.textContent = user.name || 'Unbenannter Nutzer'
-  subtitle.textContent = user.email || 'Keine E-Mail'
-  roleSelect.value = user.role || 'user'
-  roleSelect.dataset.currentRole = user.role || 'user'
-  userDeleteBtn.disabled = !selectedUserId
-  const roleBtn = document.getElementById('user-role-save-btn')
-  if (roleBtn) roleBtn.disabled = !selectedUserId
-
-  const meta = document.getElementById('user-meta-grid')
-  if (meta) {
-    meta.innerHTML = [
-      `<div class="user-meta-item"><span>ID</span><strong>${esc(user.id || '—')}</strong></div>`,
-      `<div class="user-meta-item"><span>Rolle</span><strong>${esc(roleLabel(user.role || 'user'))}</strong></div>`,
-      `<div class="user-meta-item"><span>E-Mail verifiziert</span><strong>${user.emailVerified ? 'Ja' : 'Nein'}</strong></div>`,
-      `<div class="user-meta-item"><span>Registriert</span><strong>${esc(user.createdAt ? new Date(user.createdAt).toLocaleDateString('de-DE') : '—')}</strong></div>`,
-      `<div class="user-meta-item"><span>Plays gesamt</span><strong>${esc(String(stats.totals?.plays || 0))}</strong></div>`,
-      `<div class="user-meta-item"><span>Ø Score</span><strong>${Number(stats.totals?.maxSum || 0) > 0 ? `${((Number(stats.totals?.scoreSum || 0) / Number(stats.totals?.maxSum || 0)) * 10).toFixed(1)} / 10` : '—'}</strong></div>`,
-    ].join('')
+// Neue Rolle in der Liste setzen. Gibt zurück, ob das Konto in der Liste fehlt (dann lädt der nächste Besuch von
+// #nutzer neu: Zählung und Seiten stimmen nicht mehr) und ob die Zeile aus dem Rollenfilter gefallen ist.
+function setzeNutzerRolleLokal(ids, rolle) {
+  let unbekannt = false
+  let entfernt = false
+  let premiumDelta = 0
+  for (const id of ids) {
+    const u = nutzerListe.find((x) => x.id === id)
+    if (!u) { unbekannt = true; continue }
+    premiumDelta += (rolle === 'premium' ? 1 : 0) - (u.role === 'premium' ? 1 : 0)
+    u.role = rolle
   }
-
-  renderUserStatsByGame(stats.byGame || [])
-  renderUserRecentStats(stats.recent || [])
-
-  empty.style.display = 'none'
-  content.style.display = 'grid'
+  if (nutzerSummary) nutzerSummary.premium = Math.max(0, Number(nutzerSummary.premium || 0) + premiumDelta)
+  // Rollenfilter aktiv und die neue Rolle passt nicht mehr: Die Zeile fällt aus dem Filter.
+  if (nutzerFilterAktiv.role && nutzerFilterAktiv.role !== rolle) {
+    const betroffen = ids.filter((id) => nutzerListe.some((u) => u.id === id))
+    entfernt = betroffen.length > 0
+    entferneNutzerAusListe(betroffen)
+  }
+  if (unbekannt && usersLoaded) usersLoaded = false
+  return { unbekannt, entfernt }
 }
 
-async function selectUser(userId, options = {}) {
-  let normalizedUserId = String(userId || '').trim()
-  if (!normalizedUserId) return
+// ── Sammelaktionen (POST /admin/users/bulk-update) ───────────────────────────
+
+// Bis zu 8 Namen „Name (E-Mail)“, sonst 5 und „und N weitere“
+function nutzerNamenListe(konten) {
+  const zeile = (u) => `${fuerDialog(nutzerName(u))} (${fuerDialog(u.email, 80)})`
+  return konten.length <= 8
+    ? konten.map(zeile)
+    : [...konten.slice(0, 5).map(zeile), `und ${konten.length - 5} weitere`]
+}
+
+function gekauftSatz(n, { loeschen = false } = {}) {
+  if (loeschen) return `Davon ${n === 1 ? 'hat 1 Konto' : `haben ${n}`} die Gesamtausgabe gekauft.`
+  return n === 1
+    ? 'Davon hat 1 Konto die Gesamtausgabe gekauft: Es behält die Gesamtausgabe, verliert aber Klassenraum und unbegrenzte eigene Wörter.'
+    : `Davon haben ${n} die Gesamtausgabe gekauft: Sie behalten die Gesamtausgabe, verlieren aber Klassenraum und unbegrenzte eigene Wörter.`
+}
+
+// „1 Admin-Konto wurde übersprungen. 2 Konten gab es nicht mehr.“ (mit führendem Leerzeichen, oder leer)
+function uebersprungenText(data) {
+  const details = Array.isArray(data?.skippedDetails)
+    ? data.skippedDetails
+    : (Array.isArray(data?.skipped) ? data.skipped : []).map((id) => ({ id, reason: 'not_found' }))
+  const admin = details.filter((d) => d.reason === 'admin').length
+  const weg = details.length - admin
+  const teile = []
+  if (admin) teile.push(`${admin === 1 ? '1 Admin-Konto wurde' : `${admin} Admin-Konten wurden`} übersprungen.`)
+  if (weg) teile.push(`${weg === 1 ? '1 Konto gab es' : `${weg} Konten gab es`} nicht mehr.`)
+  return teile.length ? ` ${teile.join(' ')}` : ''
+}
+
+// Während einer Sammelaktion alle Knöpfe sperren (aria-disabled, damit der Fokus bleibt).
+function setNutzerBeschaeftigt(an, loeschText = '') {
+  nutzerBeschaeftigt = an
+  if (an && loeschText) document.getElementById('users-bulk-delete-text').textContent = loeschText
+  aktualisiereNutzerAuswahl()
+}
+
+async function postSammel(payload) {
+  return fetch('/admin/users/bulk-update', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  })
+}
+
+async function sammelRolle() {
+  const gewaehlt = auswahlNutzer()
+  const ziel = document.getElementById('users-bulk-role')?.value
+  if (!gewaehlt.length || gewaehlt.length > NUTZER_MAX_SAMMEL || nutzerBeschaeftigt) return
+  if (ziel !== 'premium' && ziel !== 'user') return
+
+  const details = nutzerNamenListe(gewaehlt)
+  const gekauft = gewaehlt.filter((u) => u.gekauft).length
+  if (ziel === 'user' && gekauft) details.push(gekauftSatz(gekauft))
+  if (!confirmAction(`Rolle von ${kontenText(gewaehlt.length)} auf ${roleLabel(ziel)} setzen?`, details)) return
+
+  setNutzerStatus('')
+  setNutzerBeschaeftigt(true)
   try {
-    normalizedUserId = decodeURIComponent(normalizedUserId)
-  } catch {
-    // Falls der Wert nicht URL-encodiert ist, unveraendert nutzen.
-  }
-  if (!normalizedUserId) return
-
-  const { keepScroll = false } = options
-  const empty = document.getElementById('user-detail-empty')
-  const content = document.getElementById('user-detail-content')
-  if (empty) {
-    empty.textContent = 'Nutzerdetails werden geladen …'
-    empty.style.display = 'block'
-  }
-  if (content) content.style.display = 'none'
-
-  try {
-    const response = await fetch(`/admin/users/${encodeURIComponent(normalizedUserId)}`, {})
-    const data = await response.json()
+    const response = await postSammel({ action: 'setRole', role: ziel, userIds: gewaehlt.map((u) => u.id) })
+    const data = await response.json().catch(() => ({}))
     if (!response.ok) throw new Error(data.error || `HTTP ${response.status}`)
 
-    renderUserDetails(data)
-    if (!keepScroll) {
-      const detailCard = document.getElementById('users-detail-card')
-      if (detailCard) detailCard.scrollIntoView({ behavior: 'smooth', block: 'start' })
-    }
+    const geaendert = Array.isArray(data.changed) ? data.changed : []
+    const gleich = Array.isArray(data.unchanged) ? data.unchanged : []
+    const nichtMehr = (data.skippedDetails || []).filter((d) => d.reason === 'not_found').map((d) => d.id)
+    setzeNutzerRolleLokal(geaendert, ziel)
+    if (nichtMehr.length) entferneNutzerAusListe(nichtMehr, { geloescht: true })
+    gewaehlteNutzer.clear()
+    nutzerBeschaeftigt = false
+    zeichneNutzerNachAenderung()
+    // Gezählt werden nur echte Änderungen; wer die Rolle schon hatte, wird eigens genannt.
+    const gleichText = gleich.length ? ` ${gleich.length === 1 ? '1 Konto hatte' : `${gleich.length} Konten hatten`} die Rolle schon.` : ''
+    const text = geaendert.length
+      ? `Rolle von ${kontenText(geaendert.length)} auf ${roleLabel(ziel)} gesetzt.${gleichText}${uebersprungenText(data)}`
+      : `Keine Rolle geändert.${gleichText}${uebersprungenText(data)}`
+    setNutzerStatus(text, geaendert.length ? 'ok' : 'warn', { fokus: true })
   } catch (err) {
-    clearSelectedUser(`Details konnten nicht geladen werden: ${err.message}`)
+    nutzerBeschaeftigt = false
+    aktualisiereNutzerAuswahl()
+    setNutzerStatus(`Nicht ausgeführt: ${err.message}`, 'error')
+    document.getElementById('users-bulk-role-btn')?.focus()
   }
 }
 
-async function saveSelectedUserRole() {
-  if (!selectedUserId) return
+// Export lesen und als Datei anbieten; gemeinsam für Sammelaktion und Konto.
+// Gibt { exportiert, weg } zurück (weg = Konten, die es nicht mehr gab).
+async function ladeKontenExport(ids, format, dateiPraefix) {
+  const response = await postSammel({ action: 'export', userIds: ids, format })
+  const datei = `${dateiPraefix}-${getTodayIso()}.${format}`
+  if (format === 'csv') {
+    if (!response.ok) {
+      const fehler = await response.json().catch(() => ({}))
+      throw new Error(fehler.error || `HTTP ${response.status}`)
+    }
+    const csv = await response.text()
+    const kopfExportiert = Number.parseInt(response.headers.get('x-exported-count') || '', 10)
+    const kopfWeg = Number.parseInt(response.headers.get('x-skipped-count') || '', 10)
+    createTemporaryDownload(new Blob([csv], { type: 'text/csv;charset=utf-8' }), datei)
+    return {
+      exportiert: Number.isFinite(kopfExportiert) ? kopfExportiert : Math.max(csv.split(/\r?\n/).filter(Boolean).length - 1, 0),
+      weg: Number.isFinite(kopfWeg) ? kopfWeg : 0,
+    }
+  }
+  const data = await response.json().catch(() => ({}))
+  if (!response.ok) throw new Error(data.error || `HTTP ${response.status}`)
+  const konten = Array.isArray(data.users) ? data.users : []
+  createTemporaryDownload(new Blob([JSON.stringify(konten, null, 2)], { type: 'application/json' }), datei)
+  return { exportiert: konten.length, weg: Array.isArray(data.skipped) ? data.skipped.length : 0 }
+}
 
-  const roleSelect = document.getElementById('user-detail-role')
-  const roleBtn = document.getElementById('user-role-save-btn')
-  if (!roleSelect || !roleBtn) return
-
-  roleBtn.disabled = true
-  const roleSelectInitial = roleSelect.dataset.currentRole || roleSelect.value
-  const nextRole = roleSelect.value
+// Lesend, deshalb ohne Rückfrage. Die Auswahl bleibt; der Dateiname enthält keine Personendaten.
+async function sammelExport(format) {
+  if (format !== 'json' && format !== 'csv') return
+  const gewaehlt = auswahlNutzer()
+  if (!gewaehlt.length || gewaehlt.length > NUTZER_MAX_SAMMEL || nutzerBeschaeftigt) return
+  setNutzerBeschaeftigt(true)
   try {
-    const response = await fetch(`/admin/users/${encodeURIComponent(selectedUserId)}/role`, {
+    const { exportiert, weg } = await ladeKontenExport(gewaehlt.map((u) => u.id), format, 'signifikation-konten')
+    setNutzerStatus(`${kontenText(exportiert)} als ${format.toUpperCase()} exportiert.${weg ? ` ${weg === 1 ? '1 Konto gab es' : `${weg} Konten gab es`} nicht mehr.` : ''}`, 'ok')
+  } catch (err) {
+    setNutzerStatus(`Nicht ausgeführt: ${err.message}`, 'error')
+  } finally {
+    setNutzerBeschaeftigt(false)
+  }
+}
+
+async function sammelLoeschen() {
+  const gewaehlt = auswahlNutzer()
+  if (!gewaehlt.length || gewaehlt.length > NUTZER_MAX_SAMMEL || nutzerBeschaeftigt) return
+
+  const details = nutzerNamenListe(gewaehlt)
+  const gekauft = gewaehlt.filter((u) => u.gekauft).length
+  if (gekauft) details.push(gekauftSatz(gekauft, { loeschen: true }))
+  details.push('Zahlungsbelege bleiben ohne Namen und E-Mail erhalten.', 'Das lässt sich nicht rückgängig machen.')
+  if (!confirmAction(`${kontenText(gewaehlt.length)} löschen?`, details)) return
+
+  setNutzerStatus('')
+  setNutzerBeschaeftigt(true, 'Wird gelöscht …')
+  try {
+    const response = await postSammel({ action: 'delete', userIds: gewaehlt.map((u) => u.id) })
+    const data = await response.json().catch(() => ({}))
+    if (!response.ok) throw new Error(data.error || `HTTP ${response.status}`)
+
+    const geloescht = Array.isArray(data.deleted) ? data.deleted : []
+    const nichtMehr = (data.skippedDetails || []).filter((d) => d.reason === 'not_found').map((d) => d.id)
+    entferneNutzerAusListe([...geloescht, ...nichtMehr], { geloescht: true })
+    nutzerBeschaeftigt = false
+    zeichneNutzerNachAenderung()
+    setNutzerStatus(`${kontenText(geloescht.length)} gelöscht.${uebersprungenText(data)}`, geloescht.length ? 'ok' : 'warn', { fokus: true })
+  } catch (err) {
+    nutzerBeschaeftigt = false
+    aktualisiereNutzerAuswahl()
+    setNutzerStatus(`Nicht ausgeführt: ${err.message}`, 'error')
+    document.getElementById('users-bulk-delete-btn')?.focus()
+    // Die Liste kann veraltet sein (etwa nach einem Netzfehler mitten im Löschen): neu laden.
+    void loadUsersOverview()
+  }
+}
+
+// ── Konto ────────────────────────────────────────────────────────────────────
+
+function kontoFehlerHtml(text) {
+  return `<p class="wo-meldung" data-tone="err" role="alert">Das Konto konnte nicht geladen werden (${esc(text)}). <button type="button" class="adm-link" data-action="retry-user-detail">Erneut versuchen</button></p>`
+}
+
+function kontoNichtGefundenHtml() {
+  return '<div class="li-leer" role="status"><p class="li-leer-titel">Dieses Konto gibt es nicht (mehr)</p>'
+    + '<p class="li-leer-text">Vielleicht wurde es gerade gelöscht.</p>'
+    + '<a class="adm-link" href="#nutzer">Zur Liste</a>'
+    + '<p class="li-leer-ornament" aria-hidden="true">· · ·</p></div>'
+}
+
+async function ladeKonto(id) {
+  const host = document.getElementById('user-detail')
+  if (!host) return
+  kontoAbort?.abort()
+  const controller = new AbortController()
+  kontoAbort = controller
+  kontoAktuell = null
+  setKontoStatus('')
+
+  // Nach einem Fehler: Meldung samt Knopf stehen lassen (Fokus!), der Knopf zeigt „wird geladen“.
+  const knopf = host.querySelector('[data-action="retry-user-detail"]')
+  if (knopf) {
+    knopf.setAttribute('aria-disabled', 'true')
+    knopf.textContent = 'Wird geladen …'
+  } else {
+    host.innerHTML = '<p class="wo-meldung">Konto wird geladen …</p>'
+  }
+
+  const nochAktuell = () => currentRoute?.page === 'user' && currentRoute.nutzerId === id
+  try {
+    const response = await fetch(`/admin/users/${encodeURIComponent(id)}`, { signal: controller.signal })
+    const data = await response.json().catch(() => ({}))
+    if (!nochAktuell()) return
+    if (response.status === 404) {
+      const hatteFokus = host.contains(document.activeElement)
+      host.innerHTML = kontoNichtGefundenHtml()
+      // Nach „Erneut versuchen“ ist der Knopf weg: Fokus auf den Weg zurück
+      if (hatteFokus) host.querySelector('a[href="#nutzer"]')?.focus({ preventScroll: true })
+      return
+    }
+    if (!response.ok) throw new Error(data.error || `HTTP ${response.status}`)
+    const fokusInMeldung = host.contains(document.activeElement) && !!document.activeElement.closest('.wo-meldung')
+    kontoAktuell = data
+    renderKonto(data)
+    if (fokusInMeldung) document.getElementById('page-title')?.focus({ preventScroll: true })
+  } catch (err) {
+    if (err.name === 'AbortError' || !nochAktuell()) return
+    const hatteFokus = host.contains(document.activeElement)
+    host.innerHTML = kontoFehlerHtml(err.message)
+    // Scheitert „Erneut versuchen“ noch einmal, ist der alte Knopf weg: Der Fokus geht auf den neuen.
+    if (hatteFokus) host.querySelector('[data-action="retry-user-detail"]')?.focus({ preventScroll: true })
+  } finally {
+    if (kontoAbort === controller) kontoAbort = null
+  }
+}
+
+// Stand von Kauf und Premium: Überschrift und Satz darunter (reiner Text, beim Einfügen escapen)
+function premiumStand({ user, kauf, konto }) {
+  if (user.role === 'admin') return { titel: 'Admin', text: 'Hat alle Premium-Funktionen, ohne Kauf.' }
+  if (kauf.gesamtausgabe) {
+    const quelle = QUELLE_KAUF_TEXT[kauf.quelle]
+    const teile = [quelle || (kauf.quelle && kauf.quelle !== 'none' ? `Quelle: ${kauf.quelle}` : 'Quelle unbekannt')]
+    if (kauf.seit) teile.push(`freigeschaltet am ${datumDe(kauf.seit)}`)
+    // payments und user_entitlements kennen kein Ablaufdatum: Die Gesamtausgabe ist ein Einmalkauf.
+    teile.push('unbefristet')
+    return { titel: 'Gesamtausgabe gekauft', text: teile.join(' · ') }
+  }
+  if (user.role === 'premium') {
+    return { titel: 'Premium von Hand vergeben', text: `Kein Kauf erfasst.${konto.rolleGeaendertAm ? ` Rolle zuletzt geändert am ${datumDe(konto.rolleGeaendertAm)}.` : ''}` }
+  }
+  return { titel: 'Kein Premium', text: 'Kein Kauf erfasst.' }
+}
+
+function kaufHinweisHtml({ user, kauf }) {
+  if (kauf.gesamtausgabe && user.role === 'user') {
+    return '<p class="li-meldung" data-tone="warn">Gekauft, aber Rolle Basis: Klassenraum und unbegrenzte eigene Wörter sind gesperrt. Rolle auf Premium setzen, um das zu beheben.</p>'
+  }
+  if (!kauf.gesamtausgabe && kauf.zahlungen.length) {
+    return '<p class="li-meldung" data-tone="warn">Zahlung erfasst, aber die Gesamtausgabe ist nicht freigeschaltet.</p>'
+  }
+  if (kauf.gesamtausgabe && !kauf.zahlungen.length && user.role !== 'admin') {
+    return '<p class="nu-stand-text">Kein Zahlungsbeleg zu dieser Freischaltung.</p>'
+  }
+  return ''
+}
+
+function zahlungHtml(z) {
+  const quelle = QUELLE_ZAHLUNG_TEXT[z.quelle] || QUELLE_ZAHLUNG_TEXT.unbekannt
+  return '<li class="nu-zahlung">'
+    + `<span class="nu-zahlung-datum">${esc(datumDe(z.zeitpunkt))}</span>`
+    + `<span class="nu-zahlung-betrag">${esc(betragDe(z.betrag, z.waehrung))}</span>`
+    + `<span class="nu-zahlung-quelle">${esc(quelle)} · ${z.status === 'paid' ? 'bezahlt' : esc(z.status)}</span>`
+    + `<span class="nu-beleg"><span class="adm-visually-hidden">Beleg </span>${esc(z.beleg)}</span>`
+    + '</li>'
+}
+
+function rollenfeldHtml(user) {
+  if (user.role === 'admin') {
+    return '<div class="nu-rollenfeld"><div class="li-feld"><span class="li-label">Rolle</span><p class="nu-rolle-fest">Admin</p></div></div>'
+      + '<p class="nu-stand-text">Admin-Konten lassen sich hier weder ändern noch löschen.</p>'
+  }
+  return '<div class="nu-rollenfeld">'
+    + '<div class="li-feld"><label class="li-label" for="user-detail-role">Rolle</label>'
+    + `<select id="user-detail-role" class="li-auswahl" data-aktuell="${esc(user.role)}">`
+    + `<option value="user"${user.role === 'user' ? ' selected' : ''}>${esc(roleLabel('user'))}</option>`
+    + `<option value="premium"${user.role === 'premium' ? ' selected' : ''}>${esc(roleLabel('premium'))}</option></select></div>`
+    + '<button type="button" class="adm-cta" id="user-role-save-btn" data-action="save-selected-user-role" aria-disabled="true"><span id="user-role-save-text">Rolle speichern</span> <span aria-hidden="true">→</span></button>'
+    + '<span class="adm-visually-hidden" id="user-role-hinweis">Erst eine andere Rolle wählen.</span>'
+    + '</div>'
+}
+
+// Löschfrist inaktiver Konten wie im Job: frühestens 30 Tage nach der Warnung und 24 Monate nach der letzten Aktivität
+function loeschFristHtml(user, konto) {
+  const warnung = Date.parse(konto.loeschWarnungAm)
+  if (!Number.isFinite(warnung)) return ''
+  const aktiv = Date.parse(konto.zuletztAktiv || user.createdAt)
+  const frist = Math.max(warnung + WARNUNG_VORLAUF_TAGE * TAG_MS, Number.isFinite(aktiv) ? aktiv + INAKTIV_TAGE * TAG_MS : 0)
+  return `<div><dt>Löschfrist</dt><dd>Löschwarnung am ${esc(datumDe(konto.loeschWarnungAm))} verschickt – ohne Anmeldung wird das Konto ab ${esc(datumDe(new Date(frist).toISOString()))} gelöscht.</dd></div>`
+}
+
+function spielstatistikHtml(stats) {
+  const nachModus = new Map((stats.byGame || []).map((g) => [g.spiel, g]))
+  const bekannt = new Set(MODI.map((m) => m.key))
+  const modi = [...MODI, ...[...nachModus.keys()].filter((k) => !bekannt.has(k)).map((k) => ({ key: k, label: k }))]
+  const gespielt = Number(stats.totals?.plays || 0)
+  return '<section class="tag-abschnitt" aria-labelledby="nu-spiele-titel">'
+    + '<h2 class="tag-abschnitt-titel" id="nu-spiele-titel">Spielstatistik</h2>'
+    + (gespielt
+      ? `<p class="nu-summe">${spieleText(gespielt)} · ${DURCHSCHNITT_HTML}${punkteDe(stats.totals.scoreSum, stats.totals.maxSum)} von 10</p>`
+        + '<dl class="tag-dl">' + modi.map((m) => {
+          const g = nachModus.get(m.key)
+          return `<div><dt>${esc(m.label)}</dt><dd>${g ? `${spieleText(Number(g.plays || 0))} · ${DURCHSCHNITT_HTML}${punkteDe(g.scoreSum, g.maxSum)}` : '<span class="nu-leer">noch nicht gespielt</span>'}</dd></div>`
+        }).join('') + '</dl>'
+      : '<p class="nu-summe nu-leer">Noch nicht gespielt.</p>')
+    + '</section>'
+}
+
+function aktivitaetHtml(stats) {
+  const tage = new Map()
+  for (const r of stats.recent || []) {
+    if (!tage.has(r.datum)) tage.set(r.datum, [])
+    tage.get(r.datum).push(r)
+  }
+  return '<section class="tag-abschnitt" aria-labelledby="nu-verlauf-titel">'
+    + '<h2 class="tag-abschnitt-titel" id="nu-verlauf-titel">Letzte Aktivität</h2>'
+    + (tage.size
+      ? '<p class="tag-abschnitt-text">Die letzten 20 Spiele, neueste zuerst. Punkte von 10.</p><ol class="nu-verlauf">' + [...tage].map(([iso, rows]) => {
+        const ok = isValidIsoDay(iso)
+        const t = ok ? datumTeile(iso) : null
+        return '<li class="nu-verlauf-tag">'
+          + '<span class="nu-verlauf-datum">'
+          + (t ? `<span class="nu-wt" aria-hidden="true">${DAYS_DE[t.wt]}</span><span class="adm-visually-hidden">${WOCHENTAGE_LANG[t.wt]}, </span>${esc(formatIsoDate(iso))}` : esc(iso))
+          + '</span><ul class="nu-verlauf-spiele">' + rows.map((r) => {
+            const m = MODI.find((x) => x.key === r.spiel)
+            return `<li><span class="nu-modus">${esc(m ? m.label : r.spiel)}</span><span class="adm-visually-hidden">: </span>${punkteDe(r.scoreSum, r.maxSum)}${Number(r.plays) > 1 ? ` <span class="nu-zusatz">(${Number(r.plays)}×)</span>` : ''}</li>`
+          }).join('') + '</ul></li>'
+      }).join('') + '</ol>'
+      : '<p class="tag-abschnitt-text">Noch nicht gespielt.</p>')
+    + '</section>'
+}
+
+function renderKonto(data) {
+  const host = document.getElementById('user-detail')
+  if (!host) return
+  const user = data.user || {}
+  const konto = data.konto || {}
+  const kauf = { gesamtausgabe: false, seit: null, quelle: null, zahlungen: [], ...data.kauf }
+  const stats = { totals: {}, byGame: [], recent: [], ...data.stats }
+  const daten = { user, konto, kauf }
+  const name = nutzerName(user)
+  const stand = premiumStand(daten)
+  const anmeldung = (konto.anmeldung || []).map((p) => ANMELDUNG_TEXT[p] || ANMELDUNG_TEXT.andere).join(' · ') || '–'
+
+  const kopf = '<header class="nu-kopf">'
+    + `<p class="nu-kopf-name">${esc(name)}</p>`
+    + `<p class="nu-kopf-mail">${esc(user.email)}</p>`
+    + '<p class="nu-kopf-zeile">'
+    + (user.role === 'user'
+      ? `<span><span class="adm-visually-hidden">Rolle </span>${esc(roleLabel('user'))}</span>`
+      : `<span class="nu-rolle" data-rolle="${esc(user.role)}"><span class="adm-visually-hidden">Rolle </span>${esc(roleLabel(user.role))}</span>`)
+    + `<span>angelegt am ${esc(datumDe(user.createdAt))}</span></p></header>`
+
+  const angaben = '<section class="tag-abschnitt" aria-labelledby="nu-angaben-titel">'
+    + '<h2 class="tag-abschnitt-titel" id="nu-angaben-titel">Angaben</h2>'
+    + '<dl class="tag-dl">'
+    + `<div><dt>E-Mail</dt><dd>${esc(user.email)}<span class="adm-visually-hidden">, </span><span class="nu-zusatz">${user.emailVerified ? 'bestätigt' : 'nicht bestätigt'}</span></dd></div>`
+    + `<div><dt>Name</dt><dd>${esc(name)}</dd></div>`
+    + `<div><dt>Angelegt</dt><dd>${esc(datumLangDe(user.createdAt))}</dd></div>`
+    // „Zuletzt aktiv“, nicht „Letzte Anmeldung“: Eine Anmeldung wird nirgends gespeichert (user_activity.last_active_at).
+    + `<div><dt>Zuletzt aktiv</dt><dd>${esc(datumLangDe(konto.zuletztAktiv))}</dd></div>`
+    + `<div><dt>Anmeldung</dt><dd>${esc(anmeldung)}</dd></div>`
+    + loeschFristHtml(user, konto)
+    + `<div><dt>Interne ID</dt><dd class="nu-id">${esc(user.id)}</dd></div>`
+    + '</dl>'
+    + rollenfeldHtml(user)
+    + '<p class="li-meldung" id="user-role-meldung" role="status" aria-live="polite"></p>'
+    + '</section>'
+
+  const kaufTeil = '<section class="tag-abschnitt" aria-labelledby="nu-kauf-titel">'
+    + '<h2 class="tag-abschnitt-titel" id="nu-kauf-titel">Kauf und Premium</h2>'
+    + `<p class="nu-stand">${esc(stand.titel)}</p><p class="nu-stand-text">${esc(stand.text)}</p>`
+    + kaufHinweisHtml(daten)
+    + (kauf.zahlungen.length
+      ? `<h3 class="nu-unterlabel">Zahlungen</h3><ul class="nu-zahlungen">${kauf.zahlungen.map(zahlungHtml).join('')}</ul>`
+      : '')
+    // Der Hinweis erklärt, was die Zahlungsliste nicht zeigt: ohne Zahlungen gibt es nichts zu erklären.
+    + (kauf.zahlungen.length ? '<p class="tag-abschnitt-text">Erstattungen und Widerrufe (Mollie, App Store) werden hier nicht erfasst.</p>' : '')
+    + '</section>'
+
+  const exportTeil = '<section class="tag-abschnitt" aria-labelledby="nu-export-titel">'
+    + '<h2 class="tag-abschnitt-titel" id="nu-export-titel">Daten exportieren</h2>'
+    + '<p class="tag-abschnitt-text">Lädt die gespeicherten Angaben dieses Kontos als Datei herunter, etwa für eine Auskunft nach DSGVO.</p>'
+    + '<p class="nu-export"><button type="button" class="adm-link" data-action="export-user" data-format="json">als JSON herunterladen</button>'
+    + '<button type="button" class="adm-link" data-action="export-user" data-format="csv">als CSV herunterladen</button></p>'
+    // Meldung direkt unter den Knöpfen (nicht oben auf der Seite)
+    + '<p class="li-meldung" id="user-export-meldung" role="status" aria-live="polite"></p>'
+    + '</section>'
+
+  // Admin-Konten lassen sich nicht löschen: kein Abschnitt, kein Knopf.
+  const loeschTeil = user.role === 'admin' ? '' : '<section class="tag-abschnitt tag-loeschen" aria-labelledby="nu-loeschen-titel">'
+    + '<h2 class="tag-abschnitt-titel" id="nu-loeschen-titel">Konto löschen</h2>'
+    + '<p class="tag-loeschen-text">Löscht das Konto mit Rolle, Spielstatistik, eigenen Wörtern und Klassenraum-Sitzungen. Zahlungsbelege bleiben ohne Namen und E-Mail erhalten (Aufbewahrungspflicht). Der Vorgang steht im Änderungsprotokoll.</p>'
+    + '<button type="button" class="li-loeschen nu-loeschen-knopf" id="user-delete-btn" data-action="delete-selected-user"><span id="user-delete-text">Konto löschen …</span></button>'
+    + '</section>'
+
+  // Die Live-Regionen für „Rolle gespeichert“ und Export bleiben dieselben Knoten (sonst keine Ansage)
+  behalteMeldungen(host, ['user-role-meldung', 'user-export-meldung'], () => {
+    host.innerHTML = kopf + angaben + kaufTeil + spielstatistikHtml(stats) + aktivitaetHtml(stats) + exportTeil + loeschTeil
+  })
+  aktualisiereRollenKnopf()
+
+  // Die Überschrift nennt das Konto unsichtbar mit („Konto: Mara Beispiel“). Der Seitentitel (document.title)
+  // bleibt ohne Namen: Er landet im Verlauf.
+  const h1 = document.getElementById('page-title')
+  if (h1 && currentRoute?.page === 'user') {
+    h1.textContent = 'Konto'
+    const wer = document.createElement('span')
+    wer.className = 'adm-visually-hidden'
+    wer.textContent = `: ${name}`
+    h1.append(wer)
+  }
+}
+
+// „Rolle speichern“ ist gesperrt, solange die Auswahl der gespeicherten Rolle entspricht oder etwas läuft.
+// Im ersten Fall nennt ein unsichtbarer Hinweis den Grund.
+function aktualisiereRollenKnopf() {
+  const select = document.getElementById('user-detail-role')
+  const knopf = document.getElementById('user-role-save-btn')
+  if (!select || !knopf) return
+  const gleich = select.value === select.dataset.aktuell
+  if (gleich || kontoBeschaeftigt) knopf.setAttribute('aria-disabled', 'true')
+  else knopf.removeAttribute('aria-disabled')
+  if (gleich && !kontoBeschaeftigt) knopf.setAttribute('aria-describedby', 'user-role-hinweis')
+  else knopf.removeAttribute('aria-describedby')
+}
+
+// Gehört die Seite noch zu diesem Konto? (Man kann während einer Anfrage zu einem anderen Konto wechseln.)
+const istKontoSeite = (id) => currentRoute?.page === 'user' && currentRoute.nutzerId === id
+
+async function saveSelectedUserRole() {
+  const select = document.getElementById('user-detail-role')
+  const knopf = document.getElementById('user-role-save-btn')
+  if (!select || !knopf || !kontoAktuell || kontoBeschaeftigt) return
+  // Das Konto gleich festhalten: Wechselt man während der Anfrage zu einem anderen, gehört das Ergebnis zu diesem.
+  const aktuell = kontoAktuell
+  const user = aktuell.user
+  const ziel = select.value
+  if (user.role === 'admin' || (ziel !== 'user' && ziel !== 'premium') || ziel === user.role) return
+
+  if (ziel === 'user' && aktuell.kauf?.gesamtausgabe) {
+    if (!confirmAction(`Rolle auf ${roleLabel('user')} setzen?`, ['Das Konto hat die Gesamtausgabe gekauft und behält sie, verliert aber Klassenraum und unbegrenzte eigene Wörter.'])) return
+  }
+
+  kontoBeschaeftigt = true
+  knopf.classList.add('is-busy')
+  knopf.setAttribute('aria-disabled', 'true')
+  document.getElementById('user-role-save-text').textContent = 'Wird gespeichert …'
+  setMeldung('user-role-meldung', '')
+  try {
+    const response = await fetch(`/admin/users/${encodeURIComponent(user.id)}/role`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ role: nextRole }),
+      body: JSON.stringify({ role: ziel }),
     })
     const data = await response.json().catch(() => ({}))
     if (!response.ok) throw new Error(data.error || `HTTP ${response.status}`)
 
-    await loadUsersOverview()
-    await selectUser(selectedUserId, { keepScroll: true })
-  } catch (err) {
-    roleSelect.value = roleSelectInitial
-    const empty = document.getElementById('user-detail-empty')
-    if (empty) {
-      empty.textContent = `Rollenänderung fehlgeschlagen: ${err.message}`
-      empty.style.display = 'block'
+    user.role = ziel
+    if (aktuell.konto) aktuell.konto.rolleGeaendertAm = new Date().toISOString()
+    // Die Liste im Speicher nachführen und neu zeichnen (sie steht hinter dieser Seite und soll beim Zurückkehren stimmen)
+    const { entfernt } = setzeNutzerRolleLokal([user.id], ziel)
+    // Fällt das Konto aus dem Rollenfilter, ist der Namen-Link weg: Der Fokus geht beim Zurückkehren zur Zahlzeile.
+    if (entfernt) naechsterFokus = '#users-summary'
+    zeichneNutzerNachAenderung()
+    kontoBeschaeftigt = false
+    if (kontoAktuell === aktuell && istKontoSeite(user.id)) {
+      // Neu zeichnen: Rollenmarke, Stand von Kauf und Premium und der Hinweis „gekauft, aber Basis“ ändern sich mit.
+      renderKonto(aktuell)
+      setMeldung('user-role-meldung', `Rolle gespeichert: ${roleLabel(ziel)}.`, 'ok')
+      document.getElementById('user-detail-role')?.focus()
     }
-  } finally {
-    roleBtn.disabled = !selectedUserId
-    if (!selectedUserId) roleSelect.value = roleSelectInitial
+  } catch (err) {
+    kontoBeschaeftigt = false
+    if (kontoAktuell === aktuell && istKontoSeite(user.id)) {
+      select.value = select.dataset.aktuell
+      knopf.classList.remove('is-busy')
+      document.getElementById('user-role-save-text').textContent = 'Rolle speichern'
+      aktualisiereRollenKnopf()
+      setMeldung('user-role-meldung', `Nicht gespeichert: ${err.message}`, 'error')
+      select.focus()
+    }
+  }
+}
+
+async function exportiereKonto(format) {
+  if ((format !== 'json' && format !== 'csv') || !kontoAktuell || kontoBeschaeftigt) return
+  const id = kontoAktuell.user.id
+  // Die Meldung steht im Abschnitt „Daten exportieren“, direkt unter den Knöpfen
+  const melde = (text, ton) => { if (istKontoSeite(id)) setMeldung('user-export-meldung', text, ton) }
+  melde('')
+  try {
+    const { exportiert } = await ladeKontenExport([id], format, 'signifikation-konto')
+    if (exportiert) melde(`Daten als ${format.toUpperCase()} heruntergeladen.`, 'ok')
+    else melde('Nicht heruntergeladen: Das Konto gibt es nicht mehr.', 'error')
+  } catch (err) {
+    melde(`Nicht heruntergeladen: ${err.message}`, 'error')
   }
 }
 
 async function deleteSelectedUser() {
-  if (!selectedUserId) return
+  const knopf = document.getElementById('user-delete-btn')
+  if (!knopf || !kontoAktuell || kontoBeschaeftigt) return
+  const aktuell = kontoAktuell
+  const { user, kauf } = aktuell
+  if (user.role === 'admin') return
 
-  const ok = window.confirm('Nutzer wirklich löschen? Diese Aktion kann nicht rückgängig gemacht werden.')
-  if (!ok) return
+  const details = [fuerDialog(user.email, 80)]
+  if (kauf?.gesamtausgabe) {
+    const z = kauf.zahlungen?.[0]
+    const wo = { mollie: ' über die Website', apple: ' im App Store' }[z?.quelle] || ''
+    const quelle = z ? ` (${betragDe(z.betrag, z.waehrung)}${wo})` : ''
+    details.push(`Hat die Gesamtausgabe gekauft${quelle}. Ein Kauf im App Store lässt sich in der App einem neuen Konto wieder zuordnen, ein Website-Kauf nicht.`)
+  }
+  details.push('Zahlungsbelege bleiben ohne Namen und E-Mail erhalten.', 'Das lässt sich nicht rückgängig machen.')
+  if (!confirmAction(`Konto von ${fuerDialog(nutzerName(user))} löschen?`, details)) return
 
-  const deleteBtn = document.getElementById('user-delete-btn')
-  if (deleteBtn) deleteBtn.disabled = true
-
+  kontoBeschaeftigt = true
+  knopf.setAttribute('aria-disabled', 'true')    // nicht disabled: Der Fokus bleibt
+  document.getElementById('user-delete-text').textContent = 'Wird gelöscht …'
+  setKontoStatus('')
   try {
-    const response = await fetch(`/admin/users/${encodeURIComponent(selectedUserId)}`, {
-      method: 'DELETE',
-      headers: { 'Content-Type': 'application/json' },
-    })
+    const response = await fetch(`/admin/users/${encodeURIComponent(user.id)}`, { method: 'DELETE' })
     const data = await response.json().catch(() => ({}))
     if (!response.ok) throw new Error(data.error || `HTTP ${response.status}`)
 
-    clearSelectedUser('Nutzer gelöscht. Wähle einen weiteren Nutzer aus der Tabelle.')
-    await loadUsersOverview()
-  } catch (err) {
-    const empty = document.getElementById('user-detail-empty')
-    if (empty) {
-      empty.textContent = `Löschen fehlgeschlagen: ${err.message}`
-      empty.style.display = 'block'
+    if (nutzerListe.some((u) => u.id === user.id)) {
+      entferneNutzerAusListe([user.id], { geloescht: true })
+      zeichneNutzerNachAenderung()
+    } else if (usersLoaded) {
+      usersLoaded = false      // Konto war nicht geladen: Zählung und Seiten stimmen nicht mehr, der nächste Besuch lädt neu
     }
-  } finally {
-    if (deleteBtn) deleteBtn.disabled = !selectedUserId
+    if (kontoAktuell === aktuell) kontoAktuell = null
+    kontoBeschaeftigt = false
+    setNutzerStatus('Konto gelöscht.', 'ok')
+    // Nur zurück zur Liste, wenn man noch auf diesem Konto steht (sonst wäre man schon woanders)
+    if (istKontoSeite(user.id)) {
+      naechsterFokus = '#users-status'
+      goBackFromSubpage()
+    }
+  } catch (err) {
+    kontoBeschaeftigt = false
+    if (istKontoSeite(user.id)) {
+      knopf.removeAttribute('aria-disabled')
+      document.getElementById('user-delete-text').textContent = 'Konto löschen …'
+      setKontoStatus(`Nicht gelöscht: ${err.message}`, 'error', { fokus: true })
+    } else {
+      setNutzerStatus(`Konto nicht gelöscht: ${err.message}`, 'error')
+    }
   }
 }
 
@@ -5253,12 +5905,16 @@ function handleDocumentClick(event) {
   if (action === 'select-monat-tag') return void selectMonatTag(target.dataset.value || '', { perZeiger: event.detail > 0 })
   if (action === 'zeige-woche-von') return void zeigeWocheVon(target.dataset.value || '')
   if (action === 'load-users-overview') return void loadUsersOverview()
-  if (action === 'select-all-users') return void toggleAllUsersSelection(true)
-  if (action === 'clear-users-selection') return void clearUsersBulkSelection()
-  if (action === 'run-users-bulk-action') return void runUsersBulkAction()
+  if (action === 'clear-users-selection') return void leereNutzerAuswahl()
+  if (action === 'toggle-users-aktionen') return void toggleNutzerAktionen()
+  if (action === 'run-users-bulk-role') return void sammelRolle()
+  if (action === 'run-users-bulk-export') return void sammelExport(target.dataset.format)
+  if (action === 'run-users-bulk-delete') return void sammelLoeschen()
   if (action === 'reset-users-filters') return void resetUsersFilters()
   if (action === 'load-more-users') return void loadMoreUsers()
+  if (action === 'retry-user-detail') return void ladeKonto(currentRoute?.nutzerId || '')
   if (action === 'save-selected-user-role') return void saveSelectedUserRole()
+  if (action === 'export-user') return void exportiereKonto(target.dataset.format)
   if (action === 'delete-selected-user') return void deleteSelectedUser()
   if (action === 'trigger-backup-restore') return void triggerBackupRestore()
   if (action === 'load-performance') return void loadPerformance()
@@ -5266,7 +5922,6 @@ function handleDocumentClick(event) {
   if (action === 'load-course-pdf-status') return void loadCoursePdfStatus()
   if (action === 'load-audit-log') return void loadAuditLog()
   if (action === 'reset-audit-filters') return void resetAuditFilters()
-  if (action === 'select-user') return void selectUser(target.dataset.userId || '')
   if (action === 'show-audit-entry-details') return void showAuditEntryDetailsByIndex(Number(target.dataset.index || -1))
   if (action === 'load-free-days') return void loadFreeDays()
   if (action === 'add-free-day') return void addFreeDay()
@@ -5785,10 +6440,10 @@ function handleDocumentChange(event) {
   if (target.id === 'entry-page-size') return void aendereListe({ pro: Number(target.value) || LISTE_STANDARD.pro, seite: 1 })
   if (target.id === 'entry-select-page') return void selectEntriesOnPage(target.checked)
   if (target.id === 'stats-days') return void loadStats()
-  if (target.id === 'users-bulk-action') return void updateUsersBulkState()
   if (target.id === 'users-role-filter') return void loadUsersOverview()
-  if (target.id === 'users-select-all') return void toggleAllUsersSelection(target.checked)
-  if (target.matches('.user-select-checkbox')) return void updateUsersBulkState()
+  if (target.id === 'users-select-all') return void waehleAlleNutzer(target.checked)
+  if (target.matches('.user-select-checkbox')) return void waehleNutzer(target.dataset.userId || '', target.checked)
+  if (target.id === 'user-detail-role') return void aktualisiereRollenKnopf()
   if (target.dataset.action === 'toggle-entry-selection') return void toggleEntrySelection(target.dataset.datum || '', target.checked)
   if (target.id === 'audit-limit' || target.id === 'audit-action' || target.id === 'audit-resource' || target.id === 'audit-status' || target.id === 'audit-from' || target.id === 'audit-to') return void loadAuditLog()
   if (target.id === 'classroom-days') return void loadClassroomStats()

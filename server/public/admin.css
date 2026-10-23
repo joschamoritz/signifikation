@@ -265,25 +265,6 @@ body {
   color: var(--muted);
 }
 
-/* Trefferfläche der Auswahl-Checkboxen auf 44x44 (Apple HIG / WCAG 2.5.8),
-   ohne das Häkchen selbst optisch aufzublähen. */
-.cb-hit {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 44px;
-  min-height: 44px;
-  margin: 0;
-  cursor: pointer;
-}
-
-.users-select-col input[type="checkbox"] {
-  width: 18px;
-  height: 18px;
-  accent-color: var(--primary);
-  cursor: pointer;
-}
-
 .audit-controls {
   display: flex;
   flex-wrap: wrap;
@@ -367,58 +348,6 @@ body {
   color: #166534;
 }
 
-.users-summary {
-  font-size: 0.82rem;
-  color: var(--muted);
-}
-
-.users-controls {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 180px auto;
-  gap: 8px;
-}
-
-.users-bulk-controls {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px;
-}
-
-.users-bulk-controls > span {
-  font-size: 0.78rem;
-  color: var(--muted);
-}
-
-.users-bulk-role-wrap {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.users-bulk-export-wrap {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.users-bulk-role-wrap label {
-  margin: 0;
-  font-size: 0.72rem;
-}
-
-.users-bulk-export-wrap label {
-  margin: 0;
-  font-size: 0.72rem;
-}
-
-.users-table th.users-select-col,
-.users-table td.users-select-col {
-  width: 44px;
-  padding: 0;
-  text-align: center;
-}
-
 .users-table-wrap {
   overflow: auto;
   border: 1px solid var(--border-lt);
@@ -448,100 +377,6 @@ body {
 }
 
 .users-empty {
-  color: var(--muted);
-}
-
-.user-detail-actions {
-  display: inline-flex;
-  gap: 8px;
-  flex-wrap: wrap;
-  align-items: center;
-}
-
-.user-detail-content {
-  display: grid;
-  gap: 12px;
-}
-
-
-.user-detail-head {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 10px;
-}
-
-.user-detail-head strong {
-  font-family: var(--font-serif);
-  font-size: 1.2rem;
-  color: var(--primary);
-}
-
-.user-detail-head span {
-  color: var(--muted);
-  font-size: 0.82rem;
-}
-
-.user-meta-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 8px;
-}
-
-.user-meta-item {
-  border: 1px solid var(--border-lt);
-  border-radius: var(--radius);
-  background: var(--surface2);
-  padding: 8px 10px;
-}
-
-.user-meta-item span {
-  display: block;
-  font-size: 0.7rem;
-  color: var(--muted);
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-.user-meta-item strong {
-  display: block;
-  font-size: 0.9rem;
-}
-
-.user-detail-section {
-  display: grid;
-  gap: 6px;
-}
-
-.user-detail-section h3 {
-  font-size: 0.72rem;
-  color: var(--muted);
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-}
-
-.user-game-stats {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-
-.user-stat-chip {
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  background: var(--surface2);
-  padding: 6px 10px;
-  display: inline-flex;
-  flex-direction: column;
-  gap: 1px;
-}
-
-.user-stat-chip strong {
-  font-size: 0.78rem;
-}
-
-.user-stat-chip span {
-  font-size: 0.74rem;
   color: var(--muted);
 }
 
@@ -1092,16 +927,6 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
   .dashboard-main-grid {
     grid-template-columns: 1fr;
   }
-
-  /* Mit der Seitenleiste (216 px) bleiben ab 761 px nur ~465–785 px Inhalts-
-     breite. Das Suchfeld bekommt dann eine eigene Zeile statt 0 px Rest. */
-  .users-controls {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .users-controls > input {
-    grid-column: 1 / -1;
-  }
 }
 
 @media (max-width: 860px) {
@@ -1109,7 +934,6 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
     max-width: none;
   }
 
-  .users-bulk-controls,
   .audit-controls {
     gap: 6px;
   }
@@ -1132,11 +956,6 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
     grid-template-columns: 1fr;
   }
 
-  .users-controls {
-    grid-template-columns: 1fr;
-  }
-
-  .users-bulk-controls,
   .audit-controls,
   .system-actions,
   .viz-search {
@@ -1144,14 +963,6 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
     align-items: stretch;
   }
 
-  .users-bulk-role-wrap,
-  .users-bulk-export-wrap {
-    width: 100%;
-    justify-content: space-between;
-  }
-
-  .users-bulk-controls button,
-  .users-bulk-controls select,
   .audit-controls button,
   .audit-controls select,
   .audit-controls input {
@@ -1166,10 +977,6 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
 
   .stats-summary-cards,
   .performance-cards {
-    grid-template-columns: 1fr;
-  }
-
-  .user-meta-grid {
     grid-template-columns: 1fr;
   }
 }
@@ -1358,26 +1165,6 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
   max-width: 100%;
 }
 
-/* ── Nutzerliste: Nachladen ──────────────────────────────────── */
-.users-paging {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
-  margin-top: 10px;
-}
-
-@media (max-width: 560px) {
-  .users-paging {
-    align-items: stretch;
-    flex-direction: column;
-  }
-
-  .users-paging #users-load-more-btn {
-    width: 100%;
-  }
-}
-
 /* ── Datentabellen als Kartenliste (schmale Screens) ──────────
    Einträge, Nutzer und Audit-Log haben 5–6 Spalten; als Tabelle
    bleibt davon auf 375px nur horizontales Wischen. Ab hier wird
@@ -1439,18 +1226,6 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
     grid-template-columns: minmax(0, 1fr);
     gap: 2px;
     padding: 5px 0;
-  }
-
-  /* Auswahl-Spalte: im Tabellenmodus 44px breit und zentriert,
-     als Karte gelten die normalen Zellenregeln. */
-  .cards-on-mobile td.users-select-col {
-    width: auto;
-    padding: 3px 0;
-    text-align: left;
-  }
-
-  .cards-on-mobile td.users-select-col .cb-hit {
-    justify-content: flex-start;
   }
 
   /* Leer-/Lade-/Fehlermeldungen laufen über die volle Breite. */
@@ -4081,7 +3856,7 @@ html:has(#page-entry.is-active) {
 }
 
 /* hidden muss gegen display-Regeln wie .adm-link { display: inline-flex } gewinnen */
-#page-liste [hidden],
+:is(#page-liste, #page-users, #page-user) [hidden],
 #page-calendar [hidden] { display: none !important; }
 
 /* ── Meldung (Löschen): Strich + Fläche, Ton über data-tone ── */
@@ -4131,7 +3906,7 @@ html:has(#page-entry.is-active) {
 .li-feld--zeit  { grid-area: zeit; }
 .li-feld--stand { grid-area: stand; }
 
-#page-liste .li-label {
+:is(#page-liste, #page-users, #page-user) .li-label {
   display: block;
   margin: 0 0 2px;
   color: var(--muted);
@@ -4141,7 +3916,7 @@ html:has(#page-entry.is-active) {
 }
 
 /* Suchfeld: dezent umrandet (einzige umrandete Eingabe), Linie ≥ 3 : 1 */
-#page-liste .li-suche {
+:is(#page-liste, #page-users, #page-user) .li-suche {
   width: 100%;
   min-height: var(--tap);
   margin: 0;
@@ -4154,9 +3929,9 @@ html:has(#page-entry.is-active) {
   font: 400 max(16px, 1rem)/1.3 var(--font-serif);
 }
 
-#page-liste .li-suche::placeholder { color: var(--muted); font-style: italic; opacity: 1; }
+:is(#page-liste, #page-users, #page-user) .li-suche::placeholder { color: var(--muted); font-style: italic; opacity: 1; }
 
-#page-liste .li-suche::-webkit-search-cancel-button {
+:is(#page-liste, #page-users, #page-user) .li-suche::-webkit-search-cancel-button {
   -webkit-appearance: none;
   appearance: none;
   width: 1.1rem;
@@ -4168,17 +3943,17 @@ html:has(#page-entry.is-active) {
   cursor: pointer;
 }
 
-#page-liste .li-suche::-webkit-search-cancel-button:hover { background: var(--text); }
-#page-liste .li-suche:hover:not(:focus) { border-color: var(--text); }
+:is(#page-liste, #page-users, #page-user) .li-suche::-webkit-search-cancel-button:hover { background: var(--text); }
+:is(#page-liste, #page-users, #page-user) .li-suche:hover:not(:focus) { border-color: var(--text); }
 
-#page-liste .li-suche:focus {
+:is(#page-liste, #page-users, #page-user) .li-suche:focus {
   border-color: var(--primary);
   outline: 1px solid var(--primary);
   outline-offset: 0;
 }
 
 /* Auswahlfelder: unterstrichen wie im Tagesformular */
-#page-liste .li-auswahl {
+:is(#page-liste, #page-users, #page-user) .li-auswahl {
   width: 100%;
   min-height: var(--tap);
   margin: 0;
@@ -4193,13 +3968,13 @@ html:has(#page-entry.is-active) {
   cursor: pointer;
 }
 
-#page-liste .li-auswahl:focus {
+:is(#page-liste, #page-users, #page-user) .li-auswahl:focus {
   outline: none;
   border-bottom-color: var(--primary);
   box-shadow: 0 1px 0 0 var(--primary);
 }
 
-#page-liste .li-auswahl--klein { width: auto; min-width: 4.5rem; }
+:is(#page-liste, #page-users, #page-user) .li-auswahl--klein { width: auto; min-width: 4.5rem; }
 
 /* ── Ergebniszeile: Zahl links, „Filter zurücksetzen“ rechts ── */
 .li-ergebnis {
@@ -4238,7 +4013,7 @@ html:has(#page-entry.is-active) {
   background: var(--bg);
 }
 
-#page-liste .li-alle {
+:is(#page-liste, #page-users, #page-user) .li-alle {
   display: inline-flex;
   align-items: center;
   gap: 2px;
@@ -4342,7 +4117,7 @@ html:has(#page-entry.is-active) {
   border-bottom: 1px solid var(--border-lt);
 }
 
-#page-liste .li-wahl {
+:is(#page-liste, #page-users, #page-user) .li-wahl {
   grid-area: wahl;
   display: flex;
   align-items: center;
@@ -4545,7 +4320,7 @@ html:has(#page-entry.is-active) {
   .li-stand,
   .li-aktionen { align-self: start; }
 
-  #page-liste .li-wahl { margin-top: -2px; }
+  :is(#page-liste, #page-users, #page-user) .li-wahl { margin-top: -2px; }
   .li-datum { padding-top: 9px; }
   .li-haupt { padding-top: 9px; }
   .li-stand { padding-top: 11px; min-width: 5.5rem; }
@@ -4576,18 +4351,547 @@ html:has(#page-entry.is-active) {
 
 @media (prefers-reduced-motion: no-preference) {
   .li-tag { transition: background-color 0.15s; }
-  #page-liste .li-suche,
-  #page-liste .li-auswahl { transition: border-color 0.15s, box-shadow 0.15s; }
+  :is(#page-liste, #page-users, #page-user) .li-suche,
+  :is(#page-liste, #page-users, #page-user) .li-auswahl { transition: border-color 0.15s, box-shadow 0.15s; }
 }
 
 @media (forced-colors: active) {
   .li-tag.is-gewaehlt::before { border-left-color: Highlight; }
-  #page-liste .li-suche { border-color: CanvasText; }
-  #page-liste .li-suche::-webkit-search-cancel-button { background: CanvasText; }
-  #page-liste .li-auswahl { border-bottom-color: CanvasText; }
-  #page-liste .li-suche:focus,
-  #page-liste .li-auswahl:focus { outline: 2px solid Highlight; outline-offset: 2px; }
+  :is(#page-liste, #page-users, #page-user) .li-suche { border-color: CanvasText; }
+  :is(#page-liste, #page-users, #page-user) .li-suche::-webkit-search-cancel-button { background: CanvasText; }
+  :is(#page-liste, #page-users, #page-user) .li-auswahl { border-bottom-color: CanvasText; }
+  :is(#page-liste, #page-users, #page-user) .li-suche:focus,
+  :is(#page-liste, #page-users, #page-user) .li-auswahl:focus { outline: 2px solid Highlight; outline-offset: 2px; }
   .li-loeschen { color: LinkText; }
   .li-meldung { border-left-color: CanvasText; }
   .li-go { text-decoration: underline; }
+}
+
+/* ── Nutzer (#page-users) und Konto (#page-user) ───────────────────────────
+   DESIGN.md §9: Linien-Liste statt Tabelle, keine Karten, keine Schatten,
+   Radius ≤ 4 px. Rot = Aktion und ausgewählt (3-px-Strich + 4 % Tönung);
+   Gold nur Deko (Premium-Marke, Schrift --accent-ink); Statusfarben nur für
+   Bedeutung (Warnung bei Kauf ohne Premium-Rolle, Fehler, Erfolg).
+
+   Liste wie Planen › Liste: Suche zuerst, Sammelaktionen erst bei Auswahl.
+   Konto wie Tag bearbeiten: Unterseite mit Rückleiste, Abschnitte mit
+   Overline + Doppellinie, „Konto löschen“ als eigener Abschnitt am Ende.
+
+   Wiederverwendet (unverändert): .li-meldung, .li-ergebnis, .li-zahl,
+   .li-auswahlleiste (klebt bei Auswahl), .li-auswahl-zahl, .li-loeschen,
+   .li-leer*, .li-seiten-info, .tag-abschnitt*, .tag-dl, .tag-loeschen,
+   .tag-loeschen-text, .wo-meldung, .adm-cta, .adm-link, --wo-tint.
+   Wiederverwendet mit erweitertem Selektor (Abschnitt 3a): .li-label,
+   .li-suche, .li-auswahl, .li-alle, .li-wahl, [hidden].
+
+   Umbruch nach der Seitenbreite (Container „nutzer“ bzw. „konto“), nicht nach
+   dem Viewport. Schwellen in rem: ≥ 40rem (640 px) eine Zeile je Konto;
+   < 20rem (320 px oder große Schrift) alles untereinander.
+   Muss NACH dem Liste-Block stehen (Kaskade).
+   ─────────────────────────────────────────────────────────────────────── */
+
+:root {
+  /* Premium-Marke = Gold-Badge aus DESIGN.md (Wort-Zwilling-Farben):
+     Schrift #85621f auf #fdf8ee 5,3 : 1 */
+  --nu-premium-bg: #fdf8ee;
+  --nu-premium-bd: #c9a84c;
+}
+
+#page-users {
+  container: nutzer / inline-size;
+  gap: 0;
+}
+
+#page-user {
+  container: konto / inline-size;
+  gap: 0;
+  width: 100%;
+  max-width: 48rem;
+  margin-inline: auto;
+}
+
+/* ════════════════ Liste ════════════════ */
+
+/* ── Filter: Suche (dezent umrandet) + Rolle (unterstrichen) ── */
+.nu-filter {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(7.5rem, 10rem);
+  gap: 12px 16px;
+  align-items: end;
+}
+
+/* ── Auswahlleiste: Zeile 1 wie in der Liste, Sammelaktionen als Zeile 2 ── */
+.nu-sammel {
+  display: flex;
+  flex: 1 0 100%;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0 24px;
+  border-top: 1px solid var(--border-lt);
+}
+
+.nu-sammel-gruppe {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0 12px;
+  min-height: var(--tap);
+}
+
+.nu-sammel-label {
+  color: var(--muted);
+  font: 600 0.66rem/1.3 var(--font-sans);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+
+#page-users .nu-sammel .li-auswahl {
+  width: auto;
+  min-width: 7.5rem;
+}
+
+.nu-sammel .li-loeschen { margin-left: auto; }
+
+/* ── Spaltenköpfe: nur breit, nur fürs Auge (jede Zeile trägt ihre Angaben als Text) ── */
+.nu-spalten { display: none; }
+
+/* ── Ein Konto: mobil dreistufig ── */
+.nu-liste {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.nu-zeile {
+  position: relative;
+  display: grid;
+  grid-template-columns: var(--tap) minmax(0, 1fr) auto;
+  grid-template-areas:
+    "wahl name rolle"
+    ".    mail mail"
+    ".    meta meta";
+  align-items: center;
+  column-gap: 8px;
+  padding: 0 0 8px;
+  border-bottom: 1px solid var(--border-lt);
+}
+
+/* Admin-Konten: kein Kästchen (nicht für Sammelaktionen), Spalte bleibt frei */
+.nu-wahl-frei { grid-area: wahl; }
+
+/* Name = Link zum Konto, volle Trefferhöhe */
+.nu-name {
+  grid-area: name;
+  display: inline-flex;
+  align-items: center;
+  justify-self: start;
+  min-width: 0;
+  max-width: 100%;
+  min-height: var(--tap);
+  color: var(--text);
+  font: 700 1.02rem/1.3 var(--font-serif);
+  text-decoration: none;
+  text-underline-offset: 3px;
+  /* anywhere statt break-word: Der Link ist ein Flex-Container, dort verkleinert nur „anywhere“ die Mindestbreite */
+  overflow-wrap: anywhere;
+}
+
+.nu-name:hover { color: var(--primary); text-decoration: underline; }
+.nu-name:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+
+.nu-mail {
+  grid-area: mail;
+  min-width: 0;
+  margin: -6px 0 0;
+  color: var(--muted);
+  font: 400 0.86rem/1.4 var(--font-sans);
+  overflow-wrap: break-word;
+}
+
+.nu-rolle-zelle {
+  grid-area: rolle;
+  justify-self: end;
+}
+
+.nu-meta {
+  grid-area: meta;
+  margin: 2px 0 0;
+  color: var(--muted);
+  font-size: 0.8rem;
+  line-height: 1.4;
+}
+
+.nu-meta-kauf { color: var(--accent-ink); }
+
+/* Rollen-Marke: Admin neutral, Premium gold (Deko), User ohne Marke. Badge-Maß wie DESIGN.md (0.7rem, 2px 10px, 4px) */
+.nu-rolle {
+  display: inline-block;
+  padding: 2px 10px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--text);
+  font: 700 0.7rem/1.5 var(--font-sans);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.nu-rolle[data-rolle="premium"] {
+  border-color: var(--nu-premium-bd);
+  background: var(--nu-premium-bg);
+  color: var(--accent-ink);
+}
+
+/* Ausgewählt: 3-px-Strich + 4 % Tönung (wie .li-tag.is-gewaehlt) */
+.nu-zeile.is-gewaehlt { background: var(--wo-tint); }
+
+.nu-zeile.is-gewaehlt::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  border-left: 3px solid var(--primary);
+}
+
+/* ── Nachladen ── */
+.nu-mehr {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0 18px;
+  margin-top: 10px;
+}
+
+/* Fehler beim Nachladen: eigene Zeile direkt am Knopf */
+.nu-mehr .nu-mehr-meldung {
+  flex: 1 0 100%;
+  margin: 6px 0 0;
+}
+
+/* Aktionen ein-/ausklappen (nur schmal, s. Container-Abfrage unten) */
+.li-auswahlleiste .nu-aktionen-toggle { display: none; }
+
+/* Fehler- und Ladehinweis mit „Erneut versuchen“: Der Knopf steht auf einer eigenen Zeile, statt die Zeilenhöhe
+   der Meldung mit seiner 44-px-Trefferfläche aufzublähen */
+:is(#page-users, #page-user) .wo-meldung .adm-link {
+  display: flex;
+  margin-top: 2px;
+}
+
+/* ── Breit (≥ 40rem): eine Zeile je Konto, Spaltenköpfe ── */
+@container nutzer (min-width: 40rem) {
+  .nu-filter {
+    grid-template-columns: minmax(14rem, 1fr) 11rem;
+    gap: 0 20px;
+  }
+
+  .nu-spalten,
+  .nu-zeile {
+    display: grid;
+    grid-template-columns: var(--tap) minmax(8rem, 1fr) minmax(0, 1.35fr) 6rem 7.5rem;
+    grid-template-areas: "wahl name mail rolle meta";
+    column-gap: 14px;
+  }
+
+  .nu-spalten {
+    align-items: end;
+    margin-top: 14px;
+    padding-bottom: 4px;
+    border-bottom: 1px solid var(--border);
+    color: var(--muted);
+    font: 600 0.62rem/1.3 var(--font-sans);
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+  }
+
+  .nu-spalten > :nth-child(1) { grid-area: wahl; }
+  .nu-spalten > :nth-child(2) { grid-area: name; }
+  .nu-spalten > :nth-child(3) { grid-area: mail; }
+  .nu-spalten > :nth-child(4) { grid-area: rolle; }
+  .nu-spalten > :nth-child(5) { grid-area: meta; }
+
+  .nu-zeile {
+    align-items: center;
+    min-height: 52px;
+    padding: 0;
+  }
+
+  .nu-mail { margin: 0; }
+  .nu-rolle-zelle { justify-self: start; }
+  .nu-meta { margin: 0; }
+
+  /* Die Spaltenköpfe nennen „Angelegt“; das Wort davor nur noch für Screenreader */
+  .nu-meta-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  .nu-meta-kauf { display: block; }
+  .nu-meta-trenner { display: none; }
+}
+
+/* ── Schmal (< 40rem): Die klebende Auswahlleiste bleibt niedrig ──
+   Zeile 1: „Alle angezeigten“ + Zähler, Zeile 2: „Aktionen …“ + „Auswahl aufheben“ (zusammen ≈ 90 px).
+   Rolle, Export und Löschen stehen hinter „Aktionen …“. Aufgeklappt wird die Leiste höher und klebt dann
+   nicht mehr (passeAuswahlleisteAn), solange man die Aktionen benutzt. */
+@container nutzer (max-width: 39.9375rem) {
+  .li-auswahlleiste .nu-aktionen-toggle { display: inline-flex; }
+  .li-auswahlleiste:not(.aktionen-offen) .nu-sammel { display: none; }
+}
+
+/* ── Sehr schmal oder große Schrift (< 20rem): alles untereinander ── */
+@container nutzer (max-width: 19.9375rem) {
+  .nu-filter { grid-template-columns: minmax(0, 1fr); }
+
+  .nu-zeile {
+    grid-template-columns: var(--tap) minmax(0, 1fr);
+    grid-template-areas:
+      "wahl name"
+      ".    rolle"
+      ".    mail"
+      ".    meta";
+  }
+
+  .nu-rolle-zelle { justify-self: start; margin-bottom: 8px; }
+  .nu-mail { margin: 0; }
+  .nu-sammel .li-loeschen { margin-left: 0; }
+}
+
+/* ════════════════ Konto ════════════════ */
+
+/* ── Kopf: Name als Stichwort, E-Mail wie die Lautschrift darunter ── */
+.nu-kopf { padding-top: 4px; }
+
+.nu-kopf-name {
+  margin: 0;
+  font: 700 1.6rem/1.2 var(--font-serif);
+  overflow-wrap: anywhere;
+}
+
+.nu-kopf-mail {
+  margin: 2px 0 0;
+  color: var(--muted);
+  font: italic 400 1rem/1.4 var(--font-serif);
+  overflow-wrap: break-word;
+}
+
+.nu-kopf-zeile {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 12px;
+  margin: 10px 0 0;
+  color: var(--muted);
+  font-size: 0.86rem;
+}
+
+/* Meldungen im Konto (Rolle gespeichert, Kauf ohne Premium, Ladefehler) */
+#page-user .li-meldung { margin: 12px 0 0; }
+#page-user > .li-meldung { margin: 0 0 16px; }
+
+/* Lange Adressen und IDs brechen um, statt die Seite zu verbreitern.
+   Adressen an Wortgrenzen und notfalls im Wort (break-word); ID und Beleg-Nr. dürfen überall brechen (anywhere). */
+#page-user .tag-dl dd { min-width: 0; overflow-wrap: break-word; }
+
+/* Angaben: Zusatz hinter dem Wert („bestätigt“, „nicht bestätigt“) */
+.nu-zusatz {
+  margin-left: 0.5em;
+  color: var(--muted);
+  font: 500 0.8rem/1.3 var(--font-sans);
+}
+
+.tag-dl dd.nu-id {
+  font: 400 0.82rem/1.45 ui-monospace, 'Courier New', monospace;
+  overflow-wrap: anywhere;
+}
+
+/* Rolle: unterstrichenes Feld + roter Text-CTA */
+.nu-rollenfeld {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 8px 24px;
+  margin-top: 18px;
+}
+
+.nu-rollenfeld .li-feld { flex: 0 1 14rem; min-width: 9rem; }
+
+.nu-rolle-fest {
+  margin: 0;
+  font: 400 0.98rem/1.45 var(--font-serif);
+}
+
+/* Läuft gerade: kursiv in Textfarbe statt grau (wie „Speichern“ im Tag) */
+#page-user .adm-cta.is-busy[aria-disabled="true"] {
+  color: var(--text);
+  font-style: italic;
+}
+
+/* ── Kauf und Premium ── */
+.nu-stand {
+  margin: 14px 0 0;
+  font: 400 1.15rem/1.35 var(--font-serif);
+}
+
+.nu-stand-text {
+  max-width: var(--text-max, 680px);
+  margin: 2px 0 0;
+  color: var(--muted);
+  font-size: 0.86rem;
+  line-height: 1.5;
+}
+
+.nu-unterlabel {
+  margin: 22px 0 0;
+  color: var(--muted);
+  font: 600 0.66rem/1.3 var(--font-sans);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+
+.nu-zahlungen {
+  margin: 6px 0 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--border-lt);
+}
+
+.nu-zahlung {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas:
+    "datum  betrag"
+    "quelle quelle"
+    "beleg  beleg";
+  gap: 0 16px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border-lt);
+}
+
+.nu-zahlung-datum  { grid-area: datum;  font: 700 0.98rem/1.4 var(--font-serif); }
+.nu-zahlung-betrag { grid-area: betrag; font: 400 0.98rem/1.4 var(--font-serif); font-variant-numeric: tabular-nums; text-align: right; }
+.nu-zahlung-quelle { grid-area: quelle; font-size: 0.86rem; line-height: 1.45; }
+
+.nu-beleg {
+  grid-area: beleg;
+  min-width: 0;
+  color: var(--muted);
+  font: 400 0.78rem/1.45 ui-monospace, 'Courier New', monospace;
+  overflow-wrap: anywhere;
+}
+
+/* ── Spielstatistik ── */
+.nu-summe {
+  margin: 14px 0 0;
+  font: 400 1.15rem/1.35 var(--font-serif);
+}
+
+.nu-leer {
+  color: var(--muted);
+  font-style: italic;
+}
+
+/* ── Letzte Aktivität: ein Tag je Zeile ── */
+.nu-verlauf {
+  margin: 12px 0 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--border-lt);
+}
+
+.nu-verlauf-tag {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 2px 20px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border-lt);
+}
+
+.nu-verlauf-datum {
+  font: 700 0.98rem/1.4 var(--font-serif);
+  white-space: nowrap;
+}
+
+.nu-wt {
+  margin-right: 0.35em;
+  color: var(--muted);
+  font: 600 0.66rem/1.3 var(--font-sans);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  vertical-align: 0.12em;
+}
+
+.nu-verlauf-spiele {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 18px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font: 400 0.95rem/1.45 var(--font-serif);
+}
+
+.nu-verlauf-spiele > li { min-width: 0; }
+
+.nu-modus {
+  margin-right: 0.4em;
+  color: var(--muted);
+  font: 600 0.62rem/1.3 var(--font-sans);
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+}
+
+/* ── Daten exportieren ── */
+.nu-export {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 24px;
+  margin-top: 4px;
+}
+
+/* ── Konto löschen: wie „Tag löschen“ (Abstand aus .tag-loeschen) ── */
+#page-user .nu-loeschen-knopf {
+  margin: 4px 0 0;
+}
+
+/* ── Breit (≥ 40rem): Label links, Zahlungen und Verlauf einzeilig ── */
+@container konto (min-width: 40rem) {
+  .nu-kopf-name { font-size: 2rem; }
+
+  #page-user .tag-dl > div {
+    grid-template-columns: var(--tag-label-w, 9.5rem) minmax(0, 1fr);
+    align-items: baseline;
+  }
+
+  .nu-zahlung {
+    grid-template-columns: 7rem 5.5rem minmax(0, 1fr) minmax(0, auto);
+    grid-template-areas: "datum betrag quelle beleg";
+    align-items: baseline;
+  }
+
+  .nu-zahlung-betrag { text-align: left; }
+
+  .nu-verlauf-tag {
+    grid-template-columns: 9.5rem minmax(0, 1fr);
+    align-items: baseline;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .nu-zeile { transition: background-color 0.15s; }
+}
+
+@media (forced-colors: active) {
+  /* Gesperrte Knöpfe (aria-disabled) sollen im Kontrastmodus gesperrt aussehen */
+  .adm-cta[aria-disabled="true"],
+  .li-loeschen[aria-disabled="true"] { color: GrayText; }
+  .nu-zeile.is-gewaehlt::before { border-left-color: Highlight; }
+  .nu-rolle,
+  .nu-rolle[data-rolle="premium"] { border-color: CanvasText; color: CanvasText; background: Canvas; }
+  .nu-name { text-decoration: underline; }
 }

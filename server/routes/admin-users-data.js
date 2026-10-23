@@ -8,7 +8,7 @@ export const countUsersStmt = db.prepare(`
 export const countUsersByRoleStmt = db.prepare(`
   SELECT
     SUM(CASE WHEN COALESCE(up.role, 'user') = 'premium' THEN 1 ELSE 0 END) AS premium,
-    SUM(CASE WHEN COALESCE(up.role, 'user') != 'premium' THEN 1 ELSE 0 END) AS users
+    SUM(CASE WHEN COALESCE(up.role, 'user') = 'user' THEN 1 ELSE 0 END) AS users
   FROM user u
   LEFT JOIN user_profiles up ON up.user_id = u.id
 `)
@@ -20,9 +20,11 @@ export const listUsersStmt = db.prepare(`
     u.email,
     u.emailVerified,
     u.createdAt,
-    COALESCE(up.role, 'user') AS role
+    COALESCE(up.role, 'user') AS role,
+    COALESCE(ue.gesamtausgabe_unlocked, 0) AS gekauft
   FROM user u
   LEFT JOIN user_profiles up ON up.user_id = u.id
+  LEFT JOIN user_entitlements ue ON ue.user_id = u.id
   WHERE (
     @q = ''
     OR u.email LIKE @qLike
@@ -175,7 +177,29 @@ export const getUsersByIdsStmt = db.prepare(`
   WHERE u.id IN (SELECT value FROM json_each(?))
 `)
 
+// Admin-Konten werden hier nie geloescht (Aussperren verhindern). Der Schutz sitzt zentral in
+// deleteUserTx, damit kein Aufrufer ihn vergessen kann (App-Loeschung, Admin-Oberflaeche, Inaktivitaets-Job).
+export const ADMIN_DELETE_BLOCKED = 'ADMIN_ACCOUNT_PROTECTED'
+
+export class AdminDeleteBlockedError extends Error {
+  constructor() {
+    super('Admin-Konten lassen sich nicht löschen.')
+    this.name = 'AdminDeleteBlockedError'
+    this.code = ADMIN_DELETE_BLOCKED
+  }
+}
+
+const getUserRoleForDeleteStmt = db.prepare(`
+  SELECT role
+  FROM user_profiles
+  WHERE user_id = ?
+`)
+
 export const deleteUserTx = db.transaction((userId) => {
+  // Rolle aus der Datenbank lesen (nicht aus dem Request): Ein Admin-Konto wird nie geloescht,
+  // egal, welche Rolle der Aufrufer behauptet. Es wurde noch nichts geloescht, die Transaktion rollt sauber zurueck.
+  if (getUserRoleForDeleteStmt.get(userId)?.role === 'admin') throw new AdminDeleteBlockedError()
+
   // E-Mail vor dem Loeschen lesen: verification haengt am identifier, nicht an
   // der user.id, und waere danach nicht mehr zuzuordnen.
   const email = getUserEmailForDeleteStmt.get(userId)?.email ?? null
@@ -197,8 +221,33 @@ export const adminUsersStatsStmt = db.prepare(`
   FROM user
 `)
 
-export function toCsvCell(value) {
-  const s = String(value ?? '')
-  if (/[",\n]/.test(s)) return `"${s.replace(/"/g, '""')}"`
-  return s
-}
+// Kauf und Premium eines Kontos (Admin › Nutzer › Konto). NUR LESEND: Anders als
+// account.js (ensureEntitlementStmt) legt dieser Abruf keine Zeile an.
+export const getUserKaufStmt = db.prepare(`
+  SELECT gesamtausgabe_unlocked AS freigeschaltet, unlocked_at AS seit, source AS quelle
+  FROM user_entitlements
+  WHERE user_id = ?
+`)
+
+// Nur eigene Belege (user_id gesetzt). Nach der Kontolöschung sind sie anonym
+// (Migration 0020, user_id = NULL) und erscheinen hier nirgends.
+export const getUserZahlungenStmt = db.prepare(`
+  SELECT id, amount, currency, status, product, processed_at
+  FROM payments
+  WHERE user_id = ?
+  ORDER BY processed_at DESC
+  LIMIT 20
+`)
+
+// Konto-Angaben: Rollenänderung, letzte Aktivität, Löschwarnung, Anmeldearten.
+// Bewusst NICHT gelesen: session.ipAddress/userAgent, account.accountId,
+// Tokens und Passwort-Hashes.
+export const getUserKontoMetaStmt = db.prepare(`
+  SELECT
+    (SELECT updated_at FROM user_profiles WHERE user_id = @id)           AS rolleGeaendertMs,
+    (SELECT last_active_at FROM user_activity WHERE user_id = @id)       AS zuletztAktiv,
+    (SELECT inactivity_warned_at FROM user_activity WHERE user_id = @id) AS loeschWarnung,
+    (SELECT group_concat(DISTINCT providerId) FROM account WHERE userId = @id) AS anmeldung
+`)
+
+export { toCsvCell } from './csv-utils.js'

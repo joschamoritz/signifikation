@@ -259,6 +259,36 @@ describe('payments routes integration', () => {
     expect(paymentCount.n).toBe(1)
   })
 
+  it('Webhook: ein Kauf stuft ein Admin-Konto nicht auf premium herab (Entitlement wird trotzdem gesetzt)', async () => {
+    const userId = createTestUser()
+    testUserIds.add(userId)
+    const now = Date.now()
+    db.prepare('INSERT INTO user_profiles (user_id, role, created_at, updated_at) VALUES (?, ?, ?, ?)').run(userId, 'admin', now, now)
+    const paymentId = `tr_admin_${Math.random().toString(16).slice(2, 10)}`
+    const profileVorher = db.prepare('SELECT * FROM user_profiles WHERE user_id = ?').get(userId)
+
+    mollieMock.get.mockResolvedValue({
+      id: paymentId,
+      status: 'paid',
+      amount: { value: '9.99', currency: 'EUR' },
+      metadata: { userId, product: 'gesamtausgabe' },
+    })
+
+    const res = await fetch(`${baseUrl}/api/v1/payments/webhook`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/x-www-form-urlencoded' },
+      body: `id=${encodeURIComponent(paymentId)}`,
+    })
+    expect(res.status).toBe(200)
+
+    const entitlement = db.prepare('SELECT gesamtausgabe_unlocked, source FROM user_entitlements WHERE user_id = ?').get(userId)
+    expect(entitlement.gesamtausgabe_unlocked).toBe(1)
+    expect(entitlement.source).toBe('mollie')
+    // Rolle und Zeile (auch updated_at) bleiben unveraendert
+    expect(db.prepare('SELECT * FROM user_profiles WHERE user_id = ?').get(userId)).toEqual(profileVorher)
+    expect(db.prepare('SELECT COUNT(*) AS n FROM payments WHERE id = ?').get(paymentId).n).toBe(1)
+  })
+
   it('Webhook: ist idempotent – ein zweiter Aufruf bucht nicht doppelt', async () => {
     const userId = createTestUser()
     testUserIds.add(userId)

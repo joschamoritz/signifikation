@@ -7,6 +7,7 @@ import adminRouter from '../routes/admin.js'
 import { invalidateCache, lemmaToRow, loadReadOnly, save, stmts } from '../store.js'
 import { ladeEntwurf, ladeOffeneEntwuerfe, speichereEntwuerfe } from '../store-entwuerfe.js'
 import db from '../db.js'
+import { countUsersByRoleStmt } from '../routes/admin-users-data.js'
 
 const BACKUP_RESTORE_BODY_LIMIT = '10mb'
 
@@ -45,6 +46,33 @@ const insertAccountStmt = db.prepare(`
 `)
 
 const getUserEmailStmt = db.prepare(`SELECT email FROM user WHERE id = ?`)
+
+const nowIso = () => new Date().toISOString()
+
+const insertAccountWithProviderStmt = db.prepare(`
+  INSERT INTO account (id, userId, accountId, providerId, accessToken, refreshToken, password, createdAt, updatedAt)
+  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+`)
+
+const insertPaymentStmt = db.prepare(`
+  INSERT INTO payments (id, user_id, amount, currency, status, product, processed_at)
+  VALUES (?, ?, ?, ?, ?, ?, ?)
+`)
+
+const insertEntitlementStmt = db.prepare(`
+  INSERT INTO user_entitlements (user_id, gesamtausgabe_unlocked, unlocked_at, source, created_at, updated_at)
+  VALUES (?, ?, ?, ?, ?, ?)
+`)
+
+// Zeilen je Konto zählen (nicht global: andere Testdateien teilen sich die Datenbank)
+const countEntitlementsStmt = db.prepare(`SELECT COUNT(*) AS n FROM user_entitlements WHERE user_id = ?`)
+const countPaymentsStmt = db.prepare(`SELECT COUNT(*) AS n FROM payments WHERE user_id = ?`)
+const deletePaymentStmt = db.prepare(`DELETE FROM payments WHERE id = ?`)
+const testPaymentIds = new Set()
+function addTestPayment(id, userId, amount, processedAt) {
+  insertPaymentStmt.run(id, userId, amount, 'EUR', 'paid', 'gesamtausgabe', processedAt)
+  testPaymentIds.add(id)
+}
 
 const cleanupUsersTx = db.transaction((userIds) => {
   for (const userId of userIds) {
@@ -127,6 +155,7 @@ describe('admin routes integration', () => {
 
   afterAll(async () => {
     if (testSessionId) deleteSessionStmt.run(testSessionId)
+    for (const paymentId of testPaymentIds) deletePaymentStmt.run(paymentId)
     cleanupUsersTx([...testUserIds])
 
     if (!server) return
@@ -984,6 +1013,359 @@ describe('admin routes integration', () => {
     expect(csv).toContain('id,name,email,role,emailVerified,createdAt')
     expect(csv).toContain(firstUserId)
     expect(csv).toContain(secondUserId)
+  })
+
+  // Eigene Absender-Adresse für die Nutzer-Tests: adminLimiter erlaubt 60 Anfragen/Minute je IP, die Datei hat mehr.
+const NUTZER_IP = '198.51.100.61'
+
+// ── Nutzer: Konto-Abruf (Kauf, Konto-Angaben), rein lesend ───────────────
+
+  it('GET /admin/users/:id liefert Kauf und Konto-Angaben, ohne etwas zu schreiben', async () => {
+    const userId = createTestUser({ role: 'user' })
+    const otherUserId = createTestUser({ role: 'user' })
+    testUserIds.add(userId)
+    testUserIds.add(otherUserId)
+    const suffix = userId.slice(-8)
+    const mollieId = `tr_test${suffix}`
+    const appleId = `2000000${Date.now()}`.slice(0, 16)
+    const fremdId = `tr_fremd${suffix}`
+    const now = Date.now()
+    addTestPayment(mollieId, userId, '9.99', now - 5000)
+    addTestPayment(appleId, userId, '14.99', now - 1000)
+    addTestPayment(fremdId, otherUserId, '9.99', now)
+    insertEntitlementStmt.run(userId, 1, now - 5000, 'mollie', now, now)
+    insertAccountWithProviderStmt.run(randomUUID(), userId, 'fremd-konto-id-4711', 'google', 'geheimes-access-token', 'geheimes-refresh-token', null, nowIso(), nowIso())
+    insertAccountWithProviderStmt.run(randomUUID(), userId, userId, 'credential', null, null, 'geheimer-passwort-hash', nowIso(), nowIso())
+    insertAccountWithProviderStmt.run(randomUUID(), userId, 'x', 'github', null, null, null, nowIso(), nowIso())
+    insertSessionStmt.run(randomUUID(), userId, randomUUID(), new Date(now + 1000000).toISOString(), '203.0.113.9', 'geheimer-user-agent', nowIso(), nowIso())
+    db.prepare(`INSERT OR REPLACE INTO user_activity (user_id, last_active_at, inactivity_warned_at) VALUES (?, ?, ?)`)
+      .run(userId, '2026-10-22T08:00:00.000Z', '2026-10-19T08:00:00.000Z')
+
+    const entitlementBefore = db.prepare('SELECT * FROM user_entitlements WHERE user_id = ?').get(userId)
+    const paymentsBefore = countPaymentsStmt.get(userId).n
+
+    const response = await fetch(`${baseUrl}/admin/users/${encodeURIComponent(userId)}`, { headers: adminHeaders(token, NUTZER_IP) })
+    const raw = await response.text()
+    const payload = JSON.parse(raw)
+
+    expect(response.status).toBe(200)
+    expect(payload.konto.zuletztAktiv).toBe('2026-10-22T08:00:00.000Z')
+    expect(payload.konto.loeschWarnungAm).toBe('2026-10-19T08:00:00.000Z')
+    expect([...payload.konto.anmeldung].sort()).toEqual(['andere', 'credential', 'google'])
+    expect(payload.kauf.gesamtausgabe).toBe(true)
+    expect(payload.kauf.quelle).toBe('mollie')
+    expect(payload.kauf.seit).toBe(new Date(now - 5000).toISOString())
+
+    // Neueste Zahlung zuerst; fremder Beleg erscheint nicht
+    expect(payload.kauf.zahlungen.map((z) => z.beleg)).toEqual([appleId, mollieId])
+    expect(payload.kauf.zahlungen[0]).toMatchObject({ quelle: 'apple', betrag: '14.99', waehrung: 'EUR', status: 'paid', produkt: 'gesamtausgabe' })
+    expect(payload.kauf.zahlungen[1]).toMatchObject({ quelle: 'mollie', betrag: '9.99' })
+    expect(raw).not.toContain(fremdId)
+
+    // Nur die vereinbarten Felder: keine IP, kein User-Agent, keine Tokens, keine Hashes, keine Fremd-IDs
+    for (const geheim of ['geheimes-access-token', 'geheimes-refresh-token', 'geheimer-passwort-hash', 'geheimer-user-agent', '203.0.113.9', 'fremd-konto-id-4711', 'ipAddress', 'userAgent', 'accessToken', 'password']) {
+      expect(raw).not.toContain(geheim)
+    }
+
+    // Rein lesend: Entitlement-Zeile unverändert, keine neue Zahlung
+    expect(db.prepare('SELECT * FROM user_entitlements WHERE user_id = ?').get(userId)).toEqual(entitlementBefore)
+    expect(countEntitlementsStmt.get(userId).n).toBe(1)
+    expect(countPaymentsStmt.get(userId).n).toBe(paymentsBefore)
+  })
+
+  it('GET /admin/users/:id legt für Konten ohne Entitlement keine Zeile an', async () => {
+    const userId = createTestUser({ role: 'premium' })
+    testUserIds.add(userId)
+    expect(countEntitlementsStmt.get(userId).n).toBe(0)
+
+    const response = await fetch(`${baseUrl}/admin/users/${encodeURIComponent(userId)}`, { headers: adminHeaders(token, NUTZER_IP) })
+    const payload = await response.json()
+
+    expect(response.status).toBe(200)
+    expect(payload.kauf).toEqual({ gesamtausgabe: false, seit: null, quelle: null, zahlungen: [] })
+    expect(payload.konto.anmeldung).toEqual([])
+    expect(payload.konto.loeschWarnungAm).toBeNull()
+    expect(payload.konto.rolleGeaendertAm).toEqual(expect.any(String))
+    // Beweis „rein lesend“: Der Abruf hat keine Zeile angelegt (anders als account.js beim Lesen)
+    expect(countEntitlementsStmt.get(userId).n).toBe(0)
+  })
+
+  it('GET /admin/users liefert gekauft je Konto und zählt Admins nicht als User', async () => {
+    const marker = `kauf${Date.now().toString(36)}`
+    const buyerId = createTestUser({ role: 'user' })
+    const plainId = createTestUser({ role: 'user' })
+    testUserIds.add(buyerId)
+    testUserIds.add(plainId)
+    db.prepare('UPDATE user SET name = ? WHERE id IN (?, ?)').run(marker, buyerId, plainId)
+    const now = Date.now()
+    insertEntitlementStmt.run(buyerId, 1, now, 'apple-iap', now, now)
+
+    const response = await fetch(`${baseUrl}/admin/users?q=${marker}`, { headers: adminHeaders(token, NUTZER_IP) })
+    const payload = await response.json()
+    expect(response.status).toBe(200)
+    const byId = new Map(payload.users.map((u) => [u.id, u]))
+    expect(byId.get(buyerId).gekauft).toBe(true)
+    expect(byId.get(plainId).gekauft).toBe(false)
+
+    // Zählung ohne Admins: ein weiteres Admin-Konto ändert weder „User“ noch „Premium“.
+    // Synchron zwischen den beiden Zählungen, damit parallele Testdateien nicht dazwischenfunken.
+    const before = countUsersByRoleStmt.get()
+    const extraAdmin = createTestUser({ role: 'admin' })
+    testUserIds.add(extraAdmin)
+    const after = countUsersByRoleStmt.get()
+    expect(after.users).toBe(before.users)
+    expect(after.premium).toBe(before.premium)
+  })
+
+  // ── Nutzer: Admin-Konten sind geschützt ───────────────────────────────────
+
+  const getRoleStmt = db.prepare(`SELECT role FROM user_profiles WHERE user_id = ?`)
+  const userExists = (id) => !!db.prepare('SELECT 1 FROM user WHERE id = ?').get(id)
+
+  it('PATCH und POST /admin/users/:id/role lehnen Admin-Konten ab (auch das eigene)', async () => {
+    const otherAdmin = createTestUser({ role: 'admin' })
+    testUserIds.add(otherAdmin)
+    const ownAdmin = db.prepare('SELECT userId FROM session WHERE id = ?').get(testSessionId).userId
+
+    for (const targetId of [otherAdmin, ownAdmin]) {
+      for (const method of ['PATCH', 'POST']) {
+        const response = await fetch(`${baseUrl}/admin/users/${encodeURIComponent(targetId)}/role`, {
+          method,
+          headers: adminHeaders(token, NUTZER_IP),
+          body: JSON.stringify({ role: 'user' }),
+        })
+        const payload = await response.json()
+        expect(response.status).toBe(403)
+        expect(payload.error).toContain('Admin-Konten')
+        expect(getRoleStmt.get(targetId).role).toBe('admin')
+      }
+    }
+  })
+
+  it('Rolle admin lässt sich über die Routen nicht vergeben', async () => {
+    const userId = createTestUser({ role: 'user' })
+    testUserIds.add(userId)
+
+    const single = await fetch(`${baseUrl}/admin/users/${encodeURIComponent(userId)}/role`, {
+      method: 'PATCH',
+      headers: adminHeaders(token, NUTZER_IP),
+      body: JSON.stringify({ role: 'admin' }),
+    })
+    expect(single.status).toBe(400)
+
+    const bulk = await fetch(`${baseUrl}/admin/users/bulk-update`, {
+      method: 'POST',
+      headers: adminHeaders(token, NUTZER_IP),
+      body: JSON.stringify({ action: 'setRole', role: 'admin', userIds: [userId] }),
+    })
+    expect(bulk.status).toBe(400)
+    expect(getRoleStmt.get(userId)?.role ?? 'user').toBe('user')
+  })
+
+  it('DELETE /admin/users/:id lehnt Admin-Konten ab (auch das eigene), normale Konten gehen', async () => {
+    const otherAdmin = createTestUser({ role: 'admin' })
+    const normalId = createTestUser({ role: 'premium' })
+    testUserIds.add(otherAdmin)
+    testUserIds.add(normalId)
+    const ownAdmin = db.prepare('SELECT userId FROM session WHERE id = ?').get(testSessionId).userId
+
+    for (const targetId of [otherAdmin, ownAdmin]) {
+      const response = await fetch(`${baseUrl}/admin/users/${encodeURIComponent(targetId)}`, {
+        method: 'DELETE',
+        headers: adminHeaders(token, NUTZER_IP),
+      })
+      const payload = await response.json()
+      expect(response.status).toBe(403)
+      expect(payload.error).toContain('Admin-Konten')
+      expect(userExists(targetId)).toBe(true)
+    }
+
+    const ok = await fetch(`${baseUrl}/admin/users/${encodeURIComponent(normalId)}`, {
+      method: 'DELETE',
+      headers: adminHeaders(token, NUTZER_IP),
+    })
+    expect(ok.status).toBe(200)
+    expect(userExists(normalId)).toBe(false)
+    testUserIds.delete(normalId)
+  })
+
+  it('bulk-update setRole überspringt Admin-Konten und meldet sie mit Grund', async () => {
+    const adminId = createTestUser({ role: 'admin' })
+    const userId = createTestUser({ role: 'user' })
+    testUserIds.add(adminId)
+    testUserIds.add(userId)
+    const ownAdmin = db.prepare('SELECT userId FROM session WHERE id = ?').get(testSessionId).userId
+    const missingId = `missing-${Date.now()}`
+
+    const response = await fetch(`${baseUrl}/admin/users/bulk-update`, {
+      method: 'POST',
+      headers: adminHeaders(token, NUTZER_IP),
+      body: JSON.stringify({ action: 'setRole', role: 'premium', userIds: [adminId, ownAdmin, userId, missingId] }),
+    })
+    const payload = await response.json()
+
+    expect(response.status).toBe(200)
+    expect(payload.changed).toEqual([userId])
+    expect(payload.changedCount).toBe(1)
+    expect(new Set(payload.skipped)).toEqual(new Set([adminId, ownAdmin, missingId]))
+    expect(payload.skippedDetails).toEqual(expect.arrayContaining([
+      { id: missingId, reason: 'not_found' },
+      { id: adminId, reason: 'admin' },
+      { id: ownAdmin, reason: 'admin' },
+    ]))
+    expect(getRoleStmt.get(adminId).role).toBe('admin')
+    expect(getRoleStmt.get(ownAdmin).role).toBe('admin')
+    expect(getRoleStmt.get(userId).role).toBe('premium')
+  })
+
+  it('bulk-update setRole meldet Konten mit gleicher Rolle als unchanged und protokolliert nur echte Änderungen', async () => {
+    const hasPremium = createTestUser({ role: 'premium' })
+    const isBasis = createTestUser({ role: 'user' })
+    testUserIds.add(hasPremium)
+    testUserIds.add(isBasis)
+    const auditCount = (id) => db.prepare("SELECT COUNT(*) AS n FROM audit_log WHERE resource = 'user' AND resource_id = ?").get(id).n
+
+    const response = await fetch(`${baseUrl}/admin/users/bulk-update`, {
+      method: 'POST',
+      headers: adminHeaders(token, NUTZER_IP),
+      body: JSON.stringify({ action: 'setRole', role: 'premium', userIds: [hasPremium, isBasis] }),
+    })
+    const payload = await response.json()
+
+    expect(response.status).toBe(200)
+    expect(payload.changed).toEqual([isBasis])
+    expect(payload.changedCount).toBe(1)
+    expect(payload.unchanged).toEqual([hasPremium])
+    expect(payload.unchangedCount).toBe(1)
+    expect(auditCount(hasPremium)).toBe(0)
+    expect(auditCount(isBasis)).toBe(1)
+    expect(getRoleStmt.get(hasPremium).role).toBe('premium')
+  })
+
+  it('PATCH /admin/users/:id/role mit unveränderter Rolle schreibt und protokolliert nichts, Antwort ok', async () => {
+    const userId = createTestUser({ role: 'premium' })
+    testUserIds.add(userId)
+    const profilVorher = db.prepare('SELECT * FROM user_profiles WHERE user_id = ?').get(userId)
+    const auditVorher = db.prepare("SELECT COUNT(*) AS n FROM audit_log WHERE resource = 'user' AND resource_id = ?").get(userId).n
+
+    const response = await fetch(`${baseUrl}/admin/users/${encodeURIComponent(userId)}/role`, {
+      method: 'PATCH',
+      headers: adminHeaders(token, NUTZER_IP),
+      body: JSON.stringify({ role: 'premium' }),
+    })
+    const payload = await response.json()
+
+    expect(response.status).toBe(200)
+    expect(payload).toEqual({ ok: true, userId, role: 'premium' })
+    expect(db.prepare('SELECT * FROM user_profiles WHERE user_id = ?').get(userId)).toEqual(profilVorher)
+    expect(db.prepare("SELECT COUNT(*) AS n FROM audit_log WHERE resource = 'user' AND resource_id = ?").get(userId).n).toBe(auditVorher)
+  })
+
+  it('PATCH /admin/users/:id/role protokolliert die vorherige Rolle', async () => {
+    const userId = createTestUser({ role: 'premium' })
+    testUserIds.add(userId)
+
+    const response = await fetch(`${baseUrl}/admin/users/${encodeURIComponent(userId)}/role`, {
+      method: 'PATCH',
+      headers: adminHeaders(token, NUTZER_IP),
+      body: JSON.stringify({ role: 'user' }),
+    })
+    expect(response.status).toBe(200)
+
+    const row = db.prepare("SELECT changes_json FROM audit_log WHERE resource = 'user' AND resource_id = ? ORDER BY id DESC LIMIT 1").get(userId)
+    const changes = JSON.parse(row.changes_json)
+    expect(changes.before).toEqual({ role: 'premium' })
+    expect(changes.after).toEqual({ role: 'user' })
+  })
+
+  it('bulk-update delete überspringt Admin-Konten und löscht nur die übrigen', async () => {
+    const adminId = createTestUser({ role: 'admin' })
+    const userId = createTestUser({ role: 'user' })
+    testUserIds.add(adminId)
+    testUserIds.add(userId)
+    const ownAdmin = db.prepare('SELECT userId FROM session WHERE id = ?').get(testSessionId).userId
+
+    const response = await fetch(`${baseUrl}/admin/users/bulk-update`, {
+      method: 'POST',
+      headers: adminHeaders(token, NUTZER_IP),
+      body: JSON.stringify({ action: 'delete', userIds: [adminId, ownAdmin, userId] }),
+    })
+    const payload = await response.json()
+
+    expect(response.status).toBe(200)
+    expect(payload.deleted).toEqual([userId])
+    expect(payload.deletedCount).toBe(1)
+    expect(payload.skippedDetails).toEqual(expect.arrayContaining([
+      { id: adminId, reason: 'admin' },
+      { id: ownAdmin, reason: 'admin' },
+    ]))
+    expect(userExists(adminId)).toBe(true)
+    expect(userExists(ownAdmin)).toBe(true)
+    expect(userExists(userId)).toBe(false)
+    testUserIds.delete(userId)
+  })
+
+  it('bulk-update setRole nur mit Admin-Konten ändert nichts', async () => {
+    const adminId = createTestUser({ role: 'admin' })
+    testUserIds.add(adminId)
+
+    const response = await fetch(`${baseUrl}/admin/users/bulk-update`, {
+      method: 'POST',
+      headers: adminHeaders(token, NUTZER_IP),
+      body: JSON.stringify({ action: 'setRole', role: 'user', userIds: [adminId] }),
+    })
+    const payload = await response.json()
+
+    expect(response.status).toBe(200)
+    expect(payload.changedCount).toBe(0)
+    expect(payload.skippedDetails).toEqual([{ id: adminId, reason: 'admin' }])
+    expect(getRoleStmt.get(adminId).role).toBe('admin')
+  })
+
+  it('bulk-update export bleibt für Admin-Konten möglich (nur lesend)', async () => {
+    const adminId = createTestUser({ role: 'admin' })
+    testUserIds.add(adminId)
+
+    const response = await fetch(`${baseUrl}/admin/users/bulk-update`, {
+      method: 'POST',
+      headers: adminHeaders(token, NUTZER_IP),
+      body: JSON.stringify({ action: 'export', format: 'json', userIds: [adminId] }),
+    })
+    const payload = await response.json()
+    expect(response.status).toBe(200)
+    expect(payload.exportedCount).toBe(1)
+    expect(payload.skipped).toEqual([])
+  })
+
+  // ── CSV-Export: Schutz vor Formel-Einschleusung ───────────────────────────
+
+  it('bulk-update CSV entschärft Zellen, die mit = + - @ Tab oder CR beginnen', async () => {
+    const gefaehrlich = ['=HYPERLINK("http://boese.example","x")', '+cmd|calc', '-2+3', '@SUM(A1)', '\tTab', '\rCR']
+    const ids = gefaehrlich.map((name, i) => {
+      const id = `admin-test-csv-${Date.now().toString(36)}-${i}`
+      const iso = new Date().toISOString()
+      insertUserStmt.run({ id, name, email: `csv-${Date.now().toString(36)}-${i}@example.test`, emailVerified: 1, image: null, createdAt: iso, updatedAt: iso })
+      testUserIds.add(id)
+      return id
+    })
+
+    const response = await fetch(`${baseUrl}/admin/users/bulk-update`, {
+      method: 'POST',
+      headers: adminHeaders(token, NUTZER_IP),
+      body: JSON.stringify({ action: 'export', format: 'csv', userIds: ids }),
+    })
+    expect(response.status).toBe(200)
+    const csv = await response.text()
+
+    // Kein Namensfeld beginnt mit einem Formelzeichen: Jedes bekommt ein vorangestelltes '
+    expect(csv).toContain(`"'=HYPERLINK(""http://boese.example"",""x"")"`)
+    expect(csv).toContain(`'+cmd|calc`)
+    expect(csv).toContain(`'-2+3`)
+    expect(csv).toContain(`'@SUM(A1)`)
+    expect(csv).toContain(`'\tTab`)
+    expect(csv).toContain(`"'\rCR"`)
+    // Normale Werte bleiben unverändert
+    expect(csv).toContain('id,name,email,role,emailVerified,createdAt')
   })
 
   // ── Admin-Login (POST /admin/auth) ────────────────────────────

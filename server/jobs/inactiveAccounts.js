@@ -17,7 +17,7 @@
 import db from '../db.js'
 import logger from '../logger.js'
 import { reportAlert } from '../alerting.js'
-import { deleteUserTx } from '../routes/admin-users-data.js'
+import { deleteUserTx, ADMIN_DELETE_BLOCKED } from '../routes/admin-users-data.js'
 import { isMailConfigured, sendInactivityWarningMail } from '../mailer.js'
 
 const TAG_MS = 24 * 60 * 60 * 1000
@@ -59,7 +59,14 @@ export async function runInactiveAccounts({ now = Date.now(), sendMail = sendIna
   const deleteBefore = new Date(now - INACTIVE_DAYS * TAG_MS).toISOString()
   const warnedBefore = new Date(now - WARNING_LEAD_DAYS * TAG_MS).toISOString()
   for (const { id } of toDeleteStmt.all(warnedBefore, deleteBefore)) {
-    deleteUserTx(id)
+    try {
+      deleteUserTx(id)
+    } catch (err) {
+      // Admin-Konten werden nie geloescht (zentraler Schutz in deleteUserTx); der Sweep laeuft weiter
+      if (err?.code !== ADMIN_DELETE_BLOCKED) throw err
+      logger.warn({ userId: id }, 'Inaktive Konten: Admin-Konto uebersprungen')
+      continue
+    }
     result.deleted += 1
     logger.info({ userId: id }, `Konto nach ${INACTIVE_DAYS} Tagen ohne Anmeldung geloescht`)
   }

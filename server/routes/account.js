@@ -2,7 +2,7 @@ import express from 'express'
 import { requireAuthUser, optionalAuthUser, isPremiumRole } from '../middleware/userAuth.js'
 import { authFeatureFlags } from '../auth/index.js'
 import { IS_PROD, serverError } from '../middleware/auth.js'
-import { deleteUserTx } from './admin-users-data.js'
+import { deleteUserTx, ADMIN_DELETE_BLOCKED } from './admin-users-data.js'
 import { getQuota } from '../customLemmaQuota.js'
 import db from '../db.js'
 import logger from '../logger.js'
@@ -155,6 +155,11 @@ router.get('/api/v1/account/stats', requireAuthUser, (req, res) => {
 router.delete('/api/v1/account/me', requireAuthUser, (req, res) => {
   try {
     const userId = req.user.id
+    // Admin-Konten lassen sich nicht selbst loeschen (Aussperren verhindern); Loeschen nur per Server.
+    if (req.user.role === 'admin') {
+      logger.warn({ userId }, 'Selbstloeschung eines Admin-Kontos abgelehnt')
+      return res.status(403).json({ error: 'Admin-Konten lassen sich in der App nicht löschen. Das geht nur über den Server.' })
+    }
     // Alle User-Daten löschen (Profile, Entitlements, Stats, Classroom-Sessions, User-Row).
     // session/account räumt SQLite selbst auf: beide Tabellen haben
     // FOREIGN KEY ... ON DELETE CASCADE auf user(id) und db.js setzt
@@ -165,6 +170,11 @@ router.delete('/api/v1/account/me', requireAuthUser, (req, res) => {
     logger.info({ userId }, 'Account gelöscht')
     res.json({ ok: true })
   } catch (err) {
+    // Zentraler Schutz in deleteUserTx (Rolle aus der Datenbank): gleiche Antwort wie die Vorabprüfung oben
+    if (err?.code === ADMIN_DELETE_BLOCKED) {
+      logger.warn({ userId: req.user?.id }, 'Selbstloeschung eines Admin-Kontos abgelehnt')
+      return res.status(403).json({ error: 'Admin-Konten lassen sich in der App nicht löschen. Das geht nur über den Server.' })
+    }
     logger.error({ err }, 'Account-Löschung fehlgeschlagen')
     serverError(res, err)
   }

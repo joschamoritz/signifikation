@@ -1,5 +1,21 @@
 import express from 'express'
 
+// Admin-Konten sind geschützt: Rolle ändern und Löschen lehnt der Server ab (auch für das
+// eigene Konto – sonst sperrt man sich aus). Die Rolle „admin“ lässt sich über diese Routen
+// auch nicht vergeben (die Schemas erlauben nur user/premium).
+const ADMIN_ROLE = 'admin'
+// Fehlercode von deleteUserTx (admin-users-data.js), wenn es ein Admin-Konto loeschen sollte
+const ADMIN_DELETE_BLOCKED = 'ADMIN_ACCOUNT_PROTECTED'
+const ADMIN_GESCHUETZT_FEHLER = 'Admin-Konten lassen sich hier weder ändern noch löschen.'
+
+// Anmeldearten aus account.providerId; alles Unbekannte wird zu „andere“.
+const ANMELDUNG = new Set(['credential', 'apple', 'google'])
+
+// Die Quelle folgt aus der Belegform: Mollie-Zahlungen beginnen mit tr_, Apple-Transaktions-IDs sind Ziffern.
+const quelleAusBeleg = (id) => (/^tr_/.test(id) ? 'mollie' : /^\d+$/.test(id) ? 'apple' : 'unbekannt')
+
+const isoAusMs = (ms) => (Number.isFinite(Number(ms)) && Number(ms) > 0 ? new Date(Number(ms)).toISOString() : null)
+
 function mapUserRow(row) {
   return {
     id: row.id,
@@ -53,9 +69,11 @@ export function createAdminUsersRouter(deps) {
     getUserDetailsStmt,
     getUserStatsByGameStmt,
     getUserRecentStatsStmt,
+    getUserKaufStmt,
+    getUserZahlungenStmt,
+    getUserKontoMetaStmt,
     ensureProfileStmt,
     setUserRoleStmt,
-    userExistsStmt,
     getUsersByIdsStmt,
     deleteUserTx,
     adminUsersStatsStmt,
@@ -73,15 +91,25 @@ export function createAdminUsersRouter(deps) {
     if (!userId) return res.status(400).json({ error: 'userId erforderlich' })
 
     try {
-      if (!userExistsStmt.get(userId)) {
+      const target = getUserDetailsStmt.get(userId)
+      if (!target) {
         return res.status(404).json({ error: 'Nutzer nicht gefunden' })
+      }
+      if (target.role === ADMIN_ROLE) {
+        logger.warn({ userId }, 'Rollenänderung eines Admin-Kontos abgelehnt')
+        return res.status(403).json({ error: ADMIN_GESCHUETZT_FEHLER })
+      }
+
+      // Unveraenderte Rolle: nicht schreiben, nicht protokollieren (wie bei der Sammelaktion), Antwort wie bisher ok.
+      if (target.role === req.body.role) {
+        return res.json({ ok: true, userId, role: req.body.role })
       }
 
       const now = Date.now()
       ensureProfileStmt.run(userId, now, now)
       setUserRoleStmt.run(userId, req.body.role, now, now)
 
-      auditUpdate('user', userId, null, { role: req.body.role }, {
+      auditUpdate('user', userId, { role: target.role }, { role: req.body.role }, {
         adminKey: req.adminSessionId || 'unknown',
         ip: req.ip,
       })
@@ -129,7 +157,7 @@ export function createAdminUsersRouter(deps) {
           filtered,
           hasMore: offset + rows.length < filtered,
         },
-        users: rows.map(mapUserRow),
+        users: rows.map((row) => ({ ...mapUserRow(row), gekauft: !!row.gekauft })),
       })
     } catch (err) {
       adminError(res, err)
@@ -149,9 +177,37 @@ export function createAdminUsersRouter(deps) {
         getUserRecentStatsStmt.all(userId),
       )
 
+      // Rein lesend. Ausgeliefert werden nur die hier genannten Felder: keine IP, kein User-Agent,
+      // keine Tokens, keine Passwort-Hashes, keine Fremd-Konto-IDs (account.accountId).
+      const kauf = getUserKaufStmt.get(userId)
+      const meta = getUserKontoMetaStmt.get({ id: userId }) || {}
+
       res.json({
         user: mapUserRow(user),
         stats,
+        konto: {
+          zuletztAktiv: meta.zuletztAktiv || null,
+          loeschWarnungAm: meta.loeschWarnung || null,
+          anmeldung: String(meta.anmeldung || '')
+            .split(',')
+            .filter(Boolean)
+            .map((provider) => (ANMELDUNG.has(provider) ? provider : 'andere')),
+          rolleGeaendertAm: isoAusMs(meta.rolleGeaendertMs),
+        },
+        kauf: {
+          gesamtausgabe: !!kauf?.freigeschaltet,
+          seit: isoAusMs(kauf?.seit),
+          quelle: kauf?.quelle || null,
+          zahlungen: getUserZahlungenStmt.all(userId).map((z) => ({
+            beleg: z.id,
+            quelle: quelleAusBeleg(z.id),
+            betrag: z.amount,
+            waehrung: z.currency,
+            status: z.status,
+            produkt: z.product,
+            zeitpunkt: isoAusMs(z.processed_at),
+          })),
+        },
       })
     } catch (err) {
       adminError(res, err)
@@ -192,6 +248,10 @@ export function createAdminUsersRouter(deps) {
     try {
       const existing = getUserDetailsStmt.get(userId)
       if (!existing) return res.status(404).json({ error: 'Nutzer nicht gefunden' })
+      if (existing.role === ADMIN_ROLE) {
+        logger.warn({ userId }, 'Löschen eines Admin-Kontos abgelehnt')
+        return res.status(403).json({ error: ADMIN_GESCHUETZT_FEHLER })
+      }
 
       deleteUserTx(userId)
 
@@ -206,6 +266,8 @@ export function createAdminUsersRouter(deps) {
       logger.info({ userId }, 'Nutzer geloescht')
       res.json({ ok: true, userId })
     } catch (err) {
+      // Zentraler Schutz in deleteUserTx (falls das Konto zwischen Vorabprüfung und Löschen Admin wurde)
+      if (err?.code === ADMIN_DELETE_BLOCKED) return res.status(403).json({ error: ADMIN_GESCHUETZT_FEHLER })
       adminError(res, err)
     }
   })
@@ -218,12 +280,33 @@ export function createAdminUsersRouter(deps) {
 
       const users = getUsersByIdsStmt.all(JSON.stringify(uniqueIds))
       const foundIds = new Set(users.map((user) => user.id))
-      const skipped = uniqueIds.filter((id) => !foundIds.has(id))
+      const notFound = uniqueIds.filter((id) => !foundIds.has(id))
+
+      // Rolle ändern und Löschen überspringen Admin-Konten (auch das eigene) und melden sie mit Grund.
+      // `skipped` bleibt die Liste der übersprungenen IDs, `skippedDetails` nennt zu jeder den Grund:
+      // 'not_found' (gibt es nicht mehr) oder 'admin' (Admin-Konto, geschützt).
+      const schreibend = action === 'setRole' || action === 'delete'
+      const geschuetzt = schreibend ? users.filter((user) => user.role === ADMIN_ROLE) : []
+      const bearbeitbar = schreibend ? users.filter((user) => user.role !== ADMIN_ROLE) : users
+      const skippedDetails = [
+        ...notFound.map((id) => ({ id, reason: 'not_found' })),
+        ...geschuetzt.map((user) => ({ id: user.id, reason: 'admin' })),
+      ]
+      const skipped = skippedDetails.map((entry) => entry.id)
+      if (geschuetzt.length) {
+        logger.warn({ action, geschuetzt: geschuetzt.length }, 'Sammelaktion: Admin-Konten übersprungen')
+      }
 
       if (action === 'setRole') {
         const now = Date.now()
         const updated = []
-        for (const user of users) {
+        // Konten, die die Rolle schon haben, werden weder geschrieben noch protokolliert, sondern als unchanged gemeldet.
+        const unchanged = []
+        for (const user of bearbeitbar) {
+          if (user.role === role) {
+            unchanged.push(user.id)
+            continue
+          }
           ensureProfileStmt.run(user.id, now, now)
           setUserRoleStmt.run(user.id, role, now, now)
           updated.push(user.id)
@@ -233,13 +316,21 @@ export function createAdminUsersRouter(deps) {
           })
         }
 
-        return res.json({ ok: true, action, role, requestedCount: uniqueIds.length, changedCount: updated.length, changed: updated, skipped })
+        return res.json({ ok: true, action, role, requestedCount: uniqueIds.length, changedCount: updated.length, changed: updated, unchangedCount: unchanged.length, unchanged, skipped, skippedDetails })
       }
 
       if (action === 'delete') {
         const deleted = []
-        for (const user of users) {
-          deleteUserTx(user.id)
+        for (const user of bearbeitbar) {
+          try {
+            deleteUserTx(user.id)
+          } catch (err) {
+            // Zentraler Schutz in deleteUserTx: wie ein vorab gefiltertes Admin-Konto behandeln
+            if (err?.code !== ADMIN_DELETE_BLOCKED) throw err
+            skipped.push(user.id)
+            skippedDetails.push({ id: user.id, reason: 'admin' })
+            continue
+          }
           deleted.push(user.id)
           auditDelete('user', user.id, { email: user.email, role: user.role }, {
             adminKey: req.adminSessionId || 'unknown',
@@ -247,7 +338,7 @@ export function createAdminUsersRouter(deps) {
           })
         }
 
-        return res.json({ ok: true, action, requestedCount: uniqueIds.length, deletedCount: deleted.length, deleted, skipped })
+        return res.json({ ok: true, action, requestedCount: uniqueIds.length, deletedCount: deleted.length, deleted, skipped, skippedDetails })
       }
 
       if (action === 'export') {
@@ -282,7 +373,7 @@ export function createAdminUsersRouter(deps) {
           return res.send(csv)
         }
 
-        return res.json({ ok: true, action, requestedCount: uniqueIds.length, exportedCount: exportRows.length, users: exportRows, skipped })
+        return res.json({ ok: true, action, requestedCount: uniqueIds.length, exportedCount: exportRows.length, users: exportRows, skipped, skippedDetails })
       }
 
       return res.status(400).json({ error: 'Unbekannte Bulk-Aktion' })

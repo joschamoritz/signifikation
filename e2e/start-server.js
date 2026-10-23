@@ -43,6 +43,13 @@ execFileSync(process.execPath, [join(root, 'server/seed-dev.js')], {
     INSERT INTO audit_log (timestamp, action, resource, resource_id, changes_json, admin_key_last4, ip, status, error, entry_hash)
     VALUES (?, 'CREATE', 'kalender', 'e2e-seed', '{}', 'e2e ', '127.0.0.1', 'OK', NULL, 'e2e-seed')
   `).run(new Date().toISOString())
+  // Ein normales Konto (Rolle Basis) fuer admin-users-bulk.spec.js: Admin-Konten haben in der
+  // Nutzerliste kein Auswahlkaestchen, mit dem Admin allein liesse sich die Auswahl nicht pruefen.
+  const jetzt = new Date().toISOString()
+  db.prepare(`
+    INSERT INTO user (id, name, email, emailVerified, image, createdAt, updatedAt)
+    VALUES ('e2e-probe-konto', 'E2E Probe', 'e2e-probe@example.test', 1, NULL, ?, ?)
+  `).run(jetzt, jetzt)
   db.close()
 }
 

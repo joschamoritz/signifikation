@@ -108,6 +108,9 @@ const setPremiumRoleStmt = db.prepare(`
   ON CONFLICT(user_id) DO UPDATE SET
     role = 'premium',
     updated_at = excluded.updated_at
+  -- Ein Kauf darf ein Admin-Konto nicht auf premium herabstufen (Selbstaussperrung): Dann bleibt die Zeile
+  -- komplett unveraendert (auch updated_at), changes ist 0.
+  WHERE user_profiles.role <> 'admin'
 `)
 
 // ── POST /api/v1/payments/checkout ───────────────────────────
@@ -306,11 +309,13 @@ router.post(
         const now = Date.now()
         ensureEntitlementStmt.run(userId, now, now)
         unlockEntitlementStmt.run(now, now, userId)
-        setPremiumRoleStmt.run(userId, now, now)
+        const rolleGesetzt = setPremiumRoleStmt.run(userId, now, now).changes > 0
         insertPaymentStmt.run(paymentId, userId, payment.amount.value, 'paid', product, now)
 
         newlyUnlocked = true
-        logger.info({ paymentId, userId }, 'Gesamtausgabe freigeschaltet und Rolle auf premium gesetzt via Mollie')
+        logger.info({ paymentId, userId }, rolleGesetzt
+          ? 'Gesamtausgabe freigeschaltet und Rolle auf premium gesetzt via Mollie'
+          : 'Gesamtausgabe freigeschaltet via Mollie, Admin-Rolle unverändert')
       })
       processWebhook.immediate()
 

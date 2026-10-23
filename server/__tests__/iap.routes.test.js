@@ -260,6 +260,44 @@ describe('unlockForUser (Cross-Account-Replay)', () => {
   })
 })
 
+describe('unlockForUser (Admin-Konto)', () => {
+  const adminId = `iap-admin-${Date.now()}`
+  const plainId = `iap-plain-${Date.now()}`
+  const txA = `tx-admin-${Date.now()}`
+  const txP = `tx-plain-${Date.now()}`
+
+  beforeAll(() => {
+    for (const id of [adminId, plainId]) {
+      db.prepare(`INSERT OR IGNORE INTO user (id, email, name, emailVerified, createdAt, updatedAt)
+                  VALUES (?, ?, ?, 1, ?, ?)`).run(id, `${id}@test.local`, id, Date.now(), Date.now())
+    }
+    const now = Date.now()
+    db.prepare('INSERT INTO user_profiles (user_id, role, created_at, updated_at) VALUES (?, ?, ?, ?)').run(adminId, 'admin', now, now)
+  })
+
+  afterAll(() => {
+    for (const t of [txA, txP]) db.prepare('DELETE FROM payments WHERE id = ?').run(t)
+    for (const u of [adminId, plainId]) {
+      db.prepare('DELETE FROM user_entitlements WHERE user_id = ?').run(u)
+      db.prepare('DELETE FROM user_profiles WHERE user_id = ?').run(u)
+      db.prepare('DELETE FROM user WHERE id = ?').run(u)
+    }
+  })
+
+  it('ein Kauf stuft ein Admin-Konto nicht herab, das Entitlement wird trotzdem gesetzt', () => {
+    const vorher = db.prepare('SELECT * FROM user_profiles WHERE user_id = ?').get(adminId)
+    expect(unlockForUser(adminId, txA, txA, VALID_PRODUCT_ID)).toBe(true)
+    // Rolle und Zeile (auch updated_at) bleiben unveraendert
+    expect(db.prepare('SELECT * FROM user_profiles WHERE user_id = ?').get(adminId)).toEqual(vorher)
+    expect(isEntitlementActive(adminId)).toBe(true)
+  })
+
+  it('ein normales Konto wird weiterhin premium', () => {
+    expect(unlockForUser(plainId, txP, txP, VALID_PRODUCT_ID)).toBe(true)
+    expect(db.prepare('SELECT role FROM user_profiles WHERE user_id = ?').get(plainId).role).toBe('premium')
+  })
+})
+
 describe('unlockForUser (Restore nach Kontoloeschung, Migration 0020)', () => {
   const userOld = `iap-deleted-${Date.now()}`
   const userNew = `iap-rejoined-${Date.now()}`

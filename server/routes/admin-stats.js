@@ -1,5 +1,6 @@
 import express from 'express'
 import db from '../db.js'
+import { toCsvCell } from './csv-utils.js'
 
 const getUsersByIdsStmt = db.prepare(`
   SELECT
@@ -25,12 +26,6 @@ const topUsersByDatesStmt = db.prepare(`
   ORDER BY plays DESC
   LIMIT ?
 `)
-
-function toCsvCell(value) {
-  const s = String(value ?? '')
-  if (/[",\n]/.test(s)) return `"${s.replace(/"/g, '""')}"`
-  return s
-}
 
 function buildStatsCsv(rows) {
   const header = ['datum', 'spiel', 'plays', 'scoreSum', 'maxSum', 'avg10']

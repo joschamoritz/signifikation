@@ -3,6 +3,7 @@ import cookieParser from 'cookie-parser'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import accountRouter from '../routes/account.js'
 import db from '../db.js'
+import { deleteUserTx, AdminDeleteBlockedError, ADMIN_DELETE_BLOCKED } from '../routes/admin-users-data.js'
 
 const insertUserStmt = db.prepare(`
   INSERT INTO user (id, name, email, emailVerified, image, createdAt, updatedAt)
@@ -213,5 +214,54 @@ describe('account entitlements integration', () => {
     expect(db.prepare('SELECT COUNT(*) AS n FROM user WHERE id = ?').get(userId).n).toBe(0)
     expect(db.prepare('SELECT COUNT(*) AS n FROM session WHERE userId = ?').get(userId).n).toBe(0)
     expect(db.prepare('SELECT COUNT(*) AS n FROM account WHERE userId = ?').get(userId).n).toBe(0)
+  })
+
+  it('DELETE /api/v1/account/me: zentraler Schutz greift auch, wenn der Request eine andere Rolle behauptet', async () => {
+    const userId = createTestUser()
+    testUserIds.add(userId)
+    const now = Date.now()
+    db.prepare('INSERT INTO user_profiles (user_id, role, created_at, updated_at) VALUES (?, ?, ?, ?)').run(userId, 'admin', now, now)
+
+    // Dev-Auth-Header behauptet Rolle user, in der Datenbank ist das Konto aber Admin
+    const res = await fetch(`${baseUrl}/api/v1/account/me`, {
+      method: 'DELETE',
+      headers: devHeaders(userId, 'user'),
+    })
+    const payload = await res.json()
+
+    expect(res.status).toBe(403)
+    expect(payload.error).toMatch(/Admin-Konten/)
+    expect(db.prepare('SELECT COUNT(*) AS n FROM user WHERE id = ?').get(userId).n).toBe(1)
+    expect(db.prepare('SELECT role FROM user_profiles WHERE user_id = ?').get(userId).role).toBe('admin')
+  })
+
+  it('deleteUserTx wirft bei Admin-Konten einen eindeutigen Fehler und löscht nichts', () => {
+    const userId = createTestUser()
+    testUserIds.add(userId)
+    const now = Date.now()
+    db.prepare('INSERT INTO user_profiles (user_id, role, created_at, updated_at) VALUES (?, ?, ?, ?)').run(userId, 'admin', now, now)
+    upsertEntitlementStmt.run(userId, 1, now, 'mollie', now, now)
+
+    expect(() => deleteUserTx(userId)).toThrow(AdminDeleteBlockedError)
+    try { deleteUserTx(userId) } catch (err) { expect(err.code).toBe(ADMIN_DELETE_BLOCKED) }
+    expect(db.prepare('SELECT COUNT(*) AS n FROM user WHERE id = ?').get(userId).n).toBe(1)
+    expect(db.prepare('SELECT COUNT(*) AS n FROM user_entitlements WHERE user_id = ?').get(userId).n).toBe(1)
+  })
+
+  it('DELETE /api/v1/account/me lehnt Admin-Konten mit 403 ab (kein Aussperren)', async () => {
+    const userId = createTestUser()
+    testUserIds.add(userId)
+    const now = Date.now()
+    db.prepare('INSERT INTO user_profiles (user_id, role, created_at, updated_at) VALUES (?, ?, ?, ?)').run(userId, 'admin', now, now)
+
+    const res = await fetch(`${baseUrl}/api/v1/account/me`, {
+      method: 'DELETE',
+      headers: devHeaders(userId, 'admin'),
+    })
+    const payload = await res.json()
+
+    expect(res.status).toBe(403)
+    expect(payload.error).toMatch(/Admin-Konten/)
+    expect(db.prepare('SELECT COUNT(*) AS n FROM user WHERE id = ?').get(userId).n).toBe(1)
   })
 })

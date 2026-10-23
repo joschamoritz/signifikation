@@ -638,115 +638,71 @@
         <div class="mo-tage" id="cal-grid" role="group" aria-labelledby="cal-title" aria-describedby="mo-tasten-hinweis"><p class="wo-meldung">Monat wird geladen …</p></div>
       </section>
 
-      <section class="admin-page" id="page-users" data-title="Nutzer" data-subtitle="Nutzerübersicht mit Rollen, Spielstatistik und Verwaltung.">
-        <div class="card">
-          <div class="card-head card-head--wrap">
-            <h2>Nutzerübersicht</h2>
-            <button class="entry-filters-reset" data-action="load-users-overview">↺ Laden</button>
+      <section class="admin-page" id="page-users" data-title="Nutzer" data-subtitle="Konten suchen, Rollen ändern, Käufe und Spielstand nachsehen.">
+        <!-- Meldungen zu Sammelaktionen und „Konto gelöscht“ (setNutzerStatus) -->
+        <p id="users-status" class="li-meldung" role="status" aria-live="polite" tabindex="-1"></p>
+
+        <div class="nu-filter" role="search" aria-label="Konten suchen">
+          <div class="li-feld">
+            <label class="li-label" for="users-search">Suche</label>
+            <input type="search" id="users-search" class="li-suche" placeholder="Name oder E-Mail" autocomplete="off" enterkeyhint="search" spellcheck="false" maxlength="120">
           </div>
-          <div class="users-bulk-controls">
-            <span id="users-bulk-count">0 ausgewählt</span>
-            <select id="users-bulk-action">
-              <option value="setRole">Rolle setzen</option>
-              <option value="export">Export</option>
-              <option value="delete">Löschen</option>
-            </select>
-            <span id="users-bulk-role-wrap" class="users-bulk-role-wrap">
-              <label for="users-bulk-role">Rolle</label>
-              <select id="users-bulk-role">
-                <option value="user">User</option>
-                <option value="premium">Premium</option>
-              </select>
-            </span>
-            <span id="users-bulk-export-wrap" class="users-bulk-export-wrap is-hidden">
-              <label for="users-bulk-format">Format</label>
-              <select id="users-bulk-format">
-                <option value="json">JSON</option>
-                <option value="csv">CSV</option>
-              </select>
-            </span>
-            <button class="entry-filters-reset" data-action="select-all-users">Alle wählen</button>
-            <button class="entry-filters-reset" data-action="clear-users-selection">Auswahl leeren</button>
-            <button id="users-bulk-run-btn" data-action="run-users-bulk-action" disabled>Bulk ausführen</button>
-          </div>
-          <div class="users-controls">
-            <input type="text" id="users-search" placeholder="Suche nach Name oder E-Mail …">
-            <select id="users-role-filter">
+          <div class="li-feld">
+            <label class="li-label" for="users-role-filter">Rolle</label>
+            <select id="users-role-filter" class="li-auswahl">
               <option value="">Alle Rollen</option>
-              <option value="user">User</option>
+              <option value="user">Basis</option>
               <option value="premium">Premium</option>
             </select>
-            <button data-action="reset-users-filters" class="entry-filters-reset">Filter zurücksetzen</button>
-          </div>
-          <div id="users-summary" class="users-summary">Nutzerdaten werden geladen …</div>
-          <div class="users-table-wrap">
-            <table class="users-table cards-on-mobile" role="table">
-              <thead role="rowgroup">
-                <tr role="row">
-                  <th scope="col" role="columnheader" class="users-select-col"><label class="cb-hit"><input type="checkbox" id="users-select-all" aria-label="Alle Nutzer auswählen"></label></th>
-                  <th scope="col" role="columnheader">Name</th>
-                  <th scope="col" role="columnheader">E-Mail</th>
-                  <th scope="col" role="columnheader">Rolle</th>
-                  <th scope="col" role="columnheader">Registriert</th>
-                  <th scope="col" role="columnheader">Aktion</th>
-                </tr>
-              </thead>
-              <tbody id="users-table-body" role="rowgroup">
-                <tr role="row"><td role="cell" colspan="6" class="users-empty table-message">Noch keine Daten geladen.</td></tr>
-              </tbody>
-            </table>
-          </div>
-          <div class="users-paging is-hidden" id="users-paging">
-            <button class="entry-filters-reset" id="users-load-more-btn" data-action="load-more-users">Weitere laden</button>
-            <span class="entry-hint" id="users-paging-info"></span>
           </div>
         </div>
 
-        <div class="card" id="users-detail-card">
-          <div class="card-head card-head--wrap">
-            <h2>Nutzerdetails</h2>
-            <div class="user-detail-actions">
-              <select id="user-detail-role">
-                <option value="user">User</option>
+        <div class="li-ergebnis" id="users-ergebnis" hidden>
+          <p class="li-zahl" id="users-summary" tabindex="-1"></p>
+          <p class="adm-visually-hidden" id="users-ansage" role="status" aria-live="polite"></p>
+          <button type="button" class="adm-link" data-action="reset-users-filters" id="users-filter-reset" hidden>Filter zurücksetzen</button>
+        </div>
+
+        <div class="li-auswahlleiste" id="users-auswahlleiste" hidden>
+          <label class="li-alle"><input type="checkbox" class="cb-box" id="users-select-all">Alle angezeigten</label>
+          <span class="li-auswahl-zahl" id="users-bulk-count" role="status"></span>
+          <!-- Nur schmal: Die Aktionen sind eingeklappt, damit die klebende Leiste niedrig bleibt (Zähler + eine Zeile) -->
+          <button type="button" class="adm-link nu-aktionen-toggle" id="users-aktionen-toggle" data-action="toggle-users-aktionen" aria-expanded="false" aria-controls="users-sammel" hidden>Aktionen …</button>
+          <button type="button" class="adm-link" data-action="clear-users-selection" id="users-clear-selection" hidden>Auswahl aufheben</button>
+          <div class="nu-sammel" id="users-sammel" role="group" aria-label="Sammelaktionen für die Auswahl" hidden>
+            <span class="nu-sammel-gruppe">
+              <label class="nu-sammel-label" for="users-bulk-role">Neue Rolle</label>
+              <select id="users-bulk-role" class="li-auswahl">
                 <option value="premium">Premium</option>
+                <option value="user">Basis</option>
               </select>
-              <button id="user-role-save-btn" data-action="save-selected-user-role">Rolle speichern</button>
-              <button id="user-delete-btn" class="danger-btn" data-action="delete-selected-user" disabled>Nutzer löschen</button>
-            </div>
-          </div>
-          <div id="user-detail-empty" class="users-empty">Wähle einen Nutzer aus der Tabelle, um Details zu sehen.</div>
-          <div id="user-detail-content" class="user-detail-content is-hidden">
-            <div class="user-detail-head">
-              <strong id="user-detail-title">–</strong>
-              <span id="user-detail-subtitle">–</span>
-            </div>
-            <div id="user-meta-grid" class="user-meta-grid"></div>
-
-            <div class="user-detail-section">
-              <h3>Spielstatistik nach Modus</h3>
-              <div id="user-game-stats" class="user-game-stats"></div>
-            </div>
-
-            <div class="user-detail-section">
-              <h3>Letzte Aktivität</h3>
-              <div class="users-table-wrap">
-                <table class="users-table">
-                  <thead>
-                    <tr>
-                      <th scope="col">Datum</th>
-                      <th scope="col">Modus</th>
-                      <th scope="col">Plays</th>
-                      <th scope="col">Ø Score</th>
-                    </tr>
-                  </thead>
-                  <tbody id="user-recent-body">
-                    <tr><td colspan="4" class="users-empty">Noch keine Aktivität.</td></tr>
-                  </tbody>
-                </table>
-              </div>
-            </div>
+              <button type="button" class="adm-link" data-action="run-users-bulk-role" id="users-bulk-role-btn"><span class="adm-visually-hidden">Rolle der Auswahl </span>setzen …</button>
+            </span>
+            <span class="nu-sammel-gruppe">
+              <span class="nu-sammel-label" aria-hidden="true">Exportieren</span>
+              <button type="button" class="adm-link" data-action="run-users-bulk-export" data-format="json"><span class="adm-visually-hidden">Auswahl exportieren </span>als JSON</button>
+              <button type="button" class="adm-link" data-action="run-users-bulk-export" data-format="csv"><span class="adm-visually-hidden">Auswahl exportieren </span>als CSV</button>
+            </span>
+            <button type="button" class="li-loeschen" id="users-bulk-delete-btn" data-action="run-users-bulk-delete"><span id="users-bulk-delete-text">Konten löschen …</span></button>
           </div>
         </div>
+
+        <div class="nu-spalten" id="users-spalten" aria-hidden="true" hidden><span></span><span>Name</span><span>E-Mail</span><span>Rolle</span><span>Angelegt</span></div>
+        <!-- Zeilen bzw. Lade-/Leer-/Fehlerzustand, von renderNutzerListe() gefüllt -->
+        <div id="users-table-body"><p class="wo-meldung">Konten werden geladen …</p></div>
+
+        <div class="nu-mehr" id="users-paging" hidden>
+          <button type="button" class="adm-link" id="users-load-more-btn" data-action="load-more-users">Weitere 50 laden</button>
+          <span class="li-seiten-info" id="users-paging-info" tabindex="-1"></span>
+          <!-- Fehler beim Nachladen, direkt am Knopf -->
+          <p class="li-meldung nu-mehr-meldung" id="users-mehr-meldung" role="status" aria-live="polite"></p>
+        </div>
+      </section>
+
+      <section class="admin-page" id="page-user" data-title="Konto" data-subtitle="">
+        <p id="user-status" class="li-meldung" role="status" aria-live="polite" tabindex="-1"></p>
+        <!-- Kopf + Abschnitte bzw. Lade-/Fehler-/Nicht-gefunden-Zustand, von renderKonto() gefüllt -->
+        <div id="user-detail"><p class="wo-meldung">Konto wird geladen …</p></div>
       </section>
 
       <section class="admin-page" id="page-freedays" data-title="Bonus-Tage" data-subtitle="An ausgewählten Tagen bekommen Basic-Nutzer zusätzliche Eigene-Lemma-Spiele.">
