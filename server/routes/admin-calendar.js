@@ -6,6 +6,47 @@ import { ergaenzeLueckenfueller, ermittleLueckenfuellerId, findeLueckenfuellerLe
 // Fenster würde den Tag doppelt speichern. Ein Node-Prozess → ein Set genügt.
 const laufendeUebernahmen = new Set()
 
+// Lückenfüller-Prüfung und -Erzeugung rechnen 8–11 s auf dem einen Node-Prozess (synchrones
+// better-sqlite3) und halten in dieser Zeit den ganzen Server an. Höchstens eine davon
+// gleichzeitig: Prüfen, Runden erzeugen und „Runden für ein Lemma“ teilen sich EINE Sperre;
+// wer sie nicht bekommt, erhält 409. Freigabe nur durch den Starter (Token-Vergleich).
+// Das automatische Ergänzen beim Speichern eines Tages (ergaenzeLueckenfueller) ist bewusst nicht gesperrt.
+let lueckenfuellerSperre = null
+const PRUEFUNG_BESETZT = 'Diese Prüfung läuft schon (anderer Tab oder doppelt abgeschickt). Das Ergebnis erscheint dort; danach geht es hier wieder.'
+const LUECKENFUELLER_BESETZT = 'Es läuft schon eine Lückenfüller-Prüfung oder -Erzeugung (anderer Tab oder doppelt abgeschickt). Bitte kurz warten und danach noch einmal versuchen.'
+
+function nimmLueckenfuellerSperre(wort) {
+  if (lueckenfuellerSperre) return null
+  lueckenfuellerSperre = { wort }
+  return lueckenfuellerSperre
+}
+
+function gibLueckenfuellerSperreFrei(sperre) {
+  if (sperre && lueckenfuellerSperre === sperre) lueckenfuellerSperre = null
+}
+
+// Ergebnisse der Lückenfüller-Prüfung (Schlüssel: Wort + Wortart), 1 h gültig; Prüfen und Erzeugen teilen sie.
+const LUECKENFUELLER_CACHE_MS = 60 * 60 * 1000
+const lueckenfuellerCache = new Map()
+
+/** Leert den Zwischenspeicher der Lückenfüller-Prüfung (Werkzeuge › Zwischenspeicher leeren). */
+export function leereLueckenfuellerCache() {
+  lueckenfuellerCache.clear()
+}
+
+const lueckenfuellerSchluessel = (wort, vorhandenePos, posParam) =>
+  `lf-analyse:${String(wort).toLowerCase()}:${vorhandenePos || posParam || ''}`
+
+function frischAusCache(schluessel) {
+  const treffer = lueckenfuellerCache.get(schluessel)
+  return treffer && treffer.bis >= Date.now() ? treffer.wert : null
+}
+
+function legInCache(schluessel, wert) {
+  lueckenfuellerCache.set(schluessel, { bis: Date.now() + LUECKENFUELLER_CACHE_MS, wert })
+  if (lueckenfuellerCache.size > 200) lueckenfuellerCache.delete(lueckenfuellerCache.keys().next().value)
+}
+
 export function createAdminCalendarRouter({
   adminLimiter,
   requireAuth,
@@ -33,15 +74,15 @@ export function createAdminCalendarRouter({
   lemmaToRow,
   saveTagAtomically,
   fetchLemma,
+  fetchKollokatorenAnalyse,
+  MIN_KOLLOKATOREN,
   fetchBonusQuestion,
-  fetchRelation,
   fetchZeitenwende,
   fetchZeitenwendeAnalyze,
   fetchWiktionary,
   fetchWortZwilling,
   buildLueckenfueller,
   toId,
-  POS_ROUNDS,
   buildModeGroups,
   auditCreate,
   auditDelete,
@@ -65,41 +106,19 @@ export function createAdminCalendarRouter({
     return res.status(409).json({ error: err.message, feld: err.feld })
   }
 
+  // Prüfung auf dem Spielweg (wortprofil.js → fetchKollokatorenAnalyse): derselbe Pool, dieselbe Auswahl der
+  // Ablenker wie in der Kollokationen-Runde. Geeignet ab MIN_KOLLOKATOREN (3 gesuchte + 7 Ablenker).
   async function analyzeKollokationForPos(lemma, pos) {
-    const rounds = POS_ROUNDS[pos] ?? POS_ROUNDS.Substantiv
-    const [roundResults, bonusQ] = await Promise.all([
-      Promise.allSettled(rounds.map((r) => fetchRelation(lemma, pos, r.relCode))),
+    const [analyse, bonus] = await Promise.all([
+      fetchKollokatorenAnalyse(lemma, pos),
       fetchBonusQuestion(lemma, pos).catch(() => null),
     ])
-
-    // Alle Relationen zusammenführen, deduplizieren, nach logDice sortieren
-    const allRawItems = roundResults.flatMap((r) =>
-      r.status === 'fulfilled'
-        ? r.value.filter((it) => !it.lemma.includes(' ') && it.lemma.length > 1)
-        : []
-    )
-    const seen = new Map()
-    for (const it of allRawItems) {
-      const key = it.lemma.toLowerCase()
-      if (!seen.has(key) || parseFloat(it.logDice) > parseFloat(seen.get(key).logDice)) {
-        seen.set(key, it)
-      }
-    }
-    const kollokatoren = [...seen.values()]
-      .sort((a, b) => parseFloat(b.logDice) - parseFloat(a.logDice))
-      .slice(0, 20)
-      .map((it) => ({ wort: it.lemma, logDice: parseFloat(parseFloat(it.logDice).toFixed(2)) }))
-
-    const usable = kollokatoren.length >= 5
-
     return {
-      lemma,
-      pos,
-      kollokatoren,
-      bonus: bonusQ,
-      usable,
-      score: kollokatoren.slice(0, 3).reduce((sum, it) => sum + it.logDice, 0),
-      kollCount: kollokatoren.length,
+      ...analyse,
+      bonus,
+      min: MIN_KOLLOKATOREN,
+      usable: analyse.pool >= MIN_KOLLOKATOREN,
+      score: analyse.gesucht.reduce((sum, it) => sum + it.logDice, 0),
     }
   }
 
@@ -251,20 +270,17 @@ export function createAdminCalendarRouter({
   router.get('/admin/analyze-kollokation', adminLimiter, requireAuth, validate(analyzeKollQuerySchema, 'query'), async (req, res) => {
     const { q: lemma, pos } = req.query
     try {
-      if (pos) {
-        const result = await analyzeKollokationForPos(lemma, pos)
-        return res.json({ lemma: result.lemma, pos: result.pos, kollokatoren: result.kollokatoren, bonus: result.bonus, usable: result.usable })
-      }
+      const antwort = ({ score: _score, ...rest }) => rest
+      if (pos) return res.json(antwort(await analyzeKollokationForPos(lemma, pos)))
 
+      // Ohne Wortart: die ergiebigste nehmen (die Seite nennt sie im Ergebnis)
       const posCandidates = ['Substantiv', 'Verb', 'Adjektiv']
       const analyses = await Promise.all(posCandidates.map((candidate) => analyzeKollokationForPos(lemma, candidate)))
       analyses.sort((a, b) => {
-        if (b.kollCount !== a.kollCount) return b.kollCount - a.kollCount
+        if (b.pool !== a.pool) return b.pool - a.pool
         return b.score - a.score
       })
-
-      const best = analyses[0]
-      res.json({ lemma: best.lemma, pos: best.pos, kollokatoren: best.kollokatoren, bonus: best.bonus, usable: best.usable })
+      res.json(antwort(analyses[0]))
     } catch (err) {
       adminError(res, err)
     }
@@ -582,10 +598,14 @@ export function createAdminCalendarRouter({
 
   router.post('/admin/lemma/:id/lueckenfueller', adminLimiter, requireAuth, validate(adminLemmaIdParamsSchema, 'params'), async (req, res) => {
     const { id } = req.params
+    let sperre = null
     try {
       const { byId } = getLemmataIndex()
       const entry = byId.get(id)
       if (!entry) return res.status(404).json({ error: 'Lemma nicht gefunden' })
+
+      sperre = nimmLueckenfuellerSperre(entry.lemma)
+      if (!sperre) return res.status(409).json({ error: LUECKENFUELLER_BESETZT })
 
       const result = await buildLueckenfueller(entry.lemma, entry.pos)
       if (!result) return res.json({ ok: false, reason: 'Nicht genug Material (Pool zu klein oder keine blankbaren Sätze)' })
@@ -597,11 +617,12 @@ export function createAdminCalendarRouter({
       res.json({ ok: true, lemma: entry.lemma, rounds: result.length, data: result })
     } catch (err) {
       serverError(res, err)
+    } finally {
+      gibLueckenfuellerSperreFrei(sperre)
     }
   })
 
   const LUECKENFUELLER_POS_CANDIDATEN = ['Substantiv', 'Verb', 'Adjektiv']
-
   // Ermittelt Wortart + buildLueckenfueller-Ergebnis für ein Wort. Existiert
   // bereits ein Lemma dazu, gilt zwingend dessen Wortart (eine ID/Zeile pro
   // Wort). Sonst: ohne Vorgabe alle drei Wortarten testen (analog
@@ -620,6 +641,7 @@ export function createAdminCalendarRouter({
   router.post('/admin/lueckenfueller/generate', adminLimiter, requireAuth, validate(lueckenfuellerGenerateSchema), async (req, res) => {
     const { lemmaName, pos: posParam } = req.body
     const name = lemmaName.trim()
+    let sperre = null
     try {
       const { lemma: existing, kollision } = zuordneLueckenfuellerLemma(name)
       // Die abgeleitete Kennung gehört schon zu einem Lemma mit anderem Namen: nichts
@@ -630,7 +652,15 @@ export function createAdminCalendarRouter({
       }
       // Bei Eingabe einer Kennung gilt der Name des vorhandenen Lemmas.
       const wort = existing?.lemma ?? name
-      const best = await resolveLueckenfuellerCandidate(wort, existing?.pos, posParam)
+      sperre = nimmLueckenfuellerSperre(wort)
+      if (!sperre) return res.status(409).json({ error: LUECKENFUELLER_BESETZT })
+      // Liegt zu diesem Wort (und dieser Wortart) ein frisches Ergebnis der Prüfung vor, wird nicht noch einmal gerechnet.
+      const schluessel = lueckenfuellerSchluessel(wort, existing?.pos, posParam)
+      let best = frischAusCache(schluessel)
+      if (!best) {
+        best = await resolveLueckenfuellerCandidate(wort, existing?.pos, posParam)
+        legInCache(schluessel, best)
+      }
       if (!best.result) return res.json({ ok: false, reason: 'Nicht genug Material (Pool zu klein oder keine blankbaren Sätze)' })
 
       let entry = existing
@@ -649,6 +679,8 @@ export function createAdminCalendarRouter({
       res.json({ ok: true, lemma: entry.lemma, id: entry.id, pos: entry.pos, rounds: best.result.length, neuAngelegt })
     } catch (err) {
       serverError(res, err)
+    } finally {
+      gibLueckenfuellerSperreFrei(sperre)
     }
   })
 
@@ -672,19 +704,37 @@ export function createAdminCalendarRouter({
 
   // Analyse-Endpunkt: prüft Eignung ohne zu speichern — auch für Woerter, die
   // noch kein Lemma haben.
+  //
+  // Eine Prüfung rechnet 8–11 s auf dem einen Node-Prozess (synchrones better-sqlite3,
+  // bei fehlender Wortart drei Wortarten nacheinander) und hält in dieser Zeit den ganzen
+  // Server an. Deshalb (a) Ergebnis je Wort + Wortart 1 h zwischenspeichern und (b) höchstens
+  // eine Prüfung/Erzeugung gleichzeitig (gemeinsame Sperre oben): Doppelklick, zweiter Tab oder
+  // Tag bearbeiten verdoppeln die Blockade nicht, sondern bekommen 409. Ein Node-Prozess → eine Variable genügt.
+
   router.get('/admin/analyze-lueckenfueller', adminLimiter, requireAuth, validate(analyzeLueckenfuellerQuerySchema, 'query'), async (req, res) => {
     const { q: lemmaName, pos: posParam } = req.query
     const name = lemmaName.trim()
+    let sperre = null
     try {
       const { lemma: existing, kollision } = zuordneLueckenfuellerLemma(name)
       if (kollision) return res.json({ ok: false, usable: false, lemma: name, neuesLemma: false, vorhandeneRunden: 0, reason: kollisionsMeldung(kollision) })
-      const best = await resolveLueckenfuellerCandidate(existing?.lemma ?? name, existing?.pos, posParam)
 
-      if (!best.result) return res.json({
+      const zielWort = existing?.lemma ?? name
+      const schluessel = lueckenfuellerSchluessel(zielWort, existing?.pos, posParam)
+      // Eigener kleiner Speicher statt getCachedQuery: Die Berechnung ist asynchron, ein abgelehnter Versuch soll nicht eine Stunde haften
+      let ergebnis = frischAusCache(schluessel)
+      if (!ergebnis) {
+        sperre = nimmLueckenfuellerSperre(zielWort)
+        if (!sperre) return res.status(409).json({ error: PRUEFUNG_BESETZT })
+        ergebnis = await resolveLueckenfuellerCandidate(zielWort, existing?.pos, posParam)
+        legInCache(schluessel, ergebnis)
+      }
+
+      if (!ergebnis.result) return res.json({
         ok: false,
         usable: false,
         lemma: name,
-        pos: best.pos,
+        pos: ergebnis.pos,
         neuesLemma: !existing,
         vorhandeneRunden: zaehleVorhandeneRunden(name),
         reason: 'Nicht genug Material (Pool zu klein oder keine blankbaren Sätze)',
@@ -694,12 +744,12 @@ export function createAdminCalendarRouter({
         ok: true,
         usable: true,
         lemma: name,
-        pos: best.pos,
+        pos: ergebnis.pos,
         neuesLemma: !existing,
         vorhandeneRunden: zaehleVorhandeneRunden(name),
-        rounds: best.result.length,
-        roundTypes: best.result.map(r => r.type),
-        preview: best.result.map(r => ({
+        rounds: ergebnis.result.length,
+        roundTypes: ergebnis.result.map(r => r.type),
+        preview: ergebnis.result.map(r => ({
           type: r.type,
           kollokator: r.kollokator ?? r.sentences?.map(s => s.kollokator).join(' / '),
           punkte: r.punkte,
@@ -707,6 +757,8 @@ export function createAdminCalendarRouter({
       })
     } catch (err) {
       adminError(res, err)
+    } finally {
+      gibLueckenfuellerSperreFrei(sperre)
     }
   })
 

@@ -5,13 +5,15 @@ import { isBlockedNickname } from '../classroom/nickname-filter.js'
  * Middleware-Factory: validiert req[source] gegen ein Zod-Schema.
  * Bei Fehler → 400 mit erstem Fehlermessage; bei Erfolg → req[source] = geparste Daten.
  */
-export function validate(schema, source = 'body') {
+export function validate(schema, source = 'body', { mitFeld = false } = {}) {
   return (req, res, next) => {
     const result = schema.safeParse(req[source])
     if (!result.success) {
       // Guard: bei (theoretisch) leerem ZodError keinen TypeError werfen → 400 mit Fallback
       const message = result.error?.errors?.[0]?.message || 'Ungültige Eingabe'
-      return res.status(400).json({ error: message })
+      // Mit mitFeld nennt die Antwort das Feld des ersten Fehlers (Formulare zeigen die Meldung am Feld an)
+      const feld = mitFeld ? result.error?.errors?.[0]?.path?.[0] : undefined
+      return res.status(400).json(typeof feld === 'string' ? { error: message, feld } : { error: message })
     }
     if (source === 'body') {
       req.body = result.data
@@ -124,20 +126,20 @@ export const adminTagSchema = z.object({
 
 /** GET /admin/analyze-kollokation (query) */
 export const analyzeKollQuerySchema = z.object({
-  q:   z.string().min(1, 'q= erforderlich'),
+  q:   z.string().trim().min(1, 'q= erforderlich').max(100, 'Höchstens 100 Zeichen'),
   pos: POS.optional(),
 })
 
 /** GET /admin/analyze-wortzwilling (query) */
 export const analyzeWZQuerySchema = z.object({
-  a:   z.string().min(1, 'a= erforderlich'),
-  b:   z.string().min(1, 'b= erforderlich'),
+  a:   z.string().trim().min(1, 'a= erforderlich').max(100, 'Höchstens 100 Zeichen'),
+  b:   z.string().trim().min(1, 'b= erforderlich').max(100, 'Höchstens 100 Zeichen'),
   pos: POS,
 })
 
 /** GET /admin/analyze-zeitenwende (query) */
 export const analyzeZWendeQuerySchema = z.object({
-  q: z.string().min(1, 'q= erforderlich'),
+  q: z.string().trim().min(1, 'q= erforderlich').max(100, 'Höchstens 100 Zeichen'),
 })
 
 /**
@@ -146,7 +148,7 @@ export const analyzeZWendeQuerySchema = z.object({
  * (pos optional: fehlt sie, probiert der Handler alle drei Wortarten).
  */
 export const analyzeLueckenfuellerQuerySchema = z.object({
-  q:   z.string().min(1, 'q= erforderlich').max(100),
+  q:   z.string().trim().min(1, 'q= erforderlich').max(100, 'Höchstens 100 Zeichen'),
   pos: POS.optional(),
 })
 
@@ -304,10 +306,14 @@ export const adminClassroomTeachersQuerySchema = productDaysWindowSchema
 // ── Bonus-Tage (free_days) Schemas ──────────────────────────────
 
 /** POST /admin/free-days (body) */
+// Mindestens 1 zusätzliches Spiel: Ein Bonus-Tag mit 0 wäre wirkungslos, stünde aber in Woche und Monat.
+// Das Datum nicht in der Vergangenheit prüft die Route (Berliner Zeit).
+export const BONUS_SPIELE_FEHLER = 'Bitte eine ganze Zahl von 1 bis 50 eintragen.'
 export const adminFreeDayBodySchema = z.object({
-  date: DATUM_ISO,
+  date: DATUM_ISO.refine(istKalendertag, 'Das Datum gibt es nicht.'),
   label: z.string().trim().max(100).optional().default(''),
-  bonus_count: z.coerce.number().int().min(0).max(50).optional().default(0),
+  bonus_count: z.coerce.number({ invalid_type_error: BONUS_SPIELE_FEHLER, required_error: BONUS_SPIELE_FEHLER })
+    .int(BONUS_SPIELE_FEHLER).min(1, BONUS_SPIELE_FEHLER).max(50, BONUS_SPIELE_FEHLER),
 })
 
 /** DELETE /admin/free-days/:date (params) */
@@ -324,6 +330,8 @@ const PUSH_BODY  = z.string().trim().min(1, 'Text erforderlich').max(300, 'Text 
 export const adminPushTemplateBodySchema = z.object({
   title: PUSH_TITLE,
   body: PUSH_BODY,
+  // Nur beim Anlegen (POST) ausgewertet; PUT ändert die Kategorie nie.
+  category: z.enum(['daily', 'streak']).optional(),
   // Legacy-Aufrufer senden enabled als 0/1 statt boolean - beides akzeptieren.
   enabled: z.union([z.boolean(), z.literal(0), z.literal(1)]).optional().default(1),
 })
@@ -336,7 +344,8 @@ export const adminPushTemplateIdParamsSchema = z.object({
 /**
  * POST /admin/push/send (body) — mode-abhaengige Pflichtfelder:
  *   mode=template → templateId erforderlich
- *   mode=free|self → title + body erforderlich
+ *   mode=free → title + body erforderlich
+ *   mode=self → templateId (Test einer Vorlage) ODER title + body
  */
 export const adminPushSendSchema = z.object({
   mode: z.enum(['free', 'template', 'self'], { errorMap: () => ({ message: 'mode muss "free", "template" oder "self" sein' }) }),
@@ -347,7 +356,7 @@ export const adminPushSendSchema = z.object({
   if (value.mode === 'template' && !value.templateId) {
     ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Ungültige Template-ID', path: ['templateId'] })
   }
-  if (value.mode === 'free' || value.mode === 'self') {
+  if (value.mode === 'free' || (value.mode === 'self' && !value.templateId)) {
     if (!value.title) ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Titel erforderlich', path: ['title'] })
     if (!value.body) ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Text erforderlich', path: ['body'] })
   }
@@ -426,19 +435,25 @@ export const iapRestoreSchema = z.object({
 
 const ISO_WOCHE = z.string().regex(/^\d{4}-W\d{2}$/, 'woche muss ISO-Format haben: YYYY-Www')
 
+// Links im Wort der Woche erscheinen in der App: nur leer oder http(s)://…
+const SPEZIAL_LINK = z.string().trim().max(500, 'Der Link darf höchstens 500 Zeichen lang sein.')
+  .regex(/^(https?:\/\/\S+)?$/i, 'Der Link muss mit http:// oder https:// beginnen.')
+  .optional().default('')
+
 /** POST /admin/spezialwoche */
 export const adminSpezialwocheSchema = z.object({
   woche:              ISO_WOCHE,
-  von:                DATUM_ISO,
-  bis:                DATUM_ISO,
+  // Von/Bis rechnet der Server aus der Woche (Montag–Sonntag); abweichende Angaben werden ignoriert.
+  von:                DATUM_ISO.optional(),
+  bis:                DATUM_ISO.optional(),
   lemma_id:           z.string().trim().min(1, 'lemma_id erforderlich').max(120),
   zwilling_partner:   z.string().max(100).optional().default(''),
   zwilling_pos:       POS,
   zeitenwende_notiz:  z.string().max(500).optional().default(''),
-  zeitenwende_link:   z.string().max(500).optional().default(''),
+  zeitenwende_link:   SPEZIAL_LINK,
   lueckenfueller_id:  z.string().max(120).optional().default(''),
   notiz:              z.string().max(500).optional().default(''),
-  link:               z.string().max(500).optional().default(''),
+  link:               SPEZIAL_LINK,
 })
 
 /** GET /admin/spezialwoche/:woche (params) */

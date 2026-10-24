@@ -19,16 +19,15 @@
 // mit "ok: true/false" und den Kennzahlen, die zur Einschätzung führten.
 
 import '../server/env.js'
-import { fetchLemma, fetchZeitenwende } from '../server/wortprofil.js'
+import { fetchLemma, fetchZeitenwende, MIN_KOLLOKATOREN } from '../server/wortprofil.js'
 import { fetchWortZwilling } from '../server/wortzwilling.js'
 import { buildLueckenfueller } from '../server/lueckenfueller.js'
 import { belegeVerfuegbar } from '../server/belege.js'
 
 // Ab hier gilt ein Kollokationen-Wort als "gut bespielbar": die gemischte
-// Top-Runde (buildMixedRound) braucht min. 3 Treffer + Distraktoren aus
-// Platz 4-25 (buildOptions) – 10 ist der Idealfall (3 Lösung + 7 Distraktoren),
-// darunter wird die Auswahl an Falsch-Antworten dünn.
-const MIN_MIXED_COUNT = 10
+// Top-Runde (buildMixedRound) braucht 3 gesuchte + 7 Ablenker aus Platz 4-25.
+// Die Schwelle MIN_KOLLOKATOREN steht in server/wortprofil.js und gilt ebenso
+// für Wort prüfen und Tag bearbeiten im Admin-Bereich.
 const MIN_ROUND_COUNT = 4
 
 function summarizeWort(lemma, pos, data) {
@@ -42,7 +41,7 @@ function summarizeWort(lemma, pos, data) {
     roundSizes,
     weakRounds,
     top3: data.runden.kollokatoren.slice(0, 3).map((o) => o.wort),
-    ok: mixedCount >= MIN_MIXED_COUNT && weakRounds.length === 0,
+    ok: mixedCount >= MIN_KOLLOKATOREN && weakRounds.length === 0,
   }
 }
 

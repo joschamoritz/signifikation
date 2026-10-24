@@ -534,8 +534,8 @@ if (!hasColumn('lemmata', 'lueckenfueller')) {
       VALUES (?, ?, 1, ?, ?)
     `)
     const defaults = [
-      ['Heute: »{lemma}«',            'Welche Wörter treten am häufigsten gemeinsam auf?'],
-      ['{lemma} wartet auf dich',     'Kennst du seine stärksten Kollokationen?'],
+      ['Heute: »{lemma}«',            'Welche Wörter verbinden sich am stärksten damit?'],
+      ['{lemma} wartet auf dich',     'Kennst du die stärksten Kollokatoren?'],
       ['Thema heute: {thema}',        '»{lemma}« und mehr warten auf dich.'],
       ['Aus echten Texten: »{lemma}«', 'Heute täglich neu – korpusbasiert.'],
       ['{wortA} oder {wortB}?',       'Spür dem feinen Unterschied nach.'],

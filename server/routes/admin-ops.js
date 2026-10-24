@@ -7,6 +7,7 @@ import { getEventLoopLagMs, getEventLoopLagLastMs } from '../metrics.js'
 import { wortprofilErreichbar } from '../wortprofil.js'
 import { pushStatus } from '../notifications/sender.js'
 import { isMailConfigured } from '../mailer.js'
+import { todayBerlin } from '../customLemmaQuota.js'
 import { listSqliteBackups, sicherungLaeuft } from '../jobs/sqliteBackup.js'
 
 function getProcessFingerprint() {
@@ -54,6 +55,8 @@ const countUsersStmt = db.prepare(`
 // Systemzustand: nur billige Abfragen (je ein SELECT über Index bzw. Kleinsttabelle).
 const pingAppDbStmt = db.prepare('SELECT 1 AS ok')
 const letzterProtokollEintragStmt = db.prepare('SELECT MAX(timestamp) AS zuletzt FROM audit_log')
+// Wort der Woche für die Werkzeuge-Übersicht: die laufende, sonst die nächste (eine Zeile über den Index auf bis/von)
+const naechsteSpezialwocheStmt = db.prepare('SELECT woche, von, lemma_id FROM spezialwochen WHERE bis >= ? ORDER BY von LIMIT 1')
 // Kursmaterial: Zeitpunkt der letzten Erzeugung (Millisekunden) und Stand je Station
 const kursMaterialZuletztStmt = db.prepare(`
   SELECT MAX(COALESCE(updated_at, created_at)) AS zuletzt
@@ -93,6 +96,7 @@ export function createAdminOpsRouter({
   getCacheMetrics,
   getQueryCacheMetrics,
   clearQueryCache,
+  leereLueckenfuellerCache = () => {},
   adminError,
   logger,
 }) {
@@ -170,6 +174,13 @@ export function createAdminOpsRouter({
     try { protokollZuletzt = letzterProtokollEintragStmt.get()?.zuletzt ?? null } catch { protokollZuletzt = null }
     let kursZuletzt = null
     try { kursZuletzt = kursMaterialZuletztStmt.get()?.zuletzt ?? null } catch { kursZuletzt = null }
+    let spezialwoche = null
+    try {
+      const heute = todayBerlin()
+      const sw = naechsteSpezialwocheStmt.get(heute)
+      // Anzeige wie in der App: erster Buchstabe groß
+      if (sw) spezialwoche = { woche: sw.woche, von: sw.von, lemma: sw.lemma_id.charAt(0).toUpperCase() + sw.lemma_id.slice(1), laeuft: sw.von <= heute }
+    } catch { spezialwoche = null }
     let push = { web: false, ios: false, geraete: 0 }
     try { push = pushStatus() } catch { /* Zustand „nicht eingerichtet“ */ }
 
@@ -188,6 +199,7 @@ export function createAdminOpsRouter({
       sicherung: sicherungStatus(),
       kursmaterial: { laeuft: coursePdfJob.running, zuletzt: kursZuletzt },
       protokoll: { zuletzt: protokollZuletzt },
+      spezialwoche,
     })
   })
 
@@ -208,6 +220,7 @@ export function createAdminOpsRouter({
   router.post('/admin/cache-clear', adminLimiter, requireAuth, (_req, res) => {
     try {
       clearQueryCache()
+      leereLueckenfuellerCache()
       logger.info('Alle Query-Caches geleert')
       res.json({ ok: true, message: 'Query-Cache geleert' })
     } catch (err) {

@@ -298,3 +298,36 @@ describe('posByFrequency („Elend"-Fix)', () => {
     expect(wp.posByFrequency('gibtesnicht')).toEqual([])
   })
 })
+
+describe('fetchKollokatorenAnalyse (Wort prüfen › Kollokationen, Spielweg)', () => {
+  it('nennt dieselben drei gesuchten Kollokatoren wie die Kollokationen-Runde von fetchLemma', async () => {
+    const wp = await ladeModul({ hideAux: false })
+    const analyse = await wp.fetchKollokatorenAnalyse('Liebe', 'Substantiv')
+    const runde = (await wp.fetchLemma('Liebe', 'Substantiv')).runden.kollokatoren
+    expect(analyse.gesucht.map((k) => k.wort)).toEqual(runde.slice(0, 3).map((o) => o.wort))
+    expect(analyse.gesucht.map((k) => k.platz)).toEqual([1, 2, 3])
+    // Die Ablenker kommen aus Platz 4–25, sieben Stück, nach Platz sortiert
+    expect(analyse.ablenker).toHaveLength(7)
+    expect(analyse.ablenker.every((k) => k.platz >= 4 && k.platz <= 25)).toBe(true)
+    expect(analyse.ablenker.map((k) => k.platz)).toEqual([...analyse.ablenker.map((k) => k.platz)].sort((a, b) => a - b))
+    expect(analyse.kollokatoren).toHaveLength(25)
+    expect(analyse.pool).toBeGreaterThanOrEqual(wp.MIN_KOLLOKATOREN)
+  })
+
+  it('MIN_KOLLOKATOREN ist 10 (3 gesuchte + 7 Ablenker); ein Wort mit 6 Kollokatoren bleibt darunter', async () => {
+    const wp = await ladeModul({ hideAux: false })
+    expect(wp.MIN_KOLLOKATOREN).toBe(10)
+    const analyse = await wp.fetchKollokatorenAnalyse('Erfolg', 'Substantiv')
+    expect(analyse.pool).toBe(6)
+    expect(analyse.pool).toBeLessThan(wp.MIN_KOLLOKATOREN)
+    // fetchLemma liefert für dieses Wort ebenfalls nur 6 Optionen: dieselbe Zahl wie der Pool
+    const runde = (await wp.fetchLemma('Erfolg', 'Substantiv')).runden.kollokatoren
+    expect(runde).toHaveLength(analyse.pool)
+  })
+
+  it('unbekannte Wörter haben einen leeren Pool', async () => {
+    const wp = await ladeModul({ hideAux: false })
+    const analyse = await wp.fetchKollokatorenAnalyse('Quastenflosser', 'Substantiv')
+    expect(analyse).toMatchObject({ pool: 0, gesucht: [], ablenker: [], kollokatoren: [] })
+  })
+})

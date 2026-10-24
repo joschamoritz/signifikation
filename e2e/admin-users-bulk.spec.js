@@ -48,7 +48,7 @@ test('Nutzer: Name öffnet das Konto, die Rückleiste führt zum selben Namen zu
 
   await expect.poll(() => page.evaluate(() => globalThis.location.hash)).toBe(href)
   await expect(page.locator('#page-user')).toHaveClass(/is-active/)
-  await expect(page.locator('#user-detail .tag-abschnitt-titel', { hasText: 'Kauf und Premium' })).toBeVisible()
+  await expect(page.locator('#user-detail .tag-abschnitt-titel', { hasText: 'Kauf und Gesamtausgabe' })).toBeVisible()
   // Adresse und Titel enthalten weder Name noch E-Mail
   expect(await page.title()).not.toContain('@')
   expect(await page.title()).toBe('Konto · Nutzer – Signifikation Admin')

@@ -20,6 +20,9 @@ const VAPID_PUBLIC_KEY  = process.env.VAPID_PUBLIC_KEY?.trim()
 const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY?.trim()
 const VAPID_MAILTO      = process.env.VAPID_MAILTO?.trim()
 
+// Zeitlimit je Anfrage (Web Push und APNs), damit ein hängender Push-Dienst den Versand nicht blockiert.
+const SEND_TIMEOUT_MS = 10_000
+
 let vapidConfigured = false
 
 if (VAPID_PUBLIC_KEY && VAPID_PRIVATE_KEY && VAPID_MAILTO) {
@@ -80,7 +83,7 @@ async function sendWebPush(sub, payload) {
   }
 
   try {
-    await webpush.sendNotification(pushSubscription, JSON.stringify(payload))
+    await webpush.sendNotification(pushSubscription, JSON.stringify(payload), { timeout: SEND_TIMEOUT_MS })
     logger.debug({ subId: sub.id }, 'Web Push gesendet')
     return true
   } catch (err) {
@@ -113,6 +116,7 @@ if (APNS_KEY_ID && APNS_TEAM_ID && APNS_KEY_PATH) {
         teamId: APNS_TEAM_ID,
       },
       production: true,
+      requestTimeout: SEND_TIMEOUT_MS,
     })
     logger.info('APNs-Provider initialisiert')
   } catch (err) {

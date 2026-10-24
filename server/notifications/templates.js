@@ -31,15 +31,21 @@ function streakFallback(streak) {
   }
 }
 
-/** Gibt den deutschen Wochentagsnamen zurück. */
+// „Heute“ und der Wochentag zählen nach Berliner Zeit (wie todayBerlin() im Kontingent). Mit toISOString()
+// und getDay() (UTC bzw. Zeitzone des Servers) zeigten Vorschau und manueller Versand zwischen 0 und 1/2 Uhr
+// noch die Wörter von gestern. Der 8-Uhr-Versand ist davon nicht betroffen.
+const ZEITZONE = process.env.TIMEZONE || 'Europe/Berlin'
+const DATUM_BERLIN = new Intl.DateTimeFormat('en-CA', { timeZone: ZEITZONE, year: 'numeric', month: '2-digit', day: '2-digit' })
+const WOCHENTAG_BERLIN = new Intl.DateTimeFormat('de-DE', { timeZone: ZEITZONE, weekday: 'long' })
+
+/** Gibt den deutschen Wochentagsnamen (Berliner Zeit) zurück. */
 function getWochentag(date) {
-  const tage = ['Sonntag', 'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag']
-  return tage[date.getDay()]
+  return WOCHENTAG_BERLIN.format(date)
 }
 
-/** Formatiert ein Date-Objekt als YYYY-MM-DD. */
-function formatDatum(date) {
-  return date.toISOString().slice(0, 10)
+/** Formatiert ein Date-Objekt als YYYY-MM-DD (Berliner Kalendertag). */
+export function formatDatum(date) {
+  return DATUM_BERLIN.format(date)
 }
 
 const getKalenderStmt = db.prepare(`
@@ -155,7 +161,7 @@ function loadTagesdaten(datum) {
  * Broadcast ruft buildContext OHNE extra → {streak} bleibt unbefüllbar und
  * Streak-Templates wären dort ohnehin nicht eligible.
  */
-function buildContext(date, extra = {}) {
+export function buildContext(date, extra = {}) {
   const t = loadTagesdaten(formatDatum(date))
   return {
     lemma:       t.lemma || null,
@@ -183,7 +189,7 @@ function placeholdersIn(text) {
  * Gibt die Platzhalter eines Templates zurück, die im Kontext nicht
  * befüllbar sind. Unbekannte Platzhalter zählen ebenfalls als fehlend.
  */
-function missingPlaceholders(template, ctx) {
+export function missingPlaceholders(template, ctx) {
   const used = new Set([
     ...placeholdersIn(template.title),
     ...placeholdersIn(template.body),
@@ -262,18 +268,23 @@ export function buildStreakPayload(date = new Date(), streak = 0) {
 
 /**
  * Rendert ein einzelnes Template (per ID) mit den Tagesdaten eines Datums.
- * Für den manuellen Versand eines Templates aus dem Admin-Panel.
+ * Für den Test an die eigenen Geräte und den manuellen Versand aus dem Admin-Panel.
  *
  * Streak-Templates ({streak}) werden mit einem Beispielwert gerendert, damit
  * der Admin-Test nicht leer läuft.
  *
- * @returns {{ title: string, body: string } | null}
+ * `missing` nennt die Platzhalter, die an dem Tag nicht befüllbar sind – dieselbe
+ * Prüfung wie beim täglichen Versand (missingPlaceholders). Wer die Vorlage
+ * verschickt, muss sie bei `missing.length > 0` ablehnen; gerendert enthielte sie Lücken
+ * („Heute: »«“).
+ *
+ * @returns {{ title: string, body: string, category: string, missing: string[] } | null}
  */
 export function renderTemplateById(id, date = new Date()) {
   const t = getTemplateStmt.get(id)
   if (!t) return null
   const ctx = buildContext(date, t.category === 'streak' ? { streak: '5' } : {})
-  return { title: render(t.title, ctx), body: render(t.body, ctx) }
+  return { title: render(t.title, ctx), body: render(t.body, ctx), category: t.category || 'daily', missing: missingPlaceholders(t, ctx) }
 }
 
 /**

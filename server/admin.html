@@ -537,75 +537,82 @@
 
       </section>
 
-      <section class="admin-page" id="page-analytics" data-title="Wort prüfen" data-subtitle="Eignung eines Wortes für Kollokation, Wort-Zwilling, Zeitenwende und Lückenfüller prüfen.">
-        <div class="analytics-grid">
-          <div class="card analysis-card">
-            <div class="analysis-card-head">
-              <div>
-                <h2>Kollokation</h2>
-                <p class="analysis-copy">Prüft ein Wort als Kollokationswort und zeigt Top 10 pro Runde, Top 3 gesamt und die Bonusfrage.</p>
+      <section class="admin-page be-seite in-seite" id="page-analytics" data-title="Wort prüfen" data-subtitle="Prüft Wörter im eigenen Korpus, wie das Spiel sie verwenden würde. Gespeichert wird nichts.">
+        <div class="tag-modi">
+          <form class="tag-modus in-pruef" id="pruef-k" data-modus="k" novalidate aria-labelledby="pruef-k-titel">
+            <h2 class="tag-modus-titel" id="pruef-k-titel"><span class="tag-badge" data-m="k">Kollokationen</span></h2>
+            <p class="tag-modus-text">Ist das Wort als Basis geeignet? Das Spiel sucht die drei stärksten Kollokatoren und mischt sieben weitere als Ablenker dazu.</p>
+            <div class="tag-feld">
+              <label class="tag-label" for="koll-input">Basis</label>
+              <div class="tag-wert tag-wert--wort">
+                <input class="tag-eingabe tag-eingabe--wort" type="text" id="koll-input" maxlength="100" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="z. B. Debatte" required>
+                <select class="tag-auswahl" id="koll-pos" aria-label="Wortart der Basis"><option value="">Wortart automatisch</option><option value="Substantiv">Substantiv</option><option value="Verb">Verb</option><option value="Adjektiv">Adjektiv</option></select>
               </div>
             </div>
-            <div class="viz-search">
-              <input type="text" id="koll-input" placeholder="Wort eingeben…" data-enter-action="analyze-kollokation">
-              <button data-action="analyze-kollokation">Analysieren</button>
-              <button class="entry-filters-reset button-soft" data-action="reset-kollokation-analysis">Zurücksetzen</button>
+            <div class="be-aktionen">
+              <button type="submit" class="adm-cta" id="koll-start"><span id="koll-start-text">Prüfen<span class="adm-visually-hidden">: Kollokationen</span></span> <span aria-hidden="true">→</span></button>
+              <button type="button" class="adm-link" data-action="reset-kollokation-analysis" hidden>leeren</button>
             </div>
-            <div id="koll-output" class="analysis-output" aria-live="polite"></div>
-          </div>
+            <p class="adm-visually-hidden" id="koll-live" aria-live="polite"></p>
+            <div id="koll-output" class="tag-ergebnis"></div>
+          </form>
 
-          <div class="card analysis-card">
-            <div class="analysis-card-head">
-              <div>
-                <h2>Wort-Zwilling</h2>
-                <p class="analysis-copy">Prüft zwei Wörter als Paar und zeigt die 10 distinktiven Kollokatoren.</p>
-              </div>
+          <form class="tag-modus in-pruef" id="pruef-w" data-modus="w" novalidate aria-labelledby="pruef-w-titel">
+            <h2 class="tag-modus-titel" id="pruef-w-titel"><span class="tag-badge" data-m="w">Wort-Zwilling</span></h2>
+            <p class="tag-modus-text">Zwei Wörter derselben Wortart. Geeignet, wenn jedes mindestens fünf Kollokatoren hat, die nur zu ihm passen.</p>
+            <div class="tag-feld">
+              <label class="tag-label" for="wza-input">Wort A</label>
+              <div class="tag-wert"><input class="tag-eingabe tag-eingabe--wort" type="text" id="wza-input" maxlength="100" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="z. B. See" required></div>
             </div>
-            <div class="viz-search viz-search--multi">
-              <input type="text" id="wza-input" placeholder="Wort A…" data-enter-action="analyze-wort-zwilling">
-              <input type="text" id="wzb-input" placeholder="Wort B…" data-enter-action="analyze-wort-zwilling">
-              <select id="wzana-pos">
-                <option value="Substantiv">Substantiv</option>
-                <option value="Verb">Verb</option>
-                <option value="Adjektiv">Adjektiv</option>
-              </select>
-              <button data-action="analyze-wort-zwilling">Analysieren</button>
-              <button class="entry-filters-reset button-soft" data-action="reset-wort-zwilling-analysis">Zurücksetzen</button>
+            <div class="tag-feld">
+              <label class="tag-label" for="wzb-input">Wort B</label>
+              <div class="tag-wert"><input class="tag-eingabe tag-eingabe--wort" type="text" id="wzb-input" maxlength="100" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="z. B. Meer" required></div>
             </div>
-            <div id="wz-ana-output" class="analysis-output" aria-live="polite"></div>
-          </div>
+            <div class="tag-feld">
+              <label class="tag-label" for="wzana-pos">Wortart</label>
+              <div class="tag-wert"><select class="tag-auswahl tag-auswahl--kurz" id="wzana-pos"><option value="Substantiv">Substantiv</option><option value="Verb">Verb</option><option value="Adjektiv">Adjektiv</option></select></div>
+            </div>
+            <div class="be-aktionen">
+              <button type="submit" class="adm-cta" id="wz-start"><span id="wz-start-text">Prüfen<span class="adm-visually-hidden">: Wort-Zwilling</span></span> <span aria-hidden="true">→</span></button>
+              <button type="button" class="adm-link" data-action="reset-wort-zwilling-analysis" hidden>leeren</button>
+            </div>
+            <p class="adm-visually-hidden" id="wz-live" aria-live="polite"></p>
+            <div id="wz-ana-output" class="tag-ergebnis"></div>
+          </form>
 
-          <div class="card analysis-card">
-            <div class="analysis-card-head">
-              <div>
-                <h2>Zeitenwende</h2>
-                <p class="analysis-copy">Prüft, ob ein Wort als Zeitenwende-Lemma geeignet ist, und vergleicht Kollokatoren vor und nach 2000.</p>
-              </div>
+          <form class="tag-modus in-pruef" id="pruef-z" data-modus="z" novalidate aria-labelledby="pruef-z-titel">
+            <h2 class="tag-modus-titel" id="pruef-z-titel"><span class="tag-badge" data-m="z">Zeitenwende</span></h2>
+            <p class="tag-modus-text">Vergleicht die Kollokatoren in Texten vor und nach 2000. Geeignet, wenn beide Zeiträume genug eigene Kollokatoren haben.</p>
+            <div class="tag-feld">
+              <label class="tag-label" for="zw-ana-input">Wort</label>
+              <div class="tag-wert"><input class="tag-eingabe tag-eingabe--wort" type="text" id="zw-ana-input" maxlength="100" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="z. B. Netzwerk" required></div>
             </div>
-            <div class="viz-search">
-              <input type="text" id="zw-ana-input" placeholder="Wort eingeben…" data-enter-action="analyze-zeitenwende">
-              <button data-action="analyze-zeitenwende">Analysieren</button>
-              <button class="entry-filters-reset button-soft" data-action="reset-zeitenwende-analysis">Zurücksetzen</button>
+            <div class="be-aktionen">
+              <button type="submit" class="adm-cta" id="zw-start"><span id="zw-start-text">Prüfen<span class="adm-visually-hidden">: Zeitenwende</span></span> <span aria-hidden="true">→</span></button>
+              <button type="button" class="adm-link" data-action="reset-zeitenwende-analysis" hidden>leeren</button>
             </div>
-            <div id="zw-ana-output" class="analysis-output" aria-live="polite"></div>
-          </div>
+            <p class="adm-visually-hidden" id="zw-live" aria-live="polite"></p>
+            <div id="zw-ana-output" class="tag-ergebnis"></div>
+          </form>
 
-          <div class="card analysis-card">
-            <div class="analysis-card-head">
-              <div>
-                <h2>Lückenfüller</h2>
-                <p class="analysis-copy">Prüft, ob genug Material für Pool-Größe, blankbare Sätze und Runden vorhanden ist. Speichert nichts.</p>
+          <form class="tag-modus in-pruef" id="pruef-l" data-modus="l" novalidate aria-labelledby="pruef-l-titel">
+            <h2 class="tag-modus-titel" id="pruef-l-titel"><span class="tag-badge" data-m="l">Lückenfüller</span></h2>
+            <p class="tag-modus-text">Sucht Belegsätze, in denen sich ein Kollokator als Lücke eignet, und zeigt die Runden, die daraus entstünden. Dauert bis zu 15 Sekunden.</p>
+            <div class="tag-feld">
+              <label class="tag-label" for="lf-ana-input">Wort</label>
+              <div class="tag-wert tag-wert--wort">
+                <input class="tag-eingabe tag-eingabe--wort" type="text" id="lf-ana-input" maxlength="100" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="z. B. Kritik" required>
+                <select class="tag-auswahl" id="lf-pos" aria-label="Wortart"><option value="">Wortart automatisch</option><option value="Substantiv">Substantiv</option><option value="Verb">Verb</option><option value="Adjektiv">Adjektiv</option></select>
               </div>
             </div>
-            <div class="viz-search">
-              <input type="text" id="lf-ana-input" placeholder="Wort eingeben…" data-enter-action="analyze-lueckenfueller">
-              <button data-action="analyze-lueckenfueller">Analysieren</button>
-              <button class="entry-filters-reset button-soft" data-action="reset-lueckenfueller-analysis">Zurücksetzen</button>
+            <div class="be-aktionen">
+              <button type="submit" class="adm-cta" id="lf-start"><span id="lf-start-text">Prüfen<span class="adm-visually-hidden">: Lückenfüller</span></span> <span aria-hidden="true">→</span></button>
+              <button type="button" class="adm-link" data-action="reset-lueckenfueller-analysis" hidden>leeren</button>
             </div>
-            <div id="lf-ana-output" class="analysis-output" aria-live="polite"></div>
-          </div>
+            <p class="adm-visually-hidden" id="lf-live" aria-live="polite"></p>
+            <div id="lf-ana-output" class="tag-ergebnis"></div>
+          </form>
         </div>
-
       </section>
 
       <section class="admin-page" id="page-calendar" data-title="Monat" data-subtitle="Ein Monat auf einen Blick: was geplant ist und wo noch etwas fehlt.">
@@ -651,8 +658,8 @@
             <label class="li-label" for="users-role-filter">Rolle</label>
             <select id="users-role-filter" class="li-auswahl">
               <option value="">Alle Rollen</option>
-              <option value="user">Basis</option>
-              <option value="premium">Premium</option>
+              <option value="user">Basiszugang</option>
+              <option value="premium">Gesamtausgabe</option>
             </select>
           </div>
         </div>
@@ -673,8 +680,8 @@
             <span class="nu-sammel-gruppe">
               <label class="nu-sammel-label" for="users-bulk-role">Neue Rolle</label>
               <select id="users-bulk-role" class="li-auswahl">
-                <option value="premium">Premium</option>
-                <option value="user">Basis</option>
+                <option value="premium">Gesamtausgabe</option>
+                <option value="user">Basiszugang</option>
               </select>
               <button type="button" class="adm-link" data-action="run-users-bulk-role" id="users-bulk-role-btn"><span class="adm-visually-hidden">Rolle der Auswahl </span>setzen …</button>
             </span>
@@ -705,175 +712,189 @@
         <div id="user-detail"><p class="wo-meldung">Konto wird geladen …</p></div>
       </section>
 
-      <section class="admin-page" id="page-freedays" data-title="Bonus-Tage" data-subtitle="An ausgewählten Tagen bekommen Basic-Nutzer zusätzliche Eigene-Lemma-Spiele.">
-        <div class="card">
-          <h2>Neuer Bonus-Tag</h2>
-          <p class="section-copy">
-            Basic-Nutzer dürfen pro Tag 1 eigenes Lemma spielen. An eingetragenen Bonus-Tagen kommen die hier gewählte Anzahl zusätzlicher Spiele oben drauf. Premium ist immer unbegrenzt.
-          </p>
-          <div class="freeday-form-row">
-            <div class="entry-field entry-field--compact">
-              <label for="freeday-date">Datum</label>
-              <input type="date" id="freeday-date">
+      <section class="admin-page be-seite in-seite" id="page-freedays" data-title="Bonus-Tage" data-subtitle="An Bonus-Tagen dürfen Konten mit Basiszugang mehr als ein eigenes Lemma spielen.">
+        <section class="tag-abschnitt" aria-labelledby="bonus-neu-titel">
+          <h2 class="tag-abschnitt-titel" id="bonus-neu-titel">Bonus-Tag eintragen</h2>
+          <p class="tag-abschnitt-text">Konten mit Basiszugang spielen normalerweise ein eigenes Lemma pro Tag. An einem Bonus-Tag kommen die hier eingetragenen Spiele dazu. Für Konten mit Gesamtausgabe ist das Eigene Lemma ohnehin unbegrenzt.</p>
+          <form id="bonus-form" novalidate>
+            <div class="tag-feld">
+              <label class="tag-label" for="freeday-date">Datum</label>
+              <div class="tag-wert"><input class="tag-eingabe tag-eingabe--datum" type="date" id="freeday-date" required aria-describedby="freeday-date-hinweis"></div>
             </div>
-            <div class="entry-field entry-field--compact">
-              <label for="freeday-bonus">Bonus <span class="label-hint">Spiele extra</span></label>
-              <input type="number" id="freeday-bonus" min="0" max="50" step="1" placeholder="z.B. 5">
+            <p class="tag-hinweis in-feld-hinweis" id="freeday-date-hinweis" aria-live="polite"></p>
+            <div class="tag-feld">
+              <label class="tag-label" for="freeday-bonus">Zusätzliche Spiele</label>
+              <div class="tag-wert"><input class="tag-eingabe tag-eingabe--datum" type="number" id="freeday-bonus" min="1" max="50" step="1" inputmode="numeric" placeholder="z. B. 3" required aria-describedby="freeday-bonus-hinweis"></div>
             </div>
-            <div class="entry-field freeday-field-grow">
-              <label for="freeday-label">Anlass <span class="label-hint">optional, z.&nbsp;B. »Tag der Deutschen Einheit«</span></label>
-              <input type="text" id="freeday-label" placeholder="z.B. Sonntag, Schulstart …" maxlength="100">
+            <p class="tag-hinweis in-feld-hinweis" id="freeday-bonus-hinweis">1 bis 50 Spiele zusätzlich zum einen Spiel des Tages.</p>
+            <div class="tag-feld">
+              <label class="tag-label" for="freeday-label">Anlass <span class="tag-label-zusatz">optional</span></label>
+              <div class="tag-wert"><input class="tag-eingabe" type="text" id="freeday-label" maxlength="100" autocomplete="off" placeholder="z. B. Tag der Deutschen Einheit"></div>
             </div>
-            <button class="entry-filters-reset" data-action="add-free-day">Hinzufügen</button>
-          </div>
-          <p class="entry-hint is-hidden" id="freeday-msg"></p>
-        </div>
+            <div class="be-aktionen">
+              <button type="submit" class="adm-cta" id="bonus-start"><span id="bonus-start-text">Eintragen</span> <span aria-hidden="true">→</span></button>
+            </div>
+            <p class="li-meldung" id="freeday-msg" role="status" aria-live="polite" tabindex="-1"></p>
+          </form>
+        </section>
 
-        <div class="card">
-          <div class="card-head card-head--wrap">
-            <h2>Eingetragene Bonus-Tage</h2>
-            <button class="entry-filters-reset" data-action="load-free-days">↺ Laden</button>
-          </div>
-          <div id="freedays-list">
-            <div class="users-empty">Wird geladen …</div>
-          </div>
-        </div>
+        <section class="tag-abschnitt" aria-labelledby="bonus-liste-titel">
+          <h2 class="tag-abschnitt-titel" id="bonus-liste-titel">Geplant</h2>
+          <div id="freedays-list"></div>
+        </section>
       </section>
 
-      <section class="admin-page" id="page-push" data-title="Benachrichtigungen" data-subtitle="Vorlagen verwalten und Nachrichten manuell an alle Geräte senden.">
-        <div class="card">
-          <h2>Nachricht manuell senden</h2>
-          <p class="section-copy">
-            Sendet sofort eine Push-Benachrichtigung an alle aktuell registrierten Geräte
-            (<strong id="push-subscriber-count">…</strong>).
-          </p>
-          <div class="entry-field">
-            <label for="push-send-title">Titel</label>
-            <input type="text" id="push-send-title" maxlength="120" placeholder="z.B. Neues Worträtsel wartet">
-          </div>
-          <div class="entry-field">
-            <label for="push-send-body">Text</label>
-            <textarea id="push-send-body" maxlength="300" rows="2" placeholder="Kurzer Hinweistext …"></textarea>
-          </div>
-          <div class="sw-form-actions">
-            <button class="primary-btn" data-action="push-send-free">Jetzt an alle senden</button>
-            <button class="ghost-btn" data-action="push-send-self">Test an meine Geräte</button>
-          </div>
-          <p class="entry-hint is-hidden" id="push-send-msg"></p>
-        </div>
+      <section class="admin-page be-seite in-seite" id="page-push" data-title="Benachrichtigungen" data-subtitle="Nachricht an alle Geräte senden und die Vorlagen für den täglichen Versand pflegen.">
+        <p class="nu-stand in-push-stand" id="push-stand"></p>
 
-        <div class="card">
-          <div class="card-head card-head--wrap">
-            <h2>Vorlagen</h2>
-            <button class="entry-filters-reset" data-action="push-load-templates">↺ Laden</button>
+        <section class="tag-abschnitt" aria-labelledby="push-senden-titel">
+          <h2 class="tag-abschnitt-titel" id="push-senden-titel">Nachricht senden</h2>
+          <p class="tag-abschnitt-text">Geht sofort an alle angemeldeten Geräte und lässt sich nicht zurückholen. Schick die Nachricht zuerst an deine eigenen Geräte und sieh sie dir dort an.</p>
+          <form id="push-form" novalidate>
+            <div class="tag-feld">
+              <label class="tag-label" for="push-send-title">Titel</label>
+              <div class="tag-wert">
+                <input class="tag-eingabe" type="text" id="push-send-title" maxlength="120" autocomplete="off" placeholder="z. B. Neue Woche, neue Wörter" aria-describedby="push-titel-zahl">
+                <span class="in-zaehler" id="push-titel-zahl" aria-live="off"></span>
+              </div>
+            </div>
+            <div class="tag-feld">
+              <label class="tag-label" for="push-send-body">Text</label>
+              <div class="tag-wert">
+                <textarea class="tag-eingabe" id="push-send-body" rows="2" maxlength="300" placeholder="Ein bis zwei kurze Sätze" aria-describedby="push-text-zahl"></textarea>
+                <span class="in-zaehler" id="push-text-zahl" aria-live="off"></span>
+              </div>
+            </div>
+            <p class="tag-hinweis in-feld-hinweis" id="push-platzhalter-hinweis" data-tone="error" hidden></p>
+            <p class="adm-visually-hidden" id="push-platzhalter-live" aria-live="polite"></p>
+            <div class="in-push-vorschau" id="push-vorschau" aria-label="Vorschau der Benachrichtigung" role="group"></div>
+            <div class="be-aktionen in-push-aktionen">
+              <button type="button" class="adm-cta" id="push-test" data-action="push-send-self"><span id="push-test-text">Test an meine Geräte</span> <span aria-hidden="true">→</span></button>
+              <button type="button" class="li-loeschen in-an-alle" id="push-alle" data-action="push-send-free">An alle senden …</button>
+            </div>
+            <p class="li-meldung" id="push-send-msg" role="status" aria-live="polite" tabindex="-1"></p>
+          </form>
+        </section>
+
+        <section class="tag-abschnitt" aria-labelledby="push-vorlagen-titel">
+          <h2 class="tag-abschnitt-titel" id="push-vorlagen-titel">Täglicher Versand</h2>
+          <p class="tag-abschnitt-text">Jeden Morgen um 8:00 Uhr geht eine zufällig gewählte aktive Vorlage an alle Geräte. Vorlagen, deren Platzhalter an dem Tag nicht befüllt werden können, werden übersprungen. Ist keine versendbar, geht „Dein tägliches Wortspiel wartet.“ hinaus.</p>
+          <p class="li-meldung in-heute" id="push-heute"></p>
+          <div id="push-templates-list"></div>
+          <div class="be-aktionen">
+            <button type="button" class="adm-cta" data-action="push-add-template" id="push-neu">Neue Vorlage <span aria-hidden="true">→</span></button>
           </div>
-          <p class="section-copy">
-            Täglich um 08:00 Uhr wird zufällig eine aktive Vorlage verschickt. Verfügbare Platzhalter:
-            <code id="push-placeholders"></code>. Fehlt an einem Tag der Wert für einen verwendeten
-            Platzhalter, wird die Vorlage an dem Tag übersprungen.
-          </p>
-          <div id="push-templates-list">
-            <div class="users-empty">Wird geladen …</div>
-          </div>
-          <div class="sw-form-actions">
-            <button class="ghost-btn" data-action="push-add-template">+ Neue Vorlage</button>
-          </div>
-          <p class="entry-hint is-hidden" id="push-template-msg"></p>
-        </div>
+          <p class="li-meldung" id="push-template-msg" role="status" aria-live="polite" tabindex="-1"></p>
+          <details class="be-roh in-platzhalter">
+            <summary>Platzhalter</summary>
+            <dl class="tag-dl be-dl" id="push-placeholders"></dl>
+          </details>
+        </section>
+
+        <section class="tag-abschnitt" aria-labelledby="push-abends-titel">
+          <h2 class="tag-abschnitt-titel" id="push-abends-titel">Abends an gefährdete Serien</h2>
+          <p class="tag-abschnitt-text">Um 19:00 Uhr bekommt, wer seine Serie heute noch nicht fortgesetzt hat, eine dieser Vorlagen. Sie gehen nie an alle Geräte; zum Ansehen gibt es nur den Test an deine eigenen Geräte (mit einer Serie von 5 Tagen).</p>
+          <div id="push-streak-list"></div>
+        </section>
+
+        <dialog class="in-dialog" id="push-dialog" aria-labelledby="push-dialog-titel" aria-describedby="push-dialog-text">
+          <form method="dialog" class="in-dialog-inhalt" id="push-dialog-form">
+            <p class="adm-overline">Benachrichtigung</p>
+            <h2 class="in-dialog-titel" id="push-dialog-titel">An alle Geräte senden?</h2>
+            <p class="in-dialog-text" id="push-dialog-text"></p>
+            <div class="in-push-vorschau" id="push-dialog-vorschau" role="group" aria-label="So erscheint die Nachricht"></div>
+            <dl class="tag-dl be-dl" id="push-dialog-fakten"></dl>
+            <label class="be-check" for="push-dialog-ok"><input type="checkbox" id="push-dialog-ok"><span id="push-dialog-ok-text">Ich habe Titel und Text geprüft. Die Nachricht geht sofort hinaus.</span></label>
+            <div class="be-aktionen in-dialog-aktionen">
+              <button type="button" class="adm-link" value="abbrechen" data-action="push-dialog-abbrechen" id="push-dialog-abbrechen" autofocus>Abbrechen</button>
+              <button type="button" class="li-loeschen" id="push-dialog-senden" data-action="push-dialog-senden" aria-disabled="true" aria-describedby="push-dialog-sperre"><span id="push-dialog-senden-text">An alle senden</span></button>
+            </div>
+            <p class="adm-visually-hidden" id="push-dialog-sperre">Erst das Häkchen setzen.</p>
+            <p class="li-meldung" id="push-dialog-msg" role="status" aria-live="polite" tabindex="-1"></p>
+          </form>
+        </dialog>
       </section>
 
-      <section class="admin-page" id="page-spezialwoche" data-title="Wort der Woche" data-subtitle="Wöchentliches Spezial-Lemma, das montags bis sonntags in allen Spielmodi verfügbar ist.">
-        <div class="card">
-          <h2>Wort der Woche eintragen</h2>
-          <p class="section-copy">Das Spezial-Lemma erscheint die ganze Woche abgesetzt unter den täglichen Lemmata und ist in allen Spielmodi spielbar.</p>
+      <section class="admin-page be-seite in-seite" id="page-spezialwoche" data-title="Wort der Woche" data-subtitle="Ein zusätzliches Wort, das eine Woche lang in allen Spielmodi unter den Tageswörtern steht.">
+        <section class="tag-abschnitt" aria-labelledby="sw-liste-titel">
+          <h2 class="tag-abschnitt-titel" id="sw-liste-titel">Eingetragen</h2>
+          <div id="sw-list"></div>
+        </section>
 
-          <div class="sw-form-grid">
-            <div class="entry-field entry-field--compact">
-              <label for="sw-woche">ISO-Woche <span class="label-hint">z.&nbsp;B. 2026-W20</span></label>
-              <input type="text" id="sw-woche" placeholder="2026-W20" maxlength="8" pattern="\d{4}-W\d{2}">
+        <section class="tag-abschnitt" aria-labelledby="sw-form-titel">
+          <h2 class="tag-abschnitt-titel" id="sw-form-titel"><span id="sw-form-titel-text">Woche eintragen</span></h2>
+          <form id="sw-form" novalidate>
+            <div class="tag-feld">
+              <label class="tag-label" for="sw-woche">Woche</label>
+              <div class="tag-wert"><select class="tag-auswahl" id="sw-woche" aria-describedby="sw-woche-hinweis"></select></div>
             </div>
-            <div class="entry-field entry-field--compact">
-              <label for="sw-von">Von (Mo)</label>
-              <input type="date" id="sw-von">
+            <p class="tag-hinweis in-feld-hinweis" id="sw-woche-hinweis" aria-live="polite"></p>
+            <div class="tag-feld">
+              <label class="tag-label" for="sw-lemma-id">Wort</label>
+              <div class="tag-wert"><input class="tag-eingabe tag-eingabe--wort" type="text" id="sw-lemma-id" maxlength="120" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="z. B. Laterne" required aria-describedby="sw-lemma-fehler"></div>
+              <p class="tag-feld-fehler" id="sw-lemma-fehler" hidden></p>
+              <div class="tag-neben">
+                <button type="button" class="tag-neben-knopf" data-action="toggle-sw-neben" data-target="sw-neben" aria-expanded="false" aria-controls="sw-neben">Notiz und Link</button>
+                <div class="tag-neben-felder is-hidden" id="sw-neben">
+                  <label class="tag-label" for="sw-notiz">Notiz</label>
+                  <textarea class="tag-eingabe" id="sw-notiz" rows="2" maxlength="500" placeholder="Erscheint unter dem Wort"></textarea>
+                  <label class="tag-label" for="sw-link">Link</label>
+                  <input class="tag-eingabe" type="url" id="sw-link" maxlength="500" inputmode="url" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="https://…" aria-describedby="sw-link-fehler">
+                  <p class="tag-feld-fehler" id="sw-link-fehler" hidden></p>
+                </div>
+              </div>
             </div>
-            <div class="entry-field entry-field--compact">
-              <label for="sw-bis">Bis (So)</label>
-              <input type="date" id="sw-bis">
-            </div>
-          </div>
 
-          <div class="sw-form-grid">
-            <div class="entry-field">
-              <label for="sw-lemma-id">Lemma</label>
-              <input type="text" id="sw-lemma-id" placeholder="z.B. Finale" maxlength="120">
+            <div class="tag-modi in-sw-modi">
+              <section class="tag-modus" aria-labelledby="sw-wz-titel">
+                <h3 class="tag-modus-titel" id="sw-wz-titel"><span class="tag-badge" data-m="w">Wort-Zwilling</span></h3>
+                <p class="tag-modus-text">Optional. Das Wort der Woche ist Wort A; hier steht das zweite Wort.</p>
+                <div class="tag-feld">
+                  <label class="tag-label" for="sw-wza">Wort B <span class="tag-label-zusatz">optional</span></label>
+                  <div class="tag-wert tag-wert--wort">
+                    <input class="tag-eingabe tag-eingabe--wort" type="text" id="sw-wza" maxlength="100" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="z. B. Lampion" aria-describedby="sw-wza-fehler">
+                    <select class="tag-auswahl" id="sw-wzpos" aria-label="Wortart beider Wörter"><option value="Substantiv">Substantiv</option><option value="Verb">Verb</option><option value="Adjektiv">Adjektiv</option></select>
+                  </div>
+                  <p class="tag-feld-fehler" id="sw-wza-fehler" hidden></p>
+                </div>
+                <div class="be-aktionen">
+                  <button type="button" class="adm-cta tag-aktion" data-action="preview-sw-wz" id="sw-wz-start"><span id="sw-wz-start-text">Prüfen<span class="adm-visually-hidden">: Wort-Zwilling der Woche</span></span> <span aria-hidden="true">→</span></button>
+                </div>
+                <p class="adm-visually-hidden" id="sw-wz-live" aria-live="polite"></p>
+                <div class="tag-ergebnis" id="sw-wz-preview"></div>
+              </section>
+              <section class="tag-modus" aria-labelledby="sw-zw-titel">
+                <h3 class="tag-modus-titel" id="sw-zw-titel"><span class="tag-badge" data-m="z">Zeitenwende</span></h3>
+                <p class="tag-modus-text">Läuft immer mit dem Wort der Woche. Notiz und Link sind optional.</p>
+                <div class="tag-neben in-neben-allein">
+                    <button type="button" class="tag-neben-knopf" data-action="toggle-sw-neben" data-target="sw-zw-neben" aria-expanded="false" aria-controls="sw-zw-neben">Notiz und Link<span class="adm-visually-hidden"> zur Zeitenwende</span></button>
+                    <div class="tag-neben-felder is-hidden" id="sw-zw-neben">
+                      <label class="tag-label" for="sw-zw-notiz">Notiz<span class="adm-visually-hidden"> zur Zeitenwende</span></label>
+                      <textarea class="tag-eingabe" id="sw-zw-notiz" rows="2" maxlength="500" placeholder="Kurze Erklärung"></textarea>
+                      <label class="tag-label" for="sw-zw-link">Link<span class="adm-visually-hidden"> zur Zeitenwende</span></label>
+                      <input class="tag-eingabe" type="url" id="sw-zw-link" maxlength="500" inputmode="url" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="https://…" aria-describedby="sw-zw-link-fehler">
+                      <p class="tag-feld-fehler" id="sw-zw-link-fehler" hidden></p>
+                    </div>
+                </div>
+              </section>
+              <section class="tag-modus" aria-labelledby="sw-lf-titel">
+                <h3 class="tag-modus-titel" id="sw-lf-titel"><span class="tag-badge" data-m="l">Lückenfüller</span></h3>
+                <p class="tag-modus-text">Optional. Das Wort braucht schon erzeugte Lückenfüller-Runden (Tag bearbeiten › Lückenfüller › Runden erzeugen).</p>
+                <div class="tag-feld">
+                  <label class="tag-label" for="sw-lf-id">Wort <span class="tag-label-zusatz">optional</span></label>
+                  <div class="tag-wert"><input class="tag-eingabe tag-eingabe--wort" type="text" id="sw-lf-id" maxlength="120" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="z. B. Laterne" aria-describedby="sw-lf-fehler"></div>
+                  <p class="tag-feld-fehler" id="sw-lf-fehler" hidden></p>
+                </div>
+              </section>
             </div>
-            <div class="entry-field entry-field--compact">
-              <label for="sw-notiz">Notiz <span class="label-hint">optional</span></label>
-              <input type="text" id="sw-notiz" placeholder="z.B. DFB Pokalfinale 2026" maxlength="500">
-            </div>
-            <div class="entry-field entry-field--compact">
-              <label for="sw-link">Link <span class="label-hint">optional</span></label>
-              <input type="text" id="sw-link" placeholder="https://…" maxlength="500">
-            </div>
-          </div>
 
-          <h3 class="sw-section-heading">Wort-Zwilling</h3>
-          <div class="sw-form-grid">
-            <div class="entry-field">
-              <label for="sw-wza">Partner-Wort <span class="label-hint">leer = kein WZ</span></label>
-              <input type="text" id="sw-wza" placeholder="z.B. Niederlage" maxlength="100">
+            <div class="be-aktionen">
+              <button type="submit" class="adm-cta" id="sw-start"><span id="sw-start-text">Speichern</span> <span aria-hidden="true">→</span></button>
+              <button type="button" class="adm-link" data-action="clear-sw-form" id="sw-leeren">Formular leeren</button>
             </div>
-            <div class="entry-field entry-field--compact">
-              <label for="sw-wzpos">Wortart Partner</label>
-              <select id="sw-wzpos">
-                <option value="Substantiv">Substantiv</option>
-                <option value="Verb">Verb</option>
-                <option value="Adjektiv">Adjektiv</option>
-                <option value="Adverb">Adverb</option>
-              </select>
-            </div>
-            <div class="entry-field entry-field--compact">
-              <button class="ghost-btn" style="margin-top:1.5rem" data-action="preview-sw-wz">WZ-Vorschau</button>
-            </div>
-          </div>
-          <pre id="sw-wz-preview" class="system-json sw-wz-preview is-hidden"></pre>
-
-          <h3 class="sw-section-heading">Zeitenwende</h3>
-          <div class="sw-form-grid">
-            <div class="entry-field">
-              <label for="sw-zw-notiz">Notiz <span class="label-hint">optional – Hinweis zur Zeitenwende</span></label>
-              <input type="text" id="sw-zw-notiz" placeholder="Kurze Erklärung …" maxlength="500">
-            </div>
-            <div class="entry-field">
-              <label for="sw-zw-link">Link <span class="label-hint">optional</span></label>
-              <input type="text" id="sw-zw-link" placeholder="https://…" maxlength="500">
-            </div>
-          </div>
-
-          <h3 class="sw-section-heading">Lückenfüller</h3>
-          <div class="sw-form-grid">
-            <div class="entry-field">
-              <label for="sw-lf-id">Lückenfüller-Lemma <span class="label-hint">leer = keiner</span></label>
-              <input type="text" id="sw-lf-id" placeholder="z.B. Finale" maxlength="120">
-            </div>
-          </div>
-
-          <div class="sw-form-actions">
-            <button class="primary-btn" data-action="save-spezialwoche">Speichern</button>
-            <button class="entry-filters-reset" data-action="clear-sw-form">Formular leeren</button>
-          </div>
-          <p class="entry-hint is-hidden" id="sw-msg"></p>
-        </div>
-
-        <div class="card">
-          <div class="card-head card-head--wrap">
-            <h2>Eingetragene Spezialwochen</h2>
-            <button class="entry-filters-reset" data-action="load-spezialwochen">↺ Laden</button>
-          </div>
-          <div id="sw-list">
-            <div class="users-empty">Wird geladen …</div>
-          </div>
-        </div>
+            <p class="li-meldung" id="sw-msg" role="status" aria-live="polite" tabindex="-1"></p>
+          </form>
+        </section>
       </section>
 
       <section class="admin-page" id="page-metrics" data-title="Kennzahlen" data-subtitle="Zahlen zu Zahlungen, Lehrkräften, Eigenem Lemma und Wiederkehr.">
@@ -925,59 +946,120 @@
 
       </section>
 
-      <section class="admin-page" id="page-klassenraum-demo" data-title="Klassenraum-Demo" data-subtitle="Wörter für die Vorschau, die Lehrkräfte ohne Anmeldung sehen.">
-        <div class="card" id="demo-content-card">
-          <div class="card-head card-head--wrap">
-            <div>
-              <p class="section-label">Klassenraum</p>
-              <h2>Demo-Inhalte (Lehrer-Vorschau)</h2>
-            </div>
-            <button class="primary-btn" data-action="save-demo-content">Speichern</button>
+      <section class="admin-page be-seite in-seite" id="page-klassenraum-demo" data-title="Klassenraum-Demo" data-subtitle="Was Lehrkräfte in der Vorschau des Klassenraums sehen, ohne sich anzumelden.">
+        <p class="nu-stand" id="demo-stand"></p>
+        <p class="tag-abschnitt-text in-demo-weg">In der App: Klassenraum › Sitzungen › Vorschau ansehen. Mehrere Wörter je Zeile oder durch Komma getrennt.</p>
+        <form id="demo-form" novalidate>
+          <div class="tag-modi">
+            <section class="tag-modus" aria-labelledby="demo-k-titel">
+              <h2 class="tag-modus-titel" id="demo-k-titel"><span class="tag-badge" data-m="k">Kollokationen</span></h2>
+              <div class="tag-feld">
+                <label class="tag-label" for="demo-kol-lemma">Basis</label>
+                <div class="tag-wert tag-wert--wort in-wert--ipa">
+                  <input class="tag-eingabe tag-eingabe--wort" type="text" id="demo-kol-lemma" maxlength="80" autocomplete="off" spellcheck="false" aria-describedby="demo-kol-lemma-fehler">
+                  <input class="tag-eingabe in-ipa" type="text" id="demo-kol-ipa" maxlength="80" autocomplete="off" spellcheck="false" aria-label="Lautschrift der Basis" placeholder="Lautschrift">
+                </div>
+                <p class="tag-feld-fehler" id="demo-kol-lemma-fehler" hidden></p>
+              </div>
+              <div class="tag-feld">
+                <label class="tag-label" for="demo-kol-def">Bedeutung <span class="tag-label-zusatz">optional</span></label>
+                <div class="tag-wert"><input class="tag-eingabe" type="text" id="demo-kol-def" maxlength="300" autocomplete="off"></div>
+              </div>
+              <div class="tag-feld">
+                <label class="tag-label" for="demo-kol-words">Kollokatoren</label>
+                <div class="tag-wert">
+                  <textarea class="tag-eingabe" id="demo-kol-words" rows="6" aria-describedby="demo-kol-words-zahl demo-kol-words-fehler" data-min="3" data-max="12"></textarea>
+                  <span class="in-zaehler" id="demo-kol-words-zahl"></span>
+                </div>
+                <p class="tag-feld-fehler" id="demo-kol-words-fehler" hidden></p>
+              </div>
+            </section>
+
+            <section class="tag-modus" aria-labelledby="demo-w-titel">
+              <h2 class="tag-modus-titel" id="demo-w-titel"><span class="tag-badge" data-m="w">Wort-Zwilling</span></h2>
+              <div class="tag-feld">
+                <label class="tag-label" for="demo-wz-a">Wort A</label>
+                <div class="tag-wert"><input class="tag-eingabe tag-eingabe--wort" type="text" id="demo-wz-a" maxlength="40" autocomplete="off" spellcheck="false" aria-describedby="demo-wz-a-fehler"></div>
+                <p class="tag-feld-fehler" id="demo-wz-a-fehler" hidden></p>
+              </div>
+              <div class="tag-feld">
+                <label class="tag-label" for="demo-wz-b">Wort B</label>
+                <div class="tag-wert"><input class="tag-eingabe tag-eingabe--wort" type="text" id="demo-wz-b" maxlength="40" autocomplete="off" spellcheck="false" aria-describedby="demo-wz-b-fehler"></div>
+                <p class="tag-feld-fehler" id="demo-wz-b-fehler" hidden></p>
+              </div>
+              <div class="tag-feld">
+                <label class="tag-label" for="demo-wz-words">Zuzuordnen</label>
+                <div class="tag-wert">
+                  <textarea class="tag-eingabe" id="demo-wz-words" rows="8" aria-describedby="demo-wz-words-zahl demo-wz-words-fehler" data-min="4" data-max="12"></textarea>
+                  <span class="in-zaehler" id="demo-wz-words-zahl"></span>
+                </div>
+                <p class="tag-feld-fehler" id="demo-wz-words-fehler" hidden></p>
+              </div>
+            </section>
+
+            <section class="tag-modus" aria-labelledby="demo-z-titel">
+              <h2 class="tag-modus-titel" id="demo-z-titel"><span class="tag-badge" data-m="z">Zeitenwende</span></h2>
+              <div class="tag-feld">
+                <label class="tag-label" for="demo-zw-lemma">Wort</label>
+                <div class="tag-wert tag-wert--wort in-wert--ipa">
+                  <input class="tag-eingabe tag-eingabe--wort" type="text" id="demo-zw-lemma" maxlength="80" autocomplete="off" spellcheck="false" aria-describedby="demo-zw-lemma-fehler">
+                  <input class="tag-eingabe in-ipa" type="text" id="demo-zw-ipa" maxlength="80" autocomplete="off" spellcheck="false" aria-label="Lautschrift des Worts (Zeitenwende)" placeholder="Lautschrift">
+                </div>
+                <p class="tag-feld-fehler" id="demo-zw-lemma-fehler" hidden></p>
+              </div>
+              <div class="tag-feld">
+                <label class="tag-label" for="demo-zw-words">Kollokatoren</label>
+                <div class="tag-wert">
+                  <textarea class="tag-eingabe" id="demo-zw-words" rows="4" aria-describedby="demo-zw-words-zahl demo-zw-words-fehler" data-min="2" data-max="12"></textarea>
+                  <span class="in-zaehler" id="demo-zw-words-zahl"></span>
+                </div>
+                <p class="tag-feld-fehler" id="demo-zw-words-fehler" hidden></p>
+              </div>
+            </section>
+
+            <section class="tag-modus" aria-labelledby="demo-l-titel">
+              <h2 class="tag-modus-titel" id="demo-l-titel"><span class="tag-badge" data-m="l">Lückenfüller</span></h2>
+              <div class="tag-feld">
+                <label class="tag-label" for="demo-lf-lemma">Wort</label>
+                <div class="tag-wert tag-wert--wort in-wert--ipa">
+                  <input class="tag-eingabe tag-eingabe--wort" type="text" id="demo-lf-lemma" maxlength="80" autocomplete="off" spellcheck="false" aria-describedby="demo-lf-lemma-fehler">
+                  <input class="tag-eingabe in-ipa" type="text" id="demo-lf-ipa" maxlength="80" autocomplete="off" spellcheck="false" aria-label="Lautschrift des Worts (Lückenfüller)" placeholder="Lautschrift">
+                </div>
+                <p class="tag-feld-fehler" id="demo-lf-lemma-fehler" hidden></p>
+              </div>
+              <div class="tag-feld">
+                <label class="tag-label" for="demo-lf-sentence">Satz</label>
+                <div class="tag-wert"><textarea class="tag-eingabe" id="demo-lf-sentence" rows="2" maxlength="300" aria-describedby="demo-lf-sentence-hinweis demo-lf-sentence-fehler"></textarea></div>
+                <p class="tag-hinweis" id="demo-lf-sentence-hinweis">Die Lücke sind fünf Unterstriche: _____</p>
+                <p class="tag-feld-fehler" id="demo-lf-sentence-fehler" hidden></p>
+              </div>
+              <div class="tag-feld">
+                <label class="tag-label" for="demo-lf-options">Antworten</label>
+                <div class="tag-wert">
+                  <textarea class="tag-eingabe" id="demo-lf-options" rows="4" aria-describedby="demo-lf-options-zahl demo-lf-options-fehler" data-min="2" data-max="6"></textarea>
+                  <span class="in-zaehler" id="demo-lf-options-zahl"></span>
+                </div>
+                <p class="tag-feld-fehler" id="demo-lf-options-fehler" hidden></p>
+              </div>
+            </section>
           </div>
-          <p class="section-copy">Diese Wörter erscheinen in der login-freien „Klassenraum-Vorschau“ für Lehrkräfte (Tab Klassenraum → ② Sitzungen → Vorschau ansehen). Wörter durch Zeilenumbruch oder Komma trennen.</p>
-          <p class="entry-hint" id="demo-content-status"></p>
 
-          <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(250px, 1fr)); gap:16px; margin-top:12px">
-            <fieldset style="border:1px solid var(--border-lt); border-radius:8px; padding:12px 14px; min-width:0">
-              <legend style="font-weight:500; padding:0 6px">Kollokationen</legend>
-              <label style="display:block; font-size:0.8rem; color:var(--muted); margin-bottom:8px">Lemma<input type="text" id="demo-kol-lemma" style="width:100%; margin-top:3px"></label>
-              <label style="display:block; font-size:0.8rem; color:var(--muted); margin-bottom:8px">IPA<input type="text" id="demo-kol-ipa" style="width:100%; margin-top:3px"></label>
-              <label style="display:block; font-size:0.8rem; color:var(--muted); margin-bottom:8px">Definition<input type="text" id="demo-kol-def" style="width:100%; margin-top:3px"></label>
-              <label style="display:block; font-size:0.8rem; color:var(--muted)">Wörter (Kandidaten)<textarea id="demo-kol-words" rows="3" style="width:100%; margin-top:3px"></textarea></label>
-            </fieldset>
-
-            <fieldset style="border:1px solid var(--border-lt); border-radius:8px; padding:12px 14px; min-width:0">
-              <legend style="font-weight:500; padding:0 6px">Wort-Zwilling</legend>
-              <label style="display:block; font-size:0.8rem; color:var(--muted); margin-bottom:8px">Wort A<input type="text" id="demo-wz-a" style="width:100%; margin-top:3px"></label>
-              <label style="display:block; font-size:0.8rem; color:var(--muted); margin-bottom:8px">Wort B<input type="text" id="demo-wz-b" style="width:100%; margin-top:3px"></label>
-              <label style="display:block; font-size:0.8rem; color:var(--muted)">Wörter (zuzuordnen)<textarea id="demo-wz-words" rows="3" style="width:100%; margin-top:3px"></textarea></label>
-            </fieldset>
-
-            <fieldset style="border:1px solid var(--border-lt); border-radius:8px; padding:12px 14px; min-width:0">
-              <legend style="font-weight:500; padding:0 6px">Zeitenwende</legend>
-              <label style="display:block; font-size:0.8rem; color:var(--muted); margin-bottom:8px">Lemma<input type="text" id="demo-zw-lemma" style="width:100%; margin-top:3px"></label>
-              <label style="display:block; font-size:0.8rem; color:var(--muted); margin-bottom:8px">IPA<input type="text" id="demo-zw-ipa" style="width:100%; margin-top:3px"></label>
-              <label style="display:block; font-size:0.8rem; color:var(--muted)">Wörter<textarea id="demo-zw-words" rows="3" style="width:100%; margin-top:3px"></textarea></label>
-            </fieldset>
-
-            <fieldset style="border:1px solid var(--border-lt); border-radius:8px; padding:12px 14px; min-width:0">
-              <legend style="font-weight:500; padding:0 6px">Lückenfüller</legend>
-              <label style="display:block; font-size:0.8rem; color:var(--muted); margin-bottom:8px">Lemma<input type="text" id="demo-lf-lemma" style="width:100%; margin-top:3px"></label>
-              <label style="display:block; font-size:0.8rem; color:var(--muted); margin-bottom:8px">IPA<input type="text" id="demo-lf-ipa" style="width:100%; margin-top:3px"></label>
-              <label style="display:block; font-size:0.8rem; color:var(--muted); margin-bottom:8px">Satz (Lücke = fünf Unterstriche _____)<input type="text" id="demo-lf-sentence" style="width:100%; margin-top:3px"></label>
-              <label style="display:block; font-size:0.8rem; color:var(--muted)">Optionen<textarea id="demo-lf-options" rows="2" style="width:100%; margin-top:3px"></textarea></label>
-            </fieldset>
+          <div class="be-aktionen">
+            <button type="submit" class="adm-cta" id="demo-start"><span id="demo-start-text">Speichern</span> <span aria-hidden="true">→</span></button>
+            <button type="button" class="adm-link" data-action="demo-verwerfen" id="demo-verwerfen" hidden>Änderungen verwerfen</button>
+            <button type="button" class="adm-link" data-action="demo-standard" id="demo-standard">Standardinhalte einsetzen</button>
           </div>
-        </div>
+          <p class="li-meldung" id="demo-content-status" role="status" aria-live="polite" tabindex="-1"></p>
+        </form>
       </section>
 
       <section class="admin-page" id="page-werkzeuge" data-title="Werkzeuge" data-subtitle="Inhalte pflegen, Betrieb und selten gebrauchte Aufgaben.">
         <section class="adm-section">
           <h2 class="adm-overline">Inhalte pflegen</h2>
           <ul class="adm-tools">
-            <li><a class="adm-tool" href="#werkzeuge/pruefen"><span class="adm-tool-main"><span class="adm-tool-title">Wort prüfen</span><span class="adm-tool-meta">Eignung für Kollokation, Wort-Zwilling, Zeitenwende und Lückenfüller testen</span></span><span class="adm-tool-go" aria-hidden="true">→</span></a></li>
-            <li><a class="adm-tool" href="#werkzeuge/bonus-tage"><span class="adm-tool-main"><span class="adm-tool-title">Bonus-Tage</span><span class="adm-tool-meta">Tage mit zusätzlichen eigenen Spielen für Basis-Konten</span></span><span class="adm-tool-go" aria-hidden="true">→</span></a></li>
-            <li><a class="adm-tool" href="#werkzeuge/benachrichtigungen"><span class="adm-tool-main"><span class="adm-tool-title">Benachrichtigungen</span><span class="adm-tool-meta">Vorlagen verwalten, Nachricht an alle Geräte senden</span></span><span class="adm-tool-go" aria-hidden="true">→</span></a></li>
+            <li><a class="adm-tool" href="#werkzeuge/pruefen"><span class="adm-tool-main"><span class="adm-tool-title">Wort prüfen</span><span class="adm-tool-meta">Eignung für Kollokationen, Wort-Zwilling, Zeitenwende und Lückenfüller testen</span></span><span class="adm-tool-go" aria-hidden="true">→</span></a></li>
+            <li><a class="adm-tool" href="#werkzeuge/bonus-tage"><span class="adm-tool-main"><span class="adm-tool-title">Bonus-Tage</span><span class="adm-tool-meta">Tage mit zusätzlichen Spielen mit eigenem Lemma für Konten mit Basiszugang</span></span><span class="adm-tool-stand" id="wz-stand-bonus"></span><span class="adm-tool-go" aria-hidden="true">→</span></a></li>
+            <li><a class="adm-tool" href="#werkzeuge/benachrichtigungen"><span class="adm-tool-main"><span class="adm-tool-title">Benachrichtigungen</span><span class="adm-tool-meta">Nachricht an alle Geräte senden, Vorlagen für den täglichen Versand</span></span><span class="adm-tool-stand" id="wz-stand-push"></span><span class="adm-tool-go" aria-hidden="true">→</span></a></li>
           </ul>
         </section>
 
@@ -995,7 +1077,7 @@
           <h2 class="adm-overline">Selten</h2>
           <ul class="adm-tools">
             <li><a class="adm-tool" href="#werkzeuge/klassenraum-demo"><span class="adm-tool-main"><span class="adm-tool-title">Klassenraum-Demo</span><span class="adm-tool-meta">Wörter der Vorschau für Lehrkräfte ohne Anmeldung</span></span><span class="adm-tool-go" aria-hidden="true">→</span></a></li>
-            <li><a class="adm-tool" href="#werkzeuge/wort-der-woche"><span class="adm-tool-main"><span class="adm-tool-title">Wort der Woche</span><span class="adm-tool-meta">Spezial-Lemma für eine Kalenderwoche eintragen</span></span><span class="adm-tool-go" aria-hidden="true">→</span></a></li>
+            <li><a class="adm-tool" href="#werkzeuge/wort-der-woche"><span class="adm-tool-main"><span class="adm-tool-title">Wort der Woche</span><span class="adm-tool-meta">Zusätzliches Wort für eine Kalenderwoche eintragen</span></span><span class="adm-tool-stand" id="wz-stand-woche"></span><span class="adm-tool-go" aria-hidden="true">→</span></a></li>
             <li><a class="adm-tool" href="/admin/social-cards"><span class="adm-tool-main"><span class="adm-tool-title">Social Cards</span><span class="adm-tool-meta">Bilder für soziale Netzwerke erzeugen · eigene Seite</span></span><span class="adm-tool-go" aria-hidden="true">→</span></a></li>
           </ul>
         </section>
@@ -1107,7 +1189,10 @@
               <option value="lemma_entwurf">Vorschläge</option>
               <option value="user">Konten</option>
               <option value="push">Benachrichtigungen</option>
+              <option value="push_vorlage">Vorlagen</option>
+              <option value="bonus_tag">Bonus-Tage</option>
               <option value="spezialwoche">Wort der Woche</option>
+              <option value="demo">Klassenraum-Demo</option>
               <option value="backup">Sicherung</option>
               <option value="security">Anmeldung und Zahlung</option>
             </select>

@@ -498,7 +498,8 @@ function runRouteLoaders(route) {
       loadStats()
       break
     case 'werkzeuge':
-      // Füllt den Stand der Betriebs-Werkzeuge
+      // Füllt den Stand der Werkzeuge (Betrieb aus /admin/health, Bonus-Tage aus freeDaysData)
+      renderInhalteStand()
       loadHealth()
       break
     case 'system':
@@ -517,22 +518,23 @@ function runRouteLoaders(route) {
       loadAuditLog()
       break
     case 'freedays':
-      loadFreeDays()
+      // Liste sofort aus dem Speicher, dann frisch nachziehen
+      oeffneBonusSeite()
       break
     case 'vorschlaege':
       loadVorschlaege()
       break
     case 'spezialwoche':
-      loadSpezialwochen()
+      void ladeWortDerWoche()
       break
     case 'push':
-      loadPushTemplates()
+      void ladePush()
       break
     case 'classroom':
       loadClassroomStats()
       break
     case 'klassenraum-demo':
-      loadDemoEditor()
+      void ladeDemo()
       break
     case 'metrics':
       loadProductMetrics()
@@ -788,6 +790,8 @@ async function renderRoute({ userInitiated = false } = {}) {
   // Beim Verlassen: Kursmaterial fragt nicht weiter ab; die gewählte Sicherungsdatei (bis 10 MB) wird freigegeben.
   if (leavingRoute?.page === 'kursmaterial' && route.page !== 'kursmaterial') stoppeKursAbfrage()
   if (leavingRoute?.page === 'sicherung' && route.page !== 'sicherung') restoreAbbrechenStill()
+  // Ein offener Bestätigungsdialog (An alle senden, Bonus-Tag ersetzen) gehört zu seiner Seite und schließt mit ihr.
+  if (leavingRoute && leavingRoute.page !== route.page) document.querySelectorAll('dialog.in-dialog[open]').forEach((d) => d.close())
 
   if (userInitiated && typeof window.scrollTo === 'function') {
     window.scrollTo(0, 0)
@@ -1232,7 +1236,7 @@ function getFreeDayInfo(iso) {
       label: explicit.label || '',
       bonus,
       source: 'manual',
-      displayLabel: `Bonus: +${bonus} Eigene-Lemma-Spiele für Basic${explicit.label ? ` · ${explicit.label}` : ''}`,
+      displayLabel: `Bonus: +${bonus} Spiele mit eigenem Lemma für Konten mit Basiszugang${explicit.label ? ` · ${explicit.label}` : ''}`,
     }
   }
   return null
@@ -1258,19 +1262,6 @@ function createTemporaryDownload(blob, filename) {
   a.download = filename
   a.click()
   URL.revokeObjectURL(url)
-}
-
-function setFreeDayMessage(message, tone = 'info') {
-  const msgEl = document.getElementById('freeday-msg')
-  if (!msgEl) return
-  msgEl.textContent = message || ''
-  msgEl.classList.remove('is-hidden', 'is-error', 'is-success')
-  if (!message) {
-    msgEl.classList.add('is-hidden')
-    return
-  }
-  if (tone === 'error') msgEl.classList.add('is-error')
-  if (tone === 'success') msgEl.classList.add('is-success')
 }
 
 function formatIsoDate(iso) {
@@ -1357,11 +1348,12 @@ function fehltText(stand) {
   return `${aufzaehlung(namen)} ${namen.length === 1 ? 'fehlt' : 'fehlen'}`
 }
 
-// Die Basis-Rolle heißt in der Oberfläche „Basis“ (Datenbankwert und API: „user“).
+// Die Rollen heißen in der Oberfläche „Basiszugang“ und „Gesamtausgabe“ (Terminologie.md; „Basis“ ist ein Fachbegriff
+// der Kollokationen). Datenbankwerte und API bleiben „user“ und „premium“.
 function roleLabel(role) {
   if (role === 'admin') return 'Admin'
-  if (role === 'premium') return 'Premium'
-  return 'Basis'
+  if (role === 'premium') return 'Gesamtausgabe'
+  return 'Basiszugang'
 }
 
 // ── Login / Logout ────────────────────────────────────────
@@ -1634,6 +1626,8 @@ function healthAnwenden(data) {
     else { link.innerHTML = '<span class="adm-visually-hidden">Systemzustand: </span>System prüfen'; link.dataset.tone = 'warn' }
   }
   renderWerkzeugStand(data)
+  inhalteHealth = data
+  renderInhalteStand()
 }
 
 async function loadHealth() {
@@ -2266,7 +2260,7 @@ document.addEventListener('toggle', (event) => {
 
 // ── Änderungsprotokoll ──
 
-const PROTOKOLL_BEREICHE = { kalender: 'Tage', lemma_entwurf: 'Vorschläge', user: 'Konten', push: 'Benachrichtigungen', spezialwoche: 'Wort der Woche', backup: 'Sicherung', security: 'Anmeldung und Zahlung' }
+const PROTOKOLL_BEREICHE = { kalender: 'Tage', lemma_entwurf: 'Vorschläge', user: 'Konten', push: 'Benachrichtigungen', push_vorlage: 'Vorlagen', bonus_tag: 'Bonus-Tage', spezialwoche: 'Wort der Woche', demo: 'Klassenraum-Demo', backup: 'Sicherung', security: 'Anmeldung und Zahlung' }
 const PROTOKOLL_VORGAENGE = {
   CREATE: 'angelegt oder gespeichert', UPDATE: 'geändert', DELETE: 'gelöscht', LOGIN_SUCCESS: 'angemeldet', LOGIN_FAIL: 'Anmeldung fehlgeschlagen',
   LOGOUT: 'abgemeldet', SESSIONS_INVALIDATED: 'Sitzungen beendet', CHECKOUT_REJECT_COUNTRY: 'Kauf abgelehnt (Land)', PAYMENT_REJECT: 'Zahlung abgewiesen', WEBHOOK_REJECT: 'Zahlungsmeldung abgewiesen',
@@ -2295,7 +2289,15 @@ function protokollSatz(e) {
     case 'user:UPDATE': return `Rolle eines Kontos von ${roleLabel(b.role)} auf ${roleLabel(a.role)} geändert`
     case 'user:DELETE': return `Konto gelöscht (${b.role ? roleLabel(b.role) : 'Rolle unbekannt'})`
     case 'push:CREATE': return `Benachrichtigung „${a.title || e.resourceId}“ an alle Geräte gesendet`
-    case 'spezialwoche:CREATE': return `Wort der Woche für ${kwText(e.resourceId)} gespeichert${a.lemma ? `: ${a.lemma}` : ''}`
+    case 'push_vorlage:CREATE': return `Vorlage „${a.title || e.resourceId}“ angelegt`
+    case 'push_vorlage:UPDATE': return `Vorlage „${a.title || b.title || e.resourceId}“ gespeichert`
+    case 'push_vorlage:DELETE': return `Vorlage „${b.title || e.resourceId}“ gelöscht`
+    case 'bonus_tag:CREATE': return `Bonus-Tag ${tagText(e.resourceId)} eingetragen: +${anzahlText(a.bonus_count, 'Spiel', 'Spiele')}`
+    case 'bonus_tag:UPDATE': return `Bonus-Tag ${tagText(e.resourceId)} ersetzt: +${anzahlText(a.bonus_count, 'Spiel', 'Spiele')}`
+    case 'bonus_tag:DELETE': return `Bonus-Tag ${tagText(e.resourceId)} entfernt`
+    case 'demo:UPDATE': return 'Inhalte der Klassenraum-Demo gespeichert'
+    case 'spezialwoche:CREATE': return `Wort der Woche für ${kwText(e.resourceId)} ${a.ersetzt ? 'ersetzt' : 'gespeichert'}${a.lemma ? `: ${a.lemma}` : ''}`
+    case 'spezialwoche:UPDATE': return `Wort der Woche für ${kwText(e.resourceId)} ersetzt${a.lemma ? `: ${a.lemma}` : ''}`
     case 'spezialwoche:DELETE': return `Wort der Woche für ${kwText(e.resourceId)} entfernt`
     case 'backup:CREATE': return 'Datenbank gesichert (von Hand)'
     case 'backup:UPDATE': {
@@ -2360,9 +2362,33 @@ function protokollDetail(e, i) {
   } else if (e.resource === 'push') {
     if (a.body) zeilen.push(betriebZeile('Text', w(a.body)))
     if (a.total != null) zeilen.push(betriebZeile('Zugestellt', w(`${ganzzahlDe(a.sent)} von ${ganzzahlDe(a.total)}`), a.failed ? esc(`${ganzzahlDe(a.failed)} fehlgeschlagen`) : ''))
+  } else if (e.resource === 'push_vorlage') {
+    const v = e.action === 'DELETE' ? b : a
+    if (v.title) zeilen.push(betriebZeile('Titel', w(v.title)))
+    if (v.body) zeilen.push(betriebZeile('Text', w(v.body)))
+    if (e.action === 'UPDATE' && b.title !== undefined && (b.title !== a.title || b.body !== a.body)) zeilen.push(betriebZeile('Vorher', w(b.title || '–'), esc(b.body || '')))
+    if (v.category) zeilen.push(betriebZeile('Versand', w(v.category === 'streak' ? 'abends, 19:00' : 'täglich, 8:00'), v.enabled === false ? 'aus' : ''))
+  } else if (e.resource === 'bonus_tag') {
+    zeilen.push(betriebZeile('Tag', w(tagText(e.resourceId))))
+    const v = e.action === 'DELETE' ? b : a
+    if (v.bonus_count != null) zeilen.push(betriebZeile('Zusätzliche Spiele', w(String(v.bonus_count)), v.label ? esc(v.label) : ''))
+    if (e.action === 'UPDATE' && b.bonus_count != null) zeilen.push(betriebZeile('Vorher', w(String(b.bonus_count)), b.label ? esc(b.label) : ''))
+  } else if (e.resource === 'demo') {
+    if (a.basis) zeilen.push(betriebZeile('Kollokationen', w(a.basis)))
+    if (a.wortzwilling) zeilen.push(betriebZeile('Wort-Zwilling', w(a.wortzwilling)))
+    if (a.zeitenwende) zeilen.push(betriebZeile('Zeitenwende', w(a.zeitenwende)))
+    if (a.lueckenfueller) zeilen.push(betriebZeile('Lückenfüller', w(a.lueckenfueller)))
+    if (b.basis) zeilen.push(betriebZeile('Vorher', w(b.standard ? 'Standardinhalte' : b.basis)))
   } else if (e.resource === 'spezialwoche') {
-    if (a.von) zeilen.push(betriebZeile('Zeitraum', w(`${tagText(a.von)} – ${tagText(a.bis)}`)))
-    if (a.zwilling_partner) zeilen.push(betriebZeile('Wort-Zwilling', w(`${a.lemma} · ${a.zwilling_partner}`)))
+    const v = e.action === 'DELETE' ? b : a
+    if (v.von) zeilen.push(betriebZeile('Zeitraum', w(`${tagText(v.von)} – ${tagText(v.bis)}`)))
+    if (v.zwilling_partner) zeilen.push(betriebZeile('Wort-Zwilling', w(`${v.lemma} · ${v.zwilling_partner}`)))
+    if (v.lueckenfueller_id) zeilen.push(betriebZeile('Lückenfüller', w(v.lueckenfueller_id)))
+    if (v.notiz) zeilen.push(betriebZeile('Notiz', w(v.notiz)))
+    if (v.link) zeilen.push(betriebZeile('Link', w(v.link)))
+    if (v.zeitenwende_notiz) zeilen.push(betriebZeile('Notiz Zeitenwende', w(v.zeitenwende_notiz)))
+    if (v.zeitenwende_link) zeilen.push(betriebZeile('Link Zeitenwende', w(v.zeitenwende_link)))
+    if (e.action === 'UPDATE' && b.lemma) zeilen.push(betriebZeile('Vorher', w(b.lemma), b.zwilling_partner ? esc(`Wort-Zwilling mit ${b.zwilling_partner}`) : ''))
   } else if (e.resource === 'backup') {
     if (k === 'backup:CREATE') {
       if (a.datei) zeilen.push(betriebZeile('Datei', id(a.datei), a.sizeBytes ? esc(mbText(a.sizeBytes)) : ''))
@@ -3935,7 +3961,7 @@ function renderTagesDetail(datum, detail = document.getElementById('dashboard-da
     ? `<button type="button" class="adm-link" data-action="zeige-woche-von" data-value="${esc(datum)}">In der Woche zeigen${fuer}</button>`
     : ''
   const bonusHtml = bonus
-    ? `<p class="wo-detail-bonus"><span class="wo-bonus">Bonus</span><span>+${bonus.bonus} Eigene-Lemma-Spiele für Basic${bonus.label ? ` · ${esc(bonus.label)}` : ''}</span></p>`
+    ? `<p class="wo-detail-bonus"><span class="wo-bonus">Bonus</span><span>+${bonus.bonus} Spiele mit eigenem Lemma für Konten mit Basiszugang${bonus.label ? ` · ${esc(bonus.label)}` : ''}</span></p>`
     : ''
 
   if (!entry) {
@@ -4125,20 +4151,6 @@ function renderStand() {
   ].join('')
 }
 
-// ── Kollokation – Wortanalyse ─────────────────────────────
-async function analyzeKollokation() {
-  const lemma = document.getElementById('koll-input').value.trim()
-  const out   = document.getElementById('koll-output')
-  if (!lemma) return
-  out.innerHTML = '<div class="status loading">Analysiere …</div>'
-  try {
-    const res  = await fetch(`/admin/analyze-kollokation?q=${encodeURIComponent(lemma)}`, {})
-    const data = await res.json()
-    if (!res.ok) { out.innerHTML = `<div class="status error">Fehler: ${esc(data.error)}</div>`; return }
-    renderKollAnalyse(data, out)
-  } catch (e) { out.innerHTML = `<div class="status error">Netzwerkfehler: ${esc(e.message)}</div>` }
-}
-
 // ── Tagesseite: Prüfen der vier Modi ──────────────────────
 const zahlDe = (n) => Number.isFinite(Number(n))
   ? Number(n).toLocaleString('de-DE', { minimumFractionDigits: 1, maximumFractionDigits: 1 })
@@ -4159,7 +4171,7 @@ function schreibeErgebnis(out, html) {
   sageErgebnisAn(out, out.querySelector('.tag-erg-meldung')?.textContent || '')
 }
 
-const zeileMitZahl = (wort, zahl, vorzeichen = '') => `<li><span>${esc(wort)}</span><span class="tag-erg-zahl">${vorzeichen}${zahlDe(zahl)}</span></li>`
+const zeileMitZahl = (wort, zahl, vorzeichen = '', rang = null) => `<li><span>${rang ? `<span class="in-rang">${rang}</span>` : ''}${esc(wort)}</span><span class="tag-erg-zahl">${vorzeichen}${zahlDe(zahl)}</span></li>`
 
 // Prüfen sperren, solange die Korpusabfrage läuft (schwer; verhindert Doppelklicks).
 async function mitPruefSperre(btn, fn) {
@@ -4224,13 +4236,13 @@ async function analyzeEntryKollokation() {
       .map((k) => `${esc(k.wort)} <span class="tag-erg-zahl">${zahlDe(k.logDice)}</span>`).join(' · ')
     const urteil = data.usable
       ? '<span class="tag-erg-urteil" data-tone="ok">geeignet</span>'
-      : '<span class="tag-erg-urteil" data-tone="warn">zu wenige Kollokatoren</span>'
+      : `<span class="tag-erg-urteil" data-tone="warn">${esc(`nur ${anzahlText(data.pool ?? 0, 'Kollokator', 'Kollokatoren')} (das Spiel braucht ${data.min ?? 10})`)}</span>`
     return `<li class="tag-erg-zeile"><span class="tag-erg-wort">${esc(lemma)}</span>${werte ? `<span class="tag-erg-werte">${werte}</span>` : ''}${urteil}</li>`
   }).join('')
 
   schreibeErgebnis(out, ergebnisMeldung(kopf, alle ? 'ok' : 'warn')
     + `<ul class="tag-erg-liste">${zeilen}</ul>`
-    + '<p class="tag-erg-fuss">Je Wort die fünf stärksten Kollokatoren im eigenen Korpus; Zahl = logDice (Assoziationsmaß).</p>')
+    + '<p class="tag-erg-fuss">Je Wort die fünf stärksten Kollokatoren im eigenen Korpus; Zahl = logDice (Assoziationsmaß). Geeignet ab zehn Kollokatoren: drei gesuchte und sieben Ablenker.</p>')
 }
 
 // Vorschau eines der drei Kollokationen-Wörter (Nr. 1–3) als Wörterbuch-Eintrag.
@@ -4278,36 +4290,6 @@ async function previewCurrentLemma(index = 1) {
   } catch (err) {
     out.innerHTML = ergebnisMeldung(`Vorschau fehlgeschlagen: ${err.message}`, 'error')
   }
-}
-
-function renderKollAnalyse(data, out) {
-  const badge = data.usable
-    ? '<span style="color:#166534;font-weight:700">✓ Geeignet als Kollokationswort</span>'
-    : '<span style="color:#991b1b;font-weight:700">✗ Nicht geeignet (zu wenig Kollokatoren)</span>'
-
-  let html = `<div style="margin:12px 0 16px">${badge}</div>`
-
-  // Kollokationen – sortierte Gesamtliste (alle Relationen zusammengeführt)
-  if (data.kollokatoren?.length) {
-    html += `<div style="margin-bottom:16px">`
-    html += `<strong style="font-size:0.82rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)">Top ${data.kollokatoren.length} Kollokationen</strong>`
-    html += `<ol style="padding-left:20px;margin-top:8px;display:flex;flex-direction:column;gap:4px;font-size:0.88rem">`
-    for (const it of data.kollokatoren) {
-      html += `<li>${esc(it.wort)} <span style="color:var(--muted);font-size:0.8em">logDice ${it.logDice}</span></li>`
-    }
-    html += `</ol></div>`
-  } else {
-    html += `<div style="margin-bottom:16px;color:var(--muted);font-size:0.85rem">Keine Kollokationen ermittelt.</div>`
-  }
-
-  // Bonusfrage
-  if (data.bonus) {
-    html += `<div style="margin-bottom:14px;padding:10px 14px;background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;font-size:0.82rem">`
-    html += `<strong>Bonusfrage (${esc(data.bonus.label)}):</strong> ${esc(data.bonus.question)}<br>`
-    html += `<span style="color:var(--muted)">Antwort: <strong>${esc(data.bonus.correct)}</strong> · Optionen: ${data.bonus.options.map(o => esc(o)).join(', ')}</span></div>`
-  }
-
-  out.innerHTML = html
 }
 
 // ── Statistik ─────────────────────────────────────────────
@@ -4392,12 +4374,20 @@ function betragDe(betrag, waehrung = 'EUR') {
 // Meldung in einer Live-Region (.li-meldung). Leerer Text blendet sie aus.
 // fokus: Tastatur dorthin (der Auslöser ist weg). Dann liest der Screenreader die Meldung über den Fokus;
 // die Live-Region ist für diesen Moment aus, sonst käme die Ansage doppelt.
-function setMeldung(id, msg, tone, { fokus = false } = {}) {
+function setMeldung(id, msg, tone, { fokus = false, html = false } = {}) {
   const el = document.getElementById(id)
   if (!el) return
   const fokussieren = fokus && !!msg
-  if (fokussieren) el.setAttribute('aria-live', 'off')
-  el.textContent = msg || ''
+  if (fokussieren) {
+    el.setAttribute('aria-live', 'off')
+    // Eine fokussierte Statuszeile hat sonst keinen Namen (der Screenreader sagte nur „Status“): Ihr Name ist ihr eigener Text.
+    el.setAttribute('aria-labelledby', id)
+  } else {
+    el.removeAttribute('aria-labelledby')
+  }
+  // html: nur für selbst gebaute Texte, in denen alles Dynamische schon durch esc() gegangen ist
+  if (html) el.innerHTML = msg || ''
+  else el.textContent = msg || ''
   if (msg && tone) el.dataset.tone = tone
   else el.removeAttribute('data-tone')
   if (fokussieren) {
@@ -4473,11 +4463,11 @@ function istStandardNutzerFilter() {
   return !nutzerFilterAktiv.q && !nutzerFilterAktiv.role
 }
 
-// „2.029 Konten · 4 Premium · 6 neu in 30 Tagen“ · „12 Treffer von 2.029 Konten“
+// „2.029 Konten · 4 mit Gesamtausgabe · 6 neu in 30 Tagen“ · „12 Treffer von 2.029 Konten“
 function nutzerZahlText() {
   const gesamt = Number(nutzerSummary?.total ?? nutzerGefiltert)
   if (istStandardNutzerFilter()) {
-    return `${kontenText(gesamt)} · ${ganzzahlDe(nutzerSummary?.premium)} Premium · ${ganzzahlDe(nutzerSummary?.newLast30Days)} neu in 30 Tagen`
+    return `${kontenText(gesamt)} · ${ganzzahlDe(nutzerSummary?.premium)} mit Gesamtausgabe · ${ganzzahlDe(nutzerSummary?.newLast30Days)} neu in 30 Tagen`
   }
   return `${ganzzahlDe(nutzerGefiltert)} Treffer von ${kontenText(gesamt)}`
 }
@@ -5073,9 +5063,9 @@ async function ladeKonto(id) {
   }
 }
 
-// Stand von Kauf und Premium: Überschrift und Satz darunter (reiner Text, beim Einfügen escapen)
+// Stand von Kauf und Gesamtausgabe: Überschrift und Satz darunter (reiner Text, beim Einfügen escapen)
 function premiumStand({ user, kauf, konto }) {
-  if (user.role === 'admin') return { titel: 'Admin', text: 'Hat alle Premium-Funktionen, ohne Kauf.' }
+  if (user.role === 'admin') return { titel: 'Admin', text: 'Hat alle Funktionen der Gesamtausgabe, ohne Kauf.' }
   if (kauf.gesamtausgabe) {
     const quelle = QUELLE_KAUF_TEXT[kauf.quelle]
     const teile = [quelle || (kauf.quelle && kauf.quelle !== 'none' ? `Quelle: ${kauf.quelle}` : 'Quelle unbekannt')]
@@ -5085,14 +5075,14 @@ function premiumStand({ user, kauf, konto }) {
     return { titel: 'Gesamtausgabe gekauft', text: teile.join(' · ') }
   }
   if (user.role === 'premium') {
-    return { titel: 'Premium von Hand vergeben', text: `Kein Kauf erfasst.${konto.rolleGeaendertAm ? ` Rolle zuletzt geändert am ${datumDe(konto.rolleGeaendertAm)}.` : ''}` }
+    return { titel: 'Gesamtausgabe von Hand vergeben', text: `Kein Kauf erfasst.${konto.rolleGeaendertAm ? ` Rolle zuletzt geändert am ${datumDe(konto.rolleGeaendertAm)}.` : ''}` }
   }
-  return { titel: 'Kein Premium', text: 'Kein Kauf erfasst.' }
+  return { titel: 'Keine Gesamtausgabe', text: 'Kein Kauf erfasst.' }
 }
 
 function kaufHinweisHtml({ user, kauf }) {
   if (kauf.gesamtausgabe && user.role === 'user') {
-    return '<p class="li-meldung" data-tone="warn">Gekauft, aber Rolle Basis: Klassenraum und unbegrenzte eigene Wörter sind gesperrt. Rolle auf Premium setzen, um das zu beheben.</p>'
+    return '<p class="li-meldung" data-tone="warn">Gekauft, aber Rolle Basiszugang: Klassenraum und unbegrenzte eigene Wörter sind gesperrt. Rolle auf Gesamtausgabe setzen, um das zu beheben.</p>'
   }
   if (!kauf.gesamtausgabe && kauf.zahlungen.length) {
     return '<p class="li-meldung" data-tone="warn">Zahlung erfasst, aber die Gesamtausgabe ist nicht freigeschaltet.</p>'
@@ -5216,7 +5206,7 @@ function renderKonto(data) {
     + '</section>'
 
   const kaufTeil = '<section class="tag-abschnitt" aria-labelledby="nu-kauf-titel">'
-    + '<h2 class="tag-abschnitt-titel" id="nu-kauf-titel">Kauf und Premium</h2>'
+    + '<h2 class="tag-abschnitt-titel" id="nu-kauf-titel">Kauf und Gesamtausgabe</h2>'
     + `<p class="nu-stand">${esc(stand.titel)}</p><p class="nu-stand-text">${esc(stand.text)}</p>`
     + kaufHinweisHtml(daten)
     + (kauf.zahlungen.length
@@ -5313,7 +5303,7 @@ async function saveSelectedUserRole() {
     zeichneNutzerNachAenderung()
     kontoBeschaeftigt = false
     if (kontoAktuell === aktuell && istKontoSeite(user.id)) {
-      // Neu zeichnen: Rollenmarke, Stand von Kauf und Premium und der Hinweis „gekauft, aber Basis“ ändern sich mit.
+      // Neu zeichnen: Rollenmarke, Stand von Kauf und Gesamtausgabe und der Hinweis „gekauft, aber Basiszugang“ ändern sich mit.
       renderKonto(aktuell)
       setMeldung('user-role-meldung', `Rolle gespeichert: ${roleLabel(ziel)}.`, 'ok')
       document.getElementById('user-detail-role')?.focus()
@@ -5595,22 +5585,7 @@ function renderStatsCharts(last7, todayEntry) {
   }
 }
 
-// ── Wort-Zwilling – Paaranalyse ───────────────────────────
-async function analyzeWortZwilling() {
-  const wortA = document.getElementById('wza-input').value.trim()
-  const wortB = document.getElementById('wzb-input').value.trim()
-  const pos   = document.getElementById('wzana-pos').value
-  const out   = document.getElementById('wz-ana-output')
-  if (!wortA || !wortB) return
-  out.innerHTML = '<div class="status loading">Analysiere …</div>'
-  try {
-    const res  = await fetch(`/admin/analyze-wortzwilling?a=${encodeURIComponent(wortA)}&b=${encodeURIComponent(wortB)}&pos=${encodeURIComponent(pos)}`, {})
-    const data = await res.json()
-    if (!res.ok) { out.innerHTML = `<div class="status error">Fehler: ${esc(data.error)}</div>`; return }
-    renderWZAnalyse(data, out)
-  } catch (e) { out.innerHTML = `<div class="status error">Netzwerkfehler: ${esc(e.message)}</div>` }
-}
-
+// ── Wort-Zwilling – Prüfung im Tag ─────────────────────────
 async function analyzeEntryWortZwilling() {
   const wortA = normalizeText(document.getElementById('wza')?.value || '')
   const wortB = normalizeText(document.getElementById('wzb')?.value || '')
@@ -5625,107 +5600,176 @@ async function analyzeEntryWortZwilling() {
   schreibeErgebnis(out, ergebnisMeldung('Prüft im Korpus …', 'loading'))
   try {
     const data = await holePruefung(`/admin/analyze-wortzwilling?a=${encodeURIComponent(wortA)}&b=${encodeURIComponent(wortB)}&pos=${encodeURIComponent(pos)}`)
-    renderTagWortZwilling(data, out)
+    renderTagWortZwilling(data, out, wortA, wortB)
   } catch (err) {
     schreibeErgebnis(out, ergebnisMeldung(`Prüfen fehlgeschlagen: ${err.message}`, 'error'))
   }
 }
 
-// Ergebnis auf der Tagesseite. renderWZAnalyse bleibt für Werkzeuge › Analyse unverändert.
-function renderTagWortZwilling(data, out) {
+// Ergebnis der Wort-Zwilling-Prüfung als HTML. Gemeinsam für Tag bearbeiten (ebene 4) und Werkzeuge › Wort prüfen
+// (ebene 3): Überschriften der beiden Spalten.
+function wzErgebnisHtml(data, { ebene = 3, wortA = '', wortB = '' } = {}) {
   if (!data.usable) {
-    schreibeErgebnis(out, ergebnisMeldung('Nicht geeignet: zu wenige eigene Kollokatoren (mindestens 5 je Wort).', 'warn'))
-    return
+    const a = data.wortA || wortA
+    const b = data.wortB || wortB
+    return ergebnisMeldung(`Nicht geeignet: Für „${a}“ und „${b}“ gibt es zu wenige Kollokatoren, die nur zu einem der beiden passen (mindestens fünf je Wort).`, 'warn')
   }
   const alle = Array.isArray(data.kollokatoren) ? data.kollokatoren : []
   const spalte = (kopf, seite, scoreKey) => {
     const zeilen = alle.filter((k) => k.zuordnung === seite).slice(0, 5).map((k) => zeileMitZahl(k.wort, k[scoreKey])).join('')
-    return `<div class="tag-erg-spalte"><h4 class="tag-erg-kopf">${esc(kopf)}</h4><ol class="tag-erg-knapp">${zeilen}</ol></div>`
+    return `<div class="tag-erg-spalte"><h${ebene} class="tag-erg-kopf">${esc(kopf)}</h${ebene}><ol class="tag-erg-knapp">${zeilen}</ol></div>`
   }
-  schreibeErgebnis(out, ergebnisMeldung('Geeignet: genug eigene Kollokatoren für beide Wörter.', 'ok')
+  return ergebnisMeldung('Geeignet: genug eigene Kollokatoren für beide Wörter.', 'ok')
     + `<div class="tag-erg-spalten">${spalte(data.wortA, 'A', 'scoreA')}${spalte(data.wortB, 'B', 'scoreB')}</div>`
-    + '<p class="tag-erg-fuss">Zahl = logDice zum jeweiligen Wort; gespielt werden nur Kollokatoren, die zu einem der beiden passen.</p>')
+    + '<p class="tag-erg-fuss">Zahl = logDice zum jeweiligen Wort; gespielt werden nur Kollokatoren, die zu einem der beiden passen.</p>'
 }
 
-function renderWZAnalyse(data, out) {
-  if (!data.usable) {
-    out.innerHTML = `<div style="margin-top:12px"><span style="color:#991b1b;font-weight:700">✗ Nicht geeignet</span><br><span style="color:var(--muted);font-size:0.85rem">${esc(data.reason || '')}</span></div>`
+// Ergebnis auf der Tagesseite
+function renderTagWortZwilling(data, out, wortA, wortB) {
+  schreibeErgebnis(out, wzErgebnisHtml(data, { ebene: 4, wortA, wortB }))
+}
+
+// ── Werkzeuge › Wort prüfen ───────────────────────────────
+// Vier Formulare (Kollokationen, Wort-Zwilling, Zeitenwende, Lückenfüller), je ein Absenden (Enter oder Knopf).
+// Die Ergebnisse nutzen dieselben Bausteine wie die Prüfung im Tag; Wort-Zwilling und Zeitenwende sind
+// dieselben Funktionen (wzErgebnisHtml, zwErgebnisHtml), nur die Überschriftenebene unterscheidet sich.
+
+const PRUEF = {
+  k: { out: 'koll-output', live: 'koll-live', btn: 'koll-start', text: 'koll-start-text', felder: ['koll-input'] },
+  w: { out: 'wz-ana-output', live: 'wz-live', btn: 'wz-start', text: 'wz-start-text', felder: ['wza-input', 'wzb-input'] },
+  z: { out: 'zw-ana-output', live: 'zw-live', btn: 'zw-start', text: 'zw-start-text', felder: ['zw-ana-input'] },
+  l: { out: 'lf-ana-output', live: 'lf-live', btn: 'lf-start', text: 'lf-start-text', felder: ['lf-ana-input'] },
+}
+// Modi, deren Abfrage gerade läuft: gegen Doppel-Absenden (Enter und Klick, zweimal Enter)
+const pruefLaeuft = new Set()
+const PRUEF_ZUSATZ = { k: ': Kollokationen', w: ': Wort-Zwilling', z: ': Zeitenwende', l: ': Lückenfüller' }
+
+// Sagt einen Text in der Live-Region an. Erst leeren, damit auch derselbe Text erneut angesagt wird.
+function sageAnLive(liveId, text) {
+  const live = document.getElementById(liveId)
+  if (!live) return
+  live.textContent = ''
+  if (text) window.setTimeout(() => { live.textContent = text }, 50)
+}
+
+function schreibePruefung(modus, html) {
+  const p = PRUEF[modus]
+  const out = document.getElementById(p.out)
+  if (!out) return
+  out.innerHTML = html
+  sageAnLive(p.live, out.querySelector('.tag-erg-meldung')?.textContent || '')
+  const leeren = out.closest('form')?.querySelector('[data-action^="reset-"]')
+  if (leeren) leeren.hidden = !html
+}
+
+// Knopftext „Prüfen“ ↔ „prüft …“; das unsichtbare Zusatzwort („: Kollokationen“) bleibt erhalten
+function setzePruefKnopf(modus, busy) {
+  const p = PRUEF[modus]
+  const btn = document.getElementById(p.btn)
+  const text = document.getElementById(p.text)
+  if (!btn || !text) return
+  btn.classList.toggle('is-busy', busy)
+  if (busy) btn.setAttribute('aria-disabled', 'true')
+  else btn.removeAttribute('aria-disabled')
+  text.innerHTML = `${busy ? 'prüft …' : 'Prüfen'}<span class="adm-visually-hidden">${PRUEF_ZUSATZ[modus]}</span>`
+}
+
+function pruefFehlerText(err) {
+  if (err?.status === 409) return err.data?.error || 'Diese Prüfung läuft schon (anderer Tab oder doppelt abgeschickt). Das Ergebnis erscheint dort; danach geht es hier wieder.'
+  if (err?.data?.error) return `Prüfen fehlgeschlagen: ${err.data.error}`
+  return `Prüfen fehlgeschlagen: Der Server hat nicht geantwortet${err?.status ? ` (HTTP ${err.status})` : ''}. Bitte gleich noch einmal versuchen.`
+}
+
+// Ergebnis der Kollokationen-Prüfung: was das Spiel aus dem Wort macht (gesucht = Platz 1–3, Ablenker = Auswahl aus Platz 4–25)
+function kollErgebnisHtml(d) {
+  const fuss = 'Zahl = logDice im eigenen Korpus (Assoziationsmaß, höchstens 14).'
+  const pool = Number(d.pool) || 0
+  if (!d.usable) {
+    // Unbekanntes Wort: nichts zu zählen, also auch keine Zahlen und keine Fußzeile dazu
+    if (!pool) return ergebnisMeldung('Nicht geeignet: keine Kollokatoren im Korpus.', 'warn')
+    const liste = (Array.isArray(d.kollokatoren) ? d.kollokatoren : []).map((k) => zeileMitZahl(k.wort, k.logDice, '', k.platz)).join('')
+    return ergebnisMeldung(`Nicht geeignet: nur ${anzahlText(pool, 'Kollokator', 'Kollokatoren')} im Korpus (${d.pos}). Das Spiel braucht mindestens ${d.min ?? 10} – drei gesuchte und sieben Ablenker.`, 'warn')
+      + (liste ? `<ol class="tag-erg-knapp">${liste}</ol>` : '')
+      + (liste ? `<p class="tag-erg-fuss">${fuss}</p>` : '')
+  }
+  const spalte = (kopf, items) => `<div class="tag-erg-spalte"><h3 class="tag-erg-kopf">${esc(kopf)}</h3><ol class="tag-erg-knapp">${(items || []).map((k) => zeileMitZahl(k.wort, k.logDice, '', k.platz)).join('')}</ol></div>`
+  const bonus = d.bonus
+    ? `<dl class="tag-dl be-dl">${betriebZeile('Bonusfrage', betriebWert(d.bonus.question || '–'), esc(d.bonus.label || ''))}`
+      + `${betriebZeile('Antwort', betriebWert(d.bonus.correct || '–'), Array.isArray(d.bonus.options) ? esc(`zur Wahl: ${d.bonus.options.join(', ')}`) : '')}</dl>`
+    : ''
+  return ergebnisMeldung(`Geeignet als Basis (${d.pos}): ${anzahlText(pool, 'Kollokator', 'Kollokatoren')} im Korpus.`, 'ok')
+    + `<div class="tag-erg-spalten">${spalte('Gesucht im Spiel', d.gesucht)}${spalte('Ablenker (Auswahl)', d.ablenker)}</div>`
+    + bonus
+    + `<p class="tag-erg-fuss">Lies die drei gesuchten Kollokatoren: Passen sie zur gemeinten Bedeutung? (Ton kann Lehm oder Klang sein.) Die Ablenker wählt das Spiel jeden Tag neu aus den Plätzen 4 bis 25. ${fuss}</p>`
+}
+
+// Lückenfüller-Prüfung (Wort prüfen): Runden, die aus dem Wort entstünden
+function lfErgebnisHtml(d, wort) {
+  if (!d.usable) {
+    // Kennung gehört schon zu einem anderen Wort: der Servertext erklärt es genauer als der Standardsatz
+    const kollision = /^Die Kennung/.test(d.reason || '')
+    return ergebnisMeldung(kollision ? d.reason : `Nicht genug Material für „${wort}“: zu wenige Kollokatoren oder keine Belegsätze, in denen sich eine Lücke setzen lässt.`, 'warn')
+  }
+  const neu = d.neuesLemma ? ' Noch kein Lückenfüller-Eintrag; „Runden erzeugen“ im Tag legt ihn an.' : ''
+  const zeilen = (Array.isArray(d.preview) ? d.preview : []).map((r, i) =>
+    `<li class="tag-erg-zeile"><span class="tag-erg-wort">${i + 1}. ${esc(r.kollokator || '–')}</span><span class="tag-erg-werte">${esc(LF_TYPEN[r.type] || r.type || '')}</span>`
+    + `<span class="tag-erg-urteil"><span class="tag-erg-zahl">${esc(anzahlText(r.punkte ?? 0, 'Punkt', 'Punkte'))}</span></span></li>`).join('')
+  return ergebnisMeldung(`Geeignet (${d.pos || '–'}): ${anzahlText(d.rounds || 0, 'Runde', 'Runden')}.${neu}`, 'ok')
+    + (zeilen ? `<ol class="tag-erg-liste">${zeilen}</ol>` : '')
+}
+
+async function pruefe(modus) {
+  const p = PRUEF[modus]
+  if (!p || pruefLaeuft.has(modus)) return
+  const wert = (id) => document.getElementById(id)?.value.trim() || ''
+  for (const id of p.felder) entmarkiereFeld(id)
+  const leere = p.felder.filter((id) => !wert(id))
+  if (leere.length) {
+    schreibePruefung(modus, ergebnisMeldung(modus === 'w' ? 'Erst beide Wörter eintragen.' : 'Erst ein Wort eintragen.'))
+    // Fehler am Feld: aria-invalid, der Fehlertext (die Meldung im Ergebnisbereich) hängt per aria-describedby daran
+    for (const id of leere) markiereFeld(id, p.out)
+    document.getElementById(leere[0])?.focus()
     return
   }
-  const kA = data.kollokatoren.filter(k => k.zuordnung === 'A')
-  const kB = data.kollokatoren.filter(k => k.zuordnung === 'B')
-  let html = `<div style="margin:12px 0 16px"><span style="color:#166534;font-weight:700">✓ Geeignet als Wort-Zwilling</span></div>`
-  html += `<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">`
-  for (const [label, items] of [[data.wortA, kA], [data.wortB, kB]]) {
-    html += `<div style="border:1.5px solid #bbf7d0;border-radius:8px;padding:12px">`
-    html += `<div style="font-weight:700;font-size:0.9rem;margin-bottom:8px;font-family:'Gentium Plus',serif">${esc(label)}</div>`
-    html += `<ol style="padding-left:16px;font-size:0.85rem;display:flex;flex-direction:column;gap:4px">`
-    for (const it of items) {
-      html += `<li>${esc(it.wort)} <span style="color:var(--muted);font-size:0.78em">A:${it.scoreA?.toFixed(1)} B:${it.scoreB?.toFixed(1)}</span></li>`
-    }
-    html += `</ol></div>`
-  }
-  html += `</div>`
-  out.innerHTML = html
-}
-
-function resetKollokationAnalysis() {
-  const output = document.getElementById('koll-output')
-  const input = document.getElementById('koll-input')
-  if (output) output.innerHTML = ''
-  if (input) input.value = ''
-}
-
-function resetWortZwillingAnalysis() {
-  const output = document.getElementById('wz-ana-output')
-  const inputA = document.getElementById('wza-input')
-  const inputB = document.getElementById('wzb-input')
-  if (output) output.innerHTML = ''
-  if (inputA) inputA.value = ''
-  if (inputB) inputB.value = ''
-}
-
-function resetZeitenwendeAnalysis() {
-  const output = document.getElementById('zw-ana-output')
-  const input = document.getElementById('zw-ana-input')
-  if (output) output.innerHTML = ''
-  if (input) input.value = ''
-}
-
-// ── Lückenfüller – Analyse ────────────────────────────────
-async function analyzeLueckenfueller() {
-  const lemma = document.getElementById('lf-ana-input')?.value.trim()
-  const out   = document.getElementById('lf-ana-output')
-  if (!lemma || !out) return
-  out.innerHTML = '<div class="status loading">Analysiere …</div>'
+  pruefLaeuft.add(modus)
+  setzePruefKnopf(modus, true)
+  schreibePruefung(modus, ergebnisMeldung(modus === 'l' ? 'Prüft im Korpus … Das kann bis zu 15 Sekunden dauern.' : 'Prüft im Korpus …', 'loading'))
   try {
-    const res  = await fetch(`/admin/analyze-lueckenfueller?q=${encodeURIComponent(lemma)}`, {})
-    const data = await res.json()
-    if (!res.ok) { out.innerHTML = `<div class="status error">Fehler: ${esc(data.error)}</div>`; return }
-
-    if (!data.usable) {
-      out.innerHTML = `<div style="margin:12px 0"><span style="color:#991b1b;font-weight:700">✗ Nicht geeignet</span><br><span style="color:var(--muted);font-size:0.85rem">${esc(data.reason || 'Kein Material verfügbar')}</span></div>`
-      return
+    let html
+    if (modus === 'k') {
+      const pos = document.getElementById('koll-pos')?.value || ''
+      const d = await holeJson(`/admin/analyze-kollokation?q=${encodeURIComponent(wert('koll-input'))}${pos ? `&pos=${encodeURIComponent(pos)}` : ''}`)
+      html = kollErgebnisHtml(d)
+    } else if (modus === 'w') {
+      const a = wert('wza-input')
+      const b = wert('wzb-input')
+      const d = await holeJson(`/admin/analyze-wortzwilling?a=${encodeURIComponent(a)}&b=${encodeURIComponent(b)}&pos=${encodeURIComponent(document.getElementById('wzana-pos')?.value || 'Substantiv')}`)
+      html = wzErgebnisHtml(d, { ebene: 3, wortA: a, wortB: b })
+    } else if (modus === 'z') {
+      const w = wert('zw-ana-input')
+      html = zwErgebnisHtml(await holeJson(`/admin/analyze-zeitenwende?q=${encodeURIComponent(w)}`), { ebene: 3, wort: w })
+    } else {
+      const w = wert('lf-ana-input')
+      const pos = document.getElementById('lf-pos')?.value || ''
+      html = lfErgebnisHtml(await holeJson(`/admin/analyze-lueckenfueller?q=${encodeURIComponent(w)}${pos ? `&pos=${encodeURIComponent(pos)}` : ''}`), w)
     }
+    schreibePruefung(modus, html)
+  } catch (err) {
+    schreibePruefung(modus, ergebnisMeldung(pruefFehlerText(err), 'error'))
+  } finally {
+    setzePruefKnopf(modus, false)
+    pruefLaeuft.delete(modus)
+  }
+}
 
-    const TYPE_LABELS = { choice: 'Auswahl', double: 'Doppel', free: 'Frei' }
-    const roundsHtml = (data.preview || []).map((r, i) => {
-      const typeLabel = TYPE_LABELS[r.type] || r.type
-      return `<div style="display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid var(--border-lt)">
-        <span style="font-size:0.75rem;color:var(--muted);min-width:50px">Runde ${i + 1}</span>
-        <span class="entry-chip">${esc(typeLabel)}</span>
-        <strong style="font-size:0.88rem">${esc(r.kollokator || '—')}</strong>
-        <span style="font-size:0.78rem;color:var(--muted);margin-left:auto">${r.punkte} Pkt.</span>
-      </div>`
-    }).join('')
-
-    const neuHinweis = data.neuesLemma ? ' · noch kein Lemma – wird beim Generieren neu angelegt' : ''
-    out.innerHTML = `
-      <div style="margin:12px 0 16px"><span style="color:#166534;font-weight:700">✓ Geeignet – ${data.rounds} Runden generierbar</span></div>
-      <div style="font-size:0.82rem;color:var(--muted);margin-bottom:8px">Wortart: ${esc(data.pos || '—')}${neuHinweis}</div>
-      <div>${roundsHtml}</div>
-    `
-  } catch (e) { out.innerHTML = `<div class="status error">Netzwerkfehler: ${esc(e.message)}</div>` }
+// „leeren“: Eingaben und Ergebnis weg, Fokus zurück ins erste Feld
+function leerePruefung(knopf) {
+  const form = knopf.closest('form')
+  if (!form) return
+  form.querySelectorAll('input').forEach((i) => { i.value = ''; entmarkiereFeld(i.id) })
+  schreibePruefung(form.dataset.modus, '')
+  sageAnLive(PRUEF[form.dataset.modus].live, '')
+  form.querySelector('input')?.focus()
 }
 
 async function analyzeEntryZeitenwende() {
@@ -5740,26 +5784,25 @@ async function analyzeEntryZeitenwende() {
   schreibeErgebnis(out, ergebnisMeldung('Prüft im Korpus …', 'loading'))
   try {
     const data = await holePruefung(`/admin/analyze-zeitenwende?q=${encodeURIComponent(lemma)}`)
-    renderTagZeitenwende(data, out)
+    renderTagZeitenwende(data, out, lemma)
   } catch (err) {
     schreibeErgebnis(out, ergebnisMeldung(`Prüfen fehlgeschlagen: ${err.message}`, 'error'))
   }
 }
 
-// Ergebnis auf der Tagesseite. renderZWAnalyse bleibt für Werkzeuge › Zeitenwende unverändert.
-function renderTagZeitenwende(data, out) {
+// Ergebnis der Zeitenwende-Prüfung als HTML. Gemeinsam für Tag bearbeiten (ebene 4) und Werkzeuge › Wort prüfen (ebene 3).
+function zwErgebnisHtml(data, { ebene = 3, wort = '' } = {}) {
   const pre = Array.isArray(data.preCandidates) ? data.preCandidates : []
   const post = Array.isArray(data.postCandidates) ? data.postCandidates : []
   if (!pre.length && !post.length) {
-    schreibeErgebnis(out, ergebnisMeldung('Keine Zeitenwende-Daten für dieses Wort.', 'warn'))
-    return
+    return ergebnisMeldung(`Für „${wort || data.lemma || 'dieses Wort'}“ gibt es keine Zeitenwende-Daten: zu wenige Belege vor oder nach 2000.`, 'warn')
   }
   const kopf = data.usable
     ? ergebnisMeldung('Geeignet: genug Kollokatoren, die vor oder nach 2000 typisch sind.', 'ok')
     : ergebnisMeldung('Nicht geeignet: zu wenige Unterschiede vor und nach 2000.', 'warn')
   const spalte = (titel, periode, items, key) => {
     const zeilen = items.slice(0, 5).map((it) => zeileMitZahl(it.wort, it[key], '+')).join('')
-    return `<div class="tag-erg-spalte"><h4 class="tag-erg-kopf tag-erg-kopf--zeit" data-periode="${periode}">${titel}</h4>${zeilen ? `<ol class="tag-erg-knapp">${zeilen}</ol>` : '<p class="tag-erg-fuss">Keine Kandidaten</p>'}</div>`
+    return `<div class="tag-erg-spalte"><h${ebene} class="tag-erg-kopf tag-erg-kopf--zeit" data-periode="${periode}">${titel}</h${ebene}>${zeilen ? `<ol class="tag-erg-knapp">${zeilen}</ol>` : '<p class="tag-erg-fuss">Keine Kandidaten</p>'}</div>`
   }
   const spiel = Array.isArray(data.words) && data.words.length
     ? `<p class="tag-erg-auswahl"><span class="tag-label">Im Spiel</span>${data.words.map((w) => {
@@ -5768,10 +5811,15 @@ function renderTagZeitenwende(data, out) {
       return `${esc(w.wort)} <span class="tag-erg-periode" data-periode="${periode}"><span aria-hidden="true">${periode === 'pre' ? 'vor' : 'nach'}</span><span class="adm-visually-hidden">(${periode === 'pre' ? 'vor' : 'nach'} 2000)</span></span>`
     }).join(' · ')}</p>`
     : ''
-  schreibeErgebnis(out, kopf
+  return kopf
     + `<div class="tag-erg-spalten">${spalte('vor 2000', 'pre', pre, 'distPre')}${spalte('nach 2000', 'post', post, 'distPost')}</div>`
     + spiel
-    + '<p class="tag-erg-fuss">Zahl = Abstand im logDice zwischen den Zeiträumen.</p>')
+    + '<p class="tag-erg-fuss">Zahl = Abstand im logDice zwischen den Zeiträumen.</p>'
+}
+
+// Ergebnis auf der Tagesseite
+function renderTagZeitenwende(data, out, wort) {
+  schreibeErgebnis(out, zwErgebnisHtml(data, { ebene: 4, wort }))
 }
 
 const LF_TYPEN = { choice: 'Auswahl', double: 'Doppel', free: 'Frei' }
@@ -5800,13 +5848,6 @@ async function analyzeEntryLueckenfueller() {
   } catch (err) {
     schreibeErgebnis(out, ergebnisMeldung(`Prüfen fehlgeschlagen: ${err.message}`, 'error'))
   }
-}
-
-function resetLueckenfuellerAnalysis() {
-  const output = document.getElementById('lf-ana-output')
-  const input  = document.getElementById('lf-ana-input')
-  if (output) output.innerHTML = ''
-  if (input)  input.value = ''
 }
 
 // ── Lückenfüller – Generieren ─────────────────────────────
@@ -5865,256 +5906,536 @@ async function generateLueckenfueller(btn) {
   }
 }
 
-// ── Freitage ──────────────────────────────────────────────
-async function loadFreeDays(options = {}) {
-  const listEl = document.getElementById('freedays-list')
-  if (listEl && !options.silent) listEl.innerHTML = '<div class="users-empty">Wird geladen …</div>'
+// ── Werkzeuge › Inhalte: gemeinsame Helfer ────────────────
+
+// Feld als fehlerhaft markieren und mit seinem Fehlertext verbinden: aria-invalid + aria-describedby.
+// Das bisherige aria-describedby (Zähler, Hinweis) bleibt erhalten und kommt mit entmarkiereFeld zurück.
+function markiereFeld(feldId, textId) {
+  const el = document.getElementById(feldId)
+  if (!el) return
+  if (el.dataset.beschreibung === undefined) el.dataset.beschreibung = el.getAttribute('aria-describedby') || ''
+  el.setAttribute('aria-invalid', 'true')
+  el.setAttribute('aria-describedby', [el.dataset.beschreibung, textId].filter(Boolean).join(' '))
+}
+
+function entmarkiereFeld(feldId) {
+  const el = document.getElementById(feldId)
+  if (!el || el.dataset.beschreibung === undefined) return
+  el.removeAttribute('aria-invalid')
+  if (el.dataset.beschreibung) el.setAttribute('aria-describedby', el.dataset.beschreibung)
+  else el.removeAttribute('aria-describedby')
+  delete el.dataset.beschreibung
+}
+
+// Doppelklick-Schutz über das await hinweg: Pro Schlüssel läuft höchstens eine Aktion; ein zweiter Klick wird verschluckt.
+const laufendeAktionen = new Set()
+async function einmalJe(schluessel, aktion) {
+  if (laufendeAktionen.has(schluessel)) return undefined
+  laufendeAktionen.add(schluessel)
   try {
-    const res = await fetch('/admin/free-days')
-    if (!res.ok) throw new Error(`HTTP ${res.status}`)
-    const { days } = await res.json()
-    freeDaysData = Array.isArray(days) ? days : []
-    renderWoche()   // Bonus-Marken in der Woche
-    renderMonat()   // … und im Monat
-    if (!listEl) return
-    if (!freeDaysData.length) {
-      listEl.innerHTML = '<div class="users-empty">Keine Bonus-Tage eingetragen.</div>'
-      return
-    }
-    const rows = freeDaysData.map(({ date, label, bonus_count }) => `
-      <div class="freeday-row">
-        <div>
-          <strong>${esc(formatIsoDate(date))}</strong>
-          ${label ? `<span>${esc(label)}</span>` : ''}
-          <span class="freeday-bonus">+${Number(bonus_count) || 0} Eigene-Lemma-Spiele für Basic</span>
-        </div>
-        <button class="entry-filters-reset freeday-delete-btn" data-action="delete-free-day" data-date="${esc(date)}">Entfernen</button>
-      </div>`).join('')
-    listEl.innerHTML = `<div class="freeday-list">${rows}</div>`
-  } catch (err) {
-    freeDaysData = []
-    renderWoche()
-    renderMonat()
-    if (listEl) listEl.innerHTML = `<div class="users-empty" style="color:#991b1b">Fehler: ${esc(err.message)}</div>`
+    return await aktion()
+  } finally {
+    laufendeAktionen.delete(schluessel)
   }
 }
 
-async function addFreeDay() {
-  const dateInput = document.getElementById('freeday-date')
-  const labelInput = document.getElementById('freeday-label')
-  const bonusInput = document.getElementById('freeday-bonus')
-  const msgEl = document.getElementById('freeday-msg')
-  const date = dateInput?.value?.trim()
-  const label = labelInput?.value?.trim() || ''
-  const bonus_count = Math.max(0, Math.min(50, parseInt(bonusInput?.value, 10) || 0))
-  if (!date) {
-    if (msgEl) setFreeDayMessage('Bitte ein Datum auswählen.', 'error')
+// Fehlertext einer Antwort für Meldungen: der Satz des Servers, sonst der Status
+const serverFehlerText = (err) => err?.data?.error || (err?.status ? `Der Server hat mit HTTP ${err.status} geantwortet.` : 'Der Server hat nicht geantwortet.')
+
+// ── Werkzeuge › Inhalte: Stand in der Übersicht ───────────
+// Aus Daten, die ohnehin geladen sind: freeDaysData (lädt beim Start) und /admin/health (lädt in der Übersicht).
+let inhalteHealth = null   // letzte Antwort von /admin/health (null: unbekannt)
+
+function renderInhalteStand() {
+  const h = inhalteHealth
+  if (!bonusGeladen) setzeStand('wz-stand-bonus', '')
+  else {
+    const heute = getTodayIso()
+    const naechster = freeDaysData.filter((t) => t.date >= heute).sort((a, b) => a.date.localeCompare(b.date))[0]
+    if (!naechster) setzeStand('wz-stand-bonus', 'Keiner geplant')
+    else if (naechster.date === heute) setzeStand('wz-stand-bonus', `Heute +${naechster.bonus_count}`)
+    else setzeStand('wz-stand-bonus', `Nächster ${datumKurz(naechster.date)}, +${naechster.bonus_count}`)
+  }
+
+  if (!h?.push) setzeStand('wz-stand-push', '')
+  else if (!h.push.web && !h.push.ios) setzeStand('wz-stand-push', 'Nicht eingerichtet', 'warn')
+  else setzeStand('wz-stand-push', anzahlText(h.push.geraete, 'Gerät', 'Geräte'))
+
+  const sw = h?.spezialwoche
+  if (sw?.laeuft) setzeStand('wz-stand-woche', `Diese Woche: ${sw.lemma}`)
+  else if (sw) setzeStand('wz-stand-woche', `Ab ${datumKurz(sw.von)}: ${sw.lemma}`)
+  else setzeStand('wz-stand-woche', '')
+}
+
+// ── Werkzeuge › Bonus-Tage ────────────────────────────────
+// An Bonus-Tagen dürfen Konten mit Basiszugang mehr als ein Spiel mit eigenem Lemma spielen.
+// Ein Eintrag braucht 1 bis 50 zusätzliche Spiele und einen Tag ab heute (der Server prüft nach Berliner Zeit).
+
+let bonusGeladen = false       // freeDaysData stammt aus einer erfolgreichen Antwort
+let bonusLadeFehler = ''       // Text, wenn die Liste nicht geladen werden konnte
+let bonusEntfernt = null       // zuletzt entfernter Tag { date, label, bonus_count } für „Rückgängig“
+let bonusSpeichert = false     // ein Eintragen/Ersetzen läuft
+let bonusLadeToken = 0
+
+const bonusSpieleText = (n) => anzahlText(n, 'Spiel', 'Spiele')
+
+async function loadFreeDays({ silent = false } = {}) {
+  const token = ++bonusLadeToken
+  if (!silent && !bonusGeladen) renderBonusTage()
+  try {
+    const { days } = await holeJson('/admin/free-days')
+    if (token !== bonusLadeToken) return
+    freeDaysData = Array.isArray(days) ? days : []
+    bonusGeladen = true
+    bonusLadeFehler = ''
+  } catch (err) {
+    if (token !== bonusLadeToken) return
+    // Schon geladene Tage bleiben stehen (Woche und Monat zeigen sie weiter); gemeldet wird nur, wenn nichts da ist.
+    if (!bonusGeladen) bonusLadeFehler = `Die Bonus-Tage konnten nicht geladen werden (${err.status ? `HTTP ${err.status}` : 'keine Antwort'}).`
+  }
+  renderWoche()   // Bonus-Marken in der Woche
+  renderMonat()   // … und im Monat
+  renderBonusTage()
+  renderInhalteStand()
+}
+
+function bonusZeile(t, { vergangen = false } = {}) {
+  const heute = t.date === getTodayIso()
+  return `<li class="in-zeile" data-date="${esc(t.date)}">`
+    + `<span class="be-zeile-haupt">${esc(tagText(t.date))}${heute ? '<span class="in-heute-marke">heute</span>' : ''}</span>`
+    + `<span class="be-zeile-meta">${esc(`+${bonusSpieleText(t.bonus_count)}`)}${t.label ? ` · ${esc(t.label)}` : ''}</span>`
+    + (vergangen ? '' : `<span class="in-zeile-aktion"><button type="button" class="li-loeschen" data-action="delete-free-day" data-date="${esc(t.date)}">entfernen<span class="adm-visually-hidden">: ${esc(datumLang(t.date, { jahr: true }))}</span></button></span>`)
+    + '</li>'
+}
+
+function renderBonusTage() {
+  const el = document.getElementById('freedays-list')
+  if (!el) return
+  if (!bonusGeladen) {
+    el.innerHTML = bonusLadeFehler
+      ? `<p class="wo-meldung" data-tone="err" role="alert">${esc(bonusLadeFehler)} <button type="button" class="adm-link" data-action="load-free-days">Erneut versuchen</button></p>`
+      : '<p class="li-meldung" data-tone="loading">Bonus-Tage werden geladen …</p>'
     return
   }
-  try {
-    const res = await fetch('/admin/free-days', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ date, label, bonus_count }),
-    })
-    const data = await res.json().catch(() => ({}))
-    if (!res.ok) {
-      if (msgEl) setFreeDayMessage(data.error || 'Fehler beim Hinzufügen.', 'error')
-      return
-    }
-    if (dateInput) dateInput.value = ''
-    if (labelInput) labelInput.value = ''
-    if (bonusInput) bonusInput.value = ''
-    if (msgEl) setFreeDayMessage(`${formatIsoDate(date)} wurde eingetragen.`, 'success')
-    await loadFreeDays()
-  } catch {
-    if (msgEl) setFreeDayMessage('Netzwerkfehler.', 'error')
+  const heute = getTodayIso()
+  const sortiert = [...freeDaysData].sort((a, b) => a.date.localeCompare(b.date))
+  const kommend = sortiert.filter((t) => t.date >= heute)
+  const vergangen = sortiert.filter((t) => t.date < heute).reverse()
+  el.innerHTML = (kommend.length
+    ? `<ol class="be-liste" aria-label="Geplante Bonus-Tage">${kommend.map((t) => bonusZeile(t)).join('')}</ol>`
+    : '<div class="li-leer"><p class="li-leer-titel">Kein Bonus-Tag geplant</p><p class="li-leer-text">Konten mit Basiszugang spielen an jedem Tag ein eigenes Lemma.</p><p class="li-leer-ornament" aria-hidden="true">· · ·</p></div>')
+    + (vergangen.length
+      ? `<details class="be-roh in-vergangen"><summary>Vergangene Bonus-Tage (${ganzzahlDe(vergangen.length)})</summary><ol class="be-liste">${vergangen.map((t) => bonusZeile(t, { vergangen: true })).join('')}</ol></details>`
+      : '')
+}
+
+// Seite öffnen: Liste sofort aus dem Speicher zeigen, dann frisch nachziehen; Datum nicht vor heute wählbar
+function oeffneBonusSeite() {
+  const feld = document.getElementById('freeday-date')
+  if (feld) feld.min = getTodayIso()
+  renderBonusTage()
+  pruefeBonusDatum()
+  void loadFreeDays({ silent: true })
+}
+
+// Belegt oder vergangen: schon beim Wählen des Datums sagen, nicht erst beim Absenden
+function pruefeBonusDatum() {
+  const feld = document.getElementById('freeday-date')
+  const hinweis = document.getElementById('freeday-date-hinweis')
+  const knopfText = document.getElementById('bonus-start-text')
+  if (!feld || !hinweis || !knopfText) return
+  const iso = feld.value
+  const vorhanden = freeDaysData.find((t) => t.date === iso)
+  hinweis.removeAttribute('data-tone')
+  feld.removeAttribute('aria-invalid')
+  if (iso && iso < getTodayIso()) {
+    hinweis.textContent = 'Der Tag liegt in der Vergangenheit.'
+    hinweis.dataset.tone = 'error'
+    feld.setAttribute('aria-invalid', 'true')
+    knopfText.textContent = 'Eintragen'
+  } else if (vorhanden) {
+    hinweis.textContent = `Für ${tagText(iso)} ist schon ein Bonus-Tag eingetragen (+${bonusSpieleText(vorhanden.bonus_count)}${vorhanden.label ? `, ${vorhanden.label}` : ''}). Eintragen ersetzt ihn.`
+    hinweis.dataset.tone = 'warn'
+    knopfText.textContent = 'Ersetzen'
+  } else {
+    hinweis.textContent = ''
+    knopfText.textContent = 'Eintragen'
   }
 }
 
-async function deleteFreeDay(date) {
-  if (!date) return
-  const info = getFreeDayInfo(date)
-  const ok = confirmAction('Bonus-Tag wirklich entfernen?', [
-    `Datum: ${formatIsoDate(date)}`,
-    info?.label ? `Bezeichnung: ${info.label}` : 'Ohne Bezeichnung',
-  ])
-  if (!ok) return
-  try {
-    const res = await fetch(`/admin/free-days/${encodeURIComponent(date)}`, { method: 'DELETE', headers: { 'Content-Type': 'application/json' } })
-    if (!res.ok) return
-    setFreeDayMessage(`${formatIsoDate(date)} wurde entfernt.`, 'success')
-    await loadFreeDays()
-  } catch { /* ignore */ }
-}
-
-// ── Spezialwoche ──────────────────────────────────────────
-function setSwMessage(message, tone = 'info') {
-  const msgEl = document.getElementById('sw-msg')
-  if (!msgEl) return
-  msgEl.textContent = message || ''
-  msgEl.classList.remove('is-hidden', 'is-error', 'is-success')
-  if (!message) { msgEl.classList.add('is-hidden'); return }
-  if (tone === 'error') msgEl.classList.add('is-error')
-  if (tone === 'success') msgEl.classList.add('is-success')
-}
-
-function fillSwForm(entry) {
-  const set = (id, val) => { const el = document.getElementById(id); if (el) el.value = val ?? '' }
-  set('sw-woche', entry.woche)
-  set('sw-von', entry.von)
-  set('sw-bis', entry.bis)
-  set('sw-lemma-id', entry.lemma_id)
-  set('sw-notiz', entry.notiz)
-  set('sw-link', entry.link)
-  set('sw-wza', entry.zwilling_partner)
-  set('sw-wzpos', entry.zwilling_pos || 'Substantiv')
-  set('sw-zw-notiz', entry.zeitenwende_notiz)
-  set('sw-zw-link', entry.zeitenwende_link)
-  set('sw-lf-id', entry.lueckenfueller_id)
-  const preview = document.getElementById('sw-wz-preview')
-  if (preview) preview.classList.add('is-hidden')
-  setSwMessage('')
-}
-
-function clearSwForm() {
-  ['sw-woche', 'sw-von', 'sw-bis', 'sw-lemma-id', 'sw-notiz', 'sw-link',
-   'sw-wza', 'sw-zw-notiz', 'sw-zw-link', 'sw-lf-id'].forEach((id) => {
-    const el = document.getElementById(id)
-    if (el) el.value = ''
-  })
-  const posEl = document.getElementById('sw-wzpos')
-  if (posEl) posEl.value = 'Substantiv'
-  const preview = document.getElementById('sw-wz-preview')
-  if (preview) preview.classList.add('is-hidden')
-  setSwMessage('')
-}
-
-async function loadSpezialwochen() {
-  const listEl = document.getElementById('sw-list')
-  if (listEl) listEl.innerHTML = '<div class="users-empty">Wird geladen …</div>'
-  try {
-    const res = await fetch('/admin/spezialwochen')
-    if (!res.ok) throw new Error(`HTTP ${res.status}`)
-    const { entries } = await res.json()
-    if (!listEl) return
-    if (!Array.isArray(entries) || !entries.length) {
-      listEl.innerHTML = '<div class="users-empty">Keine Spezialwochen eingetragen.</div>'
-      return
+// Absenden: prüfen, bei einem belegten Tag erst im Dialog nachfragen
+function addFreeDay() {
+  if (bonusSpeichert) return
+  const date = document.getElementById('freeday-date')
+  const bonus = document.getElementById('freeday-bonus')
+  const label = document.getElementById('freeday-label')
+  const bonusHinweis = document.getElementById('freeday-bonus-hinweis')
+  const dateHinweis = document.getElementById('freeday-date-hinweis')
+  const n = Number(bonus.value)
+  bonus.removeAttribute('aria-invalid')
+  bonusHinweis.removeAttribute('data-tone')
+  bonusHinweis.textContent = '1 bis 50 Spiele zusätzlich zum einen Spiel des Tages.'
+  if (!date.value || date.value < getTodayIso()) {
+    date.setAttribute('aria-invalid', 'true')
+    if (!date.value) {
+      dateHinweis.textContent = 'Bitte ein Datum wählen.'
+      dateHinweis.dataset.tone = 'error'
     }
-    const rows = entries.map((e) => `
-      <div class="sw-list-row">
-        <div class="sw-list-main">
-          <strong>${esc(e.woche)}</strong>
-          <span class="sw-list-dates">${esc(formatIsoDate(e.von))} – ${esc(formatIsoDate(e.bis))}</span>
-          <span class="sw-list-lemma">${esc(e.lemmaName || e.lemma_id)}</span>
-          ${e.zwilling_partner ? `<span class="sw-list-badge">WZ: ${esc(e.zwilling_partner)}</span>` : ''}
-          ${e.zeitenwende_notiz ? `<span class="sw-list-badge">ZW ✓</span>` : ''}
-          ${e.lueckenfueller_id ? `<span class="sw-list-badge">LF: ${esc(e.lueckenfueller_id)}</span>` : ''}
-        </div>
-        <div class="sw-list-actions">
-          <button class="ghost-btn ghost-btn--small" data-action="edit-spezialwoche" data-woche="${esc(e.woche)}">Bearbeiten</button>
-          <button class="entry-filters-reset" data-action="delete-spezialwoche" data-woche="${esc(e.woche)}">Löschen</button>
-        </div>
-      </div>`).join('')
-    listEl.innerHTML = `<div class="sw-list">${rows}</div>`
+    date.focus()
+    return
+  }
+  if (!bonus.value.trim() || !Number.isInteger(n) || n < 1 || n > 50) {
+    bonus.setAttribute('aria-invalid', 'true')
+    bonusHinweis.textContent = 'Bitte eine ganze Zahl von 1 bis 50 eintragen.'
+    bonusHinweis.dataset.tone = 'error'
+    bonus.focus()
+    return
+  }
+  // Ein belegter Tag: Hinweis und Knopf „Ersetzen“ am Formular (pruefeBonusDatum) sind die Rückfrage; ersetzt wird beim Absenden.
+  void speichereBonusTag({ date: date.value, label: label.value.trim(), bonus_count: n })
+}
+
+async function speichereBonusTag(eintrag, { rueckgaengig = false } = {}) {
+  if (bonusSpeichert) return
+  bonusSpeichert = true
+  setzeKnopfBusy('bonus-start', 'bonus-start-text', true, 'Wird eingetragen …')
+  try {
+    const data = await holeJson('/admin/free-days', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(eintrag) })
+    if (rueckgaengig) {
+      setMeldung('freeday-msg', `${tagText(eintrag.date)} wieder eingetragen.`, 'ok', { fokus: true })
+    } else {
+      setMeldung('freeday-msg', `${tagText(eintrag.date)} ${data.ersetzt ? 'ersetzt' : 'eingetragen'}: ${anzahlText(eintrag.bonus_count, 'zusätzliches Spiel', 'zusätzliche Spiele')}.`, 'ok')
+      for (const id of ['freeday-date', 'freeday-bonus', 'freeday-label']) document.getElementById(id).value = ''
+    }
+    bonusEntfernt = null
+    await loadFreeDays({ silent: true })
   } catch (err) {
-    if (listEl) listEl.innerHTML = `<div class="users-empty" style="color:#991b1b">Fehler: ${esc(err.message)}</div>`
+    setMeldung('freeday-msg', `Nicht eingetragen: ${serverFehlerText(err)}`, 'error', { fokus: true })
+  } finally {
+    bonusSpeichert = false
+    setzeKnopfBusy('bonus-start', 'bonus-start-text', false, 'Eintragen')
+    pruefeBonusDatum()
+  }
+}
+
+function deleteFreeDay(date) {
+  return einmalJe(`bonus-loeschen:${date}`, () => loescheBonusTag(date))
+}
+
+async function loescheBonusTag(date) {
+  const t = freeDaysData.find((x) => x.date === date)
+  if (!t) return
+  try {
+    await holeJson(`/admin/free-days/${encodeURIComponent(date)}`, { method: 'DELETE', headers: { 'Content-Type': 'application/json' } })
+    bonusEntfernt = { date: t.date, label: t.label || '', bonus_count: t.bonus_count }
+    await loadFreeDays({ silent: true })
+    setMeldung('freeday-msg', `<span>${esc(tagText(date))} entfernt.</span> <button type="button" class="adm-link" data-action="bonus-rueckgaengig">Rückgängig</button>`, 'ok', { fokus: true, html: true })
+  } catch (err) {
+    setMeldung('freeday-msg', `Nicht entfernt: ${serverFehlerText(err)}`, 'error', { fokus: true })
+  }
+}
+
+function bonusRueckgaengig() {
+  if (!bonusEntfernt) return
+  void speichereBonusTag({ ...bonusEntfernt }, { rueckgaengig: true })
+}
+
+// ── Werkzeuge › Wort der Woche ────────────────────────────
+// Ein zusätzliches Wort, das eine Kalenderwoche lang in allen Spielmodi unter den Tageswörtern steht.
+// Die Woche wird aus einer Liste gewählt (diese und die zwölf folgenden); Von und Bis rechnet der Server.
+// Gespeichert wird nur, wenn ein angegebener Wort-Zwilling geeignet ist und das Lückenfüller-Wort schon Runden hat.
+
+let swListe = []              // Antwort von GET /admin/spezialwochen (neueste Woche zuerst)
+let swGeladen = false
+let swLadeFehler = ''
+let swEntfernt = null         // zuletzt entfernter Eintrag für „Rückgängig“
+let swSpeichert = false
+let swWzLaeuft = false
+let swToken = 0
+
+// „KW 45“ aus „2026-W45“
+const SW_FELDER = { lemma_id: 'sw-lemma-id', zwilling_partner: 'sw-wza', lueckenfueller_id: 'sw-lf-id', link: 'sw-link', zeitenwende_link: 'sw-zw-link' }
+
+const kwNr = (woche) => {
+  const m = /^(\d{4})-W(\d{2})$/.exec(woche || '')
+  return m ? `KW ${Number(m[2])}` : String(woche || '')
+}
+
+// ISO-Woche („2026-W45“) eines Kalendertags
+function isoWocheVon(iso) {
+  const k = isoKalenderwoche(iso)
+  return `${k.jahr}-W${zwei(k.woche)}`
+}
+
+// Montag einer ISO-Woche als Kalendertag
+function montagVonIsoWoche(woche) {
+  const m = /^(\d{4})-W(\d{2})$/.exec(woche)
+  const jahr = Number(m[1])
+  const jan4 = new Date(Date.UTC(jahr, 0, 4))
+  const montag1 = Date.UTC(jahr, 0, 4 - ((jan4.getUTCDay() + 6) % 7))
+  return new Date(montag1 + (Number(m[2]) - 1) * 7 * 864e5).toISOString().slice(0, 10)
+}
+
+// Fehlertext am Feld (statisches <p id="…-fehler"> aus dem Markup) und aria-invalid.
+// Wort der Woche: „sw-lemma-id“ → „sw-lemma-fehler“, „sw-lf-id“ → „sw-lf-fehler“.
+function setzeFeldFehlerStatisch(id, text) {
+  const p = document.getElementById(`${id}-fehler`) || document.getElementById(`${id.replace(/-id$/, '')}-fehler`)
+  const feld = document.getElementById(id)
+  if (p) { p.hidden = !text; p.textContent = text || '' }
+  if (feld) {
+    if (text) feld.setAttribute('aria-invalid', 'true')
+    else feld.removeAttribute('aria-invalid')
+  }
+}
+
+function loescheSwFehler() {
+  for (const id of Object.values(SW_FELDER)) setzeFeldFehlerStatisch(id, '')
+}
+
+async function ladeWortDerWoche({ auswahlNeu = false } = {}) {
+  const token = ++swToken
+  if (!swGeladen) { swLadeFehler = ''; renderSpezialwochen() }
+  try {
+    const { entries } = await holeJson('/admin/spezialwochen')
+    if (token !== swToken) return
+    swListe = Array.isArray(entries) ? entries : []
+    swGeladen = true
+    swLadeFehler = ''
+  } catch (err) {
+    if (token !== swToken) return
+    if (!swGeladen) swLadeFehler = `Die Wochen konnten nicht geladen werden (${err.status ? `HTTP ${err.status}` : 'keine Antwort'}).`
+  }
+  renderSpezialwochen()
+  // Nach dem Speichern wieder die erste freie Woche vorwählen, sonst bleibt die eben belegte stehen
+  renderWochenAuswahl(auswahlNeu ? '' : (document.getElementById('sw-woche')?.value || ''))
+}
+
+function swZeile(e, { vergangen = false } = {}) {
+  const heute = getTodayIso()
+  const laeuft = e.von <= heute && e.bis >= heute
+  const teile = [esc(e.lemmaName || e.lemma_id)]
+  teile.push(e.zwilling_partner ? `Wort-Zwilling mit ${esc(e.zwilling_partner)}` : 'ohne Wort-Zwilling')
+  teile.push(e.lueckenfueller_id ? 'mit Lückenfüller' : 'ohne Lückenfüller')
+  return `<li class="in-zeile" data-woche="${esc(e.woche)}">`
+    + `<span class="be-zeile-haupt">${esc(kwNr(e.woche))}${laeuft ? '<span class="in-heute-marke">läuft</span>' : ''}</span>`
+    + `<span class="be-zeile-meta">${esc(wochenSpanne(e.von))} · ${teile.join(' · ')}</span>`
+    + (vergangen ? '' : `<span class="in-zeile-aktion"><button type="button" class="adm-link" data-action="edit-spezialwoche" data-woche="${esc(e.woche)}">bearbeiten<span class="adm-visually-hidden">: ${esc(kwNr(e.woche))}</span></button>`
+      + `<button type="button" class="li-loeschen" data-action="delete-spezialwoche" data-woche="${esc(e.woche)}">entfernen<span class="adm-visually-hidden">: ${esc(kwNr(e.woche))}</span></button></span>`)
+    + '</li>'
+}
+
+function renderSpezialwochen() {
+  const el = document.getElementById('sw-list')
+  if (!el) return
+  if (!swGeladen) {
+    el.innerHTML = swLadeFehler
+      ? `<p class="wo-meldung" data-tone="err" role="alert">${esc(swLadeFehler)} <button type="button" class="adm-link" data-action="load-spezialwochen">Erneut versuchen</button></p>`
+      : '<p class="li-meldung" data-tone="loading">Wochen werden geladen …</p>'
+    return
+  }
+  const heute = getTodayIso()
+  const alle = [...swListe].sort((a, b) => a.von.localeCompare(b.von))
+  const aktuell = alle.filter((e) => e.bis >= heute)
+  const vorbei = alle.filter((e) => e.bis < heute).reverse()
+  el.innerHTML = (aktuell.length
+    ? `<ol class="be-liste" aria-label="Eingetragene Wochen">${aktuell.map((e) => swZeile(e)).join('')}</ol>`
+    : '<div class="li-leer"><p class="li-leer-titel">Kein Wort der Woche geplant</p><p class="li-leer-text">Ohne Eintrag zeigt die App nur die Tageswörter.</p><p class="li-leer-ornament" aria-hidden="true">· · ·</p></div>')
+    + (vorbei.length ? `<details class="be-roh in-vergangen"><summary>Vergangene Wochen (${ganzzahlDe(vorbei.length)})</summary><ol class="be-liste">${vorbei.map((e) => swZeile(e, { vergangen: true })).join('')}</ol></details>` : '')
+}
+
+// Auswahl: diese Woche und zwölf folgende; belegte tragen das Wort im Text
+function renderWochenAuswahl(gewaehlt = '') {
+  const sel = document.getElementById('sw-woche')
+  if (!sel) return
+  const start = montagVonIsoWoche(isoWocheVon(getTodayIso()))
+  const wochen = Array.from({ length: 13 }, (_, i) => isoWocheVon(addTageIso(start, i * 7)))
+  if (gewaehlt && !wochen.includes(gewaehlt)) wochen.unshift(gewaehlt)
+  // Ohne Vorgabe die erste freie Woche, sonst stünde gleich „Speichern ersetzt den Eintrag“ da
+  if (!gewaehlt) gewaehlt = wochen.find((w) => !swListe.some((e) => e.woche === w)) || wochen[0]
+  sel.innerHTML = wochen.map((w) => {
+    const belegt = swListe.find((e) => e.woche === w)
+    return `<option value="${esc(w)}"${w === gewaehlt ? ' selected' : ''}>${esc(`${kwNr(w)} · ${wochenSpanne(montagVonIsoWoche(w))}${belegt ? ` · belegt: ${belegt.lemmaName || belegt.lemma_id}` : ''}`)}</option>`
+  }).join('')
+  pruefeSwWoche()
+}
+
+function pruefeSwWoche() {
+  const w = document.getElementById('sw-woche')?.value
+  const hinweis = document.getElementById('sw-woche-hinweis')
+  const knopfText = document.getElementById('sw-start-text')
+  if (!w || !hinweis || !knopfText) return
+  const belegt = swListe.find((e) => e.woche === w)
+  hinweis.textContent = belegt ? `Für ${kwNr(w)} ist schon „${belegt.lemmaName || belegt.lemma_id}“ eingetragen. Speichern ersetzt den Eintrag.` : ''
+  if (belegt) hinweis.dataset.tone = 'warn'
+  else hinweis.removeAttribute('data-tone')
+  if (!swSpeichert) knopfText.textContent = belegt ? 'Ersetzen' : 'Speichern'
+}
+
+function swEintragBody(e) {
+  return {
+    woche: e.woche,
+    lemma_id: e.lemmaName || e.lemma_id,
+    notiz: e.notiz || '',
+    link: e.link || '',
+    zwilling_partner: e.zwilling_partner || '',
+    zwilling_pos: e.zwilling_pos || 'Substantiv',
+    zeitenwende_notiz: e.zeitenwende_notiz || '',
+    zeitenwende_link: e.zeitenwende_link || '',
+    lueckenfueller_id: e.lueckenfuellerName || e.lueckenfueller_id || '',
   }
 }
 
 async function saveSpezialwoche() {
-  const get = (id) => (document.getElementById(id)?.value || '').trim()
+  if (swSpeichert) return
+  const wert = (id) => (document.getElementById(id)?.value || '').trim()
+  loescheSwFehler()
+  if (!wert('sw-lemma-id')) {
+    setzeFeldFehlerStatisch('sw-lemma-id', 'Bitte ein Wort eintragen.')
+    document.getElementById('sw-lemma-id').focus()
+    return
+  }
   const body = {
-    woche: get('sw-woche'),
-    von: get('sw-von'),
-    bis: get('sw-bis'),
-    lemma_id: get('sw-lemma-id'),
-    notiz: get('sw-notiz'),
-    link: get('sw-link'),
-    zwilling_partner: get('sw-wza'),
-    zwilling_pos: get('sw-wzpos') || 'Substantiv',
-    zeitenwende_notiz: get('sw-zw-notiz'),
-    zeitenwende_link: get('sw-zw-link'),
-    lueckenfueller_id: get('sw-lf-id'),
+    woche: wert('sw-woche'),
+    lemma_id: wert('sw-lemma-id'),
+    notiz: wert('sw-notiz'),
+    link: wert('sw-link'),
+    zwilling_partner: wert('sw-wza'),
+    zwilling_pos: wert('sw-wzpos') || 'Substantiv',
+    zeitenwende_notiz: wert('sw-zw-notiz'),
+    zeitenwende_link: wert('sw-zw-link'),
+    lueckenfueller_id: wert('sw-lf-id'),
   }
-  if (!body.woche || !body.von || !body.bis || !body.lemma_id) {
-    setSwMessage('Woche, Von, Bis und Lemma sind Pflicht.', 'error')
-    return
-  }
+  swSpeichert = true
+  setzeKnopfBusy('sw-start', 'sw-start-text', true, 'Speichert …')
   try {
-    const res = await fetch('/admin/spezialwoche', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-    })
-    const data = await res.json().catch(() => ({}))
-    if (!res.ok) {
-      setSwMessage(data.error || 'Fehler beim Speichern.', 'error')
-      return
-    }
-    setSwMessage(`Woche ${body.woche} gespeichert.`, 'success')
-    clearSwForm()
-    await loadSpezialwochen()
-  } catch {
-    setSwMessage('Netzwerkfehler.', 'error')
-  }
-}
-
-async function editSpezialwoche(woche) {
-  if (!woche) return
-  try {
-    const res = await fetch(`/admin/spezialwoche/${encodeURIComponent(woche)}`)
-    if (!res.ok) throw new Error(`HTTP ${res.status}`)
-    const { entry } = await res.json()
-    if (!entry) { setSwMessage('Eintrag nicht gefunden.', 'error'); return }
-    fillSwForm(entry)
-    document.getElementById('sw-woche')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    const d = await holeJson('/admin/spezialwoche', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+    swEntfernt = null
+    const wz = body.zwilling_partner && !d.wzFehler ? `, Wort-Zwilling mit ${body.zwilling_partner} (${anzahlText(d.wzKollokatoren, 'Kollokator', 'Kollokatoren')})` : ''
+    const warnung = d.wzFehler ? ` Der Wort-Zwilling mit ${body.zwilling_partner} konnte gerade nicht geprüft werden und fehlt; bitte noch einmal speichern.` : ''
+    swSpeichert = false
+    clearSwForm({ meldungBehalten: true })
+    setMeldung('sw-msg', `${kwNr(body.woche)} ${d.ersetzt ? 'ersetzt' : 'gespeichert'}: ${d.lemmaName || body.lemma_id}${wz}.${warnung}`, d.wzFehler ? 'warn' : 'ok', { fokus: true })
+    await ladeWortDerWoche({ auswahlNeu: true })
+    void loadHealth()   // Stand in der Übersicht
   } catch (err) {
-    setSwMessage(`Fehler: ${err.message}`, 'error')
+    // Der Server nennt das Feld (Wort, Lückenfüller-Wort, Wort B, Links): Der Fehler steht dann auch dort
+    const feldId = SW_FELDER[err.data?.feld]
+    if (feldId) {
+      // Die Links liegen in zugeklappten Bereichen
+      if (feldId === 'sw-link') setzeNebenfelder('sw-neben', true)
+      if (feldId === 'sw-zw-link') setzeNebenfelder('sw-zw-neben', true)
+      setzeFeldFehlerStatisch(feldId, serverFehlerText(err))
+    }
+    setMeldung('sw-msg', `Nicht gespeichert: ${serverFehlerText(err)}`, 'error', { fokus: !feldId })
+    if (feldId) document.getElementById(feldId)?.focus()
+  } finally {
+    swSpeichert = false
+    setzeKnopfBusy('sw-start', 'sw-start-text', false, 'Speichern')
+    pruefeSwWoche()
   }
 }
 
-async function deleteSpezialwoche(woche) {
-  if (!woche) return
-  const ok = confirmAction(`Spezialwoche ${woche} wirklich löschen?`, [
-    `ISO-Woche: ${woche}`,
-    'Dieser Vorgang kann nicht rückgängig gemacht werden.',
-  ])
-  if (!ok) return
-  try {
-    const res = await fetch(`/admin/spezialwoche/${encodeURIComponent(woche)}`, {
-      method: 'DELETE',
-      headers: { 'Content-Type': 'application/json' },
-    })
-    if (!res.ok) return
-    setSwMessage(`Woche ${woche} gelöscht.`, 'success')
-    await loadSpezialwochen()
-  } catch { /* ignore */ }
+function clearSwForm({ meldungBehalten = false } = {}) {
+  for (const id of ['sw-lemma-id', 'sw-notiz', 'sw-link', 'sw-wza', 'sw-zw-notiz', 'sw-zw-link', 'sw-lf-id']) {
+    const el = document.getElementById(id)
+    if (el) el.value = ''
+  }
+  const pos = document.getElementById('sw-wzpos')
+  if (pos) pos.value = 'Substantiv'
+  const vorschau = document.getElementById('sw-wz-preview')
+  if (vorschau) vorschau.innerHTML = ''
+  const titel = document.getElementById('sw-form-titel-text')
+  if (titel) titel.textContent = 'Woche eintragen'
+  loescheSwFehler()
+  if (!meldungBehalten) setMeldung('sw-msg', '')
+  for (const t of ['sw-neben', 'sw-zw-neben']) setzeNebenfelder(t, false)
+  renderWochenAuswahl()
 }
 
+function editSpezialwoche(woche) {
+  const e = swListe.find((x) => x.woche === woche)
+  if (!e) return
+  renderWochenAuswahl(e.woche)
+  const setze = (id, v) => { const el = document.getElementById(id); if (el) el.value = v ?? '' }
+  setze('sw-lemma-id', e.lemmaName || e.lemma_id)
+  setze('sw-notiz', e.notiz)
+  setze('sw-link', e.link)
+  setze('sw-wza', e.zwilling_partner)
+  setze('sw-wzpos', e.zwilling_pos || 'Substantiv')
+  setze('sw-lf-id', e.lueckenfuellerName || e.lueckenfueller_id)
+  setze('sw-zw-notiz', e.zeitenwende_notiz)
+  setze('sw-zw-link', e.zeitenwende_link)
+  document.getElementById('sw-wz-preview').innerHTML = ''
+  document.getElementById('sw-form-titel-text').textContent = `${kwNr(e.woche)} bearbeiten`
+  // Notiz und Link bleiben zu, zeigen aber „· ausgefüllt“, wenn etwas drinsteht
+  for (const t of ['sw-neben', 'sw-zw-neben']) setzeNebenfelder(t, false)
+  loescheSwFehler()
+  setMeldung('sw-msg', '')
+  document.getElementById('sw-lemma-id').focus()
+}
+
+function deleteSpezialwoche(woche) {
+  return einmalJe(`sw-loeschen:${woche}`, () => loescheSpezialwoche(woche))
+}
+
+async function loescheSpezialwoche(woche) {
+  const e = swListe.find((x) => x.woche === woche)
+  if (!e) return
+  try {
+    await holeJson(`/admin/spezialwoche/${encodeURIComponent(woche)}`, { method: 'DELETE', headers: { 'Content-Type': 'application/json' } })
+    swEntfernt = e
+    await ladeWortDerWoche()
+    void loadHealth()
+    setMeldung('sw-msg', `<span>${esc(kwNr(woche))} (${esc(e.lemmaName || e.lemma_id)}) entfernt.</span> <button type="button" class="adm-link" data-action="sw-rueckgaengig">Rückgängig</button>`, 'ok', { fokus: true, html: true })
+  } catch (err) {
+    setMeldung('sw-msg', `Nicht entfernt: ${serverFehlerText(err)}`, 'error', { fokus: true })
+  }
+}
+
+async function swRueckgaengig() {
+  const e = swEntfernt
+  if (!e) return
+  // Vor dem await leeren: Ein zweiter Klick auf „Rückgängig“ findet nichts mehr und trägt nicht ein zweites Mal ein
+  swEntfernt = null
+  try {
+    await holeJson('/admin/spezialwoche', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(swEintragBody(e)) })
+    await ladeWortDerWoche()
+    void loadHealth()
+    setMeldung('sw-msg', `${kwNr(e.woche)} wieder eingetragen.`, 'ok', { fokus: true })
+  } catch (err) {
+    swEntfernt = e
+    setMeldung('sw-msg', `Nicht wieder eingetragen: ${serverFehlerText(err)}`, 'error', { fokus: true })
+  }
+}
+
+// Prüft das Paar (Wort der Woche + Wort B) wie Wort prüfen, ohne zu speichern
 async function previewSwWz() {
-  const get = (id) => (document.getElementById(id)?.value || '').trim()
-  const lemma = get('sw-lemma-id')
-  const zwilling_partner = get('sw-wza')
-  const zwilling_pos = get('sw-wzpos') || 'Substantiv'
-  const previewEl = document.getElementById('sw-wz-preview')
-  if (!lemma || !zwilling_partner) {
-    setSwMessage('Lemma und Partner-Wort für WZ-Vorschau erforderlich.', 'error')
-    return
+  if (swWzLaeuft) return
+  const a = document.getElementById('sw-lemma-id').value.trim()
+  const b = document.getElementById('sw-wza').value.trim()
+  const out = document.getElementById('sw-wz-preview')
+  const ansage = (html) => {
+    out.innerHTML = html
+    sageAnLive('sw-wz-live', out.querySelector('.tag-erg-meldung')?.textContent || '')
   }
-  if (previewEl) { previewEl.textContent = 'Lade Vorschau …'; previewEl.classList.remove('is-hidden') }
+  if (!a || !b) return ansage(ergebnisMeldung('Erst das Wort der Woche und Wort B eintragen.'))
+  swWzLaeuft = true
+  const text = document.getElementById('sw-wz-start-text')
+  const knopf = document.getElementById('sw-wz-start')
+  knopf.classList.add('is-busy')
+  knopf.setAttribute('aria-disabled', 'true')
+  text.innerHTML = 'prüft …<span class="adm-visually-hidden">: Wort-Zwilling der Woche</span>'
+  ansage(ergebnisMeldung('Prüft im Korpus …', 'loading'))
   try {
-    const params = new URLSearchParams({ a: lemma, b: zwilling_partner, pos: zwilling_pos })
-    const res = await fetch(`/admin/spezialwoche/preview-wz?${params}`)
-    const data = await res.json().catch(() => ({}))
-    if (!res.ok) {
-      if (previewEl) previewEl.textContent = `Fehler: ${data.error || res.status}`
-      return
-    }
-    if (previewEl) previewEl.textContent = JSON.stringify(data, null, 2)
+    const params = new URLSearchParams({ a, b, pos: document.getElementById('sw-wzpos').value || 'Substantiv' })
+    ansage(wzErgebnisHtml(await holeJson(`/admin/spezialwoche/preview-wz?${params}`), { ebene: 4, wortA: a, wortB: b }))
   } catch (err) {
-    if (previewEl) previewEl.textContent = `Netzwerkfehler: ${err.message}`
+    ansage(ergebnisMeldung(pruefFehlerText(err), 'error'))
+  } finally {
+    swWzLaeuft = false
+    knopf.classList.remove('is-busy')
+    knopf.removeAttribute('aria-disabled')
+    text.innerHTML = 'Prüfen<span class="adm-visually-hidden">: Wort-Zwilling der Woche</span>'
   }
 }
 
@@ -6479,189 +6800,655 @@ async function verwerfeVorschlag(id) {
   ziel?.focus({ preventScroll: true })
 }
 
-// ── Push-Benachrichtigungen ──────────────────────────────
-function setPushHint(id, message, tone = 'info') {
-  const el = document.getElementById(id)
+// ── Werkzeuge › Benachrichtigungen ────────────────────────
+// Oben: eine Nachricht senden (Test an die eigenen Geräte, danach „An alle senden …“ mit Bestätigung im Dialog).
+// Darunter: die Vorlagen des täglichen Versands (8:00) und der abendlichen Erinnerung (19:00).
+//
+// Sicherungen gegen Fehlversand: Der Dialog schaltet „An alle senden“ erst nach dem Häkchen frei. Während des
+// Versands ist der Knopf gesperrt (hier) und der Server lehnt einen zweiten Versand an alle mit 409 ab. Freitext
+// mit {platzhalter} wird abgelehnt, Vorlagen mit heute nicht befüllbarem Platzhalter nicht gesendet.
+
+// Platzhalter der Vorlagen: [Name, Erklärung, Modus, der sie befüllt]. Die Namen kennt auch der Server (PLACEHOLDERS).
+const PUSH_PLATZHALTER = [
+  ['lemma', 'erstes Wort des Tages (Kollokationen)', 'kollokationen'],
+  ['lemmata', 'alle Kollokationen-Wörter des Tages, mit · getrennt', 'kollokationen'],
+  ['thema', 'Thema des Tages', null],
+  ['wortA', 'erstes Wort des Wort-Zwillings', 'wortzwilling'],
+  ['wortB', 'zweites Wort des Wort-Zwillings', 'wortzwilling'],
+  ['lueckensatz', 'Satz des Lückenfüllers mit Lücke', 'lueckenfueller'],
+  ['wochentag', 'heutiger Wochentag, z. B. Freitag', null],
+  ['streak', 'Länge der Serie (nur abends)', null],
+]
+
+let pushDaten = null            // letzte Antwort von GET /admin/push/templates
+let pushLadeFehler = ''
+let pushToken = 0
+let pushGetestet = null         // { titel, text, zeit }: genau diese Fassung ging an die eigenen Geräte (nur nach einem 200)
+let pushDialogNachricht = null  // { titel, text }: was der offene Dialog senden würde
+let pushDialogErfolg = false    // Dialog wird nach einem gelungenen Versand geschlossen (Fokus geht dann auf die Meldung)
+let sendetAnAlle = false        // Versand an alle läuft
+let pushSendeUnsicher = false   // keine Antwort: Der Versand läuft vermutlich weiter – nicht erneut senden
+let pushTestLaeuft = false
+let pushPlatzhalterAngesagt = false  // der Platzhalter-Hinweis steht gerade (für die Ansage nur beim Erscheinen/Verschwinden)
+const vorlageOffen = new Set()  // ids der aufgeklappten Vorlagen (Zahl oder 'neu')
+const vorlageEntwurf = new Map() // id → { title, body, enabled }: ungespeicherte Änderungen; überleben jedes Neuzeichnen
+let neueVorlage = null          // { id: 'neu', category: 'daily', enabled: false, title: '', body: '' }: wird erst beim Speichern angelegt
+let vorlageGeloescht = null     // zuletzt gelöschte Vorlage für „Rückgängig“
+
+const getEl = (id) => document.getElementById(id)
+const phIn = (t) => [...new Set([...`${t.title} ${t.body}`.matchAll(/\{(\w+)\}/g)].map((m) => m[1]))]
+const fuelle = (text, ctx) => String(text).replace(/\{(\w+)\}/g, (_, k) => ctx[k] ?? '')
+// Platzhalter sichtbar machen (Vorlagentitel in der Liste)
+const mitPh = (text) => esc(text).replace(/\{(\w+)\}/g, '<span class="in-ph">{$1}</span>')
+const vorlageKey = (id) => (id === 'neu' ? 'neu' : Number(id))
+const geraeteText = (n) => anzahlText(n, 'Gerät', 'Geräte')
+const uhrJetzt = () => uhrText(berlinTeile(getCurrentDate()))
+
+// Kontext der Platzhalter für „heute“ (vom Server); Vorlagen des Abends bekommen eine Beispielserie
+function vorlageKontext(t) {
+  const ctx = pushDaten?.kontext || {}
+  return t.category === 'streak' ? { ...ctx, streak: '5' } : ctx
+}
+const fehlendeVon = (w, ctx) => phIn(w).filter((k) => !ctx[k])
+
+// Warum fehlt ein Platzhalter? Modusname („Zeitenwende fehlt“) statt „lueckensatz“
+function fehltGrund(keys) {
+  const namen = [...new Set(keys.map((k) => {
+    const p = PUSH_PLATZHALTER.find((x) => x[0] === k)
+    if (!p) return `unbekannter Platzhalter {${k}}`
+    if (p[2]) return MODI.find((m) => m.key === p[2]).label
+    return k === 'thema' ? 'Thema' : `{${k}}`
+  }))]
+  return `${aufzaehlung(namen)} ${namen.length === 1 ? 'fehlt' : 'fehlen'}`
+}
+
+function vorschauHtml(titel, text, { app = 'Signifikation · jetzt' } = {}) {
+  return `<p class="in-push-app">${esc(app)}</p>`
+    + `<p class="in-push-titel${titel ? '' : ' is-leer'}">${titel ? esc(titel) : 'Titel'}</p>`
+    + `<p class="in-push-text${text ? '' : ' is-leer'}">${text ? esc(text) : 'Text'}</p>`
+}
+
+// aria-disabled statt disabled: Der Knopf bleibt fokussierbar und erklärt beim Klick, warum nichts passiert
+function setzeSperre(id, an) {
+  const el = getEl(id)
   if (!el) return
-  el.textContent = message || ''
-  el.classList.remove('is-hidden', 'is-error', 'is-success')
-  if (!message) { el.classList.add('is-hidden'); return }
-  if (tone === 'error') el.classList.add('is-error')
-  if (tone === 'success') el.classList.add('is-success')
+  if (an) el.setAttribute('aria-disabled', 'true')
+  else el.removeAttribute('aria-disabled')
 }
 
-function renderPushTemplateRow(t) {
-  const preview = t.preview || {}
-  const isStreak = t.category === 'streak'
-  const previewLabel = isStreak ? 'Vorschau (Serie = 5)' : 'Vorschau heute'
-  const previewHtml = preview.eligible
-    ? `<strong>${esc(preview.title)}</strong><br>${esc(preview.body)}`
-    : `<span class="push-tpl-skip">Heute übersprungen — fehlt: ${esc((preview.missing || []).join(', ') || 'unbekannt')}</span>`
-  const categoryBadge = isStreak
-    ? '<span class="push-tpl-badge push-tpl-badge-streak">Streak-Saver · 19:00</span>'
-    : '<span class="push-tpl-badge">Täglich · 08:00</span>'
-  const toggleLabel = isStreak
-    ? 'Aktiv – nimmt an der abendlichen Streak-Rotation teil'
-    : 'Aktiv – nimmt an der täglichen Rotation teil'
-  // Streak-Templates gehen nur automatisch an gefährdete Serien – kein Broadcast.
-  const sendButton = isStreak
-    ? '<span class="push-tpl-skip">Automatischer Versand 19:00 an gefährdete Serien</span>'
-    : `<button class="ghost-btn" data-action="push-send-template" data-id="${t.id}">Jetzt senden</button>`
-  return `
-    <div class="push-template" data-id="${t.id}">
-      <div class="push-tpl-head">${categoryBadge}</div>
-      <div class="entry-field">
-        <label>Titel</label>
-        <input type="text" class="push-tpl-title" maxlength="120" value="${esc(t.title)}">
-      </div>
-      <div class="entry-field">
-        <label>Text</label>
-        <textarea class="push-tpl-body" maxlength="300" rows="2">${esc(t.body)}</textarea>
-      </div>
-      <label class="push-tpl-toggle">
-        <input type="checkbox" class="push-tpl-enabled" ${t.enabled ? 'checked' : ''}>
-        ${toggleLabel}
-      </label>
-      <div class="push-tpl-preview">${previewLabel}: ${previewHtml}</div>
-      <div class="push-tpl-actions">
-        <button class="primary-btn" data-action="push-save-template" data-id="${t.id}">Speichern</button>
-        ${sendButton}
-        <button class="entry-filters-reset" data-action="push-delete-template" data-id="${t.id}">Löschen</button>
-      </div>
-    </div>`
-}
+const pushAus = () => !!pushDaten && !pushDaten.push?.web && !pushDaten.push?.ios
 
-function renderPushTemplates(data) {
-  const placeholdersEl = document.getElementById('push-placeholders')
-  if (placeholdersEl) {
-    placeholdersEl.textContent = (data.placeholders || []).map(p => `{${p}}`).join('  ')
-  }
-  const countEl = document.getElementById('push-subscriber-count')
-  if (countEl) {
-    const n = Number(data.subscriberCount) || 0
-    countEl.textContent = n === 1 ? '1 Gerät' : `${n} Geräte`
-  }
-  const listEl = document.getElementById('push-templates-list')
-  if (!listEl) return
-  const templates = Array.isArray(data.templates) ? data.templates : []
-  listEl.innerHTML = templates.length
-    ? templates.map(renderPushTemplateRow).join('')
-    : '<div class="users-empty">Keine Vorlagen vorhanden.</div>'
-}
-
-async function loadPushTemplates() {
-  const listEl = document.getElementById('push-templates-list')
-  if (listEl) listEl.innerHTML = '<div class="users-empty">Wird geladen …</div>'
-  try {
-    const res = await fetch('/admin/push/templates')
-    if (!res.ok) throw new Error(`HTTP ${res.status}`)
-    renderPushTemplates(await res.json())
-  } catch (err) {
-    if (listEl) listEl.innerHTML = `<div class="users-empty" style="color:#991b1b">Fehler: ${esc(err.message)}</div>`
-  }
-}
-
-async function addPushTemplate() {
-  try {
-    const res = await fetch('/admin/push/templates', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ title: 'Neue Vorlage', body: 'Text bearbeiten …', enabled: false }),
-    })
-    const data = await res.json().catch(() => ({}))
-    if (!res.ok) { setPushHint('push-template-msg', data.error || 'Anlegen fehlgeschlagen.', 'error'); return }
-    setPushHint('push-template-msg', 'Vorlage angelegt – jetzt bearbeiten und aktivieren.', 'success')
-    await loadPushTemplates()
-  } catch {
-    setPushHint('push-template-msg', 'Netzwerkfehler.', 'error')
-  }
-}
-
-async function savePushTemplate(id) {
-  const row = document.querySelector(`.push-template[data-id="${id}"]`)
-  if (!row) return
-  const title = row.querySelector('.push-tpl-title')?.value?.trim() || ''
-  const body = row.querySelector('.push-tpl-body')?.value?.trim() || ''
-  const enabled = row.querySelector('.push-tpl-enabled')?.checked || false
-  try {
-    const res = await fetch(`/admin/push/templates/${encodeURIComponent(id)}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ title, body, enabled }),
-    })
-    const data = await res.json().catch(() => ({}))
-    if (!res.ok) { setPushHint('push-template-msg', data.error || 'Speichern fehlgeschlagen.', 'error'); return }
-    setPushHint('push-template-msg', 'Vorlage gespeichert.', 'success')
-    await loadPushTemplates()
-  } catch {
-    setPushHint('push-template-msg', 'Netzwerkfehler.', 'error')
-  }
-}
-
-async function deletePushTemplate(id) {
-  if (!confirmAction('Vorlage wirklich löschen?')) return
-  try {
-    const res = await fetch(`/admin/push/templates/${encodeURIComponent(id)}`, {
-      method: 'DELETE',
-      headers: { 'Content-Type': 'application/json' },
-    })
-    const data = await res.json().catch(() => ({}))
-    if (!res.ok) { setPushHint('push-template-msg', data.error || 'Löschen fehlgeschlagen.', 'error'); return }
-    setPushHint('push-template-msg', 'Vorlage gelöscht.', 'success')
-    await loadPushTemplates()
-  } catch {
-    setPushHint('push-template-msg', 'Netzwerkfehler.', 'error')
-  }
-}
-
-async function sendPushTemplate(id) {
-  if (!confirmAction('Diese Vorlage jetzt an alle registrierten Geräte senden?')) return
-  setPushHint('push-template-msg', 'Wird gesendet …', 'info')
-  try {
-    const res = await fetch('/admin/push/send', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ mode: 'template', templateId: Number(id) }),
-    })
-    const data = await res.json().catch(() => ({}))
-    if (!res.ok) { setPushHint('push-template-msg', data.error || 'Versand fehlgeschlagen.', 'error'); return }
-    setPushHint('push-template-msg', `Gesendet: ${data.sent} erfolgreich, ${data.failed} fehlgeschlagen (von ${data.total}).`, 'success')
-  } catch {
-    setPushHint('push-template-msg', 'Netzwerkfehler.', 'error')
-  }
-}
-
-async function submitManualPush(mode) {
-  const titleEl = document.getElementById('push-send-title')
-  const bodyEl = document.getElementById('push-send-body')
-  const title = titleEl?.value?.trim() || ''
-  const body = bodyEl?.value?.trim() || ''
-  if (!title || !body) {
-    setPushHint('push-send-msg', 'Titel und Text sind erforderlich.', 'error')
+function renderPushStand() {
+  const el = getEl('push-stand')
+  if (!el) return
+  el.removeAttribute('data-tone')
+  if (!pushDaten) { el.textContent = ''; return }
+  if (pushAus()) {
+    el.textContent = 'Benachrichtigungen sind auf dem Server nicht eingerichtet; es wird nichts zugestellt.'
+    el.dataset.tone = 'warn'
     return
   }
-  const confirmMsg = mode === 'self'
-    ? 'Testnachricht jetzt an deine eigenen Geräte senden?'
-    : 'Diese Nachricht jetzt an alle registrierten Geräte senden?'
-  if (!confirmAction(confirmMsg, [`Titel: ${title}`, `Text: ${body}`])) return
-  setPushHint('push-send-msg', 'Wird gesendet …', 'info')
-  try {
-    const res = await fetch('/admin/push/send', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ mode, title, body }),
-    })
-    const data = await res.json().catch(() => ({}))
-    if (!res.ok) { setPushHint('push-send-msg', data.error || 'Versand fehlgeschlagen.', 'error'); return }
-    setPushHint('push-send-msg', `Gesendet: ${data.sent} erfolgreich, ${data.failed} fehlgeschlagen (von ${data.total}).`, 'success')
-    // Test-Versand: Felder behalten, damit der Text danach an alle gehen kann.
-    if (mode !== 'self') {
-      if (titleEl) titleEl.value = ''
-      if (bodyEl) bodyEl.value = ''
-    }
-  } catch {
-    setPushHint('push-send-msg', 'Netzwerkfehler.', 'error')
+  const p = pushDaten.push || {}
+  const wege = p.web && p.ios ? 'Web und iOS' : p.web ? 'nur Web' : 'nur iOS'
+  el.textContent = `${geraeteText(pushDaten.subscriberCount)} angemeldet (${wege}) · auf deinem Konto: ${geraeteText(pushDaten.eigeneGeraete)}`
+}
+
+// Bei jeder Eingabe: Zähler, Platzhalter-Warnung, Vorschau, Zustand der beiden Knöpfe
+function renderPushFormular() {
+  const titel = getEl('push-send-title')?.value ?? ''
+  const text = getEl('push-send-body')?.value ?? ''
+  const zaehler = (id, n, max) => {
+    const el = getEl(id)
+    if (!el) return
+    el.textContent = n ? `${ganzzahlDe(n)} von ${max} Zeichen` : ''
+    if (n > max * 0.9) el.dataset.tone = 'warn'
+    else el.removeAttribute('data-tone')
   }
+  zaehler('push-titel-zahl', titel.length, 120)
+  zaehler('push-text-zahl', text.length, 300)
+  const ph = phIn({ title: titel, body: text })
+  const hinweis = getEl('push-platzhalter-hinweis')
+  const hinweisText = ph.length ? `In einer freien Nachricht werden Platzhalter nicht ersetzt: ${ph.map((k) => `{${k}}`).join(', ')} ginge wörtlich hinaus. Bitte ausschreiben.` : ''
+  if (hinweis) {
+    hinweis.hidden = !ph.length
+    hinweis.textContent = hinweisText
+  }
+  // Angesagt wird nur, wenn der Hinweis erscheint oder verschwindet, nicht bei jedem Tastendruck (die Namen darin wechseln mit)
+  if ((ph.length > 0) !== pushPlatzhalterAngesagt) {
+    pushPlatzhalterAngesagt = ph.length > 0
+    sageAnLive('push-platzhalter-live', pushPlatzhalterAngesagt ? hinweisText : 'Keine Platzhalter mehr im Text.')
+  }
+  const vorschau = getEl('push-vorschau')
+  if (vorschau) vorschau.innerHTML = (titel.trim() || text.trim()) ? vorschauHtml(titel.trim(), text.trim()) : ''
+  const eigene = pushDaten?.eigeneGeraete ?? 0
+  const testText = getEl('push-test-text')
+  if (testText) testText.textContent = eigene ? `Test an ${eigene === 1 ? 'mein Gerät' : `meine ${ganzzahlDe(eigene)} Geräte`}` : 'Test an meine Geräte'
+  setzeSperre('push-test', !pushDaten || !eigene || pushAus() || pushTestLaeuft)
+  setzeSperre('push-alle', !pushDaten || pushAus() || pushSendeUnsicher)
+  aktualisierePushFelder()
+}
+
+// aria-describedby der beiden Felder: Zähler, der Platzhalter-Hinweis (solange er steht) und – bei einem Fehler am Feld – die Meldung
+function aktualisierePushFelder() {
+  const hinweisSteht = !!getEl('push-platzhalter-hinweis') && !getEl('push-platzhalter-hinweis').hidden
+  for (const [feldId, zahlId] of [['push-send-title', 'push-titel-zahl'], ['push-send-body', 'push-text-zahl']]) {
+    const el = getEl(feldId)
+    if (!el) continue
+    const ids = [zahlId]
+    if (hinweisSteht) ids.push('push-platzhalter-hinweis')
+    if (el.getAttribute('aria-invalid') === 'true') ids.push('push-send-msg')
+    el.setAttribute('aria-describedby', ids.join(' '))
+  }
+}
+
+// Fehler am Feld: aria-invalid am betroffenen Feld, die Meldung (push-send-msg) hängt per aria-describedby daran
+function markierePushFeld(feldId) {
+  for (const id of ['push-send-title', 'push-send-body']) getEl(id)?.removeAttribute('aria-invalid')
+  getEl(feldId)?.setAttribute('aria-invalid', 'true')
+  aktualisierePushFelder()
+}
+
+// Eingabe für Test und Versand prüfen; liefert [Feld-ID, Text] oder null
+function pushEingabeFehler() {
+  const titel = getEl('push-send-title').value.trim()
+  const text = getEl('push-send-body').value.trim()
+  if (!titel) return ['push-send-title', 'Bitte einen Titel eintragen.']
+  if (!text) return ['push-send-body', 'Bitte einen Text eintragen.']
+  const platzhalterText = 'Bitte die Platzhalter ausschreiben; sie würden wörtlich hinausgehen.'
+  if (phIn({ title: titel, body: '' }).length) return ['push-send-title', platzhalterText]
+  if (phIn({ title: '', body: text }).length) return ['push-send-body', platzhalterText]
+  return null
+}
+
+// „An deine 2 Geräte gesendet um 14:36 Uhr“ · „An 1 von 2 deiner Geräte gesendet um 14:36 Uhr (1 nicht erreicht)“
+function testErgebnisText(d, zusatz = '') {
+  const gesamt = d.total ?? (d.sent + d.failed)
+  const ziel = d.failed ? `${d.sent} von ${gesamt} deiner Geräte` : (gesamt === 1 ? 'dein Gerät' : `deine ${ganzzahlDe(gesamt)} Geräte`)
+  const rest = [d.failed ? `${d.failed} nicht erreicht` : '', zusatz].filter(Boolean).join(', ')
+  return `An ${ziel} gesendet um ${uhrJetzt()} Uhr${rest ? ` (${rest})` : ''}.`
+}
+
+async function sendeTest() {
+  if (pushTestLaeuft) return
+  const btn = getEl('push-test')
+  if (btn.getAttribute('aria-disabled') === 'true') {
+    setMeldung('push-send-msg',
+      !pushDaten ? 'Die Seite ist noch nicht geladen.'
+        : pushAus() ? 'Benachrichtigungen sind auf dem Server nicht eingerichtet.'
+          : 'Auf deinem Konto ist kein Gerät angemeldet. Melde dich in der App mit diesem Konto an und erlaube Benachrichtigungen.', 'warn', { fokus: true })
+    return
+  }
+  const f = pushEingabeFehler()
+  if (f) {
+    markierePushFeld(f[0])
+    setMeldung('push-send-msg', f[1], 'error')
+    getEl(f[0]).focus()
+    return
+  }
+  const titel = getEl('push-send-title').value.trim()
+  const text = getEl('push-send-body').value.trim()
+  pushTestLaeuft = true
+  btn.classList.add('is-busy')
+  renderPushFormular()
+  getEl('push-test-text').textContent = 'Sendet …'
+  setMeldung('push-send-msg', '')
+  try {
+    const d = await holeJson('/admin/push/send', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ mode: 'self', title: titel, body: text }) })
+    // Nur ein gelungener Test gilt als Test dieser Fassung (der Dialog zeigt es)
+    pushGetestet = { titel, text, zeit: new Date() }
+    setMeldung('push-send-msg', `${testErgebnisText(d)} Sieh sie dir dort an; passt alles, dann „An alle senden …“.`, 'ok')
+  } catch (err) {
+    setMeldung('push-send-msg', `Nicht gesendet: ${serverFehlerText(err)}`, 'error', { fokus: true })
+  } finally {
+    pushTestLaeuft = false
+    btn.classList.remove('is-busy')
+    renderPushFormular()
+  }
+}
+
+function oeffnePushDialog() {
+  // Läuft schon ein Versand, würde ein erneutes Öffnen den Dialog zurücksetzen (Häkchen, Knopf): stattdessen sagen, warum nichts passiert
+  if (sendetAnAlle) {
+    setMeldung('push-send-msg', 'Der Versand an alle läuft noch. Bitte warten, bis er fertig ist.', 'warn', { fokus: true })
+    return
+  }
+  if (getEl('push-alle').getAttribute('aria-disabled') === 'true') {
+    setMeldung('push-send-msg', pushSendeUnsicher
+      ? 'Der letzte Versand hat nicht geantwortet und läuft vermutlich noch. Im Änderungsprotokoll nachsehen, dann die Seite neu laden.'
+      : 'Benachrichtigungen sind auf dem Server nicht eingerichtet; es würde nichts zugestellt.', 'warn', { fokus: true })
+    return
+  }
+  const f = pushEingabeFehler()
+  if (f) {
+    markierePushFeld(f[0])
+    setMeldung('push-send-msg', f[1], 'error')
+    getEl(f[0]).focus()
+    return
+  }
+  const titel = getEl('push-send-title').value.trim()
+  const text = getEl('push-send-body').value.trim()
+  const n = pushDaten.subscriberCount
+  const p = pushDaten.push || {}
+  const testGleich = !!pushGetestet && pushGetestet.titel === titel && pushGetestet.text === text
+  const letzter = pushDaten.letzterVersand
+  pushDialogNachricht = { titel, text }
+  getEl('push-dialog-titel').textContent = `An alle ${geraeteText(n)} senden?`
+  getEl('push-dialog-text').textContent = 'Die Nachricht geht sofort hinaus und lässt sich nicht zurückholen.'
+  getEl('push-dialog-vorschau').innerHTML = vorschauHtml(titel, text)
+  getEl('push-dialog-fakten').innerHTML = [
+    betriebZeile('Empfänger', betriebWert(geraeteText(n)), p.web && p.ios ? 'Web und iOS' : ''),
+    testGleich
+      ? betriebZeile('Test', betriebWert(`an deine Geräte gesendet um ${uhrText(berlinTeile(pushGetestet.zeit))} Uhr`))
+      : betriebZeile('Test', betriebWert('Diese Fassung ging noch nicht an deine Geräte.', 'warn')),
+    letzter
+      ? betriebZeile('Zuletzt an alle', betriebWert(`${wannText(letzter.zeit)} Uhr`), letzter.total != null ? esc(`„${letzter.titel}“, ${ganzzahlDe(letzter.sent)} von ${ganzzahlDe(letzter.total)} zugestellt`) : esc(`„${letzter.titel}“`))
+      : betriebZeile('Zuletzt an alle', betriebWert('noch kein Versand im Protokoll')),
+  ].join('')
+  getEl('push-dialog-ok').checked = false
+  getEl('push-dialog-ok-text').textContent = testGleich
+    ? 'Ich habe Titel und Text geprüft. Die Nachricht geht sofort hinaus.'
+    : 'Ohne Test senden: Ich habe Titel und Text geprüft.'
+  const senden = getEl('push-dialog-senden')
+  senden.classList.remove('is-busy')
+  setzeSendenZustand('haekchen')
+  getEl('push-dialog-senden-text').textContent = `An ${geraeteText(n)} senden`
+  getEl('push-dialog-abbrechen').hidden = false
+  setMeldung('push-dialog-msg', '')
+  const dlg = getEl('push-dialog')
+  if (!dlg.open) dlg.showModal()
+}
+
+// Zustand des Senden-Knopfs im Dialog. aria-describedby nennt den Grund der Sperre, solange sie gilt: das fehlende
+// Häkchen oder (nach einem Netzfehler) die Meldung. Frei: nichts, sonst bliebe „Erst das Häkchen setzen.“ hängen.
+function setzeSendenZustand(zustand) {
+  const btn = getEl('push-dialog-senden')
+  if (!btn) return
+  if (zustand === 'frei') btn.removeAttribute('aria-disabled')
+  else btn.setAttribute('aria-disabled', 'true')
+  const grund = { haekchen: 'push-dialog-sperre', unsicher: 'push-dialog-msg' }[zustand]
+  if (grund) btn.setAttribute('aria-describedby', grund)
+  else btn.removeAttribute('aria-describedby')
+}
+
+function pushDialogHaekchen() {
+  if (sendetAnAlle || pushSendeUnsicher) return
+  setzeSendenZustand(getEl('push-dialog-ok').checked ? 'frei' : 'haekchen')
+}
+
+async function sendeAnAlle() {
+  const btn = getEl('push-dialog-senden')
+  if (sendetAnAlle || pushSendeUnsicher) return
+  // Gesperrt, solange das Häkchen fehlt: Der Klick führt dorthin
+  if (btn.getAttribute('aria-disabled') === 'true') { getEl('push-dialog-ok').focus(); return }
+  const nachricht = pushDialogNachricht
+  if (!nachricht) return
+  sendetAnAlle = true
+  btn.classList.add('is-busy')
+  setzeSendenZustand('laeuft')
+  getEl('push-dialog-senden-text').textContent = 'Wird gesendet …'
+  getEl('push-dialog-abbrechen').hidden = true
+  setMeldung('push-dialog-msg', '')
+  try {
+    const d = await holeJson('/admin/push/send', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ mode: 'free', title: nachricht.titel, body: nachricht.text }) })
+    sendetAnAlle = false
+    pushDialogErfolg = true
+    getEl('push-dialog').close()
+    getEl('push-send-title').value = ''
+    getEl('push-send-body').value = ''
+    pushGetestet = null
+    pushDialogNachricht = null
+    // Die Gerätezahl kann sich beim Versand ändern (nicht mehr erreichbare Geräte werden entfernt)
+    void ladePush({ still: true })
+    renderPushFormular()
+    setMeldung('push-send-msg', `Gesendet um ${uhrJetzt()} Uhr: ${ganzzahlDe(d.sent)} zugestellt, ${ganzzahlDe(d.failed)} nicht zugestellt (von ${ganzzahlDe(d.total)} ${d.total === 1 ? 'Gerät' : 'Geräten'}). Nicht mehr erreichbare Geräte werden dabei entfernt.`, 'ok', { fokus: true })
+  } catch (err) {
+    sendetAnAlle = false
+    btn.classList.remove('is-busy')
+    getEl('push-dialog-abbrechen').hidden = false
+    // Keine Antwort (Netz, Zeitüberschreitung, Gateway): Ob der Versand lief, ist unklar. Nicht erneut senden.
+    const ungewiss = !err.status || err.status === 408 || err.status >= 502
+    if (ungewiss) {
+      pushSendeUnsicher = true
+      getEl('push-dialog-senden-text').textContent = 'Nicht erneut senden'
+      setzeSendenZustand('unsicher')
+      // Fokus auf die Meldung: Bei 320 Pixeln Breite liegt sie sonst unter dem Bildausschnitt des Dialogs
+      setMeldung('push-dialog-msg', 'Keine Antwort vom Server. Der Versand läuft vermutlich weiter – nicht erneut senden, sondern im Änderungsprotokoll nachsehen.', 'error', { fokus: true })
+      getEl('push-dialog-msg')?.scrollIntoView({ block: 'nearest' })
+      renderPushFormular()
+      return
+    }
+    getEl('push-dialog-senden-text').textContent = `An ${geraeteText(pushDaten?.subscriberCount ?? 0)} senden`
+    setzeSendenZustand('frei')
+    setMeldung('push-dialog-msg', err.status === 409 ? serverFehlerText(err) : `Nicht gesendet: ${serverFehlerText(err)}`, 'error')
+  }
+}
+
+// ── Vorlagen ──
+
+const vorlageWerte = (t) => vorlageEntwurf.get(t.id) || { title: t.title, body: t.body, enabled: t.enabled }
+const vorlageDomId = (id) => `vorlage-${id}`
+
+// Aktionen unter einer aufgeklappten Vorlage; hängen davon ab, ob sie heute versendbar ist
+function vorlageAktionenHtml(t, fehlt) {
+  const id = vorlageDomId(t.id)
+  const titelText = vorlageWerte(t).title || (t.id === 'neu' ? 'Neue Vorlage' : 'ohne Titel')
+  return '<div class="be-aktionen">'
+    + `<button type="button" class="adm-cta" data-action="push-save-template" data-id="${esc(t.id)}" id="${id}-speichern"><span id="${id}-speichern-text">Speichern</span> <span aria-hidden="true">→</span></button>`
+    + (fehlt.length ? '' : `<button type="button" class="adm-link" data-action="push-test-template" data-id="${esc(t.id)}" id="${id}-test">Test an meine Geräte</button>`)
+    + (t.category === 'daily' && !fehlt.length ? `<button type="button" class="adm-link" data-action="push-uebernehmen" data-id="${esc(t.id)}" id="${id}-uebernehmen">In „Nachricht senden“ übernehmen</button>` : '')
+    + (t.id === 'neu'
+      ? `<button type="button" class="adm-link" data-action="push-neu-verwerfen" id="${id}-verwerfen">verwerfen</button>`
+      : `<button type="button" class="li-loeschen" data-action="push-delete-template" data-id="${esc(t.id)}" id="${id}-loeschen">löschen<span class="adm-visually-hidden">: ${esc(titelText)}</span></button>`)
+    + '</div>'
+}
+
+function vorlageVorschauHtml(t, w, fehlt, ctx) {
+  return fehlt.length
+    ? `<p class="tag-hinweis" data-tone="warn">Heute nicht versendbar: ${esc(fehltGrund(fehlt))}.</p>`
+    : `<div class="in-push-vorschau" role="group" aria-label="Vorschau heute">${vorschauHtml(fuelle(w.title, ctx), fuelle(w.body, ctx), { app: t.category === 'streak' ? 'Signifikation · Beispiel mit Serie 5' : 'Signifikation · heute 8:00' })}</div>`
+}
+
+function vorlageZeileHtml(t) {
+  const w = vorlageWerte(t)
+  const fehlt = fehlendeVon(w, vorlageKontext(t))
+  const offen = vorlageOffen.has(t.id)
+  const id = vorlageDomId(t.id)
+  const zustand = !w.enabled
+    ? '<span>aus</span>'
+    : fehlt.length
+      ? `<span data-tone="warn">heute übersprungen: ${esc(fehltGrund(fehlt))}</span>`
+      : '<span>heute versendbar</span>'
+  const titelText = w.title || (t.id === 'neu' ? 'Neue Vorlage' : 'ohne Titel')
+  const geaendert = vorlageEntwurf.has(t.id) || t.id === 'neu'
+  return `<button type="button" class="in-vorlage-zeile" aria-expanded="${offen}" aria-controls="${id}-detail" data-action="push-vorlage-auf" data-id="${esc(t.id)}">`
+    + `<span class="in-vorlage-titel">${mitPh(titelText)}</span><span class="in-vorlage-meta">${zustand}${geaendert ? '<span class="in-geaendert">ungespeichert</span>' : ''}</span><span class="in-vorlage-auf" aria-hidden="true"></span></button>`
+}
+
+function renderVorlage(t) {
+  const w = vorlageWerte(t)
+  const ctx = vorlageKontext(t)
+  const fehlt = fehlendeVon(w, ctx)
+  const offen = vorlageOffen.has(t.id)
+  const id = vorlageDomId(t.id)
+  let detail = ''
+  if (offen) {
+    detail = `<div class="in-vorlage-detail" id="${id}-detail">`
+      + `<div class="tag-feld"><label class="tag-label" for="${id}-titel">Titel</label><div class="tag-wert"><input class="tag-eingabe" type="text" id="${id}-titel" data-vorlage="${esc(t.id)}" data-feld="title" maxlength="120" value="${esc(w.title)}" autocomplete="off"></div></div>`
+      + `<div class="tag-feld"><label class="tag-label" for="${id}-text">Text</label><div class="tag-wert"><textarea class="tag-eingabe" id="${id}-text" data-vorlage="${esc(t.id)}" data-feld="body" maxlength="300" rows="2">${esc(w.body)}</textarea></div></div>`
+      + `<label class="be-check" for="${id}-aktiv"><input type="checkbox" id="${id}-aktiv" data-vorlage="${esc(t.id)}" data-feld="enabled"${w.enabled ? ' checked' : ''}><span>${t.category === 'streak' ? 'Aktiv: nimmt am abendlichen Versand teil' : 'Aktiv: nimmt am täglichen Versand teil'}</span></label>`
+      + vorlageVorschauHtml(t, w, fehlt, ctx)
+      + vorlageAktionenHtml(t, fehlt)
+      + `<p class="li-meldung" id="${id}-msg" role="status" aria-live="polite"></p>`
+      + '</div>'
+  }
+  return `<li class="in-vorlage${offen ? ' is-offen' : ''}${w.enabled ? '' : ' is-aus'}" data-id="${esc(t.id)}">${vorlageZeileHtml(t)}${detail}</li>`
+}
+
+function pushHeuteLage() {
+  const heute = pushDaten?.heute || getTodayIso()
+  const taeglich = (pushDaten?.templates || []).filter((t) => t.category !== 'streak' && t.enabled)
+  const ok = taeglich.filter((t) => t.preview?.eligible).length
+  const stand = tagesStand(kalenderStatus === 'ok' ? kalenderData?.[heute] : undefined)
+  const vorbei = Number(berlinTeile(getCurrentDate())?.hh) >= 8
+  const tag = kalenderStatus === 'ok' ? `${fehltText(stand)}. ` : ''
+  if (!taeglich.length) return { text: `Heute, ${datumKurz(heute)}: ${tag}Keine Vorlage ist aktiv; es geht „Dein tägliches Wortspiel wartet.“ hinaus.`, ton: 'warn' }
+  const verb = vorbei ? (ok === 1 ? 'war' : 'waren') : (ok === 1 ? 'ist' : 'sind')
+  return {
+    text: `Heute, ${datumKurz(heute)}: ${tag}${ganzzahlDe(ok)} von ${anzahlText(taeglich.length, 'aktiven Vorlage', 'aktiven Vorlagen')} ${verb} ${vorbei ? 'um 8:00 Uhr' : 'für 8:00 Uhr'} versendbar.`,
+    ton: ok ? '' : 'warn',
+  }
+}
+
+// Zeichnet alle Vorlagen neu und behält dabei Fokus und Cursor (oder Auswahl) in einem Feld oder Knopf einer
+// Vorlage. Die Texte der Entwürfe stehen in vorlageEntwurf; ohne diese Wiederherstellung verlöre eine andere,
+// aufgeklappte Vorlage beim Speichern oder Löschen den Fokus mitten in der Eingabe.
+function renderVorlagen() {
+  const a = document.activeElement
+  const stand = a && a !== document.body && a.id && a.closest?.('#push-templates-list, #push-streak-list')
+    ? { id: a.id, von: a.selectionStart, bis: a.selectionEnd, richtung: a.selectionDirection, scroll: a.scrollTop }
+    : null
+  zeichneVorlagen()
+  if (!stand) return
+  const neu = getEl(stand.id)
+  if (!neu) return
+  neu.focus({ preventScroll: true })
+  if (typeof stand.von === 'number' && neu.type !== 'checkbox') {
+    try { neu.setSelectionRange(stand.von, stand.bis, stand.richtung || 'none') } catch { /* Feldtyp ohne Auswahl */ }
+    neu.scrollTop = stand.scroll || 0
+  }
+}
+
+function zeichneVorlagen() {
+  const liste = getEl('push-templates-list')
+  const abend = getEl('push-streak-list')
+  if (!liste || !abend) return
+  if (!pushDaten) {
+    const fehler = pushLadeFehler
+      ? `<p class="wo-meldung" data-tone="err" role="alert">${esc(pushLadeFehler)} <button type="button" class="adm-link" data-action="push-load-templates">Erneut versuchen</button></p>`
+      : '<p class="li-meldung" data-tone="loading">Vorlagen werden geladen …</p>'
+    liste.innerHTML = fehler
+    abend.innerHTML = ''
+    setMeldung('push-heute', '')
+    return
+  }
+  const alle = pushDaten.templates || []
+  // Entwürfe und offene Zeilen gelöschter Vorlagen (anderer Tab, Rückgängig) verfallen
+  for (const key of [...vorlageEntwurf.keys()]) if (key !== 'neu' && !alle.some((t) => t.id === key)) vorlageEntwurf.delete(key)
+  for (const key of [...vorlageOffen]) if (key !== 'neu' && !alle.some((t) => t.id === key)) vorlageOffen.delete(key)
+  const taeglich = [...alle.filter((t) => t.category !== 'streak'), ...(neueVorlage ? [neueVorlage] : [])]
+  const abends = alle.filter((t) => t.category === 'streak')
+  liste.innerHTML = taeglich.length
+    ? `<ul class="in-vorlagen" aria-label="Vorlagen für den täglichen Versand">${taeglich.map(renderVorlage).join('')}</ul>`
+    : '<div class="li-leer"><p class="li-leer-titel">Keine Vorlage</p><p class="li-leer-text">Ohne Vorlage geht „Dein tägliches Wortspiel wartet.“ hinaus.</p></div>'
+  abend.innerHTML = abends.length
+    ? `<ul class="in-vorlagen" aria-label="Vorlagen für den Abend">${abends.map(renderVorlage).join('')}</ul>`
+    : '<div class="li-leer"><p class="li-leer-titel">Keine Vorlage</p><p class="li-leer-text">Ohne Vorlage geht „Deine Serie“ mit der Länge der Serie hinaus.</p></div>'
+  const lage = pushHeuteLage()
+  setMeldung('push-heute', lage.text, lage.ton)
+  const ph = getEl('push-placeholders')
+  if (ph) ph.innerHTML = PUSH_PLATZHALTER.map(([k, txt]) => `<div><dt>{${esc(k)}}</dt><dd>${esc(txt)}</dd></div>`).join('')
+}
+
+function schalteVorlage(id) {
+  const key = vorlageKey(id)
+  if (vorlageOffen.has(key)) vorlageOffen.delete(key)
+  else vorlageOffen.add(key)
+  renderVorlagen()
+  document.querySelector(`.in-vorlage[data-id="${CSS.escape(String(id))}"] .in-vorlage-zeile`)?.focus()
+}
+
+// Eingabe in einer Vorlage: Entwurf merken, nur Kopfzeile, Vorschau und Aktionen dieser Vorlage neu zeichnen
+// (Fokus und Cursor im Feld bleiben)
+function vorlageGeaendert(el) {
+  entmarkiereFeld(el.id)
+  const key = vorlageKey(el.dataset.vorlage)
+  const t = key === 'neu' ? neueVorlage : (pushDaten?.templates || []).find((x) => x.id === key)
+  if (!t) return
+  const w = { ...vorlageWerte(t) }
+  w[el.dataset.feld] = el.type === 'checkbox' ? el.checked : el.value
+  if (key !== 'neu' && w.title === t.title && w.body === t.body && w.enabled === t.enabled) vorlageEntwurf.delete(key)
+  else vorlageEntwurf.set(key, w)
+  const li = document.querySelector(`.in-vorlage[data-id="${CSS.escape(String(key))}"]`)
+  if (!li) return
+  li.classList.toggle('is-aus', !w.enabled)
+  const tmp = document.createElement('div')
+  tmp.innerHTML = renderVorlage(t)
+  li.querySelector('.in-vorlage-zeile')?.replaceWith(tmp.querySelector('.in-vorlage-zeile'))
+  for (const selektor of ['.in-push-vorschau, .in-vorlage-detail > .tag-hinweis', '.in-vorlage-detail > .be-aktionen']) {
+    const alt = li.querySelector(selektor)
+    const neu = tmp.querySelector(selektor)
+    if (alt && neu) alt.replaceWith(neu)
+  }
+}
+
+async function ladePush({ still = false } = {}) {
+  const token = ++pushToken
+  if (!still && !pushDaten) { pushLadeFehler = ''; renderVorlagen() }
+  try {
+    const d = await holeJson('/admin/push/templates')
+    if (token !== pushToken) return
+    pushDaten = d
+    pushLadeFehler = ''
+  } catch (err) {
+    if (token !== pushToken) return
+    if (!pushDaten) pushLadeFehler = `Die Vorlagen konnten nicht geladen werden (${err.status ? `HTTP ${err.status}` : 'keine Antwort'}).`
+  }
+  renderPushStand()
+  renderPushFormular()
+  renderVorlagen()
+}
+
+async function speichereVorlage(id) {
+  const key = vorlageKey(id)
+  const t = key === 'neu' ? neueVorlage : (pushDaten?.templates || []).find((x) => x.id === key)
+  if (!t) return
+  const w = vorlageWerte(t)
+  const dom = vorlageDomId(t.id)
+  const titel = w.title.trim()
+  const text = w.body.trim()
+  // Fehler am Feld: aria-invalid, Fokus ins Feld, der Fehlertext (Meldung der Vorlage) hängt per aria-describedby daran
+  entmarkiereFeld(`${dom}-titel`)
+  entmarkiereFeld(`${dom}-text`)
+  const feldFehler = (feldId, meldung) => {
+    markiereFeld(feldId, `${dom}-msg`)
+    setMeldung(`${dom}-msg`, meldung, 'error')
+    getEl(feldId)?.focus()
+  }
+  if (!titel) return void feldFehler(`${dom}-titel`, 'Bitte einen Titel eintragen.')
+  if (!text) return void feldFehler(`${dom}-text`, 'Bitte einen Text eintragen.')
+  const istUnbekannt = (k) => !PUSH_PLATZHALTER.some((p) => p[0] === k)
+  const unbekannt = phIn({ title: titel, body: text }).filter(istUnbekannt)
+  if (unbekannt.length) {
+    const imTitel = phIn({ title: titel, body: '' }).some(istUnbekannt)
+    return void feldFehler(imTitel ? `${dom}-titel` : `${dom}-text`, `Unbekannter Platzhalter: ${unbekannt.map((k) => `{${k}}`).join(', ')}. Die Vorlage würde jeden Tag übersprungen.`)
+  }
+  if (getEl(`${dom}-speichern`)?.getAttribute('aria-disabled') === 'true') return
+  setzeKnopfBusy(`${dom}-speichern`, `${dom}-speichern-text`, true, 'Speichert …')
+  try {
+    let neueId = key
+    if (key === 'neu') {
+      const d = await holeJson('/admin/push/templates', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ title: titel, body: text, enabled: w.enabled, category: t.category }) })
+      neueId = Number(d.id)
+      neueVorlage = null
+      vorlageOffen.delete('neu')
+      vorlageEntwurf.delete('neu')
+      vorlageOffen.add(neueId)
+    } else {
+      await holeJson(`/admin/push/templates/${encodeURIComponent(key)}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ title: titel, body: text, enabled: w.enabled }) })
+      vorlageEntwurf.delete(key)
+    }
+    // Neu laden und zeichnen: Entwürfe anderer Vorlagen bleiben (vorlageEntwurf), nichts geht verloren
+    await ladePush({ still: true })
+    // Eine neue Vorlage bekommt ihre Nummer: Der Fokus (auf „Speichern“) zieht mit um
+    if (key === 'neu') getEl(`${vorlageDomId(neueId)}-speichern`)?.focus({ preventScroll: true })
+    setMeldung(`${vorlageDomId(neueId)}-msg`, key === 'neu' ? 'Vorlage angelegt.' : 'Gespeichert.', 'ok')
+  } catch (err) {
+    setzeKnopfBusy(`${dom}-speichern`, `${dom}-speichern-text`, false, 'Speichern')
+    setMeldung(`${dom}-msg`, `Nicht gespeichert: ${serverFehlerText(err)}`, 'error')
+  }
+}
+
+function loescheVorlage(id) {
+  return einmalJe(`vorlage-loeschen:${id}`, () => loescheVorlageJetzt(id))
+}
+
+async function loescheVorlageJetzt(id) {
+  const key = vorlageKey(id)
+  const t = (pushDaten?.templates || []).find((x) => x.id === key)
+  if (!t) return
+  try {
+    await holeJson(`/admin/push/templates/${encodeURIComponent(key)}`, { method: 'DELETE', headers: { 'Content-Type': 'application/json' } })
+    vorlageGeloescht = { title: t.title, body: t.body, enabled: t.enabled, category: t.category }
+    vorlageOffen.delete(key)
+    vorlageEntwurf.delete(key)
+    await ladePush({ still: true })
+    setMeldung('push-template-msg', `<span>Vorlage „${esc(t.title)}“ gelöscht.</span> <button type="button" class="adm-link" data-action="push-rueckgaengig">Rückgängig</button>`, 'ok', { fokus: true, html: true })
+  } catch (err) {
+    setMeldung(`${vorlageDomId(key)}-msg`, `Nicht gelöscht: ${serverFehlerText(err)}`, 'error')
+  }
+}
+
+async function vorlageRueckgaengig() {
+  const v = vorlageGeloescht
+  if (!v) return
+  // Vor dem await leeren: Ein zweiter Klick auf „Rückgängig“ findet nichts mehr und legt die Vorlage nicht doppelt an
+  vorlageGeloescht = null
+  try {
+    await holeJson('/admin/push/templates', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(v) })
+    await ladePush({ still: true })
+    setMeldung('push-template-msg', 'Vorlage wiederhergestellt.', 'ok', { fokus: true })
+  } catch (err) {
+    vorlageGeloescht = v
+    setMeldung('push-template-msg', `Nicht wiederhergestellt: ${serverFehlerText(err)}`, 'error', { fokus: true })
+  }
+}
+
+function neueVorlageOeffnen() {
+  if (!neueVorlage) neueVorlage = { id: 'neu', category: 'daily', enabled: false, title: '', body: '' }
+  vorlageOffen.add('neu')
+  renderVorlagen()
+  getEl('vorlage-neu-titel')?.focus()
+}
+
+function neueVorlageVerwerfen() {
+  neueVorlage = null
+  vorlageOffen.delete('neu')
+  vorlageEntwurf.delete('neu')
+  renderVorlagen()
+  getEl('push-neu')?.focus()
+}
+
+// Test einer Vorlage an die eigenen Geräte. Eine gespeicherte, unveränderte Vorlage rendert der Server
+// (wie beim täglichen Versand); eine geänderte oder neue wird hier mit den heutigen Wörtern gefüllt.
+// „Heute“ der Platzhalter (pushDaten.heute, Berliner Datum vom Server) kann veraltet sein, wenn die Seite über Mitternacht
+// offen blieb: Dann vorher still neu laden, sonst ginge der Vortag in Test und Übernahme ein.
+async function frischeHeute() {
+  const heuteBerlin = berlinTeile(getCurrentDate())?.iso
+  if (pushDaten?.heute && heuteBerlin && pushDaten.heute !== heuteBerlin) await ladePush({ still: true })
+}
+
+async function testeVorlage(id, knopf) {
+  const key = vorlageKey(id)
+  const suche = () => (key === 'neu' ? neueVorlage : (pushDaten?.templates || []).find((x) => x.id === key))
+  let t = suche()
+  if (!t || knopf?.getAttribute('aria-disabled') === 'true') return
+  const dom = vorlageDomId(t.id)
+  if (!pushDaten.eigeneGeraete || pushAus()) {
+    return void setMeldung(`${dom}-msg`, pushAus() ? 'Benachrichtigungen sind auf dem Server nicht eingerichtet.' : 'Auf deinem Konto ist kein Gerät angemeldet. Melde dich in der App mit diesem Konto an und erlaube Benachrichtigungen.', 'warn')
+  }
+  const ungespeichert = key === 'neu' || vorlageEntwurf.has(key)
+  knopf?.setAttribute('aria-disabled', 'true')
+  try {
+    // Ein ungespeicherter Entwurf wird hier mit den heutigen Wörtern gefüllt: erst den Tag auffrischen
+    if (ungespeichert) await frischeHeute()
+    t = suche() || t
+    const w = vorlageWerte(t)
+    const body = ungespeichert
+      ? { mode: 'self', title: fuelle(w.title, vorlageKontext(t)).trim(), body: fuelle(w.body, vorlageKontext(t)).trim() }
+      : { mode: 'self', templateId: key }
+    const d = await holeJson('/admin/push/send', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+    setMeldung(`${dom}-msg`, testErgebnisText(d, ungespeichert ? 'Fassung mit deinen Änderungen' : 'gespeicherte Fassung'), 'ok')
+  } catch (err) {
+    setMeldung(`${dom}-msg`, `Nicht gesendet: ${serverFehlerText(err)}`, 'error')
+  } finally {
+    knopf?.removeAttribute('aria-disabled')
+  }
+}
+
+// Vorlage mit den heutigen Wörtern in „Nachricht senden“ übernehmen: danach Test, dann „An alle senden …“
+async function uebernimmVorlage(id) {
+  const key = vorlageKey(id)
+  await frischeHeute()
+  const t = key === 'neu' ? neueVorlage : (pushDaten?.templates || []).find((x) => x.id === key)
+  if (!t) return
+  const w = vorlageWerte(t)
+  const ctx = vorlageKontext(t)
+  getEl('push-send-title').value = fuelle(w.title, ctx)
+  getEl('push-send-body').value = fuelle(w.body, ctx)
+  pushGetestet = null
+  renderPushFormular()
+  setMeldung('push-send-msg', 'Vorlage mit den heutigen Wörtern übernommen. Erst testen, dann an alle senden.', 'ok')
+  getEl('push-send-title').focus()
 }
 
 function handleDocumentClick(event) {
@@ -6674,6 +7461,10 @@ function handleDocumentClick(event) {
   if (target.getAttribute('aria-disabled') === 'true') {
     // Der gesperrte Ersetzen-Knopf verweist auf das Häkchen, das ihn freischaltet
     if (target.dataset.action === 'restore-ausfuehren') document.getElementById('restore-verstanden')?.focus()
+    // Erklären statt schweigen: Der Klick sagt, warum nichts passiert (kein Gerät, Häkchen fehlt, Server ohne Push)
+    if (target.dataset.action === 'push-dialog-senden') document.getElementById('push-dialog-ok')?.focus()
+    if (target.dataset.action === 'push-send-self') { event.preventDefault(); void sendeTest() }
+    if (target.dataset.action === 'push-send-free') void oeffnePushDialog()
     return
   }
 
@@ -6727,14 +7518,7 @@ function handleDocumentClick(event) {
   if (action === 'bulk-delete-selected-dates') return void bulkDeleteSelectedDates()
   if (action === 'load-stats') return void loadStats()
   if (action === 'export-stats') return void exportStats(target.dataset.format || 'json')
-  if (action === 'analyze-kollokation') return void analyzeKollokation()
-  if (action === 'reset-kollokation-analysis') return void resetKollokationAnalysis()
-  if (action === 'analyze-wort-zwilling') return void analyzeWortZwilling()
-  if (action === 'reset-wort-zwilling-analysis') return void resetWortZwillingAnalysis()
-  if (action === 'analyze-zeitenwende') return void analyzeZeitenwende()
-  if (action === 'reset-zeitenwende-analysis') return void resetZeitenwendeAnalysis()
-  if (action === 'analyze-lueckenfueller') return void analyzeLueckenfueller()
-  if (action === 'reset-lueckenfueller-analysis') return void resetLueckenfuellerAnalysis()
+  if (action === 'reset-kollokation-analysis' || action === 'reset-wort-zwilling-analysis' || action === 'reset-zeitenwende-analysis' || action === 'reset-lueckenfueller-analysis') return void leerePruefung(target)
   if (action === 'generate-lueckenfueller') return void generateLueckenfueller(target)
   if (action === 'monat-wechseln') return void wechsleMonat(Number(target.dataset.delta || 0))
   if (action === 'monat-heute') return void zeigeDiesenMonat()
@@ -6763,100 +7547,227 @@ function handleDocumentClick(event) {
   if (action === 'audit-mehr') return void auditMehr()
   if (action === 'reset-audit-filters') return void resetAuditFilters()
   if (action === 'load-free-days') return void loadFreeDays()
-  if (action === 'add-free-day') return void addFreeDay()
   if (action === 'delete-free-day') return void deleteFreeDay(target.dataset.date || '')
-  if (action === 'load-spezialwochen') return void loadSpezialwochen()
-  if (action === 'save-spezialwoche') return void saveSpezialwoche()
-  if (action === 'clear-sw-form') return void clearSwForm()
+  if (action === 'bonus-rueckgaengig') return void bonusRueckgaengig()
+  if (action === 'load-spezialwochen') return void ladeWortDerWoche()
+  if (action === 'clear-sw-form') { clearSwForm(); return void document.getElementById('sw-lemma-id')?.focus() }
   if (action === 'edit-spezialwoche') return void editSpezialwoche(target.dataset.woche || '')
   if (action === 'delete-spezialwoche') return void deleteSpezialwoche(target.dataset.woche || '')
+  if (action === 'sw-rueckgaengig') return void swRueckgaengig()
   if (action === 'preview-sw-wz') return void previewSwWz()
-  if (action === 'push-load-templates') return void loadPushTemplates()
-  if (action === 'push-add-template') return void addPushTemplate()
-  if (action === 'push-save-template') return void savePushTemplate(target.dataset.id || '')
-  if (action === 'push-delete-template') return void deletePushTemplate(target.dataset.id || '')
-  if (action === 'push-send-template') return void sendPushTemplate(target.dataset.id || '')
-  if (action === 'push-send-free') return void submitManualPush('free')
-  if (action === 'push-send-self') return void submitManualPush('self')
+  if (action === 'toggle-sw-neben') return void toggleExtraFields(target.dataset.target || '')
+  if (action === 'push-load-templates') return void ladePush()
+  if (action === 'push-send-self') { event.preventDefault(); return void sendeTest() }
+  if (action === 'push-send-free') return void oeffnePushDialog()
+  if (action === 'push-dialog-abbrechen') return void getEl('push-dialog').close()
+  if (action === 'push-dialog-senden') return void sendeAnAlle()
+  if (action === 'push-vorlage-auf') return void schalteVorlage(target.dataset.id || '')
+  if (action === 'push-add-template') return void neueVorlageOeffnen()
+  if (action === 'push-neu-verwerfen') return void neueVorlageVerwerfen()
+  if (action === 'push-save-template') return void speichereVorlage(target.dataset.id || '')
+  if (action === 'push-delete-template') return void loescheVorlage(target.dataset.id || '')
+  if (action === 'push-rueckgaengig') return void vorlageRueckgaengig()
+  if (action === 'push-test-template') return void testeVorlage(target.dataset.id || '', target)
+  if (action === 'push-uebernehmen') return void uebernimmVorlage(target.dataset.id || '')
   if (action === 'load-classroom-stats') return void loadClassroomStats()
-  if (action === 'save-demo-content') return void saveDemoEditor()
+  if (action === 'demo-verwerfen') return void demoVerwerfen()
+  if (action === 'demo-standard') return void demoStandardEinsetzen()
   if (action === 'load-product-metrics') return void loadProductMetrics()
 }
 
-// ── Demo-Inhalte (login-freie Lehrer-Vorschau) ──────────────────────────────
-function demoWords(str) {
-  return String(str || '').split(/[\n,]+/).map(s => s.trim()).filter(Boolean)
+// ── Werkzeuge › Klassenraum-Demo ──────────────────────────
+// Inhalte der Vorschau, die Lehrkräfte ohne Anmeldung sehen (App: Klassenraum › Sitzungen › Vorschau ansehen).
+// Die Grenzen entsprechen server/classroom/demoContent.js; die Seite prüft vorab und zeigt die Fehler am Feld,
+// der Server prüft verbindlich und liefert deutsche Texte mit dem Pfad des Feldes (issues[].path).
+
+// Pfad im Inhalt → Eingabefeld
+const DEMO_FELDER = {
+  'kollokationen.lemma.lemma': 'demo-kol-lemma',
+  'kollokationen.words': 'demo-kol-words',
+  'wortzwilling.wortA': 'demo-wz-a',
+  'wortzwilling.wortB': 'demo-wz-b',
+  'wortzwilling.words': 'demo-wz-words',
+  'zeitenwende.lemma.lemma': 'demo-zw-lemma',
+  'zeitenwende.words': 'demo-zw-words',
+  'lueckenfueller.lemma.lemma': 'demo-lf-lemma',
+  'lueckenfueller.sentence': 'demo-lf-sentence',
+  'lueckenfueller.options': 'demo-lf-options',
+}
+// Wortlisten: Feld, Einzahl, Mehrzahl (Mindest- und Höchstzahl stehen als data-min/data-max am Feld)
+const DEMO_LISTEN = [
+  ['demo-kol-words', 'Kollokator', 'Kollokatoren'],
+  ['demo-wz-words', 'Wort', 'Wörter'],
+  ['demo-zw-words', 'Kollokator', 'Kollokatoren'],
+  ['demo-lf-options', 'Antwort', 'Antworten'],
+]
+const demoWords = (s) => String(s || '').split(/[\n,]+/).map((x) => x.trim()).filter(Boolean)
+
+let demoServer = { istStandard: true, gespeichertAm: null, standard: null }   // Stand laut Server
+let demoGespeichert = ''      // JSON des Formulars nach Laden/Speichern; Vergleich für „ungespeichert“
+let demoGeladen = false
+let demoSpeichert = false
+let demoToken = 0
+
+function setzeDemo(c) {
+  const setze = (id, v) => { const el = document.getElementById(id); if (el) el.value = v ?? '' }
+  setze('demo-kol-lemma', c.kollokationen?.lemma?.lemma); setze('demo-kol-ipa', c.kollokationen?.lemma?.ipa)
+  setze('demo-kol-def', c.kollokationen?.lemma?.definition); setze('demo-kol-words', (c.kollokationen?.words || []).join('\n'))
+  setze('demo-wz-a', c.wortzwilling?.wortA); setze('demo-wz-b', c.wortzwilling?.wortB); setze('demo-wz-words', (c.wortzwilling?.words || []).join('\n'))
+  setze('demo-zw-lemma', c.zeitenwende?.lemma?.lemma); setze('demo-zw-ipa', c.zeitenwende?.lemma?.ipa); setze('demo-zw-words', (c.zeitenwende?.words || []).join('\n'))
+  setze('demo-lf-lemma', c.lueckenfueller?.lemma?.lemma); setze('demo-lf-ipa', c.lueckenfueller?.lemma?.ipa)
+  setze('demo-lf-sentence', c.lueckenfueller?.sentence); setze('demo-lf-options', (c.lueckenfueller?.options || []).join('\n'))
+  aktualisiereDemoZaehler()
 }
 
-async function loadDemoEditor() {
-  const status = document.getElementById('demo-content-status')
-  if (!document.getElementById('demo-kol-lemma')) return
+function leseDemo() {
+  const v = (id) => (document.getElementById(id)?.value || '').trim()
+  return {
+    kollokationen: { lemma: { lemma: v('demo-kol-lemma'), ipa: v('demo-kol-ipa'), definition: v('demo-kol-def') }, words: demoWords(v('demo-kol-words')) },
+    wortzwilling: { wortA: v('demo-wz-a'), wortB: v('demo-wz-b'), words: demoWords(v('demo-wz-words')) },
+    zeitenwende: { lemma: { lemma: v('demo-zw-lemma'), ipa: v('demo-zw-ipa') }, words: demoWords(v('demo-zw-words')) },
+    lueckenfueller: { lemma: { lemma: v('demo-lf-lemma'), ipa: v('demo-lf-ipa') }, sentence: v('demo-lf-sentence'), options: demoWords(v('demo-lf-options')) },
+  }
+}
+
+const demoUngespeichert = () => demoGeladen && JSON.stringify(leseDemo()) !== demoGespeichert
+
+// Zähler unter den Wortlisten, „Änderungen verwerfen“ und die Stand-Zeile (bei jeder Eingabe)
+function aktualisiereDemoZaehler() {
+  for (const [id, eins, viele] of DEMO_LISTEN) {
+    const ta = document.getElementById(id)
+    const z = document.getElementById(`${id}-zahl`)
+    if (!ta || !z) continue
+    const n = demoWords(ta.value).length
+    const min = Number(ta.dataset.min)
+    const max = Number(ta.dataset.max)
+    z.textContent = `${anzahlText(n, eins, viele)} · erlaubt ${min} bis ${max}`
+    if (n < min || n > max) z.dataset.tone = 'warn'
+    else z.removeAttribute('data-tone')
+  }
+  const geaendert = demoUngespeichert()
+  const verwerfen = document.getElementById('demo-verwerfen')
+  if (verwerfen) verwerfen.hidden = !geaendert
+  renderDemoStand(geaendert)
+}
+
+function renderDemoStand(geaendert) {
+  const el = document.getElementById('demo-stand')
+  if (!el) return
+  if (!demoGeladen) { el.textContent = ''; return }
+  if (geaendert) {
+    el.innerHTML = '<span class="in-geaendert">Ungespeicherte Änderungen.</span> Die Vorschau zeigt noch den gespeicherten Stand.'
+    return
+  }
+  if (demoServer.istStandard) el.textContent = 'Die Vorschau zeigt die Standardinhalte.'
+  else el.textContent = demoServer.gespeichertAm ? `Eigene Inhalte, gespeichert ${wannText(demoServer.gespeichertAm)} Uhr.` : 'Die Vorschau zeigt eigene Inhalte.'
+}
+
+// Gleiche Regeln wie server/classroom/demoContent.js, mit deutschen Texten je Feld
+function pruefeDemo(c) {
+  const f = []
+  const liste = (pfad, arr, min, max, eins, viele) => {
+    if (arr.length < min) f.push([pfad, `Mindestens ${anzahlText(min, eins, viele)} (jetzt ${ganzzahlDe(arr.length)}).`])
+    else if (arr.length > max) f.push([pfad, `Höchstens ${anzahlText(max, eins, viele)} (jetzt ${ganzzahlDe(arr.length)}).`])
+    else if (arr.some((w) => w.length > 60)) f.push([pfad, 'Ein Eintrag ist länger als 60 Zeichen.'])
+  }
+  if (!c.kollokationen.lemma.lemma) f.push(['kollokationen.lemma.lemma', 'Bitte eine Basis eintragen.'])
+  liste('kollokationen.words', c.kollokationen.words, 3, 12, 'Kollokator', 'Kollokatoren')
+  if (!c.wortzwilling.wortA) f.push(['wortzwilling.wortA', 'Bitte Wort A eintragen.'])
+  if (!c.wortzwilling.wortB) f.push(['wortzwilling.wortB', 'Bitte Wort B eintragen.'])
+  liste('wortzwilling.words', c.wortzwilling.words, 4, 12, 'Wort', 'Wörter')
+  if (!c.zeitenwende.lemma.lemma) f.push(['zeitenwende.lemma.lemma', 'Bitte ein Wort eintragen.'])
+  liste('zeitenwende.words', c.zeitenwende.words, 2, 12, 'Kollokator', 'Kollokatoren')
+  if (!c.lueckenfueller.lemma.lemma) f.push(['lueckenfueller.lemma.lemma', 'Bitte ein Wort eintragen.'])
+  if (!c.lueckenfueller.sentence.includes('_____')) f.push(['lueckenfueller.sentence', 'Der Satz braucht eine Lücke aus fünf Unterstrichen (_____).'])
+  liste('lueckenfueller.options', c.lueckenfueller.options, 2, 6, 'Antwort', 'Antworten')
+  return f
+}
+
+// Feld zu einem Pfad wie „wortzwilling.words.2“: längster passender Schlüssel
+function demoFeldFuerPfad(pfad) {
+  const treffer = Object.keys(DEMO_FELDER).filter((k) => pfad === k || pfad.startsWith(`${k}.`))
+  return treffer.length ? DEMO_FELDER[treffer.sort((a, b) => b.length - a.length)[0]] : ''
+}
+
+function zeigeDemoFehler(fehler) {
+  for (const id of Object.values(DEMO_FELDER)) setzeFeldFehlerStatisch(id, '')
+  const sichtbar = []
+  for (const [pfad, text] of fehler) {
+    const id = demoFeldFuerPfad(pfad)
+    if (!id || sichtbar.includes(id)) continue
+    sichtbar.push(id)
+    setzeFeldFehlerStatisch(id, text)
+  }
+  return sichtbar
+}
+
+async function ladeDemo() {
+  const token = ++demoToken
+  // Ungespeicherte Änderungen bleiben beim Zurückkehren auf die Seite stehen
+  if (demoUngespeichert()) return void aktualisiereDemoZaehler()
   try {
-    const r = await fetch('/admin/classroom/demo-content')
-    const d = await r.json()
-    if (!r.ok) throw new Error(d.error || `HTTP ${r.status}`)
-    const c = d.content || {}
-    const set = (id, v) => { const el = document.getElementById(id); if (el) el.value = v == null ? '' : v }
-    set('demo-kol-lemma', c.kollokationen?.lemma?.lemma)
-    set('demo-kol-ipa',   c.kollokationen?.lemma?.ipa)
-    set('demo-kol-def',   c.kollokationen?.lemma?.definition)
-    set('demo-kol-words', (c.kollokationen?.words || []).join('\n'))
-    set('demo-wz-a',      c.wortzwilling?.wortA)
-    set('demo-wz-b',      c.wortzwilling?.wortB)
-    set('demo-wz-words',  (c.wortzwilling?.words || []).join('\n'))
-    set('demo-zw-lemma',  c.zeitenwende?.lemma?.lemma)
-    set('demo-zw-ipa',    c.zeitenwende?.lemma?.ipa)
-    set('demo-zw-words',  (c.zeitenwende?.words || []).join('\n'))
-    set('demo-lf-lemma',  c.lueckenfueller?.lemma?.lemma)
-    set('demo-lf-ipa',    c.lueckenfueller?.lemma?.ipa)
-    set('demo-lf-sentence', c.lueckenfueller?.sentence)
-    set('demo-lf-options', (c.lueckenfueller?.options || []).join('\n'))
-    if (status) { status.textContent = 'Inhalte geladen.'; status.className = 'entry-hint' }
-  } catch (e) {
-    if (status) { status.textContent = 'Fehler beim Laden: ' + e.message; status.className = 'status error' }
+    const d = await holeJson('/admin/classroom/demo-content')
+    if (token !== demoToken) return
+    demoServer = { istStandard: !!d.istStandard, gespeichertAm: d.gespeichertAm || null, standard: d.standard || demoServer.standard }
+    demoGeladen = true
+    setzeDemo(d.content || {})
+    demoGespeichert = JSON.stringify(leseDemo())
+    zeigeDemoFehler([])
+    setMeldung('demo-content-status', '')
+    aktualisiereDemoZaehler()
+  } catch (err) {
+    if (token !== demoToken) return
+    setMeldung('demo-content-status', `Die Inhalte konnten nicht geladen werden: ${serverFehlerText(err)}`, 'error')
   }
 }
 
 async function saveDemoEditor() {
-  const status = document.getElementById('demo-content-status')
-  const val = (id) => (document.getElementById(id)?.value || '').trim()
-  const payload = {
-    kollokationen: {
-      lemma: { lemma: val('demo-kol-lemma'), ipa: val('demo-kol-ipa'), definition: val('demo-kol-def') },
-      words: demoWords(val('demo-kol-words')),
-    },
-    wortzwilling: {
-      wortA: val('demo-wz-a'), wortB: val('demo-wz-b'),
-      words: demoWords(val('demo-wz-words')),
-    },
-    zeitenwende: {
-      lemma: { lemma: val('demo-zw-lemma'), ipa: val('demo-zw-ipa') },
-      words: demoWords(val('demo-zw-words')),
-    },
-    lueckenfueller: {
-      lemma: { lemma: val('demo-lf-lemma'), ipa: val('demo-lf-ipa') },
-      sentence: val('demo-lf-sentence'),
-      options: demoWords(val('demo-lf-options')),
-    },
+  if (demoSpeichert || !demoGeladen) return
+  const c = leseDemo()
+  const fehler = pruefeDemo(c)
+  const felder = zeigeDemoFehler(fehler)
+  if (fehler.length) {
+    setMeldung('demo-content-status', `Nicht gespeichert: ${anzahlText(felder.length, 'Feld', 'Felder')} prüfen.`, 'error')
+    document.getElementById(felder[0])?.focus()
+    return
   }
-  if (status) { status.textContent = 'Speichere …'; status.className = 'entry-hint' }
+  demoSpeichert = true
+  setzeKnopfBusy('demo-start', 'demo-start-text', true, 'Speichert …')
   try {
-    const r = await fetch('/admin/classroom/demo-content', {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
-    })
-    const d = await r.json()
-    if (!r.ok) {
-      const detail = Array.isArray(d.issues) && d.issues.length
-        ? d.issues.map(i => `${(i.path || []).join('.')}: ${i.message}`).join(' · ')
-        : (d.error || `HTTP ${r.status}`)
-      throw new Error(detail)
+    await holeJson('/admin/classroom/demo-content', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(c) })
+    demoServer = { ...demoServer, istStandard: false, gespeichertAm: new Date().toISOString() }
+    demoGespeichert = JSON.stringify(c)
+    aktualisiereDemoZaehler()
+    setMeldung('demo-content-status', 'Gespeichert. Die Vorschau für Lehrkräfte zeigt ab sofort diese Inhalte.', 'ok', { fokus: true })
+  } catch (err) {
+    // Die Prüfung des Servers ist verbindlich: seine Feldfehler (deutsch) an die Felder
+    const issues = Array.isArray(err.data?.issues) ? err.data.issues.map((i) => [(i.path || []).join('.'), i.message]) : []
+    const felder2 = zeigeDemoFehler(issues)
+    if (felder2.length) {
+      setMeldung('demo-content-status', `Nicht gespeichert: ${anzahlText(felder2.length, 'Feld', 'Felder')} prüfen.`, 'error')
+      document.getElementById(felder2[0])?.focus()
+    } else {
+      setMeldung('demo-content-status', `Nicht gespeichert: ${serverFehlerText(err)}`, 'error', { fokus: true })
     }
-    if (status) { status.textContent = '✓ Gespeichert. Die Vorschau nutzt die neuen Inhalte sofort.'; status.className = 'entry-hint' }
-  } catch (e) {
-    if (status) { status.textContent = 'Fehler: ' + e.message; status.className = 'status error' }
+  } finally {
+    demoSpeichert = false
+    setzeKnopfBusy('demo-start', 'demo-start-text', false, 'Speichern')
   }
+}
+
+function demoVerwerfen() {
+  if (!demoGespeichert) return
+  setzeDemo(JSON.parse(demoGespeichert))
+  zeigeDemoFehler([])
+  // „Änderungen verwerfen“ blendet sich selbst aus: Der Fokus geht auf die Statuszeile
+  setMeldung('demo-content-status', 'Änderungen verworfen.', 'ok', { fokus: true })
+}
+
+function demoStandardEinsetzen() {
+  if (!demoServer.standard) return void setMeldung('demo-content-status', 'Die Standardinhalte sind nicht geladen.', 'error')
+  setzeDemo(demoServer.standard)
+  zeigeDemoFehler([])
+  setMeldung('demo-content-status', 'Standardinhalte eingesetzt. Noch nicht gespeichert.', 'ok')
 }
 
 async function loadClassroomStats() {
@@ -7174,7 +8085,7 @@ function renderMetricsCustomLemma(d) {
   const byRole = d.byRole || []
   const trend = (d.trend || []).slice(-30).map((r) => ({ label: r.day, value: r.plays }))
 
-  const roleLabelMap = { user: 'Basic', premium: 'Premium', admin: 'Admin' }
+  const roleLabelMap = { user: 'Basiszugang', premium: 'Gesamtausgabe', admin: 'Admin' }
   const roleRows = byRole.length
     ? byRole.map((r) => `<tr>
         <td>${esc(roleLabelMap[r.role] || r.role)}</td>
@@ -7197,12 +8108,12 @@ function renderMetricsCustomLemma(d) {
         <span class="metric-sub">${metricsFmt(t.dau)} aktiv heute</span>
       </article>
       <article class="metric-card metric-card--support">
-        <span class="metric-label">Premium-Anteil</span>
+        <span class="metric-label">Anteil Gesamtausgabe</span>
         <strong class="metric-value">${metricsPct(t.premiumRate)}</strong>
         <span class="metric-sub">der aktiven Nutzer</span>
       </article>
       <article class="metric-card metric-card--support">
-        <span class="metric-label">Premium / Basic</span>
+        <span class="metric-label">Gesamtausgabe / Basiszugang</span>
         <strong class="metric-value">${metricsFmt(t.premiumUsers)} / ${metricsFmt(t.basicUsers)}</strong>
         <span class="metric-sub">Nutzer</span>
       </article>
@@ -7284,6 +8195,10 @@ function handleDocumentChange(event) {
   if (target.id === 'users-select-all') return void waehleAlleNutzer(target.checked)
   if (target.matches('.user-select-checkbox')) return void waehleNutzer(target.dataset.userId || '', target.checked)
   if (target.id === 'user-detail-role') return void aktualisiereRollenKnopf()
+  if (target.id === 'freeday-date') return void pruefeBonusDatum()
+  if (target.id === 'sw-woche') return void pruefeSwWoche()
+  if (target.id === 'push-dialog-ok') return void pushDialogHaekchen()
+  if (target.dataset.vorlage && target.type === 'checkbox') return void vorlageGeaendert(target)
   if (target.dataset.action === 'toggle-entry-selection') return void toggleEntrySelection(target.dataset.datum || '', target.checked)
   if (target.id === 'audit-action' || target.id === 'audit-resource' || target.id === 'audit-status' || target.id === 'audit-from' || target.id === 'audit-to') return void protokollNeuLaden()
   if (target.id === 'classroom-days') return void loadClassroomStats()
@@ -7295,6 +8210,16 @@ function handleDocumentInput(event) {
   if (target.id === 'entry-search') return void scheduleEntryTableRender()
   if (target.id === 'users-search') return void scheduleUsersOverviewLoad()
   if (target.id === 'audit-search') return void planeProtokollSuche()
+  if (target.id === 'push-send-title' || target.id === 'push-send-body') {
+    target.removeAttribute('aria-invalid')
+    renderPushFormular()
+    return void setMeldung('push-send-msg', '')
+  }
+  if (target.closest?.('.in-pruef')) entmarkiereFeld(target.id)
+  // Wort der Woche: Der Fehler am Feld verschwindet, sobald das Feld geändert wird
+  if (target.getAttribute?.('aria-invalid') === 'true' && target.closest?.('#sw-form')) setzeFeldFehlerStatisch(target.id, '')
+  if (target.dataset.vorlage) return void vorlageGeaendert(target)
+  if (target.closest?.('#demo-form')) return void aktualisiereDemoZaehler()
   if (ENTRY_FIELD_IDS.includes(target.id)) {
     // Das Thema ist einzeilig, auch wenn Text mit Zeilenumbrüchen eingefügt wird.
     if (target.matches?.('textarea[data-einzeilig]') && /\n/.test(target.value)) {
@@ -7353,10 +8278,6 @@ function handleDocumentKeydown(event) {
   event.preventDefault()
 
   if (action === 'login') return void doLogin()
-  if (action === 'analyze-kollokation') return void analyzeKollokation()
-  if (action === 'analyze-wort-zwilling') return void analyzeWortZwilling()
-  if (action === 'analyze-zeitenwende') return void analyzeZeitenwende()
-  if (action === 'analyze-lueckenfueller') return void analyzeLueckenfueller()
 }
 
 // Die Leiste der Tagesseite wächst mobil mit (Meldung, zwei Zeilen). Ihre echte Höhe steuert
@@ -7387,56 +8308,27 @@ window.addEventListener('pagehide', () => {
   if (entryFormDirty) persistEntryDraft()
 })
 
-// ── Zeitenwende – Wortanalyse ─────────────────────────────
-async function analyzeZeitenwende() {
-  const lemma = document.getElementById('zw-ana-input').value.trim()
-  const out   = document.getElementById('zw-ana-output')
-  if (!lemma) return
-  out.innerHTML = '<div class="status loading">Analysiere …</div>'
-  try {
-    const res  = await fetch(`/admin/analyze-zeitenwende?q=${encodeURIComponent(lemma)}`, {})
-    const data = await res.json()
-    if (!res.ok) { out.innerHTML = `<div class="status error">Fehler: ${esc(data.error)}</div>`; return }
-    renderZWAnalyse(data, out)
-  } catch (e) { out.innerHTML = `<div class="status error">Netzwerkfehler: ${esc(e.message)}</div>` }
-}
+// ── Werkzeuge › Inhalte: Formulare und Dialoge ────────────
 
-function renderZWAnalyse(data, out) {
-  if (!data.preCandidates && !data.postCandidates) {
-    out.innerHTML = `<div style="margin-top:12px"><span style="color:#991b1b;font-weight:700">✗ Keine Daten</span><br><span style="color:var(--muted);font-size:0.85rem">${esc(data.reason || '')}</span></div>`
-    return
-  }
-  const badge = data.usable
-    ? '<span style="color:#166534;font-weight:700">✓ Geeignet als Zeitenwende-Lemma</span>'
-    : '<span style="color:#991b1b;font-weight:700">✗ Nicht geeignet (zu wenig distinkte Kollokatoren)</span>'
+// Absenden (Enter im Feld oder Knopf). Die Formulare sind novalidate: Geprüft wird in den Funktionen, mit eigenen Texten.
+document.addEventListener('submit', (event) => {
+  const form = event.target
+  if (!(form instanceof HTMLFormElement) || form.method === 'dialog') return
+  if (form.classList.contains('in-pruef')) { event.preventDefault(); void pruefe(form.dataset.modus); return }
+  if (form.id === 'bonus-form') { event.preventDefault(); addFreeDay(); return }
+  if (form.id === 'sw-form') { event.preventDefault(); void saveSpezialwoche(); return }
+  if (form.id === 'demo-form') { event.preventDefault(); void saveDemoEditor(); return }
+  // „Test an meine Geräte“ läuft über den Klick auf den Knopf (handleDocumentClick); das Absenden selbst tut nichts
+  if (form.id === 'push-form') event.preventDefault()
+})
 
-  let html = `<div style="margin:12px 0 16px">${badge}</div>`
-  html += `<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">`
-  for (const [title, items, bdColor] of [
-    ['← Vor 2000',  data.preCandidates,  '#93c5fd'],
-    ['Nach 2000 →', data.postCandidates, '#86efac'],
-  ]) {
-    html += `<div style="border:1.5px solid ${bdColor};border-radius:8px;padding:12px">`
-    html += `<div style="font-weight:700;font-size:0.85rem;margin-bottom:8px">${esc(title)}</div>`
-    if (!items?.length) { html += `<div style="color:var(--muted);font-size:0.82rem">Keine Kandidaten</div></div>`; continue }
-    html += `<ol style="padding-left:16px;font-size:0.82rem;display:flex;flex-direction:column;gap:3px">`
-    for (const it of items) {
-      const score = it.distPre > 0 ? it.distPre : it.distPost
-      html += `<li>${esc(it.wort)} <span style="color:var(--muted);font-size:0.78em">Δ${score}</span></li>`
-    }
-    html += `</ol></div>`
-  }
-  html += `</div>`
-
-  if (data.words) {
-    html += `<div style="margin-top:14px;padding:10px 14px;background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;font-size:0.82rem">`
-    html += `<strong>Spielauswahl (${data.words.length} Wörter):</strong><div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px">`
-    for (const w of data.words) {
-      const bg  = w.periode === 'pre' ? '#dbeafe' : '#dcfce7'
-      const bdr = w.periode === 'pre' ? '#3b82f6' : '#22c55e'
-      html += `<span style="background:${bg};border:1px solid ${bdr};border-radius:4px;padding:2px 8px;font-size:0.82rem">${esc(w.wort)}</span>`
-    }
-    html += `</div></div>`
-  }
-  out.innerHTML = html
+const pushDialog = document.getElementById('push-dialog')
+if (pushDialog) {
+  // Esc und „Abbrechen“ sind während des Versands gesperrt: Der Dialog zeigt, dass er läuft
+  pushDialog.addEventListener('cancel', (event) => { if (sendetAnAlle) event.preventDefault() })
+  pushDialog.addEventListener('close', () => {
+    const erfolg = pushDialogErfolg
+    pushDialogErfolg = false
+    if (!erfolg && currentRoute?.page === 'push') document.getElementById('push-alle')?.focus()
+  })
 }

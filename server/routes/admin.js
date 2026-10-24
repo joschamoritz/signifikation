@@ -1,7 +1,7 @@
 import express          from 'express'
 import { fileURLToPath } from 'url'
 import { dirname, join }  from 'path'
-import { fetchLemma, fetchBonusQuestion, fetchRelation, fetchZeitenwende, fetchZeitenwendeAnalyze, lemmaExistsInWortprofil, POS_ROUNDS, toId } from '../wortprofil.js'
+import { fetchLemma, fetchKollokatorenAnalyse, MIN_KOLLOKATOREN, fetchBonusQuestion, fetchRelation, fetchZeitenwende, fetchZeitenwendeAnalyze, lemmaExistsInWortprofil, toId } from '../wortprofil.js'
 import { buildLueckenfueller } from '../lueckenfueller.js'
 import { fetchBelege } from '../belege.js'
 import { fetchWiktionary } from '../wiktionary.js'
@@ -19,7 +19,7 @@ import { createAdminUsersRouter } from './admin-users.js'
 import { createAdminBackupRouter } from './admin-backup.js'
 import { createAdminStatsRouter } from './admin-stats.js'
 import { createAdminOpsRouter } from './admin-ops.js'
-import { createAdminCalendarRouter } from './admin-calendar.js'
+import { createAdminCalendarRouter, leereLueckenfuellerCache } from './admin-calendar.js'
 import { createAdminSocialCardsRouter } from './admin-social-cards.js'
 import { createAdminCoreRouter } from './admin-core.js'
 import freeDaysRouter from './admin-free-days.js'
@@ -126,6 +126,7 @@ router.use(createAdminClassroomRouter({
   validate,
   adminClassroomStatsQuerySchema,
   adminClassroomTeachersQuerySchema,
+  auditUpdate,
   adminError,
 }))
 
@@ -146,6 +147,7 @@ router.use(createAdminOpsRouter({
   getCacheMetrics,
   getQueryCacheMetrics,
   clearQueryCache,
+  leereLueckenfuellerCache,
   fetchRelation,
   DATA,
   adminError,
@@ -178,13 +180,13 @@ router.use(createAdminCalendarRouter({
   stmts,
   lemmaToRow,
   fetchLemma,
+  fetchKollokatorenAnalyse,
+  MIN_KOLLOKATOREN,
   fetchBonusQuestion,
-  fetchRelation,
   fetchZeitenwende,
   fetchZeitenwendeAnalyze,
   fetchWiktionary,
   fetchWortZwilling,
-  POS_ROUNDS,
   buildModeGroups,
   buildLueckenfueller,
   toId,
@@ -257,7 +259,9 @@ router.use(createAdminSpezialwocheRouter({
   getLemmataIndex,
   lemmaExistsInWortprofil,
   fetchWortZwilling,
+  toId,
   auditCreate,
+  auditUpdate,
   auditDelete,
   adminError,
   serverError,

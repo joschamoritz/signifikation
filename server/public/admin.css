@@ -29,101 +29,10 @@ body {
   line-height: 1.5;
 }
 
-.primary-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--primary);
-  color: #fff;
-  border: 1px solid var(--primary);
-  border-radius: var(--radius);
-  padding: 9px 14px;
-  font-size: 0.82rem;
-  font-weight: 700;
-  min-height: 44px;
-}
-
-.primary-btn:hover {
-  background: var(--primary-hi);
-  border-color: var(--primary-hi);
-}
-
-.primary-btn:focus-visible {
-  outline: 2px solid #fff;
-  outline-offset: 2px;
-  box-shadow: 0 0 0 4px var(--primary);
-}
-
-.ghost-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  background: transparent;
-  color: var(--primary);
-  border: 1px solid rgba(212, 201, 176, 0.75);
-  border-radius: var(--radius);
-  padding: 8px 12px;
-  font-size: 0.8rem;
-  font-weight: 600;
-  text-decoration: none;
-  min-height: 44px;
-}
-
-.ghost-btn:hover {
-  border-color: var(--primary);
-  background: #fbf6f3;
-}
-
-.ghost-btn:focus-visible,
-.text-btn:focus-visible,
-.danger-btn:focus-visible,
 .entry-filters-reset:focus-visible,
 .login-card-body button:focus-visible {
   outline: 2px solid var(--primary);
   outline-offset: 2px;
-}
-
-.ghost-btn--small {
-  padding: 7px 11px;
-  min-height: 44px;
-  font-size: 0.76rem;
-}
-
-.text-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 44px;
-  padding: 8px 2px;
-  border: 0;
-  background: transparent;
-  color: var(--muted);
-  font-size: 0.8rem;
-  font-weight: 600;
-  text-decoration: none;
-}
-
-.text-btn:hover {
-  color: var(--primary);
-}
-
-.danger-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  background: transparent;
-  color: #991b1b;
-  border: 1.5px solid #fecaca;
-  border-radius: var(--radius);
-  padding: 10px 14px;
-  font-size: 0.82rem;
-  font-weight: 600;
-  min-height: 44px;
-}
-
-.danger-btn:hover:not(:disabled) {
-  background: #fef2f2;
-  border-color: #fca5a5;
 }
 
 .admin-page {
@@ -145,11 +54,6 @@ body {
 
 .card-head--wrap {
   flex-wrap: wrap;
-}
-
-.section-copy {
-  font-size: 0.85rem;
-  color: var(--muted);
 }
 
 .panel-empty {
@@ -248,23 +152,6 @@ body {
   font-weight: 700;
 }
 
-.entry-field {
-  display: grid;
-  gap: 4px;
-}
-
-.entry-field--compact {
-  max-width: 220px;
-}
-
-.label-hint {
-  display: inline;
-  font-weight: 400;
-  letter-spacing: 0;
-  text-transform: none;
-  color: var(--muted);
-}
-
 .entry-filters-reset {
   background: transparent;
   color: var(--muted);
@@ -280,30 +167,6 @@ body {
   border-color: var(--primary);
   color: var(--primary);
   background: #fef2f2;
-}
-
-.entry-chip {
-  display: inline-flex;
-  align-items: center;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 2px 6px;
-  font-size: 0.75rem;
-  background: var(--surface2);
-  color: var(--text);
-}
-
-.entry-hint {
-  color: var(--muted);
-  font-size: 0.78rem;
-}
-
-.entry-hint.is-error {
-  color: #991b1b;
-}
-
-.entry-hint.is-success {
-  color: #166534;
 }
 
 .users-table-wrap {
@@ -338,149 +201,9 @@ body {
   color: var(--muted);
 }
 
-.button-soft {
-  opacity: 0.72;
-}
-
-.analytics-grid {
-  display: grid;
-  gap: 14px;
-}
-
-.analysis-card {
-  gap: 12px;
-}
-
-.analysis-card-head {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 10px;
-}
-
-.analysis-copy {
-  font-size: 0.82rem;
-  color: var(--muted);
-}
-
+/* Ausgabefläche der Prüfungen im Tag (Tag bearbeiten) */
 .analysis-output {
   min-height: 24px;
-}
-
-.freeday-form-row {
-  display: flex;
-  gap: 8px;
-  align-items: flex-end;
-  flex-wrap: wrap;
-}
-
-.freeday-field-grow {
-  flex: 1;
-  min-width: 160px;
-}
-
-.freeday-list {
-  display: grid;
-  gap: 0;
-}
-
-.freeday-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  padding: 8px 0;
-  border-bottom: 1px solid var(--border-lt);
-}
-
-.freeday-row strong {
-  font-size: 0.9rem;
-}
-
-.freeday-row span {
-  display: inline-block;
-  margin-left: 8px;
-  font-size: 0.82rem;
-  color: var(--muted);
-}
-
-.freeday-delete-btn {
-  font-size: 0.78rem;
-  padding: 3px 10px;
-  min-height: 36px;
-}
-
-.push-template {
-  border: 1px solid var(--border-lt);
-  border-radius: var(--radius);
-  padding: 14px;
-  margin-bottom: 12px;
-  background: var(--surface2);
-}
-
-.push-tpl-toggle {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 0.85rem;
-  margin: 8px 0;
-}
-
-.push-tpl-preview {
-  font-size: 0.84rem;
-  color: var(--muted);
-  padding: 8px 10px;
-  background: var(--surface);
-  border: 1px solid var(--border-lt);
-  border-radius: var(--radius);
-  margin-bottom: 10px;
-  line-height: 1.45;
-}
-
-.push-tpl-skip {
-  color: #991b1b;
-}
-
-.push-tpl-head {
-  margin-bottom: 8px;
-}
-
-.push-tpl-badge {
-  display: inline-block;
-  font-size: 0.7rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  padding: 2px 8px;
-  border-radius: var(--radius);
-  border: 1px solid var(--border);
-  color: var(--muted);
-  background: var(--surface2);
-}
-
-.push-tpl-badge-streak {
-  color: #a07830;
-  border-color: #c9a84c;
-  background: #fdf8ee;
-}
-
-.push-tpl-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.system-json {
-  background: var(--surface2);
-  border: 1px solid var(--border-lt);
-  border-radius: var(--radius);
-  padding: 10px;
-  font-size: 0.76rem;
-  line-height: 1.4;
-  color: var(--text);
-  white-space: pre-wrap;
-  max-height: 240px;
-  overflow: auto;
 }
 
 /* ── Header ── */
@@ -582,12 +305,11 @@ button {
 }
 button:disabled { opacity: 0.4; cursor: not-allowed; }
 
-/* Sekundär-Buttons (Laden, Analysieren, ↺)
+/* Sekundär-Buttons in den Karten der Auswertung
    :where() hält die Spezifität bei (0,0,1): Die Regel gilt nur noch für
    Knöpfe ohne eigene Gestaltung. Vorher (0,1,2) überschrieb sie jede
-   Einzelklasse (.primary-btn, .wo-tag, .mo-tag …). */
-:where(.card > div) button,
-.viz-search button {
+   Einzelklasse (.wo-tag, .mo-tag …). */
+:where(.card > div) button {
   background: transparent;
   color: var(--primary);
   border: 1.5px solid var(--primary);
@@ -598,8 +320,7 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
 /* Hover mit :where(:hover) statt :hover: dieselbe Spezifität (0,0,1) wie die
    Basisregel, sonst schlägt (0,1,1) einfache Klassen wie .extra-toggle und
    färbt deren Hover-Fläche rosa. */
-:where(.card > div) button:where(:hover),
-.viz-search button:hover { background: #fef2f2; }
+:where(.card > div) button:where(:hover) { background: #fef2f2; }
 
 /* ── Status-Meldungen ── */
 .status {
@@ -611,8 +332,6 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
 }
 .status.ok      { background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; display: block; }
 .status.error   { background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; display: block; }
-.status.loading { background: var(--surface2); color: var(--muted); border: 1px solid var(--border); display: block; }
-.status.warn    { background: #fffbeb; color: #92400e; border: 1px solid #fde68a; display: block; }
 
 /* ── Login-Screen ── */
 .login-overlay {
@@ -830,18 +549,6 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
   letter-spacing: 0.08em;
 }
 
-/* ── DiaCollo / Wortanalyse ── */
-.viz-search { display: flex; gap: 8px; }
-.viz-search input { flex: 1; }
-.viz-search button { flex-shrink: 0; padding: 10px 18px; font-size: 0.88rem; }
-.viz-search--multi {
-  flex-wrap: wrap;
-}
-.viz-search--multi input {
-  min-width: 120px;
-}
-
-
 @media (max-width: 1080px) {
   .dashboard-grid,
   .stats-summary-cards {
@@ -854,14 +561,6 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
 }
 
 @media (max-width: 860px) {
-  .entry-field--compact {
-    max-width: none;
-  }
-
-  .freeday-form-row {
-    align-items: stretch;
-  }
-
   .users-table th,
   .users-table td {
     font-size: 0.8rem;
@@ -874,11 +573,6 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
     grid-template-columns: 1fr;
   }
 
-  .viz-search {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
   .users-table {
     min-width: 560px;
   }
@@ -886,98 +580,6 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
   .stats-summary-cards {
     grid-template-columns: 1fr;
   }
-}
-
-/* ── Spezialwoche ─────────────────────────────────────────── */
-.sw-form-grid {
-  display: flex;
-  gap: 8px;
-  align-items: flex-end;
-  flex-wrap: wrap;
-  margin-bottom: 10px;
-}
-
-.sw-section-heading {
-  font-size: 0.88rem;
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: var(--muted);
-  margin: 18px 0 8px;
-  padding-top: 14px;
-  border-top: 1px solid var(--border-lt);
-}
-
-.sw-form-actions {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-  margin-top: 18px;
-  flex-wrap: wrap;
-}
-
-.sw-wz-preview {
-  margin-top: 10px;
-  font-size: 0.78rem;
-  max-height: 260px;
-  overflow-y: auto;
-}
-
-.sw-list {
-  display: grid;
-  gap: 0;
-}
-
-.sw-list-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  padding: 10px 0;
-  border-bottom: 1px solid var(--border-lt);
-  flex-wrap: wrap;
-}
-
-.sw-list-main {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-  flex: 1;
-  min-width: 0;
-}
-
-.sw-list-main strong {
-  font-size: 0.9rem;
-  font-weight: 600;
-  white-space: nowrap;
-}
-
-.sw-list-dates {
-  font-size: 0.82rem;
-  color: var(--muted);
-  white-space: nowrap;
-}
-
-.sw-list-lemma {
-  font-size: 0.85rem;
-  font-weight: 500;
-}
-
-.sw-list-badge {
-  font-size: 0.74rem;
-  background: var(--surface2);
-  color: var(--muted);
-  border-radius: 4px;
-  padding: 2px 7px;
-  white-space: nowrap;
-}
-
-.sw-list-actions {
-  display: flex;
-  gap: 6px;
-  align-items: center;
-  flex-shrink: 0;
 }
 
 /* ═══════════════════════════════════════════════════════════════
@@ -2321,10 +1923,10 @@ html:has(#page-entry.is-active) {
 
 /* ── Meldungen: Ladefehler, Entwurf, Hinweise, Ergebnisse ──
    Eine Form für alle: 3-px-Strich links + Fläche, Ton über data-tone. */
-#page-entry .tag-meldung,
-#page-entry .tag-erg-meldung,
-#page-entry .tag-modus-meldung,
-#page-entry .tag-hinweis[data-tone] {
+:is(#page-entry, .in-seite) .tag-meldung,
+:is(#page-entry, .in-seite) .tag-erg-meldung,
+:is(#page-entry, .in-seite) .tag-modus-meldung,
+:is(#page-entry, .in-seite) .tag-hinweis[data-tone] {
   max-width: var(--text-max, 680px);
   margin: 0;
   padding: 8px 12px 8px 11px;
@@ -2334,26 +1936,26 @@ html:has(#page-entry.is-active) {
   overflow-wrap: anywhere;
 }
 
-#page-entry [data-tone="ok"]:is(.tag-meldung, .tag-erg-meldung, .tag-modus-meldung, .tag-hinweis) {
+:is(#page-entry, .in-seite) [data-tone="ok"]:is(.tag-meldung, .tag-erg-meldung, .tag-modus-meldung, .tag-hinweis) {
   border-left-color: var(--status-ok);
   background: var(--status-ok-bg);
   color: var(--status-ok);
 }
 
-#page-entry [data-tone="warn"]:is(.tag-meldung, .tag-erg-meldung, .tag-modus-meldung, .tag-hinweis) {
+:is(#page-entry, .in-seite) [data-tone="warn"]:is(.tag-meldung, .tag-erg-meldung, .tag-modus-meldung, .tag-hinweis) {
   border-left-color: var(--status-warn);
   background: var(--status-warn-bg);
   color: var(--status-warn);
 }
 
-#page-entry [data-tone="error"]:is(.tag-meldung, .tag-erg-meldung, .tag-modus-meldung, .tag-hinweis) {
+:is(#page-entry, .in-seite) [data-tone="error"]:is(.tag-meldung, .tag-erg-meldung, .tag-modus-meldung, .tag-hinweis) {
   border-left-color: var(--status-err);
   background: var(--status-err-bg);
   color: var(--status-err);
 }
 
 /* Läuft gerade: Rot = aktiv (wie „Vorschläge“), Text bleibt in Textfarbe */
-#page-entry [data-tone="loading"]:is(.tag-meldung, .tag-erg-meldung, .tag-modus-meldung) {
+:is(#page-entry, .in-seite) [data-tone="loading"]:is(.tag-meldung, .tag-erg-meldung, .tag-modus-meldung) {
   border-left-color: var(--primary);
   background: var(--tag-tint);
   color: var(--text);
@@ -2361,17 +1963,17 @@ html:has(#page-entry.is-active) {
 }
 
 /* Leer = nicht da (Live-Regionen bleiben im DOM) */
-#page-entry .tag-meldung:empty,
-#page-entry .tag-modus-meldung:empty,
-#page-entry .tag-hinweis:empty,
-#page-entry .tag-ergebnis:empty {
+:is(#page-entry, .in-seite) .tag-meldung:empty,
+:is(#page-entry, .in-seite) .tag-modus-meldung:empty,
+:is(#page-entry, .in-seite) .tag-hinweis:empty,
+:is(#page-entry, .in-seite) .tag-ergebnis:empty {
   display: none;
 }
 
 /* Aktion in einer Meldung (Erneut versuchen, Diesen Tag öffnen): eigene
    Zeile, volle Trefferhöhe, Farbe der Meldung */
-#page-entry .tag-meldung .adm-link,
-#page-entry .tag-hinweis .adm-link {
+:is(#page-entry, .in-seite) .tag-meldung .adm-link,
+:is(#page-entry, .in-seite) .tag-hinweis .adm-link {
   display: flex;
   width: fit-content;
   min-height: var(--tap, 44px);
@@ -2465,7 +2067,7 @@ html:has(#page-entry.is-active) {
   margin-top: 16px;
 }
 
-#page-entry .tag-label {
+:is(#page-entry, .in-seite) .tag-label {
   display: block;
   margin: 0;
   color: var(--muted);
@@ -2498,7 +2100,7 @@ html:has(#page-entry.is-active) {
 
 /* Unterstrichenes Serif-Feld. #page-entry schlägt die globalen
    input[type=…]-Regeln (0,1,1) inkl. der iOS-16-px-Regel ≤ 860 px. */
-#page-entry .tag-eingabe {
+:is(#page-entry, .in-seite) .tag-eingabe {
   display: block;
   width: 100%;
   min-height: var(--tap, 44px);
@@ -2514,9 +2116,9 @@ html:has(#page-entry.is-active) {
   font: 400 max(16px, 1.05rem)/1.35 var(--font-serif);
 }
 
-#page-entry .tag-eingabe--gross { font-size: max(16px, 1.25rem); }
-#page-entry .tag-eingabe--wort  { font-size: max(16px, 1.2rem); }
-#page-entry .tag-eingabe--datum { max-width: 12rem; }
+:is(#page-entry, .in-seite) .tag-eingabe--gross { font-size: max(16px, 1.25rem); }
+:is(#page-entry, .in-seite) .tag-eingabe--wort  { font-size: max(16px, 1.2rem); }
+:is(#page-entry, .in-seite) .tag-eingabe--datum { max-width: 12rem; }
 
 #page-entry textarea.tag-eingabe {
   min-height: calc(2 * 1.45em + 14px);
@@ -2533,17 +2135,17 @@ html:has(#page-entry.is-active) {
   resize: none;
 }
 
-#page-entry .tag-eingabe::placeholder {
+:is(#page-entry, .in-seite) .tag-eingabe::placeholder {
   color: var(--muted);
   font-style: italic;
   opacity: 1;
 }
 
-#page-entry .tag-eingabe:hover:not(:focus) { border-bottom-color: var(--text); }
+:is(#page-entry, .in-seite) .tag-eingabe:hover:not(:focus) { border-bottom-color: var(--text); }
 
 /* Fokus: roter Unterstrich, 2 px (1 px Rand + 1 px Schatten nach unten) */
-#page-entry .tag-eingabe:focus,
-#page-entry .tag-auswahl:focus {
+:is(#page-entry, .in-seite) .tag-eingabe:focus,
+:is(#page-entry, .in-seite) .tag-auswahl:focus {
   outline: none;
   border-bottom-color: var(--primary);
   box-shadow: 0 1px 0 0 var(--primary);
@@ -2551,13 +2153,13 @@ html:has(#page-entry.is-active) {
 
 /* Fehler = gestrichelte Unterlinie in Fehlerrot (nicht nur Farbe, und anders als der
    durchgezogene rote Fokus-Unterstrich). Fokus auf einem ungültigen Feld: zusätzlich Rahmenlinie. */
-#page-entry .tag-eingabe[aria-invalid="true"] {
+:is(#page-entry, .in-seite) .tag-eingabe[aria-invalid="true"] {
   border-bottom-style: dashed;
   border-bottom-color: var(--status-err);
   box-shadow: none;
 }
 
-#page-entry .tag-eingabe[aria-invalid="true"]:focus {
+:is(#page-entry, .in-seite) .tag-eingabe[aria-invalid="true"]:focus {
   outline: 2px solid var(--primary);
   outline-offset: 2px;
   border-bottom-color: var(--status-err);
@@ -2565,7 +2167,7 @@ html:has(#page-entry.is-active) {
 }
 
 /* Fehlertext je Feld (id + aria-describedby am Feld) */
-#page-entry .tag-feld-fehler {
+:is(#page-entry, .in-seite) .tag-feld-fehler {
   grid-column: 1 / -1;
   max-width: var(--text-max, 680px);
   margin: 6px 0 0;
@@ -2574,7 +2176,7 @@ html:has(#page-entry.is-active) {
 }
 
 /* Wortart: gleiche Unterstreichung, Sans (Etikett, kein Wort) */
-#page-entry .tag-auswahl {
+:is(#page-entry, .in-seite) .tag-auswahl {
   width: 100%;
   min-height: var(--tap, 44px);
   margin: 0;
@@ -2589,7 +2191,7 @@ html:has(#page-entry.is-active) {
   cursor: pointer;
 }
 
-#page-entry .tag-auswahl--kurz { max-width: 12rem; }
+:is(#page-entry, .in-seite) .tag-auswahl--kurz { max-width: 12rem; }
 
 .tag-hinweis {
   max-width: var(--text-max, 680px);
@@ -2599,10 +2201,10 @@ html:has(#page-entry.is-active) {
   line-height: 1.45;
 }
 
-#page-entry .tag-hinweis[data-tone] { margin-top: 8px; }
+:is(#page-entry, .in-seite) .tag-hinweis[data-tone] { margin-top: 8px; }
 
 /* Prüfergebnis: Meldung so breit wie die Liste darunter */
-#page-entry .tag-erg-meldung { max-width: none; }
+:is(#page-entry, .in-seite) .tag-erg-meldung { max-width: none; }
 
 /* ── Nebenfelder (Notiz und Link): dezent aufklappbar ── */
 .tag-neben {
@@ -2610,7 +2212,7 @@ html:has(#page-entry.is-active) {
   min-width: 0;
 }
 
-#page-entry .tag-neben-knopf {
+:is(#page-entry, .in-seite) .tag-neben-knopf {
   display: inline-flex;
   align-items: center;
   gap: 0.4em;
@@ -2625,7 +2227,7 @@ html:has(#page-entry.is-active) {
   cursor: pointer;
 }
 
-#page-entry .tag-neben-knopf:hover { color: var(--text); }
+:is(#page-entry, .in-seite) .tag-neben-knopf:hover { color: var(--text); }
 
 /* + / − als Zustandszeichen; „/ ''“ = für Screenreader stumm
    (aria-expanded sagt es schon). Ältere Browser lesen die erste Zeile. */
@@ -2659,9 +2261,9 @@ html:has(#page-entry.is-active) {
   border-left: 1px solid var(--border);
 }
 
-/* #page-entry davor: sonst schlägt „#page-entry .tag-label { margin: 0 }“ diese Regeln */
-#page-entry .tag-neben-felder .tag-label { margin-top: 10px; }
-#page-entry .tag-neben-felder .tag-label:first-child { margin-top: 2px; }
+/* #page-entry davor: sonst schlägt „:is(#page-entry, .in-seite) .tag-label { margin: 0 }“ diese Regeln */
+:is(#page-entry, .in-seite) .tag-neben-felder .tag-label { margin-top: 10px; }
+:is(#page-entry, .in-seite) .tag-neben-felder .tag-label:first-child { margin-top: 2px; }
 
 /* ── Spielmodi: vier gleich gebaute Abschnitte, getrennt durch Linien ── */
 .tag-modi { margin-top: 4px; }
@@ -2735,7 +2337,7 @@ html:has(#page-entry.is-active) {
 
 /* In-place-Aktion (Prüfen): roter Serif-Text wie .adm-cta, aber normale
    Stärke – Speichern bleibt die eine fette Hauptaktion der Seite. */
-#page-entry .tag-aktion { font-weight: 400; }
+:is(#page-entry, .in-seite) .tag-aktion { font-weight: 400; }
 
 /* Läuft: lesbar, nicht grau wie „gesperrt“ (Muster aus „Vorschläge“) */
 #page-entry .adm-cta.is-busy[aria-disabled="true"] {
@@ -2751,7 +2353,7 @@ html:has(#page-entry.is-active) {
   line-height: 1.5;
 }
 
-#page-entry .tag-modus-meldung { margin-top: 14px; }
+:is(#page-entry, .in-seite) .tag-modus-meldung { margin-top: 14px; }
 
 /* Lückenfüller: „Runden erzeugen“ unter dem Feld */
 .tag-lf-erzeugen {
@@ -2872,7 +2474,7 @@ html:has(#page-entry.is-active) {
   font: 400 0.98rem/1.7 var(--font-serif);
 }
 
-#page-entry .tag-erg-auswahl .tag-label { display: inline; margin-right: 0.6em; }
+:is(#page-entry, .in-seite) .tag-erg-auswahl .tag-label { display: inline; margin-right: 0.6em; }
 
 .tag-erg-periode {
   color: var(--muted);
@@ -2977,10 +2579,10 @@ html:has(#page-entry.is-active) {
 #entry-reset-btn:disabled { display: none; }
 
 /* Hauptaktion: roter Serif-Text-CTA, etwas größer als die übrigen */
-#page-entry .tag-speichern { font-size: 1.15rem; }
+:is(#page-entry, .in-seite) .tag-speichern { font-size: 1.15rem; }
 
 /* Gesperrt (Tag lädt / konnte nicht geladen werden) */
-#page-entry .tag-speichern[aria-disabled="true"]:not(.is-busy) {
+:is(#page-entry, .in-seite) .tag-speichern[aria-disabled="true"]:not(.is-busy) {
   color: var(--disabled);
   text-decoration: none;
   cursor: default;
@@ -3056,7 +2658,7 @@ html:has(#page-entry.is-active) {
 
 /* Gedämpftes Rot (Fehlerton), Sans, unterstrichen – bewusst anders als der
    rote Serif-CTA „Speichern“ */
-#page-entry .tag-loeschen-knopf {
+:is(#page-entry, .in-seite) .tag-loeschen-knopf {
   display: inline-flex;
   align-items: center;
   min-height: var(--tap, 44px);
@@ -3072,10 +2674,10 @@ html:has(#page-entry.is-active) {
   cursor: pointer;
 }
 
-#page-entry .tag-loeschen-knopf:hover { text-decoration-color: currentColor; }
+:is(#page-entry, .in-seite) .tag-loeschen-knopf:hover { text-decoration-color: currentColor; }
 
 /* Läuft gerade: bleibt sichtbar und im Fokus (disabled würde den Abschnitt ausblenden) */
-#page-entry .tag-loeschen-knopf[aria-disabled="true"] {
+:is(#page-entry, .in-seite) .tag-loeschen-knopf[aria-disabled="true"] {
   cursor: default;
   font-style: italic;
   opacity: 0.7;
@@ -3160,8 +2762,8 @@ html:has(#page-entry.is-active) {
 }
 
 @media (prefers-reduced-motion: no-preference) {
-  #page-entry .tag-eingabe,
-  #page-entry .tag-auswahl {
+  :is(#page-entry, .in-seite) .tag-eingabe,
+  :is(#page-entry, .in-seite) .tag-auswahl {
     transition: border-color 0.15s, box-shadow 0.15s;
   }
 
@@ -3170,11 +2772,11 @@ html:has(#page-entry.is-active) {
 
 /* Windows-Kontrastmodus: Flächen entfallen, Striche und Linien bleiben */
 @media (forced-colors: active) {
-  #page-entry .tag-eingabe,
-  #page-entry .tag-auswahl { border-bottom-color: CanvasText; }
+  :is(#page-entry, .in-seite) .tag-eingabe,
+  :is(#page-entry, .in-seite) .tag-auswahl { border-bottom-color: CanvasText; }
 
-  #page-entry .tag-eingabe:focus,
-  #page-entry .tag-auswahl:focus {
+  :is(#page-entry, .in-seite) .tag-eingabe:focus,
+  :is(#page-entry, .in-seite) .tag-auswahl:focus {
     outline: 2px solid Highlight;
     outline-offset: 2px;
   }
@@ -3182,11 +2784,11 @@ html:has(#page-entry.is-active) {
   .tag-badge { border-color: CanvasText; }
 
   /* Fehlerfeld: doppelte Unterlinie statt Farbe */
-  #page-entry .tag-eingabe[aria-invalid="true"] { border-bottom: 3px double CanvasText; }
+  :is(#page-entry, .in-seite) .tag-eingabe[aria-invalid="true"] { border-bottom: 3px double CanvasText; }
 
-  #page-entry .tag-loeschen-knopf { color: LinkText; }
+  :is(#page-entry, .in-seite) .tag-loeschen-knopf { color: LinkText; }
 
-  #page-entry .tag-speichern[aria-disabled="true"]:not(.is-busy) { color: GrayText; }
+  :is(#page-entry, .in-seite) .tag-speichern[aria-disabled="true"]:not(.is-busy) { color: GrayText; }
 }
 
 /* ── Planen › Monat (#page-calendar) ──────────────────────────────────────
@@ -3869,7 +3471,7 @@ html:has(#page-entry.is-active) {
   font: 600 0.86rem/1.2 var(--font-sans);
 }
 
-/* Gedämpftes Rot wie „Tag löschen“ (#page-entry .tag-loeschen-knopf) */
+/* Gedämpftes Rot wie „Tag löschen“ (:is(#page-entry, .in-seite) .tag-loeschen-knopf) */
 .li-loeschen {
   display: inline-flex;
   align-items: center;
@@ -5376,4 +4978,367 @@ html:has(#page-entry.is-active) {
   .be-datei-knopf,
   .pr-zeile { color: LinkText; }
   .pr-satz { text-decoration: underline; }
+}
+
+/* ── Werkzeuge › Inhalte (Schritt 7b) ─────────────────────────────────────
+   Unterseiten: Wort prüfen (#page-analytics), Bonus-Tage (#page-freedays),
+   Benachrichtigungen (#page-push), Wort der Woche (#page-spezialwoche),
+   Klassenraum-Demo (#page-klassenraum-demo). Alle tragen „be-seite in-seite“.
+
+   DESIGN.md §9: Linien statt Kästen, keine Schatten, Radius ≤ 4 px. Rot =
+   Aktion (Text-CTA) und „aufgeklappt/ausgewählt“ (3-px-Strich + 4 % Tönung);
+   Gefahr (An alle senden, Entfernen) = gedämpftes Fehlerrot in Sans,
+   unterstrichen (.li-loeschen), nie als gefüllter Knopf. Statusfarben nur mit
+   Wort. Gold nur in den Modus-Badges (Wort-Zwilling).
+
+   Wiederverwendet (unverändert): .tag-modi, .tag-modus, .tag-modus-titel,
+   .tag-modus-text, .tag-badge, .tag-feld, .tag-wert(--wort), .tag-label-zusatz,
+   .tag-hinweis, .tag-neben*, .tag-ergebnis, .tag-erg-* (Prüfergebnisse wie im
+   Tag), .tag-abschnitt*, .tag-dl, .be-aktionen, .be-dl, .be-check, .be-roh,
+   .be-zeile*, .be-liste, .li-meldung, .li-loeschen, .li-leer*, .nu-stand,
+   .adm-cta, .adm-link, .adm-tool-stand.
+   Mit erweitertem Selektor (Abschnitt 3a): alle „#page-entry .tag-…“-Regeln
+   (Eingabe, Label, Auswahl, Meldungen, Nebenfelder, Feldfehler) gelten auch
+   unter „.in-seite“.
+
+   Container: „tag“ (damit die Breit-Regeln des Tagesformulars greifen),
+   „betrieb“ (7a) und „inhalte“ (dieser Block). Muss NACH dem Betrieb-Block
+   stehen. Schwellen wie dort: ≥ 40rem Label links, < 20rem alles untereinander.
+   ─────────────────────────────────────────────────────────────────────── */
+
+.in-seite { container-name: tag betrieb inhalte; }
+
+/* Modus-Abschnitte stehen direkt unter dem Untertitel */
+.in-seite > .tag-modi:first-child,
+.in-seite form > .tag-modi { margin-top: 0; }
+.in-seite .tag-modus-titel { flex-direction: row; flex-wrap: wrap; align-items: center; }
+
+/* Feldhinweis unter einem Feld (Datum belegt, Platzhalter): fluchtet mit der Feldspalte */
+.in-feld-hinweis:empty { display: none; }
+.in-seite .in-feld-hinweis[hidden] { display: none; }
+
+/* Zeichenzähler unter Titel/Text bzw. Wortlisten: klein, rechtsbündig */
+.in-zaehler {
+  display: block;
+  margin-top: 4px;
+  color: var(--muted);
+  font: 400 0.76rem/1.3 var(--font-sans);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.in-zaehler:empty { display: none; }
+.in-zaehler[data-tone="warn"]  { color: var(--status-warn); font-weight: 600; }
+.in-zaehler[data-tone="error"] { color: var(--status-err);  font-weight: 600; }
+
+/* Läuft gerade: Prüfen/Speichern/Senden lesbar, kursiv in Textfarbe */
+.in-seite .adm-cta.is-busy[aria-disabled="true"],
+.in-seite .li-loeschen.is-busy[aria-disabled="true"] { color: var(--text); font-style: italic; opacity: 1; }
+
+/* Gesperrt (nicht „läuft“): gedämpft, bleibt fokussierbar */
+.in-seite .adm-cta[aria-disabled="true"]:not(.is-busy) { color: var(--muted); cursor: default; }
+
+/* ════════════════ Wort prüfen ════════════════ */
+
+.in-pruef .tag-ergebnis { margin-top: 12px; }
+
+/* Wortart neben dem Wort: etwas breiter als im Tag („Wortart automatisch“) */
+.in-pruef .tag-wert--wort { grid-template-columns: minmax(0, 1fr) 11rem; }
+
+/* Rangziffer vor dem Kollokator (gesucht 1–3, Ablenker 4–10) */
+.in-rang {
+  display: inline-block;
+  min-width: 1.6em;
+  color: var(--muted);
+  font: 500 0.76rem/1 var(--font-sans);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Bonusfrage und Kennzahlen unter den Spalten */
+.in-pruef .tag-dl { margin-top: 14px; }
+
+/* ════════════════ Bonus-Tage ════════════════ */
+
+/* Zeile: Datum | Anzahl + Anlass | entfernen */
+.in-zeile {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas:
+    "haupt aktion"
+    "meta  aktion";
+  align-items: baseline;
+  gap: 0 16px;
+  padding: 4px 0;
+  border-bottom: 1px solid var(--border-lt);
+}
+
+.in-zeile > .be-zeile-haupt { grid-area: haupt; padding-top: 6px; }
+.in-zeile > .be-zeile-meta  { grid-area: meta; padding-bottom: 6px; }
+.in-zeile > .in-zeile-aktion { grid-area: aktion; align-self: center; display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 0 18px; }
+.in-zeile .li-loeschen { margin-left: 0; }
+
+/* „heute“ / „läuft“ als Wort hinter dem Datum (Rot = aktuell, wie Woche) */
+.in-heute-marke {
+  margin-left: 0.5em;
+  color: var(--primary);
+  font: 600 0.62rem/1 var(--font-sans);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  vertical-align: 0.15em;
+}
+
+/* Vergangene: aufklappbar unter der Liste, gedämpft */
+.in-vergangen { margin-top: 12px; }
+.in-vergangen .be-zeile-haupt { color: var(--muted); font-weight: 400; }
+
+/* ════════════════ Benachrichtigungen ════════════════ */
+
+.in-push-stand:empty { display: none; }
+.in-push-stand[data-tone="warn"] { color: var(--status-warn); font-weight: 600; }
+
+/* Vorschau wie auf dem Sperrbildschirm – ohne Kasten: Strich links, Haarlinien */
+.in-push-vorschau {
+  max-width: 28rem;
+  margin-top: 16px;
+  padding: 8px 0 8px 14px;
+  border-left: 3px solid var(--border);
+}
+
+.in-push-vorschau:empty { display: none; }
+
+.in-push-app {
+  margin: 0;
+  color: var(--muted);
+  font: 600 0.62rem/1.3 var(--font-sans);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+
+.in-push-titel {
+  margin: 4px 0 0;
+  font: 600 0.95rem/1.35 var(--font-sans);
+  overflow-wrap: anywhere;
+}
+
+.in-push-text {
+  margin: 2px 0 0;
+  font: 400 0.9rem/1.45 var(--font-sans);
+  overflow-wrap: anywhere;
+}
+
+.in-push-titel.is-leer,
+.in-push-text.is-leer { color: var(--muted); font-style: italic; font-weight: 400; }
+
+/* Platzhalter in Vorlagen und Vorschau: Sans, gedämpft, nicht farbig */
+.in-ph {
+  padding: 0 2px;
+  border-bottom: 1px dashed var(--muted);
+  color: var(--muted);
+  font: 500 0.86em/1 ui-monospace, 'Courier New', monospace;
+}
+
+/* „An alle senden …“ steht mit Abstand rechts vom Test (gegen Fehltipps) */
+.in-push-aktionen { gap: 8px 40px; }
+
+/* Heute-Lage des täglichen Versands */
+.in-heute { margin-top: 12px; }
+
+/* Vorlagen: Linien-Liste, Zeile klappt Bearbeiten auf (wie das Protokoll) */
+.in-vorlagen {
+  margin: 12px 0 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--border-lt);
+}
+
+.in-vorlage {
+  position: relative;
+  margin-left: calc(-1 * var(--vorschlag-einzug, 12px));
+  padding-left: var(--vorschlag-einzug, 12px);
+  border-bottom: 1px solid var(--border-lt);
+}
+
+.in-vorlage-zeile {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 1.2rem;
+  grid-template-areas:
+    "titel auf"
+    "meta  auf";
+  align-items: baseline;
+  gap: 2px 12px;
+  width: 100%;
+  min-height: var(--tap);
+  margin: 0;
+  padding: 9px 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.in-vorlage-zeile:hover:not(:disabled) { background: none; }
+.in-vorlage-zeile:focus-visible { outline: 2px solid var(--primary); outline-offset: -2px; }
+
+.in-vorlage-titel {
+  grid-area: titel;
+  min-width: 0;
+  font: 400 1rem/1.4 var(--font-serif);
+  overflow-wrap: anywhere;
+}
+
+.in-vorlage-zeile:hover .in-vorlage-titel { color: var(--primary); }
+
+.in-vorlage-meta {
+  grid-area: meta;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 10px;
+  color: var(--muted);
+  font: 400 0.8rem/1.4 var(--font-sans);
+}
+
+.in-vorlage-meta [data-tone="warn"] { color: var(--status-warn); font-weight: 600; }
+.in-vorlage-meta [data-tone="ok"]   { color: var(--status-ok);   font-weight: 600; }
+.in-vorlage.is-aus .in-vorlage-titel { color: var(--muted); }
+
+.in-vorlage-auf {
+  grid-area: auf;
+  justify-self: end;
+  color: var(--muted);
+  font: 400 1.1rem/1 var(--font-serif);
+}
+
+.in-vorlage-auf::before { content: '+'; content: '+' / ''; }
+.in-vorlage-zeile[aria-expanded="true"] .in-vorlage-auf::before { content: '\2212'; content: '\2212' / ''; }
+
+.in-vorlage.is-offen { background: var(--wo-tint); }
+
+.in-vorlage.is-offen::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  border-left: 3px solid var(--primary);
+}
+
+.in-vorlage-detail { padding: 0 0 16px; }
+.in-vorlage-detail .tag-feld:first-child { margin-top: 0; }
+.in-vorlage-detail .be-check { padding-top: 6px; }
+
+/* Ungespeichert: Wort, nicht nur Farbe */
+.in-geaendert { color: var(--status-warn); font-weight: 600; }
+
+/* Platzhalter-Erklärung: Name in Mono */
+.in-platzhalter { margin-top: 20px; }
+.in-platzhalter .tag-dl { margin-top: 4px; }
+.in-platzhalter dt { font: 500 0.82rem/1.45 ui-monospace, 'Courier New', monospace; letter-spacing: 0; text-transform: none; color: var(--text); }
+
+/* ── Bestätigung „An alle senden“: echtes <dialog>, display bleibt dem Browser ── */
+.in-dialog {
+  width: min(34rem, calc(100vw - 32px));
+  max-height: calc(100dvh - 32px);
+  margin: auto;
+  padding: 0;
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-top: 3px solid var(--status-err);
+  border-radius: var(--radius, 4px);
+  background: var(--bg);
+  color: var(--text);
+  box-shadow: none;
+}
+
+.in-dialog::backdrop { background: rgb(26 26 24 / 0.45); }
+
+.in-dialog-inhalt { padding: 18px 20px 16px; }
+
+.in-dialog-titel {
+  margin: 6px 0 0;
+  font: 400 1.35rem/1.3 var(--font-serif);
+  overflow-wrap: anywhere;
+}
+
+.in-dialog-text {
+  margin: 8px 0 0;
+  color: var(--muted);
+  font-size: 0.88rem;
+  line-height: 1.5;
+}
+
+.in-dialog .tag-dl { margin-top: 14px; }
+.in-dialog .in-push-vorschau { margin-top: 14px; }
+
+/* Abbrechen links (Standard-Fokus), Senden rechts mit Abstand */
+.in-dialog-aktionen { justify-content: space-between; margin-top: 14px; }
+.in-dialog-aktionen .li-loeschen { margin-left: 0; }
+/* Gesperrt wie die anderen gesperrten Aktionen (.adm-cta): Sperrfarbe, nicht unterstrichen */
+.in-dialog-aktionen .li-loeschen[aria-disabled="true"]:not(.is-busy) { color: var(--muted); text-decoration: none; font-style: normal; opacity: 1; }
+.in-dialog .li-meldung { margin-top: 10px; }
+
+/* ════════════════ Wort der Woche ════════════════ */
+
+.in-sw-modi { margin-top: 20px; border-top: 1px solid var(--border); }
+.in-neben-allein { margin-top: 8px; }
+
+/* ════════════════ Klassenraum-Demo ════════════════ */
+
+.in-demo-weg { margin-top: 4px; }
+
+/* Wort + Lautschrift nebeneinander (Lautschrift schmaler, Serif kursiv) */
+.in-seite .in-wert--ipa { grid-template-columns: minmax(0, 1fr) 10rem; }
+.in-seite .in-ipa { font-style: italic; }
+
+/* ── Breit (≥ 40rem) ── */
+@container inhalte (min-width: 40rem) {
+  .in-vorlage-zeile {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 15rem) 1.2rem;
+    grid-template-areas: "titel meta auf";
+  }
+
+  .in-vorlage-meta { justify-content: flex-end; text-align: right; }
+
+  .in-zeile {
+    grid-template-columns: var(--be-label-w, 11rem) minmax(0, 1fr) auto;
+    grid-template-areas: "haupt meta aktion";
+  }
+
+  .in-zeile > .be-zeile-haupt,
+  .in-zeile > .be-zeile-meta { padding: 8px 0; }
+
+  /* Feldhinweise fluchten mit der Feldspalte des Tagesformulars */
+  .in-seite .in-feld-hinweis { margin-left: calc(var(--tag-label-w) + 24px); }
+}
+
+/* ── Sehr schmal oder große Schrift (< 20rem): alles untereinander ── */
+@container inhalte (max-width: 19.9375rem) {
+  .in-pruef .tag-wert--wort,
+  .in-seite .in-wert--ipa { grid-template-columns: minmax(0, 1fr); }
+
+  .in-zeile {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas: "haupt" "meta" "aktion";
+  }
+
+  .in-zeile > .in-zeile-aktion { justify-content: flex-start; }
+
+  .in-push-aktionen { gap: 0 24px; }
+  .in-dialog-aktionen { flex-direction: column-reverse; align-items: flex-start; }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .in-vorlage { transition: background-color 0.15s; }
+  .in-vorlage-titel { transition: color 0.15s; }
+}
+
+/* Windows-Kontrastmodus: Flächen entfallen, Striche und Linien bleiben */
+@media (forced-colors: active) {
+  .in-vorlage.is-offen::before { border-left-color: Highlight; }
+  .in-push-vorschau { border-left-color: CanvasText; }
+  .in-dialog { border-color: CanvasText; }
+  .in-vorlage-zeile { color: LinkText; }
+  .in-ph { border-bottom-color: CanvasText; }
 }

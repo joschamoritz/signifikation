@@ -25,7 +25,7 @@ const NAV_PAGES = {
   'Tageseinträge': { route: '#planen/tag/neu', page: 'entry' },
   'Vorschläge': { route: '#vorschlaege', page: 'vorschlaege' },
   'Kalender': { route: '#planen/monat', page: 'calendar' },
-  'Analysen': { route: '#werkzeuge/pruefen', page: 'analytics' },
+  'Wort prüfen': { route: '#werkzeuge/pruefen', page: 'analytics' },
   'Statistiken': { route: '#auswertung/spiele', page: 'stats' },
   'Kennzahlen': { route: '#auswertung/kennzahlen', page: 'metrics' },
   'Nutzer': { route: '#nutzer', page: 'users' },

@@ -21,6 +21,13 @@ const insertSessionStmt = db.prepare(`
 
 const PREFIX = `fd-test-${Date.now()}`
 const TEST_DATE = '2099-01-15'
+const TEST_DATE_2 = '2099-01-16'
+const auditAktionen = (datum) => db.prepare("SELECT action FROM audit_log WHERE resource = 'bonus_tag' AND resource_id = ? ORDER BY id").all(datum).map((r) => r.action)
+const gestern = () => {
+  const heute = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Berlin' }).format(new Date())
+  const [y, m, d] = heute.split('-').map(Number)
+  return new Date(Date.UTC(y, m - 1, d - 1)).toISOString().slice(0, 10)
+}
 
 function adminHeaders(token) {
   return { 'content-type': 'application/json', cookie: `better-auth.session_token=${token}` }
@@ -49,7 +56,8 @@ describe('admin free-days routes (Zod-Validierung)', () => {
   })
 
   afterAll(async () => {
-    db.prepare('DELETE FROM free_days WHERE date = ?').run(TEST_DATE)
+    db.prepare('DELETE FROM free_days WHERE date IN (?, ?)').run(TEST_DATE, TEST_DATE_2)
+    db.prepare("DELETE FROM audit_log WHERE resource = 'bonus_tag' AND resource_id IN (?, ?)").run(TEST_DATE, TEST_DATE_2)
     db.prepare(`DELETE FROM session WHERE userId LIKE ?`).run(`${PREFIX}%`)
     db.prepare(`DELETE FROM user_profiles WHERE user_id LIKE ?`).run(`${PREFIX}%`)
     db.prepare(`DELETE FROM user WHERE id LIKE ?`).run(`${PREFIX}%`)
@@ -103,6 +111,55 @@ describe('admin free-days routes (Zod-Validierung)', () => {
     expect(res.status).toBe(200)
     const row = db.prepare('SELECT * FROM free_days WHERE date = ?').get(TEST_DATE)
     expect(row).toBeUndefined()
+  })
+
+  it('lehnt 0 zusätzliche Spiele ab (ein Bonus-Tag ohne Wirkung)', async () => {
+    for (const bonus_count of [0, '', -1, 'abc']) {
+      const res = await fetch(`${baseUrl}/admin/free-days`, {
+        method: 'POST',
+        headers: adminHeaders(token),
+        body: JSON.stringify({ date: TEST_DATE_2, bonus_count }),
+      })
+      expect(res.status, `bonus_count ${JSON.stringify(bonus_count)}`).toBe(400)
+      expect((await res.json()).error).toBe('Bitte eine ganze Zahl von 1 bis 50 eintragen.')
+    }
+    // fehlendes Feld ebenso
+    const ohne = await fetch(`${baseUrl}/admin/free-days`, { method: 'POST', headers: adminHeaders(token), body: JSON.stringify({ date: TEST_DATE_2 }) })
+    expect(ohne.status).toBe(400)
+    expect(db.prepare('SELECT * FROM free_days WHERE date = ?').get(TEST_DATE_2)).toBeUndefined()
+  })
+
+  it('lehnt einen vergangenen Tag ab (Berliner Zeit)', async () => {
+    const res = await fetch(`${baseUrl}/admin/free-days`, {
+      method: 'POST',
+      headers: adminHeaders(token),
+      body: JSON.stringify({ date: gestern(), bonus_count: 2 }),
+    })
+    expect(res.status).toBe(400)
+    expect((await res.json()).error).toBe('Der Tag liegt in der Vergangenheit.')
+    expect(db.prepare('SELECT * FROM free_days WHERE date = ?').get(gestern())).toBeUndefined()
+  })
+
+  it('meldet beim zweiten Eintragen desselben Tags ersetzt: true und protokolliert Anlegen, Ersetzen und Entfernen', async () => {
+    const post = (body) => fetch(`${baseUrl}/admin/free-days`, { method: 'POST', headers: adminHeaders(token), body: JSON.stringify(body) })
+
+    let res = await post({ date: TEST_DATE_2, label: 'Erst', bonus_count: 2 })
+    expect(res.status).toBe(200)
+    expect(await res.json()).toEqual({ ok: true, ersetzt: false })
+
+    res = await post({ date: TEST_DATE_2, label: 'Dann', bonus_count: 4 })
+    expect(await res.json()).toEqual({ ok: true, ersetzt: true })
+    expect(db.prepare('SELECT * FROM free_days WHERE date = ?').get(TEST_DATE_2)).toMatchObject({ label: 'Dann', bonus_count: 4 })
+
+    // Protokoll: vorher/nachher beim Ersetzen
+    const ersetzen = db.prepare("SELECT changes_json FROM audit_log WHERE resource = 'bonus_tag' AND resource_id = ? AND action = 'UPDATE'").get(TEST_DATE_2)
+    expect(JSON.parse(ersetzen.changes_json)).toMatchObject({ before: { bonus_count: 2, label: 'Erst' }, after: { bonus_count: 4, label: 'Dann' } })
+
+    const del = await fetch(`${baseUrl}/admin/free-days/${TEST_DATE_2}`, { method: 'DELETE', headers: adminHeaders(token) })
+    expect(await del.json()).toEqual({ ok: true, entfernt: true })
+    // ein zweites Entfernen ist wirkungslos und kommt nicht ins Protokoll
+    await fetch(`${baseUrl}/admin/free-days/${TEST_DATE_2}`, { method: 'DELETE', headers: adminHeaders(token) })
+    expect(auditAktionen(TEST_DATE_2)).toEqual(['CREATE', 'UPDATE', 'DELETE'])
   })
 
   it('lehnt unauthentifizierte Anfragen ab', async () => {

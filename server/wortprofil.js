@@ -658,12 +658,26 @@ function shuffle(arr) {
   return a
 }
 
-function buildOptions(items) {
-  const top3 = items.slice(0, 3)
+/**
+ * Mindestzahl Kollokatoren, ab der ein Wort als Basis der Kollokationen-Runde taugt:
+ * 3 gesuchte + 7 Ablenker. Eine Stelle für Spiel, Admin-Prüfung (Wort prüfen, Tag
+ * bearbeiten) und die Planungsprüfung scripts/lemma-check.mjs.
+ */
+export const MIN_KOLLOKATOREN = 10
+
+/**
+ * Wählt aus der sortierten Kollokator-Liste die Optionen einer Runde: Platz 1–3
+ * plus 7 Ablenker. Gibt zu jedem Eintrag auch den Platz in der Liste zurück
+ * (Admin-Prüfung); buildOptions macht daraus die Spieldaten.
+ * @returns {Array<{ item: object, platz: number }>}
+ */
+function waehleOptionen(items) {
+  const mitPlatz = items.map((item, i) => ({ item, platz: i + 1 }))
+  const top3 = mitPlatz.slice(0, 3)
   // 4 zufällige Distraktoren aus Platz 4–12 (starke Kollokate, schwer zu unterscheiden)
-  const nearPool = shuffle(items.slice(3, 12))
+  const nearPool = shuffle(mitPlatz.slice(3, 12))
   // 3 zufällige Distraktoren aus Platz 13–25 (mittlere, etwas leichter erkennbar)
-  const midPool  = shuffle(items.slice(12, 25))
+  const midPool  = shuffle(mitPlatz.slice(12, 25))
 
   const nearCount = Math.min(4, nearPool.length)
   const midCount  = Math.min(3, midPool.length)
@@ -673,9 +687,11 @@ function buildOptions(items) {
     ? shuffle([...nearPool.slice(nearCount), ...midPool.slice(midCount)]).slice(0, remaining)
     : []
 
-  const distractors = [...nearPool.slice(0, nearCount), ...midPool.slice(0, midCount), ...extra]
+  return [...top3, ...nearPool.slice(0, nearCount), ...midPool.slice(0, midCount), ...extra]
+}
 
-  return [...top3, ...distractors].map((item, i) => ({
+function buildOptions(items) {
+  return waehleOptionen(items).map(({ item }, i) => ({
     wort:     item.lemma,
     log_dice: parseFloat(parseFloat(item.logDice).toFixed(1)),
     rang:     i + 1,
@@ -687,7 +703,7 @@ function buildOptions(items) {
  * die stärksten 3 Kollokate (über alle Wortarten) als Top-3 verwenden.
  * Gibt 10 Optionen zurück (Top-3 + 7 Distraktoren), genau wie buildOptions().
  */
-function buildMixedRound(allItems) {
+function mixedPool(allItems) {
   // Deduplizieren nach lemma (lowercase), höchstes logDice gewinnt
   const seen = new Map()
   for (const item of allItems) {
@@ -697,8 +713,11 @@ function buildMixedRound(allItems) {
       seen.set(key, item)
     }
   }
-  const sorted = [...seen.values()].sort((a, b) => parseFloat(b.logDice) - parseFloat(a.logDice))
-  return buildOptions(sorted)
+  return [...seen.values()].sort((a, b) => parseFloat(b.logDice) - parseFloat(a.logDice))
+}
+
+function buildMixedRound(allItems) {
+  return buildOptions(mixedPool(allItems))
 }
 
 // ── Öffentliche API (identisch mit dwds.js) ──────────────────────────────────
@@ -755,6 +774,39 @@ export async function fetchRelation(lemma, pos, relCode) {
     return data
   } catch (err) {
     throw new Error(`Wortprofil-DB-Fehler für ${relCode}: ${err.message}`)
+  }
+}
+
+/**
+ * Admin-Prüfung „Wort prüfen › Kollokationen“ auf dem Spielweg: dieselben Relationen,
+ * dieselbe Zusammenführung (mixedPool) und dieselbe Auswahl der Ablenker wie
+ * fetchLemma → runden.kollokatoren. Ohne Mehrwort-Filter, wie im Spiel.
+ *
+ * @returns {Promise<{ lemma: string, pos: string, pool: number,
+ *   gesucht: Array<{wort: string, logDice: number, platz: number}>,
+ *   ablenker: Array<{wort: string, logDice: number, platz: number}>,
+ *   kollokatoren: Array<{wort: string, logDice: number, platz: number}> }>}
+ *   gesucht = Platz 1–3, ablenker = die 7 gezogenen aus Platz 4–25 (nach Platz sortiert),
+ *   kollokatoren = Platz 1–25.
+ */
+export async function fetchKollokatorenAnalyse(lemma, pos = 'Substantiv') {
+  const rounds  = POS_ROUNDS[pos] ?? POS_ROUNDS.Substantiv
+  const results = await Promise.allSettled(rounds.map(round => fetchRelation(lemma, pos, round.relCode)))
+  const allItems = []
+  for (let i = 0; i < rounds.length; i++) {
+    if (results[i].status === 'fulfilled') allItems.push(...results[i].value)
+    else logger.warn({ err: results[i].reason }, `fetchKollokatorenAnalyse: Relation ${rounds[i].relCode} fehlgeschlagen`)
+  }
+  const pool = mixedPool(allItems)
+  const eintrag = ({ item, platz }) => ({ wort: item.lemma, logDice: parseFloat(parseFloat(item.logDice).toFixed(2)), platz })
+  const auswahl = waehleOptionen(pool)
+  return {
+    lemma,
+    pos,
+    pool: pool.length,
+    gesucht: auswahl.slice(0, 3).map(eintrag),
+    ablenker: auswahl.slice(3).sort((a, b) => a.platz - b.platz).map(eintrag),
+    kollokatoren: pool.slice(0, 25).map((item, i) => eintrag({ item, platz: i + 1 })),
   }
 }
 
