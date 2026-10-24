@@ -13,7 +13,10 @@
  * Streak-Definition (deckungsgleich mit dem Client, src/utils/homeUtils.js
  * computeStreak): die Menge der Spieltage sind die distinkten `stats.datum`
  * des Users; beide Seiten verwenden DENSELBEN Datums-Key (den serverDatum des
- * Tagesinhalts). Der Streak ist die Zahl aufeinanderfolgender Tage, die in
+ * Tagesinhalts). Spiele zum Wort der Woche (`stats.spiel` = `woche_*`) zählen
+ * NICHT: ein Tag, an dem nur das Wort der Woche gespielt wurde, hält die Serie
+ * nicht (Entscheidung 2026-10; der Client zählt nur die vier Tagesspiele).
+ * Der Streak ist die Zahl aufeinanderfolgender Tage, die in
  * Berlin-heute oder Berlin-gestern endet. Reichweite ehrlich: nur eingeloggte
  * Abonnenten – anonyme Spieler haben keinen Server-Streak.
  *
@@ -80,6 +83,7 @@ const getUserPlayDatesStmt = db.prepare(`
   SELECT DISTINCT datum
   FROM stats
   WHERE user_id = ? AND datum >= ?
+    AND spiel NOT LIKE 'woche\\_%' ESCAPE '\\'
   ORDER BY datum DESC
 `)
 
@@ -92,9 +96,11 @@ const getStreakCandidatesStmt = db.prepare(`
   JOIN push_subscriptions p ON p.user_id = s.user_id
   WHERE s.user_id != ''
     AND s.datum = @yesterday
+    AND s.spiel NOT LIKE 'woche\\_%' ESCAPE '\\'
     AND NOT EXISTS (
       SELECT 1 FROM stats t
       WHERE t.user_id = s.user_id AND t.datum = @today
+        AND t.spiel NOT LIKE 'woche\\_%' ESCAPE '\\'
     )
 `)
 

@@ -13,11 +13,6 @@
        Download erst nach dem Parsen von admin.css. -->
   <link rel="preload" href="/fonts/dm-sans-latin.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="/fonts/gentium-plus-400-latin.woff2" as="font" type="font/woff2" crossorigin>
-  <!-- Chart.js liegt lokal statt am CDN (Review 2026-06-10: Supply-Chain-
-       Risiko im Admin-Kontext). Update: neue Version nach server/public/
-       vendor/ legen. Geladen wird es nicht mehr hier, sondern per
-       ensureChartJs() in admin.js beim ersten Öffnen der Statistiken –
-       als <script> im <head> blockierte es sonst den Login-Screen. -->
 </head>
 <body>
 
@@ -489,52 +484,22 @@
         </div>
       </section>
 
-      <section class="admin-page" id="page-stats" data-title="Spiele" data-subtitle="Spielaktivität und Leistungswerte über alle Spielmodi hinweg.">
-        <div class="card">
-          <div class="card-head">
-            <h2>Statistik</h2>
-            <button class="entry-filters-reset" data-action="load-stats">↺ Laden</button>
-          </div>
-
-          <div class="stats-toolbar">
-            <label for="stats-days">Zeitraum</label>
-            <select id="stats-days">
+      <section class="admin-page be-seite au-seite" id="page-stats" data-title="Spiele" data-subtitle="Wie viel gespielt wird und wie schwer die Tage waren.">
+        <div class="au-filter">
+          <div class="li-feld au-feld-zeitraum">
+            <label class="li-label" for="au-zeitraum-stats">Zeitraum</label>
+            <select class="li-auswahl" id="au-zeitraum-stats" data-au-zeitraum>
               <option value="7">Letzte 7 Tage</option>
-              <option value="14">Letzte 14 Tage</option>
               <option value="30" selected>Letzte 30 Tage</option>
-              <option value="60">Letzte 60 Tage</option>
               <option value="90">Letzte 90 Tage</option>
+              <option value="365">Letzte 12 Monate</option>
             </select>
-            <button class="entry-filters-reset" data-action="export-stats" data-format="csv">CSV-Export</button>
-            <button class="entry-filters-reset" data-action="export-stats" data-format="json">JSON-Export</button>
           </div>
-
-          <div id="stats-summary-cards" class="stats-summary-cards">
-            <div class="users-empty">Statistikübersicht wird geladen …</div>
-          </div>
-
-          <div class="stats-top-users">
-            <h3>Top Nutzer (nach Plays)</h3>
-            <div class="users-table-wrap">
-              <table class="users-table">
-                <thead>
-                  <tr>
-                    <th scope="col">Name</th>
-                    <th scope="col">Rolle</th>
-                    <th scope="col">Plays</th>
-                    <th scope="col">Ø Score</th>
-                  </tr>
-                </thead>
-                <tbody id="stats-top-users-body">
-                  <tr><td colspan="4" class="users-empty">Noch keine Daten geladen.</td></tr>
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          <div id="stats-output"><div class="panel-empty">Noch nicht geladen.</div></div>
+          <a class="adm-link au-export" id="au-export-stats" href="/admin/stats/export?days=30&amp;format=csv" download>Als CSV herunterladen</a>
         </div>
-
+        <p class="au-umfang" id="au-umfang-stats"></p>
+        <p class="li-meldung" id="au-meldung-stats" role="status" aria-live="polite" tabindex="-1"></p>
+        <div class="au-inhalt" id="au-inhalt-stats"></div>
       </section>
 
       <section class="admin-page be-seite in-seite" id="page-analytics" data-title="Wort prüfen" data-subtitle="Prüft Wörter im eigenen Korpus, wie das Spiel sie verwenden würde. Gespeichert wird nichts.">
@@ -897,53 +862,38 @@
         </section>
       </section>
 
-      <section class="admin-page" id="page-metrics" data-title="Kennzahlen" data-subtitle="Zahlen zu Zahlungen, Lehrkräften, Eigenem Lemma und Wiederkehr.">
-        <div class="card">
-          <div class="card-head card-head--wrap">
-            <div>
-              <p class="section-label">Produkt</p>
-              <h2>Kennzahlen</h2>
-            </div>
-            <div class="range-filter-row">
-              <label for="metrics-days">Zeitraum</label>
-              <select id="metrics-days" class="filter-select">
-                <option value="7">7 Tage</option>
-                <option value="30" selected>30 Tage</option>
-                <option value="90">90 Tage</option>
-                <option value="365">365 Tage</option>
-              </select>
-              <button class="entry-filters-reset" data-action="load-product-metrics">↺ Laden</button>
-            </div>
-          </div>
-          <div id="metrics-output">
-            <div class="users-empty">Kennzahlen werden geladen …</div>
+      <section class="admin-page be-seite au-seite" id="page-metrics" data-title="Kennzahlen" data-subtitle="Zahlungen, Eigenes Lemma, aktive Konten und Wiederkehr.">
+        <div class="au-filter">
+          <div class="li-feld au-feld-zeitraum">
+            <label class="li-label" for="au-zeitraum-metrics">Zeitraum</label>
+            <select class="li-auswahl" id="au-zeitraum-metrics" data-au-zeitraum>
+              <option value="7">Letzte 7 Tage</option>
+              <option value="30" selected>Letzte 30 Tage</option>
+              <option value="90">Letzte 90 Tage</option>
+              <option value="365">Letzte 12 Monate</option>
+            </select>
           </div>
         </div>
+        <p class="au-umfang" id="au-umfang-metrics"></p>
+        <p class="li-meldung" id="au-meldung-metrics" role="status" aria-live="polite" tabindex="-1"></p>
+        <div class="au-inhalt" id="au-inhalt-metrics"></div>
       </section>
 
-      <section class="admin-page" id="page-classroom" data-title="Klassenraum" data-subtitle="Nutzung des Klassenraum-Modus: Lehrkräfte, Sitzungen und Teilnahmen.">
-        <div class="card">
-          <div class="card-head card-head--wrap">
-            <div>
-              <p class="section-label">Klassenraum</p>
-              <h2>Statistiken</h2>
-            </div>
-            <div class="range-filter-row">
-              <label for="classroom-days">Zeitraum</label>
-              <select id="classroom-days" class="filter-select">
-                <option value="7">7 Tage</option>
-                <option value="30" selected>30 Tage</option>
-                <option value="90">90 Tage</option>
-                <option value="365">365 Tage</option>
-              </select>
-              <button class="entry-filters-reset" data-action="load-classroom-stats">↺ Laden</button>
-            </div>
-          </div>
-          <div id="classroom-stats-output">
-            <div class="users-empty">Klassenraum-Statistiken werden geladen …</div>
+      <section class="admin-page be-seite au-seite" id="page-classroom" data-title="Klassenraum" data-subtitle="Sitzungen, Lehrkräfte und Antworten im Klassenraum.">
+        <div class="au-filter">
+          <div class="li-feld au-feld-zeitraum">
+            <label class="li-label" for="au-zeitraum-classroom">Zeitraum</label>
+            <select class="li-auswahl" id="au-zeitraum-classroom" data-au-zeitraum>
+              <option value="7">Letzte 7 Tage</option>
+              <option value="30" selected>Letzte 30 Tage</option>
+              <option value="90">Letzte 90 Tage</option>
+              <option value="365">Letzte 12 Monate</option>
+            </select>
           </div>
         </div>
-
+        <p class="au-umfang" id="au-umfang-classroom"></p>
+        <p class="li-meldung" id="au-meldung-classroom" role="status" aria-live="polite" tabindex="-1"></p>
+        <div class="au-inhalt" id="au-inhalt-classroom"></div>
       </section>
 
       <section class="admin-page be-seite in-seite" id="page-klassenraum-demo" data-title="Klassenraum-Demo" data-subtitle="Was Lehrkräfte in der Vorschau des Klassenraums sehen, ohne sich anzumelden.">

@@ -1,5 +1,7 @@
 import { z } from 'zod/v3'
 import { isBlockedNickname } from '../classroom/nickname-filter.js'
+import { SPIELMODI, STAT_SPIELE } from '../spielmodi.js'
+import { berlinTag, plusTage } from '../date-utils.js'
 
 /**
  * Middleware-Factory: validiert req[source] gegen ein Zod-Schema.
@@ -45,17 +47,37 @@ export function validate(schema, source = 'body', { mitFeld = false } = {}) {
 // ── Gemeinsame Basistypen ─────────────────────────────────────
 const DATUM_ISO   = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Ungültiges datum-Format (YYYY-MM-DD)')
 const POS         = z.enum(['Substantiv', 'Verb', 'Adjektiv']).default('Substantiv')
-const VALID_GAMES = ['kollokationen', 'wortzwilling', 'zeitenwende', 'lueckenfueller']
+// Die vier Tagesmodi (Quelle: spielmodi.js). Statistik-Schlüssel dürfen zusätzlich `woche_<modus>` sein.
+const VALID_GAMES = SPIELMODI
 
 // ── Schemata ─────────────────────────────────────────────────
 
-/** POST /api/stats */
+// Spieltag eines Statistik-Ergebnisses: ein echter Kalendertag, gestern bis morgen (Berliner Zeit). Die App sendet
+// den Tag des Tagesinhalts (= heute); gestern/morgen decken Mitternacht, Zeitzonen und eine nachgehende Uhr ab.
+// Zusätzlich gilt jeder Tag ab dem Montag der laufenden Woche: App-Versionen vor Schritt 8 melden Spiele zum Wort der
+// Woche auf den Montag (spezialwoche.von). Alles andere (2099, 2001, 2026-02-31) würde die Auswertung verfälschen. Ein
+// Ergebnis mit alt zwischengespeichertem Tag (Offline-Fallback) wird abgewiesen – postStat ist fire-and-forget.
+const STAT_DATUM = DATUM_ISO.superRefine((datum, ctx) => {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(datum)) return // das Format meldet DATUM_ISO selbst
+  if (plusTage(datum, 0) !== datum) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'datum ist kein gültiger Kalendertag' })
+    return
+  }
+  const heute = berlinTag()
+  const montag = plusTage(heute, -((new Date(`${heute}T00:00:00Z`).getUTCDay() + 6) % 7))
+  const frueheste = montag < plusTage(heute, -1) ? montag : plusTage(heute, -1)
+  if (datum < frueheste || datum > plusTage(heute, 1)) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'datum muss zwischen dem Montag dieser Woche bzw. gestern und morgen liegen' })
+  }
+})
+
+/** POST /api/stats – score darf max nicht übersteigen (sonst hebt ein manipulierter Aufruf den Durchschnitt über 10) */
 export const statsSchema = z.object({
-  game:  z.enum(VALID_GAMES),
-  datum: DATUM_ISO,
+  game:  z.enum(STAT_SPIELE),
+  datum: STAT_DATUM,
   score: z.number().int().min(0).max(100),
   max:   z.number().int().positive('max muss > 0 sein').max(100),
-})
+}).refine((b) => b.score <= b.max, { message: 'score darf max nicht übersteigen', path: ['score'] })
 
 /** GET /api/v1/percentile (query) */
 export const percentileQuerySchema = z.object({
@@ -266,20 +288,18 @@ export const adminBackupPruefenSchema = z.object({
 /** POST /admin/backup/sqlite – ohne Eingaben; ein leeres Objekt (oder gar kein Body) ist erlaubt */
 export const adminBackupSqliteSchema = z.object({}).strict().optional().default({})
 
-/** GET /admin/stats (query) */
-export const adminStatsQuerySchema = z.object({
+// `?frisch=1` („neu laden“ im Admin): der Zwischenspeicher der Auswertung wird übergangen. Nur Admins erreichen diese
+// Routen (requireAuth); der Wert ändert nichts am Schlüssel des Zwischenspeichers, es gibt keine zweite Variante.
+const FRISCH = z.enum(['1']).optional().transform((v) => v === '1')
+
+/** GET /admin/auswertung/spiele (query) – Kalendertage inklusive heute */
+export const adminAuswertungSpieleQuerySchema = z.object({
   days: z.coerce.number().int().min(1).max(365).optional().default(30),
+  frisch: FRISCH,
 })
 
-/** GET /admin/stats/summary (query) */
-export const adminStatsSummaryQuerySchema = z.object({
-  days: z.coerce.number().int().min(1).max(365).optional().default(30),
-  topUsers: z.coerce.number().int().min(1).max(50).optional().default(10),
-})
-
-/** GET /admin/stats/export (query) */
+/** GET /admin/stats/export (query) – nur noch CSV; `format` bleibt für alte Links erlaubt und wird ignoriert */
 export const adminStatsExportQuerySchema = z.object({
-  format: z.enum(['json', 'csv']).optional().default('json'),
   days: z.coerce.number().int().min(1).max(365).optional().default(30),
 })
 
@@ -289,7 +309,7 @@ export const adminClassroomStatsQuerySchema = z.object({
 })
 
 // ── Produkt-Kennzahlen (Daten-Instrumentierung) ─────────────────
-// Alle vier Endpunkte teilen denselben einfachen Tagesfenster-Parameter.
+// Die Endpunkte teilen denselben einfachen Tagesfenster-Parameter (Kalendertage in Berliner Zeit, inklusive heute).
 const productDaysWindowSchema = z.object({
   days: z.coerce.number().int().min(1).max(365).optional().default(30),
 })
@@ -298,10 +318,8 @@ const productDaysWindowSchema = z.object({
 export const adminPaymentsSummaryQuerySchema = productDaysWindowSchema
 /** GET /admin/custom-lemma/summary (query) */
 export const adminCustomLemmaSummaryQuerySchema = productDaysWindowSchema
-/** GET /admin/stats/retention (query) */
-export const adminRetentionQuerySchema = productDaysWindowSchema
-/** GET /admin/classroom/teachers (query) */
-export const adminClassroomTeachersQuerySchema = productDaysWindowSchema
+/** GET /admin/stats/retention (query) – `frisch`: auch die Spiele-Zahlen darunter neu rechnen */
+export const adminRetentionQuerySchema = productDaysWindowSchema.extend({ frisch: FRISCH })
 
 // ── Bonus-Tage (free_days) Schemas ──────────────────────────────
 
@@ -557,8 +575,13 @@ export const classroomStartSessionSchema = z.object({
 })
 
 /** POST /api/v1/classroom/sessions/:id/finish (T-2.4) */
+// Der Grund steht in der Auswertung (Wie Sitzungen enden): nur 'manual' und 'completed' sind erlaubt, alles andere gilt als 'manual'.
+// 'auto' schreibt allein der Server (Auto-Ende nach Inaktivität).
+export const CLASSROOM_FINISH_GRUENDE = ['manual', 'completed']
 export const classroomFinishSessionSchema = z.object({
-  reason: z.string().trim().max(120).optional(),
+  reason: z.string().trim().max(120)
+    .transform((r) => (CLASSROOM_FINISH_GRUENDE.includes(r) ? r : 'manual'))
+    .optional(),
 })
 
 /** POST /api/v1/classroom/sessions/:id/duplicate (W4) — optional neuer Titel */

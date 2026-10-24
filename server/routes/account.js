@@ -6,6 +6,7 @@ import { deleteUserTx, ADMIN_DELETE_BLOCKED } from './admin-users-data.js'
 import { getQuota } from '../customLemmaQuota.js'
 import db from '../db.js'
 import logger from '../logger.js'
+import { SPIELMODI, WOCHE_PREFIX, grundModus } from '../spielmodi.js'
 
 const router = express.Router()
 
@@ -37,17 +38,21 @@ const getUserCreatedAtStmt = db.prepare(`
   WHERE id = ?
 `)
 
+// Spieltage für Serie und Kalender: Tage, an denen nur das Wort der Woche (`woche_*`) gespielt wurde, zählen nicht
+// (wie in notifications/streak.js und im Client, der Serie und Kalender nur aus den vier Tagesspielen bildet).
 const getPlayedDatesStmt = db.prepare(`
   SELECT DISTINCT datum
   FROM stats
-  WHERE user_id = ?
+  WHERE user_id = ? AND spiel NOT LIKE 'woche\\_%' ESCAPE '\\'
   ORDER BY datum
 `)
 
+// Spiele zum Wort der Woche stehen unter `woche_<modus>` (mit dem echten Spieltag) und zählen hier zu ihrem Modus,
+// wie bisher: Trefferquote, bester Tag und Lieblingsmodus der App kennen nur die vier Modi.
 const getStatsBySpielStmt = db.prepare(`
   SELECT datum, SUM(scoreSum) AS score, SUM(maxSum) AS max
   FROM stats
-  WHERE user_id = ? AND spiel = ?
+  WHERE user_id = ? AND (spiel = ? OR spiel = ? || ?)
   GROUP BY datum
 `)
 
@@ -58,7 +63,7 @@ const getPlaysBySpielStmt = db.prepare(`
   GROUP BY spiel
 `)
 
-const SPIELE = ['kollokationen', 'wortzwilling', 'zeitenwende', 'lueckenfueller']
+const SPIELE = SPIELMODI
 
 // ── Helper Functions ───────────────────────────────────────────
 
@@ -130,13 +135,14 @@ router.get('/api/v1/account/stats', requireAuthUser, (req, res) => {
     const payload = { playedDates, plays: {} }
     for (const spiel of SPIELE) {
       const map = {}
-      for (const row of getStatsBySpielStmt.all(userId, spiel)) {
+      for (const row of getStatsBySpielStmt.all(userId, spiel, WOCHE_PREFIX, spiel)) {
         map[row.datum] = { score: row.score, max: row.max }
       }
       payload[spiel] = map
     }
     for (const row of getPlaysBySpielStmt.all(userId)) {
-      payload.plays[row.spiel] = row.plays
+      const modus = grundModus(row.spiel)
+      payload.plays[modus] = (payload.plays[modus] || 0) + Number(row.plays || 0)
     }
     res.json(payload)
   } catch (err) {

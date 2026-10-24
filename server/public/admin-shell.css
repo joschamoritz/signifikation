@@ -241,6 +241,8 @@
 }
 
 .adm-tab {
+  /* Nicht schrumpfen: Sonst überlappen die Reiter bei 375 px oder großer Schrift; stattdessen scrollt .adm-tabs. */
+  flex: none;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -297,12 +299,6 @@
 
 .adm-link:hover {
   color: var(--text);
-  text-decoration: underline;
-}
-
-/* Textlink innerhalb einer Statusmeldung: Farbe der Meldung übernehmen */
-.status .adm-link {
-  color: inherit;
   text-decoration: underline;
 }
 

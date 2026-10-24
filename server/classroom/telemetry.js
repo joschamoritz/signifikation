@@ -6,7 +6,7 @@
  * audit_log – der ist fuer Admin-Aktionen).
  *
  * Verwendung:
- *   import { trackEvent, getAdminStats } from './telemetry.js'
+ *   import { trackEvent, getKlassenraumAuswertung } from './telemetry.js'
  *   trackEvent('classroom_session_created', { sessionId, teacherId, payload: { mode } })
  *
  * Fehler beim Schreiben werden geloggt aber nie geworfen – Telemetrie darf
@@ -33,6 +33,7 @@
 
 import db from '../db.js'
 import logger from '../logger.js'
+import { berlinTag, plusTage, tageVonBis, berlinMitternachtMs } from '../date-utils.js'
 
 // ── Prepared Statements ──────────────────────────────────────────
 
@@ -67,6 +68,8 @@ const stmts = {
     WHERE event IN ('classroom_join_succeeded', 'classroom_session_finished')
       AND ts >= @since
   `),
+  // Rolle einer Lehrkraft (für die Markierung "admin" am Ereignis; die Kennung selbst wird nach 30 Tagen gelöscht)
+  teacherRole: db.prepare(`SELECT role FROM user_profiles WHERE user_id = ?`),
   // Rohe Event-Liste fuer Debugging
   recentEvents: db.prepare(`
     SELECT id, ts, event, session_id, teacher_id, payload_json
@@ -76,89 +79,88 @@ const stmts = {
     LIMIT @limit
   `),
 
-  // ── Admin-Dashboard-Queries (W2-T6) ─────────────────────────────
+  // ── Auswertung › Klassenraum (Schritt 8) ────────────────────────
+  // Gezählt wird aus der Telemetrie (24 Monate): Sie bleibt, wenn die Sitzung selbst 30 Tage nach dem Ende
+  // gelöscht wird. @admin ist eine JSON-Liste der Sitzungen von Admin-Konten; sie zählen nicht mit.
 
-  // Sessions pro Tag (direkt aus classroom_session, zuverlaessiger als Events)
-  sessionsPerDay: db.prepare(`
+  // Sitzungen von Admin-Konten: Markierung am Ereignis (bleibt), Kennung am Ereignis (30 Tage) und die Sitzung selbst
+  adminSitzungen: db.prepare(`
+    SELECT session_id AS sid FROM classroom_telemetry
+    WHERE event = 'classroom_session_created' AND session_id IS NOT NULL
+      AND (json_extract(payload_json, '$.admin') = 1
+           OR teacher_id IN (SELECT user_id FROM user_profiles WHERE role = 'admin'))
+    UNION
+    SELECT id AS sid FROM classroom_session
+    WHERE teacher_user_id IN (SELECT user_id FROM user_profiles WHERE role = 'admin')
+  `),
+
+  // Angelegte Sitzungen (ein Zeitpunkt je Sitzung)
+  auswErstellt: db.prepare(`
+    SELECT session_id AS sid, MIN(ts) AS ts
+    FROM classroom_telemetry
+    WHERE event = 'classroom_session_created' AND ts BETWEEN @since AND @until
+      AND session_id NOT IN (SELECT value FROM json_each(@admin))
+    GROUP BY session_id
+  `),
+
+  // Teilnehmer beim Start (erstes Start-Ereignis je Sitzung)
+  auswGestartet: db.prepare(`
+    SELECT session_id AS sid, CAST(json_extract(payload_json, '$.participantCount') AS INTEGER) AS n
+    FROM classroom_telemetry
+    WHERE event = 'classroom_session_started' AND ts BETWEEN @since AND @until
+      AND session_id NOT IN (SELECT value FROM json_each(@admin))
+    ORDER BY ts, id
+  `),
+
+  // Wie Sitzungen enden (erstes Ende-Ereignis je Sitzung)
+  auswBeendet: db.prepare(`
+    SELECT session_id AS sid, json_extract(payload_json, '$.reason') AS grund
+    FROM classroom_telemetry
+    WHERE event = 'classroom_session_finished' AND ts BETWEEN @since AND @until
+      AND session_id NOT IN (SELECT value FROM json_each(@admin))
+    ORDER BY ts, id
+  `),
+
+  // Verbindungen
+  auswVerbindungen: db.prepare(`
     SELECT
-      date(created_at / 1000, 'unixepoch') AS day,
-      COUNT(*) AS count
-    FROM classroom_session
-    WHERE created_at >= @since AND created_at <= @until
-    GROUP BY day
-    ORDER BY day
+      COUNT(CASE WHEN event = 'classroom_join_succeeded'         THEN 1 END) AS beitritte,
+      COUNT(CASE WHEN event = 'classroom_participant_reconnected' THEN 1 END) AS wiederverbunden,
+      COUNT(CASE WHEN event = 'classroom_participant_dropped'    THEN 1 END) AS verloren
+    FROM classroom_telemetry
+    WHERE event IN ('classroom_join_succeeded', 'classroom_participant_reconnected', 'classroom_participant_dropped')
+      AND ts BETWEEN @since AND @until
+      AND session_id NOT IN (SELECT value FROM json_each(@admin))
   `),
 
-  // Status-Breakdown
-  statusBreakdown: db.prepare(`
-    SELECT status, COUNT(*) AS count
-    FROM classroom_session
-    WHERE created_at >= @since AND created_at <= @until
-    GROUP BY status
+  // Antworten je Modus; Aufgaben = Aufgaben mit mindestens einer Antwort (ältere Ereignisse ohne Aufgabe: je Sitzung und Modus eine)
+  auswAntworten: db.prepare(`
+    SELECT
+      json_extract(payload_json, '$.mode') AS modus,
+      COUNT(*) AS antworten,
+      SUM(CASE WHEN json_extract(payload_json, '$.correct') = 1 THEN 1 ELSE 0 END) AS richtig,
+      COUNT(DISTINCT session_id || ':' || COALESCE(json_extract(payload_json, '$.assignmentId'), json_extract(payload_json, '$.mode'))) AS aufgaben
+    FROM classroom_telemetry
+    WHERE event = 'classroom_submission_received' AND ts BETWEEN @since AND @until
+      AND session_id NOT IN (SELECT value FROM json_each(@admin))
+    GROUP BY modus
   `),
 
-  // Sessions pro Lehrer (pseudonym: nur teacher_user_id + Anzahl, kein Klarname)
-  sessionsPerTeacher: db.prepare(`
-    SELECT teacher_user_id AS teacherId, COUNT(*) AS n
+  // Noch offene Sitzungen (Warteraum oder läuft; "pausiert" ist ein Merkmal von "läuft")
+  auswOffen: db.prepare(`
+    SELECT COUNT(*) AS n
     FROM classroom_session
-    WHERE created_at >= @since AND created_at <= @until
+    WHERE status IN ('lobby', 'running') AND created_at BETWEEN @since AND @until
+      AND id NOT IN (SELECT value FROM json_each(@admin))
+  `),
+
+  // Sitzungen je Lehrkraft (nur Zahlen; die Kennung verlässt diese Datei nicht)
+  auswLehrkraefte: db.prepare(`
+    SELECT COUNT(*) AS n
+    FROM classroom_session
+    WHERE created_at BETWEEN @since AND @until
+      AND id NOT IN (SELECT value FROM json_each(@admin))
     GROUP BY teacher_user_id
-  `),
-
-  // Beliebteste Modi (aus classroom_assignment)
-  modePopularity: db.prepare(`
-    SELECT a.mode, COUNT(*) AS count
-    FROM classroom_assignment a
-    JOIN classroom_session s ON s.id = a.session_id
-    WHERE s.created_at >= @since AND s.created_at <= @until
-    GROUP BY a.mode
-    ORDER BY count DESC
-  `),
-
-  // Ø-Teilnehmer pro Session (nur Sessions die gestartet wurden)
-  avgParticipants: db.prepare(`
-    SELECT
-      AVG(participant_count) AS avg_participants,
-      SUM(participant_count) AS total_joins
-    FROM (
-      SELECT session_id, COUNT(*) AS participant_count
-      FROM classroom_participant p
-      JOIN classroom_session s ON s.id = p.session_id
-      WHERE s.created_at >= @since AND s.created_at <= @until
-      GROUP BY session_id
-    )
-  `),
-
-  // Auto-End-Quote: reason aus classroom_session_finished-Events
-  finishReasons: db.prepare(`
-    SELECT
-      json_extract(payload_json, '$.reason') AS reason,
-      COUNT(*) AS count
-    FROM classroom_telemetry
-    WHERE event = 'classroom_session_finished'
-      AND ts >= @since AND ts <= @until
-    GROUP BY reason
-  `),
-
-  // Reconnect-Quote: Reconnects vs. Joins
-  reconnectStats: db.prepare(`
-    SELECT
-      COUNT(CASE WHEN event = 'classroom_participant_reconnected' THEN 1 END) AS reconnects,
-      COUNT(CASE WHEN event = 'classroom_participant_dropped'    THEN 1 END) AS dropped,
-      COUNT(CASE WHEN event = 'classroom_join_succeeded'         THEN 1 END) AS total_joins
-    FROM classroom_telemetry
-    WHERE event IN ('classroom_participant_reconnected', 'classroom_participant_dropped', 'classroom_join_succeeded')
-      AND ts >= @since AND ts <= @until
-  `),
-
-  // Submissions: Anzahl und Korrektheit
-  submissionStats: db.prepare(`
-    SELECT
-      COUNT(*) AS total,
-      SUM(CASE WHEN json_extract(payload_json, '$.correct') = 1 THEN 1 ELSE 0 END) AS correct_count
-    FROM classroom_telemetry
-    WHERE event = 'classroom_submission_received'
-      AND ts >= @since AND ts <= @until
   `),
 }
 
@@ -190,9 +192,19 @@ export function trackEvent(event, { sessionId = null, teacherId = null, payload 
 
 // ── Convenience-Exports (je Event ein benannter Wrapper) ─────────
 
-/** Lehrer legt eine neue Session an. */
+/**
+ * Lehrer legt eine neue Session an.
+ * Gehört die Lehrkraft einem Admin-Konto, steht das als `admin: 1` am Ereignis. Die Kennung (teacher_id) wird nach
+ * 30 Tagen gelöscht; die Auswertung nimmt Admin-Sitzungen auch danach noch aus den Zahlen.
+ */
 export function trackSessionCreated(sessionId, teacherId) {
-  trackEvent('classroom_session_created', { sessionId, teacherId, payload: {} })
+  let admin = false
+  try {
+    admin = !!teacherId && stmts.teacherRole.get(String(teacherId))?.role === 'admin'
+  } catch (err) {
+    logger.warn({ err }, 'classroom telemetry: Rolle der Lehrkraft nicht lesbar')
+  }
+  trackEvent('classroom_session_created', { sessionId, teacherId, payload: admin ? { admin: 1 } : {} })
 }
 
 /** Join-Versuch (vor DB-Lookup). Wird immer gerufen, egal ob er klappt. */
@@ -225,7 +237,7 @@ export function trackSessionStarted(sessionId, teacherId, participantCount) {
  * Lehrer beendet die Session manuell oder System-Auto-End.
  * @param {number} durationMs     – Zeit von started_at bis jetzt
  * @param {number} completionRate – Anteil Schüler mit letzter Submission (0–1)
- * @param {string} reason         – 'manual' | 'completed' | 'auto' | 'aborted'
+ * @param {string} reason         – 'manual' | 'completed' | 'auto' (Auto-Ende nach Inaktivität, schreibt der Job)
  */
 export function trackSessionFinished(sessionId, teacherId, { durationMs, completionRate, reason } = {}) {
   trackEvent('classroom_session_finished', {
@@ -282,15 +294,17 @@ export function trackParticipantDropped(sessionId, participantId) {
 }
 
 /**
- * Submission eingegangen (W2-T6). Nur mode und correct – kein participantId,
- * kein lemmaId (vermeidet personenbezogene Verkettbarkeit).
+ * Submission eingegangen (W2-T6). Nur mode, correct und die Aufgabe (assignmentId) – kein participantId,
+ * kein lemmaId (vermeidet personenbezogene Verkettbarkeit). Die Aufgabe braucht die Auswertung, um
+ * "Aufgaben" je Modus zu zählen, auch nachdem die Sitzung gelöscht ist.
  * @param {string} mode    – Spielmodus
  * @param {boolean} correct – ob die Antwort korrekt war
+ * @param {string} [assignmentId] – Aufgabe innerhalb der Sitzung
  */
-export function trackSubmissionReceived(sessionId, { mode, correct } = {}) {
+export function trackSubmissionReceived(sessionId, { mode, correct, assignmentId } = {}) {
   trackEvent('classroom_submission_received', {
     sessionId,
-    payload: { mode, correct: correct ? 1 : 0 },
+    payload: { mode, correct: correct ? 1 : 0, ...(assignmentId ? { assignmentId: String(assignmentId) } : {}) },
   })
 }
 
@@ -337,53 +351,6 @@ export function getMetrics({ since, minParticipants = 3 } = {}) {
 }
 
 /**
- * Lehrer-Aktivitaet im Zeitraum (Daten-Instrumentierung).
- * Pseudonym: liefert nur Zahlen/Verteilungen, keine teacher_user_id-Liste,
- * keine Klarnamen oder E-Mails.
- *
- * @param {object} [opts]
- * @param {number} [opts.days]   – Zeitraum in Tagen (default: 30)
- * @param {number} [opts.since]  – Unix-Ms explizit (ueberschreibt days)
- * @param {number} [opts.until]  – Unix-Ms (default: jetzt)
- * @returns {{ period, uniqueTeachers, totalSessions, avgSessionsPerTeacher, histogram }}
- */
-export function getTeacherStats({ days = 30, since, until } = {}) {
-  const untilMs = until ?? Date.now()
-  const sinceMs = since ?? untilMs - days * 24 * 60 * 60 * 1000
-
-  try {
-    const rows = stmts.sessionsPerTeacher.all({ since: sinceMs, until: untilMs })
-
-    // Sessions-pro-Lehrer-Histogramm: 1-5 / 6-20 / 20+
-    const histogram = { '1-5': 0, '6-20': 0, '20+': 0 }
-    let totalSessions = 0
-    for (const r of rows) {
-      const n = Number(r.n) || 0
-      totalSessions += n
-      if (n <= 5) histogram['1-5'] += 1
-      else if (n <= 20) histogram['6-20'] += 1
-      else histogram['20+'] += 1
-    }
-
-    const uniqueTeachers = rows.length
-    const avgSessionsPerTeacher = uniqueTeachers > 0
-      ? Math.round((totalSessions / uniqueTeachers) * 10) / 10
-      : null
-
-    return {
-      period: { days, sinceMs, untilMs },
-      uniqueTeachers,
-      totalSessions,
-      avgSessionsPerTeacher,
-      histogram,
-    }
-  } catch (err) {
-    logger.error({ err }, 'classroom telemetry getTeacherStats failed')
-    return null
-  }
-}
-
-/**
  * Rohe Event-Liste der letzten N Events (fuer Admin-Panel / Debugging).
  * @param {object} [opts]
  * @param {number} [opts.since]  – Unix-Ms
@@ -406,93 +373,111 @@ export function getRecentEvents({ since, limit = 100 } = {}) {
   }
 }
 
+// ── Auswertung › Klassenraum (Schritt 8) ─────────────────────────
+
+/** Lehrkraft-Zahlen gibt es nur so weit zurück, wie die Sitzungen selbst gespeichert werden (30 Tage nach dem Ende gelöscht). */
+export const LEHRKRAEFTE_MAX_TAGE = 30
+/** Verteilung der Lehrkräfte erst ab so vielen Personen – darunter ließe sich eine einzelne Lehrkraft ablesen. */
+export const LEHRKRAEFTE_MIN_GRUPPE = 5
+
+const SPIELMODI_KLASSENRAUM = ['kollokationen', 'wortzwilling', 'zeitenwende', 'lueckenfueller']
+
 /**
- * Admin-Dashboard-Aggregate (W2-T6).
- * Hybrid-Queries: direkte Tabellen (classroom_session, classroom_assignment,
- * classroom_participant) fuer stabile Zaehler + classroom_telemetry fuer
- * Event-spezifische Metriken (reconnect, auto-end, submission).
+ * Auswertung für Auswertung › Klassenraum: Zeitraum = `days` Berliner Kalendertage inklusive heute.
+ * Sitzungen, Beendigungen, Teilnehmer, Verbindungen und Antworten kommen aus der Telemetrie (24 Monate);
+ * "noch offen" und die Lehrkräfte (nur bis 30 Tage) aus der Tabelle classroom_session. Sitzungen von Admin-Konten
+ * zählen nicht mit. Die Antwort enthält nur Summen: keine Sitzungs-, Lehrkraft- oder Teilnehmer-Kennungen.
  *
  * @param {object} [opts]
- * @param {number} [opts.days]   – Zeitraum in Tagen (default: 30)
- * @param {number} [opts.since]  – Unix-Ms explizit (ueberschreibt days)
- * @param {number} [opts.until]  – Unix-Ms (default: jetzt)
+ * @param {number} [opts.days] – Zeitraum in Tagen (default: 30)
+ * @returns {object|null} null bei Datenbankfehlern (geloggt)
  */
-export function getAdminStats({ days = 30, since, until } = {}) {
-  const untilMs = until ?? Date.now()
-  const sinceMs = since ?? untilMs - days * 24 * 60 * 60 * 1000
-  const params  = { since: sinceMs, until: untilMs }
-
+export function getKlassenraumAuswertung({ days = 30 } = {}) {
   try {
-    const perDay        = stmts.sessionsPerDay.all(params)
-    const statusRows    = stmts.statusBreakdown.all(params)
-    const modeRows      = stmts.modePopularity.all(params)
-    const partRow       = stmts.avgParticipants.get(params)
-    const reasonRows    = stmts.finishReasons.all(params)
-    const reconnRow     = stmts.reconnectStats.get(params)
-    const submitRow     = stmts.submissionStats.get(params)
+    const bis = berlinTag()
+    const von = plusTage(bis, -(days - 1))
+    const admin = JSON.stringify(stmts.adminSitzungen.all().map((r) => r.sid))
+    const params = { since: berlinMitternachtMs(von), until: Date.now(), admin }
 
-    // Status-Breakdown als Objekt
-    const byStatus = { lobby: 0, running: 0, paused: 0, finished: 0, aborted: 0 }
-    for (const r of statusRows) {
-      if (r.status in byStatus) byStatus[r.status] = Number(r.count)
-    }
-    const totalSessions = Object.values(byStatus).reduce((a, b) => a + b, 0)
-
-    // Auto-End-Gruende
-    const byReason = {}
-    for (const r of reasonRows) {
-      byReason[r.reason ?? 'unknown'] = Number(r.count)
+    // Sitzungen pro Berliner Tag (jeder Tag des Zeitraums)
+    const nachTag = new Map(tageVonBis(von, bis).map((datum) => [datum, { datum, sitzungen: 0, teil: datum === bis }]))
+    let sitzungen = 0
+    const angelegt = new Set()
+    for (const r of stmts.auswErstellt.all(params)) {
+      const tag = nachTag.get(berlinTag(Number(r.ts)))
+      if (!tag) continue
+      tag.sitzungen += 1
+      sitzungen += 1
+      angelegt.add(r.sid)
     }
 
-    // Teilnehmer-Statistik
-    const totalJoins      = Number(partRow?.total_joins ?? 0)
-    const avgParticipants = partRow?.avg_participants != null
-      ? Math.round(partRow.avg_participants * 10) / 10
+    // Ø Teilnehmer je gestartete Sitzung (erste Start-Meldung je Sitzung)
+    const gestartet = new Map()
+    for (const r of stmts.auswGestartet.all(params)) if (!gestartet.has(r.sid)) gestartet.set(r.sid, Number(r.n) || 0)
+    const schnitt = gestartet.size
+      ? Math.round(([...gestartet.values()].reduce((a, b) => a + b, 0) / gestartet.size) * 10) / 10
       : null
 
-    // Reconnect-Quote
-    const reconnects  = Number(reconnRow?.reconnects ?? 0)
-    const dropped     = Number(reconnRow?.dropped    ?? 0)
-    const joinEvents  = Number(reconnRow?.total_joins ?? 0)
-    const reconnectRate = joinEvents > 0
-      ? Math.round((reconnects / joinEvents) * 1000) / 1000
-      : 0
+    // Wie Sitzungen enden; unbekannte Gründe gelten als "Lehrkraft beendet" (gleiche Regel wie beim Annehmen).
+    // Nur Sitzungen, die im Zeitraum angelegt wurden (dieselbe Menge wie "Sitzungen"): Eine früher angelegte, im
+    // Zeitraum beendete Sitzung würde sonst mehr Enden als Sitzungen ergeben.
+    const ende = { alleGespielt: 0, lehrkraft: 0, automatisch: 0, offen: 0 }
+    const beendet = new Set()
+    for (const r of stmts.auswBeendet.all(params)) {
+      if (!angelegt.has(r.sid) || beendet.has(r.sid)) continue
+      beendet.add(r.sid)
+      if (r.grund === 'completed') ende.alleGespielt += 1
+      else if (r.grund === 'auto') ende.automatisch += 1
+      else ende.lehrkraft += 1
+    }
+    ende.offen = Number(stmts.auswOffen.get(params)?.n ?? 0)
 
-    // Submission-Statistik
-    const submitTotal   = Number(submitRow?.total        ?? 0)
-    const submitCorrect = Number(submitRow?.correct_count ?? 0)
-    const correctPct    = submitTotal > 0
-      ? Math.round((submitCorrect / submitTotal) * 1000) / 1000
-      : null
+    const verb = stmts.auswVerbindungen.get(params) || {}
+
+    // Antworten gesamt und je Modus (Reihenfolge wie im Admin; unbekannte Modi zählen nur in der Summe)
+    const zeilen = stmts.auswAntworten.all(params)
+    let antwortenGesamt = 0
+    let richtigGesamt = 0
+    for (const r of zeilen) {
+      antwortenGesamt += Number(r.antworten || 0)
+      richtigGesamt += Number(r.richtig || 0)
+    }
+    const nachModus = SPIELMODI_KLASSENRAUM
+      .map((modus) => {
+        const r = zeilen.find((x) => x.modus === modus)
+        return r ? { modus, aufgaben: Number(r.aufgaben || 0), antworten: Number(r.antworten || 0), richtig: Number(r.richtig || 0) } : null
+      })
+      .filter(Boolean)
+
+    // Lehrkräfte: nur für kurze Zeiträume; Gruppen erst ab 5 Personen
+    let lehrkraefte = { verfuegbar: false }
+    if (days <= LEHRKRAEFTE_MAX_TAGE) {
+      const proLehrkraft = stmts.auswLehrkraefte.all(params).map((r) => Number(r.n) || 0)
+      lehrkraefte = { verfuegbar: true, anzahl: proLehrkraft.length }
+      if (proLehrkraft.length >= LEHRKRAEFTE_MIN_GRUPPE) {
+        lehrkraefte.gruppen = {
+          '1-5': proLehrkraft.filter((n) => n <= 5).length,
+          '6-20': proLehrkraft.filter((n) => n > 5 && n <= 20).length,
+          '21+': proLehrkraft.filter((n) => n > 20).length,
+        }
+      }
+    }
 
     return {
-      period: {
-        days,
-        sinceMs,
-        untilMs,
+      zeitraum: { days, von, bis, stand: new Date().toISOString() },
+      sitzungen: { gesamt: sitzungen, tage: [...nachTag.values()], ende },
+      teilnehmer: {
+        schnitt,
+        beitritte: Number(verb.beitritte || 0),
+        wiederverbunden: Number(verb.wiederverbunden || 0),
+        verloren: Number(verb.verloren || 0),
       },
-      sessions: {
-        total:    totalSessions,
-        perDay:   perDay.map(r => ({ day: r.day, count: Number(r.count) })),
-        byStatus,
-        byReason,
-      },
-      participants: {
-        totalJoins,
-        avgPerSession: avgParticipants,
-        reconnects,
-        dropped,
-        reconnectRate,
-      },
-      modes: modeRows.map(r => ({ mode: r.mode, count: Number(r.count) })),
-      submissions: {
-        total:      submitTotal,
-        correct:    submitCorrect,
-        correctPct,
-      },
+      antworten: { gesamt: antwortenGesamt, richtig: richtigGesamt },
+      nachModus,
+      lehrkraefte,
     }
   } catch (err) {
-    logger.error({ err }, 'classroom telemetry getAdminStats failed')
+    logger.error({ err }, 'classroom telemetry getKlassenraumAuswertung failed')
     return null
   }
 }

@@ -15,7 +15,7 @@ export default [
       'ios/**',
       'coverage/**',
       'dev-dist/**',
-      'server/public/**', // gebundelte Admin-Assets (Chart.js etc.)
+      'server/public/**', // Admin-Skript und -Stile (klassisches Skript, kein Modul)
       'playwright-report/**',
       'test-results/**',
       'wortprofil/**', // Python-Pipeline + venv – kein Projekt-JS

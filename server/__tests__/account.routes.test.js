@@ -174,6 +174,29 @@ describe('account entitlements integration', () => {
     })
   })
 
+  it('Statistiken: Spiele zum Wort der Woche zählen zu ihrem Modus und mit dem echten Spieltag', async () => {
+    const userId = createTestUser()
+    testUserIds.add(userId)
+    insertStatStmt.run('2026-05-13', 'wortzwilling', userId, 1, 6, 10)
+    // Wort der Woche: eigener Schlüssel, Spieltag Donnerstag (nicht der Montag der Woche)
+    insertStatStmt.run('2026-05-14', 'woche_wortzwilling', userId, 1, 9, 10)
+    insertStatStmt.run('2026-05-14', 'woche_zeitenwende', userId, 2, 12, 20)
+    insertStatStmt.run('2026-05-14', 'woche_lueckenfueller', userId, 1, 7, 10)
+
+    const res = await fetch(`${baseUrl}/api/v1/account/stats`, { headers: devHeaders(userId, 'user') })
+    const payload = await res.json()
+
+    expect(res.status).toBe(200)
+    // Ein Tag nur mit Wort der Woche (14.05.) zählt weder für die Serie noch für den Kalender
+    expect(payload.playedDates).toEqual(['2026-05-13'])
+    expect(payload.wortzwilling).toEqual({ '2026-05-13': { score: 6, max: 10 }, '2026-05-14': { score: 9, max: 10 } })
+    expect(payload.zeitenwende['2026-05-14']).toEqual({ score: 12, max: 20 })
+    expect(payload.lueckenfueller['2026-05-14']).toEqual({ score: 7, max: 10 })
+    // Keine Rohschlüssel in der Antwort: Lieblingsmodus und Trefferquote kennen nur die vier Modi
+    expect(payload.plays).toEqual({ wortzwilling: 2, zeitenwende: 2, lueckenfueller: 1 })
+    expect(Object.keys(payload).some((k) => k.startsWith('woche_'))).toBe(false)
+  })
+
   it('Statistiken: zeigt nur Daten des anfragenden Nutzers', async () => {
     const userId = createTestUser()
     const otherUserId = createTestUser()

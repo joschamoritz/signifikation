@@ -5,15 +5,16 @@
  * Auth: requireAuth (Admin-Session).
  *
  * GET /admin/classroom/stats?days=30
- *   Aggregate: Sessions pro Tag, Ø-Teilnehmer, beliebteste Modi,
- *   Auto-End-Quote, Reconnect-Quote, Status-Breakdown, Submission-Stats.
+ *   Alles für Auswertung › Klassenraum (Schritt 8): Sitzungen pro Berliner Tag, wie sie enden,
+ *   Teilnehmer, Verbindungen, Antworten je Modus und – bis 30 Tage – die Lehrkräfte.
+ *   Nur Summen; Admin-Konten zählen nicht mit (classroom/telemetry.js).
  */
 
 import express from 'express'
-import { getAdminStats, getTeacherStats } from '../classroom/telemetry.js'
+import { getKlassenraumAuswertung } from '../classroom/telemetry.js'
 import { loadDemoContentMitStand, saveDemoContent, DEMO_CONTENT_DEFAULT } from '../classroom/demoContent.js'
 
-export function createAdminClassroomRouter({ adminLimiter, requireAuth, validate, adminClassroomStatsQuerySchema, adminClassroomTeachersQuerySchema, auditUpdate, adminError }) {
+export function createAdminClassroomRouter({ adminLimiter, requireAuth, validate, adminClassroomStatsQuerySchema, auditUpdate, adminError }) {
   const router = express.Router()
 
   router.get(
@@ -24,27 +25,7 @@ export function createAdminClassroomRouter({ adminLimiter, requireAuth, validate
     (req, res) => {
       try {
         const { days } = req.query
-        const stats = getAdminStats({ days })
-        if (!stats) {
-          return res.status(500).json({ error: 'Telemetrie-Abfrage fehlgeschlagen' })
-        }
-        return res.json(stats)
-      } catch (err) {
-        adminError(res, err)
-      }
-    },
-  )
-
-  // Lehrer-Aktivitaet: aktive Lehrer + Sessions-pro-Lehrer-Histogramm.
-  router.get(
-    '/admin/classroom/teachers',
-    adminLimiter,
-    requireAuth,
-    validate(adminClassroomTeachersQuerySchema, 'query'),
-    (req, res) => {
-      try {
-        const { days } = req.query
-        const stats = getTeacherStats({ days })
+        const stats = getKlassenraumAuswertung({ days })
         if (!stats) {
           return res.status(500).json({ error: 'Telemetrie-Abfrage fehlgeschlagen' })
         }

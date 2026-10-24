@@ -1121,6 +1121,7 @@ router.post(
       trackSubmissionReceived(sessionId, {
         mode:    submissionAssignment?.mode ?? 'unknown',
         correct: result.correct,
+        assignmentId,
       })
       notifySubmissionReceived(sessionId, {
         participantId: participant.id,

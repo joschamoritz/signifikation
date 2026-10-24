@@ -61,9 +61,11 @@ export const DEFAULT_AUTO_END_IDLE_MS = 90 * 60 * 1000
 //     Personenbezug zur Lehrkraft — und der hatte bisher als einziger keine
 //     Loeschfrist. Geloescht wird nur die Kennung, nicht das Event: die
 //     §14-Metriken (Aktivierungs-/Completion-Rate) laufen ausschliesslich ueber
-//     event/ts/session_id, und getTeacherStats liest teacher_user_id aus
-//     classroom_session, nicht aus der Telemetrie. Einziger Leser von
-//     telemetry.teacher_id ist getRecentEvents (Debug, Default-Fenster 7 Tage).
+//     event/ts/session_id; die Lehrkraft-Zahlen der Auswertung (bis 30 Tage)
+//     liest getKlassenraumAuswertung aus classroom_session. Leser von
+//     telemetry.teacher_id sind getRecentEvents (Debug, Default-Fenster 7 Tage)
+//     und die Erkennung von Admin-Sitzungen in der Auswertung (nur Ja/Nein,
+//     dazu trägt das Ereignis zusätzlich die Markierung admin: 1).
 //     30 Tage = dieselbe Grenze wie der Session-Hard-Delete, danach ist die
 //     Telemetrie vollstaendig pseudonym.
 export const DEFAULT_NAME_ANONYMIZE_MS = 24 * 60 * 60 * 1000      // 24 h (H2: Klartext-Spitznamen Minderjähriger kürzer halten; Lehrkraft-Review am Folgetag bleibt möglich)

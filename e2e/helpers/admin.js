@@ -26,7 +26,7 @@ const NAV_PAGES = {
   'Vorschläge': { route: '#vorschlaege', page: 'vorschlaege' },
   'Kalender': { route: '#planen/monat', page: 'calendar' },
   'Wort prüfen': { route: '#werkzeuge/pruefen', page: 'analytics' },
-  'Statistiken': { route: '#auswertung/spiele', page: 'stats' },
+  'Spiele': { route: '#auswertung/spiele', page: 'stats' },
   'Kennzahlen': { route: '#auswertung/kennzahlen', page: 'metrics' },
   'Nutzer': { route: '#nutzer', page: 'users' },
   'Bonus-Tage': { route: '#werkzeuge/bonus-tage', page: 'freedays' },

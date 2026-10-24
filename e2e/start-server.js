@@ -11,6 +11,7 @@ import { rmSync, mkdirSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, dirname } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
+import { berlinTag, plusTage } from '../server/date-utils.js'
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
 
@@ -50,6 +51,26 @@ execFileSync(process.execPath, [join(root, 'server/seed-dev.js')], {
     INSERT INTO user (id, name, email, emailVerified, image, createdAt, updatedAt)
     VALUES ('e2e-probe-konto', 'E2E Probe', 'e2e-probe@example.test', 1, NULL, ?, ?)
   `).run(jetzt, jetzt)
+  // Spieldaten der letzten 20 Tage (Berliner Tage) für die Auswertung: je Tag vier Modi, ein Teil mit Konto
+  {
+    const einfuegen = db.prepare(`
+      INSERT INTO stats (datum, spiel, user_id, plays, scoreSum, maxSum, dist) VALUES (?, ?, ?, ?, ?, ?, ?)
+      ON CONFLICT(datum, spiel, user_id) DO UPDATE SET plays = excluded.plays, scoreSum = excluded.scoreSum, maxSum = excluded.maxSum, dist = excluded.dist
+    `)
+    // Kalendertage rückwärts (plusTage), nicht "jetzt minus n x 24 h": An Tagen der Zeitumstellung hat der Tag 23/25 Stunden
+    const heute = berlinTag()
+    for (let tag = 0; tag < 20; tag += 1) {
+      const datum = plusTage(heute, -tag)
+      for (const [i, spiel] of ['kollokationen', 'wortzwilling', 'zeitenwende', 'lueckenfueller'].entries()) {
+        const spiele = 3 + ((tag * 7 + i * 3) % 9)
+        const dist = Array(11).fill(0)
+        dist[4 + i] = spiele - 1
+        dist[9] = 1
+        einfuegen.run(datum, spiel, '', spiele, spiele * (5 + i), spiele * 10, JSON.stringify(dist))
+      }
+      einfuegen.run(datum, 'kollokationen', 'e2e-probe-konto', 1, 8, 10, JSON.stringify([0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0]))
+    }
+  }
   db.close()
 }
 

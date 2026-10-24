@@ -347,8 +347,10 @@ export function loadMutableDailyContentMaps() {
 }
 export function recordStat(args) { return _statsStore.recordStat(args) }
 export function getPercentile(datum, spiel, score, max) { return _statsStore.getPercentile(datum, spiel, score, max) }
-export function getStatsWindow(days) { return _statsStore.getStatsWindow(days) }
-export function getStatsTimeline(days) { return _statsStore.getStatsTimeline(days) }
+export function getAuswertungSpiele(days, opts) { return _statsStore.getAuswertungSpiele(days, opts) }
+export function getAuswertungZeilen(days, opts) { return _statsStore.getAuswertungZeilen(days, opts) }
+/** Leert den Zwischenspeicher der Spiele-Auswertung (Tests; Wiederherstellen und Verdichten leeren ihn selbst). */
+export function invalidateStatsCache() { return _statsStore.invalidateWindowCache() }
 
 const _lemmataIndexStore = createLemmataIndexStore(_loadLemmata, logger)
 

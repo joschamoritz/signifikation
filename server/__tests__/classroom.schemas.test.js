@@ -327,6 +327,14 @@ describe('classroomFinishSessionSchema', () => {
     expect(classroomFinishSessionSchema.safeParse({}).success).toBe(true)
   })
 
+  it('reason: nur manual und completed bleiben, alles andere wird zu manual', () => {
+    expect(classroomFinishSessionSchema.parse({ reason: 'completed' }).reason).toBe('completed')
+    expect(classroomFinishSessionSchema.parse({ reason: 'manual' }).reason).toBe('manual')
+    expect(classroomFinishSessionSchema.parse({ reason: 'auto' }).reason).toBe('manual') // 'auto' schreibt nur der Server
+    expect(classroomFinishSessionSchema.parse({ reason: 'egal was' }).reason).toBe('manual')
+    expect(classroomFinishSessionSchema.parse({}).reason).toBeUndefined()
+  })
+
   it('reason > 120 Zeichen abgelehnt', () => {
     expect(classroomFinishSessionSchema.safeParse({ reason: 'x'.repeat(121) }).success).toBe(false)
   })

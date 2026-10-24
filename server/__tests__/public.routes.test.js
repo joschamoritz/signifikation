@@ -4,6 +4,7 @@ import publicRouter from '../routes/public.js'
 import { belegeVerfuegbar } from '../belege.js'
 import { invalidateCache, stmts } from '../store.js'
 import db from '../db.js'
+import { berlinTag, plusTage } from '../date-utils.js'
 
 // ── Wiktionary-Fetch mocken (kein Netz in Tests) ─────────────────
 vi.mock('../wiktionary.js', () => ({
@@ -214,37 +215,72 @@ describe('public routes integration', () => {
   // ── POST /api/v1/stats ─────────────────────────────────────────
 
   describe('POST /api/v1/stats', () => {
+    // Der Server nimmt nur Ergebnisse von gestern bis morgen (Berliner Zeit) an. Die Testzeilen von heute
+    // werden nach dem Block entfernt und die vorher vorhandenen (Entwicklungs-Datenbank) wiederhergestellt.
+    const HEUTE = berlinTag()
+    const TAGE = [HEUTE]
+    const tageIn = TAGE.map(() => '?').join(',')
+    const STAT_KEYS = ['kollokationen', 'woche_zeitenwende', 'lueckenfueller']
+    const gesichert = []
+    const postStat = (body) => fetch(`${baseUrl}/api/v1/stats`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(body),
+    })
+    const loescheTestzeilen = () => {
+      db.prepare(`DELETE FROM stats WHERE datum IN (${tageIn}) AND user_id = '' AND spiel IN (${STAT_KEYS.map(() => '?').join(',')})`).run(...TAGE, ...STAT_KEYS)
+    }
+
+    beforeAll(() => {
+      gesichert.push(...db.prepare(`SELECT * FROM stats WHERE datum IN (${tageIn}) AND user_id = '' AND spiel IN (${STAT_KEYS.map(() => '?').join(',')})`).all(...TAGE, ...STAT_KEYS))
+      loescheTestzeilen()
+    })
+
+    afterAll(() => {
+      loescheTestzeilen()
+      for (const z of gesichert) stmts.upsertStats.run({ datum: z.datum, spiel: z.spiel, user_id: z.user_id, plays: z.plays, scoreSum: z.scoreSum, maxSum: z.maxSum, dist: z.dist })
+    })
+
     it('speichert Spielstatistik und gibt ok zurück', async () => {
-      const res = await fetch(`${baseUrl}/api/v1/stats`, {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ game: 'kollokationen', datum: TEST_DATUM, score: 8, max: 10 }),
-      })
+      const res = await postStat({ game: 'kollokationen', datum: HEUTE, score: 8, max: 10 })
       expect(res.status).toBe(200)
       const body = await res.json()
       expect(body.ok).toBe(true)
 
-      const row = stmts.getStatsByKey.get(TEST_DATUM, 'kollokationen', '')
+      const row = stmts.getStatsByKey.get(HEUTE, 'kollokationen', '')
       expect(row).toBeTruthy()
       expect(row.plays).toBeGreaterThanOrEqual(1)
     })
 
     it('gibt 400 bei fehlendem Pflichtfeld', async () => {
-      const res = await fetch(`${baseUrl}/api/v1/stats`, {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ game: 'kollokationen', datum: TEST_DATUM }),
-      })
+      const res = await postStat({ game: 'kollokationen', datum: HEUTE })
       expect(res.status).toBe(400)
     })
 
-    it('gibt 400 bei ungültigem Spielmodus', async () => {
-      const res = await fetch(`${baseUrl}/api/v1/stats`, {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ game: 'unbekannt', datum: TEST_DATUM, score: 5, max: 10 }),
-      })
+    it('gibt 400, wenn score größer als max ist', async () => {
+      const res = await postStat({ game: 'kollokationen', datum: HEUTE, score: 100, max: 1 })
       expect(res.status).toBe(400)
+    })
+
+    it('nimmt Spiele zum Wort der Woche unter eigenem Schlüssel und mit dem Spieltag an', async () => {
+      const res = await postStat({ game: 'woche_zeitenwende', datum: HEUTE, score: 7, max: 10 })
+      expect(res.status).toBe(200)
+      expect(stmts.getStatsByKey.get(HEUTE, 'woche_zeitenwende', '')?.plays).toBeGreaterThanOrEqual(1)
+    })
+
+    it('gibt 400 bei ungültigem Spielmodus', async () => {
+      const res = await postStat({ game: 'unbekannt', datum: HEUTE, score: 5, max: 10 })
+      expect(res.status).toBe(400)
+    })
+
+    // Nur eine Anfrage: statsLimiter erlaubt 10 pro Minute für den ganzen Block. Alle Grenzfälle (Montag der Woche, gestern,
+    // morgen, übermorgen, 31. Februar) prüft validate.test.js am Schema.
+    it('weist ein Datum nach morgen mit deutscher Meldung ab, ohne zu speichern', async () => {
+      const datum = plusTage(HEUTE, 2)
+      const res = await postStat({ game: 'lueckenfueller', datum, score: 4, max: 10 })
+      expect(res.status).toBe(400)
+      expect((await res.json()).error).toBe('datum muss zwischen dem Montag dieser Woche bzw. gestern und morgen liegen')
+      expect(stmts.getStatsByKey.get(datum, 'lueckenfueller', '')).toBeUndefined()
     })
   })
 

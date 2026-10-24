@@ -6,11 +6,11 @@ import { buildLueckenfueller } from '../lueckenfueller.js'
 import { fetchBelege } from '../belege.js'
 import { fetchWiktionary } from '../wiktionary.js'
 import { fetchWortZwilling } from '../wortzwilling.js'
-import { loadKalender, loadDailyContentMaps, loadWortZwilling, getLemmataIndex, invalidateCache, getCacheMetrics, DATA, stmts, lemmaToRow, replaceAllAdminData, getStatsWindow, getStatsTimeline, loadBackupFiles, loadAllSpezialwochen, loadSpezialwocheByWoche, saveSpezialwoche, deleteSpezialwoche, saveTagAtomically, deleteTagsAtomically } from '../store.js'
+import { loadKalender, loadDailyContentMaps, loadWortZwilling, getLemmataIndex, invalidateCache, getCacheMetrics, DATA, stmts, lemmaToRow, replaceAllAdminData, getAuswertungSpiele, getAuswertungZeilen, loadBackupFiles, loadAllSpezialwochen, loadSpezialwocheByWoche, saveSpezialwoche, deleteSpezialwoche, saveTagAtomically, deleteTagsAtomically } from '../store.js'
 import { getCacheMetrics as getQueryCacheMetrics, clearCache as clearQueryCache } from '../query-cache.js'
 import { adminLimiter, loginLimiter, uploadLimiter } from '../middleware/rateLimiter.js'
 import { requireAuth, adminAuth, adminLogout, adminError, serverError } from '../middleware/auth.js'
-import { validate, qQuerySchema, adminTagSchema, analyzeKollQuerySchema, analyzeWZQuerySchema, analyzeZWendeQuerySchema, analyzeLueckenfuellerQuerySchema, lueckenfuellerGenerateSchema, adminUsersQuerySchema, adminSetUserRoleSchema, adminUserIdParamsSchema, adminUsersBulkUpdateSchema, adminBulkDeleteCalendarSchema, adminPreviewLemmaSchema, adminPreviewDayParamsSchema, adminLemmaIdParamsSchema, adminEntwurfIdParamsSchema, adminAuditLogDetailParamsSchema, adminBackupRestoreSchema, adminBackupPruefenSchema, adminBackupSqliteSchema, adminStatsQuerySchema, adminStatsSummaryQuerySchema, adminStatsExportQuerySchema, adminAuditLogQuerySchema, adminSocialCardsTagesdataSchema, adminSocialCardsBelegeSchema, adminSpezialwocheSchema, adminSpezialwocheParamsSchema, adminClassroomStatsQuerySchema, adminClassroomTeachersQuerySchema, adminPaymentsSummaryQuerySchema, adminCustomLemmaSummaryQuerySchema, adminRetentionQuerySchema } from '../middleware/validate.js'
+import { validate, qQuerySchema, adminTagSchema, analyzeKollQuerySchema, analyzeWZQuerySchema, analyzeZWendeQuerySchema, analyzeLueckenfuellerQuerySchema, lueckenfuellerGenerateSchema, adminUsersQuerySchema, adminSetUserRoleSchema, adminUserIdParamsSchema, adminUsersBulkUpdateSchema, adminBulkDeleteCalendarSchema, adminPreviewLemmaSchema, adminPreviewDayParamsSchema, adminLemmaIdParamsSchema, adminEntwurfIdParamsSchema, adminAuditLogDetailParamsSchema, adminBackupRestoreSchema, adminBackupPruefenSchema, adminBackupSqliteSchema, adminAuswertungSpieleQuerySchema, adminStatsExportQuerySchema, adminAuditLogQuerySchema, adminSocialCardsTagesdataSchema, adminSocialCardsBelegeSchema, adminSpezialwocheSchema, adminSpezialwocheParamsSchema, adminClassroomStatsQuerySchema, adminPaymentsSummaryQuerySchema, adminCustomLemmaSummaryQuerySchema, adminRetentionQuerySchema } from '../middleware/validate.js'
 import { auditCreate, auditUpdate, auditDelete, getAuditLogForResource, queryAuditLog } from '../audit.js'
 import { ladeOffeneEntwuerfe, ladeEntwurf, entscheideEntwurf } from '../store-entwuerfe.js'
 import logger from '../logger.js'
@@ -111,13 +111,11 @@ router.use(createAdminStatsRouter({
   adminLimiter,
   requireAuth,
   validate,
-  adminStatsQuerySchema,
-  adminStatsSummaryQuerySchema,
+  adminAuswertungSpieleQuerySchema,
   adminStatsExportQuerySchema,
-  getStatsWindow,
-  getStatsTimeline,
+  getAuswertungSpiele,
+  getAuswertungZeilen,
   adminError,
-  serverError,
 }))
 
 router.use(createAdminClassroomRouter({
@@ -125,7 +123,6 @@ router.use(createAdminClassroomRouter({
   requireAuth,
   validate,
   adminClassroomStatsQuerySchema,
-  adminClassroomTeachersQuerySchema,
   auditUpdate,
   adminError,
 }))

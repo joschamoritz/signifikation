@@ -1,10 +1,16 @@
-import { normalizeDatumToIso, sortDatumKeys } from './date-utils.js'
+import { normalizeDatumToIso, berlinTag, plusTage, tageVonBis } from './date-utils.js'
 import { parseJsonSafe as parseJson } from './json-safe.js'
+import { SPIELMODI, WOCHE_SPIELE } from './spielmodi.js'
 
+/**
+ * Pro-Konto-Zeilen in `stats` älter als so viele Tage faltet die Verdichtung (compactOldUserStats, jobs/dataRetention)
+ * in die anonyme Zeile (user_id = ''). Danach sind dort weder Konten noch Admin-Spiele mehr zu erkennen.
+ */
+export const STATS_KONTO_ZEILEN_TAGE = 180
+
+// Erster Tag, der noch zu einem Fenster von `days` Tagen gehört (Berliner Kalendertag).
 function computeSinceDate(days) {
-  const d = new Date()
-  d.setDate(d.getDate() - Number(days))
-  return d.toISOString().slice(0, 10)
+  return plusTage(berlinTag(), -Number(days))
 }
 
 function createEmptyDistribution() {
@@ -98,77 +104,15 @@ function getNormalizedScoreBucket(score, max) {
   return Math.min(10, Math.max(0, Math.round((score || 0) / (max || 1) * 10)))
 }
 
-function sortMmddKeys(keys) {
-  return sortDatumKeys(keys)
-}
-
-function buildStatsWindow(stats, days) {
-  const orderedDates = sortMmddKeys(Object.keys(stats || {}))
-  const selectedDates = orderedDates.slice(-days)
-
-  const byGameMap = new Map()
-  const scoreDistribution = createEmptyDistribution()
-  let totalPlays = 0
-  let totalScoreSum = 0
-  let totalMaxSum = 0
-  const rows = []
-
-  for (const datum of selectedDates) {
-    const games = stats[datum] || {}
-    for (const [spiel, bucket] of Object.entries(games)) {
-      const plays = Number(bucket?.plays || 0)
-      const scoreSum = Number(bucket?.scoreSum || 0)
-      const maxSum = Number(bucket?.maxSum || 0)
-      const dist = Array.isArray(bucket?.dist) ? bucket.dist : []
-
-      totalPlays += plays
-      totalScoreSum += scoreSum
-      totalMaxSum += maxSum
-
-      for (let i = 0; i < 11; i += 1) {
-        scoreDistribution[i] += Number(dist[i] || 0)
-      }
-
-      const prev = byGameMap.get(spiel) || { spiel, plays: 0, scoreSum: 0, maxSum: 0 }
-      prev.plays += plays
-      prev.scoreSum += scoreSum
-      prev.maxSum += maxSum
-      byGameMap.set(spiel, prev)
-
-      rows.push({ datum, spiel, plays, scoreSum, maxSum })
-    }
-  }
-
-  const byGame = [...byGameMap.values()]
-    .map((row) => ({
-      ...row,
-      avg10: row.maxSum > 0 ? Number(((row.scoreSum / row.maxSum) * 10).toFixed(2)) : null,
-    }))
-    .sort((a, b) => b.plays - a.plays)
-
-  return {
-    days,
-    selectedDates,
-    rows,
-    totals: {
-      plays: totalPlays,
-      scoreSum: totalScoreSum,
-      maxSum: totalMaxSum,
-      avg10: totalMaxSum > 0 ? Number(((totalScoreSum / totalMaxSum) * 10).toFixed(2)) : null,
-    },
-    byGame,
-    scoreDistribution,
-  }
-}
-
 export function createStatsStore({ db, stmts, logger }) {
-  // Map pro days-Key mit reiner TTL (30 s): Das fruehere Single-Slot-Modell
-  // wurde bei JEDEM recordStat invalidiert — unter Spiellast fiel das
-  // Admin-Summary praktisch immer auf die volle Aggregation zurueck
-  // (Review 2026-06-11, D-M5). Admin-Dashboards sind eventual-consistent;
-  // 30 s Verzoegerung sind akzeptabel. Bulk-Replace (Restore) leert die Map.
-  const STATS_WINDOW_TTL_MS = 30 * 1000
-  const statsWindowCache = new Map()
+  // Zwischenspeicher der Auswertung (siehe unten): Map je Zeitraum und Berliner Tag mit reiner TTL (5 min).
+  // Das frühere Einzelfach wurde bei JEDEM recordStat geleert — unter Spiellast fiel die Auswertung praktisch
+  // immer auf die volle Aggregation zurück (Review 2026-06-11, D-M5). Admin-Auswertungen dürfen 5 Minuten
+  // nachgehen; recordStat leert bewusst nichts. Bulk-Replace (Wiederherstellung) und Verdichtung leeren die Map.
+  const AUSWERTUNG_TTL_MS = 5 * 60 * 1000
+  // „Spiele heute“ (days = 1, Planen › Woche) soll dem Spielgeschehen folgen: nur kurz im Speicher
+  const AUSWERTUNG_TTL_HEUTE_MS = 30 * 1000
+  const auswertungCache = new Map()
 
   const replaceStats = db.transaction((obj) => {
     stmts.deleteAllStats.run()
@@ -185,7 +129,7 @@ export function createStatsStore({ db, stmts, logger }) {
         })
       }
     }
-    statsWindowCache.clear()
+    auswertungCache.clear()
   })
 
   const replaceStatsRows = db.transaction((rows) => {
@@ -193,7 +137,7 @@ export function createStatsStore({ db, stmts, logger }) {
     for (const row of rows) {
       stmts.upsertStats.run(sanitizeStatsRow(row))
     }
-    statsWindowCache.clear()
+    auswertungCache.clear()
   })
 
   const recordStatTx = db.transaction(({ datum, spiel, userId, score, max }) => {
@@ -213,7 +157,7 @@ export function createStatsStore({ db, stmts, logger }) {
       maxSum: (existing?.maxSum || 0) + Number(max || 0),
       dist: JSON.stringify(dist),
     })
-    // Bewusst KEINE Cache-Invalidierung pro Spielzug — TTL (30 s) reicht.
+    // Bewusst KEINE Cache-Invalidierung pro Spielzug — die TTL (5 min) reicht.
   })
 
   // Default bewusst gedeckelt (Review 2026-06-10): stats waechst unbegrenzt
@@ -234,19 +178,129 @@ export function createStatsStore({ db, stmts, logger }) {
     recordStatTx({ datum, spiel, userId, score, max })
   }
 
-  function getStatsWindow(days) {
-    const hit = statsWindowCache.get(days)
-    if (hit && Date.now() - hit.ts < STATS_WINDOW_TTL_MS) {
-      return hit.value
+  // ── Auswertung › Spiele ───────────────────────────────────────────
+  // Eine Abfrage (datum × spiel, samt Punkteverteilung) über den Zeitraum, eine kleine über den Vorzeitraum.
+  // Zeitraum = Berliner Kalendertage inklusive heute, jeder Tag steht in der Antwort (Tage ohne Spiel mit 0).
+  // Admin-Konten zählen nicht mit. Die Antwort kennt keine Konten, nur Summen. Das Ergebnis liegt 5 Minuten im
+  // Speicher (ein Prozess, daher als Modulzustand), gemerkt je Zeitraum UND Berliner Tag, damit nach
+  // Mitternacht nichts Altes stehen bleibt.
+  // Gemessen (589 240 Zeilen): json_group_array + Zusammenzählen in JS ≈ 0,55 s für 12 Monate; json_each in SQL
+  // war zehnmal langsamer (≈ 5,4 s). Backlog: Tagessummen-Tabelle statt Aggregation über alle Zeilen.
+  const ohneAdmin = "user_id NOT IN (SELECT user_id FROM user_profiles WHERE role = 'admin')"
+  const tageSpielStmt = db.prepare(`
+    SELECT datum, spiel,
+           SUM(plays)    AS spiele,
+           SUM(scoreSum) AS punkte,
+           SUM(maxSum)   AS max,
+           SUM(CASE WHEN user_id != '' THEN plays ELSE 0 END) AS mitKonto,
+           json_group_array(dist) AS dist_list
+    FROM stats
+    WHERE datum >= @von AND datum <= @bis AND ${ohneAdmin}
+    GROUP BY datum, spiel
+  `)
+  const vorzeitraumStmt = db.prepare(`
+    SELECT spiel, SUM(plays) AS spiele, SUM(scoreSum) AS punkte, SUM(maxSum) AS max
+    FROM stats
+    WHERE datum >= @von AND datum <= @bis AND ${ohneAdmin}
+    GROUP BY spiel
+  `)
+
+  const leereSumme = () => ({ spiele: 0, punkte: 0, max: 0 })
+  const SCHLUESSEL_REIHENFOLGE = [...SPIELMODI, ...WOCHE_SPIELE]
+
+  function berechneAuswertungSpiele(days, heute) {
+    const von = plusTage(heute, -(days - 1))
+    const nachTag = new Map(tageVonBis(von, heute).map((datum) => [datum, {
+      datum,
+      teil: datum === heute,
+      modi: Object.fromEntries(SPIELMODI.map((m) => [m, leereSumme()])),
+    }]))
+    // Konto-Zeilen gibt es nur an Tagen ab `kontoAb`; davor ist alles in der anonymen Zeile (siehe STATS_KONTO_ZEILEN_TAGE).
+    // `mitKonto` und sein Nenner `kontoBasis` zählen deshalb nur die Tage ab `kontoAb`; `verdichtetBis` ist der letzte
+    // verdichtete Tag im Zeitraum (null, wenn der Zeitraum nicht so weit zurückreicht). Dort sind auch Admin-Spiele nicht mehr herauszurechnen.
+    const kontoAb = plusTage(heute, -STATS_KONTO_ZEILEN_TAGE)
+    const verdichtetBis = von < kontoAb ? plusTage(kontoAb, -1) : null
+    const summe = { ...leereSumme(), mitKonto: 0, kontoBasis: 0 }
+    const woche = leereSumme()
+    const verteilung = Object.fromEntries(SPIELMODI.map((m) => [m, createEmptyDistribution()]))
+    const csv = []
+
+    for (const r of tageSpielStmt.all({ von, bis: heute })) {
+      const werte = { spiele: Number(r.spiele || 0), punkte: Number(r.punkte || 0), max: Number(r.max || 0) }
+      const tag = nachTag.get(r.datum)
+      if (!tag) continue
+      if (SPIELMODI.includes(r.spiel)) {
+        for (const k of Object.keys(werte)) { tag.modi[r.spiel][k] += werte[k]; summe[k] += werte[k] }
+        if (r.datum >= kontoAb) {
+          summe.mitKonto += Number(r.mitKonto || 0)
+          summe.kontoBasis += werte.spiele
+        }
+        // Punkteverteilung nur der Tagesmodi (Wort der Woche ist eine eigene Gruppe)
+        const dists = parseJson(r.dist_list || '[]', [], logger, { datum: r.datum, field: 'stats.dist_list' })
+        for (const roh of dists) {
+          const dist = normalizeDistribution(roh)
+          for (let i = 0; i < 11; i += 1) verteilung[r.spiel][i] += Number(dist[i] || 0)
+        }
+      } else if (WOCHE_SPIELE.includes(r.spiel)) {
+        for (const k of Object.keys(werte)) woche[k] += werte[k]
+      } else {
+        continue // unbekannter Schlüssel (z. B. aus einer alten Sicherung): nicht auswerten
+      }
+      csv.push({ datum: r.datum, spiel: r.spiel, ...werte })
     }
-    const result = buildStatsWindow(loadStats(days), days)
-    statsWindowCache.set(days, { value: result, ts: Date.now() })
-    return result
+
+    // Vorzeitraum (gleich lang, direkt davor) nur bis 90 Tage: Bei 12 Monaten reicht die Statistik nicht weit genug zurück.
+    // Er zählt wie die Summe nur die Tagesmodi.
+    let vorher = null
+    if (days <= 90) {
+      vorher = leereSumme()
+      for (const r of vorzeitraumStmt.all({ von: plusTage(von, -days), bis: plusTage(von, -1) })) {
+        if (!SPIELMODI.includes(r.spiel)) continue
+        vorher.spiele += Number(r.spiele || 0)
+        vorher.punkte += Number(r.punkte || 0)
+        vorher.max += Number(r.max || 0)
+      }
+    }
+
+    csv.sort((a, b) => a.datum.localeCompare(b.datum) || SCHLUESSEL_REIHENFOLGE.indexOf(a.spiel) - SCHLUESSEL_REIHENFOLGE.indexOf(b.spiel))
+    return {
+      antwort: {
+        zeitraum: { days, von, bis: heute, stand: new Date().toISOString(), verdichtetBis },
+        tage: [...nachTag.values()],
+        verteilung,
+        summe,
+        vorher,
+        wortDerWoche: woche,
+      },
+      zeilen: csv,
+    }
   }
 
-  function getStatsTimeline(days) {
-    const stats = loadStats(days)
-    return buildStatsTimeline(stats, days)
+  const ttlFuer = (days) => (days <= 1 ? AUSWERTUNG_TTL_HEUTE_MS : AUSWERTUNG_TTL_MS)
+
+  // frisch: den Speicher übergehen und neu rechnen („neu laden“ im Admin); das Ergebnis ersetzt den Eintrag desselben Schlüssels
+  function holeAuswertung(days, { frisch = false } = {}) {
+    const heute = berlinTag()
+    const key = `${days}|${heute}`
+    const jetzt = Date.now()
+    const hit = auswertungCache.get(key)
+    if (!frisch && hit && jetzt - hit.ts < ttlFuer(days)) return hit.value
+    const value = berechneAuswertungSpiele(days, heute)
+    // Abgelaufene Einträge (anderer Tag, anderer Zeitraum) fallen heraus, die Map bleibt klein
+    for (const [k, v] of auswertungCache) if (jetzt - v.ts >= ttlFuer(v.days)) auswertungCache.delete(k)
+    auswertungCache.set(key, { value, ts: jetzt, days })
+    return value
+  }
+
+  /** Antwort für GET /admin/auswertung/spiele (Form siehe berechneAuswertungSpiele). */
+  function getAuswertungSpiele(days, opts) {
+    return holeAuswertung(days, opts).antwort
+  }
+
+  /** Zeilen (Tag × Spielschlüssel, auch Wort der Woche) für den CSV-Export; gleicher Zeitraum, gleicher Speicher. */
+  function getAuswertungZeilen(days, opts) {
+    const { antwort, zeilen } = holeAuswertung(days, opts)
+    return { zeitraum: antwort.zeitraum, zeilen }
   }
 
   // ── Stats-Retention (Review 2026-06-11, D-H1) ────────────────────
@@ -286,7 +340,7 @@ export function createStatsStore({ db, stmts, logger }) {
     return rows.length
   })
 
-  function compactOldUserStats(olderThanDays = 180) {
+  function compactOldUserStats(olderThanDays = STATS_KONTO_ZEILEN_TAGE) {
     const cutoff = computeSinceDate(olderThanDays)
     let total = 0
     for (;;) {
@@ -294,7 +348,7 @@ export function createStatsStore({ db, stmts, logger }) {
       total += n
       if (n < 2000) break
     }
-    if (total > 0) statsWindowCache.clear()
+    if (total > 0) auswertungCache.clear()
     return total
   }
 
@@ -342,18 +396,13 @@ export function createStatsStore({ db, stmts, logger }) {
     replaceStats,
     replaceStatsRows,
     recordStat,
-    getStatsWindow,
-    getStatsTimeline,
+    getAuswertungSpiele,
+    getAuswertungZeilen,
     getPercentile,
     compactOldUserStats,
     loadStatsRowsAnonymized,
     invalidateWindowCache() {
-      statsWindowCache.clear()
+      auswertungCache.clear()
     },
   }
-}
-
-function buildStatsTimeline(stats, days) {
-  const orderedDates = sortMmddKeys(Object.keys(stats || {}))
-  return orderedDates.slice(-days).map((datum) => ({ datum, ...(stats[datum] || {}) }))
 }

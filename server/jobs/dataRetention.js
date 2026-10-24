@@ -32,6 +32,7 @@ import db, { DB_PATH } from '../db.js'
 import logger from '../logger.js'
 import { reportAlert } from '../alerting.js'
 import { compactOldUserStats } from '../store.js'
+import { STATS_KONTO_ZEILEN_TAGE } from '../store-stats.js'
 
 export const DEFAULT_RETENTION_MS = 730 * 24 * 60 * 60 * 1000 // 24 Monate (730 Tage)
 const DEFAULT_SWEEP_INTERVAL_MS = 24 * 60 * 60 * 1000
@@ -60,7 +61,7 @@ const deleteOldTelemetryStmt = db.prepare(`DELETE FROM classroom_telemetry WHERE
 // Vergleich gegen das Cutoff-Datum (gleiches Format, gleiche Zeitzone).
 const deleteOldCustomLemmaUsageStmt = db.prepare(`DELETE FROM custom_lemma_usage WHERE date < ?`)
 
-const STATS_COMPACT_AFTER_DAYS = 180
+const STATS_COMPACT_AFTER_DAYS = STATS_KONTO_ZEILEN_TAGE
 
 // W4-U2: Legacy-CSV-Exports aus der Klassenraum-v1-Aera (Tabelle
 // classroom_exports wurde in Migration 0006 gedroppt; aktueller Code schreibt

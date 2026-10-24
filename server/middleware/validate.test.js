@@ -3,6 +3,7 @@
  */
 
 import { describe, it, expect } from 'vitest'
+import { berlinTag, plusTage } from '../date-utils.js'
 import {
   validate,
   statsSchema,
@@ -52,7 +53,7 @@ describe('validate() middleware', () => {
 
 // ── statsSchema ──────────────────────────────────────────────
 describe('statsSchema', () => {
-  const valid = { game: 'kollokationen', datum: '2026-03-15', score: 8, max: 10 }
+  const valid = { game: 'kollokationen', datum: berlinTag(), score: 8, max: 10 }
 
   it('akzeptiert gültige Eingabe', () => {
     expect(statsSchema.safeParse(valid).success).toBe(true)
@@ -63,8 +64,47 @@ describe('statsSchema', () => {
   })
 
   it('akzeptiert alle gültigen games', () => {
-    for (const game of ['kollokationen', 'wortzwilling', 'zeitenwende']) {
+    for (const game of ['kollokationen', 'wortzwilling', 'zeitenwende', 'lueckenfueller']) {
       expect(statsSchema.safeParse({ ...valid, game }).success).toBe(true)
+    }
+  })
+
+  it('akzeptiert die Schlüssel für Spiele zum Wort der Woche, aber keine erfundenen', () => {
+    for (const game of ['woche_wortzwilling', 'woche_zeitenwende', 'woche_lueckenfueller']) {
+      expect(statsSchema.safeParse({ ...valid, game }).success).toBe(true)
+    }
+    // Kollokationen gibt es zum Wort der Woche nicht
+    expect(statsSchema.safeParse({ ...valid, game: 'woche_kollokationen' }).success).toBe(false)
+    expect(statsSchema.safeParse({ ...valid, game: 'woche_' }).success).toBe(false)
+  })
+
+  it('lehnt score > max ab (sonst hebt ein manipulierter Aufruf den Durchschnitt über 10)', () => {
+    expect(statsSchema.safeParse({ ...valid, score: 100, max: 1 }).success).toBe(false)
+    expect(statsSchema.safeParse({ ...valid, score: 11, max: 10 }).success).toBe(false)
+    expect(statsSchema.safeParse({ ...valid, score: 10, max: 10 }).success).toBe(true)
+    expect(statsSchema.safeParse({ ...valid, score: 0, max: 10 }).success).toBe(true)
+  })
+
+  it('nimmt nur Tage ab dem Montag dieser Woche bzw. gestern bis morgen an (Berliner Zeit)', () => {
+    const heute = berlinTag()
+    // Montag der laufenden Woche: ältere App-Versionen melden das Wort der Woche dorthin
+    const montag = plusTage(heute, -((new Date(`${heute}T00:00:00Z`).getUTCDay() + 6) % 7))
+    for (const datum of [montag, plusTage(heute, -1), heute, plusTage(heute, 1)]) {
+      expect(statsSchema.safeParse({ ...valid, datum }).success, datum).toBe(true)
+    }
+    const davor = montag < plusTage(heute, -1) ? plusTage(montag, -1) : plusTage(heute, -2)
+    for (const datum of [davor, plusTage(heute, -8), plusTage(heute, 2), '2099-01-15', '2001-01-01']) {
+      const r = statsSchema.safeParse({ ...valid, datum })
+      expect(r.success, datum).toBe(false)
+      expect(r.error.errors[0].message).toBe('datum muss zwischen dem Montag dieser Woche bzw. gestern und morgen liegen')
+    }
+  })
+
+  it('lehnt Tage ab, die es nicht gibt', () => {
+    for (const datum of ['2026-02-31', '2026-13-01', '2026-00-10', '0000-01-01']) {
+      const r = statsSchema.safeParse({ ...valid, datum })
+      expect(r.success, datum).toBe(false)
+      expect(r.error.errors[0].message).toBe('datum ist kein gültiger Kalendertag')
     }
   })
 

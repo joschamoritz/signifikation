@@ -129,6 +129,52 @@ describe('computeServerStreak / eligibleStreakSavers (DB)', () => {
   })
 })
 
+describe('Serie ignoriert Spiele zum Wort der Woche (Schlüssel woche_*)', () => {
+  const userW = uid('w') // nur Wort der Woche gespielt, an drei Tagen bis gestern
+  const userM = uid('m') // Tagesspiele an drei Tagen, an einem davon zusätzlich das Wort der Woche
+  const userG = uid('g') // gestern + heute nur Wort der Woche, davor Tagesspiele
+
+  const woche = (userId, spiel, datum) =>
+    stmts.upsertStats.run({ datum, spiel, user_id: userId, plays: 1, scoreSum: 8, maxSum: 10, dist: emptyDist })
+
+  beforeAll(() => {
+    for (const u of [userW, userM, userG]) { addUser(u); addSub(u) }
+    woche(userW, 'woche_wortzwilling', '2026-06-17')
+    woche(userW, 'woche_zeitenwende', '2026-06-18')
+    woche(userW, 'woche_lueckenfueller', '2026-06-19')
+
+    play(userM, '2026-06-17'); play(userM, '2026-06-18'); play(userM, '2026-06-19')
+    woche(userM, 'woche_wortzwilling', '2026-06-19')
+
+    play(userG, '2026-06-16'); play(userG, '2026-06-17'); play(userG, '2026-06-18')
+    woche(userG, 'woche_zeitenwende', '2026-06-19')
+    woche(userG, 'woche_zeitenwende', TODAY)
+  })
+
+  afterAll(() => {
+    for (const u of [userW, userM, userG]) {
+      db.prepare('DELETE FROM stats WHERE user_id = ?').run(u)
+      db.prepare('DELETE FROM push_subscriptions WHERE user_id = ?').run(u)
+      db.prepare('DELETE FROM user WHERE id = ?').run(u)
+    }
+  })
+
+  it('computeServerStreak: Tage mit nur dem Wort der Woche zählen nicht', () => {
+    expect(computeServerStreak(userW, NOW)).toBe(0)
+    // Wort der Woche UND Tagesspiel am selben Tag: der Tag zählt (durch das Tagesspiel), nicht doppelt
+    expect(computeServerStreak(userM, NOW)).toBe(3)
+    // Wort der Woche gestern und heute füllt die Lücke nicht: die Serie endet bei vorgestern
+    expect(computeServerStreak(userG, NOW)).toBe(0)
+  })
+
+  it('eligibleStreakSavers: wer nur das Wort der Woche spielt, hat keine Serie zu retten', () => {
+    const byId = new Map(eligibleStreakSavers(NOW).map((s) => [s.userId, s.streak]))
+    expect(byId.has(userW)).toBe(false)
+    expect(byId.get(userM)).toBe(3)
+    expect(byId.has(userG)).toBe(false)
+  })
+})
+
 describe('buildStreakPayload', () => {
   it('rendert die Serienlänge in den Push-Text und nutzt das Streak-Emoji', () => {
     const payload = buildStreakPayload(NOW, 7)

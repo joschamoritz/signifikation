@@ -374,6 +374,8 @@ function parseRoute(rawHash) {
   if (Object.hasOwn(ROUTE_TABLE, path)) {
     const route = { ...ROUTE_TABLE[path], key: path }
     if (path === 'planen/liste') route.liste = leseListeQuery(queryPart)
+    // Auswertung: ein Zeitraum für alle drei Reiter (Weißliste, sonst 30 Tage)
+    if (route.area === 'auswertung') route.zeitraum = leseAuswertungZeitraum(queryPart)
     return route
   }
 
@@ -411,6 +413,9 @@ function headActionsHtml(route) {
   if (route.page === 'users') {
     return '<button type="button" class="adm-link" data-action="load-users-overview">neu laden</button>'
   }
+  if (route.area === 'auswertung') {
+    return '<button type="button" class="adm-link" data-action="au-neu-laden">neu laden</button>'
+  }
   if (route.page === 'vorschlaege') {
     // Zähler und Sperre setzt aktualisiereVorschlagHinweise() (nach jedem Kopf-Neuaufbau).
     return '<button type="button" class="adm-cta is-hidden" data-action="vorschlaege-alle" id="vorschlaege-alle-btn">'
@@ -422,6 +427,8 @@ function headActionsHtml(route) {
 
 // Setzt Seite, Kopf, Reiter, Rückleiste und Navigation – ohne Daten zu laden.
 function applyRouteChrome(route) {
+  // Der Zeitraum aus der Adresse gilt für alle drei Reiter: Auswahl, CSV-Link und Reiter-Links ziehen nach
+  if (route.area === 'auswertung') synchronisiereAuswertungZeitraum(route.zeitraum ?? AU_STANDARD)
   const pageEl = document.getElementById(`page-${route.page}`)
   document.querySelectorAll('.admin-page').forEach((page) => {
     page.classList.toggle('is-active', page === pageEl)
@@ -494,8 +501,10 @@ function runRouteLoaders(route) {
       ladeKonto(route.nutzerId)
       break
     case 'stats':
-      // Lädt bei jedem Öffnen frisch (inkl. Diagramme und Zusammenfassung).
-      loadStats()
+    case 'metrics':
+    case 'classroom':
+      // Zeichnet aus dem Zwischenspeicher (60 s) oder lädt neu; „neu laden“ im Kopf umgeht ihn
+      void ladeAuswertung(route.page)
       break
     case 'werkzeuge':
       // Füllt den Stand der Werkzeuge (Betrieb aus /admin/health, Bonus-Tage aus freeDaysData)
@@ -530,14 +539,8 @@ function runRouteLoaders(route) {
     case 'push':
       void ladePush()
       break
-    case 'classroom':
-      loadClassroomStats()
-      break
     case 'klassenraum-demo':
       void ladeDemo()
-      break
-    case 'metrics':
-      loadProductMetrics()
       break
     case 'liste':
       // Ein noch laufender Such-Timer würde den Zustand aus der Adresse (Zurück/Vor) überschreiben.
@@ -777,6 +780,11 @@ async function renderRoute({ userInitiated = false } = {}) {
     hash = `#${AREA_START.planen}`
     route = parseRoute(hash)
   }
+  // Auswertung: Ein ungültiger oder überflüssiger ?zeitraum= (14, 30, abc) wird auf den tatsächlich gewählten Wert
+  // bereinigt, damit Adresse, Auswahl und Reiter-Links dasselbe sagen (stampHistory schreibt ohne neuen Eintrag).
+  if (route?.area === 'auswertung' && AU_REITER[route.page]) {
+    hash = auswertungHash(AU_REITER[route.page], route.zeitraum ?? AU_STANDARD)
+  }
 
   const token = ++routeRenderToken
   const leavingRoute = currentRoute
@@ -929,6 +937,11 @@ function stopRouter() {
 }
 
 window.addEventListener('hashchange', handleHashChange)
+// Die Reiterleiste scrollt waagerecht, wenn sie nicht passt (375 px, große Schrift): Ein per Tastatur erreichter Reiter
+// außerhalb des sichtbaren Teils wird ins Bild geholt (der Browser tut das hier nicht von selbst).
+document.addEventListener('focusin', (ev) => {
+  ev.target.closest?.('#page-tabs .adm-tab')?.scrollIntoView({ block: 'nearest', inline: 'nearest' })
+})
 
 // Die mobile Leiste wächst bei großer Schrift mit (Labels brechen um). Ihre echte
 // Höhe als CSS-Variable bereitstellen, damit .adm-main genug Platz darunter lässt.
@@ -3389,6 +3402,7 @@ async function loadKalender() {
     updateDashboardFromKalender()
     renderMonat()
     renderListe()
+    aktualisiereSchwersteTage()
   } catch {
     kalenderData = {}
     kalenderStatus = 'fehler'
@@ -4041,30 +4055,26 @@ function renderHeuteZeile() {
   }
 }
 
-// Alle Spiele eines Tages (auch Lückenfüller). Die Schlüssel der Statistik sind ISO-Daten.
-function zaehleSpieleAm(timeline, iso) {
-  const tag = Array.isArray(timeline) ? timeline.find((t) => t?.datum === iso) : null
+// Alle Spiele des heutigen Tages (Berliner Zeit, alle vier Modi), Punkte von 10 als Durchschnitt.
+function zaehleHeutigeSpiele(auswertung) {
+  const tag = auswertung?.tage?.at(-1)
   let plays = 0
-  let scoreSum = 0
-  let maxSum = 0
-  for (const [spiel, b] of Object.entries(tag || {})) {
-    if (spiel === 'datum' || !b || typeof b !== 'object') continue
-    plays += Number(b.plays || 0)
-    scoreSum += Number(b.scoreSum || 0)
-    maxSum += Number(b.maxSum || 0)
+  let punkte = 0
+  let max = 0
+  for (const x of Object.values(tag?.modi || {})) {
+    plays += Number(x?.spiele || 0)
+    punkte += Number(x?.punkte || 0)
+    max += Number(x?.max || 0)
   }
-  return { plays, avg10: maxSum > 0 ? (scoreSum / maxSum) * 10 : null }
+  return { plays, avg10: max > 0 ? (punkte / max) * 10 : null }
 }
 
 async function loadHeuteSpiele() {
   const el = document.getElementById('wo-heute-spiele')
   if (!el) return
   try {
-    // days=2 genügt: Die Zeitreihe enthält heute, sobald gespielt wurde.
-    const res = await fetch('/admin/stats?days=2')
-    const data = await res.json().catch(() => null)
-    if (!res.ok || !Array.isArray(data)) throw new Error(`HTTP ${res.status}`)
-    const { plays, avg10 } = zaehleSpieleAm(data, getTodayIso())
+    const data = await holeJson('/admin/auswertung/spiele?days=1')
+    const { plays, avg10 } = zaehleHeutigeSpiele(data)
     const schnitt = avg10 == null ? '' : ` · Ø ${avg10.toLocaleString('de-DE', { minimumFractionDigits: 1, maximumFractionDigits: 1 })} von 10`
     el.textContent = plays === 0 ? 'noch keine Spiele' : `${plays.toLocaleString('de-DE')} ${plays === 1 ? 'Spiel' : 'Spiele'}${schnitt}`
   } catch {
@@ -4292,30 +4302,6 @@ async function previewCurrentLemma(index = 1) {
   }
 }
 
-// ── Statistik ─────────────────────────────────────────────
-let statsChartTrend = null
-let statsChartDist  = null
-
-const STAT_KEYS   = ['kollokationen', 'wortzwilling', 'zeitenwende']
-const STAT_LABELS = { kollokationen: 'Kollokationen', wortzwilling: 'Wort-Zwilling', zeitenwende: 'Zeitenwende', lueckenfueller: 'Lückenfüller' }
-const STAT_COLORS = { kollokationen: '#9b1c1c', wortzwilling: '#15803d', zeitenwende: '#7c3aed' }
-
-async function loadStats() {
-  const out = document.getElementById('stats-output')
-  const days = document.getElementById('stats-days')?.value || '30'
-  out.innerHTML = '<div style="color:var(--muted);font-size:0.85rem">Lade…</div>'
-  try {
-    const r    = await fetch(`/admin/stats?days=${encodeURIComponent(days)}`, {})
-    const data = await r.json()
-    if (!r.ok) throw new Error(data.error || `HTTP ${r.status}`)
-    renderStats(data, out)
-  } catch (e) {
-    out.innerHTML = `<div class="status error">Fehler: ${esc(e.message)}</div>`
-  } finally {
-    await loadStatsSummary(days)
-  }
-}
-
 // ── Nutzer (#nutzer) und Konto (#nutzer/<id>) ─────────────────────────────────
 // Liste: Suche zuerst, Sammelaktionen erst bei Auswahl (Muster aus Planen › Liste), Linien-Liste statt Tabelle.
 // Konto: Unterseite mit Rückleiste. Adresse und Seitentitel enthalten nie Name, E-Mail oder Suchtext
@@ -4362,7 +4348,7 @@ function punkteDe(scoreSum, maxSum) {
 }
 
 // „Ø“ liest ein Screenreader unklar: Das Zeichen bleibt für Augen, „Durchschnitt“ ist unsichtbar davor.
-const DURCHSCHNITT_HTML = '<span aria-hidden="true">Ø</span><span class="adm-visually-hidden">Durchschnitt </span>'
+const DURCHSCHNITT_HTML = '<span aria-hidden="true">Ø&nbsp;</span><span class="adm-visually-hidden">Durchschnitt </span>'
 
 // „9,99 €“ (reiner Text, beim Einfügen escapen)
 function betragDe(betrag, waehrung = 'EUR') {
@@ -5127,10 +5113,22 @@ function loeschFristHtml(user, konto) {
   return `<div><dt>Löschfrist</dt><dd>Löschwarnung am ${esc(datumDe(konto.loeschWarnungAm))} verschickt – ohne Anmeldung wird das Konto ab ${esc(datumDe(new Date(frist).toISOString()))} gelöscht.</dd></div>`
 }
 
+// Spielschlüssel der Statistik → Anzeigename: „Wort der Woche: Wort-Zwilling“ statt woche_wortzwilling
+function spielName(key) {
+  const m = MODI.find((x) => x.key === key)
+  if (m) return m.label
+  const wochenModus = String(key).startsWith('woche_') ? MODI.find((x) => x.key === String(key).slice(6)) : null
+  return wochenModus ? `Wort der Woche: ${wochenModus.label}` : String(key)
+}
+
 function spielstatistikHtml(stats) {
   const nachModus = new Map((stats.byGame || []).map((g) => [g.spiel, g]))
   const bekannt = new Set(MODI.map((m) => m.key))
-  const modi = [...MODI, ...[...nachModus.keys()].filter((k) => !bekannt.has(k)).map((k) => ({ key: k, label: k }))]
+  // Wort der Woche in der Reihenfolge der Spielmodi (nicht alphabetisch); unbekannte Schlüssel danach, alphabetisch
+  const wocheReihenfolge = MODI.map((m) => `woche_${m.key}`)
+  const rang = (k) => { const i = wocheReihenfolge.indexOf(k); return i < 0 ? wocheReihenfolge.length : i }
+  const weitere = [...nachModus.keys()].filter((k) => !bekannt.has(k)).sort((a, b) => rang(a) - rang(b) || a.localeCompare(b))
+  const modi = [...MODI, ...weitere.map((k) => ({ key: k, label: spielName(k) }))]
   const gespielt = Number(stats.totals?.plays || 0)
   return '<section class="tag-abschnitt" aria-labelledby="nu-spiele-titel">'
     + '<h2 class="tag-abschnitt-titel" id="nu-spiele-titel">Spielstatistik</h2>'
@@ -5160,8 +5158,7 @@ function aktivitaetHtml(stats) {
           + '<span class="nu-verlauf-datum">'
           + (t ? `<span class="nu-wt" aria-hidden="true">${DAYS_DE[t.wt]}</span><span class="adm-visually-hidden">${WOCHENTAGE_LANG[t.wt]}, </span>${esc(formatIsoDate(iso))}` : esc(iso))
           + '</span><ul class="nu-verlauf-spiele">' + rows.map((r) => {
-            const m = MODI.find((x) => x.key === r.spiel)
-            return `<li><span class="nu-modus">${esc(m ? m.label : r.spiel)}</span><span class="adm-visually-hidden">: </span>${punkteDe(r.scoreSum, r.maxSum)}${Number(r.plays) > 1 ? ` <span class="nu-zusatz">(${Number(r.plays)}×)</span>` : ''}</li>`
+            return `<li><span class="nu-modus">${esc(spielName(r.spiel))}</span><span class="adm-visually-hidden">: </span>${punkteDe(r.scoreSum, r.maxSum)}${Number(r.plays) > 1 ? ` <span class="nu-zusatz">(${Number(r.plays)}×)</span>` : ''}</li>`
           }).join('') + '</ul></li>'
       }).join('') + '</ol>'
       : '<p class="tag-abschnitt-text">Noch nicht gespielt.</p>')
@@ -5385,203 +5382,6 @@ async function deleteSelectedUser() {
     } else {
       setNutzerStatus(`Konto nicht gelöscht: ${err.message}`, 'error')
     }
-  }
-}
-
-function renderStatsSummary(summary) {
-  const cards = document.getElementById('stats-summary-cards')
-  if (!cards) return
-
-  if (!summary) {
-    cards.innerHTML = '<div class="users-empty">Keine Zusammenfassung verfügbar.</div>'
-    return
-  }
-
-  const avg = summary.totals?.avg10 == null ? '–' : `${Number(summary.totals.avg10).toFixed(2)} / 10`
-  cards.innerHTML = [
-    `<article class="stats-summary-card"><span>Zeitraum</span><strong>${esc(String(summary.window?.days || 0))} Tage</strong><small>${esc(summary.window?.from || '—')} bis ${esc(summary.window?.to || '—')}</small></article>`,
-    `<article class="stats-summary-card"><span>Plays gesamt</span><strong>${esc(String(summary.totals?.plays || 0))}</strong><small>Über alle Modi</small></article>`,
-    `<article class="stats-summary-card"><span>Ø Score</span><strong>${esc(avg)}</strong><small>Aggregiert</small></article>`,
-    `<article class="stats-summary-card"><span>Top Modus</span><strong>${esc(summary.byGame?.[0] ? (STAT_LABELS[summary.byGame[0].spiel] || summary.byGame[0].spiel) : '—')}</strong><small>${esc(String(summary.byGame?.[0]?.plays || 0))} Plays</small></article>`,
-  ].join('')
-}
-
-function renderTopUsers(topUsers) {
-  const tbody = document.getElementById('stats-top-users-body')
-  if (!tbody) return
-
-  if (!Array.isArray(topUsers) || !topUsers.length) {
-    tbody.innerHTML = '<tr><td colspan="4" class="users-empty">Keine identifizierten Nutzerstatistiken im Zeitraum.</td></tr>'
-    return
-  }
-
-  tbody.innerHTML = topUsers.map((user) => {
-    const avg = user.avg10 == null ? '–' : `${Number(user.avg10).toFixed(2)} / 10`
-    return `<tr>
-      <td>${esc(user.name || user.email || user.userId)}</td>
-      <td>${esc(roleLabel(user.role || 'user'))}</td>
-      <td>${esc(String(user.plays || 0))}</td>
-      <td>${esc(avg)}</td>
-    </tr>`
-  }).join('')
-}
-
-async function loadStatsSummary(daysOverride) {
-  const days = String(daysOverride ?? (document.getElementById('stats-days')?.value || '30'))
-  const topUsersBody = document.getElementById('stats-top-users-body')
-  if (topUsersBody) {
-    topUsersBody.innerHTML = '<tr><td colspan="4" class="users-empty">Lade Top-Nutzer …</td></tr>'
-  }
-
-  try {
-    const response = await fetch(`/admin/stats/summary?days=${encodeURIComponent(days)}&topUsers=10`, {})
-    const data = await response.json()
-    if (!response.ok) throw new Error(data.error || `HTTP ${response.status}`)
-    renderStatsSummary(data)
-    renderTopUsers(data.topUsers || [])
-  } catch (err) {
-    renderStatsSummary(null)
-    if (topUsersBody) {
-      topUsersBody.innerHTML = `<tr><td colspan="4" class="users-empty">Fehler: ${esc(err.message)}</td></tr>`
-    }
-  }
-}
-
-function exportStats(format) {
-  const days = document.getElementById('stats-days')?.value || '30'
-  const url = `/admin/stats/export?days=${encodeURIComponent(days)}&format=${encodeURIComponent(format)}`
-  window.open(url, '_blank', 'noopener')
-}
-
-// Chart.js (~70 KB gzip) lag als render-blockierendes <script> im <head> und
-// verzögerte damit sogar den Login-Screen. Es wird jetzt erst beim ersten
-// Öffnen der Statistiken nachgeladen.
-let chartJsPromise = null
-
-function ensureChartJs() {
-  if (window.Chart) return Promise.resolve()
-  if (chartJsPromise) return chartJsPromise
-
-  chartJsPromise = new Promise((resolve, reject) => {
-    const script = document.createElement('script')
-    script.src = '/admin-assets/vendor/chart.umd.min.js'
-    script.onload = () => resolve()
-    script.onerror = () => {
-      chartJsPromise = null
-      reject(new Error('Chart.js konnte nicht geladen werden.'))
-    }
-    document.head.appendChild(script)
-  })
-
-  return chartJsPromise
-}
-
-function renderStats(data, out) {
-  if (!data.length) {
-    out.innerHTML = '<div style="color:var(--muted);font-size:0.85rem">Noch keine Statistik vorhanden.</div>'
-    return
-  }
-
-  const todayStr   = getTodayIso()
-  const todayEntry = data.find(d => d.datum === todayStr) || null
-  const last7      = data.slice(-7)
-
-  function fmtAvg(entry) {
-    if (!entry || !entry.plays) return '–'
-    return (entry.scoreSum / entry.maxSum * 10).toFixed(1)
-  }
-
-  let html = '<div class="stats-section-title" style="margin-top:0">Heute</div><div class="stats-tiles">'
-  for (const key of STAT_KEYS) {
-    const e = todayEntry?.[key]
-    html += `<div class="stats-tile">
-      <div class="stats-tile-title">${esc(STAT_LABELS[key])}</div>
-      <div class="stats-tile-num">${e?.plays || 0}</div>
-      <div class="stats-tile-sub">Ø ${fmtAvg(e)} / 10</div>
-    </div>`
-  }
-  html += '</div>'
-  html += '<div class="stats-section-title">Plays letzte 7 Tage</div>'
-  html += '<div class="stats-chart-wrap" style="height:160px"><canvas id="stats-trend-canvas"></canvas></div>'
-  html += '<div class="stats-section-title">Score-Verteilung heute (0–10)</div>'
-  html += '<div class="stats-chart-wrap" style="height:130px" id="stats-dist-wrap"><canvas id="stats-dist-canvas"></canvas></div>'
-
-  out.innerHTML = html
-
-  // Diagramme nur zeichnen, wenn die Statistik-Seite wirklich sichtbar ist
-  // (der Nutzer kann während des Ladens weitergewechselt sein) – Chart.js
-  // kostet ~70 KB gzip und zwei Chart-Instanzen.
-  if (!document.getElementById('page-stats')?.classList.contains('is-active')) return
-
-  ensureChartJs()
-    .then(() => renderStatsCharts(last7, todayEntry))
-    .catch(() => {
-      const wrap = document.getElementById('stats-dist-wrap')
-      if (wrap) wrap.innerHTML = '<div style="color:var(--muted);font-size:0.85rem;padding:12px 0">Diagramme konnten nicht geladen werden.</div>'
-    })
-}
-
-function renderStatsCharts(last7, todayEntry) {
-  // Der Nutzer kann zwischen Laden und Zeichnen weitergewechselt haben.
-  const trendCanvas = document.getElementById('stats-trend-canvas')
-  if (!trendCanvas) return
-
-  if (statsChartTrend) { statsChartTrend.destroy(); statsChartTrend = null }
-  if (statsChartDist)  { statsChartDist.destroy();  statsChartDist  = null }
-
-  const trendLabels = last7.map((d) => formatIsoDate(d.datum))
-  statsChartTrend = new Chart(trendCanvas.getContext('2d'), {
-    type: 'line',
-    data: {
-      labels: trendLabels,
-      datasets: STAT_KEYS.map(key => ({
-        label: STAT_LABELS[key],
-        data: last7.map(d => d[key]?.plays || 0),
-        borderColor: STAT_COLORS[key],
-        backgroundColor: STAT_COLORS[key] + '18',
-        tension: 0.3,
-        pointRadius: 4,
-        fill: false,
-      }))
-    },
-    options: {
-      responsive: true, maintainAspectRatio: false,
-      plugins: { legend: { position: 'bottom', labels: { font: { size: 10 }, boxWidth: 10, padding: 10 } } },
-      scales: {
-        y: { beginAtZero: true, ticks: { stepSize: 1, font: { size: 10 } }, grid: { color: '#e7e5e0' } },
-        x: { ticks: { font: { size: 10 } }, grid: { display: false } }
-      },
-      animation: { duration: 300 }
-    }
-  })
-
-  if (todayEntry && STAT_KEYS.some(k => todayEntry[k]?.plays)) {
-    statsChartDist = new Chart(document.getElementById('stats-dist-canvas').getContext('2d'), {
-      type: 'bar',
-      data: {
-        labels: ['0','1','2','3','4','5','6','7','8','9','10'],
-        datasets: STAT_KEYS.map(key => ({
-          label: STAT_LABELS[key],
-          data: todayEntry[key]?.dist || Array(11).fill(0),
-          backgroundColor: STAT_COLORS[key] + 'aa',
-          borderColor: STAT_COLORS[key],
-          borderWidth: 1,
-          borderRadius: 2,
-        }))
-      },
-      options: {
-        responsive: true, maintainAspectRatio: false,
-        plugins: { legend: { position: 'bottom', labels: { font: { size: 10 }, boxWidth: 10, padding: 10 } } },
-        scales: {
-          x: { title: { display: true, text: 'Score', font: { size: 10 } }, ticks: { font: { size: 10 } }, grid: { display: false } },
-          y: { beginAtZero: true, ticks: { stepSize: 1, font: { size: 10 } }, grid: { color: '#e7e5e0' } }
-        },
-        animation: { duration: 300 }
-      }
-    })
-  } else {
-    document.getElementById('stats-dist-wrap').innerHTML =
-      '<div style="color:var(--muted);font-size:0.85rem;padding:12px 0">Noch keine Daten für heute.</div>'
   }
 }
 
@@ -5997,6 +5797,7 @@ async function loadFreeDays({ silent = false } = {}) {
   renderMonat()   // … und im Monat
   renderBonusTage()
   renderInhalteStand()
+  auBonusNachgeladen()   // … und in den Kennzahlen, falls sie schon vor den Bonus-Tagen gezeichnet wurden
 }
 
 function bonusZeile(t, { vergangen = false } = {}) {
@@ -7516,8 +7317,7 @@ function handleDocumentClick(event) {
   if (action === 'entry-page-next') return void goToEntryPage(1)
   if (action === 'clear-entry-selection') return void clearEntrySelection()
   if (action === 'bulk-delete-selected-dates') return void bulkDeleteSelectedDates()
-  if (action === 'load-stats') return void loadStats()
-  if (action === 'export-stats') return void exportStats(target.dataset.format || 'json')
+  if (action === 'au-neu-laden') return void ladeAuswertung(currentRoute?.page, { neu: true })
   if (action === 'reset-kollokation-analysis' || action === 'reset-wort-zwilling-analysis' || action === 'reset-zeitenwende-analysis' || action === 'reset-lueckenfueller-analysis') return void leerePruefung(target)
   if (action === 'generate-lueckenfueller') return void generateLueckenfueller(target)
   if (action === 'monat-wechseln') return void wechsleMonat(Number(target.dataset.delta || 0))
@@ -7569,10 +7369,8 @@ function handleDocumentClick(event) {
   if (action === 'push-rueckgaengig') return void vorlageRueckgaengig()
   if (action === 'push-test-template') return void testeVorlage(target.dataset.id || '', target)
   if (action === 'push-uebernehmen') return void uebernimmVorlage(target.dataset.id || '')
-  if (action === 'load-classroom-stats') return void loadClassroomStats()
   if (action === 'demo-verwerfen') return void demoVerwerfen()
   if (action === 'demo-standard') return void demoStandardEinsetzen()
-  if (action === 'load-product-metrics') return void loadProductMetrics()
 }
 
 // ── Werkzeuge › Klassenraum-Demo ──────────────────────────
@@ -7770,417 +7568,885 @@ function demoStandardEinsetzen() {
   setMeldung('demo-content-status', 'Standardinhalte eingesetzt. Noch nicht gespeichert.', 'ok')
 }
 
-async function loadClassroomStats() {
-  const out  = document.getElementById('classroom-stats-output')
-  const days = document.getElementById('classroom-days')?.value || '30'
-  if (!out) return
-  out.innerHTML = '<div style="color:var(--muted);font-size:0.85rem">Lade …</div>'
+// ── Auswertung (#auswertung/spiele, /kennzahlen, /klassenraum) ─────────────────────────────
+// Ein Zeitraum für alle drei Reiter (7, 30, 90 Tage oder 12 Monate), in der Adresse als ?zeitraum= (nur wenn ≠ 30).
+// Zeitraum = Kalendertage der Berliner Zeit inklusive heute; Tage ohne Ereignis stehen mit 0 da. Admin-Konten zählen
+// nirgends mit. Die Seiten zeigen nur Summen: keine Namen, E-Mail-Adressen oder Konto-IDs.
+// Diagramme sind selbst gezeichnete SVG-Säulen (eine Reihe, Tintenbraun; die gewählte Säule rot). Die Ablesezeile über
+// dem Diagramm ersetzt den schwebenden Tooltip (Zeiger, Antippen, Pfeiltasten), die Werte stehen zusätzlich als Tabelle da.
+
+const AU_ZEITRAEUME = Object.freeze({ 7: 'Letzte 7 Tage', 30: 'Letzte 30 Tage', 90: 'Letzte 90 Tage', 365: 'Letzte 12 Monate' })
+const AU_ZEITRAUM_TEXT = Object.freeze({ 7: '7 Tagen', 30: '30 Tagen', 90: '90 Tagen', 365: '12 Monaten' })
+const AU_STANDARD = 30
+const AU_REITER = Object.freeze({ stats: 'spiele', metrics: 'kennzahlen', classroom: 'klassenraum' }) // Seite → Reiter
+const AU_CACHE_MS = 60 * 1000          // Zwischenspeicher im Browser je Seite und Zeitraum; „neu laden“ umgeht ihn
+const AU_WOCHEN_AB_TAGEN = 120         // ab so vielen Tagen zeigen die Diagramme Wochensummen (12 Monate = 53 Säulen)
+const AU_MIN_SPIELE_TAG = 30           // „Schwerste Tage“: erst ab so vielen Spielen eines Modus an einem Tag
+const AU_MONATE_KURZ = ['Jan.', 'Feb.', 'März', 'Apr.', 'Mai', 'Juni', 'Juli', 'Aug.', 'Sep.', 'Okt.', 'Nov.', 'Dez.']
+const NBSP = String.fromCharCode(160)
+const MINUS = String.fromCharCode(0x2212)
+
+let auswertungZeitraum = AU_STANDARD
+const auNr = { stats: 0, metrics: 0, classroom: 0 }         // laufende Nummer je Seite: nur die neueste Antwort darf zeichnen
+const auGeladen = new Map()                                  // `${seite}|${tage}` → { ts, daten } (nur erfolgreiche Antworten)
+const auDaten = {}                                           // seite → { tage, daten } der gerade gezeichneten Darstellung
+const auDiagramme = new Map()                                // id → { werte, opts, gewaehlt }
+const auVielfache = new Map()                                // id → { anteile, maxAnteil, modus }
+const AU_DIAGRAMME_JE_SEITE = { stats: ['au-d-spiele', 'au-v-k', 'au-v-w', 'au-v-z', 'au-v-l'], metrics: ['au-d-kaeufe', 'au-d-eigenes'], classroom: ['au-d-sitzungen'] }
+
+function leseAuswertungZeitraum(query) {
+  const z = Number(new URLSearchParams(query).get('zeitraum'))
+  return Object.hasOwn(AU_ZEITRAEUME, z) ? z : AU_STANDARD
+}
+
+function auswertungHash(reiter, tage) {
+  return `#auswertung/${reiter}${tage !== AU_STANDARD ? `?zeitraum=${tage}` : ''}`
+}
+
+// ── Formate ──
+const auZahl = (n) => ganzzahlDe(n)
+const auAnzahl = (n, eins, viele) => `${ganzzahlDe(n)}${NBSP}${Number(n) === 1 ? eins : viele}`
+const auProzent = (teil, ganz) => (ganz > 0 ? `${Math.round((teil / ganz) * 100)}${NBSP}%` : '–')
+const auBetrag = (n) => betragDe(n).replace(' ', NBSP)
+const auDezimal = (n, stellen = 1) => Number(n).toLocaleString('de-DE', { minimumFractionDigits: stellen, maximumFractionDigits: stellen })
+const auUhr = (wert) => { const t = berlinTeile(wert || getCurrentDate()); return t ? uhrText(t) : '' }
+const auFehlerText = (err) => (err?.status ? `HTTP ${err.status}` : String(err?.message || 'unbekannter Fehler'))
+
+// „25. September – 24. Oktober 2026“ · „9.–15. November 2026“
+function auDatumSpanne(von, bis) {
+  const a = datumTeile(von)
+  const e = datumTeile(bis)
+  if (a.y !== e.y) return `${a.d}. ${MONTHS_DE[a.m - 1]} ${a.y} – ${e.d}. ${MONTHS_DE[e.m - 1]} ${e.y}`
+  if (a.m !== e.m) return `${a.d}. ${MONTHS_DE[a.m - 1]} – ${e.d}. ${MONTHS_DE[e.m - 1]} ${e.y}`
+  return `${a.d}.–${e.d}. ${MONTHS_DE[e.m - 1]} ${e.y}`
+}
+
+// Abstand zweier Kalendertage in Tagen (bis − von), unabhängig von der Sommerzeit
+function auTageZwischen(von, bis) {
+  const a = datumTeile(von)
+  const b = datumTeile(bis)
+  return Math.round((Date.UTC(b.y, b.m - 1, b.d) - Date.UTC(a.y, a.m - 1, a.d)) / 864e5)
+}
+
+// Kalenderwoche (ISO 8601) eines Tages
+function auKw(iso) {
+  const t = datumTeile(iso)
+  const utc = Date.UTC(t.y, t.m - 1, t.d)
+  const donnerstag = new Date(utc + (3 - t.wt) * 864e5)
+  const erster = Date.UTC(donnerstag.getUTCFullYear(), 0, 1)
+  return Math.floor((donnerstag.getTime() - erster) / 864e5 / 7) + 1
+}
+
+// ── Diagramm-Bausteine ──
+function auRunde(n) {
+  if (n <= 4) return 4
+  const p = 10 ** Math.floor(Math.log10(n))
+  const f = n / p
+  return [1, 1.2, 1.5, 2, 2.5, 3, 4, 5, 6, 8, 10].find((g) => f <= g) * p
+}
+
+// Achsenbeschriftung kurz: 3.000 · 12 Tsd. · 1,2 Mio.
+function auKurzZahl(n) {
+  if (n >= 1000000) return `${(Math.round(n / 100000) / 10).toLocaleString('de-DE')}${NBSP}Mio.`
+  return n >= 10000 ? `${auZahl(Math.round(n / 1000))}${NBSP}Tsd.` : auZahl(n)
+}
+
+// Breite eines Achsentextes (11 px, Schrift der Seite); ohne Canvas eine Schätzung von 6,5 px je Zeichen
+let auMessKontext
+function auTextBreite(text, schrift) {
   try {
-    const r    = await fetch(`/admin/classroom/stats?days=${encodeURIComponent(days)}`)
-    const data = await r.json()
-    if (!r.ok) throw new Error(data.error || `HTTP ${r.status}`)
-    out.innerHTML = renderClassroomStats(data)
-  } catch (e) {
-    out.innerHTML = `<div class="status error">Fehler: ${esc(e.message)}</div>`
+    auMessKontext ??= document.createElement('canvas').getContext('2d')
+    auMessKontext.font = `400 11px ${schrift}`
+    const b = auMessKontext.measureText(text).width
+    if (b > 0) return b
+  } catch { /* ohne Canvas schätzen */ }
+  return text.length * 6.5
+}
+
+// Säule mit 4-px-Rundung oben, eckig an der Grundlinie
+function auSaeulePfad(x, y, w, h) {
+  const r = Math.min(4, w / 2, h)
+  return `M${x},${y + h}V${y + r}Q${x},${y} ${x + r},${y}H${x + w - r}Q${x + w},${y} ${x + w},${y + r}V${y + h}Z`
+}
+
+/**
+ * Säulendiagramm (eine Reihe). werte: [{ key, kurz, lang, wert, teil?, marke? }]
+ * opts: { titel, labelId, spanne, schritt: 'tag'|'woche', einheit(n), zusatz(w), legende: [], tabelle }
+ *
+ * Bedienung: Das Diagramm ist ein Schieberegler (role="slider") über die Säulen. Pfeiltasten und Antippen wählen eine
+ * Säule und setzen aria-valuenow/-valuetext („Do 22.10.: 422 Spiele“), das liest die Sprachausgabe vor. Zeigerbewegung
+ * und Verlassen ändern nur die Anzeige (Ablesezeile, rote Säule), sagen aber nichts an – die Ablesezeile ist keine Live-Region.
+ */
+function auDiagrammHtml(id, werte, opts) {
+  auDiagramme.set(id, { werte, opts, gewaehlt: null })
+  const max = Math.max(0, ...werte.map((w) => w.wert))
+  const hoch = werte.reduce((a, w) => (w.wert > (a?.wert ?? -1) && !w.teil ? w : a), null)
+  const zuletzt = werte.filter((w) => !w.teil).at(-1) || werte.at(-1)
+  // „am Do 22.10.“ · „in KW 42 (12.10.–18.10.)“ · „heute, Do 22.10. (bis 14:36 Uhr)“
+  const wann = (w) => (opts.schritt === 'woche' ? `in ${w.lang}` : w.lang.startsWith('heute') ? w.lang : `am ${w.lang}`)
+  const satz = (x) => (x.endsWith('.') ? x : `${x}.`)
+  const label = `${opts.titel} vom ${opts.spanne}: ${max > 0 && hoch ? `Höchster Wert ${opts.einheit(hoch.wert)} ${wann(hoch)}; zuletzt ${opts.einheit(zuletzt.wert)} ${satz(wann(zuletzt))}` : 'alle Werte 0.'} Pfeiltasten wählen ${opts.schritt === 'woche' ? 'eine Woche' : 'einen Tag'}.`
+  const legende = (opts.legende || []).length ? `<ul class="au-legende">${opts.legende.join('')}</ul>` : ''
+  const start = auStandardIndex(werte)
+  return `<figure class="au-diagramm"${opts.labelId ? ` aria-labelledby="${esc(opts.labelId)}"` : ''}>`
+    + `<p class="au-ablesen" id="${id}-ablesen">${auAblesenHtml(id, null)}</p>`
+    + `<div class="au-plot" id="${id}" tabindex="0" role="slider" aria-roledescription="Säulendiagramm" aria-orientation="horizontal" aria-label="${esc(label)}"`
+    + ` aria-valuemin="1" aria-valuemax="${werte.length}" aria-valuenow="${start + 1}" aria-valuetext="${esc(auWertText(id, start))}"></div>`
+    + legende
+    + auTabelleHtml(opts.tabelle)
+    + '</figure>'
+}
+
+// Ausgangspunkt, solange nichts gewählt ist: der letzte volle Tag (nicht der laufende)
+function auStandardIndex(werte) {
+  const i = werte.findLastIndex((w) => !w.teil)
+  return i >= 0 ? i : Math.max(0, werte.length - 1)
+}
+
+// Vorgelesener Wert einer Säule: „Do 22.10.: 422 Spiele“ (mit Zusatz: „…, Bonus-Tag +2“)
+function auWertText(id, idx) {
+  const d = auDiagramme.get(id)
+  const w = d?.werte[idx]
+  if (!w) return ''
+  const zusatz = d.opts.zusatz ? d.opts.zusatz(w) : ''
+  return `${w.lang}: ${d.opts.einheit(w.wert)}${zusatz ? `, ${zusatz}` : ''}`
+}
+
+// „Werte als Tabelle“ gibt es mehrmals auf der Seite: Der Titel hängt unsichtbar dran, damit die Knöpfe unterscheidbar sind
+function auTabelleHtml(t) {
+  if (!t) return ''
+  return `<details class="au-werte"><summary>Werte als Tabelle<span class="adm-visually-hidden">: ${esc(t.titel)}</span></summary>`
+    + `<div class="au-tab-wrap" tabindex="0" role="region" aria-label="${esc(t.titel)}"><table class="au-tab"><caption class="adm-visually-hidden">${esc(t.titel)}</caption>`
+    + `<thead><tr>${t.spalten.map((s) => `<th scope="col">${esc(s)}</th>`).join('')}</tr></thead>`
+    + `<tbody>${t.zeilen.map((z) => `<tr><th scope="row">${esc(z[0])}</th>${z.slice(1).map((c) => `<td>${esc(c)}</td>`).join('')}</tr>`).join('')}</tbody></table></div></details>`
+}
+
+function auAblesenHtml(id, idx) {
+  const d = auDiagramme.get(id)
+  if (!d) return ''
+  const { werte, opts } = d
+  let w = idx == null ? null : werte[idx]
+  let vorgabe = false
+  if (!w) { w = werte.filter((x) => !x.teil).at(-1) || werte.at(-1); vorgabe = true }
+  if (!w) return ''
+  const zusatz = opts.zusatz ? opts.zusatz(w) : ''
+  return `${vorgabe ? '<span class="au-ablesen-zusatz">Zuletzt: </span>' : ''}${esc(w.lang)}: <strong>${esc(opts.einheit(w.wert))}</strong>${zusatz ? ` <span class="au-ablesen-zusatz">· ${esc(zusatz)}</span>` : ''}`
+}
+
+function auZeichneDiagramm(id) {
+  const host = document.getElementById(id)
+  const d = auDiagramme.get(id)
+  if (!host || !d) return
+  const gemessen = Math.round(host.clientWidth)
+  if (!gemessen) return // Seite gerade nicht sichtbar: Beim nächsten Öffnen wird neu gezeichnet
+  const breite = Math.max(200, gemessen)
+  const hoehe = 172
+  const unten = 22
+  const oben = 10
+  const plotH = hoehe - unten - oben
+  const { werte } = d
+  const max = auRunde(Math.max(1, ...werte.map((w) => w.wert)))
+  const n = werte.length
+  // Linker Rand aus der breitesten Beschriftung (3.000, 12 Tsd., 1,2 Mio.): nichts ragt über den Rand
+  const stufen = Number.isInteger(max / 2) ? [0, max / 2, max] : [0, max]
+  const schrift = getComputedStyle(host).getPropertyValue('--font-sans').trim() || 'sans-serif'
+  const links = Math.max(22, Math.ceil(Math.max(...stufen.map((t) => auTextBreite(auKurzZahl(t), schrift)))) + 8)
+  const plotB = breite - links - 2
+  const schritt = plotB / n
+  const bw = Math.max(1, Math.min(24, schritt - (schritt >= 4 ? 2 : 1)))
+  const yVon = (v) => oben + plotH - (v / max) * plotH
+  let s = `<svg width="${breite}" height="${hoehe}" viewBox="0 0 ${breite} ${hoehe}" aria-hidden="true" focusable="false">`
+  for (const t of stufen) {
+    const y = Math.round(yVon(t)) + 0.5
+    s += `<line class="${t === 0 ? 'au-grundlinie' : 'au-gitter'}" x1="${links}" x2="${breite}" y1="${y}" y2="${y}"/>`
+    s += `<text class="au-achse-text" x="${links - 6}" y="${y + 4}" text-anchor="end">${esc(auKurzZahl(t))}</text>`
+  }
+  // Marke der gewählten Säule zusätzlich zur Farbe: eine rote Linie durch die Säulenmitte (hinter der Säule, sichtbar
+  // über kurzen Säulen und bei Tagen ohne Wert) und ein roter Fuß unter der Grundlinie
+  if (d.gewaehlt != null && werte[d.gewaehlt]) {
+    const x = Math.round(links + d.gewaehlt * schritt + schritt / 2) + 0.5
+    s += `<line class="au-wahl-linie" x1="${x}" x2="${x}" y1="${oben}" y2="${oben + plotH}"/>`
+    s += `<line class="au-wahl-fuss" x1="${x}" x2="${x}" y1="${oben + plotH + 1}" y2="${oben + plotH + 6}"/>`
+  }
+  werte.forEach((w, i) => {
+    const x = links + i * schritt + (schritt - bw) / 2
+    const h = w.wert > 0 ? Math.max(1.5, (w.wert / max) * plotH) : 0
+    const y = oben + plotH - h
+    const klasse = `au-saeule${w.teil ? ' is-teil' : ''}${d.gewaehlt === i ? ' is-gewaehlt' : ''}`
+    if (h > 0) s += `<path class="${klasse}" d="${auSaeulePfad(x, y, bw, h)}"/>`
+    if (w.marke) s += `<circle class="au-marke" cx="${x + bw / 2}" cy="${Math.max(5, y - 7)}" r="3.5"/>`
+  })
+  // x-Achse: erster, mittlerer und letzter Wert (bei Wochen: Monatskürzel)
+  const marken = n <= 8 ? werte.map((_, i) => i) : [0, Math.floor((n - 1) / 2), n - 1]
+  for (const i of marken) {
+    const anker = i === 0 && n > 8 ? 'start' : i === n - 1 && n > 8 ? 'end' : 'middle'
+    const x = anker === 'start' ? links + i * schritt : anker === 'end' ? links + (i + 1) * schritt : links + i * schritt + schritt / 2
+    s += `<text class="au-achse-text" x="${x}" y="${hoehe - 6}" text-anchor="${anker}">${esc(werte[i].kurz)}</text>`
+  }
+  s += '</svg>'
+  host.innerHTML = s
+  host.dataset.links = String(links)
+  host.dataset.schritt = String(schritt)
+}
+
+// Wählt eine Säule (null: nichts gewählt, die Ablesezeile zeigt wieder den letzten vollen Tag).
+// stumm: nur die Anzeige ändern (Zeigerbewegung); sonst auch aria-valuenow/-valuetext für die Sprachausgabe.
+function auWaehle(id, idx, { stumm = false } = {}) {
+  const d = auDiagramme.get(id)
+  if (!d) return
+  d.gewaehlt = idx
+  auZeichneDiagramm(id)
+  const zeile = document.getElementById(`${id}-ablesen`)
+  if (zeile) zeile.innerHTML = auAblesenHtml(id, idx)
+  if (stumm) return
+  d.gesetzt = idx // Auswahl, die die Sprachausgabe kennt (Tastatur, Antippen); der Zeiger darf sie nur vorübergehend überdecken
+  const host = document.getElementById(id)
+  const i = idx ?? auStandardIndex(d.werte)
+  host?.setAttribute('aria-valuenow', String(i + 1))
+  host?.setAttribute('aria-valuetext', auWertText(id, i))
+}
+
+function auZeichneAlle() {
+  for (const id of auDiagramme.keys()) auZeichneDiagramm(id)
+  for (const [id, v] of auVielfache) {
+    const el = document.getElementById(id)
+    if (el && el.clientWidth) el.innerHTML = auVerteilungSvg(v.anteile, v.maxAnteil, v.modus, Math.max(160, Math.round(el.clientWidth)))
   }
 }
 
-function renderClassroomStats(d) {
-  const s   = d.sessions   || {}
-  const p   = d.participants || {}
-  const sub = d.submissions || {}
-  const modes = d.modes    || []
-
-  // Empty State
-  if (!s.total) {
-    return `
-      <div class="users-empty" style="padding:48px 0; text-align:center">
-        <p style="font-size:1.5rem; font-family:'Gentium Plus',serif; color:var(--primary)">K</p>
-        <p style="color:var(--muted); font-size:0.9rem; margin-top:8px">Noch keine Klassenraum-Sessions im gewählten Zeitraum.</p>
-      </div>`
-  }
-
-  const pct = (n, d2) => d2 > 0 ? Math.round((n / d2) * 100) + '%' : '-'
-  const fmt = (n) => n == null ? '-' : Number(n).toLocaleString('de-DE')
-  const fmtPct = (v) => v == null ? '-' : (v * 100).toFixed(1) + '%'
-
-  // Sessions-Kacheln
-  const byStatus = s.byStatus || {}
-  const byReason = s.byReason || {}
-  const manual   = (byReason['manual'] || 0) + (byReason['completed'] || 0)
-  const auto     = byReason['auto'] || byReason['auto_end'] || 0
-
-  // Modus-Tabelle
-  const modeRows = modes.length
-    ? modes.map(m => {
-        const w = modes[0].count > 0 ? Math.round((m.count / modes[0].count) * 100) : 0
-        return `<tr>
-          <td style="width:130px">${esc(m.mode)}</td>
-          <td><div style="display:flex;align-items:center;gap:8px">
-            <div style="flex:1;height:8px;background:var(--border-lt);border-radius:4px">
-              <div style="width:${w}%;height:8px;background:var(--primary);border-radius:4px"></div>
-            </div>
-            <span style="min-width:32px;text-align:right;font-size:0.82rem">${fmt(m.count)}</span>
-          </div></td>
-        </tr>`
-      }).join('')
-    : '<tr><td colspan="2" class="users-empty">Keine Modi-Daten</td></tr>'
-
-  // Sessions pro Tag (Mini-Balkendiagramm)
-  const perDay = (s.perDay || []).slice(-30)
-  const maxDay = perDay.reduce((m, r) => Math.max(m, r.count), 0) || 1
-  const dayBars = perDay.length
-    ? perDay.map(r => {
-        const h = Math.round((r.count / maxDay) * 36)
-        return `<div title="${esc(r.day)}: ${r.count}" style="display:inline-flex;flex-direction:column;align-items:center;justify-content:flex-end;height:40px;width:${Math.max(8, Math.floor(280 / perDay.length))}px">
-          <div style="width:80%;background:var(--primary);border-radius:2px 2px 0 0;height:${h}px"></div>
-        </div>`
-      }).join('')
-    : '<span style="color:var(--muted);font-size:0.82rem">Keine Daten</span>'
-
-  return `
-    <div class="dashboard-grid" style="margin-bottom:16px">
-      <article class="metric-card metric-card--support">
-        <span class="metric-label">Sessions gesamt</span>
-        <strong class="metric-value">${fmt(s.total)}</strong>
-        <span class="metric-sub">im Zeitraum</span>
-      </article>
-      <article class="metric-card metric-card--support">
-        <span class="metric-label">Abgeschlossen</span>
-        <strong class="metric-value">${fmt(byStatus['finished'] || 0)}</strong>
-        <span class="metric-sub">${pct(byStatus['finished'] || 0, s.total)} der Sessions</span>
-      </article>
-      <article class="metric-card metric-card--support">
-        <span class="metric-label">Ø Teilnehmer</span>
-        <strong class="metric-value">${p.avgPerSession != null ? p.avgPerSession : '-'}</strong>
-        <span class="metric-sub">${fmt(p.totalJoins)} Joins gesamt</span>
-      </article>
-      <article class="metric-card metric-card--support">
-        <span class="metric-label">Korrekte Antworten</span>
-        <strong class="metric-value">${fmtPct(sub.correctPct)}</strong>
-        <span class="metric-sub">${fmt(sub.total)} Abgaben</span>
-      </article>
-    </div>
-
-    <div class="dashboard-main-grid" style="margin-bottom:16px">
-      <article class="card dashboard-panel dashboard-panel--primary">
-        <div class="dashboard-panel-head">
-          <div>
-            <p class="section-label">Verlauf</p>
-            <h2>Sessions pro Tag</h2>
-          </div>
-        </div>
-        <div style="display:flex;align-items:flex-end;gap:1px;padding:8px 0;overflow:hidden;min-height:50px">
-          ${dayBars}
-        </div>
-      </article>
-
-      <aside class="dashboard-side-column">
-        <article class="card dashboard-panel dashboard-panel--secondary">
-          <div class="dashboard-panel-head dashboard-panel-head--stacked">
-            <div><p class="section-label">Inhalte</p><h2>Beliebteste Modi</h2></div>
-          </div>
-          <table style="width:100%;border-collapse:collapse">
-            <tbody>${modeRows}</tbody>
-          </table>
-        </article>
-
-        <article class="card dashboard-panel dashboard-panel--secondary">
-          <div class="dashboard-panel-head dashboard-panel-head--stacked">
-            <div><p class="section-label">Lifecycle</p><h2>Session-Status</h2></div>
-          </div>
-          <table class="users-table" style="font-size:0.83rem">
-            <tbody>
-              <tr><td>Lobby (offen)</td><td style="text-align:right">${fmt(byStatus['lobby'] || 0)}</td></tr>
-              <tr><td>Laufend</td><td style="text-align:right">${fmt(byStatus['running'] || 0)}</td></tr>
-              <tr><td>Pausiert</td><td style="text-align:right">${fmt(byStatus['paused'] || 0)}</td></tr>
-              <tr><td>Abgeschlossen</td><td style="text-align:right">${fmt(byStatus['finished'] || 0)}</td></tr>
-              <tr><td>Abgebrochen</td><td style="text-align:right">${fmt(byStatus['aborted'] || 0)}</td></tr>
-            </tbody>
-          </table>
-        </article>
-      </aside>
-    </div>
-
-    <div class="dashboard-grid" style="grid-template-columns:1fr 1fr">
-      <article class="card dashboard-panel dashboard-panel--secondary">
-        <div class="dashboard-panel-head dashboard-panel-head--stacked">
-          <div><p class="section-label">Teilnehmer</p><h2>Verbindungen</h2></div>
-        </div>
-        <table class="users-table" style="font-size:0.83rem">
-          <tbody>
-            <tr><td>Gesamt-Joins</td><td style="text-align:right">${fmt(p.totalJoins)}</td></tr>
-            <tr><td>Reconnects</td><td style="text-align:right">${fmt(p.reconnects)}</td></tr>
-            <tr><td>Reconnect-Quote</td><td style="text-align:right">${fmtPct(p.reconnectRate)}</td></tr>
-            <tr><td>Dropped (Timeout)</td><td style="text-align:right">${fmt(p.dropped)}</td></tr>
-          </tbody>
-        </table>
-      </article>
-
-      <article class="card dashboard-panel dashboard-panel--secondary">
-        <div class="dashboard-panel-head dashboard-panel-head--stacked">
-          <div><p class="section-label">Ende</p><h2>Abschlussart</h2></div>
-        </div>
-        <table class="users-table" style="font-size:0.83rem">
-          <tbody>
-            <tr><td>Manuell beendet</td><td style="text-align:right">${fmt(byReason['manual'] || 0)}</td></tr>
-            <tr><td>Alle Modi gespielt</td><td style="text-align:right">${fmt(byReason['completed'] || 0)}</td></tr>
-            <tr><td>Auto-End (Inaktivität)</td><td style="text-align:right">${fmt(auto)}</td></tr>
-            <tr><td>Abgebrochen</td><td style="text-align:right">${fmt(byReason['aborted'] || 0)}</td></tr>
-          </tbody>
-        </table>
-      </article>
-    </div>`
+// Sparkline 84 × 24 (Linie + Endpunkt), nur fürs Auge – die Werte stehen in der Zeile und in der Tabelle
+function auSparkline(werte) {
+  if (!werte.length) return ''
+  const b = 84
+  const h = 24
+  const max = Math.max(1, ...werte)
+  const pkt = werte.map((v, i) => [2 + (i / Math.max(1, werte.length - 1)) * (b - 6), h - 3 - (v / max) * (h - 6)])
+  const letzt = pkt.at(-1)
+  return `<svg width="${b}" height="${h}" viewBox="0 0 ${b} ${h}" aria-hidden="true" focusable="false"><polyline class="au-spark-linie" points="${pkt.map((p) => p.map((v) => v.toFixed(1)).join(',')).join(' ')}"/><circle class="au-spark-punkt" cx="${letzt[0].toFixed(1)}" cy="${letzt[1].toFixed(1)}" r="2.5"/></svg>`
 }
 
-// ── Produkt-Kennzahlen ────────────────────────────────────────
-async function loadProductMetrics() {
-  const out  = document.getElementById('metrics-output')
-  const days = document.getElementById('metrics-days')?.value || '30'
-  if (!out) return
-  out.innerHTML = '<div style="color:var(--muted);font-size:0.85rem">Lade …</div>'
-  const q = encodeURIComponent(days)
+// Kleines Histogramm 0–10 (Anteile), gemeinsamer Maßstab für alle Modi
+function auVerteilungSvg(anteile, maxAnteil, modus, b = 220) {
+  const h = 64
+  const unten = 14
+  const schritt = b / 11
+  const bw = Math.min(14, schritt - 2)
+  let s = `<svg width="${b}" height="${h}" viewBox="0 0 ${b} ${h}" aria-hidden="true" focusable="false"><line class="au-grundlinie" x1="0" x2="${b}" y1="${h - unten + 0.5}" y2="${h - unten + 0.5}"/>`
+  anteile.forEach((a, p) => {
+    const hh = maxAnteil > 0 ? (a / maxAnteil) * (h - unten - 4) : 0
+    const x = p * schritt + (schritt - bw) / 2
+    if (hh > 0) s += `<path class="au-saeule" d="${auSaeulePfad(x, h - unten - hh, bw, hh)}"><title>${esc(`${modus}: ${p} Punkte – ${Math.round(a * 100)} % der Spiele`)}</title></path>`
+    if (p % 5 === 0 || p === 10) s += `<text class="au-achse-text" x="${x + bw / 2}" y="${h - 2}" text-anchor="middle">${p}</text>`
+  })
+  return `${s}</svg>`
+}
 
-  // Vier unabhängige Aggregate parallel laden; ein Fehler in einem Block
-  // soll die anderen nicht verschlucken.
-  async function getJson(url) {
-    const r = await fetch(url)
-    const data = await r.json()
-    if (!r.ok) throw new Error(data.error || `HTTP ${r.status}`)
-    return data
+const auLegendeTeil = (woche) => `<li><svg width="12" height="12" aria-hidden="true" focusable="false"><rect class="au-saeule is-teil" x="1" y="1" width="10" height="10" rx="1"/></svg>${woche ? 'angefangene Woche' : 'heute, läuft noch'}</li>`
+const AU_LEGENDE_BONUS = '<li><svg width="12" height="12" aria-hidden="true" focusable="false"><circle class="au-marke" cx="6" cy="6" r="3.5"/></svg>Bonus-Tag</li>'
+
+function auBonusAm(iso) {
+  const b = freeDaysData.find((t) => t?.date === iso)
+  return b ? { bonus: Number(b.bonus_count) || 0, label: b.label || '' } : null
+}
+
+// Tage → Wochen (12 Monate): Summe je Kalenderwoche; angefangene Wochen am Rand zählen mit und sind als Umriss gezeichnet
+function auNachWochen(tage, wertVon) {
+  const wochen = []
+  for (const t of tage) {
+    const k = auKw(t.datum)
+    const letzte = wochen.at(-1)
+    if (letzte && letzte.kw === k && addTageIso(letzte.bis, 1) === t.datum) {
+      letzte.wert += wertVon(t)
+      letzte.bis = t.datum
+      letzte.teil = letzte.teil || !!t.teil
+      letzte.marke = letzte.marke || !!auBonusAm(t.datum)
+    } else {
+      wochen.push({ kw: k, von: t.datum, bis: t.datum, wert: wertVon(t), teil: !!t.teil, marke: !!auBonusAm(t.datum) })
+    }
   }
+  return wochen.map((w) => {
+    const anzahlTage = auTageZwischen(w.von, w.bis) + 1
+    return {
+      key: w.von,
+      kurz: AU_MONATE_KURZ[datumTeile(w.von).m - 1],
+      lang: `KW ${w.kw} (${kurzTag(w.von)}–${kurzTag(w.bis)}${anzahlTage < 7 ? `, ${anzahlTage} von 7 Tagen` : ''})`,
+      wert: w.wert,
+      teil: w.teil || anzahlTage < 7,
+      marke: w.marke,
+    }
+  })
+}
 
-  const [payments, teachers, customLemma, retention] = await Promise.all([
-    getJson(`/admin/payments/summary?days=${q}`).catch((e) => ({ __error: e.message })),
-    getJson(`/admin/classroom/teachers?days=${q}`).catch((e) => ({ __error: e.message })),
-    getJson(`/admin/custom-lemma/summary?days=${q}`).catch((e) => ({ __error: e.message })),
-    getJson(`/admin/stats/retention?days=${q}`).catch((e) => ({ __error: e.message })),
+// Reihe fürs Diagramm: Tage, ab 120 Tagen Wochen. heute = letzter Tag des Zeitraums.
+function auReihe(tage, wertVon, { marken = false, stand = null } = {}) {
+  if (tage.length > AU_WOCHEN_AB_TAGEN) return auNachWochen(tage, wertVon)
+  const heute = tage.at(-1)?.datum
+  return tage.map((t) => ({
+    key: t.datum,
+    kurz: kurzTag(t.datum),
+    lang: t.datum === heute && t.teil ? `heute, ${datumKurz(t.datum)} (bis ${auUhr(stand)} Uhr)` : datumKurz(t.datum),
+    wert: wertVon(t),
+    teil: !!t.teil,
+    marke: marken && !!auBonusAm(t.datum),
+  }))
+}
+
+// ── Gemeinsame Bausteine ──
+// Fehlt ein Wert, steht „–“ da; die Sprachausgabe sagt stattdessen „keine Angabe“
+const AU_KEINE_ANGABE = '<span aria-hidden="true">–</span><span class="adm-visually-hidden">keine Angabe</span>'
+
+function auZahlenHtml(eintraege) {
+  return '<dl class="au-zahlen">' + eintraege.map((e) => {
+    const wert = e.wertHtml ?? esc(e.wert)
+    return `<div class="au-zahl"><dt>${esc(e.label)}</dt><dd><span class="au-zahl-wert${e.leer ? ' is-leer' : ''}">${wert === '–' ? AU_KEINE_ANGABE : wert}</span>${e.zusatz ? `<span class="au-zahl-zusatz"${e.ton ? ` data-tone="${e.ton}"` : ''}>${esc(e.zusatz)}</span>` : ''}</dd></div>`
+  }).join('') + '</dl>'
+}
+
+// „25.09. bis 24.10.“ – bei 12 Monaten und über einen Jahreswechsel mit Jahr: „25.10.2025 bis 24.10.2026“
+function auSpanneKurz(z) {
+  const mitJahr = z.days >= 365 || z.von.slice(0, 4) !== z.bis.slice(0, 4)
+  return `${kurzTag(z.von)}${mitJahr ? z.von.slice(0, 4) : ''} bis ${kurzTag(z.bis)}${mitJahr ? z.bis.slice(0, 4) : ''}`
+}
+
+const auAbschnitt = (id, titel, inhalt) => `<section class="tag-abschnitt" aria-labelledby="${id}-titel"><h2 class="tag-abschnitt-titel" id="${id}-titel">${esc(titel)}</h2>${inhalt}</section>`
+const auLeerHtml = (titel, text) => `<div class="li-leer"><p class="li-leer-titel">${esc(titel)}</p><p class="li-leer-text">${esc(text)}</p><p class="li-leer-ornament" aria-hidden="true">· · ·</p></div>`
+// satz: ganzer Satzanfang („Die Zahlungen konnten“), damit die Beugung stimmt
+const auFehlerZeile = (satz, err) => `<p class="li-meldung" data-tone="error">${esc(satz)} nicht geladen werden (${esc(auFehlerText(err))}). <button type="button" class="adm-link" data-action="au-neu-laden">Erneut versuchen</button></p>`
+
+function auDeltaText(jetzt, vorher, tage) {
+  if (!vorher || !vorher.spiele) return ''
+  const p = Math.round(((jetzt - vorher.spiele) / vorher.spiele) * 100)
+  if (p === 0) return `gleich viel wie in den ${AU_ZEITRAUM_TEXT[tage]} davor`
+  return `${p > 0 ? '+' : MINUS}${Math.abs(p)}${NBSP}% zu den ${AU_ZEITRAUM_TEXT[tage]} davor`
+}
+
+// Ab dem Tag nach `verdichtetBis` gibt es Konto-Zeilen; davor sind die Konten in die anonyme Zeile gefaltet (180 Tage)
+const auKontoAb = (verdichtetBis) => addTageIso(verdichtetBis, 1)
+
+function auUmfangText(zeitraum, stand) {
+  // Admin-Spiele, die älter als 180 Tage sind, lassen sich nicht mehr herausrechnen
+  const admin = zeitraum.verdichtetBis ? 'ohne Admin-Konten (Admin-Spiele älter als 180 Tage nicht herausgerechnet)' : 'ohne Admin-Konten'
+  return `${auDatumSpanne(zeitraum.von, zeitraum.bis)} · heute bis ${auUhr(stand)} Uhr · ${admin}`
+}
+
+// ── Spiele ──
+function auSchwersteTageHtml(d) {
+  const modusSchnitt = Object.fromEntries(MODI.map((m) => {
+    const p = d.tage.reduce((a, t) => a + t.modi[m.key].punkte, 0)
+    const x = d.tage.reduce((a, t) => a + t.modi[m.key].max, 0)
+    return [m.key, x ? p / x : 0]
+  }))
+  const kandidaten = []
+  for (const t of d.tage) {
+    for (const m of MODI) {
+      const x = t.modi[m.key]
+      if (x.spiele >= AU_MIN_SPIELE_TAG && x.max > 0) {
+        kandidaten.push({ datum: t.datum, m, schnitt: x.punkte / x.max, abstand: x.punkte / x.max - modusSchnitt[m.key], spiele: x.spiele })
+      }
+    }
+  }
+  kandidaten.sort((a, b) => a.abstand - b.abstand)
+  const schwer = kandidaten.slice(0, 5)
+  if (!schwer.length) return '<p class="tag-abschnitt-text">Kein Tag mit mindestens 30 Spielen in einem Modus.</p>'
+  const jahr = d.zeitraum.bis.slice(0, 4)
+  const wortVon = (datum, modus) => {
+    const gruppe = kalenderStatus === 'ok' ? getModeGroups(kalenderData?.[datum]).find((g) => g.key === modus) : null
+    return gruppe?.items?.length ? gruppe.items.join(modus === 'wortzwilling' ? ' / ' : ', ') : '–'
+  }
+  return '<p class="tag-abschnitt-text">Die fünf Tage, die am weitesten unter dem Durchschnitt ihres Spielmodus lagen (ab 30 Spielen). Das Datum öffnet den Tag in Planen.</p>'
+    + '<ol class="au-tage">' + schwer.map((k) => `<li class="au-tag"><span class="au-tag-datum"><a href="#planen/tag/${esc(k.datum)}">${esc(datumKurz(k.datum))}${esc(k.datum.slice(0, 4) !== jahr ? k.datum.slice(0, 4) : '')}</a></span>`
+      + `<span class="au-tag-inhalt">${auBadge(k.m)}<span class="au-tag-wort">${esc(wortVon(k.datum, k.m.key))}</span></span>`
+      + `<span class="au-tag-wert">${DURCHSCHNITT_HTML}${esc(auDezimal(k.schnitt * 10))}<small>${esc(`${MINUS}${auDezimal(Math.abs(k.abstand * 10))} zum Schnitt · ${auAnzahl(k.spiele, 'Spiel', 'Spiele')}`)}</small></span></li>`).join('') + '</ol>'
+}
+
+const auBadge = (m) => `<span class="tag-badge" data-m="${m.marke}">${esc(m.label)}</span>`
+
+// Das Kalenderwort eines Tages wird erst mit dem Kalender geladen: danach den Abschnitt nachziehen
+function aktualisiereSchwersteTage() {
+  const host = document.getElementById('au-schwer-inhalt')
+  const stand = auDaten.stats
+  if (host && stand) host.innerHTML = auSchwersteTageHtml(stand.daten)
+}
+
+function renderAuswertungSpiele(d) {
+  const host = document.getElementById('au-inhalt-stats')
+  if (!host) return
+  const tage = d.zeitraum.days
+  document.getElementById('au-umfang-stats').textContent = auUmfangText(d.zeitraum, d.zeitraum.stand)
+  auVergissDiagramme('stats')
+  if (!d.summe.spiele) {
+    host.innerHTML = auLeerHtml('Im Zeitraum wurde nicht gespielt.', 'Sobald jemand ein Spiel beendet, steht es hier – angemeldet oder nicht.')
+    return
+  }
+  const volleTage = d.tage.filter((t) => !t.teil)
+  const spieleTag = (t) => MODI.reduce((s, m) => s + t.modi[m.key].spiele, 0)
+  const proTag = Math.round(volleTage.reduce((a, t) => a + spieleTag(t), 0) / Math.max(1, volleTage.length))
+  const heute = d.tage.find((t) => t.teil)
+  const heuteSpiele = heute ? spieleTag(heute) : 0
+  const vorherPunkte = d.vorher?.max ? (d.vorher.punkte / d.vorher.max) * 10 : null
+  const jetztPunkte = (d.summe.punkte / d.summe.max) * 10
+  const punkteDelta = vorherPunkte == null ? '' : Math.abs(jetztPunkte - vorherPunkte) < 0.05
+    ? `gleich wie in den ${AU_ZEITRAUM_TEXT[tage]} davor`
+    : `${jetztPunkte > vorherPunkte ? '+' : MINUS}${auDezimal(Math.abs(jetztPunkte - vorherPunkte))} zu den ${AU_ZEITRAUM_TEXT[tage]} davor`
+
+  let html = auZahlenHtml([
+    { label: 'Spiele', wert: auZahl(d.summe.spiele), zusatz: auDeltaText(d.summe.spiele, d.vorher, tage) || 'im Zeitraum' },
+    { label: 'Am Tag', wertHtml: `${DURCHSCHNITT_HTML}${esc(auZahl(proTag))}`, zusatz: `heute bis ${auUhr(d.zeitraum.stand)} Uhr: ${auZahl(heuteSpiele)}` },
+    { label: 'Punkte', wertHtml: `${DURCHSCHNITT_HTML}${esc(punkteDe(d.summe.punkte, d.summe.max))}`, zusatz: punkteDelta ? `von 10 · ${punkteDelta}` : 'von 10' },
+    // Verdichtete Tage (älter als 180 Tage) haben keine Konto-Zeilen: Anteil nur ab dem ersten Tag mit Konto-Zeilen
+    { label: 'Mit Konto', wert: auProzent(d.summe.mitKonto, d.summe.kontoBasis), zusatz: d.zeitraum.verdichtetBis ? `der Spiele ab ${datumDe(auKontoAb(d.zeitraum.verdichtetBis))} (angemeldet)` : 'der Spiele (angemeldet)' },
   ])
 
-  out.innerHTML = [
-    renderMetricsPayments(payments),
-    renderMetricsRetention(retention),
-    renderMetricsCustomLemma(customLemma),
-    renderMetricsTeachers(teachers),
-  ].join('')
-}
+  // Verlauf
+  const werte = auReihe(d.tage, spieleTag, { stand: d.zeitraum.stand })
+  const woche = werte.length !== d.tage.length
+  const titel = woche ? 'Spiele pro Woche' : 'Spiele pro Tag'
+  const jeModusWoche = woche ? MODI.map((m) => auNachWochen(d.tage, (t) => t.modi[m.key].spiele)) : null
+  html += auAbschnitt('au-spiele-verlauf', titel, auDiagrammHtml('au-d-spiele', werte, {
+    titel,
+    labelId: 'au-spiele-verlauf-titel',
+    spanne: auSpanneKurz(d.zeitraum),
+    schritt: woche ? 'woche' : 'tag',
+    einheit: (n) => auAnzahl(n, 'Spiel', 'Spiele'),
+    legende: werte.some((w) => w.teil && w.wert > 0) ? [auLegendeTeil(woche)] : [],
+    tabelle: {
+      titel: `${titel}, nach Spielmodus`,
+      spalten: [woche ? 'Woche' : 'Tag', 'Alle', ...MODI.map((m) => m.label)],
+      zeilen: woche
+        ? werte.map((w, i) => [w.lang, auZahl(w.wert), ...jeModusWoche.map((r) => auZahl(r[i].wert))])
+        : d.tage.map((t) => [datumKurz(t.datum), auZahl(spieleTag(t)), ...MODI.map((m) => auZahl(t.modi[m.key].spiele))]),
+    },
+  }))
 
-const metricsFmt    = (n) => n == null ? '–' : Number(n).toLocaleString('de-DE')
-const metricsPct    = (v) => v == null ? '–' : (v * 100).toFixed(1) + '%'
-const metricsEuro   = (n) => n == null ? '–' : Number(n).toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €'
-
-function metricsErrorCard(title, msg) {
-  return `<article class="card dashboard-panel dashboard-panel--secondary" style="margin-bottom:16px">
-    <div class="dashboard-panel-head dashboard-panel-head--stacked"><div><p class="section-label">Produkt</p><h2>${esc(title)}</h2></div></div>
-    <div class="status error">Fehler: ${esc(msg)}</div>
-  </article>`
-}
-
-// Mini-Balken-Diagramm (Tageswerte). values: [{label, value}]
-function metricsBars(values, color = 'var(--primary)') {
-  if (!values.length) return '<span style="color:var(--muted);font-size:0.82rem">Keine Daten</span>'
-  const max = values.reduce((m, r) => Math.max(m, r.value), 0) || 1
-  const w = Math.max(6, Math.floor(280 / values.length))
-  return values.map((r) => {
-    const h = Math.round((r.value / max) * 36)
-    return `<div title="${esc(r.label)}: ${metricsFmt(r.value)}" style="display:inline-flex;flex-direction:column;align-items:center;justify-content:flex-end;height:40px;width:${w}px">
-      <div style="width:80%;background:${color};border-radius:2px 2px 0 0;height:${h}px"></div>
-    </div>`
+  // Nach Spielmodus: Zeile mit Text und Sparkline (Reihenfolge wie MODI, mit Lückenfüller)
+  const zeilen = MODI.map((m) => {
+    const sp = d.tage.reduce((a, t) => a + t.modi[m.key].spiele, 0)
+    const pk = d.tage.reduce((a, t) => a + t.modi[m.key].punkte, 0)
+    const mx = d.tage.reduce((a, t) => a + t.modi[m.key].max, 0)
+    const verlauf = (woche ? auNachWochen(d.tage, (t) => t.modi[m.key].spiele) : d.tage.map((t) => ({ wert: t.modi[m.key].spiele, teil: t.teil })))
+      .filter((w) => !w.teil).map((w) => w.wert)
+    return `<li class="au-zeile"><span class="au-zeile-name">${auBadge(m)}</span>`
+      + `<span class="au-zeile-werte"><b>${esc(auAnzahl(sp, 'Spiel', 'Spiele'))}</b> · ${esc(auProzent(sp, d.summe.spiele))} · ${DURCHSCHNITT_HTML}${esc(punkteDe(pk, mx))} von 10</span>`
+      + `<span class="au-zeile-bild">${auSparkline(verlauf)}</span>`
+      + (m.key === 'kollokationen' ? '<span class="au-zeile-unter">Ein Spiel je gespieltem Wort; an einem Tag sind mehrere Wörter möglich.</span>' : '')
+      + '</li>'
   }).join('')
-}
-
-function renderMetricsPayments(d) {
-  if (d.__error) return metricsErrorCard('Zahlungen', d.__error)
-  const t = d.totals || {}
-  const byProduct = d.byProduct || []
-  const trend = (d.trend || []).slice(-30).map((r) => ({ label: r.day, value: r.count }))
-
-  const productRows = byProduct.length
-    ? byProduct.map((p) => `<tr>
-        <td>${esc(p.product)}</td>
-        <td style="text-align:right">${metricsFmt(p.count)}</td>
-        <td style="text-align:right">${metricsEuro(p.revenue)}</td>
-      </tr>`).join('')
-    : '<tr><td colspan="3" class="users-empty">Keine Zahlungen im Zeitraum</td></tr>'
-
-  return `
-    <p class="section-label" style="margin:4px 0 10px">Zahlungen</p>
-    <div class="dashboard-grid" style="margin-bottom:12px">
-      <article class="metric-card metric-card--support">
-        <span class="metric-label">Umsatz</span>
-        <strong class="metric-value">${metricsEuro(t.revenue)}</strong>
-        <span class="metric-sub">im Zeitraum</span>
-      </article>
-      <article class="metric-card metric-card--support">
-        <span class="metric-label">Zahlungen</span>
-        <strong class="metric-value">${metricsFmt(t.payments)}</strong>
-        <span class="metric-sub">${metricsFmt(t.uniquePayers)} zahlende Nutzer</span>
-      </article>
-      <article class="metric-card metric-card--support">
-        <span class="metric-label">Ø Wert</span>
-        <strong class="metric-value">${metricsEuro(t.avgValue)}</strong>
-        <span class="metric-sub">pro Zahlung</span>
-      </article>
-      <article class="metric-card metric-card--support">
-        <span class="metric-label">Produkte</span>
-        <strong class="metric-value">${metricsFmt(byProduct.length)}</strong>
-        <span class="metric-sub">verschiedene</span>
-      </article>
-    </div>
-    <div class="dashboard-main-grid" style="margin-bottom:20px">
-      <article class="card dashboard-panel dashboard-panel--primary">
-        <div class="dashboard-panel-head"><div><p class="section-label">Verlauf</p><h2>Zahlungen pro Tag</h2></div></div>
-        <div style="display:flex;align-items:flex-end;gap:1px;padding:8px 0;overflow:hidden;min-height:50px">${metricsBars(trend)}</div>
-      </article>
-      <aside class="dashboard-side-column">
-        <article class="card dashboard-panel dashboard-panel--secondary">
-          <div class="dashboard-panel-head dashboard-panel-head--stacked"><div><p class="section-label">Aufschlüsselung</p><h2>Nach Produkt</h2></div></div>
-          <table class="users-table" style="font-size:0.83rem">
-            <thead><tr><th>Produkt</th><th style="text-align:right">Anzahl</th><th style="text-align:right">Umsatz</th></tr></thead>
-            <tbody>${productRows}</tbody>
-          </table>
-        </article>
-      </aside>
-    </div>`
-}
-
-function renderMetricsRetention(d) {
-  if (d.__error) return metricsErrorCard('Wiederkehr', d.__error)
-  const a = d.active || {}
-  const r = d.retentionDay7 || {}
-  const caveat = d.caveat
-    ? `<p style="color:var(--muted);font-size:0.78rem;margin:8px 2px 0">${esc(d.caveat)}</p>`
+  const wdw = d.wortDerWoche
+  const wdwZeile = wdw?.spiele
+    ? `<li class="au-zeile"><span class="au-zeile-name">Wort der Woche</span><span class="au-zeile-werte"><b>${esc(auAnzahl(wdw.spiele, 'Spiel', 'Spiele'))}</b> · ${DURCHSCHNITT_HTML}${esc(punkteDe(wdw.punkte, wdw.max))} von 10</span><span class="au-zeile-bild"></span><span class="au-zeile-unter">Wort-Zwilling, Zeitenwende und Lückenfüller zum Wort der Woche, zusammengezählt. Nicht in den Zahlen oben enthalten. Spiele aus älteren App-Versionen stehen noch unter dem Montag der Woche bei den Tagesspielen.</span></li>`
     : ''
-  return `
-    <p class="section-label" style="margin:4px 0 10px">Aktivität & Wiederkehr</p>
-    <div class="dashboard-grid" style="margin-bottom:8px">
-      <article class="metric-card metric-card--support">
-        <span class="metric-label">DAU</span>
-        <strong class="metric-value">${metricsFmt(a.dau)}</strong>
-        <span class="metric-sub">aktiv heute</span>
-      </article>
-      <article class="metric-card metric-card--support">
-        <span class="metric-label">WAU</span>
-        <strong class="metric-value">${metricsFmt(a.wau)}</strong>
-        <span class="metric-sub">letzte 7 Tage</span>
-      </article>
-      <article class="metric-card metric-card--support">
-        <span class="metric-label">MAU</span>
-        <strong class="metric-value">${metricsFmt(a.mau)}</strong>
-        <span class="metric-sub">letzte 30 Tage</span>
-      </article>
-      <article class="metric-card metric-card--support">
-        <span class="metric-label">Wiederkehr Tag 7</span>
-        <strong class="metric-value">${metricsPct(r.rate)}</strong>
-        <span class="metric-sub">${metricsFmt(r.returned)} von ${metricsFmt(r.cohortSize)} Konten</span>
-      </article>
-    </div>
-    ${caveat}
-    <div style="margin-bottom:20px"></div>`
-}
+  html += auAbschnitt('au-spiele-modi', 'Nach Spielmodus', `<ul class="au-zeilen">${zeilen}${wdwZeile}</ul><p class="au-hinweis">Linie rechts: ${woche ? 'Spiele pro Woche' : 'Spiele pro Tag'} im Zeitraum.</p>`)
 
-function renderMetricsCustomLemma(d) {
-  if (d.__error) return metricsErrorCard('Eigenes Lemma', d.__error)
-  const t = d.totals || {}
-  const byRole = d.byRole || []
-  const trend = (d.trend || []).slice(-30).map((r) => ({ label: r.day, value: r.plays }))
-
-  const roleLabelMap = { user: 'Basiszugang', premium: 'Gesamtausgabe', admin: 'Admin' }
-  const roleRows = byRole.length
-    ? byRole.map((r) => `<tr>
-        <td>${esc(roleLabelMap[r.role] || r.role)}</td>
-        <td style="text-align:right">${metricsFmt(r.users)}</td>
-        <td style="text-align:right">${metricsFmt(r.plays)}</td>
-      </tr>`).join('')
-    : '<tr><td colspan="3" class="users-empty">Keine Nutzung im Zeitraum</td></tr>'
-
-  return `
-    <p class="section-label" style="margin:4px 0 10px">Eigenes Lemma</p>
-    <div class="dashboard-grid" style="margin-bottom:12px">
-      <article class="metric-card metric-card--support">
-        <span class="metric-label">Aktive Nutzer</span>
-        <strong class="metric-value">${metricsFmt(t.activeUsers)}</strong>
-        <span class="metric-sub">im Zeitraum</span>
-      </article>
-      <article class="metric-card metric-card--support">
-        <span class="metric-label">Spiele gesamt</span>
-        <strong class="metric-value">${metricsFmt(t.totalPlays)}</strong>
-        <span class="metric-sub">${metricsFmt(t.dau)} aktiv heute</span>
-      </article>
-      <article class="metric-card metric-card--support">
-        <span class="metric-label">Anteil Gesamtausgabe</span>
-        <strong class="metric-value">${metricsPct(t.premiumRate)}</strong>
-        <span class="metric-sub">der aktiven Nutzer</span>
-      </article>
-      <article class="metric-card metric-card--support">
-        <span class="metric-label">Gesamtausgabe / Basiszugang</span>
-        <strong class="metric-value">${metricsFmt(t.premiumUsers)} / ${metricsFmt(t.basicUsers)}</strong>
-        <span class="metric-sub">Nutzer</span>
-      </article>
-    </div>
-    <div class="dashboard-main-grid" style="margin-bottom:20px">
-      <article class="card dashboard-panel dashboard-panel--primary">
-        <div class="dashboard-panel-head"><div><p class="section-label">Verlauf</p><h2>Spiele pro Tag</h2></div></div>
-        <div style="display:flex;align-items:flex-end;gap:1px;padding:8px 0;overflow:hidden;min-height:50px">${metricsBars(trend)}</div>
-      </article>
-      <aside class="dashboard-side-column">
-        <article class="card dashboard-panel dashboard-panel--secondary">
-          <div class="dashboard-panel-head dashboard-panel-head--stacked"><div><p class="section-label">Aufschlüsselung</p><h2>Nach Rolle</h2></div></div>
-          <table class="users-table" style="font-size:0.83rem">
-            <thead><tr><th>Rolle</th><th style="text-align:right">Nutzer</th><th style="text-align:right">Spiele</th></tr></thead>
-            <tbody>${roleRows}</tbody>
-          </table>
-        </article>
-      </aside>
-    </div>`
-}
-
-function renderMetricsTeachers(d) {
-  if (d.__error) return metricsErrorCard('Lehrer', d.__error)
-  const h = d.histogram || {}
-  const buckets = [
-    ['1–5 Sessions', h['1-5'] || 0],
-    ['6–20 Sessions', h['6-20'] || 0],
-    ['20+ Sessions', h['20+'] || 0],
-  ]
-  const maxBucket = buckets.reduce((m, [, n]) => Math.max(m, n), 0) || 1
-  const bucketRows = buckets.map(([label, n]) => {
-    const w = Math.round((n / maxBucket) * 100)
-    return `<tr>
-      <td style="width:140px">${esc(label)}</td>
-      <td><div style="display:flex;align-items:center;gap:8px">
-        <div style="flex:1;height:8px;background:var(--border-lt);border-radius:4px">
-          <div style="width:${w}%;height:8px;background:var(--primary);border-radius:4px"></div>
-        </div>
-        <span style="min-width:32px;text-align:right;font-size:0.82rem">${metricsFmt(n)}</span>
-      </div></td>
-    </tr>`
+  // Punkte je Spiel: kleine Vielfache, gleicher Maßstab
+  const anteile = Object.fromEntries(MODI.map((m) => {
+    const v = d.verteilung[m.key] || []
+    const s = v.reduce((a, x) => a + x, 0)
+    return [m.key, Array.from({ length: 11 }, (_, p) => (s ? (v[p] || 0) / s : 0))]
+  }))
+  const maxAnteil = Math.max(...MODI.flatMap((m) => anteile[m.key]))
+  const vielfachHtml = MODI.map((m) => {
+    const a = anteile[m.key]
+    const haeufig = a.indexOf(Math.max(...a))
+    const voll = Math.round(a[10] * 100)
+    const text = `${m.label}: am häufigsten ${haeufig} Punkte (${Math.round(a[haeufig] * 100)} % der Spiele); volle Punktzahl ${voll} %.`
+    auVielfache.set(`au-v-${m.marke}`, { anteile: a, maxAnteil, modus: m.label })
+    return `<li class="au-vielfach"><div class="au-vielfach-kopf">${auBadge(m)}<span class="au-zusatz">10 Punkte: ${voll}${NBSP}%</span></div><div class="au-vielfach-bild" id="au-v-${m.marke}" role="img" aria-label="${esc(text)}"></div></li>`
   }).join('')
+  html += auAbschnitt('au-spiele-punkte', 'Punkte je Spiel',
+    '<p class="tag-abschnitt-text">Wie viele Spiele mit 0 bis 10 Punkten endeten, als Anteil je Spielmodus (gleicher Maßstab). Viele volle Punktzahlen heißen: zu leicht.</p>'
+    + `<ul class="au-vielfache">${vielfachHtml}</ul>`
+    + auTabelleHtml({ titel: 'Punkte je Spiel, Anteil der Spiele in Prozent', spalten: ['Punkte', ...MODI.map((m) => m.label)], zeilen: Array.from({ length: 11 }, (_, p) => [`${p}`, ...MODI.map((m) => `${Math.round(anteile[m.key][p] * 100)} %`)]) }))
 
-  return `
-    <p class="section-label" style="margin:4px 0 10px">Lehrer (Klassenraum)</p>
-    <div class="dashboard-grid" style="margin-bottom:12px">
-      <article class="metric-card metric-card--support">
-        <span class="metric-label">Aktive Lehrer</span>
-        <strong class="metric-value">${metricsFmt(d.uniqueTeachers)}</strong>
-        <span class="metric-sub">mit Sessions im Zeitraum</span>
-      </article>
-      <article class="metric-card metric-card--support">
-        <span class="metric-label">Sessions gesamt</span>
-        <strong class="metric-value">${metricsFmt(d.totalSessions)}</strong>
-        <span class="metric-sub">angelegt</span>
-      </article>
-      <article class="metric-card metric-card--support">
-        <span class="metric-label">Ø Sessions / Lehrer</span>
-        <strong class="metric-value">${d.avgSessionsPerTeacher != null ? d.avgSessionsPerTeacher : '–'}</strong>
-        <span class="metric-sub">im Zeitraum</span>
-      </article>
-    </div>
-    <article class="card dashboard-panel dashboard-panel--secondary" style="margin-bottom:8px">
-      <div class="dashboard-panel-head dashboard-panel-head--stacked"><div><p class="section-label">Verteilung</p><h2>Sessions pro Lehrer</h2></div></div>
-      <table style="width:100%;border-collapse:collapse"><tbody>${bucketRows}</tbody></table>
-    </article>`
+  html += auAbschnitt('au-spiele-schwer', 'Schwerste Tage', `<div id="au-schwer-inhalt">${auSchwersteTageHtml(d)}</div>`)
+
+  host.innerHTML = html
+  auZeichneAlle()
 }
+
+// ── Kennzahlen ──
+function renderAuswertungKennzahlen(r, tage) {
+  const host = document.getElementById('au-inhalt-metrics')
+  if (!host) return
+  auBonusStand = JSON.stringify(freeDaysData) // Stand der Bonus-Tage, mit dem gezeichnet wird (siehe auBonusNachgeladen)
+  const teil = r.zahlungen.d || r.eigenesLemma.d || r.aktivitaet.d
+  const zeitraum = teil?.zeitraum
+  document.getElementById('au-umfang-metrics').textContent = zeitraum ? auUmfangText(zeitraum, null) : ''
+  auVergissDiagramme('metrics')
+  let html = ''
+
+  // Zahlungen
+  if (r.zahlungen.err) {
+    html += auAbschnitt('au-zahlungen', 'Zahlungen', auFehlerZeile('Die Zahlungen konnten', r.zahlungen.err))
+  } else {
+    const z = r.zahlungen.d
+    const werte = auReihe(z.tage, (t) => t.kaeufe)
+    const woche = werte.length !== z.tage.length
+    const einnahmenWoche = woche ? auNachWochen(z.tage, (t) => t.betrag) : null
+    const wege = { mollie: 'Website (Mollie)', apple: 'iOS-App (App Store)' }
+    const wegZeilen = z.nachWeg.map((w) => {
+      const n = w.stufen.reduce((a, s) => a + s.kaeufe, 0)
+      const b = w.stufen.reduce((a, s) => a + s.kaeufe * Number(s.betrag), 0)
+      return `<li class="au-zeile"><span class="au-zeile-name">${esc(wege[w.weg] || w.weg)}</span><span class="au-zeile-werte"><b>${esc(auAnzahl(n, 'Kauf', 'Käufe'))}</b> · ${esc(auBetrag(b))}</span><span class="au-zeile-bild"></span>`
+        + (w.stufen.length ? `<span class="au-zeile-unter">${w.stufen.map((s) => `${esc(auBetrag(s.betrag))}: ${esc(auZahl(s.kaeufe))}`).join(' · ')}</span>` : '')
+        + '</li>'
+    }).join('')
+    const titel = woche ? 'Käufe pro Woche' : 'Käufe pro Tag'
+    html += auAbschnitt('au-zahlungen', 'Zahlungen', auZahlenHtml([
+      { label: 'Einnahmen', wert: auBetrag(z.betrag), zusatz: 'brutto' },
+      { label: 'Käufe', wert: auZahl(z.kaeufe), zusatz: 'Gesamtausgabe' },
+      { label: 'Betrag', wertHtml: z.kaeufe ? `${DURCHSCHNITT_HTML}${esc(auBetrag(z.betrag / z.kaeufe))}` : '–', leer: !z.kaeufe, zusatz: 'je Kauf' },
+    ])
+      + (z.kaeufe
+        ? auDiagrammHtml('au-d-kaeufe', werte, {
+          titel,
+          labelId: 'au-zahlungen-titel',
+          spanne: auSpanneKurz(z.zeitraum),
+          schritt: woche ? 'woche' : 'tag',
+          einheit: (n) => auAnzahl(n, 'Kauf', 'Käufe'),
+          legende: werte.some((w) => w.teil && w.wert > 0) ? [auLegendeTeil(woche)] : [],
+          tabelle: {
+            titel: 'Käufe und Einnahmen',
+            spalten: [woche ? 'Woche' : 'Tag', 'Käufe', 'Einnahmen'],
+            zeilen: woche ? werte.map((w, i) => [w.lang, auZahl(w.wert), auBetrag(einnahmenWoche[i].wert)]) : z.tage.map((t) => [datumKurz(t.datum), auZahl(t.kaeufe), auBetrag(t.betrag)]),
+          },
+        }) + `<ul class="au-zeilen">${wegZeilen}</ul>`
+        : '<p class="tag-abschnitt-text">Im Zeitraum wurde nichts gekauft.</p>')
+      + '<p class="au-hinweis">Bruttobeträge, wie bezahlt – vor Mollie-Gebühren und Apple-Provision. Rückerstattungen werden bisher nicht erfasst und sind nicht abgezogen.</p>')
+  }
+
+  // Eigenes Lemma
+  if (r.eigenesLemma.err) {
+    html += auAbschnitt('au-eigenes', 'Eigenes Lemma', auFehlerZeile('Die Zahlen zum Eigenen Lemma konnten', r.eigenesLemma.err))
+  } else {
+    const e = r.eigenesLemma.d
+    const werte = auReihe(e.tage, (t) => t.spiele, { marken: true })
+    const woche = werte.length !== e.tage.length
+    const bonusImZeitraum = freeDaysData.filter((b) => b?.date >= e.zeitraum.von && b?.date <= e.zeitraum.bis).sort((a, b) => a.date.localeCompare(b.date))
+    const st = e.nachStufe
+    const stufe = (name, x) => `<li class="au-zeile"><span class="au-zeile-name">${esc(name)}</span><span class="au-zeile-werte"><b>${esc(auAnzahl(x.konten, 'Konto', 'Konten'))}</b> · ${esc(auAnzahl(x.spiele, 'Spiel', 'Spiele'))} · ${DURCHSCHNITT_HTML}${esc(auDezimal(x.konten ? x.spiele / x.konten : 0))} je Konto</span><span class="au-zeile-bild"></span></li>`
+    const titel = woche ? 'Spiele mit eigenem Lemma pro Woche' : 'Spiele mit eigenem Lemma pro Tag'
+    html += auAbschnitt('au-eigenes', 'Eigenes Lemma', auZahlenHtml([
+      { label: 'Spiele', wert: auZahl(e.spiele), zusatz: 'mit eigenem Lemma' },
+      { label: 'Konten', wert: auZahl(e.konten), zusatz: 'haben es gespielt' },
+      { label: 'Heute', wert: auZahl(e.heute.spiele), zusatz: `Spiele von ${auAnzahl(e.heute.konten, 'Konto', 'Konten')}` },
+    ])
+      + (e.spiele
+        ? auDiagrammHtml('au-d-eigenes', werte, {
+          titel,
+          labelId: 'au-eigenes-titel',
+          spanne: auSpanneKurz(e.zeitraum),
+          schritt: woche ? 'woche' : 'tag',
+          einheit: (n) => auAnzahl(n, 'Spiel', 'Spiele'),
+          zusatz: (w) => {
+            const b = !woche && auBonusAm(w.key)
+            return b ? `Bonus-Tag +${b.bonus}${b.label ? ` (${b.label})` : ''}` : w.marke ? 'mit Bonus-Tag' : ''
+          },
+          legende: [...(werte.some((w) => w.teil && w.wert > 0) ? [auLegendeTeil(woche)] : []), ...(werte.some((w) => w.marke) ? [AU_LEGENDE_BONUS] : [])],
+          tabelle: {
+            titel: 'Spiele mit eigenem Lemma',
+            spalten: woche ? ['Woche', 'Spiele', 'Bonus-Tag'] : ['Tag', 'Spiele', 'Konten', 'Bonus-Tag'],
+            zeilen: woche
+              ? werte.map((w) => [w.lang, auZahl(w.wert), w.marke ? 'ja' : ''])
+              : e.tage.map((t) => [datumKurz(t.datum), auZahl(t.spiele), auZahl(t.konten), auBonusAm(t.datum) ? `+${auBonusAm(t.datum).bonus}` : '']),
+          },
+        })
+        : '<p class="tag-abschnitt-text">Im Zeitraum wurde kein eigenes Lemma gespielt.</p>')
+      + `<ul class="au-zeilen">${stufe('Basiszugang', st.basiszugang)}${stufe('Gesamtausgabe', st.gesamtausgabe)}</ul>`
+      + `<p class="au-hinweis">Basiszugang: ein Spiel am Tag, an Bonus-Tagen mehr${bonusImZeitraum.length ? ` (im Zeitraum: ${bonusImZeitraum.map((b) => `${datumKurz(b.date)} +${Number(b.bonus_count) || 0}`).join(', ')})` : ''}. <a class="adm-link" href="#werkzeuge/bonus-tage">Bonus-Tage</a></p>`)
+  }
+
+  // Aktive Konten und Wiederkehr
+  if (r.aktivitaet.err) {
+    html += auAbschnitt('au-aktiv', 'Aktive Konten und Wiederkehr', auFehlerZeile('Die aktiven Konten konnten', r.aktivitaet.err))
+  } else {
+    const a = r.aktivitaet.d
+    const w = a.wiederkehr
+    const wieder = w.anteil != null
+      ? { label: 'Wiederkehr', wert: `${Math.round(w.anteil * 100)}${NBSP}%`, zusatz: `${auZahl(w.wieder)} von ${auAnzahl(w.kohorte, 'neuen Konto', 'neuen Konten')}` }
+      : {
+        label: 'Wiederkehr',
+        wert: '–',
+        leer: true,
+        ton: w.kohorte ? 'warn' : '',
+        zusatz: w.kohorte
+          ? `nur ${auAnzahl(w.kohorte, 'neues Konto', 'neue Konten')} – zu wenige für einen Anteil (ab ${w.mindestens})`
+          : (tage < 14 ? 'braucht mindestens 14 Tage Zeitraum' : 'keine neuen Konten'),
+      }
+    html += auAbschnitt('au-aktiv', 'Aktive Konten und Wiederkehr', auZahlenHtml([
+      { label: 'Heute', wert: auZahl(a.aktiv.heute), zusatz: 'Konten haben gespielt' },
+      { label: '7 Tage', wert: auZahl(a.aktiv.tage7), zusatz: 'Konten' },
+      { label: '30 Tage', wert: auZahl(a.aktiv.tage30), zusatz: 'Konten' },
+      wieder,
+    ])
+      + `<p class="au-hinweis">Aktive Konten zählen immer für heute, die letzten 7 und die letzten 30 Tage – unabhängig vom gewählten Zeitraum. Gezählt wird nur, wer angemeldet spielt${a.mitKontoAnteil != null ? ` (${Math.round(a.mitKontoAnteil * 100)}${NBSP}% der Spiele${a.mitKontoVerdichtetBis ? ` ab ${datumDe(auKontoAb(a.mitKontoVerdichtetBis))}, davor sind Konten nicht mehr erkennbar` : ''})` : ''}.</p>`
+      + (w.von && w.bis && w.von <= w.bis
+        ? `<p class="au-hinweis">Wiederkehr: Anteil der Konten, die zwischen ${esc(kurzTag(w.von))} und ${esc(kurzTag(w.bis))} angelegt wurden und in ihrer zweiten Woche (7. bis 13. Tag nach der Anmeldung) wieder gespielt haben.</p>`
+        : ''))
+  }
+  host.innerHTML = html
+  auZeichneAlle()
+}
+
+// ── Klassenraum ──
+function renderAuswertungKlassenraum(k) {
+  const host = document.getElementById('au-inhalt-classroom')
+  if (!host) return
+  document.getElementById('au-umfang-classroom').textContent = auUmfangText(k.zeitraum, k.zeitraum.stand)
+  auVergissDiagramme('classroom')
+  const s = k.sitzungen
+  if (!s.gesamt) {
+    host.innerHTML = auLeerHtml('Im Zeitraum gab es keine Sitzungen.', 'Sobald eine Lehrkraft eine Sitzung anlegt, steht sie hier.')
+    return
+  }
+  const lk = k.lehrkraefte
+  const beendet = s.ende.alleGespielt + s.ende.lehrkraft + s.ende.automatisch
+  let html = auZahlenHtml([
+    { label: 'Sitzungen', wert: auZahl(s.gesamt), zusatz: `${auZahl(beendet)} beendet` },
+    lk.verfuegbar
+      ? { label: 'Lehrkräfte', wert: auZahl(lk.anzahl), zusatz: 'mit Sitzungen' }
+      : { label: 'Lehrkräfte', wert: '–', leer: true, zusatz: 'nur für bis zu 30 Tage' },
+    { label: 'Teilnehmer', wertHtml: k.teilnehmer.schnitt != null ? `${DURCHSCHNITT_HTML}${esc(auDezimal(k.teilnehmer.schnitt))}` : '–', leer: k.teilnehmer.schnitt == null, zusatz: 'je gestartete Sitzung' },
+    { label: 'Antworten', wert: auZahl(k.antworten.gesamt), zusatz: k.antworten.gesamt ? `${auProzent(k.antworten.richtig, k.antworten.gesamt)} richtig` : 'keine Antworten' },
+  ])
+
+  const werte = auReihe(s.tage, (t) => t.sitzungen, { stand: k.zeitraum.stand })
+  const woche = werte.length !== s.tage.length
+  const titel = woche ? 'Sitzungen pro Woche' : 'Sitzungen pro Tag'
+  html += auAbschnitt('au-kr-verlauf', titel, auDiagrammHtml('au-d-sitzungen', werte, {
+    titel,
+    labelId: 'au-kr-verlauf-titel',
+    spanne: auSpanneKurz(k.zeitraum),
+    schritt: woche ? 'woche' : 'tag',
+    einheit: (n) => auAnzahl(n, 'Sitzung', 'Sitzungen'),
+    legende: werte.some((w) => w.teil && w.wert > 0) ? [auLegendeTeil(woche)] : [],
+    tabelle: { titel: 'Sitzungen', spalten: [woche ? 'Woche' : 'Tag', 'Sitzungen'], zeilen: werte.map((w) => [w.lang, auZahl(w.wert)]) },
+  }))
+
+  const modusZeilen = k.nachModus.map((x) => {
+    const m = MODI.find((y) => y.key === x.modus)
+    return m
+      ? `<li class="au-zeile"><span class="au-zeile-name">${auBadge(m)}</span><span class="au-zeile-werte"><b>${esc(auAnzahl(x.aufgaben, 'Aufgabe', 'Aufgaben'))}</b> · ${esc(auAnzahl(x.antworten, 'Antwort', 'Antworten'))} · ${esc(auProzent(x.richtig, x.antworten))} richtig</span><span class="au-zeile-bild"></span></li>`
+      : ''
+  }).join('')
+  html += auAbschnitt('au-kr-modi', 'Nach Spielmodus', modusZeilen
+    ? `<ul class="au-zeilen">${modusZeilen}</ul><p class="au-hinweis">Aufgaben: die Aufgaben einer Sitzung, zu denen mindestens eine Antwort einging.</p>`
+    : '<p class="tag-abschnitt-text">Im Zeitraum gingen keine Antworten ein.</p>')
+
+  html += auAbschnitt('au-kr-ende', 'Wie Sitzungen enden', '<dl class="tag-dl">'
+    + `<div><dt>Alles gespielt</dt><dd>${esc(auAnzahl(s.ende.alleGespielt, 'Sitzung', 'Sitzungen'))}</dd></div>`
+    + `<div><dt>Lehrkraft beendet</dt><dd>${esc(auAnzahl(s.ende.lehrkraft, 'Sitzung', 'Sitzungen'))}</dd></div>`
+    + `<div><dt>Automatisch</dt><dd>${esc(auAnzahl(s.ende.automatisch, 'Sitzung', 'Sitzungen'))} <span class="be-zusatz">nach 90 Minuten ohne Aktivität</span></dd></div>`
+    + `<div><dt>Noch offen</dt><dd>${esc(auAnzahl(s.ende.offen, 'Sitzung', 'Sitzungen'))} <span class="be-zusatz">im Warteraum oder läuft</span></dd></div></dl>`)
+
+  let lkHtml
+  if (!lk.verfuegbar) {
+    lkHtml = '<p class="tag-abschnitt-text">Wer welche Sitzung angelegt hat, wird nach 30 Tagen gelöscht. Für längere Zeiträume gibt es deshalb keine Zahlen zu Lehrkräften.</p>'
+  } else if (!lk.gruppen) {
+    lkHtml = `<p class="tag-abschnitt-text">${esc(auAnzahl(lk.anzahl, 'Lehrkraft', 'Lehrkräfte'))} im Zeitraum. Die Verteilung erscheint erst ab 5 Lehrkräften, damit sich keine einzelne Person ablesen lässt.</p>`
+  } else {
+    lkHtml = '<p class="tag-abschnitt-text">Wie viele Sitzungen eine Lehrkraft im Zeitraum angelegt hat.</p><dl class="tag-dl">'
+      + `<div><dt>1 bis 5 Sitzungen</dt><dd>${esc(auAnzahl(lk.gruppen['1-5'], 'Lehrkraft', 'Lehrkräfte'))}</dd></div>`
+      + `<div><dt>6 bis 20 Sitzungen</dt><dd>${esc(auAnzahl(lk.gruppen['6-20'], 'Lehrkraft', 'Lehrkräfte'))}</dd></div>`
+      + `<div><dt>Mehr als 20</dt><dd>${esc(auAnzahl(lk.gruppen['21+'], 'Lehrkraft', 'Lehrkräfte'))}</dd></div></dl>`
+  }
+  html += auAbschnitt('au-kr-lk', 'Lehrkräfte', lkHtml)
+
+  const t = k.teilnehmer
+  html += auAbschnitt('au-kr-verbindung', 'Verbindungen', '<dl class="tag-dl">'
+    + `<div><dt>Beitritte</dt><dd>${esc(auZahl(t.beitritte))} <span class="be-zusatz">mit Zugangscode</span></dd></div>`
+    + `<div><dt>Wieder verbunden</dt><dd>${esc(auZahl(t.wiederverbunden))} <span class="be-zusatz">${esc(t.beitritte ? `${auProzent(t.wiederverbunden, t.beitritte)} der Beitritte` : 'keine Beitritte')}</span></dd></div>`
+    + `<div><dt>Verbindung verloren</dt><dd>${esc(auZahl(t.verloren))} <span class="be-zusatz">nicht zurückgekehrt</span></dd></div></dl>`)
+  host.innerHTML = html
+  auZeichneAlle()
+}
+
+// ── Laden, Zustand ──
+function auVergissDiagramme(seite) {
+  for (const id of AU_DIAGRAMME_JE_SEITE[seite] || []) { auDiagramme.delete(id); auVielfache.delete(id) }
+}
+
+function auMeldung(seite, text, ton, html = false) {
+  setMeldung(`au-meldung-${seite}`, text, ton, { html })
+}
+
+// frisch: Der Server übergeht seinen Zwischenspeicher (nur Spiele und aktive Konten haben einen) – „neu laden“ im Kopf
+function auAbfragen(seite, tage, { frisch = false } = {}) {
+  const frischParam = frisch ? '&frisch=1' : ''
+  if (seite === 'stats') return holeJson(`/admin/auswertung/spiele?days=${tage}${frischParam}`)
+  if (seite === 'classroom') return holeJson(`/admin/classroom/stats?days=${tage}`)
+  // Kennzahlen: drei Abschnitte, einer darf scheitern, ohne die anderen mitzunehmen
+  return Promise.all([
+    `/admin/payments/summary?days=${tage}`,
+    `/admin/custom-lemma/summary?days=${tage}`,
+    `/admin/stats/retention?days=${tage}${frischParam}`,
+  ].map((url) => holeJson(url).then((d) => ({ d }), (err) => ({ err }))))
+    .then(([zahlungen, eigenesLemma, aktivitaet]) => {
+      if ([zahlungen, eigenesLemma, aktivitaet].every((t) => t.err)) throw zahlungen.err
+      return { zahlungen, eigenesLemma, aktivitaet }
+    })
+}
+
+function auZeichneSeite(seite, tage, daten) {
+  if (seite === 'stats') renderAuswertungSpiele(daten)
+  else if (seite === 'metrics') renderAuswertungKennzahlen(daten, tage)
+  else renderAuswertungKlassenraum(daten)
+  auDaten[seite] = { tage, daten }
+}
+
+// Bonus-Tage kommen mit eigener Anfrage: Trifft sie nach den Kennzahlen ein, wird die Seite mit ihnen neu gezeichnet
+let auBonusStand = ''   // Stand der Bonus-Tage (JSON), mit dem die Kennzahlen zuletzt gezeichnet wurden
+function auBonusNachgeladen() {
+  if (currentRoute?.page !== 'metrics' || !auDaten.metrics) return // andere Seiten zeichnen beim Öffnen ohnehin neu
+  if (auBonusStand === JSON.stringify(freeDaysData)) return
+  auZeichneSeite('metrics', auDaten.metrics.tage, auDaten.metrics.daten)
+}
+
+// Abschnitte der Kennzahlen, die einzeln scheitern können (Name für die Ansage)
+const AU_ABSCHNITTE = Object.freeze({ zahlungen: 'Zahlungen', eigenesLemma: 'Eigenes Lemma', aktivitaet: 'Aktive Konten' })
+let auAnsageTimer = 0
+
+// Sagt per Sprachausgabe an, dass (neue) Zahlen da sind – auch aus dem Zwischenspeicher und bei Teilfehlern
+function auAnsage(seite, tage, daten) {
+  const live = document.getElementById('au-live')
+  if (!live) return
+  let text = `${AU_ZEITRAEUME[tage]} geladen.`
+  if (seite === 'metrics') {
+    const fehlt = Object.keys(AU_ABSCHNITTE).filter((k) => daten?.[k]?.err).map((k) => AU_ABSCHNITTE[k])
+    if (fehlt.length) text = `${AU_ZEITRAEUME[tage]} geladen, ${aufzaehlung(fehlt)} ${fehlt.length === 1 && fehlt[0] === 'Eigenes Lemma' ? 'fehlt' : 'fehlen'}.`
+  }
+  // Erst leeren: Derselbe Text zweimal hintereinander (Zeitraum hin und zurück) würde sonst nicht vorgelesen
+  live.textContent = ''
+  window.clearTimeout(auAnsageTimer)
+  auAnsageTimer = window.setTimeout(() => { live.textContent = text }, 60)
+}
+
+async function ladeAuswertung(seite, { neu = false } = {}) {
+  if (!Object.hasOwn(AU_REITER, seite)) return
+  const nr = ++auNr[seite]
+  const tage = auswertungZeitraum
+  const inhalt = document.getElementById(`au-inhalt-${seite}`)
+  if (!inhalt) return
+  const key = `${seite}|${tage}`
+  const hit = auGeladen.get(key)
+  if (!neu && hit && Date.now() - hit.ts < AU_CACHE_MS) {
+    auZeichneSeite(seite, tage, hit.daten)
+    inhalt.removeAttribute('aria-busy')
+    auMeldung(seite, '')
+    auAnsage(seite, tage, hit.daten)
+    return
+  }
+  const hatInhalt = inhalt.childElementCount > 0
+  if (hatInhalt) inhalt.setAttribute('aria-busy', 'true')
+  auMeldung(seite, hatInhalt ? 'Wird neu geladen …' : 'Zahlen werden geladen …', 'loading')
+  try {
+    const daten = await auAbfragen(seite, tage, { frisch: neu })
+    if (nr !== auNr[seite]) return // eine neuere Anfrage ist unterwegs oder fertig
+    auZeichneSeite(seite, tage, daten)
+    // Nur vollständige Antworten merken: Ein gescheiterter Abschnitt soll beim nächsten Öffnen neu geladen werden
+    const vollstaendig = seite !== 'metrics' || Object.keys(AU_ABSCHNITTE).every((k) => !daten[k].err)
+    if (vollstaendig) auGeladen.set(key, { ts: Date.now(), daten })
+    else auGeladen.delete(key)
+    auMeldung(seite, '')
+    auAnsage(seite, tage, daten)
+  } catch (err) {
+    if (nr !== auNr[seite]) return
+    auMeldung(seite, `Die Zahlen konnten nicht geladen werden (${esc(auFehlerText(err))}). <button type="button" class="adm-link" data-action="au-neu-laden">Erneut versuchen</button>`, 'error', true)
+  } finally {
+    if (nr === auNr[seite]) inhalt.removeAttribute('aria-busy')
+  }
+}
+
+// Zeitraum aus der Adresse übernehmen: Auswahl, CSV-Link und Reiter-Links zeigen ihn
+function synchronisiereAuswertungZeitraum(tage) {
+  auswertungZeitraum = tage
+  document.querySelectorAll('[data-au-zeitraum]').forEach((sel) => { sel.value = String(tage) })
+  const export_ = document.getElementById('au-export-stats')
+  if (export_) export_.setAttribute('href', `/admin/stats/export?days=${tage}&format=csv`)
+  for (const tab of AREA_TABS.auswertung) reiterMerker[tab.key] = auswertungHash(tab.key, tage)
+}
+
+// Auswahl geändert: Adresse ohne Verlaufseintrag nachziehen, neu laden. Der Fokus bleibt in der Auswahl.
+function waehleAuswertungZeitraum(tage) {
+  if (!Object.hasOwn(AU_ZEITRAEUME, tage) || currentRoute?.area !== 'auswertung') return
+  synchronisiereAuswertungZeitraum(tage)
+  const reiter = AU_REITER[currentRoute.page]
+  replaceRouteHashSilently(auswertungHash(reiter, tage))
+  document.querySelectorAll('#page-tabs a.adm-tab').forEach((a, i) => {
+    const tab = AREA_TABS.auswertung[i]
+    if (tab) a.setAttribute('href', reiterMerker[tab.key])
+  })
+  void ladeAuswertung(currentRoute.page)
+}
+
+// Pfeiltasten auf der geschlossenen Auswahl lösen bei jedem Schritt „change“ aus. Geladen wird erst, wenn 400 ms
+// nichts mehr geändert wurde – sonst wäre mit ein paar Tastendrücken das Admin-Limit (60 Anfragen/Minute) erreicht.
+const AU_ZEITRAUM_WARTEZEIT_MS = 400
+let auZeitraumTimer = 0
+function planeAuswertungZeitraum(tage) {
+  window.clearTimeout(auZeitraumTimer)
+  auZeitraumTimer = window.setTimeout(() => waehleAuswertungZeitraum(tage), AU_ZEITRAUM_WARTEZEIT_MS)
+}
+
+// ── Bedienung der Diagramme: Zeiger, Antippen und Pfeiltasten wählen eine Säule ──
+function auIndexAusZeiger(plot, ev) {
+  const r = plot.getBoundingClientRect()
+  const x = ev.clientX - r.left - Number(plot.dataset.links)
+  const n = auDiagramme.get(plot.id).werte.length
+  return Math.max(0, Math.min(n - 1, Math.floor(x / Number(plot.dataset.schritt))))
+}
+
+document.addEventListener('pointermove', (ev) => {
+  const plot = ev.target.closest?.('.au-plot')
+  if (!plot || ev.pointerType === 'touch' || !auDiagramme.has(plot.id)) return
+  const i = auIndexAusZeiger(plot, ev)
+  // Zeigerbewegung ändert nur die Anzeige (stumm): Die Sprachausgabe sagt dabei nichts an
+  if (auDiagramme.get(plot.id).gewaehlt !== i) auWaehle(plot.id, i, { stumm: true })
+})
+
+document.addEventListener('pointerdown', (ev) => {
+  const plot = ev.target.closest?.('.au-plot')
+  if (plot && auDiagramme.has(plot.id)) auWaehle(plot.id, auIndexAusZeiger(plot, ev))
+})
+
+// Zeiger verlässt das Diagramm: zurück zur Auswahl per Tastatur/Antippen, sonst zum letzten vollen Tag – ohne Ansage
+document.addEventListener('pointerout', (ev) => {
+  const plot = ev.target.closest?.('.au-plot')
+  if (plot && auDiagramme.has(plot.id) && !plot.contains(ev.relatedTarget) && ev.pointerType !== 'touch') auWaehle(plot.id, auDiagramme.get(plot.id).gesetzt ?? null, { stumm: true })
+})
+
+document.addEventListener('focusout', (ev) => {
+  if (ev.target.classList?.contains('au-plot') && auDiagramme.has(ev.target.id)) auWaehle(ev.target.id, null)
+})
+
+document.addEventListener('keydown', (ev) => {
+  const plot = ev.target.closest?.('.au-plot')
+  if (!plot || !auDiagramme.has(plot.id) || ev.ctrlKey || ev.metaKey || ev.altKey) return
+  const d = auDiagramme.get(plot.id)
+  const n = d.werte.length
+  // Ausgangspunkt ist der Wert, den die Ablesezeile als „Zuletzt …“ zeigt (der letzte volle Tag), nicht der laufende Tag
+  const zuletzt = d.werte.findLastIndex((w) => !w.teil)
+  const jetzt = d.gewaehlt ?? (zuletzt >= 0 ? zuletzt : n - 1)
+  const ziel = { ArrowLeft: jetzt - 1, ArrowRight: jetzt + 1, Home: 0, End: n - 1, PageUp: jetzt - 7, PageDown: jetzt + 7 }[ev.key]
+  if (ziel == null) return
+  ev.preventDefault()
+  auWaehle(plot.id, Math.max(0, Math.min(n - 1, ziel)))
+})
+
+// Gezeichnet wird mit der gemessenen Breite, deshalb bleibt die Schrift im SVG 11 px groß
+;(function installiereAuswertungBeobachter() {
+  const main = document.getElementById('adm-main')
+  const live = document.createElement('p')
+  live.id = 'au-live'
+  live.className = 'adm-visually-hidden'
+  live.setAttribute('aria-live', 'polite')
+  document.body.appendChild(live)
+  if (!main || typeof ResizeObserver === 'undefined') return
+  let frame = 0
+  new ResizeObserver(() => {
+    cancelAnimationFrame(frame)
+    frame = requestAnimationFrame(() => { if (currentRoute?.area === 'auswertung') auZeichneAlle() })
+  }).observe(main)
+})()
 
 function handleDocumentChange(event) {
   const target = event.target
@@ -8190,7 +8456,7 @@ function handleDocumentChange(event) {
   if (target.id === 'entry-mode-filter') return void aendereListe({ stand: target.value, seite: 1 })
   if (target.id === 'entry-page-size') return void aendereListe({ pro: Number(target.value) || LISTE_STANDARD.pro, seite: 1 })
   if (target.id === 'entry-select-page') return void selectEntriesOnPage(target.checked)
-  if (target.id === 'stats-days') return void loadStats()
+  if (target.matches('[data-au-zeitraum]')) return void planeAuswertungZeitraum(Number(target.value))
   if (target.id === 'users-role-filter') return void loadUsersOverview()
   if (target.id === 'users-select-all') return void waehleAlleNutzer(target.checked)
   if (target.matches('.user-select-checkbox')) return void waehleNutzer(target.dataset.userId || '', target.checked)
@@ -8201,8 +8467,6 @@ function handleDocumentChange(event) {
   if (target.dataset.vorlage && target.type === 'checkbox') return void vorlageGeaendert(target)
   if (target.dataset.action === 'toggle-entry-selection') return void toggleEntrySelection(target.dataset.datum || '', target.checked)
   if (target.id === 'audit-action' || target.id === 'audit-resource' || target.id === 'audit-status' || target.id === 'audit-from' || target.id === 'audit-to') return void protokollNeuLaden()
-  if (target.id === 'classroom-days') return void loadClassroomStats()
-  if (target.id === 'metrics-days') return void loadProductMetrics()
 }
 
 function handleDocumentInput(event) {

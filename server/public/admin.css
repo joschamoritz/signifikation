@@ -29,7 +29,6 @@ body {
   line-height: 1.5;
 }
 
-.entry-filters-reset:focus-visible,
 .login-card-body button:focus-visible {
   outline: 2px solid var(--primary);
   outline-offset: 2px;
@@ -45,160 +44,8 @@ body {
   display: flex;
 }
 
-.card-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-}
-
-.card-head--wrap {
-  flex-wrap: wrap;
-}
-
-.panel-empty {
-  color: var(--muted);
-  font-size: 0.85rem;
-}
-
 .is-hidden {
   display: none !important;
-}
-
-.dashboard-grid {
-  display: grid;
-  grid-template-columns: minmax(0, 1.35fr) repeat(3, minmax(0, 1fr));
-  gap: 12px;
-}
-
-.metric-card {
-  background: var(--surface);
-  border: 1px solid rgba(212, 201, 176, 0.55);
-  border-radius: var(--radius);
-  padding: 14px 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.metric-card--support {
-  background: #fbfaf8;
-}
-
-.metric-label {
-  font-size: 0.72rem;
-  color: var(--muted);
-  text-transform: uppercase;
-  letter-spacing: 0.09em;
-  font-weight: 700;
-}
-
-.metric-value {
-  font-family: var(--font-serif);
-  font-size: 1.7rem;
-  line-height: 1.1;
-}
-
-.metric-sub {
-  font-size: 0.76rem;
-  color: var(--muted);
-}
-
-.dashboard-main-grid {
-  display: grid;
-  grid-template-columns: minmax(0, 1.65fr) minmax(300px, 0.95fr);
-  gap: 14px;
-  align-items: start;
-}
-
-.dashboard-side-column {
-  display: grid;
-  gap: 14px;
-}
-
-.dashboard-panel {
-  padding: 16px 18px;
-}
-
-.dashboard-panel--secondary {
-  background: #fbfaf8;
-}
-
-.dashboard-panel--primary {
-  background: #fcfbf8;
-}
-
-.dashboard-panel-head {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 12px;
-}
-
-.dashboard-panel h2 {
-  font-family: var(--font-serif);
-  font-size: 1.28rem;
-  color: var(--primary);
-  line-height: 1.1;
-}
-
-.section-label {
-  margin-bottom: 4px;
-  font-size: 0.68rem;
-  color: var(--muted);
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  font-weight: 700;
-}
-
-.entry-filters-reset {
-  background: transparent;
-  color: var(--muted);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 10px 12px;
-  font-size: 0.8rem;
-  font-weight: 500;
-  min-height: 44px;
-}
-
-.entry-filters-reset:hover {
-  border-color: var(--primary);
-  color: var(--primary);
-  background: #fef2f2;
-}
-
-.users-table-wrap {
-  overflow: auto;
-  border: 1px solid var(--border-lt);
-  border-radius: var(--radius);
-}
-
-.users-table {
-  width: 100%;
-  border-collapse: collapse;
-  min-width: 520px;
-}
-
-.users-table th,
-.users-table td {
-  border-bottom: 1px solid var(--border-lt);
-  padding: 8px 10px;
-  text-align: left;
-  font-size: 0.82rem;
-}
-
-.users-table th {
-  font-size: 0.7rem;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--muted);
-  background: var(--surface2);
-}
-
-.users-empty {
-  color: var(--muted);
 }
 
 /* Ausgabefläche der Prüfungen im Tag (Tag bearbeiten) */
@@ -215,25 +62,6 @@ header h1 {
   letter-spacing: 0.01em;
   line-height: 1.1;
 }
-/* ── Cards ── */
-.card {
-  background: var(--surface);
-  border: 1px solid rgba(212, 201, 176, 0.5);
-  border-radius: var(--radius);
-  padding: 24px;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-.card h2 {
-  font-family: var(--font-serif);
-  font-size: 1.15rem;
-  font-weight: 700;
-  color: var(--text);
-  padding-bottom: 10px;
-  border-bottom: 1px solid rgba(232, 226, 216, 0.75);
-}
-
 /* ── Labels & Inputs ── */
 label {
   font-size: 0.78rem;
@@ -304,34 +132,6 @@ button {
   transition: background 0.15s, opacity 0.15s, border-color 0.15s, color 0.15s;
 }
 button:disabled { opacity: 0.4; cursor: not-allowed; }
-
-/* Sekundär-Buttons in den Karten der Auswertung
-   :where() hält die Spezifität bei (0,0,1): Die Regel gilt nur noch für
-   Knöpfe ohne eigene Gestaltung. Vorher (0,1,2) überschrieb sie jede
-   Einzelklasse (.wo-tag, .mo-tag …). */
-:where(.card > div) button {
-  background: transparent;
-  color: var(--primary);
-  border: 1.5px solid var(--primary);
-  padding: 8px 16px;
-  font-size: 0.85rem;
-  font-weight: 600;
-}
-/* Hover mit :where(:hover) statt :hover: dieselbe Spezifität (0,0,1) wie die
-   Basisregel, sonst schlägt (0,1,1) einfache Klassen wie .extra-toggle und
-   färbt deren Hover-Fläche rosa. */
-:where(.card > div) button:where(:hover) { background: #fef2f2; }
-
-/* ── Status-Meldungen ── */
-.status {
-  font-size: 0.88rem;
-  padding: 10px 14px;
-  border-radius: var(--radius);
-  display: none;
-  font-family: var(--font-sans);
-}
-.status.ok      { background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; display: block; }
-.status.error   { background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; display: block; }
 
 /* ── Login-Screen ── */
 .login-overlay {
@@ -459,150 +259,12 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
 }
 
 
-/* ── Statistik ── */
-.stats-tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
-.stats-tile {
-  background: var(--surface2);
-  border: 1.5px solid var(--border);
-  border-radius: var(--radius);
-  padding: 14px 16px;
-}
-.stats-tile-title {
-  font-size: 0.7rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--muted);
-  margin-bottom: 8px;
-}
-.stats-tile-num {
-  font-family: var(--font-serif);
-  font-size: 1.9rem;
-  font-weight: 700;
-  color: var(--text);
-  line-height: 1;
-}
-.stats-tile-sub { font-size: 0.78rem; color: var(--muted); margin-top: 5px; }
-.stats-section-title {
-  font-size: 0.72rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--muted);
-  margin: 16px 0 8px;
-}
-.stats-chart-wrap { position: relative; }
-
-.stats-toolbar {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-.stats-toolbar label {
-  margin: 0;
-  font-size: 0.74rem;
-}
-
-.stats-summary-cards {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 8px;
-}
-
-.stats-summary-card {
-  border: 1px solid var(--border-lt);
-  border-radius: var(--radius);
-  background: var(--surface2);
-  padding: 10px;
-  display: grid;
-  gap: 2px;
-}
-
-.stats-summary-card span {
-  font-size: 0.7rem;
-  color: var(--muted);
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-.stats-summary-card strong {
-  font-family: var(--font-serif);
-  font-size: 1.2rem;
-}
-
-.stats-summary-card small {
-  font-size: 0.74rem;
-  color: var(--muted);
-}
-
-.stats-top-users {
-  display: grid;
-  gap: 6px;
-}
-
-.stats-top-users h3 {
-  font-size: 0.72rem;
-  color: var(--muted);
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-}
-
-@media (max-width: 1080px) {
-  .dashboard-grid,
-  .stats-summary-cards {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .dashboard-main-grid {
-    grid-template-columns: 1fr;
-  }
-}
-
-@media (max-width: 860px) {
-  .users-table th,
-  .users-table td {
-    font-size: 0.8rem;
-    padding: 7px 8px;
-  }
-}
-
-@media (max-width: 560px) {
-  .dashboard-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .users-table {
-    min-width: 560px;
-  }
-
-  .stats-summary-cards {
-    grid-template-columns: 1fr;
-  }
-}
-
 /* ═══════════════════════════════════════════════════════════════
    MOBILE-OPTIMIERUNG
    Ergänzt die Breakpoints weiter oben. Steht bewusst am Dateiende,
    damit auch später definierte Komponenten (Spezialwoche, JSON-
    Import) erfasst werden und die Regeln in der Kaskade gewinnen.
    ═══════════════════════════════════════════════════════════════ */
-
-/* Zeitraum-Filterzeile (früher Inline-Style, dadurch von keinem
-   Breakpoint erfasst). */
-.range-filter-row {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-  flex-wrap: wrap;
-}
-
-.range-filter-row label {
-  font-size: 0.83rem;
-  white-space: nowrap;
-  margin-bottom: 0;
-}
 
 @media (max-width: 860px) {
   /* iOS Safari zoomt bei Fokus auf Felder unter 16px hinein – und
@@ -614,46 +276,12 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
   input[type="number"],
   input[type="password"],
   select,
-  textarea,
-  .filter-select {
+  textarea {
     font-size: 16px;
-  }
-
-  .range-filter-row .filter-select {
-    flex: 1;
-    min-width: 0;
   }
 }
 
 @media (max-width: 560px) {
-  .stats-tiles {
-    grid-template-columns: 1fr;
-  }
-
-  /* Beim horizontalen Wischen die Ankerspalte stehen lassen.
-     box-shadow statt border, weil border-collapse die Rahmen einer
-     sticky-Zelle beim Scrollen verschluckt. */
-  .users-table th:first-child,
-  .users-table td:first-child {
-    position: sticky;
-    left: 0;
-    z-index: 2;
-    background: var(--surface);
-    box-shadow: 1px 0 0 var(--border-lt), inset 0 -1px 0 var(--border-lt);
-  }
-
-  .users-table th:first-child {
-    z-index: 3;
-    background: var(--surface2);
-  }
-
-  /* Höhe kommt als Inline-Style aus admin.js (renderStats) – bei
-     nur ~300px Breite bleibt sonst kaum Plotfläche neben der
-     Legende übrig. */
-  .stats-chart-wrap {
-    height: 210px !important;
-  }
-
   .login-card-head h2 {
     font-size: 1.9rem;
     letter-spacing: 0.1em;
@@ -661,17 +289,10 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
 }
 
 /* Grid-/Flex-Items haben als Auto-Minimum ihre Inhaltsbreite. Ohne
-   min-width:0 sprengt die Tabelle mit min-width:560px die 1fr-Spalte
-   und schiebt die gesamte Seite über den Viewport hinaus – der
-   overflow:auto-Wrapper der Tabelle kommt dann nie zum Zug. */
-.admin-page,
-.admin-page > .card,
-.dashboard-panel {
+   min-width:0 sprengt breiter Inhalt die 1fr-Spalte und schiebt die
+   gesamte Seite über den Viewport hinaus. */
+.admin-page {
   min-width: 0;
-}
-
-.users-table-wrap {
-  max-width: 100%;
 }
 
 /* ── Vorschläge (Entwurfs-Postfach) ─────────────────────────────────────── */
@@ -5341,4 +4962,404 @@ html:has(#page-entry.is-active) {
   .in-dialog { border-color: CanvasText; }
   .in-vorlage-zeile { color: LinkText; }
   .in-ph { border-bottom-color: CanvasText; }
+}
+
+/* ── Auswertung (Schritt 8): Spiele (#page-stats), Kennzahlen (#page-metrics),
+   Klassenraum (#page-classroom) ──────────────────────────────────────────────
+   DESIGN.md §9: Linien statt Kästen, keine Schatten, Radius ≤ 4 px. Zahlen
+   stehen in einer Kopfzeile mit Haarlinien (kein Kachel-Kasten), Diagramme
+   sind schlichte Säulen in Tintenbraun (--muted, 4,9 : 1 auf Pergament).
+   Rot nur für die gewählte Säule (= ausgewählt) und Aktionen. Gold nur Deko.
+   Statusfarben nur für Bedeutung (Warnung „unvollständig“, Fehler).
+   Spielmodi tragen ihre Identität über die vorhandenen Badges (.tag-badge),
+   nie über eine Diagrammfarbe – es gibt keine kategoriale Palette.
+
+   Wiederverwendet (unverändert): .be-seite (Spalte 48 rem, Container
+   „betrieb“: .tag-dl ab 40 rem Label links), .tag-abschnitt*, .tag-dl,
+   .tag-badge[data-m], .li-feld, .li-label, .li-auswahl (über .be-seite),
+   .li-meldung, .li-leer*, .be-roh (aufklappbare Rohwerte), .adm-cta,
+   .adm-link, .adm-visually-hidden, --status-*, --wo-tint.
+
+   Container: „betrieb“ (für die Betriebs-Regeln) und „auswertung“ (dieser
+   Block). Muss NACH dem Block „Werkzeuge › Inhalte“ stehen. Schwellen wie
+   dort: ≥ 40rem breit, < 20rem (320 px oder große Schrift) alles untereinander.
+   ─────────────────────────────────────────────────────────────────────── */
+
+:root {
+  --au-saeule:  var(--muted);    /* Datenfarbe: Säulen, Linien (4,9 : 1) */
+  --au-wahl:    var(--primary);  /* gewählte Säule = ausgewählt (7,8 : 1) */
+  --au-gitter:  var(--border-lt);/* Gitterlinien: Deko, bewusst leise */
+  --au-achse:   var(--border);   /* Grundlinie */
+}
+
+.au-seite { container-name: betrieb auswertung; }
+
+/* ── Filterzeile: eine Zeile über allem, was sie betrifft ── */
+.au-filter {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 8px 24px;
+}
+
+.au-feld-zeitraum { flex: 0 1 15rem; min-width: 11rem; }
+
+.au-export {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--tap);
+}
+
+/* Umfang: was genau gezählt wird (Zeitraum, heute bis jetzt, ohne Admin-Konten) */
+.au-umfang {
+  margin: 8px 0 0;
+  color: var(--muted);
+  font: 400 0.82rem/1.45 var(--font-sans);
+  font-variant-numeric: tabular-nums;
+}
+
+.au-umfang:empty { display: none; }
+.au-umfang [data-tone="warn"] { color: var(--status-warn); font-weight: 600; }
+
+.au-seite > .li-meldung { margin: 12px 0 0; }
+
+/* Neu laden: bisherige Darstellung bleibt stehen, nur gedämpft (kein Springen) */
+.au-inhalt { margin-top: 20px; }
+.au-inhalt[aria-busy="true"] { opacity: 0.5; }
+.au-inhalt > .tag-abschnitt:first-child { margin-top: 0; }
+
+/* ── Kopfzeile mit Zahlen: Haarlinien oben/unten, Spalten durch Linie links ── */
+.au-zahlen {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 9.5rem), 1fr));
+  margin: 0;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+}
+
+.au-zahl {
+  min-width: 0;
+  margin: 0;
+  padding: 10px 12px 12px 14px;
+  border-left: 1px solid var(--border-lt);
+}
+
+.au-zahl dt {
+  color: var(--muted);
+  font: 600 0.66rem/1.3 var(--font-sans);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+
+.au-zahl dd { margin: 0; }
+
+/* Wert: Sans, proportionale Ziffern (DM Sans wie die übrige Bedienoberfläche) */
+.au-zahl-wert {
+  display: block;
+  margin-top: 4px;
+  font: 600 1.55rem/1.15 var(--font-sans);
+  overflow-wrap: anywhere;
+}
+
+.au-zahl-wert.is-leer { color: var(--muted); font-weight: 400; }
+
+.au-zahl-zusatz {
+  display: block;
+  margin-top: 3px;
+  color: var(--muted);
+  font: 400 0.8rem/1.4 var(--font-sans);
+}
+
+.au-zahl-zusatz[data-tone="warn"] { color: var(--status-warn); font-weight: 600; }
+
+/* Hinweis unter einem Abschnitt (Begriffe, Grenzen der Zahl) */
+.au-hinweis {
+  max-width: var(--text-max, 680px);
+  margin: 10px 0 0;
+  color: var(--muted);
+  font: 400 0.82rem/1.5 var(--font-sans);
+}
+
+.au-hinweis[data-tone="warn"] {
+  padding: 6px 0 6px 11px;
+  border-left: 3px solid var(--status-warn);
+  color: var(--status-warn);
+}
+
+/* ── Säulendiagramm ── */
+.au-diagramm { margin: 14px 0 0; }
+
+/* Ablesezeile: zeigt den gewählten Tag (ersetzt den schwebenden Tooltip) */
+.au-ablesen {
+  min-height: 1.45em;
+  margin: 0 0 6px;
+  font: 400 0.9rem/1.45 var(--font-sans);
+  font-variant-numeric: tabular-nums;
+}
+
+.au-ablesen strong { font-weight: 600; }
+.au-ablesen-zusatz { color: var(--muted); }
+
+.au-plot {
+  position: relative;
+  touch-action: pan-y;
+  cursor: crosshair;
+}
+
+.au-plot:focus { outline: none; }
+.au-plot:focus-visible { outline: 2px solid var(--primary); outline-offset: 4px; }
+
+.au-plot svg { display: block; width: 100%; height: auto; overflow: visible; }
+
+.au-gitter      { stroke: var(--au-gitter); stroke-width: 1; shape-rendering: crispEdges; }
+.au-grundlinie  { stroke: var(--au-achse); stroke-width: 1; shape-rendering: crispEdges; }
+.au-achse-text  { fill: var(--muted); font: 400 11px/1 var(--font-sans); font-variant-numeric: tabular-nums; }
+.au-saeule      { fill: var(--au-saeule); }
+.au-saeule.is-gewaehlt { fill: var(--au-wahl); }
+/* Heute (läuft noch): nur Umriss – „noch nicht fertig“ ohne neue Farbe */
+.au-saeule.is-teil { fill: var(--bg); stroke: var(--au-saeule); stroke-width: 1.5; }
+.au-saeule.is-teil.is-gewaehlt { fill: var(--bg); stroke: var(--au-wahl); }
+.au-marke { fill: var(--bg); stroke: var(--text); stroke-width: 1.5; }
+/* Marke der gewählten Säule zusätzlich zur Farbe: Linie durch die Säule und Fuß unter der Grundlinie */
+.au-wahl-linie { stroke: var(--au-wahl); stroke-width: 1; shape-rendering: crispEdges; }
+.au-wahl-fuss  { stroke: var(--au-wahl); stroke-width: 3; shape-rendering: crispEdges; }
+
+/* Legende unter dem Diagramm (nur wenn es Marken oder Umrisse gibt) */
+.au-legende {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 18px;
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+  color: var(--muted);
+  font: 400 0.78rem/1.4 var(--font-sans);
+}
+
+.au-legende li { display: inline-flex; align-items: center; gap: 6px; }
+.au-legende svg { flex: none; }
+
+/* Werte als Tabelle: aufklappbar (wie Rohwerte im Betrieb) */
+.au-werte { margin-top: 6px; }
+.au-werte > summary {
+  width: fit-content;
+  min-height: var(--tap);
+  padding: 12px 0;
+  color: var(--muted);
+  font: 500 0.86rem/1.4 var(--font-sans);
+  cursor: pointer;
+}
+
+.au-werte > summary:hover { color: var(--text); }
+.au-werte > summary::marker { color: var(--muted); }
+
+/* Tabellen: eigener Bildlaufbereich, die Seite scrollt nie waagerecht */
+.au-tab-wrap {
+  max-height: 24rem;
+  overflow: auto;
+  border-top: 1px solid var(--border);
+}
+
+.au-tab-wrap:focus { outline: none; }
+.au-tab-wrap:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+
+.au-tab {
+  width: 100%;
+  border-collapse: collapse;
+  font: 400 0.86rem/1.4 var(--font-sans);
+  font-variant-numeric: tabular-nums;
+}
+
+.au-tab caption { text-align: left; }
+
+.au-tab th,
+.au-tab td {
+  padding: 7px 12px 7px 0;
+  border-bottom: 1px solid var(--border-lt);
+  text-align: right;
+  white-space: nowrap;
+}
+
+.au-tab th:first-child,
+.au-tab td:first-child { text-align: left; }
+
+.au-tab thead th {
+  position: sticky;
+  top: 0;
+  background: var(--bg);
+  color: var(--muted);
+  font: 600 0.62rem/1.3 var(--font-sans);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+/* ── Zeilen „Nach Spielmodus“ / „Nach Weg“: Linien-Liste, Werte als Text ── */
+.au-zeilen {
+  margin: 12px 0 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--border-lt);
+}
+
+.au-zeile {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas:
+    "name  bild"
+    "werte bild";
+  align-items: center;
+  gap: 2px 16px;
+  padding: 9px 0;
+  border-bottom: 1px solid var(--border-lt);
+}
+
+.au-zeile-name { grid-area: name; min-width: 0; font: 400 1rem/1.4 var(--font-serif); }
+.au-zeile-name .tag-badge { vertical-align: 0.1em; }
+
+.au-zeile-werte {
+  grid-area: werte;
+  min-width: 0;
+  color: var(--muted);
+  font: 400 0.86rem/1.45 var(--font-sans);
+  font-variant-numeric: tabular-nums;
+}
+
+.au-zeile-werte b { color: var(--text); font-weight: 600; }
+.au-zeile-bild { grid-area: bild; justify-self: end; }
+.au-zeile-bild svg { display: block; }
+
+.au-zeile-unter {
+  grid-column: 1 / -1;
+  color: var(--muted);
+  font: 400 0.8rem/1.45 var(--font-sans);
+}
+
+/* Sparkline: Verlauf je Modus (Linie 1,5 px, Endpunkt) */
+.au-spark-linie { fill: none; stroke: var(--au-saeule); stroke-width: 1.5; stroke-linejoin: round; stroke-linecap: round; }
+.au-spark-punkt { fill: var(--au-saeule); }
+
+/* ── Punkteverteilung: kleine Vielfache je Spielmodus ── */
+.au-vielfache {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 15rem), 1fr));
+  gap: 18px 28px;
+  margin: 14px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.au-vielfach-kopf {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 2px 10px;
+  margin: 0 0 6px;
+}
+
+.au-vielfach-kopf .au-zusatz { color: var(--muted); font: 400 0.8rem/1.4 var(--font-sans); }
+.au-vielfach svg { display: block; width: 100%; height: auto; }
+
+/* ── Auffällige Tage: Datum als Link in den Tag ── */
+.au-tage { margin: 12px 0 0; padding: 0; list-style: none; border-top: 1px solid var(--border-lt); }
+
+.au-tag {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas:
+    "datum  wert"
+    "inhalt wert";
+  align-items: baseline;
+  gap: 0 16px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--border-lt);
+}
+
+.au-tag-datum { grid-area: datum; }
+.au-tag-datum a {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--tap);
+  color: var(--text);
+  font: 400 0.98rem/1.35 var(--font-serif);
+  text-decoration: underline;
+  text-decoration-color: var(--border);
+  text-underline-offset: 3px;
+}
+
+.au-tag-datum a:hover { color: var(--primary); text-decoration-color: var(--primary); }
+.au-tag-datum a:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+
+.au-tag-inhalt {
+  grid-area: inhalt;
+  min-width: 0;
+  color: var(--muted);
+  font: 400 0.84rem/1.45 var(--font-sans);
+  overflow-wrap: anywhere;
+}
+
+.au-tag-inhalt .tag-badge { margin-right: 6px; }
+.au-tag-wort { color: var(--text); font: 400 0.95rem/1.4 var(--font-serif); }
+
+.au-tag-wert {
+  grid-area: wert;
+  align-self: center;
+  text-align: right;
+  font: 600 1rem/1.3 var(--font-sans);
+  font-variant-numeric: tabular-nums;
+}
+
+.au-tag-wert small { display: block; color: var(--muted); font: 400 0.76rem/1.3 var(--font-sans); }
+
+/* ── Breit (≥ 40rem) ── */
+@container auswertung (min-width: 40rem) {
+  .au-zeile {
+    grid-template-columns: minmax(0, 11rem) minmax(0, 1fr) auto;
+    grid-template-areas: "name werte bild";
+  }
+
+  .au-zeile-unter { grid-column: 2 / -1; }
+
+  .au-tag {
+    grid-template-columns: 11rem minmax(0, 1fr) auto;
+    grid-template-areas: "datum inhalt wert";
+  }
+}
+
+/* ── Sehr schmal oder große Schrift (< 20rem): alles untereinander ── */
+@container auswertung (max-width: 19.9375rem) {
+  .au-zahl { border-left: 0; padding-left: 0; border-bottom: 1px solid var(--border-lt); }
+  .au-zahl:last-child { border-bottom: 0; }
+
+  .au-zeile {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas: "name" "werte" "bild";
+  }
+
+  .au-zeile-bild { justify-self: start; }
+
+  .au-tag {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas: "datum" "inhalt" "wert";
+  }
+
+  .au-tag-wert { text-align: left; }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .au-inhalt { transition: opacity 0.15s; }
+}
+
+/* Windows-Kontrastmodus: Säulen und Linien in Systemfarben, Wahl hervorgehoben */
+@media (forced-colors: active) {
+  .au-saeule, .au-spark-punkt { fill: CanvasText; }
+  .au-saeule.is-gewaehlt { fill: Highlight; }
+  .au-saeule.is-teil, .au-marke { fill: Canvas; stroke: CanvasText; }
+  /* Nach der Regel davor, sonst gewinnt deren Selektor (gleiche Spezifität, später): gewählter Umriss in Highlight */
+  .au-saeule.is-teil.is-gewaehlt { fill: Canvas; stroke: Highlight; }
+  .au-spark-linie { stroke: CanvasText; }
+  .au-gitter, .au-grundlinie { stroke: GrayText; }
+  .au-achse-text { fill: CanvasText; }
+  .au-wahl-linie, .au-wahl-fuss { stroke: Highlight; }
 }

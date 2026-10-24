@@ -6,10 +6,11 @@
  * Abdeckung:
  *   1. Neue Events schreiben korrekt in classroom_telemetry
  *   2. Fehler beim Telemetrie-Insert bricht den Hauptpfad nicht ab
- *   3. getAdminStats liefert erwartete Aggregat-Zahlen
+ *   3. Markierung von Admin-Sitzungen und Aufgabe an der Antwort (für die Auswertung)
+ *   Die Aggregate (getKlassenraumAuswertung) prüft classroom.auswertung.test.js.
  */
 
-import { beforeAll, describe, expect, it, vi } from 'vitest'
+import { describe, expect, it } from 'vitest'
 import { randomUUID } from 'crypto'
 import db from '../db.js'
 import {
@@ -24,7 +25,6 @@ import {
   trackParticipantReconnected,
   trackParticipantDropped,
   trackSubmissionReceived,
-  getAdminStats,
 } from '../classroom/telemetry.js'
 
 // ── Hilfsfunktionen ────────────────────────────────────────────────
@@ -49,39 +49,6 @@ function ensureUser(id) {
     INSERT OR IGNORE INTO user (id, name, email, emailVerified, createdAt, updatedAt)
     VALUES (?, 'Test', ?, 0, ?, ?)
   `).run(id, `${id}@test.local`, now, now)
-}
-
-function insertSession(id, teacherId, status = 'finished') {
-  const now = Date.now()
-  ensureUser(teacherId)
-  // Eindeutiger Code: letzten 16 Zeichen der Session-ID (UUID-Anteil)
-  const code = id.replace(/-/g, '').slice(-16)
-  db.prepare(`
-    INSERT OR IGNORE INTO classroom_session
-      (id, code, teacher_user_id, status, settings_json, created_at, started_at, finished_at)
-    VALUES (?, ?, ?, ?, '{}', ?, ?, ?)
-  `).run(id, code, teacherId, status, now - 3600_000, now - 1800_000, now)
-  return id
-}
-
-function insertParticipant(sessionId, participantId) {
-  const now = Date.now()
-  db.prepare(`
-    INSERT OR IGNORE INTO classroom_participant
-      (id, session_id, display_name, auth_token, joined_at, last_seen_at, connected)
-    VALUES (?, ?, 'Teilnehmer', ?, ?, ?, 0)
-  `).run(participantId, sessionId, `tok-${participantId}`, now - 900_000, now)
-}
-
-function insertAssignment(sessionId, mode = 'kollokationen') {
-  const aId = `asgn-${randomUUID()}`
-  const now = Date.now()
-  db.prepare(`
-    INSERT OR IGNORE INTO classroom_assignment
-      (id, session_id, mode, lemma_ids, content_snapshot, position, created_at)
-    VALUES (?, ?, ?, '[]', '{}', 0, ?)
-  `).run(aId, sessionId, mode, now)
-  return aId
 }
 
 function countEventsByType(event, sessionId) {
@@ -205,112 +172,39 @@ describe('classroom telemetry — Fehler bricht Hauptpfad nicht ab', () => {
       trackEvent('classroom_session_created', { sessionId: null, teacherId: null, payload: {} })
     }).not.toThrow()
   })
-
-  it('getAdminStats faengt DB-Fehler ab und gibt null zurueck', () => {
-    // Spy auf die prepare-Methode um Fehler zu simulieren
-    const spy = vi.spyOn(console, 'error').mockImplementation(() => {})
-    // Ungueltiger Zeitraum (until < since) liefert leere Resultsets, kein Crash
-    const result = getAdminStats({ since: Date.now() + 1000, until: Date.now() - 1000 })
-    // Kein Crash — result ist entweder Objekt mit Nullen oder null
-    expect(result === null || typeof result === 'object').toBe(true)
-    spy.mockRestore()
-  })
 })
 
-describe('classroom telemetry — getAdminStats Aggregate', () => {
-  const TEACHER = `agg-teacher-${randomUUID()}`
-  const sid1 = makeSessionId()
-  const sid2 = makeSessionId()
-  const sid3 = makeSessionId()
+describe('classroom telemetry — Angaben für die Auswertung', () => {
+  it('trackSessionCreated markiert Sitzungen von Admin-Konten (die Kennung wird nach 30 Tagen gelöscht, die Markierung bleibt)', () => {
+    const adminId = makeTeacherId()
+    ensureUser(adminId)
+    const now = Date.now()
+    db.prepare('INSERT INTO user_profiles (user_id, role, created_at, updated_at) VALUES (?, ?, ?, ?)').run(adminId, 'admin', now, now)
+    const sid = makeSessionId()
+    trackSessionCreated(sid, adminId)
+    expect(getEventPayload('classroom_session_created', sid)).toEqual({ admin: 1 })
 
-  beforeAll(() => {
-    ensureUser(TEACHER)
+    // normale Lehrkraft: keine Markierung
+    const sid2 = makeSessionId()
+    trackSessionCreated(sid2, makeTeacherId())
+    expect(getEventPayload('classroom_session_created', sid2)).toEqual({})
 
-    // 3 Sessions anlegen
-    insertSession(sid1, TEACHER, 'finished')
-    insertSession(sid2, TEACHER, 'finished')
-    insertSession(sid3, TEACHER, 'aborted')
-
-    // Assignments
-    insertAssignment(sid1, 'kollokationen')
-    insertAssignment(sid2, 'kollokationen')
-    insertAssignment(sid3, 'wortzwilling')
-
-    // Teilnehmer
-    const p1 = makeParticipantId()
-    const p2 = makeParticipantId()
-    const p3 = makeParticipantId()
-    insertParticipant(sid1, p1)
-    insertParticipant(sid1, p2)
-    insertParticipant(sid2, p3)
-
-    // Telemetrie-Events
-    trackSessionCreated(sid1, TEACHER)
-    trackSessionCreated(sid2, TEACHER)
-    trackSessionCreated(sid3, TEACHER)
-    trackSessionFinished(sid1, TEACHER, { durationMs: 1800_000, completionRate: 1, reason: 'manual' })
-    trackSessionFinished(sid2, TEACHER, { durationMs: 900_000,  completionRate: 0.5, reason: 'completed' })
-    trackJoinSucceeded(sid1, p1)
-    trackJoinSucceeded(sid1, p2)
-    trackJoinSucceeded(sid2, p3)
-    trackParticipantReconnected(sid1, p1)
-    trackParticipantDropped(sid1, p2)
-    trackSubmissionReceived(sid1, { mode: 'kollokationen', correct: true })
-    trackSubmissionReceived(sid1, { mode: 'kollokationen', correct: false })
-    trackSubmissionReceived(sid2, { mode: 'kollokationen', correct: true })
+    db.prepare('DELETE FROM user_profiles WHERE user_id = ?').run(adminId)
   })
 
-  it('sessions.total zaehlt alle drei Sessions', () => {
-    const stats = getAdminStats({ days: 365 })
-    expect(stats).not.toBeNull()
-    // Mindestens die 3 angelegten Sessions sind enthalten (es koennen mehr sein)
-    expect(stats.sessions.total).toBeGreaterThanOrEqual(3)
+  it('trackSessionFinished schreibt reason "auto" für das Auto-Ende', () => {
+    const sid = makeSessionId()
+    trackSessionFinished(sid, makeTeacherId(), { reason: 'auto', durationMs: 5_400_000 })
+    expect(getEventPayload('classroom_session_finished', sid)?.reason).toBe('auto')
   })
 
-  it('byStatus enthaelt finished und aborted', () => {
-    const stats = getAdminStats({ days: 365 })
-    expect(stats.sessions.byStatus.finished).toBeGreaterThanOrEqual(2)
-    expect(stats.sessions.byStatus.aborted).toBeGreaterThanOrEqual(1)
-  })
-
-  it('byReason zaehlt manual und completed aus Telemetrie', () => {
-    const stats = getAdminStats({ days: 365 })
-    expect(stats.sessions.byReason['manual']).toBeGreaterThanOrEqual(1)
-    expect(stats.sessions.byReason['completed']).toBeGreaterThanOrEqual(1)
-  })
-
-  it('modes enthaelt kollokationen haeufiger als wortzwilling', () => {
-    const stats = getAdminStats({ days: 365 })
-    const koll = stats.modes.find(m => m.mode === 'kollokationen')
-    const wz   = stats.modes.find(m => m.mode === 'wortzwilling')
-    expect(koll).toBeDefined()
-    expect(wz).toBeDefined()
-    expect(koll.count).toBeGreaterThanOrEqual(wz.count)
-  })
-
-  it('participants.reconnects und dropped werden gezaehlt', () => {
-    const stats = getAdminStats({ days: 365 })
-    expect(stats.participants.reconnects).toBeGreaterThanOrEqual(1)
-    expect(stats.participants.dropped).toBeGreaterThanOrEqual(1)
-  })
-
-  it('submissions.total zaehlt alle 3 Abgaben, correctPct = 2/3', () => {
-    const stats = getAdminStats({ days: 365 })
-    expect(stats.submissions.total).toBeGreaterThanOrEqual(3)
-    // correctPct muss in [0, 1] liegen
-    expect(stats.submissions.correctPct).toBeGreaterThan(0)
-    expect(stats.submissions.correctPct).toBeLessThanOrEqual(1)
-  })
-
-  it('perDay ist ein Array (kann leer sein, aber niemals fehlen)', () => {
-    const stats = getAdminStats({ days: 365 })
-    expect(Array.isArray(stats.sessions.perDay)).toBe(true)
-  })
-
-  it('getAdminStats mit kurzem Zeitraum liefert 0 fuer sessions.total', () => {
-    const stats = getAdminStats({ since: Date.now() + 10_000, until: Date.now() + 20_000 })
-    expect(stats).not.toBeNull()
-    expect(stats.sessions.total).toBe(0)
+  it('trackSubmissionReceived merkt sich die Aufgabe (assignmentId), aber weiterhin keine Teilnehmer- oder Lemma-Kennung', () => {
+    const sid = makeSessionId()
+    trackSubmissionReceived(sid, { mode: 'zeitenwende', correct: true, assignmentId: 'asgn-1' })
+    const payload = getEventPayload('classroom_submission_received', sid)
+    expect(payload).toEqual({ mode: 'zeitenwende', correct: 1, assignmentId: 'asgn-1' })
+    expect(payload.participantId).toBeUndefined()
+    expect(payload.lemmaId).toBeUndefined()
   })
 })
 

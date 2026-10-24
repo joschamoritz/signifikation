@@ -1,130 +1,85 @@
+/**
+ * server/routes/admin-stats.js
+ *
+ * Auswertung › Spiele (Schritt 8). Zeitraum = Berliner Kalendertage inklusive heute, Admin-Konten zählen nicht.
+ * Die Antworten enthalten nur Summen – keine Konto-IDs, Namen oder E-Mail-Adressen.
+ *
+ *   GET /admin/auswertung/spiele?days=   – Tage, Verteilung, Summen (5 Minuten Zwischenspeicher, für days=1 30 Sekunden;
+ *                                          `&frisch=1` übergeht ihn, store-stats.js)
+ *   GET /admin/stats/export?days=        – CSV (Semikolon, deutsche Spalten, Dezimalkomma, BOM)
+ */
 import express from 'express'
-import db from '../db.js'
 import { toCsvCell } from './csv-utils.js'
 
-const getUsersByIdsStmt = db.prepare(`
-  SELECT
-    u.id,
-    u.name,
-    u.email,
-    COALESCE(up.role, 'user') AS role
-  FROM user u
-  LEFT JOIN user_profiles up ON up.user_id = u.id
-  WHERE u.id IN (SELECT value FROM json_each(?))
-`)
+const SPIEL_NAMEN = {
+  kollokationen: 'Kollokationen',
+  wortzwilling: 'Wort-Zwilling',
+  zeitenwende: 'Zeitenwende',
+  lueckenfueller: 'Lückenfüller',
+  woche_wortzwilling: 'Wort der Woche: Wort-Zwilling',
+  woche_zeitenwende: 'Wort der Woche: Zeitenwende',
+  woche_lueckenfueller: 'Wort der Woche: Lückenfüller',
+}
 
-const topUsersByDatesStmt = db.prepare(`
-  SELECT
-    user_id AS userId,
-    SUM(plays) AS plays,
-    SUM(scoreSum) AS scoreSum,
-    SUM(maxSum) AS maxSum
-  FROM stats
-  WHERE user_id != ''
-    AND datum IN (SELECT value FROM json_each(?))
-  GROUP BY user_id
-  ORDER BY plays DESC
-  LIMIT ?
-`)
+const KOPF = ['Tag', 'Spielmodus', 'Spiele', 'Punkte', 'Höchstpunkte', 'Durchschnitt']
 
-function buildStatsCsv(rows) {
-  const header = ['datum', 'spiel', 'plays', 'scoreSum', 'maxSum', 'avg10']
-  const lines = [header.join(',')]
-  for (const row of rows) {
-    const avg10 = row.maxSum > 0 ? ((row.scoreSum / row.maxSum) * 10).toFixed(2) : ''
+/** Durchschnitt in Punkten von 10 mit Komma: „6,4“; ohne Wertung leer. */
+function durchschnittDe(punkte, max) {
+  return max > 0 ? ((punkte / max) * 10).toFixed(1).replace('.', ',') : ''
+}
+
+/** `2026-09-25` → `25.09.2026` (Excel liest das deutsche Datum als Datum). */
+function datumDe(iso) {
+  return `${iso.slice(8, 10)}.${iso.slice(5, 7)}.${iso.slice(0, 4)}`
+}
+
+/**
+ * CSV für deutsches Excel: Semikolon als Trenner, Dezimalkomma, UTF-8 mit BOM, Zeilenende CRLF.
+ * Jede Zelle geht durch toCsvCell (Schutz vor Formel-Einschleusung). Zahlen bleiben Zahlen.
+ */
+export function buildSpieleCsv(zeilen) {
+  const lines = [KOPF.map(toCsvCell).join(';')]
+  for (const r of zeilen) {
     lines.push([
-      toCsvCell(row.datum),
-      toCsvCell(row.spiel),
-      toCsvCell(row.plays),
-      toCsvCell(row.scoreSum),
-      toCsvCell(row.maxSum),
-      toCsvCell(avg10),
-    ].join(','))
+      toCsvCell(datumDe(r.datum)),
+      toCsvCell(SPIEL_NAMEN[r.spiel] || r.spiel),
+      toCsvCell(r.spiele),
+      toCsvCell(r.punkte),
+      toCsvCell(r.max),
+      toCsvCell(durchschnittDe(r.punkte, r.max)),
+    ].join(';'))
   }
-  return lines.join('\n')
+  return `\uFEFF${lines.join('\r\n')}\r\n`
 }
 
 export function createAdminStatsRouter({
   adminLimiter,
   requireAuth,
   validate,
-  adminStatsQuerySchema,
-  adminStatsSummaryQuerySchema,
+  adminAuswertungSpieleQuerySchema,
   adminStatsExportQuerySchema,
-  getStatsWindow,
-  getStatsTimeline,
+  getAuswertungSpiele,
+  getAuswertungZeilen,
   adminError,
-  serverError,
 }) {
   const router = express.Router()
 
-  router.get('/admin/stats/summary', adminLimiter, requireAuth, validate(adminStatsSummaryQuerySchema, 'query'), (req, res) => {
-    const { days, topUsers: topUsersLimit } = req.query
-
+  router.get('/admin/auswertung/spiele', adminLimiter, requireAuth, validate(adminAuswertungSpieleQuerySchema, 'query'), (req, res) => {
     try {
-      const windowStats = getStatsWindow(days)
-
-      const topUserRows = topUsersByDatesStmt.all(
-        JSON.stringify(windowStats.selectedDates),
-        topUsersLimit
-      )
-
-      const userRows = getUsersByIdsStmt.all(JSON.stringify(topUserRows.map((row) => row.userId)))
-      const usersById = new Map(userRows.map((row) => [row.id, row]))
-
-      const topUsers = topUserRows.map((row) => {
-        const user = usersById.get(row.userId)
-        return {
-          userId: row.userId,
-          name: user?.name || null,
-          email: user?.email || null,
-          role: user?.role || 'user',
-          plays: Number(row.plays || 0),
-          avg10: row.maxSum > 0 ? Number(((row.scoreSum / row.maxSum) * 10).toFixed(2)) : null,
-        }
-      })
-
-      res.json({
-        window: {
-          days,
-          from: windowStats.selectedDates[0] || null,
-          to: windowStats.selectedDates[windowStats.selectedDates.length - 1] || null,
-        },
-        totals: windowStats.totals,
-        byGame: windowStats.byGame,
-        scoreDistribution: windowStats.scoreDistribution,
-        topUsers,
-      })
+      res.json(getAuswertungSpiele(req.query.days, { frisch: req.query.frisch }))
     } catch (err) {
       adminError(res, err)
     }
   })
 
   router.get('/admin/stats/export', adminLimiter, requireAuth, validate(adminStatsExportQuerySchema, 'query'), (req, res) => {
-    const { days, format } = req.query
-
     try {
-      const windowStats = getStatsWindow(days)
-      if (format === 'json') {
-        res.setHeader('Content-Disposition', `attachment; filename="signifikation-stats-${days}d.json"`)
-        return res.json(windowStats)
-      }
-
-      const csv = buildStatsCsv(windowStats.rows)
+      const { zeitraum, zeilen } = getAuswertungZeilen(req.query.days)
       res.setHeader('Content-Type', 'text/csv; charset=utf-8')
-      res.setHeader('Content-Disposition', `attachment; filename="signifikation-stats-${days}d.csv"`)
-      return res.send(csv)
+      res.setHeader('Content-Disposition', `attachment; filename="signifikation-spiele-${zeitraum.von}-bis-${zeitraum.bis}.csv"`)
+      return res.send(buildSpieleCsv(zeilen))
     } catch (err) {
       adminError(res, err)
-    }
-  })
-
-  router.get('/admin/stats', adminLimiter, requireAuth, validate(adminStatsQuerySchema, 'query'), (req, res) => {
-    const { days } = req.query
-    try {
-      res.json(getStatsTimeline(days))
-    } catch (err) {
-      serverError(res, err)
     }
   })
 

@@ -22,6 +22,7 @@
 import logger from '../logger.js'
 import { autoEndStaleSessions, DEFAULT_AUTO_END_IDLE_MS } from '../classroom/store.js'
 import { notifySessionFinished } from '../realtime/classroomSocket.js'
+import { trackSessionFinished } from '../classroom/telemetry.js'
 
 const DEFAULT_SWEEP_INTERVAL_MS = 5 * 60 * 1000 // alle 5 Min pruefen
 
@@ -33,6 +34,12 @@ export function startClassroomAutoEnd(options = {}) {
     try {
       const { ended } = autoEndStaleSessions({ maxIdleMs })
       for (const session of ended) {
+        // Telemetrie: Ohne dieses Ereignis fehlte das Auto-Ende in "Wie Sitzungen enden" (immer 0)
+        trackSessionFinished(session.id, session.teacherUserId, {
+          durationMs: session.startedAt ? session.finishedAt - session.startedAt : null,
+          completionRate: null,
+          reason: 'auto',
+        })
         notifySessionFinished(session.id, {
           sessionId:  session.id,
           finishedAt: session.finishedAt,

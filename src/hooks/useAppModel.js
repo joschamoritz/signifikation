@@ -128,7 +128,7 @@ export function useAppModel() {
     handleSwWZFinish,
     handleSwZeitenwendeFinish,
     handleSwLFFinish,
-  } = useSpezialwocheResults({ spezialwoche, setSwWzPlayed, setSwZwPlayed, setSwLfPlayed })
+  } = useSpezialwocheResults({ spezialwoche, serverDatum, setSwWzPlayed, setSwZwPlayed, setSwLfPlayed })
 
   const { playedGames, playedIds, allPlayed } = useAppDailyState({
     todayKey: keys.todayKey,

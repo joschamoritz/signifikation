@@ -9,8 +9,8 @@ import { API } from '../config'
 
 /**
  * Sendet ein Spielergebnis an den Stats-Endpunkt.
- * @param {string} game   Spielname, z. B. 'kollokationen', 'wortzwilling'
- * @param {string} datum  Tagesdatum YYYY-MM-DD
+ * @param {string} game   Spielname, z. B. 'kollokationen', 'wortzwilling'; Wort der Woche: 'woche_wortzwilling', 'woche_zeitenwende', 'woche_lueckenfueller'
+ * @param {string} datum  Tag, an dem gespielt wurde (YYYY-MM-DD)
  * @param {number} score  Erreichte Punkte
  * @param {number} max    Maximale Punkte
  */
