@@ -105,7 +105,7 @@
         </div>
 
         <!-- 2 · Woche -->
-        <div class="wo-woche">
+        <div>
           <div class="wo-woche-kopf">
             <h2 class="wo-woche-titel"><span class="wo-woche-kw" id="wo-woche-kw"></span> <span class="wo-woche-spanne" id="dashboard-week-label">wird geladen …</span></h2>
             <div class="wo-woche-nav" role="group" aria-label="Woche wechseln">
@@ -457,7 +457,7 @@
         </div>
 
         <!-- Monatsgruppen, von renderListe() gefüllt -->
-        <div class="li-liste" id="entry-table-body"><p class="wo-meldung">Liste wird geladen …</p></div>
+        <div id="entry-table-body"><p class="wo-meldung">Liste wird geladen …</p></div>
 
         <nav class="li-seiten" id="entry-pagination" aria-label="Seiten der Liste" hidden>
           <button type="button" class="adm-link" id="entry-page-prev-btn" data-action="entry-page-prev"><span aria-hidden="true">‹</span> Zurück</button>
@@ -504,7 +504,7 @@
 
       <section class="admin-page be-seite in-seite" id="page-analytics" data-title="Wort prüfen" data-subtitle="Prüft Wörter im eigenen Korpus, wie das Spiel sie verwenden würde. Gespeichert wird nichts.">
         <div class="tag-modi">
-          <form class="tag-modus in-pruef" id="pruef-k" data-modus="k" novalidate aria-labelledby="pruef-k-titel">
+          <form class="tag-modus in-pruef" data-modus="k" novalidate aria-labelledby="pruef-k-titel">
             <h2 class="tag-modus-titel" id="pruef-k-titel"><span class="tag-badge" data-m="k">Kollokationen</span></h2>
             <p class="tag-modus-text">Ist das Wort als Basis geeignet? Das Spiel sucht die drei stärksten Kollokatoren und mischt sieben weitere als Ablenker dazu.</p>
             <div class="tag-feld">
@@ -522,7 +522,7 @@
             <div id="koll-output" class="tag-ergebnis"></div>
           </form>
 
-          <form class="tag-modus in-pruef" id="pruef-w" data-modus="w" novalidate aria-labelledby="pruef-w-titel">
+          <form class="tag-modus in-pruef" data-modus="w" novalidate aria-labelledby="pruef-w-titel">
             <h2 class="tag-modus-titel" id="pruef-w-titel"><span class="tag-badge" data-m="w">Wort-Zwilling</span></h2>
             <p class="tag-modus-text">Zwei Wörter derselben Wortart. Geeignet, wenn jedes mindestens fünf Kollokatoren hat, die nur zu ihm passen.</p>
             <div class="tag-feld">
@@ -545,7 +545,7 @@
             <div id="wz-ana-output" class="tag-ergebnis"></div>
           </form>
 
-          <form class="tag-modus in-pruef" id="pruef-z" data-modus="z" novalidate aria-labelledby="pruef-z-titel">
+          <form class="tag-modus in-pruef" data-modus="z" novalidate aria-labelledby="pruef-z-titel">
             <h2 class="tag-modus-titel" id="pruef-z-titel"><span class="tag-badge" data-m="z">Zeitenwende</span></h2>
             <p class="tag-modus-text">Vergleicht die Kollokatoren in Texten vor und nach 2000. Geeignet, wenn beide Zeiträume genug eigene Kollokatoren haben.</p>
             <div class="tag-feld">
@@ -560,7 +560,7 @@
             <div id="zw-ana-output" class="tag-ergebnis"></div>
           </form>
 
-          <form class="tag-modus in-pruef" id="pruef-l" data-modus="l" novalidate aria-labelledby="pruef-l-titel">
+          <form class="tag-modus in-pruef" data-modus="l" novalidate aria-labelledby="pruef-l-titel">
             <h2 class="tag-modus-titel" id="pruef-l-titel"><span class="tag-badge" data-m="l">Lückenfüller</span></h2>
             <p class="tag-modus-text">Sucht Belegsätze, in denen sich ein Kollokator als Lücke eignet, und zeigt die Runden, die daraus entstünden. Dauert bis zu 15 Sekunden.</p>
             <div class="tag-feld">
@@ -592,7 +592,7 @@
         </div>
         <div class="mo-leiste" id="mo-leiste">
           <!-- Legende: für Screenreader überflüssig, jeder Tag trägt seinen Stand als Text -->
-          <p class="wo-legende" id="mo-legende" aria-hidden="true">
+          <p class="wo-legende" aria-hidden="true">
             <span><span class="wo-marke" data-m="k">K</span>Kollokationen</span>
             <span><span class="wo-marke" data-m="w">W</span>Wort-Zwilling</span>
             <span><span class="wo-marke" data-m="z">Z</span>Zeitenwende</span>
@@ -735,7 +735,7 @@
             <div class="in-push-vorschau" id="push-vorschau" aria-label="Vorschau der Benachrichtigung" role="group"></div>
             <div class="be-aktionen in-push-aktionen">
               <button type="button" class="adm-cta" id="push-test" data-action="push-send-self"><span id="push-test-text">Test an meine Geräte</span> <span aria-hidden="true">→</span></button>
-              <button type="button" class="li-loeschen in-an-alle" id="push-alle" data-action="push-send-free">An alle senden …</button>
+              <button type="button" class="li-loeschen" id="push-alle" data-action="push-send-free">An alle senden …</button>
             </div>
             <p class="li-meldung" id="push-send-msg" role="status" aria-live="polite" tabindex="-1"></p>
           </form>
@@ -763,7 +763,7 @@
         </section>
 
         <dialog class="in-dialog" id="push-dialog" aria-labelledby="push-dialog-titel" aria-describedby="push-dialog-text">
-          <form method="dialog" class="in-dialog-inhalt" id="push-dialog-form">
+          <form method="dialog" class="in-dialog-inhalt">
             <p class="adm-overline">Benachrichtigung</p>
             <h2 class="in-dialog-titel" id="push-dialog-titel">An alle Geräte senden?</h2>
             <p class="in-dialog-text" id="push-dialog-text"></p>
@@ -855,7 +855,7 @@
 
             <div class="be-aktionen">
               <button type="submit" class="adm-cta" id="sw-start"><span id="sw-start-text">Speichern</span> <span aria-hidden="true">→</span></button>
-              <button type="button" class="adm-link" data-action="clear-sw-form" id="sw-leeren">Formular leeren</button>
+              <button type="button" class="adm-link" data-action="clear-sw-form">Formular leeren</button>
             </div>
             <p class="li-meldung" id="sw-msg" role="status" aria-live="polite" tabindex="-1"></p>
           </form>
@@ -1195,6 +1195,22 @@
      </div>
     </main>
   </div>
+
+  <!-- Gemeinsame Rückfrage (ersetzt window.confirm): Inhalt und Beschriftung setzt bestaetige() in admin.js -->
+  <dialog class="in-dialog in-dialog--frage" id="bestaetige-dialog" aria-labelledby="bestaetige-titel">
+    <form method="dialog" class="in-dialog-inhalt">
+      <p class="adm-overline">Rückfrage</p>
+      <h2 class="in-dialog-titel" id="bestaetige-titel"></h2>
+      <div class="in-dialog-scroll" id="bestaetige-scroll">
+        <p class="in-dialog-text" id="bestaetige-text" hidden></p>
+        <ul class="in-dialog-liste" id="bestaetige-liste" hidden></ul>
+      </div>
+      <div class="be-aktionen in-dialog-aktionen">
+        <button type="button" class="adm-link" id="bestaetige-abbrechen" autofocus>Abbrechen</button>
+        <button type="button" class="li-loeschen" id="bestaetige-ok"></button>
+      </div>
+    </form>
+  </dialog>
 </div>
 
 <script src="/admin-assets/admin.js"></script>

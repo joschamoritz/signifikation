@@ -2,15 +2,12 @@
 
 :root {
   --bg:          #faf9f7;
-  --surface:     #ffffff;
-  --surface2:    #f3f1ed;
   --border:      #d4c9b0;
   --border-lt:   #e8e2d8;
   --primary:     #9b1c1c;
   --primary-hi:  #b91c1c;
   --accent:      #c9a84c;
   --accent-dk:   #a07830;
-  --success:     #166534;
   --text:        #1a1a18;
   --muted:       #8a7f6e;
   --disabled:    #b8b0a0;
@@ -46,11 +43,6 @@ body {
 
 .is-hidden {
   display: none !important;
-}
-
-/* Ausgabefläche der Prüfungen im Tag (Tag bearbeiten) */
-.analysis-output {
-  min-height: 24px;
 }
 
 /* ── Header ── */
@@ -3430,7 +3422,7 @@ html:has(#page-entry.is-active) {
    .li-auswahlleiste (klebt bei Auswahl), .li-auswahl-zahl, .li-loeschen,
    .li-leer*, .li-seiten-info, .tag-abschnitt*, .tag-dl, .tag-loeschen,
    .tag-loeschen-text, .wo-meldung, .adm-cta, .adm-link, --wo-tint.
-   Wiederverwendet mit erweitertem Selektor (Abschnitt 3a): .li-label,
+   Wiederverwendet mit erweitertem Selektor: .li-label,
    .li-suche, .li-auswahl, .li-alle, .li-wahl, [hidden].
 
    Umbruch nach der Seitenbreite (Container „nutzer“ bzw. „konto“), nicht nach
@@ -3960,7 +3952,7 @@ html:has(#page-entry.is-active) {
    .li-loeschen, .li-gruppe, .li-monat*, .li-leer*, .nu-stand, .nu-wt,
    .nu-mehr, .wo-meldung, .adm-cta, .adm-link, .adm-visually-hidden,
    --status-*, --wo-tint, --tag-feldlinie, --tag-label-w, --vorschlag-einzug.
-   Wiederverwendet mit erweitertem Selektor (Abschnitt 3a): .li-label,
+   Wiederverwendet mit erweitertem Selektor: .li-label,
    .li-suche, .li-auswahl, [hidden] – die Liste :is(#page-liste, #page-users,
    #page-user) bekommt „.be-seite“ dazu.
 
@@ -4601,7 +4593,7 @@ html:has(#page-entry.is-active) {
   .pr-satz { text-decoration: underline; }
 }
 
-/* ── Werkzeuge › Inhalte (Schritt 7b) ─────────────────────────────────────
+/* ── Werkzeuge › Inhalte ─────────────────────────────────────
    Unterseiten: Wort prüfen (#page-analytics), Bonus-Tage (#page-freedays),
    Benachrichtigungen (#page-push), Wort der Woche (#page-spezialwoche),
    Klassenraum-Demo (#page-klassenraum-demo). Alle tragen „be-seite in-seite“.
@@ -4618,12 +4610,12 @@ html:has(#page-entry.is-active) {
    Tag), .tag-abschnitt*, .tag-dl, .be-aktionen, .be-dl, .be-check, .be-roh,
    .be-zeile*, .be-liste, .li-meldung, .li-loeschen, .li-leer*, .nu-stand,
    .adm-cta, .adm-link, .adm-tool-stand.
-   Mit erweitertem Selektor (Abschnitt 3a): alle „#page-entry .tag-…“-Regeln
+   Mit erweitertem Selektor: alle „#page-entry .tag-…“-Regeln
    (Eingabe, Label, Auswahl, Meldungen, Nebenfelder, Feldfehler) gelten auch
    unter „.in-seite“.
 
    Container: „tag“ (damit die Breit-Regeln des Tagesformulars greifen),
-   „betrieb“ (7a) und „inhalte“ (dieser Block). Muss NACH dem Betrieb-Block
+   „betrieb“ und „inhalte“ (dieser Block). Muss NACH dem Betrieb-Block
    stehen. Schwellen wie dort: ≥ 40rem Label links, < 20rem alles untereinander.
    ─────────────────────────────────────────────────────────────────────── */
 
@@ -4900,6 +4892,41 @@ html:has(#page-entry.is-active) {
 .in-dialog-aktionen .li-loeschen[aria-disabled="true"]:not(.is-busy) { color: var(--muted); text-decoration: none; font-style: normal; opacity: 1; }
 .in-dialog .li-meldung { margin-top: 10px; }
 
+/* Gemeinsame Rückfrage (#bestaetige-dialog): Detailzeilen als Linien-Liste */
+.in-dialog-liste {
+  margin: 14px 0 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--border-lt);
+}
+
+.in-dialog-liste li {
+  padding: 7px 0;
+  border-bottom: 1px solid var(--border-lt);
+  font: 400 0.95rem/1.45 var(--font-serif);
+  overflow-wrap: anywhere;
+}
+
+/* Lange Listen oder große Schrift: Frage und Knöpfe bleiben stehen, nur der Mittelteil scrollt */
+.in-dialog--frage { overflow: hidden; }
+
+/* Ohne Gefahr (nichts geht verloren, z. B. Rolle setzen): kein roter Oberrand, nur der Rahmen */
+.in-dialog--frage[data-gefahr="nein"] { border-top: 1px solid var(--border); }
+
+.in-dialog--frage .in-dialog-inhalt {
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100dvh - 36px);
+}
+
+.in-dialog--frage .in-dialog-scroll {
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.in-dialog--frage .in-dialog-aktionen { flex: none; }
+
 /* ════════════════ Wort der Woche ════════════════ */
 
 .in-sw-modi { margin-top: 20px; border-top: 1px solid var(--border); }
@@ -4964,7 +4991,7 @@ html:has(#page-entry.is-active) {
   .in-ph { border-bottom-color: CanvasText; }
 }
 
-/* ── Auswertung (Schritt 8): Spiele (#page-stats), Kennzahlen (#page-metrics),
+/* ── Auswertung: Spiele (#page-stats), Kennzahlen (#page-metrics),
    Klassenraum (#page-classroom) ──────────────────────────────────────────────
    DESIGN.md §9: Linien statt Kästen, keine Schatten, Radius ≤ 4 px. Zahlen
    stehen in einer Kopfzeile mit Haarlinien (kein Kachel-Kasten), Diagramme

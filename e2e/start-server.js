@@ -51,6 +51,12 @@ execFileSync(process.execPath, [join(root, 'server/seed-dev.js')], {
     INSERT INTO user (id, name, email, emailVerified, image, createdAt, updatedAt)
     VALUES ('e2e-probe-konto', 'E2E Probe', 'e2e-probe@example.test', 1, NULL, ?, ?)
   `).run(jetzt, jetzt)
+  // Ein zweites Konto, das nur admin-bestaetigung.spec.js wirklich loescht (Konto loeschen ueber die Rueckfrage);
+  // das erste muss fuer die anderen Specs stehen bleiben.
+  db.prepare(`
+    INSERT INTO user (id, name, email, emailVerified, image, createdAt, updatedAt)
+    VALUES ('e2e-loesch-konto', 'E2E Loeschen', 'e2e-loesch@example.test', 1, NULL, ?, ?)
+  `).run(jetzt, jetzt)
   // Spieldaten der letzten 20 Tage (Berliner Tage) für die Auswertung: je Tag vier Modi, ein Teil mit Konto
   {
     const einfuegen = db.prepare(`

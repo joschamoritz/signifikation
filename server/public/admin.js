@@ -2,6 +2,8 @@
 // Das Backend (server/middleware/auth.js) verlangt für POST/PUT/DELETE/PATCH
 // den Header X-Requested-With: signifikation-app. Cross-Origin-Scripts können
 // diesen Custom-Header ohne CORS-Preflight nicht setzen → echter CSRF-Schutz.
+// Zusätzlich verlangt csrfProtect für POST/PUT/DELETE Content-Type: application/json (auch ohne Body); der Wrapper
+// ergänzt ihn, wo er fehlt (server/__tests__/admin.users.csrf.test.js führt genau diesen Code aus).
 //
 // Pendant in der React-App: src/utils/installCsrfFetch.js. Hier ist alles
 // same-origin (Admin-Panel und API laufen unter derselben Origin), deshalb
@@ -23,6 +25,11 @@
       const next = { ...(init || {}) }
       const headers = new Headers(next.headers)
       if (!headers.has('X-Requested-With')) headers.set('X-Requested-With', CSRF_HEADER_VALUE)
+      // csrfProtect lehnt POST/PUT/DELETE ohne Content-Type: application/json mit 403 ab – auch ein DELETE ohne Body.
+      // Ohne Body oder mit Text-Body (JSON.stringify) also vorgeben; FormData/Blob behalten ihren eigenen Typ.
+      if (!headers.has('Content-Type') && (next.body === undefined || next.body === null || typeof next.body === 'string')) {
+        headers.set('Content-Type', 'application/json')
+      }
       next.headers = headers
       return originalFetch(input, next)
     }
@@ -233,8 +240,7 @@ const ALTE_SYSTEM_ABSCHNITTE = Object.freeze({
   protokoll: '#werkzeuge/protokoll',
 })
 
-// Alte data-page-Werte (Schnellzugriffe auf dem Dashboard, Kalender) →
-// neue Adressen. switchPage() bleibt als dünne Hülle dafür bestehen.
+// Alte Adressen (#dashboard, #calendar … aus Lesezeichen und früheren Versionen) → aktuelle Adressen (parseRoute).
 const LEGACY_PAGE_ROUTES = {
   dashboard: '#planen',
   entry: '#planen/tag/neu',
@@ -262,6 +268,8 @@ let currentIdx = 0
 const routeHashByIdx = new Map()
 let suppressHashChange = false
 let suppressTimer = null
+let verlassenErlaubt = false   // Die Rückfrage beim Verlassen ist bejaht: Der nächste Wechsel fragt nicht noch einmal
+let verlassenTimer = null
 // Elternadresse → Link, über den man die Unterseite betreten hat (Fokus bei Rückkehr).
 const focusMemory = new Map()
 // Einmaliges Fokusziel für die nächste Navigation (CSS-Selektor), z. B. „In der Woche zeigen“ → gewählter Tag.
@@ -363,8 +371,8 @@ function parseRoute(rawHash) {
     return { page: 'user', area: 'nutzer', parent: PARENT_NUTZER, nutzerId: id, key: 'nutzer/konto' }
   }
 
-  // Bis Schritt 7a lagen Zustand, Sicherung, Kursmaterial und Protokoll auf einer Seite (#werkzeuge/system?abschnitt=…).
-  // Alte Lesezeichen und Links führen auf die neue Unterseite; Unbekanntes landet beim Systemzustand.
+  // Früher lagen Zustand, Sicherung, Kursmaterial und Protokoll auf einer Seite (#werkzeuge/system?abschnitt=…).
+  // Alte Lesezeichen und Links führen auf die jeweilige Unterseite; Unbekanntes landet beim Systemzustand.
   if (path === 'werkzeuge/system' && queryPart) {
     const ziel = ALTE_SYSTEM_ABSCHNITTE[new URLSearchParams(queryPart).get('abschnitt')] || '#werkzeuge/system'
     return { redirect: ziel }
@@ -487,7 +495,7 @@ function applyRouteChrome(route) {
   })
 }
 
-// Daten je Route laden (früher in switchPage).
+// Daten je Route laden.
 function runRouteLoaders(route) {
   switch (route.page) {
     case 'users':
@@ -665,15 +673,15 @@ function describeEntryLoadError(status, data) {
 
 async function renderEntryRoute(route, token) {
   if (route.entry === 'neu') {
-    // Ein bereits angefangener neuer Tag bleibt erhalten (wie früher beim
-    // „Neuer Tag“-Knopf); ein geladener bestehender Tag wird dagegen geleert,
-    // sonst würde „Neuer Tag“ versehentlich diesen Tag überschreiben.
+    // Ein bereits angefangener neuer Tag bleibt erhalten; ein geladener
+    // bestehender Tag wird dagegen geleert, sonst würde „Neuer Tag“
+    // versehentlich diesen Tag überschreiben.
     // Ohne Snapshot (erster Besuch) gäbe es keine Dirty-Erkennung – dann einmal
     // initialisieren. keepDraft: ein gespeicherter Entwurf bleibt zur Wiederherstellung.
     if (entryFormMode !== 'new' || !entryFormSnapshot) {
       // Der Formularinhalt gehört jetzt „Neuer Tag“; dessen Entwurf wird angeboten.
       entryDraftBasis = 'neu'
-      prefillDate(getTodayIso(), { force: true, keepDraft: true })
+      prefillDate(getTodayIso(), { keepDraft: true })
       offerEntryDraft()
     }
     return
@@ -695,13 +703,13 @@ async function renderEntryRoute(route, token) {
     return
   }
   if (result.state === 'missing') {
-    prefillDate(route.date, { force: true, keepDraft: true })
+    prefillDate(route.date, { keepDraft: true })
     setEntryHead('neu', route.date)
     offerEntryDraft()
     return
   }
   if (result.state === 'error') {
-    prefillDate(route.date, { force: true, keepDraft: true })
+    prefillDate(route.date, { keepDraft: true })
     setEntryMode('error')
     setEntryLoadError(`Der Tag ${formatIsoDate(route.date)} konnte nicht geladen werden: ${result.reason} Speichern ist gesperrt, damit kein bestehender Tag überschrieben wird.`)
     // Der Grund steht schon in der Meldung; der Untertitel wiederholt ihn nicht.
@@ -788,8 +796,13 @@ async function renderRoute({ userInitiated = false } = {}) {
 
   const token = ++routeRenderToken
   const leavingRoute = currentRoute
+  const vorherHash = currentRouteHash
   currentRouteHash = hash
   currentRoute = route
+  // Jede Adressänderung beendet eine offene Rückfrage als „Abbrechen“ (sie gehörte zur alten Adresse, auch bei
+  // gleicher Seite: anderer Tag, anderes Konto). Ausgenommen die Frage des Routers selbst, die gerade eine
+  // Adressänderung verhandelt. Den Fokus setzt die neue Seite.
+  if (vorherHash !== hash && bestaetigeLauf && !bestaetigeLauf.vomRouter) bestaetigeLauf.beende(false, { fokus: false })
   // Weiterleitungen und Index in einem Schritt in den Verlauf schreiben (ohne neuen Eintrag).
   stampHistory(hash)
 
@@ -799,7 +812,7 @@ async function renderRoute({ userInitiated = false } = {}) {
   if (leavingRoute?.page === 'kursmaterial' && route.page !== 'kursmaterial') stoppeKursAbfrage()
   if (leavingRoute?.page === 'sicherung' && route.page !== 'sicherung') restoreAbbrechenStill()
   // Ein offener Bestätigungsdialog (An alle senden, Bonus-Tag ersetzen) gehört zu seiner Seite und schließt mit ihr.
-  if (leavingRoute && leavingRoute.page !== route.page) document.querySelectorAll('dialog.in-dialog[open]').forEach((d) => d.close())
+  if (leavingRoute && leavingRoute.page !== route.page) document.querySelectorAll('dialog.in-dialog[open]:not(#bestaetige-dialog)').forEach((d) => d.close())
 
   if (userInitiated && typeof window.scrollTo === 'function') {
     window.scrollTo(0, 0)
@@ -823,17 +836,38 @@ async function renderRoute({ userInitiated = false } = {}) {
 // (auch aus Monat/Liste, wo das Formular im Hintergrund noch den Entwurf hält).
 // Der Browser-eigene Schutz beim Schließen/Neuladen des Tabs fehlt bewusst
 // (kein beforeunload); dort greift nur das Zwischenspeichern des Entwurfs.
-function confirmLeaveEntryRoute(nextHash) {
-  if (!entryFormDirty) return true
+// Die Rückfrage ist ein Dialog und damit asynchron: Der Router setzt die Adresse zurück, fragt und
+// navigiert erst bei „Ja“ (handleHashChange, navigate).
+// Liefert die nötige Rückfrage vor dem Wechsel zu nextHash, null wenn nichts verloren ginge.
+function verlassenFrage(nextHash) {
+  if (!entryFormDirty) return null
   const leaving = isEntryRouteHash(currentRouteHash)
   const entering = isEntryRouteHash(nextHash)
   // „Neuer Tag“ behält ein angefangenes neues Formular – nichts geht verloren.
-  if (nextHash === '#planen/tag/neu' && entryFormMode === 'new') return true
-  if (!leaving && !entering) return true
-  const ok = confirmDiscardEntryChanges(entering ? 'verwerfen' : 'die Seite verlassen')
+  if (nextHash === '#planen/tag/neu' && entryFormMode === 'new') return null
+  if (!leaving && !entering) return null
+  return entering
+    ? { wort: 'verwerfen', aktion: 'Verwerfen', verwirft: true }
+    : { wort: 'die Seite verlassen', aktion: 'Verlassen', verwirft: false }
+}
+
+async function bestaetigeVerlassen(frage) {
+  const ok = await bestaetige({ frage: `Es gibt ungespeicherte Änderungen. Wirklich ${frage.wort}?`, aktion: frage.aktion, vomRouter: true })
   // Bewusst verworfen: den gespeicherten Entwurf nicht beim nächsten Start anbieten.
-  if (ok && entering) clearEntryDraft()
+  if (ok && frage.verwirft) clearEntryDraft()
   return ok
+}
+
+// Bei „Ja“ nach einer zurückgesetzten Adresse: den Wechsel nachholen, ohne noch einmal zu fragen.
+// delta ≠ 0: Zurück/Vor-Sprung (genau diesen Schritt im Verlauf), sonst ein neuer Eintrag für die Zieladresse.
+async function frageVerlassen(frage, ziel, delta) {
+  if (!(await bestaetigeVerlassen(frage))) return
+  verlassenErlaubt = true
+  if (verlassenTimer) window.clearTimeout(verlassenTimer)
+  // Sicherheitsnetz: kommt kein hashchange, die Erlaubnis nicht hängen lassen.
+  verlassenTimer = window.setTimeout(() => { verlassenErlaubt = false }, 1000)
+  if (delta) window.history.go(delta)
+  else window.location.hash = ziel
 }
 
 function suppressNextHashChange() {
@@ -855,13 +889,21 @@ function handleHashChange() {
   const stateIdx = window.history.state?.admIdx
   const isTraversal = Number.isInteger(stateIdx)
 
-  if (!confirmLeaveEntryRoute(window.location.hash)) {
-    // Abbruch: genau den Schritt rückgängig machen, ohne zu rendern.
+  const frage = verlassenErlaubt ? null : verlassenFrage(window.location.hash)
+  verlassenErlaubt = false
+  if (frage) {
+    // Zuerst genau diesen Schritt rückgängig machen (ohne zu rendern), dann fragen: Die Seite bleibt, wie sie ist.
+    // Bei „Ja“ holt frageVerlassen den Schritt nach; bei „Abbrechen“ ist nichts mehr zu tun.
+    const ziel = window.location.hash
+    const delta = isTraversal ? stateIdx - currentIdx : 0
     suppressNextHashChange()
     if (isTraversal) window.history.go(currentIdx - stateIdx)
     else window.history.back()
+    void frageVerlassen(frage, ziel, delta)
     return
   }
+  // Ohne eigene Rückfrage geht es weiter: Eine noch offene (auch die des Routers zu einem früheren Schritt) ist überholt.
+  bestaetigeLauf?.beende(false, { fokus: false })
   currentIdx = isTraversal ? stateIdx : currentIdx + 1
   void renderRoute({ userInitiated: true })
 }
@@ -871,11 +913,20 @@ function handleHashChange() {
 function navigate(hash) {
   const target = String(hash || '').startsWith('#') ? String(hash) : `#${hash}`
   if (target !== window.location.hash) {
-    window.location.hash = target
+    // Erst fragen, dann die Adresse setzen: So entsteht bei „Abbrechen“ kein Verlaufseintrag (handleHashChange fängt
+    // nur noch Zurück/Vor-Sprünge ab).
+    const frage = routerActive ? verlassenFrage(target) : null
+    if (frage) void frageVerlassen(frage, target, 0)
+    else window.location.hash = target
     return
   }
-  if (!routerActive || !confirmLeaveEntryRoute(target)) return
-  void renderRoute({ userInitiated: true })
+  if (!routerActive) return
+  const frage = verlassenFrage(target)
+  if (!frage) {
+    void renderRoute({ userInitiated: true })
+    return
+  }
+  void bestaetigeVerlassen(frage).then((ok) => { if (ok) void renderRoute({ userInitiated: true }) })
 }
 
 // Klick auf einen Hash-Link zur bereits aktiven Adresse → neu rendern.
@@ -934,9 +985,36 @@ function stopRouter() {
   currentRoute = null
   routeRenderToken++
   routeHashByIdx.clear()
+  // Eine offene Rückfrage gehört zur beendeten Sitzung (sonst bliebe sie über dem Anmeldebild stehen).
+  bestaetigeLauf?.beende(false, { fokus: false })
 }
 
 window.addEventListener('hashchange', handleHashChange)
+
+// Zuletzt angeklickter Knopf oder Link (für den Fokus nach einer Rückfrage, wenn der Browser ihn beim Klick nicht
+// fokussiert, z. B. Safari). Als erster Klick-Listener der Seite in der Capture-Phase: Er muss vor allen anderen laufen,
+// die synchron eine Rückfrage öffnen könnten (fangeVerlassenLink).
+let letzterKlick = null     // { el, t }
+document.addEventListener('click', (ev) => {
+  const el = ev.target instanceof Element ? ev.target.closest('button, a[href], summary, [role="button"]') : null
+  letzterKlick = el instanceof HTMLElement ? { el, t: performance.now() } : null
+}, true)
+
+// Hash-Link bei ungespeicherten Änderungen: erst fragen, dann navigieren. Der Browser legt so gar nicht erst einen
+// Verlaufseintrag an, den der Router bei „Abbrechen“ wieder zurücknehmen müsste (sonst bliebe ein Vorwärts-Eintrag).
+// Ohne Rückfrage-Bedarf läuft der Link wie gewohnt (Rechtsklick, Strg+Klick und Tastatur bleiben Sache des Browsers).
+function fangeVerlassenLink(event) {
+  const link = event.target.closest?.('a[href^="#"]')
+  if (!link || link.dataset.action) return
+  if (!routerActive || event.defaultPrevented || event.button !== 0) return
+  if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return
+  const target = link.getAttribute('href')
+  if (target === window.location.hash || !verlassenFrage(target)) return
+  if (parseRoute(target)?.parent) focusMemory.set(window.location.hash, target)
+  event.preventDefault()
+  navigate(target)
+}
+document.addEventListener('click', fangeVerlassenLink, true)
 // Die Reiterleiste scrollt waagerecht, wenn sie nicht passt (375 px, große Schrift): Ein per Tastatur erreichter Reiter
 // außerhalb des sichtbaren Teils wird ins Bild geholt (der Browser tut das hier nicht von selbst).
 document.addEventListener('focusin', (ev) => {
@@ -955,11 +1033,6 @@ function observeNavBarHeight() {
   apply()
 }
 observeNavBarHeight()
-
-// Dünne Hülle für alte data-page-Werte.
-function switchPage(pageId) {
-  if (Object.hasOwn(LEGACY_PAGE_ROUTES, pageId)) navigate(LEGACY_PAGE_ROUTES[pageId])
-}
 
 // „neu laden“ in Planen › Woche: nur, was die Woche zeigt. Die übrigen Seiten
 // laden beim Öffnen selbst (runRouteLoaders).
@@ -1022,11 +1095,11 @@ function updateEntryDirtyState() {
 // ── Entwurfsschutz für den Tageseintrag ───────────────────
 // Mobile Browser beenden Hintergrund-Tabs regelmäßig. Ohne
 // Zwischenspeicher wären die bis zu 25 ausgefüllten Felder dann
-// ersatzlos verloren – ein In-App-confirm() greift dabei nicht.
+// ersatzlos verloren – eine Rückfrage im Dialog greift dabei nicht.
 // Ein Schlüssel je Tag („…:2026-11-10“, „…:neu“): Der Entwurf eines Tages
 // erscheint nur auf dessen Seite und überschreibt nie den eines anderen.
 const ENTRY_DRAFT_PREFIX = 'sig-admin-entry-draft:'
-const ENTRY_DRAFT_LEGACY_KEY = 'sig-admin-entry-draft'   // ein Schlüssel für alles (bis zu diesem Umbau)
+const ENTRY_DRAFT_LEGACY_KEY = 'sig-admin-entry-draft'   // früherer Sammelschlüssel für alles: wird beim ersten Laden auf den Tag umgezogen
 const ENTRY_DRAFT_MAX_TAGE = 30
 let entryDraftTimer = null
 let entryDraftBasis = 'neu'     // wem der Formularinhalt gehört: 'neu' oder das Datum der Route
@@ -1118,14 +1191,14 @@ function offerEntryDraft() {
   }
 }
 
-function restoreEntryDraft() {
+async function restoreEntryDraft() {
   const draft = readStoredEntryDraft()
   if (!draft) {
     hideEntryDraftBanner()
     return
   }
   // Seit dem Öffnen Getipptes würde durch den Entwurf ersetzt: vorher fragen.
-  if (entryFormDirty && !window.confirm('Es gibt ungespeicherte Änderungen im Formular. Der Entwurf ersetzt sie. Wirklich wiederherstellen?')) return
+  if (entryFormDirty && !(await bestaetige({ frage: 'Es gibt ungespeicherte Änderungen im Formular. Wirklich wiederherstellen?', text: 'Der Entwurf ersetzt sie.', aktion: 'Wiederherstellen' }))) return
   entryDraftAngeboten = null   // vor dem Einsetzen: der Entwurf ist behandelt und darf wieder fortgeschrieben werden
   applyEntryFields(draft.fields)
   // Gehört der Entwurf zu einem anderen Tag als dem geladenen (z. B. nach einem
@@ -1219,6 +1292,14 @@ function applyEntryFields(fields) {
   updateModeIndicators()
 }
 
+// Der Knopf steht neben „Speichern“: ein Fehltipp würde sonst alle Eingaben verwerfen.
+async function resetEntryForm() {
+  if (!(await bestaetige({ frage: 'Ungespeicherte Änderungen verwerfen?', text: 'Der zuletzt gespeicherte Stand kommt zurück.', aktion: 'Verwerfen' }))) return
+  restoreEntryFormSnapshot()
+  // Der Knopf verschwindet (disabled → ausgeblendet); der Fokus geht zum Stand.
+  document.getElementById('entry-dirty-indicator')?.focus()
+}
+
 function restoreEntryFormSnapshot() {
   if (!entryFormSnapshot) return
   applyEntryFields(entryFormSnapshot)
@@ -1227,45 +1308,137 @@ function restoreEntryFormSnapshot() {
   aktualisiereDatumHinweis()
 }
 
-function confirmDiscardEntryChanges(contextLabel = 'fortfahren') {
-  if (!entryFormDirty) return true
-  return window.confirm(`Es gibt ungespeicherte Änderungen. Wirklich ${contextLabel}?`)
-}
-
-function isSundayIso(iso) {
-  if (!iso) return false
-  const [year, month, day] = iso.split('-').map(Number)
-  const value = new Date(year, (month || 1) - 1, day || 1)
-  return value.getDay() === 0
-}
-
+// Bonus-Tag zu einem Datum: { label, bonus } oder null
 function getFreeDayInfo(iso) {
   if (!iso) return null
-  const explicit = freeDaysData.find((item) => item?.date === iso) || null
-  if (explicit) {
-    const bonus = Number(explicit.bonus_count) || 0
-    return {
-      date: iso,
-      label: explicit.label || '',
-      bonus,
-      source: 'manual',
-      displayLabel: `Bonus: +${bonus} Spiele mit eigenem Lemma für Konten mit Basiszugang${explicit.label ? ` · ${explicit.label}` : ''}`,
-    }
-  }
-  return null
+  const explicit = freeDaysData.find((item) => item?.date === iso)
+  if (!explicit) return null
+  return { label: explicit.label || '', bonus: Number(explicit.bonus_count) || 0 }
 }
 
 function isFreeAccessDay(iso) {
   return !!getFreeDayInfo(iso)
 }
 
-function buildConfirmList(items) {
-  if (!Array.isArray(items) || !items.length) return ''
-  return `\n\n${items.map((item) => `- ${item}`).join('\n')}`
+// ── Rückfrage (ersetzt window.confirm) ────────────────────
+// Ein gemeinsamer <dialog> (#bestaetige-dialog, showModal). await bestaetige({ frage, text, details, aktion, gefahr })
+// liefert true (Aktion gewählt) oder false. frage = Titel (kurz), text = Absatz darunter, details = Zeilen als Liste,
+// aktion = Beschriftung des zweiten Knopfs („Löschen“ …); gefahr (Standard: ja) setzt ihn im Stil von
+// .li-loeschen mit rotem Oberrand, sonst als Text-CTA ohne roten Rand. Esc, „Abbrechen“ (Fokus beim Öffnen),
+// ein Adresswechsel und das Abmelden ergeben false; der Fokus kehrt zum Auslöser zurück (bei Adresswechsel und
+// Abmelden nicht: Dort setzt die neue Seite den Fokus). Inhalte gehen nur per textContent hinein.
+// Eine neue Frage ersetzt eine offene (die alte gilt als abgelehnt). Ein Mausklick auf die Aktion in den ersten
+// BESTAETIGE_SPERRE_MS zählt nicht: Sonst träfe der zweite Klick eines Doppelklicks auf den Auslöser den Knopf des
+// frisch geöffneten Dialogs. Die Tastatur (Enter, Leertaste) wirkt sofort: Der Fokus steht auf „Abbrechen“.
+const BESTAETIGE_SPERRE_MS = 400
+const BESTAETIGE_KLICK_MS = 1500   // so lange gilt der zuletzt angeklickte Knopf als Auslöser, wenn der Browser ihn nicht fokussiert hat (Safari)
+let bestaetigeLauf = null   // die offene Frage: { ziel, seit, vomRouter, loese(), beende(ergebnis, { fokus }) }
+
+// Der Auslöser wird mit Schlüssel (id bzw. Tag + data-*) gemerkt: Zeichnet die Seite ihre Knöpfe neu, ist das
+// ursprüngliche Element weg, der gleiche Knopf aber da.
+function merkeFokusZiel(el) {
+  if (!(el instanceof HTMLElement) || el === document.body) return null
+  return { el, id: el.id, tag: el.tagName.toLowerCase(), data: { ...el.dataset } }
 }
 
-function confirmAction(message, details = []) {
-  return window.confirm(`${message}${buildConfirmList(details)}`)
+function findeFokusZiel(ziel) {
+  if (!ziel) return null
+  if (ziel.el.isConnected) return ziel.el
+  if (ziel.id) {
+    const nachId = document.getElementById(ziel.id)
+    if (nachId) return nachId
+  }
+  const schluessel = Object.keys(ziel.data)
+  if (!schluessel.length) return null
+  const sel = ziel.data.action !== undefined ? `${ziel.tag}[data-action]` : ziel.tag
+  return [...document.querySelectorAll(sel)].find((e) => (
+    Object.keys(e.dataset).length === schluessel.length && schluessel.every((k) => e.dataset[k] === ziel.data[k])
+  )) || null
+}
+
+// Fokus zurück an den Auslöser; fehlt er (oder ist unsichtbar), auf die Seitenüberschrift.
+function stelleFokusWieder(ziel) {
+  for (const kandidat of [findeFokusZiel(ziel), document.getElementById('page-title')]) {
+    if (!(kandidat instanceof HTMLElement)) continue
+    kandidat.focus({ preventScroll: true })
+    if (document.activeElement === kandidat) return
+  }
+}
+
+function bestaetige({ frage, text = '', details = [], aktion, gefahr = true, vomRouter = false }) {
+  const dlg = document.getElementById('bestaetige-dialog')
+  if (!dlg) return Promise.resolve(false)
+  const alt = bestaetigeLauf
+  bestaetigeLauf = null
+  alt?.loese(false)
+  const aktiv = document.activeElement
+  let ziel = alt?.ziel || null
+  if (!ziel) {
+    if (aktiv instanceof HTMLElement && aktiv !== document.body && !dlg.contains(aktiv)) ziel = merkeFokusZiel(aktiv)
+    else if (letzterKlick && performance.now() - letzterKlick.t < BESTAETIGE_KLICK_MS && letzterKlick.el.isConnected) ziel = merkeFokusZiel(letzterKlick.el)
+  }
+
+  return new Promise((loese) => {
+    const lauf = {
+      ziel,
+      seit: performance.now(),
+      vomRouter,
+      loese,
+      // Idempotent: Mehrfachklick, Esc und Seitenwechsel dürfen sich überschneiden.
+      beende(ergebnis, { fokus = true } = {}) {
+        if (bestaetigeLauf !== lauf) return
+        bestaetigeLauf = null
+        if (dlg.open) dlg.close()
+        if (fokus) stelleFokusWieder(lauf.ziel)
+        loese(ergebnis)
+      },
+    }
+    bestaetigeLauf = lauf
+
+    document.getElementById('bestaetige-titel').textContent = frage
+    const textEl = document.getElementById('bestaetige-text')
+    textEl.textContent = text
+    textEl.hidden = !text
+    const listeEl = document.getElementById('bestaetige-liste')
+    listeEl.replaceChildren(...details.map((zeile) => {
+      const li = document.createElement('li')
+      li.textContent = zeile
+      return li
+    }))
+    listeEl.hidden = !details.length
+    const beschreibung = [text && 'bestaetige-text', details.length && 'bestaetige-liste'].filter(Boolean).join(' ')
+    if (beschreibung) dlg.setAttribute('aria-describedby', beschreibung)
+    else dlg.removeAttribute('aria-describedby')
+    dlg.dataset.gefahr = gefahr ? 'ja' : 'nein'
+    // Beschriftung im eigenen <span>: Der Pfeil des Text-CTA ist reine Zier (aria-hidden) und bleibt erhalten.
+    const ok = document.getElementById('bestaetige-ok')
+    const beschriftung = document.createElement('span')
+    beschriftung.textContent = aktion
+    if (gefahr) {
+      ok.className = 'li-loeschen'
+      ok.replaceChildren(beschriftung)
+    } else {
+      const pfeil = document.createElement('span')
+      pfeil.setAttribute('aria-hidden', 'true')
+      pfeil.textContent = '→'
+      ok.className = 'adm-cta'
+      ok.replaceChildren(beschriftung, ' ', pfeil)
+    }
+    if (!dlg.open) dlg.showModal()
+    // Auch beim Ersetzen einer offenen Frage beginnt der Fokus wieder bei „Abbrechen“ (nicht beim Knopf der alten Frage)
+    document.getElementById('bestaetige-abbrechen').focus({ preventScroll: true })
+    // Scrollt der Mittelteil (lange Liste, große Schrift), ist er mit der Tastatur erreichbar und benannt
+    const scroll = document.getElementById('bestaetige-scroll')
+    const scrollt = scroll.scrollHeight > scroll.clientHeight
+    if (scrollt) {
+      scroll.setAttribute('tabindex', '0')
+      scroll.setAttribute('role', 'group')
+      scroll.setAttribute('aria-labelledby', 'bestaetige-titel')
+    } else {
+      for (const a of ['tabindex', 'role', 'aria-labelledby']) scroll.removeAttribute(a)
+    }
+    lauf.seit = performance.now()   // die Sperre beginnt (neu), sobald die Frage steht
+  })
 }
 
 function createTemporaryDownload(blob, filename) {
@@ -3013,11 +3186,10 @@ function zeigeWocheVon(datum) {
 }
 
 // Leert das Tagesformular und setzt das Datum. Die Seite selbst zeigt der
-// Router (#planen/tag/…); options.force überspringt die Rückfrage, weil der
-// Router sie beim Seitenwechsel schon gestellt hat. options.keepDraft lässt einen
-// gespeicherten Entwurf bestehen (Router-Pfad). Gibt zurück, ob zurückgesetzt wurde.
-function prefillDate(isoDate, options = {}) {
-  if (!options.force && !confirmDiscardEntryChanges('verwerfen')) return false
+// Router (#planen/tag/…); die Rückfrage zu ungespeicherten Änderungen hat er beim
+// Seitenwechsel schon gestellt. keepDraft lässt einen gespeicherten Entwurf
+// bestehen (Router-Pfad).
+function prefillDate(isoDate, { keepDraft = false } = {}) {
   setEntryMode('new')
   setEntryLoadError('')
   selectedCalendarDate = ''
@@ -3034,10 +3206,9 @@ function prefillDate(isoDate, options = {}) {
   hideAllExtraFields()
   clearInlineAnalysisOutputs()
   updateModeIndicators()
-  captureEntryFormSnapshot({ keepDraft: !!options.keepDraft })
+  captureEntryFormSnapshot({ keepDraft })
   aktualisiereDatumHinweis()
   scrollNachOben()
-  return true
 }
 
 // Weiches Scrollen nur, wenn der Nutzer keine reduzierte Bewegung wünscht.
@@ -3138,7 +3309,7 @@ async function saveTag() {
   // (Neuer Tag mit belegtem Datum, geändertes Datum): vorher bestätigen lassen.
   const geladenerTag = entryFormMode === 'edit' ? selectedCalendarDate : ''
   if (kalenderStatus === 'ok' && kalenderData[datum] && datum !== geladenerTag
-      && !confirmAction(`Für ${datumKurz(datum)} gibt es schon einen Tag. Ersetzen?`)) return
+      && !(await bestaetige({ frage: `Für ${datumKurz(datum)} gibt es schon einen Tag. Ersetzen?`, aktion: 'Ersetzen' }))) return
 
   // Speichern dauert (die Spieldaten werden berechnet). Kopf, Adresse und Auswahl
   // nur nachziehen, wenn der Nutzer währenddessen nicht weiternavigiert ist
@@ -3329,7 +3500,9 @@ async function deleteCurrentTag() {
     'Das lässt sich nicht rückgängig machen.',
   ]
   if (entryFormDirty) details.push('Ungespeicherte Änderungen gehen dabei verloren.')
-  if (!confirmAction(`Tag ${datumLang(geloescht, { jahr: true })} löschen?`, details)) return
+  if (!(await bestaetige({ frage: `Tag ${datumLang(geloescht, { jahr: true })} löschen?`, details, aktion: 'Löschen' }))) return
+  // Während der Rückfrage kann sich etwas geändert haben (anderer Tag geöffnet, Speichern gestartet): dann nichts löschen.
+  if (loeschtGerade || speichertGerade || selectedCalendarDate !== geloescht) return
 
   // aria-disabled statt disabled: Bei disabled blendet das CSS den ganzen Abschnitt aus,
   // und der Fokus ginge verloren. Währenddessen ist auch Speichern (Strg+S) gesperrt.
@@ -3349,10 +3522,9 @@ async function deleteCurrentTag() {
     selectedEntryDates.delete(geloescht)
     delete kalenderData[geloescht]   // sonst hielte der Datumshinweis den gelöschten Tag noch für belegt
     const currentDate = document.getElementById('datum')?.value || getTodayIso()
-    // force: Die Rückfrage zu ungespeicherten Änderungen war Teil der Lösch-Rückfrage.
-    if (prefillDate(currentDate, { force: true }) && currentRoute?.entry && isValidIsoDay(currentDate)) {
-      setEntryHead('neu', currentDate)
-    }
+    // Die Rückfrage zu ungespeicherten Änderungen war Teil der Lösch-Rückfrage.
+    prefillDate(currentDate)
+    if (currentRoute?.entry && isValidIsoDay(currentDate)) setEntryHead('neu', currentDate)
     // Erst nach prefillDate, das die Meldung leert; sonst wäre die Bestätigung nie zu sehen.
     setStatus(`Tag ${formatIsoDate(geloescht)} gelöscht.`, 'ok')
     // Der Abschnitt „Tag löschen“ ist jetzt weg; der Fokus würde sonst ins Leere fallen.
@@ -3772,7 +3944,7 @@ async function bulkDeleteSelectedDates() {
   if (dates.includes(heute)) details.push('Darunter ist der heutige Tag, der gerade gespielt wird.')
   if (vergangen) details.push(`${vergangen} ${vergangen === 1 ? 'Tag liegt' : 'Tage liegen'} in der Vergangenheit.`)
   details.push('Die Wörter und ihre Lückenfüller-Runden bleiben erhalten; der Vorgang steht im Änderungsprotokoll.', 'Das lässt sich nicht rückgängig machen.')
-  if (!confirmAction(`${dates.length} ${dates.length === 1 ? 'Tag' : 'Tage'} löschen?`, details)) return
+  if (!(await bestaetige({ frage: `${dates.length} ${dates.length === 1 ? 'Tag' : 'Tage'} löschen?`, details, aktion: 'Löschen' }))) return
 
   const del = document.getElementById('entry-bulk-delete-btn')
   loeschtListeGerade = true
@@ -4256,7 +4428,6 @@ async function analyzeEntryKollokation() {
 }
 
 // Vorschau eines der drei Kollokationen-Wörter (Nr. 1–3) als Wörterbuch-Eintrag.
-// Die frühere Tages-Vorschau entfällt: Planen › Woche zeigt dieselben Modi und Wörter.
 async function previewCurrentLemma(index = 1) {
   const out = document.getElementById('entry-preview-output')
   const n = [1, 2, 3].includes(index) ? index : 1
@@ -4382,16 +4553,6 @@ function setMeldung(id, msg, tone, { fokus = false, html = false } = {}) {
   } else if (el.getAttribute('aria-live') === 'off') {
     el.setAttribute('aria-live', 'polite')
   }
-}
-
-// Text aus Nutzerdaten für window.confirm(): ohne Steuerzeichen, Zeilenumbrüche und Richtungszeichen, auf max Zeichen gekürzt.
-// Sonst ließe sich ein Name mit Zeilenumbruch als eigene „Zeile“ des Dialogs ausgeben.
-function fuerDialog(text, max = 60) {
-  const sauber = String(text ?? '')
-    .replace(/[\u0000-\u001f\u007f-\u009f\u00ad\u061c\u200b-\u200f\u2028-\u202e\u2060-\u2069\ufeff]/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim()
-  return sauber.length > max ? `${sauber.slice(0, max - 1)}…` : sauber
 }
 
 // Eine Live-Region (Konto: Rolle gespeichert, Export) überlebt das Neuzeichnen: Der Knoten bleibt derselbe,
@@ -4834,7 +4995,7 @@ function setzeNutzerRolleLokal(ids, rolle) {
 
 // Bis zu 8 Namen „Name (E-Mail)“, sonst 5 und „und N weitere“
 function nutzerNamenListe(konten) {
-  const zeile = (u) => `${fuerDialog(nutzerName(u))} (${fuerDialog(u.email, 80)})`
+  const zeile = (u) => `${nutzerName(u)} (${u.email})`
   return konten.length <= 8
     ? konten.map(zeile)
     : [...konten.slice(0, 5).map(zeile), `und ${konten.length - 5} weitere`]
@@ -4884,7 +5045,8 @@ async function sammelRolle() {
   const details = nutzerNamenListe(gewaehlt)
   const gekauft = gewaehlt.filter((u) => u.gekauft).length
   if (ziel === 'user' && gekauft) details.push(gekauftSatz(gekauft))
-  if (!confirmAction(`Rolle von ${kontenText(gewaehlt.length)} auf ${roleLabel(ziel)} setzen?`, details)) return
+  if (!(await bestaetige({ frage: `Rolle von ${kontenText(gewaehlt.length)} auf ${roleLabel(ziel)} setzen?`, details, aktion: 'Setzen', gefahr: false }))) return
+  if (currentRoute?.page !== 'users' || nutzerBeschaeftigt) return
 
   setNutzerStatus('')
   setNutzerBeschaeftigt(true)
@@ -4965,7 +5127,8 @@ async function sammelLoeschen() {
   const gekauft = gewaehlt.filter((u) => u.gekauft).length
   if (gekauft) details.push(gekauftSatz(gekauft, { loeschen: true }))
   details.push('Zahlungsbelege bleiben ohne Namen und E-Mail erhalten.', 'Das lässt sich nicht rückgängig machen.')
-  if (!confirmAction(`${kontenText(gewaehlt.length)} löschen?`, details)) return
+  if (!(await bestaetige({ frage: `${kontenText(gewaehlt.length)} löschen?`, details, aktion: 'Löschen' }))) return
+  if (currentRoute?.page !== 'users' || nutzerBeschaeftigt) return
 
   setNutzerStatus('')
   setNutzerBeschaeftigt(true, 'Wird gelöscht …')
@@ -5274,7 +5437,10 @@ async function saveSelectedUserRole() {
   if (user.role === 'admin' || (ziel !== 'user' && ziel !== 'premium') || ziel === user.role) return
 
   if (ziel === 'user' && aktuell.kauf?.gesamtausgabe) {
-    if (!confirmAction(`Rolle auf ${roleLabel('user')} setzen?`, ['Das Konto hat die Gesamtausgabe gekauft und behält sie, verliert aber Klassenraum und unbegrenzte eigene Wörter.'])) return
+    const details = ['Das Konto hat die Gesamtausgabe gekauft und behält sie, verliert aber Klassenraum und unbegrenzte eigene Wörter.']
+    if (!(await bestaetige({ frage: `Rolle auf ${roleLabel('user')} setzen?`, details, aktion: 'Setzen', gefahr: false }))) return
+    // Die Rückfrage schließt beim Adresswechsel; trotzdem nur weitermachen, wenn dieses Konto noch offen ist.
+    if (kontoAktuell !== aktuell || !istKontoSeite(user.id) || kontoBeschaeftigt) return
   }
 
   kontoBeschaeftigt = true
@@ -5340,7 +5506,7 @@ async function deleteSelectedUser() {
   const { user, kauf } = aktuell
   if (user.role === 'admin') return
 
-  const details = [fuerDialog(user.email, 80)]
+  const details = [user.email]
   if (kauf?.gesamtausgabe) {
     const z = kauf.zahlungen?.[0]
     const wo = { mollie: ' über die Website', apple: ' im App Store' }[z?.quelle] || ''
@@ -5348,14 +5514,15 @@ async function deleteSelectedUser() {
     details.push(`Hat die Gesamtausgabe gekauft${quelle}. Ein Kauf im App Store lässt sich in der App einem neuen Konto wieder zuordnen, ein Website-Kauf nicht.`)
   }
   details.push('Zahlungsbelege bleiben ohne Namen und E-Mail erhalten.', 'Das lässt sich nicht rückgängig machen.')
-  if (!confirmAction(`Konto von ${fuerDialog(nutzerName(user))} löschen?`, details)) return
+  if (!(await bestaetige({ frage: `Konto von ${nutzerName(user)} löschen?`, details, aktion: 'Löschen' }))) return
+  if (kontoAktuell !== aktuell || !istKontoSeite(user.id) || kontoBeschaeftigt) return
 
   kontoBeschaeftigt = true
   knopf.setAttribute('aria-disabled', 'true')    // nicht disabled: Der Fokus bleibt
   document.getElementById('user-delete-text').textContent = 'Wird gelöscht …'
   setKontoStatus('')
   try {
-    const response = await fetch(`/admin/users/${encodeURIComponent(user.id)}`, { method: 'DELETE' })
+    const response = await fetch(`/admin/users/${encodeURIComponent(user.id)}`, { method: 'DELETE', headers: { 'Content-Type': 'application/json' } })
     const data = await response.json().catch(() => ({}))
     if (!response.ok) throw new Error(data.error || `HTTP ${response.status}`)
 
@@ -5682,7 +5849,7 @@ async function generateLueckenfueller(btn) {
       const satz = vorhanden === null
         ? 'Hat das Wort schon Runden, werden sie ersetzt – auch für Tage, die schon gespielt wurden.'
         : `Das Wort hat schon ${vorhanden} ${vorhanden === 1 ? 'Runde' : 'Runden'}. Sie werden ersetzt – auch für Tage, die schon gespielt wurden.`
-      if (!confirmAction(`Runden für „${lemmaName}“ jetzt erzeugen?\n\n${satz}`)) return
+      if (!(await bestaetige({ frage: `Runden für „${lemmaName}“ jetzt erzeugen?`, text: satz, aktion: 'Erzeugen' }))) return
     }
 
     zeige(`Erzeugt Runden für „${lemmaName}“ …`, 'loading')
@@ -6534,10 +6701,11 @@ async function uebernehmeVorschlag(id) {
 async function uebernehmeEinzelnenVorschlag(id) {
   const entwurf = vorschlaege.find((v) => v.id === id)
   if (!entwurf) return
-  if (entwurf.belegt && !confirmAction(`Eintrag am ${vorschlagDatumKurz(entwurf.datum)} ersetzen?`, [
-    `Bisher: ${entwurf.belegt.woerter.join(' · ')}`,
-    `Neu: ${entwurf.tag.woerter.join(' · ')}`,
-  ])) return
+  if (entwurf.belegt && !(await bestaetige({
+    frage: `Eintrag am ${vorschlagDatumKurz(entwurf.datum)} ersetzen?`,
+    details: [`Bisher: ${entwurf.belegt.woerter.join(' · ')}`, `Neu: ${entwurf.tag.woerter.join(' · ')}`],
+    aktion: 'Ersetzen',
+  }))) return
   const datumKurz = vorschlagDatumKurz(entwurf.datum)
   setVorschlaegeStatus(`Übernehme ${datumKurz} …`, 'loading')
   const ok = await uebernehmeVorschlag(id)
@@ -6552,7 +6720,7 @@ async function uebernehmeAlleVorschlaege() {
   const belegt = offen.filter((v) => v.belegt)
   const details = [`${vorschlagDatumKurz(offen[0].datum)} bis ${vorschlagDatumKurz(offen[offen.length - 1].datum)}`]
   if (belegt.length) details.push(`Ersetzt bestehende Einträge an: ${belegt.map((v) => vorschlagDatumKurz(v.datum)).join(', ')}`)
-  if (!confirmAction(`${offen.length} Vorschläge übernehmen?`, details)) return
+  if (!(await bestaetige({ frage: `${offen.length} Vorschläge übernehmen?`, details, aktion: 'Übernehmen', gefahr: belegt.length > 0 }))) return
 
   vorschlaegeLaufen = true
   let erfolgreich = 0
@@ -6572,7 +6740,8 @@ async function uebernehmeAlleVorschlaege() {
 
 async function verwerfeVorschlag(id) {
   const entwurf = vorschlaege.find((v) => v.id === id)
-  if (!entwurf || !confirmAction(`Vorschlag für ${vorschlagDatumKurz(entwurf.datum)} verwerfen?`, [entwurf.tag.thema || entwurf.tag.woerter.join(' · ')])) return
+  if (!entwurf) return
+  if (!(await bestaetige({ frage: `Vorschlag für ${vorschlagDatumKurz(entwurf.datum)} verwerfen?`, details: [entwurf.tag.thema || entwurf.tag.woerter.join(' · ')], aktion: 'Verwerfen' }))) return
   const index = vorschlaege.findIndex((v) => v.id === id)
   let verworfen = false
   try {
@@ -7273,7 +7442,6 @@ function handleDocumentClick(event) {
   if (action === 'login') return void doLogin()
   if (action === 'download-backup') return void downloadBackup()
   if (action === 'logout') return void doLogout()
-  if (action === 'switch-page') return void switchPage(target.dataset.page)
   if (action === 'nav-back') {
     event.preventDefault()
     return void goBackFromSubpage()
@@ -7290,14 +7458,7 @@ function handleDocumentClick(event) {
   if (action === 'select-dashboard-date') return void selectDashboardDay(target.dataset.value || '')
   if (action === 'toggle-extra-fields') return void toggleExtraFields(target.dataset.target || '')
   if (action === 'preview-current-lemma') return void previewCurrentLemma(Number(target.dataset.index) || 1)
-  if (action === 'reset-entry-form') {
-    // Der Knopf steht neben „Speichern“: ein Fehltipp würde sonst alle Eingaben verwerfen.
-    if (!window.confirm('Ungespeicherte Änderungen verwerfen? Der zuletzt gespeicherte Stand kommt zurück.')) return
-    restoreEntryFormSnapshot()
-    // Der Knopf verschwindet (disabled → ausgeblendet); der Fokus geht zum Stand.
-    document.getElementById('entry-dirty-indicator')?.focus()
-    return
-  }
+  if (action === 'reset-entry-form') return void resetEntryForm()
   if (action === 'restore-entry-draft') return void restoreEntryDraft()
   if (action === 'discard-entry-draft') return void discardEntryDraft()
   if (action === 'vorschlaege-laden') return void loadVorschlaege()
@@ -7553,8 +7714,13 @@ async function saveDemoEditor() {
   }
 }
 
-function demoVerwerfen() {
+async function demoVerwerfen() {
   if (!demoGespeichert) return
+  // Wie im Tag: Nur fragen, wenn wirklich etwas verloren geht (der Knopf blendet sich sonst ohnehin aus).
+  if (demoUngespeichert()) {
+    if (!(await bestaetige({ frage: 'Ungespeicherte Änderungen verwerfen?', text: 'Der zuletzt gespeicherte Stand kommt zurück.', aktion: 'Verwerfen' }))) return
+    if (!demoGespeichert || currentRoute?.page !== 'klassenraum-demo') return
+  }
   setzeDemo(JSON.parse(demoGespeichert))
   zeigeDemoFehler([])
   // „Änderungen verwerfen“ blendet sich selbst aus: Der Fokus geht auf die Statuszeile
@@ -8050,7 +8216,7 @@ function renderAuswertungSpiele(d) {
     const voll = Math.round(a[10] * 100)
     const text = `${m.label}: am häufigsten ${haeufig} Punkte (${Math.round(a[haeufig] * 100)} % der Spiele); volle Punktzahl ${voll} %.`
     auVielfache.set(`au-v-${m.marke}`, { anteile: a, maxAnteil, modus: m.label })
-    return `<li class="au-vielfach"><div class="au-vielfach-kopf">${auBadge(m)}<span class="au-zusatz">10 Punkte: ${voll}${NBSP}%</span></div><div class="au-vielfach-bild" id="au-v-${m.marke}" role="img" aria-label="${esc(text)}"></div></li>`
+    return `<li class="au-vielfach"><div class="au-vielfach-kopf">${auBadge(m)}<span class="au-zusatz">10 Punkte: ${voll}${NBSP}%</span></div><div id="au-v-${m.marke}" role="img" aria-label="${esc(text)}"></div></li>`
   }).join('')
   html += auAbschnitt('au-spiele-punkte', 'Punkte je Spiel',
     '<p class="tag-abschnitt-text">Wie viele Spiele mit 0 bis 10 Punkten endeten, als Anteil je Spielmodus (gleicher Maßstab). Viele volle Punktzahlen heißen: zu leicht.</p>'
@@ -8515,6 +8681,13 @@ function handleDocumentKeydown(event) {
   const target = event.target
   if (!(target instanceof HTMLElement)) return
 
+  // Bei offener Rückfrage gilt keine Tastenkürzel-Aktion (Speichern, Monatsraster …): Sie hat den Vorrang.
+  // Strg/⌘ + S speichert nicht, öffnet aber auch nicht „Seite speichern“ des Browsers.
+  if (bestaetigeDialog?.open) {
+    if ((event.ctrlKey || event.metaKey) && String(event.key || '').toLowerCase() === 's' && currentRoute?.page === 'entry') event.preventDefault()
+    return
+  }
+
   // Strg/⌘ + S speichert den Tag (Redakteursgewohnheit); saveTag ignoriert gesperrte Zustände.
   if ((event.ctrlKey || event.metaKey) && !event.shiftKey && !event.altKey && String(event.key || '').toLowerCase() === 's' && currentRoute?.page === 'entry') {
     event.preventDefault()
@@ -8585,6 +8758,21 @@ document.addEventListener('submit', (event) => {
   // „Test an meine Geräte“ läuft über den Klick auf den Knopf (handleDocumentClick); das Absenden selbst tut nichts
   if (form.id === 'push-form') event.preventDefault()
 })
+
+const bestaetigeDialog = document.getElementById('bestaetige-dialog')
+if (bestaetigeDialog) {
+  document.getElementById('bestaetige-abbrechen').addEventListener('click', () => bestaetigeLauf?.beende(false))
+  document.getElementById('bestaetige-ok').addEventListener('click', (event) => {
+    const lauf = bestaetigeLauf
+    if (!lauf) return
+    // Die Sperre gilt nur für Mausklicks (detail > 0); Enter/Leertaste auf dem Knopf (detail 0) wirken sofort.
+    if (event.detail > 0 && performance.now() - lauf.seit < BESTAETIGE_SPERRE_MS) return
+    lauf.beende(true)
+  })
+  // Esc und Schließen von außen (Seitenwechsel): wie „Abbrechen“. Das späte close einer schon ersetzten Frage
+  // trifft die neue nicht: Bei ihr ist der Dialog wieder offen.
+  bestaetigeDialog.addEventListener('close', () => { if (!bestaetigeDialog.open) bestaetigeLauf?.beende(false) })
+}
 
 const pushDialog = document.getElementById('push-dialog')
 if (pushDialog) {
