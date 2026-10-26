@@ -10,6 +10,9 @@
  * Idempotent: Pro (datum, slot) gibt es genau einen Entwurf; ein Lauf ergänzt
  * nur Fehlendes und rührt Entscheidungen nicht an. Ein verpasster Lauf holt
  * sich am nächsten Morgen über das 7-Tage-Fenster von selbst nach.
+ * Ändert sich der Wochenplan (zuletzt 2026-10-26, Plan A), entfernt der Lauf
+ * OFFENE Entwürfe im Fenster ab morgen, die nicht mehr dazu passen, samt
+ * Bildern; Freigegebenes und Verworfenes bleibt.
  * Entwürfe älter als 8 Wochen werden samt Bildern gelöscht. Je Entwurf gibt es
  * zwei Dateien: das volle Bild (entwurf-<id>.png) und eine kleine Vorschau
  * (entwurf-<id>-klein.png) für die Liste im Admin.
@@ -27,11 +30,11 @@ import { loadKalender, getLemmataIndex } from '../store.js'
 import { fetchBelege } from '../belege.js'
 import { fetchRelation, fetchBonusQuestion, POS_ROUNDS } from '../wortprofil.js'
 import { createKollokationAnalyse } from '../kollokationAnalyse.js'
-import { baueEntwuerfe, verschiebeDatum } from '../socialCards/entwuerfe.js'
+import { baueEntwuerfe, gehoertZumPlan, verschiebeDatum } from '../socialCards/entwuerfe.js'
 import { createCardRenderer } from '../socialCards/render.js'
 import {
   vorhandeneSlots, speichereEntwuerfe, ersetzeEntwurf, ladeEntwuerfe, ladeEntwuerfeAb, ladeEntwurf,
-  entwuerfeOhneBild, setzeBild, loescheAlteEntwuerfe,
+  entwuerfeOhneBild, setzeBild, loescheAlteEntwuerfe, loescheOffeneEntwuerfe,
 } from '../socialCards/store.js'
 
 const TIMEZONE = 'Europe/Berlin'
@@ -131,11 +134,49 @@ async function zeichneFehlende(abDatum, { createRenderer, bildDir, vorschauAb = 
   return ergebnis
 }
 
+/** Löscht die Bilddateien gelöschter Entwürfe (volle Fassung, Vorschau, liegengebliebene *.tmp). */
+function entferneBilder(bildDir, namen) {
+  for (const datei of namen) {
+    for (const name of [basename(datei), kleinDatei(basename(datei))]) {
+      for (const ende of ['', '.tmp']) {
+        try { unlinkSync(join(bildDir, name + ende)) } catch {}
+      }
+    }
+  }
+}
+
+/** Gegenstück eines Rätsels/Belegs ('datum|slot'): Auflösung am Folgetag bzw. Post am Vortag. */
+function partnerSchluessel(e) {
+  if (e.slot.endsWith('-aufloesung')) return `${verschiebeDatum(e.datum, -1)}|${e.slot.replace('-aufloesung', '')}`
+  return `${verschiebeDatum(e.datum, 1)}|${e.slot}-aufloesung`
+}
+
 /**
- * Legt fehlende Entwürfe für morgen bis heute+tage an und zeichnet sie.
+ * Entfernt Entwürfe von morgen bis `bis`, die offen sind und nicht mehr zum Wochenplan passen
+ * (samt Bildern). Post und Auflösung gehören zusammen: Ist das Gegenstück entschieden oder von
+ * heute (heute wird nie aufgeräumt), bleibt auch der Entwurf – sonst fehlte einem Post die Auflösung.
+ * @returns {number} Zahl der entfernten Entwürfe
+ */
+function entferneVeralteteEntwuerfe(heute, bis, bildDir) {
+  const morgen = verschiebeDatum(heute, 1)
+  const alle = ladeEntwuerfe(heute, bis)
+  const veraltet = alle.filter((e) => e.datum >= morgen && e.status === 'offen' && !gehoertZumPlan(e.datum, e.slot))
+  const weg = new Set(veraltet.map((e) => `${e.datum}|${e.slot}`))
+  const bleibt = new Set(alle.map((e) => `${e.datum}|${e.slot}`).filter((k) => !weg.has(k)))
+  const ids = veraltet.filter((e) => !bleibt.has(partnerSchluessel(e))).map((e) => e.id)
+  if (!ids.length) return 0
+  const geloescht = loescheOffeneEntwuerfe(ids)
+  for (const namen of geloescht) entferneBilder(bildDir, namen)
+  return geloescht.length
+}
+
+/**
+ * Räumt künftige Entwürfe ab, die nicht mehr zum Wochenplan passen, und legt fehlende Entwürfe
+ * für morgen bis heute+tage an und zeichnet sie.
  * Fehler beim Bauen stehen in `fehler`, Fehler beim Zeichnen in `bildFehler` – beides stoppt den
  * Lauf nicht; das Aufräumen alter Entwürfe wird immer erreicht.
- * @returns {Promise<{ neu:number, gezeichnet:number, geloescht:number, fehler:string[], bildFehler:string[] }>}
+ * @returns {Promise<{ neu:number, entfernt:number, gezeichnet:number, geloescht:number, fehler:string[], bildFehler:string[] }>}
+ *   `entfernt`: nicht mehr geplante offene Entwürfe; `geloescht`: Entwürfe älter als die Aufbewahrung
  */
 export function erzeugeEntwuerfe({
   heute = berlinHeute(),
@@ -148,8 +189,16 @@ export function erzeugeEntwuerfe({
     const von = verschiebeDatum(heute, 1)
     const bis = verschiebeDatum(heute, tage)
     // +1: Auflösungen landen am Folgetag des letzten Fenstertags
-    const vorhanden = vorhandeneSlots(von, verschiebeDatum(bis, 1))
-    const ergebnis = { neu: 0, gezeichnet: 0, geloescht: 0, fehler: [], bildFehler: [] }
+    const fensterEnde = verschiebeDatum(bis, 1)
+    const ergebnis = { neu: 0, entfernt: 0, gezeichnet: 0, geloescht: 0, fehler: [], bildFehler: [] }
+    // Vor dem Anlegen, damit `vorhanden` die frei gewordenen Slots nicht mehr enthält
+    try {
+      ergebnis.entfernt = entferneVeralteteEntwuerfe(heute, fensterEnde, bildDir)
+    } catch (err) {
+      logger.warn({ err }, 'Social Cards: Veraltete Entwürfe konnten nicht entfernt werden')
+      ergebnis.fehler.push(`Aufräumen: ${err?.message || err}`)
+    }
+    const vorhanden = vorhandeneSlots(von, fensterEnde)
 
     for (let datum = von; datum <= bis; datum = verschiebeDatum(datum, 1)) {
       try {
@@ -173,13 +222,7 @@ export function erzeugeEntwuerfe({
 
     // Aufräumen auch nach Zeichenfehlern; Dateien nach ID, nicht nur nach der Spalte `bild`
     for (const namen of loescheAlteEntwuerfe(verschiebeDatum(heute, -AUFBEWAHRUNG_TAGE))) {
-      for (const datei of namen) {
-        for (const name of [basename(datei), kleinDatei(basename(datei))]) {
-          for (const ende of ['', '.tmp']) {
-            try { unlinkSync(join(bildDir, name + ende)) } catch {}
-          }
-        }
-      }
+      entferneBilder(bildDir, namen)
       ergebnis.geloescht += 1
     }
 
@@ -206,7 +249,7 @@ export function erneuereEntwurf(entwurf, {
     const istAufloesung = entwurf.slot.endsWith('-aufloesung')
     const herkunft = istAufloesung ? verschiebeDatum(entwurf.datum, -1) : entwurf.datum
     const basis = entwurf.slot.replace('-aufloesung', '')
-    const gruppe = basis === 'T' ? ['T'] : [basis, `${basis}-aufloesung`]
+    const gruppe = [basis, `${basis}-aufloesung`]
 
     const betroffen = ladeEntwuerfe(herkunft, verschiebeDatum(herkunft, 1))
       .filter((e) => gruppe.includes(e.slot) && (e.slot === basis ? e.datum === herkunft : e.datum !== herkunft))

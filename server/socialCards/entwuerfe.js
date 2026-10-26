@@ -6,17 +6,22 @@
  * Gezeichnet wird hier nichts – das Ergebnis ist eine `spec` für
  * shared/socialCards.js#drawCard, die render.js später in ein PNG verwandelt.
  *
- * Wochenplan (Plan 2026-10-21, Variante a; Textbelege für Bluesky seit
- * Entscheidung Nutzer 2026-10-21 im Wechsel mit den Bildkarten):
- *   täglich    T     Teaser mit den drei Lemmata des Tages (Bild)
- *   Montag     A     Rätsel (Bild), Dienstag folgt die Auflösung (A-aufloesung)
- *   Dienstag   TB    Textbeleg: echter Satz mit Lücke, ohne Bild; Mittwoch die Auflösung
- *   Mittwoch   X     Zitat aus dem Korpus (Bild)
- *   Donnerstag TB    Textbeleg wie dienstags, Freitag die Auflösung
- *   Freitag    B     Beleg mit Lücke (Bild), Samstag folgt die Auflösung (B-aufloesung)
+ * Wochenplan „Plan A“ (Entscheidung Nutzer 2026-10-26: höchstens 3 Beiträge
+ * pro Woche, nur die spannenden Formate – tägliche Teaser wirken auf Bluesky
+ * wie Spam). Auflösungen erscheinen am Folgetag als Antwort auf den Post:
+ *   Dienstag   A     Rätsel (Bild), Mittwoch die Auflösung (A-aufloesung)
+ *   Donnerstag TB    Textbeleg: echter Satz mit Lücke, ohne Bild; Freitag die Auflösung
+ *   Samstag    B/X   im Wochenwechsel nach ISO-Kalenderwoche des Samstags:
+ *                    gerade KW → B Beleg mit Lücke (Bild), Sonntag die Auflösung (B-aufloesung)
+ *                    ungerade KW → X Zitat aus dem Korpus (Bild), ohne Auflösung
+ *                    (nach einer KW 53 folgt KW 1: dann zweimal hintereinander X)
  *
- * A, X, B und TB nehmen das erste Lemma des VORTAGS: Mit dem Lemma des Tages
- * verriete das Rätsel die Lösung des laufenden Kollokationen-Spiels.
+ * Teaser (T) entstehen nicht mehr automatisch; die Karte bleibt im Editor
+ * („Selbst gestalten“). Alte T-Entwürfe zeigt der Admin weiter an.
+ *
+ * Alle Slots nehmen das erste Lemma des VORTAGS: Mit dem Lemma des Tages
+ * verriete das Rätsel die Lösung des laufenden Kollokationen-Spiels. Steht für
+ * den Vortag nichts im Kalender, entstehen keine Entwürfe.
  *
  * Die Abhängigkeiten kommen als Parameter (Tests ersetzen sie).
  */
@@ -28,6 +33,7 @@ import {
 import { slugifyLemma } from '../archive/render.js'
 
 // format 'text' = reiner Textpost ohne Bild; die caption IST der Post.
+// T entsteht nicht mehr (Plan A), bleibt aber für ältere Entwürfe bekannt.
 export const SLOTS = {
   T:               { format: 'T', label: 'Teaser' },
   A:               { format: 'A', label: 'Rätsel' },
@@ -39,9 +45,15 @@ export const SLOTS = {
   'TB-aufloesung': { format: 'text', label: 'Textbeleg – Auflösung' },
 }
 
-// Wochentag (0 = Sonntag) → Slots, die an diesem Tag ENTSTEHEN. Die
-// Auflösungen hängen am Rätseltag, damit beide dieselbe Antwortreihenfolge haben.
-const WOCHENPLAN = { 1: ['A'], 2: ['TB'], 3: ['X'], 4: ['TB'], 5: ['B'] }
+// Wochentag (0 = Sonntag) → Slots, die an diesem Tag ENTSTEHEN; der Samstag hängt
+// an der Kalenderwoche. Die Auflösungen hängen am Rätseltag, damit beide dieselbe
+// Antwortreihenfolge haben.
+const WOCHENPLAN = {
+  2: ['A'],
+  4: ['TB'],
+  6: (kw) => (kw % 2 === 0 ? ['B'] : ['X']),
+}
+const AUFLOESUNG = '-aufloesung'
 
 // Belege aus diesen Quellen kommen nicht auf öffentliche Karten: Die Leipziger
 // Wortschatz-Korpora bestehen aus Zeitungssätzen; ob deren Rechte die CC-BY-
@@ -61,6 +73,27 @@ export function verschiebeDatum(datum, tage) {
 function wochentag(datum) {
   const [y, m, d] = datum.split('-').map(Number)
   return new Date(Date.UTC(y, m - 1, d)).getUTCDay()
+}
+
+/** ISO-8601-Kalenderwoche (Woche mit dem ersten Donnerstag des Jahres = KW 1). */
+export function kalenderwoche(datum) {
+  const [y, m, d] = datum.split('-').map(Number)
+  const t = new Date(Date.UTC(y, m - 1, d))
+  t.setUTCDate(t.getUTCDate() + 4 - (t.getUTCDay() || 7))   // Donnerstag derselben Woche
+  return Math.ceil(((t - Date.UTC(t.getUTCFullYear(), 0, 1)) / 864e5 + 1) / 7)
+}
+
+/** Slots, die laut Wochenplan am `datum` entstehen (ohne Auflösungen). */
+export function slotsAm(datum) {
+  const plan = WOCHENPLAN[wochentag(datum)] ?? []
+  return typeof plan === 'function' ? plan(kalenderwoche(datum)) : plan
+}
+
+/** Passt ein Entwurf (datum, slot) zum aktuellen Wochenplan? Auflösungen gehören zum Vortag. */
+export function gehoertZumPlan(datum, slot) {
+  if (!SLOTS[slot]) return false
+  if (slot.endsWith(AUFLOESUNG)) return slotsAm(verschiebeDatum(datum, -1)).includes(slot.slice(0, -AUFLOESUNG.length))
+  return slotsAm(datum).includes(slot)
 }
 
 function lemmataAm(datum, { loadKalender, getLemmataIndex }) {
@@ -249,7 +282,9 @@ async function zitat(datum, lemma, deps) {
 
 /**
  * Alle Entwürfe, die am `datum` entstehen (inkl. Auflösung am Folgetag).
- * Leere Liste, wenn für den Tag nichts im Kalender steht.
+ * Leere Liste an Tagen ohne Plan-Slot und wenn für den Vortag nichts im
+ * Kalender steht (dessen erstes Lemma tragen alle Slots); der Kalender des
+ * Tages selbst spielt keine Rolle.
  *
  * @param {string} datum 'YYYY-MM-DD'
  * @param {object} deps { loadKalender, getLemmataIndex, analyzeKollokationBest, fetchBelege, random? }
@@ -259,20 +294,12 @@ async function zitat(datum, lemma, deps) {
  */
 export async function baueEntwuerfe(datum, deps, { vorhanden = new Set() } = {}) {
   const d = { random: Math.random, ...deps }
-  const heute = lemmataAm(datum, d)
-  if (!heute.length) return []
+  const slots = slotsAm(datum).filter((slot) => !vorhanden.has(`${datum}|${slot}`))
+  if (!slots.length) return []
+  const vortag = lemmataAm(verschiebeDatum(datum, -1), d)[0]
+  if (!vortag) return []
 
   const ergebnis = []
-  if (!vorhanden.has(`${datum}|T`)) {
-    const lemmata = heute.slice(0, 3).map((l) => ({ lemma: l.lemma, pos: l.pos || '' }))
-    ergebnis.push(entwurf(datum, 'T', { data: { lemmata } }, { lemmata }))
-  }
-
-  const slots = (WOCHENPLAN[wochentag(datum)] || []).filter((slot) => !vorhanden.has(`${datum}|${slot}`))
-  if (!slots.length) return ergebnis
-  const vortag = lemmataAm(verschiebeDatum(datum, -1), d)[0]
-  if (!vortag) return ergebnis
-
   for (const slot of slots) {
     if (slot === 'A') ergebnis.push(...await raetsel(datum, vortag, d))
     if (slot === 'X') ergebnis.push(...await zitat(datum, vortag, d))

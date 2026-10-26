@@ -20,6 +20,14 @@ const stmts = {
   `),
   alteBilder:     db.prepare(`SELECT id, bild FROM social_card_entwurf WHERE datum < ?`),
   alteLoeschen:   db.prepare(`DELETE FROM social_card_entwurf WHERE datum < ?`),
+  offenLoeschen:  db.prepare(`DELETE FROM social_card_entwurf WHERE id = ? AND status = 'offen' RETURNING id, bild`),
+}
+
+// Dateinamen der vollen Bilder eines Entwurfs: nach ID, dazu die `bild`-Spalte, falls sie abweicht
+function bildNamen(r) {
+  const namen = [`entwurf-${r.id}.png`]
+  if (r.bild && r.bild !== namen[0]) namen.push(r.bild)
+  return namen
 }
 
 function zeile(row) {
@@ -105,9 +113,15 @@ export function setzeStatus(id, status, jetzt = new Date().toISOString()) {
 export function loescheAlteEntwuerfe(datum) {
   const zeilen = stmts.alteBilder.all(datum)
   stmts.alteLoeschen.run(datum)
-  return zeilen.map((r) => {
-    const namen = [`entwurf-${r.id}.png`]
-    if (r.bild && r.bild !== namen[0]) namen.push(r.bild)
-    return namen
-  })
+  return zeilen.map(bildNamen)
+}
+
+const _loescheOffeneTx = db.transaction((ids) => ids.map((id) => stmts.offenLoeschen.get(id)).filter(Boolean))
+
+/**
+ * Löscht die Entwürfe mit diesen IDs, sofern sie noch offen sind (Entschiedenes bleibt).
+ * @returns {string[][]} je gelöschtem Entwurf die Dateinamen wie bei loescheAlteEntwuerfe
+ */
+export function loescheOffeneEntwuerfe(ids) {
+  return _loescheOffeneTx(ids).map(bildNamen)
 }
