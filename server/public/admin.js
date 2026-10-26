@@ -9499,11 +9499,11 @@ const SO_MIT_TAGS_IM_TEXT = { A: 2, B: 2, C: 2, X: 2, T: 1 }
 const SO_TAG_SETS = [['quiz', 'Rätsel'], ['korpus', 'Korpus'], ['bildung', 'Unterricht'], ['wortschatz', 'Wortschatz'], ['primary', 'Nur #Linguistik #DeutscheSprache'], ['', 'Keine']]
 // Ohne Uhrzeiten: Der Wochenplan der Entwürfe kennt nur den Wochentag
 const SO_PLAN = {
-  A: 'Im Wochenplan: montags als Bild, die Auflösung dienstags als Antwort.',
-  B: 'Im Wochenplan: freitags als Bild, die Auflösung samstags als Antwort.',
+  A: 'Im Wochenplan: dienstags als Bild, die Auflösung mittwochs als Antwort.',
+  B: 'Im Wochenplan: samstags in geraden Kalenderwochen, die Auflösung sonntags als Antwort.',
   C: 'Nicht im Wochenplan – Wort-Zwilling-Karten entstehen nur hier.',
-  X: 'Im Wochenplan: mittwochs als Zitat-Bild.',
-  T: 'Im Wochenplan: jeden Tag.',
+  X: 'Im Wochenplan: samstags in ungeraden Kalenderwochen als Zitat-Bild.',
+  T: 'Nicht im Wochenplan – Teaser entstehen nur hier.',
 }
 const SO_DATEINAME = { A: 'raetsel', B: 'beleg', C: 'wort-zwilling', X: 'info', T: 'teaser' }
 const SO_KARTENART = { A: 'Rätsel', B: 'Beleg', C: 'Wort-Zwilling', X: 'Info', T: 'Teaser' }
