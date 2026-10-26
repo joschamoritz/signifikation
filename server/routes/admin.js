@@ -13,7 +13,9 @@ import { requireAuth, adminAuth, adminLogout, adminError, serverError } from '..
 import { validate, qQuerySchema, adminTagSchema, analyzeKollQuerySchema, analyzeWZQuerySchema, analyzeZWendeQuerySchema, analyzeLueckenfuellerQuerySchema, lueckenfuellerGenerateSchema, adminUsersQuerySchema, adminSetUserRoleSchema, adminUserIdParamsSchema, adminUsersBulkUpdateSchema, adminBulkDeleteCalendarSchema, adminPreviewLemmaSchema, adminPreviewDayParamsSchema, adminLemmaIdParamsSchema, adminEntwurfIdParamsSchema, adminAuditLogDetailParamsSchema, adminBackupRestoreSchema, adminBackupPruefenSchema, adminBackupSqliteSchema, adminAuswertungSpieleQuerySchema, adminStatsExportQuerySchema, adminAuditLogQuerySchema, adminSocialCardsTagesdataSchema, adminSocialCardsBelegeSchema, adminSocialCardsEntwuerfeQuerySchema, adminSocialCardsEntwurfParamsSchema, adminSocialCardsEntwurfPatchSchema, adminSpezialwocheSchema, adminSpezialwocheParamsSchema, adminClassroomStatsQuerySchema, adminPaymentsSummaryQuerySchema, adminCustomLemmaSummaryQuerySchema, adminRetentionQuerySchema } from '../middleware/validate.js'
 import { auditCreate, auditUpdate, auditDelete, getAuditLogForResource, queryAuditLog } from '../audit.js'
 import { ladeOffeneEntwuerfe, ladeEntwurf, entscheideEntwurf } from '../store-entwuerfe.js'
-import { ladeEntwuerfe as ladeSocialEntwuerfe, ladeEntwurf as ladeSocialEntwurf, setzeCaption as setzeSocialCaption, setzeStatus as setzeSocialStatus } from '../socialCards/store.js'
+import { ladeEntwuerfe as ladeSocialEntwuerfe, ladeEntwurf as ladeSocialEntwurf, setzeCaption as setzeSocialCaption, setzeStatus as setzeSocialStatus, ladePost as ladeSocialPost, ladePostsFuer as ladeSocialPostsFuer } from '../socialCards/store.js'
+import { webUrl as blueskyWebUrl, blueskyKonfiguriert } from '../socialCards/bluesky.js'
+import { postenModus, POST_ZEIT as SOCIAL_POST_ZEIT } from '../jobs/socialPosting.js'
 import { erzeugeEntwuerfe as erzeugeSocialEntwuerfe, erneuereEntwurf as erneuereSocialEntwurf, bildPfad as socialBildPfad, berlinHeute, HORIZONT_TAGE as SOCIAL_HORIZONT_TAGE, AUFBEWAHRUNG_TAGE as SOCIAL_AUFBEWAHRUNG_TAGE } from '../jobs/socialCardDrafts.js'
 import { verschiebeDatum } from '../socialCards/entwuerfe.js'
 import logger from '../logger.js'
@@ -246,6 +248,9 @@ router.use(createAdminSocialCardsRouter({
   ladeEntwurf: ladeSocialEntwurf,
   setzeCaption: setzeSocialCaption,
   setzeStatus: setzeSocialStatus,
+  ladePost: ladeSocialPost,
+  ladePostsFuer: ladeSocialPostsFuer,
+  webUrl: blueskyWebUrl,
   erzeugeEntwuerfe: () => erzeugeSocialEntwuerfe(),
   erneuereEntwurf: (entwurf) => erneuereSocialEntwurf(entwurf),
   bildPfad: (entwurf, optionen) => socialBildPfad(entwurf, optionen),
@@ -257,6 +262,10 @@ router.use(createAdminSocialCardsRouter({
     automatisch: process.env.SOCIAL_CARDS_ENTWUERFE !== 'off',
     horizont: SOCIAL_HORIZONT_TAGE,
     aufbewahrung: SOCIAL_AUFBEWAHRUNG_TAGE,
+    // Veröffentlichen auf Bluesky: aus / test (nur Log) / on – und ob der Zugang in der .env steht
+    posten: postenModus(),
+    postZeit: `${SOCIAL_POST_ZEIT.stunde}:${String(SOCIAL_POST_ZEIT.minute).padStart(2, '0')}`,
+    blueskyEingerichtet: blueskyKonfiguriert(),
   }),
   kartenModulPath: join(__dirname, '../../shared/socialCards.js'),
 }))

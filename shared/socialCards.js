@@ -553,6 +553,31 @@ export function zeichenZahl(text) {
   return [...(text || '')].length
 }
 
+/**
+ * Alt-Text für eine Bildkarte auf Bluesky: was auf der Karte steht, ohne Farbe
+ * und Format (die beschreibt die Admin-Ansicht selbst). Bluesky erlaubt bis zu
+ * 2000 Zeichen; die Karten bleiben weit darunter.
+ */
+export function altText(spec) {
+  const d = spec.data || {}
+  const reveal = !!spec.reveal
+  if (spec.format === 'A') {
+    const optionen = (d.options || []).map((o, i) => `${'ABC'[i]}) ${o.text}${reveal && o.correct ? ' – richtig' : ''}`).join(', ')
+    return `${reveal ? 'Auflösung: ' : ''}Rätselkarte von Signifikation. Welches Wort ist am stärksten mit „${d.lemma}“ verbunden? ${optionen}.`
+  }
+  if (spec.format === 'B') {
+    const satz = reveal ? String(d.quoteText).replace(/______/g, d.collocate) : String(d.quoteText).replace(/______/g, '(Lücke)')
+    return `${reveal ? 'Auflösung: ' : ''}Belegkarte von Signifikation. Satz aus dem Korpus: „${satz}“ Quelle: ${d.quelle || 'Korpus'}.${reveal ? ` Gesucht war „${d.collocate}“.` : ' Welches Wort fehlt im Zitat?'}`
+  }
+  if (spec.format === 'X') {
+    return `Zitatkarte von Signifikation${d.xLemma ? ` zum Wort „${d.xLemma}“` : ''}: „${d.body}“ Quelle: ${d.headline || 'Korpus'}.`
+  }
+  if (spec.format === 'C') {
+    return `Wort-Zwilling-Karte von Signifikation: „${d.wortA}“ und „${d.wortB}“. Kollokatoren: ${(d.chips || []).map((c) => c.w).join(', ')}.`
+  }
+  return `Karte von Signifikation: Heute im Spiel ${(d.lemmata || []).map((l) => l.lemma).join(', ')}.`
+}
+
 // ── Belegtexte (Tokens aus fetchBelege: { w, ws, hl }) ────────────────────────
 export function belegText(tokens) {
   let text = ''

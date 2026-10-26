@@ -1,4 +1,4 @@
-// Datenzugriff für die Social-Card-Entwürfe (Tabelle social_card_entwurf, Migration 0026).
+// Datenzugriff für die Social-Card-Entwürfe (Tabelle social_card_entwurf, Migration 0028; Beiträge in social_post, Migration 0029).
 import db from '../db.js'
 
 const stmts = {
@@ -21,6 +21,33 @@ const stmts = {
   alteBilder:     db.prepare(`SELECT id, bild FROM social_card_entwurf WHERE datum < ?`),
   alteLoeschen:   db.prepare(`DELETE FROM social_card_entwurf WHERE datum < ?`),
   offenLoeschen:  db.prepare(`DELETE FROM social_card_entwurf WHERE id = ? AND status = 'offen' RETURNING id, bild`),
+  // ── Veröffentlichte Beiträge (Migration 0029) ──
+  post:           db.prepare(`SELECT * FROM social_post WHERE entwurf_id = ?`),
+  postsFuer:      db.prepare(`SELECT p.* FROM social_post p JOIN social_card_entwurf e ON e.id = p.entwurf_id WHERE e.datum BETWEEN ? AND ?`),
+  faellig:        db.prepare(`
+    SELECT e.* FROM social_card_entwurf e LEFT JOIN social_post p ON p.entwurf_id = e.id
+    WHERE e.datum = ? AND e.status = 'freigegeben' AND p.uri IS NULL AND COALESCE(p.versuche, 0) < ?
+    ORDER BY e.id
+  `),
+  postGelungen:   db.prepare(`
+    INSERT INTO social_post (entwurf_id, uri, cid, root_uri, root_cid, gepostet_am, versuche, fehler)
+    VALUES (@entwurfId, @uri, @cid, @rootUri, @rootCid, @jetzt, 1, NULL)
+    ON CONFLICT(entwurf_id) DO UPDATE SET uri = excluded.uri, cid = excluded.cid, root_uri = excluded.root_uri,
+      root_cid = excluded.root_cid, gepostet_am = excluded.gepostet_am, versuche = social_post.versuche + 1, fehler = NULL
+  `),
+  postFehler:     db.prepare(`
+    INSERT INTO social_post (entwurf_id, versuche, fehler) VALUES (?, 1, ?)
+    ON CONFLICT(entwurf_id) DO UPDATE SET versuche = social_post.versuche + 1, fehler = excluded.fehler
+    RETURNING versuche
+  `),
+}
+
+function postZeile(r) {
+  if (!r) return null
+  return {
+    entwurfId: r.entwurf_id, uri: r.uri, cid: r.cid, rootUri: r.root_uri, rootCid: r.root_cid,
+    gepostetAm: r.gepostet_am, versuche: r.versuche, fehler: r.fehler,
+  }
 }
 
 // Dateinamen der vollen Bilder eines Entwurfs: nach ID, dazu die `bild`-Spalte, falls sie abweicht
@@ -124,4 +151,30 @@ const _loescheOffeneTx = db.transaction((ids) => ids.map((id) => stmts.offenLoes
  */
 export function loescheOffeneEntwuerfe(ids) {
   return _loescheOffeneTx(ids).map(bildNamen)
+}
+
+// ── Veröffentlichte Beiträge ───────────────────────────────────────────────────
+
+/** Beitrag zu einem Entwurf (gepostet oder mit Fehlversuchen) – oder null. */
+export function ladePost(entwurfId) {
+  return postZeile(stmts.post.get(entwurfId))
+}
+
+/** Beiträge der Entwürfe im Fenster, als Map entwurfId → Beitrag. */
+export function ladePostsFuer(von, bis) {
+  return new Map(stmts.postsFuer.all(von, bis).map((r) => [r.entwurf_id, postZeile(r)]))
+}
+
+/** Freigegebene Entwürfe des Tages, die noch nicht gepostet sind und weniger als `maxVersuche` Fehlversuche haben. */
+export function faelligeEntwuerfe(datum, maxVersuche) {
+  return stmts.faellig.all(datum, maxVersuche).map(zeile)
+}
+
+export function merkePost({ entwurfId, uri, cid, rootUri, rootCid }, jetzt = new Date().toISOString()) {
+  stmts.postGelungen.run({ entwurfId, uri, cid, rootUri, rootCid, jetzt })
+}
+
+/** Zählt einen Fehlversuch; liefert die Zahl der Versuche bisher. */
+export function merkePostFehler(entwurfId, fehler) {
+  return stmts.postFehler.get(entwurfId, String(fehler).slice(0, 500)).versuche
 }

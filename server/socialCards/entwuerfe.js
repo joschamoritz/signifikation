@@ -191,11 +191,14 @@ function raetselAufloesung(data, antwort, link) {
 }
 
 /** Auflösung eines Belegs (Text- und Bildpost): Wortform, Satz, Dokumentquelle – so viel, wie in einen Post passt. */
+// CC BY-SA verlangt, Änderungen kenntlich zu machen: Im Beitrag fehlte ein Wort (Lizenzhinweis-Entscheidung 2026-10-26)
+const BEARBEITET = ' (für das Rätsel mit Lücke bearbeitet)'
+
 function belegAufloesung(b) {
   const varianten = [
-    `Gesucht war „${b.wortform}“:\n„${b.voll}“\n\nQuelle: ${dokumentQuelle(b.quelle)}`,
-    `Gesucht war „${b.wortform}“.\n\nQuelle: ${dokumentQuelle(b.quelle)}`,
-    `Gesucht war „${b.wortform}“.\n\nQuelle: ${kurzQuelle(b.quelle)}`,
+    `Gesucht war „${b.wortform}“:\n„${b.voll}“\n\nQuelle: ${dokumentQuelle(b.quelle)}${BEARBEITET}`,
+    `Gesucht war „${b.wortform}“.\n\nQuelle: ${dokumentQuelle(b.quelle)}${BEARBEITET}`,
+    `Gesucht war „${b.wortform}“.\n\nQuelle: ${kurzQuelle(b.quelle)}${BEARBEITET}`,
   ]
   return varianten.find(passtInPost) ?? varianten[varianten.length - 1]
 }

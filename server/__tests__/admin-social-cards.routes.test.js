@@ -13,7 +13,7 @@ import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
 import adminRouter from '../routes/admin.js'
 import { csrfProtect } from '../middleware/auth.js'
 import db from '../db.js'
-import { speichereEntwuerfe, ladeEntwuerfe, setzeBild } from '../socialCards/store.js'
+import { speichereEntwuerfe, ladeEntwuerfe, setzeBild, merkePost } from '../socialCards/store.js'
 import { BILD_DIR, kleinDatei } from '../jobs/socialCardDrafts.js'
 import { createAdminSocialCardsRouter } from '../routes/admin-social-cards.js'
 import { validate, adminSocialCardsTagesdataSchema, adminSocialCardsBelegeSchema, adminSocialCardsEntwuerfeQuerySchema, adminSocialCardsEntwurfParamsSchema, adminSocialCardsEntwurfPatchSchema } from '../middleware/validate.js'
@@ -102,6 +102,24 @@ describe('admin social-cards Postfach', () => {
     expect((await post(`/admin/social-cards/entwuerfe/${id}`, {})).status).toBe(400)
     expect((await post(`/admin/social-cards/entwuerfe/${id}`, { status: 'veroeffentlicht' })).status).toBe(400)
     expect((await post('/admin/social-cards/entwuerfe/999999', { status: 'verworfen' })).status).toBe(404)
+  })
+
+  it('zeigt veröffentlichte Entwürfe mit Bluesky-Link und sperrt danach jede Änderung', async () => {
+    speichereEntwuerfe([{ datum: DATUM, slot: 'X', spec: { format: 'X', data: {} }, caption: 'Zitat', hashtags: '' }])
+    const x = ladeEntwuerfe(DATUM, DATUM).find((e) => e.slot === 'X')
+    merkePost({ entwurfId: x.id, uri: 'at://did:plc:test/app.bsky.feed.post/3abc', cid: 'c1' })
+    try {
+      const liste = await (await fetch(`${baseUrl}/admin/social-cards/entwuerfe?von=${DATUM}&bis=${DATUM}`, { headers: adminHeaders(token) })).json()
+      expect(liste.entwuerfe.find((e) => e.id === x.id).gepostet.url).toBe('https://bsky.app/profile/did:plc:test/post/3abc')
+      expect(liste).toHaveProperty('posten')
+      const post = (body) => fetch(`${baseUrl}/admin/social-cards/entwuerfe/${x.id}`, { method: 'POST', headers: adminHeaders(token), body: JSON.stringify(body) })
+      expect((await post({ status: 'offen' })).status).toBe(409)
+      expect((await post({ status: 'verworfen' })).status).toBe(409)
+      const neu = await fetch(`${baseUrl}/admin/social-cards/entwuerfe/${x.id}/neu`, { method: 'POST', headers: adminHeaders(token), body: '{}' })
+      expect(neu.status).toBe(409)
+    } finally {
+      db.prepare('DELETE FROM social_post WHERE entwurf_id = ?').run(x.id)
+    }
   })
 
   it('Textbeiträge haben keine Bild-URL, die Bild-Route antwortet 404', async () => {

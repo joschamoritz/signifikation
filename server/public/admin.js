@@ -8960,7 +8960,8 @@ function socialEntwurfHtml(e) {
   const name = `${label}, ${datumKurz(e.datum)}`
   // Jeder Knopf trägt den Entwurf im Namen: Sonst stünde „Freigeben“ 16-mal gleich in der Liste der Knöpfe
   const vh = `<span class="adm-visually-hidden">: ${esc(name)}</span>`
-  const kopf = (extra = '') => `<p class="so-kopf"><span class="so-slot">${esc(label)}</span><span class="so-status">${esc(e.status)}</span>${extra}<span class="so-meta">${esc(socialMeta(e))}</span></p>`
+  const statusText = e.gepostet ? 'veröffentlicht' : e.status
+  const kopf = (extra = '') => `<p class="so-kopf"><span class="so-slot">${esc(label)}</span><span class="so-status">${esc(statusText)}</span>${extra}<span class="so-meta">${esc(socialMeta(e))}</span></p>`
   const meldung = `<p class="li-meldung" id="so-e-${id}-meldung" role="status" aria-live="polite" tabindex="-1"></p>`
 
   if (e.status === 'verworfen') {
@@ -8984,7 +8985,14 @@ function socialEntwurfHtml(e) {
       + `<button type="button" class="adm-link" data-action="so-verwerfen" data-id="${id}">Verwerfen${vh}</button>`
     : `<button type="button" class="adm-link" data-action="so-kopieren" data-id="${id}">Text kopieren${vh}</button>`
       + laden
-      + `<button type="button" class="adm-link" data-action="so-oeffnen" data-id="${id}">Wieder öffnen${vh}</button>`
+      // Was schon auf Bluesky steht, lässt sich hier nicht mehr zurücknehmen – der Server sperrt es auch
+      + (e.gepostet?.url
+        ? `<a class="adm-link" href="${esc(e.gepostet.url)}" target="_blank" rel="noopener">Auf Bluesky ansehen${vh}</a>`
+        : `<button type="button" class="adm-link" data-action="so-oeffnen" data-id="${id}">Wieder öffnen${vh}</button>`)
+  // Fehlversuche beim Veröffentlichen (der Job versucht es dreimal, dann kommt ein Alert)
+  const postFehler = e.postFehler
+    ? `<p class="so-unter" role="note">Veröffentlichen fehlgeschlagen (${esc(String(e.postFehler.versuche))}×): ${esc(e.postFehler.fehler)}</p>`
+    : ''
 
   return `<li class="so-entwurf${socialMarkiert === id ? ' is-markiert' : ''}" data-status="${esc(e.status)}" id="so-e-${id}">`
     + kopf(`<span class="in-geaendert"${socialUngespeichert.has(id) ? '' : ' hidden'}>ungespeichert</span>`)
@@ -8993,6 +9001,7 @@ function socialEntwurfHtml(e) {
     + `<label class="tag-label" for="so-e-${id}-text">Beitragstext<span class="adm-visually-hidden">: ${esc(name)}</span></label>`
     + `<textarea class="tag-eingabe" id="so-e-${id}-text" data-id="${id}" rows="5" spellcheck="true" aria-describedby="so-e-${id}-unter"${z.zuviel > 0 ? ' aria-invalid="true"' : ''}${offen ? '' : ' readonly'}>${esc(text)}</textarea>`
     + `<p class="so-unter" id="so-e-${id}-unter">${e.hashtags ? `<span class="so-tags">Dazu: ${esc(e.hashtags)}</span>` : '<span class="so-tags">ohne Hashtags (Antwort auf den Vortag)</span>'}<span class="in-zaehler"${z.tone ? ` data-tone="${z.tone}"` : ''}>${esc(z.text)}</span></p>`
+    + postFehler
     + `<div class="be-aktionen so-aktionen">${aktionen}</div>${meldung}</div></li>`
 }
 
@@ -9031,7 +9040,16 @@ function socialAutomatikText() {
   }
   const tage = u?.horizont === 7 || !u ? 'sieben' : String(u.horizont)
   const wochen = !u || u.aufbewahrung === 56 ? 'acht Wochen' : `${u.aufbewahrung} Tagen`
-  el.textContent = `Der Server legt jeden Morgen um 4:20 Uhr die fehlenden Entwürfe für die nächsten ${tage} Tage an und zeichnet die Bilder. Was schon da ist, bleibt unverändert – auch verworfene Entwürfe kommen nicht zurück. Nach ${wochen} werden Entwürfe gelöscht.`
+  el.textContent = `Der Server legt jeden Morgen um 4:20 Uhr die fehlenden Entwürfe für die nächsten ${tage} Tage an und zeichnet die Bilder. Was schon da ist, bleibt unverändert – auch verworfene Entwürfe kommen nicht zurück. Nach ${wochen} werden Entwürfe gelöscht. ${socialPostenText(u)}`
+}
+
+// Was mit freigegebenen Entwürfen passiert (Hauptschalter SOCIAL_POSTEN in der Server-.env)
+function socialPostenText(u) {
+  const zeit = u?.postZeit || '18:30'
+  if (u?.posten === 'on' && u.blueskyEingerichtet) return `Freigegebene Entwürfe erscheinen am jeweiligen Tag ab ${zeit} Uhr auf Bluesky, Auflösungen als Antwort auf den Beitrag vom Vortag.`
+  if (u?.posten === 'on') return 'Veröffentlichen ist eingeschaltet, aber der Bluesky-Zugang fehlt in der .env – es wird nichts gepostet.'
+  if (u?.posten === 'test') return `Testbetrieb: Freigegebene Entwürfe werden ab ${zeit} Uhr nur ins Server-Log geschrieben, nicht gepostet.`
+  return 'Veröffentlichen ist aus: Freigegebene Entwürfe bleiben hier, bis du sie selbst postest.'
 }
 
 function renderSocialEntwuerfe() {
@@ -9127,6 +9145,9 @@ async function ladeSocialEntwuerfe({ neu = false } = {}) {
       automatisch: daten.automatisch !== false,
       horizont: Number(daten.horizont) || 7,
       aufbewahrung: Number(daten.aufbewahrung) || 56,
+      posten: daten.posten || 'aus',
+      postZeit: daten.postZeit || '18:30',
+      blueskyEingerichtet: !!daten.blueskyEingerichtet,
     }
     socialGeladen = true
     // Getippte Texte bleiben nur, wo sie noch etwas ändern

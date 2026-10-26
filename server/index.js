@@ -50,6 +50,7 @@ import { startDataRetention } from './jobs/dataRetention.js'
 import { startInactiveAccounts } from './jobs/inactiveAccounts.js'
 import { startZeitenwendePrefetch } from './jobs/zeitenwendePrefetch.js'
 import { startSocialCardDrafts } from './jobs/socialCardDrafts.js'
+import { startSocialPosting } from './jobs/socialPosting.js'
 import { ALLOWED_ORIGINS, CAPACITOR_ORIGINS, isAllowedOrigin } from './config/origins.js'
 import { startSessionCleanup } from './auth/session-cleanup.js'
 import { startAlerting } from './alerting.js'
@@ -336,8 +337,11 @@ app.use((err, req, res, next) => {
   // erste Tagesaufruf nicht auf den externen Fetch (bis ~6 s) blockiert.
   startZeitenwendePrefetch()
   // Social-Card-Entwürfe fuer die naechsten 7 Tage anlegen und zeichnen
-  // (taeglich 04:20, Stufe 1: nur Postfach, kein Veroeffentlichen).
+  // (taeglich 04:20).
   startSocialCardDrafts()
+  // Freigegebene Entwuerfe ab 18:30 auf Bluesky posten – nur mit
+  // SOCIAL_POSTEN=on (test = nur loggen, Standard aus).
+  startSocialPosting()
 
   // ── Graceful Shutdown (D-21) ──────────────────────────────────
   const shutdown = (signal) => {

@@ -144,7 +144,7 @@ describe('baueEntwuerfe – Wochenplan', () => {
     expect(antwort.hashtags).toBe('')
     expect(post.caption).toBe('„Das ______ Gedächtnis einer Zeit.“\n\nWelches Wort fehlt? (Deutsches Textarchiv · CC BY-SA 4.0)')
     expect(antwort.spec.reveal).toBe(true)
-    expect(antwort.caption).toBe('Gesucht war „kolloK1“:\n„Das kolloK1 Gedächtnis einer Zeit.“\n\nQuelle: Roman (1890) · CC BY-SA 4.0')
+    expect(antwort.caption).toBe('Gesucht war „kolloK1“:\n„Das kolloK1 Gedächtnis einer Zeit.“\n\nQuelle: Roman (1890) · CC BY-SA 4.0 (für das Rätsel mit Lücke bearbeitet)')
   })
 
   it('Textbeleg: Sätze, die den Post über 300 Zeichen bringen, werden übersprungen', async () => {
@@ -186,7 +186,7 @@ describe('baueEntwuerfe – Wochenplan', () => {
     const aufloesung = liste.find((e) => e.slot === 'B-aufloesung')
     expect(aufloesung.datum).toBe(SO2)
     expect(aufloesung.spec.reveal).toBe(true)
-    expect(aufloesung.caption).toBe('Gesucht war „kolloK1“:\n„Das kolloK1 Gedächtnis einer Zeit.“\n\nQuelle: Roman (1890) · CC BY-SA 4.0')
+    expect(aufloesung.caption).toBe('Gesucht war „kolloK1“:\n„Das kolloK1 Gedächtnis einer Zeit.“\n\nQuelle: Roman (1890) · CC BY-SA 4.0 (für das Rätsel mit Lücke bearbeitet)')
     expect(aufloesung.hashtags).toBe('')
   })
 

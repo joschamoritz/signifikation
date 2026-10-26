@@ -19,6 +19,10 @@ export function createAdminSocialCardsRouter({
   ladeEntwurf,
   setzeCaption,
   setzeStatus,
+  // Veröffentlichte Beiträge (Stufe 2); ohne Angabe: noch nichts gepostet
+  ladePost = () => null,
+  ladePostsFuer = () => new Map(),
+  webUrl = () => null,
   erzeugeEntwuerfe,
   erneuereEntwurf,
   bildPfad,
@@ -86,9 +90,17 @@ export function createAdminSocialCardsRouter({
     }
   })
 
-  // ── Postfach: automatisch erzeugte Entwürfe (Stufe 1, ohne Veröffentlichen) ──
+  // ── Postfach: automatisch erzeugte Entwürfe, freigegebene gehen auf Bluesky ──
 
   const istText = (e) => e.spec?.format === 'text'
+  // Veröffentlichter Beitrag zu einem Entwurf, so wie die Admin-Ansicht ihn braucht
+  const mitPost = (e, post) => ({
+    ...ohneBildpfad(e),
+    gepostet: post?.uri ? { gepostetAm: post.gepostetAm, url: webUrl(post.uri) } : null,
+    ...(post && !post.uri && post.fehler && { postFehler: { versuche: post.versuche, fehler: post.fehler } }),
+  })
+  const schonGepostet = (id) => !!ladePost(id)?.uri
+  const GEPOSTET = 'Schon auf Bluesky veröffentlicht – Änderungen nur dort.'
   const ohneBildpfad = ({ bild: _bild, ...e }) => {
     const basis = `/admin/social-cards/entwuerfe/${e.id}/bild`
     const v = `v=${encodeURIComponent(e.aktualisiertAm)}`
@@ -110,7 +122,10 @@ export function createAdminSocialCardsRouter({
       const bis = req.query.bis ?? verschiebeDatum(heute, 14)
       res.json({
         von, bis,
-        entwuerfe: ladeEntwuerfe(von, bis).map(ohneBildpfad),
+        entwuerfe: (() => {
+          const posts = ladePostsFuer(von, bis)
+          return ladeEntwuerfe(von, bis).map((e) => mitPost(e, posts.get(e.id)))
+        })(),
         ...entwurfEinstellungen(),
       })
     } catch (err) {
@@ -153,6 +168,8 @@ export function createAdminSocialCardsRouter({
     try {
       const vorher = ladeEntwurf(id)
       if (!vorher) return res.status(404).json({ error: 'Entwurf nicht gefunden' })
+      // Was schon auf Bluesky steht, lässt sich hier weder ändern noch zurücknehmen
+      if (schonGepostet(id)) return res.status(409).json({ error: GEPOSTET })
       if (status === 'freigegeben') {
         // Bluesky lehnt Beiträge über 300 Zeichen ab – gezählt wird, was gepostet würde
         const zuviel = postZeichen(caption ?? vorher.caption, vorher.hashtags) - BLUESKY_MAX_ZEICHEN
@@ -167,7 +184,7 @@ export function createAdminSocialCardsRouter({
         { status: vorher.status, caption: vorher.caption },
         { status: nachher.status, caption: nachher.caption },
         { adminKey: req.adminSessionId || 'unknown', ip: req.ip })
-      res.json({ entwurf: ohneBildpfad(nachher) })
+      res.json({ entwurf: mitPost(nachher, ladePost(id)) })
     } catch (err) {
       adminError(res, err)
     }
@@ -177,6 +194,7 @@ export function createAdminSocialCardsRouter({
     try {
       const entwurf = ladeEntwurf(req.params.id)
       if (!entwurf) return res.status(404).json({ error: 'Entwurf nicht gefunden' })
+      if (schonGepostet(entwurf.id)) return res.status(409).json({ error: GEPOSTET })
       const { ok, grund, ersetzt = [], bildFehlt = false } = await erneuereEntwurf(entwurf)
       if (!ok) return res.status(409).json({ error: grund })
       // Der alte Text beider Entwürfe geht verloren – das Protokoll hält ihn fest
