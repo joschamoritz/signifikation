@@ -3630,7 +3630,8 @@ html:has(#page-entry.is-active) {
   .nu-spalten,
   .nu-zeile {
     display: grid;
-    grid-template-columns: var(--tap) minmax(8rem, 1fr) minmax(0, 1.35fr) 6rem 7.5rem;
+    /* Rollenspalte so breit wie die längste Marke („Gesamtausgabe“, ≈ 7,6rem) */
+    grid-template-columns: var(--tap) minmax(8rem, 1fr) minmax(0, 1.35fr) 8.5rem 7.5rem;
     grid-template-areas: "wahl name mail rolle meta";
     column-gap: 14px;
   }
