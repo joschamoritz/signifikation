@@ -85,6 +85,8 @@ server/data/course-pdfs/
 server/data/beamer-pdfs/
 server/data/geoip/
 server/data/social-cards/
+# Lokale Korpus-DBs (belege_v2.db, wortprofil_v2.db; ~54 GB, nicht im Repo)
+server/data/korpus/
 # Mail-Vorschauen aus scripts/mail-preview.mjs (generiert, jederzeit neu baubar)
 .mail-preview/
 # Git-Bundles (lokale Repo-Snapshots, gehoeren nicht ins Repo)

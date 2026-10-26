@@ -28,20 +28,25 @@ import { belegeVerfuegbar } from '../server/belege.js'
 // Top-Runde (buildMixedRound) braucht 3 gesuchte + 7 Ablenker aus Platz 4-25.
 // Die Schwelle MIN_KOLLOKATOREN steht in server/wortprofil.js und gilt ebenso
 // für Wort prüfen und Tag bearbeiten im Admin-Bereich.
-const MIN_ROUND_COUNT = 4
+//
+// WICHTIG: Das Spiel "Kollokationen" hat nur DIESE EINE Runde. Quiz.jsx liest
+// ausschliesslich `lemma.runden.kollokatoren`; die Wortart-Runden (nomen/verben/
+// adjektive) werden von fetchLemma zwar noch befuellt, aber nirgends gespielt.
+// Sie duerfen deshalb NICHT ueber "ok" entscheiden – sie werden unten nur noch
+// als Zusatzinfo ausgegeben. (Frueher kippte ein leeres `verben` fast jedes
+// Adjektiv, obwohl die gespielte Runde voll besetzt war.)
 
 function summarizeWort(lemma, pos, data) {
   const roundEntries = Object.entries(data.runden).filter(([key]) => key !== 'kollokatoren')
   const roundSizes = Object.fromEntries(roundEntries.map(([key, items]) => [key, items.length]))
-  const weakRounds = roundEntries.filter(([, items]) => items.length < MIN_ROUND_COUNT).map(([key]) => key)
   const mixedCount = data.runden.kollokatoren.length
 
   return {
     mixedCount,
+    // nur Diagnose, kein Kriterium – siehe Kommentar oben
     roundSizes,
-    weakRounds,
     top3: data.runden.kollokatoren.slice(0, 3).map((o) => o.wort),
-    ok: mixedCount >= MIN_KOLLOKATOREN && weakRounds.length === 0,
+    ok: mixedCount >= MIN_KOLLOKATOREN,
   }
 }
 
