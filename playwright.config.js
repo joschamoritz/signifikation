@@ -22,7 +22,7 @@ export default defineConfig({
       use: { ...devices['Desktop Chrome'] },
     },
     // PWA/Capacitor-App: Spielmodi zusaetzlich im Mobil-Viewport smoken.
-    // Admin-Specs bleiben Desktop-only (Admin-UI ist nicht mobiloptimiert).
+    // Admin-Specs laufen nur im Desktop-Projekt; die Admin-Breiten prüfen eigene Specs per Viewport.
     {
       name: 'mobile-chrome',
       use: { ...devices['Pixel 7'] },
@@ -41,6 +41,8 @@ export default defineConfig({
       PORT: String(PORT),
       NODE_ENV: process.env.NODE_ENV || 'test',
       ADMIN_KEY: process.env.ADMIN_KEY || 'dev-only',
+      // Admin- und Anmelde-Limit für den seriellen Lauf anheben (wirkt nur außerhalb von production)
+      E2E_LOCKERE_LIMITS: '1',
     },
   },
 })

@@ -97,8 +97,13 @@ export const belegeLimiter = rateLimit({
   message: { error: 'Zu viele Anfragen, bitte kurz warten.' },
 })
 
+// Nur für den E2E-Lauf (playwright.config.js setzt den Schalter): Jeder Test meldet sich neu an und lädt eine
+// Admin-Seite mit mehreren Anfragen, ein serieller Lauf überschreitet 60 pro Minute nach wenigen Tests.
+// In Produktion wirkt der Schalter nie.
+const E2E_LOCKERE_LIMITS = process.env.NODE_ENV !== 'production' && process.env.E2E_LOCKERE_LIMITS === '1'
+
 export const adminLimiter = rateLimit({
-  windowMs: 60_000, max: 60,
+  windowMs: 60_000, max: E2E_LOCKERE_LIMITS ? 6000 : 60,
   store: adminStore,
   keyGenerator: getClientIp,
   standardHeaders: true, legacyHeaders: false,
@@ -117,7 +122,7 @@ export const statsLimiter = rateLimit({
 // Striktes Limit nur für Login-Endpunkt: 10 Versuche / 15 Minuten
 const loginStore = new CleanupStore(15 * 60_000)
 export const loginLimiter = rateLimit({
-  windowMs: 15 * 60_000, max: 10,
+  windowMs: 15 * 60_000, max: E2E_LOCKERE_LIMITS ? 1000 : 10,
   store: loginStore,
   keyGenerator: getClientIp,
   standardHeaders: true, legacyHeaders: false,
