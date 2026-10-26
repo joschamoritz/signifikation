@@ -437,8 +437,16 @@ html:has(.adm-root.has-takeover) {
     border-left-color: Highlight;
   }
 
+  /* Reiter: Der Systemkontrast färbt jeden Rand ein, auch den „transparenten“ – sonst trügen alle Reiter einen
+     Unterstrich. Nur der aktive behält ihn (Highlight) und ist zusätzlich fetter; so sind Zustand und Auswahl
+     auch ohne Farbe zu unterscheiden. */
+  .adm-tab {
+    border-bottom-color: Canvas;
+  }
+
   .adm-tab[aria-current="page"] {
     border-bottom-color: Highlight;
+    font-weight: 800;
   }
 
   /* Ohne Farbunterschied sind Aktionen sonst nicht als Links erkennbar */

@@ -1,4 +1,4 @@
-// Datenzugriff für das Social-Card-Postfach (Tabelle social_card_entwurf, Migration 0026).
+// Datenzugriff für die Social-Card-Entwürfe (Tabelle social_card_entwurf, Migration 0026).
 import db from '../db.js'
 
 const stmts = {
@@ -8,6 +8,7 @@ const stmts = {
     VALUES (@datum, @slot, @spec, @caption, @hashtags, @jetzt, @jetzt)
   `),
   imFenster:      db.prepare(`SELECT * FROM social_card_entwurf WHERE datum BETWEEN ? AND ? ORDER BY datum, id`),
+  ab:             db.prepare(`SELECT * FROM social_card_entwurf WHERE datum >= ? ORDER BY datum, id`),
   holen:          db.prepare(`SELECT * FROM social_card_entwurf WHERE id = ?`),
   ohneBild:       db.prepare(`SELECT * FROM social_card_entwurf WHERE bild IS NULL AND status <> 'verworfen' AND datum >= ? ORDER BY datum, id`),
   setzeBild:      db.prepare(`UPDATE social_card_entwurf SET bild = ?, aktualisiert_am = ? WHERE id = ?`),
@@ -17,7 +18,7 @@ const stmts = {
     UPDATE social_card_entwurf SET spec = @spec, caption = @caption, hashtags = @hashtags, bild = NULL, aktualisiert_am = @jetzt
     WHERE datum = @datum AND slot = @slot AND status = 'offen'
   `),
-  alteBilder:     db.prepare(`SELECT bild FROM social_card_entwurf WHERE datum < ? AND bild IS NOT NULL`),
+  alteBilder:     db.prepare(`SELECT id, bild FROM social_card_entwurf WHERE datum < ?`),
   alteLoeschen:   db.prepare(`DELETE FROM social_card_entwurf WHERE datum < ?`),
 }
 
@@ -65,6 +66,11 @@ export function ladeEntwuerfe(von, bis) {
   return stmts.imFenster.all(von, bis).map(zeile)
 }
 
+/** Alle Entwürfe ab `datum` (ohne obere Grenze). */
+export function ladeEntwuerfeAb(datum) {
+  return stmts.ab.all(datum).map(zeile)
+}
+
 export function ladeEntwurf(id) {
   return zeile(stmts.holen.get(id))
 }
@@ -89,9 +95,19 @@ export function setzeStatus(id, status, jetzt = new Date().toISOString()) {
   return stmts.setzeStatus.run(status, entschieden, jetzt, id).changes === 1
 }
 
-/** Löscht Entwürfe vor `datum` und liefert ihre Bilddateien zum Aufräumen. */
+/**
+ * Löscht Entwürfe vor `datum` und liefert je gelöschtem Entwurf die Dateinamen der vollen Bilder
+ * zum Aufräumen. Sie folgen der ID (entwurf-<id>.png) – nicht nur der `bild`-Spalte: Nach „Neu
+ * erstellen“ oder einem abgebrochenen Zeichnen kann eine Datei liegen, auf die keine Spalte zeigt.
+ * Weicht die Spalte vom ID-Namen ab, ist auch dieser Name dabei.
+ * @returns {string[][]} je Entwurf die Liste der Dateinamen (voll; die kleine Fassung leitet sich ab)
+ */
 export function loescheAlteEntwuerfe(datum) {
-  const bilder = stmts.alteBilder.all(datum).map((r) => r.bild)
+  const zeilen = stmts.alteBilder.all(datum)
   stmts.alteLoeschen.run(datum)
-  return bilder
+  return zeilen.map((r) => {
+    const namen = [`entwurf-${r.id}.png`]
+    if (r.bild && r.bild !== namen[0]) namen.push(r.bild)
+    return namen
+  })
 }

@@ -4992,6 +4992,493 @@ html:has(#page-entry.is-active) {
   .in-ph { border-bottom-color: CanvasText; }
 }
 
+/* ── Werkzeuge › Social Cards ─────────────────────────────────────────────
+   Unterseiten: Entwürfe (#page-social, #werkzeuge/social-cards) und
+   Selbst gestalten (#page-social-editor, #werkzeuge/social-cards/gestalten).
+   Beide tragen „in-seite so-seite“, die Entwürfe zusätzlich „be-seite“.
+
+   DESIGN.md §9: Linien statt Kästen, keine Schatten, Radius ≤ 4 px. Rot =
+   Aktion (Text-CTA) und „ausgewählt“ (3-px-Strich + 4 % Tönung); Gold nur
+   Deko; Statusfarben nur mit Wort („freigegeben“ in Erfolgsgrün, „zu lang“
+   im Fehlerton). Die Karten selbst (Canvas/PNG) sind Produktgestaltung und
+   werden nur gerahmt (1 px Linie), nicht verändert.
+
+   Wiederverwendet (unverändert): .tag-abschnitt*, .tag-feld, .tag-label(-zusatz),
+   .tag-wert, .tag-eingabe(--wort, --datum), .tag-auswahl, .tag-hinweis,
+   .tag-neben*, .tag-dl, .be-dl, .be-wert, .be-zusatz, .be-aktionen, .be-check,
+   .be-roh, .li-meldung, .li-leer*, .li-gruppe, .li-monat*, .li-loeschen,
+   .in-zaehler, .in-feld-hinweis, .in-geaendert, .in-heute-marke, .in-dialog*,
+   .adm-cta, .adm-link, .adm-tabs/.adm-tab (Reiter der Hülle), --wo-tint,
+   --tag-feldlinie, --status-*.
+
+   Container: „social“ (ganze Seite) für die Spalten des Editors und die
+   Zeilen der Entwürfe; jeder Editor-Abschnitt ist selbst Container „tag“
+   (Feldregeln des Tagesformulars nach Spaltenbreite). Schwellen: Entwurf
+   ≥ 34rem Bild links; Editor ≥ 52rem Vorschau rechts. Muss NACH dem Block
+   „Werkzeuge › Inhalte“ stehen.
+   ─────────────────────────────────────────────────────────────────────── */
+
+.so-seite { container-name: tag betrieb inhalte social; }
+.so-seite [hidden] { display: none !important; }
+
+/* Schalternamen wie SOCIAL_CARDS_ENTWUERFE=off sind ein einziges langes Wort: umbrechen statt waagerecht scrollen */
+.so-seite code { overflow-wrap: anywhere; }
+
+/* Mehrzeilige Felder (Beitragstext, Beleg, Info-Text): wachsen mit, wo field-sizing greift */
+.so-seite textarea.tag-eingabe {
+  min-height: calc(3 * 1.45em + 14px);
+  max-height: 28rem;
+  line-height: 1.45;
+  resize: vertical;
+  field-sizing: content;
+}
+
+/* Freigegeben: Text bleibt lesbar (nicht grau wie disabled), Linie gepunktet = nicht änderbar */
+.so-seite .tag-eingabe[readonly] { border-bottom-style: dotted; cursor: default; }
+.so-seite .tag-eingabe[readonly]:hover { border-bottom-color: var(--tag-feldlinie); }
+
+.so-zusatz {
+  color: var(--muted);
+  font: 400 0.8rem/1.3 var(--font-sans);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ════════════════ Entwürfe ════════════════ */
+
+.so-pf-umfang {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0 16px;
+}
+
+.so-pf-zahlen {
+  margin: 0;
+  color: var(--muted);
+  font: 400 0.86rem/1.45 var(--font-sans);
+  font-variant-numeric: tabular-nums;
+}
+
+.so-pf-zahlen strong { color: var(--text); font-weight: 600; }
+
+/* Neu laden: alte Liste bleibt stehen, gedämpft */
+.so-pf-liste[aria-busy="true"] { opacity: 0.5; }
+
+.so-tag-titel { scroll-margin-top: calc(var(--bar-h, 56px) + 8px); }
+
+.so-liste {
+  margin: 4px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* Ein Entwurf: mobil Kopf → Bild → Text; ab 34rem Bild links */
+.so-entwurf {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas:
+    "kopf"
+    "bild"
+    "inhalt";
+  gap: 8px 20px;
+  padding: 16px 0 18px;
+  border-bottom: 1px solid var(--border-lt);
+}
+
+.so-kopf {
+  grid-area: kopf;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px 12px;
+  margin: 0;
+}
+
+.so-slot { font: 700 1.05rem/1.3 var(--font-serif); }
+
+.so-status {
+  color: var(--muted);
+  font: 600 0.66rem/1.3 var(--font-sans);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+
+/* Bedeutung: freigegeben = erledigt (Wort + Farbe), verworfen = gedämpft kursiv */
+.so-entwurf[data-status="freigegeben"] .so-status { color: var(--status-ok); }
+.so-entwurf[data-status="verworfen"] .so-status { font-style: italic; }
+
+.so-meta {
+  flex-basis: 100%;
+  margin: 0;
+  color: var(--muted);
+  font: 400 0.8rem/1.4 var(--font-sans);
+}
+
+.so-bild {
+  grid-area: bild;
+  display: block;
+  align-self: start;
+  width: 100%;
+  max-width: 11rem;
+  color: var(--text);
+}
+
+/* Die Karte ist das Produkt: nur eine Haarlinie als Rand (helle Karte auf Pergament) */
+.so-bild img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border: 1px solid var(--border);
+}
+
+.so-bild:focus-visible { outline: 2px solid var(--primary); outline-offset: 3px; }
+.so-bild:hover img { border-color: var(--text); }
+
+/* Textbeitrag: keine Bildfläche, nur ein Vermerk an der Linie */
+.so-bild--text {
+  padding: 2px 0 2px 12px;
+  border-left: 3px solid var(--border-lt);
+  color: var(--muted);
+  font: italic 400 0.9rem/1.35 var(--font-serif);
+}
+
+.so-inhalt { grid-area: inhalt; min-width: 0; }
+.so-inhalt > .tag-label { margin-bottom: 0; }
+
+.so-unter {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 2px 16px;
+  margin: 6px 0 0;
+}
+
+.so-tags {
+  min-width: 0;
+  color: var(--muted);
+  font: 400 0.8rem/1.45 var(--font-sans);
+  overflow-wrap: anywhere;
+}
+
+.so-unter .in-zaehler { margin: 0 0 0 auto; }
+
+.so-aktionen { gap: 0 22px; margin-top: 6px; }
+.so-entwurf .li-meldung { margin: 8px 0 0; }
+/* Rückmeldungen im Editor stehen unter dem Knopf, der sie auslöst */
+.so-ed .li-meldung { margin: 10px 0 0; }
+
+/* Verworfen: eingeklappt – Kopf, eine Zeile Text, „Wieder öffnen“ */
+.so-entwurf[data-status="verworfen"] {
+  grid-template-areas:
+    "kopf"
+    "inhalt";
+  padding: 10px 0 8px;
+}
+
+.so-auszug {
+  margin: 0;
+  overflow: hidden;
+  color: var(--muted);
+  font: italic 400 0.9rem/1.45 var(--font-serif);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Rückfrage „Neu erstellen“: der Entwurf, um den es geht, ist markiert */
+.so-entwurf.is-markiert { background: var(--wo-tint); }
+
+.so-entwurf.is-markiert::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -12px;
+  border-left: 3px solid var(--primary);
+}
+
+/* Läuft (Neu erstellen, Freigeben): Inhalt bleibt sichtbar, gedämpft */
+.so-entwurf[aria-busy="true"] .so-bild,
+.so-entwurf[aria-busy="true"] .tag-eingabe { opacity: 0.5; }
+
+.so-plan { margin-top: 8px; }
+.so-plan .tag-dl { margin-top: 4px; }
+.so-plan .tag-hinweis { margin-top: 10px; }
+
+/* ════════════════ Selbst gestalten ════════════════ */
+
+.so-ed-seite {
+  container: tag betrieb inhalte social / inline-size;
+  gap: 0;
+  width: 100%;
+  max-width: 72rem;
+  margin-inline: auto;
+}
+
+/* Mobil: Inhalt → Vorschau → Aussehen → Beitragstext */
+.so-ed {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas:
+    "inhalt"
+    "vorschau"
+    "aussehen"
+    "text";
+  gap: 36px 40px;
+}
+
+.so-ed-felder { display: contents; }
+.so-ed .tag-abschnitt { margin: 0; container: tag inhalte / inline-size; }
+.so-ed .tag-abschnitt:nth-child(1) { grid-area: inhalt; }
+.so-ed .tag-abschnitt:nth-child(2) { grid-area: aussehen; }
+.so-ed .tag-abschnitt:nth-child(3) { grid-area: text; }
+
+.so-ed-vorschau { grid-area: vorschau; min-width: 0; }
+
+/* Canvas skaliert als ersetztes Element: Seitenverhältnis bleibt, keine Inline-Größen */
+.so-karte {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin: 14px 0 0;
+}
+
+.so-karte canvas {
+  display: block;
+  width: auto;
+  height: auto;
+  max-width: 100%;
+  max-height: min(62svh, 36rem);
+  border: 1px solid var(--border);
+  background: var(--surface2, #f3f1ed);
+}
+
+.so-karte-masse {
+  margin-top: 6px;
+  color: var(--muted);
+  font: 400 0.76rem/1.35 var(--font-sans);
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
+.so-ed-vorschau .be-aktionen { justify-content: center; margin-top: 10px; }
+.so-karte.is-busy canvas { opacity: 0.6; }
+
+/* Vorlage: Linien-Liste mit Radioknöpfen; gewählt = roter Strich + Tönung */
+.so-wahl {
+  min-width: 0;
+  margin: 20px 0 0;
+  padding: 0;
+  border: 0;
+}
+
+.so-seite .so-wahl > legend,
+.so-seite .so-reihe > legend { margin-bottom: 4px; padding: 0; }
+
+/* Beschriftungen sind <label>: die globale Label-Regel (Versalien, 0.78rem) zurücksetzen */
+.so-wahl-zeile,
+.so-reihe-wahl {
+  margin: 0;
+  color: var(--text);
+  font-weight: 400;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.so-wahl-zeile input,
+.so-reihe-wahl input { box-shadow: none; }
+
+.so-wahl-zeile {
+  position: relative;
+  display: grid;
+  grid-template-columns: 20px minmax(0, 1fr);
+  grid-template-areas:
+    "knopf name"
+    ".     text";
+  align-items: baseline;
+  gap: 0 12px;
+  min-height: var(--tap);
+  padding: 9px 8px 9px 12px;
+  border-top: 1px solid var(--border-lt);
+  cursor: pointer;
+}
+
+.so-wahl-zeile:last-of-type { border-bottom: 1px solid var(--border-lt); }
+
+.so-wahl-zeile input {
+  grid-area: knopf;
+  align-self: center;
+  width: 20px;
+  height: 20px;
+  margin: 0;
+  accent-color: var(--primary);
+  cursor: pointer;
+}
+
+.so-wahl-name { grid-area: name; font: 400 1.02rem/1.3 var(--font-serif); }
+.so-wahl-text { grid-area: text; color: var(--muted); font-size: 0.8rem; line-height: 1.4; }
+
+.so-wahl-zeile:hover .so-wahl-name { color: var(--primary); }
+.so-wahl-zeile:has(input:checked) { background: var(--wo-tint); }
+.so-wahl-zeile:has(input:checked) .so-wahl-name { color: var(--primary); }
+
+.so-wahl-zeile:has(input:checked)::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  border-left: 3px solid var(--primary);
+}
+
+.so-wahl-zeile:has(input:focus-visible) { outline: 2px solid var(--primary); outline-offset: -2px; }
+.so-wahl-zeile input:focus-visible { outline: none; }
+
+/* Farbe, Format: Radioknöpfe nebeneinander, brechen um */
+.so-reihe {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 24px;
+  min-width: 0;
+  margin: 16px 0 0;
+  padding: 0;
+  border: 0;
+}
+
+.so-reihe-wahl {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: var(--tap);
+  color: var(--text);
+  font: 400 0.95rem/1.3 var(--font-sans);
+  cursor: pointer;
+}
+
+.so-reihe-wahl input {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  margin: 0;
+  accent-color: var(--primary);
+  cursor: pointer;
+}
+
+.so-reihe-wahl:has(input:checked) > span:first-of-type { color: var(--primary); font-weight: 600; }
+.so-ed .be-check { padding-top: 8px; }
+
+/* Richtige Antwort (Rätsel): fest, nicht änderbar – Serif mit gepunkteter Linie */
+.so-antwort {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0 10px;
+  min-height: var(--tap);
+  margin: 0;
+  padding: 8px 0 6px;
+  border-bottom: 1px dotted var(--tag-feldlinie);
+  font: 400 1.2rem/1.35 var(--font-serif);
+}
+
+/* Wort-Zwilling: Vorschläge als Schalter (aria-pressed), nach Wort A/B gruppiert */
+.so-vorschlaege { margin-top: 18px; }
+.so-vorschlag-gruppe + .so-vorschlag-gruppe { margin-top: 10px; }
+
+.so-vorschlag-liste {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 2px;
+  margin: 2px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.so-vorschlag {
+  min-width: var(--tap);
+  min-height: var(--tap);
+  padding: 0 10px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+  background: none;
+  color: var(--text);
+  font: 400 1rem/1 var(--font-serif);
+  cursor: pointer;
+}
+
+.so-vorschlag:hover { text-decoration: underline; text-underline-offset: 3px; }
+.so-vorschlag[aria-pressed="true"] { border-bottom-color: var(--primary); background: var(--wo-tint); color: var(--primary); }
+.so-vorschlag:focus-visible { outline: 2px solid var(--primary); outline-offset: -2px; }
+
+.so-tags-zeile {
+  margin: 6px 0 0;
+  color: var(--muted);
+  font: 400 0.82rem/1.45 var(--font-sans);
+  overflow-wrap: anywhere;
+}
+
+.so-ed .in-zaehler { text-align: left; }
+
+/* ── Entwurf breit (≥ 34rem): Bild links, Kopf und Text rechts ── */
+@container social (min-width: 34rem) {
+  .so-entwurf {
+    grid-template-columns: 9.5rem minmax(0, 1fr);
+    grid-template-areas:
+      "bild kopf"
+      "bild inhalt";
+    grid-template-rows: auto 1fr;
+  }
+
+  .so-entwurf[data-status="verworfen"] {
+    grid-template-areas:
+      "bild kopf"
+      "bild inhalt";
+  }
+}
+
+/* ── Editor breit (≥ 52rem): Vorschau rechts, klebt unter der Rückleiste ── */
+@container social (min-width: 52rem) {
+  .so-ed {
+    grid-template-columns: minmax(0, 1fr) minmax(18rem, 24rem);
+    grid-template-areas:
+      "inhalt   vorschau"
+      "aussehen vorschau"
+      "text     vorschau";
+    align-items: start;
+  }
+
+  .so-ed-vorschau {
+    position: sticky;
+    top: calc(var(--bar-h, 56px) + 16px);
+    grid-row: 1 / span 3;
+  }
+
+  .so-karte canvas { max-height: calc(100svh - var(--bar-h, 56px) - 11rem); }
+}
+
+/* ── Sehr schmal oder große Schrift (< 20rem) ── */
+@container social (max-width: 19.9375rem) {
+  .so-bild { max-width: 8rem; }
+  .so-aktionen { gap: 0 16px; }
+  .so-unter .in-zaehler { margin-left: 0; }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .so-wahl-zeile,
+  .so-vorschlag { transition: background-color 0.15s, color 0.15s; }
+}
+
+/* Windows-Kontrastmodus: Flächen entfallen, Striche und Linien bleiben */
+@media (forced-colors: active) {
+  .so-wahl-zeile:has(input:checked)::before,
+  .so-entwurf.is-markiert::before { border-left-color: Highlight; }
+  .so-vorschlag[aria-pressed="true"] { border-bottom-color: Highlight; color: Highlight; }
+  .so-bild img,
+  .so-karte canvas { border-color: CanvasText; }
+}
+
 /* ── Auswertung: Spiele (#page-stats), Kennzahlen (#page-metrics),
    Klassenraum (#page-classroom) ──────────────────────────────────────────────
    DESIGN.md §9: Linien statt Kästen, keine Schatten, Radius ≤ 4 px. Zahlen

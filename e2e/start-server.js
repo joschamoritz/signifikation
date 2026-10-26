@@ -57,6 +57,19 @@ execFileSync(process.execPath, [join(root, 'server/seed-dev.js')], {
     INSERT INTO user (id, name, email, emailVerified, image, createdAt, updatedAt)
     VALUES ('e2e-loesch-konto', 'E2E Loeschen', 'e2e-loesch@example.test', 1, NULL, ?, ?)
   `).run(jetzt, jetzt)
+  // Zwei Textentwürfe (ohne Bild, also ohne Browser) für admin-social.spec.js: Textbeleg heute, Auflösung morgen
+  {
+    const heute = berlinTag()
+    const jetzt = new Date().toISOString()
+    const einfuegen = db.prepare(`
+      INSERT OR IGNORE INTO social_card_entwurf (datum, slot, spec, caption, hashtags, erstellt_am, aktualisiert_am)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    `)
+    const spec = (datum, reveal) => JSON.stringify({ format: 'text', datum, ...(reveal ? { reveal: true } : {}), data: { quoteText: 'Wir haben eine ______ Debatte geführt.', collocate: 'hitzige' }, meta: { lemma: 'Debatte', antwort: 'hitzig' } })
+    einfuegen.run(heute, 'TB', spec(heute, false), '„Wir haben eine ______ Debatte geführt.“\n\nWelches Wort fehlt? (Deutscher Bundestag · CC BY 4.0)', '#Korpuslinguistik', jetzt, jetzt)
+    const morgen = plusTage(heute, 1)
+    einfuegen.run(morgen, 'TB-aufloesung', spec(morgen, true), 'Gesucht war „hitzige“.\n\nQuelle: Plenarprotokoll · CC BY 4.0', '', jetzt, jetzt)
+  }
   // Spieldaten der letzten 20 Tage (Berliner Tage) für die Auswertung: je Tag vier Modi, ein Teil mit Konto
   {
     const einfuegen = db.prepare(`

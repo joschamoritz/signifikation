@@ -9,6 +9,10 @@
  * Playwright wird wie bei den Kurs-PDFs (course/pdf/render.js) erst beim
  * ersten Rendern geladen; Browser-Setup auf dem Server siehe OPS.md
  * „Kurs-PDF-Generierung“. Ein Renderer hält EINEN Browser für eine Charge.
+ *
+ * Je Karte entstehen zwei Fassungen im selben Seitenkontext: die volle (zum
+ * Posten und Herunterladen) und eine kleine Vorschau (Breite 432 px) für die
+ * Entwurfsliste im Admin – ein zweiter Browserstart ist dafür nicht nötig.
  */
 
 // window/document gibt es nur in den Funktionen, die page.evaluate im Browser ausführt.
@@ -17,6 +21,34 @@ import { readFileSync } from 'node:fs'
 import { resolve, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import logger from '../logger.js'
+
+/** Breite der kleinen Vorschau; die Höhe folgt dem Seitenverhältnis (4:5 → 432 × 540). */
+export const KLEIN_BREITE = 432
+
+/** Höchstdauer für das Zeichnen einer Karte; danach wird der Browser beendet (hängende Seite). */
+export const ZEICHEN_ZEITLIMIT_MS = 30_000
+
+/**
+ * Wartet auf `promise`, höchstens `ms`. Bei Ablauf wird `beiAblauf` aufgerufen (Browser schließen)
+ * und mit einer verständlichen Meldung abgelehnt. Der Timer wird immer aufgeräumt.
+ */
+export async function mitZeitlimit(promise, ms, text, beiAblauf = async () => {}) {
+  let timer
+  const ablauf = new Promise((_resolve, reject) => {
+    timer = setTimeout(() => reject(Object.assign(new Error(`${text} dauerte länger als ${Math.round(ms / 1000)} s`), { zeitlimit: true })), ms)
+  })
+  try {
+    return await Promise.race([promise, ablauf])
+  } catch (err) {
+    if (err?.zeitlimit) {
+      promise.catch(() => {}) // später ablehnende Seite nicht unbehandelt lassen
+      await Promise.resolve(beiAblauf()).catch(() => {})
+    }
+    throw err
+  } finally {
+    clearTimeout(timer)
+  }
+}
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const FONTS_DIR = resolve(__dirname, '..', '..', 'public', 'fonts')
@@ -35,9 +67,9 @@ function seitenHtml() {
 }
 
 /**
- * @returns {Promise<{ render(spec:object):Promise<Buffer>, close():Promise<void> }>}
+ * @returns {Promise<{ render(spec:object):Promise<{ gross:Buffer, klein:Buffer }>, close():Promise<void> }>}
  */
-export async function createCardRenderer() {
+export async function createCardRenderer({ zeitlimitMs = ZEICHEN_ZEITLIMIT_MS } = {}) {
   let chromium
   try {
     ({ chromium } = await import('playwright'))
@@ -58,6 +90,8 @@ export async function createCardRenderer() {
   try {
     const page = await browser.newPage()
     await page.setContent(seitenHtml())
+    // Alles Nötige steckt in der Seite (Schriften als data:-URIs, Skript inline): Nichts darf nachgeladen werden
+    await page.route('**/*', (route) => route.abort())
     const quelle = readFileSync(KARTEN_JS, 'utf8')
     await page.addScriptTag({ type: 'module', content: `${quelle}\nwindow.__karten = { drawCard, cardDims, loadCardFonts }` })
     await page.waitForFunction(() => window.__karten)
@@ -65,16 +99,25 @@ export async function createCardRenderer() {
 
     return {
       async render(spec) {
-        const dataUrl = await page.evaluate(async (s) => {
+        const zeichnen = page.evaluate(async ({ s, kleinBreite }) => {
           const K = window.__karten
           await K.loadCardFonts(document.fonts)
           const canvas = document.getElementById('karte')
           const { W, H } = K.cardDims(s.ratio)
           canvas.width = W; canvas.height = H
           K.drawCard(canvas.getContext('2d'), s)
-          return canvas.toDataURL('image/png')
-        }, spec)
-        return Buffer.from(dataUrl.slice(dataUrl.indexOf(',') + 1), 'base64')
+          const klein = document.createElement('canvas')
+          klein.width = kleinBreite
+          klein.height = Math.round(kleinBreite * H / W)
+          const kctx = klein.getContext('2d')
+          kctx.imageSmoothingEnabled = true
+          kctx.imageSmoothingQuality = 'high'
+          kctx.drawImage(canvas, 0, 0, klein.width, klein.height)
+          return { gross: canvas.toDataURL('image/png'), klein: klein.toDataURL('image/png') }
+        }, { s: spec, kleinBreite: KLEIN_BREITE })
+        const urls = await mitZeitlimit(zeichnen, zeitlimitMs, 'Zeichnen der Karte', () => browser.close())
+        const png = (u) => Buffer.from(u.slice(u.indexOf(',') + 1), 'base64')
+        return { gross: png(urls.gross), klein: png(urls.klein) }
       },
       async close() {
         await browser.close()

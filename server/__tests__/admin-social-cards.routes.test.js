@@ -1,15 +1,23 @@
 /**
- * Postfach-Routen der Social Cards: Auflisten, Freigeben/Verwerfen, Caption
- * nur bei offenen Entwürfen, Auth- und CSRF-Pflicht, Zeichenmodul für den Editor.
+ * Routen der Social Cards (Admin › Werkzeuge › Social Cards): Entwürfe auflisten, Freigeben/Verwerfen,
+ * Beitragstext nur bei offenen Entwürfen, 300-Zeichen-Grenze beim Freigeben, Auth- und CSRF-Pflicht,
+ * kleine Bildfassung und eigenes Bild-Limit, Zeichenmodul, Weiterleitung der alten Adresse,
+ * Änderungsprotokoll beim Neu erstellen.
  */
 import express from 'express'
 import cookieParser from 'cookie-parser'
 import { randomUUID } from 'crypto'
-import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import { mkdirSync, rmSync, writeFileSync } from 'node:fs'
+import { join } from 'node:path'
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
 import adminRouter from '../routes/admin.js'
 import { csrfProtect } from '../middleware/auth.js'
 import db from '../db.js'
-import { speichereEntwuerfe, ladeEntwuerfe } from '../socialCards/store.js'
+import { speichereEntwuerfe, ladeEntwuerfe, setzeBild } from '../socialCards/store.js'
+import { BILD_DIR, kleinDatei } from '../jobs/socialCardDrafts.js'
+import { createAdminSocialCardsRouter } from '../routes/admin-social-cards.js'
+import { validate, adminSocialCardsTagesdataSchema, adminSocialCardsBelegeSchema, adminSocialCardsEntwuerfeQuerySchema, adminSocialCardsEntwurfParamsSchema, adminSocialCardsEntwurfPatchSchema } from '../middleware/validate.js'
+import { zeichenZahl, BLUESKY_MAX_ZEICHEN } from '../../shared/socialCards.js'
 
 const PREFIX = `sc-test-${Date.now()}`
 const DATUM = '2099-04-06'
@@ -51,14 +59,17 @@ describe('admin social-cards Postfach', () => {
     if (server) await new Promise((resolve) => server.close(resolve))
   })
 
-  it('listet Entwürfe im Fenster mit Bild-URL, ohne Dateipfad', async () => {
+  it('listet Entwürfe im Fenster mit Bild-URLs (voll und klein), ohne Dateipfad', async () => {
     const res = await fetch(`${baseUrl}/admin/social-cards/entwuerfe?von=${DATUM}&bis=${DATUM}`, { headers: adminHeaders(token) })
     expect(res.status).toBe(200)
-    const { entwuerfe } = await res.json()
+    const { entwuerfe, ...umfang } = await res.json()
     expect(entwuerfe).toHaveLength(1)
     expect(entwuerfe[0]).toMatchObject({ id, slot: 'T', status: 'offen', caption: 'Teaser' })
     expect(entwuerfe[0].bildUrl).toMatch(new RegExp(`^/admin/social-cards/entwuerfe/${id}/bild\\?v=`))
+    expect(entwuerfe[0].bildKleinUrl).toMatch(new RegExp(`^/admin/social-cards/entwuerfe/${id}/bild\\?groesse=klein&v=`))
     expect(entwuerfe[0]).not.toHaveProperty('bild')
+    // Zustand des automatischen Anlegens für die Seite (ohne Schalter: an)
+    expect(umfang).toMatchObject({ von: DATUM, bis: DATUM, automatisch: process.env.SOCIAL_CARDS_ENTWUERFE !== 'off', horizont: 7, aufbewahrung: 56 })
   })
 
   it('verlangt Anmeldung', async () => {
@@ -98,14 +109,242 @@ describe('admin social-cards Postfach', () => {
     const res = await fetch(`${baseUrl}/admin/social-cards/entwuerfe?von=${DATUM}&bis=${DATUM}`, { headers: adminHeaders(token) })
     const text = (await res.json()).entwuerfe.find((e) => e.slot === 'TB')
     expect(text.bildUrl).toBeNull()
+    expect(text.bildKleinUrl).toBeNull()
     const bild = await fetch(`${baseUrl}/admin/social-cards/entwuerfe/${text.id}/bild`, { headers: adminHeaders(token) })
     expect(bild.status).toBe(404)
   })
 
-  it('liefert das Zeichenmodul für den Editor', async () => {
+  it('liefert das Zeichenmodul mit Anmeldung, bei jedem Aufruf per ETag geprüft', async () => {
     const res = await fetch(`${baseUrl}/admin/social-cards/karten.js`, { headers: adminHeaders(token) })
     expect(res.status).toBe(200)
     expect(res.headers.get('content-type')).toMatch(/javascript/)
+    expect(res.headers.get('cache-control')).toBe('private, no-cache')
     expect(await res.text()).toContain('export function drawCard')
+    // Ohne Sitzung (abgelaufen) kein Modul: Die Seite meldet das, statt still ohne Vorschau zu bleiben
+    expect((await fetch(`${baseUrl}/admin/social-cards/karten.js`)).status).toBe(401)
+  })
+
+  it('leitet die alte Adresse in den Admin um – mit und ohne Anmeldung', async () => {
+    for (const headers of [{}, adminHeaders(token)]) {
+      const res = await fetch(`${baseUrl}/admin/social-cards`, { headers, redirect: 'manual' })
+      expect(res.status).toBe(302)
+      expect(res.headers.get('location')).toBe('/admin#werkzeuge/social-cards')
+      expect(res.headers.get('x-robots-tag')).toMatch(/noindex/)
+    }
+  })
+})
+
+describe('admin social-cards: Beitragstext und Freigeben', () => {
+  let server, baseUrl, token
+  const DATUM2 = '2099-04-07'
+  const post = (eid, body) => fetch(`${baseUrl}/admin/social-cards/entwuerfe/${eid}`, { method: 'POST', headers: adminHeaders(token), body: JSON.stringify(body) })
+  const anlegen = (slot, caption, hashtags) => {
+    speichereEntwuerfe([{ datum: DATUM2, slot, spec: { format: 'T', data: { lemmata: [] } }, caption, hashtags }])
+    return ladeEntwuerfe(DATUM2, DATUM2).find((e) => e.slot === slot).id
+  }
+
+  beforeAll(async () => {
+    const app = express()
+    app.use(cookieParser())
+    app.use(express.json())
+    app.use('/admin', csrfProtect)
+    app.use('/', adminRouter)
+    await new Promise((resolve) => { server = app.listen(0, resolve) })
+    baseUrl = `http://127.0.0.1:${server.address().port}`
+    const adminId = `${PREFIX}-admin2`
+    const nowIso = new Date().toISOString()
+    db.prepare(`INSERT INTO user (id, name, email, emailVerified, image, createdAt, updatedAt) VALUES (?, 'SC Test 2', ?, 1, NULL, ?, ?)`)
+      .run(adminId, `${adminId}@example.test`, nowIso, nowIso)
+    db.prepare(`INSERT INTO user_profiles (user_id, role, created_at, updated_at) VALUES (?, 'admin', ?, ?)`).run(adminId, Date.now(), Date.now())
+    token = randomUUID()
+    db.prepare(`INSERT INTO session (id, userId, token, expiresAt, ipAddress, userAgent, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`)
+      .run(randomUUID(), adminId, token, new Date(Date.now() + 864e5).toISOString(), '127.0.0.1', 'test', nowIso, nowIso)
+  })
+
+  afterAll(async () => {
+    db.prepare('DELETE FROM social_card_entwurf WHERE datum = ?').run(DATUM2)
+    db.prepare('DELETE FROM session WHERE userId LIKE ?').run(`${PREFIX}%`)
+    db.prepare('DELETE FROM user_profiles WHERE user_id LIKE ?').run(`${PREFIX}%`)
+    db.prepare('DELETE FROM user WHERE id LIKE ?').run(`${PREFIX}%`)
+    if (server) await new Promise((resolve) => server.close(resolve))
+  })
+
+  it('gibt 300 Zeichen mit Hashtags frei, 301 nicht (gezählt wird, was gepostet würde)', async () => {
+    const tags = '#Linguistik #DeutscheSprache'
+    const rest = BLUESKY_MAX_ZEICHEN - zeichenZahl(`\n\n${tags}`)
+    // Umlaute zählen als ein Zeichen (Graphem), nicht als zwei Bytes
+    const genau = anlegen('A', 'ä'.repeat(rest), tags)
+    expect(zeichenZahl(`${'ä'.repeat(rest)}\n\n${tags}`)).toBe(300)
+    const zuLang = anlegen('B', 'ä'.repeat(rest + 1), tags)
+
+    let res = await post(zuLang, { status: 'freigegeben' })
+    expect(res.status).toBe(409)
+    expect((await res.json()).error).toBe('Zu lang für Bluesky: 1 Zeichen kürzen.')
+    expect(ladeEntwuerfe(DATUM2, DATUM2).find((e) => e.id === zuLang).status).toBe('offen')
+
+    res = await post(genau, { status: 'freigegeben' })
+    expect(res.status).toBe(200)
+    expect((await res.json()).entwurf.status).toBe('freigegeben')
+  })
+
+  it('prüft beim Freigeben auch den mitgeschickten Text – und ändert dann nichts', async () => {
+    const eid = anlegen('X', 'kurz', '')
+    const res = await post(eid, { caption: 'x'.repeat(301), status: 'freigegeben' })
+    expect(res.status).toBe(409)
+    const e = ladeEntwuerfe(DATUM2, DATUM2).find((x) => x.id === eid)
+    expect(e).toMatchObject({ caption: 'kurz', status: 'offen' })
+    const ok = await post(eid, { caption: 'x'.repeat(300), status: 'freigegeben' })
+    expect(ok.status).toBe(200)
+  })
+
+  it('erlaubt einen längeren Beitragstext, solange er nicht freigegeben wird (bis 2 200 Zeichen)', async () => {
+    const eid = anlegen('TB', 'kurz', '')
+    expect((await post(eid, { caption: 'y'.repeat(2200) })).status).toBe(200)
+    expect((await post(eid, { caption: 'y'.repeat(2201) })).status).toBe(400)
+  })
+
+  it('liefert die kleine Fassung, ersatzweise die volle, und zählt Bildabrufe nicht gegen das Admin-Limit', async () => {
+    const eid = anlegen('T', 'Bild', '')
+    mkdirSync(BILD_DIR, { recursive: true })
+    const gross = `entwurf-${eid}.png`
+    writeFileSync(join(BILD_DIR, gross), 'GROSS-GROSS-GROSS')
+    setzeBild(eid, gross)
+    const url = (q) => `${baseUrl}/admin/social-cards/entwuerfe/${eid}/bild${q}`
+    try {
+      // Vorschau fehlt noch → volle Datei, kurz zwischengespeichert
+      let res = await fetch(url('?groesse=klein'), { headers: adminHeaders(token) })
+      expect(await res.text()).toBe('GROSS-GROSS-GROSS')
+      expect(res.headers.get('cache-control')).toBe('private, max-age=60')
+
+      writeFileSync(join(BILD_DIR, kleinDatei(gross)), 'klein')
+      res = await fetch(url('?groesse=klein'), { headers: adminHeaders(token) })
+      expect(await res.text()).toBe('klein')
+      expect(res.headers.get('cache-control')).toBe('private, max-age=3600')
+      res = await fetch(url(''), { headers: adminHeaders(token) })
+      expect(await res.text()).toBe('GROSS-GROSS-GROSS')
+      // Der Download ist immer die volle Fassung
+      res = await fetch(url('?groesse=klein&download'), { headers: adminHeaders(token) })
+      expect(await res.text()).toBe('GROSS-GROSS-GROSS')
+      expect(res.headers.get('content-disposition')).toMatch(/attachment/)
+
+      // Eine Liste lädt ~15 Vorschauen auf einmal: 61 Abrufe in einer Minute bleiben ohne 429 …
+      const stati = []
+      for (let i = 0; i < 61; i++) stati.push((await fetch(url('?groesse=klein'), { headers: adminHeaders(token) })).status)
+      expect(stati.every((s) => s === 200)).toBe(true)
+      // … und die übrigen Admin-Abrufe sind davon unberührt
+      const liste = await fetch(`${baseUrl}/admin/social-cards/entwuerfe?von=${DATUM2}&bis=${DATUM2}`, { headers: adminHeaders(token) })
+      expect(liste.status).toBe(200)
+    } finally {
+      rmSync(join(BILD_DIR, gross), { force: true })
+      rmSync(join(BILD_DIR, kleinDatei(gross)), { force: true })
+    }
+  })
+})
+
+describe('admin social-cards: Neu erstellen und Änderungsprotokoll', () => {
+  // Eigener Router mit Attrappen: Die echte Neuerstellung braucht Korpus und Browser
+  const erzeuge = (erneuereEntwurf, { reihenfolge = [], bildPfad } = {}) => {
+    const auditUpdate = vi.fn()
+    const durch = (_req, _res, next) => next()
+    const router = createAdminSocialCardsRouter({
+      requireAuth: (req, _res, next) => { reihenfolge.push('auth'); req.adminSessionId = 'sitzung-1'; next() },
+      adminLimiter: durch,
+      adminBildLimiter: (_req, _res, next) => { reihenfolge.push('limiter'); next() },
+      validate,
+      adminSocialCardsTagesdataSchema,
+      adminSocialCardsBelegeSchema,
+      adminSocialCardsEntwuerfeQuerySchema,
+      adminSocialCardsEntwurfParamsSchema,
+      adminSocialCardsEntwurfPatchSchema,
+      ladeEntwurf: (eid) => (Number(eid) === 11 ? { id: 11, datum: '2099-05-04', slot: 'A', spec: {}, status: 'offen' } : null),
+      erneuereEntwurf,
+      bildPfad,
+      auditUpdate,
+      adminError: (res, err) => res.status(500).json({ error: err.message }),
+      entwurfEinstellungen: () => ({}),
+      kartenModulPath: '/nicht-benoetigt',
+    })
+    const app = express()
+    app.use(express.json())
+    app.use('/', router)
+    return { app, auditUpdate }
+  }
+  const starte = (app) => new Promise((resolve) => { const s = app.listen(0, () => resolve(s)) })
+
+  it('schreibt für Rätsel und Auflösung je einen Protokolleintrag mit altem und neuem Text', async () => {
+    const { app, auditUpdate } = erzeuge(async () => ({
+      ok: true,
+      ersetzt: [
+        { id: 11, vorher: { caption: 'alt Rätsel', hashtags: '#a' }, nachher: { caption: 'neu Rätsel', hashtags: '#a' } },
+        { id: 12, vorher: { caption: 'alt Auflösung', hashtags: '' }, nachher: { caption: 'neu Auflösung', hashtags: '' } },
+      ],
+    }))
+    const server = await starte(app)
+    try {
+      const res = await fetch(`http://127.0.0.1:${server.address().port}/admin/social-cards/entwuerfe/11/neu`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{}' })
+      expect(res.status).toBe(200)
+      expect(await res.json()).toEqual({ ok: true, ersetzt: [11, 12] })
+      expect(auditUpdate).toHaveBeenCalledTimes(2)
+      expect(auditUpdate).toHaveBeenNthCalledWith(1, 'social_card_entwurf', '11',
+        { caption: 'alt Rätsel', hashtags: '#a' }, { caption: 'neu Rätsel', hashtags: '#a', neuErstellt: true },
+        expect.objectContaining({ adminKey: 'sitzung-1' }))
+      expect(auditUpdate.mock.calls[1][1]).toBe('12')
+    } finally {
+      await new Promise((resolve) => server.close(resolve))
+    }
+  })
+
+  it('Zeichenfehler beim Neuerstellen: Antwort ok mit bildFehlt, Protokoll wird trotzdem geschrieben', async () => {
+    const { app, auditUpdate } = erzeuge(async () => ({
+      ok: true,
+      bildFehlt: true,
+      ersetzt: [{ id: 11, vorher: { caption: 'alt', hashtags: '' }, nachher: { caption: 'neu', hashtags: '' } }],
+    }))
+    const server = await starte(app)
+    try {
+      const res = await fetch(`http://127.0.0.1:${server.address().port}/admin/social-cards/entwuerfe/11/neu`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{}' })
+      expect(res.status).toBe(200)
+      expect(await res.json()).toEqual({ ok: true, ersetzt: [11], bildFehlt: true })
+      expect(auditUpdate).toHaveBeenCalledTimes(1)
+      expect(auditUpdate.mock.calls[0][3]).toEqual({ caption: 'neu', hashtags: '', neuErstellt: true })
+    } finally {
+      await new Promise((resolve) => server.close(resolve))
+    }
+  })
+
+  it('Zeichenmodul: Limiter läuft VOR der Anmeldeprüfung', async () => {
+    const reihenfolge = []
+    const { app } = erzeuge(async () => ({ ok: false, grund: 'x' }), { reihenfolge })
+    const server = await starte(app)
+    try {
+      await fetch(`http://127.0.0.1:${server.address().port}/admin/social-cards/karten.js`)
+      expect(reihenfolge).toEqual(['limiter', 'auth'])
+    } finally {
+      await new Promise((resolve) => server.close(resolve))
+    }
+  })
+
+  it('Bild-Route: Entwurf unterdessen gelöscht (bildPfad liefert null) → 404 statt 500', async () => {
+    const { app } = erzeuge(async () => ({ ok: false, grund: 'x' }), { bildPfad: async () => null })
+    const server = await starte(app)
+    try {
+      const res = await fetch(`http://127.0.0.1:${server.address().port}/admin/social-cards/entwuerfe/11/bild`)
+      expect(res.status).toBe(404)
+    } finally {
+      await new Promise((resolve) => server.close(resolve))
+    }
+  })
+
+  it('protokolliert nichts, wenn das Neuerstellen abgelehnt wird (Partner schon entschieden)', async () => {
+    const { app, auditUpdate } = erzeuge(async () => ({ ok: false, grund: 'Rätsel und Auflösung gehören zusammen – beide müssen offen sein.' }))
+    const server = await starte(app)
+    try {
+      const res = await fetch(`http://127.0.0.1:${server.address().port}/admin/social-cards/entwuerfe/11/neu`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{}' })
+      expect(res.status).toBe(409)
+      expect((await res.json()).error).toMatch(/gehören zusammen/)
+      expect(auditUpdate).not.toHaveBeenCalled()
+    } finally {
+      await new Promise((resolve) => server.close(resolve))
+    }
   })
 })

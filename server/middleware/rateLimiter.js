@@ -77,6 +77,7 @@ function getBearerOrIp(req) {
 // Globale Store-Instanzen (teilen sich den Cleanup-Timer)
 const belegeStore = new CleanupStore(60_000)
 const adminStore = new CleanupStore(60_000)
+const adminBildStore = new CleanupStore(60_000)
 const statsStore = new CleanupStore(60_000)
 const classroomJoinStore = new CleanupStore(5 * 60_000)
 const classroomHeartbeatStore = new CleanupStore(60_000)
@@ -108,6 +109,17 @@ export const adminLimiter = rateLimit({
   keyGenerator: getClientIp,
   standardHeaders: true, legacyHeaders: false,
   message: { error: 'Zu viele Admin-Anfragen, bitte kurz warten.' },
+})
+
+// Bildabrufe der Social-Card-Entwürfe: Eine Liste lädt bis zu ~15 Vorschauen auf einmal. Sie zählen deshalb
+// nicht gegen adminLimiter (60/min), sondern haben ein eigenes, weiteres Limit. Es sind gecachte Dateien
+// ohne Rechenlast (nur ein fehlendes Bild wird einmalig nachgezeichnet, serialisiert).
+export const adminBildLimiter = rateLimit({
+  windowMs: 60_000, max: E2E_LOCKERE_LIMITS ? 6000 : 300,
+  store: adminBildStore,
+  keyGenerator: getClientIp,
+  standardHeaders: true, legacyHeaders: false,
+  message: { error: 'Zu viele Bildabrufe, bitte kurz warten.' },
 })
 
 export const statsLimiter = rateLimit({

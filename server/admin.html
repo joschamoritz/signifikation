@@ -1003,6 +1003,228 @@
         </form>
       </section>
 
+      <section class="admin-page be-seite in-seite so-seite" id="page-social" data-title="Social Cards" data-subtitle="Entwürfe für Bluesky prüfen und freigeben. Veröffentlicht wird nichts: Freigegebene Beiträge postest du selbst.">
+        <p class="li-meldung" id="so-pf-meldung" role="status" aria-live="polite" tabindex="-1"></p>
+        <div class="so-pf-umfang">
+          <p class="so-pf-zahlen" id="so-pf-zahlen"></p>
+          <button type="button" class="adm-link" data-action="so-pf-neu-laden" id="so-pf-neu-laden">neu laden</button>
+        </div>
+        <div class="so-pf-liste" id="so-pf-liste" aria-busy="false"></div>
+
+        <section class="tag-abschnitt" aria-labelledby="so-pf-anlegen-titel">
+          <h2 class="tag-abschnitt-titel" id="so-pf-anlegen-titel">Entwürfe anlegen</h2>
+          <p class="tag-abschnitt-text" id="so-pf-automatik"></p>
+          <details class="be-roh so-plan">
+            <summary>Wochenplan anzeigen</summary>
+            <dl class="tag-dl be-dl">
+              <div><dt>Jeden Tag</dt><dd><span class="be-wert">Teaser</span> <span class="be-zusatz">Bild mit den drei Wörtern des Tages</span></dd></div>
+              <div><dt>Montag</dt><dd><span class="be-wert">Rätsel</span> <span class="be-zusatz">Bild; Auflösung am Dienstag als Antwort</span></dd></div>
+              <div><dt>Dienstag, Donnerstag</dt><dd><span class="be-wert">Textbeleg</span> <span class="be-zusatz">nur Text; Auflösung am Folgetag</span></dd></div>
+              <div><dt>Mittwoch</dt><dd><span class="be-wert">Zitat</span> <span class="be-zusatz">Bild</span></dd></div>
+              <div><dt>Freitag</dt><dd><span class="be-wert">Beleg</span> <span class="be-zusatz">Bild; Auflösung am Samstag</span></dd></div>
+            </dl>
+            <p class="tag-hinweis">Rätsel, Belege und Zitat nehmen das erste Wort des Vortags – mit dem Wort des Tages verrieten sie die Lösung des laufenden Spiels. Belege aus den Leipziger Zeitungskorpora kommen nicht auf Karten.</p>
+          </details>
+          <div class="be-aktionen">
+            <button type="button" class="adm-cta" data-action="so-pf-anlegen" id="so-pf-anlegen"><span id="so-pf-anlegen-text">Fehlende Entwürfe jetzt anlegen</span> <span aria-hidden="true">→</span></button>
+          </div>
+          <p class="li-meldung" id="so-pf-anlegen-meldung" role="status" aria-live="polite" tabindex="-1"></p>
+        </section>
+      </section>
+
+      <section class="admin-page in-seite so-seite so-ed-seite" id="page-social-editor" data-title="Social Cards" data-subtitle="Eine Karte selbst gestalten und als Bild herunterladen. Gespeichert wird nichts.">
+        <p class="li-meldung" id="so-ed-meldung" role="status" aria-live="polite" tabindex="-1"></p>
+        <form class="so-ed" id="so-ed" novalidate>
+          <div class="so-ed-felder">
+            <section class="tag-abschnitt" aria-labelledby="so-ed-inhalt-titel">
+              <h2 class="tag-abschnitt-titel" id="so-ed-inhalt-titel">Inhalt</h2>
+              <div class="tag-feld">
+                <label class="tag-label" for="so-datum">Tag</label>
+                <div class="tag-wert"><input class="tag-eingabe tag-eingabe--datum" type="date" id="so-datum" aria-describedby="so-datum-hinweis"></div>
+              </div>
+              <p class="tag-hinweis in-feld-hinweis" id="so-datum-hinweis" aria-live="polite"></p>
+
+              <fieldset class="so-wahl" id="so-vorlage">
+                <legend class="tag-label">Vorlage</legend>
+                <label class="so-wahl-zeile"><input type="radio" name="so-vorlage" value="A" checked><span class="so-wahl-name">Rätsel</span><span class="so-wahl-text">Welcher Kollokator ist am stärksten mit dem Wort verbunden?</span></label>
+                <label class="so-wahl-zeile"><input type="radio" name="so-vorlage" value="B"><span class="so-wahl-name">Beleg</span><span class="so-wahl-text">Echter Satz aus dem Korpus mit Lücke</span></label>
+                <label class="so-wahl-zeile"><input type="radio" name="so-vorlage" value="C"><span class="so-wahl-name">Wort-Zwilling</span><span class="so-wahl-text">Kollokatoren zwei Wörtern zuordnen</span></label>
+                <label class="so-wahl-zeile"><input type="radio" name="so-vorlage" value="X"><span class="so-wahl-name">Info</span><span class="so-wahl-text">Wortgeschichte, Zitat oder Beobachtung</span></label>
+                <label class="so-wahl-zeile"><input type="radio" name="so-vorlage" value="T"><span class="so-wahl-name">Teaser</span><span class="so-wahl-text">Die drei Wörter des Tages</span></label>
+              </fieldset>
+
+              <div class="tag-feld" id="so-wort-feld">
+                <label class="tag-label" for="so-wort">Wort</label>
+                <div class="tag-wert"><select class="tag-auswahl" id="so-wort" aria-describedby="so-wort-hinweis"></select></div>
+              </div>
+              <p class="tag-hinweis in-feld-hinweis" id="so-wort-hinweis" aria-live="polite"></p>
+
+              <!-- Rätsel -->
+              <div class="so-fmt" data-fmt="A">
+                <div class="tag-feld">
+                  <span class="tag-label">Richtige Antwort</span>
+                  <p class="tag-wert so-antwort" id="so-a-antwort"></p>
+                </div>
+                <div class="tag-feld">
+                  <label class="tag-label" for="so-a-abl1">Ablenker 1</label>
+                  <div class="tag-wert"><select class="tag-auswahl" id="so-a-abl1"></select></div>
+                </div>
+                <div class="tag-feld">
+                  <label class="tag-label" for="so-a-abl2">Ablenker 2</label>
+                  <div class="tag-wert"><select class="tag-auswahl" id="so-a-abl2"></select></div>
+                </div>
+              </div>
+
+              <!-- Beleg -->
+              <div class="so-fmt" data-fmt="B" hidden>
+                <div class="tag-feld">
+                  <label class="tag-label" for="so-b-kollokator">Kollokator</label>
+                  <div class="tag-wert"><select class="tag-auswahl" id="so-b-kollokator"></select></div>
+                </div>
+                <div class="tag-feld">
+                  <label class="tag-label" for="so-b-beleg">Beleg</label>
+                  <div class="tag-wert"><select class="tag-auswahl" id="so-b-beleg" aria-describedby="so-b-beleg-hinweis"></select></div>
+                </div>
+                <p class="tag-hinweis in-feld-hinweis" id="so-b-beleg-hinweis" aria-live="polite"></p>
+                <div class="tag-feld">
+                  <label class="tag-label" for="so-b-text">Satz mit Lücke</label>
+                  <div class="tag-wert"><textarea class="tag-eingabe so-mehrzeilig" id="so-b-text" rows="4" spellcheck="false"></textarea></div>
+                </div>
+                <div class="tag-feld">
+                  <label class="tag-label" for="so-b-quelle">Quelle auf der Karte</label>
+                  <div class="tag-wert"><input class="tag-eingabe" type="text" id="so-b-quelle" maxlength="200" placeholder="z. B. Deutscher Bundestag · CC BY 4.0"></div>
+                </div>
+                <label class="be-check" for="so-b-optionen"><input type="checkbox" id="so-b-optionen"><span>Antwortmöglichkeiten zeigen (A, B, C)</span></label>
+                <div class="so-b-ablenker" id="so-b-ablenker" hidden>
+                  <div class="tag-feld">
+                    <label class="tag-label" for="so-b-abl1">Ablenker 1</label>
+                    <div class="tag-wert"><select class="tag-auswahl" id="so-b-abl1"></select></div>
+                  </div>
+                  <div class="tag-feld">
+                    <label class="tag-label" for="so-b-abl2">Ablenker 2</label>
+                    <div class="tag-wert"><select class="tag-auswahl" id="so-b-abl2"></select></div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Wort-Zwilling -->
+              <div class="so-fmt" data-fmt="C" hidden>
+                <p class="tag-hinweis" id="so-c-hinweis" aria-live="polite"></p>
+                <div class="tag-feld">
+                  <label class="tag-label" for="so-c-wort-a">Wort A</label>
+                  <div class="tag-wert"><input class="tag-eingabe tag-eingabe--wort" type="text" id="so-c-wort-a" maxlength="60" autocomplete="off" spellcheck="false"></div>
+                </div>
+                <div class="tag-feld">
+                  <label class="tag-label" for="so-c-koll-a">Kollokatoren zu Wort A <span class="tag-label-zusatz">durch Komma getrennt, höchstens vier</span></label>
+                  <div class="tag-wert"><input class="tag-eingabe" type="text" id="so-c-koll-a" maxlength="200" autocomplete="off" spellcheck="false"></div>
+                </div>
+                <div class="tag-feld">
+                  <label class="tag-label" for="so-c-wort-b">Wort B</label>
+                  <div class="tag-wert"><input class="tag-eingabe tag-eingabe--wort" type="text" id="so-c-wort-b" maxlength="60" autocomplete="off" spellcheck="false"></div>
+                </div>
+                <div class="tag-feld">
+                  <label class="tag-label" for="so-c-koll-b">Kollokatoren zu Wort B <span class="tag-label-zusatz">durch Komma getrennt, höchstens vier</span></label>
+                  <div class="tag-wert"><input class="tag-eingabe" type="text" id="so-c-koll-b" maxlength="200" autocomplete="off" spellcheck="false"></div>
+                </div>
+                <div class="so-vorschlaege" id="so-c-vorschlaege"></div>
+                <p class="li-meldung" id="so-ed-vorschlag-meldung" role="status" aria-live="polite" tabindex="-1"></p>
+              </div>
+
+              <!-- Info -->
+              <div class="so-fmt" data-fmt="X" hidden>
+                <div class="tag-feld">
+                  <label class="tag-label" for="so-x-rubrik">Rubrik</label>
+                  <div class="tag-wert"><input class="tag-eingabe" type="text" id="so-x-rubrik" list="so-x-rubriken" maxlength="40" placeholder="z. B. Wortgeschichte"></div>
+                  <datalist id="so-x-rubriken"><option value="Wortgeschichte"></option><option value="Korpusfakt"></option><option value="Sprachbeobachtung"></option><option value="Etymologie"></option><option value="Korpusanalyse"></option><option value="Sprachvergleich"></option><option value="Wort des Tages"></option><option value="Zitat"></option></datalist>
+                </div>
+                <div class="tag-feld">
+                  <label class="tag-label" for="so-x-wort">Wort auf der Karte <span class="tag-label-zusatz">optional</span></label>
+                  <div class="tag-wert"><input class="tag-eingabe tag-eingabe--wort" type="text" id="so-x-wort" maxlength="60"></div>
+                </div>
+                <div class="tag-feld">
+                  <label class="tag-label" for="so-x-titel">Überschrift <span class="tag-label-zusatz">bei Zitaten: Quelle</span></label>
+                  <div class="tag-wert"><input class="tag-eingabe" type="text" id="so-x-titel" maxlength="200"></div>
+                </div>
+                <div class="tag-feld">
+                  <label class="tag-label" for="so-x-text">Text <span class="tag-label-zusatz">zwei bis vier Sätze</span></label>
+                  <div class="tag-wert"><textarea class="tag-eingabe so-mehrzeilig" id="so-x-text" rows="4" maxlength="600"></textarea></div>
+                </div>
+                <div class="tag-neben so-x-korpus">
+                  <button type="button" class="tag-neben-knopf" data-action="so-x-korpus-auf" aria-expanded="false" aria-controls="so-x-korpus">Zitat aus dem Korpus übernehmen</button>
+                  <div class="tag-neben-felder is-hidden" id="so-x-korpus">
+                    <label class="tag-label" for="so-x-kollokator">Kollokator</label>
+                    <select class="tag-auswahl" id="so-x-kollokator"></select>
+                    <label class="tag-label" for="so-x-beleg">Beleg</label>
+                    <select class="tag-auswahl" id="so-x-beleg"></select>
+                    <div class="be-aktionen"><button type="button" class="adm-link" data-action="so-x-zitat">Als Zitat einsetzen</button></div>
+                    <p class="li-meldung" id="so-ed-korpus-meldung" role="status" aria-live="polite" tabindex="-1"></p>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Teaser -->
+              <div class="so-fmt" data-fmt="T" hidden>
+                <p class="tag-hinweis" id="so-t-hinweis"></p>
+              </div>
+            </section>
+
+            <section class="tag-abschnitt" aria-labelledby="so-ed-aussehen-titel">
+              <h2 class="tag-abschnitt-titel" id="so-ed-aussehen-titel">Aussehen</h2>
+              <fieldset class="so-reihe">
+                <legend class="tag-label">Farbe</legend>
+                <label class="so-reihe-wahl"><input type="radio" name="so-farbe" value="hell" checked><span>Hell</span></label>
+                <label class="so-reihe-wahl"><input type="radio" name="so-farbe" value="dunkel"><span>Dunkel</span></label>
+                <label class="so-reihe-wahl"><input type="radio" name="so-farbe" value="rot"><span>Rot</span></label>
+              </fieldset>
+              <fieldset class="so-reihe">
+                <legend class="tag-label">Format</legend>
+                <label class="so-reihe-wahl"><input type="radio" name="so-format" value="4:5" checked><span>Beitrag <span class="so-zusatz">4 : 5</span></span></label>
+                <label class="so-reihe-wahl"><input type="radio" name="so-format" value="9:16"><span>Story <span class="so-zusatz">9 : 16</span></span></label>
+              </fieldset>
+              <label class="be-check" for="so-aufloesung" id="so-aufloesung-zeile"><input type="checkbox" id="so-aufloesung"><span>Auflösung zeigen</span></label>
+              <label class="be-check" for="so-kopf"><input type="checkbox" id="so-kopf" checked><span>Kopf mit Name und Datum</span></label>
+            </section>
+
+            <section class="tag-abschnitt" aria-labelledby="so-ed-text-titel">
+              <h2 class="tag-abschnitt-titel" id="so-ed-text-titel">Beitragstext</h2>
+              <p class="tag-abschnitt-text" id="so-ed-plan"></p>
+              <div class="tag-feld">
+                <label class="tag-label" for="so-text-vorlage">Textvorlage</label>
+                <div class="tag-wert"><select class="tag-auswahl" id="so-text-vorlage"></select></div>
+              </div>
+              <div class="tag-feld">
+                <label class="tag-label" for="so-text">Text <span class="tag-label-zusatz" id="so-text-stand"></span></label>
+                <div class="tag-wert"><textarea class="tag-eingabe so-mehrzeilig" id="so-text" rows="6" spellcheck="true" aria-describedby="so-text-zaehler"></textarea></div>
+              </div>
+              <div class="tag-feld">
+                <label class="tag-label" for="so-tags">Hashtags</label>
+                <div class="tag-wert"><select class="tag-auswahl" id="so-tags" aria-describedby="so-tags-zeile"></select></div>
+              </div>
+              <p class="so-tags-zeile" id="so-tags-zeile"></p>
+              <span class="in-zaehler" id="so-text-zaehler"></span>
+              <div class="be-aktionen">
+                <button type="button" class="adm-link" data-action="so-ed-kopieren" id="so-ed-kopieren">Text kopieren</button>
+                <button type="button" class="adm-link" data-action="so-ed-text-neu" id="so-ed-text-neu" hidden>Text aus der Vorlage neu einsetzen</button>
+              </div>
+              <p class="li-meldung" id="so-ed-text-meldung" role="status" aria-live="polite" tabindex="-1"></p>
+            </section>
+          </div>
+
+          <div class="so-ed-vorschau">
+            <h2 class="tag-abschnitt-titel" id="so-ed-vorschau-titel">Vorschau</h2>
+            <figure class="so-karte" aria-labelledby="so-ed-vorschau-titel">
+              <canvas id="so-canvas" width="1080" height="1350" role="img" aria-label="Karte wird gezeichnet …"></canvas>
+              <figcaption class="so-karte-masse" id="so-karte-masse"></figcaption>
+            </figure>
+            <div class="be-aktionen">
+              <button type="button" class="adm-cta" data-action="so-ed-laden" id="so-ed-laden"><span id="so-ed-laden-text">Bild herunterladen</span> <span aria-hidden="true">→</span></button>
+              <button type="button" class="adm-link" data-action="so-ed-mischen" id="so-ed-mischen">Reihenfolge neu mischen</button>
+            </div>
+            <p class="li-meldung" id="so-ed-vorschau-meldung" role="status" aria-live="polite" tabindex="-1"></p>
+          </div>
+        </form>
+      </section>
+
       <section class="admin-page" id="page-werkzeuge" data-title="Werkzeuge" data-subtitle="Inhalte pflegen, Betrieb und selten gebrauchte Aufgaben.">
         <section class="adm-section">
           <h2 class="adm-overline">Inhalte pflegen</h2>
@@ -1010,6 +1232,7 @@
             <li><a class="adm-tool" href="#werkzeuge/pruefen"><span class="adm-tool-main"><span class="adm-tool-title">Wort prüfen</span><span class="adm-tool-meta">Eignung für Kollokationen, Wort-Zwilling, Zeitenwende und Lückenfüller testen</span></span><span class="adm-tool-go" aria-hidden="true">→</span></a></li>
             <li><a class="adm-tool" href="#werkzeuge/bonus-tage"><span class="adm-tool-main"><span class="adm-tool-title">Bonus-Tage</span><span class="adm-tool-meta">Tage mit zusätzlichen Spielen mit eigenem Lemma für Konten mit Basiszugang</span></span><span class="adm-tool-stand" id="wz-stand-bonus"></span><span class="adm-tool-go" aria-hidden="true">→</span></a></li>
             <li><a class="adm-tool" href="#werkzeuge/benachrichtigungen"><span class="adm-tool-main"><span class="adm-tool-title">Benachrichtigungen</span><span class="adm-tool-meta">Nachricht an alle Geräte senden, Vorlagen für den täglichen Versand</span></span><span class="adm-tool-stand" id="wz-stand-push"></span><span class="adm-tool-go" aria-hidden="true">→</span></a></li>
+            <li><a class="adm-tool" href="#werkzeuge/social-cards" aria-describedby="wz-stand-social"><span class="adm-tool-main"><span class="adm-tool-title">Social Cards</span><span class="adm-tool-meta">Entwürfe für Bluesky prüfen und freigeben, eigene Karten gestalten</span></span><span class="adm-tool-stand" id="wz-stand-social"></span><span class="adm-tool-go" aria-hidden="true">→</span></a></li>
           </ul>
         </section>
 
@@ -1028,7 +1251,6 @@
           <ul class="adm-tools">
             <li><a class="adm-tool" href="#werkzeuge/klassenraum-demo"><span class="adm-tool-main"><span class="adm-tool-title">Klassenraum-Demo</span><span class="adm-tool-meta">Wörter der Vorschau für Lehrkräfte ohne Anmeldung</span></span><span class="adm-tool-go" aria-hidden="true">→</span></a></li>
             <li><a class="adm-tool" href="#werkzeuge/wort-der-woche"><span class="adm-tool-main"><span class="adm-tool-title">Wort der Woche</span><span class="adm-tool-meta">Zusätzliches Wort für eine Kalenderwoche eintragen</span></span><span class="adm-tool-stand" id="wz-stand-woche"></span><span class="adm-tool-go" aria-hidden="true">→</span></a></li>
-            <li><a class="adm-tool" href="/admin/social-cards"><span class="adm-tool-main"><span class="adm-tool-title">Social Cards</span><span class="adm-tool-meta">Bilder für soziale Netzwerke erzeugen · eigene Seite</span></span><span class="adm-tool-go" aria-hidden="true">→</span></a></li>
           </ul>
         </section>
 
@@ -1143,6 +1365,7 @@
               <option value="bonus_tag">Bonus-Tage</option>
               <option value="spezialwoche">Wort der Woche</option>
               <option value="demo">Klassenraum-Demo</option>
+              <option value="social_card_entwurf">Social Cards</option>
               <option value="backup">Sicherung</option>
               <option value="security">Anmeldung und Zahlung</option>
             </select>

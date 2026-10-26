@@ -1,8 +1,10 @@
 import express from 'express'
+import { zeichenZahl, BLUESKY_MAX_ZEICHEN } from '../../shared/socialCards.js'
 
 export function createAdminSocialCardsRouter({
   requireAuth,
   adminLimiter,
+  adminBildLimiter,
   validate,
   adminSocialCardsTagesdataSchema,
   adminSocialCardsBelegeSchema,
@@ -24,7 +26,7 @@ export function createAdminSocialCardsRouter({
   verschiebeDatum,
   auditUpdate,
   adminError,
-  socialCardsPath,
+  entwurfEinstellungen,
   kartenModulPath,
 }) {
   const router = express.Router()
@@ -32,23 +34,19 @@ export function createAdminSocialCardsRouter({
   // jeden Pfad mit Punkt-Ordner ablehnt (z. B. Worktrees unter .claude/).
   const DATEI = { dotfiles: 'allow' }
 
-  router.get('/admin/social-cards', requireAuth, (_req, res) => {
-    res.setHeader('Content-Security-Policy',
-      "default-src 'self'; " +
-      "script-src 'self' 'unsafe-inline'; " +
-      "style-src 'self' 'unsafe-inline'; " +
-      "font-src 'self'; " +
-      "img-src 'self' data:; " +
-      "connect-src 'self'; " +
-      "frame-ancestors 'none';"
-    )
-    res.sendFile(socialCardsPath, DATEI)
+  // Alte Adresse der eigenständigen Seite: Lesezeichen führen in den Admin. Ohne Anmeldung, weil
+  // die Weiterleitung nichts verrät – die Admin-Seite meldet selbst an.
+  router.get('/admin/social-cards', (_req, res) => {
+    res.setHeader('X-Robots-Tag', 'noindex, nofollow, noarchive')
+    res.redirect(302, '/admin#werkzeuge/social-cards')
   })
 
-  // Zeichenmodul (shared/socialCards.js) für den Editor – dieselbe Datei
-  // zeichnet auf dem Server die Entwürfe.
-  router.get('/admin/social-cards/karten.js', requireAuth, (_req, res) => {
-    res.type('text/javascript').setHeader('Cache-Control', 'no-cache')
+  // Zeichenmodul (shared/socialCards.js) – dieselbe Datei zeichnet auf dem Server die Entwürfe
+  // und im Admin (dynamischer Import) die Vorschau von „Selbst gestalten“. Nur mit Anmeldung;
+  // no-cache = bei jedem Aufruf per ETag prüfen, nach einem Deploy also sofort aktuell. Der Limiter
+  // steht vor der Anmeldeprüfung, damit auch unangemeldete Abrufe gezählt werden.
+  router.get('/admin/social-cards/karten.js', adminBildLimiter, requireAuth, (_req, res) => {
+    res.type('text/javascript').setHeader('Cache-Control', 'private, no-cache')
     res.sendFile(kartenModulPath, DATEI)
   })
 
@@ -91,17 +89,30 @@ export function createAdminSocialCardsRouter({
   // ── Postfach: automatisch erzeugte Entwürfe (Stufe 1, ohne Veröffentlichen) ──
 
   const istText = (e) => e.spec?.format === 'text'
-  const ohneBildpfad = ({ bild: _bild, ...e }) => ({
-    ...e,
-    bildUrl: istText(e) ? null : `/admin/social-cards/entwuerfe/${e.id}/bild?v=${encodeURIComponent(e.aktualisiertAm)}`,
-  })
+  const ohneBildpfad = ({ bild: _bild, ...e }) => {
+    const basis = `/admin/social-cards/entwuerfe/${e.id}/bild`
+    const v = `v=${encodeURIComponent(e.aktualisiertAm)}`
+    return {
+      ...e,
+      bildUrl: istText(e) ? null : `${basis}?${v}`,
+      // Kleine Vorschau für die Liste; fehlt sie noch, liefert dieselbe Adresse die volle Fassung
+      bildKleinUrl: istText(e) ? null : `${basis}?groesse=klein&${v}`,
+    }
+  }
+
+  // Zeichenzahl wie Bluesky: Text, Leerzeile, Hashtags
+  const postZeichen = (caption, hashtags) => zeichenZahl(hashtags ? `${caption}\n\n${hashtags}` : caption)
 
   router.get('/admin/social-cards/entwuerfe', adminLimiter, requireAuth, validate(adminSocialCardsEntwuerfeQuerySchema, 'query'), (req, res) => {
     try {
       const heute = berlinHeute()
       const von = req.query.von ?? heute
       const bis = req.query.bis ?? verschiebeDatum(heute, 14)
-      res.json({ von, bis, entwuerfe: ladeEntwuerfe(von, bis).map(ohneBildpfad) })
+      res.json({
+        von, bis,
+        entwuerfe: ladeEntwuerfe(von, bis).map(ohneBildpfad),
+        ...entwurfEinstellungen(),
+      })
     } catch (err) {
       adminError(res, err)
     }
@@ -115,13 +126,17 @@ export function createAdminSocialCardsRouter({
     }
   })
 
-  router.get('/admin/social-cards/entwuerfe/:id/bild', adminLimiter, requireAuth, validate(adminSocialCardsEntwurfParamsSchema, 'params'), async (req, res) => {
+  router.get('/admin/social-cards/entwuerfe/:id/bild', adminBildLimiter, requireAuth, validate(adminSocialCardsEntwurfParamsSchema, 'params'), async (req, res) => {
     try {
       const entwurf = ladeEntwurf(req.params.id)
       if (!entwurf) return res.status(404).json({ error: 'Entwurf nicht gefunden' })
       if (istText(entwurf)) return res.status(404).json({ error: 'Textbeitrag ohne Bild' })
-      const pfad = await bildPfad(entwurf)
-      res.setHeader('Cache-Control', 'private, max-age=3600')
+      const klein = req.query.groesse === 'klein' && req.query.download === undefined
+      const pfad = await bildPfad(entwurf, { groesse: klein ? 'klein' : 'gross' })
+      if (!pfad) return res.status(404).json({ error: 'Entwurf nicht gefunden' })
+      // Fehlt die Vorschau noch, kommt die volle Fassung – dann nicht lange zwischenspeichern
+      const ersatz = klein && !pfad.endsWith('-klein.png')
+      res.setHeader('Cache-Control', ersatz ? 'private, max-age=60' : 'private, max-age=3600')
       if (req.query.download !== undefined) {
         res.attachment(`signifikation-${entwurf.datum}-${entwurf.slot}.png`)
       }
@@ -138,6 +153,11 @@ export function createAdminSocialCardsRouter({
     try {
       const vorher = ladeEntwurf(id)
       if (!vorher) return res.status(404).json({ error: 'Entwurf nicht gefunden' })
+      if (status === 'freigegeben') {
+        // Bluesky lehnt Beiträge über 300 Zeichen ab – gezählt wird, was gepostet würde
+        const zuviel = postZeichen(caption ?? vorher.caption, vorher.hashtags) - BLUESKY_MAX_ZEICHEN
+        if (zuviel > 0) return res.status(409).json({ error: `Zu lang für Bluesky: ${zuviel} Zeichen kürzen.` })
+      }
       if (caption !== undefined && !setzeCaption(id, caption)) {
         return res.status(409).json({ error: 'Caption lässt sich nur bei offenen Entwürfen ändern' })
       }
@@ -157,9 +177,17 @@ export function createAdminSocialCardsRouter({
     try {
       const entwurf = ladeEntwurf(req.params.id)
       if (!entwurf) return res.status(404).json({ error: 'Entwurf nicht gefunden' })
-      const { ok, grund } = await erneuereEntwurf(entwurf)
+      const { ok, grund, ersetzt = [], bildFehlt = false } = await erneuereEntwurf(entwurf)
       if (!ok) return res.status(409).json({ error: grund })
-      res.json({ ok: true })
+      // Der alte Text beider Entwürfe geht verloren – das Protokoll hält ihn fest
+      for (const e of ersetzt) {
+        auditUpdate('social_card_entwurf', String(e.id),
+          { caption: e.vorher?.caption ?? null, hashtags: e.vorher?.hashtags ?? null },
+          { caption: e.nachher.caption, hashtags: e.nachher.hashtags, neuErstellt: true },
+          { adminKey: req.adminSessionId || 'unknown', ip: req.ip })
+      }
+      // bildFehlt: Der Text ist neu, nur das Bild ließ sich nicht zeichnen (kommt beim nächsten Abruf/Lauf)
+      res.json({ ok: true, ersetzt: ersetzt.map((e) => e.id), ...(bildFehlt && { bildFehlt: true }) })
     } catch (err) {
       adminError(res, err)
     }

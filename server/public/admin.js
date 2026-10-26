@@ -194,6 +194,15 @@ const AREA_TABS = {
   ],
 }
 
+// Reiter auf Unterseiten (route.tabs): Werkzeuge › Social Cards. Der Reiter „Selbst gestalten“ führt zum letzten Zustand (reiterMerker).
+const SUB_TABS = {
+  social: [
+    { key: 'social', label: 'Entwürfe', hash: '#werkzeuge/social-cards' },
+    { key: 'social-editor', label: 'Selbst gestalten', hash: '#werkzeuge/social-cards/gestalten' },
+  ],
+}
+const SUB_TABS_LABEL = { social: 'Social Cards' }
+
 const PARENT_PLANEN = { hash: '#planen', label: 'Planen', area: 'planen' }
 const PARENT_WERKZEUGE = { hash: '#werkzeuge', label: 'Werkzeuge', area: 'werkzeuge' }
 const PARENT_NUTZER = { hash: '#nutzer', label: 'Nutzer', area: 'nutzer' }
@@ -231,6 +240,8 @@ const ROUTE_TABLE = {
   'werkzeuge/kursmaterial': { page: 'kursmaterial', area: 'werkzeuge', parent: PARENT_WERKZEUGE },
   'werkzeuge/protokoll': { page: 'protokoll', area: 'werkzeuge', parent: PARENT_WERKZEUGE },
   'werkzeuge/klassenraum-demo': { page: 'klassenraum-demo', area: 'werkzeuge', parent: PARENT_WERKZEUGE },
+  'werkzeuge/social-cards': { page: 'social', area: 'werkzeuge', parent: PARENT_WERKZEUGE, tabs: 'social' },
+  'werkzeuge/social-cards/gestalten': { page: 'social-editor', area: 'werkzeuge', parent: PARENT_WERKZEUGE, tabs: 'social' },
 }
 
 // Werkzeuge › System hatte vier Abschnitte: #werkzeuge/system?abschnitt=sicherung|kursmaterial|protokoll
@@ -298,6 +309,17 @@ const LISTE_ZEITEN = ['kommend', 'vergangen', 'alle']
 const LISTE_STAENDE = ['alle', 'unvollstaendig', 'vollstaendig', 'ohne-wortzwilling', 'ohne-zeitenwende', 'ohne-lueckenfueller']
 const LISTE_GROESSEN = [25, 50, 100]
 
+// Selbst gestalten: #werkzeuge/social-cards/gestalten?datum=2026-10-27&vorlage=B. Nur Gültiges kommt durch (Weißliste);
+// fehlt ein Wert, behält die Seite ihren Zustand (beim ersten Öffnen: morgen, Rätsel).
+const SOCIAL_VORLAGEN = ['A', 'B', 'C', 'X', 'T']
+function leseSocialQuery(query) {
+  const p = new URLSearchParams(query)
+  return {
+    datum: isValidIsoDay(p.get('datum')) ? p.get('datum') : '',
+    vorlage: SOCIAL_VORLAGEN.includes(p.get('vorlage')) ? p.get('vorlage') : '',
+  }
+}
+
 function leseListeQuery(query) {
   const p = new URLSearchParams(query)
   const zahl = (v) => (/^\d{1,4}$/.test(v || '') ? Number(v) : 0)
@@ -319,7 +341,7 @@ function listeHash(z) {
 }
 
 // Letzte Adresse je Reiter: Der Reiter führt dorthin zurück (nur für diese Sitzung).
-const reiterMerker = { monat: '#planen/monat', liste: '#planen/liste' }
+const reiterMerker = { monat: '#planen/monat', liste: '#planen/liste', 'social-editor': '#werkzeuge/social-cards/gestalten' }
 // Seite der Route → Schlüssel in reiterMerker
 const MERKER_SEITEN = { monat: 'calendar', liste: 'liste' }
 
@@ -382,6 +404,7 @@ function parseRoute(rawHash) {
   if (Object.hasOwn(ROUTE_TABLE, path)) {
     const route = { ...ROUTE_TABLE[path], key: path }
     if (path === 'planen/liste') route.liste = leseListeQuery(queryPart)
+    if (path === 'werkzeuge/social-cards/gestalten') route.social = leseSocialQuery(queryPart)
     // Auswertung: ein Zeitraum für alle drei Reiter (Weißliste, sonst 30 Tage)
     if (route.area === 'auswertung') route.zeitraum = leseAuswertungZeitraum(queryPart)
     return route
@@ -476,13 +499,15 @@ function applyRouteChrome(route) {
 
   const tabsEl = document.getElementById('page-tabs')
   if (tabsEl) {
-    const tabs = AREA_TABS[route.area]
-    const showTabs = !!tabs && !route.parent
+    // Unterseiten mit eigenen Reitern (route.tabs, z. B. Social Cards) zeigen sie trotz Rückleiste
+    const tabs = route.tabs ? SUB_TABS[route.tabs] : AREA_TABS[route.area]
+    const showTabs = !!tabs && (!route.parent || !!route.tabs)
+    const aktiv = route.tabs ? route.page : route.tab
     tabsEl.classList.toggle('is-hidden', !showTabs)
-    tabsEl.setAttribute('aria-label', `Ansichten: ${areaLabel}`)
+    tabsEl.setAttribute('aria-label', `Ansichten: ${route.tabs ? SUB_TABS_LABEL[route.tabs] : areaLabel}`)
     tabsEl.innerHTML = showTabs
       // Der aktive Reiter führt zur aktuellen Adresse (auch bei Direktaufruf von #planen/monat/2026-12), die anderen zu ihrer letzten.
-      ? tabs.map((tab) => `<a class="adm-tab" href="${esc((tab.key === route.tab ? currentRouteHash : reiterMerker[tab.key]) || tab.hash)}"${tab.key === route.tab ? ' aria-current="page"' : ''}>${esc(tab.label)}</a>`).join('')
+      ? tabs.map((tab) => `<a class="adm-tab" href="${esc((tab.key === aktiv ? currentRouteHash : reiterMerker[tab.key]) || tab.hash)}"${tab.key === aktiv ? ' aria-current="page"' : ''}>${esc(tab.label)}</a>`).join('')
       : ''
   }
 
@@ -549,6 +574,13 @@ function runRouteLoaders(route) {
       break
     case 'klassenraum-demo':
       void ladeDemo()
+      break
+    case 'social':
+      // Beim ersten Öffnen laden, danach aus dem Speicher; „neu laden“ holt frisch
+      void ladeSocialEntwuerfe()
+      break
+    case 'social-editor':
+      void oeffneSocialEditor(route)
       break
     case 'liste':
       // Ein noch laufender Such-Timer würde den Zustand aus der Adresse (Zurück/Vor) überschreiben.
@@ -811,6 +843,8 @@ async function renderRoute({ userInitiated = false } = {}) {
   // Beim Verlassen: Kursmaterial fragt nicht weiter ab; die gewählte Sicherungsdatei (bis 10 MB) wird freigegeben.
   if (leavingRoute?.page === 'kursmaterial' && route.page !== 'kursmaterial') stoppeKursAbfrage()
   if (leavingRoute?.page === 'sicherung' && route.page !== 'sicherung') restoreAbbrechenStill()
+  // Die Zeichenfläche der Karten-Gestaltung (5,8–8,3 MB) wird beim Verlassen freigegeben
+  if (leavingRoute?.page === 'social-editor' && route.page !== 'social-editor') socialEditorVerlassen()
   // Ein offener Bestätigungsdialog (An alle senden, Bonus-Tag ersetzen) gehört zu seiner Seite und schließt mit ihr.
   if (leavingRoute && leavingRoute.page !== route.page) document.querySelectorAll('dialog.in-dialog[open]:not(#bestaetige-dialog)').forEach((d) => d.close())
 
@@ -1593,6 +1627,7 @@ async function doLogout() {
   stopRouter()
   nutzerZuruecksetzen()
   betriebZuruecksetzen()
+  socialZuruecksetzen()
   await fetch('/admin/logout', { method: 'POST', headers: { 'Content-Type': 'application/json' } }).catch(() => {})
   hideMainContainer()
   document.getElementById('login-overlay').classList.remove('hidden')
@@ -2446,7 +2481,7 @@ document.addEventListener('toggle', (event) => {
 
 // ── Änderungsprotokoll ──
 
-const PROTOKOLL_BEREICHE = { kalender: 'Tage', lemma_entwurf: 'Vorschläge', user: 'Konten', push: 'Benachrichtigungen', push_vorlage: 'Vorlagen', bonus_tag: 'Bonus-Tage', spezialwoche: 'Wort der Woche', demo: 'Klassenraum-Demo', backup: 'Sicherung', security: 'Anmeldung und Zahlung' }
+const PROTOKOLL_BEREICHE = { kalender: 'Tage', lemma_entwurf: 'Vorschläge', user: 'Konten', push: 'Benachrichtigungen', push_vorlage: 'Vorlagen', bonus_tag: 'Bonus-Tage', spezialwoche: 'Wort der Woche', demo: 'Klassenraum-Demo', social_card_entwurf: 'Social Cards', backup: 'Sicherung', security: 'Anmeldung und Zahlung' }
 const PROTOKOLL_VORGAENGE = {
   CREATE: 'angelegt oder gespeichert', UPDATE: 'geändert', DELETE: 'gelöscht', LOGIN_SUCCESS: 'angemeldet', LOGIN_FAIL: 'Anmeldung fehlgeschlagen',
   LOGOUT: 'abgemeldet', SESSIONS_INVALIDATED: 'Sitzungen beendet', CHECKOUT_REJECT_COUNTRY: 'Kauf abgelehnt (Land)', PAYMENT_REJECT: 'Zahlung abgewiesen', WEBHOOK_REJECT: 'Zahlungsmeldung abgewiesen',
@@ -2482,6 +2517,10 @@ function protokollSatz(e) {
     case 'bonus_tag:UPDATE': return `Bonus-Tag ${tagText(e.resourceId)} ersetzt: +${anzahlText(a.bonus_count, 'Spiel', 'Spiele')}`
     case 'bonus_tag:DELETE': return `Bonus-Tag ${tagText(e.resourceId)} entfernt`
     case 'demo:UPDATE': return 'Inhalte der Klassenraum-Demo gespeichert'
+    case 'social_card_entwurf:UPDATE':
+      if (a.neuErstellt) return 'Social-Card-Entwurf neu erstellt (Beitragstext ersetzt)'
+      if (a.status && b.status !== a.status) return `Social-Card-Entwurf ${a.status === 'offen' ? 'wieder geöffnet' : a.status}`
+      return 'Beitragstext eines Social-Card-Entwurfs geändert'
     case 'spezialwoche:CREATE': return `Wort der Woche für ${kwText(e.resourceId)} ${a.ersetzt ? 'ersetzt' : 'gespeichert'}${a.lemma ? `: ${a.lemma}` : ''}`
     case 'spezialwoche:UPDATE': return `Wort der Woche für ${kwText(e.resourceId)} ersetzt${a.lemma ? `: ${a.lemma}` : ''}`
     case 'spezialwoche:DELETE': return `Wort der Woche für ${kwText(e.resourceId)} entfernt`
@@ -5928,6 +5967,8 @@ function renderInhalteStand() {
   else if (!h.push.web && !h.push.ios) setzeStand('wz-stand-push', 'Nicht eingerichtet', 'warn')
   else setzeStand('wz-stand-push', anzahlText(h.push.geraete, 'Gerät', 'Geräte'))
 
+  socialStandAktualisieren()
+
   const sw = h?.spezialwoche
   if (sw?.laeuft) setzeStand('wz-stand-woche', `Diese Woche: ${sw.lemma}`)
   else if (sw) setzeStand('wz-stand-woche', `Ab ${datumKurz(sw.von)}: ${sw.lemma}`)
@@ -5970,7 +6011,7 @@ async function loadFreeDays({ silent = false } = {}) {
 function bonusZeile(t, { vergangen = false } = {}) {
   const heute = t.date === getTodayIso()
   return `<li class="in-zeile" data-date="${esc(t.date)}">`
-    + `<span class="be-zeile-haupt">${esc(tagText(t.date))}${heute ? '<span class="in-heute-marke">heute</span>' : ''}</span>`
+    + `<span class="be-zeile-haupt">${esc(tagText(t.date))}${heute ? '<span class="adm-visually-hidden">, </span><span class="in-heute-marke">heute</span>' : ''}</span>`
     + `<span class="be-zeile-meta">${esc(`+${bonusSpieleText(t.bonus_count)}`)}${t.label ? ` · ${esc(t.label)}` : ''}</span>`
     + (vergangen ? '' : `<span class="in-zeile-aktion"><button type="button" class="li-loeschen" data-action="delete-free-day" data-date="${esc(t.date)}">entfernen<span class="adm-visually-hidden">: ${esc(datumLang(t.date, { jahr: true }))}</span></button></span>`)
     + '</li>'
@@ -6185,7 +6226,7 @@ function swZeile(e, { vergangen = false } = {}) {
   teile.push(e.zwilling_partner ? `Wort-Zwilling mit ${esc(e.zwilling_partner)}` : 'ohne Wort-Zwilling')
   teile.push(e.lueckenfueller_id ? 'mit Lückenfüller' : 'ohne Lückenfüller')
   return `<li class="in-zeile" data-woche="${esc(e.woche)}">`
-    + `<span class="be-zeile-haupt">${esc(kwNr(e.woche))}${laeuft ? '<span class="in-heute-marke">läuft</span>' : ''}</span>`
+    + `<span class="be-zeile-haupt">${esc(kwNr(e.woche))}${laeuft ? '<span class="adm-visually-hidden">, </span><span class="in-heute-marke">läuft</span>' : ''}</span>`
     + `<span class="be-zeile-meta">${esc(wochenSpanne(e.von))} · ${teile.join(' · ')}</span>`
     + (vergangen ? '' : `<span class="in-zeile-aktion"><button type="button" class="adm-link" data-action="edit-spezialwoche" data-woche="${esc(e.woche)}">bearbeiten<span class="adm-visually-hidden">: ${esc(kwNr(e.woche))}</span></button>`
       + `<button type="button" class="li-loeschen" data-action="delete-spezialwoche" data-woche="${esc(e.woche)}">entfernen<span class="adm-visually-hidden">: ${esc(kwNr(e.woche))}</span></button></span>`)
@@ -7431,6 +7472,8 @@ function handleDocumentClick(event) {
   if (target.getAttribute('aria-disabled') === 'true') {
     // Der gesperrte Ersetzen-Knopf verweist auf das Häkchen, das ihn freischaltet
     if (target.dataset.action === 'restore-ausfuehren') document.getElementById('restore-verstanden')?.focus()
+    // Social Cards: gesperrtes „Freigeben“ (zu lang) und „Neu erstellen“ (Partner entschieden) sagen, warum
+    if (target.dataset.action?.startsWith('so-')) return void socialGesperrtKlick(target)
     // Erklären statt schweigen: Der Klick sagt, warum nichts passiert (kein Gerät, Häkchen fehlt, Server ohne Push)
     if (target.dataset.action === 'push-dialog-senden') document.getElementById('push-dialog-ok')?.focus()
     if (target.dataset.action === 'push-send-self') { event.preventDefault(); void sendeTest() }
@@ -7439,6 +7482,7 @@ function handleDocumentClick(event) {
   }
 
   const { action } = target.dataset
+  if (action?.startsWith('so-')) return void socialKlick(target)
   if (action === 'login') return void doLogin()
   if (action === 'download-backup') return void downloadBackup()
   if (action === 'logout') return void doLogout()
@@ -8616,6 +8660,7 @@ document.addEventListener('keydown', (ev) => {
 
 function handleDocumentChange(event) {
   const target = event.target
+  if (target.closest?.('#so-ed')) return void socialAenderung(event)
   if (target.id === 'backup-restore-input') return void waehleRestoreDatei(target.files?.[0])
   if (target.id === 'restore-verstanden') return void aktualisiereRestoreKnopf()
   if (target.id === 'entry-sort') return void aendereListe({ zeit: target.value, seite: 1 })
@@ -8637,6 +8682,7 @@ function handleDocumentChange(event) {
 
 function handleDocumentInput(event) {
   const target = event.target
+  if (target.closest?.('#page-social, #page-social-editor')) return void socialEingabe(event)
   if (target.id === 'entry-search') return void scheduleEntryTableRender()
   if (target.id === 'users-search') return void scheduleUsersOverviewLoad()
   if (target.id === 'audit-search') return void planeProtokollSuche()
@@ -8745,6 +8791,1336 @@ window.addEventListener('pagehide', () => {
   if (entryFormDirty) persistEntryDraft()
 })
 
+// ── Werkzeuge › Social Cards ──────────────────────────────
+// Zwei Unterseiten: „Entwürfe“ (#werkzeuge/social-cards) prüft, ändert und gibt die automatisch angelegten Entwürfe
+// für Bluesky frei; „Selbst gestalten“ (#werkzeuge/social-cards/gestalten?datum=…&vorlage=…) zeichnet eine einzelne Karte
+// zum Herunterladen. Veröffentlicht wird nichts: Freigegebene Beiträge postet man selbst.
+// Das Zeichenmodul (shared/socialCards.js, dieselbe Datei zeichnet auf dem Server die Entwurfsbilder) wird erst auf diesen
+// Seiten per import() geladen. Die Bilder der Entwürfe kommen vom Server (kleine Vorschau, volles Bild auf Klick).
+
+const SO_SLOT_LABEL = {
+  T: 'Teaser',
+  A: 'Rätsel',
+  'A-aufloesung': 'Rätsel – Auflösung',
+  X: 'Zitat',
+  B: 'Beleg',
+  'B-aufloesung': 'Beleg – Auflösung',
+  TB: 'Textbeleg',
+  'TB-aufloesung': 'Textbeleg – Auflösung',
+}
+// Plätze mit Auflösung am Folgetag; Rätsel/Beleg und ihre Auflösung gehören zusammen
+const SO_MIT_AUFLOESUNG = new Set(['A', 'B', 'TB'])
+const SO_BASIS_MIT_ARTIKEL = { A: 'das Rätsel', B: 'der Beleg', TB: 'der Textbeleg' }
+const soIstAufloesung = (slot) => String(slot).endsWith('-aufloesung')
+const soBasis = (slot) => String(slot).replace('-aufloesung', '')
+const soEl = (id) => document.getElementById(id)
+const soWert = (id) => soEl(id)?.value ?? ''
+const soRadio = (name) => document.querySelector(`input[name="${CSS.escape(name)}"]:checked`)?.value
+const soZahlDe = (n) => Number(n).toLocaleString('de-DE', { minimumFractionDigits: 1, maximumFractionDigits: 1 })
+
+// ── Zeichenmodul ──
+let kartenModul = null
+let kartenLaden = null
+function ladeKarten() {
+  // Bei einem Fehler (z. B. abgelaufene Sitzung) beim nächsten Öffnen neu versuchen
+  kartenLaden ??= import('/admin/social-cards/karten.js')
+    .then((m) => { kartenModul = m; return m })
+    .catch((err) => { kartenLaden = null; throw err })
+  return kartenLaden
+}
+
+// Der Import verrät den Grund nicht: Ein zweiter Abruf nennt den Statuscode (401 = Sitzung abgelaufen).
+async function zeigeKartenFehler(meldungId = 'so-ed-meldung') {
+  let grund = 'keine Verbindung'
+  try {
+    const res = await fetch('/admin/social-cards/karten.js')
+    grund = res.status === 401 ? 'HTTP 401 – Sitzung abgelaufen?' : `HTTP ${res.status}`
+  } catch { /* Verbindung weg: Standardtext */ }
+  setMeldung(meldungId, `Das Zeichenmodul konnte nicht geladen werden (${esc(grund)}). <button type="button" class="adm-link" data-action="so-ed-seite-neu">Seite neu laden</button>`, 'error', { html: true })
+}
+
+function soOptionen(sel, liste, gewaehlt) {
+  sel.replaceChildren(...liste.map(([v, t]) => {
+    const o = document.createElement('option')
+    o.value = v
+    o.textContent = t
+    return o
+  }))
+  if (gewaehlt !== undefined && liste.some(([v]) => v === gewaehlt)) sel.value = gewaehlt
+}
+
+// Zufällige Reihenfolge von 0 … n-1. `ausser`: Diese Reihenfolge kommt nicht noch einmal heraus (sonst wirkt
+// „neu mischen“ wie ein Knopf ohne Wirkung); bei n < 2 gibt es keine andere.
+function soMische(n, ausser = null) {
+  const gleich = (a) => ausser && ausser.length === a.length && a.every((v, i) => v === ausser[i])
+  let a
+  do {
+    a = [...Array(n).keys()]
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1))
+      ;[a[i], a[j]] = [a[j], a[i]]
+    }
+  } while (n > 1 && gleich(a))
+  return a
+}
+
+// ════════════════ Entwürfe ════════════════
+
+let socialEntwuerfe = []
+let socialUmfang = null            // { von, bis, automatisch, horizont, aufbewahrung } aus der letzten Antwort
+let socialGeladen = false
+let socialLadeToken = 0
+let socialAnlegenLaeuft = false
+let socialMarkiert = null
+const socialUngespeichert = new Map()   // id → Text, den man getippt, aber noch nicht gespeichert hat
+const socialLaeuft = new Set()          // ids mit laufender Anfrage
+// Jede lokale Änderung (Freigabe, Text, Neu erstellen) zählt hoch. Eine Listenantwort, die VOR einer solchen Änderung
+// losgeschickt wurde, ist älter als der lokale Stand und darf ihn nicht überschreiben.
+let socialAenderungen = 0
+const socialLokal = new Map()           // id → { zaehler, entwurf } der lokal zuletzt geänderten Entwürfe
+
+// Beim Abmelden: Entwürfe und ungespeicherte Texte aus dem Speicher
+function socialZuruecksetzen() {
+  socialEntwuerfe = []
+  socialUmfang = null
+  socialGeladen = false
+  socialLadeToken++
+  socialAnlegenLaeuft = false
+  socialMarkiert = null
+  socialUngespeichert.clear()
+  socialLaeuft.clear()
+  socialLokal.clear()
+  soEd.bereit = false
+  setzeStand('wz-stand-social', '')
+}
+
+const socialFinde = (id) => socialEntwuerfe.find((e) => e.id === Number(id))
+const socialHeute = () => socialUmfang?.von || berlinTeile(getCurrentDate()).iso
+
+function socialSpanne(a, b) {
+  const x = datumTeile(a)
+  const y = datumTeile(b)
+  return x.m === y.m ? `${x.d}.–${y.d}. ${MONTHS_DE[y.m - 1]}` : `${x.d}. ${MONTHS_DE[x.m - 1]} – ${y.d}. ${MONTHS_DE[y.m - 1]}`
+}
+
+// Zeichenzahl wie Bluesky (Grapheme, Text + Leerzeile + Hashtags); ohne Zeichenmodul eine grobe Zählung
+const socialMax = () => kartenModul?.BLUESKY_MAX_ZEICHEN ?? 300
+const socialZaehlen = (text) => (kartenModul ? kartenModul.zeichenZahl(text) : [...text].length)
+const socialPostText = (e, text) => (e.hashtags ? `${text.trim()}\n\n${e.hashtags}` : text.trim())
+
+function socialZaehler(e, text) {
+  const n = socialZaehlen(socialPostText(e, text))
+  const max = socialMax()
+  const zuviel = n - max
+  return {
+    n,
+    zuviel,
+    text: zuviel > 0 ? `${n} von ${max} Zeichen – ${zuviel} zu viel` : `${n} von ${max} Zeichen${e.hashtags ? ' mit Hashtags' : ''}`,
+    tone: zuviel > 0 ? 'error' : '',
+  }
+}
+
+// Gegenstück eines Rätsels/Belegs: { datum, slot } oder null (Teaser und Zitat haben keins)
+function socialPartnerInfo(e) {
+  const basis = soBasis(e.slot)
+  if (!SO_MIT_AUFLOESUNG.has(basis)) return null
+  return soIstAufloesung(e.slot)
+    ? { datum: addTageIso(e.datum, -1), slot: basis }
+    : { datum: addTageIso(e.datum, 1), slot: `${basis}-aufloesung` }
+}
+
+function socialPartner(e) {
+  const p = socialPartnerInfo(e)
+  return p ? socialEntwuerfe.find((x) => x.datum === p.datum && x.slot === p.slot) || null : null
+}
+
+// Warum „Neu erstellen“ gerade nicht geht (leer = geht)
+function socialNeuGrund(e) {
+  const p = socialPartner(e)
+  if (!p || p.status === 'offen') return ''
+  return `${SO_SLOT_LABEL[soBasis(e.slot)]} und Auflösung gehören zusammen und lassen sich nur gemeinsam neu erstellen. ${SO_SLOT_LABEL[p.slot]} (${datumKurz(p.datum)}) ist ${p.status} – erst wieder öffnen.`
+}
+
+function socialMeta(e) {
+  const istText = e.spec?.format === 'text'
+  const art = istText ? 'nur Text' : `Bild ${e.spec?.ratio === '9:16' ? '9 : 16' : '4 : 5'}`
+  if (soIstAufloesung(e.slot)) {
+    const basis = soBasis(e.slot)
+    const was = basis === 'TB' ? 'den Textbeleg' : basis === 'B' ? 'den Beleg' : 'das Rätsel'
+    return `${art} · Antwort auf ${was} vom ${datumKurz(addTageIso(e.datum, -1))}`
+  }
+  if (e.slot === 'T') return `${art} · Wörter des Tages`
+  const wort = e.spec?.meta?.lemma || e.spec?.data?.xLemma || ''
+  return `${art}${wort ? ` · Wort vom Vortag: ${wort}` : ''}`
+}
+
+function socialEntwurfHtml(e) {
+  const id = Number(e.id)
+  const label = SO_SLOT_LABEL[e.slot] || e.slot
+  const name = `${label}, ${datumKurz(e.datum)}`
+  // Jeder Knopf trägt den Entwurf im Namen: Sonst stünde „Freigeben“ 16-mal gleich in der Liste der Knöpfe
+  const vh = `<span class="adm-visually-hidden">: ${esc(name)}</span>`
+  const kopf = (extra = '') => `<p class="so-kopf"><span class="so-slot">${esc(label)}</span><span class="so-status">${esc(e.status)}</span>${extra}<span class="so-meta">${esc(socialMeta(e))}</span></p>`
+  const meldung = `<p class="li-meldung" id="so-e-${id}-meldung" role="status" aria-live="polite" tabindex="-1"></p>`
+
+  if (e.status === 'verworfen') {
+    return `<li class="so-entwurf${socialMarkiert === id ? ' is-markiert' : ''}" data-status="verworfen" id="so-e-${id}">${kopf()}`
+      + `<div class="so-inhalt"><p class="so-auszug">${esc(String(e.caption).split('\n')[0])}</p>`
+      + `<div class="be-aktionen so-aktionen"><button type="button" class="adm-link" data-action="so-oeffnen" data-id="${id}">Wieder öffnen${vh}</button></div>${meldung}</div></li>`
+  }
+
+  const offen = e.status === 'offen'
+  const text = socialUngespeichert.get(id) ?? e.caption
+  const z = socialZaehler(e, text)
+  const istText = e.spec?.format === 'text'
+  const laden = istText || !e.bildUrl ? '' : `<a class="adm-link" href="${esc(`${e.bildUrl}&download`)}" download>Bild herunterladen${vh}</a>`
+  const neuGesperrt = offen && !!socialNeuGrund(e)
+  const aktionen = offen
+    ? `<button type="button" class="adm-cta" data-action="so-freigeben" data-id="${id}"${z.zuviel > 0 ? ' aria-disabled="true"' : ''}>Freigeben${vh} <span aria-hidden="true">→</span></button>`
+      + `<button type="button" class="adm-link" data-action="so-speichern" data-id="${id}"${socialUngespeichert.has(id) ? '' : ' hidden'}>Text speichern${vh}</button>`
+      + `<button type="button" class="adm-link" data-action="so-kopieren" data-id="${id}">Text kopieren${vh}</button>`
+      + laden
+      + `<button type="button" class="adm-link" data-action="so-neu" data-id="${id}"${neuGesperrt ? ' aria-disabled="true"' : ''}>Neu erstellen …${vh}</button>`
+      + `<button type="button" class="adm-link" data-action="so-verwerfen" data-id="${id}">Verwerfen${vh}</button>`
+    : `<button type="button" class="adm-link" data-action="so-kopieren" data-id="${id}">Text kopieren${vh}</button>`
+      + laden
+      + `<button type="button" class="adm-link" data-action="so-oeffnen" data-id="${id}">Wieder öffnen${vh}</button>`
+
+  return `<li class="so-entwurf${socialMarkiert === id ? ' is-markiert' : ''}" data-status="${esc(e.status)}" id="so-e-${id}">`
+    + kopf(`<span class="in-geaendert"${socialUngespeichert.has(id) ? '' : ' hidden'}>ungespeichert</span>`)
+    + socialBildHtml(e, name)
+    + '<div class="so-inhalt">'
+    + `<label class="tag-label" for="so-e-${id}-text">Beitragstext<span class="adm-visually-hidden">: ${esc(name)}</span></label>`
+    + `<textarea class="tag-eingabe" id="so-e-${id}-text" data-id="${id}" rows="5" spellcheck="true" aria-describedby="so-e-${id}-unter"${z.zuviel > 0 ? ' aria-invalid="true"' : ''}${offen ? '' : ' readonly'}>${esc(text)}</textarea>`
+    + `<p class="so-unter" id="so-e-${id}-unter">${e.hashtags ? `<span class="so-tags">Dazu: ${esc(e.hashtags)}</span>` : '<span class="so-tags">ohne Hashtags (Antwort auf den Vortag)</span>'}<span class="in-zaehler"${z.tone ? ` data-tone="${z.tone}"` : ''}>${esc(z.text)}</span></p>`
+    + `<div class="be-aktionen so-aktionen">${aktionen}</div>${meldung}</div></li>`
+}
+
+// Kleine Vorschau vom Server; ein Klick öffnet das volle Bild. Textbeiträge haben kein Bild.
+function socialBildHtml(e, name) {
+  if (e.spec?.format === 'text' || !e.bildUrl) return '<div class="so-bild so-bild--text" aria-hidden="true">ohne Bild</div>'
+  const hoehe = e.spec?.ratio === '9:16' ? 768 : 540
+  // Der Linkname bleibt „Bild in voller Größe öffnen: …“; was auf der Karte steht, hängt als Beschreibung daran.
+  // Fehlt die kleine Fassung (404), fällt das Bild einmal auf die große zurück (data-gross), danach kommt ein Platzhalter.
+  const beschreibung = e.spec?.data ? socialEntwurfKartenText(e) : ''
+  const beschr = beschreibung ? `<span class="adm-visually-hidden" id="so-e-${e.id}-bildtext">${esc(beschreibung)}</span>` : ''
+  const gross = e.bildUrl && e.bildKleinUrl && e.bildKleinUrl !== e.bildUrl ? ` data-gross="${esc(e.bildUrl)}"` : ''
+  return `<a class="so-bild" href="${esc(e.bildUrl)}" target="_blank" rel="noopener"${beschreibung ? ` aria-describedby="so-e-${e.id}-bildtext"` : ''}><img src="${esc(e.bildKleinUrl || e.bildUrl)}" alt="Bild in voller Größe öffnen: ${esc(name)}" width="432" height="${hoehe}" loading="lazy" decoding="async"${gross}>${beschr}</a>`
+}
+
+function socialZahlenHtml() {
+  const z = { offen: 0, freigegeben: 0, verworfen: 0 }
+  for (const e of socialEntwuerfe) if (e.status in z) z[e.status]++
+  const spanne = socialUmfang ? socialSpanne(socialUmfang.von, socialUmfang.bis) : ''
+  return `<strong>${esc(anzahlText(z.offen, 'Entwurf', 'Entwürfe'))} offen</strong> · ${z.freigegeben} freigegeben · ${z.verworfen} verworfen${spanne ? ` · ${esc(spanne)}` : ''}`
+}
+
+function socialStandAktualisieren() {
+  if (!socialGeladen || !socialEntwuerfe.length) return setzeStand('wz-stand-social', '')
+  const offen = socialEntwuerfe.filter((e) => e.status === 'offen').length
+  setzeStand('wz-stand-social', `${anzahlText(offen, 'Entwurf', 'Entwürfe')} offen`)
+}
+
+function socialAutomatikText() {
+  const el = soEl('so-pf-automatik')
+  if (!el) return
+  const u = socialUmfang
+  if (u && !u.automatisch) {
+    el.innerHTML = 'Das automatische Anlegen ist abgeschaltet (<code>SOCIAL_CARDS_ENTWUERFE=off</code>). Entwürfe entstehen nur über den Knopf unten.'
+    return
+  }
+  const tage = u?.horizont === 7 || !u ? 'sieben' : String(u.horizont)
+  const wochen = !u || u.aufbewahrung === 56 ? 'acht Wochen' : `${u.aufbewahrung} Tagen`
+  el.textContent = `Der Server legt jeden Morgen um 4:20 Uhr die fehlenden Entwürfe für die nächsten ${tage} Tage an und zeichnet die Bilder. Was schon da ist, bleibt unverändert – auch verworfene Entwürfe kommen nicht zurück. Nach ${wochen} werden Entwürfe gelöscht.`
+}
+
+function renderSocialEntwuerfe() {
+  const liste = soEl('so-pf-liste')
+  if (!liste) return
+  soEl('so-pf-zahlen').innerHTML = socialGeladen && socialEntwuerfe.length ? socialZahlenHtml() : (socialUmfang ? esc(socialSpanne(socialUmfang.von, socialUmfang.bis)) : '')
+  socialAutomatikText()
+  socialStandAktualisieren()
+  if (!socialGeladen) { liste.replaceChildren(); return }
+  if (!socialEntwuerfe.length) {
+    liste.innerHTML = '<div class="li-leer"><p class="li-leer-titel">Keine Entwürfe</p>'
+      + '<p class="li-leer-text">Für die nächsten zwei Wochen ist noch nichts angelegt. Entwürfe entstehen nur für Tage, die im Kalender geplant sind.</p>'
+      + '<p class="li-leer-ornament" aria-hidden="true">· · ·</p></div>'
+    return
+  }
+  const heute = socialHeute()
+  const tage = [...new Set(socialEntwuerfe.map((e) => e.datum))]
+  liste.innerHTML = tage.map((datum) => {
+    const eintraege = socialEntwuerfe.filter((e) => e.datum === datum)
+    const abstand = datum === heute ? 0 : datum === addTageIso(heute, 1) ? 1 : 2
+    // Für Screenreader getrennt vom Datum: „Montag, 26. Oktober, heute“ statt „Oktoberheute“
+    const marke = abstand === 0 ? '<span class="adm-visually-hidden">, </span><span class="in-heute-marke">heute</span>' : ''
+    const zusatz = `${abstand === 1 ? 'morgen · ' : ''}${anzahlText(eintraege.length, 'Entwurf', 'Entwürfe')}`
+    return `<section class="li-gruppe so-tag">`
+      + `<h2 class="li-monat so-tag-titel" id="so-tag-${esc(datum)}" tabindex="-1"><span class="li-monat-name">${esc(datumLang(datum))}${marke}</span><span class="li-monat-zahl">${esc(zusatz)}</span></h2>`
+      + `<ol class="so-liste">${eintraege.map(socialEntwurfHtml).join('')}</ol></section>`
+  }).join('')
+}
+
+// Einen Entwurf neu zeichnen, ohne die Liste anzufassen. Die Meldungszeile bleibt derselbe Knoten: Eine neu
+// eingefügte Live-Region mit fertigem Text würde nicht angesagt.
+function ersetzeSocialEintrag(e) {
+  const li = soEl(`so-e-${e.id}`)
+  if (!li) return renderSocialEntwuerfe()
+  const vorlage = document.createElement('template')
+  vorlage.innerHTML = socialEntwurfHtml(e)
+  const neu = vorlage.content.firstElementChild
+  const alt = li.querySelector('.li-meldung')
+  const frisch = neu.querySelector('.li-meldung')
+  if (alt && frisch) {
+    alt.textContent = ''
+    alt.removeAttribute('data-tone')
+    frisch.replaceWith(alt)
+  }
+  li.replaceWith(neu)
+  soEl('so-pf-zahlen').innerHTML = socialZahlenHtml()
+  socialStandAktualisieren()
+  socialSperreNachziehen(e)
+}
+
+// Ändert sich der Status eines Entwurfs, hängt daran die Sperre „Neu erstellen …“ seines Partners (Rätsel ↔ Auflösung)
+function socialSperreNachziehen(e) {
+  const p = socialPartner(e)
+  const knopf = p && soEl(`so-e-${p.id}`)?.querySelector('[data-action="so-neu"]')
+  if (!knopf || knopf.classList.contains('is-busy')) return
+  if (socialNeuGrund(p)) knopf.setAttribute('aria-disabled', 'true')
+  else knopf.removeAttribute('aria-disabled')
+}
+
+// Antwort des Servers in die Liste übernehmen (ersetzt nach id, sonst einsortiert)
+function socialUebernehme(neue) {
+  for (const n of neue) {
+    socialLokal.set(n.id, { zaehler: ++socialAenderungen, entwurf: n })
+    const i = socialEntwuerfe.findIndex((e) => e.id === n.id)
+    if (i >= 0) socialEntwuerfe[i] = n
+    else socialEntwuerfe.push(n)
+  }
+  socialEntwuerfe.sort((a, b) => a.datum.localeCompare(b.datum) || a.id - b.id)
+}
+
+async function ladeSocialEntwuerfe({ neu = false } = {}) {
+  const liste = soEl('so-pf-liste')
+  if (!liste) return
+  if (socialGeladen && !neu) { renderSocialEntwuerfe(); return }
+  const token = ++socialLadeToken
+  const stand = socialAenderungen
+  if (socialGeladen) liste.setAttribute('aria-busy', 'true')
+  else setMeldung('so-pf-meldung', 'Entwürfe werden geladen …', 'loading')
+  try {
+    // Das Zeichenmodul liefert nur die Zeichenzählung; ohne es zählt die Seite grob weiter
+    const [daten] = await Promise.all([holeJson('/admin/social-cards/entwuerfe'), ladeKarten().catch(() => null)])
+    if (token !== socialLadeToken) return
+    socialEntwuerfe = Array.isArray(daten.entwuerfe) ? daten.entwuerfe : []
+    // Während des Ladens lokal Geändertes (z. B. eine Freigabe) behält den lokalen Stand
+    for (const [id, { zaehler, entwurf }] of socialLokal) {
+      if (zaehler <= stand) { socialLokal.delete(id); continue }
+      const i = socialEntwuerfe.findIndex((e) => e.id === id)
+      if (i >= 0) socialEntwuerfe[i] = entwurf
+    }
+    socialUmfang = {
+      von: daten.von,
+      bis: daten.bis,
+      automatisch: daten.automatisch !== false,
+      horizont: Number(daten.horizont) || 7,
+      aufbewahrung: Number(daten.aufbewahrung) || 56,
+    }
+    socialGeladen = true
+    // Getippte Texte bleiben nur, wo sie noch etwas ändern
+    for (const [id, text] of [...socialUngespeichert]) {
+      const e = socialFinde(id)
+      if (!e || e.status !== 'offen' || text === e.caption) socialUngespeichert.delete(id)
+    }
+    setMeldung('so-pf-meldung', '')
+    liste.setAttribute('aria-busy', 'false')
+    renderSocialEntwuerfe()
+  } catch (err) {
+    if (token !== socialLadeToken) return
+    liste.setAttribute('aria-busy', 'false')
+    socialAutomatikText()
+    setMeldung('so-pf-meldung', `Die Entwürfe konnten nicht geladen werden (${esc(err.message)}). <button type="button" class="adm-link" data-action="so-pf-neu-laden">Erneut versuchen</button>`, 'error', { html: true })
+  }
+}
+
+// ── Aktionen am Entwurf ──
+
+const socialMeldung = (id, text, ton, opts) => setMeldung(`so-e-${id}-meldung`, text, ton, opts)
+
+// Entwurf gesperrt (Neu erstellen läuft für ihn oder seinen Partner): in der Liste der Laufenden, alle Knöpfe
+// aria-disabled (fokussierbar, ohne Wirkung), Beitragstext schreibgeschützt. Nur was nicht schon gesperrt war, wird
+// beim Aufheben zurückgesetzt – ein „Freigeben“, das wegen zu langem Text gesperrt ist, bleibt es.
+function socialSperre(id, an) {
+  if (an) socialLaeuft.add(id)
+  else socialLaeuft.delete(id)
+  const li = soEl(`so-e-${id}`)
+  if (!li) return
+  if (an) li.setAttribute('aria-busy', 'true')
+  else li.removeAttribute('aria-busy')
+  for (const k of li.querySelectorAll('.so-aktionen button')) {
+    if (an) {
+      if (k.getAttribute('aria-disabled') !== 'true') { k.setAttribute('aria-disabled', 'true'); k.dataset.sperre = '' }
+    } else if ('sperre' in k.dataset) {
+      k.removeAttribute('aria-disabled')
+      delete k.dataset.sperre
+    }
+  }
+  const feld = li.querySelector('textarea[data-id]')
+  if (feld) {
+    if (an && !feld.readOnly) { feld.readOnly = true; feld.dataset.sperre = '' }
+    else if (!an && 'sperre' in feld.dataset) { feld.readOnly = false; delete feld.dataset.sperre }
+  }
+}
+
+// Läuft gerade eine Anfrage: Entwurf und Knopf gedämpft, weitere Klicks ignoriert
+function socialBusy(id, an, knopf) {
+  const li = soEl(`so-e-${id}`)
+  if (an) socialLaeuft.add(id)
+  else socialLaeuft.delete(id)
+  if (li) {
+    if (an) li.setAttribute('aria-busy', 'true')
+    else li.removeAttribute('aria-busy')
+  }
+  if (knopf) {
+    knopf.classList.toggle('is-busy', an)
+    if (an) knopf.setAttribute('aria-disabled', 'true')
+    else knopf.removeAttribute('aria-disabled')
+  }
+}
+
+async function socialSende(e, body) {
+  const antwort = await holeJson(`/admin/social-cards/entwuerfe/${e.id}`, { method: 'POST', body: JSON.stringify(body) })
+  return antwort.entwurf
+}
+
+async function socialFreigeben(id, knopf) {
+  const e = socialFinde(id)
+  if (!e || socialLaeuft.has(e.id)) return
+  const text = socialUngespeichert.get(e.id) ?? e.caption
+  const z = socialZaehler(e, text)
+  if (z.zuviel > 0) {
+    socialMeldung(e.id, `Zu lang für Bluesky: ${z.zuviel} Zeichen kürzen, dann freigeben.`, 'error', { fokus: true })
+    return
+  }
+  if (!text.trim()) {
+    socialMeldung(e.id, 'Der Beitragstext darf nicht leer sein.', 'error', { fokus: true })
+    return
+  }
+  socialMeldung(e.id, '')
+  socialBusy(e.id, true, knopf)
+  try {
+    // Ein geänderter Text wird beim Freigeben mit gespeichert
+    const body = { status: 'freigegeben' }
+    if (text.trim() !== e.caption) body.caption = text
+    const neu = await socialSende(e, body)
+    socialBusy(e.id, false)
+    socialUebernehme([neu])
+    socialUngespeichert.delete(e.id)
+    ersetzeSocialEintrag(neu)
+    socialMeldung(e.id, `Freigegeben. Zum Posten: Text kopieren${neu.spec?.format === 'text' ? '' : ' und Bild herunterladen'}.`, 'ok', { fokus: true })
+  } catch (err) {
+    socialBusy(e.id, false, knopf)
+    socialMeldung(e.id, `Nicht freigegeben: ${err.message}`, 'error', { fokus: true })
+  }
+}
+
+async function socialSpeichern(id, knopf) {
+  const e = socialFinde(id)
+  if (!e || socialLaeuft.has(e.id) || !socialUngespeichert.has(e.id)) return
+  const text = socialUngespeichert.get(e.id)
+  if (!text.trim()) {
+    socialMeldung(e.id, 'Der Beitragstext darf nicht leer sein.', 'error', { fokus: true })
+    return
+  }
+  socialBusy(e.id, true, knopf)
+  try {
+    const neu = await socialSende(e, { caption: text })
+    socialBusy(e.id, false)
+    socialUebernehme([neu])
+    socialUngespeichert.delete(e.id)
+    ersetzeSocialEintrag(neu)
+    socialMeldung(e.id, 'Text gespeichert.', 'ok', { fokus: true })
+  } catch (err) {
+    socialBusy(e.id, false, knopf)
+    socialMeldung(e.id, `Nicht gespeichert: ${err.message}`, 'error', { fokus: true })
+  }
+}
+
+async function socialKopieren(id) {
+  const e = socialFinde(id)
+  if (!e) return
+  const text = socialPostText(e, socialUngespeichert.get(e.id) ?? e.caption)
+  try {
+    await navigator.clipboard.writeText(text)
+    socialMeldung(e.id, e.hashtags ? 'Text mit Hashtags kopiert.' : 'Text kopiert.', 'ok')
+  } catch {
+    // Zwischenablage gesperrt: Text markieren, damit Strg+C reicht
+    const feld = soEl(`so-e-${e.id}-text`)
+    feld?.focus()
+    feld?.select()
+    socialMeldung(e.id, 'Kopieren ging nicht. Der Text ist markiert – mit Strg+C (Mac: Cmd+C) kopieren; Hashtags darunter von Hand ergänzen.', 'warn')
+  }
+}
+
+async function socialVerwerfen(id, knopf) {
+  const e = socialFinde(id)
+  if (!e || socialLaeuft.has(e.id)) return
+  // Ungespeicherter Text geht beim Verwerfen verloren: nicht still
+  if (socialUngespeichert.has(e.id)) {
+    const ok = await bestaetige({
+      frage: 'Entwurf verwerfen?',
+      text: 'Deine ungespeicherte Änderung am Beitragstext geht dabei verloren.',
+      aktion: 'Verwerfen',
+      gefahr: true,
+    })
+    if (!ok) return
+  }
+  socialBusy(e.id, true, knopf)
+  try {
+    const neu = await socialSende(e, { status: 'verworfen' })
+    socialBusy(e.id, false)
+    socialUebernehme([neu])
+    socialUngespeichert.delete(e.id)
+    ersetzeSocialEintrag(neu)
+    socialMeldung(e.id, 'Verworfen. Der Entwurf kommt beim nächsten Anlegen nicht zurück.', 'ok')
+    soEl(`so-e-${e.id}`)?.querySelector('[data-action="so-oeffnen"]')?.focus()
+  } catch (err) {
+    socialBusy(e.id, false, knopf)
+    socialMeldung(e.id, `Nicht verworfen: ${err.message}`, 'error', { fokus: true })
+  }
+}
+
+async function socialOeffnen(id, knopf) {
+  const e = socialFinde(id)
+  if (!e || socialLaeuft.has(e.id)) return
+  socialBusy(e.id, true, knopf)
+  try {
+    const neu = await socialSende(e, { status: 'offen' })
+    socialBusy(e.id, false)
+    socialUebernehme([neu])
+    ersetzeSocialEintrag(neu)
+    socialMeldung(e.id, 'Wieder offen. Text und Bild lassen sich ändern.', 'ok')
+    soEl(`so-e-${e.id}-text`)?.focus()
+  } catch (err) {
+    socialBusy(e.id, false, knopf)
+    socialMeldung(e.id, `Nicht geöffnet: ${err.message}`, 'error', { fokus: true })
+  }
+}
+
+// Rückfrage, dann Rätsel und Auflösung (bzw. Beleg, Textbeleg) gemeinsam neu bauen. Der geänderte Text beider geht
+// verloren, deshalb nennt die Frage beide Entwürfe; der Server schreibt sie ins Änderungsprotokoll.
+async function socialNeuErstellen(id, knopf) {
+  const e = socialFinde(id)
+  if (!e || socialLaeuft.has(e.id)) return
+  const grund = socialNeuGrund(e)
+  if (grund) {
+    socialMeldung(e.id, grund, 'warn', { fokus: true })
+    return
+  }
+  const info = socialPartnerInfo(e)
+  const basis = soBasis(e.slot)
+  const mitBild = e.spec?.format !== 'text'
+  const betroffen = [{ slot: e.slot, datum: e.datum }, info].filter(Boolean).sort((a, b) => a.datum.localeCompare(b.datum))
+  const li = soEl(`so-e-${e.id}`)
+  socialMarkiert = e.id
+  li?.classList.add('is-markiert')
+  const ok = await bestaetige({
+    frage: info ? `${SO_SLOT_LABEL[basis]} und Auflösung neu erstellen?` : `${SO_SLOT_LABEL[e.slot]} neu erstellen?`,
+    text: `${info ? 'Beide bekommen' : 'Der Entwurf bekommt'} neue Daten aus dem Korpus${basis === 'A' ? ' (Ablenker, Reihenfolge)' : basis === 'T' ? '' : ' (anderer Beleg)'}, einen neuen Text aus der Vorlage${mitBild ? ' und ein neues Bild' : ''}. Dein geänderter Text geht verloren.`,
+    details: betroffen.map((x) => `${SO_SLOT_LABEL[x.slot]} · ${datumKurz(x.datum)}`),
+    aktion: 'Neu erstellen',
+    gefahr: true,
+  })
+  socialMarkiert = null
+  soEl(`so-e-${e.id}`)?.classList.remove('is-markiert')
+  if (!ok) return
+
+  const partner = socialPartner(e)
+  socialBusy(e.id, true, knopf)
+  socialSperre(e.id, true)
+  if (partner) socialSperre(partner.id, true)
+  const text = knopf?.firstChild
+  const alterText = text?.textContent
+  if (text) text.textContent = 'Wird neu erstellt …'
+  socialMeldung(e.id, 'Neue Daten werden gesucht und das Bild gezeichnet. Das dauert einige Sekunden.', 'loading')
+  const entsperren = () => {
+    socialSperre(e.id, false)
+    if (partner) socialSperre(partner.id, false)
+    socialBusy(e.id, false, knopf)
+    if (text && alterText) text.textContent = alterText
+  }
+
+  let antwort = null
+  let fehler = null
+  try {
+    antwort = await holeJson(`/admin/social-cards/entwuerfe/${e.id}/neu`, { method: 'POST', body: '{}' })
+  } catch (err) {
+    fehler = err
+  }
+
+  // Nach JEDEM Ausgang den Zeitraum neu laden: Auch bei einem Fehler können die Texte schon ersetzt sein
+  // (z. B. wenn nur das Zeichnen scheiterte) – die Anzeige soll den Stand des Servers zeigen, nicht den alten.
+  let aktualisierungFehler = null
+  try {
+    const von = betroffen[0].datum
+    const bis = betroffen[betroffen.length - 1].datum
+    const frisch = (await holeJson(`/admin/social-cards/entwuerfe?von=${encodeURIComponent(von)}&bis=${encodeURIComponent(bis)}`)).entwuerfe || []
+    const geaendert = frisch.filter((x) => socialFinde(x.id)?.aktualisiertAm !== x.aktualisiertAm)
+    const zeigen = fehler ? geaendert : frisch
+    if (!fehler) for (const x of antwort.ersetzt || []) socialUngespeichert.delete(x)
+    for (const x of zeigen) socialUngespeichert.delete(x.id)
+    entsperren()
+    socialUebernehme(zeigen)
+    if (zeigen.some((x) => !soEl(`so-e-${x.id}`))) renderSocialEntwuerfe()
+    else for (const x of zeigen) ersetzeSocialEintrag(x)
+  } catch (err) {
+    aktualisierungFehler = err
+    entsperren()
+  }
+
+  if (fehler) {
+    socialMeldung(e.id, `Nicht neu erstellt: ${fehler.message}${aktualisierungFehler ? ' Die Anzeige ließ sich nicht aktualisieren – oben „neu laden“ wählen.' : ''}`, 'error', { fokus: true })
+    return
+  }
+  if (aktualisierungFehler) {
+    // Der Server hat neu erstellt; nur die Anzeige ließ sich nicht aktualisieren
+    socialMeldung(e.id, `Neu erstellt, aber die Anzeige ließ sich nicht aktualisieren (${aktualisierungFehler.message}). Oben „neu laden“ wählen.`, 'warn', { fokus: true })
+    return
+  }
+  const wortPartner = info ? (soIstAufloesung(info.slot) ? 'die Auflösung' : SO_BASIS_MIT_ARTIKEL[basis] || 'der Partner') : ''
+  const mitErsetzt = info ? ` – ${wortPartner} (${datumKurz(info.datum)}) wurde mit ersetzt` : ''
+  if (antwort.bildFehlt) {
+    socialMeldung(e.id, `Neu erstellt${mitErsetzt}. Der Text ist neu, nur das Bild ließ sich nicht zeichnen; es wird beim nächsten Abruf oder Lauf nachgeholt.`, 'warn', { fokus: true })
+    return
+  }
+  socialMeldung(e.id, info ? `Neu erstellt${mitErsetzt}.` : 'Neu erstellt.', 'ok', { fokus: true })
+}
+
+// „Fehlende Entwürfe jetzt anlegen“: derselbe Lauf wie der nächtliche
+async function socialAnlegen() {
+  if (socialAnlegenLaeuft) return
+  socialAnlegenLaeuft = true
+  const knopf = soEl('so-pf-anlegen')
+  knopf.classList.add('is-busy')
+  knopf.setAttribute('aria-disabled', 'true')
+  soEl('so-pf-anlegen-text').textContent = 'Entwürfe werden angelegt …'
+  setMeldung('so-pf-anlegen-meldung', 'Fehlende Entwürfe werden angelegt und die Bilder gezeichnet. Das kann eine halbe Minute dauern; du kannst die Seite derweil verlassen.', 'loading')
+  try {
+    const r = await holeJson('/admin/social-cards/entwuerfe/erzeugen', { method: 'POST', body: '{}' })
+    socialAnlegenLaeuft = false
+    knopf.classList.remove('is-busy')
+    knopf.removeAttribute('aria-disabled')
+    soEl('so-pf-anlegen-text').textContent = 'Fehlende Entwürfe jetzt anlegen'
+    await ladeSocialEntwuerfe({ neu: true })
+    const fehler = (r.fehler || []).map((f) => {
+      const m = /^(\d{4}-\d{2}-\d{2}): (.*)$/.exec(String(f))
+      return m && isValidIsoDay(m[1]) ? `Für ${datumKurz(m[1])}: ${m[2]}` : String(f)
+    })
+    const teile = []
+    if (r.neu) teile.push(`${anzahlText(r.neu, 'Entwurf', 'Entwürfe')} neu angelegt`)
+    if (r.gezeichnet) teile.push(`${anzahlText(r.gezeichnet, 'Bild', 'Bilder')} gezeichnet`)
+    let text
+    if (teile.length) text = `Fertig: ${teile.join(', ')}.`
+    else if (!fehler.length) text = `Nichts zu tun: Alle Entwürfe bis ${datumKurz(addTageIso(socialHeute(), socialUmfang?.horizont ?? 7))} sind schon da.`
+    else text = 'Es wurde nichts angelegt.'
+    if (fehler.length) text += ` ${fehler.join(' ')}`
+    setMeldung('so-pf-anlegen-meldung', text, fehler.length ? 'warn' : 'ok', { fokus: true })
+  } catch (err) {
+    socialAnlegenLaeuft = false
+    knopf.classList.remove('is-busy')
+    knopf.removeAttribute('aria-disabled')
+    soEl('so-pf-anlegen-text').textContent = 'Fehlende Entwürfe jetzt anlegen'
+    setMeldung('so-pf-anlegen-meldung', `Die Entwürfe konnten nicht angelegt werden: ${err.message}`, 'error', { fokus: true })
+  }
+}
+
+// Klick auf einen gesperrten Knopf: erklären statt schweigen
+function socialGesperrtKlick(knopf) {
+  if (knopf.classList.contains('is-busy')) return
+  const { action, id } = knopf.dataset
+  // Zeichenmodul fehlt: Bild und Text lassen sich nicht erzeugen
+  if (action === 'so-ed-laden' || action === 'so-ed-kopieren') {
+    if (!kartenModul) socialEdMeldung(action === 'so-ed-laden' ? 'vorschau' : 'text', 'Das Zeichenmodul ist nicht geladen – ohne es gibt es kein Bild und keinen Text aus der Vorlage. Seite neu laden und noch einmal versuchen.', 'warn', { fokus: true })
+    return
+  }
+  // Gesperrt, weil der Entwurf (oder sein Partner) gerade neu erstellt wird: Die Meldung dort sagt es schon
+  if ('sperre' in knopf.dataset) return
+  const e = socialFinde(id)
+  if (!e) return
+  if (action === 'so-freigeben') {
+    const z = socialZaehler(e, socialUngespeichert.get(e.id) ?? e.caption)
+    if (z.zuviel > 0) socialMeldung(e.id, `Zu lang für Bluesky: ${z.zuviel} Zeichen kürzen, dann freigeben.`, 'error', { fokus: true })
+  } else if (action === 'so-neu') {
+    const grund = socialNeuGrund(e)
+    if (grund) socialMeldung(e.id, grund, 'warn', { fokus: true })
+  }
+}
+
+// Eingabe im Beitragstext eines Entwurfs: Marke, Speichern-Knopf, Zähler und Sperre des Freigebens ziehen nach
+function socialTextEingabe(feld) {
+  const e = socialFinde(feld.dataset.id)
+  const li = feld.closest('.so-entwurf')
+  if (!e || !li) return
+  const war = socialUngespeichert.has(e.id)
+  if (feld.value === e.caption) socialUngespeichert.delete(e.id)
+  else socialUngespeichert.set(e.id, feld.value)
+  const geaendert = socialUngespeichert.has(e.id)
+  li.querySelector('.in-geaendert').hidden = !geaendert
+  li.querySelector('[data-action="so-speichern"]').hidden = !geaendert
+  const z = socialZaehler(e, feld.value)
+  const zaehler = li.querySelector('.in-zaehler')
+  zaehler.textContent = z.text
+  if (z.tone) zaehler.dataset.tone = z.tone
+  else zaehler.removeAttribute('data-tone')
+  if (z.zuviel > 0) feld.setAttribute('aria-invalid', 'true')
+  else feld.removeAttribute('aria-invalid')
+  const freigeben = li.querySelector('[data-action="so-freigeben"]')
+  if (freigeben && !freigeben.classList.contains('is-busy')) {
+    if (z.zuviel > 0) freigeben.setAttribute('aria-disabled', 'true')
+    else freigeben.removeAttribute('aria-disabled')
+  }
+  // Eine alte Rückmeldung („Text gespeichert.“) gilt für den neuen Text nicht mehr
+  if (war !== geaendert) socialMeldung(e.id, '')
+}
+
+// ════════════════ Selbst gestalten ════════════════
+
+const SO_TEXT_VORLAGEN = {
+  A: ['Variante 1 – Rätsel, Auflösung morgen', 'Variante 2 – Frage an die Leser', 'Variante 3 – mit Hashtags im Text'],
+  B: ['Variante 1 – welches Wort fehlt?', 'Variante 2 – Lehrbuch und echte Sprache', 'Variante 3 – mit Quelle und Hashtags'],
+  C: ['Variante 1 – zwei Wörter, Auflösung morgen', 'Variante 2 – der feine Unterschied', 'Variante 3 – für den Unterricht, mit Hashtags'],
+  X: ['Variante 1 – Überschrift und Text', 'Variante 2 – mit Wort und Frage', 'Variante 3 – Sprachgeschichte, mit Hashtags'],
+  T: ['Variante 1 – Liste der Wörter', 'Variante 2 – kurz, mit Hashtags im Text'],
+}
+// Textvorlagen, die schon Hashtags enthalten → Hashtag-Auswahl „Keine“ (sonst stünden sie doppelt da)
+const SO_MIT_TAGS_IM_TEXT = { A: 2, B: 2, C: 2, X: 2, T: 1 }
+const SO_TAG_SETS = [['quiz', 'Rätsel'], ['korpus', 'Korpus'], ['bildung', 'Unterricht'], ['wortschatz', 'Wortschatz'], ['primary', 'Nur #Linguistik #DeutscheSprache'], ['', 'Keine']]
+// Ohne Uhrzeiten: Der Wochenplan der Entwürfe kennt nur den Wochentag
+const SO_PLAN = {
+  A: 'Im Wochenplan: montags als Bild, die Auflösung dienstags als Antwort.',
+  B: 'Im Wochenplan: freitags als Bild, die Auflösung samstags als Antwort.',
+  C: 'Nicht im Wochenplan – Wort-Zwilling-Karten entstehen nur hier.',
+  X: 'Im Wochenplan: mittwochs als Zitat-Bild.',
+  T: 'Im Wochenplan: jeden Tag.',
+}
+const SO_DATEINAME = { A: 'raetsel', B: 'beleg', C: 'wort-zwilling', X: 'info', T: 'teaser' }
+const SO_KARTENART = { A: 'Rätsel', B: 'Beleg', C: 'Wort-Zwilling', X: 'Info', T: 'Teaser' }
+
+const soEd = {
+  bereit: false,
+  datum: '',
+  vorlage: 'A',
+  lemmata: [],
+  wz: null,
+  koll: [],
+  belege: [],
+  xBelege: [],
+  reihenfolge: [0, 1, 2],
+  chipsGemischt: null,
+  textGeaendert: false,
+  fontsBereit: false,
+  tagLauf: 0,
+  wortLauf: 0,
+  belegLauf: 0,
+  zeichenLauf: 0,
+}
+
+function socialEditorHash() {
+  return `#werkzeuge/social-cards/gestalten?${new URLSearchParams({ datum: soEd.datum, vorlage: soEd.vorlage })}`
+}
+
+// Datum und Vorlage stehen in der Adresse (ohne Verlaufseintrag); der Reiter „Selbst gestalten“ führt dorthin zurück
+function merkeSocialEditor() {
+  if (currentRoute?.page !== 'social-editor' || !soEd.datum) return
+  const hash = socialEditorHash()
+  reiterMerker['social-editor'] = hash
+  if (hash !== currentRouteHash) replaceRouteHashSilently(hash)
+  document.querySelector('#page-tabs a[aria-current="page"]')?.setAttribute('href', hash)
+}
+
+async function oeffneSocialEditor(route) {
+  const wunsch = route.social || {}
+  try {
+    await ladeKarten()
+  } catch {
+    socialModulFehlt()
+    await zeigeKartenFehler()
+    return
+  }
+  if (currentRoute?.page !== 'social-editor') return
+  if (soEl('so-ed-meldung')?.querySelector('[data-action="so-ed-seite-neu"]')) setMeldung('so-ed-meldung', '')
+  socialModulDa()
+  const datum = wunsch.datum || soEd.datum || addTageIso(berlinTeile(getCurrentDate()).iso, 1)
+  const vorlage = wunsch.vorlage || soEd.vorlage
+  if (!soEd.bereit || datum !== soEd.datum) {
+    soEd.bereit = true
+    soEd.datum = datum
+    soEl('so-datum').value = datum
+    document.querySelector(`input[name="so-vorlage"][value="${vorlage}"]`).checked = true
+    setzeSocialVorlage(vorlage, { aus: 'adresse' })
+    await ladeSocialTag()
+  } else if (vorlage !== soEd.vorlage) {
+    document.querySelector(`input[name="so-vorlage"][value="${vorlage}"]`).checked = true
+    setzeSocialVorlage(vorlage, { aus: 'adresse' })
+  } else {
+    // Zurück auf der Seite: Der Zeichenbereich wurde beim Verlassen freigegeben
+    void socialZeichne()
+  }
+  merkeSocialEditor()
+}
+
+// Beim Verlassen: Die Zeichenfläche (5,8–8,3 MB) freigeben, eine laufende Zeichnung verwerfen
+function socialEditorVerlassen() {
+  soEd.zeichenLauf++
+  const c = soEl('so-canvas')
+  if (c) { c.width = 0; c.height = 0 }
+}
+
+async function ladeSocialTag() {
+  const datum = soEd.datum
+  const lauf = ++soEd.tagLauf
+  soEd.belegLauf++   // späte Belege des vorigen Tages dürfen nichts mehr überschreiben
+  setMeldung('so-datum-hinweis', 'Wörter werden geladen …')
+  let daten = null
+  try {
+    daten = await holeJson(`/admin/social-cards/tagesdata?datum=${encodeURIComponent(datum)}`)
+  } catch (err) {
+    if (lauf !== soEd.tagLauf) return
+    setMeldung('so-ed-meldung', `Die Wörter für ${datumKurz(datum)} konnten nicht geladen werden (${esc(err.message)}). <button type="button" class="adm-link" data-action="so-ed-neu-laden">Erneut versuchen</button>`, 'error', { html: true })
+  }
+  if (lauf !== soEd.tagLauf) return
+  if (daten) setMeldung('so-ed-meldung', '')
+  soEd.lemmata = Array.isArray(daten?.lemmata) ? daten.lemmata : []
+  let wz = daten?.wortzwilling || null
+  if (wz && typeof wz.kollokatoren === 'string') {
+    try { wz = { ...wz, kollokatoren: JSON.parse(wz.kollokatoren) } } catch { wz = { ...wz, kollokatoren: [] } }
+  }
+  if (wz && !Array.isArray(wz.kollokatoren)) wz = { ...wz, kollokatoren: [] }
+  soEd.wz = wz
+  if (!daten) setMeldung('so-datum-hinweis', '')
+  else {
+    setMeldung('so-datum-hinweis', soEd.lemmata.length
+      ? `Geplant: ${soEd.lemmata.map((l) => l.lemma).join(', ')}${wz ? ` · Wort-Zwilling ${wz.wortA} / ${wz.wortB}` : ''}`
+      : 'Für diesen Tag ist nichts geplant. Info-Karten lassen sich trotzdem frei ausfüllen.')
+  }
+  soOptionen(soEl('so-wort'), soEd.lemmata.length ? soEd.lemmata.map((l) => [l.id, `${l.lemma} (${l.pos})`]) : [['', 'Kein Wort geplant']])
+  soEl('so-wort').disabled = !soEd.lemmata.length
+  // Wort-Zwilling: Die Daten nennen die Seite „zuordnung“ (A/B) – nicht „owner“ (so heißt das Feld nur in der Kartenvorlage)
+  if (wz) {
+    soEl('so-c-wort-a').value = wz.wortA || ''
+    soEl('so-c-wort-b').value = wz.wortB || ''
+    soEl('so-c-koll-a').value = wz.kollokatoren.filter((k) => k.zuordnung === 'A').slice(0, 2).map((k) => k.wort).join(', ')
+    soEl('so-c-koll-b').value = wz.kollokatoren.filter((k) => k.zuordnung === 'B').slice(0, 2).map((k) => k.wort).join(', ')
+    soEl('so-c-hinweis').textContent = `Vorbelegt aus dem Wort-Zwilling des Tages (${wz.wortA} / ${wz.wortB}). Auf der Karte stehen die Kollokatoren gemischt.`
+  } else {
+    // Felder des vorigen Tages nicht stehen lassen
+    for (const id of ['so-c-wort-a', 'so-c-wort-b', 'so-c-koll-a', 'so-c-koll-b']) soEl(id).value = ''
+    soEl('so-c-hinweis').textContent = 'Für diesen Tag gibt es keinen Wort-Zwilling. Wörter und Kollokatoren von Hand eintragen.'
+  }
+  soEd.chipsGemischt = null
+  socialVorschlaege()
+  soEl('so-t-hinweis').textContent = soEd.lemmata.length
+    ? `Zeigt die drei Wörter des Tages: ${soEd.lemmata.slice(0, 3).map((l) => l.lemma).join(', ')}.`
+    : 'Für diesen Tag ist nichts geplant – der Teaser bleibt leer.'
+  await ladeSocialWort()
+}
+
+// Kollokatoren zum gewählten Wort: Rätsel (richtige Antwort, Ablenker), Beleg und Info-Zitat brauchen sie
+async function ladeSocialWort() {
+  const l = soEd.lemmata.find((x) => x.id === soWert('so-wort'))
+  const lauf = ++soEd.wortLauf
+  soEd.belegLauf++   // eine noch laufende Belegsuche (Beleg-Karte, Zitat) gehört zum alten Wort
+  soEd.koll = []
+  soEd.belege = []
+  soEd.xBelege = []
+  setMeldung('so-wort-hinweis', '')
+  if (l) {
+    setMeldung('so-wort-hinweis', 'Kollokatoren werden geladen …')
+    try {
+      const daten = await holeJson(`/admin/analyze-kollokation?q=${encodeURIComponent(l.lemma)}`)
+      if (lauf !== soEd.wortLauf) return
+      soEd.koll = (daten.kollokatoren || []).map((k) => ({ wort: k.wort, logDice: Number(k.logDice) || 0 })).sort((a, b) => b.logDice - a.logDice)
+      setMeldung('so-wort-hinweis', soEd.koll.length ? '' : 'Zu diesem Wort gibt es keine Kollokatoren.')
+    } catch (err) {
+      if (lauf !== soEd.wortLauf) return
+      setMeldung('so-wort-hinweis', `Die Kollokatoren konnten nicht geladen werden (${err.message}).`, 'error')
+    }
+  }
+  const [antwort, ...rest] = soEd.koll
+  soEl('so-a-antwort').innerHTML = antwort
+    ? `${esc(antwort.wort)} <span class="so-zusatz">stärkster Kollokator · logDice ${soZahlDe(antwort.logDice)}</span>`
+    : '<span class="so-zusatz">–</span>'
+  // Ablenker wie bisher vorbelegt: Rang 5 und Rang 10, sonst die nächsten
+  const opts = rest.map((k, i) => [k.wort, `${k.wort} – Rang ${i + 2} · logDice ${soZahlDe(k.logDice)}`])
+  soOptionen(soEl('so-a-abl1'), opts, (rest[3] ?? rest[0])?.wort)
+  soOptionen(soEl('so-a-abl2'), opts, (rest[8] ?? rest[1])?.wort)
+  const kopts = soEd.koll.slice(0, 25).map((k) => [k.wort, `${k.wort} · logDice ${soZahlDe(k.logDice)}`])
+  soOptionen(soEl('so-b-kollokator'), [['', 'Kollokator wählen'], ...kopts])
+  soOptionen(soEl('so-x-kollokator'), [['', 'Kollokator wählen'], ...kopts])
+  // Satz und Quelle des alten Worts bleiben nicht stehen
+  soEl('so-b-text').value = ''
+  soEl('so-b-quelle').value = ''
+  soOptionen(soEl('so-b-beleg'), [['', 'Erst einen Kollokator wählen']])
+  soOptionen(soEl('so-x-beleg'), [['', 'Erst einen Kollokator wählen']])
+  setMeldung('so-b-beleg-hinweis', '')
+  socialBAblenker()
+  if (!soWert('so-x-wort') && l) soEl('so-x-wort').value = l.lemma
+  soEd.reihenfolge = soMische(3)
+  void socialZeichne()
+}
+
+function socialBAblenker() {
+  const k = soWert('so-b-kollokator').toLowerCase()
+  const rest = soEd.koll.filter((x) => x.wort.toLowerCase() !== k)
+  const opts = rest.map((x, i) => [x.wort, `${x.wort} – Rang ${i + 2} · logDice ${soZahlDe(x.logDice)}`])
+  soOptionen(soEl('so-b-abl1'), opts, (rest[4] ?? rest[0])?.wort)
+  soOptionen(soEl('so-b-abl2'), opts, (rest[9] ?? rest[1])?.wort)
+}
+
+// Belege (aus dem eigenen Korpus) zu Wort + Kollokator; 'b' = Beleg-Karte, 'x' = Zitat der Info-Karte
+async function ladeSocialBelege(welche) {
+  const l = soEd.lemmata.find((x) => x.id === soWert('so-wort'))
+  const k = soWert(welche === 'b' ? 'so-b-kollokator' : 'so-x-kollokator')
+  const hinweis = welche === 'b' ? 'so-b-beleg-hinweis' : ''
+  const lauf = ++soEd.belegLauf
+  if (!k || !l) {
+    if (welche === 'b') { soEd.belege = []; soOptionen(soEl('so-b-beleg'), [['', 'Erst einen Kollokator wählen']]); setMeldung(hinweis, ''); setzeSocialBeleg() }
+    return
+  }
+  if (hinweis) setMeldung(hinweis, 'Belege werden geladen …')
+  let belege = []
+  try {
+    const daten = await holeJson(`/admin/social-cards/belege?lemma=${encodeURIComponent(l.lemma)}&collocate=${encodeURIComponent(k)}`)
+    belege = Array.isArray(daten.belege) ? daten.belege : []
+  } catch (err) {
+    if (lauf !== soEd.belegLauf) return
+    if (hinweis) setMeldung(hinweis, `Die Belege konnten nicht geladen werden (${err.message}).`, 'error')
+  }
+  if (lauf !== soEd.belegLauf) return
+  const optionen = belege.length ? belege.map((b, i) => [String(i), `Beleg ${i + 1}: ${String(b.quelle).split(' · ')[0]}`]) : [['', 'Keine Belege']]
+  if (welche === 'b') {
+    soEd.belege = belege
+    soOptionen(soEl('so-b-beleg'), optionen)
+    if (hinweis && (belege.length || !soEl(hinweis).dataset.tone)) {
+      setMeldung(hinweis, belege.length ? `${anzahlText(belege.length, 'Beleg', 'Belege')} aus dem eigenen Korpus.` : `Zu „${l.lemma}“ + „${k}“ gibt es keinen Beleg. Anderen Kollokator wählen.`)
+    }
+    socialBAblenker()
+    setzeSocialBeleg()
+  } else {
+    soEd.xBelege = belege
+    soOptionen(soEl('so-x-beleg'), optionen)
+  }
+}
+
+// Satz und Quelle aus dem gewählten Beleg; ohne Beleg werden beide geleert (sonst bliebe der Satz des alten Kollokators)
+function setzeSocialBeleg() {
+  if (!kartenModul) return
+  const b = soEd.belege[Number(soWert('so-b-beleg'))]
+  soEl('so-b-text').value = b ? kartenModul.belegLueckentext(b.tokens, soWert('so-b-kollokator')) : ''
+  soEl('so-b-quelle').value = b ? b.quelle || '' : ''
+  void socialZeichne()
+}
+
+// Wort-Zwilling: Vorschläge je Wort als Schalter; gedrückt = steht im Feld
+function socialVorschlaege() {
+  const box = soEl('so-c-vorschlaege')
+  if (!box) return
+  const wz = soEd.wz
+  if (!wz || !wz.kollokatoren.length) { box.innerHTML = ''; return }
+  const gewaehlt = (feld) => soWert(feld).split(',').map((s) => s.trim()).filter(Boolean)
+  const gruppe = (z, wort, feld) => `<div class="so-vorschlag-gruppe" role="group" aria-labelledby="so-vg-${z}"><p class="tag-label" id="so-vg-${z}">Vorschläge zu ${esc(wort)}</p>`
+    + `<ul class="so-vorschlag-liste">${wz.kollokatoren.filter((k) => k.zuordnung === z).map((k) => `<li><button type="button" class="so-vorschlag" data-action="so-c-vorschlag" data-feld="${feld}" data-wort="${esc(k.wort)}" aria-pressed="${gewaehlt(feld).includes(k.wort)}">${esc(k.wort)}</button></li>`).join('')}</ul></div>`
+  box.innerHTML = gruppe('A', soWert('so-c-wort-a') || 'Wort A', 'so-c-koll-a') + gruppe('B', soWert('so-c-wort-b') || 'Wort B', 'so-c-koll-b')
+}
+
+function socialEdSpec() {
+  const l = soEd.lemmata.find((x) => x.id === soWert('so-wort'))
+  const fmt = soEd.vorlage
+  const spec = {
+    format: fmt,
+    theme: soRadio('so-farbe') || 'hell',
+    ratio: soRadio('so-format') === '9:16' ? '9:16' : '4:5',
+    header: soEl('so-kopf').checked,
+    reveal: soEl('so-aufloesung').checked && 'ABC'.includes(fmt),
+    datum: soEd.datum,
+  }
+  if (fmt === 'A') {
+    const texte = [soEd.koll[0]?.wort || '–', soWert('so-a-abl1') || '–', soWert('so-a-abl2') || '–']
+    spec.data = { lemma: l?.lemma || '—', pos: l?.pos || '', ipa: l?.ipa || '', options: soEd.reihenfolge.map((i) => ({ text: texte[i], correct: i === 0 })) }
+  } else if (fmt === 'B') {
+    const k = soWert('so-b-kollokator')
+    const b = soEd.belege[Number(soWert('so-b-beleg'))]
+    spec.data = {
+      quoteText: soWert('so-b-text') || '—',
+      quelle: soWert('so-b-quelle'),
+      // Die Auflösung zeigt die Wortform aus dem Beleg („Weißen“), nicht die Grundform des Kollokators
+      collocate: b && kartenModul ? kartenModul.belegLueckenwort(b.tokens, k) : k,
+      showOptions: soEl('so-b-optionen').checked,
+      options: [{ text: k || '–', correct: true }, { text: soWert('so-b-abl1') || '–' }, { text: soWert('so-b-abl2') || '–' }],
+    }
+  } else if (fmt === 'C') {
+    const teil = (id, owner) => soWert(id).split(',').map((s) => s.trim()).filter(Boolean).slice(0, 4).map((w) => ({ w, owner }))
+    const chips = [...teil('so-c-koll-a', 'A'), ...teil('so-c-koll-b', 'B')]
+    // Gemischt wird nur auf „Reihenfolge neu mischen“ – nicht bei jedem Tastendruck
+    if (!soEd.chipsGemischt || soEd.chipsGemischt.length !== chips.length) soEd.chipsGemischt = soMische(chips.length)
+    spec.data = { wortA: soWert('so-c-wort-a'), wortB: soWert('so-c-wort-b'), chips: soEd.chipsGemischt.map((i) => chips[i]) }
+  } else if (fmt === 'X') {
+    spec.data = { subtype: soWert('so-x-rubrik'), xLemma: soWert('so-x-wort'), headline: soWert('so-x-titel'), body: soWert('so-x-text') }
+  } else {
+    spec.data = { lemmata: soEd.lemmata.slice(0, 3) }
+  }
+  return spec
+}
+
+// Textersatz zur Karte (Vorschau und Download sind ein Bild ohne eigenen Text). `farbe`: Name der Farbvariante;
+// ohne Angabe die im Editor gewählte.
+function socialKartenText(spec, farbe = document.querySelector('input[name="so-farbe"]:checked')?.closest('label')?.textContent.trim().replace(/\s+/g, ' ') || '') {
+  const d = spec.data
+  const kopf = `${SO_KARTENART[spec.format]}-Karte${spec.reveal ? ' mit Auflösung' : ''}, ${farbe}, ${spec.ratio.replace(':', ' : ')}`
+  if (spec.format === 'A') return `${kopf}: Welches Wort ist am stärksten mit „${d.lemma}“ verbunden? ${d.options.map((o, i) => `${'ABC'[i]} ${o.text}${spec.reveal && o.correct ? ' (richtig)' : ''}`).join(', ')}.`
+  if (spec.format === 'B') return `${kopf}: „${spec.reveal ? d.quoteText.replace(/______/g, d.collocate) : d.quoteText.replace(/______/g, 'Lücke')}“ – ${d.quelle || 'ohne Quelle'}.`
+  if (spec.format === 'C') return `${kopf}: ${d.wortA} und ${d.wortB}; Kollokatoren ${d.chips.map((c) => c.w).join(', ')}.`
+  if (spec.format === 'X') return `${kopf}: ${d.subtype || 'Wortgeschichte'}${d.xLemma ? ` – ${d.xLemma}` : ''}. ${d.headline} ${d.body}`.trim()
+  return `${kopf}: Heute im Spiel ${d.lemmata.map((l) => l.lemma).join(', ') || '–'}.`
+}
+
+// Dasselbe für einen Entwurf aus dem Postfach (Farbe und Format stehen in seiner spec)
+const SO_FARBNAMEN = { hell: 'Hell', dunkel: 'Dunkel', rot: 'Rot' }
+function socialEntwurfKartenText(e) {
+  try {
+    return socialKartenText({ ...e.spec, ratio: e.spec.ratio || '4:5' }, SO_FARBNAMEN[e.spec.theme] || SO_FARBNAMEN.hell)
+  } catch {
+    return ''
+  }
+}
+
+// Ohne Zeichenmodul gibt es weder Bild noch Beitragstext aus der Vorlage: Die Knöpfe bleiben fokussierbar, sind aber
+// gesperrt (aria-disabled) und sagen beim Klick, warum – statt eine leere Karte zu laden.
+function socialModulFehlt() {
+  for (const id of ['so-ed-laden', 'so-ed-kopieren']) soEl(id)?.setAttribute('aria-disabled', 'true')
+  soEl('so-canvas')?.setAttribute('aria-label', 'Keine Vorschau: Zeichenmodul nicht geladen.')
+  const masse = soEl('so-karte-masse')
+  if (masse) masse.textContent = 'Keine Vorschau'
+}
+
+function socialModulDa() {
+  for (const id of ['so-ed-laden', 'so-ed-kopieren']) {
+    const k = soEl(id)
+    if (k && !k.classList.contains('is-busy')) k.removeAttribute('aria-disabled')
+  }
+}
+
+async function socialZeichne() {
+  if (currentRoute?.page !== 'social-editor') return
+  const lauf = ++soEd.zeichenLauf
+  const figur = document.querySelector('#page-social-editor .so-karte')
+  const knopf = soEl('so-ed-laden')
+  try {
+    await ladeKarten()
+  } catch {
+    await zeigeKartenFehler()
+    socialModulFehlt()
+    return
+  }
+  // „Wird gezeichnet …“ nur, solange die Schriften noch laden (danach zeichnet jede Eingabe in unter einer Millisekunde)
+  const wartet = !soEd.fontsBereit
+  if (wartet) {
+    figur.classList.add('is-busy')
+    knopf.classList.add('is-busy')
+    knopf.setAttribute('aria-disabled', 'true')
+    soEl('so-ed-laden-text').textContent = 'Wird gezeichnet …'
+  }
+  try { await kartenModul.loadCardFonts(document.fonts) } catch { /* Ersatzschrift: Die Karte wird trotzdem gezeichnet */ }
+  if (lauf !== soEd.zeichenLauf || currentRoute?.page !== 'social-editor') return
+  soEd.fontsBereit = true
+  const spec = socialEdSpec()
+  const { W, H } = kartenModul.cardDims(spec.ratio)
+  const c = soEl('so-canvas')
+  if (c.width !== W) c.width = W
+  if (c.height !== H) c.height = H
+  kartenModul.drawCard(c.getContext('2d'), spec)
+  c.setAttribute('aria-label', socialKartenText(spec))
+  soEl('so-karte-masse').textContent = `${W} × ${H} Pixel · ${spec.ratio === '9:16' ? 'Story' : 'Beitrag'}`
+  figur.classList.remove('is-busy')
+  knopf.classList.remove('is-busy')
+  knopf.removeAttribute('aria-disabled')
+  soEl('so-ed-laden-text').textContent = 'Bild herunterladen'
+  socialModulDa()
+  socialTextAktualisieren()
+}
+
+// Beitragstext, Hashtag-Zeile und Zeichenzähler. Der Text kommt aus der Textvorlage, solange man ihn nicht selbst
+// geändert hat; danach bleibt er stehen, bis man ihn über „Text aus der Vorlage neu einsetzen“ zurückholt.
+function socialTextAktualisieren({ neu = false } = {}) {
+  if (!kartenModul) return
+  const fmt = soEd.vorlage
+  const v = Number(soWert('so-text-vorlage')) || 0
+  if (!soEd.textGeaendert || neu) {
+    const l = soEd.lemmata.find((x) => x.id === soWert('so-wort'))
+    const quote = soWert('so-b-text')
+    const state = {
+      lemma: l?.lemma || '—',
+      wortA: soWert('so-c-wort-a') || 'Wort A',
+      wortB: soWert('so-c-wort-b') || 'Wort B',
+      quote: quote.length > 100 ? `${quote.slice(0, 100)}…` : quote || '—',
+      source: soWert('so-b-quelle') || 'Korpus',
+      xLemma: soWert('so-x-wort'),
+      headline: soWert('so-x-titel'),
+      body: soWert('so-x-text'),
+      lemmata: soEd.lemmata,
+    }
+    soEl('so-text').value = kartenModul.buildCaption(fmt, v, state)
+    soEd.textGeaendert = false
+  }
+  soEl('so-text-stand').textContent = soEd.textGeaendert ? 'von dir geändert' : 'aus der Vorlage'
+  soEl('so-ed-text-neu').hidden = !soEd.textGeaendert
+  const set = soWert('so-tags')
+  const tags = set ? kartenModul.hashtagsFor(set) : ''
+  soEl('so-tags-zeile').textContent = tags ? `Darunter: ${tags}` : 'Keine Hashtags darunter.'
+  const text = soWert('so-text').trim()
+  const n = kartenModul.zeichenZahl(tags ? `${text}\n\n${tags}` : text)
+  const max = kartenModul.BLUESKY_MAX_ZEICHEN
+  const z = soEl('so-text-zaehler')
+  z.textContent = n > max ? `${n} von ${max} Zeichen – ${n - max} zu viel für Bluesky` : `${n} von ${max} Zeichen${tags ? ' mit Hashtags' : ''}`
+  if (n > max) z.dataset.tone = 'error'
+  else z.removeAttribute('data-tone')
+  if (n > max) soEl('so-text').setAttribute('aria-invalid', 'true')
+  else soEl('so-text').removeAttribute('aria-invalid')
+}
+
+function setzeSocialVorlage(fmt, { aus = 'nutzer' } = {}) {
+  soEd.vorlage = fmt
+  document.querySelectorAll('#so-ed .so-fmt').forEach((el) => { el.hidden = el.dataset.fmt !== fmt })
+  const ohneWort = fmt === 'C' || fmt === 'T'
+  soEl('so-wort-feld').hidden = ohneWort
+  soEl('so-wort-hinweis').hidden = ohneWort
+  soEl('so-aufloesung-zeile').hidden = !'ABC'.includes(fmt)
+  soEl('so-ed-mischen').hidden = !'AC'.includes(fmt)
+  soEl('so-ed-plan').textContent = SO_PLAN[fmt]
+  soOptionen(soEl('so-text-vorlage'), SO_TEXT_VORLAGEN[fmt].map((t, i) => [String(i), t]), '0')
+  if (kartenModul) {
+    soOptionen(soEl('so-tags'), SO_TAG_SETS.map(([v, t]) => [v, v && v !== 'primary' ? `${t} (${kartenModul.HASHTAGS[v]})` : t]), kartenModul.SUGGESTED_HASHTAG_SET[fmt])
+  }
+  soEd.textGeaendert = false
+  if (aus === 'nutzer') merkeSocialEditor()
+  void socialZeichne()
+}
+
+// Rückmeldungen im Editor stehen bei dem Knopf, der sie auslöst (Statuszeile darunter), nicht oben auf der Seite.
+const SO_ED_MELDUNG = {
+  vorschau: 'so-ed-vorschau-meldung',
+  text: 'so-ed-text-meldung',
+  vorschlag: 'so-ed-vorschlag-meldung',
+  korpus: 'so-ed-korpus-meldung',
+}
+const socialEdMeldung = (wo, text, ton, opts) => setMeldung(SO_ED_MELDUNG[wo], text, ton, opts)
+
+// Die neue Vorlage setzt ihren eigenen Beitragstext ein: Ein selbst geänderter Text geht dabei verloren, also vorher fragen.
+// Bei „Abbrechen“ bleibt die alte Vorlage gewählt.
+async function wechsleSocialVorlage(neu) {
+  if (soEd.textGeaendert && neu !== soEd.vorlage) {
+    const ok = await bestaetige({
+      frage: 'Eigenen Beitragstext verwerfen?',
+      text: 'Die neue Vorlage setzt ihren eigenen Text ein.',
+      aktion: 'Verwerfen',
+      gefahr: true,
+    })
+    if (!ok) {
+      const alt = document.querySelector(`input[name="so-vorlage"][value="${soEd.vorlage}"]`)
+      if (alt) { alt.checked = true; alt.focus() }
+      return
+    }
+  }
+  setzeSocialVorlage(neu)
+}
+
+// Bild speichern: toBlob statt Daten-URL; der Dateiname trägt Datum, Vorlage, Auflösung und Format
+async function socialLaden() {
+  const knopf = soEl('so-ed-laden')
+  if (knopf.getAttribute('aria-disabled') === 'true' || !kartenModul || !soEl('so-canvas').width) return
+  const spec = socialEdSpec()
+  const blob = await new Promise((resolve) => soEl('so-canvas').toBlob(resolve, 'image/png'))
+  if (!blob) {
+    socialEdMeldung('vorschau', 'Das Bild konnte nicht erzeugt werden. Bitte noch einmal versuchen.', 'error', { fokus: true })
+    return
+  }
+  const a = document.createElement('a')
+  a.download = `signifikation-${soEd.datum}-${SO_DATEINAME[spec.format]}${spec.reveal ? '-aufloesung' : ''}${spec.ratio === '9:16' ? '-story' : ''}.png`
+  a.href = URL.createObjectURL(blob)
+  a.click()
+  window.setTimeout(() => URL.revokeObjectURL(a.href), 1000)
+  socialEdMeldung('vorschau', `Bild gespeichert als ${a.download} (${Math.max(1, Math.round(blob.size / 1024))} KB).`, 'ok')
+}
+
+async function socialEdKopieren() {
+  if (!kartenModul) return
+  const set = soWert('so-tags')
+  const tags = set ? kartenModul.hashtagsFor(set) : ''
+  const text = soWert('so-text').trim()
+  try {
+    await navigator.clipboard.writeText(tags ? `${text}\n\n${tags}` : text)
+    socialEdMeldung('text', tags ? 'Text mit Hashtags kopiert.' : 'Text kopiert.', 'ok')
+  } catch {
+    soEl('so-text').select()
+    socialEdMeldung('text', 'Kopieren ging nicht. Der Text ist markiert – mit Strg+C (Mac: Cmd+C) kopieren; Hashtags darunter von Hand ergänzen.', 'warn')
+  }
+}
+
+function socialChipsAnzahl() {
+  const anzahl = (id) => soWert(id).split(',').map((x) => x.trim()).filter(Boolean).slice(0, 4).length
+  return anzahl('so-c-koll-a') + anzahl('so-c-koll-b')
+}
+
+// „Reihenfolge neu mischen“: nie dieselbe Reihenfolge noch einmal, und es sagt, was passiert ist
+function socialMischen() {
+  if (soEd.vorlage === 'C') {
+    const n = socialChipsAnzahl()
+    if (n < 2) {
+      socialEdMeldung('vorschau', 'Mit weniger als zwei Kollokatoren gibt es nichts zu mischen.', 'warn')
+      return
+    }
+    soEd.chipsGemischt = soMische(n, soEd.chipsGemischt?.length === n ? soEd.chipsGemischt : null)
+  } else {
+    soEd.reihenfolge = soMische(3, soEd.reihenfolge)
+  }
+  socialEdMeldung('vorschau', 'Reihenfolge neu gemischt.', 'ok')
+  void socialZeichne()
+}
+
+function socialVorschlagSchalten(knopf) {
+  const feld = knopf.dataset.feld
+  if (feld !== 'so-c-koll-a' && feld !== 'so-c-koll-b') return
+  const eingabe = soEl(feld)
+  const woerter = eingabe.value.split(',').map((s) => s.trim()).filter(Boolean)
+  const w = knopf.dataset.wort || ''
+  const drin = woerter.includes(w)
+  if (!drin && woerter.length >= 4) {
+    socialEdMeldung('vorschlag', 'Die Karte zeigt höchstens vier Kollokatoren je Wort. Erst einen abwählen.', 'warn')
+    return
+  }
+  socialEdMeldung('vorschlag', '')
+  eingabe.value = (drin ? woerter.filter((x) => x !== w) : [...woerter, w]).join(', ')
+  knopf.setAttribute('aria-pressed', String(!drin))
+  void socialZeichne()
+}
+
+function socialZitatEinsetzen() {
+  const b = soEd.xBelege[Number(soWert('so-x-beleg'))]
+  if (!b || !kartenModul) {
+    socialEdMeldung('korpus', 'Erst einen Kollokator mit Beleg wählen.', 'warn')
+    return
+  }
+  soEl('so-x-rubrik').value = 'Zitat'
+  soEl('so-x-text').value = kartenModul.belegText(b.tokens)
+  soEl('so-x-titel').value = b.quelle || ''
+  socialEdMeldung('korpus', 'Zitat eingesetzt: Rubrik, Text und Quelle sind gefüllt.', 'ok')
+  void socialZeichne()
+}
+
+// ── Ereignisse ──
+
+function socialKlick(knopf) {
+  const { action, id } = knopf.dataset
+  if (knopf.classList.contains('is-busy')) return
+  switch (action) {
+    case 'so-freigeben': return void socialFreigeben(id, knopf)
+    case 'so-speichern': return void socialSpeichern(id, knopf)
+    case 'so-kopieren': return void socialKopieren(id)
+    case 'so-verwerfen': return void socialVerwerfen(id, knopf)
+    case 'so-oeffnen': return void socialOeffnen(id, knopf)
+    case 'so-neu': return void socialNeuErstellen(id, knopf)
+    case 'so-pf-anlegen': return void socialAnlegen()
+    case 'so-pf-neu-laden':
+      setMeldung('so-pf-meldung', '')
+      return void ladeSocialEntwuerfe({ neu: true })
+    case 'so-ed-laden': return void socialLaden()
+    case 'so-ed-mischen': return void socialMischen()
+    case 'so-ed-kopieren': return void socialEdKopieren()
+    case 'so-ed-text-neu':
+      socialTextAktualisieren({ neu: true })
+      return void soEl('so-text').focus()
+    case 'so-ed-neu-laden': return void ladeSocialTag()
+    case 'so-ed-seite-neu': return void window.location.reload()
+    case 'so-c-vorschlag': return void socialVorschlagSchalten(knopf)
+    case 'so-x-korpus-auf': {
+      const auf = knopf.getAttribute('aria-expanded') !== 'true'
+      knopf.setAttribute('aria-expanded', String(auf))
+      soEl('so-x-korpus').classList.toggle('is-hidden', !auf)
+      return
+    }
+    case 'so-x-zitat': return void socialZitatEinsetzen()
+    default:
+  }
+}
+
+// Eine Rückmeldung zu „Bild gespeichert“ oder „Text kopiert“ gilt nach einer Änderung nicht mehr
+function socialEdMeldungenLeeren(t) {
+  const textFeld = t.id === 'so-text' || t.id === 'so-tags' || t.id === 'so-text-vorlage'
+  if (textFeld) socialEdMeldung('text', '')
+  else socialEdMeldung('vorschau', '')
+}
+
+function socialEingabe(ev) {
+  const t = ev.target
+  if (t.matches('textarea[data-id]')) return void socialTextEingabe(t)
+  if (!t.closest('#so-ed')) return
+  socialEdMeldungenLeeren(t)
+  if (t.id === 'so-text') {
+    soEd.textGeaendert = true
+    socialTextAktualisieren()
+    return
+  }
+  if (t.type === 'radio' || t.type === 'checkbox' || t.tagName === 'SELECT' || t.id === 'so-datum') return
+  if (['so-c-koll-a', 'so-c-koll-b', 'so-c-wort-a', 'so-c-wort-b'].includes(t.id)) socialVorschlaege()
+  void socialZeichne()
+}
+
+// Ein Bild der Entwurfsliste lässt sich nicht laden: erst die große Fassung versuchen (die kleine fehlt dann noch),
+// danach ein Platzhalter statt des kaputten Bildsymbols. Das error-Ereignis steigt nicht auf, daher in der Fangphase.
+document.addEventListener('error', (ev) => {
+  const img = ev.target
+  if (!(img instanceof HTMLImageElement) || !img.closest('.so-bild')) return
+  if (img.dataset.gross && !img.dataset.fallback) {
+    img.dataset.fallback = '1'
+    img.src = img.dataset.gross
+    return
+  }
+  const platz = document.createElement('div')
+  platz.className = 'so-bild so-bild--text'
+  platz.textContent = 'Bild nicht verfügbar'
+  img.closest('.so-bild').replaceWith(platz)
+}, true)
+
+function socialAenderung(ev) {
+  const t = ev.target
+  if (!t.closest('#so-ed')) return
+  socialEdMeldungenLeeren(t)
+  if (t.id === 'so-datum') {
+    if (isValidIsoDay(t.value) && t.value !== soEd.datum) {
+      soEd.datum = t.value
+      merkeSocialEditor()
+      void ladeSocialTag()
+    }
+    return
+  }
+  if (t.name === 'so-vorlage') return void wechsleSocialVorlage(t.value)
+  if (t.id === 'so-wort') return void ladeSocialWort()
+  if (t.id === 'so-b-kollokator') return void ladeSocialBelege('b')
+  if (t.id === 'so-b-beleg') return void setzeSocialBeleg()
+  if (t.id === 'so-x-kollokator') return void ladeSocialBelege('x')
+  if (t.id === 'so-b-optionen') soEl('so-b-ablenker').hidden = !t.checked
+  if (t.id === 'so-text-vorlage') {
+    soEd.textGeaendert = false
+    if (Number(t.value) === SO_MIT_TAGS_IM_TEXT[soEd.vorlage]) soEl('so-tags').value = ''
+    else if (!soWert('so-tags') && kartenModul) soEl('so-tags').value = kartenModul.SUGGESTED_HASHTAG_SET[soEd.vorlage]
+    return void socialTextAktualisieren()
+  }
+  if (t.id === 'so-tags') return void socialTextAktualisieren()
+  void socialZeichne()
+}
+
 // ── Werkzeuge › Inhalte: Formulare und Dialoge ────────────
 
 // Absenden (Enter im Feld oder Knopf). Die Formulare sind novalidate: Geprüft wird in den Funktionen, mit eigenen Texten.
@@ -8755,6 +10131,8 @@ document.addEventListener('submit', (event) => {
   if (form.id === 'bonus-form') { event.preventDefault(); addFreeDay(); return }
   if (form.id === 'sw-form') { event.preventDefault(); void saveSpezialwoche(); return }
   if (form.id === 'demo-form') { event.preventDefault(); void saveDemoEditor(); return }
+  // Social Cards › Selbst gestalten: Enter in einem Feld schickt nichts ab (die Karte zeichnet sich bei jeder Eingabe)
+  if (form.id === 'so-ed') { event.preventDefault(); return }
   // „Test an meine Geräte“ läuft über den Klick auf den Knopf (handleDocumentClick); das Absenden selbst tut nichts
   if (form.id === 'push-form') event.preventDefault()
 })

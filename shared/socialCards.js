@@ -2,8 +2,8 @@
  * shared/socialCards.js
  *
  * Zeichenlogik der Social Cards – die SINGLE SOURCE für beide Seiten:
- *   - Admin-Editor (server/social-cards.html) lädt die Datei per dynamic import
- *     über GET /admin/social-cards/karten.js
+ *   - Admin › Werkzeuge › Social Cards (server/public/admin.js) lädt die Datei per
+ *     dynamischem Import über GET /admin/social-cards/karten.js – erst auf diesen Unterseiten
  *   - Server-Renderer (server/socialCards/render.js) spielt sie in eine
  *     Playwright-Seite ein und zeichnet dort dieselben Karten
  *
@@ -605,14 +605,6 @@ export const HASHTAGS = {
   korpus:     '#Korpuslinguistik',
   bildung:    '#Deutschunterricht',
   wortschatz: '#Wortschatz',
-}
-
-export const POSTING_HINTS = {
-  A: '<strong>Montag</strong> · 07:15 Uhr · Format A – Quiz',
-  B: '<strong>Freitag</strong> · 17:00 Uhr · Format B – Beleg',
-  C: '<strong>Freitag</strong> · 17:00 Uhr · Format C – Zwilling',
-  X: '<strong>Mittwoch</strong> · 12:30 Uhr · Format X – Info',
-  T: '<strong>Täglich</strong> · 06:45 Uhr · Format T – Teaser (vor dem Quiz)',
 }
 
 export const SUGGESTED_HASHTAG_SET = { A: 'quiz', B: 'korpus', C: 'quiz', X: 'korpus', T: 'primary', text: 'korpus' }

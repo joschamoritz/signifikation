@@ -4,19 +4,21 @@
  * Social-Card-Entwürfe, Stufe 1 (Plan 2026-10-21): Jeden Morgen um 04:20
  * (Europe/Berlin) werden für die nächsten 7 Tage die fehlenden Entwürfe
  * angelegt (Wochenplan in socialCards/entwuerfe.js) und als PNG gezeichnet.
- * Veröffentlicht wird noch nichts – die Entwürfe warten im Postfach unter
- * /admin/social-cards auf Freigabe.
+ * Veröffentlicht wird noch nichts – die Entwürfe warten im Admin unter
+ * Werkzeuge › Social Cards (#werkzeuge/social-cards) auf Freigabe.
  *
  * Idempotent: Pro (datum, slot) gibt es genau einen Entwurf; ein Lauf ergänzt
  * nur Fehlendes und rührt Entscheidungen nicht an. Ein verpasster Lauf holt
  * sich am nächsten Morgen über das 7-Tage-Fenster von selbst nach.
- * Entwürfe älter als 8 Wochen werden samt Bild gelöscht.
+ * Entwürfe älter als 8 Wochen werden samt Bildern gelöscht. Je Entwurf gibt es
+ * zwei Dateien: das volle Bild (entwurf-<id>.png) und eine kleine Vorschau
+ * (entwurf-<id>-klein.png) für die Liste im Admin.
  *
  * SOCIAL_CARDS_ENTWUERFE=off schaltet den Zeitplan ab (Admin-Button bleibt).
  */
 
 import cron from 'node-cron'
-import { mkdirSync, writeFileSync, unlinkSync, existsSync } from 'node:fs'
+import { mkdirSync, writeFileSync, renameSync, unlinkSync, existsSync } from 'node:fs'
 import { join, dirname, basename } from 'node:path'
 import { DB_PATH } from '../db.js'
 import logger from '../logger.js'
@@ -28,7 +30,7 @@ import { createKollokationAnalyse } from '../kollokationAnalyse.js'
 import { baueEntwuerfe, verschiebeDatum } from '../socialCards/entwuerfe.js'
 import { createCardRenderer } from '../socialCards/render.js'
 import {
-  vorhandeneSlots, speichereEntwuerfe, ersetzeEntwurf, ladeEntwuerfe,
+  vorhandeneSlots, speichereEntwuerfe, ersetzeEntwurf, ladeEntwuerfe, ladeEntwuerfeAb, ladeEntwurf,
   entwuerfeOhneBild, setzeBild, loescheAlteEntwuerfe,
 } from '../socialCards/store.js'
 
@@ -54,27 +56,86 @@ function exklusiv(fn) {
   return lauf
 }
 
-/** Zeichnet alle Bild-Entwürfe ab `abDatum`, denen das Bild fehlt (Textposts haben keins). */
-async function zeichneFehlende(abDatum, { createRenderer, bildDir }) {
+/** Dateiname der kleinen Vorschau zum vollen Bild (entwurf-7.png → entwurf-7-klein.png). */
+export function kleinDatei(datei) {
+  return datei.replace(/\.png$/i, '-klein.png')
+}
+
+/**
+ * Zeichnet ein Bild und legt volle Fassung und Vorschau nebeneinander ab. Geschrieben wird atomar
+ * (erst *.tmp, dann umbenennen): Ein Abruf mitten im Schreiben sieht nie eine halbe PNG-Datei,
+ * und ein Abbruch hinterlässt keine abgeschnittene Datei unter dem echten Namen.
+ */
+async function zeichneBild(renderer, entwurf, bildDir, { nurKlein = false } = {}) {
+  const datei = `entwurf-${entwurf.id}.png`
+  const { gross, klein } = await renderer.render(entwurf.spec)
+  const ziele = []
+  if (!nurKlein) ziele.push([join(bildDir, datei), gross])
+  ziele.push([join(bildDir, kleinDatei(datei)), klein])
+  try {
+    for (const [pfad, daten] of ziele) writeFileSync(`${pfad}.tmp`, daten)
+  } catch (err) {
+    for (const [pfad] of ziele) { try { unlinkSync(`${pfad}.tmp`) } catch {} }
+    throw err
+  }
+  for (const [pfad] of ziele) renameSync(`${pfad}.tmp`, pfad)
+  return datei
+}
+
+/**
+ * Zeichnet alle Bild-Entwürfe ab `abDatum`, denen das Bild fehlt (Textposts haben keins).
+ * Entwürfe aus der Zeit vor der kleinen Vorschau bekommen sie in derselben Charge nachgezogen;
+ * ihr volles Bild bleibt dabei unangetastet.
+ * Jeder Entwurf wird einzeln gezeichnet: Ein Fehler bei einem Bild stoppt die übrigen nicht. Auch
+ * ein Browser, der nicht startet, wirft nicht – alle betroffenen Entwürfe landen in `fehler`.
+ * @returns {Promise<{ gezeichnet:number, fehler:Array<{ id:number, meldung:string }> }>}
+ */
+async function zeichneFehlende(abDatum, { createRenderer, bildDir, vorschauAb = abDatum }) {
   const offen = entwuerfeOhneBild(abDatum).filter((e) => e.spec.format !== 'text')
-  if (!offen.length) return 0
+  const ohneVorschau = ladeEntwuerfeAb(vorschauAb).filter((e) =>
+    e.bild && e.status !== 'verworfen' && e.spec.format !== 'text' &&
+    !existsSync(join(bildDir, kleinDatei(basename(e.bild)))))
+  const ergebnis = { gezeichnet: 0, fehler: [] }
+  if (!offen.length && !ohneVorschau.length) return ergebnis
+  const meldung = (err) => String(err?.message || err)
   mkdirSync(bildDir, { recursive: true })
-  const renderer = await createRenderer()
+  let renderer
+  try {
+    renderer = await createRenderer()
+  } catch (err) {
+    logger.warn({ err }, 'Social Cards: Renderer konnte nicht gestartet werden')
+    for (const e of new Set([...offen, ...ohneVorschau])) ergebnis.fehler.push({ id: e.id, meldung: meldung(err) })
+    return ergebnis
+  }
   try {
     for (const e of offen) {
-      const datei = `entwurf-${e.id}.png`
-      writeFileSync(join(bildDir, datei), await renderer.render(e.spec))
-      setzeBild(e.id, datei)
+      try {
+        setzeBild(e.id, await zeichneBild(renderer, e, bildDir))
+        ergebnis.gezeichnet += 1
+      } catch (err) {
+        logger.warn({ err, id: e.id }, 'Social Cards: Bild konnte nicht gezeichnet werden')
+        ergebnis.fehler.push({ id: e.id, meldung: meldung(err) })
+      }
+    }
+    for (const e of ohneVorschau) {
+      try {
+        await zeichneBild(renderer, e, bildDir, { nurKlein: existsSync(join(bildDir, basename(e.bild))) })
+      } catch (err) {
+        logger.warn({ err, id: e.id }, 'Social Cards: Vorschau konnte nicht nachgezogen werden')
+        ergebnis.fehler.push({ id: e.id, meldung: meldung(err) })
+      }
     }
   } finally {
-    await renderer.close()
+    await renderer.close().catch((err) => logger.warn({ err }, 'Social Cards: Renderer ließ sich nicht schließen'))
   }
-  return offen.length
+  return ergebnis
 }
 
 /**
  * Legt fehlende Entwürfe für morgen bis heute+tage an und zeichnet sie.
- * @returns {Promise<{ neu:number, gezeichnet:number, geloescht:number, fehler:string[] }>}
+ * Fehler beim Bauen stehen in `fehler`, Fehler beim Zeichnen in `bildFehler` – beides stoppt den
+ * Lauf nicht; das Aufräumen alter Entwürfe wird immer erreicht.
+ * @returns {Promise<{ neu:number, gezeichnet:number, geloescht:number, fehler:string[], bildFehler:string[] }>}
  */
 export function erzeugeEntwuerfe({
   heute = berlinHeute(),
@@ -88,7 +149,7 @@ export function erzeugeEntwuerfe({
     const bis = verschiebeDatum(heute, tage)
     // +1: Auflösungen landen am Folgetag des letzten Fenstertags
     const vorhanden = vorhandeneSlots(von, verschiebeDatum(bis, 1))
-    const ergebnis = { neu: 0, gezeichnet: 0, geloescht: 0, fehler: [] }
+    const ergebnis = { neu: 0, gezeichnet: 0, geloescht: 0, fehler: [], bildFehler: [] }
 
     for (let datum = von; datum <= bis; datum = verschiebeDatum(datum, 1)) {
       try {
@@ -100,10 +161,25 @@ export function erzeugeEntwuerfe({
       }
     }
 
-    ergebnis.gezeichnet = await zeichneFehlende(von, { createRenderer, bildDir })
+    // Die Liste im Admin beginnt heute, die Vorschauen werden deshalb ab heute nachgezogen
+    try {
+      const z = await zeichneFehlende(von, { createRenderer, bildDir, vorschauAb: heute })
+      ergebnis.gezeichnet = z.gezeichnet
+      ergebnis.bildFehler = z.fehler.map((f) => `#${f.id}: ${f.meldung}`)
+    } catch (err) {
+      logger.warn({ err }, 'Social Cards: Zeichnen fehlgeschlagen')
+      ergebnis.bildFehler.push(String(err?.message || err))
+    }
 
-    for (const datei of loescheAlteEntwuerfe(verschiebeDatum(heute, -AUFBEWAHRUNG_TAGE))) {
-      try { unlinkSync(join(bildDir, basename(datei))) } catch {}
+    // Aufräumen auch nach Zeichenfehlern; Dateien nach ID, nicht nur nach der Spalte `bild`
+    for (const namen of loescheAlteEntwuerfe(verschiebeDatum(heute, -AUFBEWAHRUNG_TAGE))) {
+      for (const datei of namen) {
+        for (const name of [basename(datei), kleinDatei(basename(datei))]) {
+          for (const ende of ['', '.tmp']) {
+            try { unlinkSync(join(bildDir, name + ende)) } catch {}
+          }
+        }
+      }
       ergebnis.geloescht += 1
     }
 
@@ -116,7 +192,10 @@ export function erzeugeEntwuerfe({
  * Baut einen offenen Entwurf neu (neue Daten, neue Reihenfolge, neues Bild).
  * Rätsel/Beleg und ihre Auflösung gehören zusammen und werden gemeinsam
  * ersetzt – deshalb müssen beide noch offen sein.
- * @returns {Promise<{ ok:boolean, grund?:string }>}
+ * @returns {Promise<{ ok:boolean, grund?:string, bildFehlt?:boolean, ersetzt?:Array<{ id:number, vorher:?{ caption:string, hashtags:string }, nachher:{ caption:string, hashtags:string } }> }>}
+ *   `ersetzt` nennt jeden neu gebauten Entwurf mit altem und neuem Text (für das Änderungsprotokoll).
+ *   Sobald Texte ersetzt sind, ist das Ergebnis immer `ok`: Scheitert nur das Zeichnen, steht
+ *   `bildFehlt: true` dabei (das Bild kommt beim nächsten Abruf bzw. Lauf), der Text ist ja schon neu.
  */
 export function erneuereEntwurf(entwurf, {
   deps = standardDeps(),
@@ -137,29 +216,63 @@ export function erneuereEntwurf(entwurf, {
 
     const liste = (await baueEntwuerfe(herkunft, deps)).filter((e) => gruppe.includes(e.slot))
     if (!liste.length) return { ok: false, grund: 'Für diesen Tag lassen sich keine Kartendaten mehr bauen.' }
+    const vorher = new Map(betroffen.map((e) => [`${e.datum}|${e.slot}`, { caption: e.caption, hashtags: e.hashtags }]))
     for (const e of liste) {
       if (!ersetzeEntwurf(e)) speichereEntwuerfe([e])
     }
-    await zeichneFehlende(herkunft, { createRenderer, bildDir })
-    return { ok: true }
+    const ersetzt = ladeEntwuerfe(herkunft, verschiebeDatum(herkunft, 1))
+      .filter((e) => liste.some((n) => n.datum === e.datum && n.slot === e.slot))
+      .map((e) => ({
+        id: e.id,
+        vorher: vorher.get(`${e.datum}|${e.slot}`) ?? null,
+        nachher: { caption: e.caption, hashtags: e.hashtags },
+      }))
+    // Texte sind ersetzt: ab hier darf nichts mehr werfen, sonst fehlte das Protokoll (und der Client den Stand)
+    let bildFehlt = false
+    try {
+      const { fehler } = await zeichneFehlende(herkunft, { createRenderer, bildDir })
+      const ids = new Set(ersetzt.map((e) => e.id))
+      bildFehlt = fehler.some((f) => ids.has(f.id))
+    } catch (err) {
+      logger.warn({ err }, 'Social Cards: Neu erstellt, aber das Bild konnte nicht gezeichnet werden')
+      bildFehlt = true
+    }
+    return bildFehlt ? { ok: true, ersetzt, bildFehlt: true } : { ok: true, ersetzt }
   })
 }
 
-/** Pfad zum Bild eines Entwurfs; zeichnet es nach, falls die Datei fehlt. */
-export async function bildPfad(entwurf, { createRenderer = createCardRenderer, bildDir = BILD_DIR } = {}) {
-  const pfad = entwurf.bild ? join(bildDir, basename(entwurf.bild)) : null
-  if (pfad && existsSync(pfad)) return pfad
+/**
+ * Pfad zum Bild eines Entwurfs; zeichnet es nach, falls die Datei fehlt.
+ * `groesse: 'klein'` liefert die Vorschau; gibt es sie (noch) nicht, kommt die volle Fassung
+ * zurück – nachgezeichnet wird die Vorschau dann beim nächsten Lauf des Jobs (zeichneFehlende),
+ * nicht je Abruf.
+ */
+export async function bildPfad(entwurf, { createRenderer = createCardRenderer, bildDir = BILD_DIR, groesse = 'gross' } = {}) {
+  const vollPfad = (e) => (e.bild ? join(bildDir, basename(e.bild)) : null)
+  // Die Vorschau gibt es nur, wenn die Datei da ist – sonst die volle Fassung (nie je Abruf zeichnen)
+  const mitKlein = (voll) => {
+    const klein = kleinDatei(voll)
+    return groesse === 'klein' && existsSync(klein) ? klein : voll
+  }
+  const pfad = vollPfad(entwurf)
+  if (pfad && existsSync(pfad)) return mitKlein(pfad)
   return exklusiv(async () => {
+    // Beim Warten in der Schlange kann ein anderer Abruf oder Lauf das Bild gezeichnet – oder der
+    // Entwurf neu erstellt / gelöscht – haben: Zustand neu laden und mit dem aktuellen Spec zeichnen.
+    const aktuell = ladeEntwurf(entwurf.id)
+    if (!aktuell) return null
+    const schon = vollPfad(aktuell)
+    if (schon && existsSync(schon)) return mitKlein(schon)
     mkdirSync(bildDir, { recursive: true })
-    const datei = `entwurf-${entwurf.id}.png`
     const renderer = await createRenderer()
+    let datei
     try {
-      writeFileSync(join(bildDir, datei), await renderer.render(entwurf.spec))
+      datei = await zeichneBild(renderer, aktuell, bildDir)
     } finally {
       await renderer.close()
     }
-    setzeBild(entwurf.id, datei)
-    return join(bildDir, datei)
+    setzeBild(aktuell.id, datei)
+    return mitKlein(join(bildDir, datei))
   })
 }
 
@@ -169,7 +282,11 @@ export function startSocialCardDrafts() {
     return null
   }
   const task = cron.schedule('20 4 * * *', () => {
-    erzeugeEntwuerfe().catch((err) => {
+    erzeugeEntwuerfe().then((ergebnis) => {
+      if (ergebnis.bildFehler.length) {
+        reportAlert('social_cards_failed', `Social-Card-Bilder fehlgeschlagen (${ergebnis.bildFehler.length}): ${ergebnis.bildFehler[0]}`)
+      }
+    }).catch((err) => {
       logger.error({ err }, 'Social Cards: Entwurfs-Job fehlgeschlagen')
       reportAlert('social_cards_failed', `Social-Card-Entwürfe fehlgeschlagen: ${err?.message || err}`)
     })

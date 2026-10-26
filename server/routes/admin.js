@@ -8,13 +8,13 @@ import { fetchWiktionary } from '../wiktionary.js'
 import { fetchWortZwilling } from '../wortzwilling.js'
 import { loadKalender, loadDailyContentMaps, loadWortZwilling, getLemmataIndex, invalidateCache, getCacheMetrics, DATA, stmts, lemmaToRow, replaceAllAdminData, getAuswertungSpiele, getAuswertungZeilen, loadBackupFiles, loadAllSpezialwochen, loadSpezialwocheByWoche, saveSpezialwoche, deleteSpezialwoche, saveTagAtomically, deleteTagsAtomically } from '../store.js'
 import { getCacheMetrics as getQueryCacheMetrics, clearCache as clearQueryCache } from '../query-cache.js'
-import { adminLimiter, loginLimiter, uploadLimiter } from '../middleware/rateLimiter.js'
+import { adminLimiter, adminBildLimiter, loginLimiter, uploadLimiter } from '../middleware/rateLimiter.js'
 import { requireAuth, adminAuth, adminLogout, adminError, serverError } from '../middleware/auth.js'
 import { validate, qQuerySchema, adminTagSchema, analyzeKollQuerySchema, analyzeWZQuerySchema, analyzeZWendeQuerySchema, analyzeLueckenfuellerQuerySchema, lueckenfuellerGenerateSchema, adminUsersQuerySchema, adminSetUserRoleSchema, adminUserIdParamsSchema, adminUsersBulkUpdateSchema, adminBulkDeleteCalendarSchema, adminPreviewLemmaSchema, adminPreviewDayParamsSchema, adminLemmaIdParamsSchema, adminEntwurfIdParamsSchema, adminAuditLogDetailParamsSchema, adminBackupRestoreSchema, adminBackupPruefenSchema, adminBackupSqliteSchema, adminAuswertungSpieleQuerySchema, adminStatsExportQuerySchema, adminAuditLogQuerySchema, adminSocialCardsTagesdataSchema, adminSocialCardsBelegeSchema, adminSocialCardsEntwuerfeQuerySchema, adminSocialCardsEntwurfParamsSchema, adminSocialCardsEntwurfPatchSchema, adminSpezialwocheSchema, adminSpezialwocheParamsSchema, adminClassroomStatsQuerySchema, adminPaymentsSummaryQuerySchema, adminCustomLemmaSummaryQuerySchema, adminRetentionQuerySchema } from '../middleware/validate.js'
 import { auditCreate, auditUpdate, auditDelete, getAuditLogForResource, queryAuditLog } from '../audit.js'
 import { ladeOffeneEntwuerfe, ladeEntwurf, entscheideEntwurf } from '../store-entwuerfe.js'
 import { ladeEntwuerfe as ladeSocialEntwuerfe, ladeEntwurf as ladeSocialEntwurf, setzeCaption as setzeSocialCaption, setzeStatus as setzeSocialStatus } from '../socialCards/store.js'
-import { erzeugeEntwuerfe as erzeugeSocialEntwuerfe, erneuereEntwurf as erneuereSocialEntwurf, bildPfad as socialBildPfad, berlinHeute } from '../jobs/socialCardDrafts.js'
+import { erzeugeEntwuerfe as erzeugeSocialEntwuerfe, erneuereEntwurf as erneuereSocialEntwurf, bildPfad as socialBildPfad, berlinHeute, HORIZONT_TAGE as SOCIAL_HORIZONT_TAGE, AUFBEWAHRUNG_TAGE as SOCIAL_AUFBEWAHRUNG_TAGE } from '../jobs/socialCardDrafts.js'
 import { verschiebeDatum } from '../socialCards/entwuerfe.js'
 import logger from '../logger.js'
 import { createAdminAuditRouter } from './admin-audit.js'
@@ -231,6 +231,7 @@ router.use(createAdminBackupRouter({
 router.use(createAdminSocialCardsRouter({
   requireAuth,
   adminLimiter,
+  adminBildLimiter,
   validate,
   adminSocialCardsTagesdataSchema,
   adminSocialCardsBelegeSchema,
@@ -247,12 +248,16 @@ router.use(createAdminSocialCardsRouter({
   setzeStatus: setzeSocialStatus,
   erzeugeEntwuerfe: () => erzeugeSocialEntwuerfe(),
   erneuereEntwurf: (entwurf) => erneuereSocialEntwurf(entwurf),
-  bildPfad: (entwurf) => socialBildPfad(entwurf),
+  bildPfad: (entwurf, optionen) => socialBildPfad(entwurf, optionen),
   berlinHeute,
   verschiebeDatum,
   auditUpdate,
   adminError,
-  socialCardsPath: join(__dirname, '../social-cards.html'),
+  entwurfEinstellungen: () => ({
+    automatisch: process.env.SOCIAL_CARDS_ENTWUERFE !== 'off',
+    horizont: SOCIAL_HORIZONT_TAGE,
+    aufbewahrung: SOCIAL_AUFBEWAHRUNG_TAGE,
+  }),
   kartenModulPath: join(__dirname, '../../shared/socialCards.js'),
 }))
 
