@@ -84,6 +84,7 @@ server/data/backups/
 server/data/course-pdfs/
 server/data/beamer-pdfs/
 server/data/geoip/
+server/data/social-cards/
 # Mail-Vorschauen aus scripts/mail-preview.mjs (generiert, jederzeit neu baubar)
 .mail-preview/
 # Git-Bundles (lokale Repo-Snapshots, gehoeren nicht ins Repo)

@@ -49,6 +49,7 @@ import { startSqliteBackup } from './jobs/sqliteBackup.js'
 import { startDataRetention } from './jobs/dataRetention.js'
 import { startInactiveAccounts } from './jobs/inactiveAccounts.js'
 import { startZeitenwendePrefetch } from './jobs/zeitenwendePrefetch.js'
+import { startSocialCardDrafts } from './jobs/socialCardDrafts.js'
 import { ALLOWED_ORIGINS, CAPACITOR_ORIGINS, isAllowedOrigin } from './config/origins.js'
 import { startSessionCleanup } from './auth/session-cleanup.js'
 import { startAlerting } from './alerting.js'
@@ -334,6 +335,9 @@ app.use((err, req, res, next) => {
   // Wiktionary-Cache fuer das heutige Zeitenwende-Lemma vorwaermen, damit der
   // erste Tagesaufruf nicht auf den externen Fetch (bis ~6 s) blockiert.
   startZeitenwendePrefetch()
+  // Social-Card-Entwürfe fuer die naechsten 7 Tage anlegen und zeichnen
+  // (taeglich 04:20, Stufe 1: nur Postfach, kein Veroeffentlichen).
+  startSocialCardDrafts()
 
   // ── Graceful Shutdown (D-21) ──────────────────────────────────
   const shutdown = (signal) => {
