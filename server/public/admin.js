@@ -9648,13 +9648,23 @@ async function oeffneSocialEditor(route) {
   if (soEl('so-ed-meldung')?.querySelector('[data-action="so-ed-seite-neu"]')) setMeldung('so-ed-meldung', '')
   socialModulDa()
   const datum = wunsch.datum || soEd.datum || addTageIso(berlinTeile(getCurrentDate()).iso, 1)
-  const vorlage = wunsch.vorlage || soEd.vorlage
+  let vorlage = wunsch.vorlage || soEd.vorlage
+  // Andere Vorlage über Adresse oder Zurück: wie beim Umschalten im Editor erst fragen, wenn der Beitragstext
+  // selbst geändert ist. Bei „Abbrechen“ bleibt die alte Vorlage, die Adresse zeigt unten wieder sie.
+  if (soEd.bereit && vorlage !== soEd.vorlage && !(await bestaetigeVorlagenwechsel())) {
+    if (currentRoute?.page !== 'social-editor') return
+    vorlage = soEd.vorlage
+  }
   if (!soEd.bereit || datum !== soEd.datum) {
+    const ersterAufruf = !soEd.bereit
     soEd.bereit = true
     soEd.datum = datum
     soEl('so-datum').value = datum
-    document.querySelector(`input[name="so-vorlage"][value="${vorlage}"]`).checked = true
-    setzeSocialVorlage(vorlage, { aus: 'adresse' })
+    // Ein anderer Tag allein behält den eigenen Text (wie das Datumsfeld); nur eine andere Vorlage setzt ihren ein
+    if (ersterAufruf || vorlage !== soEd.vorlage) {
+      document.querySelector(`input[name="so-vorlage"][value="${vorlage}"]`).checked = true
+      setzeSocialVorlage(vorlage, { aus: 'adresse' })
+    }
     await ladeSocialTag()
   } else if (vorlage !== soEd.vorlage) {
     document.querySelector(`input[name="so-vorlage"][value="${vorlage}"]`).checked = true
@@ -10014,19 +10024,22 @@ const socialEdMeldung = (wo, text, ton, opts) => setMeldung(SO_ED_MELDUNG[wo], t
 
 // Die neue Vorlage setzt ihren eigenen Beitragstext ein: Ein selbst geänderter Text geht dabei verloren, also vorher fragen.
 // Bei „Abbrechen“ bleibt die alte Vorlage gewählt.
+// true: Wechsel erlaubt (Text unverändert oder Verwerfen bestätigt). Auch der Wechsel über Adresse/Zurück fragt hier.
+async function bestaetigeVorlagenwechsel() {
+  if (!soEd.textGeaendert) return true
+  return bestaetige({
+    frage: 'Eigenen Beitragstext verwerfen?',
+    text: 'Die neue Vorlage setzt ihren eigenen Text ein.',
+    aktion: 'Verwerfen',
+    gefahr: true,
+  })
+}
+
 async function wechsleSocialVorlage(neu) {
-  if (soEd.textGeaendert && neu !== soEd.vorlage) {
-    const ok = await bestaetige({
-      frage: 'Eigenen Beitragstext verwerfen?',
-      text: 'Die neue Vorlage setzt ihren eigenen Text ein.',
-      aktion: 'Verwerfen',
-      gefahr: true,
-    })
-    if (!ok) {
-      const alt = document.querySelector(`input[name="so-vorlage"][value="${soEd.vorlage}"]`)
-      if (alt) { alt.checked = true; alt.focus() }
-      return
-    }
+  if (neu !== soEd.vorlage && !(await bestaetigeVorlagenwechsel())) {
+    const alt = document.querySelector(`input[name="so-vorlage"][value="${soEd.vorlage}"]`)
+    if (alt) { alt.checked = true; alt.focus() }
+    return
   }
   setzeSocialVorlage(neu)
 }

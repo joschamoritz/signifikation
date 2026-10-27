@@ -318,6 +318,31 @@ test('Selbst gestalten: Vorlagenwechsel fragt, bevor ein eigener Beitragstext ve
   await expect(text).not.toHaveValue('Mein eigener Text zum Teaser.')
 })
 
+test('Selbst gestalten: auch ein Vorlagenwechsel über die Adresse fragt; ein anderer Tag behält den eigenen Text', async ({ page }) => {
+  await loginAsAdmin(page)
+  await page.evaluate(() => { globalThis.location.hash = '#werkzeuge/social-cards/gestalten?vorlage=T' })
+  await expect(page.locator('#so-canvas')).toHaveAttribute('aria-label', /^Teaser-Karte/)
+  const text = page.locator('#so-text')
+  await text.fill('Mein eigener Text zum Teaser.')
+  const datum = await page.locator('#so-datum').inputValue()
+
+  // Andere Vorlage per Adresse: Rückfrage; Abbrechen lässt Vorlage, Text und Adresse beim alten Stand
+  await page.evaluate((d) => { globalThis.location.hash = `#werkzeuge/social-cards/gestalten?datum=${d}&vorlage=X` }, datum)
+  await expect(page.locator('#bestaetige-dialog')).toHaveAttribute('open', '')
+  await expect(page.locator('#bestaetige-titel')).toHaveText('Eigenen Beitragstext verwerfen?')
+  await page.keyboard.press('Escape')
+  await expect(page.locator('input[name="so-vorlage"][value="T"]')).toBeChecked()
+  await expect(text).toHaveValue('Mein eigener Text zum Teaser.')
+  await expect.poll(() => page.evaluate(() => globalThis.location.hash)).toContain('vorlage=T')
+
+  // Anderer Tag per Adresse, gleiche Vorlage: keine Rückfrage, der eigene Text bleibt (wie beim Datumsfeld)
+  const anderer = new Date(Date.parse(`${datum}T12:00:00Z`) + 86_400_000).toISOString().slice(0, 10)
+  await page.evaluate((d) => { globalThis.location.hash = `#werkzeuge/social-cards/gestalten?datum=${d}&vorlage=T` }, anderer)
+  await expect(page.locator('#so-datum')).toHaveValue(anderer)
+  await expect(page.locator('#bestaetige-dialog')).not.toHaveAttribute('open', '')
+  await expect(text).toHaveValue('Mein eigener Text zum Teaser.')
+})
+
 test('Selbst gestalten: Rückmeldungen erscheinen bei dem Knopf, der sie auslöst', async ({ page }) => {
   await loginAsAdmin(page)
   await page.evaluate(() => { globalThis.location.hash = '#werkzeuge/social-cards/gestalten?vorlage=A' })
