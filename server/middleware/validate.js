@@ -703,3 +703,11 @@ export const courseTaskResultBodySchema = z.object({
 
 /** DELETE /api/v1/course/progress (query) – optional auf eine Station eingrenzen */
 export const courseResetQuerySchema = z.object({ stationId: COURSE_ID.optional() })
+
+/**
+ * POST /api/v1/account/apple-token – authorizationCode aus dem nativen Apple-Login,
+ * damit der Server die Anmeldung bei einer Kontolöschung widerrufen kann.
+ */
+export const appleTokenSchema = z.object({
+  authorizationCode: z.string().min(10).max(2000).regex(/^[A-Za-z0-9._-]+$/, 'authorizationCode enthält ungültige Zeichen'),
+})

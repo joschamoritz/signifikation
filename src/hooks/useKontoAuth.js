@@ -443,7 +443,7 @@ export function useKontoAuth({ onAuthStateChange = () => {} }) {
       // im App-Store ab), sondern über das native ASAuthorization-Plugin. Wir bekommen
       // ein identityToken zurueck und uebergeben es an better-auth's idToken-Flow.
       if (provider === 'apple' && isAppleNativeAvailable()) {
-        const idToken = await signInWithAppleNative()
+        const { idToken, authorizationCode } = await signInWithAppleNative()
         const response = await apiFetch(`${API}/auth/sign-in/social`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -461,6 +461,17 @@ export function useKontoAuth({ onAuthStateChange = () => {} }) {
 
         const bearerToken = response.headers.get('set-auth-token')
         if (bearerToken) setNativeBearerToken(bearerToken)
+
+        // Für den Widerruf bei Kontolöschung (Guideline 5.1.1(v)). Ohne
+        // Fehlerpfad: Scheitert der Tausch, bleibt die Anmeldung trotzdem gültig.
+        if (authorizationCode) {
+          apiFetch(`${API}/account/apple-token`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({ authorizationCode }),
+          }).catch(() => {})
+        }
 
         setNotice({ type: 'success', text: 'Erfolgreich angemeldet.' })
         await loadSession()

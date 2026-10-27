@@ -37,5 +37,7 @@ export async function signInWithAppleNative() {
     }
   }
 
-  return idTokenPayload
+  // authorizationCode (5 min gültig, einmalig) reicht die App nach der Anmeldung
+  // an den Server weiter, damit eine Kontolöschung die Apple-Anmeldung widerrufen kann.
+  return { idToken: idTokenPayload, authorizationCode: result.authorizationCode || null }
 }

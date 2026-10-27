@@ -17,7 +17,7 @@
 import db from '../db.js'
 import logger from '../logger.js'
 import { reportAlert } from '../alerting.js'
-import { deleteUserTx, ADMIN_DELETE_BLOCKED } from '../routes/admin-users-data.js'
+import { deleteUser, ADMIN_DELETE_BLOCKED } from '../routes/admin-users-data.js'
 import { isMailConfigured, sendInactivityWarningMail } from '../mailer.js'
 
 const TAG_MS = 24 * 60 * 60 * 1000
@@ -28,11 +28,12 @@ const DEFAULT_SWEEP_INTERVAL_MS = TAG_MS
 
 const lastActive = `COALESCE(a.last_active_at, u.createdAt)`
 const notAdmin = `COALESCE((SELECT role FROM user_profiles p WHERE p.user_id = u.id), 'user') <> 'admin'`
+const notBuyer = `NOT EXISTS (SELECT 1 FROM payments pay WHERE pay.user_id = u.id AND pay.status = 'paid')`
 
 const toWarnStmt = db.prepare(`
   SELECT u.id, u.name, u.email, ${lastActive} AS lastActive
   FROM user u LEFT JOIN user_activity a ON a.user_id = u.id
-  WHERE ${lastActive} < ? AND a.inactivity_warned_at IS NULL AND ${notAdmin}
+  WHERE ${lastActive} < ? AND a.inactivity_warned_at IS NULL AND ${notAdmin} AND ${notBuyer}
   LIMIT ${MAX_WARNINGS_PER_RUN}
 `)
 
@@ -45,7 +46,7 @@ const toDeleteStmt = db.prepare(`
   SELECT u.id
   FROM user u JOIN user_activity a ON a.user_id = u.id
   WHERE a.inactivity_warned_at IS NOT NULL AND a.inactivity_warned_at < ?
-    AND ${lastActive} < ? AND ${notAdmin}
+    AND ${lastActive} < ? AND ${notAdmin} AND ${notBuyer}
 `)
 
 export async function runInactiveAccounts({ now = Date.now(), sendMail = sendInactivityWarningMail, mailReady = isMailConfigured() } = {}) {
@@ -60,7 +61,7 @@ export async function runInactiveAccounts({ now = Date.now(), sendMail = sendIna
   const warnedBefore = new Date(now - WARNING_LEAD_DAYS * TAG_MS).toISOString()
   for (const { id } of toDeleteStmt.all(warnedBefore, deleteBefore)) {
     try {
-      deleteUserTx(id)
+      deleteUser(id)
     } catch (err) {
       // Admin-Konten werden nie geloescht (zentraler Schutz in deleteUserTx); der Sweep laeuft weiter
       if (err?.code !== ADMIN_DELETE_BLOCKED) throw err

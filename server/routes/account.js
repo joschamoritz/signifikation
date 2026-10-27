@@ -2,7 +2,9 @@ import express from 'express'
 import { requireAuthUser, optionalAuthUser, isPremiumRole } from '../middleware/userAuth.js'
 import { authFeatureFlags } from '../auth/index.js'
 import { IS_PROD, serverError } from '../middleware/auth.js'
-import { deleteUserTx, ADMIN_DELETE_BLOCKED } from './admin-users-data.js'
+import { deleteUser, ADMIN_DELETE_BLOCKED } from './admin-users-data.js'
+import { storeAppleRefreshToken } from '../auth/apple-revoke.js'
+import { validate, appleTokenSchema } from '../middleware/validate.js'
 import { getQuota } from '../customLemmaQuota.js'
 import db from '../db.js'
 import logger from '../logger.js'
@@ -158,6 +160,24 @@ router.get('/api/v1/account/stats', requireAuthUser, (req, res) => {
 // nicht mehr gebaut. Sessions laufen ueber die Ablaufzeit aus, und
 // invalidate-all-sessions.js bleibt als Notfallwerkzeug.
 
+// Nativer Apple-Login: die App reicht den authorizationCode nach der Anmeldung
+// nach. Der Server tauscht ihn gegen ein Refresh-Token, damit eine spätere
+// Kontolöschung die Anmeldung bei Apple widerrufen kann (Guideline 5.1.1(v)).
+// Scheitert das, bleibt die Anmeldung gültig – die App ignoriert die Antwort.
+router.post('/api/v1/account/apple-token', requireAuthUser, validate(appleTokenSchema), async (req, res) => {
+  try {
+    const status = await storeAppleRefreshToken(req.user.id, req.body.authorizationCode)
+    if (status !== 'stored') {
+      logger.warn({ userId: req.user.id, status }, 'Apple-Token nicht gespeichert')
+      return res.status(400).json({ error: 'Der Apple-Code passt nicht zu diesem Konto.' })
+    }
+    res.json({ ok: true })
+  } catch (err) {
+    logger.warn({ err: err?.message, userId: req.user.id }, 'Apple-Token-Tausch fehlgeschlagen')
+    res.status(502).json({ error: 'Apple ist gerade nicht erreichbar.' })
+  }
+})
+
 router.delete('/api/v1/account/me', requireAuthUser, (req, res) => {
   try {
     const userId = req.user.id
@@ -170,7 +190,7 @@ router.delete('/api/v1/account/me', requireAuthUser, (req, res) => {
     // session/account räumt SQLite selbst auf: beide Tabellen haben
     // FOREIGN KEY ... ON DELETE CASCADE auf user(id) und db.js setzt
     // PRAGMA foreign_keys = ON — manuelle Deletes sind nicht nötig.
-    deleteUserTx(userId)
+    deleteUser(userId)
     // Session-Cookie löschen
     res.clearCookie('better-auth.session_token', { httpOnly: true, secure: IS_PROD, sameSite: 'lax', path: '/' })
     logger.info({ userId }, 'Account gelöscht')

@@ -79,6 +79,28 @@ describe('runInactiveAccounts', () => {
     expect(gewarnt(admin)).toBe(null)
   })
 
+  it('Käuferkonten werden weder gewarnt noch gelöscht, erstattete Käufe zählen nicht', async () => {
+    const kaeufer = konto({ lastActiveMs: NOW - 3 * INACTIVE_DAYS * TAG })
+    const erstattet = konto({ lastActiveMs: faellig })
+    const zahlung = (id, userId, status) => db.prepare(
+      `INSERT INTO payments (id, user_id, amount, currency, status, product, processed_at) VALUES (?, ?, '9.00', 'EUR', ?, 'gesamtausgabe', ?)`,
+    ).run(id, userId, status, NOW)
+    zahlung(`tr_${kaeufer}`, kaeufer, 'paid')
+    zahlung(`tr_${erstattet}`, erstattet, 'refunded')
+    // Bereits gewarnt (z. B. Kauf nach altem Stand) darf trotzdem nicht gelöscht werden
+    db.prepare('UPDATE user_activity SET inactivity_warned_at = ? WHERE user_id = ?').run(iso(NOW - 60 * TAG), kaeufer)
+
+    try {
+      const sendMail = nurMeine()
+      await runInactiveAccounts({ now: NOW, sendMail, mailReady: true })
+      expect(gibtEs(kaeufer)).toBe(true)
+      expect(sendMail.mock.calls.some((c) => c[0].to === `${kaeufer}@inaktiv.test`)).toBe(false)
+      expect(sendMail.mock.calls.some((c) => c[0].to === `${erstattet}@inaktiv.test`)).toBe(true)
+    } finally {
+      db.prepare('DELETE FROM payments WHERE id IN (?, ?)').run(`tr_${kaeufer}`, `tr_${erstattet}`)
+    }
+  })
+
   it('ohne verschickte Warnung keine Löschung', async () => {
     const id = konto({ lastActiveMs: NOW - 3 * INACTIVE_DAYS * TAG })
     await runInactiveAccounts({ now: NOW, sendMail: async () => null, mailReady: true })

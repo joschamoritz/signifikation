@@ -46,7 +46,7 @@ import {
   ensureProfileStmt,
   setUserRoleStmt,
   getUsersByIdsStmt,
-  deleteUserTx,
+  deleteUser,
   adminUsersStatsStmt,
   toCsvCell,
 } from './admin-users-data.js'
@@ -103,7 +103,7 @@ router.use(createAdminUsersRouter({
   ensureProfileStmt,
   setUserRoleStmt,
   getUsersByIdsStmt,
-  deleteUserTx,
+  deleteUser,
   adminUsersStatsStmt,
   toCsvCell,
   auditUpdate,

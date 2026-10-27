@@ -75,7 +75,7 @@ export function createAdminUsersRouter(deps) {
     ensureProfileStmt,
     setUserRoleStmt,
     getUsersByIdsStmt,
-    deleteUserTx,
+    deleteUser,
     adminUsersStatsStmt,
     toCsvCell,
     auditUpdate,
@@ -253,7 +253,7 @@ export function createAdminUsersRouter(deps) {
         return res.status(403).json({ error: ADMIN_GESCHUETZT_FEHLER })
       }
 
-      deleteUserTx(userId)
+      deleteUser(userId)
 
       auditDelete('user', userId, {
         email: existing.email,
@@ -323,7 +323,7 @@ export function createAdminUsersRouter(deps) {
         const deleted = []
         for (const user of bearbeitbar) {
           try {
-            deleteUserTx(user.id)
+            deleteUser(user.id)
           } catch (err) {
             // Zentraler Schutz in deleteUserTx: wie ein vorab gefiltertes Admin-Konto behandeln
             if (err?.code !== ADMIN_DELETE_BLOCKED) throw err

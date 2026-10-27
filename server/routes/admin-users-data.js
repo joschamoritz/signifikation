@@ -1,4 +1,5 @@
 import db from '../db.js'
+import { collectAppleTokens, revokeAppleTokens } from '../auth/apple-revoke.js'
 
 export const countUsersStmt = db.prepare(`
   SELECT COUNT(*) AS total
@@ -213,6 +214,17 @@ export const deleteUserTx = db.transaction((userId) => {
   deleteClassroomSessionsByTeacherStmt.run(userId)
   deleteUserStmt.run(userId)
 })
+
+// Konto löschen und Sign in with Apple bei Apple widerrufen (Guideline 5.1.1(v)).
+// Die Tokens werden vor dem Löschen eingesammelt (danach sind sie per CASCADE
+// weg) und erst nach erfolgreicher Löschung widerrufen – ein geschütztes
+// Admin-Konto bleibt also auch bei Apple angemeldet. Der Widerruf läuft im
+// Hintergrund und kann die Löschung nicht mehr kippen.
+export function deleteUser(userId) {
+  const appleTokens = collectAppleTokens(userId)
+  deleteUserTx(userId)
+  if (appleTokens.length) void revokeAppleTokens(appleTokens)
+}
 
 export const adminUsersStatsStmt = db.prepare(`
   SELECT
