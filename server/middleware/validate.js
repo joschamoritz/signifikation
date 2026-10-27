@@ -124,12 +124,16 @@ export const datumQuerySchema = z.object({
   datum: DATUM_ISO.optional(),
 })
 
+// Links erscheinen in der App (Tag-Editor und Wort der Woche): nur leer oder http(s)://…
+const LINK_HTTP = z.string().trim().max(500, 'Der Link darf höchstens 500 Zeichen lang sein.')
+  .regex(/^(https?:\/\/\S+)?$/i, 'Der Link muss mit http:// oder https:// beginnen.')
+
 /** POST /admin/tag */
 export const adminTagSchema = z.object({
   datum:                DATUM_ISO,
   woerter:              z.array(z.string().min(1).max(100)).length(3, 'genau 3 Wörter erforderlich'),
   notizen:              z.array(z.string().max(500)).optional().default([]),
-  links:                z.array(z.string().max(500)).optional().default([]),
+  links:                z.array(LINK_HTTP).optional().default([]),
   definitionen:         z.array(z.string().max(2000)).optional().default([]),
   positionen:           z.array(POS).optional().default([]),
   thema:                z.string().max(200).optional().default(''),
@@ -138,10 +142,10 @@ export const adminTagSchema = z.object({
   zwilling_paar:        z.union([z.array(z.string().max(100)).length(2), z.null()]).optional().default(null),
   zwilling_pos:         POS,
   zwilling_notiz:       z.string().max(500).optional().default(''),
-  zwilling_link:        z.string().max(500).optional().default(''),
+  zwilling_link:        LINK_HTTP.optional().default(''),
   zeitenwende_lemma:    z.string().max(100).optional().default(''),
   zeitenwende_notiz:    z.string().max(500).optional().default(''),
-  zeitenwende_link:     z.string().max(500).optional().default(''),
+  zeitenwende_link:     LINK_HTTP.optional().default(''),
   lueckenfueller_id:    z.string().max(120).optional().default(''),
 })
 
@@ -470,10 +474,7 @@ export const iapRestoreSchema = z.object({
 
 const ISO_WOCHE = z.string().regex(/^\d{4}-W\d{2}$/, 'woche muss ISO-Format haben: YYYY-Www')
 
-// Links im Wort der Woche erscheinen in der App: nur leer oder http(s)://…
-const SPEZIAL_LINK = z.string().trim().max(500, 'Der Link darf höchstens 500 Zeichen lang sein.')
-  .regex(/^(https?:\/\/\S+)?$/i, 'Der Link muss mit http:// oder https:// beginnen.')
-  .optional().default('')
+const SPEZIAL_LINK = LINK_HTTP.optional().default('')
 
 /** POST /admin/spezialwoche */
 export const adminSpezialwocheSchema = z.object({

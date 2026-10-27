@@ -208,6 +208,8 @@ const PARENT_WERKZEUGE = { hash: '#werkzeuge', label: 'Werkzeuge', area: 'werkze
 const PARENT_NUTZER = { hash: '#nutzer', label: 'Nutzer', area: 'nutzer' }
 // better-auth-IDs: Buchstaben, Ziffern, '-' (32–61 Zeichen); '_' vorsorglich mit erlaubt.
 const NUTZER_ID_RE = /^[A-Za-z0-9_-]{1,128}$/
+// Links im Tag-Editor: wie LINK_HTTP in server/middleware/validate.js
+const LINK_HTTP = /^https?:\/\/\S+$/i
 const kontoHash = (id) => `#nutzer/${encodeURIComponent(id)}`
 
 // Startseite je Bereich (Pfad ohne '#'). Unbekannte Unterrouten eines Bereichs
@@ -3342,6 +3344,19 @@ async function saveTag() {
     fehlend.forEach(([id, name]) => setzeFeldFehler(id, `${name} fehlt.`))
     document.getElementById(fehlend[0][0])?.focus()
     return setStatus(`Nicht gespeichert: Es ${fehlend.length === 1 ? 'fehlt' : 'fehlen'} ${aufzaehlung(fehlend.map(([, name]) => name))}.`, 'error')
+  }
+
+  // Links erscheinen in der App: nur leer oder http(s)://… (wie beim Wort der Woche).
+  // Die Felder liegen in zugeklappten Bereichen, deshalb vorher aufklappen.
+  const falscheLinks = [['l1', l1, 'koll-extras-1'], ['l2', l2, 'koll-extras-2'], ['l3', l3, 'koll-extras-3'], ['wz-link', wzLink, 'wz-extras'], ['zw-link', zwLink, 'zw-extras']]
+    .filter(([, wert]) => wert && !LINK_HTTP.test(wert))
+  if (falscheLinks.length) {
+    falscheLinks.forEach(([id, , bereich]) => {
+      showExtraFields(bereich)
+      setzeFeldFehler(id, 'Der Link muss mit http:// oder https:// beginnen.')
+    })
+    document.getElementById(falscheLinks[0][0])?.focus()
+    return setStatus('Nicht gespeichert: Ein Link muss mit http:// oder https:// beginnen.', 'error')
   }
 
   // Speichern ersetzt einen bestehenden Tag, wenn das Datum nicht der geladene Tag ist

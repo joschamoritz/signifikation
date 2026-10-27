@@ -526,7 +526,10 @@ export function createAdminCalendarRouter({
 
       // Erneut prüfen: Das Speicherformat kann sich seit dem Push geändert haben.
       const parsed = adminTagSchema.safeParse(entwurf.tag)
-      if (!parsed.success) return res.status(422).json({ error: 'Entwurf passt nicht mehr zum Speicherformat' })
+      if (!parsed.success) {
+        const grund = parsed.error.errors[0]?.message
+        return res.status(422).json({ error: `Entwurf passt nicht mehr zum Speicherformat${grund ? `: ${grund}` : ''}` })
+      }
 
       // Erst speichern, dann abschließen: Scheitert das Speichern, bleibt der
       // Entwurf offen und kann erneut übernommen werden.
