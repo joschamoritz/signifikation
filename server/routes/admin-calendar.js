@@ -6,9 +6,10 @@ import { ergaenzeLueckenfueller, ermittleLueckenfuellerId, findeLueckenfuellerLe
 // Fenster würde den Tag doppelt speichern. Ein Node-Prozess → ein Set genügt.
 const laufendeUebernahmen = new Set()
 
-// Lückenfüller-Prüfung und -Erzeugung rechnen 8–11 s auf dem einen Node-Prozess (synchrones
-// better-sqlite3) und halten in dieser Zeit den ganzen Server an. Höchstens eine davon
-// gleichzeitig: Prüfen, Runden erzeugen und „Runden für ein Lemma“ teilen sich EINE Sperre;
+// Lückenfüller-Prüfung und -Erzeugung rechnen beim ersten Aufruf 8–15 s. Seit 2026-10-27 im
+// Worker-Thread (lueckenfuellerImWorker.js, von admin.js übergeben), der Server läuft weiter. Der Worker
+// arbeitet die Aufträge nacheinander ab; damit sich keine Schlange bildet, höchstens eine Prüfung
+// gleichzeitig: Prüfen und Runden erzeugen teilen sich EINE Sperre;
 // wer sie nicht bekommt, erhält 409. Freigabe nur durch den Starter (Token-Vergleich).
 // Das automatische Ergänzen beim Speichern eines Tages (ergaenzeLueckenfueller) ist bewusst nicht gesperrt.
 let lueckenfuellerSperre = null

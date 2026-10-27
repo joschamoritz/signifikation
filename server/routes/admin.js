@@ -2,7 +2,7 @@ import express          from 'express'
 import { fileURLToPath } from 'url'
 import { dirname, join }  from 'path'
 import { fetchLemma, fetchKollokatorenAnalyse, MIN_KOLLOKATOREN, fetchBonusQuestion, fetchRelation, fetchZeitenwende, fetchZeitenwendeAnalyze, lemmaExistsInWortprofil, toId } from '../wortprofil.js'
-import { buildLueckenfueller } from '../lueckenfueller.js'
+import { buildLueckenfuellerImWorker, leereLueckenfuellerWorkerCache } from '../lueckenfuellerImWorker.js'
 import { fetchBelege } from '../belege.js'
 import { fetchWiktionary } from '../wiktionary.js'
 import { fetchWortZwilling } from '../wortzwilling.js'
@@ -145,7 +145,10 @@ router.use(createAdminOpsRouter({
   getCacheMetrics,
   getQueryCacheMetrics,
   clearQueryCache,
-  leereLueckenfuellerCache,
+  leereLueckenfuellerCache: () => {
+    leereLueckenfuellerCache()
+    leereLueckenfuellerWorkerCache()
+  },
   fetchRelation,
   DATA,
   adminError,
@@ -183,7 +186,8 @@ router.use(createAdminCalendarRouter({
   fetchWiktionary,
   fetchWortZwilling,
   buildModeGroups,
-  buildLueckenfueller,
+  // Im Worker-Thread: Die Berechnung braucht beim ersten Aufruf 8–15 s und hielt sonst den Server an
+  buildLueckenfueller: buildLueckenfuellerImWorker,
   toId,
   saveTagAtomically,
   auditCreate,
