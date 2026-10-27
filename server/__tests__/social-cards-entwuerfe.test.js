@@ -12,7 +12,7 @@ import db from '../db.js'
 import { baueEntwuerfe, gehoertZumPlan, kalenderwoche, kurzQuelle, slotsAm, verschiebeDatum } from '../socialCards/entwuerfe.js'
 import { belegLueckentext, belegLueckenwort, zeichenZahl, BLUESKY_MAX_ZEICHEN } from '../../shared/socialCards.js'
 import { ladeEntwuerfe, setzeStatus, speichereEntwuerfe } from '../socialCards/store.js'
-import { erzeugeEntwuerfe, erneuereEntwurf, bildPfad, kleinDatei } from '../jobs/socialCardDrafts.js'
+import { erzeugeEntwuerfe, erneuereEntwurf, bildPfad, kleinDatei, legeEigenenEntwurfAb } from '../jobs/socialCardDrafts.js'
 import { KLEIN_BREITE, mitZeitlimit } from '../socialCards/render.js'
 
 // 2099-03-01 = Sonntag, 03-02 Montag … 03-07 Samstag (KW 10, gerade → Beleg), 03-14 Samstag (KW 11 → Zitat)
@@ -467,6 +467,53 @@ describe('erzeugeEntwuerfe / erneuereEntwurf', () => {
     // gelöschter Entwurf: kein Bild, kein Zeichnen
     db.prepare('DELETE FROM social_card_entwurf WHERE id = ?').run(e.id)
     expect(await bildPfad({ ...e, bild: null }, { bildDir, createRenderer: verboten })).toBeNull()
+  })
+
+  // ── Als Entwurf ablegen (Platz E) ──
+  const raetselSpec = { format: 'A', theme: 'hell', ratio: '4:5', header: true, data: { lemma: 'Gedächtnis', pos: 'Substantiv', options: [{ text: 'kurz' }, { text: 'kollektiv', correct: true }, { text: 'gut' }] } }
+  const eigen = (extra = {}) => ({ datum: DI, spec: raetselSpec, caption: 'Mein Rätsel', hashtags: '#Linguistik', mitAufloesung: true, ...extra })
+
+  it('Als Entwurf ablegen: Platz E plus Auflösung am Folgetag, Bild gezeichnet, Plan bleibt unberührt', async () => {
+    await erzeugeEntwuerfe({ heute: SO, tage: 7, deps: deps(), createRenderer: fakeRenderer, bildDir })
+    const r = await legeEigenenEntwurfAb(eigen(), { deps: deps(), createRenderer: fakeRenderer, bildDir })
+    expect(r).toMatchObject({ ok: true, bildFehlt: false, wocheFreigegeben: 0 })
+    expect(r.entwuerfe.map((e) => `${e.datum}|${e.slot}`)).toEqual([`${DI}|E`, `${MI}|E-aufloesung`])
+    const [e, a] = r.entwuerfe.map((x) => ladeEntwuerfe(x.datum, x.datum).find((y) => y.id === x.id))
+    expect(e).toMatchObject({ caption: 'Mein Rätsel', hashtags: '#Linguistik', status: 'offen' })
+    expect(e.spec).toMatchObject({ format: 'A', datum: DI, reveal: false })
+    expect(a.spec).toMatchObject({ datum: MI, reveal: true })
+    // Gedächtnis ist am Donnerstag erneut geplant → Archivseite gesperrt → kein Link
+    expect(a.caption).toBe('Auflösung: Am stärksten mit „Gedächtnis“ verbunden ist „kollektiv“ (B).')
+    expect(a.hashtags).toBe('')
+    expect(existsSync(join(bildDir, e.bild))).toBe(true)
+    // Das Rätsel des Plans am selben Tag steht weiter da, und der nächste Lauf räumt den eigenen Entwurf nicht ab
+    expect(ladeEntwuerfe(DI, DI).map((x) => x.slot).sort()).toEqual(['A', 'E'])
+    expect((await erzeugeEntwuerfe({ heute: SO, tage: 7, deps: deps(), createRenderer: fakeRenderer, bildDir })).entfernt).toBe(0)
+    // „Neu erstellen“ gibt es für eigene Entwürfe nicht
+    expect(await erneuereEntwurf(e, { deps: deps(), createRenderer: fakeRenderer, bildDir })).toMatchObject({ ok: false })
+  })
+
+  it('Als Entwurf ablegen: belegter Platz nur mit ersetzen, entschiedener gar nicht; ohne neue Auflösung fällt die alte weg', async () => {
+    const opts = { deps: deps(), createRenderer: fakeRenderer, bildDir }
+    await legeEigenenEntwurfAb(eigen(), opts)
+    expect(await legeEigenenEntwurfAb(eigen({ caption: 'Neu' }), opts)).toMatchObject({ ok: false, ersetzbar: true })
+    const zitat = { datum: DI, spec: { format: 'X', data: { subtype: 'Wortgeschichte', headline: 'Titel', body: 'Text' } }, caption: 'Zitat', hashtags: '' }
+    const r = await legeEigenenEntwurfAb(zitat, { ...opts, ersetzen: true })
+    expect(r.ok).toBe(true)
+    expect(ladeEntwuerfe(DI, MI).filter((x) => x.slot.startsWith('E')).map((x) => [x.slot, x.caption])).toEqual([['E', 'Zitat']])
+    setzeStatus(r.entwuerfe[0].id, 'freigegeben')
+    expect(await legeEigenenEntwurfAb(zitat, { ...opts, ersetzen: true })).toMatchObject({ ok: false, ersetzbar: false })
+    // Woche zählt Freigegebene (ohne Auflösungen)
+    expect((await legeEigenenEntwurfAb({ ...zitat, datum: DO }, opts)).wocheFreigegeben).toBe(1)
+  })
+
+  it('Als Entwurf ablegen: Beleg-Auflösung nennt die Wortform; ohne Lösung gibt es einen klaren Fehler', async () => {
+    const beleg = { datum: SA, spec: { format: 'B', data: { quoteText: 'Das ______ Gedächtnis einer Zeit.', collocate: 'kollektive', quelle: 'Roman (1890) · DTA' } }, caption: 'Welches Wort fehlt?', hashtags: '', mitAufloesung: true }
+    const r = await legeEigenenEntwurfAb(beleg, { deps: deps(), createRenderer: fakeRenderer, bildDir })
+    expect(ladeEntwuerfe(SO2, SO2).find((x) => x.slot === 'E-aufloesung').caption).toMatch(/^Gesucht war „kollektive“/)
+    expect(r.ok).toBe(true)
+    await expect(legeEigenenEntwurfAb({ ...beleg, datum: FR, spec: { format: 'B', data: { quoteText: 'ohne Lösung' } } }, { deps: deps(), createRenderer: fakeRenderer, bildDir }))
+      .rejects.toThrow(/Für die Auflösung fehlen/)
   })
 
   it('bildPfad: fehlen mehrere Bilder (Ordner geleert), zeichnet der erste Abruf alle in einem Browserlauf', async () => {

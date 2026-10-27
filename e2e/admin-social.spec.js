@@ -362,3 +362,30 @@ test('Selbst gestalten: Rückmeldungen erscheinen bei dem Knopf, der sie auslös
   await page.locator('#so-text').fill('kurz')
   await expect(page.locator('#so-text')).not.toHaveAttribute('aria-invalid', 'true')
 })
+
+test('Selbst gestalten: „Als Entwurf ablegen“ legt einen eigenen Entwurf an, ein zweites Mal fragt vor dem Ersetzen', async ({ page }) => {
+  await loginAsAdmin(page)
+  await page.evaluate(() => { globalThis.location.hash = '#werkzeuge/social-cards/gestalten?vorlage=X' })
+  await expect(page.locator('#so-canvas')).toHaveAttribute('aria-label', /^Info-Karte/)
+  const datum = await page.locator('#so-datum').inputValue()
+  await page.locator('#so-text').fill('Mein eigener Beitrag.')
+  await page.locator('#so-ed-ablegen').click()
+  await expect(page.locator('#so-ed-text-meldung')).toContainText('Als eigener Entwurf für', { timeout: 30_000 })
+
+  // Noch einmal: Platz belegt → Rückfrage, Ersetzen legt neu ab
+  await page.locator('#so-text').fill('Mein geänderter Beitrag.')
+  await page.locator('#so-ed-ablegen').click()
+  await expect(page.locator('#bestaetige-dialog')).toHaveAttribute('open', '')
+  await expect(page.locator('#bestaetige-titel')).toHaveText('Eigenen Entwurf ersetzen?')
+  await page.locator('#bestaetige-ok').focus()
+  await page.keyboard.press('Enter')
+  await expect(page.locator('#so-ed-text-meldung')).toContainText('Als eigener Entwurf für', { timeout: 30_000 })
+
+  // In der Entwurfsliste steht er als „Eigener Beitrag“, ohne „Neu erstellen …“
+  await page.evaluate(() => { globalThis.location.hash = '#werkzeuge/social-cards' })
+  const eintrag = page.locator('.so-entwurf', { has: page.locator('.so-slot', { hasText: /^Eigener Beitrag$/ }) })
+  await expect(eintrag).toHaveCount(1)
+  await expect(eintrag.locator('textarea')).toHaveValue('Mein geänderter Beitrag.')
+  await expect(eintrag.locator('[data-action="so-neu"]')).toHaveCount(0)
+  expect(datum).toMatch(/^\d{4}-\d{2}-\d{2}$/)
+})

@@ -421,6 +421,25 @@ export const adminSocialCardsEntwurfParamsSchema = z.object({
   id: z.coerce.number().int().positive(),
 })
 
+/**
+ * POST /admin/social-cards/entwuerfe/eigen – „Als Entwurf ablegen“ aus dem Editor. Die spec ist die Eingabe für
+ * drawCard (shared/socialCards.js); geprüft werden Format und Darstellung, die Daten zeichnet der Server wie im Editor.
+ */
+export const adminSocialCardsEigenSchema = z.object({
+  datum: DATUM_ISO,
+  spec: z.object({
+    format: z.enum(['A', 'B', 'C', 'X', 'T']),
+    theme: z.enum(['hell', 'dunkel', 'rot']).optional().default('hell'),
+    ratio: z.enum(['4:5', '9:16']).optional().default('4:5'),
+    header: z.boolean().optional().default(true),
+    data: z.record(z.unknown()),
+  }),
+  caption: z.string().trim().min(1, 'Der Beitragstext fehlt.').max(2200),
+  hashtags: z.string().trim().max(300).optional().default(''),
+  mitAufloesung: z.boolean().optional().default(false),
+  ersetzen: z.boolean().optional().default(false),
+})
+
 /** POST /admin/social-cards/entwuerfe/:id – Caption und/oder Status */
 export const adminSocialCardsEntwurfPatchSchema = z.object({
   caption: z.string().trim().min(1).max(2200).optional(),

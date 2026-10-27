@@ -10,6 +10,7 @@ const stmts = {
   imFenster:      db.prepare(`SELECT * FROM social_card_entwurf WHERE datum BETWEEN ? AND ? ORDER BY datum, id`),
   ab:             db.prepare(`SELECT * FROM social_card_entwurf WHERE datum >= ? ORDER BY datum, id`),
   holen:          db.prepare(`SELECT * FROM social_card_entwurf WHERE id = ?`),
+  amSlot:         db.prepare(`SELECT * FROM social_card_entwurf WHERE datum = ? AND slot = ?`),
   ohneBild:       db.prepare(`SELECT * FROM social_card_entwurf WHERE bild IS NULL AND status <> 'verworfen' AND datum >= ? ORDER BY datum, id`),
   setzeBild:      db.prepare(`UPDATE social_card_entwurf SET bild = ?, aktualisiert_am = ? WHERE id = ?`),
   setzeCaption:   db.prepare(`UPDATE social_card_entwurf SET caption = ?, aktualisiert_am = ? WHERE id = ? AND status = 'offen'`),
@@ -152,6 +153,35 @@ const _loescheOffeneTx = db.transaction((ids) => ids.map((id) => stmts.offenLoes
 export function loescheOffeneEntwuerfe(ids) {
   return _loescheOffeneTx(ids).map(bildNamen)
 }
+
+/**
+ * Legt eigene Entwürfe (Platz E, ggf. E-aufloesung) an oder ersetzt sie. Belegte Plätze werden nur mit
+ * `ersetzen` überschrieben und nur, solange sie offen und nicht gepostet sind. `entfernen`: weitere
+ * Plätze ('datum|slot'), die beim Ersetzen wegfallen (alte Auflösung, wenn die neue Fassung keine hat).
+ * @returns {{ ok: true, ids: number[], geloescht: string[][] } | { ok: false, belegt: object, ersetzbar: boolean }}
+ *   geloescht: Bildnamen entfernter Entwürfe (für das Aufräumen der Dateien)
+ */
+export const legeEigeneEntwuerfeAb = db.transaction((liste, { ersetzen = false, entfernen = [], jetzt = new Date().toISOString() } = {}) => {
+  const vorhanden = liste.map((e) => zeile(stmts.amSlot.get(e.datum, e.slot))).filter(Boolean)
+  const gesperrt = vorhanden.find((v) => v.status !== 'offen' || stmts.post.get(v.id)?.uri)
+  if (gesperrt) return { ok: false, belegt: gesperrt, ersetzbar: false }
+  if (vorhanden.length && !ersetzen) return { ok: false, belegt: vorhanden[0], ersetzbar: true }
+  for (const e of liste) {
+    if (!stmts.einfuegen.run(params(e, jetzt)).changes) stmts.ersetzeInhalt.run(params(e, jetzt))
+  }
+  const geloescht = []
+  if (ersetzen) {
+    for (const schluessel of entfernen) {
+      const [datum, slot] = schluessel.split('|')
+      const alt = stmts.amSlot.get(datum, slot)
+      if (alt && !stmts.post.get(alt.id)?.uri) {
+        const weg = stmts.offenLoeschen.get(alt.id)
+        if (weg) geloescht.push(bildNamen(weg))
+      }
+    }
+  }
+  return { ok: true, ids: liste.map((e) => stmts.amSlot.get(e.datum, e.slot).id), geloescht }
+})
 
 // ── Veröffentlichte Beiträge ───────────────────────────────────────────────────
 

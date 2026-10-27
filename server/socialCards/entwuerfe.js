@@ -43,7 +43,14 @@ export const SLOTS = {
   'B-aufloesung':  { format: 'B', label: 'Beleg – Auflösung' },
   TB:              { format: 'text', label: 'Textbeleg' },
   'TB-aufloesung': { format: 'text', label: 'Textbeleg – Auflösung' },
+  // Im Editor gestaltet und abgelegt („Als Entwurf ablegen“); das Format steht in der spec
+  E:               { format: null, label: 'Eigener Beitrag' },
+  'E-aufloesung':  { format: null, label: 'Eigener Beitrag – Auflösung' },
 }
+
+/** Eigener Platz je Tag für Entwürfe aus dem Editor, neben dem Wochenplan (Entscheidung Nutzer 2026-10-27). */
+export const EIGENER_SLOT = 'E'
+const istEigenerSlot = (slot) => slot === EIGENER_SLOT || slot === `${EIGENER_SLOT}-aufloesung`
 
 // Wochentag (0 = Sonntag) → Slots, die an diesem Tag ENTSTEHEN; der Samstag hängt
 // an der Kalenderwoche. Die Auflösungen hängen am Rätseltag, damit beide dieselbe
@@ -92,6 +99,8 @@ export function slotsAm(datum) {
 /** Passt ein Entwurf (datum, slot) zum aktuellen Wochenplan? Auflösungen gehören zum Vortag. */
 export function gehoertZumPlan(datum, slot) {
   if (!SLOTS[slot]) return false
+  // Eigene Entwürfe hängen nicht am Plan: Das Aufräumen lässt sie stehen
+  if (istEigenerSlot(slot)) return true
   if (slot.endsWith(AUFLOESUNG)) return slotsAm(verschiebeDatum(datum, -1)).includes(slot.slice(0, -AUFLOESUNG.length))
   return slotsAm(datum).includes(slot)
 }
@@ -286,6 +295,31 @@ async function zitat(datum, lemma, deps) {
   if (!beleg) return []
   const data = { subtype: 'Zitat', xLemma: lemma.lemma, headline: beleg.quelle, body: beleg.text }
   return [entwurf(datum, 'X', { data, meta: { lemma: lemma.lemma } }, { ...data })]
+}
+
+/**
+ * Eigener Entwurf aus dem Editor („Als Entwurf ablegen“) für den Platz E am `datum`. Bei Rätsel und Beleg
+ * kommt auf Wunsch die Auflösung am Folgetag dazu (E-aufloesung, Antwort auf den Beitrag, ohne Hashtags),
+ * mit derselben Caption wie im Wochenplan.
+ * @param {{ datum: string, spec: object, caption: string, hashtags: string, mitAufloesung?: boolean }} eingabe
+ * @param {object} deps { loadKalender, getLemmataIndex } (für den Archivlink in der Rätsel-Auflösung)
+ * @returns {Array<{ datum, slot, spec, caption, hashtags }>}
+ */
+export function baueEigenenEntwurf({ datum, spec, caption, hashtags, mitAufloesung = false }, deps) {
+  const basis = { datum, slot: EIGENER_SLOT, spec: { ...spec, datum, reveal: false }, caption, hashtags }
+  if (!mitAufloesung || !['A', 'B'].includes(spec.format)) return [basis]
+  const folgetag = verschiebeDatum(datum, 1)
+  const d = spec.data || {}
+  let text
+  if (spec.format === 'A') {
+    const richtig = Array.isArray(d.options) ? d.options.find((o) => o?.correct)?.text : null
+    if (!richtig || !d.lemma) throw Object.assign(new Error('Für die Auflösung fehlen Wort oder richtige Antwort.'), { status: 400 })
+    text = raetselAufloesung(d, richtig, archivLink(d.lemma, folgetag, deps))
+  } else {
+    if (!d.collocate || !d.quoteText) throw Object.assign(new Error('Für die Auflösung fehlen Satz oder gesuchtes Wort.'), { status: 400 })
+    text = belegAufloesung({ wortform: d.collocate, voll: String(d.quoteText).replace(/_{3,}/g, d.collocate), quelle: d.quelle || '' })
+  }
+  return [basis, { datum: folgetag, slot: `${EIGENER_SLOT}-aufloesung`, spec: { ...spec, datum: folgetag, reveal: true }, caption: text, hashtags: '' }]
 }
 
 /**

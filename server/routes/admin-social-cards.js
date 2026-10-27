@@ -11,6 +11,7 @@ export function createAdminSocialCardsRouter({
   adminSocialCardsEntwuerfeQuerySchema,
   adminSocialCardsEntwurfParamsSchema,
   adminSocialCardsEntwurfPatchSchema,
+  adminSocialCardsEigenSchema,
   loadKalender,
   loadWortZwilling,
   getLemmataIndex,
@@ -25,9 +26,11 @@ export function createAdminSocialCardsRouter({
   webUrl = () => null,
   erzeugeEntwuerfe,
   erneuereEntwurf,
+  legeEigenenEntwurfAb,
   bildPfad,
   berlinHeute,
   verschiebeDatum,
+  auditCreate,
   auditUpdate,
   adminError,
   entwurfEinstellungen,
@@ -129,6 +132,30 @@ export function createAdminSocialCardsRouter({
         ...entwurfEinstellungen(),
       })
     } catch (err) {
+      adminError(res, err)
+    }
+  })
+
+  // „Als Entwurf ablegen“ aus dem Editor: eigener Platz je Tag neben dem Wochenplan, bei Rätsel und Beleg auf Wunsch
+  // mit Auflösung am Folgetag. Ein belegter Platz wird nur mit `ersetzen` überschrieben (und nur, solange er offen ist).
+  router.post('/admin/social-cards/entwuerfe/eigen', adminLimiter, requireAuth, validate(adminSocialCardsEigenSchema, 'body', { mitFeld: true }), async (req, res) => {
+    const { datum, spec, caption, hashtags, mitAufloesung, ersetzen } = req.body
+    try {
+      if (datum < berlinHeute()) return res.status(400).json({ error: 'Der Tag liegt in der Vergangenheit.', feld: 'datum' })
+      const r = await legeEigenenEntwurfAb({ datum, spec, caption, hashtags, mitAufloesung }, { ersetzen })
+      if (!r.ok) {
+        const wann = r.belegt.datum === datum ? 'diesen Tag' : 'den Folgetag (Auflösung)'
+        return res.status(409).json(r.ersetzbar
+          ? { error: `Für ${wann} gibt es schon einen eigenen Entwurf.`, ersetzbar: true }
+          : { error: `Für ${wann} gibt es schon einen eigenen Entwurf, der ${r.belegt.status === 'offen' ? 'veröffentlicht' : r.belegt.status} ist.` })
+      }
+      for (const e of r.entwuerfe) {
+        auditCreate('social_card_entwurf', String(e.id), { datum: e.datum, slot: e.slot, format: spec.format, eigen: true, ersetzt: ersetzen },
+          { adminKey: req.adminSessionId || 'unknown', ip: req.ip })
+      }
+      res.json(r)
+    } catch (err) {
+      if (err?.status === 400) return res.status(400).json({ error: err.message })
       adminError(res, err)
     }
   })

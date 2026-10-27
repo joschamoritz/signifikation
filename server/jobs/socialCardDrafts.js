@@ -30,11 +30,11 @@ import { loadKalender, getLemmataIndex } from '../store.js'
 import { fetchBelege } from '../belege.js'
 import { fetchKollokatorenAnalyse, MIN_KOLLOKATOREN } from '../wortprofil.js'
 import { createKollokationAnalyse } from '../kollokationAnalyse.js'
-import { baueEntwuerfe, gehoertZumPlan, verschiebeDatum } from '../socialCards/entwuerfe.js'
+import { baueEntwuerfe, baueEigenenEntwurf, gehoertZumPlan, verschiebeDatum, kalenderwoche, EIGENER_SLOT } from '../socialCards/entwuerfe.js'
 import { createCardRenderer } from '../socialCards/render.js'
 import {
   vorhandeneSlots, speichereEntwuerfe, ersetzeEntwurf, ladeEntwuerfe, ladeEntwuerfeAb, ladeEntwurf,
-  entwuerfeOhneBild, setzeBild, loescheAlteEntwuerfe, loescheOffeneEntwuerfe,
+  entwuerfeOhneBild, setzeBild, loescheAlteEntwuerfe, loescheOffeneEntwuerfe, legeEigeneEntwuerfeAb,
 } from '../socialCards/store.js'
 
 const TIMEZONE = 'Europe/Berlin'
@@ -252,6 +252,9 @@ export function erneuereEntwurf(entwurf, {
   bildDir = BILD_DIR,
 } = {}) {
   return exklusiv(async () => {
+    if (entwurf.slot.replace('-aufloesung', '') === EIGENER_SLOT) {
+      return { ok: false, grund: 'Eigene Entwürfe entstehen im Editor („Selbst gestalten“): dort ändern und erneut ablegen.' }
+    }
     const istAufloesung = entwurf.slot.endsWith('-aufloesung')
     const herkunft = istAufloesung ? verschiebeDatum(entwurf.datum, -1) : entwurf.datum
     const basis = entwurf.slot.replace('-aufloesung', '')
@@ -287,6 +290,54 @@ export function erneuereEntwurf(entwurf, {
       bildFehlt = true
     }
     return bildFehlt ? { ok: true, ersetzt, bildFehlt: true } : { ok: true, ersetzt }
+  })
+}
+
+/**
+ * Freigegebene Beiträge (ohne Auflösungen) in der ISO-Kalenderwoche von `datum` – für die Warnung im Editor,
+ * wenn ein eigener Entwurf die drei Beiträge je Woche aus Plan A überschreiten würde.
+ */
+export function freigegebeneInWoche(datum) {
+  const wt = (new Date(`${datum}T12:00:00Z`).getUTCDay() + 6) % 7   // Montag = 0
+  const montag = verschiebeDatum(datum, -wt)
+  const kw = kalenderwoche(datum)
+  return ladeEntwuerfe(montag, verschiebeDatum(montag, 6))
+    .filter((e) => e.status === 'freigegeben' && !e.slot.endsWith('-aufloesung') && kalenderwoche(e.datum) === kw).length
+}
+
+/**
+ * „Als Entwurf ablegen“ aus dem Editor: legt den eigenen Entwurf (Platz E) samt Auflösung am Folgetag
+ * an oder ersetzt einen offenen. Das Bild entsteht danach im selben Lauf wie fehlende Bilder.
+ * @returns {Promise<{ ok: true, entwuerfe: Array<{ id, datum, slot }>, wocheFreigegeben: number, bildFehlt: boolean }
+ *   | { ok: false, belegt: object, ersetzbar: boolean }>}
+ */
+export function legeEigenenEntwurfAb(eingabe, {
+  ersetzen = false,
+  deps = standardDeps(),
+  createRenderer = createCardRenderer,
+  bildDir = BILD_DIR,
+} = {}) {
+  return exklusiv(async () => {
+    const liste = baueEigenenEntwurf(eingabe, deps)
+    // Ohne neue Auflösung fällt eine alte (offene) Auflösung des eigenen Entwurfs weg
+    const aufloesung = `${verschiebeDatum(eingabe.datum, 1)}|${EIGENER_SLOT}-aufloesung`
+    const entfernen = liste.length === 1 ? [aufloesung] : []
+    const r = legeEigeneEntwuerfeAb(liste, { ersetzen, entfernen })
+    if (!r.ok) return r
+    for (const namen of r.geloescht) entferneBilder(bildDir, namen)
+    // Ersetzte Fassung: alte Dateien weg, damit nirgends das alte Bild stehen bleibt
+    for (const id of r.ids) entferneBilder(bildDir, [`entwurf-${id}.png`])
+    let bildFehlt = false
+    if (liste.some((e) => e.spec.format !== 'text')) {
+      const { fehler } = await zeichneFehlende(eingabe.datum, { createRenderer, bildDir })
+      bildFehlt = fehler.some((f) => r.ids.includes(f.id))
+    }
+    return {
+      ok: true,
+      entwuerfe: r.ids.map((id, i) => ({ id, datum: liste[i].datum, slot: liste[i].slot })),
+      wocheFreigegeben: freigegebeneInWoche(eingabe.datum),
+      bildFehlt,
+    }
   })
 }
 

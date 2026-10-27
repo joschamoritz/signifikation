@@ -16,7 +16,7 @@ import db from '../db.js'
 import { speichereEntwuerfe, ladeEntwuerfe, setzeBild, merkePost } from '../socialCards/store.js'
 import { BILD_DIR, kleinDatei } from '../jobs/socialCardDrafts.js'
 import { createAdminSocialCardsRouter } from '../routes/admin-social-cards.js'
-import { validate, adminSocialCardsTagesdataSchema, adminSocialCardsBelegeSchema, adminSocialCardsEntwuerfeQuerySchema, adminSocialCardsEntwurfParamsSchema, adminSocialCardsEntwurfPatchSchema } from '../middleware/validate.js'
+import { validate, adminSocialCardsTagesdataSchema, adminSocialCardsBelegeSchema, adminSocialCardsEntwuerfeQuerySchema, adminSocialCardsEntwurfParamsSchema, adminSocialCardsEntwurfPatchSchema, adminSocialCardsEigenSchema } from '../middleware/validate.js'
 import { zeichenZahl, BLUESKY_MAX_ZEICHEN } from '../../shared/socialCards.js'
 
 const PREFIX = `sc-test-${Date.now()}`
@@ -364,5 +364,89 @@ describe('admin social-cards: Neu erstellen und Änderungsprotokoll', () => {
     } finally {
       await new Promise((resolve) => server.close(resolve))
     }
+  })
+})
+
+describe('admin social-cards: Als Entwurf ablegen', () => {
+  // Router mit Attrappe für die Ablage (die echte zeichnet mit Chromium)
+  const erzeuge = (legeEigenenEntwurfAb) => {
+    const auditCreate = vi.fn()
+    const durch = (req, _res, next) => { req.adminSessionId = 'sitzung-1'; next() }
+    const router = createAdminSocialCardsRouter({
+      requireAuth: durch,
+      adminLimiter: durch,
+      adminBildLimiter: durch,
+      validate,
+      adminSocialCardsTagesdataSchema,
+      adminSocialCardsBelegeSchema,
+      adminSocialCardsEntwuerfeQuerySchema,
+      adminSocialCardsEntwurfParamsSchema,
+      adminSocialCardsEntwurfPatchSchema,
+      adminSocialCardsEigenSchema,
+      legeEigenenEntwurfAb,
+      berlinHeute: () => '2099-05-01',
+      auditCreate,
+      auditUpdate: vi.fn(),
+      adminError: (res, err) => res.status(500).json({ error: err.message }),
+      entwurfEinstellungen: () => ({}),
+      kartenModulPath: '/nicht-benoetigt',
+    })
+    const app = express()
+    app.use(express.json())
+    app.use('/', router)
+    return { app, auditCreate }
+  }
+  const mitServer = async (app, fn) => {
+    const server = await new Promise((resolve) => { const s = app.listen(0, () => resolve(s)) })
+    try { await fn(`http://127.0.0.1:${server.address().port}`) } finally { await new Promise((resolve) => server.close(resolve)) }
+  }
+  const body = (extra = {}) => ({ datum: '2099-05-04', spec: { format: 'A', data: { lemma: 'Haus' } }, caption: 'Text', ...extra })
+  const post = (basis, b) => fetch(`${basis}/admin/social-cards/entwuerfe/eigen`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(b) })
+
+  it('legt ab, schreibt je Entwurf einen Protokolleintrag und reicht die Wochenzahl durch', async () => {
+    const lege = vi.fn(async () => ({ ok: true, entwuerfe: [{ id: 7, datum: '2099-05-04', slot: 'E' }, { id: 8, datum: '2099-05-05', slot: 'E-aufloesung' }], wocheFreigegeben: 3, bildFehlt: false }))
+    const { app, auditCreate } = erzeuge(lege)
+    await mitServer(app, async (basis) => {
+      const res = await post(basis, body({ mitAufloesung: true }))
+      expect(res.status).toBe(200)
+      expect((await res.json()).wocheFreigegeben).toBe(3)
+      expect(lege.mock.calls[0][0]).toMatchObject({ datum: '2099-05-04', mitAufloesung: true, hashtags: '' })
+      expect(lege.mock.calls[0][0].spec).toMatchObject({ theme: 'hell', ratio: '4:5', header: true })
+      expect(auditCreate).toHaveBeenCalledTimes(2)
+      expect(auditCreate.mock.calls[0][2]).toMatchObject({ slot: 'E', eigen: true, ersetzt: false })
+    })
+  })
+
+  it('prüft Format, Text und Datum (nicht in der Vergangenheit)', async () => {
+    const lege = vi.fn()
+    const { app } = erzeuge(lege)
+    await mitServer(app, async (basis) => {
+      expect((await post(basis, body({ spec: { format: 'Q', data: {} } }))).status).toBe(400)
+      expect((await post(basis, body({ caption: '  ' }))).status).toBe(400)
+      const alt = await post(basis, body({ datum: '2099-04-30' }))
+      expect(alt.status).toBe(400)
+      expect(await alt.json()).toEqual({ error: 'Der Tag liegt in der Vergangenheit.', feld: 'datum' })
+      expect(lege).not.toHaveBeenCalled()
+    })
+  })
+
+  it('belegter Platz: 409 mit ersetzbar, entschiedener ohne; fehlende Auflösungsdaten → 400', async () => {
+    const offen = erzeuge(async () => ({ ok: false, belegt: { datum: '2099-05-04', status: 'offen' }, ersetzbar: true }))
+    await mitServer(offen.app, async (basis) => {
+      const res = await post(basis, body())
+      expect(res.status).toBe(409)
+      expect(await res.json()).toEqual({ error: 'Für diesen Tag gibt es schon einen eigenen Entwurf.', ersetzbar: true })
+    })
+    const frei = erzeuge(async () => ({ ok: false, belegt: { datum: '2099-05-05', status: 'freigegeben' }, ersetzbar: false }))
+    await mitServer(frei.app, async (basis) => {
+      const res = await post(basis, body({ ersetzen: true }))
+      expect(res.status).toBe(409)
+      expect((await res.json()).error).toBe('Für den Folgetag (Auflösung) gibt es schon einen eigenen Entwurf, der freigegeben ist.')
+    })
+    const kaputt = erzeuge(async () => { throw Object.assign(new Error('Für die Auflösung fehlen Wort oder richtige Antwort.'), { status: 400 }) })
+    await mitServer(kaputt.app, async (basis) => {
+      const res = await post(basis, body({ mitAufloesung: true }))
+      expect(res.status).toBe(400)
+    })
   })
 })

@@ -2571,6 +2571,7 @@ function protokollSatz(e) {
     case 'bonus_tag:UPDATE': return `Bonus-Tag ${tagText(e.resourceId)} ersetzt: +${anzahlText(a.bonus_count, 'Spiel', 'Spiele')}`
     case 'bonus_tag:DELETE': return `Bonus-Tag ${tagText(e.resourceId)} entfernt`
     case 'demo:UPDATE': return 'Inhalte der Klassenraum-Demo gespeichert'
+    case 'social_card_entwurf:CREATE': return `Eigener Social-Card-Entwurf für ${tagText(a.datum || '')} ${a.ersetzt ? 'ersetzt' : 'abgelegt'}${a.slot === 'E-aufloesung' ? ' (Auflösung)' : ''}`
     case 'social_card_entwurf:UPDATE':
       if (a.neuErstellt) return 'Social-Card-Entwurf neu erstellt (Beitragstext ersetzt)'
       if (a.status && b.status !== a.status) return `Social-Card-Entwurf ${a.status === 'offen' ? 'wieder geöffnet' : a.status}`
@@ -8882,10 +8883,12 @@ const SO_SLOT_LABEL = {
   'B-aufloesung': 'Beleg – Auflösung',
   TB: 'Textbeleg',
   'TB-aufloesung': 'Textbeleg – Auflösung',
+  E: 'Eigener Beitrag',
+  'E-aufloesung': 'Eigener Beitrag – Auflösung',
 }
 // Plätze mit Auflösung am Folgetag; Rätsel/Beleg und ihre Auflösung gehören zusammen
-const SO_MIT_AUFLOESUNG = new Set(['A', 'B', 'TB'])
-const SO_BASIS_MIT_ARTIKEL = { A: 'das Rätsel', B: 'der Beleg', TB: 'der Textbeleg' }
+const SO_MIT_AUFLOESUNG = new Set(['A', 'B', 'TB', 'E'])
+const SO_BASIS_MIT_ARTIKEL = { A: 'das Rätsel', B: 'der Beleg', TB: 'der Textbeleg', E: 'der eigene Beitrag' }
 const soIstAufloesung = (slot) => String(slot).endsWith('-aufloesung')
 const soBasis = (slot) => String(slot).replace('-aufloesung', '')
 const soEl = (id) => document.getElementById(id)
@@ -9021,10 +9024,11 @@ function socialMeta(e) {
   const art = istText ? 'nur Text' : `Bild ${e.spec?.ratio === '9:16' ? '9 : 16' : '4 : 5'}`
   if (soIstAufloesung(e.slot)) {
     const basis = soBasis(e.slot)
-    const was = basis === 'TB' ? 'den Textbeleg' : basis === 'B' ? 'den Beleg' : 'das Rätsel'
+    const was = basis === 'TB' ? 'den Textbeleg' : basis === 'B' ? 'den Beleg' : basis === 'E' ? 'den eigenen Beitrag' : 'das Rätsel'
     return `${art} · Antwort auf ${was} vom ${datumKurz(addTageIso(e.datum, -1))}`
   }
   if (e.slot === 'T') return `${art} · Wörter des Tages`
+  if (e.slot === 'E') return `${art} · ${SO_KARTENART[e.spec?.format] || 'Karte'} aus „Selbst gestalten“`
   const wort = e.spec?.meta?.lemma || e.spec?.data?.xLemma || ''
   return `${art}${wort ? ` · Wort vom Vortag: ${wort}` : ''}`
 }
@@ -9056,7 +9060,7 @@ function socialEntwurfHtml(e) {
       + `<button type="button" class="adm-link" data-action="so-speichern" data-id="${id}"${socialUngespeichert.has(id) ? '' : ' hidden'}>Text speichern${vh}</button>`
       + `<button type="button" class="adm-link" data-action="so-kopieren" data-id="${id}">Text kopieren${vh}</button>`
       + laden
-      + `<button type="button" class="adm-link" data-action="so-neu" data-id="${id}"${neuGesperrt ? ' aria-disabled="true"' : ''}>Neu erstellen …${vh}</button>`
+      + (soBasis(e.slot) === 'E' ? '' : `<button type="button" class="adm-link" data-action="so-neu" data-id="${id}"${neuGesperrt ? ' aria-disabled="true"' : ''}>Neu erstellen …${vh}</button>`)
       + `<button type="button" class="adm-link" data-action="so-verwerfen" data-id="${id}">Verwerfen${vh}</button>`
     : `<button type="button" class="adm-link" data-action="so-kopieren" data-id="${id}">Text kopieren${vh}</button>`
       + laden
@@ -9537,7 +9541,7 @@ function socialGesperrtKlick(knopf) {
   if (knopf.classList.contains('is-busy')) return
   const { action, id } = knopf.dataset
   // Zeichenmodul fehlt: Bild und Text lassen sich nicht erzeugen
-  if (action === 'so-ed-laden' || action === 'so-ed-kopieren') {
+  if (action === 'so-ed-laden' || action === 'so-ed-kopieren' || action === 'so-ed-ablegen') {
     if (!kartenModul) socialEdMeldung(action === 'so-ed-laden' ? 'vorschau' : 'text', 'Das Zeichenmodul ist nicht geladen – ohne es gibt es kein Bild und keinen Text aus der Vorlage. Seite neu laden und noch einmal versuchen.', 'warn', { fokus: true })
     return
   }
@@ -9905,14 +9909,14 @@ function socialEntwurfKartenText(e) {
 // Ohne Zeichenmodul gibt es weder Bild noch Beitragstext aus der Vorlage: Die Knöpfe bleiben fokussierbar, sind aber
 // gesperrt (aria-disabled) und sagen beim Klick, warum – statt eine leere Karte zu laden.
 function socialModulFehlt() {
-  for (const id of ['so-ed-laden', 'so-ed-kopieren']) soEl(id)?.setAttribute('aria-disabled', 'true')
+  for (const id of ['so-ed-laden', 'so-ed-kopieren', 'so-ed-ablegen']) soEl(id)?.setAttribute('aria-disabled', 'true')
   soEl('so-canvas')?.setAttribute('aria-label', 'Keine Vorschau: Zeichenmodul nicht geladen.')
   const masse = soEl('so-karte-masse')
   if (masse) masse.textContent = 'Keine Vorschau'
 }
 
 function socialModulDa() {
-  for (const id of ['so-ed-laden', 'so-ed-kopieren']) {
+  for (const id of ['so-ed-laden', 'so-ed-kopieren', 'so-ed-ablegen']) {
     const k = soEl(id)
     if (k && !k.classList.contains('is-busy')) k.removeAttribute('aria-disabled')
   }
@@ -10063,6 +10067,55 @@ async function socialLaden() {
   socialEdMeldung('vorschau', `Bild gespeichert als ${a.download} (${Math.max(1, Math.round(blob.size / 1024))} KB).`, 'ok')
 }
 
+// „Als Entwurf ablegen“: eigener Platz am gewählten Tag (neben dem Wochenplan), bei Rätsel und Beleg mit Auflösung
+// am Folgetag. Ist der Platz schon belegt und offen, erst fragen; danach die Woche zählen (Plan A: höchstens 3 Beiträge).
+let soAblegenLaeuft = false
+async function socialEdAblegen({ ersetzen = false } = {}) {
+  if (!kartenModul || soAblegenLaeuft) return
+  if (soEl('so-ed-ablegen')?.getAttribute('aria-disabled') === 'true' && !ersetzen) return
+  const fmt = soEd.vorlage
+  const spec = socialEdSpec()
+  const set = soWert('so-tags')
+  const body = {
+    datum: soEd.datum,
+    spec: { ...spec, reveal: false },
+    caption: soWert('so-text').trim(),
+    hashtags: set ? kartenModul.hashtagsFor(set) : '',
+    mitAufloesung: fmt === 'A' || fmt === 'B',
+    ersetzen,
+  }
+  if (!body.caption) {
+    socialEdMeldung('text', 'Nicht abgelegt: Der Beitragstext fehlt.', 'error', { fokus: true })
+    return
+  }
+  soAblegenLaeuft = true
+  setzeKnopfBusy('so-ed-ablegen', 'so-ed-ablegen-text', true, 'Wird abgelegt …')
+  let antwort = null
+  let nochmal = false
+  try {
+    antwort = await holeJson('/admin/social-cards/entwuerfe/eigen', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+  } catch (err) {
+    if (err.status === 409 && err.data?.ersetzbar && !ersetzen) {
+      nochmal = await bestaetige({ frage: 'Eigenen Entwurf ersetzen?', text: `${serverFehlerText(err)} Er ist noch offen und wird durch diese Karte ersetzt.`, aktion: 'Ersetzen' })
+      if (!nochmal) socialEdMeldung('text', 'Nicht abgelegt – der vorhandene Entwurf bleibt.', 'warn')
+    } else {
+      socialEdMeldung('text', `Nicht abgelegt: ${serverFehlerText(err)}`, 'error', { fokus: true })
+    }
+  } finally {
+    soAblegenLaeuft = false
+    setzeKnopfBusy('so-ed-ablegen', 'so-ed-ablegen-text', false, 'Als Entwurf ablegen')
+  }
+  if (nochmal) return socialEdAblegen({ ersetzen: true })
+  if (!antwort) return
+  const tag = datumKurz(body.datum)
+  const mitAufl = antwort.entwuerfe.length > 1 ? ` samt Auflösung am ${datumKurz(addTageIso(body.datum, 1))}` : ''
+  const bild = antwort.bildFehlt ? ' Das Bild ließ sich gerade nicht zeichnen; es entsteht beim Öffnen der Entwürfe.' : ''
+  const woche = antwort.wocheFreigegeben >= 3
+    ? ` In dieser Woche sind schon ${antwort.wocheFreigegeben} Beiträge freigegeben; mit diesem wären es mehr als die geplanten drei.`
+    : ''
+  socialEdMeldung('text', `Als eigener Entwurf für ${tag} abgelegt${mitAufl}. Freigeben unter „Entwürfe“.${bild}${woche}`, woche || bild ? 'warn' : 'ok', { fokus: true })
+}
+
 async function socialEdKopieren() {
   if (!kartenModul) return
   const set = soWert('so-tags')
@@ -10147,6 +10200,7 @@ function socialKlick(knopf) {
     case 'so-ed-laden': return void socialLaden()
     case 'so-ed-mischen': return void socialMischen()
     case 'so-ed-kopieren': return void socialEdKopieren()
+    case 'so-ed-ablegen': return void socialEdAblegen()
     case 'so-ed-text-neu':
       socialTextAktualisieren({ neu: true })
       return void soEl('so-text').focus()

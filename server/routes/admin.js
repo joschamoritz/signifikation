@@ -10,13 +10,13 @@ import { loadKalender, loadDailyContentMaps, loadWortZwilling, getLemmataIndex, 
 import { getCacheMetrics as getQueryCacheMetrics, clearCache as clearQueryCache } from '../query-cache.js'
 import { adminLimiter, adminBildLimiter, loginLimiter } from '../middleware/rateLimiter.js'
 import { requireAuth, adminAuth, adminLogout, adminError, serverError } from '../middleware/auth.js'
-import { validate, adminTagSchema, analyzeKollQuerySchema, analyzeWZQuerySchema, analyzeZWendeQuerySchema, analyzeLueckenfuellerQuerySchema, lueckenfuellerGenerateSchema, adminUsersQuerySchema, adminSetUserRoleSchema, adminUserIdParamsSchema, adminUsersBulkUpdateSchema, adminBulkDeleteCalendarSchema, adminPreviewLemmaSchema, adminEntwurfIdParamsSchema, adminBackupRestoreSchema, adminBackupPruefenSchema, adminBackupSqliteSchema, adminAuswertungSpieleQuerySchema, adminStatsExportQuerySchema, adminAuditLogQuerySchema, adminSocialCardsTagesdataSchema, adminSocialCardsBelegeSchema, adminSocialCardsEntwuerfeQuerySchema, adminSocialCardsEntwurfParamsSchema, adminSocialCardsEntwurfPatchSchema, adminSpezialwocheSchema, adminSpezialwocheParamsSchema, adminClassroomStatsQuerySchema, adminPaymentsSummaryQuerySchema, adminCustomLemmaSummaryQuerySchema, adminRetentionQuerySchema } from '../middleware/validate.js'
+import { validate, adminTagSchema, analyzeKollQuerySchema, analyzeWZQuerySchema, analyzeZWendeQuerySchema, analyzeLueckenfuellerQuerySchema, lueckenfuellerGenerateSchema, adminUsersQuerySchema, adminSetUserRoleSchema, adminUserIdParamsSchema, adminUsersBulkUpdateSchema, adminBulkDeleteCalendarSchema, adminPreviewLemmaSchema, adminEntwurfIdParamsSchema, adminBackupRestoreSchema, adminBackupPruefenSchema, adminBackupSqliteSchema, adminAuswertungSpieleQuerySchema, adminStatsExportQuerySchema, adminAuditLogQuerySchema, adminSocialCardsTagesdataSchema, adminSocialCardsBelegeSchema, adminSocialCardsEntwuerfeQuerySchema, adminSocialCardsEntwurfParamsSchema, adminSocialCardsEntwurfPatchSchema, adminSocialCardsEigenSchema, adminSpezialwocheSchema, adminSpezialwocheParamsSchema, adminClassroomStatsQuerySchema, adminPaymentsSummaryQuerySchema, adminCustomLemmaSummaryQuerySchema, adminRetentionQuerySchema } from '../middleware/validate.js'
 import { auditCreate, auditUpdate, auditDelete, queryAuditLog } from '../audit.js'
 import { ladeOffeneEntwuerfe, ladeEntwurf, entscheideEntwurf } from '../store-entwuerfe.js'
 import { ladeEntwuerfe as ladeSocialEntwuerfe, ladeEntwurf as ladeSocialEntwurf, setzeCaption as setzeSocialCaption, setzeStatus as setzeSocialStatus, ladePost as ladeSocialPost, ladePostsFuer as ladeSocialPostsFuer } from '../socialCards/store.js'
 import { webUrl as blueskyWebUrl, blueskyKonfiguriert } from '../socialCards/bluesky.js'
 import { postenModus, POST_ZEIT as SOCIAL_POST_ZEIT } from '../jobs/socialPosting.js'
-import { erzeugeEntwuerfe as erzeugeSocialEntwuerfe, erneuereEntwurf as erneuereSocialEntwurf, bildPfad as socialBildPfad, berlinHeute, HORIZONT_TAGE as SOCIAL_HORIZONT_TAGE, AUFBEWAHRUNG_TAGE as SOCIAL_AUFBEWAHRUNG_TAGE } from '../jobs/socialCardDrafts.js'
+import { erzeugeEntwuerfe as erzeugeSocialEntwuerfe, erneuereEntwurf as erneuereSocialEntwurf, legeEigenenEntwurfAb as legeEigenenSocialEntwurfAb, bildPfad as socialBildPfad, berlinHeute, HORIZONT_TAGE as SOCIAL_HORIZONT_TAGE, AUFBEWAHRUNG_TAGE as SOCIAL_AUFBEWAHRUNG_TAGE } from '../jobs/socialCardDrafts.js'
 import { verschiebeDatum } from '../socialCards/entwuerfe.js'
 import logger from '../logger.js'
 import { createAdminAuditRouter } from './admin-audit.js'
@@ -235,6 +235,7 @@ router.use(createAdminSocialCardsRouter({
   adminSocialCardsEntwuerfeQuerySchema,
   adminSocialCardsEntwurfParamsSchema,
   adminSocialCardsEntwurfPatchSchema,
+  adminSocialCardsEigenSchema,
   loadKalender,
   loadWortZwilling,
   getLemmataIndex,
@@ -248,9 +249,11 @@ router.use(createAdminSocialCardsRouter({
   webUrl: blueskyWebUrl,
   erzeugeEntwuerfe: () => erzeugeSocialEntwuerfe(),
   erneuereEntwurf: (entwurf) => erneuereSocialEntwurf(entwurf),
+  legeEigenenEntwurfAb: (eingabe, optionen) => legeEigenenSocialEntwurfAb(eingabe, optionen),
   bildPfad: (entwurf, optionen) => socialBildPfad(entwurf, optionen),
   berlinHeute,
   verschiebeDatum,
+  auditCreate,
   auditUpdate,
   adminError,
   entwurfEinstellungen: () => ({
