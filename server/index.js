@@ -234,6 +234,13 @@ app.get('/lehrer', (_req, res) => {
   res.sendFile(join(__dirname, '../public/lehrer.html'))
 })
 
+// Rechtsseiten ohne Endung: In App Store Connect steht die Datenschutz-URL als
+// /datenschutz. Ohne Weiterleitung lieferte der SPA-Fallback dort die
+// Startseite aus – für die App-Prüfung (5.1.1) ein toter Datenschutz-Link.
+for (const seite of ['datenschutz', 'impressum', 'nutzungsbedingungen', 'ueber']) {
+  app.get(`/${seite}`, (_req, res) => res.redirect(301, `/${seite}.html`))
+}
+
 app.use('/api', (_req, res) => {
   res.status(404).json({ error: 'Endpoint nicht gefunden' })
 })
